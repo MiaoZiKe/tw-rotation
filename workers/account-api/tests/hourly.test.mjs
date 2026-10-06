@@ -215,3 +215,45 @@ test('文件：七個新頁面與 hours／hourly／hstat 都寫在 docs/account_
   for (const v of VIEWS_ADDED) assert.ok(doc.includes('`' + v + '`'), '文件沒寫到頁面 ' + v);
   for (const k of ['`hours`', '`hourly`', '`hstat`', 'hstat(day, h, pv, sess, sess_login, mins)']) assert.ok(doc.includes(k), '文件沒寫到 ' + k);
 });
+
+test('stats 起訖日：from／to 讓 rows、e2、hourly、hstat.period 都只算那一段；沒帶 from／to 完全照舊；壞日期／倒過來／太久以前 → 400；非管理者 403', async () => {
+  const { hub } = makeHub(env());
+  const andy = await login(hub, 'andy@example.com');
+  const day = (d, hm, ev, e2) => { clock = tpe(`${d} ${hm}`); return beat(hub, ev, e2 ? { e2 } : {}); };
+  assert.equal((await day('2026-10-01', '09:10', { 'pv:flow': 2, 'ev:session': 1 }, [['flow', 'play', 'rotBack', 3]])).s, 200);
+  assert.equal((await day('2026-10-03', '14:10', { 'pv:flow': 5, 'ev:session': 2 }, [['flow', 'play', 'rotBack', 4]])).s, 200);
+  assert.equal((await day('2026-10-05', '09:10', { 'pv:stock': 7, 'ev:session': 1 }, [['stock', 'view', '2330', 6]])).s, 200);
+  clock = tpe('2026-10-05 20:00');
+  const all = await pj(hub, '/v1/admin/stats', { t: andy, days: 10 });
+  assert.equal(all.s, 200);
+  const base = await pj(hub, '/v1/admin/stats', { t: andy, days: 10, from: undefined });
+  assert.deepEqual(base.j.rows, all.j.rows, '沒帶 from／to：跟只給 days 一樣');
+  const r = await pj(hub, '/v1/admin/stats', { t: andy, from: '2026-10-02', to: '2026-10-04' });
+  assert.equal(r.s, 200);
+  assert.deepEqual([r.j.from, r.j.to], ['2026-10-02', '2026-10-04']);
+  assert.deepEqual(r.j.rows.map((x) => x.day), ['2026-10-03', '2026-10-03'], 'rows 只剩 10-03（10-01、10-05 在區間外）');
+  assert.equal(sum(r.j.rows.filter((x) => x.k.startsWith('pv:')).map((x) => x.n)), 5);
+  assert.deepEqual(r.j.e2.map((x) => [x.page, x.comp, x.n]), [['flow', 'play', 4]], 'e2 依起訖重算：只有 10-03 的那一筆');
+  assert.equal(r.j.hourly[14], 5, 'hourly：10-03 14 時');
+  assert.equal(sum(r.j.hourly), 5);
+  assert.equal(r.j.hstat.period.pv[14], 5);
+  assert.deepEqual([r.j.hstat.period.from, r.j.hstat.period.to], ['2026-10-02', '2026-10-04']);
+  assert.equal(r.j.hstat.today, '2026-10-05');
+  assert.equal(r.j.hours[9], 7, 'hours／hstat.day 永遠是今天，不受起訖影響');
+  const tail = await pj(hub, '/v1/admin/stats', { t: andy, from: '2026-10-03' });
+  assert.equal(tail.j.to, '2026-10-05', 'to 沒帶＝今天');
+  assert.equal(sum(tail.j.rows.filter((x) => x.k.startsWith('pv:')).map((x) => x.n)), 12);
+  const fut = await pj(hub, '/v1/admin/stats', { t: andy, from: '2026-10-03', to: '2027-01-01' });
+  assert.equal(fut.j.to, '2026-10-05', 'to 晚於今天＝今天');
+  const only = await pj(hub, '/v1/admin/stats', { t: andy, to: '2026-10-03' });
+  assert.deepEqual([only.j.from, only.j.to], ['2026-09-04', '2026-10-03'], 'from 沒帶＝to 往前 30 天');
+  const pg = await pj(hub, '/v1/admin/stats', { t: andy, from: '2026-10-01', to: '2026-10-05', page: 'stock' });
+  assert.deepEqual(pg.j.e2.map((x) => x.page), ['stock'], 'page 篩選照舊');
+  for (const bad of [{ from: '2026-13-01' }, { from: '2026-10-05', to: '2026-10-01' }, { from: 'abc' }, { to: 20261001 }, { from: '2024-01-01' }, { from: '2026-02-30', to: '2026-10-05' }]) {
+    const x = await pj(hub, '/v1/admin/stats', { t: andy, ...bad });
+    assert.deepEqual([x.s, x.j.error], [400, 'bad_range'], JSON.stringify(bad));
+  }
+  const eve = await login(hub, 'eve@example.com');
+  assert.equal((await pj(hub, '/v1/admin/stats', { t: eve, from: '2026-10-01', to: '2026-10-05' })).s, 403, '非管理者');
+  assert.equal((await pj(hub, '/v1/admin/stats', { from: '2026-10-01' })).s, 403, '沒帶權杖');
+});

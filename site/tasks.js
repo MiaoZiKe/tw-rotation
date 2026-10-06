@@ -47,7 +47,7 @@
   function render(d, el) {
     if (!d || !d.tasks) {
       el.innerHTML = `<div class="card"><h3>任務板</h3>
-        <p class="hint">還沒有產出 tasks.json（下一次部署就會有）。</p></div>`;
+        <p class="hint">尚無資料。</p></div>`;
       return;
     }
     const q = d.questions || [], b = d.blocked_on_andy || [], bl = d.backlog || [];
@@ -64,10 +64,6 @@
         <div class="row spread"><h2>任務板 <small>Andy 交代的每一件事在哪個狀態</small></h2>
           <span class="pill">更新 ${esc((d.meta || {}).updated || '')}</span></div>
         <div class="linkrow" style="margin-top:10px">${summary(d.tasks)}</div>
-        <p class="hint" style="margin-top:8px">
-          ★ <b>「改完但還沒上線」一律標「改完待驗」，不會標成「已上線」</b> ——
-          沒有部署出去的工作等於沒做，這一條就是在防「我以為做完了但其實沒做全」。
-        </p>
       </div>
 
       ${b.length ? `<div class="card hot" style="margin-top:14px">

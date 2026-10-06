@@ -18,14 +18,14 @@
 (function () {
   'use strict';
   const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
-  const VIEW_NAME = { overview: '總覽', flow: '資金流向', industry: '產業地圖', heatmap: '熱力圖', market: '市場明細', season: '週期統計',
+  const VIEW_NAME = { themes: '題材熱度', etf: 'ETF', explore: '選股策略', overview: '總覽', flow: '資金流向', industry: '產業地圖', heatmap: '熱力圖', market: '市場明細', season: '週期統計',
     delivery: '交付清單', stock: '個股頁', legal: '法律頁', watch: '自選清單', other: '其他' };
   const EV_NAME = { session: '開啟網站（每個分頁一次）', session_login: '登入狀態下開啟網站', login: '登入', logout: '登出',
     search: '搜尋股票', watch_add: '加入自選', watch_remove: '移出自選', watch_tab_new: '新增自選分頁', watch_panel: '打開自選清單',
     stock_tab: '切個股分頁（營收／籌碼…）', k_period: '切 K 線週期', ai_tab: '切 AI 分析面向', open_3d: '打開 3D 剖析圖', zoom: '放大圖表',
     how: '打開「?」說明', theme_toggle: '切深淺色', events_drawer: '打開今日事件', mtf: '四週期同看', indicators: '打開指標設定', draw: '畫線工具', m_seg: '手機切分段' };
   /* 細項事件的元件名（docs/account_analytics.md「細項事件」）*/
-  const COMP_NAME = { view: '被觀看', play: '播放（時間軸）', quad: '象限卡（領先／改善／轉弱／落後）', filter_chain: '篩選：產業鏈', filter_group: '篩選：族群（勾選）',
+  const COMP_NAME = { 'sankey.node': '點資金去向節點', 'sankey.link': '點資金去向連線', 'inst.tab': '切族群×法人分頁', 'inst.group': '點族群×法人族群', ind: '開啟技術指標', 'draw.tool': '使用畫線工具', 'events.link': '點事件連結', 'etf.cat': '點 ETF 類別', 'explore.topic': '選股題目', 'watch.chart': '點走勢圖', 'watch.kline': '切換 K 線', 'support.fab': '打開客服', 'support.tab': '切客服分頁', 'support.faq': '展開常見問題', 'support.send': '送出意見反饋', 'support.mail': '寄信給客服', view: '被觀看', play: '播放（時間軸）', quad: '象限卡（領先／改善／轉弱／落後）', filter_chain: '篩選：產業鏈', filter_group: '篩選：族群（勾選）',
     filter_group_open: '打開族群下拉', filter_top10: '只看前 10 大', filter_clear: '清除篩選', rank_bar: '右側排行長條', clock_group: '輪盤上的族群點',
     heat_tile: '熱力圖方塊', how: '「?」說明', search: '搜尋（只記有搜尋）', zoom: '放大圖表', ai_tab: '切 AI 面向', mtf: '四週期同看', indicators: '指標設定',
     draw: '畫線工具', open_3d: '3D 剖析圖', theme_toggle: '切深淺色', events_drawer: '今日事件', m_seg: '手機切分段', watch_add: '加入自選', watch_remove: '移出自選',
@@ -38,15 +38,208 @@
     if (c.startsWith('kp.')) return 'K 線週期：' + c.slice(3).toUpperCase().replace(/^(\d+)M$/, '$1 分');
     return c;
   };
-  const S = { days: 30, timer: 0, v: null, A: null, page: 'flow', st: null, on: null };
-  const TABS = [['perm', '會員權限', 'admTabPerm'], ['members', '會員管理', 'admTabMembers'], ['traffic', '流量觀測', 'admTabTraffic']];
-  const tabOf = () => { const m = /^#admin\/(perm|members|traffic)\b/.exec(location.hash || ''); return m ? m[1] : 'traffic'; };
+  const S = { days: 30, period: '30', since: '', until: '', tab: 'all', sub: 'all', timer: 0, v: null, A: null, page: 'flow', st: null, on: null };
+  const TABS = [['perm', '會員權限', 'admTabPerm'], ['traffic', '流量觀測', 'admTabTraffic']];   // 2026-10-05：會員管理拿掉（新增會員、逐人微調併進會員權限的會員名單）
+  const tabOf = () => { const m = /^#admin\/(perm|members|traffic)\b/.exec(location.hash || ''); return m ? (m[1] === 'members' ? 'perm' : m[1]) : 'traffic'; };
 
   function css() {
     if (document.getElementById('admCss')) return;
     const s = document.createElement('style'); s.id = 'admCss';
     s.textContent = `
-#v-admin .admgrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--gap-card,14px);margin-top:14px}
+/* ===== 流量觀測 1005 重設計（Andy 10-05：字級照其他分頁、圖表填滿卡片、其餘照 UI 專家設計）=====
+   字級（量自總覽／資金流向／市場明細，1440 實測）：卡標 16/600、副標 13/400、頂部 KPI 24/700 mono、卡內 KPI 18/700 mono、
+   表頭 12/600、表格內文 14、軸字／圖例註 12。版型：三欄格線，第一列 2:1（趨勢＋佔比）、第二列三張長條榜、第三列 2:1（表＋散佈）、第四列 1:2（在線＋會員）；
+   卡片＝flex 直欄，圖區 .cb 吃掉標題以下全部高度（flex:1），資料少時長條列距、直條寬度、表格列高自動放大，不留白。 */
+#v-admin .admgrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));grid-auto-rows:minmax(var(--tr-row,300px),auto);gap:var(--gap-card,12px);margin-top:12px}
+#v-admin.demo::before{content:"示範資料（預覽版專用，正式站不會出現）";display:inline-flex;align-items:center;height:26px;padding:0 10px;margin:12px 0 0;border-radius:999px;font-size:12px;font-weight:600;color:var(--amber,#e0a93a);border:1px solid var(--amber,#e0a93a);background:color-mix(in srgb,var(--amber,#e0a93a) 12%,transparent)}
+#v-admin .admgrid>.s2{grid-column:span 2}
+#v-admin .admgrid>.tall{grid-row:span 1;min-height:var(--tr-row-tall,340px)}
+#v-admin .secttl h2{font-size:var(--fs-h2,20px);font-weight:600}
+#v-admin .trkpi{display:flex;align-items:center;gap:16px;flex-wrap:wrap;padding:14px 16px}
+#v-admin .trkpi .kpis{flex:1 1 560px;display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:12px;margin:0}
+#v-admin .kpis>div{text-align:center;display:flex;flex-direction:column;align-items:center;gap:2px;font-size:13px;color:var(--ink-2);white-space:nowrap}
+#v-admin .kpis b{display:block;font-size:24px;line-height:1.15;font-weight:700;color:var(--ink);font-family:var(--mono);font-variant-numeric:tabular-nums}
+#v-admin .kpis .ic{display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:8px;margin-bottom:2px;background:color-mix(in srgb,currentColor 16%,transparent)}
+#v-admin .kpis .ic svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+#v-admin .trctl{display:flex;align-items:center;gap:8px;flex:none;border-left:1px solid var(--line);padding-left:16px}
+#v-admin .trctl label{font-size:13px;color:var(--ink-2);white-space:nowrap}
+#v-admin .trctl .icobtn{width:32px;padding:0;display:inline-flex;align-items:center;justify-content:center;color:var(--accent,var(--cyan))}
+#v-admin .trctl .icobtn svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+#v-admin .trctl .icobtn.spin svg{animation:trspin .24s ease-out}
+@keyframes trspin{to{transform:rotate(360deg)}}
+@media (prefers-reduced-motion:reduce){#v-admin .trctl .icobtn.spin svg{animation:none}}
+#v-admin .trctl select,#v-admin .trctl button{height:32px;font-size:13px;background:var(--panel-2);color:var(--ink);border:1px solid var(--line-2);border-radius:8px;padding:0 10px;cursor:pointer}
+#v-admin .qtip{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:50%;border:1px solid var(--cyan);color:var(--cyan);font-size:12px;font-weight:700;cursor:help}
+#admBody .admgrid>.card{display:flex;flex-direction:column;min-width:0;padding:14px 16px}
+#admBody .admgrid>.card>h3{display:flex;align-items:center;gap:8px;white-space:nowrap;margin:0;font-size:var(--fs-h3,16px);font-weight:600;line-height:1.3}
+#admBody .admgrid>.card>h3::before{content:"";width:4px;height:14px;border-radius:2px;background:var(--accent,var(--cyan));flex:none}
+#admBody .admgrid>.card>.use{margin:2px 0 10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:help;font-size:13px;line-height:20px;color:var(--ink-2)}
+#admBody .cb{flex:1 1 auto;min-height:0;display:flex;flex-direction:column}
+/* 長條榜：名稱／長條／數字三欄；列高在 30～64 之間隨可用高度長大，多的空間平均分在列間（資料少＝列距變寬，不留底部空白） */
+#admBody .bars{flex:1;display:grid;grid-template-columns:minmax(0,9.5em) minmax(0,1fr) 6em;grid-auto-rows:var(--chart-row-h,32px);align-content:space-evenly;column-gap:12px;align-items:center;font-size:var(--fs-body,14px)}
+#admBody .bars .bl{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:center}
+#admBody .bars .bt{height:var(--chart-bar-h,10px);background:var(--panel-3);border-radius:999px;overflow:hidden}
+#admBody .bars .bt i{display:block;height:100%;border-radius:999px;background:linear-gradient(90deg,color-mix(in srgb,var(--cat-1) 55%,transparent),var(--cat-1))}
+#admBody .bars .bn{font-family:var(--mono);text-align:center;white-space:nowrap;font-variant-numeric:tabular-nums}
+#admBody .bars .bn small{display:inline-block;width:3em;color:var(--ink-2);font-size:12px}
+#admBody .bars button.bl{background:none;border:0;color:var(--ink);font:inherit;padding:0;cursor:pointer;text-decoration:underline dotted var(--ink-3,#7a879c)}
+#admBody .bars button.bl:hover{color:var(--accent,var(--cyan))}
+/* 每天直條：圖區吃滿卡片、y 軸 3 刻度＋淡格線、平均虛線、最高那天標值；天數 ≤ 7 時每根放大並標值與日期 */
+#admBody .dayplot{flex:1;display:flex;gap:8px;min-height:180px}
+#admBody .dayy{display:flex;flex-direction:column;justify-content:space-between;align-items:flex-end;font:12px/1 var(--mono);color:var(--ink-2);min-width:3em}
+#admBody .days{position:relative;flex:1;display:flex;align-items:stretch;gap:3px;border-bottom:1px solid color-mix(in srgb,var(--line) 60%,transparent);border-left:1px solid color-mix(in srgb,var(--line) 60%,transparent);background:linear-gradient(color-mix(in srgb,var(--line) 40%,transparent) 1px,transparent 1px) 0 0/100% 25%}
+#admBody .dayticks{position:relative;height:20px;margin-top:4px;padding-left:calc(3em + 8px)}
+#admBody .dayticks>div{position:relative;height:100%}
+#admBody .dayticks span{position:absolute;top:0;transform:translateX(-50%);font:12px/16px var(--mono);color:var(--ink-2);white-space:nowrap}
+#admBody .days .dc{flex:1;min-width:2px;max-width:var(--day-max,12px);display:flex;flex-direction:column;justify-content:flex-end;align-items:center;margin:0 auto;position:relative}
+#admBody .days.few{gap:var(--day-gap,24px);padding:0 24px}
+#admBody .days.few .dc{max-width:var(--day-max,24px)}
+#admBody .days i{display:block;width:100%;border-radius:4px 4px 0 0;background:linear-gradient(180deg,var(--cat-1),color-mix(in srgb,var(--cat-1) 45%,transparent))}
+#admBody .days .dc.mx i{background:var(--cat-1)}
+#admBody .days .dv{font:600 12px/1 var(--mono);color:var(--ink);margin-bottom:4px;white-space:nowrap}
+#admBody .days .dd{position:absolute;bottom:-20px;font-size:12px;color:var(--ink-2);white-space:nowrap}
+#admBody .days.few{margin-bottom:20px}
+#admBody #admDayBars .dc[data-day]{cursor:pointer}
+#admBody #admDayBars .dc.sel i{background:var(--amber,#e0a93a);box-shadow:0 0 0 1px var(--amber,#e0a93a)}
+#admBody #admDayBars.hov .dc.sel i{opacity:1}
+.daychip{display:inline-flex;align-items:center;gap:8px;margin-left:12px;height:28px;padding:0 4px 0 10px;border-radius:999px;font-size:13px;background:color-mix(in srgb,var(--amber,#e0a93a) 14%,transparent);border:1px solid color-mix(in srgb,var(--amber,#e0a93a) 55%,transparent);color:var(--ink);vertical-align:middle;max-width:100%}
+.daychip .dot{width:8px;height:8px;border-radius:50%;background:var(--amber,#e0a93a);flex:none}
+.daychip b{font-weight:700;white-space:nowrap}.daychip em{font-style:normal;color:var(--ink-2);font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.daychip button{width:22px;height:22px;border-radius:50%;border:0;background:transparent;color:var(--ink-2);font-size:16px;line-height:20px;cursor:pointer;flex:none;padding:0}
+.daychip button:hover{background:var(--panel-3);color:var(--ink)}
+#admBody .days .dc.fut{background:repeating-linear-gradient(135deg,transparent 0 4px,color-mix(in srgb,var(--line) 55%,transparent) 4px 5px);opacity:.7}
+#admBody .days.many{gap:1px}#admBody .days.many .dc{min-width:1px}
+#admBody .days.hrs:not(.few){margin-bottom:20px}#admBody .days.hrs .dd{position:absolute;bottom:-20px;font-size:12px;color:var(--ink-2);white-space:nowrap}
+#admBody .days.hrs .dc{max-width:20px}#admBody .days.hrs.few .dc{max-width:64px}
+#v-admin .trtabs .nbsw>button.dragging{opacity:.4}#v-admin .trtabs .nbsw>button.dropL{box-shadow:inset 3px 0 0 var(--cyan)}#v-admin .trtabs .nbsw>button.dropR{box-shadow:inset -3px 0 0 var(--cyan)}
+#admBody .hrbar{display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end;margin-bottom:6px}#admBody .hrmodes{align-self:flex-start}
+#admBody .days.stk2 .dc{justify-content:flex-end}#admBody .days.stk2 .dc>i{border-radius:0}
+#admBody .hrlg{display:flex;gap:16px;justify-content:center;font-size:12px;color:var(--ink-2);margin-top:22px}#admBody .hrlg i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:6px}
+#admBody .hrnote{font-size:12px;color:var(--ink-3);margin-top:6px}
+#admBody .bigno{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px}#admBody .bigno b{font:700 44px/1 var(--mono)}#admBody .bigno span{font-size:14px;color:var(--ink-2)}#admBody .bigno small{font-size:12px;color:var(--ink-3)}
+#admBody .days .avg{position:absolute;left:0;right:0;border-top:1px dashed var(--ink-3,#7a879c);pointer-events:none}
+#admBody .days .avg b{position:absolute;right:4px;top:-17px;font:12px/1 var(--mono);color:var(--ink-2);font-weight:400;background:var(--panel);padding:0 4px;border-radius:3px}
+#admBody .dayx{display:flex;justify-content:space-between;gap:8px;font-size:12px;color:var(--ink-2);margin-top:6px;padding-left:calc(3em + 8px)}
+#admBody .dayx .dayno{color:var(--ink-3)}
+/* 甜甜圈：外徑隨卡片可用高度放大（160～260）；圖例放圖下方一排，三欄置中 */
+#admBody .cb{container-type:inline-size}
+/* 甜甜圈：左圖右圖例（Andy：圖表資訊在右手邊，圓餅才不會被壓縮）；圖例一列一項＝色塊｜名稱｜數量｜占比，數字欄右對齊不截斷；卡寬 < 420px 才退回圖例在下方 */
+#admBody .dn{flex:1;display:flex;flex-direction:row;align-items:center;justify-content:center;gap:20px;min-height:0}
+#admBody .dn svg{flex:0 1 auto;height:100%;min-height:var(--chart-donut,160px);max-height:300px;aspect-ratio:1;width:auto;min-width:0}
+#admBody .dn ul{list-style:none;margin:0;padding:0;display:flex;gap:20px;justify-content:center;font-size:var(--fs-body,14px)}
+#admBody .dn li{display:flex;align-items:center;gap:8px;white-space:nowrap}
+#admBody .dn li i{width:12px;height:12px;border-radius:3px;flex:none}
+#admBody .dn li b{font-family:var(--mono);font-variant-numeric:tabular-nums}
+#admBody .dn li small{color:var(--ink-2);font-size:12px}
+#admBody .sc{flex:1;min-height:200px;position:relative}
+#admBody .sc svg{position:absolute;inset:0;width:100%;height:100%}
+#admBody .sc text{font-size:12px;fill:var(--ink-2)}#admBody .sc text.lb{fill:var(--ink);font-weight:600;paint-order:stroke;stroke:var(--panel);stroke-width:3px}
+#admBody .sc .gl{stroke:var(--line)}
+/* 表格：表頭 12/600、內文 14；包在 .tbw 裡吃滿卡片，列高隨資料量放大；超過 340 高就卷動、表頭黏住 */
+#admBody .tbw{flex:1;min-height:0;display:flex;flex-direction:column;overflow:auto;max-height:var(--tr-tbl-max,340px)}
+#admBody table{width:100%;border-collapse:collapse;flex:1 1 auto}
+#admBody table th,#admBody table td{padding:4px 10px;line-height:1.4;font-size:14px;text-align:center;border-bottom:1px solid var(--line)}
+#admBody table th{font-size:12px;font-weight:600;color:var(--ink-2);white-space:nowrap;position:sticky;top:0;background:var(--panel-3);z-index:1}
+#admBody table td{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:260px}
+#admBody table td:first-child{max-width:none}
+#admBody table.fx{table-layout:fixed}#admBody table.fx td{max-width:none}
+#admBody table tbody tr{height:34px}
+#admBody table td.nm{font-weight:600}
+#admBody table td .mn{font-family:var(--mono);font-variant-numeric:tabular-nums}
+#admBody .chips{display:flex;gap:6px;justify-content:center;flex-wrap:nowrap;overflow:hidden}
+#admBody .chip{display:inline-flex;align-items:center;gap:6px;height:24px;padding:0 8px;border-radius:999px;font-size:12px;white-space:nowrap;color:var(--ink);background:color-mix(in srgb,var(--cat-1) 14%,transparent);border:1px solid color-mix(in srgb,var(--cat-1) 40%,transparent)}
+#admBody .chip:nth-child(2){background:color-mix(in srgb,var(--cat-2) 14%,transparent);border-color:color-mix(in srgb,var(--cat-2) 40%,transparent)}
+#admBody .chip:nth-child(3){background:color-mix(in srgb,var(--cat-3) 14%,transparent);border-color:color-mix(in srgb,var(--cat-3) 40%,transparent)}
+#admBody .chip b{font-family:var(--mono);font-weight:700}
+#admBody .vb{display:flex;align-items:center;gap:8px;justify-content:center}
+#admBody .vb i{display:block;height:8px;border-radius:999px;background:var(--cat-1);min-width:4px}
+#admBody .vb span{flex:0 0 110px;height:8px;background:var(--panel-3);border-radius:999px;overflow:hidden}
+#admBody .vb em{font-style:normal;font-family:var(--mono);min-width:2.5em;text-align:right}
+#admBody .okn{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-bottom:10px}
+#admBody .okn>div{background:var(--panel-3);border-radius:10px;padding:8px 6px;display:flex;flex-direction:column;align-items:center;gap:2px;font-size:12px;color:var(--ink-2)}
+#admBody .okn b{font:700 18px/1.2 var(--mono);color:var(--ink)}
+#admBody .okn>div.live b::before{content:"";display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--cat-1);margin-right:6px;vertical-align:middle}
+#admBody label.tg{margin-top:10px}
+#trDetail .cdgrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--gap-card,12px)}
+#trDetail .cdgrid>div{display:flex;flex-direction:column;min-width:0;min-height:260px}
+#trDetail .cdgrid h3{display:flex;align-items:center;gap:8px;margin:0;font-size:var(--fs-h3,16px);font-weight:600}
+#trDetail .cdgrid h3::before{content:"";width:4px;height:14px;border-radius:2px;background:var(--accent,var(--cyan));flex:none}
+#trDetail .bars{flex:1;display:grid;grid-template-columns:minmax(0,9.5em) minmax(0,1fr) 6em;grid-auto-rows:32px;align-content:space-evenly;column-gap:12px;align-items:center;font-size:14px}
+#trDetail .bars .bl{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:center}
+#trDetail .bars .bt{height:10px;background:var(--panel-3);border-radius:999px;overflow:hidden}
+#trDetail .bars .bt i{display:block;height:100%;border-radius:999px;background:linear-gradient(90deg,color-mix(in srgb,var(--cat-1) 55%,transparent),var(--cat-1))}
+#trDetail .bars .bn{font-family:var(--mono);text-align:center;white-space:nowrap}
+#trDetail .bars button.bl{background:none;border:0;color:var(--ink);font:inherit;padding:0;cursor:pointer;text-decoration:underline dotted var(--ink-3,#7a879c)}
+#trDetail .bars button.bl.on{color:var(--accent,var(--cyan));text-decoration:none;font-weight:700}
+/* 管理區 1005：開放功能表的分類卡改成「欄流」排版（CSS columns）—— 每欄由上往下接著排、高度各依內容，不再因為同列拉齊而在短卡下方留一大片空白；字級照其他分頁（卡標 16/600、列名 14） */
+#v-admin .pmcats.pmcards{display:block;column-gap:12px;margin-top:10px}
+#v-admin .pmcats.pmcards>.pmcat.brk{break-before:column}
+#v-admin .pmcats.pmcards>.pmcat{break-inside:avoid;-webkit-column-break-inside:avoid}
+#v-admin .pmcats.pmcards>.pmcat.card{break-inside:avoid;margin:0 0 12px;display:block}
+#v-admin .pmcards .pmcat.card .pmcathd h3{font-size:var(--fs-h3,16px);font-weight:600}
+#v-admin .pmcards .pmcat.card .pmcathd h3 small{font-size:12px}
+#v-admin .pmcats .pmrow .pmtx b{font-size:14px;font-weight:500}
+/* ===== 流量觀測：分頁式統計（2026-10-05 Andy 新規格）===== */
+#v-admin{--pgL:60%}
+html[data-theme="light"] #v-admin{--pgL:40%}
+#v-admin .trhead{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+#v-admin .trhead .sp{flex:1}
+#v-admin .trhead .trctl{border:0;padding:0}
+#v-admin .trctl input[type=date]{height:32px;font-size:13px;background:var(--panel-2);color:var(--ink);border:1px solid var(--line-2);border-radius:8px;padding:0 8px}
+#v-admin .trctl input[hidden],#v-admin .trctl .trto[hidden]{display:none}#v-admin .trctl .trto{color:var(--ink-2)}
+#v-admin .trctl{flex-wrap:wrap;min-width:0;max-width:100%}#v-admin .trctl input[type=date]{width:136px;min-width:0}
+@media (max-width:640px){#v-admin .trhead .trctl{width:100%}#v-admin .trctl input[type=date]{flex:1 1 110px}}
+#v-admin .admgrid.trpair,#v-admin .admgrid.trtop{grid-template-columns:minmax(0,3fr) minmax(0,2fr);margin-top:12px}
+#v-admin .admgrid.trtop>.s2{grid-column:auto}
+#v-admin .admgrid.trpair:first-child{margin-top:0}
+#v-admin .trtabs{padding:0;overflow:visible}
+#v-admin .trtabs>#trTabsBox{padding:12px 16px 0}
+#v-admin .trtabs>#trPageBody{padding:0 16px 16px;border-top:1px solid var(--line-2)}
+#v-admin .trtabs .nbsw .tdot,#v-admin .trtabs .nbsw.lv2 .tdot{display:inline-block;width:9px;height:9px;border-radius:3px;flex:none}
+#v-admin .trtabs .nbsw em{margin-left:4px}
+#v-admin .admgrid.trusers{grid-auto-rows:minmax(var(--tr-row,300px),auto)}
+#v-admin .admgrid.trone{margin-top:12px}#v-admin .admgrid.trone>.card{grid-column:1/-1}
+#admBody .sbody{flex:1;display:flex;gap:24px;align-items:stretch;min-height:240px}#admBody .sbody .bigno{flex:0 0 220px;border-right:1px solid var(--line);padding-right:24px}#admBody .sbody .sch{flex:1;min-width:0;display:flex;flex-direction:column}
+#admBody .dn.clock svg{max-height:320px}
+#v-admin .trusers .tbw{max-height:none}
+#admBody .admgrid>.card>h3,#admBody .admgrid>.card>.use{flex:none}
+#v-admin .trhd{padding-top:12px}
+#v-admin .trhd .nbsw{margin-bottom:0}
+#v-admin .trempty{padding:40px 0;text-align:center}
+#admBody .bars .bt.stk{display:block}
+#admBody .bars .bt.stk>span{display:flex;height:100%;border-radius:999px;overflow:hidden}
+#admBody .bars .bt.stk i{flex:none;height:100%;border-radius:0}
+#admBody .bars .bt.stk i:hover{filter:brightness(1.15)}
+#admBody .bars .bt.stk{cursor:pointer}
+#admBody .dn svg circle.arc[data-p]{cursor:pointer}
+#admBody .dn svg circle.arc[data-p]:hover{opacity:.82}
+#admBody .dn ul.lg{display:flex;flex-direction:column;gap:8px;flex:1 1 0;min-width:190px;max-width:320px;font-size:var(--fs-body,14px);justify-content:center}
+#admBody .dn ul.lg li{display:flex;align-items:center;gap:8px;white-space:nowrap;min-width:0}
+#admBody .dn ul.lg li span{overflow:hidden;text-overflow:ellipsis;flex:1;min-width:0}
+#admBody .dn ul.lg li b{flex:none;min-width:4.2em;text-align:right;font:600 13px var(--mono);color:var(--ink)}
+#admBody .dn ul.lg li small{flex:none;min-width:3.6em;text-align:right;font:12px var(--mono);color:var(--ink-2)}
+@container (max-width:419px){#admBody .dn{flex-direction:column;gap:14px}#admBody .dn svg{flex:1 1 0;height:auto;width:auto}#admBody .dn ul.lg{flex:none;width:100%;max-width:none}}
+#admBody .dn ul.lg li i{width:12px;height:12px;border-radius:3px;flex:none}
+/* 圖表互動：滑過高亮、其餘變淡；浮動提示（#trTip，掛在 body） */
+#trTip{position:fixed;z-index:1400;pointer-events:none;max-width:280px;padding:8px 10px;border-radius:8px;font-size:13px;line-height:1.5;color:var(--ink);background:var(--panel);border:1px solid var(--line-2);box-shadow:0 8px 24px rgba(0,0,0,.3);white-space:nowrap}
+#trTip[hidden]{display:none}
+#trTip b{font-weight:700}
+#v-admin [data-chart] [data-row],#v-admin [data-chart] li[data-k]{transition:opacity .12s ease,filter .12s ease}
+#v-admin [data-chart].hov .dc:not(.hl) i{opacity:.3}
+#v-admin [data-chart].hov .dc.hl i{filter:brightness(1.25)}
+#v-admin [data-chart].hov .bars>[data-row]:not(.hl),#v-admin .bars.hov>[data-row]:not(.hl),#v-admin .hbars.hov>[data-row]:not(.hl){opacity:.35}
+#v-admin .bars.hov>.hl,#v-admin .hbars.hov>.hl{opacity:1}
+#v-admin [data-chart].hov .arc:not(.hl){opacity:.3}
+#v-admin [data-chart].hov .arc.hl{filter:brightness(1.18)}
+#v-admin [data-chart].hov li[data-k]:not(.hl){opacity:.45}
+#v-admin [data-chart].hov .sc circle:not(.hl),#v-admin .sc.hov circle:not(.hl),#v-admin [data-chart].hov .vbars rect:not(.hl){opacity:.25}
+#admBody .sc circle.hl{r:8}
+#v-admin .vbars rect.hl{filter:brightness(1.3)}
+#v-admin .dn svg circle.arc,#v-admin .mdonut svg circle.arc{cursor:default}
+#admBody .dn svg circle.arc[data-p]{cursor:pointer}
+@media (prefers-reduced-motion:reduce){#admBody [data-chart] [data-row],#admBody [data-chart] li[data-k]{transition:none}}
+@media (max-width:1100px){#v-admin .admgrid.trpair,#v-admin .admgrid.trtop{grid-template-columns:minmax(0,1fr)}#v-admin .admgrid{grid-template-columns:repeat(2,minmax(0,1fr))}#v-admin .admgrid>.s2{grid-column:span 2}}
+@media (max-width:820px){#v-admin .trkpi .kpis{grid-template-columns:repeat(3,minmax(0,1fr))}#v-admin .trctl{border-left:0;padding-left:0}#v-admin .admgrid{grid-template-columns:minmax(0,1fr)}#v-admin .admgrid>.s2{grid-column:auto}}
 #v-admin .admgrid3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:var(--gap-card,14px);margin-top:14px}
 #v-admin .card{min-width:0}
 #v-admin h2{margin:0;font-size:18px}#v-admin h3{margin:0 0 2px;font-size:16px}
@@ -54,40 +247,6 @@
 #v-admin .admtop{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
 #v-admin .admtop .sp{flex:1}
 #v-admin .admtop select,#v-admin .admtop button{height:32px;font-size:13.5px;background:var(--panel-2);color:var(--ink);border:1px solid var(--line-2);border-radius:8px;padding:0 10px;cursor:pointer}
-#v-admin .kpis{display:flex;gap:18px;flex-wrap:wrap;margin:4px 0 10px}
-#v-admin .kpis div{font-size:13px;color:var(--ink-2)}#v-admin .kpis b{display:block;font-size:26px;color:var(--ink);font-family:var(--mono)}
-#v-admin .bars{display:grid;grid-template-columns:minmax(0,11em) minmax(0,1fr) auto;gap:6px 10px;align-items:center;font-size:13.5px}
-#v-admin .bars .bl{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-#v-admin .bars .bt{height:14px;background:var(--panel-3);border-radius:4px;overflow:hidden}
-#v-admin .bars .bt i{display:block;height:100%;background:var(--cyan);border-radius:4px}
-#v-admin .bars .bn{font-family:var(--mono);text-align:center;min-width:6.2em;font-variant-numeric:tabular-nums}
-#v-admin .bars button.bl{background:none;border:0;color:var(--ink);text-align:left;font:inherit;padding:0;cursor:pointer;text-decoration:underline dotted var(--ink-3,#7a879c)}
-#v-admin .dayplot{display:flex;gap:6px;flex:1;min-height:170px;margin-top:4px}
-#v-admin .dayy{display:flex;flex-direction:column;justify-content:space-between;align-items:flex-end;font:12px/1 var(--mono);color:var(--ink-2);padding-bottom:0;min-width:3em}
-#v-admin .days{flex:1;display:flex;align-items:flex-end;gap:2px;border-bottom:1px solid var(--line);border-left:1px solid var(--line);background:linear-gradient(var(--line) 1px,transparent 1px) 0 0/100% 50%;padding-top:0}
-#v-admin .days i{flex:1;min-width:2px;max-width:28px;background:var(--violet);border-radius:3px 3px 0 0}
-#v-admin .dayx{display:flex;justify-content:space-between;gap:8px;font-size:12px;color:var(--ink-2);margin-top:4px;padding-left:calc(3em + 6px)}
-#v-admin .dayx .dayno{color:var(--ink-3)}
-/* 流量觀測 1005（Andy：圖表版面重排）：總覽卡＝五格 KPI 平均分寬＋右側期間控制；同排卡同高、卡內內容撐滿；所有表格與 KPI 文字置中 */
-#v-admin .trkpi{display:flex;align-items:center;gap:18px;flex-wrap:wrap}
-#v-admin .trkpi .kpis{flex:1 1 520px;display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:12px;margin:0}
-#v-admin .trctl{display:flex;align-items:center;gap:8px;flex:none;border-left:1px solid var(--line);padding-left:18px}
-#v-admin .trctl label{font-size:13.5px;color:var(--ink-2);white-space:nowrap}
-#v-admin .trctl select,#v-admin .trctl button{height:32px;font-size:13.5px;background:var(--panel-2);color:var(--ink);border:1px solid var(--line-2);border-radius:8px;padding:0 10px;cursor:pointer}
-#v-admin .qtip{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:50%;border:1px solid var(--cyan);color:var(--cyan);font-size:12px;font-weight:700;cursor:help}
-#admBody .admgrid>.card{display:flex;flex-direction:column;min-width:0}
-#admBody .admgrid>.card>h3{display:flex;align-items:center;gap:6px;white-space:nowrap}
-#admBody .admgrid>.card>h3::before{content:"";width:4px;height:14px;border-radius:2px;background:var(--cyan);flex:none}
-#admBody .admgrid>.card>.use{margin:4px 0 10px}
-#admBody .admgrid>.card>.bars,#admBody .admgrid>.card>table,#admBody .admgrid>.card>.donut,#admBody .admgrid>.card>svg.sc{margin-top:auto;margin-bottom:auto}
-#admBody .admgrid>#trDonut .donut{justify-content:center}
-#admBody .kpis>div,#admBody table th,#admBody table td{text-align:center}
-#admBody .bars .bl,#admBody .bars button.bl{text-align:center}
-#admBody .kpis{justify-content:center}
-#admBody table{width:100%;border-collapse:collapse}
-#admBody table th,#admBody table td{padding:5px 8px;line-height:1.4;font-size:13px}
-#admBody table th{white-space:nowrap}
-@media (max-width:820px){#v-admin .trkpi .kpis{grid-template-columns:repeat(3,minmax(0,1fr))}#v-admin .trctl{border-left:0;padding-left:0}}
 #v-admin table{width:100%;border-collapse:collapse;font-size:13.5px}
 #v-admin th,#v-admin td{text-align:left;padding:6px 6px;border-bottom:1px solid var(--line);overflow-wrap:anywhere}
 #v-admin th{color:var(--ink-2);font-weight:500;font-size:12.5px}
@@ -253,6 +412,10 @@
 #v-admin .pmlimb{width:44px;box-sizing:border-box;text-align:center;font:500 13px var(--mono);line-height:20px;padding:0;border-radius:10px;border:1px solid transparent;background:transparent;color:var(--ink-3,#7a879c);opacity:.8;cursor:pointer;white-space:nowrap;overflow:hidden}
 #v-admin .pmlimb:hover,#v-admin .pmlimb[aria-expanded=true]{opacity:1;border-color:var(--line-2)}
 #v-admin .pmlimb.set{opacity:1;color:var(--ink);background:color-mix(in srgb,var(--cyan) 16%,transparent)}
+#v-admin .pmlimb.mixed{opacity:1;color:var(--ink);background:color-mix(in srgb,var(--amber,#e0a93a) 18%,transparent)}
+#v-admin .pmglim{width:auto;min-width:44px;padding:0 8px;flex:none;opacity:1;border-color:var(--line-2)}
+#v-admin .pmglim.dirty{box-shadow:inset 0 0 0 1px var(--amber,#e0a93a)}
+#v-admin .pmgpop{z-index:1500}
 #v-admin .pmlimb.zero{color:#ff6b7a;background:color-mix(in srgb,#ff6b7a 14%,transparent)}
 #v-admin .pmlimb:disabled{cursor:not-allowed}
 #v-admin .pmlimpop{position:absolute;right:0;bottom:calc(100% - 4px);z-index:30;display:flex;align-items:center;gap:6px;padding:6px 8px;font-size:12px;color:var(--ink-2);background:var(--panel);border:1px solid var(--line-2);border-radius:8px;box-shadow:0 6px 18px rgba(0,0,0,.25);white-space:nowrap}
@@ -334,7 +497,7 @@
 #v-admin .ptwrap .ptabs button[role=tab].on{z-index:2;color:var(--ink);background:var(--panel);border-color:var(--line-2);box-shadow:inset 0 3px 0 var(--cyan)}
 #v-admin .ptwrap .ptabs button[role=tab].add{flex:none;width:46px;justify-content:center;padding:0;font-size:22px;font-weight:400}
 #v-admin .ptwrap .ptabs .ptab{position:relative;display:flex;flex:0 1 auto;min-width:0}
-#v-admin .ptwrap .ptabs .ptab>button[role=tab]{width:100%;padding-right:36px;cursor:grab}
+#v-admin .ptwrap .ptabs .ptab>button[role=tab]{width:100%;padding-left:34px;padding-right:34px;justify-content:center;text-align:center;cursor:grab}
 #v-admin .ptwrap .ptabs button.ptmore{position:absolute;z-index:3;right:6px;top:8px;width:26px;height:28px;min-height:0;margin:0;padding:0;display:block;border:0;border-radius:6px;
   background:transparent;color:var(--ink-2);font-size:18px;font-weight:700;line-height:28px;text-align:center;cursor:pointer;opacity:0;transition:opacity .12s}
 #v-admin .ptwrap .ptabs .ptab:hover button.ptmore,#v-admin .ptwrap .ptabs .ptab:focus-within button.ptmore,#v-admin .ptwrap .ptabs button.ptmore[aria-expanded=true]{opacity:1}
@@ -400,7 +563,7 @@
 #v-admin .mchart h4 small{font-weight:400;color:var(--ink-2);margin-left:6px;font-size:12px}
 #v-admin .mchart .empty{padding:6px 0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 #v-admin .mdonut{display:flex;align-items:center;gap:12px;min-width:0}
-#v-admin .mdonut svg{flex:none}
+#v-admin .mdonut svg{flex:none;width:104px;height:104px}#v-admin .mdonut ul{flex:1}
 #v-admin .mdonut ul{list-style:none;margin:0;padding:0;min-width:0;flex:1;font-size:12.5px}
 #v-admin .mdonut li{display:flex;align-items:center;gap:6px;height:21px;white-space:nowrap;min-width:0}
 #v-admin .mdonut li i{flex:none;width:10px;height:10px;border-radius:3px}
@@ -408,13 +571,15 @@
 #v-admin .mdonut li b{margin-left:auto;font-family:var(--mono);font-weight:600;color:var(--ink)}
 #v-admin .mdonut li small{flex:none;width:3.2em;text-align:right;font-family:var(--mono);color:var(--ink-2);font-size:11.5px}
 #v-admin .mdonut+.mdonut{margin-top:8px;padding-top:8px;border-top:1px dashed var(--line)}
-#v-admin .hbars{display:grid;grid-template-columns:minmax(0,9em) minmax(0,1fr) auto;gap:4px 8px;align-items:center;font-size:12.5px}
+#v-admin .hbars{display:grid;grid-template-columns:minmax(0,9em) minmax(0,1fr) auto;gap:6px 8px;align-items:center;font-size:12.5px}
 #v-admin .hbars .bl{min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--ink-2)}
-#v-admin .hbars svg{display:block;width:100%;height:12px}
-#v-admin .hbars rect.tr{fill:var(--panel-3)}#v-admin .hbars rect.v{fill:var(--cyan)}
+#v-admin .hbars svg{display:block;width:100%;height:10px}
+#v-admin .hbars rect.tr{fill:var(--panel-3)}#v-admin .hbars rect.v{fill:var(--cat-1,var(--cyan))}
 #v-admin .hbars .bn{font-family:var(--mono);text-align:right;color:var(--ink);min-width:2.2em}
-#v-admin .vbars{display:block;width:100%;height:110px;border-bottom:1px solid var(--line-2)}
-#v-admin .vbars rect{fill:var(--violet)}#v-admin .vbars rect.z{fill:var(--line-2)}
+#v-admin .vbwrap{display:flex;gap:6px}#v-admin .vby{display:flex;flex-direction:column;justify-content:space-between;align-items:flex-end;font:12px/1 var(--mono);color:var(--ink-2);min-width:2.4em;height:110px}
+#v-admin .vbplot{flex:1;min-width:0;border-bottom:1px solid color-mix(in srgb,var(--line) 60%,transparent);border-left:1px solid color-mix(in srgb,var(--line) 60%,transparent);background:linear-gradient(color-mix(in srgb,var(--line) 40%,transparent) 1px,transparent 1px) 0 0/100% 25%}
+#v-admin .vbars{display:block;width:100%;height:110px}
+#v-admin .vbars rect{fill:var(--cat-1,var(--violet))}#v-admin .vbars rect.z{fill:var(--line-2)}
 #v-admin .vbx{display:flex;justify-content:space-between;font-size:11.5px;color:var(--ink-2);font-family:var(--mono)}
 #v-admin .vbmax{font-size:12px;color:var(--ink-2);white-space:nowrap}
 #v-admin .stt.soon{background:color-mix(in srgb,var(--st-soon) 26%,transparent)}
@@ -474,8 +639,14 @@
 /* 10-05 Andy「會員分頁字體置中，大小 Follow 產業 Map」：範本頁籤蓋掉舊的 15.5px／44px 高，回到 .nbsw 的字級與內距、置中 */
 #v-admin .ptwrap .ptabs button[role=tab]{font-size:13.5px;font-weight:400;height:auto;min-height:0;justify-content:center;text-align:center;padding:var(--sp-1) var(--sp-3) var(--sp-2)}
 #v-admin .ptwrap .ptabs button[role=tab].on{font-weight:700;padding:var(--sp-2) var(--sp-4) var(--sp-2)}
-#v-admin .ptwrap .ptabs .ptab>button[role=tab]{padding-right:32px}
-#v-admin .ptwrap .ptabs button.ptmore{top:50%;transform:translateY(-50%)}
+#v-admin .ptwrap .ptabs .ptab>button[role=tab]{padding-left:32px;padding-right:32px}
+#v-admin .ptwrap .ptabs button.ptmore{top:50%;transform:translateY(-50%);width:18px;height:18px;right:6px;font-size:15px;line-height:18px;border-radius:50%}
+#v-admin .ptwrap .ptabs .ptrn{width:100%;min-width:6em;height:28px;box-sizing:border-box;text-align:center;font:inherit;font-size:13.5px;color:var(--ink);background:var(--panel);border:1px solid var(--cyan);border-radius:6px;padding:0 6px}
+#v-admin .ptwrap.medit>#ptTier{display:none}#v-admin .ptwrap.medit .ptpanel{border-top:1px solid var(--line-2);border-radius:10px}
+#v-admin .pmback{height:32px;font-size:13px;background:var(--panel-2);color:var(--cyan);border:1px solid var(--line-2);border-radius:8px;padding:0 12px;cursor:pointer}
+#v-admin .ptadd{margin:8px 0;flex-wrap:wrap}
+#v-admin .ptpub{margin:10px 2px 4px;font-size:14px}#v-admin .pmsep{width:1px;height:22px;background:var(--line-2);margin:0 4px}#v-admin #pmTuneEmail{width:16em}
+#v-admin .ptmenu .pmwho2{list-style:none;margin:0 0 6px;padding:0 8px;font-size:13px}#v-admin .ptmenu .pmwho2 li{height:24px;white-space:nowrap}#v-admin .ptmenu .pmwho2 a,#v-admin .ptmenu .pmgo{color:var(--cyan)}#v-admin .ptmenu .pmgo{align-self:center;font-size:13px;margin-right:auto}#v-admin .ptmenu .more{color:var(--ink-2)}
 #v-admin .ptwrap .ptabs button[role=tab].add{font-size:18px;padding:0 14px;height:auto}
 #v-admin table.memtbl tbody tr:not(.pmdet)>td.num,#v-admin table.memtbl thead th.num,#v-admin table.memtbl td.c-feat,#v-admin table.memtbl td.c-stk{text-align:center !important}`;
     document.head.appendChild(s);
@@ -487,13 +658,15 @@
   const seenTxt = (ms) => { if (!ms) return '—'; const s = dstr(ms); return s.slice(0, 4) === dstr(Date.now()).slice(0, 4) ? s.slice(5) : s; };
   const nf = (n) => Number(n || 0).toLocaleString('en-US');
 
+  const tp = (html) => ` data-tip="${esc(html)}"`;
   function bars(list, names, total, opt) {
-    if (!list.length) return '<div class="empty">這段期間還沒有紀錄。</div>';
+    if (!list.length) return '<div class="empty">沒有資料</div>';
     const max = Math.max(...list.map((x) => x[1]), 1), o = opt || {};
     const nm = (k) => typeof names === 'function' ? names(k) : (names[k] || k);
-    return `<div class="bars"${o.id ? ` id="${o.id}"` : ''}>` + list.map(([k, n]) => (o.click ? `<button type="button" class="bl" data-k="${esc(k)}" title="${esc(nm(k))}">${esc(nm(k))}</button>` : `<span class="bl" title="${esc(k)}">${esc(nm(k))}</span>`)
-      + `<span class="bt"><i style="width:${(n / max * 100).toFixed(1)}%"></i></span>`
-      + `<span class="bn">${nf(n)}${total ? `<small style="color:var(--ink-2)"> ${(n / total * 100).toFixed(0)}%</small>` : ''}</span>`).join('') + '</div>';
+    return `<div class="bars" data-chart="bars"${o.id ? ` id="${o.id}"` : ''}>` + list.map(([k, n], r) => { const t = tp(`<b>${esc(nm(k))}</b><br>${nf(n)} 次${total ? `・占 ${(n / total * 100).toFixed(1)}%` : ''}`);
+      return (o.click ? `<button type="button" class="bl" data-row="${r}"${t} data-k="${esc(k)}">${esc(nm(k))}</button>` : `<span class="bl" data-row="${r}"${t}>${esc(nm(k))}</span>`)
+      + `<span class="bt" data-row="${r}"${t}><i style="width:${(n / max * 100).toFixed(1)}%"></i></span>`
+      + `<span class="bn" data-row="${r}"${t}>${nf(n)}${total ? `<small style="color:var(--ink-2)"> ${(n / total * 100).toFixed(0)}%</small>` : ''}</span>`; }).join('') + '</div>';
   }
 
   /* ---- 頂部：標題（＋三個子分頁 tab：2026-10-05 起桌機版搬到左側欄「管理區」底下的縮排子項，見 layout4.js syncPerm；
@@ -509,8 +682,113 @@
     const nav = v.querySelector('#admTabs');
     if (nav) nav.onclick = (e) => { const a = e.target.closest('a[data-tab]'); if (a && !guard()) e.preventDefault(); };
   }
+  /* ==========================================================================
+     預覽版示範資料（Andy 10-05：「預覽版本先給我多點數據，先預設目前超破萬次觀看紀錄」）
+     只有網址含 /preview/ 時才啟用（判斷寫死在路徑，正式站一行都不跑）：包住 A.call，把管理區的統計類回應換成示範資料，
+     頁面上方標「示範資料」。寫入類（儲存範本、改權限…）一律照舊打真的 Worker，不攔。
+     ========================================================================== */
+  const IS_PREVIEW = /\/preview\//.test(location.pathname || '');
+  const DEMO = (() => {
+    let seed = 20261005; const rnd = () => { seed = (seed * 1664525 + 1013904223) % 4294967296; return seed / 4294967296; };
+    const END = new Date(Date.now() + 8 * 3600000).toISOString().slice(0, 10), NDAY = 400;      // 示範資料的最後一天＝今天（台北），期間選單與日期欄才對得上
+    const dayKey = (i) => new Date(Date.parse(END + 'T00:00:00Z') - (NDAY - 1 - i) * 86400000).toISOString().slice(0, 10);
+    /* 頁面 30 天瀏覽量（合計約 5.4 萬）；沒有在 Worker 白名單的頁（etf／explore／events／support）示範時直接給 pv，正式站只會有功能次數 */
+    const PAGES = [['flow', 11800], ['stock', 10300], ['overview', 8600], ['industry', 5500], ['heatmap', 4600], ['market', 3900], ['etf', 2200], ['explore', 1900], ['season', 1800], ['watch', 1600], ['events', 1000], ['legal', 320], ['support', 430]];
+    const wsum = PAGES.reduce((s, p) => s + p[1], 0);
+    const W = []; for (let i = 0; i < NDAY; i++) { const dow = new Date(Date.parse(dayKey(i) + 'T00:00:00Z')).getUTCDay(); W.push((dow === 0 || dow === 6 ? 0.45 : 1) * (0.8 + rnd() * 0.45) * (0.55 + 0.45 * i / NDAY)); }
+    const base30 = sum30(W.slice(-30));
+    function sum30(a) { return a.reduce((x, y) => x + y, 0); }
+    const SUBS = { flow: [['rotation', 0.58], ['sankey', 0.26], ['inst', 0.16]], heatmap: [['industry', 0.63], ['theme', 0.37]], industry: [['chains', 0.34], ['chain', 0.41], ['group', 0.25]], market: [['updown', 0.37], ['inst', 0.27], ['ma', 0.21], ['pick', 0.15]] };
+    const STK = [['2330', 3100], ['2317', 1650], ['2454', 1240], ['3711', 960], ['2382', 820], ['3037', 700], ['2603', 560], ['2308', 470], ['6669', 390], ['3661', 330], ['2881', 250], ['2412', 210]];
+    const E2 = [
+      ['flow', 'play', 'rotBack', 1480], ['flow', 'quad', '領先', 990], ['flow', 'quad', '改善', 760], ['flow', 'quad', '轉弱', 410], ['flow', 'quad', '落後', 300],
+      ['flow', 'filter_chain', '半導體', 520], ['flow', 'filter_chain', 'AI 伺服器', 470], ['flow', 'filter_chain', '電子零組件', 280], ['flow', 'filter_top10', '', 640], ['flow', 'filter_clear', '', 210], ['flow', 'filter_group_open', '', 880],
+      ['flow', 'how', 'flowRotCard', 360], ['flow', 'zoom', 'rotZoom', 330], ['flow', 'sankey.node', '', 520], ['flow', 'sankey.link', '', 340], ['flow', 'inst.tab', '', 410], ['flow', 'inst.group', '', 270],
+      ['heatmap', 'how', 'ovHeatCard', 190], ['heatmap', 'zoom', 'heatZoom', 160], ['heatmap', 'theme.pick', 'AI 伺服器', 300], ['heatmap', 'theme.pick', 'CoWoS', 260], ['heatmap', 'theme.pick', '矽光子', 210], ['heatmap', 'theme.pick', '低軌衛星', 150], ['heatmap', 'theme.pick', '機器人', 140], ['heatmap', 'open_3d', '', 120],
+      ['industry', 'how', 'chainHow', 130], ['industry', 'zoom', 'chainMap', 210], ['industry', 'open_3d', '', 160], ['industry', 'search', '', 90], ['market', 'how', 'mktHow', 90], ['market', 'search', '', 170], ['market', 'm_seg', '', 120],
+      ['season', 'how', 'seasonHow', 80], ['season', 'zoom', 'seasonChart', 110], ['watch', 'watch_tab_new', '', 140], ['watch', 'watch.chart', '', 720], ['watch', 'watch.kline', '', 380], ['watch', 'watch_add', '', 520], ['watch', 'watch_remove', '', 160], ['watch', 'watch_panel', '', 280],
+      ['stock', 'tab.overview', '2330', 2400], ['stock', 'tab.basics', '2330', 520], ['stock', 'tab.tags', '2317', 610], ['stock', 'tab.dividend', '2412', 450], ['stock', 'tab.holders', '2454', 380], ['stock', 'tab.news', '2603', 640], ['stock', 'tab.holdings', '0050', 330], ['stock', 'tab.profit', '2330', 880], ['stock', 'tab.inst', '2330', 1020], ['stock', 'tab.margin', '2330', 470], ['stock', 'tab.revenue', '2330', 1260],
+      ['stock', 'kp.d', '2330', 1800], ['stock', 'kp.w', '2330', 740], ['stock', 'kp.m', '2330', 310], ['stock', 'kp.5m', '2330', 520], ['stock', 'kp.15m', '2330', 260], ['stock', 'mtf', '', 340], ['stock', 'indicators', '', 910], ['stock', 'draw', '', 440], ['stock', 'ai_tab', '', 380],
+      ['stock', 'ind', 'MA 均線', 1120], ['stock', 'ind', 'MACD', 830], ['stock', 'ind', 'RSI', 690], ['stock', 'ind', 'KD', 640], ['stock', 'ind', '布林通道', 410], ['stock', 'ind', 'SMC 結構', 330], ['stock', 'ind', '本益比河流', 360], ['stock', 'ind', '成交量', 280],
+      ['stock', 'draw.tool', '趨勢線', 260], ['stock', 'draw.tool', '水平線', 210], ['stock', 'draw.tool', '斐波那契', 120], ['stock', 'draw.tool', '矩形', 90], ['other', 'etf.cat', '全部', 410], ['other', 'etf.cat', '配息型', 540], ['other', 'etf.cat', '市值型', 380], ['other', 'etf.cat', '主題型', 290], ['other', 'etf.cat', '主動式', 210], ['other', 'etf.cat', '槓桿反向', 160], ['other', 'etf.cat', '債券型', 120], ['other', 'etf.cat', '其他', 60],
+      ['other', 'explore.topic', '營收創高', 330], ['other', 'explore.topic', '法人連買', 290], ['other', 'explore.topic', '突破前高', 240], ['other', 'explore.topic', '低基期', 170], ['other', 'explore.topic', '高殖利率', 130],
+      ['other', 'support.fab', '', 310], ['other', 'support.tab', '常見問題', 260], ['other', 'support.tab', '意見反饋', 140], ['other', 'support.tab', '寄信', 70], ['other', 'support.faq', '怎麼加自選？', 150], ['other', 'support.faq', '資料多久更新？', 110], ['other', 'support.faq', '紅漲綠跌？', 60], ['other', 'support.send', '', 52], ['other', 'support.mail', '', 31],
+      ['other', 'events.link', '', 720], ['overview', 'events_drawer', '', 330], ['flow', 'events_drawer', '', 210], ['stock', 'events_drawer', '', 190], ['industry', 'events_drawer', '', 120], ['market', 'events_drawer', '', 90],
+      ['overview', 'how', 'ovHeatCard', 210], ['overview', 'heat_tile', 'ABF 載板', 360], ['overview', 'zoom', 'ovIndex', 150]];
+    const e2Base = [];
+    SUBS && Object.entries(SUBS).forEach(([pg, arr]) => arr.forEach(([k, f]) => e2Base.push([pg, 'sub.' + k, '', Math.round(PAGES.find((p) => p[0] === pg)[1] * f)])));
+    E2.forEach((r) => { if (r[3]) e2Base.push(r); });
+    [['被動元件 MLCC', 410], ['晶圓代工', 340], ['ABF 載板', 290], ['CoWoS 先進封裝', 240], ['散熱模組', 190], ['光通訊', 150], ['矽光子', 110]].forEach(([g, n]) => { e2Base.push(['flow', 'filter_group', g, n]); e2Base.push(['flow', 'rank_bar', g, Math.round(n * 0.55)]); e2Base.push(['flow', 'clock_group', g, Math.round(n * 0.4)]); e2Base.push(['heatmap', 'heat_tile', g, Math.round(n * 0.7)]); });
+    STK.forEach(([cd, n], i) => { e2Base.push(['stock', 'view', cd, n]);
+      [['tab.revenue', 0.34], ['kp.60m', 0.27], ['tab.inst', 0.22], ['tab.profit', 0.15], ['kp.d', 0.12], ['tab.margin', 0.08]].forEach(([c, f]) => e2Base.push(['stock', c, cd, Math.max(1, Math.round(n * f * (0.7 + (i * 7 % 6) / 10))) ])); });
+    const NM = ['王小明', '陳怡君', '林志豪', '張雅婷', '李承恩', '黃柏翰', '吳佩珊', '劉冠宇', '蔡欣怡', '楊家豪', '許雅文', '鄭宇軒', '謝佳穎', '郭俊傑', '洪思妤', '曾冠廷', '邱怡婷', '廖偉誠', '賴淑芬', '徐子豪'];
+    const NOW = Date.now(), NU = 520;
+    const users = Array.from({ length: NU }, (_, i) => ({ name: NM[i % NM.length] + (i >= NM.length ? String(Math.floor(i / NM.length) + 1) : ''), email: `demo${String(i + 1).padStart(3, '0')}@example.com`,
+      seen: NOW - Math.round((i * 0.35 + rnd() * 2) * 3600000), created: NOW - Math.round((8 + i * 0.6) * 86400000), visits: Math.max(1, Math.round(60 - i * 0.1 + rnd() * 8)) }));
+    const members = users.map((u, i) => ({ email: u.email, onlineMs: Math.round((12 - i * 0.02 + rnd()) * 3600000), online30: Math.round((6 - i * 0.01 + rnd()) * 3600000), visits30: u.visits,
+      days30: Math.max(1, Math.round(24 - i * 0.04)), views30: Math.round(u.visits * (4 + rnd() * 5)), topFeat: [['tab.revenue', 14 - (i % 7)], ['quad', 9 - (i % 5)], ['kp.60m', 5]], topStock: [[STK[i % 12][0], 18 - (i % 9)], [STK[(i + 3) % 12][0], 7], [STK[(i + 6) % 12][0], 3]] }));
+    const routes = ['flow', 'stock', 'overview', 'industry', 'market', 'heatmap', 'etf', 'watch', 'explore'];
+    const online = { total: 19, guests: 8, public_online: true, users: routes.concat(['flow', 'stock']).map((r, i) => ({ name: users[i].name, email: users[i].email, route: r, seen: NOW - (6 + i * 13) * 1000 })) };
+    const mstats = { days: Array.from({ length: 14 }, (_, i) => ({ day: dayKey(NDAY - 14 + i), n: Math.round(120 + rnd() * 90) })), active7: 297,
+      feats: [['tab.revenue', 2412], ['quad', 1698], ['kp.60m', 1251], ['filter_group', 1207], ['tab.inst', 988], ['play', 843], ['search', 721], ['zoom', 596]], stocks: STK.slice(0, 8).map(([c, n]) => [c, Math.round(n * 0.6)]) };
+    const detail = (email) => { const i = Math.max(0, users.findIndex((u) => u.email === email)), m = members[i] || members[0];
+      return { known: true, days: Array.from({ length: 14 }, (_, k) => ({ day: dayKey(NDAY - 14 + k), visits: 1 + ((k + i) % 3), views: 8 + ((k * 7 + i * 3) % 23), ms: (6 + ((k * 5 + i) % 28)) * 60000 })),
+        pages: PAGES.slice(0, 6).map(([k, s], j) => [k, Math.round(s / 400 / (j + 1) + i % 5)]), feats: [['stock', 'tab.revenue', 14], ['flow', 'quad', 9], ['stock', 'kp.60m', 7], ['flow', 'filter_group', 5], ['overview', 'how', 3]], stocks: m.topStock }; };
+    /* 依期間組出 /v1/admin/stats：每天一列（頁面瀏覽＋開站），細項依 天數／30 縮放；即時＝今天到目前為止每小時 */
+    const stats = (days, live, from, to) => {
+      const idx = (d) => NDAY - 1 - Math.round((Date.parse(END + 'T00:00:00Z') - Date.parse(d + 'T00:00:00Z')) / 86400000);
+      const iA = from ? Math.max(0, idx(from)) : null, iB = to ? Math.min(NDAY - 1, idx(to)) : NDAY - 1;       // 起訖日（Worker 同語意：含頭含尾，to 預設今天）
+      const n = iA != null ? Math.max(1, iB - iA + 1) : Math.max(1, Math.min(NDAY, days || 30)), i0 = iA != null ? iA : NDAY - n, rows = [];
+      const hourNow = Math.min(23, new Date(Date.now() + 8 * 3600000).getUTCHours());
+      for (let i = i0; i <= iB; i++) { const day = dayKey(i), dn = 54000 * W[i] / base30;
+        PAGES.forEach(([k, s]) => rows.push({ day, k: 'pv:' + k, n: Math.max(1, Math.round(dn * s / wsum * (0.88 + ((i * 7 + k.length) % 10) / 40))) }));
+        const ss = Math.round(dn * 0.145); rows.push({ day, k: 'ev:session', n: ss }, { day, k: 'ev:session_login', n: Math.round(ss * (0.34 + ((i % 7) / 100))) }); }
+      const scale = live ? 1.1 / 30 : n / 30, e2 = e2Base.map(([page, comp, detail, c]) => ({ page, comp, detail, n: Math.max(1, Math.round(c * scale)) }));
+      const out = { from: dayKey(i0), to: dayKey(iB), rows, e2, users: { total: NU, recent: users.slice(0, 50).map((u) => ({ name: u.name, email: u.email, created: u.created, seen: u.seen })) } };
+      const sess = rows.filter((r) => r.k === 'ev:session').reduce((x, r) => x + r.n, 0), lg = rows.filter((r) => r.k === 'ev:session_login').reduce((x, r) => x + r.n, 0);
+      const split = [['free', '註冊會員', 0.6, 'var(--cat-1)'], ['demo_basic', '基本方案（月）', 0.22, null], ['demo_pro', '進階方案（年）', 0.13, null], ['demo_team', '旗艦方案', 0.05, null]];
+      out.tiers = { est: false, list: split.map(([id, name, f, col]) => ({ id, name, n: Math.round(lg * f), col: col || planCol(id), login: true })).concat([{ id: 'guest', name: '訪客', n: sess - lg, col: 'var(--cat-2)', login: false }]) };
+      const HW = [0.4, 0.25, 0.18, 0.15, 0.2, 0.45, 1.1, 2.3, 4.6, 6.4, 6.9, 6.1, 5.2, 5.0, 5.8, 5.6, 4.4, 3.4, 3.1, 3.6, 4.6, 5.2, 4.1, 1.8], hs = HW.reduce((a, b) => a + b, 0);
+      out.hourly = HW.map((w) => Math.round(rows.filter((r) => r.k.startsWith('pv:')).reduce((a, r) => a + r.n, 0) * w / hs));
+      if (live) { const h = []; for (let k = 0; k < 24; k++) h.push(k > hourNow ? 0 : Math.round(54000 / 30 * 1.1 * (k < 6 ? 0.18 : k < 9 ? 0.7 : k < 14 ? 1.5 : 1.1) / 11 * (0.85 + (k * 5 % 7) / 20))); out.hours = h; }
+      /* hstat（Worker hourly 區塊同形狀）：今天與期間內各時的 開站／登入／訪客／在線分鐘 */
+      const todayH = out.hours || (() => { const h = []; for (let k = 0; k < 24; k++) h.push(k > hourNow ? 0 : Math.round(54000 / 30 * 1.1 * HW[k] / hs * (0.9 + (k * 5 % 7) / 40))); return h; })();
+      const mk = (pvArr) => { const open = pvArr.map((x) => Math.round(x * 0.145)), login = open.map((x, k) => Math.round(x * (0.34 + (k % 5) / 60))); return { pv: pvArr, open, login, guest: open.map((x, k) => Math.max(0, x - login[k])), mins: pvArr.map((x) => Math.round(x * 0.9)) }; };
+      out.hstat = { today: END, hour: hourNow, since: null, day: mk(todayH), period: Object.assign({ from: out.from, to: out.to }, mk(out.hourly)) };
+
+      return out;
+    };
+    return { stats, online, members, mstats, detail, users };
+  })();
+  function demoWrap(A) {
+    if (!IS_PREVIEW || !A || A.__demo) return A;
+    const ok = (o) => Promise.resolve(Object.assign({ _s: 200 }, o));
+    const W = Object.create(A);
+    W.__demo = true;
+    W.call = async (path, body) => {
+      if (path === '/v1/admin/stats') { const nr = !!window.__demoNoRange; return ok(DEMO.stats((body || {}).days, (body || {}).live, nr ? undefined : (body || {}).from, nr ? undefined : (body || {}).to)); }      // __demoNoRange：測試用，模擬還沒更新的 Worker（不認得 from／to）
+      if (path === '/v1/admin/online') return ok(DEMO.online);
+      if (path === '/v1/admin/members') return ok({ members: DEMO.members });
+      if (path === '/v1/admin/members/stats') return ok(DEMO.mstats);
+      if (path === '/v1/admin/member/detail') return ok(DEMO.detail(String((body || {}).email || '').toLowerCase()));
+      const r = await A.call(path, body);
+      if (path === '/v1/admin/perm/list' && r && r._s === 200) {                  // 名單：真資料之外補示範會員（前 12 位掛第一個付費範本，其餘免費）
+        const paid = (window.__demoPlan || '');
+        const have = new Set((r.users || []).map((u) => u.email));
+        r.users = (r.users || []).concat(DEMO.users.filter((u) => !have.has(u.email)));
+        r.rows = (r.rows || []).concat(DEMO.users.slice(0, 12).filter((u) => paid).map((u) => ({ email: u.email, plan: paid, n: 0, updated: Date.now(), expires: Date.now() + 25 * 86400000 })));
+      }
+      if (path === '/v1/admin/plans/get' && r && r._s === 200) { const p = (r.plans || []).find((x) => !x.builtin && x.id !== 'guest' && x.id !== 'free'); window.__demoPlan = p ? p.id : ''; }
+      return r;
+    };
+    return W;
+  }
   function render(v, A) {
     css();
+    /* 舊網址 #admin/members（會員管理）已併進會員權限：導到 #admin/perm 的「註冊會員」→「會員名單」 */
+    if (/^#admin\/members\b/.test(location.hash || '')) { PS.tier = 'free'; PS.sub = 'list'; PS.editMember = false; try { history.replaceState(null, '', '#admin/perm'); } catch (e) { location.hash = '#admin/perm'; } }
+    A = demoWrap(A);
+    v.classList.toggle('demo', IS_PREVIEW);
     S.v = v; S.A = A;
     const t = tabOf();
     if (t !== 'traffic') clearInterval(S.timer);
@@ -529,129 +807,476 @@
     S.timer = setInterval(() => { if (tabOf() === 'traffic' && (location.hash || '').startsWith('#admin') && document.visibilityState !== 'hidden') paint(); else if (!(location.hash || '').startsWith('#admin')) clearInterval(S.timer); }, 30000);
   }
 
+  /* ==========================================================================
+     流量觀測（2026-10-05 Andy 新規格）
+     上方一排：每天直條＋登入甜甜圈（期間選單：即時／近 N 天／指定日期到現在）。
+     下方：活頁簿式分頁（全部＋側欄 10 個頁面＋個股頁），每頁有子分頁；每個分頁＝左長條＋右甜甜圈。
+     「頁面」是管理區自己的分類：把 Worker 回的 (頁面, 元件, 細項, 次數) 依 PAGES 設定歸到側欄的頁面與子分頁。
+     ========================================================================== */
+  const PG_H = [190, 262, 36, 150, 338, 56, 214, 14, 292, 98, 170];            // 各頁色相；子分頁在同色相上微調明度／色相
+  /* 頁面設定：k 鍵、n 名稱、subs（子分頁：k、n、cs＝歸屬的元件，'x.*' 為前綴）、sk＝子分頁開啟事件 sub.<鍵> 的頁面鍵 */
+  const PAGES = [
+    { k: 'events', n: '事件', simple: true, subs: [] },
+    { k: 'market', n: '市場明細', simple: true, subs: [] },
+    { k: 'season', n: '週期統計', simple: true, subs: [] },
+    { k: 'flow', n: '資金流向', sk: 'flow', subs: [{ k: 'rotation', n: '資金輪動', cs: ['play', 'quad', 'filter_*', 'clock_group', 'rank_bar'] }, { k: 'sankey', n: '資金去向', cs: ['sankey.*'] }, { k: 'inst', n: '族群×法人', cs: ['inst.*'] }] },
+    { k: 'heatmap', n: '熱力圖', sk: 'heatmap', subs: [{ k: 'industry', n: '產業', cs: ['heat_tile'] }, { k: 'theme', n: '題材', cs: ['theme.*'] }] },
+    { k: 'industry', n: '產業地圖', sk: 'industry', subs: [{ k: 'chains', n: '產業鏈總覽', cs: [] }, { k: 'chain', n: '單一產業鏈', cs: [] }, { k: 'group', n: '族群頁', cs: [] }] },
+    { k: 'explore', n: '選股策略', subs: [] },
+    { k: 'etf', n: 'ETF', subs: [] },
+    { k: 'watch', n: '自選', subs: [] },
+    { k: 'support', n: '客服', subs: [] },
+    { k: 'stock', n: '個股', subs: [{ k: 'tabs', n: '分頁點擊', cs: ['tab.*'] }, { k: 'kline', n: 'K 線指標', cs: ['ind', 'indicators', 'kp.*', 'draw', 'draw.*', 'mtf', 'ai_tab', 'open_3d'] }] },
+    { k: 'users', n: '使用者', sp: 'users', subs: [] },
+  ];
+    const PAGE_BY = Object.fromEntries(PAGES.map((p) => [p.k, p]));
+  /* 這些元件的「細項」是值得單獨排行的對象（族群／個股／類別…）；其餘元件只統計次數 */
+  const DETK = { filter_group: '族群', rank_bar: '族群', clock_group: '族群', heat_tile: '族群', filter_chain: '產業鏈', view: '個股', 'etf.cat': 'ETF 類別', 'explore.topic': '選股題目', 'support.faq': '常見問題', 'support.tab': '客服項目', ind: '技術指標', 'draw.tool': '畫線工具', events_drawer: '來源頁面', 'theme.pick': '題材' };
+  const kindOf = (comp) => DETK[comp] || (/^tab\./.test(comp) ? '個股' : '');
+  const compIn = (comp, cs) => cs.some((c) => (c.endsWith('*') ? comp.startsWith(c.slice(0, -1)) : comp === c));
+  function classify(r) {
+    let pg = null, det = r.detail || '';
+    if (r.comp === 'events_drawer') { pg = 'events'; det = VIEW_NAME[r.page] || r.page; }
+    else if (r.page === 'other') { const m = /^(etf|explore|support|events)\./.exec(r.comp); pg = m ? m[1] : null; }      // 舊資料（切換前記在 other＋前綴）
+    /* 新資料：Worker 已收 etf／explore／support／events 等頁面鍵，PAGE_BY 認得就直接歸該頁（兩種寫法加總才是完整期間） */
+    else if (PAGE_BY[r.page]) pg = r.page;
+    return pg ? { pg, comp: r.comp, det, n: r.n } : null;
+  }
+  const pgCol = (i, j, m) => { const hs = m > 6 ? 7 : 14, ls = m > 6 ? 3.2 : 9, dh = m > 1 ? (j - (m - 1) / 2) * hs : 0, dl = m > 1 ? (j - (m - 1) / 2) * ls : 0; return `hsl(${PG_H[i] + dh} 72% calc(var(--pgL,58%) + ${dl}%))`; };
+  const sum = (a) => a.reduce((s, x) => s + x, 0);
+  const todayTpe = () => new Date(Date.now() + 8 * 3600000).toISOString().slice(0, 10);
+  const periodDays = () => (S.period === 'live' ? 1 : S.period === 'since' ? Math.max(1, Math.min(400, Math.floor((Date.parse(new Date(Date.now() + 8 * 3600000).toISOString().slice(0, 10) + 'T00:00:00Z') - Date.parse(S.since + 'T00:00:00Z')) / 86400000) + 1)) : +S.period);
+  const periodTxt = () => (S.period === 'live' ? '即時（今天 0–24 時）' : S.period === 'since' ? `${S.since}～${S.until || '至今'}` : `近 ${S.period} 天`);
+
   async function paint() {
     const v = S.v, A = S.A; if (!v || !A) return;
-    const [st, on] = await Promise.all([A.call('/v1/admin/stats', { days: S.days }), A.call('/v1/admin/online', {})]);
+    if (S.period === 'since' && !/^\d{4}-\d{2}-\d{2}$/.test(S.since || '')) S.period = '30';
+    const [st, on] = await Promise.all([A.call('/v1/admin/stats', Object.assign({ days: periodDays(), live: S.period === 'live' ? 1 : 0 }, S.period === 'since' ? { from: S.since, to: S.until || todayTpe() } : {})), A.call('/v1/admin/online', {})]);
     if (!(location.hash || '').startsWith('#admin') || tabOf() !== 'traffic' || !v.querySelector('#admBody')) return;
     if (!st || st._s !== 200 || !on || on._s !== 200) {
-      v.querySelector('#admBody').innerHTML = `<div class="card" style="margin-top:14px"><p class="err">讀不到報表（${st ? st._s : '連不到伺服器'}）。只有管理者帳號看得到；若你是管理者，確認 Worker 的 ADMIN_EMAILS 有你的 email（docs/login_setup.md 第 6 步）。</p></div>`;
+      v.querySelector('#admBody').innerHTML = `<div class="card" style="margin-top:14px"><p class="err">讀不到報表（${st ? st._s : '連不到伺服器'}）</p></div>`;
       return;
     }
-    S.st = st; S.on = on;
+    /* 點每日直條 → 下面那組統計換成那一天：再打一次 stats 帶 from＝to＝那天。Worker 不認得 from／to（會員系統還沒更新）時，
+       回來的起訖不會是那一天 → 改成提示並維持整段期間的統計，畫面不留空白 */
+    let stT = st; S.dayMode = '';
+    if (S.day) {
+      const r = await A.call('/v1/admin/stats', { days: Math.min(400, periodDays() + 1), from: S.day, to: S.day });
+      if (r && r._s === 200 && r.from === S.day && r.to === S.day) { stT = r; S.dayMode = 'ok'; } else S.dayMode = 'unsupported';
+    }
+    S.st = stT; S.on = on;
     const pv = {}, ev = {}, perDay = {};
+    const untilDay = S.period === 'since' && S.until && /^\d{4}-\d{2}-\d{2}$/.test(S.until) && S.until < st.to ? S.until : '';      // 結束日（預設＝至今）：只影響上方一排；Worker 只能算到今天，分頁統計仍含到今天
     st.rows.forEach((r) => {
-      const [kind, name] = r.k.split(':');
-      if (kind === 'pv') { pv[name] = (pv[name] || 0) + r.n; perDay[r.day] = (perDay[r.day] || 0) + r.n; } else ev[name] = (ev[name] || 0) + r.n;
+      const [kind, name] = r.k.split(':'), inTop = !untilDay || r.day <= untilDay;
+      if (kind === 'pv') { pv[name] = (pv[name] || 0) + r.n; if (inTop) perDay[r.day] = (perDay[r.day] || 0) + r.n; } else if (inTop) ev[name] = (ev[name] || 0) + r.n;
     });
-    const e2 = Array.isArray(st.e2) ? st.e2 : [];
-    const pvList = Object.entries(pv).sort((a, b) => b[1] - a[1]);
-    const evList = Object.entries(ev).filter(([k]) => !['session', 'session_login', 'login', 'logout'].includes(k)).sort((a, b) => b[1] - a[1]);
-    const pvTotal = pvList.reduce((s, x) => s + x[1], 0);
-    const days = [];
-    for (let t = Date.parse(st.from + 'T00:00:00Z'); t <= Date.parse(st.to + 'T00:00:00Z'); t += 86400000) days.push(new Date(t).toISOString().slice(0, 10));
-    const dmax = Math.max(1, ...days.map((d) => perDay[d] || 0));
-    const sessions = ev.session || 0, loginSess = Math.min(ev.session_login || 0, sessions);
-    /* 「?」總數：細項有記就用細項（含是哪一張卡），沒有（Worker 還是舊版）退回舊的 ev:how */
-    const howE2 = e2.filter((r) => r.comp === 'how').reduce((s, r) => s + r.n, 0);
-    const howN = howE2 || ev.how || 0;
-    // 個股：被觀看 Top 10、各自最常用的功能
+    const e2 = Array.isArray(stT.e2) ? stT.e2 : [];
+    const pvT = {}; stT.rows.forEach((r) => { if (r.k.startsWith('pv:')) pvT[r.k.slice(3)] = (pvT[r.k.slice(3)] || 0) + r.n; });
+    const pvDay = {}; stT.rows.forEach((r) => { if (r.k.startsWith('pv:')) { const k = r.k.slice(3); (pvDay[k] = pvDay[k] || {})[r.day] = (pvDay[k][r.day] || 0) + r.n; } });
+    let days = [], dmap = perDay;
+    if (S.period === 'live' && st.hours) { days = st.hours.map((_, h) => String(h).padStart(2, '0') + ':00'); dmap = {}; const nowH = st.hstat && Number.isInteger(st.hstat.hour) ? st.hstat.hour : null; st.hours.forEach((n, h) => { dmap[days[h]] = nowH != null && h > nowH ? null : n; }); }
+    else for (let t = Date.parse(st.from + 'T00:00:00Z'); t <= Date.parse((untilDay || st.to) + 'T00:00:00Z'); t += 86400000) days.push(new Date(t).toISOString().slice(0, 10));
+    const dmax = Math.max(1, ...days.map((d) => dmap[d] || 0));
+    const sessions = ev.session || 0, loginSess = Math.min(ev.session_login || 0, sessions), pvTotal = untilDay ? sum(Object.values(perDay)) : sum(Object.values(pv));
+    // 個股相關（個股頁分頁用）：被觀看 Top 10、各自最常用的功能、散佈圖點
     const views = e2.filter((r) => r.page === 'stock' && r.comp === 'view' && r.detail).sort((a, b) => b.n - a.n);
     const useBy = {};
     e2.filter((r) => r.page === 'stock' && r.comp !== 'view' && r.detail).forEach((r) => { (useBy[r.detail] = useBy[r.detail] || []).push(r); });
-    const topV = views.slice(0, 10);
-    const featRows = topV.map((r) => { const u = (useBy[r.detail] || []).sort((a, b) => b.n - a.n); const tot = u.reduce((s, x) => s + x.n, 0); return { code: r.detail, views: r.n, top: u.slice(0, 3), tot }; });
-    const scat = views.slice(0, 30).map((r) => ({ code: r.detail, x: r.n, y: ((useBy[r.detail] || []).reduce((s, x) => s + x.n, 0)) / Math.max(1, r.n) }));
-    const pages = [...new Set(e2.map((r) => r.page))];
-    if (!pages.includes(S.page)) S.page = pages.includes('flow') ? 'flow' : (pages[0] || 'flow');
-    v.querySelector('#admBody').innerHTML = `
-      <div class="secttl"><h2>全站總覽</h2><small>${esc(st.from)} ～ ${esc(st.to)}（台北）</small></div>
-      <div class="card trkpi" id="trKpi" style="margin-top:10px"><div class="kpis"><div><b>${nf(pvTotal)}</b>頁面瀏覽</div><div><b>${nf(sessions)}</b>開啟網站</div>
-        <div><b>${sessions ? Math.round(loginSess / sessions * 100) : 0}%</b>登入狀態開啟</div><div><b id="trHowN">${nf(howN)}</b>全站「?」點擊</div><div><b>${nf(views.reduce((s, r) => s + r.n, 0))}</b>個股被觀看</div></div>
-        <div class="trctl"><label>期間 <select id="admDaysSel">${[7, 30, 90, 365].map((d) => `<option value="${d}" ${d === S.days ? 'selected' : ''}>近 ${d} 天</option>`).join('')}</select></label>
-          <button type="button" id="admRefresh">重新整理</button>
-          <span class="qtip" id="trPrivacy" tabindex="0" role="note" aria-label="隱私說明" title="使用統計只記「每天每一項的次數」（不記是誰、不存 IP），保留 13 個月；細項只存族群名、股票代號、元件名，不存任何人打的字。線上狀態離線即刪。">?</span></div></div>
-      <div class="admgrid">
-        <div class="card" id="admPv"><h3>哪一頁最多人看？</h3><p class="use">${S.days} 天內每一頁被打開的次數與佔比（橫向長條，已排序）。排在後面的頁面，要嘛入口太深、要嘛內容不被需要 —— 改版優先順序從這裡排。點一頁看它的明細。</p>${bars(pvList, VIEW_NAME, pvTotal, { click: true, id: 'trPvBars' })}</div>
-        <div class="card" id="admDays"><h3>每天有多少瀏覽？</h3><p class="use">每天的頁面瀏覽總次數。突然掉下來先查網站是不是壞了，突然衝高看當天發生了什麼。</p>
-          ${dayChart(days, perDay, dmax)}</div>
-        <div class="card" id="trStockTop"><h3>哪幾檔個股最多人看？</h3><p class="use">個股頁被打開的次數（換一檔算一次），前 10 名。這些股票值得優先把資料補齊、放進首頁的推薦。</p>
-          ${bars(topV.map((r) => [r.detail, r.n]), stockNm, 0, { id: 'trStockBars' })}</div>
-        <div class="card" id="trStockFeat"><h3>熱門個股的人都在用什麼功能？</h3><p class="use">上面那 10 檔，各自被用最多的三個功能（次數）。同一個功能在每一檔都排第一 → 它是個股頁的主力，應該放最前面。</p>
-          ${featRows.length ? `<table><thead><tr><th>代號</th><th>觀看</th><th>最常用的功能</th></tr></thead><tbody>${featRows.map((r) => `<tr><td>${esc(stockNm(r.code))}</td><td>${nf(r.views)}</td><td>${r.top.length ? r.top.map((x) => `${esc(compName(x.comp))} <small style="color:var(--ink-2)">${nf(x.n)}</small>`).join('・') : '<span style="color:var(--ink-2)">只看沒點功能</span>'}</td></tr>`).join('')}</tbody></table>` : '<div class="empty">這段期間還沒有個股觀看紀錄。</div>'}</div>
-        <div class="card" id="trScatter"><h3>哪些股票「又多人看、看的人又用得深」？</h3><p class="use">散佈圖：橫軸＝被觀看次數、縱軸＝平均每次觀看用了幾次功能。右上角＝熱門而且被深度使用；右下角＝很多人看但只看一眼（可能缺資料或缺吸引人的圖）。</p>${scatter(scat)}</div>
-        <div class="card" id="trDonut"><h3>開網站的人有多少是登入的？</h3><p class="use">只有兩類、加總 100%，所以用甜甜圈。登入比例低 → 登入的好處說得不夠清楚，或登入鈕太不顯眼。</p>${donut([['登入狀態', loginSess, 'var(--cyan)'], ['訪客', Math.max(0, sessions - loginSess), 'var(--violet)']])}</div>
-        <div class="card" id="admOnline"><h3>現在誰在線上？</h3><p class="use">最近 2 分半有動作的分頁。登入者列出名稱與所在頁面；訪客只算人數。每 30 秒自動更新。</p>
-          <div class="kpis"><div><b id="admOnN">${on.total}</b>在線（分頁數）</div><div><b>${on.users.length}</b>登入者</div><div><b>${on.guests}</b>訪客</div></div>
-          ${on.users.length ? `<table><thead><tr><th>名稱</th><th>email</th><th>在看</th><th>最後動作</th></tr></thead><tbody>${on.users.map((u) => `<tr><td>${esc(u.name)}</td><td>${esc(u.email)}</td><td>${esc(VIEW_NAME[u.route] || u.route)}</td><td>${ago(u.seen)}</td></tr>`).join('')}</tbody></table>` : '<div class="empty">目前沒有登入者在線上。</div>'}
-          <label class="tg" style="margin-top:12px"><input type="checkbox" id="admPub" ${on.public_online ? 'checked' : ''}>一般訪客看得到「目前 N 人在線」（只有總數，看不到名字）</label></div>
-        <div class="card" id="admEv"><h3>哪個功能最常被用？（全站）</h3><p class="use">${S.days} 天內每個功能被按的總次數（不分頁）。分頁裡的細節看下面「分頁明細」。</p>${bars(evList, EV_NAME, 0)}</div>
-        <div class="card" id="admUsers" style="grid-column:1 / -1"><h3>最近有哪些會員來過？</h3><p class="use">共 ${st.users.total} 位；依最後使用時間排序（最多列 50 位）。要新增、設到期日、看造訪次數，到「會員管理」。</p>
-          ${st.users.recent.length ? `<table><thead><tr><th>名稱</th><th>email</th><th>加入</th><th>最後使用（台北）</th></tr></thead><tbody>${st.users.recent.map((u) => `<tr><td>${esc(u.name)}</td><td>${esc(u.email)}</td><td>${dstr(u.created)}</td><td>${dstr(u.seen)}</td></tr>`).join('')}</tbody></table>` : '<div class="empty">還沒有會員。</div>'}</div>
-      </div>
-      <div class="secttl" id="trDetailTtl"><h2>分頁明細</h2><small>選一頁，看那一頁的每個元件被用幾次、細項（哪個族群、哪一檔）是誰</small></div>
-      <div class="card" id="trDetail" style="margin-top:10px">
-        <div class="nbsw lv2 seg2" id="trPageSeg" role="tablist">${(pages.length ? pages : ['flow']).sort((a, b) => (pv[b] || 0) - (pv[a] || 0)).map((p) => `<button type="button" data-p="${esc(p)}" class="${p === S.page ? 'on' : ''}">${esc(VIEW_NAME[p] || p)}<small>${nf(e2.filter((r) => r.page === p).reduce((s, r) => s + r.n, 0))}</small></button>`).join('')}</div>
-        <div id="trPageBody"></div></div>`;
-    v.querySelector('#admDaysSel').onchange = (e) => { S.days = +e.target.value; paint(); };
-    v.querySelector('#admRefresh').onclick = () => paint();
-    const pub = v.querySelector('#admPub');
-    pub.onchange = async () => { const r = await A.call('/v1/admin/settings', { public_online: pub.checked }); if (!r || r._s !== 200) pub.checked = !pub.checked; };
-    v.querySelector('#trPageSeg').onclick = (e) => { const b = e.target.closest('button[data-p]'); if (!b) return; S.page = b.dataset.p; v.querySelectorAll('#trPageSeg button').forEach((x) => x.classList.toggle('on', x === b)); paintPage(); };
-    v.querySelector('#trPvBars') && (v.querySelector('#trPvBars').onclick = (e) => {
-      const b = e.target.closest('button[data-k]'); if (!b) return;
-      S.page = b.dataset.k; const seg = v.querySelector(`#trPageSeg button[data-p="${CSS.escape(S.page)}"]`);
-      v.querySelectorAll('#trPageSeg button').forEach((x) => x.classList.toggle('on', x === seg));
-      paintPage(); const d = v.querySelector('#trDetailTtl'); if (d && d.scrollIntoView) d.scrollIntoView({ block: 'start', behavior: 'smooth' });
+    S.stk = { featRows: views.slice(0, 10).map((r) => { const u = (useBy[r.detail] || []).sort((a, b) => b.n - a.n); return { code: r.detail, views: r.n, top: u.slice(0, 3) }; }),
+      scat: views.slice(0, 30).map((r) => ({ code: r.detail, x: r.n, y: ((useBy[r.detail] || []).reduce((s, x) => s + x.n, 0)) / Math.max(1, r.n) })) };
+    // 依 PAGES 歸類：S.data[頁] = { pv, rows:[{comp,det,n,sub}], opens:{子頁:次數} }
+    const data = {};
+    PAGES.filter((p) => !p.sp).forEach((p) => { data[p.k] = { pv: pvT[p.k] || 0, rows: [], opens: {} }; });
+    e2.forEach((r) => {
+      if (r.comp.startsWith('sub.')) { const d = data[r.page]; if (d) d.opens[r.comp.slice(4)] = (d.opens[r.comp.slice(4)] || 0) + r.n; return; }
+      const c = classify(r); if (!c) return;
+      const p = PAGE_BY[c.pg], sub = (p.subs.find((s) => compIn(c.comp, s.cs)) || {}).k || '';
+      data[c.pg].rows.push({ comp: c.comp, det: c.det, n: c.n, sub });
     });
-    paintPage();
+    PAGES.forEach((p, i) => {
+      if (p.sp) return;
+      const d = data[p.k], use = sum(d.rows.map((r) => r.n));
+      d.use = use; d.fb = !d.pv;                                                  // fb＝沒有瀏覽數（Worker 只記 pv 給舊頁面鍵）→ 改用功能使用次數
+      d.subN = p.subs.map((s, j) => ({ k: s.k, n: s.n, v: d.opens[s.k] != null ? d.opens[s.k] : sum(d.rows.filter((r) => r.sub === s.k).map((r) => r.n)), col: pgCol(i, j, p.subs.length) }));
+      d.total = d.pv || (sum(d.subN.map((x) => x.v)) || use);
+      if (p.subs.length && sum(d.subN.map((x) => x.v)) > 0 && d.pv) { /* 有子頁開啟數：總數仍用 pv */ }
+    });
+    S.data = data; S.days = periodDays(); S.pvDay = pvDay; S.dayList = st.hours ? [] : (S.dayMode === 'ok' ? [S.day] : days.slice()); S.pvAll = sum(Object.values(pvT));
+    data.users = { pv: 0, rows: [], opens: {}, subN: [], total: (stT.users && stT.users.total) || 0, use: 0, fb: false };
+    const tiers = st.tiers || await estimateTiers(A, st, sessions, loginSess);
+    v.querySelector('#admBody').innerHTML = topHtml(st, days, dmap, dmax, sessions, loginSess, pvTotal, tiers) + `<div class="secttl" id="trDetailTtl"><h2>分頁統計</h2>${dayChip()}</div><div class="card trtabs" id="trDetail"><div id="trTabsBox"></div><div id="trPageBody"></div></div>`;
+    wireTop(v, A);
+    paintTrTabs();
+    bindHover(v.querySelector('#admBody'));
   }
-  /* 分頁明細：左＝這一頁各元件的次數（長條）；右＝點一個元件看它的細項 Top 10（例如「篩選：族群」裡被選最多的族群）*/
-  function paintPage() {
-    const v = S.v, box = v && v.querySelector('#trPageBody'); if (!box || !S.st) return;
-    const rows = (S.st.e2 || []).filter((r) => r.page === S.page);
-    const byComp = {};
-    rows.forEach((r) => { byComp[r.comp] = (byComp[r.comp] || 0) + r.n; });
-    const comps = Object.entries(byComp).sort((a, b) => b[1] - a[1]);
-    if (!comps.length) { box.innerHTML = `<div class="empty">「${esc(VIEW_NAME[S.page] || S.page)}」這段期間還沒有細項紀錄。</div>`; return; }
-    const withDet = comps.filter(([c]) => rows.some((r) => r.comp === c && r.detail));
-    if (!S.comp || !byComp[S.comp] || !withDet.some(([c]) => c === S.comp)) S.comp = (withDet[0] || [])[0] || null;
-    const det = S.comp ? rows.filter((r) => r.comp === S.comp && r.detail).sort((a, b) => b.n - a.n).slice(0, 10) : [];
-    box.innerHTML = `<div class="cdgrid"><div><h3>${esc(VIEW_NAME[S.page] || S.page)}：哪個元件最常被用？</h3><p class="use">點元件名稱，右邊列出它的細項 Top 10。</p>${bars(comps, compName, 0, { click: true, id: 'trCompBars' })}</div>
-      <div id="trCompDetail"><h3>${S.comp ? esc(compName(S.comp)) + '：細項 Top 10' : '細項'}</h3><p class="use">${S.comp ? (S.comp === 'how' ? '細項＝被點「?」的那張卡（元件 id）。' : S.comp.startsWith('filter') || ['rank_bar', 'clock_group', 'heat_tile'].includes(S.comp) ? '細項＝族群／產業鏈名稱。排第一的就是大家最想追的族群。' : S.page === 'stock' ? '細項＝股票代號。' : '細項＝元件或名稱。') : '這一頁的元件都沒有細項。'}</p>
-        ${S.comp ? bars(det.map((r) => [r.detail, r.n]), (k) => k, 0, { id: 'trDetBars' }) : ''}</div></div>`;
-    box.querySelector('#trCompBars').onclick = (e) => { const b = e.target.closest('button[data-k]'); if (!b) return; S.comp = b.dataset.k; paintPage(); };
+  const WK = '日一二三四五六';
+  const dayTxt = (d) => `${+d.slice(5, 7)} 月 ${+d.slice(8, 10)} 日（週${WK[new Date(Date.parse(d + 'T00:00:00Z')).getUTCDay()]}）`;
+  /* 現在看的是哪一天：分頁統計標題旁一顆小膠囊＋清除鈕；Worker 不支援時直接說白話 */
+  function dayChip() {
+    if (!S.day) return '';
+    return `<span class="daychip" id="trDayChip"><i class="dot"></i><b>${esc(dayTxt(S.day))}</b>${S.dayMode === 'unsupported' ? '<em>這個功能要等會員系統更新後才有，下方暫時顯示整段期間</em>' : ''}<button type="button" id="trDayClr" aria-label="清除，回到原期間" title="清除，回到原期間">×</button></span>`;
   }
-  /* 每天直條：只從「第一筆有資料的日子」起畫（前面沒紀錄的天數用一行字交代，不留空白）；左邊 y 軸 0／一半／最大值＋橫向淡線；每根的值在滑過提示 */
-  function dayChart(days, perDay, dmax) {
-    const i0 = days.findIndex((d) => (perDay[d] || 0) > 0);
-    if (i0 < 0) return '<div class="empty">這段期間還沒有瀏覽紀錄。</div>';
-    const shown = days.slice(i0), mid = Math.round(dmax / 2);
+  function topHtml(st, days, dmap, dmax, sessions, loginSess, pvTotal, tiers) {
+    const opt = [['live', '即時'], ['7', '近 7 天'], ['30', '近 30 天'], ['90', '近 90 天'], ['365', '近 365 天'], ['since', '起始日期～至今']];
+    /* 起訖日期框永遠顯示：跟著期間選單同步（近 N 天＝那段的實際起訖、即時＝今天），手動改日期 → 下拉跳成「起始日期～至今」 */
+    const today = todayTpe(), shiftDay = (d, n) => new Date(Date.parse(d + 'T00:00:00Z') + n * 86400000).toISOString().slice(0, 10);
+    const rng = S.period === 'live' ? { from: today, to: today } : S.period === 'since' ? { from: S.since, to: S.until || today } : { from: shiftDay(today, -(+S.period - 1)), to: today };
+    const dsub = S.period === 'live' ? '今天 0–24 時每小時的頁面瀏覽' : '每天的頁面瀏覽總次數';
+    return `<div class="secttl trhead"><h2>全站總覽</h2><small>共 ${nf(pvTotal)} 次瀏覽・${nf(sessions)} 次開站</small><span class="sp"></span>
+        <div class="trctl"><label>期間 <select id="admDaysSel">${opt.map(([k, n]) => `<option value="${k}" ${k === S.period ? 'selected' : ''}>${n}</option>`).join('')}</select></label>
+          <input type="date" id="admSince" value="${esc(rng.from)}" max="${esc(todayTpe())}" aria-label="起始日期"><span class="trto">～</span><input type="date" id="admUntil" value="${esc(rng.to)}" min="${esc(rng.from)}" max="${esc(todayTpe())}" aria-label="結束日期">
+          <button type="button" class="icobtn" id="admRefresh" title="重新整理" aria-label="重新整理"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12a9 9 0 0 0-15.5-6.2L3 8"/><path d="M3 3v5h5"/><path d="M3 12a9 9 0 0 0 15.5 6.2L21 16"/><path d="M16 16h5v5"/></svg></button>
+          <span class="qtip" id="trPrivacy" tabindex="0" role="note" aria-label="隱私說明" title="使用統計只記「每天每一項的次數」（不記是誰、不存 IP），保留 13 個月；細項只存族群名、股票代號、元件名，不存任何人打的字。線上狀態離線即刪。">?</span></div></div>
+      <div class="admgrid trtop">
+        <div class="card s2" id="admDays"><h3>每天有多少瀏覽？</h3><p class="use" title="${esc(dsub)}">${esc(dsub)}</p><div class="cb">${dayChart(days, dmap, dmax, 'admDayBars', S.period === 'live')}</div></div>
+        <div class="card" id="trDonut"><h3>開網站的人有多少是登入的？</h3><p class="use" title="訪客、註冊會員、各付費方案各一段${tiers.est ? '（付費與免費依會員名單比例估算）' : ''}">${tiers.est ? '開站身分（估算）' : '開站身分'}</p><div class="cb">${loginDonut(tiers.list, sessions)}</div></div>
+      </div>`;
+  }
+
+  /* 開站身分甜甜圈：訪客｜註冊會員（免費）｜各付費方案（每個付費範本一段）。登入的幾段（註冊＋各付費）同一組、彼此相連，與訪客之間留 2° 間隙。
+     顏色：訪客＝類別色 2、註冊＝類別色 1、付費方案＝依方案 id 雜湊固定色（新增方案多一色、既有方案不跳色）。
+     正式站 Worker 目前沒有「開站時的會員等級」欄位 → estimateTiers 依 plans／perm 名單人數比例拆登入人數（標「估算」）；示範資料直接給 st.tiers。 */
+  const PLAN_H = [38, 152, 330, 18, 96, 208, 298, 58];
+  const planCol = (id) => { let h = 0; String(id).split('').forEach((c) => { h = (h * 31 + c.charCodeAt(0)) % 9973; }); return `hsl(${PLAN_H[h % PLAN_H.length]} 74% calc(var(--pgL,58%) + 2%))`; };
+  async function estimateTiers(A, st, sessions, loginSess) {
+    const guest = Math.max(0, sessions - loginSess), list = [{ id: 'guest', name: '訪客', n: guest, col: 'var(--cat-2)', login: false }];
+    let plans = null, perm = null;
+    try { const [pl, li] = await Promise.all([A.call('/v1/admin/plans/get', {}), A.call('/v1/admin/perm/list', {})]); if (pl && pl._s === 200) plans = pl.plans || []; if (li && li._s === 200) perm = li.rows || []; } catch (e) { /* 取不到就只分登入／訪客 */ }
+    const total = Math.max(1, (st.users && st.users.total) || 0), paidP = (plans || []).filter((p) => !p.builtin && p.id !== 'guest' && p.id !== 'free' && !/^(訪客|註冊會員|免費會員|付費會員)/.test(p.name || ''));
+    const cnt = {}; (perm || []).forEach((r) => { if (paidP.some((p) => p.id === r.plan) && !(r.expires && r.expires < Date.now())) cnt[r.plan] = (cnt[r.plan] || 0) + 1; });
+    const paidN = Object.values(cnt).reduce((a, b) => a + b, 0);
+    list.unshift({ id: 'free', name: '註冊會員', n: Math.round(loginSess * Math.max(0, total - paidN) / total), col: 'var(--cat-1)', login: true });
+    paidP.forEach((p) => { if (cnt[p.id]) list.splice(list.length - 1, 0, { id: p.id, name: p.name, n: Math.round(loginSess * cnt[p.id] / total), col: planCol(p.id), login: true }); });
+    return { list, est: true };
+  }
+  function loginDonut(list, sessions) {
+    const tot = sum(list.map((t) => t.n)); if (!tot) return '<div class="empty">沒有資料</div>';
+    const login = sum(list.filter((t) => t.login).map((t) => t.n));
+    const segs = list.map((t) => ({ label: t.name, n: t.n, color: t.col, g: t.login ? 'in' : 'guest', ltxt: `${nf(t.n)}・${(t.n / tot * 100).toFixed(1)}%` }));
+    return donutG(segs, { center: ['登入', Math.round(login / tot * 100) + '%'], legendN: 8, legend: segs.map((x) => Object.assign({}, x)), aria: '開站身分占比' });
+  }
+  /* 只統計「有沒有被看」的頁（週期統計、市場明細、事件）：被看幾次、每天趨勢、占全站比；不放子頁與功能細項（Andy 10-05） */
+  function simpleHtml(p, d, idx) {
+    const pd = (S.pvDay || {})[p.k] || {}, has = Object.keys(pd).length > 0 && S.dayList && S.dayList.length;
+    const tot = d.total;
+    const chart = has ? dayChart(S.dayList, pd, Math.max(1, ...Object.values(pd)), 'trPgDays') : '<div class="empty">沒有資料</div>';
+    return `<div class="admgrid trone"><div class="card" id="trS1"><h3>${esc(p.n)}被看了幾次？</h3><p class="use" title="${esc(p.n)}">被看過幾次</p>
+      <div class="cb"><div class="sbody"><div class="bigno"><b>${nf(tot)}</b><span>被看過</span></div><div class="sch">${chart}</div></div></div></div></div>`;
+  }
+  /* 使用者分頁：使用時段（每小時直條，可切 1H／4H／6H／12H／白天／夜晚）＋ 現在誰在線 ＋ 最近會員 */
+  const HR_MODES = [['1', '1H'], ['4', '4H'], ['6', '6H'], ['12', '12H'], ['day', '白天'], ['night', '夜晚']];
+  /* 把 24 小時的數列合併成 1H／4H／6H／12H／白天／夜晚：series＝[{k,name,col,arr:[24]}]（一條＝一種顏色；兩條就堆疊） */
+  function hourData(series, mode) {
+    const two = (n) => String(n).padStart(2, '0'), pad = (a) => { const h = (a || []).slice(0, 24); while (h.length < 24) h.push(0); return h; };
+    const ss = series.map((x) => ({ ...x, arr: pad(x.arr) }));
+    const pick = (hs) => hs.map((x) => ({ l: two(x), tip: `${two(x)}:00–${two((x + 1) % 24)}:00`, v: ss.map((q) => q.arr[x]) }));
+    if (mode === 'day') return pick(Array.from({ length: 12 }, (_, i) => 6 + i));
+    if (mode === 'night') return pick(Array.from({ length: 12 }, (_, i) => (18 + i) % 24));
+    const w = +mode || 1;
+    return Array.from({ length: 24 / w }, (_, i) => ({ l: w === 1 ? two(i) : `${two(i * w)}–${two((i + 1) * w % 24)}`, tip: `${two(i * w)}:00–${two((i + 1) * w % 24)}:00`, v: ss.map((q) => sum(q.arr.slice(i * w, i * w + w))) }));
+  }
+  function usersBody() {
+    const st = S.st, on = S.on, mode = S.hr || '1', hm = S.hm || 'pv', hs = st.hstat || null, live = S.period === 'live';
+    const src = live ? { pv: st.hours, login: hs && hs.day && hs.day.login, guest: hs && hs.day && hs.day.guest } : { pv: st.hourly, login: hs && hs.period && hs.period.login, guest: hs && hs.period && hs.period.guest };
+    const has = hm === 'open' ? !!(src.login && src.guest) : !!src.pv;
+    const series = hm === 'open' ? [{ k: 'guest', name: '訪客開站', col: 'var(--cat-2)', arr: src.guest }, { k: 'login', name: '登入開站', col: 'var(--cat-1)', arr: src.login }] : [{ k: 'pv', name: '頁面瀏覽', col: 'var(--cat-1)', arr: src.pv }];
+    const hd = has ? hourData(series, mode) : null;
+    let chart;
+    if (!hd) chart = '<div class="empty">沒有資料</div>';
+    else { const tots = hd.map((x) => sum(x.v)), mx = Math.max(1, ...tots), all = sum(tots), few = hd.length <= 7;
+      chart = `<div class="dayplot"><div class="dayy">${[1, 0.75, 0.5, 0.25, 0].map((f) => `<span>${nf(Math.round(mx * f))}</span>`).join('')}</div>
+        <div class="days hrs${few ? ' few' : ''}${hm === 'open' ? ' stk2' : ''}" data-chart="days" id="trHrBars">${hd.map((x, i) => { const tot = tots[i];
+          const tip = tp(`<b>${x.tip}</b><br>${hm === 'open' ? `${series.map((q, j) => `${q.name} ${nf(x.v[j])}`).join('・')}<br>合計 ${nf(tot)} 次・占 ${(tot / Math.max(1, all) * 100).toFixed(1)}%` : `${nf(tot)} 次・占 ${(tot / Math.max(1, all) * 100).toFixed(1)}%`}`);
+          return `<div class="dc" data-row="${i}"${tip}>${few ? `<span class="dv">${nf(tot)}</span>` : ''}${series.map((q, j) => `<i style="height:${(x.v[j] / mx * 100).toFixed(1)}%;${hm === 'open' ? `background:${q.col}` : ''}"></i>`).join('')}<span class="dd">${x.l}</span></div>`; }).join('')}</div></div>
+        ${hm === 'open' ? `<div class="hrlg"><span><i style="background:var(--cat-2)"></i>訪客開站</span><span><i style="background:var(--cat-1)"></i>登入開站</span></div>` : ''}`; }
+    const since = hs && hs.since && st.from && hs.since > st.from ? `<div class="hrnote">每小時統計從 ${esc(hs.since)} 起</div>` : '';
+    const modes = `<div class="hrbar"><div class="nbsw lv2 hrmodes" id="trHrMetric" role="tablist">${[['pv', '頁面瀏覽'], ['open', '開站（登入／訪客）']].map(([k, n]) => `<button type="button" role="tab" data-hm="${k}" class="${hm === k ? 'on' : ''}">${n}</button>`).join('')}</div>
+      <div class="nbsw lv2 hrmodes" id="trHrModes" role="tablist">${HR_MODES.map(([k, n]) => `<button type="button" role="tab" data-hr="${k}" class="${mode === k ? 'on' : ''}">${n}</button>`).join('')}</div></div>`;
+    const clock = clockHtml(series.length === 2 ? src.login.map((x, i) => x + (src.guest[i] || 0)) : src.pv, hm === 'open' ? '開站' : '瀏覽');
+    return `<div class="admgrid trpair trusers">
+      <div class="card" id="trHours"><h3>什麼時段最多人用？</h3><p class="use" title="每小時的${hm === 'open' ? '開站次數（登入／訪客堆疊）' : '頁面瀏覽次數'}。白天＝06:00–18:00、夜晚＝18:00–06:00。">白天 06–18／夜晚 18–06</p><div class="cb">${modes}${chart}${since}</div></div>
+      <div class="card" id="trClock"><h3>24 小時時鐘</h3><p class="use" title="12 小時錶面、頂端是 12／0、順時針；內圈＝00:00–11:59、外圈＝12:00–23:59；長度與顏色深淺＝該小時的${hm === 'open' ? '開站' : '瀏覽'}量">內圈上午・外圈下午</p><div class="cb">${clock}</div></div></div>`;
+  }
+  /* 時鐘（12 小時錶面＋內外兩圈）：頂端是 12／0，順時針 12 格；內圈＝00:00–11:59（上午）、外圈＝12:00–23:59（下午），同一個鐘點方向上下午對齊；
+     每段長度與顏色深淺＝該小時使用量（兩圈共用同一把尺）；中心＝尖峰時段；圖例在右 */
+  function clockHtml(arr, what) {
+    const h = (arr || []).slice(0, 24); while (h.length < 24) h.push(0);
+    const tot = sum(h); if (!tot) return '<div class="empty">沒有資料</div>';
+    const mx = Math.max(...h), two = (n) => String(n).padStart(2, '0'), AM = 'var(--cat-3)', PM = 'var(--cat-2)';
+    const BAND = { am: [22, 32], pm: [35, 47] };
+    const P = (r, deg) => `${(60 + r * Math.sin(deg * Math.PI / 180)).toFixed(2)} ${(60 - r * Math.cos(deg * Math.PI / 180)).toFixed(2)}`;
+    const wedge = (a0, a1, r0, r1) => `M ${P(r0, a0)} L ${P(r1, a0)} A ${r1} ${r1} 0 0 1 ${P(r1, a1)} L ${P(r0, a1)} A ${r0} ${r0} 0 0 0 ${P(r0, a0)} Z`;
+    let tr = '', vl = '';
+    h.forEach((n, x) => {
+      const pm = x >= 12, pos = x % 12, [r0, r1] = BAND[pm ? 'pm' : 'am'], a0 = pos * 30 + 1.2, a1 = pos * 30 + 28.8, col = pm ? PM : AM, pct = (n / tot * 100).toFixed(1) + '%', lab = `${two(x)}:00–${two(x)}:59`;
+      tr += `<path d="${wedge(a0, a1, r0, r1)}" fill="${col}" fill-opacity=".13"/>`;
+      const r = r0 + Math.max(1.6, (r1 - r0) * n / mx), op = (0.4 + 0.6 * n / mx).toFixed(2);
+      vl += `<path class="arc" data-row="${x}" data-k="${pm ? 'pm' : 'am'}" data-lab="${lab}" data-pct="${pct}"${tp(`<b>${lab}</b>　${nf(n)} 次${what}・占 ${pct}`)} d="${wedge(a0, a1, r0, r)}" fill="${col}" fill-opacity="${op}"/>`;
+    });
+    const amN = sum(h.slice(0, 12)), pmN = tot - amN, top = h.map((n, x) => [n, x]).sort((a, b) => b[0] - a[0]).slice(0, 3);
+    const pk = top[0][1], c2 = `${two(pk)} 時`;
+    const lbl = [[0, '12'], [90, '3'], [180, '6'], [270, '9']].map(([d, t]) => { const q = P(54, d).split(' '); return `<text x="${q[0]}" y="${(+q[1] + 2.5).toFixed(2)}" text-anchor="middle" style="font-size:7px;fill:var(--ink-2);font-family:var(--mono)">${t}</text>`; }).join('');
+    const li = (k, col, name, n, rg) => `<li data-k="${k}" data-n="${n}"${tp(`<b>${esc(name)}（${rg}）</b><br>${nf(n)} 次${what}・占 ${(n / tot * 100).toFixed(1)}%`)}><i style="background:${col}"></i><span>${esc(name)}</span><b>${nf(n)}</b><small>${(n / tot * 100).toFixed(1)}%</small></li>`;
+    return `<div class="dn clock" data-chart="donut"><svg viewBox="0 0 120 120" data-d1="尖峰時段" data-d2="${c2}" role="img" aria-label="12 小時錶面、內圈上午外圈下午的使用時鐘">${tr}${vl}${lbl}
+      <text class="c1" x="60" y="56" text-anchor="middle" style="font-size:5.4px;fill:var(--ink-2)">尖峰時段</text><text class="c2" x="60" y="67" text-anchor="middle" style="font-size:9px;font-weight:700;fill:var(--ink);font-family:var(--mono)">${c2}</text></svg>
+      <ul class="lg">${li('am', AM, '內圈 上午', amN, '00:00–11:59')}${li('pm', PM, '外圈 下午', pmN, '12:00–23:59')}${top.map(([n, x], i) => `<li data-row="${x}"${tp(`<b>${two(x)}:00–${two(x)}:59</b>　${nf(n)} 次${what}・占 ${(n / tot * 100).toFixed(1)}%`)}><i style="background:${x >= 12 ? PM : AM};opacity:${(0.4 + 0.6 * n / mx).toFixed(2)}"></i><span>${i === 0 ? '尖峰' : i === 1 ? '次忙' : '再次'} ${two(x)} 時</span><b>${nf(n)}</b><small>${(n / tot * 100).toFixed(1)}%</small></li>`).join('')}</ul></div>`;
+  }
+  function wireTop(v, A) {
+    const apply = () => { S.tab = S.tab || 'all'; paint(); };
+    v.querySelector('#admDaysSel').onchange = (e) => {
+      S.period = e.target.value; S.day = '';
+      if (S.period === 'since') { S.since = S.since || v.querySelector('#admSince').value; }
+      apply();
+    };
+    const di = v.querySelector('#admSince'), du = v.querySelector('#admUntil'), okD = (x) => /^\d{4}-\d{2}-\d{2}$/.test(x);
+    const manual = () => { if (!okD(di.value)) return; let to = okD(du.value) ? du.value : todayTpe(); if (to < di.value) to = di.value; S.period = 'since'; S.since = di.value; S.until = to >= todayTpe() ? '' : to; S.day = ''; apply(); };
+    if (di) di.onchange = manual; if (du) du.onchange = manual;
+    const dv = v.querySelector('#admDays'); if (dv) dv.onclick = (e) => { const dc = e.target.closest('.dc[data-day]'); if (!dc || S.period === 'live') return; S.day = S.day === dc.dataset.day ? '' : dc.dataset.day; paint(); };
+    const dcl = v.querySelector('#trDayClr'); if (dcl) dcl.onclick = () => { S.day = ''; paint(); };
+    v.querySelector('#admRefresh').onclick = (e) => { const b = e.currentTarget; b.classList.remove('spin'); void b.offsetWidth; b.classList.add('spin'); S.spin = true; paint(); };
+    if (S.spin) { S.spin = false; const rb = v.querySelector('#admRefresh'); if (rb) rb.classList.add('spin'); }
+  }
+
+
+  /* ==== 管理區所有圖表的一致互動（Andy 10-05）：滑過高亮該柱／扇區／點（其餘變淡）＋浮動提示（名稱、數值、占比）＋甜甜圈中心字換成該段；
+     圖例滑過連動高亮；點擊：「全部」頁的長條／扇區進入該頁（其餘圖沒有可進的下一層，只提示）。事件委派在 #admBody 上，圖重畫不用重綁。 */
+  function tipEl() { let t = document.getElementById('trTip'); if (!t) { t = document.createElement('div'); t.id = 'trTip'; t.hidden = true; t.setAttribute('role', 'tooltip'); document.body.appendChild(t); } return t; }
+  function hovClear(chart) {
+    if (!chart) return;
+    chart.classList.remove('hov'); chart.querySelectorAll('.hl').forEach((e) => e.classList.remove('hl'));
+    const sv = chart.querySelector('svg[data-d1]'); if (sv) { sv.querySelector('.c1').textContent = sv.dataset.d1; sv.querySelector('.c2').textContent = sv.dataset.d2; }
+    tipEl().hidden = true;
+  }
+  function bindHover(root) {
+    if (!root || root._hov) return; root._hov = true;
+    const place = (x0, y0) => { const t = tipEl(); if (t.hidden) return; const w = t.offsetWidth, h = t.offsetHeight; let x = x0 + 14, y = y0 + 16; if (x + w > innerWidth - 8) x = x0 - w - 14; if (y + h > innerHeight - 8) y = y0 - h - 12; t.style.left = Math.max(8, x) + 'px'; t.style.top = Math.max(8, y) + 'px'; };
+    /* 高亮＋提示（滑鼠滑過與觸控點一下共用）：target＝事件目標，(x,y)＝提示位置；回傳是否真的有東西可以顯示 */
+    const show = (target, x, y) => {
+      const chart = target.closest && target.closest('[data-chart]'); if (!chart) return false;
+      hovClear(chart);
+      const idEl = target.closest('[data-row]'), lg = target.closest('li[data-k]'), te = target.closest('[data-tip]');
+      let swap = null;
+      if (idEl && chart.contains(idEl)) {
+        chart.classList.add('hov');
+        chart.querySelectorAll(`[data-row="${idEl.dataset.row}"]`).forEach((q) => q.classList.add('hl'));
+        if (idEl.matches('.arc')) { chart.querySelectorAll(`li[data-k="${CSS.escape(idEl.dataset.k)}"]`).forEach((q) => q.classList.add('hl')); swap = [idEl.dataset.lab || idEl.dataset.k, idEl.dataset.pct || (idEl.dataset.tip.match(/（([\d.]+%)）/) || [])[1]]; }
+      } else if (lg && chart.contains(lg)) {
+        chart.classList.add('hov');
+        const k = CSS.escape(lg.dataset.k); chart.querySelectorAll(`[data-k="${k}"]`).forEach((q) => q.classList.add('hl'));
+        swap = [lg.dataset.k, (lg.querySelector('small') || {}).textContent];
+      }
+      const sv = chart.querySelector('svg[data-d1]'); if (sv && swap && swap[1]) { sv.querySelector('.c1').textContent = swap[0]; sv.querySelector('.c2').textContent = swap[1].replace(/^.*・/, ''); }
+      if (te && te.dataset.tip) { const t = tipEl(); t.innerHTML = te.dataset.tip; t.hidden = false; place(x, y); return true; }
+      return false;
+    };
+    const clearAll = () => { root.querySelectorAll('[data-chart].hov').forEach(hovClear); tipEl().hidden = true; S.tapEl = null; };
+    root.addEventListener('mouseover', (e) => { if (S.touching) return; show(e.target, e.clientX, e.clientY); });
+    root.addEventListener('mousemove', (e) => { if (!S.touching) place(e.clientX, e.clientY); });
+    root.addEventListener('mouseout', (e) => { if (S.touching) return; const chart = e.target.closest && e.target.closest('[data-chart]'); if (!chart) return; if (e.relatedTarget && chart.contains(e.relatedTarget)) return; hovClear(chart); });
+    /* 觸控（手機）：點一下圖就出提示＋高亮，點圖外面收起來。有「下一步」的元素（全部頁的長條／扇區、每日直條）第一下只出提示，同一個再點一下才執行 */
+    root.addEventListener('pointerdown', (e) => {
+      if (e.pointerType === 'mouse') { S.touching = false; return; }
+      S.touching = true;
+      const el = e.target.closest && e.target.closest('[data-tip],li[data-k]');
+      if (!el || !el.closest('[data-chart]')) { clearAll(); S.suppress = false; return; }
+      const act = !!el.closest('[data-p], .dc[data-day]');
+      S.suppress = act && S.tapEl !== el;
+      show(e.target, e.clientX, e.clientY); S.tapEl = el;
+    });
+    root.addEventListener('click', (e) => { if (S.suppress) { S.suppress = false; e.stopPropagation(); e.preventDefault(); } }, true);
+    document.addEventListener('pointerdown', (e) => { if (e.pointerType === 'mouse' || !root.isConnected) return; if (!(e.target.closest && e.target.closest('#admBody, #v-admin [data-chart]'))) clearAll(); }, true);
+  }
+
+  /* ---- 分頁統計 ---- */
+  /* 頂層分頁順序：預設照 PAGES；可拖曳排序（「全部」固定第一顆），順序記在 localStorage（tw.adm.trTabs）；沒有刪除鈕（Andy：具備拖曳移動，但不具備刪除） */
+  const TAB_KEY = 'tw.adm.trTabs';
+  function tabOrder() {
+    let saved = []; try { saved = JSON.parse(localStorage.getItem(TAB_KEY) || '[]'); } catch (e) { saved = []; }
+    const known = PAGES.map((p) => p.k), out = (Array.isArray(saved) ? saved : []).filter((k, i, a) => known.includes(k) && a.indexOf(k) === i);
+    known.forEach((k) => { if (!out.includes(k)) out.push(k); });
+    return out;
+  }
+  function saveTabOrder(o) { try { localStorage.setItem(TAB_KEY, JSON.stringify(o)); } catch (e) { /* 無痕視窗存不了就只在這次有效 */ } }
+  function paintTrTabs() {
+    const v = S.v, box = v && v.querySelector('#trTabsBox'); if (!box || !S.data) return;
+    if (S.tab !== 'all' && !PAGE_BY[S.tab]) S.tab = 'all';
+    const d = (k) => S.data[k], ord = tabOrder();
+    box.innerHTML = `<div class="nbsw" id="trTabs" role="tablist" aria-label="頁面分頁（可拖曳調整順序）"><button type="button" role="tab" data-t="all" class="${S.tab === 'all' ? 'on' : ''}" aria-selected="${S.tab === 'all'}">全部</button>${ord.map((k) => { const p = PAGE_BY[k]; return `<button type="button" role="tab" draggable="true" data-t="${p.k}" class="${S.tab === p.k ? 'on' : ''}" aria-selected="${S.tab === p.k}" title="拖曳可調整順序" aria-keyshortcuts="Alt+ArrowLeft Alt+ArrowRight">${esc(p.n)}<em>${nf(d(p.k).total)}</em></button>`; }).join('')}</div>`;
+    const bar = box.querySelector('#trTabs');
+    bar.onclick = (e) => { const b = e.target.closest('button[data-t]'); if (!b) return; S.tab = b.dataset.t; S.sub = 'all'; paintTrTabs(); };
+    const move = (k, toK, after) => { const o = tabOrder().filter((x) => x !== k), i = o.indexOf(toK); o.splice(i + (after ? 1 : 0), 0, k); saveTabOrder(o); paintTrTabs(); };
+    bar.ondragstart = (e) => { const b = e.target.closest('button[data-t]'); if (!b || b.dataset.t === 'all') { e.preventDefault(); return; } S.drag = b.dataset.t; b.classList.add('dragging'); try { e.dataTransfer.effectAllowed = 'move'; e.dataTransfer.setData('text/plain', S.drag); } catch (x) { /* 舊瀏覽器 */ } };
+    bar.ondragover = (e) => { const b = e.target.closest('button[data-t]'); if (!b || !S.drag || b.dataset.t === 'all' || b.dataset.t === S.drag) return; e.preventDefault(); const o = tabOrder(), after = o.indexOf(b.dataset.t) > o.indexOf(S.drag); bar.querySelectorAll('button').forEach((x) => x.classList.remove('dropL', 'dropR')); b.classList.add(after ? 'dropR' : 'dropL'); };
+    bar.ondrop = (e) => { const b = e.target.closest('button[data-t]'), from = S.drag; S.drag = null; if (!b || !from || b.dataset.t === 'all' || b.dataset.t === from) { paintTrTabs(); return; } e.preventDefault(); const o = tabOrder(); move(from, b.dataset.t, o.indexOf(b.dataset.t) > o.indexOf(from)); };
+    bar.ondragend = () => { S.drag = null; bar.querySelectorAll('button').forEach((x) => x.classList.remove('dragging', 'dropL', 'dropR')); };
+    bar.onkeydown = (e) => { const b = e.target.closest('button[data-t]'); if (!b || b.dataset.t === 'all' || !e.altKey || !['ArrowLeft', 'ArrowRight'].includes(e.key)) return; e.preventDefault(); const o = tabOrder(), i = o.indexOf(b.dataset.t), j = i + (e.key === 'ArrowLeft' ? -1 : 1); if (j < 0 || j >= o.length) return; move(b.dataset.t, o[j], e.key === 'ArrowRight'); const f = box.querySelector(`#trTabs [data-t="${b.dataset.t}"]`); if (f) f.focus(); };
+    paintBody();
+  }
+  function paintBody() {
+    const v = S.v, body = v && v.querySelector('#trPageBody'); if (!body) return;
+    body.innerHTML = S.tab === 'all' ? allHtml() : S.tab === 'users' ? usersBody() : pageHtml(S.tab);
+    body.onclick = (e) => {
+      const t = e.target.closest('[data-p]'); if (t && S.tab === 'all') { S.tab = t.dataset.p; S.sub = t.dataset.s || 'all'; paintTrTabs(); return; }
+      const sb = e.target.closest('button[data-sub]'); if (sb) { S.sub = sb.dataset.sub; paintBody(); }
+      const hb = e.target.closest('button[data-hr]'); if (hb) { S.hr = hb.dataset.hr; paintBody(); }
+      const hm = e.target.closest('button[data-hm]'); if (hm) { S.hm = hm.dataset.hm; paintBody(); }
+    };
+    v.querySelectorAll('#trTabs .on, #trSubs .on').forEach((b) => { if (b.scrollIntoView) b.scrollIntoView({ block: 'nearest', inline: 'nearest' }); });
+    const sc = body.querySelector('#trSc');
+    if (S.ro) { S.ro.disconnect(); S.ro = null; }
+    if (sc && S.stk) { const draw = () => drawScatter(sc, S.stk.scat); draw(); if (window.ResizeObserver) { let lw = sc.clientWidth, lh = sc.clientHeight; S.ro = new ResizeObserver(() => { if (Math.abs(sc.clientWidth - lw) > 2 || Math.abs(sc.clientHeight - lh) > 2) { lw = sc.clientWidth; lh = sc.clientHeight; draw(); } }); S.ro.observe(sc); } }
+  }
+  const card = (id, ttl, sub, inner, cls) => `<div class="card${cls ? ' ' + cls : ''}" id="${id}"><h3>${esc(ttl)}</h3><p class="use" title="${esc(sub)}">${esc(sub)}</p><div class="cb">${inner}</div></div>`;
+  /* 「全部」：左＝各頁堆疊長條（有子頁的頁面依子頁上色，滑過看占比）；右＝各頁占比大甜甜圈（子頁＝同色系子扇區） */
+  function allHtml() {
+    const list = PAGES.filter((p) => !p.sp).map((p, i) => ({ p, i, d: S.data[p.k] })).sort((a, b) => b.d.total - a.d.total);
+    const mx = Math.max(1, ...list.map((x) => x.d.total)), tot = sum(list.map((x) => x.d.total));
+    const rows = list.map(({ p, i, d }, ri) => {
+      const segs = d.subN.filter((s) => s.v > 0), ssum = sum(segs.map((s) => s.v)), w = d.total / mx * 100;
+      const inner = segs.length > 1 ? segs.map((s) => `<i style="width:${(s.v / Math.max(ssum, 1) * 100).toFixed(2)}%;background:${s.col}" ${tp(`<b>${esc(p.n)}・${esc(s.n)}</b><br>${nf(s.v)} 次・占該頁 ${(s.v / ssum * 100).toFixed(1)}%・占全站 ${(s.v / tot * 100).toFixed(1)}%`)}></i>`).join('')
+        : `<i style="width:100%;background:${pgCol(i, 0, 1)}" ${tp(`<b>${esc(p.n)}</b><br>${nf(d.total)} 次・占全站 ${(d.total / tot * 100).toFixed(1)}%`)}></i>`;
+      const t0 = tp(`<b>${esc(p.n)}</b><br>${nf(d.total)} 次・占全站 ${(d.total / tot * 100).toFixed(1)}%`);
+      return `<button type="button" class="bl" data-p="${p.k}" data-row="${ri}"${t0}>${esc(p.n)}</button><span class="bt stk" data-p="${p.k}" data-row="${ri}"><span style="width:${w.toFixed(1)}%">${inner}</span></span><span class="bn" data-row="${ri}" data-p="${p.k}"${t0}>${nf(d.total)}<small>${(d.total / tot * 100).toFixed(0)}%</small></span>`;
+    }).join('');
+    const segs = []; list.forEach(({ p, i, d }) => { const ss = d.subN.filter((s) => s.v > 0), ssum = sum(ss.map((s) => s.v));
+      if (ss.length > 1 && ssum > 0) ss.forEach((s) => segs.push({ label: p.n, n: d.total * s.v / ssum, color: s.col, lcolor: pgCol(i, 0, 1), tip: `${p.n}・${s.n}`, p: p.k, s: s.k, g: p.k }));
+      else segs.push({ label: p.n, n: d.total, color: pgCol(i, 0, 1), tip: p.n, p: p.k, g: p.k }); });
+    const pagesAgg = list.map(({ p, i, d }) => ({ label: p.n, n: d.total, color: pgCol(i, 0, 1) }));
+    return `<div class="admgrid trpair">${card('trAllBars', '各頁被看了幾次？', '有子頁的以不同顏色堆疊', `<div class="bars stkbars" data-chart="bars" id="trAllB">${rows}</div>`)}
+      ${card('trAllDonut', '各頁占比', '顏色＝頁面，同色系＝子頁', donutG(segs, { top5: pagesAgg, legend: pagesAgg, legendN: 10, totalN: tot, aria: '各頁瀏覽占比' }))}</div>`;
+  }
+  /* 單一頁面：上方小分頁（全部＋子頁）、下方 功能使用次數（長條＋圓餅）、被點最多的對象（長條＋圓餅） */
+  function pageHtml(k) {
+    const p = PAGE_BY[k], d = S.data[k], idx = PAGES.indexOf(p);
+    if (!p.subs.some((s) => s.k === S.sub)) S.sub = 'all';
+    const subs = p.subs.length ? `<div class="nbsw lv2" id="trSubs" role="tablist"><button type="button" role="tab" data-sub="all" class="${S.sub === 'all' ? 'on' : ''}">全部</button>${p.subs.map((s, j) => `<button type="button" role="tab" data-sub="${s.k}" class="${S.sub === s.k ? 'on' : ''}"><i class="tdot" style="background:${pgCol(idx, j, p.subs.length)}"></i>${esc(s.n)}<em>${nf(d.subN[j].v)}</em></button>`).join('')}</div>` : '';
+    if (p.simple) return simpleHtml(p, d, idx);
+    const sel = S.sub === 'all' ? d.rows : d.rows.filter((r) => r.sub === S.sub);
+    const sn = S.sub === 'all' ? p.n : `${p.n}・${(p.subs.find((s) => s.k === S.sub) || {}).n}`;
+    const byComp = {}; sel.forEach((r) => { byComp[r.comp] = (byComp[r.comp] || 0) + r.n; });
+    const fl = Object.entries(byComp).sort((a, b) => b[1] - a[1]);
+    const byDet = {}, kinds = new Set();
+    sel.forEach((r) => { if (kindOf(r.comp) && r.det) { const key = r.det; byDet[key] = (byDet[key] || 0) + r.n; kinds.add(kindOf(r.comp)); } });
+    const dl = Object.entries(byDet).sort((a, b) => b[1] - a[1]);
+    const palette = ['var(--cat-1)', 'var(--cat-2)', 'var(--cat-3)', 'var(--cat-4)', 'var(--cat-5)'];
+    const dsegs = (list, nameFn) => { const t5 = list.slice(0, 5), rest = sum(list.slice(5).map((x) => x[1])); return t5.map(([kk, n], i) => ({ label: nameFn(kk), n, color: palette[i] })).concat(rest ? [{ label: '其他', n: rest, color: 'var(--cat-other)' }] : []); };
+    const pair = (id, ttl, sub, list, nameFn, click, lim) => `${card(id + 'B', ttl, sub, bars(list.slice(0, lim || 10), nameFn, sum(list.map((x) => x[1])), { id: id + 'Bars', click }))}${card(id + 'D', ttl.replace(/？$/, '') + '占比', '前 5 名＋其他', donutG(dsegs(list, nameFn), { legend: dsegs(list, nameFn), legendN: 6, aria: ttl }))}`;
+    let body = '';
+    if (k === 'stock' && S.sub === 'tabs') {
+      const tl = fl.map(([c, n]) => [c.replace(/^tab\./, ''), n]);
+      body = `<div class="admgrid trpair">${pair('trF', '各分頁被點幾次？', '個股頁下方分頁（含 ETF 成分股）', tl, (c) => (TAB_NAME[c] || c), false, 12)}</div>`;
+    } else if (k === 'stock' && S.sub === 'kline') {
+      /* K 線指標：左＝各項功能（技術指標各自計次＋畫線工具各自計次＋AI 面向／四週期同看／指標面板／3D）；右組＝K 線週期切換，不重複 */
+      const it = {}; const add = (nm, n) => { it[nm] = (it[nm] || 0) + n; };
+      sel.forEach((r) => { if (r.comp === 'ind') add(r.det || '技術指標', r.n); else if (r.comp === 'draw.tool') add('畫線：' + (r.det || '工具'), r.n); else if (!/^kp\./.test(r.comp)) add(compName(r.comp), r.n); });
+      const il = Object.entries(it).sort((a, b) => b[1] - a[1]);
+      const pl = fl.filter(([c]) => /^kp\./.test(c));
+      body = `<div class="admgrid trpair">${pair('trF', '各項功能被用了幾次？', '技術指標／畫線／AI／四週期（含本益比河流）', il, (x) => x, false, 16)}</div>`
+        + (pl.length ? `<div class="admgrid trpair">${pair('trD', 'K 線週期切換', '日／週／月／分 K', pl, compName)}</div>` : '');
+    } else if (k === 'stock' && S.sub === 'all') {
+      body = `<div class="admgrid trpair">${pair('trF', '各功能被用了幾次？', '每個功能被用的次數', fl, compName)}</div>
+        <div class="admgrid trpair">${pair('trD', '被點最多的個股', '個股頁被打開次數，前 10 名', dl, stockNm)}</div>
+        <div class="admgrid">${card('trStockFeat', '熱門個股的人都在用什麼功能？', '前 10 檔各自最常用的三個功能', S.stk.featRows.length ? stockTable(S.stk.featRows) : '<div class="empty">沒有資料</div>', 's2')}
+          ${card('trScatter', '哪些股票「又多人看、看的人又用得深」？', '右上＝熱門又被深度使用', S.stk.scat.length < 2 ? '<div class="empty">沒有資料</div>' : '<div class="sc" data-chart="sc" id="trSc"></div>')}</div>`;
+    } else if (!fl.length) {
+      body = `<div class="empty trempty">沒有資料</div>`;
+    } else {
+      const nmDet = (x) => (kinds.has('個股') && /^[0-9A-Z]{4,6}$/.test(x) ? stockNm(x) : x);
+      body = (fl.length === 1 && dl.length ? '' : `<div class="admgrid trpair">${pair('trF', '各功能被用了幾次？', sn, fl, compName)}</div>`)
+        + (dl.length ? `<div class="admgrid trpair">${pair('trD', `被點最多的${[...kinds].join('／')}`, `${sn}・Top 10`, dl, nmDet)}</div>` : '');
+    }
+    return `<div class="trhd">${subs}</div>${body}`;
+  }
+  const stockTable = (rows) => `<div class="tbw"><table class="fx"><colgroup><col style="width:24%"><col style="width:26%"><col style="width:50%"></colgroup><thead><tr><th>代號</th><th>觀看</th><th>最常用的功能</th></tr></thead><tbody>${rows.map((r) => `<tr><td class="nm">${esc(stockNm(r.code))}</td><td><span class="vb"><span><i style="width:${(r.views / Math.max(1, rows[0].views) * 100).toFixed(1)}%"></i></span><em>${nf(r.views)}</em></span></td><td>${r.top.length ? `<div class="chips">${r.top.map((x) => `<span class="chip">${esc(compName(x.comp).replace(/^.*：/, ''))} <b>${nf(x.n)}</b></span>`).join('')}</div>` : '<span style="color:var(--ink-2)">只看沒點功能</span>'}</td></tr>`).join('')}</tbody></table></div>`;
+  /* 每天直條：只從「第一筆有資料的日子」起畫（前面沒紀錄的天數用一行字交代）。圖區吃滿卡片高度；y 軸 0／一半／最大值＋淡格線＋平均虛線；
+     最高那天標值；天數 ≤ 7 時每根放大（寬到 140）並在柱上標值、柱下標日期，不再是細細兩根留一大片空白 */
+  function dayChart(days, perDay, dmax, idp, full) {
+    idp = idp || 'admDayBars';
+    const i0 = full ? 0 : days.findIndex((d) => (perDay[d] || 0) > 0);
+    if (i0 < 0) return '<div class="empty">沒有資料</div>';
+    const shown = days.slice(i0), few = shown.length <= 7, dtot = shown.reduce((s, d) => s + (perDay[d] || 0), 0);
+    const avg = shown.reduce((s, d) => s + (perDay[d] || 0), 0) / shown.length, mxd = shown.reduce((a, d) => ((perDay[d] || 0) > (perDay[a] || 0) ? d : a), shown[0]);
     const note = i0 > 0 ? `${days[0].slice(5)}～${days[i0 - 1].slice(5)} 無紀錄（未畫出）` : '';
-    return `<div class="dayplot"><div class="dayy"><span>${nf(dmax)}</span><span>${nf(mid)}</span><span>0</span></div>
-      <div class="days" id="admDayBars" data-first="${esc(shown[0])}">${shown.map((d) => `<i style="height:${((perDay[d] || 0) / dmax * 100).toFixed(1)}%" title="${d}：${nf(perDay[d] || 0)} 次"></i>`).join('')}</div></div>
-      <div class="dayx"><span>${esc(shown[0])}</span>${note ? `<span class="dayno" id="admDayNote">${note}</span>` : ''}<span>${esc(shown[shown.length - 1])}</span></div>`;
+    /* X 軸刻度：每 7 天（週一）標一個；期間很長（> 98 天）改成每 4 週，免得擠在一起。時間是每小時（HH:00）就每 4 小時一個 */
+    let ticks = [];
+    if (!few) {
+      if (/^\d\d:00$/.test(shown[0])) ticks = shown.map((d, i) => [d, i]).filter(([d, i]) => i % 4 === 0);
+      else { const step = shown.length > 98 ? 4 : 1; let k = 0; shown.forEach((d, i) => { if (new Date(Date.parse(d + 'T00:00:00Z')).getUTCDay() === 1) { if (k % step === 0) ticks.push([d, i]); k++; } }); }
+    }
+    const ys = [1, 0.75, 0.5, 0.25, 0].map((f) => `<span>${nf(Math.round(dmax * f))}</span>`).join('');
+    return `<div class="dayplot"><div class="dayy">${ys}</div>
+      <div class="days${few ? ' few' : ''}${shown.length > 90 ? ' many' : ''}" data-chart="days" id="${idp}" data-first="${esc(shown[0])}">${shown.map((d, di) => perDay[d] === null ? `<div class="dc fut" data-row="${di}"${tp(`<b>${esc(d)}</b><br>還沒到這個小時`)}><i style="height:0"></i></div>` : `<div class="dc${d === mxd ? ' mx' : ''}${idp === 'admDayBars' && d === S.day ? ' sel' : ''}"${idp === 'admDayBars' && /^\d{4}-/.test(d) ? ` data-day="${d}"` : ''} data-row="${di}"${tp(`<b>${esc(d)}${/^\d{4}-/.test(d) ? '（週' + '日一二三四五六'[new Date(Date.parse(d + 'T00:00:00Z')).getUTCDay()] + '）' : ''}</b><br>${nf(perDay[d] || 0)} 次・占期間 ${(((perDay[d] || 0) / Math.max(1, dtot)) * 100).toFixed(1)}%<br>${(perDay[d] || 0) >= avg ? '高於' : '低於'}平均 ${nf(Math.round(avg))}${d === mxd ? '（最高）' : ''}`)}>${few || d === mxd ? `<span class="dv">${nf(perDay[d] || 0)}</span>` : ''}<i style="height:${((perDay[d] || 0) / dmax * 100).toFixed(1)}%"></i>${few ? `<span class="dd">${d.slice(5)}</span>` : ''}</div>`).join('')}
+        ${shown.length > 1 ? `<div class="avg" style="bottom:${(avg / dmax * 100).toFixed(1)}%"><b>平均 ${nf(Math.round(avg))}</b></div>` : ''}</div></div>
+      ${few ? '' : `<div class="dayticks" id="${idp}Ticks"><div>${ticks.map(([d, i]) => `<span style="left:${((i + 0.5) / shown.length * 100).toFixed(2)}%">${/^\d\d:00$/.test(d) ? d : d.slice(5)}</span>`).join('')}</div></div>`}
+      ${note ? `<div class="dayx"><span class="dayno" id="${idp}Note">${note}</span></div>` : ''}`;
   }
-  function scatter(pts) {
-    if (pts.length < 2) return '<div class="empty">至少要有兩檔個股的觀看紀錄才畫得出關係。</div>';
-    const W = 480, H = 260, L = 44, B = 34, T = 12, R = 16;
+  /* 散佈圖：依容器實際大小畫（ResizeObserver 重畫），圖吃滿卡片；格線 3 條、軸刻度＝真值；標籤避開已放的標籤 */
+  function drawScatter(box, pts) {
+    if (!box) return;
+    const W = Math.max(240, Math.round(box.clientWidth)), H = Math.max(180, Math.round(box.clientHeight));
+    const L = 44, B = 40, T = 14, R = 18;
     const xm = Math.max(...pts.map((p) => p.x)), ym = Math.max(0.5, ...pts.map((p) => p.y));
-    const X = (x) => L + (x / xm) * (W - L - R), Y = (y) => H - B - (y / ym) * (H - B - T);
-    const lab = pts.slice().sort((a, b) => (b.x + b.y * xm / ym) - (a.x + a.y * xm / ym)).slice(0, 6).map((p) => p.code);
-    return `<svg class="sc" id="trScSvg" viewBox="0 0 ${W} ${H}" width="100%" style="max-width:${W}px;height:auto" role="img" aria-label="個股被觀看次數與平均功能使用次數的散佈圖">
-      <line x1="${L}" y1="${H - B}" x2="${W - R}" y2="${H - B}" stroke="var(--line-2)"/><line x1="${L}" y1="${T}" x2="${L}" y2="${H - B}" stroke="var(--line-2)"/>
-      <text x="${W - R}" y="${H - 8}" text-anchor="end">被觀看次數 →（最多 ${nf(xm)}）</text><text x="6" y="${T + 4}" transform="rotate(90 6 ${T + 4})">每次觀看用幾次功能 →</text>
-      <text x="${L - 4}" y="${H - B + 14}" text-anchor="end">0</text><text x="${L - 4}" y="${T + 10}" text-anchor="end">${ym.toFixed(1)}</text>
-      ${pts.map((p) => `<circle cx="${X(p.x).toFixed(1)}" cy="${Y(p.y).toFixed(1)}" r="5" fill="var(--cyan)" fill-opacity=".75"><title>${esc(p.code)}：觀看 ${p.x}、平均 ${p.y.toFixed(2)} 次功能</title></circle>`
-        + (lab.includes(p.code) ? `<text class="lb" x="${(X(p.x) > W - 70 ? X(p.x) - 7 : X(p.x) + 7).toFixed(1)}" y="${(Y(p.y) + 4).toFixed(1)}" text-anchor="${X(p.x) > W - 70 ? 'end' : 'start'}">${esc(p.code)}</text>` : '')).join('')}</svg>`;
+    const X = (x) => L + (x / xm) * (W - L - R - 8), Y = (y) => H - B - (y / ym) * (H - B - T - 8);
+    const lab = pts.slice().sort((a, b) => (b.x + b.y * xm / ym) - (a.x + a.y * xm / ym)).slice(0, 6);
+    const placed = [], out = [];
+    lab.forEach((p) => {
+      const w = String(p.code).length * 8 + 6, cx = X(p.x), cy = Y(p.y);
+      for (const [dx, dy, anc] of [[9, 4, 'start'], [-9, 4, 'end'], [0, -10, 'middle'], [0, 20, 'middle']]) {
+        const x0 = anc === 'start' ? cx + dx : anc === 'end' ? cx + dx - w : cx - w / 2, y0 = cy + dy - 12;
+        if (x0 < 0 || x0 + w > W || y0 < 0 || y0 + 16 > H - B + 4) continue;
+        if (placed.some((r) => x0 < r[0] + r[2] && x0 + w > r[0] && y0 < r[1] + r[3] && y0 + 16 > r[1])) continue;
+        placed.push([x0, y0, w, 16]); out.push(`<text class="lb" x="${(cx + dx).toFixed(1)}" y="${(cy + dy).toFixed(1)}" text-anchor="${anc}">${esc(p.code)}</text>`); return;
+      }
+    });
+    const gl = [0, 0.5, 1].map((f) => { const y = Y(ym * f).toFixed(1); return `<line class="gl" x1="${L}" x2="${W - R}" y1="${y}" y2="${y}"/><text x="${L - 6}" y="${(+y + 4).toFixed(1)}" text-anchor="end">${f === 0 ? '0' : (ym * f).toFixed(1)}</text>`; }).join('');
+    const xt = [0, 0.5, 1].map((f) => `<text x="${X(xm * f).toFixed(1)}" y="${H - B + 16}" text-anchor="${f === 0 ? 'start' : f === 1 ? 'end' : 'middle'}">${nf(Math.round(xm * f))}</text>`).join('');
+    box.innerHTML = `<svg id="trScSvg" viewBox="0 0 ${W} ${H}" role="img" aria-label="個股被觀看次數與平均功能使用次數的散佈圖">${gl}<line x1="${L}" y1="${T}" x2="${L}" y2="${H - B}" stroke="var(--line-2)"/>${xt}
+      <text x="${W - R}" y="${H - 6}" text-anchor="end">被觀看次數 →</text><text x="${L}" y="${H - 6}" text-anchor="start">每次觀看用幾次功能 ↑</text>
+      ${pts.map((p, pi) => `<circle data-row="${pi}"${tp(`<b>${esc(stockNm(p.code))}</b><br>被觀看 ${nf(p.x)} 次<br>每次平均用 ${p.y.toFixed(2)} 次功能`)} cx="${X(p.x).toFixed(1)}" cy="${Y(p.y).toFixed(1)}" r="6" fill="var(--cat-1)" fill-opacity=".85" stroke="var(--panel)" stroke-width="1.5"></circle>`).join('')}${out.join('')}</svg>`;
+  }
+  /* 甜甜圈（照產業地圖「成交值占比」那顆：粗環 58%～78%、扇區端點圓角、內側一圈極細軌道、中心小標題＋大數字、圖例在下）。
+     非同組的扇區之間一律同樣的間隙（GAP＝2°，小扇區也照同規則，太小的畫成 0.8° 細片）；只有同一母頁（segs 的 g 相同）的子分頁扇區相連（間隙 0）、同色系深淺。端點直角（butt），不做圓頭。 */
+  const DN = { R: 45, W: 14, GAP: 2 };
+  let dnSeq = 0;
+  function donutG(segs, o) {
+    const tot = sum(segs.map((s) => s.n));
+    if (!tot) return '<div class="empty">沒有資料</div>';
+    const { R, W, GAP } = DN, C = 2 * Math.PI * R, cap = (W / 2) / R * 180 / Math.PI;
+    const groups = []; segs.forEach((s, i) => { const g = s.g != null ? s.g : '_' + i; const last = groups[groups.length - 1]; if (last && last.g === g) last.segs.push(s); else groups.push({ g, segs: [s] }); });
+    const single = groups.length === 1, uid = 'dm' + (++dnSeq) + '_';
+    const P = (deg) => `${(60 + R * Math.sin(deg * Math.PI / 180)).toFixed(2)} ${(60 - R * Math.cos(deg * Math.PI / 180)).toFixed(2)}`;
+    let a = 0, masks = '', body = '', arcN = 0;
+    groups.forEach((gr, gi) => {
+      const gn = sum(gr.segs.map((s) => s.n)), g0 = a, g1 = a + gn / tot * 360; a = g1;
+      const h = single ? 0 : GAP / 2; let v0 = g0 + h, v1 = g1 - h; if (v1 - v0 < 0.8) { const m = (g0 + g1) / 2; v0 = m - 0.4; v1 = m + 0.4; }
+      const round = false;
+      let b = g0, arcs = '';
+      gr.segs.forEach((s, k) => {
+        const sa = b, sb = b + s.n / tot * 360; b = sb;
+        const x0 = k === 0 ? v0 : sa, x1 = k === gr.segs.length - 1 ? v1 : sb, len = Math.max(0, (x1 - x0) / 360 * C);
+        arcs += `<circle class="arc" data-row="${arcN++}" data-k="${esc(s.k != null ? s.k : s.label)}"${tp(`<b>${esc(s.tip || s.label)}</b><br>${nf(s.n)}（${(s.n / tot * 100).toFixed(1)}%）`)}${s.p ? ` data-p="${esc(s.p)}" data-s="${esc(s.s || '')}"` : ''} data-a0="${x0.toFixed(2)}" data-a1="${x1.toFixed(2)}" data-lab="${esc(s.tip || s.label)}" data-pct="${(s.n / tot * 100).toFixed(1)}%" r="${R}" cx="60" cy="60" fill="none" style="stroke:${s.color}" stroke-width="${W}" stroke-dasharray="${len.toFixed(2)} ${(C - len).toFixed(2)}" stroke-dashoffset="${(-x0 / 360 * C).toFixed(2)}" transform="rotate(-90 60 60)">></circle>`;
+      });
+      if (round) {
+        const id = uid + gi, A0 = v0 + cap, A1 = v1 - cap;
+        masks += `<mask id="${id}" maskUnits="userSpaceOnUse" x="0" y="0" width="120" height="120"><path d="M ${P(A0)} A ${R} ${R} 0 ${A1 - A0 > 180 ? 1 : 0} 1 ${P(A1)}" fill="none" stroke="#fff" stroke-width="${W}" stroke-linecap="round"/></mask>`;
+        body += `<g class="grp" data-g="${esc(String(gr.g))}" mask="url(#${id})">${arcs}</g>`;
+      } else body += `<g class="grp" data-g="${esc(String(gr.g))}">${arcs}</g>`;
+    });
+    const top5 = (o.top5 || segs).slice().sort((x, y) => y.n - x.n).slice(0, 5), t5 = Math.round(sum(top5.map((x) => x.n)) / (o.totalN || tot) * 100);
+    const c1 = o.center ? o.center[0] : '前五大', c2 = o.center ? o.center[1] : t5 + '%';
+    const lg = (o.legend || segs).slice().sort((x, y) => (x.label === '其他') - (y.label === '其他') || y.n - x.n).slice(0, o.legendN || 6);
+    return `<div class="${o.cls || 'dn'}" data-chart="donut"${o.id ? ` id="${o.id}"` : ''} data-total="${tot}"><svg viewBox="0 0 120 120" data-d1="${esc(c1)}" data-d2="${esc(c2)}" role="img" aria-label="${esc(o.aria || '占比')}"><defs>${masks}</defs>
+      <circle r="36.4" cx="60" cy="60" fill="none" stroke="var(--ink-3)" stroke-opacity=".22" stroke-width=".7"/>${body}
+      <text class="c1" x="60" y="57" text-anchor="middle" style="font-size:9px;fill:var(--ink-2)">${esc(c1)}</text><text class="c2" x="60" y="74" text-anchor="middle" style="font-size:18px;font-weight:700;fill:var(--ink);font-family:var(--mono)">${esc(c2)}</text></svg>
+      <ul class="lg">${lg.map((s) => `<li data-k="${esc(s.k != null ? s.k : s.label)}" data-n="${s.n}"${tp(`<b>${esc(s.label)}</b><br>${s.ltxt || nf(s.n) + '（' + (s.n / (o.totalN || tot) * 100).toFixed(1) + '%）'}`)}><i style="background:${s.lcolor || s.color}"></i><span>${esc(s.label)}</span><b>${nf(Math.round(s.n))}</b><small>${(s.n / (o.totalN || tot) * 100).toFixed(1)}%</small></li>`).join('')}</ul></div>`;
   }
   function donut(parts) {
     const tot = parts.reduce((s, p) => s + p[1], 0);
-    if (!tot) return '<div class="empty">這段期間還沒有開啟紀錄。</div>';
-    const r = 44, c = 2 * Math.PI * r; let off = 0;
-    const arcs = parts.map(([, n, col]) => { const len = n / tot * c; const s = `<circle r="${r}" cx="60" cy="60" fill="none" stroke="${col}" stroke-width="20" stroke-dasharray="${len.toFixed(2)} ${(c - len).toFixed(2)}" stroke-dashoffset="${(-off).toFixed(2)}" transform="rotate(-90 60 60)"/>`; off += len; return s; }).join('');
-    return `<div class="donut"><svg viewBox="0 0 120 120" width="120" height="120" role="img" aria-label="登入與訪客比例">${arcs}<text x="60" y="65" text-anchor="middle" style="font-size:16px;font-weight:700;fill:var(--ink)">${Math.round(parts[0][1] / tot * 100)}%</text></svg>
-      <ul>${parts.map(([nm, n, col]) => `<li><i style="background:${col}"></i>${esc(nm)}　<b>${nf(n)}</b>（${Math.round(n / tot * 100)}%）</li>`).join('')}</ul></div>`;
+    if (!tot) return '<div class="empty">沒有資料</div>';
+    return donutG(parts.map(([nm, n, col]) => ({ label: nm, n, color: col, ltxt: `${nf(n)}・${Math.round(n / tot * 100)}%` })), { center: [parts[0][0], Math.round(parts[0][1] / tot * 100) + '%'], legendN: 2, aria: `${parts.map((p) => p[0]).join('與')}比例` });
   }
+
 
   /* ==========================================================================
      #admin/perm 會員權限 與 #admin/members 會員管理 —— admin-v3（2026-10-05）簡化版
@@ -727,14 +1352,14 @@
   }
   window.addEventListener('beforeunload', (e) => { if (/^#admin\/(perm|members)\b/.test(location.hash || '') && dirtyN()) { e.preventDefault(); e.returnValue = ''; } });
   function setStat(msg, cls) { const s = PS.v && PS.v.querySelector('#pmStat'); if (s) { s.textContent = msg; s.className = 'pmstat' + (cls ? ' ' + cls : ''); } }
-  const ERR = { forbidden: '沒有管理者權限', bad_email: 'email 格式不對', bad_plan: '方案不存在', bad_feats: '開關格式不對', bad_lims: '瀏覽次數要是 0～9999 的整數', bad_name: '範本名稱不能空白', too_many: '數量超過上限', builtin: '內建範本不能刪', bad_expires: '到期日格式不對', bad_price: '價格要是 0～999999 的整數', bad_period: '計費週期只能是月／年' };
+  const ERR = { has_members: '還有有效會員，請先移到其他範本或等到期', forbidden: '沒有管理者權限', bad_email: 'email 格式不對', bad_plan: '方案不存在', bad_feats: '開關格式不對', bad_lims: '瀏覽次數要是 0～9999 的整數', bad_name: '範本名稱不能空白', too_many: '數量超過上限', builtin: '內建範本不能刪', bad_expires: '到期日格式不對', bad_price: '價格要是 0～999999 的整數', bad_period: '計費週期只能是月／年' };
   const errText = (r) => !r ? '連不到伺服器' : (ERR[r.error] || ('HTTP ' + r._s));
   const EMAIL_OK = (e) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e);
   /* 到期日：畫面上是台北日期（yyyy-mm-dd），存的是「那一天台北 23:59:59」的毫秒 */
   const expToMs = (s) => { if (!s) return null; const t = Date.parse(s + 'T23:59:59+08:00'); return isFinite(t) ? t : null; };
   const msToDate = (ms) => (ms ? new Date(ms + 8 * 3600 * 1000).toISOString().slice(0, 10) : '');
-  const honest = `<div class="card" style="margin-top:14px"><h3>這個鎖頭擋得住什麼？</h3><p class="pmwarn">鎖頭只擋一般使用者的畫面。這個網站是 GitHub Pages 靜態站，資料檔（site/data/*.json）是公開的，懂技術的人仍然能直接讀到。
-        真正保護付費內容，要讓付費資料改由會員 Worker 驗證身分後才提供 —— 設計與工作量寫在 DECISIONS #288，這一版還沒做。</p></div>`;
+  const honest = '';      // 2026-10-05：整張「這個鎖頭擋得住什麼？」說明卡拿掉（內部口徑），一句話改放開放功能表標題旁的 ⓘ 滑過顯示
+  const LOCK_NOTE = '鎖頭只擋一般使用者的畫面；資料檔是公開的，懂技術的人仍能直接讀到。';
   /* 在線時間：「3 小時 12 分」「45 分」「—」 */
   const dur = (ms) => { if (!ms) return '—'; const m = Math.round(ms / 60000); if (m < 1) return '< 1 分'; const h = Math.floor(m / 60); return h ? `${h} 小時${m % 60 ? ' ' + (m % 60) + ' 分' : ''}` : m + ' 分'; };
 
@@ -742,7 +1367,7 @@
         <div class="pmcats pmgrpbox card" id="pmGrp"></div>`;
   async function renderPerm(v, A, tab) {
     PS.v = v; PS.A = A; PS.draft = null; PS.tab = tab;
-    PS.mode = tab === 'perm' ? 'plan' : 'member';
+    PS.mode = 'plan'; PS.editMember = false;
     if (tab === 'perm') {
       /* perm-cards（2026-10-05，Andy）：頁籤 → 子分頁 → 內容 連成一個整體 —— 選中的頁籤底下直接接內容框，
          開放功能表、族群觀測、會員名單都在同一個框內；說明縮成一行小字。 */
@@ -751,7 +1376,7 @@
            內容框：範本資訊列（名稱・價格／週期・套用人數｜⚙）＋一行說明 → 子分頁（觀看權限｜會員名單）→
            觀看權限：工具列（標題＋圖例＋全部開／全部關）→ 功能卡片（同寬同高）→ 族群觀測；會員名單：統計圖卡 → 名單。
          拿掉舊版「開放功能表　正在編：付費會員・XX」那一行：它跟範本資訊列講同一件事（#ptFor 搬進資訊列，id 不變）。 */
-      v.innerHTML = head(v, A) + `<p class="use ptlede"><span>關掉的功能在對方畫面上模糊並蓋鎖頭，鎖頭上的「升級查看」直接帶到訂閱頁。</span><span class="pthint" id="ptHint">拖曳頁籤可調整順序；⋮ 可改名或刪除</span></p></div>
+      v.innerHTML = (document.documentElement.classList.contains('l4') ? '' : head(v, A) + '</div>') + `
         <div class="ptwrap" id="pmHead">
           <div class="nbsw ptabs" id="ptTier" role="tablist" aria-label="要設定哪一種人"></div>
           <div class="ptpanel">
@@ -760,8 +1385,8 @@
             <div class="pmstat" id="pmStat" role="status" aria-live="polite"></div>
             <div id="ptPermBox">
               <div id="ptGuestSum"></div>
-              <div class="pmtools" id="pmTools"><h3 class="pmttl">開放功能表</h3>
-                <div class="pmlegend"><span><i class="lg dirty"></i>改了還沒儲存</span><span><i class="lg tuned"></i>跟預設不同（已儲存）</span><span><i class="lg lim">∞</i>每日次數上限，點一下設定（0＝不能看；個股／題材／族群頁算看了幾個不同的）</span></div>
+              <div class="pmtools" id="pmTools"><h3 class="pmttl">開放功能表<span class="qtip pmq" tabindex="0" role="note" aria-label="說明" title="${esc(LOCK_NOTE)}">?</span></h3>
+                <div class="pmlegend"><span><i class="lg dirty"></i>改了還沒儲存</span><span><i class="lg tuned"></i>跟預設不同（已儲存）</span><span><i class="lg lim">∞</i>每日次數上限</span></div>
                 <span class="pmallsw" title="開放功能表全部開／關（不含族群觀測）"><span>全部</span><button type="button" id="pmAllSw" class="psw3" role="switch" aria-checked="false" aria-label="開放功能表全部開／關（不含族群觀測）"><span></span></button></span></div>
               <div class="pmcats pmcards" id="pmCats"></div>
               ${GRPSEC}</div>
@@ -774,7 +1399,8 @@
       v.querySelector('#pmAllSw').onclick = (e) => allFeats(e.currentTarget.getAttribute('aria-checked') !== 'true');
       v.querySelector('#ptTier').onclick = (e) => {
         const mb = e.target.closest('button[data-more]');
-        if (mb) { e.stopPropagation(); openMenu(PS.menu === mb.dataset.more ? null : mb.dataset.more, 'list'); return; }
+        if (e.target.closest('.ptrn')) return;
+        if (mb) { e.stopPropagation(); openMenu(PS.menu === mb.dataset.more ? null : mb.dataset.more, 'del'); return; }
         const b = e.target.closest('button[role=tab]'); if (!b) return;
         if (b.id === 'ptAddTab') { if (PS.adding || !guard()) return; PS.adding = true; PS.cfg = false; PS.confirmDel = false; paintAll(); setStat(''); return; }
         const tier = b.dataset.tier, plan = b.dataset.plan || '';
@@ -788,41 +1414,17 @@
         const b = e.target.closest('button[data-sub]'); if (!b || b.dataset.sub === PS.sub) return;
         PS.sub = b.dataset.sub; paintSub();
       };
-    } else {
-      v.innerHTML = head(v, A) + `<p class="use" style="margin:8px 0 0">收費會員在這裡開通：新增他的 email、選層級／範本、設到期日（到期自動退回註冊會員）。下面的名單是所有人員的狀況，點一列展開他的使用紀錄，並在最下面逐項微調。</p></div>
-        <div class="card" id="pmAdd" style="margin-top:14px"><h3>① 新增會員</h3>
-          <p class="use">輸入對方登入用的 Google email、選層級（付費會員要選範本）、需要的話填到期日，按「新增」。對方還沒登入過也可以先設好，登入後就生效。</p>
-          <div class="pmbar"><input type="email" id="pmAddEmail" placeholder="member@example.com" autocomplete="off" aria-label="新會員 email">
-            <select id="pmAddPlan" aria-label="新會員的層級與範本"></select>
-            <label>到期日 <input type="date" id="pmAddExp" aria-label="到期日（留空＝不會到期）"></label>
-            <button type="button" class="pri" id="pmAddGo">新增</button></div></div>
-        <div class="card" id="pmList" style="margin-top:14px"><h3>② 所有人員狀況</h3><p class="use">金色徽章＝付費會員（後面是方案名）。點欄位標題排序；點一列展開他的使用紀錄（各分頁瀏覽、功能次數、近 14 天每日活躍），同時在下面「③ 逐人微調」載入他。</p>
-          <div class="pmbar"><input type="search" id="pmSearch" placeholder="搜尋 email、名字、層級或範本" aria-label="搜尋會員" value="${esc(PS.q)}">
-            <select id="pmStatF" aria-label="依狀態篩選"><option value="">全部狀態</option><option value="ok">有效</option><option value="exp">過期</option><option value="new">未登入過</option></select><span class="pmcnt" id="pmCnt"></span></div>
-          <div id="pmListBody"><div class="empty">載入中…</div></div></div>
-        <div class="card" id="pmHead" style="margin-top:14px"><h3>③ 逐人微調</h3>
-          <p class="use">先選層級／範本，再個別微調。開關撥完按最下面的「儲存」才會生效。瀏覽次數跟著範本走（在「會員權限」設）。</p>
-          <div id="pmTarget"></div>
-          <div class="pmstat" id="pmStat" role="status" aria-live="polite"></div></div>
-        <div class="pmlegend"><span><i class="lg dirty"></i>改了還沒儲存</span><span><i class="lg tuned"></i>跟預設不同（已儲存）</span><span><i class="lg lim">∞</i>每日次數，點一下設定</span></div>
-          <div class="pmcats pmcards" id="pmCats"></div>
-        ${GRPSEC}
-        <div class="pmsave" id="pmSave" hidden><span id="pmDirty"></span><button type="button" id="pmCancel">取消</button><button type="button" class="pri" id="pmSaveGo">儲存</button></div>${honest}`;
-      v.querySelector('#pmSearch').oninput = (e) => { PS.q = e.target.value; paintList(); };
-      v.querySelector('#pmStatF').value = PS.stf;
-      v.querySelector('#pmStatF').onchange = (e) => { PS.stf = e.target.value; paintList(); };
-      v.querySelector('#pmAddGo').onclick = addMember;
-      v.querySelector('#pmAddEmail').onkeydown = (e) => { if (e.key === 'Enter') addMember(); };
     }
     wireHead(v);
+    bindHover(v);
     v.querySelector('#pmSaveGo').onclick = saveDraft;
     v.querySelector('#pmCancel').onclick = () => { PS.draft = null; paintTarget(); paintCats(); setStat('已取消，回到上次儲存的設定'); };
     await loadFeatures();
-    if (!FT()) { v.querySelector('#pmCats').innerHTML = '<div class="card"><p class="err">功能清單（features.js）載入失敗。</p></div>'; return; }
+    if (!FT()) { v.querySelector('#pmCats').innerHTML = '<div class="card"><p class="err">讀不到功能清單</p></div>'; return; }
     const [pl, li, mm] = await Promise.all([A.call('/v1/admin/plans/get', {}), A.call('/v1/admin/perm/list', {}), A.call('/v1/admin/members', {})]);
     if (tabOf() !== tab) return;
     if (!pl || pl._s !== 200) {
-      v.querySelector('#pmCats').innerHTML = `<div class="card" style="grid-column:1/-1"><p class="err">讀不到方案範本（${esc(errText(pl))}）。${pl && pl._s === 404 ? '會員 Worker 可能還沒更新成有功能權限的版本（deploy-account-worker.yml）。' : '只有管理者帳號看得到；確認 Worker 的 ADMIN_EMAILS 有你的 email。'}</p></div>`;
+      v.querySelector('#pmCats').innerHTML = `<div class="card" style="grid-column:1/-1"><p class="err">讀不到方案範本（${esc(errText(pl))}）</p></div>`;
       return;
     }
     PS.plans = pl.plans || [];
@@ -830,7 +1432,6 @@
     PS.mem = mm && mm._s === 200 && Array.isArray(mm.members) ? mm : null;
     if (tab === 'perm') pickTierPlan();
     paintAll();
-    if (PS.mode === 'member' && PS.email) loadMember(PS.email);
   }
   function paintAll() { paintTabs(); paintAddPlan(); paintTarget(); paintSub(); paintCats(); paintList(); }
   /* 層級 → 要編的範本：訪客＝guest、註冊會員＝free、付費＝下拉選的那個（沒有就第一個；一個都沒有＝付費分頁只顯示「按＋新增」）*/
@@ -851,7 +1452,7 @@
     const t = (tier, label, plan) => { const on = !PS.adding && PS.tier === tier && (!plan || PS.planSel === plan);
       return `<button type="button" role="tab" aria-selected="${on}" class="${on ? 'on' : ''}" data-tier="${tier}"${plan ? ` data-plan="${esc(plan)}" title="${esc(planLabel(planOf(plan)))}（拖曳可調整順序）" aria-keyshortcuts="Alt+ArrowLeft Alt+ArrowRight"` : ''}><span>${esc(label)}</span></button>`; };
     bar.innerHTML = t('guest', '訪客') + t('free', '註冊會員')
-      + paidPlans().map((p) => `<div class="ptab" draggable="true" data-pid="${esc(p.id)}">${t('paid', tabLabel(p), p.id)}<button type="button" class="ptmore" data-more="${esc(p.id)}" aria-haspopup="menu" aria-expanded="${PS.menu === p.id}" aria-label="「${esc(p.name)}」範本選單：左移、右移、重新命名、刪除" title="左移／右移／重新命名／刪除">⋮</button></div>`).join('')
+      + paidPlans().map((p) => `<div class="ptab" draggable="true" data-pid="${esc(p.id)}">${t('paid', tabLabel(p), p.id)}<button type="button" class="ptmore" data-more="${esc(p.id)}" aria-haspopup="dialog" aria-expanded="${PS.menu === p.id}" aria-label="刪除「${esc(p.name)}」範本" title="刪除此範本">×</button></div>`).join('')
       + `<button type="button" role="tab" id="ptAddTab" aria-selected="${!!PS.adding}" class="add${PS.adding ? ' on' : ''}" aria-label="新增付費範本" title="新增付費範本（名稱、價格、月／年訂閱）">＋</button>`;
     if (keep) { const k = bar.querySelector(keep); if (k) k.focus(); }
     paintMenu();
@@ -868,7 +1469,7 @@
     setStat('順序更新中…');
     const j = await PS.A.call('/v1/admin/plans/sort', { ids });
     if (j && j._s === 200 && Array.isArray(j.plans)) { PS.plans = j.plans; paintTabs(); setStat(`${msg}・已儲存順序（訂閱頁的方案卡也照這個順序，台北 ${tpeTime()}）`, 'ok'); }
-    else { PS.plans = old; paintTabs(); setStat('順序沒存成功：' + (j && j._s === 404 ? '會員 Worker 還沒更新成可排序的版本（perm-v4）' : errText(j)) + '，已換回原本的順序', 'bad'); }
+    else { PS.plans = old; paintTabs(); setStat('順序沒存成功：' + (j && j._s === 404 ? '讀不到' : errText(j)) + '，已換回原本的順序', 'bad'); }
   }
   function moveBy(id, d) {
     const ids = paidIds(), i = ids.indexOf(id), j = i + d;
@@ -879,8 +1480,11 @@
   /* 這個範本目前有幾個人：後端 plans/get 的 members（perm 表裡指定到它的，含已過期）；舊 Worker 沒有就從名單數 */
   const planMembers = (id) => { const p = planOf(id); return p && Number.isInteger(p.members) ? p.members : people().filter((r) => r.plan === id).length; };
   const delMsg = (id) => `目前有 ${planMembers(id)} 位會員在此範本，刪除後退回註冊會員`;
+  /* 還有「有效會員」（指定到這個範本、而且沒到期）的付費範本不能刪：前端先擋（名單來自 perm/list），伺服器也擋（plans/put del → 409 has_members） */
+  const activeMembers = (id) => { const now = (PS.list && PS.list.now) || Date.now(); return people().filter((r) => r.plan === id && !(r.expires && r.expires < now)); };
   async function delPlan(id) {
     const p = planOf(id); if (!p) return;
+    if (activeMembers(id).length) { openMenu(id, 'del'); return; }
     const nm = p.name, wasSel = PS.planSel === id && PS.tier === 'paid';
     if (wasSel && !guard()) return;
     setStat('刪除中…');
@@ -889,6 +1493,10 @@
       PS.plans = j.plans; PS.cfg = false; PS.delAsk = false; PS.menu = null;
       if (wasSel) PS.draft = null;
       pickTierPlan(); paintAll(); setStat(`已刪除「${nm}」；原本用它的會員退回「註冊會員」（個別微調保留）`, 'ok'); refreshList();
+    } else if (j && j._s === 409 && j.error === 'has_members') {
+      PS.list = PS.list || {}; (PS.list.rows = PS.list.rows || []);
+      (j.emails || []).forEach((em) => { if (!PS.list.rows.some((r) => r.email === em)) PS.list.rows.push({ email: em, plan: id, n: 0, updated: 0, expires: 0 }); });
+      setStat(`還有 ${j.n} 位有效會員，不能刪`, 'bad'); openMenu(id, 'del');
     } else setStat('刪除失敗：' + errText(j), 'bad');
   }
   async function renamePlan(id, name) {
@@ -919,18 +1527,14 @@
     if (!m || !wrap) return;
     const id = PS.menu, p = id && planOf(id), btn = p && PS.v.querySelector(`#ptTier button[data-more="${id}"]`);
     if (!p || !btn) { m.hidden = true; m.innerHTML = ''; PS.menu = null; return; }
-    const ids = paidIds(), i = ids.indexOf(id), mode = PS.menuMode || 'list';
     m.setAttribute('aria-label', `「${p.name}」範本選單`);
-    m.innerHTML = mode === 'rename'
-      ? `<div class="pmq">重新命名「${esc(tabLabel(p))}」</div><input type="text" id="ptRnName" maxlength="20" value="${esc(p.name)}" aria-label="新的範本名稱">
-         <div class="pmrow2"><button type="button" id="ptRnNo">取消</button><button type="button" class="pri" id="ptRnGo">確定</button></div>`
-      : mode === 'del'
-        ? `<div class="pmq">刪除「${esc(tabLabel(p))}」？<b>${esc(delMsg(id))}</b>。</div>
-           <div class="pmrow2"><button type="button" id="ptMDelNo">取消</button><button type="button" class="danger" id="ptMDelGo">確定刪除</button></div>`
-        : `<button type="button" role="menuitem" data-act="left" ${i <= 0 ? 'disabled' : ''}>← 左移</button>
-           <button type="button" role="menuitem" data-act="right" ${i < 0 || i >= ids.length - 1 ? 'disabled' : ''}>→ 右移</button>
-           <hr><button type="button" role="menuitem" data-act="rename">✎ 重新命名</button>
-           <button type="button" role="menuitem" data-act="del" class="danger">🗑 刪除此範本…</button>`;
+    const act = activeMembers(id);
+    m.innerHTML = act.length
+      ? `<div class="pmq">還有 <b>${act.length}</b> 位有效會員，請先把他們移到其他付費範本，或等訂閱到期。</div>
+         <ul class="pmwho2">${act.slice(0, 8).map((r) => `<li><a href="#admin/members" data-email="${esc(r.email)}">${esc(r.email)}</a></li>`).join('')}${act.length > 8 ? `<li class="more">…還有 ${act.length - 8} 位</li>` : ''}</ul>
+         <div class="pmrow2"><a class="pmgo" href="#admin/members">到會員管理</a><button type="button" id="ptMDelNo">知道了</button></div>`
+      : `<div class="pmq">刪除「${esc(tabLabel(p))}」？<b>${esc(delMsg(id))}</b>。</div>
+         <div class="pmrow2"><button type="button" id="ptMDelNo">取消</button><button type="button" class="danger" id="ptMDelGo">確定刪除</button></div>`;
     m.hidden = false;
     /* 位置：⋮ 正下方、右緣對齊 ⋮；超出內容框就往左收（量完才放，不會推擠任何東西）*/
     const wr = wrap.getBoundingClientRect(), br = btn.getBoundingClientRect();
@@ -969,20 +1573,26 @@
       const b = e.target.closest && e.target.closest('button[data-plan]');
       if (b && e.altKey && (e.key === 'ArrowLeft' || e.key === 'ArrowRight')) { e.preventDefault(); moveBy(b.dataset.plan, e.key === 'ArrowLeft' ? -1 : 1); }
     });
+    /* 點兩下付費範本頁籤 → 原地改名（Enter 存、Esc 取消、失焦存）；訪客／註冊會員是內建的，沒有 data-plan，不能改 */
+    bar.addEventListener('dblclick', (e) => {
+      const b = e.target.closest && e.target.closest('button[data-plan]'); if (!b) return;
+      const id = b.dataset.plan, p = planOf(id), holder = b.closest('.ptab'); if (!p || !holder) return;
+      e.preventDefault(); openMenu(null);
+      holder.draggable = false; b.innerHTML = `<input class="ptrn" type="text" maxlength="20" value="${esc(p.name)}" aria-label="新的範本名稱">`;
+      const inp = b.querySelector('input'); inp.focus(); inp.select();
+      let done = false;
+      const fin = (save) => { if (done) return; done = true; holder.draggable = true; const v = inp.value.trim(); if (save && v && v !== p.name) renamePlan(id, v); else paintTabs(); };
+      inp.onkeydown = (ev) => { ev.stopPropagation(); if (ev.key === 'Enter') { ev.preventDefault(); fin(true); } else if (ev.key === 'Escape') { ev.preventDefault(); fin(false); } };
+      inp.onblur = () => fin(true);
+      inp.onclick = (ev) => ev.stopPropagation();
+    });
     m.addEventListener('click', (e) => {
       const id = PS.menu; if (!id) return;
-      const a = e.target.closest('button[data-act]');
-      if (a) { const act = a.dataset.act;
-        if (act === 'left' || act === 'right') { openMenu(null); moveBy(id, act === 'left' ? -1 : 1); }
-        else openMenu(id, act === 'rename' ? 'rename' : 'del');
-        return; }
-      if (e.target.closest('#ptRnGo')) { renamePlan(id, (m.querySelector('#ptRnName') || {}).value); return; }
       if (e.target.closest('#ptMDelGo')) { delPlan(id); return; }
-      if (e.target.closest('#ptRnNo,#ptMDelNo')) openMenu(id, 'list');
+      if (e.target.closest('#ptMDelNo')) openMenu(null, null, true);
     });
     m.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape') { e.preventDefault(); if ((PS.menuMode || 'list') !== 'list') openMenu(PS.menu, 'list'); else openMenu(null, null, true); return; }
-      if (e.key === 'Enter' && e.target.id === 'ptRnName') { e.preventDefault(); renamePlan(PS.menu, e.target.value); return; }
+      if (e.key === 'Escape') { e.preventDefault(); openMenu(null, null, true); return; }
       if (['ArrowDown', 'ArrowUp', 'Home', 'End'].includes(e.key)) {
         const its = [...m.querySelectorAll('button:not(:disabled)')]; if (!its.length) return;
         e.preventDefault();
@@ -1054,7 +1664,7 @@
     if (!j || j._s !== 200) { setStat('新增失敗：' + errText(j), 'bad'); return; }
     inp.value = ''; v.querySelector('#pmAddExp').value = '';
     PS.email = j.email; PS.rec = j; PS.draft = null;
-    afterSave(j.email, `已新增 ${j.email}（${TIER_NAME[tierOf(plan)]}「${(planOf(plan) || {}).name || plan}」${expires ? '，到期 ' + expRaw : ''}）・下面可以再逐項微調，改完按「儲存」`);
+    afterSave(j.email, `已新增 ${j.email}（${TIER_NAME[tierOf(plan)]}「${(planOf(plan) || {}).name || plan}」${expires ? '，到期 ' + expRaw : ''}）`);
   }
   function paintTarget() {
     const v = PS.v, box = v.querySelector('#pmTarget'); if (!box) return;
@@ -1063,14 +1673,15 @@
       ((PS.list && PS.list.rows) || []).forEach((r) => emails.set(r.email, r.email));
       ((PS.list && PS.list.users) || []).forEach((u) => { if (u.email && !emails.has(u.email)) emails.set(u.email, u.name ? `${u.name}（${u.email}）` : u.email); });
       const r = PS.rec;
-      box.innerHTML = `<div class="pmbar"><input type="email" id="pmEmail" list="pmEmails" placeholder="輸入或選擇會員 email" autocomplete="off" value="${esc(PS.email)}" aria-label="會員 email">
+      box.innerHTML = `${PS.editMember ? '<div class="pmbar"><button type="button" id="pmBack" class="pmback">← 回會員名單</button></div>' : ''}<div class="pmbar"><input type="email" id="pmEmail" list="pmEmails" placeholder="輸入或選擇會員 email" autocomplete="off" value="${esc(PS.email)}" aria-label="會員 email">
           <datalist id="pmEmails">${[...emails.entries()].map(([e, l]) => `<option value="${esc(e)}">${esc(l)}</option>`).join('')}</datalist>
           <button type="button" id="pmLoad">讀取</button></div>
-        <div class="pmwho" id="pmWho">${r ? whoLine(r) : '從上面的名單點一位會員，或在這裡輸入 email 按「讀取」。'}</div>
+        <div class="pmwho" id="pmWho">${r ? whoLine(r) : ''}</div>
         ${r ? `<div class="pmbar"><label>層級／範本 <select id="pmPlan">${planOpts(mPlan(), false)}</select></label>
           <label>到期日 <input type="date" id="pmExp" value="${msToDate(mExp())}" aria-label="到期日（留空＝不會到期）"></label>
           <button type="button" id="pmClearOver" ${Object.keys(mOver()).length ? '' : 'disabled'}>清除個別微調</button>
           <button type="button" class="danger" id="pmReset" ${r.set ? '' : 'disabled'}>移除此會員設定</button></div>` : ''}`;
+      const bk = v.querySelector('#pmBack'); if (bk) bk.onclick = leaveMember;
       const go = () => { const e = (v.querySelector('#pmEmail').value || '').trim(); if (e && guard()) loadMember(e); };
       v.querySelector('#pmLoad').onclick = go;
       v.querySelector('#pmEmail').onkeydown = (e) => { if (e.key === 'Enter') go(); };
@@ -1091,7 +1702,6 @@
     }
     if (PS.adding) {
       box.innerHTML = `<div class="ptinfo"><b class="ptname" id="ptFor">新增付費範本</b><span class="ptmeta">名稱・價格・月／年訂閱</span></div>
-        <p class="ptnote">建立後一開始全開、不限次數，再到「觀看權限」關掉這個價位不給的功能。</p>
         <div class="pmbar" id="ptNewForm" style="margin:0 0 6px"><label>名稱 <input type="text" id="ptNewName" maxlength="20" placeholder="例如 進階方案" aria-label="新付費範本名稱" style="width:12em"></label>
           <label>價格 NT$ <input type="number" id="ptNewPrice" min="0" max="999999" step="1" inputmode="numeric" value="0" aria-label="價格（整數新台幣）" style="width:7em"></label>
           <label>訂閱 <select id="ptNewPeriod" aria-label="月訂閱或年訂閱"><option value="month">月訂閱</option><option value="year">年訂閱</option></select></label>
@@ -1104,15 +1714,14 @@
     }
     /* 範本資訊列（perm-v4）：左＝名稱・價格／週期（#ptFor）＋套用人數，右＝⚙（只有付費範本有）；下面一行說明 */
     const p = planOf(PS.planSel);
-    if (PS.tier === 'paid' && !p) { box.innerHTML = '<div class="ptinfo"><b class="ptname" id="ptFor">還沒有付費範本</b></div><p class="ptnote">按頁籤最右邊的「＋」新增（填名稱、價格、月或年訂閱）。</p>'; paintSave(); return; }
+    if (PS.tier === 'paid' && !p) { box.innerHTML = '<div class="ptinfo"><b class="ptname" id="ptFor">尚無付費範本</b></div>'; paintSave(); return; }
     const meta = PS.tier === 'guest' ? '所有未登入的人' : PS.tier === 'free' ? `套用 ${members().filter((r) => !r.paid).length} 人` : `套用 ${planMembers(p.id)} 人`;
     const name = PS.tier === 'paid' ? planLabel(p) : `${TIER_NAME[PS.tier]}・免費`;
     const note = PS.tier === 'guest' ? '所有沒登入的人都套這一份；下面關掉的功能，就是訪客要先登入／升級才看得到的東西。'
       : PS.tier === 'free' ? '登入後沒被指定付費範本的人（以及付費到期的人）都套這一份。'
         : '被指定這個範本的會員都套這一份；到期的人自動退回註冊會員。⚙ 改名稱／價格／月或年、刪除。';
-    box.innerHTML = `<div class="ptinfo"><b class="ptname" id="ptFor" title="${esc(name)}">${esc(name)}</b><span class="ptmeta" id="ptMeta">${esc(meta)}</span><span class="sp"></span>
+    box.innerHTML = `<div class="ptinfo"><b class="ptname" id="ptFor" title="${esc(name + '。' + note)}">${esc(name)}</b><span class="ptmeta" id="ptMeta">${esc(meta)}</span><span class="sp"></span>
         ${PS.tier === 'paid' ? `<button type="button" class="ptgear" id="ptPlanCfg" aria-expanded="${!!PS.cfg}" title="範本設定（改名／價格／月或年／刪除）" aria-label="範本設定">⚙</button>` : ''}</div>
-      <p class="ptnote" title="${esc(note)}">${esc(note)}</p>
       ${PS.tier === 'paid' && PS.cfg ? `<div class="pmbar pmed" id="ptEdit" style="margin:0 0 8px"><label>名稱 <input type="text" id="ptEdName" maxlength="20" value="${esc(p.name)}" aria-label="範本名稱" style="width:10em"></label>
         <label>價格 NT$ <input type="number" id="ptEdPrice" min="0" max="999999" step="1" inputmode="numeric" value="${Number.isInteger(p.price) ? p.price : 0}" aria-label="價格（整數新台幣）" style="width:7em"></label>
         <label>訂閱 <select id="ptEdPeriod" aria-label="月訂閱或年訂閱"><option value="month" ${p.period !== 'year' ? 'selected' : ''}>月訂閱</option><option value="year" ${p.period === 'year' ? 'selected' : ''}>年訂閱</option></select></label>
@@ -1123,7 +1732,7 @@
     const cf = v.querySelector('#ptPlanCfg'); if (cf) cf.onclick = () => { PS.cfg = !PS.cfg; PS.delAsk = false; paintTarget(); };
     const es = v.querySelector('#ptEdSave'); if (es) es.onclick = () => savePlanMeta(p);
     /* 刪除要二次確認：第一下只展開確認列（寫明會影響幾個人），按「確定刪除」才送 */
-    const del = v.querySelector('#pmPlanDel'); if (del) del.onclick = () => { PS.delAsk = !PS.delAsk; paintTarget(); const g = v.querySelector('#ptDelGo'); if (g) g.focus(); };
+    const del = v.querySelector('#pmPlanDel'); if (del) del.onclick = () => { if (activeMembers(PS.planSel).length) { PS.delAsk = false; openMenu(PS.planSel, 'del'); return; } PS.delAsk = !PS.delAsk; paintTarget(); const g = v.querySelector('#ptDelGo'); if (g) g.focus(); };
     const dn = v.querySelector('#ptDelNo'); if (dn) dn.onclick = () => { PS.delAsk = false; paintTarget(); };
     const dg = v.querySelector('#ptDelGo'); if (dg) dg.onclick = () => delPlan(p.id);
     paintSave();
@@ -1133,33 +1742,29 @@
     const v = PS.v, bar = v && v.querySelector('#ptSub'); if (!bar) return;
     const noPlan = PS.adding || (PS.tier === 'paid' && !planOf(PS.planSel));
     if (PS.tier === 'guest') PS.sub = 'perm';
-    bar.hidden = noPlan;
+    const memb = PS.mode === 'member';
+    bar.hidden = noPlan || memb;
     bar.classList.toggle('one', PS.tier === 'guest');
     bar.innerHTML = `<button type="button" role="tab" data-sub="perm" id="ptSubPerm" class="${PS.sub === 'perm' ? 'on' : ''}" aria-selected="${PS.sub === 'perm'}">觀看權限</button>`
       + (PS.tier === 'guest' ? '' : `<button type="button" role="tab" data-sub="list" id="ptSubList" class="${PS.sub === 'list' ? 'on' : ''}" aria-selected="${PS.sub === 'list'}">會員名單</button>`);
     const pb = v.querySelector('#ptPermBox'), lb = v.querySelector('#ptListBox');
-    if (pb) pb.hidden = noPlan || PS.sub !== 'perm';
-    if (lb) lb.hidden = noPlan || PS.sub !== 'list';
+    if (pb) pb.hidden = memb ? false : (noPlan || PS.sub !== 'perm');
+    if (lb) lb.hidden = memb ? true : (noPlan || PS.sub !== 'list');
     paintGuestSum();
     paintList();
   }
   /* 訪客分頁的流量摘要：近 30 天開啟網站（登入／訪客）、頁面瀏覽、目前在線的訪客 */
   async function paintGuestSum() {
     const box = PS.v && PS.v.querySelector('#ptGuestSum'); if (!box) return;
-    /* Andy 10-05：「這已經有分頁記錄了」—— 訪客的四格流量數字卡拿掉，流量看「流量觀測」分頁。*/
-    box.innerHTML = ''; return;
-    // eslint-disable-next-line no-unreachable
+    /* 2026-10-05 Andy：訪客的流量數字卡不要（流量看「流量觀測」）；流量觀測的「現在誰在線上」整塊拿掉後，
+       「一般訪客看得到『目前 N 人在線』」這個開關搬到這裡（訪客的權限就是「訪客能看到什麼」）。 */
     if (PS.tier !== 'guest' || PS.adding) { box.innerHTML = ''; return; }
-    /* perm-v4：訪客流量改成跟會員名單統計同一種數字卡（一排四格），說明併進範本資訊列那一行 —— 不再另起一張有標題、有兩行說明的卡 */
-    box.innerHTML = `<div class="mstats" id="ptGuestCard" title="訪客不記名，只有總數。訪客比例高 → 登入的好處說得不夠清楚。"><div class="mkpis" id="ptGuestKpi"><div class="mkpi"><b>…</b><span>載入中</span></div></div></div>`;
-    const [st, on] = await Promise.all([PS.A.call('/v1/admin/stats', { days: 30 }), PS.A.call('/v1/admin/online', {})]);
-    const k = PS.v && PS.v.querySelector('#ptGuestKpi'); if (!k || PS.tier !== 'guest') return;
-    if (!st || st._s !== 200) { k.innerHTML = `<div class="err">讀不到流量（${esc(errText(st))}）</div>`; return; }
-    let ses = 0, sl = 0, pv = 0;
-    (st.rows || []).forEach((r) => { if (r.k === 'ev:session') ses += r.n; else if (r.k === 'ev:session_login') sl += r.n; else if (String(r.k).startsWith('pv:')) pv += r.n; });
-    const g = Math.max(0, ses - Math.min(sl, ses));
-    k.innerHTML = [[nf(g), '近 30 天訪客開啟網站'], [(ses ? Math.round(g / ses * 100) : 0) + '%', '訪客佔全部開啟（近 30 天）'], [nf(pv), '近 30 天全站頁面瀏覽'], [on && on._s === 200 ? nf(on.guests) : '—', '目前在線訪客']]
-      .map(([n, l]) => `<div class="mkpi"><b>${n}</b><span title="${l}">${l}</span></div>`).join('');
+    box.innerHTML = '<label class="tg ptpub" id="ptPubRow"><input type="checkbox" id="admPub" disabled>一般訪客看得到「目前 N 人在線」（只有總數，看不到名字）</label>';
+    const on = await PS.A.call('/v1/admin/online', {});
+    const cb = box.querySelector('#admPub'); if (!cb || PS.tier !== 'guest') return;
+    if (on && on._s === 200) cb.checked = !!on.public_online;
+    cb.disabled = !(on && on._s === 200);
+    cb.onchange = async () => { const r = await PS.A.call('/v1/admin/settings', { public_online: cb.checked }); if (!r || r._s !== 200) cb.checked = !cb.checked; };
   }
   /* 範本的名稱／價格／月或年：前端先擋一次（整數 0～999999），後端再驗一次（worker.js adminPlansPut）。
      只送這三欄＋目前存好的開關與次數（沒存的草稿不會被偷偷一起存掉 —— 有草稿就先請他存或取消）。 */
@@ -1171,7 +1776,7 @@
     if (!name) { setStat('範本名稱不能空白', 'bad'); return; }
     if (RESERVED.test(name)) { setStat('範本名稱不能叫「訪客／註冊會員／免費會員／付費會員」（會跟層級混淆）', 'bad'); return; }
     if (!/^\d{1,6}$/.test(raw) || !Number.isInteger(price) || price > 999999) { setStat('價格要是 0～999999 的整數（新台幣，不含小數）', 'bad'); return; }
-    if (PS.draft) { setStat('觀看權限還有沒存的變更 —— 先按下面「儲存」或「取消」，再改範本設定', 'bad'); return; }
+    if (PS.draft) { setStat('有未儲存的變更', 'bad'); return; }
     setStat('儲存中…');
     const j = await PS.A.call('/v1/admin/plans/put', { id: p.id, name, feats: p.feats || {}, price, period });
     if (j && j._s === 200) { PS.plans = j.plans; paintTabs(); paintAddPlan(); paintTarget(); paintCats(); setStat(`已儲存「${planLabel(planOf(p.id))}」（台北 ${tpeTime()}）`, 'ok'); }
@@ -1179,7 +1784,7 @@
   }
   async function newPaidPlan(name) {
     const v = PS.v; name = String(name || '').trim();
-    if (!name) { setStat('先輸入新範本的名稱（例如 進階方案）', 'bad'); return; }
+    if (!name) { setStat('請輸入範本名稱', 'bad'); return; }
     const pe = v.querySelector('#ptNewPrice'), raw = String((pe && pe.value) || '0').trim(), price = Number(raw);
     if (!/^\d{1,6}$/.test(raw) || !Number.isInteger(price) || price > 999999) { setStat('價格要是 0～999999 的整數（新台幣，不含小數）', 'bad'); return; }
     const period = (v.querySelector('#ptNewPeriod') || {}).value === 'year' ? 'year' : 'month';
@@ -1188,13 +1793,13 @@
     const j = await PS.A.call('/v1/admin/plans/put', { id, name, feats: {}, lims: {}, price, period });
     if (!j || j._s !== 200) { setStat('新增失敗：' + errText(j), 'bad'); return; }
     PS.plans = j.plans; PS.tier = 'paid'; PS.planSel = id; PS.draft = null; PS.adding = false; PS.sub = 'perm';
-    paintAll(); setStat(`已新增付費範本「${planLabel(planOf(id)) || name}」（目前全開、不限次數；下面關掉這個價位不給的功能）`, 'ok');
+    paintAll(); setStat(`已新增付費範本「${planLabel(planOf(id)) || name}」`, 'ok');
   }
   function whoLine(r) {
     const n = Object.keys(mOver()).length, p = planOf(mPlan()), ex = mExp();
-    const who = r.known ? `已登入過：<b>${esc(r.known.name || '')}</b>${r.known.seen ? `（最後登入 ${dstr(r.known.seen)}）` : ''}` : '<b>尚未登入過</b>（先設好，對方登入後就生效）';
+    const who = r.known ? `已登入過：<b>${esc(r.known.name || '')}</b>${r.known.seen ? `（最後登入 ${dstr(r.known.seen)}）` : ''}` : '<b>尚未登入過</b>';
     const exs = ex ? (ex < Date.now() ? `・<b style="color:#ff6b7a">已於 ${msToDate(ex)} 到期</b>（目前套註冊會員）` : `・到期 <b>${msToDate(ex)}</b>`) : '';
-    return `<b>${esc(r.email)}</b>・${who}・${TIER_NAME[tierOf(mPlan())]}「<b>${esc(p ? p.name : (r.planName || r.plan))}</b>」${exs}・個別微調 <b>${n}</b> 項${r.set ? '' : '（還沒個別設定過＝照免費會員）'}`;
+    return `<b>${esc(r.email)}</b>・${who}・${TIER_NAME[tierOf(mPlan())]}「<b>${esc(p ? p.name : (r.planName || r.plan))}</b>」${exs}・個別微調 <b>${n}</b> 項${r.set ? '' : ''}`;
   }
   function paintSave() {
     const bar = PS.v && PS.v.querySelector('#pmSave'); if (!bar) return;
@@ -1229,7 +1834,7 @@
          Andy 要回到「每類一張卡、每列只有開關＋名稱＋一行說明」的乾淨版，但次數上限功能不能丟，所以不讓它常駐佔一欄。 */
       const has = lims && Object.prototype.hasOwnProperty.call(lims, f.id), lv = has ? lims[f.id] : '';
       const limOpen = lims && PS.limOpen === f.id;
-      const badge = lims && f.kind !== 'limit' ? `<button type="button" class="pmlimb${has ? ' set' : ''}${lv === 0 ? ' zero' : ''}" data-limb="${esc(f.id)}" title="每日瀏覽次數上限（點一下設定）" aria-label="${esc(f.name)} 每日瀏覽次數：${has ? lv + ' 次' : '不限'}" aria-expanded="${limOpen}" ${ready ? '' : 'disabled'}>${has ? lv + '/日' : '∞'}</button>` : '';
+      const badge = lims && f.kind !== 'limit' ? `<button type="button" class="pmlimb${has ? ' set' : ''}${lv === 0 ? ' zero' : ''}" data-limb="${esc(f.id)}" title="每日瀏覽次數上限" aria-label="${esc(f.name)} 每日瀏覽次數：${has ? lv + ' 次' : '不限'}" aria-expanded="${limOpen}" ${ready ? '' : 'disabled'}>${has ? lv + '/日' : '∞'}</button>` : '';
       const pop = limOpen && f.kind !== 'limit' ? `<div class="pmlimpop" role="dialog" aria-label="${esc(f.name)} 每日瀏覽次數"><span>每日最多</span><input type="number" class="pmlim" data-lim="${esc(f.id)}" min="0" max="9999" step="1" inputmode="numeric" placeholder="不限" value="${lv === '' ? '' : lv}" aria-label="${esc(f.name)} 每日瀏覽次數上限（留空＝不限）"><span>次</span><button type="button" data-limclr="${esc(f.id)}">不限</button><button type="button" class="ok" data-limok="1">確定</button></div>` : '';
       /* 改動用顏色表示、不用文字標籤（Andy 10-05 追加）：未存＝淡琥珀底＋左色條（.dirty）、已存的微調／改過＝淡藍左色條（.tuned）。
          色條用 inset box-shadow 畫，不加 padding —— 撥開關前後版面一像素都不能動。 */
@@ -1258,13 +1863,27 @@
        點下去：目前不是全開 → 整組開；全開 → 整組關。樣式跟列上的 .psw 同尺寸，換狀態版面不動。 */
     const swSt = (fs) => { const n = fs.filter(isOn).length; return n === 0 ? 'false' : n === fs.length ? 'true' : 'mixed'; };
     const triSw = (attr, fs, label) => `<button type="button" class="psw3" role="switch" ${attr} aria-checked="${swSt(fs)}" aria-label="${esc(label)}：整組開／關" title="${esc(label)}：整組開／關" ${ready ? '' : 'disabled'}><span></span></button>`;
-    const allBtns = (id) => triSw(`data-allsw="cat" data-cat="${esc(id)}"`, FT().inCat(id), (cats.find((c) => c.id === id) || {}).name || id);
+    /* 整組「次數」按鈕（Andy 10-05）：族群觀測大標題與每個分組標題列，總開關旁多一顆「∞／N/日／混合」；點開同款小框一次設整組每日上限 */
+    const gLims = PS.mode === 'plan' ? curLims() : null, gSaved = PS.mode === 'plan' ? savedLims() : null;
+    const gFs = (key) => FT().inCat('grp').filter((f) => f.kind !== 'limit' && (key === 'cat:grp' || f.chain === key.slice(3)));
+    const gLimBtn = (key, label) => { if (!gLims) return ''; const fs = gFs(key); if (!fs.length) return '';
+      const vals = new Set(fs.map((f) => (Object.prototype.hasOwnProperty.call(gLims, f.id) ? gLims[f.id] : null))), mixed = vals.size > 1, v1 = mixed ? null : [...vals][0];
+      const dirty = ready && fs.some((f) => gSaved[f.id] !== gLims[f.id]);
+      return `<button type="button" class="pmlimb pmglim${mixed ? ' mixed' : v1 != null ? ' set' : ''}${v1 === 0 ? ' zero' : ''}${dirty ? ' dirty' : ''}" data-glim="${esc(key)}" title="${esc(label)}：整組每日瀏覽次數上限" aria-label="${esc(label)} 整組每日瀏覽次數：${mixed ? '混合' : v1 == null ? '不限' : v1 + ' 次'}" aria-haspopup="dialog" ${ready ? '' : 'disabled'}>${mixed ? '混合' : v1 == null ? '∞' : v1 + '/日'}</button>`; };
+    const allBtns = (id) => (id === 'grp' ? gLimBtn('cat:grp', '族群觀測') : '') + triSw(`data-allsw="cat" data-cat="${esc(id)}"`, FT().inCat(id), (cats.find((c) => c.id === id) || {}).name || id);
     const tsw = v.querySelector('#pmAllSw');
     if (tsw) { tsw.disabled = !ready; tsw.setAttribute('aria-checked', swSt(cats.filter((c) => c.id !== 'grp').flatMap((c) => FT().inCat(c.id)))); }
     const gbox = v.querySelector('#pmGrp');
     if (gbox) gbox.classList.toggle('off', !ready);
-    box.innerHTML = cats.filter((c) => c.id !== 'grp').map((c) => { const fs = FT().inCat(c.id);
-      return `<div class="pmcat card" data-cat="${esc(c.id)}"><div class="pmcathd"><h3>${esc(c.name)}<small>${cnt(fs)}</small></h3>${allBtns(c.id)}</div>
+    /* 欄流排版的分欄：把分類卡依「項數」做 4 欄貪婪分組（最重的先放進目前最矮的那欄），再依欄順序輸出並在每欄第一張卡強制換欄 —— 各欄底部落差最小，不留大片空白 */
+    /* 欄數照視窗寬：≥1300 四欄、≥900 三欄、≥640 兩欄、其餘一欄（1440／1024／800／390）；欄數變了就重畫（貪婪分欄要重算） */
+    const ncol = innerWidth >= 1300 ? 4 : innerWidth >= 900 ? 3 : innerWidth >= 640 ? 2 : 1; box.style.columnCount = ncol; PS.ncol = ncol;
+    if (!PS.colDoc) { PS.colDoc = true; window.addEventListener('resize', () => { const n = innerWidth >= 1300 ? 4 : innerWidth >= 900 ? 3 : innerWidth >= 640 ? 2 : 1; if (PS.ncol && n !== PS.ncol && PS.v && PS.v.querySelector('#pmCats')) paintCats(); }); }
+    const wt = (c) => 1.7 + FT().inCat(c.id).length, colsG = Array.from({ length: ncol }, () => ({ h: 0, cs: [] }));
+    cats.filter((c) => c.id !== 'grp').slice().sort((a, b) => wt(b) - wt(a)).forEach((c) => { const g = colsG.reduce((m, x) => (x.h < m.h ? x : m), colsG[0]); g.cs.push(c); g.h += wt(c); });
+    const ordered = []; colsG.filter((g) => g.cs.length).forEach((g) => g.cs.forEach((c, i) => ordered.push([c, ncol > 1 && i === 0 && ordered.length > 0])));
+    box.innerHTML = ordered.map(([c, brk]) => { const fs = FT().inCat(c.id);
+      return `<div class="pmcat card${brk ? ' brk' : ''}" data-cat="${esc(c.id)}"><div class="pmcathd"><h3>${esc(c.name)}<small>${cnt(fs)}</small></h3>${allBtns(c.id)}</div>
         <div class="pmbody">${catRows(fs, cur, base, saved, now, ready, false)}</div></div>`; }).join('');
     const gc = cats.find((c) => c.id === 'grp');
     if (gbox) gbox.innerHTML = gc ? (() => {
@@ -1273,10 +1892,9 @@
       const by = {}; fs.forEach((f) => { (by[f.chain || ''] = by[f.chain || ''] || []).push(f); });
       const chName = (ch) => { const d = (fs.find((f) => f.chain === ch) || {}).desc; return d ? d.split('・')[0] : (ch || '其他'); };
       return `<div class="pmcat${open ? '' : ' shut'}" data-cat="grp"><div class="pmcathd">${fold(k, gc.name, fs, 'h3')}${allBtns('grp')}</div>
-        <p class="use pmfoldnote">族群多，整塊預設收起來；點上面標題或「全部展開」打開。關掉的族群：族群頁模糊＋鎖頭、資金輪動的族群下拉那一列鎖住、熱力圖／排行／輪盤點了只跳「此族群需開通」。${PS.mode === 'plan' ? '瀏覽次數＝一天能打開幾個不同族群頁。' : ''}</p>
         <div class="pmbody"${open ? '' : ' hidden'}><div class="grpgrid">`
         + Object.keys(by).map((ch) => { const ck = 'ch:' + ch, co = PS.open.has(ck);
-          return `<div class="grpch" data-ch="${esc(ch)}">${fold(ck, chName(ch), by[ch], 'span')}${triSw(`data-allsw="ch" data-ch="${esc(ch)}"`, by[ch], chName(ch))}</div>`
+          return `<div class="grpch" data-ch="${esc(ch)}">${fold(ck, chName(ch), by[ch], 'span')}${gLimBtn('ch:' + ch, chName(ch))}${triSw(`data-allsw="ch" data-ch="${esc(ch)}"`, by[ch], chName(ch))}</div>`
             + `<div class="grpbody" data-ch="${esc(ch)}"${co ? '' : ' hidden'}>${catRows(by[ch], cur, base, saved, now, ready, true)}</div>`; }).join('') + '</div></div></div>';
     })() : '';
     if (gbox) gbox.onchange = (e) => box.onchange(e);
@@ -1310,6 +1928,8 @@
       if (PS.limOpen && !e.target.closest('.pmlimpop,button[data-limb]')) { PS.limOpen = null; paintCats(); } }, true); }
     box.onkeydown = (e) => { if (e.target.closest('input[data-lim]') && (e.key === 'Enter' || e.key === 'Escape')) { e.preventDefault(); PS.limOpen = null; paintCats(); } };
     box.onclick = (e) => {
+      const gb = e.target.closest('button[data-glim]');
+      if (gb) { e.stopPropagation(); openGLim(gb); return; }
       const lb = e.target.closest('button[data-limb]');
       if (lb) { PS.limOpen = PS.limOpen === lb.dataset.limb ? null : lb.dataset.limb; paintCats();
         const i = box.querySelector('input[data-lim]'); if (i) { i.focus(); i.select(); } return; }
@@ -1362,6 +1982,30 @@
       paintTarget(); paintCats();
     }
   }
+  /* 整組次數：小框浮在按鈕下方（position:fixed，不被標題列的 overflow 裁掉）；確定 → 組內每個族群一次設成同一值（留空＝不限），整批當一次草稿 */
+  function groupFs(key) { return FT().inCat('grp').filter((f) => f.kind !== 'limit' && (key === 'cat:grp' || f.chain === key.slice(3))); }
+  function setLimMany(fids, n) {
+    const p = planOf(PS.planSel); if (!p || PS.mode !== 'plan') return;
+    const lims = Object.assign({}, curLims());
+    fids.forEach((id) => { if (n == null) delete lims[id]; else lims[id] = n; });
+    planDraft(Object.assign({}, (PS.draft && PS.draft.feats) || p.feats || {}), lims);
+  }
+  function closeGLim() { const o = document.getElementById('pmGPop'); if (o) o.remove(); }
+  function openGLim(btn) {
+    closeGLim();
+    const key = btn.dataset.glim, fs = groupFs(key), lims = curLims();
+    const vals = [...new Set(fs.map((f) => (Object.prototype.hasOwnProperty.call(lims, f.id) ? lims[f.id] : null)))];
+    const pop = document.createElement('div'); pop.id = 'pmGPop'; pop.className = 'pmlimpop pmgpop'; pop.setAttribute('role', 'dialog'); pop.setAttribute('aria-label', '整組每日瀏覽次數');
+    pop.innerHTML = `<span>每日最多</span><input type="number" min="0" max="9999" step="1" inputmode="numeric" placeholder="${vals.length > 1 ? '混合' : '不限'}" value="${vals.length === 1 && vals[0] != null ? vals[0] : ''}" aria-label="整組每日瀏覽次數上限（留空＝不限）"><span>次</span><button type="button" data-g="clr">不限</button><button type="button" class="ok" data-g="ok">確定</button>`;
+    PS.v.appendChild(pop);
+    const r = btn.getBoundingClientRect(), w = pop.offsetWidth; pop.style.position = 'fixed'; pop.style.left = Math.max(8, Math.min(innerWidth - w - 8, r.right - w)) + 'px'; pop.style.top = (r.bottom + 6) + 'px'; pop.style.right = 'auto'; pop.style.bottom = 'auto';
+    const inp = pop.querySelector('input'); inp.focus(); inp.select();
+    const apply = (n) => { closeGLim(); setLimMany(fs.map((f) => f.id), n); paintTarget(); paintCats(); };
+    const confirm = () => { const raw = inp.value.trim(); if (raw !== '' && !(/^\d{1,4}$/.test(raw) && +raw <= 9999)) { inp.classList.add('bad'); return; } apply(raw === '' ? null : +raw); };
+    pop.onclick = (e) => { const g = e.target.closest('button[data-g]'); if (!g) return; if (g.dataset.g === 'clr') apply(null); else confirm(); };
+    pop.onkeydown = (e) => { if (e.key === 'Enter') { e.preventDefault(); confirm(); } else if (e.key === 'Escape') { e.preventDefault(); closeGLim(); btn.focus(); } };
+    setTimeout(() => { const off = (e) => { if (!e.target.closest('#pmGPop,button[data-glim]')) { closeGLim(); document.removeEventListener('pointerdown', off, true); } }; document.addEventListener('pointerdown', off, true); }, 0);
+  }
   function setLim(fid, n) {
     const p = planOf(PS.planSel); if (!p || PS.mode !== 'plan') return;
     const lims = Object.assign({}, curLims());
@@ -1389,7 +2033,7 @@
     if (patch.expires !== undefined && (patch.expires || 0) !== (r.expires || 0)) body.expires = patch.expires || null;
     const j = await PS.A.call('/v1/admin/perm/put', body);
     if (j && j._s === 200) { PS.rec = Object.assign({}, j, { known: r.known }); PS.draft = null; afterSave(j.email, label + `・已儲存（台北 ${tpeTime()}）`); }
-    else { setStat('儲存失敗：' + errText(j) + '（變更還在，可以再按一次儲存）', 'bad'); }
+    else { setStat('儲存失敗：' + errText(j) + '', 'bad'); }
   }
   function afterSave(email, msg) {
     paintTarget(); paintCats(); setStat(msg, 'ok'); refreshList();
@@ -1402,7 +2046,7 @@
     if (j && j._s === 200) {
       PS.plans = j.plans; PS.draft = null; paintAddPlan(); paintTarget(); paintCats(); setStat(label + `・已儲存到「${(planOf(id) || {}).name || name}」（台北 ${tpeTime()}）`, 'ok');
       if (window.TwPerm) window.TwPerm.refresh();
-    } else { setStat('儲存失敗：' + errText(j) + '（變更還在，可以再按一次儲存）', 'bad'); }
+    } else { setStat('儲存失敗：' + errText(j) + '', 'bad'); }
   }
   async function refreshList() {
     PS.mst = {};      // 名單變了 → 上方統計重抓（狀態、人數由名單算，Top 8／活躍由伺服器算）
@@ -1424,7 +2068,7 @@
   function listRows() {
     const all = members();
     if (PS.mode !== 'plan') return all;
-    if (PS.tier === 'free') return all.filter((r) => r.st !== 'new' || r.tier === 'free');
+    if (PS.tier === 'free') return all;      // 2026-10-05 會員管理併進來：註冊會員的名單＝所有人員（含付費、尚未登入過的）
     if (PS.tier === 'paid') return all.filter((r) => r.plan === PS.planSel);
     return [];
   }
@@ -1447,7 +2091,7 @@
       const open = PS.exp.has(r.email);
       return `<tr data-email="${esc(r.email)}" class="${PS.rec && r.email === PS.rec.email ? 'on' : ''}${r.paid ? ' paid' : ''}" aria-expanded="${open}">`
         + `<td class="c-who"><span class="who1"><span class="car" aria-hidden="true">${open ? '▾' : '▸'}</span><b title="${esc(r.email)}">${esc(r.email)}</b>${r.name ? `<small title="${esc(r.name)}">${esc(r.name)}</small>` : ''}${badge(r)}</span></td>`
-        + `<td class="c-tpl"${r.set ? '' : ' title="還沒個別設定過（照註冊會員預設）"'}>${r.tier === 'paid' ? esc(r.planName) : '註冊會員'}</td>`
+        + `<td class="c-tpl"${r.set ? '' : ' title="尚未個別設定"'}>${r.tier === 'paid' ? esc(r.planName) : '註冊會員'}</td>`
         + `<td class="c-cr">${dday(r.created)}</td><td class="c-exp">${dday(r.expires)}</td><td class="c-seen" title="${r.seen ? dstr(r.seen) : ''}">${seenTxt(r.seen)}</td>`
         + `<td class="c-on num">${dur(r.onlineMs)}</td><td class="c-vis num">${nf(r.visits30)}</td><td class="c-vw num">${nf(r.views30)}</td>`
         + `<td class="c-feat">${top(r.topFeat, compName)}</td><td class="c-stk">${top(r.topStock, (k) => k)}</td>`
@@ -1460,36 +2104,30 @@
      選型照流量觀測頁「？ 圖表怎麼選」那條規則：佔比、≤ 5 類、加總＝全部 → 甜甜圈；類別比大小 → 橫向長條（排序過）；每天的量 → 直條。
      全部是 SVG＋HTML 標籤：每個色塊有 <title>（滑過看數字），文字用文字色、不用系列色；顏色跟著「東西」走（狀態色固定、範本色依 id）。 */
   function donut2(parts, opt) {
-    const o = opt || {}, tot = parts.reduce((s, p) => s + p[1], 0), unit = o.unit || '人';
-    if (!tot) return `<div class="empty">${esc(o.empty || '尚無資料')}</div>`;
-    const S = 84, cx = S / 2, R = 30, C = 2 * Math.PI * R, gap = parts.filter((p) => p[1] > 0).length > 1 ? 1.6 : 0;
-    let off = 0;
-    const arcs = parts.map(([nm, n, col]) => {
-      if (!n) return '';
-      const len = n / tot * C, d = Math.max(0.6, len - gap);
-      const s = `<circle r="${R}" cx="${cx}" cy="${cx}" fill="none" stroke="${col}" stroke-width="13" stroke-dasharray="${d.toFixed(2)} ${(C - d).toFixed(2)}" stroke-dashoffset="${(-off).toFixed(2)}" transform="rotate(-90 ${cx} ${cx})"><title>${esc(nm)}：${nf(n)} ${unit}（${Math.round(n / tot * 100)}%）</title></circle>`;
-      off += len; return s;
-    }).join('');
-    return `<div class="mdonut"${o.id ? ` id="${o.id}"` : ''} data-total="${tot}"><svg viewBox="0 0 ${S} ${S}" width="${S}" height="${S}" role="img" aria-label="${esc(o.aria || '')}">`
-      + `<circle r="${R}" cx="${cx}" cy="${cx}" fill="none" stroke="var(--panel-3)" stroke-width="13"/>${arcs}<text x="${cx}" y="${cx + 5}" text-anchor="middle" style="font:700 15px var(--mono);fill:var(--ink)">${nf(tot)}</text></svg>`
-      + `<ul>${parts.map(([nm, n, col], i) => `<li data-k="${esc(o.keys ? o.keys[i] : nm)}" data-n="${n}" title="${esc(nm)}：${nf(n)} ${unit}（${Math.round(n / tot * 100)}%）"><i style="background:${col}"></i><span>${esc(nm)}</span><b>${nf(n)}</b><small>${Math.round(n / tot * 100)}%</small></li>`).join('')}</ul></div>`;
+    const o = opt || {}, tot = parts.reduce((x, p) => x + p[1], 0), unit = o.unit || '人';
+    if (!tot) return `<div class="empty">${esc(o.empty || '沒有資料')}</div>`;
+    /* 跟流量觀測同一套甜甜圈：直角、非同組扇區間隙一律 2°、細軌道、中心字、滑過連動（donutG）；這裡只是小一號、圖例每列帶人數 */
+    const segs = parts.map(([nm, n, col], i) => ({ label: nm, n, color: col, k: o.keys ? o.keys[i] : nm, ltxt: `${nf(n)} ${unit}・${Math.round(n / tot * 100)}%` })).filter((x) => x.n > 0 || true);
+    return donutG(segs.filter((x) => x.n > 0), Object.assign({ cls: 'mdonut', id: o.id, center: [unit === '人' ? '合計' : '合計', nf(tot)], legend: segs, legendN: 8, totalN: tot, aria: o.aria || '占比' }));
   }
   function hbars(list, names, opt) {
     const o = opt || {};
-    if (!list.length) return `<div class="empty">${esc(o.empty || '尚無資料')}</div>`;
-    const max = Math.max(1, ...list.map((x) => x[1]));
-    return `<div class="hbars"${o.id ? ` id="${o.id}"` : ''}>` + list.map(([k, n]) => { const nm = names(k);
-      return `<span class="bl" title="${esc(nm)}">${esc(nm)}</span><svg><rect class="tr" width="100%" height="12" rx="3"/><rect class="v" width="${(n / max * 100).toFixed(1)}%" height="12" rx="3"><title>${esc(nm)}：${nf(n)} 次</title></rect></svg><span class="bn" data-k="${esc(k)}" data-n="${n}">${nf(n)}</span>`; }).join('') + '</div>';
+    if (!list.length) return `<div class="empty">${esc(o.empty || '沒有資料')}</div>`;
+    const max = Math.max(1, ...list.map((x) => x[1])), tot = list.reduce((x, y) => x + y[1], 0);
+    return `<div class="hbars" data-chart="bars"${o.id ? ` id="${o.id}"` : ''}>` + list.map(([k, n], r) => { const nm = names(k), t = tp(`<b>${esc(nm)}</b><br>${nf(n)} 次・占 ${(n / tot * 100).toFixed(1)}%`);
+      return `<span class="bl" data-row="${r}"${t}>${esc(nm)}</span><svg data-row="${r}"${t}><rect class="tr" width="100%" height="10" rx="5"/><rect class="v" width="${(n / max * 100).toFixed(1)}%" height="10" rx="5"/></svg><span class="bn" data-row="${r}"${t} data-k="${esc(k)}" data-n="${n}">${nf(n)}</span>`; }).join('') + '</div>';
   }
   const mmdd = (d) => String(d || '').slice(5).replace('-', '/');
   function vbars(days, opt) {
     const o = opt || {}, unit = o.unit || '人';
-    if (!days.length || !days.some((d) => d.n)) return `<div class="empty">${esc(o.empty || '尚無資料（近 14 天沒有活躍紀錄）')}</div>`;
-    const max = Math.max(1, ...days.map((d) => d.n)), W = days.length * 10, H = 100, bw = W / days.length;
-    return `<div class="vbmax">最高 ${nf(max)} ${unit}／天</div><svg class="vbars"${o.id ? ` id="${o.id}"` : ''} viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" role="img" aria-label="${esc(o.aria || '近 14 天每天的量')}">`
-      + days.map((d, i) => { const h = d.n ? Math.max(3, d.n / max * (H - 2)) : 1.5;
-        return `<rect class="${d.n ? 'v' : 'z'}" data-n="${d.n}" x="${(i * bw + 1.5).toFixed(1)}" y="${(H - h).toFixed(1)}" width="${(bw - 3).toFixed(1)}" height="${h.toFixed(1)}"><title>${esc(d.tip || `${d.day}：${nf(d.n)} ${unit}`)}</title></rect>`; }).join('')
-      + `</svg><div class="vbx"><span>${mmdd(days[0].day)}</span><span>${mmdd(days[days.length >> 1].day)}</span><span>${mmdd(days[days.length - 1].day)}</span></div>`;
+    if (!days.length || !days.some((d) => d.n)) return `<div class="empty">${esc(o.empty || '沒有資料')}</div>`;
+    const max = Math.max(1, ...days.map((d) => d.n)), W = days.length * 10, H = 100, bw = W / days.length, tot = days.reduce((x, d) => x + d.n, 0);
+    /* 跟流量觀測直條同規格：細柱（寬 ≈ 0.45 格）、左側 5 個 Y 刻度＋很淡的水平格線、滑過高亮並顯示提示 */
+    return `<div class="vbwrap" data-chart="days"><div class="vby">${[1, 0.75, 0.5, 0.25, 0].map((f) => `<span>${nf(Math.round(max * f))}</span>`).join('')}</div>
+      <div class="vbplot"><svg class="vbars"${o.id ? ` id="${o.id}"` : ''} viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" role="img" aria-label="${esc(o.aria || '近 14 天每天的量')}">`
+      + days.map((d, i) => { const h = d.n ? Math.max(3, d.n / max * (H - 2)) : 1.5, w = bw * 0.45;
+        return `<rect class="${d.n ? 'v' : 'z'}" data-row="${i}"${tp(`<b>${esc(d.day)}</b><br>${esc(d.tip ? d.tip.replace(/^[^：]*：/, '') : nf(d.n) + ' ' + unit)}<br>占期間 ${(d.n / Math.max(1, tot) * 100).toFixed(1)}%`)} data-n="${d.n}" x="${(i * bw + (bw - w) / 2).toFixed(1)}" y="${(H - h).toFixed(1)}" width="${w.toFixed(1)}" height="${h.toFixed(1)}"></rect>`; }).join('')
+      + `</svg></div></div><div class="vbx"><span>${mmdd(days[0].day)}</span><span>${mmdd(days[days.length >> 1].day)}</span><span>${mmdd(days[days.length - 1].day)}</span></div>`;
   }
   /* 股票標籤＝代號＋名稱（名稱從站上的全站索引 window.Link.cname 拿；拿不到就只寫代號）*/
   const stockNm = (c) => { const n = window.Link && window.Link.cname && window.Link.cname[c]; return n ? `${c} ${n}` : c; };
@@ -1502,7 +2140,7 @@
     if (PS.mst[key]) return;
     PS.mst[key] = { loading: true };
     const j = await PS.A.call('/v1/admin/members/stats', key === 'all' ? { scope: 'all' } : { scope: 'plan', plan: key.slice(5) });
-    PS.mst[key] = j && j._s === 200 && Array.isArray(j.days) ? j : { err: j && j._s === 404 ? '會員 Worker 尚未更新' : j && j._s === 200 ? '回應格式不對' : '讀不到：' + errText(j) };
+    PS.mst[key] = j && j._s === 200 && Array.isArray(j.days) ? j : { err: j && j._s === 404 ? '讀不到' : j && j._s === 200 ? '回應格式不對' : '讀不到：' + errText(j) };
     const el = PS.v && PS.v.querySelector('#ptStats');
     if (el && mKey() === key) el.innerHTML = statsHtml(listRows());
   }
@@ -1513,7 +2151,7 @@
     const cnt = { ok: 0, soon: 0, exp: 0, new: 0 }; rows.forEach((r) => { cnt[stOf(r)] += 1; });
     const known = rows.filter((r) => r.st !== 'new'), on = known.reduce((a, r) => a + (r.onlineMs || 0), 0);
     const o30 = rows.reduce((a, r) => a + (r.online30 || 0), 0), v30 = rows.reduce((a, r) => a + (r.visits30 || 0), 0);
-    const kp = kpi(nf(rows.length), '總人數（＝下面名單列數）', 'msTotal') + kpi(wait ? '—' : nf(s.active7), '近 7 日活躍人數', 'msAct7')
+    const kp = kpi(nf(rows.length), '總人數', 'msTotal') + kpi(wait ? '—' : nf(s.active7), '近 7 日活躍人數', 'msAct7')
       + kpi(known.length ? dur(on / known.length) : '—', `平均累計在線（登入過的 ${known.length} 人）`, 'msAvgOn') + kpi(v30 ? dur(o30 / v30) : '—', '平均每次停留（近 30 天）', 'msAvgStay');
     let dn = donut2([['有效', cnt.ok, 'var(--st-ok)'], ['7 天內到期', cnt.soon, 'var(--st-soon)'], ['已過期', cnt.exp, 'var(--st-exp)'], ['未登入過', cnt.new, 'var(--st-new)']],
       { id: 'msStDonut', keys: ['ok', 'soon', 'exp', 'new'], aria: '這一層會員的狀態分布' });
@@ -1531,16 +2169,21 @@
     return `<div class="mkpis">${kp}</div><div class="mcharts" id="msCharts">
       <div class="mchart" data-ch="status"><h4>${PS.tier === 'free' ? '會員狀態｜免費 vs 付費' : '會員狀態'}<small>人數</small></h4>${dn}</div>
       <div class="mchart" data-ch="days"><h4>近 14 天每日活躍人數</h4>${wait ? `<div class="empty">${esc(wait)}</div>` : vbars(days, { id: 'msDays', aria: '近 14 天每天有幾個人活躍' })}</div>
-      <div class="mchart" data-ch="feats"><h4>最常用的功能 Top 8<small>近 30 天合計次數</small></h4>${wait ? `<div class="empty">${esc(wait)}</div>` : hbars(s.feats || [], compName, { id: 'msFeat', empty: '尚無資料（近 30 天沒有紀錄）' })}</div>
-      <div class="mchart" data-ch="stocks"><h4>最常看的股票 Top 8<small>近 30 天觀看次數</small></h4>${wait ? `<div class="empty">${esc(wait)}</div>` : hbars(s.stocks || [], stockNm, { id: 'msStock', empty: '尚無資料（近 30 天沒有紀錄）' })}</div></div>`;
+      <div class="mchart" data-ch="feats"><h4>最常用的功能 Top 8<small>近 30 天合計次數</small></h4>${wait ? `<div class="empty">${esc(wait)}</div>` : hbars(s.feats || [], compName, { id: 'msFeat', empty: '沒有資料' })}</div>
+      <div class="mchart" data-ch="stocks"><h4>最常看的股票 Top 8<small>近 30 天觀看次數</small></h4>${wait ? `<div class="empty">${esc(wait)}</div>` : hbars(s.stocks || [], stockNm, { id: 'msStock', empty: '沒有資料' })}</div></div>`;
   }
   /* 展開明細（Andy 10-05：數字太大、被上一列擋住、四塊位置亂）：一排四個小數字（≤ 20px）＋一排四張同高圖卡，
      放在表格裡獨立的一列（colspan 全寬、自己的底色與內距），不用任何絕對定位 → 不會蓋到上下列。 */
   function detailHtml(r) {
+    const tune = PS.mode === 'member' ? '' : `<div class="pmbar"><button type="button" class="pri" data-tune="${esc(r.email)}">逐人微調…</button></div>`;
+    const body = detailBody(r);
+    return body.replace(/<\/div>$/, tune + '</div>');
+  }
+  function detailBody(r) {
     const d = PS.det[r.email];
     if (!d) return '<div class="mdet"><div class="empty">讀取使用紀錄中…</div></div>';
     if (d.err) return `<div class="mdet"><div class="empty">${esc(d.err)}</div></div>`;
-    if (!d.known) return '<div class="mdet"><div class="empty">這位還沒登入過，沒有使用紀錄。</div></div>';
+    if (!d.known) return '<div class="mdet"><div class="empty">尚未登入</div></div>';
     const days = (d.days || []).map((x) => ({ day: x.day, n: x.views || 0, tip: `${x.day}：造訪 ${x.visits} 次、瀏覽 ${x.views} 頁、在線 ${dur(x.ms)}` }));
     const avg = r.visits30 ? r.online30 / r.visits30 : 0;
     const pages = (d.pages || []).slice().sort((a, b) => b[1] - a[1]);
@@ -1551,29 +2194,57 @@
       <div class="mkpis">${kpi(nf(r.days30), '近 30 天活躍天數')}${kpi(dur(r.online30), '近 30 天在線')}${kpi(avg ? dur(avg) : '—', '平均每次停留')}${kpi(nf(r.views30), '近 30 天頁面瀏覽')}</div>
       <div class="mcharts">
         <div class="mchart" data-ch="days"><h4>近 14 天每日活躍<small>頁面瀏覽</small></h4>${vbars(days, { unit: '頁', aria: '近 14 天每天的頁面瀏覽' })}</div>
-        <div class="mchart" data-ch="pages"><h4>各分頁瀏覽<small>近 30 天</small></h4>${donut2(pp.map(([k, n], i) => [k === '_other' ? '其他' : (VIEW_NAME[k] || k), n, k === '_other' ? 'var(--c0)' : pcol[i]]), { unit: '次', aria: '各分頁瀏覽佔比', empty: '尚無資料（近 30 天沒有紀錄）' })}</div>
-        <div class="mchart" data-ch="feats"><h4>功能使用次數 Top 8</h4>${hbars(feats, (k) => { const [pg, c] = k.split('|'); return (VIEW_NAME[pg] || pg) + '・' + compName(c); }, { empty: '尚無資料（近 30 天沒有紀錄）' })}</div>
-        <div class="mchart" data-ch="stocks"><h4>最常看的股票 Top 8</h4>${hbars((d.stocks || []).slice(0, 8), stockNm, { empty: '尚無資料（近 30 天沒有紀錄）' })}</div></div>
-      ${PS.mode === 'member' ? '<p class="use">這位已載入下面「③ 逐人微調」。</p>' : ''}</div>`;
+        <div class="mchart" data-ch="pages"><h4>各分頁瀏覽<small>近 30 天</small></h4>${donut2(pp.map(([k, n], i) => [k === '_other' ? '其他' : (VIEW_NAME[k] || k), n, k === '_other' ? 'var(--c0)' : pcol[i]]), { unit: '次', aria: '各分頁瀏覽佔比', empty: '沒有資料' })}</div>
+        <div class="mchart" data-ch="feats"><h4>功能使用次數 Top 8</h4>${hbars(feats, (k) => { const [pg, c] = k.split('|'); return (VIEW_NAME[pg] || pg) + '・' + compName(c); }, { empty: '沒有資料' })}</div>
+        <div class="mchart" data-ch="stocks"><h4>最常看的股票 Top 8</h4>${hbars((d.stocks || []).slice(0, 8), stockNm, { empty: '沒有資料' })}</div></div>
+      </div>`;
   }
   async function loadDetail(email) {
     if (PS.det[email] && !PS.det[email].err) return;
     const j = await PS.A.call('/v1/admin/member/detail', { email });
-    PS.det[email] = j && j._s === 200 && Array.isArray(j.days) ? j : { err: j && j._s === 404 ? '會員 Worker 還沒更新成有使用明細的版本（admin-v3）。' : '讀不到使用紀錄（' + errText(j) + '）' };
+    PS.det[email] = j && j._s === 200 && Array.isArray(j.days) ? j : { err: j && j._s === 404 ? '讀不到使用紀錄' : '讀不到使用紀錄（' + errText(j) + '）' };
     paintList();
   }
   function paintList() {
     if (!PS.v) return;
     if (PS.mode === 'plan') {
       const box = PS.v.querySelector('#ptListBox'); if (!box || box.hidden) return;
-      const rows = listRows(), use = (PS.tier === 'free' ? '所有登入過的人；金色徽章＝付費會員（後面是方案名）、過期的標「過期」。' : '被指定到這個範本的會員。')
-        + '點欄位標題排序、點一列展開他的使用紀錄；新增、改到期日或換範本到「會員管理」。';
-      box.innerHTML = `<div class="ptinner" id="ptMail"><div class="mstats" id="ptStats">${statsHtml(rows)}</div>
-        <p class="use" title="${esc(use)}" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(use)}</p>
-        ${rows.length ? memTable(rows, 'ptTable') : '<div class="empty">這一層目前沒有人。</div>'}
-        <div class="pmbar"><a href="#admin/members" id="ptGoMembers">到會員管理新增會員 →</a></div></div>`;
-      wireList(box);
-      loadMStats(mKey());
+      const rows = listRows(), use = (PS.tier === 'free' ? '所有人員（含付費與尚未登入過的）；金色徽章＝付費會員（後面是方案名）、過期的標「過期」。' : '被指定到這個範本的會員。')
+        + '';
+      const defPlan = PS.tier === 'paid' ? PS.planSel : 'free';
+      /* 殼（統計、新增會員列、搜尋列）只在第一次或換層級／範本時畫，之後打字搜尋只換表格，輸入框不會掉焦點 */
+      const shellKey = PS.tier + '|' + PS.planSel;
+      if (!box.querySelector('#ptTableBox') || box.dataset.shell !== shellKey) {
+        box.dataset.shell = shellKey;
+        box.innerHTML = `<div class="ptinner" id="ptMail"><div class="mstats" id="ptStats">${statsHtml(rows)}</div>
+          <div class="pmbar ptadd" id="pmAdd"><input type="email" id="pmAddEmail" placeholder="新增會員：member@example.com" autocomplete="off" aria-label="新會員 email">
+            <select id="pmAddPlan" aria-label="新會員的層級與範本">${planOpts(defPlan, false)}</select>
+            <label>到期日 <input type="date" id="pmAddExp" aria-label="到期日（留空＝不會到期）"></label>
+            <button type="button" class="pri" id="pmAddGo">新增</button>
+            <span class="pmsep" aria-hidden="true"></span>
+            <input type="email" id="pmTuneEmail" list="pmTuneEmails" placeholder="逐人微調：輸入 email" autocomplete="off" aria-label="要逐人微調的會員 email"><datalist id="pmTuneEmails">${listRows().map((r) => `<option value="${esc(r.email)}"></option>`).join('')}</datalist>
+            <button type="button" id="pmTuneGo">讀取</button></div>
+          <div class="pmbar"><input type="search" id="pmSearch" placeholder="搜尋 email、名字、層級或範本" aria-label="搜尋會員" value="${esc(PS.q)}">
+            <select id="pmStatF" aria-label="依狀態篩選"><option value="">全部狀態</option><option value="ok">有效</option><option value="exp">過期</option><option value="new">未登入過</option></select><span class="pmcnt" id="pmCnt"></span></div>
+          <div id="ptTableBox"></div></div>`;
+        const vv = PS.v; vv.querySelector('#pmStatF').value = PS.stf;
+        vv.querySelector('#pmSearch').oninput = (e) => { PS.q = e.target.value; paintList(); };
+        vv.querySelector('#pmStatF').onchange = (e) => { PS.stf = e.target.value; paintList(); };
+        vv.querySelector('#pmAddGo').onclick = addMember;
+        vv.querySelector('#pmAddEmail').onkeydown = (e) => { if (e.key === 'Enter') addMember(); };
+        const tune = () => { const e = (vv.querySelector('#pmTuneEmail').value || '').trim().toLowerCase(); if (!EMAIL_OK(e)) { setStat('email 格式不對（例如 member@example.com）', 'bad'); return; } enterMember(e); };
+        vv.querySelector('#pmTuneGo').onclick = tune;
+        vv.querySelector('#pmTuneEmail').onkeydown = (e) => { if (e.key === 'Enter') tune(); };
+        loadMStats(mKey());
+      } else { const st = box.querySelector('#ptStats'); if (st) st.innerHTML = statsHtml(rows); }
+      const q = PS.q.trim().toLowerCase();
+      let fr = q ? rows.filter((r) => (r.email + ' ' + r.name + ' ' + r.planName + ' ' + TIER_NAME[r.tier]).toLowerCase().includes(q)) : rows.slice();
+      if (PS.stf) fr = fr.filter((r) => r.st === PS.stf);
+      const cnt = box.querySelector('#pmCnt'); if (cnt) cnt.textContent = (q || PS.stf) ? `${fr.length} ／ ${rows.length} 位` : `共 ${rows.length} 位`;
+      if (cnt) cnt.title = use;
+      const tb = box.querySelector('#ptTableBox');
+      tb.innerHTML = fr.length ? memTable(fr, 'ptTable') : `<div class="empty">${q || PS.stf ? '沒有符合條件的會員。' : '沒有人'}</div>`;
+      wireList(tb);
       return;
     }
     const box = PS.v.querySelector('#pmListBody'); if (!box) return;
@@ -1583,13 +2254,27 @@
     let rows = q ? all.filter((r) => (r.email + ' ' + r.name + ' ' + pn(r) + ' ' + TIER_NAME[r.tier]).toLowerCase().includes(q)) : all.slice();
     if (PS.stf) rows = rows.filter((r) => r.st === PS.stf);
     const cnt = PS.v.querySelector('#pmCnt'); if (cnt) cnt.textContent = (q || PS.stf) ? `${rows.length} ／ ${all.length} 位` : `共 ${all.length} 位`;
-    box.innerHTML = rows.length ? memTable(rows, 'pmTable') : `<div class="empty">${q || PS.stf ? '沒有符合條件的會員。' : '還沒有任何會員。用上面的「新增會員」加第一位。'}</div>`;
+    box.innerHTML = rows.length ? memTable(rows, 'pmTable') : `<div class="empty">${q || PS.stf ? '沒有符合條件的會員。' : '沒有會員'}</div>`;
     wireList(box);
+  }
+  /* 逐人微調：從會員名單的展開明細進來。同一個頁框換成「這個人」的設定（層級／範本、到期日、開關），頁籤與子分頁暫時收起，左上「← 回會員名單」 */
+  function enterMember(email) {
+    if (!guard()) return;
+    PS.editMember = true; PS.mode = 'member'; PS.email = email; PS.rec = null; PS.draft = null;
+    const h = PS.v.querySelector('#pmHead'); if (h) h.classList.add('medit');
+    paintAll(); loadMember(email);
+  }
+  function leaveMember() {
+    if (!guard()) return;
+    PS.editMember = false; PS.mode = 'plan'; PS.rec = null; PS.draft = null; PS.sub = 'list';
+    const h = PS.v.querySelector('#pmHead'); if (h) h.classList.remove('medit');
+    pickTierPlan(); paintAll(); setStat(''); refreshList();
   }
   function wireList(box) {
     box.onclick = (e) => {
       const th = e.target.closest('th[data-sort]');
       if (th) { if (PS.sort === th.dataset.sort) PS.dir = -PS.dir; else { PS.sort = th.dataset.sort; PS.dir = th.dataset.sort === 'email' ? 1 : -1; } paintList(); return; }
+      const tu = e.target.closest('button[data-tune]'); if (tu) { enterMember(tu.dataset.tune); return; }
       if (e.target.closest('tr.pmdet')) return;
       const tr = e.target.closest('tr[data-email]'); if (!tr) return;
       const em = tr.dataset.email;

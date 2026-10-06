@@ -367,6 +367,13 @@ test('R7 格式：壞 email、壞鍵、壞值、太多鍵、不存在／訪客�
   const pl = await (await post(hub, '/v1/admin/plans/get', { t })).json();
   assert.equal(pl.plans.find((p) => p.id === 'vip').name, 'bVIP/b', '名稱裡的 < > 被拿掉');
   await post(hub, '/v1/admin/perm/put', { t, email: 'c@example.com', plan: 'vip', over: { 'stock.mtf': false } });
+  /* 2026-10-05：還有有效會員的付費範本不能刪（409 has_members）；先讓他的訂閱到期，才刪得掉 */
+  const blocked = await post(hub, '/v1/admin/plans/put', { t, id: 'vip', del: true });
+  assert.equal(blocked.status, 409, '有有效會員 → 不能刪');
+  const bj = await blocked.json();
+  assert.deepEqual([bj.error, bj.n, bj.emails], ['has_members', 1, ['c@example.com']]);
+  assert.ok((await (await post(hub, '/v1/admin/plans/get', { t })).json()).plans.some((p) => p.id === 'vip'), '被擋時範本還在');
+  await post(hub, '/v1/admin/perm/put', { t, email: 'c@example.com', plan: 'vip', over: { 'stock.mtf': false }, expires: 1577836800001 });   // 2020-01-01：早就到期
   await post(hub, '/v1/admin/plans/put', { t, id: 'vip', del: true });
   const gj = await (await post(hub, '/v1/admin/perm/get', { t, email: 'c@example.com' })).json();
   assert.deepEqual([gj.plan, gj.over], ['free', { 'stock.mtf': false }], '方案刪掉 → 退回免費、個別微調保留');
