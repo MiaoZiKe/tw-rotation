@@ -46,6 +46,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import re
 import sys
 import time
 from pathlib import Path
@@ -907,7 +908,10 @@ class Auditor:
         cnt: dict[str, int] = {}
         out = []
         for it in items:
-            k0 = it["sig"] + "|" + it["txt"]
+            # ★ 2026-10-06（既有紅字清理）：按鈕字裡的計數（「指標 ▾ （已開 2）」）會隨浮層裡點的東西變（開 2 → 3），
+            #   重開浮層是用「這顆鈕的 key」去找它，字變了就找不到 → 「浮層重新打開失敗」（網站沒壞，是 key 跟著計數變）。
+            #   key 一律把「已開 N」的數字抹成 N（只影響配對，不改報表上顯示的字）。
+            k0 = it["sig"] + "|" + re.sub(r"已開 \d+", "已開 N", it["txt"])
             cnt[k0] = cnt.get(k0, 0) + 1
             out.append(k0 + "|" + str(cnt[k0]))
         return out
