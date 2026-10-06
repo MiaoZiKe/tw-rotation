@@ -290,10 +290,18 @@
      順序：時間｜☀／🌙（#themeBtn 本人，字由 app.js 寫）｜外觀調色盤（#t4Btn）｜線上人數（#acctOnline）｜登入（#acctBtn 或 #l4Login）。
      三顆方鈕同高 34px；登入是主色外框的膠囊（未登入）／頭像＋名字＋▾（已登入）。這些按鈕搬出 .acctbar 之後，account.js 那幾條
      `.acctbar .abtn` 樣式就吃不到了，所以這裡自己寫一份（只用 v4 變數）。 */
-  :root.l4 #l4Head .l4tools{flex:none;display:flex;align-items:center;gap:6px;margin-left:var(--sp-2)}
+  :root.l4 #l4Head .l4tools{flex:none;display:flex;align-items:center;gap:6px;margin-left:0}
   :root.l4 #l4Tools>#themeBtn,:root.l4 #l4Tools>#t4Btn{display:inline-grid;place-items:center;width:34px;height:34px;margin:0;padding:0;
     box-sizing:border-box;border:1px solid var(--t4-ctl-edge,var(--line-2));border-radius:var(--r-sm);background:var(--t4-ctl,var(--panel));
     color:var(--ink-2);font-size:16px;line-height:1;cursor:pointer;box-shadow:none}
+  /* ★ 2026-10-06 Andy：「間隔太大，圖示需要置中方框中」。通知鈴（#ntBell，notices.js 放在 #l4Tools「前面」當兄弟）原本吃
+     頁首的 gap 16＋工具列 margin-left 8＝24px，比其他鈕之間的 6px 寬四倍；而且它是 34×32、圓角 9、底色 panel-2，跟另外兩顆 34×34 方鈕不一樣。
+     這裡讓它長得跟那兩顆一樣（34×34、同邊框／圓角／底色、圖示 17px 正中），並用負的 margin-right 把到工具列的距離收成 6px。
+     時間到第一顆＝頁首 gap 16；三顆之間＝6。 */
+  :root.l4 #l4Head>#ntBell{display:inline-grid;place-items:center;width:34px;height:34px;margin:0 -10px 0 0;padding:0;box-sizing:border-box;
+    border:1px solid var(--t4-ctl-edge,var(--line-2));border-radius:var(--r-sm);background:var(--t4-ctl,var(--panel));color:var(--ink-2);box-shadow:none}
+  :root.l4 #l4Head>#ntBell:hover{color:var(--ink);border-color:var(--t4-accent-solid,var(--cyan))}
+  :root.l4 #l4Head>#ntBell svg{display:block;width:17px;height:17px}
   :root.l4 #l4Tools>#themeBtn:hover,:root.l4 #l4Tools>#t4Btn:hover,:root.l4 #l4Tools>#t4Btn[aria-expanded="true"]{color:var(--ink);border-color:var(--t4-accent-solid,var(--cyan))}
   :root.l4 #l4Tools>#t4Btn{font-size:0}
   :root.l4 #l4Tools>#t4Btn::before{content:"";width:17px;height:17px;background:currentColor;

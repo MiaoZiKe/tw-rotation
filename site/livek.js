@@ -625,14 +625,14 @@
     if (tf === '5s') {
       return n < 2
         ? '5 秒 K 自打開本頁起收集'
-        : `5 秒 K：${n} 筆；盤中量為估計值`;
+        : `5 秒 K：${n} 筆`;
     }
     const h = state.hist.filter(b => b.d === ses.date).length;
     if (!h && state.histErr === 'NOYAHOO') {
       return '早盤資料暫時取不到';
     }
     if (!h) return `早盤資料抓不到${state.histErr && state.histErr !== 'EMPTY' ? '（' + state.histErr + '）' : ''}，目前 ${n} 筆`;
-    return `早盤 ${h} 根來自 Yahoo（延遲約 20 分鐘），之後為即時報價；盤中量為估計值`;
+    return `早盤 ${h} 根＋即時報價`;   // 2026-10-06：來源／延遲／量是估計值收進 K 線「?」（Andy「不要出現這樣廢話」）
   }
 
   /** 週期鈕上的點：紅＝即時（今天有盤）、灰＝非即時（畫的是最近交易日）。

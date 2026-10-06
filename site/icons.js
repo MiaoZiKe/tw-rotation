@@ -163,13 +163,17 @@
     [/^(資券|融資|融券|借券)/, 'banknote', 'chip'],
     [/^(大戶|散戶|股東人數|千張)/, 'users', 'chip'],
     [/^籌碼/, 'bars', 'chip'],
+    // 2026-10-06：法人／資券的「每日明細」、大戶散戶的「每週明細」（#295 圖卡＋明細表卡並排那一批改的名）—— 表格圖示、籌碼色。
+    // 改前這三張表卡的標題比不中任何一條、卡片 id 也不在 CARD_ID，退回預設那顆（全站驗收「標題圖示」抓到）
+    [/^每(日|週)明細/, 'table', 'chip'],
     // 事件、新聞
     [/^(今日事件|事件)/, 'bell', 'event'],
     [/^(公告|新聞|券商觀點)/, 'news', 'event'],
     // 技術面（M3）
     [/^AI ?分析/, 'sparkles', 'tech'],
     [/^趨勢/, 'sparkles', 'tech'],
-    [/^技術面/, 'line', 'tech'],
+    // 2026-10-06：指標分頁的「技術分析」卡（#tagTech，10-05 新增）跟 AI 卡技術面同源，用同一顆圖示（改前比不中、退回預設那顆）
+    [/^技術(面|分析)/, 'line', 'tech'],
     [/^(符合.*指標|指標)/, 'checks', 'tech'],
     [/^站上均線/, 'line', 'tech'],
     [/^(今日候選|候選)/, 'crosshair', 'tech'],
@@ -213,7 +217,7 @@
     flowSankeyCard: ['flow', 'dest'], flowInstCard: ['landmark', 'chip'], flowConcCard: ['target', 'flow'],
     themeMapCard: ['flame', 'heat'], seasonHeatCard: ['calendar', 'tech'], indHeat: ['treemap', 'mix'],
     tagCard: ['checks', 'tech'], msCard: ['calendar', 'tech'], stockNews: ['news', 'event'],
-    divPerCard: ['receipt', 'yield'], skAi: ['sparkles', 'tech'], side: ['bell', 'event'] };
+    divPerCard: ['receipt', 'yield'], skAi: ['sparkles', 'tech'], side: ['bell', 'event'], tagTech: ['line', 'tech'] };
 
   /* 會自動加圖示的標題。其餘地方要圖示就加 data-icon。*/
   var AUTO = [
