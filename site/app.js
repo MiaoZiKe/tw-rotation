@@ -1668,6 +1668,17 @@
      現在改成：即時開著 → 同一排的日期／拉桿／− ＋ ▶ 全部停用並反灰，只留「即時」那顆可按；
      關掉即時才恢復。全站只有這一支在做這件事（輪動時鐘、資金分流樹、live.js 的卡片都叫它），
      不要每張卡各寫一套。容器被 rangeBar／playBar 重建後，呼叫端的 stamp 會再叫一次把狀態補回去。*/
+  /* ★ 2026-10-08（Andy：「播放後 拉bAR 需要反灰色 不可控制」）：播放中拉桿、−、＋ 反灰停用，只留 ⏸（停）可按；
+     停下或播完由 paint 再叫一次恢復。樣式跟即時模式（#283 livedim）共用同一組（.rbar.playdim）。
+     停用前的 disabled 狀態記在 data-pdd，恢復時不會把「本來就到底而停用」的 ＋ 誤開。*/
+  function playDim(box, on, els) {
+    box.classList.toggle('playdim', on);
+    els.forEach(el => {
+      if (!el) return;
+      if (on) { el.disabled = true; el.setAttribute('aria-disabled', 'true'); el.setAttribute('data-pdd', '1'); }
+      else if (el.hasAttribute('data-pdd')) { el.removeAttribute('data-pdd'); if (!el.hasAttribute('data-ldd')) { el.disabled = false; el.removeAttribute('aria-disabled'); } }
+    });
+  }
   const LIVE_DIM_TIP = '即時模式中，關閉即時才能回看歷史';
   function liveDim(box, on) {
     box = typeof box === 'string' ? document.querySelector(box) : box;
@@ -1725,6 +1736,10 @@
     const bPlay = mk('play', '▶', '播放');
     inp.parentNode.insertBefore(bMinus, inp);
     inp.parentNode.insertBefore(bPlus, inp.nextSibling);
+    /* ★ 2026-10-08（Andy：「天數不見了 幫我補上」）：o.ago(v) → 在 ＋ 後面多一格「N 天前／最新」，
+       格式跟足跡輪盤的 dayBar 一樣；原本的 .val（日期）照留，兩格並排。*/
+    let agoEl = null;
+    if (o.ago) { agoEl = document.createElement('span'); agoEl.className = 'ago'; bPlus.parentNode.insertBefore(agoEl, bPlus.nextSibling); }
     box.appendChild(bPlay);
 
     const lim = () => ({ min: +inp.min, max: +inp.max, st: +inp.step || 1 });
@@ -1742,12 +1757,14 @@
     let api = null;                    // start() 會先用到（stopPlayGroup 要排除自己），所以提前宣告
     const paintBtn = () => {
       const { min, max } = lim();
-      bMinus.disabled = +inp.value <= min;
-      bPlus.disabled = +inp.value >= max;
+      playDim(box, !!timer, [inp, bMinus, bPlus]);          // 先恢復／停用，下面再依端點決定 − ＋
+      bMinus.disabled = !!timer || +inp.value <= min;
+      bPlus.disabled = !!timer || +inp.value >= max;
       bPlay.textContent = timer ? '⏸' : '▶';
       bPlay.title = timer ? '暫停' : '播放';
       bPlay.setAttribute('aria-label', bPlay.title);
       box.classList.toggle('playing', !!timer);
+      if (agoEl) agoEl.textContent = o.ago(+inp.value);
     };
     /* ★ 2026-10-07 晚（播放真實條件1007）：setInterval → 「畫完一格、瀏覽器真的畫出來，才排下一格」。
        setInterval 不管上一格畫完沒有，時間到就再叫一次：慢機器（或 4 倍降速）一格要 500ms 以上時，
@@ -2107,7 +2124,8 @@
       inp.value = days;
       const d = o.dateOf && frame > 0 ? o.dateOf(frame) : '';
       out.textContent = `${days} 天前` + (frame > 0 ? ` · 回放 ${d || frame + ' 天前'}` : '');
-      bMinus.disabled = days <= MIN; bPlus.disabled = days >= MAX;
+      playDim(box, !!timer, [inp, bMinus, bPlus]);
+      bMinus.disabled = !!timer || days <= MIN; bPlus.disabled = !!timer || days >= MAX;
       bPlay.textContent = timer ? '⏸' : '▶';
       bPlay.title = timer ? '暫停（停在這一天）' : '回放：從 N 天前一天一天走到最新';
       bPlay.setAttribute('aria-label', bPlay.title);
@@ -9188,6 +9206,7 @@
       if (n > 1) {
         skBar = playBar('sankeyDays', { min: 0, max: n - 1, value: n - 1, key: 'tw.sankey.day',
           frame: 650, label: '看哪一天', fmt: (v) => (v >= n - 1 ? '最新' : sd.dates[v]),
+          ago: (v) => (v >= n - 1 ? '' : (n - 1 - v) + ' 天前'),   // 2026-10-08 補天數（交易日）；最新那天 .val 已寫「最新」，這格留空收掉
           /* 拖時間軸＝「我要看過去某一天」，和「即時」是互斥的兩件事。
              不退出的話拉Bar 看起來完全沒作用（畫面還是盤中那一張），像壞掉。*/
           /* ★ 2026-10-07 晚（Andy：「播放時右邊清單反灰不作動，等到播放結束才會更新」）：右欄排名表以前只在
