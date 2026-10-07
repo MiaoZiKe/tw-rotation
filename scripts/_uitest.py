@@ -23939,7 +23939,8 @@ def _tour_wait(pg, ms=20000):
             return st
         sig = (st["i"], tuple(round(v) for v in st["hole"].values()), tuple(round(v) for v in st["card"].values()),
                tuple(round(v) for v in (st["target"] or {}).values()))
-        if sig == prev:
+        # 側欄子分頁收合等「框好之後版面又動了」：導覽每 150ms 重新對位，等到框重新貼上目標（最多 4.5 秒）才算定下來
+        if sig == prev and (not st.get("target") or _tour_inview(st)[1]):
             return st
         prev = sig
     return st
@@ -24068,10 +24069,28 @@ def t_tour_1007(pg, b, base):
         return { vis: r.width > 0, txt: b.textContent.trim(), inTools: !!b.closest('#l4Head .l4tools'), afterT4: b.previousElementSibling === t4,
                  row: Math.abs((r.top + r.height / 2) - (q.top + q.height / 2)) < 6, h: Math.round(r.height), t4h: Math.round(k.height), right: r.right <= innerWidth && r.left > innerWidth - 360,
                  kids: [...document.getElementById('l4Head').children].map(e => e.tagName.toLowerCase()), fs: parseFloat(getComputedStyle(b).fontSize) }; }""")
-    ok(f"{T} 頁首右上角（☀／調色盤右邊、同一列、同高）有「導覽」鈕，字 ≥ 12px",
-       btn and btn["vis"] and btn["txt"] == "導覽" and btn["inTools"] and btn["afterT4"] and btn["row"] and btn["h"] == btn["t4h"] and btn["right"] and btn["fs"] >= 12, btn)
-    ok(f"{T} 頁首仍然只有頁名＋時間＋右上角工具三樣（Andy 10-03：頁名那格只留頁名與時間）", btn and btn["kids"] == ["h1", "time", "div"], btn and btn["kids"])
-    pg.click("#twTourBtn")
+    ok(f"{T} 頁首右上角（☀／調色盤右邊、同一列、同高）是「平台導覽」鈕，字 ≥ 12px",
+       btn and btn["vis"] and btn["txt"] == "平台導覽" and btn["inTools"] and btn["afterT4"] and btn["row"] and btn["h"] == btn["t4h"] and btn["right"] and btn["fs"] >= 12, btn)
+    # ★ 2026-10-07 Andy：「導覽放到每個分頁標題旁 如圖一，原本的地方就改成平台導覽」（蓋掉 10-03 頁首只留頁名＋時間）
+    ok(f"{T} 頁首＝頁名＋頁名旁「導覽」鈕＋時間＋右上角工具", btn and btn["kids"] == ["h1", "button", "time", "div"], btn and btn["kids"])
+    PB = """() => { const b = document.getElementById('twPageTourBtn'), h = document.querySelector('#l4Head h1');
+        if (!b || b.hidden || !b.getClientRects().length) return null; const r = b.getBoundingClientRect(), q = h.getBoundingClientRect();
+        return { txt: b.textContent.trim(), next: b.previousElementSibling === h, gap: Math.round(r.left - q.right), row: Math.abs((r.top + r.height / 2) - (q.top + q.height / 2)) < 6 }; }"""
+    for route, want in (("#overview", "overview"), ("#flow/rotation", "flow"), ("#industry", "industry"), ("#stock/2330", "stock")):
+        pg.goto(base + route, wait_until="networkidle"); pg.wait_for_timeout(1800)
+        pb = pg.evaluate(PB)
+        ok(f"{T} {route} 頁名右邊有「導覽」小鈕（同一列、緊貼頁名）", bool(pb) and pb["txt"] == "導覽" and pb["next"] and pb["row"] and 0 <= pb["gap"] <= 24, pb)
+        pg.click("#twPageTourBtn"); st = _tour_wait(pg)
+        ok(f"{T} {route} 按頁名旁「導覽」→ 開的是這一頁的導覽（{want}）", st["active"] and st["tour"] == want, st.get("tour"))
+        pg.keyboard.press("Escape"); pg.wait_for_timeout(300)
+    for route in ("#heatmap/industry", "#market", "#season", "#watch"):
+        pg.goto(base + route, wait_until="networkidle"); pg.wait_for_timeout(1500)
+        ok(f"{T} {route} 沒有專屬導覽 → 頁名旁不放「導覽」鈕（不拿全站導覽冒充）", pg.evaluate(PB) is None)
+    pg.click("#twTourBtn"); st = _tour_wait(pg)
+    ok(f"{T} 右上角「平台導覽」→ 開全站導覽", st["active"] and st["tour"] == "site", st.get("tour"))
+    pg.keyboard.press("Escape"); pg.wait_for_timeout(300)
+    pg.goto(base + "#overview", wait_until="networkidle"); pg.wait_for_timeout(1500)
+    pg.click("#twPageTourBtn")
     st = _tour_wait(pg)
     ok(f"{T} 在總覽按「導覽」→ 開的是總覽導覽、第一步框住摘要卡", st["active"] and st["tour"] == "overview" and "ovSumTrack" in st["sel"], st)
     ok(f"{T} 遮罩與說明卡出現（聚光燈框、說明卡、上一步／下一步／略過）",
@@ -24090,7 +24109,7 @@ def t_tour_1007(pg, b, base):
     ok(f"{T} 按 ← 退回原來那一步", st2["i"] == i0, (i0, st2["i"]))
     pg.keyboard.press("Escape"); pg.wait_for_timeout(400)
     ok(f"{T} Esc 關閉：遮罩整個消失", pg.locator("#twTour").count() == 0 and not pg.evaluate(TOUR_ST)["active"])
-    ok(f"{T} Esc 關閉後焦點回到「導覽」鈕", pg.evaluate("() => document.activeElement && document.activeElement.id") == "twTourBtn",
+    ok(f"{T} Esc 關閉後焦點回到「導覽」鈕", pg.evaluate("() => document.activeElement && document.activeElement.id") == "twPageTourBtn",
        pg.evaluate("() => document.activeElement && document.activeElement.id"))
 
     # ---- 全站導覽：真的按到底
@@ -24137,7 +24156,7 @@ def t_tour_1007(pg, b, base):
     # ---- 產業地圖導覽：2D → 點零件 → 零件小卡 → 切 3D → 3D 展示 → 關聯圖，每一步真的切到那個模式
     pg.goto(base + "#industry", wait_until="networkidle"); pg.wait_for_timeout(2000)
     pg.evaluate("() => { try { localStorage.setItem('tw.dg3d', '0'); } catch (e) {} }")
-    pg.click("#twTourBtn")
+    pg.click("#twPageTourBtn")
     rows, modes = _tour_walk_ind(pg)
     titles = [r["title"] for r in rows]
     ok(f"{T} 產業地圖導覽 10 步以上：鏈分頁、2D 剖析圖、點零件、零件小卡、切 3D、3D 立體、3D 展示、關聯圖、環節下拉、點公司連動",
@@ -24160,7 +24179,7 @@ def t_tour_1007(pg, b, base):
 
     # ---- 個股導覽：下方分頁真的跟著切
     pg.goto(base + "#stock/2330", wait_until="networkidle"); pg.wait_for_timeout(2500)
-    pg.click("#twTourBtn")
+    pg.click("#twPageTourBtn")
     on_tabs = []
     for _ in range(12):
         st = _tour_wait(pg)
@@ -52435,7 +52454,7 @@ def t_layout4(b, base, code):
                 && ((document.querySelector('#l4Head h1') || {{}}).firstChild || {{}}).textContent === '{name}' ? 1 : 0""", 6000)
             st = pg.evaluate("""() => ({ hash: location.hash, on: (document.querySelector('#tabs .tab.on') || {}).dataset?.view,
                 view: (document.querySelector('.view.on') || {}).id, h1: (document.querySelector('#l4Head h1') || {}).textContent,
-                kids: [...document.querySelectorAll('#l4Head > *')].map(e => e.tagName.toLowerCase() + (e.className ? '.' + e.className : '')),
+                kids: [...document.querySelectorAll('#l4Head > *')].filter(e => e.id !== 'twPageTourBtn').map(e => e.tagName.toLowerCase() + (e.className ? '.' + e.className : '')),   // 頁名旁「導覽」鈕：Andy 10-07 指示加的（DECISIONS #340）
                 clock: (document.querySelector('#l4Head .l4clock') || { dataset: {} }).dataset.t || '' })""")
             # 2026-10-03 第三批（Andy：「紅框處 只留下 總覽 及當下日期時間（所有分頁都是）」）：
             # 改前驗「分組小標＝{g}、說明句 ≥ 10 字」→ 改後驗頁首只剩 h1＋時間兩樣
@@ -52704,10 +52723,10 @@ def t_layout4_batch3(pg, base, code, T):
 
     # ① 七個分頁的頁首
     HEAD = """() => { const h = document.getElementById('l4Head'), c = h && h.querySelector('.l4clock');
-        return { kids: h ? [...h.children].map(e => e.tagName.toLowerCase()) : null, h1: ((h && h.querySelector('h1') || {}).firstChild || {}).textContent,
+        return { kids: h ? [...h.children].filter(e => e.id !== 'twPageTourBtn').map(e => e.tagName.toLowerCase()) : null, h1: ((h && h.querySelector('h1') || {}).firstChild || {}).textContent,
           t: c ? c.dataset.t : '', shown: !!c && getComputedStyle(c, '::before').content.replace(/"/g, '') === c.dataset.t,
           // 第四批：頁首右邊多了工具列（☀、外觀、登入），「頁首寫了什麼」只看頁名＋時間兩格
-          txt: h ? [...h.children].filter(e => !e.classList.contains('l4tools')).map(e => e.innerText).join('').trim() : '' }; }"""
+          txt: h ? [...h.children].filter(e => !e.classList.contains('l4tools') && e.id !== 'twPageTourBtn').map(e => e.innerText).join('').trim() : '' }; }"""
     bad = []
     for view, name in (("overview", "總覽"), ("flow", "資金流向"), ("heatmap", "熱力圖"), ("industry", "產業地圖"),
                        ("market", "市場明細"), ("season", "週期統計"), ("watch", "自選")):

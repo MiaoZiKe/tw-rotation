@@ -71,8 +71,8 @@
       m: '「⋯」裡有今日事件、明亮／深色切換、版面風格，以及這套導覽（本頁導覽、全站導覽）。' },
     { t: '客服', sel: '#supFab', fast: true,
       d: '使用上遇到問題、想回報錯誤或給建議，從右下角這顆留言給我們。' },
-    { t: '每一頁都有自己的導覽', sel: '#twTourBtn', fast: true,
-      d: '右上角這顆「導覽」會一步步介紹目前這一頁的每張圖。這套全站導覽也可以從頁尾的「平台導覽」再打開。' },
+    { t: '平台導覽與本頁導覽', sel: ['#twTourBtn', '#twPageTourBtn'], union: true, fast: true,
+      d: '右上角「平台導覽」隨時重開這套全站導覽；每一頁頁名旁的「◎ 導覽」則一步步介紹那一頁的每張圖。' },
   ];
 
   /* 手機（≤640）的總覽與資金流向是「分段」的：一次只顯示一張圖，要先按上面那排（.mspine 步驟、.mpager 分段）才看得到。
@@ -373,6 +373,15 @@
   font-size:var(--fs-sm,13px);font-family:inherit;line-height:1;cursor:pointer;white-space:nowrap}
 #twTourBtn:hover{color:var(--ink);border-color:var(--t4-accent-solid,var(--accent,var(--cyan)))}
 #twTourBtn svg{width:16px;height:16px;flex:none;color:var(--t4-accent-solid,var(--accent,var(--cyan)))}
+/* 頁名旁「◎ 導覽」：小一號膠囊，跟頁名垂直置中；手機版只留圖示、跟頂欄圓鈕同高 */
+#twPageTourBtn{display:inline-flex;align-items:center;gap:5px;flex:none;height:28px;padding:0 10px;margin:0;box-sizing:border-box;
+  border:1px solid var(--t4-ctl-edge,var(--line-2));border-radius:999px;background:transparent;color:var(--ink-2);
+  font-size:var(--fs-sm,13px);font-family:inherit;line-height:1;cursor:pointer;white-space:nowrap}
+#twPageTourBtn[hidden]{display:none}
+#twPageTourBtn:hover{color:var(--ink);border-color:var(--t4-accent-solid,var(--accent,var(--cyan)))}
+#twPageTourBtn svg{width:14px;height:14px;flex:none;color:var(--t4-accent-solid,var(--accent,var(--cyan)))}
+#twPageTourBtn.mob{width:40px;height:40px;padding:0;justify-content:center;border-radius:12px}
+#twPageTourBtn.mob svg{width:18px;height:18px}
 #morePop .twt-mm .ic{color:var(--accent,var(--cyan))}
 `;
     document.head.appendChild(s);
@@ -661,8 +670,8 @@
     if (!b) {
       b = document.createElement('button');
       b.type = 'button'; b.id = 'twTourBtn';
-      b.innerHTML = ICON + '<span>導覽</span>';
-      b.onclick = () => start(pageTour() || 'site');
+      b.innerHTML = ICON + '<span>平台導覽</span>';
+      b.onclick = () => start('site');
     }
     /* 別支檔（layout4／theme4／account）之後還會把 ☀、調色盤、登入搬進來或重排：盯著工具列，一動就把這顆放回調色盤右邊 */
     if (!tools._twtObs && typeof MutationObserver !== 'undefined') {
@@ -672,9 +681,8 @@
     const t4 = $('#t4Btn', tools);
     if (t4) { if (b.previousElementSibling !== t4) t4.after(b); }
     else if (b.parentNode !== tools) tools.insertBefore(b, tools.firstChild);
-    const has = pageTour();
-    b.title = has ? TOURS[has].name + '：一步步看這一頁的每張圖在說什麼' : '全站導覽：每個區塊在哪裡、回答什麼問題';
-    b.setAttribute('aria-label', has ? TOURS[has].name : '全站導覽');
+    b.title = '平台導覽：全站每個區塊在哪裡、各自回答什麼問題';
+    b.setAttribute('aria-label', '平台導覽（全站導覽）');
   }
   /* ≤820：右上「⋯」清單加兩列（清單本身是 index.html 的靜態節點，只插一次） */
   function mountMore() {
@@ -695,11 +703,34 @@
     f.dataset.twt = '1';
     f.addEventListener('click', (e) => { e.preventDefault(); e.stopImmediatePropagation(); start('site'); }, true);
   }
-  function mountAll() { injectCSS(); mountHeadBtn(); mountMore(); mountPreviewFoot(); }
+  /* ★ 2026-10-07 Andy：「導覽放到每個分頁標題旁 如圖一，原本的地方就改成平台導覽」（蓋掉 10-03「頁首只留頁名及日期時間」，DECISIONS 有記）：
+     頁名（#l4Head h1）右邊一顆小鈕「◎ 導覽」＝這一頁的導覽；這一頁沒有專屬導覽就不顯示（不拿全站導覽冒充）。
+     ≤820 沒有 #l4Head：放在頂欄搜尋鈕前面（只有圖示，跟頂欄其他圓鈕同一行）。 */
+  function mountPageBtn() {
+    const id = pageTour();
+    const h1 = $('#l4Head h1');
+    let b = $('#twPageTourBtn');
+    if (!b) {
+      b = document.createElement('button'); b.type = 'button'; b.id = 'twPageTourBtn';
+      b.onclick = () => { const t = pageTour(); if (t) start(t); };
+    }
+    const desk = !!(h1 && h1.getClientRects().length);
+    if (desk) { b.className = 'twpt'; b.innerHTML = ICON + '<span>導覽</span>'; if (b.previousElementSibling !== h1) h1.after(b); }
+    else {
+      const bar = $('.topbar'), anchor = $('#mSearchBtn') || $('.topbar .search');
+      if (!bar || !anchor) { b.remove(); return; }
+      b.className = 'twpt mob'; b.innerHTML = ICON;
+      if (b.nextElementSibling !== anchor) anchor.before(b);
+    }
+    b.hidden = !id;
+    b.title = id ? TOURS[id].name + '：一步步看這一頁的每張圖在說什麼' : '';
+    b.setAttribute('aria-label', id ? TOURS[id].name : '本頁導覽');
+  }
+  function mountAll() { injectCSS(); mountHeadBtn(); mountPageBtn(); mountMore(); mountPreviewFoot(); }
 
   function boot() {
     mountAll();
-    window.addEventListener('hashchange', () => setTimeout(mountHeadBtn, 0));
+    window.addEventListener('hashchange', () => setTimeout(() => { mountHeadBtn(); mountPageBtn(); }, 0));
     window.addEventListener('resize', () => { clearTimeout(boot.rt); boot.rt = setTimeout(mountAll, 200); });
     // layout4.js 在跨過 820 時會把頁首整個拆掉／重建：盯著 #layout 前面那一段，有變就補掛
     let n = 0; const iv = setInterval(() => { mountAll(); if (++n > 20) clearInterval(iv); }, 500);
