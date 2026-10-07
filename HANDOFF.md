@@ -1,5 +1,17 @@
 # HANDOFF.md — 目前進度（接手先讀這份）
 
+## 2026-10-07 發布整合 release-1007：四個分支合併上 main（部署員，分支 `claude/release-1007`）
+- 合併順序：`claude/legal-v2`（含法律頁整組水平置中：`.lgwrap`／`.lgtabs` max-width＋auto 邊距，1440 左右留白 0／0、1280 10／10）→ `claude/tour`（平台導覽 TwTour）→ `claude/quota`（每日額度＋自選上限＋付費資料閘道 data-gw）→ `claude/pricing-v2`（訂閱頁方案卡＋比較表）。
+- 衝突怎麼解：
+  · `site/legal.js` 隱私權政策表：以 legal-v2 的 4 欄表為準，quota 的「安全紀錄（取用付費資料時）」那一列改成 4 欄格式加進去（只有設了 `TW_ACCOUNT.gw` 才出現）。
+  · `site/pricing.js`：整支以 pricing-v2 為底；把 quota 的 API 補回去（`TwPricing.plans()／ensure()／unlockers()`、`tw:plans` 事件、`#pricing/plan/<id>`＋「建議升級」標、價格 0 寫「價格待定」、`?demo=quota|quota-free|lock` 的示意卡）。研究額度 `qAll(p)`（範本 `lims['quota.all']` 優先，沒有才看後端 `dq`）與每頁檔數（`feats['watch.size']`）併進 pricing-v2 的卡片清單（自動產生的打勾清單第一行「研究瀏覽・每日 N 次」、「自選清單・N 頁・每頁 M 檔」）與比較表（第一列「研究瀏覽」、自選那格「N 頁・每頁 M 檔」，`watch.size` 不另列一列），沒另畫一套。
+  · `site/admin.js`：兩邊都留（`dqField`／`saveDq` 與 `presForm`／`savePres`；⚙ 面板免費會員同時有每日額度與方案卡欄位，付費範本有全部，訪客只有每日額度）。
+  · `workers/account-api/worker.js`：兩個區塊都留，**統一成「最後寫入者整份取代對方」**。方案卡文字存在 `plans.pres`＋`plans.price_year`（pricing-v2）或 `plans.meta`（quota；「套用建議方案」用）。讀：`presOf()` 先看 pres，沒填的欄位退回 meta 同名欄位，攤平成 tagline／badge／fit_title／fit_desc／highlights／price_year（＋icon／color／public）。寫：帶 `pres`／`price_year` → 寫完把 meta 清成 `{}`；帶 `meta` → 寫完把 pres 清成 `{}`、price_year 清成 NULL（同一個請求兩個都帶時 pres 勝）。新測試 `workers/account-api/tests/planmeta_unify.test.mjs`。
+  · `scripts/_uitest.py`：兩邊都留；`同意條款與法律頁` 的舊導覽彈窗斷言改成「頁尾平台導覽開的是 TwTour 全站導覽、Esc 關閉」；`額度卡片1007` 的方案卡文字斷言改成統一後的卡片文字。
+- 這批驗了：`node --test`（account-api＋data-gw，112 條）、`pytest tests/`（1068 passed、1 xfailed；有動 .github／tests／pipeline 所以跑）、`_uitest --sections 同意條款與法律頁,免責小字1006,平台導覽1007,訂閱與客服1005,管理區v3,額度卡片1007,自選上限1007,次數覆蓋掃描1007,全站共用額度1007,套用建議方案1007,會員與自選五分頁,會員權限開關,風格規範,總覽 --workers 1`、`_preview.py`。
+- 已知紅字：`_preview.py` 一條 `earnings.json` 404（本機 site/data 沒有這檔，main 同樣）。第一次整批跑時 `平台導覽1007` 一條聚光燈框位置偏掉，是跟 pytest 同時跑 CPU 吃滿的假紅，單獨重跑 0 問題。
+- 還沒收斂：Plus／Pro 價格仍是 0（訂閱頁寫「價格待定」，等 Andy 定價）；data-gw 沒有部署（維持手動觸發）。
+
 ## 2026-10-07 「今日候選」改名「今日關注」＋四處一行統計小字（UI 專家，分支 `claude/watch-rename`，**等 CEO 看截圖才上 main**）
 - Andy 01:15 兩件：① 「今日候選」全站改名「今日關注」（市場明細分頁鈕與卡片標題、「?」說明、空清單提示、功能開關名稱、法遵頁標題、積木清單、icons 對應）。程式識別字（`cand`、`candidates`）不動；歷史註解保留原話。
 - ② 一行小字全站統一成 `App.DISC_LINE`＝「以下為依公開資料統計計算之結果，不構成任何投資建議或參考」（`site/app.js`）。10-06 各卡各寫一句的短句全部換成這一句，細節留在 title：

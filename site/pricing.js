@@ -239,10 +239,9 @@
     const tabs = w ? w.tabs : wt ? val(p, wt) : null;
     const size = w ? w.size : Number.isInteger((p.feats || {})['watch.size']) ? p.feats['watch.size'] : null;
     if (tabs === 0) return { c: 'n', t: '—' };
-    /* 開關的最大值（features.js：頁 50／檔 200）＝「不限」的硬上限（quota 分支 watch-v2：Pro 不限＝50 頁、每頁 200 檔） */
-    const ws = Ft && Ft.byId('watch.size');
+    /* 分頁數開關的最大值（features.js：50 頁）＝「不限頁」（quota 分支 watch-v2：Pro 不限＝50 頁；每頁檔數照寫數字 200 檔） */
     const tt = tabs == null || (wt && wt.opts && tabs >= wt.max) ? '不限頁' : `${tabs} 頁`;
-    const st = Number.isInteger(size) && size > 0 ? `・每頁${ws && ws.opts && size >= ws.max ? '不限' : ' ' + size + ' 檔'}` : '';
+    const st = Number.isInteger(size) && size > 0 ? `・每頁 ${size} 檔` : '';
     return { c: 'v', t: tt + st };
   }
   /* 沒填打勾清單時自動產生：有次數上限的功能「名稱・每日 N 次」、自選分頁「最多 N 頁」、其餘一行總結 */

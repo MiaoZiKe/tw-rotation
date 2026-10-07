@@ -40967,21 +40967,15 @@ def t_legal(b, base):
     pg.click(".tab[data-view='overview']"); pg.wait_for_timeout(1500)
     ok("[關] 從法律頁按頂欄「總覽」→ 回到總覽", pg.evaluate(
         "() => document.getElementById('v-overview').classList.contains('on') && !document.getElementById('v-legal').classList.contains('on')"))
-    # 平台導覽：手動開得到；下一步 ×3 標題依序變；Esc 關閉、焦點回到頁尾那顆
+    # 平台導覽（2026-10-07 合併 tour 分支後）：頁尾「平台導覽」接 TwTour.start()，開的是新的逐步導覽（舊的 #lgTour 彈窗只在沒有 tour.js 時才是退路）；
+    # 導覽本身怎麼走由「平台導覽1007」那段驗，這裡只驗「頁尾那顆真的接到新導覽」與 Esc 能關
     pg.evaluate("() => window.scrollTo(0, document.body.scrollHeight)"); pg.wait_for_timeout(300)
-    pg.click("#sfTour"); pg.wait_for_timeout(400)
-    seen = [pg.inner_text("#lgStepT")]
-    for _ in range(3):
-        pg.click("#lgNext"); pg.wait_for_timeout(250); seen.append(pg.inner_text("#lgStepT"))
-    ok("[關] 導覽：下一步 ×3 → 標題依序是 ①～④", seen == ["① 錢往哪跑", "② 貴不貴", "③ 何時進場", "④ 別進的理由"], seen)
-    ok("[關] 導覽最後一步按鈕變成「開始使用」", pg.inner_text("#lgNext") == "開始使用", pg.inner_text("#lgNext"))
-    pg.keyboard.press("Tab"); pg.keyboard.press("Tab"); pg.keyboard.press("Tab"); pg.keyboard.press("Tab")
-    ok("[關] 導覽開著時 Tab 焦點困在彈窗裡", pg.evaluate(
-        "() => !!document.activeElement && !!document.activeElement.closest('#lgTour')"))
-    pg.keyboard.press("Escape"); pg.wait_for_timeout(250)
-    ok("[關] Esc 關閉導覽、焦點回到頁尾「平台導覽」", pg.locator("#lgTour").count() == 0
-       and pg.evaluate("() => document.activeElement && document.activeElement.id") == "sfTour",
-       pg.evaluate("() => document.activeElement && document.activeElement.id"))
+    pg.click("#sfTour")
+    st = _tour_wait(pg)
+    ok("[關] 頁尾「平台導覽」開的是新的逐步導覽（TwTour、全站導覽），不是舊彈窗",
+       bool(st and st["active"] and st["tour"] == "site") and pg.locator("#lgTour").count() == 0, (st and st.get("tour"), pg.locator("#lgTour").count()))
+    pg.keyboard.press("Escape"); pg.wait_for_timeout(400)
+    ok("[關] Esc 關閉導覽", not pg.evaluate("() => !!(window.TwTour && window.TwTour.state().active)"))
     ctx.close()
 
     # 手機 390：法律頁不能有橫向捲軸；頁尾在底部分頁列上面、看得到
@@ -48132,8 +48126,8 @@ def t_qcard_1007(b, base, code):
             ok(f"{T}：按「升級 Pro →」→ 到訂閱頁、Pro 那張卡標「建議升級」、Plus／Pro 都列出每日額度與自選上限",
                bool(wait_until(pg, "() => location.hash === '#pricing/plan/pro' && !!document.querySelector(\".prcard[data-plan='pro'].need\")", 8000))
                and pg.evaluate("""() => { const t = (id) => (document.querySelector(`.prcard[data-plan='${id}']`) || {}).innerText || '';
-                   return /建議升級/.test(t('pro')) && /研究額度[\\s\\S]*每日 50 次/.test(t('plus')) && /研究額度[\\s\\S]*不限/.test(t('pro')) && /價格待定/.test(t('plus'))
-                     && /自選清單分頁\\s*5 頁/.test(t('plus')) && /每頁自選檔數\\s*50 檔/.test(t('plus')) && /自選清單分頁\\s*不限/.test(t('pro')); }"""),
+                   return /建議升級/.test(t('pro')) && /研究瀏覽・每日 50 次/.test(t('plus')) && /研究瀏覽・不限次數/.test(t('pro')) && /價格待定/.test(t('plus'))
+                     && /自選清單・5 頁・每頁 50 檔/.test(t('plus')) && /自選清單・不限頁・每頁 200 檔/.test(t('pro')); }"""),
                pg.evaluate("() => [...document.querySelectorAll('.prcard')].map(c => c.dataset.plan + '|' + c.className + '|' + c.innerText.replace(/\\s+/g, ' ').slice(0, 160))"))
         c.close()
 
