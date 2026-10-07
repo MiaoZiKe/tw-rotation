@@ -106,6 +106,25 @@ test('意見反饋：訪客也能送；類別與內容要合格；管理者可�
   } finally { clock = saved; }
 });
 
+test('意見反饋 v2（1007）：兩層類別；小類要屬於大類；舊類別 pay 對到「帳號與付費／付款與發票」', async () => {
+  const { hub, db } = makeHub(env());
+  const andy = await login(hub, 'andy@example.com');
+  assert.equal((await post(hub, '/v1/feedback', { cat: 'bug', sub: 'mobile', body: '手機選單蓋住' })).status, 200);
+  assert.equal((await post(hub, '/v1/feedback', { cat: 'ask', body: '小類可不選' })).status, 200);
+  assert.equal((await post(hub, '/v1/feedback', { cat: 'pay', body: '舊版前端送的付款問題' })).status, 200, '舊鍵相容');
+  assert.equal((await post(hub, '/v1/feedback', { cat: 'bug', sub: 'refund', body: '小類不屬於大類' })).status, 400);
+  assert.equal((await post(hub, '/v1/feedback', { cat: 'other', sub: 'x', body: '其他沒有小類' })).status, 400);
+  const l = (await pj(hub, '/v1/admin/feedback/list', { t: andy })).j.feedback;
+  const by = (b) => l.find((x) => x.body === b);
+  assert.deepEqual([by('手機選單蓋住').cat, by('手機選單蓋住').sub], ['bug', 'mobile']);
+  assert.deepEqual([by('小類可不選').cat, by('小類可不選').sub], ['ask', '']);
+  assert.deepEqual([by('舊版前端送的付款問題').cat, by('舊版前端送的付款問題').sub], ['acct', 'pay']);
+  // 資料庫裡直接留著舊鍵（模擬改版前存的資料）→ 列表回傳時換成新大類，資料不丟
+  db.prepare("INSERT INTO feedback (id, uid, contact, cat, body, url, ua, created, status) VALUES ('legacy1', '', '', 'pay', '改版前的舊資料', '', '', ?, 'new')").run(clock);
+  const o = (await pj(hub, '/v1/admin/feedback/list', { t: andy })).j.feedback.find((x) => x.id === 'legacy1');
+  assert.deepEqual([o.cat, o.sub, o.legacy], ['acct', 'pay', 'pay']);
+});
+
 test('每日瀏覽次數：要登入；同一檔一天只算一次；跨日歸零；鍵格式不對 400', async () => {
   const { hub } = makeHub(env());
   const bob = await login(hub, 'bob@example.com');

@@ -76,7 +76,8 @@
     "percent": "<line x1=\"19\" x2=\"5\" y1=\"5\" y2=\"19\"/> <circle cx=\"6.5\" cy=\"6.5\" r=\"2.5\"/> <circle cx=\"17.5\" cy=\"17.5\" r=\"2.5\"/>",
     "hard-hat": "<path d=\"M10 10V5a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v5\"/> <path d=\"M14 6a6 6 0 0 1 6 6v3\"/> <path d=\"M4 15v-3a6 6 0 0 1 6-6\"/> <rect x=\"2\" y=\"15\" width=\"20\" height=\"4\" rx=\"1\"/>",
     "leaf": "<path d=\"M11 20a10 10 0 0010-10 25.9 25.9 0 00-1.04-7.281 1 1 0 00-1.755-.325C15.833 5.5 13 5.5 9.8 6.1A7 7 0 0011 20\"/> <path d=\"M2 21a5 5 0 012.911-4.544C7.613 15.212 8.351 15.24 11 13\"/>",
-    "box": "<path d=\"M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z\"/> <path d=\"m3.3 7 8.7 5 8.7-5\"/> <path d=\"M12 22V12\"/>"
+    "box": "<path d=\"M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z\"/> <path d=\"m3.3 7 8.7 5 8.7-5\"/> <path d=\"M12 22V12\"/>",
+    "message": "<path d=\"M22 17a2 2 0 0 1-2 2H6.828a2 2 0 0 0-1.414.586l-2.202 2.202A.71.71 0 0 1 2 21.286V5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2z\"/> <path d=\"M7 11h10\"/> <path d=\"M7 15h6\"/> <path d=\"M7 7h8\"/>"
   };
   var LUCIDE_NAME = { heart: 'heart', pie: 'chart-pie', pulse: 'activity', up: 'trending-up', down: 'trending-down',
     bars: 'chart-column', 'bars-up': 'chart-column-increasing', line: 'chart-spline', 'arrow-up': 'arrow-up-right',
@@ -87,7 +88,7 @@
     factory: 'factory', code: 'code-xml', network: 'network', candle: 'chart-candlestick', checks: 'list-checks',
     gauge: 'gauge', banknote: 'banknote', waves: 'waves', layers: 'layers', clipboard: 'clipboard-check',
     crosshair: 'crosshair', updown: 'arrow-up-down', wallet: 'wallet', star: 'star', zap: 'zap', hammer: 'hammer',
-    shopping: 'shopping-cart', receipt: 'receipt', percent: 'percent', 'hard-hat': 'hard-hat', leaf: 'leaf', box: 'box' };
+    shopping: 'shopping-cart', receipt: 'receipt', percent: 'percent', 'hard-hat': 'hard-hat', leaf: 'leaf', box: 'box', message: 'message-square-text' };
 
   /* 別名：其他 agent／舊習慣用 Lucide 原名或英文俗名也對得到 */
   var ALIAS = { 'git-branch': 'flow', 'git-fork': 'flow', sankey: 'flow', 'chart-pie': 'pie', activity: 'pulse',
@@ -96,7 +97,7 @@
     'calendar-days': 'calendar', 'layout-dashboard': 'treemap', heatmap: 'treemap', 'refresh-cw': 'rotate',
     'chart-candlestick': 'candle', kline: 'candle', 'list-checks': 'checks', fire: 'flame', watch: 'heart',
     'clipboard-check': 'clipboard', 'table-2': 'table', 'arrow-up-right': 'arrow-up', 'circuit-board': 'board',
-    'code-xml': 'code', 'arrow-up-down': 'updown', 'shopping-cart': 'shopping', ai: 'sparkles' };
+    'code-xml': 'code', 'arrow-up-down': 'updown', mail: 'message', 'message-square-text': 'message', feedback: 'message', 'shopping-cart': 'shopping', ai: 'sparkles' };
 
   /* ---- 語意色（docs/design_title_icons.md §2） -------------------------
      語意 → 色。★ 這支檔**不寫任何色碼**：每個語意都對到主題本來就有的變數
@@ -131,7 +132,7 @@
     flow: 'dest', split: 'dest', treemap: 'flow', table: 'flow', target: 'flow', landmark: 'chip', users: 'chip',
     banknote: 'chip', news: 'event', bell: 'event', zap: 'event', building: 'fund', file: 'fund', cpu: 'fund',
     server: 'fund', board: 'fund', factory: 'fund', code: 'fund', network: 'fund', layers: 'fund', clipboard: 'fund',
-    wallet: 'fund', hammer: 'fund', shopping: 'fund', 'hard-hat': 'fund', leaf: 'fund', box: 'fund' };
+    wallet: 'fund', hammer: 'fund', shopping: 'fund', 'hard-hat': 'fund', leaf: 'fund', box: 'fund', message: 'event' };
 
   /* ---- 標題文字 → [圖示, 語意]（由上往下第一個比中的算；越特定的放越前面） ---- */
   var RULES = [
