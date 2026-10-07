@@ -5753,10 +5753,11 @@ def t_new_market3(pg, base):
 
     # ★ 2026-09-25：這一條以前 TSE／FUT 輪流紅（容器忙時）。推斷的時序原因（未逐幀證實）：refresh(true) 之後固定等 2 秒，
     #   但三張圖的重畫（抓完 Yahoo 假資料 → drawOne → 30ms 後再派一次 resize）在忙的時候會拖過 2 秒，
+    # ★ 2026-10-07：ECharts 提示框全站改 appendToBody（掛在 body，見 app.js tipSafe），所以找提示框要連 body 底下 z-index 9999999 的那層一起找
     #   滑鼠停上去的那一刻圖剛好被重畫掉，提示框跟著消失。改成：同一個位置最多試 3 次、每次輪詢 1.2 秒，
     #   只要有一次讀得到就算數 —— 真人也是滑一下沒出來就再滑一下；功能壞掉的話三次都讀不到，照樣紅。
     TIPQ = """(id) => { const e = document.getElementById('m3c-' + id);
-            const t = [...e.querySelectorAll('div')].filter(d => /該分(量|成交值)/.test(d.innerText || '') && d.offsetParent !== null).pop();
+            const t = [...e.querySelectorAll('div'), ...[...document.body.children].filter(d => (d.getAttribute('style') || '').includes('9999999') && getComputedStyle(d).visibility !== 'hidden' && +getComputedStyle(d).opacity > 0.3)].filter(d => /該分(量|成交值)/.test(d.innerText || '') && d.offsetParent !== null).pop();
             return t ? t.innerText.replace(/\\s+/g, ' ') : ''; }"""
     for idx in ("TSE", "OTC", "FUT"):
         tipx = ""
@@ -5775,7 +5776,7 @@ def t_new_market3(pg, base):
         want_w = "該分量" if idx == "FUT" else "該分成交值"
         ok(f"★ 走勢圖 {idx} 游標讀得到價格與該分鐘量（{want_w}）", ("指數" in tipx or "價" in tipx) and want_w in tipx
            and (idx == "FUT" or "張" not in tipx), tipx[:80] or pg.evaluate("""(id) => { const e = document.getElementById('m3c-' + id); const H = e && e._m3line;
-               const tip = [...e.querySelectorAll('div')].filter(d => d.offsetParent !== null && /尚未|指數/.test(d.innerText || '')).map(d => d.innerText).pop() || '';
+               const tip = [...e.querySelectorAll('div'), ...[...document.body.children].filter(d => (d.getAttribute('style') || '').includes('9999999') && getComputedStyle(d).visibility !== 'hidden' && +getComputedStyle(d).opacity > 0.3)].filter(d => d.offsetParent !== null && /尚未|指數/.test(d.innerText || '')).map(d => d.innerText).pop() || '';
                return { kind: e && e.dataset.kind, fb: e && e.dataset.fallback, n: H ? H.price.length : null, filled: H ? H.price.filter(v => v != null).length : null,
                         firstIdx: H ? H.price.findIndex(v => v != null) : null, night: H && H.night, tip: tip.replace(/\\s+/g, ' ').slice(0, 60),
                         hit: (() => { const r = e.getBoundingClientRect(); const t = document.elementFromPoint(r.left + r.width * .45, r.top + r.height * .35);
@@ -25749,6 +25750,83 @@ TITLEDUP_ROUTES = ["overview", "flow/rotation", "flow/sankey", "flow/inst", "ind
 TITLEDUP_ADMIN = ["admin/perm", "admin/members", "admin/traffic", "admin/admins", "admin/gw", "admin/feedback", "admin/notices"]
 
 
+TIPCENSUS_ROUTES = ["overview", "industry", "flow/rotation", "flow/sankey", "flow/inst", "heatmap/industry", "heatmap/theme", "etf",
+                    "stock/2330", "market/streak", "season", "market/updown"]
+TIPCENSUS_JS = r"""() => {
+  const out = [];
+  const vw = document.documentElement.clientWidth, vh = window.innerHeight;
+  // ECharts 提示框：z-index 9999999 的 div（appendToBody 時是 body 子層，否則在圖容器裡）
+  const tips = [...document.querySelectorAll('div')].filter(d => /z-index:\s*9999999/.test(d.getAttribute('style') || ''));
+  for (const t of tips) {
+    const cs = getComputedStyle(t);
+    if (cs.display === 'none' || cs.visibility === 'hidden' || +cs.opacity < 0.5 || !(t.textContent || '').trim()) continue;
+    const r = t.getBoundingClientRect(); if (r.width < 2) continue;
+    const bad = [];
+    if (r.left < -0.5 || r.top < -0.5 || r.right > vw + 0.5 || r.bottom > vh + 0.5) bad.push('超出視窗');
+    for (let a = t.parentElement; a && a !== document.body && a !== document.documentElement; a = a.parentElement) {
+      const s = getComputedStyle(a);
+      if (s.overflowX !== 'visible' || s.overflowY !== 'visible') {
+        const q = a.getBoundingClientRect();
+        if (r.left < q.left - 0.5 || r.top < q.top - 0.5 || r.right > q.right + 0.5 || r.bottom > q.bottom + 0.5) { bad.push('被祖先裁切 ' + (a.id ? '#' + a.id : a.className)); break; }
+      }
+    }
+    out.push({ text: t.textContent.trim().slice(0, 30), body: t.parentElement === document.body, bad, r: [r.left, r.top, r.right, r.bottom].map(Math.round) });
+  }
+  return out;
+}"""
+
+
+def t_tip_census_1007(pg, b, base):
+    """提示框普查（2026-10-07 Andy：「幫我處理這問題 其他圖表一樣不要發生」—— 成交值占比甜甜圈的提示框被卡片裁掉一半）。
+    走過主要頁面，每張 ECharts 圖滑鼠真的移到四個角落附近與中心，斷言提示框完整在視窗內、沒有被任何 overflow 祖先裁到；
+    管理區流量觀測用管理者 context 另外跑。1440 與 390 都跑。至少要真的叫出提示框若干次，否則普查等於沒做。"""
+    T = "提示框普查1007"
+
+    def sweep(p, route, w):
+        shown = 0
+        p.goto(f"{base}#{route}", wait_until="domcontentloaded"); p.wait_for_timeout(2500)
+        n = p.evaluate("() => [...document.querySelectorAll('[_echarts_instance_]')].filter(e => e.getClientRects().length && e.clientWidth > 40 && e.clientHeight > 40).length")
+        for i in range(min(n, 10)):
+            ok_scroll = p.evaluate(f"""() => {{ const e = [...document.querySelectorAll('[_echarts_instance_]')].filter(e => e.getClientRects().length && e.clientWidth > 40 && e.clientHeight > 40)[{i}];
+              if (!e) return null; e.scrollIntoView({{block: 'center'}}); const r = e.getBoundingClientRect(); return [r.left, r.top, r.width, r.height]; }}""")
+            if not ok_scroll: continue
+            p.wait_for_timeout(250)
+            x0, y0, cw, ch = ok_scroll
+            # 四角兩圈：0.12＝真正貼角；0.2＝方形甜甜圈的環剛好落在這裡（圓角落點打不到扇區，原本被裁的就是左上這一塊）
+            pts = [(0.5, 0.5), (0.12, 0.12), (0.88, 0.12), (0.12, 0.88), (0.88, 0.88), (0.2, 0.2), (0.8, 0.2), (0.2, 0.8), (0.8, 0.8)]
+            for fx, fy in pts:
+                x, y = x0 + cw * fx, y0 + ch * fy
+                if x < 1 or y < 1 or x > w - 1 or y > 999: continue
+                p.mouse.move(x, y, steps=2); p.wait_for_timeout(220)
+                for t in p.evaluate(TIPCENSUS_JS):
+                    shown += 1
+                    ok(f"[{T}] {w}px #{route} 第{i+1}張圖 ({fx},{fy}) 提示框「{t['text']}」完整可見", not t["bad"], t)
+            p.mouse.move(2, 2); p.wait_for_timeout(120)
+        return shown
+
+    for w in (1440, 390):
+        tot = 0
+        for r in TIPCENSUS_ROUTES:
+            # 每頁開一個新分頁：熱力圖這類重頁面累積下來會把同一分頁撐爆（實測 Target crashed），一頁一關互不拖累
+            q = b.new_page(viewport={"width": w, "height": 1000})
+            try:
+                tot += sweep(q, r, w)
+            except Exception as e:
+                ok(f"[{T}] {w}px #{r} 普查跑完", False, str(e)[:200])
+            finally:
+                q.close()
+        ok(f"[{T}] {w}px 真的叫出提示框（{tot} 次）", tot >= 10, tot)
+        c, _ = _pnav_ctx(b, True, width=w)
+        ap = c.new_page(); ap.set_viewport_size({"width": w, "height": 1000})
+        try:
+            n = sweep(ap, "admin/traffic", w)
+            print(f"  [{T}] {w}px 管理區流量觀測提示框 {n} 次")
+        except Exception as e:
+            ok(f"[{T}] {w}px 管理區流量觀測普查跑完", False, str(e)[:200])
+        finally:
+            c.close()
+
+
 def t_title_dup_1007(b, base):
     T = "標題重複普查"
     rows = []
@@ -25847,6 +25925,8 @@ SECTIONS = {
     "ETF分類分組1007":     lambda pg, b, base, code: t_etf_groups_1007(pg, b, base),
     # ★ 2026-10-07 Andy：ETF 成分股分頁「左個股清單、右權重甜甜圈」；無股票成分顯示說明卡
     "ETF成分股1007":       lambda pg, b, base, code: t_etf_hold_1007(pg, b, base),
+    # ★ 2026-10-07 Andy：「幫我處理這問題 其他圖表一樣不要發生」—— 全站 ECharts 提示框不准被卡片裁切／超出視窗（1440＋390，⚠ 一律 --workers 1）
+    "提示框普查1007":      lambda pg, b, base, code: t_tip_census_1007(pg, b, base),
     "ETF報酬比較1006":     lambda pg, b, base, code: t_etf_ret_1006(pg, b, base),
     # ★ 2026-10-07 Andy：ETF「現金流試算」（年領／月領目標、單檔張數、2～4 檔月月配組合）＋配息型依頻率分組（⚠ 一律 --workers 1）
     "ETF現金流1007":       lambda pg, b, base, code: t_etf_income_1007(pg, b, base),
@@ -52307,7 +52387,7 @@ DNX_STATE = """(host) => { const e = document.querySelector(host + ' .dnc'); con
   const o = c.getOption(), s = o.series[0], cs = getComputedStyle(e);
   const title = (o.title || []).flatMap(t => String(t.text).replace(/\\{\\w+\\|([^}]*)\\}/g, '$1').split('\\n'));
   const rich = ((o.title || [])[0] || {}).textStyle ? ((o.title || [])[0].textStyle.rich || {}) : {};
-  const tips = [...e.querySelectorAll('div')].filter(d => getComputedStyle(d).display !== 'none' && d.textContent.trim().length > 3 && d.getBoundingClientRect().width > 20);
+  const tips = [...e.querySelectorAll('div'), ...[...document.body.children].filter(d => (d.getAttribute('style') || '').includes('9999999') && getComputedStyle(d).visibility !== 'hidden' && +getComputedStyle(d).opacity > 0.3)].filter(d => getComputedStyle(d).display !== 'none' && d.textContent.trim().length > 3 && d.getBoundingClientRect().width > 20);
   const box = e.closest('[data-chart]');
   return { n: s.data.length, data: s.data.map(d => ({ name: d.name, value: d.value, p: d.p, s: d.s2, color: d.itemStyle && d.itemStyle.color, bw: d.itemStyle && d.itemStyle.borderWidth })),
     radius: s.radius, pad: s.padAngle, br: s.itemStyle && s.itemStyle.borderRadius, track: o.series.some(x => x.silent), emp: s.emphasis,
@@ -52717,7 +52797,7 @@ def t_traffic_1005(b, base, code):
         ok(f"{TT}：時鐘：內圈（上午）12 格＋外圈（下午）12 格、第一格 00:00–00:59、提示格式「HH:00–HH:59　N 次」、內外圈總和＝24 小時資料總和、尖峰時段在中心、圖例寫「內圈 上午／外圈 下午」在右側", ck["am"] == 12 and ck["pm"] == 12 and ck["first"] == "00:00–00:59" and ck["tipFmt"] and ck["amSum"] + ck["pmSum"] == ck["hrsSum"] > 0 and "時" in ck["peak"] and ck["right"] and ck["lg"] == 5 and "內圈 上午" in ck["legend"] and "外圈 下午" in ck["legend"], ck)
         CK_STATE = """() => { const e = document.querySelector('#trClock .dnc'), c = echarts.getInstanceByDom(e), o = c.getOption(), ss = o.series.filter(x => !x.silent), rich = o.title[0].textStyle.rich;
             const items = ss.flatMap((x, si) => x.data.map(d => ({ si, name: d.name, bw: d.itemStyle.borderWidth, op: d.itemStyle.opacity == null ? 1 : d.itemStyle.opacity })));
-            const tips = [...e.querySelectorAll('div')].filter(d => getComputedStyle(d).display !== 'none' && d.textContent.trim().length > 3 && d.getBoundingClientRect().width > 20);
+            const tips = [...e.querySelectorAll('div'), ...[...document.body.children].filter(d => (d.getAttribute('style') || '').includes('9999999') && getComputedStyle(d).visibility !== 'hidden' && +getComputedStyle(d).opacity > 0.3)].filter(d => getComputedStyle(d).display !== 'none' && d.textContent.trim().length > 3 && d.getBoundingClientRect().width > 20);
             return { title: String(o.title[0].text).replace(/\\{\\w+\\|([^}]*)\\}/g, '$1').split('\\n'), numFs: rich.b.fontSize, lblFs: rich.a.fontSize, items, tip: tips.length > 0, tipTxt: tips.length ? tips[tips.length - 1].textContent : '', emp: ss[1].emphasis, size: e.clientWidth }; }"""
         for pm, k in ((1, 3), (0, 5)):
             cc = pg.evaluate("() => { const e = document.querySelector('#trClock .dnc'); e.scrollIntoView({ block: 'center', behavior: 'instant' }); const r = e.getBoundingClientRect(); return [r.left + r.width / 2, r.top + r.height / 2, Math.min(r.width, r.height) / 2]; }")
@@ -52744,13 +52824,13 @@ def t_traffic_1005(b, base, code):
                 px, py = cc[0] + rr * _m.sin(ang), cc[1] - rr * _m.cos(ang)
                 pg.mouse.move(2, 2); pg.mouse.move(px - 5, py - 5); pg.mouse.move(px, py, steps=3); pg.mouse.move(px + 1, py + 1, steps=2); pg.wait_for_timeout(300)
                 ov = pg.evaluate("""() => { const e = document.querySelector('#trClock .dnc'), lg = document.querySelector('#trClock ul.lg').getBoundingClientRect(),
-                    t = [...e.querySelectorAll('div')].filter(d => getComputedStyle(d).display !== 'none' && d.textContent.trim().length > 3 && d.getBoundingClientRect().width > 20).pop();
+                    t = [...e.querySelectorAll('div'), ...[...document.body.children].filter(d => (d.getAttribute('style') || '').includes('9999999') && getComputedStyle(d).visibility !== 'hidden' && +getComputedStyle(d).opacity > 0.3)].filter(d => getComputedStyle(d).display !== 'none' && d.textContent.trim().length > 3 && d.getBoundingClientRect().width > 20).pop();
                     if (!t) return { none: true }; const r = t.getBoundingClientRect();
                     return { none: false, hit: r.left < lg.right && r.right > lg.left && r.top < lg.bottom && r.bottom > lg.top }; }""")
                 if ov.get("none"):      # 主機忙時偶爾第一次沒出提示：再微動一次重量
                     pg.mouse.move(px + 3, py + 3, steps=3); pg.mouse.move(px, py, steps=3); pg.wait_for_timeout(500)
                     ov = pg.evaluate("""() => { const e = document.querySelector('#trClock .dnc'), lg = document.querySelector('#trClock ul.lg').getBoundingClientRect(),
-                        t = [...e.querySelectorAll('div')].filter(d => getComputedStyle(d).display !== 'none' && d.textContent.trim().length > 3 && d.getBoundingClientRect().width > 20).pop();
+                        t = [...e.querySelectorAll('div'), ...[...document.body.children].filter(d => (d.getAttribute('style') || '').includes('9999999') && getComputedStyle(d).visibility !== 'hidden' && +getComputedStyle(d).opacity > 0.3)].filter(d => getComputedStyle(d).display !== 'none' && d.textContent.trim().length > 3 && d.getBoundingClientRect().width > 20).pop();
                         if (!t) return { none: true }; const r = t.getBoundingClientRect();
                         return { none: false, hit: r.left < lg.right && r.right > lg.left && r.top < lg.bottom && r.bottom > lg.top }; }""")
                 if ov.get("none") or ov.get("hit"):
@@ -57682,7 +57762,7 @@ PIE1006_INFO = """(sel) => { const el = document.querySelector(sel); const c = e
 PIE1006_HOVER = """(a) => { const el = document.querySelector(a.sel); const c = echarts.getInstanceByDom(el); const o = c.getOption();
   const s = o.series.find(x => x.type === 'pie' && !x.silent); const it = s.data.find(d => d.name === a.name);
   const title = (o.title || []).flatMap(t => String(t.text).replace(/\\{\\w+\\|([^}]*)\\}/g, '$1').split('\\n'));
-  const tips = [...el.querySelectorAll('div')].filter(d => d.textContent.includes(a.name) && getComputedStyle(d).display !== 'none' && getComputedStyle(d).visibility !== 'hidden' && d.getBoundingClientRect().width > 20);
+  const tips = [...el.querySelectorAll('div'), ...[...document.body.children].filter(d => (d.getAttribute('style') || '').includes('9999999') && getComputedStyle(d).visibility !== 'hidden' && +getComputedStyle(d).opacity > 0.3)].filter(d => d.textContent.includes(a.name) && getComputedStyle(d).display !== 'none' && getComputedStyle(d).visibility !== 'hidden' && d.getBoundingClientRect().width > 20);
   return { bw: it && it.itemStyle ? it.itemStyle.borderWidth : null, title, tip: tips.length > 0,
            tipTxt: tips.length ? tips[tips.length - 1].textContent.slice(0, 80) : '' }; }"""
 

@@ -725,6 +725,55 @@
     const nt = { ...t, valueFormatter: (v) => tipNum(v, pctAx ? '%' : '') };
     return { ...o, tooltip: Array.isArray(t0) ? [nt, ...t0.slice(1)] : nt };
   }
+  /* ★ 2026-10-07（Andy：「幫我處理這問題 其他圖表一樣不要發生」）：提示框被卡片邊緣切掉。
+     根因：甜甜圈為了讓提示框「跟在游標外側、避開中心字」把 confine 關掉，提示框於是長在圖表容器裡，
+     游標停在左上角時提示框被推到容器外，卡片（.card 的 overflow:hidden）把左半邊裁掉，只剩「67 億（66.6%）」。
+     confine:true 在小甜甜圈上也救不了 —— 圖區本身就放不下一張提示卡。
+     全站一致做法（寫進 docs/style_guide.md）：**所有 ECharts 提示框一律 appendToBody**（掛在 body 上，任何祖先的 overflow 都裁不到），
+     位置由圖自己的 position 函式決定（甜甜圈避圓心那套照留），最後一律再夾進視窗內（左右上下各留 4px）；
+     沒寫 position 的圖用預設「游標右下，放不下就翻到左／上」。
+     在 setOption 包裝層做，所以之後局部 setOption 帶新 tooltip 也吃得到。 */
+  const TIP_GAP = 14, TIP_EDGE = 4;
+  function tipPlace(userPos, inst) {
+    return function (pt, params, dom, rect, size) {
+      const w = size.contentSize[0], h = size.contentSize[1];
+      const el = inst.getDom(), r = el.getBoundingClientRect();
+      const vw = document.documentElement.clientWidth || window.innerWidth, vh = window.innerHeight;
+      if (dom) dom._chartDom = el;                 // 提示框已不在圖容器裡：圖自己的 position 要找回圖容器（例：時鐘避開圖例）用 dom._chartDom
+      let p = typeof userPos === 'function' ? userPos(pt, params, dom, rect, size) : null;
+      let x, y;
+      if (Array.isArray(p) && typeof p[0] === 'number' && typeof p[1] === 'number') { x = p[0]; y = p[1]; }
+      else if (p && typeof p === 'object' && !Array.isArray(p) && typeof p.left === 'number' && typeof p.top === 'number') { x = p.left; y = p.top; }
+      else if (p != null) return p;                // 圖自己回字串（'top'、'inside'）就照它的
+      else {
+        x = pt[0] + TIP_GAP; y = pt[1] + TIP_GAP;
+        if (r.left + x + w > vw - TIP_EDGE) x = pt[0] - w - TIP_GAP;
+        if (r.top + y + h > vh - TIP_EDGE) y = pt[1] - h - TIP_GAP;
+      }
+      x = Math.max(TIP_EDGE - r.left, Math.min(x, vw - TIP_EDGE - w - r.left));
+      y = Math.max(TIP_EDGE - r.top, Math.min(y, vh - TIP_EDGE - h - r.top));
+      return [x, y];
+    };
+  }
+  /* 提示框掛在 body 上之後，隱藏時仍留在最後的位置；視窗縮窄（1440 → 800）時那個看不見的框會撐出橫向捲軸。
+     縮放視窗就把所有 ECharts 提示框（z-index 9999999）收回左上角。 */
+  if (typeof window !== 'undefined') window.addEventListener('resize', () => {
+    for (const d of document.body ? document.body.children : []) {
+      if ((d.getAttribute('style') || '').indexOf('9999999') >= 0) { d.style.left = '0px'; d.style.top = '0px'; d.style.transform = 'none'; }
+    }
+  }, { passive: true });
+  function tipSafe(o, inst) {
+    if (!o || typeof o !== 'object' || !o.tooltip) return o;
+    const fix = (t) => {
+      if (!t || typeof t !== 'object' || t.show === false) return t;
+      const up = t.position;
+      if (up != null && typeof up !== 'function') return Object.assign({}, t, { appendToBody: true, confine: false });  // 固定位置（陣列／字串）：只搬到 body
+      if (up && up._tipSafe) return Object.assign({}, t, { appendToBody: true, confine: false });
+      const f = tipPlace(up, inst); f._tipSafe = true;
+      return Object.assign({}, t, { appendToBody: true, confine: false, position: f });
+    };
+    return Object.assign({}, o, { tooltip: Array.isArray(o.tooltip) ? o.tooltip.map(fix) : fix(o.tooltip) });
+  }
   function chart(id, option, opts) {
     const el = typeof id === 'string' ? document.getElementById(id) : id; if (!el) return null;
     if (typeof echarts === 'undefined') { el.innerHTML = '<div class="empty">圖表函式庫載入失敗</div>'; return null; }
@@ -737,7 +786,7 @@
     if (!c) { c = echarts.init(el, null, { renderer: want }); el._renderer = want; fresh = true; }
     if (!c._soft) {                      // 圓滑化：包住這個實例的 setOption（之後的局部更新也吃得到，見 softenOption）
       const raw = c.setOption.bind(c);
-      c.setOption = (o2, ...rest) => raw(softenOption(o2, c), ...rest);
+      c.setOption = (o2, ...rest) => raw(tipSafe(softenOption(o2, c), c), ...rest);
       /* ★ 2026-10-06（DECISIONS #337）：時間軸分隔線是補在 series 最後面的 custom 系列（id `__tgrid*`）。
          圖自己與驗收讀 getOption().series 時**看不到它**（不然「series.length」「series.map」「slice(2)」這類既有讀法全部會多一個怪東西）；
          要看原樣用 getOptionRaw()。 */
