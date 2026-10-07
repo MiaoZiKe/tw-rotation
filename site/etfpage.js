@@ -87,6 +87,8 @@
 #v-etf .etfrow .sp{flex:1}
 #v-etf .note1{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
 /* ---- 分類列 */
+#v-etf .etfsub{margin:0 0 10px}
+#v-etf .etfcatbar[hidden],#v-etf .etfbody[hidden]{display:none}   /* v8：.etfcatbar 有 display:flex，hidden 屬性蓋不掉 */
 #v-etf .etfcatbar{display:flex;align-items:center;gap:10px;margin:0;white-space:nowrap;min-width:0}
 #v-etf .etfcatbar .seg{overflow:hidden;flex:0 1 auto;min-width:0}
 /* 分類頁籤：全站共用 .nbsw（產業地圖同款資料夾分頁，DECISIONS #321）；只補「不擠掉右邊期間」 */
@@ -387,7 +389,7 @@
 #v-etf .cxhead{font-size:14px;line-height:1.6;color:var(--ink-2);margin:6px 0 4px;min-height:4.8em}   /* v6：固定最小高度，點圖例改結論句時整張圖不會上下跳 */
 @media (max-width:600px){#v-etf .cxhead{min-height:8em}}
 #v-etf .cxhead b{color:var(--ink)}
-#v-etf #cxChart{height:460px}
+#v-etf #cxChart{height:540px}
 #v-etf .simtw{overflow-x:auto;max-width:100%;-webkit-overflow-scrolling:touch}
 #v-etf #cxTbl td.nm i{display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:6px;vertical-align:middle}
 @media (max-width:1100px){#v-etf .incsg{flex-direction:column;align-items:stretch}#v-etf .inclist{width:auto;max-width:none;resize:none}#v-etf .cgrid{grid-template-columns:1fr}#v-etf .dnbig{margin:0 auto}}
@@ -419,6 +421,14 @@
 #v-etf #incChips .addk{cursor:pointer;color:var(--cat-1,var(--ink))}
 #v-etf .cxg{display:grid;grid-template-columns:minmax(0,2fr) minmax(300px,1fr);gap:16px;align-items:start}
 #v-etf .cxl,#v-etf .cxr{min-width:0}
+/* v8（Andy：「複利試算表 清單下方很多空白處」）：右欄跟左圖等高——表格撐滿、列高與字級加大，結論句移到表下面 */
+#v-etf .cxg{align-items:stretch}
+#v-etf .cxr{display:flex;flex-direction:column;gap:8px}
+#v-etf .cxr .simtw{flex:1 1 auto;display:flex}
+#v-etf .cxr table.simt{height:100%;font-size:13.5px}
+#v-etf .cxr table.simt td,#v-etf .cxr table.simt th{padding:8px 8px}
+#v-etf .cxr .cxhead{min-height:0;margin:0;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:var(--panel-2)}
+@media (max-width:900px){#v-etf .cxr table.simt{height:auto}}
 #v-etf .cxlg{display:flex;flex-wrap:wrap;gap:6px 10px;align-items:center;margin-bottom:4px}
 #v-etf .cxlg small{color:var(--ink-3);font-size:12px}
 #v-etf .cxlg .cmpw{display:flex;gap:4px;align-items:center}
@@ -540,6 +550,7 @@
       ? { a: '#5B86B8', b: '#D8964A', pal: ['#5B86B8', '#4FA394', '#D8964A', '#8E78C4', '#C9788F', '#86A650', '#4E9DB8', '#B79A4C'] }
       : { a: '#7FA7D9', b: '#EDB36F', pal: ['#7FA7D9', '#6CC4B0', '#EDB36F', '#AB95DB', '#DB91A8', '#A3C477', '#74C3DE', '#D2B76F'] };
   };
+  const SUBS = [['cal', '配息行事曆'], ['list', 'ETF 總覽'], ['inc', '現金流試算']], VIEW_OF = { cal: 'cal', list: 'cat', inc: 'inc' };
   const byCode = () => { const m = new Map(); items().forEach((it) => m.set(it.code, it)); return m; };
   const inCat = () => items().filter((it) => it.cat === S.cat);
   const sizeKey = (it) => (it.size != null ? it.size : -1) * 1e3 + ((it.tv20 || 0) / 1e12);
@@ -553,7 +564,10 @@
   function skeleton(root) {
     const how = (k, q, li) => `<div class="howtxt" id="how-${k}" hidden>${A().howHTML(q, li)}</div>`;
     const hbtn = (k, t) => `<button class="howbtn pop" data-how="${k}" data-ttl="${t}" type="button" aria-label="${t}">?</button>`;
+    /* v8（Andy：「ETF 分成三個子分頁：配息行事曆／ETF 總覽／現金流試算」）：最上層三個子分頁，hash＝#etf/cal、#etf/list、#etf/inc。
+       切換只是顯示／隱藏，S 的狀態（分類、比較清單、試算目標）都留著。#etf 不帶子頁＝ETF 總覽（原本的主畫面，舊連結不變）。 */
     root.innerHTML = `
+<div class="nbsw etfsub" id="etfSub" role="tablist" aria-label="ETF 子分頁">${SUBS.map(([v, t]) => `<button type="button" role="tab" data-v="${v}">${t}</button>`).join('')}</div>
 <div class="card" id="etfCalCard">
   <div class="row spread"><h3 data-icon="calendar" data-tone="yield">配息行事曆 <small id="etfCalSub"></small> ${hbtn('etfcal', '配息行事曆怎麼看')}</h3></div>
   ${how('etfcal', '', [
@@ -567,7 +581,7 @@
 
 <div class="etfcatbar" id="etfCatBar">
   <div class="nbsw etfcats" id="etfCatSeg" role="tablist" aria-label="ETF 分類"></div>
-  <div class="nbsw etfinctab" id="etfIncSeg" role="tablist" aria-label="ETF 工具"><button data-v="inc" role="tab" type="button">現金流試算</button></div><span class="sp"></span>
+<span class="sp"></span>
 </div>
 <div class="etfbody" id="etfBody">
 <div id="etfInc" hidden></div>
@@ -649,12 +663,11 @@
     const seg = $('#etfCatSeg');
     seg.innerHTML = CATS.filter((c) => cnt[c])
       .map((c) => `<button data-v="${c}" role="tab">${c}<em>${cnt[c]}</em></button>`).join('');
-    const catOn = S.view !== 'inc';
+    const catOn = S.view === 'cat';
     $$('button', seg).forEach((b) => { const on = catOn && b.dataset.v === S.cat; b.classList.toggle('on', on); b.setAttribute('aria-selected', on);
-      b.onclick = () => { if (catOn && S.cat === b.dataset.v) return; S.view = 'cat'; S.cat = b.dataset.v; S.shown = PAGE; drawAll(); }; });
-    const ib = $('#etfIncSeg button');
-    if (ib) { ib.classList.toggle('on', !catOn); ib.setAttribute('aria-selected', !catOn);
-      ib.onclick = () => { if (S.view === 'inc') return; S.view = 'inc'; drawAll(); }; }
+      b.onclick = () => { if (catOn && S.cat === b.dataset.v) return; S.view = 'cat'; S.cat = b.dataset.v; S.shown = PAGE; if (/^#etf\/(cal|inc)/.test(location.hash)) history.replaceState(null, '', '#etf/list'); drawAll(); }; });
+    $$('#etfSub button').forEach((b) => { const v = VIEW_OF[b.dataset.v], on = v === S.view; b.classList.toggle('on', on); b.setAttribute('aria-selected', on);
+      b.onclick = () => { const h = '#etf/' + b.dataset.v; if (location.hash !== h) location.hash = h; else show(b.dataset.v); }; });
   }
   /* ---- 期間（2026-10-06 Andy：「週期切換……可以選擇時段如圖二那樣，切換到不同時間週期也可以在旁邊顯示對應年限日期」）
      從分類列最右邊搬到「報酬比較」標題列（只留一套）；元件是共用的 site/rangepick.js（管理區流量觀測同款）。
@@ -1201,7 +1214,7 @@
           minorTick: { show: true, splitNumber: yrsSpan <= 3.2 ? 1 : 3 }, minorSplitLine: { show: false } },
         yAxis: { type: 'value', ...a.axisStyle, splitLine: { show: true, lineStyle: { color: CH.grid, opacity: 1, width: 1 } },
           axisLabel: { ...a.axisStyle.axisLabel, formatter: (v) => v + '%' } },
-        series: lines,
+        series: lines,   // 月份分隔線由全站 TimeGrid（DECISIONS #337）自動補，時間軸不必自己畫
       });
     }
     lineEl.dataset.n = String(lines.length);
@@ -1532,13 +1545,12 @@
     <div class="grp"><b>對象</b><select id="cxObj" aria-label="複利試算對象"></select></div>
     <div class="grp"><b>起始日</b><input type="date" id="cxFrom" aria-label="起始日期">${segH('cxQuick', [['1', '1 年'], ['3', '3 年'], ['5', '5 年']], '')}<small>～至今</small></div>
   </div>
-  <p class="cxhead" id="cxHead"></p>
   <div class="cxg"><div class="cxl">
     <div class="cxlg"><small>點下方圖例可開關那條線（右表與結論跟著變）</small><span class="cmpw"><input class="cmpin" id="cxIn" list="incRxList" placeholder="＋自訂再投入標的（代號／名稱）" aria-label="加入自訂再投入標的"><button type="button" class="btn small" id="cxAdd">加入</button></span>
       <span class="cmpchips" id="cxChips"></span><small class="rxmsg" id="cxMsg"></small></div>
     <div id="cxChart" class="chart"></div></div>
     <div class="cxr"><div class="simtw"><table class="simt" id="cxTbl"></table></div>
-    <p class="simlev" id="cxLev">00631L 為 2 倍槓桿型（每日重設），長期報酬受波動耗損影響大，回測結果高度依賴期間。</p></div></div>
+    <p class="cxhead" id="cxHead"></p><p class="simlev" id="cxLev">00631L 為 2 倍槓桿型（每日重設），長期報酬受波動耗損影響大，回測結果高度依賴期間。</p></div></div>
 </div>`;
     const setAmt = (v) => { if (!(v > 0)) return; v = Math.round(v); if (S.inc.mode === 'm') { S.inc.mon = v; LS.set('tw.etf.inc.mon', v); } else { S.inc.year = v; LS.set('tw.etf.inc.year', v); } drawInc(); };
     box._setAmt = setAmt;
@@ -1633,9 +1645,11 @@
     drawDet();
   }
   const firstOfMonthFn = (X) => (i) => i === 0 || X[i].slice(0, 7) !== X[i - 1].slice(0, 7);
+  /* v8（Andy：「曲線圖月份之間都要微微線條區隔」）：每個月一條很淡的直線。顏色用 ink-3 的 16% 透明，深淺主題都看得到但不搶線。 */
+  const monthLine = (a) => ({ color: a.hexA(a.CH.ink3, 0.16), width: 0.8, type: 'solid' });
   const monthAxis = (X, a) => {
     const f = firstOfMonthFn(X), CH = a.CH;
-    return { type: 'category', data: X, boundaryGap: false, ...a.axisStyle, axisTick: { show: true, interval: f }, splitLine: { show: true, interval: f, lineStyle: { color: CH.grid } },
+    return { type: 'category', data: X, boundaryGap: false, ...a.axisStyle, axisTick: { show: true, interval: f }, splitLine: { show: true, interval: f, lineStyle: monthLine(a) },
       axisLabel: { ...a.axisStyle.axisLabel, fontSize: 11, interval: f, hideOverlap: true, formatter: (v) => (v.slice(5, 7) === '01' ? v.slice(0, 4) : String(+v.slice(5, 7)) + '月') } };
   };
   /* 18:52「單檔 ETF 改用這方式如圖表示，並且改成前 5 名即可」＋「有需要再從旁邊清單篩選，至多 5 檔」：
@@ -1921,20 +1935,28 @@
     S.inc.lsel = S.inc.lsel || {};
     const shown = () => lines.filter((l) => S.inc.lsel[l.key] !== false);
     const X = D.slice(i0);
-    const ser = lines.map((l) => ({ name: l.name, type: 'line', showSymbol: false, data: l.vals.slice(i0), lineStyle: { width: l.key === 'self' ? 2.6 : 1.8, color: l.col, type: l.dash || 'solid' }, itemStyle: { color: l.col },
+    const ser = lines.map((l) => ({ name: l.name, type: 'line', showSymbol: false, data: l.vals.slice(i0), lineStyle: { width: l.key === 'self' ? 2.2 : 1.5, color: l.col, type: l.dash || 'solid' }, itemStyle: { color: l.col },
       emphasis: { focus: 'series' }, endLabel: { show: true, color: l.col, fontSize: 11.5, formatter: (p) => (p.value == null ? '' : (p.value > 0 ? '+' : '') + (+p.value).toFixed(1) + '%') }, labelLayout: { moveOverlap: 'shiftY' } }));
+    /* v8（Andy：「曲線圖月份之間都要微微線條區隔」）：每月第一週畫一條很淡的直線（markLine 掛在第一條線上、不吃滑鼠）。
+       這張圖有 dataZoom，不走全站 TimeGrid（timeGrid:false），所以自己畫。 */
+    const mk = X.map((d, k) => (k > 0 && d.slice(0, 7) !== X[k - 1].slice(0, 7) ? { xAxis: d } : null)).filter(Boolean);
+    if (ser[0]) ser[0].markLine = { silent: true, symbol: ['none', 'none'], label: { show: false }, emphasis: { disabled: true }, animation: false, lineStyle: monthLine(a), data: mk };
+    el.dataset.mlines = String(mk.length);
     const selected = {}; lines.forEach((l) => { selected[l.name] = S.inc.lsel[l.key] !== false; });
     a.chart('cxChart', {
       timeGrid: false,
       grid: { left: 8, right: 64, top: el.clientWidth < 600 ? 104 : 64, bottom: 56, containLabel: true },   // v6：窄寬圖例換成三列，top 加大才不會壓到 y 軸名稱「報酬率 %」
       legend: { type: 'plain', top: 0, left: 0, right: 0, itemWidth: 16, itemHeight: 3, selected, textStyle: { color: CH.ink2, fontSize: 12 }, selectedMode: true, inactiveColor: a.hexA(CH.ink3, 0.45) },
-      tooltip: { ...a.tip, confine: true, trigger: 'axis', axisPointer: { type: 'cross', label: { show: false }, lineStyle: { color: CH.ink3 } },
+      // v8：提示框放在滑鼠左／右側、貼圖頂（不壓在線上），confine 不出圖框
+      tooltip: { ...a.tip, confine: true, trigger: 'axis', axisPointer: { type: 'line', lineStyle: { color: CH.ink3 } },
+        position: (pt, _p, _d, _r, sz) => [pt[0] > sz.viewSize[0] / 2 ? Math.max(0, pt[0] - sz.contentSize[0] - 18) : pt[0] + 18, 70],
         formatter: (ps) => { const i = ps[0].dataIndex, d = X[i]; el.dataset.tip = d + '|' + ps.map((p) => p.value).join(',');
           return `<b>${d}</b><br>` + ps.slice().sort((p, q) => (q.value || 0) - (p.value || 0)).map((p) => {
             const v = p.value == null ? null : cost * (1 + p.value / 100);
             return `${p.marker}${esc(p.seriesName)}：<b>${p.value == null ? '—' : (p.value > 0 ? '+' : '') + (+p.value).toFixed(1) + '%'}</b>（${ntw(v)}）`; }).join('<br>'); } },
       xAxis: monthAxis(X, a),
-      yAxis: { type: 'value', scale: true, name: '報酬率 %', nameTextStyle: { color: CH.ink3, fontSize: 11, align: 'left' }, ...a.axisStyle, splitLine: { lineStyle: { color: CH.grid } },
+      // v8：y 軸貼緊資料（上下各留 4% 再取整 5），不再從 −10%／−30% 留一大段空白
+      yAxis: { type: 'value', scale: true, name: '報酬率 %', min: (v) => Math.floor((v.min - Math.min(3, (v.max - v.min) * 0.02)) / 5) * 5, max: (v) => Math.ceil((v.max + Math.min(3, (v.max - v.min) * 0.02)) / 5) * 5, nameTextStyle: { color: CH.ink3, fontSize: 11, align: 'left' }, ...a.axisStyle, splitLine: { lineStyle: { color: CH.grid } },
         axisLabel: { ...a.axisStyle.axisLabel, fontSize: 11, formatter: (v) => v + '%' } },
       dataZoom: [{ type: 'inside', xAxisIndex: 0, zoomOnMouseWheel: true, moveOnMouseMove: true, minValueSpan: 8 },
         { type: 'slider', xAxisIndex: 0, height: 18, bottom: 6, labelFormatter: (i) => X[i] || '' }],
@@ -1967,19 +1989,29 @@
   /* ------------------------------------------------------------------ 入口 */
   function drawAll() {
     drawCats();
-    const inc = S.view === 'inc';
-    $('#etfInc').hidden = !inc; $('#etfRetCard').hidden = inc; $('#etfListCard').hidden = inc;
-    const tri = $('#etfTri'); tri.hidden = inc || !!NO_RANK[S.cat];
-    $('#v-etf').dataset.view = inc ? 'inc' : 'cat';
+    const inc = S.view === 'inc', cal = S.view === 'cal', cat = S.view === 'cat';
+    $('#etfCalCard').hidden = !cal; $('#etfCatBar').hidden = !cat; $('#etfBody').hidden = cal;
+    $('#etfInc').hidden = !inc; $('#etfRetCard').hidden = !cat; $('#etfListCard').hidden = !cat;
+    const tri = $('#etfTri'); tri.hidden = !cat || !!NO_RANK[S.cat];
+    $('#v-etf').dataset.view = S.view;
+    if (cal) return;
     if (inc) { drawInc(); return; }
     if (!tri.hidden) { drawPop(); drawRetTop(); drawYld(); }
     drawRet(); drawList();
     $('#v-etf').dataset.cat = S.cat;
   }
-  async function render() {
+  /* 子分頁：hash 的第二段 → S.view。分類頁籤點下去會把 S.view 設成 'cat'，所以從試算點分類頁籤也會回到總覽。 */
+  function show(sub) {
+    const v = VIEW_OF[sub] || 'cat';
+    if (!document.getElementById('etfSub')) { S._sub = sub; return; }
+    if (S.view === v && $('#v-etf').dataset.view === v) return;
+    S.view = v; drawAll();
+    if (window.echarts) setTimeout(() => $$('#v-etf [_echarts_instance_]').forEach((d) => { const c = window.echarts.getInstanceByDom(d); if (c && d.clientWidth > 0) c.resize(); }), 30);
+  }
+  async function render(sub) {
     injectCSS();
     const root = document.getElementById('v-etf'); if (!root) return;
-    S.cat = '配息型'; S.view = 'cat'; S.pop = LS.get('tw.etf.pop', 'holders');
+    S.cat = '配息型'; S.view = VIEW_OF[sub] || 'cat'; S.pop = LS.get('tw.etf.pop', 'holders');
     S.per = LS.get('tw.etf.per', '5y'); if (!PERS.some((x) => x[0] === S.per)) S.per = '5y';
     S.cfrom = LS.get('tw.etf.cfrom', '') || yrsAgo(todayTW(), 3); S.cto = todayTW(); S.basis = LS.get('tw.etf.basis', 'tr'); S.cmp = {};
     try { await window.CalGrid.load(); } catch (e) { /* 沒有休市日只標週末 */ }
@@ -1992,5 +2024,5 @@
     drawCal(); drawAll();
     root.dataset.ready = S.fallback ? 'fallback' : 'full';
   }
-  window.TwEtfPage = { render, classify, state: S, simCore };
+  window.TwEtfPage = { render, show, classify, state: S, simCore };
 })();

@@ -2946,10 +2946,12 @@
     if (view === 'watch' && rendered.watch && window.TwWatchPage) window.TwWatchPage.paint();
     // 選股探索（2026-10-05，site/explore.js）：第一次整頁畫；之後換題目（#explore/<id>）只重畫圖與名單，不重載資料
     if (view === 'explore' && rendered.explore && window.TwExplore) { window.TwExplore.show(rest[0]); setTimeout(resizeVisibleCharts, 30); return; }
+    // v8：ETF 三個子分頁（#etf/cal｜list｜inc）：已經畫過就只切子頁，不重畫整頁（狀態保留）
+    if (view === 'etf' && rendered.etf && window.TwEtfPage && window.TwEtfPage.show) { window.TwEtfPage.show(rest[0]); setTimeout(resizeVisibleCharts, 30); return; }
     if (!rendered[view]) { rendered[view] = true; await ({ overview: renderOverview, flow: renderFlow, market: renderMarket, season: renderSeason, tasks: renderTasks, delivery: renderDelivery,
       watch: () => { if (window.TwWatchPage) window.TwWatchPage.render(); },
       explore: () => (window.TwExplore ? window.TwExplore.render(rest[0]) : null),
-      etf: () => (window.TwEtfPage ? window.TwEtfPage.render() : null),
+      etf: () => (window.TwEtfPage ? window.TwEtfPage.render(rest[0]) : null),
       earnings: () => (window.TwEarnings ? window.TwEarnings.render() : null) })[view](); }
     mia(); setTimeout(mia, 500);
     setTimeout(resizeVisibleCharts, 30);
