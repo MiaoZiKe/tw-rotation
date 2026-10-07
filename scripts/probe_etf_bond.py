@@ -66,6 +66,26 @@ def main2() -> None:
         print("台新", c, "card-header@", k, pg[k - 200:k + 3000].replace("\n", " ") if k >= 0 else pg[-3000:].replace("\n", " "))
 
 
+def main3() -> None:
+    """第三輪（永豐、玉山）：永豐 PCF 頁用 ?fundId= 換基金是否有效、各資產區塊長相；玉山 FundNo 對照。"""
+    import time
+    for c in ("00888", "00836B", "00410A"):
+        pg = E._req("GET", "https://sitc.sinopac.com/SinopacEtfs/Etfs/Pcf", params={"fundId": c}, expect="text") or ""
+        sel = re.search(r'<option[^>]*selected[^>]*>[^<]*</option>', pg)
+        print("永豐", c, "selected:", sel.group(0) if sel else None, " qdate:", re.findall(r'id="qdate"[^>]*', pg)[:1])
+        for m in list(re.finditer(r'cash_title-s">([^<]+)</div>', pg))[:8]:
+            print("   區塊", m.group(1), "：", re.sub(r"\s+", " ", pg[m.end():m.end() + 2500]))
+        for m in list(re.finditer(r"\d{4}/\d{2}/\d{2}", pg))[:5]:
+            print("   日期", pg[max(0, m.start() - 80):m.end() + 20].replace("\n", " "))
+    for no in range(1, 121):
+        p = E._req("POST", "https://www.esunam.com/ETFAPI/GetFundTradeInfo", json_body={"FundNo": str(no)}, retries=1)
+        e = (p or {}).get("Entries") or {}
+        if isinstance(e, dict) and e.get("CFundShortName"):
+            print("玉山 FundNo", no, e.get("CFundShortName"), e.get("CNavDt"), [t.get("TableTitle") for t in e.get("DynamicTableData") or []],
+                  json.dumps([(t.get("TableTitle"), [c.get("Name") for c in t.get("Columns") or []], (t.get("Rows") or [])[:2]) for t in e.get("DynamicTableData") or []], ensure_ascii=False)[:800])
+        time.sleep(0.2)
+
+
 def main() -> None:
     today = dt.date.today()
     # 群益：清單 → fundNo
@@ -142,4 +162,4 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-    main2() if "--round2" in sys.argv else main()
+    main3() if "--round3" in sys.argv else (main2() if "--round2" in sys.argv else main())
