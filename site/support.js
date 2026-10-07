@@ -29,8 +29,8 @@
     ['為什麼有些區塊有鎖頭「此功能需開通」？', '那個功能不在你目前的方案內。訪客登入後通常會多開放一些；其他功能可以到「訂閱方案」頁看哪個方案有。'],
     ['AI 分析是怎麼來的？', '個股頁的 AI 分析是依技術面、籌碼面、基本面、消息面的固定規則自動產生的整理，不是投資建議，也不是真人分析師的意見。'],
     ['這個網站會告訴我該買哪一檔嗎？', '不會。本網站不是證券投資顧問，只提供資料整理與視覺化，不提供個股買賣建議，所有內容僅供參考，投資請自行判斷。'],
-    ['畫面怪怪的、圖表沒出來怎麼辦？', '先按 Ctrl+F5（手機下拉重新整理）強制更新。還是不行的話，請用下面的「意見反饋」選「錯誤回報」，勾選附上目前網址與瀏覽器資訊，我們比較好重現。'],
-    ['怎麼聯絡客服？', `用這個面板的「意見反饋」送出，或寄信到 ${SUPPORT_EMAIL}。付款相關的問題請在反饋類別選「付款問題」。`],
+    ['畫面怪怪的、圖表沒出來怎麼辦？', '先按 Ctrl+F5（手機下拉重新整理）強制更新。還是不行的話，請用下面的「意見反饋」選「錯誤回報」（細項可選「畫面顯示異常」），勾選附上目前網址與瀏覽器資訊，我們比較好重現。'],
+    ['怎麼聯絡客服？', `用這個面板的「意見反饋」送出，或寄信到 ${SUPPORT_EMAIL}。付款相關的問題請在反饋類別選「帳號與付費」。`],
   ];
   /* 2026-10-07（Andy：「聯絡客服改用連結 Gmail」）：mailto: 在沒設郵件程式的 Windows 會跳「郵件」App 設定畫面。改開 Gmail 網頁撰寫。*/
   const gmail = (to, su) => 'https://mail.google.com/mail/?view=cm&fs=1&to=' + encodeURIComponent(to) + '&su=' + encodeURIComponent(su);
@@ -48,7 +48,22 @@
     const t = document.createElement('textarea'); t.value = v; t.style.position = 'fixed'; t.style.opacity = '0'; document.body.appendChild(t); t.select();
     try { document.execCommand('copy'); } catch (x) { /* 略 */ } t.remove();
   }
-  const CATS = [['bug', '錯誤回報'], ['idea', '功能建議'], ['pay', '付款問題'], ['other', '其他']];
+  /* 1007 v2（Andy 15:25：「統計意見類別，類別需要由你幫我規劃級分類」）：兩層類別。
+     規劃與理由寫在 docs/feedback_categories.md；鍵要跟 workers/account-api/worker.js 的 FB_TREE 一致。
+     大類沿用舊鍵 bug／idea／other（舊資料不用搬），舊的 pay（付款問題）→ 帳號與付費／付款與發票（FB_LEGACY）。
+     顏色：六個大類各一色，刻意避開紅綠（紅綠在本站＝漲跌），定義在 css 的 --fbc-*。 */
+  const TREE = [
+    ['bug', '錯誤回報', [['data', '資料錯誤／數字不對'], ['ui', '畫面顯示異常'], ['func', '功能壞掉／按了沒反應'], ['slow', '載入慢或打不開'], ['mobile', '手機版問題']]],
+    ['idea', '功能建議', [['data', '新增資料或指標'], ['chart', '新增圖表或頁面'], ['ux', '操作與介面改善'], ['watch', '自選與提醒']]],
+    ['ask', '資料疑問', [['calc', '數字怎麼算'], ['source', '資料來源與更新時間'], ['term', '名詞看不懂']]],
+    ['acct', '帳號與付費', [['login', '登入問題'], ['plan', '方案與價格'], ['pay', '付款與發票'], ['refund', '退款與取消']]],
+    ['legal', '內容與法務', [['content', '用語或內容不當'], ['copyright', '著作權／資料授權'], ['privacy', '隱私問題']]],
+    ['other', '其他', []],
+  ];
+  const CATS = TREE.map(([k, n]) => [k, n]);
+  const SUBN = {}; TREE.forEach(([k, , subs]) => subs.forEach(([sk, sn]) => { SUBN[k + '/' + sk] = sn; }));
+  const FB_LEGACY = { pay: ['acct', 'pay', '付款問題'] };
+  const norm = (r) => { const lg = FB_LEGACY[r.cat]; return lg ? { ...r, cat: lg[0], sub: lg[1], legacy: r.cat } : { ...r, sub: r.sub || '' }; };
 
   css('supportCss', `
 /* ★ admin-v3（Andy E）：半透明（背景約 80% 不透明＋毛玻璃），看得到後面的底色；深淺主題各自一組前景色 */
@@ -118,6 +133,51 @@
 .fbdot{display:inline-grid;place-items:center;min-width:18px;height:18px;padding:0 5px;margin-left:auto;border-radius:999px;background:var(--rise);color:#fff;font-size:11px;font-weight:700;line-height:1;box-sizing:border-box}
 .fbdot.big{height:22px;font-size:12px;margin-left:10px;vertical-align:middle}
 @media (max-width:820px){#v-subadm table,#v-subadm tbody,#v-subadm tr,#v-subadm td{display:block}#v-subadm thead{display:none}#v-subadm tr{border-bottom:1px solid var(--line-2);padding:6px 0}#v-subadm td{border:0;padding:3px 0}}
+/* 1007 v2：類別色（六大類，刻意避開紅綠＝漲跌）、四張小卡、甜甜圈＋細項橫條、每日直條、篩選膠囊 */
+#v-subadm,.suppanel{--fbc-bug:var(--amber);--fbc-idea:var(--cyan);--fbc-ask:var(--violet);--fbc-acct:#d873c4;--fbc-legal:#5b8cff;--fbc-other:#8a94a6}
+#v-subadm .sat .rpk{margin-right:4px}
+#v-subadm .fbkpi{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-top:12px}
+#v-subadm .fbkpi .k{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:10px 14px;display:flex;flex-direction:column;gap:2px;min-width:0}
+#v-subadm .fbkpi .k span{font-size:12.5px;color:var(--ink-2)}#v-subadm .fbkpi .k b{font-size:26px;line-height:1.2}#v-subadm .fbkpi .k b.sm{font-size:17px;padding:5px 0 3px}
+#v-subadm .fbkpi .k small{font-size:12px;color:var(--ink-2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#v-subadm .fbstat{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(0,1fr);gap:14px}
+#v-subadm .fbstat .card{margin-top:14px;min-width:0}#v-subadm .fbstat h3{margin:0 0 2px}#v-subadm .fbstat p.muted{margin:0 0 8px;font-size:12.5px}
+#v-subadm .fbcatw{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:16px;align-items:start}
+#v-subadm .fbdon{display:flex;flex-direction:column;align-items:center;gap:8px}
+#v-subadm #fbDonut{width:min(200px,100%);height:auto;overflow:visible}
+#v-subadm .fbseg{cursor:pointer;stroke:var(--panel-2);stroke-width:1;transition:transform .15s}
+#v-subadm .fbseg.hov,#v-subadm .fbseg.sel{transform:translate(var(--dx),var(--dy));stroke:var(--ink);stroke-width:2}
+#v-subadm #fbDonut .dc1{font-size:13px;fill:var(--ink-2);text-anchor:middle}#v-subadm #fbDonut .dc2{font-size:28px;font-weight:700;fill:var(--ink);text-anchor:middle}
+#v-subadm .fblgd{list-style:none;margin:0;padding:0;width:100%;font-size:13px}
+#v-subadm .fblgd li{display:grid;grid-template-columns:12px 1fr auto auto;gap:6px;align-items:center;padding:3px 6px;border-radius:6px;cursor:pointer}
+#v-subadm .fblgd li:hover,#v-subadm .fblgd li.sel{background:var(--panel-3)}
+#v-subadm .fblgd i{width:10px;height:10px;border-radius:3px}#v-subadm .fblgd em{font-style:normal;color:var(--ink-2);min-width:44px;text-align:right}
+#v-subadm .fbsubc{min-width:0}#v-subadm .fbsubc h4{margin:0 0 6px;font-size:13px;color:var(--ink-2);font-weight:500}
+#v-subadm .fbhb{display:flex;flex-direction:column;gap:6px}
+#v-subadm .fbhb .hb{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:3px 8px;background:none;border:1px solid transparent;border-radius:8px;padding:4px 6px;color:var(--ink);font-size:13px;text-align:left;cursor:pointer;height:auto}
+#v-subadm .fbhb .hb:hover{background:var(--panel-3)}#v-subadm .fbhb .hb.sel{border-color:var(--ink-2);background:var(--panel-3)}
+#v-subadm .fbhb .hv{text-align:right;color:var(--ink-2);font-size:12.5px;white-space:nowrap}
+#v-subadm .fbhb .tr{grid-column:1 / -1;height:10px;background:var(--panel-3);border-radius:3px;overflow:hidden}#v-subadm .fbhb .tr i{display:block;height:100%;border-radius:0 3px 3px 0}
+#v-subadm .fbvb .plot{position:relative;display:flex;align-items:stretch;height:170px;padding-top:16px;border-bottom:1px solid var(--line)}
+#v-subadm .fbvb .vb{flex:1;min-width:0;display:flex;background:none;border:0;padding:0;height:auto;cursor:pointer;border-right:1px solid color-mix(in srgb,var(--line) 45%,transparent)}
+#v-subadm .fbvb .col{flex:1;position:relative;display:flex;align-items:flex-end;justify-content:center}
+#v-subadm .fbvb .col i{display:block;width:min(12px,80%);min-height:1px;border-radius:3px 3px 0 0;background:linear-gradient(180deg,var(--cyan),color-mix(in srgb,var(--cyan) 45%,transparent))}
+#v-subadm .fbvb .vb:hover .col i{filter:brightness(1.25);outline:2px solid var(--ink-2)}
+#v-subadm .fbvb .vb.sel .col i{background:var(--amber)}
+#v-subadm .fbvb .col i{position:relative}#v-subadm .fbvb .col em{position:absolute;bottom:100%;left:50%;transform:translateX(-50%);font-style:normal;font-size:11.5px;color:var(--ink);white-space:nowrap}
+#v-subadm .fbvb .avgl{position:absolute;left:0;right:0;border-top:1px dashed var(--ink-2);opacity:.6;pointer-events:none}
+#v-subadm .fbvb .xl{display:flex}#v-subadm .fbvb .xl span{flex:1;min-width:0;font-size:11px;color:var(--ink-2);white-space:nowrap;overflow:visible;height:18px;line-height:18px}
+#v-subadm .fbempty{padding:28px 0;text-align:center;color:var(--ink-2);font-size:13px}
+#v-subadm .fbcat,#v-subadm .fbsub{display:inline-block;font-size:12px;padding:1px 8px;border-radius:999px;margin:0 4px 3px 0;white-space:nowrap}
+#v-subadm .fbcat{background:var(--fbc-bug);color:#10141c;font-weight:700}
+#v-subadm .fbcat[data-c="idea"]{background:var(--fbc-idea)}#v-subadm .fbcat[data-c="ask"]{background:var(--fbc-ask)}#v-subadm .fbcat[data-c="acct"]{background:var(--fbc-acct)}#v-subadm .fbcat[data-c="legal"]{background:var(--fbc-legal)}#v-subadm .fbcat[data-c="other"]{background:var(--fbc-other)}
+#v-subadm .fbsub{border:1px solid var(--fbc-bug);color:var(--ink)}
+#v-subadm .fbsub[data-c="idea"]{border-color:var(--fbc-idea)}#v-subadm .fbsub[data-c="ask"]{border-color:var(--fbc-ask)}#v-subadm .fbsub[data-c="acct"]{border-color:var(--fbc-acct)}#v-subadm .fbsub[data-c="legal"]{border-color:var(--fbc-legal)}
+#v-subadm .fblg{display:block}
+#v-subadm .fbchip{display:inline-flex;align-items:center;gap:4px;height:26px;padding:0 4px 0 10px;border-radius:999px;background:color-mix(in srgb,var(--amber) 22%,transparent);border:1px solid var(--amber);font-size:12.5px}
+#v-subadm .fbchip button{height:22px;width:22px;padding:0;border:0;background:none;color:var(--ink);font-size:15px;cursor:pointer}
+@media (max-width:1100px){#v-subadm .fbstat{grid-template-columns:minmax(0,1fr)}}
+@media (max-width:820px){#v-subadm .fbkpi{grid-template-columns:repeat(2,minmax(0,1fr))}#v-subadm .fbcatw{grid-template-columns:minmax(0,1fr)}#v-subadm .fbvb .plot{height:140px}}
 @media (max-width:820px){.supfab{bottom:84px;right:14px;height:42px;padding:0 12px}.supfab span{display:none}.suppanel{right:12px;bottom:134px}}`);
 
   /* ★ admin-v3（Andy E）：圖示改可愛一點 —— 圓角對話泡泡裡一張笑臉（自繪 SVG，stroke＝currentColor，深淺主題都跟字色走）*/
@@ -154,6 +214,12 @@
     p.querySelector('.sptabs').onclick = (e) => { const b = e.target.closest('button[data-t]'); if (b) { tab = b.dataset.t; paint(); } };
     p.querySelectorAll('.faq > button').forEach((b) => { b.onclick = () => { const f = b.parentElement; f.classList.toggle('on'); b.setAttribute('aria-expanded', String(f.classList.contains('on'))); }; });
     const go = p.querySelector('#fbSend'); if (go) go.onclick = send;
+    const cs = p.querySelector('#fbCat');
+    if (cs) cs.onchange = () => { const w = p.querySelector('#fbSubWrap'), o = subOpts(cs.value); p.querySelector('#fbSub').innerHTML = o; w.hidden = !o.includes('value="') || cs.value === 'other'; };
+  }
+  function subOpts(cat) {
+    const t = TREE.find((x) => x[0] === cat); if (!t || !t[2].length) return '<option value="">（無細項）</option>';
+    return '<option value="">（不選）</option>' + t[2].map(([k, n]) => `<option value="${k}">${n}</option>`).join('');
   }
   function body() {
     // 「即時和盤後差在哪」那一題只給管理者看（data-live-ui，livegate.js 的 CSS 藏；DECISIONS #326）
@@ -167,7 +233,8 @@
        只有會員伺服器沒設定（TwSub.call 根本沒有網址）時才關掉。*/
     const can = !!(A && A.on());
     return `${can ? '' : '<p class="note" style="color:var(--amber)">線上反饋暫時無法使用，請改用「寄信」。</p>'}
-      <label for="fbCat">類別</label><select id="fbCat">${CATS.map(([k, n]) => `<option value="${k}">${n}</option>`).join('')}</select>
+      <label for="fbCat">類別（先選大類）</label><select id="fbCat">${CATS.map(([k, n]) => `<option value="${k}">${n}</option>`).join('')}</select>
+      <div id="fbSubWrap"><label for="fbSub">細項（可不選）</label><select id="fbSub">${subOpts('bug')}</select></div>
       <label for="fbBody">內容</label><textarea id="fbBody" maxlength="2000" placeholder="發生了什麼事、在哪一頁、希望怎麼改…"></textarea>
       <label class="chk"><input type="checkbox" id="fbCtx" checked> 附上目前網址與瀏覽器資訊（幫助我們重現問題）</label>
       <label for="fbMail">聯絡 email（選填，要回覆時用）</label><input type="email" id="fbMail" maxlength="200" value="${esc(u && u.email || '')}" autocomplete="email">
@@ -183,6 +250,7 @@
     if (contact && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(contact)) { msg.className = 'msg bad'; msg.textContent = 'email 格式不對（不想留可以空白）'; return; }
     const ctx = p.querySelector('#fbCtx').checked;
     const body = { cat: p.querySelector('#fbCat').value, body: text };
+    const sb = p.querySelector('#fbSub'); if (sb && sb.value && body.cat !== 'other') body.sub = sb.value;
     if (contact) body.contact = contact;
     if (ctx) { body.url = location.href.slice(0, 300); body.ua = (navigator.userAgent + ' ｜ ' + innerWidth + '×' + innerHeight).slice(0, 300); }
     btn.disabled = true; msg.className = 'msg'; msg.textContent = '送出中…';
@@ -200,10 +268,24 @@
   // ------------------------------------------------------------------ 管理端 #admin/feedback
   const CATN = Object.fromEntries(CATS);
   const dstr = (ms) => { const d = new Date(ms + 8 * 3600 * 1000); return d.toISOString().slice(0, 16).replace('T', ' '); };
-  /* 1007：篩選（類別／狀態）只在前端做，記在記憶體；刪除走 /v1/admin/feedback/del（先確認）。
-     未讀數紅點：側欄「意見反饋」子項與帳號選單共用 unread（管理者登入時抓一次、每次進頁重算）。*/
-  const FL = { cat: '', st: '' };
+  const dayOf = (ms) => dstr(ms).slice(0, 10);
+  const todayTpe = () => dayOf(Date.now());
+  const shiftDay = (d, n) => new Date(Date.parse(d + 'T00:00:00Z') + n * 86400000).toISOString().slice(0, 10);
+  /* 1007 v2：
+     · 期間（RG）：今天／近 7／30／90 天／自訂起訖，共用 site/rangepick.js（流量觀測、ETF 同一支）。列表、四張小卡、甜甜圈、每日直條都只算期間內。
+     · 篩選（FL）：大類 cat、小類 sub、狀態 st、某一天 day。點甜甜圈扇區＝設 cat；點右邊橫條＝設 cat＋sub；點直條＝設 day。
+       一律能取消：再點同一塊、列表標題旁膠囊的 ×、或下拉選「全部」。
+     · 篩選只在前端做（Worker 一次給最近 2000 筆），記在記憶體，重新整理回預設（近 30 天、不篩）。
+     未讀數紅點：側欄「意見反饋」子項與帳號選單共用 unread（不受期間影響，算全部未讀）。*/
+  const FL = { cat: '', sub: '', st: '', day: '' };
+  const RG = { v: '30', from: '', to: '' };
   let unread = 0, last = null;
+  function rangeNow() {
+    const t = todayTpe();
+    if (RG.v === 'custom') return { from: RG.from || shiftDay(t, -29), to: RG.to || t };
+    if (RG.v === 'today') return { from: t, to: t };
+    return { from: shiftDay(t, -(+RG.v - 1)), to: t };
+  }
   function paintDot() {
     const t = document.getElementById('admTabFeedback'); if (!t) return;
     let d = t.querySelector('.fbdot');
@@ -225,32 +307,121 @@
     if (!j || j._s !== 200) { el.innerHTML = '<div class="card"><p class="muted">讀取失敗（' + esc(j ? j._s : '連不到') + '）</p></div>'; return; }
     last = j; paintAdmin(el);
   }
+  const pct = (a, b) => (b ? Math.round(a / b * 1000) / 10 : 0);
+  const catBadge = (r) => `<span class="fbcat" data-c="${esc(r.cat)}">${esc(CATN[r.cat] || r.cat)}</span>${r.sub ? `<span class="fbsub" data-c="${esc(r.cat)}">${esc(SUBN[r.cat + '/' + r.sub] || r.sub)}</span>` : ''}${r.legacy ? `<small class="muted fblg" title="改版前送出的類別，已對應到新大類">（舊類別：${esc((FB_LEGACY[r.legacy] || [])[2] || r.legacy)}）</small>` : ''}`;
+  /* A 款甜甜圈（自繪 SVG，類別色是 CSS 變數，深淺主題自動跟）：內徑 68%、外徑 92%、扇區間細縫；
+     滑過外凸 4px＋外框＋中心字換成該類名稱與 %；點擊＝篩選該大類（再點取消）*/
+  function donut(rows) {
+    const tot = rows.length;
+    if (!tot) return '<div class="fbempty">這段期間沒有反饋</div>';
+    const cnt = CATS.map(([k, n]) => ({ k, n, v: rows.filter((r) => r.cat === k).length })).filter((x) => x.v);
+    const R = 92, r0 = 68, cx = 100, cy = 100, gap = cnt.length > 1 ? 0.012 : 0;
+    let a = -Math.PI / 2;
+    const P = (ang, rr) => `${(cx + rr * Math.cos(ang)).toFixed(2)} ${(cy + rr * Math.sin(ang)).toFixed(2)}`;
+    const segs = cnt.map((x) => {
+      const sw = x.v / tot * Math.PI * 2, a0 = a + gap, a1 = a + sw - gap, mid = a + sw / 2; a += sw;
+      const big = a1 - a0 > Math.PI ? 1 : 0;
+      const d = cnt.length === 1 ? `M ${P(-Math.PI / 2, R)} A ${R} ${R} 0 1 1 ${P(Math.PI * 1.5 - 0.0001, R)} L ${P(Math.PI * 1.5 - 0.0001, r0)} A ${r0} ${r0} 0 1 0 ${P(-Math.PI / 2, r0)} Z`
+        : `M ${P(a0, R)} A ${R} ${R} 0 ${big} 1 ${P(a1, R)} L ${P(a1, r0)} A ${r0} ${r0} 0 ${big} 0 ${P(a0, r0)} Z`;
+      const dx = (4 * Math.cos(mid)).toFixed(2), dy = (4 * Math.sin(mid)).toFixed(2);
+      return `<path class="fbseg${FL.cat === x.k ? ' sel' : ''}" data-cat="${x.k}" data-n="${esc(x.n)}" data-v="${x.v}" data-p="${pct(x.v, tot)}" style="fill:var(--fbc-${x.k});--dx:${dx}px;--dy:${dy}px" d="${d}"><title>${esc(x.n)}：${x.v} 則（${pct(x.v, tot)}%）</title></path>`;
+    }).join('');
+    const sel = FL.cat ? cnt.find((x) => x.k === FL.cat) : null;
+    const c1 = sel ? sel.n : '總則數', c2 = sel ? pct(sel.v, tot) + '%' : String(tot);
+    return `<div class="fbdon"><svg viewBox="0 0 200 200" id="fbDonut" role="img" aria-label="各大類占比">${segs}
+      <text x="100" y="92" class="dc1" id="fbDc1">${esc(c1)}</text><text x="100" y="124" class="dc2" id="fbDc2">${esc(c2)}</text></svg>
+      <ul class="fblgd">${cnt.map((x) => `<li data-cat="${x.k}" class="${FL.cat === x.k ? 'sel' : ''}"><i style="background:var(--fbc-${x.k})"></i><span>${esc(x.n)}</span><b>${x.v}</b><em>${pct(x.v, tot)}%</em></li>`).join('')}</ul></div>`;
+  }
+  /* D 款橫條：細項前 6 名（有選大類時只列該大類的細項）。點一條＝篩到那個細項（再點取消）*/
+  function subBars(rows) {
+    const m = {};
+    rows.forEach((r) => { if (!r.sub) return; const k = r.cat + '/' + r.sub; m[k] = (m[k] || 0) + 1; });
+    const list = Object.entries(m).sort((x, y) => y[1] - x[1]).slice(0, 6);
+    if (!list.length) return '<div class="fbempty">沒有選細項的反饋</div>';
+    const mx = list[0][1], tot = rows.length;
+    return `<div class="fbhb" id="fbSubBars">${list.map(([k, v]) => { const [c, sb] = k.split('/');
+      return `<button type="button" class="hb${FL.cat === c && FL.sub === sb ? ' sel' : ''}" data-cat="${c}" data-sub="${sb}" title="${esc(CATN[c])}・${esc(SUBN[k] || sb)}：${v} 則（${pct(v, tot)}%）"><span class="hn">${esc(SUBN[k] || sb)}</span><span class="hv">${v}・${pct(v, tot)}%</span><span class="tr"><i style="width:${(v / mx * 100).toFixed(1)}%;background:linear-gradient(90deg,color-mix(in srgb,var(--fbc-${c}) 55%,transparent),var(--fbc-${c}))"></i></span></button>`; }).join('')}</div>`;
+  }
+  /* C 款直條：期間內每天則數（沒有就 0）；虛線＝平均、只標最高那根。點某天＝只看那天（再點取消）*/
+  function dayBars(rows, rg) {
+    const days = []; for (let d = rg.from; d <= rg.to && days.length < 400; d = shiftDay(d, 1)) days.push(d);
+    const m = {}; rows.forEach((r) => { const d = dayOf(r.created); m[d] = (m[d] || 0) + 1; });
+    const mx = Math.max(1, ...days.map((d) => m[d] || 0)), avg = rows.length / Math.max(1, days.length), top = days.reduce((b, d) => ((m[d] || 0) > (m[b] || 0) ? d : b), days[0]);
+    const lblEvery = Math.max(1, Math.ceil(days.length / 8));
+    return `<div class="fbvb" id="fbDayBars"><div class="plot">${days.map((d, i) => { const v = m[d] || 0;
+      return `<button type="button" class="vb${FL.day === d ? ' sel' : ''}" data-day="${d}" data-v="${v}" title="${d}：${v} 則（${pct(v, rows.length)}%）" aria-label="${d} ${v} 則"><span class="col"><i style="height:${(v / mx * 100).toFixed(1)}%">${d === top && v ? `<em>${v}</em>` : ''}</i></span></button>`; }).join('')}<span class="avgl" style="bottom:${(avg / mx * 100).toFixed(1)}%" title="平均每天 ${avg.toFixed(1)} 則"></span></div>
+      <div class="xl">${days.map((d, i) => `<span>${i % lblEvery === 0 ? `${+d.slice(5, 7)}/${+d.slice(8)}` : ''}</span>`).join('')}</div></div>`;
+  }
   function paintAdmin(el) {
     const j = last || {};
-    const fbAll = j.feedback || [], rq = j.requests || [];
+    const fbAll = (j.feedback || []).map(norm), rq = j.requests || [];
     unread = fbAll.filter((x) => x.status === 'new').length; paintDot();
-    const fb = fbAll.filter((x) => (!FL.cat || x.cat === FL.cat) && (!FL.st || x.status === FL.st));
+    const rg = rangeNow();
+    if (FL.day && (FL.day < rg.from || FL.day > rg.to)) FL.day = '';
+    const inR = fbAll.filter((x) => { const d = dayOf(x.created); return d >= rg.from && d <= rg.to; });
+    const byDay = inR.filter((x) => !FL.day || dayOf(x.created) === FL.day);              // 甜甜圈、細項橫條、小卡吃這個（有選某天就只算那天）
+    const byCat = inR.filter((x) => (!FL.cat || x.cat === FL.cat) && (!FL.sub || x.sub === FL.sub));   // 每日直條吃這個（有選類別就只畫那類每天幾則）
+    const fb = byDay.filter((x) => (!FL.cat || x.cat === FL.cat) && (!FL.sub || x.sub === FL.sub) && (!FL.st || x.status === FL.st));
+    const handled = byDay.filter((x) => x.status !== 'new').length, unreadR = byDay.length - handled;
+    const sm = {}; byDay.forEach((r) => { if (r.sub) { const k = r.cat + '/' + r.sub; sm[k] = (sm[k] || 0) + 1; } });
+    const topSub = Object.entries(sm).sort((a, b) => b[1] - a[1])[0];
     const rNew = rq.filter((x) => x.status === 'new').length;
     const sel = (id, cur, opts) => `<select id="${id}">${opts.map(([k, n]) => `<option value="${k}"${k === cur ? ' selected' : ''}>${n}</option>`).join('')}</select>`;
-    el.innerHTML = `<div class="sat"><h2>意見反饋${unread ? `<span class="fbdot big">${unread} 未讀</span>` : ''}</h2><a href="#admin/notices">公告管理</a><button type="button" id="fbReload">重新整理</button></div>
-      <p class="muted">使用者在右下角客服面板送出的反饋只存在本站伺服器，不寄信、只有管理者看得到。處理完按「標為已處理」；垃圾或測試留言可以刪除。</p>
-      <div class="card"><div class="fbflt"><h3>反饋列表（共 ${fbAll.length} 筆，顯示 ${fb.length}）</h3>
-        <label>類別 ${sel('fbFCat', FL.cat, [['', '全部'], ...CATS])}</label>
+    const subList = FL.cat ? ((TREE.find((x) => x[0] === FL.cat) || [])[2] || []) : [];
+    const chips = [FL.cat && ['cat', CATN[FL.cat] + (FL.sub ? '・' + (SUBN[FL.cat + '/' + FL.sub] || FL.sub) : '')], FL.day && ['day', FL.day], FL.st && ['st', FL.st === 'new' ? '未讀' : '已處理']].filter(Boolean)
+      .map(([k, t]) => `<span class="fbchip" data-clr="${k}"><b>${esc(t)}</b><button type="button" aria-label="取消這個篩選" title="取消這個篩選">×</button></span>`).join('');
+    const rtxt = rg.from === rg.to ? rg.from : rg.from + '～' + rg.to;
+    el.innerHTML = `<div class="sat"><h2>意見反饋${unread ? `<span class="fbdot big">${unread} 未讀</span>` : ''}</h2>
+        ${window.RangePick ? window.RangePick.html({ id: 'fbRange', options: [['today', '今天'], ['7', '近 7 天'], ['30', '近 30 天'], ['90', '近 90 天'], ['custom', '自訂起訖']], value: RG.v, from: rg.from, to: rg.to, max: todayTpe() }) : ''}
+        <a href="#admin/notices">公告管理</a><button type="button" id="fbReload">重新整理</button></div>
+      <p class="muted">使用者在右下角客服面板送出的反饋只存在本站伺服器，不寄信、只有管理者看得到。<b>怎麼用：</b>先看「最常見細項」與甜甜圈哪一塊最大＝這段期間大家最卡在哪；點扇區或橫條，下面列表只剩那一類，逐則處理完按「標為已處理」。直條突然變高的那天點下去，通常是當天某個改版出了問題。</p>
+      <div class="fbkpi" id="fbKpi">
+        <div class="k"><span>期間總則數</span><b id="fbKTot">${byDay.length}</b><small>${esc(FL.day || rtxt)}</small></div>
+        <div class="k"><span>未讀</span><b id="fbKNew">${unreadR}</b><small>全部未讀 ${unread} 則</small></div>
+        <div class="k"><span>已處理率</span><b id="fbKDone">${byDay.length ? pct(handled, byDay.length) + '%' : '—'}</b><small>${handled}／${byDay.length} 則</small></div>
+        <div class="k"><span>最常見細項</span><b id="fbKTop" class="sm">${topSub ? esc(SUBN[topSub[0]] || topSub[0]) : '—'}</b><small>${topSub ? esc(CATN[topSub[0].split('/')[0]]) + '・' + topSub[1] + ' 則' : '還沒有選細項的反饋'}</small></div>
+      </div>
+      <div class="fbstat">
+        <div class="card" id="fbCatCard"><h3>哪一類最多？</h3><p class="muted">滑過看占比；點扇區或右邊橫條，下面列表只留那一類（再點一次取消）。</p>
+          <div class="fbcatw">${donut(byDay)}<div class="fbsubc"><h4>細項前幾名${FL.cat ? '（' + esc(CATN[FL.cat]) + '）' : ''}</h4>${subBars(FL.cat ? byDay.filter((x) => x.cat === FL.cat) : byDay)}</div></div></div>
+        <div class="card" id="fbDayCard"><h3>每天收到幾則？</h3><p class="muted">${FL.cat ? '只算「' + esc(CATN[FL.cat]) + '」' : '全部類別'}；虛線＝平均。點某天的直條，上面統計與下面列表只看那天。</p>${dayBars(byCat, rg)}</div>
+      </div>
+      <div class="card"><div class="fbflt"><h3>反饋列表（期間 ${inR.length} 筆，顯示 ${fb.length}）</h3>${chips}
+        <label>大類 ${sel('fbFCat', FL.cat, [['', '全部'], ...CATS])}</label>
+        <label>細項 ${sel('fbFSub', FL.sub, [['', '全部'], ...subList])}</label>
         <label>狀態 ${sel('fbFSt', FL.st, [['', '全部'], ['new', '未讀'], ['handled', '已處理']])}</label></div>
-        ${fb.length ? `<table id="fbTable"><thead><tr><th>時間（台北）</th><th>類別</th><th>內容</th><th>聯絡 email</th><th>頁面網址／瀏覽器</th><th>狀態</th><th></th></tr></thead><tbody>${fb.map((r) => `<tr data-id="${esc(r.id)}" class="${r.status === 'new' ? 'unread' : ''}">
-          <td>${dstr(r.created)}</td><td>${esc(CATN[r.cat] || r.cat)}</td><td class="fbbody">${esc(r.body)}</td>
+        ${fb.length ? `<table id="fbTable"><thead><tr><th>時間（台北）</th><th>類別</th><th>內容</th><th>聯絡 email</th><th>頁面網址／瀏覽器</th><th>狀態</th><th></th></tr></thead><tbody>${fb.map((r) => `<tr data-id="${esc(r.id)}" data-cat="${esc(r.cat)}" data-sub="${esc(r.sub)}" class="${r.status === 'new' ? 'unread' : ''}">
+          <td>${dstr(r.created)}</td><td class="fbcatc">${catBadge(r)}</td><td class="fbbody">${esc(r.body)}</td>
           <td>${r.contact ? `<a data-gmail href="${esc(gmail(r.contact, '回覆：台股資金輪動意見反饋'))}" target="_blank" rel="noopener">${esc(r.contact)}</a>` : '<span class="muted">（未留）</span>'}${r.member ? '<br><small class="muted">會員' + (r.name ? '：' + esc(r.name) : '') + '</small>' : '<br><small class="muted">訪客</small>'}</td>
           <td><small>${r.url ? `<a href="${esc(r.url)}" target="_blank" rel="noopener">${esc(r.url)}</a>` : ''}<br>${esc(r.ua || '')}</small></td>
           <td><span class="st ${r.status === 'new' ? 'new' : ''}">${r.status === 'new' ? '未讀' : '已處理'}</span></td>
-          <td class="fbact"><button type="button" data-kind="feedback" data-id="${esc(r.id)}" data-st="${r.status === 'new' ? 'handled' : 'new'}">${r.status === 'new' ? '標為已處理' : '改回未讀'}</button><button type="button" class="fbdel" data-del="${esc(r.id)}">刪除</button></td></tr>`).join('')}</tbody></table>` : `<p class="muted" id="fbEmpty">${fbAll.length ? '沒有符合篩選的反饋。' : '還沒有反饋。'}</p>`}</div>
+          <td class="fbact"><button type="button" data-kind="feedback" data-id="${esc(r.id)}" data-st="${r.status === 'new' ? 'handled' : 'new'}">${r.status === 'new' ? '標為已處理' : '改回未讀'}</button><button type="button" class="fbdel" data-del="${esc(r.id)}">刪除</button></td></tr>`).join('')}</tbody></table>` : `<p class="muted" id="fbEmpty">${inR.length ? '沒有符合篩選的反饋。' : '這段期間還沒有反饋。'}</p>`}</div>
       <div class="card"><h3>訂閱申請（${rq.length} 筆，未處理 ${rNew}）</h3><p class="muted">金流尚未串接：確認付款後到「會員管理」替他設定方案與到期日，再把這筆標成「已開通」。</p>
         ${rq.length ? `<table id="rqTable"><thead><tr><th>時間（台北）</th><th>會員</th><th>方案</th><th>週期</th><th>聯絡 email</th><th>備註</th><th>狀態</th><th></th></tr></thead><tbody>${rq.map((r) => `<tr data-id="${esc(r.id)}">
           <td>${dstr(r.created)}</td><td>${esc(r.name || '')}<br><small class="muted">${esc(r.email || '')}</small></td><td>${esc(r.plan)}</td><td>${r.period === 'year' ? '年繳' : '月繳'}</td><td>${esc(r.contact)}</td><td>${esc(r.note || '')}</td>
           <td><span class="st ${r.status === 'new' ? 'new' : ''}">${r.status === 'new' ? '待處理' : '已開通'}</span></td>
           <td><button type="button" data-kind="request" data-id="${esc(r.id)}" data-st="${r.status === 'new' ? 'done' : 'new'}">${r.status === 'new' ? '標為已開通' : '改回待處理'}</button></td></tr>`).join('')}</tbody></table>` : '<p class="muted">還沒有人申請。</p>'}</div>`;
+    const re = () => paintAdmin(el);
     el.querySelector('#fbReload').onclick = () => renderFeedbackAdmin(el);
-    el.querySelector('#fbFCat').onchange = (e) => { FL.cat = e.target.value; paintAdmin(el); };
-    el.querySelector('#fbFSt').onchange = (e) => { FL.st = e.target.value; paintAdmin(el); };
+    if (window.RangePick) window.RangePick.bind(el.querySelector('#fbRange'), { onChange: ({ value, from, to }) => {
+      RG.v = value;
+      if (value === 'custom') { const r2 = rangeNow(); RG.from = from || r2.from; RG.to = to && to >= RG.from ? to : todayTpe(); }
+      FL.day = ''; re(); } });
+    el.querySelector('#fbFCat').onchange = (e) => { FL.cat = e.target.value; FL.sub = ''; re(); };
+    el.querySelector('#fbFSub').onchange = (e) => { FL.sub = e.target.value; re(); };
+    el.querySelector('#fbFSt').onchange = (e) => { FL.st = e.target.value; re(); };
+    el.querySelectorAll('.fbchip button').forEach((b) => { b.onclick = () => { const k = b.parentElement.dataset.clr; if (k === 'cat') { FL.cat = ''; FL.sub = ''; } else FL[k] = ''; re(); }; });
+    const pickCat = (k) => { if (FL.cat === k && !FL.sub) FL.cat = ''; else FL.cat = k; FL.sub = ''; re(); };
+    el.querySelectorAll('#fbDonut .fbseg, .fblgd li').forEach((s) => { s.onclick = () => pickCat(s.dataset.cat); });
+    /* 滑過：中心字換成該類名稱與 %（A 款）；滑過圖例同步強調對應扇區 */
+    const dc1 = el.querySelector('#fbDc1'), dc2 = el.querySelector('#fbDc2');
+    if (dc1) {
+      const c0 = [dc1.textContent, dc2.textContent];
+      const hl = (k, on) => { const s = el.querySelector(`#fbDonut .fbseg[data-cat="${k}"]`); if (!s) return; s.classList.toggle('hov', on); dc1.textContent = on ? s.dataset.n : c0[0]; dc2.textContent = on ? s.dataset.p + '%' : c0[1]; };
+      el.querySelectorAll('#fbDonut .fbseg, .fblgd li').forEach((s) => { s.onmouseenter = () => hl(s.dataset.cat, true); s.onmouseleave = () => hl(s.dataset.cat, false); });
+    }
+    el.querySelectorAll('#fbSubBars .hb').forEach((b) => { b.onclick = () => { const c = b.dataset.cat, sb = b.dataset.sub; if (FL.cat === c && FL.sub === sb) FL.sub = ''; else { FL.cat = c; FL.sub = sb; } re(); }; });
+    el.querySelectorAll('#fbDayBars .vb').forEach((b) => { b.onclick = () => { FL.day = FL.day === b.dataset.day ? '' : b.dataset.day; re(); }; });
     el.querySelectorAll('button[data-kind]').forEach((b) => {
       b.onclick = async () => {
         b.disabled = true;

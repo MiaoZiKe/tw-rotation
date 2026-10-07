@@ -112,6 +112,7 @@
 #v-etf .etag.lime{color:var(--lime)} #v-etf .etag.up{color:var(--rise)} #v-etf .etag.ink3{color:var(--ink-3)}
 #v-etf .up{color:var(--rise)} #v-etf .down{color:var(--fall)} #v-etf .flat{color:var(--ink-2)}
 #v-etf .etfmore{margin-top:10px;text-align:center}
+#v-etf .etfmore .btn[hidden],#v-etf .incmore .btn[hidden]{display:none}
 /* ---- 三張前 5 名：同高並排 */
 #v-etf .etftri{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:var(--sp-3);margin-bottom:var(--sp-3);align-items:stretch}
 #v-etf .etftri>.card{margin:0;display:flex;flex-direction:column;min-width:0}
@@ -194,7 +195,9 @@
 /* Andy 10-05：「所有欄位文字置中」（DECISIONS #321 同一條：欄位內文字一律置中、無例外） */
 #v-etf table.et th,#v-etf table.et td,#v-etf table.et th:first-child,#v-etf table.et td:first-child{text-align:center}
 #v-etf .rkhd span,#v-etf .rkhd span:nth-child(n+3),#v-etf .rkrow .v,#v-etf .rkrow .v2,#v-etf .rkrow .rk{text-align:center}
-#v-etf .etfc dt,#v-etf .etfc dd{text-align:center}
+#v-etf .etfc dt{text-align:left} #v-etf .etfc dd{text-align:right;font-variant-numeric:tabular-nums}
+#v-etf .etfc .h .fq.fqtag{background:var(--fc);color:var(--ontop,#0b1220);flex:none;font-size:11.5px;line-height:17px;padding:1px 7px;border-radius:999px;font-weight:700;white-space:nowrap}
+#v-etf .etfc .etag{flex:none}
 /* 2026-10-06（Andy：「分頁為何分開了，Follow 產業 MAP」）：資料夾式——頁籤底線＝內容框上框線，選中頁籤疊在線上；分類切換影響的內容全包在框內 */
 #v-etf .etfbody{border:1px solid var(--line);border-radius:0 var(--r-lg,14px) var(--r-lg,14px) var(--r-lg,14px);background:var(--panel);padding:var(--sp-3);position:relative;z-index:1}
 #v-etf .etfbody>#etfRetCard,#v-etf .etfbody>#etfListCard{border:0;border-top:1px solid var(--line);border-radius:0;background:transparent;box-shadow:none;margin:var(--sp-3) 0 0;padding:var(--sp-3) 2px 0}
@@ -226,6 +229,59 @@
 #v-etf .nmw .note{flex:none}
 #v-etf table.et td.nmc,#v-etf table.et th.nmc{text-align:left}
 #v-etf table.et.fullw{width:100%}
+/* ---- 2026-10-07 配息頻率色（Andy：「不同週期配息的顏色需要有差異才能直觀看得出來」）。
+   不准用紅綠（那是漲跌色）；月配 青綠、雙月配 紫、季配 琥珀、半年配 藍、年配 灰。深淺主題各一組（淺色加深到對白底 ≥ 4.5:1）。
+   卡片牆徽章＋左色條、現金流試算的徽章與 12 格月曆都用這一套；寫進 docs/style_guide.md。 */
+#v-etf{--fq-m:#2dd4bf;--fq-b:#c084fc;--fq-q:#fbbf24;--fq-h:#60a5fa;--fq-y:#9ca3af}
+:root[data-theme="light"] #v-etf{--fq-m:#0f766e;--fq-b:#7e22ce;--fq-q:#a16207;--fq-h:#1d4ed8;--fq-y:#4b5563}
+#v-etf .fqc-m{--fc:var(--fq-m)} #v-etf .fqc-b{--fc:var(--fq-b)} #v-etf .fqc-q{--fc:var(--fq-q)} #v-etf .fqc-h{--fc:var(--fq-h)} #v-etf .fqc-y{--fc:var(--fq-y)}
+#v-etf .etfc .fq[class*="fqc-"],#v-etf .fqb{color:var(--fc);background:color-mix(in srgb,var(--fc) 16%,transparent)}
+#v-etf .fqb{display:inline-block;padding:0 6px;border-radius:999px;font-size:11.5px;line-height:17px;white-space:nowrap;font-family:inherit;font-weight:600}
+#v-etf .etfc.fqbar{--tc:var(--fc)}
+#v-etf .fqhd{grid-column:1/-1;display:flex;align-items:center;gap:8px;margin:8px 0 0;font-size:14px;font-weight:700;color:var(--ink);white-space:nowrap}
+#v-etf .fqhd:first-child{margin-top:0}
+#v-etf .fqhd i{width:10px;height:10px;border-radius:3px;background:var(--fc);flex:none}
+#v-etf .fqhd small{font-weight:400;color:var(--ink-3);font-size:12px}
+/* ---- 現金流試算（2026-10-07） */
+#v-etf .etfcatbar .etfinctab{flex:none;margin-left:6px}
+#v-etf #etfInc .incdisc{margin:0 0 10px;font-size:12px;line-height:17px;color:var(--ink-3)}
+#v-etf .incctl{display:flex;flex-wrap:wrap;gap:10px 18px;align-items:center;margin-bottom:12px}
+#v-etf .incctl .grp{display:flex;align-items:center;gap:6px;flex-wrap:wrap;min-width:0;max-width:100%}
+#v-etf .incctl .grp>b{font-size:13px;color:var(--ink-2);font-weight:600;white-space:nowrap}
+#v-etf .incctl input[type=number]{width:104px;height:30px;border-radius:8px;border:1px solid var(--line-2);background:var(--panel-3);color:var(--ink);padding:0 8px;font:13px var(--mono);box-sizing:border-box}
+#v-etf .incctl label.chk{display:flex;align-items:center;gap:6px;font-size:13px;color:var(--ink-2);cursor:pointer}
+#v-etf .incsec{border-top:1px solid var(--line);padding-top:12px;margin-top:12px}
+#v-etf .incq{font-size:13px;color:var(--ink-2);margin:0 0 8px;line-height:1.55}
+#v-etf .incq b{color:var(--ink)}
+#v-etf #incBar{height:340px}
+#v-etf .inctw{overflow-x:auto;max-width:100%;-webkit-overflow-scrolling:touch;margin-top:8px}
+#v-etf table.inct{width:100%;min-width:900px;border-collapse:separate;border-spacing:0;font-size:13px}
+#v-etf table.inct th{color:var(--ink-3);font-weight:600;padding:6px;border-bottom:1px solid var(--line);white-space:nowrap;text-align:center;background:var(--panel)}
+#v-etf table.inct td{padding:6px;border-bottom:1px solid var(--line);font-family:var(--mono);white-space:nowrap;text-align:center}
+#v-etf table.inct td.nm,#v-etf table.inct th.nm{position:sticky;left:0;z-index:1;background:var(--panel);text-align:left;font-family:inherit;max-width:190px;overflow:hidden;text-overflow:ellipsis;cursor:pointer}
+#v-etf table.inct tr[data-code]{cursor:pointer}
+#v-etf table.inct tr[data-code]:hover td,#v-etf table.inct tr.on td{background:var(--panel-3)}
+#v-etf table.inct td.nm .cd{font:12px var(--mono);color:var(--ink-3);margin:0 4px}
+#v-etf .incmore{text-align:center;margin-top:8px}
+#v-etf .combos{display:flex;flex-direction:column;gap:10px}
+#v-etf .combo{border:1px solid var(--line);border-radius:10px;background:var(--panel-2);padding:10px 12px;min-width:0}
+#v-etf .combo .ch{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;margin-bottom:6px}
+#v-etf .combo .ch .rk{font:700 16px var(--mono);color:var(--amber)}
+#v-etf .combo .kp{display:flex;gap:6px 14px;flex-wrap:wrap;font-size:12.5px;color:var(--ink-3)}
+#v-etf .combo .kp b{font:700 14px var(--mono);color:var(--ink);margin-left:4px}
+#v-etf .combo .mem{display:flex;flex-wrap:wrap;gap:6px 14px;margin:4px 0 8px;font-size:13px}
+#v-etf .combo .mem button{display:flex;align-items:center;gap:6px;background:none;border:0;padding:0;color:var(--ink);font:inherit;cursor:pointer;white-space:nowrap;max-width:100%;min-width:0}
+#v-etf .combo .mem .mn{overflow:hidden;text-overflow:ellipsis;min-width:0}
+#v-etf .combo .mem button:hover .mn{text-decoration:underline}
+#v-etf .combo .mem .ml{font-family:var(--mono);color:var(--ink-2)}
+#v-etf .mgrid{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:4px}
+#v-etf .mcell{border-radius:6px;padding:3px 2px;text-align:center;background:color-mix(in srgb,var(--fc,var(--ink-3)) 18%,var(--panel-3));border:1px solid color-mix(in srgb,var(--fc,var(--ink-3)) 55%,transparent);min-width:0;overflow:hidden}
+#v-etf .mcell small{display:block;font-size:11px;color:var(--ink-3);line-height:14px}
+#v-etf .mcell b{display:block;font:700 12px var(--mono);line-height:16px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--ink)}
+#v-etf .mcell span{display:block;font:11px var(--mono);color:var(--ink-2);line-height:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#v-etf .inclg{display:flex;flex-wrap:wrap;gap:6px 10px;font-size:12px;color:var(--ink-3);margin:2px 0 8px;align-items:center}
+@media (max-width:640px){#v-etf .mgrid{grid-template-columns:repeat(6,minmax(0,1fr))}#v-etf #incBar{height:300px}
+  #v-etf .incctl{gap:8px}#v-etf .etfcatbar .etfinctab{margin-left:0}#v-etf #etfInc .row.spread{flex-wrap:wrap}}
 @media (max-width:1100px){#v-etf .etftri{grid-template-columns:1fr}#v-etf .calwrap,#v-etf .retcharts{grid-template-columns:1fr}
   #v-etf .callist{height:320px}#v-etf .etfcatbar{flex-wrap:wrap}#v-etf .etfcatbar .seg{overflow-x:auto;max-width:100%}
   #v-etf .row.spread{flex-wrap:wrap}#v-etf #etfRetCtl{flex-wrap:wrap;white-space:normal;row-gap:6px}#v-etf .cmpmsg:empty{display:none}}
@@ -336,9 +392,11 @@
 </div>
 
 <div class="etfcatbar" id="etfCatBar">
-  <div class="nbsw etfcats" id="etfCatSeg" role="tablist" aria-label="ETF 分類"></div><span class="sp"></span>
+  <div class="nbsw etfcats" id="etfCatSeg" role="tablist" aria-label="ETF 分類"></div>
+  <div class="nbsw etfinctab" id="etfIncSeg" role="tablist" aria-label="ETF 工具"><button data-v="inc" role="tab" type="button">現金流試算</button></div><span class="sp"></span>
 </div>
 <div class="etfbody" id="etfBody">
+<div id="etfInc" hidden></div>
 
 <div class="etftri" id="etfTri" hidden>
   <div class="card" id="etfPopCard">
@@ -399,7 +457,7 @@
       <select id="etfSort" class="etsel"><option value="tv">成交值</option><option value="size">規模</option><option value="yield">殖利率</option><option value="chg">今日漲跌</option></select></div></div>
   ${how('etflist', '', [
     '<b>分類</b>（依序判斷，先符合先歸類）：槓桿反向（代號尾 L/R 或名稱含 正2／反1）→ 債券型（尾 B 或名稱含「債」）→ 其他（期貨／商品／貨幣，尾 U 或「期」開頭）→ 主動式（尾 A）→ 市值型（名稱含 台灣50、台50、中型100、加權、MSCI台灣、摩台）→ 配息型（名稱含 高股息／高息／股息／收益／優息…，或近 400 天除息 ≥ 4 次）→ 其餘股票型為主題型。',
-    '<b>殖利率</b>＝近 12 個月現金配息合計 ÷ 最新收盤。<b>配息頻率</b>＝近 400 天除息次數（≥10 月配、≥3 季配、2 半年配、1 年配）。',
+    '<b>殖利率</b>＝近 12 個月現金配息合計 ÷ 最新收盤。<b>配息頻率</b>（分類旁的彩色小徽章）＝近 400 天相鄰兩次除息的間隔中位數（約 1 個月＝月配、2 個月＝雙月配、3 個月＝季配、半年＝半年配、只有 1 次＝年配）；沒有配息的不標。',
     '<b>規模</b>＝集保受益權單位數 × 收盤（估算值，不是投信公告的基金淨資產）。<b>成交值</b>＝近 20 日平均。',
     '所以：先用上方分類切出同一型，再用「殖利率」或「規模」排序比較；點卡片進個股頁看 K 線與除權息。'])}
   <span id="etfFbNote"></span>
@@ -417,8 +475,12 @@
     const seg = $('#etfCatSeg');
     seg.innerHTML = CATS.filter((c) => cnt[c])
       .map((c) => `<button data-v="${c}" role="tab">${c}<em>${cnt[c]}</em></button>`).join('');
-    $$('button', seg).forEach((b) => { b.classList.toggle('on', b.dataset.v === S.cat); b.setAttribute('aria-selected', b.dataset.v === S.cat);
-      b.onclick = () => { if (S.cat === b.dataset.v) return; S.cat = b.dataset.v; S.shown = PAGE; drawAll(); }; });
+    const catOn = S.view !== 'inc';
+    $$('button', seg).forEach((b) => { const on = catOn && b.dataset.v === S.cat; b.classList.toggle('on', on); b.setAttribute('aria-selected', on);
+      b.onclick = () => { if (catOn && S.cat === b.dataset.v) return; S.view = 'cat'; S.cat = b.dataset.v; S.shown = PAGE; drawAll(); }; });
+    const ib = $('#etfIncSeg button');
+    if (ib) { ib.classList.toggle('on', !catOn); ib.setAttribute('aria-selected', !catOn);
+      ib.onclick = () => { if (S.view === 'inc') return; S.view = 'inc'; drawAll(); }; }
   }
   /* ---- 期間（2026-10-06 Andy：「週期切換……可以選擇時段如圖二那樣，切換到不同時間週期也可以在旁邊顯示對應年限日期」）
      從分類列最右邊搬到「報酬比較」標題列（只留一套）；元件是共用的 site/rangepick.js（管理區流量觀測同款）。
@@ -451,7 +513,7 @@
           if (from) { S.cfrom = from; LS.set('tw.etf.cfrom', from); }
           S.cto = to || todayTW();
         }
-        drawRetTop(); drawRet();
+        if (S.view === 'inc') drawInc(); else { drawRetTop(); drawRet(); }
       } });
     }
     window.RangePick.set($('#etfRng'), { value: S.per, from: r.from, to: r.to });
@@ -493,21 +555,36 @@
     const fq = it.freq || '—';
     // 殖利率／配息頻率還沒有資料時寫「—」（不拿 0 冒充）；確定不配息的寫「不配息」
     const pend = '<span class="na">—</span>';
-    return `<button type="button" class="etfc t-${CAT_TONE[it.cat] || 'ink3'}" data-code="${esc(it.code)}" title="進 ${esc(it.name)} 個股頁">
+    /* 2026-10-07 Andy：「月 雙月 季配 標註在配息型旁邊」「把配息頻率那欄位拿掉」「沒有配息或沒有殖利率就不用特別寫出來」
+       → 頻率改成右上分類徽章旁的彩色小徽章；沒有殖利率（空／0）的不放頻率、殖利率那列留白佔位（同排卡片等高）。 */
+    const hasY = it.yield_ttm != null && it.yield_ttm > 0;
+    const fk = hasY ? FQK[it.freq] || '' : '';
+    return `<button type="button" class="etfc t-${CAT_TONE[it.cat] || 'ink3'}${fk && it.cat === '配息型' ? ` fqbar fqc-${fk}` : ''}" data-fq="${esc(it.freq || '')}" data-code="${esc(it.code)}" title="進 ${esc(it.name)} 個股頁">
   <div class="h"><span class="nm">${esc(it.name)}</span><span class="cd">${esc(it.code)}</span><span class="sp" style="flex:1"></span>
-    <span class="etag ${CAT_TONE[it.cat] || 'ink3'}">${esc(it.cat)}</span></div>
+    <span class="etag ${CAT_TONE[it.cat] || 'ink3'}">${esc(it.cat)}</span>${hasY && fk ? `<span class="fq fqtag fqc-${fk}">${esc(it.freq)}</span>` : ''}</div>
   <div class="px"><b class="${cls(it.chg_pct)}" data-live="close" data-code="${esc(it.code)}">${it.close != null ? A().fmt.n(it.close, 2) : '—'}</b>
     <span class="${cls(it.chg_pct)}" data-live="chg" data-code="${esc(it.code)}">${it.chg_pct != null ? A().fmt.pct(it.chg_pct, 2) : '—'}</span>
     <span class="sp"></span>${spark(it.code)}</div>
   <dl><dt>成交值${it.tv20 != null ? '（20日均）' : ''}</dt><dd>${yi(it.tv20 != null ? it.tv20 : it.tv)}</dd>
-      <dt>殖利率</dt><dd class="yv">${it.yield_ttm != null ? y : noDiv(it) ? '<span class="na">不配息</span>' : pend}</dd><dt>配息頻率</dt><dd>${it.freq ? `<span class="fq">${esc(fq)}</span>` : noDiv(it) ? '<span class="na">不配息</span>' : pend}</dd><dt>規模（估）</dt><dd>${yi(it.size)}</dd></dl>
+      ${hasY ? `<dt>殖利率</dt><dd class="yv">${y}</dd>` : '<dt class="blank" aria-hidden="true">&nbsp;</dt><dd class="blank" aria-hidden="true">&nbsp;</dd>'}<dt>規模（估）</dt><dd>${yi(it.size)}</dd></dl>
 </button>`;
   }
   function drawList() {
-    const list = items().filter((it) => it.cat === S.cat).sort((a, b) => sortVal(b) - sortVal(a));
+    let list = items().filter((it) => it.cat === S.cat).sort((a, b) => sortVal(b) - sortVal(a));
     $('#etfCount').textContent = `${S.cat} ${list.length} 檔`;
     const g = $('#etfGrid');
-    g.innerHTML = list.slice(0, S.shown).map(cardHTML).join('') || '<div class="etfprep">無資料</div>';
+    /* 2026-10-07 Andy：「配息型這邊幫我用月配 雙月配 季配 半年配等等為組合排序」——只在配息型分組；組內維持原本排序 */
+    const grp = S.cat === '配息型';
+    if (grp) list = list.map((it, i) => ({ it, i })).sort((a, b) => fqRank(a.it.freq) - fqRank(b.it.freq) || a.i - b.i).map((x) => x.it);
+    const shown = list.slice(0, S.shown);
+    if (grp) {
+      const cnt = {}; list.forEach((it) => { const k = fqName(it.freq); cnt[k] = (cnt[k] || 0) + 1; });
+      let html = '', cur = null;
+      shown.forEach((it) => { const k = fqName(it.freq); if (k !== cur) { cur = k;
+        html += `<div class="fqhd${FQK[k] ? ' fqc-' + FQK[k] : ''}" data-fq="${esc(k)}">${FQK[k] ? '<i></i>' : ''}${esc(k)}<small>${cnt[k]} 檔</small></div>`; }
+        html += cardHTML(it); });
+      g.innerHTML = html || '<div class="etfprep">無資料</div>';
+    } else g.innerHTML = shown.map(cardHTML).join('') || '<div class="etfprep">無資料</div>';
     $$('.etfc', g).forEach((c) => { c.onclick = () => A().goStock(c.dataset.code); });
     const more = $('#etfMore'); more.hidden = list.length <= S.shown;
     more.textContent = `顯示更多（還有 ${Math.max(0, list.length - S.shown)} 檔）`;
@@ -904,10 +981,273 @@
     barEl.dataset.series = series.map((x) => x.name).join(',');
   }
 
+  /* ------------------------------------------------------------------ 5. 現金流試算（2026-10-07）
+     Andy：「專門算持有這檔 ETF 配息下來的錢，需要多少張才能配息達到一年 100W……也需要前五名的 ETF 組合搭配，
+     有些是季配息，4 檔搭配也能滿足每個月配息……目的為了讓退休沒工作的人需要現金流」。
+     放成分類列右邊一顆獨立頁籤（不塞進 #etfCatSeg）：它是「工具」不是「分類」——不篩卡片、不出前 5，
+     而且分類頁籤的順序與數量是既有驗收鎖住的（ETF專區1005／財經日曆1006）。
+
+     口徑（全部只用 etf.json 已有的資料，不編數字）：
+     · 每單位配息：配息行事曆（calendar，證交所／櫃買除息紀錄）裡「除息日在近 12 個月內（含已公告未除息）」的現金配息，
+       依「發放月」歸到 1～12 月（錢真正入帳的月份；沒有發放日的用除息月）；同一個月有兩筆只留最新那筆（窗口頭尾重疊時不重算）。
+     · 張數＝無條件進位(年領目標 ÷ (每單位年配息 × 1000))；勾「扣除二代健保」時，每一次發放金額 ≥ 2 萬元的整筆扣 2.11%，
+       張數再往上加到扣完仍達標。投入金額＝張數 × 1000 × 最新收盤。
+     · 殖利率＝每單位年配息 ÷ 最新收盤（當下值）；含息總報酬＝上方期間的含息年化（跟報酬比較同一口徑）。
+     · 組合：候選池＝範圍內的月配／雙月配／季配、近 20 日均成交值 ≥ 2000 萬（避免冷門）、殖利率前 20 檔；
+       窮舉 2～4 檔、只留 12 個月都有配息的組合；每個組合用「缺口最大的月份 → 補這個月最便宜的那檔」貪婪補到每月 ≥ 目標，
+       再逐檔把張數往下壓到剛好不破目標（二分搜尋），任何一檔壓到 0 張的組合丟掉（那是更小的組合）。 */
+  const FQK = { 月配: 'm', 雙月配: 'b', 季配: 'q', 半年配: 'h', 年配: 'y' };
+  const FQ_ORDER = ['月配', '雙月配', '季配', '半年配', '年配'];
+  const fqName = (f) => (FQK[f] ? f : '其他');
+  const fqRank = (f) => { const i = FQ_ORDER.indexOf(f); return i < 0 ? 99 : i; };
+  const fqBadge = (f) => (FQK[f] ? `<span class="fqb fqc-${FQK[f]}">${esc(f)}</span>` : '');
+  const NHI = 0.0211, NHI_MIN = 20000;
+  const INC_Y = [[200000, '20 萬'], [500000, '50 萬'], [1000000, '100 萬'], [2000000, '200 萬']];
+  const INC_M = [[5000, '5000'], [10000, '1 萬'], [20000, '2 萬'], [30000, '3 萬']];
+  const wan = (v) => (v == null ? '—' : v >= 1e8 ? (v / 1e8).toFixed(2) + ' 億' : v >= 1e4 ? (v / 1e4).toFixed(v >= 1e6 ? 0 : 1) + ' 萬' : Math.round(v).toLocaleString());
+  const netOf = (g) => (S.inc.nhi && g >= NHI_MIN ? g * (1 - NHI) : g);
+  /* 每檔 ETF 的「12 個月配息表」：{m: [每單位金額 ×12], sum, n} */
+  function incMonths() {
+    if (S._incM && S._incM.k === S.data) return S._incM.v;
+    const since = yrsAgo(asofD(), 1), out = {};
+    ((S.data && S.data.calendar) || []).forEach((e) => {
+      if (!e || !(e.amt > 0) || e.ex <= since) return;
+      const mo = +String(e.pay || e.ex).slice(5, 7) - 1; if (!(mo >= 0 && mo < 12)) return;
+      const o = out[e.code] || (out[e.code] = { m: Array(12).fill(0), ex: Array(12).fill(''), sum: 0, n: 0 });
+      if (o.ex[mo] && o.ex[mo] > e.ex) return;
+      o.m[mo] = +e.amt; o.ex[mo] = e.ex;
+    });
+    Object.values(out).forEach((o) => { o.sum = o.m.reduce((a, b) => a + b, 0); o.n = o.m.filter((x) => x > 0).length; });
+    S._incM = { k: S.data, v: out };
+    return out;
+  }
+  const scopeOk = (it) => it.cat === '配息型' || (S.inc.scope === 'bond' && it.cat === '債券型');
+  function incPool() {
+    const M = incMonths();
+    return items().filter((it) => scopeOk(it) && it.close > 0 && M[it.code] && M[it.code].sum > 0)
+      .map((it) => ({ it, mm: M[it.code], st: statOf(it) }));
+  }
+  /* 單檔：達到年領目標的最少張數（扣健保時逐張往上加到達標） */
+  function lotsFor(target, mm) {
+    let L = Math.max(1, Math.ceil(target / (mm.sum * 1000)));
+    const net = (L) => mm.m.reduce((a, x) => a + (x > 0 ? netOf(L * x * 1000) : 0), 0);
+    for (let k = 0; k < 5000 && net(L) < target; k++) L++;
+    return { lots: L, net: net(L), gross: L * mm.sum * 1000 };
+  }
+  const trOf = (st) => (st && st.ok ? st.tr_ann : null);
+  const divAnn = (st) => (st && st.ok && st.tr_ann != null && st.price_ann != null ? (1 + st.tr_ann) / (1 + st.price_ann) - 1 : null);
+  function incSingles() {
+    const T = S.inc.year;
+    const R = incPool().map((x) => { const l = lotsFor(T, x.mm); return { ...x, ...l, cost: l.lots * 1000 * x.it.close, y: x.mm.sum / x.it.close, tr: trOf(x.st) }; });
+    const k = S.inc.sort === 'tr' ? 'tr' : 'y';
+    return R.filter((r) => r[k] != null).sort((a, b) => b[k] - a[k]).concat(R.filter((r) => r[k] == null));
+  }
+  /* 組合：貪婪補缺口＋逐檔二分壓張數 */
+  function solveCombo(mem, N) {
+    const k = mem.length, A = mem.map((x) => x.mm.m.map((v) => v * 1000)), P = mem.map((x) => x.it.close * 1000);
+    const lots = Array(k).fill(0);
+    const month = (m, L) => { let s = 0; for (let i = 0; i < k; i++) if (A[i][m] > 0 && L[i] > 0) s += netOf(L[i] * A[i][m]); return s; };
+    const feas = (L) => { for (let m = 0; m < 12; m++) if (month(m, L) < N) return false; return true; };
+    for (let it = 0; it < 60; it++) {
+      let wm = -1, wd = 0;
+      for (let m = 0; m < 12; m++) { const d = N - month(m, lots); if (d > wd) { wd = d; wm = m; } }
+      if (wm < 0) break;
+      let bi = -1, bc = Infinity;
+      for (let i = 0; i < k; i++) if (A[i][wm] > 0 && P[i] / A[i][wm] < bc) { bc = P[i] / A[i][wm]; bi = i; }
+      if (bi < 0) return null;
+      const f = S.inc.nhi ? 1 - NHI : 1;
+      lots[bi] += Math.max(1, Math.ceil(wd / (A[bi][wm] * f)));
+    }
+    if (!feas(lots)) return null;
+    for (let pass = 0; pass < 2; pass++) {
+      for (let i = 0; i < k; i++) {
+        let lo = 0, hi = lots[i];
+        while (lo < hi) { const mid = (lo + hi) >> 1; const t = lots.slice(); t[i] = mid; if (feas(t)) hi = mid; else lo = mid + 1; }
+        lots[i] = hi;
+      }
+    }
+    if (lots.some((l) => l < 1)) return null;
+    const mon = Array.from({ length: 12 }, (_, m) => month(m, lots));
+    const by = Array.from({ length: 12 }, (_, m) => mem.map((x, i) => (A[i][m] > 0 ? netOf(lots[i] * A[i][m]) : 0)));
+    const costs = lots.map((l, i) => l * P[i]), cost = costs.reduce((a, b) => a + b, 0), year = mon.reduce((a, b) => a + b, 0);
+    const trs = mem.map((x) => trOf(x.st));
+    const tr = trs.every((v) => v != null) ? trs.reduce((a, v, i) => a + v * costs[i], 0) / cost : null;
+    return { mem, lots, costs, cost, mon, by, year, min: Math.min(...mon), y: year / cost, tr };
+  }
+  function incCombos() {
+    const N = S.inc.mon, key = [N, S.inc.nhi, S.inc.scope, S.inc.csort, perKey(), !!S.series].join('|');
+    if (S._incC && S._incC.key === key && S._incC.d === S.data) return S._incC.v;
+    const pool = incPool().filter(({ it, mm }) => /^(月配|雙月配|季配)$/.test(it.freq || '') && mm.n >= 3 && (it.tv20 || 0) >= 2e7)
+      .sort((a, b) => b.mm.sum / b.it.close - a.mm.sum / a.it.close).slice(0, 20);
+    const masks = pool.map((x) => x.mm.m.reduce((a, v, i) => a | (v > 0 ? 1 << i : 0), 0));
+    const res = [], n = pool.length, FULL = 4095;
+    const tryC = (ix) => { let u = 0; ix.forEach((i) => { u |= masks[i]; }); if (u !== FULL) return; const r = solveCombo(ix.map((i) => pool[i]), N); if (r) res.push(r); };
+    for (let a = 0; a < n; a++) for (let b = a + 1; b < n; b++) {
+      tryC([a, b]);
+      for (let c = b + 1; c < n; c++) { tryC([a, b, c]); for (let d = c + 1; d < n; d++) tryC([a, b, c, d]); }
+    }
+    const v = S.inc.csort === 'tr' ? res.filter((r) => r.tr != null).sort((a, b) => b.tr - a.tr || a.cost - b.cost) : res.sort((a, b) => a.cost - b.cost);
+    const out = { list: v.slice(0, 5), n: res.length, pool: n };
+    S._incC = { key, d: S.data, v: out };
+    return out;
+  }
+  function incLoad() {
+    if (S.inc) return;
+    const num = (k, d) => { const v = +LS.get(k, ''); return v > 0 ? v : d; };
+    S.inc = { year: num('tw.etf.inc.year', 1000000), mon: num('tw.etf.inc.mon', 20000), sort: LS.get('tw.etf.inc.sort', 'y'),
+      csort: LS.get('tw.etf.inc.csort', 'cost'), scope: LS.get('tw.etf.inc.scope', 'div'), nhi: LS.get('tw.etf.inc.nhi', '') === '1', shown: 20 };
+  }
+  function incSkeleton(box) {
+    const segH = (id, L, v) => `<div class="seg" id="${id}">${L.map(([x, t]) => `<button type="button" data-v="${x}"${String(x) === String(v) ? ' class="on"' : ''}>${t}</button>`).join('')}</div>`;
+    const how = (k, li) => `<div class="howtxt" id="how-${k}" hidden>${A().howHTML('', li)}</div>`;
+    const hbtn = (k, t) => `<button class="howbtn pop" data-how="${k}" data-ttl="${t}" type="button" aria-label="${t}">?</button>`;
+    box.innerHTML = `
+<p class="incdisc" id="incDisc">ⓘ 以下依目前殖利率與價格試算，不代表未來配息與股價；配息可能變動、可能配到本金，僅供參考，不構成投資建議。</p>
+<div class="incctl">
+  <div class="grp"><b>年領目標</b>${segH('incYSeg', INC_Y, S.inc.year)}<input type="number" id="incYear" min="10000" step="10000" value="${S.inc.year}" aria-label="自訂年領目標（元）"></div>
+  <div class="grp"><b>月領目標</b>${segH('incMSeg', INC_M, S.inc.mon)}<input type="number" id="incMon" min="1000" step="1000" value="${S.inc.mon}" aria-label="自訂月領目標（元）"></div>
+  <div class="grp"><b>範圍</b>${segH('incScope', [['div', '配息型'], ['bond', '配息型＋債券型']], S.inc.scope)}</div>
+  <label class="chk"><input type="checkbox" id="incNhi"${S.inc.nhi ? ' checked' : ''}>扣除二代健保（單筆 ≥ 2 萬扣 2.11%）</label>
+  <div class="grp"><span id="etfIncRngBox"></span></div>
+</div>
+<div class="incsec" id="incSingle">
+  <div class="row spread"><h3 data-icon="coins" data-tone="yield">單檔：要幾張才領得到 <small id="incYLab"></small> ${hbtn('incs', '單檔試算怎麼看')}</h3>
+    ${segH('incSort', [['y', '殖利率最高'], ['tr', '含息總報酬最高']], S.inc.sort)}</div>
+  ${how('incs', ['<b>每單位年配息</b>＝近 12 個月（含已公告、還沒除息的）每次現金配息加總；依「發放月」算，同一個月只算最新一筆。',
+    '<b>需要張數</b>＝年領目標 ÷（每單位年配息 × 1000），無條件進位；1 張＝1000 單位。<b>需投入</b>＝張數 × 1000 × 最新收盤。',
+    '<b>殖利率</b>＝每單位年配息 ÷ 最新收盤（當下值）。<b>含息總報酬</b>＝上方期間的含息年化（配息在除息日再投入），<b>期間配息年化</b>＝含息年化扣掉價格年化的部分。',
+    '勾「扣除二代健保」：每次發放 ≥ 2 萬元的整筆扣 2.11%（保守估：把整筆都當股利所得；實際只對股利所得部分扣，收益平準金不扣）。',
+    '所以：殖利率高的需要的本金少，但要對照含息總報酬——殖利率高、總報酬低，代表領到的息有一部分是被股價下跌吃回去的。'])}
+  <p class="incq" id="incSQ"></p>
+  <div id="incBar" class="chart"></div>
+  <div class="inctw"><table class="inct" id="incTbl"></table></div>
+  <div class="incmore"><button type="button" class="btn small" id="incMore" hidden></button></div>
+</div>
+<div class="incsec" id="incCombo">
+  <div class="row spread"><h3 data-icon="calendar" data-tone="yield">組合：每個月都領得到 <small id="incMLab"></small> ${hbtn('incc', '組合怎麼找')}</h3>
+    ${segH('incCSort', [['cost', '投入最少'], ['tr', '含息總報酬最高']], S.inc.csort)}</div>
+  ${how('incc', ['季配 ETF 的除息月份錯開（例：1/4/7/10、2/5/8/11、3/6/9/12），三、四檔搭在一起就能每個月都有錢入帳。',
+    '<b>候選</b>：範圍內的月配／雙月配／季配、近 20 日均成交值 ≥ 2000 萬（太冷門的不列）、殖利率前 20 檔。<b>窮舉</b> 2～4 檔，只留 12 個月都有配息的組合。',
+    '<b>張數</b>：先找缺最多的月份，補「那個月每元配息最便宜」的那檔，直到每個月都 ≥ 目標；再逐檔把張數往下壓到剛好不破目標。每檔至少 1 張。',
+    '<b>12 格月曆</b>：每格＝那個月入帳多少、由哪幾檔配；格子顏色＝主要那檔的配息頻率色。月份依各檔近 12 個月的發放月，未來可能調整。',
+    '<b>投入最少</b>：總投入金額由少到多；<b>含息總報酬最高</b>：各檔含息年化依投入金額加權。',
+    '所以：投入最少的組合是「用最少本金換到每月現金流」，但最低那個月才是你每月實際能保證拿到的數字。'])}
+  <p class="incq" id="incCQ"></p>
+  <p class="incq" style="color:var(--ink-3);font-size:12px">ⓘ 未計入二代健保補充保費（單筆 2 萬以上 2.11%）與所得稅；勾上方「扣除二代健保」會改用扣除後的金額試算。</p>
+  <div class="inclg" id="incLg">${FQ_ORDER.slice(0, 3).map((f) => fqBadge(f)).join('')}<span>格子顏色＝那個月主要配息那檔的頻率</span></div>
+  <div class="combos" id="incCombos"></div>
+</div>`;
+    const setY = (v) => { if (!(v > 0)) return; S.inc.year = Math.round(v); LS.set('tw.etf.inc.year', S.inc.year); S.inc.shown = 20; drawInc(); };
+    const setM = (v) => { if (!(v > 0)) return; S.inc.mon = Math.round(v); LS.set('tw.etf.inc.mon', S.inc.mon); drawInc(); };
+    $$('#incYSeg button').forEach((b) => { b.onclick = () => setY(+b.dataset.v); });
+    $$('#incMSeg button').forEach((b) => { b.onclick = () => setM(+b.dataset.v); });
+    $('#incYear').onchange = (e) => setY(+e.target.value);
+    $('#incMon').onchange = (e) => setM(+e.target.value);
+    $$('#incScope button').forEach((b) => { b.onclick = () => { S.inc.scope = b.dataset.v; LS.set('tw.etf.inc.scope', S.inc.scope); drawInc(); }; });
+    $$('#incSort button').forEach((b) => { b.onclick = () => { S.inc.sort = b.dataset.v; LS.set('tw.etf.inc.sort', S.inc.sort); drawInc(); }; });
+    $$('#incCSort button').forEach((b) => { b.onclick = () => { S.inc.csort = b.dataset.v; LS.set('tw.etf.inc.csort', S.inc.csort); drawInc(); }; });
+    $('#incNhi').onchange = (e) => { S.inc.nhi = e.target.checked; LS.set('tw.etf.inc.nhi', S.inc.nhi ? '1' : ''); drawInc(); };
+    $('#incMore').onclick = () => { S.inc.shown += 30; drawInc(); };
+    if (window.RangePick) {
+      const r = perRange();
+      $('#etfIncRngBox').innerHTML = window.RangePick.html({ id: 'etfIncRng', options: PERS, value: S.per, from: r.from, to: r.to, max: todayTW() });
+      window.RangePick.bind($('#etfIncRng'), { onChange: ({ value, from, to }) => {
+        S.per = value; LS.set('tw.etf.per', S.per);
+        if (value === 'custom') { if (from) { S.cfrom = from; LS.set('tw.etf.cfrom', from); } S.cto = to || todayTW(); }
+        drawInc();
+      } });
+    }
+  }
+  function drawInc() {
+    incLoad();
+    const box = $('#etfInc'); if (!box) return;
+    if (!$('#incTbl', box)) incSkeleton(box);
+    const segOn = (id, v) => $$(`#${id} button`).forEach((b) => b.classList.toggle('on', String(b.dataset.v) === String(v)));
+    segOn('incYSeg', S.inc.year); segOn('incMSeg', S.inc.mon); segOn('incScope', S.inc.scope); segOn('incSort', S.inc.sort); segOn('incCSort', S.inc.csort);
+    $('#incYear').value = S.inc.year; $('#incMon').value = S.inc.mon; $('#incNhi').checked = S.inc.nhi;
+    if ($('#etfIncRng')) { const r = perRange(); window.RangePick.set($('#etfIncRng'), { value: S.per, from: r.from, to: r.to }); }
+    if (S.fallback || !((S.data && S.data.calendar) || []).length) {
+      $('#incSQ').textContent = '尚無配息資料'; $('#incTbl').innerHTML = ''; $('#incCombos').innerHTML = '<div class="etfprep">尚無配息資料</div>'; return;
+    }
+    if (!S.series && !PRE[S.per]) loadSeries().then(() => { if (S.view === 'inc') drawInc(); });
+    drawIncSingle(); drawIncCombos();
+    box.dataset.k = [S.inc.year, S.inc.mon, S.inc.sort, S.inc.csort, S.inc.scope, S.inc.nhi ? 1 : 0, perKey()].join('|');
+  }
+  function drawIncSingle() {
+    const R = incSingles(), T = S.inc.year, pl = perLabel();
+    $('#incYLab').textContent = `年領 ${wan(T)}${S.inc.nhi ? '（扣健保後）' : ''}`;
+    const best = R.slice().sort((a, b) => a.cost - b.cost)[0];
+    $('#incSQ').innerHTML = R.length ? `要每年領 <b>${wan(T)}</b>：${R.length} 檔裡投入最少的是 <b>${esc(best.it.name)}</b>（${best.lots.toLocaleString()} 張、約 <b>${wan(best.cost)}</b>）。`
+      + `依<b>${S.inc.sort === 'tr' ? `${pl}含息總報酬（年化）` : '殖利率'}</b>由高到低排；點橫條或列可在表格裡標出那一檔，點名稱進個股頁。` : '這個範圍沒有近 12 個月有配息的 ETF';
+    const L = R.slice(0, S.inc.shown);
+    const hd = `<thead><tr><th class="nm">ETF</th><th>頻率</th><th>收盤</th><th>每單位年配息</th><th>殖利率</th><th>${esc(pl)}含息總報酬</th><th>期間配息年化</th><th>需要張數</th><th>需投入（台幣）</th><th>年領${S.inc.nhi ? '（扣健保）' : ''}</th></tr></thead>`;
+    const cl = (v) => (v == null ? '<span class="na">—</span>' : `<span class="${cls(v)}">${pct(v, 2)}</span>`);
+    $('#incTbl').innerHTML = hd + '<tbody>' + L.map((r, i) => `<tr data-code="${esc(r.it.code)}" data-lots="${r.lots}" data-cost="${Math.round(r.cost)}">
+      <td class="nm" title="${esc(r.it.name)} ${esc(r.it.code)}"><span class="note">${i + 1}</span> ${esc(r.it.name)}<span class="cd">${esc(r.it.code)}</span></td>
+      <td>${fqBadge(r.it.freq) || '<span class="na">—</span>'}</td><td>${A().fmt.n(r.it.close, 2)}</td><td>${(+r.mm.sum.toFixed(3))} 元</td>
+      <td data-y="${r.y}">${pctU(r.y)}</td><td data-tr="${r.tr == null ? '' : r.tr}">${cl(r.tr)}</td><td>${divAnn(r.st) == null ? '<span class="na">—</span>' : pctU(divAnn(r.st))}</td>
+      <td><b>${r.lots.toLocaleString()}</b> 張</td><td>${wan(r.cost)}</td><td>${wan(r.net)}</td></tr>`).join('') + '</tbody>';
+    $$('#incTbl tr[data-code]').forEach((tr) => { tr.onclick = (ev) => { if (ev.target.closest('td.nm')) { A().goStock(tr.dataset.code); return; } markRow(tr.dataset.code); }; });
+    const more = $('#incMore'); more.hidden = R.length <= S.inc.shown; more.textContent = `顯示更多（還有 ${Math.max(0, R.length - S.inc.shown)} 檔）`;
+    $('#incTbl').dataset.codes = L.map((r) => r.it.code).join(',');
+    if (S.inc.mark) { const t = $(`#incTbl tr[data-code="${S.inc.mark}"]`); if (t) t.classList.add('on'); }
+    // D 款橫條：前 10 名的排序指標
+    const top = R.slice(0, 10), key = S.inc.sort === 'tr' ? 'tr' : 'y', a = A(), B = a.barStyle, CH = a.CH;
+    const el = $('#incBar');
+    if (!top.length || !window.echarts) { holdEmpty('incBar', '無資料'); return; }
+    if (!window.echarts.getInstanceByDom(el)) el.innerHTML = '';   // 已有圖就別清 DOM（清了會把現有實例的畫布砍掉，畫面空白、點不到）
+    a.chart('incBar', {
+      grid: { left: 8, right: 120, top: 8, bottom: 8, containLabel: true },
+      tooltip: { trigger: 'item', formatter: (p) => { const r = top[p.dataIndex]; return `${esc(r.it.name)} ${r.it.code}<br>殖利率 ${pctU(r.y)}・含息總報酬 ${r.tr == null ? '—' : pct(r.tr, 2)}<br>需 ${r.lots.toLocaleString()} 張・${wan(r.cost)}`; } },
+      xAxis: { type: 'value', show: false },
+      yAxis: { type: 'category', inverse: true, data: top.map((r) => `${r.it.name} ${r.it.code}`), ...a.axisStyle, axisLine: { show: false }, axisTick: { show: false },
+        axisLabel: { ...a.axisStyle.axisLabel, fontSize: 12, color: CH.ink2 } },
+      series: [{ type: 'bar', barWidth: B.H, showBackground: true, backgroundStyle: { color: B.track(), borderRadius: B.R },
+        itemStyle: { color: B.grad(true), borderRadius: [0, B.R, B.R, 0] }, emphasis: { itemStyle: { borderColor: CH.ink, borderWidth: 2 } },
+        label: { show: true, position: 'right', color: CH.ink2, fontSize: 11.5, formatter: (p) => { const r = top[p.dataIndex]; return `${key === 'tr' ? pct(r.tr, 1) : pctU(r.y, 1)}｜${r.lots.toLocaleString()} 張`; } },
+        data: top.map((r) => (r[key] == null ? 0 : +(r[key] * 100).toFixed(2))) }],
+    });
+    const ch = window.echarts.getInstanceByDom(el);
+    if (ch) { ch.off('click'); ch.on('click', (p) => markRow(top[p.dataIndex].it.code)); }
+    el.dataset.codes = top.map((r) => r.it.code).join(',');
+  }
+  function markRow(code) {
+    $$('#incTbl tr.on').forEach((t) => t.classList.remove('on'));
+    S.inc.mark = code;
+    const tr = $(`#incTbl tr[data-code="${code}"]`); if (!tr) return;
+    tr.classList.add('on'); tr.scrollIntoView({ block: 'nearest' });
+  }
+  function drawIncCombos() {
+    const N = S.inc.mon, C = incCombos(), box = $('#incCombos');
+    $('#incMLab').textContent = `每月 ≥ ${wan(N)}${S.inc.nhi ? '（扣健保後）' : ''}`;
+    $('#incCQ').innerHTML = C.list.length ? `從 ${C.pool} 檔候選裡找到 ${C.n.toLocaleString()} 種「12 個月都有配息」的 2～4 檔組合，列${S.inc.csort === 'tr' ? `${esc(perLabel())}含息總報酬最高` : '總投入最少'}的前 5 名。`
+      : '這個範圍找不到 12 個月都有配息的組合';
+    const MN = Array.from({ length: 12 }, (_, i) => `${i + 1}月`);
+    box.innerHTML = C.list.map((c, ci) => {
+      const cells = c.mon.map((v, m) => {
+        const by = c.by[m].map((x, i) => [x, i]).filter((x) => x[0] > 0).sort((p, q) => q[0] - p[0]);
+        const main = by.length ? c.mem[by[0][1]].it : null, fk = main ? FQK[main.freq] : '';
+        const who = by.map(([x, i]) => `${c.mem[i].it.code} ${wan(x)}`).join('、');
+        return `<div class="mcell${fk ? ' fqc-' + fk : ''}" data-m="${m + 1}" data-v="${Math.round(v)}" title="${m + 1} 月：${wan(v)}（${esc(who)}）"><small>${MN[m]}</small><b>${wan(v)}</b><span>${by.slice(0, 2).map(([, i]) => esc(c.mem[i].it.code)).join('+')}</span></div>`;
+      }).join('');
+      const mem = c.mem.map((x, i) => `<button type="button" data-code="${esc(x.it.code)}" title="進 ${esc(x.it.name)} 個股頁">${fqBadge(x.it.freq)}<span class="mn">${esc(x.it.name)} ${esc(x.it.code)}</span><span class="ml">${c.lots[i].toLocaleString()} 張・${wan(c.costs[i])}</span></button>`).join('');
+      return `<div class="combo" data-cost="${Math.round(c.cost)}" data-min="${Math.round(c.min)}" data-tr="${c.tr == null ? '' : c.tr}" data-codes="${c.mem.map((x) => x.it.code).join(',')}">
+        <div class="ch"><span class="rk">#${ci + 1}</span><span class="kp"><span>總投入<b>${wan(c.cost)}</b></span><span>年領<b>${wan(c.year)}</b></span><span>最低月<b>${wan(c.min)}</b></span>
+        <span>整體殖利率<b>${pctU(c.y)}</b></span><span>含息總報酬<b>${c.tr == null ? '—' : pct(c.tr, 2)}</b></span></span></div>
+        <div class="mem">${mem}</div><div class="mgrid">${cells}</div></div>`;
+    }).join('') || '<div class="etfprep">無符合的組合</div>';
+    $$('#incCombos .mem button').forEach((b) => { b.onclick = () => A().goStock(b.dataset.code); });
+    box.dataset.n = String(C.list.length);
+  }
+
   /* ------------------------------------------------------------------ 入口 */
   function drawAll() {
     drawCats();
-    const tri = $('#etfTri'); tri.hidden = !!NO_RANK[S.cat];
+    const inc = S.view === 'inc';
+    $('#etfInc').hidden = !inc; $('#etfRetCard').hidden = inc; $('#etfListCard').hidden = inc;
+    const tri = $('#etfTri'); tri.hidden = inc || !!NO_RANK[S.cat];
+    $('#v-etf').dataset.view = inc ? 'inc' : 'cat';
+    if (inc) { drawInc(); return; }
     if (!tri.hidden) { drawPop(); drawRetTop(); drawYld(); }
     drawRet(); drawList();
     $('#v-etf').dataset.cat = S.cat;
@@ -915,7 +1255,7 @@
   async function render() {
     injectCSS();
     const root = document.getElementById('v-etf'); if (!root) return;
-    S.cat = '配息型'; S.pop = LS.get('tw.etf.pop', 'holders');
+    S.cat = '配息型'; S.view = 'cat'; S.pop = LS.get('tw.etf.pop', 'holders');
     S.per = LS.get('tw.etf.per', '5y'); if (!PERS.some((x) => x[0] === S.per)) S.per = '5y';
     S.cfrom = LS.get('tw.etf.cfrom', '') || yrsAgo(todayTW(), 3); S.cto = todayTW(); S.basis = LS.get('tw.etf.basis', 'tr'); S.cmp = {};
     try { await window.CalGrid.load(); } catch (e) { /* 沒有休市日只標週末 */ }
@@ -923,7 +1263,7 @@
     $('#etfSort').onchange = (e) => { S.sort = e.target.value; S.shown = PAGE; drawList(); };
     $('#etfGrid').innerHTML = '<div class="etfprep">載入中…</div>';
     await loadData();
-    if (!S.fallback) loadSeries().then(() => { drawRetTop(); drawRet(); });
+    if (!S.fallback) loadSeries().then(() => { if (S.view === 'inc') drawInc(); else { drawRetTop(); drawRet(); } });
     if (!items().some((it) => it.cat === S.cat)) S.cat = (CATS.find((c) => items().some((it) => it.cat === c)) || S.cat);
     drawCal(); drawAll();
     root.dataset.ready = S.fallback ? 'fallback' : 'full';

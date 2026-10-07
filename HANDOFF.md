@@ -7,6 +7,24 @@
 - 平台導覽1007 新增斷言：每步只捲一次、定位後 300ms 不動、說明卡不跳位、純框選步驟無 >100ms 長任務（換頁／示範動作那步 ≤800ms、3D 步放寬，對照組：不開導覽直接換頁一樣長，是頁面自己畫圖）。
 - 這批只驗了：平台導覽1007、頁首圖示鈕1006、全站共用額度1007（--workers 1）、_preview（唯一問題是本機缺 data/earnings.json 的 404，資料環境問題）。
 
+## 2026-10-07 ETF 成分股接上資料：各投信每日 PCF 進湖（爬蟲專家，分支 `claude/etf-pcf` → main，DECISIONS #341）
+- Andy 13:55：「成分股怎麼可能找不到…另外台灣證交所那網站沒有嗎?」。前一版說明卡寫「沒有合規來源」是錯的（只查了證交所與 FinMind）。
+- 新來源 `pipeline/sources/etf_pcf.py`：元大、國泰、中國信託、群益、復華、統一、凱基、野村八家投信官網的公開 API（官網前端自己在打的那支）。
+  Actions 實測（`probe-etf-pcf.yml` mode=selftest）108 檔、8,049 列；**00896 接上**（中信 ETFHoldingWeight，10/06，50 檔）。
+- 資料湖新表 `etf_holdings`（date＝投信回應的淨值日）；`run_daily.py` 傍晚那輪 `etf_pcf.holdings`；`build_payload` → `site/data/etf_holdings.json`（`pipeline/compute/etf_holdings.py`）。
+- 前端（industry.js）：沒接上的寫「此檔發行投信（X 投信）資料尚未接上」；人工整理檔標「人工整理・資料日期 X」；元大股數推算的權重註明。
+- 驗收：pytest 全綠（1076 passed）；`_uitest --sections ETF成分股1007,個股 --workers 1`；`_preview.py`。本機 build_payload 全跑被 OOM（exit 137，容器 15GB 與其他 agent 共用），
+  改用 `etf_holdings.build()` 單獨產出那一支 JSON 驗前端 —— 雲端 pages.yml 會整份重算。
+- 待處理：富邦（006208、0052、00692、00662、00900、00405A）Pcf.aspx 找不到成分股端點；大華銀（00918）官網網域沒查到；其餘小投信未探測。
+  凱基的日期取 HTML 片段第一個日期（可能是公告日 T 而非淨值日 T-1）。
+## 2026-10-07 ETF「現金流試算」分頁＋配息型依頻率分組（UI 專家，分支 `claude/etf-income` → main）
+- Andy 10-07 14:50：要幾張才能年領 100 萬（可調）、殖利率／含息總報酬排名（週期跟其他分頁）、2～4 檔月月配組合前 5（月領 2 萬可調）、免責、二代健保勾選；配息型卡片依月配→雙月配→季配→半年配→年配分組、頻率不同色（不准紅綠）。
+- 做法：ETF 分類列右邊一顆獨立頁籤「現金流試算」（`#etfIncSeg`，不塞進 `#etfCatSeg`：它是工具不是分類，既有驗收鎖住分類頁籤順序）。口徑寫在 `site/etfpage.js`「5. 現金流試算」註解；頻率色寫進 `docs/style_guide.md` 十四。
+- 順手修 pipeline：`compute/etf.py` 配息頻率改用「相鄰除息間隔中位數」判斷（舊規則 400 天 ≥5 次＝雙月配，把 00919／00713／00712 這種季配標成雙月配）。下一輪 pages 重算後線上才會變；本機 site/data 還是舊標籤。
+- 修到一個既有樣式的 bug：重畫 ECharts 前 `el.innerHTML=''` 會砍掉現有實例的畫布（第二次重畫空白）；試算的橫條已改成有實例就不清。`etfpage.js` 的 `drawRetCharts` 也有同樣寫法，未動（它每次都整塊重建 body，所以沒事）。
+- 驗收：`_uitest --sections ETF現金流1007,ETF專區1005,ETF報酬比較1006,財經日曆1006 --workers 1` 0 問題；`_preview.py` 只剩本機 404（既有）；pytest 全跑。這批只驗了這幾段。
+- 已知限制：二代健保保守估（整筆配息都當股利所得扣 2.11%，實際收益平準金不扣——沒有逐次配息組成資料）；組合候選池只取殖利率前 20 檔（窮舉上限），成交值門檻 2000 萬。
+
 ## 2026-10-07 管理權限1007：可更改功能只限管理者＋「管理權限」頁（資安，分支 `claude/admin-only` → main）
 - 盤點見 docs/admin_only_audit.md。分頁拖曳（site/tabdrag.js）只限管理者，非管理者已存排序清掉；Worker 加 /v1/admin/* 總閘＋admin_log（append-only）＋/v1/admin/admins/list|add|del（只有擁有者＝ADMIN_EMAILS 能加／移除）。
 - #admin/admins 新頁（側欄「管理區 → 管理權限」）。

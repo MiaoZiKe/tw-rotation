@@ -82,6 +82,17 @@ def test_配息頻率():
     assert [etf.freq_label(n) for n in (12, 6, 4, 2, 1, 0)] == ["月配", "雙月配", "季配", "半年配", "年配", "不配息"]
 
 
+def test_配息頻率_依間隔():
+    """400 天窗裡季配會落 5 次（頭尾各一），不能因此標成雙月配（00919／00713 實際踩到）。"""
+    q5 = ["2025-09-16", "2025-12-16", "2026-03-17", "2026-06-16", "2026-09-16"]
+    assert etf.freq_label_dates(q5) == "季配"
+    assert etf.freq_label_dates(["2025-09-10", "2026-03-10", "2026-09-10"]) == "半年配"
+    assert etf.freq_label_dates(["2025-10-01", "2026-09-20"]) == "年配"
+    assert etf.freq_label_dates([f"2026-{m:02d}-15" for m in range(1, 13, 2)]) == "雙月配"
+    assert etf.freq_label_dates([f"2026-{m:02d}-15" for m in range(1, 13)]) == "月配"
+    assert etf.freq_label_dates([]) == "不配息" and etf.freq_label_dates(["2026-01-01"]) == "年配"
+
+
 def test_build_殖利率與行事曆():
     dates = pd.bdate_range("2025-01-01", "2026-10-02").strftime("%Y-%m-%d").tolist()
     rows = [{"date": d, "code": "0056", "close": 40.0, "turnover": 1e9} for d in dates]

@@ -662,7 +662,19 @@ export class Hub {
    隱私（同檔頭的保存規則）：反饋與申請保存 13 個月、刪除帳號時一併刪除；不送任何第三方；不進 repo。
    ============================================================================ */
 const SUB_KEEP_MONTHS = 13;
-const FB_CATS = ['bug', 'idea', 'pay', 'other'];
+/* 1007 v2（Andy：「統計意見類別，類別需要由你幫我規劃級分類」）：兩層類別，規劃與理由在 docs/feedback_categories.md。
+   大類沿用舊鍵（bug／idea／other）讓舊資料不用搬；舊的 'pay'（付款問題）收進「帳號與付費」大類、小類＝付款與發票。
+   cat 欄存大類、新加的 sub 欄存小類（可空）。前端 support.js 的 FB_TREE 要跟這張表一致。*/
+const FB_TREE = {
+  bug: ['data', 'ui', 'func', 'slow', 'mobile'],
+  idea: ['data', 'chart', 'ux', 'watch'],
+  ask: ['calc', 'source', 'term'],
+  acct: ['login', 'plan', 'pay', 'refund'],
+  legal: ['content', 'copyright', 'privacy'],
+  other: [],
+};
+const FB_CATS = Object.keys(FB_TREE);
+const FB_LEGACY = { pay: ['acct', 'pay'] };   // 舊類別 → [大類, 小類]
 const NOTICE_KINDS = ['event', 'feature', 'maint', 'plan'];
 const NOTICE_AUD_RE = /^(all|guest|member|paid|plan:[a-z0-9_-]{1,20})$/;
 const QUOTA_K_RE = /^quota\.[a-z_]{1,24}$/;
@@ -674,6 +686,8 @@ Hub.prototype.subInit = function () {
   if (this._subOk) return;
   this.q('CREATE TABLE IF NOT EXISTS sub_requests (id TEXT PRIMARY KEY, uid TEXT, email TEXT, contact TEXT, plan TEXT, period TEXT, note TEXT, created INTEGER, status TEXT)');
   this.q('CREATE TABLE IF NOT EXISTS feedback (id TEXT PRIMARY KEY, uid TEXT, contact TEXT, cat TEXT, body TEXT, url TEXT, ua TEXT, created INTEGER, status TEXT)');
+  // 1007 v2：小類欄。舊表沒有就補（ALTER 重跑會報錯，先看 table_info）；舊資料 sub 為 NULL，前端依 FB_LEGACY 對應
+  if (!this.q('PRAGMA table_info(feedback)').some((c) => c.name === 'sub')) this.q('ALTER TABLE feedback ADD COLUMN sub TEXT');
   this.q('CREATE TABLE IF NOT EXISTS quota_hits (uid TEXT, day TEXT, k TEXT, key TEXT, PRIMARY KEY (uid, day, k, key))');
   this.q('CREATE TABLE IF NOT EXISTS notices (id TEXT PRIMARY KEY, title TEXT, body TEXT, kind TEXT, audience TEXT, t0 INTEGER, t1 INTEGER, pinned INTEGER, created INTEGER, updated INTEGER)');
   this.q('CREATE TABLE IF NOT EXISTS notice_reads (email TEXT, id TEXT, at INTEGER, PRIMARY KEY (email, id))');
@@ -723,7 +737,10 @@ Hub.prototype.subRoutes = {
   '/v1/feedback': async function (req, b) {
     if (!this.rateOk(req)) return this.json(req, { error: 'rate' }, 429);
     const v = await this.auth(req, b);
-    const cat = FB_CATS.includes(b.cat) ? b.cat : null;
+    const lg = FB_LEGACY[b.cat];
+    const cat = lg ? lg[0] : FB_CATS.includes(b.cat) ? b.cat : null;
+    const sub = lg ? lg[1] : b.sub ? String(b.sub) : '';
+    if (cat && sub && !FB_TREE[cat].includes(sub)) return this.json(req, { error: 'bad_input' }, 400);
     const body = subClean(b.body, 2000);
     if (!cat || body.length < 2) return this.json(req, { error: 'bad_input' }, 400);
     let contact = '';
@@ -741,8 +758,8 @@ Hub.prototype.subRoutes = {
       if (!r || r[0] !== hr) { this.fbIp.set(ip, [hr, 1]); if (this.fbIp.size > 5000) this.fbIp.clear(); } else r[1]++;
     }
     const id = rand(9);
-    this.q('INSERT INTO feedback (id, uid, contact, cat, body, url, ua, created, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
-      id, v ? v.user.uid : '', contact, cat, body, url, subClean(b.ua, 300), this.now(), 'new');
+    this.q('INSERT INTO feedback (id, uid, contact, cat, sub, body, url, ua, created, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+      id, v ? v.user.uid : '', contact, cat, sub, body, url, subClean(b.ua, 300), this.now(), 'new');
     return this.json(req, { ok: true, id });
   },
   '/v1/quota/hit': async function (req, b) {
@@ -806,9 +823,10 @@ Hub.prototype.subRoutes = {
   },
   '/v1/admin/feedback/list': async function (req, b) {
     if (!(await this.admin(req, b))) return this.json(req, { error: 'forbidden' }, 403);
-    const fb = this.q('SELECT f.id, f.uid, f.contact, f.cat, f.body, f.url, f.ua, f.created, f.status, u.name FROM feedback f LEFT JOIN users u ON u.uid = f.uid ORDER BY f.created DESC LIMIT 300');
+    const fb = this.q('SELECT f.id, f.uid, f.contact, f.cat, f.sub, f.body, f.url, f.ua, f.created, f.status, u.name FROM feedback f LEFT JOIN users u ON u.uid = f.uid ORDER BY f.created DESC LIMIT 2000');
     const subs = this.q('SELECT s.id, s.email, s.contact, s.plan, s.period, s.note, s.created, s.status, u.name FROM sub_requests s LEFT JOIN users u ON u.uid = s.uid ORDER BY s.created DESC LIMIT 300');
-    return this.json(req, { feedback: fb.map(({ uid, ...r }) => ({ ...r, member: !!uid })), requests: subs });
+    // 舊資料（cat='pay'、sub 空）在回傳時就換成新兩層，前端統計不必再認舊鍵（資料庫原樣保留，不改寫）
+    return this.json(req, { feedback: fb.map(({ uid, ...r }) => { const lg = FB_LEGACY[r.cat]; return { ...r, cat: lg ? lg[0] : r.cat, sub: lg ? lg[1] : r.sub || '', legacy: lg ? r.cat : undefined, member: !!uid }; }), requests: subs });
   },
   /* 1007：管理者刪除單筆反饋（垃圾訊息、測試留言）。只刪 feedback，不碰訂閱申請。*/
   '/v1/admin/feedback/del': async function (req, b) {

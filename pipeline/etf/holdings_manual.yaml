@@ -1,0 +1,22 @@
+# ETF 成分股：人工整理檔（2026-10-07）
+#
+# 用途：某家投信的每日持股公告只能人工下載（或 API 暫時壞掉）時，在這裡手抄一份，
+#       pipeline/compute/etf_holdings.py 會合併進 site/data/etf_holdings.json，前端標「人工整理・資料日期 X」。
+# 規則：
+#   - 只抄**發行投信官網公告**的數字，asof 寫公告上的資料日期（不是抄寫當天），src 寫來源網址。
+#   - 拿不到的欄位就不寫，不准估、不准從第三方網站（口袋、CMoney、Yahoo）轉抄。
+#   - 自動來源（pipeline/sources/etf_pcf.py）有比這裡更新的資料時，自動來源優先，這裡的那一檔會被忽略。
+#   - w＝占基金淨值 %；shares＝股數（可省略）；外股 code 寫原代號（例如 "NVDA US"）。
+#
+# 目前（2026-10-07）：Andy 點名的 00896 已由中信投信官網 API 自動接上（etf/ETFHoldingWeight），不需要手抄。
+#
+# 範例：
+# etfs:
+#   "00896":
+#     asof: "2026-10-06"
+#     issuer: "中國信託"
+#     src: "https://www.ctbcinvestments.com/Etf/88231049/Combination"
+#     note: "中信投信官網 投資組合"
+#     items:
+#       - {code: "2330", name: "台灣積體電路製造", w: 11.46, shares: 638000}
+etfs: {}

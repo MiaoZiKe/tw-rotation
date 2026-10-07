@@ -68,6 +68,31 @@ def classify(code: str, name: str, freq_n: int = 0) -> str:
     return "主題型"
 
 
+def freq_label_dates(dates: list[str]) -> str:
+    """近 400 天的除息日 → 配息頻率，依「相鄰兩次除息的間隔中位數」判斷（2026-10-07 修）。
+
+    為什麼不只數次數：400 天窗裡季配最多會落 5 次（例：00919 2025-09-16 與 2026-09-16 都在窗內），
+    用「≥5 次＝雙月配」會把 00919、00713 這種季配誤標成雙月配；半年配同理會被數成 3 次＝季配。
+    間隔中位數不受窗口頭尾多吃一次影響：月配約 30 天、雙月配約 61 天、季配約 91 天、半年配約 182 天。
+    只有 1 次除息時沒有間隔可量，算年配。"""
+    ds = sorted(set(dates))
+    if not ds:
+        return "不配息"
+    if len(ds) == 1:
+        return "年配"
+    gaps = sorted((pd.Timestamp(b) - pd.Timestamp(a)).days for a, b in zip(ds, ds[1:]))
+    m = gaps[len(gaps) // 2] if len(gaps) % 2 else (gaps[len(gaps) // 2 - 1] + gaps[len(gaps) // 2]) / 2
+    if m <= 45:
+        return "月配"
+    if m <= 75:
+        return "雙月配"
+    if m <= 135:
+        return "季配"
+    if m <= 250:
+        return "半年配"
+    return "年配"
+
+
 def freq_label(n: int) -> str:
     """近 400 天除息次數 → 配息頻率。用 400 天不用 365 天：除息日每年會飄幾天，
     365 天的窗常常剛好漏掉一次，季配被誤判成「一年 3 次」。"""
@@ -346,7 +371,8 @@ def build(price: pd.DataFrame, names: dict, etf_codes: set[str], div_events: pd.
             "chg_pct": round((adj[-1] / prev - 1) * 100, 2) if prev else None,
             "tv20": round(float(tv.mean()), 0) if tv.notna().any() else None,
             "tv": float(pd.to_numeric(g["turnover"], errors="coerce").iloc[-1] or 0),
-            "freq_n": n400, "freq": freq_label(n400) if div_done(code) else None,
+            "freq_n": n400,
+            "freq": freq_label_dates([d for d in dmap if since400 < d <= latest]) if div_done(code) else None,
             "yield_ttm": round(ttm / close, 5) if (div_done(code) and close) else None,
             "div_ttm": round(ttm, 4) if div_done(code) else None,
             "holders": h.get("holders"), "d_holders": h.get("d_holders"),
