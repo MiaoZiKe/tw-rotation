@@ -7244,6 +7244,135 @@ def _rot_tip_gaps_all(pg, cid="rotClock"):
     return ds, min(d[2] for d in r["dots"]) / 2.0
 
 
+def t_player_1007(pg, base):
+    """播放器1007（Andy 2026-10-07：「檢查所有播放功能，我剛剛測試當我使用播放後再調整日期，再次點擊播放就不能做動」）。
+
+    全站三支播放器逐一**真操作**（真的滑鼠點、真的拖拉桿），每一步驗「畫面上的日期真的變了」：
+      ① ▶ 播 → 日期變　② 播放中拖拉桿 → 自動暫停、停在拖到的位置　③ 再 ▶ → 日期繼續變
+      ④ ⏸ → 停住不再變　⑤ 到最後一格再 ▶ → 從頭播　⑥ 播放中換頁 → 計時器真的停
+    播放器：#rotBack（資金輪盤 dayBar）、#sankeyDays（資金去向 playBar）、#peEnd（個股本益比河流 playBar）。
+    手機 390：有顯示的照跑同一套；沒顯示的（輪盤在手機改成雷達），驗它不會在背景偷播。
+    """
+    def st(sel):
+        return pg.evaluate("""(s) => { const b = document.querySelector(s); if (!b) return null;
+            const i = b.querySelector('input'), v = b.querySelector('.val'), p = b.querySelector('.pb.play');
+            return { v: i ? +i.value : null, t: v ? v.textContent.trim() : '', play: p ? p.textContent : '',
+                     on: b.classList.contains('playing'),
+                     f: (s === '#rotBack' && window.App.rotFrameNow) ? window.App.rotFrameNow() : null,
+                     vis: !!(b.offsetParent) }; }""", sel)
+
+    def drag_to(sel, frac):
+        bb = pg.locator(sel + " input").first.bounding_box()
+        y = bb["y"] + bb["height"] / 2
+        pg.mouse.move(bb["x"] + bb["width"] * 0.5, y); pg.mouse.down()
+        pg.mouse.move(bb["x"] + bb["width"] * frac, y, steps=6); pg.mouse.up()
+        pg.wait_for_timeout(350)
+
+    def run(sel, tag):
+        pg.locator(sel).scroll_into_view_if_needed(); pg.wait_for_timeout(300)
+        s0 = st(sel)
+        pg.click(sel + " .pb.play"); pg.wait_for_timeout(1500)
+        s1 = st(sel)
+        ok(f"[{tag}] ① 按 ▶ 之後日期真的變了、鈕變 ⏸", s1["t"] != s0["t"] and s1["play"] == "⏸" and s1["on"], (s0, s1))
+        drag_to(sel, 0.3)
+        s2 = st(sel)
+        ok(f"[{tag}] ② 播放中拖拉桿 → 自動暫停（鈕回 ▶）", s2["play"] == "▶" and not s2["on"], s2)
+        pg.wait_for_timeout(900)
+        s2b = st(sel)
+        ok(f"[{tag}] ② 暫停後停在拖到的位置（不再自己跑）", s2b["t"] == s2["t"] and s2b["v"] == s2["v"], (s2, s2b))
+        pg.click(sel + " .pb.play"); pg.wait_for_timeout(500)
+        s3a = st(sel); pg.wait_for_timeout(1300); s3 = st(sel)
+        ok(f"[{tag}] ③ 調過日期再按 ▶，日期繼續變（Andy 回報的那一步）",
+           s3["play"] == "⏸" and s3["t"] != s3a["t"] and s3a["t"] != s2b["t"], (s2b, s3a, s3))
+        pg.click(sel + " .pb.play"); pg.wait_for_timeout(250)
+        s4 = st(sel); pg.wait_for_timeout(1200); s4b = st(sel)
+        ok(f"[{tag}] ④ 按 ⏸ 真的停住", s4["play"] == "▶" and s4["t"] == s4b["t"], (s4, s4b))
+        if sel == "#rotBack":
+            # 輪盤的「最後一格」＝回放走到最新（frame 0）。N 調到 3 天讓它很快走完
+            for _ in range(40):
+                if (st(sel)["v"] or 0) <= 3:
+                    break
+                pg.click(sel + " .pb.step >> nth=0"); pg.wait_for_timeout(60)
+            pg.click(sel + " .pb.play"); pg.wait_for_timeout(3200)
+            e = st(sel)
+            ok(f"[{tag}] ⑤ 回放走到最新自己停（frame 0、鈕回 ▶）", e["f"] == 0 and e["play"] == "▶", e)
+            pg.click(sel + " .pb.play"); pg.wait_for_timeout(150)
+            r = st(sel)
+            ok(f"[{tag}] ⑤ 在最新再按 ▶ → 從 N 天前重播", r["play"] == "⏸" and r["f"] is not None and r["f"] >= e["v"] - 1, (e, r))
+            pg.click(sel + " .pb.play"); pg.wait_for_timeout(200)
+        else:
+            pg.focus(sel + " input"); pg.keyboard.press("End"); pg.wait_for_timeout(300)
+            e = st(sel)
+            mx = pg.evaluate("(s) => +document.querySelector(s + ' input').max", sel)
+            mn = pg.evaluate("(s) => +document.querySelector(s + ' input').min", sel)
+            ok(f"[{tag}] ⑤ 鍵盤 End 拉到最後一格", e["v"] == mx and e["play"] == "▶", (e, mx))
+            pg.click(sel + " .pb.play"); pg.wait_for_timeout(250)
+            r = st(sel)
+            ok(f"[{tag}] ⑤ 在最後一格按 ▶ → 從頭播（值回到最前面）", r["v"] < mx and r["v"] <= mn + 2 and r["play"] == "⏸", (e, r, mn, mx))
+            # 播放中按方向鍵＝使用者自己選日期 → 要停（以前只有滑鼠拖會停，鍵盤會被播放一格一格蓋掉）
+            pg.focus(sel + " input"); pg.keyboard.press("ArrowRight"); pg.wait_for_timeout(200)
+            k = st(sel); pg.wait_for_timeout(900); k2 = st(sel)
+            ok(f"[{tag}] 播放中按方向鍵 → 自動暫停、停在選的那一格", k["play"] == "▶" and k["v"] == k2["v"], (k, k2))
+        # ⑥ 播放中換頁 → 計時器停
+        pg.click(sel + " .pb.play"); pg.wait_for_timeout(400)
+        h0 = pg.evaluate("location.hash")
+        pg.evaluate("location.hash = '#season'"); pg.wait_for_timeout(1500)
+        g1 = st(sel); pg.wait_for_timeout(1300); g2 = st(sel)
+        ok(f"[{tag}] ⑥ 播放中換頁 → 計時器真的停了（背景不再跑）",
+           g1["v"] == g2["v"] and g1["t"] == g2["t"] and g2["play"] == "▶", (g1, g2))
+        pg.evaluate("(h) => { location.hash = h; }", h0); pg.wait_for_timeout(1800)
+
+    pg.set_viewport_size({"width": 1440, "height": 900})
+    pg.goto(f"{base}#flow", wait_until="networkidle"); pg.wait_for_timeout(2500)
+    if ok("[播放器] #rotBack 有 ▶", pg.locator("#rotBack .pb.play").count() == 1):
+        run("#rotBack", "資金輪盤 1440")
+        # 換頁回來之後（route 會再跑一次、但不重建拉Bar）：再按 ▶ 一定要動
+        pg.locator("#rotBack").scroll_into_view_if_needed()
+        # （上一步把 N 調成 3 天，一下就播完 —— 先按 ＋ 拉回 10 天，350ms 就量：按下去當下要先走一格）
+        for _ in range(7):
+            pg.click("#rotBack .pb.step >> nth=1"); pg.wait_for_timeout(60)
+        s0 = st("#rotBack"); pg.click("#rotBack .pb.play"); pg.wait_for_timeout(350); s1 = st("#rotBack")
+        ok("[資金輪盤 1440] 換頁回來再 ▶ 照樣會動", s1["t"] != s0["t"] and s1["play"] == "⏸", (s0, s1))
+        # 這次播放是換頁「之後」才啟動的：以前 route() 把登記表清掉了，再換頁就停不到它（幽靈計時器）
+        pg.evaluate("location.hash = '#season'"); pg.wait_for_timeout(1200)
+        a = st("#rotBack"); pg.wait_for_timeout(1300); b2 = st("#rotBack")
+        ok("[資金輪盤 1440] 換頁回來後啟動的播放，再換頁一樣停得到", a["t"] == b2["t"] and b2["play"] == "▶", (a, b2))
+        # 截圖：播放 → 調日期 → 再播（日期已推進）
+        pg.goto(f"{base}#flow", wait_until="networkidle"); pg.wait_for_timeout(2500)
+        pg.locator("#rotBack").scroll_into_view_if_needed()
+        pg.click("#rotBack .pb.play"); pg.wait_for_timeout(1000)
+        drag_to("#rotBack", 0.6)
+        pg.click("#rotBack .pb.play"); pg.wait_for_timeout(1700)
+        shot = os.environ.get("PLAY1007_SHOT")
+        if shot:
+            try:
+                pg.locator("#flowRotCard").screenshot(path=shot)
+            except Exception:
+                pass
+        pg.click("#rotBack .pb.play"); pg.wait_for_timeout(200)
+    pg.goto(f"{base}#flow/sankey", wait_until="networkidle"); pg.wait_for_timeout(1500)
+    if ok("[播放器] #sankeyDays 有 ▶", bool(wait_until(pg, "() => !!document.querySelector('#sankeyDays .pb.play')", 15000))):
+        run("#sankeyDays", "資金去向 1440")
+    pg.goto(f"{base}#stock/2330", wait_until="networkidle"); pg.wait_for_timeout(2600)
+    if pg.locator('#stockTabs button[data-t="profit"]').count():
+        pg.click('#stockTabs button[data-t="profit"]'); pg.wait_for_timeout(1600)
+    if ok("[播放器] #peEnd 有 ▶", bool(wait_until(pg, "() => !!document.querySelector('#peEnd .pb.play')", 10000))):
+        run("#peEnd", "本益比河流 1440")
+
+    # ---- 手機 390
+    pg.set_viewport_size({"width": 390, "height": 860})
+    for h, sel in (("#flow", "#rotBack"), ("#flow/sankey", "#sankeyDays")):
+        pg.goto(f"{base}{h}", wait_until="networkidle"); pg.wait_for_timeout(2500)
+        s = st(sel)
+        if s and s["vis"]:
+            run(sel, f"{sel} 390")
+        else:
+            a = st(sel); pg.wait_for_timeout(1300); b2 = st(sel)
+            ok(f"[{sel} 390] 手機沒顯示這支播放器，它也沒有在背景跑",
+               (a is None) or (a["t"] == b2["t"] and not a["on"]), (a, b2))
+    pg.set_viewport_size({"width": 1440, "height": 900})
+
+
 def t_new_clock(pg, base):
     """輪動時鐘（C4 ＋ A4，Andy 2026-09-20）：族群／個股篩選、時間軸刷動、軌跡開關、播放。
 
@@ -24325,6 +24454,8 @@ SECTIONS = {
     "新-產業與個股":       lambda pg, b, base, code: t_new_industry(pg, base),
     "新-資金流向":         lambda pg, b, base, code: t_new_flow(pg, base),
     "新-輪動時鐘":         lambda pg, b, base, code: t_new_clock(pg, base),
+    # ★ 2026-10-07 Andy：「播放後再調整日期，再次點擊播放就不能做動」→ 全站三支播放器真操作
+    "播放器1007":          lambda pg, b, base, code: t_player_1007(pg, base),
     # ★ 2026-09-21：輪動時鐘與資金流向排行合併成一張卡（Andy：「這兩張圖合併…彙整並一頁」）。
     #   合併本身的驗收自成一段：共用篩選、共用「看哪一天」、窄畫面 800px 都要成立。
     "資金輪動合併":        lambda pg, b, base, code: t_rotmerge(pg, base),

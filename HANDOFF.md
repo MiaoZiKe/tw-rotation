@@ -1,5 +1,12 @@
 # HANDOFF.md — 目前進度（接手先讀這份）
 
+## 2026-10-07 播放器1007：全站播放器「調過日期再按 ▶ 不動」（UI 專家，分支 `claude/play-fix` → main）
+- Andy：「播放後再調整日期，再次點擊播放就不能做動」。全站三支播放器：資金輪盤 `#rotBack`（dayBar）、資金去向 `#sankeyDays`（playBar）、個股本益比河流 `#peEnd`（playBar）；`spanBar` 目前沒有呼叫端。
+- 根因：`route()` 與換主題會 `_players.clear()`，但已畫過的頁不重建拉Bar → 畫面上的播放器從登記表消失，之後換頁／即時停不到它（幽靈計時器，回來時鈕停在 ⏸，按下去只是暫停）；另外 ▶ 按下要等滿一個 frame（420～650ms）才動第一格、鍵盤方向鍵調拉桿不會停播。
+- 修法（site/app.js）：改 `prunePlayers()` 只清離開 DOM 的；三支 start() 補登記自己；▶ 按下當下先走一格；playBar 真人 input（isTrusted）就停播。
+- 驗收：`_uitest --sections 播放器1007`（新段，1440＋390）0 問題，舊碼跑同一段 5 個問題；另跑 資金流向／新-輪動時鐘／批次2／批次3／批次7／季節性／題材，剩 2 條與 main 相同的既有紅字（A4-7 軌跡點數、季節性全選）；`_preview.py` 只剩 1 條本機 404（既有）。
+- 已知限制：Andy 的確切操作序列在本機（1440／1100／800、模擬盤中時間、即時開關、換主題、換頁）都沒能 1:1 重現「完全不動」，修的是上面量得到的三個缺陷。
+
 ## 2026-10-07 發布整合 release-1007：四個分支合併上 main（部署員，分支 `claude/release-1007`）
 - 合併順序：`claude/legal-v2`（含法律頁整組水平置中：`.lgwrap`／`.lgtabs` max-width＋auto 邊距，1440 左右留白 0／0、1280 10／10）→ `claude/tour`（平台導覽 TwTour）→ `claude/quota`（每日額度＋自選上限＋付費資料閘道 data-gw）→ `claude/pricing-v2`（訂閱頁方案卡＋比較表）。
 - 衝突怎麼解：

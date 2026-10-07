@@ -980,7 +980,7 @@
     if (btn) { btn.textContent = theme() === 'light' ? '🌙' : '☀'; btn.title = theme() === 'light' ? '切換成深色' : '切換成明亮'; }
     refreshPalette();
     if (!redraw) return;
-    stopAllPlay(); _players.clear();    // 換主題會 dispose 全部圖表，播放中的計時器要先停
+    stopAllPlay(); prunePlayers();      // 換主題會 dispose 全部圖表，播放中的計時器要先停（只清離開 DOM 的，理由見 route()）
     Object.keys(charts).forEach(k => { try { charts[k].dispose(); } catch (e) { /* 忽略 */ } delete charts[k]; });
     Object.keys(rendered).forEach(k => delete rendered[k]);
     window.dispatchEvent(new CustomEvent('tw:theme', { detail: { theme: theme() } }));
@@ -1486,6 +1486,10 @@
      而按 ⏸ 停的是**整個 group**，因為使用者按的是「停下這個時鐘」，
      不是「停下我手上這顆按鈕」。*/
   const _players = new Map();          // 容器元素 → api
+  /* 只清掉已經離開 DOM 的播放器（2026-10-07 播放器1007，取代原本的 `_players.clear()`）。*/
+  function prunePlayers() {
+    _players.forEach((p, el) => { if (!el.isConnected) { try { p.stop(); } catch (e) { /* 忽略 */ } _players.delete(el); } });
+  }
   function stopAllPlay() { _players.forEach(p => { try { p.stop(); } catch (e) { /* 忽略 */ } }); }
   /** 停掉「控制同一個值」的其他播放器（except 傳自己，避免把剛要啟動的那支也停掉）。*/
   function stopPlayGroup(group, except) {
@@ -1596,10 +1600,15 @@
     };
     const start = () => {
       if (timer) return;
+      if (api && box.isConnected) _players.set(box, api);   // 播放器1007：補登記，換頁／即時一定停得到它
       stopPlayGroup(o.group, api);      // 同一個值一次只准一支在播（見 _players 那一段的量測）
       const { min, max } = lim();
       const d = dirOf();
+      /* 播放器1007：按下 ▶ 當下就要有一格的反應。以前要等滿一個 frame（資金去向 650ms）才動第一格，
+         調過日期再按 ▶ 的那半秒畫面完全不動，看起來就是「按了沒反應」。
+         已經在尾端 → 從頭那一格就是反應；不在尾端 → 立刻往後走一格。*/
       if (d > 0 ? +inp.value >= max : +inp.value <= min) setV(d > 0 ? min : max);   // 已經在尾端就從頭播
+      else setV(+inp.value + lim().st * d);
       timer = setInterval(tick, o.frame || 600);
       paintBtn();
     };
@@ -1609,7 +1618,9 @@
     bMinus.onclick = () => { stop(); setV(+inp.value - lim().st); paintBtn(); };
     bPlus.onclick = () => { stop(); setV(+inp.value + lim().st); paintBtn(); };
     inp.addEventListener('pointerdown', stop);  // 自己動手拉就停播放
-    inp.addEventListener('input', paintBtn);
+    /* 播放器1007：鍵盤方向鍵調拉桿不會有 pointerdown，以前播放會把他剛選的值一格一格蓋掉。
+       isTrusted＝真人的操作；setV() 自己派的 input 事件是 false，不會把自己停掉。*/
+    inp.addEventListener('input', (e) => { if (e.isTrusted && timer) stop(); paintBtn(); });
     paintBtn();
     api = { get value() { return +inp.value; }, set(x) { setV(x); paintBtn(); },
       stop, start, playing: () => !!timer, el: box, group: o.group || '' };
@@ -1760,6 +1771,7 @@
     bPlus.onclick = () => { stop(); slide(1); };
     const start = () => {
       if (timer) return;
+      if (api && box.isConnected) _players.set(box, api);   // 播放器1007：補登記
       stopPlayGroup(o.group, api);                    // 同一個值一次只准一支在播
       if (pHi >= PMAX) { pHi = days; paint(); fire(); }   // 已經在最新了就從最舊重播
       timer = setInterval(() => { if (!slide(1)) { pHi = days; paint(); fire(); } }, o.frame || 600);
@@ -1937,8 +1949,11 @@
     bPlus.onclick = () => { stop(); setDays(days + 1); save(); };
     const start = () => {
       if (timer) return;
+      if (api && box.isConnected) _players.set(box, api);   // 播放器1007：補登記
       stopPlayGroup(o.group, api);
       if (frame <= 0) seek(days);          // 已經在最新就從 N 天前出發
+      else seek(frame - 1);                // 播放器1007：從暫停的那一天接著播，按下去當下就走一格（不要空等一個 step）
+      if (frame <= 0) { paint(); return; } // 剛好走到最新：這一格就是最後一格，不必再開計時器
       timer = setInterval(() => { if (frame <= 0) { stop(); return; } seek(frame - 1); if (frame <= 0) stop(); }, o.step || 600);
       paint();
     };
@@ -2686,7 +2701,11 @@
   }
   async function route() {
     stopAllPlay();                       // 換頁前先停，否則計時器會對已 dispose 的圖表 setOption
-    _players.clear();
+    /* ★ 2026-10-07（Andy：「播放後再調整日期，再次點擊播放就不能做動」，播放器1007）：以前這裡是 `_players.clear()`。
+       但 route() 對**已經畫過的 view 不會重建拉Bar**（資金流向切子分頁、資料背景更新再跑一次 route 都是），
+       清掉之後畫面上那支播放器還在、卻從登記表消失 —— 之後換頁停不到它、「即時」鈕的 liveDim 停不到它、
+       同組互斥也找不到它，計時器變成沒人管的幽靈。改成只清「已經離開 DOM 的」，畫面上的那支繼續被管。*/
+    prunePlayers();
     /* ★ 這裡**不要**呼叫 stopSankeyFlow()。
        換頁時 `#sankey` 只是被 CSS 藏起來、還在 DOM 裡，而 route() 對已經畫過的
        view 不會再跑一次 renderFlow —— 在這裡收掉的話，離開資金流向頁再回來，
