@@ -204,7 +204,16 @@
   const saveOf = (p) => { const x = prices(p); return x.month && x.year && x.year < x.month * 12 ? Math.round((1 - x.year / (x.month * 12)) * 100) : 0; };
   const nt = (n) => n.toLocaleString('en-US');
   /* 在「per」這個切換狀態下要顯示什麼：{ amount, unit, note, period（送申請用）}；amount null＝洽詢 */
+  /* 10-07 Andy「價格旁備註一天多少錢」：口徑一律「一年總價 ÷ 365」（月繳＝月價×12÷365、年繳＝年價÷365），四捨五入到小數 1 位；
+     算出來而不是寫死，後台改價、切月／年都會跟著變。一次付清與免費不給（沒有「一年」可攤）。 */
+  const perDay = (r) => (r && !r.free && r.amount != null && !r.once ? Math.round((r.period === 'year' ? r.total : r.amount * 12) / 365 * 10) / 10 : null);
+  const dayTag = (r) => { const d = perDay(r); return d == null ? '' : `<small class="prday">每天約 NT$ ${d.toFixed(1)}</small>`; };
   function priceAt(p, per) {
+    const r = priceAt0(p, per);
+    if (r.amount != null && r.unit === '（一次）') r.once = true;
+    return r;
+  }
+  function priceAt0(p, per) {
     const x = prices(p);
     if (x.free) return { free: true };
     if (x.once) return { amount: x.once, unit: '（一次）', note: '一次付清', period: 'month' };
@@ -419,6 +428,7 @@
 #v-pricing .prhd .who{line-height:20px;height:20px}
 #v-pricing .prprice{height:40px;line-height:40px;overflow:hidden}
 #v-pricing .prmg .prprice{height:34px;line-height:34px}
+.prday{margin-left:8px;font-size:12px!important;font-weight:600!important;color:var(--ink-3)!important;letter-spacing:0}
 #v-pricing .prnote,#v-pricing .prmg .prnote{margin-top:6px;height:20px;line-height:20px;min-height:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 #v-pricing .mfit,#v-pricing .prmg .mfit{margin:8px 0 14px;height:20px;line-height:20px;font-size:13px;font-weight:700;color:var(--pc);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 #v-pricing .pc-neutral .mfit{color:var(--ink)}
@@ -489,7 +499,7 @@
     const pr = priceAt(p, S.per);
     const html = pr.free ? '<div class="prprice free">免費</div>'
       : pr.amount == null ? '<div class="prprice ask">價格待定</div>'
-      : `<div class="prprice"><span class="cur">NT$</span> <b>${nt(pr.amount)}</b><small>${esc(pr.unit)}</small></div>`;
+      : `<div class="prprice"><span class="cur">NT$</span> <b>${nt(pr.amount)}</b><small>${esc(pr.unit)}</small>${dayTag(pr)}</div>`;
     const note = pr.free ? '永久保留基礎功能・不需信用卡' : pr.note;
     return `${origLine(pr)}${html}<div class="prnote" title="${esc(note)}">${esc(note)}</div>`;
   }
@@ -575,7 +585,7 @@
     const per = pr.period === 'year' ? 'year' : 'month';
     const lk = S.look.get(p.id) || { color: 'blue', icon: 'bolt' };
     const ptop = pr.orig ? origLine(pr) : '';
-    const pbig = pr.amount == null ? '價格待定' : pr.total && pr.unit === '／年' ? `NT$ ${nt(pr.total)}<small>／年</small>` : `NT$ ${nt(pr.amount)}<small>${esc(pr.unit)}</small>`;
+    const pbig = pr.amount == null ? '價格待定' : pr.total && pr.unit === '／年' ? `NT$ ${nt(pr.total)}<small>／年</small>${dayTag(pr)}` : `NT$ ${nt(pr.amount)}<small>${esc(pr.unit)}</small>${dayTag(pr)}`;
     /* 已含功能：依 features.js 類別分組、兩欄打勾（範本 feats／lims 算出來的，跟比較表同一份）；有上限的寫「每日 N 次」 */
     const Ft = F();
     const groups = Ft ? Ft.cats.filter((c) => c.id !== 'grp').map((c) => [c, Ft.inCat(c.id).filter((f) => !f.adminOnly && f.kind === 'bool' && on(p, f))]).filter(([, fs]) => fs.length) : [];

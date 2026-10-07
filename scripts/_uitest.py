@@ -1956,6 +1956,53 @@ def t_etf_hold_1007(pg, b, base):
             lp.close()
 
 
+def t_etf_groups_1007(pg, b, base):
+    """2026-10-07 Andy：「每個分頁不同類型 ETF，下方 ETF 也需要按照類型排序，可以參考配息型那分頁」。
+    每個非配息型分頁：按「顯示更多」到底 → 有子類型小標題、各組檔數加總＝分頁檔數、組順序符合 sgOrder()、
+    卡片順序跟組一致、卡片左色條＝組色；配息型仍是頻率分組（沒有子類型標題）。"""
+    T = "ETF分類分組1007"
+    lp = pg.context.browser.new_page(viewport={"width": 1440, "height": 1000})
+    lp.on("pageerror", lambda e: fails.append(f"{T} pageerror: {e}"))
+    lp.route("**/fonts.googleapis.com/**", lambda r: r.abort())
+    J = lambda js, *a: lp.evaluate(js, *a)
+    try:
+        lp.goto(f"{base}#etf", wait_until="networkidle")
+        wait_until(lp, "() => document.querySelector('#v-etf') && document.querySelector('#v-etf').dataset.ready === 'full'", 20000)
+        lp.wait_for_timeout(500)
+        exp = {"市值型": ["台股大型", "中小型", "海外市場"], "主題型": ["半導體", "AI 與科技", "ESG 永續", "電動車與綠能", "金融", "高股息主題", "產業其他", "海外主題"],
+               "主動式": ["債券型主動", "股票型主動"], "債券型": ["高收益債", "新興市場債", "美國公債・長天期", "美國公債・中天期", "美國公債・短天期", "投資等級公司債"],
+               "其他": ["商品", "REITs"]}
+        lev = [d + "・" + u for d in ("正 2 槓桿", "反 1", "反向其他") for u in ("台股", "美股", "陸港股", "其他海外股", "美債", "商品", "匯率", "其他")]
+        for cat in ("市值型", "主題型", "主動式", "債券型", "槓桿反向", "其他"):
+            lp.click(f"#etfCatSeg button[data-v='{cat}']"); lp.wait_for_timeout(400)
+            for _ in range(10):
+                if J("() => document.querySelector('#etfMore').hidden"): break
+                lp.click("#etfMore"); lp.wait_for_timeout(250)
+            g = J("""() => { const hs = [...document.querySelectorAll('#etfGrid .sghd')].map(h => [h.dataset.sg, +h.querySelector('small').textContent.replace(/\D/g, '')]);
+                const cs = [...document.querySelectorAll('#etfGrid > *')]; let cur = null; const seq = [], bad = [];
+                cs.forEach(e => { if (e.classList.contains('sghd')) cur = e.dataset.sg; else if (e.classList.contains('etfc')) { seq.push(cur);
+                  const h = [...document.querySelectorAll('#etfGrid .sghd')].find(x => x.dataset.sg === cur);
+                  if (e.dataset.sg !== cur || getComputedStyle(e).borderLeftColor !== getComputedStyle(h.querySelector('i')).backgroundColor) bad.push(e.dataset.code); } });
+                const cnt = {}; seq.forEach(k => cnt[k] = (cnt[k] || 0) + 1);
+                const n = +(document.querySelector('#etfCount').textContent.match(/(\d+) 檔/) || [0, 0])[1];
+                const col = [...document.querySelectorAll('#etfGrid .sghd i')].map(i => getComputedStyle(i).backgroundColor);
+                return { hs, cnt, n, bad, ncard: seq.length, col }; }""")
+            order = (lev if cat == "槓桿反向" else exp[cat]) + ["其他"]
+            names = [h[0] for h in g["hs"]]
+            ok(f"★ [{T}] {cat}：有子類型小標題（{len(names)} 組：{'、'.join(names)}）", len(names) >= 2, g["hs"])
+            ok(f"★ [{T}] {cat}：各組檔數加總＝分頁檔數 {g['n']}", g["n"] > 0 and sum(h[1] for h in g["hs"]) == g["n"] == g["ncard"], g)
+            ok(f"[{T}] {cat}：標題寫的檔數＝實際組內卡片數", all(g["cnt"].get(k) == v for k, v in g["hs"]), g)
+            ok(f"★ [{T}] {cat}：組順序符合 docs/etf_subgroups.md、「其他」最後", all(k in order for k in names) and names == sorted(names, key=order.index), names)
+            ok(f"[{T}] {cat}：每張卡片的左色條＝所屬組的組色", not g["bad"], g["bad"][:5])
+            red = J("() => ['--rise','--fall'].map(v => getComputedStyle(document.documentElement).getPropertyValue(v).trim())")
+            ok(f"[{T}] {cat}：組色條有顏色、不是漲跌色", g["col"] and all(c not in red and c != 'rgba(0, 0, 0, 0)' for c in g["col"]), (g["col"], red))
+        lp.click("#etfCatSeg button[data-v='配息型']"); lp.wait_for_timeout(400)
+        d = J("() => ({ fq: document.querySelectorAll('#etfGrid .fqhd:not(.sghd)').length, sg: document.querySelectorAll('#etfGrid .sghd, #etfGrid .sgbar').length })")
+        ok(f"★ [{T}] 配息型行為不變：仍是頻率分組、沒有子類型標題或標籤", d["fq"] >= 3 and d["sg"] == 0, d)
+    finally:
+        lp.close()
+
+
 def t_etf_1005(pg, b, base):
     """ETF 專區第二版（2026-10-05 Andy：行事曆放最上且是真月曆、分類頁三張前 5 並排同高、自選比較清單、填息天數）。
 
@@ -7681,6 +7728,46 @@ def t_flow_tree_1007(pg, base):
         sw = pg.evaluate("() => document.scrollingElement.scrollWidth")
         ok(f"[{w}] 沒有橫向捲軸", sw <= w, sw)
     pg.set_viewport_size({"width": 1440, "height": 900}); pg.wait_for_timeout(1200)
+    # ---- 18:25 修（Andy 圖 215／216）：族群欄跑到畫布外、切換鈕溢出外框
+    #      四種寬度 x 深淺主題 x（點族群前、點後、按「‹ 全部族群」回來）：每個族群節點與標籤都在畫布內，
+    #      而且畫布寬＝樹卡可見寬（216 的根因是按回來那一刻畫布用整列寬排版、之後沒縮回）。
+    NODES = """() => { const h = document.getElementById('sankey'), p = window.FlowTopo && FlowTopo.probe(h); if (!p) return null;
+        const vw = Math.round(document.getElementById('sankeyWrap').getBoundingClientRect().width);
+        const g = p.nodes.filter(n => n.lv === 2);
+        const bad = g.filter(n => !(n.x < p.W - 4) || !n.lab || !(n.lab.x + n.lab.w < p.W - 4)).map(n => [n.name, n.x, n.lab && n.lab.x + n.lab.w]);
+        return { W: p.W, vw, n: g.length, bad }; }"""
+    SEG = """() => { const s = document.querySelector('#sankeyPanel .skms'); if (!s) return null;
+        const o = s.getBoundingClientRect(), bs = [...s.querySelectorAll('button')].map(b => b.getBoundingClientRect());
+        const on = s.querySelector('button.on').getBoundingClientRect();
+        return { inside: on.left >= o.left - 0.5 && on.right <= o.right + 0.5 && on.top >= o.top - 0.5 && on.bottom <= o.bottom + 0.5,
+                 sameH: Math.abs(bs[0].height - bs[1].height) < 0.5, h: Math.round(o.height), w: Math.round(o.width) }; }"""
+    th0 = pg.evaluate("() => { try { return localStorage.getItem('tw.theme'); } catch (e) { return null; } }")
+    for th in ("dark", "light"):
+        for w in (1280, 1440, 1566, 1920):
+            pg.set_viewport_size({"width": w, "height": 900})
+            pg.evaluate("(t) => localStorage.setItem('tw.theme', t)", th)
+            pg.goto(f"{base}#flow/sankey", wait_until="networkidle"); pg.wait_for_timeout(2500)
+            l4_sub(pg, "sankey", 1200)
+            wait_until(pg, "() => { const r = document.getElementById('sankeyRank'); return r && !r.hidden && r.querySelector('.skr-r') ? 1 : 0; }", 8000)
+            pg.wait_for_timeout(600)
+            res = {"點前": pg.evaluate(NODES)}
+            gidx = pg.evaluate("() => [...document.querySelectorAll('#sankeyRank .skr-r')].map(e => e.dataset.gid).find(g => !g.startsWith('ind_'))")
+            if gidx:
+                pg.click(f'#sankeyRank .skr-r[data-gid="{gidx}"]'); pg.wait_for_timeout(1500)
+                res["點後"] = pg.evaluate(NODES)
+                sg = pg.evaluate(SEG)
+                ok(f"[{th} {w}] 切換鈕「依流入｜依成交值」：選中鈕完全在外框內、兩顆等高", bool(sg) and sg["inside"] and sg["sameH"], sg)
+                pg.click("#sankeyPanel [data-all]"); pg.wait_for_timeout(1500)
+                res["回全部族群"] = pg.evaluate(NODES)
+            for k, v in res.items():
+                ok(f"[{th} {w}] {k}：族群節點與標籤都在畫布內、畫布寬＝樹卡可見寬",
+                   bool(v) and v["n"] > 0 and not v["bad"] and abs(v["W"] - v["vw"]) <= 1, v)
+    pg.evaluate("(t) => { try { if (t == null) localStorage.removeItem('tw.theme'); else localStorage.setItem('tw.theme', t); } catch (e) {} }", th0)
+    pg.set_viewport_size({"width": 1440, "height": 900})
+    pg.goto(f"{base}#flow", wait_until="networkidle"); pg.wait_for_timeout(2500)
+    l4_sub(pg, "sankey", 1800)
+    pg.locator("#flowSankeyCard").scroll_into_view_if_needed(); pg.wait_for_timeout(1200)
+    wait_until(pg, "() => { const r = document.getElementById('sankeyRank'); return r && !r.hidden && r.querySelector('.skr-r') ? 1 : 0; }", 8000)
     # ---- 改名
     nm = pg.evaluate("""() => ({ h3: (document.querySelector('#flowSankeyCard h3') || {}).textContent || '',
         rank: (document.getElementById('flowRotCard') || {}).textContent || '',
@@ -25256,6 +25343,7 @@ SECTIONS = {
     "下拉篩選1006":        lambda pg, b, base, code: t_msel_1006(pg, b, base),
     # ★ 2026-10-05 Andy：ETF 專區＋ETF 個股頁分頁（⚠ 一律 --workers 1）
     "ETF專區1005":         lambda pg, b, base, code: t_etf_1005(pg, b, base),
+    "ETF分類分組1007":     lambda pg, b, base, code: t_etf_groups_1007(pg, b, base),
     # ★ 2026-10-07 Andy：ETF 成分股分頁「左個股清單、右權重甜甜圈」；無股票成分顯示說明卡
     "ETF成分股1007":       lambda pg, b, base, code: t_etf_hold_1007(pg, b, base),
     "ETF報酬比較1006":     lambda pg, b, base, code: t_etf_ret_1006(pg, b, base),
@@ -49890,7 +49978,7 @@ def t_sub_1005(b, base, code):
        and pg.evaluate("() => [...document.querySelectorAll('#prCards .prcard')].map(c => c.dataset.plan).join(',')") == "free,p399,p799",
        pg.evaluate("() => [...document.querySelectorAll('#prCards .prcard')].map(c => c.dataset.plan).join(',')"))
     pg.wait_for_timeout(300)
-    price = lambda pid: pg.inner_text(f"#prCards .prcard[data-plan='{pid}'] .prprice")
+    price = lambda pid: re.sub(r"\s*每天約 NT\$ [\d.]+", "", pg.inner_text(f"#prCards .prcard[data-plan='{pid}'] .prprice"))  # 10-07 每天約 NT$ X 另外驗
     m399 = price("p399")
     ok(f"{T}：月繳 → 399 卡顯示 NT$ 399／月、標「最受歡迎」", "399" in m399 and "／月" in m399 and "最受歡迎" in pg.inner_text("#prCards .prcard[data-plan='p399']"), m399)
     ok(f"{T}：799 是功能最多的付費範本 → 標「功能最齊」", "功能最齊" in pg.inner_text("#prCards .prcard[data-plan='p799']"))
@@ -49911,10 +49999,10 @@ def t_sub_1005(b, base, code):
        y799 == "NT$666／月" and "年繳 NT$ 7,990（一次付清）" in pg.inner_text("#prCards .prcard[data-plan='p799'] .prnote") and pg.inner_text("#prCards .prcard[data-plan='p799'] .prorig s") == "NT$ 799／月" and y399 == "NT$399／月"
        and "僅提供月繳" in pg.inner_text("#prCards .prcard[data-plan='p399'] .prnote"), (y799, y399))
     pg.click("#prPeriod button[data-per='month']")
-    ok(f"{T}：切到月繳 → 799 卡真的換成 NT$799／月、按鈕換選中", bool(wait_until(pg, "() => document.querySelector(\"#prCards .prcard[data-plan='p799'] .prprice\").textContent.replace(/\\s/g, '') === 'NT$799／月' && document.querySelector('#prPeriod button.on').dataset.per === 'month'", 3000)),
+    ok(f"{T}：切到月繳 → 799 卡真的換成 NT$799／月、按鈕換選中", bool(wait_until(pg, "() => document.querySelector(\"#prCards .prcard[data-plan='p799'] .prprice\").textContent.replace(/\\s/g, '').replace(/每天約NT\\$[\\d.]+/, '') === 'NT$799／月' && document.querySelector('#prPeriod button.on').dataset.per === 'month'", 3000)),
        price("p799"))
     pg.click("#prPeriod button[data-per='year']")
-    ok(f"{T}：切回年繳 → 回到 NT$666／月", bool(wait_until(pg, "() => document.querySelector(\"#prCards .prcard[data-plan='p799'] .prprice\").textContent.replace(/\\s/g, '') === 'NT$666／月'", 3000)))
+    ok(f"{T}：切回年繳 → 回到 NT$666／月", bool(wait_until(pg, "() => document.querySelector(\"#prCards .prcard[data-plan='p799'] .prprice\").textContent.replace(/\\s/g, '').replace(/每天約NT\\$[\\d.]+/, '') === 'NT$666／月'", 3000)))
     pg.click("#prPeriod button[data-per='month']")
     # 卡片內容：頂端標籤、打勾清單項目數、行動鈕
     cd = pg.evaluate("""() => [...document.querySelectorAll('#prCards .prcard')].map(c => ({ id: c.dataset.plan, tag: (c.querySelector('.prtag') || {}).textContent || '',
@@ -49948,7 +50036,7 @@ def t_sub_1005(b, base, code):
     ok(f"{T}：切「合併表」→ 卡片與下方表格換成一張表，方案（名稱＋價格＋行動鈕）當欄頭，399 欄整欄強調、頂端「最受歡迎」",
        mg["ok"] and mg["ids"] == "free,p399,p799" and mg["hot"] == "p399" and mg["tag"] == "★ 最受歡迎" and all(mg["btn"]) and mg["hotCells"] == mg["rows"] and mg["rows"] >= 2, mg)
     pg.click("#prPeriod button[data-per='year']")
-    ok(f"{T}：合併表裡切年繳 → 799 欄頭價格也換（NT$666／月）", bool(wait_until(pg, "() => document.querySelector(\"#prMerged th[data-plan='p799'] .prprice\").textContent.replace(/\\s/g, '') === 'NT$666／月'", 3000)))
+    ok(f"{T}：合併表裡切年繳 → 799 欄頭價格也換（NT$666／月）", bool(wait_until(pg, "() => document.querySelector(\"#prMerged th[data-plan='p799'] .prprice\").textContent.replace(/\\s/g, '').replace(/每天約NT\\$[\\d.]+/, '') === 'NT$666／月'", 3000)))
     pg.click("#prPeriod button[data-per='month']")
     shot(pg, "1d_pricing_merged", "#v-pricing")
     pg.click("#prLayout button[data-lay='cards']")
@@ -49958,6 +50046,8 @@ def t_sub_1005(b, base, code):
     wait_until(pg, "() => !document.getElementById('subDlg').hidden && !!document.getElementById('subSend')", 3000)
     ok(f"{T}：申請對話框預填登入者 email、寫出範本價格（NT$ 399／月）",
        pg.input_value("#subMail") == "member@example.com" and "NT$ 399／月" in pg.inner_text("#subDlg .box"))
+    # 10-07 Andy「價格旁備註一天多少錢」：彈窗價格同一套口徑（399 月繳 → 399×12÷365＝13.1），跟卡片／合併表一致
+    ok(f"{T}：申請對話框價格旁「每天約 NT$ 13.1」（月價×12÷365）", pg.evaluate("() => (document.querySelector('#subDlg .cop .big .prday') || {}).textContent || ''") == "每天約 NT$ 13.1")
     dl = pg.evaluate("""() => { const b = document.querySelector('#subDlg .box');
         return { co: b.classList.contains('subco'), name: (b.querySelector('.coh b') || {}).textContent, grp: b.querySelectorAll('#subFeats h4').length, li: b.querySelectorAll('#subFeats li').length,
           noHeat: ![...b.querySelectorAll('#subFeats li')].some(l => /題材資金熱力/.test(l.textContent)), lim: [...b.querySelectorAll('#subFeats li')].some(l => /個股頁（整頁）・每日 20 次/.test(l.textContent)),
@@ -50074,7 +50164,7 @@ def t_sub_1005(b, base, code):
         ok(f"{T}・demo {W}：?demo=plans 畫出 註冊會員／Plus／Pro 三張", bool(wait_until(pg, "() => [...document.querySelectorAll('#prCards .prcard')].map(c => c.dataset.plan).join(',') === 'free,plus,pro'", 10000)),
            pg.evaluate("() => [...document.querySelectorAll('#prCards .prcard')].map(c => c.dataset.plan).join(',')"))
         dm = pg.evaluate("""() => [...document.querySelectorAll('#prCards .prcard')].map(c => ({ cls: c.className, tag: (c.querySelector('.prtag') || {}).textContent || '', n: c.querySelectorAll('.prhl li').length,
-            price: c.querySelector('.prprice').textContent.replace(/\\s/g, ''), fit: !!(c.querySelector('.mfit') || {}).textContent.trim(), who: (c.querySelector('.who') || {}).textContent || '', left: Math.round(c.getBoundingClientRect().left), top: Math.round(c.getBoundingClientRect().top) }))""")
+            price: c.querySelector('.prprice').textContent.replace(/\\s/g, '').replace(/每天約NT\\$[\\d.]+/, ''), fit: !!(c.querySelector('.mfit') || {}).textContent.trim(), who: (c.querySelector('.who') || {}).textContent || '', left: Math.round(c.getBoundingClientRect().left), top: Math.round(c.getBoundingClientRect().top) }))""")
         ok(f"{T}・demo {W}：年繳大字＝月均價 Plus NT$249／月、Pro NT$439／月、頂端「最多省 20%」（程式算）",
            [x["price"] for x in dm] == ["免費", "NT$249／月", "NT$439／月"] and pg.inner_text("#prSave") == "最多省 20%", [x["price"] for x in dm])
         sale = pg.evaluate("() => [...document.querySelectorAll('#prCards .prcard')].map(c => ({ s: (c.querySelector('.prorig s') || {}).textContent || '', line: getComputedStyle(c.querySelector('.prorig s') || document.body).textDecorationLine, b: (c.querySelector('.prsale') || {}).textContent || '' }))")
@@ -50089,7 +50179,7 @@ def t_sub_1005(b, base, code):
         ok(f"{T}・demo {W}：Plus／Pro 定位句是範本寫的，不是預設「進階分析與更高的每日次數」",
            all(x["who"] and x["who"] != "進階分析與更高的每日次數" for x in dm[1:]), [x["who"] for x in dm])
         pg.click("#prPeriod button[data-per='month']")
-        ok(f"{T}・demo {W}：切月繳 → Plus NT$299／月、Pro NT$549／月、小字「改年繳一年省 NT$ 598／1,320」、沒有刪除線", bool(wait_until(pg, "() => [...document.querySelectorAll('#prCards .prprice')].map(e => e.textContent.replace(/\\s/g, '')).join(',') === '免費,NT$299／月,NT$549／月'", 3000))
+        ok(f"{T}・demo {W}：切月繳 → Plus NT$299／月、Pro NT$549／月、小字「改年繳一年省 NT$ 598／1,320」、沒有刪除線", bool(wait_until(pg, "() => [...document.querySelectorAll('#prCards .prprice')].map(e => e.textContent.replace(/\\s/g, '').replace(/每天約NT\\$[\\d.]+/, '')).join(',') === '免費,NT$299／月,NT$549／月'", 3000))
            and pg.evaluate("() => [...document.querySelectorAll('#prCards .prnote')].slice(1).map(e => e.textContent).join('|')") == "改年繳一年省 NT$ 598|改年繳一年省 NT$ 1,320" and pg.locator("#prCards .prorig s").count() == 0)
         ok(f"{T}・demo {W}：頂端標籤、色系（Plus 藍、Pro 紫）、適合誰、清單各 6 項",
            [x["tag"] for x in dm] == ["", "★ 最受歡迎", "✦ 功能最齊"] and "pc-blue" in dm[1]["cls"] and "pc-violet" in dm[2]["cls"] and "pc-neutral" in dm[0]["cls"]
@@ -50123,6 +50213,13 @@ def t_sub_1005(b, base, code):
             for per in ("month", "year"):
                 pg.click(f"#prPeriod button[data-per='{per}']"); pg.wait_for_timeout(300)
                 a1 = pg.evaluate(ALIGN, "#prCards .prcard")
+                PD = "(sel) => [...document.querySelectorAll(sel)].map(e => { const d = e.querySelector('.prday'), p = d && d.closest('.prprice'); return d ? { t: d.textContent, one: Math.round(d.getBoundingClientRect().top) >= Math.round(p.getBoundingClientRect().top) - 1 && d.getBoundingClientRect().bottom <= p.getBoundingClientRect().bottom + 1 && p.scrollWidth <= p.clientWidth + 1, fs: parseFloat(getComputedStyle(d).fontSize) } : null; })"
+                pd1 = pg.evaluate(PD, "#prCards .prcard")
+                want = ["每天約 NT$ 9.8", "每天約 NT$ 18.0"] if per == "month" else ["每天約 NT$ 8.2", "每天約 NT$ 14.4"]
+                ok(f"{T}・demo 1440 卡片版（{per}）：價格旁「{want[0]}／{want[1]}」（一年總價÷365）、免費卡沒有、跟大字同一行不換行不被截、字 ≥11px",
+                   pd1[0] is None and [x and x["t"] for x in pd1[1:]] == want and all(x["one"] and x["fs"] >= 11 for x in pd1[1:]), pd1)
+                if os.environ.get("TW_PERDAY_SHOTS"):
+                    pg.screenshot(path=str(pathlib.Path(os.environ["TW_PERDAY_SHOTS"]) / f"perday_cards_{per}_1440.png"))
                 ok(f"{T}・demo 1440 卡片版（{per}）：三欄各層 top 差 ≤1px、按鈕底緣齊、價格小字沒被截", a1["n"] == 3 and all(v <= 1 for k, v in a1.items() if k not in ("n", "noteClip")) and not a1["noteClip"], a1)
             if os.environ.get("TW_PRICING_SHOTS"):
                 pg.screenshot(path=str(pathlib.Path(os.environ["TW_PRICING_SHOTS"]) / f"fix2_cards_{W}.png"))
@@ -50130,6 +50227,11 @@ def t_sub_1005(b, base, code):
             for per in ("month", "year"):
                 pg.click(f"#prPeriod button[data-per='{per}']"); pg.wait_for_timeout(300)
                 a2 = pg.evaluate(ALIGN, "#prMerged thead th[data-plan]")
+                pd2 = pg.evaluate(PD, "#prMerged thead th[data-plan]")
+                want = ["每天約 NT$ 9.8", "每天約 NT$ 18.0"] if per == "month" else ["每天約 NT$ 8.2", "每天約 NT$ 14.4"]
+                ok(f"{T}・demo 1440 合併表（{per}）：價格旁「{want[0]}／{want[1]}」、免費欄沒有、同一行不換行不被截", pd2[0] is None and [x and x["t"] for x in pd2[1:]] == want and all(x["one"] for x in pd2[1:]), pd2)
+                if os.environ.get("TW_PERDAY_SHOTS"):
+                    pg.screenshot(path=str(pathlib.Path(os.environ["TW_PERDAY_SHOTS"]) / f"perday_merged_{per}_1440.png"))
                 ok(f"{T}・demo 1440 合併表（{per}）：三欄各層 top 差 ≤1px、按鈕底緣齊、價格小字沒被截", a2["n"] == 3 and all(v <= 1 for k, v in a2.items() if k not in ("n", "noteClip")) and not a2["noteClip"], a2)
             mtx = pg.inner_text("#prMerged thead")
             ok(f"{T}・demo 1440 合併表：年繳 2,990／5,268、月均 249／439、徽章「省 NT$ 598／年・約 17%」「省 NT$ 1,320／年・約 20%」、Plus 定位句不是預設字", "2,990" in mtx and "5,268" in mtx and "439" in mtx and "省 NT$ 598／年・約 17%" in mtx and "省 NT$ 1,320／年・約 20%" in mtx and pg.inner_text("#prSave") == "最多省 20%" and "進階分析與更高的每日次數" not in mtx, mtx[:400])

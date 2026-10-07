@@ -241,6 +241,11 @@
 #v-etf .fqhd{grid-column:1/-1;display:flex;align-items:center;gap:8px;margin:8px 0 0;font-size:14px;font-weight:700;color:var(--ink);white-space:nowrap}
 #v-etf .fqhd:first-child{margin-top:0}
 #v-etf .fqhd i{width:10px;height:10px;border-radius:3px;background:var(--fc);flex:none}
+/* 子類型色（2026-10-07）：低飽和、不用紅綠，只拿來分組，不帶好壞意思；照組順序輪用 8 色 */
+#v-etf{--sg0:#8fa3bf;--sg1:#a3a0d6;--sg2:#b8a0cc;--sg3:#8db4c8;--sg4:#c4b08a;--sg5:#c49fb6;--sg6:#a3a3a3;--sg7:#9db0c4}
+:root[data-theme="light"] #v-etf{--sg0:#475569;--sg1:#4f46a5;--sg2:#6b4a8a;--sg3:#2f6680;--sg4:#7a5c1e;--sg5:#7d3f66;--sg6:#525252;--sg7:#3f5670}
+#v-etf .sgc-0{--fc:var(--sg0)} #v-etf .sgc-1{--fc:var(--sg1)} #v-etf .sgc-2{--fc:var(--sg2)} #v-etf .sgc-3{--fc:var(--sg3)}
+#v-etf .sgc-4{--fc:var(--sg4)} #v-etf .sgc-5{--fc:var(--sg5)} #v-etf .sgc-6{--fc:var(--sg6)} #v-etf .sgc-7{--fc:var(--sg7)}
 #v-etf .fqhd small{font-weight:400;color:var(--ink-3);font-size:12px}
 /* ---- 現金流試算（2026-10-07） */
 #v-etf .etfcatbar .etfinctab{flex:none;margin-left:6px}
@@ -646,6 +651,69 @@
     return S.per === 'custom' ? '自訂期間' : (PERS.find((x) => x[0] === S.per) || [0, '近 5 年'])[1];
   }
 
+
+  /* ---- 2026-10-07 Andy：「每個分頁不同類型 ETF，下方 ETF 也需要按照類型排序，可以參考配息型那分頁」
+     非配息型分頁依「子類型」分組。etf.json 只有代號與名稱可用（沒有追蹤指數／資產類別／地區欄位），
+     所以一律依「名稱關鍵字＋代號尾碼」判斷；判斷不到的歸「其他」，不准猜。規則與理由見 docs/etf_subgroups.md。
+     每條規則依陣列順序比對，先中先贏（例：「非投等」要排在「投等」前面，否則高收益債會被當成投資級）。 */
+  const SG_OVS = /上証|上證|滬深|深証|深100|中國|中証|A股|恒生|香港|日本|日經|東證|美國|美股|S&P|標普|NASDAQ|那斯達克|納斯達克|道瓊|北美|歐洲|印度|越南|韓|KOSPI|新興|全球|世界|MAG7|FANG/;
+  const SG = {
+    市值型: [
+      ['台股大型', /台灣50|台50|臺灣50|MSCI台灣|摩台|加權|領袖50/],
+      ['中小型', /中型100|中小|富櫃/],
+      ['海外市場', SG_OVS],
+    ],
+    主題型: [
+      ['半導體', /半導體|晶圓|PCB/],
+      ['AI 與科技', /AI|科技|電子|5G|通訊|網路|資安|元宇宙|算力|數據|機器人|太空|航太|FANG|MAG7|研發/],
+      ['ESG 永續', /ESG|永續|低碳|淨零|公司治理/],
+      ['電動車與綠能', /電動車|未來車|智能車|電池|儲能|潔淨能源|綠色電力|電力/],
+      ['金融', /金融/],
+      ['高股息主題', /高股息|高息|股息/],
+      ['產業其他', /生技|基因|稀土|商社|品牌|支付|不動產|防衛|資源/],
+      ['海外主題', SG_OVS],
+    ],
+    主動式: [
+      // 代號尾碼 A＝股票型主動；D 而且名稱寫明債／投等／非投＝債券型；D 但寫「入息」「收益」的是多重資產，歸其他
+      ['債券型主動', (it) => /D$/.test(it.code) && /債|投等|非投/.test(it.name)],
+      ['股票型主動', (it) => /A$/.test(it.code)],
+    ],
+    債券型: [
+      ['高收益債', /非投|高收益/],
+      ['新興市場債', /新興|EM|亞洲/],
+      ['美國公債・長天期', (it) => SG_UST(it.name) && /20|25|超長/.test(it.name)],
+      ['美國公債・中天期', (it) => SG_UST(it.name) && /7-10|10年/.test(it.name)],
+      ['美國公債・短天期', (it) => SG_UST(it.name) && /1-3|0-1|短期/.test(it.name)],
+      ['投資等級公司債', /投資級|投等|IG|A級|AAA|AA|BBB|A3|Aa|A公司債|A債|高評級/],
+    ],
+    槓桿反向: [],   // 下面用 levSub() 組出「方向・標的」
+    其他: [
+      ['商品', /黃金|白銀|銅|石油|原油|黃豆|小麥/],
+      ['REITs', /REIT|不動產/],
+    ],
+  };
+  // 美國公債：名稱寫美債／美公債／美國公債／US 短期公債，而且沒有寫評等或公司債（那些是美元計價公司債，不是公債）
+  function SG_UST(n) { return /美債|美公債|美國公債|US短期公債/.test(n) && !/投等|投資級|IG|A債|Aa|A-|公司|優息/.test(n); }
+  const LEV_DIR = [['正 2 槓桿', /正2/], ['反 1', /反1/], ['反向其他', /反向/]];
+  const LEV_UND = [['台股', /台灣50|臺灣加權|台灣加權/], ['美股', /S&P500|NASDAQ|道瓊/], ['陸港股', /上証|滬深|中國|香港|恒生/],
+    ['其他海外股', /日本|印度/], ['美債', /美債/], ['商品', /黃金|原油|布蘭特/], ['匯率', /美元|日圓/]];
+  function levSub(n) {
+    const d = LEV_DIR.find((r) => r[1].test(n)), u = LEV_UND.find((r) => r[1].test(n));
+    return d ? d[0] + '・' + (u ? u[0] : '其他') : '其他';
+  }
+  // 組順序：照上面規則的順序；槓桿反向是「方向 × 標的」的笛卡兒積；「其他」永遠最後
+  function sgOrder(cat) {
+    if (cat === '槓桿反向') { const o = []; LEV_DIR.forEach((d) => { LEV_UND.forEach((u) => o.push(d[0] + '・' + u[0])); o.push(d[0] + '・其他'); }); return o.concat('其他'); }
+    return (SG[cat] || []).map((r) => r[0]).concat('其他');
+  }
+  function subOf(it) {
+    if (it.cat === '槓桿反向') return levSub(it.name || '');
+    const r = (SG[it.cat] || []).find(([, t]) => (typeof t === 'function' ? t(it) : t.test(it.name || '')));
+    return r ? r[0] : '其他';
+  }
+  /* 卡片不加子類型文字標籤：名稱列已經有「分類＋配息頻率」兩個徽章，再加第三個會把 ETF 名稱擠成「富…」（實測 1440 寬）。
+     改用卡片左色條＝組色（跟配息型的頻率左色條同一套 .fqbar），完整組名寫在組標題上。 */
+
   /* ------------------------------------------------------------------ 1. 卡片清單 */
   function sortVal(it) {
     if (S.sort === 'size') return it.size == null ? -Infinity : it.size;
@@ -666,7 +734,7 @@
        → 頻率改成右上分類徽章旁的彩色小徽章；沒有殖利率（空／0）的不放頻率、殖利率那列留白佔位（同排卡片等高）。 */
     const hasY = it.yield_ttm != null && it.yield_ttm > 0;
     const fk = hasY ? FQK[it.freq] || '' : '';
-    return `<button type="button" class="etfc t-${CAT_TONE[it.cat] || 'ink3'}${fk && it.cat === '配息型' ? ` fqbar fqc-${fk}` : ''}" data-fq="${esc(it.freq || '')}" data-code="${esc(it.code)}" title="進 ${esc(it.name)} 個股頁">
+    return `<button type="button" class="etfc t-${CAT_TONE[it.cat] || 'ink3'}${fk && it.cat === '配息型' ? ` fqbar fqc-${fk}` : ''}${it._sg ? ` fqbar sgbar sgc-${it._sgi % 8}` : ''}"${it._sg ? ` data-sg="${esc(it._sg)}"` : ''} data-fq="${esc(it.freq || '')}" data-code="${esc(it.code)}" title="進 ${esc(it.name)} 個股頁">
   <div class="h"><span class="nm">${esc(it.name)}</span><span class="cd">${esc(it.code)}</span><span class="sp" style="flex:1"></span>
     <span class="etag ${CAT_TONE[it.cat] || 'ink3'}">${esc(it.cat)}</span>${hasY && fk ? `<span class="fq fqtag fqc-${fk}">${esc(it.freq)}</span>` : ''}</div>
   <div class="px"><b class="${cls(it.chg_pct)}" data-live="close" data-code="${esc(it.code)}">${it.close != null ? A().fmt.n(it.close, 2) : '—'}</b>
@@ -691,7 +759,19 @@
         html += `<div class="fqhd${FQK[k] ? ' fqc-' + FQK[k] : ''}" data-fq="${esc(k)}">${FQK[k] ? '<i></i>' : ''}${esc(k)}<small>${cnt[k]} 檔</small></div>`; }
         html += cardHTML(it); });
       g.innerHTML = html || '<div class="etfprep">無資料</div>';
-    } else g.innerHTML = shown.map(cardHTML).join('') || '<div class="etfprep">無資料</div>';
+    } else {
+      /* 子類型分組（2026-10-07）：做法同配息型——組順序照 sgOrder()、組內維持原排序、小標題寫全組檔數（不是已顯示的檔數） */
+      const ord = sgOrder(S.cat), rk = (k) => { const i = ord.indexOf(k); return i < 0 ? ord.length : i; };
+      list = list.map((it, i) => ({ it, i, k: subOf(it) })).sort((a, b) => rk(a.k) - rk(b.k) || a.i - b.i)
+        .map((x) => Object.assign({}, x.it, { _sg: x.k, _sgi: rk(x.k) }));
+      const cnt = {}; list.forEach((it) => { cnt[it._sg] = (cnt[it._sg] || 0) + 1; });
+      let html = '', cur = null;
+      list.slice(0, S.shown).forEach((it) => { if (it._sg !== cur) { cur = it._sg;
+        html += `<div class="fqhd sghd sgc-${it._sgi % 8}" data-sg="${esc(cur)}"><i></i>${esc(cur)}<small>${cnt[cur]} 檔</small></div>`; }
+        html += cardHTML(it); });
+      g.innerHTML = html || '<div class="etfprep">無資料</div>';
+      g.dataset.sgcnt = JSON.stringify(cnt);
+    }
     $$('.etfc', g).forEach((c) => { c.onclick = () => A().goStock(c.dataset.code); });
     const more = $('#etfMore'); more.hidden = list.length <= S.shown;
     more.textContent = `顯示更多（還有 ${Math.max(0, list.length - S.shown)} 檔）`;
