@@ -162,6 +162,9 @@
   const S = { obs: null, raf: 0 };
   function evaluate() {
     S.raf = 0;
+    /* ★ 2026-10-07：逐步導覽進行中（site/tour.js）不扣次、不蓋額度卡 —— 導覽會一頁一頁切過去，不能讓訪客看個導覽就把額度用光；
+       導覽一結束（tw:tour 事件）重算一次，額度卡照原規則蓋回來。 */
+    try { const ts = window.TwTour && window.TwTour.state(); if (ts && ts.on) { paint(new Map()); return; } } catch (e) { /* 沒有導覽就照舊 */ }
     const h = location.hash || '';
     const fs = limited();
     const d = load(); let changed = false;
@@ -253,6 +256,7 @@
   }
 
   window.addEventListener('hashchange', schedule);
+  window.addEventListener('tw:tour', () => evaluate());
   window.addEventListener('tw:perm', () => { syncedFor = ''; sync(); schedule(); });
   window.addEventListener('tw:account', () => { sync(); schedule(); });
   function boot() { schedule(); sync(); }

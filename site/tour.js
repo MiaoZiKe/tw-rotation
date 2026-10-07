@@ -134,27 +134,54 @@
       d: '成交值前 5（或前 10）大族群佔全市場的比重：比重升高＝錢越來越集中在少數族群，下降＝分散到更多族群。' },
   ];
 
+  /* 剖析圖 2D／3D：按站上那顆分段鈕本人（#dg3d button[data-dm]），不自己改 localStorage —— 行為跟使用者按的一模一樣。
+     導覽把模式切到 3D 的話，結束時切回原本的模式（tw.dg3d 是全站共用的記憶，不能因為看了導覽就改掉使用者的偏好）。 */
+  const dgMode = (want) => async () => {
+    const seg = $('#dg3d');
+    if (!seg || seg.hidden || !shown(seg)) return;
+    if (touched.dg3d == null) touched.dg3d = seg.dataset.mode || '2d';
+    if ((seg.dataset.mode || '2d') === want) return;
+    const b = $(`#dg3d button[data-dm="${want}"]`); if (b) b.click();
+    if (want === '3d') {   // 等 3D 場景真的掛上（canvas 出現、「載入 3D 中…」消失），最多 6 秒
+      for (let k = 0; k < 60; k++) { const n = $('#dg3dNote'); if ($('#prod3d canvas') && !(n && /載入 3D 中/.test(n.textContent || ''))) break; await sleep(100); }
+      await sleep(400);
+    }
+  };
   const INDUSTRY = [
     { t: '先挑一條產業鏈', sel: '#chainSwitch', route: '#industry', routeRe: /^#industry$/, view: 'industry',
       d: '全市場、半導體、AI 伺服器……每個分頁是一條產業鏈，旁邊的數字是這條鏈各族群收錄的檔數合計。' },
     { t: '全市場族群漲幅與占比', sel: ['#gpHost', '#indMap .card'],
       d: '左邊是成交值前段族群今天的漲跌幅（紅漲綠跌），右邊是成交值占比；右上「產業熱力圖」看完整版圖。' },
-    { t: '族群分頁', sel: '#dgPick', route: '#industry/semiconductor', routeRe: /^#industry\/semiconductor/, view: 'industry',
+    { t: '族群分頁', sel: '#dgPick', route: '#industry/semiconductor', routeRe: /^#industry\/semiconductor/, view: 'industry', before: dgMode('2d'),
       d: '點進一條產業鏈（這裡是半導體）之後，第二排是族群：「族群總覽」看整條鏈，其他每一格是一個族群的產品剖析圖。' },
-    { t: '產品剖析圖', sel: ['#dgSec', '#prodDiagram'],
-      d: '把一個產品拆成零件的原創示意圖（非實物比例）：圖上的編號對應右邊的說明卡，右上可以切 2D／3D。' },
-    { t: '點零件，看是誰做的', sel: ['#prodDiagram .dgc[data-seg]', '#prodDiagram [data-part]', '#prodDiagram [data-seg]'],
+    { t: '2D 剖析圖怎麼看', sel: ['#prodDiagram', '#dgSec'], before: dgMode('2d'),
+      d: '把產品拆成零件的原創示意圖（非實物比例）。圖上每個圓圈編號對應右邊同號的說明卡；下面幾段可以展開看尺寸、製程與各段台股。' },
+    { t: '點零件，看是誰做的', sel: ['#prodDiagram .dgc[data-seg]', '#prodDiagram [data-part]', '#prodDiagram [data-seg]'], before: dgMode('2d'),
       d: '圖上的零件或右邊的編號卡都點得下去。下一步示範點一個零件會出現什麼。' },
     { t: '這個零件是誰做的', sel: '#partCard',
-      before: () => {
+      before: async () => {
+        await dgMode('2d')();
         const pc = $('#partCard');
         if (pc && !pc.hidden && pc.getClientRects().length) return;
         const p = [$('#prodDiagram .dgc[data-seg]'), $('#prodDiagram [data-part]'), $('#prodDiagram [data-seg]')].find((x) => shown(x));
         if (p) p.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, view: window }));
       },
-      d: '點了零件，這張小卡列出做這個零件的公司，點公司名稱進個股頁；下面的供應鏈關聯圖也會亮起同一個環節。' },
-    { t: '供應鏈關聯圖', sel: '#relSec',
-      d: '左邊上游、右邊下游，每一欄是一個環節、列出做這個環節的公司；連線＝具名的供貨關係，線越粗依存度越高。' },
+      d: '點了零件，這張小卡列出做這個零件的台股與同一格的外商、進料與出貨；下面的供應鏈關聯圖也會亮起同一個環節。' },
+    { t: '切到 3D', sel: '#dg3d', before: dgMode('2d'),
+      d: '剖析圖右上這顆「2D｜3D」切換平面圖與立體圖，亮的那一格就是現在的模式。下一步切到 3D。' },
+    { t: '3D 立體剖析圖', sel: '#prod3d', before: dgMode('3d'),
+      d: '同一組零件改成立體：左鍵拖曳轉動、滾輪拉近拉遠、點兩下回到一開始的視角。立體看得出層與層的上下關係，平面圖適合看編號與細節。',
+      m: '同一組零件改成立體：手指拖曳轉動、兩指縮放、點兩下回到一開始的視角。立體看得出層與層的上下關係。' },
+    { t: '3D 展示：拆開與自轉', sel: ['#dg3dCtl', '#dgAnim'], union: true, before: dgMode('3d'),
+      d: '一切到 3D，零件會從原位慢慢拆開（爆炸拆解），層次一目了然。「動畫：開」場景緩慢自轉、關掉就靜止；「拖曳：轉動」可切成平移，「重設視角」回到原位。' },
+    { t: '3D 裡也能點台股', sel: ['#prod3d .chip3d', '#prod3d'], before: dgMode('3d'),
+      d: '立體圖旁邊的編號卡跟 2D 是同一套，卡上列出做這個零件的台股，點名稱進個股頁；點畫面上的零件一樣會選起它所屬的環節。' },
+    { t: '供應鏈關聯圖', sel: '#relSec', before: dgMode('2d'),
+      d: '左邊上游、右邊下游，一欄是一層、每一格是一個環節、格子裡是做這個環節的公司；連線＝具名的供貨關係，線越粗依存度越高。' },
+    { t: '環節下拉與收合', sel: ['#segDDBtn', '#relFold'], union: true,
+      d: '「環節」下拉只看某幾格；「收合圖」把整張關聯圖收起來；格子右上的箭頭可以單獨展開或收起那一格。' },
+    { t: '點公司，跟剖析圖連動', sel: ['#chainMap g.co.chip', '#chainList .co', '#relSec'],
+      d: '點關聯圖裡的公司，會選起它所屬的環節：關聯圖只留那一格與上下游，上面剖析圖同一個環節的零件也跟著亮。' },
   ];
 
   const STOCK_ROUTE = () => (/^#stock\/[0-9A-Za-z]{4,6}/.test(location.hash) ? null : '#stock/2330');
@@ -194,7 +221,7 @@
     site: { name: '全站導覽', steps: SITE },
     overview: { name: '總覽導覽', steps: OVERVIEW },
     flow: { name: '資金流向導覽', steps: FLOW },
-    industry: { name: '產業地圖導覽', steps: INDUSTRY },
+    industry: { name: '產業地圖導覽', steps: INDUSTRY, onEnd: () => { if (touched.dg3d && ($('#dg3d') || {}).dataset?.mode !== touched.dg3d) { const b = $(`#dg3d button[data-dm="${touched.dg3d}"]`); if (b) b.click(); } } },
     stock: { name: '個股頁導覽', steps: STOCK, onEnd: () => { if (touched.stockTab) { const b = $('#stockTabs button[data-t="overview"]'); if (b && !b.classList.contains('on')) b.click(); } } },
   };
   /* 目前這一頁有沒有專屬導覽：沒有就回 null（頁首鈕改開全站導覽） */
@@ -210,7 +237,9 @@
      而且不在功能鎖（perm.js 的 data-plk、quota.js 的 data-qlk、鎖頭底下的 inert）裡面 —— 被鎖的區塊框起來也看不到東西 */
   function shown(el) {
     if (!el || !el.isConnected) return false;
-    if (el.closest('[hidden],[data-plk],[data-qlk],[inert]')) return false;
+    /* 導覽進行中 perm.js／quota.js 會撤掉鎖頭與額度卡（見 locks()），所以不再因 data-plk／data-qlk 判成看不見；
+       撤除要一個畫格，waitFor 會等到它真的撤掉、尺寸穩定才框 */
+    if (el.closest('[hidden],[inert]')) return false;
     const r = el.getBoundingClientRect();
     if (r.width < 4 || r.height < 4) return false;
     for (let e = el; e && e !== document.documentElement; e = e.parentElement) {
@@ -352,7 +381,7 @@
   /* ======================================================================== 畫面 */
   let ui = null;           // { root, hole, card }
   let run = null;          // { id, tour, i, seq, els, sel, skipped:[], place }
-  const touched = { stockTab: false };
+  const touched = { stockTab: false, dg3d: null };
   const ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'
     + '<circle cx="12" cy="12" r="10"/><path d="m16.24 7.76-1.804 5.411a2 2 0 0 1-1.265 1.265L7.76 16.24l1.804-5.411a2 2 0 0 1 1.265-1.265z"/></svg>';
 
@@ -534,6 +563,19 @@
         try { $('#twTourNext').focus({ preventScroll: true }); } catch (e) { /* 忽略 */ }
         return;
       }
+      /* 元素在這一頁裡、沒被藏起來，只是量不到尺寸（多半是資料載不到、畫不出來）：不跳過整步，改成置中的說明卡 */
+      const ghost = [].concat(st.sel || []).map((x) => { try { return $(x); } catch (e) { return null; } })
+        .find((e) => e && e.closest('.view.on') && !e.closest('[hidden]') && getComputedStyle(e).display !== 'none');
+      if (ghost && !st.fast) {
+        run.skipped = run.skipped.filter((k) => k !== i);
+        run.i = i; run.els = null; run.sel = '(說明卡)';
+        paintText(st, i, steps.length);
+        $('#twTourD').textContent += '（這一塊目前沒有畫面可以框，先看說明。）';
+        lastSig = ''; place();
+        run.busy = false; ui.card.classList.remove('busy');
+        ui.root.dataset.step = String(i); ui.root.dataset.sel = '';
+        return;
+      }
       if (!run.skipped.includes(i)) run.skipped.push(i);
       i += dir;
     }
@@ -576,7 +618,7 @@
     if (!ui) build(); else if (!ui.root.isConnected) document.body.appendChild(ui.root);
     ui.root.hidden = false;
     ui.root.dataset.tour = key;
-    touched.stockTab = false;
+    touched.stockTab = false; touched.dg3d = null;
     run = { id: key, tour: TOURS[key], i: -1, seq: 0, els: null, sel: '', skipped: [], busy: false, opener: document.activeElement };
     paintText({ t: '載入中…', d: '' }, 0, TOURS[key].steps.length);
     $('#twTourT').textContent = TOURS[key].name;
@@ -584,6 +626,7 @@
     window.addEventListener('keydown', onKey, true);
     window.addEventListener('resize', onResize);
     watch();
+    locks();
     go(0, 1);
     return key;
   }
@@ -594,9 +637,16 @@
     window.removeEventListener('keydown', onKey, true);
     window.removeEventListener('resize', onResize);
     if (ui) { ui.root.remove(); }
+    locks();
     try { if (r.tour.onEnd) r.tour.onEnd(why); } catch (e) { /* 收尾失敗不影響關閉 */ }
     if (why !== 'restart' && r.opener && r.opener.isConnected && r.opener.focus) { try { r.opener.focus({ preventScroll: true }); } catch (e) { /* 忽略 */ } }
   }
+
+  /* 導覽期間訪客也看得到真畫面（Andy 10-07：「導覽即使是訪客 也需要看得到畫面」）：
+     開始／結束都丟一個 tw:tour 事件，perm.js（鎖頭）與 quota.js（每日額度卡）收到就重算 ——
+     它們重算時看 TwTour.state().on：導覽中一律不蓋、quota 也不扣次；結束時照原規則蓋回來。
+     只是畫面層暫停遮罩，資料怎麼載入完全沒動（本來載不到的，那一步改成只顯示說明卡，見 go() 的 fallback）。 */
+  function locks() { try { window.dispatchEvent(new CustomEvent('tw:tour', { detail: { on: !!run } })); } catch (e) { /* 舊瀏覽器 */ } }
 
   /* ======================================================================== 入口 */
   /* 桌機：頁首右上角工具列（#l4Tools）裡、外觀調色盤（#t4Btn）右邊一顆「導覽」。
@@ -667,9 +717,9 @@
     pageTour,
     /* 給驗收腳本：現在在哪一步、框的是誰、框在哪、卡片在哪 */
     state: () => {
-      if (!run) return { active: false };
+      if (!run) return { active: false, on: false };
       const r = run.els ? unionRect(run.els) : null, c = ui.card.getBoundingClientRect(), h = ui.hole.getBoundingClientRect();
-      return { active: true, tour: run.id, i: run.i, n: run.tour.steps.length, busy: run.busy, title: $('#twTourT').textContent,
+      return { active: true, on: true, tour: run.id, i: run.i, n: run.tour.steps.length, busy: run.busy, title: $('#twTourT').textContent,
         sel: run.sel, place: run.place, skipped: run.skipped.slice(), hash: location.hash, view: (($('.view.on') || {}).id || ''),
         target: r && { l: r.left, t: r.top, r: r.right, b: r.bottom, w: r.width, h: r.height },
         hole: { l: h.left, t: h.top, r: h.right, b: h.bottom, w: h.width, h: h.height },

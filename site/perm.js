@@ -107,6 +107,7 @@
   }
 
   // ------------------------------------------------------------------ 套用鎖頭
+  const touring = () => { try { const s = window.TwTour && window.TwTour.state(); return !!(s && s.on); } catch (e) { return false; } };
   const q = (sel) => { try { return Array.from(document.querySelectorAll(sel)); } catch (e) { return []; } };
   function apply() {
     S.raf = 0;
@@ -133,6 +134,9 @@
       }
     }
     needGroups();
+    /* ★ 2026-10-07（Andy：「導覽即使是訪客 也需要看得到畫面」）：逐步導覽（site/tour.js）進行中暫停所有鎖頭遮罩，
+       導覽一結束（tw:tour 事件）就照原規則蓋回來。只是畫面層，沒有打開任何資料。 */
+    if (touring()) { want.clear(); wantB.clear(); }
     /* 只動「該變」的：屬性沒變就不寫（寫屬性會觸發樣式重算；live.js 每 5 秒改一堆格子，這裡每次都會被叫到）*/
     q('[data-plk]').forEach((el) => { if (!want.has(el)) unveil(el); });
     want.forEach((m, el) => {
@@ -249,6 +253,7 @@
     grpOk: (gid) => { const k = F.grpKey(gid); const f = F.byId(k); return f ? can(k) : S.feats[k] !== false; } };
   window.addEventListener('hashchange', schedule);
   window.addEventListener('tw:plans', schedule);
+  window.addEventListener('tw:tour', () => { if (typeof apply === 'function') apply(); });
 
   /* 啟動：account.js 先跑（它決定會員功能開不開），開了會發 tw:account-config；沒開就照預設全開。
      account.js 啟動時驗權杖也會發一次 tw:account —— 同一個人 5 秒內不重抓（不然每次重新整理都打兩次）。*/
