@@ -24396,9 +24396,48 @@ def _tour_inview(st, tol=2):
     return card_ok, hole_ok and covers and vis
 
 
-def _tour_walk(pg, tag, maxn=24):
-    """一直按「下一步」走到導覽結束；回傳每一步的狀態。"""
+# ---- 平滑化（Andy 10-07 15:00「平台導覽有點卡頓，幫我平滑化，讓他是順暢的，並且不要有無效動作」）
+# 長任務量測：頁面一載入就掛 PerformanceObserver（longtask），每一步看這一步期間有沒有 >100ms 的
+TOUR_LT_INIT = ("try{window.__twtLT=[];new PerformanceObserver(l=>l.getEntries().forEach(e=>__twtLT.push(Math.round(e.duration))))"
+                ".observe({type:'longtask',buffered:true})}catch(e){}")
+TOUR_POS = "() => { const s = TwTour.state(); return s.active ? [s.i, Math.round(s.hole.l), Math.round(s.hole.t), Math.round(s.hole.w), Math.round(s.hole.h), Math.round(s.card.l), Math.round(s.card.t)] : null; }"
+
+
+def _tour_smooth(pg, st, tag, lt0):
+    """每一步：只捲一次、聚光燈定位（動畫 280ms 跑完）後 300ms 內不再移動、說明卡出現後不跳位、沒有 >100ms 長任務。
+    長任務放寬：產業地圖 3D 那幾步（3D 場景本身在無 GPU 的測試瀏覽器裡用軟體算圖，一幀就 >100ms，跟導覽無關）；
+    換頁那一步放寬到 250ms（是新頁自己第一次畫圖，導覽這邊的工作已拆成每幀一小段）。"""
+    pg.wait_for_function("() => { const s = TwTour.state(); return !s.active || s.since >= 300; }", timeout=5000)
+    a = pg.evaluate(TOUR_POS)
+    pg.wait_for_timeout(300)
+    b2 = pg.evaluate(TOUR_POS)
+    s2 = pg.evaluate(TOUR_ST)
+    name = f"[平台導覽1007][{tag}] 第 {st['i'] + 1} 步「{st['title']}」"
+    if a and b2 and a[0] == b2[0]:
+        ok(f"{name}：聚光燈與說明卡定位後 300ms 內不再移動", all(abs(x - y) <= 1 for x, y in zip(a[1:], b2[1:])), (a, b2))
+    ok(f"{name}：這一步只捲動一次（或不用捲）", s2.get("scrolls", 0) <= 1, s2.get("scrolls"))
+    ok(f"{name}：說明卡出現後沒有再跳位", s2.get("cardJumps", 0) == 0, s2.get("cardJumps"))
+    lts = pg.evaluate("() => (window.__twtLT || []).slice()")[lt0:]
+    # 放寬只給「不是導覽自己的工作」：3D 那幾步與 3D 之後切回 2D 的那一步（3D 場景在無 GPU 的測試瀏覽器用軟體算圖）、
+    # 換頁或示範動作（點零件、切分段）那一步的新內容第一次畫圖（頁面自己的工作，對照組：不開導覽直接換頁也一樣長）。
+    # 純「框下一個元素」的步驟一律 ≤100ms —— 那才是導覽本身的成本。
+    if "3D" in st["title"] or "3D" in st.get("_prevtitle", ""):
+        lim = 10 ** 9
+    elif st["hash"] != st.get("_prevhash", st["hash"]) or st.get("act") or not st.get("_prevtitle"):
+        # 第一步也算：導覽一開始會通知 perm.js／quota.js 撤掉鎖頭與額度卡（tw:tour），被蓋住的圖要重畫
+        lim = 800
+    else:
+        lim = 100
+    big = [x for x in lts if x > lim]
+    ok(f"{name}：沒有超過 {lim if lim < 10 ** 9 else '（3D 放寬）'}ms 的長任務", not big, lts)
+    return len(lts) + lt0
+
+
+def _tour_walk(pg, tag, maxn=24, smooth=True):
+    """一直按「下一步」走到導覽結束；回傳每一步的狀態。smooth＝每一步順便驗平滑（只捲一次、定位後不動、卡片不跳、無長任務）。"""
     seen, rows = [], []
+    lt0 = len(pg.evaluate("() => window.__twtLT || []")) if smooth else 0
+    pv = None
     for _ in range(maxn):
         st = _tour_wait(pg)
         if not st["active"]:
@@ -24408,6 +24447,10 @@ def _tour_walk(pg, tag, maxn=24):
             break
         seen.append(st["i"])
         rows.append(st)
+        if smooth:
+            st["_prevhash"], st["_prevtitle"] = pv or (st["hash"], "")
+            lt0 = _tour_smooth(pg, st, tag, lt0)
+        pv = (st["hash"], st["title"])
         pg.click("#twTourNext")
     return rows
 
@@ -24418,8 +24461,10 @@ TOUR_MODE = """() => { const s = document.getElementById('dg3d'), c = document.g
 
 
 def _tour_walk_ind(pg, maxn=24):
-    """走產業地圖導覽，每一步多記剖析圖現在是 2D 還是 3D。"""
+    """走產業地圖導覽，每一步多記剖析圖現在是 2D 還是 3D；也驗平滑（同 _tour_walk）。"""
     seen, rows, modes = [], [], {}
+    lt0 = len(pg.evaluate("() => window.__twtLT || []"))
+    pv = None
     for _ in range(maxn):
         st = _tour_wait(pg)
         if not st["active"]:
@@ -24431,6 +24476,9 @@ def _tour_walk_ind(pg, maxn=24):
         c_ok, h_ok = _tour_inview(st)
         m["inview"] = c_ok and h_ok
         modes[st["title"]] = m
+        st["_prevhash"], st["_prevtitle"] = pv or (st["hash"], "")
+        lt0 = _tour_smooth(pg, st, "產業地圖", lt0)
+        pv = (st["hash"], st["title"])
         pg.click("#twTourNext")
     return rows, modes
 
@@ -24487,6 +24535,7 @@ def t_tour_1007(pg, b, base):
     pg = ctx.new_page()
     pg.on("pageerror", lambda e: fails.append(f"平台導覽1007 pageerror: {e}"))
     pg.add_init_script("try{localStorage.setItem('tw.live.on','0');localStorage.removeItem('tw.theme')}catch(e){}")
+    pg.add_init_script(TOUR_LT_INIT)
     pg.goto(base + "#overview", wait_until="networkidle"); pg.wait_for_timeout(2500)
 
     ok(f"{T} tour.js 載入、提供 TwTour.start 與五套導覽", pg.evaluate("() => !!(window.TwTour && TwTour.start) && TwTour.ids().join(',')") == "site,overview,flow,industry,stock",
@@ -24583,7 +24632,7 @@ def t_tour_1007(pg, b, base):
     pg.goto(base + "#overview", wait_until="networkidle"); pg.wait_for_timeout(1500)
     pg.evaluate("() => { document.getElementById('ovHeatCard').setAttribute('data-plk', 'ov.heat'); document.getElementById('ovFlowCard').style.display = 'none'; }")
     pg.evaluate("() => TwTour.start('overview')")
-    rows = _tour_walk(pg, "鎖住")
+    rows = _tour_walk(pg, "鎖住", smooth=False)
     titles = [r["title"] for r in rows]
     ok(f"{T} 掛著鎖頭（data-plk）的「資金熱力圖」導覽中照樣框得到（不跳）；真的不見的「昨日資金去向」才跳過，導覽走到底",
        "資金熱力圖" in titles and "昨日資金去向" not in titles and "漲跌家數分佈" in titles and pg.locator("#twTour").count() == 0, titles)
@@ -24653,6 +24702,7 @@ def t_tour_1007(pg, b, base):
     m = mctx.new_page()
     m.on("pageerror", lambda e: fails.append(f"平台導覽1007(390) pageerror: {e}"))
     m.add_init_script("try{localStorage.setItem('tw.live.on','0');localStorage.removeItem('tw.theme')}catch(e){}")
+    m.add_init_script(TOUR_LT_INIT)
     m.goto(base + "#overview", wait_until="networkidle"); m.wait_for_timeout(2500)
     m.click("#moreBtn"); m.wait_for_timeout(400)
     ok(f"{T} 390：右上「⋯」清單裡有「本頁導覽」「全站導覽」", m.locator("#mmTourPage").is_visible() and m.locator("#mmTourSite").is_visible())

@@ -1,5 +1,12 @@
 # HANDOFF.md — 目前進度（接手先讀這份）
 
+## 2026-10-07 平台導覽平滑化（動效工程師，分支 `claude/tour-smooth` → main）
+- Andy 15:00：「平台導覽有點卡頓，幫我平滑化，讓他是順暢的，並且不要有無效動作」。只動 `site/tour.js` 引擎與 `_uitest` 平台導覽1007。
+- 拿掉：固定秒數等待（110／160／250／350／400ms）、每步兩次捲動（scrollIntoView＋scrollBy）、每 150ms 輪詢重新對位的補丁、換頁時舊說明卡留在新頁上。
+- 改成：每幀檢查＋逾時保底（元素連 2 幀且 ≥120ms 不動才框）；一步只捲一次（smooth，真的捲到終點才定位）；聚光燈位置走 transform、說明卡只走 transform／opacity、統一 cubic-bezier(.2,.8,.2,1) 280ms；換頁先淡出卡片、定位好才淡入；跟隨改 ResizeObserver＋MutationObserver＋scroll 併成一幀；prefers-reduced-motion 無動畫。
+- 平台導覽1007 新增斷言：每步只捲一次、定位後 300ms 不動、說明卡不跳位、純框選步驟無 >100ms 長任務（換頁／示範動作那步 ≤800ms、3D 步放寬，對照組：不開導覽直接換頁一樣長，是頁面自己畫圖）。
+- 這批只驗了：平台導覽1007、頁首圖示鈕1006、全站共用額度1007（--workers 1）、_preview（唯一問題是本機缺 data/earnings.json 的 404，資料環境問題）。
+
 ## 2026-10-07 管理權限1007：可更改功能只限管理者＋「管理權限」頁（資安，分支 `claude/admin-only` → main）
 - 盤點見 docs/admin_only_audit.md。分頁拖曳（site/tabdrag.js）只限管理者，非管理者已存排序清掉；Worker 加 /v1/admin/* 總閘＋admin_log（append-only）＋/v1/admin/admins/list|add|del（只有擁有者＝ADMIN_EMAILS 能加／移除）。
 - #admin/admins 新頁（側欄「管理區 → 管理權限」）。
