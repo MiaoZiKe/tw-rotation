@@ -131,7 +131,7 @@
       highlights: ['研究瀏覽・每日 10 次（個股、剖析圖、題材剖析）', '資金流向・輪動時鐘・桑基圖・完整功能', '產業鏈剖析圖（2D）・每日 10 張', '自選清單・1 頁 10 檔', 'ETF 一覽・配息行事曆・財經日曆', 'Email 客服・一般順序回覆'],
       feats: { 'ind.3d': false, 'stock.k_min': false, 'stock.mtf': false, 'stock.ind': false, 'stock.draw': false, 'live.tick': false, 'etf.returns': false, 'watch.tabs': 1 },
       lims: { 'quota.all': 10, 'stock.page': 10, 'ind.diagram': 10, 'heat.detail': 10, 'ind.rel': 10, 'ind.groups': 10 }, watch: { tabs: 1, size: 10 } },
-    { key: 'plus', name: 'Plus', price: { month: 249, year: 2490 }, badge: '最受歡迎', tagline: '每天主動研究，工具一次到位',
+    { key: 'plus', name: 'Plus', price: { month: 299, year: 2990 }, badge: '最受歡迎', tagline: '每天主動研究，工具一次到位',
       fit_title: '適合每天主動研究', fit_desc: '每天追蹤好幾個族群與自選股：用 3D 剖析圖看懂零件與供應商、四週期同看與畫線工具省下來回切換的時間，5 頁自選清單分題材管理。',
       highlights: ['研究瀏覽・每日 50 次', '3D 剖析圖・完整功能', '四週期同看・畫線工具・指標自訂', '自選清單・5 頁、每頁 50 檔', 'ETF 報酬比較（自選 8 檔）', '客服優先回覆（只限功能與資料說明）'],
       feats: { 'stock.k_min': false, 'live.tick': false, 'watch.tabs': 5 },
@@ -208,7 +208,7 @@
     const x = prices(p);
     if (x.free) return { free: true };
     if (x.once) return { amount: x.once, unit: '（一次）', note: '一次付清', period: 'month' };
-    if (per === 'year' && x.year) return x.month ? { amount: Math.round(x.year / 12), unit: '／月', note: `年繳 NT$ ${nt(x.year)}・年繳方案均攤`, period: 'year', total: x.year } : { amount: x.year, unit: '／年', note: '年繳方案', period: 'year', total: x.year };
+    if (per === 'year' && x.year) return x.month ? { amount: Math.round(x.year / 12), unit: '／月', note: `約 NT$ ${nt(Math.round(x.year / 12))}／月（年繳 NT$ ${nt(x.year)}）`, period: 'year', total: x.year } : { amount: x.year, unit: '／年', note: '年繳方案', period: 'year', total: x.year };
     if (x.month) return { amount: x.month, unit: '／月', note: per === 'year' ? '此方案僅提供月繳' : '按月計費', period: 'month' };
     if (x.year) return { amount: x.year, unit: '／年', note: per === 'month' ? '此方案僅提供年繳' : '年繳方案', period: 'year', total: x.year };
     /* 付費範本價格是 0／空 ＝還沒定價（Plus／Pro 種子就是 0）→ 寫「價格待定」，不寫 NT$ 0 讓人以為免費 */
@@ -412,7 +412,20 @@
 @media (max-width:820px){#v-pricing .prcards{grid-template-columns:minmax(0,1fr);gap:30px}#v-pricing .prhero h1{font-size:24px}#v-pricing .prhero{padding-top:26px}
   #v-pricing .prper button{padding:0 16px}#v-pricing .prcmpw table{min-width:calc(132px + var(--nc,3) * 112px)}
   #v-pricing .prcmpw th:first-child,#v-pricing .prcmpw td:first-child{width:132px;min-width:132px;max-width:132px;white-space:normal;box-shadow:1px 0 0 var(--line)}
-  #v-pricing .prcmpw th,#v-pricing .prcmpw td{padding:10px}#v-pricing .prcmpw tr.base td:first-child{white-space:normal}}`);
+  #v-pricing .prcmpw th,#v-pricing .prcmpw td{padding:10px}#v-pricing .prcmpw tr.base td:first-child{white-space:normal}}
+/* ★ 10-07 Andy「排版沒有統一」：欄頭固定列結構 —— 圖示＋名稱＋定位句｜價格大字｜價格小字一行｜「適合…」一行｜按鈕。
+   每一層給固定高度（缺內容的格子用 &nbsp; 佔位），三欄每一層的 top 才會一樣、按鈕底緣同一條線；小字一律單行省略，不會被擠到重疊。 */
+#v-pricing .prhd{height:48px;align-content:center}#v-pricing .prmg .prhd{height:44px}
+#v-pricing .prhd .who{line-height:20px;height:20px}
+#v-pricing .prprice{height:40px;line-height:40px;overflow:hidden}
+#v-pricing .prmg .prprice{height:34px;line-height:34px}
+#v-pricing .prnote,#v-pricing .prmg .prnote{margin-top:6px;height:20px;line-height:20px;min-height:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#v-pricing .mfit,#v-pricing .prmg .mfit{margin:8px 0 14px;height:20px;line-height:20px;font-size:13px;font-weight:700;color:var(--pc);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#v-pricing .pc-neutral .mfit{color:var(--ink)}
+#v-pricing .prcard hr{margin:4px 0 18px}
+#v-pricing .prfit p{display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical;overflow:hidden;height:calc(1.65em * 4)}
+#v-pricing .prfit.nil{background:transparent}
+`);
 
   function paint() {
     const v = view('v-pricing'); if (!v) return;
@@ -486,10 +499,11 @@
     const btn = btnOf(p, me);
     const hl = (Array.isArray(p.highlights) && p.highlights.length ? p.highlights : autoHl(p)).slice(0, 12);
     const tag = tagOf(lk, need);
-    const fit = p.fit_title || p.fit_desc ? `<div class="prfit">${p.fit_title ? `<b>${esc(p.fit_title)}</b>` : ''}${p.fit_desc ? `<p>${esc(p.fit_desc)}</p>` : ''}</div>` : '';
+    /* 10-07 排版統一：「適合…」一行移到欄頭（.mfit，跟合併表同一層）；這裡只留說明，固定 4 行高（沒寫也佔位），打勾清單才會三張卡同一條起跑線 */
+    const fit = `<div class="prfit${p.fit_desc ? '' : ' nil'}"><p title="${esc(p.fit_desc || '')}">${p.fit_desc ? esc(p.fit_desc) : '&nbsp;'}</p></div>`;
     return `<div class="prcard pc-${esc(lk.color)}${hot ? ' hot' : ''}${need ? ' need' : ''}${isMine ? ' mine' : ''}" data-plan="${esc(p.id)}" data-tier="${t}">
       ${tag}<div class="prhd"><span class="prico">${svgI(lk.icon)}</span><h2 title="${esc(showName(p))}">${esc(showName(p))}</h2><div class="who" title="${esc(who)}">${esc(who)}</div></div>
-      ${priceHtml(p)}<hr>
+      ${priceHtml(p)}<div class="mfit" title="${esc(p.fit_title || '')}">${p.fit_title ? esc(p.fit_title) : '&nbsp;'}</div><hr>
       ${fit}<ul class="prhl">${hl.map((x) => `<li>${CHECK}<span>${esc(x)}</span></li>`).join('')}</ul>${btn}</div>`;
   }
   /* 方案功能比較表：每格＝✓／—／每日 N 次／最多 N 頁。只列「至少一個方案不一樣」的功能；全部一樣的收成最後一行 */
@@ -526,7 +540,7 @@
       const head = plans.map((p) => { const lk = look.get(p.id), need = mg.needIds.includes(p.id);
         return `<th class="pc-${esc(lk.color)}${hc(p)}${need ? ' need' : ''}" data-plan="${esc(p.id)}" scope="col">${tagOf(lk, need)}
           <div class="prhd"><span class="prico">${svgI(lk.icon)}</span><b title="${esc(showName(p))}">${esc(showName(p))}</b><div class="who" title="${esc(whoOf(p))}">${esc(whoOf(p))}</div></div>
-          ${priceHtml(p)}<div class="mfit">${esc(p.fit_title || '')}</div>${btnOf(p, mg.me)}</th>`; }).join('');
+          ${priceHtml(p)}<div class="mfit" title="${esc(p.fit_title || '')}">${p.fit_title ? esc(p.fit_title) : '&nbsp;'}</div>${btnOf(p, mg.me)}</th>`; }).join('');
       return `<section class="prmg" id="prMerged"><div class="prcmpw" style="--nc:${plans.length}"><table id="prTable"><colgroup><col class="c0">${plans.map(() => '<col>').join('')}</colgroup>
         <thead><tr><th scope="col">功能比較<div class="who" style="font-weight:400;font-size:13px;color:var(--ink-2)">只列方案之間有差異的功能</div></th>${head}</tr></thead><tbody>${rows}</tbody></table></div></section>`;
     }

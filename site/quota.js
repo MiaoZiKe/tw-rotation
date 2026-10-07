@@ -164,10 +164,11 @@
     S.raf = 0;
     /* ★ 2026-10-07：逐步導覽進行中（site/tour.js）不扣次、不蓋額度卡 —— 導覽會一頁一頁切過去，不能讓訪客看個導覽就把額度用光；
        導覽一結束（tw:tour 事件）重算一次，額度卡照原規則蓋回來。 */
-    try { const ts = window.TwTour && window.TwTour.state(); if (ts && ts.on) { paint(new Map()); return; } } catch (e) { /* 沒有導覽就照舊 */ }
+    try { const ts = window.TwTour && window.TwTour.state(); if (ts && ts.on) { paint(new Map()); ring(false, 0); return; } } catch (e) { /* 沒有導覽就照舊 */ }
     const h = location.hash || '';
     const fs = limited();
     const d = load(); let changed = false;
+    let ringOn = false;
     const want = new Map();
     if (!h.startsWith('#admin') && !h.startsWith('#pricing')) {
       for (const f of fs) {
@@ -190,6 +191,7 @@
         const els = [];
         mf.forEach((f) => targets(f, h).forEach((el) => { if (!els.includes(el)) els.push(el); }));
         if (els.length) {
+          ringOn = true;
           const key = pageKey(h);
           const set = new Set(d.k[ALL] || []);
           if (!set.has(key)) {
@@ -201,6 +203,7 @@
     }
     if (changed) save(d);
     paint(want);
+    ring(ringOn, (d.k[ALL] || []).length);
     watch(fs.length > 0 || allLim() !== Infinity);
   }
   const ALL = 'quota.all';
@@ -234,6 +237,37 @@
       if (o.dataset.h !== html) { o.innerHTML = html; o.dataset.h = html; }
     });
   }
+  /* ★ 2026-10-07 額度圓環（Andy：「依據不同會員身份，對應該分頁需要有使用次數圓圈提醒」）：
+     計次頁（這一頁有 metered 研究區塊、全站額度有上限）在頁名旁「◎ 導覽」右邊放一顆小圓環：環＝今天已用比例、中間「剩 N」／「用完」，
+     點了到 #pricing。不限次（Pro、管理者）與不計次的頁面不顯示 —— 沒有限制就不要拿一顆「不限」來佔頁首的位置。
+     手機（≤820 沒有 #l4Head）：放在頂欄導覽鈕左邊（放右邊會跟 tour.js 的「導覽鈕必須緊貼搜尋鈕」搶位置，每 500ms 互相搬來搬去）。 */
+  function ring(on, used) {
+    let el = document.getElementById('twQRing');
+    const all = allLim();
+    const h = location.hash || '';
+    if (!on || all === Infinity || h.startsWith('#admin') || h.startsWith('#pricing')) { if (el) el.hidden = true; return; }
+    if (!el) {
+      el = document.createElement('a'); el.id = 'twQRing'; el.href = '#pricing'; el.className = 'twqr';
+      el.innerHTML = '<svg viewBox="0 0 36 36" aria-hidden="true"><circle class="bg" cx="18" cy="18" r="15.5"/><circle class="fg" cx="18" cy="18" r="15.5" pathLength="100" transform="rotate(-90 18 18)"/></svg><b></b>';
+    }
+    const tb = document.getElementById('twPageTourBtn');
+    const h1 = document.querySelector('#l4Head h1');
+    const desk = !!(h1 && h1.getClientRects().length);
+    el.classList.toggle('mob', !desk);
+    if (desk) { const after = tb && tb.parentNode === h1.parentNode ? tb : h1; if (el.previousElementSibling !== after) after.after(el); }
+    else if (tb && tb.parentNode) { if (el.nextElementSibling !== tb) tb.before(el); }
+    else { const a = document.querySelector('#mSearchBtn') || document.querySelector('.topbar .search'); if (a) { if (el.nextElementSibling !== a) a.before(el); } else { el.hidden = true; return; } }
+    const u = Math.min(used, all), rem = Math.max(0, all - used);
+    const st = P() ? P().state() : {};
+    const nm = st.who === 'guest' || !st.who ? '訪客' : (st.planName || (st.plan === 'free' || !st.plan ? '註冊會員' : st.plan));
+    const lvl = rem === 0 ? 'out' : rem / Math.max(all, 1) > 0.5 ? 'hi' : 'mid';
+    el.hidden = false;
+    el.dataset.lvl = lvl; el.dataset.rem = String(rem);
+    el.querySelector('.fg').setAttribute('stroke-dasharray', `${all ? (u / all) * 100 : 100} 100`);
+    el.querySelector('b').textContent = rem === 0 ? '用完' : '剩 ' + rem;
+    const tip = `今日已用 ${u}／${all} 次（${nm}）・台北 0 點重置・同一檔同一天只算一次`;
+    el.title = tip; el.setAttribute('aria-label', tip + '。點一下看方案');
+  }
   /* 節流 200ms：有上限時要觀察整個 body，live.js 每幾秒改一堆格子 —— 不必每一格變動都重算 */
   function schedule() { if (!S.raf) S.raf = setTimeout(evaluate, 200); }
   /* 有上限才觀察 DOM：區塊晚一點才畫出來（個股頁、族群頁都是非同步）也要算到；遮罩被重畫沖掉時補回來 */
@@ -252,6 +286,16 @@
   background:color-mix(in srgb,var(--panel,#111a2b) 55%,transparent);border-radius:inherit}
 .qlkov:not(.qcov) b{font-size:18px;color:var(--ink)}
 .qlkov:not(.qcov) span{font-size:13.5px;color:var(--ink-2);max-width:420px;line-height:1.6}
+.twqr{position:relative;display:inline-flex;align-items:center;justify-content:center;flex:none;width:42px;height:42px;margin-left:8px;vertical-align:middle;text-decoration:none;--qc:var(--cyan,#22d3ee)}
+.twqr[hidden]{display:none}
+.twqr svg{position:absolute;inset:0;width:100%;height:100%}
+.twqr circle{fill:none;stroke-width:2.5}
+.twqr .bg{stroke:color-mix(in srgb,var(--qc) 22%,transparent)}
+.twqr .fg{stroke:var(--qc);stroke-linecap:round;transition:stroke-dasharray .3s}
+.twqr b{position:relative;font-size:11px;font-weight:700;line-height:1;color:var(--qc);white-space:nowrap}
+.twqr[data-lvl="mid"]{--qc:var(--amber,#f5b942)}
+.twqr[data-lvl="out"]{--qc:var(--ink-3,#7a879c)}
+.twqr.mob{margin:0 2px 0 0;width:36px;height:36px}
 .qlkov:not(.qcov) .qlkgo{margin-top:6px;display:inline-flex;align-items:center;height:36px;padding:0 18px;border-radius:999px;background:var(--amber,#f5b942);color:#1a1203;font-weight:700;font-size:14px;text-decoration:none}`);
   }
 

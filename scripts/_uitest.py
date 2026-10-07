@@ -1093,7 +1093,7 @@ def t_overview(pg, base):
     ok("★ 漲跌家數是 11 級直條（跌停 … 平 … 漲停）", bool(ud) and ud["type"] == "bar" and ud["cats"] ==
        ["跌停", "<-5", "-5~-3", "-3~-1", "-1~0", "平", "0~1", "1~3", "3~5", ">5", "漲停"], ud and ud["cats"])
     ok("★ 直條家數加總＝總家數（右上寫的那個數）", bool(ud) and ud["sum"] == ud["total"] and str(ud["total"]) in ud["pill"].replace(",", ""), ud and (ud["sum"], ud["total"], ud["pill"]))
-    ok("★ 紅漲綠跌（跌那半邊偏綠、漲那半邊偏紅）", bool(ud) and pg.evaluate("""(cs) => { const rgb = (c) => { const m = String(c).match(/[\\d.]+/g) || [];
+    ok("★ 紅漲綠跌（跌那半邊偏綠、漲那半邊偏紅）", bool(ud) and pg.evaluate("""(cs) => { const rgb = (c) => { if (c && typeof c === 'object') c = c._base || (c.colorStops && c.colorStops[0].color);  /* 10-07 長條一律同色漸層：取漸層底色 */ const m = String(c).match(/[\\d.]+/g) || [];
         if (String(c)[0] === '#') { const h = c.slice(1); return [parseInt(h.slice(0,2),16), parseInt(h.slice(2,4),16), parseInt(h.slice(4,6),16)]; }
         return m.slice(0, 3).map(Number); };
         return [0,1,2,3,4].every(i => { const [r,g] = rgb(cs[i]); return g > r; }) && [6,7,8,9,10].every(i => { const [r,g] = rgb(cs[i]); return r > g; }); }""", ud["col"]), ud and ud["col"])
@@ -23290,6 +23290,26 @@ def t_admin_only_1007(b, base):
         if who == "subadmin":
             ok(f"★ [{T}] 一般管理者硬打刪除範本端點 → 403", r == 403, r)
         cx.close()
+
+    # ⑥ 10-07 16:30 Andy：「將我把 kcq01010909 帳號設為最高管理權限，他不會需要被限制」
+    #    範本：功能全關（ov.heat 關、個股 AI 次數 0）、自選上限 1 頁 1 檔 → 擁有者全部可用；一般管理者照範本鎖（對照組）
+    LOCK = {"ov.heat": False, "watch.tabs": 1, "watch.size": 1}
+    for who in ("admin", "subadmin"):
+        cx, _sent, _st = _adm3_ctx(b, who=who, feats=LOCK, lims={"stock.ai": 0})
+        px = cx.new_page(); px.on("pageerror", lambda e: errs.append(str(e)[:200]))
+        px.goto(base + "#overview", wait_until="domcontentloaded")
+        wait_until(px, "() => window.TwPerm && TwPerm.state().src === 'server' && window.TwAccount && TwAccount.user()", 12000)
+        px.wait_for_timeout(500)
+        r = px.evaluate("""() => ({ heat: TwPerm.can('ov.heat'), ai: TwPerm.can('stock.ai'), aiLim: TwPerm.lim('stock.ai'), all: TwPerm.lim('quota.all'),
+            tabs: TwPerm.limit('watch.tabs', 1), size: TwPerm.limit('watch.size', 1), locked: TwPerm.locked().length, owner: TwPerm.owner() })""")
+        if who == "admin":
+            ok(f"★ [{T}] 擁有者：範本功能全關／次數 0／自選 1 頁 1 檔 → 仍全部可用（沒有鎖頭、次數不限、自選上限是最大值）",
+               r["owner"] and r["heat"] and r["ai"] and r["aiLim"] == float("inf") and r["all"] == float("inf") and r["tabs"] > 1 and r["size"] > 1 and r["locked"] == 0, r)
+            ring = px.evaluate("() => { const e = document.getElementById('twQRing'); return !!(e && !e.hidden && e.getClientRects().length); }")
+            ok(f"[{T}] 擁有者：剩餘次數圓圈不顯示", not ring, ring)
+        else:
+            ok(f"[{T}] 對照組一般管理者：同一個範本照樣上鎖（ov.heat 關、個股 AI 次數 0）", not r["owner"] and not r["heat"] and not r["ai"] and r["locked"] >= 1, r)
+        cx.close()
     ok(f"[{T}] 全程沒有 pageerror", not errs, errs[:3])
 
 
@@ -25431,6 +25451,8 @@ SECTIONS = {
     # ★ 2026-10-06 Andy：會員名單——新增會員列拿掉、方案分頁標題列拿掉、統計「載入中…」修好並照流量觀測重做（假 Worker，⚠ 一律 --workers 1）
     "會員名單1006":        lambda pg, b, base, code: t_member_list_1006(b, base, code),
     "風格規範":            lambda pg, b, base, code: t_style_guide(b, base, code),
+    # ★ 2026-10-07 Andy：所有長條一律同色漸層（顏色不變；⚠ 一律 --workers 1）
+    "長條漸層1007":        lambda pg, b, base, code: t_bar_gradient_1007(b, base, code),
     "管理區開關1005":      lambda pg, b, base, code: t_admin_sw_1005(b, base, code),
     "功能卡統一次數1006":  lambda pg, b, base, code: t_perm_cnt_1006(b, base, code),
     "功能開關整列對齊1006": lambda pg, b, base, code: t_perm_grid_1006(b, base, code),
@@ -25444,6 +25466,7 @@ SECTIONS = {
     "自選上限1007":        lambda pg, b, base, code: t_watch_limit_1007(b, base, code),
     "次數覆蓋掃描1007":    lambda pg, b, base, code: t_quota_scan_1007(b, base, code),
     "全站共用額度1007":    lambda pg, b, base, code: t_quota_all_1007(b, base, code),
+    "訪客額度顯示1007":    lambda pg, b, base, code: t_guest_quota_ui_1007(b, base, code),
     "套用建議方案1007":    lambda pg, b, base, code: t_plan_preset_1007(b, base, code),
     "套用建議方案正式站1007": lambda pg, b, base, code: t_preset_live_1007(b, base, code),
     # ★ 2026-09-28 Andy：「所有標題加上小圖示，顏色要搭配」—— 覆蓋、對比 ≥3:1（深淺）、1440／800／390 不擠（A/B）、動效（⚠ 一律 --workers 1）
@@ -49408,6 +49431,81 @@ def t_quota_all_1007(b, base, code):
 
 
 
+# ===================================================================== 訪客額度顯示1007（#admin/perm 全站每日額度小卡＋頁首額度圓環）
+# Andy 10-07 16:12：「你忽略的 訪客需要怎麼限制幫我補上」—— 訪客頁每格都是 ∞，看不出全站一天只有 3 次。
+# Andy 追加：「依據不同會員身份，對應該分頁需要有使用次數圓圈提醒」。
+# 真的操作：訪客頁籤看得到「全站每日額度 3 次」卡 → 改 5 存檔 → 重新整理仍是 5；計次功能徽章「共用 N」、不計次「不計次」；
+# 前台：訪客（3 次）開兩個不同研究頁 → 圓環「剩 1」、第三個 →「用完」；Pro（不限）不顯示；390 寬看得到。
+def t_guest_quota_ui_1007(b, base, code):
+    T = "訪客額度顯示1007"
+    errs: list[str] = []
+    shd = os.environ.get("TW_GQ_SHOTS")
+    plans = [{"id": "guest", "name": "訪客", "feats": {"ind.3d": False}, "lims": {}, "builtin": True, "members": 0, "price": 0, "period": "month", "dq": 3},
+             {"id": "free", "name": "註冊會員", "feats": {}, "lims": {}, "builtin": True, "members": 0, "price": 0, "period": "month", "dq": 10}]
+    c, sent, st = _adm3_ctx(b, plans=plans)
+    pg = c.new_page(); pg.on("pageerror", lambda e: errs.append(str(e)))
+    pg.goto(base + "#admin/perm", wait_until="domcontentloaded")
+    wait_until(pg, "() => document.querySelectorAll('#ptTier button').length >= 2", 12000)
+    pg.click("#ptTier button[data-tier='guest']"); pg.wait_for_timeout(500)
+    card = "() => { const e = document.getElementById('pmDqCard'); return e && !e.hidden && e.getClientRects().length ? e.innerText : null; }"
+    txt = wait_until(pg, card, 5000)
+    ok(f"{T}：訪客頁籤看得到「全站每日額度 3 次」卡＋共用說明＋訪客計數說明",
+       bool(txt) and "全站每日額度 3 次" in txt and "每日共 3 次（所有計次功能共用）" in txt and "記在這台瀏覽器" in txt, txt)
+    badge = "(id) => { const e = document.querySelector(`#pmCats .pmrow[data-f='${id}'] .pmlimb`); return e ? e.textContent.trim() : null; }"
+    ok(f"{T}：計次功能（個股頁 stock.page）徽章寫「共用 3」", pg.evaluate(badge, "stock.page") == "共用 3", pg.evaluate(badge, "stock.page"))
+    ok(f"{T}：不計次功能（總覽 ov.summary）徽章寫「不計次」", pg.evaluate(badge, "ov.summary") == "不計次", pg.evaluate(badge, "ov.summary"))
+    if shd:
+        pg.screenshot(path=str(pathlib.Path(shd) / "guest_tab.png"))
+    pg.fill("#pmDqIn", "5"); pg.click("#pmDqSave")
+    ok(f"{T}：改成 5 存檔 → 送 plans/put（guest, dq 5）、卡片變 5 次、徽章變「共用 5」",
+       bool(wait_until(pg, "() => /全站每日額度 5 次/.test((document.getElementById('pmDqCard') || {}).innerText || '')", 5000))
+       and any(x[0] == "/v1/admin/plans/put" and x[1].get("id") == "guest" and x[1].get("dq") == 5 for x in sent) and pg.evaluate(badge, "stock.page") == "共用 5",
+       [x[1] for x in sent if x[0] == "/v1/admin/plans/put"])
+    pg.reload(wait_until="domcontentloaded")
+    wait_until(pg, "() => document.querySelectorAll('#ptTier button').length >= 2", 12000)
+    pg.click("#ptTier button[data-tier='guest']"); pg.wait_for_timeout(500)
+    txt = wait_until(pg, card, 5000)
+    ok(f"{T}：重新整理後仍是 5 次", bool(txt) and "全站每日額度 5 次" in txt, txt)
+    c.close()
+    # ② 前台圓環
+    RING = "() => { const e = document.getElementById('twQRing'); return e && !e.hidden && e.getClientRects().length ? e.innerText.trim() : null; }"
+    def go(pg, route, wait=1800):
+        pg.evaluate(f"() => {{ location.hash = '{route}'; }}"); pg.wait_for_timeout(wait)
+    for w in (1440, 390):
+        c, sent, st = _sub_ctx(b, None, dq=3, width=w)
+        pg = c.new_page(); pg.on("pageerror", lambda e: errs.append(str(e)))
+        pg.goto(base + "#overview", wait_until="domcontentloaded")
+        wait_until(pg, "() => window.TwPerm && TwPerm.state().src === 'server' && TwPerm.lim('quota.all') === 3", 12000)
+        pg.wait_for_timeout(1000)
+        ok(f"{T}（{w}）：總覽（不計次）不顯示圓環", pg.evaluate(RING) is None, pg.evaluate(RING))
+        go(pg, "#stock/" + code)
+        r1 = wait_until(pg, "() => { const e = document.getElementById('twQRing'); return e && !e.hidden && /剩 2/.test(e.innerText) ? e.innerText : null; }", 6000)
+        go(pg, "#stock/" + ("2317" if code != "2317" else "2454"))
+        r2 = wait_until(pg, "() => { const e = document.getElementById('twQRing'); return e && !e.hidden && e.getClientRects().length && /剩 1/.test(e.innerText) ? e.innerText : null; }", 6000)
+        tip = pg.evaluate("() => (document.getElementById('twQRing') || {}).title || ''")
+        ok(f"{T}（{w}）：訪客開兩個不同單位 → 圓環「剩 2」→「剩 1」、提示寫已用 2／3 次（訪客）・台北 0 點重置", bool(r1) and bool(r2) and "今日已用 2／3 次（訪客）" in tip and "台北 0 點重置" in tip, [r1, r2, tip])
+        if w == 390:
+            bx = pg.evaluate("() => { const r = document.getElementById('twQRing').getBoundingClientRect(); return [r.left, r.right, r.top, r.bottom, document.documentElement.scrollWidth]; }")
+            ok(f"{T}（390）：圓環在畫面內、沒有橫向捲軸", bx[0] >= 0 and bx[1] <= 390 and bx[2] >= 0 and bx[4] <= 390, bx)
+        if shd:
+            pg.screenshot(path=str(pathlib.Path(shd) / f"ring_{w}.png"))
+        go(pg, "#flow/rotation")
+        r3 = wait_until(pg, "() => { const e = document.getElementById('twQRing'); return e && !e.hidden && /用完/.test(e.innerText) ? [e.innerText, e.dataset.lvl] : null; }", 6000)
+        ok(f"{T}（{w}）：第三個 → 圓環「用完」、灰色", bool(r3) and r3[1] == "out", r3)
+        pg.click("#twQRing")
+        ok(f"{T}（{w}）：點圓環 → #pricing", bool(wait_until(pg, "() => location.hash.startsWith('#pricing')", 4000)))
+        c.close()
+    c, sent, st = _sub_ctx(b, "member", dq=None)
+    pg = c.new_page(); pg.on("pageerror", lambda e: errs.append(str(e)))
+    pg.goto(base + "#overview", wait_until="domcontentloaded")
+    wait_until(pg, "() => window.TwPerm && TwPerm.state().src === 'server'", 12000)
+    go(pg, "#stock/" + code, 2500)
+    ok(f"{T}：Pro（不限）個股頁不顯示圓環", pg.evaluate(RING) is None, pg.evaluate(RING))
+    c.close()
+    ok(f"{T}：沒有 JS 錯誤", not errs, errs[:3])
+
+
+
 # ===================================================================== 套用建議方案1007（site/plan_presets.js → #admin/perm）
 # CEO 10-07 02:45：一顆按鈕把訪客／註冊會員／Plus／Pro 四個範本的開關、每日次數、全站額度、自選、價格、介紹寫進 Worker；
 # 先跳確認框列出會改哪些；範本用 id 對應（Plus＝現在的「299 會費」改名、Pro＝「499會費」改名），不新建重複的。
@@ -49444,11 +49542,11 @@ def t_plan_preset_1007(b, base, code):
        [x[1].get("id") for x in sent if x[0] == "/v1/admin/plans/put"])
     bodies = {x[1]["id"]: x[1] for x in sent if x[0] == "/v1/admin/plans/put" and not x[1].get("del")}
     g, f, pl, pr = bodies.get("guest", {}), bodies.get("free", {}), bodies.get("plus", {}), bodies.get("pro", {})
-    ok(f"{T}：寫入內容：訪客 dq 3＋沒有逐功能次數＋名稱「訪客」；註冊會員 dq 10、自選 1×10；Plus 改名、249、dq 50、自選 5×50、badge；Pro 改名、499、dq 空白、自選 50×200",
+    ok(f"{T}：寫入內容：訪客 dq 3＋沒有逐功能次數＋名稱「訪客」；註冊會員 dq 10、自選 1×10；Plus 改名、299、dq 50、自選 5×50、badge；Pro 改名、499、dq 空白、自選 50×200",
        g.get("dq") == 3 and g.get("lims") == {} and g.get("name") == "訪客" and g.get("feats", {}).get("ind.3d") is False
        and f.get("dq") == 10 and f.get("feats", {}).get("watch.tabs") == 1 and f.get("feats", {}).get("watch.size") == 10 and f.get("name") == "註冊會員"
-       and pl.get("name") == "Plus" and pl.get("price") == 249 and pl.get("dq") == 50 and pl.get("feats", {}).get("watch.tabs") == 5 and pl.get("feats", {}).get("watch.size") == 50
-       and (pl.get("meta") or {}).get("badge") == "最受歡迎" and (pl.get("meta") or {}).get("price_year") == 2490 and len((pl.get("meta") or {}).get("highlights") or []) >= 3
+       and pl.get("name") == "Plus" and pl.get("price") == 299 and pl.get("dq") == 50 and pl.get("feats", {}).get("watch.tabs") == 5 and pl.get("feats", {}).get("watch.size") == 50
+       and (pl.get("pres") or {}).get("badge") == "最受歡迎" and (pl.get("pres") or {}).get("tagline") and pl.get("price_year") == 2990 and "meta" not in pl and len((pl.get("pres") or {}).get("highlights") or []) >= 3
        and pr.get("name") == "Pro" and pr.get("price") == 499 and pr.get("dq") is None and pr.get("feats", {}).get("watch.tabs") == 50 and pr.get("feats", {}).get("watch.size") == 200,
        {k: {kk: (vv if kk != "feats" else {x: vv[x] for x in ("watch.tabs", "watch.size", "ind.3d") if x in vv}) for kk, vv in v.items() if kk != "t"} for k, v in bodies.items()})
     ok(f"{T}：套用後頁籤＝Plus（月）、Pro（月），沒有 499會費", bool(wait_until(pg, "() => { const t = [...document.querySelectorAll('#ptTier button[data-plan]')].map(b => b.textContent.trim()); return t.includes('Plus（月）') && t.includes('Pro（月）') && !t.some(x => /499/.test(x)); }", 4000)),
@@ -49476,7 +49574,7 @@ def t_plan_preset_1007(b, base, code):
 
 # ===================================================================== 套用建議方案（正式站狀態）＋範本會員名單1007
 # CEO 10-07 13:20：正式站按了「套用建議方案」沒生效。這段重現正式站的狀態：Worker 已種 plus／pro（價格 0）＋「299 會費」（1 位會員）＋「499會費」，
-# 按套用 → 只剩 訪客／註冊會員／Plus 249(2490)／Pro 499(4990)、那位會員被移到 Plus、訂閱頁出現月／年切換與「省 17%」。
+# 按套用 → 只剩 訪客／註冊會員／Plus 299(2990)／Pro 499(4990)、那位會員被移到 Plus、訂閱頁出現月／年切換與「省 17%」。
 # 再按一次（冪等）→ 沒有刪除區塊、照樣成功。
 # 範本會員名單（Andy「下方移除會員部分 幫我優化介面」「更直觀操作」）：搜尋過濾、勾兩人批次移出（確認框）→ 少兩人、
 # 改方案下拉立刻生效＋5 秒復原、＋加入會員、全部移光 → 空狀態小卡。
@@ -49503,7 +49601,7 @@ def t_preset_live_1007(b, base, code):
     dl = pg.inner_text("#subDlg")
     ok(f"{T}：確認框：Plus／Pro 用種下的範本（不新建、不改名 299）、299 會費→先把 1 位移到 Plus 再刪、499會費 直接刪",
        "新建範本" not in dl and "名稱：299 會費" not in dl and "刪除「299 會費」" in dl and "移到 Plus：m299@example.com" in dl and "刪除「499會費」" in dl
-       and "NT$0 → NT$249" in dl and "NT$0 → NT$499" in dl, dl[-900:])
+       and "NT$0 → NT$299" in dl and "NT$0 → NT$499" in dl, dl[-900:])
     if sh:
         pg.evaluate("() => { const b = document.querySelector('#subDlg .box'); b.scrollTop = b.scrollHeight; }"); pg.wait_for_timeout(200)
         pg.screenshot(path=str(pathlib.Path(sh) / "live_confirm.png"))
@@ -49511,8 +49609,8 @@ def t_preset_live_1007(b, base, code):
     ok(f"{T}：套用成功", bool(wait_until(pg, "() => /已套用建議方案/.test(document.getElementById('pmStat').textContent)", 10000)), pg.inner_text("#subDlg")[-300:])
     ids = [p["id"] for p in st["plans"]]
     pl = next((p for p in st["plans"] if p["id"] == "plus"), {}); pr = next((p for p in st["plans"] if p["id"] == "pro"), {})
-    ok(f"{T}：結果只剩 訪客／註冊會員／Plus 249(2490)／Pro 499(4990)，m299 被移到 Plus（微調保留）",
-       ids == ["guest", "free", "plus", "pro"] and pl.get("price") == 249 and pl.get("price_year") == 2490 and pr.get("price") == 499 and pr.get("price_year") == 4990
+    ok(f"{T}：結果只剩 訪客／註冊會員／Plus 299(2990)／Pro 499(4990)，m299 被移到 Plus（微調保留）",
+       ids == ["guest", "free", "plus", "pro"] and pl.get("price") == 299 and pl.get("price_year") == 2990 and pr.get("price") == 499 and pr.get("price_year") == 4990
        and st["perm"]["m299@example.com"]["plan"] == "plus" and st["perm"]["m299@example.com"]["over"] == {"ov.heat": False}, [ids, pl.get("price"), pl.get("price_year"), pr.get("price"), pr.get("price_year"), st["perm"]])
     ok(f"{T}：範本列只剩 Plus（月）、Pro（月）", bool(wait_until(pg, "() => [...document.querySelectorAll('#ptTier button[data-plan]')].map(b => b.textContent.trim()).join('|') === 'Plus（月）|Pro（月）'", 4000)),
        pg.evaluate("() => [...document.querySelectorAll('#ptTier button[data-plan]')].map(b => b.textContent.trim())"))
@@ -49531,7 +49629,9 @@ def t_preset_live_1007(b, base, code):
         pg.screenshot(path=str(pathlib.Path(sh) / "live_pricing_month.png"))
     pg.click("#prPeriod button[data-per=year]"); pg.wait_for_timeout(400)
     tx = pg.inner_text("#v-pricing")
-    ok(f"{T}：切年繳 → 寫「省 17%」、Plus 年繳 NT$ 2,490、Pro 年繳 NT$ 4,990", "省 17%" in tx and "2,490" in tx and "4,990" in tx, tx[:600])
+    ok(f"{T}：切年繳 → 寫「省 17%」、Plus 年繳 NT$ 2,990、Pro 年繳 NT$ 4,990", "省 17%" in tx and "2,990" in tx and "4,990" in tx, tx[:600])
+    ok(f"{T}：套用後訂閱頁 Plus 定位句＝建議方案寫的（不是預設「進階分析與更高的每日次數」）",
+       pg.evaluate("() => (document.querySelector(\"[data-plan='plus'] .who\") || {}).textContent") == "每天主動研究，工具一次到位", pg.evaluate("() => (document.querySelector(\"[data-plan='plus'] .who\") || {}).textContent"))
     if sh:
         pg.screenshot(path=str(pathlib.Path(sh) / "live_pricing_year.png"))
     c.close()
@@ -49783,11 +49883,16 @@ def t_sub_1005(b, base, code):
         ok(f"{T}・demo {W}：?demo=plans 畫出 註冊會員／Plus／Pro 三張", bool(wait_until(pg, "() => [...document.querySelectorAll('#prCards .prcard')].map(c => c.dataset.plan).join(',') === 'free,plus,pro'", 10000)),
            pg.evaluate("() => [...document.querySelectorAll('#prCards .prcard')].map(c => c.dataset.plan).join(',')"))
         dm = pg.evaluate("""() => [...document.querySelectorAll('#prCards .prcard')].map(c => ({ cls: c.className, tag: (c.querySelector('.prtag') || {}).textContent || '', n: c.querySelectorAll('.prhl li').length,
-            price: c.querySelector('.prprice').textContent.replace(/\\s/g, ''), fit: !!c.querySelector('.prfit b'), left: Math.round(c.getBoundingClientRect().left), top: Math.round(c.getBoundingClientRect().top) }))""")
-        ok(f"{T}・demo {W}：年繳 Plus NT$208／月、Pro NT$416／月（2,490／4,990 ÷ 12）、省 17%",
-           [x["price"] for x in dm] == ["免費", "NT$208／月", "NT$416／月"] and pg.inner_text("#prSave") == "省 17%", [x["price"] for x in dm])
+            price: c.querySelector('.prprice').textContent.replace(/\\s/g, ''), fit: !!(c.querySelector('.mfit') || {}).textContent.trim(), who: (c.querySelector('.who') || {}).textContent || '', left: Math.round(c.getBoundingClientRect().left), top: Math.round(c.getBoundingClientRect().top) }))""")
+        ok(f"{T}・demo {W}：年繳 Plus NT$249／月、Pro NT$416／月（2,990／4,990 ÷ 12）、省 17%",
+           [x["price"] for x in dm] == ["免費", "NT$249／月", "NT$416／月"] and pg.inner_text("#prSave") == "省 17%", [x["price"] for x in dm])
+        notes = pg.evaluate("() => [...document.querySelectorAll('#prCards .prnote')].map(e => e.textContent)")
+        ok(f"{T}・demo {W}：年繳小字＝「約 NT$ 249／月（年繳 NT$ 2,990）」「約 NT$ 416／月（年繳 NT$ 4,990）」",
+           notes[1:] == ["約 NT$ 249／月（年繳 NT$ 2,990）", "約 NT$ 416／月（年繳 NT$ 4,990）"], notes)
+        ok(f"{T}・demo {W}：Plus／Pro 定位句是範本寫的，不是預設「進階分析與更高的每日次數」",
+           all(x["who"] and x["who"] != "進階分析與更高的每日次數" for x in dm[1:]), [x["who"] for x in dm])
         pg.click("#prPeriod button[data-per='month']")
-        ok(f"{T}・demo {W}：切月繳 → Plus NT$249／月、Pro NT$499／月", bool(wait_until(pg, "() => [...document.querySelectorAll('#prCards .prprice')].map(e => e.textContent.replace(/\\s/g, '')).join(',') === '免費,NT$249／月,NT$499／月'", 3000)))
+        ok(f"{T}・demo {W}：切月繳 → Plus NT$299／月、Pro NT$499／月", bool(wait_until(pg, "() => [...document.querySelectorAll('#prCards .prprice')].map(e => e.textContent.replace(/\\s/g, '')).join(',') === '免費,NT$299／月,NT$499／月'", 3000)))
         ok(f"{T}・demo {W}：頂端標籤、色系（Plus 藍、Pro 紫）、適合誰、清單各 6 項",
            [x["tag"] for x in dm] == ["", "★ 最受歡迎", "✦ 功能最齊"] and "pc-blue" in dm[1]["cls"] and "pc-violet" in dm[2]["cls"] and "pc-neutral" in dm[0]["cls"]
            and all(x["fit"] for x in dm) and [x["n"] for x in dm] == [6, 6, 6], dm)
@@ -49812,6 +49917,27 @@ def t_sub_1005(b, base, code):
             shot(pg, "1e_pricing_merged_390")
         else:
             ok(f"{T}・demo 1440：三張卡同一排（同一個 top）", len({x["top"] for x in dm}) == 1, dm)
+            # 10-07 Andy「排版沒有統一」：欄頭每一層（名稱列／價格／小字／適合…／按鈕）三欄 top 差 ≤1px、按鈕底緣齊（卡片版＋合併表、月繳＋年繳）
+            ALIGN = """(sel) => { const L = ['.prhd', '.prprice', '.prnote', '.mfit', '.prgo'], cs = [...document.querySelectorAll(sel)];
+                const r = {}; L.forEach(k => { const t = cs.map(c => c.querySelector(k).getBoundingClientRect().top); r[k] = Math.max(...t) - Math.min(...t); });
+                const bt = cs.map(c => c.querySelector('.prgo').getBoundingClientRect().bottom); r.btnBottom = Math.max(...bt) - Math.min(...bt);
+                r.n = cs.length; r.noteClip = cs.some(c => { const e = c.querySelector('.prnote'); return e.scrollWidth > e.clientWidth + 1; }); return r; }"""
+            for per in ("month", "year"):
+                pg.click(f"#prPeriod button[data-per='{per}']"); pg.wait_for_timeout(300)
+                a1 = pg.evaluate(ALIGN, "#prCards .prcard")
+                ok(f"{T}・demo 1440 卡片版（{per}）：三欄各層 top 差 ≤1px、按鈕底緣齊、價格小字沒被截", a1["n"] == 3 and all(v <= 1 for k, v in a1.items() if k not in ("n", "noteClip")) and not a1["noteClip"], a1)
+            if os.environ.get("TW_PRICING_SHOTS"):
+                pg.screenshot(path=str(pathlib.Path(os.environ["TW_PRICING_SHOTS"]) / f"fix2_cards_{W}.png"))
+            pg.click("#prLayout button[data-lay='merged']"); wait_until(pg, "() => document.querySelectorAll('#prMerged thead th[data-plan]').length === 3", 3000)
+            for per in ("month", "year"):
+                pg.click(f"#prPeriod button[data-per='{per}']"); pg.wait_for_timeout(300)
+                a2 = pg.evaluate(ALIGN, "#prMerged thead th[data-plan]")
+                ok(f"{T}・demo 1440 合併表（{per}）：三欄各層 top 差 ≤1px、按鈕底緣齊、價格小字沒被截", a2["n"] == 3 and all(v <= 1 for k, v in a2.items() if k not in ("n", "noteClip")) and not a2["noteClip"], a2)
+            mtx = pg.inner_text("#prMerged thead")
+            ok(f"{T}・demo 1440 合併表：年繳 2,990／4,990、省 17%、Plus 定位句不是預設字", "2,990" in mtx and "4,990" in mtx and pg.inner_text("#prSave") == "省 17%" and "進階分析與更高的每日次數" not in mtx, mtx[:400])
+            if os.environ.get("TW_PRICING_SHOTS"):
+                pg.screenshot(path=str(pathlib.Path(os.environ["TW_PRICING_SHOTS"]) / f"fix2_merged_{W}.png"))
+            pg.click("#prLayout button[data-lay='cards']"); wait_until(pg, "() => !!document.querySelector('#prCards')", 3000)
             pg.click("#prCards .prcard[data-plan='plus'] .prgo")
             ok(f"{T}・demo 1440：訪客按「升級 Plus」→ 先跳登入、不送申請", bool(wait_until(pg, "() => { const d = document.getElementById('acctDlg'); return !!d && !d.hidden; }", 4000))
                and not any(x[0] == "/v1/subscribe/request" for x in sent))
@@ -51874,7 +52000,8 @@ def _adm3_ctx(b, who="admin", width=1440, feats=None, lims=None, theme=None, pla
                   "lims": body.get("lims", prev.get("lims", {})), "builtin": body.get("id") in ("guest", "free"), "members": prev.get("members", 0),
                   "price": body.get("price", prev.get("price", 0)), "period": body.get("period", prev.get("period", "month")),
                   # 2026-10-07：每日額度（dq）與介紹欄位（meta 攤平），同 worker.js 的每日額度／plan-meta 區塊
-                  "dq": body["dq"] if "dq" in body else prev.get("dq"), "price_year": body.get("price_year", prev.get("price_year")), **(body.get("meta") or {k: prev[k] for k in ("badge", "tagline", "fit_title", "fit_desc", "highlights", "price_year") if k in prev})}
+                  "dq": body["dq"] if "dq" in body else prev.get("dq"), "price_year": body.get("price_year", prev.get("price_year")), **(body.get("pres") or body.get("meta") or {k: prev[k] for k in ("badge", "tagline", "fit_title", "fit_desc", "highlights", "price_year", "icon", "color") if k in prev})}
+            if body.get("pres") is not None and "price_year" in body: nw["price_year"] = body["price_year"]   # 10-07：pres 寫法同 worker.js 攤平（套用建議方案改走 pres）
             st["plans"] = [nw if x["id"] == body.get("id") else x for x in st["plans"]] if prev else st["plans"] + [nw]
             out = {"plans": st["plans"]}
         elif path == "/v1/admin/plans/sort":
@@ -56357,6 +56484,83 @@ def t_stock_tabjump_1004(pg, base):
                 on = pg.evaluate("() => (document.querySelector('#stockTabs button.on') || {}).dataset.t")
                 ok(f"★ {T} {W}px {code} {nm}：分頁列 top 前後差 ≤ 2px（{t0} → {t1}）、分頁真的換了", abs(t1 - t0) <= 2 and on == to, (t0, t1, on, h0))
     pg.set_viewport_size({"width": 1440, "height": 1000})
+
+# ===================================================================== 2026-10-07：長條一律同色漸層
+# Andy 10-07 16:00：「部分長條圖沒有 Follow 圖二那樣的一點漸層風格，幫我補上，改成漸層但對應顏色不變」。
+# 規格：docs/style_guide.md 十二、docs/chart_library.md C／D 款、docs/bar_gradient_audit.md（全站長條盤點）。
+# 驗：① 各頁每一個 ECharts bar 系列的柱色是漸層（物件 linear，或 app.js 補的函式 __grad）——沒有漏網的實心柱
+#     ② 自畫條（.mixbar／.meter／.osc-bar／.magrid .bar）的 background-image 含 linear-gradient
+#     ③ 顏色沒變：總覽漲跌家數直條，漲（上漲家數）那根仍是紅系、跌那根仍是綠系（取漸層第一個色標判斷）
+#     ④ 深色、淺色各掃一輪
+BG1007_SCAN = """() => { const out = { ec: 0, bad: [], dom: 0, domBad: [] };
+  const isG = (x) => x && ((typeof x === 'object' && x.type === 'linear') || (typeof x === 'function' && x.__grad));
+  document.querySelectorAll('[_echarts_instance_]').forEach((el) => {
+    const r = el.getBoundingClientRect(); if (r.width < 20 || r.height < 20) return;
+    const c = window.echarts && echarts.getInstanceByDom(el); if (!c) return; let o; try { o = c.getOption(); } catch (e) { return; }
+    (o.series || []).forEach((s) => {
+      if (s.type !== 'bar' || s.silent || !(s.data || []).length) return;
+      const sc = s.itemStyle && s.itemStyle.color;
+      if (typeof sc === 'string' && /^(transparent|none)$/i.test(sc)) return;
+      const pts = s.data.filter((d) => d != null && (typeof d !== 'object' || Array.isArray(d) || d.value != null));
+      if (!pts.length) return;
+      out.ec++;
+      const own = (d) => d && typeof d === 'object' && !Array.isArray(d) && d.itemStyle && d.itemStyle.color != null;
+      const okk = isG(sc) || pts.every((d) => own(d) && (isG(d.itemStyle.color) || /^(transparent|none)$/i.test(String(d.itemStyle.color))));
+      if (!okk) out.bad.push({ id: el.id || el.className, name: s.name, sc: typeof sc === 'string' ? sc : typeof sc });
+    }); });
+  const sels = ['.mixbar i:not(.sell)', '.meter>i', '.osc-bar i:not(.osc-none)', '.magrid .ma .bar i', '#admBody .bars .bt i', '#admBody .days i'];
+  sels.forEach((q) => document.querySelectorAll(q).forEach((e) => { const r = e.getBoundingClientRect(); if (r.width <= 0 || r.height <= 0) return;
+    out.dom++; if (!/linear-gradient/.test(getComputedStyle(e).backgroundImage)) out.domBad.push(q + ' ' + e.outerHTML.slice(0, 90) + ' ' + getComputedStyle(e).backgroundImage.slice(0, 60)); }));
+  return out; }"""
+BG1007_COLOR = """() => { const el = document.getElementById('breadth'); const c = el && window.echarts && echarts.getInstanceByDom(el); if (!c) return null;
+  const rgb = (s) => { const m = /rgba?\\(\\s*(\\d+)[,\\s]+(\\d+)[,\\s]+(\\d+)/.exec(s); return m ? [+m[1], +m[2], +m[3]] : null; };
+  const res = []; (c.getOption().series || []).forEach((s) => { if (s.type !== 'bar') return;
+    (s.data || []).forEach((d, k) => { const col = d && d.itemStyle && d.itemStyle.color; if (col && col.colorStops) res.push({ k, rgb: rgb(col.colorStops[0].color), rgb2: rgb(col.colorStops[1].color) }); }); });
+  return res; }"""
+
+
+def t_bar_gradient_1007(b, base, code):
+    T = "長條漸層1007"
+    c, _ = _adm2_ctx(b)
+    pg = c.new_page()
+    pg.set_viewport_size({"width": 1440, "height": 950})
+    tot = {"ec": 0, "dom": 0}
+
+    def scan(label):
+        pg.wait_for_timeout(2200)
+        m = pg.evaluate(BG1007_SCAN)
+        tot["ec"] += m["ec"]; tot["dom"] += m["dom"]
+        ok(f"★ [{T}] {label}：{m['ec']} 個 ECharts 長條系列全是漸層", not m["bad"], m["bad"][:5])
+        ok(f"[{T}] {label}：{m['dom']} 條自畫長條全是 linear-gradient", not m["domBad"], m["domBad"][:5])
+        return m
+
+    for theme in ("dark", "light"):
+        pg.goto(base + "#overview")
+        pg.evaluate("(t) => { try { localStorage.setItem('tw.theme', t); } catch (e) {} }", theme)
+        pg.reload()
+        for r in ("overview", "flow", "market", "stock/2330", "etf", "earnings", "season", "industry"):
+            pg.goto(base + "#" + r); pg.wait_for_timeout(1200)
+            scan(f"{theme} #{r}")
+            if r == "stock/2330":
+                for tab in ("資券", "法人", "營收", "配息"):
+                    try:
+                        pg.locator(".nbsw button", has_text=tab).first.click(timeout=2500)
+                        scan(f"{theme} #stock/2330「{tab}」")
+                    except Exception:
+                        pass
+        if theme == "dark":
+            pg.goto(base + "#overview"); pg.wait_for_timeout(3000)
+            col = pg.evaluate(BG1007_COLOR)
+            ok(f"★ [{T}] 總覽漲跌家數：有 per-bar 漸層色標可驗", bool(col), col)
+            if col:
+                red = [x for x in col if x["rgb"] and x["rgb"][0] > x["rgb"][1] + 40]
+                grn = [x for x in col if x["rgb"] and x["rgb"][1] > x["rgb"][0] + 40]
+                ok(f"★ [{T}] 顏色沒變：漲跌家數仍有紅系（漲）與綠系（跌）的柱", bool(red) and bool(grn), col[:6])
+    pg.goto(base + "#admin/traffic"); pg.wait_for_timeout(1500)
+    scan("管理區流量觀測")
+    ok(f"★ [{T}] 全站合計掃到的 ECharts 長條 >= 10、自畫長條 >= 5", tot["ec"] >= 10 and tot["dom"] >= 5, tot)
+    c.close()
+
 
 # ===================================================================== 風格規範（2026-10-05，docs/style_guide.md 的自動檢查）
 # Andy 10-05：「我要求不是很多，但該有的細節／制度要有」。這段把規範裡可量測的條目變成紅燈：

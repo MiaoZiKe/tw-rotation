@@ -2046,8 +2046,11 @@ Hub.prototype.adminPlansPut = async function (req, b) {
   if (res.status !== 200 || (pres === undefined && py === undefined)) return res;
   if (pres !== undefined) this.q('UPDATE plans SET pres = ? WHERE id = ?', JSON.stringify(pres), String(b.id));
   if (py !== undefined) this.q('UPDATE plans SET price_year = ? WHERE id = ?', py, String(b.id));
-  /* 這一邊整份取代：把 meta 欄清掉，不然 presOf 的 meta 退路會把管理者刻意清空的欄位又補回來 */
-  this.metaInit(); this.q("UPDATE plans SET meta = '{}' WHERE id = ?", String(b.id));
+  /* 這一邊整份取代：把 meta 欄清掉，不然 presOf 的 meta 退路會把管理者刻意清空的欄位又補回來。
+     ★ 10-07 修：只有「這次真的帶了 pres」才清 meta。以前只帶 price_year 也會清 ——
+       「套用建議方案」同一個請求送 meta＋price_year，內層剛寫好的 meta 立刻被這裡清掉，
+       訂閱頁 Plus／Pro 的定位句因此退回前端預設「進階分析與更高的每日次數」。 */
+  if (pres !== undefined) { this.metaInit(); this.q("UPDATE plans SET meta = '{}' WHERE id = ?", String(b.id)); }
   return await this.adminPlansGet(req, b);
 };
 /* 匯出／還原：兩邊欄位要對得上（還原時檢查 cols ⊆ 現有欄位），所以先把這兩欄建好 */
@@ -2142,4 +2145,14 @@ Hub.prototype.adminPlansPut = async function (req, b) {
     if (!this.isOwner(v.user)) return this.json(req, { error: 'owner_only' }, 403);
   }
   return admOrigPlansPut2.call(this, req, b);
+};
+
+/* 2026-10-07 16:30 Andy：「將我把 kcq01010909 帳號設為最高管理權限，他不會需要被限制」→ 擁有者（ADMIN_EMAILS）一律豁免所有範本限制：
+   /v1/perm/me 對擁有者回「全開」（feats／lims 空＝每項照預設全開、dq null＝不限）。data-gw 換權杖時讀的也是這一份，所以付費資料閘道一起豁免；
+   每日次數（/v1/quota/hit）、自選上限（/v1/lists/put）、data-gw 裝置數與每日額度原本就對「管理者」豁免，擁有者必然是管理者。*/
+const ownOrigPermMe = Hub.prototype.permMe;
+Hub.prototype.permMe = async function (req, b) {
+  const v = await this.auth(req, b || {});
+  if (!v || !this.isOwner(v.user)) return ownOrigPermMe.call(this, req, b);
+  return this.json(req, { who: 'owner', plan: 'owner', planName: '擁有者（不受限制）', feats: {}, lims: {}, dq: null, owner: true });
 };

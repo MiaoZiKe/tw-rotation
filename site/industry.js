@@ -5564,7 +5564,7 @@
 #etfHoldCard .mono{font-family:var(--mono)}
 #etfHoldCard tr.go{cursor:pointer}
 #etfHoldCard tr.go:hover td,#etfHoldCard tr.hi td{background:rgba(62,224,255,.10)}
-#etfHoldCard .wbar{display:inline-block;height:6px;border-radius:3px;background:var(--cyan);opacity:.55;vertical-align:middle;margin-right:6px}
+#etfHoldCard .wbar{display:inline-block;height:6px;border-radius:3px;background:linear-gradient(90deg,color-mix(in srgb,var(--cyan) 55%,transparent),var(--cyan));opacity:.7;vertical-align:middle;margin-right:6px}
 #etfHoldCard .hdpie{width:100%;aspect-ratio:1;max-width:360px;margin:0 auto}
 #etfHoldCard .hdasof{color:var(--ink-3);font-size:12px;font-weight:400;margin-left:8px}
 #etfHoldCard .hdnote{line-height:1.7;color:var(--ink-2);font-size:13.5px;padding:10px 2px}

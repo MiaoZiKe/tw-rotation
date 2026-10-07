@@ -41,16 +41,21 @@
   const acct = () => window.TwAccount || null;
   const meKey = () => { const A = acct(); const u = A && A.on() && A.user(); return u && u.email ? 'u:' + String(u.email).toLowerCase() : 'guest'; };
 
+  /* ★ 2026-10-07 16:30 Andy：「將我把 kcq01010909 帳號設為最高管理權限，他不會需要被限制」→ 擁有者（/v1/me 的 owner 旗標，判定在 Worker）
+     所有鎖頭、次數、自選上限一律豁免；Worker 的 /v1/perm/me 對擁有者也回全開（兩邊都做：舊快取、Worker 還沒部署時前端也不鎖）。*/
+  const owner = () => { const A = acct(); const u = A && A.on && A.on() && A.user && A.user(); return !!(u && u.owner); };
   function value(id) {
     const f = F.byId(id); if (!f) return true;
+    if (owner()) return f.kind === 'limit' ? f.max : true;
     const v = S.feats[id];
     if (f.kind === 'limit') return Number.isInteger(v) ? Math.max(0, Math.min(f.max, v)) : (v === false ? 0 : f.def);
     return typeof v === 'boolean' ? v : f.def;
   }
   /* ★ admin-v3：瀏覽次數上限 0＝「不能看」，跟關掉開關同一個效果（同一套鎖頭＋升級鈕）；N＞0 的計數在 quota.js */
-  function can(id) { if (S.lims[id] === 0) return false; const v = value(id); return typeof v === 'number' ? v > 0 : v !== false; }
+  function can(id) { if (owner()) return true; if (S.lims[id] === 0) return false; const v = value(id); return typeof v === 'number' ? v > 0 : v !== false; }
   /* 每日瀏覽次數上限：Infinity＝不限（沒設）、0＝不能看、N＝每日 N 次 */
   function lim(id) {
+    if (owner()) return Infinity;
     /* ★ 2026-10-07 全站共用每日額度：'quota.all' 讀範本的 dq（/v1/perm/me 的 dq；null＝不限），不是 lims 裡的一項 */
     if (id === 'quota.all') return Number.isInteger(S.dq) && S.dq >= 0 ? S.dq : Infinity;
     const v = S.lims[id]; return Number.isInteger(v) && v >= 0 ? v : Infinity;
@@ -101,7 +106,7 @@
   function grpBlock(gid, name) {
     if (!gid) return false;
     const f = F.byId(F.grpKey(gid));
-    if (!f ? S.feats[F.grpKey(gid)] !== false : can(f.id)) return false;
+    if (owner() || (!f ? S.feats[F.grpKey(gid)] !== false : can(f.id))) return false;
     toast('🔒 此族群需開通：' + (name || (f && f.name) || gid));
     return true;
   }
@@ -250,7 +255,7 @@
   }
 
   window.TwPerm = { can, limit, lim, value, state, refresh, apply: () => apply(), locked: () => lockedList().map((f) => f.id), grpBlock,
-    grpOk: (gid) => { const k = F.grpKey(gid); const f = F.byId(k); return f ? can(k) : S.feats[k] !== false; } };
+    grpOk: (gid) => { if (owner()) return true; const k = F.grpKey(gid); const f = F.byId(k); return f ? can(k) : S.feats[k] !== false; }, owner };
   window.addEventListener('hashchange', schedule);
   window.addEventListener('tw:plans', schedule);
   window.addEventListener('tw:tour', () => { if (typeof apply === 'function') apply(); });
@@ -261,6 +266,8 @@
   function start() { if (started) return; started = true; fromCache(); S.at = Date.now(); refresh(); }
   function boot() { if (window.TW_ACCOUNT_ON) start(); else if (!started) refresh(); }
   window.addEventListener('tw:account', () => {
+    /* 擁有者身分一確認（/v1/me 回 owner）就立刻解鎖，不等 5 秒的重抓節流 */
+    if (owner() !== !!S.own) { S.own = owner(); apply(); window.dispatchEvent(new CustomEvent('tw:perm', { detail: state() })); }
     if (meKey() === S.reqKey && Date.now() - (S.at || 0) < 5000) return;
     S.at = Date.now(); refresh();
   });
