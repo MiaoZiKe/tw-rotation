@@ -40533,6 +40533,43 @@ def _legal_spy(pg, base):
     pg.evaluate("() => window.scrollTo({top: document.documentElement.scrollHeight, behavior: 'instant'})"); pg.wait_for_timeout(250)
     lit = pg.evaluate(LIT)
     ok("[目錄同步] 連續切換三份文件後捲到底 → 仍恰亮最後一節（重新綁定、沒有殘留舊監聽）", lit["n"] == 1 and lit["k"] == 7 and lit["total"] == 8, lit)
+    # 右側欄（2026-10-07 Andy：「右邊太空，需要填滿」）：1440 三欄、1280 以下收起；本頁重點跟捲動亮、進度跟著走、點了會捲
+    SD = """() => { const e = document.getElementById('lgSide'); if (!e) return null; const r = e.getBoundingClientRect(), d = document.getElementById('lgDoc').getBoundingClientRect();
+        const on = [...e.querySelectorAll('.lgsi.on')].map(a => +a.dataset.sec);
+        return { shown: getComputedStyle(e).display !== 'none' && r.width > 150, w: Math.round(r.width), docW: Math.round(d.width), right: Math.round(r.right),
+                 mainR: Math.round(document.getElementById('v-legal').getBoundingClientRect().right), pos: getComputedStyle(e).position,
+                 items: e.querySelectorAll('.lgsi').length, rel: e.querySelectorAll('.lgrel a').length, relOn: e.querySelectorAll('.lgrel a.on').length,
+                 on, pn: (e.querySelector('.lgpn') || {}).textContent, bar: e.querySelector('.lgbar i').style.width, mail: !!e.querySelector('a[href^="mailto:"]'),
+                 sw: document.documentElement.scrollWidth - innerWidth }; }"""
+    pg.set_viewport_size({"width": 1440, "height": 950}); pg.goto(base + "#terms", wait_until="networkidle"); pg.wait_for_timeout(1000)
+    sd = pg.evaluate(SD)
+    ok("[右側欄] 1440：右側欄看得到（寬 ≥200、sticky）、內文放寬到 ≥720、右緣貼齊內容區、4 項重點＋3 份相關文件（目前頁亮一個）＋客服信箱、沒有橫向捲軸",
+       bool(sd) and sd["shown"] and sd["w"] >= 200 and sd["pos"] == "sticky" and sd["docW"] >= 720 and abs(sd["right"] - sd["mainR"]) <= 40
+       and sd["items"] == 4 and sd["rel"] == 3 and sd["relOn"] == 1 and sd["mail"] and sd["sw"] <= 1, sd)
+    pg.evaluate("() => { const h = document.getElementById('lg-terms-3'); window.scrollTo({top: h.getBoundingClientRect().top + scrollY - 100, behavior: 'instant'}); }")
+    pg.wait_for_timeout(250); sd = pg.evaluate(SD)
+    ok("[右側欄] 捲到第四節（禁止行為）→ 「本頁重點」亮的是對應那項（第 3 號節）、進度寫「第 4／11 節」、進度條有寬度",
+       sd["on"] == [3] and sd["pn"] == "第 4／11 節" and sd["bar"] not in ("", "0px", "0%"), sd)
+    pg.evaluate("() => window.scrollTo({top: document.documentElement.scrollHeight, behavior: 'instant'})"); pg.wait_for_timeout(250)
+    sd = pg.evaluate(SD)
+    ok("[右側欄] 捲到底 → 進度寫「第 11／11 節」、進度條 100%", sd["pn"] == "第 11／11 節" and sd["bar"].startswith("100"), sd)
+    pg.evaluate("() => window.scrollTo({top: 0, behavior: 'instant'})"); pg.wait_for_timeout(250)
+    pg.locator("#lgSide .lgsi[data-sec='7']").click(); pg.wait_for_timeout(1300)
+    t7 = pg.evaluate(VIS, 7); sd = pg.evaluate(SD)
+    ok("[右側欄] 點「責任限制」→ 捲到第八節、左側目錄也亮第八節、右側那項亮", -5 <= t7["top"] < 300 and sd["on"] == [7]
+       and pg.evaluate(LIT)["k"] == 7, [t7, sd["on"]])
+    pg.click("#lgSide .lgrel a[href='#privacy']"); pg.wait_for_timeout(700)
+    ok("[右側欄] 點相關文件「隱私權政策」→ 換頁、側欄跟著換（8 節、相關文件亮在隱私權政策）",
+       pg.evaluate("() => location.hash") == "#privacy" and pg.evaluate(SD)["relOn"] == 1
+       and "／8 節" in pg.evaluate(SD)["pn"], pg.evaluate(SD))
+    for w in (1280, 1100, 1024):
+        pg.set_viewport_size({"width": w, "height": 900}); pg.wait_for_timeout(400)
+        sd = pg.evaluate(SD)
+        ok(f"[右側欄] {w} 寬：右側欄收起、內容回到兩欄、沒有橫向捲軸", sd and not sd["shown"] and sd["docW"] >= 600 and sd["sw"] <= 1, sd)
+    pg.set_viewport_size({"width": 390, "height": 844}); pg.wait_for_timeout(400)
+    sd = pg.evaluate(SD)
+    ok("[右側欄] 390 手機：右側欄不出現、沒有橫向捲軸", sd and not sd["shown"] and sd["sw"] <= 1, sd)
+    pg.set_viewport_size({"width": 1440, "height": 950}); pg.wait_for_timeout(300)
     # 窄畫面（目錄收起）：捲動不丟錯、手機的可展開目錄點得動
     pg.set_viewport_size({"width": 390, "height": 844}); pg.wait_for_timeout(400)
     pg.goto(base + "#terms", wait_until="networkidle"); pg.wait_for_timeout(800)

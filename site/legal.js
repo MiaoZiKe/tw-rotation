@@ -329,6 +329,12 @@
 .lgtocm ol,.lgtoc ol{list-style:none;margin:8px 0 0;padding:0}
 .lgtocm a,.lgtoc a{display:block;padding:4px 10px;color:var(--ink-3);text-decoration:none;border-left:2px solid transparent;font-size:13px}
 .lgtoc a.on{color:var(--cyan);border-left-color:var(--cyan)}
+@container (min-width:1060px){
+  .lgwrap{grid-template-columns:176px minmax(0,1fr) 236px!important;gap:16px!important}
+  .lgdoc{width:min(880px,100%)!important}
+  .lgwrap .lgside{display:grid;gap:12px;position:sticky;top:80px;align-self:start}
+  .lgtabs{margin-left:192px!important}
+}
 @container (min-width:1000px){
   .lgwrap{display:grid;grid-template-columns:220px minmax(0,760px);gap:24px;align-items:start}
   .lgtoc{display:block;position:sticky;top:80px;font-size:13px}
@@ -340,7 +346,7 @@
    聯絡方式是底部 CTA 卡；最上面一張「重點一覽」。規格量值：卡片圓角 20／卡間距 16／卡內距 24×28（手機 18）／
    圖示章 36（圓角 12）／條列格圓角 12、格距 8／標題 17px・700／內文 14px・1.8／條列內文 14px・1.7／最小字 12px。
    顏色一律用站上 token，深淺主題自動跟著換；警語用 --amber（不用紅綠，紅綠在台股是漲跌）。*/
-.lgdoc{width:min(760px,100%);display:grid;gap:16px;font-size:14px;line-height:1.8;color:var(--ink-2)}
+.lgdoc{width:min(760px,100%);display:grid;grid-template-columns:minmax(0,1fr);gap:16px;font-size:14px;line-height:1.8;color:var(--ink-2)}
 .lgdoc b{color:var(--ink);font-weight:700}
 .lgdoc a{color:var(--cyan)}
 .lgdoc code{font-family:var(--mono);font-size:13px}
@@ -420,6 +426,38 @@
   .lgtbl td:first-child::before{content:none}
 }
 @container (max-width:560px){ .lgsumg{grid-template-columns:minmax(0,1fr)} }
+/* ---- 右側欄（內容區 ≥1060 才出現；三欄＝目錄 190｜內文 1fr（上限 880）｜側欄 250，欄距 20） ---- */
+.lgside{display:none}
+.lgsc{background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:16px}
+.lgsc h3{font-size:13px;font-weight:700;color:var(--ink);margin:0 0 10px}
+.lgsl{list-style:none;margin:0;padding:0;display:grid;gap:6px}
+.lgsl li{margin:0}
+.lgside a.lgsi{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:12px;border:1px solid transparent;
+  background:var(--panel-2);color:var(--ink-2);text-decoration:none}
+.lgside a.lgsi:hover{border-color:var(--line-2)}
+.lgside a.lgsi.on{border-color:var(--cyan);background:color-mix(in srgb,var(--cyan) 10%,var(--panel))}
+.lgside a.lgsi.w.on{border-color:var(--amber);background:color-mix(in srgb,var(--amber) 10%,var(--panel))}
+.lgside .lgsi .lgic2{width:28px;height:28px;border-radius:9px}
+.lgside .lgsi .lgic2 svg{width:16px;height:16px}
+.lgside .lgsi.w .lgic2{color:var(--amber);background:color-mix(in srgb,var(--amber) 16%,transparent)}
+.lgst2{display:grid;min-width:0;line-height:1.35}
+.lgst2 b{font-size:13px;color:var(--ink);font-weight:600}
+.lgst2 small{font-size:12px;color:var(--ink-3)}
+.lgrel{display:grid;gap:6px}
+.lgrel a{display:flex;align-items:center;gap:8px;height:36px;padding:0 12px;border-radius:999px;border:1px solid var(--line-2);
+  color:var(--ink-2);font-size:13px;text-decoration:none}
+.lgrel a svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round;flex:none}
+.lgrel a:hover{border-color:var(--cyan);color:var(--ink)}
+.lgrel a.on{background:var(--cyan);border-color:var(--cyan);color:var(--ontop);font-weight:700}
+.lgsupp{margin-top:12px;padding-top:12px;border-top:1px dashed var(--line-2)}
+.lgsupp p{margin:0 0 8px;font-size:13px;color:var(--ink-3)}
+.lgside a.lgctab{display:flex;align-items:center;justify-content:center;gap:8px;height:40px;border-radius:999px;background:var(--cyan);
+  color:var(--ontop);font-size:13px;font-weight:600;text-decoration:none}
+.lgpt{display:flex;align-items:baseline;justify-content:space-between;gap:8px;font-size:13px;color:var(--ink-3);margin-bottom:8px}
+.lgpt b{color:var(--ink);font-size:13px;font-weight:700;font-family:var(--mono)}
+.lgbar{height:6px;border-radius:999px;background:var(--panel-3);overflow:hidden}
+.lgbar i{display:block;height:100%;width:0;border-radius:999px;background:linear-gradient(90deg,var(--cyan),var(--violet));transition:width .18s}
+@media (prefers-reduced-motion:reduce){ .lgbar i{transition:none} }
 
 .lgleave{width:min(560px,100%);margin:48px auto;background:var(--panel);border:1px solid var(--line);border-radius:24px;
   padding:32px;font-size:14px;line-height:1.8;color:var(--ink-2)}
@@ -637,22 +675,22 @@
   /* 第四個元素 1＝警語色。*/
   const SUMMARY = {
     disclaimer: [
-      ['info', '不是投顧', '本站是公開資料的整理工具，不是證券投資顧問事業，不提供投資建議。'],
-      ['eye', '不是推薦名單', '篩選結果與圖上價位是計算條件，不是推薦，也不是買賣價位。', 1],
-      ['db', '資料可能有誤', '資料可能有錯誤、遺漏或延遲；盤中數字以交易所正式公告為準。'],
-      ['warn', '風險自負', '投資決策與其結果，由您自行判斷並承擔。', 1],
+      ['info', '不是投顧', '本站是公開資料的整理工具，不是證券投資顧問事業，不提供投資建議。', 0, 0],
+      ['eye', '不是推薦名單', '篩選結果與圖上價位是計算條件，不是推薦，也不是買賣價位。', 1, 2],
+      ['db', '資料可能有誤', '資料可能有錯誤、遺漏或延遲；盤中數字以交易所正式公告為準。', 0, 1],
+      ['warn', '風險自負', '投資決策與其結果，由您自行判斷並承擔。', 1, 5],
     ],
     terms: [
-      ['user', 'Google 登入', '以 Google 帳號登入；本服務不取得、不保存您的密碼。'],
-      ['card', '費用以購買頁為準', '試用、價格、續訂與退款，以購買頁所示為準。'],
-      ['ban', '禁止共用與轉售', '不得共用帳號、大量擷取資料、轉售內容或繞過使用限制。', 1],
-      ['warn', '責任限制', '法律允許範圍內，因使用所生之損失不負賠償責任（故意或重大過失除外）。', 1],
+      ['user', 'Google 登入', '以 Google 帳號登入；本服務不取得、不保存您的密碼。', 0, 1],
+      ['card', '費用以購買頁為準', '試用、價格、續訂與退款，以購買頁所示為準。', 0, 2],
+      ['ban', '禁止共用與轉售', '不得共用帳號、大量擷取資料、轉售內容或繞過使用限制。', 1, 3],
+      ['warn', '責任限制', '法律允許範圍內，因使用所生之損失不負賠償責任（故意或重大過失除外）。', 1, 7],
     ],
     privacy: [
-      ['eye', '未登入不蒐集身分', '瀏覽不需登入；登入僅取得顯示名稱、電子郵件與大頭貼。'],
-      ['shield', '不販售、不追蹤', '不販售、不出租、不交換個人資料，也不做廣告追蹤。'],
-      ['lock', '不蒐集持股與損益', '不蒐集您的實際持股、成本價、損益或券商帳號。'],
-      ['trash', '可查詢、更正、刪除', '來信申請，十五日內處理。'],
+      ['eye', '未登入不蒐集身分', '瀏覽不需登入；登入僅取得顯示名稱、電子郵件與大頭貼。', 0, 0],
+      ['shield', '不販售、不追蹤', '不販售、不出租、不交換個人資料，也不做廣告追蹤。', 0, 1],
+      ['lock', '不蒐集持股與損益', '不蒐集您的實際持股、成本價、損益或券商帳號。', 0, 0],
+      ['trash', '可查詢、更正、刪除', '來信申請，十五日內處理。', 0, 3],
     ],
   };
   function secHtml(id, s, i) {
@@ -681,7 +719,14 @@
     const heads = d.secs.map((s, i) => document.getElementById('lg-' + id + '-' + i));
     let pin = null, pinY = 0, pinSeen = false, pinTimer = 0;
     const maxY = () => Math.max(0, document.documentElement.scrollHeight - innerHeight);
-    const light = (k) => links.forEach((a, i) => a.classList.toggle('on', i === k));
+    const sideA = [...v.querySelectorAll('.lgside .lgsi')], pn = v.querySelector('.lgpn'), bar = v.querySelector('.lgbar i');
+    const light = (k) => {
+      links.forEach((a, i) => a.classList.toggle('on', i === k));
+      sideA.forEach((a) => a.classList.toggle('on', +a.dataset.sec === k));
+      const n = heads.length;
+      if (pn) pn.textContent = '第 ' + (k + 1) + '／' + n + ' 節';
+      if (bar) bar.style.width = ((k + 1) / n * 100) + '%';
+    };
     const unpin = () => { pin = null; clearTimeout(pinTimer); };
     const sync = () => {
       if (!v.classList.contains('on')) return;
@@ -725,6 +770,22 @@
     sync();
   }
 
+  /* 右側欄（2026-10-07 Andy：「右邊太空，需要填滿」）：本頁重點（點了捲到該節、捲到哪節就亮哪項）、
+     相關文件＋客服、閱讀進度。只在內容區夠寬時顯示（見 CSS 的 @container），窄畫面整塊 display:none。
+     不用 <aside>：全站 aside 是固定在右側的抽屜樣式（上一版重點一覽就是被它藏掉）。*/
+  function sideHtml(id, d) {
+    const items = (SUMMARY[id] || []).map((x) => '<li><a href="#" class="lgsi' + (x[3] ? ' w' : '') + '" data-sec="' + x[4] + '">'
+      + '<span class="lgic2">' + svg(x[0]) + '</span><span class="lgst2"><b>' + esc(x[1]) + '</b><small>第' + CN[x[4]] + '節</small></span></a></li>').join('');
+    const rel = ['terms', 'privacy', 'disclaimer'].map((k) => '<a href="#' + k + '"' + (k === id ? ' class="on" aria-current="page"' : '') + '>'
+      + svg(k === 'terms' ? 'doc' : k === 'privacy' ? 'lock' : 'info') + '<span>' + DOCS[k]().short + '</span></a>').join('');
+    return '<div class="lgside" id="lgSide">'
+      + '<section class="lgsc"><h3>本頁重點</h3><ul class="lgsl">' + items + '</ul></section>'
+      + '<section class="lgsc"><h3>相關文件</h3><nav class="lgrel" aria-label="相關文件">' + rel + '</nav>'
+      + '<div class="lgsupp"><p>有疑問或需要協助？</p><a class="lgctab" href="mailto:' + esc(CONTACT_EMAIL) + '">' + svg('mail') + '聯絡客服</a></div></section>'
+      + '<section class="lgsc"><div class="lgpt"><span>閱讀進度</span><b class="lgpn">第 1／' + d.secs.length + ' 節</b></div>'
+      + '<div class="lgbar" role="presentation"><i></i></div></section></div>';
+  }
+
   function renderDoc(id) {
     const v = ensureView(); if (!v) return;
     const d = DOCS[id]();
@@ -747,7 +808,7 @@
       + '<h1>' + d.title + '</h1></div><div class="lglead">' + (d.lead || '') + '</div></header>'
       + '<section class="lgsum" aria-label="重點一覽"><h2>' + svg('spark') + '重點一覽</h2><ul class="lgsumg">' + sum + '</ul></section>'
       + d.secs.map((s, i) => secHtml(id, s, i)).join('')
-      + '</article></div>';
+      + '</article>' + sideHtml(id, d) + '</div>';
     /* 目錄連結不能用 href="#lg-…"：那會改掉 hash、觸發路由，整頁被當成未知路由導回總覽。*/
     bindSpy(v, id, d);
   }
