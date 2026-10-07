@@ -9083,6 +9083,35 @@ def t_themes(pg, base):
       以前這一段「開 #themes 看到題材圖」；現在改成「開 #themes 會**導到**熱力圖分頁，而且題材圖真的在」。
       舊網址不准壞（交付清單的「去看」、外面存的連結都指著它），所以每一個題材都用**舊網址**開一次。
     """
+    # ---- ⓪ 2026-10-07（Andy：「題材為何高速交換器沒有 2D 圖片，幫我補上，並確保其他題材也都要有 2D 圖片」）
+    #   每一個題材都要有剖析圖函式；真的點進去，細節區要畫出圖、不准出現「尚無剖析圖」；
+    #   圖裡的文字兩兩不重疊、字級 ≥ 12px。
+    pg.goto(f"{base}#themes", wait_until="networkidle"); pg.wait_for_timeout(2600)
+    tids = pg.evaluate("""async () => { const d = await (await fetch('data/themes.json')).json();
+        return (d.themes || []).map(t => t.id); }""")
+    ok("themes.json 讀得到題材（≥ 22 個）", len(tids) >= 22, len(tids))
+    missing = pg.evaluate("(ids) => ids.filter(i => typeof (window.ThemeDiagrams || {})[i] !== 'function')", tids)
+    ok("★ 每一個題材 id 在 ThemeDiagrams 都有剖析圖函式", not missing, missing)
+    bad = []
+    for tid in tids:
+        pg.evaluate("(t) => { location.hash = '#themes/' + t; }", tid); pg.wait_for_timeout(1300)
+        r = pg.evaluate("""() => { const d = document.getElementById('themeDetail'); if (!d) return {nod: 1};
+            const svg = d.querySelector('svg.dg3');
+            const txt = [...(svg ? svg.querySelectorAll('text') : [])].filter(t => t.getClientRects().length && t.textContent.trim());
+            const bx = txt.map(t => t.getBoundingClientRect());
+            let ov = [];
+            for (let i = 0; i < bx.length; i++) for (let j = i + 1; j < bx.length; j++) {
+              const a = bx[i], b = bx[j];
+              const w = Math.min(a.right, b.right) - Math.max(a.left, b.left), h = Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top);
+              if (w > 2 && h > 3) ov.push(txt[i].textContent.slice(0, 10) + '｜' + txt[j].textContent.slice(0, 10));
+            }
+            const small = txt.filter(t => parseFloat(getComputedStyle(t).fontSize) < 11.5).map(t => t.textContent.slice(0, 10));
+            return { svg: !!svg, nodg: (d.innerText || '').includes('尚無剖析圖'), ov: ov.slice(0, 4), small: small.slice(0, 4) }; }""")
+        if not r.get("svg") or r.get("nodg") or r.get("ov") or r.get("small"):
+            bad.append((tid, r))
+    ok("★ 每個題材點進去都畫出剖析圖、沒有「尚無剖析圖」、文字不重疊、字級 ≥ 12px", not bad, bad[:4])
+    pg.goto(f"{base}#overview", wait_until="networkidle"); pg.reload(wait_until="networkidle"); pg.wait_for_timeout(1200)
+
     # ---- ① 舊網址 #themes → 熱力圖分頁（不是 404、不是停在總覽）
     pg.goto(f"{base}#overview", wait_until="networkidle"); pg.wait_for_timeout(1200)
     pg.evaluate("() => { location.hash = '#themes'; }"); pg.wait_for_timeout(2600)
@@ -9227,15 +9256,13 @@ def t_themes(pg, base):
        count(pg, "#themeDetail .linkrow"))
     ok("換題材的路還在：題材資金熱力圖就在同一頁", pg.evaluate("() => !!document.querySelector('#themeMap canvas')"))
 
-    # ---- ★ 22 個題材裡有 3 個沒有剖析圖（`window.ThemeDiagrams` 只有 19 把 key）。
-    #   ⚠ 2026-09-24 更正這一條：它原本驗「顯示一張『還沒有產品剖析圖』的說明小卡」，
-    #   但那張小卡在批次 0923-D（HANDOFF 開頭那一節）已經被 **Andy 親口要求拿掉**
-    #   （原話：「題材頁面 下方處可以移除」），這條斷言沒跟著改，在未改動的 main 上就是紅的。
-    #   現在驗的是他要的行為：整區留白、**沒有替代卡片**，而且上面的題材熱力圖照舊在（沒有整頁空掉）。
-    for tid in ("panel_pkg", "petrochemical", "mlcc_passive"):
+    # ---- ★ 2026-10-07 改前→改後（過時斷言）：改前驗 panel_pkg／petrochemical／mlcc_passive「沒有剖析圖時整區留白」。
+    #   改後：Andy 要求每個題材都要有 2D 圖（「確保其他題材也都要有 2D 圖片」），四張已補上，
+    #   改驗這三個題材細節區真的只有一張剖析圖卡、上面的題材熱力圖照舊在（⓪ 那段另外驗了全部 22 個都畫得出來）。
+    for tid in ("panel_pkg", "petrochemical", "mlcc_passive", "switch_800g"):
         pg.goto(f"{base}#themes/{tid}", wait_until="networkidle"); pg.wait_for_timeout(1000)
-        ok(f"題材 {tid} 沒有剖析圖時整區留白、不放替代卡片（Andy 0923-D 指定）",
-           count(pg, "#themeDetail .card") == 0 and "還沒有產品剖析圖" not in text(pg, "#themeDetail")
+        ok(f"題材 {tid} 細節區是一張剖析圖卡（2026-10-07 補圖）",
+           count(pg, "#themeDetail .card") == 1 and count(pg, "#themeDetail svg.dg3") == 1
            and pg.evaluate("() => !!document.querySelector('#themeMap canvas')"),
            [count(pg, "#themeDetail .card"), text(pg, "#themeDetail")[:60]])
 
