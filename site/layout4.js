@@ -153,7 +153,7 @@
       let mpt = $('.l4pt', bt);
       if (!mpt) { mpt = document.createElement('span'); mpt.className = 'l4pt'; bt.insertBefore(mpt, bt.firstChild); }
       const nm = p ? (k === 'stock' && sub ? sub : p.t) : (($('.view.on h1, .view.on h2') || {}).textContent || '').trim();
-      mpt.innerHTML = (p ? `<i>${esc(p.grp)}</i>` : '') + `<span>${esc(nm || '台股資金輪動')}</span>`;
+      mpt.innerHTML = (p ? `<i>${esc(p.grp)}</i>` : '') + `<span>${esc(nm || '哩股哩股')}</span>`;
     }
     /* ★ 2026-10-03（Andy：「紅框處 只留下 總覽 及當下日期時間（所有分頁都是）」）：
        分組小標（eyebrow）、說明句（p）拿掉，只留頁名＋台北現在時間。「本頁功能」那排見 CSS（只藏不刪）。

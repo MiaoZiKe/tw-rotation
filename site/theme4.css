@@ -213,7 +213,7 @@
 
 /* ---- 頂欄、分頁、控制項：只換外觀 ---- */
 [data-theme4] .topbar{background:var(--t4-topbar,var(--topbar));border-bottom:1px solid var(--t4-card-edge,var(--line))}
-[data-theme4] .brand .logo{background:var(--t4-accent);color:var(--on-accent);box-shadow:var(--t4-accent-glow,none);border-radius:var(--r-sm)}
+[data-theme4] .brand .logo{background:#8ac5f5;box-shadow:0 0 0 1px var(--line);border-radius:var(--r-sm)}  /* 2026-10-07：logo 改成頭像圖，不再塗主題強調色（會蓋在圖後面露邊） */
 [data-theme4] .tab.on{background:var(--t4-accent);color:var(--on-accent);box-shadow:var(--t4-accent-glow,none)}
 [data-theme4] .seg button.on{background:var(--t4-accent);color:var(--on-accent)}
 [data-theme4] .seg button.livetf.on::after,[data-theme4] .seg button.livehr.on::after{color:var(--on-accent)}

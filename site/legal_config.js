@@ -31,7 +31,7 @@ window.TW_LEGAL = {
   license_url: '',       // 商業授權方案頁；空的＝改寫「請來信 email 洽詢」
 
   /* ---- 已知的事實，先幫忙填好（不對就改）---- */
-  site_name: '台股資金輪動儀表板',   // 目前 <title> 的名字；命名定案後改這裡
+  site_name: '哩股哩股',   // 2026-10-07 Andy 定案站名「哩股哩股」
   repo_url: '',          // ★ 2026-09-24 Andy：原始碼不能公開，網站上不准出現 repo 連結；這一欄保持空的
   // 隱私權政策「資料存在哪裡」：本站目前實際用到的兩個第三方服務
   hosting: 'GitHub Pages（GitHub, Inc.，美國；網站本身）、Cloudflare Workers（Cloudflare, Inc.，全球節點；僅用於轉送盤中報價）',

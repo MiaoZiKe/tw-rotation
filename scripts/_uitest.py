@@ -13378,6 +13378,97 @@ def t_cfgpop(pg, base, code):
     ok("再按一次會關掉（切換本身沒壞）", not seen())
 
 
+BRAND_NAME = "哩股哩股"
+# 「台股資金輪動」這幾個字以後只准出現在「說明這個工具在做什麼」的描述句裡，不准再當站名。
+# 白名單＝目前合法出現的描述句片段（以子字串比對）；目前畫面上沒有任何一句需要它，所以是空的 ——
+# 之後若有人寫了「本站做台股資金輪動分析」這種說明句，加進來並寫明出處。
+BRAND_OLD_WHITELIST: list[str] = []
+
+
+def t_brand(b, base):
+    """品牌改名「哩股哩股」（Andy 2026-10-07：「以後我的logo 叫 哩股哩股…幫我換總覽頁名稱及logo」）。
+
+    真的操作：桌機開總覽 → 讀側欄品牌字與頭像（naturalWidth>0 才算圖真的載到）→ 切淺色主題再讀一次 →
+    按收合鈕確認只剩頭像 → 點品牌回總覽 → 走過法律頁／方案頁掃可見文字；手機 390 再看頂欄。
+    """
+    scan_js = """(wl) => { const t = document.body.innerText || '';
+        const hits = []; let i = -1;
+        while ((i = t.indexOf('台股資金輪動', i + 1)) >= 0) hits.push(t.slice(Math.max(0, i - 12), i + 18));
+        return hits.filter(h => !wl.some(w => h.includes(w))); }"""
+    ctx = b.new_context(viewport={"width": 1440, "height": 900})
+    pg = ctx.new_page()
+    pg.goto(base + "#overview", wait_until="domcontentloaded")
+    pg.wait_for_function("() => { const i = document.querySelector('.brand .logo img'); return i && i.complete; }", timeout=30000)
+    pg.wait_for_timeout(600)
+    info = lambda: pg.evaluate("""() => { const br = document.querySelector('.topbar > .brand') || document.querySelector('.brand');
+        const im = br.querySelector('.logo img'); const r = im.getBoundingClientRect(); const bb = br.querySelector('b');
+        return { txt: bb ? bb.textContent.trim() : '', bVis: !!bb && bb.getBoundingClientRect().width > 0,
+                 nw: im.naturalWidth, w: r.width, h: r.height, title: document.title,
+                 rad: getComputedStyle(im.parentElement.closest('.logo')).borderRadius }; }""")
+    a = info()
+    ok("品牌：側欄品牌字是「哩股哩股」", a["txt"] == BRAND_NAME, a)
+    ok("品牌：頭像圖真的載入（naturalWidth>0）且畫面上有尺寸", a["nw"] > 0 and a["w"] >= 24 and a["h"] >= 24, a)
+    ok("品牌：頭像是圓角", a["rad"] not in ("", "0px"), a)
+    ok("品牌：document.title 含「哩股哩股」", BRAND_NAME in a["title"], a)
+    hits = pg.evaluate(scan_js, BRAND_OLD_WHITELIST)
+    ok("品牌：總覽可見文字沒有舊站名", not hits, hits)
+    # 切淺色主題：頭像仍載入、外框還在（淺色底靠 1px 外框收邊）
+    pg.evaluate("() => { localStorage.setItem('tw.theme','light'); }")
+    pg.reload(wait_until="domcontentloaded")
+    pg.wait_for_function("() => { const i = document.querySelector('.brand .logo img'); return i && i.complete; }", timeout=30000)
+    pg.wait_for_timeout(500)
+    lt = pg.evaluate("() => ({ th: document.documentElement.getAttribute('data-theme'), nw: document.querySelector('.brand .logo img').naturalWidth,"
+                     " sh: getComputedStyle(document.querySelector('.brand .logo')).boxShadow })")
+    ok("品牌：淺色主題頭像照常顯示、有外框收邊", lt["th"] == "light" and lt["nw"] > 0 and lt["sh"] not in ("", "none"), lt)
+    # 收合側欄：只剩頭像
+    pg.evaluate("() => { localStorage.setItem('tw.theme','dark'); localStorage.setItem('tw.layout4.nav','mini'); }")
+    pg.reload(wait_until="domcontentloaded")
+    pg.wait_for_timeout(1500)
+    mini = pg.evaluate("""() => { const br = document.querySelector('.topbar > .brand'); const bb = br && br.querySelector('b');
+        const im = br && br.querySelector('.logo img');
+        return { mini: document.documentElement.classList.contains('l4-mini'),
+                 bW: bb ? bb.getBoundingClientRect().width : 0, imW: im ? im.getBoundingClientRect().width : 0 }; }""")
+    ok("品牌：側欄收合時只顯示頭像（字藏起來、圖還在）", mini["mini"] and mini["bW"] == 0 and mini["imW"] > 0, mini)
+    # 點品牌回總覽（真的點）
+    pg.evaluate("() => { location.hash = '#flow'; }")
+    pg.wait_for_timeout(800)
+    pg.click(".topbar > .brand .logo")
+    pg.wait_for_timeout(800)
+    ok("品牌：點頭像回到總覽", pg.evaluate("location.hash") == "#overview", pg.evaluate("location.hash"))
+    for h in ("#terms", "#privacy", "#disclaimer", "#pricing"):
+        pg.evaluate(f"() => {{ location.hash = '{h}'; }}")
+        pg.wait_for_timeout(1200)
+        hits = pg.evaluate(scan_js, BRAND_OLD_WHITELIST)
+        ok(f"品牌：{h} 可見文字沒有舊站名", not hits, hits)
+    copy = pg.evaluate("() => { const e = document.getElementById('sfCopy'); return e ? e.textContent : ''; }")
+    if copy:
+        ok("品牌：頁尾 © 寫的是「哩股哩股」", BRAND_NAME in copy, copy)
+    man = pg.evaluate("() => fetch('manifest.webmanifest').then(r => r.json()).then(m => ({ n: m.name, s: m.short_name }))")
+    ok("品牌：manifest 的 name／short_name 是「哩股哩股」", man["n"] == BRAND_NAME and man["s"] == BRAND_NAME, man)
+    # 客服浮動鈕（Andy 2026-10-07：「客服圖示改成跟logo一樣可愛的天竺鼠」）：頭像載入、字還在、真的點得開面板
+    pg.evaluate("() => { location.hash = '#overview'; }")
+    pg.wait_for_selector("#supFab .supmark", timeout=15000)
+    pg.wait_for_function("() => { const i = document.querySelector('#supFab .supmark'); return i && i.complete; }", timeout=15000)
+    fab = pg.evaluate("() => { const f = document.getElementById('supFab'); const i = f.querySelector('.supmark');"
+                      " return { nw: i.naturalWidth, txt: f.textContent.trim(), svg: !!f.querySelector('svg') }; }")
+    ok("客服鈕：天竺鼠頭像載入（naturalWidth>0）、「客服」字還在、舊對話泡泡拿掉", fab["nw"] > 0 and fab["txt"] == "客服" and not fab["svg"], fab)
+    pg.click("#supFab")
+    pg.wait_for_timeout(500)
+    opened = pg.evaluate("() => { const p = document.getElementById('supPanel'); return !!p && !p.hidden && p.getBoundingClientRect().height > 0; }")
+    ok("客服鈕：點了照常打開客服面板", opened)
+    ctx.close()
+    # 手機 390：頂欄
+    ctx = b.new_context(viewport={"width": 390, "height": 844}, device_scale_factor=2)
+    pg = ctx.new_page()
+    pg.goto(base + "#overview", wait_until="domcontentloaded")
+    pg.wait_for_timeout(2500)
+    m = pg.evaluate("""() => { const im = [...document.querySelectorAll('.brand .logo img')].find(i => i.getBoundingClientRect().width > 0);
+        return { nw: im ? im.naturalWidth : 0, cur: im ? im.currentSrc : '', txt: document.body.innerText.includes('哩股哩股'),
+                 sw: document.documentElement.scrollWidth }; }""")
+    ok("品牌：手機頂欄頭像載入（2x 拿 128 那張）、看得到「哩股哩股」、無橫向捲軸", m["nw"] > 0 and m["txt"] and m["sw"] <= 390, m)
+    ctx.close()
+
+
 def t_buildver(b, base):
     """網頁版號（Andy 2026-09-16：「每次說有更新，但打開來跟原本一樣」）。
 
@@ -26333,6 +26424,8 @@ SECTIONS = {
     "排序":                lambda pg, b, base, code: t_sort(pg, base),
     "資料狀態":            lambda pg, b, base, code: t_freshness(b, base),
     "網頁版號":            lambda pg, b, base, code: t_buildver(b, base),
+    # ★ 2026-10-07 Andy：「以後我的logo 叫 哩股哩股」—— 品牌字、頭像載入、title、收合、法律／方案頁不留舊站名
+    "品牌哩股哩股":        lambda pg, b, base, code: t_brand(b, base),
     "設定面板":            lambda pg, b, base, code: t_cfgpop(pg, base, code),
     "K線縮放":             lambda pg, b, base, code: t_kzoom_keep(pg, base, code),
     # ★ 2026-10-02 Andy 五張截圖：文字框就地編輯、箭頭、橡皮擦、方框屬性列、點兩下畫線＋端點圓圈、選取拖曳、測量、成交量分佈（DECISIONS #289；⚠ 一律 --workers 1）
@@ -42950,8 +43043,8 @@ def t_legal(b, base):
           heads: items.map(li => (li.querySelector('b') || {}).textContent || ''),
           ftxt: f ? f.innerText : '', fh: f ? Math.round(f.offsetHeight) : 0 }; }"""
     fd0 = pg.evaluate(FD)
-    ok("[頁尾] 第一行是「© 2026 本網站 · 保留所有權利」（名稱未定，走 SITE_NAME）",
-       fd0["copy"].startswith("© 2026 ") and "本網站" in fd0["copy"] and "保留所有權利" in fd0["copy"], fd0["copy"])
+    ok("[頁尾] 第一行是「© 2026 哩股哩股 · 保留所有權利」（2026-10-07 站名定案，走 legal.js 的 BRAND_NAME）",
+       fd0["copy"].startswith("© 2026 ") and "哩股哩股" in fd0["copy"] and "保留所有權利" in fd0["copy"], fd0["copy"])
     ok("[頁尾] 短版免責聲明與四個連結都還在（免責聲明／使用條款／隱私權政策／平台導覽）",
        all(x in fd0["ftxt"] for x in ("不是證券投資顧問事業", "免責聲明", "使用條款", "隱私權政策", "平台導覽")), fd0["ftxt"][:200])
     ok("[頁尾] 詳細規範預設收起（畫面上只留必要的）：區塊不佔高度、按鈕寫「顯示詳細規範」、aria-expanded=false",

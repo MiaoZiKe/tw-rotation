@@ -3,7 +3,10 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>台股資金輪動儀表板</title>
+<title>哩股哩股</title>
+<meta property="og:title" content="哩股哩股">
+<meta property="og:site_name" content="哩股哩股">
+<meta property="og:image" content="brand/logo-512.png">
 <meta name="theme-color" content="#070b16">
 <!-- 網頁版號（Andy 2026-09-16：「每次說有更新，但打開來跟原本一樣，網頁需要新增版號」）。
      部署前由 scripts/stamp_assets.py 換成「commit 前 7 碼|建置時間(台北)」；
@@ -12,7 +15,7 @@
 <!-- commit 短碼另外放：版號改成「日期＋第幾版」之後，短碼移到徽章的連結與 tooltip -->
 <meta name="tw:commit" content="">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-title" content="台股輪動">
+<meta name="apple-mobile-web-app-title" content="哩股哩股">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <link rel="manifest" href="manifest.webmanifest">
 <!-- ★ 2026-10-03（Andy：「當重新整理後，全部圖表設定回 Default」，DECISIONS #307）：
@@ -40,9 +43,11 @@
      留著當退路沒有刪）。maskable 版是給 Android 啟動器裁切用的。
      ⚠ 這組圖示是**暫時版** —— 命名與視覺識別還沒定案（docs/product_strategy.md 提了 8 個候選），
      定案之後整組要換掉，manifest 裡也有同樣的註記。 -->
-<link rel="apple-touch-icon" href="icons/apple-touch-icon-180.png">
-<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
-<link rel="icon" type="image/svg+xml" href="icons/icon.svg">
+<!-- ★ 2026-10-07（Andy：「以後我的logo 叫 哩股哩股」）：圖示整組換成 site/brand/ 的天竺鼠頭像。
+     小尺寸只用頭像不用整張 logo —— 下方「哩股哩股」大字縮到 32px 會糊成一團。舊的 icons/ 留著沒刪（退路）。 -->
+<link rel="apple-touch-icon" href="brand/apple-touch-icon-180.png">
+<link rel="icon" type="image/png" sizes="32x32" href="brand/favicon-32.png">
+<link rel="icon" type="image/png" sizes="192x192" href="brand/icon-192.png">
 <!-- ★ 2026-09-19 拿掉 Google Fonts 的 <link>。
      下面那行註解自己就寫了「公司網路常擋 CDN」，字型卻還掛在 fonts.googleapis.com 上 ——
      在 Andy 公司的網路會等到連線逾時才 fallback，AGENTS 檢查清單第 7 條也明訂 site/ 內不得有 CDN 連結。
@@ -570,8 +575,11 @@ small{font-size:12.5px}
 @media (max-width:640px){.topbar{gap:14px;padding:0 18px}}
 .brand{display:flex;align-items:center;gap:var(--sp-2);cursor:pointer;white-space:nowrap}
 @media (max-width:640px){.brand{gap:10px}}
-.brand .logo{width:30px;height:30px;border-radius:9px;background:linear-gradient(135deg,var(--cyan),var(--violet));
-  box-shadow:var(--glow);display:grid;place-items:center;font-family:var(--mono);font-weight:700;color:var(--ontop);font-size:13px}
+/* ★ 2026-10-07 品牌換成「哩股哩股」：.logo 從漸層字方塊改成天竺鼠頭像圖。
+   頭像本身是淺藍底，深色主題下靠底色就分得出來；淺色主題下淺藍貼淺底會糊，所以加一圈 1px 細框（--line）收邊。 */
+.brand .logo{width:32px;height:32px;flex:none;border-radius:9px;overflow:hidden;background:#8ac5f5;
+  box-shadow:0 0 0 1px var(--line);display:block}
+.brand .logo img{width:100%;height:100%;display:block;object-fit:cover}
 .brand b{font-size:16px;letter-spacing:.02em}
 .brand small{display:block;font-family:var(--mono);font-size:10.5px;letter-spacing:.12em;color:var(--ink-3);line-height:1;margin-top:3px}
 /* ★ 2026-09-23 UI 精修 #4：分頁列的包裝層。它唯一的工作是當左右箭頭的定位基準 ——
@@ -5323,7 +5331,7 @@ h3 .howbtn.pop{font-family:inherit}
 </head>
 <body>
 <header class="topbar">
-  <div class="brand" onclick="location.hash='#overview'"><div class="logo">TW</div><div><b>台股資金輪動</b><small id="asof"><span id="buildver" class="verline">—</span><button type="button" class="freshbtn" id="freshBtn" hidden title="有新版，點一下重新載入">有新資料 ↻</button></small></div></div>
+  <div class="brand" onclick="location.hash='#overview'"><div class="logo"><picture><source srcset="brand/mark-64.webp 1x, brand/mark-128.webp 2x" type="image/webp"><img id="brandMark" src="brand/mark-64.png" srcset="brand/mark-64.png 1x, brand/mark-128.png 2x" width="32" height="32" alt="哩股哩股"></picture></div><div><b>哩股哩股</b><small id="asof"><span id="buildver" class="verline">—</span><button type="button" class="freshbtn" id="freshBtn" hidden title="有新版，點一下重新載入">有新資料 ↻</button></small></div></div>
   <!-- ★ 2026-09-23 UI 精修 #4：分頁列的溢出提示（遮罩 ＋ 左右箭頭）。
        這是**功能性缺陷**不是美化：實測 1440px 時 `#tabs` 的 scrollWidth 比 clientWidth
        多 163～358px，也就是「總覽」或「季節性」**整顆分頁被擠到看不見**，

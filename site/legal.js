@@ -20,6 +20,8 @@
 
   /* ★ 2026-10-07：名稱與客服信箱還沒定 —— 定了只改這兩行。*/
   const SITE_NAME = '本網站';
+  // 2026-10-07 Andy 定案站名「哩股哩股」：頁尾 © 用它；條文內文仍用 SITE_NAME「本網站」（法律文件的泛稱，不必跟著改名）
+  const BRAND_NAME = '哩股哩股';
   const CONTACT_EMAIL = 'kcq01010909@gmail.com';
   const UPDATED = '2026-10-07';
 
@@ -56,7 +58,7 @@
     return s.replace(/\{(\w+)\}/g, (m, k) => {
       const v = val(k);
       if (v == null) return '<mark class="lgblank">【' + esc(LABEL[k] || k) + '】</mark>';
-      if (k === 'email') return mailA(v, '台股資金輪動－法律文件詢問', esc(v));   // 內文只換連結；複製鈕放側欄與文末聯絡卡（內文加鈕會改段落高度，牽動目錄捲動同步）
+      if (k === 'email') return mailA(v, '哩股哩股－法律文件詢問', esc(v));   // 內文只換連結；複製鈕放側欄與文末聯絡卡（內文加鈕會改段落高度，牽動目錄捲動同步）
       if (k === 'repo_url' || k === 'license_url') return '<a href="' + esc(v) + '" target="_blank" rel="noopener">' + esc(v) + '</a>';
       return esc(v);
     });
@@ -73,7 +75,7 @@
        site/account.js 的告知文字。改那邊要一起改這裡（DECISIONS #270-7 三處同步）。
      · 這不是律師擬的定稿：退款、試用、管轄法院、責任上限等標了「以購買頁所示為準」或待專業人士確認。*/
   const SN = SITE_NAME;
-  const MAIL = mailA(CONTACT_EMAIL, '台股資金輪動－法律文件詢問', esc(CONTACT_EMAIL));
+  const MAIL = mailA(CONTACT_EMAIL, '哩股哩股－法律文件詢問', esc(CONTACT_EMAIL));
   const OP = SN + '營運者';
 
   function disclaimerDoc() {
@@ -601,7 +603,7 @@
     const f = document.createElement('footer');
     f.className = 'sitefoot'; f.id = 'siteFoot';
     f.innerHTML = '<div class="sf-top"><div class="sf-main">'
-      + '<p class="sf-copy" id="sfCopy">© ' + esc(year) + ' ' + esc(SITE_NAME) + ' · 保留所有權利</p>'
+      + '<p class="sf-copy" id="sfCopy">© ' + esc(year) + ' ' + esc(BRAND_NAME) + ' · 保留所有權利</p>'
       + '<p class="sf-dis"><b>免責聲明</b>　本站為公開資料之整理、計算與視覺化工具，不是證券投資顧問事業，'
       + '不提供投資建議、不推介任何有價證券；所有數值僅供研究參考，資料可能有誤、遺漏或延遲，'
       + '投資決策與風險由使用者自行判斷並承擔。</p>'
@@ -710,7 +712,7 @@
       + '<h2 id="lg-' + id + '-' + i + '">' + CN[i] + '、' + esc(s.h) + '</h2></div>';
     if (m.k === 'cta') {
       return '<section class="lgsec cta" data-k="cta">' + head + '<div class="lgctar"><div class="lgctat">' + s.b + '</div>'
-        + mailA(CONTACT_EMAIL, '台股資金輪動－客服', svg('mail') + '來信聯絡', 'lgctab') + copyB(CONTACT_EMAIL) + '</div></section>';
+        + mailA(CONTACT_EMAIL, '哩股哩股－客服', svg('mail') + '來信聯絡', 'lgctab') + copyB(CONTACT_EMAIL) + '</div></section>';
     }
     return '<section class="lgsec' + (m.k === 'warn' ? ' warn' : '') + '" data-k="' + (m.k || 'plain') + '">' + head + s.b + '</section>';
   }
@@ -790,7 +792,7 @@
     return '<div class="lgside" id="lgSide">'
       + '<section class="lgsc"><h3>本頁重點</h3><ul class="lgsl">' + items + '</ul></section>'
       /* 10-07 Andy：「避免重複撰寫」—— 三份文件切換已在頂端分頁，側欄不再重複列，只留客服 */
-      + '<section class="lgsc"><div class="lgsupp"><p>有疑問或需要協助？</p>' + mailA(CONTACT_EMAIL, '台股資金輪動－客服', svg('mail') + '聯絡客服', 'lgctab') + copyB(CONTACT_EMAIL) + '</div></section>'
+      + '<section class="lgsc"><div class="lgsupp"><p>有疑問或需要協助？</p>' + mailA(CONTACT_EMAIL, '哩股哩股－客服', svg('mail') + '聯絡客服', 'lgctab') + copyB(CONTACT_EMAIL) + '</div></section>'
       + '<section class="lgsc"><div class="lgpt"><span>閱讀進度</span><b class="lgpn">第 1／' + d.secs.length + ' 節</b></div>'
       + '<div class="lgbar" role="presentation"><i></i></div></section></div>';
   }
