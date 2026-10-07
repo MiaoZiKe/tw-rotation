@@ -32,7 +32,7 @@ with sync_playwright() as p:
     for tag, url in PAGES:
         print("=" * 100)
         print(f"[{tag}] {url}")
-        ctx = br.new_context(locale="zh-TW", user_agent="Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36")
+        ctx = br.new_context(locale="zh-TW", ignore_https_errors=True, user_agent="Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36")
         pg = ctx.new_page()
         hits = []
         allreq = []
@@ -46,7 +46,14 @@ with sync_playwright() as p:
                 u = r.url
                 if not any(x in u for x in ("google", "doubleclick", "scupio", "on.aws", "facebook", "line-scdn")):
                     pdd = (r.request.post_data or "")[:300]
-                    allreq.append(f"{r.status} {r.request.method} {u[:300]}" + (f"\n        body={pdd}" if pdd else "")
+                    hd = ""
+                    if any(k in u.lower() for k in ("login", "auth", "token")):
+                        # 取 token 的請求：client id 常放在標頭（不是 body），要看得到才寫得出來
+                        try:
+                            hd = "\n        headers=" + str({k: v for k, v in r.request.all_headers().items() if k.lower() not in ("cookie", "user-agent")})[:600]
+                        except Exception:  # noqa: BLE001
+                            hd = ""
+                    allreq.append(f"{r.status} {r.request.method} {u[:300]}" + (f"\n        body={pdd}" if pdd else "") + hd
                                   + f"\n        resp={t[:300]!r}")
                 if any(k in t for k in KEYS):
                     hits.append((r.status, r.request.method, r.url, r.request.post_data, r.headers.get("content-type", ""), t))
@@ -74,7 +81,7 @@ with sync_playwright() as p:
         try:
             links = pg.eval_on_selector_all("a[href]", "els => els.map(e => (e.innerText||'').trim().slice(0,20) + ' -> ' + e.href)")
             for l in links:
-                if any(k in l for k in ("PCF", "pcf", "Pcf", "申購買回", "持股", "成分", "投資組合")):
+                if any(k in l for k in ("PCF", "pcf", "Pcf", "申購買回", "持股", "成分", "投資組合", "ETF", "etf")):
                     print("    連結:", l[:200])
         except Exception:  # noqa: BLE001
             pass

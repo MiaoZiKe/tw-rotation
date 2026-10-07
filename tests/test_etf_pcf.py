@@ -88,7 +88,7 @@ def test_fetch_all_one_issuer_crash_does_not_kill_others(monkeypatch):
     monkeypatch.setattr(etf_pcf, "capital", lambda: (_ for _ in ()).throw(RuntimeError("boom")))
     ok = pd.DataFrame([{"date": "2026-10-06", "etf": "00935", "code": "2330", "name": "台積電", "weight": 23.6, "shares": 1.0,
                         "issuer": "野村", "src": "u"}])
-    for fn in ("fuhhwa", "uni", "cathay", "yuanta", "ctbc"):
+    for fn in ("fuhhwa", "uni", "cathay", "yuanta", "ctbc", "fsitc", "ab", "hn", "fubon", "tsit"):
         monkeypatch.setattr(etf_pcf, fn, lambda *a, **k: pd.DataFrame(columns=etf_pcf.COLS))
     monkeypatch.setattr(etf_pcf, "kgi", lambda *a, **k: pd.DataFrame(columns=etf_pcf.COLS))
     monkeypatch.setattr(etf_pcf, "nomura", lambda codes: ok)
@@ -134,3 +134,104 @@ def test_ctbc_00896_holding_weight():
     r = etf_pcf.parse_ctbc("00896", CTBC_HOLD)
     assert [x["code"] for x in r] == ["2330", "1303"]
     assert (r[0]["date"], r[0]["weight"], r[0]["shares"], r[0]["issuer"]) == ("2026-10-06", 11.46, 638000.0, "中國信託")
+
+
+# ── 2026-10-07 第二批：第一金、聯博、華南永昌（樣本＝probe-etf-pcf.yml 真瀏覽器記下的 XHR 回應節錄）
+FSITC_HD = {"d": '[{"fundid":"D90","sdate":"2026-10-07","group":"1","A":"2330","B":"台積電","C":"25.43","D":"274,230","E":""},'
+                 '{"fundid":"D90","sdate":"2026-10-07","group":"1","A":"2303","B":"聯電","C":"15.06","D":"2,827,000","E":""},'
+                 '{"fundid":"D90","sdate":"2026-10-07","group":"4","A":"現金/存款","B":"TWD 15,545,039","C":"2.10","D":"","E":""}]'}
+AB_EQ = {"domesticHoldings": [
+    {"asOfDate": "10/07/2026", "holdingCategory": "holdings-section-equity", "holdings": [
+        {"holding": "矽創電子", "holdingPerc": "1.167495", "holdingCode": "8016", "holdingShares": 170000.0}]},
+    {"asOfDate": "10/07/2026", "holdingCategory": "holdings-section-futures", "holdings": [
+        {"holding": "台指期", "holdingPerc": "3.0", "holdingCode": "TXF", "holdingShares": 10.0}]}]}
+AB_BOND = {"domesticHoldings": [{"asOfDate": "10/06/2026", "holdingCategory": "holdings-section-bond", "holdings": [
+    {"holding": "APA CORP 6.750000 % 15-FEB-2055", "holdingPerc": "0.36041414", "holdingCode": "US03743QAT58", "holdingShares": 224000.0}]}]}
+HN_BUYBACK = {"Data": {"DataDate": "2026-10-08T00:00:00+08:00", "FundID": "E101", "ETFID": "009808",
+                       "Pcf": {"FundSize": 1292682619.0, "Punit": 33.14},
+                       "StockList": [{"StockNo": "2330", "StockName": "台積電", "Share": 201000.0, "Weight": 0.401942},
+                                     {"StockNo": "2308", "StockName": "台達電子", "Share": 26000.0, "Weight": 0.040025}]},
+              "Message": "", "ResultCode": "00"}
+
+
+def test_fsitc_only_stock_group():
+    r = etf_pcf.parse_fsitc("00728", FSITC_HD)
+    assert [x["code"] for x in r] == ["2330", "2303"]
+    assert (r[0]["date"], r[0]["weight"], r[1]["shares"], r[0]["issuer"]) == ("2026-10-07", 25.43, 2827000.0, "第一金")
+    assert etf_pcf.parse_fsitc("X", {"d": "not json"}) == [] and etf_pcf.parse_fsitc("X", None) == []
+
+
+def test_ab_equity_bond_and_isin():
+    assert etf_pcf.tw_isin("00404A") == "TW00000404A5" and etf_pcf.tw_isin("00980D") == "TW00000980D8"
+    assert etf_pcf.tw_isin("0050") == "TW0000050004"
+    assert etf_pcf._tw_code_from_isin("TW0002330008") == "2330"
+    r = etf_pcf.parse_ab("00404A", AB_EQ)                      # 期貨類別不算成分
+    assert [(x["code"], x["date"], x["weight"]) for x in r] == [("8016", "2026-10-07", 1.167495)]
+    b = etf_pcf.parse_ab("00980D", AB_BOND)                    # 債券型照收：代號是債券 ISIN，前端顯示名稱＋權重
+    assert b[0]["code"] == "US03743QAT58" and b[0]["name"].startswith("APA CORP") and b[0]["date"] == "2026-10-06"
+    assert etf_pcf.parse_ab("X", {"weird": 1}) == [] and etf_pcf.parse_ab("X", "str") == []
+
+
+def test_hn_009808_weight_fraction_to_percent():
+    """009808（Andy 點名的那檔）：華南永昌 ETF/BuyBack 的權重是小數，要 ×100 才是 %。"""
+    r = etf_pcf.parse_hn("009808", HN_BUYBACK)
+    assert [x["code"] for x in r] == ["2330", "2308"]
+    assert (r[0]["date"], r[0]["weight"], r[0]["shares"], r[0]["issuer"]) == ("2026-10-08", 40.1942, 201000.0, "華南永昌")
+    assert etf_pcf.parse_hn("X", {"Data": None}) == [] and etf_pcf.parse_hn("X", []) == []
+
+
+def test_hn_login_failure_returns_empty(monkeypatch, caplog):
+    class R:
+        status_code = 503
+        text = "<html>maintenance" + "x" * 400
+
+        def json(self):
+            raise ValueError
+
+    class S:
+        def post(self, *a, **k):
+            return R()
+
+    monkeypatch.setattr(etf_pcf.http, "session", lambda: S())
+    with caplog.at_level(logging.WARNING):
+        df = etf_pcf.hn(["009808"])
+    assert df.empty and list(df.columns) == etf_pcf.COLS
+    assert any("maintenance" in m for m in caplog.messages)
+
+
+FUBON_PAGE = """<h6 class="top blue3 mb22">  006208 富邦台50(本基金之配息來源可能為收益平準金)  </h6><div class="mb40"><p class="f13 txt_black_A5A5">  資料日期：2026/10/06  </p></div>
+<h6 class="mb20">股票</h6><div><table class="table1"><tbody>
+<tr class="title"><td class="tac">股票代碼</td><td>股票名稱</td><td>股數</td><td>金額</td><td>權重(%)</td></tr>
+<tr><td class="tac">2330</td><td>台積電</td><td class="tar">108,282,064</td><td class="tar">279,909,135,440</td><td class="tar">56.5342</td></tr>
+<tr><td class="tac">股票合計</td><td></td><td></td><td class="tar">495,000,000,000</td><td class="tar">99.6627</td></tr>
+</tbody></table></div>
+<h6 class="mb20">期貨</h6><div><table><tbody><tr class="title"><td>期貨代碼</td><td>期貨名稱</td><td>口數</td><td>金額</td><td>權重(%)</td></tr>
+<tr><td>TXF</td><td>台指期</td><td>10</td><td>1</td><td>0.5</td></tr></tbody></table></div>
+<h6 class="mb20">債券</h6><div><table><tbody><tr class="title"><td>債券代碼</td><td>債券名稱</td><td>面額</td><td>金額</td><td>權重(%)</td></tr>
+<tr><td>US912810TM09</td><td>T 4 &amp; 3/4 11/15/53</td><td>1,000,000</td><td>1</td><td>3.21</td></tr></tbody></table></div>"""
+
+
+def test_fubon_assets_page_stock_and_bond_not_futures():
+    r = etf_pcf.parse_fubon("006208", FUBON_PAGE)
+    assert [x["code"] for x in r] == ["2330", "US912810TM09"]
+    assert (r[0]["date"], r[0]["weight"], r[0]["shares"], r[0]["issuer"]) == ("2026-10-06", 56.5342, 108282064.0, "富邦")
+    assert r[1]["name"] == "T 4 & 3/4 11/15/53"
+    assert etf_pcf.parse_fubon("X", "<html>改版了</html>") == [] and etf_pcf.parse_fubon("X", None) == []
+    assert etf_pcf.parse_fubon("0058", FUBON_PAGE) == []       # 官網把不認得的代號導到別檔的頁面：不能收
+
+
+TSIT_PAGE = """<div id="page-wrap"> <h4>台新臺灣全市場半導體精選30ETF基金（原名稱:新光臺灣全市場半導體精選30ETF基金） (00904)</h4>
+<p class="small">日期：<input type="text" id="PUB_DATE" name="PUB_DATE" value="2026-10-08" class="border-0" readonly /></p>
+<div class="card-header text-bg-danger"> <svg width="16"><path d="M1 1"/></svg> 期貨 </div> <div class="card-body"><table class="table">
+<thead><tr><th>期貨代號</th><th>期貨名稱</th><th>契約年月</th><th>口數</th><th>持股權重</th></tr></thead>
+<tbody><tr><td>TXF</td><td>台指期</td><td>202610</td><td>5</td><td>1.0%</td></tr></tbody></table></div>
+<div class="card-header text-bg-danger"> <svg width="16"><path d="M1 1"/></svg> 股票 </div> <div class="card-body"><table class="table">
+<thead><tr><th>代號</th><th>名稱</th><th>股數</th><th>持股權重</th></tr></thead>
+<tbody><tr><td>2330 TT</td><td>台積電</td><td>1,143,000</td><td>39.1444%</td></tr></tbody></table></div>"""
+
+
+def test_tsit_stock_card_only():
+    r = etf_pcf.parse_tsit("00904", TSIT_PAGE)
+    assert [(x["code"], x["name"], x["weight"], x["shares"], x["date"]) for x in r] == [("2330", "台積電", 39.1444, 1143000.0, "2026-10-08")]
+    assert etf_pcf.parse_tsit("00947", TSIT_PAGE) == []         # 頁首代號不符就不收
+    assert etf_pcf.parse_tsit("X", None) == []

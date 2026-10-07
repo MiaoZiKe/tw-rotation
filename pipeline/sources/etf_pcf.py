@@ -21,6 +21,7 @@ import html as _html
 import json
 import logging
 import re
+import time
 from typing import Any, Callable
 
 import pandas as pd
@@ -652,19 +653,319 @@ def yuanta(codes: list[str]) -> pd.DataFrame:
     return _frame(rows)
 
 
+# ───────────────────────────────────────────── 第一金（fsitc.com.tw）
+# 2026-10-07 Actions 真瀏覽器實測：基金頁 FundDetail.aspx?ID=xxx 載入後 POST WebAPI.aspx/Get_hd {pStrFundID, pStrDate:''}，
+# 回 {"d": "<JSON 字串>"}，每列 {fundid, sdate（持股日）, group, A 代號, B 名稱, C 權重%, D 股數}；group=1 是股票。
+# 債券型（00834B、00981B）這支只給「債券 96.56%」這種類別彙總，沒有逐檔債券，所以只收股票型。
+# 官網沒有「ETF 代號 → 內部 ID」的 API（ETFList／FundList 頁只有名稱連結），對照表手寫；
+# 依據：首頁淨值表的連結文字（例「第一金臺灣工業菁英30 ETF基金 → ID=D90」）與首頁橫幅「【00408A】… → ID=183」。
+FSITC_HD = "https://www.fsitc.com.tw/WebAPI.aspx/Get_hd"
+FSITC_IDS = {"00728": "D90", "00408A": "183", "00994A": "182", "00910": "167"}
+
+
+def parse_fsitc(etf: str, payload: Any) -> list[dict]:
+    try:
+        rows = json.loads((payload or {}).get("d") or "[]")
+    except (ValueError, AttributeError):
+        return []
+    out = []
+    for r in rows if isinstance(rows, list) else []:
+        if str(r.get("group")) != "1":
+            continue
+        code = str(r.get("A") or "").strip()
+        if not code:
+            continue
+        out.append({"date": _iso(r.get("sdate")), "etf": etf, "code": code, "name": str(r.get("B") or "").strip(),
+                    "weight": _num(r.get("C")), "shares": _num(r.get("D")), "issuer": "第一金", "src": FSITC_HD})
+    return out
+
+
+def fsitc() -> pd.DataFrame:
+    rows: list[dict] = []
+    for etf, fid in FSITC_IDS.items():
+        p = _req("POST", FSITC_HD, json_body={"pStrFundID": fid, "pStrDate": ""})
+        got = parse_fsitc(etf, p) if p else []
+        if p and not got:
+            log.warning("第一金 %s（ID=%s）解析不到股票（前 200 字）：%s", etf, fid, _snip(p))
+        rows += got
+    return _frame(rows)
+
+
+# ───────────────────────────────────────────── 聯博（abfunds.com.tw → webapi.alliancebernstein.com）
+# 2026-10-07 實測：申購買回清單頁 pcf.<ISIN>.html 背後打 GET webapi.alliancebernstein.com/v2/funds/tw/zh-tw/investor/<ISIN>/holdings，
+# 回 domesticHoldings[{asOfDate "MM/DD/YYYY", holdingCategory, holdings[{holding 名稱, holdingCode, holdingPerc %, holdingShares}]}]。
+# 股票型（00404A）holdingCode 就是台股代號；債券型（00980D、00984D）是債券 ISIN —— 照 Andy 的要求一樣收（前端顯示名稱＋權重）。
+# 期貨／現金類別不收（那是避險部位，不是成分）。
+AB_HOLD = "https://webapi.alliancebernstein.com/v2/funds/tw/zh-tw/investor/{isin}/holdings"
+
+
+def tw_isin(code: str) -> str:
+    """台灣證券 ISIN：TW + 9 碼（000 + 代號，右補 0 到 6 碼）+ 檢查碼（ISO 6166，字母轉數字後 Luhn）。
+    例：0050 → TW0000050004、00404A → TW00000404A5（聯博官網網址實際用的就是這個）。"""
+    body = "TW" + ("000" + str(code).strip().upper().ljust(6, "0"))[:9]
+    digits = "".join(str(int(ch, 36)) for ch in body)
+    total = 0
+    for i, ch in enumerate(reversed(digits)):
+        d = int(ch)
+        if i % 2 == 0:
+            d *= 2
+            d = d - 9 if d > 9 else d
+        total += d
+    return body + str((10 - total % 10) % 10)
+
+
+def _tw_code_from_isin(s: str) -> str:
+    s = str(s or "").strip()
+    if re.fullmatch(r"TW000[0-9A-Z]{6}\d", s):
+        core = s[5:11]
+        return core[:4] if core[4:] == "00" else core
+    return s
+
+
+def parse_ab(etf: str, payload: Any) -> list[dict]:
+    out = []
+    for sec in (payload or {}).get("domesticHoldings") or [] if isinstance(payload, dict) else []:
+        cat = str(sec.get("holdingCategory") or "")
+        if any(k in cat for k in ("futures", "cash", "forward", "swap", "option")):
+            continue
+        day = _iso(re.sub(r"^(\d\d)/(\d\d)/(\d{4})$", r"\3-\1-\2", str(sec.get("asOfDate") or "")))
+        for h in sec.get("holdings") or []:
+            code = _tw_code_from_isin(h.get("holdingCode"))
+            if not code:
+                continue
+            out.append({"date": day, "etf": etf, "code": code, "name": str(h.get("holding") or "").strip(),
+                        "weight": _num(h.get("holdingPerc")), "shares": _num(h.get("holdingShares")),
+                        "issuer": "聯博", "src": AB_HOLD.format(isin=tw_isin(etf))})
+    return out
+
+
+def ab(codes: list[str]) -> pd.DataFrame:
+    rows: list[dict] = []
+    for c in codes:
+        p = _req("GET", AB_HOLD.format(isin=tw_isin(c)))
+        got = parse_ab(c, p) if p else []
+        if p and not got:
+            log.warning("聯博 %s 解析不到持股（前 200 字）：%s", c, _snip(p))
+        rows += got
+    return _frame(rows)
+
+
+# ───────────────────────────────────────────── 華南永昌（hnfunds.com.tw；舊網域 hnitc.com.tw 憑證已過期、會轉到這裡）
+# 2026-10-07 實測：申購買回清單頁（Nuxt）先 POST WEB_API/HN_OW_PROD/Auth/SysLogin（無內容，回公開用 access_token），
+# 再 POST ETF/FundList 拿自家 ETF、POST ETF/BuyBack {"ETFID":"009808","DataDate":""}；
+# 回 Data.DataDate（申購買回清單適用日）＋ 成分 [{StockNo, StockName, Share, Weight（小數，0.4019＝40.19%）}]。
+HN_API = "https://www.hnfunds.com.tw/WEB_API/HN_OW_PROD/"
+
+
+def _find_rows(obj: Any, key: str) -> list[dict]:
+    """在巢狀 JSON 裡找「元素帶 key 的 list」—— 投信常改外層包裝，但成分列的欄位名比較穩。"""
+    if isinstance(obj, list):
+        if obj and all(isinstance(x, dict) for x in obj) and any(key in x for x in obj):
+            return obj
+        for x in obj:
+            r = _find_rows(x, key)
+            if r:
+                return r
+    elif isinstance(obj, dict):
+        for v in obj.values():
+            r = _find_rows(v, key)
+            if r:
+                return r
+    return []
+
+
+def parse_hn(etf: str, payload: Any) -> list[dict]:
+    data = (payload or {}).get("Data") if isinstance(payload, dict) else None
+    if not isinstance(data, dict):
+        return []
+    day = _iso(str(data.get("NavDate") or data.get("DataDate") or "")[:10])
+    out = []
+    for r in _find_rows(data, "StockNo"):
+        code = str(r.get("StockNo") or "").strip()
+        w = _num(r.get("Weight"))
+        if not code:
+            continue
+        out.append({"date": day, "etf": etf, "code": code, "name": str(r.get("StockName") or "").strip(),
+                    "weight": None if w is None else round(w * 100, 4), "shares": _num(r.get("Share")),
+                    "issuer": "華南永昌", "src": HN_API + "ETF/BuyBack"})
+    return out
+
+
+def hn(codes: list[str]) -> pd.DataFrame:
+    rows: list[dict] = []
+    try:
+        s = http.session()
+        # client_id 放在標頭（官網前端寫死的公開用戶端 WFPAPIPublicClient，2026-10-07 真瀏覽器記下的請求標頭）；
+        # 少了它會回 200 但 access_token=null、Message="Wrong client id!"。
+        tok = s.post(HN_API + "Auth/SysLogin", headers={"client_id": "WFPAPIPublicClient"}, timeout=TIMEOUT)
+        token = tok.json().get("access_token") if tok.status_code == 200 else None
+        if not token:
+            log.warning("華南永昌 SysLogin 拿不到 token：HTTP %s %s", tok.status_code, _snip(tok.text))
+            return _frame([])
+        hdr = {"Authorization": f"Bearer {token}"}
+        for c in codes:
+            r = s.post(HN_API + "ETF/BuyBack", json={"ETFID": c, "DataDate": ""}, headers=hdr, timeout=TIMEOUT)
+            try:
+                p = r.json()
+            except ValueError:
+                log.warning("華南永昌 %s 不是 JSON：HTTP %s %s", c, r.status_code, _snip(r.text))
+                continue
+            got = parse_hn(c, p)
+            if not got:
+                log.warning("華南永昌 %s 解析不到成分（前 200 字）：%s", c, _snip(p))
+            rows += got
+    except Exception as exc:  # noqa: BLE001
+        log.warning("華南永昌 失敗：%s", str(exc)[:200])
+    return _frame(rows)
+
+
+# ───────────────────────────────────────────── 富邦（websys.fsit.com.tw）
+# 10-07 早上以為「Pcf.aspx 的 HTML 與 XHR 都找不到成分股」—— 其實 PCF 頁只有申購基數與總價金，
+# 成分在同頁「基金資產」按鈕連過去的 Trade/Assets.aspx?stkId=<代號>&lan=TW（伺服器端渲染，不用 API）：
+# 「資料日期：2026/10/06」＋ 每個資產類別一個 <h6>股票|債券|期貨|附買回債券</h6> 加一張表，
+# 列＝[代碼, 名稱, 股數／面額／口數, 金額, 權重(%)]。股票、債券都收（債券照 Andy 的要求顯示名稱＋權重），期貨與附買回不算成分。
+FUBON_ASSETS = "https://websys.fsit.com.tw/FubonETF/Trade/Assets.aspx"
+_FUBON_KEEP = ("股票", "債券")
+
+
+def _cells(tr: str) -> list[str]:
+    return [_html.unescape(re.sub(r"<[^>]+>", "", c)).strip() for c in re.findall(r"<td[^>]*>(.*?)</td>", tr, re.S)]
+
+
+def parse_fubon(etf: str, page: str) -> list[dict]:
+    if not isinstance(page, str):
+        return []
+    # 不認得的 stkId（已下市的 0058／0059、或 00625K 這種期貨型）官網不報錯，而是回「預設的那一檔」——
+    # 2026-10-07 實測 0058、0059、00625K、00717 拿到同一份 231 列。所以頁首 <h6 class="top…">代號 名稱</h6> 必須等於要的代號。
+    t = re.search(r'<h6[^>]*class="top[^"]*"[^>]*>\s*([0-9A-Z]+)\s', page)
+    if t and t.group(1) != etf:
+        log.info("富邦 %s 官網回的是 %s 的頁面（代號不認得），略過", etf, t.group(1))
+        return []
+    m = re.search(r"資料日期[：:]\s*(\d{4}/\d{1,2}/\d{1,2})", page)
+    day = _iso(m.group(1)) if m else None
+    out = []
+    parts = re.split(r"<h6[^>]*>\s*([^<]+?)\s*</h6>", page)
+    for i in range(1, len(parts) - 1, 2):
+        kind, body = parts[i], parts[i + 1]
+        if kind not in _FUBON_KEEP:            # 期貨、附買回債券、現金…
+            continue
+        tb = re.search(r"<table.*?</table>", body, re.S)
+        if not tb:
+            continue
+        for tr in re.findall(r"<tr[^>]*>(.*?)</tr>", tb.group(0), re.S)[1:]:   # 第一列是表頭
+            c = _cells(tr)
+            if len(c) < 5 or not c[0] or "合計" in c[0] or not c[1]:     # 表尾「股票合計」列不是成分
+                continue
+            out.append({"date": day, "etf": etf, "code": c[0], "name": c[1], "weight": _num(c[4]), "shares": _num(c[2]),
+                        "issuer": "富邦", "src": f"{FUBON_ASSETS}?stkId={etf}&lan=TW"})
+    return out
+
+
+def fubon(codes: list[str]) -> pd.DataFrame:
+    rows: list[dict] = []
+    for c in codes:
+        if re.search(r"[LR]$", c):              # 槓桿／反向：資產是期貨，沒有成分可列
+            continue
+        page = _req("GET", FUBON_ASSETS, params={"stkId": c, "lan": "TW"}, expect="text")
+        got = parse_fubon(c, page) if page else []
+        if page and not got and "期貨" not in page:
+            log.warning("富邦 %s 解析不到股票／債券表（前 200 字）：%s", c, _snip(page))
+        rows += got
+    return _frame(rows)
+
+
+# ───────────────────────────────────────────── 台新（tsit.com.tw；含併入的原新光投信 ETF）
+# 2026-10-07 實測：申購買回清單頁的下拉選單在 Pcf.js 裡是 location.href = "/ETF/Home/Pcf/<代號>?FundType=ALL&DataDate="，
+# 伺服器端渲染：「日期：<input id=PUB_DATE value=2026-10-08>」＋ 每個資產類別一張卡片
+# <div class="card-header">…股票|債券|期貨</div> 後面一張表，表頭決定欄位（股票：代號「2330 TT」／名稱／股數／持股權重「39.1444%」；
+# 債券：代號／名稱／面額／市值／權重(%)）。股票、債券都收；期貨不算成分。
+TSIT_PCF = "https://www.tsit.com.tw/ETF/Home/Pcf/{code}"
+
+
+def parse_tsit(etf: str, page: str) -> list[dict]:
+    if not isinstance(page, str):
+        return []
+    m = re.search(r'id="PUB_DATE"[^>]*value="([0-9-]{8,10})"', page)
+    day = _iso(m.group(1)) if m else None
+    t = re.search(r"<h4>[^<]*\((\w+)\)\s*</h4>", page)
+    if t and t.group(1) != etf:
+        log.info("台新 %s 官網回的是 %s 的頁面，略過", etf, t.group(1))
+        return []
+    out = []
+    for hdr, rest in re.findall(r'<div class="card-header[^"]*">(.*?)</div>(.*?)(?=<div class="card-header|$)', page, re.S):
+        kind = re.sub(r"<[^>]+>", "", hdr).strip()
+        if kind not in ("股票", "債券"):
+            continue
+        tb = re.search(r"<table.*?</table>", rest, re.S)
+        if not tb:
+            continue
+        head = [re.sub(r"<[^>]+>", "", h).strip() for h in re.findall(r"<th[^>]*>(.*?)</th>", tb.group(0), re.S)]
+        ix = {k: next((i for i, h in enumerate(head) if any(w in h for w in ws)), None)
+              for k, ws in (("code", ("代號",)), ("name", ("名稱",)), ("qty", ("股數", "面額")), ("w", ("權重",)))}
+        if ix["code"] is None or ix["w"] is None:
+            log.warning("台新 %s %s 表頭對不上：%s", etf, kind, head)
+            continue
+        for tr in re.findall(r"<tr[^>]*>(.*?)</tr>", tb.group(0), re.S):
+            c = _cells(tr)
+            if len(c) <= max(v for v in ix.values() if v is not None):
+                continue
+            code = re.sub(r"\s+TT$", "", c[ix["code"]])          # 台股寫成「2330 TT」
+            if not code:
+                continue
+            out.append({"date": day, "etf": etf, "code": code, "name": c[ix["name"]] if ix["name"] is not None else "",
+                        "weight": _num(c[ix["w"]]), "shares": _num(c[ix["qty"]]) if ix["qty"] is not None else None,
+                        "issuer": "台新", "src": TSIT_PCF.format(code=etf)})
+    return out
+
+
+def tsit(codes: list[str]) -> pd.DataFrame:
+    rows: list[dict] = []
+    for c in codes:
+        if re.search(r"[LR]$", c):
+            continue
+        # 2026-10-07 實測：連打二十幾頁後官網會間歇回一張「<title>Error</title>」的錯誤頁（00936、00775B 單獨打是好的），
+        # 所以每頁之間停 1 秒、遇到錯誤頁停 5 秒再試一次 —— 整輪多花半分鐘，換掉一半的漏抓。
+        page = None
+        for wait in (1, 5):
+            time.sleep(wait)
+            page = _req("GET", TSIT_PCF.format(code=c), params={"FundType": "ALL", "DataDate": ""}, expect="text")
+            if not (isinstance(page, str) and "<title>Error</title>" in page):
+                break
+        got = parse_tsit(c, page) if page else []
+        if page and not got:
+            log.warning("台新 %s 解析不到股票／債券表（前 200 字）：%s", c, _snip(page))
+        rows += got
+    return _frame(rows)
+
+
 # ───────────────────────────────────────────── 總入口
 ISSUER_PREFIX = {  # 從 ETF 簡稱判斷發行投信（給「哪些已接上／哪些沒接上」用）
     "元大": "元大", "國泰": "國泰", "群益": "群益", "富邦": "富邦", "統一": "統一", "凱基": "凱基", "大華": "大華銀",
     "復華": "復華", "中信": "中國信託", "野村": "野村", "兆豐": "兆豐", "第一金": "第一金", "新光": "新光", "台新": "台新",
     "永豐": "永豐", "聯博": "聯博", "摩根": "摩根", "街口": "街口", "富蘭克林": "富蘭克林", "安聯": "安聯", "玉山": "玉山",
     "華南永昌": "華南永昌", "貝萊德": "貝萊德", "宏利": "宏利", "路博邁": "路博邁", "富達": "富達", "柏瑞": "柏瑞", "保德信": "保德信",
+    "FT": "富蘭克林華美", "聯邦": "聯邦",   # FT＝富蘭克林華美（00899 全名「富蘭克林華美全球潔淨能源ETF」）
     "台灣": None,
 }
-CONNECTED = {"群益", "野村", "復華", "統一", "元大", "凱基", "國泰", "中國信託"}
+CONNECTED = {"群益", "野村", "復華", "統一", "元大", "凱基", "國泰", "中國信託", "第一金", "聯博", "華南永昌", "富邦", "台新"}
+# 還沒接上的投信 → 給讀者看的原因（前端成分股分頁照抄）。查證過程、關鍵字與來源在 docs/etf_holdings_coverage.md。
+# 寫「為什麼抓不到」而不是「尚未接上」：Andy 2026-10-07 問「為何有 ETF 沒有成分股」，答案要在畫面上。
+NOT_CONNECTED_WHY = {
+    "兆豐": "兆豐投信官網擋雲端主機的連線（2026-10-07 實測回 403 Access Denied），自動排程抓不到，只能人工整理。",
+    "大華銀": "大華銀投信官網的 HTTPS 憑證鏈不完整（伺服器沒附中繼憑證），程式驗證憑證會失敗；在補上憑證前不關掉驗證硬抓。",
+    "永豐": "永豐投信官網的 ETF 持股公告頁還沒找到可以穩定取用的位置（2026-10-07 查過官網首頁與 ETF 路徑都沒有）。",
+    "玉山": "玉山投信（2026 年由保德信投信更名）新官網的申購買回清單位置還沒查到。",
+    "貝萊德": "貝萊德官網在自動排程的主機上開頁逾時，持股頁還沒接上。",
+    "安聯": "安聯投信官網找得到，但 ETF 申購買回清單的資料位置還沒查到。",
+    "摩根": "摩根投信官網 ETF 區還沒查到每日持股的資料位置。",
+    "富蘭克林華美": "富蘭克林華美投信官網在自動排程的主機上開頁逾時，持股頁還沒接上。",
+    "聯邦": "聯邦投信官網在自動排程的主機上開頁逾時，持股頁還沒接上。",
+    "街口": "街口投信的 ETF 都是期貨型，持有的是期貨契約，沒有股票成分。",
+}
 
 
 def issuer_of(name: str) -> str | None:
-    n = re.sub(r"^主動", "", str(name or ""))
+    n = re.sub(r"^(主動|平衡|期)", "", str(name or ""))   # 主動式／平衡型（00980T）／期貨信託（期元大…）前綴
     for k, v in ISSUER_PREFIX.items():
         if v and n.startswith(k):
             return v
@@ -681,6 +982,10 @@ def fetch_all(etf_names: dict[str, str]) -> pd.DataFrame:
         ("群益", capital), ("復華", fuhhwa), ("統一", uni), ("凱基", lambda: kgi(etf_names)), ("國泰", cathay), ("中國信託", ctbc),
         ("野村", lambda: nomura(sorted(by.get("野村", [])))),
         ("元大", lambda: yuanta(sorted(by.get("元大", [])))),
+        ("第一金", fsitc), ("聯博", lambda: ab(sorted(by.get("聯博", [])))),
+        ("華南永昌", lambda: hn(sorted(by.get("華南永昌", [])))),
+        ("富邦", lambda: fubon(sorted(by.get("富邦", [])))),
+        ("台新", lambda: tsit(sorted(by.get("台新", []) + by.get("新光", [])))),
     ]
     frames = []
     for name, fn in jobs:
@@ -702,7 +1007,8 @@ if __name__ == "__main__":  # 在 Actions 上手動自我測試：python -m pipe
     from ..util import store
 
     ci = store.read("company_info")
-    names = dict(zip(ci.loc[ci["industry"].eq("ETF"), "code"], ci.loc[ci["industry"].eq("ETF"), "name"])) if len(ci) else {}
+    m = ci["industry"].isin(["ETF", "上櫃ETF"]) if len(ci) else None
+    names = dict(zip(ci.loc[m, "code"], ci.loc[m, "name"])) if len(ci) else {}
     only = sys.argv[1:]
     if only:
         names = {c: n for c, n in names.items() if issuer_of(n) in only or c in only}

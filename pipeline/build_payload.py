@@ -643,7 +643,7 @@ def build() -> None:
     # ---------------------------------------------------------- ETF 成分股（2026-10-07，個股頁「成分股」分頁）
     # 只讀資料湖 etf_holdings（投信 PCF）＋人工整理檔；失敗只影響成分股分頁（前端讀不到就顯示說明卡）。
     try:
-        _etf_codes = set(company.loc[company["industry"].astype(str) == "ETF", "code"].astype(str)) \
+        _etf_codes = set(company.loc[company["industry"].astype(str).isin(["ETF", "上櫃ETF"]), "code"].astype(str)) \
             if not company.empty and "industry" in company.columns else set()
         _write("etf_holdings", etf_holdings.build(store.read("etf_holdings"), price, names, _etf_codes))
     except Exception as exc:  # noqa: BLE001

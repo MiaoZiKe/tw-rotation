@@ -17,7 +17,7 @@ from pathlib import Path
 import pandas as pd
 import yaml
 
-from ..sources.etf_pcf import CONNECTED, issuer_of
+from ..sources.etf_pcf import CONNECTED, NOT_CONNECTED_WHY, issuer_of
 
 log = logging.getLogger(__name__)
 
@@ -95,5 +95,6 @@ def build(hold: pd.DataFrame, price: pd.DataFrame, names: dict[str, str],
     return {"asof": asof,
             "source": "各發行投信官網每日公告之申購買回清單（PCF）／基金持股明細",
             "connected": sorted(CONNECTED),
+            "why": dict(NOT_CONNECTED_WHY),   # 還沒接上的投信 → 原因（前端成分股分頁照抄，不再只寫「尚未接上」）
             "issuers": issuers,
             "etfs": etfs}

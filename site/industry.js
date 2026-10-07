@@ -5649,8 +5649,18 @@
             ${A.fmt.esc(name)}${cat ? `（${A.fmt.esc(cat)}）` : ''}的資產是債券或期貨契約，不是一籃子股票，所以這裡不會有個股清單與權重圖。
             價格走勢看「總覽」，配息看「配息」分頁。</div>`
         : (() => { const iss = (hd && hd.issuers && hd.issuers[code]) || '';
-            return `<h3>成分股</h3><div class="hdnote" id="etfHoldNone"><b>此檔發行投信${iss ? `（${A.fmt.esc(iss)}投信）` : ''}資料尚未接上。</b><br>
-            成分股取自各發行投信每日公告的申購買回清單；這家投信的公告還沒接進來，這裡先不放清單、也不用估計值充數。請以發行投信官網每日公告的持股為準。</div>`; })();
+            /* 2026-10-07 Andy：「為何有 ETF 沒有成分股」。補不上的投信，管線在 etf_holdings.json 的 why 寫原因
+               （例如官網擋自動連線、憑證有問題），這裡照抄；沒寫原因的才退回通用說明。*/
+            const why = (hd && hd.why && iss && hd.why[iss]) || '';
+            const conn = !!(hd && Array.isArray(hd.connected) && iss && hd.connected.includes(iss));
+            const head = why ? `此檔發行投信（${A.fmt.esc(iss)}投信）的每日持股目前抓不到。`
+              : conn ? `${A.fmt.esc(iss)}投信今天沒有公告這檔的持股明細。`
+              : `此檔發行投信${iss ? `（${A.fmt.esc(iss)}投信）` : ''}資料尚未接上。`;
+            const body = why ? `原因：${A.fmt.esc(why)}`
+              : conn ? '這家投信已接上，但這一檔官網沒有逐檔持股（可能是期貨型、剛掛牌，或官網只公告類別彙總），這裡不用估計值充數。'
+              : '成分股取自各發行投信每日公告的申購買回清單；這家投信的公告還沒接進來，這裡先不放清單、也不用估計值充數。';
+            return `<h3>成分股</h3><div class="hdnote" id="etfHoldNone"><b>${head}</b><br>
+            ${body}請以發行投信官網每日公告的持股為準。</div>`; })();
       return;
     }
     items.sort((a, b) => b.w - a.w);
