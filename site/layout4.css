@@ -280,7 +280,9 @@
     -webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);border-bottom:1px solid transparent}
   :root.l4 #l4Head.stuck{border-bottom-color:var(--t4-card-edge,var(--line))}
   :root.l4 #l4Head[hidden]{display:none}
-  :root.l4 #l4Head h1{flex:0 1 auto;min-width:0;margin:0;font-size:var(--fs-h2);line-height:var(--lh-tight);font-weight:var(--t4-h-w,700);
+  /* ★ 2026-10-07（Andy 截圖選股策略頁首大標上半截被切）：h1 有 overflow:hidden（為了 text-overflow 省略號），
+     行高用 --lh-tight 時中文字形的上緣超出行框，就被自己的 overflow 剪掉。行高改 1.4 並補 2px 上下內距，省略號照樣有效。*/
+  :root.l4 #l4Head h1{flex:0 1 auto;min-width:0;margin:0;font-size:var(--fs-h2);line-height:1.4;padding:2px 0;font-weight:var(--t4-h-w,700);
     letter-spacing:var(--t4-h-ls,.02em);color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   :root.l4 #l4Head h1 .sub1{font-weight:500;color:var(--ink-3);font-size:var(--fs-h3);margin-left:var(--sp-2)}
   :root.l4 #l4Head .l4clock{flex:none;margin-left:auto;font-family:var(--mono);font-size:var(--fs-sm);color:var(--ink-2);

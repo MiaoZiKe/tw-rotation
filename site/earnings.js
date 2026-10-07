@@ -246,9 +246,10 @@
   function skeleton(root) {
     const how = (k, q, li) => `<div class="howtxt" id="how-${k}" hidden>${A().howHTML(q, li)}</div>`;
     const hbtn = (k, t) => `<button class="howbtn pop" data-how="${k}" data-ttl="${t}" type="button" aria-label="${t}">?</button>`;
+    /* ★ 2026-10-07 標題重複普查：頁首已有「財經日曆」，卡標題改成「頁名：這張在看什麼」（週期統計同一個模式）。*/
     root.innerHTML = `
 <div class="card" id="earnCalCard">
-  <div class="row spread"><h3>財經日曆 <small id="earnSub"></small> ${hbtn('earncal', '財經日曆怎麼看')}</h3></div>
+  <div class="row spread"><h3>財經日曆：財報・法說・FED 行事曆 <small id="earnSub"></small> ${hbtn('earncal', '財經日曆怎麼看')}</h3></div>
   ${how('earncal', '', [
     '<b>大公司</b>＝市值前 50（收盤 × 最新一季股數，上市＋上櫃普通股，排除 ETF）。',
     '<b>公司財報</b>＝大公司公告的財報董事會與已公布財報；<b>公司法說</b>＝全部上市櫃公司公告的法說會；<b>FED 消息</b>＝FOMC 與美國重大數據的官方公布日。',
