@@ -49850,7 +49850,7 @@ def t_sub_1005(b, base, code):
        and pg.evaluate("() => [...document.querySelectorAll('#prCards .prcard')].map(c => c.dataset.plan).join(',')") == "free,p399,p799",
        pg.evaluate("() => [...document.querySelectorAll('#prCards .prcard')].map(c => c.dataset.plan).join(',')"))
     pg.wait_for_timeout(300)
-    price = lambda pid: pg.inner_text(f"#prCards .prcard[data-plan='{pid}'] .prprice")
+    price = lambda pid: re.sub(r"\s*每天約 NT\$ [\d.]+", "", pg.inner_text(f"#prCards .prcard[data-plan='{pid}'] .prprice"))  # 10-07 每天約 NT$ X 另外驗
     m399 = price("p399")
     ok(f"{T}：月繳 → 399 卡顯示 NT$ 399／月、標「最受歡迎」", "399" in m399 and "／月" in m399 and "最受歡迎" in pg.inner_text("#prCards .prcard[data-plan='p399']"), m399)
     ok(f"{T}：799 是功能最多的付費範本 → 標「功能最齊」", "功能最齊" in pg.inner_text("#prCards .prcard[data-plan='p799']"))
@@ -49871,10 +49871,10 @@ def t_sub_1005(b, base, code):
        y799 == "NT$666／月" and "年繳 NT$ 7,990（一次付清）" in pg.inner_text("#prCards .prcard[data-plan='p799'] .prnote") and pg.inner_text("#prCards .prcard[data-plan='p799'] .prorig s") == "NT$ 799／月" and y399 == "NT$399／月"
        and "僅提供月繳" in pg.inner_text("#prCards .prcard[data-plan='p399'] .prnote"), (y799, y399))
     pg.click("#prPeriod button[data-per='month']")
-    ok(f"{T}：切到月繳 → 799 卡真的換成 NT$799／月、按鈕換選中", bool(wait_until(pg, "() => document.querySelector(\"#prCards .prcard[data-plan='p799'] .prprice\").textContent.replace(/\\s/g, '') === 'NT$799／月' && document.querySelector('#prPeriod button.on').dataset.per === 'month'", 3000)),
+    ok(f"{T}：切到月繳 → 799 卡真的換成 NT$799／月、按鈕換選中", bool(wait_until(pg, "() => document.querySelector(\"#prCards .prcard[data-plan='p799'] .prprice\").textContent.replace(/\\s/g, '').replace(/每天約NT\\$[\\d.]+/, '') === 'NT$799／月' && document.querySelector('#prPeriod button.on').dataset.per === 'month'", 3000)),
        price("p799"))
     pg.click("#prPeriod button[data-per='year']")
-    ok(f"{T}：切回年繳 → 回到 NT$666／月", bool(wait_until(pg, "() => document.querySelector(\"#prCards .prcard[data-plan='p799'] .prprice\").textContent.replace(/\\s/g, '') === 'NT$666／月'", 3000)))
+    ok(f"{T}：切回年繳 → 回到 NT$666／月", bool(wait_until(pg, "() => document.querySelector(\"#prCards .prcard[data-plan='p799'] .prprice\").textContent.replace(/\\s/g, '').replace(/每天約NT\\$[\\d.]+/, '') === 'NT$666／月'", 3000)))
     pg.click("#prPeriod button[data-per='month']")
     # 卡片內容：頂端標籤、打勾清單項目數、行動鈕
     cd = pg.evaluate("""() => [...document.querySelectorAll('#prCards .prcard')].map(c => ({ id: c.dataset.plan, tag: (c.querySelector('.prtag') || {}).textContent || '',
@@ -49908,7 +49908,7 @@ def t_sub_1005(b, base, code):
     ok(f"{T}：切「合併表」→ 卡片與下方表格換成一張表，方案（名稱＋價格＋行動鈕）當欄頭，399 欄整欄強調、頂端「最受歡迎」",
        mg["ok"] and mg["ids"] == "free,p399,p799" and mg["hot"] == "p399" and mg["tag"] == "★ 最受歡迎" and all(mg["btn"]) and mg["hotCells"] == mg["rows"] and mg["rows"] >= 2, mg)
     pg.click("#prPeriod button[data-per='year']")
-    ok(f"{T}：合併表裡切年繳 → 799 欄頭價格也換（NT$666／月）", bool(wait_until(pg, "() => document.querySelector(\"#prMerged th[data-plan='p799'] .prprice\").textContent.replace(/\\s/g, '') === 'NT$666／月'", 3000)))
+    ok(f"{T}：合併表裡切年繳 → 799 欄頭價格也換（NT$666／月）", bool(wait_until(pg, "() => document.querySelector(\"#prMerged th[data-plan='p799'] .prprice\").textContent.replace(/\\s/g, '').replace(/每天約NT\\$[\\d.]+/, '') === 'NT$666／月'", 3000)))
     pg.click("#prPeriod button[data-per='month']")
     shot(pg, "1d_pricing_merged", "#v-pricing")
     pg.click("#prLayout button[data-lay='cards']")
@@ -49918,6 +49918,8 @@ def t_sub_1005(b, base, code):
     wait_until(pg, "() => !document.getElementById('subDlg').hidden && !!document.getElementById('subSend')", 3000)
     ok(f"{T}：申請對話框預填登入者 email、寫出範本價格（NT$ 399／月）",
        pg.input_value("#subMail") == "member@example.com" and "NT$ 399／月" in pg.inner_text("#subDlg .box"))
+    # 10-07 Andy「價格旁備註一天多少錢」：彈窗價格同一套口徑（399 月繳 → 399×12÷365＝13.1），跟卡片／合併表一致
+    ok(f"{T}：申請對話框價格旁「每天約 NT$ 13.1」（月價×12÷365）", pg.evaluate("() => (document.querySelector('#subDlg .cop .big .prday') || {}).textContent || ''") == "每天約 NT$ 13.1")
     dl = pg.evaluate("""() => { const b = document.querySelector('#subDlg .box');
         return { co: b.classList.contains('subco'), name: (b.querySelector('.coh b') || {}).textContent, grp: b.querySelectorAll('#subFeats h4').length, li: b.querySelectorAll('#subFeats li').length,
           noHeat: ![...b.querySelectorAll('#subFeats li')].some(l => /題材資金熱力/.test(l.textContent)), lim: [...b.querySelectorAll('#subFeats li')].some(l => /個股頁（整頁）・每日 20 次/.test(l.textContent)),
@@ -50034,7 +50036,7 @@ def t_sub_1005(b, base, code):
         ok(f"{T}・demo {W}：?demo=plans 畫出 註冊會員／Plus／Pro 三張", bool(wait_until(pg, "() => [...document.querySelectorAll('#prCards .prcard')].map(c => c.dataset.plan).join(',') === 'free,plus,pro'", 10000)),
            pg.evaluate("() => [...document.querySelectorAll('#prCards .prcard')].map(c => c.dataset.plan).join(',')"))
         dm = pg.evaluate("""() => [...document.querySelectorAll('#prCards .prcard')].map(c => ({ cls: c.className, tag: (c.querySelector('.prtag') || {}).textContent || '', n: c.querySelectorAll('.prhl li').length,
-            price: c.querySelector('.prprice').textContent.replace(/\\s/g, ''), fit: !!(c.querySelector('.mfit') || {}).textContent.trim(), who: (c.querySelector('.who') || {}).textContent || '', left: Math.round(c.getBoundingClientRect().left), top: Math.round(c.getBoundingClientRect().top) }))""")
+            price: c.querySelector('.prprice').textContent.replace(/\\s/g, '').replace(/每天約NT\\$[\\d.]+/, ''), fit: !!(c.querySelector('.mfit') || {}).textContent.trim(), who: (c.querySelector('.who') || {}).textContent || '', left: Math.round(c.getBoundingClientRect().left), top: Math.round(c.getBoundingClientRect().top) }))""")
         ok(f"{T}・demo {W}：年繳大字＝月均價 Plus NT$249／月、Pro NT$439／月、頂端「最多省 20%」（程式算）",
            [x["price"] for x in dm] == ["免費", "NT$249／月", "NT$439／月"] and pg.inner_text("#prSave") == "最多省 20%", [x["price"] for x in dm])
         sale = pg.evaluate("() => [...document.querySelectorAll('#prCards .prcard')].map(c => ({ s: (c.querySelector('.prorig s') || {}).textContent || '', line: getComputedStyle(c.querySelector('.prorig s') || document.body).textDecorationLine, b: (c.querySelector('.prsale') || {}).textContent || '' }))")
@@ -50049,7 +50051,7 @@ def t_sub_1005(b, base, code):
         ok(f"{T}・demo {W}：Plus／Pro 定位句是範本寫的，不是預設「進階分析與更高的每日次數」",
            all(x["who"] and x["who"] != "進階分析與更高的每日次數" for x in dm[1:]), [x["who"] for x in dm])
         pg.click("#prPeriod button[data-per='month']")
-        ok(f"{T}・demo {W}：切月繳 → Plus NT$299／月、Pro NT$549／月、小字「改年繳一年省 NT$ 598／1,320」、沒有刪除線", bool(wait_until(pg, "() => [...document.querySelectorAll('#prCards .prprice')].map(e => e.textContent.replace(/\\s/g, '')).join(',') === '免費,NT$299／月,NT$549／月'", 3000))
+        ok(f"{T}・demo {W}：切月繳 → Plus NT$299／月、Pro NT$549／月、小字「改年繳一年省 NT$ 598／1,320」、沒有刪除線", bool(wait_until(pg, "() => [...document.querySelectorAll('#prCards .prprice')].map(e => e.textContent.replace(/\\s/g, '').replace(/每天約NT\\$[\\d.]+/, '')).join(',') === '免費,NT$299／月,NT$549／月'", 3000))
            and pg.evaluate("() => [...document.querySelectorAll('#prCards .prnote')].slice(1).map(e => e.textContent).join('|')") == "改年繳一年省 NT$ 598|改年繳一年省 NT$ 1,320" and pg.locator("#prCards .prorig s").count() == 0)
         ok(f"{T}・demo {W}：頂端標籤、色系（Plus 藍、Pro 紫）、適合誰、清單各 6 項",
            [x["tag"] for x in dm] == ["", "★ 最受歡迎", "✦ 功能最齊"] and "pc-blue" in dm[1]["cls"] and "pc-violet" in dm[2]["cls"] and "pc-neutral" in dm[0]["cls"]
@@ -50083,6 +50085,13 @@ def t_sub_1005(b, base, code):
             for per in ("month", "year"):
                 pg.click(f"#prPeriod button[data-per='{per}']"); pg.wait_for_timeout(300)
                 a1 = pg.evaluate(ALIGN, "#prCards .prcard")
+                PD = "(sel) => [...document.querySelectorAll(sel)].map(e => { const d = e.querySelector('.prday'), p = d && d.closest('.prprice'); return d ? { t: d.textContent, one: Math.round(d.getBoundingClientRect().top) >= Math.round(p.getBoundingClientRect().top) - 1 && d.getBoundingClientRect().bottom <= p.getBoundingClientRect().bottom + 1 && p.scrollWidth <= p.clientWidth + 1, fs: parseFloat(getComputedStyle(d).fontSize) } : null; })"
+                pd1 = pg.evaluate(PD, "#prCards .prcard")
+                want = ["每天約 NT$ 9.8", "每天約 NT$ 18.0"] if per == "month" else ["每天約 NT$ 8.2", "每天約 NT$ 14.4"]
+                ok(f"{T}・demo 1440 卡片版（{per}）：價格旁「{want[0]}／{want[1]}」（一年總價÷365）、免費卡沒有、跟大字同一行不換行不被截、字 ≥11px",
+                   pd1[0] is None and [x and x["t"] for x in pd1[1:]] == want and all(x["one"] and x["fs"] >= 11 for x in pd1[1:]), pd1)
+                if os.environ.get("TW_PERDAY_SHOTS"):
+                    pg.screenshot(path=str(pathlib.Path(os.environ["TW_PERDAY_SHOTS"]) / f"perday_cards_{per}_1440.png"))
                 ok(f"{T}・demo 1440 卡片版（{per}）：三欄各層 top 差 ≤1px、按鈕底緣齊、價格小字沒被截", a1["n"] == 3 and all(v <= 1 for k, v in a1.items() if k not in ("n", "noteClip")) and not a1["noteClip"], a1)
             if os.environ.get("TW_PRICING_SHOTS"):
                 pg.screenshot(path=str(pathlib.Path(os.environ["TW_PRICING_SHOTS"]) / f"fix2_cards_{W}.png"))
@@ -50090,6 +50099,11 @@ def t_sub_1005(b, base, code):
             for per in ("month", "year"):
                 pg.click(f"#prPeriod button[data-per='{per}']"); pg.wait_for_timeout(300)
                 a2 = pg.evaluate(ALIGN, "#prMerged thead th[data-plan]")
+                pd2 = pg.evaluate(PD, "#prMerged thead th[data-plan]")
+                want = ["每天約 NT$ 9.8", "每天約 NT$ 18.0"] if per == "month" else ["每天約 NT$ 8.2", "每天約 NT$ 14.4"]
+                ok(f"{T}・demo 1440 合併表（{per}）：價格旁「{want[0]}／{want[1]}」、免費欄沒有、同一行不換行不被截", pd2[0] is None and [x and x["t"] for x in pd2[1:]] == want and all(x["one"] for x in pd2[1:]), pd2)
+                if os.environ.get("TW_PERDAY_SHOTS"):
+                    pg.screenshot(path=str(pathlib.Path(os.environ["TW_PERDAY_SHOTS"]) / f"perday_merged_{per}_1440.png"))
                 ok(f"{T}・demo 1440 合併表（{per}）：三欄各層 top 差 ≤1px、按鈕底緣齊、價格小字沒被截", a2["n"] == 3 and all(v <= 1 for k, v in a2.items() if k not in ("n", "noteClip")) and not a2["noteClip"], a2)
             mtx = pg.inner_text("#prMerged thead")
             ok(f"{T}・demo 1440 合併表：年繳 2,990／5,268、月均 249／439、徽章「省 NT$ 598／年・約 17%」「省 NT$ 1,320／年・約 20%」、Plus 定位句不是預設字", "2,990" in mtx and "5,268" in mtx and "439" in mtx and "省 NT$ 598／年・約 17%" in mtx and "省 NT$ 1,320／年・約 20%" in mtx and pg.inner_text("#prSave") == "最多省 20%" and "進階分析與更高的每日次數" not in mtx, mtx[:400])
