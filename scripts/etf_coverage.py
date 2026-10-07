@@ -2,7 +2,7 @@
 
 為什麼要這支：Andy 2026-10-07 問「為何有 ETF 沒有成分股，並檢查其他是否一樣問題」。
 一次性肉眼對照會過期，所以寫成可重跑的腳本，輸出貼進 docs/etf_holdings_coverage.md。
-用法：python scripts/etf_coverage.py [etf.json 路徑]
+用法：python scripts/etf_coverage.py [etf.json 路徑] [實抓結果清單]
 """
 from __future__ import annotations
 
@@ -25,10 +25,13 @@ NOCOMP = {"槓桿反向"}
 def main() -> None:
     p = Path(sys.argv[1]) if len(sys.argv) > 1 else ROOT / "site" / "data" / "etf.json"
     items = json.loads(p.read_text(encoding="utf-8"))["items"]
-    try:
-        have = set(pd.read_parquet(ROOT / "data" / "etf_holdings")["etf"].astype(str))
-    except Exception:  # noqa: BLE001
-        have = set()
+    if len(sys.argv) > 2:   # 第二個參數：實抓結果（每行第一欄是 ETF 代號，例如 Actions 自我測試印出的清單）
+        have = {ln.split()[0] for ln in Path(sys.argv[2]).read_text(encoding="utf-8").splitlines() if ln.strip()}
+    else:
+        try:
+            have = set(pd.read_parquet(ROOT / "data" / "etf_holdings")["etf"].astype(str))
+        except Exception:  # noqa: BLE001
+            have = set()
     tot = collections.Counter()
     miss = collections.defaultdict(list)
     nocomp = 0
