@@ -348,3 +348,14 @@ Andy：「排版有點奇怪…需要更直觀且看起來更舒服，**可以�
 |---|---|---|---|
 | M1 | 內電極多用鎳，平均厚度約 ≤ 1.5～2 µm；介電為 BaTiO₃ 等；交替電極分別接到兩端的端電極 | 中 | <https://image-ppubs.uspto.gov/dirsearch-public/print/downloadPdf/7727630> |
 | M2 | 端電極以銅燒附，再電鍍 Ni、Sn 以便表面黏著 | 中 | <https://patents.google.com/patent/US7345868B2/en>、<https://eureka.patsnap.com/article/how-multilayer-ceramic-capacitors-mlccs-are-manufactured-layer-by-layer> |
+
+## 題材剖析圖對應（themes3d.js `T.mlcc_passive`，2026-10-07）
+
+| 格 | 零件 | 公司 | 依據 | 信心 |
+|---|---|---|---|---|
+| 陶瓷粉與鎳電極膏 | 粉罐＋膏罐 | 不掛（查不到台股主要供應商，不編） | §6-A3、A10 | — |
+| MLCC 疊層燒結 | 陶瓷本體＋兩端端電極 | 2327 國巨、2492 華新科、3026 禾伸堂、6173 信昌電（passive_comp） | §6-D；supply_chain.yaml passive_comp | 中 |
+| 鋁質電解電容 | 圓柱＋十字防爆痕＋引腳 | 2375 凱美 | themes.yaml 註解（主體是鋁電解） | 中 |
+| 捲帶出貨上板 | 料盤 | 2327、2492 | 同上 | 中 |
+
+燒結溫度依 §6-B5 不寫數字，只寫「還原氣氛」。
