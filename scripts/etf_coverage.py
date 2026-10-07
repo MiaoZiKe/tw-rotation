@@ -34,8 +34,7 @@ def main() -> None:
     nocomp = 0
     for x in items:
         nm = x["name"]
-        iss = issuer_of(nm) or ("街口" if "街口" in nm else "元大" if "元大" in nm else "富蘭克林" if nm.startswith("FT") else
-                                "聯邦" if "聯邦" in nm else "未辨識")
+        iss = issuer_of(nm) or "未辨識"
         if x.get("cat") in NOCOMP or "期" in nm[:6]:
             nocomp += 1
             continue

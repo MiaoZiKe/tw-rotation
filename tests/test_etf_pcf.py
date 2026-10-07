@@ -88,7 +88,7 @@ def test_fetch_all_one_issuer_crash_does_not_kill_others(monkeypatch):
     monkeypatch.setattr(etf_pcf, "capital", lambda: (_ for _ in ()).throw(RuntimeError("boom")))
     ok = pd.DataFrame([{"date": "2026-10-06", "etf": "00935", "code": "2330", "name": "台積電", "weight": 23.6, "shares": 1.0,
                         "issuer": "野村", "src": "u"}])
-    for fn in ("fuhhwa", "uni", "cathay", "yuanta", "ctbc", "fsitc", "ab", "hn", "fubon"):
+    for fn in ("fuhhwa", "uni", "cathay", "yuanta", "ctbc", "fsitc", "ab", "hn", "fubon", "tsit"):
         monkeypatch.setattr(etf_pcf, fn, lambda *a, **k: pd.DataFrame(columns=etf_pcf.COLS))
     monkeypatch.setattr(etf_pcf, "kgi", lambda *a, **k: pd.DataFrame(columns=etf_pcf.COLS))
     monkeypatch.setattr(etf_pcf, "nomura", lambda codes: ok)
@@ -218,3 +218,20 @@ def test_fubon_assets_page_stock_and_bond_not_futures():
     assert r[1]["name"] == "T 4 & 3/4 11/15/53"
     assert etf_pcf.parse_fubon("X", "<html>改版了</html>") == [] and etf_pcf.parse_fubon("X", None) == []
     assert etf_pcf.parse_fubon("0058", FUBON_PAGE) == []       # 官網把不認得的代號導到別檔的頁面：不能收
+
+
+TSIT_PAGE = """<div id="page-wrap"> <h4>台新臺灣全市場半導體精選30ETF基金（原名稱:新光臺灣全市場半導體精選30ETF基金） (00904)</h4>
+<p class="small">日期：<input type="text" id="PUB_DATE" name="PUB_DATE" value="2026-10-08" class="border-0" readonly /></p>
+<div class="card-header text-bg-danger"> <svg width="16"><path d="M1 1"/></svg> 期貨 </div> <div class="card-body"><table class="table">
+<thead><tr><th>期貨代號</th><th>期貨名稱</th><th>契約年月</th><th>口數</th><th>持股權重</th></tr></thead>
+<tbody><tr><td>TXF</td><td>台指期</td><td>202610</td><td>5</td><td>1.0%</td></tr></tbody></table></div>
+<div class="card-header text-bg-danger"> <svg width="16"><path d="M1 1"/></svg> 股票 </div> <div class="card-body"><table class="table">
+<thead><tr><th>代號</th><th>名稱</th><th>股數</th><th>持股權重</th></tr></thead>
+<tbody><tr><td>2330 TT</td><td>台積電</td><td>1,143,000</td><td>39.1444%</td></tr></tbody></table></div>"""
+
+
+def test_tsit_stock_card_only():
+    r = etf_pcf.parse_tsit("00904", TSIT_PAGE)
+    assert [(x["code"], x["name"], x["weight"], x["shares"], x["date"]) for x in r] == [("2330", "台積電", 39.1444, 1143000.0, "2026-10-08")]
+    assert etf_pcf.parse_tsit("00947", TSIT_PAGE) == []         # 頁首代號不符就不收
+    assert etf_pcf.parse_tsit("X", None) == []

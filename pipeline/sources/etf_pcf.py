@@ -873,19 +873,77 @@ def fubon(codes: list[str]) -> pd.DataFrame:
     return _frame(rows)
 
 
+# ───────────────────────────────────────────── 台新（tsit.com.tw；含併入的原新光投信 ETF）
+# 2026-10-07 實測：申購買回清單頁的下拉選單在 Pcf.js 裡是 location.href = "/ETF/Home/Pcf/<代號>?FundType=ALL&DataDate="，
+# 伺服器端渲染：「日期：<input id=PUB_DATE value=2026-10-08>」＋ 每個資產類別一張卡片
+# <div class="card-header">…股票|債券|期貨</div> 後面一張表，表頭決定欄位（股票：代號「2330 TT」／名稱／股數／持股權重「39.1444%」；
+# 債券：代號／名稱／面額／市值／權重(%)）。股票、債券都收；期貨不算成分。
+TSIT_PCF = "https://www.tsit.com.tw/ETF/Home/Pcf/{code}"
+
+
+def parse_tsit(etf: str, page: str) -> list[dict]:
+    if not isinstance(page, str):
+        return []
+    m = re.search(r'id="PUB_DATE"[^>]*value="([0-9-]{8,10})"', page)
+    day = _iso(m.group(1)) if m else None
+    t = re.search(r"<h4>[^<]*\((\w+)\)\s*</h4>", page)
+    if t and t.group(1) != etf:
+        log.info("台新 %s 官網回的是 %s 的頁面，略過", etf, t.group(1))
+        return []
+    out = []
+    for hdr, rest in re.findall(r'<div class="card-header[^"]*">(.*?)</div>(.*?)(?=<div class="card-header|$)', page, re.S):
+        kind = re.sub(r"<[^>]+>", "", hdr).strip()
+        if kind not in ("股票", "債券"):
+            continue
+        tb = re.search(r"<table.*?</table>", rest, re.S)
+        if not tb:
+            continue
+        head = [re.sub(r"<[^>]+>", "", h).strip() for h in re.findall(r"<th[^>]*>(.*?)</th>", tb.group(0), re.S)]
+        ix = {k: next((i for i, h in enumerate(head) if any(w in h for w in ws)), None)
+              for k, ws in (("code", ("代號",)), ("name", ("名稱",)), ("qty", ("股數", "面額")), ("w", ("權重",)))}
+        if ix["code"] is None or ix["w"] is None:
+            log.warning("台新 %s %s 表頭對不上：%s", etf, kind, head)
+            continue
+        for tr in re.findall(r"<tr[^>]*>(.*?)</tr>", tb.group(0), re.S):
+            c = _cells(tr)
+            if len(c) <= max(v for v in ix.values() if v is not None):
+                continue
+            code = re.sub(r"\s+TT$", "", c[ix["code"]])          # 台股寫成「2330 TT」
+            if not code:
+                continue
+            out.append({"date": day, "etf": etf, "code": code, "name": c[ix["name"]] if ix["name"] is not None else "",
+                        "weight": _num(c[ix["w"]]), "shares": _num(c[ix["qty"]]) if ix["qty"] is not None else None,
+                        "issuer": "台新", "src": TSIT_PCF.format(code=etf)})
+    return out
+
+
+def tsit(codes: list[str]) -> pd.DataFrame:
+    rows: list[dict] = []
+    for c in codes:
+        if re.search(r"[LR]$", c):
+            continue
+        page = _req("GET", TSIT_PCF.format(code=c), params={"FundType": "ALL", "DataDate": ""}, expect="text")
+        got = parse_tsit(c, page) if page else []
+        if page and not got:
+            log.warning("台新 %s 解析不到股票／債券表（前 200 字）：%s", c, _snip(page))
+        rows += got
+    return _frame(rows)
+
+
 # ───────────────────────────────────────────── 總入口
 ISSUER_PREFIX = {  # 從 ETF 簡稱判斷發行投信（給「哪些已接上／哪些沒接上」用）
     "元大": "元大", "國泰": "國泰", "群益": "群益", "富邦": "富邦", "統一": "統一", "凱基": "凱基", "大華": "大華銀",
     "復華": "復華", "中信": "中國信託", "野村": "野村", "兆豐": "兆豐", "第一金": "第一金", "新光": "新光", "台新": "台新",
     "永豐": "永豐", "聯博": "聯博", "摩根": "摩根", "街口": "街口", "富蘭克林": "富蘭克林", "安聯": "安聯", "玉山": "玉山",
     "華南永昌": "華南永昌", "貝萊德": "貝萊德", "宏利": "宏利", "路博邁": "路博邁", "富達": "富達", "柏瑞": "柏瑞", "保德信": "保德信",
+    "FT": "富蘭克林華美", "聯邦": "聯邦",   # FT＝富蘭克林華美（00899 全名「富蘭克林華美全球潔淨能源ETF」）
     "台灣": None,
 }
-CONNECTED = {"群益", "野村", "復華", "統一", "元大", "凱基", "國泰", "中國信託", "第一金", "聯博", "華南永昌", "富邦"}
+CONNECTED = {"群益", "野村", "復華", "統一", "元大", "凱基", "國泰", "中國信託", "第一金", "聯博", "華南永昌", "富邦", "台新"}
 
 
 def issuer_of(name: str) -> str | None:
-    n = re.sub(r"^主動", "", str(name or ""))
+    n = re.sub(r"^(主動|平衡|期)", "", str(name or ""))   # 主動式／平衡型（00980T）／期貨信託（期元大…）前綴
     for k, v in ISSUER_PREFIX.items():
         if v and n.startswith(k):
             return v
@@ -905,6 +963,7 @@ def fetch_all(etf_names: dict[str, str]) -> pd.DataFrame:
         ("第一金", fsitc), ("聯博", lambda: ab(sorted(by.get("聯博", [])))),
         ("華南永昌", lambda: hn(sorted(by.get("華南永昌", [])))),
         ("富邦", lambda: fubon(sorted(by.get("富邦", [])))),
+        ("台新", lambda: tsit(sorted(by.get("台新", []) + by.get("新光", [])))),
     ]
     frames = []
     for name, fn in jobs:
