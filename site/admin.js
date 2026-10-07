@@ -623,6 +623,15 @@ html[data-theme="light"] #v-admin{--pm-blue:#1f4fd8;--pm-blue-2:#163fb4}
 #v-admin .pmcats.pmcards .pmcat.card .pmcathd h3>b{grid-column:2;grid-row:1;white-space:nowrap}
 #v-admin .pmcats.pmcards .pmcat.card .pmcathd h3>small{grid-column:2;grid-row:2;white-space:nowrap}
 #v-admin .pmallim{display:inline-flex;align-items:center;flex:none;margin-right:10px}
+#v-admin .pmtools{flex-wrap:wrap}
+#v-admin .pmdq{order:9;flex:1 1 100%;display:flex;flex-wrap:wrap;align-items:center;gap:6px 14px;padding:10px 14px;border:1px solid color-mix(in srgb,var(--cyan,#4cc9f0) 45%,var(--line));border-radius:10px;background:color-mix(in srgb,var(--cyan,#4cc9f0) 8%,var(--panel-2));min-width:0}
+#v-admin .pmdq[hidden]{display:none}
+#v-admin .pmdq .pmdqt{font-size:15px;color:var(--ink)}#v-admin .pmdq .pmdqt span{color:var(--cyan,#4cc9f0)}
+#v-admin .pmdq .pmdqs{font-size:13px;color:var(--ink-2)}
+#v-admin .pmdq .pmdqe{display:inline-flex;align-items:center;gap:8px;font-size:13px;color:var(--ink-2)}
+#v-admin .pmdq input{width:5.5em;height:28px;box-sizing:border-box}
+#v-admin .pmdq .pmdqn{flex:1 1 100%;font-size:12px;color:var(--ink-3);line-height:1.5}
+#v-admin .pmcats.pmcards .pmlimb.sh{font-size:11px;font-family:inherit;width:auto;min-width:44px;padding:0 4px}
 #v-admin .pmcats.pmcards .pmcathd .pmglim{margin-left:auto;font-size:12px;height:24px;padding:0 6px;white-space:nowrap}
 #v-admin .pmcats.pmcards .pmcathd .pmglim+button.psw3{margin-left:0}
 #v-admin .pmcats.pmcards .pmcathd .pmglim.set{color:var(--pm-blue);font-weight:700}
@@ -1597,7 +1606,7 @@ html[data-theme="light"] #v-admin{--pm-blue:#1f4fd8;--pm-blue-2:#163fb4}
             <div class="pmstat" id="pmStat" role="status" aria-live="polite"></div>
             <div id="ptPermBox">
               <div id="ptGuestSum"></div>
-              <div class="pmtools" id="pmTools"><h3 class="pmttl">開放功能表<span class="qtip pmq" tabindex="0" role="note" aria-label="說明" title="${esc(LOCK_NOTE)}">?</span></h3>
+              <div class="pmtools" id="pmTools"><h3 class="pmttl">開放功能表<span class="qtip pmq" tabindex="0" role="note" aria-label="說明" title="${esc(LOCK_NOTE)}">?</span></h3><div id="pmDqCard" class="pmdq" hidden></div>
                 <div class="pmlegend"><span><i class="lg dirty"></i>改了還沒儲存</span><span><i class="lg tuned"></i>跟預設不同（已儲存）</span><span><i class="lg lim">∞</i>每日次數上限</span></div>
                 <span id="pmAllLim" class="pmallim"></span><span class="pmallsw" title="開放功能表全部開／關（不含族群觀測）"><span>全部</span><button type="button" id="pmAllSw" class="psw3" role="switch" aria-checked="false" aria-label="開放功能表全部開／關（不含族群觀測）"><span></span></button></span>${window.TW_PLAN_PRESETS ? '<button type="button" class="ptpreset" id="ptPreset" title="把訪客／註冊會員／Plus／Pro 四個範本一次設成建議方案（先列出會改什麼，確認後才寫入）">套用建議方案</button>' : ''}</div>
               <div class="pmcats pmcards" id="pmCats"></div>
@@ -2001,6 +2010,33 @@ html[data-theme="light"] #v-admin{--pm-blue:#1f4fd8;--pm-blue-2:#163fb4}
      同一天同一個單位只算一次）。空白＝不限（Pro 的預設）；Plus 種子是 50。真正扣次在付費資料閘道 data-gw，這裡只是設定。 */
   const limOpts = (f, val) => { const o = f.opts ? f.opts.slice() : Array.from({ length: f.max + 1 }, (_, i) => i); if (Number.isInteger(val) && !o.includes(val)) { o.push(val); o.sort((a, b) => a - b); } return o; };
   const dqField = (p) => `<label title="全站共用：所有研究頁加起來一天能看幾個（同一天同一檔個股、同一張剖析圖、同一個付費分頁只算一次）；空白＝不限">全站每日額度 <input type="number" id="ptEdDq" min="0" max="9999" step="1" inputmode="numeric" placeholder="不限" value="${p && Number.isInteger(p.dq) ? p.dq : ''}" aria-label="每日額度（次，空白＝不限）" style="width:6em"> 次</label>`;
+  /* ★ 2026-10-07 全站每日額度小卡（開放功能表標題列）：dq 原本只藏在 ⚙ 裡，Andy 看訪客頁每格都是 ∞ 以為訪客沒限制。
+     小卡直接寫「每日共 N 次（所有計次功能共用）」，可就地改數字存檔（跟 ⚙ 同一個 dq 欄位、同一支 plans/put）。
+     訪客頁多一行：訪客沒有帳號，次數記在哪裡（誠實講目前擋得住什麼）。 */
+  function paintDqCard() {
+    const v = PS.v, box = v && v.querySelector('#pmDqCard'); if (!box) return;
+    const p = PS.mode === 'plan' ? planOf(PS.planSel) : null;
+    if (!p) { box.hidden = true; box.innerHTML = ''; return; }
+    const n = Number.isInteger(p.dq) ? p.dq : null;
+    const guest = PS.tier === 'guest' || p.id === 'guest';
+    box.hidden = false;
+    box.innerHTML = `<b class="pmdqt">全站每日額度 <span id="pmDqVal">${n == null ? '不限' : n + ' 次'}</span></b>
+      <span class="pmdqs">${n == null ? '計次功能不限次數' : `每日共 ${n} 次（所有計次功能共用）`}</span>
+      <span class="pmdqe"><label>改成 <input type="number" id="pmDqIn" min="0" max="9999" step="1" inputmode="numeric" placeholder="不限" value="${n == null ? '' : n}" aria-label="全站每日額度（次，空白＝不限）"> 次</label><button type="button" class="pri" id="pmDqSave">存檔</button></span>
+      ${guest ? '<small class="pmdqn">訪客沒有帳號，次數記在這台瀏覽器；清除網站資料會重算（伺服器端保護上線後改依 IP）</small>' : ''}`;
+    box.querySelector('#pmDqSave').onclick = () => saveDqCard(p);
+    box.querySelector('#pmDqIn').onkeydown = (e) => { if (e.key === 'Enter') saveDqCard(p); };
+  }
+  async function saveDqCard(p) {
+    if (PS.draft) { setStat('有未儲存的變更，請先儲存或取消', 'bad'); return; }
+    const raw = String((PS.v.querySelector('#pmDqIn') || {}).value || '').trim();
+    if (raw !== '' && !/^\d{1,4}$/.test(raw)) { setStat('每日額度要是 0～9999 的整數（空白＝不限）', 'bad'); return; }
+    const dq = raw === '' ? null : Number(raw);
+    setStat('儲存中…');
+    const j = await PS.A.call('/v1/admin/plans/put', { id: p.id, name: p.name, feats: p.feats || {}, dq });
+    if (j && j._s === 200) { PS.plans = j.plans; paintTabs(); paintTarget(); paintCats(); setStat(`已儲存「${p.name}」全站每日額度：${dq == null ? '不限' : dq + ' 次'}（台北 ${tpeTime()}）`, 'ok'); }
+    else setStat('儲存失敗：' + errText(j), 'bad');
+  }
   /* 回 null＝不限、整數＝上限、undefined＝格式不對（已經顯示錯誤）*/
   function readDq() {
     const el = PS.v && PS.v.querySelector('#ptEdDq'); if (!el) return null;
@@ -2209,6 +2245,9 @@ html[data-theme="light"] #v-admin{--pm-blue:#1f4fd8;--pm-blue-2:#163fb4}
   }
   function catRows(fs, cur, base, saved, now, ready, compact) {
     const lims = PS.mode === 'plan' ? curLims() : null, sl = PS.mode === 'plan' ? savedLims() : null;
+    /* ★ 2026-10-07（Andy：「你忽略的 訪客需要怎麼限制幫我補上」）：範本有全站每日額度（dq）時，計次功能（features.js metered）沒設單項上限的
+       徽章寫「共用 N」而不是 ∞ —— 以前訪客頁每格都是 ∞，看不出其實全站一天只有 3 次；不計次的功能寫「不計次」。 */
+    const dqP = PS.mode === 'plan' ? planOf(PS.planSel) : null, dqN = dqP && Number.isInteger(dqP.dq) ? dqP.dq : null;
     return fs.map((f) => {
       const val = cur[f.id], diff = PS.mode === 'member' ? (PS.rec && Object.prototype.hasOwnProperty.call(mOver(), f.id)) : val !== f.def;
       const unsaved = ready && (saved[f.id] !== now[f.id] || (lims && sl[f.id] !== lims[f.id]));
@@ -2220,7 +2259,7 @@ html[data-theme="light"] #v-admin{--pm-blue:#1f4fd8;--pm-blue-2:#163fb4}
          Andy 要回到「每類一張卡、每列只有開關＋名稱＋一行說明」的乾淨版，但次數上限功能不能丟，所以不讓它常駐佔一欄。 */
       const has = lims && Object.prototype.hasOwnProperty.call(lims, f.id), lv = has ? lims[f.id] : '';
       const limOpen = lims && PS.limOpen === f.id;
-      const badge = lims && f.kind !== 'limit' ? `<button type="button" class="pmlimb${has ? ' set' : ''}${lv === 0 ? ' zero' : ''}" data-limb="${esc(f.id)}" title="每日瀏覽次數上限" aria-label="${esc(f.name)} 每日瀏覽次數：${has ? lv + ' 次' : '不限'}" aria-expanded="${limOpen}" ${ready ? '' : 'disabled'}>${has ? lv + '/日' : '∞'}</button>` : '';
+      const badge = lims && f.kind !== 'limit' ? `<button type="button" class="pmlimb${has ? ' set' : (f.metered && dqN != null) || !f.metered ? ' sh' : ''}${lv === 0 ? ' zero' : ''}" data-limb="${esc(f.id)}" title="${has ? '每日瀏覽次數上限' : f.metered && dqN != null ? '計次功能：跟其他研究頁共用全站每日 ' + dqN + ' 次（可另設更嚴的單項上限）' : !f.metered ? '不計次：不吃全站每日額度（可另設單項上限）' : '每日瀏覽次數上限'}" aria-label="${esc(f.name)} 每日瀏覽次數：${has ? lv + ' 次' : f.metered && dqN != null ? '共用 ' + dqN + ' 次' : !f.metered ? '不計次' : '不限'}" aria-expanded="${limOpen}" ${ready ? '' : 'disabled'}>${has ? lv + '/日' : f.metered && dqN != null ? '共用 ' + dqN : !f.metered ? '不計次' : '∞'}</button>` : '';
       const pop = limOpen && f.kind !== 'limit' ? `<div class="pmlimpop" role="dialog" aria-label="${esc(f.name)} 每日瀏覽次數"><span>每日最多</span><input type="number" class="pmlim" data-lim="${esc(f.id)}" min="0" max="9999" step="1" inputmode="numeric" placeholder="不限" value="${lv === '' ? '' : lv}" aria-label="${esc(f.name)} 每日瀏覽次數上限（留空＝不限）"><span>次</span><button type="button" data-limclr="${esc(f.id)}">不限</button><button type="button" class="ok" data-limok="1">確定</button></div>` : '';
       /* 改動用顏色表示、不用文字標籤（Andy 10-05 追加）：未存＝淡琥珀底＋左色條（.dirty）、已存的微調／改過＝淡藍左色條（.tuned）。
          色條用 inset box-shadow 畫，不加 padding —— 撥開關前後版面一像素都不能動。 */
@@ -2258,6 +2297,7 @@ html[data-theme="light"] #v-admin{--pm-blue:#1f4fd8;--pm-blue-2:#163fb4}
       return `<button type="button" class="pmlimb pmglim${mixed ? ' mixed' : v1 != null ? ' set' : ''}${v1 === 0 ? ' zero' : ''}${dirty ? ' dirty' : ''}" data-glim="${esc(key)}" title="${esc(label)}：整組每日瀏覽次數上限" aria-label="${esc(label)} 整組每日瀏覽次數：${mixed ? '混合' : v1 == null ? '不限' : v1 + ' 次'}" aria-haspopup="dialog" ${ready ? '' : 'disabled'}>${pre || ''}${mixed ? '混合' : v1 == null ? '∞' : v1 + '/日'}</button>`; };
     const allBtns = (id) => gLimBtn('cat:' + id, (cats.find((c) => c.id === id) || {}).name || id) + triSw(`data-allsw="cat" data-cat="${esc(id)}"`, FT().inCat(id), (cats.find((c) => c.id === id) || {}).name || id);
     const alm = v.querySelector('#pmAllLim'); if (alm) alm.innerHTML = gLimBtn('all', '開放功能表全部', '全部次數 ');
+    paintDqCard();
     const tsw = v.querySelector('#pmAllSw');
     if (tsw) { tsw.disabled = !ready; tsw.setAttribute('aria-checked', swSt(cats.filter((c) => c.id !== 'grp').flatMap((c) => FT().inCat(c.id)))); }
     const gbox = v.querySelector('#pmGrp');
@@ -2303,7 +2343,7 @@ html[data-theme="light"] #v-admin{--pm-blue:#1f4fd8;--pm-blue-2:#163fb4}
       setLim(inp.dataset.lim, raw === '' ? null : +raw);
       const row = inp.closest('.pmrow'), sl = savedLims(), cl = curLims(), fid = inp.dataset.lim;
       const b = row && row.querySelector('button[data-limb]');
-      if (b) { const h = Object.prototype.hasOwnProperty.call(cl, fid); b.textContent = h ? cl[fid] + '/日' : '∞'; b.classList.toggle('set', h); b.classList.toggle('zero', h && cl[fid] === 0); }
+      if (b) { const h = Object.prototype.hasOwnProperty.call(cl, fid); const ff = FT() && FT().byId(fid), pp = planOf(PS.planSel), dn = pp && Number.isInteger(pp.dq) ? pp.dq : null; b.textContent = h ? cl[fid] + '/日' : ff && ff.metered && dn != null ? '共用 ' + dn : ff && !ff.metered ? '不計次' : '∞'; b.classList.toggle('set', h); b.classList.toggle('zero', h && cl[fid] === 0); }
       if (row) row.classList.toggle('dirty', sl[fid] !== cl[fid] || (((planOf(PS.planSel) || {}).feats || {})[fid] !== ((PS.draft && PS.draft.feats) || {})[fid]));
       paintSave();
     };
