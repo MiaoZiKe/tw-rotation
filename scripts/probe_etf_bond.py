@@ -33,6 +33,39 @@ def show(tag: str, p) -> None:
     print(json.dumps(p, ensure_ascii=False)[:4000])
 
 
+def main2() -> None:
+    """第二輪：前一輪印不到資料本體的幾家（元大 BondWeights 資料、統一 asset、復華有資料的日子、台新卡片）。"""
+    today = dt.date.today()
+    for c in ("00679B", "00720B"):
+        pg = E._req("GET", E.YUANTA_PCF.format(code=c), expect="text") or ""
+        body, env = E._nuxt_env(pg)
+        for m in list(re.finditer(r"\.FundWeights=\{", body))[:2]:
+            v = E._JS(body[m.end() - 1:], env).val()
+            print(f"元大 {c} FundWeights 值：", json.dumps(v, ensure_ascii=False, default=str)[:3000])
+        m = re.search(r"\.PCF=\{", body)
+        print(f"元大 {c} PCF：", json.dumps(E._JS(body[m.end() - 1:], env).val() if m else None, ensure_ascii=False, default=str)[:600])
+    page = E._req("GET", E.UNI_PAGE, expect="text")
+    uc = E.uni_fund_codes(page or "")
+    roc = f"{today.year - 1911}/{today.month:02d}/{today.day:02d}"
+    for c in ("00853B",):
+        p = E._req("POST", E.UNI_PCF, json_body={"fundCode": uc[c], "date": roc, "specificDate": False})
+        print("統一 asset：", json.dumps((p or {}).get("asset"), ensure_ascii=False)[:3000])
+        print("統一 schema：", json.dumps((p or {}).get("assetDetailSchema"), ensure_ascii=False)[:1500])
+    fl = E._req("GET", E.FH_LIST)
+    fh = {str(f.get("etf002") or "").strip(): str(f.get("fundID")) for f in ((fl or {}).get("result") or [])}
+    for c in ("00710B",):
+        for back in range(0, 8):
+            q = (today - dt.timedelta(days=back)).strftime("%Y/%m/%d")
+            p = E._req("GET", E.FH_ASSETS, params={"fundID": fh[c], "qDate": q}, retries=1)
+            if isinstance(p, dict) and (p.get("result") or [{}])[0].get("detail"):
+                print("復華", c, q, json.dumps(p, ensure_ascii=False)[:3000])
+                break
+    for c in ("00775B", "00842B"):
+        pg = E._req("GET", E.TSIT_PCF.format(code=c), params={"FundType": "ALL", "DataDate": ""}, expect="text") or ""
+        k = pg.find("card-header")
+        print("台新", c, "card-header@", k, pg[k - 200:k + 3000].replace("\n", " ") if k >= 0 else pg[-3000:].replace("\n", " "))
+
+
 def main() -> None:
     today = dt.date.today()
     # 群益：清單 → fundNo
@@ -109,4 +142,4 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-    main()
+    main2() if "--round2" in sys.argv else main()
