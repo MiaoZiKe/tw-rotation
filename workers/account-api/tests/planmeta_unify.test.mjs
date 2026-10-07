@@ -64,3 +64,25 @@ test('pres 寫完又用 meta 套用建議方案 → meta 勝，舊 pres 與 pric
   const p = await pub(hub, 'plus');
   assert.equal(p.tagline, '建議方案句'); assert.equal(p.price_year, 2490); assert.equal(p.icon, null);
 });
+
+test('套用建議方案同一個請求送 meta＋price_year（10-07 根因）→ 介紹欄位不能被清掉', async () => {
+  const { hub } = makeHub(env());
+  const andy = await login(hub, 'andy@example.com');
+  const meta = { badge: '最受歡迎', tagline: '每天主動研究，工具一次到位', fit_title: '適合每天主動研究', fit_desc: '說明', highlights: ['研究瀏覽・每日 50 次'], price_year: 2990 };
+  const r = await pj(hub, '/v1/admin/plans/put', { t: andy, id: 'plus', name: 'Plus', feats: {}, price: 299, period: 'month', meta, price_year: 2990 });
+  assert.equal(r.s, 200);
+  const p = await pub(hub, 'plus');
+  assert.equal(p.tagline, '每天主動研究，工具一次到位'); assert.equal(p.fit_title, '適合每天主動研究'); assert.equal(p.badge, '最受歡迎');
+  assert.deepEqual(p.highlights, ['研究瀏覽・每日 50 次']); assert.equal(p.price, 299); assert.equal(p.price_year, 2990);
+});
+
+test('套用建議方案新寫法（pres＋price_year）→ 公開端點讀得到全部介紹欄位', async () => {
+  const { hub } = makeHub(env());
+  const andy = await login(hub, 'andy@example.com');
+  const pres = { badge: '功能最齊', tagline: '不限次數', fit_title: '適合追蹤多個題材', fit_desc: '說明', highlights: ['研究瀏覽・不限次數'] };
+  const r = await pj(hub, '/v1/admin/plans/put', { t: andy, id: 'pro', name: 'Pro', feats: {}, price: 499, period: 'month', pres, price_year: 4990 });
+  assert.equal(r.s, 200);
+  const p = await pub(hub, 'pro');
+  assert.equal(p.tagline, '不限次數'); assert.equal(p.badge, '功能最齊'); assert.equal(p.fit_title, '適合追蹤多個題材'); assert.equal(p.fit_desc, '說明');
+  assert.deepEqual(p.highlights, ['研究瀏覽・不限次數']); assert.equal(p.price_year, 4990);
+});

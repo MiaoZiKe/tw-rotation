@@ -2046,8 +2046,11 @@ Hub.prototype.adminPlansPut = async function (req, b) {
   if (res.status !== 200 || (pres === undefined && py === undefined)) return res;
   if (pres !== undefined) this.q('UPDATE plans SET pres = ? WHERE id = ?', JSON.stringify(pres), String(b.id));
   if (py !== undefined) this.q('UPDATE plans SET price_year = ? WHERE id = ?', py, String(b.id));
-  /* 這一邊整份取代：把 meta 欄清掉，不然 presOf 的 meta 退路會把管理者刻意清空的欄位又補回來 */
-  this.metaInit(); this.q("UPDATE plans SET meta = '{}' WHERE id = ?", String(b.id));
+  /* 這一邊整份取代：把 meta 欄清掉，不然 presOf 的 meta 退路會把管理者刻意清空的欄位又補回來。
+     ★ 10-07 修：只有「這次真的帶了 pres」才清 meta。以前只帶 price_year 也會清 ——
+       「套用建議方案」同一個請求送 meta＋price_year，內層剛寫好的 meta 立刻被這裡清掉，
+       訂閱頁 Plus／Pro 的定位句因此退回前端預設「進階分析與更高的每日次數」。 */
+  if (pres !== undefined) { this.metaInit(); this.q("UPDATE plans SET meta = '{}' WHERE id = ?", String(b.id)); }
   return await this.adminPlansGet(req, b);
 };
 /* 匯出／還原：兩邊欄位要對得上（還原時檢查 cols ⊆ 現有欄位），所以先把這兩欄建好 */

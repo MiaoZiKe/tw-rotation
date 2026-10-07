@@ -2064,6 +2064,7 @@ html[data-theme="light"] #v-admin{--pm-blue:#1f4fd8;--pm-blue-2:#163fb4}
     const cdq = Number.isInteger(c.dq) ? c.dq : null;
     if (cdq !== t.dq) head.push(`全站每日額度：${lt(cdq)} → ${lt(t.dq)}`);
     if (t.meta && t.meta.badge && c.badge !== t.meta.badge) head.push(`標籤：${t.meta.badge}`);
+    if (t.meta && t.meta.tagline && c.tagline !== t.meta.tagline) head.push(`定位句：${t.meta.tagline}`);
     return { head, feats, lims };
   }
   function presetAsk() {
@@ -2101,7 +2102,13 @@ html[data-theme="light"] #v-admin{--pm-blue:#1f4fd8;--pm-blue-2:#163fb4}
     for (const m of ms) {
       const t = m.t, builtin = t.key === 'guest' || t.key === 'free';
       /* 內建兩個也寫名稱（訪客／註冊會員）：訂閱頁設了方案卡文字後會用範本名稱上卡，後端預設名「免費會員（預設）」不適合 */
-      const body = { id: m.id, name: t.name, feats: t.feats, lims: t.lims || {}, dq: t.dq, meta: t.meta };
+      /* ★ 10-07 修：介紹欄位改用 pres 寫（訂閱頁與管理區方案卡讀的同一份）。以前送 meta＋price_year，
+         舊版 Worker 寫完 meta 又因為 price_year 把它清掉 → 正式站 Plus／Pro 定位句變成前端預設字。
+         範本原本設好的圖示／色系／是否公開照留（pres 是整份取代）。 */
+      const tm = t.meta || {}, cur = m.cur || {};
+      const pres = { badge: tm.badge || '', tagline: tm.tagline || '', fit_title: tm.fit_title || '', fit_desc: tm.fit_desc || '', highlights: tm.highlights || [] };
+      if (cur.icon) pres.icon = cur.icon; if (cur.color) pres.color = cur.color; if (cur.public === false) pres.public = false;
+      const body = { id: m.id, name: t.name, feats: t.feats, lims: t.lims || {}, dq: t.dq, pres };
       /* 年繳價也寫進 price_year 欄（訂閱頁的月／年切換讀它；Andy 10-07：年方案＝少 2 個月＝月價×10）*/
       if (!builtin) { body.price = t.price; body.period = 'month'; body.price_year = Number.isInteger(t.price_year) && t.price_year > 0 ? t.price_year : t.price * 10; }
       msg.textContent = `寫入中…（${t.name}）`;

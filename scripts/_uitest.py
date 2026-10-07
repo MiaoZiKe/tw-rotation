@@ -49330,11 +49330,11 @@ def t_plan_preset_1007(b, base, code):
        [x[1].get("id") for x in sent if x[0] == "/v1/admin/plans/put"])
     bodies = {x[1]["id"]: x[1] for x in sent if x[0] == "/v1/admin/plans/put" and not x[1].get("del")}
     g, f, pl, pr = bodies.get("guest", {}), bodies.get("free", {}), bodies.get("plus", {}), bodies.get("pro", {})
-    ok(f"{T}：寫入內容：訪客 dq 3＋沒有逐功能次數＋名稱「訪客」；註冊會員 dq 10、自選 1×10；Plus 改名、249、dq 50、自選 5×50、badge；Pro 改名、499、dq 空白、自選 50×200",
+    ok(f"{T}：寫入內容：訪客 dq 3＋沒有逐功能次數＋名稱「訪客」；註冊會員 dq 10、自選 1×10；Plus 改名、299、dq 50、自選 5×50、badge；Pro 改名、499、dq 空白、自選 50×200",
        g.get("dq") == 3 and g.get("lims") == {} and g.get("name") == "訪客" and g.get("feats", {}).get("ind.3d") is False
        and f.get("dq") == 10 and f.get("feats", {}).get("watch.tabs") == 1 and f.get("feats", {}).get("watch.size") == 10 and f.get("name") == "註冊會員"
-       and pl.get("name") == "Plus" and pl.get("price") == 249 and pl.get("dq") == 50 and pl.get("feats", {}).get("watch.tabs") == 5 and pl.get("feats", {}).get("watch.size") == 50
-       and (pl.get("meta") or {}).get("badge") == "最受歡迎" and (pl.get("meta") or {}).get("price_year") == 2490 and len((pl.get("meta") or {}).get("highlights") or []) >= 3
+       and pl.get("name") == "Plus" and pl.get("price") == 299 and pl.get("dq") == 50 and pl.get("feats", {}).get("watch.tabs") == 5 and pl.get("feats", {}).get("watch.size") == 50
+       and (pl.get("pres") or {}).get("badge") == "最受歡迎" and (pl.get("pres") or {}).get("tagline") and pl.get("price_year") == 2990 and "meta" not in pl and len((pl.get("pres") or {}).get("highlights") or []) >= 3
        and pr.get("name") == "Pro" and pr.get("price") == 499 and pr.get("dq") is None and pr.get("feats", {}).get("watch.tabs") == 50 and pr.get("feats", {}).get("watch.size") == 200,
        {k: {kk: (vv if kk != "feats" else {x: vv[x] for x in ("watch.tabs", "watch.size", "ind.3d") if x in vv}) for kk, vv in v.items() if kk != "t"} for k, v in bodies.items()})
     ok(f"{T}：套用後頁籤＝Plus（月）、Pro（月），沒有 499會費", bool(wait_until(pg, "() => { const t = [...document.querySelectorAll('#ptTier button[data-plan]')].map(b => b.textContent.trim()); return t.includes('Plus（月）') && t.includes('Pro（月）') && !t.some(x => /499/.test(x)); }", 4000)),
@@ -49362,7 +49362,7 @@ def t_plan_preset_1007(b, base, code):
 
 # ===================================================================== 套用建議方案（正式站狀態）＋範本會員名單1007
 # CEO 10-07 13:20：正式站按了「套用建議方案」沒生效。這段重現正式站的狀態：Worker 已種 plus／pro（價格 0）＋「299 會費」（1 位會員）＋「499會費」，
-# 按套用 → 只剩 訪客／註冊會員／Plus 249(2490)／Pro 499(4990)、那位會員被移到 Plus、訂閱頁出現月／年切換與「省 17%」。
+# 按套用 → 只剩 訪客／註冊會員／Plus 299(2990)／Pro 499(4990)、那位會員被移到 Plus、訂閱頁出現月／年切換與「省 17%」。
 # 再按一次（冪等）→ 沒有刪除區塊、照樣成功。
 # 範本會員名單（Andy「下方移除會員部分 幫我優化介面」「更直觀操作」）：搜尋過濾、勾兩人批次移出（確認框）→ 少兩人、
 # 改方案下拉立刻生效＋5 秒復原、＋加入會員、全部移光 → 空狀態小卡。
@@ -49389,7 +49389,7 @@ def t_preset_live_1007(b, base, code):
     dl = pg.inner_text("#subDlg")
     ok(f"{T}：確認框：Plus／Pro 用種下的範本（不新建、不改名 299）、299 會費→先把 1 位移到 Plus 再刪、499會費 直接刪",
        "新建範本" not in dl and "名稱：299 會費" not in dl and "刪除「299 會費」" in dl and "移到 Plus：m299@example.com" in dl and "刪除「499會費」" in dl
-       and "NT$0 → NT$249" in dl and "NT$0 → NT$499" in dl, dl[-900:])
+       and "NT$0 → NT$299" in dl and "NT$0 → NT$499" in dl, dl[-900:])
     if sh:
         pg.evaluate("() => { const b = document.querySelector('#subDlg .box'); b.scrollTop = b.scrollHeight; }"); pg.wait_for_timeout(200)
         pg.screenshot(path=str(pathlib.Path(sh) / "live_confirm.png"))
@@ -49397,8 +49397,8 @@ def t_preset_live_1007(b, base, code):
     ok(f"{T}：套用成功", bool(wait_until(pg, "() => /已套用建議方案/.test(document.getElementById('pmStat').textContent)", 10000)), pg.inner_text("#subDlg")[-300:])
     ids = [p["id"] for p in st["plans"]]
     pl = next((p for p in st["plans"] if p["id"] == "plus"), {}); pr = next((p for p in st["plans"] if p["id"] == "pro"), {})
-    ok(f"{T}：結果只剩 訪客／註冊會員／Plus 249(2490)／Pro 499(4990)，m299 被移到 Plus（微調保留）",
-       ids == ["guest", "free", "plus", "pro"] and pl.get("price") == 249 and pl.get("price_year") == 2490 and pr.get("price") == 499 and pr.get("price_year") == 4990
+    ok(f"{T}：結果只剩 訪客／註冊會員／Plus 299(2990)／Pro 499(4990)，m299 被移到 Plus（微調保留）",
+       ids == ["guest", "free", "plus", "pro"] and pl.get("price") == 299 and pl.get("price_year") == 2990 and pr.get("price") == 499 and pr.get("price_year") == 4990
        and st["perm"]["m299@example.com"]["plan"] == "plus" and st["perm"]["m299@example.com"]["over"] == {"ov.heat": False}, [ids, pl.get("price"), pl.get("price_year"), pr.get("price"), pr.get("price_year"), st["perm"]])
     ok(f"{T}：範本列只剩 Plus（月）、Pro（月）", bool(wait_until(pg, "() => [...document.querySelectorAll('#ptTier button[data-plan]')].map(b => b.textContent.trim()).join('|') === 'Plus（月）|Pro（月）'", 4000)),
        pg.evaluate("() => [...document.querySelectorAll('#ptTier button[data-plan]')].map(b => b.textContent.trim())"))
@@ -49417,7 +49417,9 @@ def t_preset_live_1007(b, base, code):
         pg.screenshot(path=str(pathlib.Path(sh) / "live_pricing_month.png"))
     pg.click("#prPeriod button[data-per=year]"); pg.wait_for_timeout(400)
     tx = pg.inner_text("#v-pricing")
-    ok(f"{T}：切年繳 → 寫「省 17%」、Plus 年繳 NT$ 2,490、Pro 年繳 NT$ 4,990", "省 17%" in tx and "2,490" in tx and "4,990" in tx, tx[:600])
+    ok(f"{T}：切年繳 → 寫「省 17%」、Plus 年繳 NT$ 2,990、Pro 年繳 NT$ 4,990", "省 17%" in tx and "2,990" in tx and "4,990" in tx, tx[:600])
+    ok(f"{T}：套用後訂閱頁 Plus 定位句＝建議方案寫的（不是預設「進階分析與更高的每日次數」）",
+       pg.evaluate("() => (document.querySelector(\"[data-plan='plus'] .who\") || {}).textContent") == "每天主動研究，工具一次到位", pg.evaluate("() => (document.querySelector(\"[data-plan='plus'] .who\") || {}).textContent"))
     if sh:
         pg.screenshot(path=str(pathlib.Path(sh) / "live_pricing_year.png"))
     c.close()
@@ -49669,11 +49671,16 @@ def t_sub_1005(b, base, code):
         ok(f"{T}・demo {W}：?demo=plans 畫出 註冊會員／Plus／Pro 三張", bool(wait_until(pg, "() => [...document.querySelectorAll('#prCards .prcard')].map(c => c.dataset.plan).join(',') === 'free,plus,pro'", 10000)),
            pg.evaluate("() => [...document.querySelectorAll('#prCards .prcard')].map(c => c.dataset.plan).join(',')"))
         dm = pg.evaluate("""() => [...document.querySelectorAll('#prCards .prcard')].map(c => ({ cls: c.className, tag: (c.querySelector('.prtag') || {}).textContent || '', n: c.querySelectorAll('.prhl li').length,
-            price: c.querySelector('.prprice').textContent.replace(/\\s/g, ''), fit: !!c.querySelector('.prfit b'), left: Math.round(c.getBoundingClientRect().left), top: Math.round(c.getBoundingClientRect().top) }))""")
-        ok(f"{T}・demo {W}：年繳 Plus NT$208／月、Pro NT$416／月（2,490／4,990 ÷ 12）、省 17%",
-           [x["price"] for x in dm] == ["免費", "NT$208／月", "NT$416／月"] and pg.inner_text("#prSave") == "省 17%", [x["price"] for x in dm])
+            price: c.querySelector('.prprice').textContent.replace(/\\s/g, ''), fit: !!(c.querySelector('.mfit') || {}).textContent.trim(), who: (c.querySelector('.who') || {}).textContent || '', left: Math.round(c.getBoundingClientRect().left), top: Math.round(c.getBoundingClientRect().top) }))""")
+        ok(f"{T}・demo {W}：年繳 Plus NT$249／月、Pro NT$416／月（2,990／4,990 ÷ 12）、省 17%",
+           [x["price"] for x in dm] == ["免費", "NT$249／月", "NT$416／月"] and pg.inner_text("#prSave") == "省 17%", [x["price"] for x in dm])
+        notes = pg.evaluate("() => [...document.querySelectorAll('#prCards .prnote')].map(e => e.textContent)")
+        ok(f"{T}・demo {W}：年繳小字＝「約 NT$ 249／月（年繳 NT$ 2,990）」「約 NT$ 416／月（年繳 NT$ 4,990）」",
+           notes[1:] == ["約 NT$ 249／月（年繳 NT$ 2,990）", "約 NT$ 416／月（年繳 NT$ 4,990）"], notes)
+        ok(f"{T}・demo {W}：Plus／Pro 定位句是範本寫的，不是預設「進階分析與更高的每日次數」",
+           all(x["who"] and x["who"] != "進階分析與更高的每日次數" for x in dm[1:]), [x["who"] for x in dm])
         pg.click("#prPeriod button[data-per='month']")
-        ok(f"{T}・demo {W}：切月繳 → Plus NT$249／月、Pro NT$499／月", bool(wait_until(pg, "() => [...document.querySelectorAll('#prCards .prprice')].map(e => e.textContent.replace(/\\s/g, '')).join(',') === '免費,NT$249／月,NT$499／月'", 3000)))
+        ok(f"{T}・demo {W}：切月繳 → Plus NT$299／月、Pro NT$499／月", bool(wait_until(pg, "() => [...document.querySelectorAll('#prCards .prprice')].map(e => e.textContent.replace(/\\s/g, '')).join(',') === '免費,NT$299／月,NT$499／月'", 3000)))
         ok(f"{T}・demo {W}：頂端標籤、色系（Plus 藍、Pro 紫）、適合誰、清單各 6 項",
            [x["tag"] for x in dm] == ["", "★ 最受歡迎", "✦ 功能最齊"] and "pc-blue" in dm[1]["cls"] and "pc-violet" in dm[2]["cls"] and "pc-neutral" in dm[0]["cls"]
            and all(x["fit"] for x in dm) and [x["n"] for x in dm] == [6, 6, 6], dm)
@@ -49698,6 +49705,27 @@ def t_sub_1005(b, base, code):
             shot(pg, "1e_pricing_merged_390")
         else:
             ok(f"{T}・demo 1440：三張卡同一排（同一個 top）", len({x["top"] for x in dm}) == 1, dm)
+            # 10-07 Andy「排版沒有統一」：欄頭每一層（名稱列／價格／小字／適合…／按鈕）三欄 top 差 ≤1px、按鈕底緣齊（卡片版＋合併表、月繳＋年繳）
+            ALIGN = """(sel) => { const L = ['.prhd', '.prprice', '.prnote', '.mfit', '.prgo'], cs = [...document.querySelectorAll(sel)];
+                const r = {}; L.forEach(k => { const t = cs.map(c => c.querySelector(k).getBoundingClientRect().top); r[k] = Math.max(...t) - Math.min(...t); });
+                const bt = cs.map(c => c.querySelector('.prgo').getBoundingClientRect().bottom); r.btnBottom = Math.max(...bt) - Math.min(...bt);
+                r.n = cs.length; r.noteClip = cs.some(c => { const e = c.querySelector('.prnote'); return e.scrollWidth > e.clientWidth + 1; }); return r; }"""
+            for per in ("month", "year"):
+                pg.click(f"#prPeriod button[data-per='{per}']"); pg.wait_for_timeout(300)
+                a1 = pg.evaluate(ALIGN, "#prCards .prcard")
+                ok(f"{T}・demo 1440 卡片版（{per}）：三欄各層 top 差 ≤1px、按鈕底緣齊、價格小字沒被截", a1["n"] == 3 and all(v <= 1 for k, v in a1.items() if k not in ("n", "noteClip")) and not a1["noteClip"], a1)
+            if os.environ.get("TW_PRICING_SHOTS"):
+                pg.screenshot(path=str(pathlib.Path(os.environ["TW_PRICING_SHOTS"]) / f"fix2_cards_{W}.png"))
+            pg.click("#prLayout button[data-lay='merged']"); wait_until(pg, "() => document.querySelectorAll('#prMerged thead th[data-plan]').length === 3", 3000)
+            for per in ("month", "year"):
+                pg.click(f"#prPeriod button[data-per='{per}']"); pg.wait_for_timeout(300)
+                a2 = pg.evaluate(ALIGN, "#prMerged thead th[data-plan]")
+                ok(f"{T}・demo 1440 合併表（{per}）：三欄各層 top 差 ≤1px、按鈕底緣齊、價格小字沒被截", a2["n"] == 3 and all(v <= 1 for k, v in a2.items() if k not in ("n", "noteClip")) and not a2["noteClip"], a2)
+            mtx = pg.inner_text("#prMerged thead")
+            ok(f"{T}・demo 1440 合併表：年繳 2,990／4,990、省 17%、Plus 定位句不是預設字", "2,990" in mtx and "4,990" in mtx and pg.inner_text("#prSave") == "省 17%" and "進階分析與更高的每日次數" not in mtx, mtx[:400])
+            if os.environ.get("TW_PRICING_SHOTS"):
+                pg.screenshot(path=str(pathlib.Path(os.environ["TW_PRICING_SHOTS"]) / f"fix2_merged_{W}.png"))
+            pg.click("#prLayout button[data-lay='cards']"); wait_until(pg, "() => !!document.querySelector('#prCards')", 3000)
             pg.click("#prCards .prcard[data-plan='plus'] .prgo")
             ok(f"{T}・demo 1440：訪客按「升級 Plus」→ 先跳登入、不送申請", bool(wait_until(pg, "() => { const d = document.getElementById('acctDlg'); return !!d && !d.hidden; }", 4000))
                and not any(x[0] == "/v1/subscribe/request" for x in sent))
@@ -51760,7 +51788,8 @@ def _adm3_ctx(b, who="admin", width=1440, feats=None, lims=None, theme=None, pla
                   "lims": body.get("lims", prev.get("lims", {})), "builtin": body.get("id") in ("guest", "free"), "members": prev.get("members", 0),
                   "price": body.get("price", prev.get("price", 0)), "period": body.get("period", prev.get("period", "month")),
                   # 2026-10-07：每日額度（dq）與介紹欄位（meta 攤平），同 worker.js 的每日額度／plan-meta 區塊
-                  "dq": body["dq"] if "dq" in body else prev.get("dq"), "price_year": body.get("price_year", prev.get("price_year")), **(body.get("meta") or {k: prev[k] for k in ("badge", "tagline", "fit_title", "fit_desc", "highlights", "price_year") if k in prev})}
+                  "dq": body["dq"] if "dq" in body else prev.get("dq"), "price_year": body.get("price_year", prev.get("price_year")), **(body.get("pres") or body.get("meta") or {k: prev[k] for k in ("badge", "tagline", "fit_title", "fit_desc", "highlights", "price_year", "icon", "color") if k in prev})}
+            if body.get("pres") is not None and "price_year" in body: nw["price_year"] = body["price_year"]   # 10-07：pres 寫法同 worker.js 攤平（套用建議方案改走 pres）
             st["plans"] = [nw if x["id"] == body.get("id") else x for x in st["plans"]] if prev else st["plans"] + [nw]
             out = {"plans": st["plans"]}
         elif path == "/v1/admin/plans/sort":
