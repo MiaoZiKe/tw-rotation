@@ -206,7 +206,7 @@
       // 資料落後（這一列最後一個價早於前一交易日）：不默默顯示舊數字 —— 數字變淡、滑過寫「資料至 MM/DD」
       const old = lag(c), st = old ? ` wpstale" title="資料至 ${esc(old)}（前一交易日的收盤還沒進來）` : '';
       return `<tr data-go="${esc(c)}" tabindex="0"${old ? ` data-stale="${esc(old)}"` : ''}>
-        <td class="nm"><div class="in">${a && a.logo ? a.logo(c, r.name, 28) : ''}<div class="t"><b class="wpgo">${esc(r.name || c)}</b><small class="num">${esc(c)}</small>${r.group ? `<span class="grp">${esc(r.group)}</span>` : ''}</div></div></td>
+        <td class="nm"><div class="in">${a && a.logo ? a.logo(c, r.name, 28) : ''}<div class="t"><b class="wpgo">${esc(r.name || c)}</b><small class="num">${esc(c)}</small>${window.freqBadge ? window.freqBadge(c) : ''}${r.group ? `<span class="grp">${esc(r.group)}</span>` : ''}</div></div></td>
         <td class="c-sp"><span class="wpspk" data-c="${esc(c)}"${old ? ` data-tiphint="資料至 ${esc(old)}"` : ''}>${sparkCell(c)}</span></td>
         <td class="num${st}" data-live="close" data-lc="${esc(c)}">${r.close == null || !f ? '—' : f.n(r.close)}</td>
         <td class="num ${cls}${st}" data-live="chg" data-lc="${esc(c)}">${r.chg_pct == null || !f ? '—' : f.pct(r.chg_pct, 2)}</td>

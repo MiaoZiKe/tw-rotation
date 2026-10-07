@@ -1965,6 +1965,16 @@ a.lk.sm{font-size:12px;font-weight:500}
   flex:1 1 auto;min-width:0;min-height:0}
 .gpcard.dnbelow .gpdonut{flex-direction:column;gap:var(--sp-2,8px)}
 .gpgrid .gpdonut>.chart{flex:none;min-width:0;min-height:0}
+/* ★ 2026-10-07 配息頻率徽章（app.js freqBadge）：全站 ETF 名稱旁邊的「月配／雙月配／季配／半年配／年配／不配息」。
+   樣式照 ETF 卡片的 .fq.fqtag（實心色底、粗體 11.5px 膠囊）；色票跟 etfpage.js 的 --fq-* 同值，搬到 :root 才能全站用。
+   不配息用中性灰（它不是「一種頻率」，不該搶眼）。 */
+:root{--fqb-m:#2dd4bf;--fqb-b:#c084fc;--fqb-q:#fbbf24;--fqb-h:#60a5fa;--fqb-y:#9ca3af;--fqb-n:#64748b}
+:root[data-theme="light"]{--fqb-m:#0f766e;--fqb-b:#7e22ce;--fqb-q:#a16207;--fqb-h:#1d4ed8;--fqb-y:#4b5563;--fqb-n:#94a3b8}
+.fqbdg{display:inline-block;flex:none;margin-left:6px;padding:1px 7px;border-radius:999px;background:var(--fc,var(--fqb-y));color:var(--ontop,#0b1220);
+  font-family:inherit;font-weight:700;font-size:11.5px;line-height:17px;letter-spacing:0;white-space:nowrap;vertical-align:middle;font-variant-numeric:normal}
+.fqbdg.fqc-m{--fc:var(--fqb-m)} .fqbdg.fqc-b{--fc:var(--fqb-b)} .fqbdg.fqc-q{--fc:var(--fqb-q)}
+.fqbdg.fqc-h{--fc:var(--fqb-h)} .fqbdg.fqc-y{--fc:var(--fqb-y)} .fqbdg.fqc-n{--fc:var(--fqb-n)}
+.fqbdg-ph{display:none}
 .gplegend{--lg-row:28px;display:grid;grid-template-columns:12px minmax(0,max-content) max-content max-content;
   column-gap:var(--sp-3,12px);row-gap:2px;align-content:center;flex:none;min-width:0;width:max-content;max-width:100%;margin:0}
 .gplegend .lg{grid-column:1/-1;display:grid;grid-template-columns:subgrid;align-items:center;min-width:0;height:var(--lg-row);
@@ -4329,6 +4339,14 @@ h3 .howbtn.pop{font-family:inherit}
 }
 /* 擋掉兩支 AI 積木（只剩基本面、籌碼快照）：兩張並排 */
 @container skov (min-width:790px){ .skov3[data-cols="2"]>.skovkpi{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));align-items:start} }
+/* ★ 2026-10-07（Andy：「右邊不要空白 讓他填滿 可以將上下欄位便左右」）：ETF 總覽（沒有基本面、AI 卡）——
+   技術面訊號在上面一條滿寬，籌碼快照在下面滿寬、四塊分左右兩欄（多欄排版 columns:2，瀏覽器自己平衡兩欄高度；
+   每塊 break-inside:avoid 不被切開）。左＝法人、集保；右＝信用與借券、量比。容器 < 790 退回單欄（上面的 .mixes 預設）。*/
+@container skov (min-width:790px){
+  .skov3[data-cols="etf"] #skChipCard>.mixes{display:block;columns:2;column-gap:12px}
+  .skov3[data-cols="etf"] #skChipCard>.mixes>*{break-inside:avoid;margin:0 0 10px}
+  .skov3[data-cols="etf"] #skChipCard>.mixes>.mixvr{padding:12px;border-radius:10px;background:var(--panel-3)}   /* 量比也裝進同款灰底塊，右欄才跟左欄一樣是「一塊一塊」 */
+}
 /* 籌碼快照卡內四塊（法人 → 集保 → 信用與借券（含當沖率）→ 量比）一律由上往下排：中欄只有約 430px 寬，
    改前在寬容器排成三欄、量比橫跨下面；三欄版面裡它自己就是一欄，再橫排會擠成每格不到 120px */
 .mixes{display:flex;flex-direction:column;gap:10px;margin-top:8px}

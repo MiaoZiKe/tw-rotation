@@ -55,7 +55,7 @@
     { t: '資金流向：錢往哪個族群跑', sel: [tab('flow'), '#tabs .l4subtab[data-parent="flow"]'], union: true, route: '#flow/rotation', routeRe: /^#flow/, view: 'flow', fast: true,
       d: '分三個子頁：資金輪動（族群跑到強弱循環的哪一段）、資金分流樹（錢從大盤分到哪裡）、族群×法人與集中度。' },
     { t: '熱力圖：哪裡熱、哪裡冷', sel: [tab('heatmap'), '#tabs .l4subtab[data-parent="heatmap"]'], union: true, route: '#heatmap', routeRe: /^#heatmap/, view: 'heatmap', fast: true,
-      d: '一個方塊是一個族群或題材：方塊越大＝成交值越多，越紅＝漲越多、越綠＝跌越多。分「產業」與「題材」兩頁，點方塊看成分股。' },
+      d: '一個方塊是一個族群或題材：方塊越大＝成交值越多，越紅＝漲越多、越綠＝跌越多。分「產業」與「題材」兩頁：產業那張剛好一個畫面；題材那頁點方塊，剖析圖就在正下方同一個畫面展開，不用往下捲。' },
     { t: '產業地圖：產業鏈的上下游', sel: tab('industry'), route: '#industry', routeRe: /^#industry$/, view: 'industry', fast: true,
       d: '先挑一條產業鏈，再看裡面的族群、產品剖析圖與供應鏈關聯圖，最後點公司名稱進個股頁。' },
     { t: '市場明細：完整名單', sel: tab('market'), route: '#market', routeRe: /^#market/, view: 'market', fast: true,
@@ -200,7 +200,7 @@
   };
   const STOCK = [
     { t: '這檔股票是誰', sel: ['#skIdent', '#mbQuote'], route: STOCK_ROUTE, routeRe: /^#stock\//, view: 'industry',
-      d: '名稱、代號、上市或上櫃與現價；下面標出它屬於哪條產業鏈、哪個族群、哪些題材。☆ 把它加進自選。',
+      d: '名稱、代號、上市或上櫃與現價（ETF 另標配息頻率：月配／季配…）；下面標出它屬於哪條產業鏈、哪個族群、哪些題材。☆ 把它加進自選。',
       m: '名稱、代號與現價；左右兩側的 ◀ ▶ 直接切換上一檔、下一檔。' },
     { t: 'K 線的工具列', sel: '#skTools',
       d: '分時、1 時、4 時、日、週、月切換週期；「指標」疊加均線、MACD、KD 等；「四週期同看」把四個週期並排比較。',
