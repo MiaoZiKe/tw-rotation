@@ -1,5 +1,11 @@
 # HANDOFF.md — 目前進度（接手先讀這份）
 
+## 2026-10-07 管理權限1007：可更改功能只限管理者＋「管理權限」頁（資安，分支 `claude/admin-only` → main）
+- 盤點見 docs/admin_only_audit.md。分頁拖曳（site/tabdrag.js）只限管理者，非管理者已存排序清掉；Worker 加 /v1/admin/* 總閘＋admin_log（append-only）＋/v1/admin/admins/list|add|del（只有擁有者＝ADMIN_EMAILS 能加／移除）。
+- #admin/admins 新頁（側欄「管理區 → 管理權限」）。
+- 這批只驗了：node --test（92 綠）、_uitest 管理權限1007／分頁拖曳1006／管理區v3／會員權限開關／會員與自選五分頁／風格規範、_preview（3 個資料檔 404，本機 site/data 缺檔，與本批無關）。
+- 判斷待 Andy 否決：自選清單分頁拖曳沒鎖（本人資料）；個人顯示設定沒鎖。
+
 ## 2026-10-07 播放器1007：全站播放器「調過日期再按 ▶ 不動」（UI 專家，分支 `claude/play-fix` → main）
 - Andy：「播放後再調整日期，再次點擊播放就不能做動」。全站三支播放器：資金輪盤 `#rotBack`（dayBar）、資金去向 `#sankeyDays`（playBar）、個股本益比河流 `#peEnd`（playBar）；`spanBar` 目前沒有呼叫端。
 - 根因：`route()` 與換主題會 `_players.clear()`，但已畫過的頁不重建拉Bar → 畫面上的播放器從登記表消失，之後換頁／即時停不到它（幽靈計時器，回來時鈕停在 ⏸，按下去只是暫停）；另外 ▶ 按下要等滿一個 frame（420～650ms）才動第一格、鍵盤方向鍵調拉桿不會停播。

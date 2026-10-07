@@ -42,6 +42,35 @@
     del(k) { try { localStorage.removeItem(k); } catch (e) { /* 同上 */ } },
   };
 
+  /* ★ 2026-10-07（Andy 14:50）：「拖曳功能，只有帳號可以使用，任何可更改功能都只有我這帳號可以，其他帳號我沒有新增管理者情況下不行」。
+     只有管理者（擁有者＋擁有者在 #admin/admins 加的人；判定在 Worker，前端只讀 /v1/me 回的 admin 旗標）可以拖。
+     非管理者：不掛 data-tdrag（沒有拖曳游標、沒有提示、拖不動、Alt+←→／右鍵還原都不作用），已存的 tw.tabs.* 一律清掉回預設。
+     判斷用 TwAccount.user()；account.js 還沒載入時退回同一份登入快取（tw.acct.user），免得管理者自己的順序在開頁瞬間被清掉。
+     ⚠ 這是「每人自己瀏覽器的排列」，不會改到全站；但 Andy 明講仍只限管理者，照做（docs/admin_only_audit.md）。*/
+  function isAdm() {
+    try {
+      const A = window.TwAccount;
+      if (A && A.on && !A.on()) return false;                 // 會員功能沒設定＝沒有管理者
+      const u = A && A.user ? A.user() : JSON.parse(localStorage.getItem('tw.acct.user') || 'null');
+      return !!(u && u.admin);
+    } catch (e) { return false; }
+  }
+  /* 只在「確定不是管理者」時清：會員功能沒設定、沒登入（沒權杖）、或身分已確認但不是管理者。
+     有權杖但 /v1/me 還沒回來（身分未知）時先不清，免得管理者自己的順序在開頁瞬間被洗掉；回來後 tw:account 會再判一次。*/
+  function notAdmKnown() {
+    let tok = null; try { tok = localStorage.getItem('tw.acct.tok'); } catch (e) { return false; }
+    if (!tok) return true;                                   // 沒登入
+    const A = window.TwAccount, u = A && A.on && A.on() && A.user && A.user();
+    return !!u && !u.admin;                                  // 已確認身分且不是管理者
+  }
+  function purge() { if (!notAdmKnown()) return; try { Object.keys(localStorage).filter((k) => k.startsWith('tw.tabs.')).forEach((k) => localStorage.removeItem(k)); } catch (e) { /* 私密視窗 */ } }
+  function strip(bar) {
+    if (!bar.hasAttribute('data-tdrag')) return;
+    bar.removeAttribute('data-tdrag'); bar.removeAttribute('data-tdcustom');
+    if (bar.title === TITLE) bar.removeAttribute('title');
+    items(bar).forEach((el) => { if (el.style.order) el.style.order = ''; el.classList.remove('td-src'); });
+  }
+  const TITLE = '拖曳分頁可調整順序（或 Alt+←／→）；改過後按右鍵可還原';
   const isBar = (el) => !!(el && el.nodeType === 1 && el.matches(SEL) && !el.closest(EXCL));
   const items = (bar) => [...bar.children].filter((c) => c.nodeType === 1 && !c.hidden && c.tagName !== 'TEMPLATE');
   function itemId(el) {
@@ -73,9 +102,10 @@
   }
   function apply(bar) {
     if (!isBar(bar)) return;
+    if (!isAdm()) { strip(bar); return; }
     if (!bar.hasAttribute('data-tdrag')) {
       bar.setAttribute('data-tdrag', '');
-      if (!bar.title) bar.title = '拖曳分頁可調整順序（或 Alt+←／→）；改過後按右鍵可還原';
+      if (!bar.title) bar.title = TITLE;
     }
     paint(bar, merged(bar));
   }
@@ -181,8 +211,11 @@ html.td-dragging, html.td-dragging *{cursor:grabbing!important;user-select:none!
     }
     bars.forEach(apply);
   });
-  function start() { scan(document); mo.observe(document.body, { childList: true, subtree: true }); }
+  /* 身分換了（登入／登出／被加為或移除管理者）→ 整頁重掃：非管理者拔掉拖曳、清掉已存順序 */
+  function recheck() { if (!isAdm()) { purge(); D = null; document.documentElement.classList.remove('td-dragging'); document.querySelectorAll('[data-tdrag]').forEach(strip); } scan(document); }
+  window.addEventListener('tw:account', recheck);
+  function start() { if (!isAdm()) purge(); scan(document); mo.observe(document.body, { childList: true, subtree: true }); }
   if (document.body) start(); else document.addEventListener('DOMContentLoaded', start);
 
-  window.TabDrag = { scan, reset, key, order: (bar) => visual(bar).map(itemId) };
+  window.TabDrag = { scan, reset, key, enabled: isAdm, order: (bar) => visual(bar).map(itemId) };
 })();

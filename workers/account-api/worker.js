@@ -2036,3 +2036,81 @@ Hub.prototype.adminPlansPut = async function (req, b) {
 const presOrigExpInit = Hub.prototype.expInit;
 Hub.prototype.expInit = function () { presOrigExpInit.call(this); this.presInit(); };
 /* ============================================================================ 方案卡呈現區塊結束 */
+
+/* ============================================================================ 管理權限區塊（2026-10-07，docs/admin_only_audit.md）
+   Andy（10-07 14:50）：「任何可更改功能都只有我這帳號可以，其他帳號我沒有新增管理者情況下不行」
+                        「管理那邊需要新增一個誰擁有管理權限」。
+   ① 擁有者＝ADMIN_EMAILS（Worker Secret，沿用既有設定；email 不寫進 public repo）。永遠是管理者、不能被移除或降級。
+   ② 其他管理者＝擁有者在 #admin/admins 加的人，存在 admin_log（append-only：每次新增／移除都是新的一列，舊列不改不刪；
+      某個 email 目前是不是管理者＝它最新一列是 add 還是 del）。這張表同時就是稽核紀錄。
+   ③ 只有擁有者能新增／移除管理者（一般管理者不行）：否則任何一個被加進來的人都能再加人、甚至互相拔掉，
+      權限會在擁有者不知情的情況下擴散。代價：擁有者不在時沒人能加人 —— 對一人經營的站可以接受。
+   ④ 移除時把那個人的 users.tv + 1：舊權杖下一次請求就失效（重新登入後是一般會員）。
+      就算不換 tv，isAdmin() 每次請求都即時查這張表，所以被移除的人「下一個請求」就已經不是管理者。
+   ⑤ 伺服器端總閘：所有 POST /v1/admin/*（匯出／還原那兩條另有備份權杖規則，除外）在進到各自的處理函式之前，
+      先驗「權杖有效且是管理者」，不是就 403。各端點原本自己的檢查照留（兩道）—— 以後新增 admin 端點忘了檢查也擋得住。
+   ============================================================================ */
+const ADM_EMAIL_RE = /^[^\s@,;]{1,64}@[^\s@,;]{1,190}\.[^\s@,;]{2,24}$/;
+Hub.prototype.admInit = function () {
+  if (this._admInit) return;
+  this._admInit = true;
+  this.q('CREATE TABLE IF NOT EXISTS admin_log (id INTEGER PRIMARY KEY AUTOINCREMENT, ts INTEGER, act TEXT, email TEXT, by TEXT)');
+  this.q('CREATE INDEX IF NOT EXISTS admin_log_email ON admin_log (email, id)');
+};
+Hub.prototype.owners = function () { return String(this.env.ADMIN_EMAILS || '').toLowerCase().split(/[\s,;]+/).filter(Boolean); };
+Hub.prototype.isOwner = function (u) { return !!u && !!u.email && this.owners().includes(String(u.email).toLowerCase()); };
+/* 目前的「加進來的管理者」：每個 email 取最新一列，是 add 的才算（附加入時間、加入者＝那一列）*/
+Hub.prototype.extraAdmins = function () {
+  this.admInit();
+  const rows = this.q('SELECT a.email, a.ts, a.by, a.act FROM admin_log a JOIN (SELECT email, MAX(id) AS id FROM admin_log GROUP BY email) m ON m.id = a.id ORDER BY a.id');
+  const own = this.owners();
+  return rows.filter((r) => r.act === 'add' && !own.includes(r.email)).map((r) => ({ email: r.email, added: r.ts, by: r.by }));
+};
+Hub.prototype.admins = function () { return [...new Set([...this.owners(), ...this.extraAdmins().map((r) => r.email)])]; };
+const admOrigPubUser = Hub.prototype.pubUser;
+Hub.prototype.pubUser = function (u) { return { ...admOrigPubUser.call(this, u), owner: this.isOwner(u) }; };
+Object.assign(Hub.prototype.subRoutes, {
+  '/v1/admin/admins/list': async function (req, b) {
+    const v = await this.admin(req, b);
+    if (!v) return this.json(req, { error: 'forbidden' }, 403);
+    this.admInit();
+    const log = this.q('SELECT id, ts, act, email, by FROM admin_log ORDER BY id DESC LIMIT 200');
+    return this.json(req, { owners: this.owners().map((email) => ({ email, owner: true })), admins: this.extraAdmins(), log, me: { email: v.user.email, owner: this.isOwner(v.user) } });
+  },
+  '/v1/admin/admins/add': async function (req, b) {
+    const v = await this.admin(req, b);
+    if (!v) return this.json(req, { error: 'forbidden' }, 403);
+    if (!this.isOwner(v.user)) return this.json(req, { error: 'owner_only' }, 403);
+    const email = String(b.email || '').trim().toLowerCase();
+    if (!ADM_EMAIL_RE.test(email)) return this.json(req, { error: 'bad_email' }, 400);
+    if (this.admins().includes(email)) return this.json(req, { error: 'exists' }, 409);
+    this.admInit();
+    this.q('INSERT INTO admin_log (ts, act, email, by) VALUES (?, ?, ?, ?)', this.now(), 'add', email, String(v.user.email || '').toLowerCase());
+    return this.json(req, { ok: true, admins: this.extraAdmins() });
+  },
+  '/v1/admin/admins/del': async function (req, b) {
+    const v = await this.admin(req, b);
+    if (!v) return this.json(req, { error: 'forbidden' }, 403);
+    if (!this.isOwner(v.user)) return this.json(req, { error: 'owner_only' }, 403);
+    const email = String(b.email || '').trim().toLowerCase();
+    if (this.owners().includes(email)) return this.json(req, { error: 'owner' }, 409);
+    if (!this.extraAdmins().some((r) => r.email === email)) return this.json(req, { error: 'not_admin' }, 404);
+    this.q('INSERT INTO admin_log (ts, act, email, by) VALUES (?, ?, ?, ?)', this.now(), 'del', email, String(v.user.email || '').toLowerCase());
+    this.q('UPDATE users SET tv = tv + 1 WHERE lower(email) = ?', email);    // 舊權杖下一次請求即失效
+    return this.json(req, { ok: true, admins: this.extraAdmins() });
+  },
+});
+const admOrigFetch = Hub.prototype.fetch;
+Hub.prototype.fetch = async function (req) {
+  const p = new URL(req.url).pathname;
+  if (req.method === 'POST' && p.startsWith('/v1/admin/') && p !== '/v1/admin/export' && p !== '/v1/admin/import') {
+    let b = {};
+    try { const raw = await req.clone().text(); if (raw.length <= 16384) b = JSON.parse(raw || '{}') || {}; } catch (e) { b = {}; }
+    if (!(b && typeof b === 'object' && !Array.isArray(b) && (await this.admin(req, b)))) {
+      if (!this.originOk(req.headers.get('Origin'))) return this.json(req, { error: 'origin' }, 403);
+      return this.json(req, { error: 'forbidden' }, 403);
+    }
+  }
+  return admOrigFetch.call(this, req);
+};
+/* ============================================================================ 管理權限區塊結束 */
