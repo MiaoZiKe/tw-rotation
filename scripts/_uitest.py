@@ -1854,7 +1854,7 @@ def t_etf_hold_1007(pg, b, base):
         wait_until(lp, f"() => {{ const b = document.querySelector(\"{sel}\"); return !!(b && b.offsetParent); }}", 15000)
         lp.click(sel)
 
-    for W in (1440, 390):
+    for W in (1440, 1024, 390):
         t = f"{tag}@{W}"
         lp = pg.context.browser.new_page(viewport={"width": W, "height": 1000 if W > 400 else 844})
         lp.on("pageerror", lambda e: fails.append(f"{t} pageerror: {e}"))
@@ -1896,10 +1896,51 @@ def t_etf_hold_1007(pg, b, base):
                     ok(f"★ [{t}] 甜甜圈在清單{'左邊' if W > 1099 else '上方（堆疊）'}", (lay["pR"] <= lay["tL"] + 1) if W > 1099 else (lay["pB"] <= lay["tT"] + 1), lay)
                     ok(f"★ [{t}] 圖例 11 列（前 10＋其他）", len(lay["lg"]) == 11 and lay["lg"][10]["nm"].startswith("其他"), lay["lg"])
                     ok(f"★ [{t}] 圖例數值＝清單權重", [x["pc"] for x in lay["lg"][:10]] == lay["wv"], (lay["wv"], [x["pc"] for x in lay["lg"][:10]]))
-                    ok(f"★ [{t}] 清單用簡稱（台積電…，不是全名）", "台積電2330" in lay["nm"] and "台灣積體電路" not in "".join(lay["nm"]), lay["nm"])
+                    ok(f"★ [{t}] 清單用簡稱（台積電…，不是全名）", any(s.startswith("台積電2330") for s in lay["nm"]) and "台灣積體電路" not in "".join(lay["nm"]), lay["nm"])
                     ok(f"★ [{t}] 前 10 名色點＝扇區色＝圖例色塊", lay["dots"] == lay["sec"][:10] == [x["bg"] for x in lay["lg"][:10]], (lay["dots"], lay["sec"][:10]))
                     ok(f"[{t}] 第 10、11 名間有「其他」分隔列", lay["sep"])
                     ok(f"★ [{t}] 沒有橫向溢出", lay["hs"] <= 1, lay["hs"])
+                    # ★ 2026-10-07 19:00 Andy：「新增公司 LOGO 以及走勢圖、族群、價格、法人當日買超賣超狀況，可以參考搜尋功能那邊」
+                    #   每列：Logo（img 或字母色塊）｜名稱＋代號｜族群｜迷你走勢（sparks）｜現價＋漲跌｜法人（張，紅買綠賣）｜權重
+                    wait_until(lp, "() => document.querySelector('#etfHoldTbl tbody tr[data-i] td.sk svg.spk')", 8000)
+                    rich = J("""() => { const red = getComputedStyle(document.documentElement).getPropertyValue('--rise').trim(), grn = getComputedStyle(document.documentElement).getPropertyValue('--fall').trim();
+                      const probe = (v) => { const d = document.createElement('i'); d.style.color = v; document.body.appendChild(d); const c = getComputedStyle(d).color; d.remove(); return c; };
+                      const R = probe(red), G = probe(grn);
+                      const rs = [...document.querySelectorAll('#etfHoldTbl tbody tr[data-i]')].filter(r => r.dataset.code !== 'AAPL US');
+                      const vis = (e) => !!e && e.getBoundingClientRect().width > 0 && getComputedStyle(e).display !== 'none';
+                      const one = (r) => { const lg = r.querySelector('td.nm .slogo'); const iv = r.querySelector('td.iv'); const lgr = lg && lg.getBoundingClientRect();
+                        const gpCol = r.querySelector('td.gp'), gp2 = r.querySelector('td.nm .gp2');
+                        return { c: r.dataset.code, logo: !!lg && (!!lg.querySelector('img') || (getComputedStyle(lg, '::before').content || '').length > 2) && lgr.width >= 18,
+                          spk: !!r.querySelector('td.sk svg.spk'), spkVis: vis(r.querySelector('td.sk')),
+                          gp: (vis(gpCol) ? gpCol.textContent : (vis(gp2) ? gp2.textContent : '')).trim(),
+                          px: (r.querySelector('td.px .pv') || {}).textContent || '', pc: (r.querySelector('td.px .pc') || {}).textContent || '',
+                          iv: iv.textContent.trim(), ivCol: getComputedStyle(iv).color }; };
+                      const ap = document.querySelector('#etfHoldTbl tr[data-code="AAPL US"]');
+                      return { R, G, rows: rs.map(one), aapl: ap ? [...ap.querySelectorAll('td.gp,td.px,td.iv')].map(td => td.textContent.trim()) : null,
+                        hs: document.documentElement.scrollWidth - innerWidth,
+                        tblOver: (() => { const s = document.querySelector('#etfHoldCard .hdscroll'); return s.scrollWidth - s.clientWidth; })() }; }""")
+                    rr = rich["rows"]
+                    ok(f"★ [{t}] 每列都有 Logo（圖或首字色塊）", rr and all(x["logo"] for x in rr), [x["c"] for x in rr if not x["logo"]])
+                    ok(f"★ [{t}] 每列都有迷你走勢 svg（sparks.json）", sum(x["spk"] for x in rr) >= len(rr) - 2, [x["c"] for x in rr if not x["spk"]])
+                    if W <= 640:
+                        ok(f"[{t}] 手機寬把走勢欄收起", not any(x["spkVis"] for x in rr))
+                    else:
+                        ok(f"[{t}] 走勢欄看得到", all(x["spkVis"] for x in rr))
+                    ok(f"★ [{t}] 每列都有族群文字（名稱下第二行小字）", sum(1 for x in rr if x["gp"] and x["gp"] != "—") >= len(rr) * 0.8, [(x["c"], x["gp"]) for x in rr[:6]])
+                    ok(f"★ [{t}] 每列都有現價與漲跌%", all(re.match(r"^[\d,]+(\.\d+)?$", x["px"]) and (x["pc"].endswith("%") or x["pc"] == "—") for x in rr), [(x["px"], x["pc"]) for x in rr[:5]])
+                    ivh = text(lp, "#etfHoldTbl th.ivh")
+                    ok(f"[{t}] 法人欄表頭標出資料日（法人 MM/DD）", re.match(r"^法人 \d\d/\d\d$", ivh.strip()) is not None, ivh)
+                    ivs = [x for x in rr if x["iv"] != "—"]
+                    ok(f"★ [{t}] 法人欄有數字且帶「張」", len(ivs) >= 3 and all(x["iv"].endswith(" 張") for x in ivs), [x["iv"] for x in rr[:8]])
+                    def _ivn(s): return int(s.replace(" 張", "").replace(",", "").replace("+", ""))
+                    bad = [(x["iv"], x["ivCol"]) for x in ivs if (_ivn(x["iv"]) > 0 and x["ivCol"] != rich["R"]) or (_ivn(x["iv"]) < 0 and x["ivCol"] != rich["G"])]
+                    ok(f"★ [{t}] 法人買超紅、賣超綠", not bad, (bad[:4], rich["R"], rich["G"]))
+                    ok(f"[{t}] 非台股成分（AAPL US）族群／現價／法人都留「—」", rich["aapl"] is not None and all(v in ("—", "") for v in rich["aapl"]) and "—" in rich["aapl"], rich["aapl"])
+                    ok(f"★ [{t}] 加欄之後清單與頁面都沒有橫向溢出", rich["hs"] <= 1 and rich["tblOver"] <= 1, (rich["hs"], rich["tblOver"]))
+                    if W >= 1100:
+                        gapw = J("""() => { const r = document.querySelector('#etfHoldTbl tbody tr[data-i]'); const nm = r.querySelector('td.nm'); const t = r.querySelector('.nmt').getBoundingClientRect();
+                          return nm.getBoundingClientRect().right - t.right; }""")
+                        ok(f"★ [{t}] 名稱欄不再一大片空白（名稱右邊空白 < 160px）", gapw < 160, gapw)
                     # 滑過圖例第 3 列 → 中心換成該檔、清單對應列高亮
                     if W > 400:
                         lp.hover("#etfHoldLegend .lg:nth-child(3)"); lp.wait_for_timeout(300)
