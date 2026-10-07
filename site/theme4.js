@@ -244,7 +244,7 @@
       const lead = +buy > +sell ? '連買的檔數多於連賣' : +buy < +sell ? '連賣的檔數多於連買' : '連買與連賣檔數相當';
       return `<b>${who}${lead}</b>：連買 ≥${d} 天 <span class="up">${buy}</span> 檔、連賣 <span class="down">${sell}</span> 檔`;
     },
-    /* 資金流向排行：橫條圖最上與最下那一根（佔比變化 pp） */
+    /* 族群資金排行：橫條圖最上與最下那一根（佔比變化 pp） */
     flowRotCard() {
       const b = bars(ec('rankFlow'));
       if (b.length < 2) return '';

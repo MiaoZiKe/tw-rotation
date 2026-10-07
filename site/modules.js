@@ -47,28 +47,28 @@
       "at": [
         { "page": "overview", "step": 1, "seg": "資金輪盤", "ord": 10,
           "selector": ["#ovRotCard", "#ovRotHead", "#ovRotKpi", "#how-rotm", "#rotClockMiniWrap"],
-          "note": "第①步的主圖。它就是「錢往哪個族群跑」最直接的一張圖，以前是總覽中段的一張卡、要捲 1911px 才看得到。2026-10-04（DECISIONS #315）起「資金去向」有自己的外殼 #ovFlowCard（右欄上下兩張卡），不再跟輪盤共用 #ovRotCard；兩段各列各的外殼，另一段才不會留下空卡片。#ovRotKpi 是手機才長出來的四象限計數（miaRotKpi）。" },
+          "note": "第①步的主圖。它就是「錢往哪個族群跑」最直接的一張圖，以前是總覽中段的一張卡、要捲 1911px 才看得到。2026-10-04（DECISIONS #315）起「資金分流樹」有自己的外殼 #ovFlowCard（右欄上下兩張卡），不再跟輪盤共用 #ovRotCard；兩段各列各的外殼，另一段才不會留下空卡片。#ovRotKpi 是手機才長出來的四象限計數（miaRotKpi）。" },
         { "page": "flow", "seg": "輪動", "ord": 10, "selector": ["#flowRotCard"],
           "note": "跟 flow.rank 合併在同一張卡（2026-09-21 Andy：兩張圖合併、共用篩選），所以兩塊積木宣告同一段。" }
       ],
       "tests": ["新-輪動時鐘", "資金輪動合併", "輪動時鐘即時", "輪動象限面板", "批次30-兩層下拉與象限卡", "總覽", "足跡輪盤全部腳印", "即時僅管理者1006"] },
 
-    { "id": "flow.rank", "name": "資金流向排行", "question": "①", "ask": "這一段時間誰把錢吸走了（成交值／法人淨額的族群排名）",
+    { "id": "flow.rank", "name": "族群資金排行", "question": "①", "ask": "這一段時間誰把錢吸走了（成交值／法人淨額的族群排名）",
       "tier": "免費", "law": "🟡",
       "at": [
         { "page": "flow", "seg": "輪動", "ord": 10, "selector": ["#flowRotCard"] }
       ],
       "tests": ["資金流向", "新-資金流向", "資金輪動合併", "批次7"] },
 
-    { "id": "flow.sankey", "name": "資金去向分流圖", "question": "①", "ask": "錢從大盤分到哪幾條產業鏈、鏈裡又分給哪幾個族群",
+    { "id": "flow.sankey", "name": "資金分流樹", "question": "①", "ask": "錢從大盤分到哪幾條產業鏈、鏈裡又分給哪幾個族群",
       "tier": "免費", "law": "🟡",
       "at": [
-        { "page": "overview", "step": 1, "seg": "資金去向", "ord": 20,
+        { "page": "overview", "step": 1, "seg": "資金分流樹", "ord": 20,
           "selector": ["#ovFlowCard", "#ovFlowHead", "#ovFlowWrap"],
           "note": "總覽上的簡版（renderOvFlow）。2026-09-26 桌機改用 flowtopo.js 緊湊版 layout:'mini'（和資金流向頁經典光纖第二版同一套視覺，有粒子），手機 ≤820 仍是 ECharts 樹。外殼是 #ovFlowCard（10-04 以前與輪動時鐘共用 #ovRotCard，見 flow.clock）。2026-09-24 說明精簡：圖下註腳 #ovFlowNote 拿掉，口徑搬進資金輪盤的「?」。" },
-        { "page": "flow", "seg": "資金去向", "ord": 20, "selector": ["#flowSankeyCard"] }
+        { "page": "flow", "seg": "資金分流樹", "ord": 20, "selector": ["#flowSankeyCard"] }
       ],
-      "tests": ["新-資金流向", "資金去向經典光纖", "資金去向拓撲", "資金去向拓撲-減少動態", "桑基展開與即時", "批次30-兩層下拉與象限卡", "總覽", "總覽右欄", "資金去向v2", "設計系統v2", "載入效能", "即時僅管理者1006"] },
+      "tests": ["新-資金流向", "資金分流樹經典光纖", "資金分流樹拓撲", "資金分流樹拓撲-減少動態", "桑基展開與即時", "批次30-兩層下拉與象限卡", "總覽", "總覽右欄", "資金分流樹v2", "設計系統v2", "載入效能", "即時僅管理者1006"] },
 
     { "id": "flow.heat", "name": "資金熱力圖", "question": "①", "ask": "哪些族群現在佔掉最多成交值，而且是在流入還是流出",
       "tier": "免費", "law": "🟡",
@@ -123,7 +123,7 @@
       ],
       "tests": ["大盤三張圖", "新-大盤三張圖", "夜盤真實fixture", "夜盤推送", "夜盤盤後0930", "台指期Deno優先", "即時僅管理者1006"] },
 
-    { "id": "market.kpi", "name": "總覽摘要卡列", "question": "②", "ask": "今天盤面一眼看完（漲跌家數、資金輪盤四段、資金去向、熱門題材），點卡片到對應的大圖",
+    { "id": "market.kpi", "name": "總覽摘要卡列", "question": "②", "ask": "今天盤面一眼看完（漲跌家數、資金輪盤四段、資金分流樹、熱門題材），點卡片到對應的大圖",
       "tier": "免費", "law": "🟢",
       "at": [
         { "page": "overview", "selector": ["#hero"],

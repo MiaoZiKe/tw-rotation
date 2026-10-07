@@ -7,7 +7,7 @@
   const $ = (s, r) => (r || document).querySelector(s);
   const $$ = (s, r) => Array.from((r || document).querySelectorAll(s));
   /* ★ 2026-10-06 即時僅管理者（Andy：「所有的即時功能，只有在我這帳號才會出現，其他帳號都隱藏」，DECISIONS #326）。
-     閘門在 site/livegate.js；這支檔裡的即時入口（漲跌家數「盤後／⚡ 即時」、輪動時鐘與資金去向的「即時」鈕、
+     閘門在 site/livegate.js；這支檔裡的即時入口（漲跌家數「盤後／⚡ 即時」、輪動時鐘與資金分流樹的「即時」鈕、
      總覽摘要卡右上角的即時開關）開頭都問它。不是管理者 → 鈕不掛（或整列藏起來）、按了也不動作、不打任何報價端點。*/
   const liveOK = () => !!(window.TwLive && window.TwLive.allowed());
   const D = {};                       // 已載入的 JSON
@@ -767,7 +767,7 @@
         if (!i || !(el.clientWidth > 0) || !(el.clientHeight > 0)) return;
         /* ★ 2026-09-21：尺寸沒有真的變就不要再 resize 一次。
            `resize()` 會**立刻**重排並且吃掉正在跑的補間動畫；
-           資金去向展開族群時容器要長高，是「先自己 resize 到新高度、再 setOption 補間」，
+           資金分流樹展開族群時容器要長高，是「先自己 resize 到新高度、再 setOption 補間」，
            如果 ResizeObserver 隨後又補一次 resize，換位動畫就會在第一幀被切斷
            （實測：y 從 885 直接跳到 1007，中間一格都沒有）。
            ResizeObserver 本來就只在尺寸變動時才發，所以這道閘門平常是 no-op。*/
@@ -1432,7 +1432,7 @@
          `const s = +localStorage.getItem(o.key); if (s >= min && s <= max) v = s;`
        `localStorage.getItem` 沒存過會回 `null`，而 `+null === 0` ——
        所以只要這支拉Bar 的 min 是 0，第一次打開就會被當成「使用者上次選了 0」。
-       資金去向的「看哪一天」min 就是 0，於是**第一次打開看到的是 60 天前那一天**，
+       資金分流樹的「看哪一天」min 就是 0，於是**第一次打開看到的是 60 天前那一天**，
        不是最新；而且因為畫面本身完全正常，沒有人會覺得它壞了。
        一定要先確認鍵真的存在、而且是個有限數字，才准覆蓋預設值。*/
     if (o.key) {
@@ -1503,7 +1503,7 @@
      即時模式只畫「最新那一刻」，這時候拉Bar 還能拖，使用者會以為自己在看某一天，
      其實畫面不是；以前的做法是「拖了就自動退出即時」，等於讓一個不明顯的副作用替他做決定。
      現在改成：即時開著 → 同一排的日期／拉桿／− ＋ ▶ 全部停用並反灰，只留「即時」那顆可按；
-     關掉即時才恢復。全站只有這一支在做這件事（輪動時鐘、資金去向、live.js 的卡片都叫它），
+     關掉即時才恢復。全站只有這一支在做這件事（輪動時鐘、資金分流樹、live.js 的卡片都叫它），
      不要每張卡各寫一套。容器被 rangeBar／playBar 重建後，呼叫端的 stamp 會再叫一次把狀態補回去。*/
   const LIVE_DIM_TIP = '即時模式中，關閉即時才能回看歷史';
   function liveDim(box, on) {
@@ -1604,7 +1604,7 @@
       stopPlayGroup(o.group, api);      // 同一個值一次只准一支在播（見 _players 那一段的量測）
       const { min, max } = lim();
       const d = dirOf();
-      /* 播放器1007：按下 ▶ 當下就要有一格的反應。以前要等滿一個 frame（資金去向 650ms）才動第一格，
+      /* 播放器1007：按下 ▶ 當下就要有一格的反應。以前要等滿一個 frame（資金分流樹 650ms）才動第一格，
          調過日期再按 ▶ 的那半秒畫面完全不動，看起來就是「按了沒反應」。
          已經在尾端 → 從頭那一格就是反應；不在尾端 → 立刻往後走一格。*/
       if (d > 0 ? +inp.value >= max : +inp.value <= min) setV(d > 0 ? min : max);   // 已經在尾端就從頭播
@@ -2353,7 +2353,7 @@
       if (i > subs.length - 1) i = 0;
       /* ⚠ 先算「這一段要顯示哪些元素」的聯集，再一次套用。
          逐段 toggle 會出錯：同一個元素如果同時屬於兩段（例如 `#ovRotCard` 是
-         「輪動時鐘」與「資金去向」共用的卡片外殼），後面那一段會把前面那一段剛開的又關掉。*/
+         「輪動時鐘」與「資金分流樹」共用的卡片外殼），後面那一段會把前面那一段剛開的又關掉。*/
       const on = new Set((subs[i] || { els: [] }).els);
       found.forEach(g => g.els.forEach(el => el.classList.toggle('mp-off', !on.has(el))));
       /* ★ 2026-09-24 修：**空殼容器要跟著收掉**。
@@ -2779,7 +2779,7 @@
       return;
     }
     /* ★ 2026-10-03 版面 V2（Andy：「資金流向」拆三個側欄子分頁、「熱力圖」拆產業／題材兩個子分頁）—— **只在電腦版（掛 l4）**：
-       · #flow → #flow/rotation（資金輪動）、#flow/sankey（資金去向）、#flow/inst（族群×法人＋資金集中度）
+       · #flow → #flow/rotation（資金輪動）、#flow/sankey（資金分流樹）、#flow/inst（族群×法人＋資金集中度）
        · #heatmap → #heatmap/industry（產業）、#heatmap/theme[/<id>]（題材；沿用 2026-09-24 起就有的網址，外面存的連結不會壞）
        沒帶子分頁（或帶了認不得的）一律 replace 到第一個子分頁：不多留一筆歷史，上一頁才按得出去（跟 #themes 同一個理由）。
        子分頁只決定「這一頁顯示哪幾張卡」（<html data-l4sub>，layout4.css 依它藏其他卡），**計算邏輯一行都沒改**；
@@ -2930,9 +2930,9 @@
   /* 捲到某個元素，並且盯到版面穩住為止（以前是 wireKpiDrill 的內文；2026-09-28 KPI 細列換成摘要卡列後抽出來共用）。
      ★ 2026-09-19：換頁之後要再捲到那張圖。例如集中度圖在資金流向頁 2700px 處，
        使用者點完只會看到頁面頂端，得自己往下捲很久才找得到 —— 看起來像「點了沒反應」。
-     ★ 2026-09-28：總覽摘要卡列在**同一頁**裡捲（資金輪盤／資金去向／熱門題材），下面那幾張卡是捲近了才畫（whenNear），
+     ★ 2026-09-28：總覽摘要卡列在**同一頁**裡捲（資金輪盤／資金分流樹／熱門題材），下面那幾張卡是捲近了才畫（whenNear），
        捲的途中它們一張張長高，捲一次一定停在錯的位置 —— 同一個「盯到穩住」正好用得上。 */
-  // self＝捲到元素本身而不是它所在的整張卡（「昨日資金去向」是資金輪盤那張卡的下半段，捲到卡頂等於沒捲到）
+  // self＝捲到元素本身而不是它所在的整張卡（「昨日資金分流樹」是資金輪盤那張卡的下半段，捲到卡頂等於沒捲到）
   function scrollSettle(anchor, self) {
     let tries = 0, settles = 0, rescrolls = 0, lastTop = null, userMoved = false;
     const release = () => { userMoved = true; };
@@ -3312,7 +3312,7 @@
   }
 
   /* ================================================================ 漲跌家數／漲跌分佈的「即時」模式（D4）
-     Andy 2026-09-23：「漲跌幅需要多一個『即時』Mode」。比照資金去向與輪動時鐘那兩顆「即時」鈕：
+     Andy 2026-09-23：「漲跌幅需要多一個『即時』Mode」。比照資金分流樹與輪動時鐘那兩顆「即時」鈕：
      同一顆 `.pb.livebtn`／同一套 seg、按下去切換、每分鐘一輪、再按一次退回盤後，**盤後是預設**。
 
      ── 這個模式在回答什麼 ──
@@ -3532,7 +3532,7 @@
       '「今日關注」是把符合預先公開之技術與籌碼條件的股票列出來：A＝回檔型態條件成立、B＝突破型態條件成立，都是固定規則的判定，'
       + '不是買賣建議，也不構成投資建議。本站非證券投資顧問，投資決策與風險由使用者自行判斷並承擔。'],
     rot: [DISC_LINE,
-      '改善／領先／轉弱／落後四個階段、資金流向排行，以及旁邊的描述（例如「相對強度仍高、動能轉弱」），都是依族群相對大盤的強弱與動能'
+      '改善／領先／轉弱／落後四個階段、族群資金排行，以及旁邊的描述（例如「相對強度仍高、動能轉弱」），都是依族群相對大盤的強弱與動能'
       + '用固定規則判讀，只描述資金目前的位置，不是買賣建議，也不構成投資建議。本站非證券投資顧問。'],
     tag: [DISC_LINE,
       '符合／未符合是用月營收、季報與籌碼資料套固定條件算出來的描述，不是買賣建議，也不構成投資建議。本站非證券投資顧問。'],
@@ -3662,7 +3662,7 @@
         bind();
       };
       /* ★ D4：模式切換列。盤後是預設（Andy 指定），即時那一顆亮起來的樣子沿用
-         全站那顆 `.pb.livebtn`（資金去向、輪動時鐘都是同一顆），不另外發明一種。*/
+         全站那顆 `.pb.livebtn`（資金分流樹、輪動時鐘都是同一顆），不另外發明一種。*/
       body.innerHTML = `<div class="row" style="gap:8px;align-items:center;margin:0 0 10px" data-live-ui>
           <div class="seg tiny" id="mktMode">
             <button data-m="eod" class="${live || MUD.on ? '' : 'on'}">盤後</button>
@@ -3783,7 +3783,7 @@
     wireHowto($('#v-overview'));
     // 最上面三張大盤圖（加權 / 櫃買 / 台指期）。它自己去抓 mis 的當日分時，不等下面的 JSON。
     if (window.Market3 && !(_swrPass && document.getElementById('m3Frame'))) window.Market3.mount();   // 背景換新資料的重畫不重掛大盤三張圖（它有自己的即時流程）
-    /* ★ 2026-09-23：多載一份 `sankey_daily` —— 右下角那塊換成「昨日資金去向分流圖」（D7）之後
+    /* ★ 2026-09-23：多載一份 `sankey_daily` —— 右下角那塊換成「昨日資金分流樹」（D7）之後
        總覽也要用到它。它和資金流向頁吃的是**同一份檔案**（同一個口徑，不另外算一份）。 */
     // ★ 2026-09-23：`group_valuation` 不再載入 —— 總覽的「族群估值」散布圖已移除，它是全站最後一個讀者。
     /* ★ 2026-09-24 積木化 #4b（docs/feature_modules.md §4）：以前這一行寫成 `trust, , , sd`，
@@ -3804,7 +3804,7 @@
          · 熱力圖：groups_today ＋ rotation
          · 資金輪盤：flow_v3
          · 摘要卡列：market_heat ＋ stocks ＋ flow_v3 ＋ sankey_daily ＋ themes（口徑不變：仍然要 stocks 逐檔才算，不退回 heat 的家數）
-         · 首屏下方三張（資金去向／熱門題材／漲跌家數）：捲近了才畫，畫的時候才等自己的檔
+         · 首屏下方三張（資金分流樹／熱門題材／漲跌家數）：捲近了才畫，畫的時候才等自己的檔
        groups_detail 與 candidates 沒有任何一張卡在「畫」的時候用到（只有點方塊後的成分股面板、tooltip 查名字與即時層讀 D），
        照舊預先載入，但不再擋著畫圖。 */
     const P = { heat: load('market_heat'), gt: load('groups_today'), rot: load('rotation'), cands: load('candidates'),
@@ -3812,9 +3812,9 @@
     const tasks = [];
     // ① 熱力圖：資料最小、最常先到
     tasks.push((async () => { const [gt, rot] = await Promise.all([P.gt, P.rot]); renderHeat(gt, rot); })());
-    // ② 資金去向的高度先定（不等它的圖），避免熱力圖畫完又被同一排撐高重畫
+    // ② 資金分流樹的高度先定（不等它的圖），避免熱力圖畫完又被同一排撐高重畫
     tasks.push(P.sd.then((sd) => {
-    /* ★ 2026-09-24 效能：資金去向（#ovFlow）延後畫，但它的**高度**現在就定下來（跟 renderOvFlow 同一條公式）。
+    /* ★ 2026-09-24 效能：資金分流樹（#ovFlow）延後畫，但它的**高度**現在就定下來（跟 renderOvFlow 同一條公式）。
        這張圖跟熱力圖在同一排：它畫完才把自己撐高的話，熱力圖會跟著被拉長（實測 617 → 800px），
        等於熱力圖剛畫完又得整張重畫一次（resize ＋ 重排標籤）。先把高度給它，熱力圖第一次就畫在最後的尺寸上。*/
       { const ovf = $('#ovFlow');
@@ -3830,11 +3830,11 @@
     }));
     /* ---- 摘要卡列（Andy 2026-09-28，取代原本那條 KPI 細列「加權指數｜成交值｜漲跌家數｜前五族群佔比」）。
        他的原話：「我想要以這種方式呈現數據在K線圖上方，並且將圖二紅框處拿掉。
-                  現在上方的數據如下：漲跌家數 -> 上漲 下跌 平盤、資金輪盤、資金去向、熱門題材」。
+                  現在上方的數據如下：漲跌家數 -> 上漲 下跌 平盤、資金輪盤、資金分流樹、熱門題材」。
        · 加權指數：下面三張大盤圖的加權那一格本來就寫著同一個數字（market3.js），拿掉不丟資訊。
-       · 成交值：放進「漲跌家數」卡的最後一行（大盤體質那一張）。刻意**不**放進「資金去向」卡 ——
+       · 成交值：放進「漲跌家數」卡的最後一行（大盤體質那一張）。刻意**不**放進「資金分流樹」卡 ——
          那張卡的百分比分母是族群成交值（1/n 拆分後的合計），跟全市場成交值不是同一個數，擺在一起會被讀成「佔 7756 億的 39%」。
-       · 前五族群佔比：資金去向卡的比例條就是同一件事的更完整版本（前幾大去向各佔多少）；完整的集中度圖仍在資金流向頁。
+       · 前五族群佔比：資金分流樹卡的比例條就是同一件事的更完整版本（前幾大去向各佔多少）；完整的集中度圖仍在資金流向頁。
        節點沿用 #hero（market3.js 的 placeKpi 會把它搬進大盤三張圖卡片裡、手機由 mobile3.js 放到指數列下面），內容整個換掉。*/
     tasks.push((async () => { const [heat, stocks, f3, sd, th] = await Promise.all([P.heat, P.stocks, P.f3, P.sd, P.th]);
       renderOvSummary({ heat, stocks, f3, sd, th }); })());
@@ -3847,7 +3847,7 @@
          （`label.show: !compact`），只有四個象限名貼在盤外，所以 66% → 82% 純粹是把
          一直空著的那一圈還給盤面。容器高度同步 300 → 360（見 index.html），
          不然 82% 只是「在同樣小的框裡畫大一點」。
-       · `board: 'rotMini'` 也不再傳 —— 那四格階段卡已經換成「昨日資金去向分流圖」（D7）。*/
+       · `board: 'rotMini'` 也不再傳 —— 那四格階段卡已經換成「昨日資金分流樹」（D7）。*/
     /* ★ 2026-09-26 晚（Andy：「先退回到有腳印那版本」）：偏好預設改回**開**，所以沒動過開關的人在這裡看到的
        就是 09-25 的樣子（只畫焦點族群的腳印與軌跡，非焦點在小時鐘上照舊藏起來）；勾掉之後兩張一起只剩圓圈。
        ★ 2026-09-26（Andy：「足跡輪盤只需要留下圓圈即可」）：總覽小輪盤跟著同一個「顯示腳印」偏好（ROT.trail）。
@@ -3872,11 +3872,11 @@
 
   /* ================================================================ 總覽摘要卡列（2026-09-28，取代 KPI 細列）
      Andy：「我想要以這種方式呈現數據在K線圖上方，並且將圖二紅框處拿掉。
-            現在上方的數據如下：漲跌家數 -> 上漲 下跌 平盤、資金輪盤、資金去向、熱門題材」（附某券商網站的一排摘要卡）。
+            現在上方的數據如下：漲跌家數 -> 上漲 下跌 平盤、資金輪盤、資金分流樹、熱門題材」（附某券商網站的一排摘要卡）。
      每張卡回答一個問題，而且是「下面那張大圖」的一句話摘要 —— 點卡片就帶你去那張大圖：
        · 漲跌家數：今天是普漲還是普跌？                → 點了捲到下面的漲跌家數分佈；點上漲／平盤／下跌＝直接列出那一側（2026-10-06 起，改前是進市場明細）
        · 資金輪盤：強弱循環的四段各有幾個族群、誰最強？ → 點了捲到下面的資金輪盤
-       · 資金去向：昨天的錢主要流進哪幾條產業鏈？       → 點了捲到下面的「昨日資金去向」
+       · 資金分流樹：昨天的錢主要流進哪幾條產業鏈？       → 點了捲到下面的「昨日資金分流樹」
        · 熱門題材：哪個題材最熱？                        → 點了捲到熱門題材；點題材名＝直接在那張熱力圖打開那個題材
      口徑一律跟「下面那張大圖」同一份資料、同一條公式（寫在各卡的註解），數字才對得起來。
      版面：卡片寬度夠就四張一排；不夠（800、390）整列橫向滑動（整頁不准出現橫向捲軸），左右緣各一顆 ‹ › 翻頁。*/
@@ -4012,15 +4012,15 @@
       }));
     }
 
-    /* ③ 資金去向 —— 桌機口徑＝下面「昨日資金去向」同一份 sankey_daily、同一天（dates 最後一天）、同一條公式：
+    /* ③ 資金分流樹 —— 桌機口徑＝下面「昨日資金分流樹」同一份 sankey_daily、同一天（dates 最後一天）、同一條公式：
          族群成交值（1/n 拆分）依產業鏈加總，% ＝ 佔全部族群合計（分流圖第一層「佔上一層」）。
          比例條畫前三大鏈＋「其他」一段；下面列前三名。
-       ★ 2026-09-28 接手補：手機（≤640）點這張卡跳到的「資金去向」是 mobile3.js 的可展開長條，
+       ★ 2026-09-28 接手補：手機（≤640）點這張卡跳到的「資金分流樹」是 mobile3.js 的可展開長條，
          它吃的是 flow_v3.sankey（分母＝台股成交值，含「其他族群」，「其他」永遠排最後）——
          同一天兩份口徑差很多（例：桌機 半導體 39.6%／AI 伺服器 37.7%，手機 AI 伺服器 20.7%／半導體 19.4%，連名次都反過來）。
          卡片數字要跟「點下去看到的那張」對得起來，所以兩份都算、用 CSS 依寬度只顯示一份（.ovs-dk 桌機／.ovs-mb 手機），
          不動手機那張長條本身的口徑。
-       ★ 盤中即時版（DECISIONS #296）在 ovlFlow()：資金去向「即時」同一支公式（sklCompute），桌機手機同一份（兩張大圖盤中都不是即時）。*/
+       ★ 盤中即時版（DECISIONS #296）在 ovlFlow()：資金分流樹「即時」同一支公式（sklCompute），桌機手機同一份（兩張大圖盤中都不是即時）。*/
     {
       // 桌機：sankey_daily
       let items = [], day = null, total = 0, topG = null;
@@ -4045,8 +4045,8 @@
       const M = mItems.length ? ovsFlowVariant(mItems, mTotal, mTop ? { name: mTop.target, v: mTop.value } : null, 'ovs-mb') : Dv;
       const has = items.length || mItems.length;
       cards.push(ovsCard('flow', {
-        title: '資金去向', icon: 'git-branch', color: 'var(--violet)', date: day || (f3 && f3.date),
-        aria: `資金去向：${items.slice(0, 3).map(x => x.name + ' ' + pct(x.v, total)).join('、')}。點一下捲到昨日資金去向`,
+        title: '資金分流樹', icon: 'git-branch', color: 'var(--violet)', date: day || (f3 && f3.date),
+        aria: `資金分流樹：${items.slice(0, 3).map(x => x.name + ' ' + pct(x.v, total)).join('、')}。點一下捲到昨日資金分流樹`,
         bar: Dv.bar + (M !== Dv ? M.bar : ''),
         nums: has ? Dv.nums + (M !== Dv ? M.nums : '') : '<span class="muted">尚無資料</span>',
         foot: Dv.foot + (M !== Dv ? M.foot : ''),
@@ -4077,7 +4077,7 @@
 
     host.classList.add('ovsum');
     host.classList.remove('hero', 'ovstrip');
-    host.setAttribute('aria-label', '今日摘要：漲跌家數、資金輪盤、資金去向、熱門題材');
+    host.setAttribute('aria-label', '今日摘要：漲跌家數、資金輪盤、資金分流樹、熱門題材');
     /* ⚠ 最後那個看不見的 [data-lc="t00"]：以前 KPI 細列的「加權指數」格帶著它，live.js 靠掃畫面上的 [data-lc] 決定要跟 mis 要哪些報價
        （codesOnScreen）。那一格拿掉之後總覽上就沒有人要加權 —— 手機指數列（mobile3.js hmLiveIdx）讀的 window.Live.quotes.t00
        會永遠停在盤後值。留一個標記讓 live.js 照舊把加權抓回來；它沒有 data-live，所以 live.js 不會去改它的字。
@@ -4107,7 +4107,7 @@
         return;
       }
       if (k === 'rot') ovsJump('資金輪盤', 'ovRotCard');
-      if (k === 'flow') ovsJump('資金去向', 'ovFlowHead', true);
+      if (k === 'flow') ovsJump('資金分流樹', 'ovFlowHead', true);
     };
     $$('.osc', host).forEach(c => {
       c.onclick = (e) => {
@@ -4150,7 +4150,7 @@
      ── 四張卡的口徑：一律共用資金流向／市場明細那幾個「即時」模式的同一支公式，不另外算一套 ──
        · 漲跌家數：mudCodes()（市場明細「即時」同一份名單）× udBin（同一套級距）—— 只算拿到今天報價的那幾檔，卡上寫 N 檔
        · 資金輪盤：rlvCompute()（輪動時鐘「即時」同一支續算）—— 有即時座標的族群換成即時階段，其餘（自動桶等）維持盤後
-       · 資金去向：sklCompute()（資金去向「即時」同一支公式，1/n 拆分、自動桶不進分母）
+       · 資金分流樹：sklCompute()（資金分流樹「即時」同一支公式，1/n 拆分、自動桶不進分母）
        · 熱門題材：熱度是盤後分數（法人、新聞都是日資料）→ 盤中改排「成分股即時漲跌（成交值加權）」，卡上寫口徑
 
      ── 什麼時候算即時、什麼時候不算 ──
@@ -4190,7 +4190,7 @@
   const ovlToday = () => (TPE_YMD ? TPE_YMD.format(new Date()) : new Date().toISOString().slice(0, 10)).replace(/-/g, '');
 
   /* 這一圈要輪哪些代號：市場明細「即時」那一份（mudCodes：族群成分股＋自選＋成交值前段，上限 MUD_CAP）＋題材成分股裡不在裡面的。
-     輪動時鐘（rlvCodes）與資金去向（sklCodes）的名單都是 mudCodes 的子集合，不用另外加。*/
+     輪動時鐘（rlvCodes）與資金分流樹（sklCodes）的名單都是 mudCodes 的子集合，不用另外加。*/
   function ovlUni() {
     const th = OVS.src && OVS.src.th;
     if (OVL.uni && OVL.uniSrc && OVL.uniSrc[0] === D.groups_detail && OVL.uniSrc[1] === th) return OVL.uni;
@@ -4266,7 +4266,7 @@
   }
   function ovlFlow() {
     const sd = OVS.src && OVS.src.sd;
-    if (!sd || !(sd.groups || []).length) return { err: '尚無資金去向資料' };
+    if (!sd || !(sd.groups || []).length) return { err: '尚無資金分流樹資料' };
     const r = sklCompute(sd, OVL.q);
     const by = {}; let total = 0, topG = null;
     sd.groups.forEach(g => { const v = r.tv[g.gid]; if (!(v > 0)) return;
@@ -4280,7 +4280,7 @@
       html: { bar: V.bar, nums: V.nums,
         foot: `<span class="muted">即時估算（${hit} 檔）・</span>`
           + (topG ? `最大族群 <b>${fmt.esc(topG.name)}</b><span class="muted"> ${ovsPct(topG.v, total)}</span>` : ''),
-        aria: `資金去向（即時估算，${boards} 個板塊、價×量）：${items.slice(0, 3).map(x => x.name + ' ' + ovsPct(x.v, total)).join('、')}。點一下捲到昨日資金去向`,
+        aria: `資金分流樹（即時估算，${boards} 個板塊、價×量）：${items.slice(0, 3).map(x => x.name + ' ' + ovsPct(x.v, total)).join('、')}。點一下捲到昨日資金分流樹`,
         ds: { flowTop: items[0].cid } },
       info: { n: hit, at: r.at, tip: `${boards} 個板塊、${hit} 檔的估算成交值（價 × 量；跨板塊個股依 1/n 拆分）；% 佔這些板塊加總。` },
     };
@@ -5059,7 +5059,7 @@
        那塊空白本來就是時鐘畫不到的地方 —— 盤是圓的、欄是長方形的，
        所以面板放在那裡等於把一塊一直閒置的版面用起來，卡片也不會因此變高。
      · 仍然**不做浮層**：浮層會蓋住點與軌跡。
-     · 仍然**不會蓋到「資金流向排行」**：它在 `.g21` 的第二欄，是另一個格子，
+     · 仍然**不會蓋到「族群資金排行」**：它在 `.g21` 的第二欄，是另一個格子，
        面板只佔時鐘那一欄的右半邊（300px），排行那一欄一個像素都沒有被吃掉。
      · 窄畫面（≤1100px）`.rotstagerow` 退回單欄，面板掉到時鐘下面 —— 300px 的面板
        和一張讀得出來的時鐘在 800px 裡放不下，那是合理的退讓（CSS 在 index.html）。*/
@@ -5097,7 +5097,7 @@
     box.innerHTML = `<div class="ph"><i style="background:${s.color}"></i>
         <b style="color:${s.color}">${s.name}</b><span class="n">${list.length} 個族群${onW.size ? `（盤上 ${nOn}）` : ''}</span>
         <span class="muted">${s.sub}　·　<em>${s.act}</em></span></div>
-      <div class="sd muted" title="點族群＝在「資金流向排行」下面展開成分股；點面板外面或按 Esc 關閉">依成交值佔比排序</div>
+      <div class="sd muted" title="點族群＝在「族群資金排行」下面展開成分股；點面板外面或按 Esc 關閉">依成交值佔比排序</div>
       <ul class="ms">${rotQuadRows(list, onW, null)}</ul>`;
     dismissable(box, () => { if (rotStageOpen) rotStageToggle(rotStageOpen); }, { ignore: ['#rankPanel'] });
     /* 展開成分股走**既有**那條路（`drillOpen` → `#rankPanel`），和即時那排 `rlvchip`、
@@ -5112,9 +5112,9 @@
   }
 
   /* ================================================================ 盤中即時輪動時鐘（RLV）
-     Andy 2026-09-22：「輪動時鐘理論上也有辦法與資金去向做到即時對吧？
+     Andy 2026-09-22：「輪動時鐘理論上也有辦法與資金分流樹做到即時對吧？
      **有成交價以及數量，就可以透過這方式計算每個族群的方向**，幫我也做一個即時功能像是圖一那樣。」
-     「圖一」＝資金去向（桑基圖）那顆「即時」鈕，所以這裡刻意**照抄那一套操作習慣**：
+     「圖一」＝資金分流樹（桑基圖）那顆「即時」鈕，所以這裡刻意**照抄那一套操作習慣**：
      同一顆 `.pb.livebtn`、按下去切換、再按退回盤後、每分鐘一輪、拖時間軸就自動退出（互斥）。
 
      ── 這張圖在即時模式下回答的問題（一句話，畫面上也寫著）──
@@ -5157,7 +5157,7 @@
           族群成分股那一批，所以要算出並顯示「這批涵蓋台股總成交值的百分之幾」
           （分母用 `window.Market3.marketAmt`，那是證交所的真實總額），不可以假裝它是全市場。
 
-     ── 範圍（和資金去向那顆鈕同一個理由）──
+     ── 範圍（和資金分流樹那顆鈕同一個理由）──
        只算**人工族群**（43 個、291 檔 ＝ 3 個請求／分鐘）。
        `ind_*` 自動桶（ETF、〇〇・其他）光成分股就 1367 檔 ＝ 14 個請求／分鐘，做不到；
        所以它們一律留在盤後位置、不畫箭頭，並在狀態列講明。*/
@@ -5203,7 +5203,7 @@
       throw new Error('尚無即時續算參數');
     }
     const det = D.groups_detail || {};
-    const w = sklWeights();                        // 和資金去向共用同一份 1/n 權重
+    const w = sklWeights();                        // 和資金分流樹共用同一份 1/n 權重
     const stv = {}, chg = {};
     let uni = 0, at = '', hit = 0;
     Object.keys(q).forEach(c => {
@@ -5289,7 +5289,7 @@
       reqs++;
     }
     const r = rlvCompute(rrg, q);
-    /* 涵蓋率的分母：Market3 有多久沒更新就自己叫它一次（和資金去向那邊同一套理由 ——
+    /* 涵蓋率的分母：Market3 有多久沒更新就自己叫它一次（和資金分流樹那邊同一套理由 ——
        使用者開過「總覽」的話它本來就每分鐘在跑，零額外請求）。
        抓不到就把涵蓋率留成 null，狀態列會誠實寫「這一輪沒取到」，
        **不要**拿估算值去湊一個看起來像真的百分比。*/
@@ -5450,7 +5450,7 @@
   }
 
   /* 「即時」鈕掛在時鐘那排時間軸上（`#rotBack`＝playBar 的容器，`rangeBar` 會給它 `.rbar`），
-     和資金去向那顆**同一顆樣式、同一套行為**。每次 playBar 重建都會把容器的 innerHTML
+     和資金分流樹那顆**同一顆樣式、同一套行為**。每次 playBar 重建都會把容器的 innerHTML
      換掉，所以這支要在 playBar 之後再叫一次，而且要把「亮起來」的樣子補回去 ——
      不然畫的明明是即時資料、鈕看起來卻是關的。*/
   function rlvMountBtn() {
@@ -5727,7 +5727,7 @@
     el._twRaf = requestAnimationFrame(step);
   }
   /* ================================================================ 設計系統 v2 第 5 批（輪動時鐘）
-     規格：docs/design_system_v2.md §3.2。Andy：「輪動階段、資金去向 優化圖表，需要更生動點」。
+     規格：docs/design_system_v2.md §3.2。Andy：「輪動階段、資金分流樹 優化圖表，需要更生動點」。
      「生動」在這裡的定義是**三秒內讀得出誰在哪一段、誰剛換段**，不是加特效：
        ① 象限底色分三圈（離圓心越遠＝跟大盤差越多，變成看得見的層次）
        ② 焦點族群（佔比前 3 ＋ 最近 5 個交易日換過段的，最多 6 個）畫實的軌跡、名字用粗體深字
@@ -6367,7 +6367,7 @@
       const w0 = (el.parentNode && el.parentNode.clientWidth) || el.clientWidth || 0;
       if (!(w0 > 0)) return;
       let h0 = Math.round(Math.max(300, Math.min(560, w0)));
-      /* ★ 2026-10-03 一屏看完：輪盤卡（輪盤＋下面的昨日資金去向）疊成一欄時，盤的高度＝一屏扣掉卡裡其他東西（下限 260）。
+      /* ★ 2026-10-03 一屏看完：輪盤卡（輪盤＋下面的昨日資金分流樹）疊成一欄時，盤的高度＝一屏扣掉卡裡其他東西（下限 260）。
          並排（卡是 grid，fit.css 在矮螢幕把盤跟桑基放兩欄）時兩者不疊，不用讓。 */
       const fcard = el.closest && el.closest('.card');
       if (window.Fit && fcard && getComputedStyle(fcard).display !== 'grid') {
@@ -6836,7 +6836,7 @@
         formatter: (q) => {
           const r = q.data && q.data.row; if (!r) return '';
           const s = STAGE[r.stage];
-          // 個股點：分母是所屬族群（和成分股清單、資金去向的葉節點同一個口徑）
+          // 個股點：分母是所屬族群（和成分股清單、資金分流樹的葉節點同一個口徑）
           if (r.isStock) {
             return `<b>${fmt.esc(r.name)} ${fmt.esc(r.code)}</b>　<span style="color:${s.color}">${s.name}</span>`
               + `<br><span class="muted">屬於「${fmt.esc(r.gname || '')}」的成分股</span>`
@@ -7498,7 +7498,7 @@
      原本它還會畫三塊東西，三塊都在 2026-09-23 這一批被 Andy 指定移除了：
        · `ids.board`（改善／領先／轉弱／落後四格階段卡）
          —— 資金流向頁那一份早先已併進時鐘的四個象限卡；
-            總覽頁那一份（`#rotMini`）這一批換成「昨日資金去向分流圖」（D7）。
+            總覽頁那一份（`#rotMini`）這一批換成「昨日資金分流樹」（D7）。
        · `ids.cycle`（改善→領先→轉弱→落後 ↩ 那一列）—— 時鐘順時針轉一圈就是同一件事。
        · `ids.move`（最近 5 個交易日換階段的族群）—— Andy 2026-09-23 指定拿掉；
          換段資訊改由象限展開面板每一列的徽章（`rotItem(r, true)` 的 `jump`）承擔。
@@ -7540,8 +7540,8 @@
     li.parentNode.insertBefore(el, li.nextSibling);
   }
 
-  /* ================================================================ 昨日資金去向分流圖（總覽右下）
-     Andy 2026-09-23：「下方的紅框處改成昨日的資金去向分流圖（**不需要動畫，只顯示線條粗細即可，
+  /* ================================================================ 昨日資金分流樹（總覽右下）
+     Andy 2026-09-23：「下方的紅框處改成昨日的資金分流樹（**不需要動畫，只顯示線條粗細即可，
      並且只顯示到族群即可。個股也不用**）」。紅框圈的是總覽「輪動階段」卡片下方
      「改善／領先／轉弱／落後」那四格階段卡（`#rotMini`）。
 
@@ -7575,7 +7575,7 @@
     const bail = (msg) => { if (window.FlowTopo && window.FlowTopo.has(el)) window.FlowTopo.destroy(el);
       el.style.height = ''; if (sub) sub.textContent = ''; return empty('ovFlow', msg); };
     if (!sd || !(sd.dates || []).length || !(sd.groups || []).length) {
-      return bail('尚無資金去向資料');
+      return bail('尚無資金分流樹資料');
     }
     const day = sd.dates[sd.dates.length - 1];
     const k = sd.dates.length - 1;
@@ -7707,7 +7707,7 @@
     }];
 
     /* 高度自己算：ECharts 的 tree 把縱向空間平均分給葉子，族群數之後會變，
-       寫死在 CSS 就是埋一顆以後才會爆的雷（和資金去向那張同一條理由）。*/
+       寫死在 CSS 就是埋一顆以後才會爆的雷（和資金分流樹那張同一條理由）。*/
     el.style.height = Math.max(300, gs.length * 22 + 46) + 'px';
     const c = chart('ovFlow', {
       animation: false,                 // Andy 指定「不需要動畫」——連初次繪製的生長動畫也關掉
@@ -7747,7 +7747,7 @@
     if (c) c.off('click');
     if (sub) sub.textContent = ovFlowSubText(day, gs.length, total);
   }
-  // 資金去向的小標（renderOverview 會在延後畫之前先寫好，版面才不會等圖畫完才長高，見那裡的註解）
+  // 資金分流樹的小標（renderOverview 會在延後畫之前先寫好，版面才不會等圖畫完才長高，見那裡的註解）
   /* ★ 2026-10-06（Andy：「這類資訊一律拿掉」，DECISIONS #329）：開頭的「YYYY-MM-DD 盤後結算，」拿掉；day 參數留著不用（呼叫端三處不必改）。*/
   const ovFlowSubText = (day, n, total) => `這 ${n} 個族群合計 ${fmt.yi(total)}`
     + '　·　產業鏈 → 族群（只到族群層）'
@@ -8352,7 +8352,7 @@
       <ul><li>每條線是一個族群，<em>位置越高＝成交值排名越前面</em>（1 名在最上面）。</li>
       <li>線一路往上＝資金連續好幾週往它集中。</li>
       <li>線上下亂跳＝那一段時間在輪動，沒有明確主流。</li></ul>`,
-    /* ★ 2026-09-21 合併之後，這一段同時是「輪動時鐘」與「資金流向排行」的說明
+    /* ★ 2026-09-21 合併之後，這一段同時是「輪動時鐘」與「族群資金排行」的說明
        （原本 HOW.rank 那一段併進來了）—— 同一張卡不該有兩顆問號鈕。
        開頭先把兩張圖各自回答什麼講清楚，再講怎麼一起用：
        Andy 的標準是「每張圖都要能回答一個具體問題，而且說明要寫到『所以我該怎麼用』」。*/
@@ -8374,7 +8374,7 @@
       <li data-live-ui><b>即時</b>：用當下價量往前續算一步，每 5 秒更新。灰虛線＝<b>慣性</b>（平盤也會走），
         亮色箭頭＝<b>今天真正推出來的</b>（很短是正常的，<b>沒有放大</b>）。
         ⚠ 成交值是「價 × 量」<b>估</b>的（漲跌幅是真的）；盤中的<b>大盤是代理值</b>（只用這批股票）。</li></ul>`,
-    /* ★ 2026-09-24 總覽改版：卡片上「昨日資金去向」的副標與註腳（1/n 拆分那段）都拿掉了，搬進這裡。
+    /* ★ 2026-09-24 總覽改版：卡片上「昨日資金分流樹」的副標與註腳（1/n 拆分那段）都拿掉了，搬進這裡。
        副標是讀數（幾號盤後、幾個族群、合計多少），所以寫成函式：每次打開都讀當下 #ovFlowSub 的內容。*/
     rotm: () => {
       const sub = (($('#ovFlowSub') || {}).textContent || '').split('　·　')[0];
@@ -8382,7 +8382,7 @@
       <ul><li>順時針：<em>落後 → 改善 → 領先 → 轉弱</em>。改善＝強度低、動能高；領先＝兩者都高；轉弱＝強度高、動能低；落後＝兩者都低（都是相對大盤）。</li>
       <li>越大＝佔比越高；離圓心越遠＝跟大盤差越多。</li></ul>`;
     },
-    /* ★ 2026-09-25（Andy：「昨日資金去向」標題旁加「?」，說明放進去；提示框最後兩行拿掉、說明移到「?」）。
+    /* ★ 2026-09-25（Andy：「昨日資金分流樹」標題旁加「?」，說明放進去；提示框最後兩行拿掉、說明移到「?」）。
        以前這段寫在足跡輪盤的「?」下半與提示框最後兩行，現在自己一顆。副標是讀數，所以照舊每次打開讀 #ovFlowSub。*/
     ovflow: () => {
       return `<b>昨天收盤，錢從大盤分到哪幾條產業鏈、鏈裡又分給哪幾個族群。</b>
@@ -8439,7 +8439,7 @@
     ]),
     'ovs-flow': howHTML('昨天收盤，錢分到哪幾條產業鏈。', [
       '比例條＝前三大產業鏈＋其他，% ＝佔全部族群成交值',
-      '跟下面「昨日資金去向」同一天、同一份資料',
+      '跟下面「昨日資金分流樹」同一天、同一份資料',
     ]),
     'ovs-theme': howHTML('哪幾個題材現在最熱。', [
       '熱度 0～100＝資金佔比變化＋法人買賣＋新聞則數合成',
@@ -8674,7 +8674,7 @@
       // 族群 × 法人在首屏下方：捲近了（或閒下來）才畫；已經在畫面裡就當場畫（見 whenNear）
       whenNear($('#instGroups'), () => drawInstDays(instDays ? instDays.days : DEFAULT_DAYS));
     };
-    /* 圖四（Andy 2026-09-18：「資金流向排行需要跟資金輪動一樣以拉Bar 形式呈現，
+    /* 圖四（Andy 2026-09-18：「族群資金排行需要跟資金輪動一樣以拉Bar 形式呈現，
        並且一樣的設計，也是可以選時間週期拉Bar 1-30 天」）。
        0 保留成「跟著上方期間走」，跟 I1 同一套語彙。
        比較基準是「再往前同樣長度的一段」，所以後端 share_daily 給 60 天（拉滿 30 天時剛好夠）。*/
@@ -8790,7 +8790,7 @@
       renderInstPeriod({ label: `最近 ${k} 天`, days: k, groups: gs });
     };
     /* 名次變化（bump）整張拿掉 —— Andy 2026-09-18 圖四：
-       「右邊的名次變化刪掉，改成當資金流向排行點選長條圖時，會顯示對應股票，
+       「右邊的名次變化刪掉，改成當族群資金排行點選長條圖時，會顯示對應股票，
          並且顯示在資金輪動上方」。那一格現在給輪動時鐘。
        名次資訊沒有消失：排行的 y 軸標籤仍然帶 `3↑` `2↓`，tooltip 也仍然寫名次。*/
     // ★ drawPeriod() 統一放在兩支拉 Bar 都建好之後才呼叫（它會讀 instDays / rankDays 的值）；
@@ -8800,11 +8800,11 @@
     // N2：兩張圖共用的完整族群名單（依成交值佔比排序），在畫圖之前就算好
     rotAllGroups = rotRows(f3 && f3.rrg, ROT_BOARD_WIN)
       .map(r => ({ gid: r.gid, name: r.name }));
-    /* ★ 2026-09-23：對照表要在**畫任何一張圖之前**建好 —— 資金去向（桑基）下面那排下拉
+    /* ★ 2026-09-23：對照表要在**畫任何一張圖之前**建好 —— 資金分流樹（桑基）下面那排下拉
        的第一層也讀 `rotGroupMeta`，而它有可能比 `wireRotFilter()` 早畫。
        沒先建的話第一層只會剩一個「全部」，而且不會自己好（那張圖不會再重畫一次）。*/
     rotFillMeta(f3);
-    /* C4（Andy 2026-09-20：「資金流向排行、輪動時鐘，改用圖一這樣方式呈現，
+    /* C4（Andy 2026-09-20：「族群資金排行、輪動時鐘，改用圖一這樣方式呈現，
        也可以篩選想要的股票」）—— 圖一指的是漲跌分佈那張卡的篩選列。
        這裡把同一套語彙搬過來，`rotFilter` 是排行與時鐘**共用**的那一份選擇。*/
     /* ★ 2026-09-23：第二個參數 `only` 拿掉了。它以前的意思是「這一幀只更新時鐘、
@@ -8857,7 +8857,7 @@
        那件事和「即時」不衝突，不該把使用者剛按下的即時模式踢掉。
        只有右把手／＋ −／播放真的換了截止日時才退出即時。*/
     const rotSeek = (v, exitLive) => {
-      /* ★ 拖時間軸（或按 ▶ 播放）就自動退出即時 —— 兩者互斥，和資金去向那顆鈕同一條規矩。
+      /* ★ 拖時間軸（或按 ▶ 播放）就自動退出即時 —— 兩者互斥，和資金分流樹那顆鈕同一條規矩。
          即時是「接在最後一個收盤後面續算出來的那一點」，往回看某一天時它沒有意義。
          `false`＝不要在這裡再重畫一次，下一行本來就會畫。*/
       if (exitLive !== false && v > 0 && RLV.on) rlvOff(false);
@@ -8985,7 +8985,7 @@
          留三倍以上的餘裕才不會播到一半卡住。
        ⚠ 這一頁其餘三支拉Bar（排行、族群×法人、法人截止日）**維持沒有播放鈕**，
          那是 2026-09-20 上午拍板要移除的，不要順手一起加回去。*/
-    /* 2026-10-03：資金去向整張（載入 sankey_daily＋畫＋拉 Bar）走 whenNear：電腦版在別的子分頁時不載也不畫 */
+    /* 2026-10-03：資金分流樹整張（載入 sankey_daily＋畫＋拉 Bar）走 whenNear：電腦版在別的子分頁時不載也不畫 */
     whenNear($('#flowSankeyCard'), () => load('sankey_daily', { fallback: { dates: [], groups: [], leaves: {} } }).then(sd => {
       const n = (sd && sd.dates && sd.dates.length) || 0;
       renderSankey(sd, n ? n - 1 : 0);
@@ -9029,7 +9029,7 @@
     } catch (e) { return 0; }                    // 量不到就讓呼叫端用自己的下限
   }
 
-  // ---- 資金流向排行：這段期間誰的成交值佔比長大、誰縮小
+  // ---- 族群資金排行：這段期間誰的成交值佔比長大、誰縮小
   function renderRankFlow(p) {
     let gs = (p.groups || []).filter(g => g.share_chg != null);
     /* C4：排行與輪動時鐘吃**同一份**篩選（rotPickSet）。
@@ -9053,7 +9053,7 @@
       const arrow = g.rank_chg > 0 ? ` ${g.rank_chg}↑` : g.rank_chg < 0 ? ` ${-g.rank_chg}↓` : '';
       return `${g.group_name}${arrow}`;
     };
-    /* ★ F3（Andy 2026-09-20：「圖二的版面配比需要 2:1，資金流向排行改成在右邊」）。
+    /* ★ F3（Andy 2026-09-20：「圖二的版面配比需要 2:1，族群資金排行改成在右邊」）。
        這張圖從「半個版面」變成「三分之一個版面」，左右兩塊留白就得跟著縮 ——
        原本左 132 右 96 共吃掉 228px，1101px 的畫面上這一欄只有 ~300px，
        長條會只剩 70px，族群名也會被容器裁掉。
@@ -9061,7 +9061,7 @@
        最窄的時候右邊那串只留佔比變化（期間報酬讓位給族群名，tooltip 裡還看得到）。*/
     const rfw = (document.getElementById('rankFlow') || {}).clientWidth || 600;
     const narrow = rfw < 380, mid = rfw < 470;
-    /* ★ 2026-09-24 夜（Andy：「資金流向排行版面太窄、長條區要夠長、族群名與數字不擠」）：
+    /* ★ 2026-09-24 夜（Andy：「族群資金排行版面太窄、長條區要夠長、族群名與數字不擠」）：
        欄寬 < 560px（桌機兩欄時的常態）長條末端只寫佔比變化，期間報酬留在提示框 ——
        兩個數字並排要吃掉左右各 ~90px，長條只剩 100px 出頭，看起來全擠在一起。*/
     const lean = rfw < 560;
@@ -9134,7 +9134,7 @@
         markLine: { silent: true, symbol: 'none', lineStyle: { color: hexA(CH.ink3, .6) }, data: [{ xAxis: 0 }], label: { show: false } },
       }],
     });
-    /* 2026-09-18（Andy 圖四）：「當資金流向排行點選長條圖時，會顯示對應股票，
+    /* 2026-09-18（Andy 圖四）：「當族群資金排行點選長條圖時，會顯示對應股票，
        並且顯示在資金輪動上方，也可變成另類篩選」。
        所以點長條**不跳頁**：① 在排行卡下方原地展開成分股（重用 heatPanel）
        ② 同時把旁邊的輪動時鐘只亮這個族群、其餘壓暗 —— 兩張圖現在並排，一眼對得起來。
@@ -9243,7 +9243,7 @@
 
   /* ★★ 2026-09-23（Andy：「**圖一二 兩個標籤式都需要做成下拉清單 篩選，所以他會是 族群->題材**，
      例如 半導體，下面就會有圖三那些，所以並非所有族群都在同一個下拉清單，
-     而是對應族群出現對應個股」）—— 圖二＝**資金去向（桑基圖）下面那一整片族群晶片**
+     而是對應族群出現對應個股」）—— 圖二＝**資金分流樹（桑基圖）下面那一整片族群晶片**
      （晶圓代工、ETF、面板產業、HPC 與網通 IC…排滿兩整行）。
 
      這支是 `filterChips()` 的下拉版，用在**單選**的圖上：
@@ -9251,7 +9251,7 @@
        第二層　被第一層篩過的族群，**單選**（點一下就選定並收起來）
 
      ★ 刻意**不併進 `ROT`**。桑基的選取一直是自己的一份（`chipSel.sankey`），
-       併進去會讓「我在資金去向點了一個族群」連帶把輪動時鐘也篩掉 —— 那是行為退化。
+       併進去會讓「我在資金分流樹點了一個族群」連帶把輪動時鐘也篩掉 —— 那是行為退化。
        要統一的是**外觀與操作方式**（都是兩層下拉），不是資料狀態。
      ★ 也因此第二層是單選樣式而不是 checkbox：複選是資金輪動那邊的需求，
        這張圖從第一天起就是「一次只看一個族群」，硬套 checkbox 只會讓人以為可以多選。 */
@@ -9276,7 +9276,7 @@
   }
   /* ★ 2026-09-24（Andy：「篩選列一律放在卡片左上角（產業鏈／族群兩顆下拉），全站同一規則：
        凡是有篩選的卡片，篩選列放在標題下方左上角，不要漂在中間或右側」）。
-     以前 filterDropdown／filterChips 都是把那一排插在**圖的下面**（資金去向那排在一整棵樹的最底下，
+     以前 filterDropdown／filterChips 都是把那一排插在**圖的下面**（資金分流樹那排在一整棵樹的最底下，
      要捲過 700px 才看得到）。現在一律插在「卡片標題列（＋它的『怎麼看 ?』說明盒）」的正下方：
      使用者先看到「這張圖可以怎麼篩」，再看到圖。找不到卡片（例如圖被搬進放大視窗）才退回舊位置（圖的下面）。*/
   function filterSlot(el, cls, chartId) {
@@ -9394,7 +9394,7 @@
       if (opt.onChain) return opt.onChain(c, drop);
       if (drop) {
         onPick(null);
-        /* 資金去向的 onPick(null) 走 drillClose()，它會把 ddChain.sankey 清回「全部」（審查 R2 #43：Esc／點背景回整張圖），
+        /* 資金分流樹的 onPick(null) 走 drillClose()，它會把 ddChain.sankey 清回「全部」（審查 R2 #43：Esc／點背景回整張圖），
            那條規矩對「使用者自己換鏈」不適用 —— 不補回來的話就是換鏈之後第一層又變回全部（09-26 實測）。*/
         ddChain[chartId] = c; rotMenu = { rf, kind: 'group' }; rotMenuTop = 0;
       }
@@ -9449,7 +9449,7 @@
     rotRedraw();                // 兩張圖（開著的話連放大視窗）一起重畫
   }
   /* ---------------------------------------------------------------- C4 ＋ A4 的共用狀態
-     C4（Andy 2026-09-20）：「資金流向排行、輪動時鐘，改用圖一這樣方式呈現，
+     C4（Andy 2026-09-20）：「族群資金排行、輪動時鐘，改用圖一這樣方式呈現，
      也可以篩選想要的股票」。圖一＝漲跌分佈那張卡的篩選列（`wireDistFilter`）：
      一排 seg ＋ 一個勾選 ＋ 一顆「族群篩選（N）」＋ 一格可捲的複選晶片。
      這裡把同一套搬到排行與時鐘 **共用一份選擇**，所以兩張圖永遠在講同一批族群。
@@ -9544,7 +9544,7 @@
   /* 篩選列本體。結構刻意和 `wireDistFilter()` 一模一樣（seg ＋ 勾選 ＋ 狀態說明）。
 
      ★ 2026-09-21（Andy：「個股篩選拿掉，下方的族群篩選幫我改到 全部、半導體、…、傳產
-       下方 包含資金流向排行，並且需要縮小一點 我只是需要篩選選取」）——
+       下方 包含族群資金排行，並且需要縮小一點 我只是需要篩選選取」）——
      兩件事一起改，理由都是「這一排是功能鈕，不是閱讀內容」：
 
        ① **「個股篩選」整顆移除。** 它選的是個股，但這兩張圖的單位是族群，
@@ -9576,7 +9576,7 @@
         以及**兩排（卡片／放大視窗）共用同一份 ROT 狀態** —— 這支仍然是「對每個 box 各產一份」，
         任何一邊改了都重建兩邊。 */
   /* 族群 → {name, chain} 的對照。第一層（產業鏈）與顯示名稱**全站只有這一份** ——
-     資金輪動那兩排下拉與資金去向桑基下面那排下拉都讀它，不准各建一份。*/
+     資金輪動那兩排下拉與資金分流樹桑基下面那排下拉都讀它，不准各建一份。*/
   function rotFillMeta(f3) {
     if (!f3) return;
     rotGroupMeta = {};
@@ -9590,11 +9590,11 @@
        那些地方手上沒有 f3，所以記在模組層。沒有它就沒有第一層（產業鏈）的選項。*/
     if (f3) rotF3 = f3; else f3 = rotF3;
     /* ★ 2026-09-23 修 class 撞名：這裡**一定要加 `[data-rf]`**。
-       `filterDropdown()`（資金去向／桑基那排單選下拉）為了沿用同一套 CSS，
+       `filterDropdown()`（資金分流樹／桑基那排單選下拉）為了沿用同一套 CSS，
        容器也掛了 `.rotfilter`，但它**不屬於 ROT 狀態**（它吃 `chipSel[chartId]`）。
        以前這行是 `$$('.rotfilter')` 全抓，於是只要資金輪動這排重建一次，
        就把桑基那排的 innerHTML 一起換成 ROT 的複選清單 ——
-       使用者看到的是「勾了輪動的族群，資金去向那排突然從 19 個單選變成 52 個 checkbox，
+       使用者看到的是「勾了輪動的族群，資金分流樹那排突然從 19 個單選變成 52 個 checkbox，
        而且勾下去篩的是時鐘不是桑基」。
        選 `[data-rf]` 而不是改桑基那排的 class：`data-rf` 本來就是「這排屬於哪個 ROT 面板」
        （flow／zoom）的既有標記，桑基那排從來沒有它，所以這個選擇器天生就把兩者分開；
@@ -9883,27 +9883,27 @@
   }
 
   /* ================================================================ 兩階段下鑽（Andy 2026-09-21）
-     他的原話：「"輪動時鐘" &"資金去向" 會分兩階段，第一階段式顯示族群，
+     他的原話：「"輪動時鐘" &"資金分流樹" 會分兩階段，第一階段式顯示族群，
      而點擊族群後可以顯示對應個股，也可以點擊，並顯示在圖上，
      一樣維持有既有功能，以上止差別資訊完整度」。
 
        階段一　圖上是族群（＝原本的樣子；篩選／播放／看哪一天／軌跡／放大／族群晶片全部沒動）
-       階段二　點族群（時鐘上的點、資金去向的節點、排行的長條、下方的族群晶片都算）
+       階段二　點族群（時鐘上的點、資金分流樹的節點、排行的長條、下方的族群晶片都算）
                → 在圖旁邊列出它的成分股，依成交值排序
        階段三　點成分股 → 那一檔**畫到圖上**：時鐘多一顆空心圓＋虛線軌跡、
-               資金去向在它所屬的族群底下多一個葉節點。再點一次拿掉。
+               資金分流樹在它所屬的族群底下多一個葉節點。再點一次拿掉。
        回到階段一　麵包屑的「全部族群」、點面板以外的地方（2026-09-24 起取代「收起 ✕」）、或按 ESC。
 
      ★ 兩張圖共用**同一份**狀態與同一個返回機制（不是各寫一套）——
        它們在同一頁、講的是同一批族群；各記各的話，使用者在時鐘下鑽了晶圓代工、
-       滑到資金去向卻停在別的族群，他會以為其中一張壞了。
+       滑到資金分流樹卻停在別的族群，他會以為其中一張壞了。
      ★ 清單沿用全站的 `.hpanel` / `.hpanel .ms`（固定高度＋自己的捲軸），
        不另開第三種清單樣式 —— 那正是 E3「兩份長得一樣、行為卻不同的清單」的教訓。*/
   const DRILL = {
     gid: null, name: '', stocks: new Set(),
     data: null,           // rrg_members.json（下鑽時才抓）
     state: '',            // ''｜loading｜ok｜fail
-    notes: {},            // panelId → 那個面板專屬的一行說明（例如資金去向的「這一天」）
+    notes: {},            // panelId → 那個面板專屬的一行說明（例如資金分流樹的「這一天」）
     /* ★ 2026-09-21（Andy：「當點擊 AI 伺服器第一個 Node 右邊應當顯示 AI 伺服器，
        並下面多出裡面還蓋族群，並且都具備下拉選單可以看個股」）——
        多一個「產業鏈」階段。以前只有「族群 → 個股」兩階，點產業鏈節點右邊什麼都不會發生，
@@ -10004,7 +10004,7 @@
     const rpWas = !!($('#rankPanel') && !$('#rankPanel').hidden);
     DRILL_PANELS.forEach(id => { const b = $('#' + id); if (b) { b.hidden = true; b.dataset.gid = ''; b.dataset.sig = ''; } });
     if (rpWas) rotSideChanged();
-    // 排行的「只亮這一個族群」與資金去向的聚焦也一起還原，不然圖上會留著壓暗的殘影
+    // 排行的「只亮這一個族群」與資金分流樹的聚焦也一起還原，不然圖上會留著壓暗的殘影
     if (rankSel) { rankSel = null; highlightClock(null); }
     if (chipSel.sankey) chipSel.sankey = null;
     /* 審查 R2 #43：按 Esc／點背景回到整張圖時，下拉第一層也要回到「全部」——
@@ -10044,13 +10044,14 @@
   function renderDrillPanels() {
     const rp = $('#rankPanel'), was = !!(rp && !rp.hidden);
     DRILL_PANELS.forEach(renderDrillPanel);
+    renderSankeyRank();
     const now = !!(rp && !rp.hidden);
     /* 成分股面板和象限面板在輪盤旁邊共用同一格（2026-09-24 夜）：成分股一開，象限面板就收起來 */
     if (now && rotStageOpen) { rotStageOpen = ''; rotQuadSync(); renderStagePanel(); }
     if (was !== now) rotSideChanged();
   }
 
-  /* 階段〇：整條產業鏈。只有資金去向那一欄畫得出來（輪動時鐘的單位是族群，沒有鏈這一層），
+  /* 階段〇：整條產業鏈。只有資金分流樹那一欄畫得出來（輪動時鐘的單位是族群，沒有鏈這一層），
      所以 rankPanel 在鏈模式下維持收起 —— 與其給它一份看起來像壞掉的空清單，不如不開。*/
   function renderDrillChainPanel(box, panelId) {
     const rows = DRILL.chainRows || [];
@@ -10126,18 +10127,24 @@
     if (panelId === 'rankPanel' && !DRILL.chain && window.matchMedia && matchMedia('(min-width:821px)').matches
         && renderMergedSide(box)) return;
     const det = (D.groups_detail || {})[gid] || {};
-    const ms = (det.members || []).slice().map(m => ({ ...m, tv: +m.turnover || 0 }))
+    /* ★ 2026-10-07（Andy：「點進去的族群…是要依據資金流入狀況進行排名」）：
+       資金分流樹旁的這一欄改吃 sankey_daily.members（人工族群全部成分股的逐日 1/n 成交值），
+       跟著拉桿那一天算「占族群比重較前一交易日的變化（pp）」，預設依流入排序。
+       收容桶（ind_*）沒有逐日個股資料 → 退回原本 groups_detail 的成交值排序（標題照寫「依成交值排序」）。*/
+    const fm = panelId === 'sankeyPanel' ? sankeyMemFlow(gid) : null;
+    const ms = fm ? fm.rows : (det.members || []).slice().map(m => ({ ...m, tv: +m.turnover || 0 }))
       .sort((a, b) => b.tv - a.tv);
     const mm = drillMembers(gid);
     const nRRG = Object.keys(mm).length;
-    const extra = DRILL.notes[panelId] || '';
+    const extra = fm ? `口徑：成交值占族群比重，較前一交易日的變化（pp）· ${fm.day}` : (DRILL.notes[panelId] || '');
     /* ★ 播放中每 420ms／650ms 就會重畫一次圖，但這一欄的內容只跟
        「哪個族群 × 選了哪幾檔」有關。整份 196 列重建一次要 DOM 全換，
        不擋的話播放會跟著卡（sankeyStockPanel 當初就是為了這件事才加快取的）。*/
-    const sig = [gid, DRILL.chain || '', [...DRILL.stocks].sort().join(','), DRILL.state, ms.length, extra].join('|');
+    const sig = [gid, DRILL.chain || '', [...DRILL.stocks].sort().join(','), DRILL.state, ms.length, extra,
+      fm ? fm.k + sankeyMemSort : ''].join('|');
     if (box.dataset.sig === sig && !box.hidden) return;
     box.dataset.sig = sig; box.dataset.gid = String(gid);
-    const sum = ms.reduce((s, m) => s + m.tv, 0) || 1;
+    const sum = fm ? (fm.sum || 1) : (ms.reduce((s, m) => s + m.tv, 0) || 1);
     const gname = DRILL.name || det.group_name || gid;
     const col = L.gcolor[gid] || CH.cyan;
     /* 拿不到個股輪動資料時**不要讓整張圖變空白**，也不要默默什麼都不做 ——
@@ -10150,9 +10157,10 @@
     box.innerHTML = `<div class="hh">
         <button class="btn small" data-all="1" title="${DRILL.chain ? '回到「' + fmt.esc(DRILL.chainName) + '」這條產業鏈' : '回到只看族群'}">‹ ${DRILL.chain ? fmt.esc(DRILL.chainName) : '全部族群'}</button>
         <b>› ${fmt.esc(gname)}</b>
-        <span class="m" title="空心圓＝畫到圖上的個股">${ms.length} 檔 · 依成交值排序${DRILL.stocks.size ? ` · 已畫上圖 ${DRILL.stocks.size} 檔` : ''}</span>
+        <span class="m" title="空心圓＝畫到圖上的個股">${ms.length} 檔 · ${fm && sankeyMemSort !== 'tv' ? '依流入排序' : '依成交值排序'}${DRILL.stocks.size ? ` · 已畫上圖 ${DRILL.stocks.size} 檔` : ''}</span>
         <span class="sp"></span>
         <a class="pill cyan" href="#industry/group/${fmt.esc(gid)}">進族群頁 →</a></div>
+      ${fm ? `<div class="seg skms" role="tablist" aria-label="成分股排序"><button type="button" data-ms="flow" class="${sankeyMemSort === 'tv' ? '' : 'on'}">依流入</button><button type="button" data-ms="tv" class="${sankeyMemSort === 'tv' ? 'on' : ''}">依成交值</button></div>` : ''}
       ${extra || warn ? `<div class="note" style="margin:6px 0 0">${extra}${extra && warn ? '<br>' : ''}${warn ? `<span class="muted">${warn}</span>` : ''}</div>` : ''}
       ${ms.length ? `<div class="ms">${ms.map(m => {
         const code = String(m.code);
@@ -10162,7 +10170,8 @@
           + ` class="dp${on ? ' ison' : ''}${can ? '' : ' noplot'}"${on ? ` style="border-color:${col};background:${hexA(col, .18)}"` : ''}`
           + ` title="${can ? '' : '上市未滿 50 個交易日'}">`
           + `<span>${on ? '● ' : ''}${fmt.esc(m.name || code)}</span><span class="c">${fmt.esc(code)}</span>`
-          + `<span class="g">${fmt.yi(m.tv)}　${fmt.n(m.tv / sum * 100, 1)}%　<b class="${fmt.cls(m.chg_pct)}">${fmt.pct(m.chg_pct)}</b></span>`
+          + (fm ? `<span class="g">${fmt.yi(m.tv)}　${fmt.n(m.tv / sum * 100, 1)}%　<b class="${fmt.cls(m.dpp)}" data-dpp="${m.dpp == null ? '' : m.dpp.toFixed(3)}">${m.dpp == null ? '—' : (m.dpp > 0 ? '+' : '') + fmt.n(m.dpp, 1) + ' pp'}</b></span>`
+            : `<span class="g">${fmt.yi(m.tv)}　${fmt.n(m.tv / sum * 100, 1)}%　<b class="${fmt.cls(m.chg_pct)}">${fmt.pct(m.chg_pct)}</b></span>`)
           + (m.has_page ? '<span class="c go" title="進個股頁">→</span>' : '') + '</a>';
       }).join('')}</div>` : '<div class="empty">尚無成分股資料</div>'}`;
     drillDismiss();
@@ -10171,6 +10180,12 @@
        得重新在圖上找到那個節點再點一次 —— 那正是「不要動不動就把人帶離現場」。*/
     const all = box.querySelector('[data-all]');
     if (all) all.onclick = () => { if (DRILL.chain) return drillBackToChain(); drillClose(); };
+    $$('.skms button', box).forEach(b => b.onclick = (e) => {
+      e.stopPropagation();
+      sankeyMemSort = b.dataset.ms === 'tv' ? 'tv' : 'flow';
+      try { localStorage.setItem('tw.sankey.msort', sankeyMemSort); } catch (e2) { /* 私密視窗 */ }
+      renderDrillPanel(panelId);
+    });
     $$('.ms a', box).forEach(a => {
       a.onclick = (e) => {
         e.preventDefault();                    // 點整列＝畫到圖上，不是跳頁
@@ -10251,7 +10266,7 @@
      點桑基圖空白處走的也是這一支（Andy：「當點擊背景時會恢復 Default 狀態」），
      ESC 與空白處一定要是同一套，不要寫第二個「復原」。*/
   const drillActive = () => !!(DRILL.gid || DRILL.chain || sankeySel || DRILL.stocks.size);
-  /* 下鑽面板（排行下面的 #rankPanel、資金去向旁邊的 #sankeyPanel）拿掉「收起 ✕」之後，
+  /* 下鑽面板（排行下面的 #rankPanel、資金分流樹旁邊的 #sankeyPanel）拿掉「收起 ✕」之後，
      「點外面就回到階段一」走全站那一份 dismissable。兩個面板是**同一份** DRILL 狀態的兩個出口，
      所以登記成一筆（also），點在其中一個裡面不會把另一個關掉。
      不算「點到外面」的地方（點了也不要把使用者畫上時鐘的個股清掉）：
@@ -10344,7 +10359,7 @@
      tooltip 也仍然寫「名次 7 → 4」。後端的 bump / bumps 欄位先留著不動
      （拿掉要改 pipeline 與測試，這批不順手做），只是前端不再讀它。*/
 
-  /* 資金去向（Andy 2026-09-18 三件）：
+  /* 資金分流樹（Andy 2026-09-18 三件）：
      G1 改成**垂直、由上往下**；G2 要有**電流流動感（會動）**；G3 要有**占比 %**。
 
      G2 的做法：ECharts 的 sankey 沒有內建流動效果。硬換成 graph + lines effect 會失去
@@ -10535,7 +10550,7 @@
       setFlows: (f, lb) => { flowsRef = f || []; if (lb) labelsRef = lb; } };
   }
 
-  /* 資金去向（Andy 2026-09-18 圖六）：
+  /* 資金分流樹（Andy 2026-09-18 圖六）：
        「改成水平並且全部都以點跟線呈現，金資越多的 顏色越深也越粗，
          並且一樣都具備相資金輪動的拉Bar 可以觀察並搭配播放功能，
          白色頁面時 顏色不要太深 親和一點」
@@ -10646,6 +10661,120 @@
      ★ 資料來源是 `groups_detail`（最新交易日的全成分股，含成交值）——
        `sankey_daily.leaves` 每天只留前 3 檔，撐不出一份「排序」。
        所以時間軸刷到過去時，標題會明講清單是最新交易日的，不要讓人以為那是那一天的數字。*/
+  /* 族群成分股清單的排序（資金分流樹右欄）：'flow'＝依流入（占比變化 pp）、'tv'＝依成交值 */
+  let sankeyMemSort = (() => { try { return localStorage.getItem('tw.sankey.msort') === 'tv' ? 'tv' : 'flow'; } catch (e) { return 'flow'; } })();
+  /* 拉桿那一天（sankeyState.k）某族群全部成分股的「成交值、占族群比、較前一交易日占比變化」。
+     分母是成分股加總（和展開的葉子、舊清單同一個分母）。沒有逐日資料（收容桶／舊快取）回 null。*/
+  function sankeyMemFlow(gid) {
+    const st = sankeyState; if (!st || !st.sd) return null;
+    const mem = (st.sd.members || {})[gid]; if (!mem) return null;
+    const k = st.k, names = st.sd.names || {};
+    const det = ((D.groups_detail || {})[gid] || {}).members || [];
+    const page = {}; det.forEach(m => { page[String(m.code)] = m; });
+    const rows = Object.keys(mem).map(code => {
+      const a = mem[code] || [];
+      return { code, name: names[code] || (page[code] || {}).name || code, has_page: !!(page[code] || {}).has_page,
+        tv: +a[k] || 0, ptv: k > 0 ? (+a[k - 1] || 0) : null };
+    }).filter(r => r.tv > 0 || (r.ptv || 0) > 0);
+    const sum = rows.reduce((a, r) => a + r.tv, 0);
+    const psum = rows.reduce((a, r) => a + (r.ptv || 0), 0);
+    rows.forEach(r => { r.dpp = (k > 0 && psum > 0 && sum > 0) ? (r.tv / sum - r.ptv / psum) * 100 : null; });
+    rows.sort(sankeyMemSort === 'tv' ? (a, b) => b.tv - a.tv
+      : (a, b) => ((b.dpp == null ? -1e9 : b.dpp) - (a.dpp == null ? -1e9 : a.dpp)) || b.tv - a.tv);
+    return { rows, sum, k, day: st.sd.dates[k] };
+  }
+  /* ================================================================ 資金分流樹右欄：資金流向排名
+     Andy 2026-10-07：「樹狀圖只是看整體族群，但詳細的資金流向排名還是需要旁邊有圖表搭配」。
+     沒點族群（#sankeyPanel 收著）時右欄放這張表，跟著拉桿那一天：
+     · 口徑：各族群成交值占「這張圖所有族群加總」的比重，較前一交易日的變化（pp）。
+       用占比變化而不是成交值增減 —— 大盤整體量放大時每個族群成交值都會增加，那不是「錢流向誰」。
+     · 分頁「流入最多｜流出最多」：正值依大到小／負值依小到大；D 款橫條（docs/chart_library.md），
+       顏色照全站紅漲綠跌：占比增加紅系、減少綠系。
+     · 列以 gid 為鍵就地更新（換順序用 appendChild 搬、寬度用 CSS 過渡），播放時不整塊重建、不閃爍。
+     · 點列＝等同點樹上的族群（展開＋右欄換成成分股，依流入排序）。*/
+  function sankeyRankRows(sd, k) {
+    const gs = sd.groups || [];
+    const sumAt = (i) => gs.reduce((a, g) => a + (+(g.tv || [])[i] || 0), 0);
+    const tot = sumAt(k), ptot = k > 0 ? sumAt(k - 1) : 0;
+    return gs.map(g => {
+      const v = +(g.tv || [])[k] || 0, pv = k > 0 ? (+(g.tv || [])[k - 1] || 0) : 0;
+      const share = tot > 0 ? v / tot * 100 : 0;
+      const dpp = (k > 0 && ptot > 0 && tot > 0) ? share - pv / ptot * 100 : null;
+      return { gid: g.gid, name: g.name, chain: g.chain_name || '', v, share, dpp };
+    }).filter(r => r.v > 0);
+  }
+  function renderSankeyRank() {
+    const box = $('#sankeyRank'); if (!box) return;
+    const st = sankeyState, panel = $('#sankeyPanel');
+    const panelOn = !!(panel && !panel.hidden);
+    if (!st || !st.sd || !(st.sd.dates || []).length || panelOn) { box.hidden = true; return; }
+    box.hidden = false;
+    sankeyRankDraw(box, st.sd, st.k, sankeyPickGroup);
+  }
+  /* 畫一份排名表到 box（桌機右欄與手機 mobile3 共用；手機的點列由 pick 自己決定怎麼展開）。
+     分頁狀態記在 box.dataset.tab，兩份各管各的。*/
+  function sankeyRankDraw(box, sd, k, pick) {
+    const day = sd.dates[k];
+    const tab = box.dataset.tab === 'out' ? 'out' : 'in';
+    const all = sankeyRankRows(sd, k);
+    const withD = all.filter(r => r.dpp != null);
+    const ins = withD.filter(r => r.dpp > 0).sort((a, b) => b.dpp - a.dpp);
+    const outs = withD.filter(r => r.dpp < 0).sort((a, b) => a.dpp - b.dpp);
+    if (!box.dataset.built) {
+      box.dataset.built = '1';
+      box.innerHTML = `<div class="hh"><b class="skr-t"></b></div><div class="skr-s note"></div>
+        <div class="seg skr-tab" role="tablist" aria-label="流入或流出"><button type="button" data-t="in">流入最多</button><button type="button" data-t="out">流出最多</button></div>
+        <div class="skr-k muted">占比＝族群成交值 ÷ 圖上所有族群；變化＝較前一交易日（pp）</div>
+        <div class="skr-l" role="list"></div><div class="skr-e muted" hidden></div>`;
+      $$('.skr-tab button', box).forEach(b => b.onclick = () => {
+        box.dataset.tab = b.dataset.t; sankeyRankDraw(box, box._skr.sd, box._skr.k, box._skr.pick); });
+      box.querySelector('.skr-l').addEventListener('click', (e) => {
+        const r = e.target.closest('[data-gid]'); if (r && box._skr.pick) box._skr.pick(r.dataset.gid);
+      });
+    }
+    box._skr = { sd, k, pick };
+    box.querySelector('.skr-t').textContent = `${day} 資金流向排名`;
+    const f = (r) => `${r.name} ${r.dpp > 0 ? '+' : ''}${fmt.n(r.dpp, 1)} pp`;
+    box.querySelector('.skr-s').textContent = !withD.length ? '這是資料的第一天，沒有前一交易日可比。'
+      : `資金占比增加最多：${ins[0] ? f(ins[0]) : '無'}；減少最多：${outs[0] ? f(outs[0]) : '無'}`;
+    $$('.skr-tab button', box).forEach(b => b.classList.toggle('on', b.dataset.t === tab));
+    const list = tab === 'out' ? outs : ins;
+    const mx = Math.max(1e-9, ...withD.map(r => Math.abs(r.dpp)));
+    const host = box.querySelector('.skr-l');
+    const keep = new Set(list.map(r => r.gid));
+    $$('.skr-r', host).forEach(el => { if (!keep.has(el.dataset.gid)) el.remove(); });
+    list.forEach((r, i) => {
+      let el = host.querySelector(`.skr-r[data-gid="${CSS.escape(r.gid)}"]`);
+      if (!el) {
+        el = document.createElement('button'); el.type = 'button'; el.className = 'skr-r'; el.dataset.gid = r.gid;
+        el.setAttribute('role', 'listitem');
+        el.innerHTML = `<span class="i"></span><span class="n"><b></b><small></small></span><span class="v"><b class="d"></b><small></small></span><span class="bar"><i></i></span>`;
+      }
+      el.querySelector('.i').textContent = i + 1;
+      el.querySelector('.n b').textContent = r.name;
+      el.querySelector('.n small').textContent = r.chain;
+      const d = el.querySelector('.v .d');
+      d.textContent = `${r.dpp > 0 ? '+' : ''}${fmt.n(r.dpp, 2)} pp`; d.className = 'd ' + fmt.cls(r.dpp);
+      d.dataset.dpp = r.dpp.toFixed(4);
+      el.querySelector('.v small').textContent = `占 ${fmt.n(r.share, 1)}% · ${fmt.yi(r.v)}`;
+      const bar = el.querySelector('.bar i');
+      bar.className = r.dpp > 0 ? 'up' : 'down';
+      bar.style.width = (Math.abs(r.dpp) / mx * 100).toFixed(1) + '%';
+      el.title = `點一下在樹上展開「${r.name}」`;
+      if (host.children[i] !== el) host.insertBefore(el, host.children[i] || null);
+    });
+    const em = box.querySelector('.skr-e');
+    em.hidden = !!list.length;
+    em.textContent = withD.length ? (tab === 'out' ? '這一天沒有族群的資金占比減少' : '這一天沒有族群的資金占比增加') : '';
+  }
+  function sankeyPickGroup(gid) {
+    const st = sankeyState; if (!st || !gid) return;
+    const D2 = st.sd.dates || [];
+    if (SKL.on) sklOff(false);
+    chipSel.sankey = gid;
+    drillOpen(gid, L.gname[gid] || gid, sankeyNote(D2[st.k], st.k === D2.length - 1), 'sankeyPanel');
+    renderSankey(st.sd, st.k, { gid });
+  }
   const sankeyNote = (day, isLatest) => (
     /* 即時模式下圖上的葉子是「價 × 量」的估算，這一欄卻是收盤值 —— 兩邊數字會不一樣。
        不寫出來的話看起來就像其中一邊算錯了（而且無從判斷是哪一邊）。*/
@@ -10655,9 +10784,9 @@
       : isLatest
         ? '依成交值排序，% 佔族群比重'
         : '成分股排序為最新交易日的版本');
-  /* ★ 2026-09-21：`sankeyStockPanel()` 移除。資金去向與輪動時鐘現在共用同一支
+  /* ★ 2026-09-21：`sankeyStockPanel()` 移除。資金分流樹與輪動時鐘現在共用同一支
      成分股面板（`renderDrillPanel`），兩階段下鑽的狀態也只有一份。
-     留著一支沒有人呼叫的舊面板，只會讓下一個人以為資金去向還有自己的一套。*/
+     留著一支沒有人呼叫的舊面板，只會讓下一個人以為資金分流樹還有自己的一套。*/
   /* 目前聚焦的東西（{gid} / {chain} / null）。放在外面是因為播放拉Bar 的 onChange
      是在建 playBar 的時候就綁好的閉包，拿不到後來才選的那一個。*/
   let sankeySel = null;
@@ -10681,7 +10810,7 @@
        · classic    ＝「經典」：原 ECharts 樹＋小圓點
      設定改記在 tw.sankey.mode（新 key）：舊的 tw.sankey.style 裡存著「classic」的人（例如之前按過「經典版」鈕）
      沿用舊 key 就永遠看不到新的預設，等於這次改了跟沒改一樣 —— 所以換 key，大家先落在新的預設。*/
-  /* ★ 2026-09-26（晚）Andy：「將資金去向只留下經典光纖版本」→ 三選一分段鈕拿掉，桌機一律經典光纖（fx）。
+  /* ★ 2026-09-26（晚）Andy：「將資金分流樹只留下經典光纖版本」→ 三選一分段鈕拿掉，桌機一律經典光纖（fx）。
      改前：sankeyStyle() 讀 localStorage 的 tw.sankey.mode（fx／topo／classic）。
      改後：**不讀 localStorage**（舊值一律忽略）；只剩驗收用的內部切換（App.sankeyStyle('classic')）可以臨時換成
      ECharts 樹 —— 那一套仍是手機（≤ 820）在用的畫法，驗收要在桌機寬度量它，使用者沒有任何入口。拓撲版不再能切到。*/
@@ -10692,7 +10821,7 @@
   // 「由 flowtopo.js 的 Canvas 引擎畫」＝經典光纖或拓撲（兩者共用同一支引擎，只差版面）
   const sankeyTopoOn = () => !!(window.FlowTopo && window.FlowTopo.render) && window.innerWidth > 820 && sankeyStyle() !== 'classic';
 
-  /* ------------------------------------------------ 盤中即時資金去向（Andy 2026-09-21）
+  /* ------------------------------------------------ 盤中即時資金分流樹（Andy 2026-09-21）
      「好那在幫我多新增一個『即時』項目可以點選觀看　在紅框那排」
      （紅框那排＝「看哪一天 − ▬▬ ＋ 最新 ▶」那一列）。
 
@@ -10745,7 +10874,7 @@
   }
 
   /* 這張圖上的手寫板塊（自動桶跳過）與它們的成分股（去重）。
-     ★ 2026-10-02 從 sklFetch 抽出來（DECISIONS #296）：總覽「資金去向」摘要卡的即時版要用**同一份名單、同一條公式**，
+     ★ 2026-10-02 從 sklFetch 抽出來（DECISIONS #296）：總覽「資金分流樹」摘要卡的即時版要用**同一份名單、同一條公式**，
        不另外算一套 —— 所以名單（sklCodes）與公式（sklCompute）拆成兩支，sklFetch 與總覽各自餵報價進來。*/
   function sklCodes(sd) {
     const det = D.groups_detail || {};
@@ -10756,7 +10885,7 @@
     }));
     return { gids, codes };
   }
-  /* 報價（code → {price, volume, time}）→ 每個板塊的估算成交值（1/n 拆分）。口徑見上面「盤中即時資金去向」那一段。*/
+  /* 報價（code → {price, volume, time}）→ 每個板塊的估算成交值（1/n 拆分）。口徑見上面「盤中即時資金分流樹」那一段。*/
   function sklCompute(sd, q) {
     const det = D.groups_detail || {};
     const { gids, codes } = sklCodes(sd);
@@ -10899,7 +11028,7 @@
        收不掉寫在 style 上的 height，不清就會留一個 900px 的黑方塊。*/
     const bail = (msg) => { if (window.FlowTopo) window.FlowTopo.destroy(el);
       el.style.height = ''; el._skShape = ''; return empty('sankey', msg); };
-    if (!sd || !sd.dates || !sd.dates.length) return bail('尚無資金去向資料');
+    if (!sd || !sd.dates || !sd.dates.length) return bail('尚無資金分流樹資料');
     const D2 = sd.dates;
     const k = Math.max(0, Math.min(D2.length - 1, idx == null ? D2.length - 1 : idx));
     const day = D2[k];
@@ -10917,7 +11046,8 @@
     const row = $('#sankeyRow');
     if (row) {
       const rw = row.clientWidth || 0;
-      row.classList.toggle('stack', rw > 0 && rw - 314 < SANKEY_NARROW);
+      // 2026-10-07：右欄常駐（未點族群＝資金流向排名、點了＝成分股），寬 340 ＋ 14 間距
+      row.classList.toggle('stack', rw > 0 && rw - 354 < SANKEY_NARROW);
     }
     const topo = sankeyTopoOn();
     // 拓撲版自己控欄寬（成分股只長在點開的族群），不需要「窄版收掉代表股」那一套
@@ -11052,6 +11182,15 @@
        右側面板是盤後那一份，差異寫在 tooltip 與副標裡，不假裝一樣。*/
     const expandRows = (gid) => {
       const det = (D.groups_detail || {})[gid] || {};
+      /* ★ 2026-10-07：有逐日成分股（sankey_daily.members）就用拉桿那一天的值 ——
+         右欄清單也是同一份同一天（sankeyMemFlow），兩邊的 % 才會逐字相同，
+         而且拉到過去時展開的葉子不再停在最新一天。即時模式照舊用報價估算。*/
+      const fmv = !live ? sankeyMemFlow(gid) : null;
+      if (fmv) {
+        const rows = fmv.rows.filter(r => r.tv > 0).map(r => ({ code: r.code, name: r.name, tv: r.tv }))
+          .sort((a, b) => b.tv - a.tv);
+        return { rows, sum: rows.reduce((s2, r) => s2 + r.tv, 0) };
+      }
       const rows = (det.members || []).map(m => {
         const code = String(m.code);
         const lv = live ? live.stv[code] : null;
@@ -11492,6 +11631,7 @@
         }
       } }
 
+    renderSankeyRank();
     /* 小圓點傳輸：等 tree 的版面算完（finished）才讀得到節點座標。
        ★ 2026-09-20 第 2 件（Andy：「並都需要具備資金流傳輸效果」）——
          以前只有第一段（大盤 → 族群）有點，現在**三段都要有**：
@@ -11568,7 +11708,7 @@
        （1440 上量到 1358 vs 998）。只盯層數的話，關掉抽屜之後面板會一直留在圖下面。
        `.stack` 的判準只吃 `#sankeyRow` 的寬度（不吃 `.stack` 自己），所以不會來回跳。*/
     const stackWanted = () => { const r2 = $('#sankeyRow');
-      return !!(r2 && r2.clientWidth > 0 && r2.clientWidth - 314 < SANKEY_NARROW); };
+      return !!(r2 && r2.clientWidth > 0 && r2.clientWidth - 354 < SANKEY_NARROW); };   // 右欄 340＋14（2026-10-07）
     if (!el.dataset.skRo && window.ResizeObserver) {
       el.dataset.skRo = '1';
       // 「型態」＝拓撲版／經典寬版／經典窄版；視窗跨過 820px 時要換一套畫法
@@ -11600,7 +11740,7 @@
        其他族群只剩細線（09-24 那一版：ETF 37.2%、自營 −462 萬張 ≫ 折斷）。
        以前的做法是 R2 #47 的「折斷刻度」—— 刻度照 ETF 以外的族群定、ETF 裁在軸邊寫「≫ 實際值」。
        那是在「ETF 要留著」的前提下止血；ETF 不在這張卡之後折斷就沒有對象了，整段一起拿掉（不留死碼）。
-       ⚠ 只動這張卡：資金去向、漲跌分佈等其他卡的 ETF 照舊（漲跌分佈本來就預設排除，見 DIST.etf）。*/
+       ⚠ 只動這張卡：資金分流樹、漲跌分佈等其他卡的 ETF 照舊（漲跌分佈本來就預設排除，見 DIST.etf）。*/
     const isEtf = (g) => /ETF/i.test(g.group_id || '') || /ETF/.test(g.group_name || '');
     const gsAll = (p.groups || []).filter(g => !isEtf(g))
       .filter(g => g.foreign != null || g.trust != null || g.dealer != null)
@@ -11677,7 +11817,7 @@
     const ig = $('#instGroups'); if (ig) { ig.dataset.yw = String(yW); ig.dataset.chain = chainNow; }
     if (c) c.off('click').on('click', q => { if (q.data && q.data.gid) location.hash = '#industry/group/' + q.data.gid; });
     /* ★ 2026-09-24（Andy：篩選列全站同一規則 —— 標題下方左上角、產業鏈／族群兩顆下拉）：
-       這張以前是圖下面一整片族群晶片（18 顆、排三四行），換成和資金去向同一支 filterDropdown。
+       這張以前是圖下面一整片族群晶片（18 顆、排三四行），換成和資金分流樹同一支 filterDropdown。
        行為不變：單選、選到的族群亮、其餘壓暗；選「全部族群」或按清除就還原；→ 進族群頁仍在第二層清單裡。*/
     /* ★ 2026-09-26：下拉的族群清單改成**全部**有法人資料的族群（ETF 除外），不再只是圖上那 14 列 ——
        以前第一層「全部（14 個族群）」、各鏈的數字加起來卻只有 9（另外 5 個不在輪動資料裡、查不到鏈），
@@ -13241,7 +13381,7 @@
     fillDisc();                 // 標題列右側那一行免責小字（2026-10-06）
     const meta = await load('meta');
     if (meta) { renderFreshness(meta); }
-    window.App = { srcInfo, rotPopMembers, msDD, load, chart, howHTML, fmt, tip, axisStyle, NUM_FONT, CH, PALETTE, chgColor, heatColor, treeSkin, hexA,
+    window.App = { srcInfo, sankeyRankDraw, rotPopMembers, msDD, load, chart, howHTML, fmt, tip, axisStyle, NUM_FONT, CH, PALETTE, chgColor, heatColor, treeSkin, hexA,
       hmBin, hmColor, hmItem, hmSeries, hmLegend, hmRelabel, hmTip, hmTipOpt, hmLS, hmLSset, HM_KIND, upDown, empty, charts, goStock, D, L, wheelZoom, zoomClick, rangeBar, playBar, theme, applyTheme, liveMerge, onLive, LIVE_KEYS,
       /* 給 scripts/_uitest.py 量「小圓點真的在動」用：回傳當下每一顆點的座標。
          用座標而不是 canvas 指紋 —— WebGL/Canvas 的指紋在這個容器裡量過是
@@ -13304,7 +13444,7 @@
           bot: { n: bot.n, size: +bot.size.toFixed(2), spd: +(bot.spd || 1).toFixed(2), r: +bot.r.toFixed(4) },
           nRatio: +(top.n / bot.n).toFixed(2), rateRatio: +(rate(top) / rate(bot)).toFixed(2) };
       },
-      // 即時資金去向：現在是不是開著、這一輪打了幾個請求、算出幾個板塊
+      // 即時資金分流樹：現在是不是開著、這一輪打了幾個請求、算出幾個板塊
       sankeyLive: () => ({ on: SKL.on, busy: SKL.busy, err: SKL.err, at: SKL.at,
         intraday: SKL.intraday, boards: Object.keys(SKL.tv).length,
         codes: SKL.codes, reqs: SKL.reqs, marketAmt: SKL.marketAmt, quoteAt: SKL.quoteAt }),
@@ -13320,7 +13460,7 @@
       },
       // 手動催一輪即時（驗收用；平常是 setInterval 每分鐘一次，等不了）
       sankeyLiveTick: () => sklTick(),
-      /* 資金去向拓撲版（site/flowtopo.js）的量測窗口：節點座標、粒子、幀率、發光與字級上限。
+      /* 資金分流樹拓撲版（site/flowtopo.js）的量測窗口：節點座標、粒子、幀率、發光與字級上限。
          `sankeyStyle('classic'|'topo')` 讓驗收切版本（經典版的舊段落仍在驗 ECharts 那一套）。*/
       sankeyTopo: () => (window.FlowTopo ? window.FlowTopo.probe(document.getElementById('sankey')) : null),
       sankeyTopoOn: () => sankeyTopoOn() && !!(window.FlowTopo && window.FlowTopo.has(document.getElementById('sankey'))),

@@ -14,7 +14,7 @@
    這一支分四段：
      A 共用元件：底部抽屜（M3.sheet）、「?」氣泡定位、編號層（M3.spread／M3.leaders，給 diagrams.js 用）
      B 骨架：底部一列五顆＋「更多」、頂欄 52px（搜尋收成一顆鈕）
-     C 總覽＋資金流向：大盤三張合一張、足跡輪盤新雷達＋焦點條、資金去向長條、法人長條、篩選抽屜
+     C 總覽＋資金流向：大盤三張合一張、足跡輪盤新雷達＋焦點條、資金分流樹長條、法人長條、篩選抽屜
      D 剖析圖：在 diagrams.js 的 DG.mobileNums（這支只提供共用的抽屜與推開算法）
      E 其他頁：熱力圖點方塊、市場明細分段、週期統計設定抽屜
      F 個股頁（券商 App 式，2026-09-27）：固定報價列＋橫捲分頁列＋分段鈕＋柱狀圖＋每日表
@@ -642,12 +642,12 @@
     }
   }
 
-  /* ---- 資金去向：桑基 → 可以點開的長條（台股 → 產業鏈 ▸ → 族群 ▸ → 個股），數字同一份 flow_v3.sankey ----
+  /* ---- 資金分流樹：桑基 → 可以點開的長條（台股 → 產業鏈 ▸ → 族群 ▸ → 個股），數字同一份 flow_v3.sankey ----
      「其他族群／其他產業」永遠排最後、灰色 —— 不然它會以 46% 佔第一名，看起來像主流。
      長條以「同一層、不含『其他』的最大值」為滿格。*/
   async function drill(box) {
     if (!box || box.dataset.done) return;
-    if (!box.innerHTML) box.innerHTML = '<div class="msub">載入資金去向中…</div>';
+    if (!box.innerHTML) box.innerHTML = '<div class="msub">載入資金分流樹中…</div>';
     const f = await load('flow_v3'); if (!f || !f.sankey || !box.isConnected) return;
     box.dataset.done = '1';
     box.parentElement.classList.add('m3host');        // 資料到了才藏桌機那一份（ready）
@@ -665,12 +665,32 @@
         + `<span class="n">${esc(l.target)}</span><span class="v">${yi(l.value)} 億<small>${(l.value / total * 100).toFixed(1)}%</small></span></li>`
         + (isOpen && has ? `<li class="sub"><ul class="mrank lv">${rows(l.target, lv + 1)}</ul></li>` : '');
     }).join(''); };
-    const draw = () => { box.innerHTML = `<div class="msub">台股 → 產業鏈 → 族群 → 個股</div><ul class="mrank">${rows('台股成交值', 1)}</ul>`; box.dataset.open = open.size; };
-    box.addEventListener('click', (e) => {
+    /* ★ 2026-10-07（Andy：「樹狀圖只是看整體族群，但詳細的資金流向排名還是需要旁邊有圖表搭配」）：
+       手機把桌機右欄那張「資金流向排名」放在長條下方（同一支 App.sankeyRankDraw、同一份 sankey_daily 最新一天）。
+       長條與排名各住一個子容器 —— 長條每點一次就整個重寫，不能把排名一起洗掉。*/
+    //   只放在資金流向頁那一份（總覽的「昨日資金分流樹」是摘要，不加長；id 也只能有一個）。
+    const onFlow = !!box.closest('#flowSankeyCard');
+    box.innerHTML = '<div class="mdtree"></div>' + (onFlow ? '<div class="hpanel skrank" id="mSankeyRank" hidden></div>' : '');
+    const tree = box.querySelector('.mdtree'), rk = box.querySelector('#mSankeyRank');
+    const draw = () => { tree.innerHTML = `<div class="msub">台股 → 產業鏈 → 族群 → 個股</div><ul class="mrank">${rows('台股成交值', 1)}</ul>`; box.dataset.open = open.size; };
+    tree.addEventListener('click', (e) => {
       const li = e.target.closest('li[data-k]'); if (!li) return;
       const k = li.dataset.k; open.has(k) ? open.delete(k) : open.add(k); draw();
     });
     draw();
+    if (rk) load('sankey_daily').then(sd => {
+      if (!sd || !(sd.dates || []).length || !box.isConnected || !(window.App && App.sankeyRankDraw)) return;
+      rk.hidden = false;
+      /* 點排名的列＝在上面的長條裡展開那個族群（找到它掛在哪一條鏈底下），再捲過去 —— 原地展開，不換頁。*/
+      App.sankeyRankDraw(rk, sd, sd.dates.length - 1, (gid) => {
+        const g = (sd.groups || []).find(x => x.gid === gid); if (!g) return;
+        const ch = kids('台股成交值').find(l => kids(l.target).some(c => c.target === g.name));
+        if (!ch) return;
+        open.add('1:' + ch.target); open.add('2:' + g.name); draw();
+        const li = [...tree.querySelectorAll('li[data-k]')].find(x => x.dataset.k === '2:' + g.name);
+        if (li) { li.classList.add('hit'); li.scrollIntoView({ block: 'center', behavior: 'smooth' }); }
+      });
+    });
   }
 
   /* ---- 資金流向「輪動」：雷達＋焦點條＋排行前 8（點列＝在輪盤上只亮它）＋篩選抽屜 ---- */

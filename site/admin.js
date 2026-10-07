@@ -25,7 +25,7 @@
     stock_tab: '切個股分頁（營收／籌碼…）', k_period: '切 K 線週期', ai_tab: '切 AI 分析面向', open_3d: '打開 3D 剖析圖', zoom: '放大圖表',
     how: '打開「?」說明', theme_toggle: '切深淺色', events_drawer: '打開今日事件', mtf: '四週期同看', indicators: '打開指標設定', draw: '畫線工具', m_seg: '手機切分段' };
   /* 細項事件的元件名（docs/account_analytics.md「細項事件」）*/
-  const COMP_NAME = { 'sankey.node': '點資金去向節點', 'sankey.link': '點資金去向連線', 'inst.tab': '切族群×法人分頁', 'inst.group': '點族群×法人族群', ind: '開啟技術指標', 'draw.tool': '使用畫線工具', 'events.link': '點事件連結', 'etf.cat': '點 ETF 類別', 'explore.topic': '選股題目', 'watch.chart': '點走勢圖', 'watch.kline': '切換 K 線', 'support.fab': '打開客服', 'support.tab': '切客服分頁', 'support.faq': '展開常見問題', 'support.send': '送出意見反饋', 'support.mail': '寄信給客服', view: '被觀看', play: '播放（時間軸）', quad: '象限卡（領先／改善／轉弱／落後）', filter_chain: '篩選：產業鏈', filter_group: '篩選：族群（勾選）',
+  const COMP_NAME = { 'sankey.node': '點資金分流樹節點', 'sankey.link': '點資金分流樹連線', 'inst.tab': '切族群×法人分頁', 'inst.group': '點族群×法人族群', ind: '開啟技術指標', 'draw.tool': '使用畫線工具', 'events.link': '點事件連結', 'etf.cat': '點 ETF 類別', 'explore.topic': '選股題目', 'watch.chart': '點走勢圖', 'watch.kline': '切換 K 線', 'support.fab': '打開客服', 'support.tab': '切客服分頁', 'support.faq': '展開常見問題', 'support.send': '送出意見反饋', 'support.mail': '寄信給客服', view: '被觀看', play: '播放（時間軸）', quad: '象限卡（領先／改善／轉弱／落後）', filter_chain: '篩選：產業鏈', filter_group: '篩選：族群（勾選）',
     filter_group_open: '打開族群下拉', filter_top10: '只看前 10 大', filter_clear: '清除篩選', rank_bar: '右側排行長條', clock_group: '輪盤上的族群點',
     heat_tile: '熱力圖方塊', how: '「?」說明', search: '搜尋（只記有搜尋）', zoom: '放大圖表', ai_tab: '切 AI 面向', mtf: '四週期同看', indicators: '指標設定',
     draw: '畫線工具', open_3d: '3D 剖析圖', theme_toggle: '切深淺色', events_drawer: '今日事件', m_seg: '手機切分段', watch_add: '加入自選', watch_remove: '移出自選',
@@ -933,7 +933,7 @@ html[data-theme="light"] #v-admin{--pm-blue:#1f4fd8;--pm-blue-2:#163fb4}
     { k: 'events', n: '事件', simple: true, subs: [] },
     { k: 'market', n: '市場明細', simple: true, subs: [] },
     { k: 'season', n: '週期統計', simple: true, subs: [] },
-    { k: 'flow', n: '資金流向', sk: 'flow', subs: [{ k: 'rotation', n: '資金輪動', cs: ['play', 'quad', 'filter_*', 'clock_group', 'rank_bar'] }, { k: 'sankey', n: '資金去向', cs: ['sankey.*'] }, { k: 'inst', n: '族群×法人', cs: ['inst.*'] }] },
+    { k: 'flow', n: '資金流向', sk: 'flow', subs: [{ k: 'rotation', n: '資金輪動', cs: ['play', 'quad', 'filter_*', 'clock_group', 'rank_bar'] }, { k: 'sankey', n: '資金分流樹', cs: ['sankey.*'] }, { k: 'inst', n: '族群×法人', cs: ['inst.*'] }] },
     { k: 'heatmap', n: '熱力圖', sk: 'heatmap', subs: [{ k: 'industry', n: '產業', cs: ['heat_tile'] }, { k: 'theme', n: '題材', cs: ['theme.*'] }] },
     { k: 'industry', n: '產業地圖', sk: 'industry', subs: [{ k: 'chains', n: '產業鏈總覽', cs: [] }, { k: 'chain', n: '單一產業鏈', cs: [] }, { k: 'group', n: '族群頁', cs: [] }] },
     { k: 'explore', n: '選股策略', subs: [] },

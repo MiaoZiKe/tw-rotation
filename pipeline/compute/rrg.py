@@ -409,6 +409,14 @@ def sankey_daily(group_hist: pd.DataFrame, price: pd.DataFrame,
         })
     # 每一天、每個族群的前幾檔（給前端展開用）
     leaves: dict[str, list] = {}
+    # ★ 2026-10-07（Andy：「點進去的族群…要依據資金流入狀況進行排名」）：
+    #   leaves 每天只留前 3 檔，撐不出「每檔較前一天占族群比重的變化」。
+    #   這裡另送人工族群（不含 ind_* 收容桶 —— ETF 一桶 356 檔，逐日送會讓檔案膨脹數倍，
+    #   而收容桶本來就不展開）全部成分股的逐日 1/n 成交值，口徑與 leaves 的 tv 相同。
+    #   形狀：members = {gid: {code: [tv 對齊 dates]}}、names = {code: 名稱}。
+    mtv: dict[str, dict[str, list]] = {}
+    mnames: dict[str, str] = {}
+    didx = {d: i for i, d in enumerate(dates)}
     if price is not None and not price.empty and "turnover" in price.columns:
         # membership 是 loader.membership() 的長格式 DataFrame（一列一個 code×group_id）
         code2g: dict[str, list[str]] = {}
@@ -470,6 +478,10 @@ def sankey_daily(group_hist: pd.DataFrame, price: pd.DataFrame,
                     n = max(1, len(all_groups.get(code, ())))
                     for gid in gids_:
                         buckets.setdefault(gid, []).append((code, full / n, full, n))
+                        if not gid.startswith("ind_"):
+                            arr = mtv.setdefault(gid, {}).setdefault(code, [0.0] * len(dates))
+                            arr[didx[str(d)]] = round(full / n)
+                            mnames.setdefault(code, name_or_code(name_of, code))
                 rows = []
                 for gid, lst in buckets.items():
                     lst.sort(key=lambda t: -t[1])
@@ -480,7 +492,11 @@ def sankey_daily(group_hist: pd.DataFrame, price: pd.DataFrame,
                             row.update({"tv_full": full, "n": n})
                         rows.append(row)
                 leaves[str(d)] = rows
-    return {"dates": dates, "groups": groups, "leaves": leaves}
+    out = {"dates": dates, "groups": groups, "leaves": leaves}
+    if mtv:
+        out["members"] = mtv
+        out["names"] = mnames
+    return out
 
 
 def share_series(group_hist: pd.DataFrame, days: int = 250, top: int = 12) -> dict:

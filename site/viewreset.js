@@ -62,7 +62,7 @@
     'tw.chainFold', 'tw.segExpand', 'tw.relOpen', 'tw.relView',        // 產業鏈／關聯圖的收合展開
     'tw.dgOpen', 'tw.dgPartOpen', 'tw.dganim',                         // 剖析圖：展開、零件卡、動畫
     'tw.dg3d', 'tw.dg3d.drag', 'tw.dg3d.exp',                          // 2D/3D、3D 拖曳模式、爆炸圖展開
-    'tw.flowtopo.motion',                                              // 資金去向動畫
+    'tw.flowtopo.motion',                                              // 資金分流樹動畫
     'tw.chipWin', 'tw.chipWinHo', 'tw.hoLines', 'tw.instSeg', 'tw.mgSeg',              // 籌碼分頁：區間、線、分段
     'tw.inst.days', 'tw.inst.to', 'tw.inst.end', 'tw.conc.ma',                       // 法人與集中度的天數／均線勾選
     'tw.revView', 'tw.revWin', 'tw.profitMode', 'tw.periver',          // 營收／獲利／本益比河流圖

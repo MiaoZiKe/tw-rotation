@@ -66,17 +66,17 @@
 
   var LIST = [
     // ---- 總覽
-    box('ov.summary', 'overview', '今日摘要卡列', ['#hero'], '大盤圖上方四張摘要卡（漲跌家數、資金輪盤、資金去向、熱門題材）'),
+    box('ov.summary', 'overview', '今日摘要卡列', ['#hero'], '大盤圖上方四張摘要卡（漲跌家數、資金輪盤、資金分流樹、熱門題材）'),
     /* #mbIdx：手機總覽的指數列（手機不顯示 #m3，指數改在這一列）—— 2026-10-07 覆蓋稽核補上，不然手機看大盤不吃次數 */
     box('ov.index', 'overview', '大盤三張圖', ['#m3', '#mbIdx'], '加權／櫃買／台指期走勢（含日夜盤、分 K）'),
     box('ov.heat', 'overview', '資金熱力圖', ['#ovHeatCard'], '族群成交值與資金流入流出的熱力方塊'),
     box('ov.theme', 'overview', '熱門題材', ['#ovThemeCard'], '題材熱度熱力圖與成分股'),
     box('ov.rot', 'overview', '資金輪盤', ['#rotClockMiniWrap', '#ovRotKpi'], '總覽右欄的族群強弱輪盤'),
-    box('ov.flow', 'overview', '昨日資金去向', ['#ovFlowWrap'], '總覽右欄的資金去向簡圖'),
+    box('ov.flow', 'overview', '昨日資金分流樹', ['#ovFlowWrap'], '總覽右欄的資金分流樹簡圖'),
     box('ov.breadth', 'overview', '漲跌家數分佈', ['#ovBreadthCard'], '依漲跌幅分級的家數直條（全部／上市／上櫃）'),
     // ---- 資金流向
-    box('flow.rot', 'flow', '輪動時鐘＋資金流向排行', ['#flowRotCard'], '族群相對強弱四象限與成交值／法人排行（同一張卡）'),
-    box('flow.sankey', 'flow', '資金去向（桑基）', ['#flowSankeyCard'], '大盤 → 產業鏈 → 族群的資金分流圖'),
+    box('flow.rot', 'flow', '輪動時鐘＋族群資金排行', ['#flowRotCard'], '族群相對強弱四象限與成交值／法人排行（同一張卡）'),
+    box('flow.sankey', 'flow', '資金分流樹（桑基）', ['#flowSankeyCard'], '大盤 → 產業鏈 → 族群的資金分流圖'),
     box('flow.inst', 'flow', '族群 × 法人', ['#flowInstCard'], '三大法人淨買超落在哪些族群'),
     box('flow.conc', 'flow', '資金集中度', ['#flowConcCard'], '前 5／10 大族群佔成交值比重'),
     // ---- 產業

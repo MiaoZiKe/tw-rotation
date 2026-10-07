@@ -133,3 +133,16 @@ def test_河流圖預設給到250天():
             for m in range(1, 13) for d in range(1, 26)]
     out = rrg.share_series(_gh(rows))
     assert len(out["dates"]) == 250
+
+
+def test_資金分流樹_族群全部成分股逐日成交值():
+    """2026-10-07：點進族群要依「較前一天占族群比重變化」排序，需要每檔前後兩天的值，
+    leaves 只有前 3 檔不夠，所以 members 送人工族群的全部成分股（收容桶不送）。"""
+    h = _gh([("2026-09-17", "ai", "AI", "ai_server", 9e8, 45.0),
+             ("2026-09-18", "ai", "AI", "ai_server", 9e8, 45.0)])
+    px = _px([("2026-09-17", "2330", "台積電", 8e8), ("2026-09-17", "2317", "鴻海", 1e8),
+              ("2026-09-18", "2330", "台積電", 5e8), ("2026-09-18", "2317", "鴻海", 4e8)])
+    mem = _mem([("2330", "ai"), ("2317", "ai")])
+    out = rrg.sankey_daily(h, px, mem, 60, top_members=1)
+    assert out["members"]["ai"]["2317"] == [1e8, 4e8], "前 3 名以外也要有、而且逐日對齊 dates"
+    assert out["names"]["2330"] == "台積電"
