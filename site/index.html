@@ -49,10 +49,10 @@
      實測把 fonts.googleapis.com / fonts.gstatic.com 全部擋掉重載，畫面照樣正常
      （字退到 PingFang TC / 微軟正黑 / system-ui，等寬字退到 SF Mono / Consolas）。
      之後要用 Noto Sans TC 與 JetBrains Mono 的話，把字型檔下到 site/vendor/ 再用 @font-face。 -->
-<!-- 圖表函式庫直接放在 repo 裡：公司網路常擋 CDN，圖表會整片空白 -->
-<script src="vendor/echarts.min.js"></script>
-<script src="vendor/lightweight-charts.js"></script>
-<script src="timegrid.js"></script><!-- 時間軸垂直分隔線的共用邏輯（DECISIONS #337）：要在 chart.js 與 app.js 之前 -->
+<!-- 圖表函式庫直接放在 repo 裡：公司網路常擋 CDN，圖表會整片空白。
+     ★ 2026-10-07 開頁效能（docs/perf_1007.md）：echarts／lightweight-charts／timegrid 從 <head> 搬到 <body> 底部、drawtools.js 之前。
+     放在 <head> 是「阻塞渲染」：瀏覽器要先下載並執行完 1.2MB（gzip 後約 400KB）才畫第一幀。
+     搬下去之後執行順序不變（仍在 chart.js／app.js 之前），只是頁框先畫出來。 -->
 <style>
 :root{
   --bg:#070b16; --bg-2:#0b1224; --panel:#0f172b; --panel-2:#141e36; --panel-3:#1a2542;
@@ -5756,6 +5756,9 @@ h3 .howbtn.pop{font-family:inherit}
 </div>
 
 <!-- drawtools.js 要排在 chart.js 前面：KChart.enableDrawing() 與 KUtil.DRAW_* 都從它拿（DECISIONS #289） -->
+<script src="vendor/echarts.min.js"></script>
+<script src="vendor/lightweight-charts.js"></script>
+<script src="timegrid.js"></script><!-- 時間軸垂直分隔線的共用邏輯（DECISIONS #337）：要在 chart.js 與 app.js 之前 -->
 <script src="drawtools.js"></script>
 <script src="chart.js"></script>
 <!-- ★ 2026-10-04 首頁瘦身（第二階段）：剖析圖（diagrams.js＋dg/*）、3D（three3d.js、themes3d.js）、產業／個股頁（industry.js）
