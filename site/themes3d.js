@@ -363,6 +363,8 @@
     .dg3 .m-hv{--fa:color-mix(in srgb,var(--dg-hot) 76%,var(--dg-sn));--fb:var(--dg-hot);--fc:var(--dg-hot-2)}
     .dg3 .m-flex{--fa:var(--dg-mc-flex,color-mix(in srgb,var(--dg-steel) 58%,var(--dg-cu)));--fb:color-mix(in srgb,var(--dg-steel-2) 60%,var(--dg-cu));--fc:color-mix(in srgb,var(--dg-steel-2) 72%,var(--dg-sh0))}
     .dg3 .m-cam{--fa:var(--dg-mc-cam,color-mix(in srgb,var(--dg-steel-2) 72%,var(--dg-el)));--fb:var(--dg-steel-2);--fc:color-mix(in srgb,var(--dg-steel-2) 66%,var(--dg-sh0))}
+    .dg3 .m-sack{--fa:var(--dg-sack);--fb:color-mix(in srgb,var(--dg-sack) 80%,var(--dg-sh0));--fc:color-mix(in srgb,var(--dg-sack) 64%,var(--dg-sh0))}
+    .dg3 .m-mhi{--fa:var(--dg-metal-hi);--fb:color-mix(in srgb,var(--dg-metal-hi) 82%,var(--dg-sh0));--fc:color-mix(in srgb,var(--dg-metal-hi) 66%,var(--dg-sh0))}
     .dg3 .m-damp{--fa:color-mix(in srgb,var(--dg-tim) 84%,var(--dg-sn));--fb:var(--dg-tim);--fc:color-mix(in srgb,var(--dg-tim) 68%,var(--dg-sh0))}
     /* 換了材質的零件不吃 --m1/2/3，所以 hover／選取時原本那一階「變亮」會失效。
        在群組上加一點亮度（不是在 .part 上，免得蓋掉它自己的描邊與光暈）——
@@ -498,8 +500,9 @@
       + mat('m-st', box(X + W - 2, Y, 8, 2, D, H - 8, ''))
       + mat('m-gl', box(X, Y + D - 1.4, 8, W, 1.4, H - 8, ''))
       + aiFace(X, Y + D, 8, `<rect class="etch" x="2" y="2" width="${W - 4}" height="${H - 12}" rx="1.5" fill="none"/><circle class="ai-led" cx="${W - 5}" cy="${H - 13}" r="1.6"/>`)
-      + mat('m-st', box(X - 16, Y + D - 14, 0, 16, 16, 20, '') + box(X - 18, Y + D - 16, 20, 20, 20, 2, ''))
-      + mat('m-res', box(X - 15, Y + D - 13, 22, 14, 14, 11, '') + box(X - 11, Y + D - 9, 33, 6, 6, 2, ''));
+      // load port：機台**正面**（觀察窗那一面）下方伸出的平台，晶圓盒（FOUP）坐在平台上
+      + mat('m-st', box(X + 4, Y + D, 0, 22, 14, 16, '') + box(X + 2, Y + D - 1, 16, 26, 18, 2, ''))
+      + mat('m-res', box(X + 5, Y + D + 1, 18, 20, 15, 14, '') + box(X + 10, Y + D + 5, 32, 10, 7, 2.4, ''));
   };
   // 雷射加工機：龍門橫樑 ＋ 雷射頭 ＋ 往下收斂的光束打在工作台上（光束就是識別特徵）
   const dLaserTool = () => pad(40, 25)
@@ -529,15 +532,17 @@
     const wafers = [];
     for (let i = 0; i < 6; i++) wafers.push(cyl(0, -2, 6 + i * 6.2, 19, 1.2, ''));
     return pad(34, 24)
-      + mat('m-st', box(-31, -12, 18, 7, 3, 3, '') + box(-31, 2, 18, 7, 3, 3, '') + box(-33, -12, 18, 3, 17, 3, ''))
+      // 左側提把（背光面，先畫、讓半透明外殼蓋在上面）：立在弧面中段的「ㄇ」—— 上下兩支腳水平伸出、外端一根直立橫桿，中間鏤空
+      + mat('m-st', box(-32, -5.5, 13, 7, 3, 3, '') + box(-32, -5.5, 29, 7, 3, 3, '') + box(-35, -5.5, 13, 3, 3, 19, ''))
       + mat('m-si', wafers.join(''))
       + mat('m-gl', cyl(0, -4, 0, 25, 42, ''))
       + mat('m-gl', box(-25, 16, 0, 50, 4, 42, ''))
-      + aiFace(-25, 20, 0, `<rect class="etch" x="4" y="4" width="42" height="34" rx="3" fill="none"/><circle class="m-hole" cx="15" cy="20" r="2.6"/><circle class="m-hole" cx="35" cy="20" r="2.6"/>`)
+      + aiFace(-25, 20, 0, `<circle class="m-hole" cx="15" cy="20" r="2.6"/><circle class="m-hole" cx="35" cy="20" r="2.6"/>`)
       + mat('m-res', box(-5, -9, 42, 10, 10, 5, '') + box(-15, -19, 47, 30, 30, 3, ''))
       // 提把：左右弧面中段（y 置中於殼心 -4、離門板 y=16 留 8 以上間隙）的「ㄇ」字把手，兩支腳＋一根橫桿、中間鏤空；
       // 用鋼色，跟樹脂門框區隔。左側那支在背光面，先畫、讓半透明外殼蓋在上面。
-      + mat('m-st', box(24, -12, 18, 7, 3, 3, '') + box(24, 2, 18, 7, 3, 3, '') + box(30, -12, 18, 3, 17, 3, ''));
+      // 右側提把：同一個「ㄇ」，立在右側弧面中段
+      + mat('m-st', box(24, -5.5, 13, 7, 3, 3, '') + box(24, -5.5, 29, 7, 3, 3, '') + box(31, -5.5, 13, 3, 3, 19, ''));
   };
   // 精密零件：一片帶螺栓孔的法蘭 ＋ 波紋管 ＋ 一根軸（設備廠上游賣的就是這種東西）
   const dPrecisionPart = () => pad(36, 23)
@@ -767,7 +772,7 @@
       + mat('m-st', box(-44, -30, 0, 88, 60, 2, ''))
       + mat('m-pcb', box(-41, -27, 2, 82, 50, 1.4, trace(-41, -27, 82, 50, 5)))
       + mat('m-st', box(-44, -30, 2, 2, 56, 11, '') + box(-44, -30, 2, 88, 2, 11, ''))
-      + [-32, -20, -8, 4, 16, 28].map(x => mat('m-st', box(x - 5, -26, 3.4, 10, 6, 9, '')) + onTop(12.4, `<g transform="translate(${x},-23)">${blades(4, 5)}</g>`)).join('')
+      + [-30, -15, 0, 15, 30].map(x => mat('m-st', box(x - 6.5, -27, 3.4, 13, 8, 9, '')) + onTop(12.4, `<g transform="translate(${x},-23)">${blades(5.2, 5)}</g>`)).join('')
       + mat('m-si', box(-14, -10, 3.4, 26, 22, 2.2, ''))
       + mat('m-al', aiFins(-14, -10, 5.6, 26, 22, 7.4, 8, 1.4))
       + mat('m-st', box(-44, 26, 2, 88, 4, 11, ''))
@@ -1112,10 +1117,13 @@
   const dGimbal = () => pad(30, 20)
     + mat('m-al', box(-14, -14, 62, 28, 28, 3, bolt([[-10, -10], [10, -10], [-10, 10], [10, 10]], 2)))
     + [[-10, -10], [10, -10], [-10, 10], [10, 10]].map(q => mat('m-damp', cyl(q[0], q[1], 58, 2.6, 4, ''))).join('')
-    + mat('m-st', cyl(0, 0, 50, 10, 8, `<circle class="etch" r="6" fill="none"/>`))
-    + mat('m-al', box(-30, -3, 44, 34, 6, 6, '') + box(-30, -3, 18, 6, 6, 26, ''))
+    // 偏航（yaw）馬達：頂部一顆扁圓盤，盤面兩圈同心＋螺絲
+    + mat('m-st', cyl(0, 0, 50, 11, 7, `<circle class="etch" r="7" fill="none"/><circle class="etch" r="3" fill="none"/>` + bolt([[-5, 0], [5, 0]], 1.2)))
+    + mat('m-mhi', box(-30, -3, 44, 34, 6, 6, '') + box(-30, -3, 18, 6, 6, 26, ''))
     + mat('m-st', hcylX(-24, -17, 0, 26, 10, [0.6, 0.2]))
     + mat('m-cam', box(-17, -11, 14, 24, 22, 22, ''))
+    // 俯仰（pitch）馬達：相機正側面（+y 面）貼一顆扁圓盤，軸沿 y
+    + mat('m-st', faceXZ(-17, 11, `<circle class="part f2" cx="12" cy="25" r="8.5"/><circle class="part f1" cx="12.6" cy="25.4" r="7"/><circle class="etch" cx="12.6" cy="25.4" r="3.4" fill="none"/><circle class="m-hole" cx="12.6" cy="25.4" r="1.2"/>`))
     + mat('m-st', hcylX(7, 15, 0, 25, 9, [0.85]))
     + mat('m-gl', hcylX(15, 18, 0, 25, 7.5, [0.7, 0.4]))
     + `<circle class="ai-led" cx="${px(-6, -11).toFixed(1)}" cy="${py(-6, -11, 32).toFixed(1)}" r="1.8"/>`;
@@ -1337,10 +1345,10 @@
     const bx = -30, by = -16, w = 32, d = 32, h = 28;
     const loop = (x, y) => { const x2 = x + (x < bx + w / 2 ? 8 : -8); return `<path class="m-tie" style="stroke-width:2.6" d="M${P3(x, y, h)} C${P3(x, y, h + 10)} ${P3(x2, y, h + 10)} ${P3(x2, y, h)}"/>`; };
     return pad(40, 24)
-      + mat('m-cloth', box(bx, by, 0, w, d, h, weaveTop(bx, by, w, d, 6)))
-      + mat('m-cloth', faceXZ(bx, by + d, weaveFace(w, 0, h, 6)))
-      + mat('m-cloth', faceYZ(bx + w, by, weaveFace(d, 0, h, 6)))
-      + mat('m-cloth', cyl(bx + w / 2, by + d / 2, h, 9, 3, '') + cyl(bx + w / 2, by + d / 2, h + 3, 5, 9, ''))
+      + mat('m-sack', box(bx, by, 0, w, d, h, weaveTop(bx, by, w, d, 6)))
+      + mat('m-sack', faceXZ(bx, by + d, weaveFace(w, 0, h, 6)))
+      + mat('m-sack', faceYZ(bx + w, by, weaveFace(d, 0, h, 6)))
+      + mat('m-sack', cyl(bx + w / 2, by + d / 2, h, 9, 3, '') + cyl(bx + w / 2, by + d / 2, h + 3, 5, 9, ''))
       + mat('m-st', cyl(bx + w / 2, by + d / 2, h + 7, 5.2, 1.4, ''))
       + loop(bx + 2, by + 2) + loop(bx + w - 2, by + 2) + loop(bx + 2, by + d - 2) + loop(bx + w - 2, by + d - 2)
       + mat('m-al', [[14, -8], [22, 2], [12, 10], [26, -10], [30, 10], [18, 18]].map(p => cyl(p[0], p[1], 0, 3.5, 3, '')).join(''));
