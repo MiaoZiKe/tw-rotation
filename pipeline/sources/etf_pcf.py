@@ -1101,6 +1101,129 @@ def uob() -> pd.DataFrame:
     return _frame(rows)
 
 
+# ───────────────────────────────────────────── 永豐（sitc.sinopac.com）
+# 2026-10-08 Actions 實測：永豐投信官網是 sitc.sinopac.com（首頁 meta refresh 到 /newweb/），ETF 專區 /SinopacEtfs/，
+# 「現金申購買回清單」頁 GET /SinopacEtfs/Etfs/Pcf?fundId=<代號>（伺服器端渲染；<select id=fundlist> 就是自家 ETF 清單，
+# 帶 fundId 會回那一檔，selected 的 option 等於要的代號）。每個資產類別一個 <div class="cash_title-s">股票|債券|期貨…</div>
+# 後面一張 PC 版表：股票 [證券代碼, 證券名稱, 股數, 權重%]、債券 [債券代碼, 債券名稱, 面額, 權重%]。
+# 資料日期取「2026/10/07&nbsp;基金淨資產價值(元)」那個淨值日（頁首日期是公告日，不是持股日）。
+SINOPAC_PCF = "https://sitc.sinopac.com/SinopacEtfs/Etfs/Pcf"
+
+
+def sinopac_codes(page: str) -> list[str]:
+    m = re.search(r'<select[^>]*id="fundlist".*?</select>', page or "", re.S)
+    return re.findall(r'value="([0-9A-Z]+)"', m.group(0)) if m else []
+
+
+def parse_sinopac(etf: str, page: str) -> list[dict]:
+    if not isinstance(page, str):
+        return []
+    sel = re.search(r'<option[^>]*selected[^>]*value="([0-9A-Z]+)"', page) or re.search(r'<option[^>]*value="([0-9A-Z]+)"[^>]*selected', page)
+    if sel and sel.group(1) != etf:
+        log.info("永豐 %s 官網回的是 %s 的頁面，略過", etf, sel.group(1))
+        return []
+    m = re.search(r"(\d{4}/\d{1,2}/\d{1,2})(?:&nbsp;|\s)*基金淨資產價值", page)
+    day = _iso(m.group(1)) if m else None
+    out = []
+    for kind, rest in re.findall(r'<div class="cash_title-s">\s*([^<]+?)\s*</div>(.*?)(?=<div class="cash_title-s">|$)', page, re.S):
+        if kind not in ("股票", "債券"):
+            continue
+        tb = re.search(r"<table.*?</table>", rest, re.S)          # 第一張是 PC 版（每列一檔）；行動版是直的，不讀
+        if not tb:
+            continue
+        for tr in re.findall(r"<tr[^>]*>(.*?)</tr>", tb.group(0), re.S):
+            c = _cells(tr)
+            if len(c) < 4 or not c[0]:
+                continue
+            out.append({"date": day, "etf": etf, "code": c[0], "name": c[1], "weight": _num(c[3]), "shares": _num(c[2]),
+                        "issuer": "永豐", "src": f"{SINOPAC_PCF}?fundId={etf}"})
+    return out
+
+
+def sinopac() -> pd.DataFrame:
+    first = _req("GET", SINOPAC_PCF, expect="text")
+    codes = sinopac_codes(first or "")
+    if not codes:
+        log.warning("永豐 PCF 頁找不到基金選單（前 200 字）：%s", _snip(first))
+        return pd.DataFrame(columns=COLS)
+    rows: list[dict] = []
+    for c in codes:
+        if _skip_code(c):
+            continue
+        time.sleep(0.5)
+        page = _req("GET", SINOPAC_PCF, params={"fundId": c}, expect="text")
+        got = parse_sinopac(c, page) if page else []
+        if page and not got:
+            log.info("永豐 %s 沒有股票／債券表（前 200 字）：%s", c, _snip(page))
+        rows += got
+    return _frame(rows)
+
+
+# ───────────────────────────────────────────── 玉山（www.esunam.com；原保德信投信，2025-10 更名）
+# 2026-10-08 實測：網域是 esunam.com（不是 .com.tw；WebSearch 查到客服信箱 service.mailbox@esunam.com 與官網 www.esunam.com 兩處對得上），
+# 申購買回清單頁 /ETF/etf-pcf 背後 POST /ETFAPI/GetFundTradeInfo {"FundNo":"50"}：
+# Entries.CFundShortName（簡稱，沒有代號）、CNavDt（淨值日）、DynamicTableData[]＝{TableTitle 股票|債券|期貨|持債特性, Columns, Rows}。
+# 清單 API（GetETFFundSelectList）空 body 回「查無基金」，所以 FundNo 用掃的（實測 50～53 是 ETF），再用簡稱對回代號。
+ESUN_PCF = "https://www.esunam.com/ETFAPI/GetFundTradeInfo"
+ESUN_SCAN = range(45, 76)    # 目前 50～53；前後留空間給新掛牌的，一輪 31 個小請求
+
+
+def parse_esun(etf: str, payload: Any) -> list[dict]:
+    e = (payload or {}).get("Entries") if isinstance(payload, dict) else None
+    if not isinstance(e, dict):
+        return []
+    day = _iso(e.get("CNavDt"))
+    out = []
+    for tb in e.get("DynamicTableData") or []:
+        if str(tb.get("TableTitle") or "") not in ("股票", "債券"):
+            continue
+        cols = [str(c.get("Name") or "") for c in tb.get("Columns") or []]
+        ix = {k: next((i for i, c in enumerate(cols) if any(w in c for w in ws)), None)
+              for k, ws in (("code", ("代號", "代碼")), ("name", ("名稱",)), ("qty", ("股數", "面額")), ("w", ("權重",)))}
+        if ix["code"] is None or ix["w"] is None:
+            log.warning("玉山 %s 欄位對不上：%s", etf, cols)
+            continue
+        for r in tb.get("Rows") or []:
+            g = lambda k: r[ix[k]] if ix[k] is not None and ix[k] < len(r) else None  # noqa: E731
+            if not g("code"):
+                continue
+            out.append({"date": day, "etf": etf, "code": str(g("code")).strip(), "name": str(g("name") or "").strip(),
+                        "weight": _num(g("w")), "shares": _num(g("qty")), "issuer": "玉山", "src": ESUN_PCF})
+    return out
+
+
+def _name_match(short: str, names: dict[str, str]) -> str | None:
+    """官網簡稱 → 代號。先完全相同，再互相包含（官網「玉山全球算力」vs 證交所「玉山未來全球算力」）；多於一檔對中就不猜。"""
+    n = _norm(short)
+    if not n:
+        return None
+    by = {_norm(v): c for c, v in names.items()}
+    if n in by:
+        return by[n]
+    hit = [c for k, c in by.items() if k and (n in k or k in n)]
+    return hit[0] if len(hit) == 1 else None
+
+
+def esun(names: dict[str, str]) -> pd.DataFrame:
+    mine = {c: n for c, n in names.items() if issuer_of(n) == "玉山"}
+    rows: list[dict] = []
+    for no in ESUN_SCAN:
+        time.sleep(0.2)
+        p = _req("POST", ESUN_PCF, json_body={"FundNo": str(no)}, retries=1)
+        e = (p or {}).get("Entries") if isinstance(p, dict) else None
+        if not isinstance(e, dict) or not e.get("CFundShortName"):
+            continue
+        code = _name_match(e["CFundShortName"], mine)
+        if not code:
+            log.info("玉山 FundNo=%s「%s」對不到 ETF 代號", no, e.get("CFundShortName"))
+            continue
+        got = parse_esun(code, p)
+        if not got:
+            log.info("玉山 %s 沒有股票／債券表（前 200 字）：%s", code, _snip(p))
+        rows += got
+    return _frame(rows)
+
+
 # ───────────────────────────────────────────── 總入口
 ISSUER_PREFIX = {  # 從 ETF 簡稱判斷發行投信（給「哪些已接上／哪些沒接上」用）
     "元大": "元大", "國泰": "國泰", "群益": "群益", "富邦": "富邦", "統一": "統一", "凱基": "凱基", "大華": "大華銀",
@@ -1110,13 +1233,11 @@ ISSUER_PREFIX = {  # 從 ETF 簡稱判斷發行投信（給「哪些已接上／
     "FT": "富蘭克林華美", "聯邦": "聯邦",   # FT＝富蘭克林華美（00899 全名「富蘭克林華美全球潔淨能源ETF」）
     "台灣": None,
 }
-CONNECTED = {"大華銀", "群益", "野村", "復華", "統一", "元大", "凱基", "國泰", "中國信託", "第一金", "聯博", "華南永昌", "富邦", "台新"}
+CONNECTED = {"永豐", "玉山", "大華銀", "群益", "野村", "復華", "統一", "元大", "凱基", "國泰", "中國信託", "第一金", "聯博", "華南永昌", "富邦", "台新"}
 # 還沒接上的投信 → 給讀者看的原因（前端成分股分頁照抄）。查證過程、關鍵字與來源在 docs/etf_holdings_coverage.md。
 # 寫「為什麼抓不到」而不是「尚未接上」：Andy 2026-10-07 問「為何有 ETF 沒有成分股」，答案要在畫面上。
 NOT_CONNECTED_WHY = {
     "兆豐": "兆豐投信官網擋雲端主機的連線（2026-10-07 實測回 403 Access Denied），自動排程抓不到，只能人工整理。",
-    "永豐": "永豐投信官網的 ETF 持股公告頁還沒找到可以穩定取用的位置（2026-10-07 查過官網首頁與 ETF 路徑都沒有）。",
-    "玉山": "玉山投信（2026 年由保德信投信更名）新官網的申購買回清單位置還沒查到。",
     "貝萊德": "貝萊德官網在自動排程的主機上開頁逾時，持股頁還沒接上。",
     "安聯": "安聯投信官網找得到，但 ETF 申購買回清單的資料位置還沒查到。",
     "摩根": "摩根投信官網 ETF 區還沒查到每日持股的資料位置。",
@@ -1148,6 +1269,8 @@ def fetch_all(etf_names: dict[str, str]) -> pd.DataFrame:
         ("華南永昌", lambda: hn(sorted(by.get("華南永昌", [])))),
         ("富邦", lambda: fubon(sorted(by.get("富邦", [])))),
         ("大華銀", uob),
+        ("永豐", sinopac),
+        ("玉山", lambda: esun(etf_names)),
         ("台新", lambda: tsit(sorted(by.get("台新", []) + by.get("新光", [])))),
     ]
     frames = []

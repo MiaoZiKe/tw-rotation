@@ -86,6 +86,34 @@ def main3() -> None:
         time.sleep(0.2)
 
 
+def main4() -> None:
+    """第四輪（安聯）：webapi 直接 POST 回 400，看取 AntiForgery token 後帶哪個標頭會過，再試 FundID → 代號。"""
+    import requests
+    S = requests.Session()
+    S.headers["User-Agent"] = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Chrome/124.0 Safari/537.36"
+    S.get("https://etf.allianzgi.com.tw/etf-list", timeout=30)
+    r = S.get("https://etf.allianzgi.com.tw/webapi/api/AntiForgery/GetAntiForgeryToken", timeout=30)
+    print("token 回應", r.status_code, r.text[:300], "cookies", list(S.cookies.keys()))
+    try:
+        tok = r.json()
+    except ValueError:
+        tok = r.text
+    t = tok if isinstance(tok, str) else (tok.get("token") or tok.get("Token") or tok.get("requestToken") or json.dumps(tok))
+    xs = S.cookies.get("XSRF-TOKEN") or t
+    for h in ("X-XSRF-TOKEN", "RequestVerificationToken", "X-CSRF-TOKEN", None):
+        hd = {"Content-Type": "application/json", "Origin": "https://etf.allianzgi.com.tw", "Referer": "https://etf.allianzgi.com.tw/etf-info/E0001?tab=1"}
+        if h:
+            hd[h] = xs
+        q = S.post("https://etf.allianzgi.com.tw/webapi/api/Fund/GetFundAssets", json={"FundID": "E0001"}, headers=hd, timeout=30)
+        print("標頭", h, q.status_code, q.text[:300])
+        if q.status_code == 200:
+            for i in range(1, 12):
+                fid = f"E{i:04d}"
+                d = S.post("https://etf.allianzgi.com.tw/webapi/api/Fund/GetFundDetail", json={"FundID": fid}, headers=hd, timeout=30)
+                print("  detail", fid, d.status_code, d.text[:400])
+            break
+
+
 def main() -> None:
     today = dt.date.today()
     # 群益：清單 → fundNo
@@ -162,4 +190,4 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-    main3() if "--round3" in sys.argv else (main2() if "--round2" in sys.argv else main())
+    main4() if "--round4" in sys.argv else main3() if "--round3" in sys.argv else (main2() if "--round2" in sys.argv else main())
