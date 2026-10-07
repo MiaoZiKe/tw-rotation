@@ -1,0 +1,117 @@
+====================================================================================================
+[extra-0] https://sitc.sinopac.com/etf/
+  最終網址: https://sitc.sinopac.com/etf/  標題: 404 - 找不到檔案或目錄。
+  XHR／文件請求 1 個：
+     404 GET https://sitc.sinopac.com/etf/
+        resp='<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">\r\n<html xmlns="http://www.w3.org/1999/xhtml">\r\n<head>\r\n<meta http-equiv="Content-Type" content="text/html; charset=big5"/>\r\n<title>404 - 找不到檔案或目錄。</title>\r\n<style type="text/css">\r\n<!--\r\nbody'
+  含成分股字樣的回應 0 個：
+====================================================================================================
+[extra-1] https://tw.allianzgi.com/zh-tw/products-solutions/etf
+  最終網址: https://tw.allianzgi.com/zh-tw/products-solutions/etf  標題: 找不到網頁。
+    連結: Menu -> https://tw.allianzgi.com/zh-tw/products-solutions/etf#
+    連結:  -> https://tw.allianzgi.com/zh-tw/products-solutions/etf#
+    連結: 基金 -> https://tw.allianzgi.com/zh-tw/products-solutions/etf#
+    連結: ETF專區 -> https://etf.allianzgi.com.tw/
+    連結: ETF總覽 -> https://etf.allianzgi.com.tw/etf-list
+    連結: 即時預估淨值 -> https://etf.allianzgi.com.tw/instant-estimated
+    連結: ETF配息 -> https://etf.allianzgi.com.tw/etf-dividend
+    連結: ETF常見問題 -> https://etf.allianzgi.com.tw/question
+    連結: ETF公告 -> https://etf.allianzgi.com.tw/unit/Type1/7101
+    連結:  -> https://etf.allianzgi.com.tw/
+    連結:  -> https://etf.allianzgi.com.tw/eventsite/00984A/
+    連結: 首檔 主動式高息策略 ETF -> https://etf.allianzgi.com.tw/eventsite/00984A/
+    連結: 馬上了解 -> https://etf.allianzgi.com.tw/eventsite/00984A/
+    連結:  -> https://etf.allianzgi.com.tw/eventsite/00993A/
+    連結: 投資台股 找主動式投資專家 -> https://etf.allianzgi.com.tw/eventsite/00993A/
+    連結: 馬上了解 -> https://etf.allianzgi.com.tw/eventsite/00993A/
+    連結: ETF專區 -> https://tw.allianzgi.com/zh-tw/products-solutions/etf#
+    連結: ETF專區 -> https://etf.allianzgi.com.tw/
+    連結: ETF總覽 -> https://etf.allianzgi.com.tw/etf-list
+    連結: 即時預估淨值 -> https://etf.allianzgi.com.tw/instant-estimated
+    連結: ETF配息 -> https://etf.allianzgi.com.tw/etf-dividend
+    連結: ETF常見問題 -> https://etf.allianzgi.com.tw/question
+    連結: ETF公告 -> https://etf.allianzgi.com.tw/unit/Type1/7101
+    連結:  -> https://etf.allianzgi.com.tw/
+    連結: ETF市場快訊 -> https://etf.allianzgi.com.tw/unit/Type2/7001
+    連結: 投資觀點 -> https://tw.allianzgi.com/zh-tw/products-solutions/etf#
+    連結: ETF市場快訊 -> https://etf.allianzgi.com.tw/unit/Type2/7001
+    連結: 客服中心 -> https://tw.allianzgi.com/zh-tw/products-solutions/etf#
+    連結: 永續發展 -> https://tw.allianzgi.com/zh-tw/products-solutions/etf#
+    連結: 關於我們 -> https://tw.allianzgi.com/zh-tw/products-solutions/etf#
+    連結: ETF專區 -> https://etf.allianzgi.com.tw/
+    連結: ETF總覽 -> https://etf.allianzgi.com.tw/etf-list
+    連結: 即時預估淨值 -> https://etf.allianzgi.com.tw/instant-estimated
+    連結: ETF配息 -> https://etf.allianzgi.com.tw/etf-dividend
+    連結: ETF常見問題 -> https://etf.allianzgi.com.tw/question
+    連結: ETF公告 -> https://etf.allianzgi.com.tw/unit/Type1/7101
+    連結: ETF市場快訊 -> https://etf.allianzgi.com.tw/unit/Type2/7001
+    連結: Cookies 設定 -> https://tw.allianzgi.com/zh-tw/products-solutions/etf#
+  XHR／文件請求 10 個：
+     200 GET https://cdn.cookielaw.org/consent/da3f14e1-9d45-42c7-9d0f-a6d3bf4f62f9/da3f14e1-9d45-42c7-9d0f-a6d3bf4f62f9.json
+        resp='{"CookieSPAEnabled":false,"CookieSameSiteNoneEnabled":false,"CookieV2CSPEnabled":false,"MultiVariantTestingEnabled":false,"UseV2":true,"MobileSDK":false,"SkipGeolocation":true,"ScriptType":"PRODUCTION","Version":"202609.1.0","OptanonDataJSON":"da3f14e1-9d45-42c7-9d0f-a6d3bf4f62f9","GeolocationUrl":"'
+     404 GET https://tw.allianzgi.com/zh-tw/products-solutions/etf
+        resp='\r\n\r\n\r\n<!DOCTYPE html>\r\n<!--[if IE 9]><html lang="en" class="ie9 no-js"><![endif]-->\r\n<!--[if !IE]><!-->\r\n<html class="no-js" lang="zh-Hant">\r\n<!--<![endif]-->\r\n<head>\r\n    <title>找不到網頁。</title>\r\n    <!--Page Metadata-->\r\n    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />\r\n    <meta'
+     200 POST https://fml-x.com/pageLoad
+        body={"additional":{"meta":[{"http-equiv":"X-UA-Compatible","content":"IE=edge,chrome=1"},{"charset":"utf-8"},{"name":"viewport","content":"width=device-width, initial-scale=1.0"},{"name":"msapplication-config","content":"none"},{"http-equiv":"content-language","content":"zh-Hant"},{"name":"language","co
+        resp='ok'
+     200 GET https://cdn.cookielaw.org/consent/da3f14e1-9d45-42c7-9d0f-a6d3bf4f62f9/d9ed1261-8864-4f68-8076-c11cbc5cf0e8/zh-tw.json
+        resp='{"DomainData":{"pclifeSpanYr":"年","pclifeSpanYrs":"年","pclifeSpanSecs":"幾秒鐘","pclifeSpanWk":"星期","pclifeSpanWks":"週","pccontinueWithoutAcceptText":"不接受而繼續","pccloseButtonType":"Icon","MainText":"資料隱私偏好設定","MainInfoText":"當您瀏覽任何網站時，該網站可能在您的瀏覽器以cookies形式儲存或獲取資訊。該資訊可能與您、您的偏好設定或裝置有關，其目的在讓該網站能夠按照您的期望運作。這'
+     200 GET https://cdn.cookielaw.org/scripttemplates/202609.1.0/assets/v2/otPcTab.json
+        resp='\n        {\n            "name": "otPcTab",\n            "html": "PGRpdiBpZD0ib25ldHJ1c3QtcGMtc2RrIiBjbGFzcz0ib3RQY1RhYiBvdC1oaWRlIG90LWZhZGUtaW4iPjxkaXYgcm9sZT0iZGlhbG9nIiBhcmlhLW1vZGFsPSJ0cnVlIj48IS0tIHBjIGhlYWRlciAtLT48ZGl2IGNsYXNzPSJvdC1wYy1oZWFkZXIiIHJvbGU9InByZXNlbnRhdGlvbiI+PCEtLSBIZWFkZXIgbG9nb'
+     200 GET https://cdn.cookielaw.org/scripttemplates/202609.1.0/assets/otCommonStyles.css
+        resp='#onetrust-banner-sdk .onetrust-vendors-list-handler{cursor:pointer;color:#1f96db;font-size:inherit;font-weight:bold;text-decoration:none;margin-left:5px;white-space:normal;word-wrap:break-word;text-align:left}#onetrust-banner-sdk .onetrust-vendors-list-handler:hover{color:#1f96db}#onetrust-banner-sd'
+     200 GET https://cdn.cookielaw.org/consent/da3f14e1-9d45-42c7-9d0f-a6d3bf4f62f9/d9ed1261-8864-4f68-8076-c11cbc5cf0e8/bLayout-zh-tw.json
+        resp='{"html":"<div id=\\"onetrust-banner-sdk\\" class=\\"otFloatingRoundedCorner ot-bottom-left ot-wo-title\\" tabindex=\\"0\\"><div class=\\"ot-sdk-container\\" role=\\"dialog\\" aria-label=\\"隱私\\"><div class=\\"ot-sdk-row\\"><div id=\\"onetrust-group-container\\" class=\\"ot-sdk-twelve ot-sdk-columns\\"><div id=\\"onetr'
+     200 GET https://platform.twitter.com/widgets/widget_iframe.1227a5674072e080ffb1ba14ac0c1079.html?origin=https%3A%2F%2Ftw.allianzgi.com
+        resp='<!DOCTYPE HTML>\n<meta chartset="utf-8">\n<title>Twitter Widget Iframe</title>\n<body>\n<script type="text/javascript">!function(){Function&&Function.prototype&&Function.prototype.bind&&(/(MSIE ([6789]|10|11))|Trident/.test(navigator.userAgent)||function(e){var t={};function r(n){if(t[n])return t[n].exp'
+     200 GET https://cdn.cookielaw.org/logos/static/ot_guard_logo.svg
+        resp='<svg xmlns="http://www.w3.org/2000/svg"><path class="ot-floating-button__svg-fill" d="M14.588 0l.445.328c1.807 1.303 3.961 2.533 6.461 3.688 2.015.93 4.576 1.746 7.682 2.446 0 14.178-4.73 24.133-14.19 29.864l-.398.236C4.863 30.87 0 20.837 0 6.462c3.107-.7 5.668-1.516 7.682-2.446 2.709-1.251 5.01-2.5'
+     200 GET https://syndication.twitter.com/settings?session_id=3bece8d379f62d7731e53d5e927a73373337c500
+        resp='{"should_obtain_cookie_consent":true,"features":{"tfw_timeline_list":{"bucket":[],"version":null},"tfw_follower_count_sunset":{"bucket":true,"version":null},"tfw_tweet_edit_backend":{"bucket":"on","version":null},"tfw_refsrc_session":{"bucket":"on","version":null},"tfw_fosnr_soft_interventions_enabl'
+  含成分股字樣的回應 0 個：
+====================================================================================================
+[extra-2] https://www.jkoam.com/etf
+  最終網址: https://www.jkoam.com/etf/  標題: 403 - 禁止: 拒絕存取。
+  XHR／文件請求 1 個：
+     403 GET https://www.jkoam.com/etf/
+        resp='<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">\r\n<html xmlns="http://www.w3.org/1999/xhtml">\r\n<head>\r\n<meta http-equiv="Content-Type" content="text/html; charset=big5"/>\r\n<title>403 - 禁止: 拒絕存取。</title>\r\n<style type="text/css">\r\n<!--\r\nbody'
+  含成分股字樣的回應 0 個：
+====================================================================================================
+[extra-3] https://www.uobam.com.tw/fund/etf/pcf?fundID=88329556
+  最終網址: https://www.uobam.com.tw/fund/etf/pcf?fundID=88329556  標題: 
+    連結: ETF總覽 -> https://www.uobam.com.tw/fund/etf
+    連結: ETF配息 -> https://www.uobam.com.tw/dividend?type=etf
+    連結: 即時預估淨值 -> https://www.uobam.com.tw/fund/etf/estimate
+    連結: 申購買回清單 -> https://www.uobam.com.tw/fund/etf/pcf
+    連結: 追蹤偏離度 -> https://www.uobam.com.tw/fund/etf/indextrack
+    連結: ETF配息日程表 -> https://www.uobam.com.tw/dividendschedule
+    連結: ETF公告 -> https://www.uobam.com.tw/news/etf
+    連結: 常見問題 -> https://www.uobam.com.tw/fund/etf/faq
+    連結: 表單下載 -> https://www.uobam.com.tw/etf/form
+    連結: ETF專區 -> https://www.uobam.com.tw/ETFlandingpage
+    連結: 申購買回清單 -> https://www.uobam.com.tw/fund/etf/pcf
+    連結: 檔案下載 -> https://www.uobam.com.tw/api/WebSite/pcfexcel/88329556/20261008
+  XHR／文件請求 7 個：
+     200 GET https://www.uobam.com.tw/fund/etf/pcf?fundID=88329556
+        resp='<!DOCTYPE html><html lang="zh-Hant-TW"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><link rel="icon" href="/favicon.ico"><meta property="og:image" content="https://www.uobam.com.tw/og.png"><script async="" src="https://www.googletagmanager.com/gtm'
+     200 GET https://www.uobam.com.tw/json/reply/WebSiteRouteMapRequest
+        resp='{"result":[{"id":3831,"guid":"3ea7c4ca-7d8b-a40d-77fc-bfa961612e07","name":"首頁","route":"/","views":"FrontA","url":"/","urlType":"_self","show":0,"showl":0,"showm":0,"description":null,"sortValue":null,"metaTitle":"大華銀投信｜深耕台灣在地市場","metaDescription":"大華銀投信傳承新加坡大華資產管理具備的國際色彩以及在亞洲資產管理獨具的投資優勢，深耕台灣在地市場，矢'
+     200 GET https://www.uobam.com.tw/json/reply/WebSitePcfRequest?fundID=88329556&pcfDate=
+        resp='{"fundID":"88329556","etf002":"00918","ec020":null,"twName":"大華優利高填息30(本基金並無保證收益及配息且配息來源可能為收益平準金)","announce":"\\/Date(1791388800000+0800)\\/","publish":"\\/Date(1791302400000+0800)\\/","datadate":"\\/Date(1791302400000+0800)\\/","basketValue":"NT$ 18,440,000","totalAV":"NT$ 162,341,033,425","totalIssues"'
+     200 GET https://www.uobam.com.tw/json/reply/WebSiteFrontRequest?u=8db48893-e17a-7b7f-1485-cd5195538896&r=%2Ffund%2Fetf%2Fpcf&p=&n=&a=
+        resp='{"result":[],"breadcrumb":[{"id":3852,"guid":"0acf44ae-7d39-4a83-fcbf-6ce58f1f5e30","name":"ETF專區","route":"/ETFlandingpage","views":"FrontD","url":"/ETFlandingpage","urlType":"_self","show":1,"showl":0,"showm":1,"description":"ETF公告","sortValue":null,"metaTitle":"大華銀投信 | ETF專區","metaDescription":"大'
+     200 GET https://www.uobam.com.tw/json/reply/WebSiteFrontRequest?u=2dafea25-bb35-4b2b-e054-354b4cd20063&r=%2Fwarning&p=1&n=1&a=
+        resp='{"result":[{"id":20,"guid":"76d93223-498f-488d-be1a-5f227cb50c66","title":"公司資訊+全站警語","contents":"<div class=\\"info\\"><div class=\\"group\\"><div class=\\"icon marker\\">&nbsp;</div><div class=\\"text\\">台北市民生東路三段109號16樓</div></div><div class=\\"group\\"><div class=\\"icon phone\\">&nbsp;</div><div class=\\"te'
+     200 GET https://www.uobam.com.tw/json/reply/WebSiteFrontRequest?r=%2Ffundwarning
+        resp='{"result":[{"id":2566,"guid":"84e927f5-99be-43ea-91e7-493c5c35e835","title":"公司資訊+全站警語","contents":"<div class=\\"info\\"><p style=\\"margin-bottom:0cm; margin:0cm 0cm 8pt; margin-right:0cm; margin-left:0cm\\"><span style=\\"font-size:11pt\\"><span style=\\"line-height:107%\\"><span style=\\"font-family:Cali'
+     200 GET https://www.uobam.com.tw/json/reply/WebSiteStockListRequest
+        resp='{"resultP":[{"result":[{"id":431,"guid":"da3c8657-a0f8-4a31-ac49-713072098357","fundID":"00719554","twName":"大華韓國KOSPI 50","twNameFull":null,"enName":"United Korea KOSPI 50 ETF","contents":"<p style=\\"-webkit-text-stroke-width:0px; margin-top:0px; margin-bottom:1rem; text-align:left\\"><span style=\\"'
+  含成分股字樣的回應 2 個：
+   ★ 200 GET https://www.uobam.com.tw/fund/etf/pcf?fundID=88329556
+     type: text/html  bytes: 192324
+     開頭: <!DOCTYPE html><html lang="zh-Hant-TW"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><link rel="icon" href="/favicon.ico"><meta property="og:image" content="https://www.uobam.com.tw/og.png"><script async="" src="https://www.googletagmanager.com/gtm.js?id=GTM-WTG86ZT"></script><script async="" src="https://www.googletagmanager.com/gtm.js?id=GTM-WTG86ZT"></script><script async="" src="https://www.googletagmanager.com/gtm.js?id=GTM-WTG86ZT"></scri
+     2330 前後: >0.83</td></tr><tr><td>066570 KS</td><td>樂金電子公司</td><td>5,887</td><td>NT$ 30,021,016</td><td>0.8</td></tr><tr><td>035420 KS</td><td>NAVER公司</td><td>6,495</td><td>NT$ 29,472,035</td><td>0.78</td></tr><tr><td>316140 KS</td><td>友利金融集團公司</td><td>36,911</td><td>NT$ 29,192,965</td><td>0.78</td></tr><tr><td>032830 KS</td><td>三星人壽保險有限公司</td><td>4,020</td><td>NT$ 27,428,464</td><td>0.73</td></tr><tr><td>012330 KS</td><td>現代摩比斯有限公司</td><td>2,952</td><td>NT$ 26,727,560</td><td>0.71</td></tr><tr><td>034730 KS</td><td>SK公司</td><td>1,945</td><td>NT$ 26,816,991</td><td>0.71</td></tr><tr><td>005490 KS</td><td>浦項鋼鐵控股公司</td><td>3,241</td><td>NT$ 23,796,715</td><td>0.63</td></tr><tr><td>373220 KS</td><td>LG新能源有限公司</td><td>2,431</td><td>NT$ 21,292,981</td><td>0.57</td></tr><tr><td>000810 KS</td><td>三星火災海上保險有限
+   ★ 200 GET https://www.uobam.com.tw/json/reply/WebSiteStockListRequest
+     type: application/json; charset=utf-8  bytes: 571569
+     開頭: {"resultP":[{"result":[{"id":431,"guid":"da3c8657-a0f8-4a31-ac49-713072098357","fundID":"00719554","twName":"大華韓國KOSPI 50","twNameFull":null,"enName":"United Korea KOSPI 50 ETF","contents":"<p style=\"-webkit-text-stroke-width:0px; margin-top:0px; margin-bottom:1rem; text-align:left\"><span style=\"font-size:medium\"><span style=\"box-sizing:border-box\"><span style=\"outline:none\"><span style=\"color:#333333\"><span style=\"font-family:&quot;Noto Sans TC&quot;, sans-serif\"><span style=\"font-
+     2330 前後: 0":"債券型","ec021":"開放式","ec022":"","ec023":null,"ec024":"國內外","ec025":null,"ec031":null,"ec032":"b97ba2b5-dc53-4cd3-99ab-e4d273466cc5","ec202":4,"ec312":0,"ec313":0,"ec314":1,"ec315":0,"ec501":null,"ec502":null,"ec503":null,"etf001":null,"etf002":null,"etf003":null,"etf004":null,"etf005":null,"etf006":null,"etf007":null,"etf008":null,"etf009":null,"etf010":null,"etf020":0,"announce":null,"nav":"11.2317","navDate":"2026/10/06","change":0.004300,"changeRange":0.000383,"ec01022":"","ec01013":null,"ec01033":null,"ec01034":null,"ec01035":null,"dividendStart":null,"dividendEnd":null,"dividendYear":[],"sort01":0,"sort02":0,"t":null},{"id":413,"guid":"b47ebba3-7bb1-43e9-88b6-eb95de19a862","fundID":"93146965A","twName":"大華銀全球短年期投資等級債券基金 (本基金有相當比重投資於非投資等級之高風險債券且配息來源可能為本金)","twNameFull":null,"enName":
