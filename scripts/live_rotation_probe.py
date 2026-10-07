@@ -40,6 +40,9 @@ from pathlib import Path
 TPE = dt.timezone(dt.timedelta(hours=8))
 LIVE_URL = "https://miaozike.github.io/tw-rotation/#flow"
 HOLIDAY_API = "https://openapi.twse.com.tw/v1/holidaySchedule/holidaySchedule"
+# 報價代理（Cloudflare Worker）。網址本來就公開寫在 site/live.js 的 DEFAULT_PROXY，不是金鑰。
+QUOTE_PROXY = "https://tw-quote.kcq01010909.workers.dev"
+SITE_ORIGIN = "https://miaozike.github.io"
 
 # 條款橫幅與導覽啟用那天，不先寫好這兩個 key 就會被擋住按不到「即時」（和 _uitest 同一套）
 CONSENT_PRESET = ("try{if(!localStorage.getItem('tw.consent'))localStorage.setItem('tw.consent',"
@@ -138,6 +141,58 @@ def moved_points(a: dict, b: dict) -> list[dict]:
     return sorted(out, key=lambda r: -r["d"])
 
 
+def worker_quote(code: str = "2330") -> dict:
+    """直接問報價代理一檔，回 {date, time, price} 或 {err}。帶網站的 Origin（Worker 只看 Origin）。"""
+    url = f"{QUOTE_PROXY}/quote?ex_ch=tse_{code}.tw"
+    req = urllib.request.Request(url, headers={"User-Agent": "tw-rotation-probe", "Origin": SITE_ORIGIN,
+                                               "Referer": SITE_ORIGIN + "/tw-rotation/"})
+    try:
+        with urllib.request.urlopen(req, timeout=20) as r:
+            j = json.loads(r.read().decode("utf-8"))
+    except Exception as e:  # noqa: BLE001
+        return {"err": f"{type(e).__name__}: {str(e)[:120]}"}
+    m = ((j or {}).get("msgArray") or [{}])[0]
+    if not m:
+        return {"err": f"msgArray 是空的（rtcode {j.get('rtcode')}）"}
+    return {"date": m.get("d", ""), "time": m.get("t", ""), "price": m.get("z", ""),
+            "vol": m.get("v", "")}
+
+
+def probe_worker(res: dict, args, today, started, intraday: bool, hol_note: str) -> dict:
+    """訪客模式：閘門守住 ＋ 報價代理盤中真的在前進。"""
+    a = worker_quote()
+    res["worker_A"] = a | {"at": tpe_now().strftime("%H:%M:%S")}
+    if a.get("date") and a["date"] != today.strftime("%Y%m%d"):
+        before_open = started.hour * 60 + started.minute < 9 * 60
+        res["verdict"] = "not_yet" if before_open else "not_trading"
+        res["why"] = (f"還沒開盤：報價日期仍是 {a['date']}" if before_open else
+                      f"報價日期停在 {a['date']}，今天沒有開盤（休市表：{hol_note}）")
+        return res
+    time.sleep(args.wait if intraday else 5)
+    b = worker_quote()
+    res["worker_B"] = b | {"at": tpe_now().strftime("%H:%M:%S")}
+    g = res["gate"]
+    checks = []
+
+    def add(label, passed, detail, gate=True):
+        checks.append({"label": label, "pass": bool(passed), "detail": detail, "gate": gate})
+
+    add("① 訪客看不到「即時」鈕（DECISIONS #326 閘門）", not g["btn"],
+        "沒有 #rotLiveBtn" if not g["btn"] else "**訪客頁面上出現了即時鈕**")
+    add("② 訪客頁面 0 個即時報價請求", g["n_live_reqs"] == 0,
+        f"{g['n_live_reqs']} 個" + (f"（例：{g['live_reqs'][0][:80]}）" if g["live_reqs"] else ""))
+    ok = all(x.get("date") and not x.get("err") for x in (a, b))
+    add("③ 報價代理抓得到今天的報價（台積電）", ok,
+        f"A {a.get('time') or a.get('err')}／B {b.get('time') or b.get('err')}（日期 {a.get('date') or '—'}）")
+    add("④ 報價時間有前進", a.get("time") != b.get("time"),
+        f"{a.get('time') or '—'} → {b.get('time') or '—'}", gate=intraday)
+    res["checks"] = checks
+    res["moved_top"], res["ticks"] = [], []
+    failed = [c for c in checks if c["gate"] and not c["pass"]]
+    res["verdict"] = "fail" if failed else ("pass_visitor" if intraday else "pass_off_hours")
+    return res
+
+
 def run(args) -> dict:
     from playwright.sync_api import sync_playwright
 
@@ -163,6 +218,7 @@ def run(args) -> dict:
     out_dir = Path(args.out).parent
     out_dir.mkdir(parents=True, exist_ok=True)
     errors: list[str] = []
+    admin_tok = "" if args.stub else os.environ.get("PROBE_ADMIN_TOKEN", "").strip()
     with sync_playwright() as p:
         br = p.chromium.launch()
         ctx = br.new_context(viewport={"width": 1440, "height": 1000}, locale="zh-TW",
@@ -172,9 +228,32 @@ def run(args) -> dict:
         pg.on("pageerror", lambda e: errors.append(str(e)[:200]))
         # 不用 networkidle：線上會開著即時報價的推送連線（SSE），那條連線不會結束，
         # networkidle 會一直等到逾時。改成 load 之後再等 App 與「即時」鈕真的長出來。
+        live_reqs: list[str] = []
+        pg.on("request", lambda r: live_reqs.append(r.url) if "workers.dev" in r.url
+              or "mis.twse" in r.url else None)
+        if admin_tok:
+            # 管理者測試權杖從 Actions Secret 帶進來，只寫進這台無頭瀏覽器的 localStorage，不落地、不進 repo。
+            # 權杖失效時 /v1/me 會說不是管理者 → livegate 重新載入 → 關，下面就會走訪客那條並寫明原因。
+            ctx.add_init_script("try{localStorage.setItem('tw.acct.tok'," + json.dumps(admin_tok) +
+                                ");localStorage.setItem('tw.acct.user'," +
+                                json.dumps(json.dumps({"admin": True, "email": "probe"})) + ");}catch(e){}")
         pg.goto(args.url, wait_until="load", timeout=90_000)
-        pg.wait_for_function("() => window.App && window.App.rotLive && document.getElementById('rotLiveBtn')",
-                             timeout=90_000)
+        pg.wait_for_function("() => window.App && window.App.rotLive", timeout=90_000)
+        pg.wait_for_timeout(4000)                      # 等 /v1/me 回來（權杖失效會重新載入一次）
+        pg.wait_for_function("() => window.App && window.App.rotLive", timeout=90_000)
+        allowed = pg.evaluate("() => !!(window.TwLive && window.TwLive.allowed && window.TwLive.allowed())")
+        res["mode"] = "admin" if allowed else "visitor"
+        if not allowed:
+            # ★ 2026-10-07：DECISIONS #326 起盤中即時只給管理者，訪客頁面上根本沒有「即時」鈕。
+            # 不為了巡檢把即時打開給所有人；訪客視角改驗兩件事：閘門守住（沒鈕、0 個即時請求），
+            # 以及報價代理本身盤中真的在吐新報價（Python 直接打 Worker）。
+            pg.wait_for_timeout(15_000)
+            has_btn = pg.evaluate("() => !!document.getElementById('rotLiveBtn')")
+            br.close()
+            res["admin_token"] = "有設定但權杖無效（Worker 說不是管理者）" if admin_tok else "沒設定"
+            res["gate"] = {"btn": has_btn, "live_reqs": live_reqs[:5], "n_live_reqs": len(live_reqs)}
+            return probe_worker(res, args, today, started, intraday, hol_note)
+        pg.wait_for_function("() => document.getElementById('rotLiveBtn')", timeout=60_000)
         pg.wait_for_timeout(1500)
         if args.stub:
             res["stub_codes"] = pg.evaluate(STUB)
@@ -269,11 +348,21 @@ def summary_md(res: dict) -> str:
     v = res.get("verdict")
     head = {"pass": "✅ 盤中即時真的在動", "fail": "❌ 盤中即時沒有在動",
             "pass_off_hours": "✅ 抓得到報價（但現在不是盤中，②③ 只列出來不判定）",
-            "not_trading": "⏸ 今天不是交易日", "not_yet": "⏳ 還沒開盤"}.get(v, str(v))
+            "not_trading": "⏸ 今天不是交易日",
+            "pass_visitor": "✅ 閘門守住、報價代理盤中有在前進（訪客模式，時鐘點未驗）", "not_yet": "⏳ 還沒開盤"}.get(v, str(v))
     L = [f"### 資金輪動「即時」盤中巡檢：{head}", "",
          f"- 開始（台北）：{res['started']}　網址：{res['url']}" + ("　**（自測：假報價）**" if res.get("stub") else "")]
     if res.get("why"):
         L += [f"- {res['why']}", "", "非交易日不判定，這不是失敗。"]
+        return "\n".join(L) + "\n"
+    if res.get("mode") == "visitor":
+        L += [f"- 訪客模式：網站的盤中即時只給管理者（DECISIONS #326），沒有管理者測試權杖就不按「即時」鈕；"
+              f"管理者測試權杖（Secret `PROBE_ADMIN_TOKEN`）：{res.get('admin_token')}",
+              "- 這一輪驗的是「閘門有守住」＋「報價代理盤中真的在吐新報價」；**時鐘點有沒有跟著動沒有驗到**。",
+              "", "| 判定 | 結果 | 細節 |", "|---|---|---|"]
+        for c in res["checks"]:
+            mark = ("✅" if c["pass"] else "❌") if c["gate"] else ("ℹ️" if c["pass"] else "⚠")
+            L.append(f"| {c['label']} | {mark} | {c['detail']} |")
         return "\n".join(L) + "\n"
     a, b = res["A"], res["B"]
     L += [f"- 快照 A {a['t']}／快照 B {b['t']}；休市表：{res.get('holiday_api', '—')}；"
