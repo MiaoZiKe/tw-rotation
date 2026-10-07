@@ -5538,11 +5538,119 @@
   const ETF_TABS = [['overview', '總覽'], ['holdings', '成分股'], ['dividend', '配息'], ['inst', '法人'], ['margin', '資券'],
     ['holders', '受益人分布'], ['news', '公告 / 新聞']];
   const tabsFor = (code) => (isEtf(code) ? ETF_TABS : STOCK_TABS);
-  /* 成分股：目前沒有可合法自動取得的來源（查證紀錄在 docs/etf_page_spec.md §成分股），誠實標示、不編造 */
-  function tabHoldings(pg, el) {
-    el.innerHTML = `<div class="card" id="etfHoldCard"><h3>成分股</h3><div class="empty" style="text-align:left;line-height:1.7">
-      成分股以發行投信官網公告的每日持股為準</div></div>`;
+  /* ★ 2026-10-07（Andy：「ETF 點擊成分股並沒有出現對應股票，成分股分頁需要左側出現個股清單，右邊出現個股權重圓餅圖」）
+     根因：這個分頁 10-05 上線時就只有標題＋一行字 —— 資料湖沒有任何 ETF 成分股資料（合規免費來源查不到，
+     查證紀錄 docs/etf_holdings_source.md），前端也沒有畫圖的程式。
+     這次把「畫」的部分做完：讀 data/etf_holdings.json（{asof, source, etfs:{代號:{asof, items:[{code,name,w,shares}]}}}），
+       左＝個股清單（依權重排、可搜尋、點列進個股頁；非台股成分寫原名、不能點），右＝A 款甜甜圈（前 10 大＋其他灰色、中心「前 10 大合計」）。
+     沒有資料時分兩種說明卡，絕不留白：
+       · 債券型／槓桿反向（期貨）→「這檔以債券／期貨為主，沒有個股成分」
+       · 股票型但來源還沒接上 →「成分股資料來源尚未接上」＋原因（不編造、不放假資料）
+     etf_holdings.json 一旦有人產出（pipeline 接上合規來源），這裡不用改就會畫出來。*/
+  const HOLD_TOPN = 10;
+  const holdTw = (c) => /^\d{4,6}[A-Z]?$/.test(String(c || ''));
+  function holdCss() {
+    if (document.getElementById('etfHoldCss')) return;
+    const s = document.createElement('style'); s.id = 'etfHoldCss';
+    s.textContent = `#etfHoldCard .hdgrid{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);gap:16px;align-items:start}
+#etfHoldCard .hdlist{min-width:0}
+#etfHoldCard .hdq{width:100%;box-sizing:border-box;margin:0 0 8px;padding:6px 10px;border:1px solid var(--line);border-radius:8px;background:var(--panel);color:var(--ink);font-size:13px}
+#etfHoldCard .hdscroll{max-height:420px;overflow:auto}
+#etfHoldCard table{width:100%;border-collapse:collapse;font-size:13px}
+#etfHoldCard th{position:sticky;top:0;background:var(--panel);color:var(--ink-3);font-weight:500;text-align:right;padding:5px 6px;font-size:12px;white-space:nowrap}
+#etfHoldCard th:nth-child(-n+2),#etfHoldCard td:nth-child(-n+2){text-align:left}
+#etfHoldCard td{padding:5px 6px;border-top:1px solid var(--line);text-align:right;white-space:nowrap}
+#etfHoldCard td.nm{white-space:normal;overflow-wrap:anywhere}
+#etfHoldCard .mono{font-family:var(--mono)}
+#etfHoldCard tr.go{cursor:pointer}
+#etfHoldCard tr.go:hover td,#etfHoldCard tr.hi td{background:rgba(62,224,255,.10)}
+#etfHoldCard .wbar{display:inline-block;height:6px;border-radius:3px;background:var(--cyan);opacity:.55;vertical-align:middle;margin-right:6px}
+#etfHoldCard .hdpie{width:100%;aspect-ratio:1;max-width:360px;margin:0 auto}
+#etfHoldCard .hdasof{color:var(--ink-3);font-size:12px;font-weight:400;margin-left:8px}
+#etfHoldCard .hdnote{line-height:1.7;color:var(--ink-2);font-size:13.5px;padding:10px 2px}
+#etfHoldCard .hdnote b{color:var(--ink)}
+@media (max-width:760px){#etfHoldCard .hdgrid{grid-template-columns:1fr}#etfHoldCard .hdpie{max-width:300px}#etfHoldCard .hdscroll{max-height:360px}}`;
+    document.head.appendChild(s);
   }
+  async function tabHoldings(pg, el) {
+    holdCss();
+    const code = String((pg.meta && pg.meta.code) || ''), name = (pg.meta && pg.meta.name) || '';
+    el.innerHTML = `<div class="card" id="etfHoldCard"><h3>成分股</h3><div class="hdnote">載入中…</div></div>`;
+    const [hd, etf, stocks] = await Promise.all([A.load('etf_holdings', { fallback: null }).catch(() => null),
+      A.load('etf', { fallback: null }).catch(() => null), A.load('stocks', { fallback: [] }).catch(() => [])]);
+    const card = document.getElementById('etfHoldCard'); if (!card || !el.contains(card)) return;   // 等資料時已切走
+    const info = ((etf && etf.items) || []).find(x => x.code === code) || {};
+    const cat = info.cat || '';
+    const rec = hd && hd.etfs && hd.etfs[code];
+    const items = rec && Array.isArray(rec.items) ? rec.items.filter(x => x && x.w != null && x.w > 0) : [];
+    /* 沒有個股成分的判定：etf.json 分類（債券型／槓桿反向，後者多以期貨曝險）＋名稱關鍵字（etf.json 讀不到時的退路）*/
+    const noStock = cat === '債券型' || cat === '槓桿反向' || /債|期貨|正2|反1|原油|黃金|VIX|美元/.test(name);
+    if (!items.length) {
+      card.dataset.state = noStock ? 'nostock' : 'nosrc';
+      card.innerHTML = noStock
+        ? `<h3>成分股</h3><div class="hdnote" id="etfHoldNone"><b>這檔以債券／期貨為主，沒有個股成分。</b><br>
+            ${A.fmt.esc(name)}${cat ? `（${A.fmt.esc(cat)}）` : ''}的資產是債券或期貨契約，不是一籃子股票，所以這裡不會有個股清單與權重圖。
+            價格走勢看「總覽」，配息看「配息」分頁。</div>`
+        : `<h3>成分股</h3><div class="hdnote" id="etfHoldNone"><b>成分股資料來源尚未接上。</b><br>
+            目前沒有可合法、每天自動取得成分股與權重的公開來源，這裡先不放清單、也不用估計值充數。請以發行投信官網每日公告的持股為準。</div>`;
+      return;
+    }
+    items.sort((a, b) => b.w - a.w);
+    const chgOf = new Map((stocks || []).map(r => [r.code, r.chg_pct]));
+    const known = new Set((stocks || []).map(r => r.code));
+    const canGo = (c) => holdTw(c) && known.has(c);
+    const tot = items.reduce((s, x) => s + x.w, 0);
+    const top = items.slice(0, HOLD_TOPN), rest = items.slice(HOLD_TOPN);
+    const topSum = top.reduce((s, x) => s + x.w, 0);
+    const restSum = Math.max(0, tot - topSum);
+    const maxW = items[0].w || 1;
+    const asof = rec.asof || hd.asof || '';
+    const hasSh = items.some(x => x.shares != null);
+    card.dataset.state = 'ok';
+    card.innerHTML = `<h3>成分股<span class="hdasof">資料日期 ${A.fmt.esc(asof)}・共 ${items.length} 檔</span></h3>
+      <div class="hdgrid"><div class="hdlist"><input class="hdq" id="etfHoldQ" type="search" placeholder="搜尋代號或名稱" aria-label="搜尋成分股">
+        <div class="hdscroll"><table id="etfHoldTbl"><thead><tr><th>代號</th><th>名稱</th><th>權重</th>${hasSh ? '<th>持股張數</th>' : ''}<th>當日漲跌</th></tr></thead><tbody>
+        ${items.map((x, i) => { const c = String(x.code || ''), go = canGo(c), ch = chgOf.get(c);
+          return `<tr data-code="${A.fmt.esc(c)}" data-i="${i}" data-w="${x.w}" data-q="${A.fmt.esc((c + ' ' + (x.name || '')).toLowerCase())}"${go ? ` class="go" title="看 ${A.fmt.esc(x.name || c)} 個股頁"` : ' title="非台股成分，沒有個股頁"'}>`
+            + `<td class="mono">${go ? `<a href="#stock/${A.fmt.esc(c)}">${A.fmt.esc(c)}</a>` : A.fmt.esc(c || '—')}</td><td class="nm">${A.fmt.esc(x.name || '')}</td>`
+            + `<td class="mono"><i class="wbar" style="width:${Math.max(2, Math.round(x.w / maxW * 40))}px"></i>${A.fmt.n(x.w, 2)}%</td>`
+            + (hasSh ? `<td class="mono">${x.shares != null ? A.fmt.i(Math.round(x.shares / 1000)) : '—'}</td>` : '')
+            + `<td class="mono ${ch == null ? 'muted' : A.fmt.cls(ch)}">${ch == null ? '—' : A.fmt.pct(ch)}</td></tr>`; }).join('')}
+        </tbody></table></div></div>
+        <div><div class="hdpie" id="etfHoldPie"></div></div></div>`;
+    const parts = top.map(x => ({ name: x.name || x.code, value: x.w, code: x.code }));
+    if (restSum > 0.005) parts.push({ name: '其他', value: restSum, isOther: true, hint: `其餘 ${rest.length} 檔` });
+    const pieEl = document.getElementById('etfHoldPie');
+    const S = Math.round(pieEl.clientWidth || 300);
+    const op = { size: S, fmtVal: (v) => A.fmt.n(v, 2) + '%', valLabel: '權重', centerLabel: `前 ${top.length} 大合計`, centerValue: A.fmt.n(topSum, 1) + '%', cursor: 'pointer' };
+    const { option } = A.donut.option(parts, op);
+    /* 提示框的權重以「占整檔 ETF」為準（ECharts 的 percent 是占圖上加總，現金部位不在圖上時兩者不同）*/
+    option.tooltip.formatter = (p) => { const d = parts.find(x => x.name === p.name) || {};
+      return `<b>${A.fmt.esc(p.name)}</b>${d.code ? ` ${A.fmt.esc(d.code)}` : ''}<br>權重 ${A.fmt.n(p.value, 2)}%${d.isOther ? `<br><small>${A.fmt.esc(d.hint)}</small>` : ''}`; };
+    const inst = A.chart(pieEl, option, { notMerge: true });
+    const tbody = card.querySelector('#etfHoldTbl tbody');
+    const rowOf = (nm) => { const d = parts.find(x => x.name === nm); return d && d.code ? tbody.querySelector(`tr[data-code="${CSS.escape(String(d.code))}"]`) : null; };
+    const centerTxt = (nm) => { const d = nm ? parts.find(x => x.name === nm) : null;
+      return A.donut.center(d ? d.name : op.centerLabel, d ? A.fmt.n(d.value, 1) + '%' : op.centerValue, S); };
+    let hiName = null;
+    const paint = (nm) => { if (!inst || inst.isDisposed() || nm === hiName) return; hiName = nm;
+      try { inst.setOption({ title: centerTxt(nm), series: [{ data: parts.map((d, i) => A.donut.item(d, i, !!nm && d.name === nm)) }] }); } catch (e) { /* dispose 競態 */ }
+      tbody.querySelectorAll('tr.hi').forEach(r => r.classList.remove('hi'));
+      const r = nm && rowOf(nm); if (r) r.classList.add('hi'); };
+    if (inst) {
+      inst.on('mouseover', (p) => { if (p.seriesIndex === 0) paint(p.name); });
+      inst.on('globalout', () => paint(null));
+      inst.on('click', (p) => { if (p.seriesIndex !== 0) return; const d = parts.find(x => x.name === p.name);
+        if (d && d.code && canGo(String(d.code))) location.hash = '#stock/' + d.code; });
+    }
+    tbody.addEventListener('mouseover', (e) => { const r = e.target.closest('tr'); if (!r) return; const i = +r.dataset.i;
+      paint(i < HOLD_TOPN ? parts[i].name : (restSum > 0.005 ? '其他' : null)); });
+    tbody.addEventListener('mouseleave', () => paint(null));
+    tbody.addEventListener('click', (e) => { if (e.target.closest('a')) return; const r = e.target.closest('tr.go'); if (r) location.hash = '#stock/' + r.dataset.code; });
+    card.querySelector('#etfHoldQ').addEventListener('input', (e) => { const q = e.target.value.trim().toLowerCase();
+      tbody.querySelectorAll('tr').forEach(r => { r.hidden = !!q && r.dataset.q.indexOf(q) < 0; }); });
+  }
+  window.StockHold = { render: tabHoldings };   // 手機個股頁（mobile3.js SK_TABS 的「成分股」）共用同一支
   const STOCK_TABS = [['overview', '總覽'], ['basics', '基本資料'], ['tags', '指標'], ['revenue', '營收'], ['profit', '獲利'], ['dividend', '除權息'],
     ['inst', '法人'], ['margin', '資券'], ['holders', '大戶／散戶'], ['news', '公告 / 新聞']];
   function renderTab(pg, tab) {

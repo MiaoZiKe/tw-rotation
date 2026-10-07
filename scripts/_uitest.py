@@ -1824,6 +1824,107 @@ def t_side_fold_1005(pg, b, base):
 
 
 # ===================================================================== ETF 專區（2026-10-05，site/etfpage.js）
+def t_etf_hold_1007(pg, b, base):
+    """ETF 成分股分頁（2026-10-07 Andy：「成分股分頁需要左側出現個股清單，右邊出現個股權重圓餅圖」）。
+
+    ⚠ 資料湖目前沒有 ETF 成分股（合規免費來源查不到，docs/etf_holdings_source.md），正式站的 etf_holdings.json 不存在。
+      所以「左清單＋右甜甜圈」用 **假資料** 驗前端：route 攔截 data/etf_holdings.json，成分取自 stocks.json 的真代號
+      （外加一檔非台股成分驗「不能點」）。假資料只在這一段的瀏覽器分頁裡，不寫進任何檔案。
+      沒攔截時（＝正式站現況）驗兩種說明卡：債券型 00679B →「沒有個股成分」、股票型 →「來源尚未接上」，都不能空白。
+    1440 與 390 各跑一次。"""
+    import json as _json
+    tag = "ETF成分股1007"
+    stocks = _json.loads((SITE / "data" / "stocks.json").read_text(encoding="utf-8"))
+    tw = sorted([r for r in stocks if r.get("market") == "TWSE" and not str(r["code"]).startswith("0") and r.get("turnover")],
+                key=lambda r: -r["turnover"])[:30]
+    ws = [round(30 / (i + 1) ** 0.9, 2) for i in range(len(tw))]
+    k = 97.0 / sum(ws)
+    items = [{"code": r["code"], "name": r["name"], "w": round(w * k, 2), "shares": 1000 * (5000 - i * 100)} for i, (r, w) in enumerate(zip(tw, ws))]
+    items.append({"code": "AAPL US", "name": "Apple Inc.", "w": 0.8, "shares": None})
+    FAKE = {"asof": "2026-10-06", "source": "測試假資料", "etfs": {
+        "0050": {"asof": "2026-10-06", "items": items},
+        "00896": {"asof": "2026-10-06", "items": items[:15]}}}
+
+    def fake(route):
+        route.fulfill(status=200, content_type="application/json", body=_json.dumps(FAKE, ensure_ascii=False))
+
+    def open_hold(lp, W):
+        # 手機（≤ 400）走 mobile3.js 的分頁列 #mbTabs，桌機走 #stockTabs
+        sel = "#mbTabs button[data-t='hold']" if W <= 400 else "#stockTabs button[data-t='holdings']"
+        wait_until(lp, f"() => {{ const b = document.querySelector(\"{sel}\"); return !!(b && b.offsetParent); }}", 15000)
+        lp.click(sel)
+
+    for W in (1440, 390):
+        t = f"{tag}@{W}"
+        lp = pg.context.browser.new_page(viewport={"width": W, "height": 1000 if W > 400 else 844})
+        lp.on("pageerror", lambda e: fails.append(f"{t} pageerror: {e}"))
+        lp.route("**/fonts.googleapis.com/**", lambda r: r.abort())
+        lp.route("**/data/etf_holdings.json*", fake)
+        J = lambda js, *a: lp.evaluate(js, *a)
+        try:
+            for code in ("00896", "0050"):
+                lp.goto(f"{base}#stock/{code}", wait_until="networkidle")
+                open_hold(lp, W)
+                wait_until(lp, "() => !!document.querySelector('#etfHoldCard[data-state]')", 8000)
+                wait_until(lp, "() => { const e = document.getElementById('etfHoldPie'); const c = e && echarts.getInstanceByDom(e); return !!(c && c.getOption()); }", 8000)
+                st = J("() => (document.querySelector('#etfHoldCard') || {}).dataset?.state")
+                ok(f"★ [{t}] {code} 成分股分頁有清單與甜甜圈（不是空白）", st == "ok", st)
+                rows = J("() => [...document.querySelectorAll('#etfHoldTbl tbody tr')].map(r => ({c: r.dataset.code, w: +r.dataset.w, go: r.classList.contains('go')}))")
+                ok(f"★ [{t}] {code} 左清單 ≥ 5 列", len(rows) >= 5, len(rows))
+                tw_sum = sum(r["w"] for r in rows)
+                ok(f"[{t}] {code} 權重加總合理（≤ 100.5%、> 0）", 0 < tw_sum <= 100.5, tw_sum)
+                ok(f"[{t}] {code} 依權重由大到小", all(rows[i]["w"] >= rows[i + 1]["w"] for i in range(len(rows) - 1)))
+                pie = J("() => { const c = echarts.getInstanceByDom(document.getElementById('etfHoldPie')); const o = c.getOption(); return { n: o.series[0].data.length, names: o.series[0].data.map(d => d.name), center: (o.title && o.title[0] && o.title[0].text) || '' }; }")
+                ok(f"★ [{t}] {code} 甜甜圈有扇區（前 10 大＋其他）", pie["n"] >= 5 and pie["n"] <= 11 and ("其他" in pie["names"] or len(rows) <= 10), pie)
+                ok(f"[{t}] {code} 中心寫「前 10 大合計 X%」", "前 10 大合計" in pie["center"] and "%" in pie["center"], pie["center"])
+                ok(f"[{t}] {code} 標註資料日期", "資料日期 2026-10-06" in text(lp, "#etfHoldCard h3"), text(lp, "#etfHoldCard h3"))
+                ok(f"[{t}] {code} 沒有橫向捲軸", J("() => document.documentElement.scrollWidth <= innerWidth + 1"))
+                if code == "0050":
+                    # 非台股成分：寫原名、不能點
+                    fr = J("() => { const r = document.querySelector('#etfHoldTbl tr[data-code=\"AAPL US\"]'); return r ? { go: r.classList.contains('go'), a: !!r.querySelector('a'), t: r.textContent } : null; }")
+                    ok(f"[{t}] 非台股成分寫原名、不能點", fr and not fr["go"] and not fr["a"] and "Apple Inc." in fr["t"], fr)
+                    # 搜尋：輸入第二名的名稱 → 只剩它
+                    nm2 = items[1]["name"]
+                    lp.fill("#etfHoldQ", nm2); lp.wait_for_timeout(200)
+                    vis = J("() => [...document.querySelectorAll('#etfHoldTbl tbody tr')].filter(r => !r.hidden).map(r => r.dataset.code)")
+                    ok(f"★ [{t}] 搜尋「{nm2}」→ 清單只剩相符的", items[1]["code"] in vis and len(vis) < len(rows), vis)
+                    lp.fill("#etfHoldQ", ""); lp.wait_for_timeout(200)
+                    if W > 400:
+                        # 滑過清單第 2 列 → 甜甜圈中心換成那一檔、該扇區外框加粗
+                        lp.hover("#etfHoldTbl tbody tr:nth-child(2) td.nm"); lp.wait_for_timeout(300)
+                        hv = J("() => { const o = echarts.getInstanceByDom(document.getElementById('etfHoldPie')).getOption(); return { c: o.title[0].text, bw: o.series[0].data[1].itemStyle.borderWidth }; }")
+                        ok(f"★ [{t}] 滑過清單第 2 列 → 甜甜圈中心換成該檔、扇區強調", nm2[:4] in hv["c"] and hv["bw"] == 3, hv)
+                        # 滑過扇區 → 清單對應列高亮
+                        box = J("() => { const e = document.getElementById('etfHoldPie'); const r = e.getBoundingClientRect(); return [r.left, r.top, r.width, r.height]; }")
+                        lp.mouse.move(box[0] + box[2] * 0.5 + box[2] * 0.40 * 0.25, box[1] + box[3] * 0.5 - box[3] * 0.40 * 0.97); lp.wait_for_timeout(350)
+                        hi = J("() => [...document.querySelectorAll('#etfHoldTbl tr.hi')].map(r => r.dataset.code)")
+                        ok(f"★ [{t}] 滑過扇區 → 左清單對應列高亮", len(hi) == 1, hi)
+                # 點清單第一列 → 跳該個股頁
+                first = rows[0]["c"]
+                lp.click("#etfHoldTbl tbody tr:first-child td.nm"); lp.wait_for_timeout(500)
+                ok(f"★ [{t}] {code} 點清單第一列 → #stock/{first}", J("() => location.hash") == f"#stock/{first}", J("() => location.hash"))
+            # 無股票成分：債券型 00679B → 說明卡
+            lp.goto(f"{base}#stock/00679B", wait_until="networkidle")
+            open_hold(lp, W)
+            wait_until(lp, "() => !!document.querySelector('#etfHoldCard[data-state]')", 8000)
+            ok(f"★ [{t}] 債券型 00679B 顯示「以債券／期貨為主，沒有個股成分」說明卡",
+               J("() => (document.querySelector('#etfHoldCard') || {}).dataset?.state") == "nostock" and "沒有個股成分" in text(lp, "#etfHoldNone"), text(lp, "#etfHoldCard")[:80])
+        finally:
+            lp.close()
+    # 正式站現況（沒有 etf_holdings.json）：股票型顯示「來源尚未接上」，不准空白
+    lp = pg.context.browser.new_page(viewport={"width": 1440, "height": 1000})
+    lp.route("**/fonts.googleapis.com/**", lambda r: r.abort())
+    lp.route("**/data/etf_holdings.json*", lambda r: r.fulfill(status=404, body="not found"))
+    try:
+        lp.goto(f"{base}#stock/0050", wait_until="networkidle")
+        open_hold(lp, 1440)
+        wait_until(lp, "() => !!document.querySelector('#etfHoldCard[data-state]')", 8000)
+        ok(f"★ [{tag}] 沒有成分股資料時 0050 顯示「來源尚未接上」說明卡（不空白）",
+           lp.evaluate("() => (document.querySelector('#etfHoldCard') || {}).dataset?.state") == "nosrc" and "來源尚未接上" in text(lp, "#etfHoldNone"), text(lp, "#etfHoldCard")[:80])
+    finally:
+        lp.close()
+
+
 def t_etf_1005(pg, b, base):
     """ETF 專區第二版（2026-10-05 Andy：行事曆放最上且是真月曆、分類頁三張前 5 並排同高、自選比較清單、填息天數）。
 
@@ -1962,6 +2063,16 @@ def t_etf_1005(pg, b, base):
                  return [Math.round(r.top), Math.round(r.height), Math.round(r.left), Math.round(r.width)]; })""")
         ok(f"★ [{tag}] 配息型：三張前 5 在同一列、由左到右、同高", not J("() => document.querySelector('#etfTri').hidden")
            and len({x[0] for x in box}) == 1 and len({x[1] for x in box}) == 1 and box[0][2] < box[1][2] < box[2][2], box)
+        # Andy 10-07「這邊調整 需要同一排」：三卡的標題、副標、表頭、第 1 列、第 5 列與卡底，上緣差都要 ≤1px
+        al = J("""() => ['#etfPopCard', '#etfRetTopCard', '#etfYldCard'].map(s => { const c = document.querySelector(s);
+                 const t = (e) => e ? +e.getBoundingClientRect().top.toFixed(1) : null, rows = c.querySelectorAll('.rklist > .rkrow');
+                 return { h3: t(c.querySelector('h3')), sub: t(c.querySelector('.etfq')), hd: t(c.querySelector('.rkhd')),
+                          r1: t(rows[0]), r5: t(rows[4]), bot: +c.getBoundingClientRect().bottom.toFixed(1),
+                          subTxt: (c.querySelector('.etfq') || {}).textContent || '' }; })""")
+        spread = {k: (max(x[k] for x in al) - min(x[k] for x in al)) if all(x[k] is not None for x in al) else 999
+                  for k in ("h3", "sub", "hd", "r1", "r5", "bot")}
+        ok(f"★ [{tag}] 1440 三卡逐層對齊（標題／副標／表頭／第1列／第5列／卡底 差 ≤1px）", all(v <= 1 for v in spread.values()), (spread, al))
+        ok(f"★ [{tag}] 三卡都有一行副標", all(x["subTxt"].strip() for x in al), [x["subTxt"] for x in al])
         cats = J("() => Object.fromEntries(window.TwEtfPage.state.data.items.map(i => [i.code, i.cat]))")
         pop_h = CODES("#etfPop")
         lp.click("#etfPopSeg button[data-v='turnover']"); lp.wait_for_timeout(200)
@@ -2104,6 +2215,7 @@ def t_etf_1005(pg, b, base):
         ok(f"[{tag}] 00947 頂部晶片沒有本益比／同業分位／營收 YoY", not ({"pe", "pct", "yoy"} & set(chips)), chips)
         ok(f"[{tag}] 00947 總覽沒有基本面卡（EPS／ROE）", "EPS" not in text(lp, "#stockTab") and "ROE" not in text(lp, "#stockTab"))
         lp.click("#stockTabs button[data-t='holdings']"); lp.wait_for_timeout(300)
+        wait_until(lp, "() => !!document.querySelector('#etfHoldCard[data-state]')", 8000)   # 10-07 起成分股分頁是非同步載入
         # ★ 2026-10-06 廢話普查（docs/copy_audit_1006_r2.md）：資料源查證過程拿掉，只留一句去哪看
         ok(f"★ [{tag}] 成分股分頁：一句話指到投信官網（不寫 OpenAPI／FinMind 查證過程）", "投信官網" in text(lp, "#stockTab") and "OpenAPI" not in text(lp, "#stockTab") and "FinMind" not in text(lp, "#stockTab"))
         lp.click("#stockTabs button[data-t='dividend']"); lp.wait_for_timeout(500)
@@ -24299,6 +24411,8 @@ SECTIONS = {
     "下拉篩選1006":        lambda pg, b, base, code: t_msel_1006(pg, b, base),
     # ★ 2026-10-05 Andy：ETF 專區＋ETF 個股頁分頁（⚠ 一律 --workers 1）
     "ETF專區1005":         lambda pg, b, base, code: t_etf_1005(pg, b, base),
+    # ★ 2026-10-07 Andy：ETF 成分股分頁「左個股清單、右權重甜甜圈」；無股票成分顯示說明卡
+    "ETF成分股1007":       lambda pg, b, base, code: t_etf_hold_1007(pg, b, base),
     "ETF報酬比較1006":     lambda pg, b, base, code: t_etf_ret_1006(pg, b, base),
     # ★ 2026-10-05（晚）Andy：財報日曆（總覽下方的大分頁；月曆＋右側分析面板＋大公司時間表＋權限；⚠ 一律 --workers 1）
     "財報日曆1005":        lambda pg, b, base, code: t_earnings_1005(pg, b, base),
