@@ -281,11 +281,13 @@
   // 2026-10-06 Andy：頂端黃色提示列會蓋住下方內容 → 法遵免責改放標題右側小字（同一行），不刪；原本的操作說明句移除（廢話）
   /* ★ 2026-10-07（Andy：統計計算、不構成投資參考的提醒放在分頁上方，一行小字、不另起欄位）：畫面那一句跟全站統一（App.DISC_LINE），
      改前那一句的細節（條件篩選僅供研究、非證券投資顧問、依成交值排序不是好壞名次）搬進 title，滑過看得到。*/
+  /* ★ 2026-10-07（Andy：「也是一樣出現標題重複」）：頁首已有「選股策略」大標，正文 h2 原本也只寫「選股策略」→ 跟週期統計同一個模式，
+     改成「頁名：這一區在看什麼」，免責那一行照舊掛在同一列（_uitest「標題重複普查」驗頁首與正文第一個標題不再相同）。*/
   const LEGAL_LINE = (window.App && window.App.DISC_LINE) || '以下為依公開資料統計計算之結果，不構成任何投資建議或參考';
   const LEGAL = `<small class="xp-legal" role="note" id="xpLegal" title="條件篩選結果僅供研究，不構成投資建議；本站非證券投資顧問。名單依成交值排序，不是好壞名次。">${LEGAL_LINE}</small>`;
   function shellWall(root) {
     root.innerHTML = `
-      <div class="sl-head"><h2>選股策略 ${LEGAL}</h2></div>
+      <div class="sl-head"><h2>選股策略：四個面向的條件篩選 ${LEGAL}</h2></div>
       <div class="nbsw sl-chips" id="slChips" role="tablist" aria-label="策略分類"></div>
       <div class="nbbody sl-nb"><div class="sl-tags" id="slTags"></div>
       <div class="sl-wall" id="slGrid"></div></div>`;

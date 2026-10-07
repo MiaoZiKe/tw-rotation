@@ -3373,17 +3373,40 @@ def t_market(pg, base):
     # 2026-09-28（Andy「法人連續買賣超 資訊移動到市場明細」）：多一個「法人連買賣」（streak）
     ok("市場明細有四個分頁（漲跌家數／法人連買賣／站上均線／今日候選）", tabs == ["updown", "streak", "ma", "cand"], tabs)
     ok("資金集中那一頁真的拿掉了", "top5" not in tabs, tabs)
+    # ★ 2026-10-07（Andy：「標題重複，把紅框移動下來」）：同名標題卡拿掉，四顆分頁鈕搬進下方內容卡標題列右側
+    lay = pg.evaluate("""() => { const seg = document.getElementById('mktSeg2'), card = document.getElementById('mktBody').closest('.card');
+        const hits = [...document.querySelectorAll('#v-market *')].filter(e => e.children.length === 0 && e.getClientRects().length && e.textContent.trim() === '市場明細');
+        const h = document.querySelector('#l4Head h1');
+        return { inCard: !!(card && card.contains(seg)), periodbar: document.querySelectorAll('#v-market .periodbar').length,
+                 alone: hits.length, head: h ? h.textContent.trim() : '', pre: (document.querySelector('#v-market .mktpre') || {}).textContent || '' }; }""")
+    ok("★ 市場明細：頁面上單獨的「市場明細」只在頁首（正文沒有同名標題卡）、內容卡標題是「市場明細：…」",
+       lay["alone"] == 0 and lay["periodbar"] == 0 and lay["head"] == "市場明細" and lay["pre"] == "市場明細：", lay)
+    ok("★ 市場明細：四顆分頁鈕都在內容卡（#mktBody 那張卡）裡", lay["inCard"] and len(tabs) == 4, lay)
     seen = {}
+    segpos = {}
     for k in tabs:
         click(pg, f'#mktSeg2 button[data-k="{k}"]', 900)
         seen[k] = pg.evaluate("""() => ({ on: (document.querySelector('#mktSeg2 button.on')||{dataset:{}}).dataset.k,
             title: (document.getElementById('mktTitle')||{}).innerText.split(String.fromCharCode(10))[0],
             rows: document.querySelectorAll('#mktBody tr[data-code]').length,
             blocks: document.querySelectorAll('#mktBody .ma, #mktBody .t5, #mktBody #trust canvas, #mktBody #trust .empty').length })""")
+        segpos[k] = pg.evaluate("() => { const r = document.getElementById('mktSeg2').getBoundingClientRect(); return [Math.round(r.right), Math.round(r.top)]; }")
         ok(f"市場明細「{k}」按下去真的被選取", seen[k]["on"] == k, seen[k])
         ok(f"市場明細「{k}」有列出東西", seen[k]["rows"] > 0 or seen[k]["blocks"] > 0, seen[k])
     ok("四個分頁標題各不相同", len({v["title"] for v in seen.values()}) == len(seen),
        {k: v["title"] for k, v in seen.items()})
+    ok("★ 市場明細：切到每一個分頁，分頁鈕都在同一個位置（右緣、上緣差 ≤ 2px）",
+       max(p[0] for p in segpos.values()) - min(p[0] for p in segpos.values()) <= 2
+       and max(p[1] for p in segpos.values()) - min(p[1] for p in segpos.values()) <= 2, segpos)
+    # 窄畫面：分頁鈕換行到標題下方，不溢出內容卡、頁面沒有橫向捲軸
+    for w in (800, 390):
+        pg.set_viewport_size({"width": w, "height": 900}); pg.wait_for_timeout(700)
+        nr = pg.evaluate("""() => { const seg = document.getElementById('mktSeg2'), h = document.querySelector('#v-market h3:has(#mktTitle)'),
+            card = document.getElementById('mktBody').closest('.card'); const s = seg.getBoundingClientRect(), t = h.getBoundingClientRect(), c = card.getBoundingClientRect();
+            return { below: s.top >= t.bottom - 1, inside: s.left >= c.left - 1 && s.right <= c.right + 1, hscroll: document.documentElement.scrollWidth > innerWidth + 1,
+                     s: [Math.round(s.left), Math.round(s.right), Math.round(s.top)], c: [Math.round(c.left), Math.round(c.right)], t: Math.round(t.bottom) }; }""")
+        ok(f"★ 市場明細 {w} 寬：分頁鈕換行到標題下方、不溢出內容卡、無橫向捲軸", nr["below"] and nr["inside"] and not nr["hscroll"], nr)
+    pg.set_viewport_size({"width": 1440, "height": 900}); pg.wait_for_timeout(500)
     # 漲跌家數底下還有漲停／跌停／漲幅前段的子分頁
     click(pg, '#mktSeg2 button[data-k="updown"]', 900)
     sub = count(pg, "#mktTabs button")
@@ -23817,7 +23840,8 @@ def t_explore_1005(pg, base):
     ui = pg.evaluate("""() => ({h2: document.querySelector('.sl-head h2').firstChild.textContent.trim(),
         chips: [...document.querySelectorAll('.sl-chip')].map(b => b.firstChild.textContent.trim()),
         tags: [...document.querySelectorAll('.sl-tag')].map(b => b.textContent.trim()), tl: document.querySelector('.sl-tl').textContent})""")
-    ok(f"[{tag}] 頁標題＝選股策略、分類晶片與子標籤是中文", ui["h2"] == "選股策略" and all(_re.search(r"[\u4e00-\u9fff]", c) for c in ui["chips"])
+    # ★ 2026-10-07 改前→改後（標題重複普查）：正文標題「選股策略」→「選股策略：四個面向的條件篩選」（頁首已有頁名）
+    ok(f"[{tag}] 頁標題＝選股策略：…、分類晶片與子標籤是中文", ui["h2"].startswith("選股策略：") and all(_re.search(r"[\u4e00-\u9fff]", c) for c in ui["chips"])
        and ui["tl"] == "子標籤" and sum(1 for t in ui["tags"] if _re.search(r"[\u4e00-\u9fff]", t)) >= len(ui["tags"]) - 2, ui)
     ok(f"[{tag}] 至少 9 張卡有名單列", sum(1 for x in info if x["rows"] > 0) >= 9, info)
     # 2026-10-06 改前→改後（DECISIONS #329 轉交 explore.js）：「每卡有資料日期徽章」→ 卡片標題列一律不放資料日期膠囊
@@ -25385,7 +25409,82 @@ def t_tour_1007(pg, b, base):
     t_tour_guest_1007(b, base, T, 390)
 
 
+# ★ 2026-10-07 標題重複普查（Andy：「標題重複，把紅框移動下來」「也是一樣出現標題重複，幫我確認所有分頁是否發生類似問題」）
+#   規格（範本＝週期統計頁）：頁首 #l4Head h1 放頁名；正文第一張卡的標題寫「頁名：這張在看什麼」，控制鈕靠右放同一列。
+#   正文任何一個可見的 h1／h2／h3（去掉 small、按鈕、免責小字之後）跟頁首標題一字不差 → 列為重複。
+TITLEDUP_JS = """() => {
+  const norm = s => (s || '').replace(/[?？\\s]/g, '').trim();
+  const own = e => { const c = e.cloneNode(true); c.querySelectorAll('small,button,.howbtn,.xp-legal,svg').forEach(x => x.remove()); return norm(c.textContent); };
+  const hd = document.querySelector('#l4Head h1');
+  const head = hd && hd.getClientRects().length ? norm(hd.textContent) : '';
+  const vis = e => { const r = e.getBoundingClientRect(); return r.width > 0 && r.height > 0 && getComputedStyle(e).visibility !== 'hidden'; };
+  const hs = [...document.querySelectorAll('.view h1, .view h2, .view h3, section h1, section h2, section h3, main h1, main h2, main h3')]
+    .filter(e => !e.closest('#l4Head') && vis(e));
+  hs.sort((a, b) => a.getBoundingClientRect().y - b.getBoundingClientRect().y);
+  const r = hd ? hd.getBoundingClientRect() : null;
+  // 頁首大標有沒有被切：h1 的內容高度（scrollHeight）不可以超過它自己的框（overflow:hidden 會把字形上緣剪掉）
+  return { head, first: hs[0] ? own(hs[0]) : '', dups: hs.filter(e => head && own(e) === head).map(e => e.tagName + ':' + own(e)),
+           clip: hd ? hd.scrollHeight - hd.clientHeight : 0, top: r ? Math.round(r.top) : null };
+}"""
+TITLEDUP_ROUTES = ["overview", "flow/rotation", "flow/sankey", "flow/inst", "industry", "heatmap/industry", "heatmap/theme", "themes",
+                   "market/updown", "market/streak", "market/ma", "market/cand", "explore", "season", "etf", "watch", "earnings", "stock/2330",
+                   "disclaimer", "terms", "privacy", "pricing", "notices"]
+TITLEDUP_ADMIN = ["admin/perm", "admin/members", "admin/traffic", "admin/admins", "admin/gw", "admin/feedback", "admin/notices"]
+
+
+def t_title_dup_1007(b, base):
+    T = "標題重複普查"
+    rows = []
+
+    def scan(pg, routes, who):
+        for h in routes:
+            pg.goto("about:blank"); pg.goto(f"{base}#{h}", wait_until="domcontentloaded")
+            pg.wait_for_timeout(2200)
+            m = pg.evaluate(TITLEDUP_JS); m["route"] = h; m["who"] = who; rows.append(m)
+
+    c = b.new_context(viewport={"width": 1440, "height": 900}); pg = c.new_page()
+    scan(pg, TITLEDUP_ROUTES, "訪客")
+    c.close()
+    # 管理區要登入管理者才看得到內容：用假的帳號 API（同「管理權限1007」那段的接法）以站主身份登入
+    def handler(route):
+        path = re.sub(r"^https?://[^/]+", "", route.request.url).split("?")[0]
+        if route.request.method == "OPTIONS":
+            return route.fulfill(status=204, headers={"access-control-allow-origin": "*", "access-control-allow-headers": "*", "access-control-allow-methods": "POST"})
+        owner = "andy@example.com"
+        out = {"ok": True}
+        if path == "/v1/me":
+            out = {"user": {"email": owner, "name": "andy", "admin": True, "owner": True}}
+        elif path == "/v1/perm/me":
+            out = {"who": "member", "plan": "free", "planName": "免費會員", "feats": {}, "lims": {}}
+        elif path == "/v1/notices":
+            out = {"notices": []}
+        elif path == "/v1/admin/admins/list":
+            out = {"owners": [{"email": owner, "owner": True}], "admins": [], "log": [], "me": {"email": owner, "owner": True}}
+        elif path == "/v1/admin/stats":
+            out = {"from": "2026-09-05", "to": "2026-10-04", "rows": [], "e2": [], "users": {"total": 0, "recent": []}}
+        elif path == "/v1/admin/online":
+            out = {"total": 0, "guests": 0, "users": [], "public_online": True}
+        route.fulfill(status=200, body=json.dumps(out), headers={"access-control-allow-origin": "*", "content-type": "application/json"})
+    c = b.new_context(viewport={"width": 1440, "height": 900})
+    c.add_init_script("window.TW_ACCOUNT_OVERRIDE = " + json.dumps({"api": ADM1007_API}) + ";"
+                      + "try { localStorage.setItem('tw.acct.tok', 'tok-andy@example.com-v0'); } catch (e) {}")
+    c.route("**/fonts.googleapis.com/**", lambda r: r.abort())
+    c.route(ADM1007_API + "/**", handler)
+    pg = c.new_page()
+    scan(pg, TITLEDUP_ADMIN, "站主")
+    c.close()
+    for r in rows:
+        print(f"    [{T}] {r['who']} #{r['route']:<18} 頁首「{r['head']}」｜正文第一個標題「{r['first']}」" + (f"｜重複 {r['dups']}" if r["dups"] else ""))
+    dup = [(r["route"], r["dups"]) for r in rows if r["dups"]]
+    ok(f"★ [{T}] 走過 {len(rows)} 個路由（側欄每一項＋子項＋管理區），頁首標題與正文標題 0 處相同", dup == [], dup)
+    ok(f"★ [{T}] 至少 15 個路由有頁首標題（掃描真的有比對到東西，不是全部空字串放過）", sum(1 for r in rows if r["head"]) >= 15,
+       [(r["route"], r["head"]) for r in rows])
+    clip = [(r["route"], r["clip"]) for r in rows if r["head"] and r["clip"] > 0]
+    ok(f"★ [{T}] 頁首大標沒有被自己的框切掉（scrollHeight ≤ clientHeight）", clip == [], clip)
+
+
 SECTIONS = {
+    "標題重複普查":        lambda pg, b, base, code: t_title_dup_1007(b, base),
     "時間軸分隔線1006":    lambda pg, b, base, code: t_timegrid_1006(pg, base),
     "頁首圖示鈕1006":      lambda pg, b, base, code: t_topicons_1006(pg, base),
     # ★ 2026-10-05 Andy：選股探索頁（白話問題＋泡泡圖＋條件積木＋白話卡，docs/explore_page_spec.md）

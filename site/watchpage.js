@@ -173,8 +173,9 @@
           + `<button type="button" class="wpic del" data-del-tab="${esc(t.id)}" aria-label="刪除「${esc(t.name)}」這一頁" title="刪除這一頁">✕</button>` : '')
         + '</span>';
     }).join('');
+    /* ★ 2026-10-07 標題重複普查：頁首已有「自選」，卡標題改成「頁名：這張在看什麼」（週期統計同一個模式），不再只寫「自選」。*/
     v.innerHTML = `<div class="card wpcard">
-      <div class="wphd"><h2>自選 <button class="howbtn pop" data-how="watch" data-ttl="自選" type="button" aria-label="自選怎麼看">?</button></h2><span class="wpmode" id="wpMode">${esc(mode)}</span><span class="sp"></span><span class="wpcnt" id="wpCnt">${tabs.length}／${T.MAX_TABS} 頁</span></div>
+      <div class="wphd"><h2>自選：我的觀察清單 <button class="howbtn pop" data-how="watch" data-ttl="自選" type="button" aria-label="自選怎麼看">?</button></h2><span class="wpmode" id="wpMode">${esc(mode)}</span><span class="sp"></span><span class="wpcnt" id="wpCnt">${tabs.length}／${T.MAX_TABS} 頁</span></div>
       <div class="wptabs" role="tablist" id="wpTabs">${tabH}
         <button type="button" class="wpnew" id="wpNew" ${full && !(T.capLocked && T.capLocked()) ? 'disabled aria-disabled="true"' : ''} title="${full ? (T.capLocked && T.capLocked() ? `目前方案最多 ${T.MAX_TABS} 頁（需開通）` : `最多 ${T.MAX_TABS} 頁`) : '新增一頁清單'}">＋ 新增分頁${full && T.capLocked && T.capLocked() ? ' 🔒' : ''}</button>
         <span class="wphint" id="wpHint" ${P.hint ? '' : 'hidden'}>${esc(P.hint)}</span></div>

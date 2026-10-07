@@ -1656,6 +1656,8 @@ canvas.rotripple{position:absolute;left:0;top:0;width:100%;height:100%;pointer-e
 .top5grid .t5 .m{font-family:var(--mono);font-size:12px;color:var(--ink-3);margin:4px 0 8px}
 .top5grid .t5 .ls{display:flex;flex-wrap:wrap;gap:4px 8px;font-size:12.5px}
 /* 資金流向頁：期間切換、「怎麼看」說明、估值篩選 */
+.mkthead .mktright{margin-left:auto;justify-content:flex-end}
+@media (max-width:800px){.mkthead{flex-direction:column;align-items:flex-start}.mkthead .mktright{margin-left:0;justify-content:flex-start;max-width:100%}}
 .periodbar{background:linear-gradient(180deg,rgba(62,224,255,.07),transparent)}
 .periodbar .pnote{color:var(--ink-3);font-size:13px;margin-top:4px;font-family:var(--mono)}
 .howbtn{border:1px solid var(--line-2);background:var(--panel-3);color:var(--ink-2);border-radius:999px;
@@ -4949,6 +4951,9 @@ h3 .howbtn.pop{font-family:inherit}
   body.m3on #mktTitle{display:contents}
   body.m3on #mktTitle > small{order:2;flex-basis:100%;margin-top:2px}
   body.m3on #v-market h3 > .howbtn.pop[data-how="mkt"]{order:1}
+  /* 2026-10-07：標題前多了「市場明細：」前綴，h3 是 flex，預設間距會把「市場明細：」和「漲跌家數」拉開 → 欄距歸零，「?」自己留 8px */
+  body.m3on #v-market h3:has(> #mktTitle){column-gap:0}
+  body.m3on #v-market h3 > .howbtn.pop[data-how="mkt"]{margin-left:8px}
   body.m3on .mfilt{min-height:36px;padding:0 12px;border-radius:10px;border:1px solid var(--line-2);background:var(--panel-2);
     color:var(--ink-2);font-size:13px;white-space:nowrap;max-width:190px;overflow:hidden;text-overflow:ellipsis}
   body.m3on .mfilt.on{border-color:var(--cyan);color:var(--cyan)}
@@ -5452,10 +5457,9 @@ h3 .howbtn.pop{font-family:inherit}
 
   <!-- ================= 市場明細 ================= -->
   <section class="view" id="v-market">
-    <div class="card periodbar"><div class="row spread">
-      <div><h3 style="margin:0">市場明細</h3></div>
-      <div class="seg" id="mktSeg2"></div></div></div>
-    <div class="card" style="margin-top:var(--gap-card)"><div class="row spread"><h3><span id="mktTitle">—</span> <button class="howbtn pop" data-how="mkt" data-ttl="市場明細" type="button" aria-label="市場明細怎麼看">?</button></h3><small id="mktDisc" data-disc="cand" hidden></small></div>
+    <!-- ★ 2026-10-07（Andy：「標題重複，把紅框移動下來」）：頁首已有「市場明細」大標，原本這裡還有一張同名標題卡掛四顆分頁鈕，
+         整張拿掉；分頁鈕 #mktSeg2 搬到內容卡標題列右側（每個分頁都在同一位置），窄畫面換行到標題下方。 -->
+    <div class="card"><div class="row spread mkthead"><h3><span class="mktpre">市場明細：</span><span id="mktTitle">—</span> <button class="howbtn pop" data-how="mkt" data-ttl="市場明細" type="button" aria-label="市場明細怎麼看">?</button></h3><div class="row mktright"><small id="mktDisc" data-disc="cand" hidden></small><div class="seg" id="mktSeg2"></div></div></div>
       <div class="howtxt" id="how-mkt" hidden></div>
       <div id="mktBody"></div></div>
   </section>
