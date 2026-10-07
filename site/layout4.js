@@ -439,7 +439,8 @@
      長相跟資金流向的子分頁一樣（l4subtab、縮排在「自選」下面），但不帶 data-l4sub：它是另一個頁面（#admin/perm），不是自選頁裡的一段。 */
   // 2026-10-05（admin-v2c，Andy）：子項順序改成「會員管理」在上、「會員權限」在下，流量觀測維持最後
   // 2026-10-07（Andy：意見反饋要留在站上、只有我看得到）：管理區下加「意見反饋」（#admin/feedback，support.js 畫；未讀數紅點由 support.js 填 TwSupport.unread）
-  const ADM_SUBS = [['perm', '會員權限', 'admTabPerm', 'scale'], ['traffic', '流量觀測', 'admTabTraffic', 'gauge'], ['feedback', '意見反饋', 'admTabFeedback', 'mail'], ['admins', '管理權限', 'admTabAdmins', 'users']];   // 2026-10-07：誰擁有管理權限（admin.js renderAdmins）
+  // 10-07 15:25（Andy：意見反饋需要圖示）：原本寫 'mail'，但圖示表沒有這個鍵 → 畫出空 svg；改成對話泡泡 message（icons.js 新增）
+  const ADM_SUBS = [['perm', '會員權限', 'admTabPerm', 'scale'], ['traffic', '流量觀測', 'admTabTraffic', 'gauge'], ['feedback', '意見反饋', 'admTabFeedback', 'message'], ['admins', '管理權限', 'admTabAdmins', 'users']];   // 2026-10-07：誰擁有管理權限（admin.js renderAdmins）
   function isAdmin() { const A = window.TwAccount; const u = A && A.on && A.on() && A.user(); return !!(u && u.admin); }
   function syncPerm() {
     const tabs = $('#tabs');

@@ -48761,7 +48761,7 @@ def _sub_ctx(b, who, width=1440, feats=None, notices=None, lims=None, dq=None):
             st["notices"] = [x for x in st["notices"] if x["id"] != n["id"]] + [n]
             out = {"ok": True, "notice": n}
         elif path == "/v1/admin/feedback/list":
-            out = {"feedback": [{"id": "f1", "contact": "a@b.co", "cat": "bug", "body": "圖表空白", "url": "https://x/#stock/2330", "ua": "UA", "created": 1759650000000, "status": "new", "member": True, "name": "王小明"}],
+            out = {"feedback": [{"id": "f1", "contact": "a@b.co", "cat": "bug", "body": "圖表空白", "url": "https://x/#stock/2330", "ua": "UA", "created": int(time.time() * 1000) - 3600000, "status": "new", "member": True, "name": "王小明"}],
                    "requests": [{"id": "r1", "email": "member@example.com", "contact": "member@example.com", "plan": "p399", "period": "year", "note": "", "created": 1759650000000, "status": "new", "name": "王小明"}]}
         elif path == "/v1/admin/feedback/set":
             out = {"ok": True}
@@ -49727,7 +49727,7 @@ def _fb1007_ctx(b, who, st, width=1440):
         elif path == "/v1/feedback":
             st["n"] += 1
             st["fb"].insert(0, {"id": f"f{st['n']}", "contact": body.get("contact", ""), "cat": body.get("cat"), "body": body.get("body"), "url": body.get("url", ""),
-                                "ua": body.get("ua", ""), "created": 1759800000000 + st["n"], "status": "new", "member": bool(me), "name": me["name"] if me else None})
+                                "ua": body.get("ua", ""), "created": int(time.time() * 1000) + st["n"], "status": "new", "sub": body.get("sub", ""), "member": bool(me), "name": me["name"] if me else None})
             out = {"ok": True, "id": f"f{st['n']}"}
         elif path == "/v1/notices":
             out = {"notices": []}
@@ -49787,11 +49787,23 @@ def t_support_1007(b, base, code):
     ok(f"{T}：全站沒有任何 mailto: 連結", pg.evaluate("() => document.querySelectorAll('a[href^=\"mailto:\"]').length") == 0)
     pg.click("#supPanel .sptabs button[data-t='fb']")
     ok(f"{T}：訪客也能送（送出鈕可按）", not pg.evaluate("() => document.getElementById('fbSend').disabled"))
-    pg.select_option("#fbCat", "bug"); pg.fill("#fbBody", "1007 驗收：K 線空白"); pg.fill("#fbMail", "guest@example.com")
+    # 1007 v2：兩層類別 —— 先選大類，細項選單跟著換；「其他」沒有細項就收起來
+    pg.select_option("#fbCat", "ask")
+    ok(f"{T}：大類選「資料疑問」→ 細項選單換成 數字怎麼算／資料來源與更新時間／名詞看不懂",
+       pg.evaluate("() => [...document.querySelectorAll('#fbSub option')].map(o => o.value).join(',')") == ",calc,source,term")
+    pg.select_option("#fbCat", "other")
+    ok(f"{T}：大類選「其他」→ 細項選單收起來", pg.evaluate("() => document.getElementById('fbSubWrap').hidden"))
+    pg.select_option("#fbCat", "bug")
+    ok(f"{T}：大類選回「錯誤回報」→ 細項有 5 項＋不選、選單又出現",
+       not pg.evaluate("() => document.getElementById('fbSubWrap').hidden") and pg.locator("#fbSub option").count() == 6)
+    pg.select_option("#fbSub", "mobile")
+    if shots:
+        pg.locator("#supPanel").screenshot(path=str(pathlib.Path(shots) / "feedback_form_2level.png"))
+    pg.fill("#fbBody", "1007 驗收：K 線空白"); pg.fill("#fbMail", "guest@example.com")
     pg.click("#fbSend")
-    ok(f"{T}：送出 → 顯示已收到、假 Worker 真的存了一筆（訪客、bug、網址含 #overview）",
+    ok(f"{T}：送出 → 顯示已收到、假 Worker 真的存了一筆（訪客、bug／mobile、網址含 #overview）",
        bool(wait_until(pg, "() => /已收到/.test(document.getElementById('fbMsg').textContent)", 4000))
-       and len(st["fb"]) == 1 and st["fb"][0]["cat"] == "bug" and not st["fb"][0]["member"] and "#overview" in st["fb"][0]["url"], st["fb"])
+       and len(st["fb"]) == 1 and st["fb"][0]["cat"] == "bug" and st["fb"][0]["sub"] == "mobile" and not st["fb"][0]["member"] and "#overview" in st["fb"][0]["url"], st["fb"])
     pg.goto(base + "#admin/feedback", wait_until="domcontentloaded")
     ok(f"{T}：訪客進 #admin/feedback → 被擋（沒有列表）",
        bool(wait_until(pg, "() => !!document.getElementById('fbDenied')", 6000)) and pg.locator("#fbTable").count() == 0
@@ -49806,7 +49818,14 @@ def t_support_1007(b, base, code):
        and pg.locator("#fbTable").count() == 0 and pg.locator("#admTabFeedback").count() == 0)
     c.close()
     # ③ 管理者：側欄「意見反饋」＋未讀紅點 → 列表 → 篩選 → 標已處理 → 刪除
-    st["fb"].append({"id": "old1", "contact": "", "cat": "idea", "body": "舊建議", "url": "", "ua": "", "created": 1759700000000, "status": "handled", "member": True, "name": "王小明"})
+    import datetime as _dt
+    now_ms = int(time.time() * 1000)
+    tpe = lambda ms: (_dt.datetime.utcfromtimestamp(ms / 1000) + _dt.timedelta(hours=8)).strftime("%Y-%m-%d")
+    t_old1, t_leg, t_far = now_ms - 2 * 86400000, now_ms - 20 * 86400000, now_ms - 60 * 86400000
+    st["fb"].append({"id": "old1", "contact": "", "cat": "idea", "sub": "", "body": "舊建議", "url": "", "ua": "", "created": t_old1, "status": "handled", "member": True, "name": "王小明"})
+    # 改版前存的舊類別「付款問題」（cat=pay、沒有 sub 欄）→ 要顯示在「帳號與付費」大類；60 天前那筆只在近 90 天／自訂起訖看得到
+    st["fb"].append({"id": "leg1", "contact": "", "cat": "pay", "body": "舊版付款問題", "url": "", "ua": "", "created": t_leg, "status": "handled", "member": False, "name": None})
+    st["fb"].append({"id": "far1", "contact": "", "cat": "ask", "sub": "calc", "body": "六十天前的疑問", "url": "", "ua": "", "created": t_far, "status": "handled", "member": False, "name": None})
     c = _fb1007_ctx(b, "admin", st)
     pg = c.new_page(); pg.on("pageerror", lambda e: errs.append(str(e)))
     pg.goto(base + "#overview", wait_until="domcontentloaded")
@@ -49814,14 +49833,70 @@ def t_support_1007(b, base, code):
        bool(wait_until(pg, "() => { const t = document.getElementById('admTabFeedback'); const d = t && t.querySelector('.fbdot'); return !!d && d.textContent === '1'; }", 10000)),
        pg.evaluate("() => (document.getElementById('admTabFeedback') || {}).outerHTML"))
     pg.click("#admTabFeedback")
-    ok(f"{T}：點側欄「意見反饋」→ 到 #admin/feedback、列出 2 筆（訪客那筆排第一、未讀）",
-       bool(wait_until(pg, "() => location.hash === '#admin/feedback' && document.querySelectorAll('#fbTable tbody tr').length === 2", 8000))
+    ok(f"{T}：側欄「意見反饋」有對話泡泡圖示（svg 有畫東西、跟其他子項同大小）",
+       pg.evaluate("() => { const s = document.querySelector('#admTabFeedback svg'), o = document.querySelector('#admTabTraffic svg'); if (!s || !o) return false; const a = s.getBoundingClientRect(), b = o.getBoundingClientRect(); return s.querySelectorAll('path').length >= 2 && Math.abs(a.width - b.width) < 1 && a.width >= 14; }"),
+       pg.evaluate("() => (document.querySelector('#admTabFeedback svg') || {}).outerHTML"))
+    ok(f"{T}：點側欄「意見反饋」→ 到 #admin/feedback、預設近 30 天列出 3 筆（60 天前那筆不在、訪客那筆排第一、未讀）",
+       bool(wait_until(pg, "() => location.hash === '#admin/feedback' && document.querySelectorAll('#fbTable tbody tr').length === 3", 8000))
+       and pg.locator("#fbTable tr[data-id='far1']").count() == 0
        and pg.evaluate("() => { const r = document.querySelector('#fbTable tbody tr'); return /1007 驗收/.test(r.textContent) && r.classList.contains('unread') && /guest@example.com/.test(r.textContent) && /#overview/.test(r.textContent); }"))
     ok(f"{T}：聯絡 email 是 Gmail 回覆連結（不是 mailto）",
        (pg.get_attribute("#fbTable tbody tr:first-child a[data-gmail]", "href") or "").startswith(GM + "guest%40example.com"))
+    kt = lambda: pg.evaluate("() => +document.getElementById('fbKTot').textContent")
+    rows = lambda: pg.evaluate("() => [...document.querySelectorAll('#fbTable tbody tr')].map(r => r.dataset.id).sort().join(',')")
+    ok(f"{T}：舊類別「付款問題」顯示在「帳號與付費」大類（徽章＋細項付款與發票＋標舊類別）",
+       pg.evaluate("() => { const r = document.querySelector(\"#fbTable tr[data-id='leg1']\"); return !!r && r.dataset.cat === 'acct' && /帳號與付費/.test(r.querySelector('.fbcat').textContent) && /付款與發票/.test(r.textContent) && /舊類別：付款問題/.test(r.textContent); }"))
+    ok(f"{T}：四張小卡（近 30 天）：總則數 3、未讀 1、已處理率 66.7%、最常見細項＝手機版問題",
+       kt() == 3 and pg.inner_text("#fbKNew") == "1" and pg.inner_text("#fbKDone") == "66.7%" and "手機版問題" in pg.inner_text("#fbKTop"),
+       pg.inner_text("#fbKpi"))
+    ok(f"{T}：甜甜圈有 3 塊（錯誤回報／功能建議／帳號與付費）、每日直條 30 根",
+       pg.locator("#fbDonut .fbseg").count() == 3 and pg.locator("#fbDayBars .vb").count() == 30)
+    # 扇區是環形，bbox 中心常落在中空處 → 取外徑那條弧的中點（用 getScreenCTM 換成螢幕座標）再滑過／點擊
+    def seg_pt(cat):
+        return pg.evaluate("""(c) => { const s = document.querySelector(`#fbDonut .fbseg[data-cat="${c}"]`), L = s.getTotalLength();
+          const pt = s.getPointAtLength(L * 0.2), m = s.getScreenCTM(); return [pt.x * m.a + pt.y * m.c + m.e, pt.x * m.b + pt.y * m.d + m.f]; }""", cat)
+    def seg_click(cat):
+        x, y = seg_pt(cat); pg.mouse.click(x, y)
+    pg.mouse.move(*seg_pt("idea"))
+    ok(f"{T}：滑過甜甜圈「功能建議」→ 中心字換成「功能建議／33.3%」",
+       bool(wait_until(pg, "() => document.getElementById('fbDc1').textContent === '功能建議' && document.getElementById('fbDc2').textContent === '33.3%'", 2000)))
+    pg.mouse.move(5, 5)
     if shots:
         pg.wait_for_timeout(700)      # 等換頁淡入動畫結束
-        pg.screenshot(path=str(pathlib.Path(shots) / "feedback_admin.png"))
+        pg.screenshot(path=str(pathlib.Path(shots) / "feedback_admin.png"), full_page=True)
+    # 期間：近 7 天 → 只剩 f1、old1；統計跟著變
+    pg.select_option("#fbRange .rpsel", "7")
+    ok(f"{T}：期間切「近 7 天」→ 列表剩 2 筆、總則數 2、直條 7 根、日期框同步",
+       bool(wait_until(pg, "() => document.querySelectorAll('#fbTable tbody tr').length === 2", 3000)) and rows() == "f1,old1" and kt() == 2
+       and pg.locator("#fbDayBars .vb").count() == 7 and pg.input_value("#fbRange .rpto-in") == tpe(now_ms), rows())
+    # 自訂起訖：起日往前拉到 70 天前 → 4 筆（含 60 天前那筆）、下拉自動跳「自訂起訖」
+    pg.fill("#fbRange .rpfrom", tpe(now_ms - 70 * 86400000)); pg.dispatch_event("#fbRange .rpfrom", "change")
+    ok(f"{T}：自訂起日 70 天前 → 列表 4 筆（含 60 天前）、總則數 4、下拉＝自訂起訖、直條 71 根",
+       bool(wait_until(pg, "() => document.querySelectorAll('#fbTable tbody tr').length === 4", 3000)) and kt() == 4
+       and pg.input_value("#fbRange .rpsel") == "custom" and pg.locator("#fbDayBars .vb").count() == 71, [rows(), kt()])
+    pg.select_option("#fbRange .rpsel", "30")
+    wait_until(pg, "() => document.querySelectorAll('#fbTable tbody tr').length === 3", 3000)
+    # 點甜甜圈扇區 → 列表只剩該類；再點取消
+    seg_click("acct")
+    ok(f"{T}：點甜甜圈「帳號與付費」→ 列表只剩舊付款那筆、扇區保持強調、出現篩選膠囊",
+       bool(wait_until(pg, "() => document.querySelectorAll('#fbTable tbody tr').length === 1", 3000)) and rows() == "leg1"
+       and pg.locator("#fbDonut .fbseg.sel[data-cat='acct']").count() == 1 and pg.locator(".fbchip[data-clr='cat']").count() == 1)
+    seg_click("acct")
+    ok(f"{T}：再點同一塊 → 取消篩選，回 3 筆", bool(wait_until(pg, "() => document.querySelectorAll('#fbTable tbody tr').length === 3", 3000)))
+    # 細項橫條（D 款）：點「手機版問題」→ 只剩 f1；按膠囊 × 取消
+    pg.click("#fbSubBars .hb[data-cat='bug'][data-sub='mobile']")
+    ok(f"{T}：點細項橫條「手機版問題」→ 列表只剩那一筆、細項下拉同步",
+       bool(wait_until(pg, "() => document.querySelectorAll('#fbTable tbody tr').length === 1", 3000)) and rows() == "f1" and pg.input_value("#fbFSub") == "mobile")
+    pg.click(".fbchip[data-clr='cat'] button")
+    ok(f"{T}：按膠囊 × → 取消，回 3 筆", bool(wait_until(pg, "() => document.querySelectorAll('#fbTable tbody tr').length === 3", 3000)))
+    # 每日直條（C 款）：點兩天前那根 → 列表與小卡只算那天
+    d_old = tpe(t_old1)
+    pg.click(f"#fbDayBars .vb[data-day='{d_old}']")
+    ok(f"{T}：點直條 {d_old} → 列表只剩那天的「舊建議」、總則數 1、那根換強調色",
+       bool(wait_until(pg, "() => document.querySelectorAll('#fbTable tbody tr').length === 1", 3000)) and rows() == "old1" and kt() == 1
+       and pg.locator(f"#fbDayBars .vb.sel[data-day='{d_old}']").count() == 1)
+    pg.click(f"#fbDayBars .vb[data-day='{d_old}']")
+    ok(f"{T}：再點同一根 → 取消，回 3 筆", bool(wait_until(pg, "() => document.querySelectorAll('#fbTable tbody tr').length === 3", 3000)))
     pg.select_option("#fbFSt", "new")
     ok(f"{T}：篩選狀態＝未讀 → 只剩 1 筆", bool(wait_until(pg, "() => document.querySelectorAll('#fbTable tbody tr').length === 1", 3000)))
     pg.select_option("#fbFSt", ""); pg.select_option("#fbFCat", "idea")
@@ -49834,11 +49909,17 @@ def t_support_1007(b, base, code):
     pg.once("dialog", lambda d: d.dismiss())
     pg.click("#fbTable tr[data-id='f1'] button[data-del]")
     pg.wait_for_timeout(400)
-    ok(f"{T}：刪除按「取消」→ 不刪", pg.locator("#fbTable tbody tr").count() == 2 and len(st["fb"]) == 2)
+    ok(f"{T}：刪除按「取消」→ 不刪", pg.locator("#fbTable tbody tr").count() == 3 and len(st["fb"]) == 4)
     pg.once("dialog", lambda d: d.accept())
     pg.click("#fbTable tr[data-id='f1'] button[data-del]")
-    ok(f"{T}：刪除按「確定」→ 列表剩 1 筆、伺服器那筆真的不見",
-       bool(wait_until(pg, "() => document.querySelectorAll('#fbTable tbody tr').length === 1 && !document.querySelector(\"#fbTable tr[data-id='f1']\")", 5000)) and len(st["fb"]) == 1)
+    ok(f"{T}：刪除按「確定」→ 列表剩 2 筆、伺服器那筆真的不見",
+       bool(wait_until(pg, "() => document.querySelectorAll('#fbTable tbody tr').length === 2 && !document.querySelector(\"#fbTable tr[data-id='f1']\")", 5000)) and len(st["fb"]) == 3)
+    pg.set_viewport_size({"width": 390, "height": 844})
+    pg.wait_for_timeout(400)
+    sw = pg.evaluate("() => document.documentElement.scrollWidth - innerWidth")
+    ok(f"{T}：390 手機寬管理頁沒有橫向捲軸、甜甜圈與直條都在", sw <= 1 and pg.locator("#fbDonut").count() == 1 and pg.locator("#fbDayBars").count() == 1, sw)
+    if shots:
+        pg.screenshot(path=str(pathlib.Path(shots) / "feedback_admin_390.png"), full_page=True)
     c.close()
     # ④ 法律頁側欄「聯絡客服」與條款內文信箱
     c = _fb1007_ctx(b, None, st)
