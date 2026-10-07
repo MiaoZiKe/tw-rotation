@@ -10163,6 +10163,44 @@
     });
   }
 
+  /* 族群成分股（資金分流樹右欄）的列：206 範本的 D 款橫條 —— 名稱＋代號／右側 pp（紅增綠減）／
+     第二行「占族群 X%・成交值 Y 億」／一條同色漸層橫條。橫條長度跟著目前的排序：依流入＝|pp|、依成交值＝占比。
+     以代號為鍵就地更新（播放時不重建、寬度用 CSS 過渡）。*/
+  function skMemRows(host, fm, mm, col) {
+    if (!host) return;
+    const rows = fm.rows, sum = fm.sum || 1, byTv = sankeyMemSort === 'tv';
+    const mx = Math.max(1e-9, ...rows.map(r => byTv ? r.tv / sum : Math.abs(r.dpp || 0)));
+    const keep = new Set(rows.map(r => String(r.code)));
+    $$('a.skr-r', host).forEach(el => { if (!keep.has(el.dataset.code)) el.remove(); });
+    rows.forEach((m, i) => {
+      const code = String(m.code);
+      let el = host.querySelector(`a.skr-r[data-code="${CSS.escape(code)}"]`);
+      if (!el) {
+        el = document.createElement('a'); el.className = 'dp skr-r'; el.dataset.code = code; el.setAttribute('role', 'listitem');
+        if (m.has_page) el.href = '#stock/' + code;
+        el.innerHTML = `<span class="i"></span><span class="n"><b></b><small><span class="c"></span>${m.has_page ? '<span class="go" title="進個股頁">個股 →</span>' : ''}</small></span>`
+          + `<span class="v"><b class="d"></b><small></small></span><span class="bar"><i></i></span>`;
+      }
+      const on = DRILL.stocks.has(code), can = !!mm[code];
+      el.classList.toggle('ison', on); el.classList.toggle('noplot', !can);
+      if (on) el.style.setProperty('--c', col); else el.style.removeProperty('--c');
+      el.title = can ? '點一下畫到圖上' : '上市未滿 50 個交易日';
+      el.dataset.tv = Math.round(m.tv);
+      el.querySelector('.i').textContent = i + 1;
+      el.querySelector('.n b').textContent = (on ? '● ' : '') + (m.name || code);
+      el.querySelector('.n .c').textContent = code;
+      const d = el.querySelector('.v .d');
+      d.textContent = m.dpp == null ? '—' : `${m.dpp > 0 ? '+' : ''}${fmt.n(m.dpp, 2)} pp`;
+      d.className = 'd ' + fmt.cls(m.dpp); d.dataset.dpp = m.dpp == null ? '' : m.dpp.toFixed(3);
+      el.querySelector('.v small').textContent = `占族群 ${fmt.n(m.tv / sum * 100, 1)}%・${fmt.yi(m.tv)}`;
+      const bar = el.querySelector('.bar i');
+      const up = (m.dpp || 0) >= 0;
+      bar.className = up ? 'up' : 'down';
+      bar.style.width = ((byTv ? m.tv / sum : Math.abs(m.dpp || 0)) / mx * 100).toFixed(1) + '%';
+      if (host.children[i] !== el) host.insertBefore(el, host.children[i] || null);
+    });
+  }
+
   function renderDrillPanel(panelId) {
     const box = $('#' + panelId); if (!box) return;
     const gid = DRILL.gid;
@@ -10187,6 +10225,19 @@
     const sig = [gid, DRILL.chain || '', [...DRILL.stocks].sort().join(','), DRILL.state, ms.length, extra,
       fm ? fm.k + sankeyMemSort : ''].join('|');
     if (box.dataset.sig === sig && !box.hidden) return;
+    /* ★ 2026-10-07 晚（Andy：「在播放功能時，旁邊右側欄位都會先反灰」）：
+       播放／拉桿換日時只有「哪一天」變了（族群、排序方式、已畫的個股都沒變）→ 不整塊 innerHTML 重建
+       （整塊換掉的那一幀清單是空的、捲動位置歸零，看起來就是閃一下變灰），改成以代號為鍵原地更新數字與橫條，
+       寬度用 CSS 過渡。結構簽章（不含日期）一樣才走這條。*/
+    const ssig = [gid, DRILL.chain || '', [...DRILL.stocks].sort().join(','), DRILL.state, sankeyMemSort].join('|');
+    if (fm && !box.hidden && box.dataset.ssig === ssig && box.querySelector('.ms.skr-l')) {
+      box.dataset.sig = sig;
+      skMemRows(box.querySelector('.ms.skr-l'), fm, drillMembers(gid), L.gcolor[gid] || CH.cyan);
+      const hm = box.querySelector('.hh .m'); if (hm) hm.firstChild.textContent = `${ms.length} 檔 · ${sankeyMemSort !== 'tv' ? '依流入排序' : '依成交值排序'}`;
+      const nt = box.querySelector('.note .k'); if (nt) nt.textContent = extra;
+      return;
+    }
+    box.dataset.ssig = fm ? ssig : '';
     box.dataset.sig = sig; box.dataset.gid = String(gid);
     const sum = fm ? (fm.sum || 1) : (ms.reduce((s, m) => s + m.tv, 0) || 1);
     const gname = DRILL.name || det.group_name || gid;
@@ -10201,12 +10252,13 @@
     box.innerHTML = `<div class="hh">
         <button class="btn small" data-all="1" title="${DRILL.chain ? '回到「' + fmt.esc(DRILL.chainName) + '」這條產業鏈' : '回到只看族群'}">‹ ${DRILL.chain ? fmt.esc(DRILL.chainName) : '全部族群'}</button>
         <b>› ${fmt.esc(gname)}</b>
-        <span class="m" title="空心圓＝畫到圖上的個股">${ms.length} 檔 · ${fm && sankeyMemSort !== 'tv' ? '依流入排序' : '依成交值排序'}${DRILL.stocks.size ? ` · 已畫上圖 ${DRILL.stocks.size} 檔` : ''}</span>
+        <span class="m" title="空心圓＝畫到圖上的個股"><span>${ms.length} 檔 · ${fm && sankeyMemSort !== 'tv' ? '依流入排序' : '依成交值排序'}</span>${DRILL.stocks.size ? ` · 已畫上圖 ${DRILL.stocks.size} 檔` : ''}</span>
         <span class="sp"></span>
         <a class="pill cyan" href="#industry/group/${fmt.esc(gid)}">進族群頁 →</a></div>
       ${fm ? `<div class="seg skms" role="tablist" aria-label="成分股排序"><button type="button" data-ms="flow" class="${sankeyMemSort === 'tv' ? '' : 'on'}">依流入</button><button type="button" data-ms="tv" class="${sankeyMemSort === 'tv' ? 'on' : ''}">依成交值</button></div>` : ''}
-      ${extra || warn ? `<div class="note" style="margin:6px 0 0">${extra}${extra && warn ? '<br>' : ''}${warn ? `<span class="muted">${warn}</span>` : ''}</div>` : ''}
-      ${ms.length ? `<div class="ms">${ms.map(m => {
+      ${extra || warn ? `<div class="note" style="margin:6px 0 0"><span class="k">${extra}</span>${extra && warn ? '<br>' : ''}${warn ? `<span class="muted">${warn}</span>` : ''}</div>` : ''}
+      ${fm ? (ms.length ? '<div class="ms skr-l" role="list"></div>' : '<div class="empty">這一天成分股都沒有成交值</div>')
+      : ms.length ? `<div class="ms">${ms.map(m => {
         const code = String(m.code);
         const on = DRILL.stocks.has(code);
         const can = !!mm[code];
@@ -10218,6 +10270,8 @@
             : `<span class="g">${fmt.yi(m.tv)}　${fmt.n(m.tv / sum * 100, 1)}%　<b class="${fmt.cls(m.chg_pct)}">${fmt.pct(m.chg_pct)}</b></span>`)
           + (m.has_page ? '<span class="c go" title="進個股頁">→</span>' : '') + '</a>';
       }).join('')}</div>` : '<div class="empty">尚無成分股資料</div>'}`;
+    box.classList.toggle('skrank', !!fm);
+    if (fm && ms.length) skMemRows(box.querySelector('.ms.skr-l'), fm, mm, col);
     drillDismiss();
     /* 返回鍵一次只退一階：從鏈點進來的就退回鏈，直接點族群進來的才整個關掉。
        一次退到底的話，Andy 從 AI 伺服器鏈點進 CCL 之後想回去看隔壁族群，
@@ -10230,7 +10284,15 @@
       try { localStorage.setItem('tw.sankey.msort', sankeyMemSort); } catch (e2) { /* 私密視窗 */ }
       renderDrillPanel(panelId);
     });
-    $$('.ms a', box).forEach(a => {
+    if (fm) box.querySelector('.ms') && (box.querySelector('.ms').onclick = (e) => {
+      const a = e.target.closest('a[data-code]'); if (!a) return;
+      e.preventDefault();
+      const code = a.dataset.code;
+      if (e.target.closest('.go')) return goStock(code);
+      if (!drillMembers(DRILL.gid)[code]) return;
+      drillToggleStock(code);
+    });
+    if (!fm) $$('.ms a', box).forEach(a => {
       a.onclick = (e) => {
         e.preventDefault();                    // 點整列＝畫到圖上，不是跳頁
         const code = a.dataset.code;
@@ -10782,7 +10844,11 @@
     box.querySelector('.skr-s').textContent = !withD.length ? '這是資料的第一天，沒有前一交易日可比。'
       : `資金占比增加最多：${ins[0] ? f(ins[0]) : '無'}；減少最多：${outs[0] ? f(outs[0]) : '無'}`;
     $$('.skr-tab button', box).forEach(b => b.classList.toggle('on', b.dataset.t === tab));
-    const list = tab === 'out' ? outs : ins;
+    /* ★ 2026-10-07 晚（Andy：「在播放功能時，旁邊右側欄位都會先反灰」）：▶ 從第一天播起，那一天沒有前一交易日可比，
+       以前整張表清空、只剩一行灰字 → 播放一開始右欄就「反灰」。現在第一天照列族群（依占比），變化寫「—」、橫條歸零，
+       表格維持正常顏色，下一格有值就原地長出來。*/
+    const first = !withD.length;
+    const list = first ? all.slice().sort((a, b) => b.share - a.share) : tab === 'out' ? outs : ins;
     const mx = Math.max(1e-9, ...withD.map(r => Math.abs(r.dpp)));
     const host = box.querySelector('.skr-l');
     const keep = new Set(list.map(r => r.gid));
@@ -10798,12 +10864,12 @@
       el.querySelector('.n b').textContent = r.name;
       el.querySelector('.n small').textContent = r.chain;
       const d = el.querySelector('.v .d');
-      d.textContent = `${r.dpp > 0 ? '+' : ''}${fmt.n(r.dpp, 2)} pp`; d.className = 'd ' + fmt.cls(r.dpp);
-      d.dataset.dpp = r.dpp.toFixed(4);
+      d.textContent = r.dpp == null ? '—' : `${r.dpp > 0 ? '+' : ''}${fmt.n(r.dpp, 2)} pp`; d.className = 'd ' + fmt.cls(r.dpp);
+      d.dataset.dpp = r.dpp == null ? '' : r.dpp.toFixed(4);
       el.querySelector('.v small').textContent = `占 ${fmt.n(r.share, 1)}% · ${fmt.yi(r.v)}`;
       const bar = el.querySelector('.bar i');
       bar.className = r.dpp > 0 ? 'up' : 'down';
-      bar.style.width = (Math.abs(r.dpp) / mx * 100).toFixed(1) + '%';
+      bar.style.width = (Math.abs(r.dpp || 0) / mx * 100).toFixed(1) + '%';
       el.title = `點一下在樹上展開「${r.name}」`;
       if (host.children[i] !== el) host.insertBefore(el, host.children[i] || null);
     });

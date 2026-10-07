@@ -6643,7 +6643,9 @@ def t_new_flow(pg, base):
         ok("而且真的照成交值由大到小排（讀數值比大小）", best["sorted"], best["tv"])
         ok("每一列都寫出占比 %（分母是所屬族群，標題有寫）", "%" in best["pct"], best["pct"])
         ok("清單在圖的右邊", best["rightOfChart"], best)
-        ok("清單有固定高度（不會把整頁撐長）", best["ch"] <= 460, best)
+        # 2026-10-07 晚：右欄高度改成＝樹卡高度（Andy「右側頁面需要跟整張樹狀圖欄位上下差不多高」），清單在欄內捲
+        _wrapH = pg.evaluate("() => Math.round(document.getElementById('sankeyWrap').getBoundingClientRect().height)")
+        ok("清單有固定高度（不超過樹卡、不會把整頁撐長）", best["ch"] <= _wrapH and best["oy"] in ("auto", "scroll"), {**best, "樹卡高": _wrapH})
         ok("清單是可以捲的", best["oy"] in ("auto", "scroll"), best)
         if best["n"] >= 15:
             ok("內容比框高，真的捲得動（scrollHeight > clientHeight）", best["sh"] > best["ch"] + 8, best)
@@ -6808,7 +6810,8 @@ def t_new_flow(pg, base):
                    and all(len(x.split("%")) >= 3 for x in pan["labels"]), pan["labels"][:3])
                 ok("一進來是收合的（沒有任何個股列）", pan["subs"] == 0, pan["subs"])
                 ok("清單沿用 .hpanel .ms（固定高度 + 自己的捲軸，不是第四種清單）",
-                   pan["ch"] <= 460 and pan["oy"] in ("auto", "scroll"), pan)
+                   pan["ch"] <= pg.evaluate("() => Math.round(document.getElementById('sankeyWrap').getBoundingClientRect().height)")
+                   and pan["oy"] in ("auto", "scroll"), pan)
                 # ---- 下拉：展開第一個族群，真的多出個股列
                 pg.eval_on_selector("#sankeyPanel .ms a.grow", "a => a.click()")
                 pg.wait_for_timeout(800)
@@ -7556,6 +7559,50 @@ def t_flow_tree_1007(pg, base):
     l4_sub(pg, "sankey", 1800)
     pg.locator("#flowSankeyCard").scroll_into_view_if_needed(); pg.wait_for_timeout(1500)
     wait_until(pg, "() => { const r = document.getElementById('sankeyRank'); return r && !r.hidden && r.querySelector('.skr-r') ? 1 : 0; }", 8000)
+    # ---- 2026-10-07 晚（Andy：「修正點擊前後導致樹狀圖移動」「右側頁面需要跟整張樹狀圖欄位上下差不多高」「點擊群組後改成長條圖」
+    #      ＋「在播放功能時，旁邊右側欄位都會先反灰」）
+    GEO = """() => { const c = document.querySelector('#sankey canvas') || document.getElementById('sankey');
+        const card = document.getElementById('sankeyWrap');
+        const side = [...document.querySelectorAll('#sankeyRank,#sankeyPanel')].find(e => !e.hidden);
+        const R = (x) => { const b = x.getBoundingClientRect(); return [Math.round(b.x), Math.round(b.y), Math.round(b.width), Math.round(b.height)]; };
+        const rows = side ? [...side.querySelectorAll('.skr-r')] : [];
+        return { cv: R(c), card: R(card), side: side ? R(side) : null, id: side ? side.id : '',
+                 vis8: rows.length >= 8 ? rows.slice(0, 8).every(r => { const b = r.getBoundingClientRect(), s = side.getBoundingClientRect();
+                         return b.top >= 0 && b.bottom <= innerHeight && b.bottom <= s.bottom + 1; }) : null,
+                 n: rows.length, sy: scrollY,
+                 bars: rows.map(r => { const i = r.querySelector('.bar i'); return i ? [getComputedStyle(i).backgroundImage.includes('linear-gradient'), i.getBoundingClientRect().width] : [false, 0]; }) }; }"""
+    pg.evaluate("() => scrollTo(0, 0)"); pg.wait_for_timeout(500)
+    g0 = pg.evaluate(GEO)
+    ok("[固定版面] 1440×900 不捲動整頁：右欄排名前 8 列完整可見", g0["sy"] == 0 and g0["vis8"] is True, g0)
+    ok("[固定版面] 右欄高度＝樹卡高度 ±2px（排名表）", bool(g0["side"]) and abs(g0["side"][3] - g0["card"][3]) <= 2 and abs(g0["side"][1] - g0["card"][1]) <= 2, (g0["side"], g0["card"]))
+    gid0 = pg.evaluate("() => [...document.querySelectorAll('#sankeyRank .skr-r')].map(e => e.dataset.gid).find(g => !g.startsWith('ind_'))")
+    pg.click(f'#sankeyRank .skr-r[data-gid="{gid0}"]'); pg.wait_for_timeout(1800)
+    g1 = pg.evaluate(GEO)
+    ok("[固定版面] 點族群前後：樹畫布 x/y/寬/高 完全相同", g1["id"] == "sankeyPanel" and g1["cv"] == g0["cv"], (g0["cv"], g1["cv"]))
+    ok("[固定版面] 點族群前後：右欄寬度相同、高度＝樹卡 ±2px", bool(g1["side"]) and g1["side"][2] == g0["side"][2]
+       and abs(g1["side"][3] - g1["card"][3]) <= 2, (g0["side"], g1["side"], g1["card"]))
+    ok("[族群長條] 成分股每列都有 linear-gradient 橫條、依流入時第一列（流入最多）比第二列長", g1["n"] > 0 and all(x[0] for x in g1["bars"])
+       and (len(g1["bars"]) < 2 or g1["bars"][0][1] >= g1["bars"][1][1] - 0.5), g1["bars"][:6])
+    # 播放中每 200ms 取樣右欄：不准反灰（opacity=1、沒有 grayscale、列不能清空）
+    GRAY = """() => { const side = [...document.querySelectorAll('#sankeyRank,#sankeyPanel')].find(e => !e.hidden); if (!side) return 'no-side';
+        for (let x = side; x; x = x.parentElement) { const cs = getComputedStyle(x); if (cs.opacity !== '1' || /grayscale/.test(cs.filter)) return 'gray:' + (x.id || x.className); }
+        return side.querySelectorAll('.skr-r').length ? '' : 'empty'; }"""
+    for tag in ("族群成分股", "排名表"):
+        pg.click("#sankeyDays .pb.play"); bad = []
+        for _ in range(12):
+            r = pg.evaluate(GRAY)
+            if r: bad.append(r)
+            pg.wait_for_timeout(200)
+        pg.click("#sankeyDays .pb.play"); pg.wait_for_timeout(300)
+        ok(f"[播放] 右欄（{tag}）播放中每 200ms 取樣都不反灰、不清空", not bad, bad[:4])
+        pg.focus("#sankeyDays input"); pg.keyboard.press("End"); pg.wait_for_timeout(600)
+        if tag == "族群成分股":
+            pg.keyboard.press("Escape"); pg.wait_for_timeout(900)
+    for w in (1024,):
+        pg.set_viewport_size({"width": w, "height": 800}); pg.wait_for_timeout(1200)
+        sw = pg.evaluate("() => document.scrollingElement.scrollWidth")
+        ok(f"[{w}] 沒有橫向捲軸", sw <= w, sw)
+    pg.set_viewport_size({"width": 1440, "height": 900}); pg.wait_for_timeout(1200)
     # ---- 改名
     nm = pg.evaluate("""() => ({ h3: (document.querySelector('#flowSankeyCard h3') || {}).textContent || '',
         rank: (document.getElementById('flowRotCard') || {}).textContent || '',

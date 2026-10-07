@@ -515,7 +515,8 @@
     const chains = S.root.kids, n = chains.reduce((a, c) => a + c.kids.length, 0) || 1;
     const gaps = 0.5 * Math.max(0, chains.length - 1);
     let extra = 0;
-    chains.forEach(c => c.kids.forEach(g => { if (g.open) extra += Math.max(0, g.kids.length * CFG.EL_LEAF_SP + 16 - CFG.EL_SLOT_MAX); }));
+    /* ★ 2026-10-07 晚（Andy：「修正點擊前後導致樹狀圖移動的問題」）：點開的族群**不再把畫布長高**
+       （以前 extra 會讓整張圖變高、槽位重算，所有族群上下位移）。展開的成分股改成在固定畫布內排開（見 layoutClassic）。*/
     /* ★ 2026-10-03 一屏看完（DECISIONS #308）：整張卡要落在一屏內，畫布最高＝fitMax（視窗高 − 卡裡其他東西），不再固定 1040。
        代表股預設收起（leafHover）時，一格只要放得下族群膠囊（17px）＋上下各 2px 縫，下限從 36 放寬到 EL_SLOT_FIT（#313 再收到 18）；
        滑過族群才長出的那三檔代表股畫在另一欄、一次只一個族群，不會跟鄰格疊字。點開展開（extra > 0）時照舊允許長高。
@@ -529,7 +530,7 @@
        18 個族群＋5 條鏈的 2 個鏈間隙共 20 個槽，畫布 ≥ 20×18＋24＝384px 就放得下整棵樹 —— 1366×768 的可視高（約 650）有餘。 */
     const pad = squeeze ? CFG.EL_PAD_FIT : CFG.EL_PAD;
     const slot = Math.max(sMin, Math.min(CFG.EL_SLOT_MAX, (hMax - pad * 2 - extra) / (n + gaps)));
-    const body = slot * (n + gaps) + chains.reduce((a, c) => a + c.kids.reduce((b, g) => b + (g.open ? Math.max(0, g.kids.length * CFG.EL_LEAF_SP + 16 - slot) : 0), 0), 0);
+    const body = slot * (n + gaps);
     const H = Math.max(Math.min(CFG.CL_H_MIN, hMax), Math.round(body + pad * 2));
     return { slot, body, H, pad };
   }
@@ -545,7 +546,8 @@
       let maxG = 0, maxL = 0;
       chains.forEach(c => c.kids.forEach(g => {
         maxG = Math.max(maxG, elBadgeW(S, g));
-        g.kids.forEach(lf => { maxL = Math.max(maxL, Math.min(CFG.CL_LEAF_LABEL_W, elBadgeW(S, lf) - 12)); });
+        // 只量前三檔（收起時就有的代表股）：展開後多出的成分股標籤不准改欄位 x（否則點一下整棵樹左右移）
+        g.kids.slice(0, 3).forEach(lf => { maxL = Math.max(maxL, Math.min(CFG.CL_LEAF_LABEL_W, elBadgeW(S, lf) - 12)); });
       }));
       /* ★ 2026-09-28 設計 v4 第二批 2A（01 §4.4「標籤欄寬度＝實際最長標籤，葉節點標籤右側只留 8px」）：
          改前族群欄夾在 54～66%、代表股欄至少 83% → 1440 寬時代表股的字收在 1268px，右邊 108px 連滑過都用不到，
@@ -565,15 +567,19 @@
       if (ci) y += slot * 0.5;
       c.kids.forEach(g => {
         const nL = g.kids.length;
-        const gs = g.open ? Math.max(slot, nL * CFG.EL_LEAF_SP + 16) : slot;
+        const gs = slot;
         g.tx = cols[2]; g.ty = y + gs / 2; y += gs; g.gs = gs;
         // 族群圓點 4.5～6（依佔比平方根）；盤後／無資料 4.5
         g.r = g.stale || g.nodata ? 4.5 : 4.5 + 1.5 * Math.sqrt(g.rt);
         /* 代表股：固定 X（寬度 83%）垂直排開，以族群的 y 為中心。
            間距：黃金標準 9px 是給 10px 字的；這裡字是 12px（專案下限），改 13px；slot 放不下三檔時用 slot 等分（不小於 12）。*/
-        const sp = g.open ? CFG.EL_LEAF_SP : Math.max(12, Math.min(CFG.EL_LEAF_SP, (gs - 4) / Math.max(1, nL)));
+        const sp = g.open ? Math.min(CFG.EL_LEAF_SP, (H - plan.pad * 2) / Math.max(1, nL))
+          : Math.max(12, Math.min(CFG.EL_LEAF_SP, (gs - 4) / Math.max(1, nL)));
+        // 展開的成分股以族群為中心排開，但夾在畫布內（畫布不再為它長高）
+        const half = (nL - 1) / 2 * sp;
+        const cy = g.open ? Math.max(plan.pad + half, Math.min(H - plan.pad - half, g.ty)) : g.ty;
         g.kids.forEach((lf, i) => {
-          lf.tx = cols[3]; lf.ty = g.ty + (i - (nL - 1) / 2) * sp;
+          lf.tx = cols[3]; lf.ty = cy + (i - (nL - 1) / 2) * sp;
           lf.r = CFG.EL_LEAF_R;
         });
         g.leafSp = sp;
