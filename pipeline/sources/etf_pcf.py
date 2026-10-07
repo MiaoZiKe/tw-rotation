@@ -414,6 +414,51 @@ def cathay(today: dt.date | None = None) -> pd.DataFrame:
     return _frame(rows)
 
 
+# ───────────────────────────────────────────── 中國信託（ctbcinvestments.com；API 在 .com.tw）
+CTBC_API = "https://www.ctbcinvestments.com.tw/API/"
+CTBC_SITE = "www.ctbcinvestments.com"
+
+
+def parse_ctbc(etf: str, payload: dict) -> list[dict]:
+    """etf/ETFHoldingWeight：Data.FundAssets[0].資料日期；Data.FundAssetsDetail[Code=STOCK].Data[] {code_, name_, qty_, weights_}。"""
+    data = (payload or {}).get("Data") or {}
+    fa = (data.get("FundAssets") or [{}])[0] or {}
+    day = _iso(fa.get("資料日期")) or _iso(fa.get("NAV_DT"))
+    out = []
+    for blk in data.get("FundAssetsDetail") or []:
+        if str(blk.get("Code") or "").upper() != "STOCK":
+            continue
+        for r in blk.get("Data") or []:
+            out.append({"date": day, "etf": etf, "code": str(r.get("code_") or "").strip(), "name": str(r.get("name_") or "").strip(),
+                        "weight": _num(r.get("weights_")), "shares": _num(r.get("qty_")), "issuer": "中國信託",
+                        "src": CTBC_API + "etf/ETFHoldingWeight"})
+    return out
+
+
+def ctbc() -> pd.DataFrame:
+    """照官網前端的流程：home/AuthToken 拿 token → etf/ETFList 拿 {ETF_ID, FID} → 逐檔 etf/ETFHoldingWeight。"""
+    def call(path: str, body: dict, token: str = CTBC_SITE):
+        return _req("POST", CTBC_API + path, params={"token": token}, json_body={"token": token, **body}, retries=1)
+
+    lst = call("etf/ETFList", {"IsWithETF": "Y"})
+    funds = [(str(x.get("ETF_ID") or "").strip(), str(x.get("FID") or "").strip())
+             for x in (((lst or {}).get("Data") or {}).get("Data") or [])]
+    funds = [(c, f) for c, f in funds if c and f and not _skip_code(c)]
+    if not funds:
+        log.warning("中信 ETF 清單解析失敗（前 200 字）：%s", _snip(lst))
+        return pd.DataFrame(columns=COLS)
+    tok = ((((call("home/AuthToken", {}) or {}).get("Data")) or {}).get("token")) or CTBC_SITE
+    rows: list[dict] = []
+    for etf, fid in funds:
+        start = dt.datetime.now(dt.timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.000Z")
+        p = call("etf/ETFHoldingWeight", {"FID": fid, "StartDate": start}, tok)
+        got = parse_ctbc(etf, p)
+        if not got:
+            log.info("中信 %s 沒有股票持股（前 200 字）：%s", etf, _snip(p))
+        rows += got
+    return _frame(rows)
+
+
 # ───────────────────────────────────────────── 元大（yuantaetfs.com）
 YUANTA_PCF = "https://www.yuantaetfs.com/tradeInfo/pcf/{code}"
 
@@ -615,7 +660,7 @@ ISSUER_PREFIX = {  # 從 ETF 簡稱判斷發行投信（給「哪些已接上／
     "華南永昌": "華南永昌", "貝萊德": "貝萊德", "宏利": "宏利", "路博邁": "路博邁", "富達": "富達", "柏瑞": "柏瑞", "保德信": "保德信",
     "台灣": None,
 }
-CONNECTED = {"群益", "野村", "復華", "統一", "元大", "凱基", "國泰"}
+CONNECTED = {"群益", "野村", "復華", "統一", "元大", "凱基", "國泰", "中國信託"}
 
 
 def issuer_of(name: str) -> str | None:
@@ -633,7 +678,7 @@ def fetch_all(etf_names: dict[str, str]) -> pd.DataFrame:
     for c, n in etf_names.items():
         by.setdefault(issuer_of(n), []).append(c)
     jobs: list[tuple[str, Callable[[], pd.DataFrame]]] = [
-        ("群益", capital), ("復華", fuhhwa), ("統一", uni), ("凱基", lambda: kgi(etf_names)), ("國泰", cathay),
+        ("群益", capital), ("復華", fuhhwa), ("統一", uni), ("凱基", lambda: kgi(etf_names)), ("國泰", cathay), ("中國信託", ctbc),
         ("野村", lambda: nomura(sorted(by.get("野村", [])))),
         ("元大", lambda: yuanta(sorted(by.get("元大", [])))),
     ]
