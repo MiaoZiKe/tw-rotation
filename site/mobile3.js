@@ -1004,6 +1004,8 @@
      會員權限（features.js）是用 data-t 對 #mbTabs 的鈕，不看位置。*/
   const SK_TABS = [
     { t: 'k', n: 'K線' },
+    /* ★ 2026-10-07（Andy：ETF 成分股要「左清單、右權重甜甜圈」）：手機原本沒有成分股這一頁 —— ETF 才出現，內容直接用桌機那支（StockHold.render，手機上下堆疊）*/
+    { t: 'hold', n: '成分股', has: (pg) => /^00/.test(String((pg.meta && pg.meta.code) || '')) && !!window.StockHold },
     { t: 'basic', n: '基本資料' },
     { t: 'tag', n: '指標' },
     { t: 'rev', n: '營收', has: (pg) => ((pg.revenue && pg.revenue.monthly) || []).length > 0 },
@@ -1193,7 +1195,7 @@
       body.innerHTML = '';
       return;
     }
-    const fn = { ai: skAi, tag: skTagTab, inst: skInst, big: skBig, margin: skMargin, rev: skRev, fin: skFin, profit: skProfit, basic: skBasic, div: skDiv, news: skNews }[t];
+    const fn = { hold: (p, b) => window.StockHold.render(p, b), ai: skAi, tag: skTagTab, inst: skInst, big: skBig, margin: skMargin, rev: skRev, fin: skFin, profit: skProfit, basic: skBasic, div: skDiv, news: skNews }[t];
     try { fn(pg, body); } catch (e) { console.warn('[m3 個股]', e); body.innerHTML = '<div class="mbempty">這一頁載入失敗</div>'; }
   }
 
