@@ -2040,6 +2040,36 @@ def t_etf_groups_1007(pg, b, base):
         lp.click("#etfCatSeg button[data-v='配息型']"); lp.wait_for_timeout(400)
         d = J("() => ({ fq: document.querySelectorAll('#etfGrid .fqhd:not(.sghd)').length, sg: document.querySelectorAll('#etfGrid .sghd, #etfGrid .sgbar').length })")
         ok(f"★ [{T}] 配息型行為不變：仍是頻率分組、沒有子類型標題或標籤", d["fq"] >= 3 and d["sg"] == 0, d)
+        # ---- 收合／展開（2026-10-07 Andy：「ETF 這邊需要收展功能」）：真的點標題、看卡片數變化、重新整理後保留
+        F = "ETF收展1007"
+        lp.click("#etfCatSeg button[data-v='債券型']"); lp.wait_for_timeout(400)
+        lp.click("#etfOpenAll"); lp.wait_for_timeout(300)
+        for _ in range(10):
+            if J("() => document.querySelector('#etfMore').hidden"): break
+            lp.click("#etfMore"); lp.wait_for_timeout(250)
+        per = """() => { const o = {}; let cur = null; [...document.querySelectorAll('#etfGrid > *')].forEach(e => {
+            if (e.classList.contains('fqhd')) { cur = e.dataset.key; o[cur] = o[cur] || 0; } else if (e.classList.contains('etfc')) o[cur]++; }); return o; }"""
+        c0 = J(per)
+        ok(f"★ [{F}] 標題是 button、aria-expanded=true、有 ▾ 箭頭", J("() => [...document.querySelectorAll('#etfGrid .sghd')].every(h => h.tagName === 'BUTTON' && h.getAttribute('aria-expanded') === 'true' && h.querySelector('.fold').textContent === '▾')"), c0)
+        k1 = list(c0)[0]
+        lp.click(f"#etfGrid button.sghd[data-key='{k1}']"); lp.wait_for_timeout(300)
+        c1 = J(per)
+        ok(f"★ [{F}] 點「{k1}」→ 那一組卡片 0、標題仍在且寫檔數、其他組不變", c1.get(k1) == 0 and all(c1.get(k) == v for k, v in c0.items() if k != k1)
+           and J(f"() => {{ const h = document.querySelector(\"#etfGrid button.sghd[data-key='{k1}']\"); return h.getAttribute('aria-expanded') === 'false' && /\\d+ 檔/.test(h.textContent) && h.textContent.includes('▸'); }}"), (c0, c1))
+        lp.keyboard.press("Enter"); lp.wait_for_timeout(300)  # 焦點留在剛點的標題上 → 鍵盤 Enter 再展開
+        ok(f"★ [{F}] 鍵盤 Enter 再按一次 → 卡片恢復", J(per) == c0, J(per))
+        lp.click(f"#etfGrid button.sghd[data-key='{k1}']"); lp.wait_for_timeout(300)
+        lp.reload(wait_until="networkidle")
+        wait_until(lp, "() => document.querySelector('#v-etf') && document.querySelector('#v-etf').dataset.ready === 'full'", 20000)
+        lp.click("#etfCatSeg button[data-v='債券型']"); lp.wait_for_timeout(400)
+        cr = J(per)
+        ok(f"★ [{F}] 重新整理後「{k1}」仍是收合", cr.get(k1) == 0 and J(f"() => document.querySelector(\"#etfGrid button.sghd[data-key='{k1}']\").getAttribute('aria-expanded') === 'false'"), cr)
+        lp.click("#etfFoldAll"); lp.wait_for_timeout(300)
+        ca = J(per)
+        ok(f"★ [{F}] 全部收合 → 所有組卡片 0、組標題都還在、沒有「顯示更多」", ca and all(v == 0 for v in ca.values()) and set(ca) == set(c0) and J("() => document.querySelector('#etfMore').hidden"), ca)
+        lp.click("#etfOpenAll"); lp.wait_for_timeout(300)
+        ok(f"[{F}] 全部展開 → 每組都有卡片", all(v > 0 for v in J(per).values()), J(per))
+        J("() => { try { localStorage.removeItem('tw.etf.fold'); } catch (e) {} }")
     finally:
         lp.close()
 
