@@ -40468,6 +40468,122 @@ def _lg_ls(pg, k):
     return pg.evaluate(f"() => {{ try {{ return localStorage.getItem('{k}'); }} catch (e) {{ return 'ERR'; }} }}")
 
 
+def _legal_spy(pg, base):
+    """目錄捲動同步（2026-10-07 Andy：「左邊滑動並沒有同步，請確實驗證」）。三份文件 × 逐節捲動／捲到底／點目錄。"""
+    LIT = """() => { const a = [...document.querySelectorAll('.lgtoc a')]; const on = a.filter(x => x.classList.contains('on'));
+        return { n: on.length, k: on.length ? +on[0].dataset.sec : -1, total: a.length }; }"""
+    # 「畫面中該節」＝標題上緣最後一個過了參考線的那節；用跟網站同一套定義（參考線在頁底附近往下移）太循環，
+    # 這裡改驗人看得出的事實：該節的標題此刻在畫面內（0～視窗高），且比它後面的節標題更靠上。
+    VIS = """(k) => { const h = document.querySelector('#lgDoc h2[id$="-' + k + '"]'); const r = h.getBoundingClientRect();
+        return { top: Math.round(r.top), vh: innerHeight }; }"""
+    for doc, nsec in (("terms", 11), ("privacy", 8), ("disclaimer", 8)):
+        pg.set_viewport_size({"width": 1440, "height": 950})
+        pg.goto(base + "#" + doc, wait_until="networkidle"); pg.wait_for_timeout(1200)
+        bad = []
+        for k in range(nsec):
+            # 把第 k 節標題捲到上緣（捲不到頂的末幾節就捲到最底）
+            pg.evaluate("""(k) => { const h = document.querySelector('#lgDoc h2[id$="-' + k + '"]');
+                window.scrollTo({top: h.getBoundingClientRect().top + scrollY - 100, behavior: 'instant'}); }""", k)
+            pg.wait_for_timeout(120)
+            lit = pg.evaluate(LIT)
+            reach = pg.evaluate("""(k) => { const h = document.querySelector('#lgDoc h2[id$="-' + k + '"]');
+                return h.getBoundingClientRect().top + scrollY - 100 <= document.documentElement.scrollHeight - innerHeight - 40; }""", k)
+            if lit["n"] != 1:
+                bad.append((k, "亮的不是剛好一個", lit)); continue
+            vk = pg.evaluate(VIS, lit["k"])
+            # 捲得到上緣的節：亮的必須就是它；捲不到的末幾節：亮的標題要在畫面內、且不會比它前面的節還早
+            if reach and lit["k"] != k:
+                bad.append((k, "捲得到頂的節卻沒亮它", lit, vk))
+            elif not reach and not (-5 <= vk["top"] < vk["vh"]):
+                bad.append((k, "末段節亮錯", lit, vk))
+        ok(f"[目錄同步] {doc}：逐節捲到上緣 → 目錄恰亮一項；捲得到頂的節亮的就是它、捲不到頂的末段節亮的標題在畫面內", not bad, bad[:3])
+        # 捲到頁底 → 最後一節
+        pg.evaluate("() => window.scrollTo({top: document.documentElement.scrollHeight, behavior: 'instant'})"); pg.wait_for_timeout(250)
+        lit = pg.evaluate(LIT)
+        ok(f"[目錄同步] {doc}：捲到頁底 → 最後一節（{nsec - 1}）亮", lit["n"] == 1 and lit["k"] == nsec - 1, lit)
+        # 單調：從頂往底慢捲，亮的序號只增不減
+        seq = []
+        pg.evaluate("() => window.scrollTo({top: 0, behavior: 'instant'})"); pg.wait_for_timeout(200)
+        H = pg.evaluate("() => document.documentElement.scrollHeight - innerHeight")
+        for y in list(range(0, H, max(1, H // 40))) + [H]:
+            pg.evaluate("(y) => window.scrollTo({top: y, behavior: 'instant'})", y); pg.wait_for_timeout(40)
+            seq.append(pg.evaluate(LIT)["k"])
+        ok(f"[目錄同步] {doc}：由上往下慢捲，亮的序號單調不減、從 0 走到 {nsec - 1}",
+           all(b >= a for a, b in zip(seq, seq[1:])) and seq[0] == 0 and seq[-1] == nsec - 1 and -1 not in seq, seq)
+        # 滑鼠滾輪真捲（不是 scrollTo）：往下滾到底 → 最後一節
+        pg.evaluate("() => window.scrollTo({top: 0, behavior: 'instant'})"); pg.wait_for_timeout(200)
+        pg.mouse.move(700, 500)
+        for _ in range(60):
+            pg.mouse.wheel(0, 400); pg.wait_for_timeout(30)
+        pg.wait_for_timeout(500)
+        lit = pg.evaluate(LIT)
+        ok(f"[目錄同步] {doc}：真的用滑鼠滾輪滾到底 → 最後一節亮", lit["k"] == nsec - 1, lit)
+        # 點目錄：每一項都點一次 → 亮的就是那一項、而且該節標題在畫面內
+        bad = []
+        for k in range(nsec):
+            pg.locator(f".lgtoc a[data-sec='{k}']").click(); pg.wait_for_timeout(1300)
+            lit = pg.evaluate(LIT); v = pg.evaluate(VIS, k)
+            if lit["k"] != k or not (-5 <= v["top"] < v["vh"]):
+                bad.append((k, lit, v))
+        ok(f"[目錄同步] {doc}：逐項點目錄 → 亮的就是被點的那項、該節標題在畫面內（含捲不到頂的末幾節）", not bad, bad[:3])
+        # 切到別份文件再回來 → 重新綁定，只有一個 scroll 監聽在作用（亮的仍恰一項）
+    pg.goto(base + "#terms", wait_until="networkidle"); pg.wait_for_timeout(800)
+    pg.click(".lgtabs a[href='#privacy']"); pg.wait_for_timeout(500)
+    pg.click(".lgtabs a[href='#disclaimer']"); pg.wait_for_timeout(500)
+    pg.evaluate("() => window.scrollTo({top: document.documentElement.scrollHeight, behavior: 'instant'})"); pg.wait_for_timeout(250)
+    lit = pg.evaluate(LIT)
+    ok("[目錄同步] 連續切換三份文件後捲到底 → 仍恰亮最後一節（重新綁定、沒有殘留舊監聽）", lit["n"] == 1 and lit["k"] == 7 and lit["total"] == 8, lit)
+    # 右側欄（2026-10-07 Andy：「右邊太空，需要填滿」）：1440 三欄、1280 以下收起；本頁重點跟捲動亮、進度跟著走、點了會捲
+    SD = """() => { const e = document.getElementById('lgSide'); if (!e) return null; const r = e.getBoundingClientRect(), d = document.getElementById('lgDoc').getBoundingClientRect();
+        const on = [...e.querySelectorAll('.lgsi.on')].map(a => +a.dataset.sec);
+        return { shown: getComputedStyle(e).display !== 'none' && r.width > 150, w: Math.round(r.width), docW: Math.round(d.width), right: Math.round(r.right),
+                 mainR: Math.round(document.getElementById('v-legal').getBoundingClientRect().right), pos: getComputedStyle(e).position,
+                 items: e.querySelectorAll('.lgsi').length, rel: e.querySelectorAll('.lgrel a').length, relOn: e.querySelectorAll('.lgrel a.on').length,
+                 on, pn: (e.querySelector('.lgpn') || {}).textContent, bar: e.querySelector('.lgbar i').style.width, mail: !!e.querySelector('a[href^="mailto:"]'),
+                 sw: document.documentElement.scrollWidth - innerWidth }; }"""
+    pg.set_viewport_size({"width": 1440, "height": 950}); pg.goto(base + "#terms", wait_until="networkidle"); pg.wait_for_timeout(1000)
+    sd = pg.evaluate(SD)
+    ok("[右側欄] 1440：右側欄看得到（寬 ≥200、sticky）、內文放寬到 ≥720、右緣貼齊內容區、4 項重點＋3 份相關文件（目前頁亮一個）＋客服信箱、沒有橫向捲軸",
+       bool(sd) and sd["shown"] and sd["w"] >= 200 and sd["pos"] == "sticky" and sd["docW"] >= 720 and abs(sd["right"] - sd["mainR"]) <= 40
+       and sd["items"] == 4 and sd["rel"] == 3 and sd["relOn"] == 1 and sd["mail"] and sd["sw"] <= 1, sd)
+    pg.evaluate("() => { const h = document.getElementById('lg-terms-3'); window.scrollTo({top: h.getBoundingClientRect().top + scrollY - 100, behavior: 'instant'}); }")
+    pg.wait_for_timeout(250); sd = pg.evaluate(SD)
+    ok("[右側欄] 捲到第四節（禁止行為）→ 「本頁重點」亮的是對應那項（第 3 號節）、進度寫「第 4／11 節」、進度條有寬度",
+       sd["on"] == [3] and sd["pn"] == "第 4／11 節" and sd["bar"] not in ("", "0px", "0%"), sd)
+    pg.evaluate("() => window.scrollTo({top: document.documentElement.scrollHeight, behavior: 'instant'})"); pg.wait_for_timeout(250)
+    sd = pg.evaluate(SD)
+    ok("[右側欄] 捲到底 → 進度寫「第 11／11 節」、進度條 100%", sd["pn"] == "第 11／11 節" and sd["bar"].startswith("100"), sd)
+    pg.evaluate("() => window.scrollTo({top: 0, behavior: 'instant'})"); pg.wait_for_timeout(250)
+    pg.locator("#lgSide .lgsi[data-sec='7']").click(); pg.wait_for_timeout(1300)
+    t7 = pg.evaluate(VIS, 7); sd = pg.evaluate(SD)
+    ok("[右側欄] 點「責任限制」→ 捲到第八節、左側目錄也亮第八節、右側那項亮", -5 <= t7["top"] < 300 and sd["on"] == [7]
+       and pg.evaluate(LIT)["k"] == 7, [t7, sd["on"]])
+    pg.click("#lgSide .lgrel a[href='#privacy']"); pg.wait_for_timeout(700)
+    ok("[右側欄] 點相關文件「隱私權政策」→ 換頁、側欄跟著換（8 節、相關文件亮在隱私權政策）",
+       pg.evaluate("() => location.hash") == "#privacy" and pg.evaluate(SD)["relOn"] == 1
+       and "／8 節" in pg.evaluate(SD)["pn"], pg.evaluate(SD))
+    for w in (1280, 1100, 1024):
+        pg.set_viewport_size({"width": w, "height": 900}); pg.wait_for_timeout(400)
+        sd = pg.evaluate(SD)
+        ok(f"[右側欄] {w} 寬：右側欄收起、內容回到兩欄、沒有橫向捲軸", sd and not sd["shown"] and sd["docW"] >= 600 and sd["sw"] <= 1, sd)
+    pg.set_viewport_size({"width": 390, "height": 844}); pg.wait_for_timeout(400)
+    sd = pg.evaluate(SD)
+    ok("[右側欄] 390 手機：右側欄不出現、沒有橫向捲軸", sd and not sd["shown"] and sd["sw"] <= 1, sd)
+    pg.set_viewport_size({"width": 1440, "height": 950}); pg.wait_for_timeout(300)
+    # 窄畫面（目錄收起）：捲動不丟錯、手機的可展開目錄點得動
+    pg.set_viewport_size({"width": 390, "height": 844}); pg.wait_for_timeout(400)
+    pg.goto(base + "#terms", wait_until="networkidle"); pg.wait_for_timeout(800)
+    pg.evaluate("() => window.scrollTo({top: document.documentElement.scrollHeight, behavior: 'instant'})"); pg.wait_for_timeout(250)
+    pg.evaluate("() => window.scrollTo({top: 0, behavior: 'instant'})"); pg.wait_for_timeout(250)
+    pg.locator(".lgtocm summary").click(); pg.wait_for_timeout(200)
+    pg.locator(".lgtocm a[data-sec='6']").click(); pg.wait_for_timeout(1300)
+    t6 = pg.evaluate(VIS, 6)
+    ok("[目錄同步] 390 窄畫面：展開手機目錄、點第七節 → 捲到該節、目錄收回、沒有頁面錯誤", -5 <= t6["top"] < 300
+       and not pg.evaluate("() => document.querySelector('.lgtocm').open"), t6)
+    pg.set_viewport_size({"width": 1440, "height": 950}); pg.wait_for_timeout(300)
+
+
+
 def t_legal(b, base):
     # ---------------------------------------------------------------- A. 開關關著（現況）
     ctx, pg = _lg_page(b)
@@ -40486,7 +40602,9 @@ def t_legal(b, base):
     ok("[關] 頁尾常駐一行短版免責聲明（預設開啟）",
        ft and "不是證券投資顧問事業" in ft["t"] and "不提供投資建議" in ft["t"] and ft["fs"] >= 12, ft)
     ok("[關] 頁尾是 main 的最後一個元素、不跑出內容欄", ft and ft["last"] and ft["inMain"], ft)
-    ok("[關] 頁尾的服務條款／隱私權政策連結標「草稿」", ft and ft["t"].count("草稿") >= 2, ft and ft["t"])
+    ok("[關] 頁尾連結是「免責聲明｜使用條款｜隱私權政策」、不再標「草稿」、沒有「交付清單」（2026-10-07）",
+       ft and all(x in ft["t"] for x in ("免責聲明", "使用條款", "隱私權政策")) and "草稿" not in ft["t"]
+       and "交付清單" not in ft["t"] and "服務條款" not in ft["t"], ft and ft["t"])
     ok("[關] 頁尾與法律頁沒有小於 12px 的字", not pg.evaluate(_LG_FONTS, "#siteFoot"), pg.evaluate(_LG_FONTS, "#siteFoot"))
     # ★ 2026-09-24 Andy：「這完全不能公開」—— 頁尾曾經有一個「原始碼與演算法」連到 GitHub repo。
     #   全站任何地方都不准出現連到 GitHub 的連結、也不准出現 repo 網址文字。
@@ -40512,10 +40630,10 @@ def t_legal(b, base):
           heads: items.map(li => (li.querySelector('b') || {}).textContent || ''),
           ftxt: f ? f.innerText : '', fh: f ? Math.round(f.offsetHeight) : 0 }; }"""
     fd0 = pg.evaluate(FD)
-    ok("[頁尾] 第一行是「© 2026 台股資金輪動儀表板 · 保留所有權利」",
-       fd0["copy"].startswith("© 2026 ") and "台股資金輪動儀表板" in fd0["copy"] and "保留所有權利" in fd0["copy"], fd0["copy"])
-    ok("[頁尾] 短版免責聲明與四個連結都還在（免責聲明全文／服務條款／隱私權政策／平台導覽）",
-       all(x in fd0["ftxt"] for x in ("不是證券投資顧問事業", "免責聲明全文", "服務條款", "隱私權政策", "平台導覽")), fd0["ftxt"][:200])
+    ok("[頁尾] 第一行是「© 2026 本網站 · 保留所有權利」（名稱未定，走 SITE_NAME）",
+       fd0["copy"].startswith("© 2026 ") and "本網站" in fd0["copy"] and "保留所有權利" in fd0["copy"], fd0["copy"])
+    ok("[頁尾] 短版免責聲明與四個連結都還在（免責聲明／使用條款／隱私權政策／平台導覽）",
+       all(x in fd0["ftxt"] for x in ("不是證券投資顧問事業", "免責聲明", "使用條款", "隱私權政策", "平台導覽")), fd0["ftxt"][:200])
     ok("[頁尾] 詳細規範預設收起（畫面上只留必要的）：區塊不佔高度、按鈕寫「顯示詳細規範」、aria-expanded=false",
        not fd0["shown"] and fd0["dh"] == 0 and fd0["label"] == "顯示詳細規範" and fd0["exp"] == "false"
        and _lg_ls(pg, "tw.footDetail") is None, fd0)
@@ -40554,10 +40672,14 @@ def t_legal(b, base):
         ov: document.getElementById('v-overview').classList.contains('on'), tabs: document.querySelectorAll('.tab.on').length,
         h1: (document.querySelector('#lgDoc h1') || {}).textContent || '', draft: !!document.getElementById('lgDraft'),
         blanks: document.querySelectorAll('#lgDoc .lgblank').length, sy: scrollY })""")
-    ok("[關] 點頁尾「服務條款」→ 真的換到服務條款頁、總覽收起來、頂欄分頁沒有一顆亮",
-       r["hash"] == "#terms" and r["legal"] and not r["ov"] and r["tabs"] == 0 and "服務條款" in r["h1"], r)
-    ok("[關] 服務條款頂端掛「草稿，尚未生效」，空格用【】標出來",
-       r["draft"] and r["blanks"] >= 3 and "草稿，尚未生效" in pg.inner_text("#lgDraft"), r)
+    ok("[關] 點頁尾「使用條款」→ 真的換到使用條款頁、總覽收起來、頂欄分頁沒有一顆亮",
+       r["hash"] == "#terms" and r["legal"] and not r["ov"] and r["tabs"] == 0 and "使用條款" in r["h1"], r)
+    # 2026-10-07 改前→改後（Andy：「最後更新可以拿掉」）：改前驗頂端寫「最後更新日期：2026-10-07」；改後驗畫面上沒有日期行。
+    #   （條款修改那節的條文仍提到「最後更新日期」四個字，條文沒動，所以只驗「後面接日期」的那種寫法不存在。）
+    ok("[關] 使用條款不掛草稿、沒有【】空格、頂端不再顯示最後更新日期（2026-10-07 Andy）",
+       not r["draft"] and r["blanks"] == 0 and not re.search(r"最後更新日期[：:]\s*\d{4}", pg.inner_text("#lgDoc"))
+       and pg.locator("#lgDoc .lgmeta").count() == 0
+       and "臺灣臺北地方法院" in pg.inner_text("#lgDoc") and "kcq01010909@gmail.com" in pg.inner_text("#lgDoc"), r)
     ok("[關] 進法律頁捲回頁首", r["sy"] == 0, r)
     ok("[關] 法律頁沒有小於 12px 的字", not pg.evaluate(_LG_FONTS, "#v-legal"), pg.evaluate(_LG_FONTS, "#v-legal"))
     # 目錄：點第五條 → 捲下去，但網址不變（目錄不能改 hash，不然會被當成未知路由導回總覽）
@@ -40569,6 +40691,7 @@ def t_legal(b, base):
             on: (document.querySelector('.lgtoc a.on') || {}).dataset })""")
         ok("[關] 點目錄第五條 → 那一條捲到畫面上緣、網址還是 #terms、目錄亮在第五條",
            r2["hash"] == "#terms" and r2["sy"] > 100 and 40 < r2["top"] < 200 and r2["on"] and r2["on"].get("sec") == "4", r2)
+    _legal_spy(pg, base)
     # 上方三個分頁切換（2026-09-24 改成膠囊：目前頁實心主色、其他描邊）
     TABS = """() => { const bg = (e) => getComputedStyle(e).backgroundColor, cy = (() => { const s = document.createElement('i');
         s.style.color = 'var(--cyan)'; document.body.appendChild(s); const c = getComputedStyle(s).color; s.remove(); return c; })();
@@ -40577,10 +40700,10 @@ def t_legal(b, base):
                  top: Math.round(r.top), rad: parseFloat(cs.borderTopLeftRadius), bw: parseFloat(cs.borderTopWidth),
                  fw: +cs.fontWeight }; }); }"""
     tb = pg.evaluate(TABS)
-    ok("[分頁] 三顆膠囊（服務條款｜隱私權政策｜免責聲明）排一列、高 34～42、全圓角",
-       [x["t"] for x in tb] == ["服務條款", "隱私權政策", "免責聲明"] and len({x["top"] for x in tb}) == 1
+    ok("[分頁] 三顆膠囊（使用條款｜隱私權政策｜免責聲明）排一列、高 34～42、全圓角",
+       [x["t"] for x in tb] == ["使用條款", "隱私權政策", "免責聲明"] and len({x["top"] for x in tb}) == 1
        and all(34 <= x["h"] <= 42 and x["rad"] >= x["h"] / 2 - 1 for x in tb), tb)
-    ok("[分頁] 目前頁（服務條款）那顆是實心主色＋粗體，其他兩顆不是實心、有細框",
+    ok("[分頁] 目前頁（使用條款）那顆是實心主色＋粗體，其他兩顆不是實心、有細框",
        tb[0]["solid"] and tb[0]["fw"] >= 700 and not tb[1]["solid"] and not tb[2]["solid"]
        and tb[1]["bw"] >= 1 and tb[2]["bw"] >= 1, tb)
     pg.click(".lgtabs a[href='#privacy']"); pg.wait_for_timeout(600)
@@ -40590,15 +40713,15 @@ def t_legal(b, base):
        and not tb2[0]["solid"] and not tb2[2]["solid"], tb2)
     r = pg.evaluate("() => ({ h1: document.querySelector('#lgDoc h1').textContent, draft: !!document.getElementById('lgDraft'),"
                     " t: document.getElementById('lgDoc').innerText })")
-    ok("[關] 切到隱私權政策：標題換了、一樣是草稿、有補上「是否已同意條款存在 localStorage」那一句",
-       "隱私權政策" in r["h1"] and r["draft"] and "是否已同意條款" in r["t"], r["h1"])
+    ok("[關] 切到隱私權政策：標題換了、不掛草稿、寫到 localStorage、在線 7 分鐘刪除、十五日內處理",
+       "隱私權政策" in r["h1"] and not r["draft"] and "localStorage" in r["t"] and "7 分鐘" in r["t"] and "十五日內" in r["t"], r["h1"])
     ok("[關] 隱私權政策沒有列出本站沒有的服務（電子報／付費／流量統計）",
        "訂閱電子報" not in r["t"] and "註冊付費服務" not in r["t"] and "網站流量統計" not in r["t"], "")
     pg.click(".lgtabs a[href='#disclaimer']"); pg.wait_for_timeout(600)
     r = pg.evaluate("() => ({ h1: document.querySelector('#lgDoc h1').textContent, draft: !!document.getElementById('lgDraft'),"
                     " t: document.getElementById('lgDoc').innerText, blanks: document.querySelectorAll('#lgDoc .lgblank').length })")
-    ok("[關] 免責聲明：沒有空格、不掛草稿標示（版本 A 可以先上），而且沒有任何 GitHub 網址（原始碼不公開）",
-       r["h1"] == "免責聲明" and not r["draft"] and r["blanks"] == 0 and "github" not in r["t"].lower(), r["h1"])
+    ok("[關] 免責聲明：沒有空格、不掛草稿標示，而且沒有任何 GitHub 網址（原始碼不公開）",
+       r["h1"] == "免責聲明" and not r["draft"] and r["blanks"] == 0 and "github.com" not in r["t"].lower(), r["h1"])
     # 從法律頁點頂欄回總覽 → 總覽真的回來
     pg.click(".tab[data-view='overview']"); pg.wait_for_timeout(1500)
     ok("[關] 從法律頁按頂欄「總覽」→ 回到總覽", pg.evaluate(
@@ -40637,7 +40760,7 @@ def t_legal(b, base):
     pg.evaluate("() => window.scrollTo({top: document.body.scrollHeight, behavior: 'instant'})"); pg.wait_for_timeout(400)
     r = pg.evaluate("""() => { const f = document.getElementById('siteFoot').getBoundingClientRect(),
         t = document.getElementById('tabs').getBoundingClientRect(); return { fb: f.bottom, ft: f.top, tt: t.top }; }""")
-    ok("[390] 捲到底時頁尾整段在底部分頁列上方（沒被蓋住）", r["fb"] <= r["tt"] + 1 and r["ft"] > 0, r)
+    ok("[390] 捲到底時頁尾整段在底部分頁列上方（沒被蓋住；容差 2px＝次像素誤差，頁尾自己有 24px 下內距）", r["fb"] <= r["tt"] + 2 and r["ft"] > 0, r)
     ctx.close()
 
     # ---------------------------------------------------------------- B. 開關打開（模擬 Andy 填好了）
@@ -40712,9 +40835,9 @@ def t_legal(b, base):
     ok("[開] 不同意之後按頂欄「資金流向」→ 這次瀏覽維持在 #leave", pg.evaluate("() => location.hash") == "#leave"
        and not pg.evaluate("() => document.getElementById('v-flow').classList.contains('on')"), pg.evaluate("() => location.hash"))
     pg.click("#lgRead"); pg.wait_for_timeout(600)
-    ok("[開] 「已離開」畫面上「閱讀條款」照樣打得開服務條款（正式版，沒有草稿標示）",
+    ok("[開] 「已離開」畫面上「閱讀條款」照樣打得開使用條款（正式版，沒有草稿標示）",
        pg.evaluate("() => location.hash") == "#terms" and pg.locator("#lgDraft").count() == 0
-       and "驗收用營業人" in pg.inner_text("#lgDoc"), pg.evaluate("() => location.hash"))
+       and "使用條款" in pg.inner_text("#lgDoc"), pg.evaluate("() => location.hash"))
     ok("[開] 在條款頁上橫幅重新出現，讀完可以直接選", pg.locator("#lgBanner").count() == 1)
     pg.reload(wait_until="networkidle"); pg.wait_for_timeout(1500)
     pg.goto(base + "#overview"); pg.wait_for_timeout(1500)
@@ -40777,8 +40900,8 @@ def t_legal(b, base):
                       ("欄位還留著【】", LEGAL_ON.replace("驗收用營業人", "【營業人名稱】"))):
         ctx, pg = _lg_page(b, init=cfg)
         pg.goto(base + "#terms", wait_until="networkidle"); pg.wait_for_timeout(1800)
-        ok(f"[{name}] 不啟用：沒有橫幅、條款頁仍掛草稿標示",
-           pg.locator("#lgBanner").count() == 0 and pg.locator("#lgDraft").count() == 1
+        ok(f"[{name}] 不啟用：沒有橫幅、條款頁不掛草稿（2026-10-07 起文字已定稿，只有橫幅受開關控制）",
+           pg.locator("#lgBanner").count() == 0 and pg.locator("#lgDraft").count() == 0
            and not pg.evaluate("() => window.TwLegal.state().active"), pg.evaluate("() => window.TwLegal.state()"))
         ctx.close()
 

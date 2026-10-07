@@ -18,6 +18,11 @@
 (function () {
   'use strict';
 
+  /* ★ 2026-10-07：名稱與客服信箱還沒定 —— 定了只改這兩行。*/
+  const SITE_NAME = '本網站';
+  const CONTACT_EMAIL = 'kcq01010909@gmail.com';
+  const UPDATED = '2026-10-07';
+
   /* 驗收腳本用 add_init_script 注入 window.TW_LEGAL_OVERRIDE 來模擬「已經填好」的狀態。
      這不是後門：同意狀態本來就只存在使用者自己的瀏覽器，他要偽造也只是騙他自己。*/
   const CFG = Object.assign({}, window.TW_LEGAL || {}, window.TW_LEGAL_OVERRIDE || {});
@@ -55,134 +60,161 @@
   const CN = ['一', '二', '三', '四', '五', '六', '七', '八', '九', '十', '十一', '十二'];
 
   // ------------------------------------------------------------------ 條款內容
-  /* 文字照 compliance_and_tiers.md 3-2、3-3 的草稿。跟草稿不一樣的地方只有三種，而且都有理由：
-     ① 本站還沒有的服務（付費、電子報、同步、流量統計）對應的段落，旗標沒開就不顯示 ——
-        不然使用者要同意一件不存在的事，還會多出一堆現在填不了的空格。章節號碼自動重排。
-     ② 「授權方案請見【授權頁網址】」—— 沒有授權頁時改成「請來信 email 洽詢」。
-     ③ 隱私權政策第六條補上規格 4.1 要求的那一句（同意狀態也存在 localStorage）。*/
-  function termsDoc() {
-    const P = !!CFG.paid;
-    const secs = [
-      { h: '服務提供者', b: fill('<p>本服務由{operator}（統一編號：{tax_id}）提供。<br>聯絡方式：{email}。</p>') },
-      { h: '本服務是什麼、不是什麼', b: ol([
-        '本服務為<b>公開資料之蒐集、整理、計算與視覺化工具</b>。',
-        '<b>本服務提供者非證券投資顧問事業、非證券投資信託事業、非證券商，亦未取得金融監督管理委員會之任何許可。</b>',
-        '本服務<b>不提供投資建議、不推介任何有價證券、不從事全權委託投資（代客操作）業務、不接受任何形式之資金</b>。',
-        '本服務所呈現之數值、評分、條件篩選結果、圖表與統計，均為依<b>公開資料</b>與<b>公開之計算方法</b>所產生之結果，<b>僅供研究與參考</b>。',
-        '<b>本服務不保證任何資料之正確性、完整性或即時性</b>，亦<b>不保證任何計算結果之有效性</b>。部分資料為第三方來源，可能有誤、遺漏或延遲。',
-      ]) },
-      { h: '使用者的責任', b: ol([
-        '<b>您的投資決策由您自行做成，其結果與風險由您自行承擔。</b>',
-        '您不得利用本服務從事違法行為，包括但不限於：操縱市場、散布不實資訊、未經許可經營證券投資顧問業務。',
-        '您不得以自動化程式對本服務進行超出正常使用範圍之大量請求，致影響本服務之正常運作。',
-      ]) },
-      { h: '智慧財產權與授權', b: ol([
-        fill('本服務之<b>原創圖形（產業鏈剖析圖、3D 場景、題材圖）、供應鏈對應資料、版面設計與程式碼</b>，其著作權由{copyright_holder}所有。'),
-        '<b>原始資料之權利屬於各原始來源機構</b>（臺灣證券交易所、財團法人中華民國證券櫃檯買賣中心、臺灣集中保管結算所、各資料提供者等），本服務僅為整理與呈現。',
-        '<b>一般使用者</b>得為個人非商業目的閱覽、截圖與引用本服務內容，<b>並應標註來源</b>。',
-        '<b>商業利用</b>（包括但不限於：置入研究報告、投影片、課程、內部教材、對外發表之出版品）<b>須另行取得書面授權</b>。'
-          + (val('license_url') ? fill('授權方案請見{license_url}。') : fill('授權請來信{email}洽詢。')),
-      ]) },
-      { h: '第三方連結與內容', b: '<p>本服務可能包含第三方網站之連結，或引述第三方公開發布之內容。<b>本服務對第三方內容之正確性不負責任，亦不表示同意或推薦其觀點。</b></p>' },
-      { h: '服務之變更與中斷', b: ol([
-        '本服務為<b>個人維護之專案</b>，可能因維護、資料來源變更、第三方服務中斷等原因暫停或終止部分或全部功能，<b>恕不另行個別通知</b>。',
-        '<b>本服務不保證任何可用率（uptime）。</b>',
-        P ? '若本服務永久終止，付費使用者<b>未使用之期間</b>將依<mark class="lgblank">【退款規則】</mark>處理（見第八條）。' : '',
-      ]) },
-      { h: '責任限制', b: ol([
-        '在<b>法律允許之最大範圍內</b>，本服務提供者對於您因使用或無法使用本服務所生之任何損失（包括投資損失、利潤損失、資料損失）<b>不負賠償責任</b>。',
-        '<b>本條不免除本服務提供者之故意或重大過失責任</b>（民法第 222 條）。',
-        '若依法仍應負賠償責任者，其賠償總額<b>以您於請求發生前十二個月內實際支付予本服務之費用總額為上限</b>。',
-      ]) },
-      P ? { h: '付費服務、訂閱與退款', b: '<p>（詳見<mark class="lgblank">【訂閱與退款條款】</mark>，該節構成本條款之一部分。）</p>' } : null,
-      { h: '條款之修改', b: '<p>本服務得修改本條款，修改後將於本頁公告並更新「最後更新」日期。'
-          + (P ? '<b>涉及付費使用者權益之重大變更，將於生效前三十日以 Email 通知。</b>若您不同意修改後之條款，請停止使用並依第八條申請退款。'
-               : '若您不同意修改後之條款，請停止使用。') + '</p>' },
-      { h: '準據法與管轄', b: fill('<p>本條款以<b>中華民國法律</b>為準據法。因本條款所生之爭議，雙方同意以<b>{court}</b>為第一審管轄法院。<b>但不影響消費者依消費者保護法所得主張之權利。</b></p>') },
-    ].filter(Boolean);
+  /* ★ 2026-10-07 Andy：「依據參考網站撰寫對應基本事項，盡量屬於通用行文案，因為我還沒想好名稱」。
+     · 章節結構參考台灣同類網站常見的涵蓋事項；**文字全部本站自寫，沒有逐字取自任何網站**。
+     · 名稱一律走 SITE_NAME（預設「本網站」），聯絡信箱走 CONTACT_EMAIL —— 定了名稱／客服信箱只改檔頭這兩行。
+     · 隱私權政策每一項都對到實際做法：workers/account-api/worker.js 檔頭「蒐集與保存」、sub-v1 區塊、admin-v3 區塊、
+       site/account.js 的告知文字。改那邊要一起改這裡（DECISIONS #270-7 三處同步）。
+     · 這不是律師擬的定稿：退款、試用、管轄法院、責任上限等標了「以購買頁所示為準」或待專業人士確認。*/
+  const SN = SITE_NAME;
+  const MAIL = '<a href="mailto:' + esc(CONTACT_EMAIL) + '">' + esc(CONTACT_EMAIL) + '</a>';
+  const OP = SN + '營運者';
+
+  function disclaimerDoc() {
     return {
-      id: 'terms', title: fill('{site_name}服務條款'), short: '服務條款', dated: true,
-      lead: fill('<p>歡迎使用{site_name}（以下稱「本服務」）。請您在使用前詳細閱讀本條款。<b>當您開始使用本服務，即表示您已閱讀、瞭解並同意接受本條款之全部內容。</b>如您不同意，請立即停止使用。</p>'),
-      secs,
+      id: 'disclaimer', title: '免責聲明', short: '免責聲明', dated: true, lead:
+        '<p>使用' + esc(SN) + '前，請詳細閱讀本聲明。您開始瀏覽或使用' + esc(SN) + '，即表示您已閱讀並瞭解本聲明之內容。</p>',
+      secs: [
+        { h: '網站性質', b: ol([
+          esc(SN) + '是<b>公開資料之整理、計算與視覺化工具</b>，提供族群資金流向、估值、技術指標、事件與產業鏈等資訊之呈現。',
+          '<b>' + esc(OP) + '不是證券投資顧問事業、證券投資信託事業或證券商</b>，未取得金融監督管理委員會之相關許可。',
+          esc(SN) + '<b>不提供投資建議、不推介任何有價證券、不代客操作、不代為保管資金或有價證券、不招攬投資</b>。',
+          '付費方案所提供者為<b>工具與功能之使用權</b>，<b>不是投資建議或個股推介之對價</b>。',
+        ]) },
+        { h: '資料來源與正確性', b: ol([
+          '站內資料主要取自臺灣證券交易所、證券櫃檯買賣中心、臺灣集中保管結算所之公開資料，以及其他公開或第三方資料來源。原始資料之權利屬於各來源機構。',
+          '資料可能因來源更正、傳輸、轉換或計算而<b>有錯誤、遺漏或延遲</b>。盤中數字為估算或代理值，<b>以各交易所與發行公司之正式公告為準</b>。',
+          '<b>' + esc(OP) + '不擔保資料之正確性、完整性、即時性或適用於特定目的。</b>',
+        ]) },
+        { h: '不構成投資建議', b: ol([
+          '站內之數值、評分、排行、條件篩選結果、圖表、文字說明與自動產生之摘要，均為<b>依公開資料與預先設定之方法計算之結果</b>，僅供研究與參考。',
+          '這些內容<b>不構成任何買賣要約、要約之引誘、推介或獲利保證</b>。條件篩選清單不是推薦名單；圖上之價位參數是計算條件，不是建議之買進、賣出或停損價位。',
+          '您在做任何投資決定前，應自行查證並審慎評估，必要時諮詢合格之專業人士。',
+        ]) },
+        { h: '計算方法與回測限制', b: ol([
+          '各項指標之計算方法可能隨資料來源或設計調整而變更，恕不另行個別通知。',
+          '任何歷史統計、季節性或回測結果皆<b>不代表未來表現</b>；回測可能受資料期間、存活者偏差、交易成本與滑價等因素影響，未必能於實際交易中重現。',
+        ]) },
+        { h: '第三方連結與內容', b: '<p>' + esc(SN) + '可能包含第三方網站之連結，或引述第三方公開發布之新聞、公告與資料。該等內容由第三方負責，'
+          + '<b>' + esc(OP) + '不保證其正確性，亦不代表同意或推薦其觀點</b>。您前往第三方網站時，應適用該網站之條款與政策。</p>' },
+        { h: '投資風險自負', b: '<p>投資有風險，市場價格可能劇烈波動，您可能損失部分或全部本金。<b>任何投資決策由您自行判斷，其結果與風險由您自行承擔。</b>'
+          + '在法律允許之範圍內，' + esc(OP) + '對您因使用或信賴本網站資訊所生之任何直接或間接損失，不負賠償責任；但因故意或重大過失所致者，不在此限。</p>' },
+        { h: '法規變動', b: '<p>' + esc(SN) + '之服務內容將隨相關法令及主管機關之規定調整。若法令變更致部分功能不得提供或須改變提供方式，'
+          + esc(OP) + '得逕行調整、暫停或終止該功能，並於網站公告。</p>' },
+        { h: '聯絡方式', b: '<p>對本聲明有任何疑問，請來信 ' + MAIL + '。</p>' },
+      ],
+    };
+  }
+
+  function termsDoc() {
+    return {
+      id: 'terms', title: '使用條款', short: '使用條款', dated: true,
+      lead: '<p>歡迎使用' + esc(SN) + '（以下稱「本服務」）。本條款是您與' + esc(OP) + '之間關於使用本服務之約定。'
+        + '<b>您開始使用本服務，即表示您已閱讀、瞭解並同意本條款、<a href="#privacy">隱私權政策</a>及<a href="#disclaimer">免責聲明</a>之全部內容。</b>如您不同意，請停止使用。</p>',
+      secs: [
+        { h: '服務內容', b: ol([
+          '本服務提供台股公開資料之整理、計算與視覺化工具，包含但不限於族群資金流向、估值、技術指標、事件、產業鏈、自選清單等功能。',
+          '本服務為資訊與工具，<b>不構成投資建議、不推介個股、不代客操作</b>；詳見<a href="#disclaimer">免責聲明</a>。',
+          '各功能之內容、開放範圍與每日使用次數，依您所屬之方案（訪客、免費會員、付費會員）而有不同，以網站所示為準。',
+        ]) },
+        { h: '帳號註冊與登入', b: ol([
+          '本服務以 <b>Google 帳號登入</b>建立會員帳號。本服務不取得、不保存您的 Google 密碼。',
+          '您應妥善保管您的 Google 帳號與裝置；以您帳號進行之一切行為，推定為您本人所為。發現帳號遭冒用時，請立即來信通知。',
+          '您得隨時停止使用並申請刪除帳號（見<a href="#privacy">隱私權政策</a>「您的權利」）。',
+        ]) },
+        { h: '會員方案、試用與付費', b: ol([
+          '本服務得提供<b>免費試用（目前規劃為 1 個月）</b>；試用之資格、期間、次數與結束後之處理，<b>以購買頁所示為準</b>。',
+          '付費方案之價格、計費週期、付款方式與包含之功能，<b>以購買頁所示為準</b>。付費取得者為<b>本服務工具與功能之使用權</b>，不是投資建議或個股推介之對價。',
+          '<b>續訂</b>：若方案為自動續訂，將於每一計費週期屆滿時依原方案續扣；購買頁另有說明者，從其說明。',
+          '<b>取消</b>：您得隨時取消續訂；取消後，已付費之期間仍可使用至期滿。',
+          '<b>退款</b>：退款條件與計算方式<b>以購買頁所示為準</b>；購買頁未載明者，依消費者保護法及相關法令辦理。',
+          '方案到期未續訂者，帳號自動回到免費會員，您的自選清單等資料不因此刪除。',
+        ]) },
+        { h: '禁止行為', b: '<p>使用本服務時，您不得有下列行為：</p>' + ol([
+          '以程式、爬蟲或其他自動化方式大量擷取本服務之內容或資料。',
+          '未經書面授權，將本服務之資料、圖表或內容<b>轉售、出租、再散布或作為商業用途</b>。',
+          '<b>將帳號提供他人共用</b>、轉讓或出借。',
+          '對本服務進行<b>逆向工程</b>、反編譯，或嘗試取得原始碼與未公開之介面。',
+          '<b>以任何方式繞過付費機制</b>、使用次數限制或存取控制。',
+          '干擾或破壞本服務之正常運作，或利用本服務從事違法行為（例如操縱市場、散布不實資訊、未經許可經營證券投資顧問業務）。',
+        ]) },
+        { h: '裝置數上限與異常使用', b: ol([
+          '為防止帳號共用，本服務得限制<b>每一帳號可使用之裝置數</b>；上限以網站公告為準。',
+          '本服務偵測到異常使用（例如短時間大量存取、多處同時使用、自動化擷取）時，得先行限制存取或<b>暫停帳號</b>。',
+          '經查證確有違反本條款者，' + esc(OP) + '得終止您的帳號；您如認為有誤，得來信說明，' + esc(OP) + '將重新審視。',
+        ]) },
+        { h: '智慧財產權', b: ol([
+          '本服務之原創圖形、族群與供應鏈分類、版面設計、文字與程式，其權利屬於' + esc(OP) + '或其授權人。',
+          '原始資料之權利屬於各原始來源機構，本服務僅為整理與呈現。',
+          '您得為個人非商業目的閱覽、截圖與引用本服務內容，並應標註來源；其他利用須事先取得書面授權。',
+        ]) },
+        { h: '服務變更與中斷', b: ol([
+          esc(OP) + '得因維護、資料來源變更、法令調整或第三方服務（例如雲端主機、資料來源）中斷等原因，變更、暫停或終止部分或全部服務。',
+          '本服務不保證不中斷或無錯誤。涉及付費會員權益之重大變更，將事先於網站公告或以電子郵件通知。',
+        ]) },
+        { h: '責任限制', b: ol([
+          '在法律允許之最大範圍內，' + esc(OP) + '對您因使用或無法使用本服務所生之任何損失（包括投資損失、利潤損失、資料損失）不負賠償責任。',
+          '本條不免除' + esc(OP) + '因故意或重大過失所應負之責任。',
+          '依法仍應負賠償責任者，賠償總額以您於事由發生前十二個月內實際支付予本服務之費用為上限。',
+        ]) },
+        { h: '條款修改', b: '<p>' + esc(OP) + '得修改本條款，修改後於本頁公告。您於修改後繼續使用本服務，視為同意修改後之條款；'
+          + '如不同意，請停止使用並得依第三條取消續訂。</p>' },
+        { h: '準據法與管轄法院', b: '<p>本條款以<b>中華民國法律</b>為準據法。因本條款所生之爭議，雙方同意以<b>臺灣臺北地方法院</b>為第一審管轄法院；'
+          + '但不影響您依消費者保護法所得主張之權利。</p>' },
+        { h: '聯絡方式', b: '<p>客服與各項申請，請來信 ' + MAIL + '。</p>' },
+      ],
     };
   }
 
   function privacyDoc() {
-    const P = !!CFG.paid, N = !!CFG.newsletter, S = !!CFG.sync, A = !!CFG.analytics;
-    /* ★ 2026-09-27 會員登入／自選同步／使用統計／線上人數（DECISIONS #270）：只有 site/account.js 讀到設定檔
-       （site/account_config.js，部署時依 Secret 覆寫）時才成立，所以跟著 window.TW_ACCOUNT_ON 走，不是寫死的旗標 ——
-       功能沒開，條款就不寫一件不存在的事（跟上面 paid／newsletter 同一個原則）。
-       內容必須跟 workers/account-api/worker.js 檔頭「蒐集與保存」、site/account.js 的 noticeHTML() 一致。*/
-    const ACC = !!window.TW_ACCOUNT_ON;
     const rows = [
-      ACC ? ['瀏覽本站（未登入）', '<b>不蒐集可識別您的個人資料。</b>本站不使用 Cookie 進行追蹤、不使用廣告追蹤器。僅計入下方「使用統計」與「線上人數」（均不含身分）', '—']
-          : ['瀏覽本站（未註冊）', '<b>不蒐集任何個人資料。</b>本站不使用 Cookie 進行追蹤、不使用廣告追蹤器', '—'],
-      ACC && ['以 Google 帳號登入（選用）', '<b>Google 帳號之顯示名稱、電子郵件地址、大頭貼網址</b>；Google 帳號識別碼僅保存經金鑰雜湊後之值；帳號建立與最後使用時間。<b>不取得您的 Google 密碼</b>，亦不讀取 Gmail、雲端硬碟或聯絡人',
-        '身分識別、提供自選清單跨裝置同步；網站管理者得檢視會員名單。<b>保存至您刪除為止；連續 24 個月未使用者自動刪除</b>'],
-      ACC && ['自選清單（登入後）', '<b>您自行建立之清單名稱與股票代號</b>。<b>不含張數、成本、損益</b>', '提供跨裝置同步；保存至您刪除清單或刪除帳號為止'],
-      ACC && ['功能權限（管理者設定）', '網站管理者為特定<b>電子郵件地址</b>設定之方案名稱與各功能開關', '決定該帳號可使用之功能（例如付費方案）；保存至管理者移除設定或您刪除帳號為止'],
-      ACC && ['使用統計（所有訪客）', '<b>不含個人識別之彙總次數</b>：每日各頁面瀏覽次數、各功能使用次數。<b>不記錄 IP、不記錄單次點擊、不含任何識別碼</b>。瀏覽器開啟「請勿追蹤」（DNT）或「全球隱私控制」（GPC）時完全不傳送',
-        '瞭解哪些頁面與功能較常被使用，以改善服務。<b>彙總資料保留 13 個月</b>'],
-      /* ★ 2026-10-05（admin-v3）會員名單的使用數據（worker.js admin-v3 區塊：visits.ms、uev）——只記登入者、可刪 */
-      ACC && ['使用紀錄（登入後）', '已登入者之<b>每日造訪次數、在線時間</b>（每次訊號最多計 2 分鐘）、<b>各頁面瀏覽次數、各功能使用次數、所看之股票代號與族群名稱</b>。<b>不含您輸入之文字、不記錄 IP</b>',
-        '網站管理者檢視會員使用狀況、改善服務與方案設計。<b>明細保留 90 天、造訪與在線時間保留 13 個月</b>；刪除帳號時一併刪除'],
-      ACC && ['線上人數（所有訪客）', '每次開啟頁面一組<b>隨機代碼</b>（關閉或重新整理即失效）與目前所在頁面；已登入者另關聯其帳號', '計算即時線上人數；網站管理者得檢視目前在線之<b>登入者</b>名稱與所在頁面（訪客僅計人數）。<b>關閉分頁或 3 分鐘無訊號即刪除</b>'],
-      N && ['訂閱電子報', '<b>電子郵件地址</b>', '寄送您訂閱之內容（特定目的代號：<mark class="lgblank">【○○○】</mark>）'],
-      P && ['註冊付費服務', '<b>電子郵件地址、付款紀錄（不含完整信用卡號）</b>', '身分識別、提供付費功能、開立發票、客服聯繫'],
-      S && !ACC && ['使用自選清單等同步功能', '<b>您自行輸入的股票代號清單、介面設定</b>', '提供跨裝置同步功能'],
-      A && !ACC && ['網站流量統計', '<b>不含個人識別的彙總統計</b>（頁面瀏覽次數、來源、裝置類型）', '改善服務'],
-    ].filter(Boolean);
-    const table = '<div class="lgtbl"><table><thead><tr><th>情境</th><th>蒐集的個人資料類別</th><th>蒐集目的</th></tr></thead><tbody>'
-      + rows.map((r) => '<tr><td>' + r[0] + '</td><td>' + r[1] + '</td><td>' + r[2] + '</td></tr>').join('') + '</tbody></table></div>';
-    const procs = '上一項所列之雲端服務提供者'
-      + (N ? '、<mark class="lgblank">【電子報服務商】</mark>' : '') + (P ? '、<mark class="lgblank">【金流服務商】</mark>' : '');
-    const lose = [N && '電子報', (S || ACC) && '跨裝置同步', P && '付費功能'].filter(Boolean);
-    const hosting = ACC ? val('hosting') + '、Cloudflare Durable Objects（Cloudflare, Inc.；會員資料、自選清單、使用統計、線上狀態）、Google LLC（僅用於驗證您的 Google 登入身分）' : null;
-    const secs = [
-      { h: '蒐集者', b: fill('<p>{operator}（以下稱「本站」）。聯絡方式：{email}。</p>') },
-      { h: '我們蒐集什麼、為什麼蒐集', b: table
-          + '<p><b>本站不蒐集</b>：姓名、身分證字號、電話、地址、出生年月日、<b>您的實際持股、成本價、損益、券商帳號</b> —— 這些我們從來不要，也請您不要提供給我們。</p>' },
-      { h: '資料存在哪裡、放多久、給誰', b: ul([
-        '<b>利用期間</b>：自您提供時起，至您<b>取消訂閱／刪除帳號</b>之日止；法令另有保存義務者（例如稅務憑證），依法令期間保存。'
-          + (ACC ? '各項資料之保存期限另詳第二條表格（會員資料至刪除或 24 個月未使用、使用統計彙總 13 個月、線上狀態離線即刪）。' : ''),
-        hosting ? '<b>利用地區</b>：中華民國及本站所使用之雲端服務提供者之伺服器所在地（' + esc(hosting) + '）。'
-          : fill('<b>利用地區</b>：中華民國及本站所使用之雲端服務提供者之伺服器所在地（{hosting}）。'),
-        '<b>利用對象</b>：本站，以及為提供服務所必要之受託處理者（' + procs + '）。',
-        '<b>利用方式</b>：僅用於第二條所列之蒐集目的。',
-        '<b>本站不販售、不出租、不交換您的個人資料。</b>',
-      ]) },
-      { h: '您的權利（個資法第 3 條）', b: '<p>您得隨時以 Email 向本站請求：<b>查詢、閱覽、製給複製本、補充或更正、停止蒐集處理利用、刪除</b>您的個人資料。本站將於收到請求後<b>十五日內</b>處理並回覆。'
-          + (N ? '電子報另可直接於信件底部<b>一鍵退訂</b>。' : '')
-          + (ACC ? '會員資料、雲端自選清單、使用紀錄與線上狀態之刪除，請來信客服信箱 kcq01010909@gmail.com 申請；使用統計為不含身分之彙總次數，無從對應至個人，故無個人部分可刪除。' : '') + '</p>' },
-      { h: '您可以自由選擇是否提供', b: '<p>您得自由選擇是否提供個人資料。<b>不提供 Email 者，仍可完整使用本站之所有免費功能</b>'
-          + (lose.length ? '；但將無法使用' + lose.join('、') + '。' : '。') + '</p>' },
-      { h: 'Cookie 與本機儲存', b: '<p>本站使用瀏覽器之 <b>localStorage</b> 儲存您的介面偏好（版面、主題、圖表設定等）。<b>這些資料只存在您自己的瀏覽器裡，不會傳送到本站伺服器。</b>您可隨時於瀏覽器清除。</p>'
-          + '<p>本站會在您的瀏覽器儲存您的介面設定與是否已同意條款（<code>localStorage</code>），這些資料不會傳回本站。</p>'
-          + (ACC ? '<p><b>例外</b>：登入後，您的登入憑證（權杖）與自選清單之本機副本亦存於 localStorage，自選清單會同步至本站伺服器；'
-              + '另為計算線上人數，每次開啟頁面時會於記憶體中產生一組隨機代碼（不寫入瀏覽器儲存，關閉或重新整理即失效）；「每個分頁只計一次造訪」的標記存於 <code>sessionStorage</code>（關閉分頁即清除）。本站<b>不使用 Cookie</b>；僅登入流程中，本站之登入伺服器會設定一個有效 10 分鐘、用於防止偽造登入之暫時 Cookie。</p>' : '') },
-      { h: '資料安全', b: '<p>本站採取合理之技術與管理措施保護您的個人資料。惟<b>網際網路傳輸無法保證絕對安全</b>，若發生個人資料外洩，本站將依個人資料保護法第 12 條<b>查明後以 Email 通知您</b>。</p>' },
-      P ? { h: '未成年人', b: '<p>未滿十八歲者，應於<b>法定代理人閱讀、瞭解並同意</b>本政策後，方得使用付費服務。</p>' } : null,
-      { h: '政策修改', b: '<p>本政策修改時將於本頁公告；<b>涉及蒐集目的變更者，將另行取得您的同意。</b></p>' },
-    ].filter(Boolean);
-    return { id: 'privacy', title: fill('{site_name}隱私權政策'), short: '隱私權政策', dated: true, lead: '', secs };
-  }
-
-  /* 免責聲明：3-1 版本 A（頁尾常駐那一段的全文）＋ 版本 B（「今日候選」與技術面訊號）。
-     唯一的空格【repo 網址】是已知的事實（legal_config.js 的 repo_url），所以這一頁**沒有草稿標示**——
-     規格 §4 明寫「版本 A 可以先上頁尾」，頁尾連過來的全文如果掛「尚未生效」，等於自己打自己的臉。*/
-  function disclaimerDoc() {
+      ['瀏覽本網站（未登入）', '不蒐集可識別您身分之資料。僅計入不具名之使用統計與線上人數（見下列）', '—', '—'],
+      ['Google 帳號登入', '<b>Google 帳號之顯示名稱、電子郵件地址、大頭貼網址</b>；Google 帳號識別碼僅保存其雜湊值；帳號建立與最後使用時間。不取得密碼，不讀取 Gmail、雲端硬碟或聯絡人',
+        '身分識別、提供會員功能與自選清單同步、客服聯繫', '至您申請刪除為止；<b>連續 24 個月未使用自動刪除</b>'],
+      ['自選清單', '您自行建立之清單名稱與股票代號（<b>不含張數、成本、損益</b>）', '跨裝置同步', '至您刪除清單或帳號為止'],
+      ['方案與到期日', '管理者為您的電子郵件地址設定之<b>方案、功能開關與到期日</b>', '決定帳號可使用之功能', '至管理者移除設定或您刪除帳號為止'],
+      ['使用紀錄（登入者）', '每日造訪次數、在線時間、各頁面瀏覽與各功能使用次數、所看之股票代號與族群名稱；每日各功能瀏覽次數。<b>不含您輸入之文字、不記錄 IP</b>',
+        '計算每日使用次數上限、改善服務與方案設計；管理者得檢視', '明細 <b>90 天</b>；每日瀏覽次數 3 天；造訪與在線時間 13 個月；刪除帳號時一併刪除'],
+      ['使用統計（所有訪客）', '<b>不含身分</b>之彙總次數：每日各頁面、各功能、各選項之使用次數。不記錄 IP、不含識別碼；瀏覽器開啟「請勿追蹤」（DNT）或「全球隱私控制」（GPC）時不傳送',
+        '瞭解功能使用情形以改善服務', '<b>13 個月</b>'],
+      ['在線狀態（所有訪客）', '每次開啟頁面產生之<b>隨機代碼</b>與目前所在頁面；登入者另關聯其帳號', '計算線上人數；管理者得檢視目前在線之登入者名稱與所在頁面',
+        '關閉分頁即刪除；<b>無訊號最遲 7 分鐘刪除</b>'],
+      ['意見反饋與訂閱申請', '您主動填寫之聯絡電子郵件、類別、內容，以及當時網址與瀏覽器資訊；登入者另關聯其帳號', '回覆與處理您的意見或申請', '<b>13 個月</b>；刪除帳號時一併刪除'],
+      ['公告已讀紀錄', '登入者讀過哪幾則公告', '跨裝置顯示未讀公告', '公告刪除或帳號刪除時一併刪除'],
+    ];
+    const table = '<div class="lgtbl"><table><thead><tr><th>情境</th><th>蒐集之資料</th><th>目的</th><th>保存期間</th></tr></thead><tbody>'
+      + rows.map((r) => '<tr>' + r.map((c, i) => '<td data-l="' + ['情境', '蒐集資料', '目的', '保存期間'][i] + '"><span class="lgtc">' + c + '</span></td>').join('') + '</tr>').join('') + '</tbody></table></div>';
     return {
-      id: 'disclaimer', title: '免責聲明', short: '免責聲明', dated: false, lead: '',
+      id: 'privacy', title: '隱私權政策', short: '隱私權政策', dated: true,
+      lead: '<p>' + esc(OP) + '重視您的隱私。本政策說明' + esc(SN) + '蒐集哪些資料、如何利用與保護，以及您依個人資料保護法享有之權利。</p>',
       secs: [
-        { h: '本站是什麼、不是什麼', b: fill('<p>本站為公開資料之整理、計算與視覺化工具，<b>不是證券投資顧問事業</b>，'
-          + '<b>不提供投資建議、不推介任何有價證券、不代客操作、不收取任何形式之操作報酬</b>。</p>'
-          + '<p>站內所有數值、評分、條件篩選結果與圖表，均為<b>依公開資料計算之結果</b>，'
-          + '僅供研究與參考，<b>不構成任何買賣要約、推介或保證</b>。資料可能有誤、遺漏或延遲，計算方法未經回測驗證。</p>'
-          + '<p><b>任何投資決策與其結果，由使用者自行判斷並自負全部風險。</b></p>') },
-        { h: '「今日關注」與技術面訊號：這一張表是什麼、不是什麼', b: '<p>這是<b>條件篩選的結果</b>：把符合預先公開之技術與籌碼條件的股票列出來，'
-          + '<b>不是推薦名單，也沒有排出誰比較好</b>。</p>'
-          + '<p>「失效價位」與「量測目標」是<b>條件本身的計算參數</b>，<b>不是建議的買進價、停損價或賣出價</b>。'
-          + '條件成立不代表會上漲，條件不成立也不代表會下跌。</p><p><b>本站不建議您買賣任何一檔股票。</b></p>' },
+        { h: '蒐集之資料、目的與保存期間', b: table
+          + '<p>為防止濫用，伺服器會暫時於記憶體中依連線 IP 計算請求次數，<b>不寫入資料庫</b>。</p>'
+          + '<p><b>本網站不蒐集</b>：身分證字號、電話、地址、出生日期、<b>您的實際持股、成本價、損益或券商帳號</b>，也請您不要提供。</p>' },
+        { h: '資料之利用與分享對象', b: ul([
+          '僅於上表所列目的範圍內利用。<b>不販售、不出租、不交換您的個人資料，也不用於廣告追蹤。</b>',
+          '為提供服務所必要，資料由下列服務供應商代為處理或傳輸：<b>Google</b>（驗證登入身分；會員大頭貼由 Google 伺服器提供）、'
+            + '<b>Cloudflare</b>（會員資料、自選清單、使用統計與線上狀態之儲存與運算；盤中報價轉送）、<b>GitHub</b>（網站主機）。日後新增金流等服務商時，將於本頁更新。',
+          '法令要求或司法、主管機關依法調取時，依法提供。',
+          '利用地區：中華民國及上述服務供應商之伺服器所在地（可能位於境外）。',
+        ]) },
+        { h: 'Cookie 與本機儲存', b: ul([
+          '本網站<b>不使用 Cookie 進行追蹤</b>，不裝設廣告追蹤器。僅在 Google 登入過程中，登入伺服器會設定一個<b>有效 10 分鐘</b>、用於防止偽造登入之暫時 Cookie。',
+          '您的介面偏好（版面、主題、圖表設定等）存於瀏覽器之 <code>localStorage</code>，只存在您的裝置，不傳回伺服器。',
+          '登入後，登入憑證與自選清單之本機副本亦存於 <code>localStorage</code>；自選清單會同步至伺服器。',
+          '「每個分頁只計一次造訪」之標記存於 <code>sessionStorage</code>，關閉分頁即清除。',
+          '您可隨時於瀏覽器清除上述資料；清除後需重新登入。',
+        ]) },
+        { h: '您的權利', b: '<p>依個人資料保護法第 3 條，您得就您的個人資料請求：<b>查詢或請求閱覽、製給複製本、補充或更正、停止蒐集處理或利用、刪除</b>。</p>'
+          + '<p>請以您登入所用之電子郵件來信 ' + MAIL + ' 提出，' + esc(OP) + '將於收到後<b>十五日內</b>處理並回覆；刪除範圍包含會員資料、雲端自選清單、使用紀錄、反饋與申請紀錄、線上狀態。'
+          + '不具名之彙總使用統計無從對應至個人，故無個人部分可刪除。</p>'
+          + '<p>您得自由選擇是否提供個人資料；不登入者仍可使用開放給訪客之功能，但無法使用自選清單同步等會員功能。</p>' },
+        { h: '資料安全', b: '<p>' + esc(SN) + '採取合理之技術與管理措施保護您的資料，包括：HTTPS 加密傳輸、Google 登入採 OAuth 2.0 授權碼與 PKCE 機制、'
+          + 'Google 帳號識別碼僅存雜湊值、登入權杖經簽章並設有效期限（刪除帳號後立即失效）、管理功能僅限經驗證之管理者存取、過期資料定時自動刪除。</p>'
+          + '<p>惟網際網路傳輸無法保證絕對安全。如發生個人資料外洩，將依個人資料保護法第 12 條，查明後以適當方式通知您。</p>' },
+        { h: '未成年人', b: '<p>未滿十八歲者，應於法定代理人閱讀、瞭解並同意本政策及<a href="#terms">使用條款</a>後，方得使用本服務；購買付費方案應經法定代理人同意。</p>' },
+        { h: '政策修改', b: '<p>本政策修改時，將於本頁公告；涉及蒐集目的變更者，將另行取得您的同意。</p>' },
+        { h: '聯絡方式', b: '<p>隱私相關問題與權利行使，請來信 ' + MAIL + '。</p>' },
       ],
     };
   }
@@ -285,7 +317,7 @@
 .lgtabs a:hover{border-color:var(--cyan);color:var(--ink)}
 .lgtabs a:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
 .lgtabs a.on{background:var(--cyan);color:var(--ontop);border-color:var(--cyan);font-weight:700}
-@container (min-width:1000px){ .lgtabs{margin-left:244px} }   /* 跟右邊文件卡的左緣對齊（目錄 220 ＋ 間距 24）*/
+@container (min-width:1000px){ .lgtabs{margin:0 auto 20px;max-width:1004px;padding-left:244px;box-sizing:border-box} }  /* 2026-10-07 整組置中 */   /* 跟右邊文件卡的左緣對齊（目錄 220 ＋ 間距 24）*/
 @media (max-width:560px){
   .lgtabs{flex-wrap:nowrap;gap:8px}
   .lgtabs a{flex:1 1 auto;padding:0 12px;font-size:13px;height:36px}
@@ -297,30 +329,135 @@
 .lgtocm ol,.lgtoc ol{list-style:none;margin:8px 0 0;padding:0}
 .lgtocm a,.lgtoc a{display:block;padding:4px 10px;color:var(--ink-3);text-decoration:none;border-left:2px solid transparent;font-size:13px}
 .lgtoc a.on{color:var(--cyan);border-left-color:var(--cyan)}
+@container (min-width:1060px){
+  .lgwrap{grid-template-columns:176px minmax(0,880px) 236px!important;gap:16px!important;max-width:1324px!important;margin-left:auto!important;margin-right:auto!important}
+  .lgdoc{width:min(880px,100%)!important}
+  .lgwrap .lgside{display:grid;gap:12px;position:sticky;top:80px;align-self:start}
+  .lgtabs{margin-left:auto!important;max-width:1324px!important;padding-left:192px!important}
+}
 @container (min-width:1000px){
-  .lgwrap{display:grid;grid-template-columns:220px minmax(0,760px);gap:24px;align-items:start}
+  .lgwrap{display:grid;grid-template-columns:220px minmax(0,760px);gap:24px;align-items:start;max-width:1004px;margin-left:auto;margin-right:auto}
   .lgtoc{display:block;position:sticky;top:80px;font-size:13px}
   .lgtocm{display:none}
 }
-.lgdoc{width:min(760px,100%);background:var(--panel);border:1px solid var(--line);border-radius:24px;padding:40px;
-  font-size:14px;line-height:1.8;color:var(--ink-2)}
-.lgdoc h1{font-size:22px;font-weight:700;color:var(--ink);margin:0 0 6px;line-height:1.4}
-.lgdoc .lgmeta{font-size:13px;color:var(--ink-3);margin:0 0 4px}
-.lgdoc h2{font-size:17px;font-weight:700;color:var(--ink);margin:32px 0 8px;scroll-margin-top:80px}
-.lgdoc p,.lgdoc ol,.lgdoc ul{margin:8px 0;max-width:68ch}
-.lgdoc ol,.lgdoc ul{padding-left:1.6em}
-.lgdoc li{margin:4px 0}
+/* ★ 2026-10-07 Andy：「最後更新可以拿掉……不要看起來很枯燥排版……用不同框格來表示每個注意事項」。
+   改前：整份文件一張大白卡、h2＋段落一路往下（枯燥）。
+   改後：每一節一張卡（圖示章＋標題＋條列各自一格）；警語節用琥珀色左色條；資料表有自己的表格卡（窄畫面改堆疊）；
+   聯絡方式是底部 CTA 卡；最上面一張「重點一覽」。規格量值：卡片圓角 20／卡間距 16／卡內距 24×28（手機 18）／
+   圖示章 36（圓角 12）／條列格圓角 12、格距 8／標題 17px・700／內文 14px・1.8／條列內文 14px・1.7／最小字 12px。
+   顏色一律用站上 token，深淺主題自動跟著換；警語用 --amber（不用紅綠，紅綠在台股是漲跌）。*/
+.lgdoc{width:min(760px,100%);display:grid;grid-template-columns:minmax(0,1fr);gap:16px;font-size:14px;line-height:1.8;color:var(--ink-2)}
 .lgdoc b{color:var(--ink);font-weight:700}
 .lgdoc a{color:var(--cyan)}
 .lgdoc code{font-family:var(--mono);font-size:13px}
+.lgic2{flex:none;width:36px;height:36px;border-radius:12px;display:grid;place-items:center;color:var(--cyan);
+  background:color-mix(in srgb,var(--cyan) 13%,transparent)}
+.lgic2 svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+.lghead{position:relative;overflow:hidden;background:var(--panel);border:1px solid var(--line);border-radius:20px;padding:28px 28px 24px}
+.lghead::before{content:"";position:absolute;left:0;top:0;right:0;height:4px;
+  background:linear-gradient(90deg,var(--cyan),var(--violet))}
+.lghead .lghr{display:flex;align-items:center;gap:14px}
+.lghead .lgic2{width:44px;height:44px;border-radius:14px}
+.lghead .lgic2 svg{width:24px;height:24px}
+.lgdoc h1{font-size:24px;font-weight:700;color:var(--ink);margin:0;line-height:1.4}
+.lghead .lglead p{margin:14px 0 0}
+.lgsum{background:var(--panel);border:1px solid var(--line);border-radius:20px;padding:22px 24px}
+.lgsum h2{display:flex;align-items:center;gap:8px;font-size:15px;font-weight:700;color:var(--ink);margin:0 0 14px}
+.lgsum h2 svg{width:18px;height:18px;fill:none;stroke:var(--cyan);stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+.lgsumg{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.lgsumg li{display:flex;gap:10px;align-items:flex-start;background:var(--panel-2);border:1px solid var(--line);border-radius:14px;
+  padding:12px 14px;font-size:13px;line-height:1.65;color:var(--ink-2);margin:0}
+.lgsumg .lgic2{width:28px;height:28px;border-radius:9px}
+.lgsumg .lgic2 svg{width:16px;height:16px}
+.lgsumg li.w .lgic2{color:var(--amber);background:color-mix(in srgb,var(--amber) 16%,transparent)}
+.lgsumg b{display:block;font-size:13px;color:var(--ink);margin-bottom:1px}
+.lgsec{container-type:inline-size;background:var(--panel);border:1px solid var(--line);border-radius:20px;padding:24px 28px}
+.lgsh{display:flex;align-items:center;gap:12px;margin:0 0 14px}
+.lgsec h2{font-size:17px;font-weight:700;color:var(--ink);margin:0;line-height:1.5;scroll-margin-top:80px}
+.lgsec p{margin:10px 0 0}
+.lgsec .lgsh + p{margin-top:0}
+.lgsec ol,.lgsec ul{list-style:none;margin:0;padding:0;display:grid;gap:8px;counter-reset:lgn}
+.lgsec p + ol,.lgsec p + ul{margin-top:10px}
+.lgsec li{position:relative;margin:0;padding:11px 16px 11px 50px;background:var(--panel-2);border:1px solid var(--line);
+  border-radius:12px;line-height:1.7}
+.lgsec ol li{counter-increment:lgn}
+.lgsec ol li::before{content:counter(lgn);position:absolute;left:14px;top:12px;width:24px;height:24px;border-radius:50%;
+  display:grid;place-items:center;font-size:12px;font-weight:700;line-height:1;font-family:var(--mono);color:var(--cyan);
+  background:color-mix(in srgb,var(--cyan) 14%,transparent)}
+.lgsec ul li::before{content:"";position:absolute;left:19px;top:19px;width:8px;height:8px;border-radius:50%;
+  background:var(--cyan);box-shadow:0 0 0 4px color-mix(in srgb,var(--cyan) 16%,transparent)}
+.lgsec.warn{background:color-mix(in srgb,var(--amber) 7%,var(--panel));
+  border-color:color-mix(in srgb,var(--amber) 40%,var(--line));border-left:4px solid var(--amber)}
+.lgsec.warn .lgic2{color:var(--amber);background:color-mix(in srgb,var(--amber) 18%,transparent)}
+.lgsec.warn li{background:color-mix(in srgb,var(--amber) 6%,var(--panel));border-color:color-mix(in srgb,var(--amber) 28%,var(--line))}
+.lgsec.warn ol li::before{color:var(--amber);background:color-mix(in srgb,var(--amber) 18%,transparent)}
+.lgsec.warn ul li::before{background:var(--amber);box-shadow:0 0 0 4px color-mix(in srgb,var(--amber) 18%,transparent)}
+.lgsec.cta{background:linear-gradient(135deg,color-mix(in srgb,var(--cyan) 12%,var(--panel)),var(--panel) 70%);
+  border-color:color-mix(in srgb,var(--cyan) 35%,var(--line))}
+.lgctar{display:flex;align-items:center;justify-content:space-between;gap:16px 24px;flex-wrap:wrap}
+.lgctar .lgctat{flex:1 1 260px;min-width:0}
+.lgctar .lgctat p{margin:0}
+.lgdoc a.lgctab{display:inline-flex;align-items:center;gap:8px;height:44px;padding:0 20px;border-radius:999px;background:var(--cyan);
+  color:var(--ontop);font-size:14px;font-weight:600;text-decoration:none;white-space:nowrap}
+.lgctab svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.lgctab:hover{filter:brightness(1.08)}
+.lgctab:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
 .lgblank{background:color-mix(in srgb,var(--amber) 22%,transparent);color:var(--ink);border-radius:4px;padding:0 3px}
 .lgdraft{border:1px solid var(--amber);background:color-mix(in srgb,var(--amber) 12%,var(--panel));color:var(--ink);
   border-radius:16px;padding:12px 16px;margin:0 0 20px;font-size:13px;line-height:1.7}
 .lgdraft b{color:var(--amber)}
-.lgtbl{overflow-x:auto;margin:8px 0}
+.lgtocm{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:12px 16px}
+.lgtbl{margin:0 0 4px;border:1px solid var(--line);border-radius:14px;overflow:hidden}
 .lgtbl table{border-collapse:collapse;width:100%;font-size:13px;line-height:1.6}
-.lgtbl th,.lgtbl td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top}
-.lgtbl th{background:var(--panel-3);color:var(--ink);font-weight:700}
+.lgtbl th,.lgtbl td{padding:10px 12px;text-align:left;vertical-align:top;white-space:normal;word-break:break-word;border-top:1px solid var(--line)}
+.lgtbl thead th{border-top:0;background:var(--panel-3);color:var(--ink);font-weight:700}
+.lgtbl tbody tr:nth-child(even) td{background:var(--panel-2)}
+.lgtbl td:first-child,.lgtbl th:first-child{width:7em;color:var(--ink);font-weight:600}
+@container (max-width:640px){
+  .lgtbl{border:0;border-radius:0;overflow:visible}
+  .lgtbl table,.lgtbl tbody{display:block}
+  .lgtbl thead{display:none}
+  .lgtbl tr{display:block;margin:0 0 10px;background:var(--panel-2);border:1px solid var(--line);border-radius:14px;overflow:hidden}
+  .lgtbl td,.lgtbl tbody tr:nth-child(even) td{display:grid;grid-template-columns:5.2em minmax(0,1fr);gap:10px;background:transparent;padding:9px 14px!important;text-align:left}
+  .lgtbl .lgtc{min-width:0}
+  .lgtbl td,.lgtbl th{height:auto!important;min-height:0;overflow:visible;text-overflow:clip}
+  .lgtbl td::before{content:attr(data-l);color:var(--ink-3);font-size:12px;font-weight:600;line-height:1.9}
+  .lgtbl td:first-child,.lgtbl tbody tr:nth-child(even) td:first-child{width:auto;display:block;padding:10px 14px!important;background:var(--panel-3);font-size:13px;color:var(--ink)}
+  .lgtbl td:first-child::before{content:none}
+}
+@container (max-width:560px){ .lgsumg{grid-template-columns:minmax(0,1fr)} }
+/* ---- 右側欄（內容區 ≥1060 才出現；三欄＝目錄 190｜內文 1fr（上限 880）｜側欄 250，欄距 20） ---- */
+.lgside{display:none}
+.lgsc{background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:16px}
+.lgsc h3{font-size:13px;font-weight:700;color:var(--ink);margin:0 0 10px}
+.lgsl{list-style:none;margin:0;padding:0;display:grid;gap:6px}
+.lgsl li{margin:0}
+.lgside a.lgsi{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:12px;border:1px solid transparent;
+  background:var(--panel-2);color:var(--ink-2);text-decoration:none}
+.lgside a.lgsi:hover{border-color:var(--line-2)}
+.lgside a.lgsi.on{border-color:var(--cyan);background:color-mix(in srgb,var(--cyan) 10%,var(--panel))}
+.lgside a.lgsi.w.on{border-color:var(--amber);background:color-mix(in srgb,var(--amber) 10%,var(--panel))}
+.lgside .lgsi .lgic2{width:28px;height:28px;border-radius:9px}
+.lgside .lgsi .lgic2 svg{width:16px;height:16px}
+.lgside .lgsi.w .lgic2{color:var(--amber);background:color-mix(in srgb,var(--amber) 16%,transparent)}
+.lgst2{display:grid;min-width:0;line-height:1.35}
+.lgst2 b{font-size:13px;color:var(--ink);font-weight:600}
+.lgst2 small{font-size:12px;color:var(--ink-3)}
+.lgrel{display:grid;gap:6px}
+.lgrel a{display:flex;align-items:center;gap:8px;height:36px;padding:0 12px;border-radius:999px;border:1px solid var(--line-2);
+  color:var(--ink-2);font-size:13px;text-decoration:none}
+.lgrel a svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round;flex:none}
+.lgrel a:hover{border-color:var(--cyan);color:var(--ink)}
+.lgrel a.on{background:var(--cyan);border-color:var(--cyan);color:var(--ontop);font-weight:700}
+.lgsupp{margin-top:12px;padding-top:12px;border-top:1px dashed var(--line-2)}
+.lgsupp p{margin:0 0 8px;font-size:13px;color:var(--ink-3)}
+.lgside a.lgctab{display:flex;align-items:center;justify-content:center;gap:8px;height:40px;border-radius:999px;background:var(--cyan);
+  color:var(--ontop);font-size:13px;font-weight:600;text-decoration:none}
+.lgpt{display:flex;align-items:baseline;justify-content:space-between;gap:8px;font-size:13px;color:var(--ink-3);margin-bottom:8px}
+.lgpt b{color:var(--ink);font-size:13px;font-weight:700;font-family:var(--mono)}
+.lgbar{height:6px;border-radius:999px;background:var(--panel-3);overflow:hidden}
+.lgbar i{display:block;height:100%;width:0;border-radius:999px;background:linear-gradient(90deg,var(--cyan),var(--violet));transition:width .18s}
+@media (prefers-reduced-motion:reduce){ .lgbar i{transition:none} }
 
 .lgleave{width:min(560px,100%);margin:48px auto;background:var(--panel);border:1px solid var(--line);border-radius:24px;
   padding:32px;font-size:14px;line-height:1.8;color:var(--ink-2)}
@@ -352,7 +489,10 @@
   .lgban.out{animation-name:lgDownM}
   .lgban .lgbtns{flex-direction:column-reverse}
   .lgban .lgb1,.lgban .lgb2{width:100%}
-  .lgdoc{padding:20px;border-radius:20px}
+  .lgsec,.lghead,.lgsum{padding:18px;border-radius:18px}
+  .lgsec li{padding:10px 12px 10px 44px}
+  .lgsec ol li::before{left:11px}
+  .lgsec ul li::before{left:16px}
 }
 @keyframes lgUpM{from{transform:translateY(24px);opacity:0}to{transform:none;opacity:1}}
 @keyframes lgDownM{to{transform:translateY(24px);opacity:0}}
@@ -447,23 +587,20 @@
   function buildFooter() {
     const main = document.querySelector('main');
     if (!main || document.getElementById('siteFoot')) return;
-    const draft = filled() ? '' : '<em>（草稿）</em>';
     const year = isBlank(CFG.copyright_year) ? '2026' : String(CFG.copyright_year).trim();
     const f = document.createElement('footer');
     f.className = 'sitefoot'; f.id = 'siteFoot';
     f.innerHTML = '<div class="sf-top"><div class="sf-main">'
-      + '<p class="sf-copy" id="sfCopy">© ' + esc(year) + ' ' + esc(val('site_name') || '本站') + ' · 保留所有權利</p>'
+      + '<p class="sf-copy" id="sfCopy">© ' + esc(year) + ' ' + esc(SITE_NAME) + ' · 保留所有權利</p>'
       + '<p class="sf-dis"><b>免責聲明</b>　本站為公開資料之整理、計算與視覺化工具，不是證券投資顧問事業，'
       + '不提供投資建議、不推介任何有價證券；所有數值僅供研究參考，資料可能有誤、遺漏或延遲，'
       + '投資決策與風險由使用者自行判斷並承擔。</p>'
       + '<nav class="sf-links" aria-label="法律與說明">'
-      + '<a href="#disclaimer" id="sfDis">免責聲明全文</a>'
-      + '<a href="#terms" id="sfTerms">服務條款' + draft + '</a>'
-      + '<a href="#privacy" id="sfPriv">隱私權政策' + draft + '</a>'
+      + '<a href="#disclaimer" id="sfDis">免責聲明</a><em aria-hidden="true">｜</em>'
+      + '<a href="#terms" id="sfTerms">使用條款</a><em aria-hidden="true">｜</em>'
+      + '<a href="#privacy" id="sfPriv">隱私權政策</a>'
       + '<button type="button" id="sfTour">平台導覽</button>'
-      /* ★ 2026-09-28（Andy：「自選 as its own last tab replacing 交付清單」）：導覽列最後一格換成「自選」，
-         交付清單的入口搬到頁尾這一排（每一頁、桌機與手機都看得到）。`#delivery` 路由與整頁照舊，只是換了門。*/
-      + '<a href="#delivery" id="sfDelivery">交付清單</a>'
+      /* 2026-10-07：「交付清單」資料已不發佈，入口從頁尾拿掉（#delivery 路由照舊）。*/
       + '</nav></div>'   // ★ 2026-09-24 Andy：原始碼不能公開 ——「原始碼與演算法」連結已拿掉
       + '<button type="button" class="sf-more" id="sfMore" aria-expanded="false" aria-controls="sfDetail">'
       + '<span>顯示詳細規範</span>' + CHEV + '</button></div>'
@@ -471,7 +608,11 @@
       + FOOT_ITEMS.map((x) => '<li class="sf-item">' + ICON_I + '<div><b>' + esc(x[0]) + '：</b><p>' + esc(x[1]) + '</p></div></li>').join('')
       + '</ul></div>';
     main.appendChild(f);
-    f.querySelector('#sfTour').addEventListener('click', (e) => openTour(e.currentTarget));
+    /* 2026-10-07：新導覽（site/tour.js）掛 window.TwTour.start()；有就用新的，沒有照舊開本檔的舊導覽。*/
+    f.querySelector('#sfTour').addEventListener('click', (e) => {
+      if (window.TwTour && typeof window.TwTour.start === 'function') window.TwTour.start();
+      else openTour(e.currentTarget);
+    });
     /* 預設收起；頁尾是整站共用、換頁不會重畫，所以要自己在換頁時收回去（2026-10-06）。*/
     setFootOpen(f, footOpenPref(), false);
     window.addEventListener('hashchange', () => setFootOpen(f, false, false));
@@ -492,7 +633,159 @@
     main.insertBefore(v, foot || null);
     return v;
   }
-  let tocSync = null;
+  /* ---- 版面用的小資料（2026-10-07）：圖示、哪些節是警語／CTA、頂部「重點一覽」。
+     ★ 條文本身（secs 的 h／b）一個字沒動；這裡只決定「怎麼框」。重點一覽是新增的摘要，每一句都對得回條文。*/
+  const IC = {
+    info: '<circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/>',
+    db: '<ellipse cx="12" cy="6" rx="7" ry="3"/><path d="M5 6v6c0 1.7 3.1 3 7 3s7-1.3 7-3V6M5 12v6c0 1.7 3.1 3 7 3s7-1.3 7-3v-6"/>',
+    warn: '<path d="M12 4 3 20h18L12 4z"/><path d="M12 10v4M12 17h.01"/>',
+    calc: '<rect x="5" y="3" width="14" height="18" rx="2"/><path d="M8 7h8M8 12h.01M12 12h.01M16 12h.01M8 16h.01M12 16h.01M16 16h.01"/>',
+    link: '<path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/>',
+    scale: '<path d="M12 4v16M7 20h10M5 8h14"/><path d="M5 8l-3 7h6L5 8zM19 8l-3 7h6l-3-7z"/>',
+    mail: '<rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/>',
+    layers: '<path d="m12 3 9 5-9 5-9-5 9-5zM3 13l9 5 9-5"/>',
+    user: '<circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-7 8-7s8 3 8 7"/>',
+    card: '<rect x="3" y="6" width="18" height="13" rx="2"/><path d="M3 10h18M7 15h4"/>',
+    ban: '<circle cx="12" cy="12" r="9"/><path d="m6 6 12 12"/>',
+    device: '<rect x="3" y="5" width="13" height="10" rx="1.5"/><rect x="14" y="9" width="7" height="11" rx="1.5"/><path d="M7 19h4"/>',
+    copy: '<circle cx="12" cy="12" r="9"/><path d="M15 9.5a4 4 0 1 0 0 5"/>',
+    refresh: '<path d="M20 12a8 8 0 1 1-2.5-5.8M20 4v5h-5"/>',
+    pen: '<path d="M4 20h4L19 9l-4-4L4 16v4zM13 7l4 4"/>',
+    share: '<circle cx="6" cy="12" r="2.5"/><circle cx="18" cy="6" r="2.5"/><circle cx="18" cy="18" r="2.5"/><path d="m8.2 11 7.6-4M8.2 13l7.6 4"/>',
+    cookie: '<path d="M12 3a9 9 0 1 0 9 9 4 4 0 0 1-4-4 4 4 0 0 1-5-5z"/><path d="M9 11h.01M13 15h.01M8 15h.01"/>',
+    lock: '<rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/>',
+    shield: '<path d="M12 3 5 6v6c0 4.5 3 7.5 7 9 4-1.5 7-4.5 7-9V6l-7-3z"/><path d="m9 12 2 2 4-4"/>',
+    spark: '<path d="M12 3l2.5 6.5L21 12l-6.5 2.5L12 21l-2.5-6.5L3 12l6.5-2.5L12 3z"/>',
+    doc: '<path d="M7 3h8l4 4v14H7z"/><path d="M15 3v4h4M10 12h6M10 16h6"/>',
+    eye: '<path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/>',
+    trash: '<path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/>',
+  };
+  const svg = (n) => '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">' + (IC[n] || IC.info) + '</svg>';
+  /* 節標題 → 圖示與版型。k：warn＝警語（琥珀左色條）、cta＝底部聯絡卡、table＝資料表卡。沒列到的節＝一般卡。*/
+  const SECMETA = {
+    '網站性質': { i: 'info' }, '資料來源與正確性': { i: 'db' }, '不構成投資建議': { i: 'eye', k: 'warn' },
+    '計算方法與回測限制': { i: 'calc' }, '第三方連結與內容': { i: 'link' }, '投資風險自負': { i: 'warn', k: 'warn' },
+    '法規變動': { i: 'scale' }, '聯絡方式': { i: 'mail', k: 'cta' },
+    '服務內容': { i: 'layers' }, '帳號註冊與登入': { i: 'user' }, '會員方案、試用與付費': { i: 'card' },
+    '禁止行為': { i: 'ban', k: 'warn' }, '裝置數上限與異常使用': { i: 'device' }, '智慧財產權': { i: 'copy' },
+    '服務變更與中斷': { i: 'refresh' }, '責任限制': { i: 'warn', k: 'warn' }, '條款修改': { i: 'pen' }, '準據法與管轄法院': { i: 'scale' },
+    '蒐集之資料、目的與保存期間': { i: 'db', k: 'table' }, '資料之利用與分享對象': { i: 'share' }, 'Cookie 與本機儲存': { i: 'cookie' },
+    '您的權利': { i: 'shield' }, '資料安全': { i: 'lock' }, '未成年人': { i: 'user' }, '政策修改': { i: 'pen' },
+  };
+  /* 第四個元素 1＝警語色。*/
+  const SUMMARY = {
+    disclaimer: [
+      ['info', '不是投顧', '本站是公開資料的整理工具，不是證券投資顧問事業，不提供投資建議。', 0, 0],
+      ['eye', '不是推薦名單', '篩選結果與圖上價位是計算條件，不是推薦，也不是買賣價位。', 1, 2],
+      ['db', '資料可能有誤', '資料可能有錯誤、遺漏或延遲；盤中數字以交易所正式公告為準。', 0, 1],
+      ['warn', '風險自負', '投資決策與其結果，由您自行判斷並承擔。', 1, 5],
+    ],
+    terms: [
+      ['user', 'Google 登入', '以 Google 帳號登入；本服務不取得、不保存您的密碼。', 0, 1],
+      ['card', '費用以購買頁為準', '試用、價格、續訂與退款，以購買頁所示為準。', 0, 2],
+      ['ban', '禁止共用與轉售', '不得共用帳號、大量擷取資料、轉售內容或繞過使用限制。', 1, 3],
+      ['warn', '責任限制', '法律允許範圍內，因使用所生之損失不負賠償責任（故意或重大過失除外）。', 1, 7],
+    ],
+    privacy: [
+      ['eye', '未登入不蒐集身分', '瀏覽不需登入；登入僅取得顯示名稱、電子郵件與大頭貼。', 0, 0],
+      ['shield', '不販售、不追蹤', '不販售、不出租、不交換個人資料，也不做廣告追蹤。', 0, 1],
+      ['lock', '不蒐集持股與損益', '不蒐集您的實際持股、成本價、損益或券商帳號。', 0, 0],
+      ['trash', '可查詢、更正、刪除', '來信申請，十五日內處理。', 0, 3],
+    ],
+  };
+  function secHtml(id, s, i) {
+    const m = SECMETA[s.h] || { i: 'info' };
+    const head = '<div class="lgsh"><span class="lgic2">' + svg(m.i) + '</span>'
+      + '<h2 id="lg-' + id + '-' + i + '">' + CN[i] + '、' + esc(s.h) + '</h2></div>';
+    if (m.k === 'cta') {
+      return '<section class="lgsec cta" data-k="cta">' + head + '<div class="lgctar"><div class="lgctat">' + s.b + '</div>'
+        + '<a class="lgctab" href="mailto:' + esc(CONTACT_EMAIL) + '">' + svg('mail') + '來信聯絡</a></div></section>';
+    }
+    return '<section class="lgsec' + (m.k === 'warn' ? ' warn' : '') + '" data-k="' + (m.k || 'plain') + '">' + head + s.b + '</section>';
+  }
+
+  /* 目錄捲動同步（scroll-spy）。
+     ★ 2026-10-07 Andy：「左邊滑動並沒有同步，請確實驗證」（截圖：捲到第七、八節，目錄仍亮在「五」）。
+     根因：舊寫法「標題上緣 < 120px 的最後一節亮」—— 最後幾節很短，捲到頁底它們的標題也到不了 120px，
+     所以永遠輪不到它們亮。
+     新寫法：參考線不是固定 120px，而是在「離頁底不到一個視窗高」時，從 120 線性往下移到視窗下緣附近；
+     捲到底（剩 ≤2px）一律亮最後一節。這樣最後幾節會依序亮起，且單調（往下捲只會往後亮）。
+     點目錄：先「釘住」那一項（捲不到頂的末幾節也亮對的那項），平滑捲動期間不被中途的位置蓋掉；
+     捲到位後只要使用者再捲開（離目標 > 3px）就解除；1.5 秒內沒到位也解除（被打斷）。*/
+  let tocSync = null, tocClean = null;
+  function bindSpy(v, id, d) {
+    if (tocClean) tocClean();
+    const links = [...v.querySelectorAll('.lgtoc a')];
+    const heads = d.secs.map((s, i) => document.getElementById('lg-' + id + '-' + i));
+    let pin = null, pinY = 0, pinSeen = false, pinTimer = 0;
+    const maxY = () => Math.max(0, document.documentElement.scrollHeight - innerHeight);
+    const sideA = [...v.querySelectorAll('.lgside .lgsi')], pn = v.querySelector('.lgpn'), bar = v.querySelector('.lgbar i');
+    const light = (k) => {
+      links.forEach((a, i) => a.classList.toggle('on', i === k));
+      sideA.forEach((a) => a.classList.toggle('on', +a.dataset.sec === k));
+      const n = heads.length;
+      if (pn) pn.textContent = '第 ' + (k + 1) + '／' + n + ' 節';
+      if (bar) bar.style.width = ((k + 1) / n * 100) + '%';
+    };
+    const unpin = () => { pin = null; clearTimeout(pinTimer); };
+    const sync = () => {
+      if (!v.classList.contains('on')) return;
+      const y = window.scrollY, rem = maxY() - y;
+      if (pin != null) {
+        if (Math.abs(y - pinY) <= 3) pinSeen = true;
+        if (pinSeen && Math.abs(y - pinY) > 3) unpin(); else { light(pin); return; }
+      }
+      /* 每節「標題到上緣參考線 120px」所需的捲動量 t；捲得到的（t ≤ 最大捲動量）用固定參考線；
+         捲不到的末幾節，把「最後一個捲得到的節 → 頁底」這段捲動量平均分給它們，依序亮起，捲到底必是最後一節。*/
+      const t = heads.map((h) => (h ? h.getBoundingClientRect().top + y - 120 : Infinity));
+      const M = maxY();
+      let kr = 0;
+      t.forEach((x, i) => { if (x <= M - 1) kr = i; });
+      let k = 0;
+      t.forEach((x, i) => { if (i <= kr && x <= y + 1) k = i; });
+      const n = heads.length;
+      if (kr < n - 1 && y >= t[kr] && M > t[kr]) {
+        const pr = Math.min(1, Math.max(0, (y - t[kr]) / (M - t[kr])));
+        k = kr + Math.min(n - 1 - kr, Math.floor(pr * (n - kr)));
+      }
+      if (rem <= 2) k = n - 1;
+      light(k);
+    };
+    v.querySelectorAll('a[data-sec]').forEach((a) => a.addEventListener('click', (e) => {
+      e.preventDefault();
+      const i = +a.dataset.sec, h = heads[i];
+      const dt0 = a.closest('details'); if (dt0) dt0.open = false;   // 先收起手機目錄，再量位置（收起會讓內容上移）
+      if (h) {
+        const want = h.getBoundingClientRect().top + window.scrollY - 76;
+        pin = i; pinY = Math.max(0, Math.min(want, maxY())); pinSeen = false;
+        clearTimeout(pinTimer); pinTimer = setTimeout(() => { if (!pinSeen) unpin(); sync(); }, 1500);
+        light(i);
+        window.scrollTo({ top: want });
+      }
+    }));
+    window.addEventListener('scroll', sync, { passive: true });
+    window.addEventListener('resize', sync, { passive: true });
+    tocSync = sync;
+    tocClean = () => { window.removeEventListener('scroll', sync); window.removeEventListener('resize', sync); clearTimeout(pinTimer); };
+    sync();
+  }
+
+  /* 右側欄（2026-10-07 Andy：「右邊太空，需要填滿」）：本頁重點（點了捲到該節、捲到哪節就亮哪項）、
+     相關文件＋客服、閱讀進度。只在內容區夠寬時顯示（見 CSS 的 @container），窄畫面整塊 display:none。
+     不用 <aside>：全站 aside 是固定在右側的抽屜樣式（上一版重點一覽就是被它藏掉）。*/
+  function sideHtml(id, d) {
+    const items = (SUMMARY[id] || []).map((x) => '<li><a href="#" class="lgsi' + (x[3] ? ' w' : '') + '" data-sec="' + x[4] + '">'
+      + '<span class="lgic2">' + svg(x[0]) + '</span><span class="lgst2"><b>' + esc(x[1]) + '</b><small>第' + CN[x[4]] + '節</small></span></a></li>').join('');
+    const rel = ['terms', 'privacy', 'disclaimer'].map((k) => '<a href="#' + k + '"' + (k === id ? ' class="on" aria-current="page"' : '') + '>'
+      + svg(k === 'terms' ? 'doc' : k === 'privacy' ? 'lock' : 'info') + '<span>' + DOCS[k]().short + '</span></a>').join('');
+    return '<div class="lgside" id="lgSide">'
+      + '<section class="lgsc"><h3>本頁重點</h3><ul class="lgsl">' + items + '</ul></section>'
+      + '<section class="lgsc"><h3>相關文件</h3><nav class="lgrel" aria-label="相關文件">' + rel + '</nav>'
+      + '<div class="lgsupp"><p>有疑問或需要協助？</p><a class="lgctab" href="mailto:' + esc(CONTACT_EMAIL) + '">' + svg('mail') + '聯絡客服</a></div></section>'
+      + '<section class="lgsc"><div class="lgpt"><span>閱讀進度</span><b class="lgpn">第 1／' + d.secs.length + ' 節</b></div>'
+      + '<div class="lgbar" role="presentation"><i></i></div></section></div>';
+  }
+
   function renderDoc(id) {
     const v = ensureView(); if (!v) return;
     const d = DOCS[id]();
@@ -503,42 +796,21 @@
       + ['terms', 'privacy', 'disclaimer'].map((k) => '<a href="#' + k + '"' + (k === id ? ' class="on" aria-current="page"' : '') + '>'
         + DOCS[k]().short + '</a>').join('') + '</nav>';
     const toc = d.secs.map((s, i) => '<li><a href="#" data-sec="' + i + '">' + CN[i] + '、' + esc(s.h) + '</a></li>').join('');
-    let draft = '';
-    if (d.dated && !on) {
-      draft = '<div class="lgdraft" id="lgDraft" role="note"><b>草稿，尚未生效。</b>'
-        + (ready ? '內容已經填妥，但還沒有正式公告啟用。'
-                 : '這份文件還有待填的空格（以【】標示），填妥並正式公告之前，本頁只供預覽。')
-        + '</div>';
-    }
-    const meta = d.dated
-      ? '<p class="lgmeta">' + fill('生效日期：{effective_date}｜最後更新：{updated_date}') + '</p>'
-        + '<p class="lgmeta">' + (on ? fill('本文件版本 {effective_date}，如有疑義以最新版本為準。')
-                                     : fill('本文件為草稿版本 {effective_date}，如有疑義以最新版本為準。')) + '</p>'
-      : '';
+    const draft = '';   // 2026-10-07：三份文件已是正式文字，不再掛草稿標示
+    /* 2026-10-07 Andy：「最後更新可以拿掉」—— 不再畫「最後更新日期」那一行（UPDATED 常數留作內部版本標記）。*/
+    void ready; void on; void UPDATED;
+    const sum = (SUMMARY[id] || []).map((x) => '<li' + (x[3] ? ' class="w"' : '') + '><span class="lgic2">' + svg(x[0]) + '</span>'
+      + '<div><b>' + esc(x[1]) + '</b>' + esc(x[2]) + '</div></li>').join('');
     v.innerHTML = tabs + '<div class="lgwrap"><nav class="lgtoc" aria-label="目錄"><ol>' + toc + '</ol></nav>'
       + '<article class="lgdoc" id="lgDoc" data-doc="' + id + '">' + draft
       + '<details class="lgtocm"><summary>目錄</summary><ol>' + toc + '</ol></details>'
-      + '<h1>' + d.title + '</h1>' + meta + (d.lead || '')
-      + d.secs.map((s, i) => '<h2 id="lg-' + id + '-' + i + '">' + CN[i] + '、' + esc(s.h) + '</h2>' + s.b).join('')
-      + '</article></div>';
+      + '<header class="lghead"><div class="lghr"><span class="lgic2">' + svg(id === 'terms' ? 'doc' : id === 'privacy' ? 'lock' : 'info') + '</span>'
+      + '<h1>' + d.title + '</h1></div><div class="lglead">' + (d.lead || '') + '</div></header>'
+      + '<section class="lgsum" aria-label="重點一覽"><h2>' + svg('spark') + '重點一覽</h2><ul class="lgsumg">' + sum + '</ul></section>'
+      + d.secs.map((s, i) => secHtml(id, s, i)).join('')
+      + '</article>' + sideHtml(id, d) + '</div>';
     /* 目錄連結不能用 href="#lg-…"：那會改掉 hash、觸發路由，整頁被當成未知路由導回總覽。*/
-    v.querySelectorAll('a[data-sec]').forEach((a) => a.addEventListener('click', (e) => {
-      e.preventDefault();
-      const h = document.getElementById('lg-' + id + '-' + a.dataset.sec);
-      if (h) window.scrollTo({ top: h.getBoundingClientRect().top + window.scrollY - 76 });
-      const dt = a.closest('details'); if (dt) dt.open = false;
-    }));
-    const links = [...v.querySelectorAll('.lgtoc a')];
-    const heads = d.secs.map((s, i) => document.getElementById('lg-' + id + '-' + i));
-    if (tocSync) window.removeEventListener('scroll', tocSync);
-    tocSync = () => {
-      if (!v.classList.contains('on')) return;
-      let k = 0;
-      heads.forEach((h, i) => { if (h && h.getBoundingClientRect().top < 120) k = i; });
-      links.forEach((a, i) => a.classList.toggle('on', i === k));
-    };
-    window.addEventListener('scroll', tocSync, { passive: true });
-    tocSync();
+    bindSpy(v, id, d);
   }
 
   function renderLeave() {
@@ -551,7 +823,7 @@
     } catch (e) { /* 忽略 */ }
     v.innerHTML = '<div class="lgleave" id="lgLeave" role="region" aria-label="未同意使用條款">'
       + '<h1>你沒有同意使用條款，所以本站不顯示內容。</h1>'
-      + '<p>重新整理就能再選一次。<a href="#terms">服務條款</a>、<a href="#privacy">隱私權政策</a>、<a href="#disclaimer">免責聲明</a></p>'
+      + '<p>重新整理就能再選一次。<a href="#terms">使用條款</a>、<a href="#privacy">隱私權政策</a>、<a href="#disclaimer">免責聲明</a></p>'
       + '<div class="lgbtns">' + back
       + '<a class="lgb2" href="#terms" id="lgRead" style="display:inline-flex;align-items:center;text-decoration:none">閱讀條款</a>'
       + '<button type="button" class="lgb1" id="lgReAccept">我重新考慮，同意並繼續</button></div></div>';
@@ -577,7 +849,7 @@
     el.className = 'lgban'; el.id = 'lgBanner';
     el.setAttribute('role', 'region'); el.setAttribute('aria-label', '使用條款同意');
     el.innerHTML = '<p>本站整理公開資料供研究參考，不是投資建議。繼續使用前，請先閱讀'
-      + '<a href="#terms">服務條款</a>、<a href="#privacy">隱私權政策</a>與<a href="#disclaimer">免責聲明</a>。</p>'
+      + '<a href="#terms">使用條款</a>、<a href="#privacy">隱私權政策</a>與<a href="#disclaimer">免責聲明</a>。</p>'
       + '<div class="lgbtns"><button type="button" class="lgb2" id="lgDecline">不同意</button>'
       + '<button type="button" class="lgb1" id="lgAccept">同意並繼續</button></div>';
     document.body.appendChild(el);          // 出現時**不搶焦點**：這不是強制彈窗
