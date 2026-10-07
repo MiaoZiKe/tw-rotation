@@ -136,7 +136,7 @@
       highlights: ['研究瀏覽・每日 50 次', '3D 剖析圖・完整功能', '四週期同看・畫線工具・指標自訂', '自選清單・5 頁、每頁 50 檔', 'ETF 報酬比較（自選 8 檔）', '客服優先回覆（只限功能與資料說明）'],
       feats: { 'stock.k_min': false, 'live.tick': false, 'watch.tabs': 5 },
       lims: { 'quota.all': 50, 'stock.page': 50, 'ind.diagram': 50, 'heat.detail': 50, 'ind.rel': 50, 'ind.groups': 50 }, watch: { tabs: 5, size: 50 } },
-    { key: 'pro', name: 'Pro', price: { month: 499, year: 4990 }, badge: '功能最齊', tagline: '不限次數，自選清單每天幫你整理好',
+    { key: 'pro', name: 'Pro', price: { month: 549, year: 5490 }, badge: '功能最齊', tagline: '不限次數，自選清單每天幫你整理好',
       fit_title: '適合追蹤多個題材與大量自選股', fit_desc: '研究頁不限次數、自選清單不限頁數；加上「自選清單日報」把你追蹤的股票今天發生了什麼（營收、法人、籌碼、事件）彙整成一頁，省下逐檔翻的時間。',
       highlights: ['研究瀏覽・不限次數', 'Plus 全部功能', '自選清單・不限頁數（每頁 200 檔）', '自選清單日報：營收／法人／籌碼／事件變化一覽（開發中）', '自設條件提醒（開發中）', '剖析圖高解析匯出（開發中）'],
       feats: { 'stock.k_min': false, 'live.tick': false, 'watch.tabs': 5 },
@@ -208,8 +208,8 @@
     const x = prices(p);
     if (x.free) return { free: true };
     if (x.once) return { amount: x.once, unit: '（一次）', note: '一次付清', period: 'month' };
-    if (per === 'year' && x.year) return x.month ? { amount: Math.round(x.year / 12), unit: '／月', note: `約 NT$ ${nt(Math.round(x.year / 12))}／月（年繳 NT$ ${nt(x.year)}）`, period: 'year', total: x.year } : { amount: x.year, unit: '／年', note: '年繳方案', period: 'year', total: x.year };
-    if (x.month) return { amount: x.month, unit: '／月', note: per === 'year' ? '此方案僅提供月繳' : '按月計費', period: 'month' };
+    if (per === 'year' && x.year) return x.month ? { amount: x.year, unit: '／年', note: `約 NT$ ${nt(Math.round(x.year / 12))}／月`, period: 'year', total: x.year, orig: x.year < x.month * 12 ? x.month * 12 : 0 } : { amount: x.year, unit: '／年', note: '年繳方案', period: 'year', total: x.year };
+    if (x.month) return { amount: x.month, unit: '／月', note: per === 'year' ? '此方案僅提供月繳' : x.year && x.year < x.month * 12 ? `改年繳一年省 NT$ ${nt(x.month * 12 - x.year)}` : '按月計費', period: 'month' };
     if (x.year) return { amount: x.year, unit: '／年', note: per === 'month' ? '此方案僅提供年繳' : '年繳方案', period: 'year', total: x.year };
     /* 付費範本價格是 0／空 ＝還沒定價（Plus／Pro 種子就是 0）→ 寫「價格待定」，不寫 NT$ 0 讓人以為免費 */
     return { amount: null, unit: '', note: '價格待定，專人跟你確認', period: 'month', tbd: true };
@@ -344,7 +344,7 @@
 #v-pricing .prcard h2{margin:0;font-size:22px;font-weight:800;line-height:1.2;color:var(--pc);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 #v-pricing .pc-neutral h2{color:var(--ink)}
 #v-pricing .prcard .who{font-size:13px;color:var(--ink-2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-#v-pricing .prprice{margin:24px 0 0;display:block;color:var(--pc);font-variant-numeric:tabular-nums;font-weight:700;line-height:1.1;white-space:nowrap;letter-spacing:.3px}
+#v-pricing .prprice{margin:4px 0 0;display:block;color:var(--pc);font-variant-numeric:tabular-nums;font-weight:700;line-height:1.1;white-space:nowrap;letter-spacing:.3px}
 #v-pricing .prprice .cur{font-size:30px}#v-pricing .prprice b{font-size:36px;font-weight:700;margin:0 4px 0 6px}
 #v-pricing .prprice small{font-size:15px;font-weight:500;color:var(--ink-2)}
 #v-pricing .prprice.free{font-size:38px;font-weight:900;color:var(--ink)}
@@ -399,7 +399,7 @@
 #v-pricing .prmg .prico{width:40px;height:40px}
 #v-pricing .prmg .prhd b{font-size:20px;font-weight:800;color:var(--pc);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 #v-pricing .prmg .pc-neutral .prhd b{color:var(--ink)}
-#v-pricing .prmg .prprice{margin-top:16px}#v-pricing .prmg .prprice .cur{font-size:22px}#v-pricing .prmg .prprice b{font-size:28px}#v-pricing .prmg .prprice.free{font-size:30px}
+#v-pricing .prmg .prprice{margin-top:4px}#v-pricing .prmg .prprice .cur{font-size:22px}#v-pricing .prmg .prprice b{font-size:28px}#v-pricing .prmg .prprice.free{font-size:30px}
 #v-pricing .prmg .prnote{font-weight:400}
 #v-pricing .prmg .mfit{margin:10px 0 14px;font-size:13px;font-weight:700;color:var(--ink);white-space:normal;line-height:1.5}
 #v-pricing .prmg .prgo{height:40px;font-size:14px}
@@ -415,7 +415,7 @@
   #v-pricing .prcmpw th,#v-pricing .prcmpw td{padding:10px}#v-pricing .prcmpw tr.base td:first-child{white-space:normal}}
 /* ★ 10-07 Andy「排版沒有統一」：欄頭固定列結構 —— 圖示＋名稱＋定位句｜價格大字｜價格小字一行｜「適合…」一行｜按鈕。
    每一層給固定高度（缺內容的格子用 &nbsp; 佔位），三欄每一層的 top 才會一樣、按鈕底緣同一條線；小字一律單行省略，不會被擠到重疊。 */
-#v-pricing .prhd{height:48px;align-content:center}#v-pricing .prmg .prhd{height:44px}
+#v-pricing .prhd{height:48px;align-content:center;margin-bottom:16px}#v-pricing .prmg .prhd{margin-bottom:10px}#v-pricing .prmg .prhd{height:44px}
 #v-pricing .prhd .who{line-height:20px;height:20px}
 #v-pricing .prprice{height:40px;line-height:40px;overflow:hidden}
 #v-pricing .prmg .prprice{height:34px;line-height:34px}
@@ -425,6 +425,11 @@
 #v-pricing .prcard hr{margin:4px 0 18px}
 #v-pricing .prfit p{display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical;overflow:hidden;height:calc(1.65em * 4)}
 #v-pricing .prfit.nil{background:transparent}
+#v-pricing .prorig,.subdlg .prorig{height:24px;display:flex;align-items:center;gap:8px;white-space:nowrap;overflow:hidden}
+.prstrike{color:var(--ink-3);font-size:14px;text-decoration:line-through;text-decoration-thickness:1.5px}
+.prsale{display:inline-block;flex:none;padding:0 9px;border-radius:999px;font-size:12px;font-weight:800;color:var(--amber);background:color-mix(in srgb,var(--amber) 16%,transparent);border:1px solid color-mix(in srgb,var(--amber) 55%,transparent);line-height:20px}
+#v-pricing .prorig+.prprice{margin-top:4px}
+#v-pricing .mfit,#v-pricing .prmg .mfit{margin-top:6px}
 `);
 
   function paint() {
@@ -485,8 +490,11 @@
       : pr.amount == null ? '<div class="prprice ask">價格待定</div>'
       : `<div class="prprice"><span class="cur">NT$</span> <b>${nt(pr.amount)}</b><small>${esc(pr.unit)}</small></div>`;
     const note = pr.free ? '永久保留基礎功能・不需信用卡' : pr.note;
-    return `${html}<div class="prnote" title="${esc(note)}">${esc(note)}</div>`;
+    return `${origLine(pr)}${html}<div class="prnote" title="${esc(note)}">${esc(note)}</div>`;
   }
+  /* 10-07 Andy「原價錢被劃掉，旁邊標註減多少，再寫出新價格，像特賣會」：年繳時第一行＝原價（月價×12，刪除線）＋琥珀徽章「省 NT$ X・約 Y%」；
+     其他情況這一行用 &nbsp; 佔位（三欄每一層才對齊）。 */
+  function origLine(pr) { return pr.orig ? `<div class="prorig"><s class="prstrike">NT$ ${nt(pr.orig)}</s><span class="prsale">省 NT$ ${nt(pr.orig - pr.total)}・約 ${Math.round((pr.orig - pr.total) / pr.orig * 100)}%</span></div>` : '<div class="prorig">&nbsp;</div>'; }
   function btnOf(p, me) {
     if (me.id === p.id) return `<button type="button" class="prgo" disabled>目前方案</button>`;
     if (tierOf(p) === 'free') return me.tier === 'guest' ? `<button type="button" class="prgo" data-go="${esc(p.id)}">免費註冊／登入</button>` : `<button type="button" class="prgo" disabled>已包含</button>`;
@@ -563,15 +571,15 @@
     const pr = priceAt(p, S.per);
     const per = pr.period === 'year' ? 'year' : 'month';
     const lk = S.look.get(p.id) || { color: 'blue', icon: 'bolt' };
-    const ptop = pr.amount == null ? '' : pr.total && pr.unit === '／月' ? `<small>約 NT$ ${nt(pr.amount)}／月均攤</small>` : '';
-    const pbig = pr.amount == null ? '價格待定' : pr.total ? `NT$ ${nt(pr.total)}<small>／年繳</small>` : `NT$ ${nt(pr.amount)}<small>${esc(pr.unit)}</small>`;
+    const ptop = pr.orig ? origLine(pr) : '';
+    const pbig = pr.amount == null ? '價格待定' : pr.total ? `NT$ ${nt(pr.total)}<small>／年</small>` : `NT$ ${nt(pr.amount)}<small>${esc(pr.unit)}</small>`;
     /* 已含功能：依 features.js 類別分組、兩欄打勾（範本 feats／lims 算出來的，跟比較表同一份）；有上限的寫「每日 N 次」 */
     const Ft = F();
     const groups = Ft ? Ft.cats.filter((c) => c.id !== 'grp').map((c) => [c, Ft.inCat(c.id).filter((f) => !f.adminOnly && f.kind === 'bool' && on(p, f))]).filter(([, fs]) => fs.length) : [];
     const wc = watchCell(p);
     const gl = groups.map(([c, fs]) => `<h4>${esc(c.name)}</h4><ul>${fs.map((f) => { const n = limOf(p, f); return `<li>${CHECK}<span>${esc(f.name)}${n !== Infinity ? `<i>・每日 ${n} 次</i>` : ''}</span></li>`; }).join('')}${c.id === 'watch' && wc.c !== 'n' ? `<li>${CHECK}<span>自選清單<i>・${esc(wc.t)}</i></span></li>` : ''}</ul>`).join('');
     dialog(`<div class="coh"><span class="ic">${svgI(lk.icon)}</span><b>${esc(showName(p))}</b><small>${esc(whoOf(p))}</small><button type="button" data-close aria-label="關閉">×</button></div>
-      <div class="cob"><div class="cop">${ptop}<div class="big">${pbig}</div><small>${per === 'year' ? '年繳' : '月繳'}・目前為申請制，專人開通；線上付款即將推出</small></div>
+      <div class="cob"><div class="cop">${ptop}<div class="big">${pbig}</div>${pr.orig ? `<small>${esc(pr.note)}</small>` : ''}<small>${per === 'year' ? '年繳' : '月繳'}・目前為申請制，專人開通；線上付款即將推出</small></div>
         <div class="cog" id="subFeats">${gl}</div></div>
       <div class="cof"><div class="cof2"><div><label for="subMail">聯絡 email</label><input type="email" id="subMail" value="${esc(u.email || '')}" autocomplete="email" maxlength="200"></div>
         <div><label for="subNote">備註（選填，例如發票抬頭）</label><input type="text" id="subNote" maxlength="300"></div></div>
