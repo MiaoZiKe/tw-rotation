@@ -127,6 +127,47 @@ def rrg_lite(flow_v3: dict) -> dict:
     return {k: flow_v3.get(k) for k in RRG_LITE_KEYS if k in flow_v3}
 
 
+def etf_freq(etf_out: dict) -> dict:
+    """etf.json 裡每檔 ETF 的配息頻率（freq），抽成 {代號: 頻率} 的小檔（2026-10-07 開頁速度第二輪）。
+
+    總覽與全站的配息頻率小徽章只需要這一欄，整份 etf.json（gzip 後約 184KB）是 ETF 專區用的。
+    **不重算**：直接拷貝同一次 etf.build() 產出的 freq，口徑跟 etf.json 一模一樣（有 pytest 釘著）；
+    沒有 freq 的 ETF 不列（前端本來就不畫）。"""
+    out = {}
+    for x in (etf_out or {}).get("items") or []:
+        if isinstance(x, dict) and x.get("code") is not None and x.get("freq"):
+            out[str(x["code"])] = x["freq"]
+    return out
+
+
+def link_index(im: dict, sc: dict) -> dict:
+    """前端開站對照表（site/app.js 的 L.init）用得到的 industry_map／supply_chain 骨架（2026-10-07 開頁速度第二輪）。
+
+    總覽首屏只需要「族群順序＋名稱＋所屬鏈」（決定族群色與鏈名）與「環節 color_idx＋公司→環節／族群」
+    （環節色蓋族群色），不需要成分股、估值、產品、邊這些大欄位。兩份大檔合計 gzip 後約 200KB，這份約 10KB。
+    **順序一律照原檔**：族群色＝在清單中的位置、環節色＝color_idx（缺就用位置）、族群取第一個環節的色，
+    改順序全站顏色就會洗掉（有 pytest 釘著跟整份初始化的結果一致）。"""
+    im = im or {}
+    sc = sc or {}
+    chains = [{"id": c.get("id"), "name": c.get("name"),
+               "groups": [{"id": g.get("id"), "name": g.get("name")} for g in (c.get("groups") or [])]}
+              for c in (im.get("chains") or [])]
+    inds = [{"id": g.get("id"), "name": g.get("name")} for g in (im.get("industries") or [])]
+    segs = []
+    for i, s in enumerate(sc.get("segments") or []):
+        segs.append({"id": s.get("id"), "color_idx": s.get("color_idx", i) if s.get("color_idx") is not None else i})
+    comps, seen = [], set()
+    for c in sc.get("companies") or []:
+        if not c.get("segment") or not c.get("groups"):
+            continue
+        key = (c["segment"], tuple(c["groups"]))
+        if key in seen:
+            continue
+        seen.add(key)
+        comps.append({"segment": c["segment"], "groups": list(c["groups"])})
+    return {"chains": chains, "industries": inds, "segments": segs, "companies": comps}
+
+
 def _write(name: str, payload) -> None:
     path = config.SITE_DATA / f"{name}.json"
     path.write_text(json.dumps(_clean(payload), ensure_ascii=False), encoding="utf-8")
@@ -636,6 +677,7 @@ def build() -> None:
         # 全部 ETF 的走勢拆成另一檔：etf.json 開頁就要讀，自選比較才需要全部的走勢（前端用到才讀）
         _write("etf_series", etf_out.pop("series_all", {"D": [], "s": {}}))
         _write("etf", etf_out)
+        _write("etf_freq", etf_freq(etf_out))   # 配息頻率徽章專用小檔（前端讀不到就退回 etf.json）
     except Exception as exc:  # noqa: BLE001
         log.warning("ETF 專區產出失敗：%s", exc)
     lap("ETF 專區")
@@ -673,6 +715,13 @@ def build() -> None:
     except Exception as exc:  # noqa: BLE001
         log.warning("產業關聯圖產出失敗：%s", exc)
         _write("supply_chain", {})
+    # 開站對照表小檔（2026-10-07 開頁速度第二輪）：讀回剛寫出去的兩份，保證跟前端拿到的是同一份內容
+    try:
+        _im = json.loads((config.SITE_DATA / "industry_map.json").read_text(encoding="utf-8"))
+        _sc = json.loads((config.SITE_DATA / "supply_chain.json").read_text(encoding="utf-8"))
+        _write("link_index", link_index(_im, _sc))
+    except Exception as exc:  # noqa: BLE001
+        log.warning("開站對照表小檔產出失敗（前端會退回等整份 industry_map／supply_chain）：%s", exc)
 
     lap("新聞/國際/產業關聯")
 

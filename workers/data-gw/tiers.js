@@ -14,7 +14,7 @@ export const TIERS = [
   // ---- 免費（首頁、導覽、搜尋清單用）
   ['meta', []], ['stocks', []], ['groups_today', []], ['logos', []], ['sparks', []],
   ['index_ohlc', []], ['index_intraday', []], ['index_lastday', []], ['intl', []],
-  ['news_head', []], ['updown', []], ['rrg_lite', []], ['hist/index', []],
+  ['news_head', []], ['updown', []], ['rrg_lite', []], ['etf_freq', []], ['link_index', []], ['hist/index', []],
   ['market_heat', ['ov.heat']],
   // ---- 資金流向
   ['flow_v3', ['flow.rot']], ['rrg_members', ['flow.rot']], ['rotation', ['flow.rot']],
