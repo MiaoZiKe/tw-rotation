@@ -1981,9 +1981,15 @@ html[data-theme="light"] #v-admin{--pm-blue:#1f4fd8;--pm-blue-2:#163fb4}
       return p;
     };
     return P.tiers.map((t) => {
-      const cur = t.key === 'guest' || t.key === 'free' ? planOf(t.key) : pick(t.key, t.key === 'plus' ? /299/ : /499/, t.name);
+      /* 2026-10-07 Andy：「移除499會費那條」→ Pro 一律用種下的 pro 範本（或已叫 Pro 的），不再把 499 改名成 Pro */
+      const cur = t.key === 'guest' || t.key === 'free' ? planOf(t.key) : t.key === 'pro' ? pick('pro', /^$/, t.name) : pick(t.key, /299/, t.name);
       return { t, cur, id: cur ? cur.id : t.key };
     });
+  }
+  /* 要刪掉的「499會費」範本（名稱含 499、不是 Pro 本身）＋被指定到它的人（刪之前先移到 Pro）*/
+  function presetDrop(ms) {
+    const pro = ms.find((m) => m.t.key === 'pro'), keep = new Set(ms.map((m) => m.id));
+    return paidPlans().filter((p) => /499/.test(p.name) && !keep.has(p.id)).map((p) => ({ p, to: pro ? pro.id : 'pro', who: people().filter((r) => r.plan === p.id) }));
   }
   function presetDiff(m) {
     const F = FT(), t = m.t, c = m.cur || { feats: {}, lims: {}, name: '', price: 0, dq: null };
@@ -2021,8 +2027,11 @@ html[data-theme="light"] #v-admin{--pm-blue:#1f4fd8;--pm-blue-2:#163fb4}
 .ppblk{border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin:10px 0;font-size:13.5px}
 .ppblk>b{font-size:15px}.ppblk small{color:var(--ink-3);margin-left:6px}.ppblk .ppn{float:right;color:var(--amber);font-size:13px}
 .ppblk ul{margin:6px 0 0;padding-left:18px;color:var(--ink-2);line-height:1.6}.ppblk details{margin-top:4px}.ppblk summary{cursor:pointer;color:var(--ink-2)}`);
+    const drops = presetDrop(ms);
+    const dropHtml = drops.map((d) => `<div class="ppblk" data-drop="${esc(d.p.id)}"><b>刪除「${esc(d.p.name)}」</b><span class="ppn">刪除範本</span>
+      <ul>${d.who.length ? `<li>先把 ${d.who.length} 位會員移到 Pro：${d.who.map((r) => esc(r.email)).join('、')}</li>` : '<li>沒有會員被指定到這個範本，直接刪除</li>'}</ul></div>`).join('');
     const dlg = D(`<h3>套用建議方案</h3><p>會把下面四個範本的開關、每日次數、全站每日額度、自選上限、價格與介紹文字一次寫進伺服器。已經指定給會員的範本不會換人，只是內容變了。</p>
-      ${ms.map(block).join('')}<div class="msg" id="ppMsg" role="status"></div>
+      ${ms.map(block).join('')}${dropHtml}<div class="msg" id="ppMsg" role="status"></div>
       <div class="row2"><button type="button" data-close>取消</button><button type="button" class="pri" id="ppGo">確定套用</button></div>`, (d) => {
       const bx = d.querySelector('.box'); if (bx) bx.classList.add('pp');
       d.querySelector('#ppGo').onclick = () => presetApply(ms, d);
@@ -2039,6 +2048,19 @@ html[data-theme="light"] #v-admin{--pm-blue:#1f4fd8;--pm-blue-2:#163fb4}
       if (!builtin) { body.price = t.price; body.period = 'month'; }
       const j = await PS.A.call('/v1/admin/plans/put', body);
       if (!j || j._s !== 200) { go.disabled = false; msg.className = 'msg bad'; msg.textContent = `「${t.name}」寫入失敗：${errText(j)}（前面的範本已經寫好）`; if (last) { PS.plans = last; paintAll(); } return; }
+      last = j.plans;
+    }
+    /* 刪 499會費：被指定的人先移到 Pro（保留各自的微調與到期日），再刪範本（訪客／註冊會員是內建，Worker 本來就不准刪）*/
+    for (const dr of presetDrop(ms)) {
+      for (const r of dr.who) {
+        const g = await PS.A.call('/v1/admin/perm/get', { email: r.email });
+        const body = { email: r.email, plan: dr.to, over: (g && g.over) || {} };
+        if (g && g.expires) body.expires = g.expires;
+        const mv = await PS.A.call('/v1/admin/perm/put', body);
+        if (!mv || mv._s !== 200) { go.disabled = false; msg.className = 'msg bad'; msg.textContent = `把 ${r.email} 移到 Pro 失敗：${errText(mv)}`; PS.plans = last; paintAll(); return; }
+      }
+      const j = await PS.A.call('/v1/admin/plans/put', { id: dr.p.id, del: true });
+      if (!j || j._s !== 200) { go.disabled = false; msg.className = 'msg bad'; msg.textContent = `刪除「${dr.p.name}」失敗：${errText(j)}`; PS.plans = last; paintAll(); return; }
       last = j.plans;
     }
     PS.plans = last; PS.draft = null; paintAll();

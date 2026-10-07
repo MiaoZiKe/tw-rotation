@@ -48154,18 +48154,23 @@ def t_plan_preset_1007(b, base, code):
     ok(f"{T}：按下去先跳確認框（不送任何 plans/put）", bool(wait_until(pg, "() => { const d = document.getElementById('subDlg'); return !!d && !d.hidden && /套用建議方案/.test(d.textContent); }", 4000))
        and not any(x[0] == "/v1/admin/plans/put" for x in sent))
     dl = pg.inner_text("#subDlg")
-    ok(f"{T}：確認框列出四個範本、Plus 對應到「299 會費」改名、Pro 對應到「499會費」改名、月費與額度變更",
-       all(k in dl for k in ("訪客", "註冊會員", "Plus", "Pro")) and "目前「299 會費」" in dl and "目前「499會費」" in dl
-       and "名稱：299 會費 → Plus" in dl and "NT$299 → NT$249" in dl and "全站每日額度：不限 → 每日 3 次" in dl and "全站每日額度：不限 → 每日 50 次" in dl, dl[:900])
+    ok(f"{T}：確認框列出四個範本、Plus 對應到「299 會費」改名、Pro 新建、499會費 列為刪除、月費與額度變更",
+       all(k in dl for k in ("訪客", "註冊會員", "Plus", "Pro")) and "目前「299 會費」" in dl
+       and "名稱：299 會費 → Plus" in dl and "NT$299 → NT$249" in dl and "全站每日額度：不限 → 每日 3 次" in dl and "全站每日額度：不限 → 每日 50 次" in dl
+       and "刪除「499會費」" in dl and "新建範本（代號 pro）" in dl, dl[:1200])
     pg.click("#subDlg details >> nth=0")
     if sh:
         pg.screenshot(path=str(pathlib.Path(sh) / "preset_confirm.png"))
+        pg.evaluate("() => { const b = document.querySelector('#subDlg .box'); b.scrollTop = b.scrollHeight; }"); pg.wait_for_timeout(200)
+        pg.screenshot(path=str(pathlib.Path(sh) / "preset_confirm_drop.png"))
     pg.click("#ppGo")
-    ok(f"{T}：確定套用 → 送 4 次 plans/put（guest、free、pa299、pb499，不新建）", bool(wait_until(pg, "() => /已套用建議方案/.test(document.getElementById('pmStat').textContent)", 8000))
-       and [x[1].get("id") for x in sent if x[0] == "/v1/admin/plans/put"] == ["guest", "free", "pa299", "pb499"],
+    # 2026-10-07 Andy：「移除499會費那條」→ Pro 新建（種下的 pro），499會費 刪除
+    ok(f"{T}：確定套用 → plans/put 依序 guest、free、pa299、pro（新建），最後刪 pb499", bool(wait_until(pg, "() => /已套用建議方案/.test(document.getElementById('pmStat').textContent)", 8000))
+       and [x[1].get("id") for x in sent if x[0] == "/v1/admin/plans/put"] == ["guest", "free", "pa299", "pro", "pb499"]
+       and [x[1].get("del") for x in sent if x[0] == "/v1/admin/plans/put"][-1] is True,
        [x[1].get("id") for x in sent if x[0] == "/v1/admin/plans/put"])
-    bodies = {x[1]["id"]: x[1] for x in sent if x[0] == "/v1/admin/plans/put"}
-    g, f, pl, pr = bodies.get("guest", {}), bodies.get("free", {}), bodies.get("pa299", {}), bodies.get("pb499", {})
+    bodies = {x[1]["id"]: x[1] for x in sent if x[0] == "/v1/admin/plans/put" and not x[1].get("del")}
+    g, f, pl, pr = bodies.get("guest", {}), bodies.get("free", {}), bodies.get("pa299", {}), bodies.get("pro", {})
     ok(f"{T}：寫入內容：訪客 dq 3＋沒有逐功能次數＋名稱不改；註冊會員 dq 10、自選 1×10；Plus 改名、249、dq 50、自選 5×50、badge；Pro 改名、499、dq 空白、自選 50×200",
        g.get("dq") == 3 and g.get("lims") == {} and g.get("name") == "訪客（未登入）" and g.get("feats", {}).get("ind.3d") is False
        and f.get("dq") == 10 and f.get("feats", {}).get("watch.tabs") == 1 and f.get("feats", {}).get("watch.size") == 10 and f.get("name") == "免費會員（預設）"
@@ -48173,7 +48178,7 @@ def t_plan_preset_1007(b, base, code):
        and (pl.get("meta") or {}).get("badge") == "最受歡迎" and (pl.get("meta") or {}).get("price_year") == 2490 and len((pl.get("meta") or {}).get("highlights") or []) >= 3
        and pr.get("name") == "Pro" and pr.get("price") == 499 and pr.get("dq") is None and pr.get("feats", {}).get("watch.tabs") == 50 and pr.get("feats", {}).get("watch.size") == 200,
        {k: {kk: (vv if kk != "feats" else {x: vv[x] for x in ("watch.tabs", "watch.size", "ind.3d") if x in vv}) for kk, vv in v.items() if kk != "t"} for k, v in bodies.items()})
-    ok(f"{T}：套用後頁籤換成 Plus（月）、Pro（月）", bool(wait_until(pg, "() => { const t = [...document.querySelectorAll('#ptTier button[data-plan]')].map(b => b.textContent.trim()); return t.includes('Plus（月）') && t.includes('Pro（月）'); }", 4000)),
+    ok(f"{T}：套用後頁籤＝Plus（月）、Pro（月），沒有 499會費", bool(wait_until(pg, "() => { const t = [...document.querySelectorAll('#ptTier button[data-plan]')].map(b => b.textContent.trim()); return t.includes('Plus（月）') && t.includes('Pro（月）') && !t.some(x => /499/.test(x)); }", 4000)),
        pg.evaluate("() => [...document.querySelectorAll('#ptTier button')].map(b => b.textContent.trim())"))
     pg.click("#ptTier button[data-tier='guest']")
     pg.wait_for_timeout(400)
