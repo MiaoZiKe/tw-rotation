@@ -65,6 +65,10 @@ jobs:
           PYTHONIOENCODING: utf-8
           # 輸入值走環境變數、不直接內插進指令（避免把輸入當成 shell 執行）；argparse 只收整數
           WAIT: ${{ github.event.inputs.wait || '150' }}
+          # ★ 2026-10-07：DECISIONS #326 起「即時」只給管理者，訪客頁面沒有那顆鈕 → 10-06 起每輪逾時失敗。
+          # 有這個 Secret（管理者帳號的會員權杖）就用管理者視角照舊按鈕驗時鐘；
+          # 沒有就走訪客模式：驗閘門守住＋直接問報價代理有沒有在前進。權杖只放 Secrets，不進 repo。
+          PROBE_ADMIN_TOKEN: ${{ secrets.PROBE_ADMIN_TOKEN }}
         run: |
           python scripts/live_rotation_probe.py --wait "$WAIT" --out probe-out/live_rotation.json
 

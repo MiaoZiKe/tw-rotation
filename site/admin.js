@@ -39,8 +39,8 @@
     return c;
   };
   const S = { days: 30, period: '30', since: '', until: '', tab: 'all', sub: 'all', timer: 0, v: null, A: null, page: 'flow', st: null, on: null };
-  const TABS = [['perm', '會員權限', 'admTabPerm'], ['traffic', '流量觀測', 'admTabTraffic']];   // 2026-10-05：會員管理拿掉（新增會員、逐人微調併進會員權限的會員名單）
-  const tabOf = () => { const m = /^#admin\/(perm|members|traffic)\b/.exec(location.hash || ''); return m ? (m[1] === 'members' ? 'perm' : m[1]) : 'traffic'; };
+  const TABS = [['perm', '會員權限', 'admTabPerm'], ['traffic', '流量觀測', 'admTabTraffic'], ['admins', '管理權限', 'admTabAdmins']];   // 2026-10-05：會員管理拿掉（新增會員、逐人微調併進會員權限的會員名單）
+  const tabOf = () => { const m = /^#admin\/(perm|members|traffic|admins)\b/.exec(location.hash || ''); return m ? (m[1] === 'members' ? 'perm' : m[1]) : 'traffic'; };
 
   function css() {
     if (document.getElementById('admCss')) return;
@@ -906,6 +906,7 @@ html[data-theme="light"] #v-admin{--pm-blue:#1f4fd8;--pm-blue-2:#163fb4}
     const t = tabOf();
     if (t !== 'traffic') clearInterval(S.timer);
     if (t === 'perm' || t === 'members') { renderPerm(v, A, t); return; }
+    if (t === 'admins') { renderAdmins(v, A); return; }
     renderTraffic(v, A);
   }
 
@@ -2872,5 +2873,93 @@ html[data-theme="light"] #v-admin{--pm-blue:#1f4fd8;--pm-blue-2:#163fb4}
     };
   }
 
+
+  /* ==========================================================================
+     #admin/admins 管理權限（2026-10-07，Andy 14:50：「管理那邊需要新增一個誰擁有管理權限」）
+     名單與規則都在 Worker（worker.js「管理權限區塊」）：擁有者＝ADMIN_EMAILS（Secret），永遠是管理者、沒有移除鈕；
+     只有擁有者看得到「＋ 新增管理者」與「移除」—— 前端藏按鈕只是長相，Worker 對一般管理者的新增／移除一律回 403。
+     ========================================================================== */
+  const AD = { d: null, busy: false };
+  const fmtT = (ms) => { if (!ms) return '—'; const d = new Date(ms + 8 * 3600000); return d.toISOString().slice(0, 16).replace('T', ' '); };
+  function admCss() {
+    if (document.getElementById('admAdmCss')) return;
+    const s = document.createElement('style'); s.id = 'admAdmCss';
+    s.textContent = `#admAdm .aahd{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:10px}
+#admAdm .aahd h2{margin:0;font-size:18px}
+#admAdm .aahd .sp{flex:1}
+#admAdm .aanote{color:var(--ink-2);font-size:13px;line-height:1.6;margin:0 0 12px}
+#admAdm table{width:100%;border-collapse:collapse;font-size:14px}
+#admAdm th,#admAdm td{text-align:left;padding:9px 10px;border-bottom:1px solid var(--line);white-space:nowrap}
+#admAdm th{color:var(--ink-2);font-weight:600;font-size:12.5px}
+#admAdm td.em{white-space:normal;word-break:break-all}
+#admAdm .own{display:inline-block;font-size:12px;padding:1px 8px;border-radius:999px;background:var(--panel-3);color:var(--cyan);border:1px solid var(--line-2);margin-left:6px}
+#admAdm button{height:32px;padding:0 14px;border-radius:9px;border:1px solid var(--line-2);background:var(--panel-3);color:var(--ink);font-size:13.5px;cursor:pointer}
+#admAdm button.pri{background:var(--cyan);color:#04121a;border-color:transparent;font-weight:700}
+#admAdm button.danger{color:var(--rise,#e5484d)}
+#admAdm .aalog td{font-size:13px;color:var(--ink-2)}
+#admAdm .aawrap{overflow-x:auto}
+#admAdm .aastat{font-size:13px;color:var(--ink-2);min-height:18px}
+#admAdm .aastat.bad{color:var(--rise,#e5484d)}`;
+    document.head.appendChild(s);
+  }
+  async function renderAdmins(v, A) {
+    admCss();
+    const l4 = document.documentElement.classList.contains('l4');      // 桌機版子分頁在左側欄，頂部那張只剩空框 → 不畫
+    v.innerHTML = (l4 ? '' : head(v, A) + '</div>') + '<div class="card" id="admAdm" style="margin-top:16px"><p class="muted">讀取管理者名單…</p></div>';
+    wireHead(v);
+    const j = await A.call('/v1/admin/admins/list', {});
+    if (!(location.hash || '').startsWith('#admin/admins')) return;
+    const box = v.querySelector('#admAdm'); if (!box) return;
+    if (!j || j._s !== 200) { box.innerHTML = `<p class="muted">讀不到管理者名單（${j ? j._s : '連不到'}）。</p>`; return; }
+    AD.d = j; paintAdmins(box, A);
+  }
+  function paintAdmins(box, A) {
+    const d = AD.d, own = !!(d.me && d.me.owner);
+    const rows = d.owners.map((o) => ({ email: o.email, owner: true })).concat(d.admins.map((a) => ({ email: a.email, added: a.added, by: a.by })));
+    const ACT = { add: '新增', del: '移除' };
+    box.innerHTML = `<div class="aahd"><h2>管理權限</h2><span class="sp"></span>${own ? '<button type="button" class="pri" id="aaAdd">＋ 新增管理者</button>' : ''}</div>
+      <p class="aanote">管理者可以修改全站（會員權限、方案、公告、意見反饋、功能開關、分頁拖曳排序）。擁有者永遠是管理者、不能被移除；${own ? '只有你（擁有者）可以新增或移除管理者。' : '只有擁有者可以新增或移除管理者。'}被移除的人下一次動作就失去權限。</p>
+      <div class="aastat" id="aaStat" role="status"></div>
+      <div class="aawrap"><table id="aaList"><thead><tr><th>Email</th><th>加入時間</th><th>加入者</th><th></th></tr></thead><tbody>
+      ${rows.map((r) => `<tr data-email="${esc(r.email)}"${r.owner ? ' data-owner="1"' : ''}><td class="em">${esc(r.email)}${r.owner ? '<span class="own">擁有者</span>' : ''}</td>
+        <td>${r.owner ? '—' : esc(fmtT(r.added))}</td><td>${r.owner ? '（系統設定）' : esc(r.by || '—')}</td>
+        <td>${!r.owner && own ? `<button type="button" class="danger" data-rmadm="${esc(r.email)}">移除</button>` : ''}</td></tr>`).join('')}
+      </tbody></table></div>
+      <h3 style="margin:22px 0 8px;font-size:15px">稽核紀錄</h3>
+      <div class="aawrap"><table class="aalog" id="aaLog"><thead><tr><th>時間（台北）</th><th>動作</th><th>對象</th><th>操作者</th></tr></thead><tbody>
+      ${d.log.length ? d.log.map((r) => `<tr><td>${esc(fmtT(r.ts))}</td><td>${esc(ACT[r.act] || r.act)}管理者</td><td class="em">${esc(r.email)}</td><td class="em">${esc(r.by)}</td></tr>`).join('') : '<tr><td colspan="4">還沒有任何變更</td></tr>'}
+      </tbody></table></div>`;
+    const st = (m, bad) => { const e = box.querySelector('#aaStat'); if (e) { e.textContent = m; e.classList.toggle('bad', !!bad); } };
+    const D = window.TwSub && window.TwSub.dialog;
+    const after = async (r, ok) => {
+      if (r && r._s === 200) { const j = await A.call('/v1/admin/admins/list', {}); if (j && j._s === 200) AD.d = j; paintAdmins(box, A); st(ok); return; }
+      const why = { owner_only: '只有擁有者可以變更管理者', exists: '這個人已經是管理者', bad_email: 'email 格式不正確', owner: '擁有者不能被移除', not_admin: '這個人不是管理者' };
+      st('沒有成功：' + (why[r && r.error] || (r ? r._s : '連不到')), true);
+    };
+    const add = box.querySelector('#aaAdd');
+    if (add && D) add.onclick = () => D(`<h3>新增管理者</h3><label for="aaMail">對方的 Google 帳號 email</label><input type="email" id="aaMail" autocomplete="off" placeholder="name@gmail.com">
+      <div class="aastat bad" id="aaErr" style="font-size:13px;color:var(--rise,#e5484d);min-height:18px;margin-top:6px"></div>
+      <div class="row2"><button type="button" data-close>取消</button><button type="button" class="pri" id="aaNext">下一步</button></div>`, (dl) => {
+      const inp = dl.querySelector('#aaMail'); setTimeout(() => inp.focus(), 30);
+      const next = () => {
+        const e = inp.value.trim().toLowerCase();
+        if (!/^[^\s@,;]+@[^\s@,;]+\.[^\s@,;]{2,}$/.test(e)) { dl.querySelector('#aaErr').textContent = '請輸入正確的 email'; inp.focus(); return; }
+        dl.querySelector('.box').innerHTML = `<h3>確定讓 ${esc(e)} 成為管理者？</h3>
+          <p id="aaWarn"><b>此人將能修改全站</b>：會員權限與方案、公告、意見反饋、功能開關、分頁拖曳排序，並看得到流量觀測與會員名單。</p>
+          <p>他重新整理網頁後就會看到「管理區」。之後可以在這頁按「移除」收回。</p>
+          <div class="row2"><button type="button" data-close>取消</button><button type="button" class="pri" id="aaGo">確定新增</button></div>`;
+        dl.querySelector('#aaGo').onclick = async () => { dl.hidden = true; after(await A.call('/v1/admin/admins/add', { email: e }), `已新增 ${e} 為管理者`); };
+      };
+      dl.querySelector('#aaNext').onclick = next;
+      inp.onkeydown = (ev) => { if (ev.key === 'Enter') { ev.preventDefault(); next(); } };
+    });
+    box.querySelectorAll('button[data-rmadm]').forEach((b) => { b.onclick = () => {
+      const e = b.dataset.rmadm; if (!D) return;
+      D(`<h3>移除 ${esc(e)} 的管理權限？</h3><p>他會立刻失去修改全站的權限（下一次動作就被擋），需要重新登入，之後只是一般會員。</p>
+        <div class="row2"><button type="button" data-close>取消</button><button type="button" class="pri" id="aaRmGo">確定移除</button></div>`, (dl) => {
+        dl.querySelector('#aaRmGo').onclick = async () => { dl.hidden = true; after(await A.call('/v1/admin/admins/del', { email: e }), `已移除 ${e} 的管理權限`); };
+      });
+    }; });
+  }
   window.TwAdmin = { render, guard: () => guard() };
 })();

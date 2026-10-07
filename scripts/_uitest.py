@@ -2171,7 +2171,9 @@ def t_etf_1005(pg, b, base):
         ok(f"[{tag}] 標題圖示至少 3 種顏色（依語意，不是全頁同一色）", len({i["col"] for i in ics}) >= 3, [i["col"] for i in ics])
         lc = J("() => [...document.querySelectorAll('#etfGrid .etfc')].slice(0, 6).map(e => getComputedStyle(e).borderLeftColor)")
         tc = J("() => getComputedStyle(document.querySelector('#etfGrid .etfc .etag')).color")
-        ok(f"★ [{tag}] ETF 卡片左緣有分類色（配息型＝跟分類標籤同色）", bool(lc) and all(c == tc for c in lc), (lc, tc))
+        # 2026-10-07 Andy：配息型卡片左色條改成「配息頻率色」（跟卡片裡的頻率徽章同色）；沒有頻率的才維持分類色
+        lc = J("() => [...document.querySelectorAll('#etfGrid .etfc')].slice(0, 6).map(e => [getComputedStyle(e).borderLeftColor, getComputedStyle(e.querySelector('.fq') || e.querySelector('.etag')).color])")
+        ok(f"★ [{tag}] ETF 卡片左緣有顏色（配息型＝跟配息頻率徽章同色）", bool(lc) and all(a == b_ for a, b_ in lc), (lc, tc))
         wr = J("() => [...document.querySelectorAll('#etfGrid .etfc dt, #etfGrid .etfc dd, #etfGrid .etfc .nm')].filter(e => e.getBoundingClientRect().height > 24).length")
         ok(f"★ [{tag}] ETF 卡片欄位全部一行（沒有被擠成兩行的）", wr == 0, wr)
         cw = J("() => [...new Set([...document.querySelectorAll('#etfGrid .etfc')].map(e => Math.round(e.getBoundingClientRect().width)))]")
@@ -2290,6 +2292,137 @@ def t_etf_1005(pg, b, base):
            mp.evaluate("() => !!document.querySelector('.msheet:not([hidden]) .mrow')"))
     finally:
         mctx.close()
+
+
+def t_etf_income_1007(pg, b, base):
+    """★ 2026-10-07 Andy：ETF 頁「現金流試算」＋配息型依頻率分組。
+    「需要多少張才能配息達到一年 100W（可調 50W 20W）」「年化最高排名、含配息總報酬最高排名，週期 Follow 其他分頁」
+    「前五名 ETF 組合，每月配息目標 2 萬（可調 1 萬 5000）」「配息型用月配 雙月配 季配 半年配排序，顏色要不同」。
+    全部用真資料（不攔截），每一步都驗「畫面真的變了」。"""
+    tag = "ETF現金流1007"
+    lp = pg.context.browser.new_page(viewport={"width": 1440, "height": 1000})
+    lp.on("pageerror", lambda e: fails.append(f"{tag} pageerror: {e}"))
+    lp.route("**/fonts.googleapis.com/**", lambda r: r.abort())
+    J = lambda js, *a: lp.evaluate(js, *a)
+    ROW1 = "() => { const t = document.querySelector('#incTbl tbody tr'); return t ? [t.dataset.code, +t.dataset.lots, +t.dataset.cost] : null; }"
+    CODES = "() => document.querySelector('#incTbl').dataset.codes"
+    COMBOS = "() => [...document.querySelectorAll('#incCombos .combo')].map(c => ({ codes: c.dataset.codes, cost: +c.dataset.cost, min: +c.dataset.min, cells: [...c.querySelectorAll('.mcell')].map(x => +x.dataset.v) }))"
+    K = "() => document.querySelector('#etfInc').dataset.k"
+    try:
+        lp.goto(f"{base}#etf", wait_until="networkidle")
+        J("() => { try { Object.keys(localStorage).filter(k => k.indexOf('tw.etf.') === 0).forEach(k => localStorage.removeItem(k)); } catch (e) {} }")
+        lp.reload(wait_until="networkidle")
+        wait_until(lp, "() => document.querySelector('#v-etf') && document.querySelector('#v-etf').dataset.ready === 'full'", 20000)
+        lp.wait_for_timeout(600)
+        # ---- 配息型分組
+        g = J("""() => { const hs = [...document.querySelectorAll('#etfGrid .fqhd')].map(h => h.dataset.fq);
+                 const cs = [...document.querySelectorAll('#etfGrid .etfc')].map(c => c.dataset.fq || '');
+                 const col = {}; document.querySelectorAll('#etfGrid .etfc.fqbar').forEach(c => { col[c.dataset.fq] = getComputedStyle(c).borderLeftColor; });
+                 const bad = [...document.querySelectorAll('#etfGrid .etfc.fqbar')].filter(c => getComputedStyle(c).borderLeftColor !== getComputedStyle(c.querySelector('.fq')).color).length;
+                 return { hs, cs, col, bad }; }""")
+        order = ["月配", "雙月配", "季配", "半年配", "年配", "其他"]
+        rk = lambda f: order.index(f) if f in order else 5
+        ok(f"★ [{tag}] 配息型卡片牆依頻率分組：月配→雙月配→季配→半年配→年配→其他，有小標題", len(g["hs"]) >= 3 and g["hs"] == sorted(g["hs"], key=rk), g["hs"])
+        ok(f"[{tag}] 卡片順序跟分組一致（不會月配卡跑到季配組裡）", [rk(x or "其他") for x in g["cs"]] == sorted(rk(x or "其他") for x in g["cs"]), g["cs"][:20])
+        cols = list(g["col"].values())
+        ok(f"★ [{tag}] 不同頻率的左色條顏色不同，且跟頻率徽章同色", len(cols) >= 3 and len(set(cols)) == len(cols) and g["bad"] == 0, g)
+        red = J("() => [getComputedStyle(document.documentElement).getPropertyValue('--rise').trim(), getComputedStyle(document.documentElement).getPropertyValue('--fall').trim()]")
+        ok(f"[{tag}] 頻率色不用漲跌紅綠", all(c not in cols for c in red), (cols, red))
+        # ---- 進現金流試算
+        lp.click("#etfIncSeg button"); lp.wait_for_timeout(1500)
+        wait_until(lp, "() => document.querySelector('#incTbl tbody tr') && document.querySelectorAll('#incCombos .combo').length > 0", 20000)
+        ok(f"★ [{tag}] 點「現金流試算」→ 分類內容收起、試算出現、分類頁籤不再選中",
+           J("() => !document.querySelector('#etfInc').hidden && document.querySelector('#etfListCard').hidden && !document.querySelector('#etfCatSeg button.on') && document.querySelector('#etfIncSeg button').classList.contains('on')"))
+        ok(f"[{tag}] 頁頂免責一行小字（不代表未來、可能配到本金、不構成投資建議）",
+           J("() => /不代表未來/.test(document.querySelector('#incDisc').textContent) && /本金/.test(document.querySelector('#incDisc').textContent) && /不構成投資建議/.test(document.querySelector('#incDisc').textContent)"))
+        ok(f"[{tag}] 組合旁註明未計入二代健保與所得稅", J("() => /二代健保/.test(document.querySelector('#incCombo').innerText) && /所得稅/.test(document.querySelector('#incCombo').innerText)"))
+        ok(f"[{tag}] 用語中性：沒有「推薦／建議買」", J("() => !/推薦|建議買/.test(document.querySelector('#etfInc').innerText)"))
+        r100 = J(ROW1)
+        lp.click("#incYSeg button[data-v='500000']"); lp.wait_for_timeout(500)
+        r50 = J(ROW1)
+        ok(f"★ [{tag}] 年領 100 萬→50 萬：同一檔的張數與金額都變小", r100 and r50 and r100[0] == r50[0] and r50[1] < r100[1] and r50[2] < r100[2], (r100, r50))
+        lp.fill("#incYear", "300000"); lp.press("#incYear", "Enter"); lp.dispatch_event("#incYear", "change"); lp.wait_for_timeout(500)
+        r30 = J(ROW1)
+        ok(f"[{tag}] 自訂年領 30 萬：張數比 50 萬再少", r30 and r30[1] < r50[1], (r30, r50))
+        y_codes = J(CODES)
+        lp.click("#incSort button[data-v='tr']"); lp.wait_for_timeout(800)
+        tr_codes = J(CODES)
+        trs = J("() => [...document.querySelectorAll('#incTbl td[data-tr]')].slice(0, 10).map(t => t.dataset.tr === '' ? null : +t.dataset.tr)")
+        ok(f"★ [{tag}] 切「含息總報酬最高」：順序真的變、而且由高到低", y_codes != tr_codes and all(a is not None for a in trs) and trs == sorted(trs, reverse=True), (y_codes[:40], tr_codes[:40], trs))
+        ok(f"[{tag}] 橫條圖跟著排序（D 款，前 10 檔）", J("() => document.querySelector('#incBar').dataset.codes") == ",".join(tr_codes.split(",")[:10]))
+        # 週期鈕
+        tr5 = J("() => document.querySelector('#incTbl td[data-tr]').closest('tr').dataset.code + '|' + document.querySelector('#incTbl td[data-tr]').dataset.tr")
+        lp.select_option("#etfIncRng select", "1y"); lp.wait_for_timeout(1800)
+        tr1 = J("() => document.querySelector('#incTbl td[data-tr]').closest('tr').dataset.code + '|' + document.querySelector('#incTbl td[data-tr]').dataset.tr")
+        ok(f"★ [{tag}] 切週期鈕（近 5 年→近 1 年）：含息總報酬數字真的變", tr5 != tr1 and "1y" in J(K), (tr5, tr1))
+        ok(f"[{tag}] 週期跟其他分頁共用（記在同一個 tw.etf.per）", J("() => localStorage.getItem('tw.etf.per')") == "1y")
+        # 點橫條 → 原地標出表格那一列
+        lp.click("#incSort button[data-v='y']"); lp.wait_for_timeout(600)
+        c2 = J("() => document.querySelector('#incBar').dataset.codes.split(',')[1]")
+        lp.locator("#incBar").scroll_into_view_if_needed(); lp.wait_for_timeout(200)
+        box = J("() => { const c = echarts.getInstanceByDom(document.getElementById('incBar')); const p = c.convertToPixel({ seriesIndex: 0 }, [3, 1]); const r = document.getElementById('incBar').getBoundingClientRect(); return [r.left + p[0], r.top + p[1]]; }")
+        lp.mouse.click(box[0], box[1]); lp.wait_for_timeout(400)
+        ok(f"[{tag}] 點橫條 → 表格裡那一檔被標出（不離開頁面）", J("() => (document.querySelector('#incTbl tr.on') || {}).dataset?.code || ''") == c2 and "#etf" in lp.url, (c2, box, lp.url, J("(p) => { const e = document.elementFromPoint(p[0], p[1]); return e.tagName + '#' + e.id + '.' + e.className + '<' + (e.parentElement.id || e.parentElement.className); }", box), J("() => (document.querySelector('#incTbl tr.on') || {}).dataset?.code || ''")))
+        # ---- 組合
+        c20 = J(COMBOS)
+        ok(f"★ [{tag}] 組合前 5 名：每個組合 2～4 檔、12 格月曆每格都 ≥ 2 萬",
+           len(c20) == 5 and all(2 <= len(c["codes"].split(",")) <= 4 and len(c["cells"]) == 12 and min(c["cells"]) >= 20000 for c in c20), c20[:2])
+        ok(f"[{tag}] 投入最少：依總投入由少到多", [c["cost"] for c in c20] == sorted(c["cost"] for c in c20), [c["cost"] for c in c20])
+        ok(f"[{tag}] 月曆格依主要那檔的頻率上色（至少兩種頻率色）",
+           J("() => new Set([...document.querySelectorAll('#incCombos .mcell')].map(x => getComputedStyle(x).borderTopColor)).size") >= 2)
+        lp.click("#incMSeg button[data-v='10000']"); lp.wait_for_timeout(1200)
+        c10 = J(COMBOS)
+        ok(f"★ [{tag}] 月領 2 萬→1 萬：第 1 名組合總投入變小、每格都 ≥ 1 萬",
+           c10 and c10[0]["cost"] < c20[0]["cost"] and all(min(c["cells"]) >= 10000 for c in c10), (c20[0]["cost"], c10[0]["cost"] if c10 else None))
+        lp.click("#incCSort button[data-v='tr']"); lp.wait_for_timeout(1200)
+        ctr = J("() => [...document.querySelectorAll('#incCombos .combo')].map(c => +c.dataset.tr)")
+        ok(f"[{tag}] 組合改「含息總報酬最高」：順序由高到低、組合換了",
+           len(ctr) >= 1 and ctr == sorted(ctr, reverse=True) and [c["codes"] for c in J(COMBOS)] != [c["codes"] for c in c10], ctr)
+        lp.click("#incCSort button[data-v='cost']"); lp.wait_for_timeout(1000)
+        # 二代健保
+        # 月領 3 萬：每次發放一定 ≥ 2 萬（補充保費門檻），扣與不扣才會有差；月領 1 萬時多半低於門檻、本來就不該變
+        lp.click("#incMSeg button[data-v='30000']"); lp.wait_for_timeout(1200)
+        lp.click("#incYSeg button[data-v='1000000']"); lp.wait_for_timeout(500)
+        a0, cA = J(ROW1), J(COMBOS)
+        lp.check("#incNhi"); lp.wait_for_timeout(1500)
+        a1, cB = J(ROW1), J(COMBOS)
+        ok(f"★ [{tag}] 勾「扣除二代健保」：同一檔需要的張數變多、組合總投入變多",
+           a0 and a1 and a0[0] == a1[0] and a1[1] > a0[1] and cB[0]["cost"] > cA[0]["cost"], (a0, a1, cA[0]["cost"], cB[0]["cost"]))
+        lp.uncheck("#incNhi"); lp.wait_for_timeout(1200)
+        # 點組合成員 → 進個股頁
+        code = J("() => document.querySelector('#incCombos .mem button').dataset.code")
+        lp.click("#incCombos .mem button"); lp.wait_for_timeout(800)
+        ok(f"[{tag}] 點組合裡的 ETF 名稱 → 進個股頁", f"#stock/{code}" in lp.url, lp.url)
+        # ---- 回分類：資料夾頁籤切回
+        lp.goto(f"{base}#etf"); wait_until(lp, "() => document.querySelector('#v-etf') && document.querySelector('#v-etf').dataset.ready === 'full'", 20000)
+        lp.click("#etfIncSeg button"); lp.wait_for_timeout(800)
+        lp.click("#etfCatSeg button[data-v='市值型']"); lp.wait_for_timeout(600)
+        ok(f"[{tag}] 從試算點回分類頁籤 → 試算收起、卡片清單回來",
+           J("() => document.querySelector('#etfInc').hidden && !document.querySelector('#etfListCard').hidden && document.querySelector('#v-etf').dataset.cat === '市值型'"))
+    finally:
+        lp.close()
+    # ---- 手機 390
+    mp = pg.context.browser.new_page(viewport={"width": 390, "height": 844}, is_mobile=True, has_touch=True)
+    mp.on("pageerror", lambda e: fails.append(f"{tag}(390) pageerror: {e}"))
+    mp.route("**/fonts.googleapis.com/**", lambda r: r.abort())
+    try:
+        mp.goto(f"{base}#etf", wait_until="networkidle")
+        wait_until(mp, "() => document.querySelector('#v-etf') && document.querySelector('#v-etf').dataset.ready === 'full'", 20000)
+        mp.tap("#etfIncSeg button"); mp.wait_for_timeout(1500)
+        wait_until(mp, "() => document.querySelectorAll('#incCombos .combo').length > 0", 20000)
+        before = mp.evaluate(ROW1)
+        mp.tap("#incYSeg button[data-v='200000']"); mp.wait_for_timeout(600)
+        after = mp.evaluate(ROW1)
+        ok(f"★ [{tag}] 390：點年領 20 萬，張數真的變", before and after and after[1] < before[1], (before, after))
+        sw = mp.evaluate("() => document.documentElement.scrollWidth")
+        ok(f"★ [{tag}] 390：整頁無橫向溢出", sw <= 391, sw)
+        st = mp.evaluate("""() => { const w = document.querySelector('#etfInc .inctw'); const td = document.querySelector('#incTbl td.nm');
+                 return { scroll: w.scrollWidth > w.clientWidth, sticky: getComputedStyle(td).position }; }""")
+        ok(f"[{tag}] 390：表格在自己的容器裡橫滑、第一欄固定", st["scroll"] and st["sticky"] == "sticky", st)
+        small = mp.evaluate("() => [...document.querySelectorAll('#etfInc *')].filter(e => e.childNodes.length && [...e.childNodes].some(n => n.nodeType === 3 && n.textContent.trim()) && e.getClientRects().length && parseFloat(getComputedStyle(e).fontSize) < 11).length")
+        ok(f"[{tag}] 390：試算區沒有小於 11px 的字", small == 0, small)
+    finally:
+        mp.close()
 
 
 def t_etf_ret_1006(pg, b, base):
@@ -22818,6 +22951,188 @@ def t_nobox_1006(pg, base):
         ok(f"[無獨立提示框] #{r} 主內容區沒有卡片外自成一框的備註／免責／提示列", not bad, bad[:5])
 
 
+# ===================================================================== 管理權限（2026-10-07，site/tabdrag.js＋admin.js renderAdmins＋worker.js 管理權限區塊）
+# Andy（10-07 14:50）：「拖曳功能，只有帳號可以使用，任何可更改功能都只有我這帳號可以，其他帳號我沒有新增管理者情況下不行，這點非常重要!!!
+#                        管理那邊需要新增一個誰擁有管理權限」
+# 假 Worker 照 worker.js 的規則：擁有者 andy@example.com（ADMIN_EMAILS）＋擁有者加的人；只有擁有者能新增／移除；移除後該人的權杖失效。
+ADM1007_API = "https://acct1007.example.test"
+
+
+def t_admin_only_1007(b, base):
+    T = "管理權限1007"
+    shots = os.environ.get("TW_ADM1007_SHOTS")
+    OWNER = "andy@example.com"
+    st = {"extra": {}, "log": [], "tv": {}}
+    errs: list = []
+
+    def is_adm(e):
+        return e == OWNER or e in st["extra"]
+
+    def handler(route):
+        req = route.request
+        path = re.sub(r"^https?://[^/]+", "", req.url).split("?")[0]
+        if req.method == "OPTIONS":
+            return route.fulfill(status=204, headers={"access-control-allow-origin": "*", "access-control-allow-headers": "*", "access-control-allow-methods": "POST"})
+        try:
+            body = json.loads(req.post_data or "{}")
+        except Exception:  # noqa: BLE001
+            body = {}
+        tok = str(body.get("t") or "")
+        email = None
+        m = re.fullmatch(r"tok-(.+)-v(\d+)", tok)
+        if m and int(m.group(2)) == st["tv"].get(m.group(1), 0):
+            email = m.group(1)
+        out, code = {}, 200
+        if path == "/v1/me":
+            out, code = ({"user": {"email": email, "name": email.split("@")[0], "admin": is_adm(email), "owner": email == OWNER}}, 200) if email else ({"error": "auth"}, 401)
+        elif path == "/v1/perm/me":
+            out = {"who": "member" if email else "guest", "plan": "free", "planName": "免費會員", "feats": {}, "lims": {}}
+        elif path == "/v1/plans/public":
+            out = {"plans": []}
+        elif path in ("/v1/beat", "/v1/track/batch"):
+            out = {"ok": True, "n": 1}
+        elif path == "/v1/quota/hit":
+            out = {"day": "x", "k": body.get("k"), "n": 0, "keys": []}
+        elif path == "/v1/notices":
+            out = {"notices": []}
+        elif path.startswith("/v1/admin/") and not (email and is_adm(email)):
+            out, code = {"error": "forbidden"}, 403
+        elif path == "/v1/admin/admins/list":
+            out = {"owners": [{"email": OWNER, "owner": True}], "admins": [{"email": k, **v} for k, v in st["extra"].items()],
+                   "log": list(reversed(st["log"])), "me": {"email": email, "owner": email == OWNER}}
+        elif path == "/v1/admin/admins/add":
+            e = str(body.get("email") or "").strip().lower()
+            if email != OWNER:
+                out, code = {"error": "owner_only"}, 403
+            elif is_adm(e):
+                out, code = {"error": "exists"}, 409
+            else:
+                st["extra"][e] = {"added": int(time.time() * 1000), "by": email}
+                st["log"].append({"id": len(st["log"]) + 1, "ts": int(time.time() * 1000), "act": "add", "email": e, "by": email})
+                out = {"ok": True}
+        elif path == "/v1/admin/admins/del":
+            e = str(body.get("email") or "").strip().lower()
+            if email != OWNER:
+                out, code = {"error": "owner_only"}, 403
+            elif e == OWNER:
+                out, code = {"error": "owner"}, 409
+            elif e not in st["extra"]:
+                out, code = {"error": "not_admin"}, 404
+            else:
+                del st["extra"][e]
+                st["tv"][e] = st["tv"].get(e, 0) + 1
+                st["log"].append({"id": len(st["log"]) + 1, "ts": int(time.time() * 1000), "act": "del", "email": e, "by": email})
+                out = {"ok": True}
+        elif path == "/v1/admin/stats":
+            out = {"from": "2026-09-05", "to": "2026-10-04", "rows": [], "e2": [], "users": {"total": 0, "recent": []}}
+        elif path == "/v1/admin/online":
+            out = {"total": 0, "guests": 0, "users": [], "public_online": True}
+        route.fulfill(status=code, body=json.dumps(out), headers={"access-control-allow-origin": "*", "content-type": "application/json"})
+
+    def ctx_as(email, preset_tabs=False, width=1440):
+        c = b.new_context(viewport={"width": width, "height": 950})
+        init = "window.TW_ACCOUNT_OVERRIDE = " + json.dumps({"api": ADM1007_API}) + ";"
+        init += ("try { if (!sessionStorage.getItem('_a1007')) { sessionStorage.setItem('_a1007', '1'); localStorage.setItem('tw.acct.tok', " + json.dumps(f"tok-{email}-v{st['tv'].get(email, 0)}") + ");"
+                 + ("localStorage.setItem('tw.tabs.stock.stockTabs', JSON.stringify(['x:zzz'])); localStorage.setItem('tw.tabs.industry.chainSwitch', '[\"x:a\"]');" if preset_tabs else "")
+                 + "} } catch (e) {}")
+        c.add_init_script(init)
+        c.route("**/fonts.googleapis.com/**", lambda r: r.abort())
+        c.route(ADM1007_API + "/**", handler)
+        pg = c.new_page()
+        pg.on("pageerror", lambda e: errs.append(str(e)[:200]))
+        return c, pg
+
+    SEL = "#stockTabs"
+
+    def drag_check(pg, who, expect_ok):
+        pg.goto(base + "#stock/2330", wait_until="domcontentloaded")
+        wait_until(pg, f"() => {{ const b = document.querySelector('{SEL}'); return b && b.children.length >= 3 && window.TwAccount && TwAccount.user(); }}", 15000)
+        if expect_ok:
+            wait_until(pg, f"() => document.querySelector('{SEL}').hasAttribute('data-tdrag')", 5000)
+        pg.wait_for_timeout(700)
+        info = pg.evaluate(f"""() => {{ const b = document.querySelector('{SEL}'); return {{ tdrag: b.hasAttribute('data-tdrag'), title: b.title || '',
+            o: [...b.children].map(c => c.dataset.t || c.dataset.tab || c.textContent.trim().slice(0, 6)), ord: [...b.children].map(c => c.style.order).join(','),
+            ls: Object.keys(localStorage).filter(k => k.startsWith('tw.tabs.')) }}; }}""")
+        els = pg.locator(f"{SEL} > *")
+        b1, b3 = els.nth(0).bounding_box(), els.nth(2).bounding_box()
+        pg.mouse.move(b1["x"] + b1["width"] / 2, b1["y"] + b1["height"] / 2); pg.mouse.down()
+        pg.mouse.move(b1["x"] + b1["width"] / 2 + 15, b1["y"] + b1["height"] / 2, steps=3)
+        cur = pg.evaluate("() => document.documentElement.classList.contains('td-dragging')")
+        pg.mouse.move(b3["x"] + b3["width"] / 2, b3["y"] + b3["height"] / 2, steps=10)
+        pg.mouse.up(); pg.wait_for_timeout(400)
+        after = pg.evaluate(f"() => [...document.querySelector('{SEL}').children].map(c => c.style.order).join(',')")
+        moved = after != info["ord"]
+        if expect_ok:
+            ok(f"★ [{T}] {who}：個股分頁列掛上拖曳，滑鼠拖第一顆到第三顆 → 順序真的變了（有抓取游標）", info["tdrag"] and moved and cur, [info, after, cur])
+            pg.evaluate("() => { Object.keys(localStorage).filter(k => k.startsWith('tw.tabs.')).forEach(k => localStorage.removeItem(k)); }")
+        else:
+            ok(f"★ [{T}] {who}：分頁列沒有拖曳把手（沒有 data-tdrag、沒有「拖曳」提示）", not info["tdrag"] and "拖曳" not in info["title"], info)
+            ok(f"★ [{T}] {who}：模擬滑鼠拖曳 → 順序不變、沒有拖曳游標、沒有寫進 localStorage", not moved and not cur
+               and not pg.evaluate("() => Object.keys(localStorage).some(k => k.startsWith('tw.tabs.'))"), [info["ord"], after, cur])
+        return info
+
+    def admin_page(pg):
+        pg.goto(base + "#admin/admins", wait_until="domcontentloaded")
+        wait_until(pg, "() => document.querySelector('#admAdm table#aaList') || /不是管理者|尚未設定|請先登入/.test((document.getElementById('v-admin') || {}).innerText || '')", 12000)
+        pg.wait_for_timeout(300)
+        return pg.evaluate("""() => ({ list: !!document.querySelector('#aaList'), rows: [...document.querySelectorAll('#aaList tbody tr')].map(r => [r.dataset.email, !!r.dataset.owner, !!r.querySelector('[data-rmadm]')]),
+            add: !!document.querySelector('#aaAdd'), txt: ((document.getElementById('v-admin') || {}).innerText || '').slice(0, 120), side: !!document.getElementById('l4Perm') })""")
+
+    # ① 一般會員（從沒被加過）：已存的個人排序被清掉、拖不動、進不了管理區
+    c, pg = ctx_as("member@example.com", preset_tabs=True)
+    i = drag_check(pg, "一般會員", False)
+    ok(f"★ [{T}] 一般會員：之前存的個人分頁排序（tw.tabs.*）開頁就清掉回預設", not i["ls"], i["ls"])
+    if shots:
+        pg.locator(SEL).first.screenshot(path=str(pathlib.Path(shots) / "3_非管理者_個股分頁列_沒有拖曳.png"))
+        pg.screenshot(path=str(pathlib.Path(shots) / "3_非管理者_整頁.png"))
+    a = admin_page(pg)
+    ok(f"★ [{T}] 一般會員：進 #admin/admins 被擋（看不到名單）、側欄沒有管理區", not a["list"] and "不是管理者" in a["txt"] and not a["side"], a)
+    c.close()
+
+    # ② 擁有者：可拖曳；管理權限頁：自己那列標擁有者、沒有移除鈕；有「＋ 新增管理者」
+    co, po = ctx_as(OWNER)
+    drag_check(po, "擁有者", True)
+    a = admin_page(po)
+    ok(f"★ [{T}] 擁有者：管理權限頁列出擁有者、那一列沒有移除鈕、有「＋ 新增管理者」", a["list"] and a["rows"] == [[OWNER, True, False]] and a["add"], a)
+    ok(f"[{T}] 擁有者：側欄「管理區」下有「管理權限」子項", po.locator("#admTabAdmins").count() == 1)
+    po.click("#aaAdd"); po.fill("#aaMail", "carol@example.com"); po.click("#aaNext")
+    wait_until(po, "() => !!document.querySelector('#aaGo')", 3000)
+    warn = po.inner_text("#subDlg .box")
+    ok(f"★ [{T}] 新增確認框寫清楚「此人將能修改全站」", "此人將能修改全站" in warn and "carol@example.com" in warn, warn[:120])
+    if shots:
+        po.screenshot(path=str(pathlib.Path(shots) / "2_新增管理者確認框.png"))
+    po.click("#aaGo")
+    ok(f"★ [{T}] 確定新增 → 名單多一列 carol、有移除鈕；稽核紀錄記一筆新增",
+       bool(wait_until(po, "() => [...document.querySelectorAll('#aaList tbody tr')].some(r => r.dataset.email === 'carol@example.com' && r.querySelector('[data-rmadm]')) && /新增管理者/.test(document.getElementById('aaLog').innerText)", 5000)),
+       po.inner_text("#admAdm")[:300])
+    if shots:
+        po.locator("#admAdm").screenshot(path=str(pathlib.Path(shots) / "1_管理權限頁.png"))
+
+    # ③ carol 重新整理：可進管理區、可拖曳、看不到新增鈕與移除鈕（一般管理者）
+    cc, pc = ctx_as("carol@example.com")
+    drag_check(pc, "新加的管理者", True)
+    a = admin_page(pc)
+    ok(f"★ [{T}] 新加的管理者：進得了管理權限頁，但看不到「＋ 新增管理者」、也沒有任何移除鈕", a["list"] and not a["add"] and not any(r[2] for r in a["rows"]), a)
+    r = pc.evaluate(f"async () => {{ const j = await TwAccount.call('/v1/admin/admins/add', {{ email: 'eve@example.com' }}); return j && j._s; }}")
+    ok(f"[{T}] 一般管理者硬打新增端點 → 403", r == 403, r)
+
+    # ④ 擁有者移除 carol → carol 下一次請求失去權限
+    po.click("#aaList button[data-rmadm='carol@example.com']")
+    wait_until(po, "() => !!document.querySelector('#aaRmGo')", 3000)
+    po.click("#aaRmGo")
+    ok(f"[{T}] 擁有者移除 carol → 名單只剩擁有者、稽核紀錄多一筆移除",
+       bool(wait_until(po, "() => document.querySelectorAll('#aaList tbody tr').length === 1 && /移除管理者/.test(document.getElementById('aaLog').innerText)", 5000)))
+    pc.reload(wait_until="domcontentloaded"); pc.wait_for_timeout(1500)
+    a = admin_page(pc)
+    ok(f"★ [{T}] 被移除的人重新整理 → 進不了管理區（權杖失效＝登出）", not a["list"] and not a["side"], a)
+    pc.goto(base + "#stock/2330", wait_until="domcontentloaded")
+    wait_until(pc, f"() => {{ const b = document.querySelector('{SEL}'); return b && b.children.length >= 3; }}", 15000); pc.wait_for_timeout(800)
+    ok(f"★ [{T}] 被移除的人：分頁列不再能拖曳", not pc.evaluate(f"() => document.querySelector('{SEL}').hasAttribute('data-tdrag')"))
+    for x in (cc, co):
+        x.close()
+    ok(f"[{T}] 全程沒有 pageerror", not errs, errs[:3])
+
+
 # ===================================================================== 分頁拖曳（2026-10-06，site/tabdrag.js）
 # Andy：「分頁具備拖曳移動位置功能，但不具備刪除功能」「所有分頁都具備拖曳移動調整位置功能」。
 # 每一頁真的用滑鼠按住第一顆分頁拖到第三顆上放開，驗：
@@ -22841,8 +23156,21 @@ def _td_item(sel, iid):
     return f'{sel} > [data-{_re.sub("([A-Z])", lambda m: "-" + m.group(1).lower(), k)}="{v}"]'
 
 
-def t_tabdrag_1006(pg, base):
+def t_tabdrag_1006(pg, base, b=None):
     tag = "分頁拖曳1006"
+    # ★ 2026-10-07（管理權限1007）：拖曳只限管理者 —— 這段改在「已登入管理者」的獨立環境裡跑（假 Worker 只回 /v1/me＝管理者）
+    if b is not None:
+        def _adm(route):
+            if route.request.method == "OPTIONS":
+                return route.fulfill(status=204, headers={"access-control-allow-origin": "*", "access-control-allow-headers": "*", "access-control-allow-methods": "POST"})
+            path = re.sub(r"^https?://[^/]+", "", route.request.url).split("?")[0]
+            out = {"user": {"email": "andy@example.com", "name": "管理者", "admin": True, "owner": True}} if path == "/v1/me" else {"notices": [], "plans": [], "feats": {}, "lims": {}, "ok": True}
+            route.fulfill(status=200, body=json.dumps(out), headers={"access-control-allow-origin": "*", "content-type": "application/json"})
+        _c = b.new_context(viewport={"width": 1440, "height": 950})
+        _c.add_init_script("window.TW_ACCOUNT_OVERRIDE = " + json.dumps({"api": ADM1007_API}) + "; try { localStorage.setItem('tw.acct.tok', 'tok-adm'); } catch (e) {}")
+        _c.route("**/fonts.googleapis.com/**", lambda r: r.abort())
+        _c.route(ADM1007_API + "/**", _adm)
+        pg = _c.new_page()
     pg.set_viewport_size({"width": 1440, "height": 950})
     for route, sel in TD_BARS:
         pg.goto(base + "#" + route)
@@ -24513,7 +24841,9 @@ SECTIONS = {
     # ★ 2026-10-05 Andy：選股探索頁（白話問題＋泡泡圖＋條件積木＋白話卡，docs/explore_page_spec.md）
     "選股策略1005":        lambda pg, b, base, code: t_explore_1005(pg, base),
     "無獨立提示框":        lambda pg, b, base, code: t_nobox_1006(pg, base),
-    "分頁拖曳1006":        lambda pg, b, base, code: t_tabdrag_1006(pg, base),
+    "分頁拖曳1006":        lambda pg, b, base, code: t_tabdrag_1006(pg, base, b),
+    # ★ 2026-10-07 Andy：「拖曳功能只有帳號可以使用…管理那邊需要新增一個誰擁有管理權限」
+    "管理權限1007":        lambda pg, b, base, code: t_admin_only_1007(b, base),
     # ★ 2026-09-28 設計 v4 第一批：三套主題 × 深淺、外觀設定面板、骨架數字、舊偏好相容、圖表共用規格
     "設計v4主題":          lambda pg, b, base, code: t_design_v4(b, base, code),
     "設計v4第二批2A":      lambda pg, b, base, code: t_design_v4_2a(b, base, code),
@@ -24551,6 +24881,8 @@ SECTIONS = {
     # ★ 2026-10-07 Andy：ETF 成分股分頁「左個股清單、右權重甜甜圈」；無股票成分顯示說明卡
     "ETF成分股1007":       lambda pg, b, base, code: t_etf_hold_1007(pg, b, base),
     "ETF報酬比較1006":     lambda pg, b, base, code: t_etf_ret_1006(pg, b, base),
+    # ★ 2026-10-07 Andy：ETF「現金流試算」（年領／月領目標、單檔張數、2～4 檔月月配組合）＋配息型依頻率分組（⚠ 一律 --workers 1）
+    "ETF現金流1007":       lambda pg, b, base, code: t_etf_income_1007(pg, b, base),
     # ★ 2026-10-05（晚）Andy：財報日曆（總覽下方的大分頁；月曆＋右側分析面板＋大公司時間表＋權限；⚠ 一律 --workers 1）
     "財報日曆1005":        lambda pg, b, base, code: t_earnings_1005(pg, b, base),
     "財經日曆1006":        lambda pg, b, base, code: t_cal_1006(pg, b, base),
@@ -48437,7 +48769,7 @@ def _sub_ctx(b, who, width=1440, feats=None, notices=None, lims=None, dq=None):
             st["notices"] = [x for x in st["notices"] if x["id"] != n["id"]] + [n]
             out = {"ok": True, "notice": n}
         elif path == "/v1/admin/feedback/list":
-            out = {"feedback": [{"id": "f1", "contact": "a@b.co", "cat": "bug", "body": "圖表空白", "url": "https://x/#stock/2330", "ua": "UA", "created": 1759650000000, "status": "new", "member": True, "name": "王小明"}],
+            out = {"feedback": [{"id": "f1", "contact": "a@b.co", "cat": "bug", "body": "圖表空白", "url": "https://x/#stock/2330", "ua": "UA", "created": int(time.time() * 1000) - 3600000, "status": "new", "member": True, "name": "王小明"}],
                    "requests": [{"id": "r1", "email": "member@example.com", "contact": "member@example.com", "plan": "p399", "period": "year", "note": "", "created": 1759650000000, "status": "new", "name": "王小明"}]}
         elif path == "/v1/admin/feedback/set":
             out = {"ok": True}
@@ -49403,7 +49735,7 @@ def _fb1007_ctx(b, who, st, width=1440):
         elif path == "/v1/feedback":
             st["n"] += 1
             st["fb"].insert(0, {"id": f"f{st['n']}", "contact": body.get("contact", ""), "cat": body.get("cat"), "body": body.get("body"), "url": body.get("url", ""),
-                                "ua": body.get("ua", ""), "created": 1759800000000 + st["n"], "status": "new", "member": bool(me), "name": me["name"] if me else None})
+                                "ua": body.get("ua", ""), "created": int(time.time() * 1000) + st["n"], "status": "new", "sub": body.get("sub", ""), "member": bool(me), "name": me["name"] if me else None})
             out = {"ok": True, "id": f"f{st['n']}"}
         elif path == "/v1/notices":
             out = {"notices": []}
@@ -49463,11 +49795,23 @@ def t_support_1007(b, base, code):
     ok(f"{T}：全站沒有任何 mailto: 連結", pg.evaluate("() => document.querySelectorAll('a[href^=\"mailto:\"]').length") == 0)
     pg.click("#supPanel .sptabs button[data-t='fb']")
     ok(f"{T}：訪客也能送（送出鈕可按）", not pg.evaluate("() => document.getElementById('fbSend').disabled"))
-    pg.select_option("#fbCat", "bug"); pg.fill("#fbBody", "1007 驗收：K 線空白"); pg.fill("#fbMail", "guest@example.com")
+    # 1007 v2：兩層類別 —— 先選大類，細項選單跟著換；「其他」沒有細項就收起來
+    pg.select_option("#fbCat", "ask")
+    ok(f"{T}：大類選「資料疑問」→ 細項選單換成 數字怎麼算／資料來源與更新時間／名詞看不懂",
+       pg.evaluate("() => [...document.querySelectorAll('#fbSub option')].map(o => o.value).join(',')") == ",calc,source,term")
+    pg.select_option("#fbCat", "other")
+    ok(f"{T}：大類選「其他」→ 細項選單收起來", pg.evaluate("() => document.getElementById('fbSubWrap').hidden"))
+    pg.select_option("#fbCat", "bug")
+    ok(f"{T}：大類選回「錯誤回報」→ 細項有 5 項＋不選、選單又出現",
+       not pg.evaluate("() => document.getElementById('fbSubWrap').hidden") and pg.locator("#fbSub option").count() == 6)
+    pg.select_option("#fbSub", "mobile")
+    if shots:
+        pg.locator("#supPanel").screenshot(path=str(pathlib.Path(shots) / "feedback_form_2level.png"))
+    pg.fill("#fbBody", "1007 驗收：K 線空白"); pg.fill("#fbMail", "guest@example.com")
     pg.click("#fbSend")
-    ok(f"{T}：送出 → 顯示已收到、假 Worker 真的存了一筆（訪客、bug、網址含 #overview）",
+    ok(f"{T}：送出 → 顯示已收到、假 Worker 真的存了一筆（訪客、bug／mobile、網址含 #overview）",
        bool(wait_until(pg, "() => /已收到/.test(document.getElementById('fbMsg').textContent)", 4000))
-       and len(st["fb"]) == 1 and st["fb"][0]["cat"] == "bug" and not st["fb"][0]["member"] and "#overview" in st["fb"][0]["url"], st["fb"])
+       and len(st["fb"]) == 1 and st["fb"][0]["cat"] == "bug" and st["fb"][0]["sub"] == "mobile" and not st["fb"][0]["member"] and "#overview" in st["fb"][0]["url"], st["fb"])
     pg.goto(base + "#admin/feedback", wait_until="domcontentloaded")
     ok(f"{T}：訪客進 #admin/feedback → 被擋（沒有列表）",
        bool(wait_until(pg, "() => !!document.getElementById('fbDenied')", 6000)) and pg.locator("#fbTable").count() == 0
@@ -49482,7 +49826,14 @@ def t_support_1007(b, base, code):
        and pg.locator("#fbTable").count() == 0 and pg.locator("#admTabFeedback").count() == 0)
     c.close()
     # ③ 管理者：側欄「意見反饋」＋未讀紅點 → 列表 → 篩選 → 標已處理 → 刪除
-    st["fb"].append({"id": "old1", "contact": "", "cat": "idea", "body": "舊建議", "url": "", "ua": "", "created": 1759700000000, "status": "handled", "member": True, "name": "王小明"})
+    import datetime as _dt
+    now_ms = int(time.time() * 1000)
+    tpe = lambda ms: (_dt.datetime.utcfromtimestamp(ms / 1000) + _dt.timedelta(hours=8)).strftime("%Y-%m-%d")
+    t_old1, t_leg, t_far = now_ms - 2 * 86400000, now_ms - 20 * 86400000, now_ms - 60 * 86400000
+    st["fb"].append({"id": "old1", "contact": "", "cat": "idea", "sub": "", "body": "舊建議", "url": "", "ua": "", "created": t_old1, "status": "handled", "member": True, "name": "王小明"})
+    # 改版前存的舊類別「付款問題」（cat=pay、沒有 sub 欄）→ 要顯示在「帳號與付費」大類；60 天前那筆只在近 90 天／自訂起訖看得到
+    st["fb"].append({"id": "leg1", "contact": "", "cat": "pay", "body": "舊版付款問題", "url": "", "ua": "", "created": t_leg, "status": "handled", "member": False, "name": None})
+    st["fb"].append({"id": "far1", "contact": "", "cat": "ask", "sub": "calc", "body": "六十天前的疑問", "url": "", "ua": "", "created": t_far, "status": "handled", "member": False, "name": None})
     c = _fb1007_ctx(b, "admin", st)
     pg = c.new_page(); pg.on("pageerror", lambda e: errs.append(str(e)))
     pg.goto(base + "#overview", wait_until="domcontentloaded")
@@ -49490,14 +49841,70 @@ def t_support_1007(b, base, code):
        bool(wait_until(pg, "() => { const t = document.getElementById('admTabFeedback'); const d = t && t.querySelector('.fbdot'); return !!d && d.textContent === '1'; }", 10000)),
        pg.evaluate("() => (document.getElementById('admTabFeedback') || {}).outerHTML"))
     pg.click("#admTabFeedback")
-    ok(f"{T}：點側欄「意見反饋」→ 到 #admin/feedback、列出 2 筆（訪客那筆排第一、未讀）",
-       bool(wait_until(pg, "() => location.hash === '#admin/feedback' && document.querySelectorAll('#fbTable tbody tr').length === 2", 8000))
+    ok(f"{T}：側欄「意見反饋」有對話泡泡圖示（svg 有畫東西、跟其他子項同大小）",
+       pg.evaluate("() => { const s = document.querySelector('#admTabFeedback svg'), o = document.querySelector('#admTabTraffic svg'); if (!s || !o) return false; const a = s.getBoundingClientRect(), b = o.getBoundingClientRect(); return s.querySelectorAll('path').length >= 2 && Math.abs(a.width - b.width) < 1 && a.width >= 14; }"),
+       pg.evaluate("() => (document.querySelector('#admTabFeedback svg') || {}).outerHTML"))
+    ok(f"{T}：點側欄「意見反饋」→ 到 #admin/feedback、預設近 30 天列出 3 筆（60 天前那筆不在、訪客那筆排第一、未讀）",
+       bool(wait_until(pg, "() => location.hash === '#admin/feedback' && document.querySelectorAll('#fbTable tbody tr').length === 3", 8000))
+       and pg.locator("#fbTable tr[data-id='far1']").count() == 0
        and pg.evaluate("() => { const r = document.querySelector('#fbTable tbody tr'); return /1007 驗收/.test(r.textContent) && r.classList.contains('unread') && /guest@example.com/.test(r.textContent) && /#overview/.test(r.textContent); }"))
     ok(f"{T}：聯絡 email 是 Gmail 回覆連結（不是 mailto）",
        (pg.get_attribute("#fbTable tbody tr:first-child a[data-gmail]", "href") or "").startswith(GM + "guest%40example.com"))
+    kt = lambda: pg.evaluate("() => +document.getElementById('fbKTot').textContent")
+    rows = lambda: pg.evaluate("() => [...document.querySelectorAll('#fbTable tbody tr')].map(r => r.dataset.id).sort().join(',')")
+    ok(f"{T}：舊類別「付款問題」顯示在「帳號與付費」大類（徽章＋細項付款與發票＋標舊類別）",
+       pg.evaluate("() => { const r = document.querySelector(\"#fbTable tr[data-id='leg1']\"); return !!r && r.dataset.cat === 'acct' && /帳號與付費/.test(r.querySelector('.fbcat').textContent) && /付款與發票/.test(r.textContent) && /舊類別：付款問題/.test(r.textContent); }"))
+    ok(f"{T}：四張小卡（近 30 天）：總則數 3、未讀 1、已處理率 66.7%、最常見細項＝手機版問題",
+       kt() == 3 and pg.inner_text("#fbKNew") == "1" and pg.inner_text("#fbKDone") == "66.7%" and "手機版問題" in pg.inner_text("#fbKTop"),
+       pg.inner_text("#fbKpi"))
+    ok(f"{T}：甜甜圈有 3 塊（錯誤回報／功能建議／帳號與付費）、每日直條 30 根",
+       pg.locator("#fbDonut .fbseg").count() == 3 and pg.locator("#fbDayBars .vb").count() == 30)
+    # 扇區是環形，bbox 中心常落在中空處 → 取外徑那條弧的中點（用 getScreenCTM 換成螢幕座標）再滑過／點擊
+    def seg_pt(cat):
+        return pg.evaluate("""(c) => { const s = document.querySelector(`#fbDonut .fbseg[data-cat="${c}"]`), L = s.getTotalLength();
+          const pt = s.getPointAtLength(L * 0.2), m = s.getScreenCTM(); return [pt.x * m.a + pt.y * m.c + m.e, pt.x * m.b + pt.y * m.d + m.f]; }""", cat)
+    def seg_click(cat):
+        x, y = seg_pt(cat); pg.mouse.click(x, y)
+    pg.mouse.move(*seg_pt("idea"))
+    ok(f"{T}：滑過甜甜圈「功能建議」→ 中心字換成「功能建議／33.3%」",
+       bool(wait_until(pg, "() => document.getElementById('fbDc1').textContent === '功能建議' && document.getElementById('fbDc2').textContent === '33.3%'", 2000)))
+    pg.mouse.move(5, 5)
     if shots:
         pg.wait_for_timeout(700)      # 等換頁淡入動畫結束
-        pg.screenshot(path=str(pathlib.Path(shots) / "feedback_admin.png"))
+        pg.screenshot(path=str(pathlib.Path(shots) / "feedback_admin.png"), full_page=True)
+    # 期間：近 7 天 → 只剩 f1、old1；統計跟著變
+    pg.select_option("#fbRange .rpsel", "7")
+    ok(f"{T}：期間切「近 7 天」→ 列表剩 2 筆、總則數 2、直條 7 根、日期框同步",
+       bool(wait_until(pg, "() => document.querySelectorAll('#fbTable tbody tr').length === 2", 3000)) and rows() == "f1,old1" and kt() == 2
+       and pg.locator("#fbDayBars .vb").count() == 7 and pg.input_value("#fbRange .rpto-in") == tpe(now_ms), rows())
+    # 自訂起訖：起日往前拉到 70 天前 → 4 筆（含 60 天前那筆）、下拉自動跳「自訂起訖」
+    pg.fill("#fbRange .rpfrom", tpe(now_ms - 70 * 86400000)); pg.dispatch_event("#fbRange .rpfrom", "change")
+    ok(f"{T}：自訂起日 70 天前 → 列表 4 筆（含 60 天前）、總則數 4、下拉＝自訂起訖、直條 71 根",
+       bool(wait_until(pg, "() => document.querySelectorAll('#fbTable tbody tr').length === 4", 3000)) and kt() == 4
+       and pg.input_value("#fbRange .rpsel") == "custom" and pg.locator("#fbDayBars .vb").count() == 71, [rows(), kt()])
+    pg.select_option("#fbRange .rpsel", "30")
+    wait_until(pg, "() => document.querySelectorAll('#fbTable tbody tr').length === 3", 3000)
+    # 點甜甜圈扇區 → 列表只剩該類；再點取消
+    seg_click("acct")
+    ok(f"{T}：點甜甜圈「帳號與付費」→ 列表只剩舊付款那筆、扇區保持強調、出現篩選膠囊",
+       bool(wait_until(pg, "() => document.querySelectorAll('#fbTable tbody tr').length === 1", 3000)) and rows() == "leg1"
+       and pg.locator("#fbDonut .fbseg.sel[data-cat='acct']").count() == 1 and pg.locator(".fbchip[data-clr='cat']").count() == 1)
+    seg_click("acct")
+    ok(f"{T}：再點同一塊 → 取消篩選，回 3 筆", bool(wait_until(pg, "() => document.querySelectorAll('#fbTable tbody tr').length === 3", 3000)))
+    # 細項橫條（D 款）：點「手機版問題」→ 只剩 f1；按膠囊 × 取消
+    pg.click("#fbSubBars .hb[data-cat='bug'][data-sub='mobile']")
+    ok(f"{T}：點細項橫條「手機版問題」→ 列表只剩那一筆、細項下拉同步",
+       bool(wait_until(pg, "() => document.querySelectorAll('#fbTable tbody tr').length === 1", 3000)) and rows() == "f1" and pg.input_value("#fbFSub") == "mobile")
+    pg.click(".fbchip[data-clr='cat'] button")
+    ok(f"{T}：按膠囊 × → 取消，回 3 筆", bool(wait_until(pg, "() => document.querySelectorAll('#fbTable tbody tr').length === 3", 3000)))
+    # 每日直條（C 款）：點兩天前那根 → 列表與小卡只算那天
+    d_old = tpe(t_old1)
+    pg.click(f"#fbDayBars .vb[data-day='{d_old}']")
+    ok(f"{T}：點直條 {d_old} → 列表只剩那天的「舊建議」、總則數 1、那根換強調色",
+       bool(wait_until(pg, "() => document.querySelectorAll('#fbTable tbody tr').length === 1", 3000)) and rows() == "old1" and kt() == 1
+       and pg.locator(f"#fbDayBars .vb.sel[data-day='{d_old}']").count() == 1)
+    pg.click(f"#fbDayBars .vb[data-day='{d_old}']")
+    ok(f"{T}：再點同一根 → 取消，回 3 筆", bool(wait_until(pg, "() => document.querySelectorAll('#fbTable tbody tr').length === 3", 3000)))
     pg.select_option("#fbFSt", "new")
     ok(f"{T}：篩選狀態＝未讀 → 只剩 1 筆", bool(wait_until(pg, "() => document.querySelectorAll('#fbTable tbody tr').length === 1", 3000)))
     pg.select_option("#fbFSt", ""); pg.select_option("#fbFCat", "idea")
@@ -49510,11 +49917,17 @@ def t_support_1007(b, base, code):
     pg.once("dialog", lambda d: d.dismiss())
     pg.click("#fbTable tr[data-id='f1'] button[data-del]")
     pg.wait_for_timeout(400)
-    ok(f"{T}：刪除按「取消」→ 不刪", pg.locator("#fbTable tbody tr").count() == 2 and len(st["fb"]) == 2)
+    ok(f"{T}：刪除按「取消」→ 不刪", pg.locator("#fbTable tbody tr").count() == 3 and len(st["fb"]) == 4)
     pg.once("dialog", lambda d: d.accept())
     pg.click("#fbTable tr[data-id='f1'] button[data-del]")
-    ok(f"{T}：刪除按「確定」→ 列表剩 1 筆、伺服器那筆真的不見",
-       bool(wait_until(pg, "() => document.querySelectorAll('#fbTable tbody tr').length === 1 && !document.querySelector(\"#fbTable tr[data-id='f1']\")", 5000)) and len(st["fb"]) == 1)
+    ok(f"{T}：刪除按「確定」→ 列表剩 2 筆、伺服器那筆真的不見",
+       bool(wait_until(pg, "() => document.querySelectorAll('#fbTable tbody tr').length === 2 && !document.querySelector(\"#fbTable tr[data-id='f1']\")", 5000)) and len(st["fb"]) == 3)
+    pg.set_viewport_size({"width": 390, "height": 844})
+    pg.wait_for_timeout(400)
+    sw = pg.evaluate("() => document.documentElement.scrollWidth - innerWidth")
+    ok(f"{T}：390 手機寬管理頁沒有橫向捲軸、甜甜圈與直條都在", sw <= 1 and pg.locator("#fbDonut").count() == 1 and pg.locator("#fbDayBars").count() == 1, sw)
+    if shots:
+        pg.screenshot(path=str(pathlib.Path(shots) / "feedback_admin_390.png"), full_page=True)
     c.close()
     # ④ 法律頁側欄「聯絡客服」與條款內文信箱
     c = _fb1007_ctx(b, None, st)

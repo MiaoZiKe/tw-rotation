@@ -662,7 +662,19 @@ export class Hub {
    隱私（同檔頭的保存規則）：反饋與申請保存 13 個月、刪除帳號時一併刪除；不送任何第三方；不進 repo。
    ============================================================================ */
 const SUB_KEEP_MONTHS = 13;
-const FB_CATS = ['bug', 'idea', 'pay', 'other'];
+/* 1007 v2（Andy：「統計意見類別，類別需要由你幫我規劃級分類」）：兩層類別，規劃與理由在 docs/feedback_categories.md。
+   大類沿用舊鍵（bug／idea／other）讓舊資料不用搬；舊的 'pay'（付款問題）收進「帳號與付費」大類、小類＝付款與發票。
+   cat 欄存大類、新加的 sub 欄存小類（可空）。前端 support.js 的 FB_TREE 要跟這張表一致。*/
+const FB_TREE = {
+  bug: ['data', 'ui', 'func', 'slow', 'mobile'],
+  idea: ['data', 'chart', 'ux', 'watch'],
+  ask: ['calc', 'source', 'term'],
+  acct: ['login', 'plan', 'pay', 'refund'],
+  legal: ['content', 'copyright', 'privacy'],
+  other: [],
+};
+const FB_CATS = Object.keys(FB_TREE);
+const FB_LEGACY = { pay: ['acct', 'pay'] };   // 舊類別 → [大類, 小類]
 const NOTICE_KINDS = ['event', 'feature', 'maint', 'plan'];
 const NOTICE_AUD_RE = /^(all|guest|member|paid|plan:[a-z0-9_-]{1,20})$/;
 const QUOTA_K_RE = /^quota\.[a-z_]{1,24}$/;
@@ -674,6 +686,8 @@ Hub.prototype.subInit = function () {
   if (this._subOk) return;
   this.q('CREATE TABLE IF NOT EXISTS sub_requests (id TEXT PRIMARY KEY, uid TEXT, email TEXT, contact TEXT, plan TEXT, period TEXT, note TEXT, created INTEGER, status TEXT)');
   this.q('CREATE TABLE IF NOT EXISTS feedback (id TEXT PRIMARY KEY, uid TEXT, contact TEXT, cat TEXT, body TEXT, url TEXT, ua TEXT, created INTEGER, status TEXT)');
+  // 1007 v2：小類欄。舊表沒有就補（ALTER 重跑會報錯，先看 table_info）；舊資料 sub 為 NULL，前端依 FB_LEGACY 對應
+  if (!this.q('PRAGMA table_info(feedback)').some((c) => c.name === 'sub')) this.q('ALTER TABLE feedback ADD COLUMN sub TEXT');
   this.q('CREATE TABLE IF NOT EXISTS quota_hits (uid TEXT, day TEXT, k TEXT, key TEXT, PRIMARY KEY (uid, day, k, key))');
   this.q('CREATE TABLE IF NOT EXISTS notices (id TEXT PRIMARY KEY, title TEXT, body TEXT, kind TEXT, audience TEXT, t0 INTEGER, t1 INTEGER, pinned INTEGER, created INTEGER, updated INTEGER)');
   this.q('CREATE TABLE IF NOT EXISTS notice_reads (email TEXT, id TEXT, at INTEGER, PRIMARY KEY (email, id))');
@@ -723,7 +737,10 @@ Hub.prototype.subRoutes = {
   '/v1/feedback': async function (req, b) {
     if (!this.rateOk(req)) return this.json(req, { error: 'rate' }, 429);
     const v = await this.auth(req, b);
-    const cat = FB_CATS.includes(b.cat) ? b.cat : null;
+    const lg = FB_LEGACY[b.cat];
+    const cat = lg ? lg[0] : FB_CATS.includes(b.cat) ? b.cat : null;
+    const sub = lg ? lg[1] : b.sub ? String(b.sub) : '';
+    if (cat && sub && !FB_TREE[cat].includes(sub)) return this.json(req, { error: 'bad_input' }, 400);
     const body = subClean(b.body, 2000);
     if (!cat || body.length < 2) return this.json(req, { error: 'bad_input' }, 400);
     let contact = '';
@@ -741,8 +758,8 @@ Hub.prototype.subRoutes = {
       if (!r || r[0] !== hr) { this.fbIp.set(ip, [hr, 1]); if (this.fbIp.size > 5000) this.fbIp.clear(); } else r[1]++;
     }
     const id = rand(9);
-    this.q('INSERT INTO feedback (id, uid, contact, cat, body, url, ua, created, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
-      id, v ? v.user.uid : '', contact, cat, body, url, subClean(b.ua, 300), this.now(), 'new');
+    this.q('INSERT INTO feedback (id, uid, contact, cat, sub, body, url, ua, created, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+      id, v ? v.user.uid : '', contact, cat, sub, body, url, subClean(b.ua, 300), this.now(), 'new');
     return this.json(req, { ok: true, id });
   },
   '/v1/quota/hit': async function (req, b) {
@@ -806,9 +823,10 @@ Hub.prototype.subRoutes = {
   },
   '/v1/admin/feedback/list': async function (req, b) {
     if (!(await this.admin(req, b))) return this.json(req, { error: 'forbidden' }, 403);
-    const fb = this.q('SELECT f.id, f.uid, f.contact, f.cat, f.body, f.url, f.ua, f.created, f.status, u.name FROM feedback f LEFT JOIN users u ON u.uid = f.uid ORDER BY f.created DESC LIMIT 300');
+    const fb = this.q('SELECT f.id, f.uid, f.contact, f.cat, f.sub, f.body, f.url, f.ua, f.created, f.status, u.name FROM feedback f LEFT JOIN users u ON u.uid = f.uid ORDER BY f.created DESC LIMIT 2000');
     const subs = this.q('SELECT s.id, s.email, s.contact, s.plan, s.period, s.note, s.created, s.status, u.name FROM sub_requests s LEFT JOIN users u ON u.uid = s.uid ORDER BY s.created DESC LIMIT 300');
-    return this.json(req, { feedback: fb.map(({ uid, ...r }) => ({ ...r, member: !!uid })), requests: subs });
+    // 舊資料（cat='pay'、sub 空）在回傳時就換成新兩層，前端統計不必再認舊鍵（資料庫原樣保留，不改寫）
+    return this.json(req, { feedback: fb.map(({ uid, ...r }) => { const lg = FB_LEGACY[r.cat]; return { ...r, cat: lg ? lg[0] : r.cat, sub: lg ? lg[1] : r.sub || '', legacy: lg ? r.cat : undefined, member: !!uid }; }), requests: subs });
   },
   /* 1007：管理者刪除單筆反饋（垃圾訊息、測試留言）。只刪 feedback，不碰訂閱申請。*/
   '/v1/admin/feedback/del': async function (req, b) {
@@ -2036,3 +2054,81 @@ Hub.prototype.adminPlansPut = async function (req, b) {
 const presOrigExpInit = Hub.prototype.expInit;
 Hub.prototype.expInit = function () { presOrigExpInit.call(this); this.presInit(); };
 /* ============================================================================ 方案卡呈現區塊結束 */
+
+/* ============================================================================ 管理權限區塊（2026-10-07，docs/admin_only_audit.md）
+   Andy（10-07 14:50）：「任何可更改功能都只有我這帳號可以，其他帳號我沒有新增管理者情況下不行」
+                        「管理那邊需要新增一個誰擁有管理權限」。
+   ① 擁有者＝ADMIN_EMAILS（Worker Secret，沿用既有設定；email 不寫進 public repo）。永遠是管理者、不能被移除或降級。
+   ② 其他管理者＝擁有者在 #admin/admins 加的人，存在 admin_log（append-only：每次新增／移除都是新的一列，舊列不改不刪；
+      某個 email 目前是不是管理者＝它最新一列是 add 還是 del）。這張表同時就是稽核紀錄。
+   ③ 只有擁有者能新增／移除管理者（一般管理者不行）：否則任何一個被加進來的人都能再加人、甚至互相拔掉，
+      權限會在擁有者不知情的情況下擴散。代價：擁有者不在時沒人能加人 —— 對一人經營的站可以接受。
+   ④ 移除時把那個人的 users.tv + 1：舊權杖下一次請求就失效（重新登入後是一般會員）。
+      就算不換 tv，isAdmin() 每次請求都即時查這張表，所以被移除的人「下一個請求」就已經不是管理者。
+   ⑤ 伺服器端總閘：所有 POST /v1/admin/*（匯出／還原那兩條另有備份權杖規則，除外）在進到各自的處理函式之前，
+      先驗「權杖有效且是管理者」，不是就 403。各端點原本自己的檢查照留（兩道）—— 以後新增 admin 端點忘了檢查也擋得住。
+   ============================================================================ */
+const ADM_EMAIL_RE = /^[^\s@,;]{1,64}@[^\s@,;]{1,190}\.[^\s@,;]{2,24}$/;
+Hub.prototype.admInit = function () {
+  if (this._admInit) return;
+  this._admInit = true;
+  this.q('CREATE TABLE IF NOT EXISTS admin_log (id INTEGER PRIMARY KEY AUTOINCREMENT, ts INTEGER, act TEXT, email TEXT, by TEXT)');
+  this.q('CREATE INDEX IF NOT EXISTS admin_log_email ON admin_log (email, id)');
+};
+Hub.prototype.owners = function () { return String(this.env.ADMIN_EMAILS || '').toLowerCase().split(/[\s,;]+/).filter(Boolean); };
+Hub.prototype.isOwner = function (u) { return !!u && !!u.email && this.owners().includes(String(u.email).toLowerCase()); };
+/* 目前的「加進來的管理者」：每個 email 取最新一列，是 add 的才算（附加入時間、加入者＝那一列）*/
+Hub.prototype.extraAdmins = function () {
+  this.admInit();
+  const rows = this.q('SELECT a.email, a.ts, a.by, a.act FROM admin_log a JOIN (SELECT email, MAX(id) AS id FROM admin_log GROUP BY email) m ON m.id = a.id ORDER BY a.id');
+  const own = this.owners();
+  return rows.filter((r) => r.act === 'add' && !own.includes(r.email)).map((r) => ({ email: r.email, added: r.ts, by: r.by }));
+};
+Hub.prototype.admins = function () { return [...new Set([...this.owners(), ...this.extraAdmins().map((r) => r.email)])]; };
+const admOrigPubUser = Hub.prototype.pubUser;
+Hub.prototype.pubUser = function (u) { return { ...admOrigPubUser.call(this, u), owner: this.isOwner(u) }; };
+Object.assign(Hub.prototype.subRoutes, {
+  '/v1/admin/admins/list': async function (req, b) {
+    const v = await this.admin(req, b);
+    if (!v) return this.json(req, { error: 'forbidden' }, 403);
+    this.admInit();
+    const log = this.q('SELECT id, ts, act, email, by FROM admin_log ORDER BY id DESC LIMIT 200');
+    return this.json(req, { owners: this.owners().map((email) => ({ email, owner: true })), admins: this.extraAdmins(), log, me: { email: v.user.email, owner: this.isOwner(v.user) } });
+  },
+  '/v1/admin/admins/add': async function (req, b) {
+    const v = await this.admin(req, b);
+    if (!v) return this.json(req, { error: 'forbidden' }, 403);
+    if (!this.isOwner(v.user)) return this.json(req, { error: 'owner_only' }, 403);
+    const email = String(b.email || '').trim().toLowerCase();
+    if (!ADM_EMAIL_RE.test(email)) return this.json(req, { error: 'bad_email' }, 400);
+    if (this.admins().includes(email)) return this.json(req, { error: 'exists' }, 409);
+    this.admInit();
+    this.q('INSERT INTO admin_log (ts, act, email, by) VALUES (?, ?, ?, ?)', this.now(), 'add', email, String(v.user.email || '').toLowerCase());
+    return this.json(req, { ok: true, admins: this.extraAdmins() });
+  },
+  '/v1/admin/admins/del': async function (req, b) {
+    const v = await this.admin(req, b);
+    if (!v) return this.json(req, { error: 'forbidden' }, 403);
+    if (!this.isOwner(v.user)) return this.json(req, { error: 'owner_only' }, 403);
+    const email = String(b.email || '').trim().toLowerCase();
+    if (this.owners().includes(email)) return this.json(req, { error: 'owner' }, 409);
+    if (!this.extraAdmins().some((r) => r.email === email)) return this.json(req, { error: 'not_admin' }, 404);
+    this.q('INSERT INTO admin_log (ts, act, email, by) VALUES (?, ?, ?, ?)', this.now(), 'del', email, String(v.user.email || '').toLowerCase());
+    this.q('UPDATE users SET tv = tv + 1 WHERE lower(email) = ?', email);    // 舊權杖下一次請求即失效
+    return this.json(req, { ok: true, admins: this.extraAdmins() });
+  },
+});
+const admOrigFetch = Hub.prototype.fetch;
+Hub.prototype.fetch = async function (req) {
+  const p = new URL(req.url).pathname;
+  if (req.method === 'POST' && p.startsWith('/v1/admin/') && p !== '/v1/admin/export' && p !== '/v1/admin/import') {
+    let b = {};
+    try { const raw = await req.clone().text(); if (raw.length <= 16384) b = JSON.parse(raw || '{}') || {}; } catch (e) { b = {}; }
+    if (!(b && typeof b === 'object' && !Array.isArray(b) && (await this.admin(req, b)))) {
+      if (!this.originOk(req.headers.get('Origin'))) return this.json(req, { error: 'origin' }, 403);
+      return this.json(req, { error: 'forbidden' }, 403);
+    }
+  }
+  return admOrigFetch.call(this, req);
+};
+/* ============================================================================ 管理權限區塊結束 */
