@@ -378,14 +378,17 @@ def parse_cathay(etf: str, day: str | None, payload: dict) -> list[dict]:
 
 
 def cathay_funds() -> dict[str, str]:
-    """{ETF 代號: fundCode}。清單 API 分頁（41 檔／5 頁），分頁參數名以實測為準；拿不到的頁就算了，記 log。"""
+    """{ETF 代號: fundCode}。清單 API 分頁，參數名照官網前端（CurrentPage／PerPageCount，2026-10-07 讀 main.js 確認）。"""
     out: dict[str, str] = {}
-    for params in ({},) + tuple({"pageIndex": i, "pageSize": 100} for i in (1,)) + tuple({"page": i} for i in range(2, 7)):
-        lst = _req("GET", CATHAY_LIST, params=params or None, retries=1)
-        for r in (lst or {}).get("result") or []:
+    for page in range(1, 6):
+        lst = _req("GET", CATHAY_LIST, params={"FundType": "", "Keyword": "", "CurrentPage": page, "PerPageCount": 100}, retries=1)
+        res = (lst or {}).get("result") or []
+        for r in res:
             c, f = str(r.get("stockCode") or "").strip(), str(r.get("fundCode") or "").strip()
             if c and f:
                 out[c] = f
+        if len(out) >= int((lst or {}).get("totalCount") or 0) or not res:
+            break
     return out
 
 
