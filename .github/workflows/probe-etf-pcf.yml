@@ -1,0 +1,28 @@
+name: ETF 成分股來源探測
+
+# 只手動觸發。Claude 容器出口被擋，投信官網的 PCF／持股明細端點只有 Actions 打得到；
+# 這支只印 log（HTTP 碼、前幾百字、HTML／JS 內找到的 api 網址），不寫任何檔、不 commit。
+on:
+  workflow_dispatch:
+    inputs:
+      extra:
+        description: "額外要探測的網址（空白分隔；開頭加 --only-extra 只跑這些）"
+        type: string
+        default: ""
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install requests pandas openpyxl xlrd
+      - name: 探測
+        env:
+          EXTRA: ${{ inputs.extra }}
+        run: python scripts/probe_etf_pcf.py $EXTRA
