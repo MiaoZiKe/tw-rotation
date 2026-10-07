@@ -1021,7 +1021,8 @@
     e.close = close;
     /* 合併（2026-09-24）：main 那批把「怎麼看 ?」鋪到全站每張卡片上 —— 按某張卡的說明鈕
        不該順手把別的面板（例如題材細節）當成「點外面」關掉；說明盒自己（.howtxt）照舊點外面就關。*/
-    e.ignore = (o.ignore || []).concat(['#lgBanner', '#lgTour'],
+    /* #twTour（site/tour.js 逐步導覽）：按「下一步」不算點在面板外面 —— 不然導覽正在框的零件小卡、抽屜會被自己的按鈕關掉 */
+    e.ignore = (o.ignore || []).concat(['#lgBanner', '#lgTour', '#twTour'],
       el.classList && el.classList.contains('howtxt') ? [] : ['.howbtn', '.howtxt']);
     e.isOpen = o.isOpen || (() => el.isConnected && !el.hidden && el.getClientRects().length > 0);
     if (!e.mo && typeof MutationObserver !== 'undefined') {
