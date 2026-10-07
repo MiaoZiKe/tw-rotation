@@ -47657,13 +47657,44 @@ def t_sub_1005(b, base, code):
        pg.evaluate("() => { const r = document.querySelector(\"#prTable tr[data-f='stock.page']\"); return r ? [...r.cells].slice(1).map(c => c.textContent).join('|') : ''; }") == "每日 1 次|每日 20 次|不限")
     ok(f"{T}：全部方案都一樣的功能收成最後一行「其他基礎功能（N 項）全部方案皆可用」", "其他基礎功能" in tb["base"] and "全部方案皆可用" in tb["base"], tb["base"])
     shot(pg, "1b_pricing_compare", "#prCmp")
-    # 訂閱申請
+    # pricing-v2 第二版（Andy 10-07：「上方的訂閱與下方的表格結合在一起的版本」）：頁上切換「卡片＋表格｜合併表」
+    ok(f"{T}：版面切換預設「卡片＋表格」", pg.evaluate("() => document.querySelector('#prLayout button.on').dataset.lay") == "cards")
+    pg.click("#prLayout button[data-lay='merged']")
+    mg = pg.evaluate("""() => { const ths = [...document.querySelectorAll('#prMerged #prTable thead th[data-plan]')];
+        return { ok: !!document.getElementById('prMerged') && !document.getElementById('prCards') && !document.getElementById('prCmp'),
+          ids: ths.map(t => t.dataset.plan).join(','), hot: (ths.find(t => t.classList.contains('hot')) || {}).dataset?.plan || '',
+          tag: (ths[1].querySelector('.prtag') || {}).textContent || '', btn: ths.map(t => !!t.querySelector('.prgo') && !!t.querySelector('.prprice')),
+          hotCells: document.querySelectorAll("#prMerged tbody td.hot").length, rows: document.querySelectorAll('#prMerged tbody tr[data-f]').length }; }""")
+    ok(f"{T}：切「合併表」→ 卡片與下方表格換成一張表，方案（名稱＋價格＋行動鈕）當欄頭，399 欄整欄強調、頂端「最受歡迎」",
+       mg["ok"] and mg["ids"] == "free,p399,p799" and mg["hot"] == "p399" and mg["tag"] == "★ 最受歡迎" and all(mg["btn"]) and mg["hotCells"] == mg["rows"] and mg["rows"] >= 2, mg)
+    pg.click("#prPeriod button[data-per='year']")
+    ok(f"{T}：合併表裡切年繳 → 799 欄頭價格也換（NT$666／月）", bool(wait_until(pg, "() => document.querySelector(\"#prMerged th[data-plan='p799'] .prprice\").textContent.replace(/\\s/g, '') === 'NT$666／月'", 3000)))
+    pg.click("#prPeriod button[data-per='month']")
+    shot(pg, "1d_pricing_merged", "#v-pricing")
+    pg.click("#prLayout button[data-lay='cards']")
+    ok(f"{T}：切回「卡片＋表格」", bool(wait_until(pg, "() => !!document.getElementById('prCards') && !document.getElementById('prMerged')", 3000)))
+    # 訂閱申請（彈窗：方案頭、價格、依類別分組的已含功能、訂閱前確認勾選；沒勾不能送）
     pg.click("#prCards .prcard[data-plan='p399'] .prgo")
     wait_until(pg, "() => !document.getElementById('subDlg').hidden && !!document.getElementById('subSend')", 3000)
     ok(f"{T}：申請對話框預填登入者 email、寫出範本價格（NT$ 399／月）",
        pg.input_value("#subMail") == "member@example.com" and "NT$ 399／月" in pg.inner_text("#subDlg .box"))
+    dl = pg.evaluate("""() => { const b = document.querySelector('#subDlg .box');
+        return { co: b.classList.contains('subco'), name: (b.querySelector('.coh b') || {}).textContent, grp: b.querySelectorAll('#subFeats h4').length, li: b.querySelectorAll('#subFeats li').length,
+          noHeat: ![...b.querySelectorAll('#subFeats li')].some(l => /題材資金熱力/.test(l.textContent)), lim: [...b.querySelectorAll('#subFeats li')].some(l => /個股頁（整頁）・每日 20 次/.test(l.textContent)),
+          links: [...b.querySelectorAll('.agree a')].map(a => a.getAttribute('href')).join(','), dis: document.getElementById('subSend').disabled, btn: document.getElementById('subSend').textContent,
+          foot: (b.querySelector('.cofoot') || {}).textContent || '' }; }""")
+    ok(f"{T}：訂閱彈窗：方案名、已含功能依類別分組（399 關掉的題材資金熱力不列、個股頁寫每日 20 次）、條款與隱私連結、按鈕「送出訂閱申請」、底部不寫做不到的承諾",
+       dl["co"] and dl["name"] == "399 即時" and dl["grp"] >= 3 and dl["li"] >= 10 and dl["noHeat"] and dl["lim"] and dl["links"] == "#terms,#privacy"
+       and dl["btn"] == "送出訂閱申請" and "申請後由客服聯絡開通" in dl["foot"] and "取消隨時生效" not in pg.inner_text("#subDlg"), dl)
+    ok(f"{T}：沒勾「我已閱讀並同意」→ 送出鈕不能按", dl["dis"])
     shot(pg, "2_subscribe_dialog", "#subDlg .box")
     pg.fill("#subMail", "pay@example.com"); pg.fill("#subNote", "公司抬頭")
+    pg.check("#subAgree")
+    ok(f"{T}：勾選後送出鈕可以按", not pg.evaluate("() => document.getElementById('subSend').disabled"))
+    shot(pg, "2b_subscribe_dialog_checked", "#subDlg .box")
+    pg.uncheck("#subAgree")
+    ok(f"{T}：取消勾選 → 又不能按", pg.evaluate("() => document.getElementById('subSend').disabled"))
+    pg.check("#subAgree")
     pg.click("#subSend")
     wait_until(pg, "() => /已收到你的申請/.test(document.getElementById('subDlg').textContent)", 4000)
     rq = [x[1] for x in sent if x[0] == "/v1/subscribe/request"]
@@ -47780,6 +47811,15 @@ def t_sub_1005(b, base, code):
             ok(f"{T}・demo 390：手機三張卡直排（同一個 left、由上往下）、頁面沒有橫向捲軸", len({x["left"] for x in dm}) == 1 and dm[0]["top"] < dm[1]["top"] < dm[2]["top"] and lay["sw"] <= 390, (dm, lay))
             ok(f"{T}・demo 390：比較表可左右滑、第一欄固定（滑了之後第一欄仍貼左邊）", lay["scrollable"] and lay["scrolled"] and lay["sticky"], lay)
             shot(pg, "1c_pricing_demo_390")
+            # 網址 ?layout=merged 直接開合併版；手機：橫滑、第一欄固定、頁面不橫向捲
+            pg.goto(base.split("#")[0].split("?")[0] + "?demo=plans&layout=merged#pricing", wait_until="domcontentloaded")
+            ok(f"{T}・demo 390：?layout=merged 直接開合併表（切換鈕選中「合併表」）", bool(wait_until(pg, "() => document.querySelectorAll('#prMerged thead th[data-plan]').length === 3 && document.querySelector('#prLayout button.on').dataset.lay === 'merged'", 10000)))
+            ml = pg.evaluate("""() => { const w = document.querySelector('#prMerged .prcmpw'), td = document.querySelector('#prMerged tbody tr[data-f] td');
+                w.scrollLeft = 300; const l0 = td.getBoundingClientRect().left - w.getBoundingClientRect().left;
+                return { sw: document.documentElement.scrollWidth, scrollable: w.scrollWidth > w.clientWidth, sticky: getComputedStyle(td).position === 'sticky' && Math.abs(l0) < 2,
+                         thw: Math.min(...[...document.querySelectorAll('#prMerged thead th[data-plan]')].map(t => t.getBoundingClientRect().width)) }; }""")
+            ok(f"{T}・demo 390：合併表可橫滑、第一欄固定、每個方案欄 ≥ 180px、頁面沒有橫向捲軸", ml["scrollable"] and ml["sticky"] and ml["thw"] >= 180 and ml["sw"] <= 390, ml)
+            shot(pg, "1e_pricing_merged_390")
         else:
             ok(f"{T}・demo 1440：三張卡同一排（同一個 top）", len({x["top"] for x in dm}) == 1, dm)
             pg.click("#prCards .prcard[data-plan='plus'] .prgo")

@@ -158,7 +158,9 @@
       price_year: pr ? (Number.isInteger(pr.year) ? pr.year : null) : t.price_year,
       period: pr ? (Number.isInteger(pr.month) || !Number.isInteger(pr.year) ? 'month' : 'year') : t.period });
   }
-  const S = { plans: null, src: 'fallback', loading: null, need: '', per: '' };
+  /* layout：'cards'＝卡片＋下方比較表（預設）／'merged'＝合併表（方案卡當比較表的欄頭；Andy 10-07「上方的訂閱與下方的表格結合在一起的版本」）。
+     網址 ?layout=merged 直接開合併版；頁上切換只記在這一頁（重新整理回預設，跟月／年切換同一個規矩）。 */
+  const S = { plans: null, src: 'fallback', loading: null, need: '', per: '', layout: /[?&]layout=merged\b/.test(location.search || '') ? 'merged' : 'cards', look: new Map() };
   const tierOf = (p) => (p.id === 'guest' ? 'guest' : p.id === 'free' ? 'free' : 'paid');
   /* 免費卡的名稱：管理者設過方案卡（有定位句或清單）就用範本名稱（例 Free），沒設維持「註冊會員」（後端預設名「免費會員（預設）」不適合上卡）*/
   const showName = (p) => (p.id === 'guest' ? '訪客' : p.id === 'free' ? (p.tagline || (p.highlights || []).length ? p.name : '註冊會員') : p.name);
@@ -256,6 +258,35 @@
   /* 配色：跟著本站主題走。卡片底色＝面板色混一點方案色（深色主題 10～14%：深藍／深紫的卡；淺色主題同比例＝範本那種淡藍／淡紫）。
      方案色只有兩個新值（--pl-blue），取自 App.donut 的分類色盤第一色（深 #4f8cff／淺 #2f5fb3 再提亮一階 #2b65d9：對白底 5.6:1）；
      紫色直接用主題的 --violet。字一律 --ink 系，只有方案名、價格、適合誰標題、勾勾上方案色。 */
+  css('subCoCss', `
+.subdlg .box.subco{width:min(620px,100%);padding:0;overflow:hidden;display:flex;flex-direction:column}
+.subco .coh{display:grid;grid-template-columns:44px minmax(0,1fr) auto;gap:2px 12px;align-items:center;padding:18px 22px;background:linear-gradient(120deg,color-mix(in srgb,var(--pc) 16%,var(--panel-2)),var(--panel-2))}
+.subco .coh .ic{grid-row:span 2;width:44px;height:44px;border-radius:50%;display:grid;place-items:center;color:var(--pc);background:color-mix(in srgb,var(--pc) 18%,var(--panel))}
+.subco .coh b{font-size:20px;color:var(--pc)}.subco .coh small{font-size:13px;color:var(--ink-2)}
+.subco .coh button{grid-row:1/span 2;grid-column:3;width:32px;height:32px;border:0;border-radius:8px;background:transparent;color:var(--ink-2);font-size:20px;cursor:pointer}
+.subco .cob{overflow:auto;padding:14px 22px 6px;min-height:0}
+.subco .cop small{display:block;font-size:13px;color:var(--ink-2)}
+.subco .cop .big{font-size:28px;font-weight:800;color:var(--pc);font-variant-numeric:tabular-nums}.subco .cop .big small{display:inline;font-size:14px;font-weight:400}
+.subco .cog h4{margin:14px 0 6px;font-size:12px;font-weight:700;color:var(--ink-3)}
+.subco .cog ul{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px 16px}
+.subco .cog li{display:flex;gap:8px;align-items:flex-start;font-size:14px;color:var(--ink)}.subco .cog li svg{flex:none;margin-top:2px;color:var(--pc)}
+.subco .cog li i{font-style:normal;color:var(--ink-2);font-size:13px}
+.subco .cof{padding:12px 22px 18px;border-top:1px solid var(--line-2)}
+.subco .cof label{color:var(--ink-2);margin:0 0 4px}
+.subco .cof2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+@media (max-width:520px){.subco .cof2{grid-template-columns:minmax(0,1fr)}}
+.subco .agree{margin:12px 0 0;padding:12px 14px;border-radius:12px;border:1px solid color-mix(in srgb,var(--fall) 55%,transparent);background:color-mix(in srgb,var(--fall) 8%,var(--panel))}
+.subco .agree b{display:block;font-size:14px;margin-bottom:6px;color:var(--ink)}
+.subco .agree label{display:flex;gap:10px;align-items:flex-start;margin:0;font-size:13.5px;color:var(--ink);line-height:1.6;cursor:pointer}
+.subco .agree input{width:18px;height:18px;margin-top:2px;flex:none;accent-color:var(--pc)}
+.subco .agree a{color:var(--pc);font-weight:700}
+.subco #subSend{width:100%;height:48px;margin-top:12px;border:0;border-radius:12px;background:var(--pc);color:var(--pr-on,#fff);font:inherit;font-size:16px;font-weight:700;cursor:pointer}
+.subco #subSend[disabled]{opacity:.45;cursor:not-allowed}
+.subco .cofoot{text-align:center;font-size:12.5px;color:var(--ink-3);margin-top:8px}
+.subco .msg{margin-top:8px}
+.subco{--pl-blue:#4f8cff;--pr-on:#06101f}:root[data-theme="light"] .subco{--pl-blue:#2b65d9;--pr-on:#fff}
+.subco.pc-blue{--pc:var(--pl-blue)}.subco.pc-violet{--pc:var(--violet)}.subco.pc-amber{--pc:var(--amber)}.subco.pc-green{--pc:var(--lime)}.subco.pc-neutral{--pc:var(--ink-2)}
+@media (max-width:520px){.subco .cog ul{grid-template-columns:minmax(0,1fr)}}`);
   css('pricingCss', `
 #v-pricing{--pl-blue:#4f8cff;--pl-neutral:var(--ink-3);--pr-on:#fff;max-width:1180px;margin:0 auto;padding:0 0 40px}
 /* 方案色上的字：淺色主題白字（藍 #2b65d9 5.6:1、紫 --violet 6.0:1）；深色主題的方案色較亮，白字只有 3.3:1 → 改深字（對 #4f8cff 6.4:1）*/
@@ -327,6 +358,32 @@
 #v-pricing .prcmpw td.v{font-family:var(--mono);font-variant-numeric:tabular-nums;font-size:13.5px;color:var(--ink)}
 #v-pricing .prcmpw tr.hl td{background:color-mix(in srgb,var(--amber) 16%,var(--panel))}
 #v-pricing .prcmpw tr.base td{color:var(--ink-2);border-bottom:0}
+#v-pricing .prtop{display:flex;align-items:center;gap:12px;border-bottom:1px solid var(--line)}
+#v-pricing .prtop .prinfo{flex:1;min-width:0;border-bottom:0}
+#v-pricing .prlay{flex:none;display:inline-flex;gap:2px;padding:3px;border-radius:9px;border:1px solid var(--line-2);background:var(--panel-3)}
+#v-pricing .prlay button{height:30px;padding:0 12px;border:0;border-radius:7px;background:transparent;color:var(--ink-2);font:inherit;font-size:13px;cursor:pointer;white-space:nowrap}
+#v-pricing .prlay button.on{background:var(--panel);color:var(--ink);font-weight:700;box-shadow:0 1px 3px rgba(0,0,0,.18)}
+#v-pricing .prmg{margin-top:44px}
+#v-pricing .prmg .prcmpw{overflow:auto visible;padding-top:16px;border:0;background:transparent}
+#v-pricing .prmg table{table-layout:fixed;min-width:860px;border:1px solid var(--line);border-radius:16px;background:var(--panel)}
+#v-pricing .prmg col.c0{width:24%}
+#v-pricing .prmg thead th{vertical-align:top;text-align:left;white-space:normal;padding:22px 18px 18px;position:relative}
+#v-pricing .prmg thead th:first-child{vertical-align:bottom;font-size:15px}
+#v-pricing .prmg thead th.hot,#v-pricing .prmg td.hot{background:color-mix(in srgb,var(--pl-blue) 9%,var(--panel))}
+#v-pricing .prmg thead th.hot{box-shadow:inset 0 3px 0 var(--pl-blue)}
+#v-pricing .prmg .prtag{top:-12px}
+#v-pricing .prmg .prhd{grid-template-columns:40px minmax(0,1fr);gap:2px 10px}
+#v-pricing .prmg .prico{width:40px;height:40px}
+#v-pricing .prmg .prhd b{font-size:20px;font-weight:800;color:var(--pc);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#v-pricing .prmg .pc-neutral .prhd b{color:var(--ink)}
+#v-pricing .prmg .prprice{margin-top:16px}#v-pricing .prmg .prprice .cur{font-size:22px}#v-pricing .prmg .prprice b{font-size:28px}#v-pricing .prmg .prprice.free{font-size:30px}
+#v-pricing .prmg .prnote{font-weight:400}
+#v-pricing .prmg .mfit{margin:10px 0 14px;font-size:13px;font-weight:700;color:var(--ink);white-space:normal;line-height:1.5}
+#v-pricing .prmg .prgo{height:40px;font-size:14px}
+#v-pricing .prmg .prhd .who{font-size:13px;font-weight:400;color:var(--ink-2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#v-pricing .prmg .mfit{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#v-pricing .prmg thead th:first-child{font-weight:800}
+@media (max-width:820px){#v-pricing .prtop{flex-wrap:wrap;justify-content:flex-end;padding-bottom:8px}#v-pricing .prtop .prinfo{flex-basis:100%}#v-pricing .prmg .prcmpw table{min-width:calc(132px + var(--nc,3) * 200px)}#v-pricing .prmg col.c0{width:132px}}
 #v-pricing .prlegal{margin-top:26px;font-size:12.5px;color:var(--ink-2);line-height:1.75;border-top:1px solid var(--line);padding-top:12px}
 @media (max-width:1100px){#v-pricing .prcards{gap:16px}#v-pricing .prcard{padding:26px 18px 20px}#v-pricing .prprice .cur{font-size:24px}#v-pricing .prprice b{font-size:30px}}
 @media (max-width:820px){#v-pricing .prcards{grid-template-columns:minmax(0,1fr);gap:30px}#v-pricing .prhero h1{font-size:24px}#v-pricing .prhero{padding-top:26px}
@@ -365,43 +422,54 @@
     const me = myPlan();
     const fits = plans.filter((p) => p.fit_title).map((p) => `${showName(p)} ${p.fit_title}`);
     v.innerHTML = `
-      <div class="prinfo" role="note">${INFO}<span>本平台非券商、非投顧，不提供任何買賣建議，資料為盤後整理、僅供參考。如有建議或疑問，請透過右下角「客服」聯繫。</span></div>
+      <div class="prtop"><div class="prinfo" role="note">${INFO}<span>本平台非券商、非投顧，不提供任何買賣建議，資料為盤後整理、僅供參考。如有建議或疑問，請透過右下角「客服」聯繫。</span></div>
+        <div class="prlay" id="prLayout" role="tablist" aria-label="版面">${[['cards', '卡片＋表格'], ['merged', '合併表']].map(([k, n]) => `<button type="button" role="tab" data-lay="${k}" class="${S.layout === k ? 'on' : ''}" aria-selected="${S.layout === k}">${n}</button>`).join('')}</div></div>
       ${hasPer ? `<div class="prper"><div class="seg" id="prPeriod" role="tablist" aria-label="計費週期">
         <button type="button" role="tab" data-per="month" class="${S.per === 'month' ? 'on' : ''}" aria-selected="${S.per === 'month'}">月繳</button>
         <button type="button" role="tab" data-per="year" class="${S.per === 'year' ? 'on' : ''}" aria-selected="${S.per === 'year'}">年繳${saveTxt ? `<span class="save" id="prSave">${esc(saveTxt)}</span>` : ''}</button></div></div>` : ''}
       <div class="prhero"><h1>依你的研究深度選方案</h1>
         <p>${fits.length >= 2 ? esc(fits.join('，') + '。') : '從資金流向、產業鏈到個股技術面，一個網站看完台股輪動。免費就能用大部分功能，付費方案開放更多分析與更高的每日瀏覽次數。'}</p></div>
       ${needF ? `<div class="prneed" id="prNeed" role="status">你剛剛點的 <b>「${esc(needF.name)}」</b>${needIds.length ? `在標成<b>「可解鎖」</b>的方案裡開放（或次數更多）` : '目前沒有方案開放更多，可以從右下角客服跟我們說'}<a href="#pricing" id="prNeedX">清除標示</a></div>` : ''}
-      <div class="prcards" id="prCards" style="--n:${Math.min(4, Math.max(1, plans.length))}">${plans.map((p) => card(p, look.get(p.id), p === hot, me, needIds.includes(p.id))).join('')}</div>
+      ${S.layout === 'merged' ? compare(plans, look, hot, needF, { me, needIds }) : `<div class="prcards" id="prCards" style="--n:${Math.min(4, Math.max(1, plans.length))}">${plans.map((p) => card(p, look.get(p.id), p === hot, me, needIds.includes(p.id))).join('')}</div>`}
       <p class="prapply"><b>目前為申請制，專人開通；線上付款即將推出。</b>申請送出不會扣款。${S.src === 'fallback' ? '　（暫時讀不到付費方案）' : S.src === 'demo' ? '　（示範資料）' : ''}</p>
-      ${compare(plans, look, hot, needF)}
+      ${S.layout === 'merged' ? '' : compare(plans, look, hot, needF)}
       <div class="prlegal">本網站提供的是資料整理與視覺化工具，<b>不是證券投資顧問</b>，不提供個股買賣建議，所有內容僅供參考，投資請自行判斷並承擔風險。
         方案內容與價格以專人開通時的確認為準；申請送出不會扣款。詳見 <a href="#disclaimer">免責聲明</a>、<a href="#terms">使用條款</a>、<a href="#privacy">隱私權政策</a>。</div>`;
+    S.look = look;
+    v.querySelectorAll('#prLayout button[data-lay]').forEach((b) => { b.onclick = () => { if (S.layout === b.dataset.lay) return; S.layout = b.dataset.lay; paint(); }; });
     v.querySelectorAll('#prPeriod button[data-per]').forEach((b) => { b.onclick = () => { if (S.per === b.dataset.per) return; S.per = b.dataset.per; paint(); }; });
     v.querySelectorAll('.prgo[data-go]').forEach((b) => { b.onclick = () => go(plans.find((p) => p.id === b.dataset.go)); });
-    if (needIds.length) { const c = v.querySelector(`.prcard[data-plan="${CSS.escape(needIds[0])}"]`); if (c && c.scrollIntoView) setTimeout(() => c.scrollIntoView({ block: 'nearest', behavior: 'smooth' }), 60); }
+    if (needIds.length && S.layout === 'cards') { const c = v.querySelector(`.prcard[data-plan="${CSS.escape(needIds[0])}"]`); if (c && c.scrollIntoView) setTimeout(() => c.scrollIntoView({ block: 'nearest', behavior: 'smooth' }), 60); }
   }
-  function card(p, lk, hot, me, need) {
-    const t = tierOf(p), isMine = me.id === p.id, pr = priceAt(p, S.per);
-    const who = p.tagline || (t === 'free' ? '用 Google 帳號登入即可' : '進階分析與更高的每日次數');
-    const price = pr.free ? '<div class="prprice free">免費</div>'
+  const whoOf = (p) => p.tagline || (tierOf(p) === 'free' ? '用 Google 帳號登入即可' : '進階分析與更高的每日次數');
+  function priceHtml(p) {
+    const pr = priceAt(p, S.per);
+    const html = pr.free ? '<div class="prprice free">免費</div>'
       : pr.amount == null ? '<div class="prprice ask">洽詢</div>'
       : `<div class="prprice"><span class="cur">NT$</span> <b>${nt(pr.amount)}</b><small>${esc(pr.unit)}</small></div>`;
     const note = pr.free ? '永久保留基礎功能・不需信用卡' : pr.note;
-    let btn;
-    if (isMine) btn = `<button type="button" class="prgo" disabled>目前方案</button>`;
-    else if (t === 'free') btn = me.tier === 'guest' ? `<button type="button" class="prgo" data-go="${esc(p.id)}">免費註冊／登入</button>` : `<button type="button" class="prgo" disabled>已包含</button>`;
-    else btn = `<button type="button" class="prgo" data-go="${esc(p.id)}">升級 ${esc(showName(p))}</button>`;
+    return `${html}<div class="prnote" title="${esc(note)}">${esc(note)}</div>`;
+  }
+  function btnOf(p, me) {
+    if (me.id === p.id) return `<button type="button" class="prgo" disabled>目前方案</button>`;
+    if (tierOf(p) === 'free') return me.tier === 'guest' ? `<button type="button" class="prgo" data-go="${esc(p.id)}">免費註冊／登入</button>` : `<button type="button" class="prgo" disabled>已包含</button>`;
+    return `<button type="button" class="prgo" data-go="${esc(p.id)}">升級 ${esc(showName(p))}</button>`;
+  }
+  const tagOf = (lk, need) => (need ? '<span class="prtag need">可解鎖</span>' : lk.badge ? `<span class="prtag">${lk.badge === '最受歡迎' ? '★ ' : '✦ '}${esc(lk.badge)}</span>` : '');
+  function card(p, lk, hot, me, need) {
+    const t = tierOf(p), isMine = me.id === p.id;
+    const who = whoOf(p);
+    const btn = btnOf(p, me);
     const hl = (Array.isArray(p.highlights) && p.highlights.length ? p.highlights : autoHl(p)).slice(0, 12);
-    const tag = need ? '<span class="prtag need">可解鎖</span>' : lk.badge ? `<span class="prtag">${lk.badge === '最受歡迎' ? '★ ' : '✦ '}${esc(lk.badge)}</span>` : '';
+    const tag = tagOf(lk, need);
     const fit = p.fit_title || p.fit_desc ? `<div class="prfit">${p.fit_title ? `<b>${esc(p.fit_title)}</b>` : ''}${p.fit_desc ? `<p>${esc(p.fit_desc)}</p>` : ''}</div>` : '';
     return `<div class="prcard pc-${esc(lk.color)}${hot ? ' hot' : ''}${need ? ' need' : ''}${isMine ? ' mine' : ''}" data-plan="${esc(p.id)}" data-tier="${t}">
       ${tag}<div class="prhd"><span class="prico">${svgI(lk.icon)}</span><h2 title="${esc(showName(p))}">${esc(showName(p))}</h2><div class="who" title="${esc(who)}">${esc(who)}</div></div>
-      ${price}<div class="prnote" title="${esc(note)}">${esc(note)}</div><hr>
+      ${priceHtml(p)}<hr>
       ${fit}<ul class="prhl">${hl.map((x) => `<li>${CHECK}<span>${esc(x)}</span></li>`).join('')}</ul>${btn}</div>`;
   }
   /* 方案功能比較表：每格＝✓／—／每日 N 次／最多 N 頁。只列「至少一個方案不一樣」的功能；全部一樣的收成最後一行 */
-  function compare(plans, look, hot, needF) {
+  function compare(plans, look, hot, needF, mg) {
     const Ft = F(); if (!Ft || plans.length < 2) return '';
     const cell = (p, f) => {
       if (f.id === 'watch.tabs') return watchCell(p);
@@ -429,6 +497,15 @@
       return off === 0 ? '全部' : g.length ? (g.length - off) + '／' + g.length : '關閉 ' + off + ' 個'; });
     if (new Set(gv).size > 1) rows += `<tr class="cat"><td colspan="${plans.length + 1}">族群觀測</td></tr><tr data-f="grp"><td>可展開的族群</td>${gv.map((x, i) => `<td class="v${hc(plans[i])}">${esc(x)}</td>`).join('')}</tr>`;
     if (same) rows += `<tr class="base"><td>其他基礎功能（${same} 項）</td><td colspan="${plans.length}">全部方案皆可用</td></tr>`;
+    if (mg) {
+      /* 合併表：欄頭＝圖示＋名稱＋定位句、價格、適合誰、行動鈕；頂端標籤浮在欄頭上緣；Plus（hot）整欄淡藍 */
+      const head = plans.map((p) => { const lk = look.get(p.id), need = mg.needIds.includes(p.id);
+        return `<th class="pc-${esc(lk.color)}${hc(p)}${need ? ' need' : ''}" data-plan="${esc(p.id)}" scope="col">${tagOf(lk, need)}
+          <div class="prhd"><span class="prico">${svgI(lk.icon)}</span><b title="${esc(showName(p))}">${esc(showName(p))}</b><div class="who" title="${esc(whoOf(p))}">${esc(whoOf(p))}</div></div>
+          ${priceHtml(p)}<div class="mfit">${esc(p.fit_title || '')}</div>${btnOf(p, mg.me)}</th>`; }).join('');
+      return `<section class="prmg" id="prMerged"><div class="prcmpw" style="--nc:${plans.length}"><table id="prTable"><colgroup><col class="c0">${plans.map(() => '<col>').join('')}</colgroup>
+        <thead><tr><th scope="col">功能比較<div class="who" style="font-weight:400;font-size:13px;color:var(--ink-2)">只列方案之間有差異的功能</div></th>${head}</tr></thead><tbody>${rows}</tbody></table></div></section>`;
+    }
     return `<section class="prcmp" id="prCmp"><h2>方案功能比較</h2><p>只列出方案之間有差異的功能</p>
       <div class="prcmpw" style="--nc:${plans.length}"><table id="prTable"><thead><tr><th>功能</th>${plans.map((p) => `<th class="pc-${esc(look.get(p.id).color)}${hc(p)}">${esc(showName(p))}</th>`).join('')}</tr></thead><tbody>${rows}</tbody></table></div></section>`;
   }
@@ -446,23 +523,36 @@
     /* 週期跟著頁上的月／年切換；範本只有一種週期就用它自己的（後端 /v1/subscribe/request 只收 month／year，一次付清當「月」送，專人開通時再確認）*/
     const pr = priceAt(p, S.per);
     const per = pr.period === 'year' ? 'year' : 'month';
-    const ptxt = pr.amount == null ? '洽詢' : pr.total ? `NT$ ${nt(pr.total)}／年${pr.unit === '／月' ? `（約 NT$ ${nt(pr.amount)}／月）` : ''}` : `NT$ ${nt(pr.amount)}${pr.unit}`;
-    dialog(`<h3>訂閱申請：${esc(showName(p))}</h3>
-      <p><b>目前為申請制，專人開通；線上付款即將推出。</b>送出後我們會用下面的 email 跟你確認方案與付款方式，<b>送出不會扣款</b>。</p>
-      <p>方案價格：<b>${esc(ptxt)}</b>（${per === 'year' ? '年繳' : '月繳'}）</p>
-      <label for="subMail">聯絡 email</label><input type="email" id="subMail" value="${esc(u.email || '')}" autocomplete="email" maxlength="200">
-      <label for="subNote">備註（選填，例如需要發票抬頭）</label><input type="text" id="subNote" maxlength="300">
-      <div class="msg" id="subMsg" role="status"></div>
-      <div class="row2"><button type="button" data-close>取消</button><button type="button" class="pri" id="subSend">送出申請</button></div>`, (d) => {
+    const lk = S.look.get(p.id) || { color: 'blue', icon: 'bolt' };
+    const ptop = pr.amount == null ? '' : pr.total && pr.unit === '／月' ? `<small>約 NT$ ${nt(pr.amount)}／月均攤</small>` : '';
+    const pbig = pr.amount == null ? '洽詢' : pr.total ? `NT$ ${nt(pr.total)}<small>／年繳</small>` : `NT$ ${nt(pr.amount)}<small>${esc(pr.unit)}</small>`;
+    /* 已含功能：依 features.js 類別分組、兩欄打勾（範本 feats／lims 算出來的，跟比較表同一份）；有上限的寫「每日 N 次」 */
+    const Ft = F();
+    const groups = Ft ? Ft.cats.filter((c) => c.id !== 'grp').map((c) => [c, Ft.inCat(c.id).filter((f) => !f.adminOnly && f.kind === 'bool' && on(p, f))]).filter(([, fs]) => fs.length) : [];
+    const wc = watchCell(p);
+    const gl = groups.map(([c, fs]) => `<h4>${esc(c.name)}</h4><ul>${fs.map((f) => { const n = limOf(p, f); return `<li>${CHECK}<span>${esc(f.name)}${n !== Infinity ? `<i>・每日 ${n} 次</i>` : ''}</span></li>`; }).join('')}${c.id === 'watch' && wc.c !== 'n' ? `<li>${CHECK}<span>自選清單<i>・${esc(wc.t)}</i></span></li>` : ''}</ul>`).join('');
+    dialog(`<div class="coh"><span class="ic">${svgI(lk.icon)}</span><b>${esc(showName(p))}</b><small>${esc(whoOf(p))}</small><button type="button" data-close aria-label="關閉">×</button></div>
+      <div class="cob"><div class="cop">${ptop}<div class="big">${pbig}</div><small>${per === 'year' ? '年繳' : '月繳'}・目前為申請制，專人開通；線上付款即將推出</small></div>
+        <div class="cog" id="subFeats">${gl}</div></div>
+      <div class="cof"><div class="cof2"><div><label for="subMail">聯絡 email</label><input type="email" id="subMail" value="${esc(u.email || '')}" autocomplete="email" maxlength="200"></div>
+        <div><label for="subNote">備註（選填，例如發票抬頭）</label><input type="text" id="subNote" maxlength="300"></div></div>
+        <div class="agree"><b>訂閱前請確認</b><label><input type="checkbox" id="subAgree"><span>我已閱讀並同意 <a href="#terms" target="_blank" rel="noopener">使用條款</a> 與 <a href="#privacy" target="_blank" rel="noopener">隱私權政策</a>，並了解送出的是訂閱申請，方案內容與付款方式由客服確認後才開通。</span></label></div>
+        <div class="msg" id="subMsg" role="status"></div>
+        <button type="button" id="subSend" disabled>送出訂閱申請</button>
+        <div class="cofoot">申請後由客服聯絡開通・送出不會扣款</div></div>`, (d) => {
+      const box = d.querySelector('.box'); box.className = `box subco pc-${lk.color}`;
+      const ag = d.querySelector('#subAgree'), sb = d.querySelector('#subSend');
+      ag.onchange = () => { sb.disabled = !ag.checked; };
       d.querySelector('#subSend').onclick = async () => {
         const msg = d.querySelector('#subMsg'), btn = d.querySelector('#subSend');
         const contact = d.querySelector('#subMail').value.trim();
         if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(contact)) { msg.className = 'msg bad'; msg.textContent = '請填正確的 email'; return; }
         btn.disabled = true; msg.className = 'msg'; msg.textContent = '送出中…';
         const j = await call('/v1/subscribe/request', { plan: p.id, period: per, contact, note: d.querySelector('#subNote').value.trim() });
-        btn.disabled = false;
+        btn.disabled = !ag.checked;
         if (j && j._s === 200 && j.ok) {
-          d.querySelector('.box').innerHTML = `<h3>已收到你的申請</h3><p>方案：<b>${esc(showName(p))}</b>（${per === 'year' ? '年繳' : '月繳'}）<br>我們會寄信到 <b>${esc(contact)}</b> 跟你確認，開通後重新整理網頁就會生效。</p><div class="row2"><button type="button" class="pri" data-close>好</button></div>`;
+          box.className = 'box';
+          box.innerHTML = `<h3>已收到你的申請</h3><p>方案：<b>${esc(showName(p))}</b>（${per === 'year' ? '年繳' : '月繳'}）<br>我們會寄信到 <b>${esc(contact)}</b> 跟你確認，開通後重新整理網頁就會生效。</p><div class="row2"><button type="button" class="pri" data-close>好</button></div>`;
         } else {
           msg.className = 'msg bad';
           msg.textContent = j && j._s === 429 ? '今天已經送過好幾次了，我們會盡快處理，請稍候' : j && j._s === 401 ? '登入已過期，請重新登入' : '送出失敗，請稍後再試，或從右下角「客服」寄信給我們';
