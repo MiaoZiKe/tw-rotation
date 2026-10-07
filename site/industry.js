@@ -5572,7 +5572,15 @@
 #etfHoldCard th:first-child,#etfHoldCard td:first-child{text-align:left}
 #etfHoldCard td{height:32px;box-sizing:border-box;padding:0 10px;border-top:1px solid var(--line);text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}
 #etfHoldCard tbody tr:first-child td{border-top:0}
-#etfHoldCard td.nm{max-width:0;width:50%;overflow:hidden;text-overflow:ellipsis;color:var(--ink)}
+#etfHoldCard td.nm{max-width:0;width:34%;overflow:hidden;text-overflow:ellipsis;color:var(--ink)}
+#etfHoldCard td.nm .hdlogo{vertical-align:middle;margin-right:8px}
+#etfHoldCard td.nm .nmt{vertical-align:middle}
+#etfHoldCard td.nm .gp2{display:block;padding:0 0 3px 44px;font-size:11px;color:var(--ink-3);line-height:1.2;overflow:hidden;text-overflow:ellipsis}
+#etfHoldCard .sk{width:64px;text-align:center}
+#etfHoldCard td.sk .spkw{display:inline-flex;width:64px;height:20px;vertical-align:middle}
+#etfHoldCard td.px{width:76px}#etfHoldCard td.px .pv,#etfHoldCard td.px .pc{display:block;line-height:1.25}#etfHoldCard td.px .pc{font-size:11px}
+#etfHoldCard td.nm{padding-top:3px}#etfHoldCard th,#etfHoldCard td{padding-left:8px;padding-right:8px}
+#etfHoldCard td.iv{width:92px}
 #etfHoldCard td.nm .dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:8px;vertical-align:middle}
 #etfHoldCard td.nm .dot.no{background:transparent}
 #etfHoldCard td.nm .cd{color:var(--ink-3);font-size:12px;margin-left:6px}
@@ -5580,9 +5588,9 @@
 #etfHoldCard .mono{font-family:var(--mono)}
 #etfHoldCard tr.go{cursor:pointer}
 #etfHoldCard tr.go:hover td,#etfHoldCard tr.hi td{background:var(--panel-2)}
-#etfHoldCard td.wt{width:170px;text-align:left}
-#etfHoldCard th:nth-child(2){text-align:left}
-#etfHoldCard .wtr{display:inline-block;width:60px;vertical-align:middle}
+#etfHoldCard td.wt{width:112px;text-align:left}
+#etfHoldCard th:last-child{text-align:left}
+#etfHoldCard .wtr{display:inline-block;width:40px;vertical-align:middle}
 #etfHoldCard .wbar{display:block;height:6px;border-radius:3px}
 #etfHoldCard td.wt .wv{margin-left:8px}
 #etfHoldCard .wv{display:inline-block;min-width:3.6em;text-align:right}
@@ -5592,7 +5600,7 @@
 #etfHoldCard .hdnote b{color:var(--ink)}
 @media (max-width:1099px){#etfHoldCard .hdgrid{grid-template-columns:minmax(0,1fr);gap:16px}
 #etfHoldCard .hdlist{min-height:0}#etfHoldCard .hdlistin{position:static}#etfHoldCard .hdscroll{max-height:420px}}
-@media (max-width:640px){#etfHoldCard .hdleft{flex-direction:column;gap:8px}#etfHoldCard .hdpie{width:260px;height:260px}#etfHoldCard .hdq{width:100%}#etfHoldCard .hdhead{align-items:stretch}#etfHoldCard td.wt{width:140px}#etfHoldCard .gplegend .lg{height:30px}#etfHoldCard .gplegend{width:100%}}`;
+@media (max-width:640px){#etfHoldCard .hdleft{flex-direction:column;gap:8px}#etfHoldCard .hdpie{width:260px;height:260px}#etfHoldCard .hdq{width:100%}#etfHoldCard .hdhead{align-items:stretch}#etfHoldCard .sk{display:none}#etfHoldCard .wtr{display:none}#etfHoldCard td.wt{width:56px}#etfHoldCard td.wt .wv{margin-left:0;min-width:0}#etfHoldCard td.px{width:auto}#etfHoldCard td.nm{width:44%}#etfHoldCard td.px .pv,#etfHoldCard td.px .pc{display:block;margin:0;line-height:1.25}#etfHoldCard td.px .pc{font-size:11px}#etfHoldCard td.iv{width:auto;font-size:12px}#etfHoldCard th,#etfHoldCard td{padding-left:6px;padding-right:6px}#etfHoldCard .gplegend .lg{height:30px}#etfHoldCard .gplegend{width:100%}}`;
     document.head.appendChild(s);
   }
   async function tabHoldings(pg, el) {
@@ -5622,6 +5630,14 @@
     items.sort((a, b) => b.w - a.w);
     const chgOf = new Map((stocks || []).map(r => [r.code, r.chg_pct]));
     const known = new Set((stocks || []).map(r => r.code));
+    /* 2026-10-07 Andy 19:00：「新增公司 LOGO 以及走勢圖、族群、價格、法人當日買超賣超狀況，可以參考搜尋功能那邊」。
+       每列沿用搜尋下拉那一套（A.logo＝logos.json／字母頭像、A.sparkSVG＝sparks.json 小走勢，紅漲綠跌同一份 CSS），
+       現價／族群／法人（三大法人合計，張；管線在 stocks.json 每列帶 inst）全部出自 stocks.json 這份全市場索引 ——
+       不逐檔抓個股 json。stocks.json 找不到的代號（海外成分）各欄一律「—」。*/
+    const rowOf_ = new Map((stocks || []).map(r => [String(r.code), r]));
+    const instD = String((A.D && A.D.meta && A.D.meta.inst_list_date) || "");   // 法人欄是哪一天（管線挑的「涵蓋夠完整的最新一天」）
+    if (A.sparkLoad) A.sparkLoad();
+    if (A.logoMapLoad) A.logoMapLoad();
     const canGo = (c) => holdTw(c) && known.has(c);
     const tot = items.reduce((s, x) => s + x.w, 0);
     const top = items.slice(0, HOLD_TOPN), rest = items.slice(HOLD_TOPN);
@@ -5642,14 +5658,20 @@
     card.innerHTML = `<div class="hdhead"><h3>成分股<span class="hdasof" id="etfHoldAsof">${tag}・共 ${items.length} 檔${srcTxt ? `・<span title="${A.fmt.esc(rec.src || '')}">${srcTxt}</span>` : ''}</span></h3>
         <input class="hdq" id="etfHoldQ" type="search" placeholder="搜尋代號或名稱" aria-label="搜尋成分股"></div>
       <div class="hdgrid"><div class="hdleft"><div class="hdpie" id="etfHoldPie"></div><div class="gplegend" id="etfHoldLegend" aria-label="前 10 大圖例"></div></div>
-        <div class="hdlist"><div class="hdlistin"><div class="hdscroll"><table id="etfHoldTbl"><thead><tr><th>名稱</th><th>權重</th><th>當日漲跌</th></tr></thead><tbody>
+        <div class="hdlist"><div class="hdlistin"><div class="hdscroll"><table id="etfHoldTbl"><thead><tr><th>名稱</th><th class="sk">走勢</th><th>現價・漲跌</th><th class="ivh" title="三大法人（外資＋投信＋自營商）合計買賣超，單位張${instD ? `，資料日 ${A.fmt.esc(instD)}` : ""}">法人${instD ? ` ${A.fmt.esc(instD.slice(5).replace("-", "/"))}` : "買賣超"}</th><th>權重</th></tr></thead><tbody>
         ${items.map((x, i) => { const c = String(x.code || ''), go = canGo(c), ch = chgOf.get(c), nm = shortName(x), isTop = i < HOLD_TOPN;
           const tip = [go ? `看 ${nm} 個股頁` : '非台股成分，沒有個股頁', fmtSh(x)].filter(Boolean).join('・');
-          return (i === sepAt ? `<tr class="hdsep"><td colspan="3">其他 ${rest.length} 檔</td></tr>` : '')
+          const sr = rowOf_.get(c), tw = !!sr, px = sr ? sr.close : null, iv = sr && sr.inst != null ? sr.inst : null, gp = sr ? (sr.group || '') : '';
+          return (i === sepAt ? `<tr class="hdsep"><td colspan="5">其他 ${rest.length} 檔</td></tr>` : '')
             + `<tr data-code="${A.fmt.esc(c)}" data-i="${i}" data-w="${x.w}" data-q="${A.fmt.esc((c + ' ' + (x.name || '') + ' ' + nm).toLowerCase())}"${go ? ` class="go"` : ''} title="${A.fmt.esc(tip)}">`
-            + `<td class="nm"><i class="dot${isTop ? '' : ' no'}"${isTop ? ` style="background:${topCol(i)}"` : ''}></i>${go ? `<a href="#stock/${A.fmt.esc(c)}">${A.fmt.esc(nm)}</a>` : A.fmt.esc(nm)}<span class="cd mono">${A.fmt.esc(c || '')}</span></td>`
-            + `<td class="mono wt"><span class="wtr"><i class="wbar" style="width:${Math.max(2, Math.round(x.w / maxW * 56))}px;background:${isTop ? topCol(i) : 'color-mix(in srgb,var(--ink-3) 45%,transparent)'}"></i></span><span class="wv">${A.fmt.n(x.w, 2)}%</span></td>`
-            + `<td class="mono ${ch == null ? 'muted' : A.fmt.cls(ch)}">${ch == null ? '—' : A.fmt.pct(ch)}</td></tr>`; }).join('')}
+            + `<td class="nm"><i class="dot${isTop ? '' : ' no'}"${isTop ? ` style="background:${topCol(i)}"` : ''}></i>`
+            + (tw && A.logo ? A.logo(c, nm, 20, 'hdlogo') : `<span class="slogo hdlogo nolg" data-l="${A.fmt.esc(Array.from(String(nm || '?'))[0])}" style="--lg:#4d5b73;--lz:20px" aria-hidden="true"></span>`)
+            + `<span class="nmt">${go ? `<a href="#stock/${A.fmt.esc(c)}">${A.fmt.esc(nm)}</a>` : A.fmt.esc(nm)}<span class="cd mono">${A.fmt.esc(c || '')}</span></span>`
+            + `<span class="gp2">${A.fmt.esc(gp || '—')}</span></td>`
+            + `<td class="sk">${tw && A.sparkSVG ? `<span class="spkw" data-spk="${A.fmt.esc(c)}" data-w="64" data-h="20">${A.sparkSVG(c, { w: 64, h: 20 })}</span>` : '<span class="muted">—</span>'}</td>`
+            + `<td class="mono px">${px == null ? '<span class="muted">—</span>' : `<span class="pv">${A.fmt.n(px, px >= 1000 ? 0 : 2)}</span><span class="pc ${ch == null ? 'muted' : A.fmt.cls(ch)}">${ch == null ? '—' : A.fmt.pct(ch)}</span>`}</td>`
+            + `<td class="mono iv ${iv == null ? 'muted' : A.fmt.cls(iv)}">${iv == null ? '—' : `${iv > 0 ? '+' : ''}${A.fmt.i(iv)} 張`}</td>`
+            + `<td class="mono wt"><span class="wtr"><i class="wbar" style="width:${Math.max(2, Math.round(x.w / maxW * 38))}px;background:${isTop ? topCol(i) : 'color-mix(in srgb,var(--ink-3) 45%,transparent)'}"></i></span><span class="wv">${A.fmt.n(x.w, 2)}%</span></td></tr>`; }).join('')}
         </tbody></table></div></div></div></div>`;
     const parts = top.map(x => ({ name: shortName(x), value: x.w, code: x.code }));
     if (restSum > 0.005) parts.push({ name: '其他', value: restSum, isOther: true, hint: `其餘 ${rest.length} 檔` });

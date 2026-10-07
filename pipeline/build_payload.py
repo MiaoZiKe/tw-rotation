@@ -751,6 +751,7 @@ def meta_payload(latest: str, history_days: int) -> dict:
         "data_date": latest,
         "price_latest": px_latest,
         "inst_date": inst_latest,
+        "inst_list_date": _INST_LIST_DATE,   # stocks.json 每列 inst 的日期（見 candidates()）
         "provisional": provisional,
         "price_ahead_of_payload": bool(px_latest and latest and str(px_latest) > str(latest)),
         "history_days": history_days,
@@ -853,6 +854,9 @@ def _m60_payload(code: str, bars: pd.DataFrame, as_of: str) -> dict:
             cur = d_
         days[-1][1].append([hm, _num(o), _num(h), _num(lo), _num(c), _num(v, 0)])
     return {"v": 1, "code": code, "as_of": as_of, "tz": "+08:00", "n": int(len(bars)), "days": days}
+
+
+_INST_LIST_DATE: str | None = None   # candidates() 寫、meta_payload() 讀：ETF 成分股清單「法人」欄是哪一天
 
 
 def candidates(price: pd.DataFrame, valuation: pd.DataFrame,
@@ -1420,6 +1424,24 @@ def candidates(price: pd.DataFrame, valuation: pd.DataFrame,
         it["ud"] = flow.updown_bin(it["chg_pct"], LIMIT_PCT, lim=lim_today.get(it["code"], 0))
         if lim_today.get(it["code"]):
             it["lim"] = lim_today[it["code"]]
+    # ★ 2026-10-07 ETF 成分股清單要顯示「三大法人當日買賣超」（Andy：「法人當日買超賣超狀況，可以參考搜尋功能」）。
+    #   成分股動輒 50 檔，逐檔抓個股 json 太重；所以在全市場索引每列帶 `inst`＝三大法人合計（張，整數），
+    #   口徑同 inst_daily.inst_total（股）÷1000。當天沒有法人資料（停牌、法人表還沒出）就不寫，前端顯示「—」。
+    #   取哪一天：法人表比價量晚一輪、而且上市／上櫃分開落地（實測 2026-10-07 下午湖裡只有 344 檔、幾乎全是上櫃），
+    #   直接取最新日會讓大半成分股變「—」。所以取「涵蓋檔數 ≥ 近 10 日最多那天的 60%」裡最新的一天，
+    #   那一天寫進 meta.inst_list_date，前端表頭標「法人 MM/DD」—— 不拿前一天冒充今天，而是講明是哪一天。
+    global _INST_LIST_DATE
+    if inst is not None and not inst.empty and "inst_total" in inst.columns:
+        _cnt = inst[inst["date"] <= latest].groupby("date").size().sort_index().tail(10)
+        _ok = _cnt[_cnt >= _cnt.max() * 0.6] if not _cnt.empty else _cnt
+        _d = str(_ok.index[-1]) if not _ok.empty else None
+        _INST_LIST_DATE = _d
+        _it = (inst[inst["date"] == _d].drop_duplicates("code", keep="last").set_index("code")["inst_total"]
+               if _d else pd.Series(dtype=float))
+        for it in index:
+            v = _it.get(it["code"])
+            if v is not None and pd.notna(v):
+                it["inst"] = int(round(float(v) / 1000))
     _write("stocks", index)
     _write("explore", explore.payload(explore_rows, latest))
     ud = flow.updown_distribution(index, LIMIT_PCT)

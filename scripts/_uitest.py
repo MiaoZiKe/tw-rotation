@@ -1854,7 +1854,7 @@ def t_etf_hold_1007(pg, b, base):
         wait_until(lp, f"() => {{ const b = document.querySelector(\"{sel}\"); return !!(b && b.offsetParent); }}", 15000)
         lp.click(sel)
 
-    for W in (1440, 390):
+    for W in (1440, 1024, 390):
         t = f"{tag}@{W}"
         lp = pg.context.browser.new_page(viewport={"width": W, "height": 1000 if W > 400 else 844})
         lp.on("pageerror", lambda e: fails.append(f"{t} pageerror: {e}"))
@@ -1896,10 +1896,51 @@ def t_etf_hold_1007(pg, b, base):
                     ok(f"★ [{t}] 甜甜圈在清單{'左邊' if W > 1099 else '上方（堆疊）'}", (lay["pR"] <= lay["tL"] + 1) if W > 1099 else (lay["pB"] <= lay["tT"] + 1), lay)
                     ok(f"★ [{t}] 圖例 11 列（前 10＋其他）", len(lay["lg"]) == 11 and lay["lg"][10]["nm"].startswith("其他"), lay["lg"])
                     ok(f"★ [{t}] 圖例數值＝清單權重", [x["pc"] for x in lay["lg"][:10]] == lay["wv"], (lay["wv"], [x["pc"] for x in lay["lg"][:10]]))
-                    ok(f"★ [{t}] 清單用簡稱（台積電…，不是全名）", "台積電2330" in lay["nm"] and "台灣積體電路" not in "".join(lay["nm"]), lay["nm"])
+                    ok(f"★ [{t}] 清單用簡稱（台積電…，不是全名）", any(s.startswith("台積電2330") for s in lay["nm"]) and "台灣積體電路" not in "".join(lay["nm"]), lay["nm"])
                     ok(f"★ [{t}] 前 10 名色點＝扇區色＝圖例色塊", lay["dots"] == lay["sec"][:10] == [x["bg"] for x in lay["lg"][:10]], (lay["dots"], lay["sec"][:10]))
                     ok(f"[{t}] 第 10、11 名間有「其他」分隔列", lay["sep"])
                     ok(f"★ [{t}] 沒有橫向溢出", lay["hs"] <= 1, lay["hs"])
+                    # ★ 2026-10-07 19:00 Andy：「新增公司 LOGO 以及走勢圖、族群、價格、法人當日買超賣超狀況，可以參考搜尋功能那邊」
+                    #   每列：Logo（img 或字母色塊）｜名稱＋代號｜族群｜迷你走勢（sparks）｜現價＋漲跌｜法人（張，紅買綠賣）｜權重
+                    wait_until(lp, "() => document.querySelector('#etfHoldTbl tbody tr[data-i] td.sk svg.spk')", 8000)
+                    rich = J("""() => { const red = getComputedStyle(document.documentElement).getPropertyValue('--rise').trim(), grn = getComputedStyle(document.documentElement).getPropertyValue('--fall').trim();
+                      const probe = (v) => { const d = document.createElement('i'); d.style.color = v; document.body.appendChild(d); const c = getComputedStyle(d).color; d.remove(); return c; };
+                      const R = probe(red), G = probe(grn);
+                      const rs = [...document.querySelectorAll('#etfHoldTbl tbody tr[data-i]')].filter(r => r.dataset.code !== 'AAPL US');
+                      const vis = (e) => !!e && e.getBoundingClientRect().width > 0 && getComputedStyle(e).display !== 'none';
+                      const one = (r) => { const lg = r.querySelector('td.nm .slogo'); const iv = r.querySelector('td.iv'); const lgr = lg && lg.getBoundingClientRect();
+                        const gpCol = r.querySelector('td.gp'), gp2 = r.querySelector('td.nm .gp2');
+                        return { c: r.dataset.code, logo: !!lg && (!!lg.querySelector('img') || (getComputedStyle(lg, '::before').content || '').length > 2) && lgr.width >= 18,
+                          spk: !!r.querySelector('td.sk svg.spk'), spkVis: vis(r.querySelector('td.sk')),
+                          gp: (vis(gpCol) ? gpCol.textContent : (vis(gp2) ? gp2.textContent : '')).trim(),
+                          px: (r.querySelector('td.px .pv') || {}).textContent || '', pc: (r.querySelector('td.px .pc') || {}).textContent || '',
+                          iv: iv.textContent.trim(), ivCol: getComputedStyle(iv).color }; };
+                      const ap = document.querySelector('#etfHoldTbl tr[data-code="AAPL US"]');
+                      return { R, G, rows: rs.map(one), aapl: ap ? [...ap.querySelectorAll('td.gp,td.px,td.iv')].map(td => td.textContent.trim()) : null,
+                        hs: document.documentElement.scrollWidth - innerWidth,
+                        tblOver: (() => { const s = document.querySelector('#etfHoldCard .hdscroll'); return s.scrollWidth - s.clientWidth; })() }; }""")
+                    rr = rich["rows"]
+                    ok(f"★ [{t}] 每列都有 Logo（圖或首字色塊）", rr and all(x["logo"] for x in rr), [x["c"] for x in rr if not x["logo"]])
+                    ok(f"★ [{t}] 每列都有迷你走勢 svg（sparks.json）", sum(x["spk"] for x in rr) >= len(rr) - 2, [x["c"] for x in rr if not x["spk"]])
+                    if W <= 640:
+                        ok(f"[{t}] 手機寬把走勢欄收起", not any(x["spkVis"] for x in rr))
+                    else:
+                        ok(f"[{t}] 走勢欄看得到", all(x["spkVis"] for x in rr))
+                    ok(f"★ [{t}] 每列都有族群文字（名稱下第二行小字）", sum(1 for x in rr if x["gp"] and x["gp"] != "—") >= len(rr) * 0.8, [(x["c"], x["gp"]) for x in rr[:6]])
+                    ok(f"★ [{t}] 每列都有現價與漲跌%", all(re.match(r"^[\d,]+(\.\d+)?$", x["px"]) and (x["pc"].endswith("%") or x["pc"] == "—") for x in rr), [(x["px"], x["pc"]) for x in rr[:5]])
+                    ivh = text(lp, "#etfHoldTbl th.ivh")
+                    ok(f"[{t}] 法人欄表頭標出資料日（法人 MM/DD）", re.match(r"^法人 \d\d/\d\d$", ivh.strip()) is not None, ivh)
+                    ivs = [x for x in rr if x["iv"] != "—"]
+                    ok(f"★ [{t}] 法人欄有數字且帶「張」", len(ivs) >= 3 and all(x["iv"].endswith(" 張") for x in ivs), [x["iv"] for x in rr[:8]])
+                    def _ivn(s): return int(s.replace(" 張", "").replace(",", "").replace("+", ""))
+                    bad = [(x["iv"], x["ivCol"]) for x in ivs if (_ivn(x["iv"]) > 0 and x["ivCol"] != rich["R"]) or (_ivn(x["iv"]) < 0 and x["ivCol"] != rich["G"])]
+                    ok(f"★ [{t}] 法人買超紅、賣超綠", not bad, (bad[:4], rich["R"], rich["G"]))
+                    ok(f"[{t}] 非台股成分（AAPL US）族群／現價／法人都留「—」", rich["aapl"] is not None and all(v in ("—", "") for v in rich["aapl"]) and "—" in rich["aapl"], rich["aapl"])
+                    ok(f"★ [{t}] 加欄之後清單與頁面都沒有橫向溢出", rich["hs"] <= 1 and rich["tblOver"] <= 1, (rich["hs"], rich["tblOver"]))
+                    if W >= 1100:
+                        gapw = J("""() => { const r = document.querySelector('#etfHoldTbl tbody tr[data-i]'); const nm = r.querySelector('td.nm'); const t = r.querySelector('.nmt').getBoundingClientRect();
+                          return nm.getBoundingClientRect().right - t.right; }""")
+                        ok(f"★ [{t}] 名稱欄不再一大片空白（名稱右邊空白 < 160px）", gapw < 160, gapw)
                     # 滑過圖例第 3 列 → 中心換成該檔、清單對應列高亮
                     if W > 400:
                         lp.hover("#etfHoldLegend .lg:nth-child(3)"); lp.wait_for_timeout(300)
@@ -7591,6 +7632,70 @@ def _rot_tip_gaps_all(pg, cid="rotClock"):
         return None, None
     ds = [((t[0] - d[0]) ** 2 + (t[1] - d[1]) ** 2) ** 0.5 for t, d in zip(r["tips"], r["dots"])]
     return ds, min(d[2] for d in r["dots"]) / 2.0
+
+
+def t_flow_tree_play_1007(pg, base):
+    """資金分流樹播放1007（Andy 2026-10-07 18:55：「播放時右邊清單反灰不作動，等到播放結束才會更新」）。
+
+    舊斷言（資金分流樹右欄1007 的 [播放]）只量祖先 opacity＝1、沒有 grayscale、列沒清空 ——
+    內容停在舊日期一動不動也會過，量錯東西。這段改量「右欄是不是跟著拉桿走」：
+    淺色主題（Andy 截圖的主題）真的按 ▶，每 200ms 取樣 22 次（約 5 秒，650ms 一格 ≈ 7 格）：
+      · 右欄標題日期 ＝ 拉桿當下那一天（每一次取樣都要）
+      · 標題日期至少變 5 次、第 1 列內容（名稱＋pp）至少變 2 次
+      · 標題字色、第 1 列名稱字色、右欄底色與靜止時相同；祖先 opacity 連乘 ≥0.99、沒有 grayscale
+    再暫停、按 End 回最新一天：標題＝最新日期。"""
+    pg.set_viewport_size({"width": 1440, "height": 900})
+    pg.evaluate("() => { try { localStorage.setItem('tw.theme', 'light'); } catch (e) {} }")
+    pg.goto(f"{base}#flow", wait_until="networkidle"); pg.wait_for_timeout(2500)
+    l4_sub(pg, "sankey", 1800)
+    pg.locator("#flowSankeyCard").scroll_into_view_if_needed(); pg.wait_for_timeout(1500)
+    wait_until(pg, "() => { const r = document.getElementById('sankeyRank'); return r && !r.hidden && r.querySelector('.skr-r') ? 1 : 0; }", 8000)
+    SNAP = """() => { const s = document.getElementById('sankeyRank'); if (!s || s.hidden) return null;
+        const inp = document.querySelector('#sankeyDays input'), lab = document.querySelector('#sankeyDays .val');
+        const r = s.querySelector('.skr-r'); let op = 1, gray = false;
+        for (let x = s; x; x = x.parentElement) { const cs = getComputedStyle(x); op *= +cs.opacity; if (/grayscale|opacity\\(/.test(cs.filter)) gray = true; }
+        return { title: s.querySelector('.skr-t').textContent.slice(0, 10), lab: lab ? lab.textContent : '', v: inp ? +inp.value : -1, max: inp ? +inp.max : -1,
+                 row1: r ? r.querySelector('.n b').textContent + ' ' + r.querySelector('.v .d').textContent : '',
+                 tc: getComputedStyle(s.querySelector('.skr-t')).color, nc: r ? getComputedStyle(r.querySelector('.n b')).color : '',
+                 bg: getComputedStyle(s).backgroundColor, op, gray,
+                 playing: document.getElementById('sankeyDays').classList.contains('playing') }; }"""
+    rest = pg.evaluate(SNAP)
+    if not ok("[播放同步] 右欄排名表在靜止時出現", bool(rest) and bool(rest["title"]), rest):
+        return
+    latest = rest["title"]
+    pg.click("#sankeyDays .pb.play"); pg.wait_for_timeout(120)
+    samples = []
+    for _ in range(22):
+        samples.append(pg.evaluate(SNAP)); pg.wait_for_timeout(200)
+    pg.click("#sankeyDays .pb.play"); pg.wait_for_timeout(400)
+    samples = [x for x in samples if x]
+    bad_sync = [(x["lab"], x["title"]) for x in samples if (x["lab"] if x["lab"] != "最新" else latest) != x["title"]]
+    titles = [x["title"] for x in samples]; rows = [x["row1"] for x in samples]
+    chg = lambda a: sum(1 for i in range(1, len(a)) if a[i] != a[i - 1])
+    ok("[播放同步] 播放中取樣 ≥12 次、而且真的在播放", len(samples) >= 12 and all(x["playing"] for x in samples), len(samples))
+    ok("[播放同步] 每一次取樣：右欄標題日期＝拉桿日期", not bad_sync, bad_sync[:4])
+    ok("[播放同步] 右欄標題日期至少變 5 次", chg(titles) >= 5, titles)
+    ok("[播放同步] 第 1 列（名稱＋pp）至少變 2 次", chg(rows) >= 2, rows)
+    bad_col = [(x["title"], x["tc"], x["nc"], x["bg"], round(x["op"], 3), x["gray"]) for x in samples
+               if x["tc"] != rest["tc"] or x["nc"] != rest["nc"] or x["bg"] != rest["bg"] or x["op"] < 0.99 or x["gray"]]
+    ok("[播放同步] 播放中字色／底色與靜止時相同、祖先 opacity 連乘 ≥0.99、沒有灰階", not bad_col,
+       {"靜止": (rest["tc"], rest["nc"], rest["bg"]), "不同": bad_col[:3]})
+    pg.focus("#sankeyDays input"); pg.keyboard.press("End"); pg.wait_for_timeout(700)
+    end = pg.evaluate(SNAP)
+    ok("[播放同步] 暫停後回到最新一天：右欄標題＝最新日期", bool(end) and end["title"] == latest and end["v"] == end["max"], end)
+    # 故障注入：樹的繪圖引擎丟例外（模擬線上資料某一天讓樹那段出錯），右欄仍要跟著拉桿換日。
+    # 舊版右欄排在 renderSankey 最尾端，前面一丟例外右欄就停在上一天 —— 這一條在舊版是紅的。
+    if pg.evaluate("() => !!(window.FlowTopo && window.FlowTopo.render)"):
+        pg.evaluate("() => { window.__ftR = window.FlowTopo.render; window.FlowTopo.render = () => { throw new Error('注入'); }; }")
+        pg.focus("#sankeyDays input"); pg.keyboard.press("Home"); pg.wait_for_timeout(300)
+        inj = []
+        for _ in range(4):
+            pg.keyboard.press("ArrowRight"); pg.wait_for_timeout(250); inj.append(pg.evaluate(SNAP))
+        pg.evaluate("() => { window.FlowTopo.render = window.__ftR; }")
+        pg.keyboard.press("End"); pg.wait_for_timeout(700)
+        badi = [(x["lab"], x["title"]) for x in inj if x and x["lab"] != x["title"]]
+        ok("[播放同步] 樹的引擎出錯時，右欄仍跟著拉桿日期（故障注入）", len(inj) == 4 and not badi, badi or inj[-1])
+    pg.evaluate("() => { try { localStorage.removeItem('tw.theme'); } catch (e) {} }")
 
 
 def t_flow_tree_1007(pg, base):
@@ -25327,6 +25432,7 @@ SECTIONS = {
     "播放器1007":          lambda pg, b, base, code: t_player_1007(pg, base),
     # ★ 2026-10-07 Andy：改名（資金分流樹／族群資金排行）＋樹旁「資金流向排名」右表＋族群成分股依流入排序（含 390）
     "資金分流樹右欄1007":  lambda pg, b, base, code: t_flow_tree_1007(pg, base),
+    "資金分流樹播放1007":  lambda pg, b, base, code: t_flow_tree_play_1007(pg, base),
     # ★ 2026-09-21：輪動時鐘與族群資金排行合併成一張卡（Andy：「這兩張圖合併…彙整並一頁」）。
     #   合併本身的驗收自成一段：共用篩選、共用「看哪一天」、窄畫面 800px 都要成立。
     "資金輪動合併":        lambda pg, b, base, code: t_rotmerge(pg, base),

@@ -9038,7 +9038,16 @@
           frame: 650, label: '看哪一天', fmt: (v) => (v >= n - 1 ? '最新' : sd.dates[v]),
           /* 拖時間軸＝「我要看過去某一天」，和「即時」是互斥的兩件事。
              不退出的話拉Bar 看起來完全沒作用（畫面還是盤中那一張），像壞掉。*/
-          onChange: (v) => { if (SKL.on) sklOff(false); renderSankey(sd, v, sankeySel); } });
+          /* ★ 2026-10-07 晚（Andy：「播放時右邊清單反灰不作動，等到播放結束才會更新」）：右欄排名表以前只在
+             renderSankey() 的最尾端才重畫 —— 前面那一大段（樹的資料模型、flowtopo 換日補間、成分股面板）任何一步丟例外，
+             這一天右欄就停在上一天，畫布卻還在動，看起來就是「右欄不動、播完才更新」。現在換日先把右欄排名畫到這一天，
+             樹另外包 try：樹出錯也不准拖住右欄。*/
+          onChange: (v) => {
+            if (SKL.on) sklOff(false);
+            const rk = $('#sankeyRank'), pn = $('#sankeyPanel');
+            if (rk && !rk.hidden && !(pn && !pn.hidden)) { try { sankeyRankDraw(rk, sd, v, sankeyPickGroup); } catch (e) { console.warn(e); } }
+            try { renderSankey(sd, v, sankeySel); } catch (e) { console.warn('資金分流樹換日失敗', e); renderSankeyRank(); }
+          } });
       }
       // ★「即時」鈕掛在同一列（Andy：「在紅框那排」）。playBar 會換掉整個容器的
       //   innerHTML，所以一定要等它建完才 append。
