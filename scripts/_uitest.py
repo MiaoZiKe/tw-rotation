@@ -7256,8 +7256,8 @@ def t_new_flow(pg, base):
                 return { cls: b.classList.contains('livedim'), dis: i.disabled, pe: getComputedStyle(i).pointerEvents,
                          v: i.value, x: r.left + 4, y: r.top + r.height / 2 }; }""")
             if sd:
-                # ★ 播放器1007b：改前（#283）即時開著反灰停用；改後不反灰、不停用（拖或按 ▶＝退出即時，在「播放普查1007」段真的操作）
-                ok("資金分流樹：即時開著時日期拉Bar **不反灰、不停用**", not sd["cls"] and not sd["dis"] and sd["pe"] != "none", sd)
+                # ★ 2026-10-08 Andy：「滑桿和播放鈕不再變灰：不行」→ 回到 #283：即時開著時反灰停用
+                ok("資金分流樹：即時開著時日期拉Bar 反灰、停用（#283）", sd["cls"] and sd["dis"], sd)
             ok("鈕自己亮起來（看得出現在畫的不是收盤那一張）",
                pg.evaluate("() => document.getElementById('sankeyLiveBtn').classList.contains('on')"))
             tr = pg.evaluate(SKL_TREE)
@@ -8498,20 +8498,22 @@ def t_play_census_1007(b, base):
                 mb.click(); pg.wait_for_timeout(300)
                 rk = pg.evaluate(RANK)
                 ok(f"[資金分流樹] 切成「{mb.text_content()}」之後右欄 opacity 1、沒有 filter", rk["op"] >= 0.99 and not rk["fl"], rk)
-        # 即時開著（Andy 21:05 截圖的狀態）：▶ 不反灰；停在最新按 ▶ 會退出即時並從頭播
+        # 即時開著：照 #283 拉Bar 與 ▶ 反灰停用（2026-10-08 Andy：「滑桿和播放鈕不再變灰：不行」）；關掉即時後停在最新按 ▶ 從頭播
         if ok("[資金分流樹] 管理者看得到「即時」鈕", pg.locator("#sankeyLiveBtn").count() == 1):
             pg.focus("#sankeyDays input"); pg.keyboard.press("End"); pg.wait_for_timeout(300)
             pg.click("#sankeyLiveBtn"); pg.wait_for_timeout(800)
             d = pg.evaluate("""() => { const b = document.querySelector('#sankeyDays'), p = b.querySelector('.pb.play');
-                return { dim: b.classList.contains('livedim'), dis: p.disabled, op: +getComputedStyle(p).opacity,
-                         fl: getComputedStyle(p).filter, live: !!window.App.sankeyLive().on }; }""")
-            ok("[資金分流樹] 即時開著：▶ 不反灰、不停用（Andy：「不是說要反灰色」）",
-               d["live"] and not d["dim"] and not d["dis"] and d["op"] >= 0.99 and d["fl"] == "none", d)
+                return { dim: b.classList.contains('livedim'), dis: p.disabled, live: !!window.App.sankeyLive().on }; }""")
+            ok("[資金分流樹] 即時開著：▶ 反灰、停用（#283）", d["live"] and d["dim"] and d["dis"], d)
+            pg.click("#sankeyLiveBtn"); pg.wait_for_timeout(800)
+            d2 = pg.evaluate("""() => { const b = document.querySelector('#sankeyDays'), p = b.querySelector('.pb.play');
+                return { dim: b.classList.contains('livedim'), dis: p.disabled, live: !!window.App.sankeyLive().on }; }""")
+            ok("[資金分流樹] 關掉即時：▶ 恢復可按、不反灰", not d2["live"] and not d2["dim"] and not d2["dis"], d2)
+            pg.focus("#sankeyDays input"); pg.keyboard.press("End"); pg.wait_for_timeout(300)
             e0 = st("#sankeyDays")
             pg.click("#sankeyDays .pb.play"); pg.wait_for_timeout(300)
             e1 = st("#sankeyDays")
-            ok("[資金分流樹] 即時開著、停在最新按 ▶ → 退出即時、從頭播（日期真的變）",
-               e1["t"] != e0["t"] and e1["play"] == "⏸" and not pg.evaluate("() => window.App.sankeyLive().on"), (e0, e1))
+            ok("[資金分流樹] 關掉即時後、停在最新按 ▶ → 從頭播（日期真的變）", e1["t"] != e0["t"] and e1["play"] == "⏸", (e0, e1))
             pg.click("#sankeyDays .pb.play"); pg.wait_for_timeout(200)
 
     # ---------------------------------------------------------------- 足跡輪盤（dayBar：值＝N 天前，回放走到最新就停）
@@ -31907,20 +31909,11 @@ def t_rot_live(pg, base):
             return { cls: b.classList.contains('livedim'), dis: i.disabled, aria: i.getAttribute('aria-disabled'),
                      tip: i.title, op: +getComputedStyle(i).opacity, pe: getComputedStyle(i).pointerEvents,
                      play: pl ? pl.disabled : null, live: lv ? getComputedStyle(lv).pointerEvents : '' }; }""")
-        # ★ 播放器1007b（Andy 10-07 21:05：「圖一功能不是說要反灰色」＋「到當日數據截止便不會再播放」）：
-        #   改前（#283）：即時開著 → 拉Bar／− ＋ ▶ 全部反灰停用，▶ 按不動。
-        #   改後：同一排有「即時」鈕的拉Bar 不反灰、不停用；拖 N 天＝照舊不退出即時，按 ▶＝退出即時、從 N 天前回放。
-        ok("即時開著：拉Bar **不反灰、不停用**（沒有 .livedim、沒有 disabled、不透明、點得到）",
-           not dim["cls"] and not dim["dis"] and dim["aria"] is None and dim["op"] >= 0.99 and dim["pe"] != "none", dim)
-        ok("▶ 播放鈕也按得到；「即時」鈕本身仍然按得到", dim["play"] is False and dim["live"] != "none", dim)
-        v1 = _drag(box, 0.15 if box["v"] > 8 else 0.85)
-        ok(f"即時開著時用滑鼠拖 N 天，值**真的變了**（{box['v']} → {v1}），點還在最新所以即時照開",
-           v1 != box["v"] and pg.evaluate("() => window.App.rotLive().on"), {"前": box["v"], "後": v1})
-        pg.click("#rotBack .pb.play"); pg.wait_for_timeout(700)
-        ok("即時開著時按 ▶：退出即時、真的開始回放（frame > 0）",
-           not pg.evaluate("() => window.App.rotLive().on") and (pg.evaluate("() => window.App.rotFrameNow()") or 0) > 0,
-           pg.evaluate("() => [window.App.rotLive().on, window.App.rotFrameNow()]"))
-        pg.click("#rotBack .pb.play"); pg.wait_for_timeout(300)
+        # ★ 2026-10-08 Andy：「滑桿和播放鈕不再變灰：不行」→ 回到 #283：即時開著時拉Bar／▶ 反灰停用；「即時」鈕本身照常可按
+        ok("即時開著：拉Bar 反灰、停用（#283）", dim["cls"] and dim["dis"], dim)
+        ok("▶ 也停用；「即時」鈕本身仍然按得到", dim["play"] is True and dim["live"] != "none", dim)
+        pg.click("#rotLiveBtn"); pg.wait_for_timeout(900)
+        ok("關掉即時 → 拉Bar 恢復可拖、不反灰", not pg.evaluate("() => document.getElementById('rotBack').classList.contains('livedim')"))
         box = pg.evaluate(_rot_drag)
         sub0 = sub_range(pg, "rankSub")
         v2 = _drag(box, 0.15 if box["v"] > 8 else 0.85)

@@ -1644,19 +1644,8 @@
     box = typeof box === 'string' ? document.querySelector(box) : box;
     if (!box) return;
     on = !!on;
-    /* ★ 播放器1007b（Andy 10-07 21:05 附圖：資金分流樹那排開著「即時」，▶ 反灰按不動 →
-       「播放動畫都是到當日數據截止，便不會再進行播放…圖一功能不是說要反灰色」）：
-       同一排自己有「即時」鈕的拉Bar（資金分流樹 #sankeyDays、足跡輪盤 #rotBack／#rotZoomBack），
-       它們的拉桿／− ＋／▶ 本來就會「一動就退出即時」（sankeyDays 的 onChange → sklOff、rotSeek → rlvOff），
-       所以不再停用、不再反灰：按 ▶ ＝退出即時、從頭播。這裡只停掉播放、掛上提示，外觀照常。
-       沒有退出邏輯的 live.js 卡片（tw:livecard）維持 #283 的反灰停用。*/
-    if (box.querySelector('.livebtn')) {
-      if (on) { const p = _players.get(box); if (p) { try { p.stop(); } catch (e) { /* 忽略 */ } } }
-      box.classList.remove('livedim');
-      if (on) box.setAttribute('data-livetip', '即時模式中；拖拉Bar 或按 ▶ 會退出即時、回看歷史');
-      else box.removeAttribute('data-livetip');
-      return;
-    }
+    /* ★ 2026-10-08 Andy 確認：「滑桿和播放鈕不再變灰：不行」→ 撤回播放器1007b 的例外，
+       開著「即時」時，所有拉Bar（含資金分流樹、足跡輪盤）照 #283 反灰停用；要回看歷史先關即時。*/
     if (on) { const p = _players.get(box); if (p) { try { p.stop(); } catch (e) { /* 忽略 */ } } }
     box.classList.toggle('livedim', on);
     box.querySelectorAll('input, button, select').forEach(el => {
