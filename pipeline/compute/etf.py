@@ -68,29 +68,46 @@ def classify(code: str, name: str, freq_n: int = 0) -> str:
     return "主題型"
 
 
-def freq_label_dates(dates: list[str]) -> str:
-    """近 400 天的除息日 → 配息頻率，依「相鄰兩次除息的間隔中位數」判斷（2026-10-07 修）。
+# 配息間隔（天）→ 頻率的區間。邊界取相鄰兩個標準間隔（30/61/91/182/365）的中點附近，
+# 讓除息日每年飄幾天、遇連假順延都還落在同一格；區間外（例如 450 天以上）不硬套，回「未知」。
+FREQ_BANDS = [(20, 45, "月配"), (46, 75, "雙月配"), (76, 135, "季配"),
+              (136, 250, "半年配"), (251, 450, "年配")]
+FREQ_RECENT = 7        # 只看最近 7 次除息（6 個間隔）：夠抗單次順延，又能反映改頻（例：季配改月配）
+FREQ_MIN_GAPS = 2      # 至少 2 個間隔（3 次除息）才判；只有 1～2 次除息的新掛牌 ETF 一律「未知」
 
-    為什麼不只數次數：400 天窗裡季配最多會落 5 次（例：00919 2025-09-16 與 2026-09-16 都在窗內），
-    用「≥5 次＝雙月配」會把 00919、00713 這種季配誤標成雙月配；半年配同理會被數成 3 次＝季配。
-    間隔中位數不受窗口頭尾多吃一次影響：月配約 30 天、雙月配約 61 天、季配約 91 天、半年配約 182 天。
-    只有 1 次除息時沒有間隔可量，算年配。"""
-    ds = sorted(set(dates))
-    if not ds:
+
+def _gap_band(g: float) -> str | None:
+    for lo, hi, lab in FREQ_BANDS:
+        if lo <= g <= hi:
+            return lab
+    return None
+
+
+def freq_label_dates(dates: list[str], recent_dates: list[str] | None = None) -> str:
+    """除息日序列 → 配息頻率（2026-10-07 第二版）。
+
+    公式：取最近 FREQ_RECENT 次除息（不限 400 天窗，用全部歷史），相鄰間隔的**中位數**對照 FREQ_BANDS。
+    為什麼不數次數：400 天窗裡季配最多會落 5 次（00919 2025-09-16 與 2026-09-16 都在窗內），
+    「≥5 次＝雙月配」就把 00919、00713 誤標成雙月配；半年配同理會被數成 3 次＝季配。
+    例外處理（寧可留白也不硬猜）：
+      · 沒有任何除息 → 「不配息」；`recent_dates`（近 400 天內的除息）有給且為空 → 也是「不配息」（停配）。
+      · 間隔數 < FREQ_MIN_GAPS（≤ 2 次除息）→ 「未知」。舊版 1 次就判年配，新掛牌的月配 ETF 會被標成年配。
+      · 中位數落在所有區間外 → 「未知」。
+      · 一半以上的間隔不落在中位數那一格（配息日不規律）→ 「未知」。
+    前端只認得五種頻率＋不配息，「未知」不畫徽章。"""
+    ds = sorted(set(d for d in dates if d))
+    if not ds or (recent_dates is not None and not recent_dates):
         return "不配息"
-    if len(ds) == 1:
-        return "年配"
-    gaps = sorted((pd.Timestamp(b) - pd.Timestamp(a)).days for a, b in zip(ds, ds[1:]))
-    m = gaps[len(gaps) // 2] if len(gaps) % 2 else (gaps[len(gaps) // 2 - 1] + gaps[len(gaps) // 2]) / 2
-    if m <= 45:
-        return "月配"
-    if m <= 75:
-        return "雙月配"
-    if m <= 135:
-        return "季配"
-    if m <= 250:
-        return "半年配"
-    return "年配"
+    ds = ds[-FREQ_RECENT:]
+    gaps = [(pd.Timestamp(b) - pd.Timestamp(a)).days for a, b in zip(ds, ds[1:])]
+    if len(gaps) < FREQ_MIN_GAPS:
+        return "未知"
+    lab = _gap_band(float(pd.Series(gaps).median()))
+    if lab is None:
+        return "未知"
+    if sum(1 for g in gaps if _gap_band(g) == lab) * 2 < len(gaps):
+        return "未知"
+    return lab
 
 
 def freq_label(n: int) -> str:
@@ -372,7 +389,8 @@ def build(price: pd.DataFrame, names: dict, etf_codes: set[str], div_events: pd.
             "tv20": round(float(tv.mean()), 0) if tv.notna().any() else None,
             "tv": float(pd.to_numeric(g["turnover"], errors="coerce").iloc[-1] or 0),
             "freq_n": n400,
-            "freq": freq_label_dates([d for d in dmap if since400 < d <= latest]) if div_done(code) else None,
+            "freq": freq_label_dates([d for d in dmap if d <= latest],
+                                     [d for d in dmap if since400 < d <= latest]) if div_done(code) else None,
             "yield_ttm": round(ttm / close, 5) if (div_done(code) and close) else None,
             "div_ttm": round(ttm, 4) if div_done(code) else None,
             "holders": h.get("holders"), "d_holders": h.get("d_holders"),

@@ -25696,11 +25696,8 @@ def t_tour_1007(pg, b, base):
     pp = pctx.new_page()
     pp.add_init_script("window.TW_PREVIEW = { name: 'uit' }; try{localStorage.setItem('tw.live.on','0')}catch(e){}")
     pp.goto(base + "#overview", wait_until="networkidle"); pp.wait_for_timeout(2000)
-    pp.evaluate("() => document.getElementById('sfTour').scrollIntoView()")
-    pp.click("#sfTour")
-    st = _tour_wait(pp)
-    ok(f"{T} 預覽版：按頁尾「平台導覽」開的是逐步導覽（不是舊彈窗）",
-       st and st["active"] and st["tour"] == "site" and pp.locator("#lgTour").count() == 0, (st and st.get("tour"), pp.locator("#lgTour").count()))
+    # 2026-10-07 Andy：頁尾「平台導覽」拿掉
+    ok(f"{T} 頁尾不再有「平台導覽」", pp.locator("#sfTour").count() == 0, pp.locator("#sfTour").count())
     pctx.close()
 
     # ---- 390 手機
@@ -26224,6 +26221,8 @@ SECTIONS = {
     "功能開關整列對齊1006": lambda pg, b, base, code: t_perm_grid_1006(b, base, code),
     # ★ 2026-10-05（sub-v1）Andy：訂閱頁 #pricing、每日瀏覽次數、右下角客服／意見反饋、帳號選單方案徽章、通知中心（page.route 假 Worker）
     "訂閱與客服1005":      lambda pg, b, base, code: t_sub_1005(b, base, code),
+    # ★ 2026-10-07 Andy：「使用者格式跑掉確保格式正確／已是 pro 用戶但 plus 尚未包含」—— 帳號選單徽章版面＋方案頁按鈕依層級（免費／Plus／Pro／站主，深淺）
+    "會員徽章與方案層級1007": lambda pg, b, base, code: t_member_tier_1007(b, base),
     # ★ 2026-10-07 Andy：客服改 Gmail、反饋留站上（#admin/feedback）、搜尋下拉每列 ☆ 立即加入自選
     "客服與反饋1007":      lambda pg, b, base, code: t_support_1007(b, base, code),
     "搜尋星號1007":        lambda pg, b, base, code: t_search_star_1007(b, base, code),
@@ -42679,12 +42678,7 @@ def t_legal(b, base):
         "() => document.getElementById('v-overview').classList.contains('on') && !document.getElementById('v-legal').classList.contains('on')"))
     # 平台導覽（2026-10-07 合併 tour 分支後）：頁尾「平台導覽」接 TwTour.start()，開的是新的逐步導覽（舊的 #lgTour 彈窗只在沒有 tour.js 時才是退路）；
     # 導覽本身怎麼走由「平台導覽1007」那段驗，這裡只驗「頁尾那顆真的接到新導覽」與 Esc 能關
-    pg.evaluate("() => window.scrollTo(0, document.body.scrollHeight)"); pg.wait_for_timeout(300)
-    pg.click("#sfTour")
-    st = _tour_wait(pg)
-    ok("[關] 頁尾「平台導覽」開的是新的逐步導覽（TwTour、全站導覽），不是舊彈窗",
-       bool(st and st["active"] and st["tour"] == "site") and pg.locator("#lgTour").count() == 0, (st and st.get("tour"), pg.locator("#lgTour").count()))
-    pg.keyboard.press("Escape"); pg.wait_for_timeout(400)
+    ok("[關] 頁尾不再有「平台導覽」（2026-10-07 Andy 拿掉）", pg.locator("#sfTour").count() == 0)
     ok("[關] Esc 關閉導覽", not pg.evaluate("() => !!(window.TwTour && window.TwTour.state().active)"))
     ctx.close()
 
@@ -50488,6 +50482,108 @@ def t_preset_live_1007(b, base, code):
         pg.wait_for_timeout(5200); pg.locator("#ptTableBox").scroll_into_view_if_needed(); pg.evaluate("() => window.scrollBy(0, 200)"); pg.wait_for_timeout(200); pg.screenshot(path=str(pathlib.Path(sh) / "members_empty.png"))
     c.close()
     ok(f"{T}：沒有 JS 錯誤", not errs, errs[:3])
+
+
+# ★ 2026-10-07 Andy（238.png／239.png）：
+#   ① 帳號選單：名字被截成「Ha…」、方案徽章是一大塊橘色蓋住名字還溢出選單 —— 根因是 account.js 的 .acctmenu a{display:block;width:100%}
+#      套到了徽章（它也是 <a>）。驗：名字可見寬度 ≥ 80px、徽章完整在選單內、徽章文字＝方案名、Plus 藍／Pro 紫、email 在下一行。
+#   ② 方案頁：Pro 會員的 Plus 卡仍寫「升級 Plus」→ 改成依層級（折合每月價格）比：低＝已包含、同＝目前方案、高＝升級。
+#   四種身分（免費、Plus、Pro、站主）× 深／淺主題；假帳號 API 用 page.route，⚠ 一律 --workers 1。
+def _tier_ctx(b, who, theme="dark", width=1440):
+    plans = [{"id": "guest", "name": "訪客", "builtin": True, "feats": {}, "price": None, "price_year": None, "period": None},
+             {"id": "free", "name": "免費會員（預設）", "builtin": True, "feats": {}, "lims": {}, "price": None, "price_year": None, "period": None},
+             # 故意把 Pro 排在 Plus 前面：順序要靠價格排，不是靠後端順序或寫死名稱
+             {"id": "pro", "name": "Pro", "builtin": False, "feats": {}, "price": 549, "price_year": 5268, "period": "month"},
+             {"id": "plus", "name": "Plus", "builtin": False, "feats": {}, "price": 299, "price_year": 2990, "period": "month"}]
+    plan = {"free": "free", "plus": "plus", "pro": "pro", "owner": "free"}[who]
+    pname = {"free": "免費會員（預設）", "plus": "Plus", "pro": "Pro"}.get(plan, "免費會員（預設）")
+
+    def handle(route):
+        req = route.request
+        path = re.sub(r"^https?://[^/]+", "", req.url).split("?")[0]
+        if req.method == "OPTIONS":
+            return route.fulfill(status=204, headers={"access-control-allow-origin": "*", "access-control-allow-headers": "*", "access-control-allow-methods": "POST"})
+        me = {"email": "baodianliang@gmail.com", "name": "Haolian Liang 測試長名字", "admin": who == "owner", "owner": who == "owner"}
+        out = {}
+        if path == "/v1/me":
+            out = {"user": me}
+        elif path == "/v1/perm/me":
+            out = {"who": "member", "plan": plan, "planName": pname, "feats": {}, "lims": {}, "dq": None}
+        elif path == "/v1/plans/public":
+            out = {"plans": plans}
+        elif path == "/v1/notices":
+            out = {"notices": []}
+        elif path == "/v1/quota/hit":
+            out = {"day": "x", "k": "", "n": 0, "keys": []}
+        route.fulfill(status=200, body=json.dumps(out), headers={"access-control-allow-origin": "*", "content-type": "application/json"})
+
+    c = b.new_context(viewport={"width": width, "height": 900})
+    c.add_init_script("window.TW_ACCOUNT_OVERRIDE = " + json.dumps({"api": SUB_API}) + ";"
+                      + "try { localStorage.setItem('tw.acct.tok', 'tok-test'); localStorage.setItem('tw.theme', " + json.dumps(theme) + "); } catch (e) {}")
+    c.route("**/fonts.googleapis.com/**", lambda r: r.abort())
+    c.route(SUB_API + "/**", handle)
+    return c
+
+
+def t_member_tier_1007(b, base):
+    T = "會員徽章與方案層級1007"
+    shots = os.environ.get("TW_TIER_SHOTS")
+    want_label = {"free": "免費會員", "plus": "Plus", "pro": "Pro", "owner": "站主"}
+    want_btn = {"free": ["目前方案", "升級 Plus", "升級 Pro"], "plus": ["已包含", "目前方案", "升級 Pro"],
+                "pro": ["已包含", "已包含", "目前方案"], "owner": ["已包含", "已包含", "已包含"]}
+    want_cls = {"plus": "pc-blue", "pro": "pc-violet"}
+    for who in ("free", "plus", "pro", "owner"):
+        for theme in ("dark", "light"):
+            errs: list[str] = []
+            c = _tier_ctx(b, who, theme)
+            pg = c.new_page(); pg.on("pageerror", lambda e: errs.append(str(e)))
+            pg.goto(base + "#pricing", wait_until="domcontentloaded")
+            if theme == "light":
+                pg.evaluate("() => { document.documentElement.dataset.theme = 'light'; }")
+            okp = bool(wait_until(pg, "() => document.querySelectorAll('#prCards .prcard').length === 3 && window.TwPerm && TwPerm.state().src === 'server' && window.TwAccount && TwAccount.user()", 10000))
+            pg.wait_for_timeout(400)
+            # 方案頁要在權限到了之後重畫（tw:perm）—— 讀按鈕前再等它對上
+            wait_until(pg, "() => [...document.querySelectorAll('#prCards .prgo')].map(x => x.textContent.trim()).join('|') === " + json.dumps("|".join(want_btn[who])), 5000)
+            cd = pg.evaluate("() => [...document.querySelectorAll('#prCards .prcard')].map(c => ({ id: c.dataset.plan, btn: c.querySelector('.prgo').textContent.trim(), dis: c.querySelector('.prgo').disabled }))")
+            ok(f"{T}：{who}／{theme}：方案頁依價格排（free,plus,pro），按鈕＝{want_btn[who]}，非升級鈕都停用",
+               okp and [x["id"] for x in cd] == ["free", "plus", "pro"] and [x["btn"] for x in cd] == want_btn[who]
+               and all(x["dis"] == (not x["btn"].startswith("升級")) for x in cd), cd)
+            if shots and who == "pro" and theme == "dark":
+                pg.screenshot(path=str(pathlib.Path(shots) / "pro_pricing.png"), full_page=False)
+            pg.click("#acctBtn")
+            wait_until(pg, "() => !!document.querySelector('#acctMenu .planbadge') && !document.getElementById('acctMenu').hidden", 3000)
+            pg.wait_for_timeout(200)
+            g = pg.evaluate("""() => { const m = document.getElementById('acctMenu'), bd = m.querySelector('.mh .planbadge'), nm = m.querySelector('.mh .nm b'), em = m.querySelector('.mh small');
+                const R = (e) => e.getBoundingClientRect(), mr = R(m), br = R(bd), nr = R(nm), er = R(em);
+                return { nameW: nr.width, nameTxt: nm.textContent, inside: br.left >= mr.left && br.right <= mr.right && br.top >= mr.top && br.bottom <= mr.bottom,
+                  label: bd.textContent.trim(), cls: bd.className, sameRow: Math.abs((br.top + br.bottom) / 2 - (nr.top + nr.bottom) / 2) < 6, bh: br.height, bw: br.width,
+                  emailBelow: er.top >= nr.bottom - 1, scroll: bd.scrollWidth <= bd.clientWidth + 1, color: getComputedStyle(bd).color }; }""")
+            ok(f"{T}：{who}／{theme}：帳號選單名字可見寬度 ≥ 80px、徽章在名字同一行且完整在選單內、是小膠囊（高 ≤ 22px）、文字沒被切、email 在下一行",
+               g["nameW"] >= 80 and g["inside"] and g["sameRow"] and g["bh"] <= 22 and g["bw"] < 120 and g["scroll"] and g["emailBelow"], g)
+            ok(f"{T}：{who}／{theme}：徽章文字＝「{want_label[who]}」" + (f"、色系 {want_cls[who]}" if who in want_cls else ""),
+               g["label"] == want_label[who] and (who not in want_cls or want_cls[who] in g["cls"]), g)
+            if shots and who == "pro":
+                pg.locator("#acctMenu").screenshot(path=str(pathlib.Path(shots) / f"pro_menu_{theme}.png"))
+            ok(f"{T}：{who}／{theme}：沒有 JS 錯誤", not errs, errs)
+            c.close()
+    # 手機 390：選單不溢出畫面、名字仍 ≥ 80px
+    c = _tier_ctx(b, "pro", "dark", 390)
+    pg = c.new_page()
+    pg.goto(base + "#pricing", wait_until="domcontentloaded")
+    wait_until(pg, "() => window.TwAccount && TwAccount.user() && window.TwPerm && TwPerm.state().src === 'server'", 10000)
+    pg.wait_for_timeout(400)
+    opened = pg.evaluate("() => { const b = document.getElementById('acctBtn'); if (b && b.offsetParent) { b.click(); return 'btn'; } return ''; }")
+    if not opened:
+        try:
+            pg.click("#moreBtn"); pg.click("#mmAcct"); opened = "more"
+        except Exception:  # noqa: BLE001
+            opened = ""
+    if wait_until(pg, "() => !!document.querySelector('#acctMenu .planbadge') && !document.getElementById('acctMenu').hidden", 3000):
+        g = pg.evaluate("() => { const m = document.getElementById('acctMenu').getBoundingClientRect(); const n = document.querySelector('#acctMenu .nm b').getBoundingClientRect(); return { l: m.left, r: m.right, vw: innerWidth, nw: n.width }; }")
+        ok(f"{T}：手機 390：帳號選單在畫面內、名字 ≥ 80px", g["l"] >= 0 and g["r"] <= g["vw"] and g["nw"] >= 80, g)
+    else:
+        ok(f"{T}：手機 390：打得開帳號選單", False, opened)
+    c.close()
 
 
 def t_sub_1005(b, base, code):
