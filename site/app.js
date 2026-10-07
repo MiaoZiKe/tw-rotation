@@ -13518,7 +13518,8 @@
       trendRange, trendText, pxFmt,   // 迷你走勢的 Y 範圍與提示框文字（DECISIONS #290）
       softenOption,                        // 圖表圓滑化（驗收讀 getOption 就看得到結果，這裡只是讓別的檔也叫得到）
       barStyle: BAR,                       // 長條共用風格（DECISIONS #338）：管理區流量觀測的長條配色＋3px 圓角，全站長條都從這裡取
-      donut: DONUT,                        // 甜甜圈共用風格（DECISIONS #331）：產業地圖成交值占比就是範本，全站圓餅都從這裡取
+      donut: DONUT,
+      msTags, snColor: (i) => PALETTE[SEASON_LINE_IDX[i % SEASON_LINE_IDX.length]],   // 週期統計長條模式的膠囊列與配色（ETF 月配試算表單檔共用，2026-10-07）                        // 甜甜圈共用風格（DECISIONS #331）：產業地圖成交值占比就是範本，全站圓餅都從這裡取
       MONO: MONO_FF,                       // 畫布等寬字族（跟 CSS --mono 同一條退路），別的檔畫圖用
       textW,                               // 量字寬（canvas measureText）：產業地圖的漲跌長條要替負值標籤留左邊的位置
       sankeyFxRunning: () => !!(sankeyFx && sankeyFx.running()),
