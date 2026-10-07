@@ -67,7 +67,8 @@
   var LIST = [
     // ---- 總覽
     box('ov.summary', 'overview', '今日摘要卡列', ['#hero'], '大盤圖上方四張摘要卡（漲跌家數、資金輪盤、資金去向、熱門題材）'),
-    box('ov.index', 'overview', '大盤三張圖', ['#m3'], '加權／櫃買／台指期走勢（含日夜盤、分 K）'),
+    /* #mbIdx：手機總覽的指數列（手機不顯示 #m3，指數改在這一列）—— 2026-10-07 覆蓋稽核補上，不然手機看大盤不吃次數 */
+    box('ov.index', 'overview', '大盤三張圖', ['#m3', '#mbIdx'], '加權／櫃買／台指期走勢（含日夜盤、分 K）'),
     box('ov.heat', 'overview', '資金熱力圖', ['#ovHeatCard'], '族群成交值與資金流入流出的熱力方塊'),
     box('ov.theme', 'overview', '熱門題材', ['#ovThemeCard'], '題材熱度熱力圖與成分股'),
     box('ov.rot', 'overview', '資金輪盤', ['#rotClockMiniWrap', '#ovRotKpi'], '總覽右欄的族群強弱輪盤'),
@@ -157,8 +158,15 @@
     box('earn.cal', 'earnings', '行事曆月曆', ['#earnCalCard'], '月曆（公司財報／公司法說／FED 消息）與右側分析面板'),
     // ---- 自選
     box('watch.page', 'watch', '自選清單頁', ['#v-watch'], '自選分頁（整頁）'),
-    { id: 'watch.tabs', name: '自選分頁數上限', cat: 'watch', def: 5, kind: 'limit', max: 5,
-      desc: '最多能建幾頁自選清單（已經建好的不會被刪，只是不能再新增）', veil: [], mark: [], block: [] }
+    /* ★ 2026-10-07（Andy：「註冊可以自選一個分頁且10檔股票…plus 可以新增5個分頁、pro 可以不限分頁」，docs/quota_plan.md）：
+       def 改成免費會員的值（1 頁／每頁 10 檔）；Plus 5 頁／50 檔、Pro「不限」由 account-api 種範本時寫進 feats。
+       「不限」實作上是硬上限：分頁 50、每頁 200 檔（max；admin 選單最後一格顯示「不限」）—— 前端、Worker 都守這兩個數，
+       免得一份清單長到拖慢同步。opts＝管理頁下拉的選項（不必列出 0～200 每一個數）、unit＝顯示單位。
+       ⚠ 連不到會員伺服器（TwPerm src＝default）時 watchlists.js 退回舊的 5 頁／50 檔 —— 寧可多給，不要誤鎖（perm.js 同一個原則）。*/
+    { id: 'watch.tabs', name: '自選分頁數上限', cat: 'watch', def: 1, kind: 'limit', max: 50, unit: '頁', opts: [0, 1, 2, 3, 5, 10, 20, 50],
+      desc: '最多能建幾頁自選清單（已經建好的不會被刪，只是不能再新增）', veil: [], mark: [], block: [] },
+    { id: 'watch.size', name: '每頁自選檔數上限', cat: 'watch', def: 10, kind: 'limit', max: 200, unit: '檔', opts: [0, 5, 10, 20, 30, 50, 100, 200],
+      desc: '每一頁自選清單最多放幾檔（已經放的不會被刪，只是不能再加）', veil: [], mark: [], block: [] }
   ];
 
   /* ---- 瀏覽次數（admin-v3，2026-10-05，蓋掉 sub-v1 的三個 quota.* 開關）
@@ -169,6 +177,13 @@
      quota.ai → stock.ai 的上限、quota.theme → heat.detail 的上限，不另設功能。 */
   LIST.push({ id: 'stock.page', name: '個股頁（整頁）', cat: 'stocktab', def: true, kind: 'bool', route: /^#stock\//,
     desc: '整個個股頁（關掉＝個股頁蓋鎖頭；設瀏覽次數＝一天能看幾檔，同一檔重複看不重算）', veil: [['#v-industry']], mark: [], block: [] });
+
+  /* ★ 2026-10-07「全站共用每日額度」（quota.all，docs/quota_plan.md、docs/plan_tiers_1007.md）：哪些功能算「研究頁」、會吃共用額度。
+     清單＝方案草案裡訪客要計次的那 41 項（總覽、產業地圖首頁、事件、自選、工具類不算 —— 那些是鉤子或不是「看資料」）。
+     共用額度存在範本的 dq 欄位（account-api 每日額度區塊；TwPerm.lim('quota.all') 讀它），不是一個開關 —— 所以這裡不另外列一項「quota.all」，
+     不然 #admin/perm 會把它畫成一顆開關。單位＝這一頁（site/quota.js 的 pageKey：個股代號／剖析圖／題材／族群／一次造訪）。*/
+  var METERED = ["earn.cal", "earn.page", "etf.calendar", "etf.list", "etf.popular", "etf.rettop", "etf.yldtop", "explore.chart", "explore.combo", "explore.list", "explore.page", "flow.conc", "flow.inst", "flow.rot", "flow.sankey", "heat.detail", "heat.market", "heat.theme", "ind.diagram", "ind.groups", "ind.rel", "mkt.cand", "mkt.ma", "mkt.streak", "mkt.updown", "season.month", "stock.ai", "stock.basics", "stock.dividend", "stock.holders", "stock.inst", "stock.k_day", "stock.k_hour", "stock.margin", "stock.news", "stock.overview", "stock.page", "stock.profit", "stock.revenue", "stock.tags", "stock.tick"];
+  METERED.forEach(function (id) { var f = LIST.filter(function (x) { return x.id === id; })[0]; if (f) f.metered = true; });
 
   var BY = {};
   LIST.forEach(function (f) { BY[f.id] = f; });

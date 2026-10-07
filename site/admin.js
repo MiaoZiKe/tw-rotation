@@ -482,6 +482,8 @@ html[data-theme="light"] #v-admin{--pgL:40%}
    線在那一段被蓋掉，頁籤和內容框連成一塊。舊版是內容框自己畫上框線＋頁籤 margin-bottom:-1px 去蓋，
    但頁籤列有 overflow:hidden（單行省略號要用），那 1px 被裁掉 → Andy 看到的那條「把頁籤和內容切開的線」。 */
 #v-admin .ptwrap{position:relative;margin-top:16px}
+#v-admin .ptpreset{flex:none;margin-left:10px;height:32px;padding:0 14px;border-radius:var(--r-sm,8px);border:1px solid color-mix(in srgb,var(--amber) 55%,transparent);background:color-mix(in srgb,var(--amber) 12%,transparent);color:var(--ink);font-size:13px;cursor:pointer;white-space:nowrap}
+#v-admin .ptpreset:hover{border-color:var(--amber)}
 #v-admin .ptwrap .ptabs{position:relative;display:flex;align-items:flex-end;gap:4px;margin:0;padding:0;border:0;flex-wrap:nowrap;overflow:hidden}
 #v-admin .ptwrap .ptabs::after{content:"";position:absolute;left:0;right:0;bottom:0;height:1px;background:var(--line-2);z-index:1;pointer-events:none}
 #v-admin .ptwrap .ptabs button[role=tab]{position:relative;z-index:0;display:flex;flex-direction:row;align-items:center;height:44px;min-height:0;margin:0;padding:0 18px;
@@ -1515,7 +1517,7 @@ html[data-theme="light"] #v-admin{--pm-blue:#1f4fd8;--pm-blue-2:#163fb4}
   }
   window.addEventListener('beforeunload', (e) => { if (/^#admin\/(perm|members)\b/.test(location.hash || '') && dirtyN()) { e.preventDefault(); e.returnValue = ''; } });
   function setStat(msg, cls) { const s = PS.v && PS.v.querySelector('#pmStat'); if (s) { s.textContent = msg; s.className = 'pmstat' + (cls ? ' ' + cls : ''); } }
-  const ERR = { has_members: '還有有效會員，請先移到其他範本或等到期', forbidden: '沒有管理者權限', bad_email: 'email 格式不對', bad_plan: '方案不存在', bad_feats: '開關格式不對', bad_lims: '瀏覽次數要是 0～9999 的整數', bad_name: '範本名稱不能空白', too_many: '數量超過上限', builtin: '內建範本不能刪', bad_expires: '到期日格式不對', bad_price: '價格要是 0～999999 的整數', bad_period: '計費週期只能是月／年' };
+  const ERR = { has_members: '還有有效會員，請先移到其他範本或等到期', forbidden: '沒有管理者權限', bad_email: 'email 格式不對', bad_plan: '方案不存在', bad_feats: '開關格式不對', bad_lims: '瀏覽次數要是 0～9999 的整數', bad_name: '範本名稱不能空白', too_many: '數量超過上限', builtin: '內建範本不能刪', bad_expires: '到期日格式不對', bad_price: '價格要是 0～999999 的整數', bad_period: '計費週期只能是月／年', bad_dq: '每日額度要是 0～9999 的整數（空白＝不限）', bad_meta: '方案介紹文字太長或格式不對' };
   const errText = (r) => !r ? '連不到伺服器' : (ERR[r.error] || ('HTTP ' + r._s));
   const EMAIL_OK = (e) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e);
   /* 到期日：畫面上是台北日期（yyyy-mm-dd），存的是「那一天台北 23:59:59」的毫秒 */
@@ -1550,7 +1552,7 @@ html[data-theme="light"] #v-admin{--pm-blue:#1f4fd8;--pm-blue-2:#163fb4}
               <div id="ptGuestSum"></div>
               <div class="pmtools" id="pmTools"><h3 class="pmttl">開放功能表<span class="qtip pmq" tabindex="0" role="note" aria-label="說明" title="${esc(LOCK_NOTE)}">?</span></h3>
                 <div class="pmlegend"><span><i class="lg dirty"></i>改了還沒儲存</span><span><i class="lg tuned"></i>跟預設不同（已儲存）</span><span><i class="lg lim">∞</i>每日次數上限</span></div>
-                <span id="pmAllLim" class="pmallim"></span><span class="pmallsw" title="開放功能表全部開／關（不含族群觀測）"><span>全部</span><button type="button" id="pmAllSw" class="psw3" role="switch" aria-checked="false" aria-label="開放功能表全部開／關（不含族群觀測）"><span></span></button></span></div>
+                <span id="pmAllLim" class="pmallim"></span><span class="pmallsw" title="開放功能表全部開／關（不含族群觀測）"><span>全部</span><button type="button" id="pmAllSw" class="psw3" role="switch" aria-checked="false" aria-label="開放功能表全部開／關（不含族群觀測）"><span></span></button></span>${window.TW_PLAN_PRESETS ? '<button type="button" class="ptpreset" id="ptPreset" title="把訪客／註冊會員／Plus／Pro 四個範本一次設成建議方案（先列出會改什麼，確認後才寫入）">套用建議方案</button>' : ''}</div>
               <div class="pmcats pmcards" id="pmCats"></div>
               ${GRPSEC}</div>
             <div id="ptListBox" hidden></div>
@@ -1558,6 +1560,7 @@ html[data-theme="light"] #v-admin{--pm-blue:#1f4fd8;--pm-blue-2:#163fb4}
           <div class="ptmenu" id="ptMenu" role="menu" hidden></div></div>
         <div class="pmsave" id="pmSave" hidden><span id="pmDirty"></span><button type="button" id="pmCancel">取消</button><button type="button" class="pri" id="pmSaveGo">儲存</button></div>
         ${honest}`;
+      { const pb = v.querySelector('#ptPreset'); if (pb) pb.onclick = () => presetAsk(); }
       wireTabs(v);
       v.querySelector('#pmAllSw').onclick = (e) => allFeats(e.currentTarget.getAttribute('aria-checked') !== 'true');
       v.querySelector('#ptTier').onclick = (e) => {
@@ -1877,12 +1880,15 @@ html[data-theme="light"] #v-admin{--pm-blue:#1f4fd8;--pm-blue-2:#163fb4}
       ${PS.tier === 'paid' && PS.cfg ? `<div class="pmbar pmed" id="ptEdit" style="margin:0 0 8px"><label>名稱 <input type="text" id="ptEdName" maxlength="20" value="${esc(p.name)}" aria-label="範本名稱" style="width:10em"></label>
         <label>價格 NT$ <input type="number" id="ptEdPrice" min="0" max="999999" step="1" inputmode="numeric" value="${Number.isInteger(p.price) ? p.price : 0}" aria-label="價格（整數新台幣）" style="width:7em"></label>
         <label>訂閱 <select id="ptEdPeriod" aria-label="月訂閱或年訂閱"><option value="month" ${p.period !== 'year' ? 'selected' : ''}>月訂閱</option><option value="year" ${p.period === 'year' ? 'selected' : ''}>年訂閱</option></select></label>
+        ${dqField(p)}
         <button type="button" class="pri" id="ptEdSave">儲存</button>
         <button type="button" class="danger" id="pmPlanDel" aria-expanded="${!!PS.delAsk}" title="${esc(delMsg(p.id))}">刪除此範本</button>
         <small>金流以範本代號 <code>${esc(p.id)}</code> 對價；改名、改價不影響已指定的會員。</small></div>
-        ${PS.delAsk ? `<div class="ptdelq" id="ptDelBox" role="alertdialog" aria-label="確認刪除範本"><span>刪除「${esc(tabLabel(p))}」？<b>${esc(delMsg(p.id))}</b>。</span><button type="button" id="ptDelNo">取消</button><button type="button" class="danger" id="ptDelGo">確定刪除</button></div>` : ''}` : ''}`;
+        ${PS.delAsk ? `<div class="ptdelq" id="ptDelBox" role="alertdialog" aria-label="確認刪除範本"><span>刪除「${esc(tabLabel(p))}」？<b>${esc(delMsg(p.id))}</b>。</span><button type="button" id="ptDelNo">取消</button><button type="button" class="danger" id="ptDelGo">確定刪除</button></div>` : ''}` : ''}
+      ${(PS.tier === 'free' || PS.tier === 'guest') && PS.cfg && p ? `<div class="pmbar pmed" id="ptEdit" style="margin:0 0 8px">${dqField(p)}<button type="button" class="pri" id="ptEdDqSave">儲存</button></div>` : ''}`;
     const cf = v.querySelector('#ptPlanCfg'); if (cf) cf.setAttribute('aria-expanded', String(!!PS.cfg));
     const es = v.querySelector('#ptEdSave'); if (es) es.onclick = () => savePlanMeta(p);
+    const eq = v.querySelector('#ptEdDqSave'); if (eq) eq.onclick = () => saveDq(p);
     /* 刪除要二次確認：第一下只展開確認列（寫明會影響幾個人），按「確定刪除」才送 */
     const del = v.querySelector('#pmPlanDel'); if (del) del.onclick = () => { if (activeMembers(PS.planSel).length) { PS.delAsk = false; openMenu(PS.planSel, 'del'); return; } PS.delAsk = !PS.delAsk; paintTarget(); const g = v.querySelector('#ptDelGo'); if (g) g.focus(); };
     const dn = v.querySelector('#ptDelNo'); if (dn) dn.onclick = () => { PS.delAsk = false; paintTarget(); };
@@ -1899,7 +1905,8 @@ html[data-theme="light"] #v-admin{--pm-blue:#1f4fd8;--pm-blue-2:#163fb4}
     bar.classList.toggle('one', PS.tier === 'guest');
     bar.innerHTML = `<button type="button" role="tab" data-sub="perm" id="ptSubPerm" class="${PS.sub === 'perm' ? 'on' : ''}" aria-selected="${PS.sub === 'perm'}">觀看權限</button>`
       + (PS.tier === 'guest' ? '' : `<button type="button" role="tab" data-sub="list" id="ptSubList" class="${PS.sub === 'list' ? 'on' : ''}" aria-selected="${PS.sub === 'list'}">會員名單</button>`)
-      + (PS.tier === 'paid' && !noPlan ? `<button type="button" class="ptgear" id="ptPlanCfg" aria-expanded="${!!PS.cfg}" title="範本設定（改名稱／價格／月或年、刪除）" aria-label="範本設定">⚙</button>` : '');
+      + (PS.tier === 'paid' && !noPlan ? `<button type="button" class="ptgear" id="ptPlanCfg" aria-expanded="${!!PS.cfg}" title="範本設定（改名稱／價格／月或年／每日額度、刪除）" aria-label="範本設定">⚙</button>` : '')
+      + (PS.tier === 'free' || PS.tier === 'guest' ? `<button type="button" class="ptgear" id="ptPlanCfg" aria-expanded="${!!PS.cfg}" title="範本設定（全站每日共用額度）" aria-label="範本設定">⚙</button>` : '');
     const cf = bar.querySelector('#ptPlanCfg'); if (cf) cf.onclick = () => { PS.cfg = !PS.cfg; PS.delAsk = false; paintTarget(); };
     const pb = v.querySelector('#ptPermBox'), lb = v.querySelector('#ptListBox');
     if (pb) pb.hidden = memb ? false : (noPlan || PS.sub !== 'perm');
@@ -1931,10 +1938,134 @@ html[data-theme="light"] #v-admin{--pm-blue:#1f4fd8;--pm-blue-2:#163fb4}
     if (RESERVED.test(name)) { setStat('範本名稱不能叫「訪客／註冊會員／免費會員／付費會員」（會跟層級混淆）', 'bad'); return; }
     if (!/^\d{1,6}$/.test(raw) || !Number.isInteger(price) || price > 999999) { setStat('價格要是 0～999999 的整數（新台幣，不含小數）', 'bad'); return; }
     if (PS.draft) { setStat('有未儲存的變更', 'bad'); return; }
+    const dq = readDq(); if (dq === undefined) return;
     setStat('儲存中…');
-    const j = await PS.A.call('/v1/admin/plans/put', { id: p.id, name, feats: p.feats || {}, price, period });
+    const j = await PS.A.call('/v1/admin/plans/put', { id: p.id, name, feats: p.feats || {}, price, period, dq });
     if (j && j._s === 200) { PS.plans = j.plans; paintTabs(); paintAddPlan(); paintTarget(); paintCats(); setStat(`已儲存「${planLabel(planOf(p.id))}」（台北 ${tpeTime()}）`, 'ok'); }
     else setStat('儲存失敗：' + errText(j), 'bad');
+  }
+  /* ★ 2026-10-07 每日額度（docs/quota_plan.md）：範本的 dq ＝整個網站一天能開幾個單位（個股頁一檔、產業鏈剖析圖一張、付費分頁一個；
+     同一天同一個單位只算一次）。空白＝不限（Pro 的預設）；Plus 種子是 50。真正扣次在付費資料閘道 data-gw，這裡只是設定。 */
+  const limOpts = (f, val) => { const o = f.opts ? f.opts.slice() : Array.from({ length: f.max + 1 }, (_, i) => i); if (Number.isInteger(val) && !o.includes(val)) { o.push(val); o.sort((a, b) => a - b); } return o; };
+  const dqField = (p) => `<label title="全站共用：所有研究頁加起來一天能看幾個（同一天同一檔個股、同一張剖析圖、同一個付費分頁只算一次）；空白＝不限">全站每日額度 <input type="number" id="ptEdDq" min="0" max="9999" step="1" inputmode="numeric" placeholder="不限" value="${p && Number.isInteger(p.dq) ? p.dq : ''}" aria-label="每日額度（次，空白＝不限）" style="width:6em"> 次</label>`;
+  /* 回 null＝不限、整數＝上限、undefined＝格式不對（已經顯示錯誤）*/
+  function readDq() {
+    const el = PS.v && PS.v.querySelector('#ptEdDq'); if (!el) return null;
+    const raw = String(el.value || '').trim();
+    if (raw === '') return null;
+    if (!/^\d{1,4}$/.test(raw)) { setStat('每日額度要是 0～9999 的整數（空白＝不限）', 'bad'); return undefined; }
+    return Number(raw);
+  }
+  async function saveDq(p) {
+    if (!p) return;
+    if (PS.draft) { setStat('有未儲存的變更', 'bad'); return; }
+    const dq = readDq(); if (dq === undefined) return;
+    setStat('儲存中…');
+    const j = await PS.A.call('/v1/admin/plans/put', { id: p.id, name: p.name, feats: p.feats || {}, dq });
+    if (j && j._s === 200) { PS.plans = j.plans; paintTabs(); paintTarget(); paintCats(); setStat(`已儲存「${p.name}」每日額度：${dq == null ? '不限' : dq + ' 次'}（台北 ${tpeTime()}）`, 'ok'); }
+    else setStat('儲存失敗：' + errText(j), 'bad');
+  }
+  /* ★ 2026-10-07「套用建議方案」（CEO：方案表 docs/plan_presets_1007.json → site/plan_presets.js）：
+     一鍵把四個範本的開關、每日次數、全站共用額度（dq）、自選上限、價格、介紹欄位寫進 Worker。
+     範本對應用 id：訪客→guest、註冊會員→free、Plus→id 'plus'，沒有就找名稱含「299」的付費範本（改名 Plus）、
+     Pro→id 'pro'，沒有就找名稱含「499」的（改名 Pro）；都找不到才新建 —— 不新建重複的。
+     先跳確認框列出每個範本會改哪些（名稱／價格／額度／自選／開關／次數），按「確定套用」才送；有未儲存的草稿先擋。 */
+  function presetMap() {
+    const P = window.TW_PLAN_PRESETS; if (!P) return [];
+    const used = new Set();
+    const pick = (key, re, name) => {
+      let p = planOf(key);
+      if (!p) p = paidPlans().find((x) => !used.has(x.id) && x.name === name);   // 已經套用過一次（改名成 Plus／Pro）
+      if (!p) p = paidPlans().find((x) => !used.has(x.id) && re.test(x.name));
+      if (p) used.add(p.id);
+      return p;
+    };
+    return P.tiers.map((t) => {
+      /* 2026-10-07 Andy：「移除499會費那條」→ Pro 一律用種下的 pro 範本（或已叫 Pro 的），不再把 499 改名成 Pro */
+      const cur = t.key === 'guest' || t.key === 'free' ? planOf(t.key) : t.key === 'pro' ? pick('pro', /^$/, t.name) : pick(t.key, /299/, t.name);
+      return { t, cur, id: cur ? cur.id : t.key };
+    });
+  }
+  /* 要刪掉的「499會費」範本（名稱含 499、不是 Pro 本身）＋被指定到它的人（刪之前先移到 Pro）*/
+  function presetDrop(ms) {
+    const pro = ms.find((m) => m.t.key === 'pro'), keep = new Set(ms.map((m) => m.id));
+    return paidPlans().filter((p) => /499/.test(p.name) && !keep.has(p.id)).map((p) => ({ p, to: pro ? pro.id : 'pro', who: people().filter((r) => r.plan === p.id) }));
+  }
+  function presetDiff(m) {
+    const F = FT(), t = m.t, c = m.cur || { feats: {}, lims: {}, name: '', price: 0, dq: null };
+    const val = (feats, id) => { const f = F.byId(id); const v = (feats || {})[id]; if (!f) return v; if (f.kind === 'limit') return Number.isInteger(v) ? v : f.def; return typeof v === 'boolean' ? v : f.def; };
+    const fn = (id) => (F.byId(id) ? F.byId(id).name : id);
+    const show = (id, v) => { const f = F.byId(id); return f && f.kind === 'limit' ? (v >= f.max && f.opts ? '不限' : v + (f.unit || '')) : v ? '開' : '關'; };
+    const feats = Object.keys(t.feats).filter((id) => val(c.feats, id) !== val(t.feats, id)).map((id) => `${fn(id)}：${show(id, val(c.feats, id))} → ${show(id, val(t.feats, id))}`);
+    const lk = new Set([...Object.keys(c.lims || {}), ...Object.keys(t.lims || {})]);
+    const lt = (n) => (Number.isInteger(n) ? `每日 ${n} 次` : '不限');
+    const lims = [...lk].filter((id) => (c.lims || {})[id] !== (t.lims || {})[id]).map((id) => `${fn(id)}：${lt((c.lims || {})[id])} → ${lt((t.lims || {})[id])}`);
+    const builtin = t.key === 'guest' || t.key === 'free';
+    const head = [];
+    if (!m.cur) head.push(`新建範本（代號 ${m.id}）`);
+    if (!builtin && c.name !== t.name) head.push(`名稱：${c.name || '（新）'} → ${t.name}`);
+    if (!builtin && c.price !== t.price) head.push(`月費：NT$${c.price || 0} → NT$${t.price}（年繳 NT$${t.price_year}）`);
+    const cdq = Number.isInteger(c.dq) ? c.dq : null;
+    if (cdq !== t.dq) head.push(`全站每日額度：${lt(cdq)} → ${lt(t.dq)}`);
+    if (t.meta && t.meta.badge && c.badge !== t.meta.badge) head.push(`標籤：${t.meta.badge}`);
+    return { head, feats, lims };
+  }
+  function presetAsk() {
+    if (PS.draft) { setStat('有未儲存的變更，先儲存或取消再套用', 'bad'); return; }
+    const D = window.TwSub && window.TwSub.dialog; if (!D) return;
+    const ms = presetMap();
+    const block = (m) => {
+      const d = presetDiff(m), nm = m.t.key === 'guest' ? '訪客' : m.t.key === 'free' ? '註冊會員' : m.t.name;
+      const n = d.head.length + d.feats.length + d.lims.length;
+      const li = (a) => a.map((x) => `<li>${esc(x)}</li>`).join('');
+      return `<div class="ppblk" data-key="${esc(m.t.key)}"><b>${esc(nm)}</b>${m.cur && m.cur.name !== nm ? `<small>（目前「${esc(m.cur.name)}」）</small>` : ''}<span class="ppn">${n ? n + ' 項變更' : '沒有變更'}</span>
+        ${d.head.length ? `<ul>${li(d.head)}</ul>` : ''}
+        ${d.feats.length ? `<details><summary>開關 ${d.feats.length} 項</summary><ul>${li(d.feats)}</ul></details>` : ''}
+        ${d.lims.length ? `<details><summary>每日次數 ${d.lims.length} 項</summary><ul>${li(d.lims)}</ul></details>` : ''}</div>`;
+    };
+    if (window.TwSub.css) window.TwSub.css('ppCss', `.subdlg .box.pp{width:min(640px,100%)}
+.ppblk{border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin:10px 0;font-size:13.5px}
+.ppblk>b{font-size:15px}.ppblk small{color:var(--ink-3);margin-left:6px}.ppblk .ppn{float:right;color:var(--amber);font-size:13px}
+.ppblk ul{margin:6px 0 0;padding-left:18px;color:var(--ink-2);line-height:1.6}.ppblk details{margin-top:4px}.ppblk summary{cursor:pointer;color:var(--ink-2)}`);
+    const drops = presetDrop(ms);
+    const dropHtml = drops.map((d) => `<div class="ppblk" data-drop="${esc(d.p.id)}"><b>刪除「${esc(d.p.name)}」</b><span class="ppn">刪除範本</span>
+      <ul>${d.who.length ? `<li>先把 ${d.who.length} 位會員移到 Pro：${d.who.map((r) => esc(r.email)).join('、')}</li>` : '<li>沒有會員被指定到這個範本，直接刪除</li>'}</ul></div>`).join('');
+    const dlg = D(`<h3>套用建議方案</h3><p>會把下面四個範本的開關、每日次數、全站每日額度、自選上限、價格與介紹文字一次寫進伺服器。已經指定給會員的範本不會換人，只是內容變了。</p>
+      ${ms.map(block).join('')}${dropHtml}<div class="msg" id="ppMsg" role="status"></div>
+      <div class="row2"><button type="button" data-close>取消</button><button type="button" class="pri" id="ppGo">確定套用</button></div>`, (d) => {
+      const bx = d.querySelector('.box'); if (bx) bx.classList.add('pp');
+      d.querySelector('#ppGo').onclick = () => presetApply(ms, d);
+    });
+    return dlg;
+  }
+  async function presetApply(ms, d) {
+    const msg = d.querySelector('#ppMsg'), go = d.querySelector('#ppGo');
+    go.disabled = true; msg.className = 'msg'; msg.textContent = '寫入中…';
+    let last = null;
+    for (const m of ms) {
+      const t = m.t, builtin = t.key === 'guest' || t.key === 'free';
+      const body = { id: m.id, name: builtin && m.cur ? m.cur.name : t.name, feats: t.feats, lims: t.lims || {}, dq: t.dq, meta: t.meta };
+      if (!builtin) { body.price = t.price; body.period = 'month'; }
+      const j = await PS.A.call('/v1/admin/plans/put', body);
+      if (!j || j._s !== 200) { go.disabled = false; msg.className = 'msg bad'; msg.textContent = `「${t.name}」寫入失敗：${errText(j)}（前面的範本已經寫好）`; if (last) { PS.plans = last; paintAll(); } return; }
+      last = j.plans;
+    }
+    /* 刪 499會費：被指定的人先移到 Pro（保留各自的微調與到期日），再刪範本（訪客／註冊會員是內建，Worker 本來就不准刪）*/
+    for (const dr of presetDrop(ms)) {
+      for (const r of dr.who) {
+        const g = await PS.A.call('/v1/admin/perm/get', { email: r.email });
+        const body = { email: r.email, plan: dr.to, over: (g && g.over) || {} };
+        if (g && g.expires) body.expires = g.expires;
+        const mv = await PS.A.call('/v1/admin/perm/put', body);
+        if (!mv || mv._s !== 200) { go.disabled = false; msg.className = 'msg bad'; msg.textContent = `把 ${r.email} 移到 Pro 失敗：${errText(mv)}`; PS.plans = last; paintAll(); return; }
+      }
+      const j = await PS.A.call('/v1/admin/plans/put', { id: dr.p.id, del: true });
+      if (!j || j._s !== 200) { go.disabled = false; msg.className = 'msg bad'; msg.textContent = `刪除「${dr.p.name}」失敗：${errText(j)}`; PS.plans = last; paintAll(); return; }
+      last = j.plans;
+    }
+    PS.plans = last; PS.draft = null; paintAll();
+    d.hidden = true;
+    setStat(`已套用建議方案（訪客／註冊會員／Plus／Pro，台北 ${tpeTime()}）`, 'ok');
   }
   async function newPaidPlan(name) {
     const v = PS.v; name = String(name || '').trim();
@@ -1982,7 +2113,8 @@ html[data-theme="light"] #v-admin{--pm-blue:#1f4fd8;--pm-blue-2:#163fb4}
       const val = cur[f.id], diff = PS.mode === 'member' ? (PS.rec && Object.prototype.hasOwnProperty.call(mOver(), f.id)) : val !== f.def;
       const unsaved = ready && (saved[f.id] !== now[f.id] || (lims && sl[f.id] !== lims[f.id]));
       const ctl = f.kind === 'limit'
-        ? `<select data-f="${esc(f.id)}" aria-label="${esc(f.name)}" ${ready ? '' : 'disabled'}>${Array.from({ length: f.max + 1 }, (_, i) => `<option value="${i}" ${i === val ? 'selected' : ''}>${i === 0 ? '不能用' : i + ' 頁'}</option>`).join('')}</select>`
+        /* 2026-10-07：上限類可以帶 opts（選項清單）與 unit（頁／檔）；最大值＝「不限」（watch.tabs 50、watch.size 200 是硬上限）*/
+        ? `<select data-f="${esc(f.id)}" aria-label="${esc(f.name)}" ${ready ? '' : 'disabled'}>${limOpts(f, val).map((i) => `<option value="${i}" ${i === val ? 'selected' : ''}>${i === 0 ? '不能用' : i === f.max && f.opts ? '不限' : i + ' ' + (f.unit || '頁')}</option>`).join('')}</select>`
         : `<label class="psw"><input type="checkbox" role="switch" data-f="${esc(f.id)}" aria-label="${esc(f.name)}" ${val !== false ? 'checked' : ''} ${ready ? '' : 'disabled'}><span></span></label>`;
       /* 瀏覽次數（每日上限）：perm-cards（2026-10-05）改成名稱右側一顆小徽章（∞／N/日），點了才彈出小輸入框 ——
          Andy 要回到「每類一張卡、每列只有開關＋名稱＋一行說明」的乾淨版，但次數上限功能不能丟，所以不讓它常駐佔一欄。 */

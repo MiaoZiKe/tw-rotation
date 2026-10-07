@@ -9,6 +9,8 @@ workers_dev = true
 # 這不是金鑰，是公開的網域白名單。
 [vars]
 ALLOWED_ORIGINS = "https://miaozike.github.io https://tw-rotation.pages.dev"
+# 2026-10-07 每日額度：第一次啟動時種 Plus（每日 50）與 Pro（不限）兩個付費範本（只種一次；管理者刪掉不會再長回來，docs/quota_plan.md）
+SEED_PLANS = "plus,pro"
 
 # 單一 Durable Object（SQLite 儲存）。免費方案可用：每天 10 萬列寫入、500 萬列讀取、1 GB。
 [[durable_objects.bindings]]

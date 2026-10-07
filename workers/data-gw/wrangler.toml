@@ -1,0 +1,51 @@
+# 付費資料閘道（docs/datagw_plan.md、docs/security_review_1006.md 2-2）
+# 部署：.github/workflows/deploy-data-gw.yml（第一階段只准手動觸發，不掛 push）
+name = "tw-data-gw"
+main = "worker.js"
+compatibility_date = "2026-10-06"
+workers_dev = true
+
+[vars]
+# 公開的網域白名單（不是金鑰）
+ALLOWED_ORIGINS = "https://miaozike.github.io"
+ACCOUNT_ORIGIN = "https://miaozike.github.io"
+# 門檻（等 Andy 拍板；見 docs/datagw_plan.md「要 Andy 決定」）
+RATE_PER_MIN = "60"
+GUEST_PER_MIN = "120"
+SESSION_PER_MIN = "20"
+BURST_FILES = "30"
+MAX_IPS = "2"
+# T4 自動停權：預設關閉（"0" 只記 would_suspend）。Andy 決定後改 "1"
+AUTO_SUSPEND = "0"
+SUSPEND_AFTER = "3"
+SUSPEND_WINDOW_H = "24"
+# 每帳號裝置上限（管理者不限）與「幾天沒用自動讓位」
+MAX_DEVICES = "2"
+DEVICE_TTL_D = "30"
+# 哪些異常要通知（其他只記錄）
+NOTIFY_KINDS = "would_suspend,suspend,suspend_failed,devices,multi_ip"
+
+# 直接呼叫會員 Worker（同帳號的 service binding，不經公開網路）
+[[services]]
+binding = "ACCOUNT"
+service = "tw-account"
+
+# 付費資料：R2 私有 bucket（不開公開網址；Andy 要先在 Cloudflare 建立，見 docs/datagw_plan.md）
+[[r2_buckets]]
+binding = "DATA"
+bucket_name = "tw-rotation-paid"
+
+# 限流計數與存取紀錄（SQLite Durable Object，免費方案可用）
+[[durable_objects.bindings]]
+name = "GW"
+class_name = "Gw"
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["Gw"]
+
+# Secret（不寫在這裡，由 workflow 從 repo Secret 帶進去）：
+#   GW_SECRET      資料權杖與浮水印的 HMAC 金鑰（repo Secret DATA_GW_SECRET）
+#   INTERNAL_KEY   呼叫 account-api /internal/suspend 的鑰匙（repo Secret DATAGW_INTERNAL_KEY；兩支 Worker 設同一個值）
+#   ALERT_WEBHOOK  異常通知的 webhook（選用，T6）
+#   ALERT_EMAIL ＋ RESEND_API_KEY  異常通知寄信（選用，T6）

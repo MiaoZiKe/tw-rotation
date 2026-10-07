@@ -38,7 +38,8 @@ jobs:
         with:
           node-version: '22'
       - name: 存取控制測試（19 條）
-        run: node --test workers/account-api/tests/account.test.mjs
+        run: node --test workers/account-api/tests/account.test.mjs workers/account-api/tests/susp.test.mjs workers/account-api/tests/quota.test.mjs
+
       - name: 會員資料匯出／還原測試
         run: node --test workers/account-api/tests/export.test.mjs
 
@@ -102,6 +103,17 @@ jobs:
           GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
           # 沒設時給一個不是 email 的值：空字串的 Secret 會讓 wrangler 失敗；'none' 比對不到任何人＝沒有管理者
           ADMIN_EMAILS: ${{ secrets.ACCOUNT_ADMIN_EMAILS || 'none' }}
+
+      # 2026-10-06 data-gw 停權端點的鑰匙（選用）：沒設＝/internal/suspend 不存在（404），其他功能不受影響
+      - name: 選用 Secret（data-gw 停權鑰匙）
+        if: steps.guard.outputs.ok == 'true'
+        working-directory: workers/account-api
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          INTERNAL_KEY: ${{ secrets.DATAGW_INTERNAL_KEY }}
+        run: |
+          if [ -n "$INTERNAL_KEY" ]; then printf '%s' "$INTERNAL_KEY" | npx --yes wrangler@3 secret put INTERNAL_KEY >/dev/null && echo "已設定 INTERNAL_KEY"; else echo "未設定 DATAGW_INTERNAL_KEY（停權端點維持關閉）"; fi
 
       # 備份權杖另外一步寫進 Worker：上一步的 secrets 清單是固定的，空值會讓 wrangler 失敗，所以有設才跑這步
       - name: 寫入 BACKUP_TOKEN（有設才跑）

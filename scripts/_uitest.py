@@ -24502,6 +24502,7 @@ SECTIONS = {
     # ★ 2026-09-28 Andy：首頁資金輪盤只留點、點旁說明框、點背景關；自選獨立成最後一個分頁（取代交付清單，交付清單改走頁尾）
     "輪盤只留點與自選分頁": lambda pg, b, base, code: t_wheel_watch_0928(b, base, code),
     "會員雲端路徑":        lambda pg, b, base, code: t_account_cloud(b, base),
+    "付費資料閘道":        lambda pg, b, base, code: t_datagw(b, base),
     # ★ 2026-10-02 Andy：會員功能開放制度 —— #admin/perm 依 email 開關功能、方案範本、關掉的功能顯示鎖頭（DECISIONS #288，⚠ 一律 --workers 1）
     "會員權限開關":        lambda pg, b, base, code: t_member_perm(b, base, code),
     # ★ 2026-10-04 Andy：「會員權限」分頁放在自選下、只有管理者看得到；新增會員 email＋方案、儲存／取消、定價範本（page.route 假 Worker）
@@ -24523,6 +24524,12 @@ SECTIONS = {
     "功能開關整列對齊1006": lambda pg, b, base, code: t_perm_grid_1006(b, base, code),
     # ★ 2026-10-05（sub-v1）Andy：訂閱頁 #pricing、每日瀏覽次數、右下角客服／意見反饋、帳號選單方案徽章、通知中心（page.route 假 Worker）
     "訂閱與客服1005":      lambda pg, b, base, code: t_sub_1005(b, base, code),
+    # ★ 2026-10-07 額度／開通共用卡片（site/qcard.js）與方案自選上限（Plus／Pro，docs/quota_plan.md）
+    "額度卡片1007":        lambda pg, b, base, code: t_qcard_1007(b, base, code),
+    "自選上限1007":        lambda pg, b, base, code: t_watch_limit_1007(b, base, code),
+    "次數覆蓋掃描1007":    lambda pg, b, base, code: t_quota_scan_1007(b, base, code),
+    "全站共用額度1007":    lambda pg, b, base, code: t_quota_all_1007(b, base, code),
+    "套用建議方案1007":    lambda pg, b, base, code: t_plan_preset_1007(b, base, code),
     # ★ 2026-09-28 Andy：「所有標題加上小圖示，顏色要搭配」—— 覆蓋、對比 ≥3:1（深淺）、1440／800／390 不擠（A/B）、動效（⚠ 一律 --workers 1）
     "標題圖示":            lambda pg, b, base, code: t_title_icons(pg, b, base, code),
     # ★ 2026-09-30 Andy：部分股票 1 小時／4 小時找不到資料 —— 60 分 K 擴到全市場、每檔獨立 m60 檔、沒有時寫一句話
@@ -47697,6 +47704,137 @@ def _free_port() -> int:
     s = socket.socket(); s.bind(("127.0.0.1", 0)); p = s.getsockname()[1]; s.close(); return p
 
 
+def t_datagw(b, base):
+    """付費資料閘道（docs/datagw_plan.md 第二階段）。
+    本機起兩支真的 Worker：account-api devserver（假 Google）＋ data-gw devserver（R2 換成 site/data 資料夾）。
+    模擬「已分流」：攔 data/datagw_index.json 回 pipeline/datagw_tiers.json 的付費規則，並把公開的 data/flow_v3.json 變成 404
+    （正式分流後公開目錄就是沒有這支）→ 畫面拿得到資料就只可能是走了 gateway。
+    驗：訪客 401、免費會員 403、付費會員 200 且畫面畫得出來、請求帶權杖與裝置 id、_wm 不會漏進前端資料、免費檔照舊走 CDN。"""
+    import urllib.request
+    errs: list[str] = []
+    T = "付費資料閘道"
+    origin = re.match(r"^(https?://[^/]+)", base).group(1)
+    pa, pg_ = _free_port(), _free_port()
+    nul = subprocess.DEVNULL
+    acct = subprocess.Popen(["node", "--no-warnings", str(ROOT / "workers" / "account-api" / "devserver.mjs"), "--port", str(pa), "--origin", origin], stdout=nul, stderr=nul)
+    gw = subprocess.Popen(["node", "--no-warnings", str(ROOT / "workers" / "data-gw" / "devserver.mjs"), "--port", str(pg_), "--origin", origin,
+                           "--account", f"http://127.0.0.1:{pa}", "--data", str(ROOT / "site" / "data"), "--guest-cache-ms", "1"], stdout=nul, stderr=nul)
+    api, gwu = f"http://127.0.0.1:{pa}", f"http://127.0.0.1:{pg_}"
+    tiers = json.loads((ROOT / "pipeline" / "datagw_tiers.json").read_text(encoding="utf-8"))["tiers"]
+    index = {"v": 1, "paid": [{k: t[k] for k in ("p", "re") if k in t} for t in tiers if t["f"]]}
+    try:
+        up = False
+        for _ in range(60):
+            try:
+                up = (json.loads(urllib.request.urlopen(api + "/health", timeout=1).read()).get("configured") is True
+                      and json.loads(urllib.request.urlopen(gwu + "/health", timeout=1).read()).get("configured") is True)
+                if up:
+                    break
+            except Exception:  # noqa: BLE001
+                time.sleep(0.15)
+        if not ok(f"{T}：本機 account-api 與 data-gw 起得來", up):
+            return
+
+        def ctx():
+            c = b.new_context(viewport={"width": 1440, "height": 900})
+            c.add_init_script("window.TW_ACCOUNT_OVERRIDE = " + json.dumps({"api": api, "gw": gwu}) + ";")
+            c.route("**/fonts.googleapis.com/**", lambda r: r.abort())
+            c.route("**/data/datagw_index.json", lambda r: r.fulfill(status=200, content_type="application/json", body=json.dumps(index)))
+            c.route("**/data/flow_v3.json*", lambda r: r.fulfill(status=404, body="moved to R2"))
+            return c
+
+        def login(pg, who):
+            pg.click("#acctBtn")
+            with pg.expect_popup() as pi:
+                pg.click("#acctGo")
+            pop = pi.value
+            pop.wait_for_selector("#as-" + who, timeout=8000)
+            pop.click("#as-" + who)
+            wait_until(pg, "() => !!(window.TwAccount && TwAccount.user())", 12000)
+
+        def gw_hits(pg):
+            hits = []
+            pg.on("request", lambda rq: hits.append((rq.url, rq.headers.get("authorization"), rq.headers.get("x-device"))) if rq.url.startswith(gwu + "/v1/data/") else None)
+            return hits
+
+        def flow_status(pg):
+            return pg.evaluate(f"""async () => {{ try {{ await TwGw.get('flow_v3'); return 200; }} catch (e) {{ return e.status || -1; }} }}""")
+
+        # ---- ⓪ 管理者 Andy：免費範本與訪客範本關掉「輪動時鐘」（flow.rot），把自己設成付費範本
+        c0 = ctx(); p0 = c0.new_page(); p0.on("pageerror", lambda e: errs.append(str(e)))
+        p0.goto(base + "#overview", wait_until="domcontentloaded")
+        wait_until(p0, "() => !!document.getElementById('acctBtn')", 8000)
+        login(p0, "andy")
+        r1 = p0.evaluate("() => Promise.all([TwAccount.call('/v1/admin/plans/put', { id: 'free', name: '免費會員', feats: { 'flow.rot': false } }),"
+                         " TwAccount.call('/v1/admin/plans/put', { id: 'guest', name: '訪客', feats: { 'flow.rot': false } }),"
+                         " TwAccount.call('/v1/admin/perm/put', { email: 'andy@example.com', plan: 'paid', over: {} })])")
+        ok(f"{T} ⓪ 管理者設定範本與方案成功", all(x and not x.get("error") for x in r1), r1)
+
+        # ---- ① 訪客：付費檔 401、免費檔照舊走 CDN（不經 gateway）
+        c1 = ctx(); p1 = c1.new_page(); p1.on("pageerror", lambda e: errs.append(str(e)))
+        h1 = gw_hits(p1)
+        p1.goto(base + "#flow", wait_until="domcontentloaded")
+        wait_until(p1, "() => !!window.TwGw && !!window.App", 8000)
+        ok(f"{T} ① 前端認得 flow_v3 是付費檔、meta 不是", p1.evaluate("() => Promise.all([TwGw.isPaid('flow_v3'), TwGw.isPaid('meta')])") == [True, False])
+        s1 = flow_status(p1)
+        ok(f"{T} ① 訪客拿付費檔被擋（401）", s1 == 401, s1)
+        p1.wait_for_timeout(800)
+        ok(f"{T} ① 免費檔（meta）沒有經過 gateway", not any("/v1/data/meta" in u for u, _, _ in h1), h1[:5])
+        c1.close()
+
+        # ---- ② 免費會員 Bob：403
+        c2 = ctx(); p2 = c2.new_page(); p2.on("pageerror", lambda e: errs.append(str(e)))
+        p2.goto(base + "#overview", wait_until="domcontentloaded")
+        wait_until(p2, "() => !!document.getElementById('acctBtn')", 8000)
+        login(p2, "bob")
+        s2 = flow_status(p2)
+        ok(f"{T} ② 免費會員拿付費檔被擋（403）", s2 == 403, s2)
+        # 第三階段：每帳號最多 2 台裝置（這個頁面已經登記 1 台；再用兩個新的裝置 id 換權杖，第 3 台要被擋）
+        devs = p2.evaluate(f"""async () => {{ const out = []; for (const d of ['uitest-dev-bbbbbbbbbbbb', 'uitest-dev-cccccccccccc']) {{
+            const r = await fetch('{gwu}/v1/session', {{ method: 'POST', headers: {{ 'content-type': 'text/plain' }}, body: JSON.stringify({{ t: TwAccount.tok(), d }}) }});
+            out.push([r.status, (await r.json()).error || '']); }} return out; }}""")
+        ok(f"{T} ② 第 2 台裝置可以、第 3 台被擋（403 devices）", devs == [[200, ""], [403, "devices"]], devs)
+        c2.close()
+
+        # ---- ③ 付費會員 Andy：200、帶權杖與裝置 id、畫面畫得出來、_wm 不進前端資料
+        h0 = gw_hits(p0)
+        ok(f"{T} ③ 付費會員拿得到（200）", flow_status(p0) == 200)
+        p0.goto(base + "#flow", wait_until="domcontentloaded")
+        got = wait_until(p0, "() => !!(window.App && App.load) && document.querySelectorAll('#v-flow canvas').length > 0", 15000)
+        ok(f"{T} ③ 公開檔已 404，資金流向頁照樣畫得出來（資料從 gateway 來）", got)
+        d = p0.evaluate("() => App.load('flow_v3').then(x => ({ ok: !!x, wm: !!(x && (x._wm || (Array.isArray(x) && x[0] && x[0]._wm))) }))")
+        ok(f"{T} ③ 前端資料裡沒有 _wm（浮水印只在原始回應裡）", d == {"ok": True, "wm": False}, d)
+        fl = [x for x in h0 if "/v1/data/flow_v3" in x[0]]
+        ok(f"{T} ③ gateway 請求帶 Bearer 權杖與裝置 id", bool(fl) and all((a or "").startswith("Bearer g1.") and len(v or "") >= 16 for _, a, v in fl), fl[:2])
+        dev = p0.evaluate("() => localStorage.getItem('tw.gw.dev')")
+        ok(f"{T} ③ 裝置 id 存在 localStorage，重新拿檔沿用同一個", bool(dev) and all(v == dev for _, _, v in fl))
+
+        # ---- ④ 管理區異常頁 #admin/gw：帳號選單有入口、標記表看得到 Bob 的「裝置超過上限」、浮水印反查查得到 Andy、清除裝置真的清掉
+        wm = p0.evaluate(f"""async () => {{ const tok = await (async () => {{ const r = await fetch('{gwu}/v1/session', {{ method: 'POST', headers: {{ 'content-type': 'text/plain' }},
+            body: JSON.stringify({{ t: TwAccount.tok(), d: localStorage.getItem('tw.gw.dev') }}) }}); return (await r.json()).tok; }})();
+            const r = await fetch('{gwu}/v1/data/flow_v3', {{ headers: {{ Authorization: 'Bearer ' + tok, 'X-Device': localStorage.getItem('tw.gw.dev') }} }});
+            const d = await r.json(); return (Array.isArray(d) ? d[0] : d)._wm.a; }}""")
+        p0.click("#acctBtn")
+        ok(f"{T} ④ 管理者的帳號選單有「付費資料異常」", p0.locator("#acctMenu [data-a='gw']").count() == 1)
+        p0.click("#acctMenu [data-a='gw']")
+        wait_until(p0, "() => !!document.querySelector('#agwFlags')", 10000)
+        ok(f"{T} ④ 異常頁的標記表列出 Bob（裝置超過上限）", "bob@example.com" in p0.inner_text("#agwFlags") and "裝置超過上限" in p0.inner_text("#agwFlags"),
+           p0.inner_text("#agwFlags")[:200])
+        ok(f"{T} ④ 自動停權顯示「關閉」", "關閉" in p0.inner_text("#agwAuto"))
+        p0.fill("#agwWm", wm)
+        p0.click("#agwWmGo")
+        wait_until(p0, "() => /是 /.test(document.getElementById('agwWmOut').textContent)", 8000)
+        ok(f"{T} ④ 浮水印反查：貼 _wm 查得到是 Andy", "andy@example.com" in p0.inner_text("#agwWmOut"), p0.inner_text("#agwWmOut"))
+        p0.click("#agwFlags tr:has-text('bob@example.com') button[data-a='dev']")
+        wait_until(p0, "() => !!document.getElementById('subToast') && /已清除 2 台/.test(document.getElementById('subToast').textContent)", 8000)
+        ok(f"{T} ④ 按「清除裝置」真的清掉 Bob 的 2 台", "已清除 2 台" in (p0.evaluate("() => (document.getElementById('subToast') || {}).textContent || ''")))
+        c0.close()
+        ok(f"{T} 整段沒有 JS 錯誤", not errs, errs[:3])
+    finally:
+        for p in (acct, gw):
+            p.terminate()
+
+
 def t_account_cloud(b, base):
     import urllib.request
     errs: list[str] = []
@@ -47757,8 +47895,10 @@ def t_account_cloud(b, base):
         login(pg, "bob")
         ok("會員：登入後頂欄換成名字", "Bob" in pg.inner_text("#acctBtn"))
         ok("會員：權杖存進 localStorage", bool(pg.evaluate("() => localStorage.getItem('tw.acct.tok')")))
-        wait_until(pg, "() => TwWatch.mode() === 'cloud' && TwWatch.tabs().length === 2", 8000)
-        ok("會員：首次登入本機兩頁合併上雲", pg.evaluate("() => TwWatch.tabs().map(t => [t.name, t.codes])") == [["自選 1", ["2330"]], ["AI", ["3231"]]],
+        # ★ 2026-10-07 改前→改後（docs/quota_plan.md，Andy「註冊可以自選一個分頁且10檔股票」）：註冊會員只有 1 頁 →
+        #   本機兩頁合併上雲時，第 2 頁的股票併進第 1 頁（不丟資料、不超過方案上限；Worker 也會擋超過的）
+        wait_until(pg, "() => TwWatch.mode() === 'cloud' && TwWatch.codes().length === 2", 8000)
+        ok("會員：首次登入本機兩頁合併上雲（註冊會員 1 頁 → 第 2 頁的股票併進第 1 頁）", pg.evaluate("() => TwWatch.tabs().map(t => [t.name, t.codes])") == [["自選 1", ["2330", "3231"]]],
            pg.evaluate("() => TwWatch.tabs()"))
         ok("會員：合併成功後本機那份清空（已經在雲端）",
            pg.evaluate("() => JSON.parse(localStorage.getItem('tw.watchlists')).tabs.every(t => !t.codes.length)"))
@@ -47767,7 +47907,7 @@ def t_account_cloud(b, base):
         pg.reload(wait_until="domcontentloaded")
         wait_until(pg, "() => !!(window.TwAccount && TwAccount.user())", 8000)
         wait_until(pg, "() => TwWatch.codes().includes('2317')", 8000)
-        ok("會員：改動同步上雲，重新整理後從雲端讀回來", pg.evaluate("() => TwWatch.mode() === 'cloud' && TwWatch.codes()") == ["2317", "2330"], pg.evaluate("() => TwWatch.codes()"))
+        ok("會員：改動同步上雲，重新整理後從雲端讀回來", pg.evaluate("() => TwWatch.mode() === 'cloud' && TwWatch.codes()") == ["2317", "2330", "3231"], pg.evaluate("() => TwWatch.codes()"))
         pg.goto(base + "#admin", wait_until="domcontentloaded")
         wait_until(pg, "() => document.getElementById('v-admin') && /不是管理者/.test(document.getElementById('v-admin').textContent)", 8000)
         ok("會員：一般會員打開 #admin 只看到「不是管理者」", "不是管理者" in pg.inner_text("#v-admin"))
@@ -47786,7 +47926,7 @@ def t_account_cloud(b, base):
         login(pg, "bob")
         wait_until(pg, "() => TwWatch.mode() === 'cloud' && TwWatch.codes('g1').includes('2603')", 8000)
         ok("會員：第二台裝置／第二次登入的本機清單併進去、雲端原有的沒被蓋掉",
-           pg.evaluate("() => TwWatch.codes('g1')") == ["2317", "2330", "2603"], pg.evaluate("() => TwWatch.tabs()"))
+           pg.evaluate("() => TwWatch.codes('g1')") == ["2317", "2330", "3231", "2603"], pg.evaluate("() => TwWatch.tabs()"))
 
         # ---- ④ 刪除我的資料：10-05 Andy 要求從選單拿掉（改由客服信箱申請），原本的刪除流程驗收移除
         pg.click("#acctBtn"); pg.click("#acctMenu [data-a='logout']")
@@ -47876,7 +48016,7 @@ def t_account_cloud(b, base):
 SUB_API = "https://sub.example.test"
 
 
-def _sub_ctx(b, who, width=1440, feats=None, notices=None, lims=None):
+def _sub_ctx(b, who, width=1440, feats=None, notices=None, lims=None, dq=None):
     """who: None＝訪客、'member'、'admin'。回傳 (context, 送出的請求清單, 狀態)"""
     sent: list = []
     st = {"notices": notices if notices is not None else [], "read": set(), "fb": [], "req": []}
@@ -47900,7 +48040,7 @@ def _sub_ctx(b, who, width=1440, feats=None, notices=None, lims=None):
         if path == "/v1/me":
             out, code = ({"user": me}, 200) if me else ({}, 401)
         elif path == "/v1/perm/me":
-            out = {"who": "member" if me else "guest", "plan": "free" if me else "guest", "planName": "免費會員（預設）" if me else "訪客", "feats": feats if feats is not None else {}, "lims": lims or {}}
+            out = {"who": "member" if me else "guest", "plan": "free" if me else "guest", "planName": "免費會員（預設）" if me else "訪客", "feats": feats if feats is not None else {}, "lims": lims or {}, "dq": dq}
         elif path == "/v1/plans/public":
             out = {"plans": plans}
         elif path == "/v1/subscribe/request":
@@ -47939,6 +48079,482 @@ def _sub_ctx(b, who, width=1440, feats=None, notices=None, lims=None):
     c.route("**/fonts.googleapis.com/**", lambda r: r.abort())
     c.route(SUB_API + "/**", handle)
     return c, sent, st
+
+
+
+# ===================================================================== 額度卡片1007／自選上限1007（2026-10-07，docs/quota_plan.md）
+# Andy（10-07 01:30）：「圖二的內容當達到上限，出現的畫面參考圖三，並且可以置中，之後會分成 Plus 和更上去的 Pro。
+#   plus 目前先暫定皆可以觀看50次，pro 則是都不限次數」＋「註冊可以自選一個分頁且10檔股票…plus 可以新增5個分頁、pro 可以不限分頁」。
+# 驗的是「真的操作」：示範開關打開卡片、量置中、點按鈕真的到訂閱頁、模擬 data-gw 的 429 事件、換頁卡片消失；
+# 自選頁真的按「＋ 新增分頁」、真的加第 11 檔，畫面跳出升級卡、清單沒有變多。
+QCARD_GEOM = """() => { const c = document.querySelector('.qcov .qcard'); if (!c) return null; const ov = c.closest('.qcov'), host = ov.parentElement;
+  const r = c.getBoundingClientRect(), o = ov.getBoundingClientRect();
+  const vis = { top: Math.max(o.top, 0), bottom: Math.min(o.bottom, innerHeight) };
+  const segs = [...c.querySelectorAll('.qc-bar i')];
+  return { host: host.id, w: r.width, cx: r.left + r.width / 2, ox: o.left + o.width / 2, cy: r.top + r.height / 2, vy: (vis.top + vis.bottom) / 2,
+    tall: ov.classList.contains('tall'), segs: segs.length, lit: segs.filter(i => i.classList.contains('on')).length,
+    txt: c.innerText, href: (c.querySelector('.qc-go') || {}).getAttribute ? c.querySelector('.qc-go').getAttribute('href') : '',
+    minFs: Math.min(...[...c.querySelectorAll('*')].filter(e => e.childNodes.length && [...e.childNodes].some(n => n.nodeType === 3 && n.textContent.trim())).map(e => parseFloat(getComputedStyle(e).fontSize))),
+    sw: document.documentElement.scrollWidth, vw: innerWidth }; }"""
+
+
+def t_qcard_1007(b, base, code):
+    T = "額度卡片1007"
+    errs: list[str] = []
+    sh = os.environ.get("TW_QCARD_SHOTS")
+    for theme in ("dark", "light"):
+        c = b.new_context(viewport={"width": 1440, "height": 900})
+        c.add_init_script(f"try{{localStorage.setItem('tw.theme','{theme}')}}catch(e){{}}")
+        pg = c.new_page(); pg.on("pageerror", lambda e: errs.append(str(e)))
+        pg.goto(base + "?demo=quota#industry/semiconductor", wait_until="domcontentloaded")
+        wait_until(pg, "() => !!document.querySelector('#dgSec > .qcov .qcard')", 15000)
+        pg.locator("#dgSec").scroll_into_view_if_needed(); pg.wait_for_timeout(400)
+        g = pg.evaluate(QCARD_GEOM)
+        ok(f"{T} {theme}：?demo=quota → 剖析圖區塊蓋上「今天的研究額度用完了」卡（Plus 50/50）",
+           bool(g) and g["host"] == "dgSec" and "今天的研究額度用完了" in g["txt"] and "Plus 每日額度" in g["txt"] and "50 / 50" in g["txt"], g)
+        ok(f"{T} {theme}：卡片寬 520、水平置中（差 ≤ 2px）、垂直置中於看得到的區塊（差 ≤ 40px 或黏在視窗中間）",
+           bool(g) and abs(g["w"] - 520) <= 1 and abs(g["cx"] - g["ox"]) <= 2 and (g["tall"] or abs(g["cy"] - g["vy"]) <= 40), g)
+        ok(f"{T} {theme}：進度條 10 段全亮（50 次、每段 5 次）、倒數「X 小時 Y 分後重置」", bool(g) and g["segs"] == 10 and g["lit"] == 10
+           and bool(re.search(r"\d+ 小時 \d+ 分後重置", g["txt"])), g and (g["segs"], g["lit"], g["txt"][:120]))
+        ok(f"{T} {theme}：清單「升級 Pro 還能使用」＋按鈕「升級 Pro →」連 #pricing/plan/pro；卡內字 ≥ 12px",
+           bool(g) and "升級 Pro 還能使用" in g["txt"] and "不限次數" in g["txt"] and g["href"] == "#pricing/plan/pro" and g["minFs"] >= 12, g and (g["href"], g["minFs"]))
+        ok(f"{T} {theme}：卡片背後的剖析圖模糊、點不到", pg.evaluate("() => { const k = [...document.querySelectorAll('#dgSec > *')].find(x => !x.classList.contains('qcov')); return !!k && getComputedStyle(k).pointerEvents === 'none' && /blur/.test(getComputedStyle(k).filter); }"))
+        if sh:
+            pg.screenshot(path=str(pathlib.Path(sh) / f"qcard_{theme}.png"))
+        if theme == "dark":
+            pg.click("#dgSec .qcov .qc-go")
+            ok(f"{T}：按「升級 Pro →」→ 到訂閱頁、Pro 那張卡標「建議升級」、Plus／Pro 都列出每日額度與自選上限",
+               bool(wait_until(pg, "() => location.hash === '#pricing/plan/pro' && !!document.querySelector(\".prcard[data-plan='pro'].need\")", 8000))
+               and pg.evaluate("""() => { const t = (id) => (document.querySelector(`.prcard[data-plan='${id}']`) || {}).innerText || '';
+                   return /建議升級/.test(t('pro')) && /研究額度[\\s\\S]*每日 50 次/.test(t('plus')) && /研究額度[\\s\\S]*不限/.test(t('pro')) && /價格待定/.test(t('plus'))
+                     && /自選清單分頁\\s*5 頁/.test(t('plus')) && /每頁自選檔數\\s*50 檔/.test(t('plus')) && /自選清單分頁\\s*不限/.test(t('pro')); }"""),
+               pg.evaluate("() => [...document.querySelectorAll('.prcard')].map(c => c.dataset.plan + '|' + c.className + '|' + c.innerText.replace(/\\s+/g, ' ').slice(0, 160))"))
+        c.close()
+
+    # 390 手機：不橫向捲動、卡片吃滿區塊、用量與倒數不撐出卡片
+    c = b.new_context(viewport={"width": 390, "height": 844}, is_mobile=True, has_touch=True)
+    pg = c.new_page(); pg.on("pageerror", lambda e: errs.append(str(e)))
+    pg.goto(base + "?demo=quota#industry/semiconductor", wait_until="domcontentloaded")
+    wait_until(pg, "() => !!document.querySelector('#dgSec > .qcov .qcard')", 15000)
+    pg.locator("#dgSec").scroll_into_view_if_needed(); pg.wait_for_timeout(400)
+    g = pg.evaluate(QCARD_GEOM)
+    meta = pg.evaluate("() => { const c = document.querySelector('.qcov .qcard'), m = c.querySelector('.qc-meta'); const cr = c.getBoundingClientRect(); return [...m.querySelectorAll('span')].every(s => { const r = s.getBoundingClientRect(); return r.right <= cr.right + 0.5 && r.left >= cr.left - 0.5; }); }")
+    ok(f"{T} 390：沒有橫向捲軸、卡片寬 ≤ 358（螢幕減兩側 16px）而且 ≥ 280、用量與倒數都在卡片裡、字 ≥ 12px",
+       bool(g) and g["sw"] <= g["vw"] and 280 <= g["w"] <= 358 and meta and g["minFs"] >= 12, g)
+    c.close()
+
+    # ?demo=lock：「此功能需開通」同一款卡片（沒有進度條，清單寫哪個方案有）
+    c = b.new_context(viewport={"width": 1440, "height": 900})
+    pg = c.new_page(); pg.on("pageerror", lambda e: errs.append(str(e)))
+    pg.goto(base + "?demo=lock#industry/semiconductor", wait_until="domcontentloaded")
+    wait_until(pg, "() => !!document.querySelector('#dgSec[data-plk] > .qcov .qcard')", 15000)
+    pg.locator("#dgSec").scroll_into_view_if_needed(); pg.wait_for_timeout(400)
+    g = pg.evaluate(QCARD_GEOM)
+    ok(f"{T}：?demo=lock → 剖析圖蓋上「此功能需開通」卡（同一款、置中、沒有進度條、列 Plus／Pro、按鈕連 #pricing/need/ind.diagram）",
+       bool(g) and "此功能需開通" in g["txt"] and "產業鏈剖析圖（2D）" in g["txt"] and g["segs"] == 0 and "Plus" in g["txt"] and "Pro" in g["txt"]
+       and abs(g["w"] - 520) <= 1 and abs(g["cx"] - g["ox"]) <= 2 and g["href"] == "#pricing/need/ind.diagram", g)
+    pg.click("#dgSec .qcov .plkgo")
+    ok(f"{T}：（續）按「升級 Plus →」→ 到 #pricing/need/ind.diagram", bool(wait_until(pg, "() => location.hash === '#pricing/need/ind.diagram' && document.querySelectorAll('.prcard').length > 0", 6000)))
+    c.close()
+
+    # data-gw 回 429 quota（模擬 datagw.js 發的事件）：個股頁整頁蓋卡、倒數用伺服器給的重置時間、換頁就拿掉
+    c = b.new_context(viewport={"width": 1440, "height": 900})
+    pg = c.new_page(); pg.on("pageerror", lambda e: errs.append(str(e)))
+    pg.goto(base + "#stock/" + code, wait_until="domcontentloaded")
+    wait_until(pg, "() => !!document.querySelector('#v-industry.on') && !!window.TwQCard", 15000)
+    pg.wait_for_timeout(1200)
+    ok(f"{T}：正式站現況（沒有 data-gw、沒有示範開關）→ 畫面上沒有任何額度卡", pg.evaluate("() => !document.querySelector('.qcov.qgate') && TwQCard.state() === null"))
+    pg.evaluate("() => window.dispatchEvent(new CustomEvent('tw:quota', { detail: { name: 'stock/2330', used: 50, limit: 50, plan: 'plus', reset: Date.now() + (3 * 60 + 7) * 60000 + 20000 } }))")
+    ok(f"{T}：收到 tw:quota（data-gw 429）→ 個股頁蓋卡、倒數「3 小時 8 分後重置」（用伺服器的重置時間）、卡片黏在視窗中間",
+       bool(wait_until(pg, "() => { const o = document.querySelector('#v-industry > .qcov.qgate'); return !!o && /3 小時 8 分後重置/.test(o.textContent); }", 5000))
+       and (lambda g: bool(g) and g["tall"] and abs(g["cy"] - 450) <= 30)(pg.evaluate(QCARD_GEOM)), pg.evaluate(QCARD_GEOM))
+    pg.evaluate("() => { location.hash = '#overview'; }")
+    ok(f"{T}：換頁 → 額度卡拿掉（下一頁要的檔若也超過，data-gw 會再回一次 429）", bool(wait_until(pg, "() => !document.querySelector('.qcov.qgate') && !document.querySelector('[data-qcard]')", 4000)))
+    c.close()
+    ok(f"{T}：沒有 JS 錯誤", not errs, errs[:3])
+
+
+def t_watch_limit_1007(b, base, code):
+    T = "自選上限1007"
+    errs: list[str] = []
+    sh = os.environ.get("TW_QCARD_SHOTS")
+    codes = ["2330", "2317", "2454", "2303", "2308", "2382", "2412", "2881", "2882", "2886", "2891", "3008"]
+    # ① 免費會員（範本沒寫＝預設 1 頁／10 檔）
+    c, sent, st = _sub_ctx(b, "member", feats={})
+    pg = c.new_page(); pg.on("pageerror", lambda e: errs.append(str(e)))
+    pg.goto(base + "#watch", wait_until="domcontentloaded")
+    ok(f"{T}：免費會員 → 上限 1 頁／每頁 10 檔、自選頁寫「1／1 頁」",
+       bool(wait_until(pg, "() => window.TwPerm && TwPerm.state().src === 'server' && TwWatch.MAX_TABS === 1 && TwWatch.MAX_CODES === 10 && /1／1 頁/.test((document.getElementById('wpCnt') || {}).textContent || '')", 12000)),
+       pg.evaluate("() => [TwWatch.MAX_TABS, TwWatch.MAX_CODES, (document.getElementById('wpCnt') || {}).textContent]"))
+    ok(f"{T}：「＋ 新增分頁」沒有被停用（按了要看得到為什麼不行）而且掛 🔒", pg.evaluate("() => { const b = document.getElementById('wpNew'); return !!b && !b.disabled && /🔒/.test(b.textContent); }"))
+    pg.click("#wpNew")
+    ok(f"{T}：按「＋ 新增分頁」→ 跳出「目前方案最多 1 頁自選清單」卡、分頁沒有變多、按鈕連 #pricing/plan/plus",
+       bool(wait_until(pg, "() => { const m = document.getElementById('qcModal'); return !!m && !m.hidden && /目前方案最多 1 頁自選清單/.test(m.textContent); }", 4000))
+       and pg.evaluate("() => TwWatch.tabs().length === 1 && document.querySelector('#qcModal .qc-go').getAttribute('href') === '#pricing/plan/plus' && /Plus[\\s\\S]*5 頁/.test(document.getElementById('qcModal').textContent)"),
+       pg.evaluate("() => [(document.getElementById('qcModal') || {}).textContent, TwWatch.tabs().length]"))
+    ok(f"{T}：卡片在畫面正中間（水平、垂直差 ≤ 2px）", pg.evaluate("() => { const r = document.querySelector('#qcModal .qcard').getBoundingClientRect(); return Math.abs(r.left + r.width / 2 - innerWidth / 2) <= 2 && Math.abs(r.top + r.height / 2 - innerHeight / 2) <= 2; }"))
+    if sh:
+        pg.screenshot(path=str(pathlib.Path(sh) / "watch_limit_tabs.png"))
+    pg.click("#qcModal .qc-x")
+    ok(f"{T}：× 關閉", bool(wait_until(pg, "() => document.getElementById('qcModal').hidden", 2000)))
+    added = pg.evaluate("(cs) => cs.slice(0, 10).map(c => TwWatch.add(c)).filter(Boolean).length", codes)
+    ok(f"{T}：前 10 檔都加得進去", added == 10, added)
+    r11 = pg.evaluate("(c) => TwWatch.add(c)", codes[10])
+    ok(f"{T}：第 11 檔加不進去 → 跳出「這一頁已經放滿 10 檔」卡、清單仍是 10 檔",
+       r11 is False and bool(wait_until(pg, "() => { const m = document.getElementById('qcModal'); return !m.hidden && /這一頁已經放滿 10 檔/.test(m.textContent); }", 3000))
+       and pg.evaluate("() => TwWatch.codes().length === 10"), pg.evaluate("() => [TwWatch.codes().length, document.getElementById('qcModal').textContent]"))
+    if sh:
+        pg.screenshot(path=str(pathlib.Path(sh) / "watch_limit_size.png"))
+    pg.keyboard.press("Escape")
+    ok(f"{T}：Esc 關閉", bool(wait_until(pg, "() => document.getElementById('qcModal').hidden", 2000)))
+    c.close()
+    # ② Plus（5 頁／50 檔）：可以建到 5 頁，第 6 頁跳卡（升級 Pro）
+    c, sent, st = _sub_ctx(b, "member", feats={"watch.tabs": 5, "watch.size": 50})
+    pg = c.new_page(); pg.on("pageerror", lambda e: errs.append(str(e)))
+    pg.goto(base + "#watch", wait_until="domcontentloaded")
+    wait_until(pg, "() => window.TwPerm && TwPerm.state().src === 'server' && TwWatch.MAX_TABS === 5", 12000)
+    for i in range(4):
+        pg.click("#wpNew"); pg.wait_for_timeout(250)
+        pg.keyboard.press("Enter"); pg.wait_for_timeout(150)
+    ok(f"{T}：Plus：按 4 次「＋ 新增分頁」→ 共 5 頁、沒有跳卡", pg.evaluate("() => TwWatch.tabs().length === 5 && (!document.getElementById('qcModal') || document.getElementById('qcModal').hidden)"),
+       pg.evaluate("() => TwWatch.tabs().length"))
+    pg.click("#wpNew")
+    ok(f"{T}：Plus：第 6 頁 → 跳卡、按鈕「升級 Pro」、分頁仍是 5",
+       bool(wait_until(pg, "() => { const m = document.getElementById('qcModal'); return !!m && !m.hidden && /目前方案最多 5 頁/.test(m.textContent) && /升級 Pro/.test(m.querySelector('.qc-go').textContent); }", 3000))
+       and pg.evaluate("() => TwWatch.tabs().length === 5"), pg.evaluate("() => (document.getElementById('qcModal') || {}).textContent"))
+    pg.click("#qcModal .qc-go")
+    ok(f"{T}：（續）按「升級 Pro →」→ 到 #pricing/plan/pro、卡片關掉", bool(wait_until(pg, "() => location.hash === '#pricing/plan/pro' && document.getElementById('qcModal').hidden", 5000)))
+    c.close()
+    ok(f"{T}：沒有 JS 錯誤", not errs, errs[:3])
+
+
+
+# ===================================================================== 次數覆蓋掃描1007（docs/quota_coverage.md）
+# Andy（10-07）：「確實落實每個功能都被使用次數有限制到，不可以漏洞情況」。
+# 做法：每個功能各開一個乾淨的瀏覽器環境，範本只設「這個功能每日 1 次」→ 打開第 1 個單位（照常看得到、計數 1）
+#       → 打開第 2 個不同的單位 → **一定要被擋**（區塊蓋上「今日已用完 1/1 次」卡，或工具鈕按了跳卡、工具沒打開）。
+# 單位（site/quota.js 的 unitOf，data-gw 同一套字串）：
+#   stock  ＝一檔個股（A＝code、B＝另一檔）            diagram＝一張剖析圖（同一條鏈換一張）
+#   chain  ＝一條產業鏈（半導體 → AI 伺服器）          theme  ＝一個題材（題材剖析）
+#   group  ＝一個族群頁                                visit  ＝一次造訪（同一個瀏覽器分頁來回切不重算；B＝新開一個分頁）
+# 桌機 1440、手機 390 各掃一次。只有管理者看得到的（盤中即時、1／5／15 分 K）不掃（非管理者根本看不到，次數無從談起）。
+QSCAN_OTHER = "2317"
+
+
+def _qscan_specs(code):
+    other = QSCAN_OTHER if code != QSCAN_OTHER else "2454"
+    S = {}
+    # (單位, A 路由, B 路由或 None（visit＝新分頁）, 桌機前置 JS, 手機前置 JS, 擋法 'veil'|'tool')
+    def visit(route, prep_d=None, prep_m=None):
+        return ("visit", route, None, prep_d, prep_m, "veil")
+    # 手機的總覽／資金流向是分段的（.mspine 步驟＋.mpager 分段，一次一張圖）：先按到那一段才看得到
+    def mseg(spine, pager):
+        return ("async () => { const pick = (box, w) => { if (!box || !w) return false; const b = [...box.querySelectorAll('button')].find(x => (x.textContent || '').replace(/\\s+/g, '').includes(w));"
+                " if (b && !b.classList.contains('on')) { b.click(); return true; } return false; };"
+                " if (pick(document.querySelector('.view.on .mspine'), %s)) await new Promise(r => setTimeout(r, 400));"
+                " pick(document.querySelector('.view.on .mpager'), %s); }") % (json.dumps(spine), json.dumps(pager))
+    OVM = {"ov.summary": None, "ov.index": ("貴不貴", "大盤"), "ov.heat": ("錢往哪跑", "熱力圖"), "ov.theme": ("錢往哪跑", "熱門題材"), "ov.rot": ("錢往哪跑", "資金輪盤"),
+           "ov.flow": ("錢往哪跑", "資金去向"), "ov.breadth": ("貴不貴", "市場寬度"), "events": ("理由", "今日事件")}
+    for f, sg in OVM.items():
+        S[f] = visit("#overview", None, mseg(*sg) if sg else None)
+    S["flow.rot"] = visit("#flow/rotation", None, mseg(None, "輪動"))
+    S["flow.sankey"] = visit("#flow/sankey", None, mseg(None, "資金去向"))
+    S["flow.inst"] = visit("#flow/inst", None, mseg(None, "法人"))
+    S["flow.conc"] = visit("#flow/inst", None, mseg(None, "集中度"))
+    S["ind.map"] = visit("#industry")
+    S["heat.market"] = visit("#heatmap")
+    S["heat.theme"] = visit("#heatmap/theme")
+    for k in ("updown", "streak", "ma", "cand"):
+        S["mkt." + k] = visit("#market/" + k)
+    S["season.month"] = visit("#season")
+    S["explore.page"] = visit("#explore")
+    S["explore.chart"] = visit("#explore")
+    S["explore.combo"] = visit("#explore", "() => { const a = document.querySelector('#slGrid a[href^=\"#explore/\"]'); if (a) location.hash = a.getAttribute('href'); }",
+                               "() => { const a = document.querySelector('#slGrid a[href^=\"#explore/\"]'); if (a) location.hash = a.getAttribute('href'); }")
+    S["explore.list"] = visit("#explore", "() => { const a = document.querySelector('#slGrid a[href^=\"#explore/\"]'); if (a) location.hash = a.getAttribute('href'); }",
+                              "() => { const a = document.querySelector('#slGrid a[href^=\"#explore/\"]'); if (a) location.hash = a.getAttribute('href'); }")
+    for f in ("etf.list", "etf.popular", "etf.rettop", "etf.yldtop", "etf.calendar", "etf.returns"):
+        S[f] = visit("#etf")
+    S["earn.page"] = visit("#earnings")
+    S["earn.cal"] = visit("#earnings")
+    S["watch.page"] = visit("#watch")
+    # 手機的主題切換在「更多」抽屜裡（.mrow[data-m=theme] → 轉按桌機的 #themeBtn，同一個攔截點）
+    S["theme"] = ("visit", "#overview", None, None, "() => { const b = document.getElementById('mTabMore'); if (b) b.click(); }", "tool")
+    # 個股
+    tab = lambda t, m: ("() => { const b = document.querySelector('#stockTabs button[data-t=\"%s\"]'); if (b && !b.classList.contains('on')) b.click(); }" % t,
+                        ("() => { const b = document.querySelector('#mbTabs button[data-t=\"%s\"]'); if (b && !b.classList.contains('on')) b.click(); }" % m) if m else None)
+    # 手機沒有「總覽」分頁：在「完整版」裡（桌機那一套 #stockTabs）
+    S["stock.overview"] = ("stock", "#stock/" + code, "#stock/" + other, tab("overview", None)[0],
+                           "async () => { const f = document.querySelector('#mbTabs button[data-t=\"full\"]'); if (f && !f.classList.contains('on')) f.click(); await new Promise(r => setTimeout(r, 900));"
+                           " const b = document.querySelector('#stockTabs button[data-t=\"overview\"]'); if (b && !b.classList.contains('on')) b.click(); }", "veil")
+    for f, t, m in (("stock.overview", "overview", "ov"), ("stock.basics", "basics", "basic"), ("stock.tags", "tags", "tag"), ("stock.revenue", "revenue", "rev"),
+                    ("stock.profit", "profit", "profit"), ("stock.dividend", "dividend", "div"), ("stock.inst", "inst", "inst"), ("stock.margin", "margin", "margin"),
+                    ("stock.holders", "holders", "big"), ("stock.news", "news", "news"), ("stock.ai", "overview", "ai")):
+        d, mm = tab(t, m)
+        if f not in S:
+            S[f] = ("stock", "#stock/" + code, "#stock/" + other, d, mm, "veil")
+    tf = lambda t: "() => { const b = document.querySelector('#tfSeg button[data-tf=\"%s\"]'); if (b && !b.classList.contains('on')) b.click(); }" % t
+    S["stock.k_day"] = ("stock", "#stock/" + code, "#stock/" + other, tf("1d"), tf("1d"), "veil")
+    S["stock.tick"] = ("stock", "#stock/" + code, "#stock/" + other, tf("tick"), tf("tick"), "veil")
+    S["stock.k_hour"] = ("stock", "#stock/" + code, "#stock/" + other, tf("60m"), tf("60m"), "veil")
+    S["stock.mtf"] = ("stock", "#stock/" + code, "#stock/" + other, tf("1d"), tf("1d"), "tool")
+    S["stock.ind"] = ("stock", "#stock/" + code, "#stock/" + other, tf("1d"), tf("1d"), "tool")
+    S["stock.draw"] = ("stock", "#stock/" + code, "#stock/" + other, tf("1d"), tf("1d"), "tool")
+    S["stock.page"] = ("stock", "#stock/" + code, "#stock/" + other, None, None, "veil")
+    # 產業鏈
+    S["ind.diagram"] = ("diagram", "#industry/semiconductor", "dg:1", None, None, "veil")
+    S["ind.3d"] = ("diagram", "#industry/semiconductor", "dg:1", "() => { const b = document.querySelector('button[data-dm=\"3d\"]'); if (b && !b.classList.contains('on')) b.click(); }", None, "veil")
+    S["ind.groups"] = ("chain", "#industry/semiconductor/overview", "#industry/ai_server/overview", None, None, "veil")
+    S["ind.rel"] = ("chain", "#industry/semiconductor", "#industry/ai_server", None, None, "veil")
+    S["heat.detail"] = ("theme", "#heatmap/theme/pcb_ccl", "#heatmap/theme/mlcc_passive", None, None, "veil")
+    # 族群觀測（grp.*，117 個族群同一套規則；抽晶圓代工驗）：每個族群自己一個功能 → 單位＝這個族群頁的一次造訪（新分頁＝下一次）
+    S["grp.foundry"] = ("visit", "#industry/group/foundry", None, None, None, "veil")
+    return S
+
+
+# 工具鈕（block）：按下去要開的東西 → 用「按了之後這個有沒有出現」判斷有沒有被擋
+QSCAN_TOOL = {"theme": ("#themeBtn, #t4Btn, #mmTheme, .mrow[data-m=theme]", "() => (document.documentElement.dataset.theme || '') + '|' + (document.documentElement.dataset.theme4 || '') + '|' + !!(document.getElementById('t4Pop') && document.getElementById('t4Pop').getClientRects().length)"),
+              "stock.ind": ("#indBtn", "() => document.getElementById('indBtn').getAttribute('aria-expanded') === 'true'"),
+              "stock.draw": ("#drawTgl", "() => { const p = document.getElementById('drawBar'); return !!p && p.getClientRects().length > 0; }"),
+              "stock.mtf": ("#mtfBtn", "() => !!document.getElementById('mtfGrid')")}
+QSCAN_SKIP = {"stock.k_min": "只有管理者看得到（DECISIONS #326）", "live.tick": "只有管理者看得到（DECISIONS #326）"}
+
+
+def t_quota_scan_1007(b, base, code):
+    T = "次數覆蓋掃描1007"
+    errs: list[str] = []
+    specs = _qscan_specs(code)
+    only = [x for x in os.environ.get("TW_QSCAN_ONLY", "").split(",") if x]
+    widths = [int(w) for w in os.environ.get("TW_QSCAN_WIDTHS", "1440,390").split(",")]
+    rows = []
+    feats = json.loads(pathlib.Path(os.environ.get("TW_QSCAN_FEATS", "")).read_text()) if os.environ.get("TW_QSCAN_FEATS") else None
+    for fid, spec in specs.items():
+        if only and fid not in only:
+            continue
+        kind, ra, rb, prep_d, prep_m, how = spec
+        for W in widths:
+            mob = W < 641
+            prep = prep_m if mob else prep_d
+            res = _qscan_one(b, base, fid, kind, ra, rb, prep, how, W, errs)
+            rows.append((fid, W, res))
+            ok(f"{T} {W}：{fid}（單位 {kind}）第 1 個照常、第 2 個被擋" + (f"（不適用：{res['na']}）" if res.get("na") else ""), res.get("ok") is True, res)
+    out = os.environ.get("TW_QSCAN_OUT")
+    if out:
+        pathlib.Path(out).write_text(json.dumps(rows, ensure_ascii=False, indent=1), encoding="utf-8")
+    ok(f"{T}：沒有 JS 錯誤", not errs, errs[:3])
+
+
+def _qscan_one(b, base, fid, kind, ra, rb, prep, how, W, errs):
+    c, sent, st = _sub_ctx(b, "member", width=W, lims={fid: 1})
+    res = {"kind": kind}
+    try:
+        pg = c.new_page(); pg.on("pageerror", lambda e: errs.append(f"{fid}@{W}: {e}"))
+        pg.goto(base + ra, wait_until="domcontentloaded")
+        wait_until(pg, f"() => window.TwPerm && TwPerm.state().src === 'server' && TwQuota.limit('{fid}') === 1", 12000)
+        pg.wait_for_timeout(1500)
+        if prep:
+            pg.evaluate(prep); pg.wait_for_timeout(1200)
+        VIS = """(fid) => { const f = TwFeatures.byId(fid); const q = (s) => { try { return [...document.querySelectorAll(s)]; } catch (e) { return []; } };
+            if (!f) return false;
+            if (f.cat === 'grp') return q('#gpSec, #dgSec, #relSec').some(e => e.getClientRects().length > 0);
+            return (f.veil || []).some(([s, w]) => (!w || q(w).length) && q(s).some(e => e.getClientRects().length > 0)); }"""
+        CLICK = """(sel) => { const b = sel.split(',').map(s => document.querySelector(s.trim())).find(e => e && e.getClientRects().length && !e.disabled); if (!b) return false; b.click(); return true; }"""
+        if how == "tool":
+            sel, opened = QSCAN_TOOL[fid]
+            before = pg.evaluate(opened)
+            if pg.evaluate(CLICK, sel):
+                pg.wait_for_timeout(700)
+                after = pg.evaluate(opened)
+                res["a_open"] = (after != before) if fid == "theme" else after
+                if fid != "theme":
+                    pg.keyboard.press("Escape"); pg.wait_for_timeout(200)
+                if fid in ("stock.draw", "stock.mtf", "stock.ind") and pg.evaluate(opened):
+                    pg.evaluate(CLICK, sel); pg.wait_for_timeout(300)
+            elif pg.evaluate(VIS, fid):
+                how = "veil"; res["how"] = "veil"   # 這個寬度工具列本來就開著（例如桌機的畫線列）→ 改驗區塊遮罩
+            else:
+                res["a_open"] = None; res["na"] = "這個寬度沒有這顆工具鈕"
+        else:
+            if not pg.evaluate(VIS, fid):
+                res["na"] = "這個寬度不顯示這個區塊"
+        cnt = lambda p: p.evaluate(f"() => ((TwQuota.state().k || {{}})['{fid}'] || []).length")
+        res["a_cnt"] = cnt(pg)
+        res["a_veil"] = pg.evaluate("() => !!document.querySelector('[data-qlk] > .qlkov')")
+        # 第 2 個單位
+        if kind == "visit":
+            pg2 = c.new_page(); pg2.on("pageerror", lambda e: errs.append(f"{fid}@{W}#2: {e}"))
+            pg2.goto(base + ra, wait_until="domcontentloaded")
+            wait_until(pg2, f"() => window.TwPerm && TwPerm.state().src === 'server' && TwQuota.limit('{fid}') === 1", 12000)
+            pg2.wait_for_timeout(1500)
+            if prep:
+                pg2.evaluate(prep); pg2.wait_for_timeout(1200)
+            p2 = pg2
+        elif kind == "diagram":
+            ids = pg.evaluate("() => [...document.querySelectorAll('#dgPick a[data-dgid]')].map(a => a.dataset.dgid)")
+            if len(ids) >= 2:
+                pg.click(f"#dgPick a[data-dgid='{ids[1]}']"); pg.wait_for_timeout(1200)
+                if prep:
+                    pg.evaluate(prep); pg.wait_for_timeout(1000)
+            p2 = pg
+        else:
+            pg.evaluate(f"() => {{ location.hash = '{rb}'; }}"); pg.wait_for_timeout(1800)
+            if prep:
+                pg.evaluate(prep); pg.wait_for_timeout(1200)
+            p2 = pg
+        if res.get("na"):
+            res["ok"] = True
+        elif how == "tool":
+            sel, opened = QSCAN_TOOL[fid]
+            before = p2.evaluate(opened)
+            if p2.evaluate(CLICK, sel):
+                p2.wait_for_timeout(700)
+                after = p2.evaluate(opened)
+                res["b_open"] = (after != before) if fid == "theme" else after
+                res["b_card"] = p2.evaluate("() => { const m = document.getElementById('qcModal'); return !!m && !m.hidden && /今天/.test(m.textContent); }")
+            else:
+                res["b_open"] = None; res["b_card"] = None
+            res["a_cnt"] = cnt(pg)
+            res["ok"] = bool(res.get("a_open")) and res["a_cnt"] == 1 and res["b_open"] is False and res["b_card"] is True
+        else:
+            wait_until(p2, "() => { const o = document.querySelector('[data-qlk] > .qlkov'); return !!o && o.getClientRects().length > 0; }", 4000)
+            res["b_veil"] = p2.evaluate("() => { const o = document.querySelector('[data-qlk] > .qlkov'); return o ? o.parentElement.id || o.parentElement.className : null; }")
+            res["ok"] = res["a_cnt"] == 1 and not res["a_veil"] and bool(res["b_veil"])
+    except Exception as e:  # noqa: BLE001
+        res["err"] = str(e)[:200]
+    finally:
+        c.close()
+    return res
+
+
+
+# ===================================================================== 全站共用額度1007（quota.all＝範本 dq）
+# CEO 10-07 02:45（Andy：「訪客只能預覽3次」＝全站共 3 次，不是每個功能各 3 次）：訪客 3、註冊會員 10、Plus 50、Pro 不限。
+# 真的操作：訪客依序打開 4 個不同的研究頁單位（兩檔個股、資金輪動、一張剖析圖）→ 第 4 個被擋（跨功能共用）；回到看過的不擋；
+# 註冊會員第 11 檔被擋；Pro（dq 空白）開 12 檔都不擋。
+def t_quota_all_1007(b, base, code):
+    T = "全站共用額度1007"
+    errs: list[str] = []
+    sh = os.environ.get("TW_QCARD_SHOTS")
+    BLOCKED = "() => { const o = [...document.querySelectorAll('[data-qlk] > .qlkov')].find(x => x.getClientRects().length); return o ? o.textContent : null; }"
+    def go(pg, route, wait=1800):
+        pg.evaluate(f"() => {{ location.hash = '{route}'; }}"); pg.wait_for_timeout(wait)
+    # ① 訪客 3 次
+    c, sent, st = _sub_ctx(b, None, dq=3)
+    pg = c.new_page(); pg.on("pageerror", lambda e: errs.append(str(e)))
+    pg.goto(base + "#overview", wait_until="domcontentloaded")
+    ok(f"{T}：訪客拿到全站共用額度 3（TwPerm.lim('quota.all')）", bool(wait_until(pg, "() => window.TwPerm && TwPerm.state().src === 'server' && TwPerm.lim('quota.all') === 3", 12000)))
+    pg.wait_for_timeout(1200)
+    ok(f"{T}：總覽不吃額度（不是研究頁）", pg.evaluate("() => ((TwQuota.state().k || {})['quota.all'] || []).length") == 0 and pg.evaluate(BLOCKED) is None)
+    seq = ["#stock/" + code, "#stock/2317" if code != "2317" else "#stock/2454", "#flow/rotation"]
+    for i, r in enumerate(seq):
+        go(pg, r)
+        ok(f"{T}：訪客第 {i + 1} 個研究頁（{r}）照常", pg.evaluate(BLOCKED) is None and pg.evaluate("() => (TwQuota.state().k['quota.all'] || []).length") == i + 1,
+           [pg.evaluate(BLOCKED), pg.evaluate("() => TwQuota.state().k")])
+    go(pg, "#industry/semiconductor", 3000)
+    txt = wait_until(pg, BLOCKED, 6000)
+    ok(f"{T}：訪客第 4 個（產業鏈剖析圖，跟前三個是不同功能）→ 被擋、卡片寫「今天的研究額度用完了」3 / 3",
+       bool(txt) and "今天的研究額度用完了" in txt and "3 / 3" in txt and "訪客 每日額度" in txt and "免費註冊" in txt, [txt, pg.evaluate("() => TwQuota.state().k")])
+    if sh:
+        pg.locator("#dgSec").scroll_into_view_if_needed(); pg.wait_for_timeout(300)
+        pg.screenshot(path=str(pathlib.Path(sh) / "quota_all_guest_4th.png"))
+    go(pg, "#stock/" + code)
+    ok(f"{T}：回到看過的第 1 檔 → 不擋（同一天同一單位只算一次）", bool(wait_until(pg, "() => ![...document.querySelectorAll('[data-qlk] > .qlkov')].some(x => x.getClientRects().length)", 5000)))
+    go(pg, "#overview")
+    ok(f"{T}：用完之後總覽照常（不是研究頁）", pg.evaluate(BLOCKED) is None)
+    c.close()
+    # ② 註冊會員 10 次
+    codes = ["2330", "2317", "2454", "2303", "2308", "2382", "2412", "2881", "2882", "2886", "2891", "3008"]
+    c, sent, st = _sub_ctx(b, "member", dq=10)
+    pg = c.new_page(); pg.on("pageerror", lambda e: errs.append(str(e)))
+    pg.goto(base + "#overview", wait_until="domcontentloaded")
+    wait_until(pg, "() => window.TwPerm && TwPerm.state().src === 'server' && TwPerm.lim('quota.all') === 10", 12000)
+    for cd in codes[:10]:
+        go(pg, "#stock/" + cd, 1300)
+    ok(f"{T}：註冊會員前 10 檔照常、計 10 個單位、登入者每個單位都送 /v1/quota/hit（quota.all）",
+       pg.evaluate(BLOCKED) is None and pg.evaluate("() => TwQuota.state().k['quota.all'].length") == 10
+       and len({x[1].get("key") for x in sent if x[0] == "/v1/quota/hit" and x[1].get("k") == "quota.all" and x[1].get("key")}) == 10,
+       [pg.evaluate("() => TwQuota.state().k['quota.all']"), [x[1] for x in sent if x[0] == "/v1/quota/hit"][:12]])
+    go(pg, "#stock/" + codes[10], 1500)
+    txt = wait_until(pg, BLOCKED, 6000)
+    ok(f"{T}：註冊會員第 11 檔 → 被擋（10 / 10）", bool(txt) and "10 / 10" in txt, txt)
+    c.close()
+    # ③ Pro（dq 空白）不限
+    c, sent, st = _sub_ctx(b, "member", dq=None)
+    pg = c.new_page(); pg.on("pageerror", lambda e: errs.append(str(e)))
+    pg.goto(base + "#overview", wait_until="domcontentloaded")
+    wait_until(pg, "() => window.TwPerm && TwPerm.state().src === 'server'", 12000)
+    for cd in codes:
+        go(pg, "#stock/" + cd, 900)
+    ok(f"{T}：Pro（額度空白）開 12 檔都不擋、也不計", pg.evaluate("() => TwPerm.lim('quota.all') === Infinity") and pg.evaluate(BLOCKED) is None
+       and not (pg.evaluate("() => TwQuota.state().k['quota.all']") or []))
+    c.close()
+    ok(f"{T}：沒有 JS 錯誤", not errs, errs[:3])
+
+
+
+# ===================================================================== 套用建議方案1007（site/plan_presets.js → #admin/perm）
+# CEO 10-07 02:45：一顆按鈕把訪客／註冊會員／Plus／Pro 四個範本的開關、每日次數、全站額度、自選、價格、介紹寫進 Worker；
+# 先跳確認框列出會改哪些；範本用 id 對應（Plus＝現在的「299 會費」改名、Pro＝「499會費」改名），不新建重複的。
+def t_plan_preset_1007(b, base, code):
+    T = "套用建議方案1007"
+    errs: list[str] = []
+    sh = os.environ.get("TW_QCARD_SHOTS")
+    plans = [{"id": "guest", "name": "訪客（未登入）", "feats": {}, "lims": {}, "builtin": True, "members": 0, "price": 0, "period": "month"},
+             {"id": "free", "name": "免費會員（預設）", "feats": {}, "lims": {}, "builtin": True, "members": 0, "price": 0, "period": "month"},
+             {"id": "pa299", "name": "299 會費", "feats": {}, "lims": {}, "builtin": False, "members": 1, "price": 299, "period": "month"},
+             {"id": "pb499", "name": "499會費", "feats": {}, "lims": {}, "builtin": False, "members": 0, "price": 499, "period": "month"}]
+    c, sent, st = _adm3_ctx(b, plans=plans)
+    pg = c.new_page(); pg.on("pageerror", lambda e: errs.append(str(e)))
+    pg.goto(base + "#admin/perm", wait_until="domcontentloaded")
+    ok(f"{T}：#admin/perm 有「套用建議方案」鈕", bool(wait_until(pg, "() => { const b = document.getElementById('ptPreset'); return !!b && b.getClientRects().length > 0; }", 12000)))
+    pg.click("#ptPreset")
+    ok(f"{T}：按下去先跳確認框（不送任何 plans/put）", bool(wait_until(pg, "() => { const d = document.getElementById('subDlg'); return !!d && !d.hidden && /套用建議方案/.test(d.textContent); }", 4000))
+       and not any(x[0] == "/v1/admin/plans/put" for x in sent))
+    dl = pg.inner_text("#subDlg")
+    ok(f"{T}：確認框列出四個範本、Plus 對應到「299 會費」改名、Pro 新建、499會費 列為刪除、月費與額度變更",
+       all(k in dl for k in ("訪客", "註冊會員", "Plus", "Pro")) and "目前「299 會費」" in dl
+       and "名稱：299 會費 → Plus" in dl and "NT$299 → NT$249" in dl and "全站每日額度：不限 → 每日 3 次" in dl and "全站每日額度：不限 → 每日 50 次" in dl
+       and "刪除「499會費」" in dl and "新建範本（代號 pro）" in dl, dl[:1200])
+    pg.click("#subDlg details >> nth=0")
+    if sh:
+        pg.screenshot(path=str(pathlib.Path(sh) / "preset_confirm.png"))
+        pg.evaluate("() => { const b = document.querySelector('#subDlg .box'); b.scrollTop = b.scrollHeight; }"); pg.wait_for_timeout(200)
+        pg.screenshot(path=str(pathlib.Path(sh) / "preset_confirm_drop.png"))
+    pg.click("#ppGo")
+    # 2026-10-07 Andy：「移除499會費那條」→ Pro 新建（種下的 pro），499會費 刪除
+    ok(f"{T}：確定套用 → plans/put 依序 guest、free、pa299、pro（新建），最後刪 pb499", bool(wait_until(pg, "() => /已套用建議方案/.test(document.getElementById('pmStat').textContent)", 8000))
+       and [x[1].get("id") for x in sent if x[0] == "/v1/admin/plans/put"] == ["guest", "free", "pa299", "pro", "pb499"]
+       and [x[1].get("del") for x in sent if x[0] == "/v1/admin/plans/put"][-1] is True,
+       [x[1].get("id") for x in sent if x[0] == "/v1/admin/plans/put"])
+    bodies = {x[1]["id"]: x[1] for x in sent if x[0] == "/v1/admin/plans/put" and not x[1].get("del")}
+    g, f, pl, pr = bodies.get("guest", {}), bodies.get("free", {}), bodies.get("pa299", {}), bodies.get("pro", {})
+    ok(f"{T}：寫入內容：訪客 dq 3＋沒有逐功能次數＋名稱不改；註冊會員 dq 10、自選 1×10；Plus 改名、249、dq 50、自選 5×50、badge；Pro 改名、499、dq 空白、自選 50×200",
+       g.get("dq") == 3 and g.get("lims") == {} and g.get("name") == "訪客（未登入）" and g.get("feats", {}).get("ind.3d") is False
+       and f.get("dq") == 10 and f.get("feats", {}).get("watch.tabs") == 1 and f.get("feats", {}).get("watch.size") == 10 and f.get("name") == "免費會員（預設）"
+       and pl.get("name") == "Plus" and pl.get("price") == 249 and pl.get("dq") == 50 and pl.get("feats", {}).get("watch.tabs") == 5 and pl.get("feats", {}).get("watch.size") == 50
+       and (pl.get("meta") or {}).get("badge") == "最受歡迎" and (pl.get("meta") or {}).get("price_year") == 2490 and len((pl.get("meta") or {}).get("highlights") or []) >= 3
+       and pr.get("name") == "Pro" and pr.get("price") == 499 and pr.get("dq") is None and pr.get("feats", {}).get("watch.tabs") == 50 and pr.get("feats", {}).get("watch.size") == 200,
+       {k: {kk: (vv if kk != "feats" else {x: vv[x] for x in ("watch.tabs", "watch.size", "ind.3d") if x in vv}) for kk, vv in v.items() if kk != "t"} for k, v in bodies.items()})
+    ok(f"{T}：套用後頁籤＝Plus（月）、Pro（月），沒有 499會費", bool(wait_until(pg, "() => { const t = [...document.querySelectorAll('#ptTier button[data-plan]')].map(b => b.textContent.trim()); return t.includes('Plus（月）') && t.includes('Pro（月）') && !t.some(x => /499/.test(x)); }", 4000)),
+       pg.evaluate("() => [...document.querySelectorAll('#ptTier button')].map(b => b.textContent.trim())"))
+    pg.click("#ptTier button[data-tier='guest']")
+    pg.wait_for_timeout(400)
+    pg.click("#ptPlanCfg")
+    ok(f"{T}：訪客 ⚙ 的「全站每日額度」顯示 3", pg.input_value("#ptEdDq") == "3", pg.input_value("#ptEdDq"))
+    if sh:
+        pg.screenshot(path=str(pathlib.Path(sh) / "preset_after.png"))
+    pg.click("#ptPlanCfg")
+    pg.click("#ptTier button[data-plan='pa299']")
+    pg.wait_for_timeout(500)
+    ok(f"{T}：Plus 的「自選分頁數上限」選單顯示 5 頁、「每頁自選檔數上限」50 檔",
+       pg.evaluate("() => { const a = document.querySelector(\"#pmCats select[data-f='watch.tabs']\"), b = document.querySelector(\"#pmCats select[data-f='watch.size']\"); return !!a && !!b && a.value === '5' && b.value === '50'; }"),
+       pg.evaluate("() => [...document.querySelectorAll('#pmCats select')].map(s => s.dataset.f + '=' + s.value)"))
+    pg.click("#ptPreset")
+    wait_until(pg, "() => !document.getElementById('subDlg').hidden", 3000)
+    ok(f"{T}：再按一次 → 確認框寫「沒有變更」（已經是建議方案）", pg.inner_text("#subDlg").count("沒有變更") == 4, [pg.inner_text("#subDlg")[:900], pg.inner_text("#pmStat")])
+    pg.click("#subDlg [data-close]")
+    c.close()
+    ok(f"{T}：沒有 JS 錯誤", not errs, errs[:3])
 
 
 def t_sub_1005(b, base, code):
@@ -48223,10 +48839,12 @@ def t_member_perm(b, base, code):
             return wait_until(pg, js, 10000)
 
         LOCK = """(sel) => { const el = document.querySelector(sel); if (!el) return null;
-            const a = getComputedStyle(el, '::after');
+            /* ★ 2026-10-07：「此功能需開通」改成 site/qcard.js 的卡片（.qcov.plkov 裡的 .qcard），字不再畫在 ::after；
+               content＝卡片文字、fs＝卡片最小字（說明那一行）*/
+            const card = el.querySelector(':scope > .qcov .qcard'), sub = card && (card.querySelector('.qc-sub') || card);
             /* ★ admin-v3：外框不再整個 inert（鎖頭上的「升級查看」要點得到），改成原本的子節點逐一 inert */
-            const kids = [...el.children].filter(k => !k.classList.contains('plkgo'));
-            return { attr: el.getAttribute('data-plk') || '', inert: !!el.inert || (kids.length > 0 && kids.every(k => k.inert)), go: (el.querySelector(':scope > .plkgo') || {}).href || '', content: a.content || '', fs: parseFloat(a.fontSize),
+            const kids = [...el.children].filter(k => !k.classList.contains('plkgo') && !k.classList.contains('qcov'));
+            return { attr: el.getAttribute('data-plk') || '', inert: !!el.inert || (kids.length > 0 && kids.every(k => k.inert)), go: (el.querySelector(':scope > .qcov .plkgo, :scope > .plkgo') || {}).href || '', content: card ? card.textContent : '', fs: sub ? parseFloat(getComputedStyle(sub).fontSize) : 0,
                      vis: el.getClientRects().length > 0, blur: el.firstElementChild ? getComputedStyle(el.firstElementChild).filter : '' }; }"""
 
         # ================= ① 管理者 Andy 在 #admin/perm 設定測試帳號
@@ -48975,9 +49593,17 @@ def t_admin_v2(b, base, code):
     pg.fill("#ptEdName", "進階方案")
     pg.fill("#ptEdPrice", "8990")
     pg.select_option("#ptEdPeriod", "year")
+    # ★ 2026-10-07 每日額度（docs/quota_plan.md）：⚙ 多一欄「每日額度」（空白＝不限）；填壞值擋下、填 50 送 dq:50
+    ok(f"{T}：⚙ 有「每日額度」欄（空白＝不限）", pg.locator("#ptEdit #ptEdDq").count() == 1 and pg.input_value("#ptEdDq") == "" and pg.get_attribute("#ptEdDq", "placeholder") == "不限")
+    pg.fill("#ptEdDq", "-3")
+    nput2 = len([x for x in sent if x[0] == "/v1/admin/plans/put"])
+    pg.click("#ptEdSave")
+    ok(f"{T}：每日額度填 -3 → 擋下、不送出", "每日額度" in pg.inner_text("#pmStat") and len([x for x in sent if x[0] == "/v1/admin/plans/put"]) == nput2, pg.inner_text("#pmStat"))
+    pg.fill("#ptEdDq", "50")
     with pg.expect_response(lambda r: "/v1/admin/plans/put" in r.url, timeout=6000) as ri:
         pg.click("#ptEdSave")
     eb = json.loads(ri.value.request.post_data or "{}")
+    ok(f"{T}：（續）每日額度 50 → plans/put 帶 dq=50", eb.get("dq") == 50, eb)
     ok(f"{T}：改名「進階方案」、價格 8990、週期 年 → plans/put 帶 id 不變（p799）、price=8990、period=year、開關照舊",
        eb.get("id") == "p799" and eb.get("name") == "進階方案" and eb.get("price") == 8990 and eb.get("period") == "year" and eb.get("feats") == {}, eb)
     ok(f"{T}：（續）頁籤換成「進階方案（年）」、選中的還是它",
@@ -49736,7 +50362,7 @@ def t_traffic_1005(b, base, code):
 ADM3_API = "https://acct3.example.test"
 
 
-def _adm3_ctx(b, who="admin", width=1440, feats=None, lims=None, theme=None):
+def _adm3_ctx(b, who="admin", width=1440, feats=None, lims=None, theme=None, plans=None):
     sent: list = []
     now = int(time.time() * 1000)
     st = {"plans": [{"id": "guest", "name": "訪客（未登入）", "feats": {}, "lims": {}, "builtin": True, "members": 0, "price": 0, "period": "month"},
@@ -49746,6 +50372,8 @@ def _adm3_ctx(b, who="admin", width=1440, feats=None, lims=None, theme=None):
           "perm": {"a399@example.com": {"plan": "p399", "over": {}, "updated": now, "expires": now + 30 * 86400000},
                    "b799@example.com": {"plan": "p799", "over": {}, "updated": now, "expires": 0},
                    "wait@example.com": {"plan": "free", "over": {}, "updated": now, "expires": 0}}}
+    if plans is not None:   # 2026-10-07：套用建議方案的驗收要「299 會費／499會費」這種名稱
+        st["plans"] = plans
     users = [{"name": "甲", "email": "a399@example.com", "seen": now - 3600000, "created": now - 40 * 86400000, "visits": 12},
              {"name": "乙", "email": "b799@example.com", "seen": now - 86400000, "created": now - 10 * 86400000, "visits": 3},
              {"name": "丁", "email": "free1@example.com", "seen": now - 600000, "created": now - 5 * 86400000, "visits": 7}]
@@ -49804,7 +50432,9 @@ def _adm3_ctx(b, who="admin", width=1440, feats=None, lims=None, theme=None):
             prev = next((x for x in st["plans"] if x["id"] == body.get("id")), {})
             nw = {"id": body["id"], "name": body.get("name", prev.get("name", "")), "feats": body.get("feats", prev.get("feats", {})),
                   "lims": body.get("lims", prev.get("lims", {})), "builtin": body.get("id") in ("guest", "free"), "members": prev.get("members", 0),
-                  "price": body.get("price", prev.get("price", 0)), "period": body.get("period", prev.get("period", "month"))}
+                  "price": body.get("price", prev.get("price", 0)), "period": body.get("period", prev.get("period", "month")),
+                  # 2026-10-07：每日額度（dq）與介紹欄位（meta 攤平），同 worker.js 的每日額度／plan-meta 區塊
+                  "dq": body["dq"] if "dq" in body else prev.get("dq"), **(body.get("meta") or {k: prev[k] for k in ("badge", "tagline", "fit_title", "fit_desc", "highlights", "price_year") if k in prev})}
             st["plans"] = [nw if x["id"] == body.get("id") else x for x in st["plans"]] if prev else st["plans"] + [nw]
             out = {"plans": st["plans"]}
         elif path == "/v1/admin/plans/sort":
@@ -50193,7 +50823,8 @@ def t_admin_sw_1005(b, base, code):
     ref = pg.evaluate(tq, "#chainSwitch > button:not(.on)")[0][0]
     pg.evaluate("() => { location.hash = '#admin/perm'; }")
     wait_until(pg, "() => document.querySelector('#ptTier button[role=tab]')", 10000)
-    got = pg.evaluate(tq, "#ptTier button[role=tab]:not(.add), #ptSub button, #admTabs a")
+    # 2026-10-07：⚙（範本設定）是圖示鈕不是分頁，註冊會員也有了（每日額度）→ 不列入分頁字級比較
+    got = pg.evaluate(tq, "#ptTier button[role=tab]:not(.add), #ptSub button:not(.ptgear), #admTabs a")
     pg.evaluate("() => { location.hash = '#explore'; }")
     wait_until(pg, "() => document.querySelector('#slChips button')", 10000)
     got += pg.evaluate(tq, "#slChips > button:not(.on)")
@@ -50653,9 +51284,9 @@ def t_admin_v3(b, base, code):
     pg = c.new_page(); pg.on("pageerror", lambda e: errs.append(str(e)))
     pg.goto(base + "#overview", wait_until="domcontentloaded")
     ok(f"{T}：關掉的「資金熱力圖」鎖頭上有「升級查看」鈕（可點、連到 #pricing/need/ov.heat）",
-       bool(wait_until(pg, "() => { const a = document.querySelector('#ovHeatCard[data-plk] > .plkgo'); return !!a && a.getAttribute('href') === '#pricing/need/ov.heat' && getComputedStyle(a).pointerEvents !== 'none'; }", 8000)))
+       bool(wait_until(pg, "() => { const a = document.querySelector('#ovHeatCard[data-plk] > .qcov .plkgo'); return !!a && a.getAttribute('href') === '#pricing/need/ov.heat' && getComputedStyle(a).pointerEvents !== 'none'; }", 8000)))
     shot(pg, "5_lock_upgrade", "#ovHeatCard")
-    pg.click("#ovHeatCard > .plkgo")
+    pg.click("#ovHeatCard > .qcov .plkgo")
     ok(f"{T}：點「升級查看」→ 到 #pricing/need/ov.heat、能解鎖的方案（進階）標「可解鎖」、免費的不標",
        bool(wait_until(pg, "() => location.hash === '#pricing/need/ov.heat' && !!document.querySelector(\".prcard[data-plan='p799'].need\")", 6000))
        and pg.evaluate("() => !document.querySelector(\".prcard[data-plan='p399'].need\") && !document.querySelector(\".prcard[data-plan='guest'].need\") && /資金熱力圖/.test(document.getElementById('prNeed').textContent)"),

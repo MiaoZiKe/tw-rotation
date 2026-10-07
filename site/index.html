@@ -5755,11 +5755,15 @@ return {load:load,ready:ready,srcs:srcs};})();
 <script src="watchlists.js"></script>
 <script src="account_config.js"></script>
 <script src="account.js"></script>
+<script src="datagw.js"></script><!-- 付費資料閘道（docs/datagw_plan.md）；沒設定時完全不動作 -->
 <!-- ★ 2026-10-02 會員功能權限（DECISIONS #288）：features.js＝功能清單（資料）、perm.js＝依「我」的權限蓋鎖頭。
      要在 account.js 之後（perm.js 問 TwAccount 我是誰）；會員功能沒設定時全部照預設＝全開，不連任何地方。 -->
 <script src="features.js"></script>
+<script src="plan_presets.js"></script><!-- 2026-10-07 建議方案（#admin/perm「套用建議方案」讀；資料而已，不自動生效）-->
 <!-- ★ 2026-10-06 分頁拖曳排序（全站自動掛載，見檔頭）：要在各頁分頁列畫出來之前就開始觀察 -->
 <script src="tabdrag.js"></script>
+<!-- 2026-10-07 額度／開通共用卡片（perm.js、quota.js、watchlists.js 都用它，要在 perm.js 之前）-->
+<script src="qcard.js"></script>
 <script src="perm.js"></script>
 <!-- ★ 2026-10-05（sub-v1）訂閱頁＋方案徽章（pricing.js，含共用小工具 TwSub，要排第一）、每日瀏覽次數（quota.js）、
      右下角客服與意見反饋（support.js）、通知中心（notices.js）。要在 perm.js 之後（讀 TwPerm）、app.js 之前（登記 TwSubRoutes）。 -->
@@ -5767,6 +5771,7 @@ return {load:load,ready:ready,srcs:srcs};})();
 <script src="quota.js"></script>
 <script src="support.js"></script>
 <script src="notices.js"></script>
+<script src="admingw.js"></script><!-- 管理區：付費資料異常 #admin/gw（docs/datagw_plan.md 第三階段） -->
 <!-- 資金去向拓撲版（桌機 > 820px）：app.js 的 renderSankey() 會呼叫 window.FlowTopo，所以要在它之前 -->
 <script src="fit.js"></script>
 <script src="flowtopo.js"></script>

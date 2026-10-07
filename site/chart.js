@@ -425,8 +425,8 @@
     st.fetches++;
     let j = null;
     try {
-      const r = await fetch(`data/hist/${code}/p${n}.json`, { cache: 'force-cache' });
-      j = r.ok ? await r.json() : null;
+      if (window.TwGw && window.TwGw.on()) j = await window.TwGw.json(`hist/${code}/p${n}`, { cache: 'force-cache' });   // data-gw：付費檔走 gateway
+      else { const r = await fetch(`data/hist/${code}/p${n}.json`, { cache: 'force-cache' }); j = r.ok ? await r.json() : null; }
     } catch (e) { j = null; }
     st.pages[n] = j;      // 連「沒有這一段」都要記下來，不然每拖一次就再打一次 404
     return j;

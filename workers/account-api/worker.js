@@ -1454,6 +1454,87 @@ Hub.prototype.fetch = async function (req) {
 };
 /* ============================================================================ 批次端點區塊結束 */
 
+/* ============================================================================
+   data-gw 停權區塊（2026-10-06，docs/datagw_plan.md 第三階段）
+   ----------------------------------------------------------------------------
+   付費資料閘道（workers/data-gw）偵測到異常且 AUTO_SUSPEND=1 時，經 service binding 呼叫：
+     POST /internal/suspend   標頭 X-Internal-Key: <INTERNAL_KEY>   { uid, reason }
+       → users.tv + 1（所有舊登入權杖立刻失效）＋ susp 表記一列（append-only：每次停權、解除都是新的一列，舊列不改不刪）
+   之後就算重新登入拿到新權杖，verify() 也會因為「最新一列是停權」而拒絕 —— 直到管理者解除。
+   管理者：
+     POST /v1/admin/susp/list  { t }            最近 300 列停權／解除紀錄（含 email、名字、現在是否停權中）
+     POST /v1/admin/susp/lift  { t, uid, note } 寫一列「解除」（不刪停權那列，留痕）
+     POST /v1/admin/uids       { t, uids:[] }   異常頁把 data-gw 記的 uid 換成 email／名字（最多 100 個）
+   ★ 「只能由 data-gw 呼叫」怎麼做到：
+     ① 必須帶 X-Internal-Key，跟 Worker Secret INTERNAL_KEY 等長逐字元比對；INTERNAL_KEY 沒設＝這條路徑不存在（404）。
+        這把鑰匙只設在 account-api 與 data-gw 兩支 Worker 的 Secret 裡，前端、repo、log 都沒有。
+     ② data-gw 只透過 service binding（同帳號內部呼叫，不走公網）送這支請求。
+     ③ 管理者帳號不會被停（避免規則誤傷 Andy 自己、把管理頁鎖死）。
+   同前面幾個區塊：只在檔尾新增、包一層 prototype，既有函式一行不動。
+   ============================================================================ */
+Hub.prototype.suspInit = function () {
+  if (this._suspInit) return;
+  this._suspInit = true;
+  this.q('CREATE TABLE IF NOT EXISTS susp (id INTEGER PRIMARY KEY AUTOINCREMENT, uid TEXT, ts INTEGER, act TEXT, reason TEXT, by TEXT)');
+  this.q('CREATE INDEX IF NOT EXISTS susp_uid ON susp (uid, id)');
+};
+Hub.prototype.isSuspended = function (uid) {
+  this.suspInit();
+  const r = this.q('SELECT act FROM susp WHERE uid = ? ORDER BY id DESC LIMIT 1', uid)[0];
+  return !!r && r.act === 'suspend';
+};
+const suspOrigVerify = Hub.prototype.verify;
+Hub.prototype.verify = async function (tok) {
+  const v = await suspOrigVerify.call(this, tok);
+  return v && this.isSuspended(v.user.uid) ? null : v;
+};
+Hub.prototype.internalSuspend = async function (req) {
+  const key = String(this.env.INTERNAL_KEY || '');
+  if (!key) return this.json(req, { error: 'not_found' }, 404);
+  if (!safeEq(String(req.headers.get('X-Internal-Key') || ''), key)) return this.json(req, { error: 'forbidden' }, 403);
+  let b; try { b = JSON.parse((await req.text()) || '{}'); } catch (e) { return this.json(req, { error: 'bad_json' }, 400); }
+  const uid = String((b && b.uid) || '');
+  if (!/^[A-Za-z0-9_-]{4,40}$/.test(uid)) return this.json(req, { error: 'bad_uid' }, 400);
+  const u = this.q('SELECT uid, email FROM users WHERE uid = ?', uid)[0];
+  if (!u) return this.json(req, { error: 'not_found' }, 404);
+  if (this.isAdmin(u)) return this.json(req, { error: 'admin' }, 409);
+  if (this.isSuspended(uid)) return this.json(req, { ok: true, already: true });
+  this.q('UPDATE users SET tv = tv + 1 WHERE uid = ?', uid);
+  this.q('INSERT INTO susp (uid, ts, act, reason, by) VALUES (?, ?, ?, ?, ?)', uid, this.now(), 'suspend', String(b.reason || '').slice(0, 200), 'data-gw');
+  return this.json(req, { ok: true });
+};
+Object.assign(Hub.prototype.subRoutes, {
+  '/v1/admin/susp/list': async function (req, b) {
+    if (!(await this.admin(req, b))) return this.json(req, { error: 'forbidden' }, 403);
+    this.suspInit();
+    const rows = this.q('SELECT s.id, s.uid, s.ts, s.act, s.reason, s.by, u.email, u.name FROM susp s LEFT JOIN users u ON u.uid = s.uid ORDER BY s.id DESC LIMIT 300');
+    return this.json(req, { rows: rows.map((r) => ({ ...r, now: this.isSuspended(r.uid) })) });
+  },
+  '/v1/admin/susp/lift': async function (req, b) {
+    const v = await this.admin(req, b);
+    if (!v) return this.json(req, { error: 'forbidden' }, 403);
+    const uid = String(b.uid || '');
+    if (!this.isSuspended(uid)) return this.json(req, { error: 'not_suspended' }, 400);
+    this.q('INSERT INTO susp (uid, ts, act, reason, by) VALUES (?, ?, ?, ?, ?)', uid, this.now(), 'lift', String(b.note || '').slice(0, 200), String(v.user.email || ''));
+    return this.json(req, { ok: true });
+  },
+  '/v1/admin/uids': async function (req, b) {
+    if (!(await this.admin(req, b))) return this.json(req, { error: 'forbidden' }, 403);
+    const ids = Array.isArray(b.uids) ? b.uids.slice(0, 100).map(String) : [];
+    const out = {};
+    ids.forEach((id) => { const u = this.q('SELECT email, name FROM users WHERE uid = ?', id)[0]; if (u) out[id] = { email: u.email, name: u.name, susp: this.isSuspended(id) }; });
+    return this.json(req, { users: out });
+  },
+});
+const suspOrigFetch = Hub.prototype.fetch;
+Hub.prototype.fetch = async function (req) {
+  if (req.method === 'POST' && new URL(req.url).pathname === '/internal/suspend') {
+    try { return await this.internalSuspend(req); } catch (e) { return this.json(req, { error: 'server' }, 500); }
+  }
+  return suspOrigFetch.call(this, req);
+};
+/* ============================================================================ data-gw 停權區塊結束 */
+
 /* ============================================================================ 會員資料匯出／還原區塊（2026-10-06，規格 docs/admin_export_spec.md）
    為什麼：會員帳號、方案、到期日、統計全在這個 Durable Object 的 SQLite，GitHub 上沒有副本；筆電每日備份補這個缺口。
      POST /v1/admin/export
@@ -1594,3 +1675,247 @@ Hub.prototype.fetch = async function (req) {
   }
 };
 /* ============================================================================ 會員資料匯出／還原區塊結束 */
+
+/* ============================================================================ 每日額度區塊（2026-10-07，docs/quota_plan.md）
+   Andy（10-07 01:30）：「之後會分成 Plus 和更上去的 Pro。plus 目前先暫定皆可以觀看 50 次，pro 則是都不限次數」。
+   ① 範本多一欄 plans.dq（每日額度，整數 0～9999；NULL＝不限）。跟 lims（每個功能各自的次數）分開：
+      dq 是「整個網站一天能開幾個單位」（個股頁一檔、產業鏈剖析圖一張、付費分頁一個），真正扣次在付費資料閘道 workers/data-gw。
+      · plans/get、plans/public 每個範本多帶 dq；/v1/perm/me 多回 dq（生效那個範本的；過期退回免費會員的）
+      · plans/put 帶 dq：null／'' ＝不限、0～9999 整數＝每日上限；沒帶＝維持原值（只改開關的呼叫不會把額度洗掉）
+   ② Plus／Pro 兩個付費範本：wrangler.toml 的 SEED_PLANS="plus,pro" 有設才種（只種一次，kv plans_seeded_pp；管理者刪掉不會再長回來）。
+      Plus：dq 50；Pro：dq 不限。價格 0＝訂閱頁寫「價格待定」，等 Andy 定價後在 #admin/perm 的 ⚙ 改。
+      為什麼用環境變數而不是無條件種：既有的 account／v3／v4 測試假設「乾淨資料庫只有 guest／free／paid」，
+      無條件種會讓那些測試的範本順序全部改變；正式站部署時 wrangler.toml 會帶這個變數。
+   ★ 同前面幾個區塊：只在檔尾新增、包一層 prototype，既有函式一行不動。
+   ============================================================================ */
+export const DQ_MAX = 9999;
+/* 種子：[名稱, 每日額度, 自選上限]。自選：Plus 5 頁／每頁 50 檔、Pro「不限」＝硬上限 50 頁／200 檔（watch-v2 區塊）*/
+const DQ_SEEDS = { plus: ['Plus', 50, { 'watch.tabs': 5, 'watch.size': 50 }], pro: ['Pro', null, { 'watch.tabs': 50, 'watch.size': 200 }] };
+Hub.prototype.dqInit = function () {
+  if (this._dqOk) return;
+  this.v4Init();
+  if (!this.q('PRAGMA table_info(plans)').some((c) => c.name === 'dq')) this.q('ALTER TABLE plans ADD COLUMN dq INTEGER');
+  const want = String(this.env.SEED_PLANS || '').split(/[\s,]+/).filter((x) => DQ_SEEDS[x]);
+  if (want.length && !this.kv('plans_seeded_pp')) {
+    const mx = this.q('SELECT MAX(sort) AS m FROM plans WHERE builtin = 0')[0].m;
+    let n = mx == null ? 0 : mx + 1;
+    for (const id of want) {
+      if (this.q('SELECT 1 FROM plans WHERE id = ?', id).length) continue;
+      const [name, dq, feats] = DQ_SEEDS[id];
+      this.q("INSERT INTO plans (id, name, feats, builtin, updated, price, period, lims, sort, dq) VALUES (?, ?, ?, 0, ?, 0, 'month', '{}', ?, ?)", id, name, JSON.stringify(feats), this.now(), n++, dq);
+    }
+    /* 自選上限的預設改成免費會員的 1 頁／10 檔（site/features.js 的 def）之後，既有的付費範本（例如「付費會員」）若沒明寫，
+       會從 5 頁掉到 1 頁 —— 種子這一次順手替它們補上舊值 5 頁／50 檔（有明寫的不動）。*/
+    for (const r of this.q("SELECT id, feats FROM plans WHERE builtin = 0 AND id NOT IN ('plus', 'pro')")) {
+      let f = {}; try { f = JSON.parse(r.feats || '{}') || {}; } catch (e) { f = {}; }
+      let ch = false;
+      if (!Number.isInteger(f['watch.tabs'])) { f['watch.tabs'] = 5; ch = true; }
+      if (!Number.isInteger(f['watch.size'])) { f['watch.size'] = 50; ch = true; }
+      if (ch) this.q('UPDATE plans SET feats = ? WHERE id = ?', JSON.stringify(f), r.id);
+    }
+    this.setKv('plans_seeded_pp', '1');
+  }
+  this._dqOk = true;
+};
+Hub.prototype.dqOf = function (id) {
+  this.dqInit();
+  const r = this.q('SELECT dq FROM plans WHERE id = ?', id)[0];
+  return r && Number.isInteger(r.dq) ? r.dq : null;
+};
+const dqOrigPlan = Hub.prototype.plan;
+Hub.prototype.plan = function (id) {
+  const p = dqOrigPlan.call(this, id);
+  if (p) p.dq = this.dqOf(id);
+  return p;
+};
+const dqOrigPlanRows = Hub.prototype.subPlanRows;
+Hub.prototype.subPlanRows = function () { return dqOrigPlanRows.call(this).map((p) => ({ ...p, dq: this.dqOf(p.id) })); };
+const dqOrigPermMe = Hub.prototype.permMe;
+Hub.prototype.permMe = async function (req, b) {
+  const res = await dqOrigPermMe.call(this, req, b);
+  if (res.status !== 200) return res;
+  const j = await res.json();
+  j.dq = this.dqOf(j.plan || 'free');
+  return this.json(req, j);
+};
+const dqOrigPlansPut = Hub.prototype.adminPlansPut;
+Hub.prototype.adminPlansPut = async function (req, b) {
+  this.dqInit();
+  let dq;
+  if (b && b.dq !== undefined && b.del !== true) {
+    if (b.dq === null || b.dq === '') dq = null;
+    else if (Number.isInteger(b.dq) && b.dq >= 0 && b.dq <= DQ_MAX) dq = b.dq;
+    else return this.json(req, { error: 'bad_dq' }, 400);
+  }
+  const res = await dqOrigPlansPut.call(this, req, b);
+  if (res.status !== 200 || dq === undefined) return res;
+  this.q('UPDATE plans SET dq = ? WHERE id = ?', dq, String(b.id));
+  return await this.adminPlansGet(req, b);
+};
+/* 啟動時先把欄位與種子準備好（不能等到 plan() 才做：plans/get 是先列 id 再逐一讀，中途種進去的不會出現在第一次的清單裡）*/
+const dqOrigFetch = Hub.prototype.fetch;
+Hub.prototype.fetch = async function (req) {
+  try { this.dqInit(); } catch (e) { /* 遷移失敗不擋其他功能：dq 一律當不限 */ }
+  return dqOrigFetch.call(this, req);
+};
+/* ============================================================================ 每日額度區塊結束 */
+
+/* ============================================================================ 自選上限區塊 watch-v2（2026-10-07，docs/quota_plan.md）
+   Andy（10-07）：「註冊可以自選一個分頁且10檔股票…plus 可以新增5個分頁、pro 可以不限分頁」。
+   ① 格式上限放寬成硬上限 50 頁／每頁 200 檔（Pro 的「不限」）—— 原本的 cleanLists 是 5／50。
+   ② /v1/lists/put 依這個人生效的範本檢查 watch.tabs／watch.size（前端擋得了一般人，F12 改得掉；伺服器這關才算數）：
+      · 只擋「變多」：分頁數 > max(上限, 雲端現有頁數) 或某一頁檔數 > max(上限, 雲端那一頁現有檔數) → 403 {error:'watch_limit', kind, limit, lists, rev}
+        —— 已經建好的不刪（降級的人原本 5 頁照樣留著、照樣能改名／刪／搬），只是不能再新增。
+      · 範本沒明寫時的預設＝免費會員：1 頁／10 檔（跟 site/features.js 的 def 同一組數，改一邊要改另一邊）。
+      · 管理者不限（硬上限照守）。
+   ★ 同前面幾個區塊：只在檔尾新增、包一層 prototype，既有函式一行不動。
+   ============================================================================ */
+export const WATCH_HARD_TABS = 50, WATCH_HARD_CODES = 200;
+const WATCH_DEF = { 'watch.tabs': 1, 'watch.size': 10 };
+Hub.prototype.cleanLists = function (lists) {
+  if (!Array.isArray(lists) || lists.length > WATCH_HARD_TABS) return null;
+  const seen = new Set(), out = [];
+  for (const t of lists) {
+    if (!t || typeof t !== 'object') return null;
+    const id = String(t.id || '');
+    if (!/^[a-z0-9]{1,12}$/.test(id) || seen.has(id)) return null;
+    seen.add(id);
+    const name = cleanName(t.name);
+    if (!name) return null;
+    if (!Array.isArray(t.codes) || t.codes.length > WATCH_HARD_CODES) return null;
+    const codes = [];
+    for (const c of t.codes) { if (typeof c !== 'string' || !CODE_RE.test(c)) return null; if (!codes.includes(c)) codes.push(c); }
+    out.push({ id, name, codes });
+  }
+  return out;
+};
+/* 這個人的自選上限：{ tabs, size }（管理者＝硬上限）*/
+Hub.prototype.watchCaps = function (user) {
+  if (this.isAdmin(user)) return { tabs: WATCH_HARD_TABS, size: WATCH_HARD_CODES };
+  const f = this.effective(String(user.email || '').toLowerCase()).feats || {};
+  const g = (k, max) => { const v = f[k]; return Number.isInteger(v) ? Math.max(0, Math.min(max, v)) : v === false ? 0 : WATCH_DEF[k]; };
+  return { tabs: g('watch.tabs', WATCH_HARD_TABS), size: g('watch.size', WATCH_HARD_CODES) };
+};
+const watchOrigListsPut = Hub.prototype.listsPut;
+Hub.prototype.listsPut = async function (req, b) {
+  const v = await this.auth(req, b);
+  if (!v) return this.json(req, { error: 'auth' }, 401);
+  const lists = this.cleanLists(b.lists);
+  if (!lists) return this.json(req, { error: 'bad_lists' }, 400);
+  const cur = this.q('SELECT data, rev FROM lists WHERE uid = ?', v.user.uid)[0];
+  let old = []; try { old = cur ? JSON.parse(cur.data) || [] : []; } catch (e) { old = []; }
+  const caps = this.watchCaps(v.user);
+  const deny = (kind, limit) => this.json(req, { error: 'watch_limit', kind, limit, lists: old, rev: cur ? cur.rev : 0 }, 403);
+  /* 版本號不對交給原本的流程回 409（先處理衝突，再談上限）*/
+  if (b.rev === (cur ? cur.rev : 0)) {
+    if (lists.length > Math.max(caps.tabs, old.length)) return deny('tabs', caps.tabs);
+    const had = new Map(old.map((t) => [t.id, (t.codes || []).length]));
+    for (const t of lists) if (t.codes.length > Math.max(caps.size, had.get(t.id) || 0)) return deny('size', caps.size);
+  }
+  return watchOrigListsPut.call(this, req, b);
+};
+/* 功能開關的整數值原本只收 0～99（cleanFeats）；每頁檔數的「不限」是 200 → 放寬到 0～9999（其他規則不變：鍵的格式、布林、壞一項整批不收）*/
+Hub.prototype.cleanFeats = function (f) {
+  if (f == null) return {};
+  if (typeof f !== 'object' || Array.isArray(f)) return null;
+  const ent = Object.entries(f);
+  if (ent.length > MAX_FEAT_KEYS) return null;
+  const out = {};
+  for (const [k, v] of ent) {
+    if (!FEAT_RE.test(k)) return null;
+    if (typeof v === 'boolean' || (Number.isInteger(v) && v >= 0 && v <= 9999)) out[k] = v; else return null;
+  }
+  return out;
+};
+/* ============================================================================ 自選上限區塊結束 */
+
+/* ============================================================================ 每日次數 quota-v2 區塊（2026-10-07，docs/quota_coverage.md）
+   /v1/quota/hit 原本只記不擋（前端自己數）。改成跟前端 site/quota.js、付費資料閘道 data-gw **同一套規則**：
+     · 鍵 'quota.all'（全站共用每日額度）＝範本的 dq；其他鍵＝範本 lims 裡那個功能的每日次數
+     · 同一天同一個單位只算一次（已經記過的照樣回 200，不算超過）
+     · 新單位而且今天已經用滿 → 不記，回 { over: true }（前端看到 over 就把那個單位拿掉、蓋卡）
+   ★ 只包一層 prototype（subRoutes 換成新函式，舊的那支照樣呼叫），既有函式一行不動。
+   ============================================================================ */
+const qv2OrigHit = Hub.prototype.subRoutes['/v1/quota/hit'];
+Hub.prototype.subRoutes['/v1/quota/hit'] = async function (req, b) {
+  const k = String((b && b.k) || ''), key = String((b && b.key) || '');
+  const v = b && b.t ? await this.verify(b.t) : null;
+  if (v && key && /^[0-9A-Za-z_.-]{1,24}$/.test(key) && /^[a-z][a-z0-9_.]{1,39}$/.test(k) && !this.isAdmin(v.user)) {
+    this.subInit();
+    const e = this.effective(String(v.user.email || '').toLowerCase());
+    const plan = e.expired ? 'free' : e.plan;
+    const lim = k === 'quota.all' ? this.dqOf(plan) : (() => { const n = this.v3Lims(plan)[k]; return Number.isInteger(n) ? n : null; })();
+    if (Number.isInteger(lim)) {
+      const day = tpeDay(this.now());
+      const had = this.q('SELECT 1 FROM quota_hits WHERE uid = ? AND day = ? AND k = ? AND key = ?', v.user.uid, day, k, key).length > 0;
+      const n = this.q('SELECT COUNT(*) AS c FROM quota_hits WHERE uid = ? AND day = ? AND k = ?', v.user.uid, day, k)[0].c;
+      if (!had && n >= lim) {
+        const keys = this.q('SELECT key FROM quota_hits WHERE uid = ? AND day = ? AND k = ? LIMIT 500', v.user.uid, day, k).map((r) => r.key);
+        return this.json(req, { day, k, n: keys.length, keys, over: true, limit: lim });
+      }
+    }
+  }
+  return qv2OrigHit.call(this, req, b);
+};
+/* ============================================================================ 每日次數 quota-v2 區塊結束 */
+
+/* ============================================================================ 方案介紹欄位 plan-meta 區塊（2026-10-07，docs/plan_tiers_1007.md）
+   訂閱頁（另一條分支 claude/pricing-v2 重做中）要讀：badge（「最受歡迎」）、tagline、fit_title、fit_desc、highlights（重點條列）、price_year（年繳價）。
+   存在 plans.meta（JSON）；plans/put 帶 meta 就整份換掉（null＝清空）、沒帶＝維持原值；plan()、plans/public 攤平成同名欄位。
+   #admin/perm 的「套用建議方案」一鍵寫入（site/plan_presets.js）。字數都有上限，壞的整個請求 400（不存半套）。
+   ★ 同前面幾個區塊：只在檔尾新增、包一層 prototype。
+   ============================================================================ */
+const META_LIM = { badge: 12, tagline: 60, fit_title: 30, fit_desc: 240 };
+export function cleanPlanMeta(m) {
+  if (m == null) return {};
+  if (typeof m !== 'object' || Array.isArray(m)) return null;
+  const out = {};
+  for (const [k, n] of Object.entries(META_LIM)) {
+    const v = m[k];
+    if (v == null || v === '') continue;
+    if (typeof v !== 'string' || v.length > n || /[<>\u0000-\u001f]/.test(v)) return null;
+    out[k] = v;
+  }
+  if (m.highlights != null) {
+    if (!Array.isArray(m.highlights) || m.highlights.length > 8) return null;
+    const hs = [];
+    for (const h of m.highlights) { if (typeof h !== 'string' || !h || h.length > 40 || /[<>\u0000-\u001f]/.test(h)) return null; hs.push(h); }
+    out.highlights = hs;
+  }
+  if (m.price_year != null) {
+    if (!Number.isInteger(m.price_year) || m.price_year < 0 || m.price_year > 9999999) return null;
+    out.price_year = m.price_year;
+  }
+  return out;
+}
+Hub.prototype.metaInit = function () {
+  if (this._metaOk) return;
+  this.dqInit();
+  if (!this.q('PRAGMA table_info(plans)').some((c) => c.name === 'meta')) this.q("ALTER TABLE plans ADD COLUMN meta TEXT DEFAULT '{}'");
+  this._metaOk = true;
+};
+Hub.prototype.metaOf = function (id) {
+  this.metaInit();
+  const r = this.q('SELECT meta FROM plans WHERE id = ?', id)[0];
+  try { return r ? JSON.parse(r.meta || '{}') || {} : {}; } catch (e) { return {}; }
+};
+const metaFlat = (m) => ({ badge: m.badge || null, tagline: m.tagline || null, fit_title: m.fit_title || null, fit_desc: m.fit_desc || null,
+  highlights: Array.isArray(m.highlights) ? m.highlights : [], ...(Number.isInteger(m.price_year) ? { price_year: m.price_year } : {}) });
+const metaOrigPlan = Hub.prototype.plan;
+Hub.prototype.plan = function (id) { const p = metaOrigPlan.call(this, id); if (p) Object.assign(p, metaFlat(this.metaOf(id))); return p; };
+const metaOrigPlanRows = Hub.prototype.subPlanRows;
+Hub.prototype.subPlanRows = function () { return metaOrigPlanRows.call(this).map((p) => ({ ...p, ...metaFlat(this.metaOf(p.id)) })); };
+const metaOrigPlansPut = Hub.prototype.adminPlansPut;
+Hub.prototype.adminPlansPut = async function (req, b) {
+  this.metaInit();
+  let meta;
+  if (b && b.meta !== undefined && b.del !== true) { meta = cleanPlanMeta(b.meta); if (!meta) return this.json(req, { error: 'bad_meta' }, 400); }
+  const res = await metaOrigPlansPut.call(this, req, b);
+  if (res.status !== 200 || meta === undefined) return res;
+  this.q('UPDATE plans SET meta = ? WHERE id = ?', JSON.stringify(meta), String(b.id));
+  return await this.adminPlansGet(req, b);
+};
+/* 匯出／還原前先把每日額度與介紹欄位補齊（兩邊欄位才對得上，export.test 的「匯出→匯入→再匯出完全一樣」）*/
+const metaOrigExpInit = Hub.prototype.expInit;
+Hub.prototype.expInit = function () { metaOrigExpInit.call(this); this.dqInit(); this.metaInit(); };
+/* ============================================================================ plan-meta 區塊結束 */

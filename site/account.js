@@ -360,7 +360,8 @@
         m.hidden = true;
         if (a.dataset.a === 'watch') location.hash = '#watch';   // 2026-09-28：自選改成整頁（#watch）
         if (a.dataset.a === 'admin') location.hash = '#admin/traffic';
-        if (a.dataset.a === 'perm') location.hash = '#admin/perm';      // 2026-10-02 會員功能權限（DECISIONS #288）
+        if (a.dataset.a === 'perm') location.hash = '#admin/perm';
+        if (a.dataset.a === 'gw') location.hash = '#admin/gw';      // 2026-10-02 會員功能權限（DECISIONS #288）
         if (a.dataset.a === 'privacy') location.hash = '#privacy';
         if (a.dataset.a === 'pricing') location.hash = '#pricing';            // 2026-10-05 sub-v1
         if (a.dataset.a === 'feedback') location.hash = '#admin/feedback';
@@ -377,6 +378,7 @@
       + `<button type="button" role="menuitem" data-a="pricing">訂閱方案</button>`
       + (u.admin ? `<button type="button" role="menuitem" data-a="feedback">管理區：意見反饋與訂閱申請</button><button type="button" role="menuitem" data-a="notices">管理區：公告</button>` : '')
       + (u.admin ? `<button type="button" role="menuitem" data-a="admin">管理區：流量觀測與線上名單</button><button type="button" role="menuitem" data-a="perm">管理區：會員功能權限</button>` : '')
+      + (u.admin && window.TwGw && window.TwGw.on() ? `<button type="button" role="menuitem" data-a="gw">管理區：付費資料異常</button>` : '')   // 2026-10-06 data-gw 第三階段（site/admingw.js）
       + `<button type="button" role="menuitem" data-a="privacy">隱私權政策</button>`
       /* 10-05 Andy：選單拿掉「刪除我的資料」；刪除改由客服信箱申請（隱私權政策「您的權利」）*/
       + `<button type="button" role="menuitem" data-a="logout">登出</button>`;
@@ -529,6 +531,7 @@
   // ------------------------------------------------------------------ 啟動
   const API = {
     on: () => S.on, user: () => S.user, api: () => S.api, online: () => S.online,
+    tok: () => S.tok,   // 2026-10-06 data-gw：site/datagw.js 拿它去換 5 分鐘的資料權杖
     call, route, login: () => openDlg('notice'), logout, track,
     /* 給驗收腳本：現在排隊中的統計（還沒送出的）*/
     pending: () => Object.assign({}, S.q),

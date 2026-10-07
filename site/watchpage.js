@@ -176,7 +176,7 @@
     v.innerHTML = `<div class="card wpcard">
       <div class="wphd"><h2>自選 <button class="howbtn pop" data-how="watch" data-ttl="自選" type="button" aria-label="自選怎麼看">?</button></h2><span class="wpmode" id="wpMode">${esc(mode)}</span><span class="sp"></span><span class="wpcnt" id="wpCnt">${tabs.length}／${T.MAX_TABS} 頁</span></div>
       <div class="wptabs" role="tablist" id="wpTabs">${tabH}
-        <button type="button" class="wpnew" id="wpNew" ${full ? 'disabled aria-disabled="true"' : ''} title="${full ? (T.capLocked && T.capLocked() ? `目前方案最多 ${T.MAX_TABS} 頁（需開通）` : `最多 ${T.MAX_TABS} 頁`) : '新增一頁清單'}">＋ 新增分頁${full && T.capLocked && T.capLocked() ? ' 🔒' : ''}</button>
+        <button type="button" class="wpnew" id="wpNew" ${full && !(T.capLocked && T.capLocked()) ? 'disabled aria-disabled="true"' : ''} title="${full ? (T.capLocked && T.capLocked() ? `目前方案最多 ${T.MAX_TABS} 頁（需開通）` : `最多 ${T.MAX_TABS} 頁`) : '新增一頁清單'}">＋ 新增分頁${full && T.capLocked && T.capLocked() ? ' 🔒' : ''}</button>
         <span class="wphint" id="wpHint" ${P.hint ? '' : 'hidden'}>${esc(P.hint)}</span></div>
       ${P.confirm ? `<div class="wpconf" id="wpConf"><span>確定刪除「${esc(cur.name)}」（${cur.codes.length} 檔）？</span><button type="button" class="danger" id="wpDelYes">刪除</button><button type="button" id="wpDelNo">取消</button></div>` : ''}
       <div class="wpadd"><input type="search" id="wpQ" placeholder="加入股票：代號或名稱，例如 2330 或 台積電" autocomplete="off" aria-label="搜尋要加入的股票" value="${esc(P.q)}"><ul class="wpres" id="wpRes" hidden></ul></div>
@@ -283,7 +283,8 @@
     if (q('#wpDelYes')) { P.confirm = false; T.delTab(T.cur()); return; }
     if (q('#wpNew')) {
       const id = T.newTab('');
-      if (!id) { setHint(T.capLocked && T.capLocked() ? `🔒 目前方案最多 ${T.MAX_TABS} 頁，要更多頁需開通` : `最多 ${T.MAX_TABS} 頁`); return; }
+      /* 2026-10-07：方案上限擋下時 watchlists.js 已經跳出「需升級」卡片（TwWatch.upsell），這裡只留一行提示 */
+      if (!id) { setHint(T.capLocked && T.capLocked() ? `🔒 目前方案最多 ${T.MAX_TABS} 頁，升級方案可新增更多` : `最多 ${T.MAX_TABS} 頁`); return; }
       setHint(''); P.editing = id; paint(); return;
     }
     const ad = q('button[data-add]');

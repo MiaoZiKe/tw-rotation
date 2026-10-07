@@ -118,12 +118,15 @@ test('R1 自選清單：只讀寫得到自己的；沒權杖／假權杖一律 4
   assert.equal((await post(hub, '/v1/lists/get', { t: other.join('.') })).status, 401, '把 uid 換成別人');
 });
 
-test('R1 自選清單格式：超過 5 頁、超過 50 檔、代號格式錯、名字空白都拒絕；多帶的欄位（張數、成本）被丟掉', async () => {
+test('R1 自選清單格式：超過 50 頁、超過 200 檔（硬上限）、免費會員超過 1 頁／10 檔（方案上限）、代號格式錯、名字空白都拒絕；多帶的欄位（張數、成本）被丟掉', async () => {
   const { hub } = makeHub(env());
   const t = (await login(hub, 'alice@example.com')).j.tok;
   const mk = (i) => ({ id: 't' + i, name: '清單' + i, codes: [] });
-  assert.equal((await post(hub, '/v1/lists/put', { t, lists: [1, 2, 3, 4, 5, 6].map(mk), rev: 0 })).status, 400);
-  assert.equal((await post(hub, '/v1/lists/put', { t, lists: [{ id: 't1', name: 'a', codes: Array.from({ length: 51 }, (_, i) => String(1000 + i)) }], rev: 0 })).status, 400);
+  /* 2026-10-07（watch-v2）：格式硬上限放寬成 50 頁／每頁 200 檔（Pro 的「不限」）；方案上限（免費 1 頁／10 檔）由 /v1/lists/put 回 403 watch_limit */
+  assert.equal((await post(hub, '/v1/lists/put', { t, lists: Array.from({ length: 51 }, (_, i) => mk(i)), rev: 0 })).status, 400);
+  assert.equal((await post(hub, '/v1/lists/put', { t, lists: [{ id: 't1', name: 'a', codes: Array.from({ length: 201 }, (_, i) => String(1000 + i)) }], rev: 0 })).status, 400);
+  assert.equal((await post(hub, '/v1/lists/put', { t, lists: [1, 2].map(mk), rev: 0 })).status, 403, '免費會員第 2 頁');
+  assert.equal((await post(hub, '/v1/lists/put', { t, lists: [{ id: 't1', name: 'a', codes: Array.from({ length: 11 }, (_, i) => String(1000 + i)) }], rev: 0 })).status, 403, '免費會員第 11 檔');
   assert.equal((await post(hub, '/v1/lists/put', { t, lists: [{ id: 't1', name: 'a', codes: ['<script>'] }], rev: 0 })).status, 400);
   assert.equal((await post(hub, '/v1/lists/put', { t, lists: [{ id: 't1', name: '   ', codes: [] }], rev: 0 })).status, 400);
   const r = await (await post(hub, '/v1/lists/put', { t, lists: [{ id: 't1', name: 'a', codes: ['2330'], qty: 1000, cost: 580 }], rev: 0 })).json();
@@ -353,7 +356,7 @@ test('R7 格式：壞 email、壞鍵、壞值、太多鍵、不存在／訪客�
   for (const email of ['', 'no-at', 'a@b', '<x>@example.com', 'a b@example.com', 'x'.repeat(65) + '@example.com']) {
     assert.equal((await post(hub, '/v1/admin/perm/put', { t, email, plan: 'free', over: {} })).status, 400, email);
   }
-  for (const over of [{ 'Bad Key': true }, { 'x': true }, { 'stock.ai': 'yes' }, { 'stock.ai': -1 }, { 'stock.ai': 100 }, { 'stock.ai': 1.5 }, ['stock.ai'],
+  for (const over of [{ 'Bad Key': true }, { 'x': true }, { 'stock.ai': 'yes' }, { 'stock.ai': -1 }, { 'stock.ai': 10000 } /* 2026-10-07 watch-v2：整數上限 99 → 9999（每頁自選檔數「不限」＝200）*/, { 'stock.ai': 1.5 }, ['stock.ai'],
     Object.fromEntries(Array.from({ length: 301 }, (_, i) => ['f' + i + 'x', true]))]) {
     assert.equal((await post(hub, '/v1/admin/perm/put', { t, email: 'c@example.com', plan: 'free', over })).status, 400, JSON.stringify(over).slice(0, 40));
   }
