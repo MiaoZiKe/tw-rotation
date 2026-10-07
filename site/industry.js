@@ -66,6 +66,9 @@
     if (head !== 'stock') stopLive();   // 離開個股頁就不要再每 5 秒抓報價了
     const [im, sc, gd] = await Promise.all([A.load('industry_map'), A.load('supply_chain'), A.load('groups_detail')]);
     if (head === 'stock') { state.level = 2; state.code = rest[0]; state.dg = null; await renderStock(rest[0], im, sc, gd); return; }
+    /* 2026-10-08 權限矩陣 ind.groups（產業地圖進單一產業鏈每日 N 條）：畫產業鏈頁的唯一入口在這裡，再擋一次 ——
+       app.js route() 開頭與 quota.js 的 hashchange 也擋，但連續快速換頁時實測有漏（同一條鏈不重算，多呼叫不會多扣）。*/
+    if (rest[0] && rest[0] !== 'group' && window.TwQuota && !window.TwQuota.routeOk(location.hash)) return;
     if (rest[0] === 'group' && rest[1]) { state.group = rest[1]; state.dg = null; state.chain = chainOfGroup(im, rest[1]); state.level = 1; renderChain(im, sc, gd); return; }
     if (rest[0]) {
       state.chain = rest[0]; state.group = null; state.dg = null; state.level = 1;
@@ -5662,6 +5665,15 @@
               : '成分股取自各發行投信每日公告的申購買回清單；這家投信的公告還沒接進來，這裡先不放清單、也不用估計值充數。';
             return `<h3>成分股</h3><div class="hdnote" id="etfHoldNone"><b>${head}</b><br>
             ${body}請以發行投信官網每日公告的持股為準。</div>`; })();
+      /* 2026-10-08 Andy：「每一檔要嘛有表格、要嘛有連結，不准只有『抓不到』一句話」。
+         玩股網、口袋證券是 Andy 指定的參考站；條款不允許程式抓取（docs/etf_holdings_coverage.md「參考來源」），
+         所以不抓，改成讓讀者自己點過去看。債券型也附：兩站都有列債券持股。*/
+      const ce = encodeURIComponent(code);
+      card.insertAdjacentHTML('beforeend', `<div class="hdnote" id="etfHoldLinks" style="margin-top:8px">
+        <b>到外部網站看這檔的成分股：</b>
+        <a href="https://www.wantgoo.com/stock/etf/${ce}/constituent" target="_blank" rel="noopener" data-site="wantgoo">玩股網 ↗</a>
+        ・<a href="https://www.pocket.tw/etf/tw/${ce}/fundholding" target="_blank" rel="noopener" data-site="pocket">口袋證券 ↗</a>
+        <br><span style="font-size:12px">（外部網站，資料由該站整理，非本站抓取。）</span></div>`);
       return;
     }
     items.sort((a, b) => b.w - a.w);
@@ -5704,7 +5716,8 @@
             + `<td class="nm"><i class="dot${isTop ? '' : ' no'}"${isTop ? ` style="background:${topCol(i)}"` : ''}></i>`
             + (tw && A.logo ? A.logo(c, nm, 20, 'hdlogo') : `<span class="slogo hdlogo nolg" data-l="${A.fmt.esc(Array.from(String(nm || '?'))[0])}" style="--lg:#4d5b73;--lz:20px" aria-hidden="true"></span>`)
             + `<span class="nmt">${go ? `<a href="#stock/${A.fmt.esc(c)}">${A.fmt.esc(nm)}</a>` : A.fmt.esc(nm)}<span class="cd mono">${A.fmt.esc(c || '')}</span></span>`
-            + `<span class="gp2">${A.fmt.esc(gp || '—')}</span></td>`
+            /* 2026-10-08：債券成分第二行顯示「票息 X%・到期 YYYY-MM-DD」（管線從名稱讀出，見 etf_pcf.bond_terms），股票照舊顯示族群 */
+            + `<span class="gp2"${x.mat ? ' data-bond="1"' : ''}>${x.mat ? `票息 ${x.cpn != null ? A.fmt.n(x.cpn, 3).replace(/\.?0+$/, '') + '%' : '—'}・到期 ${A.fmt.esc(x.mat)}` : A.fmt.esc(gp || '—')}</span></td>`
             + `<td class="sk">${tw && A.sparkSVG ? `<span class="spkw" data-spk="${A.fmt.esc(c)}" data-w="48" data-h="18">${A.sparkSVG(c, { w: 48, h: 18 })}</span>` : '<span class="muted">—</span>'}</td>`
             + `<td class="mono px">${px == null ? '<span class="muted">—</span>' : `<span class="pv">${A.fmt.n(px, px >= 1000 ? 0 : 2)}</span><span class="pc ${ch == null ? 'muted' : A.fmt.cls(ch)}">${ch == null ? '—' : A.fmt.pct(ch)}</span>`}</td>`
             + `<td class="mono iv ${iv == null ? 'muted' : A.fmt.cls(iv)}">${iv == null ? '—' : `${iv > 0 ? '+' : ''}${A.fmt.i(iv)} 張`}</td>`

@@ -46,12 +46,15 @@
   /* ★ 2026-10-07 17:40 Andy：「首先以後預覽都不要限制權限，因為只是在測試」（DECISIONS #343）→ 預覽版（window.TW_PREVIEW）一律比照擁有者全開：
      無鎖頭、不計次、上限給最大。只看讀取面；會員雲端寫入照舊由 preview_boot.js 擋下。正式站沒有 TW_PREVIEW，行為不變。*/
   const owner = () => { if (window.TW_PREVIEW) return true; const A = acct(); const u = A && A.on && A.on() && A.user && A.user(); return !!(u && u.owner); };
+  /* 預設值要看的範本代號：訪客＝guest、沒有付費範本的會員＝free、其他＝範本 id（付費）*/
+  const planKey = () => (S.who === 'guest' ? 'guest' : !S.plan || S.plan === 'free' ? 'free' : S.plan);
   function value(id) {
     const f = F.byId(id); if (!f) return true;
     if (owner()) return f.kind === 'limit' ? f.max : true;
     const v = S.feats[id];
-    if (f.kind === 'limit') return Number.isInteger(v) ? Math.max(0, Math.min(f.max, v)) : (v === false ? 0 : f.def);
-    return typeof v === 'boolean' ? v : f.def;
+    /* 範本沒寫 → 依身分的預設（features.js defBy；點擊次數上限：訪客、註冊會員各有預設，付費不限）*/
+    if (f.kind === 'limit') return Number.isInteger(v) ? Math.max(0, Math.min(f.max, v)) : (v === false ? 0 : F.defOf ? F.defOf(f, planKey()) : f.def);
+    return typeof v === 'boolean' ? v : F.defOf ? F.defOf(f, planKey()) : f.def;
   }
   /* ★ admin-v3：瀏覽次數上限 0＝「不能看」，跟關掉開關同一個效果（同一套鎖頭＋升級鈕）；N＞0 的計數在 quota.js */
   function can(id) { if (owner()) return true; if (S.lims[id] === 0) return false; const v = value(id); return typeof v === 'number' ? v > 0 : v !== false; }

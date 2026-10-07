@@ -12,12 +12,13 @@
 from __future__ import annotations
 
 import logging
+import re
 from pathlib import Path
 
 import pandas as pd
 import yaml
 
-from ..sources.etf_pcf import CONNECTED, NOT_CONNECTED_WHY, issuer_of
+from ..sources.etf_pcf import CONNECTED, NOT_CONNECTED_WHY, bond_terms, issuer_of
 
 log = logging.getLogger(__name__)
 
@@ -69,8 +70,14 @@ def build(hold: pd.DataFrame, price: pd.DataFrame, names: dict[str, str],
             for r in g.itertuples(index=False):
                 w = None if pd.isna(r.weight) else round(float(r.weight), 4)
                 sh = None if pd.isna(r.shares) else float(r.shares)
-                items.append({"code": str(r.code), "name": str(r.name or ""), "w": w,
-                              "shares": None if sh is None else int(round(sh))})
+                it = {"code": str(r.code), "name": str(r.name or ""), "w": w,
+                      "shares": None if sh is None else int(round(sh))}
+                # 債券成分（代號不是台股那種 4～6 碼數字）：從名稱讀票面利率與到期日給前端多顯示一行（讀不出來就不帶）
+                if not re.match(r"^\d{4,6}[A-Z]?$", it["code"]):
+                    cpn, mat = bond_terms(it["name"])
+                    if mat:
+                        it["cpn"], it["mat"] = cpn, mat
+                items.append(it)
             items.sort(key=lambda x: -(x["w"] or 0))
             issuer = str(g["issuer"].iloc[0]) if "issuer" in g else ""
             src = str(g["src"].iloc[0]) if "src" in g else ""

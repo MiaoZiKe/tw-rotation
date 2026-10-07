@@ -72,6 +72,12 @@
   border:1px solid color-mix(in srgb,#fff 35%,transparent);color:var(--ontop,#04121a);font-size:14.5px;font-weight:700;box-shadow:0 10px 28px -10px rgba(0,0,0,.55);transition:transform .15s,background .15s}
 .supfab:hover{transform:translateY(-1px);background:color-mix(in srgb,var(--cyan) 90%,transparent)}
 .supfab svg{width:26px;height:26px}
+/* ★ 2026-10-07（Andy：「客服圖示改成跟logo一樣可愛的天竺鼠」）：對話泡泡換成品牌頭像（site/brand/mark-64/128）。
+   圓形裁切＋一圈白邊，深色（青底）與淺色主題下都跟按鈕底色分得開；滑過時頭像歪頭晃一下（減少動態偏好時不動）。 */
+.supfab .supmark{width:32px;height:32px;border-radius:50%;object-fit:cover;flex:none;display:block;box-shadow:0 0 0 2px #fff;background:#8ac5f5;transition:transform .2s}
+.supfab:hover .supmark{animation:supwig .5s ease-in-out;transform:scale(1.1)}
+@keyframes supwig{0%,100%{transform:scale(1.1) rotate(0)}30%{transform:scale(1.1) rotate(-10deg)}65%{transform:scale(1.1) rotate(8deg)}}
+@media (prefers-reduced-motion:reduce){.supfab:hover .supmark{animation:none}}
 .supfab[hidden]{display:none}
 .suppanel{position:fixed;right:20px;bottom:78px;z-index:1201;width:min(400px,calc(100vw - 32px));max-height:min(640px,calc(100vh - 110px));display:flex;flex-direction:column;
   background:var(--panel-2);color:var(--ink);border:1px solid var(--line-2);border-radius:16px;box-shadow:0 24px 60px -20px rgba(0,0,0,.75);overflow:hidden}
@@ -185,13 +191,15 @@
     + '<circle cx="10.2" cy="11.4" r="1.45" fill="currentColor"/><circle cx="17.8" cy="11.4" r="1.45" fill="currentColor"/>'
     + '<path d="M9.8 15.1c1.1 1.5 2.5 2.2 4.2 2.2s3.1-.7 4.2-2.2" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/>'
     + '<circle cx="7.6" cy="14.6" r="1.1" fill="#ff8fa3" fill-opacity=".75"/><circle cx="20.4" cy="14.6" r="1.1" fill="#ff8fa3" fill-opacity=".75"/></svg>';
+  // 2026-10-07：浮動鈕改用品牌天竺鼠頭像（上面的 ICON 目前沒人用，留著當退路）
+  const MARK = '<img class="supmark" src="brand/mark-64.png" srcset="brand/mark-64.webp 1x, brand/mark-128.webp 2x" width="32" height="32" alt="" aria-hidden="true">';
   let tab = 'faq';
   function ensure() {
     let fab = document.getElementById('supFab');
     if (fab) return;
     fab = document.createElement('button'); fab.type = 'button'; fab.id = 'supFab'; fab.className = 'supfab';
     fab.setAttribute('aria-haspopup', 'dialog'); fab.setAttribute('aria-expanded', 'false');
-    fab.innerHTML = ICON + '<span>客服</span>';
+    fab.innerHTML = MARK + '<span>客服</span>';
     document.body.appendChild(fab);
     const p = document.createElement('div'); p.id = 'supPanel'; p.className = 'suppanel'; p.hidden = true; p.setAttribute('role', 'dialog'); p.setAttribute('aria-label', '客服與意見反饋');
     document.body.appendChild(p);
@@ -225,7 +233,7 @@
     // 「即時和盤後差在哪」那一題只給管理者看（data-live-ui，livegate.js 的 CSS 藏；DECISIONS #326）
     if (tab === 'faq') return FAQ.map(([q, a], i) => `<div class="faq" data-i="${i}"${/「即時」/.test(q) ? ' data-live-ui' : ''}><button type="button" aria-expanded="false">${esc(q)}</button><div class="ans">${esc(a)}</div></div>`).join('')
       + `<p class="note">找不到答案？到「意見反饋」留言，或看 <a href="#pricing">訂閱方案</a>。</p>`;
-    if (tab === 'mail') return `<p class="note">寄信給客服（一般 1～2 個工作天內回覆）：</p><div class="mailrow"><a class="mail" id="supMail" data-gmail href="${esc(gmail(SUPPORT_EMAIL, '台股資金輪動－客服'))}" target="_blank" rel="noopener">用 Gmail 寄信給 ${SUPPORT_EMAIL}</a><button type="button" class="cpmail" id="supCopy" data-copymail="${SUPPORT_EMAIL}">複製信箱</button></div>
+    if (tab === 'mail') return `<p class="note">寄信給客服（一般 1～2 個工作天內回覆）：</p><div class="mailrow"><a class="mail" id="supMail" data-gmail href="${esc(gmail(SUPPORT_EMAIL, '哩股哩股－客服'))}" target="_blank" rel="noopener">用 Gmail 寄信給 ${SUPPORT_EMAIL}</a><button type="button" class="cpmail" id="supCopy" data-copymail="${SUPPORT_EMAIL}">複製信箱</button></div>
       <p class="note">不用 Gmail 的話，按「複製信箱」再貼到你慣用的郵件程式。</p>
       <p class="note">付款或方案問題請在信裡註明你登入用的 email。本網站不是證券投資顧問，無法回答個股買賣問題。</p>`;
     const A = window.TwAccount, u = A && A.on() ? A.user() : null;
@@ -392,7 +400,7 @@
         <label>狀態 ${sel('fbFSt', FL.st, [['', '全部'], ['new', '未讀'], ['handled', '已處理']])}</label></div>
         ${fb.length ? `<table id="fbTable"><thead><tr><th>時間（台北）</th><th>類別</th><th>內容</th><th>聯絡 email</th><th>頁面網址／瀏覽器</th><th>狀態</th><th></th></tr></thead><tbody>${fb.map((r) => `<tr data-id="${esc(r.id)}" data-cat="${esc(r.cat)}" data-sub="${esc(r.sub)}" class="${r.status === 'new' ? 'unread' : ''}">
           <td>${dstr(r.created)}</td><td class="fbcatc">${catBadge(r)}</td><td class="fbbody">${esc(r.body)}</td>
-          <td>${r.contact ? `<a data-gmail href="${esc(gmail(r.contact, '回覆：台股資金輪動意見反饋'))}" target="_blank" rel="noopener">${esc(r.contact)}</a>` : '<span class="muted">（未留）</span>'}${r.member ? '<br><small class="muted">會員' + (r.name ? '：' + esc(r.name) : '') + '</small>' : '<br><small class="muted">訪客</small>'}</td>
+          <td>${r.contact ? `<a data-gmail href="${esc(gmail(r.contact, '回覆：哩股哩股意見反饋'))}" target="_blank" rel="noopener">${esc(r.contact)}</a>` : '<span class="muted">（未留）</span>'}${r.member ? '<br><small class="muted">會員' + (r.name ? '：' + esc(r.name) : '') + '</small>' : '<br><small class="muted">訪客</small>'}</td>
           <td><small>${r.url ? `<a href="${esc(r.url)}" target="_blank" rel="noopener">${esc(r.url)}</a>` : ''}<br>${esc(r.ua || '')}</small></td>
           <td><span class="st ${r.status === 'new' ? 'new' : ''}">${r.status === 'new' ? '未讀' : '已處理'}</span></td>
           <td class="fbact"><button type="button" data-kind="feedback" data-id="${esc(r.id)}" data-st="${r.status === 'new' ? 'handled' : 'new'}">${r.status === 'new' ? '標為已處理' : '改回未讀'}</button><button type="button" class="fbdel" data-del="${esc(r.id)}">刪除</button></td></tr>`).join('')}</tbody></table>` : `<p class="muted" id="fbEmpty">${inR.length ? '沒有符合篩選的反饋。' : '這段期間還沒有反饋。'}</p>`}</div>

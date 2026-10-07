@@ -127,6 +127,9 @@ def rrg_lite(flow_v3: dict) -> dict:
     return {k: flow_v3.get(k) for k in RRG_LITE_KEYS if k in flow_v3}
 
 
+LITE_FILES = ("link_index", "etf_freq")   # 前端開站小檔；meta.lite_files 列出實際有產出的
+
+
 def etf_freq(etf_out: dict) -> dict:
     """etf.json 裡每檔 ETF 的配息頻率（freq），抽成 {代號: 頻率} 的小檔（2026-10-07 開頁速度第二輪）。
 
@@ -738,7 +741,10 @@ def build() -> None:
     # 且如實完成」）。原話逐字放到網站上，他自己就驗得了 —— 不必相信我在對話裡列的清單。
     _write("delivery", delivery_log.build(config.ROOT))
     export_logos()
-    _write("meta", meta_payload(latest, history_days))
+    _meta = meta_payload(latest, history_days)
+    # 2026-10-07：前端只在 meta 寫著「這幾份小檔有產出」時才去抓（沒列就走舊流程，不發一個會 404 的請求）
+    _meta["lite_files"] = [n for n in LITE_FILES if (config.SITE_DATA / f"{n}.json").exists()]
+    _write("meta", _meta)
     lap("meta")
     lap.report()
 

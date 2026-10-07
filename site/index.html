@@ -3,7 +3,10 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>台股資金輪動儀表板</title>
+<title>哩股哩股</title>
+<meta property="og:title" content="哩股哩股">
+<meta property="og:site_name" content="哩股哩股">
+<meta property="og:image" content="brand/logo-512.png">
 <meta name="theme-color" content="#070b16">
 <!-- 網頁版號（Andy 2026-09-16：「每次說有更新，但打開來跟原本一樣，網頁需要新增版號」）。
      部署前由 scripts/stamp_assets.py 換成「commit 前 7 碼|建置時間(台北)」；
@@ -12,7 +15,7 @@
 <!-- commit 短碼另外放：版號改成「日期＋第幾版」之後，短碼移到徽章的連結與 tooltip -->
 <meta name="tw:commit" content="">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-title" content="台股輪動">
+<meta name="apple-mobile-web-app-title" content="哩股哩股">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <link rel="manifest" href="manifest.webmanifest">
 <!-- ★ 2026-10-03（Andy：「當重新整理後，全部圖表設定回 Default」，DECISIONS #307）：
@@ -43,9 +46,11 @@
      留著當退路沒有刪）。maskable 版是給 Android 啟動器裁切用的。
      ⚠ 這組圖示是**暫時版** —— 命名與視覺識別還沒定案（docs/product_strategy.md 提了 8 個候選），
      定案之後整組要換掉，manifest 裡也有同樣的註記。 -->
-<link rel="apple-touch-icon" href="icons/apple-touch-icon-180.png">
-<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
-<link rel="icon" type="image/svg+xml" href="icons/icon.svg">
+<!-- ★ 2026-10-07（Andy：「以後我的logo 叫 哩股哩股」）：圖示整組換成 site/brand/ 的天竺鼠頭像。
+     小尺寸只用頭像不用整張 logo —— 下方「哩股哩股」大字縮到 32px 會糊成一團。舊的 icons/ 留著沒刪（退路）。 -->
+<link rel="apple-touch-icon" href="brand/apple-touch-icon-180.png">
+<link rel="icon" type="image/png" sizes="32x32" href="brand/favicon-32.png">
+<link rel="icon" type="image/png" sizes="192x192" href="brand/icon-192.png">
 <!-- ★ 2026-09-19 拿掉 Google Fonts 的 <link>。
      下面那行註解自己就寫了「公司網路常擋 CDN」，字型卻還掛在 fonts.googleapis.com 上 ——
      在 Andy 公司的網路會等到連線逾時才 fallback，AGENTS 檢查清單第 7 條也明訂 site/ 內不得有 CDN 連結。
@@ -573,8 +578,11 @@ small{font-size:12.5px}
 @media (max-width:640px){.topbar{gap:14px;padding:0 18px}}
 .brand{display:flex;align-items:center;gap:var(--sp-2);cursor:pointer;white-space:nowrap}
 @media (max-width:640px){.brand{gap:10px}}
-.brand .logo{width:30px;height:30px;border-radius:9px;background:linear-gradient(135deg,var(--cyan),var(--violet));
-  box-shadow:var(--glow);display:grid;place-items:center;font-family:var(--mono);font-weight:700;color:var(--ontop);font-size:13px}
+/* ★ 2026-10-07 品牌換成「哩股哩股」：.logo 從漸層字方塊改成天竺鼠頭像圖。
+   頭像本身是淺藍底，深色主題下靠底色就分得出來；淺色主題下淺藍貼淺底會糊，所以加一圈 1px 細框（--line）收邊。 */
+.brand .logo{width:32px;height:32px;flex:none;border-radius:9px;overflow:hidden;background:#8ac5f5;
+  box-shadow:0 0 0 1px var(--line);display:block}
+.brand .logo img{width:100%;height:100%;display:block;object-fit:cover}
 .brand b{font-size:16px;letter-spacing:.02em}
 .brand small{display:block;font-family:var(--mono);font-size:10.5px;letter-spacing:.12em;color:var(--ink-3);line-height:1;margin-top:3px}
 /* ★ 2026-09-23 UI 精修 #4：分頁列的包裝層。它唯一的工作是當左右箭頭的定位基準 ——
@@ -1305,6 +1313,10 @@ body.miaon #skHead>.disc-line{display:none}
 .rbar.livedim > *:not(.livebtn){opacity:.32;filter:grayscale(1);pointer-events:none;cursor:not-allowed}
 .rbar.livedim{cursor:not-allowed}
 .rbar.livedim .livebtn{pointer-events:auto;cursor:pointer}
+/* 2026-10-08 播放中反灰（Andy：「播放後 拉bAR 需要反灰色 不可控制」）：跟即時模式同一組樣式，只留 ⏸ 與「即時」可按 */
+.rbar.playdim > input,.rbar.playdim > .pb.step,.rbar.playdim .dual{opacity:.32;filter:grayscale(1);pointer-events:none;cursor:not-allowed}
+.rbar .ago{color:var(--ink);font-family:var(--mono);font-size:12px;font-variant-numeric:tabular-nums}
+.rbar .ago:empty{display:none}
 .rbar .pb.play{width:30px;font-size:12px}
 .rbar.playing .pb.play{border-color:var(--cyan);color:var(--cyan);box-shadow:var(--glow)}
 /* 「即時」鈕（Andy 2026-09-21）。比 ＋／−／▶ 寬，因為它是兩個中文字不是一個符號；
@@ -2677,7 +2689,10 @@ tbody tr:last-child td{border-bottom:0}
 .dgc .bd{min-width:0}
 .dgc b{display:block;font-size:var(--dg-fs-lbl,12.5px);font-weight:600;color:var(--dg-ink);line-height:1.4}
 .dgc i{display:block;font-style:normal;color:var(--dg-ink-3);margin-top:2px}
-.dgc.note{cursor:default} .dgc.note .bd{grid-column:1 / -1}
+/* ★ 2026-10-07（Andy：「線條被裁減了」，先進封裝左欄五張走線卡）：以前 .note 的 .bd 一律跨滿兩欄，
+   帶編號的說明卡（走線 1～5）就變成「編號圈自己一行、文字掉到下一行貼著左緣」，看起來像圈壓在字上。
+   只有「沒有編號」（.bd 是第一個子元素）的說明卡才跨滿；有編號的照零件卡一樣：圈在左、文字從圈的右邊開始。*/
+.dgc.note{cursor:default} .dgc.note > .bd:first-child{grid-column:1 / -1}
 .dgc.warn{--dg-card-c:var(--dg-warn)} .dgc.warn b,.dgc.warn i{color:var(--dg-warn)}
 .dgc:hover{border-color:var(--card-c)}
 .dgc.sel{border-color:var(--card-c);background:color-mix(in srgb,var(--card-c) 12%,var(--dg-card-f))}
@@ -3021,6 +3036,17 @@ tbody tr:last-child td{border-bottom:0}
 /* ★ 2026-09-25（審查 R2 #12：800 寬「N 天前」拉Bar 只剩 96px ＝ 每天約 3px，很難拖準）：
    ≤900px 時足跡輪盤那條單一拉Bar 吃掉這一列剩下的寬，最少 160px。*/
 @media (max-width:900px){ .rbar.daybar{flex:1 1 auto;max-width:100%} .rbar.daybar input[type=range]{flex:1 1 160px;min-width:160px;width:auto} }
+/* ★ 2026-10-08 拉Bar 排版1008（Andy：「這邊太寬了」「其他的也一併處理」）：
+   全站「看哪一天」類拉Bar（playBar／dayBar／rangeBar；資金分流樹、足跡輪盤、本益比河流…）一律緊湊排列。
+   兇手是上面 spanBar 時代留下的 `.rbar .val{min-width:150px}` ＋ 靠右對齊：非管理者沒有「即時」鈕時，
+   日期被推到 150px 欄位的最右邊，拉桿與日期中間空一大段。改成：數值欄寬由內容決定、靠左緊貼，
+   間距統一 6px，拉桿固定 180px；整組靠容器本身的位置（卡片標題列右側）對齊，不用 space-between 撐。
+   等寬數字（tabular-nums）讓播放時日期換字不會左右抖。*/
+.rbar{gap:6px;justify-content:flex-start}
+.rbar .val{min-width:0;text-align:left;font-variant-numeric:tabular-nums}
+.rbar:not(.drange) > input[type=range]{width:180px;flex:0 0 auto}
+@media (max-width:900px){ .rbar:not(.drange):not(.daybar) > input[type=range]{width:140px} }
+@media (max-width:640px){ .rbar{max-width:100%} .rbar:not(.drange) > input[type=range]{flex:1 1 120px;min-width:120px;width:auto;max-width:220px} }
 
 /* ★ D2：象限展開面板搬到時鐘右邊那塊空白。時鐘吃剩下的寬（min-width:0 才縮得下去），
    面板固定 300px。≤1100px 退回單欄（300px 面板 ＋ 讀得出來的時鐘在 800px 裡放不下）。*/
@@ -5312,7 +5338,7 @@ h3 .howbtn.pop{font-family:inherit}
 </head>
 <body>
 <header class="topbar">
-  <div class="brand" onclick="location.hash='#overview'"><div class="logo">TW</div><div><b>台股資金輪動</b><small id="asof"><span id="buildver" class="verline">—</span><button type="button" class="freshbtn" id="freshBtn" hidden title="有新版，點一下重新載入">有新資料 ↻</button></small></div></div>
+  <div class="brand" onclick="location.hash='#overview'"><div class="logo"><picture><source srcset="brand/mark-64.webp 1x, brand/mark-128.webp 2x" type="image/webp"><img id="brandMark" src="brand/mark-64.png" srcset="brand/mark-64.png 1x, brand/mark-128.png 2x" width="32" height="32" alt="哩股哩股"></picture></div><div><b>哩股哩股</b><small id="asof"><span id="buildver" class="verline">—</span><button type="button" class="freshbtn" id="freshBtn" hidden title="有新版，點一下重新載入">有新資料 ↻</button></small></div></div>
   <!-- ★ 2026-09-23 UI 精修 #4：分頁列的溢出提示（遮罩 ＋ 左右箭頭）。
        這是**功能性缺陷**不是美化：實測 1440px 時 `#tabs` 的 scrollWidth 比 clientWidth
        多 163～358px，也就是「總覽」或「季節性」**整顆分頁被擠到看不見**，

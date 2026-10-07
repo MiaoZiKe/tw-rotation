@@ -10,7 +10,7 @@ on:
       mode:
         description: "requests＝直接打網址；browser＝真瀏覽器開頁、記下回傳成分股的 XHR；selftest＝跑 pipeline/sources/etf_pcf.py 實抓（不寫湖）"
         type: choice
-        options: [requests, browser, selftest]
+        options: [requests, browser, selftest, cert, bond]
         default: requests
       extra:
         description: "額外要探測的網址（空白分隔；開頭加 --only-extra 只跑這些）"
@@ -42,6 +42,14 @@ jobs:
         env:
           EXTRA: ${{ inputs.extra }}
         run: pip install -q -r requirements.txt && python -m pipeline.sources.etf_pcf $EXTRA 2>&1 | tee -a /tmp/probe.log
+      - name: 憑證鏈／條款探測（大華銀中繼憑證、玩股網與口袋的 robots 與條款）
+        if: inputs.mode == 'cert'
+        env:
+          EXTRA: ${{ inputs.extra }}
+        run: pip install -q certifi && UOB_ONLY=$(echo "$EXTRA" | grep -q -- --uob && echo 1) python scripts/probe_etf_pcf_cert.py $(echo "$EXTRA" | sed "s/--uob//") 2>&1 | tee -a /tmp/probe.log
+      - name: 債券型持股原始回應（已接上 8 家）
+        if: inputs.mode == 'bond'
+        run: pip install -q -r requirements.txt && python scripts/probe_etf_bond.py ${{ inputs.extra }} 2>&1 | tee -a /tmp/probe.log
       - name: 探測
         if: inputs.mode == 'requests'
         env:

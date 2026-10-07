@@ -472,6 +472,15 @@
   let _bootPaintOk = null;
   const bootPaint = new Promise((r) => { _bootPaintOk = r; setTimeout(r, 20000); });
   const afterPaint = (name, opt) => bootPaint.then(() => load(name, opt));
+  /* 開站小檔（link_index、etf_freq）：只有 meta.lite_files 列了才抓，沒列（舊資料、預覽分支吃正式站資料）直接回 null 走舊流程。
+     ⚠ 不要「先抓抓看、404 再退回」：_uitest 的開頁用 networkidle 等，那兩個 404 請求在它的環境裡一直算「進行中」，
+     整頁 goto 逾時（2026-10-07 perf2 合併後踩到）。不發注定 404 的請求，也省一次往返。*/
+  async function loadLite(name) {
+    // 用手上已有的 meta（可能是開頁存檔那份）就好，不等網路版：存檔情境下網路版可能晚好幾秒，等它就把首屏卡住
+    const m = D.meta || await (_metaNet || Promise.resolve(null)).catch(() => null);
+    if (!(m && Array.isArray(m.lite_files) && m.lite_files.includes(name))) return null;
+    return load(name, { fallback: null });
+  }
   let _metaNet = null;         // 新的 meta（網路版）—— 其他檔的版本鍵一律等它
   const _loading = {}, _loaded = {};
   function load(name, opt) {
@@ -1450,7 +1459,7 @@
     const fromEtf = (e) => { const m = new Map(); ((e && e.items) || []).forEach(x => { if (x && FQB_K[x.freq]) m.set(String(x.code), x.freq); }); return m; };
     fqLoading = Promise.resolve().then(async () => {
       if (D.etf && D.etf.items) return fromEtf(D.etf);
-      const f = await load('etf_freq', { fallback: null });
+      const f = await loadLite('etf_freq');
       if (f && typeof f === 'object' && !Array.isArray(f)) { const m = new Map(); Object.keys(f).forEach(c => { if (FQB_K[f[c]]) m.set(String(c), f[c]); }); return m; }
       return fromEtf(await load('etf', { fallback: null }));
     }).then(m => { fqMap = m; }).catch(() => { fqMap = new Map(); }).then(() => fqFill(document));
@@ -1659,6 +1668,17 @@
      現在改成：即時開著 → 同一排的日期／拉桿／− ＋ ▶ 全部停用並反灰，只留「即時」那顆可按；
      關掉即時才恢復。全站只有這一支在做這件事（輪動時鐘、資金分流樹、live.js 的卡片都叫它），
      不要每張卡各寫一套。容器被 rangeBar／playBar 重建後，呼叫端的 stamp 會再叫一次把狀態補回去。*/
+  /* ★ 2026-10-08（Andy：「播放後 拉bAR 需要反灰色 不可控制」）：播放中拉桿、−、＋ 反灰停用，只留 ⏸（停）可按；
+     停下或播完由 paint 再叫一次恢復。樣式跟即時模式（#283 livedim）共用同一組（.rbar.playdim）。
+     停用前的 disabled 狀態記在 data-pdd，恢復時不會把「本來就到底而停用」的 ＋ 誤開。*/
+  function playDim(box, on, els) {
+    box.classList.toggle('playdim', on);
+    els.forEach(el => {
+      if (!el) return;
+      if (on) { el.disabled = true; el.setAttribute('aria-disabled', 'true'); el.setAttribute('data-pdd', '1'); }
+      else if (el.hasAttribute('data-pdd')) { el.removeAttribute('data-pdd'); if (!el.hasAttribute('data-ldd')) { el.disabled = false; el.removeAttribute('aria-disabled'); } }
+    });
+  }
   const LIVE_DIM_TIP = '即時模式中，關閉即時才能回看歷史';
   function liveDim(box, on) {
     box = typeof box === 'string' ? document.querySelector(box) : box;
@@ -1716,6 +1736,10 @@
     const bPlay = mk('play', '▶', '播放');
     inp.parentNode.insertBefore(bMinus, inp);
     inp.parentNode.insertBefore(bPlus, inp.nextSibling);
+    /* ★ 2026-10-08（Andy：「天數不見了 幫我補上」）：o.ago(v) → 在 ＋ 後面多一格「N 天前／最新」，
+       格式跟足跡輪盤的 dayBar 一樣；原本的 .val（日期）照留，兩格並排。*/
+    let agoEl = null;
+    if (o.ago) { agoEl = document.createElement('span'); agoEl.className = 'ago'; bPlus.parentNode.insertBefore(agoEl, bPlus.nextSibling); }
     box.appendChild(bPlay);
 
     const lim = () => ({ min: +inp.min, max: +inp.max, st: +inp.step || 1 });
@@ -1733,12 +1757,14 @@
     let api = null;                    // start() 會先用到（stopPlayGroup 要排除自己），所以提前宣告
     const paintBtn = () => {
       const { min, max } = lim();
-      bMinus.disabled = +inp.value <= min;
-      bPlus.disabled = +inp.value >= max;
+      playDim(box, !!timer, [inp, bMinus, bPlus]);          // 先恢復／停用，下面再依端點決定 − ＋
+      bMinus.disabled = !!timer || +inp.value <= min;
+      bPlus.disabled = !!timer || +inp.value >= max;
       bPlay.textContent = timer ? '⏸' : '▶';
       bPlay.title = timer ? '暫停' : '播放';
       bPlay.setAttribute('aria-label', bPlay.title);
       box.classList.toggle('playing', !!timer);
+      if (agoEl) agoEl.textContent = o.ago(+inp.value);
     };
     /* ★ 2026-10-07 晚（播放真實條件1007）：setInterval → 「畫完一格、瀏覽器真的畫出來，才排下一格」。
        setInterval 不管上一格畫完沒有，時間到就再叫一次：慢機器（或 4 倍降速）一格要 500ms 以上時，
@@ -2098,7 +2124,8 @@
       inp.value = days;
       const d = o.dateOf && frame > 0 ? o.dateOf(frame) : '';
       out.textContent = `${days} 天前` + (frame > 0 ? ` · 回放 ${d || frame + ' 天前'}` : '');
-      bMinus.disabled = days <= MIN; bPlus.disabled = days >= MAX;
+      playDim(box, !!timer, [inp, bMinus, bPlus]);
+      bMinus.disabled = !!timer || days <= MIN; bPlus.disabled = !!timer || days >= MAX;
       bPlay.textContent = timer ? '⏸' : '▶';
       bPlay.title = timer ? '暫停（停在這一天）' : '回放：從 N 天前一天一天走到最新';
       bPlay.setAttribute('aria-label', bPlay.title);
@@ -2904,6 +2931,9 @@
     /* 舊版「成分股放寬」留在 <body> 上的 `.memwide` 只清掉 class 就好 ——
        2026-09-28 起事件是預設關著的浮層抽屜，換頁不再需要「把事件欄還回來」。*/
     document.body.classList.remove('memwide');
+    /* ★ 2026-10-08 權限矩陣（site/quota.js TwQuota.routeOk）：產業鏈頁、題材剖析每日上限用完 → 網址換回上一層（產業地圖／題材熱力圖）並跳卡片。
+       放在最前面：被擋的那一頁一格都不畫，不會先閃一下內容再被拿掉。location.replace 會再觸發一次 hashchange → route() 畫上一層。*/
+    if (window.TwQuota && !window.TwQuota.routeOk(location.hash)) return;
     const h = location.hash.replace('#', '') || 'overview';
     const h0 = location.hash;   // 等 lazy 腳本時使用者可能又換頁了，回來比對用
     /* ★ 2026-09-19：一定要逐段 decodeURIComponent。
@@ -3247,6 +3277,9 @@
       id: 'distGroups', label: '族群', placeholder: '搜尋族群或產業鏈…', width: '11.5em',
       items, groups: chainIds.map(k => ({ k, t: k === '_other' ? '其他' : chainLabel(k) })),
       selected: DIST.groups,
+      /* 2026-10-08 權限矩陣 mkt.grp.pick（Andy：「市場明細是限制 至多可以看5個 族群 右邊清單不限制」）：同時最多勾幾個 */
+      max: () => (window.TwQuota ? window.TwQuota.pick('mkt.grp.pick') : Infinity),
+      onMax: (n) => { if (window.TwQuota) window.TwQuota.pickBlock('mkt.grp.pick', n); },
       onChange: (v) => { DIST.groups = v; drawChgDist(); },
     });
   }
@@ -3966,13 +3999,17 @@
     // 今日候選
     const ab = cands.filter(c => c.grade === 'A' || c.grade === 'B');
     const use = ab.length ? ab : cands.slice().sort((a, c) => (c.score_all || 0) - (a.score_all || 0)).slice(0, 40);
+    /* 2026-10-08 權限矩陣 mkt.cand.n：今日關注最多顯示前幾檔（訪客 3、註冊會員 10、付費不限） */
+    const candCap = window.TwQuota ? window.TwQuota.pick('mkt.cand.n') : Infinity;
     title.innerHTML = `今日關注 <small>${ab.length ? `A ${cands.filter(c => c.grade === 'A').length} 檔 / B ${cands.filter(c => c.grade === 'B').length} 檔` : '今天沒有 A / B'}</small>`;
     // A／B 的定義在 HOW.mkt；「今天沒有 A／B」是警示（名單不是進場訊號），留在畫面上
     body.innerHTML = (ab.length ? '' : `<div class="kpinote">今天沒有 A／B：依綜合分列前 40，只是排序、不是型態訊號</div>`)
-      + stockTable(use.map(c => ({ code: c.code, name: c.name, group_id: c.group_id, group_name: c.group,
+      + stockTable(use.slice(0, candCap).map(c => ({ code: c.code, name: c.name, group_id: c.group_id, group_name: c.group,
           chg_pct: c.chg_pct, close: c.close, grade: c.grade, verdict: c.verdict, score: c.score_all })),
         [['判定', r => r.grade ? `<span class="grade ${r.grade}">${r.grade}</span>` : `<span class="muted">${fmt.esc(r.verdict || '—')}</span>`],
-         ['綜合分', r => r.score != null ? fmt.n(r.score, 0) : '—'], PCT, CLOSE]);
+         ['綜合分', r => r.score != null ? fmt.n(r.score, 0) : '—'], PCT, CLOSE])
+      + (use.length > candCap ? `<div class="kpinote" id="candCap">目前方案只顯示前 ${candCap} 檔（共 ${use.length} 檔）<button type="button" class="btn small" id="candCapGo">看更多 →</button></div>` : '');
+    { const g = $('#candCapGo'); if (g) g.onclick = () => window.TwQuota && window.TwQuota.pickBlock('mkt.cand.n', candCap); }
     bind();
   }
 
@@ -9193,6 +9230,7 @@
       if (n > 1) {
         skBar = playBar('sankeyDays', { min: 0, max: n - 1, value: n - 1, key: 'tw.sankey.day',
           frame: 650, label: '看哪一天', fmt: (v) => (v >= n - 1 ? '最新' : sd.dates[v]),
+          ago: (v) => (v >= n - 1 ? '' : (n - 1 - v) + ' 天前'),   // 2026-10-08 補天數（交易日）；最新那天 .val 已寫「最新」，這格留空收掉
           /* 拖時間軸＝「我要看過去某一天」，和「即時」是互斥的兩件事。
              不退出的話拉Bar 看起來完全沒作用（畫面還是盤中那一張），像壞掉。*/
           /* ★ 2026-10-07 晚（Andy：「播放時右邊清單反灰不作動，等到播放結束才會更新」）：右欄排名表以前只在
@@ -9619,6 +9657,8 @@
       ev.stopPropagation();
       const gid = b.dataset.g || null;
       rotCloseMenus();
+      /* 2026-10-08 點擊次數上限：opt.gate 回 false＝今天的次數用完（quota.js TwQuota.act 已跳卡片），選取不變 */
+      if (gid && opt.gate && !opt.gate(gid)) return;
       chipSel[chartId] = gid;
       onPick(gid);
     });
@@ -10321,6 +10361,7 @@
         const gid = a.dataset.g;
         // ◎ ＝ 走到下一階（族群），麵包屑保留「‹ AI 伺服器」這一層
         if (e.target && e.target.dataset && e.target.dataset.only) {
+          if (panelId === 'sankeyPanel' && !skDrillOk(gid)) return;
           const r = (DRILL.chainRows || []).find(z => z.gid === gid) || {};
           drillOpen(gid, r.name || L.gname[gid] || gid, DRILL.notes[panelId], panelId, true);
           chipSel.sankey = gid;
@@ -11047,8 +11088,13 @@
     em.hidden = !!list.length;
     em.textContent = withD.length ? (tab === 'out' ? '這一天沒有族群的資金占比減少' : '這一天沒有族群的資金占比增加') : '';
   }
+  /* ★ 2026-10-08 點擊次數上限（Andy：「訪客只能看到圖二那樣」＝只能看全部族群那一層／資金流向排名）：
+     資金分流樹「點族群展開成個股」每個入口（圖上的族群點、右欄排名、族群下拉、產業鏈清單的 ◎）都走這一支；
+     同一個族群同一天重點不重算，用完 → quota.js 跳卡片、畫面維持原樣。*/
+  const skDrillOk = (gid) => !window.TwQuota || window.TwQuota.act('flow.sankey.drill', 'drill', gid);
   function sankeyPickGroup(gid) {
     const st = sankeyState; if (!st || !gid) return;
+    if (!skDrillOk(gid)) return;
     const D2 = st.sd.dates || [];
     if (SKL.on) sklOff(false);
     chipSel.sankey = gid;
@@ -11228,12 +11274,8 @@
     el.hidden = false;
     if (SKL.busy && !SKL.at) { el.innerHTML = '<b>即時</b>　抓取中…'; return; }
     if (SKL.err) { el.innerHTML = `<b class="bad">即時抓不到</b>　${fmt.esc(SKL.err)}　·　再按一次「即時」可退回盤後資料`; return; }
-    const amt = SKL.marketAmt != null ? `台股總成交值 <b>${fmt.yi(SKL.marketAmt)}</b>（證交所真實值）` : '台股總成交值：這一輪沒取到';
-    // ★ 2026-10-06（DECISIONS #329）：開頭的「最後更新 HH:MM:SS…／現在不是盤中…快照」拿掉（時段），後面的口徑照留
-    el.innerHTML = '<b class="live">即時</b>'
-      + `　·　${amt}`
-      + `　·　板塊成交值為 <b>價 × 量</b> <b>估算值</b>`
-      + `　·　% 的分母＝<b>${Object.keys(SKL.tv).length} 個即時板塊加總</b>；「〇〇・其他」標<b>盤後</b>、不進分母`;
+    // ★ 2026-10-08 Andy（截圖這一整行）：「這拿掉」→ 正常狀態不再顯示口徑說明列；只有抓取中／抓不到才出現
+    el.hidden = true; el.innerHTML = '';
   }
 
   async function sklTick() {
@@ -11820,6 +11862,7 @@
       if (d.gid) {
         // 再點同一個就取消（和下面晶片列、和產業鏈節點同一套語彙）
         if (selG === d.gid) { chipSel.sankey = null; return drillClose(); }
+        if (!skDrillOk(d.gid)) return;
         chipSel.sankey = d.gid;
         // ★ 2026-09-21：和輪動時鐘共用同一份下鑽狀態與同一支清單
         drillOpen(d.gid, L.gname[d.gid] || d.gid, sankeyNote(day, k === lastIdx), 'sankeyPanel');
@@ -11892,7 +11935,7 @@
         if (!nx) return drillClose();
         drillOpen(nx, L.gname[nx] || nx, sankeyNote(day, k === lastIdx), 'sankeyPanel');
         renderSankey(sd, k, { gid: nx });
-      });
+      }, { gate: skDrillOk });
     // 面板開著的話跟著換日期重畫（標題裡的日期與「是不是最新」要跟著走）
     { const box = $('#sankeyPanel');
       // keepChain＝true：換日期不可以把「我是從哪條鏈點進來的」洗掉（麵包屑會突然少一階）
@@ -12105,6 +12148,8 @@
     filterDropdown('instGroups', gsAll.map(g => ({ gid: g.group_id, name: g.group_name })), pick,
       (nx) => renderInstPeriod(p, nx),
       { ...ddo, onText: (nm) => `只亮「${fmt.esc(nm)}」`,
+        /* 2026-10-08 點擊次數上限：每選一個族群算一次（同一個族群同一天不重算）*/
+        gate: (gid) => !window.TwQuota || window.TwQuota.act('flow.inst.filter', 'filter', gid),
         onChain: (c, drop) => renderInstPeriod(p, drop ? null : undefined) });
     instLegend(c);
   }
@@ -12746,7 +12791,7 @@
       head.innerHTML = MONTHS.map((t, i) => { const m = i + 1;
         return `<button type="button" data-m="${m}" class="${m === sortM ? 'on' : ''}${m === nowM ? ' now' : ''}"`
           + ` aria-pressed="${m === sortM}" title="依 ${m} 月由強到弱排序${m === nowM ? '（本月）' : ''}">${colW >= 40 ? t : m}</button>`; }).join('');
-      $$('button', head).forEach(b => b.onclick = () => { sortM = +b.dataset.m; box.scrollTop = 0; drawHeat(); paintPick(); });
+      $$('button', head).forEach(b => b.onclick = () => { if (+b.dataset.m !== sortM && window.TwQuota && !window.TwQuota.act('season.pick', 'obj', 'm.' + b.dataset.m)) return; sortM = +b.dataset.m; box.scrollTop = 0; drawHeat(); paintPick(); });
 
       const K = kindOf(metric);
       const data = [];
@@ -13046,6 +13091,7 @@
       showNum = !showNum; hmLSset('tw.season.num2', showNum ? '1' : '0'); paintView(); drawHeat();
     });
     $$('#seasonPick button').forEach(b => b.onclick = () => {
+      if (b.dataset.v !== pick && window.TwQuota && !window.TwQuota.act('season.pick', 'obj', 'p.' + b.dataset.v)) return;   // 權限矩陣 season.pick
       pick = b.dataset.v; if (pick === 'none') avgOn = true; paintPick(); drawLine(); writeNote();
     });
     $$('#seasonPeriod button').forEach(b => { b.style.display = s3.periods[b.dataset.v] ? '' : 'none'; });
@@ -13866,7 +13912,7 @@
     };
     let lite = null;
     if (!h0 || h0 === 'overview') {
-      const [li, gt, th, all] = await Promise.all([load('link_index', { fallback: null }), load('groups_today'), load('themes'), load('stocks', { fallback: [] })]);
+      const [li, gt, th, all] = await Promise.all([loadLite('link_index'), load('groups_today'), load('themes'), load('stocks', { fallback: [] })]);
       if (li && Array.isArray(li.chains) && li.chains.length) { lite = true; L.init(li, gt, null, th, li, all); }
     }
     if (!lite) await fullInit();

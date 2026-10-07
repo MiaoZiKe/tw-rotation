@@ -32,7 +32,20 @@
   const NO_RANK = { 其他: 1, 槓桿反向: 1 };   // 不出「前 5 名」三張卡的分頁（Andy：「其他 ETF 的不用」；10-05 再加槓桿反向：「這兩個都比較少人做」）
   const CAT_TONE = { 配息型: 'amber', 市值型: 'cyan', 主題型: 'violet', 債券型: 'lime', 槓桿反向: 'up', 主動式: 'cyan', 其他: 'ink3' };
   const PAGE = 48;   // 一次列幾張卡（「顯示更多」再加）
-  const CMP_MAX = 8; // 自選比較上限：再多折線就分不出誰是誰
+  /* 自選比較上限：再多折線就分不出誰是誰。
+     ★ 2026-10-08 權限矩陣（docs/perm_matrix_1008.md §4）：依方案（features.js etf.returns.n）—— 註冊會員 3、Plus 8、Pro 20（硬上限）。
+     連不到會員伺服器時照舊 8（寧可多給，不要誤鎖）；擁有者／預覽版 20。超過時跳同一款升級卡（TwQuota.pickBlock）。*/
+  const CMP_HARD = 20;
+  const cmpMax = () => {
+    const P = window.TwPerm; if (!P) return 8;
+    if (window.TW_PREVIEW || (P.owner && P.owner())) return CMP_HARD;
+    if (P.state().src === 'default') return 8;
+    const v = P.value ? P.value('etf.returns.n') : 8;
+    return Number.isInteger(v) ? Math.max(0, Math.min(CMP_HARD, v)) : 8;
+  };
+  const cmpBlock = () => { const Q = window.TwQuota; if (Q && Q.pickBlock) Q.pickBlock('etf.returns.n', cmpMax()); };
+  /* 權限矩陣的動作計次（tab／filter）：沒有 TwQuota 就放行 */
+  const qAct = (id, kind, obj) => !window.TwQuota || window.TwQuota.act(id, kind, obj);
   const CAL_ROWS = 6; // 月曆固定 6 列：每個月都一樣高，切月不會讓下面的卡上下跳
   const WD = ['日', '一', '二', '三', '四', '五', '六'];
 
@@ -634,7 +647,7 @@
       <span id="etfRngBox"></span>
       <span class="cmpmsg" id="etfCmpMsg" aria-live="polite"></span>
       <div class="rotdd wide msdd" id="etfCmpDD" data-dd="etfcmp">
-        <button type="button" class="ddbtn" aria-haspopup="true" aria-expanded="false" title="挑要比較的 ETF（可搜尋、可複選，限這個分類、最多 ${CMP_MAX} 檔）">加入比較：<b>已選 0 檔</b><i aria-hidden="true">▾</i></button>
+        <button type="button" class="ddbtn" aria-haspopup="true" aria-expanded="false" title="挑要比較的 ETF（可搜尋、可複選，限這個分類、最多 ${cmpMax()} 檔）">加入比較：<b>已選 0 檔</b><i aria-hidden="true">▾</i></button>
         <div class="ddpanel" aria-label="加入比較（可複選）" hidden>
           <input type="search" class="sndd-q" placeholder="搜尋代號或名稱" aria-label="搜尋 ETF 代號或名稱" autocomplete="off">
           <div class="ddbar"><span class="muted sndd-n"></span>
@@ -677,7 +690,7 @@
       .map((c) => `<button data-v="${c}" role="tab">${c}<em>${cnt[c]}</em></button>`).join('');
     const catOn = S.view === 'cat';
     $$('button', seg).forEach((b) => { const on = catOn && b.dataset.v === S.cat; b.classList.toggle('on', on); b.setAttribute('aria-selected', on);
-      b.onclick = () => { if (catOn && S.cat === b.dataset.v) return; S.view = 'cat'; S.cat = b.dataset.v; S.shown = PAGE; if (/^#etf\/(cal|inc)/.test(location.hash)) history.replaceState(null, '', '#etf/list'); drawAll(); }; });
+      b.onclick = () => { if (catOn && S.cat === b.dataset.v) return; if (!qAct('etf.list.tab', 'tab', b.dataset.v)) return; S.view = 'cat'; S.cat = b.dataset.v; S.shown = PAGE; if (/^#etf\/(cal|inc)/.test(location.hash)) history.replaceState(null, '', '#etf/list'); drawAll(); }; });
     $$('#etfSub button').forEach((b) => { const v = VIEW_OF[b.dataset.v], on = v === S.view; b.classList.toggle('on', on); b.setAttribute('aria-selected', on);
       b.onclick = () => { const h = '#etf/' + b.dataset.v; if (location.hash !== h) location.hash = h; else show(b.dataset.v); }; });
   }
@@ -1003,7 +1016,7 @@
       box.dataset.rowh = String(rh);
       if (rh !== S.rh && !S._re) { S.rh = rh; S._re = 1; drawCal(); S._re = 0; return; }
     }
-    const go = (m) => { S.month = m; S.day = null; S.code = null; drawCal(); };
+    const go = (m) => { if (m !== curM && !qAct('etf.calendar.tab', 'tab', m)) return; S.month = m; S.day = null; S.code = null; drawCal(); };
     $('#etfCalPrev').onclick = () => go(new Date(Date.UTC(y, mo - 2, 1)).toISOString().slice(0, 7));
     $('#etfCalNext').onclick = () => go(new Date(Date.UTC(y, mo, 1)).toISOString().slice(0, 7));
     $('#etfCalToday').onclick = () => go(curM);
@@ -1069,10 +1082,10 @@
     }
     const has = new Set(inCat().map((it) => it.code));
     const v = S.cmp[S.cat];
-    return v ? v.filter((c) => has.has(c)).slice(0, CMP_MAX) : defaultCmp();
+    return v ? v.filter((c) => has.has(c)).slice(0, cmpMax()) : defaultCmp().slice(0, cmpMax());
   }
   function setCmp(codes) {
-    S.cmp[S.cat] = codes.slice(0, CMP_MAX);
+    S.cmp[S.cat] = codes.slice(0, cmpMax());
     LS.set(cmpKey(), JSON.stringify(S.cmp[S.cat]));
   }
   function flash(msg) {
@@ -1089,15 +1102,15 @@
       onToggle: (c) => {
         const code = codeOf(c.dataset.n); let cur = getCmp();
         if (c.checked) {
-          if (cur.length >= CMP_MAX) { c.checked = false; flash(`最多比較 ${CMP_MAX} 檔`); return; }
+          if (cur.length >= cmpMax()) { c.checked = false; flash(`最多比較 ${cmpMax()} 檔`); cmpBlock(); return; }
           if (!cur.includes(code)) cur = cur.concat(code);
         } else cur = cur.filter((x) => x !== code);
         setCmp(cur); drawRet();
       },
       onAll: (vis) => {
         let cur = getCmp(); const add = vis.map(codeOf).filter((c) => !cur.includes(c));
-        if (cur.length + add.length > CMP_MAX) flash(`最多比較 ${CMP_MAX} 檔，只加到滿`);
-        cur = cur.concat(add).slice(0, CMP_MAX); setCmp(cur); drawRet();
+        if (cur.length + add.length > cmpMax()) { flash(`最多比較 ${cmpMax()} 檔，只加到滿`); cmpBlock(); }
+        cur = cur.concat(add).slice(0, cmpMax()); setCmp(cur); drawRet();
       },
       onNone: (vis) => {
         const rm = new Set((vis || getCmp()).map(codeOf));
@@ -1114,7 +1127,7 @@
     ms.sync({
       rows: all.map((it) => ({ name: `${it.code} ${it.name}`, on: on.has(it.code), color: on.has(it.code) ? colorOf[it.code] : A().hexA(A().CH.ink3, 0.45),
         val: val(it), valTitle: `${perLabel()} 年化報酬率（有配息的含息）` })),
-      count: `${S.cat} 共 ${all.length} 檔 · 已選 ${sel.length}／${CMP_MAX}`,
+      count: `${S.cat} 共 ${all.length} 檔 · 已選 ${sel.length}／${cmpMax()}`,
       label: `已選 ${sel.length} 檔`,
       n: sel.length,
     });
@@ -2043,7 +2056,7 @@
     S.cfrom = LS.get('tw.etf.cfrom', '') || yrsAgo(todayTW(), 3); S.cto = todayTW(); S.basis = LS.get('tw.etf.basis', 'tr'); S.cmp = {};
     try { await window.CalGrid.load(); } catch (e) { /* 沒有休市日只標週末 */ }
     skeleton(root);
-    $('#etfSort').onchange = (e) => { S.sort = e.target.value; S.shown = PAGE; drawList(); };
+    $('#etfSort').onchange = (e) => { if (!qAct('etf.list.filter', 'filter', e.target.value)) { e.target.value = S.sort; return; } S.sort = e.target.value; S.shown = PAGE; drawList(); };
     $('#etfGrid').innerHTML = '<div class="etfprep">載入中…</div>';
     await loadData();
     if (!S.fallback) loadSeries().then(() => { if (S.view === 'inc') drawInc(); else { drawRetTop(); drawRet(); } });
@@ -2051,5 +2064,8 @@
     drawCal(); drawAll();
     root.dataset.ready = S.fallback ? 'fallback' : 'full';
   }
+  /* 2026-10-08 權限矩陣：報酬比較的檔數上限依方案（cmpMax），權限晚一步才到（先用預設 8 畫過一次）→ 權限換了就重畫比較，
+     不然下拉裡會留著超過上限的勾選。只在報酬比較已經畫出來時才動。*/
+  window.addEventListener('tw:perm', () => { if (document.getElementById('etfRetBody') && S.cat) { try { drawRet(); } catch (e) { /* 還沒載完資料：下次畫就會套新上限 */ } } });
   window.TwEtfPage = { render, show, classify, state: S, simCore };
 })();

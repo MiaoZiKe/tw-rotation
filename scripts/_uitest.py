@@ -1824,6 +1824,52 @@ def t_side_fold_1005(pg, b, base):
 
 
 # ===================================================================== ETF 專區（2026-10-05，site/etfpage.js）
+def t_etf_census_1008(pg, b, base):
+    """★ 2026-10-08 Andy：「這也沒顯示，請點擊所有，所有ETF 確認沒有成分股的補上」。
+    逐檔打開 #stock/<代號> 的成分股分頁（真的點分頁鈕），記錄是「有表格」「只有外部連結」「完全沒有」，
+    把清單寫到 scratchpad／site 外的 etf_census_1008.tsv。規矩：每一檔要嘛有表格、要嘛有連結（槓桿反向／期貨型除外，也要有說明），
+    「完全沒有」必須是 0。用的是本機 site/data 的真資料（沒有攔截），所以要先 build_payload。"""
+    import json as _json
+    tag = "ETF成分股普查1008"
+    ej = _json.loads((SITE / "data" / "etf.json").read_text(encoding="utf-8"))
+    etfs = [(str(x["code"]), x.get("name", ""), x.get("cat", "")) for x in (ej.get("items") or [])]
+    lp = pg.context.browser.new_page(viewport={"width": 1440, "height": 1000})
+    lp.route("**/fonts.googleapis.com/**", lambda r: r.abort())
+    res, cnt = [], {"table": 0, "link": 0, "none": 0}
+    for code, name, cat in etfs:
+        st, links = "none", 0
+        try:
+            lp.goto(f"{base}#stock/{code}", wait_until="domcontentloaded")
+            sel = "#stockTabs button[data-t='holdings']"
+            wait_until(lp, f"() => {{ const b = document.querySelector(\"{sel}\"); return !!(b && b.offsetParent); }}", 15000)
+            lp.click(sel)
+            wait_until(lp, "() => !!document.querySelector('#etfHoldCard[data-state]')", 8000)
+            d = lp.evaluate("""() => { const c = document.querySelector('#etfHoldCard');
+              return { st: c.dataset.state, rows: c.querySelectorAll('#etfHoldTbl tbody tr[data-i]').length,
+                       links: c.querySelectorAll('#etfHoldLinks a[href^="https://www.wantgoo.com/"], #etfHoldLinks a[href^="https://www.pocket.tw/"]').length }; }""")
+            links = d["links"]
+            st = "table" if d["st"] == "ok" and d["rows"] > 0 else ("link" if links == 2 else "none")
+        except Exception as e:  # noqa: BLE001
+            st = "none"
+            fails.append(f"{tag} {code} 開不起來：{str(e)[:120]}")
+        cnt[st] += 1
+        res.append((code, name, cat, st))
+    out = ROOT / "etf_census_1008.tsv"
+    out.write_text("代號\t名稱\t分類\t狀態\n" + "\n".join("\t".join(r) for r in res), encoding="utf-8")
+    print(f"  [{tag}] {len(res)} 檔：有表格 {cnt['table']}／只有連結 {cnt['link']}／完全沒有 {cnt['none']}（清單 {out}）")
+    ok(f"★ [{tag}] 逐檔點過 {len(res)} 檔", len(res) >= 200, len(res))
+    ok(f"★ [{tag}] 每一檔要嘛有表格、要嘛有兩站連結（完全沒有＝0）", cnt["none"] == 0, [r[0] for r in res if r[3] == "none"][:30])
+    if res and any(r[3] == "link" for r in res):
+        c = next(r[0] for r in res if r[3] == "link")
+        lp.goto(f"{base}#stock/{c}", wait_until="domcontentloaded")
+        lp.click("#stockTabs button[data-t='holdings']")
+        wait_until(lp, "() => !!document.querySelector('#etfHoldLinks')", 8000)
+        hrefs = lp.evaluate("() => [...document.querySelectorAll('#etfHoldLinks a')].map(a => [a.href, a.target])")
+        ok(f"[{tag}] {c} 連結指到該檔、另開分頁", any(f"/stock/etf/{c}/constituent" in h for h, _ in hrefs)
+           and any(f"/etf/tw/{c}/fundholding" in h for h, _ in hrefs) and all(t == "_blank" for _, t in hrefs), hrefs)
+    lp.close()
+
+
 def t_etf_hold_1007(pg, b, base):
     """ETF 成分股分頁（2026-10-07 Andy：「成分股分頁需要左側出現個股清單，右邊出現個股權重圓餅圖」）。
 
@@ -1843,7 +1889,11 @@ def t_etf_hold_1007(pg, b, base):
     items.append({"code": "AAPL US", "name": "Apple Inc.", "w": 0.8, "shares": None})
     FAKE = {"asof": "2026-10-06", "source": "測試假資料", "etfs": {
         "0050": {"asof": "2026-10-06", "items": items},
-        "00896": {"asof": "2026-10-06", "manual": True, "issuer": "中國信託", "items": items[:15]}}}
+        "00896": {"asof": "2026-10-06", "manual": True, "issuer": "中國信託", "items": items[:15]},
+        # 2026-10-08 第四輪：債券型也有成分（名稱＋權重＋票息＋到期日；管線 etf_pcf.bond_terms 讀名稱）
+        "00679B": {"asof": "2026-10-06", "issuer": "元大", "items": [
+            {"code": "912810UK2", "name": "US TREASURY N/B 4.75% 05/15/2055", "w": 5.37, "shares": 289300000, "cpn": 4.75, "mat": "2055-05-15"},
+            {"code": "912810UA4", "name": "US TREASURY N/B 4.625% 05/15/2054", "w": 5.27, "shares": 289500000, "cpn": 4.625, "mat": "2054-05-15"}]}}}
 
     def fake(route):
         route.fulfill(status=200, content_type="application/json", body=_json.dumps(FAKE, ensure_ascii=False))
@@ -1969,12 +2019,21 @@ def t_etf_hold_1007(pg, b, base):
                 first = rows[0]["c"]
                 lp.click("#etfHoldTbl tbody tr:first-child td.nm"); lp.wait_for_timeout(500)
                 ok(f"★ [{t}] {code} 點清單第一列 → #stock/{first}", J("() => location.hash") == f"#stock/{first}", J("() => location.hash"))
-            # 無股票成分：債券型 00679B → 說明卡
+            # 2026-10-08：債券型 00679B 有成分 → 清單＋第二行「票息 4.75%・到期 2055-05-15」
             lp.goto(f"{base}#stock/00679B", wait_until="networkidle")
             open_hold(lp, W)
             wait_until(lp, "() => !!document.querySelector('#etfHoldCard[data-state]')", 8000)
-            ok(f"★ [{t}] 債券型 00679B 顯示「以債券／期貨為主，沒有個股成分」說明卡",
-               J("() => (document.querySelector('#etfHoldCard') || {}).dataset?.state") == "nostock" and "沒有個股成分" in text(lp, "#etfHoldNone"), text(lp, "#etfHoldCard")[:80])
+            bd = J("() => ({ st: (document.querySelector('#etfHoldCard') || {}).dataset?.state, n: document.querySelectorAll('#etfHoldTbl tbody tr[data-i]').length,"
+                   " l2: [...document.querySelectorAll('#etfHoldTbl .gp2[data-bond]')].map(e => e.textContent) })")
+            ok(f"★ [{t}] 債券型 00679B 有成分清單（不是說明卡）", bd["st"] == "ok" and bd["n"] == 2, bd)
+            ok(f"★ [{t}] 債券成分第二行顯示票息與到期日", bd["l2"][:1] == ["票息 4.75%・到期 2055-05-15"], bd["l2"])
+            # 沒有成分的債券型（假資料裡沒有 00720B）→ 說明卡＋兩站連結
+            lp.goto(f"{base}#stock/00720B", wait_until="networkidle")
+            open_hold(lp, W)
+            wait_until(lp, "() => !!document.querySelector('#etfHoldCard[data-state]')", 8000)
+            ok(f"★ [{t}] 沒資料的債券型 00720B 有說明卡＋玩股網／口袋連結",
+               J("() => (document.querySelector('#etfHoldCard') || {}).dataset?.state") == "nostock"
+               and J("() => document.querySelectorAll('#etfHoldLinks a').length") == 2, text(lp, "#etfHoldCard")[:80])
         finally:
             lp.close()
     # 沒有成分股資料：股票型顯示「此檔發行投信（X 投信）資料尚未接上」，不准空白（2026-10-07 起寫出投信名）
@@ -7296,9 +7355,8 @@ def t_new_flow(pg, base):
             ok("根節點同時寫出即時板塊合計是「估算」（兩個數字分開寫，不會被讀成同一件事）",
                "估算" in tr["rootLabel"], tr["rootLabel"])
             # ★ 狀態列的誠實標示
-            note = text(pg, "#sankeyLive")
-            for word in ("估算", "盤後", "真實", "分母"):
-                ok(f"狀態列講清楚「{word}」這件事", word in note, note[:160])
+            # 2026-10-08 Andy：「這拿掉」→ 正常狀態不顯示口徑說明列
+            ok("即時正常時不顯示口徑說明列", pg.evaluate("() => document.getElementById('sankeyLive').hidden"))
             # ★ 請求量：沿用 live.js 的批次，不是一檔一個請求
             req = pg.evaluate("() => [window.__skReq, window.__skBatch]")
             ok("批次抓（請求數遠少於檔數，不是一檔打一次）",
@@ -7324,8 +7382,7 @@ def t_new_flow(pg, base):
         pg.wait_for_timeout(2800)
         off = text(pg, "#sankeyLive")
         # 2026-10-06 改前→改後（Andy：「這類資訊一律拿掉」，DECISIONS #329）：「非盤中有明講現在沒有盤」→ 狀態列不寫時段（「現在不是盤中…快照」拿掉），口徑照留
-        ok("非盤中按「即時」：狀態列不寫時段與時間、估算口徑照留", "不是盤中" not in off and "快照" not in off
-           and not re.search(r"\d\d:\d\d", off) and "估算" in off, off[:120])
+        ok("非盤中按「即時」：不顯示口徑說明列（2026-10-08 Andy 拿掉）", off.strip() == "", off[:120])
         ok("非盤中也不是一張空圖（圖照樣畫得出來）",
            pg.evaluate("""() => { const el = document.getElementById('sankey');
                const c = echarts.getInstanceByDom(el);
@@ -7893,6 +7950,8 @@ def t_flow_tree_play_1007(pg, base):
                  tc: getComputedStyle(s.querySelector('.skr-t')).color, nc: r ? getComputedStyle(r.querySelector('.n b')).color : '',
                  bg: getComputedStyle(s).backgroundColor, op, gray,
                  playing: document.getElementById('sankeyDays').classList.contains('playing') }; }"""
+    # 前面的段落可能把拉Bar 停在中間某天（tw.sankey.day 會記住）；「最新日期」一定要在最後一格量
+    pg.focus("#sankeyDays input"); pg.keyboard.press("End"); pg.wait_for_timeout(700)
     rest = pg.evaluate(SNAP)
     if not ok("[播放同步] 右欄排名表在靜止時出現", bool(rest) and bool(rest["title"]), rest):
         return
@@ -7916,7 +7975,7 @@ def t_flow_tree_play_1007(pg, base):
        {"靜止": (rest["tc"], rest["nc"], rest["bg"]), "不同": bad_col[:3]})
     pg.focus("#sankeyDays input"); pg.keyboard.press("End"); pg.wait_for_timeout(700)
     end = pg.evaluate(SNAP)
-    ok("[播放同步] 暫停後回到最新一天：右欄標題＝最新日期", bool(end) and end["title"] == latest and end["v"] == end["max"], end)
+    ok("[播放同步] 暫停後回到最新一天：右欄標題＝最新日期", bool(end) and end["title"] == latest and end["v"] == end["max"], (latest, end))
     # 故障注入：樹的繪圖引擎丟例外（模擬線上資料某一天讓樹那段出錯），右欄仍要跟著拉桿換日。
     # 舊版右欄排在 renderSankey 最尾端，前面一丟例外右欄就停在上一天 —— 這一條在舊版是紅的。
     if pg.evaluate("() => !!(window.FlowTopo && window.FlowTopo.render)"):
@@ -8154,9 +8213,16 @@ def t_player_1007(pg, base):
         pg.click(sel + " .pb.play"); pg.wait_for_timeout(1500)
         s1 = st(sel)
         ok(f"[{tag}] ① 按 ▶ 之後日期真的變了、鈕變 ⏸", s1["t"] != s0["t"] and s1["play"] == "⏸" and s1["on"], (s0, s1))
+        # ★ 2026-10-08（Andy：「播放後 拉bAR 需要反灰色 不可控制」）：播放中拉桿反灰停用，拖不動、照樣在播；
+        #   要調日期先按 ⏸ 再拖（取代原本「播放中拖拉桿 → 自動暫停」）
+        drag_to(sel, 0.3)
+        sd = st(sel)
+        ok(f"[{tag}] ② 播放中拉桿停用：拖不動、照樣在播（⏸）", sd["play"] == "⏸" and sd["on"]
+           and pg.evaluate("(s) => document.querySelector(s + ' input').disabled", sel), sd)
+        pg.click(sel + " .pb.play"); pg.wait_for_timeout(250)
         drag_to(sel, 0.3)
         s2 = st(sel)
-        ok(f"[{tag}] ② 播放中拖拉桿 → 自動暫停（鈕回 ▶）", s2["play"] == "▶" and not s2["on"], s2)
+        ok(f"[{tag}] ② 按 ⏸ 後拖拉桿 → 停在拖到的位置（鈕是 ▶）", s2["play"] == "▶" and not s2["on"], s2)
         pg.wait_for_timeout(900)
         s2b = st(sel)
         ok(f"[{tag}] ② 暫停後停在拖到的位置（不再自己跑）", s2b["t"] == s2["t"] and s2b["v"] == s2["v"], (s2, s2b))
@@ -8190,9 +8256,11 @@ def t_player_1007(pg, base):
             r = st(sel)
             ok(f"[{tag}] ⑤ 在最後一格按 ▶ → 從頭播（值回到最前面）", r["v"] < mx and r["v"] <= mn + 2 and r["play"] == "⏸", (e, r, mn, mx))
             # 播放中按方向鍵＝使用者自己選日期 → 要停（以前只有滑鼠拖會停，鍵盤會被播放一格一格蓋掉）
+            # 2026-10-08 起播放中拉桿停用（鍵盤也動不了）→ 先 ⏸，再用方向鍵選日期，要停在選的那一格
+            pg.click(sel + " .pb.play"); pg.wait_for_timeout(200)
             pg.focus(sel + " input"); pg.keyboard.press("ArrowRight"); pg.wait_for_timeout(200)
             k = st(sel); pg.wait_for_timeout(900); k2 = st(sel)
-            ok(f"[{tag}] 播放中按方向鍵 → 自動暫停、停在選的那一格", k["play"] == "▶" and k["v"] == k2["v"], (k, k2))
+            ok(f"[{tag}] ⏸ 後按方向鍵 → 停在選的那一格", k["play"] == "▶" and k["v"] == k2["v"], (k, k2))
         # ⑥ 播放中換頁 → 計時器停
         pg.click(sel + " .pb.play"); pg.wait_for_timeout(400)
         h0 = pg.evaluate("location.hash")
@@ -8221,6 +8289,7 @@ def t_player_1007(pg, base):
         pg.goto(f"{base}#flow", wait_until="networkidle"); pg.wait_for_timeout(2500)
         pg.locator("#rotBack").scroll_into_view_if_needed()
         pg.click("#rotBack .pb.play"); pg.wait_for_timeout(1000)
+        pg.click("#rotBack .pb.play"); pg.wait_for_timeout(200)   # 播放中拉桿停用（2026-10-08），先 ⏸ 再拖
         drag_to("#rotBack", 0.6)
         pg.click("#rotBack .pb.play"); pg.wait_for_timeout(1700)
         shot = os.environ.get("PLAY1007_SHOT")
@@ -8407,6 +8476,125 @@ def t_play_real_1007(b, base):
         ctx.close()
 
 
+def t_bar_tight_1008(b, base):
+    """拉Bar 排版1008（Andy 2026-10-08：「不是管理者 拿到即時功能是對的 但需要注意排版 這邊太寬了」「其他的也一併處理」）。
+    非管理者沒有「即時」鈕時，日期被 `.rbar .val{min-width:150px}` 推到最右邊、中間空一大段。
+    管理者（TW_LIVE_OVERRIDE）與非管理者各跑一輪，1440／800／390 三種寬，盤點全站拉Bar：
+    #rotBack（足跡輪盤）、#sankeyDays（資金分流樹）、#peEnd 與同卡的長度桿（本益比河流），
+    以及頁面上任何其他 .rbar。每一支量：同一列相鄰元件水平間距 ≤ 12px、1440 寬整組 ≤ 420px、不超出卡片、無橫向捲軸。"""
+    shot_dir = os.environ.get("BAR_TIGHT_SHOT", "")
+    MEASURE = """() => { const out = [];
+      document.querySelectorAll('.rbar').forEach(bar => {
+        const r = bar.getBoundingClientRect(); if (r.width < 2 || r.height < 2) return;
+        const kids = [...bar.children].filter(k => { const q = k.getBoundingClientRect(); return q.width > 0 && getComputedStyle(k).display !== 'none'; })
+          .map(k => { let q = k.getBoundingClientRect();
+            // 文字欄（.val／.t）量「字實際占的寬」，不是盒子寬 —— 盒子被 min-width 撐開時，空白就藏在盒子裡
+            if (k.matches('span') && k.textContent.trim()) { const rg = document.createRange(); rg.selectNodeContents(k); const tq = rg.getBoundingClientRect(); if (tq.width > 0) q = tq; }
+            return { l: q.left, r: q.right, t: Math.round(q.top + q.height / 2), c: k.className || k.tagName }; });
+        let gap = 0, at = '';
+        kids.forEach((a, i) => { kids.forEach((c, j) => { if (i === j || Math.abs(a.t - c.t) > 6 || c.l < a.r - 1) return;
+          if (kids.some(m => m !== a && m !== c && Math.abs(m.t - a.t) <= 6 && m.l >= a.r - 1 && m.r <= c.l + 1)) return;
+          const g = c.l - a.r; if (g > gap) { gap = g; at = a.c + '→' + c.c; } }); });
+        const card = bar.closest('.card'); const cr = card ? card.getBoundingClientRect() : null;
+        out.push({ id: bar.id || bar.className, w: Math.round(r.width), gap: Math.round(gap), at, live: !!bar.querySelector('.livebtn'),
+                   inCard: !cr || (r.left >= cr.left - 1 && r.right <= cr.right + 1) });
+      });
+      return { bars: out, hs: document.documentElement.scrollWidth > innerWidth + 1 }; }"""
+    for admin in (False, True):
+        who = "管理者" if admin else "非管理者"
+        for W in (1440, 800, 390):
+            ctx = b.new_context(viewport={"width": W, "height": 900})
+            pg = ctx.new_page()
+            pg.route("**/fonts.googleapis.com/**", lambda r: r.abort())
+            # 驗收預設替每一頁設了管理者後門（LIVE_ADMIN_PRESET）；非管理者那輪在它之後蓋成 false
+            pg.add_init_script(f"window.TW_LIVE_OVERRIDE = {'true' if admin else 'false'};" + "try { localStorage.setItem('tw.theme','light'); } catch (e) {}")
+            for route, sel in (("#flow", "#rotBack"), ("#flow/sankey", "#sankeyDays"), ("#stock/2330", "#peEnd")):
+                pg.goto(f"{base}{route}", wait_until="networkidle"); pg.wait_for_timeout(1500)
+                if sel == "#peEnd":
+                    try:
+                        tab = pg.locator('#stockTabs button[data-t="profit"]')
+                        if tab.count():
+                            tab.first.click(); pg.wait_for_timeout(1600)
+                    except Exception:
+                        pass
+                built = bool(wait_until(pg, f"() => !!document.querySelector('{sel} .pb.play')", 15000 if W > 640 else 5000))
+                if not ok(f"[拉Bar1008 {who} {W}] {sel} 建好", built or W <= 640):
+                    continue
+                if not built:   # 手機個股頁是券商式介面，沒有本益比河流拉Bar
+                    notes.append(f"[拉Bar1008 {who} {W}] {sel} 手機版不建立（券商式介面）")
+                    continue
+                if not pg.locator(sel).is_visible():
+                    # 手機（m3on）卡片預設收合，要按卡片底下「展開全部」（.mfullbtn）才看得到拉Bar —— 照真人的路走
+                    pg.evaluate(f"""() => {{ const h = document.querySelector('{sel}') && document.querySelector('{sel}').closest('.m3host');
+                        const bt = h && [...h.querySelectorAll('.mfullbtn')].find(x => x.offsetParent); if (bt) bt.click(); }}""")
+                    pg.wait_for_timeout(1500)
+                if not pg.locator(sel).is_visible() and sel == "#sankeyDays":
+                    tb = pg.get_by_role("button", name="資金分流樹")
+                    if tb.count() and tb.first.is_visible():
+                        tb.first.click(); pg.wait_for_timeout(2000)
+                if not pg.locator(sel).is_visible():
+                    # 手機（390）版資金輪動／個股頁是另一套券商式介面（篩選鈕取代拉Bar），桌機拉Bar 本來就不出現 —— 記一筆不算錯，
+                    # 但仍然要確認頁面沒有橫向捲軸、頁上其他看得到的 .rbar 一樣緊湊
+                    ok(f"[拉Bar1008 {who} {W}] {sel} 看得到", W <= 640, "桌機寬卻看不到")
+                    notes.append(f"[拉Bar1008 {who} {W}] {sel} 手機版不顯示（券商式介面）")
+                    m = pg.evaluate(MEASURE)
+                    ok(f"[拉Bar1008 {who} {W}] {route} 無橫向捲軸", not m["hs"])
+                    for x in m["bars"]:
+                        ok(f"[拉Bar1008 {who} {W}] {x['id']} 相鄰間距 ≤12px（{x['gap']}px）", x["gap"] <= 12, x)
+                    continue
+                pg.locator(sel).scroll_into_view_if_needed(); pg.wait_for_timeout(500)
+                m = pg.evaluate(MEASURE)
+                ok(f"[拉Bar1008 {who} {W}] {route} 無橫向捲軸", not m["hs"])
+                for x in m["bars"]:
+                    ok(f"[拉Bar1008 {who} {W}] {x['id']} 相鄰間距 ≤12px（{x['gap']}px）", x["gap"] <= 12, x)
+                    ok(f"[拉Bar1008 {who} {W}] {x['id']} 不超出卡片", x["inCard"], x)
+                    if W == 1440:
+                        ok(f"[拉Bar1008 {who} {W}] {x['id']} 整組 ≤420px（{x['w']}px）", x["w"] <= 420, x)
+                if W == 1440:
+                    # 2026-10-08 播放中反灰：拉桿、− ＋ 停用＋ .playdim，⏸ 可按；按 ⏸ 恢復
+                    PST = f"""() => {{ const b = document.querySelector('{sel}'); const i = b.querySelector('input');
+                        const st = [...b.querySelectorAll('.pb.step')], p = b.querySelector('.pb.play');
+                        return {{ dim: b.classList.contains('playdim'), inp: i.disabled, steps: st.map(x => x.disabled),
+                                 play: p.textContent, pdis: p.disabled, op: +getComputedStyle(i).opacity, v: +i.value, min: +i.min, max: +i.max }}; }}"""
+                    if pg.evaluate(f"() => document.querySelector('{sel}').classList.contains('livedim')"):
+                        pg.click(f"{sel} .livebtn"); pg.wait_for_timeout(500)
+                    pg.click(f"{sel} .pb.play"); pg.wait_for_timeout(200)
+                    a = pg.evaluate(PST)
+                    ok(f"[拉Bar1008 {who}] {sel} 播放中：拉桿停用、− ＋ 停用、有 playdim 反灰、⏸ 可按",
+                       a["play"] == "⏸" and a["dim"] and a["inp"] and all(a["steps"]) and not a["pdis"] and a["op"] < 0.5, a)
+                    if who == "非管理者" and sel == "#sankeyDays" and shot_dir:
+                        try: pg.locator(sel).screenshot(path=os.path.join(shot_dir, "sankey_playing.png"))
+                        except Exception: pass
+                    pg.click(f"{sel} .pb.play"); pg.wait_for_timeout(250)
+                    c = pg.evaluate(PST)
+                    ok(f"[拉Bar1008 {who}] {sel} 按 ⏸ 後恢復（拉桿可拖、反灰拿掉）",
+                       c["play"] == "▶" and not c["dim"] and not c["inp"] and c["op"] > 0.9
+                       and c["steps"][0] == (c["v"] <= c["min"]) and c["steps"][1] == (c["v"] >= c["max"]), c)
+                if sel == "#sankeyDays" and W == 1440:
+                    # 天數文字：「N 天前」或「最新」，拖動（鍵盤）真的跟著變
+                    TX = "() => { const b = document.querySelector('#sankeyDays'); return { ago: (b.querySelector('.ago') || {}).textContent || '', val: b.querySelector('.val').textContent.trim(), v: +b.querySelector('input').value, max: +b.querySelector('input').max }; }"
+                    pg.focus("#sankeyDays input"); pg.keyboard.press("End"); pg.wait_for_timeout(300)
+                    t0 = pg.evaluate(TX)
+                    ok(f"[拉Bar1008 {who}] 資金分流樹 最新一天寫「最新」", t0["val"] == "最新" and t0["ago"] == "", t0)
+                    pg.keyboard.press("ArrowLeft"); pg.keyboard.press("ArrowLeft"); pg.keyboard.press("ArrowLeft"); pg.wait_for_timeout(400)
+                    t1 = pg.evaluate(TX)
+                    ok(f"[拉Bar1008 {who}] 資金分流樹 往前 3 天 →「3 天前」＋日期", t1["ago"] == "3 天前" and t1["val"] != "最新", t1)
+                    if who == "非管理者" and shot_dir:
+                        try: pg.locator(sel).screenshot(path=os.path.join(shot_dir, "sankey_still.png"))
+                        except Exception: pass
+                    pg.keyboard.press("End"); pg.wait_for_timeout(300)
+                if sel == "#sankeyDays":
+                    has = any(x["live"] for x in m["bars"] if x["id"] == "sankeyDays")
+                    ok(f"[拉Bar1008 {who}] 資金分流樹「即時」鈕{'有' if admin else '沒有'}", has == admin, m)
+                if shot_dir and (W != 800):
+                    try:
+                        os.makedirs(shot_dir, exist_ok=True)
+                        pg.locator(sel).screenshot(path=os.path.join(shot_dir, f"after_{sel[1:]}_{'admin' if admin else 'user'}_{W}.png"))
+                    except Exception:
+                        pass
+            ctx.close()
+
+
 def t_play_census_1007(b, base):
     """播放普查1007（Andy 2026-10-07 三段原話：13:20「播放後再調整日期，再次點擊播放就不能做動」；
     18:55「播放時右邊清單反灰不做動，等到播放結束才會更新」；21:05「播放動畫都是到當日數據截止，便不會再進行播放…不是說要反灰色」）。
@@ -8470,10 +8658,12 @@ def t_play_census_1007(b, base):
                 except Exception as e:
                     print("  截圖失敗", e)
         ok("[資金分流樹] 連續三格的日期都不一樣（右欄真的跟著每一天換）", len({f[1] for f in frames}) == 3, frames)
-        # 播放中按 − ＝自己選日期 → 停；再 ▶ 要接著往後走
+        # 2026-10-08 起播放中 − ＋ 反灰停用（Andy：「播放後 拉bAR 需要反灰色 不可控制」）→ 先 ⏸ 停，再按 − 選日期；再 ▶ 要接著往後走
+        ok("[資金分流樹] 播放中 − ＋ 停用", pg.evaluate("() => [...document.querySelectorAll('#sankeyDays .pb.step')].every(x => x.disabled)"))
+        pg.click("#sankeyDays .pb.play"); pg.wait_for_timeout(200)
         pg.click("#sankeyDays .pb.step >> nth=0"); pg.wait_for_timeout(250)
         a = st("#sankeyDays")
-        ok("[資金分流樹] 播放中按 − → 停下、停在選的那一格", a["play"] == "▶", a)
+        ok("[資金分流樹] ⏸ 後按 − → 停在選的那一格", a["play"] == "▶", a)
         pg.click("#sankeyDays .pb.play"); pg.wait_for_timeout(250)
         c = st("#sankeyDays")
         ok("[資金分流樹] ② 調過日期再按 ▶ → 日期真的往後走", c["v"] == a["v"] + 1 and c["play"] == "⏸", (a, c))
@@ -8535,7 +8725,10 @@ def t_play_census_1007(b, base):
         pg.click("#rotBack .pb.play"); pg.wait_for_timeout(250)
         r = st("#rotBack")
         ok("[足跡輪盤] ③ 播完再按 ▶ → 重播", bool(r["f"]) and r["play"] == "⏸", (e, r))
-        pg.click("#rotBack .pb.step >> nth=1"); pg.wait_for_timeout(250)   # 播放中按 ＋ 調天數 → 停
+        # 2026-10-08 起播放中 − ＋ 反灰停用（Andy：「播放後 拉bAR 需要反灰色 不可控制」）→ 先按 ⏸ 停，再按 ＋ 調天數
+        ok("[足跡輪盤] 播放中 ＋ 停用", pg.evaluate("() => { const b = [...document.querySelectorAll('#rotBack .pb.step')]; return b.length === 2 && b.every(x => x.disabled); }"))
+        pg.click("#rotBack .pb.play"); pg.wait_for_timeout(200)
+        pg.click("#rotBack .pb.step >> nth=1"); pg.wait_for_timeout(250)
         a = st("#rotBack")
         pg.click("#rotBack .pb.play"); pg.wait_for_timeout(250)
         c = st("#rotBack")
@@ -8555,6 +8748,7 @@ def t_play_census_1007(b, base):
         s1 = st("#peEnd")
         ok("[本益比河流] ① 停在最後一格按 ▶ → 從頭重播",
            s1["v"] <= s1["min"] + 1 and s1["t"] != s0["t"] and s1["play"] == "⏸", (s0, s1))
+        pg.click("#peEnd .pb.play"); pg.wait_for_timeout(200)   # 播放中 − ＋ 停用（2026-10-08），先 ⏸
         pg.click("#peEnd .pb.step >> nth=1"); pg.wait_for_timeout(250)
         a = st("#peEnd")
         pg.click("#peEnd .pb.play"); pg.wait_for_timeout(250)
@@ -13246,6 +13440,97 @@ def t_cfgpop(pg, base, code):
 
     click(pg, '#indBtn', 350)
     ok("再按一次會關掉（切換本身沒壞）", not seen())
+
+
+BRAND_NAME = "哩股哩股"
+# 「台股資金輪動」這幾個字以後只准出現在「說明這個工具在做什麼」的描述句裡，不准再當站名。
+# 白名單＝目前合法出現的描述句片段（以子字串比對）；目前畫面上沒有任何一句需要它，所以是空的 ——
+# 之後若有人寫了「本站做台股資金輪動分析」這種說明句，加進來並寫明出處。
+BRAND_OLD_WHITELIST: list[str] = []
+
+
+def t_brand(b, base):
+    """品牌改名「哩股哩股」（Andy 2026-10-07：「以後我的logo 叫 哩股哩股…幫我換總覽頁名稱及logo」）。
+
+    真的操作：桌機開總覽 → 讀側欄品牌字與頭像（naturalWidth>0 才算圖真的載到）→ 切淺色主題再讀一次 →
+    按收合鈕確認只剩頭像 → 點品牌回總覽 → 走過法律頁／方案頁掃可見文字；手機 390 再看頂欄。
+    """
+    scan_js = """(wl) => { const t = document.body.innerText || '';
+        const hits = []; let i = -1;
+        while ((i = t.indexOf('台股資金輪動', i + 1)) >= 0) hits.push(t.slice(Math.max(0, i - 12), i + 18));
+        return hits.filter(h => !wl.some(w => h.includes(w))); }"""
+    ctx = b.new_context(viewport={"width": 1440, "height": 900})
+    pg = ctx.new_page()
+    pg.goto(base + "#overview", wait_until="domcontentloaded")
+    pg.wait_for_function("() => { const i = document.querySelector('.brand .logo img'); return i && i.complete; }", timeout=30000)
+    pg.wait_for_timeout(600)
+    info = lambda: pg.evaluate("""() => { const br = document.querySelector('.topbar > .brand') || document.querySelector('.brand');
+        const im = br.querySelector('.logo img'); const r = im.getBoundingClientRect(); const bb = br.querySelector('b');
+        return { txt: bb ? bb.textContent.trim() : '', bVis: !!bb && bb.getBoundingClientRect().width > 0,
+                 nw: im.naturalWidth, w: r.width, h: r.height, title: document.title,
+                 rad: getComputedStyle(im.parentElement.closest('.logo')).borderRadius }; }""")
+    a = info()
+    ok("品牌：側欄品牌字是「哩股哩股」", a["txt"] == BRAND_NAME, a)
+    ok("品牌：頭像圖真的載入（naturalWidth>0）且畫面上有尺寸", a["nw"] > 0 and a["w"] >= 24 and a["h"] >= 24, a)
+    ok("品牌：頭像是圓角", a["rad"] not in ("", "0px"), a)
+    ok("品牌：document.title 含「哩股哩股」", BRAND_NAME in a["title"], a)
+    hits = pg.evaluate(scan_js, BRAND_OLD_WHITELIST)
+    ok("品牌：總覽可見文字沒有舊站名", not hits, hits)
+    # 切淺色主題：頭像仍載入、外框還在（淺色底靠 1px 外框收邊）
+    pg.evaluate("() => { localStorage.setItem('tw.theme','light'); }")
+    pg.reload(wait_until="domcontentloaded")
+    pg.wait_for_function("() => { const i = document.querySelector('.brand .logo img'); return i && i.complete; }", timeout=30000)
+    pg.wait_for_timeout(500)
+    lt = pg.evaluate("() => ({ th: document.documentElement.getAttribute('data-theme'), nw: document.querySelector('.brand .logo img').naturalWidth,"
+                     " sh: getComputedStyle(document.querySelector('.brand .logo')).boxShadow })")
+    ok("品牌：淺色主題頭像照常顯示、有外框收邊", lt["th"] == "light" and lt["nw"] > 0 and lt["sh"] not in ("", "none"), lt)
+    # 收合側欄：只剩頭像
+    pg.evaluate("() => { localStorage.setItem('tw.theme','dark'); localStorage.setItem('tw.layout4.nav','mini'); }")
+    pg.reload(wait_until="domcontentloaded")
+    pg.wait_for_timeout(1500)
+    mini = pg.evaluate("""() => { const br = document.querySelector('.topbar > .brand'); const bb = br && br.querySelector('b');
+        const im = br && br.querySelector('.logo img');
+        return { mini: document.documentElement.classList.contains('l4-mini'),
+                 bW: bb ? bb.getBoundingClientRect().width : 0, imW: im ? im.getBoundingClientRect().width : 0 }; }""")
+    ok("品牌：側欄收合時只顯示頭像（字藏起來、圖還在）", mini["mini"] and mini["bW"] == 0 and mini["imW"] > 0, mini)
+    # 點品牌回總覽（真的點）
+    pg.evaluate("() => { location.hash = '#flow'; }")
+    pg.wait_for_timeout(800)
+    pg.click(".topbar > .brand .logo")
+    pg.wait_for_timeout(800)
+    ok("品牌：點頭像回到總覽", pg.evaluate("location.hash") == "#overview", pg.evaluate("location.hash"))
+    for h in ("#terms", "#privacy", "#disclaimer", "#pricing"):
+        pg.evaluate(f"() => {{ location.hash = '{h}'; }}")
+        pg.wait_for_timeout(1200)
+        hits = pg.evaluate(scan_js, BRAND_OLD_WHITELIST)
+        ok(f"品牌：{h} 可見文字沒有舊站名", not hits, hits)
+    copy = pg.evaluate("() => { const e = document.getElementById('sfCopy'); return e ? e.textContent : ''; }")
+    if copy:
+        ok("品牌：頁尾 © 寫的是「哩股哩股」", BRAND_NAME in copy, copy)
+    man = pg.evaluate("() => fetch('manifest.webmanifest').then(r => r.json()).then(m => ({ n: m.name, s: m.short_name }))")
+    ok("品牌：manifest 的 name／short_name 是「哩股哩股」", man["n"] == BRAND_NAME and man["s"] == BRAND_NAME, man)
+    # 客服浮動鈕（Andy 2026-10-07：「客服圖示改成跟logo一樣可愛的天竺鼠」）：頭像載入、字還在、真的點得開面板
+    pg.evaluate("() => { location.hash = '#overview'; }")
+    pg.wait_for_selector("#supFab .supmark", timeout=15000)
+    pg.wait_for_function("() => { const i = document.querySelector('#supFab .supmark'); return i && i.complete; }", timeout=15000)
+    fab = pg.evaluate("() => { const f = document.getElementById('supFab'); const i = f.querySelector('.supmark');"
+                      " return { nw: i.naturalWidth, txt: f.textContent.trim(), svg: !!f.querySelector('svg') }; }")
+    ok("客服鈕：天竺鼠頭像載入（naturalWidth>0）、「客服」字還在、舊對話泡泡拿掉", fab["nw"] > 0 and fab["txt"] == "客服" and not fab["svg"], fab)
+    pg.click("#supFab")
+    pg.wait_for_timeout(500)
+    opened = pg.evaluate("() => { const p = document.getElementById('supPanel'); return !!p && !p.hidden && p.getBoundingClientRect().height > 0; }")
+    ok("客服鈕：點了照常打開客服面板", opened)
+    ctx.close()
+    # 手機 390：頂欄
+    ctx = b.new_context(viewport={"width": 390, "height": 844}, device_scale_factor=2)
+    pg = ctx.new_page()
+    pg.goto(base + "#overview", wait_until="domcontentloaded")
+    pg.wait_for_timeout(2500)
+    m = pg.evaluate("""() => { const im = [...document.querySelectorAll('.brand .logo img')].find(i => i.getBoundingClientRect().width > 0);
+        return { nw: im ? im.naturalWidth : 0, cur: im ? im.currentSrc : '', txt: document.body.innerText.includes('哩股哩股'),
+                 sw: document.documentElement.scrollWidth }; }""")
+    ok("品牌：手機頂欄頭像載入（2x 拿 128 那張）、看得到「哩股哩股」、無橫向捲軸", m["nw"] > 0 and m["txt"] and m["sw"] <= 390, m)
+    ctx.close()
 
 
 def t_buildver(b, base):
@@ -26211,7 +26496,109 @@ def t_mobile_m4(b, base, code):
     m.close()
 
 
+# ★ 2026-10-08 Andy：「確認所有2D圖是否像這樣一樣 線條被裁減了」（先進封裝左欄走線卡的編號圈壓字、右欄卡片／引線被切）。
+#   普查全站 2D 剖析圖（產業鏈各分頁的 dg 圖＋題材剖析圖），1440／1280／1024／800 四種寬度各量一次：
+#     ① 卡片的編號圈壓到文字，或文字沒從編號圈右邊開始（說明卡的 .bd 跨滿兩欄就會掉成「圈一行、字一行」）
+#     ② 卡片、SVG 文字、線條、引線超出可見範圍（祖先 overflow 或視窗切掉，含 .dgcanvas 的橫向捲動）
+#     ③ 卡片互相重疊
+#     ④ 頁面被撐出橫向捲軸
+#   路由不寫死：從產業鏈分頁（button[data-c]）與各鏈的二層分頁（#dgPick a[data-dgid]）、themes.json 動態收集，
+#   新增圖自動進普查。一律 2D（tw.dg3d=0）。⚠ 一律 --workers 1。
+DGCLIP_JS = r"""
+(() => {
+  const out = [];
+  const vw = document.documentElement.clientWidth;
+  const R = (e) => e.getBoundingClientRect();
+  const vis = (e) => { const r = R(e); if (!r.width && !r.height) return false; const cs = getComputedStyle(e);
+    return cs.visibility !== 'hidden' && cs.display !== 'none' && !e.closest('[hidden]'); };
+  const clipOf = (el) => {
+    let x0 = 0, x1 = vw;
+    for (let a = el.parentElement; a && a !== document.documentElement; a = a.parentElement) {
+      const isSvg = a instanceof SVGElement;
+      if (isSvg && a.tagName.toLowerCase() !== 'svg') continue;
+      const cs = getComputedStyle(a);
+      if (cs.overflowX !== 'visible' || (isSvg && cs.overflow !== 'visible')) {
+        const r = R(a), l = r.left + (isSvg ? 0 : a.clientLeft), cw = isSvg ? r.width : a.clientWidth;
+        x0 = Math.max(x0, l); x1 = Math.min(x1, l + cw);
+      }
+    }
+    return { x0, x1 };
+  };
+  const hosts = [...document.querySelectorAll('.dgwrap')].filter(vis);
+  const seen = new Set();
+  for (const host of hosts) {
+    const name = ((host.querySelector('.dghead b, text.ttl') || {}).textContent || host.id || 'dg').trim().slice(0, 30);
+    const add = (kind, txt) => { const k = kind + '|' + txt; if (seen.has(k)) return; seen.add(k); out.push(name + '：' + kind + '「' + (txt || '').slice(0, 24) + '」'); };
+    host.querySelectorAll('.dgc').forEach((c) => {
+      const no = c.querySelector(':scope > .no'), bd = c.querySelector(':scope > .bd');
+      if (!no || !bd || !vis(c)) return;
+      const a = R(no), t = bd.querySelector('b') || bd, rg = document.createRange(); rg.selectNodeContents(t);
+      const b = rg.getBoundingClientRect();
+      const ov = Math.min(a.right, b.right) - Math.max(a.left, b.left), oh = Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top);
+      if (ov > 1 && oh > 1) add('編號圈壓到文字', c.innerText.replace(/\s+/g, ' '));
+      else if (b.left < a.right - 1) add('文字沒從編號圈右邊開始', c.innerText.replace(/\s+/g, ' '));
+    });
+    for (const e of [...host.querySelectorAll('.dgc, svg text, .dglead path, svg line, svg polyline')].filter(vis)) {
+      const r = R(e); if (r.width < 1 && r.height < 1) continue;
+      const c = clipOf(e), over = Math.max(c.x0 - r.left, r.right - c.x1);
+      if (over > 2) add((e.matches('.dgc') ? '卡片' : e.matches('text') ? '文字' : '線條') + '超出可見範圍 ' + Math.round(over) + 'px',
+        (e.textContent || e.getAttribute('d') || e.tagName).replace(/\s+/g, ' ').trim());
+    }
+    const cards = [...host.querySelectorAll('.dgc')].filter(vis).map((c) => [c, R(c)]);
+    for (let i = 0; i < cards.length; i++) for (let j = i + 1; j < cards.length; j++) {
+      const a = cards[i][1], b = cards[j][1];
+      if (Math.min(a.right, b.right) - Math.max(a.left, b.left) > 2 && Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top) > 2)
+        add('卡片互相重疊', cards[i][0].innerText.replace(/\s+/g, ' '));
+    }
+  }
+  if (document.documentElement.scrollWidth > vw + 1) out.push('頁面出現橫向捲軸 ' + document.documentElement.scrollWidth + 'px');
+  return { n: hosts.length, out };
+})()
+"""
+DGCLIP_WIDTHS = (1440, 1280, 1024, 800)
+
+
+def t_dgclip_1008(b, base):
+    T = "2D 圖裁切普查1008"
+    c = b.new_context(viewport={"width": 1440, "height": 1000})
+    c.add_init_script("try{localStorage.setItem('tw.dg3d','0')}catch(e){}")
+    pg = c.new_page()
+    pg.goto(f"{base}#industry/semiconductor", wait_until="domcontentloaded"); pg.wait_for_timeout(2500)
+    chains = pg.evaluate("() => [...new Set([...document.querySelectorAll('button[data-c][data-dg]')].map(a => a.dataset.c))]")
+    routes = []
+    for ch in chains:
+        pg.goto(f"{base}#industry/{ch}", wait_until="domcontentloaded"); pg.wait_for_timeout(1500)
+        for r in pg.evaluate("() => [...document.querySelectorAll('#dgPick a[data-dgid]')].map(a => a.getAttribute('href').slice(1))"):
+            if r not in routes: routes.append(r)
+    tids = pg.evaluate("async () => (await (await fetch('data/themes.json')).json()).themes.map(t => t.id)")
+    routes += ["themes/" + t for t in tids]
+    ok(f"{T}：收得到產業鏈剖析圖與題材（{len(routes)} 條路由）", len(routes) >= 40, routes[:5])
+    probs, drawn, card_seen = [], 0, 0
+    for w in DGCLIP_WIDTHS:
+        pg.set_viewport_size({"width": w, "height": 1000})
+        for r in routes:
+            pg.goto("about:blank"); pg.goto(f"{base}#{r}", wait_until="domcontentloaded"); pg.wait_for_timeout(1400)
+            got = pg.evaluate(DGCLIP_JS)
+            if got["n"]: drawn += 1
+            card_seen += pg.evaluate("() => document.querySelectorAll('.dgwrap .dgc').length")
+            probs += [f"{w} {r}：{x}" for x in got["out"]]
+    # 真的有圖被量到（不是整批空白假綠）：產業鏈 dg 每張都要畫得出來；題材沒有剖析圖的可以跳過
+    n_dg = sum(1 for r in routes if not r.startswith("themes/"))
+    ok(f"{T}：四種寬度量到的圖數 ≥ 產業鏈剖析圖數（{drawn} ≥ {n_dg * len(DGCLIP_WIDTHS)}），而且有說明卡片", drawn >= n_dg * len(DGCLIP_WIDTHS) and card_seen > 0, (drawn, card_seen))
+    ok(f"{T}：0 個裁切／壓字／重疊（{len(probs)} 個）", not probs, probs[:30])
+    # 先進封裝（Andy 那張）左欄走線卡：真的去量「文字從圈右邊開始」，而且五張都在
+    pg.set_viewport_size({"width": 1700, "height": 1000})
+    pg.goto("about:blank"); pg.goto(f"{base}#industry/semiconductor/dg/ai_adv_packaging", wait_until="domcontentloaded"); pg.wait_for_timeout(1800)
+    gap = pg.evaluate("""() => [...document.querySelectorAll('.dgc.note')].filter(c => c.querySelector(':scope > .no')).map(c => {
+        const a = c.querySelector('.no').getBoundingClientRect(), b = c.querySelector('.bd b').getBoundingClientRect();
+        return [c.querySelector('.no').textContent, Math.round(b.left - a.right), Math.round(Math.abs((a.top + a.bottom) / 2 - (b.top + b.bottom) / 2))]; })""")
+    ok(f"{T}：先進封裝走線卡 1～5 的文字在編號圈右邊、同一行（{gap}）",
+       len(gap) == 5 and all(g[1] >= 4 and g[2] <= 8 for g in gap), gap)
+    c.close()
+
+
 SECTIONS = {
+    "2D 圖裁切普查1008":   lambda pg, b, base, code: t_dgclip_1008(b, base),
     "標題重複普查":        lambda pg, b, base, code: t_title_dup_1007(b, base),
     "時間軸分隔線1006":    lambda pg, b, base, code: t_timegrid_1006(pg, base),
     "頁首圖示鈕1006":      lambda pg, b, base, code: t_topicons_1006(pg, base),
@@ -26258,6 +26645,8 @@ SECTIONS = {
     "ETF分類分組1007":     lambda pg, b, base, code: t_etf_groups_1007(pg, b, base),
     # ★ 2026-10-07 Andy：ETF 成分股分頁「左個股清單、右權重甜甜圈」；無股票成分顯示說明卡
     "ETF成分股1007":       lambda pg, b, base, code: t_etf_hold_1007(pg, b, base),
+    # ★ 2026-10-08 Andy：「請點擊所有，所有ETF 確認沒有成分股的補上」—— 逐檔點成分股分頁，有表格或有兩站連結（⚠ --workers 1，約 311 檔）
+    "ETF成分股普查1008":   lambda pg, b, base, code: t_etf_census_1008(pg, b, base),
     # ★ 2026-10-07 Andy：「幫我處理這問題 其他圖表一樣不要發生」—— 全站 ECharts 提示框不准被卡片裁切／超出視窗（1440＋390，⚠ 一律 --workers 1）
     "提示框普查1007":      lambda pg, b, base, code: t_tip_census_1007(pg, b, base),
     "ETF報酬比較1006":     lambda pg, b, base, code: t_etf_ret_1006(pg, b, base),
@@ -26294,6 +26683,7 @@ SECTIONS = {
     "播放器1007":          lambda pg, b, base, code: t_player_1007(pg, base),
     # ★ 2026-10-07 晚 Andy：「播放動畫都是到當日數據截止便不會再播放…不是說要反灰色」—— 三支播放器普查＋資金分流樹右欄跟著每一天換（⚠ --workers 1）
     "播放普查1007":        lambda pg, b, base, code: t_play_census_1007(b, base),
+    "拉Bar 排版1008":      lambda pg, b, base, code: t_bar_tight_1008(b, base),
     # ★ 2026-10-07 22:57 Andy 第三次回報：線上條件（存檔先貼、網路版晚到且不同、CPU 4 倍降速、擁有者）下播放資金分流樹（⚠ --workers 1）
     "播放真實條件1007":    lambda pg, b, base, code: t_play_real_1007(b, base),
     # ★ 2026-10-07 Andy：改名（資金分流樹／族群資金排行）＋樹旁「資金流向排名」右表＋族群成分股依流入排序（含 390）
@@ -26348,6 +26738,8 @@ SECTIONS = {
     "排序":                lambda pg, b, base, code: t_sort(pg, base),
     "資料狀態":            lambda pg, b, base, code: t_freshness(b, base),
     "網頁版號":            lambda pg, b, base, code: t_buildver(b, base),
+    # ★ 2026-10-07 Andy：「以後我的logo 叫 哩股哩股」—— 品牌字、頭像載入、title、收合、法律／方案頁不留舊站名
+    "品牌哩股哩股":        lambda pg, b, base, code: t_brand(b, base),
     "設定面板":            lambda pg, b, base, code: t_cfgpop(pg, base, code),
     "K線縮放":             lambda pg, b, base, code: t_kzoom_keep(pg, base, code),
     # ★ 2026-10-02 Andy 五張截圖：文字框就地編輯、箭頭、橡皮擦、方框屬性列、點兩下畫線＋端點圓圈、選取拖曳、測量、成交量分佈（DECISIONS #289；⚠ 一律 --workers 1）
@@ -26631,6 +27023,8 @@ SECTIONS = {
     "訪客額度顯示1007":    lambda pg, b, base, code: t_guest_quota_ui_1007(b, base, code),
     "套用建議方案1007":    lambda pg, b, base, code: t_plan_preset_1007(b, base, code),
     "套用建議方案正式站1007": lambda pg, b, base, code: t_preset_live_1007(b, base, code),
+    # ★ 2026-10-08 訪客點擊次數上限（site/clickq.js）：資金分流樹下鑽／族群×法人篩選／題材剖析／產業鏈／市場明細族群數，含管理權限頁
+    "訪客權限1008":        lambda pg, b, base, code: t_guest_perm_1008(b, base, code),
     # ★ 2026-09-28 Andy：「所有標題加上小圖示，顏色要搭配」—— 覆蓋、對比 ≥3:1（深淺）、1440／800／390 不擠（A/B）、動效（⚠ 一律 --workers 1）
     "標題圖示":            lambda pg, b, base, code: t_title_icons(pg, b, base, code),
     # ★ 2026-09-30 Andy：部分股票 1 小時／4 小時找不到資料 —— 60 分 K 擴到全市場、每檔獨立 m60 檔、沒有時寫一句話
@@ -42967,8 +43361,8 @@ def t_legal(b, base):
           heads: items.map(li => (li.querySelector('b') || {}).textContent || ''),
           ftxt: f ? f.innerText : '', fh: f ? Math.round(f.offsetHeight) : 0 }; }"""
     fd0 = pg.evaluate(FD)
-    ok("[頁尾] 第一行是「© 2026 本網站 · 保留所有權利」（名稱未定，走 SITE_NAME）",
-       fd0["copy"].startswith("© 2026 ") and "本網站" in fd0["copy"] and "保留所有權利" in fd0["copy"], fd0["copy"])
+    ok("[頁尾] 第一行是「© 2026 哩股哩股 · 保留所有權利」（2026-10-07 站名定案，走 legal.js 的 BRAND_NAME）",
+       fd0["copy"].startswith("© 2026 ") and "哩股哩股" in fd0["copy"] and "保留所有權利" in fd0["copy"], fd0["copy"])
     ok("[頁尾] 短版免責聲明與四個連結都還在（免責聲明／使用條款／隱私權政策／平台導覽）",
        all(x in fd0["ftxt"] for x in ("不是證券投資顧問事業", "免責聲明", "使用條款", "隱私權政策", "平台導覽")), fd0["ftxt"][:200])
     ok("[頁尾] 詳細規範預設收起（畫面上只留必要的）：區塊不佔高度、按鈕寫「顯示詳細規範」、aria-expanded=false",
@@ -50105,7 +50499,7 @@ def t_account_cloud(b, base):
 SUB_API = "https://sub.example.test"
 
 
-def _sub_ctx(b, who, width=1440, feats=None, notices=None, lims=None, dq=None):
+def _sub_ctx(b, who, width=1440, feats=None, notices=None, lims=None, dq=None, owner=False):
     """who: None＝訪客、'member'、'admin'。回傳 (context, 送出的請求清單, 狀態)"""
     sent: list = []
     st = {"notices": notices if notices is not None else [], "read": set(), "fb": [], "req": []}
@@ -50125,6 +50519,8 @@ def _sub_ctx(b, who, width=1440, feats=None, notices=None, lims=None, dq=None):
             body = {}
         sent.append((path, body))
         me = None if who is None else {"email": "boss@example.com" if who == "admin" else "member@example.com", "name": "管理者" if who == "admin" else "王小明", "admin": who == "admin"}
+        if me and owner:    # 2026-10-08 訪客權限1008：站主帳號（/v1/me 的 owner 旗標）一律不受限制
+            me["owner"] = True
         out, code = {}, 200
         if path == "/v1/me":
             out, code = ({"user": me}, 200) if me else ({}, 401)
@@ -50513,7 +50909,9 @@ def _qscan_one(b, base, fid, kind, ra, rb, prep, how, W, errs):
         else:
             wait_until(p2, "() => { const o = document.querySelector('[data-qlk] > .qlkov'); return !!o && o.getClientRects().length > 0; }", 4000)
             res["b_veil"] = p2.evaluate("() => { const o = document.querySelector('[data-qlk] > .qlkov'); return o ? o.parentElement.id || o.parentElement.className : null; }")
-            res["ok"] = res["a_cnt"] == 1 and not res["a_veil"] and bool(res["b_veil"])
+            # 2026-10-08 權限矩陣：產業鏈頁、題材剖析改在「換頁那一下」擋（TwQuota.routeOk）—— 網址退回上一層＋跳同一款卡片，不再畫出來再蓋卡
+            res["b_route"] = p2.evaluate(f"() => {{ const m = document.getElementById('qcModal'); return !!m && !m.hidden && m.dataset.cq === '{fid}' && location.hash !== '{rb}'; }}") if fid in ("ind.groups", "heat.detail") else False
+            res["ok"] = res["a_cnt"] == 1 and not res["a_veil"] and (bool(res["b_veil"]) or res["b_route"])
     except Exception as e:  # noqa: BLE001
         res["err"] = str(e)[:200]
     finally:
@@ -50723,7 +51121,7 @@ def t_plan_preset_1007(b, base, code):
     dl = pg.inner_text("#subDlg")
     ok(f"{T}：確認框列出四個範本、Plus／Pro 新建、299／499 列為刪除、額度變更",
        all(k in dl for k in ("訪客", "註冊會員", "Plus", "Pro"))
-       and "全站每日額度：不限 → 每日 3 次" in dl and "全站每日額度：不限 → 每日 50 次" in dl
+       and "全站每日額度：不限 → 每日 15 次" in dl and "全站每日額度：不限 → 每日 300 次" in dl
        and "刪除「299 會費」" in dl and "刪除「499會費」" in dl and "新建範本（代號 plus）" in dl and "新建範本（代號 pro）" in dl, dl[:1200])
     pg.click("#subDlg details >> nth=0")
     if sh:
@@ -50738,10 +51136,10 @@ def t_plan_preset_1007(b, base, code):
        [x[1].get("id") for x in sent if x[0] == "/v1/admin/plans/put"])
     bodies = {x[1]["id"]: x[1] for x in sent if x[0] == "/v1/admin/plans/put" and not x[1].get("del")}
     g, f, pl, pr = bodies.get("guest", {}), bodies.get("free", {}), bodies.get("plus", {}), bodies.get("pro", {})
-    ok(f"{T}：寫入內容：訪客 dq 3＋沒有逐功能次數＋名稱「訪客」；註冊會員 dq 10、自選 1×10；Plus 改名、299、dq 50、自選 5×50、badge；Pro 改名、549、dq 空白、自選 50×200",
-       g.get("dq") == 3 and g.get("lims") == {} and g.get("name") == "訪客" and g.get("feats", {}).get("ind.3d") is False
-       and f.get("dq") == 10 and f.get("feats", {}).get("watch.tabs") == 1 and f.get("feats", {}).get("watch.size") == 10 and f.get("name") == "註冊會員"
-       and pl.get("name") == "Plus" and pl.get("price") == 299 and pl.get("dq") == 50 and pl.get("feats", {}).get("watch.tabs") == 5 and pl.get("feats", {}).get("watch.size") == 50
+    ok(f"{T}：寫入內容（權限矩陣 1008）：訪客 dq 15＋分流樹下鑽 3＋熱力圖跳頁關＋名稱「訪客」；註冊會員 dq 40、自選 1×10；Plus 改名、299、dq 300、自選 5×50、badge；Pro 改名、549、dq 空白、自選 50×200",
+       g.get("dq") == 15 and (g.get("lims") or {}).get("flow.sankey.drill") == 3 and (g.get("feats") or {}).get("heat.link") is False and g.get("name") == "訪客" and g.get("feats", {}).get("ind.3d") is False
+       and f.get("dq") == 40 and f.get("feats", {}).get("watch.tabs") == 1 and f.get("feats", {}).get("watch.size") == 10 and f.get("name") == "註冊會員"
+       and pl.get("name") == "Plus" and pl.get("price") == 299 and pl.get("dq") == 300 and pl.get("feats", {}).get("watch.tabs") == 5 and pl.get("feats", {}).get("watch.size") == 50
        and (pl.get("pres") or {}).get("badge") == "最受歡迎" and (pl.get("pres") or {}).get("tagline") and pl.get("price_year") == 2990 and "meta" not in pl and len((pl.get("pres") or {}).get("highlights") or []) >= 3
        and pr.get("name") == "Pro" and pr.get("price") == 549 and pr.get("dq") is None and pr.get("feats", {}).get("watch.tabs") == 50 and pr.get("feats", {}).get("watch.size") == 200,
        {k: {kk: (vv if kk != "feats" else {x: vv[x] for x in ("watch.tabs", "watch.size", "ind.3d") if x in vv}) for kk, vv in v.items() if kk != "t"} for k, v in bodies.items()})
@@ -50750,7 +51148,7 @@ def t_plan_preset_1007(b, base, code):
     pg.click("#ptTier button[data-tier='guest']")
     pg.wait_for_timeout(400)
     pg.click("#ptPlanCfg")
-    ok(f"{T}：訪客 ⚙ 的「全站每日額度」顯示 3", pg.input_value("#ptEdDq") == "3", pg.input_value("#ptEdDq"))
+    ok(f"{T}：訪客 ⚙ 的「全站每日額度」顯示 15（權限矩陣 1008）", pg.input_value("#ptEdDq") == "15", pg.input_value("#ptEdDq"))
     if sh:
         pg.screenshot(path=str(pathlib.Path(sh) / "preset_after.png"))
     pg.click("#ptPlanCfg")
@@ -50766,6 +51164,397 @@ def t_plan_preset_1007(b, base, code):
     c.close()
     ok(f"{T}：沒有 JS 錯誤", not errs, errs[:3])
 
+
+
+# ===================================================================== 訪客權限1008（docs/perm_matrix_1008.md；site/quota.js 的 TwQuota.act／pick／routeOk／heatLinkOk）
+# Andy 10-08：「這邊需要限制 訪客只能看到 圖二那樣，幫我在管理權限內補充（這邊也要限制次數）／圖三也是 但是是限制族群篩選次數／
+#   圖4 題材可以點 至多3個熱力圖（上方熱力圖不用鎖住，主要是限制點擊後功能），包含產業Map 也是只能3個／
+#   圖5 市場明細是限制 至多可以看5個 族群 右邊清單不限制」＋全站權限矩陣（docs/perm_matrix_1008.md）＋
+#   「熱力圖如果不是付費會員 都不能有點擊連結功能，但如果是才可以點擊連結到其他分頁」。
+# 用訪客、註冊會員兩種身分，把矩陣裡每一個新的功能鍵都真的點到擋下來（畫面沒變＋跳卡片）；站主不受限；Plus 點熱力圖會跳頁；
+# 管理權限頁看得到新設定、改訪客的次數後真的生效。
+# 範本值讀 site/plan_presets.js（套用建議方案寫進後端的同一份）。註冊會員的「每日 N 次」動作計次（15／10／5…）為了不點幾十下，
+# 把次數覆寫成 1（同一套程式路徑，只是數字小）；同時選取上限（族群 10、名單 20、今日關注 10、報酬比較 3）用範本原值。
+GP_MODAL = "() => { const m = document.getElementById('qcModal'); return !!m && !m.hidden ? { cq: m.dataset.cq || '', t: m.innerText } : null; }"
+GP_CLOSE = "() => { const m = document.getElementById('qcModal'); if (m) m.hidden = true; }"
+GP_ACT = ["flow.sankey.drill", "flow.inst.filter", "earn.tab", "explore.filter", "etf.calendar.tab", "etf.list.tab", "etf.list.filter", "season.pick"]
+
+
+def _gp_presets():
+    src = (ROOT / "site" / "plan_presets.js").read_text(encoding="utf-8")
+    js = "global.window={};" + src + ";process.stdout.write(JSON.stringify(window.TW_PLAN_PRESETS))"
+    out = subprocess.run(["node", "-e", js], capture_output=True, text=True, timeout=30)
+    return {t["key"]: t for t in json.loads(out.stdout)["tiers"]}
+
+
+def _gp_pick_dd(pg, row, gid):
+    """族群下拉（filterDropdown）：真的點開第二層、真的點那一個族群"""
+    pg.click(f".rotfilter[data-for='{row}'] .rotdd[data-dd='group'] .ddbtn")
+    pg.wait_for_timeout(150)
+    pg.click(f".rotfilter[data-for='{row}'] .rotdd[data-dd='group'] button.nm[data-g='{gid}']")
+    pg.wait_for_timeout(350)
+
+
+def _gp_next(pg, row, used):
+    """打開族群下拉，點一個還沒點過的族群（選了之後第一層會跳到它的產業鏈，所以每次重新看清單）。回 (gid, 名稱)"""
+    pg.click(f".rotfilter[data-for='{row}'] .rotdd[data-dd='group'] .ddbtn")
+    pg.wait_for_timeout(150)
+    g = pg.evaluate("([r, u]) => { const b = [...document.querySelectorAll(`.rotfilter[data-for='${r}'] .rotdd[data-dd='group'] button.nm[data-g]`)].find(x => !u.includes(x.dataset.g)); return b ? [b.dataset.g, b.textContent.trim()] : null; }", [row, used])
+    pg.click(f".rotfilter[data-for='{row}'] .rotdd[data-dd='group'] button.nm[data-g='{g[0]}']")
+    pg.wait_for_timeout(350)
+    used.append(g[0])
+    return g
+
+
+def _gp_go(pg, h, ready, t=15000):
+    pg.evaluate("(h) => { location.hash = h; }", h)
+    return wait_until(pg, ready, t)
+
+
+def _gp_blocked(pg, key, closing=True):
+    m = wait_until(pg, f"() => {{ const m = document.getElementById('qcModal'); return !!m && !m.hidden && m.dataset.cq === '{key}' ? m.innerText : null; }}", 3000)
+    if closing:
+        pg.evaluate(GP_CLOSE)
+    return m
+
+
+def _gp_suite(b, base, T, who, feats, lims, errs, shot, tag):
+    """who: None＝訪客、'member'＝註冊會員。逐一操作矩陣的新功能鍵到被擋。"""
+    c, sent, st = _sub_ctx(b, who, feats=feats, lims=lims, dq=None)
+    pg = c.new_page(); pg.on("pageerror", lambda e: errs.append(str(e) + " @ " + str(getattr(e, "stack", ""))[:400]))
+    pg.goto(base + "#flow/sankey", wait_until="domcontentloaded")
+    ok(f"{T}【{tag}】範本已套用（src＝server）", bool(wait_until(pg, "() => window.TwPerm && TwPerm.state().src === 'server' && !!window.TwQuota", 12000)))
+    L = lambda k: lims.get(k)
+
+    # ① 資金分流樹下鑽（drill）
+    n = L("flow.sankey.drill")
+    wait_until(pg, "() => document.querySelectorAll(\".rotfilter[data-for='sankey'] .rotdd[data-dd='group'] button.nm[data-g]\").length >= 6", 15000)
+    used, opened = [], []
+    for i in range(n):
+        g = _gp_next(pg, "sankey", used); opened.append(pg.evaluate("() => (window.App.drillState() || {}).gid"))
+    ok(f"{T}【{tag}】分流樹 額度內 {n} 個族群都真的展開成個股", opened == used and not pg.evaluate(GP_MODAL), (opened, used))
+    _gp_next(pg, "sankey", used)
+    m = _gp_blocked(pg, "flow.sankey.drill", closing=False)
+    ok(f"{T}【{tag}】分流樹 第 {n + 1} 個 → 擋下：卡片「分流樹下鑽個股今日 {n}/{n} 次已用完」、下鑽狀態沒換",
+       bool(m) and f"今日 {n}/{n} 次已用完" in m and "00:00 重置" in m and pg.evaluate("() => (window.App.drillState() || {}).gid") == used[n - 1], m)
+    if who is None: shot(pg, "1_sankey_blocked.png")
+    pg.evaluate(GP_CLOSE)
+
+    # ② 族群×法人篩選（filter）
+    n = L("flow.inst.filter")
+    _gp_go(pg, "#flow/inst", "() => document.querySelectorAll(\".rotfilter[data-for='instGroups'] .rotdd[data-dd='group'] button.nm[data-g]\").length >= 7")
+    lab = "() => (document.querySelector(\".rotfilter[data-for='instGroups'] .rotdd[data-dd='group'] .ddbtn b\") || {}).textContent || ''"
+    good, used, ig = True, [], []
+    for i in range(n):
+        g = _gp_next(pg, "instGroups", used); ig.append(g); good = good and g[1] in pg.evaluate(lab)
+    ok(f"{T}【{tag}】族群×法人 額度內 {n} 個族群都真的套上", good and not pg.evaluate(GP_MODAL), pg.evaluate(lab))
+    g = _gp_next(pg, "instGroups", used)
+    m = _gp_blocked(pg, "flow.inst.filter", closing=False)
+    ok(f"{T}【{tag}】族群×法人 第 {n + 1} 個 → 擋下、按鈕仍是第 {n} 個", bool(m) and ig[-1][1] in pg.evaluate(lab) and g[1] not in pg.evaluate(lab), (m, pg.evaluate(lab)))
+    if who is None: shot(pg, "2_inst_blocked.png")
+    pg.evaluate(GP_CLOSE)
+
+    # ③ 題材剖析（heat.detail obj）：上方熱力圖不鎖
+    n = L("heat.detail")
+    _gp_go(pg, "#heatmap/theme", "() => { const e = document.getElementById('themeMap'); return !!e && e.getClientRects().length > 0 && !!e.querySelector('canvas'); }")
+    ok(f"{T}【{tag}】題材 上方熱力圖照常顯示（沒有遮罩）", pg.evaluate("() => { const e = document.getElementById('themeMap'); return e.getBoundingClientRect().height > 200 && !e.closest('[data-plk],[data-qlk]'); }"))
+    tids = pg.evaluate("async () => { const r = await fetch('data/themes.json'); const j = await r.json(); return (j.themes || []).map(t => t.id); }")
+    for t in tids[:n]:
+        pg.evaluate("(t) => { location.hash = '#heatmap/theme/' + t; }", t); pg.wait_for_timeout(450)
+    ok(f"{T}【{tag}】題材 額度內 {n} 個都打得開", pg.evaluate("() => decodeURIComponent(location.hash)") == "#heatmap/theme/" + tids[n - 1] and not pg.evaluate(GP_MODAL))
+    pg.evaluate("(t) => { location.hash = '#heatmap/theme/' + t; }", tids[n]); pg.wait_for_timeout(600)
+    m = _gp_blocked(pg, "heat.detail", closing=False)
+    ok(f"{T}【{tag}】題材 第 {n + 1} 個 → 擋下：網址退回 #heatmap/theme、上方熱力圖還在",
+       bool(m) and pg.evaluate("() => location.hash") == "#heatmap/theme" and pg.evaluate("() => document.getElementById('themeMap').getBoundingClientRect().height > 200"), (m, pg.evaluate("() => location.hash")))
+    if who is None: shot(pg, "3_theme_blocked.png")
+    pg.evaluate(GP_CLOSE)
+
+    # ④ 產業地圖進產業鏈（ind.groups obj）
+    n = L("ind.groups")
+    _gp_go(pg, "#industry", "() => document.querySelectorAll('#chainSwitch button[data-c]').length >= 5")
+    pg.wait_for_timeout(1500)   # 產業地圖第一次進來要載 industry.js 等；路由還在途中就點分頁，換頁會被路由自己的收尾蓋掉（實測，非產品行為）
+    chs = pg.evaluate("() => [...document.querySelectorAll('#chainSwitch button[data-c]')].map(b => b.dataset.c).filter(c => c !== '_all')")
+    got = []
+    for ch in chs[:n]:
+        _gp_go(pg, "#industry", "() => location.hash === '#industry' && !!document.querySelector(\"#chainSwitch button[data-c='_all'].on\")", 8000); pg.wait_for_timeout(500)
+        pg.click(f"#chainSwitch button[data-c='{ch}']")
+        # 等產業鏈頁真的畫出來（分頁鈕換成這一條）再往下：網址一換就馬上改回 #industry 的話，兩次 hashchange 同一輪才送出、那一條根本沒被路由到（驗收太快，不是產品行為）
+        wait_until(pg, f"() => location.hash.startsWith('#industry/{ch}') && !!document.querySelector(\"#chainSwitch button[data-c='{ch}'].on\")", 10000)
+        got.append(pg.evaluate("() => location.hash.split('/')[1]"))
+    _gp_go(pg, "#industry", "() => location.hash === '#industry' && !!document.querySelector(\"#chainSwitch button[data-c='_all'].on\")", 8000)
+    pg.wait_for_timeout(600)
+    pg.click(f"#chainSwitch button[data-c='{chs[n]}']"); pg.wait_for_timeout(800)
+    m = _gp_blocked(pg, "ind.groups", closing=False)
+    ok(f"{T}【{tag}】產業地圖 前 {n} 條進得去、第 {n + 1} 條擋下（留在 #industry）", got == chs[:n] and bool(m) and pg.evaluate("() => location.hash") == "#industry",
+       (got, chs[n], m, pg.evaluate("() => [location.hash, TwQuota.used('ind.groups'), TwPerm.lim('ind.groups'), (document.getElementById('qcModal') || {}).hidden]")))
+    if who is None: shot(pg, "4_industry_blocked.png")
+    pg.evaluate(GP_CLOSE)
+
+    # ⑤ 市場明細族群篩選（pick）＋今日關注顯示檔數（pick）
+    n = feats["mkt.grp.pick"]
+    _gp_go(pg, "#market", "() => { const d = document.querySelector('#distGroupDD .twms-btn'); return !!d && d.getClientRects().length > 0; }")
+    pg.click("#distGroupDD .twms-btn")
+    wait_until(pg, "() => document.querySelectorAll(\".twms-pan[data-ms='distGroups'] input[type=checkbox][data-v]\").length > 12", 5000)
+    boxes = pg.locator(".twms-pan[data-ms='distGroups'] input[type=checkbox][data-v]")
+    for i in range(n):
+        boxes.nth(i).click(); pg.wait_for_timeout(80)
+    ok(f"{T}【{tag}】市場明細 勾 {n} 個族群 → 已選 {n}", pg.evaluate("() => document.getElementById('distGroupDD').dataset.n") == str(n) and not pg.evaluate(GP_MODAL))
+    boxes.nth(n).click(); pg.wait_for_timeout(300)
+    m = _gp_blocked(pg, "mkt.grp.pick", closing=False)
+    ok(f"{T}【{tag}】市場明細 第 {n + 1} 個勾不起來、跳「{'訪客' if who is None else '目前方案'}最多 {n} 個」",
+       bool(m) and f"最多 {n} 個" in m and ("訪客" in m if who is None else True) and pg.evaluate("() => document.getElementById('distGroupDD').dataset.n") == str(n) and not boxes.nth(n).is_checked(), m)
+    if who is None: shot(pg, "5_market_blocked.png")
+    pg.evaluate(GP_CLOSE); pg.keyboard.press("Escape")
+    ok(f"{T}【{tag}】市場明細 右邊清單不受限制", pg.evaluate("() => document.querySelectorAll('#mktBody tr').length >= 10"))
+    n = feats["mkt.cand.n"]
+    pg.click("#mktSeg2 button[data-k='cand']")
+    wait_until(pg, "() => /今日關注/.test((document.getElementById('mktTitle') || {}).textContent || '') && document.querySelectorAll('#mktBody tbody tr').length > 0", 8000)
+    pg.wait_for_timeout(300)
+    rows = pg.evaluate("() => document.querySelectorAll('#mktBody tbody tr').length")
+    if pg.evaluate("() => !!document.getElementById('candCapGo')"):
+        pg.click("#candCapGo")
+        m = _gp_blocked(pg, "mkt.cand.n")
+        ok(f"{T}【{tag}】今日關注 只列前 {n} 檔＋「看更多」→ 跳升級卡", rows == n and bool(m), (rows, m))
+    else:   # 名單本身不到上限（資料決定），驗「沒有超過上限」
+        ok(f"{T}【{tag}】今日關注 名單 {rows} 檔 ≤ 上限 {n}（今天名單不到上限，沒有截斷）", rows <= n, rows)
+
+    # ⑥ 週期統計切換對象（obj）
+    n = L("season.pick")
+    _gp_go(pg, "#season", "() => document.querySelectorAll('#seasonHeatHead button[data-m]').length === 12")
+    ms = pg.evaluate("() => [...document.querySelectorAll('#seasonHeatHead button[data-m]')].filter(b => !b.classList.contains('on')).map(b => b.dataset.m)")
+    for mm in ms[:n]:
+        pg.click(f"#seasonHeatHead button[data-m='{mm}']"); pg.wait_for_timeout(250)
+    on1 = pg.evaluate("() => (document.querySelector('#seasonHeatHead button.on') || {}).dataset.m")
+    pg.click(f"#seasonHeatHead button[data-m='{ms[n]}']"); pg.wait_for_timeout(300)
+    m = _gp_blocked(pg, "season.pick")
+    ok(f"{T}【{tag}】週期統計 換 {n} 次月份排序都生效、第 {n + 1} 次擋下（排序停在第 {n} 個）",
+       on1 == ms[n - 1] and bool(m) and pg.evaluate("() => (document.querySelector('#seasonHeatHead button.on') || {}).dataset.m") == ms[n - 1], (on1, m))
+
+    # ⑦ 財經日曆切月份（tab）
+    n = L("earn.tab")
+    _gp_go(pg, "#earnings", "() => !!document.getElementById('earnPrev') && document.getElementById('v-earnings').dataset.ready")
+    mon = "() => (document.querySelector('#earnCalCard') || document.body).innerText.match(/\\d{4} 年 \\d{1,2} 月|\\d{4}-\\d{2}/) + ''"
+    seen = []
+    for i in range(n):
+        pg.click("#earnPrev"); pg.wait_for_timeout(250); seen.append(pg.evaluate("() => TwEarnings.state.month"))
+    pg.click("#earnPrev"); pg.wait_for_timeout(300)
+    m = _gp_blocked(pg, "earn.tab")
+    ok(f"{T}【{tag}】財經日曆 往前切 {n} 個月都換、第 {n + 1} 個擋下（月份不動）",
+       len(set(seen)) == n and bool(m) and pg.evaluate("() => TwEarnings.state.month") == seen[-1], (seen, m))
+
+    # ⑧ 選股策略篩選（filter）＋完整名單顯示檔數（pick）
+    n = L("explore.filter")
+    _gp_go(pg, "#explore", "() => !!document.getElementById('slTagDd')")
+    QP_USED = "(id) => { const r = document.querySelector(`#twQPage .twqp-r[data-id='${id}'] .twqp-t span`); return r ? r.textContent : null; }"
+    if who is None:
+        wait_until(pg, "() => { const e = document.getElementById('twQPage'); return !!e && !e.hidden; }", 6000)
+        qp = pg.evaluate("() => ({ n: +document.getElementById('twQPage').dataset.n, b: document.querySelector('#twQPage .twqp-b').textContent, ids: [...document.querySelectorAll('#twQPage .twqp-r')].map(r => r.dataset.id) })")
+        ok(f"{T}【訪客】選股策略 本頁限制 2 項（看頁面 5、篩選 2）、收合寫「本頁 2 項限制・最少剩 X 次」",
+           qp["n"] == 2 and sorted(qp["ids"]) == sorted(["explore.page", "explore.filter"]) and qp["b"].startswith("本頁 2 項限制・最少剩"), qp)
+        shot(pg, "13_qpage_explore_collapsed.png")
+        pg.click("#twQPage .twqp-b"); pg.wait_for_timeout(250)
+        shot(pg, "14_qpage_explore_expanded.png")
+        pg.click("#twQPage .twqp-b"); pg.wait_for_timeout(150)
+    before = pg.evaluate(QP_USED, "explore.filter")
+    pg.click("#slTagDd"); wait_until(pg, "() => document.querySelectorAll('#slTagMenu input[data-tag]').length >= 3", 4000)
+    tags = pg.evaluate("() => [...document.querySelectorAll('#slTagMenu input[data-tag]')].map(i => i.dataset.tag)")
+    pg.click(f"#slTagMenu input[data-tag='{tags[0]}']"); pg.wait_for_timeout(500)
+    after = pg.evaluate(QP_USED, "explore.filter")
+    ok(f"{T}【{tag}】本頁限制清單：套一組篩選後「選股策略篩選」已用 +1（{before} → {after}）",
+       bool(before) and bool(after) and before.startswith("篩選 0／") and after.startswith("篩選 1／"), (before, after))
+    for t in tags[1:n]:
+        pg.click(f"#slTagMenu input[data-tag='{t}']"); pg.wait_for_timeout(200)
+    pg.click(f"#slTagMenu input[data-tag='{tags[n]}']"); pg.wait_for_timeout(300)
+    m = _gp_blocked(pg, "explore.filter")
+    ok(f"{T}【{tag}】選股策略 套 {n} 組條件都生效、第 {n + 1} 組擋下（那一格沒勾）",
+       bool(m) and not pg.evaluate(f"() => {{ const i = document.querySelector(\"#slTagMenu input[data-tag='{tags[n]}']\"); return !!i && i.checked; }}"), m)
+    n = feats["explore.list.n"]
+    sid = pg.evaluate(f"() => {{ const d = TwExplore.debug(); return Object.keys(d.hits).find(k => d.usable[k] && d.hits[k].length > {n}) || ''; }}")
+    if sid:
+        _gp_go(pg, "#explore/" + sid, "() => !!document.getElementById('slCapGo')", 8000)
+        rows = pg.evaluate("() => document.querySelectorAll('#slTbl tbody tr').length")
+        pg.click("#slCapGo"); m = _gp_blocked(pg, "explore.list.n")
+        ok(f"{T}【{tag}】選股完整名單 只列前 {n} 家＋「看更多」→ 升級卡", rows == n and bool(m), (rows, m))
+    else:
+        ok(f"{T}【{tag}】選股完整名單（今天沒有超過 {n} 家的策略，略過）", True)
+
+    # ⑨ ETF：配息行事曆切月份、上方三卡、一覽（分頁／排序）、報酬比較檔數、現金流試算
+    n = L("etf.calendar.tab")
+    _gp_go(pg, "#etf/cal", "() => !!document.getElementById('etfCalNext')")
+    for i in range(n):
+        pg.click("#etfCalNext"); pg.wait_for_timeout(200)
+    m0 = pg.inner_text("#etfCalMonth")
+    pg.click("#etfCalNext"); pg.wait_for_timeout(300)
+    m = _gp_blocked(pg, "etf.calendar.tab")
+    ok(f"{T}【{tag}】配息行事曆 往後切 {n} 個月都換、第 {n + 1} 個擋下（月份不動）", bool(m) and pg.inner_text("#etfCalMonth") == m0, (m0, m))
+    _gp_go(pg, "#etf/list", "() => document.querySelectorAll('#etfCatSeg button[data-v]').length >= 3")
+    if who is None:
+        wait_until(pg, "() => { const e = document.getElementById('twQPage'); return !!e && !e.hidden && /本頁/.test(e.textContent); }", 6000); pg.wait_for_timeout(500)
+        qp = pg.evaluate("() => ({ n: +document.getElementById('twQPage').dataset.n, ids: [...document.querySelectorAll('#twQPage .twqp-r')].map(r => r.dataset.id), t: document.getElementById('twQPage').innerText })")
+        want = ["etf.top3", "etf.returns", "etf.list", "etf.list.tab", "etf.list.filter"]
+        ok(f"{T}【訪客】ETF 總覽 本頁限制 {len(want)} 項＝矩陣這一頁的項目（上方三卡、報酬比較、一覽、一覽分頁、一覽篩選）",
+           qp["n"] == len(want) and sorted(qp["ids"]) == sorted(want), qp)
+        shot(pg, "15_qpage_etf_collapsed.png")
+        pg.click("#twQPage .twqp-b"); pg.wait_for_timeout(250)
+        ok(f"{T}【訪客】ETF 總覽 展開後逐項寫單位與次數（看 N／3、不開放），用完的標紅",
+           pg.evaluate("() => { const t = document.querySelector('#twQPage .twqp-pan').innerText; return /看 \\d／3/.test(t) && /不開放/.test(t) && !!document.querySelector(\"#twQPage .twqp-r[data-lvl='off']\"); }"),
+           pg.evaluate("() => document.querySelector('#twQPage .twqp-pan').innerText"))
+        shot(pg, "16_qpage_etf_expanded.png")
+        pg.click("#twQPage .twqp-b"); pg.wait_for_timeout(150)
+    cats = pg.evaluate("() => [...document.querySelectorAll('#etfCatSeg button[data-v]')].filter(b => !b.classList.contains('on')).map(b => b.dataset.v)")
+    n = L("etf.list.tab")
+    for cv in cats[:n]:
+        pg.click(f"#etfCatSeg button[data-v='{cv}']"); pg.wait_for_timeout(250)
+    on0 = pg.evaluate("() => (document.querySelector('#etfCatSeg button.on') || {}).dataset ? document.querySelector('#etfCatSeg button.on').dataset.v : ''")
+    pg.click(f"#etfCatSeg button[data-v='{cats[n]}']"); pg.wait_for_timeout(300)
+    m = _gp_blocked(pg, "etf.list.tab")
+    ok(f"{T}【{tag}】ETF 一覽分類分頁 {n} 次內可切、第 {n + 1} 次擋下（分類不動）",
+       bool(m) and pg.evaluate("() => (document.querySelector('#etfCatSeg button.on') || {dataset:{}}).dataset.v || ''") == on0, (on0, m))
+    n = L("etf.list.filter")
+    opts = ["size", "yield", "chg"]
+    for v in opts[:n]:
+        pg.select_option("#etfSort", v); pg.wait_for_timeout(200)
+    pg.select_option("#etfSort", opts[n]); pg.wait_for_timeout(300)
+    m = _gp_blocked(pg, "etf.list.filter")
+    ok(f"{T}【{tag}】ETF 一覽篩選 {n} 次內可換、第 {n + 1} 次擋下（選單退回）",
+       bool(m) and pg.input_value("#etfSort") == (opts[n - 1] if n else "tv"), (m, pg.input_value("#etfSort")))
+    if who is None:
+        ok(f"{T}【訪客】ETF 一覽、報酬比較 → 鎖頭卡（次數 0＝會員功能）",
+           bool(wait_until(pg, "() => !!document.querySelector('#etfListCard[data-plk]') && !!document.querySelector('#etfRetCard[data-plk]')", 5000)))
+        shot(pg, "6_etf_list_locked.png")
+        # 上方三卡：每開一個分頁算一次（view），第 4 個分頁蓋卡
+        lim3 = L("etf.top3"); ps = []
+        already = len(pg.evaluate("() => TwQuota.used('etf.top3')"))   # 這個分頁剛剛已經看過一次
+        for i in range(lim3 - already + 1):
+            p2 = c.new_page(); p2.on("pageerror", lambda e: errs.append(str(e))); ps.append(p2)
+            p2.goto(base + "#etf/list", wait_until="domcontentloaded")
+            wait_until(p2, "() => { const t = document.getElementById('etfTri'); return !!t && !t.hidden && t.getClientRects().length > 0; }", 12000)
+            p2.wait_for_timeout(900)
+        ok(f"{T}【訪客】ETF 上方三卡 前 {lim3} 次（每開一個分頁算一次）可看、第 {lim3 + 1} 次蓋「今日已用完」卡",
+           not ps[-2].evaluate("() => !!document.querySelector('#etfTri[data-qlk]')") and bool(wait_until(ps[-1], "() => !!document.querySelector('#etfTri[data-qlk]')", 5000)), already)
+        shot(ps[-1], "7_etf_top3_blocked.png")
+        for p2 in ps: p2.close()
+    else:
+        n = feats["etf.returns.n"]
+        pg.click("#etfCmpDD .ddbtn"); wait_until(pg, "() => document.querySelectorAll('#etfCmpDD .ddlist input[type=checkbox]').length > 6", 4000)
+        cur = pg.evaluate("() => document.querySelectorAll('#etfCmpDD .ddlist input[type=checkbox]:checked').length")
+        unc = pg.locator("#etfCmpDD .ddlist input[type=checkbox]:not(:checked)")
+        for i in range(max(0, n - cur)):
+            unc.nth(0).click(); pg.wait_for_timeout(200)
+        pg.locator("#etfCmpDD .ddlist input[type=checkbox]:not(:checked)").nth(0).click(); pg.wait_for_timeout(300)
+        m = _gp_blocked(pg, "etf.returns.n")
+        ok(f"{T}【{tag}】報酬比較 最多 {n} 檔、第 {n + 1} 檔勾不起來＋升級卡",
+           bool(m) and pg.evaluate("() => document.querySelectorAll('#etfCmpDD .ddlist input[type=checkbox]:checked').length") == n, (m, cur))
+    _gp_go(pg, "#etf/inc", "() => !!document.querySelector('#etfInc[data-plk]')", 8000)
+    ok(f"{T}【{tag}】ETF 現金流試算 → 「此功能需開通」卡（只給付費會員）", pg.evaluate("() => !!document.querySelector('#etfInc[data-plk] .qcard')"))
+    if who is None: shot(pg, "8_etf_cashflow_locked.png")
+
+    # ⑩ 熱力圖點擊跳頁（heat.link）：總覽「熱門題材」選一個題材 → 點成分股方塊，不跳頁、跳升級卡、游標不是手指
+    _hm_overview_click(pg, T, tag, expect_nav=False, shot=shot if who is None else None)
+    c.close()
+
+
+def _hm_overview_click(pg, T, tag, expect_nav, shot=None):
+    pg.evaluate("() => { location.hash = '#overview'; }")
+    wait_until(pg, "() => !!document.querySelector('#ovThemeDD .ddbtn') && !!document.querySelector('#ovTheme canvas')", 15000)
+    pg.click("#ovThemeDD .ddbtn"); pg.wait_for_timeout(200)
+    pg.locator("#ovThemeDD .ddopt[data-t]:not([data-t=''])").first.click(); pg.wait_for_timeout(900)
+    pg.locator("#ovTheme").scroll_into_view_if_needed(); pg.wait_for_timeout(300)
+    bx = pg.locator("#ovTheme canvas").first.bounding_box()
+    x, y = bx["x"] + bx["width"] * 0.2, bx["y"] + bx["height"] * 0.35
+    pg.mouse.move(x, y); pg.wait_for_timeout(300)
+    cur = pg.evaluate("([x, y]) => { const e = document.elementFromPoint(x, y); return e ? getComputedStyle(e).cursor : 'none'; }", [x, y])
+    tip = pg.evaluate("() => [...document.querySelectorAll('div')].some(d => /z-index: ?9999/.test(d.getAttribute('style') || '') && d.style.display !== 'none' && d.innerText.trim().length > 0)")
+    pg.mouse.click(x, y); pg.wait_for_timeout(700)
+    h = pg.evaluate("() => location.hash")
+    if expect_nav:
+        ok(f"{T}【{tag}】熱力圖 點成分股方塊 → 跳到個股頁（{h}）", h.startswith("#stock/"), h)
+    else:
+        m = _gp_blocked(pg, "heat.link", closing=False)
+        ok(f"{T}【{tag}】熱力圖 滑過有提示框、游標不是手指；點方塊 → hash 不變（#overview）、跳「點擊熱力圖跳到族群／題材頁是付費會員功能」",
+           h == "#overview" and bool(m) and "付費會員功能" in m and cur != "pointer" and tip, (h, m, cur, tip))
+        if shot: shot(pg, "9_heat_link_blocked.png")
+        pg.evaluate(GP_CLOSE)
+
+
+def t_guest_perm_1008(b, base, code):
+    T = "訪客權限1008"
+    errs: list[str] = []
+    sh = os.environ.get("TW_GP_SHOTS")
+    shot = (lambda pg, n: pg.screenshot(path=str(pathlib.Path(sh) / n))) if sh else (lambda pg, n: None)
+    PR = _gp_presets()
+    # ① 訪客：範本原值
+    _gp_suite(b, base, T, None, dict(PR["guest"]["feats"]), dict(PR["guest"]["lims"]), errs, shot, "訪客")
+    # ② 註冊會員：動作計次覆寫成 1（不必點十幾下），同時選取上限用範本原值；鎖 0 的項目照範本
+    fl = dict(PR["free"]["lims"])
+    for k in GP_ACT + ["heat.detail", "ind.groups"]:
+        fl[k] = 1
+    _gp_suite(b, base, T, "member", dict(PR["free"]["feats"]), fl, errs, shot, "註冊會員")
+
+    # ③ Plus：熱力圖點了會跳頁；站主：同一套操作不受限
+    c, sent, st = _sub_ctx(b, "member", feats=dict(PR["plus"]["feats"]), lims=dict(PR["plus"]["lims"]))
+    pg = c.new_page(); pg.on("pageerror", lambda e: errs.append(str(e)))
+    pg.goto(base + "#overview", wait_until="domcontentloaded")
+    wait_until(pg, "() => window.TwPerm && TwPerm.state().src === 'server'", 12000)
+    ok(f"{T}【Plus】熱力圖點擊跳頁開著", pg.evaluate("() => TwQuota.heatLinkOk()"))
+    _hm_overview_click(pg, T, "Plus", expect_nav=True)
+    c.close()
+    c, sent, st = _sub_ctx(b, "member", feats=dict(PR["guest"]["feats"]), lims=dict(PR["guest"]["lims"]), owner=True)
+    pg = c.new_page(); pg.on("pageerror", lambda e: errs.append(str(e)))
+    pg.goto(base + "#heatmap/theme", wait_until="domcontentloaded")
+    ok(f"{T}【站主】即使範本是訪客的值，所有上限都是不限",
+       bool(wait_until(pg, "() => window.TwPerm && TwPerm.owner() && TwQuota.heatLinkOk() && ['mkt.grp.pick','explore.list.n','mkt.cand.n'].every(k => TwQuota.pick(k) === Infinity) && TwPerm.lim('flow.sankey.drill') === Infinity", 12000)))
+    tids = pg.evaluate("async () => { const r = await fetch('data/themes.json'); const j = await r.json(); return (j.themes || []).map(t => t.id); }")
+    for t in tids[:5]:
+        pg.evaluate("(t) => { location.hash = '#heatmap/theme/' + t; }", t); pg.wait_for_timeout(300)
+    ok(f"{T}【站主】連開 5 個題材都打得開、沒跳卡", pg.evaluate("() => decodeURIComponent(location.hash)") == "#heatmap/theme/" + tids[4] and not pg.evaluate(GP_MODAL))
+    c.close()
+
+    # ④ 管理權限頁：訪客範本看得到所有新設定；改訪客「題材剖析」每日次數成 1 → 存檔 → 那個值真的擋第 2 個題材
+    c, sent, st = _adm3_ctx(b)
+    pg = c.new_page(); pg.on("pageerror", lambda e: errs.append(str(e)))
+    pg.goto(base + "#admin/perm", wait_until="domcontentloaded")
+    wait_until(pg, "() => !!document.querySelector(\"#ptTier button[data-tier='guest']\")", 12000)
+    pg.click("#ptTier button[data-tier='guest']")
+    wait_until(pg, "() => !!document.querySelector(\"#pmCats [data-limb='flow.sankey.drill']\") && !document.querySelector(\"#pmCats [data-limb='flow.sankey.drill']\").disabled", 8000)
+    acts = GP_ACT + ["etf.top3"]
+    picks = ["mkt.grp.pick", "explore.list.n", "mkt.cand.n", "etf.returns.n"]
+    have = pg.evaluate("([a, p]) => ({ a: a.filter(k => !document.querySelector(`#pmCats [data-limb='${k}']`)), p: p.filter(k => !document.querySelector(`#pmCats select[data-f='${k}']`)),"
+                       " sw: ['etf.cashflow','heat.link'].filter(k => !document.querySelector(`#pmCats input[data-f='${k}']`)), pv: p.map(k => document.querySelector(`#pmCats select[data-f='${k}']`).value),"
+                       " hl: document.querySelector(\"#pmCats input[data-f='heat.link']\").checked })", [acts, picks])
+    ok(f"{T}【管理】訪客範本：8 個動作計次有「每日次數」徽章、4 個同時選取上限下拉（預設 5／5／3／0）、現金流試算與熱力圖點擊跳頁兩個開關（跳頁預設關）",
+       not have["a"] and not have["p"] and not have["sw"] and have["pv"] == ["5", "5", "3", "0"] and have["hl"] is False, have)
+    pg.evaluate("() => document.querySelector(\"#pmCats [data-limb='flow.sankey.drill']\").scrollIntoView({ block: 'center' })"); pg.wait_for_timeout(200)
+    shot(pg, "10_admin_flow.png")
+    pg.evaluate("() => document.querySelector(\"#pmCats select[data-f='mkt.grp.pick']\").scrollIntoView({ block: 'center' })"); pg.wait_for_timeout(200)
+    shot(pg, "11_admin_market.png")
+    pg.evaluate("() => document.querySelector(\"#pmCats input[data-f='etf.cashflow']\").scrollIntoView({ block: 'center' })"); pg.wait_for_timeout(200)
+    shot(pg, "12_admin_etf.png")
+    pg.click("#pmCats [data-limb='heat.detail']")
+    pg.fill("#pmCats input[data-lim='heat.detail']", "1")
+    pg.click("#pmCats .pmlimpop button[data-limok]")
+    pg.uncheck("#pmCats input[data-f='etf.cashflow']") if pg.is_checked("#pmCats input[data-f='etf.cashflow']") else None
+    with pg.expect_response(lambda r: "/v1/admin/plans/put" in r.url, timeout=6000) as ri:
+        pg.click("#pmSaveGo")
+    body = json.loads(ri.value.request.post_data or "{}")
+    ok(f"{T}【管理】改訪客「題材剖析圖」每日次數 1 → 存檔送出 lims.heat.detail＝1（訪客範本的次數可以編輯）",
+       body.get("id") == "guest" and (body.get("lims") or {}).get("heat.detail") == 1, body)
+    pg.click("#ptTier button[data-tier='free']"); pg.wait_for_timeout(500)
+    fv = pg.evaluate("(p) => p.map(k => (document.querySelector(`#pmCats select[data-f='${k}']`) || {}).value)", picks)
+    ok(f"{T}【管理】註冊會員範本 同時選取上限預設 10／20／10／3", fv == ["10", "20", "10", "3"], fv)
+    c.close()
+    c, sent, st = _sub_ctx(b, None, feats={}, lims={"heat.detail": body.get("lims", {}).get("heat.detail", 1)})
+    pg = c.new_page(); pg.on("pageerror", lambda e: errs.append(str(e)))
+    pg.goto(base + "#heatmap/theme", wait_until="domcontentloaded")
+    wait_until(pg, "() => window.TwPerm && TwPerm.state().src === 'server' && TwPerm.lim('heat.detail') === 1", 12000)
+    tids = pg.evaluate("async () => { const r = await fetch('data/themes.json'); const j = await r.json(); return (j.themes || []).map(t => t.id); }")
+    pg.evaluate("(t) => { location.hash = '#heatmap/theme/' + t; }", tids[0]); pg.wait_for_timeout(500)
+    a1 = pg.evaluate("() => decodeURIComponent(location.hash)")
+    pg.evaluate("(t) => { location.hash = '#heatmap/theme/' + t; }", tids[1]); pg.wait_for_timeout(600)
+    m = _gp_blocked(pg, "heat.detail")
+    ok(f"{T}【管理】改成 1 之後 → 第 1 個題材打得開、第 2 個就被擋（1/1）", a1 == "#heatmap/theme/" + tids[0] and bool(m) and "1/1" in m and pg.evaluate("() => location.hash") == "#heatmap/theme", (a1, m))
+    c.close()
+    ok(f"{T}：整段沒有 JS 錯誤", not errs, errs[:3])
 
 
 # ===================================================================== 套用建議方案（正式站狀態）＋範本會員名單1007
@@ -51765,7 +52554,7 @@ def t_member_perm(b, base, code):
         ad.press("#pmEmail", "Enter")
         wait_until(ad, "() => /尚未登入過/.test((document.getElementById('pmWho') || {}).textContent || '')", 6000)
         ok(f"{T}：輸入 email 讀取（大小寫不分）→ 顯示「尚未登入過」與目前方案", PERM_TEST_EMAIL in ad.inner_text("#pmWho") and "免費會員" in ad.inner_text("#pmWho"), ad.inner_text("#pmWho"))
-        ok(f"{T}：讀到人之後開關可以撥、全部預設開啟", ad.evaluate("() => [...document.querySelectorAll('#pmCats input[role=switch]')].every(i => !i.disabled && i.checked)"))
+        ok(f"{T}：讀到人之後開關可以撥、全部預設開啟（熱力圖點擊跳頁例外：權限矩陣 1008 訪客／註冊會員預設關）", ad.evaluate("() => [...document.querySelectorAll('#pmCats input[role=switch]')].every(i => !i.disabled && (i.checked || i.dataset.f === 'heat.link'))"))
 
         def save(pg=None):
             """2026-10-04 起撥開關只是草稿，按底部「儲存」才送 perm/put；回傳那一次的回應"""
@@ -51845,7 +52634,7 @@ def t_member_perm(b, base, code):
         ad.select_option("#pmPlan", tp_plan.get("id", ""))
         save()
         wait_until(ad, "() => /付費測試/.test(document.getElementById('pmWho').textContent)", 5000)
-        ok(f"{T}：會員管理把測試帳號指定到「付費測試」→ 已儲存、個別微調保留", "付費測試" in ad.inner_text("#pmWho") and "個別微調 9 項" in ad.inner_text("#pmWho")
+        ok(f"{T}：會員管理把測試帳號指定到「付費測試」→ 已儲存、個別微調保留（11 項：權限矩陣 1008 資金流向多了 2 個次數項，整組撥動時一起算）", "付費測試" in ad.inner_text("#pmWho") and "個別微調 11 項" in ad.inner_text("#pmWho")
            and ad.evaluate("() => !document.querySelector(\"#pmCats input[data-f='ov.heat']\").checked"), ad.inner_text("#pmWho"))
         to_perm(ad)
         wait_until(ad, "() => location.hash === '#admin/perm' && !!document.getElementById('ptTier') && document.querySelectorAll('#pmCats .pmcat').length > 0", 10000)
@@ -52004,7 +52793,7 @@ def t_member_perm(b, base, code):
         gp.goto(base + f"#stock/{code}", wait_until="domcontentloaded")
         perm_ready(gp)
         gp.wait_for_timeout(800)
-        ok(f"{T}：訪客（訪客範本是空的）畫面上一個鎖頭都沒有", gp.evaluate("() => TwPerm.state().who === 'guest' && TwPerm.locked().length === 0 && !document.querySelector('[data-plk],[data-plkb]')"),
+        ok(f"{T}：訪客（訪客範本是空的）畫面上一個鎖頭都沒有", gp.evaluate("() => TwPerm.state().who === 'guest' && TwPerm.locked().filter(k => k !== 'heat.link').length === 0 && !document.querySelector('[data-plk],[data-plkb]')"),
            gp.evaluate("() => [TwPerm.state(), TwPerm.locked()]"))
         cg.close()
         ct.close(); ca.close()

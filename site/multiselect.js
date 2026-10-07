@@ -157,19 +157,24 @@
       qi.addEventListener('input', () => { mem.q = qi.value.trim(); filter(); });
       qi.addEventListener('focus', () => { mem.focusQ = true; });
       qi.addEventListener('blur', () => { mem.focusQ = false; });
-      pan.querySelector('.twms-all').onclick = () => { visible().forEach((it) => sel.add(it.v)); syncChecks(); emit(); };
+      /* 2026-10-08 cfg.max（數字或函式）：同時最多勾幾個（市場明細族群篩選的方案上限）。超過 → 勾不起來、叫 cfg.onMax(上限) 跳提示 */
+      const capN = () => { const m = typeof cfg.max === 'function' ? cfg.max() : cfg.max; return Number.isFinite(m) && m >= 0 ? m : Infinity; };
+      const addCap = (v) => { if (sel.has(v)) return true; if (sel.size >= capN()) return false; sel.add(v); return true; };
+      const hitMax = () => { if (cfg.onMax) cfg.onMax(capN()); };
+      pan.querySelector('.twms-all').onclick = () => { let full = false; visible().forEach((it) => { if (!addCap(it.v)) full = true; }); syncChecks(); emit(); if (full) hitMax(); };
       pan.querySelector('.twms-clr').onclick = () => { if (!sel.size) return; sel.clear(); syncChecks(); emit(); };
       lst.addEventListener('change', (e) => {
         const c = e.target; if (!c || c.type !== 'checkbox' || c.dataset.v == null) return;
-        if (c.checked) sel.add(c.dataset.v); else sel.delete(c.dataset.v);
+        if (c.checked) { if (!addCap(c.dataset.v)) { c.checked = false; hitMax(); return; } } else sel.delete(c.dataset.v);
         syncChecks(); emit();
       });
       lst.addEventListener('click', (e) => {
         const h = e.target.closest('.twms-gh'); if (!h) return;
         const vis = visible().filter((it) => (it.g || '') === h.dataset.g);
         const allOn = vis.length && vis.every((it) => sel.has(it.v));
-        vis.forEach((it) => { if (allOn) sel.delete(it.v); else sel.add(it.v); });
-        syncChecks(); emit();
+        let full = false;
+        vis.forEach((it) => { if (allOn) sel.delete(it.v); else if (!addCap(it.v)) full = true; });
+        syncChecks(); emit(); if (full) hitMax();
       });
       lst.addEventListener('scroll', () => { mem.top = lst.scrollTop; }, { passive: true });
       pan.addEventListener('keydown', (e) => { if (e.key === 'Escape') { e.stopPropagation(); close(); btn.focus(); } });

@@ -97,7 +97,8 @@ def test_fetch_all_one_issuer_crash_does_not_kill_others(monkeypatch):
 
 
 def test_skip_non_equity_and_dates():
-    assert etf_pcf._skip_code("00679B") and etf_pcf._skip_code("00631L") and not etf_pcf._skip_code("00981A")
+    # 2026-10-08 起債券型（B）要收（Andy：所有 ETF 都要有成分股），只跳槓桿反向／期貨型
+    assert not etf_pcf._skip_code("00679B") and etf_pcf._skip_code("00631L") and not etf_pcf._skip_code("00981A")
     assert etf_pcf._iso("115/10/06") == "2026-10-06" and etf_pcf._iso("20261006") == "2026-10-06"
     assert etf_pcf._iso("/Date(1791216000000)/") == "2026-10-06"
     assert etf_pcf.issuer_of("主動統一台股增長") == "統一" and etf_pcf.issuer_of("中信綠能及電動車") == "中國信託"
