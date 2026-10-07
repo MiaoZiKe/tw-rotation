@@ -1956,6 +1956,53 @@ def t_etf_hold_1007(pg, b, base):
             lp.close()
 
 
+def t_etf_groups_1007(pg, b, base):
+    """2026-10-07 Andy：「每個分頁不同類型 ETF，下方 ETF 也需要按照類型排序，可以參考配息型那分頁」。
+    每個非配息型分頁：按「顯示更多」到底 → 有子類型小標題、各組檔數加總＝分頁檔數、組順序符合 sgOrder()、
+    卡片順序跟組一致、卡片左色條＝組色；配息型仍是頻率分組（沒有子類型標題）。"""
+    T = "ETF分類分組1007"
+    lp = pg.context.browser.new_page(viewport={"width": 1440, "height": 1000})
+    lp.on("pageerror", lambda e: fails.append(f"{T} pageerror: {e}"))
+    lp.route("**/fonts.googleapis.com/**", lambda r: r.abort())
+    J = lambda js, *a: lp.evaluate(js, *a)
+    try:
+        lp.goto(f"{base}#etf", wait_until="networkidle")
+        wait_until(lp, "() => document.querySelector('#v-etf') && document.querySelector('#v-etf').dataset.ready === 'full'", 20000)
+        lp.wait_for_timeout(500)
+        exp = {"市值型": ["台股大型", "中小型", "海外市場"], "主題型": ["半導體", "AI 與科技", "ESG 永續", "電動車與綠能", "金融", "高股息主題", "產業其他", "海外主題"],
+               "主動式": ["債券型主動", "股票型主動"], "債券型": ["高收益債", "新興市場債", "美國公債・長天期", "美國公債・中天期", "美國公債・短天期", "投資等級公司債"],
+               "其他": ["商品", "REITs"]}
+        lev = [d + "・" + u for d in ("正 2 槓桿", "反 1", "反向其他") for u in ("台股", "美股", "陸港股", "其他海外股", "美債", "商品", "匯率", "其他")]
+        for cat in ("市值型", "主題型", "主動式", "債券型", "槓桿反向", "其他"):
+            lp.click(f"#etfCatSeg button[data-v='{cat}']"); lp.wait_for_timeout(400)
+            for _ in range(10):
+                if J("() => document.querySelector('#etfMore').hidden"): break
+                lp.click("#etfMore"); lp.wait_for_timeout(250)
+            g = J("""() => { const hs = [...document.querySelectorAll('#etfGrid .sghd')].map(h => [h.dataset.sg, +h.querySelector('small').textContent.replace(/\D/g, '')]);
+                const cs = [...document.querySelectorAll('#etfGrid > *')]; let cur = null; const seq = [], bad = [];
+                cs.forEach(e => { if (e.classList.contains('sghd')) cur = e.dataset.sg; else if (e.classList.contains('etfc')) { seq.push(cur);
+                  const h = [...document.querySelectorAll('#etfGrid .sghd')].find(x => x.dataset.sg === cur);
+                  if (e.dataset.sg !== cur || getComputedStyle(e).borderLeftColor !== getComputedStyle(h.querySelector('i')).backgroundColor) bad.push(e.dataset.code); } });
+                const cnt = {}; seq.forEach(k => cnt[k] = (cnt[k] || 0) + 1);
+                const n = +(document.querySelector('#etfCount').textContent.match(/(\d+) 檔/) || [0, 0])[1];
+                const col = [...document.querySelectorAll('#etfGrid .sghd i')].map(i => getComputedStyle(i).backgroundColor);
+                return { hs, cnt, n, bad, ncard: seq.length, col }; }""")
+            order = (lev if cat == "槓桿反向" else exp[cat]) + ["其他"]
+            names = [h[0] for h in g["hs"]]
+            ok(f"★ [{T}] {cat}：有子類型小標題（{len(names)} 組：{'、'.join(names)}）", len(names) >= 2, g["hs"])
+            ok(f"★ [{T}] {cat}：各組檔數加總＝分頁檔數 {g['n']}", g["n"] > 0 and sum(h[1] for h in g["hs"]) == g["n"] == g["ncard"], g)
+            ok(f"[{T}] {cat}：標題寫的檔數＝實際組內卡片數", all(g["cnt"].get(k) == v for k, v in g["hs"]), g)
+            ok(f"★ [{T}] {cat}：組順序符合 docs/etf_subgroups.md、「其他」最後", all(k in order for k in names) and names == sorted(names, key=order.index), names)
+            ok(f"[{T}] {cat}：每張卡片的左色條＝所屬組的組色", not g["bad"], g["bad"][:5])
+            red = J("() => ['--rise','--fall'].map(v => getComputedStyle(document.documentElement).getPropertyValue(v).trim())")
+            ok(f"[{T}] {cat}：組色條有顏色、不是漲跌色", g["col"] and all(c not in red and c != 'rgba(0, 0, 0, 0)' for c in g["col"]), (g["col"], red))
+        lp.click("#etfCatSeg button[data-v='配息型']"); lp.wait_for_timeout(400)
+        d = J("() => ({ fq: document.querySelectorAll('#etfGrid .fqhd:not(.sghd)').length, sg: document.querySelectorAll('#etfGrid .sghd, #etfGrid .sgbar').length })")
+        ok(f"★ [{T}] 配息型行為不變：仍是頻率分組、沒有子類型標題或標籤", d["fq"] >= 3 and d["sg"] == 0, d)
+    finally:
+        lp.close()
+
+
 def t_etf_1005(pg, b, base):
     """ETF 專區第二版（2026-10-05 Andy：行事曆放最上且是真月曆、分類頁三張前 5 並排同高、自選比較清單、填息天數）。
 
@@ -25218,6 +25265,7 @@ SECTIONS = {
     "下拉篩選1006":        lambda pg, b, base, code: t_msel_1006(pg, b, base),
     # ★ 2026-10-05 Andy：ETF 專區＋ETF 個股頁分頁（⚠ 一律 --workers 1）
     "ETF專區1005":         lambda pg, b, base, code: t_etf_1005(pg, b, base),
+    "ETF分類分組1007":     lambda pg, b, base, code: t_etf_groups_1007(pg, b, base),
     # ★ 2026-10-07 Andy：ETF 成分股分頁「左個股清單、右權重甜甜圈」；無股票成分顯示說明卡
     "ETF成分股1007":       lambda pg, b, base, code: t_etf_hold_1007(pg, b, base),
     "ETF報酬比較1006":     lambda pg, b, base, code: t_etf_ret_1006(pg, b, base),
