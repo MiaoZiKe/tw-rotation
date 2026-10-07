@@ -23178,6 +23178,26 @@ def t_admin_only_1007(b, base):
         if who == "subadmin":
             ok(f"★ [{T}] 一般管理者硬打刪除範本端點 → 403", r == 403, r)
         cx.close()
+
+    # ⑥ 10-07 16:30 Andy：「將我把 kcq01010909 帳號設為最高管理權限，他不會需要被限制」
+    #    範本：功能全關（ov.heat 關、個股 AI 次數 0）、自選上限 1 頁 1 檔 → 擁有者全部可用；一般管理者照範本鎖（對照組）
+    LOCK = {"ov.heat": False, "watch.tabs": 1, "watch.size": 1}
+    for who in ("admin", "subadmin"):
+        cx, _sent, _st = _adm3_ctx(b, who=who, feats=LOCK, lims={"stock.ai": 0})
+        px = cx.new_page(); px.on("pageerror", lambda e: errs.append(str(e)[:200]))
+        px.goto(base + "#overview", wait_until="domcontentloaded")
+        wait_until(px, "() => window.TwPerm && TwPerm.state().src === 'server' && window.TwAccount && TwAccount.user()", 12000)
+        px.wait_for_timeout(500)
+        r = px.evaluate("""() => ({ heat: TwPerm.can('ov.heat'), ai: TwPerm.can('stock.ai'), aiLim: TwPerm.lim('stock.ai'), all: TwPerm.lim('quota.all'),
+            tabs: TwPerm.limit('watch.tabs', 1), size: TwPerm.limit('watch.size', 1), locked: TwPerm.locked().length, owner: TwPerm.owner() })""")
+        if who == "admin":
+            ok(f"★ [{T}] 擁有者：範本功能全關／次數 0／自選 1 頁 1 檔 → 仍全部可用（沒有鎖頭、次數不限、自選上限是最大值）",
+               r["owner"] and r["heat"] and r["ai"] and r["aiLim"] == float("inf") and r["all"] == float("inf") and r["tabs"] > 1 and r["size"] > 1 and r["locked"] == 0, r)
+            ring = px.evaluate("() => { const e = document.getElementById('twQRing'); return !!(e && !e.hidden && e.getClientRects().length); }")
+            ok(f"[{T}] 擁有者：剩餘次數圓圈不顯示", not ring, ring)
+        else:
+            ok(f"[{T}] 對照組一般管理者：同一個範本照樣上鎖（ov.heat 關、個股 AI 次數 0）", not r["owner"] and not r["heat"] and not r["ai"] and r["locked"] >= 1, r)
+        cx.close()
     ok(f"[{T}] 全程沒有 pageerror", not errs, errs[:3])
 
 

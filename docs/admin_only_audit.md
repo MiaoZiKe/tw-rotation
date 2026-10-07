@@ -71,3 +71,23 @@ Andy（10-07 14:50）：「拖曳功能，只有帳號可以使用，任何可�
 | 新增／移除管理者 | ✅ | ❌ 看不到按鈕，硬打 403 | ❌ | **擁有者限定** |
 
 側欄與頂層導覽本身沒有「刪除分頁」的操作；全站可拖曳的分頁也都沒有刪除。
+
+## 2026-10-07 16:30 追加：擁有者豁免所有限制（Andy：「將我把 kcq01010909 帳號設為最高管理權限，他不會需要被限制」）
+
+擁有者＝`ADMIN_EMAILS`（Andy 的帳號）。判定在 Worker，前端讀 `/v1/me` 的 `owner` 旗標。
+
+| 項目 | 原本怎麼判定 | 擁有者現在 | 一般管理者現在 | 檔案 |
+|---|---|---|---|---|
+| 功能開關鎖頭（範本關掉的功能） | perm.js 照 `/v1/perm/me` 的 feats 上鎖，**沒有任何管理者判定** ← Andy 被鎖的原因 | ✅ 豁免（前端 `owner()` 一律可用；Worker `/v1/perm/me` 對擁有者回全開） | ❌ 照範本 | site/perm.js、worker.js 檔尾 |
+| 族群觀測（grp.*） | perm.js | ✅ 豁免 | ❌ 照範本 | site/perm.js |
+| 每項功能每日次數（lims） | quota.js 讀 `TwPerm.lim`；伺服器 `/v1/quota/hit` | ✅ 豁免（前端 Infinity；伺服器原本就跳過管理者） | 伺服器豁免、前端照範本（**待 CEO 決定**） | site/quota.js、site/perm.js、worker.js |
+| 全站每日額度 quota.all（dq）與剩餘次數圓圈 | 同上＋圓圈在 all＝Infinity 時隱藏 | ✅ 豁免、圓圈不顯示 | 同上（待決定） | site/quota.js |
+| 自選分頁數／每頁檔數 | watchlists.js 讀 `TwPerm.limit`；伺服器 `/v1/lists/put` 依範本 | ✅ 豁免（前端給最大值；伺服器原本就給管理者硬上限 50 頁／200 檔） | 伺服器豁免、前端照範本（待決定） | site/watchlists.js、worker.js（watch-v2） |
+| data-gw 每日額度／功能權杖 | 換權杖時讀 `/v1/perm/me`；`me.user.admin` 不收 dq／lims | ✅ 豁免（perm/me 全開＋原本的管理者豁免） | ✅ 原本就豁免 dq／lims；feats 照範本 | workers/data-gw/worker.js |
+| data-gw 裝置數上限 | `!me.user.admin` 才檢查 | ✅ 豁免 | ✅ 豁免（原本） | workers/data-gw/worker.js |
+| 異常停權（/internal/suspend） | `isAdmin(u)` → 409 不停 | ✅ 豁免 | ✅ 豁免（原本） | worker.js（停權區塊） |
+| 限流 | 心跳每 IP 每分鐘 240 次（全站共用），沒有針對個人的其他限流 | 不影響正常使用（沒改） | 同左 | worker.js `RATE_PER_MIN` |
+| 盤中即時閘門 | livegate.js：`admin === true` | ✅ | ✅（原本） | site/livegate.js |
+| 管理區導覽 | `admin` 旗標 | ✅ | ✅ | site/layout4.js |
+
+驗收：`node --test`（擁有者在「功能全關＋額度 0＋自選 1 頁 1 檔」範本下 perm/me 全開、quota/hit 不 over、lists/put 200；一般會員同範本被擋）；`_uitest 管理權限1007` ⑥（擁有者 TwPerm 全可用、圓圈不顯示；一般管理者對照組照樣上鎖）。
