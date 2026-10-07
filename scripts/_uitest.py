@@ -7893,6 +7893,8 @@ def t_flow_tree_play_1007(pg, base):
                  tc: getComputedStyle(s.querySelector('.skr-t')).color, nc: r ? getComputedStyle(r.querySelector('.n b')).color : '',
                  bg: getComputedStyle(s).backgroundColor, op, gray,
                  playing: document.getElementById('sankeyDays').classList.contains('playing') }; }"""
+    # 前面的段落可能把拉Bar 停在中間某天（tw.sankey.day 會記住）；「最新日期」一定要在最後一格量
+    pg.focus("#sankeyDays input"); pg.keyboard.press("End"); pg.wait_for_timeout(700)
     rest = pg.evaluate(SNAP)
     if not ok("[播放同步] 右欄排名表在靜止時出現", bool(rest) and bool(rest["title"]), rest):
         return
@@ -7916,7 +7918,7 @@ def t_flow_tree_play_1007(pg, base):
        {"靜止": (rest["tc"], rest["nc"], rest["bg"]), "不同": bad_col[:3]})
     pg.focus("#sankeyDays input"); pg.keyboard.press("End"); pg.wait_for_timeout(700)
     end = pg.evaluate(SNAP)
-    ok("[播放同步] 暫停後回到最新一天：右欄標題＝最新日期", bool(end) and end["title"] == latest and end["v"] == end["max"], end)
+    ok("[播放同步] 暫停後回到最新一天：右欄標題＝最新日期", bool(end) and end["title"] == latest and end["v"] == end["max"], (latest, end))
     # 故障注入：樹的繪圖引擎丟例外（模擬線上資料某一天讓樹那段出錯），右欄仍要跟著拉桿換日。
     # 舊版右欄排在 renderSankey 最尾端，前面一丟例外右欄就停在上一天 —— 這一條在舊版是紅的。
     if pg.evaluate("() => !!(window.FlowTopo && window.FlowTopo.render)"):
@@ -8154,9 +8156,16 @@ def t_player_1007(pg, base):
         pg.click(sel + " .pb.play"); pg.wait_for_timeout(1500)
         s1 = st(sel)
         ok(f"[{tag}] ① 按 ▶ 之後日期真的變了、鈕變 ⏸", s1["t"] != s0["t"] and s1["play"] == "⏸" and s1["on"], (s0, s1))
+        # ★ 2026-10-08（Andy：「播放後 拉bAR 需要反灰色 不可控制」）：播放中拉桿反灰停用，拖不動、照樣在播；
+        #   要調日期先按 ⏸ 再拖（取代原本「播放中拖拉桿 → 自動暫停」）
+        drag_to(sel, 0.3)
+        sd = st(sel)
+        ok(f"[{tag}] ② 播放中拉桿停用：拖不動、照樣在播（⏸）", sd["play"] == "⏸" and sd["on"]
+           and pg.evaluate("(s) => document.querySelector(s + ' input').disabled", sel), sd)
+        pg.click(sel + " .pb.play"); pg.wait_for_timeout(250)
         drag_to(sel, 0.3)
         s2 = st(sel)
-        ok(f"[{tag}] ② 播放中拖拉桿 → 自動暫停（鈕回 ▶）", s2["play"] == "▶" and not s2["on"], s2)
+        ok(f"[{tag}] ② 按 ⏸ 後拖拉桿 → 停在拖到的位置（鈕是 ▶）", s2["play"] == "▶" and not s2["on"], s2)
         pg.wait_for_timeout(900)
         s2b = st(sel)
         ok(f"[{tag}] ② 暫停後停在拖到的位置（不再自己跑）", s2b["t"] == s2["t"] and s2b["v"] == s2["v"], (s2, s2b))
@@ -8190,9 +8199,11 @@ def t_player_1007(pg, base):
             r = st(sel)
             ok(f"[{tag}] ⑤ 在最後一格按 ▶ → 從頭播（值回到最前面）", r["v"] < mx and r["v"] <= mn + 2 and r["play"] == "⏸", (e, r, mn, mx))
             # 播放中按方向鍵＝使用者自己選日期 → 要停（以前只有滑鼠拖會停，鍵盤會被播放一格一格蓋掉）
+            # 2026-10-08 起播放中拉桿停用（鍵盤也動不了）→ 先 ⏸，再用方向鍵選日期，要停在選的那一格
+            pg.click(sel + " .pb.play"); pg.wait_for_timeout(200)
             pg.focus(sel + " input"); pg.keyboard.press("ArrowRight"); pg.wait_for_timeout(200)
             k = st(sel); pg.wait_for_timeout(900); k2 = st(sel)
-            ok(f"[{tag}] 播放中按方向鍵 → 自動暫停、停在選的那一格", k["play"] == "▶" and k["v"] == k2["v"], (k, k2))
+            ok(f"[{tag}] ⏸ 後按方向鍵 → 停在選的那一格", k["play"] == "▶" and k["v"] == k2["v"], (k, k2))
         # ⑥ 播放中換頁 → 計時器停
         pg.click(sel + " .pb.play"); pg.wait_for_timeout(400)
         h0 = pg.evaluate("location.hash")
@@ -8221,6 +8232,7 @@ def t_player_1007(pg, base):
         pg.goto(f"{base}#flow", wait_until="networkidle"); pg.wait_for_timeout(2500)
         pg.locator("#rotBack").scroll_into_view_if_needed()
         pg.click("#rotBack .pb.play"); pg.wait_for_timeout(1000)
+        pg.click("#rotBack .pb.play"); pg.wait_for_timeout(200)   # 播放中拉桿停用（2026-10-08），先 ⏸ 再拖
         drag_to("#rotBack", 0.6)
         pg.click("#rotBack .pb.play"); pg.wait_for_timeout(1700)
         shot = os.environ.get("PLAY1007_SHOT")
@@ -8407,6 +8419,125 @@ def t_play_real_1007(b, base):
         ctx.close()
 
 
+def t_bar_tight_1008(b, base):
+    """拉Bar 排版1008（Andy 2026-10-08：「不是管理者 拿到即時功能是對的 但需要注意排版 這邊太寬了」「其他的也一併處理」）。
+    非管理者沒有「即時」鈕時，日期被 `.rbar .val{min-width:150px}` 推到最右邊、中間空一大段。
+    管理者（TW_LIVE_OVERRIDE）與非管理者各跑一輪，1440／800／390 三種寬，盤點全站拉Bar：
+    #rotBack（足跡輪盤）、#sankeyDays（資金分流樹）、#peEnd 與同卡的長度桿（本益比河流），
+    以及頁面上任何其他 .rbar。每一支量：同一列相鄰元件水平間距 ≤ 12px、1440 寬整組 ≤ 420px、不超出卡片、無橫向捲軸。"""
+    shot_dir = os.environ.get("BAR_TIGHT_SHOT", "")
+    MEASURE = """() => { const out = [];
+      document.querySelectorAll('.rbar').forEach(bar => {
+        const r = bar.getBoundingClientRect(); if (r.width < 2 || r.height < 2) return;
+        const kids = [...bar.children].filter(k => { const q = k.getBoundingClientRect(); return q.width > 0 && getComputedStyle(k).display !== 'none'; })
+          .map(k => { let q = k.getBoundingClientRect();
+            // 文字欄（.val／.t）量「字實際占的寬」，不是盒子寬 —— 盒子被 min-width 撐開時，空白就藏在盒子裡
+            if (k.matches('span') && k.textContent.trim()) { const rg = document.createRange(); rg.selectNodeContents(k); const tq = rg.getBoundingClientRect(); if (tq.width > 0) q = tq; }
+            return { l: q.left, r: q.right, t: Math.round(q.top + q.height / 2), c: k.className || k.tagName }; });
+        let gap = 0, at = '';
+        kids.forEach((a, i) => { kids.forEach((c, j) => { if (i === j || Math.abs(a.t - c.t) > 6 || c.l < a.r - 1) return;
+          if (kids.some(m => m !== a && m !== c && Math.abs(m.t - a.t) <= 6 && m.l >= a.r - 1 && m.r <= c.l + 1)) return;
+          const g = c.l - a.r; if (g > gap) { gap = g; at = a.c + '→' + c.c; } }); });
+        const card = bar.closest('.card'); const cr = card ? card.getBoundingClientRect() : null;
+        out.push({ id: bar.id || bar.className, w: Math.round(r.width), gap: Math.round(gap), at, live: !!bar.querySelector('.livebtn'),
+                   inCard: !cr || (r.left >= cr.left - 1 && r.right <= cr.right + 1) });
+      });
+      return { bars: out, hs: document.documentElement.scrollWidth > innerWidth + 1 }; }"""
+    for admin in (False, True):
+        who = "管理者" if admin else "非管理者"
+        for W in (1440, 800, 390):
+            ctx = b.new_context(viewport={"width": W, "height": 900})
+            pg = ctx.new_page()
+            pg.route("**/fonts.googleapis.com/**", lambda r: r.abort())
+            # 驗收預設替每一頁設了管理者後門（LIVE_ADMIN_PRESET）；非管理者那輪在它之後蓋成 false
+            pg.add_init_script(f"window.TW_LIVE_OVERRIDE = {'true' if admin else 'false'};" + "try { localStorage.setItem('tw.theme','light'); } catch (e) {}")
+            for route, sel in (("#flow", "#rotBack"), ("#flow/sankey", "#sankeyDays"), ("#stock/2330", "#peEnd")):
+                pg.goto(f"{base}{route}", wait_until="networkidle"); pg.wait_for_timeout(1500)
+                if sel == "#peEnd":
+                    try:
+                        tab = pg.locator('#stockTabs button[data-t="profit"]')
+                        if tab.count():
+                            tab.first.click(); pg.wait_for_timeout(1600)
+                    except Exception:
+                        pass
+                built = bool(wait_until(pg, f"() => !!document.querySelector('{sel} .pb.play')", 15000 if W > 640 else 5000))
+                if not ok(f"[拉Bar1008 {who} {W}] {sel} 建好", built or W <= 640):
+                    continue
+                if not built:   # 手機個股頁是券商式介面，沒有本益比河流拉Bar
+                    notes.append(f"[拉Bar1008 {who} {W}] {sel} 手機版不建立（券商式介面）")
+                    continue
+                if not pg.locator(sel).is_visible():
+                    # 手機（m3on）卡片預設收合，要按卡片底下「展開全部」（.mfullbtn）才看得到拉Bar —— 照真人的路走
+                    pg.evaluate(f"""() => {{ const h = document.querySelector('{sel}') && document.querySelector('{sel}').closest('.m3host');
+                        const bt = h && [...h.querySelectorAll('.mfullbtn')].find(x => x.offsetParent); if (bt) bt.click(); }}""")
+                    pg.wait_for_timeout(1500)
+                if not pg.locator(sel).is_visible() and sel == "#sankeyDays":
+                    tb = pg.get_by_role("button", name="資金分流樹")
+                    if tb.count() and tb.first.is_visible():
+                        tb.first.click(); pg.wait_for_timeout(2000)
+                if not pg.locator(sel).is_visible():
+                    # 手機（390）版資金輪動／個股頁是另一套券商式介面（篩選鈕取代拉Bar），桌機拉Bar 本來就不出現 —— 記一筆不算錯，
+                    # 但仍然要確認頁面沒有橫向捲軸、頁上其他看得到的 .rbar 一樣緊湊
+                    ok(f"[拉Bar1008 {who} {W}] {sel} 看得到", W <= 640, "桌機寬卻看不到")
+                    notes.append(f"[拉Bar1008 {who} {W}] {sel} 手機版不顯示（券商式介面）")
+                    m = pg.evaluate(MEASURE)
+                    ok(f"[拉Bar1008 {who} {W}] {route} 無橫向捲軸", not m["hs"])
+                    for x in m["bars"]:
+                        ok(f"[拉Bar1008 {who} {W}] {x['id']} 相鄰間距 ≤12px（{x['gap']}px）", x["gap"] <= 12, x)
+                    continue
+                pg.locator(sel).scroll_into_view_if_needed(); pg.wait_for_timeout(500)
+                m = pg.evaluate(MEASURE)
+                ok(f"[拉Bar1008 {who} {W}] {route} 無橫向捲軸", not m["hs"])
+                for x in m["bars"]:
+                    ok(f"[拉Bar1008 {who} {W}] {x['id']} 相鄰間距 ≤12px（{x['gap']}px）", x["gap"] <= 12, x)
+                    ok(f"[拉Bar1008 {who} {W}] {x['id']} 不超出卡片", x["inCard"], x)
+                    if W == 1440:
+                        ok(f"[拉Bar1008 {who} {W}] {x['id']} 整組 ≤420px（{x['w']}px）", x["w"] <= 420, x)
+                if W == 1440:
+                    # 2026-10-08 播放中反灰：拉桿、− ＋ 停用＋ .playdim，⏸ 可按；按 ⏸ 恢復
+                    PST = f"""() => {{ const b = document.querySelector('{sel}'); const i = b.querySelector('input');
+                        const st = [...b.querySelectorAll('.pb.step')], p = b.querySelector('.pb.play');
+                        return {{ dim: b.classList.contains('playdim'), inp: i.disabled, steps: st.map(x => x.disabled),
+                                 play: p.textContent, pdis: p.disabled, op: +getComputedStyle(i).opacity, v: +i.value, min: +i.min, max: +i.max }}; }}"""
+                    if pg.evaluate(f"() => document.querySelector('{sel}').classList.contains('livedim')"):
+                        pg.click(f"{sel} .livebtn"); pg.wait_for_timeout(500)
+                    pg.click(f"{sel} .pb.play"); pg.wait_for_timeout(200)
+                    a = pg.evaluate(PST)
+                    ok(f"[拉Bar1008 {who}] {sel} 播放中：拉桿停用、− ＋ 停用、有 playdim 反灰、⏸ 可按",
+                       a["play"] == "⏸" and a["dim"] and a["inp"] and all(a["steps"]) and not a["pdis"] and a["op"] < 0.5, a)
+                    if who == "非管理者" and sel == "#sankeyDays" and shot_dir:
+                        try: pg.locator(sel).screenshot(path=os.path.join(shot_dir, "sankey_playing.png"))
+                        except Exception: pass
+                    pg.click(f"{sel} .pb.play"); pg.wait_for_timeout(250)
+                    c = pg.evaluate(PST)
+                    ok(f"[拉Bar1008 {who}] {sel} 按 ⏸ 後恢復（拉桿可拖、反灰拿掉）",
+                       c["play"] == "▶" and not c["dim"] and not c["inp"] and c["op"] > 0.9
+                       and c["steps"][0] == (c["v"] <= c["min"]) and c["steps"][1] == (c["v"] >= c["max"]), c)
+                if sel == "#sankeyDays" and W == 1440:
+                    # 天數文字：「N 天前」或「最新」，拖動（鍵盤）真的跟著變
+                    TX = "() => { const b = document.querySelector('#sankeyDays'); return { ago: (b.querySelector('.ago') || {}).textContent || '', val: b.querySelector('.val').textContent.trim(), v: +b.querySelector('input').value, max: +b.querySelector('input').max }; }"
+                    pg.focus("#sankeyDays input"); pg.keyboard.press("End"); pg.wait_for_timeout(300)
+                    t0 = pg.evaluate(TX)
+                    ok(f"[拉Bar1008 {who}] 資金分流樹 最新一天寫「最新」", t0["val"] == "最新" and t0["ago"] == "", t0)
+                    pg.keyboard.press("ArrowLeft"); pg.keyboard.press("ArrowLeft"); pg.keyboard.press("ArrowLeft"); pg.wait_for_timeout(400)
+                    t1 = pg.evaluate(TX)
+                    ok(f"[拉Bar1008 {who}] 資金分流樹 往前 3 天 →「3 天前」＋日期", t1["ago"] == "3 天前" and t1["val"] != "最新", t1)
+                    if who == "非管理者" and shot_dir:
+                        try: pg.locator(sel).screenshot(path=os.path.join(shot_dir, "sankey_still.png"))
+                        except Exception: pass
+                    pg.keyboard.press("End"); pg.wait_for_timeout(300)
+                if sel == "#sankeyDays":
+                    has = any(x["live"] for x in m["bars"] if x["id"] == "sankeyDays")
+                    ok(f"[拉Bar1008 {who}] 資金分流樹「即時」鈕{'有' if admin else '沒有'}", has == admin, m)
+                if shot_dir and (W != 800):
+                    try:
+                        os.makedirs(shot_dir, exist_ok=True)
+                        pg.locator(sel).screenshot(path=os.path.join(shot_dir, f"after_{sel[1:]}_{'admin' if admin else 'user'}_{W}.png"))
+                    except Exception:
+                        pass
+            ctx.close()
+
+
 def t_play_census_1007(b, base):
     """播放普查1007（Andy 2026-10-07 三段原話：13:20「播放後再調整日期，再次點擊播放就不能做動」；
     18:55「播放時右邊清單反灰不做動，等到播放結束才會更新」；21:05「播放動畫都是到當日數據截止，便不會再進行播放…不是說要反灰色」）。
@@ -8470,10 +8601,12 @@ def t_play_census_1007(b, base):
                 except Exception as e:
                     print("  截圖失敗", e)
         ok("[資金分流樹] 連續三格的日期都不一樣（右欄真的跟著每一天換）", len({f[1] for f in frames}) == 3, frames)
-        # 播放中按 − ＝自己選日期 → 停；再 ▶ 要接著往後走
+        # 2026-10-08 起播放中 − ＋ 反灰停用（Andy：「播放後 拉bAR 需要反灰色 不可控制」）→ 先 ⏸ 停，再按 − 選日期；再 ▶ 要接著往後走
+        ok("[資金分流樹] 播放中 − ＋ 停用", pg.evaluate("() => [...document.querySelectorAll('#sankeyDays .pb.step')].every(x => x.disabled)"))
+        pg.click("#sankeyDays .pb.play"); pg.wait_for_timeout(200)
         pg.click("#sankeyDays .pb.step >> nth=0"); pg.wait_for_timeout(250)
         a = st("#sankeyDays")
-        ok("[資金分流樹] 播放中按 − → 停下、停在選的那一格", a["play"] == "▶", a)
+        ok("[資金分流樹] ⏸ 後按 − → 停在選的那一格", a["play"] == "▶", a)
         pg.click("#sankeyDays .pb.play"); pg.wait_for_timeout(250)
         c = st("#sankeyDays")
         ok("[資金分流樹] ② 調過日期再按 ▶ → 日期真的往後走", c["v"] == a["v"] + 1 and c["play"] == "⏸", (a, c))
@@ -8535,7 +8668,10 @@ def t_play_census_1007(b, base):
         pg.click("#rotBack .pb.play"); pg.wait_for_timeout(250)
         r = st("#rotBack")
         ok("[足跡輪盤] ③ 播完再按 ▶ → 重播", bool(r["f"]) and r["play"] == "⏸", (e, r))
-        pg.click("#rotBack .pb.step >> nth=1"); pg.wait_for_timeout(250)   # 播放中按 ＋ 調天數 → 停
+        # 2026-10-08 起播放中 − ＋ 反灰停用（Andy：「播放後 拉bAR 需要反灰色 不可控制」）→ 先按 ⏸ 停，再按 ＋ 調天數
+        ok("[足跡輪盤] 播放中 ＋ 停用", pg.evaluate("() => { const b = [...document.querySelectorAll('#rotBack .pb.step')]; return b.length === 2 && b.every(x => x.disabled); }"))
+        pg.click("#rotBack .pb.play"); pg.wait_for_timeout(200)
+        pg.click("#rotBack .pb.step >> nth=1"); pg.wait_for_timeout(250)
         a = st("#rotBack")
         pg.click("#rotBack .pb.play"); pg.wait_for_timeout(250)
         c = st("#rotBack")
@@ -8555,6 +8691,7 @@ def t_play_census_1007(b, base):
         s1 = st("#peEnd")
         ok("[本益比河流] ① 停在最後一格按 ▶ → 從頭重播",
            s1["v"] <= s1["min"] + 1 and s1["t"] != s0["t"] and s1["play"] == "⏸", (s0, s1))
+        pg.click("#peEnd .pb.play"); pg.wait_for_timeout(200)   # 播放中 − ＋ 停用（2026-10-08），先 ⏸
         pg.click("#peEnd .pb.step >> nth=1"); pg.wait_for_timeout(250)
         a = st("#peEnd")
         pg.click("#peEnd .pb.play"); pg.wait_for_timeout(250)
@@ -26143,6 +26280,7 @@ SECTIONS = {
     "播放器1007":          lambda pg, b, base, code: t_player_1007(pg, base),
     # ★ 2026-10-07 晚 Andy：「播放動畫都是到當日數據截止便不會再播放…不是說要反灰色」—— 三支播放器普查＋資金分流樹右欄跟著每一天換（⚠ --workers 1）
     "播放普查1007":        lambda pg, b, base, code: t_play_census_1007(b, base),
+    "拉Bar 排版1008":      lambda pg, b, base, code: t_bar_tight_1008(b, base),
     # ★ 2026-10-07 22:57 Andy 第三次回報：線上條件（存檔先貼、網路版晚到且不同、CPU 4 倍降速、擁有者）下播放資金分流樹（⚠ --workers 1）
     "播放真實條件1007":    lambda pg, b, base, code: t_play_real_1007(b, base),
     # ★ 2026-10-07 Andy：改名（資金分流樹／族群資金排行）＋樹旁「資金流向排名」右表＋族群成分股依流入排序（含 390）
