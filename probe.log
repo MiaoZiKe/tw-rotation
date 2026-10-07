@@ -1,0 +1,17 @@
+====================================================================================================
+[grep-0] GREP \.ashx|xls|__doPostBack\(.{0,80}|<form.{0,300}|<table.{0,200}|\$\.(get|post).{0,200})|https://websys.fsit.com.tw/FubonETF/Trade/Pcf.aspx?lan=TW&stkId=006208
+  例外: InvalidSchema No connection adapters were found for '\\.ashx|xls|__doPostBack\\(.{0,80}|<form.{0,300}|<table.{0,200}|\\$\\.(get|post).{0,200})|https://websys.fsit.com.tw/FubonETF/Trade/Pcf.aspx?lan=TW&stkId=006208'
+====================================================================================================
+[grep-1] GREP \.ashx.{0,100}|pcf.{0,200})|https://websys.fsit.com.tw/FubonETF/Script/main.js?v=1.1
+  例外: InvalidSchema No connection adapters were found for '\\.ashx.{0,100}|pcf.{0,200})|https://websys.fsit.com.tw/FubonETF/Script/main.js?v=1.1'
+====================================================================================================
+[grep-2] GREP https://www.tsit.com.tw/
+  HTTP 200  bytes=98538
+  例外: error global flags not at the start of the expression at position 13
+====================================================================================================
+[grep-3] GREP https://www.fsitc.com.tw/
+  HTTP 200  bytes=336487
+  例外: error global flags not at the start of the expression at position 13
+====================================================================================================
+[grep-4] GREP sinopac).{0,80}|https://sitc.sinopac.com/
+  例外: InvalidSchema No connection adapters were found for 'sinopac).{0,80}|https://sitc.sinopac.com/'
