@@ -25489,6 +25489,7 @@ SECTIONS = {
     "自選上限1007":        lambda pg, b, base, code: t_watch_limit_1007(b, base, code),
     "次數覆蓋掃描1007":    lambda pg, b, base, code: t_quota_scan_1007(b, base, code),
     "全站共用額度1007":    lambda pg, b, base, code: t_quota_all_1007(b, base, code),
+    "預覽不限權限1007":    lambda pg, b, base, code: t_preview_open_1007(b, base, code),
     "訪客額度顯示1007":    lambda pg, b, base, code: t_guest_quota_ui_1007(b, base, code),
     "套用建議方案1007":    lambda pg, b, base, code: t_plan_preset_1007(b, base, code),
     "套用建議方案正式站1007": lambda pg, b, base, code: t_preset_live_1007(b, base, code),
@@ -49387,6 +49388,46 @@ def _qscan_one(b, base, fid, kind, ra, rb, prep, how, W, errs):
         c.close()
     return res
 
+
+
+# ===================================================================== 預覽不限權限1007（DECISIONS #343）
+# Andy 10-07 17:40：「首先以後預覽都不要限制權限，因為只是在測試」。
+# 真的操作：同一組最嚴條件（訪客、剖析圖／3D 關、全站額度 0）各開一次頁面——
+#   TW_PREVIEW＝真 → 剖析圖頁沒鎖頭、沒額度卡、沒圓環、即時開關在、TwPerm.can 全真、#admin 看得到管理頁；
+#   TW_PREVIEW＝假 → 同一頁照常上鎖／被擋（證明是預覽旗標造成的差別，不是條件沒生效）。
+def t_preview_open_1007(b, base, code):
+    T = "預覽不限權限1007"
+    errs: list[str] = []
+    LOCKED = "() => [...document.querySelectorAll('[data-plk], [data-qlk] > .qlkov')].filter(x => x.getClientRects().length).length"
+    feats = {"ind.diagram": False, "ind.3d": False, "heat.theme": False}
+    for prev in (True, False):
+        c, sent, st = _sub_ctx(b, None, feats=feats, dq=0)
+        c.add_init_script("window.TW_LIVE_OVERRIDE = null;")   # 繞開全站預設注入的管理者視角，走真的閘門
+        if prev:
+            c.add_init_script("window.TW_PREVIEW = {name: 'uitest', sha: 'abc1234', dataRoot: 'data/'};")
+        pg = c.new_page(); pg.on("pageerror", lambda e: errs.append(str(e)))
+        pg.goto(base + "#overview", wait_until="domcontentloaded")
+        wait_until(pg, "() => window.TwPerm && TwPerm.state().src === 'server'", 12000)
+        pg.evaluate("() => { location.hash = '#stock/" + code + "'; }"); pg.wait_for_timeout(1800)
+        pg.evaluate("() => { location.hash = '#industry/semiconductor'; }"); pg.wait_for_timeout(3000)
+        n = pg.evaluate(LOCKED)
+        ring = pg.evaluate("() => { const r = document.getElementById('twQRing'); return !!(r && !r.hidden && r.getClientRects().length); }")
+        live = pg.evaluate("() => document.documentElement.classList.contains('live-on')")
+        can = pg.evaluate("() => TwPerm.can('ind.diagram') && TwPerm.lim('quota.all') === Infinity")
+        if prev:
+            ok(f"{T}：預覽版＋訪客＋範本全關／額度 0 → 剖析圖頁無鎖頭、無額度卡", n == 0, n)
+            ok(f"{T}：預覽版不顯示剩餘次數圓環", not ring)
+            ok(f"{T}：預覽版即時閘門開（html.live-on）", live)
+            ok(f"{T}：預覽版 TwPerm 全開（can 真、額度不限）", can)
+            pg.evaluate("() => { location.hash = '#admin/traffic'; }")
+            ok(f"{T}：預覽版訪客可瀏覽管理區", bool(wait_until(pg, "() => !!window.TwAdmin && !/只有管理者看得到/.test(document.getElementById('v-admin').textContent)", 8000)),
+               pg.evaluate("() => (document.getElementById('v-admin')||{}).textContent?.slice(0,120)"))
+        else:
+            n = wait_until(pg, LOCKED, 6000) or n
+            ok(f"{T}：正式站同條件 → 照常上鎖或擋額度", bool(n), n)
+            ok(f"{T}：正式站訪客即時閘門關、TwPerm 不全開", not live and not can, [live, can])
+        c.close()
+    ok(f"{T}：沒有 JS 錯誤", not errs, errs[:3])
 
 
 # ===================================================================== 全站共用額度1007（quota.all＝範本 dq）

@@ -48,6 +48,7 @@
      判斷用 TwAccount.user()；account.js 還沒載入時退回同一份登入快取（tw.acct.user），免得管理者自己的順序在開頁瞬間被清掉。
      ⚠ 這是「每人自己瀏覽器的排列」，不會改到全站；但 Andy 明講仍只限管理者，照做（docs/admin_only_audit.md）。*/
   function isAdm() {
+    if (window.TW_PREVIEW) return true;                       // 預覽版全開（DECISIONS #343）
     try {
       const A = window.TwAccount;
       if (A && A.on && !A.on()) return false;                 // 會員功能沒設定＝沒有管理者
@@ -58,6 +59,7 @@
   /* 只在「確定不是管理者」時清：會員功能沒設定、沒登入（沒權杖）、或身分已確認但不是管理者。
      有權杖但 /v1/me 還沒回來（身分未知）時先不清，免得管理者自己的順序在開頁瞬間被洗掉；回來後 tw:account 會再判一次。*/
   function notAdmKnown() {
+    if (window.TW_PREVIEW) return false;
     let tok = null; try { tok = localStorage.getItem('tw.acct.tok'); } catch (e) { return false; }
     if (!tok) return true;                                   // 沒登入
     const A = window.TwAccount, u = A && A.on && A.on() && A.user && A.user();
