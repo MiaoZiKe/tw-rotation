@@ -229,8 +229,9 @@ def run(args) -> dict:
         # 不用 networkidle：線上會開著即時報價的推送連線（SSE），那條連線不會結束，
         # networkidle 會一直等到逾時。改成 load 之後再等 App 與「即時」鈕真的長出來。
         live_reqs: list[str] = []
-        pg.on("request", lambda r: live_reqs.append(r.url) if "workers.dev" in r.url
-              or "mis.twse" in r.url else None)
+        # 只數「即時報價」的主機：會員 Worker（tw-account…/v1/me、/v1/perm/me）是登入與權限查詢，訪客本來就會打
+        live_hosts = ("tw-quote.", "tw-taifex.", "mis.twse", "query1.finance.yahoo", "query2.finance.yahoo")
+        pg.on("request", lambda r: live_reqs.append(r.url) if any(h in r.url for h in live_hosts) else None)
         if admin_tok:
             # 管理者測試權杖從 Actions Secret 帶進來，只寫進這台無頭瀏覽器的 localStorage，不落地、不進 repo。
             # 權杖失效時 /v1/me 會說不是管理者 → livegate 重新載入 → 關，下面就會走訪客那條並寫明原因。
