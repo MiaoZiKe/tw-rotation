@@ -7593,6 +7593,70 @@ def _rot_tip_gaps_all(pg, cid="rotClock"):
     return ds, min(d[2] for d in r["dots"]) / 2.0
 
 
+def t_flow_tree_play_1007(pg, base):
+    """資金分流樹播放1007（Andy 2026-10-07 18:55：「播放時右邊清單反灰不作動，等到播放結束才會更新」）。
+
+    舊斷言（資金分流樹右欄1007 的 [播放]）只量祖先 opacity＝1、沒有 grayscale、列沒清空 ——
+    內容停在舊日期一動不動也會過，量錯東西。這段改量「右欄是不是跟著拉桿走」：
+    淺色主題（Andy 截圖的主題）真的按 ▶，每 200ms 取樣 22 次（約 5 秒，650ms 一格 ≈ 7 格）：
+      · 右欄標題日期 ＝ 拉桿當下那一天（每一次取樣都要）
+      · 標題日期至少變 5 次、第 1 列內容（名稱＋pp）至少變 2 次
+      · 標題字色、第 1 列名稱字色、右欄底色與靜止時相同；祖先 opacity 連乘 ≥0.99、沒有 grayscale
+    再暫停、按 End 回最新一天：標題＝最新日期。"""
+    pg.set_viewport_size({"width": 1440, "height": 900})
+    pg.evaluate("() => { try { localStorage.setItem('tw.theme', 'light'); } catch (e) {} }")
+    pg.goto(f"{base}#flow", wait_until="networkidle"); pg.wait_for_timeout(2500)
+    l4_sub(pg, "sankey", 1800)
+    pg.locator("#flowSankeyCard").scroll_into_view_if_needed(); pg.wait_for_timeout(1500)
+    wait_until(pg, "() => { const r = document.getElementById('sankeyRank'); return r && !r.hidden && r.querySelector('.skr-r') ? 1 : 0; }", 8000)
+    SNAP = """() => { const s = document.getElementById('sankeyRank'); if (!s || s.hidden) return null;
+        const inp = document.querySelector('#sankeyDays input'), lab = document.querySelector('#sankeyDays .val');
+        const r = s.querySelector('.skr-r'); let op = 1, gray = false;
+        for (let x = s; x; x = x.parentElement) { const cs = getComputedStyle(x); op *= +cs.opacity; if (/grayscale|opacity\\(/.test(cs.filter)) gray = true; }
+        return { title: s.querySelector('.skr-t').textContent.slice(0, 10), lab: lab ? lab.textContent : '', v: inp ? +inp.value : -1, max: inp ? +inp.max : -1,
+                 row1: r ? r.querySelector('.n b').textContent + ' ' + r.querySelector('.v .d').textContent : '',
+                 tc: getComputedStyle(s.querySelector('.skr-t')).color, nc: r ? getComputedStyle(r.querySelector('.n b')).color : '',
+                 bg: getComputedStyle(s).backgroundColor, op, gray,
+                 playing: document.getElementById('sankeyDays').classList.contains('playing') }; }"""
+    rest = pg.evaluate(SNAP)
+    if not ok("[播放同步] 右欄排名表在靜止時出現", bool(rest) and bool(rest["title"]), rest):
+        return
+    latest = rest["title"]
+    pg.click("#sankeyDays .pb.play"); pg.wait_for_timeout(120)
+    samples = []
+    for _ in range(22):
+        samples.append(pg.evaluate(SNAP)); pg.wait_for_timeout(200)
+    pg.click("#sankeyDays .pb.play"); pg.wait_for_timeout(400)
+    samples = [x for x in samples if x]
+    bad_sync = [(x["lab"], x["title"]) for x in samples if (x["lab"] if x["lab"] != "最新" else latest) != x["title"]]
+    titles = [x["title"] for x in samples]; rows = [x["row1"] for x in samples]
+    chg = lambda a: sum(1 for i in range(1, len(a)) if a[i] != a[i - 1])
+    ok("[播放同步] 播放中取樣 ≥12 次、而且真的在播放", len(samples) >= 12 and all(x["playing"] for x in samples), len(samples))
+    ok("[播放同步] 每一次取樣：右欄標題日期＝拉桿日期", not bad_sync, bad_sync[:4])
+    ok("[播放同步] 右欄標題日期至少變 5 次", chg(titles) >= 5, titles)
+    ok("[播放同步] 第 1 列（名稱＋pp）至少變 2 次", chg(rows) >= 2, rows)
+    bad_col = [(x["title"], x["tc"], x["nc"], x["bg"], round(x["op"], 3), x["gray"]) for x in samples
+               if x["tc"] != rest["tc"] or x["nc"] != rest["nc"] or x["bg"] != rest["bg"] or x["op"] < 0.99 or x["gray"]]
+    ok("[播放同步] 播放中字色／底色與靜止時相同、祖先 opacity 連乘 ≥0.99、沒有灰階", not bad_col,
+       {"靜止": (rest["tc"], rest["nc"], rest["bg"]), "不同": bad_col[:3]})
+    pg.focus("#sankeyDays input"); pg.keyboard.press("End"); pg.wait_for_timeout(700)
+    end = pg.evaluate(SNAP)
+    ok("[播放同步] 暫停後回到最新一天：右欄標題＝最新日期", bool(end) and end["title"] == latest and end["v"] == end["max"], end)
+    # 故障注入：樹的繪圖引擎丟例外（模擬線上資料某一天讓樹那段出錯），右欄仍要跟著拉桿換日。
+    # 舊版右欄排在 renderSankey 最尾端，前面一丟例外右欄就停在上一天 —— 這一條在舊版是紅的。
+    if pg.evaluate("() => !!(window.FlowTopo && window.FlowTopo.render)"):
+        pg.evaluate("() => { window.__ftR = window.FlowTopo.render; window.FlowTopo.render = () => { throw new Error('注入'); }; }")
+        pg.focus("#sankeyDays input"); pg.keyboard.press("Home"); pg.wait_for_timeout(300)
+        inj = []
+        for _ in range(4):
+            pg.keyboard.press("ArrowRight"); pg.wait_for_timeout(250); inj.append(pg.evaluate(SNAP))
+        pg.evaluate("() => { window.FlowTopo.render = window.__ftR; }")
+        pg.keyboard.press("End"); pg.wait_for_timeout(700)
+        badi = [(x["lab"], x["title"]) for x in inj if x and x["lab"] != x["title"]]
+        ok("[播放同步] 樹的引擎出錯時，右欄仍跟著拉桿日期（故障注入）", len(inj) == 4 and not badi, badi or inj[-1])
+    pg.evaluate("() => { try { localStorage.removeItem('tw.theme'); } catch (e) {} }")
+
+
 def t_flow_tree_1007(pg, base):
     """資金分流樹右欄1007（Andy 2026-10-07：「資金流向 名稱重複 幫我改其他名稱…旁邊多一個表格…
     依據拉Bar時間，當下的資金流向哪裡了…點進去的族群…要依據資金流入狀況進行排名」）。
@@ -25300,6 +25364,7 @@ SECTIONS = {
     "播放器1007":          lambda pg, b, base, code: t_player_1007(pg, base),
     # ★ 2026-10-07 Andy：改名（資金分流樹／族群資金排行）＋樹旁「資金流向排名」右表＋族群成分股依流入排序（含 390）
     "資金分流樹右欄1007":  lambda pg, b, base, code: t_flow_tree_1007(pg, base),
+    "資金分流樹播放1007":  lambda pg, b, base, code: t_flow_tree_play_1007(pg, base),
     # ★ 2026-09-21：輪動時鐘與族群資金排行合併成一張卡（Andy：「這兩張圖合併…彙整並一頁」）。
     #   合併本身的驗收自成一段：共用篩選、共用「看哪一天」、窄畫面 800px 都要成立。
     "資金輪動合併":        lambda pg, b, base, code: t_rotmerge(pg, base),
