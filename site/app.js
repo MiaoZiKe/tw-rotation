@@ -1375,7 +1375,7 @@
        呼叫端維持同步字串拼接，不用每一處都改成 async。*/
   const FQB_K = { 月配: 'm', 雙月配: 'b', 季配: 'q', 半年配: 'h', 年配: 'y', 不配息: 'n' };
   let fqMap = null, fqLoading = null;
-  const fqHTML = (f) => `<span class="fqbdg fqc-${FQB_K[f]}" data-fq="${f}" title="配息頻率：${f}（依近年實際配息次數）">${f}</span>`;
+  const fqHTML = (f) => `<span class="fqbdg fqc-${FQB_K[f]}" data-fq="${f}" title="配息頻率：${f}（依最近幾次除息的間隔中位數）">${f}</span>`;
   function fqFill(root) {
     if (!fqMap) return;
     (root || document).querySelectorAll('[data-fq-code]').forEach(e => { const f = fqMap.get(e.dataset.fqCode); if (f) e.outerHTML = fqHTML(f); else e.remove(); });
