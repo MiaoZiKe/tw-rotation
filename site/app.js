@@ -472,6 +472,15 @@
   let _bootPaintOk = null;
   const bootPaint = new Promise((r) => { _bootPaintOk = r; setTimeout(r, 20000); });
   const afterPaint = (name, opt) => bootPaint.then(() => load(name, opt));
+  /* 開站小檔（link_index、etf_freq）：只有 meta.lite_files 列了才抓，沒列（舊資料、預覽分支吃正式站資料）直接回 null 走舊流程。
+     ⚠ 不要「先抓抓看、404 再退回」：_uitest 的開頁用 networkidle 等，那兩個 404 請求在它的環境裡一直算「進行中」，
+     整頁 goto 逾時（2026-10-07 perf2 合併後踩到）。不發注定 404 的請求，也省一次往返。*/
+  async function loadLite(name) {
+    // 用手上已有的 meta（可能是開頁存檔那份）就好，不等網路版：存檔情境下網路版可能晚好幾秒，等它就把首屏卡住
+    const m = D.meta || await (_metaNet || Promise.resolve(null)).catch(() => null);
+    if (!(m && Array.isArray(m.lite_files) && m.lite_files.includes(name))) return null;
+    return load(name, { fallback: null });
+  }
   let _metaNet = null;         // 新的 meta（網路版）—— 其他檔的版本鍵一律等它
   const _loading = {}, _loaded = {};
   function load(name, opt) {
@@ -1450,7 +1459,7 @@
     const fromEtf = (e) => { const m = new Map(); ((e && e.items) || []).forEach(x => { if (x && FQB_K[x.freq]) m.set(String(x.code), x.freq); }); return m; };
     fqLoading = Promise.resolve().then(async () => {
       if (D.etf && D.etf.items) return fromEtf(D.etf);
-      const f = await load('etf_freq', { fallback: null });
+      const f = await loadLite('etf_freq');
       if (f && typeof f === 'object' && !Array.isArray(f)) { const m = new Map(); Object.keys(f).forEach(c => { if (FQB_K[f[c]]) m.set(String(c), f[c]); }); return m; }
       return fromEtf(await load('etf', { fallback: null }));
     }).then(m => { fqMap = m; }).catch(() => { fqMap = new Map(); }).then(() => fqFill(document));
@@ -13852,7 +13861,7 @@
     };
     let lite = null;
     if (!h0 || h0 === 'overview') {
-      const [li, gt, th, all] = await Promise.all([load('link_index', { fallback: null }), load('groups_today'), load('themes'), load('stocks', { fallback: [] })]);
+      const [li, gt, th, all] = await Promise.all([loadLite('link_index'), load('groups_today'), load('themes'), load('stocks', { fallback: [] })]);
       if (li && Array.isArray(li.chains) && li.chains.length) { lite = true; L.init(li, gt, null, th, li, all); }
     }
     if (!lite) await fullInit();
