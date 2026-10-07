@@ -1824,6 +1824,52 @@ def t_side_fold_1005(pg, b, base):
 
 
 # ===================================================================== ETF 專區（2026-10-05，site/etfpage.js）
+def t_etf_census_1008(pg, b, base):
+    """★ 2026-10-08 Andy：「這也沒顯示，請點擊所有，所有ETF 確認沒有成分股的補上」。
+    逐檔打開 #stock/<代號> 的成分股分頁（真的點分頁鈕），記錄是「有表格」「只有外部連結」「完全沒有」，
+    把清單寫到 scratchpad／site 外的 etf_census_1008.tsv。規矩：每一檔要嘛有表格、要嘛有連結（槓桿反向／期貨型除外，也要有說明），
+    「完全沒有」必須是 0。用的是本機 site/data 的真資料（沒有攔截），所以要先 build_payload。"""
+    import json as _json
+    tag = "ETF成分股普查1008"
+    ej = _json.loads((SITE / "data" / "etf.json").read_text(encoding="utf-8"))
+    etfs = [(str(x["code"]), x.get("name", ""), x.get("cat", "")) for x in (ej.get("items") or [])]
+    lp = pg.context.browser.new_page(viewport={"width": 1440, "height": 1000})
+    lp.route("**/fonts.googleapis.com/**", lambda r: r.abort())
+    res, cnt = [], {"table": 0, "link": 0, "none": 0}
+    for code, name, cat in etfs:
+        st, links = "none", 0
+        try:
+            lp.goto(f"{base}#stock/{code}", wait_until="domcontentloaded")
+            sel = "#stockTabs button[data-t='holdings']"
+            wait_until(lp, f"() => {{ const b = document.querySelector(\"{sel}\"); return !!(b && b.offsetParent); }}", 15000)
+            lp.click(sel)
+            wait_until(lp, "() => !!document.querySelector('#etfHoldCard[data-state]')", 8000)
+            d = lp.evaluate("""() => { const c = document.querySelector('#etfHoldCard');
+              return { st: c.dataset.state, rows: c.querySelectorAll('#etfHoldTbl tbody tr[data-i]').length,
+                       links: c.querySelectorAll('#etfHoldLinks a[href^="https://www.wantgoo.com/"], #etfHoldLinks a[href^="https://www.pocket.tw/"]').length }; }""")
+            links = d["links"]
+            st = "table" if d["st"] == "ok" and d["rows"] > 0 else ("link" if links == 2 else "none")
+        except Exception as e:  # noqa: BLE001
+            st = "none"
+            fails.append(f"{tag} {code} 開不起來：{str(e)[:120]}")
+        cnt[st] += 1
+        res.append((code, name, cat, st))
+    out = ROOT / "etf_census_1008.tsv"
+    out.write_text("代號\t名稱\t分類\t狀態\n" + "\n".join("\t".join(r) for r in res), encoding="utf-8")
+    print(f"  [{tag}] {len(res)} 檔：有表格 {cnt['table']}／只有連結 {cnt['link']}／完全沒有 {cnt['none']}（清單 {out}）")
+    ok(f"★ [{tag}] 逐檔點過 {len(res)} 檔", len(res) >= 200, len(res))
+    ok(f"★ [{tag}] 每一檔要嘛有表格、要嘛有兩站連結（完全沒有＝0）", cnt["none"] == 0, [r[0] for r in res if r[3] == "none"][:30])
+    if res and any(r[3] == "link" for r in res):
+        c = next(r[0] for r in res if r[3] == "link")
+        lp.goto(f"{base}#stock/{c}", wait_until="domcontentloaded")
+        lp.click("#stockTabs button[data-t='holdings']")
+        wait_until(lp, "() => !!document.querySelector('#etfHoldLinks')", 8000)
+        hrefs = lp.evaluate("() => [...document.querySelectorAll('#etfHoldLinks a')].map(a => [a.href, a.target])")
+        ok(f"[{tag}] {c} 連結指到該檔、另開分頁", any(f"/stock/etf/{c}/constituent" in h for h, _ in hrefs)
+           and any(f"/etf/tw/{c}/fundholding" in h for h, _ in hrefs) and all(t == "_blank" for _, t in hrefs), hrefs)
+    lp.close()
+
+
 def t_etf_hold_1007(pg, b, base):
     """ETF 成分股分頁（2026-10-07 Andy：「成分股分頁需要左側出現個股清單，右邊出現個股權重圓餅圖」）。
 
@@ -26436,6 +26482,8 @@ SECTIONS = {
     "ETF分類分組1007":     lambda pg, b, base, code: t_etf_groups_1007(pg, b, base),
     # ★ 2026-10-07 Andy：ETF 成分股分頁「左個股清單、右權重甜甜圈」；無股票成分顯示說明卡
     "ETF成分股1007":       lambda pg, b, base, code: t_etf_hold_1007(pg, b, base),
+    # ★ 2026-10-08 Andy：「請點擊所有，所有ETF 確認沒有成分股的補上」—— 逐檔點成分股分頁，有表格或有兩站連結（⚠ --workers 1，約 311 檔）
+    "ETF成分股普查1008":   lambda pg, b, base, code: t_etf_census_1008(pg, b, base),
     # ★ 2026-10-07 Andy：「幫我處理這問題 其他圖表一樣不要發生」—— 全站 ECharts 提示框不准被卡片裁切／超出視窗（1440＋390，⚠ 一律 --workers 1）
     "提示框普查1007":      lambda pg, b, base, code: t_tip_census_1007(pg, b, base),
     "ETF報酬比較1006":     lambda pg, b, base, code: t_etf_ret_1006(pg, b, base),
