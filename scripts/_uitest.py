@@ -8075,6 +8075,160 @@ def t_player_1007(pg, base):
     pg.set_viewport_size({"width": 1440, "height": 900})
 
 
+def t_play_real_1007(b, base):
+    """播放真實條件1007（Andy 2026-10-07 22:57 第三次回報，正式站 #flow/sankey、擁有者登入：
+    「圖案還是沒更新當我點擊播放，紅框的清單會反灰色 等到播放結束才會恢復…播放功能按一次 截止段落到今日」）。
+
+    上一輪的「播放普查1007」在本機跑、資料瞬間回來、存檔與網路版一模一樣，所以永遠碰不到線上那一步：
+    開頁先貼 IndexedDB 存檔（擁有者看得到「這是上次存的資料…更新中…」）→ 網路版晚到而且內容不同 →
+    swrSettle() 叫 route() 重畫整頁 → route() 第一行 stopAllPlay() 把播放停在半路，
+    renderFlow 重跑又把樹與右欄畫回最新一天，拉Bar 卻留在停下的那一天（修前實測：拉Bar 07-29、樹與右欄 10-06）。
+    這段把線上條件做出來：
+      · 擁有者身分（假帳號 API）＋ 打開存檔（__TW_SNAP__）；CPU 降速 4 倍（CDP）
+      · 第一次開頁寫好存檔；第二次開頁時所有 data/*.json **先扣住**，按下 ▶ 之後 1.5 秒起才一份一份放
+        （每份再隨機 300～800ms），而且每份網路版都多一個欄位 → 內容和存檔不同 → 一定會觸發背景重畫
+      · 「更新中」標示還在的時候按 ▶（只按這一次），每 200ms 記一格：拉Bar 日期、樹的日期（#sankeySub data-day）、
+        右欄標題日期、右欄 opacity／filter
+    斷言：每一格 樹＝右欄＝拉Bar（容許落後 1 格）；右欄 opacity 全程 ≥ 0.99、沒有 filter；只按一次就播到最後一天、停在最後一天；
+    背景重畫真的發生過（tw:data-refreshed）而且是播完才套用。
+    截圖：環境變數 PLAY_REAL_SHOT＝資料夾 → 存第 2／12／30 格。"""
+    import random as _rnd
+    API = "https://acct1007.example.test"
+    shot_dir = os.environ.get("PLAY_REAL_SHOT", "")
+    sdp = SITE / "data" / "sankey_daily.json"
+    dates = json.loads(sdp.read_text(encoding="utf-8")).get("dates", []) if sdp.exists() else []
+    if not ok("[播放真實條件] 本機有 sankey_daily.json（至少 2 天）", len(dates) >= 2, len(dates)):
+        return
+
+    def _adm(route):
+        if route.request.method == "OPTIONS":
+            return route.fulfill(status=204, headers={"access-control-allow-origin": "*", "access-control-allow-headers": "*", "access-control-allow-methods": "POST"})
+        path = re.sub(r"^https?://[^/]+", "", route.request.url).split("?")[0]
+        out = ({"user": {"email": "andy@example.com", "name": "andy", "admin": True, "owner": True}} if path == "/v1/me"
+               else {"notices": [], "plans": [], "feats": {}, "lims": {}, "ok": True})
+        route.fulfill(status=200, body=json.dumps(out), headers={"access-control-allow-origin": "*", "content-type": "application/json"})
+
+    held, rel = [], {"at": None}
+
+    def _hold(route):
+        held.append([route, None])
+
+    def _release():
+        if rel["at"] is None:
+            return
+        for i, h in enumerate(held):
+            if h[1] is None:
+                h[1] = rel["at"] + _rnd.uniform(0.3, 0.8) + 0.15 * i
+        now = time.time()
+        for h in [h for h in held if h[1] <= now]:
+            held.remove(h)
+            r = h[0]
+            try:
+                resp = r.fetch(); body = resp.text()
+                if body.lstrip().startswith("{") and body.strip() != "{}":
+                    body = body.rstrip()[:-1] + ',"_net1007": %d}' % _rnd.randint(1, 1 << 30)   # 網路版 ≠ 存檔
+                r.fulfill(response=resp, body=body)
+            except Exception:
+                try:
+                    r.continue_()
+                except Exception:
+                    pass
+
+    ctx = b.new_context(viewport={"width": 1440, "height": 950})
+    ctx.add_init_script("window.__TW_SNAP__ = 1; window.TW_ACCOUNT_OVERRIDE = " + json.dumps({"api": API})
+                        + "; try { localStorage.setItem('tw.acct.tok','tok-adm'); } catch (e) {}"
+                        + " window.__ref1007 = []; window.addEventListener('tw:data-refreshed', () => window.__ref1007.push(performance.now() | 0));")
+    ctx.route("**/fonts.googleapis.com/**", lambda r: r.abort())
+    ctx.route(API + "/**", _adm)
+    pg = ctx.new_page()
+    pg.on("pageerror", lambda e: fails.append(f"播放真實條件 pageerror: {str(e)[:160]}"))
+    try:
+        pg.goto(base + "#flow/sankey", wait_until="load")
+        if not ok("[播放真實條件] 第一次開頁：#sankeyDays 有 ▶（寫存檔）",
+                  bool(wait_until(pg, "() => !!document.querySelector('#sankeyDays .pb.play')", 30000))):
+            return
+        pg.wait_for_timeout(3000)                     # 讓存檔寫進 IndexedDB
+        ctx.route(re.compile(r".*/data/.*\.json.*"), _hold)
+        cdp = ctx.new_cdp_session(pg)
+        cdp.send("Emulation.setCPUThrottlingRate", {"rate": 4})
+        pg.goto("about:blank")
+        pg.goto(base + "#flow/sankey", wait_until="domcontentloaded")
+        if not ok("[播放真實條件] 第二次開頁（網路版扣住）：存檔先畫出 ▶",
+                  bool(wait_until(pg, "() => !!document.querySelector('#sankeyDays .pb.play')", 60000))):
+            return
+        tag = pg.evaluate("() => (document.getElementById('staleTag') || {}).textContent || ''")
+        ok("[播放真實條件] 按 ▶ 之前擁有者看得到「這是上次存的資料…更新中」", "更新中" in tag, tag)
+        mx = pg.evaluate("() => +document.querySelector('#sankeyDays input').max")
+        pg.click("#sankeyDays .pb.play")
+        rel["at"] = time.time() + 1.5
+        t_click = pg.evaluate("() => performance.now() | 0")
+        PROBE = """() => { const b = document.querySelector('#sankeyDays'), i = b && b.querySelector('input');
+          const r = document.querySelector('#sankeyRank'); let e = r, op = 1; const fl = [];
+          while (e && e !== document.documentElement) { const cs = getComputedStyle(e); op *= +cs.opacity;
+            if (cs.filter !== 'none') fl.push(e.id || e.className); e = e.parentElement; }
+          (r ? [...r.querySelectorAll('.skr-r')].slice(0, 3) : []).forEach(x => { const cs = getComputedStyle(x);
+            op = Math.min(op, op * +cs.opacity); if (cs.filter !== 'none') fl.push('row'); });
+          return { v: i ? +i.value : null, sl: ((b && b.querySelector('.val')) || {}).textContent || '',
+            tree: (document.querySelector('#sankeySub') || { dataset: {} }).dataset.day || '',
+            rank: ((r && r.querySelector('.skr-t')) || {}).textContent || '', op, fl,
+            play: ((b && b.querySelector('.pb.play')) || {}).textContent || '', pn: performance.now() | 0 }; }"""
+        rows, shots = [], []
+        for k in range(600):
+            s = pg.evaluate(PROBE)
+            rows.append(s)
+            if shot_dir and k in (2, 12, 30):
+                try:
+                    pg.screenshot(path=os.path.join(shot_dir, f"real_after_{k}.png")); shots.append(k)
+                except Exception:
+                    pass
+            if s["play"] == "▶" and k > 3:
+                break
+            _release()
+            pg.wait_for_timeout(200)
+        for _ in range(100):                          # 播完還沒放完的也放掉，讓延後的重畫跑完
+            if not held:
+                break
+            _release()
+            pg.wait_for_timeout(200)
+        pg.wait_for_timeout(2000)
+        ix = {d: i for i, d in enumerate(dates)}
+        bad_sync, bad_op = [], []
+        for s in rows:
+            tv = ix.get(s["tree"])
+            rk = next((ix[d] for d in ix if s["rank"].startswith(d)), None)
+            if tv is None or rk is None or s["v"] is None or not (0 <= s["v"] - tv <= 1) or not (0 <= s["v"] - rk <= 1):
+                bad_sync.append((s["v"], s["sl"], s["tree"], s["rank"][:10]))
+            if s["op"] < 0.99 or s["fl"]:
+                bad_op.append((s["v"], s["op"], s["fl"]))
+        ok(f"★ [播放真實條件] 每一格 樹日期＝右欄日期＝拉Bar 日期（容許落後 1 格；共 {len(rows)} 格）", not bad_sync, bad_sync[:6])
+        ok("★ [播放真實條件] 右欄 opacity 全程 ≥ 0.99、沒有 filter（不反灰）", not bad_op, bad_op[:6])
+        end = pg.evaluate(PROBE)
+        ok("★ [播放真實條件] 只按一次 ▶：播到最後一天（今天）自己停、鈕回 ▶", end["v"] == mx and end["play"] == "▶", end)
+        ok("★ [播放真實條件] 播完（含延後的背景重畫）之後 拉Bar＝樹＝右欄＝最後一天",
+           end["v"] is not None and end["v"] < len(dates) and end["tree"] == dates[end["v"]] == dates[-1]
+           and end["rank"].startswith(dates[-1]), end)
+        vs = [s["v"] for s in rows]
+        ok("[播放真實條件] 一路往前、沒有被打回去（拉Bar 值不倒退）", all(y >= x for x, y in zip(vs, vs[1:])), vs[:80])
+        ref = pg.evaluate("() => window.__ref1007")
+        t_end = rows[-1]["pn"]
+        ok("★ [播放真實條件] 背景存檔更新真的發生過，而且延到播完才套用",
+           bool([t for t in ref if t > t_click]) and all(t >= t_end - 400 for t in ref if t > t_click),
+           {"ref": ref, "click": t_click, "end": t_end})
+        if shot_dir:
+            print(f"  （播放真實條件截圖：第 {shots} 格 → {shot_dir}）")
+    finally:
+        for h in held:                                # 還扣著的請求放行，關閉時才不會噴 CancelledError
+            try:
+                h[0].continue_()
+            except Exception:
+                pass
+        try:
+            ctx.unroute_all(behavior="ignoreErrors")    # 還扣著的請求不要在關閉時噴 CancelledError
+        except Exception:
+            pass
+        ctx.close()
+
+
 def t_play_census_1007(b, base):
     """播放普查1007（Andy 2026-10-07 三段原話：13:20「播放後再調整日期，再次點擊播放就不能做動」；
     18:55「播放時右邊清單反灰不做動，等到播放結束才會更新」；21:05「播放動畫都是到當日數據截止，便不會再進行播放…不是說要反灰色」）。
@@ -25725,6 +25879,8 @@ SECTIONS = {
     "播放器1007":          lambda pg, b, base, code: t_player_1007(pg, base),
     # ★ 2026-10-07 晚 Andy：「播放動畫都是到當日數據截止便不會再播放…不是說要反灰色」—— 三支播放器普查＋資金分流樹右欄跟著每一天換（⚠ --workers 1）
     "播放普查1007":        lambda pg, b, base, code: t_play_census_1007(b, base),
+    # ★ 2026-10-07 22:57 Andy 第三次回報：線上條件（存檔先貼、網路版晚到且不同、CPU 4 倍降速、擁有者）下播放資金分流樹（⚠ --workers 1）
+    "播放真實條件1007":    lambda pg, b, base, code: t_play_real_1007(b, base),
     # ★ 2026-10-07 Andy：改名（資金分流樹／族群資金排行）＋樹旁「資金流向排名」右表＋族群成分股依流入排序（含 390）
     "資金分流樹右欄1007":  lambda pg, b, base, code: t_flow_tree_1007(pg, base),
     "資金分流樹播放1007":  lambda pg, b, base, code: t_flow_tree_play_1007(pg, base),
