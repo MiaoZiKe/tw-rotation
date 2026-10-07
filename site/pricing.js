@@ -86,22 +86,48 @@
     const a = A(), u = a && a.on() ? a.user() : null;
     const st = P() ? P().state() : { who: 'guest', plan: '', planName: '' };
     if (!u) return { id: 'guest', label: '訪客', tier: 'guest' };
+    /* 站主（/v1/me 的 owner 旗標，perm.js 同一個判定）：所有功能不受限，徽章寫「站主」、方案頁每張卡都是「已包含」 */
+    if (u.owner) return { id: 'owner', label: '站主', tier: 'owner' };
     if (!st.plan || st.plan === 'free' || st.who === 'guest') return { id: 'free', label: '免費會員', tier: 'free' };
     return { id: st.plan, label: st.planName || st.plan, tier: 'paid' };
   }
+  /* 付費方案的高低順序＋色系：跟方案頁 paint() 同一套（依折合每月價格由低到高，色系 藍→紫→琥珀→綠），
+     不寫死 plus／pro —— 管理區新增方案時順序與顏色自動跟著走。 */
+  const AUTO_C = ['blue', 'violet', 'amber', 'green'];
+  function paidSorted() {
+    return tidy(S.plans || FALLBACK).filter((p) => tierOf(p) === 'paid' && p.public !== false).map((p, i) => [p, i])
+      .sort((a, b) => monthEq(a[0]) - monthEq(b[0]) || a[1] - b[1]).map((x) => x[0]);
+  }
+  function colorOf(id) {
+    const paid = paidSorted(), i = paid.findIndex((p) => p.id === id);
+    if (i >= 0) return paid[i].color || AUTO_C[i % 4];
+    return /pro/i.test(id) ? 'violet' : 'blue';   // 方案清單還沒到：先依名稱猜，到了 tw:plans 會重畫
+  }
+  /* 方案層級（0＝免費，付費＝折合每月價格）：「已包含／目前方案／升級」用它比高低 */
+  const rankOf = (p) => (tierOf(p) === 'guest' ? -1 : tierOf(p) === 'free' ? 0 : monthEq(p));
   window.TwPlanBadge = function () {
     const m = myPlan();
-    return `<a href="#pricing" class="planbadge t-${m.tier}" data-plan="${esc(m.id)}" title="查看方案與升級">${esc(m.label)}</a>`;
+    const c = m.tier === 'paid' ? ' pc-' + colorOf(m.id) : '';
+    return `<a href="#pricing" class="planbadge t-${m.tier}${c}" data-plan="${esc(m.id)}" title="查看方案與升級">${esc(m.label)}</a>`;
   };
   css('planBadgeCss', `
 .planbadge{display:inline-flex;align-items:center;height:22px;padding:0 9px;border-radius:999px;font-size:12px;font-weight:700;text-decoration:none;white-space:nowrap;
   border:1px solid var(--line-2);color:var(--ink-2);background:var(--panel-3)}
 .planbadge.t-free{color:var(--cyan);border-color:color-mix(in srgb,var(--cyan) 45%,transparent)}
-.planbadge.t-paid{color:#1a1203;background:var(--amber);border-color:transparent}
+.planbadge.t-paid{--pc:var(--pl-blue,#4f8cff);color:var(--pc);background:color-mix(in srgb,var(--pc) 16%,transparent);border-color:color-mix(in srgb,var(--pc) 55%,transparent)}
+.planbadge.t-paid.pc-blue{--pc:#4f8cff}.planbadge.t-paid.pc-violet{--pc:var(--violet)}.planbadge.t-paid.pc-amber{--pc:var(--amber)}.planbadge.t-paid.pc-green{--pc:var(--lime)}
+:root[data-theme="light"] .planbadge.t-paid.pc-blue{--pc:#2b65d9}
+.planbadge.t-owner{color:var(--amber);background:color-mix(in srgb,var(--amber) 16%,transparent);border-color:color-mix(in srgb,var(--amber) 55%,transparent)}
+/* ★ 10-07 根因：account.js 的「.acctmenu a{display:block;width:100%;padding:9px 10px}」是給選單項目用的，
+   特異度（0,1,1）高過 .planbadge（0,1,0），徽章被撐成整列寬的方塊，把名字擠成「Ha…」還溢出選單。這裡用更高特異度蓋回膠囊。 */
+.acctmenu .mh .planbadge{display:inline-flex;flex:none;width:auto;height:20px;padding:0 8px;font-size:11.5px;line-height:1;border-radius:999px;text-align:center}
+.acctmenu .mh .planbadge:hover{background:color-mix(in srgb,var(--pc,var(--ink-2)) 26%,transparent)}
 .acctmenu .mh.mhx{display:grid;grid-template-columns:auto minmax(0,1fr);gap:2px 10px;align-items:center}
 .acctmenu .mh.mhx .av{grid-row:span 2;width:36px;height:36px;border-radius:50%;display:grid;place-items:center;background:var(--violet);color:#fff;font-weight:700;font-size:16px}
 .acctmenu .mh.mhx .nm{display:flex;align-items:center;gap:8px;min-width:0}
-.acctmenu .mh.mhx .nm b{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}`);
+.acctmenu .mh.mhx .nm b{display:block;min-width:0;max-width:16em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.acctmenu .mh.mhx small{grid-column:2}
+.acctmenu:has(.mh.mhx){min-width:260px;max-width:min(360px,calc(100vw - 16px))}`);
 
   // ------------------------------------------------------------------ 方案資料
   /* ★ pricing-v2（2026-10-07，Andy：「圖一是我訂閱頁面想看到的範本，幫我做一份」）：
@@ -463,7 +489,7 @@
     let hot = anyBadge ? (paid.find((p) => p.badge && p.color === 'blue') || paid.find((p) => p.badge) || null) : paid[0] || null;
     let full = null;
     if (!anyBadge && paid.length > 1) { full = paid.slice().sort((a, b) => nOn(b) - nOn(a))[0]; if (full === hot) full = paid[paid.length - 1]; }
-    const AUTO_C = ['blue', 'violet', 'amber', 'green'], AUTO_I = ['bolt', 'crown', 'star', 'rocket'];
+    const AUTO_I = ['bolt', 'crown', 'star', 'rocket'];
     const look = new Map(plans.map((p) => {
       const i = paid.indexOf(p);
       return [p.id, { color: p.color || (i < 0 ? 'neutral' : AUTO_C[i % 4]), icon: p.icon || (i < 0 ? 'gift' : AUTO_I[i % 4]),
@@ -507,8 +533,13 @@
      其他情況這一行用 &nbsp; 佔位（三欄每一層才對齊）。 */
   function origLine(pr) { return pr.orig ? `<div class="prorig"><s class="prstrike">NT$ ${nt(pr.mo)}／月</s><span class="prsale">省 NT$ ${nt(pr.orig - pr.total)}／年・約 ${Math.round((pr.orig - pr.total) / pr.orig * 100)}%</span></div>` : '<div class="prorig">&nbsp;</div>'; }
   function btnOf(p, me) {
+    /* ★ 10-07 Andy「已是 pro 用戶但 plus 尚未包含」：以前只認「同一張＝目前方案、免費卡＝已包含」，其餘一律「升級」。
+       改成比層級（rankOf：免費 0、付費＝折合每月價格，不寫死方案名）：比目前低＝已包含、同一張＝目前方案、比目前高才升級。站主全部已包含。 */
+    if (me.tier === 'owner') return `<button type="button" class="prgo" disabled>已包含</button>`;
     if (me.id === p.id) return `<button type="button" class="prgo" disabled>目前方案</button>`;
-    if (tierOf(p) === 'free') return me.tier === 'guest' ? `<button type="button" class="prgo" data-go="${esc(p.id)}">免費註冊／登入</button>` : `<button type="button" class="prgo" disabled>已包含</button>`;
+    if (tierOf(p) === 'free' && me.tier === 'guest') return `<button type="button" class="prgo" data-go="${esc(p.id)}">免費註冊／登入</button>`;
+    const mine = me.tier === 'free' ? 0 : me.tier === 'guest' ? -1 : (() => { const x = tidy(S.plans || FALLBACK).find((q) => q.id === me.id); return x ? rankOf(x) : -1; })();
+    if (rankOf(p) <= mine) return `<button type="button" class="prgo" disabled>已包含</button>`;
     return `<button type="button" class="prgo" data-go="${esc(p.id)}">升級 ${esc(showName(p))}</button>`;
   }
   const tagOf = (lk, need) => (need ? `<span class="prtag need">${S.need && F() && F().byId(S.need) ? '可解鎖' : '建議升級'}</span>` : lk.badge ? `<span class="prtag">${lk.badge === '最受歡迎' ? '★ ' : '✦ '}${esc(lk.badge)}</span>` : '');
