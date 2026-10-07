@@ -22943,6 +22943,188 @@ def t_nobox_1006(pg, base):
         ok(f"[無獨立提示框] #{r} 主內容區沒有卡片外自成一框的備註／免責／提示列", not bad, bad[:5])
 
 
+# ===================================================================== 管理權限（2026-10-07，site/tabdrag.js＋admin.js renderAdmins＋worker.js 管理權限區塊）
+# Andy（10-07 14:50）：「拖曳功能，只有帳號可以使用，任何可更改功能都只有我這帳號可以，其他帳號我沒有新增管理者情況下不行，這點非常重要!!!
+#                        管理那邊需要新增一個誰擁有管理權限」
+# 假 Worker 照 worker.js 的規則：擁有者 andy@example.com（ADMIN_EMAILS）＋擁有者加的人；只有擁有者能新增／移除；移除後該人的權杖失效。
+ADM1007_API = "https://acct1007.example.test"
+
+
+def t_admin_only_1007(b, base):
+    T = "管理權限1007"
+    shots = os.environ.get("TW_ADM1007_SHOTS")
+    OWNER = "andy@example.com"
+    st = {"extra": {}, "log": [], "tv": {}}
+    errs: list = []
+
+    def is_adm(e):
+        return e == OWNER or e in st["extra"]
+
+    def handler(route):
+        req = route.request
+        path = re.sub(r"^https?://[^/]+", "", req.url).split("?")[0]
+        if req.method == "OPTIONS":
+            return route.fulfill(status=204, headers={"access-control-allow-origin": "*", "access-control-allow-headers": "*", "access-control-allow-methods": "POST"})
+        try:
+            body = json.loads(req.post_data or "{}")
+        except Exception:  # noqa: BLE001
+            body = {}
+        tok = str(body.get("t") or "")
+        email = None
+        m = re.fullmatch(r"tok-(.+)-v(\d+)", tok)
+        if m and int(m.group(2)) == st["tv"].get(m.group(1), 0):
+            email = m.group(1)
+        out, code = {}, 200
+        if path == "/v1/me":
+            out, code = ({"user": {"email": email, "name": email.split("@")[0], "admin": is_adm(email), "owner": email == OWNER}}, 200) if email else ({"error": "auth"}, 401)
+        elif path == "/v1/perm/me":
+            out = {"who": "member" if email else "guest", "plan": "free", "planName": "免費會員", "feats": {}, "lims": {}}
+        elif path == "/v1/plans/public":
+            out = {"plans": []}
+        elif path in ("/v1/beat", "/v1/track/batch"):
+            out = {"ok": True, "n": 1}
+        elif path == "/v1/quota/hit":
+            out = {"day": "x", "k": body.get("k"), "n": 0, "keys": []}
+        elif path == "/v1/notices":
+            out = {"notices": []}
+        elif path.startswith("/v1/admin/") and not (email and is_adm(email)):
+            out, code = {"error": "forbidden"}, 403
+        elif path == "/v1/admin/admins/list":
+            out = {"owners": [{"email": OWNER, "owner": True}], "admins": [{"email": k, **v} for k, v in st["extra"].items()],
+                   "log": list(reversed(st["log"])), "me": {"email": email, "owner": email == OWNER}}
+        elif path == "/v1/admin/admins/add":
+            e = str(body.get("email") or "").strip().lower()
+            if email != OWNER:
+                out, code = {"error": "owner_only"}, 403
+            elif is_adm(e):
+                out, code = {"error": "exists"}, 409
+            else:
+                st["extra"][e] = {"added": int(time.time() * 1000), "by": email}
+                st["log"].append({"id": len(st["log"]) + 1, "ts": int(time.time() * 1000), "act": "add", "email": e, "by": email})
+                out = {"ok": True}
+        elif path == "/v1/admin/admins/del":
+            e = str(body.get("email") or "").strip().lower()
+            if email != OWNER:
+                out, code = {"error": "owner_only"}, 403
+            elif e == OWNER:
+                out, code = {"error": "owner"}, 409
+            elif e not in st["extra"]:
+                out, code = {"error": "not_admin"}, 404
+            else:
+                del st["extra"][e]
+                st["tv"][e] = st["tv"].get(e, 0) + 1
+                st["log"].append({"id": len(st["log"]) + 1, "ts": int(time.time() * 1000), "act": "del", "email": e, "by": email})
+                out = {"ok": True}
+        elif path == "/v1/admin/stats":
+            out = {"from": "2026-09-05", "to": "2026-10-04", "rows": [], "e2": [], "users": {"total": 0, "recent": []}}
+        elif path == "/v1/admin/online":
+            out = {"total": 0, "guests": 0, "users": [], "public_online": True}
+        route.fulfill(status=code, body=json.dumps(out), headers={"access-control-allow-origin": "*", "content-type": "application/json"})
+
+    def ctx_as(email, preset_tabs=False, width=1440):
+        c = b.new_context(viewport={"width": width, "height": 950})
+        init = "window.TW_ACCOUNT_OVERRIDE = " + json.dumps({"api": ADM1007_API}) + ";"
+        init += ("try { if (!sessionStorage.getItem('_a1007')) { sessionStorage.setItem('_a1007', '1'); localStorage.setItem('tw.acct.tok', " + json.dumps(f"tok-{email}-v{st['tv'].get(email, 0)}") + ");"
+                 + ("localStorage.setItem('tw.tabs.stock.stockTabs', JSON.stringify(['x:zzz'])); localStorage.setItem('tw.tabs.industry.chainSwitch', '[\"x:a\"]');" if preset_tabs else "")
+                 + "} } catch (e) {}")
+        c.add_init_script(init)
+        c.route("**/fonts.googleapis.com/**", lambda r: r.abort())
+        c.route(ADM1007_API + "/**", handler)
+        pg = c.new_page()
+        pg.on("pageerror", lambda e: errs.append(str(e)[:200]))
+        return c, pg
+
+    SEL = "#stockTabs"
+
+    def drag_check(pg, who, expect_ok):
+        pg.goto(base + "#stock/2330", wait_until="domcontentloaded")
+        wait_until(pg, f"() => {{ const b = document.querySelector('{SEL}'); return b && b.children.length >= 3 && window.TwAccount && TwAccount.user(); }}", 15000)
+        if expect_ok:
+            wait_until(pg, f"() => document.querySelector('{SEL}').hasAttribute('data-tdrag')", 5000)
+        pg.wait_for_timeout(700)
+        info = pg.evaluate(f"""() => {{ const b = document.querySelector('{SEL}'); return {{ tdrag: b.hasAttribute('data-tdrag'), title: b.title || '',
+            o: [...b.children].map(c => c.dataset.t || c.dataset.tab || c.textContent.trim().slice(0, 6)), ord: [...b.children].map(c => c.style.order).join(','),
+            ls: Object.keys(localStorage).filter(k => k.startsWith('tw.tabs.')) }}; }}""")
+        els = pg.locator(f"{SEL} > *")
+        b1, b3 = els.nth(0).bounding_box(), els.nth(2).bounding_box()
+        pg.mouse.move(b1["x"] + b1["width"] / 2, b1["y"] + b1["height"] / 2); pg.mouse.down()
+        pg.mouse.move(b1["x"] + b1["width"] / 2 + 15, b1["y"] + b1["height"] / 2, steps=3)
+        cur = pg.evaluate("() => document.documentElement.classList.contains('td-dragging')")
+        pg.mouse.move(b3["x"] + b3["width"] / 2, b3["y"] + b3["height"] / 2, steps=10)
+        pg.mouse.up(); pg.wait_for_timeout(400)
+        after = pg.evaluate(f"() => [...document.querySelector('{SEL}').children].map(c => c.style.order).join(',')")
+        moved = after != info["ord"]
+        if expect_ok:
+            ok(f"★ [{T}] {who}：個股分頁列掛上拖曳，滑鼠拖第一顆到第三顆 → 順序真的變了（有抓取游標）", info["tdrag"] and moved and cur, [info, after, cur])
+            pg.evaluate("() => { Object.keys(localStorage).filter(k => k.startsWith('tw.tabs.')).forEach(k => localStorage.removeItem(k)); }")
+        else:
+            ok(f"★ [{T}] {who}：分頁列沒有拖曳把手（沒有 data-tdrag、沒有「拖曳」提示）", not info["tdrag"] and "拖曳" not in info["title"], info)
+            ok(f"★ [{T}] {who}：模擬滑鼠拖曳 → 順序不變、沒有拖曳游標、沒有寫進 localStorage", not moved and not cur
+               and not pg.evaluate("() => Object.keys(localStorage).some(k => k.startsWith('tw.tabs.'))"), [info["ord"], after, cur])
+        return info
+
+    def admin_page(pg):
+        pg.goto(base + "#admin/admins", wait_until="domcontentloaded")
+        wait_until(pg, "() => document.querySelector('#admAdm table#aaList') || /不是管理者|尚未設定|請先登入/.test((document.getElementById('v-admin') || {}).innerText || '')", 12000)
+        pg.wait_for_timeout(300)
+        return pg.evaluate("""() => ({ list: !!document.querySelector('#aaList'), rows: [...document.querySelectorAll('#aaList tbody tr')].map(r => [r.dataset.email, !!r.dataset.owner, !!r.querySelector('[data-rmadm]')]),
+            add: !!document.querySelector('#aaAdd'), txt: ((document.getElementById('v-admin') || {}).innerText || '').slice(0, 120), side: !!document.getElementById('l4Perm') })""")
+
+    # ① 一般會員（從沒被加過）：已存的個人排序被清掉、拖不動、進不了管理區
+    c, pg = ctx_as("member@example.com", preset_tabs=True)
+    i = drag_check(pg, "一般會員", False)
+    ok(f"★ [{T}] 一般會員：之前存的個人分頁排序（tw.tabs.*）開頁就清掉回預設", not i["ls"], i["ls"])
+    if shots:
+        pg.locator(SEL).first.screenshot(path=str(pathlib.Path(shots) / "3_非管理者_個股分頁列_沒有拖曳.png"))
+        pg.screenshot(path=str(pathlib.Path(shots) / "3_非管理者_整頁.png"))
+    a = admin_page(pg)
+    ok(f"★ [{T}] 一般會員：進 #admin/admins 被擋（看不到名單）、側欄沒有管理區", not a["list"] and "不是管理者" in a["txt"] and not a["side"], a)
+    c.close()
+
+    # ② 擁有者：可拖曳；管理權限頁：自己那列標擁有者、沒有移除鈕；有「＋ 新增管理者」
+    co, po = ctx_as(OWNER)
+    drag_check(po, "擁有者", True)
+    a = admin_page(po)
+    ok(f"★ [{T}] 擁有者：管理權限頁列出擁有者、那一列沒有移除鈕、有「＋ 新增管理者」", a["list"] and a["rows"] == [[OWNER, True, False]] and a["add"], a)
+    ok(f"[{T}] 擁有者：側欄「管理區」下有「管理權限」子項", po.locator("#admTabAdmins").count() == 1)
+    po.click("#aaAdd"); po.fill("#aaMail", "carol@example.com"); po.click("#aaNext")
+    wait_until(po, "() => !!document.querySelector('#aaGo')", 3000)
+    warn = po.inner_text("#subDlg .box")
+    ok(f"★ [{T}] 新增確認框寫清楚「此人將能修改全站」", "此人將能修改全站" in warn and "carol@example.com" in warn, warn[:120])
+    if shots:
+        po.screenshot(path=str(pathlib.Path(shots) / "2_新增管理者確認框.png"))
+    po.click("#aaGo")
+    ok(f"★ [{T}] 確定新增 → 名單多一列 carol、有移除鈕；稽核紀錄記一筆新增",
+       bool(wait_until(po, "() => [...document.querySelectorAll('#aaList tbody tr')].some(r => r.dataset.email === 'carol@example.com' && r.querySelector('[data-rmadm]')) && /新增管理者/.test(document.getElementById('aaLog').innerText)", 5000)),
+       po.inner_text("#admAdm")[:300])
+    if shots:
+        po.locator("#admAdm").screenshot(path=str(pathlib.Path(shots) / "1_管理權限頁.png"))
+
+    # ③ carol 重新整理：可進管理區、可拖曳、看不到新增鈕與移除鈕（一般管理者）
+    cc, pc = ctx_as("carol@example.com")
+    drag_check(pc, "新加的管理者", True)
+    a = admin_page(pc)
+    ok(f"★ [{T}] 新加的管理者：進得了管理權限頁，但看不到「＋ 新增管理者」、也沒有任何移除鈕", a["list"] and not a["add"] and not any(r[2] for r in a["rows"]), a)
+    r = pc.evaluate(f"async () => {{ const j = await TwAccount.call('/v1/admin/admins/add', {{ email: 'eve@example.com' }}); return j && j._s; }}")
+    ok(f"[{T}] 一般管理者硬打新增端點 → 403", r == 403, r)
+
+    # ④ 擁有者移除 carol → carol 下一次請求失去權限
+    po.click("#aaList button[data-rmadm='carol@example.com']")
+    wait_until(po, "() => !!document.querySelector('#aaRmGo')", 3000)
+    po.click("#aaRmGo")
+    ok(f"[{T}] 擁有者移除 carol → 名單只剩擁有者、稽核紀錄多一筆移除",
+       bool(wait_until(po, "() => document.querySelectorAll('#aaList tbody tr').length === 1 && /移除管理者/.test(document.getElementById('aaLog').innerText)", 5000)))
+    pc.reload(wait_until="domcontentloaded"); pc.wait_for_timeout(1500)
+    a = admin_page(pc)
+    ok(f"★ [{T}] 被移除的人重新整理 → 進不了管理區（權杖失效＝登出）", not a["list"] and not a["side"], a)
+    pc.goto(base + "#stock/2330", wait_until="domcontentloaded")
+    wait_until(pc, f"() => {{ const b = document.querySelector('{SEL}'); return b && b.children.length >= 3; }}", 15000); pc.wait_for_timeout(800)
+    ok(f"★ [{T}] 被移除的人：分頁列不再能拖曳", not pc.evaluate(f"() => document.querySelector('{SEL}').hasAttribute('data-tdrag')"))
+    for x in (cc, co):
+        x.close()
+    ok(f"[{T}] 全程沒有 pageerror", not errs, errs[:3])
+
+
 # ===================================================================== 分頁拖曳（2026-10-06，site/tabdrag.js）
 # Andy：「分頁具備拖曳移動位置功能，但不具備刪除功能」「所有分頁都具備拖曳移動調整位置功能」。
 # 每一頁真的用滑鼠按住第一顆分頁拖到第三顆上放開，驗：
@@ -22966,8 +23148,21 @@ def _td_item(sel, iid):
     return f'{sel} > [data-{_re.sub("([A-Z])", lambda m: "-" + m.group(1).lower(), k)}="{v}"]'
 
 
-def t_tabdrag_1006(pg, base):
+def t_tabdrag_1006(pg, base, b=None):
     tag = "分頁拖曳1006"
+    # ★ 2026-10-07（管理權限1007）：拖曳只限管理者 —— 這段改在「已登入管理者」的獨立環境裡跑（假 Worker 只回 /v1/me＝管理者）
+    if b is not None:
+        def _adm(route):
+            if route.request.method == "OPTIONS":
+                return route.fulfill(status=204, headers={"access-control-allow-origin": "*", "access-control-allow-headers": "*", "access-control-allow-methods": "POST"})
+            path = re.sub(r"^https?://[^/]+", "", route.request.url).split("?")[0]
+            out = {"user": {"email": "andy@example.com", "name": "管理者", "admin": True, "owner": True}} if path == "/v1/me" else {"notices": [], "plans": [], "feats": {}, "lims": {}, "ok": True}
+            route.fulfill(status=200, body=json.dumps(out), headers={"access-control-allow-origin": "*", "content-type": "application/json"})
+        _c = b.new_context(viewport={"width": 1440, "height": 950})
+        _c.add_init_script("window.TW_ACCOUNT_OVERRIDE = " + json.dumps({"api": ADM1007_API}) + "; try { localStorage.setItem('tw.acct.tok', 'tok-adm'); } catch (e) {}")
+        _c.route("**/fonts.googleapis.com/**", lambda r: r.abort())
+        _c.route(ADM1007_API + "/**", _adm)
+        pg = _c.new_page()
     pg.set_viewport_size({"width": 1440, "height": 950})
     for route, sel in TD_BARS:
         pg.goto(base + "#" + route)
@@ -24638,7 +24833,9 @@ SECTIONS = {
     # ★ 2026-10-05 Andy：選股探索頁（白話問題＋泡泡圖＋條件積木＋白話卡，docs/explore_page_spec.md）
     "選股策略1005":        lambda pg, b, base, code: t_explore_1005(pg, base),
     "無獨立提示框":        lambda pg, b, base, code: t_nobox_1006(pg, base),
-    "分頁拖曳1006":        lambda pg, b, base, code: t_tabdrag_1006(pg, base),
+    "分頁拖曳1006":        lambda pg, b, base, code: t_tabdrag_1006(pg, base, b),
+    # ★ 2026-10-07 Andy：「拖曳功能只有帳號可以使用…管理那邊需要新增一個誰擁有管理權限」
+    "管理權限1007":        lambda pg, b, base, code: t_admin_only_1007(b, base),
     # ★ 2026-09-28 設計 v4 第一批：三套主題 × 深淺、外觀設定面板、骨架數字、舊偏好相容、圖表共用規格
     "設計v4主題":          lambda pg, b, base, code: t_design_v4(b, base, code),
     "設計v4第二批2A":      lambda pg, b, base, code: t_design_v4_2a(b, base, code),
