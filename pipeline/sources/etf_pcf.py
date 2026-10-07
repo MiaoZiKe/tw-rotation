@@ -21,6 +21,7 @@ import html as _html
 import json
 import logging
 import re
+import time
 from typing import Any, Callable
 
 import pandas as pd
@@ -922,7 +923,14 @@ def tsit(codes: list[str]) -> pd.DataFrame:
     for c in codes:
         if re.search(r"[LR]$", c):
             continue
-        page = _req("GET", TSIT_PCF.format(code=c), params={"FundType": "ALL", "DataDate": ""}, expect="text")
+        # 2026-10-07 實測：連打二十幾頁後官網會間歇回一張「<title>Error</title>」的錯誤頁（00936、00775B 單獨打是好的），
+        # 所以每頁之間停 1 秒、遇到錯誤頁停 5 秒再試一次 —— 整輪多花半分鐘，換掉一半的漏抓。
+        page = None
+        for wait in (1, 5):
+            time.sleep(wait)
+            page = _req("GET", TSIT_PCF.format(code=c), params={"FundType": "ALL", "DataDate": ""}, expect="text")
+            if not (isinstance(page, str) and "<title>Error</title>" in page):
+                break
         got = parse_tsit(c, page) if page else []
         if page and not got:
             log.warning("台新 %s 解析不到股票／債券表（前 200 字）：%s", c, _snip(page))
