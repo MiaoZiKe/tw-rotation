@@ -112,6 +112,7 @@
 #v-etf .etag.lime{color:var(--lime)} #v-etf .etag.up{color:var(--rise)} #v-etf .etag.ink3{color:var(--ink-3)}
 #v-etf .up{color:var(--rise)} #v-etf .down{color:var(--fall)} #v-etf .flat{color:var(--ink-2)}
 #v-etf .etfmore{margin-top:10px;text-align:center}
+#v-etf .etfmore .btn[hidden],#v-etf .incmore .btn[hidden]{display:none}
 /* ---- 三張前 5 名：同高並排 */
 #v-etf .etftri{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:var(--sp-3);margin-bottom:var(--sp-3);align-items:stretch}
 #v-etf .etftri>.card{margin:0;display:flex;flex-direction:column;min-width:0}
@@ -194,7 +195,9 @@
 /* Andy 10-05：「所有欄位文字置中」（DECISIONS #321 同一條：欄位內文字一律置中、無例外） */
 #v-etf table.et th,#v-etf table.et td,#v-etf table.et th:first-child,#v-etf table.et td:first-child{text-align:center}
 #v-etf .rkhd span,#v-etf .rkhd span:nth-child(n+3),#v-etf .rkrow .v,#v-etf .rkrow .v2,#v-etf .rkrow .rk{text-align:center}
-#v-etf .etfc dt,#v-etf .etfc dd{text-align:center}
+#v-etf .etfc dt{text-align:left} #v-etf .etfc dd{text-align:right;font-variant-numeric:tabular-nums}
+#v-etf .etfc .h .fq.fqtag{background:var(--fc);color:var(--ontop,#0b1220);flex:none;font-size:11.5px;line-height:17px;padding:1px 7px;border-radius:999px;font-weight:700;white-space:nowrap}
+#v-etf .etfc .etag{flex:none}
 /* 2026-10-06（Andy：「分頁為何分開了，Follow 產業 MAP」）：資料夾式——頁籤底線＝內容框上框線，選中頁籤疊在線上；分類切換影響的內容全包在框內 */
 #v-etf .etfbody{border:1px solid var(--line);border-radius:0 var(--r-lg,14px) var(--r-lg,14px) var(--r-lg,14px);background:var(--panel);padding:var(--sp-3);position:relative;z-index:1}
 #v-etf .etfbody>#etfRetCard,#v-etf .etfbody>#etfListCard{border:0;border-top:1px solid var(--line);border-radius:0;background:transparent;box-shadow:none;margin:var(--sp-3) 0 0;padding:var(--sp-3) 2px 0}
@@ -454,7 +457,7 @@
       <select id="etfSort" class="etsel"><option value="tv">成交值</option><option value="size">規模</option><option value="yield">殖利率</option><option value="chg">今日漲跌</option></select></div></div>
   ${how('etflist', '', [
     '<b>分類</b>（依序判斷，先符合先歸類）：槓桿反向（代號尾 L/R 或名稱含 正2／反1）→ 債券型（尾 B 或名稱含「債」）→ 其他（期貨／商品／貨幣，尾 U 或「期」開頭）→ 主動式（尾 A）→ 市值型（名稱含 台灣50、台50、中型100、加權、MSCI台灣、摩台）→ 配息型（名稱含 高股息／高息／股息／收益／優息…，或近 400 天除息 ≥ 4 次）→ 其餘股票型為主題型。',
-    '<b>殖利率</b>＝近 12 個月現金配息合計 ÷ 最新收盤。<b>配息頻率</b>＝近 400 天除息次數（≥10 月配、≥3 季配、2 半年配、1 年配）。',
+    '<b>殖利率</b>＝近 12 個月現金配息合計 ÷ 最新收盤。<b>配息頻率</b>（分類旁的彩色小徽章）＝近 400 天相鄰兩次除息的間隔中位數（約 1 個月＝月配、2 個月＝雙月配、3 個月＝季配、半年＝半年配、只有 1 次＝年配）；沒有配息的不標。',
     '<b>規模</b>＝集保受益權單位數 × 收盤（估算值，不是投信公告的基金淨資產）。<b>成交值</b>＝近 20 日平均。',
     '所以：先用上方分類切出同一型，再用「殖利率」或「規模」排序比較；點卡片進個股頁看 K 線與除權息。'])}
   <span id="etfFbNote"></span>
@@ -552,15 +555,18 @@
     const fq = it.freq || '—';
     // 殖利率／配息頻率還沒有資料時寫「—」（不拿 0 冒充）；確定不配息的寫「不配息」
     const pend = '<span class="na">—</span>';
-    const fk = FQK[it.freq] || '';
+    /* 2026-10-07 Andy：「月 雙月 季配 標註在配息型旁邊」「把配息頻率那欄位拿掉」「沒有配息或沒有殖利率就不用特別寫出來」
+       → 頻率改成右上分類徽章旁的彩色小徽章；沒有殖利率（空／0）的不放頻率、殖利率那列留白佔位（同排卡片等高）。 */
+    const hasY = it.yield_ttm != null && it.yield_ttm > 0;
+    const fk = hasY ? FQK[it.freq] || '' : '';
     return `<button type="button" class="etfc t-${CAT_TONE[it.cat] || 'ink3'}${fk && it.cat === '配息型' ? ` fqbar fqc-${fk}` : ''}" data-fq="${esc(it.freq || '')}" data-code="${esc(it.code)}" title="進 ${esc(it.name)} 個股頁">
   <div class="h"><span class="nm">${esc(it.name)}</span><span class="cd">${esc(it.code)}</span><span class="sp" style="flex:1"></span>
-    <span class="etag ${CAT_TONE[it.cat] || 'ink3'}">${esc(it.cat)}</span></div>
+    <span class="etag ${CAT_TONE[it.cat] || 'ink3'}">${esc(it.cat)}</span>${hasY && fk ? `<span class="fq fqtag fqc-${fk}">${esc(it.freq)}</span>` : ''}</div>
   <div class="px"><b class="${cls(it.chg_pct)}" data-live="close" data-code="${esc(it.code)}">${it.close != null ? A().fmt.n(it.close, 2) : '—'}</b>
     <span class="${cls(it.chg_pct)}" data-live="chg" data-code="${esc(it.code)}">${it.chg_pct != null ? A().fmt.pct(it.chg_pct, 2) : '—'}</span>
     <span class="sp"></span>${spark(it.code)}</div>
   <dl><dt>成交值${it.tv20 != null ? '（20日均）' : ''}</dt><dd>${yi(it.tv20 != null ? it.tv20 : it.tv)}</dd>
-      <dt>殖利率</dt><dd class="yv">${it.yield_ttm != null ? y : noDiv(it) ? '<span class="na">不配息</span>' : pend}</dd><dt>配息頻率</dt><dd>${it.freq ? `<span class="fq${fk ? ' fqc-' + fk : ''}">${esc(fq)}</span>` : noDiv(it) ? '<span class="na">不配息</span>' : pend}</dd><dt>規模（估）</dt><dd>${yi(it.size)}</dd></dl>
+      ${hasY ? `<dt>殖利率</dt><dd class="yv">${y}</dd>` : '<dt class="blank" aria-hidden="true">&nbsp;</dt><dd class="blank" aria-hidden="true">&nbsp;</dd>'}<dt>規模（估）</dt><dd>${yi(it.size)}</dd></dl>
 </button>`;
   }
   function drawList() {

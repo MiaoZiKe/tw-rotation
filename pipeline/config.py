@@ -48,6 +48,11 @@ TABLES: dict[str, list[str]] = {
     #   「先公告沒除息日」與「後來有除息日」會變成兩列，個股頁會重複算；而且舊分割要重寫。
     #   所以另開一張表，鍵多一個 ex_date，只給 ETF 用；沒有除息日的公告不進這張表（dropna）。
     "etf_dividend_events": ["code", "period", "kind", "ex_date"],
+    # v15（2026-10-07，ETF 成分股）：各發行投信每日公告的申購買回清單（PCF）／持股明細。
+    #   date＝持股基準日（投信回應裡的淨值日，不是執行當天）、etf＝ETF 代號、code＝成分代號（外股寫原代號，如「NVDA US」）。
+    #   weight＝占淨值 %（元大只給股數，留空由 build_payload 以股數×收盤價推算）、shares＝基金持有總股數。
+    #   每天一份快照、只增不改；來源與實測紀錄見 docs/etf_holdings_source.md。
+    "etf_holdings":       ["date", "etf", "code"],
     # v4：大盤／櫃買／台指期的日 K（給總覽那三張圖的歷史週期用）。
     # Yahoo 的櫃買代號 ^TWOII 已經壞掉、台指期沒有免費代號，所以改走 FinMind：
     #   TaiwanStockPrice(TAIEX / TPEx) 與 TaiwanFuturesDaily(TX)

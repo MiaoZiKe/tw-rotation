@@ -1827,8 +1827,8 @@ def t_side_fold_1005(pg, b, base):
 def t_etf_hold_1007(pg, b, base):
     """ETF 成分股分頁（2026-10-07 Andy：「成分股分頁需要左側出現個股清單，右邊出現個股權重圓餅圖」）。
 
-    ⚠ 資料湖目前沒有 ETF 成分股（合規免費來源查不到，docs/etf_holdings_source.md），正式站的 etf_holdings.json 不存在。
-      所以「左清單＋右甜甜圈」用 **假資料** 驗前端：route 攔截 data/etf_holdings.json，成分取自 stocks.json 的真代號
+    2026-10-07 晚：成分股改由投信每日 PCF 進湖（pipeline/sources/etf_pcf.py），但本機資料湖不一定有那張表，
+      所以「左清單＋右甜甜圈」仍用 **假資料** 驗前端：route 攔截 data/etf_holdings.json，成分取自 stocks.json 的真代號
       （外加一檔非台股成分驗「不能點」）。假資料只在這一段的瀏覽器分頁裡，不寫進任何檔案。
       沒攔截時（＝正式站現況）驗兩種說明卡：債券型 00679B →「沒有個股成分」、股票型 →「來源尚未接上」，都不能空白。
     1440 與 390 各跑一次。"""
@@ -1843,7 +1843,7 @@ def t_etf_hold_1007(pg, b, base):
     items.append({"code": "AAPL US", "name": "Apple Inc.", "w": 0.8, "shares": None})
     FAKE = {"asof": "2026-10-06", "source": "測試假資料", "etfs": {
         "0050": {"asof": "2026-10-06", "items": items},
-        "00896": {"asof": "2026-10-06", "items": items[:15]}}}
+        "00896": {"asof": "2026-10-06", "manual": True, "issuer": "中國信託", "items": items[:15]}}}
 
     def fake(route):
         route.fulfill(status=200, content_type="application/json", body=_json.dumps(FAKE, ensure_ascii=False))
@@ -1878,6 +1878,8 @@ def t_etf_hold_1007(pg, b, base):
                 ok(f"★ [{t}] {code} 甜甜圈有扇區（前 10 大＋其他）", pie["n"] >= 5 and pie["n"] <= 11 and ("其他" in pie["names"] or len(rows) <= 10), pie)
                 ok(f"[{t}] {code} 中心寫「前 10 大合計 X%」", "前 10 大合計" in pie["center"] and "%" in pie["center"], pie["center"])
                 ok(f"[{t}] {code} 標註資料日期", "資料日期 2026-10-06" in text(lp, "#etfHoldCard h3"), text(lp, "#etfHoldCard h3"))
+                if code == "00896":   # 2026-10-07：人工整理檔（holdings_manual.yaml）要標「人工整理・資料日期 X」
+                    ok(f"★ [{t}] 00896 人工整理的資料標「人工整理・資料日期」", "人工整理・資料日期 2026-10-06" in text(lp, "#etfHoldCard h3"), text(lp, "#etfHoldCard h3"))
                 ok(f"[{t}] {code} 沒有橫向捲軸", J("() => document.documentElement.scrollWidth <= innerWidth + 1"))
                 if code == "0050":
                     # 非台股成分：寫原名、不能點
@@ -1911,18 +1913,24 @@ def t_etf_hold_1007(pg, b, base):
                J("() => (document.querySelector('#etfHoldCard') || {}).dataset?.state") == "nostock" and "沒有個股成分" in text(lp, "#etfHoldNone"), text(lp, "#etfHoldCard")[:80])
         finally:
             lp.close()
-    # 正式站現況（沒有 etf_holdings.json）：股票型顯示「來源尚未接上」，不准空白
-    lp = pg.context.browser.new_page(viewport={"width": 1440, "height": 1000})
-    lp.route("**/fonts.googleapis.com/**", lambda r: r.abort())
-    lp.route("**/data/etf_holdings.json*", lambda r: r.fulfill(status=404, body="not found"))
-    try:
-        lp.goto(f"{base}#stock/0050", wait_until="networkidle")
-        open_hold(lp, 1440)
-        wait_until(lp, "() => !!document.querySelector('#etfHoldCard[data-state]')", 8000)
-        ok(f"★ [{tag}] 沒有成分股資料時 0050 顯示「來源尚未接上」說明卡（不空白）",
-           lp.evaluate("() => (document.querySelector('#etfHoldCard') || {}).dataset?.state") == "nosrc" and "來源尚未接上" in text(lp, "#etfHoldNone"), text(lp, "#etfHoldCard")[:80])
-    finally:
-        lp.close()
+    # 沒有成分股資料：股票型顯示「此檔發行投信（X 投信）資料尚未接上」，不准空白（2026-10-07 起寫出投信名）
+    for label, handler, want in (
+        ("檔案不存在", lambda r: r.fulfill(status=404, body="not found"), "資料尚未接上"),
+        ("有檔但這檔沒接上", lambda r: r.fulfill(status=200, content_type="application/json",
+                                                body=_json.dumps({"asof": "2026-10-06", "issuers": {"0050": "元大"}, "etfs": {}}, ensure_ascii=False)),
+         "元大投信"),
+    ):
+        lp = pg.context.browser.new_page(viewport={"width": 1440, "height": 1000})
+        lp.route("**/fonts.googleapis.com/**", lambda r: r.abort())
+        lp.route("**/data/etf_holdings.json*", handler)
+        try:
+            lp.goto(f"{base}#stock/0050", wait_until="networkidle")
+            open_hold(lp, 1440)
+            wait_until(lp, "() => !!document.querySelector('#etfHoldCard[data-state]')", 8000)
+            ok(f"★ [{tag}] {label}：0050 顯示「發行投信資料尚未接上」說明卡（不空白、含「{want}」）",
+               lp.evaluate("() => (document.querySelector('#etfHoldCard') || {}).dataset?.state") == "nosrc" and want in text(lp, "#etfHoldNone"), text(lp, "#etfHoldCard")[:80])
+        finally:
+            lp.close()
 
 
 def t_etf_1005(pg, b, base):
@@ -2164,7 +2172,7 @@ def t_etf_1005(pg, b, base):
         lc = J("() => [...document.querySelectorAll('#etfGrid .etfc')].slice(0, 6).map(e => getComputedStyle(e).borderLeftColor)")
         tc = J("() => getComputedStyle(document.querySelector('#etfGrid .etfc .etag')).color")
         # 2026-10-07 Andy：配息型卡片左色條改成「配息頻率色」（跟卡片裡的頻率徽章同色）；沒有頻率的才維持分類色
-        lc = J("() => [...document.querySelectorAll('#etfGrid .etfc')].slice(0, 6).map(e => [getComputedStyle(e).borderLeftColor, getComputedStyle(e.querySelector('.fq') || e.querySelector('.etag')).color])")
+        lc = J("() => [...document.querySelectorAll('#etfGrid .etfc')].slice(0, 6).map(e => [getComputedStyle(e).borderLeftColor, (e.querySelector('.fqtag') ? getComputedStyle(e.querySelector('.fqtag')).backgroundColor : getComputedStyle(e.querySelector('.etag')).color)])")
         ok(f"★ [{tag}] ETF 卡片左緣有顏色（配息型＝跟配息頻率徽章同色）", bool(lc) and all(a == b_ for a, b_ in lc), (lc, tc))
         wr = J("() => [...document.querySelectorAll('#etfGrid .etfc dt, #etfGrid .etfc dd, #etfGrid .etfc .nm')].filter(e => e.getBoundingClientRect().height > 24).length")
         ok(f"★ [{tag}] ETF 卡片欄位全部一行（沒有被擠成兩行的）", wr == 0, wr)
@@ -2180,7 +2188,10 @@ def t_etf_1005(pg, b, base):
                           one: b.getBoundingClientRect().height < 48 }; }""")
         ok(f"★ [{tag}] 分類頁籤用全站共用 .nbsw（產業地圖同款：置中、數字小字、一行）",
            nb["cls"] and nb["ta"] == "center" and nb["em"] and nb["one"], nb)
-        cen = J("() => [...document.querySelectorAll('#etfGrid .etfc dd, #etfGrid .etfc dt, #v-etf table.et td, #v-etf table.et th')].filter(e => e.offsetParent && !e.classList.contains('nmc') && getComputedStyle(e).textAlign !== 'center').length")  # 報酬比較表 ETF 名稱欄（.nmc）靠左是 Andy 10-06 明講的例外
+        # 2026-10-07 Andy：「ETF 內文字靠左對齊」→ 卡片內標籤靠左、數值靠右（不再置中）；表格仍置中
+        al = J("() => [...document.querySelectorAll('#etfGrid .etfc dt:not(.blank)')].every(e => getComputedStyle(e).textAlign === 'left') && [...document.querySelectorAll('#etfGrid .etfc dd:not(.blank)')].every(e => getComputedStyle(e).textAlign === 'right')")
+        ok(f"★ [{tag}] ETF 卡片：標籤靠左、數值靠右", al)
+        cen = J("() => [...document.querySelectorAll('#v-etf table.et td, #v-etf table.et th')].filter(e => e.offsetParent && !e.classList.contains('nmc') && getComputedStyle(e).textAlign !== 'center').length")  # 報酬比較表 ETF 名稱欄（.nmc）靠左是 Andy 10-06 明講的例外
         ok(f"★ [{tag}] 所有欄位文字置中", cen == 0, cen)
         rf = J("""() => { const u = document.querySelector('#etfGrid .etfc .px span.up, #etfGrid .etfc .px span.down');
                  if (!u) return null; const c = getComputedStyle(u).color.match(/[\\d.]+/g).slice(0, 3).map(Number);
@@ -2310,7 +2321,7 @@ def t_etf_income_1007(pg, b, base):
         g = J("""() => { const hs = [...document.querySelectorAll('#etfGrid .fqhd')].map(h => h.dataset.fq);
                  const cs = [...document.querySelectorAll('#etfGrid .etfc')].map(c => c.dataset.fq || '');
                  const col = {}; document.querySelectorAll('#etfGrid .etfc.fqbar').forEach(c => { col[c.dataset.fq] = getComputedStyle(c).borderLeftColor; });
-                 const bad = [...document.querySelectorAll('#etfGrid .etfc.fqbar')].filter(c => getComputedStyle(c).borderLeftColor !== getComputedStyle(c.querySelector('.fq')).color).length;
+                 const bad = [...document.querySelectorAll('#etfGrid .etfc.fqbar')].filter(c => getComputedStyle(c).borderLeftColor !== getComputedStyle(c.querySelector('.fqtag')).backgroundColor).length;
                  return { hs, cs, col, bad }; }""")
         order = ["月配", "雙月配", "季配", "半年配", "年配", "其他"]
         rk = lambda f: order.index(f) if f in order else 5
@@ -2320,6 +2331,22 @@ def t_etf_income_1007(pg, b, base):
         ok(f"★ [{tag}] 不同頻率的左色條顏色不同，且跟頻率徽章同色", len(cols) >= 3 and len(set(cols)) == len(cols) and g["bad"] == 0, g)
         red = J("() => [getComputedStyle(document.documentElement).getPropertyValue('--rise').trim(), getComputedStyle(document.documentElement).getPropertyValue('--fall').trim()]")
         ok(f"[{tag}] 頻率色不用漲跌紅綠", all(c not in cols for c in red), (cols, red))
+        # 10-07 追加：頻率徽章在右上分類徽章旁、拿掉「配息頻率」列、沒殖利率的不寫殖利率也不標頻率、同排等高
+        cd = J("""() => { const cs = [...document.querySelectorAll('#etfGrid .etfc')];
+                 const hdr = cs.filter(c => c.querySelector('.fqtag')).every(c => { const t = c.querySelector('.h .fqtag'), e = c.querySelector('.h .etag');
+                   return t && e && t.previousElementSibling === e && Math.abs(t.getBoundingClientRect().top - e.getBoundingClientRect().top) < 3; });
+                 const noFreqRow = !cs.some(c => [...c.querySelectorAll('dt')].some(d => /配息頻率/.test(d.textContent)));
+                 const noEmptyY = !cs.some(c => [...c.querySelectorAll('dt')].some(d => /殖利率/.test(d.textContent) && /^(—|0\.00%)$/.test(d.nextElementSibling.textContent.trim())));
+                 const noYnoTag = cs.filter(c => !c.querySelector('.yv')).every(c => !c.querySelector('.fqtag'));
+                 const rows = {}; cs.forEach(c => { const r = c.getBoundingClientRect(); (rows[Math.round(r.top)] = rows[Math.round(r.top)] || []).push(Math.round(r.height)); });
+                 const even = Object.values(rows).every(h => Math.max(...h) - Math.min(...h) <= 1);
+                 return { n: cs.filter(c => c.querySelector('.fqtag')).length, hdr, noFreqRow, noEmptyY, noYnoTag, even }; }""")
+        ok(f"★ [{tag}] 頻率徽章在「配息型」旁同一列、沒有「配息頻率」列、沒殖利率的不寫也不標、同排卡片等高",
+           cd["n"] >= 10 and cd["hdr"] and cd["noFreqRow"] and cd["noEmptyY"] and cd["noYnoTag"] and cd["even"], cd)
+        lp.click("#etfCatSeg button[data-v='市值型']"); lp.wait_for_timeout(500)
+        mv = J("() => ({ l: [...document.querySelectorAll('#etfGrid .etfc dt:not(.blank)')].every(e => getComputedStyle(e).textAlign === 'left'), r: [...document.querySelectorAll('#etfGrid .etfc dd:not(.blank)')].every(e => getComputedStyle(e).textAlign === 'right'), f: ![...document.querySelectorAll('#etfGrid dt')].some(d => /配息頻率/.test(d.textContent)) })")
+        ok(f"[{tag}] 市值型卡片也是標籤靠左、數值靠右、沒有配息頻率列", mv["l"] and mv["r"] and mv["f"], mv)
+        lp.click("#etfCatSeg button[data-v='配息型']"); lp.wait_for_timeout(400)
         # ---- 進現金流試算
         lp.click("#etfIncSeg button"); lp.wait_for_timeout(1500)
         wait_until(lp, "() => document.querySelector('#incTbl tbody tr') && document.querySelectorAll('#incCombos .combo').length > 0", 20000)
