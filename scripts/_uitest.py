@@ -7603,6 +7603,46 @@ def t_flow_tree_1007(pg, base):
         sw = pg.evaluate("() => document.scrollingElement.scrollWidth")
         ok(f"[{w}] 沒有橫向捲軸", sw <= w, sw)
     pg.set_viewport_size({"width": 1440, "height": 900}); pg.wait_for_timeout(1200)
+    # ---- 18:25 修（Andy 圖 215／216）：族群欄跑到畫布外、切換鈕溢出外框
+    #      四種寬度 x 深淺主題 x（點族群前、點後、按「‹ 全部族群」回來）：每個族群節點與標籤都在畫布內，
+    #      而且畫布寬＝樹卡可見寬（216 的根因是按回來那一刻畫布用整列寬排版、之後沒縮回）。
+    NODES = """() => { const h = document.getElementById('sankey'), p = window.FlowTopo && FlowTopo.probe(h); if (!p) return null;
+        const vw = Math.round(document.getElementById('sankeyWrap').getBoundingClientRect().width);
+        const g = p.nodes.filter(n => n.lv === 2);
+        const bad = g.filter(n => !(n.x < p.W - 4) || !n.lab || !(n.lab.x + n.lab.w < p.W - 4)).map(n => [n.name, n.x, n.lab && n.lab.x + n.lab.w]);
+        return { W: p.W, vw, n: g.length, bad }; }"""
+    SEG = """() => { const s = document.querySelector('#sankeyPanel .skms'); if (!s) return null;
+        const o = s.getBoundingClientRect(), bs = [...s.querySelectorAll('button')].map(b => b.getBoundingClientRect());
+        const on = s.querySelector('button.on').getBoundingClientRect();
+        return { inside: on.left >= o.left - 0.5 && on.right <= o.right + 0.5 && on.top >= o.top - 0.5 && on.bottom <= o.bottom + 0.5,
+                 sameH: Math.abs(bs[0].height - bs[1].height) < 0.5, h: Math.round(o.height), w: Math.round(o.width) }; }"""
+    th0 = pg.evaluate("() => { try { return localStorage.getItem('tw.theme'); } catch (e) { return null; } }")
+    for th in ("dark", "light"):
+        for w in (1280, 1440, 1566, 1920):
+            pg.set_viewport_size({"width": w, "height": 900})
+            pg.evaluate("(t) => localStorage.setItem('tw.theme', t)", th)
+            pg.goto(f"{base}#flow/sankey", wait_until="networkidle"); pg.wait_for_timeout(2500)
+            l4_sub(pg, "sankey", 1200)
+            wait_until(pg, "() => { const r = document.getElementById('sankeyRank'); return r && !r.hidden && r.querySelector('.skr-r') ? 1 : 0; }", 8000)
+            pg.wait_for_timeout(600)
+            res = {"點前": pg.evaluate(NODES)}
+            gidx = pg.evaluate("() => [...document.querySelectorAll('#sankeyRank .skr-r')].map(e => e.dataset.gid).find(g => !g.startsWith('ind_'))")
+            if gidx:
+                pg.click(f'#sankeyRank .skr-r[data-gid="{gidx}"]'); pg.wait_for_timeout(1500)
+                res["點後"] = pg.evaluate(NODES)
+                sg = pg.evaluate(SEG)
+                ok(f"[{th} {w}] 切換鈕「依流入｜依成交值」：選中鈕完全在外框內、兩顆等高", bool(sg) and sg["inside"] and sg["sameH"], sg)
+                pg.click("#sankeyPanel [data-all]"); pg.wait_for_timeout(1500)
+                res["回全部族群"] = pg.evaluate(NODES)
+            for k, v in res.items():
+                ok(f"[{th} {w}] {k}：族群節點與標籤都在畫布內、畫布寬＝樹卡可見寬",
+                   bool(v) and v["n"] > 0 and not v["bad"] and abs(v["W"] - v["vw"]) <= 1, v)
+    pg.evaluate("(t) => { try { if (t == null) localStorage.removeItem('tw.theme'); else localStorage.setItem('tw.theme', t); } catch (e) {} }", th0)
+    pg.set_viewport_size({"width": 1440, "height": 900})
+    pg.goto(f"{base}#flow", wait_until="networkidle"); pg.wait_for_timeout(2500)
+    l4_sub(pg, "sankey", 1800)
+    pg.locator("#flowSankeyCard").scroll_into_view_if_needed(); pg.wait_for_timeout(1200)
+    wait_until(pg, "() => { const r = document.getElementById('sankeyRank'); return r && !r.hidden && r.querySelector('.skr-r') ? 1 : 0; }", 8000)
     # ---- 改名
     nm = pg.evaluate("""() => ({ h3: (document.querySelector('#flowSankeyCard h3') || {}).textContent || '',
         rank: (document.getElementById('flowRotCard') || {}).textContent || '',
