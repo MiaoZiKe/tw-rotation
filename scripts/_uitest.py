@@ -2390,16 +2390,18 @@ def t_etf_income_1007(pg, b, base):
 
 
 def t_etf_income_v2(pg, b, base):
-    """★ 2026-10-07 晚 Andy 16:40：現金流試算 v2。
-    「新增兩個分頁，一個是單檔 ETF，另一個是組合 ETF」「不只要寫對應張數，還要寫對應金額」「年領目標以及月領目標應該是切換的」
-    「新增不含息的總報酬」「配息下來的金額拿去投資原來標的或 0050、00631L……1 月還不會有資金投入，要到 2 月才會有」
-    「圖四先顯示前 10 名次……旁邊附上總清單可以點選上圖表」「圖一可以改用時鐘圖」。全部真資料＋一段假資料驗再投入口徑。"""
+    """★ 2026-10-07 晚 Andy 16:40＋17:40：現金流試算 v3。
+    16:40「新增兩個分頁，一個是單檔 ETF，另一個是組合 ETF」「不只要寫對應張數，還要寫對應金額」「年領目標以及月領目標應該是切換的」
+    「新增不含息的總報酬」「配息下來的金額拿去投資原來標的或 0050、00631L……1 月還不會有資金投入，要到 2 月才會有」。
+    17:40「組合ETF內需內建組合 A B C D 分頁」「兩個圓餅圖需要一樣大小且上下排列……時鐘圖月份顏色需要對應該月配息的 ETF 顏色」
+    「曲線圖放右上，下方是它的清單資訊……時間週期設定和新增標的進行比較的至多 5 檔」「每月 ≥ 2.0 萬 裡面的 2W 可以自行調整」
+    「單檔 ETF 這邊不要用長條圖表示，用曲線圖」「配息再投入標的這功能輸入後沒有實質作用」。全部真資料＋一段假資料驗再投入口徑。"""
     tag = "ETF現金流v2"
     lp = pg.context.browser.new_page(viewport={"width": 1440, "height": 1000})
     lp.on("pageerror", lambda e: fails.append(f"{tag} pageerror: {e}"))
     lp.route("**/fonts.googleapis.com/**", lambda r: r.abort())
     J = lambda js, *a: lp.evaluate(js, *a)
-    BAR = "() => { const e = document.querySelector('#incBar'); return { codes: e.dataset.codes, lots: e.dataset.lots.split(',').map(Number), costs: e.dataset.costs.split(',').map(Number) }; }"
+    LN = "() => { const e = document.querySelector('#incLine'); return { codes: e.dataset.codes, lots: e.dataset.lots.split(',').map(Number), costs: e.dataset.costs.split(',').map(Number), n: +e.dataset.n || 0 }; }"
     SIM = "(id) => { const s = document.getElementById(id); return s ? { ...s.dataset } : null; }"
     try:
         lp.goto(f"{base}#etf", wait_until="networkidle")
@@ -2407,77 +2409,105 @@ def t_etf_income_v2(pg, b, base):
         lp.reload(wait_until="networkidle")
         wait_until(lp, "() => document.querySelector('#v-etf') && document.querySelector('#v-etf').dataset.ready === 'full'", 20000)
         lp.click("#etfIncSeg button"); lp.wait_for_timeout(1500)
-        wait_until(lp, "() => document.querySelector('#incBar') && document.querySelector('#incBar').dataset.codes", 20000)
+        wait_until(lp, "() => document.querySelector('#incLine') && +document.querySelector('#incLine').dataset.n > 0", 20000)
         ok(f"★ [{tag}] 二級分頁「單檔 ETF｜組合 ETF」，預設單檔", J("() => [...document.querySelectorAll('#incTabs button')].map(b => b.textContent).join('|') === '單檔 ETF|組合 ETF' && !document.querySelector('#incSingle').hidden && document.querySelector('#incCombo').hidden"))
         ok(f"[{tag}] 免責一行（歷史回測不代表未來、槓桿型耗損）", J("() => { const t = document.querySelector('#incDisc').textContent; return /不代表未來/.test(t) && /槓桿型/.test(t) && /不構成投資建議/.test(t); }"))
         ok(f"[{tag}] 用語中性", J("() => !/推薦|建議買/.test(document.querySelector('#etfInc').innerText)"))
-        y0 = J(BAR)
-        ok(f"★ [{tag}] 主圖預設前 10 檔，橫條標籤同時有「張」與「NT$」", len(y0["codes"].split(",")) == 10 and J("() => { const c = echarts.getInstanceByDom(document.getElementById('incBar')); const f = c.getOption().series[0].label.formatter; return /張/.test(f({ dataIndex: 0 })) && /NT\\$|萬/.test(f({ dataIndex: 0 })); }"), y0)
-        # 年領／月領切換
+        y0 = J(LN)
+        ok(f"★ [{tag}] 單檔主圖是曲線（不是橫條）：前 10 檔各一條，右端標「張」與金額",
+           y0["n"] == 10 and J("() => { const o = echarts.getInstanceByDom(document.getElementById('incLine')).getOption(); return o.series.length === 10 && o.series.every(s => s.type === 'line') && /張/.test(o.series[0].endLabel.formatter()) && /萬/.test(o.series[0].endLabel.formatter()); }"), y0)
         lp.click("#incAmtSeg button[data-v='500000']"); lp.wait_for_timeout(500)
-        y50 = J(BAR)
+        y50 = J(LN)
         ok(f"★ [{tag}] 年領 100 萬→50 萬：同一檔張數與金額都變小", y50["codes"] == y0["codes"] and y50["lots"][0] < y0["lots"][0] and y50["costs"][0] < y0["costs"][0], (y0, y50))
         lp.click("#incMode button[data-v='m']"); lp.wait_for_timeout(500)
         ok(f"★ [{tag}] 切「月領」：金額快捷鈕換成 5000／1萬／2萬／3萬", J("() => [...document.querySelectorAll('#incAmtSeg button')].map(b => b.dataset.v).join(',')") == "5000,10000,20000,30000")
         lp.click("#incAmtSeg button[data-v='30000']"); lp.wait_for_timeout(500)
-        m3 = J(BAR)
+        m3 = J(LN)
         k = J("() => document.querySelector('#etfInc').dataset.k").split("|")
-        ok(f"★ [{tag}] 月領 3 萬 ＝ 年目標 36 萬：張數介於年領 20 萬與 50 萬之間（同一檔）", k[1] == "360000" and m3["codes"] == y0["codes"] and m3["lots"][0] < y50["lots"][0], (k, m3["lots"][:3], y50["lots"][:3]))
+        ok(f"★ [{tag}] 月領 3 萬 ＝ 年目標 36 萬：張數比年領 50 萬少（同一檔）", k[1] == "360000" and m3["codes"] == y0["codes"] and m3["lots"][0] < y50["lots"][0], (k, m3["lots"][:3], y50["lots"][:3]))
         lp.click("#incMode button[data-v='y']"); lp.click("#incAmtSeg button[data-v='1000000']"); lp.wait_for_timeout(500)
-        # 排序三種
         orders = {}
         for v in ("y", "tr", "pr"):
             lp.click(f"#incSort button[data-v='{v}']"); lp.wait_for_timeout(900)
-            vals = J("() => document.querySelector('#incBar').dataset.vals.split(',').filter(x => x !== '').map(Number)")
-            orders[v] = J("() => document.querySelector('#incBar').dataset.codes")
+            vals = J("() => document.querySelector('#incLine').dataset.vals.split(',').filter(x => x !== '').map(Number)")
+            orders[v] = J("() => document.querySelector('#incLine').dataset.codes")
             ok(f"[{tag}] 排序「{v}」由高到低", vals == sorted(vals, reverse=True) and len(vals) >= 5, vals)
-        ok(f"★ [{tag}] 殖利率／含息／不含息三種排序，主圖順序互不相同", len(set(orders.values())) == 3, orders)
+        ok(f"★ [{tag}] 殖利率／含息／不含息三種排序，主圖那幾檔互不相同", len(set(orders.values())) == 3, orders)
         lp.click("#incSort button[data-v='y']"); lp.wait_for_timeout(600)
-        # 總清單勾選
-        n0 = len(J(BAR)["codes"].split(","))
-        lp.click("#incList .ilr:nth-child(1) input"); lp.wait_for_timeout(500)
-        n1 = len(J(BAR)["codes"].split(","))
+        n0 = J(LN)["n"]
+        lp.click("#incList .ilr:nth-child(1) input"); lp.wait_for_timeout(600)
+        n1 = J(LN)["n"]
         extra = J("() => document.querySelector('#incList .ilr:nth-child(12)').dataset.code")
-        lp.click("#incList .ilr:nth-child(12) input"); lp.wait_for_timeout(500)
-        b2 = J(BAR)["codes"].split(",")
-        ok(f"★ [{tag}] 總清單取消一檔主圖少一條、勾第 12 名主圖多一條（就是那檔）", n1 == n0 - 1 and len(b2) == n0 and extra in b2, (n0, n1, b2, extra))
+        lp.click("#incList .ilr:nth-child(12) input"); lp.wait_for_timeout(600)
+        b2 = J(LN)
+        ok(f"★ [{tag}] 總清單取消一檔主圖少一條、勾第 12 名主圖多一條（就是那檔）", n1 == n0 - 1 and b2["n"] == n0 and extra in b2["codes"].split(","), (n0, n1, b2, extra))
         lp.click("#incList .ilr:nth-child(13) input"); lp.wait_for_timeout(400)
-        ok(f"[{tag}] 超過 10 檔：擋下並提示", len(J(BAR)["codes"].split(",")) == 10 and "最多" in J("() => document.querySelector('#incListMsg').textContent"))
+        ok(f"[{tag}] 超過 10 檔：擋下並提示", J(LN)["n"] == 10 and "最多" in J("() => document.querySelector('#incListMsg').textContent"))
         lp.fill("#incSearch", "00919"); lp.wait_for_timeout(300)
         ok(f"[{tag}] 總清單可搜尋", J("() => document.querySelector('#incList').dataset.n") == "1")
-        lp.fill("#incSearch", ""); lp.dispatch_event("#incSearch", "input"); lp.click("#incReset"); lp.wait_for_timeout(500)
-        # 點橫條 → 細節卡
-        c1 = J("() => document.querySelector('#incBar').dataset.codes.split(',')[0]")
-        box = J("() => { const c = echarts.getInstanceByDom(document.getElementById('incBar')); const p = c.convertToPixel({ seriesIndex: 0 }, [2, 0]); const r = document.getElementById('incBar').getBoundingClientRect(); return [r.left + p[0], r.top + p[1]]; }")
-        lp.mouse.click(box[0], box[1]); lp.wait_for_timeout(500)
+        lp.fill("#incSearch", ""); lp.dispatch_event("#incSearch", "input"); lp.click("#incReset"); lp.wait_for_timeout(600)
+        # 主圖週期鈕
+        f5 = J("() => document.querySelector('#incLine').dataset.from")
+        lp.click("#incSingle .simbar .sper button[data-v='1y']"); lp.wait_for_timeout(800)
+        f1 = J("() => document.querySelector('#incLine').dataset.from")
+        ok(f"★ [{tag}] 曲線週期鈕 5 年→1 年：起點真的變晚", f1 > f5, (f5, f1))
+        lp.click("#incSingle .simbar .sper button[data-v='5y']"); lp.wait_for_timeout(800)
+        # 點清單名稱 → 細節卡
+        c1 = J("() => document.querySelector('#incList .ilr').dataset.code")
+        lp.click("#incList .ilr .iln"); lp.wait_for_timeout(500)
         wait_until(lp, "() => document.querySelector('#incSimS') && document.querySelector('#incSimS').dataset.state === 'ok'", 20000)
-        ok(f"★ [{tag}] 點橫條 → 細節卡（甜甜圈＋12 個月直條＋再投入曲線）", J("() => document.querySelector('#incDet').dataset.code") == c1 and J("() => !!echarts.getInstanceByDom(document.getElementById('incDn')) && document.getElementById('incMb').dataset.vals.split(',').length === 12"), c1)
+        ok(f"★ [{tag}] 點清單名稱 → 細節卡（甜甜圈＋12 個月直條＋再投入曲線）", J("() => document.querySelector('#incDet').dataset.code") == c1 and J("() => !!echarts.getInstanceByDom(document.getElementById('incDn')) && document.getElementById('incMb').dataset.vals.split(',').length === 12"), c1)
         s1 = J(SIM, "incSimS")
         ok(f"★ [{tag}] 再投入曲線預設三條：原標的、0050、00631L＋只領現金對照", s1["lines"] == "self,0050,00631L" and J("() => echarts.getInstanceByDom(document.getElementById('incSimSc')).getOption().series.length") >= 4, s1)
         fin = [int(x) for x in s1["fin"].split(",")]
         ok(f"★ [{tag}] 合理性：再投入原標的期末總資產 ≥ 只領現金（同一標的、期末價高於本金時）", fin[0] >= int(s1["cash"]) or int(s1["cash"]) < int(s1["cost"]), s1)
-        lp.fill("#incRx", "006208"); lp.dispatch_event("#incRx", "change"); lp.wait_for_timeout(1500)
+        ok(f"[{tag}] 曲線：十字線提示、右端標籤自動錯開", J("() => { const o = echarts.getInstanceByDom(document.getElementById('incSimSc')).getOption(); return o.tooltip[0].axisPointer.type === 'cross' && o.series[0].labelLayout && o.series[0].labelLayout.moveOverlap === 'shiftY'; }"))
+        # ★ 17:40 bug：輸入 2330 要真的多一條
+        lp.fill("#incSimS .cmpin", "2330"); lp.press("#incSimS .cmpin", "Enter"); lp.wait_for_timeout(1500)
         wait_until(lp, "() => document.querySelector('#incSimS').dataset.lines.split(',').length === 4", 15000)
         s2 = J(SIM, "incSimS")
-        ok(f"★ [{tag}] 另選再投入標的 006208 → 多一條曲線、數字不同", s2["lines"].endswith("006208") and s2["fin"] != s1["fin"], s2)
-        lp.click("#incRxClr"); lp.wait_for_timeout(800)
-        # 假資料驗口徑：1 月發放 → 2 月才買
+        ok(f"★ [{tag}] 修 bug：加入比較輸入 2330 → 單檔細節多一條 2330、數值跟其他線不同", s2["lines"].endswith("2330") and len(set(s2["fin"].split(","))) == 4, s2)
+        lp.fill("#incSimS .cmpin", "9999X"); lp.press("#incSimS .cmpin", "Enter"); lp.wait_for_timeout(1500)
+        ok(f"[{tag}] 不存在的代號 → 提示不能加入、線數不變", "不能" in J("() => document.querySelector('#incSimS .rxmsg').textContent") and J(SIM, "incSimS")["lines"] == s2["lines"])
         r = J("""() => { const D = ['2025-01-06','2025-01-13','2025-01-20','2025-01-27','2025-02-03','2025-02-10','2025-03-03'];
             const px = D.map(() => 10), T = [1,1,1,1,2,2,4];
             const out = TwEtfPage.simCore(D, [{ shares: 1000, px, ev: [{ k: 1, amt: 1, pay: '2025-01-20' }], T }], 0, false);
             return { buys: out.buys.map(b => b.d), tot: out.tot, cash: out.cash }; }""")
         ok(f"★ [{tag}] 口徑（假資料）：1 月 20 日發放的 1000 元，要到 2 月第一個點（02-03）才買進；1 月期間以現金計", r["buys"] == ["2025-02-03"] and r["tot"][3] == 11000 and r["tot"][6] == 10000 + 1000 / 2 * 4 and r["cash"][6] == 11000, r)
-        # 組合分頁
+        # ---- 組合
         lp.click("#incTabs button[data-v='c']"); lp.wait_for_timeout(2500)
-        wait_until(lp, "() => document.querySelectorAll('#incCombos .combo').length > 0", 20000)
-        cs = J("() => [...document.querySelectorAll('#incCombos .combo')].map(c => ({ v: c.dataset.vals.split(',').map(Number), clk: (c.querySelector('.clk') || {}).dataset?.n, dn: !!echarts.getInstanceByDom(c.querySelector('.cdn')), ml: [...c.querySelectorAll('.ml')].every(x => /張/.test(x.textContent) && /NT\\$/.test(x.textContent)) }))")
+        wait_until(lp, "() => document.querySelector('#incSimC') && document.querySelector('#incSimC').dataset.state === 'ok'", 20000)
+        ok(f"★ [{tag}] 組合 A～E 分頁，一次只顯示一組", J("() => [...document.querySelectorAll('#incCTabs button')].map(b => b.textContent.slice(0, 4)).join('|')") == "組合 A|組合 B|組合 C|組合 D|組合 E" and J("() => document.querySelectorAll('#incCombos .combo').length") == 1)
+        ok(f"★ [{tag}] 2330 比較線在組合曲線也出現（同一份狀態）", J(SIM, "incSimC")["lines"].endswith("2330"))
+        lay = J("""() => { const r = (s) => document.querySelector(s).getBoundingClientRect(); const d = r('#incCdn'), c = r('#incClk'), s = r('#incSimCc'), t = r('#incSimC .simt');
+            return { same: Math.abs(d.width - c.width) < 2 && Math.abs(d.height - c.height) < 2, stacked: c.top >= d.bottom - 1, rightTop: s.left > d.right && s.top < c.top, tblBelow: t.top > s.bottom - 1 }; }""")
+        ok(f"★ [{tag}] 版面：左欄甜甜圈與時鐘同尺寸上下排；右欄上曲線、下清單", all(lay.values()), lay)
+        cb = J("() => { const c = document.querySelector('#incCombos .combo'); return { v: c.dataset.vals.split(',').map(Number), n: document.getElementById('incClk').dataset.n, lab: document.getElementById('incCdn').dataset.labels }; }")
         N = int(J("() => document.querySelector('#etfInc').dataset.k").split("|")[2])
-        ok(f"★ [{tag}] 組合前 5：時鐘環 12 格且每格 ≥ 月目標、有投入占比甜甜圈、每檔寫張數＋金額", len(cs) == 5 and all(c["clk"] == "12" and len(c["v"]) == 12 and min(c["v"]) >= N and c["dn"] and c["ml"] for c in cs), (N, cs[:1]))
-        ok(f"[{tag}] 時鐘環 12 個扇區", J("() => echarts.getInstanceByDom(document.getElementById('incClk0')).getOption().series[0].data.length") == 12)
-        wait_until(lp, "() => document.querySelector('#incSimC0').dataset.state === 'ok'", 20000)
-        ok(f"★ [{tag}] 每個組合都有再投入曲線（三條）", J("() => [...document.querySelectorAll('#incCombos .incsim')].filter(s => s.dataset.lines === 'self,0050,00631L').length") == 5)
+        ok(f"★ [{tag}] 時鐘 12 格且每格 ≥ 月目標；甜甜圈標籤寫「張・萬」", cb["n"] == "12" and len(cb["v"]) == 12 and min(cb["v"]) >= N and all("張" in x and "萬" in x for x in cb["lab"].split("|")), (N, cb))
+        col = J("""() => { const ck = echarts.getInstanceByDom(document.getElementById('incClk')).getOption().series[0].data, dn = echarts.getInstanceByDom(document.getElementById('incCdn')).getOption().series[0].data;
+            const base = (c) => String(c).replace(/\\s/g, '').toLowerCase().slice(0, 7);
+            const mi = document.getElementById('incClk').dataset.cols.split(',').map(Number);
+            return mi.every((i, m) => { const a = String(ck[m].itemStyle.color), d = String(dn[i].itemStyle.color); const hex = d.replace('#', ''); const rgb = [0, 2, 4].map(j => parseInt(hex.slice(j, j + 2), 16)).join(','); return a.indexOf(rgb) >= 0 || a.toLowerCase().indexOf(d.toLowerCase()) >= 0; }); }""")
+        ok(f"★ [{tag}] 時鐘格色＝當月主要入帳那檔在甜甜圈的顏色", col)
+        c0 = J("() => document.querySelector('#incCombos .combo').dataset.codes")
+        lp.click("#incCTabs button[data-i='2']"); lp.wait_for_timeout(1500)
+        ok(f"[{tag}] 點「組合 C」：換成第 3 組", J("() => document.querySelector('#incCombos .combo').dataset.ci") == "2" and J("() => document.querySelector('#incCombos .combo').dataset.codes") != c0)
+        lp.click("#incCTabs button[data-i='0']"); lp.wait_for_timeout(1500)
+        # 加到 5 檔、第 6 檔被擋、× 移除
+        for c in ["006208", "00878", "0056", "2317"]:
+            lp.fill("#incSimC .cmpin", c); lp.press("#incSimC .cmpin", "Enter"); lp.wait_for_timeout(1200)
+        wait_until(lp, "() => document.querySelector('#incSimC').dataset.lines.split(',').length === 8", 15000)
+        lp.fill("#incSimC .cmpin", "00713"); lp.press("#incSimC .cmpin", "Enter"); lp.wait_for_timeout(800)
+        ok(f"★ [{tag}] 加入比較最多 5 檔（8 條＝3 預設＋5），第 6 檔提示", len(J(SIM, "incSimC")["lines"].split(",")) == 8 and "最多" in J("() => document.querySelector('#incSimC .rxmsg').textContent"))
+        lp.click("#incSimC .cmpx[data-code='2317']"); lp.wait_for_timeout(1500)
+        ok(f"[{tag}] 按 × 移除一檔：少一條", "2317" not in J(SIM, "incSimC")["lines"])
+        # 標題金額可改
+        lp.fill("#incMonIn", "50000"); lp.dispatch_event("#incMonIn", "change"); lp.wait_for_timeout(1500)
+        v5 = J("() => document.querySelector('#incCombos .combo').dataset.vals.split(',').map(Number)")
+        ok(f"★ [{tag}] 標題「每月 ≥」直接改成 5 萬：每格 ≥ 5 萬、上方年領同步成 60 萬", min(v5) >= 50000 and J("() => document.querySelector('#incAmt').value") == "600000", (v5, J("() => document.querySelector('#incAmt').value")))
         lp.click("#incCView button[data-v='grid']"); lp.wait_for_timeout(1200)
-        ok(f"[{tag}] 可切回 12 格月曆（備選）", J("() => document.querySelectorAll('#incCombos .mgrid .mcell').length === 60 && !document.querySelector('#incCombos .clk')"))
+        ok(f"[{tag}] 可切回 12 格月曆（備選）", J("() => document.querySelectorAll('#incCombos .mgrid .mcell').length === 12 && !document.querySelector('#incClk')"))
         lp.click("#incCView button[data-v='clock']"); lp.wait_for_timeout(800)
     finally:
         lp.close()
@@ -2488,15 +2518,16 @@ def t_etf_income_v2(pg, b, base):
         mp.goto(f"{base}#etf", wait_until="networkidle")
         wait_until(mp, "() => document.querySelector('#v-etf') && document.querySelector('#v-etf').dataset.ready === 'full'", 20000)
         mp.tap("#etfIncSeg button"); mp.wait_for_timeout(1500)
-        wait_until(mp, "() => document.querySelector('#incBar') && document.querySelector('#incBar').dataset.codes", 20000)
-        a0 = mp.evaluate("() => document.querySelector('#incBar').dataset.lots")
+        wait_until(mp, "() => document.querySelector('#incLine') && document.querySelector('#incLine').dataset.codes", 20000)
+        a0 = mp.evaluate("() => document.querySelector('#incLine').dataset.lots")
         mp.tap("#incAmtSeg button[data-v='200000']"); mp.wait_for_timeout(600)
-        ok(f"★ [{tag}] 390：點年領 20 萬，張數真的變", mp.evaluate("() => document.querySelector('#incBar').dataset.lots") != a0)
+        ok(f"★ [{tag}] 390：點年領 20 萬，張數真的變", mp.evaluate("() => document.querySelector('#incLine').dataset.lots") != a0)
         mp.tap("#incList .ilr .iln"); mp.wait_for_timeout(1500)
         ok(f"[{tag}] 390：點清單名稱出現細節卡", mp.evaluate("() => !document.querySelector('#incDet').hidden"))
         mp.tap("#incTabs button[data-v='c']"); mp.wait_for_timeout(2500)
-        sw = mp.evaluate("() => document.querySelector('#etfInc').scrollWidth <= document.querySelector('#etfInc').clientWidth + 1 && document.querySelector('#etfInc').getBoundingClientRect().right <= 391")
-        ok(f"★ [{tag}] 390：試算區無橫向溢出", sw)
+        o = mp.evaluate("""() => { const r = (s) => document.querySelector(s).getBoundingClientRect(); const d = r('#incCdn'), c = r('#incClk'), s = r('#incSimCc'), t = r('#incSimC .simt');
+            return { order: d.bottom <= c.top + 1 && c.bottom <= s.top + 1 && s.bottom <= t.top + 1, fit: document.querySelector('#etfInc').scrollWidth <= document.querySelector('#etfInc').clientWidth + 1 && document.querySelector('#etfInc').getBoundingClientRect().right <= 391 }; }""")
+        ok(f"★ [{tag}] 390：上下排（甜甜圈→時鐘→曲線→清單）、試算區無橫向溢出", o["order"] and o["fit"], o)
     finally:
         mp.close()
 
