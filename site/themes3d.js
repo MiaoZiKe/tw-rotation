@@ -378,6 +378,7 @@
     .dg3 .m-sheath{fill:none;stroke:var(--dg-cable);stroke-width:6;stroke-linecap:round}
     .dg3 .m-braid{fill:none;stroke:var(--dg-alu);stroke-width:1.1;stroke-opacity:.75;stroke-dasharray:1.6 2.4}
     .dg3 .m-tie{fill:none;stroke:var(--dg-tie);stroke-width:2;stroke-linecap:round}
+    .dg3 .m-lcd{fill:var(--dg-sig);fill-opacity:.32;stroke:none}
     .dg3 .m-corr{fill:none;stroke:var(--dg-cable);stroke-width:7;stroke-dasharray:1.4 1.2}
     .dg3 .m-cable{fill:none;stroke:var(--dg-resin);stroke-width:3.4;stroke-linecap:round}
     .dg3 .m-hvcable{fill:none;stroke:var(--dg-hot);stroke-width:5;stroke-linecap:round;stroke-opacity:.9}
@@ -513,12 +514,15 @@
     const wafers = [];
     for (let i = 0; i < 6; i++) wafers.push(cyl(0, -2, 6 + i * 6.2, 19, 1.2, ''));
     return pad(34, 24)
+      + mat('m-st', box(-31, -12, 18, 7, 3, 3, '') + box(-31, 2, 18, 7, 3, 3, '') + box(-33, -12, 18, 3, 17, 3, ''))
       + mat('m-si', wafers.join(''))
       + mat('m-gl', cyl(0, -4, 0, 25, 42, ''))
       + mat('m-gl', box(-25, 16, 0, 50, 4, 42, ''))
       + aiFace(-25, 20, 0, `<rect class="etch" x="4" y="4" width="42" height="34" rx="3" fill="none"/><circle class="m-hole" cx="15" cy="20" r="2.6"/><circle class="m-hole" cx="35" cy="20" r="2.6"/>`)
       + mat('m-res', box(-5, -9, 42, 10, 10, 5, '') + box(-15, -19, 47, 30, 30, 3, ''))
-      + mat('m-res', box(24, -10, 18, 5, 12, 12, '') + box(-29, -10, 18, 5, 12, 12, ''));
+      // 提把：左右弧面中段（y 置中於殼心 -4、離門板 y=16 留 8 以上間隙）的「ㄇ」字把手，兩支腳＋一根橫桿、中間鏤空；
+      // 用鋼色，跟樹脂門框區隔。左側那支在背光面，先畫、讓半透明外殼蓋在上面。
+      + mat('m-st', box(24, -12, 18, 7, 3, 3, '') + box(24, 2, 18, 7, 3, 3, '') + box(30, -12, 18, 3, 17, 3, ''));
   };
   // 精密零件：一片帶螺栓孔的法蘭 ＋ 波紋管 ＋ 一根軸（設備廠上游賣的就是這種東西）
   const dPrecisionPart = () => pad(36, 23)
@@ -955,16 +959,19 @@
       + mat('m-st', cyl(0, 0, 14, 18, 6, ring(12, 8, 1.6) + `<circle class="m-hole" r="5"/>`));
   };
   const dServoMotor = () => {
-    /* ★ 2026-10-07 結構把關：方形法蘭在前、輸出軸從法蘭正中央水平伸出；機身圓柱與軸同一條中心線（z=15）；
-       後端是略細的短編碼器蓋，蓋頂一個出線接頭再拉出電纜。*/
+    /* ★ 2026-10-07 結構把關第二輪：前一版只動了幾個數字，畫面跟改前分不出來，這次照實物比例重畫：
+       · 機身圓柱、方形法蘭、輸出軸**同一條中心線**（y=0、z=Z），軸從法蘭正中央沿機身軸向水平伸出，
+         法蘭面上加一圈定位凸台（pilot）圍住軸根部；等角投影裡「水平沿 x 軸」本來就畫成往右下 30°，不是斜上。
+       · 後端編碼器蓋明顯比機身細（r 9 對 13）且短，蓋頂一個小方形出線接頭（不同材質），電纜從接頭側面拉出。*/
     const Z = 15;
-    return pad(36, 20)
-      + mat('m-res', hcylX(-32, -22, 0, Z, 10.5, [0.6]))
-      + mat('m-res', box(-30, -4, Z + 9, 6, 8, 5, ''))
-      + `<path class="m-cable" d="M${P3(-27, 0, Z + 14)} C${P3(-30, 0, Z + 22)} ${P3(-38, -6, Z + 22)} ${P3(-44, -12, Z + 18)}"/>`
+    return pad(38, 20)
+      + mat('m-res', hcylX(-31, -22, 0, Z, 9, [0.55]))
+      + mat('m-st', box(-29.5, -3.5, Z + 8, 6, 7, 5, ''))
+      + `<path class="m-cable" d="M${P3(-29.5, 0, Z + 10.5)} C${P3(-36, 0, Z + 11)} ${P3(-40, -6, Z + 6)} ${P3(-44, -12, Z + 2)}"/>`
       + mat('m-al', hcylX(-22, 12, 0, Z, 13, []))
-      + mat('m-al', box(12, -15, 0, 6, 30, 30, '') + faceYZ(18, -15, bolt([[4, 4], [26, 4], [4, 26], [26, 26]], 1.8)))
-      + mat('m-st', hcylX(18, 34, 0, Z, 3.5, []));
+      + mat('m-al', box(12, -15, Z - 15, 6, 30, 30, '') + faceYZ(18, -15, bolt([[4, 4], [26, 4], [4, 26], [26, 26]], 1.8)))
+      + mat('m-al', hcylX(18, 20.5, 0, Z, 6.5, []))
+      + mat('m-st', hcylX(20.5, 34, 0, Z, 3.2, []));
   };
   // 驅動器：兩側鰭片的外殼 ＋ 面板狀態燈與通訊埠 ＋ 底下一排螺絲端子（端子排＝工業驅動器）
   const dDriver = () => {
@@ -974,11 +981,11 @@
     const fins = [], scr = [], leds = [];
     for (let i = 0; i < 7; i++) fins.push(box(9, -15 + i * 5, 6, 7, 1.6, 44, ''));
     for (let i = 0; i < 4; i++) scr.push(`<circle class="m-hole" cx="${px(-6 + i * 4, 23).toFixed(1)}" cy="${py(-6 + i * 4, 23, 12).toFixed(1)}" r="1.3"/>`);
-    for (let i = 0; i < 4; i++) leds.push(`<circle class="ai-led" cx="${3.5 + i * 3.6}" cy="33" r="1.1"/>`);
+    for (let i = 0; i < 4; i++) leds.push(`<circle class="ai-led" cx="${3.5 + i * 3.6}" cy="31" r="1.5"/>`);
     return pad(26, 24)
       + mat('m-st', box(-11, -18, 0, 22, 36, 3, ''))
       + `<g class="desat">` + box(-9, -18, 3, 18, 36, 54, '') + '</g>'
-      + aiFace(-9, 18, 3, `<rect class="m-hole" x="2.5" y="38" width="13" height="9" rx="1"/>` + leds.join(''))
+      + aiFace(-9, 18, 3, `<rect class="m-hole" x="2" y="35" width="14" height="13" rx="1"/><rect class="m-lcd" x="3.2" y="36.2" width="11.6" height="10.6" rx=".6"/>` + leds.join(''))
       + mat('m-al', fins.join(''))
       + mat('m-res', box(-8, 18, 3, 16, 6, 9, ''))
       + scr.join('');
@@ -1721,7 +1728,7 @@
       S('reducer', 0, '減速機與傳動', ['諧波／行星減速機', '精度決定重複定位',
         '圖上：圓柱外殼一圈固定螺孔，中央是輸出法蘭與中空通孔'], ['2049', '4583', '1590'], null, dHarmonic),
       S('motor', 0, '伺服馬達', ['扭力密度與散熱', '大廠自製比例高',
-        '圖上：圓柱機身、前端方形法蘭與出軸，後端是編碼器蓋與出線'], ['1503', '1504'], 'power', dServoMotor),
+        '圖上：圓柱機身，前端方形法蘭正中央伸出輸出軸，後端較細的編碼器蓋與出線接頭'], ['1503', '1504'], 'power', dServoMotor),
       S('ctrl', 1, '控制器與驅動', ['運動控制與驅動器', '加上 AI 推論晶片',
         '圖上：立式窄長驅動器，正面液晶小窗與一排燈、底下螺絲端子台，側面垂直鰭片'], ['2464', '6215'], 'ic_design', dDriver),
       S('vision', 1, '視覺與感測', ['相機模組、力覺感測', '抓取能力的關鍵',
