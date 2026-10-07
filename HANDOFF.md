@@ -1,5 +1,11 @@
 # HANDOFF.md — 目前進度（接手先讀這份）
 
+## 2026-10-07 客服改 Gmail、反饋留站上管理頁、搜尋下拉 ☆ 立即加自選（UI 專家，分支 `claude/support-star` → main）
+- A：全站 `mailto:` 改 Gmail 網頁撰寫（新分頁）；客服面板寄信分頁、法律頁側欄／文末聯絡卡加「複製信箱」（`support.js` 委派 `[data-copymail]`）。條款內文只換連結不加鈕（加鈕改段落高度會讓隱私權政策的目錄捲動同步亮錯節）。
+- B：反饋原本就只 POST `/v1/feedback` 存 Worker、訪客可送；Worker 加訪客每 IP 每小時 5 筆上限與 `/v1/admin/feedback/del`（node 測試 89 綠）。`#admin/feedback` 改版：篩選類別／狀態、刪除（確認框）、未讀紅點；側欄管理區加「意見反饋」子項（`layout4.js` ADM_SUBS）。
+- C：搜尋下拉每列 × 左邊 ☆／★（`app.js` initSearch）：加入目前作用中分頁、不關下拉、不跳頁、頂端提示「已加入〈分頁〉」；上限沿用 `TwWatch.add` 的升級卡。
+- 這批只驗了：`客服與反饋1007`、`搜尋星號1007`（含 390）、`訂閱與客服1005`、`會員與自選五分頁`、`同意條款與法律頁`、`_preview.py`（唯一問題是本機 `site/data/earnings.json` 缺檔 404，環境問題，非本批）。
+
 ## 2026-10-07 發布整合 release-1007：四個分支合併上 main（部署員，分支 `claude/release-1007`）
 - 合併順序：`claude/legal-v2`（含法律頁整組水平置中：`.lgwrap`／`.lgtabs` max-width＋auto 邊距，1440 左右留白 0／0、1280 10／10）→ `claude/tour`（平台導覽 TwTour）→ `claude/quota`（每日額度＋自選上限＋付費資料閘道 data-gw）→ `claude/pricing-v2`（訂閱頁方案卡＋比較表）。
 - 衝突怎麼解：

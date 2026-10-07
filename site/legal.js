@@ -45,12 +45,18 @@
     if (fallback[k] && !isBlank(fallback[k]())) return String(fallback[k]()).trim();
     return null;
   }
+  /* 2026-10-07（Andy：「聯絡客服改用連結 Gmail，大部分人比較常使用」）：mailto: 在 Windows 沒設預設郵件程式時
+     會跳出「郵件」App 的設定畫面，等於點了沒反應。改開 Gmail 網頁撰寫（新分頁），旁邊附「複製信箱」給不用 Gmail 的人。
+     複製鈕的點擊由 support.js 統一接（document 委派 [data-copymail]）。*/
+  const gmail = (to, su) => 'https://mail.google.com/mail/?view=cm&fs=1&to=' + encodeURIComponent(to) + '&su=' + encodeURIComponent(su);
+  const mailA = (to, su, inner, cls) => '<a' + (cls ? ' class="' + cls + '"' : '') + ' data-gmail href="' + esc(gmail(to, su)) + '" target="_blank" rel="noopener">' + inner + '</a>';
+  const copyB = (to) => '<button type="button" class="cpmail" data-copymail="' + esc(to) + '" title="複製信箱 ' + esc(to) + '">複製信箱</button>';
   /* 把 {key} 換成設定值；沒填的換成醒目的【】空格 —— 草稿狀態下讀者一眼看得出哪裡還沒定。*/
   function fill(s) {
     return s.replace(/\{(\w+)\}/g, (m, k) => {
       const v = val(k);
       if (v == null) return '<mark class="lgblank">【' + esc(LABEL[k] || k) + '】</mark>';
-      if (k === 'email') return '<a href="mailto:' + esc(v) + '">' + esc(v) + '</a>';
+      if (k === 'email') return mailA(v, '台股資金輪動－法律文件詢問', esc(v));   // 內文只換連結；複製鈕放側欄與文末聯絡卡（內文加鈕會改段落高度，牽動目錄捲動同步）
       if (k === 'repo_url' || k === 'license_url') return '<a href="' + esc(v) + '" target="_blank" rel="noopener">' + esc(v) + '</a>';
       return esc(v);
     });
@@ -67,7 +73,7 @@
        site/account.js 的告知文字。改那邊要一起改這裡（DECISIONS #270-7 三處同步）。
      · 這不是律師擬的定稿：退款、試用、管轄法院、責任上限等標了「以購買頁所示為準」或待專業人士確認。*/
   const SN = SITE_NAME;
-  const MAIL = '<a href="mailto:' + esc(CONTACT_EMAIL) + '">' + esc(CONTACT_EMAIL) + '</a>';
+  const MAIL = mailA(CONTACT_EMAIL, '台股資金輪動－法律文件詢問', esc(CONTACT_EMAIL));
   const OP = SN + '營運者';
 
   function disclaimerDoc() {
@@ -703,7 +709,7 @@
       + '<h2 id="lg-' + id + '-' + i + '">' + CN[i] + '、' + esc(s.h) + '</h2></div>';
     if (m.k === 'cta') {
       return '<section class="lgsec cta" data-k="cta">' + head + '<div class="lgctar"><div class="lgctat">' + s.b + '</div>'
-        + '<a class="lgctab" href="mailto:' + esc(CONTACT_EMAIL) + '">' + svg('mail') + '來信聯絡</a></div></section>';
+        + mailA(CONTACT_EMAIL, '台股資金輪動－客服', svg('mail') + '來信聯絡', 'lgctab') + copyB(CONTACT_EMAIL) + '</div></section>';
     }
     return '<section class="lgsec' + (m.k === 'warn' ? ' warn' : '') + '" data-k="' + (m.k || 'plain') + '">' + head + s.b + '</section>';
   }
@@ -783,7 +789,7 @@
     return '<div class="lgside" id="lgSide">'
       + '<section class="lgsc"><h3>本頁重點</h3><ul class="lgsl">' + items + '</ul></section>'
       /* 10-07 Andy：「避免重複撰寫」—— 三份文件切換已在頂端分頁，側欄不再重複列，只留客服 */
-      + '<section class="lgsc"><div class="lgsupp"><p>有疑問或需要協助？</p><a class="lgctab" href="mailto:' + esc(CONTACT_EMAIL) + '">' + svg('mail') + '聯絡客服</a></div></section>'
+      + '<section class="lgsc"><div class="lgsupp"><p>有疑問或需要協助？</p>' + mailA(CONTACT_EMAIL, '台股資金輪動－客服', svg('mail') + '聯絡客服', 'lgctab') + copyB(CONTACT_EMAIL) + '</div></section>'
       + '<section class="lgsc"><div class="lgpt"><span>閱讀進度</span><b class="lgpn">第 1／' + d.secs.length + ' 節</b></div>'
       + '<div class="lgbar" role="presentation"><i></i></div></section></div>';
   }

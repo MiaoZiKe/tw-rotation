@@ -640,6 +640,12 @@ small{font-size:12.5px}
   color:var(--ink-3);font-size:16px;line-height:1;cursor:pointer;display:grid;place-items:center;padding:0}
 .sugg .sgdel:hover{background:var(--panel-3);color:var(--ink)}
 .sugg .g + .sgdel{margin-left:4px}
+/* 1007 搜尋下拉的自選星號：固定 28px 方塊（手機點得到），放在 × 左邊；實心＝已在自選 */
+.sugg .sgstar{flex:none;width:28px;height:28px;margin-left:4px;border:0;border-radius:6px;background:transparent;
+  color:var(--ink-3);font-size:17px;line-height:1;cursor:pointer;display:grid;place-items:center;padding:0}
+.sugg .sgstar:hover{background:var(--panel-3);color:var(--amber)}
+.sugg .sgstar.on{color:var(--amber)}
+.sugg .sgnote{position:sticky;top:0;z-index:2;padding:6px 12px;font-size:13px;background:var(--panel-3);color:var(--ink);border-bottom:1px solid var(--line)}
 /* 迷你走勢（2026-09-28 起；2026-10-02 v2 加輔助繪製，DECISIONS #290）：搜尋下拉、手機加入清單抽屜、自選頁共用同一支 App.sparkSVG。
    淡色底框＋細外框讓它看得出是「一張圖」不是一條線；基準虛線（窗口前一天收盤）讓人看出在基準之上還是之下；
    線下半透明面積＋最後一點圓點交代「現在在哪」。顏色全部吃主題變數（深淺主題各自成立），漲跌用 currentColor 一次切換。 */
