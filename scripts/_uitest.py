@@ -24530,6 +24530,7 @@ SECTIONS = {
     "次數覆蓋掃描1007":    lambda pg, b, base, code: t_quota_scan_1007(b, base, code),
     "全站共用額度1007":    lambda pg, b, base, code: t_quota_all_1007(b, base, code),
     "套用建議方案1007":    lambda pg, b, base, code: t_plan_preset_1007(b, base, code),
+    "套用建議方案正式站1007": lambda pg, b, base, code: t_preset_live_1007(b, base, code),
     # ★ 2026-09-28 Andy：「所有標題加上小圖示，顏色要搭配」—— 覆蓋、對比 ≥3:1（深淺）、1440／800／390 不擠（A/B）、動效（⚠ 一律 --workers 1）
     "標題圖示":            lambda pg, b, base, code: t_title_icons(pg, b, base, code),
     # ★ 2026-09-30 Andy：部分股票 1 小時／4 小時找不到資料 —— 60 分 K 擴到全市場、每檔獨立 m60 檔、沒有時寫一句話
@@ -48511,10 +48512,10 @@ def t_plan_preset_1007(b, base, code):
     ok(f"{T}：按下去先跳確認框（不送任何 plans/put）", bool(wait_until(pg, "() => { const d = document.getElementById('subDlg'); return !!d && !d.hidden && /套用建議方案/.test(d.textContent); }", 4000))
        and not any(x[0] == "/v1/admin/plans/put" for x in sent))
     dl = pg.inner_text("#subDlg")
-    ok(f"{T}：確認框列出四個範本、Plus 對應到「299 會費」改名、Pro 新建、499會費 列為刪除、月費與額度變更",
-       all(k in dl for k in ("訪客", "註冊會員", "Plus", "Pro")) and "目前「299 會費」" in dl
-       and "名稱：299 會費 → Plus" in dl and "NT$299 → NT$249" in dl and "全站每日額度：不限 → 每日 3 次" in dl and "全站每日額度：不限 → 每日 50 次" in dl
-       and "刪除「499會費」" in dl and "新建範本（代號 pro）" in dl, dl[:1200])
+    ok(f"{T}：確認框列出四個範本、Plus／Pro 新建、299／499 列為刪除、額度變更",
+       all(k in dl for k in ("訪客", "註冊會員", "Plus", "Pro"))
+       and "全站每日額度：不限 → 每日 3 次" in dl and "全站每日額度：不限 → 每日 50 次" in dl
+       and "刪除「299 會費」" in dl and "刪除「499會費」" in dl and "新建範本（代號 plus）" in dl and "新建範本（代號 pro）" in dl, dl[:1200])
     pg.click("#subDlg details >> nth=0")
     if sh:
         pg.screenshot(path=str(pathlib.Path(sh) / "preset_confirm.png"))
@@ -48522,15 +48523,15 @@ def t_plan_preset_1007(b, base, code):
         pg.screenshot(path=str(pathlib.Path(sh) / "preset_confirm_drop.png"))
     pg.click("#ppGo")
     # 2026-10-07 Andy：「移除499會費那條」→ Pro 新建（種下的 pro），499會費 刪除
-    ok(f"{T}：確定套用 → plans/put 依序 guest、free、pa299、pro（新建），最後刪 pb499", bool(wait_until(pg, "() => /已套用建議方案/.test(document.getElementById('pmStat').textContent)", 8000))
-       and [x[1].get("id") for x in sent if x[0] == "/v1/admin/plans/put"] == ["guest", "free", "pa299", "pro", "pb499"]
+    ok(f"{T}：確定套用 → plans/put 依序 guest、free、plus、pro（新建），最後刪 pa299、pb499（10-07 修正：299／499 一律刪，不再改名）", bool(wait_until(pg, "() => /已套用建議方案/.test(document.getElementById('pmStat').textContent)", 8000))
+       and [x[1].get("id") for x in sent if x[0] == "/v1/admin/plans/put"] == ["guest", "free", "plus", "pro", "pa299", "pb499"]
        and [x[1].get("del") for x in sent if x[0] == "/v1/admin/plans/put"][-1] is True,
        [x[1].get("id") for x in sent if x[0] == "/v1/admin/plans/put"])
     bodies = {x[1]["id"]: x[1] for x in sent if x[0] == "/v1/admin/plans/put" and not x[1].get("del")}
-    g, f, pl, pr = bodies.get("guest", {}), bodies.get("free", {}), bodies.get("pa299", {}), bodies.get("pro", {})
-    ok(f"{T}：寫入內容：訪客 dq 3＋沒有逐功能次數＋名稱不改；註冊會員 dq 10、自選 1×10；Plus 改名、249、dq 50、自選 5×50、badge；Pro 改名、499、dq 空白、自選 50×200",
-       g.get("dq") == 3 and g.get("lims") == {} and g.get("name") == "訪客（未登入）" and g.get("feats", {}).get("ind.3d") is False
-       and f.get("dq") == 10 and f.get("feats", {}).get("watch.tabs") == 1 and f.get("feats", {}).get("watch.size") == 10 and f.get("name") == "免費會員（預設）"
+    g, f, pl, pr = bodies.get("guest", {}), bodies.get("free", {}), bodies.get("plus", {}), bodies.get("pro", {})
+    ok(f"{T}：寫入內容：訪客 dq 3＋沒有逐功能次數＋名稱「訪客」；註冊會員 dq 10、自選 1×10；Plus 改名、249、dq 50、自選 5×50、badge；Pro 改名、499、dq 空白、自選 50×200",
+       g.get("dq") == 3 and g.get("lims") == {} and g.get("name") == "訪客" and g.get("feats", {}).get("ind.3d") is False
+       and f.get("dq") == 10 and f.get("feats", {}).get("watch.tabs") == 1 and f.get("feats", {}).get("watch.size") == 10 and f.get("name") == "註冊會員"
        and pl.get("name") == "Plus" and pl.get("price") == 249 and pl.get("dq") == 50 and pl.get("feats", {}).get("watch.tabs") == 5 and pl.get("feats", {}).get("watch.size") == 50
        and (pl.get("meta") or {}).get("badge") == "最受歡迎" and (pl.get("meta") or {}).get("price_year") == 2490 and len((pl.get("meta") or {}).get("highlights") or []) >= 3
        and pr.get("name") == "Pro" and pr.get("price") == 499 and pr.get("dq") is None and pr.get("feats", {}).get("watch.tabs") == 50 and pr.get("feats", {}).get("watch.size") == 200,
@@ -48544,7 +48545,7 @@ def t_plan_preset_1007(b, base, code):
     if sh:
         pg.screenshot(path=str(pathlib.Path(sh) / "preset_after.png"))
     pg.click("#ptPlanCfg")
-    pg.click("#ptTier button[data-plan='pa299']")
+    pg.click("#ptTier button[data-plan='plus']")
     pg.wait_for_timeout(500)
     ok(f"{T}：Plus 的「自選分頁數上限」選單顯示 5 頁、「每頁自選檔數上限」50 檔",
        pg.evaluate("() => { const a = document.querySelector(\"#pmCats select[data-f='watch.tabs']\"), b = document.querySelector(\"#pmCats select[data-f='watch.size']\"); return !!a && !!b && a.value === '5' && b.value === '50'; }"),
@@ -48553,6 +48554,112 @@ def t_plan_preset_1007(b, base, code):
     wait_until(pg, "() => !document.getElementById('subDlg').hidden", 3000)
     ok(f"{T}：再按一次 → 確認框寫「沒有變更」（已經是建議方案）", pg.inner_text("#subDlg").count("沒有變更") == 4, [pg.inner_text("#subDlg")[:900], pg.inner_text("#pmStat")])
     pg.click("#subDlg [data-close]")
+    c.close()
+    ok(f"{T}：沒有 JS 錯誤", not errs, errs[:3])
+
+
+
+# ===================================================================== 套用建議方案（正式站狀態）＋範本會員名單1007
+# CEO 10-07 13:20：正式站按了「套用建議方案」沒生效。這段重現正式站的狀態：Worker 已種 plus／pro（價格 0）＋「299 會費」（1 位會員）＋「499會費」，
+# 按套用 → 只剩 訪客／註冊會員／Plus 249(2490)／Pro 499(4990)、那位會員被移到 Plus、訂閱頁出現月／年切換與「省 17%」。
+# 再按一次（冪等）→ 沒有刪除區塊、照樣成功。
+# 範本會員名單（Andy「下方移除會員部分 幫我優化介面」「更直觀操作」）：搜尋過濾、勾兩人批次移出（確認框）→ 少兩人、
+# 改方案下拉立刻生效＋5 秒復原、＋加入會員、全部移光 → 空狀態小卡。
+def t_preset_live_1007(b, base, code):
+    T = "套用建議方案正式站1007"
+    errs: list[str] = []
+    sh = os.environ.get("TW_QCARD_SHOTS")
+    now = int(time.time() * 1000)
+    plans = [{"id": "guest", "name": "訪客（未登入）", "feats": {}, "lims": {}, "builtin": True, "members": 0, "price": 0, "period": "month"},
+             {"id": "free", "name": "免費會員（預設）", "feats": {}, "lims": {}, "builtin": True, "members": 0, "price": 0, "period": "month"},
+             {"id": "p299", "name": "299 會費", "feats": {}, "lims": {}, "builtin": False, "members": 1, "price": 0, "period": "month"},
+             {"id": "p499", "name": "499會費", "feats": {}, "lims": {}, "builtin": False, "members": 0, "price": 0, "period": "month"},
+             {"id": "plus", "name": "Plus", "feats": {"watch.tabs": 5, "watch.size": 50}, "lims": {}, "builtin": False, "members": 0, "price": 0, "period": "month", "dq": 50},
+             {"id": "pro", "name": "Pro", "feats": {"watch.tabs": 50, "watch.size": 200}, "lims": {}, "builtin": False, "members": 0, "price": 0, "period": "month", "dq": None}]
+    c, sent, st = _adm3_ctx(b, plans=plans)
+    st["perm"] = {"m299@example.com": {"plan": "p299", "over": {"ov.heat": False}, "updated": now, "expires": now + 30 * 86400000}}
+    pg = c.new_page(); pg.on("pageerror", lambda e: errs.append(str(e)))
+    pg.goto(base + "#admin/perm", wait_until="domcontentloaded")
+    wait_until(pg, "() => !!document.getElementById('ptPreset') && document.querySelectorAll('#ptTier button[data-plan]').length >= 4", 12000)
+    if sh:
+        pg.screenshot(path=str(pathlib.Path(sh) / "live_before.png"))
+    pg.click("#ptPreset")
+    wait_until(pg, "() => { const d = document.getElementById('subDlg'); return !!d && !d.hidden; }", 4000)
+    dl = pg.inner_text("#subDlg")
+    ok(f"{T}：確認框：Plus／Pro 用種下的範本（不新建、不改名 299）、299 會費→先把 1 位移到 Plus 再刪、499會費 直接刪",
+       "新建範本" not in dl and "名稱：299 會費" not in dl and "刪除「299 會費」" in dl and "移到 Plus：m299@example.com" in dl and "刪除「499會費」" in dl
+       and "NT$0 → NT$249" in dl and "NT$0 → NT$499" in dl, dl[-900:])
+    if sh:
+        pg.evaluate("() => { const b = document.querySelector('#subDlg .box'); b.scrollTop = b.scrollHeight; }"); pg.wait_for_timeout(200)
+        pg.screenshot(path=str(pathlib.Path(sh) / "live_confirm.png"))
+    pg.click("#ppGo")
+    ok(f"{T}：套用成功", bool(wait_until(pg, "() => /已套用建議方案/.test(document.getElementById('pmStat').textContent)", 10000)), pg.inner_text("#subDlg")[-300:])
+    ids = [p["id"] for p in st["plans"]]
+    pl = next((p for p in st["plans"] if p["id"] == "plus"), {}); pr = next((p for p in st["plans"] if p["id"] == "pro"), {})
+    ok(f"{T}：結果只剩 訪客／註冊會員／Plus 249(2490)／Pro 499(4990)，m299 被移到 Plus（微調保留）",
+       ids == ["guest", "free", "plus", "pro"] and pl.get("price") == 249 and pl.get("price_year") == 2490 and pr.get("price") == 499 and pr.get("price_year") == 4990
+       and st["perm"]["m299@example.com"]["plan"] == "plus" and st["perm"]["m299@example.com"]["over"] == {"ov.heat": False}, [ids, pl.get("price"), pl.get("price_year"), pr.get("price"), pr.get("price_year"), st["perm"]])
+    ok(f"{T}：範本列只剩 Plus（月）、Pro（月）", bool(wait_until(pg, "() => [...document.querySelectorAll('#ptTier button[data-plan]')].map(b => b.textContent.trim()).join('|') === 'Plus（月）|Pro（月）'", 4000)),
+       pg.evaluate("() => [...document.querySelectorAll('#ptTier button[data-plan]')].map(b => b.textContent.trim())"))
+    if sh:
+        pg.screenshot(path=str(pathlib.Path(sh) / "live_after.png"))
+    n1 = len([x for x in sent if x[0] == "/v1/admin/plans/put"])
+    pg.click("#ptPreset"); wait_until(pg, "() => !document.getElementById('subDlg').hidden", 3000)
+    ok(f"{T}：再按一次（冪等）→ 沒有刪除區塊、四個都「沒有變更」", "刪除「" not in pg.inner_text("#subDlg") and pg.inner_text("#subDlg").count("沒有變更") == 4, pg.inner_text("#subDlg")[-500:])
+    pg.click("#ppGo")
+    ok(f"{T}：（續）照樣成功、只送四筆寫入", bool(wait_until(pg, "() => /已套用建議方案/.test(document.getElementById('pmStat').textContent) && document.getElementById('subDlg').hidden", 8000))
+       and len([x for x in sent if x[0] == "/v1/admin/plans/put"]) - n1 == 4)
+    # 訂閱頁：月／年切換、省 17%
+    pg.goto(base + "#pricing", wait_until="domcontentloaded")
+    ok(f"{T}：訂閱頁出現月繳／年繳切換", bool(wait_until(pg, "() => !!document.querySelector('#prPeriod button[data-per=year]')", 10000)))
+    if sh:
+        pg.screenshot(path=str(pathlib.Path(sh) / "live_pricing_month.png"))
+    pg.click("#prPeriod button[data-per=year]"); pg.wait_for_timeout(400)
+    tx = pg.inner_text("#v-pricing")
+    ok(f"{T}：切年繳 → 寫「省 17%」、Plus 年繳 NT$ 2,490、Pro 年繳 NT$ 4,990", "省 17%" in tx and "2,490" in tx and "4,990" in tx, tx[:600])
+    if sh:
+        pg.screenshot(path=str(pathlib.Path(sh) / "live_pricing_year.png"))
+    c.close()
+
+    # ---- 範本會員名單
+    T = "範本會員名單1007"
+    plans2 = [plans[0], plans[1], dict(plans[4], members=3), dict(plans[5])]
+    c, sent, st = _adm3_ctx(b, plans=plans2)
+    st["perm"] = {e: {"plan": "plus", "over": {}, "updated": now, "expires": now + 20 * 86400000} for e in ("amy@example.com", "bob@example.com", "cat@example.com")}
+    pg = c.new_page(); pg.on("pageerror", lambda e: errs.append(str(e)))
+    pg.goto(base + "#admin/perm", wait_until="domcontentloaded")
+    wait_until(pg, "() => !!document.querySelector(\"#ptTier button[data-plan='plus']\")", 12000)
+    pg.click("#ptTier button[data-plan='plus']"); pg.wait_for_timeout(300)
+    pg.click("#ptSubList")
+    ok(f"{T}：Plus 名單 3 列，每列有頭像、方案下拉、到期日、狀態、「移出」", bool(wait_until(pg, "() => document.querySelectorAll('#pmRows .pmrow[data-email]').length === 3", 6000))
+       and pg.evaluate("() => [...document.querySelectorAll('#pmRows .pmrow[data-email]')].every(r => r.querySelector('.av') && r.querySelector('select[data-plan-of]').value === 'plus' && r.querySelector('.stt') && r.querySelector('button[data-rm]'))"))
+    ok(f"{T}：搜尋列：搜尋框、狀態下拉、＋加入會員 同高 32", pg.evaluate("() => ['#pmSearch', '#pmStatF', '#pmAddBtn'].every(s => Math.round(document.querySelector(s).getBoundingClientRect().height) === 32)"))
+    if sh:
+        pg.locator("#ptTableBox").scroll_into_view_if_needed(); pg.evaluate("() => window.scrollBy(0, 200)"); pg.wait_for_timeout(200); pg.screenshot(path=str(pathlib.Path(sh) / "members_list.png"))
+    pg.fill("#pmSearch", "bob"); pg.wait_for_timeout(300)
+    ok(f"{T}：搜尋 bob → 只剩 1 列", pg.evaluate("() => [...document.querySelectorAll('#pmRows .pmrow[data-email]')].map(r => r.dataset.email).join() === 'bob@example.com'"))
+    pg.fill("#pmSearch", ""); pg.wait_for_timeout(300)
+    pg.check("#pmRows input[data-ck='amy@example.com']"); pg.check("#pmRows input[data-ck='bob@example.com']")
+    ok(f"{T}：勾兩人 → 出現「移出所選（2）」", "移出所選（2）" in pg.inner_text("#pmBatch") and pg.is_visible("#pmBatch"))
+    pg.click("#pmRmSel")
+    wait_until(pg, "() => !document.getElementById('subDlg').hidden", 3000)
+    ok(f"{T}：確認框列出兩位 email", "amy@example.com" in pg.inner_text("#subDlg") and "bob@example.com" in pg.inner_text("#subDlg"))
+    if sh:
+        pg.screenshot(path=str(pathlib.Path(sh) / "members_confirm.png"))
+    pg.click("#pmRmGo")
+    ok(f"{T}：確定 → 名單剩 1 人、兩人退回註冊會員、跳出可復原提示", bool(wait_until(pg, "() => document.querySelectorAll('#pmRows .pmrow[data-email]').length === 1", 6000))
+       and st["perm"]["amy@example.com"]["plan"] == "free" and st["perm"]["bob@example.com"]["plan"] == "free" and pg.is_visible("#pmUndo #pmUndoGo"))
+    pg.click("#pmUndoGo")
+    ok(f"{T}：按「復原」→ 兩人回到 Plus", bool(wait_until(pg, "() => document.querySelectorAll('#pmRows .pmrow[data-email]').length === 3", 6000)) and st["perm"]["amy@example.com"]["plan"] == "plus")
+    pg.select_option("#pmRows select[data-plan-of='cat@example.com']", "pro")
+    ok(f"{T}：改方案下拉選 Pro → 立刻生效、Plus 名單少一人", bool(wait_until(pg, "() => document.querySelectorAll('#pmRows .pmrow[data-email]').length === 2", 6000)) and st["perm"]["cat@example.com"]["plan"] == "pro")
+    pg.click("#pmAddBtn"); pg.fill("#pmAddMail", "new@example.com"); pg.click("#pmAddGo")
+    ok(f"{T}：＋加入會員 new@example.com → 出現在 Plus 名單", bool(wait_until(pg, "() => !!document.querySelector(\"#pmRows .pmrow[data-email='new@example.com']\")", 6000)) and st["perm"]["new@example.com"]["plan"] == "plus")
+    pg.check("#pmSelAll"); pg.click("#pmRmSel"); wait_until(pg, "() => !document.getElementById('subDlg').hidden", 3000); pg.click("#pmRmGo")
+    ok(f"{T}：全選移出 → 空狀態小卡（圖示＋「這個方案目前沒有會員」＋加入鈕），不是一大片空白",
+       bool(wait_until(pg, "() => { const e = document.getElementById('pmEmpty'); return !!e && /這個方案目前沒有會員/.test(e.textContent) && !!e.querySelector('svg') && !!e.querySelector('#pmEmptyAdd') && e.getBoundingClientRect().width <= 480; }", 8000)))
+    if sh:
+        pg.wait_for_timeout(5200); pg.locator("#ptTableBox").scroll_into_view_if_needed(); pg.evaluate("() => window.scrollBy(0, 200)"); pg.wait_for_timeout(200); pg.screenshot(path=str(pathlib.Path(sh) / "members_empty.png"))
     c.close()
     ok(f"{T}：沒有 JS 錯誤", not errs, errs[:3])
 
@@ -49093,7 +49200,8 @@ def t_member_perm(b, base, code):
            ad.evaluate("() => !document.querySelector(\"#pmCats input[data-f='ov.heat']\").checked && document.querySelector(\"#pmCats input[data-f='ov.theme']\").checked && document.querySelector(\"#pmCats button[data-limb='ov.theme']\").textContent === '5/日'"))
         ad.click("#ptSubList")
         wait_until(ad, "() => !!document.getElementById('ptMail')", 4000)
-        ok(f"{T}：「付費測試」的會員名單列出測試帳號（金色徽章）", PERM_TEST_EMAIL in ad.inner_text("#ptMail") and ad.locator("#ptMail .pdbadge").count() >= 1, ad.inner_text("#ptMail")[:200])
+        # 2026-10-07 改前→改後：付費範本的名單改成操作列（#pmRows .pmrow，Andy「更直觀操作」），不再是統計表的金色徽章
+        ok(f"{T}：「付費測試」的會員名單列出測試帳號（操作列）", PERM_TEST_EMAIL in ad.inner_text("#ptMail") and ad.locator("#ptMail .pmrow[data-email]").count() >= 1, ad.inner_text("#ptMail")[:200])
         ad.click("#ptTier button[data-tier='guest']")
         ok(f"{T}：內建「訪客」層沒有刪除鈕、也沒有會員名單", ad.evaluate("() => !document.getElementById('pmPlanDel') && !document.getElementById('ptSubList') && document.getElementById('ptListBox').hidden"))
         to_members(ad, PERM_TEST_EMAIL)
@@ -50538,6 +50646,8 @@ def _adm3_ctx(b, who="admin", width=1440, feats=None, lims=None, theme=None, pla
             out = {"total": 5, "guests": 4, "users": [], "public_online": True}
         elif path == "/v1/admin/plans/get":
             out = {"plans": st["plans"]}
+        elif path == "/v1/admin/plans/put" and body.get("del") is True and any(r["plan"] == body.get("id") and not (r.get("expires") and r["expires"] < now) for r in st["perm"].values()):
+            out, code = {"error": "has_members"}, 409      # 同 worker.js：還有有效會員的範本不能刪
         elif path == "/v1/admin/plans/put" and body.get("del") is True:
             # perm-v4：刪除範本 → 用它的人退回 free（同 worker.js adminPlansPut）
             st["plans"] = [x for x in st["plans"] if x["id"] != body.get("id")]
@@ -50552,7 +50662,7 @@ def _adm3_ctx(b, who="admin", width=1440, feats=None, lims=None, theme=None, pla
                   "lims": body.get("lims", prev.get("lims", {})), "builtin": body.get("id") in ("guest", "free"), "members": prev.get("members", 0),
                   "price": body.get("price", prev.get("price", 0)), "period": body.get("period", prev.get("period", "month")),
                   # 2026-10-07：每日額度（dq）與介紹欄位（meta 攤平），同 worker.js 的每日額度／plan-meta 區塊
-                  "dq": body["dq"] if "dq" in body else prev.get("dq"), **(body.get("meta") or {k: prev[k] for k in ("badge", "tagline", "fit_title", "fit_desc", "highlights", "price_year") if k in prev})}
+                  "dq": body["dq"] if "dq" in body else prev.get("dq"), "price_year": body.get("price_year", prev.get("price_year")), **(body.get("meta") or {k: prev[k] for k in ("badge", "tagline", "fit_title", "fit_desc", "highlights", "price_year") if k in prev})}
             st["plans"] = [nw if x["id"] == body.get("id") else x for x in st["plans"]] if prev else st["plans"] + [nw]
             out = {"plans": st["plans"]}
         elif path == "/v1/admin/plans/sort":
@@ -50612,6 +50722,12 @@ def _adm3_ctx(b, who="admin", width=1440, feats=None, lims=None, theme=None, pla
             e = str(body.get("email", "")).lower()
             r = st["perm"].get(e)
             out = {"email": e, "plan": r["plan"] if r else "free", "planName": "", "over": r["over"] if r else {}, "feats": {}, "set": bool(r), "updated": 0, "expires": (r or {}).get("expires", 0), "expired": False, "known": None}
+        elif path == "/v1/admin/perm/put":
+            # 2026-10-07：範本會員名單的「加入／改方案／移出」與套用建議方案的「先移會員」（同 worker.js adminPermPut：沒帶 expires＝維持原值）
+            e = str(body.get("email", "")).lower()
+            prev = st["perm"].get(e, {})
+            st["perm"][e] = {"plan": body.get("plan", "free"), "over": body.get("over") or {}, "updated": now, "expires": body.get("expires", prev.get("expires", 0))}
+            out = {"email": e, "plan": st["perm"][e]["plan"], "over": st["perm"][e]["over"], "set": True}
         route.fulfill(status=code, body=json.dumps(out), headers={"access-control-allow-origin": "*", "content-type": "application/json"})
 
     c = b.new_context(viewport={"width": width, "height": 900})
@@ -50734,7 +50850,7 @@ def t_member_list_1006(b, base, code):
         pg.click("#ptTable tr.pmdet[data-for='a399@example.com'] button[data-tune]")
         wait_until(pg, "() => !!document.getElementById('pmBack')", 5000)
         pg.click("#pmBack")
-        wait_until(pg, "() => !!document.getElementById('ptTable')", 5000)
+        wait_until(pg, "() => !!document.getElementById('ptTable') || !!document.getElementById('pmRows')", 5000)
         good, kv = kpis_ok(pg, "逐人微調回來")
         ok(f"{T} {W}：逐人微調 → ← 回會員名單 → 統計不卡「載入中…」、KPI 仍是數字（舊碼這裡永遠載入中）", good and pg.evaluate("() => !/載入中/.test(document.getElementById('ptStats').innerText)") and pg.locator("#msDays .dc").count() > 0, (kv, pg.inner_text("#ptStats")[:120]))
         # 切到付費範本再切回註冊會員、再存一次範本設定（refreshList）→ 一樣不卡
@@ -50810,8 +50926,9 @@ def t_perm_grid_1006(b, base, code):
             ok(f"{T}・{theme}：付費方案卡片上框 ≥ 3px、開關實心藍", d2["bt"] >= 3 and d2["swOn"], d2)
             # 個別會員（逐人微調）
             if pg.locator("#ptSubList").count():
-                pg.click("#ptSubList"); wait_until(pg, "() => document.querySelector('table.memtbl tbody tr')", 6000)
-                pg.click("table.memtbl tbody tr:not(.pmdet) >> nth=0")
+                pg.click("#ptSubList"); wait_until(pg, "() => document.querySelector('table.memtbl tbody tr, #pmRows .pmrow[data-email]')", 6000)
+                if pg.locator("table.memtbl tbody tr").count():
+                    pg.click("table.memtbl tbody tr:not(.pmdet) >> nth=0")
                 if pg.locator("button[data-tune]").count():
                     pg.click("button[data-tune] >> nth=0")
                     wait_until(pg, "() => document.querySelectorAll('#pmCats .pmcat').length > 0", 6000); pg.wait_for_timeout(500)
@@ -51106,7 +51223,7 @@ def t_admin_v3(b, base, code):
     # 會員名單（付費：基本方案）
     pg.click("#ptSubList")
     wait_until(pg, "() => !document.getElementById('ptListBox').hidden && !!document.getElementById('ptTable')", 4000)
-    ok(f"{T}：付費・基本方案的會員名單只有它的人（a399）", pg.evaluate("() => [...document.querySelectorAll('#ptTable tbody tr[data-email]')].map(t => t.dataset.email).join()") == "a399@example.com")
+    ok(f"{T}：付費・基本方案的會員名單只有它的人（a399）", pg.evaluate("() => [...document.querySelectorAll('#ptTable tbody tr[data-email], #pmRows .pmrow[data-email]')].map(t => t.dataset.email).join()") == "a399@example.com")
     pg.click("#ptTier button[data-tier='free']")
     wait_until(pg, "() => !!document.getElementById('ptTable')", 4000)
     hd = pg.evaluate("() => [...document.querySelectorAll('#ptTable thead th')].map(t => t.textContent.replace(/[▲▼]/g, '').trim())")
