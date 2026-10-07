@@ -1,0 +1,13 @@
+====================================================================================================
+[grep-0] GREP https://www.uobam.com.tw/json/reply/WebSitePcfRequest?fundID=88329556&pcfDate=
+  例外: SSLError HTTPSConnectionPool(host='www.uobam.com.tw', port=443): Max retries exceeded with url: /json/reply/WebSitePcfRequest?fundID=88329556&pcfDate= (Caused by SSLError(SSLCertVerificationError(1, '[SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed: unable to get local issuer certificate (_ssl.c:10
+====================================================================================================
+[grep-1] GREP https://www.uobam.com.tw/json/reply/WebSiteStockListRequest
+  例外: SSLError HTTPSConnectionPool(host='www.uobam.com.tw', port=443): Max retries exceeded with url: /json/reply/WebSiteStockListRequest (Caused by SSLError(SSLCertVerificationError(1, '[SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed: unable to get local issuer certificate (_ssl.c:1010)')))
+====================================================================================================
+[extra-2] GET https://www.uobam.com.tw/json/reply/WebSitePcfRequest?fundID=88329556&pcfDate=
+  例外: SSLError HTTPSConnectionPool(host='www.uobam.com.tw', port=443): Max retries exceeded with url: /json/reply/WebSitePcfRequest?fundID=88329556&pcfDate= (Caused by SSLError(SSLCertVerificationError(1, '[SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed: unable to get local issuer certificate (_ssl.c:10
+====================================================================================================
+[grep-3] GREP https://www.tsit.com.tw/ETF/Home/Pcf
+  HTTP 200  bytes=114478
+   >> ="breadcrumb-item"><a href="/ETF/Home/Pcf">申購買回清單</a></li>             <li class="breadcrumb-item active">申購買回清單</li>      </ol>        <!---------內容--------------------> <div class="container">     <h3 class="item-title">申購買回清單</h3> <form action="/ETF/Home/Pcf" method="post">        <div class="btn-group">             <button type="button" class="btn btn-outline-secondary" title="00970B">ETF 基金名稱：(00970B) 台新BBB投等債20+（原名：新光BBB投等債20+） </button>             <button type="button" class="btn btn-outline-secondary dropdown-toggle dropdown-toggle-split" data-bs-toggle="dropdown" aria-expanded="false"><span class="visually-hidden">Toggle Dropdown</span></b
