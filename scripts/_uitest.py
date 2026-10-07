@@ -1827,8 +1827,8 @@ def t_side_fold_1005(pg, b, base):
 def t_etf_hold_1007(pg, b, base):
     """ETF 成分股分頁（2026-10-07 Andy：「成分股分頁需要左側出現個股清單，右邊出現個股權重圓餅圖」）。
 
-    ⚠ 資料湖目前沒有 ETF 成分股（合規免費來源查不到，docs/etf_holdings_source.md），正式站的 etf_holdings.json 不存在。
-      所以「左清單＋右甜甜圈」用 **假資料** 驗前端：route 攔截 data/etf_holdings.json，成分取自 stocks.json 的真代號
+    2026-10-07 晚：成分股改由投信每日 PCF 進湖（pipeline/sources/etf_pcf.py），但本機資料湖不一定有那張表，
+      所以「左清單＋右甜甜圈」仍用 **假資料** 驗前端：route 攔截 data/etf_holdings.json，成分取自 stocks.json 的真代號
       （外加一檔非台股成分驗「不能點」）。假資料只在這一段的瀏覽器分頁裡，不寫進任何檔案。
       沒攔截時（＝正式站現況）驗兩種說明卡：債券型 00679B →「沒有個股成分」、股票型 →「來源尚未接上」，都不能空白。
     1440 與 390 各跑一次。"""
@@ -1843,7 +1843,7 @@ def t_etf_hold_1007(pg, b, base):
     items.append({"code": "AAPL US", "name": "Apple Inc.", "w": 0.8, "shares": None})
     FAKE = {"asof": "2026-10-06", "source": "測試假資料", "etfs": {
         "0050": {"asof": "2026-10-06", "items": items},
-        "00896": {"asof": "2026-10-06", "items": items[:15]}}}
+        "00896": {"asof": "2026-10-06", "manual": True, "issuer": "中國信託", "items": items[:15]}}}
 
     def fake(route):
         route.fulfill(status=200, content_type="application/json", body=_json.dumps(FAKE, ensure_ascii=False))
@@ -1878,6 +1878,8 @@ def t_etf_hold_1007(pg, b, base):
                 ok(f"★ [{t}] {code} 甜甜圈有扇區（前 10 大＋其他）", pie["n"] >= 5 and pie["n"] <= 11 and ("其他" in pie["names"] or len(rows) <= 10), pie)
                 ok(f"[{t}] {code} 中心寫「前 10 大合計 X%」", "前 10 大合計" in pie["center"] and "%" in pie["center"], pie["center"])
                 ok(f"[{t}] {code} 標註資料日期", "資料日期 2026-10-06" in text(lp, "#etfHoldCard h3"), text(lp, "#etfHoldCard h3"))
+                if code == "00896":   # 2026-10-07：人工整理檔（holdings_manual.yaml）要標「人工整理・資料日期 X」
+                    ok(f"★ [{t}] 00896 人工整理的資料標「人工整理・資料日期」", "人工整理・資料日期 2026-10-06" in text(lp, "#etfHoldCard h3"), text(lp, "#etfHoldCard h3"))
                 ok(f"[{t}] {code} 沒有橫向捲軸", J("() => document.documentElement.scrollWidth <= innerWidth + 1"))
                 if code == "0050":
                     # 非台股成分：寫原名、不能點
@@ -1911,18 +1913,24 @@ def t_etf_hold_1007(pg, b, base):
                J("() => (document.querySelector('#etfHoldCard') || {}).dataset?.state") == "nostock" and "沒有個股成分" in text(lp, "#etfHoldNone"), text(lp, "#etfHoldCard")[:80])
         finally:
             lp.close()
-    # 正式站現況（沒有 etf_holdings.json）：股票型顯示「來源尚未接上」，不准空白
-    lp = pg.context.browser.new_page(viewport={"width": 1440, "height": 1000})
-    lp.route("**/fonts.googleapis.com/**", lambda r: r.abort())
-    lp.route("**/data/etf_holdings.json*", lambda r: r.fulfill(status=404, body="not found"))
-    try:
-        lp.goto(f"{base}#stock/0050", wait_until="networkidle")
-        open_hold(lp, 1440)
-        wait_until(lp, "() => !!document.querySelector('#etfHoldCard[data-state]')", 8000)
-        ok(f"★ [{tag}] 沒有成分股資料時 0050 顯示「來源尚未接上」說明卡（不空白）",
-           lp.evaluate("() => (document.querySelector('#etfHoldCard') || {}).dataset?.state") == "nosrc" and "來源尚未接上" in text(lp, "#etfHoldNone"), text(lp, "#etfHoldCard")[:80])
-    finally:
-        lp.close()
+    # 沒有成分股資料：股票型顯示「此檔發行投信（X 投信）資料尚未接上」，不准空白（2026-10-07 起寫出投信名）
+    for label, handler, want in (
+        ("檔案不存在", lambda r: r.fulfill(status=404, body="not found"), "資料尚未接上"),
+        ("有檔但這檔沒接上", lambda r: r.fulfill(status=200, content_type="application/json",
+                                                body=_json.dumps({"asof": "2026-10-06", "issuers": {"0050": "元大"}, "etfs": {}}, ensure_ascii=False)),
+         "元大投信"),
+    ):
+        lp = pg.context.browser.new_page(viewport={"width": 1440, "height": 1000})
+        lp.route("**/fonts.googleapis.com/**", lambda r: r.abort())
+        lp.route("**/data/etf_holdings.json*", handler)
+        try:
+            lp.goto(f"{base}#stock/0050", wait_until="networkidle")
+            open_hold(lp, 1440)
+            wait_until(lp, "() => !!document.querySelector('#etfHoldCard[data-state]')", 8000)
+            ok(f"★ [{tag}] {label}：0050 顯示「發行投信資料尚未接上」說明卡（不空白、含「{want}」）",
+               lp.evaluate("() => (document.querySelector('#etfHoldCard') || {}).dataset?.state") == "nosrc" and want in text(lp, "#etfHoldNone"), text(lp, "#etfHoldCard")[:80])
+        finally:
+            lp.close()
 
 
 def t_etf_1005(pg, b, base):
@@ -2164,7 +2172,7 @@ def t_etf_1005(pg, b, base):
         lc = J("() => [...document.querySelectorAll('#etfGrid .etfc')].slice(0, 6).map(e => getComputedStyle(e).borderLeftColor)")
         tc = J("() => getComputedStyle(document.querySelector('#etfGrid .etfc .etag')).color")
         # 2026-10-07 Andy：配息型卡片左色條改成「配息頻率色」（跟卡片裡的頻率徽章同色）；沒有頻率的才維持分類色
-        lc = J("() => [...document.querySelectorAll('#etfGrid .etfc')].slice(0, 6).map(e => [getComputedStyle(e).borderLeftColor, getComputedStyle(e.querySelector('.fq') || e.querySelector('.etag')).color])")
+        lc = J("() => [...document.querySelectorAll('#etfGrid .etfc')].slice(0, 6).map(e => [getComputedStyle(e).borderLeftColor, (e.querySelector('.fqtag') ? getComputedStyle(e.querySelector('.fqtag')).backgroundColor : getComputedStyle(e.querySelector('.etag')).color)])")
         ok(f"★ [{tag}] ETF 卡片左緣有顏色（配息型＝跟配息頻率徽章同色）", bool(lc) and all(a == b_ for a, b_ in lc), (lc, tc))
         wr = J("() => [...document.querySelectorAll('#etfGrid .etfc dt, #etfGrid .etfc dd, #etfGrid .etfc .nm')].filter(e => e.getBoundingClientRect().height > 24).length")
         ok(f"★ [{tag}] ETF 卡片欄位全部一行（沒有被擠成兩行的）", wr == 0, wr)
@@ -2180,7 +2188,10 @@ def t_etf_1005(pg, b, base):
                           one: b.getBoundingClientRect().height < 48 }; }""")
         ok(f"★ [{tag}] 分類頁籤用全站共用 .nbsw（產業地圖同款：置中、數字小字、一行）",
            nb["cls"] and nb["ta"] == "center" and nb["em"] and nb["one"], nb)
-        cen = J("() => [...document.querySelectorAll('#etfGrid .etfc dd, #etfGrid .etfc dt, #v-etf table.et td, #v-etf table.et th')].filter(e => e.offsetParent && !e.classList.contains('nmc') && getComputedStyle(e).textAlign !== 'center').length")  # 報酬比較表 ETF 名稱欄（.nmc）靠左是 Andy 10-06 明講的例外
+        # 2026-10-07 Andy：「ETF 內文字靠左對齊」→ 卡片內標籤靠左、數值靠右（不再置中）；表格仍置中
+        al = J("() => [...document.querySelectorAll('#etfGrid .etfc dt:not(.blank)')].every(e => getComputedStyle(e).textAlign === 'left') && [...document.querySelectorAll('#etfGrid .etfc dd:not(.blank)')].every(e => getComputedStyle(e).textAlign === 'right')")
+        ok(f"★ [{tag}] ETF 卡片：標籤靠左、數值靠右", al)
+        cen = J("() => [...document.querySelectorAll('#v-etf table.et td, #v-etf table.et th')].filter(e => e.offsetParent && !e.classList.contains('nmc') && getComputedStyle(e).textAlign !== 'center').length")  # 報酬比較表 ETF 名稱欄（.nmc）靠左是 Andy 10-06 明講的例外
         ok(f"★ [{tag}] 所有欄位文字置中", cen == 0, cen)
         rf = J("""() => { const u = document.querySelector('#etfGrid .etfc .px span.up, #etfGrid .etfc .px span.down');
                  if (!u) return null; const c = getComputedStyle(u).color.match(/[\\d.]+/g).slice(0, 3).map(Number);
@@ -2310,7 +2321,7 @@ def t_etf_income_1007(pg, b, base):
         g = J("""() => { const hs = [...document.querySelectorAll('#etfGrid .fqhd')].map(h => h.dataset.fq);
                  const cs = [...document.querySelectorAll('#etfGrid .etfc')].map(c => c.dataset.fq || '');
                  const col = {}; document.querySelectorAll('#etfGrid .etfc.fqbar').forEach(c => { col[c.dataset.fq] = getComputedStyle(c).borderLeftColor; });
-                 const bad = [...document.querySelectorAll('#etfGrid .etfc.fqbar')].filter(c => getComputedStyle(c).borderLeftColor !== getComputedStyle(c.querySelector('.fq')).color).length;
+                 const bad = [...document.querySelectorAll('#etfGrid .etfc.fqbar')].filter(c => getComputedStyle(c).borderLeftColor !== getComputedStyle(c.querySelector('.fqtag')).backgroundColor).length;
                  return { hs, cs, col, bad }; }""")
         order = ["月配", "雙月配", "季配", "半年配", "年配", "其他"]
         rk = lambda f: order.index(f) if f in order else 5
@@ -2320,6 +2331,22 @@ def t_etf_income_1007(pg, b, base):
         ok(f"★ [{tag}] 不同頻率的左色條顏色不同，且跟頻率徽章同色", len(cols) >= 3 and len(set(cols)) == len(cols) and g["bad"] == 0, g)
         red = J("() => [getComputedStyle(document.documentElement).getPropertyValue('--rise').trim(), getComputedStyle(document.documentElement).getPropertyValue('--fall').trim()]")
         ok(f"[{tag}] 頻率色不用漲跌紅綠", all(c not in cols for c in red), (cols, red))
+        # 10-07 追加：頻率徽章在右上分類徽章旁、拿掉「配息頻率」列、沒殖利率的不寫殖利率也不標頻率、同排等高
+        cd = J("""() => { const cs = [...document.querySelectorAll('#etfGrid .etfc')];
+                 const hdr = cs.filter(c => c.querySelector('.fqtag')).every(c => { const t = c.querySelector('.h .fqtag'), e = c.querySelector('.h .etag');
+                   return t && e && t.previousElementSibling === e && Math.abs(t.getBoundingClientRect().top - e.getBoundingClientRect().top) < 3; });
+                 const noFreqRow = !cs.some(c => [...c.querySelectorAll('dt')].some(d => /配息頻率/.test(d.textContent)));
+                 const noEmptyY = !cs.some(c => [...c.querySelectorAll('dt')].some(d => /殖利率/.test(d.textContent) && /^(—|0\.00%)$/.test(d.nextElementSibling.textContent.trim())));
+                 const noYnoTag = cs.filter(c => !c.querySelector('.yv')).every(c => !c.querySelector('.fqtag'));
+                 const rows = {}; cs.forEach(c => { const r = c.getBoundingClientRect(); (rows[Math.round(r.top)] = rows[Math.round(r.top)] || []).push(Math.round(r.height)); });
+                 const even = Object.values(rows).every(h => Math.max(...h) - Math.min(...h) <= 1);
+                 return { n: cs.filter(c => c.querySelector('.fqtag')).length, hdr, noFreqRow, noEmptyY, noYnoTag, even }; }""")
+        ok(f"★ [{tag}] 頻率徽章在「配息型」旁同一列、沒有「配息頻率」列、沒殖利率的不寫也不標、同排卡片等高",
+           cd["n"] >= 10 and cd["hdr"] and cd["noFreqRow"] and cd["noEmptyY"] and cd["noYnoTag"] and cd["even"], cd)
+        lp.click("#etfCatSeg button[data-v='市值型']"); lp.wait_for_timeout(500)
+        mv = J("() => ({ l: [...document.querySelectorAll('#etfGrid .etfc dt:not(.blank)')].every(e => getComputedStyle(e).textAlign === 'left'), r: [...document.querySelectorAll('#etfGrid .etfc dd:not(.blank)')].every(e => getComputedStyle(e).textAlign === 'right'), f: ![...document.querySelectorAll('#etfGrid dt')].some(d => /配息頻率/.test(d.textContent)) })")
+        ok(f"[{tag}] 市值型卡片也是標籤靠左、數值靠右、沒有配息頻率列", mv["l"] and mv["r"] and mv["f"], mv)
+        lp.click("#etfCatSeg button[data-v='配息型']"); lp.wait_for_timeout(400)
         # ---- 進現金流試算
         lp.click("#etfIncSeg button"); lp.wait_for_timeout(1500)
         wait_until(lp, "() => document.querySelector('#incTbl tbody tr') && document.querySelectorAll('#incCombos .combo').length > 0", 20000)
@@ -23234,6 +23261,35 @@ def t_admin_only_1007(b, base):
     ok(f"★ [{T}] 被移除的人：分頁列不再能拖曳", not pc.evaluate(f"() => document.querySelector('{SEL}').hasAttribute('data-tdrag')"))
     for x in (cc, co):
         x.close()
+
+    # ⑤ 10-07 15:45 Andy：「管理權限 移動到 會員權限上方，並且旁邊的分頁 有在權限內的帳號也可以進行拖曳 但不能刪除」
+    for who in ("admin", "subadmin"):
+        cx, _sent, _st = _adm3_ctx(b, who=who)
+        px = cx.new_page(); px.on("pageerror", lambda e: errs.append(str(e)[:200]))
+        px.goto(base + "#admin/perm", wait_until="domcontentloaded")
+        wait_until(px, "() => document.querySelectorAll('.l4subtab[data-parent=admin]').length === 4 && document.querySelectorAll('#ptTier .ptab').length > 0", 12000)
+        px.wait_for_timeout(500)
+        side = px.evaluate("() => [...document.querySelectorAll('.l4subtab[data-parent=admin]')].map(x => x.textContent.trim())")
+        nm = "擁有者" if who == "admin" else "一般管理者"
+        if who == "admin":
+            ok(f"★ [{T}] 側欄管理區順序＝管理權限 → 會員權限 → 流量觀測 → 意見反饋", side == ["管理權限", "會員權限", "流量觀測", "意見反饋"], side)
+            if shots:
+                px.locator(".l4subtab[data-parent=admin]").nth(3).scroll_into_view_if_needed(); px.wait_for_timeout(200)
+                bb = px.locator(".l4perm").bounding_box(); px.screenshot(path=str(pathlib.Path(shots) / "4_側欄管理區順序.png"), clip={"x": 0, "y": max(0, bb["y"] - 120), "width": 240, "height": 300})
+        nx = px.locator("#ptTier button.ptmore").count()
+        ok(f"★ [{T}] {nm}：付費範本頁籤的刪除鈕（×）{'看得到' if who == 'admin' else '看不到'}", (nx > 0) == (who == "admin"), nx)
+        # 側欄子項拖曳：第一顆拖到第三顆
+        it = px.locator(".l4subtab[data-parent=admin]"); it.nth(3).scroll_into_view_if_needed(); px.wait_for_timeout(200)
+        b1, b3 = it.nth(0).bounding_box(), it.nth(2).bounding_box()
+        px.mouse.move(b1["x"] + 20, b1["y"] + b1["height"] / 2); px.mouse.down()
+        px.mouse.move(b1["x"] + 20, b1["y"] + b1["height"] / 2 + 10, steps=3)
+        px.mouse.move(b3["x"] + 20, b3["y"] + b3["height"] / 2, steps=10); px.mouse.up(); px.wait_for_timeout(300)
+        s2 = px.evaluate("() => [...document.querySelectorAll('.l4subtab[data-parent=admin]')].map(x => x.textContent.trim())")
+        ok(f"★ [{T}] {nm}：側欄管理區子項可拖曳換位置、數量不變（不可刪）", s2 != side and sorted(s2) == sorted(side) and px.evaluate("location.hash") == "#admin/perm", [side, s2])
+        r = px.evaluate("async () => { const j = await TwAccount.call('/v1/admin/plans/put', { id: 'p799', del: true }); return j && j._s; }")
+        if who == "subadmin":
+            ok(f"★ [{T}] 一般管理者硬打刪除範本端點 → 403", r == 403, r)
+        cx.close()
     ok(f"[{T}] 全程沒有 pageerror", not errs, errs[:3])
 
 
@@ -24641,9 +24697,48 @@ def _tour_inview(st, tol=2):
     return card_ok, hole_ok and covers and vis
 
 
-def _tour_walk(pg, tag, maxn=24):
-    """一直按「下一步」走到導覽結束；回傳每一步的狀態。"""
+# ---- 平滑化（Andy 10-07 15:00「平台導覽有點卡頓，幫我平滑化，讓他是順暢的，並且不要有無效動作」）
+# 長任務量測：頁面一載入就掛 PerformanceObserver（longtask），每一步看這一步期間有沒有 >100ms 的
+TOUR_LT_INIT = ("try{window.__twtLT=[];new PerformanceObserver(l=>l.getEntries().forEach(e=>__twtLT.push(Math.round(e.duration))))"
+                ".observe({type:'longtask',buffered:true})}catch(e){}")
+TOUR_POS = "() => { const s = TwTour.state(); return s.active ? [s.i, Math.round(s.hole.l), Math.round(s.hole.t), Math.round(s.hole.w), Math.round(s.hole.h), Math.round(s.card.l), Math.round(s.card.t)] : null; }"
+
+
+def _tour_smooth(pg, st, tag, lt0):
+    """每一步：只捲一次、聚光燈定位（動畫 280ms 跑完）後 300ms 內不再移動、說明卡出現後不跳位、沒有 >100ms 長任務。
+    長任務放寬：產業地圖 3D 那幾步（3D 場景本身在無 GPU 的測試瀏覽器裡用軟體算圖，一幀就 >100ms，跟導覽無關）；
+    換頁那一步放寬到 250ms（是新頁自己第一次畫圖，導覽這邊的工作已拆成每幀一小段）。"""
+    pg.wait_for_function("() => { const s = TwTour.state(); return !s.active || s.since >= 300; }", timeout=5000)
+    a = pg.evaluate(TOUR_POS)
+    pg.wait_for_timeout(300)
+    b2 = pg.evaluate(TOUR_POS)
+    s2 = pg.evaluate(TOUR_ST)
+    name = f"[平台導覽1007][{tag}] 第 {st['i'] + 1} 步「{st['title']}」"
+    if a and b2 and a[0] == b2[0]:
+        ok(f"{name}：聚光燈與說明卡定位後 300ms 內不再移動", all(abs(x - y) <= 1 for x, y in zip(a[1:], b2[1:])), (a, b2))
+    ok(f"{name}：這一步只捲動一次（或不用捲）", s2.get("scrolls", 0) <= 1, s2.get("scrolls"))
+    ok(f"{name}：說明卡出現後沒有再跳位", s2.get("cardJumps", 0) == 0, s2.get("cardJumps"))
+    lts = pg.evaluate("() => (window.__twtLT || []).slice()")[lt0:]
+    # 放寬只給「不是導覽自己的工作」：3D 那幾步與 3D 之後切回 2D 的那一步（3D 場景在無 GPU 的測試瀏覽器用軟體算圖）、
+    # 換頁或示範動作（點零件、切分段）那一步的新內容第一次畫圖（頁面自己的工作，對照組：不開導覽直接換頁也一樣長）。
+    # 純「框下一個元素」的步驟一律 ≤100ms —— 那才是導覽本身的成本。
+    if "3D" in st["title"] or "3D" in st.get("_prevtitle", ""):
+        lim = 10 ** 9
+    elif st["hash"] != st.get("_prevhash", st["hash"]) or st.get("act") or not st.get("_prevtitle"):
+        # 第一步也算：導覽一開始會通知 perm.js／quota.js 撤掉鎖頭與額度卡（tw:tour），被蓋住的圖要重畫
+        lim = 800
+    else:
+        lim = 100
+    big = [x for x in lts if x > lim]
+    ok(f"{name}：沒有超過 {lim if lim < 10 ** 9 else '（3D 放寬）'}ms 的長任務", not big, lts)
+    return len(lts) + lt0
+
+
+def _tour_walk(pg, tag, maxn=24, smooth=True):
+    """一直按「下一步」走到導覽結束；回傳每一步的狀態。smooth＝每一步順便驗平滑（只捲一次、定位後不動、卡片不跳、無長任務）。"""
     seen, rows = [], []
+    lt0 = len(pg.evaluate("() => window.__twtLT || []")) if smooth else 0
+    pv = None
     for _ in range(maxn):
         st = _tour_wait(pg)
         if not st["active"]:
@@ -24653,6 +24748,10 @@ def _tour_walk(pg, tag, maxn=24):
             break
         seen.append(st["i"])
         rows.append(st)
+        if smooth:
+            st["_prevhash"], st["_prevtitle"] = pv or (st["hash"], "")
+            lt0 = _tour_smooth(pg, st, tag, lt0)
+        pv = (st["hash"], st["title"])
         pg.click("#twTourNext")
     return rows
 
@@ -24663,8 +24762,10 @@ TOUR_MODE = """() => { const s = document.getElementById('dg3d'), c = document.g
 
 
 def _tour_walk_ind(pg, maxn=24):
-    """走產業地圖導覽，每一步多記剖析圖現在是 2D 還是 3D。"""
+    """走產業地圖導覽，每一步多記剖析圖現在是 2D 還是 3D；也驗平滑（同 _tour_walk）。"""
     seen, rows, modes = [], [], {}
+    lt0 = len(pg.evaluate("() => window.__twtLT || []"))
+    pv = None
     for _ in range(maxn):
         st = _tour_wait(pg)
         if not st["active"]:
@@ -24676,6 +24777,9 @@ def _tour_walk_ind(pg, maxn=24):
         c_ok, h_ok = _tour_inview(st)
         m["inview"] = c_ok and h_ok
         modes[st["title"]] = m
+        st["_prevhash"], st["_prevtitle"] = pv or (st["hash"], "")
+        lt0 = _tour_smooth(pg, st, "產業地圖", lt0)
+        pv = (st["hash"], st["title"])
         pg.click("#twTourNext")
     return rows, modes
 
@@ -24732,6 +24836,7 @@ def t_tour_1007(pg, b, base):
     pg = ctx.new_page()
     pg.on("pageerror", lambda e: fails.append(f"平台導覽1007 pageerror: {e}"))
     pg.add_init_script("try{localStorage.setItem('tw.live.on','0');localStorage.removeItem('tw.theme')}catch(e){}")
+    pg.add_init_script(TOUR_LT_INIT)
     pg.goto(base + "#overview", wait_until="networkidle"); pg.wait_for_timeout(2500)
 
     ok(f"{T} tour.js 載入、提供 TwTour.start 與五套導覽", pg.evaluate("() => !!(window.TwTour && TwTour.start) && TwTour.ids().join(',')") == "site,overview,flow,industry,stock",
@@ -24828,7 +24933,7 @@ def t_tour_1007(pg, b, base):
     pg.goto(base + "#overview", wait_until="networkidle"); pg.wait_for_timeout(1500)
     pg.evaluate("() => { document.getElementById('ovHeatCard').setAttribute('data-plk', 'ov.heat'); document.getElementById('ovFlowCard').style.display = 'none'; }")
     pg.evaluate("() => TwTour.start('overview')")
-    rows = _tour_walk(pg, "鎖住")
+    rows = _tour_walk(pg, "鎖住", smooth=False)
     titles = [r["title"] for r in rows]
     ok(f"{T} 掛著鎖頭（data-plk）的「資金熱力圖」導覽中照樣框得到（不跳）；真的不見的「昨日資金分流樹」才跳過，導覽走到底",
        "資金熱力圖" in titles and "昨日資金分流樹" not in titles and "漲跌家數分佈" in titles and pg.locator("#twTour").count() == 0, titles)
@@ -24898,6 +25003,7 @@ def t_tour_1007(pg, b, base):
     m = mctx.new_page()
     m.on("pageerror", lambda e: fails.append(f"平台導覽1007(390) pageerror: {e}"))
     m.add_init_script("try{localStorage.setItem('tw.live.on','0');localStorage.removeItem('tw.theme')}catch(e){}")
+    m.add_init_script(TOUR_LT_INIT)
     m.goto(base + "#overview", wait_until="networkidle"); m.wait_for_timeout(2500)
     m.click("#moreBtn"); m.wait_for_timeout(400)
     ok(f"{T} 390：右上「⋯」清單裡有「本頁導覽」「全站導覽」", m.locator("#mmTourPage").is_visible() and m.locator("#mmTourSite").is_visible())
@@ -50776,7 +50882,7 @@ def _adm2_ctx(b, who="admin", width=1440, grp_off=None, many=False, touch=False)
             body = {}
         sent.append((path, body))
         adm = who == "admin"
-        me = {"email": "boss@example.com" if adm else "member@example.com", "name": "管理者" if adm else "一般會員", "admin": adm}
+        me = {"email": "boss@example.com" if adm else "member@example.com", "name": "管理者" if adm else "一般會員", "admin": adm, "owner": adm}
         out, code = {}, 200
         if path == "/v1/me":
             out = {"user": me}
@@ -51728,8 +51834,8 @@ def _adm3_ctx(b, who="admin", width=1440, feats=None, lims=None, theme=None, pla
         except Exception:  # noqa: BLE001
             body = {}
         sent.append((path, body))
-        adm = who == "admin"
-        me = None if who is None else {"email": "boss@example.com" if adm else "member@example.com", "name": "管理者" if adm else "一般會員", "admin": adm}
+        adm = who in ("admin", "subadmin")       # subadmin＝擁有者加進來的一般管理者（10-07：可拖曳、不能刪範本）
+        me = None if who is None else {"email": "boss@example.com" if adm else "member@example.com", "name": "管理者" if adm else "一般會員", "admin": adm, "owner": who == "admin"}
         out, code = {}, 200
         if path == "/v1/me":
             out, code = ({"user": me}, 200) if me else ({}, 401)
@@ -51750,6 +51856,8 @@ def _adm3_ctx(b, who="admin", width=1440, feats=None, lims=None, theme=None, pla
             out = {"total": 5, "guests": 4, "users": [], "public_online": True}
         elif path == "/v1/admin/plans/get":
             out = {"plans": st["plans"]}
+        elif path == "/v1/admin/plans/put" and body.get("del") is True and who == "subadmin":
+            out, code = {"error": "owner_only"}, 403     # 同 worker.js：刪除範本只限擁有者
         elif path == "/v1/admin/plans/put" and body.get("del") is True and any(r["plan"] == body.get("id") and not (r.get("expires") and r["expires"] < now) for r in st["perm"].values()):
             out, code = {"error": "has_members"}, 409      # 同 worker.js：還有有效會員的範本不能刪
         elif path == "/v1/admin/plans/put" and body.get("del") is True:

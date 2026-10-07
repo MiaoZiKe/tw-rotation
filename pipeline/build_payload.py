@@ -17,7 +17,7 @@ import pandas as pd
 
 from . import config, delivery_log, indicators
 from .compute import explore
-from .compute import analysis, earnings, etf, flow, fundamental, mtf, rrg, scoring, season, stockpage, technical, themes
+from .compute import analysis, earnings, etf, etf_holdings, flow, fundamental, mtf, rrg, scoring, season, stockpage, technical, themes
 from .groups import loader
 # TechNews 的分類在讀取端重跑（見下面 news_df 那一段的註解），所以要 import 抓取層的分類器
 from .sources import news as news_src
@@ -639,6 +639,16 @@ def build() -> None:
     except Exception as exc:  # noqa: BLE001
         log.warning("ETF 專區產出失敗：%s", exc)
     lap("ETF 專區")
+
+    # ---------------------------------------------------------- ETF 成分股（2026-10-07，個股頁「成分股」分頁）
+    # 只讀資料湖 etf_holdings（投信 PCF）＋人工整理檔；失敗只影響成分股分頁（前端讀不到就顯示說明卡）。
+    try:
+        _etf_codes = set(company.loc[company["industry"].astype(str) == "ETF", "code"].astype(str)) \
+            if not company.empty and "industry" in company.columns else set()
+        _write("etf_holdings", etf_holdings.build(store.read("etf_holdings"), price, names, _etf_codes))
+    except Exception as exc:  # noqa: BLE001
+        log.warning("ETF 成分股產出失敗：%s", exc)
+    lap("ETF 成分股")
 
     # ---------------------------------------------------------- 財報日曆（2026-10-05，site/earnings.js）
     # 只讀資料湖（重大訊息、月營收、季損益、法人、新聞、FRED 觀測值與公布日程）＋ pipeline/calendar/macro_events.yaml。

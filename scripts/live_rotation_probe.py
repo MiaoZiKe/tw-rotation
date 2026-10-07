@@ -229,8 +229,9 @@ def run(args) -> dict:
         # 不用 networkidle：線上會開著即時報價的推送連線（SSE），那條連線不會結束，
         # networkidle 會一直等到逾時。改成 load 之後再等 App 與「即時」鈕真的長出來。
         live_reqs: list[str] = []
-        pg.on("request", lambda r: live_reqs.append(r.url) if "workers.dev" in r.url
-              or "mis.twse" in r.url else None)
+        # 只數「即時報價」的主機：會員 Worker（tw-account…/v1/me、/v1/perm/me）是登入與權限查詢，訪客本來就會打
+        live_hosts = ("tw-quote.", "tw-taifex.", "mis.twse", "query1.finance.yahoo", "query2.finance.yahoo")
+        pg.on("request", lambda r: live_reqs.append(r.url) if any(h in r.url for h in live_hosts) else None)
         if admin_tok:
             # 管理者測試權杖從 Actions Secret 帶進來，只寫進這台無頭瀏覽器的 localStorage，不落地、不進 repo。
             # 權杖失效時 /v1/me 會說不是管理者 → livegate 重新載入 → 關，下面就會走訪客那條並寫明原因。
@@ -409,6 +410,12 @@ def main() -> int:
     if args.summary:
         with open(args.summary, "a", encoding="utf-8") as f:
             f.write(md)
+    if res.get("verdict") == "fail":
+        # 摘要與 artifact 在 Claude 的容器讀不到（重新導向到外部主機被擋），失敗原因另外寫成 Actions 註記，
+        # check-runs annotations API 讀得到 —— 不然遠端除錯只能用猜的。
+        bad = res.get("why") or "；".join(f"{c['label']}：{c['detail']}" for c in res.get("checks", [])
+                                         if c["gate"] and not c["pass"])
+        print(f"::error title=盤中巡檢失敗::{str(bad)[:900].replace(chr(10), ' ')}")
     return 1 if res.get("verdict") == "fail" else 0
 
 

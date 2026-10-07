@@ -24,7 +24,14 @@
   const $ = (s, r) => (r || document).querySelector(s);
   const $$ = (s, r) => Array.from((r || document).querySelectorAll(s));
   const isMob = () => window.innerWidth <= 640;
-  const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+  /* 2026-10-07 平滑化：不再用固定秒數等（sleep 110／160／250／350／400），一律「每一幀看一次，條件成立就走、逾時保底」 */
+  const frame = () => new Promise((r) => requestAnimationFrame(() => r()));
+  const reduced = () => { try { return window.matchMedia('(prefers-reduced-motion: reduce)').matches; } catch (e) { return false; } };
+  async function until(fn, ms) {
+    const t0 = performance.now();
+    while (performance.now() - t0 < ms) { let v = null; try { v = fn(); } catch (e) { v = null; } if (v) return v; await frame(); }
+    return null;
+  }
   const esc = (s) => String(s == null ? '' : s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
   const tab = (v) => `#tabs .tab[data-view="${v}"]`;
 
@@ -86,7 +93,10 @@
       if (!b.classList.contains('on') && b.getAttribute('aria-selected') !== 'true') { b.click(); return true; }
       return false;
     };
-    if (pick($('.view.on .mspine'), spine)) await sleep(350);
+    /* 切了大段落：等下面那排小分段換成新段落的按鈕（真的畫好）再點，不再固定等 350ms */
+    if (pick($('.view.on .mspine'), spine) && pager) {
+      await until(() => { const pb = $('.view.on .mpager'); return pb && shown(pb) && $$('button', pb).some((x) => (x.textContent || '').replace(/\s+/g, '').indexOf(pager) >= 0); }, 1500);
+    }
     pick($('.view.on .mpager'), pager);
   };
 
@@ -143,8 +153,7 @@
     if ((seg.dataset.mode || '2d') === want) return;
     const b = $(`#dg3d button[data-dm="${want}"]`); if (b) b.click();
     if (want === '3d') {   // 等 3D 場景真的掛上（canvas 出現、「載入 3D 中…」消失），最多 6 秒
-      for (let k = 0; k < 60; k++) { const n = $('#dg3dNote'); if ($('#prod3d canvas') && !(n && /載入 3D 中/.test(n.textContent || ''))) break; await sleep(100); }
-      await sleep(400);
+      await until(() => { const n = $('#dg3dNote'); return $('#prod3d canvas') && !(n && /載入 3D 中/.test(n.textContent || '')); }, 6000);
     }
   };
   const INDUSTRY = [
@@ -303,19 +312,46 @@
     return h;
   }
   /* 把目標帶進畫面：常駐元素（側欄、頂欄、底部導覽）只做巢狀容器裡的捲動；其他的捲整頁，放在「頂欄下緣～底部可用處」中間 */
-  function bring(els, pinTop) {
-    const first = els[0];
-    try { first.scrollIntoView({ block: 'nearest', inline: 'nearest' }); } catch (e) { /* 舊瀏覽器 */ }
-    if (els.every(inFixed)) return;
-    const r = unionRect(els); if (!r) return;
-    const top = topSafe(els) + 12, bot = window.innerHeight - bottomSafe() - 12, avail = bot - top;
+  /* 2026-10-07 平滑化：每一步只捲一次（舊版先 scrollIntoView 再 scrollBy，一步捲兩次、畫面抖一下）。
+     常駐元素：只有不在畫面裡才捲它的容器；其他：算好位移量，整頁捲一次（smooth），等捲完（位置連兩幀不變）才回來定位。 */
+  async function bring(els, pinTop, my) {
+    const first = els[0], vw = window.innerWidth, vh = window.innerHeight;
+    const beh = reduced() ? 'auto' : 'smooth';
+    const r = unionRect(els); if (!r) return 0;
+    if (els.every(inFixed)) {
+      if (r.left >= 0 && r.right <= vw && r.top >= 0 && r.bottom <= vh) return 0;
+      try { first.scrollIntoView({ block: 'nearest', inline: 'nearest', behavior: beh }); } catch (e) { /* 舊瀏覽器 */ }
+      await settleScroll(first, my); return 1;
+    }
+    const top = topSafe(els) + 12, bot = vh - bottomSafe() - 12, avail = bot - top;
     let dy = 0;
     /* pinTop：分頁列這種「按了之後內容出現在它下面」的目標，捲到頂欄正下方，下面才看得到換出來的內容 */
     if (pinTop) dy = r.top - top;
     else if (r.height <= avail) {
       if (r.top < top || r.bottom > bot) dy = r.top - (top + (avail - r.height) / 2);
     } else dy = r.top - top;
-    if (Math.abs(dy) > 1) window.scrollBy(0, dy);
+    const offX = r.left < 0 || r.right > vw;   // 橫向拖曳容器裡被藏在右邊的：交給 scrollIntoView 一次處理兩個方向
+    if (offX) { try { first.scrollIntoView({ block: Math.abs(dy) > 1 ? 'center' : 'nearest', inline: 'nearest', behavior: beh }); } catch (e) { /* 舊瀏覽器 */ } }
+    else if (Math.abs(dy) > 1) {
+      const maxY = document.documentElement.scrollHeight - vh;
+      const to = Math.max(0, Math.min(maxY, window.scrollY + dy));
+      if (Math.abs(to - window.scrollY) < 1) return 0;
+      window.scrollTo({ top: to, behavior: beh });
+      await settleScroll(first, my, to); return 1;
+    } else return 0;
+    await settleScroll(first, my); return 1;
+  }
+  /* 捲完＝（有指定終點的話）已經到終點，而且整頁位置與目標位置連兩幀、至少 120ms 沒變（最多 1.2 秒）。
+     ⚠ smooth 捲動是下一幀才開始動：只看「連兩幀沒變」會在還沒開始捲之前就判成捲完（實測手機總覽卡片因此先貼頂又跳到貼底）。 */
+  async function settleScroll(el, my, to) {
+    let last = '', same = 0, since = performance.now();
+    await until(() => {
+      if (!run || run.seq !== my) return true;
+      if (to != null && Math.abs(window.scrollY - to) > 1.5) { last = ''; return false; }
+      const q = el.getBoundingClientRect(), sig = Math.round(window.scrollY) + ',' + Math.round(q.top) + ',' + Math.round(q.left), now = performance.now();
+      if (sig !== last) { last = sig; same = 0; since = now; return false; }
+      same += 1; return same >= 2 && now - since >= 120;
+    }, 1200);
   }
 
   /* ======================================================================== 樣式
@@ -324,18 +360,21 @@
     if ($('#twTourCss')) return;
     const s = document.createElement('style'); s.id = 'twTourCss';
     s.textContent = `
-#twTour{position:fixed;inset:0;z-index:2400;--twt-ring:var(--accent,var(--cyan,#37e2ff));--twt-dim:rgba(3,7,16,.6)}
+#twTour{position:fixed;inset:0;z-index:2400;--twt-ease:cubic-bezier(.2,.8,.2,1);--twt-dur:280ms;--twt-ring:var(--accent,var(--cyan,#37e2ff));--twt-dim:rgba(3,7,16,.6)}
 :root[data-theme="light"] #twTour{--twt-dim:rgba(15,23,42,.46)}
 #twTour .twt-block{position:absolute;inset:0;background:transparent;cursor:default}
-#twTour .twt-hole{position:fixed;left:50%;top:50%;width:0;height:0;border-radius:12px;pointer-events:none;
+#twTour .twt-hole{position:fixed;left:0;top:0;width:0;height:0;border-radius:12px;pointer-events:none;contain:strict;will-change:transform;
   box-shadow:0 0 0 2px var(--twt-ring),0 0 0 6px color-mix(in srgb,var(--twt-ring) 22%,transparent),0 0 30px 8px color-mix(in srgb,var(--twt-ring) 32%,transparent),0 0 0 200vmax var(--twt-dim);
-  transition:left .22s ease,top .22s ease,width .22s ease,height .22s ease}
+  transition:transform var(--twt-dur) var(--twt-ease),width var(--twt-dur) var(--twt-ease),height var(--twt-dur) var(--twt-ease)}
 #twTour.nohole .twt-hole{box-shadow:0 0 0 200vmax var(--twt-dim)}
 #twTour .twt-card{position:fixed;left:0;top:0;width:340px;max-width:calc(100vw - 24px);box-sizing:border-box;padding:14px 16px 12px;
   background:var(--panel-2,var(--panel));color:var(--ink);border:1px solid color-mix(in srgb,var(--twt-ring) 45%,var(--line-2,#334));
   border-radius:14px;box-shadow:0 22px 50px -14px rgba(0,0,0,.6),0 0 0 1px rgba(0,0,0,.04);
-  font-family:"Noto Sans TC","PingFang TC","Microsoft JhengHei",system-ui,sans-serif;transition:left .22s ease,top .22s ease,opacity .15s}
-#twTour .twt-card.busy{opacity:.72}
+  font-family:"Noto Sans TC","PingFang TC","Microsoft JhengHei",system-ui,sans-serif;will-change:transform,opacity;
+  transition:transform var(--twt-dur) var(--twt-ease),opacity 180ms var(--twt-ease)}
+#twTour .twt-card.out{opacity:0;pointer-events:none}
+#twTour .twt-card.snap,#twTour .twt-hole.snap{transition:none}
+#twTour .twt-card.out.snap{transition:none}
 #twTour .twt-arrow{position:absolute;width:12px;height:12px;background:inherit;border:inherit;border-right:0;border-bottom:0;transform:rotate(45deg);pointer-events:none}
 #twTour .twt-card[data-place="right"] .twt-arrow{left:-7px;transform:rotate(-45deg)}
 #twTour .twt-card[data-place="left"] .twt-arrow{right:-7px;transform:rotate(135deg)}
@@ -348,7 +387,7 @@
 #twTour .twt-x{margin-left:auto;width:28px;height:28px;display:grid;place-items:center;border:0;border-radius:8px;background:transparent;color:var(--ink-2);font-size:14px;cursor:pointer;padding:0}
 #twTour .twt-x:hover{background:var(--panel-3,rgba(127,127,127,.15));color:var(--ink)}
 #twTour .twt-bar{height:3px;border-radius:3px;background:var(--line,rgba(127,127,127,.25));margin:6px 0 10px;overflow:hidden}
-#twTour .twt-bar i{display:block;height:100%;width:0;background:var(--twt-ring);border-radius:3px;transition:width .22s ease}
+#twTour .twt-bar i{display:block;height:100%;width:100%;transform-origin:left;transform:scaleX(0);background:var(--twt-ring);border-radius:3px;transition:transform var(--twt-dur) var(--twt-ease)}
 #twTour h3{margin:0 0 6px;font-size:var(--fs-h3,16px);font-weight:600;line-height:1.35;color:var(--ink)}
 #twTour .twt-d{margin:0;font-size:var(--fs-body,14px);line-height:1.6;color:var(--ink-2)}
 #twTour .twt-f{display:flex;align-items:center;gap:8px;margin-top:12px}
@@ -362,7 +401,7 @@
 #twTour .twt-next:hover,#twTour .twt-prev:not(:disabled):hover{filter:brightness(1.08)}
 #twTour button:focus-visible{outline:2px solid var(--focus,var(--twt-ring));outline-offset:2px}
 @media (max-width:640px){
-  #twTour .twt-card{width:auto;left:12px!important;right:12px;max-height:46vh;overflow:auto}
+  #twTour .twt-card{width:auto;left:12px;right:12px;max-height:46vh;overflow:auto}
   #twTour .twt-arrow{display:none}
   #twTour .twt-card.hasarrow .twt-arrow{display:block}
 }
@@ -409,7 +448,7 @@
       + '<button type="button" class="twt-prev" id="twTourPrev">上一步</button>'
       + '<button type="button" class="twt-next" id="twTourNext">下一步</button></div></div>';
     document.body.appendChild(root);
-    ui = { root, hole: $('#twTourHole', root), card: $('#twTourCard', root) };
+    ui = { root, hole: $('#twTourHole', root), card: $('#twTourCard', root), arrow: $('.twt-arrow', root) };
     $('#twTourX', root).onclick = () => stop('close');
     $('#twTourSkip', root).onclick = () => stop('skip');
     $('#twTourPrev', root).onclick = () => prev();
@@ -427,7 +466,7 @@
     const ap = run.tour.steps.map((s, k) => (possible(k) || k === i ? k : -1)).filter((k) => k >= 0);
     const pos = Math.max(0, ap.indexOf(i)), tot = ap.length || n;
     $('#twTourNum').textContent = (pos + 1) + ' / ' + tot;
-    $('#twTourBar').style.width = Math.round(((pos + 1) / tot) * 100) + '%';
+    $('#twTourBar').style.transform = 'scaleX(' + ((pos + 1) / tot).toFixed(4) + ')';
     $('#twTourT').textContent = st.t;
     $('#twTourD').textContent = (isMob() && st.m) ? st.m : st.d;
     $('#twTourPrev').disabled = prevIndex(i) < 0;
@@ -445,11 +484,13 @@
 
   /* 聚光燈＋說明卡定位。桌機：卡片放在目標的右／左／下／上（放得下的第一個），箭頭指向目標中心；
      都放不下（目標比半個畫面還大）就疊在目標的右下角、不畫箭頭。手機：卡片貼底（目標在下半部就貼頂），箭頭指向目標。 */
-  function place() {
+  function place(how) {
     if (!run || !ui) return;
+    /* ---- 讀（全部量完才寫，同一幀內不交錯讀寫，避免強制同步排版） */
     const vw = window.innerWidth, vh = window.innerHeight, card = ui.card;
     const r0 = run.els ? unionRect(run.els) : null;
-    ui.root.classList.toggle('nohole', !r0);
+    const cw = card.offsetWidth, ch = card.offsetHeight;
+    const mob = isMob(), tsm = mob ? topSafeMini() : 0;
     const pad = 6, m = 12, gap = 16;
     let hr = null;
     if (r0) {
@@ -457,22 +498,16 @@
       const r = Math.min(vw - 4, r0.right + pad), b = Math.min(vh - 4, r0.bottom + pad);
       hr = { left: l, top: t, right: Math.max(l + 8, r), bottom: Math.max(t + 8, b) };
       hr.width = hr.right - hr.left; hr.height = hr.bottom - hr.top; hr.cx = hr.left + hr.width / 2; hr.cy = hr.top + hr.height / 2;
-      Object.assign(ui.hole.style, { left: hr.left + 'px', top: hr.top + 'px', width: hr.width + 'px', height: hr.height + 'px' });
-    } else Object.assign(ui.hole.style, { left: vw / 2 + 'px', top: vh / 2 + 'px', width: '0px', height: '0px' });
-    const arrow = $('.twt-arrow', card);
-    arrow.style.left = arrow.style.top = arrow.style.right = arrow.style.bottom = '';
-    card.classList.remove('hasarrow');
-    const cw = card.offsetWidth, ch = card.offsetHeight;
-    let x, y, where;
-    if (isMob()) {
+    }
+    let x, y, where, ax = null, ay = null, hasArrow = false;
+    if (mob) {
       const bottomY = vh - ch - m;
       // 目標在卡片底下（例如底部導覽列）就把卡片放上面
-      if (hr && hr.bottom > bottomY - 8 && hr.top > ch + m + 8) { where = 'sheet-top'; y = m + topSafeMini(); }
+      if (hr && hr.bottom > bottomY - 8 && hr.top > ch + m + 8) { where = 'sheet-top'; y = m + tsm; }
       else { where = 'sheet-bottom'; y = bottomY; }
-      x = m;
+      x = 0;   // 手機卡片左右由 CSS 貼 12px，只上下移
       if (hr && ((where === 'sheet-bottom' && hr.bottom <= y - 4) || (where === 'sheet-top' && hr.top >= y + ch + 4))) {
-        card.classList.add('hasarrow');
-        arrow.style.left = Math.max(18, Math.min(vw - 2 * m - 18, hr.cx - m)) - 6 + 'px';
+        hasArrow = true; ax = Math.max(18, Math.min(vw - 2 * m - 18, hr.cx - m)) - 6;
       }
     } else if (!hr) { where = 'center'; x = (vw - cw) / 2; y = (vh - ch) / 2; }
     else {
@@ -486,29 +521,75 @@
       const order = hr.width > vw * 0.45 ? ['bottom', 'top', 'right', 'left'] : ['right', 'left', 'bottom', 'top'];
       for (const k of order) { const p = C[k](); if (p) { [x, y] = p; where = k; break; } }
       if (!where) { where = 'over'; x = Math.min(vw - cw - 24, hr.right - cw - 16); y = Math.min(vh - ch - 24, Math.max(hr.top + 16, vh - ch - 24)); x = Math.max(m, x); }
-      if (where === 'right' || where === 'left') arrow.style.top = Math.max(14, Math.min(ch - 26, hr.cy - y - 6)) + 'px';
-      if (where === 'bottom' || where === 'top') arrow.style.left = Math.max(14, Math.min(cw - 26, hr.cx - x - 6)) + 'px';
+      if (where === 'right' || where === 'left') ay = Math.max(14, Math.min(ch - 26, hr.cy - y - 6));
+      if (where === 'bottom' || where === 'top') ax = Math.max(14, Math.min(cw - 26, hr.cx - x - 6));
     }
+    /* ---- 寫 */
+    const snap = how === 'snap' || reduced();
+    ui.hole.classList.toggle('snap', snap); card.classList.toggle('snap', snap || card.classList.contains('out'));
+    ui.root.classList.toggle('nohole', !hr);
+    const hs = ui.hole.style;
+    if (hr) { hs.transform = `translate3d(${hr.left}px,${hr.top}px,0)`; hs.width = hr.width + 'px'; hs.height = hr.height + 'px'; }
+    else { hs.transform = `translate3d(${vw / 2}px,${vh / 2}px,0)`; hs.width = '0px'; hs.height = '0px'; }
+    const arrow = ui.arrow.style;
+    arrow.left = ax == null ? '' : ax + 'px'; arrow.top = ay == null ? '' : ay + 'px'; arrow.right = arrow.bottom = '';
+    card.classList.toggle('hasarrow', hasArrow);
     card.dataset.place = where;
-    card.style.left = Math.round(x) + 'px'; card.style.top = Math.round(y) + 'px';
+    const ct = `translate3d(${Math.round(x)}px,${Math.round(y)}px,0)`;
+    if (!run.busy && run.placedAt && run.cardXY !== ct) run.cardJumps = (run.cardJumps || 0) + 1;   // 定位好之後說明卡又被搬動（給驗收數）
+    if (run.cardXY !== ct) { card.style.transform = ct; run.cardXY = ct; }
     run.place = where;
+    run.sig = sigOf(r0);
+  }
+  const sigOf = (r) => (r ? [r.left, r.top, r.width, r.height].map(Math.round).join(',') : 'none') + '|' + window.innerWidth + 'x' + window.innerHeight;
+  /* 說明卡淡出（換頁時）／淡入（定位好之後才淡入 —— 不會先在舊位置出現再跳過去） */
+  function cardOut() { if (ui && !reduced()) ui.card.classList.add('out'); }
+  function cardIn() {
+    if (!ui || !ui.card.classList.contains('out')) return;
+    requestAnimationFrame(() => { if (!ui) return; ui.card.classList.remove('snap'); ui.card.classList.remove('out'); });
   }
   function topSafeMini() { const tb = $('.topbar'); return tb && shown(tb) ? Math.max(0, tb.getBoundingClientRect().bottom - 4) : 0; }
 
-  /* 目標跟著版面動（圖晚一點畫完、側欄展開、視窗縮放）：每 150ms 量一次，變了就重放；元素不見了就往下一步 */
-  let watchT = 0, lastSig = '';
-  function watch() {
-    clearInterval(watchT);
-    watchT = setInterval(() => {
-      if (!run || run.busy) return;
-      if (run.els && !run.els.every((e) => e.isConnected && shown(e))) {
+  /* 目標跟著版面動（圖晚一點畫完、側欄展開、視窗縮放、使用者自己捲頁）：
+     2026-10-07 平滑化：拿掉舊版「每 150ms 量一次、變了就重放」的輪詢補丁。改成事件驅動 ——
+     ResizeObserver（目標尺寸變）＋MutationObserver（版面結構變）＋scroll／resize，全部併成下一幀量一次；
+     位置真的變了才寫。使用者捲頁時聚光燈直接跟著（不走動畫，不然會拖在後面）。 */
+  let ro = null, mo = null, raf = 0, scrolled = false;
+  function schedule(e) {
+    if (e && e.type === 'scroll') scrolled = true;
+    if (raf) return;
+    raf = requestAnimationFrame(() => {
+      raf = 0;
+      const how = scrolled ? 'snap' : 'anim'; scrolled = false;
+      if (!run || run.busy || !ui) return;
+      if (run.els && !run.els.every((x) => x.isConnected && shown(x))) {
         const again = resolve(run.tour.steps[run.i]);
-        if (again) { run.els = again.els; } else { next(); return; }
+        if (again) { run.els = again.els; observe(); } else { next(); return; }
       }
       const r = run.els ? unionRect(run.els) : null;
-      const sig = r ? [r.left, r.top, r.width, r.height].map(Math.round).join(',') + '|' + window.innerWidth + 'x' + window.innerHeight : 'none';
-      if (sig !== lastSig) { lastSig = sig; place(); }
-    }, 150);
+      if (sigOf(r) !== run.sig) place(how);
+    });
+  }
+  function observe() {
+    if (ro) ro.disconnect();
+    if (run && run.els && typeof ResizeObserver !== 'undefined') { ro = new ResizeObserver(() => schedule()); run.els.forEach((x) => ro.observe(x)); }
+  }
+  function watch(on) {
+    if (on) {
+      window.addEventListener('scroll', schedule, { passive: true, capture: true });
+      window.addEventListener('resize', schedule);
+      if (typeof MutationObserver !== 'undefined') {
+        mo = new MutationObserver((list) => { if (list.some((r) => !ui || !ui.root.contains(r.target))) schedule(); });
+        mo.observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ['class', 'style', 'hidden'] });
+      }
+    } else {
+      window.removeEventListener('scroll', schedule, { capture: true });
+      window.removeEventListener('resize', schedule);
+      if (mo) mo.disconnect();
+      if (ro) ro.disconnect();
+      mo = ro = null;
+      cancelAnimationFrame(raf); raf = 0;
+    }
   }
 
   /* ======================================================================== 走步
@@ -522,27 +603,34 @@
     return re ? re.test(h) : h === r;
   }
   function viewOn(v) { const e = document.getElementById('v-' + v); return !v || (e && e.classList.contains('on')); }
+  /* 等元素真的畫好：每一幀量一次，頁面已切到 view、找得到看得見的元素、位置尺寸「連續至少 2 幀而且至少 120ms」沒變才算穩。
+     （舊版每 110ms 輪詢，最快也要 330ms；圖表晚 0.1 秒才長高的那種會被框到半路，框好又被補丁拉一次。） */
   async function waitFor(st, ms, my) {
-    const t0 = Date.now();
-    let last = null, stable = 0, got = null;
-    while (Date.now() - t0 < ms) {
-      if (!run || run.seq !== my) return null;
-      if (viewOn(st.view)) {
-        got = resolve(st);
-        if (got) {
-          const r = unionRect(got.els), sig = r && [r.left, r.top, r.width, r.height].map(Math.round).join(',');
-          stable = sig === last ? stable + 1 : 0; last = sig;
-          if (stable >= 2) return got;
-        }
-      }
-      await sleep(110);
-    }
+    let last = null, since = 0, frames = 0, got = null;
+    const ok = await until(() => {
+      if (!run || run.seq !== my) return 'gone';
+      if (!viewOn(st.view)) { last = null; return null; }
+      got = resolve(st);
+      if (!got) { last = null; return null; }
+      const sig = sigOf(unionRect(got.els)), now = performance.now();
+      if (sig !== last) { last = sig; since = now; frames = 0; return null; }
+      frames += 1;
+      return frames >= 2 && now - since >= 120 ? 'ok' : null;
+    }, ms);
+    if (ok === 'gone') return null;
+    if (ok === 'ok') return got;
     return got && viewOn(st.view) && got.els.every(shown) ? got : null;
   }
+  /* 換步：
+       1. 要換頁 → 說明卡先淡出（不讓舊卡留在新頁上）→ 改 hash
+       2. 前置動作（切分段、切 2D／3D、點零件）→ 等元素穩定（上面的 waitFor，不用固定秒數）
+       3. 捲一次（smooth），捲完才定位
+       4. 聚光燈滑到新位置；說明卡如果是淡出狀態，就先無動畫放到最終位置再淡入（不會先出現在別處再跳）
+     seq 防快速連按：每次 go 都換號，舊的那輪等到一半發現號碼變了就收手。 */
   async function go(i, dir) {
     if (!run) return;
     const my = ++run.seq;
-    run.busy = true; ui.card.classList.add('busy');
+    run.busy = true;
     const steps = run.tour.steps;
     while (i >= 0 && i < steps.length) {
       const st = steps[i];
@@ -551,22 +639,22 @@
       let moved = false;
       if (!routeOk(st)) {
         const r = typeof st.route === 'function' ? st.route() : st.route;
-        if (r) { location.hash = r; moved = true; }
+        if (r) { cardOut(); location.hash = r; moved = true; }
       }
-      if (moved) await sleep(160);
-      if (st.before) { try { await st.before(); } catch (e) { /* 示範動作失敗就當沒有這一步的前置，照樣去找元素 */ } await sleep(250); }
+      if (st.before) { try { await st.before(); } catch (e) { /* 示範動作失敗就當沒有這一步的前置，照樣去找元素 */ } }
       if (!run || run.seq !== my) return;
       const got = await waitFor(st, moved ? 7000 : (st.fast ? 600 : 2200), my);
       if (!run || run.seq !== my) return;
       if (got) {
         run.skipped = run.skipped.filter((k) => k !== i);
         run.i = i; run.els = got.els; run.sel = got.sel;
-        bring(got.els, !!st.pin);
-        await sleep(90);
+        run.placedAt = 0; run.cardJumps = 0;
+        run.scrolls = await bring(got.els, !!st.pin, my);
         if (!run || run.seq !== my) return;
         paintText(st, i, steps.length);
-        lastSig = ''; place();
-        run.busy = false; ui.card.classList.remove('busy');
+        place('anim'); cardIn();
+        observe();
+        run.busy = false; run.placedAt = performance.now();
         ui.root.dataset.step = String(i);
         ui.root.dataset.sel = got.sel;
         try { $('#twTourNext').focus({ preventScroll: true }); } catch (e) { /* 忽略 */ }
@@ -577,11 +665,11 @@
         .find((e) => e && e.closest('.view.on') && !e.closest('[hidden]') && getComputedStyle(e).display !== 'none');
       if (ghost && !st.fast) {
         run.skipped = run.skipped.filter((k) => k !== i);
-        run.i = i; run.els = null; run.sel = '(說明卡)';
+        run.i = i; run.els = null; run.sel = '(說明卡)'; run.scrolls = 0; run.placedAt = 0; run.cardJumps = 0;
         paintText(st, i, steps.length);
         $('#twTourD').textContent += '（這一塊目前沒有畫面可以框，先看說明。）';
-        lastSig = ''; place();
-        run.busy = false; ui.card.classList.remove('busy');
+        place('anim'); cardIn(); observe();
+        run.busy = false; run.placedAt = performance.now();
         ui.root.dataset.step = String(i); ui.root.dataset.sel = '';
         return;
       }
@@ -590,8 +678,8 @@
     }
     // 往後走到底＝導覽結束；往前找不到＝停在原來那一步
     if (dir > 0) { stop('done'); return; }
-    run.busy = false; ui.card.classList.remove('busy');
-    if (run.i >= 0) { paintText(steps[run.i], run.i, steps.length); place(); }
+    run.busy = false;
+    if (run.i >= 0) { paintText(steps[run.i], run.i, steps.length); place('anim'); cardIn(); }
   }
   function next() { if (!run) return; if (run.i >= 0 && isLast(run.i) && !run.busy) { stop('done'); return; } go(run.i + 1, 1); }
   function prev() { if (!run) return; const k = prevIndex(run.i); if (k >= 0) go(k, -1); }
@@ -611,7 +699,6 @@
       else if (!e.shiftKey && a === last) { e.preventDefault(); first.focus(); }
     }
   }
-  const onResize = () => { if (run && !run.busy) { lastSig = ''; place(); } };
 
   /* 開始前把會擋在導覽上面的東西收起來：今日事件抽屜、⋯ 清單、手機「更多」抽屜 */
   function tidy() {
@@ -631,10 +718,9 @@
     run = { id: key, tour: TOURS[key], i: -1, seq: 0, els: null, sel: '', skipped: [], busy: false, opener: document.activeElement };
     paintText({ t: '載入中…', d: '' }, 0, TOURS[key].steps.length);
     $('#twTourT').textContent = TOURS[key].name;
-    place();
+    place('snap');
     window.addEventListener('keydown', onKey, true);
-    window.addEventListener('resize', onResize);
-    watch();
+    watch(true);
     locks();
     go(0, 1);
     return key;
@@ -642,9 +728,8 @@
   function stop(why) {
     if (!run) return;
     const r = run; run = null;
-    clearInterval(watchT);
+    watch(false);
     window.removeEventListener('keydown', onKey, true);
-    window.removeEventListener('resize', onResize);
     if (ui) { ui.root.remove(); }
     locks();
     try { if (r.tour.onEnd) r.tour.onEnd(why); } catch (e) { /* 收尾失敗不影響關閉 */ }
@@ -750,7 +835,8 @@
     state: () => {
       if (!run) return { active: false, on: false };
       const r = run.els ? unionRect(run.els) : null, c = ui.card.getBoundingClientRect(), h = ui.hole.getBoundingClientRect();
-      return { active: true, on: true, tour: run.id, i: run.i, n: run.tour.steps.length, busy: run.busy, title: $('#twTourT').textContent,
+      return { active: true, on: true, tour: run.id, i: run.i, n: run.tour.steps.length, busy: run.busy, scrolls: run.scrolls || 0, cardJumps: run.cardJumps || 0, act: !!(run.i >= 0 && run.tour.steps[run.i] && run.tour.steps[run.i].before),
+        since: run.placedAt ? Math.round(performance.now() - run.placedAt) : -1, title: $('#twTourT').textContent,
         sel: run.sel, place: run.place, skipped: run.skipped.slice(), hash: location.hash, view: (($('.view.on') || {}).id || ''),
         target: r && { l: r.left, t: r.top, r: r.right, b: r.bottom, w: r.width, h: r.height },
         hole: { l: h.left, t: h.top, r: h.right, b: h.bottom, w: h.width, h: h.height },

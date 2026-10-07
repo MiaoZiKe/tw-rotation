@@ -5539,7 +5539,7 @@
     ['holders', '受益人分布'], ['news', '公告 / 新聞']];
   const tabsFor = (code) => (isEtf(code) ? ETF_TABS : STOCK_TABS);
   /* ★ 2026-10-07（Andy：「ETF 點擊成分股並沒有出現對應股票，成分股分頁需要左側出現個股清單，右邊出現個股權重圓餅圖」）
-     根因：這個分頁 10-05 上線時就只有標題＋一行字 —— 資料湖沒有任何 ETF 成分股資料（合規免費來源查不到，
+     根因：這個分頁 10-05 上線時就只有標題＋一行字 —— 資料湖沒有任何 ETF 成分股資料（當時誤判為查不到合規來源；10-07 晚改由各投信每日 PCF 進湖，DECISIONS #341，
      查證紀錄 docs/etf_holdings_source.md），前端也沒有畫圖的程式。
      這次把「畫」的部分做完：讀 data/etf_holdings.json（{asof, source, etfs:{代號:{asof, items:[{code,name,w,shares}]}}}），
        左＝個股清單（依權重排、可搜尋、點列進個股頁；非台股成分寫原名、不能點），右＝A 款甜甜圈（前 10 大＋其他灰色、中心「前 10 大合計」）。
@@ -5591,8 +5591,9 @@
         ? `<h3>成分股</h3><div class="hdnote" id="etfHoldNone"><b>這檔以債券／期貨為主，沒有個股成分。</b><br>
             ${A.fmt.esc(name)}${cat ? `（${A.fmt.esc(cat)}）` : ''}的資產是債券或期貨契約，不是一籃子股票，所以這裡不會有個股清單與權重圖。
             價格走勢看「總覽」，配息看「配息」分頁。</div>`
-        : `<h3>成分股</h3><div class="hdnote" id="etfHoldNone"><b>成分股資料來源尚未接上。</b><br>
-            目前沒有可合法、每天自動取得成分股與權重的公開來源，這裡先不放清單、也不用估計值充數。請以發行投信官網每日公告的持股為準。</div>`;
+        : (() => { const iss = (hd && hd.issuers && hd.issuers[code]) || '';
+            return `<h3>成分股</h3><div class="hdnote" id="etfHoldNone"><b>此檔發行投信${iss ? `（${A.fmt.esc(iss)}投信）` : ''}資料尚未接上。</b><br>
+            成分股取自各發行投信每日公告的申購買回清單；這家投信的公告還沒接進來，這裡先不放清單、也不用估計值充數。請以發行投信官網每日公告的持股為準。</div>`; })();
       return;
     }
     items.sort((a, b) => b.w - a.w);
@@ -5607,7 +5608,10 @@
     const asof = rec.asof || hd.asof || '';
     const hasSh = items.some(x => x.shares != null);
     card.dataset.state = 'ok';
-    card.innerHTML = `<h3>成分股<span class="hdasof">資料日期 ${A.fmt.esc(asof)}・共 ${items.length} 檔</span></h3>
+    /* 2026-10-07：標出處 —— 人工整理（pipeline/etf/holdings_manual.yaml）／權重是用股數×收盤價推算的（元大實物申贖型） */
+    const tag = rec.manual ? `人工整理・資料日期 ${A.fmt.esc(asof)}` : `資料日期 ${A.fmt.esc(asof)}`;
+    const srcTxt = rec.issuer ? `${A.fmt.esc(rec.issuer)}投信公告${rec.est ? '・權重依股數×收盤價推算（占股票部位）' : ''}` : '';
+    card.innerHTML = `<h3>成分股<span class="hdasof" id="etfHoldAsof">${tag}・共 ${items.length} 檔${srcTxt ? `・<span title="${A.fmt.esc(rec.src || '')}">${srcTxt}</span>` : ''}</span></h3>
       <div class="hdgrid"><div class="hdlist"><input class="hdq" id="etfHoldQ" type="search" placeholder="搜尋代號或名稱" aria-label="搜尋成分股">
         <div class="hdscroll"><table id="etfHoldTbl"><thead><tr><th>代號</th><th>名稱</th><th>權重</th>${hasSh ? '<th>持股張數</th>' : ''}<th>當日漲跌</th></tr></thead><tbody>
         ${items.map((x, i) => { const c = String(x.code || ''), go = canGo(c), ch = chgOf.get(c);
