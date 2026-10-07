@@ -136,7 +136,7 @@
       highlights: ['研究瀏覽・每日 50 次', '3D 剖析圖・完整功能', '四週期同看・畫線工具・指標自訂', '自選清單・5 頁、每頁 50 檔', 'ETF 報酬比較（自選 8 檔）', '客服優先回覆（只限功能與資料說明）'],
       feats: { 'stock.k_min': false, 'live.tick': false, 'watch.tabs': 5 },
       lims: { 'quota.all': 50, 'stock.page': 50, 'ind.diagram': 50, 'heat.detail': 50, 'ind.rel': 50, 'ind.groups': 50 }, watch: { tabs: 5, size: 50 } },
-    { key: 'pro', name: 'Pro', price: { month: 549, year: 5490 }, badge: '功能最齊', tagline: '不限次數，自選清單每天幫你整理好',
+    { key: 'pro', name: 'Pro', price: { month: 549, year: 5268 }, badge: '功能最齊', tagline: '不限次數，自選清單每天幫你整理好',
       fit_title: '適合追蹤多個題材與大量自選股', fit_desc: '研究頁不限次數、自選清單不限頁數；加上「自選清單日報」把你追蹤的股票今天發生了什麼（營收、法人、籌碼、事件）彙整成一頁，省下逐檔翻的時間。',
       highlights: ['研究瀏覽・不限次數', 'Plus 全部功能', '自選清單・不限頁數（每頁 200 檔）', '自選清單日報：營收／法人／籌碼／事件變化一覽（開發中）', '自設條件提醒（開發中）', '剖析圖高解析匯出（開發中）'],
       feats: { 'stock.k_min': false, 'live.tick': false, 'watch.tabs': 5 },
@@ -208,7 +208,7 @@
     const x = prices(p);
     if (x.free) return { free: true };
     if (x.once) return { amount: x.once, unit: '（一次）', note: '一次付清', period: 'month' };
-    if (per === 'year' && x.year) return x.month ? { amount: x.year, unit: '／年', note: `約 NT$ ${nt(Math.round(x.year / 12))}／月`, period: 'year', total: x.year, orig: x.year < x.month * 12 ? x.month * 12 : 0 } : { amount: x.year, unit: '／年', note: '年繳方案', period: 'year', total: x.year };
+    if (per === 'year' && x.year) return x.month ? { amount: Math.round(x.year / 12), unit: '／月', note: `年繳 NT$ ${nt(x.year)}（一次付清）`, period: 'year', total: x.year, mo: x.month, orig: x.year < x.month * 12 ? x.month * 12 : 0 } : { amount: x.year, unit: '／年', note: '年繳方案', period: 'year', total: x.year };
     if (x.month) return { amount: x.month, unit: '／月', note: per === 'year' ? '此方案僅提供月繳' : x.year && x.year < x.month * 12 ? `改年繳一年省 NT$ ${nt(x.month * 12 - x.year)}` : '按月計費', period: 'month' };
     if (x.year) return { amount: x.year, unit: '／年', note: per === 'month' ? '此方案僅提供年繳' : '年繳方案', period: 'year', total: x.year };
     /* 付費範本價格是 0／空 ＝還沒定價（Plus／Pro 種子就是 0）→ 寫「價格待定」，不寫 NT$ 0 讓人以為免費 */
@@ -429,6 +429,7 @@
 .prstrike{color:var(--ink-3);font-size:14px;text-decoration:line-through;text-decoration-thickness:1.5px}
 .prsale{display:inline-block;flex:none;padding:0 9px;border-radius:999px;font-size:12px;font-weight:800;color:var(--amber);background:color-mix(in srgb,var(--amber) 16%,transparent);border:1px solid color-mix(in srgb,var(--amber) 55%,transparent);line-height:20px}
 #v-pricing .prorig+.prprice{margin-top:4px}
+#v-pricing .prmg .prorig{gap:6px}#v-pricing .prmg .prstrike{font-size:12.5px}#v-pricing .prmg .prsale{font-size:11.5px;padding:0 7px}#v-pricing .prmg col.c0{width:20%}#v-pricing .prmg thead th[data-plan]{padding-left:14px;padding-right:14px}
 #v-pricing .mfit,#v-pricing .prmg .mfit{margin-top:6px}
 `);
 
@@ -494,7 +495,7 @@
   }
   /* 10-07 Andy「原價錢被劃掉，旁邊標註減多少，再寫出新價格，像特賣會」：年繳時第一行＝原價（月價×12，刪除線）＋琥珀徽章「省 NT$ X・約 Y%」；
      其他情況這一行用 &nbsp; 佔位（三欄每一層才對齊）。 */
-  function origLine(pr) { return pr.orig ? `<div class="prorig"><s class="prstrike">NT$ ${nt(pr.orig)}</s><span class="prsale">省 NT$ ${nt(pr.orig - pr.total)}・約 ${Math.round((pr.orig - pr.total) / pr.orig * 100)}%</span></div>` : '<div class="prorig">&nbsp;</div>'; }
+  function origLine(pr) { return pr.orig ? `<div class="prorig"><s class="prstrike">NT$ ${nt(pr.mo)}／月</s><span class="prsale">省 NT$ ${nt(pr.orig - pr.total)}／年・約 ${Math.round((pr.orig - pr.total) / pr.orig * 100)}%</span></div>` : '<div class="prorig">&nbsp;</div>'; }
   function btnOf(p, me) {
     if (me.id === p.id) return `<button type="button" class="prgo" disabled>目前方案</button>`;
     if (tierOf(p) === 'free') return me.tier === 'guest' ? `<button type="button" class="prgo" data-go="${esc(p.id)}">免費註冊／登入</button>` : `<button type="button" class="prgo" disabled>已包含</button>`;
@@ -508,7 +509,9 @@
     const hl = (Array.isArray(p.highlights) && p.highlights.length ? p.highlights : autoHl(p)).slice(0, 12);
     const tag = tagOf(lk, need);
     /* 10-07 排版統一：「適合…」一行移到欄頭（.mfit，跟合併表同一層）；這裡只留說明，固定 4 行高（沒寫也佔位），打勾清單才會三張卡同一條起跑線 */
-    const fit = `<div class="prfit${p.fit_desc ? '' : ' nil'}"><p title="${esc(p.fit_desc || '')}">${p.fit_desc ? esc(p.fit_desc) : '&nbsp;'}</p></div>`;
+    /* 10-07 17:50 Andy：免費方案的灰底說明框「沒必要」→ 註冊會員不畫內容，只留同高的空白，打勾清單仍跟 Plus／Pro 同一條起跑線 */
+    const showFit = p.fit_desc && t !== 'free';
+    const fit = `<div class="prfit${showFit ? '' : ' nil'}"><p title="${esc(showFit ? p.fit_desc : '')}">${showFit ? esc(p.fit_desc) : '&nbsp;'}</p></div>`;
     return `<div class="prcard pc-${esc(lk.color)}${hot ? ' hot' : ''}${need ? ' need' : ''}${isMine ? ' mine' : ''}" data-plan="${esc(p.id)}" data-tier="${t}">
       ${tag}<div class="prhd"><span class="prico">${svgI(lk.icon)}</span><h2 title="${esc(showName(p))}">${esc(showName(p))}</h2><div class="who" title="${esc(who)}">${esc(who)}</div></div>
       ${priceHtml(p)}<div class="mfit" title="${esc(p.fit_title || '')}">${p.fit_title ? esc(p.fit_title) : '&nbsp;'}</div><hr>
@@ -572,7 +575,7 @@
     const per = pr.period === 'year' ? 'year' : 'month';
     const lk = S.look.get(p.id) || { color: 'blue', icon: 'bolt' };
     const ptop = pr.orig ? origLine(pr) : '';
-    const pbig = pr.amount == null ? '價格待定' : pr.total ? `NT$ ${nt(pr.total)}<small>／年</small>` : `NT$ ${nt(pr.amount)}<small>${esc(pr.unit)}</small>`;
+    const pbig = pr.amount == null ? '價格待定' : pr.total && pr.unit === '／年' ? `NT$ ${nt(pr.total)}<small>／年</small>` : `NT$ ${nt(pr.amount)}<small>${esc(pr.unit)}</small>`;
     /* 已含功能：依 features.js 類別分組、兩欄打勾（範本 feats／lims 算出來的，跟比較表同一份）；有上限的寫「每日 N 次」 */
     const Ft = F();
     const groups = Ft ? Ft.cats.filter((c) => c.id !== 'grp').map((c) => [c, Ft.inCat(c.id).filter((f) => !f.adminOnly && f.kind === 'bool' && on(p, f))]).filter(([, fs]) => fs.length) : [];

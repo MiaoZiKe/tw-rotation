@@ -43,7 +43,9 @@
 
   /* ★ 2026-10-07 16:30 Andy：「將我把 kcq01010909 帳號設為最高管理權限，他不會需要被限制」→ 擁有者（/v1/me 的 owner 旗標，判定在 Worker）
      所有鎖頭、次數、自選上限一律豁免；Worker 的 /v1/perm/me 對擁有者也回全開（兩邊都做：舊快取、Worker 還沒部署時前端也不鎖）。*/
-  const owner = () => { const A = acct(); const u = A && A.on && A.on() && A.user && A.user(); return !!(u && u.owner); };
+  /* ★ 2026-10-07 17:40 Andy：「首先以後預覽都不要限制權限，因為只是在測試」（DECISIONS #343）→ 預覽版（window.TW_PREVIEW）一律比照擁有者全開：
+     無鎖頭、不計次、上限給最大。只看讀取面；會員雲端寫入照舊由 preview_boot.js 擋下。正式站沒有 TW_PREVIEW，行為不變。*/
+  const owner = () => { if (window.TW_PREVIEW) return true; const A = acct(); const u = A && A.on && A.on() && A.user && A.user(); return !!(u && u.owner); };
   function value(id) {
     const f = F.byId(id); if (!f) return true;
     if (owner()) return f.kind === 'limit' ? f.max : true;

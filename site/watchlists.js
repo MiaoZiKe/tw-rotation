@@ -155,7 +155,8 @@
   // ------------------------------------------------------------------ 操作
   /* ★ 2026-10-02 會員功能權限（DECISIONS #288）：「自選分頁數上限」由管理者依方案設定（預設 5＝跟以前一樣）。
      只擋「新增」，已經建好的頁不刪 —— 降級的人清單不會不見。對外的 MAX_TABS 改成 getter，watchpage.js 的「N／上限 頁」跟著走。*/
-  const permOn = () => { const P = window.TwPerm; return !!P && P.state().src !== 'default'; };
+  /* 預覽版全開（DECISIONS #343）：上限直接給硬上限 */
+  const permOn = () => { if (window.TW_PREVIEW) return true; const P = window.TwPerm; return !!P && P.state().src !== 'default'; };
   const capTabs = () => { const P = window.TwPerm; if (!permOn()) return LEGACY_TABS; return Math.max(0, Math.min(HARD_TABS, P.limit('watch.tabs', LEGACY_TABS))); };
   const capCodes = () => { const P = window.TwPerm; if (!permOn()) return LEGACY_CODES; return Math.max(0, Math.min(HARD_CODES, P.limit('watch.size', LEGACY_CODES))); };
   /* 超過方案上限：跳出跟「每日額度／需開通」同一款卡片（site/qcard.js 的 modal），按鈕連到訂閱頁的下一個方案。

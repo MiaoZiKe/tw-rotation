@@ -153,7 +153,12 @@
     a.href = C.prod || '../../';
     a.textContent = '回正式站 →';
     a.style.cssText = 'color:#111;text-decoration:underline';
-    b.appendChild(t); b.appendChild(a);
+    /* ★ 2026-10-07 Andy：「以後預覽都不要限制權限，因為只是在測試」（DECISIONS #343）→ 橫幅明講，免得以為鎖頭壞了 */
+    var n = document.createElement('small');
+    n.id = 'twPreviewOpen';
+    n.textContent = '預覽版不套用會員權限與次數限制';
+    n.style.cssText = 'flex-basis:100%;font:500 12px/1.3 system-ui,"Noto Sans TC",sans-serif';
+    b.appendChild(t); b.appendChild(a); b.appendChild(n);
     document.body.insertBefore(b, document.body.firstChild);
     document.documentElement.setAttribute('data-preview', NAME);
     if (document.title.indexOf('［預覽') !== 0) document.title = '［預覽 ' + NAME + '］' + document.title;
