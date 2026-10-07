@@ -1,0 +1,95 @@
+====================================================================================================
+[extra-0] https://www.hnfunds.com.tw/etf/trading-info/redemption-list
+  最終網址: https://www.hnfunds.com.tw/etf/trading-info/redemption-list/  標題: ETF專區-申購買回清單 | 華南永昌投信
+    連結: ETF總覽 -> https://www.hnfunds.com.tw/etf/overview
+    連結: ETF配息專區 -> https://www.hnfunds.com.tw/etf/dividends
+    連結: 即時預估淨值 -> https://www.hnfunds.com.tw/etf/nav-estimation
+    連結: 追蹤差距 -> https://www.hnfunds.com.tw/etf/tracking-difference
+    連結: 申贖費用查詢 -> https://www.hnfunds.com.tw/etf/trading-info/subscription-fees
+    連結: 申購買回清單 -> https://www.hnfunds.com.tw/etf/trading-info/redemption-list
+    連結: ETF表單下載 -> https://www.hnfunds.com.tw/etf/trading-info/forms
+    連結: 收益平準金專區 -> https://www.hnfunds.com.tw/etf/trading-info/equalization-reserve
+    連結: ETF配息帳號變更申請 -> https://www.hnfunds.com.tw/etf/trading-info/etf-dividend-account-change
+    連結: ETF公告 -> https://www.hnfunds.com.tw/etf/announcements
+    連結: ETF總覽 -> https://www.hnfunds.com.tw/etf/overview
+    連結: ETF配息專區 -> https://www.hnfunds.com.tw/etf/dividends
+    連結: 即時預估淨值 -> https://www.hnfunds.com.tw/etf/nav-estimation
+    連結: 追蹤差距 -> https://www.hnfunds.com.tw/etf/tracking-difference
+    連結: 申贖費用查詢 -> https://www.hnfunds.com.tw/etf/trading-info/subscription-fees
+    連結: 申購買回清單 -> https://www.hnfunds.com.tw/etf/trading-info/redemption-list
+    連結: ETF表單下載 -> https://www.hnfunds.com.tw/etf/trading-info/forms
+    連結: 收益平準金專區 -> https://www.hnfunds.com.tw/etf/trading-info/equalization-reserve
+    連結: ETF配息帳號變更申請 -> https://www.hnfunds.com.tw/etf/trading-info/etf-dividend-account-change
+    連結: ETF公告 -> https://www.hnfunds.com.tw/etf/announcements
+  XHR／文件請求 15 個：
+     200 GET https://www.hnfunds.com.tw/etf/trading-info/redemption-list/
+        resp='<!DOCTYPE html><html><head><meta charset="utf-8">\n<meta name="viewport" content="width=device-width, initial-scale=1">\n<title>華南永昌投信</title>\n<link rel="stylesheet" href="/_nuxt/entry.DqqvtsHL.css" crossorigin>\n<link rel="modulepreload" as="script" crossorigin href="/_nuxt/Cp7IpgkT.js">\n<link rel="pr'
+     200 POST https://www.hnfunds.com.tw/WEB_API/HN_OW_PROD/Auth/SysLogin
+        headers={'accept': 'application/json, text/plain, */*', 'accept-encoding': 'gzip, deflate, br, zstd', 'accept-language': 'zh-TW', 'client_id': 'WFPAPIPublicClient', 'connection': 'keep-alive', 'content-length': '0', 'host': 'www.hnfunds.com.tw', 'origin': 'https://www.hnfunds.com.tw', 'referer': 'https://www.hnfunds.com.tw/', 'sec-fetch-dest': 'empty', 'sec-fetch-mode': 'cors', 'sec-fetch-site': 'same-origin', 'x-origin-time': '2026-10-07T13:58:34+00:00', 'sec-ch-ua': '"HeadlessChrome";v="153", "Not_A Brand";v="8", "Chromium";v="153"', 'sec-ch-ua-mobile': '?0', 'sec-ch-ua-platform': '"Linux"'}
+        resp='{"access_token":"eyJhbGciOiJSUzI1NiIsImtpZCI6IjAwNTY0MTA1NDA1RDlCRjk1MDY5NzgzMkJGQzZDOTcyIiwidHlwIjoiYXQrand0In0.eyJuYmYiOjE3OTEzODE1MTMsImV4cCI6MTc5MTM4MzMxNCwiaXNzIjoiaHR0cDovL2Ntcy1hcC9pZGVudGl0eXNlcnZlciIsImF1ZCI6InN3X2FwaSIsImNsaWVudF9pZCI6IldGUEFQSVB1YmxpY0NsaWVudCIsInJvbGUiOiJwdWJsaWMiLCJqdGk'
+     200 GET https://www.hnfunds.com.tw/_nuxt/builds/meta/1f3d0e97-0826-4144-ae3d-7190dc1179d3.json
+        resp='{"id":"1f3d0e97-0826-4144-ae3d-7190dc1179d3","timestamp":1784017191701,"matcher":{"static":{},"wildcard":{},"dynamic":{}},"prerendered":[]}'
+     200 GET https://www.hnfunds.com.tw/WEB_API/HN_OW_PROD/CMM/Option/0004
+        resp='{"Data":{"OptionList":[{"OptID":"0004","ListID":"001","ListName":"投資觀點分類","DisplayOrder":1,"IsDefault":"N"}]},"Message":"","MessageType":"03","ResultCode":"01"}'
+     200 POST https://www.hnfunds.com.tw/WEB_API/HN_OW_PROD/Funds/FundTypeList
+        body={"DivYN":"ALL","FundType":"02","FundOrFundNM":""}
+        resp='{"Data":{"FundTypeList":[{"FundKind":"1","FundKindName":"國內股票ETF"},{"FundKind":"2","FundKindName":"海外股票ETF"}]},"Message":"","MessageType":"01","ResultCode":"00"}'
+     200 GET https://www.hnfunds.com.tw/WEB_API/HN_OW_PROD/Official/Url/01
+        resp='{"Data":{"UrlList":[{"UrlNM":"免責聲明","Url":"/CMS/CMS104/免責聲明.pdf"},{"UrlNM":"非金管會核准之證券期貨業者及商品","Url":"\\thttps://3434.twsa.org.tw/"},{"UrlNM":"查詢證券開戶及交易資料","Url":"\\thttps://investor.twse.com.tw/"},{"UrlNM":"性騷擾防治措施專區","Url":"/CMS/CMS104/性騷擾防治措施專區.pdf"},{"UrlNM":"網站隱私權保護聲明","Url":"/CMS/CMS104/網站隱私權保護.p'
+     200 GET https://www.hnfunds.com.tw/WEB_API/HN_OW_PROD/Investment/InvestMenu/001
+        resp='{"Data":{"InvestList":[{"InvestMID":"01","InvestMName":"投資指南","MDisplayOrder":1,"InvestMenuSList":[{"InvestMID":"01","InvestSID":"01","InvestSName":"影音放映室","SDisplayOrder":1},{"InvestMID":"01","InvestSID":"02","InvestSName":"市場評論焦點","SDisplayOrder":2},{"InvestMID":"01","InvestSID":"03","InvestSName"'
+     200 GET https://www.hnfunds.com.tw/WEB_API/HN_OW_PROD/About/Company
+        resp='{"Data":{"BusLicenseNo":"115年金管投信新字第001號","CoLID":"(110)中信顧證字第018號(A0012)","Chargeman":"蕭玉美 董事長","Prolocutor":"吳嘉欽 總經理","BusRange":"證券投資信託業務、全權委託投資業務、其它經金管會核准業務","Addr":"105 台北市松山區民生東路4段54號3F之1","Tel":"(02)2719-6688","Fax":"(02)2545-7976","FileUrl":"/CMS/CMS504/組織圖.jpg"},"Message":"","MessageType":"'
+     200 GET https://www.hnfunds.com.tw/WEB_API/HN_OW_PROD/Official/NoteMemo/06
+        resp='{"Data":{"Note":"<p>(1) 每現金申購/買回基數之實際申購總價金、申購總價金差額及買回總價金，以基金經理公司通知給付之金額為準。\\u2028</p><p>(2) 若因申購失敗或買回失敗而影響當日基金淨值時，每一申購基數申購總價金差額以及實際申購總價金，將以最新資料為準。\\u2028</p><p>(3) 以上資料係依據各基金信託契約相關條款之規定公告。\\n</p>"},"Message":"","MessageType":"01","ResultCode":"00"}'
+     200 POST https://www.hnfunds.com.tw/WEB_API/HN_OW_PROD/Funds/FundSearchBar
+        body={"DivYN":"ALL","FundType":"02","FundOrFundNM":"","PageDisplayCount":1,"PageNo":1,"FundKind":"","FundIssueType":"","FundStatusYN":"Y"}
+        resp='{"Data":{"TotCnt":3,"FundList":[{"FundID":"E101","ETFID":"009808","FundName":"華南永昌台灣優選50ETF基金(本基金之配息來源可能為收益平準金)","FundShName":"華南永昌優選50(本基金之配息來源可能為收益平準金)","FundKindName":"國內股票ETF"}]},"Message":"","MessageType":"01","ResultCode":"00"}'
+     200 POST https://www.hnfunds.com.tw/WEB_API/HN_OW_PROD/Funds/FundSearchBar
+        body={"DivYN":"ALL","FundType":"02","FundOrFundNM":"","PageDisplayCount":8,"PageNo":1,"FundKind":"","FundIssueType":"","FundStatusYN":"Y"}
+        resp='{"Data":{"TotCnt":3,"FundList":[{"FundID":"E101","ETFID":"009808","FundName":"華南永昌台灣優選50ETF基金(本基金之配息來源可能為收益平準金)","FundShName":"華南永昌優選50(本基金之配息來源可能為收益平準金)","FundKindName":"國內股票ETF"},{"FundID":"E102","ETFID":"009818","FundName":"華南永昌NASDAQ100科技ETF基金","FundShName":"華南永昌NASDAQxT","FundKindName":"海外股票ETF'
+     200 GET https://www.hnfunds.com.tw/WEB_API/HN_OW_PROD/Official/NoteMemo/01
+        resp='{"Data":{"Note":"<blockquote><strong style=\\"font-family: Roboto, &quot;Noto Sans TC&quot;, sans-serif; font-size: 10pt;\\">115 年金管投信新字第 001 號</strong></blockquote><p><strong style=\\"font-family: Roboto, &quot;Noto Sans TC&quot;, sans-serif; font-size: 10pt;\\">華南永昌系列基金經金管會核准或同意生效，惟不表示絕無風險。本公司以往之經理績效，'
+     200 GET https://www.hnfunds.com.tw/WEB_API/HN_OW_PROD/Official/NoteMemo/08
+        resp='{"Data":{"Note":"<p><strong style=\\"font-size: 10pt;\\">【華南永昌永昌基金】</strong></p><p><strong style=\\"font-size: 10pt;\\">本基金經金管會核准或同意生效，惟不表示絕無風險。基金經理公司以往之績效或提及之經濟走勢預測不保證本基金之最低投資收益，亦不代表未來績效之保證；基金經理公司除盡善良管理人之注意義務外，不負責本基金之盈虧，亦不保證最低之收益。有關基金應負擔之費用及投資風險已揭露於基金公開說明書中，投資人申購前應詳閱基金公開說明書。本基金投資無受存款保障、保險安定基金或其他相關機制之保障'
+     200 POST https://www.hnfunds.com.tw/WEB_API/HN_OW_PROD/ETF/BuyBack
+        body={"ETFID":"009808","DataDate":""}
+        resp='{"Data":{"DataDate":"2026-10-08T00:00:00+08:00","FundID":"E101","ETFID":"009808","FundName":"華南永昌台灣優選50ETF基金(本基金之配息來源可能為收益平準金)","FundCurrency":"TWD","FundCurrencyNM":"新臺幣","FundIssueType":"1","FundSetupDate":"2025-05-06T00:00:00+08:00","ListingDate":"2025-05-16T00:00:00+08:00","NavDec":2,"Pcf":{"Fun'
+     200 POST https://www.hnfunds.com.tw/WEB_API/HN_OW_PROD/ETF/BuyBack/Excel
+        body={"ETFID":"009808","DataDate":"2026-10-07T08:00:00+08:00"}
+        resp='{"Data":{"FileName":"009808_20261007.xlsx","FileData":"UEsDBBQAAAgIAFOvR10xSZgR8gAAANMCAAALAAAAX3JlbHMvLnJlbHOs0kFOwzAQBdCrWN43kxaEEKrbDZvuEOICxp4kVmKPZU8gnI0FR+IKWEKCtiqhiy5t//l+i/l8/1hvJz+IF0zZUVByWdVSYDBkXWiVHLlZ3MrtZv2Ig+aSyJ2LWZSRkJXsmOMdQDYdep0rihjKS0PJay7H1ELUptctwqqubyDtd8jDTrGzSqadXUrx9Bbxn'
+  含成分股字樣的回應 1 個：
+   ★ 200 POST https://www.hnfunds.com.tw/WEB_API/HN_OW_PROD/ETF/BuyBack
+     POST body: {"ETFID":"009808","DataDate":""}
+     type: application/json; charset=utf-8  bytes: 4899
+     開頭: {"Data":{"DataDate":"2026-10-08T00:00:00+08:00","FundID":"E101","ETFID":"009808","FundName":"華南永昌台灣優選50ETF基金(本基金之配息來源可能為收益平準金)","FundCurrency":"TWD","FundCurrencyNM":"新臺幣","FundIssueType":"1","FundSetupDate":"2025-05-06T00:00:00+08:00","ListingDate":"2025-05-16T00:00:00+08:00","NavDec":2,"Pcf":{"FundSize":1292682619.000000,"TradeBaseUnit":500000.000000,"Punit":33.140000,"TotUnit":39011000.000000,"DiffTotUnit":0.000000,"PunitValue":16568181.000000,"PFunitPrice":18230000.000000,"DiffPunitPrice":-1
+     2330 前後: 8700},{"StockNo":"1590","StockName":"亞德客-KY","Share":3000.000,"Weight":0.00285500},{"StockNo":"1802","StockName":"台灣玻璃","Share":50000.000,"Weight":0.00254100},{"StockNo":"2303","StockName":"聯華電子","Share":255000.000,"Weight":0.02929400},{"StockNo":"2308","StockName":"台達電子","Share":26000.000,"Weight":0.04002500},{"StockNo":"2313","StockName":"華通電腦","Share":24000.000,"Weight":0.00456700},{"StockNo":"2317","StockName":"鴻海精密","Share":152000.000,"Weight":0.02963100},{"StockNo":"2327","StockName":"國巨*","Share":42000.000,"Weight":0.02102100},{"StockNo":"2330","StockName":"台積電","Share":201000.000,"Weight":0.40194200},{"StockNo":"2345","StockName":"智邦科技","Share":8000.000,"Weight":0.01247000},{"StockNo":"2356","StockName":"英業達","Share":76000.000,"Weight":0.00341600},{"StockNo":"2357","StockName":"華碩電
+====================================================================================================
+[extra-1] https://www.kgifund.com.tw/Fund/RedemptionList
+  最終網址: https://www.kgifund.com.tw/Fund/RedemptionList  標題: 凱基投信
+    連結: 凱基ETF -> https://www.kgifund.com.tw/Fund/RedemptionList#
+    連結:  -> https://www.kgifund.com.tw/Home/ETF
+    連結:  -> https://www.kgifund.com.tw/Fund/DividendList?Type=ETF
+    連結:  -> https://www.kgifund.com.tw/Home/Article?fID=1708&tag=ETF
+    連結:  -> https://www.kgifund.com.tw/Home/ETFQA
+    連結: 股票型ETF -> javascript:void(0)
+    連結: 平衡型ETF -> javascript:void(0)
+    連結: 債券型ETF -> javascript:void(0)
+    連結: 回ETF
+首頁 -> https://www.kgifund.com.tw/Home/ETF
+  XHR／文件請求 4 個：
+     200 GET https://www.kgifund.com.tw/Fund/RedemptionList
+        resp='\r\n<!DOCTYPE html>\r\n<html>\r\n<head>\r\n    \r\n        <meta property="og:title" content="凱基證券投資信託股份有限公司" />\r\n        <meta property="og:image" content="/images/LOGO128x128.png" />\r\n        <meta property="og:description" content="凱基證券投資信託股份有限公司-台灣最佳投資團隊-全方位理財專家" />\r\n        <meta property="og:url" conten'
+     200 POST https://www.kgifund.com.tw/Fund/ETFWarningHtml
+        resp='<p><strong>網站資料風險預告及免責條款</strong></p>\r\n\r\n<p>&nbsp;</p>\r\n\r\n<p>&nbsp;</p>\r\n\r\n<p>任何由凱基投信 (下稱本公司)為服務廣大投資人而製作之報價資料僅限參考用，每15秒所提供之最新即時預估淨值，因每檔基金投資標的之組合差異甚大、價格波動迅速，及投資人使用之網路連線情形或傳輸品質狀況等，可能影響更新頻率及時間差異，特此說明，且盤中即時交易價格以臺灣證券易所及財團法人證券櫃檯買賣中心公佈為準，本公司不擔保其完全正確無誤，且對於本網站所提供之資訊內容本公司有權隨時修改或刪除。若有不可歸責於本公司之事由致任何資料有不正確、疏漏，或如'
+     200 GET https://www.kgifund.com.tw/Home/CaptchaToBase64?key=1791381532430
+        resp='data:image/jpeg;base64,Qk22SAAAAAAAADYAAAAoAAAAdAAAACgAAAABACAAAAAAAAAAAADEDgAAxA4AAAAAAAAAAAAAqamp/6mpqf+pqan/qamp/6mpqf+pqan/qamp/6mpqf+pqan/qamp/6mpqf+pqan/qamp/6mpqf+pqan/qamp/6mpqf+pqan/qamp/6mpqf+pqan/qamp/6mpqf+pqan/qamp/6mpqf+pqan/qamp/6mpqf+pqan/qamp/6mpqf+pqan/qamp/6mpqf+pqan/qamp/6mpqf+pq'
+     200 POST https://www.kgifund.com.tw/Fund/RedemptionVC
+        body=fundID=J024&queryDate=
+        resp='<style>\r\n    .md-DISPLAY-B{\r\n        min-width: 10em;\r\n    }\r\n    .DownloadPCF{\r\n        width: 1.3em;\r\n    }\r\n    .bootstrap-datepicker {\r\n        display: flex;\r\n        align-items: center;\r\n        gap: 1%; /* 間距依需求調整 */\r\n    }\r\n    .bootstrap-datepicker a {\r\n        display: inline-flex;\r\n     '
+  含成分股字樣的回應 1 個：
+   ★ 200 POST https://www.kgifund.com.tw/Fund/RedemptionVC
+     POST body: fundID=J024&queryDate=
+     type: text/html; charset=utf-8  bytes: 34039
+     開頭: <style>     .md-DISPLAY-B{         min-width: 10em;     }     .DownloadPCF{         width: 1.3em;     }     .bootstrap-datepicker {         display: flex;         align-items: center;         gap: 1%; /* 間距依需求調整 */     }     .bootstrap-datepicker a {         display: inline-flex;         width: 59px;         font-family: "Microsoft JhengHei";         font-size: 14px;         font-weight: normal;         align-items: center;     }     .bootstrap-datepicker a .DownloadPCF {   
+     2330 前後: th>                                             <th style="text-align:center;width:calc(100% / 4)">&#x6B0A;&#x91CD;(%)</th>                                 </tr>                             </thead>                             <tbody>                                             <tr name="content" style="">                                                         <td style="text-align:center">2330</td>                                                         <td style="text-align:center">&#x53F0;&#x7A4D;&#x96FB;</td>                                                         <td style="text-align:center">830,000</td>                                                         <td style="text-align:center">9.18</td>                                             </tr>                         
