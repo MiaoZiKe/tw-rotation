@@ -1,0 +1,295 @@
+====================================================================================================
+[extra-0] https://www.franklin.com.tw/
+  開頁失敗: TimeoutError Page.goto: Timeout 60000ms exceeded.
+Call log:
+  - navigating to "https://www.franklin.com.tw/", waiting until "networkidle"
+
+  XHR／文件請求 24 個：
+     200 GET https://www.franklin.com.tw/
+        resp='<!doctype html>\n<html data-n-head-ssr lang="zh-TW" data-n-head="%7B%22lang%22:%7B%22ssr%22:%22zh-TW%22%7D%7D">\n    <head >\n        <meta data-n-head="ssr" charset="utf-8"><meta data-n-head="ssr" data-hid="description" name="description" content="基金專業投資顧問-富蘭克林坦伯頓基金,您的投資理財最佳顧問,富蘭克林基金提供您多樣化的基金組合,專業市場分析'
+     200 GET https://www.youtube.com/embed/esXTCEz4JEA
+        resp='<!DOCTYPE html><html lang="zh-TW" dir="ltr" data-cast-api-enabled="true"><head><meta name="viewport" content="width=device-width, initial-scale=1"><script nonce="mHQ8HXaMTJMYlg-zwd1Aug">if (\'undefined\' == typeof Symbol || \'undefined\' == typeof Symbol.iterator) {delete Array.prototype.entries;}</scri'
+     200 GET https://cmsapi.franklin-dm.dev/funds/0805/nav?startDate=2023-09-08&endDate=2026-10-08
+        resp='[{"currency":null,"nav_P":29.75,"nav_Date":"2023-09-08T00:00:00+08:00","nav_Dec":2,"nav_Unit":1.131268827809865,"fundDiv":null,"fundDiv_Tax":null,"currencyType":null,"fundDef":-0.04,"fundDefRate":-0.13},{"currency":null,"nav_P":30.12,"nav_Date":"2023-09-11T00:00:00+08:00","nav_Dec":2,"nav_Unit":1.13'
+     204 GET https://cmsapi.franklin-dm.dev/broadcast
+        resp=''
+     200 GET https://cmsapi.franklin-dm.dev/funds/0839/nav?startDate=2023-09-08&endDate=2026-10-08
+        resp='[{"currency":null,"nav_P":9.65,"nav_Date":"2023-09-08T00:00:00+08:00","nav_Dec":2,"nav_Unit":3.324137962112395,"fundDiv":0.067,"fundDiv_Tax":null,"currencyType":null,"fundDef":-0.05,"fundDefRate":-0.52},{"currency":null,"nav_P":9.65,"nav_Date":"2023-09-11T00:00:00+08:00","nav_Dec":2,"nav_Unit":3.324'
+     200 GET https://cmsapi.franklin-dm.dev/funds/0797/nav?startDate=2023-09-08&endDate=2026-10-08
+        resp='[{"currency":null,"nav_P":36.6,"nav_Date":"2023-09-08T00:00:00+08:00","nav_Dec":2,"nav_Unit":1,"fundDiv":null,"fundDiv_Tax":null,"currencyType":null,"fundDef":-0.09,"fundDefRate":-0.25},{"currency":null,"nav_P":36.93,"nav_Date":"2023-09-11T00:00:00+08:00","nav_Dec":2,"nav_Unit":1,"fundDiv":null,"fun'
+     200 GET https://cmsapi.franklin-dm.dev/funds/2062/nav?startDate=2023-09-08&endDate=2026-10-08
+        resp='[{"currency":null,"nav_P":6.55,"nav_Date":"2023-09-08T00:00:00+08:00","nav_Dec":2,"nav_Unit":1.356065973272684,"fundDiv":0.042,"fundDiv_Tax":null,"currencyType":null,"fundDef":-0.03,"fundDefRate":-0.46},{"currency":null,"nav_P":6.59,"nav_Date":"2023-09-11T00:00:00+08:00","nav_Dec":2,"nav_Unit":1.356'
+     200 GET https://cmsapi.franklin-dm.dev/funds/0815/nav?startDate=2023-09-08&endDate=2026-10-08
+        resp='[{"currency":null,"nav_P":21.83,"nav_Date":"2023-09-08T00:00:00+08:00","nav_Dec":2,"nav_Unit":1.784967686919,"fundDiv":null,"fundDiv_Tax":null,"currencyType":null,"fundDef":0.03,"fundDefRate":0.14},{"currency":null,"nav_P":21.97,"nav_Date":"2023-09-11T00:00:00+08:00","nav_Dec":2,"nav_Unit":1.7849676'
+     200 GET https://pips.taboola.com/
+        resp='NULL'
+     204 GET https://cds.taboola.com/?uid=7288bf43-61b6-4525-a949-8ac65d59a085-tuct11c02c43&ptf=TGludXg=&ufv=MTUzLjAuODAxMC4xMg==&bnd=SGVhZGxlc3NDaHJvbWU=&bndv=MTUz&bnd=Tm90X0EgQnJhbmQ=&bndv=OA==&bnd=Q2hyb21pdW0=&bndv=MTUz&mbl=ZmFsc2U=&dc=la
+        resp=''
+     200 GET https://api-next.no8.io/live_chat/check_pass?encrypted_org_id=9vy5bUGpnzIIXQ%3D%3D
+        resp='{"success":true}'
+     200 GET https://live-chat-console.no8.io/?encryptedOrgId=9vy5bUGpnzIIXQ%3D%3D&browserLanguage=zh-TW&browserLanguages=zh-TW&hostColorScheme=light
+        resp='<!doctype html><html lang="en"><head><title>chat</title><meta charset="utf-8"/><meta http-equiv="X-UA-Compatible" content="IE=edge"/><meta name="viewport" content="width=device-width,initial-scale=1"/><meta name="description" content="Bootstrap 4 Book/eBook Landing Page Template For Developers"/><sc'
+     200 GET https://api.popin.cc/iframe/piuid.html?ac=piuid&t=15009898
+        resp='\n<!DOCTYPE html>\n<html><head></head><body>\n<script type="text/javascript">window.Cookies=(function(){function a(){var e=0;var f={};for(;e<arguments.length;e++){var c=arguments[e];for(var d in c){f[d]=c[d]}}return f}function b(c){function d(s,q,k){var p;if(typeof document==="undefined"){return}if(arg'
+     200 POST https://www.youtube.com/youtubei/v1/log_event?alt=json
+        body={"context":{"client":{"hl":"zh-TW","gl":"US","clientName":56,"clientVersion":"2.20261007.00.00","configInfo":{"appInstallData":"CMHNmtYGEMn2gBMQyvuAExD36NIcEKSOgRMQwY_QHBC3pNEcEL22rgUQm-XSHBDbrdIcELjkzhwQ2vfOHBCHrM4cELCKuCIQwdSoFxC-2tIcEJ_PgBMQzN-uBRC1tYATEJ2VgRMQ3rzOHBDw3tEcEIHNzhwQmY2xBRD2q7AFEL6E
+        resp='{\n  "responseContext": {}\n}\n'
+     200 GET https://assets.no8.io/prod/live_chat/style/9vy5bUGpnzIIXQ%3D%3D.json
+        resp='{"logo":"https://assets.no8.io/app-api-uploader/prod/1744971003895/180.png","livechatTextColor":"#f5f5f5","livechatBackgroundColor":"#005bd9","title":"親愛的富蘭克林貴賓","content":"歡迎您來到富蘭克林\\n很高興為貴賓您服務","buttonTextColor":"#ffffff","buttonColor":"#006bd1","position":"bottom-right","positionSettings":{"bottom'
+     200 GET https://api-next.no8.io/live_chat/brand/9vy5bUGpnzIIXQ==
+        resp='{"icon":"https://assets.no8.io/app-api-uploader/prod/1744851082223/%E7%B5%A6%E5%AE%A2%E6%9C%8DFT-logo250X250.jpg","displayName":"富蘭克林證券投顧","enableGA4":false}'
+     200 GET https://api-next.no8.io/live_chat/logo/show/9vy5bUGpnzIIXQ==
+        resp='{"isShow":true,"isSuper8":true}'
+     204 GET https://trc-events.taboola.com/1885777/log/3/unip?en=pre_d_eng_tb&tos=4561&scd=0&ssd=1&est=1791403714424&ver=36&isls=true&src=i&invt=4500&msa=6731&rv=1&tim=1791403718986&vi=1791403714414&ri=2d99f139741fb0fb1d1ac2a760aeebef&sd=v2_883e9d77bfc4cc9910730ad068e04781_7288bf43-61b6-4525-a949-8ac65d59a085-t
+        resp=''
+     204 GET https://trc-events.taboola.com/1885777/log/3/unip?en=pre_d_eng_tb&tos=10063&scd=0&ssd=1&est=1791403714424&ver=36&isls=true&src=i&invt=5500&msa=6731&rv=1&tim=1791403724488&vi=1791403714414&ri=2d99f139741fb0fb1d1ac2a760aeebef&sd=v2_883e9d77bfc4cc9910730ad068e04781_7288bf43-61b6-4525-a949-8ac65d59a085-
+        resp=''
+     204 GET https://trc-events.taboola.com/1885777/log/3/unip?en=pre_d_eng_tb&tos=20065&scd=0&ssd=1&est=1791403714424&ver=36&isls=true&src=i&invt=10000&msa=6731&rv=1&tim=1791403734489&vi=1791403714414&ri=2d99f139741fb0fb1d1ac2a760aeebef&sd=v2_883e9d77bfc4cc9910730ad068e04781_7288bf43-61b6-4525-a949-8ac65d59a085
+        resp=''
+     200 POST https://log.popin.cc/discovery/trace?type=readlogs
+        body=eyJ0ZF92ZXJzaW9uIjoiMS43LjEiLCJ0ZF9jbGllbnRfaWQiOiJlM2MxNDkyMC1jZDNlLTQzMDMtOWUwNC1lNTMyOGJiODAzN2QiLCJ0ZF9jaGFyc2V0IjoidXRmLTgiLCJ0ZF9sYW5ndWFnZSI6InpoLXR3IiwidGRfY29sb3IiOiIyNC1iaXQiLCJ0ZF9zY3JlZW4iOiIxMjgweDcyMCIsInRkX3ZpZXdwb3J0IjoiMTI4MHg3MjAiLCJ0ZF90aXRsZSI6IuWvjOiYreWFi+ael+KAp+Wci+awkeeahOWf
+        resp='{"data":true,"errcode":0,"errmsg":"Success","errno":0}'
+     204 GET https://trc-events.taboola.com/1885777/log/3/unip?en=pre_d_eng_tb&tos=30066&scd=0&ssd=1&est=1791403714424&ver=36&isls=true&src=i&invt=10000&msa=6731&rv=1&tim=1791403744491&vi=1791403714414&ri=2d99f139741fb0fb1d1ac2a760aeebef&sd=v2_883e9d77bfc4cc9910730ad068e04781_7288bf43-61b6-4525-a949-8ac65d59a085
+        resp=''
+     204 GET https://trc-events.taboola.com/1885777/log/3/unip?en=pre_d_eng_tb&tos=40068&scd=0&ssd=1&est=1791403714424&ver=36&isls=true&src=i&invt=10000&msa=6731&rv=1&tim=1791403754492&vi=1791403714414&ri=2d99f139741fb0fb1d1ac2a760aeebef&sd=v2_883e9d77bfc4cc9910730ad068e04781_7288bf43-61b6-4525-a949-8ac65d59a085
+        resp=''
+     204 GET https://trc-events.taboola.com/1885777/log/3/unip?en=pre_d_eng_tb&tos=50069&scd=0&ssd=1&est=1791403714424&ver=36&isls=true&src=i&invt=10000&msa=6731&rv=1&tim=1791403764494&vi=1791403714414&ri=2d99f139741fb0fb1d1ac2a760aeebef&sd=v2_883e9d77bfc4cc9910730ad068e04781_7288bf43-61b6-4525-a949-8ac65d59a085
+        resp=''
+  含成分股字樣的回應 1 個：
+   ★ 200 GET https://www.franklin.com.tw/
+     type: text/html; charset=utf-8  bytes: 620493
+     開頭: <!doctype html> <html data-n-head-ssr lang="zh-TW" data-n-head="%7B%22lang%22:%7B%22ssr%22:%22zh-TW%22%7D%7D">     <head >         <meta data-n-head="ssr" charset="utf-8"><meta data-n-head="ssr" data-hid="description" name="description" content="基金專業投資顧問-富蘭克林坦伯頓基金,您的投資理財最佳顧問,富蘭克林基金提供您多樣化的基金組合,專業市場分析,基金投資建議,國際金融行情與國際財經新聞,讓您了解市場焦點,理財資訊,投資理財輕鬆上手。"><meta data-n-head="ssr" name="viewport" content="width=device-width, initial-scale=1"><meta data-n-head="ssr" name="format-detection" content="telephone=
+     2330 前後: "https:\u002F\u002Fwww.franklin.com.tw\u002Fevent\u002FC2017_08_Q3_0839\u002F","https:\u002F\u002Fevent.franklin.com.tw\u002Fgold-precious-metals-fund\u002Findex.html","https:\u002F\u002Fevent.franklin.com.tw\u002FemergingMarketScale\u002F","https:\u002F\u002Fevent.franklin.com.tw\u002Fgrowth-income-opportunity\u002Findex.html","全球",421,"0839","RR3","債券及股票為主","LU0098860793","TEMFIAI LX","6.94868402317867 (理柏三年期原幣別)",.2,42,"0815","seaon","LU0052756011","TEMGBLI LX","10.4426802127861 (理柏三年期原幣別)",375,"2062","emergingMarket","RR4","LU1733274390","TEMBAMU LX","2018-04-06T00:00:00+08:00","11.7719859490937 (理柏三年期原幣別)",125,"0797","stock","資本利得為主","accumulated","LU0109392836","TEMTECI LX","23.9917166902347 (理柏三年期原幣別)",82.7,.25,.3,105,"0805","yearly","LU0029875118","TEMFREI LX","19.0928507942177 (理柏
+====================================================================================================
+[extra-1] https://www.franklin.com.tw/ETF
+  最終網址: https://www.franklin.com.tw/FileNotFound.html?aspxerrorpath=/ETF  標題: 系統訊息
+  XHR／文件請求 1 個：
+     200 GET https://www.franklin.com.tw/FileNotFound.html?aspxerrorpath=/ETF
+        resp='<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">\r\n<html xmlns="http://www.w3.org/1999/xhtml">\r\n<head>\r\n<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />\r\n<title>系統訊息</title>\r\n</head>\r\n<body style="margin:0 a'
+  含成分股字樣的回應 0 個：
+====================================================================================================
+[extra-2] https://tw.allianzgi.com/
+  最終網址: https://tw.allianzgi.com/  標題: 安聯投信 | 基金投資理財規劃、網路交易、最新基金淨值
+    連結: ETF專區 -> https://etf.allianzgi.com.tw/
+    連結: ETF總覽 -> https://etf.allianzgi.com.tw/etf-list
+    連結: 即時預估淨值 -> https://etf.allianzgi.com.tw/instant-estimated
+    連結: ETF配息 -> https://etf.allianzgi.com.tw/etf-dividend
+    連結: ETF常見問題 -> https://etf.allianzgi.com.tw/question
+    連結: ETF公告 -> https://etf.allianzgi.com.tw/unit/Type1/7101
+    連結:  -> https://etf.allianzgi.com.tw/
+    連結:  -> https://etf.allianzgi.com.tw/eventsite/00984A/
+    連結: 首檔 主動式高息策略 ETF -> https://etf.allianzgi.com.tw/eventsite/00984A/
+    連結: 馬上了解 -> https://etf.allianzgi.com.tw/eventsite/00984A/
+    連結:  -> https://etf.allianzgi.com.tw/eventsite/00993A/
+    連結: 投資台股 找主動式投資專家 -> https://etf.allianzgi.com.tw/eventsite/00993A/
+    連結: 馬上了解 -> https://etf.allianzgi.com.tw/eventsite/00993A/
+    連結: ETF專區 -> https://tw.allianzgi.com/#
+    連結: ETF專區 -> https://etf.allianzgi.com.tw/
+    連結: ETF總覽 -> https://etf.allianzgi.com.tw/etf-list
+    連結: 即時預估淨值 -> https://etf.allianzgi.com.tw/instant-estimated
+    連結: ETF配息 -> https://etf.allianzgi.com.tw/etf-dividend
+    連結: ETF常見問題 -> https://etf.allianzgi.com.tw/question
+    連結: ETF公告 -> https://etf.allianzgi.com.tw/unit/Type1/7101
+    連結:  -> https://etf.allianzgi.com.tw/
+    連結: ETF市場快訊 -> https://etf.allianzgi.com.tw/unit/Type2/7001
+    連結: ETF市場快訊 -> https://etf.allianzgi.com.tw/unit/Type2/7001
+    連結: 馬上行動 -> https://etf.allianzgi.com.tw/eventsite/00412A/
+    連結: 立即了解 -> https://etf.allianzgi.com.tw/eventsite/00412A/
+    連結: 了解更多 -> https://etf.allianzgi.com.tw/eventsite/00402A/
+    連結: 了解更多 -> https://etf.allianzgi.com.tw/webapi/File/d8b88ae4-5886-45e7-831d-d5e32b297db2/20260922_00412a.pdf
+    連結: 主動式ETF暨被動式多資產ETF教育網站 -> https://www.sitca.org.tw/ROC/SITCA_ETF/ETF_ACMA/index.htm
+    連結: 主動式ETF暨被動式多資產ETF教育網站 -> https://www.sitca.org.tw/ROC/SITCA_ETF/ETF_ACMA/index.htm
+    連結: ETF專區 -> https://etf.allianzgi.com.tw/
+    連結: ETF總覽 -> https://etf.allianzgi.com.tw/etf-list
+    連結: 即時預估淨值 -> https://etf.allianzgi.com.tw/instant-estimated
+    連結: ETF配息 -> https://etf.allianzgi.com.tw/etf-dividend
+    連結: ETF常見問題 -> https://etf.allianzgi.com.tw/question
+    連結: ETF公告 -> https://etf.allianzgi.com.tw/unit/Type1/7101
+    連結: ETF市場快訊 -> https://etf.allianzgi.com.tw/unit/Type2/7001
+  XHR／文件請求 14 個：
+     200 GET https://cdn.cookielaw.org/consent/da3f14e1-9d45-42c7-9d0f-a6d3bf4f62f9/da3f14e1-9d45-42c7-9d0f-a6d3bf4f62f9.json
+        resp='{"CookieSPAEnabled":false,"CookieSameSiteNoneEnabled":false,"CookieV2CSPEnabled":false,"MultiVariantTestingEnabled":false,"UseV2":true,"MobileSDK":false,"SkipGeolocation":true,"ScriptType":"PRODUCTION","Version":"202609.1.0","OptanonDataJSON":"da3f14e1-9d45-42c7-9d0f-a6d3bf4f62f9","GeolocationUrl":"'
+     200 GET https://tw.allianzgi.com/
+        resp='\r\n\r\n\r\n<!DOCTYPE html>\r\n<!--[if IE 9]><html lang="en" class="ie9 no-js"><![endif]-->\r\n<!--[if !IE]><!-->\r\n<html class="no-js" lang="zh-Hant">\r\n<!--<![endif]-->\r\n<head>\r\n    <title>安聯投信 | 基金投資理財規劃、網路交易、最新基金淨值</title>\r\n    <!--Page Metadata-->\r\n    <meta http-equiv="X-UA-Compatible" content="IE=edge,ch'
+     200 POST https://fml-x.com/pageLoad
+        body={"additional":{"meta":[{"http-equiv":"X-UA-Compatible","content":"IE=edge,chrome=1"},{"charset":"utf-8"},{"name":"viewport","content":"width=device-width, initial-scale=1.0"},{"name":"msapplication-config","content":"none"},{"http-equiv":"content-language","content":"zh-Hant"},{"name":"language","co
+        resp='ok'
+     200 GET https://cdn.cookielaw.org/consent/da3f14e1-9d45-42c7-9d0f-a6d3bf4f62f9/d9ed1261-8864-4f68-8076-c11cbc5cf0e8/zh-tw.json
+        resp='{"DomainData":{"pclifeSpanYr":"年","pclifeSpanYrs":"年","pclifeSpanSecs":"幾秒鐘","pclifeSpanWk":"星期","pclifeSpanWks":"週","pccontinueWithoutAcceptText":"不接受而繼續","pccloseButtonType":"Icon","MainText":"資料隱私偏好設定","MainInfoText":"當您瀏覽任何網站時，該網站可能在您的瀏覽器以cookies形式儲存或獲取資訊。該資訊可能與您、您的偏好設定或裝置有關，其目的在讓該網站能夠按照您的期望運作。這'
+     200 POST https://tw.allianzgi.com/api/sitecore/generalcontent/getcountryandroleselector
+        resp='[{"SiteUrl":"http://www.allianzgi.com/","CountryName":"全球","CountryCode":"Global","Roles":null},{"SiteUrl":"https://de.allianzgi.com","CountryName":" 德國","CountryCode":"DE","Roles":[{"DisplayText":"Finanzberater","Url":"https://de.allianzgi.com/Shared/GeneralComponent/RedirectWithRole?RoleId=qQ4gFxx'
+     200 GET https://platform.twitter.com/widgets/widget_iframe.1227a5674072e080ffb1ba14ac0c1079.html?origin=https%3A%2F%2Ftw.allianzgi.com
+        resp='<!DOCTYPE HTML>\n<meta chartset="utf-8">\n<title>Twitter Widget Iframe</title>\n<body>\n<script type="text/javascript">!function(){Function&&Function.prototype&&Function.prototype.bind&&(/(MSIE ([6789]|10|11))|Trident/.test(navigator.userAgent)||function(e){var t={};function r(n){if(t[n])return t[n].exp'
+     200 GET https://cdn.cookielaw.org/scripttemplates/202609.1.0/assets/otCommonStyles.css
+        resp='#onetrust-banner-sdk .onetrust-vendors-list-handler{cursor:pointer;color:#1f96db;font-size:inherit;font-weight:bold;text-decoration:none;margin-left:5px;white-space:normal;word-wrap:break-word;text-align:left}#onetrust-banner-sdk .onetrust-vendors-list-handler:hover{color:#1f96db}#onetrust-banner-sd'
+     200 GET https://cdn.cookielaw.org/consent/da3f14e1-9d45-42c7-9d0f-a6d3bf4f62f9/d9ed1261-8864-4f68-8076-c11cbc5cf0e8/bLayout-zh-tw.json
+        resp='{"html":"<div id=\\"onetrust-banner-sdk\\" class=\\"otFloatingRoundedCorner ot-bottom-left ot-wo-title\\" tabindex=\\"0\\"><div class=\\"ot-sdk-container\\" role=\\"dialog\\" aria-label=\\"隱私\\"><div class=\\"ot-sdk-row\\"><div id=\\"onetrust-group-container\\" class=\\"ot-sdk-twelve ot-sdk-columns\\"><div id=\\"onetr'
+     200 GET https://cdn.cookielaw.org/scripttemplates/202609.1.0/assets/v2/otPcTab.json
+        resp='\n        {\n            "name": "otPcTab",\n            "html": "PGRpdiBpZD0ib25ldHJ1c3QtcGMtc2RrIiBjbGFzcz0ib3RQY1RhYiBvdC1oaWRlIG90LWZhZGUtaW4iPjxkaXYgcm9sZT0iZGlhbG9nIiBhcmlhLW1vZGFsPSJ0cnVlIj48IS0tIHBjIGhlYWRlciAtLT48ZGl2IGNsYXNzPSJvdC1wYy1oZWFkZXIiIHJvbGU9InByZXNlbnRhdGlvbiI+PCEtLSBIZWFkZXIgbG9nb'
+     200 GET https://cdn.cookielaw.org/logos/static/ot_guard_logo.svg
+        resp='<svg xmlns="http://www.w3.org/2000/svg"><path class="ot-floating-button__svg-fill" d="M14.588 0l.445.328c1.807 1.303 3.961 2.533 6.461 3.688 2.015.93 4.576 1.746 7.682 2.446 0 14.178-4.73 24.133-14.19 29.864l-.398.236C4.863 30.87 0 20.837 0 6.462c3.107-.7 5.668-1.516 7.682-2.446 2.709-1.251 5.01-2.5'
+     200 GET https://tw.allianzgi.com/api/sitecore/SharedFeature/ShowGlobalModal?id=asdfas&_=1791403779242
+        resp='{"success":true}'
+     200 GET https://syndication.twitter.com/settings?session_id=edfe038231d6716370ffa847df2aa7e590e15816
+        resp='{"should_obtain_cookie_consent":true,"features":{"tfw_timeline_list":{"bucket":[],"version":null},"tfw_follower_count_sunset":{"bucket":true,"version":null},"tfw_tweet_edit_backend":{"bucket":"on","version":null},"tfw_refsrc_session":{"bucket":"on","version":null},"tfw_fosnr_soft_interventions_enabl'
+     200 GET https://tw.allianzgi.com/zh-TW/api/funddata/funds/86e31ee0-a098-4172-8f51-3acde438269a/5f469f58-9a90-4ea1-8246-01c3b4b6016d
+        resp='{"FundList":[{"AssetClass":"區域股票型","Isin":"TW000T3631A6","FundNameColumn":"安聯中華新思路基金-新臺幣","DisplayCurrency":"新臺幣","UnitPricesPerDate":"2026/09/30","Nav":"34.4100","NavChange":"0.1000 <span class=\\"c-icon c-icon-trend c-icon--arrow-up up--color c-icon--s u-vertical-middle\\"></span>","NavChangePct":"0'
+     200 POST https://fml-x.com/pageActive
+        body={"additional":{"meta":[{"http-equiv":"X-UA-Compatible","content":"IE=edge,chrome=1"},{"charset":"utf-8"},{"name":"viewport","content":"width=device-width, initial-scale=1.0"},{"name":"msapplication-config","content":"none"},{"http-equiv":"content-language","content":"zh-Hant"},{"name":"language","co
+        resp='ok'
+  含成分股字樣的回應 0 個：
+====================================================================================================
+[extra-3] https://am.jpmorgan.com/tw/zh/asset-management/per/
+  最終網址: https://am.jpmorgan.com/tw/zh/asset-management/per/  標題: 首頁 | J.P. Morgan Asset Management
+    連結: ETF專區 -> https://am.jpmorgan.com/tw/zh/asset-management/twetf/
+    連結: ETF投資 -> https://am.jpmorgan.com/tw/zh/asset-management/per/funds/jpm-active-etf/
+    連結:  -> https://am.jpmorgan.com/tw/zh/asset-management/per/insights/etf-insights/guide-to-etfs/
+    連結:  -> https://am.jpmorgan.com/tw/zh/asset-management/twetf/funds/jpmorgan-tw-equity-high-income-etf/
+  XHR／文件請求 27 個：
+     200 GET https://am.jpmorgan.com/tw/zh/asset-management/per/
+        resp='\n  <!DOCTYPE HTML>\n  \n  \n  \n  <html lang="zh-Hant">\n\n  <head>\n    \n    \n    \n    \n    \n    \n    \n    <meta charset="UTF-8"/>\n    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>\n    <meta name="referrer" content="no-referrer-when-downgrade"/>\n    <meta content="UEgzQAQUVvl5ylE'
+     200 GET https://am.jpmorgan.com/content/jpm-am-aem/countryroleselectorconfigpage.crsmap.tw_zh_per.json?currentPath=/content/jpm-am-aem/asiapacific/tw/zh/per/includes/header/jcr:content/par/jpm_am_navigation_he
+        resp='{"crsData":[{"regionValue":"Americas","regionDisplayValue":"美洲 | Americas","regionCode":"americas","countryList":[{"countryValue":"Brazil","countryDisplayValue":"巴西 | Brazil","countryCode":"br","flagPath":"/content/dam/jpm-am-aem/global/en/images/common/flags/br.jpg","languages":[{"languageValue":"E'
+     200 GET https://am.jpmorgan.com/content/jpm-am-aem/asiapacific/tw/zh/per/_jcr_content.generalcardv2.json?v=1791183417935/asiapacific
+        resp='{"groupOfcards":[{"groupID":"eaemcusuid_20240212033913","visibleColumns":3,"theme":"jp__lightTheme","featuredCardAlignment":"left","cardStyle":"default","peoplesDesignVariant":"default","toolsCardColour":"teal","carouselOptions":"none","dynamicAuthorsEnabled":false,"enableLoadMoreLayout":false,"late'
+     200 GET https://am.jpmorgan.com/content/jpm-am-aem/asiapacific/tw/zh/per/_jcr_content.textcardctav2.json?v=1791183417935/asiapacific
+        resp='{"groupOfcards":[{"groupID":"eaemcusuid_20240212031643","visibleColumns":3,"textCardType":"textOnly","theme":"dark","paddingStyle":"bottom_padding_32","borderStyle":"borderLeft","listOfCards":[{"header":"<p>摩根台股數位級別就是比較省！</p>\\r\\n","cardTextBlock":"<p>0手續費、0信託管理費、0分銷費、經理費最低3.8折起&#xff01;</p>\\r\\n","cta'
+     200 GET https://am.jpmorgan.com/content/jpm-am-aem/asiapacific/tw/zh/per/_jcr_content.herobannerv2.json?v=1791183417935/asiapacific
+        resp='{"groupOfBanners":[{"groupID":"eaemcusuid_20241009100301","formatStyle":"fullImage","heroBannerSize":"medium","fileReference":"/content/dam/jpm-am-aem/asiapacific/tw/zh/images/taiwan-tech-theme/JPMAM_APAC_TW_TZH__F_NewTech_TWMFPRODUCTEQUITIESNEWTECHINSIGHT_2800X1200_BAN_.jpg","eyebrowText":"穿越多空驗證，經'
+     200 GET https://am.jpmorgan.com/content/jpm-am-aem/asiapacific/tw/zh/per/_jcr_content.linklistv2.json?v=1791183417935/asiapacific
+        resp='{"groupOfLinkLists":[{"groupID":"eaemcusuid_20240212041802","template":"pageTurn","paddingStyle":"bottom_padding","eyebrowRequired":"no","theme":"dark","numberOfColumns":"2","listOfLinks":[{"eyebrowText":"基金淨值","linkLabel":"基金淨值","linkToValue":"/tw/zh/asset-management/per/products/fund-explorer/onsh'
+     200 GET https://am.jpmorgan.com/bin/servlet/navigationConfigurationService?homePage=%2Fcontent%2Fjpm-am-aem%2Fasiapacific%2Ftw%2Fzh%2Fper
+        resp='{"header":{"menuItems":[{"title":"ETF專區","link":"https://am.jpmorgan.com/tw/zh/asset-management/twetf/","description":"摩根資產管理提供灼見及可行的策略，引領您在不同市場週期中向前，達成投資目標。","contentAccess":"unlocked","addFundSearch":false},{"title":"產品中心","link":"https://am.jpmorgan.com/tw/zh/asset-management/per/funds/","descrip'
+     200 GET https://am.jpmorgan.com/content/jpm-am-aem/countryroleselectorconfigpage.seomap.json
+        resp='{"availableExperiences":["br_en_adv","br_pt_adv","ca_en_adv","ca_fr_adv","ca_en_institutional","mx_en_adv","mx_es_adv","us_en_adv","us_en_per","us_en_institutional","us_en_liq","us_en_bony","us_en_ny529","us_en_smartretirement-vz","us_en_smartretirement-blend","us_en_smartretirement-caterpillar","us'
+     200 GET https://report.jpm.gbqofs.io/reporting/64654ad3-6f20-4015-a04e-6a2f544f8231/cls_report?_cls_s=31dfd86b-f5f4-4c63-a98b-a49f6f30ad72%3A0&_cls_v=f1cdea71-2417-4723-a271-7c6785790780&pv=2&f_cls_s=true
+        resp='{"pv":2,"clss":"31dfd86b-f5f4-4c63-a98b-a49f6f30ad72:0","clsv":"f1cdea71-2417-4723-a271-7c6785790780","clse":null,"conf":{"appId":1,"configuration":{"attributeRules":[{"name":"Close_x_survey_amjpmorgancom","pageUrl":"https://am.jpmorgan.com/*","pageHash":"","selector":"SPAN#uz_span_close","accessor"'
+     204 GET https://pixel.quantserve.com/cs?a=p-C08pQh5-6JzpN&gdpr=0&sf2=1
+        resp=''
+     200 GET https://pips.taboola.com/
+        resp='NULL'
+     200 GET https://am.jpmorgan.com/FundsMarketingHandler/fund-explorer-label?country=tw&language=zh&version=9.17_1790647528
+        resp='{"Benchmark":"Benchmark ","benchmark-in-currency":"(in <CURRENCY>)","country-chile-(public-offering)":"Chile","country-hk":"香港","country-mu":"模里西斯","country-lu":"盧森堡","currency-amount":"{amount} {currency}","currency-code-AUD":"澳幣","currency-code-CAD":"加元","currency-code-CNH":"人民幣","currency-code-CN'
+     204 GET https://cds.taboola.com/?uid=79eb47c1-0010-4af1-abd9-2661c902d2b2-tuct11c02c91&ptf=TGludXg=&ufv=MTUzLjAuODAxMC4xMg==&bnd=SGVhZGxlc3NDaHJvbWU=&bndv=MTUz&bnd=Tm90X0EgQnJhbmQ=&bndv=OA==&bnd=Q2hyb21pdW0=&bndv=MTUz&mbl=ZmFsc2U=&dc=la
+        resp=''
+     200 GET https://am.jpmorgan.com/FundsMarketingHandler/autocomplete?country=tw&role=per&language=zh&userLoggedIn=false&version=9.17_1790647528
+        resp='[{"cusip":"TW000T1148C9","name":"JPMorgan (Taiwan) Total Emerging Markets Income Solution Fund  - Monthly Distribution Class (USD)","shareclassName":"JPMorgan (Taiwan) Total Emerging Markets Income Solution Fund  - Monthly Distribution Class (USD)","translatedFundName":{"zh":"摩根新興雙利平衡基金"},"translate'
+     200 GET https://am.jpmorgan.com/Amelia/api/init
+        resp='{"loggedIn":true,"csrfToken":"85f58943-2e08-4fca-babc-60a20c19c794","user":{"userId":"0ecd2ed0-4bc2-4990-9f4f-4dece9ee953f","email":"anon-0ecd2ed0-4bc2-4990-9f4f-4dece9ee953f@anonymous-amelia.ipsoft.com","name":"Anonymous User","anonymous":true,"agent":false,"availability":"OFFLINE","primaryDomainId'
+     200 GET https://match.adsrvr.org/track/cei?advertiser_id=bp333w0&cookie_sync=1&upv=3.0.0&upid=qn8bu0i&ref=https%3a%2f%2fam.jpmorgan.com&redirect=1
+        resp='<html><body><iframe id="ttd_cei_0" height="0" width="0" style="display:none;" allowTransparency sandbox="allow-scripts allow-same-origin" src="https://cm.g.doubleclick.net/pixel?google_nid=TheTradeDesk&google_cm&google_sc&google_hm=YTI4YzUyMDItNThmMS00MWNhLTlhN2MtZDlmZGEwNDUyNTll&gdpr=0&gdpr_consent'
+     200 GET https://match.adsrvr.org/track/cei?advertiser_id=i2z2ve3&cookie_sync=1&upv=3.0.0&upid=5r73i28&ref=https%3a%2f%2fam.jpmorgan.com&redirect=1
+        resp='<html><body><iframe id="ttd_cei_0" height="0" width="0" style="display:none;" allowTransparency sandbox="allow-scripts allow-same-origin" src="https://cm.g.doubleclick.net/pixel?google_nid=TheTradeDesk&google_cm&google_sc&google_hm=YTI4YzUyMDItNThmMS00MWNhLTlhN2MtZDlmZGEwNDUyNTll&gdpr=0&gdpr_consent'
+     200 GET https://am.jpmorgan.com/Amelia/api/sock/info?t=1791403795929
+        resp='{"entropy":-1395543080,"origins":["*:*"],"cookie_needed":true,"websocket":true}'
+     200 GET https://am.jpmorgan.com/Amelia/api/domains
+        resp='{"content":[{"id":"1a335ff7-7667-11ed-91fc-025ddde90f56","name":"pb-chat-wechat-sc","code":"pbchatwechatsc","localeDisplayName":"English (United States)","localeLanguageTag":"en-US","requireLogin":false,"hidden":false,"webGlEnabled":false,"imageEnabled":false},{"id":"1a4b4860-7667-11ed-91fc-025ddde9'
+     200 GET https://am.jpmorgan.com/Amelia/api/conversations/my/open
+        resp='{"content":[],"last":true,"first":true,"totalPages":1,"totalElements":0,"number":0,"numberOfElements":0,"start":1,"end":0,"size":20}'
+     200 POST https://am.jpmorgan.com/Amelia/api/conversations/new
+        body={"domainCode":"amchattw","clientTimestamp":1791403796592,"userInterface":"WEB_USER","channel":"webchat_coreuser","initialBpnVariables":{"domain_code":"amchattw"},"initialAttributes":{"channel":"jpmChat","user_role":"per","current_url":"https://am.jpmorgan.com/tw/zh/asset-management/per/"},"sessionLo
+        resp='{"conversationId":"NBC76KSJQCAAA","sessionId":"01a117fc-a928-7b12-a99b-9a1022d34025"}'
+     200 POST https://insight.adsrvr.org/track/realtimeconversion
+        body={"data":[{"adv":"i2z2ve3","pixel_ids":["5r73i28"],"referrer_url":"https://am.jpmorgan.com/tw/zh/asset-management/per/","data_processing_option":null,"privacy_settings":[]}]}
+        resp='{"Message":null,"EventResponses":[]}'
+     200 POST https://insight.adsrvr.org/track/realtimeconversion
+        body={"data":[{"adv":"bp333w0","pixel_ids":["qn8bu0i"],"referrer_url":"https://am.jpmorgan.com/tw/zh/asset-management/per/","data_processing_option":null,"privacy_settings":[]}]}
+        resp='{"Message":null,"EventResponses":[]}'
+     204 GET https://trc-events.taboola.com/1627601/log/3/unip?en=pre_d_eng_tb&tos=4627&scd=0&ssd=1&est=1791403793620&ver=36&isls=true&src=i&invt=4500&msa=5283&rv=1&tim=1791403798247&vi=1791403793613&ri=71a61936eab3b9d4419bf90f005ef5f9&sd=v2_c33d4650a6bd7e5849388ed5a1e6ae06_79eb47c1-0010-4af1-abd9-2661c902d2b2-t
+        resp=''
+     200 POST https://report.jpm.gbqofs.io/reporting/64654ad3-6f20-4015-a04e-6a2f544f8231/cls_report?clsjsv=%5BLocal_version_prod%5D&_cls_s=31dfd86b-f5f4-4c63-a98b-a49f6f30ad72:0&_cls_v=f1cdea71-2417-4723-a271-7c6785790780&pid=e70a42cd-86ef-472b-831f-4a84f8cb18da&rto=c0&sn=1&cfg&pv=2&aid=
+        body=v=2&r=https%3A%2F%2Fam.jpmorgan.com%2Ftw%2Fzh%2Fasset-management%2Fper%2F&sn=1&p=e70a42cd-86ef-472b-831f-4a84f8cb18da&seg=%2Ftw%2Fzh%2Fasset-management%2Fper%2F&sp=&pssn=0&e=muyjkdnw~2~-~Nu_urib8t*s_1280x720*sc_1280x720~eventId.0_1*vn.2_6aaW6aCBIHwgSi5QLiBNb3JnYW4gQXNzZXQgTWFuYWdlbWVudA%3D%3D*window
+        resp='{"pv":2,"clss":"31dfd86b-f5f4-4c63-a98b-a49f6f30ad72:0","clsv":"f1cdea71-2417-4723-a271-7c6785790780","clse":null,"conf":{"appId":1,"configuration":{"attributeRules":[{"name":"Close_x_survey_amjpmorgancom","pageUrl":"https://am.jpmorgan.com/*","pageHash":"","selector":"SPAN#uz_span_close","accessor"'
+     200 POST https://report.jpm.gbqofs.io/reporting/64654ad3-6f20-4015-a04e-6a2f544f8231/cls_report?clsjsv=%5BLocal_version_prod%5D&_cls_s=31dfd86b-f5f4-4c63-a98b-a49f6f30ad72:0&_cls_v=f1cdea71-2417-4723-a271-7c6785790780&pid=e70a42cd-86ef-472b-831f-4a84f8cb18da&rto=c0&sn=2&cfg&pv=2&aid=
+        body=v=2&r=https%3A%2F%2Fam.jpmorgan.com%2Ftw%2Fzh%2Fasset-management%2Fper%2F&sn=2&p=e70a42cd-86ef-472b-831f-4a84f8cb18da&seg=%2Ftw%2Fzh%2Fasset-management%2Fper%2F&sp=&pssn=0&e=muyjkdpo~22~0%23am-country-role-selector-dialog~Nsn_1*u_aHR0cHM6Ly9waXhlbC5xdWFudHNlcnZlLmNvbS9jcz9hPXAtQzA4cFFoNS02SnpwTiZnZH
+        resp='{"pv":2,"clss":"31dfd86b-f5f4-4c63-a98b-a49f6f30ad72:0","clsv":"f1cdea71-2417-4723-a271-7c6785790780","clse":null,"conf":{"appId":1,"configuration":{"attributeRules":[{"name":"Close_x_survey_amjpmorgancom","pageUrl":"https://am.jpmorgan.com/*","pageHash":"","selector":"SPAN#uz_span_close","accessor"'
+     200 POST https://report.jpm.gbqofs.io/reporting/64654ad3-6f20-4015-a04e-6a2f544f8231/cls_report?clsjsv=%5BLocal_version_prod%5D&_cls_s=31dfd86b-f5f4-4c63-a98b-a49f6f30ad72:0&_cls_v=f1cdea71-2417-4723-a271-7c6785790780&pid=e70a42cd-86ef-472b-831f-4a84f8cb18da&rto=c0&sn=3&cfg=8e8cbf90&pv=2&aid=
+        body=v=2&r=https%3A%2F%2Fam.jpmorgan.com%2Ftw%2Fzh%2Fasset-management%2Fper%2F&sn=3&p=e70a42cd-86ef-472b-831f-4a84f8cb18da&seg=%2Ftw%2Fzh%2Fasset-management%2Fper%2F&sp=&pssn=0&e=muyjkdnw~91~-~Nsn_0*r_*c_YW1fanBtX2dlb2xvY2F0aW9uPVVTOyBUUzAxYzc4MTRiPTAxNDNkYjNkOTQxNTZjNGEyNGI2ZmRhZjcyMzgwOGM3YTZjMWEwZGI4O
+        resp='{"pv":2,"clss":"31dfd86b-f5f4-4c63-a98b-a49f6f30ad72:0","clsv":"f1cdea71-2417-4723-a271-7c6785790780","clse":null,"conf":null,"usage":{"sessionQuotaBreach":false, "apiCallQuotaBreach":true, "customServerCallsBreach":false, "dataLimit": 4194304},"blockRecording":false,"uniqueLocationIdentifier":"-188'
+  含成分股字樣的回應 0 個：
+====================================================================================================
+[extra-4] https://www.blackrock.com/tw
+  開頁失敗: TimeoutError Page.goto: Timeout 60000ms exceeded.
+Call log:
+  - navigating to "https://www.blackrock.com/tw", waiting until "networkidle"
+
+    連結: iShares ETF專區 -> https://www.blackrock.com/tw#
+    連結: iShares安碩ETF -> https://www.blackrock.com/tw/products/products-list#/?productView=ishares&dataView=perfNav
+    連結: 認識貝萊德iShares ETF -> https://www.blackrock.com/tw/ishares
+    連結: 009826 -> https://www.blackrock.com/tw/ishares/global-allcap-equity-etf
+    連結: 00991B -> https://www.blackrock.com/tw/ishares/global-usd-a-bond-etf
+    連結: ETF即時預估淨值 -> https://www.blackrock.com/tw/ishares/inav
+    連結: ETF公告 -> https://www.blackrock.com/tw/ishares/etf-announcement
+    連結: ETF配息資訊 -> https://www.blackrock.com/tw/etf-dividend-record
+    連結: 定期定額券商一覽表 -> https://www.blackrock.com/tw/etf-regular-savings-plan
+    連結: 收益平準金專區 -> https://www.blackrock.com/tw/ishares/etf-income-equalization-education
+    連結: 常見問題 -> https://www.blackrock.com/tw/ishares/etf-frequently-asked-questions
+    連結: 基金收益分配資料異動申請書 -> https://www.blackrock.com/tw/literature/forms/blackrock-etf-data-change-request-form.pdf
+    連結: 了解更多 -> https://www.blackrock.com/tw/etf-dividend-record
+    連結: 了解 iShares ETF -> https://www.blackrock.com/tw/ishares
+    連結: iShares安碩ETF -> https://www.blackrock.com/tw/products/products-list#/?productView=ishares&dataView=perfNav
+    連結: 認識貝萊德iShares ETF -> https://www.blackrock.com/tw/ishares
+    連結: 009826 -> https://www.blackrock.com/tw/ishares/global-allcap-equity-etf
+    連結: 00991B -> https://www.blackrock.com/tw/ishares/global-usd-a-bond-etf
+    連結: ETF即時預估淨值 -> https://www.blackrock.com/tw/ishares/inav
+    連結: ETF公告 -> https://www.blackrock.com/tw/ishares/etf-announcement
+    連結: ETF配息資訊 -> https://www.blackrock.com/tw/etf-dividend-record
+    連結: 定期定額券商一覽表 -> https://www.blackrock.com/tw/etf-regular-savings-plan
+    連結: 收益平準金專區 -> https://www.blackrock.com/tw/ishares/etf-income-equalization-education
+    連結: 常見問題 -> https://www.blackrock.com/tw/ishares/etf-frequently-asked-questions
+    連結: 基金收益分配資料異動申請書 -> https://www.blackrock.com/tw/literature/forms/blackrock-etf-data-change-request-form.pdf
+  XHR／文件請求 24 個：
+     200 GET https://www.blackrock.com/tw
+        resp='<!DOCTYPE html>\n<html xmlns="http://www.w3.org/1999/xhtml" prefix="og: http://ogp.me/ns#" lang="zh-TW" xml:lang="zh-TW">\n<head>\n<link rel="preload" href="/apac-retail-c-assets/include/bundles/minified-ff2767d9d4adfe0d86a66e4a6707382e.css" as="style" />\n<link rel="preload" href="/apac-retail-c-assets'
+     200 GET https://cdn.cookielaw.org/consent/1d844f07-6416-4f37-97e9-e7e8b80732f2/1d844f07-6416-4f37-97e9-e7e8b80732f2.json
+        resp='{"CookieSPAEnabled":false,"CookieSameSiteNoneEnabled":false,"CookieV2CSPEnabled":true,"MultiVariantTestingEnabled":false,"UseV2":true,"MobileSDK":false,"SkipGeolocation":false,"ScriptType":"PRODUCTION","Version":"202609.1.0","OptanonDataJSON":"1d844f07-6416-4f37-97e9-e7e8b80732f2","GeolocationUrl":"'
+     200 GET https://geolocation.onetrust.com/cookieconsentpub/v1/geo/location
+        resp='{"country":"US","state":"WY","stateName":"Wyoming","continent":"NA"}'
+     200 GET https://cdn.cookielaw.org/consent/1d844f07-6416-4f37-97e9-e7e8b80732f2/0199190f-a997-7151-87ee-00c0af94baf1/en.json
+        resp='{"DomainData":{"pclifeSpanYr":"Year","pclifeSpanYrs":"Years","pclifeSpanSecs":"A few seconds","pclifeSpanWk":"Week","pclifeSpanWks":"Weeks","pccontinueWithoutAcceptText":"Continue without Accepting","pccloseButtonType":"Icon","MainText":"Manage your cookies","MainInfoText":"BlackRock uses cookies to'
+     200 GET https://cdn.cookielaw.org/scripttemplates/202609.1.0/assets/otFlat.json
+        resp='\n            {\n                "name": "otFlat",\n                "html": "PGRpdiBpZD0ib25ldHJ1c3QtYmFubmVyLXNkayIgY2xhc3M9Im90RmxhdCI+PGRpdiByb2xlPSJkaWFsb2ciPjxkaXYgY2xhc3M9Im90LXNkay1jb250YWluZXIiPjxkaXYgY2xhc3M9Im90LXNkay1yb3ciPjxkaXYgaWQ9Im9uZXRydXN0LWdyb3VwLWNvbnRhaW5lciIgY2xhc3M9Im90LXNkay1laW'
+     200 GET https://cdn.cookielaw.org/scripttemplates/202609.1.0/assets/otCommonStyles.css
+        resp='#onetrust-banner-sdk .onetrust-vendors-list-handler{cursor:pointer;color:#1f96db;font-size:inherit;font-weight:bold;text-decoration:none;margin-left:5px;white-space:normal;word-wrap:break-word;text-align:left}#onetrust-banner-sdk .onetrust-vendors-list-handler:hover{color:#1f96db}#onetrust-banner-sd'
+     200 GET https://cdn.cookielaw.org/scripttemplates/202609.1.0/assets/v2/otPcCenter.json
+        resp='\n        {\n            "name": "otPcCenter",\n            "html": "PGRpdiBpZD0ib25ldHJ1c3QtcGMtc2RrIiBjbGFzcz0ib3RQY0NlbnRlciBvdC1oaWRlIG90LWZhZGUtaW4iPjxkaXYgcm9sZT0iZGlhbG9nIiBhcmlhLW1vZGFsPSJ0cnVlIj48IS0tIENsb3NlIEJ1dHRvbiAtLT48ZGl2IGNsYXNzPSJvdC1wYy1oZWFkZXIiPjwhLS0gTG9nbyBUYWcgLS0+PGRpdiBjbGFzcz'
+     200 GET https://cdn.cookielaw.org/logos/static/ot_guard_logo.svg
+        resp='<svg xmlns="http://www.w3.org/2000/svg"><path class="ot-floating-button__svg-fill" d="M14.588 0l.445.328c1.807 1.303 3.961 2.533 6.461 3.688 2.015.93 4.576 1.746 7.682 2.446 0 14.178-4.73 24.133-14.19 29.864l-.398.236C4.863 30.87 0 20.837 0 6.462c3.107-.7 5.668-1.516 7.682-2.446 2.709-1.251 5.01-2.5'
+     200 POST https://api.company-target.com/api/v3/ip.json?referrer=&page=https%3A%2F%2Fwww.blackrock.com%2Ftw&page_title=%E8%B2%9D%E8%90%8A%E5%BE%B7%E6%8A%95%E4%BF%A1%20%7C%20BlackRock
+        body={"src":"tag","auth":"ONhVghWL76O2ssW8AwEJcDmbavyfMPcIBfxRtSGc"}
+        resp='{"access_type":"identified_non_business","audience":"SMB","audience_segment":"","digital_domain":null,"information_level":"Basic","isp":false,"region_name":"Wyoming","registry_area_code":null,"registry_city":"Cheyenne","registry_company_name":"Microsoft Corp","registry_country":"United States","regi'
+     200 POST https://securemetrics.blackrock.com/b/ss//6
+        body=<?xml version="1.0" encoding="UTF-8"?><request><sc_xml_ver>1.0</sc_xml_ver><reportSuiteID>blk-anonymised-prod</reportSuiteID><server>blk-anonymised-prod</server><browserHeight>720</browserHeight><browserWidth>1280</browserWidth><colorDepth>24</colorDepth><channel>main</channel><pageName>tw-one|main|
+        resp='<?xml version="1.0" encoding="UTF-8"?>\n<status>SUCCESS</status>\n'
+     200 GET https://s.company-target.com/s/sync?exc=lr
+        resp='<html>\n\t<head>\n\t\t<title>Pixels</title>\n\t</head>\n\t<body>\n\t\n<img src="https://dsum-sec.casalemedia.com/rum?cm_dsp_id=18&amp;expiry=1807128603&amp;external_user_id=76b07e49-1f08-4296-a891-fa0260adff84" alt="" width="0" height="0" style="display:none", aria-hidden="true">\n<img src="https://partners.trem'
+     200 GET https://tag-logger.demandbase.com/bg9s?x-amz-cf-id=TFEJEt62hc5Mt6R5vKU4G_zFk7aNV6H327Hh8QJlnMQ0W4dJhKUCIg==&api-version=v3
+        resp=''
+     200 GET https://csxd.careers.blackrock.com/xdframe-1.1.1.html
+        resp='<!DOCTYPE html><html><head><meta charset="UTF-8"><script>window.parent.postMessage(["_cs_id","_cs_s","_cs_cvars","_cs_ex","_cs_s_ctx","_cs_i","_cs_ep"].reduce(function(e,c){var _=function(e){var c=new RegExp("(^|;)[ ]*"+e+"=([^;]*)"),_=c.exec(document.cookie);return _?decodeURIComponent(_[2]):null}('
+     200 GET https://csxd.ishares.com/xdframe-1.1.1.html
+        resp='<!DOCTYPE html><html><head><meta charset="UTF-8"><script>window.parent.postMessage(["_cs_id","_cs_s","_cs_cvars","_cs_ex","_cs_s_ctx","_cs_i","_cs_ep"].reduce(function(e,c){var _=function(e){var c=new RegExp("(^|;)[ ]*"+e+"=([^;]*)"),_=c.exec(document.cookie);return _?decodeURIComponent(_[2]):null}('
+     200 GET https://csxd.efront.com/xdframe-1.1.1.html
+        resp='<!DOCTYPE html><html><head><meta charset="UTF-8"><script>window.parent.postMessage(["_cs_id","_cs_s","_cs_cvars","_cs_ex","_cs_s_ctx","_cs_i","_cs_ep"].reduce(function(e,c){var _=function(e){var c=new RegExp("(^|;)[ ]*"+e+"=([^;]*)"),_=c.exec(document.cookie);return _?decodeURIComponent(_[2]):null}('
+     200 GET https://dpm.demdex.net/id?d_visid_ver=3.3.0&d_fieldgroup=MC&d_rtbd=json&d_ver=2&d_orgid=631FF31455E575197F000101%40AdobeOrg&d_nsid=0&ts=1791403803343
+        resp='{"d_mid":"35329949053409699610866853054681365208","id_sync_ttl":604800,"d_blob":"6G1ynYcLPuiQxYZrsz_pkqfLG9yMXBpb2zX5dvJdYQJzPXImdj0y","dcs_region":9,"d_ottl":7200,"ibs":[],"subdomain":"blackrock","tid":"ZZw1qiZzSOQ="}'
+     200 POST https://adobedc.demdex.net/ee/v1/interact?configId=175dbcf4-f683-4dc1-875e-45103fcc9e7b&requestId=4767f5a9-39b3-40b2-9fce-06648f3ed3e2
+        body={"meta":{"configOverrides":{},"state":{"domain":"blackrock.com","cookiesEnabled":true}},"events":[{"query":{"personalization":{"schemas":["https://ns.adobe.com/personalization/default-content-item","https://ns.adobe.com/personalization/html-content-item","https://ns.adobe.com/personalization/json-co
+        resp='{"requestId":"4767f5a9-39b3-40b2-9fce-06648f3ed3e2-8cd8444bff5b4ca5","handle":[{"payload":[{"id":"35329949053409699610866853054681365208","namespace":{"code":"ECID"}}],"type":"identity:result"},{"payload":[],"type":"activation:pull","eventIndex":0},{"payload":[],"type":"personalization:decisions","e'
+     204 POST https://c.contentsquare.net/pageview?ex=&dt=104&pvt=n&cvars=%7B%221%22%3A%5B%22pageName%22%2C%22index%22%5D%2C%222%22%3A%5B%22siteSection%22%2C%22main%22%5D%2C%225%22%3A%5B%22siteName%22%2C%22tw-one%22%5D%2C%226%22%3A%5B%22loggedIn%22%2C%22no%22%5D%2C%227%22%3A%5B%22country%22%2C%22tw%22%5D%2C%228%2
+        resp=''
+     200 GET https://vice01.blackrock.com/blackrock/blackrockprod/1.23.10.8/
+        resp='<!DOCTYPE html>\n<html>\n\n<head>\n\t<meta name="robots" content="noindex, nofollow, noarchive, nosnippet" />\n\t<link rel="icon" href="data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAIAOw==" />\n</head>\n\n<body>\n\t<script type="text/javascript">\n\t\t"use strict";\n\t\tconst allowedDomains = [\'blac'
+     204 GET https://c.contentsquare.net/dvar?v=15.261.0&pid=5397&pn=1&sn=1&uu=bc3c5465-fc59-a803-8467-5f6653332f5c&dv=H4sIAAAAAAAAA6tWSi72TSxJzsjMS%2FdOrVSyUjLQMzM0tTA0MjU3NjQxMjO0MI83NLc0NDEwtjAwMjczVqoFADC1Nbk0AAAA&ct=2&r=089538
+        resp=''
+     204 GET https://c.contentsquare.net/dvar?v=15.261.0&pid=5397&pn=1&sn=1&uu=bc3c5465-fc59-a803-8467-5f6653332f5c&dv=H4sIAAAAAAAAA6tWSi72TSxJzsjMS%2FdOrVSyUjLQMzM0tTA0MjU3NjQxMjO0MI83NLc0NDEwtjAwMjczVqoFADC1Nbk0AAAA&ct=2&r=489021
+        resp=''
+     204 POST https://px.ads.linkedin.com/wa/?medium=fetch&fmt=g
+        body=H4sIAAAAAAAAA22QwW7UMBCGX6Was9114mRj+1YkqCL1gLqrXhBCE3vSWus4IfZSodIX6IkLRw68Qi/c4GWg6mOUbBEnLiP90vz//N/cwORdAvOmbOqiluotg2RnP+ULmpMfI5hCCCGkZJD9QGCKRheVkEpUqtYM3Digj2Dgg7ckiuMuoN3No90d23EABvs5gIGrnKdkVqv/La3yNTC4pi75TBt/GTGc0/s9pdw6MIC1xs41BdeiLHiNErl2JLjqSVSdqlCUJTCY8JLORnQHj650QVQ7XlmheGWbkiNZxZWW
+        resp=''
+     200 GET https://services.sdiapi.com/reporter/1.1.0.1/reporter.html
+        resp='<!DOCTYPE html><html> <!-- Copyright 2026 Source Defense LTD. All Rights Reserved. Build 1783010683821 e29e8c30ac3984753423dbd6286dfe29f29e5d3a     Version 1.1.0.1 built at 2026-Jul-02 16:44:43. --><head><meta name="robots" content="noindex, nofollow, noarchive, nosnippet" /><title>Logger</title><sc'
+     200 POST https://reports.sdiapi.com/service/viceEvent
+        body=W3siZGF0YSI6eyJsb2FkZXJWZXJzaW9uIjoiMS4yMy4xMC44IiwiZmlyc3RPblBhZ2UiOnRydWUsImZvcHIiOjMxLCJ2b28iOjAsInZvcCI6MCwidm9wdiI6MTAwMCwib29vIjowLCJ3b28iOjEsImJvbyI6MX0sInNpIjoiYTBlN2YxNjgtNDI0Ni00NWVmLTkwYzAtZTc0MmRjMzY1MGMwIiwidHJhZmZpY1BlcmNlbnRhZ2UiOjEwMDAwLCJub1NpIjowLCJ0eXBlIjo1LCJwYWdlVmlldyI6ImEwZTdm
+        resp='OK'
+  含成分股字樣的回應 0 個：
