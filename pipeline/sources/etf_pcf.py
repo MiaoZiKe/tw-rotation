@@ -1226,6 +1226,59 @@ def esun(names: dict[str, str]) -> pd.DataFrame:
     return _frame(rows)
 
 
+# ───────────────────────────────────────────── 安聯（etf.allianzgi.com.tw）
+# 2026-10-08 Actions 實測：ETF 專區是 SPA，基金頁 /etf-info/<FundID>，背後 POST /webapi/api/Fund/GetFundAssets {"FundID":"E0001"}，
+# 回應格式跟野村同一套（Entries.Data.FundAsset.NavDate、Table[TableTitle="股票 (97.80%)"].Rows＝[序號, 代號, 名稱, 股數, 權重%]），
+# 直接用 parse_nomura 解析。這組 API 要先 GET /webapi/api/AntiForgery/GetAntiForgeryToken（官網前端每次載入都做），
+# 再把回寫的 X-XSRF-TOKEN cookie 放進同名標頭 —— 不帶就回 400。這是公開頁面自己的防跨站機制，不是登入或付費牆。
+# FundID → 代號沒有 API（GetFundDetail／GetFundDropdownOptions 都回「查無基金」），對照表手寫，依據：
+# - E0001：真瀏覽器在 ETF 總覽點「安聯台灣…」進到 /etf-info/E0001；持股以金融與高股息股為主（富邦金、台新新光金、台塑化、元大金）
+#   → 00984A 主動安聯台灣高息（安聯首檔主動式 ETF，官網橫幅「首檔 主動式高息策略 ETF」）。
+# - E0002：台股、台積電權重最高、另有台指期 → 00993A 主動安聯台灣。
+# - E0003：美股科技（NVDA 居首）→ 00402A 主動安聯美國科技。
+# E0004 之後實測都是空的。新掛牌時要回來補這張表（log 會印「FundID 有資料但不在對照表」）。
+ALLIANZ_API = "https://etf.allianzgi.com.tw/webapi/api/"
+ALLIANZ_IDS = {"E0001": "00984A", "E0002": "00993A", "E0003": "00402A"}
+
+
+def allianz() -> pd.DataFrame:
+    s = http.session()
+    try:
+        s.get(ALLIANZ_API + "AntiForgery/GetAntiForgeryToken", timeout=TIMEOUT)
+    except Exception as exc:  # noqa: BLE001
+        log.warning("安聯 取 token 失敗：%s", exc)
+        return pd.DataFrame(columns=COLS)
+    tok = s.cookies.get("X-XSRF-TOKEN", domain="etf.allianzgi.com.tw") or s.cookies.get("X-XSRF-TOKEN")
+    if not tok:
+        log.warning("安聯 沒拿到 X-XSRF-TOKEN cookie（cookies：%s）", list(s.cookies.keys()))
+        return pd.DataFrame(columns=COLS)
+    hd = {"X-XSRF-TOKEN": tok, "Origin": "https://etf.allianzgi.com.tw", "Referer": "https://etf.allianzgi.com.tw/etf-list"}
+    rows: list[dict] = []
+    for i in range(1, 9):
+        fid = f"E{i:04d}"
+        time.sleep(0.5)
+        try:
+            r = s.post(ALLIANZ_API + "Fund/GetFundAssets", json={"FundID": fid}, headers=hd, timeout=TIMEOUT)
+            p = r.json() if r.status_code == 200 else None
+            if p is None:
+                log.warning("安聯 %s HTTP %s：%s", fid, r.status_code, _snip(r.text))
+                continue
+        except Exception as exc:  # noqa: BLE001
+            log.warning("安聯 %s 失敗：%s", fid, exc)
+            continue
+        if not ((p.get("Entries") or {}).get("Data") if isinstance(p, dict) else None):
+            continue
+        code = ALLIANZ_IDS.get(fid)
+        if not code:
+            log.warning("安聯 FundID %s 有資料但不在對照表（新掛牌？請補 ALLIANZ_IDS）", fid)
+            continue
+        got = [dict(x, issuer="安聯", src=f"{ALLIANZ_API}Fund/GetFundAssets#{fid}") for x in parse_nomura(code, p)]
+        if not got:
+            log.info("安聯 %s 沒有股票表（前 200 字）：%s", code, _snip(p))
+        rows += got
+    return _frame(rows)
+
+
 # ───────────────────────────────────────────── 總入口
 ISSUER_PREFIX = {  # 從 ETF 簡稱判斷發行投信（給「哪些已接上／哪些沒接上」用）
     "元大": "元大", "國泰": "國泰", "群益": "群益", "富邦": "富邦", "統一": "統一", "凱基": "凱基", "大華": "大華銀",
@@ -1235,13 +1288,12 @@ ISSUER_PREFIX = {  # 從 ETF 簡稱判斷發行投信（給「哪些已接上／
     "FT": "富蘭克林華美", "聯邦": "聯邦",   # FT＝富蘭克林華美（00899 全名「富蘭克林華美全球潔淨能源ETF」）
     "台灣": None,
 }
-CONNECTED = {"永豐", "玉山", "大華銀", "群益", "野村", "復華", "統一", "元大", "凱基", "國泰", "中國信託", "第一金", "聯博", "華南永昌", "富邦", "台新"}
+CONNECTED = {"安聯", "永豐", "玉山", "大華銀", "群益", "野村", "復華", "統一", "元大", "凱基", "國泰", "中國信託", "第一金", "聯博", "華南永昌", "富邦", "台新"}
 # 還沒接上的投信 → 給讀者看的原因（前端成分股分頁照抄）。查證過程、關鍵字與來源在 docs/etf_holdings_coverage.md。
 # 寫「為什麼抓不到」而不是「尚未接上」：Andy 2026-10-07 問「為何有 ETF 沒有成分股」，答案要在畫面上。
 NOT_CONNECTED_WHY = {
     "兆豐": "兆豐投信官網擋雲端主機的連線（2026-10-07 實測回 403 Access Denied），自動排程抓不到，只能人工整理。",
     "貝萊德": "貝萊德官網在自動排程的主機上開頁逾時，持股頁還沒接上。",
-    "安聯": "安聯投信官網找得到，但 ETF 申購買回清單的資料位置還沒查到。",
     "摩根": "摩根投信官網 ETF 區還沒查到每日持股的資料位置。",
     "富蘭克林華美": "富蘭克林華美投信官網在自動排程的主機上開頁逾時，持股頁還沒接上。",
     "聯邦": "聯邦投信官網在自動排程的主機上開頁逾時，持股頁還沒接上。",
@@ -1272,6 +1324,7 @@ def fetch_all(etf_names: dict[str, str]) -> pd.DataFrame:
         ("富邦", lambda: fubon(sorted(by.get("富邦", [])))),
         ("大華銀", uob),
         ("永豐", sinopac),
+        ("安聯", allianz),
         ("玉山", lambda: esun(etf_names)),
         ("台新", lambda: tsit(sorted(by.get("台新", []) + by.get("新光", [])))),
     ]
