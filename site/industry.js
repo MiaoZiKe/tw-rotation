@@ -5552,24 +5552,47 @@
   function holdCss() {
     if (document.getElementById('etfHoldCss')) return;
     const s = document.createElement('style'); s.id = 'etfHoldCss';
-    s.textContent = `#etfHoldCard .hdgrid{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);gap:16px;align-items:start}
-#etfHoldCard .hdlist{min-width:0}
-#etfHoldCard .hdq{width:100%;box-sizing:border-box;margin:0 0 8px;padding:6px 10px;border:1px solid var(--line);border-radius:8px;background:var(--panel);color:var(--ink);font-size:13px}
-#etfHoldCard .hdscroll{max-height:420px;overflow:auto}
-#etfHoldCard table{width:100%;border-collapse:collapse;font-size:13px}
-#etfHoldCard th{position:sticky;top:0;background:var(--panel);color:var(--ink-3);font-weight:500;text-align:right;padding:5px 6px;font-size:12px;white-space:nowrap}
-#etfHoldCard th:nth-child(-n+2),#etfHoldCard td:nth-child(-n+2){text-align:left}
-#etfHoldCard td{padding:5px 6px;border-top:1px solid var(--line);text-align:right;white-space:nowrap}
-#etfHoldCard td.nm{white-space:normal;overflow-wrap:anywhere}
+    /* ★ 2026-10-07 Andy 17:30：「圓餅在左側、前十大要標示出來（照產業地圖成交值占比的圖例）、右邊清單版面太亂」。
+       左＝A 款甜甜圈＋緊貼的圖例（沿用產業地圖 .gplegend：色塊｜名稱｜代號｜權重）；右＝清單（名稱｜權重橫條｜當日漲跌），高度跟左塊一致、內部捲動、表頭黏住。
+       < 1100 上下堆疊（甜甜圈＋圖例在上、清單在下）。 */
+    s.textContent = `#etfHoldCard .hdhead{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin:0 0 12px}
+#etfHoldCard .hdhead h3{margin:0;min-width:0}
+#etfHoldCard .hdgrid{display:grid;grid-template-columns:max-content minmax(0,1fr);gap:24px;align-items:stretch}
+#etfHoldCard .hdleft{display:flex;flex-direction:row;align-items:center;justify-content:center;gap:16px;min-width:0}
+#etfHoldCard .hdpie{flex:none;width:280px;height:280px}
+#etfHoldCard .gplegend{--lg-row:26px;flex:none}
+#etfHoldCard .gplegend .lg .vl{font-size:12px;color:var(--ink-3)}
+#etfHoldCard .gplegend .lg .nm{color:inherit}
+#etfHoldCard .hdlist{position:relative;min-width:0;min-height:0}
+#etfHoldCard .hdlistin{position:absolute;inset:0;display:flex;flex-direction:column;min-height:0}
+#etfHoldCard .hdq{width:176px;box-sizing:border-box;margin:0;padding:4px 10px;border:1px solid var(--line);border-radius:8px;background:var(--panel);color:var(--ink);font-size:13px}
+#etfHoldCard .hdscroll{flex:1 1 auto;min-height:0;overflow:auto;border:1px solid var(--line);border-radius:10px}
+#etfHoldCard table{width:100%;border-collapse:separate;border-spacing:0;font-size:13px}
+#etfHoldCard th{position:sticky;top:0;z-index:1;background:var(--panel);color:var(--ink-3);font-weight:600;text-align:right;padding:6px 10px;font-size:12px;white-space:nowrap;border-bottom:1px solid var(--line)}
+#etfHoldCard th:first-child,#etfHoldCard td:first-child{text-align:left}
+#etfHoldCard td{height:32px;box-sizing:border-box;padding:0 10px;border-top:1px solid var(--line);text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}
+#etfHoldCard tbody tr:first-child td{border-top:0}
+#etfHoldCard td.nm{max-width:0;width:50%;overflow:hidden;text-overflow:ellipsis;color:var(--ink)}
+#etfHoldCard td.nm .dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:8px;vertical-align:middle}
+#etfHoldCard td.nm .dot.no{background:transparent}
+#etfHoldCard td.nm .cd{color:var(--ink-3);font-size:12px;margin-left:6px}
+#etfHoldCard td.nm a{color:inherit;text-decoration:none}
 #etfHoldCard .mono{font-family:var(--mono)}
 #etfHoldCard tr.go{cursor:pointer}
-#etfHoldCard tr.go:hover td,#etfHoldCard tr.hi td{background:rgba(62,224,255,.10)}
-#etfHoldCard .wbar{display:inline-block;height:6px;border-radius:3px;background:linear-gradient(90deg,color-mix(in srgb,var(--cyan) 55%,transparent),var(--cyan));opacity:.7;vertical-align:middle;margin-right:6px}
-#etfHoldCard .hdpie{width:100%;aspect-ratio:1;max-width:360px;margin:0 auto}
+#etfHoldCard tr.go:hover td,#etfHoldCard tr.hi td{background:var(--panel-2)}
+#etfHoldCard td.wt{width:170px;text-align:left}
+#etfHoldCard th:nth-child(2){text-align:left}
+#etfHoldCard .wtr{display:inline-block;width:60px;vertical-align:middle}
+#etfHoldCard .wbar{display:block;height:6px;border-radius:3px}
+#etfHoldCard td.wt .wv{margin-left:8px}
+#etfHoldCard .wv{display:inline-block;min-width:3.6em;text-align:right}
+#etfHoldCard tr.hdsep td{height:24px;padding:0 10px;text-align:left;font-size:12px;color:var(--ink-3);background:var(--panel-2);border-top:1px solid var(--line-2,var(--line))}
 #etfHoldCard .hdasof{color:var(--ink-3);font-size:12px;font-weight:400;margin-left:8px}
 #etfHoldCard .hdnote{line-height:1.7;color:var(--ink-2);font-size:13.5px;padding:10px 2px}
 #etfHoldCard .hdnote b{color:var(--ink)}
-@media (max-width:760px){#etfHoldCard .hdgrid{grid-template-columns:1fr}#etfHoldCard .hdpie{max-width:300px}#etfHoldCard .hdscroll{max-height:360px}}`;
+@media (max-width:1099px){#etfHoldCard .hdgrid{grid-template-columns:minmax(0,1fr);gap:16px}
+#etfHoldCard .hdlist{min-height:0}#etfHoldCard .hdlistin{position:static}#etfHoldCard .hdscroll{max-height:420px}}
+@media (max-width:640px){#etfHoldCard .hdleft{flex-direction:column;gap:8px}#etfHoldCard .hdpie{width:260px;height:260px}#etfHoldCard .hdq{width:100%}#etfHoldCard .hdhead{align-items:stretch}#etfHoldCard td.wt{width:140px}#etfHoldCard .gplegend .lg{height:30px}#etfHoldCard .gplegend{width:100%}}`;
     document.head.appendChild(s);
   }
   async function tabHoldings(pg, el) {
@@ -5606,26 +5629,35 @@
     const restSum = Math.max(0, tot - topSum);
     const maxW = items[0].w || 1;
     const asof = rec.asof || hd.asof || '';
-    const hasSh = items.some(x => x.shares != null);
-    card.dataset.state = 'ok';
+        card.dataset.state = 'ok';
     /* 2026-10-07：標出處 —— 人工整理（pipeline/etf/holdings_manual.yaml）／權重是用股數×收盤價推算的（元大實物申贖型） */
     const tag = rec.manual ? `人工整理・資料日期 ${A.fmt.esc(asof)}` : `資料日期 ${A.fmt.esc(asof)}`;
     const srcTxt = rec.issuer ? `${A.fmt.esc(rec.issuer)}投信公告${rec.est ? '・權重依股數×收盤價推算（占股票部位）' : ''}` : '';
-    card.innerHTML = `<h3>成分股<span class="hdasof" id="etfHoldAsof">${tag}・共 ${items.length} 檔${srcTxt ? `・<span title="${A.fmt.esc(rec.src || '')}">${srcTxt}</span>` : ''}</span></h3>
-      <div class="hdgrid"><div class="hdlist"><input class="hdq" id="etfHoldQ" type="search" placeholder="搜尋代號或名稱" aria-label="搜尋成分股">
-        <div class="hdscroll"><table id="etfHoldTbl"><thead><tr><th>代號</th><th>名稱</th><th>權重</th>${hasSh ? '<th>持股張數</th>' : ''}<th>當日漲跌</th></tr></thead><tbody>
-        ${items.map((x, i) => { const c = String(x.code || ''), go = canGo(c), ch = chgOf.get(c);
-          return `<tr data-code="${A.fmt.esc(c)}" data-i="${i}" data-w="${x.w}" data-q="${A.fmt.esc((c + ' ' + (x.name || '')).toLowerCase())}"${go ? ` class="go" title="看 ${A.fmt.esc(x.name || c)} 個股頁"` : ' title="非台股成分，沒有個股頁"'}>`
-            + `<td class="mono">${go ? `<a href="#stock/${A.fmt.esc(c)}">${A.fmt.esc(c)}</a>` : A.fmt.esc(c || '—')}</td><td class="nm">${A.fmt.esc(x.name || '')}</td>`
-            + `<td class="mono"><i class="wbar" style="width:${Math.max(2, Math.round(x.w / maxW * 40))}px"></i>${A.fmt.n(x.w, 2)}%</td>`
-            + (hasSh ? `<td class="mono">${x.shares != null ? A.fmt.i(Math.round(x.shares / 1000)) : '—'}</td>` : '')
+    /* 簡稱：stocks.json 的名稱（台積電、南亞、鴻海；去掉櫃買／權證常見的尾端 *）；查不到（非台股成分）才用成分股原名 */
+    const nameOf = new Map((stocks || []).map(r => [r.code, String(r.name || '').replace(/\*+$/, '')]));
+    const shortName = (x) => nameOf.get(String(x.code)) || x.name || x.code;
+    const topCol = (i) => A.donut.color(i);
+    const fmtSh = (x) => (x.shares != null ? `持股 ${A.fmt.i(Math.round(x.shares / 1000))} 張` : '');
+    const sepAt = rest.length && restSum > 0.005 ? HOLD_TOPN : -1;
+    card.innerHTML = `<div class="hdhead"><h3>成分股<span class="hdasof" id="etfHoldAsof">${tag}・共 ${items.length} 檔${srcTxt ? `・<span title="${A.fmt.esc(rec.src || '')}">${srcTxt}</span>` : ''}</span></h3>
+        <input class="hdq" id="etfHoldQ" type="search" placeholder="搜尋代號或名稱" aria-label="搜尋成分股"></div>
+      <div class="hdgrid"><div class="hdleft"><div class="hdpie" id="etfHoldPie"></div><div class="gplegend" id="etfHoldLegend" aria-label="前 10 大圖例"></div></div>
+        <div class="hdlist"><div class="hdlistin"><div class="hdscroll"><table id="etfHoldTbl"><thead><tr><th>名稱</th><th>權重</th><th>當日漲跌</th></tr></thead><tbody>
+        ${items.map((x, i) => { const c = String(x.code || ''), go = canGo(c), ch = chgOf.get(c), nm = shortName(x), isTop = i < HOLD_TOPN;
+          const tip = [go ? `看 ${nm} 個股頁` : '非台股成分，沒有個股頁', fmtSh(x)].filter(Boolean).join('・');
+          return (i === sepAt ? `<tr class="hdsep"><td colspan="3">其他 ${rest.length} 檔</td></tr>` : '')
+            + `<tr data-code="${A.fmt.esc(c)}" data-i="${i}" data-w="${x.w}" data-q="${A.fmt.esc((c + ' ' + (x.name || '') + ' ' + nm).toLowerCase())}"${go ? ` class="go"` : ''} title="${A.fmt.esc(tip)}">`
+            + `<td class="nm"><i class="dot${isTop ? '' : ' no'}"${isTop ? ` style="background:${topCol(i)}"` : ''}></i>${go ? `<a href="#stock/${A.fmt.esc(c)}">${A.fmt.esc(nm)}</a>` : A.fmt.esc(nm)}<span class="cd mono">${A.fmt.esc(c || '')}</span></td>`
+            + `<td class="mono wt"><span class="wtr"><i class="wbar" style="width:${Math.max(2, Math.round(x.w / maxW * 56))}px;background:${isTop ? topCol(i) : 'color-mix(in srgb,var(--ink-3) 45%,transparent)'}"></i></span><span class="wv">${A.fmt.n(x.w, 2)}%</span></td>`
             + `<td class="mono ${ch == null ? 'muted' : A.fmt.cls(ch)}">${ch == null ? '—' : A.fmt.pct(ch)}</td></tr>`; }).join('')}
-        </tbody></table></div></div>
-        <div><div class="hdpie" id="etfHoldPie"></div></div></div>`;
-    const parts = top.map(x => ({ name: x.name || x.code, value: x.w, code: x.code }));
+        </tbody></table></div></div></div></div>`;
+    const parts = top.map(x => ({ name: shortName(x), value: x.w, code: x.code }));
     if (restSum > 0.005) parts.push({ name: '其他', value: restSum, isOther: true, hint: `其餘 ${rest.length} 檔` });
+    const legEl = document.getElementById('etfHoldLegend');
+    legEl.innerHTML = parts.map((d, i) => `<div class="lg${d.isOther ? ' other' : ''}" data-n="${i}"><i style="background:${d.isOther ? 'color-mix(in srgb,var(--ink-3) 38%,transparent)' : topCol(i)}"></i>`
+      + `<span class="nm">${d.isOther ? `其他 ${rest.length} 檔` : A.fmt.esc(d.name)}</span><span class="vl">${d.isOther ? '' : A.fmt.esc(String(d.code))}</span><span class="pc">${A.fmt.n(d.value, 2)}%</span></div>`).join('');
     const pieEl = document.getElementById('etfHoldPie');
-    const S = Math.round(pieEl.clientWidth || 300);
+    const S = Math.round(pieEl.clientWidth || 280);
     const op = { size: S, fmtVal: (v) => A.fmt.n(v, 2) + '%', valLabel: '權重', centerLabel: `前 ${top.length} 大合計`, centerValue: A.fmt.n(topSum, 1) + '%', cursor: 'pointer' };
     const { option } = A.donut.option(parts, op);
     /* 提示框的權重以「占整檔 ETF」為準（ECharts 的 percent 是占圖上加總，現金部位不在圖上時兩者不同）*/
@@ -5640,6 +5672,8 @@
     const paint = (nm) => { if (!inst || inst.isDisposed() || nm === hiName) return; hiName = nm;
       try { inst.setOption({ title: centerTxt(nm), series: [{ data: parts.map((d, i) => A.donut.item(d, i, !!nm && d.name === nm)) }] }); } catch (e) { /* dispose 競態 */ }
       tbody.querySelectorAll('tr.hi').forEach(r => r.classList.remove('hi'));
+      legEl.querySelectorAll('.lg.on').forEach(r => r.classList.remove('on'));
+      const li = nm ? parts.findIndex(x => x.name === nm) : -1; if (li >= 0) legEl.children[li].classList.add('on');
       const r = nm && rowOf(nm); if (r) r.classList.add('hi'); };
     if (inst) {
       inst.on('mouseover', (p) => { if (p.seriesIndex === 0) paint(p.name); });
@@ -5647,12 +5681,16 @@
       inst.on('click', (p) => { if (p.seriesIndex !== 0) return; const d = parts.find(x => x.name === p.name);
         if (d && d.code && canGo(String(d.code))) location.hash = '#stock/' + d.code; });
     }
-    tbody.addEventListener('mouseover', (e) => { const r = e.target.closest('tr'); if (!r) return; const i = +r.dataset.i;
+    tbody.addEventListener('mouseover', (e) => { const r = e.target.closest('tr'); if (!r || r.dataset.i == null) return; const i = +r.dataset.i;
       paint(i < HOLD_TOPN ? parts[i].name : (restSum > 0.005 ? '其他' : null)); });
     tbody.addEventListener('mouseleave', () => paint(null));
+    legEl.addEventListener('mouseover', (e) => { const r = e.target.closest('.lg'); if (r) paint(parts[+r.dataset.n].name); });
+    legEl.addEventListener('mouseleave', () => paint(null));
+    legEl.addEventListener('click', (e) => { const r = e.target.closest('.lg'); const d = r && parts[+r.dataset.n];
+      if (d && d.code && canGo(String(d.code))) location.hash = '#stock/' + d.code; });
     tbody.addEventListener('click', (e) => { if (e.target.closest('a')) return; const r = e.target.closest('tr.go'); if (r) location.hash = '#stock/' + r.dataset.code; });
     card.querySelector('#etfHoldQ').addEventListener('input', (e) => { const q = e.target.value.trim().toLowerCase();
-      tbody.querySelectorAll('tr').forEach(r => { r.hidden = !!q && r.dataset.q.indexOf(q) < 0; }); });
+      tbody.querySelectorAll('tr').forEach(r => { r.hidden = r.classList.contains('hdsep') ? !!q : (!!q && r.dataset.q.indexOf(q) < 0); }); });
   }
   window.StockHold = { render: tabHoldings };   // 手機個股頁（mobile3.js SK_TABS 的「成分股」）共用同一支
   const STOCK_TABS = [['overview', '總覽'], ['basics', '基本資料'], ['tags', '指標'], ['revenue', '營收'], ['profit', '獲利'], ['dividend', '除權息'],

@@ -1869,7 +1869,7 @@ def t_etf_hold_1007(pg, b, base):
                 wait_until(lp, "() => { const e = document.getElementById('etfHoldPie'); const c = e && echarts.getInstanceByDom(e); return !!(c && c.getOption()); }", 8000)
                 st = J("() => (document.querySelector('#etfHoldCard') || {}).dataset?.state")
                 ok(f"★ [{t}] {code} 成分股分頁有清單與甜甜圈（不是空白）", st == "ok", st)
-                rows = J("() => [...document.querySelectorAll('#etfHoldTbl tbody tr')].map(r => ({c: r.dataset.code, w: +r.dataset.w, go: r.classList.contains('go')}))")
+                rows = J("() => [...document.querySelectorAll('#etfHoldTbl tbody tr[data-i]')].map(r => ({c: r.dataset.code, w: +r.dataset.w, go: r.classList.contains('go')}))")
                 ok(f"★ [{t}] {code} 左清單 ≥ 5 列", len(rows) >= 5, len(rows))
                 tw_sum = sum(r["w"] for r in rows)
                 ok(f"[{t}] {code} 權重加總合理（≤ 100.5%、> 0）", 0 < tw_sum <= 100.5, tw_sum)
@@ -1882,12 +1882,35 @@ def t_etf_hold_1007(pg, b, base):
                     ok(f"★ [{t}] 00896 人工整理的資料標「人工整理・資料日期」", "人工整理・資料日期 2026-10-06" in text(lp, "#etfHoldCard h3"), text(lp, "#etfHoldCard h3"))
                 ok(f"[{t}] {code} 沒有橫向捲軸", J("() => document.documentElement.scrollWidth <= innerWidth + 1"))
                 if code == "0050":
+                    # ★ 2026-10-07 17:30 版面：甜甜圈在清單左邊（堆疊時在上）、圖例 11 列、簡稱、色點＝扇區色
+                    lay = J("""() => { const p = document.getElementById('etfHoldPie').getBoundingClientRect(), t = document.getElementById('etfHoldTbl').getBoundingClientRect();
+                      const hex = (h) => { const n = parseInt(h.slice(1), 16); return `rgb(${n >> 16}, ${(n >> 8) & 255}, ${n & 255})`; };
+                      const o = echarts.getInstanceByDom(document.getElementById('etfHoldPie')).getOption(), dat = o.series[0].data;
+                      const lg = [...document.querySelectorAll('#etfHoldLegend .lg')].map(r => ({ nm: r.querySelector('.nm').textContent, pc: r.querySelector('.pc').textContent,
+                        bg: getComputedStyle(r.querySelector('i')).backgroundColor }));
+                      const rws = [...document.querySelectorAll('#etfHoldTbl tbody tr[data-i]')];
+                      const dots = rws.slice(0, 10).map(r => getComputedStyle(r.querySelector('.dot')).backgroundColor);
+                      return { pL: p.left, pR: p.right, pT: p.top, pB: p.bottom, tL: t.left, tT: t.top, lg, dots, sec: dat.map(d => hex(d.itemStyle.color)),
+                        wv: rws.slice(0, 10).map(r => r.querySelector('.wv').textContent), nm: rws.slice(0, 3).map(r => r.querySelector('td.nm').textContent),
+                        sep: !!document.querySelector('#etfHoldTbl tr.hdsep'), hs: document.documentElement.scrollWidth - innerWidth }; }""")
+                    ok(f"★ [{t}] 甜甜圈在清單{'左邊' if W > 1099 else '上方（堆疊）'}", (lay["pR"] <= lay["tL"] + 1) if W > 1099 else (lay["pB"] <= lay["tT"] + 1), lay)
+                    ok(f"★ [{t}] 圖例 11 列（前 10＋其他）", len(lay["lg"]) == 11 and lay["lg"][10]["nm"].startswith("其他"), lay["lg"])
+                    ok(f"★ [{t}] 圖例數值＝清單權重", [x["pc"] for x in lay["lg"][:10]] == lay["wv"], (lay["wv"], [x["pc"] for x in lay["lg"][:10]]))
+                    ok(f"★ [{t}] 清單用簡稱（台積電…，不是全名）", "台積電2330" in lay["nm"] and "台灣積體電路" not in "".join(lay["nm"]), lay["nm"])
+                    ok(f"★ [{t}] 前 10 名色點＝扇區色＝圖例色塊", lay["dots"] == lay["sec"][:10] == [x["bg"] for x in lay["lg"][:10]], (lay["dots"], lay["sec"][:10]))
+                    ok(f"[{t}] 第 10、11 名間有「其他」分隔列", lay["sep"])
+                    ok(f"★ [{t}] 沒有橫向溢出", lay["hs"] <= 1, lay["hs"])
+                    # 滑過圖例第 3 列 → 中心換成該檔、清單對應列高亮
+                    if W > 400:
+                        lp.hover("#etfHoldLegend .lg:nth-child(3)"); lp.wait_for_timeout(300)
+                        hv3 = J("() => ({ c: echarts.getInstanceByDom(document.getElementById('etfHoldPie')).getOption().title[0].text, hi: [...document.querySelectorAll('#etfHoldTbl tr.hi')].map(r => r.dataset.i) })")
+                        ok(f"★ [{t}] 滑過圖例第 3 列 → 中心換成該檔、清單第 3 列高亮", items[2]["name"].rstrip("*")[:3] in hv3["c"] and hv3["hi"] == ["2"], hv3)
                     # 非台股成分：寫原名、不能點
                     fr = J("() => { const r = document.querySelector('#etfHoldTbl tr[data-code=\"AAPL US\"]'); return r ? { go: r.classList.contains('go'), a: !!r.querySelector('a'), t: r.textContent } : null; }")
                     ok(f"[{t}] 非台股成分寫原名、不能點", fr and not fr["go"] and not fr["a"] and "Apple Inc." in fr["t"], fr)
                     # 搜尋：輸入第二名的名稱 → 只剩它
                     nm2 = items[1]["name"]
-                    lp.fill("#etfHoldQ", nm2); lp.wait_for_timeout(200)
+                    lp.fill("#etfHoldQ", nm2.rstrip("*")); lp.wait_for_timeout(200)
                     vis = J("() => [...document.querySelectorAll('#etfHoldTbl tbody tr')].filter(r => !r.hidden).map(r => r.dataset.code)")
                     ok(f"★ [{t}] 搜尋「{nm2}」→ 清單只剩相符的", items[1]["code"] in vis and len(vis) < len(rows), vis)
                     lp.fill("#etfHoldQ", ""); lp.wait_for_timeout(200)
@@ -1895,7 +1918,7 @@ def t_etf_hold_1007(pg, b, base):
                         # 滑過清單第 2 列 → 甜甜圈中心換成那一檔、該扇區外框加粗
                         lp.hover("#etfHoldTbl tbody tr:nth-child(2) td.nm"); lp.wait_for_timeout(300)
                         hv = J("() => { const o = echarts.getInstanceByDom(document.getElementById('etfHoldPie')).getOption(); return { c: o.title[0].text, bw: o.series[0].data[1].itemStyle.borderWidth }; }")
-                        ok(f"★ [{t}] 滑過清單第 2 列 → 甜甜圈中心換成該檔、扇區強調", nm2[:4] in hv["c"] and hv["bw"] == 3, hv)
+                        ok(f"★ [{t}] 滑過清單第 2 列 → 甜甜圈中心換成該檔、扇區強調", nm2.rstrip("*")[:4] in hv["c"] and hv["bw"] == 3, hv)
                         # 滑過扇區 → 清單對應列高亮
                         box = J("() => { const e = document.getElementById('etfHoldPie'); const r = e.getBoundingClientRect(); return [r.left, r.top, r.width, r.height]; }")
                         lp.mouse.move(box[0] + box[2] * 0.5 + box[2] * 0.40 * 0.25, box[1] + box[3] * 0.5 - box[3] * 0.40 * 0.97); lp.wait_for_timeout(350)
