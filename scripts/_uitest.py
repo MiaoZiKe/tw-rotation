@@ -26060,7 +26060,110 @@ def t_title_dup_1007(b, base):
     ok(f"★ [{T}] 頁首大標沒有被自己的框切掉（scrollHeight ≤ clientHeight）", clip == [], clip)
 
 
+
+# ★ 2026-10-08 Andy：「確認所有2D圖是否像這樣一樣 線條被裁減了」（先進封裝左欄走線卡的編號圈壓字、右欄卡片／引線被切）。
+#   普查全站 2D 剖析圖（產業鏈各分頁的 dg 圖＋題材剖析圖），1440／1280／1024／800 四種寬度各量一次：
+#     ① 卡片的編號圈壓到文字，或文字沒從編號圈右邊開始（說明卡的 .bd 跨滿兩欄就會掉成「圈一行、字一行」）
+#     ② 卡片、SVG 文字、線條、引線超出可見範圍（祖先 overflow 或視窗切掉，含 .dgcanvas 的橫向捲動）
+#     ③ 卡片互相重疊
+#     ④ 頁面被撐出橫向捲軸
+#   路由不寫死：從產業鏈分頁（button[data-c]）與各鏈的二層分頁（#dgPick a[data-dgid]）、themes.json 動態收集，
+#   新增圖自動進普查。一律 2D（tw.dg3d=0）。⚠ 一律 --workers 1。
+DGCLIP_JS = r"""
+(() => {
+  const out = [];
+  const vw = document.documentElement.clientWidth;
+  const R = (e) => e.getBoundingClientRect();
+  const vis = (e) => { const r = R(e); if (!r.width && !r.height) return false; const cs = getComputedStyle(e);
+    return cs.visibility !== 'hidden' && cs.display !== 'none' && !e.closest('[hidden]'); };
+  const clipOf = (el) => {
+    let x0 = 0, x1 = vw;
+    for (let a = el.parentElement; a && a !== document.documentElement; a = a.parentElement) {
+      const isSvg = a instanceof SVGElement;
+      if (isSvg && a.tagName.toLowerCase() !== 'svg') continue;
+      const cs = getComputedStyle(a);
+      if (cs.overflowX !== 'visible' || (isSvg && cs.overflow !== 'visible')) {
+        const r = R(a), l = r.left + (isSvg ? 0 : a.clientLeft), cw = isSvg ? r.width : a.clientWidth;
+        x0 = Math.max(x0, l); x1 = Math.min(x1, l + cw);
+      }
+    }
+    return { x0, x1 };
+  };
+  const hosts = [...document.querySelectorAll('.dgwrap')].filter(vis);
+  const seen = new Set();
+  for (const host of hosts) {
+    const name = ((host.querySelector('.dghead b, text.ttl') || {}).textContent || host.id || 'dg').trim().slice(0, 30);
+    const add = (kind, txt) => { const k = kind + '|' + txt; if (seen.has(k)) return; seen.add(k); out.push(name + '：' + kind + '「' + (txt || '').slice(0, 24) + '」'); };
+    host.querySelectorAll('.dgc').forEach((c) => {
+      const no = c.querySelector(':scope > .no'), bd = c.querySelector(':scope > .bd');
+      if (!no || !bd || !vis(c)) return;
+      const a = R(no), t = bd.querySelector('b') || bd, rg = document.createRange(); rg.selectNodeContents(t);
+      const b = rg.getBoundingClientRect();
+      const ov = Math.min(a.right, b.right) - Math.max(a.left, b.left), oh = Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top);
+      if (ov > 1 && oh > 1) add('編號圈壓到文字', c.innerText.replace(/\s+/g, ' '));
+      else if (b.left < a.right - 1) add('文字沒從編號圈右邊開始', c.innerText.replace(/\s+/g, ' '));
+    });
+    for (const e of [...host.querySelectorAll('.dgc, svg text, .dglead path, svg line, svg polyline')].filter(vis)) {
+      const r = R(e); if (r.width < 1 && r.height < 1) continue;
+      const c = clipOf(e), over = Math.max(c.x0 - r.left, r.right - c.x1);
+      if (over > 2) add((e.matches('.dgc') ? '卡片' : e.matches('text') ? '文字' : '線條') + '超出可見範圍 ' + Math.round(over) + 'px',
+        (e.textContent || e.getAttribute('d') || e.tagName).replace(/\s+/g, ' ').trim());
+    }
+    const cards = [...host.querySelectorAll('.dgc')].filter(vis).map((c) => [c, R(c)]);
+    for (let i = 0; i < cards.length; i++) for (let j = i + 1; j < cards.length; j++) {
+      const a = cards[i][1], b = cards[j][1];
+      if (Math.min(a.right, b.right) - Math.max(a.left, b.left) > 2 && Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top) > 2)
+        add('卡片互相重疊', cards[i][0].innerText.replace(/\s+/g, ' '));
+    }
+  }
+  if (document.documentElement.scrollWidth > vw + 1) out.push('頁面出現橫向捲軸 ' + document.documentElement.scrollWidth + 'px');
+  return { n: hosts.length, out };
+})()
+"""
+DGCLIP_WIDTHS = (1440, 1280, 1024, 800)
+
+
+def t_dgclip_1008(b, base):
+    T = "2D 圖裁切普查1008"
+    c = b.new_context(viewport={"width": 1440, "height": 1000})
+    c.add_init_script("try{localStorage.setItem('tw.dg3d','0')}catch(e){}")
+    pg = c.new_page()
+    pg.goto(f"{base}#industry/semiconductor", wait_until="domcontentloaded"); pg.wait_for_timeout(2500)
+    chains = pg.evaluate("() => [...new Set([...document.querySelectorAll('button[data-c][data-dg]')].map(a => a.dataset.c))]")
+    routes = []
+    for ch in chains:
+        pg.goto(f"{base}#industry/{ch}", wait_until="domcontentloaded"); pg.wait_for_timeout(1500)
+        for r in pg.evaluate("() => [...document.querySelectorAll('#dgPick a[data-dgid]')].map(a => a.getAttribute('href').slice(1))"):
+            if r not in routes: routes.append(r)
+    tids = pg.evaluate("async () => (await (await fetch('data/themes.json')).json()).themes.map(t => t.id)")
+    routes += ["themes/" + t for t in tids]
+    ok(f"{T}：收得到產業鏈剖析圖與題材（{len(routes)} 條路由）", len(routes) >= 40, routes[:5])
+    probs, drawn, card_seen = [], 0, 0
+    for w in DGCLIP_WIDTHS:
+        pg.set_viewport_size({"width": w, "height": 1000})
+        for r in routes:
+            pg.goto("about:blank"); pg.goto(f"{base}#{r}", wait_until="domcontentloaded"); pg.wait_for_timeout(1400)
+            got = pg.evaluate(DGCLIP_JS)
+            if got["n"]: drawn += 1
+            card_seen += pg.evaluate("() => document.querySelectorAll('.dgwrap .dgc').length")
+            probs += [f"{w} {r}：{x}" for x in got["out"]]
+    # 真的有圖被量到（不是整批空白假綠）：產業鏈 dg 每張都要畫得出來；題材沒有剖析圖的可以跳過
+    n_dg = sum(1 for r in routes if not r.startswith("themes/"))
+    ok(f"{T}：四種寬度量到的圖數 ≥ 產業鏈剖析圖數（{drawn} ≥ {n_dg * len(DGCLIP_WIDTHS)}），而且有說明卡片", drawn >= n_dg * len(DGCLIP_WIDTHS) and card_seen > 0, (drawn, card_seen))
+    ok(f"{T}：0 個裁切／壓字／重疊（{len(probs)} 個）", not probs, probs[:30])
+    # 先進封裝（Andy 那張）左欄走線卡：真的去量「文字從圈右邊開始」，而且五張都在
+    pg.set_viewport_size({"width": 1700, "height": 1000})
+    pg.goto("about:blank"); pg.goto(f"{base}#industry/semiconductor/dg/ai_adv_packaging", wait_until="domcontentloaded"); pg.wait_for_timeout(1800)
+    gap = pg.evaluate("""() => [...document.querySelectorAll('.dgc.note')].filter(c => c.querySelector(':scope > .no')).map(c => {
+        const a = c.querySelector('.no').getBoundingClientRect(), b = c.querySelector('.bd b').getBoundingClientRect();
+        return [c.querySelector('.no').textContent, Math.round(b.left - a.right), Math.round(Math.abs((a.top + a.bottom) / 2 - (b.top + b.bottom) / 2))]; })""")
+    ok(f"{T}：先進封裝走線卡 1～5 的文字在編號圈右邊、同一行（{gap}）",
+       len(gap) == 5 and all(g[1] >= 4 and g[2] <= 8 for g in gap), gap)
+    c.close()
+
+
 SECTIONS = {
+    "2D 圖裁切普查1008":   lambda pg, b, base, code: t_dgclip_1008(b, base),
     "標題重複普查":        lambda pg, b, base, code: t_title_dup_1007(b, base),
     "時間軸分隔線1006":    lambda pg, b, base, code: t_timegrid_1006(pg, base),
     "頁首圖示鈕1006":      lambda pg, b, base, code: t_topicons_1006(pg, base),

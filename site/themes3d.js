@@ -72,7 +72,7 @@
     return { ART_MH: mh, ART_B, ART_C: (ART_T + ART_B) / 2, CAP_Y: ART_B + 20, SUB_Y0: ART_B + 39 };
   }
   // 畫布寬的上下限：下限 900（容器再窄就維持 900 左右滑，#226 字級守住優先），上限 2400（超寬螢幕再置中）
-  const CW_MIN = 900, CW_MAX = 2400;
+  const CW_MIN = 600, CW_MAX = 2400;
   let ctxW = 0;      // fit() 量到的容器內寬；0＝還沒量（app.js 第一次輸出字串時），就用 o.cw（980）
   let curTid = '';   // 正在畫哪一個題材（包在 T.* 外面設定），寫進 svg 的 data-tid，fit() 才知道怎麼重畫
   // 說明字 13px 的估寬：全形字 13px、半形字 7.3px（12px 時代是 12／6.7，等比放大）

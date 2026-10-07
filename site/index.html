@@ -2674,7 +2674,10 @@ tbody tr:last-child td{border-bottom:0}
 .dgc .bd{min-width:0}
 .dgc b{display:block;font-size:var(--dg-fs-lbl,12.5px);font-weight:600;color:var(--dg-ink);line-height:1.4}
 .dgc i{display:block;font-style:normal;color:var(--dg-ink-3);margin-top:2px}
-.dgc.note{cursor:default} .dgc.note .bd{grid-column:1 / -1}
+/* ★ 2026-10-07（Andy：「線條被裁減了」，先進封裝左欄五張走線卡）：以前 .note 的 .bd 一律跨滿兩欄，
+   帶編號的說明卡（走線 1～5）就變成「編號圈自己一行、文字掉到下一行貼著左緣」，看起來像圈壓在字上。
+   只有「沒有編號」（.bd 是第一個子元素）的說明卡才跨滿；有編號的照零件卡一樣：圈在左、文字從圈的右邊開始。*/
+.dgc.note{cursor:default} .dgc.note > .bd:first-child{grid-column:1 / -1}
 .dgc.warn{--dg-card-c:var(--dg-warn)} .dgc.warn b,.dgc.warn i{color:var(--dg-warn)}
 .dgc:hover{border-color:var(--card-c)}
 .dgc.sel{border-color:var(--card-c);background:color-mix(in srgb,var(--card-c) 12%,var(--dg-card-f))}
