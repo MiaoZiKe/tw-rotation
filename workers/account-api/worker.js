@@ -2146,3 +2146,13 @@ Hub.prototype.adminPlansPut = async function (req, b) {
   }
   return admOrigPlansPut2.call(this, req, b);
 };
+
+/* 2026-10-07 16:30 Andy：「將我把 kcq01010909 帳號設為最高管理權限，他不會需要被限制」→ 擁有者（ADMIN_EMAILS）一律豁免所有範本限制：
+   /v1/perm/me 對擁有者回「全開」（feats／lims 空＝每項照預設全開、dq null＝不限）。data-gw 換權杖時讀的也是這一份，所以付費資料閘道一起豁免；
+   每日次數（/v1/quota/hit）、自選上限（/v1/lists/put）、data-gw 裝置數與每日額度原本就對「管理者」豁免，擁有者必然是管理者。*/
+const ownOrigPermMe = Hub.prototype.permMe;
+Hub.prototype.permMe = async function (req, b) {
+  const v = await this.auth(req, b || {});
+  if (!v || !this.isOwner(v.user)) return ownOrigPermMe.call(this, req, b);
+  return this.json(req, { who: 'owner', plan: 'owner', planName: '擁有者（不受限制）', feats: {}, lims: {}, dq: null, owner: true });
+};

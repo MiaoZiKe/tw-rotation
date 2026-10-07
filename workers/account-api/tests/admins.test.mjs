@@ -135,3 +135,21 @@ test('刪除範本頁籤只限擁有者：一般管理者 403（範本還在）�
   assert.ok((await (await post(hub, '/v1/admin/plans/get', { t: a })).json()).plans.some((p) => p.id === 'p_test'), '範本還在');
   assert.equal((await post(hub, '/v1/admin/plans/put', { t: a, id: 'p_test', del: true })).status, 200);
 });
+
+test('擁有者豁免所有限制：範本功能全關、每日額度 0、自選上限 1 頁 1 檔，擁有者的 perm/me 仍全開、quota/hit 不被擋、lists/put 不被擋；一般會員同範本被擋', async () => {
+  const { hub } = makeHub(env());
+  const a = (await login(hub, 'andy@example.com')).j.tok;
+  const m = (await login(hub, 'mem@example.com')).j.tok;
+  assert.equal((await post(hub, '/v1/admin/plans/put', { t: a, id: 'p_lock', name: '全鎖', feats: { 'ov.heat': false, 'watch.tabs': 1, 'watch.size': 1 }, dq: 0 })).status, 200);
+  for (const email of ['andy@example.com', 'mem@example.com']) assert.equal((await post(hub, '/v1/admin/perm/put', { t: a, email, plan: 'p_lock', over: {} })).status, 200);
+  const pm = await (await post(hub, '/v1/perm/me', { t: m })).json();
+  assert.equal(pm.feats['ov.heat'], false); assert.equal(pm.dq, 0);
+  const po = await (await post(hub, '/v1/perm/me', { t: a })).json();
+  assert.deepEqual([po.who, po.feats, po.lims, po.dq], ['owner', {}, {}, null]);
+  const hm = await (await post(hub, '/v1/quota/hit', { t: m, k: 'quota.all', key: '2330' })).json();
+  assert.equal(hm.over, true, '一般會員額度 0 被擋');
+  for (const key of ['2330', '2317', '2454']) assert.notEqual((await (await post(hub, '/v1/quota/hit', { t: a, k: 'quota.all', key })).json()).over, true, '擁有者不被擋');
+  const big = [1, 2, 3].map((i) => ({ id: 't' + i, name: '清單' + i, codes: Array.from({ length: 30 }, (_, j) => String(1101 + j)) }));
+  assert.equal((await post(hub, '/v1/lists/put', { t: m, lists: big, rev: 0 })).status, 403, '一般會員超過上限被擋');
+  assert.equal((await post(hub, '/v1/lists/put', { t: a, lists: big, rev: 0 })).status, 200, '擁有者不被擋');
+});
