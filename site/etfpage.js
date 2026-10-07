@@ -296,6 +296,10 @@
 #v-etf .inclist{border:1px solid var(--line);border-radius:10px;background:var(--panel-2);padding:8px;min-width:0;display:flex;flex-direction:column;max-height:380px}
 #v-etf .inclist .ilhd{display:flex;gap:6px;align-items:center}
 #v-etf .inclist input[type=search]{flex:1;min-width:0;height:28px;border-radius:8px;border:1px solid var(--line-2);background:var(--panel-3);color:var(--ink);padding:0 8px;font-size:13px}
+#v-etf .inclist .ilfq{display:flex;flex-wrap:wrap;gap:4px;margin:6px 0 2px}
+#v-etf .inclist .ilfq button{font-size:12px;height:24px;padding:0 8px;border-radius:12px;border:1px solid var(--line-2);background:var(--panel-3);color:var(--ink-2);cursor:pointer}
+#v-etf .inclist .ilfq button.on{background:var(--cyan);border-color:var(--cyan);color:var(--bg)}
+#v-etf .inclist .ilfq button small{opacity:.75;margin-left:2px}
 #v-etf .inclist .ilmsg{margin:4px 0 0;font-size:12px;color:var(--amber);min-height:0}
 #v-etf .inclist .ilmsg:empty{display:none}
 #v-etf .inclist .ilbody{overflow-y:auto;margin-top:6px;flex:1;min-height:0}
@@ -1357,7 +1361,7 @@
     function incLoad() {
     if (S.inc) return;
     const num = (k, d) => { const v = +LS.get(k, ''); return v > 0 ? v : d; };
-    S.inc = { year: num('tw.etf.inc.year', 1000000), mon: num('tw.etf.inc.mon', 20000), mode: LS.get('tw.etf.inc.mode', 'y') === 'm' ? 'm' : 'y',
+    S.inc = { fq: LS.get('tw.etf.inc.fq', 'all') || 'all', year: num('tw.etf.inc.year', 1000000), mon: num('tw.etf.inc.mon', 20000), mode: LS.get('tw.etf.inc.mode', 'y') === 'm' ? 'm' : 'y',
       main: LS.get('tw.etf.inc.main', 'm') === 'x' ? 'x' : 'm',
       tab: LS.get('tw.etf.inc.tab', 's') === 'c' ? 'c' : 's', sort: LS.get('tw.etf.inc.sort', 'y'), csort: LS.get('tw.etf.inc.csort', 'cost'),
       scope: LS.get('tw.etf.inc.scope', 'div'), nhi: LS.get('tw.etf.inc.nhi', '') === '1', cview: LS.get('tw.etf.inc.cview', 'clock'),
@@ -1496,6 +1500,7 @@
   <p class="incq" id="incSQ"></p>
   <div class="incsg"><div class="incbarw"><div class="snkey" id="incChips"></div><div id="incBar" class="chart"></div></div>
     <div class="inclist" id="incListBox"><div class="ilhd"><input type="search" id="incSearch" placeholder="搜尋名稱或代號" aria-label="搜尋 ETF"><button type="button" class="btn small" id="incReset">回前 5</button></div>
+      <div class="ilfq" id="incFq" role="tablist" aria-label="依配息頻率分類"></div>
       <p class="ilmsg" id="incListMsg"></p><div class="ilbody" id="incList"></div></div></div>
   <div class="incdet" id="incDet" hidden></div>
 </div>
@@ -1543,7 +1548,10 @@
     $$('#incCSort button').forEach((b) => { b.onclick = () => { S.inc.csort = b.dataset.v; LS.set('tw.etf.inc.csort', S.inc.csort); S.inc.ci = 0; drawInc(); }; });
     $('#incNhi').onchange = (e) => { S.inc.nhi = e.target.checked; LS.set('tw.etf.inc.nhi', S.inc.nhi ? '1' : ''); drawInc(); };
     $('#incSearch').oninput = (e) => { S.inc.q = e.target.value.trim(); drawIncList(S._incR || []); };
-    $('#incReset').onclick = () => { S.inc.sel = null; $('#incListMsg').textContent = ''; drawInc(); };
+    // v7（Andy：清單要依月配／雙月配／季配／半年配分類）：「回前 5」取目前這一類的前 5 檔；「全部」時照舊回整體前 5
+    $('#incReset').onclick = () => { const fq = S.inc.fq || 'all', R0 = S._incR || [];
+      S.inc.sel = fq === 'all' ? null : R0.filter((r) => r.it.freq === fq).slice(0, 5).map((r) => r.it.code);
+      $('#incListMsg').textContent = ''; drawInc(); };
     // 複利
     $('#cxObj').onchange = (e) => { S.inc.obj = e.target.value; drawCx(); };
     $('#cxFrom').max = todayTW();
@@ -1673,8 +1681,17 @@
   function drawIncList(R) {
     const k = S.inc.sort, q = (S.inc.q || '').toLowerCase(), list = $('#incList'); if (!list) return;
     const sel = S.inc.sel || R.slice(0, 5).map((r) => r.it.code), full = sel.length >= 5;
-    const rows = R.map((r, i) => ({ r, i })).filter(({ r }) => !q || r.it.code.toLowerCase().includes(q) || (r.it.name || '').toLowerCase().includes(q));
-    list.innerHTML = rows.map(({ r, i }) => `<div class="ilr${sel.includes(r.it.code) ? ' in' : ''}${S.inc.det === r.it.code ? ' on' : ''}" data-code="${esc(r.it.code)}">
+    /* v7：頻率分頁。只顯示有檔數的類別；已勾選但不在這一類的檔照樣留在圖上（sel 不動），只是清單不列。搜尋在這一類裡面找。 */
+    const FQS = ['月配', '雙月配', '季配', '半年配', '年配'], cnt = {}; R.forEach((r) => { cnt[r.it.freq] = (cnt[r.it.freq] || 0) + 1; });
+    if (S.inc.fq && S.inc.fq !== 'all' && !cnt[S.inc.fq]) S.inc.fq = 'all';
+    const fq = S.inc.fq || 'all', fb = $('#incFq');
+    if (fb) {
+      fb.innerHTML = [['all', '全部', R.length]].concat(FQS.filter((x) => cnt[x]).map((x) => [x, x, cnt[x]]))
+        .map(([v, t, n]) => `<button type="button" role="tab" data-v="${esc(v)}"${v === fq ? ' class="on" aria-selected="true"' : ''}>${esc(t)}<small>${n}</small></button>`).join('');
+      $$('button', fb).forEach((b) => { b.onclick = () => { S.inc.fq = b.dataset.v; LS.set('tw.etf.inc.fq', S.inc.fq); drawIncList(R); }; });
+    }
+    const rows = R.filter((r) => fq === 'all' || r.it.freq === fq).map((r, i) => ({ r, i })).filter(({ r }) => !q || r.it.code.toLowerCase().includes(q) || (r.it.name || '').toLowerCase().includes(q));
+    list.innerHTML = rows.map(({ r, i }) => `<div class="ilr${sel.includes(r.it.code) ? ' in' : ''}${S.inc.det === r.it.code ? ' on' : ''}" data-code="${esc(r.it.code)}" data-fq="${esc(r.it.freq || '')}">
       <input type="checkbox" aria-label="加入主圖" ${sel.includes(r.it.code) ? 'checked' : full ? 'disabled title="最多 5 檔，先取消一檔"' : ''}><span class="rk">${i + 1}</span>
       <button type="button" class="iln" title="${esc(r.it.name)} ${esc(r.it.code)}">${fqBadge(r.it.freq)}<span class="nm">${esc(r.it.name)}</span><span class="cd">${esc(r.it.code)}</span></button>
       <span class="mv">${metricTxt(r, k)}</span><span class="lt">現價 NT$ ${A().fmt.n(r.it.close, 2)}・需 ${r.lots.toLocaleString()} 張・${ntw(r.cost)}</span></div>`).join('') || '<div class="etfprep">找不到</div>';
