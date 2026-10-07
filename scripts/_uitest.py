@@ -58255,23 +58255,19 @@ def t_layout_fit_1007(pg, base):
         else:
             notes.append(f"{T0}：本機 etf_holdings.json 沒有 0050（state={st}），成分股那兩條沒量")
 
-        # ⑤ ETF 總覽：技術面訊號在上面滿寬一條、籌碼快照兩欄，沒有大空白
+        # ⑤ ETF 總覽（2026-10-07 深夜 Andy：「ETF 都不需要技術分析」）：沒有技術面訊號卡、沒有技術分，籌碼快照兩欄
         pg.goto("about:blank"); pg.goto(f"{base}#stock/00919", wait_until="domcontentloaded")
-        wait_until(pg, "() => !!document.getElementById('skChipCard') && !!document.getElementById('ovFacets')", 15000)
+        wait_until(pg, "() => !!document.getElementById('skChipCard')", 15000)
         pg.wait_for_timeout(800)
-        m = pg.evaluate("""() => { const R = (e) => e.getBoundingClientRect();
-            const sg = document.getElementById('ovFacets'), sc = sg.querySelector('.card') || sg, ch = document.getElementById('skChipCard');
+        m = pg.evaluate("""() => { const R = (e) => e.getBoundingClientRect(), ch = document.getElementById('skChipCard');
             const kids = [...ch.querySelectorAll('.mixes > *')].map(R);
             const lefts = [...new Set(kids.map(r => Math.round(r.left)))].sort((a, b) => a - b);
             const colH = lefts.map(l => { const k = kids.filter(r => Math.round(r.left) === l); return Math.max(...k.map(r => r.bottom)) - Math.min(...k.map(r => r.top)); });
-            // 卡的內容高＝第一個看得見的子元素頂到最後一個的底；跟「卡高扣掉上下內距」比（內距不是空白）
-            const vis = [...sc.children].filter(e => e.getClientRects().length && R(e).height > 0);
-            const cs = getComputedStyle(sc), pad = parseFloat(cs.paddingTop) + parseFloat(cs.paddingBottom) + parseFloat(cs.borderTopWidth) + parseFloat(cs.borderBottomWidth);
-            const inner = vis.length ? (Math.max(...vis.map(e => R(e).bottom)) - Math.min(...vis.map(e => R(e).top))) / Math.max(1, R(sc).height - pad) * R(sc).height : 0;
-            return { sigW: Math.round(R(sc).width), chipW: Math.round(R(ch).width), sigH: Math.round(R(sc).height), sigInner: Math.round(inner),
-                     sigBottom: Math.round(R(sc).bottom), chipTop: Math.round(R(ch).top), cols: lefts.length, colH: colH.map(Math.round) }; }""")
-        ok(f"★ {T0} 00919 總覽：技術面訊號在籌碼快照上面、同寬（{m['sigW']} vs {m['chipW']}）", m["sigBottom"] <= m["chipTop"] and abs(m["sigW"] - m["chipW"]) <= 4, m)
-        ok(f"★ {T0} 00919 總覽：技術面訊號卡內容高 ≥ 卡高 70%（{m['sigInner']}／{m['sigH']}）", m["sigInner"] >= 0.7 * m["sigH"], m)
+            return { sig: !!document.getElementById('ovFacets') || !!document.getElementById('ovF-sig'),
+                     tech: /技術分/.test((document.getElementById('skIdent') || document.body).closest('body').querySelector('#stockPage, #v-stock')?.innerText || ''),
+                     cols: lefts.length, colH: colH.map(Math.round) }; }""")
+        ok(f"★ {T0} 00919 總覽：ETF 不放技術面訊號卡", not m["sig"], m)
+        ok(f"★ {T0} 00919：ETF 不顯示技術分", not m["tech"], m)
         ok(f"★ {T0} 00919 總覽：籌碼快照分兩欄、兩欄高度差 ≤ 25%（{m['colH']}）",
            m["cols"] == 2 and min(m["colH"]) >= 0.75 * max(m["colH"]), m)
         pg.set_viewport_size({"width": 800, "height": 900}); pg.wait_for_timeout(800)

@@ -4003,7 +4003,8 @@
      點「⋯ N」原地展開一個小框列出收起來的那幾顆（點外面／Esc 收）。每顆：[鍵, 字, 額外 class, 滑過說明]。*/
   function stockTags(s, tier, code) {
     /* ★ 2026-10-05（Andy，#stock/00947）：ETF 沒有本益比、同業分位、營收 YoY —— 只留技術分與資料完整度 */
-    if (isEtf(code)) return [['tech', `技術分 ${A.fmt.n(s.tech_score, 0)}`, '', ''], ['tier', tier[0], tier[1], tier[2]]];
+    // ★ 2026-10-07 深夜 Andy：「ETF 都不需要技術分析」→ 技術分也拿掉，只留資料完整度
+    if (isEtf(code)) return [['tier', tier[0], tier[1], tier[2]]];
     return [
       ['tech', `技術分 ${A.fmt.n(s.tech_score, 0)}`, '', ''],
       ['pe', `本益比 ${s.pe ? A.fmt.n(s.pe, 1) : '—'}`, '', ''],
@@ -6238,7 +6239,8 @@
     const sig = SG ? SG.view({ summary: pg.summary, verdict: pg.verdict }, A.fmt, { tag: true, id: 'ovF-sig' }) : '';
     const etf = isEtf(pg.meta && pg.meta.code);
     // ETF：不放基本面卡（EPS／ROE／毛利率）與 AI 分析（含基本面一面），只留籌碼快照與技術面訊號
-    const right = !etf && AI && AI.ovCard ? AI.ovCard(pg, A.fmt, sig) : (sig ? `<div class="skfacets" id="ovFacets" data-n="1">${sig}</div>` : '');
+    /* ★ 2026-10-07 深夜 Andy（看 ETF 總覽）：「ETF 都不需要技術分析」→ ETF 不放技術面訊號卡，只留籌碼快照 */
+    const right = etf ? '' : (AI && AI.ovCard ? AI.ovCard(pg, A.fmt, sig) : (sig ? `<div class="skfacets" id="ovFacets" data-n="1">${sig}</div>` : ''));
     /* ★ 2026-10-07（Andy 看 00919「總覽」：「這樣右邊不要空白 讓他填滿 可以將上下欄位便左右 適當調整」）：
        ETF 沒有基本面卡與 AI 卡，原本落進三欄版面只剩兩張 —— 籌碼快照（617px 高）｜技術面訊號（一排標籤，下面大片空白）｜第三欄空著。
        改成 data-cols="etf"：技術面訊號放上面當一條橫跨整列的訊號列（標籤橫排、本來就只有一兩行），
