@@ -106,6 +106,20 @@ def main4() -> None:
             hd[h] = xs
         q = S.post("https://etf.allianzgi.com.tw/webapi/api/Fund/GetFundAssets", json={"FundID": "E0001"}, headers=hd, timeout=30)
         print("標頭", h, q.status_code, q.text[:300])
+        if q.status_code == 200 and "--round5" in sys.argv:
+            for path, body in (("Fund/GetFundOverview", {}), ("Category/GetFundDropdownOptions", {}), ("Fund/GetFundLatestNav", {"FundID": "E0001"})):
+                d = S.post("https://etf.allianzgi.com.tw/webapi/api/" + path, json=body, headers=hd, timeout=30)
+                print(" ", path, d.status_code, d.text[:1500])
+            for i in range(1, 12):
+                fid = f"E{i:04d}"
+                d = S.post("https://etf.allianzgi.com.tw/webapi/api/Fund/GetFundAssets", json={"FundID": fid}, headers=hd, timeout=30)
+                try:
+                    j = d.json().get("Entries") or {}
+                    print("  assets", fid, d.status_code, json.dumps((j.get("Data") or {}).get("FundAsset"), ensure_ascii=False),
+                          [(t.get("TableTitle"), (t.get("Rows") or [])[:1]) for t in (j.get("Data") or {}).get("Table") or []][:4])
+                except Exception as e:  # noqa: BLE001
+                    print("  assets", fid, d.status_code, d.text[:200], e)
+            break
         if q.status_code == 200:
             for i in range(1, 12):
                 fid = f"E{i:04d}"
@@ -190,4 +204,4 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-    main4() if "--round4" in sys.argv else main3() if "--round3" in sys.argv else (main2() if "--round2" in sys.argv else main())
+    main4() if ("--round4" in sys.argv or "--round5" in sys.argv) else main3() if "--round3" in sys.argv else (main2() if "--round2" in sys.argv else main())

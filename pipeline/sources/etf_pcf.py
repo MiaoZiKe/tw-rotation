@@ -1200,7 +1200,9 @@ def _name_match(short: str, names: dict[str, str]) -> str | None:
     by = {_norm(v): c for c, v in names.items()}
     if n in by:
         return by[n]
-    hit = [c for k, c in by.items() if k and (n in k or k in n)]
+    strip = lambda x: re.sub(r"^玉山", "", x)  # noqa: E731 —— 去掉投信名再比，「全球算力」才包得進「未來全球算力」
+    sn = strip(n)
+    hit = [c for k, c in by.items() if sn and strip(k) and (sn in strip(k) or strip(k) in sn)]
     return hit[0] if len(hit) == 1 else None
 
 
