@@ -65,6 +65,9 @@ def _iso(s: Any) -> str | None:
     if s is None:
         return None
     t = str(s).strip()
+    m = re.match(r"^/Date\((\d+)", t)                      # .NET JSON 日期（毫秒）→ 台北日期
+    if m:
+        return (dt.datetime.utcfromtimestamp(int(m.group(1)) / 1000) + dt.timedelta(hours=8)).date().isoformat()
     m = re.match(r"^(\d{2,3})/(\d{1,2})/(\d{1,2})", t)          # 民國
     if m and int(m.group(1)) < 1911:
         return f"{int(m.group(1)) + 1911:04d}-{int(m.group(2)):02d}-{int(m.group(3)):02d}"
@@ -237,8 +240,29 @@ UNI_PCF = "https://www.ezmoney.com.tw/ETF/Transaction/GetPCF"
 _STOCK_KEYS = ("stock", "Stock", "asset", "Asset")
 
 
+def _walk_rows(obj):
+    """把巢狀 JSON 裡所有 dict 攤平出來（統一的持股在 asset 底下，層數以實測為準）。"""
+    if isinstance(obj, dict):
+        yield obj
+        for v in obj.values():
+            yield from _walk_rows(v)
+    elif isinstance(obj, list):
+        for v in obj:
+            yield from _walk_rows(v)
+
+
+def _field(d: dict, pat: str):
+    for k, v in d.items():
+        if re.search(pat, str(k), re.I) and v not in (None, ""):
+            return v
+    return None
+
+
 def parse_uni(etf: str, payload: dict) -> list[dict]:
-    """GetPCF：pcf[]（摘要，TranDate＝淨值日）＋持股清單。持股清單的鍵名以實測為準，找含股票代號的那個陣列。"""
+    """GetPCF：pcf[]（摘要，TranDate＝淨值日）＋ asset（持股，含股票代號／名稱／股數／權重）。
+
+    asset 底下的鍵名是用「名稱樣式」找的（代號＝code/no、名稱＝name、權重＝weight/rate/ratio/percent、
+    股數＝share/qty），因為統一不同基金類型的 asset 結構略有不同；找不到就回空，由呼叫端記前 200 字。"""
     if not isinstance(payload, dict):
         return []
     day = None
@@ -247,18 +271,15 @@ def parse_uni(etf: str, payload: dict) -> list[dict]:
         if day:
             break
     out = []
-    for k, v in payload.items():
-        if k in ("pcf", "fund") or not isinstance(v, list) or not v or not isinstance(v[0], dict):
+    for d in _walk_rows(payload.get("asset")):
+        code = _field(d, r"(code|no)$")
+        if not code or not re.match(r"^\s*\d{4,6}[A-Z]?\s*$", str(code)):
             continue
-        for s in v:
-            code = next((s.get(x) for x in ("CODE", "StockCode", "stockCode", "StockNo", "sStockNo", "Code") if s.get(x)), None)
-            if not code or not re.match(r"^\s*\d{4,6}[A-Z]?\s*$", str(code)):
-                continue
-            name = next((s.get(x) for x in ("NAME", "StockName", "stockName", "sStockName", "Name") if s.get(x)), "")
-            w = next((s.get(x) for x in ("WEIGHT", "Weight", "weight", "Ratio", "NavRate", "Percent") if s.get(x) is not None), None)
-            sh = next((s.get(x) for x in ("SHARE", "Share", "Qty", "QTY", "Shares", "Amount") if s.get(x) is not None), None)
-            out.append({"date": _iso(s.get("TranDate")) or day, "etf": etf, "code": str(code).strip(), "name": str(name).strip(),
-                        "weight": _num(w), "shares": _num(sh), "issuer": "統一", "src": UNI_PCF})
+        name = _field(d, r"name") or ""
+        w = _field(d, r"(weight|rate|ratio|percent|pct)")
+        sh = _field(d, r"(share|qty|quantity)")
+        out.append({"date": day, "etf": etf, "code": str(code).strip(), "name": str(name).strip(),
+                    "weight": _num(w), "shares": _num(sh), "issuer": "統一", "src": UNI_PCF})
     return out
 
 
@@ -286,8 +307,60 @@ def uni(today: dt.date | None = None) -> pd.DataFrame:
         p = _req("POST", UNI_PCF, json_body={"fundCode": fc, "date": roc, "specificDate": False})
         got = parse_uni(etf, p) if p else []
         if p and not got:
-            log.info("統一 %s 回應裡找不到持股陣列，鍵：%s（前 200 字）：%s", etf,
-                     list(p.keys()) if isinstance(p, dict) else type(p).__name__, _snip(p))
+            log.info("統一 %s 回應裡找不到持股，asset 前 400 字：%s", etf,
+                     (json.dumps(p.get("asset") if isinstance(p, dict) else p, ensure_ascii=False)[:400] + " ／ schema " + json.dumps(p.get("assetDetailSchema") if isinstance(p, dict) else None, ensure_ascii=False)[:400]))
+        rows += got
+    return _frame(rows)
+
+
+# ───────────────────────────────────────────── 凱基（kgifund.com.tw）
+KGI_PAGE = "https://www.kgifund.com.tw/Fund/RedemptionList"
+KGI_PCF = "https://www.kgifund.com.tw/Fund/RedemptionVC"
+
+
+def kgi_fund_ids(page_html: str) -> dict[str, str]:
+    """申購買回清單頁的基金下拉選單：<option value="J024">009816 凱基台灣TOP50</option> → {009816: J024}。"""
+    out = {}
+    for m in re.finditer(r'<option[^>]*value="([A-Za-z]\d+)"[^>]*>([^<]*)</option>', page_html or ""):
+        c = re.search(r"\b(\d{4,6}[A-Z]?)\b", _html.unescape(m.group(2)))
+        if c:
+            out[c.group(1)] = m.group(1)
+    return out
+
+
+def parse_kgi(etf: str, frag: str) -> list[dict]:
+    """RedemptionVC 回的 HTML 片段：股票表 <tr name="content"><td>代號<td>名稱<td>股數<td>權重(%)；資料日期取片段裡第一個日期。"""
+    t = _html.unescape(frag or "")
+    dm = re.search(r"(\d{4})[/-](\d{1,2})[/-](\d{1,2})", t) or re.search(r"(\d{3})/(\d{1,2})/(\d{1,2})", t)
+    day = _iso("/".join(dm.groups())) if dm else None
+    out = []
+    for tr in re.findall(r'<tr name="content"[^>]*>(.*?)</tr>', t, re.S):
+        tds = [re.sub(r"<[^>]+>", "", x).strip() for x in re.findall(r"<td[^>]*>(.*?)</td>", tr, re.S)]
+        if len(tds) >= 4 and re.match(r"^\d{4,6}[A-Z]?$", tds[0]):
+            out.append({"date": day, "etf": etf, "code": tds[0], "name": tds[1], "weight": _num(tds[3]),
+                        "shares": _num(tds[2]), "issuer": "凱基", "src": KGI_PCF})
+    return out
+
+
+def kgi() -> pd.DataFrame:
+    page = _req("GET", KGI_PAGE, expect="text")
+    ids = kgi_fund_ids(page or "")
+    if not ids:
+        log.warning("凱基申購買回清單頁找不到基金選單（前 200 字）：%s", _snip(page))
+        return pd.DataFrame(columns=COLS)
+    rows: list[dict] = []
+    for etf, fid in ids.items():
+        if _skip_code(etf):
+            continue
+        try:
+            r = http.session().post(KGI_PCF, data={"fundID": fid, "queryDate": ""}, timeout=TIMEOUT)
+            frag = r.text if r.status_code == 200 else ""
+        except Exception as exc:  # noqa: BLE001
+            log.warning("凱基 %s 失敗：%s", etf, exc)
+            continue
+        got = parse_kgi(etf, frag)
+        if not got:
+            log.info("凱基 %s 沒有股票表（前 200 字）：%s", etf, _snip(frag))
         rows += got
     return _frame(rows)
 
@@ -467,7 +540,11 @@ def yuanta(codes: list[str]) -> pd.DataFrame:
             log.warning("元大 %s 解析失敗：%s；FundComposition 附近前 200 字：%s", c, exc, _snip(page[max(0, k):]))
             continue
         if not got:
-            log.info("元大 %s 沒有實物申購清單（可能是現金申贖型）", c)
+            k = page.find("InKind")
+            k2 = page.find("stkcd")
+            log.info("元大 %s 沒有實物申購清單（現金申贖型？）InKind 附近：%s ／ stkcd 附近：%s", c,
+                     page[max(0, k - 50):k + 300].replace("\n", " ") if k >= 0 else "無",
+                     page[max(0, k2 - 300):k2 + 300].replace("\n", " ") if k2 >= 0 else "無")
         rows += got
     return _frame(rows)
 
@@ -480,7 +557,7 @@ ISSUER_PREFIX = {  # 從 ETF 簡稱判斷發行投信（給「哪些已接上／
     "華南永昌": "華南永昌", "貝萊德": "貝萊德", "宏利": "宏利", "路博邁": "路博邁", "富達": "富達", "柏瑞": "柏瑞", "保德信": "保德信",
     "台灣": None,
 }
-CONNECTED = {"群益", "野村", "復華", "統一", "元大"}
+CONNECTED = {"群益", "野村", "復華", "統一", "元大", "凱基"}
 
 
 def issuer_of(name: str) -> str | None:
@@ -498,7 +575,7 @@ def fetch_all(etf_names: dict[str, str]) -> pd.DataFrame:
     for c, n in etf_names.items():
         by.setdefault(issuer_of(n), []).append(c)
     jobs: list[tuple[str, Callable[[], pd.DataFrame]]] = [
-        ("群益", capital), ("復華", fuhhwa), ("統一", uni),
+        ("群益", capital), ("復華", fuhhwa), ("統一", uni), ("凱基", kgi),
         ("野村", lambda: nomura(sorted(by.get("野村", [])))),
         ("元大", lambda: yuanta(sorted(by.get("元大", [])))),
     ]
