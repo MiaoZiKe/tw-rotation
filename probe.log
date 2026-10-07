@@ -1,0 +1,214 @@
+====================================================================================================
+[extra-0] https://www.hnfunds.com.tw/etf/overview/
+  最終網址: https://www.hnfunds.com.tw/etf/overview/  標題: ETF專區-ETF總覽 | 華南永昌投信
+    連結: ETF總覽 -> https://www.hnfunds.com.tw/etf/overview
+    連結: ETF配息專區 -> https://www.hnfunds.com.tw/etf/dividends
+    連結: 即時預估淨值 -> https://www.hnfunds.com.tw/etf/nav-estimation
+    連結: 追蹤差距 -> https://www.hnfunds.com.tw/etf/tracking-difference
+    連結: 申贖費用查詢 -> https://www.hnfunds.com.tw/etf/trading-info/subscription-fees
+    連結: 申購買回清單 -> https://www.hnfunds.com.tw/etf/trading-info/redemption-list
+    連結: ETF表單下載 -> https://www.hnfunds.com.tw/etf/trading-info/forms
+    連結: 收益平準金專區 -> https://www.hnfunds.com.tw/etf/trading-info/equalization-reserve
+    連結: ETF配息帳號變更申請 -> https://www.hnfunds.com.tw/etf/trading-info/etf-dividend-account-change
+    連結: ETF公告 -> https://www.hnfunds.com.tw/etf/announcements
+    連結: ETF總覽 -> https://www.hnfunds.com.tw/etf/overview
+    連結: ETF配息專區 -> https://www.hnfunds.com.tw/etf/dividends
+    連結: 即時預估淨值 -> https://www.hnfunds.com.tw/etf/nav-estimation
+    連結: 追蹤差距 -> https://www.hnfunds.com.tw/etf/tracking-difference
+    連結: 申贖費用查詢 -> https://www.hnfunds.com.tw/etf/trading-info/subscription-fees
+    連結: 申購買回清單 -> https://www.hnfunds.com.tw/etf/trading-info/redemption-list
+    連結: ETF表單下載 -> https://www.hnfunds.com.tw/etf/trading-info/forms
+    連結: 收益平準金專區 -> https://www.hnfunds.com.tw/etf/trading-info/equalization-reserve
+    連結: ETF配息帳號變更申請 -> https://www.hnfunds.com.tw/etf/trading-info/etf-dividend-account-change
+    連結: ETF公告 -> https://www.hnfunds.com.tw/etf/announcements
+    連結: 009808
+
+華南永昌優選50(本基金 -> https://www.hnfunds.com.tw/etf/overview/009808
+    連結: 009818
+
+華南永昌NASDAQxT -> https://www.hnfunds.com.tw/etf/overview/009818
+    連結: 009822
+
+華南永昌未來金融 -> https://www.hnfunds.com.tw/etf/overview/009822
+  XHR／文件請求 12 個：
+     200 GET https://www.hnfunds.com.tw/etf/overview/
+        resp='<!DOCTYPE html><html><head><meta charset="utf-8">\n<meta name="viewport" content="width=device-width, initial-scale=1">\n<title>華南永昌投信</title>\n<link rel="stylesheet" href="/_nuxt/entry.DqqvtsHL.css" crossorigin>\n<link rel="modulepreload" as="script" crossorigin href="/_nuxt/Cp7IpgkT.js">\n<link rel="pr'
+     200 POST https://www.hnfunds.com.tw/WEB_API/HN_OW_PROD/Auth/SysLogin
+        resp='{"access_token":"eyJhbGciOiJSUzI1NiIsImtpZCI6IjAwNTY0MTA1NDA1RDlCRjk1MDY5NzgzMkJGQzZDOTcyIiwidHlwIjoiYXQrand0In0.eyJuYmYiOjE3OTEzODA2OTgsImV4cCI6MTc5MTM4MjQ5OSwiaXNzIjoiaHR0cDovL2Ntcy1hcC9pZGVudGl0eXNlcnZlciIsImF1ZCI6InN3X2FwaSIsImNsaWVudF9pZCI6IldGUEFQSVB1YmxpY0NsaWVudCIsInJvbGUiOiJwdWJsaWMiLCJqdGk'
+     200 GET https://www.hnfunds.com.tw/_nuxt/builds/meta/1f3d0e97-0826-4144-ae3d-7190dc1179d3.json
+        resp='{"id":"1f3d0e97-0826-4144-ae3d-7190dc1179d3","timestamp":1784017191701,"matcher":{"static":{},"wildcard":{},"dynamic":{}},"prerendered":[]}'
+     200 GET https://www.hnfunds.com.tw/WEB_API/HN_OW_PROD/CMM/Option/0004
+        resp='{"Data":{"OptionList":[{"OptID":"0004","ListID":"001","ListName":"投資觀點分類","DisplayOrder":1,"IsDefault":"N"}]},"Message":"","MessageType":"03","ResultCode":"01"}'
+     200 POST https://www.hnfunds.com.tw/WEB_API/HN_OW_PROD/ETF/FundList
+        body={"PageDisplayCount":10,"PageNo":1,"OrderType":""}
+        resp='{"Data":{"TotCnt":3,"FundList":[{"FundID":"E101","ETFID":"009808","FundName":"華南永昌優選50(本基金之配息來源可能為收益平準金)","DivType":"3","DivTypeNM":"季配","FundIssueType_ID":"1","FundIssueType":"國內股票ETF","NavDate":"2026-10-07T00:00:00+08:00","Nav":33.14000,"NetNav":-0.05000,"NetRate":-0.001500000000000000000,"EcAllot'
+     200 GET https://www.hnfunds.com.tw/WEB_API/HN_OW_PROD/Official/Url/01
+        resp='{"Data":{"UrlList":[{"UrlNM":"免責聲明","Url":"/CMS/CMS104/免責聲明.pdf"},{"UrlNM":"非金管會核准之證券期貨業者及商品","Url":"\\thttps://3434.twsa.org.tw/"},{"UrlNM":"查詢證券開戶及交易資料","Url":"\\thttps://investor.twse.com.tw/"},{"UrlNM":"性騷擾防治措施專區","Url":"/CMS/CMS104/性騷擾防治措施專區.pdf"},{"UrlNM":"網站隱私權保護聲明","Url":"/CMS/CMS104/網站隱私權保護.p'
+     200 GET https://www.hnfunds.com.tw/WEB_API/HN_OW_PROD/Investment/InvestMenu/001
+        resp='{"Data":{"InvestList":[{"InvestMID":"01","InvestMName":"投資指南","MDisplayOrder":1,"InvestMenuSList":[{"InvestMID":"01","InvestSID":"01","InvestSName":"影音放映室","SDisplayOrder":1},{"InvestMID":"01","InvestSID":"02","InvestSName":"市場評論焦點","SDisplayOrder":2},{"InvestMID":"01","InvestSID":"03","InvestSName"'
+     200 POST https://www.hnfunds.com.tw/WEB_API/HN_OW_PROD/ETF/FundList
+        body={"FundIssueType":"","PageDisplayCount":99999,"PageNo":1,"OrderType":"","OnlyshowCnt":"Y"}
+        resp='{"Data":{"TotCnt":3,"FundList":[]},"Message":"","MessageType":"01","ResultCode":"00"}'
+     200 GET https://www.hnfunds.com.tw/WEB_API/HN_OW_PROD/About/Company
+        resp='{"Data":{"BusLicenseNo":"115年金管投信新字第001號","CoLID":"(110)中信顧證字第018號(A0012)","Chargeman":"蕭玉美 董事長","Prolocutor":"吳嘉欽 總經理","BusRange":"證券投資信託業務、全權委託投資業務、其它經金管會核准業務","Addr":"105 台北市松山區民生東路4段54號3F之1","Tel":"(02)2719-6688","Fax":"(02)2545-7976","FileUrl":"/CMS/CMS504/組織圖.jpg"},"Message":"","MessageType":"'
+     200 GET https://www.hnfunds.com.tw/WEB_API/HN_OW_PROD/CMM/Option/0017
+        resp='{"Data":{"OptionList":[{"OptID":"0017","ListID":"1","ListName":"國內股票ETF","DisplayOrder":1,"IsDefault":"N"},{"OptID":"0017","ListID":"2","ListName":"海外股票ETF","DisplayOrder":2,"IsDefault":"N"},{"OptID":"0017","ListID":"4","ListName":"債券ETF","DisplayOrder":4,"IsDefault":"N"},{"OptID":"0017","ListID":"5'
+     200 GET https://www.hnfunds.com.tw/WEB_API/HN_OW_PROD/Official/NoteMemo/01
+        resp='{"Data":{"Note":"<blockquote><strong style=\\"font-family: Roboto, &quot;Noto Sans TC&quot;, sans-serif; font-size: 10pt;\\">115 年金管投信新字第 001 號</strong></blockquote><p><strong style=\\"font-family: Roboto, &quot;Noto Sans TC&quot;, sans-serif; font-size: 10pt;\\">華南永昌系列基金經金管會核准或同意生效，惟不表示絕無風險。本公司以往之經理績效，'
+     200 GET https://www.hnfunds.com.tw/WEB_API/HN_OW_PROD/Official/NoteMemo/08
+        resp='{"Data":{"Note":"<p><strong style=\\"font-size: 10pt;\\">【華南永昌永昌基金】</strong></p><p><strong style=\\"font-size: 10pt;\\">本基金經金管會核准或同意生效，惟不表示絕無風險。基金經理公司以往之績效或提及之經濟走勢預測不保證本基金之最低投資收益，亦不代表未來績效之保證；基金經理公司除盡善良管理人之注意義務外，不負責本基金之盈虧，亦不保證最低之收益。有關基金應負擔之費用及投資風險已揭露於基金公開說明書中，投資人申購前應詳閱基金公開說明書。本基金投資無受存款保障、保險安定基金或其他相關機制之保障'
+  含成分股字樣的回應 0 個：
+====================================================================================================
+[extra-1] https://www.uobam.com.tw/fund/etf/00515073
+  最終網址: https://www.uobam.com.tw/fund/etf/00515073  標題: 
+    連結: ETF總覽 -> https://www.uobam.com.tw/fund/etf
+    連結: ETF配息 -> https://www.uobam.com.tw/dividend?type=etf
+    連結: 即時預估淨值 -> https://www.uobam.com.tw/fund/etf/estimate
+    連結: 申購買回清單 -> https://www.uobam.com.tw/fund/etf/pcf
+    連結: 追蹤偏離度 -> https://www.uobam.com.tw/fund/etf/indextrack
+    連結: ETF配息日程表 -> https://www.uobam.com.tw/dividendschedule
+    連結: ETF公告 -> https://www.uobam.com.tw/news/etf
+    連結: 常見問題 -> https://www.uobam.com.tw/fund/etf/faq
+    連結: 表單下載 -> https://www.uobam.com.tw/etf/form
+    連結: 月報 -> https://www.uobam.com.tw/UploadFile/Fund.file01/202609/1788918475836_10_9%E6%9C%88%E6%9C%88%E5%A0%B1_%E5%A4%A7%E8%8F%AF%E9%8A%8015%E5%B9%B4%E6%9C%9F%E4%BB%A5%E4%B8%8ABBB%E6%8A%95%E8%B3%87%E7%AD%
+    連結: 公開說明書 -> https://www.uobam.com.tw/UploadFile/Fund.file02/202608/1787294612712_8.%E5%A4%A7%E8%8F%AF%E9%8A%8015%E5%B9%B4%E6%9C%9F%E4%BB%A5%E4%B8%8ABBB%E6%8A%95%E8%B3%87%E7%AD%89%E7%B4%9A%E7%BE%8E%E5%9C%
+    連結: 簡式公開說明書 -> https://www.uobam.com.tw/UploadFile/Fund.file03/202607/1785467492541_8.(%E7%B0%A1)%E5%A4%A7%E8%8F%AF%E9%8A%8015%E5%B9%B4%E6%9C%9F%E4%BB%A5%E4%B8%8ABBB%E6%8A%95%E8%B3%87%E7%AD%89%E7%B4%9A%E7
+    連結: 即時預估淨值 -> https://www.uobam.com.tw/fund/etf/estimate
+    連結: 成分股 -> https://www.uobam.com.tw/fund/etf/pcf?fundID=00515073
+    連結: 看其他基金 -> https://www.uobam.com.tw/fund/etf
+  XHR／文件請求 9 個：
+     200 GET https://www.uobam.com.tw/fund/etf/00515073
+        resp='<!DOCTYPE html><html lang="zh-Hant-TW"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><link rel="icon" href="/favicon.ico"><meta property="og:image" content="https://www.uobam.com.tw/og.png"><script async="" src="https://www.googletagmanager.com/gtm'
+     200 GET https://www.uobam.com.tw/json/reply/WebSiteRouteMapRequest
+        resp='{"result":[{"id":3831,"guid":"3ea7c4ca-7d8b-a40d-77fc-bfa961612e07","name":"首頁","route":"/","views":"FrontA","url":"/","urlType":"_self","show":0,"showl":0,"showm":0,"description":null,"sortValue":null,"metaTitle":"大華銀投信｜深耕台灣在地市場","metaDescription":"大華銀投信傳承新加坡大華資產管理具備的國際色彩以及在亞洲資產管理獨具的投資優勢，深耕台灣在地市場，矢'
+     200 GET https://www.uobam.com.tw/json/reply/WebSiteFrontRequest?u=2dafea25-bb35-4b2b-e054-354b4cd20063&r=%2Fwarning&p=1&n=1&a=
+        resp='{"result":[{"id":20,"guid":"76d93223-498f-488d-be1a-5f227cb50c66","title":"公司資訊+全站警語","contents":"<div class=\\"info\\"><div class=\\"group\\"><div class=\\"icon marker\\">&nbsp;</div><div class=\\"text\\">台北市民生東路三段109號16樓</div></div><div class=\\"group\\"><div class=\\"icon phone\\">&nbsp;</div><div class=\\"te'
+     200 GET https://www.uobam.com.tw/json/reply/WebSiteStockRequest?fundID=00515073&r=%2Ffund%2Fetf
+        resp='{"resultP":[{"result":[{"id":427,"guid":"6af71f6a-2871-40e0-b2b3-3cce61cdae10","fundID":"00515073","twName":"大華投等美債15Y+ (本基金之配息來源可能為收益平準金)","twNameFull":null,"enName":"United 15+ Years BBB US Corporate ETF","contents":"<p style=\\"margin-top:0px; margin-bottom:1rem; text-align:left; -webkit-text-stro'
+     200 GET https://www.uobam.com.tw/json/reply/WebSiteStockPriceRequest?fundID=00515073
+        resp='{"result":[{"id":219101,"guid":"20240819.00515073","fundID":"00515073","nav":10.0012,"navDate":"\\/Date(1723996800000+0800)\\/","change":0.000000,"changeRange":0.000000,"faceValue":"10.0000","canDis":"0.0012","capitalGain":"0.0000","updateTime":null,"updateIP":null,"updateAccount":null,"sid":0},{"id":'
+     200 GET https://www.uobam.com.tw/json/reply/WebSiteFrontRequest?r=%2Ffundwarning
+        resp='{"result":[{"id":2566,"guid":"84e927f5-99be-43ea-91e7-493c5c35e835","title":"公司資訊+全站警語","contents":"<div class=\\"info\\"><p style=\\"margin-bottom:0cm; margin:0cm 0cm 8pt; margin-right:0cm; margin-left:0cm\\"><span style=\\"font-size:11pt\\"><span style=\\"line-height:107%\\"><span style=\\"font-family:Cali'
+     200 GET https://www.uobam.com.tw/json/reply/WebSiteStockDividendRequest?ec001=&mfundID=&fundID=00515073&year=2026&start=&end=
+        resp='{"result":[],"fundresult":[{"id":3675,"guid":"20261011.00515073","fundID":"00515073","ec006":"新台幣","ec01022":"0.048","ec01012":"每月","ec01013":"2026/10/11","ec01033":"6.61%","ec01034":"2026/10/05","ec01031":"2026/10/29","ec01035":"0.55%","ec01036":"2026/09/15","ec018":"配息","ec01034dt":"\\/Date(1791129'
+     200 GET https://www.uobam.com.tw/json/reply/WebSiteStockListRequest
+        resp='{"resultP":[{"result":[{"id":431,"guid":"da3c8657-a0f8-4a31-ac49-713072098357","fundID":"00719554","twName":"大華韓國KOSPI 50","twNameFull":null,"enName":"United Korea KOSPI 50 ETF","contents":"<p style=\\"-webkit-text-stroke-width:0px; margin-top:0px; margin-bottom:1rem; text-align:left\\"><span style=\\"'
+     200 GET https://www.uobam.com.tw/api/WebSite/PchangeRange?fundID=00515073
+        resp='{"result":null,"result30":[{"id":10269,"guid":"20260821.00515073","etf002":"00959B","fundID":"00515073","nav":9.102200,"navDate":"\\/Date(1787241600000+0800)\\/","closePrice":9.140000,"pChangeRange":"0.420000"},{"id":10321,"guid":"20260824.00515073","etf002":"00959B","fundID":"00515073","nav":9.154800'
+  含成分股字樣的回應 3 個：
+   ★ 200 GET https://www.uobam.com.tw/fund/etf/00515073
+     type: text/html  bytes: 342972
+     開頭: <!DOCTYPE html><html lang="zh-Hant-TW"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><link rel="icon" href="/favicon.ico"><meta property="og:image" content="https://www.uobam.com.tw/og.png"><script async="" src="https://www.googletagmanager.com/gtm.js?id=GTM-WTG86ZT"></script><script async="" src="https://www.googletagmanager.com/gtm.js?id=GTM-WTG86ZT"></script><script async="" src="https://www.googletagmanager.com/gtm.js?id=GTM-WTG86ZT"></scri
+     2330 前後: 88716 L 524.1935483871 19.342436509375077 L 526.29032258064 19.952671540490993 L 528.3870967742 20.518599077598527 L 530.48387096774 19.876140414476453 L 532.58064516129 20.244698205546477 L 534.67741935484 19.61029545042595 L 536.77419354839 19.843916782470334 L 538.87096774193 19.827804966467273 L 540.96774193548 18.935613155297762 L 543.06451612903 18.61740478923729 L 545.16129032258 18.299196423176856 L 547.25806451613 18.89533361529013 L 549.35483870968 19.366604233379647 L 551.45161290323 19.259863452359365 L 553.54838709677 18.532817755221238 L 555.64516129032 19.557932048416017 L 557.74193548387 16.722252431877227 L 559.83870967742 17.88633113809841 L 561.93548387097 16.567176202847765 L 564.03225806452 16.5732181338489 L 566.12903225806 16.404044065816755 L 568.22580645161 15.6367
+   ★ 200 GET https://www.uobam.com.tw/json/reply/WebSiteStockPriceRequest?fundID=00515073
+     type: application/json; charset=utf-8  bytes: 163686
+     開頭: {"result":[{"id":219101,"guid":"20240819.00515073","fundID":"00515073","nav":10.0012,"navDate":"\/Date(1723996800000+0800)\/","change":0.000000,"changeRange":0.000000,"faceValue":"10.0000","canDis":"0.0012","capitalGain":"0.0000","updateTime":null,"updateIP":null,"updateAccount":null,"sid":0},{"id":219168,"guid":"20240820.00515073","fundID":"00515073","nav":10.0082,"navDate":"\/Date(1724083200000+0800)\/","change":0.007000,"changeRange":0.000700,"faceValue":"10.0000","canDis":"0.0013","capitalGa
+     2330 前後: teTime":"\/Date(1737421519137+0800)\/","updateIP":null,"updateAccount":null,"sid":0},{"id":231300,"guid":"20250121.00515073","fundID":"00515073","nav":9.8126,"navDate":"\/Date(1737388800000+0800)\/","change":0.026100,"changeRange":0.002667,"faceValue":"10.0000","canDis":"0.0659","capitalGain":"-0.2533","updateTime":"\/Date(1737538814880+0800)\/","updateIP":null,"updateAccount":null,"sid":0},{"id":231703,"guid":"20250122.00515073","fundID":"00515073","nav":9.8046,"navDate":"\/Date(1737475200000+0800)\/","change":-0.008000,"changeRange":-0.000815,"faceValue":"10.0000","canDis":"0.0675","capitalGain":"-0.2629","updateTime":"\/Date(1738544720573+0800)\/","updateIP":null,"updateAccount":null,"sid":0},{"id":231972,"guid":"20250203.00515073","fundID":"00515073","nav":9.9312,"navDate":"\/Date(1738
+   ★ 200 GET https://www.uobam.com.tw/json/reply/WebSiteStockListRequest
+     type: application/json; charset=utf-8  bytes: 571569
+     開頭: {"resultP":[{"result":[{"id":431,"guid":"da3c8657-a0f8-4a31-ac49-713072098357","fundID":"00719554","twName":"大華韓國KOSPI 50","twNameFull":null,"enName":"United Korea KOSPI 50 ETF","contents":"<p style=\"-webkit-text-stroke-width:0px; margin-top:0px; margin-bottom:1rem; text-align:left\"><span style=\"font-size:medium\"><span style=\"box-sizing:border-box\"><span style=\"outline:none\"><span style=\"color:#333333\"><span style=\"font-family:&quot;Noto Sans TC&quot;, sans-serif\"><span style=\"font-
+     2330 前後: 0":"債券型","ec021":"開放式","ec022":"","ec023":null,"ec024":"國內外","ec025":null,"ec031":null,"ec032":"b97ba2b5-dc53-4cd3-99ab-e4d273466cc5","ec202":4,"ec312":0,"ec313":0,"ec314":1,"ec315":0,"ec501":null,"ec502":null,"ec503":null,"etf001":null,"etf002":null,"etf003":null,"etf004":null,"etf005":null,"etf006":null,"etf007":null,"etf008":null,"etf009":null,"etf010":null,"etf020":0,"announce":null,"nav":"11.2317","navDate":"2026/10/06","change":0.004300,"changeRange":0.000383,"ec01022":"","ec01013":null,"ec01033":null,"ec01034":null,"ec01035":null,"dividendStart":null,"dividendEnd":null,"dividendYear":[],"sort01":0,"sort02":0,"t":null},{"id":413,"guid":"b47ebba3-7bb1-43e9-88b6-eb95de19a862","fundID":"93146965A","twName":"大華銀全球短年期投資等級債券基金 (本基金有相當比重投資於非投資等級之高風險債券且配息來源可能為本金)","twNameFull":null,"enName":
+====================================================================================================
+[extra-2] https://www.uobam.com.tw/ETFlandingpage
+  最終網址: https://www.uobam.com.tw/ETFlandingpage  標題: 大華銀投信 | ETF專區
+    連結: ETF總覽 -> https://www.uobam.com.tw/fund/etf
+    連結: ETF配息 -> https://www.uobam.com.tw/dividend?type=etf
+    連結: 即時預估淨值 -> https://www.uobam.com.tw/fund/etf/estimate
+    連結: 申購買回清單 -> https://www.uobam.com.tw/fund/etf/pcf
+    連結: 追蹤偏離度 -> https://www.uobam.com.tw/fund/etf/indextrack
+    連結: ETF配息日程表 -> https://www.uobam.com.tw/dividendschedule
+    連結: ETF公告 -> https://www.uobam.com.tw/news/etf
+    連結: 常見問題 -> https://www.uobam.com.tw/fund/etf/faq
+    連結: 表單下載 -> https://www.uobam.com.tw/etf/form
+    連結:  -> https://www.uobam.com.tw/Events/00918ETF/
+    連結:  -> https://www.uobam.com.tw/Events/009815M7ETF/
+    連結:  -> https://www.uobam.com.tw/fund/etf/00515073
+    連結:  -> https://www.uobam.com.tw/Events/00918ETF/
+    連結:  -> https://www.uobam.com.tw/Events/009815M7ETF/
+    連結:  -> https://www.uobam.com.tw/fund/etf/00515073
+    連結:  -> https://www.uobam.com.tw/Events/00918ETF/
+    連結: ETF資料變更申請書下載 -> https://www.uobam.com.tw/etf/form
+    連結: ETF規模及指數成份查詢 -> https://www.uobam.com.tw/fund/etf/pcf
+    連結: ETF常見問題 -> https://www.uobam.com.tw/fund/etf/faq
+    連結: 淨值查詢 -> https://www.uobam.com.tw/fund/etf/00719554
+    連結: 配息查詢 -> https://www.uobam.com.tw/fund/etf/00719554
+    連結: 大華投等美債15Y+ (本基金之配息來源 -> https://www.uobam.com.tw/fund/etf/00515073
+    連結: 大華優利美公債20(本基金並無保證收益及 -> https://www.uobam.com.tw/fund/etf/00580860
+    連結: 大華優利美A債15(本基金並無保證收益及 -> https://www.uobam.com.tw/fund/etf/00580854
+    連結: 大華韓國KOSPI 50
+009829
+ -> https://www.uobam.com.tw/fund/etf/00719554
+    連結: 大華美國MAG7+
+009815
+淨值日 -> https://www.uobam.com.tw/fund/etf/00648622
+    連結: 大華優利高填息30(本基金並無保證收益及 -> https://www.uobam.com.tw/fund/etf/88329556
+    連結: 大華投等美債15Y+ (本基金之配息來源 -> https://www.uobam.com.tw/fund/etf/00515073
+    連結: 大華優利美公債20(本基金並無保證收益及 -> https://www.uobam.com.tw/fund/etf/00580860
+    連結: 大華優利美A債15(本基金並無保證收益及 -> https://www.uobam.com.tw/fund/etf/00580854
+    連結: 大華韓國KOSPI 50
+009829
+ -> https://www.uobam.com.tw/fund/etf/00719554
+    連結: 大華美國MAG7+
+009815
+淨值日 -> https://www.uobam.com.tw/fund/etf/00648622
+    連結: 大華優利高填息30(本基金並無保證收益及 -> https://www.uobam.com.tw/fund/etf/88329556
+    連結: 大華投等美債15Y+ (本基金之配息來源 -> https://www.uobam.com.tw/fund/etf/00515073
+    連結: 大華優利美公債20(本基金並無保證收益及 -> https://www.uobam.com.tw/fund/etf/00580860
+    連結: 大華優利美A債15(本基金並無保證收益及 -> https://www.uobam.com.tw/fund/etf/00580854
+    連結: ETF基金淨資產規模公告
+2025/10 -> https://www.uobam.com.tw/NavLess
+    連結: 公告大華銀優利 ETF 傘型證券投資信託 -> https://www.uobam.com.tw/UploadFile/Artical/202610/1790834102067_20261001-00984B%E5%AF%A6%E9%9A%9B%E9%85%8D%E7%99%BC%E9%87%91%E9%A1%8D.pdf
+  XHR／文件請求 10 個：
+     200 GET https://www.uobam.com.tw/ETFlandingpage
+        resp='<!DOCTYPE html><html lang="zh-Hant-TW"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><link rel="icon" href="/favicon.ico"><meta property="og:image" content="https://www.uobam.com.tw/og.png"><script async="" src="https://www.googletagmanager.com/gtm'
+     200 GET https://www.uobam.com.tw/json/reply/WebSiteRouteMapRequest
+        resp='{"result":[{"id":3831,"guid":"3ea7c4ca-7d8b-a40d-77fc-bfa961612e07","name":"首頁","route":"/","views":"FrontA","url":"/","urlType":"_self","show":0,"showl":0,"showm":0,"description":null,"sortValue":null,"metaTitle":"大華銀投信｜深耕台灣在地市場","metaDescription":"大華銀投信傳承新加坡大華資產管理具備的國際色彩以及在亞洲資產管理獨具的投資優勢，深耕台灣在地市場，矢'
+     200 GET https://www.uobam.com.tw/json/reply/WebSiteADRequest?r=ETFhotkey
+        resp='{"result":[{"id":75,"guid":"78657efa-1e40-409f-9b02-ccf150178545","adArea":"92156574-eb8d-451c-b7e6-4d2f43621eab","name":"ETF資料變更申請書下載","url":"/etf/form","urlType":"_self","description":null,"description2":null,"descriptionPosition":null,"pic":"https://www.uobam.com.tw/UploadFile/AD/202504/174427760'
+     200 GET https://www.uobam.com.tw/json/reply/WebSiteADRequest?r=ETFbanner
+        resp='{"result":[{"id":73,"guid":"92b6518f-6a1d-4f3b-a91b-cd4b7ed10619","adArea":"67bf9ff9-7131-414f-a879-8578c05efba7","name":"00918大華優利高填息ETF","url":"https://www.uobam.com.tw/Events/00918ETF/","urlType":"_blank","description":null,"description2":null,"descriptionPosition":null,"pic":"https://www.uobam.c'
+     200 GET https://www.uobam.com.tw/json/reply/WebSiteEstimateRequest
+        resp='{"result":[{"id":3937284,"guid":"1262e8cc-48b0-4074-904c-fe0de4e4280c","fundID":"88329556","etf002":"00918","etf009":"國內成分證券ETF","etf010":"1","ec312":1,"twNameFull":"大華優利高填息30(本基金並無保證收益及配息且配息來源可能為收益平準金)","yNav":"34.21","yDate":"(10/06)","totalIssues":"4761264000","totalIssuesT01":"0","issuesDiff":"0'
+     200 GET https://www.uobam.com.tw/json/reply/WebSiteFrontRequest?u=2dafea25-bb35-4b2b-e054-354b4cd20063&r=%2Fwarning&p=1&n=1&a=
+        resp='{"result":[{"id":20,"guid":"76d93223-498f-488d-be1a-5f227cb50c66","title":"公司資訊+全站警語","contents":"<div class=\\"info\\"><div class=\\"group\\"><div class=\\"icon marker\\">&nbsp;</div><div class=\\"text\\">台北市民生東路三段109號16樓</div></div><div class=\\"group\\"><div class=\\"icon phone\\">&nbsp;</div><div class=\\"te'
+     200 GET https://www.uobam.com.tw/json/reply/WebSiteFrontRequest?u=&r=%2FETFlandingpage&p=&n=&a=
+        resp='{"result":[{"id":791,"guid":"fe5de62e-28fd-4ca2-972d-0eef3a40d8af","title":"ETF基金淨資產規模公告","contents":null,"summary":null,"url":"/NavLess","urlType":"_self","thumb":null,"sortValue":20,"views":null,"postTime":"\\/Date(1759399200000+0800)\\/","metaTitle":"","metaDescription":"","metaKeyword":"","value01'
+     200 GET https://www.uobam.com.tw/json/reply/WebSiteFrontRequest?r=%2Ffundwarning
+        resp='{"result":[{"id":2566,"guid":"84e927f5-99be-43ea-91e7-493c5c35e835","title":"公司資訊+全站警語","contents":"<div class=\\"info\\"><p style=\\"margin-bottom:0cm; margin:0cm 0cm 8pt; margin-right:0cm; margin-left:0cm\\"><span style=\\"font-size:11pt\\"><span style=\\"line-height:107%\\"><span style=\\"font-family:Cali'
+     200 GET https://www.uobam.com.tw/json/reply/WebSiteStockListRequest
+        resp='{"resultP":[{"result":[{"id":431,"guid":"da3c8657-a0f8-4a31-ac49-713072098357","fundID":"00719554","twName":"大華韓國KOSPI 50","twNameFull":null,"enName":"United Korea KOSPI 50 ETF","contents":"<p style=\\"-webkit-text-stroke-width:0px; margin-top:0px; margin-bottom:1rem; text-align:left\\"><span style=\\"'
+     200 GET https://www.uobam.com.tw/api/WebSite/Estimatehistory?fundID=88329556
+        resp='{"result":[{"id":3925056,"guid":"d26e455c-96e1-4b16-89e6-54cc19ffd9ee","fundID":"88329556","etf002":"00918","etf009":"國內成分證券ETF","etf010":"1","ec312":1,"twNameFull":"大華優利高填息30(本基金並無保證收益及配息且配息來源可能為收益平準金)","yNav":"34.21","yDate":"(10/06)","totalIssues":"4761264000","totalIssuesT01":"0","issuesDiff":"0'
+  含成分股字樣的回應 3 個：
+   ★ 200 GET https://www.uobam.com.tw/ETFlandingpage
+     type: text/html  bytes: 1107132
+     開頭: <!DOCTYPE html><html lang="zh-Hant-TW"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><link rel="icon" href="/favicon.ico"><meta property="og:image" content="https://www.uobam.com.tw/og.png"><script async="" src="https://www.googletagmanager.com/gtm.js?id=GTM-WTG86ZT"></script><script async="" src="https://www.googletagmanager.com/gtm.js?id=GTM-WTG86ZT"></script><script async="" src="https://www.googletagmanager.com/gtm.js?id=GTM-WTG86ZT"></scri
+     2330 前後: 4375 126.95999999999827 L 111.16993624326 126.95999999999827 L 111.16993624326 126.95999999999827 L 111.38229524277 126.95999999999827 L 111.38229524277 126.95999999999827 L 111.59465424228 126.95999999999827 L 111.59465424228 126.95999999999827 L 111.80701324179 126.95999999999827 L 111.80701324179 132.47999999999718 L 112.01937224129 132.47999999999718 L 112.01937224129 126.95999999999827 L 112.2317312408 126.95999999999827 L 112.2317312408 126.95999999999827 L 112.44409024031 126.95999999999827 L 112.44409024031 126.95999999999827 L 112.65644923982 126.95999999999827 L 112.65644923982 132.47999999999718 L 112.86880823933 132.47999999999718 L 112.86880823933 132.47999999999718 L 113.08116723884 132.47999999999718 L 113.08116723884 138 L 113.29352623835 138 L 113.29352623835 132.479999999
+   ★ 200 GET https://www.uobam.com.tw/json/reply/WebSiteStockListRequest
+     type: application/json; charset=utf-8  bytes: 571569
+     開頭: {"resultP":[{"result":[{"id":431,"guid":"da3c8657-a0f8-4a31-ac49-713072098357","fundID":"00719554","twName":"大華韓國KOSPI 50","twNameFull":null,"enName":"United Korea KOSPI 50 ETF","contents":"<p style=\"-webkit-text-stroke-width:0px; margin-top:0px; margin-bottom:1rem; text-align:left\"><span style=\"font-size:medium\"><span style=\"box-sizing:border-box\"><span style=\"outline:none\"><span style=\"color:#333333\"><span style=\"font-family:&quot;Noto Sans TC&quot;, sans-serif\"><span style=\"font-
+     2330 前後: 0":"債券型","ec021":"開放式","ec022":"","ec023":null,"ec024":"國內外","ec025":null,"ec031":null,"ec032":"b97ba2b5-dc53-4cd3-99ab-e4d273466cc5","ec202":4,"ec312":0,"ec313":0,"ec314":1,"ec315":0,"ec501":null,"ec502":null,"ec503":null,"etf001":null,"etf002":null,"etf003":null,"etf004":null,"etf005":null,"etf006":null,"etf007":null,"etf008":null,"etf009":null,"etf010":null,"etf020":0,"announce":null,"nav":"11.2317","navDate":"2026/10/06","change":0.004300,"changeRange":0.000383,"ec01022":"","ec01013":null,"ec01033":null,"ec01034":null,"ec01035":null,"dividendStart":null,"dividendEnd":null,"dividendYear":[],"sort01":0,"sort02":0,"t":null},{"id":413,"guid":"b47ebba3-7bb1-43e9-88b6-eb95de19a862","fundID":"93146965A","twName":"大華銀全球短年期投資等級債券基金 (本基金有相當比重投資於非投資等級之高風險債券且配息來源可能為本金)","twNameFull":null,"enName":
+   ★ 200 GET https://www.uobam.com.tw/api/WebSite/Estimatehistory?fundID=88329556
+     type: application/json; charset=utf-8  bytes: 1505618
+     開頭: {"result":[{"id":3925056,"guid":"d26e455c-96e1-4b16-89e6-54cc19ffd9ee","fundID":"88329556","etf002":"00918","etf009":"國內成分證券ETF","etf010":"1","ec312":1,"twNameFull":"大華優利高填息30(本基金並無保證收益及配息且配息來源可能為收益平準金)","yNav":"34.21","yDate":"(10/06)","totalIssues":"4761264000","totalIssuesT01":"0","issuesDiff":"0","nNav":"34.21","nDate":"\/Date(1791333007770+0800)\/","nDates":"(10/07)","change":"0.00","changeRange":"0.00%","mlNav":"34.14","mlDate":"(10/06)","mnNav":"34.14","mnDate":"(10/06)","mChange":"0.00",
+     2330 前後: D = 31.8440 TWD /1 USD = 1,339.3800 KRW  (更新時間：2026/10/07 10:55:08）"},{"id":3928542,"guid":"6f080191-4555-42d2-a176-2022034f9f64","fundID":"88329556","etf002":"00918","etf009":"國內成分證券ETF","etf010":"1","ec312":1,"twNameFull":"大華優利高填息30(本基金並無保證收益及配息且配息來源可能為收益平準金)","yNav":"34.21","yDate":"(10/06)","totalIssues":"4761264000","totalIssuesT01":"0","issuesDiff":"0","nNav":"34.02","nDate":"\/Date(1791341723177+0800)\/","nDates":"(10/07)","change":"-0.19","changeRange":"-0.56%","mlNav":"34.14","mlDate":"(10/06)","mnNav":"34.08","mnDate":"(10/07)","mChange":"-0.06","mChangeRange":"-0.18%","pChange":"0.06","pChangeRange":"0.18%","cDate":"Y","iChangeRange":"-0.03%","iTChangeRange":"-0.03%","exchangeRate":"1.000000","dExchangeRate":"參考匯率: 1 USD = 31.8450 TWD /1 USD = 1,339.4100 KRW  (更新時間：2026/10/07 10
+====================================================================================================
+[extra-3] https://www.tsit.com.tw/ETF/Home/ETFSeries
+  最終網址: https://www.tsit.com.tw/ETF/Home/ETFSeries  標題: ETF商品總覽
+    連結: ETF產品總覽 -> https://www.tsit.com.tw/ETF/Home/ETFSeries
+    連結: 即時估計淨值 -> https://www.tsit.com.tw/ETF/Home/Estimate
+    連結: 淨值vs市價比較 -> https://www.tsit.com.tw/ETF/Home/Chart
+    連結: 申購買回清單 -> https://www.tsit.com.tw/ETF/Home/Pcf
+    連結: 追蹤差距 -> https://www.tsit.com.tw/ETF/Home/Track
+    連結: 折溢價查詢 -> https://www.tsit.com.tw/ETF/Home/DPSearch
+    連結: 申贖費用表 -> https://www.tsit.com.tw/ETF/Home/ETFFeeList
+    連結: ETF配息資訊 -> https://www.tsit.com.tw/ETF/Home/ETFDIVList
+    連結: 收益分配電子服務 -> https://www.tsit.com.tw/ETF/Home/Apply
+    連結: 最新消息 -> https://www.tsit.com.tw/ETF/Home/News
+    連結: Q&A -> https://www.tsit.com.tw/ETF/Home/QA
+    連結: 首頁 -> https://www.tsit.com.tw/ETF/
+    連結: 首頁 -> https://www.tsit.com.tw/ETF/
+  XHR／文件請求 1 個：
+     200 GET https://www.tsit.com.tw/ETF/Home/ETFSeries
+        resp='<!DOCTYPE html>\r\n<html>\r\n<head>\r\n    <meta charset="utf-8" />\r\n    <meta http-equiv="X-UA-Compatible" content="IE=edge">\r\n    <meta name="viewport" content="width=device-width, initial-scale=1.0">\r\n    <link rel="shortcut icon" href="/ETF/favicon.ico" type="image/x-icon">\r\n    <link rel="icon" href='
+  含成分股字樣的回應 0 個：
