@@ -84,8 +84,13 @@ for tag, m, url, body in CANDS:
             continue
         print("  前 1500 字:", t[:1500].replace("\n", " "))
         if "html" in ct or "javascript" in ct:
-            for f in sorted(set(API_RE.findall(t)))[:80]:
-                print("   api?", f)
+            for f in sorted(set(API_RE.findall(t)))[:200]:
+                print("   api?", f[:240])
+            # 伺服器端渲染（SSR）頁面：直接看成分股是不是已經在 HTML 裡（找台積電前後文）
+            for kw in ("2330", "台積電"):
+                k = t.find(kw)
+                if k >= 0:
+                    print(f"   「{kw}」前後文:", t[max(0, k - 700):k + 500].replace("\n", " "))
             for s in sorted(set(re.findall(r'src="([^"]+\.js[^"]*)"', t)))[:20]:
                 print("   js:", s)
     except Exception as e:  # noqa: BLE001
