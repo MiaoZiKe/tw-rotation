@@ -74,7 +74,7 @@ with sync_playwright() as p:
         try:
             links = pg.eval_on_selector_all("a[href]", "els => els.map(e => (e.innerText||'').trim().slice(0,20) + ' -> ' + e.href)")
             for l in links:
-                if any(k in l for k in ("PCF", "pcf", "Pcf", "申購買回", "持股", "成分", "投資組合")):
+                if any(k in l for k in ("PCF", "pcf", "Pcf", "申購買回", "持股", "成分", "投資組合", "ETF", "etf")):
                     print("    連結:", l[:200])
         except Exception:  # noqa: BLE001
             pass
