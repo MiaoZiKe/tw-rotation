@@ -242,6 +242,11 @@
 #v-etf .etfc.fqbar{--tc:var(--fc)}
 #v-etf .fqhd{grid-column:1/-1;display:flex;align-items:center;gap:8px;margin:8px 0 0;font-size:14px;font-weight:700;color:var(--ink);white-space:nowrap}
 #v-etf .fqhd:first-child{margin-top:0}
+#v-etf button.fqhd{background:none;border:0;padding:4px 2px;font-family:inherit;text-align:left;cursor:pointer;border-radius:6px;width:100%}
+#v-etf button.fqhd:hover{background:var(--bg-2,rgba(127,127,127,.08))}
+#v-etf button.fqhd:focus-visible{outline:2px solid var(--accent,#5b8cff);outline-offset:1px}
+#v-etf .fqhd .fold{display:inline-block;width:12px;color:var(--ink-3);font-size:12px;flex:none}
+#v-etf .fqhd[aria-expanded="false"]{opacity:.85}
 #v-etf .fqhd i{width:10px;height:10px;border-radius:3px;background:var(--fc);flex:none}
 /* 子類型色（2026-10-07）：低飽和、不用紅綠，只拿來分組，不帶好壞意思；照組順序輪用 8 色 */
 #v-etf{--sg0:#8fa3bf;--sg1:#a3a0d6;--sg2:#b8a0cc;--sg3:#8db4c8;--sg4:#c4b08a;--sg5:#c49fb6;--sg6:#a3a3a3;--sg7:#9db0c4}
@@ -646,7 +651,9 @@
 <div class="card" id="etfListCard">
   <div class="row spread"><h3 data-icon="table" data-tone="chip">ETF 一覽 <small id="etfCount"></small> ${hbtn('etflist', 'ETF 分類與欄位')}</h3>
     <div class="etfrow"><label class="note" for="etfSort">排序</label>
-      <select id="etfSort" class="etsel"><option value="tv">成交值</option><option value="size">規模</option><option value="yield">殖利率</option><option value="chg">今日漲跌</option></select></div></div>
+      <select id="etfSort" class="etsel"><option value="tv">成交值</option><option value="size">規模</option><option value="yield">殖利率</option><option value="chg">今日漲跌</option></select>
+      <button type="button" class="btn small" id="etfFoldAll" title="收合這個分類的所有分組">全部收合</button>
+      <button type="button" class="btn small" id="etfOpenAll" title="展開這個分類的所有分組">全部展開</button></div></div>
   ${how('etflist', '', [
     '<b>分類</b>（依序判斷，先符合先歸類）：槓桿反向（代號尾 L/R 或名稱含 正2／反1）→ 債券型（尾 B 或名稱含「債」）→ 其他（期貨／商品／貨幣，尾 U 或「期」開頭）→ 主動式（尾 A）→ 市值型（名稱含 台灣50、台50、中型100、加權、MSCI台灣、摩台）→ 配息型（名稱含 高股息／高息／股息／收益／優息…，或近 400 天除息 ≥ 4 次）→ 其餘股票型為主題型。',
     '<b>殖利率</b>＝近 12 個月現金配息合計 ÷ 最新收盤。<b>配息頻率</b>（分類旁的彩色小徽章）＝近 400 天相鄰兩次除息的間隔中位數（約 1 個月＝月配、2 個月＝雙月配、3 個月＝季配、半年＝半年配、只有 1 次＝年配）；沒有配息的不標。',
@@ -823,6 +830,8 @@
       ${hasY ? `<dt>殖利率</dt><dd class="yv">${y}</dd>` : '<dt class="blank" aria-hidden="true">&nbsp;</dt><dd class="blank" aria-hidden="true">&nbsp;</dd>'}<dt>規模（估）</dt><dd>${yi(it.size)}</dd></dl>
 </button>`;
   }
+  function foldGet() { try { const o = JSON.parse(LS.get('tw.etf.fold', '{}')); return o && typeof o === 'object' ? o : {}; } catch (e) { return {}; } }
+  function foldSet(o) { LS.set('tw.etf.fold', JSON.stringify(o)); }
   function drawList() {
     let list = items().filter((it) => it.cat === S.cat).sort((a, b) => sortVal(b) - sortVal(a));
     $('#etfCount').textContent = `${S.cat} ${list.length} 檔`;
@@ -830,33 +839,48 @@
     /* 2026-10-07 Andy：「配息型這邊幫我用月配 雙月配 季配 半年配等等為組合排序」——只在配息型分組；組內維持原本排序 */
     const grp = S.cat === '配息型';
     if (grp) list = list.map((it, i) => ({ it, i })).sort((a, b) => fqRank(a.it.freq) - fqRank(b.it.freq) || a.i - b.i).map((x) => x.it);
-    const shown = list.slice(0, S.shown);
+    /* 收合／展開（2026-10-07 Andy：「ETF 這邊需要收展功能」）。收合的組只留標題（仍寫全組檔數）、不畫卡片；
+       「顯示更多」只數展開組的卡片，否則收合幾組之後畫面會突然變很短、還要多按幾次才看得到後面的組。
+       狀態依分類分開記在 localStorage（tw.etf.fold = {分類: [收合的組名]}），預設全部展開。 */
+    let keyOf, hdHTML;
+    const cnt = {};
     if (grp) {
-      const cnt = {}; list.forEach((it) => { const k = fqName(it.freq); cnt[k] = (cnt[k] || 0) + 1; });
-      let html = '', cur = null;
-      shown.forEach((it) => { const k = fqName(it.freq); if (k !== cur) { cur = k;
-        html += `<div class="fqhd${FQK[k] ? ' fqc-' + FQK[k] : ''}" data-fq="${esc(k)}">${FQK[k] ? '<i></i>' : ''}${esc(k)}<small>${cnt[k]} 檔</small></div>`; }
-        html += cardHTML(it); });
-      g.innerHTML = html || '<div class="etfprep">無資料</div>';
+      keyOf = (it) => fqName(it.freq);
+      hdHTML = (k) => `class="fqhd${FQK[k] ? ' fqc-' + FQK[k] : ''}" data-fq="${esc(k)}">${FQK[k] ? '<i></i>' : ''}${esc(k)}`;
     } else {
-      /* 子類型分組（2026-10-07）：做法同配息型——組順序照 sgOrder()、組內維持原排序、小標題寫全組檔數（不是已顯示的檔數） */
+      /* 子類型分組（2026-10-07）：組順序照 sgOrder()、組內維持原排序、小標題寫全組檔數（不是已顯示的檔數） */
       const ord = sgOrder(S.cat), rk = (k) => { const i = ord.indexOf(k); return i < 0 ? ord.length : i; };
       list = list.map((it, i) => ({ it, i, k: subOf(it) })).sort((a, b) => rk(a.k) - rk(b.k) || a.i - b.i)
         .map((x) => Object.assign({}, x.it, { _sg: x.k, _sgi: rk(x.k) }));
-      const cnt = {}; list.forEach((it) => { cnt[it._sg] = (cnt[it._sg] || 0) + 1; });
-      let html = '', cur = null;
-      list.slice(0, S.shown).forEach((it) => { if (it._sg !== cur) { cur = it._sg;
-        html += `<div class="fqhd sghd sgc-${it._sgi % 8}" data-sg="${esc(cur)}"><i></i>${esc(cur)}<small>${cnt[cur]} 檔</small></div>`; }
-        html += cardHTML(it); });
-      g.innerHTML = html || '<div class="etfprep">無資料</div>';
-      g.dataset.sgcnt = JSON.stringify(cnt);
+      keyOf = (it) => it._sg;
+      hdHTML = (k, it) => `class="fqhd sghd sgc-${it._sgi % 8}" data-sg="${esc(k)}"><i></i>${esc(k)}`;
     }
+    list.forEach((it) => { const k = keyOf(it); cnt[k] = (cnt[k] || 0) + 1; });
+    const fold = new Set(foldGet()[S.cat] || []);
+    let html = '', cur = null, vis = 0, visTotal = 0;
+    list.forEach((it) => { if (!fold.has(keyOf(it))) visTotal++; });
+    for (const it of list) {
+      const k = keyOf(it), shut = fold.has(k);
+      if (!shut && vis >= S.shown) break;
+      if (k !== cur) { cur = k;
+        html += `<button type="button" aria-expanded="${!shut}" title="${shut ? '展開' : '收合'}這一組" ${hdHTML(k, it).replace('>', ' data-key="' + esc(k) + '">')}`
+          .replace(/(data-key="[^"]*">)/, '$1<span class="fold" aria-hidden="true">' + (shut ? '▸' : '▾') + '</span>') + `<small>${cnt[k]} 檔</small></button>`; }
+      if (!shut) { html += cardHTML(it); vis++; }
+    }
+    g.innerHTML = html || '<div class="etfprep">無資料</div>';
+    if (!grp) g.dataset.sgcnt = JSON.stringify(cnt);
+    $$('button.fqhd', g).forEach((h) => { h.onclick = () => {
+      const F = foldGet(), st = new Set(F[S.cat] || []), k = h.dataset.key;
+      st.has(k) ? st.delete(k) : st.add(k); F[S.cat] = [...st]; foldSet(F); drawList();
+      const nh = $$('button.fqhd', g).find((x) => x.dataset.key === k); if (nh) nh.focus(); }; });
+    $('#etfFoldAll').onclick = () => { const F = foldGet(); F[S.cat] = Object.keys(cnt); foldSet(F); drawList(); };
+    $('#etfOpenAll').onclick = () => { const F = foldGet(); delete F[S.cat]; foldSet(F); drawList(); };
     $$('.etfc', g).forEach((c) => { c.onclick = () => A().goStock(c.dataset.code); });
-    const more = $('#etfMore'); more.hidden = list.length <= S.shown;
-    more.textContent = `顯示更多（還有 ${Math.max(0, list.length - S.shown)} 檔）`;
+    const more = $('#etfMore'); more.hidden = visTotal <= S.shown;
+    more.textContent = `顯示更多（還有 ${Math.max(0, visTotal - S.shown)} 檔）`;
     more.onclick = () => { S.shown += PAGE; drawList(); };
     $('#etfFbNote').innerHTML = '';
-    g.dataset.n = String(Math.min(list.length, S.shown)); g.dataset.cat = S.cat;
+    g.dataset.n = String(Math.min(visTotal, S.shown)); g.dataset.cat = S.cat;
   }
 
   /* ------------------------------------------------------------------ 2. 分類內前 5 名（三張同高） */

@@ -173,8 +173,9 @@
           + `<button type="button" class="wpic del" data-del-tab="${esc(t.id)}" aria-label="刪除「${esc(t.name)}」這一頁" title="刪除這一頁">✕</button>` : '')
         + '</span>';
     }).join('');
+    /* ★ 2026-10-07 標題重複普查：頁首已有「自選」，卡標題改成「頁名：這張在看什麼」（週期統計同一個模式），不再只寫「自選」。*/
     v.innerHTML = `<div class="card wpcard">
-      <div class="wphd"><h2>自選 <button class="howbtn pop" data-how="watch" data-ttl="自選" type="button" aria-label="自選怎麼看">?</button></h2><span class="wpmode" id="wpMode">${esc(mode)}</span><span class="sp"></span><span class="wpcnt" id="wpCnt">${tabs.length}／${T.MAX_TABS} 頁</span></div>
+      <div class="wphd"><h2>自選：我的觀察清單 <button class="howbtn pop" data-how="watch" data-ttl="自選" type="button" aria-label="自選怎麼看">?</button></h2><span class="wpmode" id="wpMode">${esc(mode)}</span><span class="sp"></span><span class="wpcnt" id="wpCnt">${tabs.length}／${T.MAX_TABS} 頁</span></div>
       <div class="wptabs" role="tablist" id="wpTabs">${tabH}
         <button type="button" class="wpnew" id="wpNew" ${full && !(T.capLocked && T.capLocked()) ? 'disabled aria-disabled="true"' : ''} title="${full ? (T.capLocked && T.capLocked() ? `目前方案最多 ${T.MAX_TABS} 頁（需開通）` : `最多 ${T.MAX_TABS} 頁`) : '新增一頁清單'}">＋ 新增分頁${full && T.capLocked && T.capLocked() ? ' 🔒' : ''}</button>
         <span class="wphint" id="wpHint" ${P.hint ? '' : 'hidden'}>${esc(P.hint)}</span></div>
@@ -205,7 +206,7 @@
       // 資料落後（這一列最後一個價早於前一交易日）：不默默顯示舊數字 —— 數字變淡、滑過寫「資料至 MM/DD」
       const old = lag(c), st = old ? ` wpstale" title="資料至 ${esc(old)}（前一交易日的收盤還沒進來）` : '';
       return `<tr data-go="${esc(c)}" tabindex="0"${old ? ` data-stale="${esc(old)}"` : ''}>
-        <td class="nm"><div class="in">${a && a.logo ? a.logo(c, r.name, 28) : ''}<div class="t"><b class="wpgo">${esc(r.name || c)}</b><small class="num">${esc(c)}</small>${r.group ? `<span class="grp">${esc(r.group)}</span>` : ''}</div></div></td>
+        <td class="nm"><div class="in">${a && a.logo ? a.logo(c, r.name, 28) : ''}<div class="t"><b class="wpgo">${esc(r.name || c)}</b><small class="num">${esc(c)}</small>${window.freqBadge ? window.freqBadge(c) : ''}${r.group ? `<span class="grp">${esc(r.group)}</span>` : ''}</div></div></td>
         <td class="c-sp"><span class="wpspk" data-c="${esc(c)}"${old ? ` data-tiphint="資料至 ${esc(old)}"` : ''}>${sparkCell(c)}</span></td>
         <td class="num${st}" data-live="close" data-lc="${esc(c)}">${r.close == null || !f ? '—' : f.n(r.close)}</td>
         <td class="num ${cls}${st}" data-live="chg" data-lc="${esc(c)}">${r.chg_pct == null || !f ? '—' : f.pct(r.chg_pct, 2)}</td>

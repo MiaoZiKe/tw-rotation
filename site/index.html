@@ -158,7 +158,9 @@
   --dg-cover:#ddd6c2; --dg-cover-2:#d0c8b4;       /* 保護層（無電極素坯） */
   --dg-el:#4e5866;                                 /* 內電極（暗鋼灰） */
   --dg-sn:#e2e7ec; --dg-ni:#a9b1b9;                /* 端子：錫、鎳 */
-  --dg-cu:#b0743a; --dg-resin:#6f6858;             /* 端子：銅基底、導電樹脂（軟端子） */
+  --dg-cu:#b0743a; --dg-resin:#6f6858;
+  /* 2026-10-07 題材圖線束／鋼桶／流程副字（美術把關）：深色值 */
+  --dg-cable:#6f6858; --dg-cable-edge:#0e1526; --dg-tie:#4a5568; --dg-accent-muted:#7d8aa3; --dg-text-2:#a9b1c2;             /* 端子：銅基底、導電樹脂（軟端子） */
   --dg-pcb:#1a4230;                                /* 板材 */
   --dg-ink:#e8eeff; --dg-ink-2:#a9b6d6; --dg-ink-3:#8ea0c4;   /* 圖上的文字三階 */
   --dg-warn:#ff8fab; --dg-err:#ff4d6d;             /* 警語、裂紋 */
@@ -282,6 +284,7 @@
   --dg-pcb-core:#33452f;      /* 芯板 core 的介電：已固化，暗綠（⚠ 原名 --dg-core，撞名改的） */
   --dg-pp:#8a8355;            /* 半固化片 prepreg：玻纖布佔比高，比 core 淺、偏卡其 */
   --dg-yarn:#cfc8a4;          /* 玻纖紗束（⚠ 原名 --dg-glass，撞名改的） */
+  --dg-sack:#c9b98f; --dg-metal-hi:#dde4ec;   /* 太空包編織袋；雲台亮面金屬（2026-10-07 第三批） */
   --dg-au:#e3b75a;            /* 表面處理最外層的金 */
   --dg-edge:#0e1526;          /* 剖面描邊與鑽孔孔洞（比 --illus 更暗，孔才像孔） */
   /* ABF 載板 .dgabf */
@@ -497,6 +500,7 @@
   --dg-resin:#7d7568; --dg-emc:#5a5960; --dg-plug:#8a7d64; --dg-wick:#9a7550;
   --dg-pcb:#4f7a5c; --dg-pcb-2:#416a4e; --dg-sub-2:#416a4e; --dg-pcb-core:#5f7359; --dg-core:#66754f; --dg-core-2:#536242;
   --dg-pp:#a09a72; --dg-yarn:#c9c19c; --dg-weave:#8d9b6e; --dg-abf:#cfc6b1; --dg-abf-2:#aba28d;
+  --dg-sack:#b8a77a; --dg-metal-hi:#d0d8e0;   /* 太空包編織袋；雲台亮面金屬（2026-10-07 第三批） */
   --dg-sr:#3f8aa3; --dg-sr-2:#2f6e84; --dg-glass:#9fc3d6;
   --dg-ag-pcb:#5b8468; --dg-ag-pcb-2:#4a7057; --dg-ag-ccl:#52785b; --dg-ag-ccl-2:#43654b;
   --dg-si:#6b7fb5; --dg-si-2:#4f62a0; --dg-die:#5f6c8f;
@@ -504,6 +508,7 @@
   --dg-tim:#b59fb0; --dg-mag:#7a6a99;
   --dg-fws:#7f8a9c; --dg-fws-2:#5d6679; --dg-vap:#dfe4ea;
   --dg-void:#e8e5dd; --dg-frame:#e6e2d9; --dg-edge:#4a463f;
+  --dg-cable:#8a8478; --dg-cable-edge:#5c5850; --dg-tie:#6b6458; --dg-accent-muted:#7a7266; --dg-text-2:#3d3a35;
   /* 面板疊層那一組（--dg-pn-*）：反射片不能是純白（跟紙底同色就消失了） */
   --dg-pn-bezel:#6b6f76; --dg-pn-bezel-d:#555960; --dg-pn-refl:#e6e8ec; --dg-pn-refl-d:#c2c7d0;
   --dg-pn-lgp:#b7d3e4; --dg-pn-lgp-d:#8db0c8; --dg-pn-led:#f0cf74; --dg-pn-led-d:#c9aa4f;
@@ -1651,6 +1656,8 @@ canvas.rotripple{position:absolute;left:0;top:0;width:100%;height:100%;pointer-e
 .top5grid .t5 .m{font-family:var(--mono);font-size:12px;color:var(--ink-3);margin:4px 0 8px}
 .top5grid .t5 .ls{display:flex;flex-wrap:wrap;gap:4px 8px;font-size:12.5px}
 /* 資金流向頁：期間切換、「怎麼看」說明、估值篩選 */
+.mkthead .mktright{margin-left:auto;justify-content:flex-end}
+@media (max-width:800px){.mkthead{flex-direction:column;align-items:flex-start}.mkthead .mktright{margin-left:0;justify-content:flex-start;max-width:100%}}
 .periodbar{background:linear-gradient(180deg,rgba(62,224,255,.07),transparent)}
 .periodbar .pnote{color:var(--ink-3);font-size:13px;margin-top:4px;font-family:var(--mono)}
 .howbtn{border:1px solid var(--line-2);background:var(--panel-3);color:var(--ink-2);border-radius:999px;
@@ -1958,6 +1965,16 @@ a.lk.sm{font-size:12px;font-weight:500}
   flex:1 1 auto;min-width:0;min-height:0}
 .gpcard.dnbelow .gpdonut{flex-direction:column;gap:var(--sp-2,8px)}
 .gpgrid .gpdonut>.chart{flex:none;min-width:0;min-height:0}
+/* ★ 2026-10-07 配息頻率徽章（app.js freqBadge）：全站 ETF 名稱旁邊的「月配／雙月配／季配／半年配／年配／不配息」。
+   樣式照 ETF 卡片的 .fq.fqtag（實心色底、粗體 11.5px 膠囊）；色票跟 etfpage.js 的 --fq-* 同值，搬到 :root 才能全站用。
+   不配息用中性灰（它不是「一種頻率」，不該搶眼）。 */
+:root{--fqb-m:#2dd4bf;--fqb-b:#c084fc;--fqb-q:#fbbf24;--fqb-h:#60a5fa;--fqb-y:#9ca3af;--fqb-n:#64748b}
+:root[data-theme="light"]{--fqb-m:#0f766e;--fqb-b:#7e22ce;--fqb-q:#a16207;--fqb-h:#1d4ed8;--fqb-y:#4b5563;--fqb-n:#94a3b8}
+.fqbdg{display:inline-block;flex:none;margin-left:6px;padding:1px 7px;border-radius:999px;background:var(--fc,var(--fqb-y));color:var(--ontop,#0b1220);
+  font-family:inherit;font-weight:700;font-size:11.5px;line-height:17px;letter-spacing:0;white-space:nowrap;vertical-align:middle;font-variant-numeric:normal}
+.fqbdg.fqc-m{--fc:var(--fqb-m)} .fqbdg.fqc-b{--fc:var(--fqb-b)} .fqbdg.fqc-q{--fc:var(--fqb-q)}
+.fqbdg.fqc-h{--fc:var(--fqb-h)} .fqbdg.fqc-y{--fc:var(--fqb-y)} .fqbdg.fqc-n{--fc:var(--fqb-n)}
+.fqbdg-ph{display:none}
 .gplegend{--lg-row:28px;display:grid;grid-template-columns:12px minmax(0,max-content) max-content max-content;
   column-gap:var(--sp-3,12px);row-gap:2px;align-content:center;flex:none;min-width:0;width:max-content;max-width:100%;margin:0}
 .gplegend .lg{grid-column:1/-1;display:grid;grid-template-columns:subgrid;align-items:center;min-width:0;height:var(--lg-row);
@@ -4322,6 +4339,14 @@ h3 .howbtn.pop{font-family:inherit}
 }
 /* 擋掉兩支 AI 積木（只剩基本面、籌碼快照）：兩張並排 */
 @container skov (min-width:790px){ .skov3[data-cols="2"]>.skovkpi{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));align-items:start} }
+/* ★ 2026-10-07（Andy：「右邊不要空白 讓他填滿 可以將上下欄位便左右」）：ETF 總覽（沒有基本面、AI 卡）——
+   技術面訊號在上面一條滿寬，籌碼快照在下面滿寬、四塊分左右兩欄（多欄排版 columns:2，瀏覽器自己平衡兩欄高度；
+   每塊 break-inside:avoid 不被切開）。左＝法人、集保；右＝信用與借券、量比。容器 < 790 退回單欄（上面的 .mixes 預設）。*/
+@container skov (min-width:790px){
+  .skov3[data-cols="etf"] #skChipCard>.mixes{display:block;columns:2;column-gap:12px}
+  .skov3[data-cols="etf"] #skChipCard>.mixes>*{break-inside:avoid;margin:0 0 10px}
+  .skov3[data-cols="etf"] #skChipCard>.mixes>.mixvr{padding:12px;border-radius:10px;background:var(--panel-3)}   /* 量比也裝進同款灰底塊，右欄才跟左欄一樣是「一塊一塊」 */
+}
 /* 籌碼快照卡內四塊（法人 → 集保 → 信用與借券（含當沖率）→ 量比）一律由上往下排：中欄只有約 430px 寬，
    改前在寬容器排成三欄、量比橫跨下面；三欄版面裡它自己就是一欄，再橫排會擠成每格不到 120px */
 .mixes{display:flex;flex-direction:column;gap:10px;margin-top:8px}
@@ -4944,6 +4969,9 @@ h3 .howbtn.pop{font-family:inherit}
   body.m3on #mktTitle{display:contents}
   body.m3on #mktTitle > small{order:2;flex-basis:100%;margin-top:2px}
   body.m3on #v-market h3 > .howbtn.pop[data-how="mkt"]{order:1}
+  /* 2026-10-07：標題前多了「市場明細：」前綴，h3 是 flex，預設間距會把「市場明細：」和「漲跌家數」拉開 → 欄距歸零，「?」自己留 8px */
+  body.m3on #v-market h3:has(> #mktTitle){column-gap:0}
+  body.m3on #v-market h3 > .howbtn.pop[data-how="mkt"]{margin-left:8px}
   body.m3on .mfilt{min-height:36px;padding:0 12px;border-radius:10px;border:1px solid var(--line-2);background:var(--panel-2);
     color:var(--ink-2);font-size:13px;white-space:nowrap;max-width:190px;overflow:hidden;text-overflow:ellipsis}
   body.m3on .mfilt.on{border-color:var(--cyan);color:var(--cyan)}
@@ -5447,10 +5475,9 @@ h3 .howbtn.pop{font-family:inherit}
 
   <!-- ================= 市場明細 ================= -->
   <section class="view" id="v-market">
-    <div class="card periodbar"><div class="row spread">
-      <div><h3 style="margin:0">市場明細</h3></div>
-      <div class="seg" id="mktSeg2"></div></div></div>
-    <div class="card" style="margin-top:var(--gap-card)"><div class="row spread"><h3><span id="mktTitle">—</span> <button class="howbtn pop" data-how="mkt" data-ttl="市場明細" type="button" aria-label="市場明細怎麼看">?</button></h3><small id="mktDisc" data-disc="cand" hidden></small></div>
+    <!-- ★ 2026-10-07（Andy：「標題重複，把紅框移動下來」）：頁首已有「市場明細」大標，原本這裡還有一張同名標題卡掛四顆分頁鈕，
+         整張拿掉；分頁鈕 #mktSeg2 搬到內容卡標題列右側（每個分頁都在同一位置），窄畫面換行到標題下方。 -->
+    <div class="card"><div class="row spread mkthead"><h3><span class="mktpre">市場明細：</span><span id="mktTitle">—</span> <button class="howbtn pop" data-how="mkt" data-ttl="市場明細" type="button" aria-label="市場明細怎麼看">?</button></h3><div class="row mktright"><small id="mktDisc" data-disc="cand" hidden></small><div class="seg" id="mktSeg2"></div></div></div>
       <div class="howtxt" id="how-mkt" hidden></div>
       <div id="mktBody"></div></div>
   </section>

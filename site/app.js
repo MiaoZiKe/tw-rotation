@@ -441,7 +441,9 @@
   function staleTag() {
     const ks = Object.keys(STALE);
     let el = document.getElementById('staleTag');
-    if (!ks.length) { if (el) el.remove(); return; }
+    // ★ 2026-10-07 Andy：「這不要對使用者顯示出來，除了我」→ 只給擁有者帳號看（owner 旗標由 Worker 判定）
+    const A = window.TwAccount, u = A && A.user && A.user();
+    if (!ks.length || !(u && u.owner)) { if (el) el.remove(); return; }
     const t = Math.min.apply(null, ks.map(k => STALE[k]));
     const s = new Date(t).toLocaleString('sv-SE', { timeZone: 'Asia/Taipei' }).slice(0, 16);
     if (!el) { el = document.createElement('div'); el.id = 'staleTag'; el.className = 'staletag'; el.setAttribute('role', 'status'); document.body.appendChild(el); }
@@ -1364,6 +1366,35 @@
 
   // ---------------------------------------------------------------- 全站互通：任何股票／族群／產業鏈／題材名稱都可點
   // 資料載入後建索引；各頁用 L.stock()/L.group()/L.theme() 產生連結，永遠連到同一個地方。
+  /* ★ 2026-10-07（Andy：「只要是 ETF 名稱旁邊都著名 月 雙月 季 年 無配息 等資訊」）：配息頻率小徽章，全站共用一支。
+     · 資料只讀 etf.json 的 freq（ETF 專區卡片同一個欄位，管線依近年配息次數判定）；**沒有 freq 的 ETF 不畫**，不用名稱或分類去猜。
+       「不配息」也只認 freq＝不配息（div_none 是「問過 FinMind 沒有配息紀錄」，新掛牌的主動式也會中，不能當成不配息）。
+     · 樣式與配色照 ETF 卡片那一款（etfpage.js 的 .fq.fqtag：實心色底、粗體 11.5px 膠囊），色票搬到 :root 的 --fqb-*，全站同一組。
+     · 只有「00 開頭」的代號才可能是 ETF（台股 ETF 代號一律 00xx／00xxx／00xxxA），其他代號直接回空字串，不必等 etf.json。
+     · etf.json 還沒載入時先輸出一個空的佔位 span（data-fq-code），載入後 fqFill() 把畫面上所有佔位換成徽章或拿掉 ——
+       呼叫端維持同步字串拼接，不用每一處都改成 async。*/
+  const FQB_K = { 月配: 'm', 雙月配: 'b', 季配: 'q', 半年配: 'h', 年配: 'y', 不配息: 'n' };
+  let fqMap = null, fqLoading = null;
+  const fqHTML = (f) => `<span class="fqbdg fqc-${FQB_K[f]}" data-fq="${f}" title="配息頻率：${f}（依近年實際配息次數）">${f}</span>`;
+  function fqFill(root) {
+    if (!fqMap) return;
+    (root || document).querySelectorAll('[data-fq-code]').forEach(e => { const f = fqMap.get(e.dataset.fqCode); if (f) e.outerHTML = fqHTML(f); else e.remove(); });
+  }
+  function fqEnsure() {
+    if (fqMap || fqLoading) return fqLoading;
+    fqLoading = Promise.resolve().then(() => load('etf', { fallback: null })).then(e => {
+      fqMap = new Map(); ((e && e.items) || []).forEach(x => { if (x && FQB_K[x.freq]) fqMap.set(String(x.code), x.freq); });
+    }).catch(() => { fqMap = new Map(); }).then(() => fqFill(document));
+    return fqLoading;
+  }
+  function freqBadge(code) {
+    code = String(code || '');
+    if (!/^00\d{2,4}[A-Z]?$/.test(code)) return '';
+    if (fqMap) { const f = fqMap.get(code); return f ? fqHTML(f) : ''; }
+    fqEnsure();
+    return `<span class="fqbdg-ph" data-fq-code="${fmt.esc(code)}"></span>`;
+  }
+  window.freqBadge = freqBadge;
   const L = {
     gname: {}, gid: {}, gchain: {}, gcolor: {}, gidx: {}, cname: {}, cgroup: {}, cmarket: {}, ctheme: {}, chains: {}, scolor: {}, sidx: {}, gsegs: {}, sgroups: {}, all: [], ready: false,
     // 環節色：讀的當下才從 PALETTE 取，這樣切主題就會跟著換
@@ -1415,7 +1446,7 @@
       L.recolor();
       L.ready = true;
     },
-    stock(code, name, o) { o = o || {}; const n = name || L.cname[code] || ''; return `<a class="lk lk-stock ${o.cls || ''}" href="#stock/${code}" title="看 ${fmt.esc(n)} 個股頁">${o.codeFirst ? `<span class="code">${code}</span>${fmt.esc(n)}` : `${fmt.esc(n)}<span class="code">${code}</span>`}</a>`; },
+    stock(code, name, o) { o = o || {}; const n = name || L.cname[code] || ''; return `<a class="lk lk-stock ${o.cls || ''}" href="#stock/${code}" title="看 ${fmt.esc(n)} 個股頁">${o.codeFirst ? `<span class="code">${code}</span>${fmt.esc(n)}` : `${fmt.esc(n)}<span class="code">${code}</span>`}</a>${o.fq === false ? '' : freqBadge(code)}`; },
     group(gid, name, o) { o = o || {}; if (!gid) return fmt.esc(name || ''); const n = name || L.gname[gid] || gid; const col = L.gcolor[gid] || '#8ea0c4'; return `<a class="lk lk-group ${o.cls || ''}" href="#industry/group/${gid}" title="看「${fmt.esc(n)}」族群成分股" style="--c:${col}">${o.dot === false ? '' : '<i></i>'}${fmt.esc(n)}</a>`; },
     groupByName(name, o) { const gid = L.gid[name] || (L.gname['ind_' + name] ? 'ind_' + name : null); return gid ? L.group(gid, name, o) : fmt.esc(name || ''); },
     chain(cid, name, o) { o = o || {}; const n = name || L.chains[cid] || ({ industry: '法定產業別' })[cid] || cid; return `<a class="lk lk-chain ${o.cls || ''}" href="#industry/${cid}" title="看整條產業鏈">${fmt.esc(n)}</a>`; },
@@ -1554,6 +1585,19 @@
     box = typeof box === 'string' ? document.querySelector(box) : box;
     if (!box) return;
     on = !!on;
+    /* ★ 播放器1007b（Andy 10-07 21:05 附圖：資金分流樹那排開著「即時」，▶ 反灰按不動 →
+       「播放動畫都是到當日數據截止，便不會再進行播放…圖一功能不是說要反灰色」）：
+       同一排自己有「即時」鈕的拉Bar（資金分流樹 #sankeyDays、足跡輪盤 #rotBack／#rotZoomBack），
+       它們的拉桿／− ＋／▶ 本來就會「一動就退出即時」（sankeyDays 的 onChange → sklOff、rotSeek → rlvOff），
+       所以不再停用、不再反灰：按 ▶ ＝退出即時、從頭播。這裡只停掉播放、掛上提示，外觀照常。
+       沒有退出邏輯的 live.js 卡片（tw:livecard）維持 #283 的反灰停用。*/
+    if (box.querySelector('.livebtn')) {
+      if (on) { const p = _players.get(box); if (p) { try { p.stop(); } catch (e) { /* 忽略 */ } } }
+      box.classList.remove('livedim');
+      if (on) box.setAttribute('data-livetip', '即時模式中；拖拉Bar 或按 ▶ 會退出即時、回看歷史');
+      else box.removeAttribute('data-livetip');
+      return;
+    }
     if (on) { const p = _players.get(box); if (p) { try { p.stop(); } catch (e) { /* 忽略 */ } } }
     box.classList.toggle('livedim', on);
     box.querySelectorAll('input, button, select').forEach(el => {
@@ -1639,8 +1683,13 @@
       const { min, max, st } = lim();
       const d = dirOf();
       let nx = +inp.value + st * d;
-      if (d > 0 ? nx > max : nx < min) { if (o.loop === false) { stop(); return; } nx = d > 0 ? min : max; }
-      setV(nx); paintBtn();
+      /* 播放器1007b（Andy 10-07 21:05：「播放動畫都是到當日數據截止，便不會再進行播放」）：
+         以前預設無限循環，播到最後一天又默默跳回第一天，使用者看不出「播完了」。現在一律播到最後一格就停在那一格、
+         鈕回 ▶；再按 ▶ 由 start() 從頭重播。要循環的呼叫端得明講 loop: true。*/
+      if (d > 0 ? nx > max : nx < min) { if (o.loop !== true) { stop(); return; } nx = d > 0 ? min : max; }
+      setV(nx);
+      if (o.loop !== true && (d > 0 ? nx >= max : nx <= min)) { stop(); return; }
+      paintBtn();
     };
     const start = () => {
       if (timer) return;
@@ -2927,7 +2976,10 @@
          手機不在這裡捲：那邊是分段導覽，`prefer` 已經把題材那一段翻出來了（點擊處理自己會捲）。*/
       if (wantTheme && !mIsM()) {
         const toTheme = (force) => {
-          const e = document.getElementById(tid ? 'themeDetail' : 'themeMapCard'); if (!e) return;
+          /* ★ 2026-10-07（Andy：「不會跳到下方 2D 圖」）：電腦版「題材」子分頁的熱力圖＋剖析圖已經一起塞進一個畫面（fitThemeView），
+             選題材**不再捲**；從別頁帶進來也只把題材熱力卡對齊頂端（剖析圖就在它正下方），不捲到剖析圖。*/
+          if (l4on && !force) return;
+          const e = document.getElementById(tid && !l4on ? 'themeDetail' : 'themeMapCard'); if (!e) return;
           const top = e.getBoundingClientRect().top;
           if (force || (tid && (top < 58 || top > window.innerHeight * 0.5))) {
             window.scrollTo({ top: Math.max(0, top + window.scrollY - 70) });
@@ -2936,7 +2988,7 @@
         setTimeout(() => toTheme(pageChanged), 80);
         /* 2026-10-03 電腦版「題材」子分頁：上面不再有全市場熱力圖撐高度，80ms 那一刻剖析圖還沒長出來、頁面不夠長捲不到位 ——
            剖析圖畫好之後（約半秒）再看一次，還不在畫面上半部才補捲（已經到位就不動，不會無故跳一下）。 */
-        if (tid && l4on) setTimeout(() => toTheme(false), 600);
+        setTimeout(fitThemeView, 600);   // 剖析圖約半秒才長好（themes3d.js 量完再畫一次），長好再對一次高度
       }
       return;
     }
@@ -3323,7 +3375,7 @@
         <div class="dplist">${rows.length ? `<table><thead><tr><th class="l">代號</th><th class="l">名稱</th><th>漲跌幅</th><th>成交值</th></tr></thead><tbody>`
           // data-chg／data-to 放原始數值：畫面上的百分比四捨五入到兩位，驗收要拿原值比對分格邊界
           + rows.map(r => `<tr data-code="${r.code}" data-chg="${+r.chg_pct}" data-to="${r.turnover != null ? r.turnover : ''}"><td class="l cd">${r.code}</td>`
-            + `<td class="l"><a href="#stock/${r.code}" title="看 ${fmt.esc(r.name || '')} 個股頁">${fmt.esc(r.name || L.cname[r.code] || r.code)}</a></td>`
+            + `<td class="l"><a href="#stock/${r.code}" title="看 ${fmt.esc(r.name || '')} 個股頁">${fmt.esc(r.name || L.cname[r.code] || r.code)}</a>${freqBadge(r.code)}</td>`
             + `<td class="${fmt.cls(r.chg_pct)}">${fmt.pct(+r.chg_pct, 2)}</td>`
             + `<td>${r.turnover != null ? fmt.yi(r.turnover) : '—'}</td></tr>`).join('')
           + '</tbody></table>' : '<div class="empty">這一段沒有股票</div>'}</div>`;
@@ -12182,7 +12234,7 @@
       const same = location.hash === h;
       if (same) renderThemeDetail(th, p.data.id); else location.hash = h;
       const d = $('#themeDetail');
-      if ((same || mIsM()) && d && d.scrollIntoView) setTimeout(() => d.scrollIntoView({ behavior: 'smooth', block: 'start' }), 60);
+      if (mIsM() && d && d.scrollIntoView) setTimeout(() => d.scrollIntoView({ behavior: 'smooth', block: 'start' }), 60);
     }));
     const tz = $('#themeZoom');
     if (tz) tz.onclick = () => openZoom('題材資金熱力', (body, chipBox, close) => {
@@ -12194,7 +12246,53 @@
       });
     });
     if (!mapOnly) renderThemeDetail(th, sel || '');
+    fitThemeView();
   }
+  /* ★ 2026-10-07（Andy：「選題材後剛好符合畫面，以及不會跳到下方 2D 圖，這樣要一直上下滑動很麻煩」）：
+     桌機（非手機 v3）把「題材資金熱力」與下面的「產品剖析圖」一起塞進一個畫面：
+       ① 熱力圖高度＝min(35vh, 剩下的空間 − 剖析圖)，下限 180px（再矮方塊的字就放不下）；
+       ② 還是放不下 → 剖析圖用 transform: scale 縮（transform 不影響排版，所以下緣用負 margin 收回縮掉的那一截），
+          但最多縮到 SC_MIN＝11/12：剖析圖最小字 12px（--dg-fs-min），縮到 11px 是全站字級下限（CLAUDE.md），不准再小。
+          縮到下限還放不下（少數特別高的題材）就讓它超出一點，不再壓字。
+     · 量的是「文件座標」的上緣（rect.top＋scrollY），跟目前捲到哪裡無關。
+     · 剖析圖寬度改變時 themes3d.js 會整張重畫（換掉 svg），所以它的 rewire 回呼也會叫這支（見 renderThemeDetail）。
+     · 沒選題材時熱力圖照 35vh（不再是 460 固定高），點了題材它不會先變大再縮。*/
+  const TH_SC_MIN = 11 / 12;
+  function fitThemeView() {
+    const map = $('#themeMap'); if (!map || !map.getClientRects().length) return;
+    if (mIsM()) { if (map.dataset.fitH) { map.style.minHeight = '460px'; delete map.dataset.fitH; } return; }
+    const wrap = $('#themeMapWrap'); if (wrap && wrap.classList.contains('zoomed')) return;
+    const vh = window.innerHeight, sy = window.scrollY;
+    const mapTop = map.getBoundingClientRect().top + sy;
+    const cap = Math.round(Math.max(180, vh * 0.35));
+    const det = $('#themeDetail'), dgw = det && $('#themeDiagram', det), svg = dgw && dgw.querySelector('svg');
+    let H = cap, k = 1;
+    if (svg) {
+      svg.style.transform = ''; svg.style.marginBottom = '';
+      const dh = svg.getBoundingClientRect().height;
+      const mapCard = $('#themeMapCard'), dcard = det.querySelector('.card');
+      const curH = map.getBoundingClientRect().height;
+      // 熱力圖以外的固定開銷：熱力卡下半（圖例＋內距）＋卡間距＋剖析卡標題列＋剖析卡下內距
+      const over = (dcard.getBoundingClientRect().bottom - map.getBoundingClientRect().top) - curH - dh;
+      const room = vh - mapTop - over - 8;   // 頁面捲到頂時，熱力圖＋剖析圖可用的高度
+      H = Math.min(cap, Math.max(180, Math.floor(room - dh)));
+      if (H + dh > room) k = Math.max(TH_SC_MIN, (room - H) / dh);
+      if (k < 1) {
+        svg.style.transformOrigin = 'top center';
+        svg.style.transform = `scale(${k.toFixed(3)})`;
+        svg.style.marginBottom = `${-Math.round(dh * (1 - k))}px`;
+      }
+      dgw.dataset.fitk = k.toFixed(3);
+    }
+    /* 高度寫在 min-height（不是 height）：wheelZoom 放大時會改寫 #themeMap 的 width／height、還原時清成空字串，
+       寫在 height 會被還原那一下洗掉（熱力圖彈回 460、整頁跟著跳）。 */
+    if (Math.abs((+map.dataset.fitH || 0) - H) >= 2) {
+      map.dataset.fitH = H; map.style.minHeight = H + 'px';
+      const i = window.echarts && echarts.getInstanceByDom(map); if (i) i.resize();
+    }
+  }
+  let fitThemeT = 0;
+  window.addEventListener('resize', () => { clearTimeout(fitThemeT); fitThemeT = setTimeout(fitThemeView, 140); });
   // 題材產品圖：點零件→列出該零件的個股（成員表已於 2026-09-23 移除，所以不再有「滑過成員列」那一端）。
   function wireThemeDiagram(host, t) {
     const root = $('#themeDiagram', host); if (!root) return;
@@ -12262,7 +12360,7 @@
        Andy 描述的行為是「點題材格子會展開題材細節」，所以改成點了才展開，沒點就只留一句怎麼用。*/
     if (!id) {
       el.innerHTML = `<div class="muted themehint" title="點上方「題材資金熱力」任一方塊，在這裡展開它的剖析圖">尚未選擇題材</div>`;
-      return;
+      fitThemeView(); return;
     }
     const t = th.themes.find(x => x.id === id) || th.themes[0]; if (!t) return;
     const dg = (window.ThemeDiagrams || {})[t.id];
@@ -12298,7 +12396,7 @@
     if (dg) {
       // 爆炸圖的零件高矮差很多，字串階段量不到尺寸，進 DOM 之後再等比縮到各自那一列
       // ★ 2026-10-03（#316）：fit 會依卡寬重畫；之後視窗寬度變了再重畫時要重新接點擊，所以把 wireThemeDiagram 交給它
-      if (window.ThemeDiagrams.fit) window.ThemeDiagrams.fit($('#themeDiagram', el), () => wireThemeDiagram(el, t));
+      if (window.ThemeDiagrams.fit) window.ThemeDiagrams.fit($('#themeDiagram', el), () => { wireThemeDiagram(el, t); fitThemeView(); });
       // 剖析圖不加滾輪縮放（跟產業／個股剖析圖一致，DECISIONS #84；Andy 09-13 再確認）
       // 要看大圖按右上角「放大」，那是明確的按鈕，不會搶走頁面捲動
       wireThemeDiagram(el, t);
@@ -12307,6 +12405,7 @@
         isOpen: () => !!$('#themeDiagram', el) && el.getClientRects().length > 0 && location.hash.startsWith('#heatmap/theme/'),
       });
     }
+    fitThemeView();
   }
 
   // ---------------------------------------------------------------- 季節性
@@ -13261,7 +13360,7 @@
     const row = (code, name, right, del) => {
       const n = name || L.cname[code] || '';
       return `<div class="sgrow" role="option" aria-selected="false" id="sgo${++nid}" data-c="${fmt.esc(code)}">${logoHTML(code, n, 20)}`
-        + `<span class="code">${fmt.esc(code)}</span><span class="nm">${fmt.esc(n)}</span>`
+        + `<span class="code">${fmt.esc(code)}</span><span class="nm">${fmt.esc(n)}</span>${freqBadge(code)}`
         + `<span class="spkw" data-spk="${fmt.esc(code)}">${sparkSVG(code)}</span>${right || ''}`
         + starBtn(code, n)
         + (del ? `<button type="button" class="sgdel" data-del="${fmt.esc(code)}" aria-label="從近期搜尋移除 ${fmt.esc(n)}" title="從近期搜尋移除">×</button>` : '')
@@ -13502,7 +13601,7 @@
     fillDisc();                 // 標題列右側那一行免責小字（2026-10-06）
     const meta = await load('meta');
     if (meta) { renderFreshness(meta); }
-    window.App = { srcInfo, sankeyRankDraw, rotPopMembers, msDD, load, chart, howHTML, fmt, tip, axisStyle, NUM_FONT, CH, PALETTE, chgColor, heatColor, treeSkin, hexA,
+    window.App = { freqBadge, srcInfo, sankeyRankDraw, rotPopMembers, msDD, load, chart, howHTML, fmt, tip, axisStyle, NUM_FONT, CH, PALETTE, chgColor, heatColor, treeSkin, hexA,
       hmBin, hmColor, hmItem, hmSeries, hmLegend, hmRelabel, hmTip, hmTipOpt, hmLS, hmLSset, HM_KIND, upDown, empty, charts, goStock, D, L, wheelZoom, zoomClick, rangeBar, playBar, theme, applyTheme, liveMerge, onLive, LIVE_KEYS,
       /* 給 scripts/_uitest.py 量「小圓點真的在動」用：回傳當下每一顆點的座標。
          用座標而不是 canvas 指紋 —— WebGL/Canvas 的指紋在這個容器裡量過是
