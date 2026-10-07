@@ -466,6 +466,12 @@
     Promise.resolve(route()).catch(() => {}).finally(() => { _swrPass = false;
       window.dispatchEvent(new CustomEvent('tw:data-refreshed')); });
   }
+  /* ★ 2026-10-07 開頁速度第二輪：「首屏畫完了」的閘門。開站第一次 route() 結束（或最多 20 秒）就放行。
+     首屏用不到、但之後會用到的大檔（industry_map、supply_chain、candidates、groups_detail、news 完整版）排在它後面才發，
+     不跟首屏的圖搶頻寬。⚠ 首屏 route() 的 await 鏈裡**不准**等任何排在 bootPaint 後面的東西，不然會互等卡死。*/
+  let _bootPaintOk = null;
+  const bootPaint = new Promise((r) => { _bootPaintOk = r; setTimeout(r, 20000); });
+  const afterPaint = (name, opt) => bootPaint.then(() => load(name, opt));
   let _metaNet = null;         // 新的 meta（網路版）—— 其他檔的版本鍵一律等它
   const _loading = {}, _loaded = {};
   function load(name, opt) {
@@ -1438,9 +1444,16 @@
   }
   function fqEnsure() {
     if (fqMap || fqLoading) return fqLoading;
-    fqLoading = Promise.resolve().then(() => load('etf', { fallback: null })).then(e => {
-      fqMap = new Map(); ((e && e.items) || []).forEach(x => { if (x && FQB_K[x.freq]) fqMap.set(String(x.code), x.freq); });
-    }).catch(() => { fqMap = new Map(); }).then(() => fqFill(document));
+    /* ★ 2026-10-07 開頁速度第二輪：改讀管線另出的小檔 etf_freq.json（{代號: 頻率}，約 4KB，口徑＝etf.json 的 freq 原樣拷貝），
+       不再為了一個小徽章在首屏抓整份 etf.json（gzip 後 184KB）。已經載過 etf.json（先去過 ETF 專區）就直接用它；
+       小檔讀不到（舊資料、預覽分支吃正式站資料）才退回整份 etf.json。*/
+    const fromEtf = (e) => { const m = new Map(); ((e && e.items) || []).forEach(x => { if (x && FQB_K[x.freq]) m.set(String(x.code), x.freq); }); return m; };
+    fqLoading = Promise.resolve().then(async () => {
+      if (D.etf && D.etf.items) return fromEtf(D.etf);
+      const f = await load('etf_freq', { fallback: null });
+      if (f && typeof f === 'object' && !Array.isArray(f)) { const m = new Map(); Object.keys(f).forEach(c => { if (FQB_K[f[c]]) m.set(String(c), f[c]); }); return m; }
+      return fromEtf(await load('etf', { fallback: null }));
+    }).then(m => { fqMap = m; }).catch(() => { fqMap = new Map(); }).then(() => fqFill(document));
     return fqLoading;
   }
   function freqBadge(code) {
@@ -1462,6 +1475,13 @@
       Object.keys(this.gidx).forEach(gid => { this.gcolor[gid] = PALETTE[this.gidx[gid] % PALETTE.length]; });
       Object.keys(this.sidx).forEach(sid => { this.scolor[sid] = this.segColor(sid); });
       Object.keys(this.gsegs).forEach(gid => { this.gcolor[gid] = this.segColor(this.gsegs[gid][0]) || this.gcolor[gid]; });
+    },
+    /* ★ 2026-10-07 開頁速度第二輪：開站分兩段 init —— 先用 link_index.json（族群順序／鏈名／環節色骨架，約 3KB）
+       畫總覽，首屏畫完再抓整份 industry_map／supply_chain／candidates 重新 init 一次。第二次要從空白重建
+       （init 裡有「已經有就不覆蓋」的判斷，疊上去結果會跟一次 init 不同），所以先原地清空（不換物件，別處拿著參照也沒事）。*/
+    reset() {
+      ['gname', 'gid', 'gchain', 'gcolor', 'gidx', 'cname', 'cgroup', 'cmarket', 'ctheme', 'chains', 'scolor', 'sidx', 'gsegs', 'sgroups']
+        .forEach(k => { const o = L[k]; Object.keys(o).forEach(x => { delete o[x]; }); });
     },
     init(im, gt, cands, th, sc, all) {
       const gs = [];
@@ -3971,8 +3991,10 @@
          · 首屏下方三張（資金分流樹／熱門題材／漲跌家數）：捲近了才畫，畫的時候才等自己的檔
        groups_detail 與 candidates 沒有任何一張卡在「畫」的時候用到（只有點方塊後的成分股面板、tooltip 查名字與即時層讀 D），
        照舊預先載入，但不再擋著畫圖。 */
-    const P = { heat: load('market_heat'), gt: load('groups_today'), rot: load('rotation'), cands: load('candidates'),
-      f3: loadRrgLite(), th: load('themes'), gd: load('groups_detail', { low: true }), sd: load('sankey_daily', { fallback: null }), stocks: load('stocks', { fallback: [] }) };
+    /* 2026-10-07 開頁速度第二輪：candidates（159KB）與 groups_detail（102KB）沒有任何一張卡在「畫」的時候用到，
+       改成首屏畫完（bootPaint）才發，不跟熱力圖／輪盤／摘要卡搶頻寬。開站之後再進總覽，bootPaint 早就放行了，等於照舊。*/
+    const P = { heat: load('market_heat'), gt: load('groups_today'), rot: load('rotation'), cands: afterPaint('candidates'),
+      f3: loadRrgLite(), th: load('themes'), gd: afterPaint('groups_detail', { low: true }), sd: load('sankey_daily', { fallback: null }), stocks: load('stocks', { fallback: [] }) };
     const tasks = [];
     // ① 熱力圖：資料最小、最常先到
     tasks.push((async () => { const [gt, rot] = await Promise.all([P.gt, P.rot]); renderHeat(gt, rot); })());
@@ -13052,7 +13074,8 @@
      build_payload 另外切一份 news_head.json（總件數＋最新 30 則，同一份排序、同樣欄位），先畫件數與前幾則；
      完整清單背景到了再整個重畫一次。讀不到小檔（舊資料）就照舊等完整版。*/
   async function renderEvents() {
-    const full = load('news', { low: true });   // news 359KB：事件欄不擋首屏，低優先權
+    // news 359KB：事件欄不擋首屏，低優先權；2026-10-07 起首屏畫完（bootPaint）才發，先畫 news_head 的件數與前 30 則
+    const full = afterPaint('news', { low: true });
     let done = false; full.then(() => { done = true; }, () => {});
     try {
       const h = await load('news_head', { fallback: null });
@@ -13817,13 +13840,28 @@
        load() 會共用同一個 promise，renderOverview 之後再要同一份不會重抓。 */
     const h0 = (location.hash || '').replace(/^#/, '').split('/')[0];
     if (!h0 || h0 === 'overview') ['groups_today', 'rotation', 'market_heat'].forEach(k => load(k));   // 只發小檔（共 110KB）：flow_v3（1MB）不擠進 L.init 的關鍵路徑
-    const [im, gt, cands, th, sc, all] = await Promise.all([load('industry_map'), load('groups_today'), load('candidates'), load('themes'), load('supply_chain'), load('stocks', { fallback: [] })]);
-    L.init(im, gt, cands, th, sc, all);
+    /* ★ 2026-10-07 開頁速度第二輪（Andy：「開啟網頁再入速度太慢，幫我優化」）：開的是總覽時，L.init 不再等
+       industry_map（gzip 142KB）＋supply_chain（59KB）＋candidates（159KB）。總覽首屏只要族群順序／鏈名／環節色骨架，
+       管線另出 link_index.json（約 3KB，同一份檔抽出來的，pytest 釘著跟整份 init 結果一致）；股名與市場別由 stocks 提供。
+       首屏畫完（bootPaint）才抓三份大檔，整份重新 init 一次（結果跟以前一次 init 完全相同）。
+       讀不到小檔（舊資料、預覽分支吃正式站資料）或開的不是總覽 → 照舊一次等齊。 */
+    const fullInit = async () => {
+      const [im, gt, cands, th, sc, all] = await Promise.all([load('industry_map'), load('groups_today'), load('candidates'), load('themes'), load('supply_chain'), load('stocks', { fallback: [] })]);
+      L.reset(); L.init(im, gt, cands, th, sc, all);
+      window.dispatchEvent(new CustomEvent('tw:link-full'));
+    };
+    let lite = null;
+    if (!h0 || h0 === 'overview') {
+      const [li, gt, th, all] = await Promise.all([load('link_index', { fallback: null }), load('groups_today'), load('themes'), load('stocks', { fallback: [] })]);
+      if (li && Array.isArray(li.chains) && li.chains.length) { lite = true; L.init(li, gt, null, th, li, all); }
+    }
+    if (!lite) await fullInit();
+    else bootPaint.then(() => fullInit()).catch(() => {});
     logoMapLoad();              // Logo 對照表不擋開站：沒到之前一律字母頭像，到了再把畫好的補上圖
     /* ★ 2026-10-04 首屏效能：事件欄（news.json 359KB）與搜尋索引不再擋著畫頁 —— 以前要等它們做完才 route()。
        兩者照舊同時開始，route() 不必等；盤中即時層仍等三者都好才啟動（順序跟以前一樣是最後一個）。 */
     const side = Promise.all([renderEvents(), initSearch()]);
-    await route();
+    try { await route(); } finally { _bootPaintOk(); }
     await side;
     // 手機總覽的「今日事件」卡讀的是 renderEvents 產的那一份；route() 不再等它，事件到了補畫一次
     { const hv = (location.hash || '').replace(/^#/, '').split('/')[0]; if (!hv || hv === 'overview') { try { miaEvents(); } catch (e) { /* 忽略 */ } } }
