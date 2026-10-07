@@ -1827,8 +1827,8 @@ def t_side_fold_1005(pg, b, base):
 def t_etf_hold_1007(pg, b, base):
     """ETF 成分股分頁（2026-10-07 Andy：「成分股分頁需要左側出現個股清單，右邊出現個股權重圓餅圖」）。
 
-    ⚠ 資料湖目前沒有 ETF 成分股（合規免費來源查不到，docs/etf_holdings_source.md），正式站的 etf_holdings.json 不存在。
-      所以「左清單＋右甜甜圈」用 **假資料** 驗前端：route 攔截 data/etf_holdings.json，成分取自 stocks.json 的真代號
+    2026-10-07 晚：成分股改由投信每日 PCF 進湖（pipeline/sources/etf_pcf.py），但本機資料湖不一定有那張表，
+      所以「左清單＋右甜甜圈」仍用 **假資料** 驗前端：route 攔截 data/etf_holdings.json，成分取自 stocks.json 的真代號
       （外加一檔非台股成分驗「不能點」）。假資料只在這一段的瀏覽器分頁裡，不寫進任何檔案。
       沒攔截時（＝正式站現況）驗兩種說明卡：債券型 00679B →「沒有個股成分」、股票型 →「來源尚未接上」，都不能空白。
     1440 與 390 各跑一次。"""
@@ -1843,7 +1843,7 @@ def t_etf_hold_1007(pg, b, base):
     items.append({"code": "AAPL US", "name": "Apple Inc.", "w": 0.8, "shares": None})
     FAKE = {"asof": "2026-10-06", "source": "測試假資料", "etfs": {
         "0050": {"asof": "2026-10-06", "items": items},
-        "00896": {"asof": "2026-10-06", "items": items[:15]}}}
+        "00896": {"asof": "2026-10-06", "manual": True, "issuer": "中國信託", "items": items[:15]}}}
 
     def fake(route):
         route.fulfill(status=200, content_type="application/json", body=_json.dumps(FAKE, ensure_ascii=False))
@@ -1878,6 +1878,8 @@ def t_etf_hold_1007(pg, b, base):
                 ok(f"★ [{t}] {code} 甜甜圈有扇區（前 10 大＋其他）", pie["n"] >= 5 and pie["n"] <= 11 and ("其他" in pie["names"] or len(rows) <= 10), pie)
                 ok(f"[{t}] {code} 中心寫「前 10 大合計 X%」", "前 10 大合計" in pie["center"] and "%" in pie["center"], pie["center"])
                 ok(f"[{t}] {code} 標註資料日期", "資料日期 2026-10-06" in text(lp, "#etfHoldCard h3"), text(lp, "#etfHoldCard h3"))
+                if code == "00896":   # 2026-10-07：人工整理檔（holdings_manual.yaml）要標「人工整理・資料日期 X」
+                    ok(f"★ [{t}] 00896 人工整理的資料標「人工整理・資料日期」", "人工整理・資料日期 2026-10-06" in text(lp, "#etfHoldCard h3"), text(lp, "#etfHoldCard h3"))
                 ok(f"[{t}] {code} 沒有橫向捲軸", J("() => document.documentElement.scrollWidth <= innerWidth + 1"))
                 if code == "0050":
                     # 非台股成分：寫原名、不能點
@@ -1911,18 +1913,24 @@ def t_etf_hold_1007(pg, b, base):
                J("() => (document.querySelector('#etfHoldCard') || {}).dataset?.state") == "nostock" and "沒有個股成分" in text(lp, "#etfHoldNone"), text(lp, "#etfHoldCard")[:80])
         finally:
             lp.close()
-    # 正式站現況（沒有 etf_holdings.json）：股票型顯示「來源尚未接上」，不准空白
-    lp = pg.context.browser.new_page(viewport={"width": 1440, "height": 1000})
-    lp.route("**/fonts.googleapis.com/**", lambda r: r.abort())
-    lp.route("**/data/etf_holdings.json*", lambda r: r.fulfill(status=404, body="not found"))
-    try:
-        lp.goto(f"{base}#stock/0050", wait_until="networkidle")
-        open_hold(lp, 1440)
-        wait_until(lp, "() => !!document.querySelector('#etfHoldCard[data-state]')", 8000)
-        ok(f"★ [{tag}] 沒有成分股資料時 0050 顯示「來源尚未接上」說明卡（不空白）",
-           lp.evaluate("() => (document.querySelector('#etfHoldCard') || {}).dataset?.state") == "nosrc" and "來源尚未接上" in text(lp, "#etfHoldNone"), text(lp, "#etfHoldCard")[:80])
-    finally:
-        lp.close()
+    # 沒有成分股資料：股票型顯示「此檔發行投信（X 投信）資料尚未接上」，不准空白（2026-10-07 起寫出投信名）
+    for label, handler, want in (
+        ("檔案不存在", lambda r: r.fulfill(status=404, body="not found"), "資料尚未接上"),
+        ("有檔但這檔沒接上", lambda r: r.fulfill(status=200, content_type="application/json",
+                                                body=_json.dumps({"asof": "2026-10-06", "issuers": {"0050": "元大"}, "etfs": {}}, ensure_ascii=False)),
+         "元大投信"),
+    ):
+        lp = pg.context.browser.new_page(viewport={"width": 1440, "height": 1000})
+        lp.route("**/fonts.googleapis.com/**", lambda r: r.abort())
+        lp.route("**/data/etf_holdings.json*", handler)
+        try:
+            lp.goto(f"{base}#stock/0050", wait_until="networkidle")
+            open_hold(lp, 1440)
+            wait_until(lp, "() => !!document.querySelector('#etfHoldCard[data-state]')", 8000)
+            ok(f"★ [{tag}] {label}：0050 顯示「發行投信資料尚未接上」說明卡（不空白、含「{want}」）",
+               lp.evaluate("() => (document.querySelector('#etfHoldCard') || {}).dataset?.state") == "nosrc" and want in text(lp, "#etfHoldNone"), text(lp, "#etfHoldCard")[:80])
+        finally:
+            lp.close()
 
 
 def t_etf_1005(pg, b, base):

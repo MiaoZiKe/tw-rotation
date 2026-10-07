@@ -18,7 +18,7 @@ import pandas as pd
 from . import config
 from .compute import flow
 from .groups import loader
-from .sources import finmind, macro, mis, mops, news, taifex, tdcc, tpex, twse
+from .sources import etf_pcf, finmind, macro, mis, mops, news, taifex, tdcc, tpex, twse
 from .util import http, store
 from .util.roc import is_tradable_security
 
@@ -472,6 +472,16 @@ def collect_otc_60m(day: str) -> pd.DataFrame:
     return pd.DataFrame()
 
 
+def collect_etf_holdings() -> pd.DataFrame:
+    """ETF 簡稱表從 company_info 拿（元大、野村沒有「列出自家 ETF」的 API，要靠簡稱判斷發行商）。"""
+    ci = store.read("company_info")
+    names = {}
+    if not ci.empty and {"code", "name", "industry"} <= set(ci.columns):
+        e = ci[ci["industry"].astype(str).eq("ETF")]
+        names = dict(zip(e["code"].astype(str), e["name"].astype(str)))
+    return etf_pcf.fetch_all(names)
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description="台股資金輪動儀表板 — 每日盤後管線")
     ap.add_argument("--skip-finmind", action="store_true",
@@ -614,6 +624,12 @@ def main() -> int:
 
         # ---------------------------------------------- 集保（每週）
         save("shareholding_weekly", step("tdcc.shareholding", tdcc.shareholding_weekly))
+
+        # ---------------------------------------------- ETF 成分股（各投信每日 PCF，不耗額度）
+        # 2026-10-07（Andy：「成分股怎麼可能找不到」）：投信每個營業日公告的申購買回清單＝持股明細。
+        # 放在傍晚那輪：投信約 16:00～18:00 才更新當天的 PCF。只增不改，鍵 (date, etf, code)，
+        # date 用投信回應裡的淨值日，所以同一天重跑只會去重、不會多出一天。約 2～3 分鐘、一百多個請求。
+        save("etf_holdings", step("etf_pcf.holdings", collect_etf_holdings))
 
         # ---------------------------------------------- 新聞與國際
         news_df = step("news.collect", news.collect)
