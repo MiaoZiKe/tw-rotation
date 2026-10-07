@@ -1983,6 +1983,11 @@ def t_etf_hold_1007(pg, b, base):
         ("有檔但這檔沒接上", lambda r: r.fulfill(status=200, content_type="application/json",
                                                 body=_json.dumps({"asof": "2026-10-06", "issuers": {"0050": "元大"}, "etfs": {}}, ensure_ascii=False)),
          "元大投信"),
+        # 2026-10-07 Andy「為何有 ETF 沒有成分股」：補不上的投信要寫原因（json 的 why），不是只寫「尚未接上」
+        ("沒接上但有寫原因", lambda r: r.fulfill(status=200, content_type="application/json",
+                                                body=_json.dumps({"asof": "2026-10-06", "issuers": {"0050": "兆豐"}, "connected": [],
+                                                                  "why": {"兆豐": "官網擋雲端主機連線（HTTP 403）"}, "etfs": {}}, ensure_ascii=False)),
+         "原因：官網擋雲端主機連線"),
     ):
         lp = pg.context.browser.new_page(viewport={"width": 1440, "height": 1000})
         lp.route("**/fonts.googleapis.com/**", lambda r: r.abort())

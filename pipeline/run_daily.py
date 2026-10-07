@@ -477,7 +477,8 @@ def collect_etf_holdings() -> pd.DataFrame:
     ci = store.read("company_info")
     names = {}
     if not ci.empty and {"code", "name", "industry"} <= set(ci.columns):
-        e = ci[ci["industry"].astype(str).eq("ETF")]
+        # 上櫃 ETF（債券型、006201…）在 company_info 的 industry 是「上櫃ETF」，2026-10-07 前只收「ETF」→ 櫃買的整批漏掉
+        e = ci[ci["industry"].astype(str).isin(["ETF", "上櫃ETF"])]
         names = dict(zip(e["code"].astype(str), e["name"].astype(str)))
     return etf_pcf.fetch_all(names)
 

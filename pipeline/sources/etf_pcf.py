@@ -985,7 +985,8 @@ if __name__ == "__main__":  # 在 Actions 上手動自我測試：python -m pipe
     from ..util import store
 
     ci = store.read("company_info")
-    names = dict(zip(ci.loc[ci["industry"].eq("ETF"), "code"], ci.loc[ci["industry"].eq("ETF"), "name"])) if len(ci) else {}
+    m = ci["industry"].isin(["ETF", "上櫃ETF"]) if len(ci) else None
+    names = dict(zip(ci.loc[m, "code"], ci.loc[m, "name"])) if len(ci) else {}
     only = sys.argv[1:]
     if only:
         names = {c: n for c, n in names.items() if issuer_of(n) in only or c in only}
