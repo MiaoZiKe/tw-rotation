@@ -609,7 +609,7 @@
       + '<a href="#disclaimer" id="sfDis">免責聲明</a><em aria-hidden="true">｜</em>'
       + '<a href="#terms" id="sfTerms">使用條款</a><em aria-hidden="true">｜</em>'
       + '<a href="#privacy" id="sfPriv">隱私權政策</a>'
-      + '<button type="button" id="sfTour">平台導覽</button>'
+      /* 2026-10-07 Andy：頁尾「平台導覽」拿掉（頂欄已有平台導覽鈕）*/
       /* 2026-10-07：「交付清單」資料已不發佈，入口從頁尾拿掉（#delivery 路由照舊）。*/
       + '</nav></div>'   // ★ 2026-09-24 Andy：原始碼不能公開 ——「原始碼與演算法」連結已拿掉
       + '<button type="button" class="sf-more" id="sfMore" aria-expanded="false" aria-controls="sfDetail">'
@@ -619,7 +619,8 @@
       + '</ul></div>';
     main.appendChild(f);
     /* 2026-10-07：新導覽（site/tour.js）掛 window.TwTour.start()；有就用新的，沒有照舊開本檔的舊導覽。*/
-    f.querySelector('#sfTour').addEventListener('click', (e) => {
+    const sfT = f.querySelector('#sfTour');
+    if (sfT) sfT.addEventListener('click', (e) => {
       if (window.TwTour && typeof window.TwTour.start === 'function') window.TwTour.start();
       else openTour(e.currentTarget);
     });

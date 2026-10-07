@@ -25516,11 +25516,8 @@ def t_tour_1007(pg, b, base):
     pp = pctx.new_page()
     pp.add_init_script("window.TW_PREVIEW = { name: 'uit' }; try{localStorage.setItem('tw.live.on','0')}catch(e){}")
     pp.goto(base + "#overview", wait_until="networkidle"); pp.wait_for_timeout(2000)
-    pp.evaluate("() => document.getElementById('sfTour').scrollIntoView()")
-    pp.click("#sfTour")
-    st = _tour_wait(pp)
-    ok(f"{T} 預覽版：按頁尾「平台導覽」開的是逐步導覽（不是舊彈窗）",
-       st and st["active"] and st["tour"] == "site" and pp.locator("#lgTour").count() == 0, (st and st.get("tour"), pp.locator("#lgTour").count()))
+    # 2026-10-07 Andy：頁尾「平台導覽」拿掉
+    ok(f"{T} 頁尾不再有「平台導覽」", pp.locator("#sfTour").count() == 0, pp.locator("#sfTour").count())
     pctx.close()
 
     # ---- 390 手機
@@ -42497,12 +42494,7 @@ def t_legal(b, base):
         "() => document.getElementById('v-overview').classList.contains('on') && !document.getElementById('v-legal').classList.contains('on')"))
     # 平台導覽（2026-10-07 合併 tour 分支後）：頁尾「平台導覽」接 TwTour.start()，開的是新的逐步導覽（舊的 #lgTour 彈窗只在沒有 tour.js 時才是退路）；
     # 導覽本身怎麼走由「平台導覽1007」那段驗，這裡只驗「頁尾那顆真的接到新導覽」與 Esc 能關
-    pg.evaluate("() => window.scrollTo(0, document.body.scrollHeight)"); pg.wait_for_timeout(300)
-    pg.click("#sfTour")
-    st = _tour_wait(pg)
-    ok("[關] 頁尾「平台導覽」開的是新的逐步導覽（TwTour、全站導覽），不是舊彈窗",
-       bool(st and st["active"] and st["tour"] == "site") and pg.locator("#lgTour").count() == 0, (st and st.get("tour"), pg.locator("#lgTour").count()))
-    pg.keyboard.press("Escape"); pg.wait_for_timeout(400)
+    ok("[關] 頁尾不再有「平台導覽」（2026-10-07 Andy 拿掉）", pg.locator("#sfTour").count() == 0)
     ok("[關] Esc 關閉導覽", not pg.evaluate("() => !!(window.TwTour && window.TwTour.state().active)"))
     ctx.close()
 
