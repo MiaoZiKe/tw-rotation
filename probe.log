@@ -1,0 +1,13 @@
+token 回應 200 {"token":"CfDJ8O4lLg5ozXJAnaegOLTBzPQilNpXBQu3zgDeCUzApKv4SX6VjHSQ3ePxGv_-EdE1ouxpq5p5d0oFfUnNSTmdgD2H_NM_Bh1noKgEoeu9-jMfWBrPj-ZVsWMceVac9Rd2hVgCCxK4TRRBLqcg5sGLjpQ","issuedAtUtc":1791406315254,"maxAgeSeconds":86400,"expiresAtUtc":1791492715254,"message":"Antiforgery token generated successfully."} cookies ['TS011e9ff1', '.AspNetCore.Antiforgery.SYKbZeBhbwc', 'X-XSRF-TOKEN']
+標頭 X-XSRF-TOKEN 200 {"TotalPages":-1,"TotalItems":0,"Entries":{"FundID":"E0001","Data":{"FundAsset":{"Aum":"10223604055","Units":"627958000","Nav":"16.28","NavDate":"2026/10/07","PCFDate":"2026/10/08"},"Table":[{"TableTitle":"","Columns":[{"Name":null,"TextAlign":null}],"Rows":[[" "," "," "," "],["股票","TWD$9,998,623,30
+  detail E0001 200 {"TotalPages":-1,"TotalItems":0,"Entries":null,"Message":"找不到符合的資料!","StatusCode":0,"RedirectUrl":null}
+  detail E0002 200 {"TotalPages":-1,"TotalItems":0,"Entries":null,"Message":"找不到符合的資料!","StatusCode":0,"RedirectUrl":null}
+  detail E0003 200 {"TotalPages":-1,"TotalItems":0,"Entries":null,"Message":"找不到符合的資料!","StatusCode":0,"RedirectUrl":null}
+  detail E0004 200 {"TotalPages":-1,"TotalItems":0,"Entries":null,"Message":"找不到符合的資料!","StatusCode":0,"RedirectUrl":null}
+  detail E0005 200 {"TotalPages":-1,"TotalItems":0,"Entries":null,"Message":"找不到符合的資料!","StatusCode":0,"RedirectUrl":null}
+  detail E0006 200 {"TotalPages":-1,"TotalItems":0,"Entries":null,"Message":"找不到符合的資料!","StatusCode":0,"RedirectUrl":null}
+  detail E0007 200 {"TotalPages":-1,"TotalItems":0,"Entries":null,"Message":"找不到符合的資料!","StatusCode":0,"RedirectUrl":null}
+  detail E0008 200 {"TotalPages":-1,"TotalItems":0,"Entries":null,"Message":"找不到符合的資料!","StatusCode":0,"RedirectUrl":null}
+  detail E0009 200 {"TotalPages":-1,"TotalItems":0,"Entries":null,"Message":"找不到符合的資料!","StatusCode":0,"RedirectUrl":null}
+  detail E0010 200 {"TotalPages":-1,"TotalItems":0,"Entries":null,"Message":"找不到符合的資料!","StatusCode":0,"RedirectUrl":null}
+  detail E0011 200 {"TotalPages":-1,"TotalItems":0,"Entries":null,"Message":"找不到符合的資料!","StatusCode":0,"RedirectUrl":null}
