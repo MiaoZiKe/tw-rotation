@@ -11214,12 +11214,8 @@
     el.hidden = false;
     if (SKL.busy && !SKL.at) { el.innerHTML = '<b>即時</b>　抓取中…'; return; }
     if (SKL.err) { el.innerHTML = `<b class="bad">即時抓不到</b>　${fmt.esc(SKL.err)}　·　再按一次「即時」可退回盤後資料`; return; }
-    const amt = SKL.marketAmt != null ? `台股總成交值 <b>${fmt.yi(SKL.marketAmt)}</b>（證交所真實值）` : '台股總成交值：這一輪沒取到';
-    // ★ 2026-10-06（DECISIONS #329）：開頭的「最後更新 HH:MM:SS…／現在不是盤中…快照」拿掉（時段），後面的口徑照留
-    el.innerHTML = '<b class="live">即時</b>'
-      + `　·　${amt}`
-      + `　·　板塊成交值為 <b>價 × 量</b> <b>估算值</b>`
-      + `　·　% 的分母＝<b>${Object.keys(SKL.tv).length} 個即時板塊加總</b>；「〇〇・其他」標<b>盤後</b>、不進分母`;
+    // ★ 2026-10-08 Andy（截圖這一整行）：「這拿掉」→ 正常狀態不再顯示口徑說明列；只有抓取中／抓不到才出現
+    el.hidden = true; el.innerHTML = '';
   }
 
   async function sklTick() {

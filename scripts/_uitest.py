@@ -7296,9 +7296,8 @@ def t_new_flow(pg, base):
             ok("根節點同時寫出即時板塊合計是「估算」（兩個數字分開寫，不會被讀成同一件事）",
                "估算" in tr["rootLabel"], tr["rootLabel"])
             # ★ 狀態列的誠實標示
-            note = text(pg, "#sankeyLive")
-            for word in ("估算", "盤後", "真實", "分母"):
-                ok(f"狀態列講清楚「{word}」這件事", word in note, note[:160])
+            # 2026-10-08 Andy：「這拿掉」→ 正常狀態不顯示口徑說明列
+            ok("即時正常時不顯示口徑說明列", pg.evaluate("() => document.getElementById('sankeyLive').hidden"))
             # ★ 請求量：沿用 live.js 的批次，不是一檔一個請求
             req = pg.evaluate("() => [window.__skReq, window.__skBatch]")
             ok("批次抓（請求數遠少於檔數，不是一檔打一次）",
@@ -7324,8 +7323,7 @@ def t_new_flow(pg, base):
         pg.wait_for_timeout(2800)
         off = text(pg, "#sankeyLive")
         # 2026-10-06 改前→改後（Andy：「這類資訊一律拿掉」，DECISIONS #329）：「非盤中有明講現在沒有盤」→ 狀態列不寫時段（「現在不是盤中…快照」拿掉），口徑照留
-        ok("非盤中按「即時」：狀態列不寫時段與時間、估算口徑照留", "不是盤中" not in off and "快照" not in off
-           and not re.search(r"\d\d:\d\d", off) and "估算" in off, off[:120])
+        ok("非盤中按「即時」：不顯示口徑說明列（2026-10-08 Andy 拿掉）", off.strip() == "", off[:120])
         ok("非盤中也不是一張空圖（圖照樣畫得出來）",
            pg.evaluate("""() => { const el = document.getElementById('sankey');
                const c = echarts.getInstanceByDom(el);
