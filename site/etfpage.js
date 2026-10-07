@@ -380,7 +380,8 @@
 #v-etf .cxctl .cmpchips{display:flex;flex-wrap:wrap;gap:4px}
 #v-etf .cxctl .chip{border:1px solid var(--line-2);background:var(--panel-3);color:var(--ink);border-radius:999px;padding:1px 8px;font-size:12px;cursor:pointer}
 #v-etf .cxctl .rxmsg{color:var(--amber);font-size:12px}
-#v-etf .cxhead{font-size:14px;line-height:1.6;color:var(--ink-2);margin:6px 0 4px}
+#v-etf .cxhead{font-size:14px;line-height:1.6;color:var(--ink-2);margin:6px 0 4px;min-height:4.8em}   /* v6：固定最小高度，點圖例改結論句時整張圖不會上下跳 */
+@media (max-width:600px){#v-etf .cxhead{min-height:8em}}
 #v-etf .cxhead b{color:var(--ink)}
 #v-etf #cxChart{height:460px}
 #v-etf .simtw{overflow-x:auto;max-width:100%;-webkit-overflow-scrolling:touch}
@@ -474,9 +475,29 @@
     if (seriesP) return seriesP;
     seriesP = A().load('etf_series', { fallback: null }).catch(() => null).then((d) => {
       S.series = d && d.D && d.s ? d : { D: [], s: {} };
+      fixSplits(S.series);
       return S.series;
     });
     return seriesP;
+  }
+  /* ★ 分割／合併還原（v6）：etf_series.json 的週線價格與含息指數都沒還原分割（例：00631L 2026-04-08 一拆 22，443.15→22.93），
+     直接拿來算「再投入」會把分割當成暴跌，報酬整段算錯（再投入 00631L 反而輸給只領現金）。
+     預覽站讀的是正式站資料，所以先在前端讀進來的唯一入口修：單週漲跌超過 60%、而且含息指數跟價格同比例跳（＝那週不是除息）
+     就視為分割／合併，把那週之前的價格與含息指數乘上同一比例。比例取最接近的整數拆分比（差 15% 以內），否則用原始比例。
+     單檔年化（seriesOf）、複利試算（alignEtf）都吃同一份 S.series，所以一起被修到。
+     TODO：之後在 pipeline 產出 etf_series 那一端（build_payload）就還原分割，前端這段改成只做保險。 */
+  function fixSplits(g) {
+    Object.keys(g.s || {}).forEach((c) => {
+      const x = g.s[c], p = x.p, t = x.t; if (!p) return;
+      for (let k = 1; k < p.length; k++) {
+        if (!(p[k] > 0 && p[k - 1] > 0)) continue;
+        const r = p[k] / p[k - 1]; if (r > 0.4 && r < 1.6) continue;
+        if (t && t[k] > 0 && t[k - 1] > 0 && Math.abs((t[k] / t[k - 1]) / r - 1) > 0.05) continue;   // 含息跟價格不同步＝有除息，不是分割
+        const n = r < 1 ? Math.round(1 / r) : Math.round(r), f0 = r < 1 ? 1 / n : n;
+        const f = n >= 2 && Math.abs(r / f0 - 1) < 0.15 ? f0 : r;
+        for (let j = 0; j < k; j++) { if (p[j] != null) p[j] *= f; if (t && t[j] != null) t[j] *= f; }
+      }
+    });
   }
   function seriesOf(code) {
     const g = S.series;
@@ -1530,8 +1551,7 @@
     $$('#cxQuick button').forEach((b) => { b.onclick = () => { S.inc.xq = b.dataset.v; S.inc.xfrom = yrsAgo(todayTW(), +b.dataset.v); drawCx(); }; });
     const go = () => addCmp($('#cxIn').value);
     $('#cxAdd').onclick = go;
-    $('#cxIn').onkeydown = (e) => { if (e.key === 'Enter') { e.preventDefault(); go(); } };
-    $('#cxIn').onchange = go;
+    $('#cxIn').onkeydown = (e) => { if (e.key === 'Enter') { e.preventDefault(); go(); } };   // ★ v6：拿掉 onchange——按「加入」時輸入框失焦也會觸發 change，一次加兩檔
     if (window.RangePick) {
       const r = perRange();
       $('#etfIncRngBox').innerHTML = window.RangePick.html({ id: 'etfIncRng', options: PERS, value: S.per, from: r.from, to: r.to, max: todayTW() });
@@ -1549,6 +1569,8 @@
     if (!S.series) await loadSeries();
     const T = await rxSeries(code);
     if (!T) { msg.textContent = `${code} 沒有歷史價格，不能加入`; return; }
+    if (S.inc.cmp.includes(code)) { msg.textContent = `${code} 已在情境裡`; return; }   // 等資料期間可能被別的觸發先加進去了，回來再查一次
+    if (S.inc.cmp.length >= 5) { msg.textContent = '自訂標的最多 5 檔，請先移除一檔'; return; }
     S.inc.cmp = S.inc.cmp.concat([code]); msg.textContent = ''; $('#cxIn').value = ''; drawCx();
   }
   function drawInc() {
@@ -1866,7 +1888,7 @@
     const selected = {}; lines.forEach((l) => { selected[l.name] = S.inc.lsel[l.key] !== false; });
     a.chart('cxChart', {
       timeGrid: false,
-      grid: { left: 8, right: 64, top: 64, bottom: 56, containLabel: true },
+      grid: { left: 8, right: 64, top: el.clientWidth < 600 ? 104 : 64, bottom: 56, containLabel: true },   // v6：窄寬圖例換成三列，top 加大才不會壓到 y 軸名稱「報酬率 %」
       legend: { type: 'plain', top: 0, left: 0, right: 0, itemWidth: 16, itemHeight: 3, selected, textStyle: { color: CH.ink2, fontSize: 12 }, selectedMode: true, inactiveColor: a.hexA(CH.ink3, 0.45) },
       tooltip: { ...a.tip, confine: true, trigger: 'axis', axisPointer: { type: 'cross', label: { show: false }, lineStyle: { color: CH.ink3 } },
         formatter: (ps) => { const i = ps[0].dataIndex, d = X[i]; el.dataset.tip = d + '|' + ps.map((p) => p.value).join(',');
