@@ -40784,9 +40784,9 @@ def _legal_spy(pg, base):
                  sw: document.documentElement.scrollWidth - innerWidth }; }"""
     pg.set_viewport_size({"width": 1440, "height": 950}); pg.goto(base + "#terms", wait_until="networkidle"); pg.wait_for_timeout(1000)
     sd = pg.evaluate(SD)
-    ok("[右側欄] 1440：右側欄看得到（寬 ≥200、sticky）、內文放寬到 ≥720、右緣貼齊內容區、4 項重點＋3 份相關文件（目前頁亮一個）＋客服信箱、沒有橫向捲軸",
+    ok("[右側欄] 1440：右側欄看得到（寬 ≥200、sticky）、內文放寬到 ≥720、右緣貼齊內容區、4 項重點＋客服信箱、不重複列相關文件（10-07 Andy：避免重複撰寫）、沒有橫向捲軸",
        bool(sd) and sd["shown"] and sd["w"] >= 200 and sd["pos"] == "sticky" and sd["docW"] >= 720 and abs(sd["right"] - sd["mainR"]) <= 40
-       and sd["items"] == 4 and sd["rel"] == 3 and sd["relOn"] == 1 and sd["mail"] and sd["sw"] <= 1, sd)
+       and sd["items"] == 4 and sd["rel"] == 0 and sd["mail"] and sd["sw"] <= 1, sd)
     pg.evaluate("() => { const h = document.getElementById('lg-terms-3'); window.scrollTo({top: h.getBoundingClientRect().top + scrollY - 100, behavior: 'instant'}); }")
     pg.wait_for_timeout(250); sd = pg.evaluate(SD)
     ok("[右側欄] 捲到第四節（禁止行為）→ 「本頁重點」亮的是對應那項（第 3 號節）、進度寫「第 4／11 節」、進度條有寬度",
@@ -40799,9 +40799,9 @@ def _legal_spy(pg, base):
     t7 = pg.evaluate(VIS, 7); sd = pg.evaluate(SD)
     ok("[右側欄] 點「責任限制」→ 捲到第八節、左側目錄也亮第八節、右側那項亮", -5 <= t7["top"] < 300 and sd["on"] == [7]
        and pg.evaluate(LIT)["k"] == 7, [t7, sd["on"]])
-    pg.click("#lgSide .lgrel a[href='#privacy']"); pg.wait_for_timeout(700)
-    ok("[右側欄] 點相關文件「隱私權政策」→ 換頁、側欄跟著換（8 節、相關文件亮在隱私權政策）",
-       pg.evaluate("() => location.hash") == "#privacy" and pg.evaluate(SD)["relOn"] == 1
+    pg.click(".lgtabs a[href='#privacy']"); pg.wait_for_timeout(700)
+    ok("[右側欄] 點頂端分頁「隱私權政策」→ 換頁、側欄跟著換（8 節）",
+       pg.evaluate("() => location.hash") == "#privacy"
        and "／8 節" in pg.evaluate(SD)["pn"], pg.evaluate(SD))
     for w in (1280, 1100, 1024):
         pg.set_viewport_size({"width": w, "height": 900}); pg.wait_for_timeout(400)
@@ -40941,17 +40941,17 @@ def t_legal(b, base):
                  top: Math.round(r.top), rad: parseFloat(cs.borderTopLeftRadius), bw: parseFloat(cs.borderTopWidth),
                  fw: +cs.fontWeight }; }); }"""
     tb = pg.evaluate(TABS)
-    ok("[分頁] 三顆膠囊（使用條款｜隱私權政策｜免責聲明）排一列、高 34～42、全圓角",
-       [x["t"] for x in tb] == ["使用條款", "隱私權政策", "免責聲明"] and len({x["top"] for x in tb}) == 1
+    ok("[分頁] 三顆膠囊（免責聲明｜使用條款｜隱私權政策）排一列、高 34～42、全圓角",
+       [x["t"] for x in tb] == ["免責聲明", "使用條款", "隱私權政策"] and len({x["top"] for x in tb}) == 1
        and all(34 <= x["h"] <= 42 and x["rad"] >= x["h"] / 2 - 1 for x in tb), tb)
     ok("[分頁] 目前頁（使用條款）那顆是實心主色＋粗體，其他兩顆不是實心、有細框",
-       tb[0]["solid"] and tb[0]["fw"] >= 700 and not tb[1]["solid"] and not tb[2]["solid"]
-       and tb[1]["bw"] >= 1 and tb[2]["bw"] >= 1, tb)
+       tb[1]["solid"] and tb[1]["fw"] >= 700 and not tb[0]["solid"] and not tb[2]["solid"]
+       and tb[0]["bw"] >= 1 and tb[2]["bw"] >= 1, tb)
     pg.click(".lgtabs a[href='#privacy']"); pg.wait_for_timeout(600)
     tb2 = pg.evaluate(TABS)
     ok("[分頁] 點「隱私權政策」→ 換頁、實心跟著換到隱私權政策那顆",
-       pg.evaluate("() => location.hash") == "#privacy" and tb2[1]["solid"] and tb2[1]["on"]
-       and not tb2[0]["solid"] and not tb2[2]["solid"], tb2)
+       pg.evaluate("() => location.hash") == "#privacy" and tb2[2]["solid"] and tb2[2]["on"]
+       and not tb2[0]["solid"] and not tb2[1]["solid"], tb2)
     r = pg.evaluate("() => ({ h1: document.querySelector('#lgDoc h1').textContent, draft: !!document.getElementById('lgDraft'),"
                     " t: document.getElementById('lgDoc').innerText })")
     ok("[關] 切到隱私權政策：標題換了、不掛草稿、寫到 localStorage、在線 7 分鐘刪除、十五日內處理",

@@ -453,7 +453,7 @@
 .lgrel a svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round;flex:none}
 .lgrel a:hover{border-color:var(--cyan);color:var(--ink)}
 .lgrel a.on{background:var(--cyan);border-color:var(--cyan);color:var(--ontop);font-weight:700}
-.lgsupp{margin-top:12px;padding-top:12px;border-top:1px dashed var(--line-2)}
+.lgsupp{margin:0;padding:0}
 .lgsupp p{margin:0 0 8px;font-size:13px;color:var(--ink-3)}
 .lgside a.lgctab{display:flex;align-items:center;justify-content:center;gap:8px;height:40px;border-radius:999px;background:var(--cyan);
   color:var(--ontop);font-size:13px;font-weight:600;text-decoration:none}
@@ -780,12 +780,10 @@
   function sideHtml(id, d) {
     const items = (SUMMARY[id] || []).map((x) => '<li><a href="#" class="lgsi' + (x[3] ? ' w' : '') + '" data-sec="' + x[4] + '">'
       + '<span class="lgic2">' + svg(x[0]) + '</span><span class="lgst2"><b>' + esc(x[1]) + '</b><small>第' + CN[x[4]] + '節</small></span></a></li>').join('');
-    const rel = ['terms', 'privacy', 'disclaimer'].map((k) => '<a href="#' + k + '"' + (k === id ? ' class="on" aria-current="page"' : '') + '>'
-      + svg(k === 'terms' ? 'doc' : k === 'privacy' ? 'lock' : 'info') + '<span>' + DOCS[k]().short + '</span></a>').join('');
     return '<div class="lgside" id="lgSide">'
       + '<section class="lgsc"><h3>本頁重點</h3><ul class="lgsl">' + items + '</ul></section>'
-      + '<section class="lgsc"><h3>相關文件</h3><nav class="lgrel" aria-label="相關文件">' + rel + '</nav>'
-      + '<div class="lgsupp"><p>有疑問或需要協助？</p><a class="lgctab" href="mailto:' + esc(CONTACT_EMAIL) + '">' + svg('mail') + '聯絡客服</a></div></section>'
+      /* 10-07 Andy：「避免重複撰寫」—— 三份文件切換已在頂端分頁，側欄不再重複列，只留客服 */
+      + '<section class="lgsc"><div class="lgsupp"><p>有疑問或需要協助？</p><a class="lgctab" href="mailto:' + esc(CONTACT_EMAIL) + '">' + svg('mail') + '聯絡客服</a></div></section>'
       + '<section class="lgsc"><div class="lgpt"><span>閱讀進度</span><b class="lgpn">第 1／' + d.secs.length + ' 節</b></div>'
       + '<div class="lgbar" role="presentation"><i></i></div></section></div>';
   }
@@ -797,7 +795,7 @@
     const ready = !m.fields.length && !m.holes.length;
     const on = active();
     const tabs = '<nav class="lgtabs" aria-label="法律文件">'
-      + ['terms', 'privacy', 'disclaimer'].map((k) => '<a href="#' + k + '"' + (k === id ? ' class="on" aria-current="page"' : '') + '>'
+      + ['disclaimer', 'terms', 'privacy'].map((k) => '<a href="#' + k + '"' + (k === id ? ' class="on" aria-current="page"' : '') + '>'
         + DOCS[k]().short + '</a>').join('') + '</nav>';
     const toc = d.secs.map((s, i) => '<li><a href="#" data-sec="' + i + '">' + CN[i] + '、' + esc(s.h) + '</a></li>').join('');
     const draft = '';   // 2026-10-07：三份文件已是正式文字，不再掛草稿標示
