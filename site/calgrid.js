@@ -15,8 +15,8 @@
     s.textContent = `
 .cg-we:not(.today):not(.out):not(.sel){background:color-mix(in srgb,var(--ink) 14%,var(--panel))!important;color:var(--ink-3)!important}
 .cg-we:not(.out) .dn b{color:var(--ink-3)!important}
-.cg-hol:not(.today):not(.out):not(.sel){background:color-mix(in srgb,var(--amber) 13%,var(--panel-2))!important}
-.cg-hl{display:block;font-size:12px;line-height:16px;color:var(--amber);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}`;
+.cg-hol:not(.today):not(.out):not(.sel){background:color-mix(in srgb,var(--violet) 16%,var(--panel-2))!important}
+.cg-hl{display:block;font-size:12px;line-height:16px;color:var(--violet);font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}`;
     document.head.appendChild(s);
   }
   function load() {
