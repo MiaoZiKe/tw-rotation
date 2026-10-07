@@ -5662,6 +5662,15 @@
               : '成分股取自各發行投信每日公告的申購買回清單；這家投信的公告還沒接進來，這裡先不放清單、也不用估計值充數。';
             return `<h3>成分股</h3><div class="hdnote" id="etfHoldNone"><b>${head}</b><br>
             ${body}請以發行投信官網每日公告的持股為準。</div>`; })();
+      /* 2026-10-08 Andy：「每一檔要嘛有表格、要嘛有連結，不准只有『抓不到』一句話」。
+         玩股網、口袋證券是 Andy 指定的參考站；條款不允許程式抓取（docs/etf_holdings_coverage.md「參考來源」），
+         所以不抓，改成讓讀者自己點過去看。債券型也附：兩站都有列債券持股。*/
+      const ce = encodeURIComponent(code);
+      card.insertAdjacentHTML('beforeend', `<div class="hdnote" id="etfHoldLinks" style="margin-top:8px">
+        <b>到外部網站看這檔的成分股：</b>
+        <a href="https://www.wantgoo.com/stock/etf/${ce}/constituent" target="_blank" rel="noopener" data-site="wantgoo">玩股網 ↗</a>
+        ・<a href="https://www.pocket.tw/etf/tw/${ce}/fundholding" target="_blank" rel="noopener" data-site="pocket">口袋證券 ↗</a>
+        <br><span style="font-size:12px">（外部網站，資料由該站整理，非本站抓取。）</span></div>`);
       return;
     }
     items.sort((a, b) => b.w - a.w);

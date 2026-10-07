@@ -10,6 +10,7 @@
 """
 from __future__ import annotations
 
+import os
 import re
 import subprocess
 import sys
@@ -76,7 +77,38 @@ def get(url: str, n: int = 3000, grep: str | None = None) -> None:
         print("  失敗", str(e)[:300])
 
 
+def uob_discover() -> None:
+    """第二輪：用 repo 裡的中繼憑證連大華銀，從前端 JS 找出「代號 → 內部 fundID」從哪支 API 來。"""
+    import os
+    bundle = "/tmp/uob_bundle.pem"
+    here = os.path.dirname(os.path.abspath(__file__))
+    open(bundle, "w").write(open(certifi.where()).read() + "\n" +
+                            open(os.path.join(here, "..", "pipeline", "sources", "certs", "uobam_intermediate.pem")).read())
+    S = requests.Session()
+    S.headers["User-Agent"] = UA
+    S.verify = bundle
+    home = S.get("https://www.uobam.com.tw/", timeout=30).text
+    js = sorted(set(re.findall(r'src="(/static/js/[^"]+\.js)"', home)))
+    print("[uob] js:", js)
+    for j in js:
+        t = S.get("https://www.uobam.com.tw" + j, timeout=60).text
+        for m in sorted(set(re.findall(r'["`/](json/reply/[A-Za-z]+|api/[A-Za-z/]+)', t)))[:200]:
+            print("   api:", m)
+        for m in list(re.finditer(r"WebSitePcfRequest|fundID|etf002", t))[:15]:
+            print("   >>", t[max(0, m.start() - 300):m.end() + 300].replace("\n", " "))
+    for u in sys.argv[1:]:
+        if "uobam" in u:
+            try:
+                r = S.get(u, timeout=30)
+                print("[uob get]", u, r.status_code, r.text[:4000])
+            except Exception as e:  # noqa: BLE001
+                print("[uob get] 失敗", u, e)
+
+
 if __name__ == "__main__":
+    if os.environ.get("UOB_ONLY"):
+        uob_discover()
+        raise SystemExit
     cert_chain("www.uobam.com.tw")
     for u in ("https://www.wantgoo.com/robots.txt", "https://www.pocket.tw/robots.txt"):
         get(u)

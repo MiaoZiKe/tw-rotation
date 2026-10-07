@@ -64,3 +64,4 @@ docs/_dg_overlap*/
 # 手機按鈕普查（scripts/_mobile_tap_audit.py）的報告：本機產物，不進 public repo。
 docs/_mobile_tap*/
 site_paid/
+etf_census_1008.tsv

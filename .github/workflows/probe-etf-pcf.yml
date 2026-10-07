@@ -46,7 +46,7 @@ jobs:
         if: inputs.mode == 'cert'
         env:
           EXTRA: ${{ inputs.extra }}
-        run: pip install -q certifi && python scripts/probe_etf_pcf_cert.py $EXTRA 2>&1 | tee -a /tmp/probe.log
+        run: pip install -q certifi && UOB_ONLY=$(echo "$EXTRA" | grep -q -- --uob && echo 1) python scripts/probe_etf_pcf_cert.py $(echo "$EXTRA" | sed "s/--uob//") 2>&1 | tee -a /tmp/probe.log
       - name: 探測
         if: inputs.mode == 'requests'
         env:
