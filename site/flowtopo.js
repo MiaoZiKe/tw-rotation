@@ -506,7 +506,9 @@
   /* 這張圖在卡裡最高可以多高（畫布本身，不含說明列）。Fit 沒載入／手機／找不到卡片 ＝ Infinity（不設限，跟改前一樣）。 */
   function fitMax(S) {
     if (!window.Fit || !Fit.desk() || !S.host || S.mini) return Infinity;
-    const r = Fit.room(S.host, { min: 340 });
+    /* ★ 2026-10-07：只扣「畫布上方」的東西（mode:'above'）。窄桌機（≤1100 左右）右欄的「資金流向排名」
+       與成分股清單會疊到畫布下方，算進去的話樹會被壓到槽高 18、標籤互疊 —— 下方的表本來就是捲下去看的。*/
+    const r = Fit.room(S.host, { min: 340, mode: 'above' });
     return isFinite(r) ? r - barH(S) : Infinity;
   }
   function slotPlan(S) {
