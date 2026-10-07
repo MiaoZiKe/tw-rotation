@@ -92,7 +92,7 @@ for tag, m, url, body in CANDS:
             except Exception as e:  # noqa: BLE001
                 print("  swagger 解析失敗", e, t[:300])
             continue
-        print("  前 1500 字:", t[:1500].replace("\n", " "))
+        print("  前 5000 字:", t[:5000].replace("\n", " "))
         if "html" in ct or "javascript" in ct:
             for f in sorted(set(API_RE.findall(t)))[:200]:
                 print("   api?", f[:240])
