@@ -509,6 +509,11 @@
     admKey = '';
     const v = ensureView(); if (!v) return null;
     if (!S.on) { v.innerHTML = '<div class="card" style="margin-top:16px"><h2>管理頁</h2><p class="muted">會員功能尚未設定</p></div>'; return 'admin'; }
+    /* 預覽版全開（DECISIONS #343）：沒登入／不是管理者也能瀏覽管理區（admin.js 在預覽版用示範資料；寫入照舊被 preview_boot.js 擋） */
+    if (window.TW_PREVIEW && !(S.user && S.user.admin)) { admKey = admKeyNow();
+      v.innerHTML = '<div class="card" style="margin-top:16px"><p class="muted">載入管理頁…</p></div>';
+      loadAdmin().then(() => { if ((location.hash || '').startsWith('#admin') && window.TwAdmin) window.TwAdmin.render(v, API); });
+      return 'admin'; }
     if (!S.user) { v.innerHTML = '<div class="card" style="margin-top:16px"><h2>管理頁</h2><p>這一頁只有管理者看得到，請先登入。</p><p><button type="button" class="btn" id="admLogin">登入</button></p></div>';
       v.querySelector('#admLogin').onclick = () => openDlg('notice'); return 'admin'; }
     if (!S.user.admin) { v.innerHTML = '<div class="card" style="margin-top:16px"><h2>管理頁</h2><p>這個帳號不是管理者，看不到使用統計與線上名單。</p></div>'; return 'admin'; }

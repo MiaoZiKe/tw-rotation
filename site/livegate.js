@@ -61,6 +61,7 @@
   function compute() {
     var o = override();
     if (o !== null) return { on: o, src: 'override', email: '' };
+    if (window.TW_PREVIEW) return { on: true, src: 'preview', email: '' };   // 預覽版全開（DECISIONS #343）
     var w = who();
     return { on: !!(w.u && w.u.admin === true), src: w.src, email: (w.u && w.u.email) || '' };
   }
