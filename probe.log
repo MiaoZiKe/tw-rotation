@@ -1,0 +1,16 @@
+token 回應 200 {"token":"CfDJ8O4lLg5ozXJAnaegOLTBzPRtw1g2tAzJQWOweshJkqH4FaGziPzhwqwdZC9wsCxp7jedqbTtUtBSnHOpzVRrc0gPeOlA-pbYY2xC_mFcJbj4lkHIq-iHjBmDSDI9uLwLnROW3aKbx9K5DO5quwQ2lj8","issuedAtUtc":1791406606790,"maxAgeSeconds":86400,"expiresAtUtc":1791493006790,"message":"Antiforgery token generated successfully."} cookies ['TS011e9ff1', '.AspNetCore.Antiforgery.SYKbZeBhbwc', 'X-XSRF-TOKEN']
+標頭 X-XSRF-TOKEN 200 {"TotalPages":-1,"TotalItems":0,"Entries":{"FundID":"E0001","Data":{"FundAsset":{"Aum":"10223604055","Units":"627958000","Nav":"16.28","NavDate":"2026/10/07","PCFDate":"2026/10/08"},"Table":[{"TableTitle":"","Columns":[{"Name":null,"TextAlign":null}],"Rows":[[" "," "," "," "],["股票","TWD$9,998,623,30
+  Fund/GetFundOverview 200 {"TotalPages":-1,"TotalItems":0,"Entries":[],"Message":"","StatusCode":0,"RedirectUrl":null}
+  Category/GetFundDropdownOptions 200 {"TotalPages":-1,"TotalItems":0,"Entries":[{"FundNo":"","FundFullName":"查無基金","FundShortName":"查無基金","FundWarning":"","SecuritiesCode":"","CustodianBank":""}],"Message":"","StatusCode":0,"RedirectUrl":null}
+  Fund/GetFundLatestNav 200 {"TotalPages":-1,"TotalItems":0,"Entries":{"CFundNo":null,"CNavdigit":null,"CSetUpDt":null,"CLatestNAV":null,"CLatestNAVStr":null,"CLatestNAVDate":null,"CLatestNAVDateStr":null,"CLatestChange":null,"CLatestChangeStr":null,"CLatestChangeRatio":null,"CLatestChangeRatioStr":null,"HighestNAV":null,"LowestNAV":null,"HighestNAVStr":null,"LowestNAVStr":null},"Message":"查無基金","StatusCode":0,"RedirectUrl":null}
+  assets E0001 200 {"Aum": "10223604055", "Units": "627958000", "Nav": "16.28", "NavDate": "2026/10/07", "PCFDate": "2026/10/08"} [('', [[' ', ' ', ' ', ' ']]), ('股票 (97.80%)', [['1', '3017', '奇鋐', '129,000', '4.47%']])]
+  assets E0002 200 {"Aum": "10474380388", "Units": "715591000", "Nav": "14.64", "NavDate": "2026/10/07", "PCFDate": "2026/10/08"} [('', [[' ', ' ', ' ', ' ']]), ('股票 (96.12%)', [['1', '2330', '台積電', '341,000', '8.43%']]), ('期貨', [['1', 'TX', '台指期貨', '19', '1.71%', '2026/10']])]
+  assets E0003 200 {"Aum": "5836496449", "Units": "561127000", "Nav": "10.4", "NavDate": "2026/10/06", "PCFDate": "2026/10/08"} [('', [[' ', ' ', ' ', ' ']]), ('股票 (97.76%)', [['1', 'NVDA US', 'NVIDIA Corp', '67,700', '8.82%']])]
+  assets E0004 200 null []
+  assets E0005 200 null []
+  assets E0006 200 null []
+  assets E0007 200 null []
+  assets E0008 200 null []
+  assets E0009 200 null []
+  assets E0010 200 null []
+  assets E0011 200 null []
