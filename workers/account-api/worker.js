@@ -2132,3 +2132,14 @@ Hub.prototype.fetch = async function (req) {
   return admOrigFetch.call(this, req);
 };
 /* ============================================================================ 管理權限區塊結束 */
+
+/* 2026-10-07 15:45 Andy：「有在權限內的帳號也可以進行拖曳 但不能刪除」→ 刪除付費範本（頁籤）只限擁有者；一般管理者可以拖曳排序（plans/sort）、改內容 */
+const admOrigPlansPut2 = Hub.prototype.adminPlansPut;
+Hub.prototype.adminPlansPut = async function (req, b) {
+  if (b && b.del === true) {
+    const v = await this.admin(req, b);
+    if (!v) return this.json(req, { error: 'forbidden' }, 403);
+    if (!this.isOwner(v.user)) return this.json(req, { error: 'owner_only' }, 403);
+  }
+  return admOrigPlansPut2.call(this, req, b);
+};

@@ -23122,6 +23122,35 @@ def t_admin_only_1007(b, base):
     ok(f"★ [{T}] 被移除的人：分頁列不再能拖曳", not pc.evaluate(f"() => document.querySelector('{SEL}').hasAttribute('data-tdrag')"))
     for x in (cc, co):
         x.close()
+
+    # ⑤ 10-07 15:45 Andy：「管理權限 移動到 會員權限上方，並且旁邊的分頁 有在權限內的帳號也可以進行拖曳 但不能刪除」
+    for who in ("admin", "subadmin"):
+        cx, _sent, _st = _adm3_ctx(b, who=who)
+        px = cx.new_page(); px.on("pageerror", lambda e: errs.append(str(e)[:200]))
+        px.goto(base + "#admin/perm", wait_until="domcontentloaded")
+        wait_until(px, "() => document.querySelectorAll('.l4subtab[data-parent=admin]').length === 4 && document.querySelectorAll('#ptTier .ptab').length > 0", 12000)
+        px.wait_for_timeout(500)
+        side = px.evaluate("() => [...document.querySelectorAll('.l4subtab[data-parent=admin]')].map(x => x.textContent.trim())")
+        nm = "擁有者" if who == "admin" else "一般管理者"
+        if who == "admin":
+            ok(f"★ [{T}] 側欄管理區順序＝管理權限 → 會員權限 → 流量觀測 → 意見反饋", side == ["管理權限", "會員權限", "流量觀測", "意見反饋"], side)
+            if shots:
+                px.locator(".l4subtab[data-parent=admin]").nth(3).scroll_into_view_if_needed(); px.wait_for_timeout(200)
+                bb = px.locator(".l4perm").bounding_box(); px.screenshot(path=str(pathlib.Path(shots) / "4_側欄管理區順序.png"), clip={"x": 0, "y": max(0, bb["y"] - 120), "width": 240, "height": 300})
+        nx = px.locator("#ptTier button.ptmore").count()
+        ok(f"★ [{T}] {nm}：付費範本頁籤的刪除鈕（×）{'看得到' if who == 'admin' else '看不到'}", (nx > 0) == (who == "admin"), nx)
+        # 側欄子項拖曳：第一顆拖到第三顆
+        it = px.locator(".l4subtab[data-parent=admin]"); it.nth(3).scroll_into_view_if_needed(); px.wait_for_timeout(200)
+        b1, b3 = it.nth(0).bounding_box(), it.nth(2).bounding_box()
+        px.mouse.move(b1["x"] + 20, b1["y"] + b1["height"] / 2); px.mouse.down()
+        px.mouse.move(b1["x"] + 20, b1["y"] + b1["height"] / 2 + 10, steps=3)
+        px.mouse.move(b3["x"] + 20, b3["y"] + b3["height"] / 2, steps=10); px.mouse.up(); px.wait_for_timeout(300)
+        s2 = px.evaluate("() => [...document.querySelectorAll('.l4subtab[data-parent=admin]')].map(x => x.textContent.trim())")
+        ok(f"★ [{T}] {nm}：側欄管理區子項可拖曳換位置、數量不變（不可刪）", s2 != side and sorted(s2) == sorted(side) and px.evaluate("location.hash") == "#admin/perm", [side, s2])
+        r = px.evaluate("async () => { const j = await TwAccount.call('/v1/admin/plans/put', { id: 'p799', del: true }); return j && j._s; }")
+        if who == "subadmin":
+            ok(f"★ [{T}] 一般管理者硬打刪除範本端點 → 403", r == 403, r)
+        cx.close()
     ok(f"[{T}] 全程沒有 pageerror", not errs, errs[:3])
 
 
@@ -50662,7 +50691,7 @@ def _adm2_ctx(b, who="admin", width=1440, grp_off=None, many=False, touch=False)
             body = {}
         sent.append((path, body))
         adm = who == "admin"
-        me = {"email": "boss@example.com" if adm else "member@example.com", "name": "管理者" if adm else "一般會員", "admin": adm}
+        me = {"email": "boss@example.com" if adm else "member@example.com", "name": "管理者" if adm else "一般會員", "admin": adm, "owner": adm}
         out, code = {}, 200
         if path == "/v1/me":
             out = {"user": me}
@@ -51614,8 +51643,8 @@ def _adm3_ctx(b, who="admin", width=1440, feats=None, lims=None, theme=None, pla
         except Exception:  # noqa: BLE001
             body = {}
         sent.append((path, body))
-        adm = who == "admin"
-        me = None if who is None else {"email": "boss@example.com" if adm else "member@example.com", "name": "管理者" if adm else "一般會員", "admin": adm}
+        adm = who in ("admin", "subadmin")       # subadmin＝擁有者加進來的一般管理者（10-07：可拖曳、不能刪範本）
+        me = None if who is None else {"email": "boss@example.com" if adm else "member@example.com", "name": "管理者" if adm else "一般會員", "admin": adm, "owner": who == "admin"}
         out, code = {}, 200
         if path == "/v1/me":
             out, code = ({"user": me}, 200) if me else ({}, 401)
@@ -51636,6 +51665,8 @@ def _adm3_ctx(b, who="admin", width=1440, feats=None, lims=None, theme=None, pla
             out = {"total": 5, "guests": 4, "users": [], "public_online": True}
         elif path == "/v1/admin/plans/get":
             out = {"plans": st["plans"]}
+        elif path == "/v1/admin/plans/put" and body.get("del") is True and who == "subadmin":
+            out, code = {"error": "owner_only"}, 403     # 同 worker.js：刪除範本只限擁有者
         elif path == "/v1/admin/plans/put" and body.get("del") is True and any(r["plan"] == body.get("id") and not (r.get("expires") and r["expires"] < now) for r in st["perm"].values()):
             out, code = {"error": "has_members"}, 409      # 同 worker.js：還有有效會員的範本不能刪
         elif path == "/v1/admin/plans/put" and body.get("del") is True:
