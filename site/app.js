@@ -441,7 +441,9 @@
   function staleTag() {
     const ks = Object.keys(STALE);
     let el = document.getElementById('staleTag');
-    if (!ks.length) { if (el) el.remove(); return; }
+    // ★ 2026-10-07 Andy：「這不要對使用者顯示出來，除了我」→ 只給擁有者帳號看（owner 旗標由 Worker 判定）
+    const A = window.TwAccount, u = A && A.user && A.user();
+    if (!ks.length || !(u && u.owner)) { if (el) el.remove(); return; }
     const t = Math.min.apply(null, ks.map(k => STALE[k]));
     const s = new Date(t).toLocaleString('sv-SE', { timeZone: 'Asia/Taipei' }).slice(0, 16);
     if (!el) { el = document.createElement('div'); el.id = 'staleTag'; el.className = 'staletag'; el.setAttribute('role', 'status'); document.body.appendChild(el); }
