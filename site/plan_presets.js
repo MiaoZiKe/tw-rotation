@@ -285,7 +285,7 @@ window.TW_PLAN_PRESETS = {
    "key": "pro",
    "name": "Pro",
    "price": 549,
-   "price_year": 5490,
+   "price_year": 5268,
    "dq": null,
    "feats": {
     "ov.summary": true,
@@ -364,7 +364,7 @@ window.TW_PLAN_PRESETS = {
      "自設條件提醒（開發中）",
      "剖析圖高解析匯出（開發中）"
     ],
-    "price_year": 5490
+    "price_year": 5268
    }
   }
  ]

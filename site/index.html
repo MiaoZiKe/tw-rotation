@@ -3301,8 +3301,30 @@ h4.subh small{font-size:11.5px;font-weight:500;color:var(--ink-3)}
 .skrank .skr-r .v .d{font-size:13.5px}
 .skrank .skr-r .bar{grid-column:2 / 4;height:5px;border-radius:3px;background:var(--line-2);overflow:hidden}
 .skrank .skr-r .bar i{display:block;height:100%;border-radius:3px;transition:width .45s ease}
-.skrank .skr-r .bar i.up{background:var(--rise)}
-.skrank .skr-r .bar i.down{background:var(--fall)}
+.skrank .skr-r .bar i.up{background:linear-gradient(90deg,color-mix(in srgb,var(--rise) 45%,transparent),var(--rise))}
+.skrank .skr-r .bar i.down{background:linear-gradient(90deg,color-mix(in srgb,var(--fall) 45%,transparent),var(--fall))}
+/* ===== 2026-10-07 晚（Andy：「修正點擊前後導致樹狀圖移動」「右側頁面需要跟整張樹狀圖欄位上下差不多高」）=====
+   根因：排名表 340px、成分股面板 300px 兩種寬度 → 點族群時樹的畫布少了 40px；
+   加上展開的族群會把畫布長高（flowtopo slotPlan 的 extra）。現在兩個右欄同寬（340）、同一個外框，
+   並排時用 contain:size 讓右欄「不貢獻自己的高度」，被 flex stretch 拉成跟樹卡一樣高；
+   內容多就在清單裡捲（表頭固定），內容少就留白 —— 數據多寡不再讓任何一邊伸縮。*/
+#sankeyRow #sankeyPanel{flex:0 0 340px;max-width:340px}
+@media (min-width:901px){
+  #sankeyRow:not(.stack){align-items:stretch}
+  #sankeyRow:not(.stack) #sankeyRank:not([hidden]),#sankeyRow:not(.stack) #sankeyPanel:not([hidden]){
+    contain:size;box-sizing:border-box;width:340px;display:flex;flex-direction:column;overflow:hidden}
+  #sankeyRow:not(.stack) #sankeyRank .skr-l{flex:1 1 0;min-height:0;max-height:none}
+  #sankeyRow:not(.stack) #sankeyPanel>*{flex:none}
+  #sankeyRow:not(.stack) #sankeyPanel>.ms,#sankeyRow:not(.stack) #sankeyPanel>.skr-l{flex:1 1 0;min-height:0;max-height:none;overflow-y:auto}
+}
+/* 族群成分股（206 範本）：跟排名表同一套列樣式，.ms 改成單欄 */
+#sankeyPanel .ms.skr-l{display:flex;flex-direction:column;gap:4px;grid-template-columns:none}
+#sankeyPanel .ms a.skr-r{display:grid;grid-template-columns:20px minmax(0,1fr) auto;grid-template-rows:auto 5px;
+  column-gap:8px;row-gap:3px;padding:6px 8px;align-items:stretch;background:transparent;border:1px solid transparent;text-decoration:none;color:inherit}
+#sankeyPanel .ms a.skr-r:hover{background:var(--panel-2);border-color:var(--line-2)}
+#sankeyPanel .skr-r.dp.ison{border-color:var(--c,var(--cyan));background:color-mix(in srgb,var(--c,var(--cyan)) 14%,transparent)}
+#sankeyPanel .skr-r .n small .go{margin-left:6px;color:var(--cyan)}
+#sankeyPanel .skr-r .n small .go:hover{text-decoration:underline}
 .skrank .skr-e{padding:12px 4px;font-size:13px}
 #sankeyRow.stack #sankeyPanel{max-width:none;margin-top:12px}
 /* 面板從 300px 的側欄變成整列之後，格子會被排成一堆 168px 的窄欄 ——
