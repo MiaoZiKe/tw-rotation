@@ -116,6 +116,15 @@
 #v-etf .etftri{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:var(--sp-3);margin-bottom:var(--sp-3);align-items:stretch}
 #v-etf .etftri>.card{margin:0;display:flex;flex-direction:column;min-width:0}
 #v-etf .etftri[hidden]{display:none}
+/* Andy 10-07「需要同一排」：三張卡的標題列、副標、表頭、5 列資料要水平對齊。
+   受歡迎卡的標題列多一組切換鈕會比較高，所以標題列給固定最小高度；副標固定一行高，空的也佔位。 */
+/* 卡寬約 300～345px 放不下「標題＋? ＋口徑切換」一整行（會擠到 ? 鈕），所以切換鈕縮小後移到副標那一行右側。 */
+#v-etf .etftri>.card>.row.spread{height:32px;min-height:32px;align-items:center;flex-wrap:nowrap}
+#v-etf .etftri .etfq{height:26px;line-height:26px;min-height:26px;margin:2px 0 10px}
+#v-etf .etfqrow{display:flex;align-items:center;gap:8px;height:26px;margin:2px 0 10px}
+#v-etf .etfqrow .etfq{margin:0;flex:1;min-width:0}
+#v-etf .etfqseg{flex:none}
+#v-etf .etfqseg button{height:24px;min-height:24px;padding:0 8px;font-size:12px;line-height:22px}
 #v-etf .rklist{display:flex;flex-direction:column;gap:4px;flex:1}
 #v-etf .rkhd,#v-etf .rkrow{display:grid;grid-template-columns:20px minmax(0,1fr) 84px 92px;gap:8px;align-items:center;white-space:nowrap}
 #v-etf .rkhd{font-size:11.5px;color:var(--ink-3);padding:0 8px}
@@ -333,13 +342,13 @@
 
 <div class="etftri" id="etfTri" hidden>
   <div class="card" id="etfPopCard">
-    <div class="row spread"><h3 data-icon="flame" data-tone="heat">最近最受歡迎前 5 ${hbtn('etfpop', '最受歡迎怎麼算')}</h3>
-      <div class="seg" id="etfPopSeg"><button data-v="holders">受益人週增</button><button data-v="turnover">成交值</button></div></div>
+    <div class="row spread"><h3 data-icon="flame" data-tone="heat">最近最受歡迎前 5 ${hbtn('etfpop', '最受歡迎怎麼算')}</h3></div>
     ${how('etfpop', '', [
       '<b>受益人週增</b>：集保結算所每週公布的受益人數（合計列），最新一週減前一週，增加最多的前 5 檔。代表「新進場的人」。',
       '<b>成交值</b>：最近 20 個交易日成交金額的平均。代表「交易熱度」。',
       '只在目前這個分類裡排；所以：兩個口徑都在前面的，是人潮與交易都熱的。'])}
-    <p class="etfq" id="etfPopSub"></p>
+    <div class="etfqrow"><p class="etfq" id="etfPopSub"></p>
+      <div class="seg etfqseg" id="etfPopSeg"><button data-v="holders">受益人</button><button data-v="turnover">成交值</button></div></div>
     <div class="rklist" id="etfPop"></div>
   </div>
   <div class="card" id="etfRetTopCard">
@@ -358,6 +367,7 @@
       '<b>平均填息</b>＝最近 4 次已除息裡「已經填息」那幾次的填息天數平均（交易日）；還沒填息的不算進平均，另外寫「N 次未填」。完全沒有填過的寫「尚未填息」。',
       '填息天數口徑：除息日當天算第 1 天，收盤第一次回到除息前一日收盤是第幾個交易日（與個股除權息分頁相同）。',
       '所以：殖利率高但填息慢（或尚未填息），代表配的息常被除息後的價差吃掉，實拿的報酬沒有殖利率看起來那麼高。'])}
+    <p class="etfq" id="etfYldQ">依<b>近 12 個月現金配息 ÷ 最新收盤</b>排</p>
     <div class="rklist" id="etfYld"></div>
   </div>
 </div>

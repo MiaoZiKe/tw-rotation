@@ -1962,6 +1962,16 @@ def t_etf_1005(pg, b, base):
                  return [Math.round(r.top), Math.round(r.height), Math.round(r.left), Math.round(r.width)]; })""")
         ok(f"★ [{tag}] 配息型：三張前 5 在同一列、由左到右、同高", not J("() => document.querySelector('#etfTri').hidden")
            and len({x[0] for x in box}) == 1 and len({x[1] for x in box}) == 1 and box[0][2] < box[1][2] < box[2][2], box)
+        # Andy 10-07「這邊調整 需要同一排」：三卡的標題、副標、表頭、第 1 列、第 5 列與卡底，上緣差都要 ≤1px
+        al = J("""() => ['#etfPopCard', '#etfRetTopCard', '#etfYldCard'].map(s => { const c = document.querySelector(s);
+                 const t = (e) => e ? +e.getBoundingClientRect().top.toFixed(1) : null, rows = c.querySelectorAll('.rklist > .rkrow');
+                 return { h3: t(c.querySelector('h3')), sub: t(c.querySelector('.etfq')), hd: t(c.querySelector('.rkhd')),
+                          r1: t(rows[0]), r5: t(rows[4]), bot: +c.getBoundingClientRect().bottom.toFixed(1),
+                          subTxt: (c.querySelector('.etfq') || {}).textContent || '' }; })""")
+        spread = {k: (max(x[k] for x in al) - min(x[k] for x in al)) if all(x[k] is not None for x in al) else 999
+                  for k in ("h3", "sub", "hd", "r1", "r5", "bot")}
+        ok(f"★ [{tag}] 1440 三卡逐層對齊（標題／副標／表頭／第1列／第5列／卡底 差 ≤1px）", all(v <= 1 for v in spread.values()), (spread, al))
+        ok(f"★ [{tag}] 三卡都有一行副標", all(x["subTxt"].strip() for x in al), [x["subTxt"] for x in al])
         cats = J("() => Object.fromEntries(window.TwEtfPage.state.data.items.map(i => [i.code, i.cat]))")
         pop_h = CODES("#etfPop")
         lp.click("#etfPopSeg button[data-v='turnover']"); lp.wait_for_timeout(200)
