@@ -90,7 +90,8 @@
      ⚠ 說明字從 12 改 13，wrapSub 的估寬（SUB_FW／SUB_HW）與列距 SUB_LH 要跟著改 —— 三個數字是同一組。*/
   const TH_STYLE = `<style>.dg.dg3{--dg-fs-ttl:16px;--dg-fs-hd:12.5px;--dg-fs-lbl:15px;--dg-fs-min:12px}
     .dg.dg3 .stn .sub{font-size:13px} .dg.dg3 .band text{font-size:13px}
-    .dg.dg3 .step .lbl{font-size:14px} .dg.dg3 .step .sub{font-size:12px}
+    .dg.dg3 .step .lbl{font-size:14px} .dg.dg3 .step .sub{font-size:12px;fill:var(--dg-text-2)}
+    .dg3 .m-drum .part{stroke:var(--dg-accent-muted)} .dg3 .desat{filter:saturate(.9)}
     .dg3 .hl{fill:none;stroke:var(--dg-hl);stroke-width:1;stroke-linecap:round;stroke-linejoin:round;vector-effect:non-scaling-stroke;pointer-events:none}
     .dg3 .ao{fill:none;stroke:var(--dg-ao-ln);stroke-width:1.2;stroke-linecap:round;vector-effect:non-scaling-stroke;pointer-events:none}
     .dg3 .spec{fill:none;stroke:var(--dg-spec);stroke-linecap:round;pointer-events:none}
@@ -373,10 +374,11 @@
     .dg3 .m-wind{fill:none;stroke:var(--dg-cu);stroke-width:2.4;stroke-opacity:.9}
     .dg3 .m-ring{fill:none;stroke:var(--dg-alu-2);stroke-width:4.5;stroke-linecap:round}
     .dg3 .m-pipe{fill:none;stroke:var(--dg-cu);stroke-width:5;stroke-linecap:round;stroke-linejoin:round}
-    .dg3 .m-sheath-o{fill:none;stroke:var(--dg-sh0);stroke-opacity:.5;stroke-width:8.4;stroke-linecap:round}
-    .dg3 .m-sheath{fill:none;stroke:var(--dg-resin);stroke-width:6;stroke-linecap:round}
+    .dg3 .m-sheath-o{fill:none;stroke:var(--dg-cable-edge);stroke-width:8;stroke-linecap:round}
+    .dg3 .m-sheath{fill:none;stroke:var(--dg-cable);stroke-width:6;stroke-linecap:round}
     .dg3 .m-braid{fill:none;stroke:var(--dg-alu);stroke-width:1.1;stroke-opacity:.75;stroke-dasharray:1.6 2.4}
-    .dg3 .m-tie{fill:none;stroke:var(--dg-sh0);stroke-opacity:.7;stroke-width:2.6;stroke-linecap:round}
+    .dg3 .m-tie{fill:none;stroke:var(--dg-tie);stroke-width:2;stroke-linecap:round}
+    .dg3 .m-corr{fill:none;stroke:var(--dg-cable);stroke-width:7;stroke-dasharray:1.4 1.2}
     .dg3 .m-cable{fill:none;stroke:var(--dg-resin);stroke-width:3.4;stroke-linecap:round}
     .dg3 .m-hvcable{fill:none;stroke:var(--dg-hot);stroke-width:5;stroke-linecap:round;stroke-opacity:.9}
     .dg3 .m-flexline{fill:none;stroke:var(--dg-cu);stroke-width:1.6;stroke-opacity:.85;stroke-dasharray:5 4}
@@ -506,16 +508,17 @@
     + wire([[0, -26, 50], [0, -26, 42]], 'flow', 'var(--dg-pwr)', 2.4);
   // 晶圓載具 FOUP：方盒 ＋ 頂部吊環 ＋ 前門 ＋ 裡面一疊晶圓槽（吊環是它最好認的地方）
   const dFoup = () => {
-    /* ★ 2026-10-07 細緻化：FOUP（前開式晶圓傳送盒）的識別特徵是半透明外殼裡**一層一層的晶圓**、
-       正面一片可拆的門（兩個鎖孔）、頂上給天車夾的方形法蘭、兩側提把。改前是一個實心方盒。*/
+    /* ★ 2026-10-07 結構把關：FOUP＝側面與背面是**圓弧外殼**（不是立方體），前面一整片平的門板（兩個鎖孔）；
+       頂上一塊明顯凸出的 OHT 夾持法蘭；兩側提把；半透明殼與門看得到裡面水平疊放的晶圓邊緣。*/
     const wafers = [];
-    for (let i = 0; i < 6; i++) wafers.push(cyl(0, -2, 6 + i * 6.4, 17, 1.2, ''));
-    return pad(34, 22)
+    for (let i = 0; i < 6; i++) wafers.push(cyl(0, -2, 6 + i * 6.2, 19, 1.2, ''));
+    return pad(34, 24)
       + mat('m-si', wafers.join(''))
-      + mat('m-gl', box(-24, -22, 0, 48, 42, 44, ''))
-      + mat('m-res', box(-26, 20, 2, 52, 4, 40, '') + aiFace(-26, 24, 2, `<circle class="m-hole" cx="15" cy="20" r="3"/><circle class="m-hole" cx="37" cy="20" r="3"/><rect class="etch" x="4" y="4" width="44" height="32" rx="3" fill="none"/>`))
-      + mat('m-res', box(-12, -10, 44, 24, 20, 3, '') + box(-6, -4, 47, 12, 8, 4, ''))
-      + mat('m-res', box(24, -8, 18, 4, 14, 10, ''));
+      + mat('m-gl', cyl(0, -4, 0, 25, 42, ''))
+      + mat('m-gl', box(-25, 16, 0, 50, 4, 42, ''))
+      + aiFace(-25, 20, 0, `<rect class="etch" x="4" y="4" width="42" height="34" rx="3" fill="none"/><circle class="m-hole" cx="15" cy="20" r="2.6"/><circle class="m-hole" cx="35" cy="20" r="2.6"/>`)
+      + mat('m-res', box(-5, -9, 42, 10, 10, 5, '') + box(-15, -19, 47, 30, 30, 3, ''))
+      + mat('m-res', box(24, -10, 18, 5, 12, 12, '') + box(-29, -10, 18, 5, 12, 12, ''));
   };
   // 精密零件：一片帶螺栓孔的法蘭 ＋ 波紋管 ＋ 一根軸（設備廠上游賣的就是這種東西）
   const dPrecisionPart = () => pad(36, 23)
@@ -951,41 +954,49 @@
       + mat('m-al', cyl(0, 0, 0, 30, 14, ring(26, 12, 1.6)))
       + mat('m-st', cyl(0, 0, 14, 18, 6, ring(12, 8, 1.6) + `<circle class="m-hole" r="5"/>`));
   };
-  const dServoMotor = () => pad(36, 20)
-    + `<path class="m-cable" d="M${P3(-30, 0, 22)} L${P3(-40, -14, 30)}"/>`
-    + mat('m-res', hcylX(-32, -22, 0, 14, 10, [0.6]))
-    + mat('m-al', hcylX(-22, 12, 0, 14, 13, []))
-    + mat('m-al', box(12, -15, 0, 6, 30, 30, '') + faceYZ(18, -15, bolt([[4, 4], [26, 4], [4, 26], [26, 26]], 1.8)))
-    + mat('m-st', hcylX(18, 32, 0, 15, 3.5, []));
+  const dServoMotor = () => {
+    /* ★ 2026-10-07 結構把關：方形法蘭在前、輸出軸從法蘭正中央水平伸出；機身圓柱與軸同一條中心線（z=15）；
+       後端是略細的短編碼器蓋，蓋頂一個出線接頭再拉出電纜。*/
+    const Z = 15;
+    return pad(36, 20)
+      + mat('m-res', hcylX(-32, -22, 0, Z, 10.5, [0.6]))
+      + mat('m-res', box(-30, -4, Z + 9, 6, 8, 5, ''))
+      + `<path class="m-cable" d="M${P3(-27, 0, Z + 14)} C${P3(-30, 0, Z + 22)} ${P3(-38, -6, Z + 22)} ${P3(-44, -12, Z + 18)}"/>`
+      + mat('m-al', hcylX(-22, 12, 0, Z, 13, []))
+      + mat('m-al', box(12, -15, 0, 6, 30, 30, '') + faceYZ(18, -15, bolt([[4, 4], [26, 4], [4, 26], [26, 26]], 1.8)))
+      + mat('m-st', hcylX(18, 34, 0, Z, 3.5, []));
+  };
   // 驅動器：兩側鰭片的外殼 ＋ 面板狀態燈與通訊埠 ＋ 底下一排螺絲端子（端子排＝工業驅動器）
   const dDriver = () => {
-    /* ★ 2026-10-07 重畫（CEO：「兩片紅灰方塊不像控制器」）：工業伺服驅動器的外形是**立著的窄長盒**——
-       側面一整排散熱鰭片（功率元件的熱從這裡散）、正面上方小顯示窗＋狀態燈＋兩個通訊埠，
-       正面下方凸出一條帶螺絲的端子台（馬達三相線與電源從這裡接）。鰭片＋端子台＝一眼是驅動器。*/
-    const fins = [], scr = [], ports = [];
-    for (let i = 0; i < 9; i++) fins.push(box(14, -20 + i * 4.6, 6, 8, 1.6, 40, ''));
-    for (let i = 0; i < 5; i++) scr.push(`<circle class="m-hole" cx="${px(-11 + i * 5.5, 25).toFixed(1)}" cy="${py(-11 + i * 5.5, 25, 12).toFixed(1)}" r="1.5"/>`);
-    for (let i = 0; i < 2; i++) ports.push(`<rect class="ai-port" x="${4 + i * 11}" y="16" width="8" height="7" rx="1"/>`);
-    return pad(30, 24)
-      + mat('m-st', box(-16, -22, 0, 32, 44, 4, ''))
-      + box(-14, -22, 4, 28, 44, 52, '')
-      + aiFace(-14, 22, 4, `<rect class="m-hole" x="4" y="36" width="17" height="9" rx="1.2"/><circle class="ai-led" cx="25" cy="40.5" r="1.8"/>` + ports.join(''))
+    /* ★ 2026-10-07 重畫（CEO＋結構把關）：工業伺服驅動器＝立著的窄長盒，高:寬:深≈3:1:2。
+       窄的那一面是正面：上方 LCD 小窗、下面一排狀態燈、最底下一條凸出的螺絲端子台（馬達三相線與電源從這裡接）；
+       側面 7 片凸出的垂直散熱鰭片（功率元件的熱從這裡散）。不畫方格陣列。*/
+    const fins = [], scr = [], leds = [];
+    for (let i = 0; i < 7; i++) fins.push(box(9, -15 + i * 5, 6, 7, 1.6, 44, ''));
+    for (let i = 0; i < 4; i++) scr.push(`<circle class="m-hole" cx="${px(-6 + i * 4, 23).toFixed(1)}" cy="${py(-6 + i * 4, 23, 12).toFixed(1)}" r="1.3"/>`);
+    for (let i = 0; i < 4; i++) leds.push(`<circle class="ai-led" cx="${3.5 + i * 3.6}" cy="33" r="1.1"/>`);
+    return pad(26, 24)
+      + mat('m-st', box(-11, -18, 0, 22, 36, 3, ''))
+      + `<g class="desat">` + box(-9, -18, 3, 18, 36, 54, '') + '</g>'
+      + aiFace(-9, 18, 3, `<rect class="m-hole" x="2.5" y="38" width="13" height="9" rx="1"/>` + leds.join(''))
       + mat('m-al', fins.join(''))
-      + mat('m-res', box(-13, 22, 4, 27, 6, 8, ''))
+      + mat('m-res', box(-8, 18, 3, 16, 6, 9, ''))
       + scr.join('');
   };
   // 視覺與力覺：雙目相機（兩顆鏡頭）＋ 底下一圈帶螺栓孔的力覺感測環（雙鏡頭＋環）
   const dVisionSensor = () => {
-    /* ★ 2026-10-07 重畫（CEO：「要更像雙目相機模組」）：雙目深度相機是一根**橫向長條機身**，
-       兩顆鏡頭開在**正面**左右兩端（基線距離），中間是紅外線投射器與一顆狀態燈，底下用一支短柱鎖在支架上；
-       改前鏡頭朝天花板，看起來像兩個蓋子。下面那圈帶螺孔的環仍是力覺感測環（手腕端）。*/
-    const lens = (u) => `<circle class="part f2" cx="${u}" cy="8" r="6.6"/><circle class="m-hole" cx="${u}" cy="8" r="4.6"/>`
-      + `<circle class="etch" cx="${u}" cy="8" r="2.6" fill="none"/><circle class="sheen" cx="${u - 1.6}" cy="9.8" r="1.2"/>`;
-    return pad(32, 21)
-      + mat('m-st', cyl(0, 0, 0, 20, 10, `<circle class="etch" r="12" fill="none"/>` + bolt([[-13, 0], [13, 0], [0, -13], [0, 13]], 2.2)))
-      + mat('m-st', cyl(0, 0, 10, 4, 14, ''))
-      + mat('m-cam', box(-34, -7, 24, 68, 13, 17, ''))
-      + aiFace(-34, 6, 24, lens(10) + lens(58) + `<rect class="m-hole" x="27" y="5.5" width="10" height="5" rx="1.2"/><circle class="ai-led" cx="42" cy="8" r="1.4"/>`);
+    /* ★ 2026-10-07 重畫（CEO＋結構把關）：雙目相機與力覺感測器**分開畫**，不用細柱串在一起。
+       左：橫條雙目相機坐在兩支小腳座上，正面左右兩顆鏡頭夾一個紅外線投射器；
+       右：六軸力覺感測器＝扁圓柱，上下兩片法蘭（螺孔），中間細一圈留縫，側面一個出線接頭。*/
+    const lens = (u) => `<circle class="part f2" cx="${u}" cy="7" r="5.6"/><circle class="m-hole" cx="${u}" cy="7" r="3.9"/>`
+      + `<circle class="etch" cx="${u}" cy="7" r="2.2" fill="none"/><circle class="sheen" cx="${u - 1.4}" cy="8.6" r="1"/>`;
+    const fl = bolt([[-9, 0], [9, 0], [0, -9], [0, 9]], 1.6);
+    return pad(40, 20)
+      + mat('m-st', box(-40, -6, 0, 5, 10, 5, '') + box(-12, -6, 0, 5, 10, 5, ''))
+      + mat('m-cam', box(-46, -6, 5, 46, 12, 14, ''))
+      + aiFace(-46, 6, 5, lens(8) + lens(38) + `<rect class="m-hole" x="18" y="4.5" width="8" height="4.5" rx="1"/><circle class="ai-led" cx="29.5" cy="7" r="1.2"/>`)
+      + mat('m-st', cyl(26, 0, 0, 14, 7, fl) + cyl(26, 0, 7, 11.5, 4, '') + cyl(26, 0, 11, 14, 7, fl + `<circle class="m-hole" r="4"/>`))
+      + mat('m-res', box(39, -3, 6, 6, 6, 5, ''));
   };
   // 六軸手臂：底座 ＋ 兩節臂 ＋ 關節圓柱 ＋ 末端夾爪（關節圓柱＋夾爪＝手臂）
   const dRobotArm = () => pad(32, 21)
@@ -1004,23 +1015,34 @@
     + onTop(29, `<path class="part f1" d="M-42,-2 q23,-9 42,0 q-23,9 -42,0Z"/><path class="part f1" d="M42,2 q-23,9 -42,0 q23,-9 42,0Z"/>`)
     + mat('m-st', cyl(0, 0, 27, 3.4, 7, ''))
     + `<path class="m-cable" d="M${P3(0, 8, 4)} L${P3(16, 28, 2)}"/>`;
-  // 線束與連接器：兩個帶插針的接頭 ＋ 中間紮成一束的線 ＋ 中段束環（一束線＋接頭）
-  const dHarness = () => {
-    /* ★ 2026-10-07 重畫（CEO：「三個方塊連線不像飛越線」）：高速線束的識別特徵是
-       **一根有外皮的粗線纜（兩條線並排、外面編織網套）＋兩端各一個帶卡扣的接頭**，
-       接頭正面看得到插針、尾端有熱縮套管收口；中段兩道紮線帶。改前中間那塊方塊（束環）被看成第三個零件。*/
-    const run = (dy) => `M${P3(-24, dy, 13)} C${P3(-8, dy, 30)} ${P3(8, dy, 30)} ${P3(24, dy, 13)}`;
-    const cable = [-3.5, 3.5].map(dy => `<path class="m-sheath-o" d="${run(dy)}"/><path class="m-sheath" d="${run(dy)}"/><path class="m-braid" d="${run(dy)}"/>`).join('');
-    const tie = (x, z) => `<path class="m-tie" d="M${P3(x, -8, z)} L${P3(x, 8, z)}"/>`;
-    const conn = (x0, face) => mat('m-st', box(x0, -10, 6, 16, 20, 14, ''))
-      + mat('m-res', box(x0 + 3, -6, 20, 10, 12, 3, ''))
-      + (face ? faceYZ(x0 + 16, -10, padArr(2, 3, 16, 9, 4, 2, 'ai-au')) : '');
-    return pad(38, 20)
-      + conn(-44, false)
-      + mat('m-res', box(-28, -6, 9, 5, 12, 8, ''))
-      + cable + tie(-12, 25.5) + tie(12, 25.5)
-      + mat('m-res', box(23, -6, 9, 5, 12, 8, ''))
-      + conn(28, true);
+  const dFlyover = () => {
+    /* ★ 2026-10-07 結構把關：交換器的高速線材（DAC／飛越線）＝圓截面編織外皮的粗線（兩條並排），
+       兩端是 QSFP／OSFP 那種**扁長方形金屬插頭**（寬約線的 2～3 倍）：前端頂面一排金手指、後端一條拉環。*/
+    const run = (dy) => `M${P3(-24, dy, 6)} C${P3(-8, dy, 26)} ${P3(8, dy, 26)} ${P3(24, dy, 6)}`;
+    const cable = [-3.6, 3.6].map(dy => `<path class="m-sheath-o" d="${run(dy)}"/><path class="m-sheath" d="${run(dy)}"/><path class="m-braid" d="${run(dy)}"/>`).join('');
+    const plug = (x0, dir) => {
+      const fx = dir < 0 ? x0 : x0 + 22 - 6;        // 金手指在插頭朝外那一端
+      const tx = dir < 0 ? x0 + 22 : x0;             // 拉環在接線那一端
+      return mat('m-st', box(x0, -10, 0, 22, 20, 7, ''))
+        + onTop(7, [0, 1, 2, 3, 4, 5].map(i => `<rect class="ai-au" x="${fx + .5}" y="${-8 + i * 2.8}" width="5" height="1.6" rx=".4"/>`).join(''))
+        + `<path class="m-pull" d="M${P3(tx, -6, 5)} L${P3(tx - dir * 8, -6, 8)} L${P3(tx - dir * 8, 6, 8)} L${P3(tx, 6, 5)}"/>`;
+    };
+    return pad(40, 18) + plug(-46, -1) + cable + plug(24, 1);
+  };
+  const dDroneHarness = () => {
+    /* ★ 2026-10-07 結構把關：無人機線束跟交換器飛越線**分開造型**——四條不同顏色的細線，
+       中段套一截波紋管、兩道束帶；左端一個 XT60 電源接頭（較大），右端分岔接三個小 JST 塑膠接頭。*/
+    const cols = ['var(--dg-hot)', 'var(--dg-sh0)', 'var(--dg-au)', 'var(--dg-sig)'];
+    const w = cols.map((c, i) => { const y = -4.5 + i * 3;
+      return `<path d="M${P3(-26, y * .5, 9)} C${P3(-12, y, 14)} ${P3(4, y, 14)} ${P3(14, y, 10)}" fill="none" stroke="${c}" stroke-width="1.6" stroke-linecap="round"/>`; }).join('');
+    const br = [-14, 0, 14].map((y, i) => `<path d="M${P3(14, -1 + i, 10)} C${P3(22, y * .5, 10)} ${P3(26, y, 8)} ${P3(32, y, 6)}" fill="none" stroke="${cols[i]}" stroke-width="1.6" stroke-linecap="round"/>`).join('');
+    const sleeve = `<path class="m-sheath-o" d="M${P3(-14, 0, 13)} L${P3(4, 0, 13)}" style="stroke-width:9"/><path class="m-corr" d="M${P3(-14, 0, 13)} L${P3(4, 0, 13)}"/>`;
+    const tie = (x) => `<path class="m-tie" d="M${P3(x, -5, 13)} L${P3(x, 5, 13)}"/>`;
+    return pad(40, 20)
+      + mat('m-au', box(-40, -7, 4, 14, 14, 9, ''))
+      + faceYZ(-26, -7, `<rect class="m-hole" x="3" y="2.5" width="3.4" height="4" rx="1"/><rect class="m-hole" x="7.6" y="2.5" width="3.4" height="4" rx="1"/>`)
+      + w + sleeve + tie(-15) + tie(5) + br
+      + [-14, 0, 14].map(y => mat('m-res', box(32, y - 3.5, 2, 8, 7, 6, ''))).join('');
   };
   // 飛控板：小方板 ＋ 中央 IMU ＋ 四角減震柱 ＋ 外接 GPS 天線（減震柱是飛控的識別特徵）
   const dFlightCtrl = () => pad(36, 23)
@@ -1243,10 +1265,11 @@
   // 有棧板當尺度參考，桶子才不會被 fit() 放大成兩座儲槽
   const dDrums = () => {
     const d = (x, y) => cyl(x, y, 5, 8.5, 22, `<circle class="m-hole" cx="-3.4" cy="-2" r="1.3"/><circle class="m-hole" cx="3.6" cy="2.4" r="1"/>`)
-      + cyl(x, y, 11.5, 8.9, 1, '') + cyl(x, y, 19.5, 8.9, 1, '');
+      + [11.5, 19.5].map(z => { const cx = px(x, y), cy = py(x, y, z), rx = 8.5 * 1.2247, ry = 8.5 * .7071;
+        return `<path class="ai-seam" d="M${(cx - rx).toFixed(1)},${cy.toFixed(1)} A${rx.toFixed(1)},${ry.toFixed(1)} 0 0 0 ${(cx + rx).toFixed(1)},${cy.toFixed(1)}"/>`; }).join('');
     return pad(38, 22)
       + mat('m-res', box(-24, -22, 0, 48, 44, 5, ''))
-      + mat('m-st', d(-11, -11) + d(11, -11) + d(-11, 11) + d(11, 11));
+      + `<g class="m-drum">` + mat('m-st', d(-10, -10) + d(10, -10) + d(-10, 10) + d(10, 10)) + '</g>';
   };
   // 聚酯紗：兩捆躺著的紗捲（PTA → 聚酯 → 紡絲）
   const dYarn = () => pad(40, 24) + mat('m-res', hcylX(-26, 4, -10, 12, 12, [0.75, 0.3]) + hcylX(-6, 24, 14, 12, 12, [0.75, 0.3]));
@@ -1644,7 +1667,7 @@
       S('wafer', 0, '矽晶圓與材料', ['矽晶圓、靶材、化學品', '耗材跟著產能走', '圖：單晶棒切成薄片'], ['6182', '1785', '4763', '6165'], 'foundry', dIngot, 1.1),
       S('parts', 0, '設備零件模組', ['機台零件與精密加工', '設備廠的上游', '圖：法蘭＋波紋管＋軸'], ['3413', '6187'], 'foundry', dPrecisionPart, 1.25),
       S('wet', 1, '濕製程與清洗', ['清洗、蝕刻、電鍍機台', '台廠最有位置那段', '圖：藥液槽＋搬運臂'], ['3131', '3583'], 'foundry', dWetBench),
-      S('pod', 1, '晶圓載具 FOUP', ['光罩盒與傳載具', '先進製程才用得到', '圖：半透明盒內疊晶圓＋前門＋頂部夾持法蘭'], ['3680'], 'foundry', dFoup, 1.2),
+      S('pod', 1, '晶圓載具 FOUP', ['光罩盒與傳載具', '先進製程才用得到', '圖：圓弧外殼內疊晶圓＋平門板＋頂部夾持法蘭'], ['3680'], 'foundry', dFoup, 1.2),
       S('fab', 2, '晶圓廠資本支出', ['擴產與製程升級', '訂單能見度的源頭', '圖：廠房＋屋頂風機'], ['2330', '3711', '5434'], 'foundry', dFab, 1.1),
     ],
     steps: [{ p: 'wafer', t: '材料備料', s: '6182 / 1785' }, { p: 'parts', t: '設備零件', s: '3413' }, { p: 'wet', t: '製程機台', s: '3131 / 3583' },
@@ -1700,9 +1723,9 @@
       S('motor', 0, '伺服馬達', ['扭力密度與散熱', '大廠自製比例高',
         '圖上：圓柱機身、前端方形法蘭與出軸，後端是編碼器蓋與出線'], ['1503', '1504'], 'power', dServoMotor),
       S('ctrl', 1, '控制器與驅動', ['運動控制與驅動器', '加上 AI 推論晶片',
-        '圖上：立式盒裝驅動器，側面整排散熱鰭片，正面顯示窗與通訊埠，底下螺絲端子台'], ['2464', '6215'], 'ic_design', dDriver),
+        '圖上：立式窄長驅動器，正面液晶小窗與一排燈、底下螺絲端子台，側面垂直鰭片'], ['2464', '6215'], 'ic_design', dDriver),
       S('vision', 1, '視覺與感測', ['相機模組、力覺感測', '抓取能力的關鍵',
-        '圖上：橫條雙目相機，正面兩顆鏡頭夾一個紅外線投射器，底下是力覺感測環'], ['3059', '2359'], 'ic_design', dVisionSensor),
+        '圖上：左邊橫條雙目相機（兩顆鏡頭），右邊扁圓的六軸力覺感測器'], ['3059', '2359'], 'ic_design', dVisionSensor),
       S('maker', 2, '整機與代工組裝', ['人形機器人整機代工', '線束連接器一起吃',
         '圖上：底座、兩節臂與關節圓柱，末端是兩指夾爪'], ['2317', '3665'], 'assembly', dRobotArm),
     ],
@@ -1720,7 +1743,7 @@
       S('motor', 0, '無刷馬達與螺旋槳', ['推力與續航的核心', '四顆同步調速',
         '圖上：外轉子杯下方露出定子繞組，上面是兩葉槳與固定螺栓'], ['8033', '2231'], 'power', dPropMotor),
       S('conn', 0, '連接器與線束', ['軍規連接器與線材', '可靠度的隱形門檻',
-        '圖上：兩個帶卡扣的接頭，中間兩條編織網套線纜紮成一束'], ['3023', '3675'], null, dHarness),
+        '圖上：四色細線套波紋管紮成一束，左端電源接頭，右端分岔接三個小接頭'], ['3023', '3675'], null, dDroneHarness),
       S('fc', 1, '飛控與導航', ['飛控板、IMU、定位', '抗干擾是軍規重點',
         '圖上：板子四角的減震柱、中央 IMU，右上角那塊是 GPS 天線'], ['6237', '2367'], 'ic_design', dFlightCtrl),
       S('payload', 1, '光電酬載與雲台', ['相機、紅外線、測距', '決定任務型態',
@@ -1819,7 +1842,7 @@
       S('mlb', 1, '高層數主板 MLB', ['800G 需 38–48 層', '背鑽與阻抗控制', '圖：一疊多層板＋通孔'], ['2368', '4958', '3044'], 'hdi_pcb', dMlb, 1.2),
       S('box', 1, '交換晶片與整機', ['ASIC 多為外商', '台廠做白牌整機設計', '圖：覆晶封裝＋1U 機箱'], ['2345'], 'switch', () => aiShift(-50, dSwitchAsic()) + aiShift(55, dSwitchBox()), 0.72),
       S('optic', 2, '可插拔光模組', ['前面板 64 埠 OSFP', '1.6T 往 CPO 演進', '圖：OSFP 外殼＋鰭片＋光纖'], ['4979', '3163'], 'optical', dOsfp, 1.1),
-      S('cable', 2, '高速線材與連接器', ['飛越線與 I/O 連接器', '繞開 PCB 的訊號損耗', '圖：編織網套線纜＋兩端接頭'], ['3665'], 'connector', dHarness, 1.1),
+      S('cable', 2, '高速線材與連接器', ['飛越線與 I/O 連接器', '繞開 PCB 的訊號損耗', '圖：兩條編織線＋兩端扁平插頭（金手指＋拉環）'], ['3665'], 'connector', dFlyover, 1.1),
     ],
     steps: [{ p: 'ccl', t: '板材', s: '2383 / 6274' }, { p: 'mlb', t: '主板壓合', s: '2368 / 4958' }, { p: 'box', t: '晶片上板', s: 'ASIC＋VRM' },
     { p: 'box', t: '整機組裝', s: '2345' }, { p: 'optic', t: '插光模組', s: '4979 / 3163' }],
