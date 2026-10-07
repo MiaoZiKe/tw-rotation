@@ -6,9 +6,9 @@ on:
   workflow_dispatch:
     inputs:
       mode:
-        description: "requests＝直接打網址；browser＝真瀏覽器開頁、記下回傳成分股的 XHR"
+        description: "requests＝直接打網址；browser＝真瀏覽器開頁、記下回傳成分股的 XHR；selftest＝跑 pipeline/sources/etf_pcf.py 實抓（不寫湖）"
         type: choice
-        options: [requests, browser]
+        options: [requests, browser, selftest]
         default: requests
       extra:
         description: "額外要探測的網址（空白分隔；開頭加 --only-extra 只跑這些）"
@@ -35,8 +35,13 @@ jobs:
         env:
           EXTRA: ${{ inputs.extra }}
         run: python scripts/probe_etf_pcf_browser.py $EXTRA
+      - name: 實抓自我測試（不寫湖、不 commit）
+        if: inputs.mode == 'selftest'
+        env:
+          EXTRA: ${{ inputs.extra }}
+        run: pip install -r requirements.txt && python -m pipeline.sources.etf_pcf $EXTRA
       - name: 探測
-        if: inputs.mode != 'browser'
+        if: inputs.mode == 'requests'
         env:
           EXTRA: ${{ inputs.extra }}
         run: python scripts/probe_etf_pcf.py $EXTRA
