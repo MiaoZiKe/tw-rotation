@@ -1266,7 +1266,8 @@ def allianz() -> pd.DataFrame:
         except Exception as exc:  # noqa: BLE001
             log.warning("安聯 %s 失敗：%s", fid, exc)
             continue
-        if not ((p.get("Entries") or {}).get("Data") if isinstance(p, dict) else None):
+        data = ((p.get("Entries") or {}).get("Data") if isinstance(p, dict) else None) or {}
+        if not (data.get("FundAsset") and data.get("Table")):     # E0004 之後回 {FundAsset: null, Table: []}，不是新基金
             continue
         code = ALLIANZ_IDS.get(fid)
         if not code:
@@ -1293,10 +1294,10 @@ CONNECTED = {"安聯", "永豐", "玉山", "大華銀", "群益", "野村", "復
 # 寫「為什麼抓不到」而不是「尚未接上」：Andy 2026-10-07 問「為何有 ETF 沒有成分股」，答案要在畫面上。
 NOT_CONNECTED_WHY = {
     "兆豐": "兆豐投信官網擋雲端主機的連線（2026-10-07 實測回 403 Access Denied），自動排程抓不到，只能人工整理。",
-    "貝萊德": "貝萊德官網在自動排程的主機上開頁逾時，持股頁還沒接上。",
-    "摩根": "摩根投信官網 ETF 區還沒查到每日持股的資料位置。",
-    "富蘭克林華美": "富蘭克林華美投信官網在自動排程的主機上開頁逾時，持股頁還沒接上。",
-    "聯邦": "聯邦投信官網在自動排程的主機上開頁逾時，持股頁還沒接上。",
+    "貝萊德": "貝萊德官網在自動排程的主機上開頁逾時（60 秒），2026-10-08 只看到產品頁的前十大持股，沒有完整每日持股可接。",
+    "摩根": "摩根投信官網 ETF 產品頁（am.jpmorgan.com/tw）2026-10-08 用真瀏覽器實測，找不到每日持股或申購買回清單的資料來源。",
+    "富蘭克林華美": "富蘭克林華美投信官網首頁可開，但 2026-10-08 實測找不到 ETF 持股／申購買回清單頁（/ETF 回錯誤頁、首頁開頁逾時）。",
+    "聯邦": "聯邦投信官網（usitc.com.tw）在自動排程的主機上連線逾時（2026-10-07、10-08 兩次實測），抓不到。",
     "街口": "街口投信的 ETF 都是期貨型，持有的是期貨契約，沒有股票成分。",
 }
 

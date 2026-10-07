@@ -1889,7 +1889,11 @@ def t_etf_hold_1007(pg, b, base):
     items.append({"code": "AAPL US", "name": "Apple Inc.", "w": 0.8, "shares": None})
     FAKE = {"asof": "2026-10-06", "source": "測試假資料", "etfs": {
         "0050": {"asof": "2026-10-06", "items": items},
-        "00896": {"asof": "2026-10-06", "manual": True, "issuer": "中國信託", "items": items[:15]}}}
+        "00896": {"asof": "2026-10-06", "manual": True, "issuer": "中國信託", "items": items[:15]},
+        # 2026-10-08 第四輪：債券型也有成分（名稱＋權重＋票息＋到期日；管線 etf_pcf.bond_terms 讀名稱）
+        "00679B": {"asof": "2026-10-06", "issuer": "元大", "items": [
+            {"code": "912810UK2", "name": "US TREASURY N/B 4.75% 05/15/2055", "w": 5.37, "shares": 289300000, "cpn": 4.75, "mat": "2055-05-15"},
+            {"code": "912810UA4", "name": "US TREASURY N/B 4.625% 05/15/2054", "w": 5.27, "shares": 289500000, "cpn": 4.625, "mat": "2054-05-15"}]}}}
 
     def fake(route):
         route.fulfill(status=200, content_type="application/json", body=_json.dumps(FAKE, ensure_ascii=False))
@@ -2015,12 +2019,21 @@ def t_etf_hold_1007(pg, b, base):
                 first = rows[0]["c"]
                 lp.click("#etfHoldTbl tbody tr:first-child td.nm"); lp.wait_for_timeout(500)
                 ok(f"★ [{t}] {code} 點清單第一列 → #stock/{first}", J("() => location.hash") == f"#stock/{first}", J("() => location.hash"))
-            # 無股票成分：債券型 00679B → 說明卡
+            # 2026-10-08：債券型 00679B 有成分 → 清單＋第二行「票息 4.75%・到期 2055-05-15」
             lp.goto(f"{base}#stock/00679B", wait_until="networkidle")
             open_hold(lp, W)
             wait_until(lp, "() => !!document.querySelector('#etfHoldCard[data-state]')", 8000)
-            ok(f"★ [{t}] 債券型 00679B 顯示「以債券／期貨為主，沒有個股成分」說明卡",
-               J("() => (document.querySelector('#etfHoldCard') || {}).dataset?.state") == "nostock" and "沒有個股成分" in text(lp, "#etfHoldNone"), text(lp, "#etfHoldCard")[:80])
+            bd = J("() => ({ st: (document.querySelector('#etfHoldCard') || {}).dataset?.state, n: document.querySelectorAll('#etfHoldTbl tbody tr[data-i]').length,"
+                   " l2: [...document.querySelectorAll('#etfHoldTbl .gp2[data-bond]')].map(e => e.textContent) })")
+            ok(f"★ [{t}] 債券型 00679B 有成分清單（不是說明卡）", bd["st"] == "ok" and bd["n"] == 2, bd)
+            ok(f"★ [{t}] 債券成分第二行顯示票息與到期日", bd["l2"][:1] == ["票息 4.75%・到期 2055-05-15"], bd["l2"])
+            # 沒有成分的債券型（假資料裡沒有 00720B）→ 說明卡＋兩站連結
+            lp.goto(f"{base}#stock/00720B", wait_until="networkidle")
+            open_hold(lp, W)
+            wait_until(lp, "() => !!document.querySelector('#etfHoldCard[data-state]')", 8000)
+            ok(f"★ [{t}] 沒資料的債券型 00720B 有說明卡＋玩股網／口袋連結",
+               J("() => (document.querySelector('#etfHoldCard') || {}).dataset?.state") == "nostock"
+               and J("() => document.querySelectorAll('#etfHoldLinks a').length") == 2, text(lp, "#etfHoldCard")[:80])
         finally:
             lp.close()
     # 沒有成分股資料：股票型顯示「此檔發行投信（X 投信）資料尚未接上」，不准空白（2026-10-07 起寫出投信名）
