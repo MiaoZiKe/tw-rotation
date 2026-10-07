@@ -16,7 +16,8 @@
   /* ---- 2. 頂欄：漢堡鈕＋目前頁名 ---- */
   :root.m4 .m4burger{display:inline-grid;place-items:center;flex:none;width:44px;height:44px;margin:0 2px 0 -4px;padding:0;
     border:1px solid var(--line-2);border-radius:12px;background:var(--panel);color:var(--ink);cursor:pointer}
-  :root.m4 .topbar .brand .logo{display:none}
+  :root.m4 .topbar .brand .logo{flex:none;width:32px;height:32px}
+  :root.m4 .topbar .brand .logo img{width:32px;height:32px;display:block}
   :root.m4 .topbar .brand b{display:none}
   :root.m4 .topbar .brand{min-width:0;flex:1 1 auto}
   :root.m4 .topbar .brand>div{min-width:0}
@@ -33,6 +34,8 @@
   :root.m4 .m4drawer.in{transform:none}
   :root.m4 .m4drawer[hidden],:root.m4 .m4back[hidden]{display:none}
   :root.m4 .m4head{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:10px 10px 8px 16px;border-bottom:1px solid var(--line)}
+  :root.m4 .m4brand{display:flex;align-items:center;gap:10px}
+  :root.m4 .m4brand img{width:32px;height:32px;border-radius:50%;display:block}
   :root.m4 .m4head b{font-size:16px;color:var(--ink)}
   :root.m4 .m4x{width:44px;height:44px;border:0;border-radius:10px;background:transparent;color:var(--ink-2);font-size:18px}
   :root.m4 .m4body{flex:1 1 auto;overflow-y:auto;overscroll-behavior:contain;padding:6px 8px calc(16px + env(safe-area-inset-bottom))}
@@ -73,4 +76,8 @@
   /* 獨立的連結鈕（不是句子裡的字）：選股策略卡片「›」、輪盤焦點條「族群 ›」、產業地圖「產業熱力圖 →」 */
   :root.m4 #v-explore a.sl-more,:root.m4 main a.lk[href^="#heatmap"],:root.m4 main .mfocus a[href^="#industry/group"]{
     display:inline-flex;align-items:center;justify-content:center;min-width:40px;min-height:40px}
+}
+@media (max-width:640px){
+  /* 導覽浮層的「略過」38×34 → 40（手機按鈕普查） */
+  :root.m4 #twTour .twt-skip{min-height:40px;min-width:40px}
 }

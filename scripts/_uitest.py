@@ -26495,6 +26495,34 @@ def t_mobile_m4(b, base, code):
     ok(f"【{T}】再縮回 390：m4 與漢堡鈕回來", all(z.values()), z)
     m.close()
 
+    # ⑥ 全站權限矩陣（main 10-08 起）在手機上：訪客套範本 → 選股策略的「本頁限制」膠囊與額度圓環要看得到、點得開、不撐出橫向捲軸
+    PR = _gp_presets()
+    c, _sent, _st = _sub_ctx(b, None, width=390, feats=dict(PR["guest"]["feats"]), lims=dict(PR["guest"]["lims"]))
+    q = c.new_page(); q.on("pageerror", lambda e: fails.append(f"{T} 權限 pageerror: {e}"))
+    q.goto(base + "#explore", wait_until="domcontentloaded")
+    okp = wait_until(q, "() => window.TwPerm && TwPerm.state().src === 'server' && (() => { const e = document.getElementById('twQPage'); return !!e && !e.hidden; })()", 15000)
+    qp = q.evaluate("""() => { const e = document.getElementById('twQPage'), r = e ? e.querySelector('.twqp-b').getBoundingClientRect() : null;
+        return { n: e ? +e.dataset.n : 0, txt: e ? e.querySelector('.twqp-b').textContent : '', r: r && [Math.round(r.left), Math.round(r.top), Math.round(r.right), Math.round(r.bottom)],
+                 W: innerWidth, H: innerHeight, docW: document.documentElement.scrollWidth, m4: document.documentElement.classList.contains('m4') }; }""")
+    ok(f"【{T}】訪客在手機看得到「本頁限制」膠囊（{qp['txt']}），整顆在畫面內、沒撐出橫向捲軸",
+       bool(okp) and qp["m4"] and qp["n"] >= 1 and qp["r"] and qp["r"][0] >= 0 and qp["r"][2] <= qp["W"] and qp["r"][3] <= qp["H"] and qp["docW"] <= qp["W"] + 1, qp)
+    q.locator("#twQPage .twqp-b").click(); q.wait_for_timeout(300)
+    pn = q.evaluate("""() => { const p = document.querySelector('#twQPage .twqp-pan'); if (!p || p.hidden) return null; const r = p.getBoundingClientRect();
+        return { rows: p.querySelectorAll('.twqp-r').length, l: Math.round(r.left), r: Math.round(r.right), t: Math.round(r.top), b: Math.round(r.bottom), W: innerWidth, H: innerHeight }; }""")
+    ok(f"【{T}】點「本頁限制」→ 清單真的展開、逐項列出、整塊在畫面內", bool(pn) and pn["rows"] == qp["n"] and pn["l"] >= 0 and pn["r"] <= pn["W"] and pn["t"] >= 0 and pn["b"] <= pn["H"], pn)
+    c.close()
+    # 管理者：抽屜「專案」組裡有管理區與子項
+    c, _sent, _st = _sub_ctx(b, "admin", width=390)
+    q = c.new_page(); q.goto(base + "#overview", wait_until="domcontentloaded")
+    wait_until(q, "() => window.TwAccount && TwAccount.on && TwAccount.on() && TwAccount.user() && TwAccount.user().admin", 12000)
+    q.wait_for_timeout(800); q.locator("#m4Burger").click(); q.wait_for_timeout(400)
+    adm = q.evaluate("() => [...document.querySelectorAll('#m4Drawer button[data-h^=\"#admin\"]')].map(b => b.textContent.trim())")
+    ok(f"【{T}】管理者的抽屜有管理區＋子項（{'、'.join(adm)}）", len(adm) >= 3 and "管理區" in adm, adm)
+    if adm:
+        q.locator("#m4Drawer button[data-adm]").first.click(); q.wait_for_timeout(1500)
+        ok(f"【{T}】管理者點抽屜的管理區子項 → 真的進到 #admin/…", q.evaluate("() => location.hash").startswith("#admin/"), q.evaluate("() => location.hash"))
+    c.close()
+
 
 # ★ 2026-10-08 Andy：「確認所有2D圖是否像這樣一樣 線條被裁減了」（先進封裝左欄走線卡的編號圈壓字、右欄卡片／引線被切）。
 #   普查全站 2D 剖析圖（產業鏈各分頁的 dg 圖＋題材剖析圖），1440／1280／1024／800 四種寬度各量一次：

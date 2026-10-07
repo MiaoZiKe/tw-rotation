@@ -1928,14 +1928,17 @@
     const A = skApp();
     const paint = (list) => {
       const by = new Map((list || []).map(r => [r.code, r]));
-      box.innerHTML = tabBtn + (codes.length ? '' : '<span class="mbwn" style="align-self:center;padding:0 6px;color:var(--ink-2)">這頁還沒有股票</span>') + codes.map(c => {
+      /* ★ 2026-10-08 手機 v2：「編輯」從整列最後面搬到「自選頁 ▾」右邊 —— 放在最後面時它在橫捲列的畫面外（量到 left 882），
+         要先橫拖才點得到，手機按鈕普查抓成「沒反應」；搬到前面一進來就看得到、一點就切換。 */
+      const editBtn = codes.length ? `<button type="button" class="mbwedit" id="mbWEdit" aria-pressed="${HM.edit}">${HM.edit ? '完成' : '編輯'}</button>` : '';
+      box.innerHTML = tabBtn + editBtn + (codes.length ? '' : '<span class="mbwn" style="align-self:center;padding:0 6px;color:var(--ink-2)">這頁還沒有股票</span>') + codes.map(c => {
         const r = by.get(c) || { code: c, name: c };
         const cls = r.chg_pct > 0 ? 'up' : r.chg_pct < 0 ? 'down' : 'flat';
         return `<div class="mbw" role="listitem" data-go="${esc(c)}" tabindex="0"><span class="mbwn">${esc(r.name || c)}</span>
           <b class="num" data-live="close" data-lc="${esc(c)}">${r.close == null || !A ? '—' : A.fmt.n(r.close)}</b>
           <small class="num">${esc(c)}</small><span class="num ${cls}" data-live="chg" data-lc="${esc(c)}">${r.chg_pct == null || !A ? '—' : A.fmt.pct(r.chg_pct, 2)}</span>
           ${HM.edit ? `<button type="button" class="mbwdel" data-del="${esc(c)}" aria-label="從觀察清單刪除 ${esc(r.name || c)}">✕</button>` : ''}</div>`;
-      }).join('') + (codes.length ? `<button type="button" class="mbwedit" id="mbWEdit" aria-pressed="${HM.edit}">${HM.edit ? '完成' : '編輯'}</button>` : '');
+      }).join('');
       box.querySelectorAll('.mbw').forEach(el => { el.onkeydown = (e) => { if (e.key === 'Enter' && !HM.edit) location.hash = '#stock/' + el.dataset.go; }; });
     };
     if (!any) { box.innerHTML = ''; return; }

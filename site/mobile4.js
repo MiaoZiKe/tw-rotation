@@ -29,6 +29,7 @@
     industry: '#industry', market: '#market', explore: '#explore', etf: '#etf/list', season: '#season', watch: '#watch', delivery: '#delivery' };
 
   function nav() { return window.TwL4Nav || null; }
+  function brandName() { const b = $('.topbar .brand b'); return (b && b.textContent.trim()) || '哩股哩股'; }
   function curPage() {
     const h = (location.hash || '#overview').slice(1).split('/')[0] || 'overview';
     return { themes: 'heatmap', tasks: 'delivery' }[h] || h;
@@ -104,7 +105,11 @@
       back.addEventListener('click', close);
       drawer = document.createElement('nav'); drawer.id = 'm4Drawer'; drawer.className = 'm4drawer'; drawer.hidden = true;
       drawer.setAttribute('aria-label', '網站導覽');
-      drawer.innerHTML = '<div class="m4head"><b>台股資金輪動</b><button type="button" class="m4x" aria-label="關閉導覽">✕</button></div><div class="m4body"></div>';
+      // 品牌：跟頂欄同一顆頭像（site/brand/）＋站名（讀 .brand b 的字，改名時不必改這裡）
+      const nm = esc(brandName());
+      drawer.innerHTML = '<div class="m4head"><span class="m4brand"><picture><source srcset="brand/mark-64.webp 1x, brand/mark-128.webp 2x" type="image/webp">'
+        + `<img src="brand/mark-64.png" srcset="brand/mark-64.png 1x, brand/mark-128.png 2x" width="32" height="32" alt="${nm}"></picture><b>${nm}</b></span>`
+        + '<button type="button" class="m4x" aria-label="關閉導覽">✕</button></div><div class="m4body"></div>';
       $('.m4x', drawer).onclick = close;
       drawer.addEventListener('click', (e) => {
         const b = e.target.closest('button[data-h], button[data-act]'); if (!b) return;
@@ -145,7 +150,8 @@
     if (s) { grp = P.t; name = s.t; }        // 子頁：小字寫母頁（資金流向），大字寫子頁（資金輪動）—— 390 寬放不下「資金流向・族群×法人＋集中度」
     if (pg === 'admin') { name = '管理區'; grp = '專案'; }
     if (pg === 'stock') { const c = $('#indCrumbs .cur'); if (c && c.textContent.trim()) name = c.textContent.trim(); }
-    title.innerHTML = `${grp ? `<i>${esc(grp)}</i>` : ''}<span>${esc(name || '台股資金輪動')}</span>`;
+    // 小字：站名・分組（品牌一直看得到）；大字：頁名
+    title.innerHTML = `<i>${esc(brandName())}${grp ? '・' + esc(grp) : ''}</i><span>${esc(name || brandName())}</span>`;
   }
 
   function sync() {
