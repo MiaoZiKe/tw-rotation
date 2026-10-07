@@ -21533,7 +21533,8 @@ def t_swr_second_open(b, base, code):
     ok("★ [開頁存檔] data/*.json 慢 10 秒：1 秒內熱力圖已畫出", st["heat"], st)
     ok("★ [開頁存檔] 1 秒內大盤三張圖都有圖", st["m3"] == 3, st)
     ok("★ [開頁存檔] 1 秒內事件件數不是 0", st["ev"] > 0, st)
-    ok("★ [開頁存檔] 有標「這是上次存的資料（…），更新中…」", "上次存的資料" in st["tag"] and "更新中" in st["tag"], st["tag"])
+    # 2026-10-07 Andy：「這不要對使用者顯示出來，除了我」→ 訪客（未登入）一律不顯示
+    ok("★ [開頁存檔] 訪客看不到「這是上次存的資料」標示（只給擁有者）", st["tag"] == "", st["tag"])
     gone = wait_until(pg, "() => !document.getElementById('staleTag')", 20000)
     ok("★ [開頁存檔] 網路版到了之後標示自己消失", bool(gone), pg.evaluate("() => (document.getElementById('staleTag')||{}).textContent || ''"))
     ok("[開頁存檔] 換新之後熱力圖仍在", pg.evaluate("() => !!document.querySelector('#heat canvas')"))
