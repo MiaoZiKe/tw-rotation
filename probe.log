@@ -1,0 +1,445 @@
+====================================================================================================
+[extra-0] https://www.hnitc.com.tw/
+  最終網址: https://www.hnfunds.com.tw/  標題: 首頁 | 華南永昌投信
+  XHR／文件請求 21 個：
+     200 GET https://www.hnfunds.com.tw/
+        resp='<!DOCTYPE html><html><head><meta charset="utf-8">\n<meta name="viewport" content="width=device-width, initial-scale=1">\n<title>華南永昌投信</title>\n<link rel="stylesheet" href="/_nuxt/entry.DqqvtsHL.css" crossorigin>\n<link rel="modulepreload" as="script" crossorigin href="/_nuxt/Cp7IpgkT.js">\n<link rel="pr'
+     200 POST https://www.hnfunds.com.tw/WEB_API/HN_OW_PROD/Auth/SysLogin
+        resp='{"access_token":"eyJhbGciOiJSUzI1NiIsImtpZCI6IjAwNTY0MTA1NDA1RDlCRjk1MDY5NzgzMkJGQzZDOTcyIiwidHlwIjoiYXQrand0In0.eyJuYmYiOjE3OTEzODAwNzksImV4cCI6MTc5MTM4MTg4MCwiaXNzIjoiaHR0cDovL2Ntcy1hcC9pZGVudGl0eXNlcnZlciIsImF1ZCI6InN3X2FwaSIsImNsaWVudF9pZCI6IldGUEFQSVB1YmxpY0NsaWVudCIsInJvbGUiOiJwdWJsaWMiLCJqdGk'
+     200 GET https://www.hnfunds.com.tw/_nuxt/builds/meta/1f3d0e97-0826-4144-ae3d-7190dc1179d3.json
+        resp='{"id":"1f3d0e97-0826-4144-ae3d-7190dc1179d3","timestamp":1784017191701,"matcher":{"static":{},"wildcard":{},"dynamic":{}},"prerendered":[]}'
+     200 GET https://www.hnfunds.com.tw/WEB_API/HN_OW_PROD/CMM/Option/0004
+        resp='{"Data":{"OptionList":[{"OptID":"0004","ListID":"001","ListName":"投資觀點分類","DisplayOrder":1,"IsDefault":"N"}]},"Message":"","MessageType":"03","ResultCode":"01"}'
+     200 GET https://www.hnfunds.com.tw/WEB_API/HN_OW_PROD/Official/Url/01
+        resp='{"Data":{"UrlList":[{"UrlNM":"免責聲明","Url":"/CMS/CMS104/免責聲明.pdf"},{"UrlNM":"非金管會核准之證券期貨業者及商品","Url":"\\thttps://3434.twsa.org.tw/"},{"UrlNM":"查詢證券開戶及交易資料","Url":"\\thttps://investor.twse.com.tw/"},{"UrlNM":"性騷擾防治措施專區","Url":"/CMS/CMS104/性騷擾防治措施專區.pdf"},{"UrlNM":"網站隱私權保護聲明","Url":"/CMS/CMS104/網站隱私權保護.p'
+     200 GET https://www.hnfunds.com.tw/WEB_API/HN_OW_PROD/CMM/Option/0004
+        resp='{"Data":{"OptionList":[{"OptID":"0004","ListID":"001","ListName":"投資觀點分類","DisplayOrder":1,"IsDefault":"N"}]},"Message":"","MessageType":"03","ResultCode":"01"}'
+     200 GET https://www.hnfunds.com.tw/WEB_API/HN_OW_PROD/Investment/InvestMenu/001
+        resp='{"Data":{"InvestList":[{"InvestMID":"01","InvestMName":"投資指南","MDisplayOrder":1,"InvestMenuSList":[{"InvestMID":"01","InvestSID":"01","InvestSName":"影音放映室","SDisplayOrder":1},{"InvestMID":"01","InvestSID":"02","InvestSName":"市場評論焦點","SDisplayOrder":2},{"InvestMID":"01","InvestSID":"03","InvestSName"'
+     200 GET https://www.hnfunds.com.tw/WEB_API/HN_OW_PROD/About/Company
+        resp='{"Data":{"BusLicenseNo":"115年金管投信新字第001號","CoLID":"(110)中信顧證字第018號(A0012)","Chargeman":"蕭玉美 董事長","Prolocutor":"吳嘉欽 總經理","BusRange":"證券投資信託業務、全權委託投資業務、其它經金管會核准業務","Addr":"105 台北市松山區民生東路4段54號3F之1","Tel":"(02)2719-6688","Fax":"(02)2545-7976","FileUrl":"/CMS/CMS504/組織圖.jpg"},"Message":"","MessageType":"'
+     200 GET https://www.hnfunds.com.tw/WEB_API/HN_OW_PROD/Investment/InvestMenu/001
+        resp='{"Data":{"InvestList":[{"InvestMID":"01","InvestMName":"投資指南","MDisplayOrder":1,"InvestMenuSList":[{"InvestMID":"01","InvestSID":"01","InvestSName":"影音放映室","SDisplayOrder":1},{"InvestMID":"01","InvestSID":"02","InvestSName":"市場評論焦點","SDisplayOrder":2},{"InvestMID":"01","InvestSID":"03","InvestSName"'
+     200 GET https://www.hnfunds.com.tw/WEB_API/HN_OW_PROD/Official/Banner
+        resp='{"Data":{"TotCnt":7,"BannerList":[{"BannerNM":"華南永昌多重資產入息平衡基金_TISA","BannerUrl":"https://www.hnfunds.com.tw/pdf_file/華南永昌多重資產入息平衡基金_TISA.pdf","BannerShNM":"","FileUrlPC":"/CMS/CMS101/TISA電腦.jpg","FileUrlPhone":"/CMS/CMS101/TISA行動.jpg","DisplayOrder":11},{"BannerNM":"009822","BannerUrl":"https://www.'
+     200 GET https://www.hnfunds.com.tw/WEB_API/HN_OW_PROD/CMM/Option/0016
+        resp='{"Data":{"OptionList":[{"OptID":"0016","ListID":"1","ListName":"國內股票型","DisplayOrder":1,"IsDefault":"N"},{"OptID":"0016","ListID":"2","ListName":"海外股票型","DisplayOrder":2,"IsDefault":"N"},{"OptID":"0016","ListID":"3","ListName":"債券型","DisplayOrder":3,"IsDefault":"N"},{"OptID":"0016","ListID":"4","Lis'
+     200 GET https://www.hnfunds.com.tw/WEB_API/HN_OW_PROD/Customer/Bulletin/002/N/N/99999/1
+        resp='{"Data":{"TotCnt":1,"BulletinList":[{"BulletinID":"20260000056","BulletinDate":"2026-09-30T08:41:15+08:00","CampSDate":"2026-10-01T08:36:46+08:00","CampEDate":"2026-12-31T08:36:46+08:00","SourceCD":"華南永昌投信","BulletinNum":"","ETFYN":"N","BulletinNM":"華南永昌投信115年第4季精選基金手續費優惠活動","BulletinUrl":"","PicUrl'
+     200 POST https://www.hnfunds.com.tw/WEB_API/HN_OW_PROD/Official/NAVList
+        body={"InvArea":"01","PageDisplayCount":6,"PageNo":1,"OrderType":""}
+        resp='{"Data":{"TotCnt":6,"NavList":[{"FundID":"D83","FundName":"華南永昌台灣環境永續高股息指數基金-新台幣季配型 (本基金並無保證收益及配息)","FundKind":"指數型","NavDate":"2026-10-07T00:00:00+08:00","Nav":14.68000,"NetNav":0.08000,"NetRate":0.005479000000000000000,"NavDec":2},{"FundID":"D82","FundName":"華南永昌台灣環境永續高股息指數基金-新台幣累積型 (本基金並無保證收益及配息)'
+     200 GET https://www.hnfunds.com.tw/WEB_API/HN_OW_PROD/Official/HotFund/99999/1
+        resp='{"Data":{"TotCnt":4,"HotFundList":[{"PrtFundCode":"D1","ETFID":"","FundName":"華南永昌永昌基金","FundKind":"國內股票型","FundRiskAttr":"RR4","PicName":"iStock-1696781145.jpg","PicUrl":"/CMS/CMS201/iStock-1696781145.jpg"},{"PrtFundCode":"D39","ETFID":"","FundName":"華南永昌多重資產入息平衡基金 (本基金有相當比重投資於非投資等級之高風險債券且配息來源可能為本金'
+     200 GET https://www.hnfunds.com.tw/WEB_API/HN_OW_PROD/Customer/Bulletin/003/N/N/99999/1
+        resp='{"Data":{"TotCnt":0,"BulletinList":[]},"Message":"","MessageType":"01","ResultCode":"00"}'
+     200 GET https://www.hnfunds.com.tw/WEB_API/HN_OW_PROD/Customer/Bulletin/001/N/N/4/1
+        resp='{"Data":{"TotCnt":59,"BulletinList":[{"BulletinID":"20260000057","BulletinDate":"2026-09-30T09:40:30+08:00","CampSDate":"1900-01-01T00:00:00+00:00","CampEDate":"1900-01-01T00:00:00+00:00","SourceCD":"華南永昌投信","BulletinNum":"華永信字第 1150000313號","ETFYN":"N","BulletinNM":"華南永昌永昌基金修訂信託契約公告 (增加TISA級別及反稀釋費用'
+     200 GET https://www.hnfunds.com.tw/WEB_API/HN_OW_PROD/Customer/Bulletin/001/Y/N/99999/1
+        resp='{"Data":{"TotCnt":0,"BulletinList":[]},"Message":"","MessageType":"01","ResultCode":"00"}'
+     200 GET https://www.hnfunds.com.tw/WEB_API/HN_OW_PROD/Customer/Bulletin/002/Y/N/99999/1
+        resp='{"Data":{"TotCnt":0,"BulletinList":[]},"Message":"","MessageType":"01","ResultCode":"00"}'
+     200 GET https://www.hnfunds.com.tw/WEB_API/HN_OW_PROD/Investment/Invest/10/1/01/ALL
+        resp='{"Data":{"TotCnt":53,"InvestDataList":[{"InvestID":"20260000042","InvestMName":"投資指南","InvestSType":"03","InvestNM":"入座投等艙 航向資產防禦力","InvestUrl":"","SourceCD":"華南永昌投信","InvestDate":"2026-08-31T11:21:52+08:00","InvestNote":"<p>當 AI 熱潮讓市場氣流顛簸，資產配置更需要穩定性。華南永昌全球投資等級債券基金<strong>(本基金之配息來源可能為本金)</strong>嚴選信'
+     200 GET https://www.hnfunds.com.tw/WEB_API/HN_OW_PROD/Official/NoteMemo/01
+        resp='{"Data":{"Note":"<blockquote><strong style=\\"font-family: Roboto, &quot;Noto Sans TC&quot;, sans-serif; font-size: 10pt;\\">115 年金管投信新字第 001 號</strong></blockquote><p><strong style=\\"font-family: Roboto, &quot;Noto Sans TC&quot;, sans-serif; font-size: 10pt;\\">華南永昌系列基金經金管會核准或同意生效，惟不表示絕無風險。本公司以往之經理績效，'
+     200 GET https://www.hnfunds.com.tw/WEB_API/HN_OW_PROD/Official/NoteMemo/08
+        resp='{"Data":{"Note":"<p><strong style=\\"font-size: 10pt;\\">【華南永昌永昌基金】</strong></p><p><strong style=\\"font-size: 10pt;\\">本基金經金管會核准或同意生效，惟不表示絕無風險。基金經理公司以往之績效或提及之經濟走勢預測不保證本基金之最低投資收益，亦不代表未來績效之保證；基金經理公司除盡善良管理人之注意義務外，不負責本基金之盈虧，亦不保證最低之收益。有關基金應負擔之費用及投資風險已揭露於基金公開說明書中，投資人申購前應詳閱基金公開說明書。本基金投資無受存款保障、保險安定基金或其他相關機制之保障'
+  含成分股字樣的回應 1 個：
+   ★ 200 GET https://www.hnfunds.com.tw/WEB_API/HN_OW_PROD/Investment/Invest/10/1/01/ALL
+     type: application/json; charset=utf-8  bytes: 2167043
+     開頭: {"Data":{"TotCnt":53,"InvestDataList":[{"InvestID":"20260000042","InvestMName":"投資指南","InvestSType":"03","InvestNM":"入座投等艙 航向資產防禦力","InvestUrl":"","SourceCD":"華南永昌投信","InvestDate":"2026-08-31T11:21:52+08:00","InvestNote":"<p>當 AI 熱潮讓市場氣流顛簸，資產配置更需要穩定性。華南永昌全球投資等級債券基金<strong>(本基金之配息來源可能為本金)</strong>嚴選信評 BBB 以上優質債息，殖利率正處歷史高檔，如同頭等艙般從容淡定，陪資產穿越亂流，航向長線收益機會。</p><p><br></p><p><strong>美債殖利率持續具吸引力</strong></p><p>近期美國 10 年期公債標售殖利率一度衝上 4.683%，創下 2007 年金融海嘯以來新高，反映市場對於財政赤字與通膨黏性的疑慮仍未完全消化。然而就存續期間偏長的投資等級債而言，殖利率位於歷
+     2330 前後: :19+08:00","InvestNote":"<p>當兆元資本支出如巨浪席捲全球科技版圖，台灣站上這波浪頭。華南永昌未來科技基金鎖定晶圓代工、先進封裝與 AI 供應鏈核心動能，精準卡位每一波成長。</p><p><br></p><p><strong>主計處上修台灣今年經濟成長率</strong></p><p>GDP 預測值創下 39 年來新高，主要歸功於全球 AI 算力需求爆發帶動半導體與載板等供應鏈出口暴衝、買家長約綁定促使廠商擴產帶動民間投資實質成長 11.58%，以及台股創高帶動財富效果外溢至零售、餐飲與旅遊等民間消費，呈現內外皆穩的成長格局。</p><p><span style=\"color: rgb(158, 158, 158); font-size: 8pt;\">資料來源：行政院主計總處，2026/8/14</span></p><p><br></p><p><strong>台積電法說大幅提高 2026 年資本支出</strong></p><p>台積電於 7 月法說會上調全年資本支出（年增 52%），此巨額投資有客戶長約支撐，且供不應求至 2030 年，亦同步透過美日德全球布局分散地緣風險，並預計 2027 年漲價最高 10% 以維持 53% 以上毛利率，奠定 AI 產業無泡沫化的強勁基調。</p><p><span style=\"font-size: 8pt; color: rgb(158, 158, 158);\">資料來源：台積電法說會，2026/8/1</span></p><p><br></p><p><strong>雲端巨頭資本支出仍在上升</strong></p><p>在強勁的 AI 算力需求與零組件成本上漲推動下，微軟、Google、亞馬遜與 Meta 等美系四大雲端服務供應商 2026 年資本支出大幅上修至 7,950 億美元（年增 77%），更
+====================================================================================================
+[extra-1] https://www.tsit.com.tw/ETF
+  最終網址: https://www.tsit.com.tw/ETF  標題: 台新投信-ETF專區
+    連結: 申購買回清單 -> https://www.tsit.com.tw/ETF/Home/Pcf
+  XHR／文件請求 1 個：
+     200 GET https://www.tsit.com.tw/ETF
+        resp='<!DOCTYPE html>\r\n<html>\r\n<head>\r\n    <meta charset="utf-8" />\r\n    <meta http-equiv="X-UA-Compatible" content="IE=edge">\r\n    <meta name="viewport" content="width=device-width, initial-scale=1.0">\r\n    <meta http-equiv="cache-control" content="no-cache" />\r\n    <link rel="shortcut icon" href="/ETF/f'
+  含成分股字樣的回應 0 個：
+====================================================================================================
+[extra-2] https://sitc.sinopac.com/
+  最終網址: https://sitc.sinopac.com/  標題: 
+  XHR／文件請求 1 個：
+     200 GET https://sitc.sinopac.com/
+        resp='<!--meta http-equiv="refresh" content="5;url=\'http://sitc.sinopac.com/web/index.aspx\'" /-->\r\n<meta http-equiv="refresh" content="5;url=\'http://sitc.sinopac.com/newweb/index.html\'" />'
+  含成分股字樣的回應 0 個：
+====================================================================================================
+[extra-3] https://www.megafunds.com.tw/
+  最終網址: https://www.megafunds.com.tw/  標題: Access Denied
+  XHR／文件請求 1 個：
+     403 GET https://www.megafunds.com.tw/
+        resp='<HTML><HEAD>\n<TITLE>Access Denied</TITLE>\n</HEAD><BODY>\n<H1>Access Denied</H1>\n \nYou don\'t have permission to access "http&#58;&#47;&#47;www&#46;megafunds&#46;com&#46;tw&#47;" on this server.<P>\nReference&#32;&#35;18&#46;78cfdb17&#46;1791380117&#46;11da8664\n<P>https&#58;&#47;&#47;errors&#46;edgesuit'
+  含成分股字樣的回應 0 個：
+====================================================================================================
+[extra-4] https://www.fsitc.com.tw/FundDetail.aspx?ID=D90#TabLinkdivEditTab2
+  最終網址: https://www.fsitc.com.tw/FundDetail.aspx?ID=D90#TabLinkdivEditTab2  標題: 第一金投信
+    連結: 投資組合 -> https://www.fsitc.com.tw/FundDetail.aspx?ID=D90#
+    連結: 申購買回清單 -> https://www.fsitc.com.tw/FundDetail.aspx?ID=D90#
+    連結: 投資組合 -> https://www.fsitc.com.tw/FundDetail.aspx?ID=D90#
+    連結: 申購買回清單 -> https://www.fsitc.com.tw/FundDetail.aspx?ID=D90#
+  XHR／文件請求 5 個：
+     200 GET https://www.fsitc.com.tw/FundDetail.aspx?ID=D90
+        resp='\r\n\r\n<!DOCTYPE html>\r\n\r\n<html xmlns="http://www.w3.org/1999/xhtml">\r\n<head>\r\n    <script type="text/javascript">if (top.frames.length != 0) alert(\'error\') </script>\r\n    <script>\r\n        (function(i,s,o,g,r,a,m){i[\'GoogleAnalyticsObject\']=r;i[r]=i[r]||function(){\r\n            (i[r].q=i[r].q||[]).pus'
+     200 POST https://www.fsitc.com.tw/WebAPI.aspx/Get_BuySellA
+        body={ 'pStrFundID':'D90','pStrDate':''}
+        resp='{"d":"[{\\"fundid\\":\\"D90\\",\\"sdate\\":\\"2026-10-08\\",\\"A\\":\\"基金淨資產價值(元)\\",\\"B\\":\\"TWD 2,786,909,226\\"},{\\"fundid\\":\\"D90\\",\\"sdate\\":\\"2026-10-08\\",\\"A\\":\\"每受益權單位淨資產價值(元)-台幣交易\\",\\"B\\":\\"71.60\\"},{\\"fundid\\":\\"D90\\",\\"sdate\\":\\"2026-10-08\\",\\"A\\":\\"已發行受益權單位總數-台幣交易\\",\\"B\\":\\"38,923,000\\"},{\\"fundid\\":\\'
+     200 POST https://www.fsitc.com.tw/WebAPI.aspx/Get_BuySellB
+        body={ 'pStrFundID':'D90','pStrDate':''}
+        resp='{"d":"[{\\"fundid\\": \\"\\",\\"sdate\\":\\"\\",\\"type\\": \\"\\",\\"A\\":\\"\\"}]"}'
+     200 POST https://www.fsitc.com.tw/WebAPI.aspx/Get_BuySellC
+        body={ 'pStrFundID':'D90','pStrDate':''}
+        resp='{"d":"[{\\"fundid\\": \\"\\",\\"sdate\\":\\"\\",\\"group\\":\\"\\",\\"type\\": \\"\\",\\"A\\":\\"\\",\\"B\\":\\"\\"}]"}'
+     200 POST https://www.fsitc.com.tw/WebAPI.aspx/Get_hd
+        body={ 'pStrFundID':'D90','pStrDate':''}
+        resp='{"d":"[{\\"fundid\\":\\"D90\\",\\"sdate\\":\\"2026-10-07\\",\\"group\\":\\"1\\",\\"A\\":\\"2330\\",\\"B\\":\\"台積電\\",\\"C\\":\\"25.43\\",\\"D\\":\\"274,230\\",\\"E\\":\\"\\"},{\\"fundid\\":\\"D90\\",\\"sdate\\":\\"2026-10-07\\",\\"group\\":\\"1\\",\\"A\\":\\"2303\\",\\"B\\":\\"聯電\\",\\"C\\":\\"15.06\\",\\"D\\":\\"2,827,000\\",\\"E\\":\\"\\"},{\\"fundid\\":\\"D90\\",'
+  含成分股字樣的回應 2 個：
+   ★ 200 GET https://www.fsitc.com.tw/FundDetail.aspx?ID=D90
+     type: text/html; charset=utf-8  bytes: 5431181
+     開頭:   <!DOCTYPE html>  <html xmlns="http://www.w3.org/1999/xhtml"> <head>     <script type="text/javascript">if (top.frames.length != 0) alert('error') </script>     <script>         (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){             (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),             m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)         })(window,document,'script','https://www.g
+     2330 前後:                              <tr class='table-title02'><th class='m-w01' width='11%'>項次</th><th class='m-w01 divEditTab' width='11%'>類別</th><th class=' '>資產名稱</th><th class=''>產業別</th><th class='divEditTab'>國家</th><th class='m-w01 ' width='11%'>比重（%）<samp class='c-d'></samp></th></tr><tr class='table-bg03'><td class='' align='center'>1</td><td class='divEditTab' align='center'>股票</td><td class=''>台積電</td><td class=''>半導體</td><td class='divEditTab'>臺灣，中華民國</td><td class='text03 '>24.46</td></tr><tr class='table-bg03'><td class='' align='center'>2</td><td class='divEditTab' align='center'>股票</td><td class=''>聯電</td><td class=''>半導體</td><td class='divEditTab'>臺灣，中華民國</td><td class='text03 '>13.35</td></tr><tr class='table-bg03'><td class='' align='center'>3</td><td class='divEditTab' align='c
+   ★ 200 POST https://www.fsitc.com.tw/WebAPI.aspx/Get_hd
+     POST body: { 'pStrFundID':'D90','pStrDate':''}
+     type: application/json; charset=utf-8  bytes: 4956
+     開頭: {"d":"[{\"fundid\":\"D90\",\"sdate\":\"2026-10-07\",\"group\":\"1\",\"A\":\"2330\",\"B\":\"台積電\",\"C\":\"25.43\",\"D\":\"274,230\",\"E\":\"\"},{\"fundid\":\"D90\",\"sdate\":\"2026-10-07\",\"group\":\"1\",\"A\":\"2303\",\"B\":\"聯電\",\"C\":\"15.06\",\"D\":\"2,827,000\",\"E\":\"\"},{\"fundid\":\"D90\",\"sdate\":\"2026-10-07\",\"group\":\"1\",\"A\":\"2059\",\"B\":\"川湖\",\"C\":\"9.05\",\"D\":\"21,383\",\"E\":\"\"},{\"fundid\":\"D90\",\"sdate\":\"2026-10-07\",\"group\":\"1\",\"A\":\"2360\",\"B\":\"致茂\
+     2330 前後: {"d":"[{\"fundid\":\"D90\",\"sdate\":\"2026-10-07\",\"group\":\"1\",\"A\":\"2330\",\"B\":\"台積電\",\"C\":\"25.43\",\"D\":\"274,230\",\"E\":\"\"},{\"fundid\":\"D90\",\"sdate\":\"2026-10-07\",\"group\":\"1\",\"A\":\"2303\",\"B\":\"聯電\",\"C\":\"15.06\",\"D\":\"2,827,000\",\"E\":\"\"},{\"fundid\":\"D90\",\"sdate\":\"2026-10-07\",\"group\":\"1\",\"A\":\"2059\",\"B\":\"川湖\",\"C\":\"9.05\",\"D\":\"21,383\",\"E\":\"\"},{\"fundid\":\"D90\",\"sdate\":\"2026-10-07\",\"group\":\"1\",\"
+====================================================================================================
+[extra-5] https://www.uobam.com.tw/
+  最終網址: https://www.uobam.com.tw/  標題: 大華銀投信｜深耕台灣在地市場
+  XHR／文件請求 8 個：
+     200 GET https://www.uobam.com.tw/
+        resp='<!DOCTYPE html><html lang="zh-Hant-TW"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><link rel="icon" href="/favicon.ico"><meta property="og:image" content="https://www.uobam.com.tw/og.png"><script async="" src="https://www.googletagmanager.com/gtm'
+     200 GET https://www.uobam.com.tw/json/reply/WebSiteRouteMapRequest
+        resp='{"result":[{"id":3831,"guid":"3ea7c4ca-7d8b-a40d-77fc-bfa961612e07","name":"首頁","route":"/","views":"FrontA","url":"/","urlType":"_self","show":0,"showl":0,"showm":0,"description":null,"sortValue":null,"metaTitle":"大華銀投信｜深耕台灣在地市場","metaDescription":"大華銀投信傳承新加坡大華資產管理具備的國際色彩以及在亞洲資產管理獨具的投資優勢，深耕台灣在地市場，矢'
+     200 GET https://www.uobam.com.tw/json/reply/WebSiteADRequest?r=bigbanner
+        resp='{"result":[{"id":67,"guid":"51c89c2a-c6ee-49e6-a515-54a329cb8fa5","adArea":"a9342f20-6a1f-4085-8394-b9071fcc5e5a","name":"00959B 大華投等美債15Y+ \\u000B(基金之配息來源可能為收益平準金)","url":"/fund/etf/00515073","urlType":"_blank","description":null,"description2":null,"descriptionPosition":null,"pic":"https://www.uoba'
+     200 GET https://www.uobam.com.tw/json/reply/WebSiteADRequest?r=fundbanner
+        resp='{"result":[{"id":50,"guid":"fae0afdd-a96f-4b5e-b6e4-da0418f18e36","adArea":"fdf29c1b-c558-44dc-bee6-22f43f56846d","name":"優選股利+高填息，雙甜頭全享有","url":"https://www.uobam.com.tw/Events/00918ETF/","urlType":"_blank","description":"台灣第一檔專注於優選股利+高填息的台股ETF，(00918)大華優利高填息30(本基金並無保證收益及配息且配息來源可能為收益平準金)","descript'
+     200 GET https://www.uobam.com.tw/json/reply/WebSiteADRequest?r=linkbanner
+        resp='{"result":[{"id":24,"guid":"9d11dd9a-5e56-4d94-8061-dc9848b19992","adArea":"a3bf5424-6551-4eaf-94e9-4b19edb88ac0","name":"最新公告","url":"/news/fund","urlType":"_self","description":null,"description2":null,"descriptionPosition":null,"pic":"https://www.uobam.com.tw/UploadFile/AD/202304/1681899412735_16'
+     200 GET https://www.uobam.com.tw/json/reply/WebSiteFrontRequest?u=3b10defe-1d02-d66c-bcd3-f885847bde6f&r=%2Fpopup&p=&n=&a=
+        resp='{"result":[],"breadcrumb":[{"id":3831,"guid":"3ea7c4ca-7d8b-a40d-77fc-bfa961612e07","name":"首頁","route":"/","views":"FrontA","url":"/","urlType":"_self","show":0,"showl":0,"showm":0,"description":null,"sortValue":null,"metaTitle":"大華銀投信｜深耕台灣在地市場","metaDescription":"大華銀投信傳承新加坡大華資產管理具備的國際色彩以及在亞洲資產管理獨具'
+     200 GET https://www.uobam.com.tw/json/reply/WebSiteFrontRequest?u=2dafea25-bb35-4b2b-e054-354b4cd20063&r=%2Fwarning&p=1&n=1&a=
+        resp='{"result":[{"id":20,"guid":"76d93223-498f-488d-be1a-5f227cb50c66","title":"公司資訊+全站警語","contents":"<div class=\\"info\\"><div class=\\"group\\"><div class=\\"icon marker\\">&nbsp;</div><div class=\\"text\\">台北市民生東路三段109號16樓</div></div><div class=\\"group\\"><div class=\\"icon phone\\">&nbsp;</div><div class=\\"te'
+     200 GET https://www.uobam.com.tw/json/reply/WebSiteFrontRequest?r=%2Ffundwarning
+        resp='{"result":[{"id":2566,"guid":"84e927f5-99be-43ea-91e7-493c5c35e835","title":"公司資訊+全站警語","contents":"<div class=\\"info\\"><p style=\\"margin-bottom:0cm; margin:0cm 0cm 8pt; margin-right:0cm; margin-left:0cm\\"><span style=\\"font-size:11pt\\"><span style=\\"line-height:107%\\"><span style=\\"font-family:Cali'
+  含成分股字樣的回應 0 個：
+====================================================================================================
+[extra-6] https://www.esunam.com.tw/
+  開頁失敗: Error Page.goto: net::ERR_NAME_NOT_RESOLVED at https://www.esunam.com.tw/
+Call log:
+  - navigating to "https://www.esunam.com.tw/", waiting until "networkidle"
+
+  XHR／文件請求 0 個：
+  含成分股字樣的回應 0 個：
+====================================================================================================
+[extra-7] https://www.blackrock.com/tw
+  開頁失敗: TimeoutError Page.goto: Timeout 60000ms exceeded.
+Call log:
+  - navigating to "https://www.blackrock.com/tw", waiting until "networkidle"
+
+  XHR／文件請求 25 個：
+     200 GET https://www.blackrock.com/tw
+        resp='<!DOCTYPE html>\n<html xmlns="http://www.w3.org/1999/xhtml" prefix="og: http://ogp.me/ns#" lang="zh-TW" xml:lang="zh-TW">\n<head>\n<link rel="preload" href="/apac-retail-c-assets/include/bundles/minified-ff2767d9d4adfe0d86a66e4a6707382e.css" as="style" />\n<link rel="preload" href="/apac-retail-c-assets'
+     200 GET https://cdn.cookielaw.org/consent/1d844f07-6416-4f37-97e9-e7e8b80732f2/1d844f07-6416-4f37-97e9-e7e8b80732f2.json
+        resp='{"CookieSPAEnabled":false,"CookieSameSiteNoneEnabled":false,"CookieV2CSPEnabled":true,"MultiVariantTestingEnabled":false,"UseV2":true,"MobileSDK":false,"SkipGeolocation":false,"ScriptType":"PRODUCTION","Version":"202609.1.0","OptanonDataJSON":"1d844f07-6416-4f37-97e9-e7e8b80732f2","GeolocationUrl":"'
+     200 GET https://geolocation.onetrust.com/cookieconsentpub/v1/geo/location
+        resp='{"country":"US","state":"AZ","stateName":"Arizona","continent":"NA"}'
+     200 GET https://cdn.cookielaw.org/consent/1d844f07-6416-4f37-97e9-e7e8b80732f2/0199190f-a997-7151-87ee-00c0af94baf1/en.json
+        resp='{"DomainData":{"pclifeSpanYr":"Year","pclifeSpanYrs":"Years","pclifeSpanSecs":"A few seconds","pclifeSpanWk":"Week","pclifeSpanWks":"Weeks","pccontinueWithoutAcceptText":"Continue without Accepting","pccloseButtonType":"Icon","MainText":"Manage your cookies","MainInfoText":"BlackRock uses cookies to'
+     200 GET https://cdn.cookielaw.org/scripttemplates/202609.1.0/assets/v2/otPcCenter.json
+        resp='\n        {\n            "name": "otPcCenter",\n            "html": "PGRpdiBpZD0ib25ldHJ1c3QtcGMtc2RrIiBjbGFzcz0ib3RQY0NlbnRlciBvdC1oaWRlIG90LWZhZGUtaW4iPjxkaXYgcm9sZT0iZGlhbG9nIiBhcmlhLW1vZGFsPSJ0cnVlIj48IS0tIENsb3NlIEJ1dHRvbiAtLT48ZGl2IGNsYXNzPSJvdC1wYy1oZWFkZXIiPjwhLS0gTG9nbyBUYWcgLS0+PGRpdiBjbGFzcz'
+     200 GET https://cdn.cookielaw.org/scripttemplates/202609.1.0/assets/otFlat.json
+        resp='\n            {\n                "name": "otFlat",\n                "html": "PGRpdiBpZD0ib25ldHJ1c3QtYmFubmVyLXNkayIgY2xhc3M9Im90RmxhdCI+PGRpdiByb2xlPSJkaWFsb2ciPjxkaXYgY2xhc3M9Im90LXNkay1jb250YWluZXIiPjxkaXYgY2xhc3M9Im90LXNkay1yb3ciPjxkaXYgaWQ9Im9uZXRydXN0LWdyb3VwLWNvbnRhaW5lciIgY2xhc3M9Im90LXNkay1laW'
+     200 GET https://cdn.cookielaw.org/scripttemplates/202609.1.0/assets/otCommonStyles.css
+        resp='#onetrust-banner-sdk .onetrust-vendors-list-handler{cursor:pointer;color:#1f96db;font-size:inherit;font-weight:bold;text-decoration:none;margin-left:5px;white-space:normal;word-wrap:break-word;text-align:left}#onetrust-banner-sdk .onetrust-vendors-list-handler:hover{color:#1f96db}#onetrust-banner-sd'
+     200 GET https://cdn.cookielaw.org/logos/static/ot_guard_logo.svg
+        resp='<svg xmlns="http://www.w3.org/2000/svg"><path class="ot-floating-button__svg-fill" d="M14.588 0l.445.328c1.807 1.303 3.961 2.533 6.461 3.688 2.015.93 4.576 1.746 7.682 2.446 0 14.178-4.73 24.133-14.19 29.864l-.398.236C4.863 30.87 0 20.837 0 6.462c3.107-.7 5.668-1.516 7.682-2.446 2.709-1.251 5.01-2.5'
+     200 GET https://dpm.demdex.net/id?d_visid_ver=3.3.0&d_fieldgroup=MC&d_rtbd=json&d_ver=2&d_orgid=631FF31455E575197F000101%40AdobeOrg&d_nsid=0&ts=1791380163303
+        resp='{"d_mid":"89979646252794443133601659801705720367","id_sync_ttl":604800,"d_blob":"6G1ynYcLPuiQxYZrsz_pkqfLG9yMXBpb2zX5dvJdYQJzPXImdj0y","dcs_region":9,"d_ottl":7200,"ibs":[],"subdomain":"blackrock","tid":"cuvds9rfTrQ="}'
+     200 POST https://api.company-target.com/api/v3/ip.json?referrer=&page=https%3A%2F%2Fwww.blackrock.com%2Ftw&page_title=%E8%B2%9D%E8%90%8A%E5%BE%B7%E6%8A%95%E4%BF%A1%20%7C%20BlackRock
+        body={"src":"tag","auth":"ONhVghWL76O2ssW8AwEJcDmbavyfMPcIBfxRtSGc"}
+        resp='{"access_type":"identified_non_business","audience":"SMB","audience_segment":"","digital_domain":null,"information_level":"Basic","isp":false,"region_name":"Arizona","registry_area_code":null,"registry_city":"Phoenix","registry_company_name":"Microsoft Corp","registry_country":"United States","regis'
+     200 GET https://csxd.careers.blackrock.com/xdframe-1.1.1.html
+        resp='<!DOCTYPE html><html><head><meta charset="UTF-8"><script>window.parent.postMessage(["_cs_id","_cs_s","_cs_cvars","_cs_ex","_cs_s_ctx","_cs_i","_cs_ep"].reduce(function(e,c){var _=function(e){var c=new RegExp("(^|;)[ ]*"+e+"=([^;]*)"),_=c.exec(document.cookie);return _?decodeURIComponent(_[2]):null}('
+     200 GET https://s.company-target.com/s/sync?exc=lr
+        resp='<html>\n\t<head>\n\t\t<title>Pixels</title>\n\t</head>\n\t<body>\n\t\n<img src="https://dsum-sec.casalemedia.com/rum?cm_dsp_id=18&amp;expiry=1807104963&amp;external_user_id=653fc433-0ca6-4e85-8f92-b18cf05b9f40" alt="" width="0" height="0" style="display:none", aria-hidden="true">\n<img src="https://partners.trem'
+     200 GET https://csxd.ishares.com/xdframe-1.1.1.html
+        resp='<!DOCTYPE html><html><head><meta charset="UTF-8"><script>window.parent.postMessage(["_cs_id","_cs_s","_cs_cvars","_cs_ex","_cs_s_ctx","_cs_i","_cs_ep"].reduce(function(e,c){var _=function(e){var c=new RegExp("(^|;)[ ]*"+e+"=([^;]*)"),_=c.exec(document.cookie);return _?decodeURIComponent(_[2]):null}('
+     200 GET https://csxd.efront.com/xdframe-1.1.1.html
+        resp='<!DOCTYPE html><html><head><meta charset="UTF-8"><script>window.parent.postMessage(["_cs_id","_cs_s","_cs_cvars","_cs_ex","_cs_s_ctx","_cs_i","_cs_ep"].reduce(function(e,c){var _=function(e){var c=new RegExp("(^|;)[ ]*"+e+"=([^;]*)"),_=c.exec(document.cookie);return _?decodeURIComponent(_[2]):null}('
+     200 POST https://adobedc.demdex.net/ee/v1/interact?configId=175dbcf4-f683-4dc1-875e-45103fcc9e7b&requestId=96381628-88a6-4f33-a8ae-2b09ba6a7ff6
+        body={"meta":{"configOverrides":{},"state":{"domain":"blackrock.com","cookiesEnabled":true}},"events":[{"query":{"personalization":{"schemas":["https://ns.adobe.com/personalization/default-content-item","https://ns.adobe.com/personalization/html-content-item","https://ns.adobe.com/personalization/json-co
+        resp='{"requestId":"96381628-88a6-4f33-a8ae-2b09ba6a7ff6-392a8326abce4f72","handle":[{"payload":[{"id":"89979646252794443133601659801705720367","namespace":{"code":"ECID"}}],"type":"identity:result"},{"payload":[],"type":"activation:pull","eventIndex":0},{"payload":[],"type":"personalization:decisions","e'
+     204 GET https://c.contentsquare.net/dvar?v=15.261.0&pid=5397&pn=1&sn=1&uu=01535a3d-fc59-ae43-cca5-a23e8f9be44e&dv=H4sIAAAAAAAAA6tWSi72TSxJzsjMS%2FdOrVSyUjLQM7I0MDY3szQwtzC1NDW0MIk3NLc0NLYwMDQzNjQ3UaoFAEXUjW00AAAA&ct=2&r=703394
+        resp=''
+     204 POST https://c.contentsquare.net/errors?v=15.261.0&pid=5397&pn=1&sn=1&uu=01535a3d-fc59-ae43-cca5-a23e8f9be44e&ct=0
+        body={"errors":[{"errorType":"jsError","message":"Uncaught SyntaxError: Failed to execute 'appendChild' on 'Node': Unexpected token '<'","filename":"https://www.blackrock.com/tw","lineno":1,"colno":495,"pageUrl":"https://www.blackrock.com/tw","rt":40}]}
+        resp=''
+     204 POST https://c.contentsquare.net/pageview?ex=&dt=24&pvt=n&cvars=%7B%221%22%3A%5B%22pageName%22%2C%22index%22%5D%2C%222%22%3A%5B%22siteSection%22%2C%22main%22%5D%2C%225%22%3A%5B%22siteName%22%2C%22tw-one%22%5D%2C%226%22%3A%5B%22loggedIn%22%2C%22no%22%5D%2C%227%22%3A%5B%22country%22%2C%22tw%22%5D%2C%228%22
+        resp=''
+     200 GET https://vice01.blackrock.com/blackrock/blackrockprod/1.23.10.8/
+        resp='<!DOCTYPE html>\n<html>\n\n<head>\n\t<meta name="robots" content="noindex, nofollow, noarchive, nosnippet" />\n\t<link rel="icon" href="data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAIAOw==" />\n</head>\n\n<body>\n\t<script type="text/javascript">\n\t\t"use strict";\n\t\tconst allowedDomains = [\'blac'
+     200 GET https://tag-logger.demandbase.com/bg9s?x-amz-cf-id=jI04QozQsQOp2sXjDJQsma69oeYNxGdL0DkJzKfD2LWDS2b10Sfmag==&api-version=v3
+        resp=''
+     200 POST https://securemetrics.blackrock.com/b/ss//6
+        body=<?xml version="1.0" encoding="UTF-8"?><request><sc_xml_ver>1.0</sc_xml_ver><reportSuiteID>blk-anonymised-prod</reportSuiteID><server>blk-anonymised-prod</server><browserHeight>720</browserHeight><browserWidth>1280</browserWidth><colorDepth>24</colorDepth><channel>main</channel><pageName>tw-one|main|
+        resp='<?xml version="1.0" encoding="UTF-8"?>\n<status>SUCCESS</status>\n'
+     204 GET https://c.contentsquare.net/dvar?v=15.261.0&pid=5397&pn=1&sn=1&uu=01535a3d-fc59-ae43-cca5-a23e8f9be44e&dv=H4sIAAAAAAAAA6tWSi72TSxJzsjMS%2FdOrVSyUjLQM7I0MDY3szQwtzC1NDW0MIk3NLc0NLYwMDQzNjQ3UaoFAEXUjW00AAAA&ct=2&r=115373
+        resp=''
+     204 POST https://px.ads.linkedin.com/wa/?medium=fetch&fmt=g
+        body=H4sIAAAAAAAAA22QsU4cMRRFfwW92mbt8Xh3xh2RAhqJImJXNFEU2c82WOvxDGNvUET4Aao0KVPkF2jSJT+TID6DDBtRUV7p3vvueTcwBptBva9WkkvRfCCQcQpjOXdTDkMCxRljTAgCJfQOFF+1XDSML+uaCQJ26HVIoOBTQMf4oYkat9OA20MceiCwmyIouCxlzGqxeM20KNdA4NqZHIpbh4uk45m72rlcOgsK2hVyLyynknlOW21aiqvKUmlbWxlhhbYGCIz6wp0O2j5nWGONsTWjKJaa1oicNl7WlEtZ
+        resp=''
+     200 GET https://services.sdiapi.com/reporter/1.1.0.1/reporter.html
+        resp='<!DOCTYPE html><html> <!-- Copyright 2026 Source Defense LTD. All Rights Reserved. Build 1783010683821 e29e8c30ac3984753423dbd6286dfe29f29e5d3a     Version 1.1.0.1 built at 2026-Jul-02 16:44:43. --><head><meta name="robots" content="noindex, nofollow, noarchive, nosnippet" /><title>Logger</title><sc'
+     200 POST https://reports.sdiapi.com/service/viceEvent
+        body=W3siZGF0YSI6eyJsb2FkZXJWZXJzaW9uIjoiMS4yMy4xMC44IiwiZmlyc3RPblBhZ2UiOnRydWUsImZvcHIiOjMxLCJ2b28iOjAsInZvcCI6MCwidm9wdiI6MTAwMCwib29vIjowLCJ3b28iOjEsImJvbyI6MX0sInNpIjoiNmFmYmYwOTYtYWEyZS00ODlhLTk5YTEtZTIwZmMxYThkZmIyIiwidHJhZmZpY1BlcmNlbnRhZ2UiOjEwMDAwLCJub1NpIjowLCJ0eXBlIjo1LCJwYWdlVmlldyI6IjZhZmJm
+        resp='OK'
+  含成分股字樣的回應 0 個：
+====================================================================================================
+[extra-8] https://etf.allianzgi.com.tw/
+  開頁失敗: TimeoutError Page.goto: Timeout 60000ms exceeded.
+Call log:
+  - navigating to "https://etf.allianzgi.com.tw/", waiting until "networkidle"
+
+  XHR／文件請求 20 個：
+     200 GET https://etf.allianzgi.com.tw/
+        resp='<!doctype html>\r\n<html lang="en" data-critters-container>\r\n\r\n<head>\r\n  <meta charset="utf-8">\r\n  <title>安聯ETF</title>\r\n  <base href="/">\r\n  <meta name="viewport" content="width=device-width, initial-scale=1">\r\n  <link rel="icon" type="image/x-icon" href="favicon.ico">\r\n  <link rel="stylesheet" href='
+     200 GET https://etf.allianzgi.com.tw/webapi/api/homee/FrontendPublic
+        resp='{"TotalPages":-1,"TotalItems":0,"Entries":{"ApiUrl":"/webapi/api","Domain":"https://etf.allianzgi.com.tw/","Company":"安聯投信","ChangeInterestAccount":{"NonParticipantNotice":{"BeforeLink":"若您為未滿18歲或尚未參與過本公司ETF配息，請於ETF停止過戶日後，再使用本網頁提出申請；或填寫","LinkText":"申請書","AfterLink":"並檢附相關證件以紙本申請變更。","LinkUrl":"http'
+     200 GET https://etf.allianzgi.com.tw/webapi/api/AntiForgery/GetAntiForgeryToken
+        resp='{"token":"CfDJ8O4lLg5ozXJAnaegOLTBzPS04_dxWEm6lJX0MAj5n7_-QJE_UsxPWfKDnq9dbv4qdjPWhqw0E37gr1nYmo9pslB9Hr1II_nQ4TZ5w8XYv3L8RpZ-QFJQnZb5_sHt02zvb8yJlBxYUjemSUpFI8PhnR0","issuedAtUtc":1791380225564,"maxAgeSeconds":86400,"expiresAtUtc":1791466625564,"message":"Antiforgery token generated successfully."}'
+     429 GET https://ipapi.co/json/
+        resp='{"reason": "RateLimited", "message": "Please sign up for a paid plan at https://ipapi.co/pricing or contact us for a trial account", "wait": 1.0, "error": true}'
+     200 POST https://etf.allianzgi.com.tw/webapi/api/Home/GetUnit
+        body={"headers":{"normalizedNames":{},"lazyUpdate":null}}
+        resp='{"TotalPages":-1,"TotalItems":0,"Entries":[{"CId":1,"CName":"ETF總覽","CParentID":0,"CIsExternalLinks":false,"CPageUrl":"/etf-list","CIsOpenNewWindow":false,"CIsShowInMainMenu":false,"CPageExplanation":"","CTemplateType":99,"CIsCanAddChildNode":true,"CFunctionID":65,"CSort":1,"CFileName":"","ChildUnit'
+     200 POST https://etf.allianzgi.com.tw/webapi/api/Home/GetFooterContent
+        body={"CId":1}
+        resp='{"TotalPages":-1,"TotalItems":0,"Entries":[{"CId":1,"CTitle":"預設Footer","CContent":"\\u003Cp style=\\u0022text-align: left;\\u0022\\u003E\\u003Cstrong\\u003E【安聯投信\\u3000獨立經營管理】 \\u003C/strong\\u003E115金管投信新字第003號\\u003Cbr /\\u003E\\r\\n\\u003Cstrong\\u003E本基金經金管會核准或同意生效，惟不表示絕無風險。基金經理公司以往之經理績效不保證基金之最低投資收益；基金經理公司除盡善'
+     200 POST https://etf.allianzgi.com.tw/webapi/api/Home/GetHeaderCommunity
+        body={"headers":{"normalizedNames":{},"lazyUpdate":null,"lazyInit":null,"headers":{}}}
+        resp='{"TotalPages":-1,"TotalItems":0,"Entries":[{"CId":4,"CName":"Youtube","CType":2,"CIcon":"https://etf.allianzgi.com.tw/webapi/File/4cc6da0d-c787-4dd7-aec3-a6bfed22976a/youtube-80.png","CUrl":"https://www.youtube.com/channel/UCZrpAoDX6TSCEKndMGZvdNQ","CFooterIcon":"https://etf.allianzgi.com.tw/webapi/'
+     200 POST https://etf.allianzgi.com.tw/webapi/api/Article/GetArticleByUnit
+        body={"PageIndex":1,"PageSize":100,"FunctionID":638,"Keyword":"","Tags":[],"IsPreview":false,"CID":0,"SortColName":"","IsDesc":false,"IsPagination":false}
+        resp='{"TotalPages":-1,"TotalItems":5,"Entries":{"CParentID":6816,"ParentName":"首頁管理","CID":638,"CName":"Footer連結管理","Data":[{"CId":1,"CFunctionId":638,"CCategoryId":0,"CName":"使用條款","CContent":"","CFileNameSys":"https://etf.allianzgi.com.tw/webapi/","CFileNameOld":null,"CFileDescription":null,"CShowStart'
+     200 POST https://etf.allianzgi.com.tw/webapi/api/Article/GetArticleByID
+        body={"PageIndex":1,"PageSize":10,"FunctionID":7343,"ID":4,"IsPreview":false}
+        resp='{"TotalPages":-1,"TotalItems":0,"Entries":null,"Message":"查無該單元！","StatusCode":1,"RedirectUrl":null}'
+     200 POST https://etf.allianzgi.com.tw/webapi/api/Home/GetPopup
+        body={"IsPreview":false,"CId":0}
+        resp='{"TotalPages":-1,"TotalItems":0,"Entries":[{"Title":"警語","Content":"\\u003Cp style=\\u0022text-align: left;\\u0022\\u003E\\u003Cstrong\\u003E【安聯投信\\u3000獨立經營管理】 \\u003C/strong\\u003E115金管投信新字第003號\\u003Cbr /\\u003E\\r\\n\\u003Cstrong\\u003E本基金經金管會核准或同意生效，惟不表示絕無風險。基金經理公司以往之經理績效不保證基金之最低投資收益；基金經理公司除盡善良管理人之注意義務外，不負責本基'
+     200 POST https://etf.allianzgi.com.tw/webapi/api/Home/GetBanner
+        body={"headers":{"normalizedNames":{},"lazyUpdate":null,"lazyInit":null,"headers":{}}}
+        resp='{"TotalPages":-1,"TotalItems":0,"Entries":[{"CId":7,"CArea":3,"CPcfileName":"https://etf.allianzgi.com.tw/webapi/File/f256b0a5-1426-4d19-a98e-ed874e224284/20260803_安聯_亞洲半導體ETF_banner_1080X700.jpg","CMobileFileName":"https://etf.allianzgi.com.tw/webapi/File/f256b0a5-1426-4d19-a98e-ed874e224284/202608'
+     200 POST https://etf.allianzgi.com.tw/webapi/api/Article/GetArticleByUnit
+        body={"PageIndex":1,"PageSize":10,"FunctionID":7032,"Keyword":"","Tags":[],"IsPreview":false,"CID":0,"SortColName":"","IsDesc":false,"IsPagination":false}
+        resp='{"TotalPages":-1,"TotalItems":10,"Entries":{"CParentID":6816,"ParentName":"首頁管理","CID":7032,"CName":"影音專區","Data":[{"CId":15,"CFunctionId":7032,"CCategoryId":null,"CName":"00412A 職人真功夫！9月16日起搶先募集","CContent":null,"CFileNameSys":"https://etf.allianzgi.com.tw/webapi/","CFileNameOld":null,"CFileDescrip'
+     200 POST https://etf.allianzgi.com.tw/webapi/api/Article/GetArticleByUnit
+        body={"PageIndex":1,"PageSize":10,"FunctionID":7101,"Keyword":"","Tags":[],"IsPreview":false,"CID":0,"SortColName":"","IsDesc":false,"IsPagination":false}
+        resp='{"TotalPages":-1,"TotalItems":26,"Entries":{"CParentID":7000,"ParentName":"公告管理","CID":7101,"CName":"ETF公告","Data":[{"CId":45,"CFunctionId":7101,"CCategoryId":0,"CName":"【季配息期前公告】2026/10：00984A安聯台灣高息成長主動式ETF基金(基金之配息來源可能為收益平準金)","CContent":"","CFileNameSys":"https://etf.allianzgi.com.tw/webapi/","CFi'
+     200 GET https://etf.allianzgi.com.tw/webapi/api/Home/GetMainVision
+        resp='{"TotalPages":-1,"TotalItems":0,"Entries":{"cName":"","cWebImage":"https://etf.allianzgi.com.tw/webapi/File/3f003c53-d0c2-46b7-b333-7bc3fb31a6d9/etf-new-kv-20260813.jpg","cMobileImage":"https://etf.allianzgi.com.tw/webapi/File/92d4683f-2f97-4090-8938-ff1642064bdd/375x190.png","cContent":"安聯投信\\r\\n主動式'
+     200 POST https://etf.allianzgi.com.tw/webapi/api/Article/GetArticleByUnit
+        body={"PageIndex":1,"PageSize":10,"FunctionID":7001,"Keyword":"","Tags":[],"IsPreview":false,"CID":0,"SortColName":"","IsDesc":false,"IsPagination":false}
+        resp='{"TotalPages":-1,"TotalItems":118,"Entries":{"CParentID":7000,"ParentName":"公告管理","CID":7001,"CName":"ETF市場快訊","Data":[{"CId":127,"CFunctionId":7001,"CCategoryId":0,"CName":"台股再寫新高 周線連三紅 AI供應鏈仍是多頭主軸","CContent":"","CFileNameSys":"https://etf.allianzgi.com.tw/webapi/File/b4ab5d16-7e50-4378-9ae4-5ea35'
+     200 GET https://etf.allianzgi.com.tw/webapi/api/Home/GetFundBanner
+        resp='{"TotalPages":-1,"TotalItems":0,"Entries":null,"Message":"查無資料","StatusCode":0,"RedirectUrl":null}'
+     200 POST https://etf.allianzgi.com.tw/webapi/api/Home/GetMetaData
+        body={"headers":{"normalizedNames":{},"lazyUpdate":null,"lazyInit":null,"headers":{}}}
+        resp='{"TotalPages":-1,"TotalItems":0,"Entries":{"CTitle":"安聯投信 | 主動式ETF專區 掌握即時預估淨值、配息、交易資訊","CDescription":"安聯投信 | 主動式ETF專區 掌握即時預估淨值、配息、交易資訊","CKeyWord":"安聯投信 | 主動式ETF專區 掌握即時預估淨值、配息、交易資訊","CGTMCode":"\\u003Chead\\u003E\\r\\n\\u003Cscript src=\\u0022https://cdn.cookielaw.org/scripttemplates/otSDKStub.js\\u0022  '
+     200 GET https://www.youtube.com/embed/1e2ayZA7Oik
+        resp='<!DOCTYPE html><html lang="zh-TW" dir="ltr" data-cast-api-enabled="true"><head><meta name="viewport" content="width=device-width, initial-scale=1"><script nonce="hsNMAQL_e0sZboAEOaKnHA">if (\'undefined\' == typeof Symbol || \'undefined\' == typeof Symbol.iterator) {delete Array.prototype.entries;}</scri'
+     200 POST https://etf.allianzgi.com.tw/webapi/api/Article/GetArticleByUnit
+        body={"PageIndex":1,"PageSize":10,"FunctionID":7120,"Keyword":"","Tags":[],"IsPreview":false,"CID":0,"SortColName":"","IsDesc":false,"IsPagination":false}
+        resp='{"TotalPages":-1,"TotalItems":10,"Entries":{"CParentID":7000,"ParentName":"公告管理","CID":7120,"CName":"最新消息","Data":[{"CId":11,"CFunctionId":7120,"CCategoryId":0,"CName":"【公告】配合主管機關強化ETF採用收益平準金作為收益分配之相關規範宣導","CContent":"\\u003Cdiv class=\\u0027cke_editable\\u0027\\u003E\\u003Cdiv style=\\u0027float:left;wid'
+     200 POST https://www.youtube.com/youtubei/v1/log_event?alt=json
+        body={"context":{"client":{"hl":"zh-TW","gl":"US","clientName":56,"clientVersion":"2.20261006.01.00","configInfo":{"appInstallData":"CIKWmdYGEMn2gBMQyvuAExD36NIcEKSOgRMQwY_QHBC9tq4FEJzl0hwQ3K3SHBC45M4cENr3zhwQh6zOHBCvirgiEMHUqBcQvtrSHBCfz4ATEMzfrgUQnZWBExDevM4cEPDe0RwQgc3OHBCZjbEFEParsAUQvoTRHBD4xIATENPa
+        resp='{\n  "responseContext": {}\n}\n'
+  含成分股字樣的回應 0 個：
+====================================================================================================
+[extra-9] https://www.abfunds.com.tw/
+  最終網址: https://www.abfunds.com.tw/zh-tw/home.html  標題: 聯博投信 AB | 收益投資專家 | 聯博投信 AB
+    連結: 申購買回清單 -> https://www.abfunds.com.tw/zh-tw/etfs/pcf.TW00000980D8.html
+  XHR／文件請求 51 個：
+     200 GET https://www.abfunds.com.tw/services/commons/dict.zh-tw.json
+        resp='{"dictionaryData":"{\\r\\n  \\"aem-ab-title\\":\\"聯博投信 AB\\",\\r\\n  \\"aem-alliancebernstein\\": \\"首頁\\",\\r\\n  \\"aem-bios-insights\\":\\"相關文章\\",\\r\\n  \\"aem-bios-strategies\\":\\"管理基金\\",\\r\\n  \\"awards-and-achievements\\":\\"學歷與成就\\",\\r\\n  \\"thank-you\\": \\"谢谢！\\",\\r\\n  \\"subscribe-with-your-email\\": \\"使用您的电子邮件订阅\\",\\r\\n'
+     200 GET https://www.abfunds.com.tw/zh-tw/home.html
+        resp='\r\n<!DOCTYPE HTML>\r\n<html lang="zh-TW">\r\n    <head>\r\n  \r\n  \r\n  <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>\r\n  <meta http-equiv="X-UA-Compatible" content="IE=edge"/>\r\n  \r\n  \r\n\r\n<title>聯博投信 AB | 收益投資專家  &#124; 聯博投信 AB</title>\r\n\r\n\r\n  \r\n  <meta name="template" content="home-page-'
+     200 GET https://ka-p.fontawesome.com/releases/v6.7.2/js/pro.min.js?token=140b6c6c66
+        resp='(()=>{function L(t,e,a){var r;(e="symbol"==typeof(r=((t,e)=>{if("object"!=typeof t||!t)return t;var a=t[Symbol.toPrimitive];if(void 0===a)return("string"===e?String:Number)(t);if("object"!=typeof(a=a.call(t,e||"default")))return a;throw new TypeError("@@toPrimitive must return a primitive value.")})'
+     200 GET https://ka-p.fontawesome.com/releases/v6.7.2/js/pro-v4-shims.min.js?token=140b6c6c66
+        resp='((a,l)=>{"object"==typeof exports&&"undefined"!=typeof module?module.exports=l():"function"==typeof define&&define.amd?define(l):a["fontawesome-pro-shims"]=l()})(this,function(){let a={},l={};try{"undefined"!=typeof window&&(a=window),"undefined"!=typeof document&&(l=document)}catch(a){}var{userAgen'
+     200 GET https://dpm.demdex.net/id?d_visid_ver=4.5.1&d_fieldgroup=MC&d_rtbd=json&d_ver=2&d_orgid=B66802BE533094020A490D4C%40AdobeOrg&d_nsid=0&ts=1791380283264
+        resp='{"d_mid":"31776109892419850951499894421581564894","id_sync_ttl":604800,"d_blob":"6G1ynYcLPuiQxYZrsz_pkqfLG9yMXBpb2zX5dvJdYQJzPXImdj0y","dcs_region":9,"d_ottl":7200,"ibs":[{"id":"411","ttl":10080,"tag":"img","fireURLSync":1,"syncOnPage":1,"url":["//cm.everesttech.net/cm/dd?d_uuid=31753732054161962051'
+     200 POST https://api.company-target.com/api/v3/ip.json?&page=https%3A%2F%2Fwww.abfunds.com.tw%2Fzh-tw%2Fhome.html&referrer=&page_title=%E8%81%AF%E5%8D%9A%E6%8A%95%E4%BF%A1%20AB%20%7C%20%E6%94%B6%E7%9B%8A%E6%8A%95%E8%B3%87%E5%B0%88%E5%AE%B6%20%7C%20%E8%81%AF%E5%8D%9A%E6%8A%95%E4%BF%A1%20AB
+        body={"auth":"KQyNgSksTqmMN3uyHVt37l12vjgCQbWCWb5XNWiR","src":"adobelaunch"}
+        resp='{"access_type":"identified_non_business","audience":"SMB","audience_segment":"","digital_domain":null,"information_level":"Basic","isp":false,"region_name":"Arizona","registry_area_code":null,"registry_city":"Phoenix","registry_company_name":"Microsoft Corp","registry_country":"United States","regis'
+     200 POST https://alliancebernstein.tt.omtrdc.net/rest/v1/delivery?client=alliancebernstein&sessionId=a8db9b9ec44c4fc58a0fdad2491d563f&version=2.11.7
+        body={"requestId":"74c52c74912c47ee9c00f2082d595bb7","context":{"userAgent":"Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36","clientHints":{"mobile":false,"platform":"Linux","browserUAWithMajorVersion":"\"HeadlessChrome\";v=\"153\", \"Not_A Brand\";v=\"8
+        resp='{"status":200,"requestId":"74c52c74912c47ee9c00f2082d595bb7","client":"alliancebernstein","id":{"tntId":"a8db9b9ec44c4fc58a0fdad2491d563f.35_0","marketingCloudVisitorId":"31776109892419850951499894421581564894"},"edgeHost":"mboxedge35.tt.omtrdc.net","prefetch":{},"telemetryServerToken":"13OD8mmKQLOF'
+     200 GET https://alliancebernstein.demdex.net/dest5.html?d_nsid=0
+        resp='<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">\n<html lang="en-US"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8"><title>Adobe AudienceManager</title><script type="text/javascript">\nvar Demdex={version:"6.2",dest:"5",PR'
+     200 POST https://smetrics.alliancebernstein.com/b/ss/ababclientgroupprod/10/JS-2.17.0-LGU4/s82167317452044
+        body=AQB=1&ndh=1&pf=1&et=1&t=7%2F9%2F2026%2013%3A38%3A5%203%200&d.&nsid=0&jsonv=1&.d&mid=31776109892419850951499894421581564894&aamlh=9&ce=UTF-8&pageName=%E8%81%AF%E5%8D%9A%E6%8A%95%E4%BF%A1%20AB%20%7C%20%E6%94%B6%E7%9B%8A%E6%8A%95%E8%B3%87%E5%B0%88%E5%AE%B6&g=https%3A%2F%2Fwww.abfunds.com.tw%2Fzh-tw%2Fh
+        resp='{"status":"SUCCESS","mid":"31776109892419850951499894421581564894"}\n'
+     200 GET https://ka-p.fontawesome.com/releases/v6.7.2/svgs/regular/chevron-down.svg?token=140b6c6c66
+        resp='<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Pro 6.7.2 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license (Commercial License) Copyright 2024 Fonticons, Inc. --><path d="M239 401c9.4 9.4 24.6 9.4 33.9 0L465 209c9.4-9.4 9.4-24.6 0-3'
+     200 GET https://ka-p.fontawesome.com/releases/v6.7.2/svgs/light/bars.svg?token=140b6c6c66
+        resp='<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Pro 6.7.2 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license (Commercial License) Copyright 2024 Fonticons, Inc. --><path d="M0 80c0-8.8 7.2-16 16-16l416 0c8.8 0 16 7.2 16 16s-7.2 16-16 '
+     200 GET https://ka-p.fontawesome.com/releases/v6.7.2/svgs/regular/angle-right.svg?token=140b6c6c66
+        resp='<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Pro 6.7.2 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license (Commercial License) Copyright 2024 Fonticons, Inc. --><path d="M273 239c9.4 9.4 9.4 24.6 0 33.9L113 433c-9.4 9.4-24.6 9.4-33'
+     200 GET https://ka-p.fontawesome.com/releases/v6.7.2/svgs/light/circle-x.svg?token=140b6c6c66
+        resp='<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Pro 6.7.2 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license (Commercial License) Copyright 2024 Fonticons, Inc. --><path d="M256 32a224 224 0 1 1 0 448 224 224 0 1 1 0-448zm0 480A256 25'
+     200 GET https://ka-p.fontawesome.com/releases/v6.7.2/svgs/light/arrow-left.svg?token=140b6c6c66
+        resp='<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Pro 6.7.2 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license (Commercial License) Copyright 2024 Fonticons, Inc. --><path d="M4.7 244.7c-6.2 6.2-6.2 16.4 0 22.6l176 176c6.2 6.2 16.4 6.2 '
+     200 GET https://ka-p.fontawesome.com/releases/v6.7.2/svgs/sharp-regular/angle-right.svg?token=140b6c6c66
+        resp='<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Pro 6.7.2 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license (Commercial License) Copyright 2024 Fonticons, Inc. --><path d="M289.9 256l-17 17L113 433l-17 17L62.1 416l17-17 143-143L79 11'
+     200 GET https://ka-p.fontawesome.com/releases/v6.7.2/svgs/light/arrow-right.svg?token=140b6c6c66
+        resp='<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Pro 6.7.2 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license (Commercial License) Copyright 2024 Fonticons, Inc. --><path d="M443.3 267.3c6.2-6.2 6.2-16.4 0-22.6l-176-176c-6.2-6.2-16.4-6'
+     200 GET https://ka-p.fontawesome.com/releases/v6.7.2/svgs/regular/chevron-right.svg?token=140b6c6c66
+        resp='<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Pro 6.7.2 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license (Commercial License) Copyright 2024 Fonticons, Inc. --><path d="M305 239c9.4 9.4 9.4 24.6 0 33.9L113 465c-9.4 9.4-24.6 9.4-33'
+     200 GET https://ka-p.fontawesome.com/releases/v6.7.2/svgs/regular/circle-info.svg?token=140b6c6c66
+        resp='<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Pro 6.7.2 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license (Commercial License) Copyright 2024 Fonticons, Inc. --><path d="M256 48a208 208 0 1 1 0 416 208 208 0 1 1 0-416zm0 464A256 25'
+     200 GET https://ka-p.fontawesome.com/releases/v6.7.2/svgs/sharp-regular/angle-left.svg?token=140b6c6c66
+        resp='<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Pro 6.7.2 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license (Commercial License) Copyright 2024 Fonticons, Inc. --><path d="M30.1 256l17-17L207 79l17-17L257.9 96l-17 17L97.9 256 241 399'
+     200 GET https://ka-p.fontawesome.com/releases/v6.7.2/svgs/brands/line.svg?token=140b6c6c66
+        resp='<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Pro 6.7.2 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license (Commercial License) Copyright 2024 Fonticons, Inc. --><path d="M311 196.8v81.3c0 2.1-1.6 3.7-3.7 3.7h-13c-1.3 0-2.4-.7-3-1.5'
+     200 GET https://ka-p.fontawesome.com/releases/v6.7.2/svgs/regular/arrow-right.svg?token=140b6c6c66
+        resp='<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Pro 6.7.2 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license (Commercial License) Copyright 2024 Fonticons, Inc. --><path d="M440.6 273.4c4.7-4.5 7.4-10.8 7.4-17.4s-2.7-12.8-7.4-17.4l-17'
+     200 GET https://ka-p.fontawesome.com/releases/v6.7.2/svgs/solid/xmark.svg?token=140b6c6c66
+        resp='<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 512"><!--! Font Awesome Pro 6.7.2 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license (Commercial License) Copyright 2024 Fonticons, Inc. --><path d="M342.6 150.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0L192'
+     200 GET https://ka-p.fontawesome.com/releases/v6.7.2/svgs/brands/instagram.svg?token=140b6c6c66
+        resp='<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Pro 6.7.2 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license (Commercial License) Copyright 2024 Fonticons, Inc. --><path d="M224.1 141c-63.6 0-114.9 51.3-114.9 114.9s51.3 114.9 114.9 11'
+     200 GET https://ka-p.fontawesome.com/releases/v6.7.2/svgs/brands/youtube.svg?token=140b6c6c66
+        resp='<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Pro 6.7.2 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license (Commercial License) Copyright 2024 Fonticons, Inc. --><path d="M549.655 124.083c-6.281-23.65-24.787-42.276-48.284-48.597C458'
+     200 GET https://ka-p.fontawesome.com/releases/v6.7.2/svgs/regular/xmark.svg?token=140b6c6c66
+        resp='<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 512"><!--! Font Awesome Pro 6.7.2 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license (Commercial License) Copyright 2024 Fonticons, Inc. --><path d="M345 137c9.4-9.4 9.4-24.6 0-33.9s-24.6-9.4-33.9 0l-119 119L73'
+     200 POST https://api.company-target.com/api/v3/ip.json?referrer=&page=https%3A%2F%2Fwww.abfunds.com.tw%2Fzh-tw%2Fhome.html&page_title=%E8%81%AF%E5%8D%9A%E6%8A%95%E4%BF%A1%20AB%20%7C%20%E6%94%B6%E7%9B%8A%E6%8A%95%E8%B3%87%E5%B0%88%E5%AE%B6%20%7C%20%E8%81%AF%E5%8D%9A%E6%8A%95%E4%BF%A1%20AB
+        body={"src":"tag","auth":"YH7Nv0cSgWKJy5RkpsbKqWk23yRVDKtQngOxtbLe"}
+        resp='{"access_type":"identified_non_business","audience":"SMB","audience_segment":"","digital_domain":null,"information_level":"Basic","isp":false,"region_name":"Arizona","registry_area_code":null,"registry_city":"Phoenix","registry_company_name":"Microsoft Corp","registry_country":"United States","regis'
+     200 GET https://webapi.alliancebernstein.com/v2/translations/zh-tw
+        resp='{\r\n  "fundfinderdetails-value-a": {\r\n    "base": "A",\r\n    "zh-tw": ""\r\n  },\r\n  "fundfinderdetails-value-a2": {\r\n    "base": "A2",\r\n    "zh-tw": ""\r\n  },\r\n  "fundfinderdetails-value-a2x": {\r\n    "base": "A2X",\r\n    "zh-tw": ""\r\n  },\r\n  "fundfinderdetails-value-aa": {\r\n    "base": "AA",\r\n    "zh-tw":'
+     200 GET https://webapi.alliancebernstein.com/v2/funds/tw/zh-tw/investor/featured-fund?searchQuery=LU2859287455,LU0060230025,LU1127387386,LU3194927631,LU1008671684,TW000T1811K5
+        resp='[{"asOfDate":"2026-10-06T00:00:00","nav":72.480000000000000,"navPriceChange":0.430000000000000,"navPriceChangePercent":0.596807000000000,"ytdReturnPerc":null,"exDate":"2026-09-29T00:00:00","distributionYield":1.157960,"distributionValue":"0.82910","nextDistributionDate":"2026-10-29T12:00:00","overvi'
+     200 GET https://webapi.alliancebernstein.com/v2/translations/zh-tw
+        resp='{\r\n  "fundfinderdetails-value-a": {\r\n    "base": "A",\r\n    "zh-tw": ""\r\n  },\r\n  "fundfinderdetails-value-a2": {\r\n    "base": "A2",\r\n    "zh-tw": ""\r\n  },\r\n  "fundfinderdetails-value-a2x": {\r\n    "base": "A2X",\r\n    "zh-tw": ""\r\n  },\r\n  "fundfinderdetails-value-aa": {\r\n    "base": "AA",\r\n    "zh-tw":'
+     200 GET https://s.company-target.com/s/sync?exc=lr
+        resp='<html>\n\t<head>\n\t\t<title>Pixels</title>\n\t</head>\n\t<body>\n\t\n<img src="https://dsum-sec.casalemedia.com/rum?cm_dsp_id=18&amp;expiry=1807105086&amp;external_user_id=ecd3fff7-624a-4df6-aabd-9a9c0607d797" alt="" width="0" height="0" style="display:none", aria-hidden="true">\n<img src="https://partners.trem'
+     200 GET https://ka-p.fontawesome.com/releases/v6.7.2/svgs/sharp-regular/bookmark.svg?token=140b6c6c66
+        resp='<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 512"><!--! Font Awesome Pro 6.7.2 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license (Commercial License) Copyright 2024 Fonticons, Inc. --><path d="M192 344.4l24.2 14.1L336 428.4 336 48 48 48l0 380.4 119.8-69.'
+     200 GET https://ka-p.fontawesome.com/releases/v6.7.2/svgs/sharp-solid/bookmark.svg?token=140b6c6c66
+        resp='<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 512"><!--! Font Awesome Pro 6.7.2 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license (Commercial License) Copyright 2024 Fonticons, Inc. --><path d="M0 512L192 400 384 512V0H0V512z"/></svg>'
+     200 GET https://webapi.alliancebernstein.com/v2/translations/zh-tw
+        resp='{\r\n  "fundfinderdetails-value-a": {\r\n    "base": "A",\r\n    "zh-tw": ""\r\n  },\r\n  "fundfinderdetails-value-a2": {\r\n    "base": "A2",\r\n    "zh-tw": ""\r\n  },\r\n  "fundfinderdetails-value-a2x": {\r\n    "base": "A2X",\r\n    "zh-tw": ""\r\n  },\r\n  "fundfinderdetails-value-aa": {\r\n    "base": "AA",\r\n    "zh-tw":'
+     200 GET https://tag-logger.demandbase.com/bg9s?x-amz-cf-id=S0KYQrwR-myxYaTYwtDr2ybFUjYCuRJ0ka6hL4zpG62OLg9s8PqSCA==&api-version=v3
+        resp=''
+     200 GET https://webapi.alliancebernstein.com/v2/translations/zh-tw
+        resp='{\r\n  "fundfinderdetails-value-a": {\r\n    "base": "A",\r\n    "zh-tw": ""\r\n  },\r\n  "fundfinderdetails-value-a2": {\r\n    "base": "A2",\r\n    "zh-tw": ""\r\n  },\r\n  "fundfinderdetails-value-a2x": {\r\n    "base": "A2X",\r\n    "zh-tw": ""\r\n  },\r\n  "fundfinderdetails-value-aa": {\r\n    "base": "AA",\r\n    "zh-tw":'
+     200 GET https://webapi.alliancebernstein.com/v2/translations/zh-tw
+        resp='{\r\n  "fundfinderdetails-value-a": {\r\n    "base": "A",\r\n    "zh-tw": ""\r\n  },\r\n  "fundfinderdetails-value-a2": {\r\n    "base": "A2",\r\n    "zh-tw": ""\r\n  },\r\n  "fundfinderdetails-value-a2x": {\r\n    "base": "A2X",\r\n    "zh-tw": ""\r\n  },\r\n  "fundfinderdetails-value-aa": {\r\n    "base": "AA",\r\n    "zh-tw":'
+     200 GET https://ka-p.fontawesome.com/releases/v6.7.2/svgs/regular/chart-line.svg?token=140b6c6c66
+        resp='<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Pro 6.7.2 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license (Commercial License) Copyright 2024 Fonticons, Inc. --><path d="M48 56c0-13.3-10.7-24-24-24S0 42.7 0 56L0 408c0 39.8 32.2 72 '
+     200 GET https://ka-p.fontawesome.com/releases/v6.7.2/svgs/regular/percent.svg?token=140b6c6c66
+        resp='<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 512"><!--! Font Awesome Pro 6.7.2 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license (Commercial License) Copyright 2024 Fonticons, Inc. --><path d="M369 113c9.4-9.4 9.4-24.6 0-33.9s-24.6-9.4-33.9 0L15 399c-9.4'
+     200 GET https://ka-p.fontawesome.com/releases/v6.7.2/svgs/regular/bookmark.svg?token=140b6c6c66
+        resp='<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 512"><!--! Font Awesome Pro 6.7.2 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license (Commercial License) Copyright 2024 Fonticons, Inc. --><path d="M0 48C0 21.5 21.5 0 48 0l0 48 0 393.4 130.1-92.9c8.3-6 19.6-6'
+     200 GET https://kit-uploads.fontawesome.com/140b6c6c66/icons/lineapp-01-1.svg?token=140b6c6c66
+        resp='<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 544 512"><path d="M525.8 214.8C525.8 97.7 408.5 2.4 264.2 2.4S2.5 97.7 2.5 214.8c0 104.8 93.1 192.8 218.8 209.5c8.6 2 20.1 5.6 23 13c2.7 6.6 1.7 16.9 .7 23.8c0 0-3.2 18.4-3.7 22.3c-1.2 6.6-5.1 26 22.8 14.2s150.7-88.7 205.5-151.9h0c38-41.9 56.1-84 '
+  含成分股字樣的回應 0 個：
+====================================================================================================
+[extra-10] https://am.jpmorgan.com/tw/zh/asset-management/adv/
+  最終網址: https://am.jpmorgan.com/tw/zh/asset-management/adv/  標題: Site Page Down
+  XHR／文件請求 1 個：
+     500 GET https://am.jpmorgan.com/tw/zh/asset-management/adv/
+        resp='\n<!-- saved from url=(0070)https://am-prod.jpmorgan.com/us/institutional/500-internal-server-down -->\n<html><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">\n\t<meta charset="utf-8">\n\t<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">\n\t<title>Site Page Down</title>'
+  含成分股字樣的回應 0 個：
+====================================================================================================
+[extra-11] https://websys.fsit.com.tw/FubonETF/Trade/Pcf.aspx?lan=TW&stkId=006208@@查詢
+  點不到： 查詢 Locator.click: Timeout 10000ms exceeded.
+Call log:
+  - waiting for get_by_text("查詢").first
+    - locator resolved to <a 
+  最終網址: https://websys.fsit.com.tw/FubonETF/Trade/Pcf.aspx?lan=TW&stkId=006208  標題: 申購買回清單 | 富邦投信ETF投資網
+    連結:  -> https://websys.fsit.com.tw/FubonETF/Trade/Pcf.aspx?lan=TW&stkId=006208#
+    連結:  -> https://websys.fsit.com.tw/FubonETF/Trade/Pcf.aspx?lan=TW&stkId=006208#
+    連結: 申購買回清單 -> https://websys.fsit.com.tw/FubonETF/Trade/Pcf.aspx
+    連結:  -> https://websys.fsit.com.tw/FubonETF/Trade/Pcf.aspx?lan=TW&stkId=006208#
+    連結: 富邦成員 -> https://websys.fsit.com.tw/FubonETF/Trade/Pcf.aspx?lan=TW&stkId=006208#
+    連結: 申購買回清單 -> https://websys.fsit.com.tw/FubonETF/Trade/Pcf.aspx
+    連結: En -> https://websys.fsit.com.tw/FubonETF/Trade/Pcf.aspx?lan=EN&stkId=006208
+    連結: 中文 -> https://websys.fsit.com.tw/FubonETF/Trade/Pcf.aspx?lan=TW&stkId=006208
+    連結: 台灣旗艦動能50 ETF基金
+      -> https://websys.fsit.com.tw/FubonETF/Trade/Pcf.aspx?stkId=009802&lan=TW
+    連結: 特選台灣高股息30 ETF基金
+     -> https://websys.fsit.com.tw/FubonETF/Trade/Pcf.aspx?stkId=00900&lan=TW
+    連結: 台灣核心半導體ETF基金 -> https://websys.fsit.com.tw/FubonETF/Trade/Pcf.aspx?stkId=00892&lan=TW
+    連結: 台灣淨零轉型ESG 50 ETF基金
+  -> https://websys.fsit.com.tw/FubonETF/Trade/Pcf.aspx?stkId=009809&lan=TW
+    連結: 臺灣中小A級動能50 ETF基金 -> https://websys.fsit.com.tw/FubonETF/Trade/Pcf.aspx?stkId=00733&lan=TW
+    連結: 道瓊臺灣優質高息30 ETF基金
+    -> https://websys.fsit.com.tw/FubonETF/Trade/Pcf.aspx?stkId=00730&lan=TW
+    連結: 臺灣公司治理100基金 -> https://websys.fsit.com.tw/FubonETF/Trade/Pcf.aspx?stkId=00692&lan=TW
+    連結: 台灣釆吉50基金
+            -> https://websys.fsit.com.tw/FubonETF/Trade/Pcf.aspx?stkId=006208&lan=TW
+    連結: 台灣摩根基金 -> https://websys.fsit.com.tw/FubonETF/Trade/Pcf.aspx?stkId=0057&lan=TW
+    連結: 台灣科技指數基金
+            -> https://websys.fsit.com.tw/FubonETF/Trade/Pcf.aspx?stkId=0052&lan=TW
+    連結: 標普美國特別股ETF基金 -> https://websys.fsit.com.tw/FubonETF/Trade/Pcf.aspx?stkId=00717&lan=TW
+    連結: 富時越南ETF基金 -> https://websys.fsit.com.tw/FubonETF/Trade/Pcf.aspx?stkId=00885&lan=TW
+    連結: 上証180基金 -> https://websys.fsit.com.tw/FubonETF/Trade/Pcf.aspx?stkId=006205&lan=TW
+    連結: 深証100基金 -> https://websys.fsit.com.tw/FubonETF/Trade/Pcf.aspx?stkId=00639&lan=TW
+    連結: 中國中証中小500 ETF基金 -> https://websys.fsit.com.tw/FubonETF/Trade/Pcf.aspx?stkId=00783&lan=TW
+    連結: 恒生國企ETF基金 -> https://websys.fsit.com.tw/FubonETF/Trade/Pcf.aspx?stkId=00700&lan=TW
+    連結: 日本東証基金
+              -> https://websys.fsit.com.tw/FubonETF/Trade/Pcf.aspx?stkId=00645&lan=TW
+    連結: 印度NIFTY基金 -> https://websys.fsit.com.tw/FubonETF/Trade/Pcf.aspx?stkId=00652&lan=TW
+    連結: 全球ESG綠色電力ETF基金 -> https://websys.fsit.com.tw/FubonETF/Trade/Pcf.aspx?stkId=00920&lan=TW
+    連結: 全球入息不動產與基礎建設ETF基金
+   -> https://websys.fsit.com.tw/FubonETF/Trade/Pcf.aspx?stkId=00908&lan=TW
+    連結: 元宇宙ETF基金 -> https://websys.fsit.com.tw/FubonETF/Trade/Pcf.aspx?stkId=00903&lan=TW
+    連結: 基因免疫生技ETF基金 -> https://websys.fsit.com.tw/FubonETF/Trade/Pcf.aspx?stkId=00897&lan=TW
+    連結: 未來車ETF基金 -> https://websys.fsit.com.tw/FubonETF/Trade/Pcf.aspx?stkId=00895&lan=TW
+    連結: NASDAQ-100基金 -> https://websys.fsit.com.tw/FubonETF/Trade/Pcf.aspx?stkId=00662&lan=TW
+    連結: 富時歐洲ETF基金 -> https://websys.fsit.com.tw/FubonETF/Trade/Pcf.aspx?stkId=00709&lan=TW
+    連結: 標普500 ETF基金
+         -> https://websys.fsit.com.tw/FubonETF/Trade/Pcf.aspx?stkId=009814&lan=TW
+    連結: 臺灣加權單日正向兩倍基金 -> https://websys.fsit.com.tw/FubonETF/Trade/Pcf.aspx?stkId=00675L&lan=TW
+    連結: 臺灣加權單日反向一倍基金 -> https://websys.fsit.com.tw/FubonETF/Trade/Pcf.aspx?stkId=00676R&lan=TW
+    連結: 上証180單日正向兩倍基金 -> https://websys.fsit.com.tw/FubonETF/Trade/Pcf.aspx?stkId=00633L&lan=TW
+    連結: 上証180單日反向一倍基金 -> https://websys.fsit.com.tw/FubonETF/Trade/Pcf.aspx?stkId=00634R&lan=TW
+    連結: 恒生國企單日正向兩倍基金 -> https://websys.fsit.com.tw/FubonETF/Trade/Pcf.aspx?stkId=00665L&lan=TW
+    連結: 恒生國企單日反向一倍基金 -> https://websys.fsit.com.tw/FubonETF/Trade/Pcf.aspx?stkId=00666R&lan=TW
+    連結: 日本東証單日正向兩倍基金
+        -> https://websys.fsit.com.tw/FubonETF/Trade/Pcf.aspx?stkId=00640L&lan=TW
+    連結: 日本東証單日反向一倍基金
+        -> https://websys.fsit.com.tw/FubonETF/Trade/Pcf.aspx?stkId=00641R&lan=TW
+    連結: 印度NIFTY單日正向兩倍基金 -> https://websys.fsit.com.tw/FubonETF/Trade/Pcf.aspx?stkId=00653L&lan=TW
+    連結: 印度NIFTY單日反向一倍基金 -> https://websys.fsit.com.tw/FubonETF/Trade/Pcf.aspx?stkId=00654R&lan=TW
+    連結: NASDAQ-100單日正向兩倍基金
+  -> https://websys.fsit.com.tw/FubonETF/Trade/Pcf.aspx?stkId=00670L&lan=TW
+    連結: NASDAQ-100單日反向一倍基金
+  -> https://websys.fsit.com.tw/FubonETF/Trade/Pcf.aspx?stkId=00671R&lan=TW
+    連結: 美國政府債券1-3年期基金 -> https://websys.fsit.com.tw/FubonETF/Trade/Pcf.aspx?stkId=00694B&lan=TW
+    連結: 美國政府債券7-10年期基金 -> https://websys.fsit.com.tw/FubonETF/Trade/Pcf.aspx?stkId=00695B&lan=TW
+    連結: 美國政府債券20年期以上基金 -> https://websys.fsit.com.tw/FubonETF/Trade/Pcf.aspx?stkId=00696B&lan=TW
+    連結: 中國以外新興市場美元5年以上投資等級債券 -> https://websys.fsit.com.tw/FubonETF/Trade/Pcf.aspx?stkId=00845B&lan=TW
+    連結: 彭博9-35年A級美元息收公司債券ETF -> https://websys.fsit.com.tw/FubonETF/Trade/Pcf.aspx?stkId=00746B&lan=TW
+    連結: 彭博10年期(以上)BBB美元息收公司債 -> https://websys.fsit.com.tw/FubonETF/Trade/Pcf.aspx?stkId=00740B&lan=TW
+    連結: 彭博優選1-5年非投資等級債券ETF基金 -> https://websys.fsit.com.tw/FubonETF/Trade/Pcf.aspx?stkId=00741B&lan=TW
+    連結: 彭博歐洲區美元7-15年期銀行債ETF基 -> https://websys.fsit.com.tw/FubonETF/Trade/Pcf.aspx?stkId=00846B&lan=TW
+    連結: 全球金融業10年以上美元投等債券ETF基 -> https://websys.fsit.com.tw/FubonETF/Trade/Pcf.aspx?stkId=00785B&lan=TW
+    連結: 環球動態入息投資級債主動式ETF基金
+  -> https://websys.fsit.com.tw/FubonETF/Trade/Pcf.aspx?stkId=00982D&lan=TW
+    連結: 環球複合優選收益債主動式ETF基金
+   -> https://websys.fsit.com.tw/FubonETF/Trade/Pcf.aspx?stkId=00983D&lan=TW
+    連結: 台灣龍耀主動式ETF基金
+        -> https://websys.fsit.com.tw/FubonETF/Trade/Pcf.aspx?stkId=00405A&lan=TW
+    連結: 申購買回清單 -> https://websys.fsit.com.tw/FubonETF/Trade/Pcf.aspx
+  XHR／文件請求 2 個：
+     200 GET https://websys.fsit.com.tw/FubonETF/Trade/Pcf.aspx?lan=TW&stkId=006208
+        resp='\r\n\r\n<!DOCTYPE html>\r\n\r\n<html lang="zh-TW" class="no-js">\r\n<head>\r\n    \r\n    <!-- Google Tag Manager -->\r\n    <script>(function (w, d, s, l, i) {\r\n            w[l] = w[l] || []; w[l].push({\r\n                \'gtm.start\':\r\n                    new Date().getTime(), event: \'gtm.js\'\r\n            }); var\r\n'
+     200 POST https://etrade.fsit.com.tw/asset-management/Json/GetComMadiaData
+        resp='{"contentText":"您即將離開『富邦投信官方網站』至第三方網站，如您進入非本公司網站，將不再適用本公司隱私權聲明之涵蓋範圍，建議您於提供個人資料前，應先行審閱該第三方網站之隱私權政策、聲明或相關條款。"}'
+  含成分股字樣的回應 0 個：
