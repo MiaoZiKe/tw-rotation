@@ -938,6 +938,108 @@ def tsit(codes: list[str]) -> pd.DataFrame:
     return _frame(rows)
 
 
+# ───────────────────────────────────────────── 大華銀（uobam.com.tw）
+# 2026-10-08 在 Actions 上實測：
+# - 官網只送葉憑證、沒附中繼憑證（Chunghwa Telecom GCC R46 OV TLS CA 2025），requests 用 certifi 驗不過。
+#   做法是把那張公開的中繼憑證（從葉憑證 AIA 欄位下載，存在 certs/uobam_intermediate.pem）接在 certifi 根憑證清單後面，
+#   給 verify= 用 —— 仍然完整驗證到 GlobalSign Root R46，**不是關掉驗證**。中繼憑證 2030-07 到期，到時候換一張。
+# - 前端（React，ServiceStack）背後：WebSiteStockListRequest 列出所有基金（resultP[].result[].fundID，ec001=3 是 ETF），
+#   WebSitePcfRequest?fundID=<內部ID>&pcfDate= 回申購買回清單：etf002＝代號、datadate＝/Date(毫秒+0800)/、
+#   result[]＝{kind: stock|bond|…, code, cName, qty:"301,361,380", weight:7.82}。代號直接看回應的 etf002，不用手寫對照表。
+UOB_BASE = "https://www.uobam.com.tw/json/reply/"
+UOB_KNOWN = {"88329556": "00918"}       # 實測過的一檔；清單 API 壞掉時至少還抓得到這檔
+_UOB_KEEP = ("stock", "bond")
+_uob_bundle_path: str | None = None
+
+
+def _uob_bundle() -> str:
+    """certifi 根憑證＋大華銀中繼憑證串成一個檔（放暫存區，不進 repo）。"""
+    global _uob_bundle_path
+    if _uob_bundle_path is None:
+        import os
+        import tempfile
+
+        import certifi
+        here = os.path.join(os.path.dirname(os.path.abspath(__file__)), "certs", "uobam_intermediate.pem")
+        fd, path = tempfile.mkstemp(suffix=".pem")
+        with os.fdopen(fd, "w") as f:
+            f.write(open(certifi.where(), encoding="utf-8").read() + "\n" + open(here, encoding="utf-8").read())
+        _uob_bundle_path = path
+    return _uob_bundle_path
+
+
+def _uob_get(op: str, params: dict) -> Any | None:
+    last = ""
+    for wait in (0, 3):
+        time.sleep(wait)
+        try:
+            r = http.session().get(UOB_BASE + op, params=params, timeout=TIMEOUT, verify=_uob_bundle())
+            if r.status_code != 200:
+                last = f"HTTP {r.status_code}：{_snip(r.text)}"
+                continue
+            try:
+                return r.json()
+            except ValueError:
+                last = f"不是 JSON：{_snip(r.text)}"
+                break
+        except Exception as exc:  # noqa: BLE001
+            last = str(exc)[:200]
+    log.warning("ETF PCF 大華銀 %s %s 失敗：%s", op, params, last)
+    return None
+
+
+def uob_fund_ids(payload: Any) -> list[str]:
+    """WebSiteStockListRequest 回應 → ETF 的內部 fundID（ec001=3）。"""
+    out: list[str] = []
+
+    def walk(o: Any) -> None:
+        if isinstance(o, dict):
+            if o.get("fundID") and str(o.get("ec001")) == "3":
+                out.append(str(o["fundID"]))
+            for v in o.values():
+                walk(v)
+        elif isinstance(o, list):
+            for v in o:
+                walk(v)
+    walk(payload)
+    return list(dict.fromkeys(out))
+
+
+def parse_uob(payload: Any) -> list[dict]:
+    if not isinstance(payload, dict):
+        return []
+    etf = str(payload.get("etf002") or "").strip()
+    day = _iso(payload.get("datadate") or payload.get("publish"))
+    out = []
+    for x in payload.get("result") or []:
+        if not isinstance(x, dict) or str(x.get("kind", "")).lower() not in _UOB_KEEP:
+            continue
+        code = str(x.get("code") or "").strip()
+        if not code:
+            continue
+        out.append({"date": day, "etf": etf, "code": code, "name": str(x.get("cName") or "").strip(),
+                    "weight": _num(x.get("weight")), "shares": _num(x.get("qty")), "issuer": "大華銀",
+                    "src": f"{UOB_BASE}WebSitePcfRequest?fundID={x.get('fundID') or ''}"})
+    return out if etf else []
+
+
+def uob() -> pd.DataFrame:
+    lst = _uob_get("WebSiteStockListRequest", {})
+    ids = uob_fund_ids(lst) if lst is not None else []
+    if lst is not None and not ids:
+        log.warning("大華銀 基金清單找不到 ETF（ec001=3）（前 200 字）：%s", _snip(lst))
+    ids = list(dict.fromkeys(ids + list(UOB_KNOWN)))
+    rows: list[dict] = []
+    for fid in ids:
+        time.sleep(0.5)                      # 節流：一家一輪十來檔，慢一點沒差
+        p = _uob_get("WebSitePcfRequest", {"fundID": fid, "pcfDate": ""})
+        got = parse_uob(p) if p is not None else []
+        if p is not None and not got:
+            log.info("大華銀 fundID=%s 沒有股票／債券成分（前 200 字）：%s", fid, _snip(p))
+        rows += got
+    return _frame(rows)
+
+
 # ───────────────────────────────────────────── 總入口
 ISSUER_PREFIX = {  # 從 ETF 簡稱判斷發行投信（給「哪些已接上／哪些沒接上」用）
     "元大": "元大", "國泰": "國泰", "群益": "群益", "富邦": "富邦", "統一": "統一", "凱基": "凱基", "大華": "大華銀",
@@ -947,12 +1049,11 @@ ISSUER_PREFIX = {  # 從 ETF 簡稱判斷發行投信（給「哪些已接上／
     "FT": "富蘭克林華美", "聯邦": "聯邦",   # FT＝富蘭克林華美（00899 全名「富蘭克林華美全球潔淨能源ETF」）
     "台灣": None,
 }
-CONNECTED = {"群益", "野村", "復華", "統一", "元大", "凱基", "國泰", "中國信託", "第一金", "聯博", "華南永昌", "富邦", "台新"}
+CONNECTED = {"大華銀", "群益", "野村", "復華", "統一", "元大", "凱基", "國泰", "中國信託", "第一金", "聯博", "華南永昌", "富邦", "台新"}
 # 還沒接上的投信 → 給讀者看的原因（前端成分股分頁照抄）。查證過程、關鍵字與來源在 docs/etf_holdings_coverage.md。
 # 寫「為什麼抓不到」而不是「尚未接上」：Andy 2026-10-07 問「為何有 ETF 沒有成分股」，答案要在畫面上。
 NOT_CONNECTED_WHY = {
     "兆豐": "兆豐投信官網擋雲端主機的連線（2026-10-07 實測回 403 Access Denied），自動排程抓不到，只能人工整理。",
-    "大華銀": "大華銀投信官網的 HTTPS 憑證鏈不完整（伺服器沒附中繼憑證），程式驗證憑證會失敗；在補上憑證前不關掉驗證硬抓。",
     "永豐": "永豐投信官網的 ETF 持股公告頁還沒找到可以穩定取用的位置（2026-10-07 查過官網首頁與 ETF 路徑都沒有）。",
     "玉山": "玉山投信（2026 年由保德信投信更名）新官網的申購買回清單位置還沒查到。",
     "貝萊德": "貝萊德官網在自動排程的主機上開頁逾時，持股頁還沒接上。",
@@ -985,6 +1086,7 @@ def fetch_all(etf_names: dict[str, str]) -> pd.DataFrame:
         ("第一金", fsitc), ("聯博", lambda: ab(sorted(by.get("聯博", [])))),
         ("華南永昌", lambda: hn(sorted(by.get("華南永昌", [])))),
         ("富邦", lambda: fubon(sorted(by.get("富邦", [])))),
+        ("大華銀", uob),
         ("台新", lambda: tsit(sorted(by.get("台新", []) + by.get("新光", [])))),
     ]
     frames = []
