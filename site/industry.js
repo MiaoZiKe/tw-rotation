@@ -141,6 +141,26 @@
        日期膠囊 —— 這份資料的交易日，只顯示、不能改。
      共用的工具（hmBin／hmItem／hmSeries／hmLegend／hmRelabel／hmTip）在 app.js，三張熱力圖同一套。*/
   let heatGroup = null, heatFocusT = null;
+  /* ★ 2026-10-07（Andy：「熱力圖版面放大 剛好切畫面」）：treemap 高度＝視窗高度扣掉它上緣（頁首＋卡片標題列）
+     與它下面那一截（圖例＋卡片內距），所以 1440×900 整張卡剛好一個畫面、不必捲；改視窗大小跟著重算。
+     · 用「文件座標」量上緣（rect.top＋scrollY）：使用者捲到一半再改視窗大小，算出來的高度也一樣。
+     · 下限 420px：手機與很矮的視窗不准壓扁（方塊字會全部被截掉）；手機 v3 照舊 560 的那一套高度不動以外，就是這個下限。
+     · 下面那一截（圖例＋內距）是量出來的，不寫死 —— 圖例換行（窄畫面）時也對。
+     · 只改容器的 min-height，ResizeObserver（chart() 掛的）會自己 resize；放大中（zoomed）不量，免得量到放大後的尺寸。*/
+  function fitHeat() {
+    const t = document.getElementById('indTree'), card = t && t.closest('.card');
+    if (!t || !card || !t.getClientRects().length) return;
+    const w = document.getElementById('indTreeWrap'); if (w && w.classList.contains('zoomed')) return;
+    const top = t.getBoundingClientRect().top + window.scrollY;
+    const below = card.getBoundingClientRect().bottom - t.getBoundingClientRect().bottom;
+    const h = Math.max(420, Math.floor(window.innerHeight - top - below - 8));
+    if (Math.abs((+t.dataset.fitH || 0) - h) < 2) return;
+    // 寫在 min-height：wheelZoom 放大／還原會改寫並清掉 #indTree 的 height（同 app.js fitThemeView 的理由）
+    t.dataset.fitH = h; t.style.minHeight = h + 'px';
+    const i = window.echarts && echarts.getInstanceByDom(t); if (i) i.resize();
+  }
+  let fitHeatT = 0;
+  window.addEventListener('resize', () => { clearTimeout(fitHeatT); fitHeatT = setTimeout(fitHeat, 120); });
   function renderHeat(im) {
     const el = document.getElementById('indHeat');
     if (!el) return;
@@ -195,6 +215,7 @@
     A.hmRelabel(c, valOf);
     A.hmLegend('indTree', 'chg', heatFocusT, (f) => { heatFocusT = f; renderHeat(im); });
     A.wheelZoom(document.getElementById('indTreeWrap'), { onZoom: () => { const i = window.echarts && echarts.getInstanceByDom(document.getElementById('indTree')); if (i) i.resize(); } });
+    fitHeat(); setTimeout(fitHeat, 300);   // 第二次：頁首、子分頁列在換頁那一刻可能還沒排好
     // 放大狀態下單擊延後判定，雙擊（還原）不會被當成點方塊而跳頁（審查 R4，見 app.js wheelZoom 的 defer）
     if (c) c.off('click').on('click', p => A.zoomClick(document.getElementById('indTreeWrap'), () => {
       // 手機 v3（≤640px）：沒有 hover，小方塊的字又被截掉 —— 先開抽屜給全名與數字，「族群 ›」再進去（桌機照舊直接進族群頁）
@@ -3954,7 +3975,7 @@
       <div class="card" style="margin-top:var(--gap-card)">
         <div class="row spread">
           <div><h2>${A.logo ? A.logo(code, known.name, 32, 'sklogo') : ''}${A.fmt.esc(known.name || '')} <span class="mono cyan">${code}</span>
-            <small class="muted" style="font-size:13px">${A.fmt.mkt(known.market)}</small></h2>
+            <small class="muted" style="font-size:13px">${A.fmt.mkt(known.market)}</small>${A.freqBadge ? A.freqBadge(code) : ''}</h2>
             <div class="row" style="gap:6px 12px;margin-top:4px;font-size:13.5px">
               <span class="muted">產業鏈</span>${A.L.chain(state.chain, chainName)}
               <span class="muted">族群</span>${gid ? A.L.group(gid, (mem && mem.group_name) || known.group) : '—'}
@@ -4096,7 +4117,7 @@
     el.innerHTML = `
       <div class="card" id="skChartCard" style="margin-top:var(--gap-card)">
         <div class="row spread" id="skHead">
-          <div id="skIdent"><h2>${A.logo ? A.logo(m.code, m.name, 32, 'sklogo') : ''}${A.fmt.esc(m.name)} <span class="mono cyan">${m.code}</span> <small class="muted" style="font-size:13px">${A.fmt.mkt(m.market)}</small></h2>
+          <div id="skIdent"><h2>${A.logo ? A.logo(m.code, m.name, 32, 'sklogo') : ''}${A.fmt.esc(m.name)} <span class="mono cyan">${m.code}</span> <small class="muted" style="font-size:13px">${A.fmt.mkt(m.market)}</small>${A.freqBadge ? A.freqBadge(m.code) : ''}</h2>
             <div class="row" id="skMeta" style="gap:6px 12px;margin-top:4px;font-size:13.5px"><span class="muted">產業鏈</span>${A.L.chain(state.chain, chainName)}<span class="muted">族群</span>${groupLinks || '—'}${themeLinks ? `<span class="muted">題材</span>${themeLinks}` : ''}</div>
             <!-- ★ 2026-10-02（Andy #stock/3189，DECISIONS #293）：現價列只留現價、漲跌、即時徽章與時間（徽章由 live.js 插在漲跌後面）；
                  技術分／本益比／同業分位／營收 YoY／分 K 完整五顆標籤搬到下面工具列（#skTags），左欄少一行。-->
@@ -5554,15 +5575,19 @@
     const s = document.createElement('style'); s.id = 'etfHoldCss';
     /* ★ 2026-10-07 Andy 17:30：「圓餅在左側、前十大要標示出來（照產業地圖成交值占比的圖例）、右邊清單版面太亂」。
        左＝A 款甜甜圈＋緊貼的圖例（沿用產業地圖 .gplegend：色塊｜名稱｜代號｜權重）；右＝清單（名稱｜權重橫條｜當日漲跌），高度跟左塊一致、內部捲動、表頭黏住。
-       < 1100 上下堆疊（甜甜圈＋圖例在上、清單在下）。 */
+       < 1100 上下堆疊（甜甜圈＋圖例在上、清單在下）。
+       ★ 2026-10-07 晚（Andy：「太擁擠了 右側清單可以縮窄，讓圖表空間更大」）：左右改 45 : 55（原本左塊只拿 max-content ≈ 490px），
+       甜甜圈 280 → 380（不超過左欄寬，aspect-ratio 保持正圓），圖例改到甜甜圈正下方排兩欄（原本 11 列擠在甜甜圈右邊一條窄欄）；
+       右側清單收窄：走勢 64 → 48、權重條 40 → 32、欄距 8 → 5。清單高度照舊跟左塊一致、內部捲動。 */
     s.textContent = `#etfHoldCard .hdhead{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin:0 0 12px}
 #etfHoldCard .hdhead h3{margin:0;min-width:0}
-#etfHoldCard .hdgrid{display:grid;grid-template-columns:max-content minmax(0,1fr);gap:24px;align-items:stretch}
-#etfHoldCard .hdleft{display:flex;flex-direction:row;align-items:center;justify-content:center;gap:16px;min-width:0}
-#etfHoldCard .hdpie{flex:none;width:280px;height:280px}
-#etfHoldCard .gplegend{--lg-row:26px;flex:none}
+#etfHoldCard .hdgrid{display:grid;grid-template-columns:minmax(0,45fr) minmax(0,55fr);gap:20px;align-items:stretch}
+#etfHoldCard .hdleft{display:flex;flex-direction:column;align-items:center;justify-content:flex-start;gap:12px;min-width:0}
+#etfHoldCard .hdpie{flex:none;width:380px;max-width:100%;aspect-ratio:1/1;height:auto}
+#etfHoldCard .gplegend{--lg-row:26px;flex:none;align-self:stretch;width:100%;box-sizing:border-box;grid-template-columns:12px minmax(0,1fr) max-content max-content 12px minmax(0,1fr) max-content max-content;column-gap:8px}
+#etfHoldCard .gplegend .lg{grid-column:span 4;column-gap:8px}
 #etfHoldCard .gplegend .lg .vl{font-size:12px;color:var(--ink-3)}
-#etfHoldCard .gplegend .lg .nm{color:inherit}
+#etfHoldCard .gplegend .lg .nm{color:inherit;padding-left:6px}
 #etfHoldCard .hdlist{position:relative;min-width:0;min-height:0}
 #etfHoldCard .hdlistin{position:absolute;inset:0;display:flex;flex-direction:column;min-height:0}
 #etfHoldCard .hdq{width:176px;box-sizing:border-box;margin:0;padding:4px 10px;border:1px solid var(--line);border-radius:8px;background:var(--panel);color:var(--ink);font-size:13px}
@@ -5576,11 +5601,12 @@
 #etfHoldCard td.nm .hdlogo{vertical-align:middle;margin-right:8px}
 #etfHoldCard td.nm .nmt{vertical-align:middle}
 #etfHoldCard td.nm .gp2{display:block;padding:0 0 3px 44px;font-size:11px;color:var(--ink-3);line-height:1.2;overflow:hidden;text-overflow:ellipsis}
-#etfHoldCard .sk{width:64px;text-align:center}
-#etfHoldCard td.sk .spkw{display:inline-flex;width:64px;height:20px;vertical-align:middle}
-#etfHoldCard td.px{width:76px}#etfHoldCard td.px .pv,#etfHoldCard td.px .pc{display:block;line-height:1.25}#etfHoldCard td.px .pc{font-size:11px}
-#etfHoldCard td.nm{padding-top:3px}#etfHoldCard th,#etfHoldCard td{padding-left:8px;padding-right:8px}
-#etfHoldCard td.iv{width:92px}
+#etfHoldCard .sk{width:48px;text-align:center}
+#etfHoldCard td.sk .spkw{display:inline-flex;width:48px;height:18px;vertical-align:middle}
+#etfHoldCard td.sk .spkw svg{width:48px;height:18px}
+#etfHoldCard td.px{width:68px}#etfHoldCard td.px .pv,#etfHoldCard td.px .pc{display:block;line-height:1.25}#etfHoldCard td.px .pc{font-size:11px}
+#etfHoldCard td.nm{padding-top:3px}#etfHoldCard th,#etfHoldCard td{padding-left:5px;padding-right:5px}
+#etfHoldCard td.iv{width:80px}
 #etfHoldCard td.nm .dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:8px;vertical-align:middle}
 #etfHoldCard td.nm .dot.no{background:transparent}
 #etfHoldCard td.nm .cd{color:var(--ink-3);font-size:12px;margin-left:6px}
@@ -5588,11 +5614,11 @@
 #etfHoldCard .mono{font-family:var(--mono)}
 #etfHoldCard tr.go{cursor:pointer}
 #etfHoldCard tr.go:hover td,#etfHoldCard tr.hi td{background:var(--panel-2)}
-#etfHoldCard td.wt{width:112px;text-align:left}
+#etfHoldCard td.wt{width:96px;text-align:left}
 #etfHoldCard th:last-child{text-align:left}
-#etfHoldCard .wtr{display:inline-block;width:40px;vertical-align:middle}
+#etfHoldCard .wtr{display:inline-block;width:32px;vertical-align:middle}
 #etfHoldCard .wbar{display:block;height:6px;border-radius:3px}
-#etfHoldCard td.wt .wv{margin-left:8px}
+#etfHoldCard td.wt .wv{margin-left:4px}
 #etfHoldCard .wv{display:inline-block;min-width:3.6em;text-align:right}
 #etfHoldCard tr.hdsep td{height:24px;padding:0 10px;text-align:left;font-size:12px;color:var(--ink-3);background:var(--panel-2);border-top:1px solid var(--line-2,var(--line))}
 #etfHoldCard .hdasof{color:var(--ink-3);font-size:12px;font-weight:400;margin-left:8px}
@@ -5600,7 +5626,7 @@
 #etfHoldCard .hdnote b{color:var(--ink)}
 @media (max-width:1099px){#etfHoldCard .hdgrid{grid-template-columns:minmax(0,1fr);gap:16px}
 #etfHoldCard .hdlist{min-height:0}#etfHoldCard .hdlistin{position:static}#etfHoldCard .hdscroll{max-height:420px}}
-@media (max-width:640px){#etfHoldCard .hdleft{flex-direction:column;gap:8px}#etfHoldCard .hdpie{width:260px;height:260px}#etfHoldCard .hdq{width:100%}#etfHoldCard .hdhead{align-items:stretch}#etfHoldCard .sk{display:none}#etfHoldCard .wtr{display:none}#etfHoldCard td.wt{width:56px}#etfHoldCard td.wt .wv{margin-left:0;min-width:0}#etfHoldCard td.px{width:auto}#etfHoldCard td.nm{width:44%}#etfHoldCard td.px .pv,#etfHoldCard td.px .pc{display:block;margin:0;line-height:1.25}#etfHoldCard td.px .pc{font-size:11px}#etfHoldCard td.iv{width:auto;font-size:12px}#etfHoldCard th,#etfHoldCard td{padding-left:6px;padding-right:6px}#etfHoldCard .gplegend .lg{height:30px}#etfHoldCard .gplegend{width:100%}}`;
+@media (max-width:640px){#etfHoldCard .hdleft{flex-direction:column;gap:8px}#etfHoldCard .hdpie{width:260px;height:260px}#etfHoldCard .gplegend{grid-template-columns:12px minmax(0,1fr) max-content max-content}#etfHoldCard .gplegend .lg{grid-column:1/-1}#etfHoldCard .hdq{width:100%}#etfHoldCard .hdhead{align-items:stretch}#etfHoldCard .sk{display:none}#etfHoldCard .wtr{display:none}#etfHoldCard td.wt{width:56px}#etfHoldCard td.wt .wv{margin-left:0;min-width:0}#etfHoldCard td.px{width:auto}#etfHoldCard td.nm{width:44%}#etfHoldCard td.px .pv,#etfHoldCard td.px .pc{display:block;margin:0;line-height:1.25}#etfHoldCard td.px .pc{font-size:11px}#etfHoldCard td.iv{width:auto;font-size:12px}#etfHoldCard th,#etfHoldCard td{padding-left:6px;padding-right:6px}#etfHoldCard .gplegend .lg{height:30px}#etfHoldCard .gplegend{width:100%}}`;
     document.head.appendChild(s);
   }
   async function tabHoldings(pg, el) {
@@ -5668,10 +5694,10 @@
             + (tw && A.logo ? A.logo(c, nm, 20, 'hdlogo') : `<span class="slogo hdlogo nolg" data-l="${A.fmt.esc(Array.from(String(nm || '?'))[0])}" style="--lg:#4d5b73;--lz:20px" aria-hidden="true"></span>`)
             + `<span class="nmt">${go ? `<a href="#stock/${A.fmt.esc(c)}">${A.fmt.esc(nm)}</a>` : A.fmt.esc(nm)}<span class="cd mono">${A.fmt.esc(c || '')}</span></span>`
             + `<span class="gp2">${A.fmt.esc(gp || '—')}</span></td>`
-            + `<td class="sk">${tw && A.sparkSVG ? `<span class="spkw" data-spk="${A.fmt.esc(c)}" data-w="64" data-h="20">${A.sparkSVG(c, { w: 64, h: 20 })}</span>` : '<span class="muted">—</span>'}</td>`
+            + `<td class="sk">${tw && A.sparkSVG ? `<span class="spkw" data-spk="${A.fmt.esc(c)}" data-w="48" data-h="18">${A.sparkSVG(c, { w: 48, h: 18 })}</span>` : '<span class="muted">—</span>'}</td>`
             + `<td class="mono px">${px == null ? '<span class="muted">—</span>' : `<span class="pv">${A.fmt.n(px, px >= 1000 ? 0 : 2)}</span><span class="pc ${ch == null ? 'muted' : A.fmt.cls(ch)}">${ch == null ? '—' : A.fmt.pct(ch)}</span>`}</td>`
             + `<td class="mono iv ${iv == null ? 'muted' : A.fmt.cls(iv)}">${iv == null ? '—' : `${iv > 0 ? '+' : ''}${A.fmt.i(iv)} 張`}</td>`
-            + `<td class="mono wt"><span class="wtr"><i class="wbar" style="width:${Math.max(2, Math.round(x.w / maxW * 38))}px;background:${isTop ? topCol(i) : 'color-mix(in srgb,var(--ink-3) 45%,transparent)'}"></i></span><span class="wv">${A.fmt.n(x.w, 2)}%</span></td></tr>`; }).join('')}
+            + `<td class="mono wt"><span class="wtr"><i class="wbar" style="width:${Math.max(2, Math.round(x.w / maxW * 30))}px;background:${isTop ? topCol(i) : 'color-mix(in srgb,var(--ink-3) 45%,transparent)'}"></i></span><span class="wv">${A.fmt.n(x.w, 2)}%</span></td></tr>`; }).join('')}
         </tbody></table></div></div></div></div>`;
     const parts = top.map(x => ({ name: shortName(x), value: x.w, code: x.code }));
     if (restSum > 0.005) parts.push({ name: '其他', value: restSum, isOther: true, hint: `其餘 ${rest.length} 檔` });
@@ -6203,8 +6229,14 @@
     const etf = isEtf(pg.meta && pg.meta.code);
     // ETF：不放基本面卡（EPS／ROE／毛利率）與 AI 分析（含基本面一面），只留籌碼快照與技術面訊號
     const right = !etf && AI && AI.ovCard ? AI.ovCard(pg, A.fmt, sig) : (sig ? `<div class="skfacets" id="ovFacets" data-n="1">${sig}</div>` : '');
-    el.innerHTML = `<div class="skov" id="skOv"><div class="skov3" id="skOv3" data-cols="${right ? 3 : 2}">
-      <div class="skovkpi">${etf ? '' : fundCard(pg)}${chipCard(pg)}</div>${right}</div></div>`;
+    /* ★ 2026-10-07（Andy 看 00919「總覽」：「這樣右邊不要空白 讓他填滿 可以將上下欄位便左右 適當調整」）：
+       ETF 沒有基本面卡與 AI 卡，原本落進三欄版面只剩兩張 —— 籌碼快照（617px 高）｜技術面訊號（一排標籤，下面大片空白）｜第三欄空著。
+       改成 data-cols="etf"：技術面訊號放上面當一條橫跨整列的訊號列（標籤橫排、本來就只有一兩行），
+       籌碼快照放下面滿寬、卡內四塊分左右兩欄（左＝法人、集保；右＝信用與借券（含當沖率）、量比），高度約減半、沒有空白。
+       容器 < 790px（視窗約 ≤ 820、手機）退回單欄依序往下。CSS 在 index.html（.skov3[data-cols="etf"]）。*/
+    const cols = etf ? 'etf' : (right ? 3 : 2);
+    el.innerHTML = `<div class="skov" id="skOv"><div class="skov3" id="skOv3" data-cols="${cols}">
+      ${etf ? right : ''}<div class="skovkpi">${etf ? '' : fundCard(pg)}${chipCard(pg)}</div>${etf ? '' : right}</div></div>`;
     if (etf) return;
     if (AI && AI.bindOverview) AI.bindOverview(el);
   }

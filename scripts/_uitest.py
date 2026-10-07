@@ -25842,6 +25842,8 @@ SECTIONS = {
     # ★ 2026-10-06 Andy：「全站長條改用管理區配色」＋18:05「兩端 A 小圓角 3px」（DECISIONS #338）——
     "長條風格1006":        lambda pg, b, base, code: t_bar_style_1006(pg, base, code, b),
     "圓餅風格1006":        lambda pg, b, base, code: (t_pie_style_1006(pg, base, code), t_pie_admin_1006(b, base)),
+    # ★ 2026-10-07 Andy：熱力圖剛好一屏、題材選了剖析圖不跳走、ETF 成分股甜甜圈放大、ETF 配息頻率徽章、ETF 總覽兩欄
+    "版面貼齊1007":        lambda pg, b, base, code: t_layout_fit_1007(pg, base),
 }
 SECTION_NAMES = list(SECTIONS)
 
@@ -57401,6 +57403,120 @@ def t_bar_style_1006(pg, base, code, b=None):
                      fill: btI && btI.backgroundImage.slice(0, 60) }; }""")
         ok(f"★ {T0} 管理區手刻長條圓角＝3px（底軌 {m['bt']}、填色 {m['btI']}、堆疊 {m['stk']}、直條上緣 {m['dayTop']}）、粗 {m['h']}px＝10", m["bt"] == "3px" and m["stk"] == "3px" and m["dayTop"] == "3px" and m["h"] == 10, m)
         c.close()
+
+# ★ 2026-10-07 Andy 五件版面：
+#   ①「熱力圖版面放大 剛好切畫面」②「題材…選題材後剛好符合畫面，以及不會跳到下方 2D 圖」
+#   ③ ETF 成分股「右側清單可以縮窄，讓圖表空間更大」④「只要是 ETF 名稱旁邊都著名 月 雙月 季 年 無配息」
+#   ⑤ ETF 總覽「右邊不要空白 讓他填滿 可以將上下欄位便左右」
+#   每一項都量「真的尺寸／真的位置」，題材那項是真的用滑鼠點熱力圖上的方塊。
+LF_RECT = """(s) => { const e = document.querySelector(s); if (!e) return null; const r = e.getBoundingClientRect();
+    return { top: Math.round(r.top), bottom: Math.round(r.bottom), w: Math.round(r.width), h: Math.round(r.height) }; }"""
+
+
+def t_layout_fit_1007(pg, base):
+    T0 = "版面貼齊1007"
+    vp0 = pg.viewport_size
+    try:
+        pg.set_viewport_size({"width": 1440, "height": 900})
+        # ① 熱力圖「產業」：整張卡一個畫面、treemap ≥ 650
+        pg.goto("about:blank"); pg.goto(f"{base}#heatmap", wait_until="domcontentloaded")
+        wait_until(pg, "() => { const e = document.getElementById('indTree'); return !!e && e.getBoundingClientRect().height > 600; }", 15000)
+        pg.wait_for_timeout(800)
+        card, tree = pg.evaluate(LF_RECT, "#indHeat .card"), pg.evaluate(LF_RECT, "#indTree")
+        ok(f"★ {T0} 1440×900 產業熱力卡底 ≤ 900（{card and card['bottom']}）", bool(card) and card["bottom"] <= 900, card)
+        ok(f"★ {T0} 1440×900 產業熱力圖高 ≥ 650（{tree and tree['h']}）", bool(tree) and tree["h"] >= 650, tree)
+        # 改視窗大小要跟著重算：拉高到 1100 → 圖要變高、卡底仍 ≤ 1100
+        pg.set_viewport_size({"width": 1440, "height": 1100}); pg.wait_for_timeout(700)
+        card2, tree2 = pg.evaluate(LF_RECT, "#indHeat .card"), pg.evaluate(LF_RECT, "#indTree")
+        ok(f"★ {T0} 視窗 900 → 1100 熱力圖跟著變高（{tree['h']} → {tree2 and tree2['h']}）、卡底 ≤ 1100",
+           bool(tree2) and tree2["h"] >= tree["h"] + 150 and card2["bottom"] <= 1100, (tree, tree2, card2))
+        pg.set_viewport_size({"width": 1440, "height": 900}); pg.wait_for_timeout(500)
+
+        # ② 題材：真的點一塊有剖析圖的方塊 → 剖析圖整張落在畫面內、scrollY 不變
+        pg.goto("about:blank"); pg.goto(f"{base}#heatmap/theme", wait_until="domcontentloaded")
+        wait_until(pg, "() => { const e = document.getElementById('themeMap'); return !!e && !!window.echarts && !!echarts.getInstanceByDom(e) && !!window.ThemeDiagrams; }", 15000)
+        pg.wait_for_timeout(1500)
+        pos = pg.evaluate("""() => { const el = document.getElementById('themeMap'), i = echarts.getInstanceByDom(el), v = i.getModel().getSeriesByIndex(0).getData();
+            const r = el.getBoundingClientRect();
+            for (let k = 0; k < v.count(); k++) { const l = v.getItemLayout(k), it = v.getRawDataItem(k);
+              if (l && it && it.id && window.ThemeDiagrams[it.id] && l.width > 50 && l.height > 26) return { x: r.left + l.x + l.width / 2, y: r.top + l.y + l.height / 2, id: it.id }; }
+            return null; }""")
+        ok(f"{T0} 題材熱力圖上找得到一塊有剖析圖的方塊可以點", bool(pos), pos)
+        if pos:
+            sy0 = pg.evaluate("scrollY")
+            pg.mouse.click(pos["x"], pos["y"])
+            wait_until(pg, "() => !!document.querySelector('#themeDiagram svg')", 8000)
+            pg.wait_for_timeout(1500)
+            sy1 = pg.evaluate("scrollY")
+            dg = pg.evaluate(LF_RECT, "#themeDiagram")
+            mp = pg.evaluate(LF_RECT, "#themeMap")
+            ok(f"★ {T0} 點題材「{pos['id']}」後網址換成 #heatmap/theme/{pos['id']}", pg.evaluate("location.hash") == f"#heatmap/theme/{pos['id']}", pg.evaluate("location.hash"))
+            ok(f"★ {T0} 點題材後剖析圖頂端與底端都在畫面內（{dg}）", bool(dg) and dg["top"] >= 0 and dg["bottom"] <= 900, dg)
+            ok(f"★ {T0} 點題材後頁面沒有自己捲動（scrollY {sy0} → {sy1}）", sy0 == sy1, (sy0, sy1))
+            ok(f"{T0} 題材熱力圖仍在畫面內、高 ≥ 180（{mp}）", bool(mp) and mp["top"] >= 0 and mp["h"] >= 180, mp)
+            k = pg.evaluate("() => +(document.getElementById('themeDiagram').dataset.fitk || 1)")
+            ok(f"{T0} 剖析圖縮放倍率 ≥ 11/12（字不低於 11px，實際 {k}）", k >= 11 / 12 - 1e-3, k)
+
+        # ③ ETF 成分股：甜甜圈 ≥ 舊版 280px 的 1.3 倍、左塊 ≥ 卡寬 40%
+        pg.goto("about:blank"); pg.goto(f"{base}#stock/0050", wait_until="domcontentloaded")
+        wait_until(pg, "() => !!document.querySelector('#stockTabs button[data-t=holdings]')", 15000)
+        pg.click("#stockTabs button[data-t=holdings]")
+        wait_until(pg, "() => { const c = document.getElementById('etfHoldCard'); return !!c && !!c.dataset.state; }", 10000)
+        st = pg.evaluate("() => document.getElementById('etfHoldCard').dataset.state")
+        if st == "ok":
+            pie, left, lst = (pg.evaluate(LF_RECT, s) for s in ("#etfHoldPie", "#etfHoldCard .hdleft", "#etfHoldCard .hdlist"))
+            ok(f"★ {T0} 0050 成分股甜甜圈寬 ≥ 364（舊版 280 × 1.3，實際 {pie and pie['w']}）", bool(pie) and pie["w"] >= 364, pie)
+            ok(f"{T0} 0050 左塊（甜甜圈＋圖例）≥ 左右合計的 40%（{left['w']}／{left['w'] + lst['w']}）", left["w"] >= 0.4 * (left["w"] + lst["w"]), (left, lst))
+            lg = pg.evaluate("() => { const r = [...document.querySelectorAll('#etfHoldLegend .lg')].map(e => Math.round(e.getBoundingClientRect().left)); return new Set(r).size; }")
+            ok(f"{T0} 0050 圖例排成兩欄（不同左緣數 {lg}）", lg == 2, lg)
+        else:
+            notes.append(f"{T0}：本機 etf_holdings.json 沒有 0050（state={st}），成分股那兩條沒量")
+
+        # ⑤ ETF 總覽：技術面訊號在上面滿寬一條、籌碼快照兩欄，沒有大空白
+        pg.goto("about:blank"); pg.goto(f"{base}#stock/00919", wait_until="domcontentloaded")
+        wait_until(pg, "() => !!document.getElementById('skChipCard') && !!document.getElementById('ovFacets')", 15000)
+        pg.wait_for_timeout(800)
+        m = pg.evaluate("""() => { const R = (e) => e.getBoundingClientRect();
+            const sg = document.getElementById('ovFacets'), sc = sg.querySelector('.card') || sg, ch = document.getElementById('skChipCard');
+            const kids = [...ch.querySelectorAll('.mixes > *')].map(R);
+            const lefts = [...new Set(kids.map(r => Math.round(r.left)))].sort((a, b) => a - b);
+            const colH = lefts.map(l => { const k = kids.filter(r => Math.round(r.left) === l); return Math.max(...k.map(r => r.bottom)) - Math.min(...k.map(r => r.top)); });
+            // 卡的內容高＝第一個看得見的子元素頂到最後一個的底；跟「卡高扣掉上下內距」比（內距不是空白）
+            const vis = [...sc.children].filter(e => e.getClientRects().length && R(e).height > 0);
+            const cs = getComputedStyle(sc), pad = parseFloat(cs.paddingTop) + parseFloat(cs.paddingBottom) + parseFloat(cs.borderTopWidth) + parseFloat(cs.borderBottomWidth);
+            const inner = vis.length ? (Math.max(...vis.map(e => R(e).bottom)) - Math.min(...vis.map(e => R(e).top))) / Math.max(1, R(sc).height - pad) * R(sc).height : 0;
+            return { sigW: Math.round(R(sc).width), chipW: Math.round(R(ch).width), sigH: Math.round(R(sc).height), sigInner: Math.round(inner),
+                     sigBottom: Math.round(R(sc).bottom), chipTop: Math.round(R(ch).top), cols: lefts.length, colH: colH.map(Math.round) }; }""")
+        ok(f"★ {T0} 00919 總覽：技術面訊號在籌碼快照上面、同寬（{m['sigW']} vs {m['chipW']}）", m["sigBottom"] <= m["chipTop"] and abs(m["sigW"] - m["chipW"]) <= 4, m)
+        ok(f"★ {T0} 00919 總覽：技術面訊號卡內容高 ≥ 卡高 70%（{m['sigInner']}／{m['sigH']}）", m["sigInner"] >= 0.7 * m["sigH"], m)
+        ok(f"★ {T0} 00919 總覽：籌碼快照分兩欄、兩欄高度差 ≤ 25%（{m['colH']}）",
+           m["cols"] == 2 and min(m["colH"]) >= 0.75 * max(m["colH"]), m)
+        pg.set_viewport_size({"width": 800, "height": 900}); pg.wait_for_timeout(800)
+        c8 = pg.evaluate("() => new Set([...document.querySelectorAll('#skChipCard .mixes > *')].map(e => Math.round(e.getBoundingClientRect().left))).size")
+        ok(f"{T0} 800 寬籌碼快照退回單欄（{c8}）", c8 == 1, c8)
+        pg.set_viewport_size({"width": 1440, "height": 900})
+
+        # ④ 配息頻率徽章：00919／0050 有（文字＝etf.json 的 freq）、2330 沒有；搜尋下拉也有
+        for code in ("00919", "0050", "2330"):
+            pg.goto("about:blank"); pg.goto(f"{base}#stock/{code}", wait_until="domcontentloaded")
+            wait_until(pg, "() => !!document.getElementById('skIdent')", 15000); pg.wait_for_timeout(1200)
+            want = pg.evaluate("""async (c) => { const e = await (await fetch('data/etf.json')).json(); const x = (e.items || []).find(i => i.code === c);
+                const K = ['月配', '雙月配', '季配', '半年配', '年配', '不配息']; return x && K.includes(x.freq) ? x.freq : ''; }""", code)
+            got = pg.evaluate("() => [...document.querySelectorAll('#skIdent .fqbdg')].map(e => e.textContent.trim())")
+            if code == "2330":
+                ok(f"★ {T0} 一般個股 2330 標題列沒有配息徽章（{got}）", got == [], got)
+            else:
+                ok(f"★ {T0} {code} 標題列有配息徽章「{want}」（實際 {got}）", bool(want) and got == [want], (want, got))
+        pg.goto("about:blank"); pg.goto(f"{base}#overview", wait_until="domcontentloaded")
+        wait_until(pg, "() => !!document.getElementById('q')", 15000); pg.wait_for_timeout(800)
+        pg.click("#q"); pg.keyboard.type("00919"); pg.wait_for_timeout(1500)
+        sb = pg.evaluate("() => { const r = document.querySelector('#sugg .sgrow[data-c=\"00919\"]'); return r ? [...r.querySelectorAll('.fqbdg')].map(e => e.textContent.trim()) : null; }")
+        ok(f"★ {T0} 搜尋下拉 00919 那一列有配息徽章（{sb}）", bool(sb), sb)
+        pg.keyboard.press("Escape")
+    finally:
+        if vp0:
+            pg.set_viewport_size(vp0)
+
 
 if __name__ == "__main__":
     raise SystemExit(main())
