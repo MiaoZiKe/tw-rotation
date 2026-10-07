@@ -794,7 +794,9 @@ def hn(codes: list[str]) -> pd.DataFrame:
     rows: list[dict] = []
     try:
         s = http.session()
-        tok = s.post(HN_API + "Auth/SysLogin", timeout=TIMEOUT)
+        # client_id 放在標頭（官網前端寫死的公開用戶端 WFPAPIPublicClient，2026-10-07 真瀏覽器記下的請求標頭）；
+        # 少了它會回 200 但 access_token=null、Message="Wrong client id!"。
+        tok = s.post(HN_API + "Auth/SysLogin", headers={"client_id": "WFPAPIPublicClient"}, timeout=TIMEOUT)
         token = tok.json().get("access_token") if tok.status_code == 200 else None
         if not token:
             log.warning("華南永昌 SysLogin 拿不到 token：HTTP %s %s", tok.status_code, _snip(tok.text))
@@ -816,6 +818,55 @@ def hn(codes: list[str]) -> pd.DataFrame:
     return _frame(rows)
 
 
+# ───────────────────────────────────────────── 富邦（websys.fsit.com.tw）
+# 10-07 早上以為「Pcf.aspx 的 HTML 與 XHR 都找不到成分股」—— 其實 PCF 頁只有申購基數與總價金，
+# 成分在同頁「基金資產」按鈕連過去的 Trade/Assets.aspx?stkId=<代號>&lan=TW（伺服器端渲染，不用 API）：
+# 「資料日期：2026/10/06」＋ 每個資產類別一個 <h6>股票|債券|期貨|附買回債券</h6> 加一張表，
+# 列＝[代碼, 名稱, 股數／面額／口數, 金額, 權重(%)]。股票、債券都收（債券照 Andy 的要求顯示名稱＋權重），期貨與附買回不算成分。
+FUBON_ASSETS = "https://websys.fsit.com.tw/FubonETF/Trade/Assets.aspx"
+_FUBON_KEEP = ("股票", "債券")
+
+
+def _cells(tr: str) -> list[str]:
+    return [_html.unescape(re.sub(r"<[^>]+>", "", c)).strip() for c in re.findall(r"<td[^>]*>(.*?)</td>", tr, re.S)]
+
+
+def parse_fubon(etf: str, page: str) -> list[dict]:
+    if not isinstance(page, str):
+        return []
+    m = re.search(r"資料日期[：:]\s*(\d{4}/\d{1,2}/\d{1,2})", page)
+    day = _iso(m.group(1)) if m else None
+    out = []
+    parts = re.split(r"<h6[^>]*>\s*([^<]+?)\s*</h6>", page)
+    for i in range(1, len(parts) - 1, 2):
+        kind, body = parts[i], parts[i + 1]
+        if kind not in _FUBON_KEEP:            # 期貨、附買回債券、現金…
+            continue
+        tb = re.search(r"<table.*?</table>", body, re.S)
+        if not tb:
+            continue
+        for tr in re.findall(r"<tr[^>]*>(.*?)</tr>", tb.group(0), re.S)[1:]:   # 第一列是表頭
+            c = _cells(tr)
+            if len(c) < 5 or not c[0]:
+                continue
+            out.append({"date": day, "etf": etf, "code": c[0], "name": c[1], "weight": _num(c[4]), "shares": _num(c[2]),
+                        "issuer": "富邦", "src": f"{FUBON_ASSETS}?stkId={etf}&lan=TW"})
+    return out
+
+
+def fubon(codes: list[str]) -> pd.DataFrame:
+    rows: list[dict] = []
+    for c in codes:
+        if re.search(r"[LR]$", c):              # 槓桿／反向：資產是期貨，沒有成分可列
+            continue
+        page = _req("GET", FUBON_ASSETS, params={"stkId": c, "lan": "TW"}, expect="text")
+        got = parse_fubon(c, page) if page else []
+        if page and not got and "期貨" not in page:
+            log.warning("富邦 %s 解析不到股票／債券表（前 200 字）：%s", c, _snip(page))
+        rows += got
+    return _frame(rows)
+
+
 # ───────────────────────────────────────────── 總入口
 ISSUER_PREFIX = {  # 從 ETF 簡稱判斷發行投信（給「哪些已接上／哪些沒接上」用）
     "元大": "元大", "國泰": "國泰", "群益": "群益", "富邦": "富邦", "統一": "統一", "凱基": "凱基", "大華": "大華銀",
@@ -824,7 +875,7 @@ ISSUER_PREFIX = {  # 從 ETF 簡稱判斷發行投信（給「哪些已接上／
     "華南永昌": "華南永昌", "貝萊德": "貝萊德", "宏利": "宏利", "路博邁": "路博邁", "富達": "富達", "柏瑞": "柏瑞", "保德信": "保德信",
     "台灣": None,
 }
-CONNECTED = {"群益", "野村", "復華", "統一", "元大", "凱基", "國泰", "中國信託", "第一金", "聯博", "華南永昌"}
+CONNECTED = {"群益", "野村", "復華", "統一", "元大", "凱基", "國泰", "中國信託", "第一金", "聯博", "華南永昌", "富邦"}
 
 
 def issuer_of(name: str) -> str | None:
@@ -847,6 +898,7 @@ def fetch_all(etf_names: dict[str, str]) -> pd.DataFrame:
         ("元大", lambda: yuanta(sorted(by.get("元大", [])))),
         ("第一金", fsitc), ("聯博", lambda: ab(sorted(by.get("聯博", [])))),
         ("華南永昌", lambda: hn(sorted(by.get("華南永昌", [])))),
+        ("富邦", lambda: fubon(sorted(by.get("富邦", [])))),
     ]
     frames = []
     for name, fn in jobs:

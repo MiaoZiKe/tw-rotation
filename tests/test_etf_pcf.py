@@ -88,7 +88,7 @@ def test_fetch_all_one_issuer_crash_does_not_kill_others(monkeypatch):
     monkeypatch.setattr(etf_pcf, "capital", lambda: (_ for _ in ()).throw(RuntimeError("boom")))
     ok = pd.DataFrame([{"date": "2026-10-06", "etf": "00935", "code": "2330", "name": "台積電", "weight": 23.6, "shares": 1.0,
                         "issuer": "野村", "src": "u"}])
-    for fn in ("fuhhwa", "uni", "cathay", "yuanta", "ctbc", "fsitc", "ab", "hn"):
+    for fn in ("fuhhwa", "uni", "cathay", "yuanta", "ctbc", "fsitc", "ab", "hn", "fubon"):
         monkeypatch.setattr(etf_pcf, fn, lambda *a, **k: pd.DataFrame(columns=etf_pcf.COLS))
     monkeypatch.setattr(etf_pcf, "kgi", lambda *a, **k: pd.DataFrame(columns=etf_pcf.COLS))
     monkeypatch.setattr(etf_pcf, "nomura", lambda codes: ok)
@@ -197,3 +197,22 @@ def test_hn_login_failure_returns_empty(monkeypatch, caplog):
         df = etf_pcf.hn(["009808"])
     assert df.empty and list(df.columns) == etf_pcf.COLS
     assert any("maintenance" in m for m in caplog.messages)
+
+
+FUBON_PAGE = """<div class="mb40"><p class="f13 txt_black_A5A5">  資料日期：2026/10/06  </p></div>
+<h6 class="mb20">股票</h6><div><table class="table1"><tbody>
+<tr class="title"><td class="tac">股票代碼</td><td>股票名稱</td><td>股數</td><td>金額</td><td>權重(%)</td></tr>
+<tr><td class="tac">2330</td><td>台積電</td><td class="tar">108,282,064</td><td class="tar">279,909,135,440</td><td class="tar">56.5342</td></tr>
+</tbody></table></div>
+<h6 class="mb20">期貨</h6><div><table><tbody><tr class="title"><td>期貨代碼</td><td>期貨名稱</td><td>口數</td><td>金額</td><td>權重(%)</td></tr>
+<tr><td>TXF</td><td>台指期</td><td>10</td><td>1</td><td>0.5</td></tr></tbody></table></div>
+<h6 class="mb20">債券</h6><div><table><tbody><tr class="title"><td>債券代碼</td><td>債券名稱</td><td>面額</td><td>金額</td><td>權重(%)</td></tr>
+<tr><td>US912810TM09</td><td>T 4 &amp; 3/4 11/15/53</td><td>1,000,000</td><td>1</td><td>3.21</td></tr></tbody></table></div>"""
+
+
+def test_fubon_assets_page_stock_and_bond_not_futures():
+    r = etf_pcf.parse_fubon("006208", FUBON_PAGE)
+    assert [x["code"] for x in r] == ["2330", "US912810TM09"]
+    assert (r[0]["date"], r[0]["weight"], r[0]["shares"], r[0]["issuer"]) == ("2026-10-06", 56.5342, 108282064.0, "富邦")
+    assert r[1]["name"] == "T 4 & 3/4 11/15/53"
+    assert etf_pcf.parse_fubon("X", "<html>改版了</html>") == [] and etf_pcf.parse_fubon("X", None) == []
