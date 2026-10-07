@@ -47,6 +47,10 @@ for i, a in enumerate(sys.argv[1:]):
         # 用 ~ 分隔的版本：正規式裡常需要 |（多選一），舊的 GREP| 寫法會被切壞
         _, pat, u = a.split("~", 2)
         CANDS.append((f"grep-{i}", "GREP", u, pat))
+    elif a.startswith("FORM~"):
+        # 表單 POST（application/x-www-form-urlencoded）：FORM~網址~k=v&k=v，印回應裡 2330／台積電前後文
+        _, u, b = a.split("~", 2)
+        CANDS.append((f"form-{i}", "FORM", u, b))
     elif a.startswith("GREP|"):
         _, pat, u = a.split("|", 2)
         CANDS.append((f"grep-{i}", "GREP", u, pat))
@@ -68,6 +72,15 @@ for tag, m, url, body in CANDS:
             print(f"  HTTP {r.status_code}  bytes={len(r.content)}")
             for mm in list(re.finditer(body, r.text))[:25]:
                 print("   >>", r.text[max(0, mm.start() - 250):mm.end() + 350].replace("\n", " "))
+            continue
+        if m == "FORM":
+            from urllib.parse import parse_qsl
+            r = requests.post(url, data=dict(parse_qsl(body)), headers={"User-Agent": UA}, timeout=30)
+            t = r.text
+            print(f"  HTTP {r.status_code}  bytes={len(r.content)}")
+            for kw in ("2330", "台積電", "資料日期", "<table"):
+                for mm in list(re.finditer(kw, t))[:3]:
+                    print(f"   「{kw}」前後文:", t[max(0, mm.start() - 600):mm.end() + 900].replace("\n", " "))
             continue
         if m == "POST":
             r = requests.post(url, json=body, headers={"User-Agent": UA}, timeout=30)
