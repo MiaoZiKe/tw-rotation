@@ -611,6 +611,7 @@
     series.forEach((s, i) => {
       if (!s || typeof s !== 'object') return;
       const t = typeOf(s, i);
+      if (hasK && t === 'bar' && Array.isArray(s.data) && !s.silent) { BAR.apply(s, isHoriz(s, i), val, asObj); return; }   // K 線下的成交量柱：只換漸層，其餘（粗細、圓角）照圖自己的
       if (isBar(s, i)) {
         anyBar = true;
         const h = isHoriz(s, i);
@@ -633,6 +634,7 @@
           if (h && s.stack == null && nBar === 1 && s.showBackground == null && s.data.length && s.data.every(d => { const v = val(d); return v == null || v >= 0; }))
             { s.showBackground = true; s.backgroundStyle = { color: BAR.track(), borderRadius: SOFT_CAP }; }
         }
+        BAR.apply(s, h, val, asObj);                    // 一律同色漸層（見 BAR.dir）
         // 數值標籤：有開的補字級與等寬字、沒寫位置的放到長出去那一端的外側
         const lab = s.label;
         const inside = lab && typeof lab.position === 'string' && /inside/.test(lab.position);
@@ -807,6 +809,8 @@
     cat() { return BAR.cssVar('--cat-1', CH.cyan); },
     track() { return BAR.cssVar('--panel-3', CH.card); },
     grad(h, a) { const c = BAR.cat(); a = a == null ? 1 : a;
+      const g = BAR.grad0(h, c, a); g._base = hexA(c, a); return g; },
+    grad0(h, c, a) {
       return h ? { type: 'linear', x: 0, y: 0, x2: 1, y2: 0, colorStops: [{ offset: 0, color: hexA(c, .55 * a) }, { offset: 1, color: hexA(c, a) }] }
         : { type: 'linear', x: 0, y: 0, x2: 0, y2: 1, colorStops: [{ offset: 0, color: hexA(c, a) }, { offset: 1, color: hexA(c, .45 * a) }] }; },
     parse(c) { const m = /^#([0-9a-f]{6})$/i.exec(String(c).trim()); if (m) return [parseInt(m[1].slice(0, 2), 16), parseInt(m[1].slice(2, 4), 16), parseInt(m[1].slice(4), 16), 1];
@@ -821,6 +825,46 @@
       return !(red || green);
     },
     fix(c, h) { if (!BAR.swap(c)) return c; const p = BAR.parse(c); return BAR.grad(h, p[3]); },
+    /* ★ 長條一律同色漸層（Andy 2026-10-07：「部分長條圖沒有 Follow 圖二那樣的漸層，改成漸層但對應顏色不變」）
+       任何 ECharts 長條的實色（紅漲綠跌、類別色、調色盤色）都換成「同一個色」的漸層，色相不動、只改透明度：
+         · 直條（往上長）：柱頂實色 → 柱底 45%（C 款）；往下長（負值）反過來：柱底（遠端）實色 → 靠零軸 45%
+         · 橫條（往右長）：左 55% → 右實色（D 款）；往左長（負值）：左（遠端）實色 → 右（靠零軸）55%
+       色字串只認 #hex／rgb()／rgba()；認不得的（漸層物件、css 變數）原樣保留。已是漸層的（BAR.grad 做的）以 _base 取回底色。*/
+    base(c) { return typeof c === 'string' ? (BAR.parse(c) ? c : null) : (c && c._base) || null; },
+    dir(c, h, neg) {
+      const b = BAR.base(c); if (!b) return null; const p = BAR.parse(b); if (!p) return null;
+      const a = p[3], rgba = (k) => `rgba(${p[0]},${p[1]},${p[2]},${+(a * k).toFixed(3)})`, lo = h ? .55 : .45;
+      // 橫條往右長：左淡右實；往左長：左實右淡。直條往上長：上實下淡；往下長：上淡下實
+      const g = h ? { type: 'linear', x: 0, y: 0, x2: 1, y2: 0, colorStops: neg ? [{ offset: 0, color: rgba(1) }, { offset: 1, color: rgba(lo) }] : [{ offset: 0, color: rgba(lo) }, { offset: 1, color: rgba(1) }] }
+                  : { type: 'linear', x: 0, y: 0, x2: 0, y2: 1, colorStops: neg ? [{ offset: 0, color: rgba(lo) }, { offset: 1, color: rgba(1) }] : [{ offset: 0, color: rgba(1) }, { offset: 1, color: rgba(lo) }] };
+      g._base = b; return g;
+    },
+    /* 對一個 bar 系列就地套漸層。valOf＝取一筆資料的數值（判正負）；asObj＝把第 k 筆資料轉成物件 */
+    apply(s, h, valOf, asObj) {
+      const isNeg = (d) => { const v = valOf(d); return v != null && v < 0; };
+      let anyNeg = false; s.data.forEach(d => { if (isNeg(d)) anyNeg = true; });
+      let hasOwn = false;
+      s.data.forEach((d, k) => {
+        if (d && typeof d === 'object' && !Array.isArray(d) && d.itemStyle && d.itemStyle.color != null) {
+          hasOwn = true;
+          const g = BAR.dir(d.itemStyle.color, h, isNeg(d));
+          if (g) { const o = asObj(s, k); o.itemStyle = { ...o.itemStyle, color: g }; }
+        }
+      });
+      const sc = s.itemStyle && s.itemStyle.color;
+      const mk = (c, neg) => BAR.dir(c, h, neg);
+      let nc = null;
+      if (typeof sc === 'function') {
+        nc = (q) => { const r = sc(q); return mk(r, isNeg(q && q.data != null ? q.data : q && q.value)) || r; };
+      } else if (sc != null) {
+        const b = BAR.base(sc);
+        if (b) nc = anyNeg ? ((q) => mk(b, isNeg(q && q.data != null ? q.data : q && q.value))) : mk(b, false);
+      } else if (!hasOwn || s.data.some(d => !(d && typeof d === 'object' && !Array.isArray(d) && d.itemStyle && d.itemStyle.color != null))) {
+        // 沒寫色：吃調色盤（ECharts 會把調色盤色放在 params.color）
+        nc = (q) => mk(q && q.color, isNeg(q && q.data != null ? q.data : q && q.value)) || (q && q.color);
+      }
+      if (nc) { if (typeof nc === 'function') nc.__grad = true; s.itemStyle = { ...(s.itemStyle || {}), color: nc }; }
+    },
   };
   const tip = { backgroundColor: '#141e36', borderColor: '#2a3860', textStyle: { color: '#e8eeff', fontSize: 13 }, padding: [8, 10], confine: true };  // 設計 v4 §4：提示框 13、內距 8×10
 
@@ -3744,7 +3788,7 @@
           <div id="maTrendBox"><div id="maTrend" class="chart" style="min-height:300px"></div></div></div>`
         + (gs.length ? `<div class="magrid">${gs.map(g => `<div class="ma" data-gid="${g.group_id}">
             <div class="n">${fmt.esc(g.group_name)}<em>${g.n} 檔</em></div>
-            <div class="bar"><i style="width:${g.pct20}%;background:${g.pct20 >= 60 ? 'var(--rise)' : g.pct20 >= 40 ? 'var(--amber)' : 'var(--fall)'}"></i></div>
+            <div class="bar"><i style="width:${g.pct20}%;--c:${g.pct20 >= 60 ? 'var(--rise)' : g.pct20 >= 40 ? 'var(--amber)' : 'var(--fall)'}"></i></div>
             <div class="v">MA20 ${g.pct20}%<span>MA60 ${g.pct60}%</span></div></div>`).join('')}</div>`
           : '<div class="empty">尚無均線統計</div>');
       $$('#mktBody .ma[data-gid]').forEach(e => e.onclick = () => { location.hash = '#industry/group/' + e.dataset.gid; });
@@ -3900,7 +3944,7 @@
   const ovsDate = (k, d) => `<button type="button" class="osc-d ovl-tg arm" data-k="${k}" data-stamp="${fmt.esc(ovsMd(d) || '—')}" aria-pressed="true" title="總覽摘要卡的即時開關">`
     + `<i class="ovl-dot" aria-hidden="true"></i><span class="ovl-t">即時</span></button>`;
   // 比例條的一段：flex-grow＝數值（0 的段不畫，不然會留一條看不見的縫）
-  const ovsSeg = (v, color, tip, cls) => v > 0 ? `<i${cls ? ` class="${cls}"` : ''} style="flex-grow:${v};background:${color}" title="${fmt.esc(tip)}"></i>` : '';
+  const ovsSeg = (v, color, tip, cls) => v > 0 ? `<i${cls ? ` class="${cls}"` : ''} style="flex-grow:${v};--c:${color}" title="${fmt.esc(tip)}"></i>` : '';
   /* 百分比放在名稱那一行（「上漲 36.7%」），數字那一行只放數字：卡片放不下四張時每張固定 262px、分三欄每欄約 80px，
      「1194 52.2%」擠在同一行會被切掉（_uitest「總覽摘要卡列」1100／800／390 量到過）。*/
   const ovsNum = (label, val, pct, cls, extra) => `<div class="osn"${extra || ''}><small>${label}${pct != null ? ` <em>${pct}</em>` : ''}</small>`

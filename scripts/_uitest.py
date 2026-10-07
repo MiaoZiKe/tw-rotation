@@ -1093,7 +1093,7 @@ def t_overview(pg, base):
     ok("★ 漲跌家數是 11 級直條（跌停 … 平 … 漲停）", bool(ud) and ud["type"] == "bar" and ud["cats"] ==
        ["跌停", "<-5", "-5~-3", "-3~-1", "-1~0", "平", "0~1", "1~3", "3~5", ">5", "漲停"], ud and ud["cats"])
     ok("★ 直條家數加總＝總家數（右上寫的那個數）", bool(ud) and ud["sum"] == ud["total"] and str(ud["total"]) in ud["pill"].replace(",", ""), ud and (ud["sum"], ud["total"], ud["pill"]))
-    ok("★ 紅漲綠跌（跌那半邊偏綠、漲那半邊偏紅）", bool(ud) and pg.evaluate("""(cs) => { const rgb = (c) => { const m = String(c).match(/[\\d.]+/g) || [];
+    ok("★ 紅漲綠跌（跌那半邊偏綠、漲那半邊偏紅）", bool(ud) and pg.evaluate("""(cs) => { const rgb = (c) => { if (c && typeof c === 'object') c = c._base || (c.colorStops && c.colorStops[0].color);  /* 10-07 長條一律同色漸層：取漸層底色 */ const m = String(c).match(/[\\d.]+/g) || [];
         if (String(c)[0] === '#') { const h = c.slice(1); return [parseInt(h.slice(0,2),16), parseInt(h.slice(2,4),16), parseInt(h.slice(4,6),16)]; }
         return m.slice(0, 3).map(Number); };
         return [0,1,2,3,4].every(i => { const [r,g] = rgb(cs[i]); return g > r; }) && [6,7,8,9,10].every(i => { const [r,g] = rgb(cs[i]); return r > g; }); }""", ud["col"]), ud and ud["col"])
@@ -25317,6 +25317,8 @@ SECTIONS = {
     # ★ 2026-10-06 Andy：會員名單——新增會員列拿掉、方案分頁標題列拿掉、統計「載入中…」修好並照流量觀測重做（假 Worker，⚠ 一律 --workers 1）
     "會員名單1006":        lambda pg, b, base, code: t_member_list_1006(b, base, code),
     "風格規範":            lambda pg, b, base, code: t_style_guide(b, base, code),
+    # ★ 2026-10-07 Andy：所有長條一律同色漸層（顏色不變；⚠ 一律 --workers 1）
+    "長條漸層1007":        lambda pg, b, base, code: t_bar_gradient_1007(b, base, code),
     "管理區開關1005":      lambda pg, b, base, code: t_admin_sw_1005(b, base, code),
     "功能卡統一次數1006":  lambda pg, b, base, code: t_perm_cnt_1006(b, base, code),
     "功能開關整列對齊1006": lambda pg, b, base, code: t_perm_grid_1006(b, base, code),
@@ -25330,6 +25332,7 @@ SECTIONS = {
     "自選上限1007":        lambda pg, b, base, code: t_watch_limit_1007(b, base, code),
     "次數覆蓋掃描1007":    lambda pg, b, base, code: t_quota_scan_1007(b, base, code),
     "全站共用額度1007":    lambda pg, b, base, code: t_quota_all_1007(b, base, code),
+    "訪客額度顯示1007":    lambda pg, b, base, code: t_guest_quota_ui_1007(b, base, code),
     "套用建議方案1007":    lambda pg, b, base, code: t_plan_preset_1007(b, base, code),
     "套用建議方案正式站1007": lambda pg, b, base, code: t_preset_live_1007(b, base, code),
     # ★ 2026-09-28 Andy：「所有標題加上小圖示，顏色要搭配」—— 覆蓋、對比 ≥3:1（深淺）、1440／800／390 不擠（A/B）、動效（⚠ 一律 --workers 1）
@@ -49294,6 +49297,81 @@ def t_quota_all_1007(b, base, code):
 
 
 
+# ===================================================================== 訪客額度顯示1007（#admin/perm 全站每日額度小卡＋頁首額度圓環）
+# Andy 10-07 16:12：「你忽略的 訪客需要怎麼限制幫我補上」—— 訪客頁每格都是 ∞，看不出全站一天只有 3 次。
+# Andy 追加：「依據不同會員身份，對應該分頁需要有使用次數圓圈提醒」。
+# 真的操作：訪客頁籤看得到「全站每日額度 3 次」卡 → 改 5 存檔 → 重新整理仍是 5；計次功能徽章「共用 N」、不計次「不計次」；
+# 前台：訪客（3 次）開兩個不同研究頁 → 圓環「剩 1」、第三個 →「用完」；Pro（不限）不顯示；390 寬看得到。
+def t_guest_quota_ui_1007(b, base, code):
+    T = "訪客額度顯示1007"
+    errs: list[str] = []
+    shd = os.environ.get("TW_GQ_SHOTS")
+    plans = [{"id": "guest", "name": "訪客", "feats": {"ind.3d": False}, "lims": {}, "builtin": True, "members": 0, "price": 0, "period": "month", "dq": 3},
+             {"id": "free", "name": "註冊會員", "feats": {}, "lims": {}, "builtin": True, "members": 0, "price": 0, "period": "month", "dq": 10}]
+    c, sent, st = _adm3_ctx(b, plans=plans)
+    pg = c.new_page(); pg.on("pageerror", lambda e: errs.append(str(e)))
+    pg.goto(base + "#admin/perm", wait_until="domcontentloaded")
+    wait_until(pg, "() => document.querySelectorAll('#ptTier button').length >= 2", 12000)
+    pg.click("#ptTier button[data-tier='guest']"); pg.wait_for_timeout(500)
+    card = "() => { const e = document.getElementById('pmDqCard'); return e && !e.hidden && e.getClientRects().length ? e.innerText : null; }"
+    txt = wait_until(pg, card, 5000)
+    ok(f"{T}：訪客頁籤看得到「全站每日額度 3 次」卡＋共用說明＋訪客計數說明",
+       bool(txt) and "全站每日額度 3 次" in txt and "每日共 3 次（所有計次功能共用）" in txt and "記在這台瀏覽器" in txt, txt)
+    badge = "(id) => { const e = document.querySelector(`#pmCats .pmrow[data-f='${id}'] .pmlimb`); return e ? e.textContent.trim() : null; }"
+    ok(f"{T}：計次功能（個股頁 stock.page）徽章寫「共用 3」", pg.evaluate(badge, "stock.page") == "共用 3", pg.evaluate(badge, "stock.page"))
+    ok(f"{T}：不計次功能（總覽 ov.summary）徽章寫「不計次」", pg.evaluate(badge, "ov.summary") == "不計次", pg.evaluate(badge, "ov.summary"))
+    if shd:
+        pg.screenshot(path=str(pathlib.Path(shd) / "guest_tab.png"))
+    pg.fill("#pmDqIn", "5"); pg.click("#pmDqSave")
+    ok(f"{T}：改成 5 存檔 → 送 plans/put（guest, dq 5）、卡片變 5 次、徽章變「共用 5」",
+       bool(wait_until(pg, "() => /全站每日額度 5 次/.test((document.getElementById('pmDqCard') || {}).innerText || '')", 5000))
+       and any(x[0] == "/v1/admin/plans/put" and x[1].get("id") == "guest" and x[1].get("dq") == 5 for x in sent) and pg.evaluate(badge, "stock.page") == "共用 5",
+       [x[1] for x in sent if x[0] == "/v1/admin/plans/put"])
+    pg.reload(wait_until="domcontentloaded")
+    wait_until(pg, "() => document.querySelectorAll('#ptTier button').length >= 2", 12000)
+    pg.click("#ptTier button[data-tier='guest']"); pg.wait_for_timeout(500)
+    txt = wait_until(pg, card, 5000)
+    ok(f"{T}：重新整理後仍是 5 次", bool(txt) and "全站每日額度 5 次" in txt, txt)
+    c.close()
+    # ② 前台圓環
+    RING = "() => { const e = document.getElementById('twQRing'); return e && !e.hidden && e.getClientRects().length ? e.innerText.trim() : null; }"
+    def go(pg, route, wait=1800):
+        pg.evaluate(f"() => {{ location.hash = '{route}'; }}"); pg.wait_for_timeout(wait)
+    for w in (1440, 390):
+        c, sent, st = _sub_ctx(b, None, dq=3, width=w)
+        pg = c.new_page(); pg.on("pageerror", lambda e: errs.append(str(e)))
+        pg.goto(base + "#overview", wait_until="domcontentloaded")
+        wait_until(pg, "() => window.TwPerm && TwPerm.state().src === 'server' && TwPerm.lim('quota.all') === 3", 12000)
+        pg.wait_for_timeout(1000)
+        ok(f"{T}（{w}）：總覽（不計次）不顯示圓環", pg.evaluate(RING) is None, pg.evaluate(RING))
+        go(pg, "#stock/" + code)
+        r1 = wait_until(pg, "() => { const e = document.getElementById('twQRing'); return e && !e.hidden && /剩 2/.test(e.innerText) ? e.innerText : null; }", 6000)
+        go(pg, "#stock/" + ("2317" if code != "2317" else "2454"))
+        r2 = wait_until(pg, "() => { const e = document.getElementById('twQRing'); return e && !e.hidden && e.getClientRects().length && /剩 1/.test(e.innerText) ? e.innerText : null; }", 6000)
+        tip = pg.evaluate("() => (document.getElementById('twQRing') || {}).title || ''")
+        ok(f"{T}（{w}）：訪客開兩個不同單位 → 圓環「剩 2」→「剩 1」、提示寫已用 2／3 次（訪客）・台北 0 點重置", bool(r1) and bool(r2) and "今日已用 2／3 次（訪客）" in tip and "台北 0 點重置" in tip, [r1, r2, tip])
+        if w == 390:
+            bx = pg.evaluate("() => { const r = document.getElementById('twQRing').getBoundingClientRect(); return [r.left, r.right, r.top, r.bottom, document.documentElement.scrollWidth]; }")
+            ok(f"{T}（390）：圓環在畫面內、沒有橫向捲軸", bx[0] >= 0 and bx[1] <= 390 and bx[2] >= 0 and bx[4] <= 390, bx)
+        if shd:
+            pg.screenshot(path=str(pathlib.Path(shd) / f"ring_{w}.png"))
+        go(pg, "#flow/rotation")
+        r3 = wait_until(pg, "() => { const e = document.getElementById('twQRing'); return e && !e.hidden && /用完/.test(e.innerText) ? [e.innerText, e.dataset.lvl] : null; }", 6000)
+        ok(f"{T}（{w}）：第三個 → 圓環「用完」、灰色", bool(r3) and r3[1] == "out", r3)
+        pg.click("#twQRing")
+        ok(f"{T}（{w}）：點圓環 → #pricing", bool(wait_until(pg, "() => location.hash.startsWith('#pricing')", 4000)))
+        c.close()
+    c, sent, st = _sub_ctx(b, "member", dq=None)
+    pg = c.new_page(); pg.on("pageerror", lambda e: errs.append(str(e)))
+    pg.goto(base + "#overview", wait_until="domcontentloaded")
+    wait_until(pg, "() => window.TwPerm && TwPerm.state().src === 'server'", 12000)
+    go(pg, "#stock/" + code, 2500)
+    ok(f"{T}：Pro（不限）個股頁不顯示圓環", pg.evaluate(RING) is None, pg.evaluate(RING))
+    c.close()
+    ok(f"{T}：沒有 JS 錯誤", not errs, errs[:3])
+
+
+
 # ===================================================================== 套用建議方案1007（site/plan_presets.js → #admin/perm）
 # CEO 10-07 02:45：一顆按鈕把訪客／註冊會員／Plus／Pro 四個範本的開關、每日次數、全站額度、自選、價格、介紹寫進 Worker；
 # 先跳確認框列出會改哪些；範本用 id 對應（Plus＝現在的「299 會費」改名、Pro＝「499會費」改名），不新建重複的。
@@ -56272,6 +56350,83 @@ def t_stock_tabjump_1004(pg, base):
                 on = pg.evaluate("() => (document.querySelector('#stockTabs button.on') || {}).dataset.t")
                 ok(f"★ {T} {W}px {code} {nm}：分頁列 top 前後差 ≤ 2px（{t0} → {t1}）、分頁真的換了", abs(t1 - t0) <= 2 and on == to, (t0, t1, on, h0))
     pg.set_viewport_size({"width": 1440, "height": 1000})
+
+# ===================================================================== 2026-10-07：長條一律同色漸層
+# Andy 10-07 16:00：「部分長條圖沒有 Follow 圖二那樣的一點漸層風格，幫我補上，改成漸層但對應顏色不變」。
+# 規格：docs/style_guide.md 十二、docs/chart_library.md C／D 款、docs/bar_gradient_audit.md（全站長條盤點）。
+# 驗：① 各頁每一個 ECharts bar 系列的柱色是漸層（物件 linear，或 app.js 補的函式 __grad）——沒有漏網的實心柱
+#     ② 自畫條（.mixbar／.meter／.osc-bar／.magrid .bar）的 background-image 含 linear-gradient
+#     ③ 顏色沒變：總覽漲跌家數直條，漲（上漲家數）那根仍是紅系、跌那根仍是綠系（取漸層第一個色標判斷）
+#     ④ 深色、淺色各掃一輪
+BG1007_SCAN = """() => { const out = { ec: 0, bad: [], dom: 0, domBad: [] };
+  const isG = (x) => x && ((typeof x === 'object' && x.type === 'linear') || (typeof x === 'function' && x.__grad));
+  document.querySelectorAll('[_echarts_instance_]').forEach((el) => {
+    const r = el.getBoundingClientRect(); if (r.width < 20 || r.height < 20) return;
+    const c = window.echarts && echarts.getInstanceByDom(el); if (!c) return; let o; try { o = c.getOption(); } catch (e) { return; }
+    (o.series || []).forEach((s) => {
+      if (s.type !== 'bar' || s.silent || !(s.data || []).length) return;
+      const sc = s.itemStyle && s.itemStyle.color;
+      if (typeof sc === 'string' && /^(transparent|none)$/i.test(sc)) return;
+      const pts = s.data.filter((d) => d != null && (typeof d !== 'object' || Array.isArray(d) || d.value != null));
+      if (!pts.length) return;
+      out.ec++;
+      const own = (d) => d && typeof d === 'object' && !Array.isArray(d) && d.itemStyle && d.itemStyle.color != null;
+      const okk = isG(sc) || pts.every((d) => own(d) && (isG(d.itemStyle.color) || /^(transparent|none)$/i.test(String(d.itemStyle.color))));
+      if (!okk) out.bad.push({ id: el.id || el.className, name: s.name, sc: typeof sc === 'string' ? sc : typeof sc });
+    }); });
+  const sels = ['.mixbar i:not(.sell)', '.meter>i', '.osc-bar i:not(.osc-none)', '.magrid .ma .bar i', '#admBody .bars .bt i', '#admBody .days i'];
+  sels.forEach((q) => document.querySelectorAll(q).forEach((e) => { const r = e.getBoundingClientRect(); if (r.width <= 0 || r.height <= 0) return;
+    out.dom++; if (!/linear-gradient/.test(getComputedStyle(e).backgroundImage)) out.domBad.push(q + ' ' + e.outerHTML.slice(0, 90) + ' ' + getComputedStyle(e).backgroundImage.slice(0, 60)); }));
+  return out; }"""
+BG1007_COLOR = """() => { const el = document.getElementById('breadth'); const c = el && window.echarts && echarts.getInstanceByDom(el); if (!c) return null;
+  const rgb = (s) => { const m = /rgba?\\(\\s*(\\d+)[,\\s]+(\\d+)[,\\s]+(\\d+)/.exec(s); return m ? [+m[1], +m[2], +m[3]] : null; };
+  const res = []; (c.getOption().series || []).forEach((s) => { if (s.type !== 'bar') return;
+    (s.data || []).forEach((d, k) => { const col = d && d.itemStyle && d.itemStyle.color; if (col && col.colorStops) res.push({ k, rgb: rgb(col.colorStops[0].color), rgb2: rgb(col.colorStops[1].color) }); }); });
+  return res; }"""
+
+
+def t_bar_gradient_1007(b, base, code):
+    T = "長條漸層1007"
+    c, _ = _adm2_ctx(b)
+    pg = c.new_page()
+    pg.set_viewport_size({"width": 1440, "height": 950})
+    tot = {"ec": 0, "dom": 0}
+
+    def scan(label):
+        pg.wait_for_timeout(2200)
+        m = pg.evaluate(BG1007_SCAN)
+        tot["ec"] += m["ec"]; tot["dom"] += m["dom"]
+        ok(f"★ [{T}] {label}：{m['ec']} 個 ECharts 長條系列全是漸層", not m["bad"], m["bad"][:5])
+        ok(f"[{T}] {label}：{m['dom']} 條自畫長條全是 linear-gradient", not m["domBad"], m["domBad"][:5])
+        return m
+
+    for theme in ("dark", "light"):
+        pg.goto(base + "#overview")
+        pg.evaluate("(t) => { try { localStorage.setItem('tw.theme', t); } catch (e) {} }", theme)
+        pg.reload()
+        for r in ("overview", "flow", "market", "stock/2330", "etf", "earnings", "season", "industry"):
+            pg.goto(base + "#" + r); pg.wait_for_timeout(1200)
+            scan(f"{theme} #{r}")
+            if r == "stock/2330":
+                for tab in ("資券", "法人", "營收", "配息"):
+                    try:
+                        pg.locator(".nbsw button", has_text=tab).first.click(timeout=2500)
+                        scan(f"{theme} #stock/2330「{tab}」")
+                    except Exception:
+                        pass
+        if theme == "dark":
+            pg.goto(base + "#overview"); pg.wait_for_timeout(3000)
+            col = pg.evaluate(BG1007_COLOR)
+            ok(f"★ [{T}] 總覽漲跌家數：有 per-bar 漸層色標可驗", bool(col), col)
+            if col:
+                red = [x for x in col if x["rgb"] and x["rgb"][0] > x["rgb"][1] + 40]
+                grn = [x for x in col if x["rgb"] and x["rgb"][1] > x["rgb"][0] + 40]
+                ok(f"★ [{T}] 顏色沒變：漲跌家數仍有紅系（漲）與綠系（跌）的柱", bool(red) and bool(grn), col[:6])
+    pg.goto(base + "#admin/traffic"); pg.wait_for_timeout(1500)
+    scan("管理區流量觀測")
+    ok(f"★ [{T}] 全站合計掃到的 ECharts 長條 >= 10、自畫長條 >= 5", tot["ec"] >= 10 and tot["dom"] >= 5, tot)
+    c.close()
+
 
 # ===================================================================== 風格規範（2026-10-05，docs/style_guide.md 的自動檢查）
 # Andy 10-05：「我要求不是很多，但該有的細節／制度要有」。這段把規範裡可量測的條目變成紅燈：
