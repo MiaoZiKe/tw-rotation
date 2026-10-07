@@ -1,5 +1,13 @@
 # HANDOFF.md — 目前進度（接手先讀這份）
 
+## 2026-10-07 題材剖析圖第三批（繪圖專家，分支 `claude/theme-diagrams3` → main）
+- A 項 8 件（a5abb18b）：輕油裂解改箱型爐＋煙囪＋高瘦分餾塔（環形平台）、PE/PP/PVC 太空包（四角吊帶、束口，新變數 `--dg-sack`）、無人機雲台（三顆扁圓盤馬達＋L 形支架＋鏡頭，新變數 `--dg-metal-hi`）、兩葉對稱螺旋槳 `PROP2`、交換器 1U 機箱 `dSwitch1U`（光模組槽＋散熱蓋晶片＋風扇）、光模組前端 LC 接頭拉光纖／拉環在前端／金手指在後端、濕製程機台（外殼＋觀察窗＋關節手臂＋正面 load port）、變壓器片狀散熱器；FOUP 提把改「ㄇ」字。
+- B 第一組（944d81d1）：軟板一端金手指、BBU 鋼殼抽屜、銅母線、帽型沖壓件、滑板底盤四輪、相位陣列；新增 `cone()` 波束錐（`beam()` 往正上／正下打會退化成一條線）。
+- B 第二組：asic_ip IP 硬核拼裝、手機鏡頭模組（VCM 方殼＋鏡筒＋軟板）、手槍式充電槍、開口電鍍槽。
+- hbm_memory、cowos、thermal、ai_server、silicon_photonics、edge_ai_pc、defense 七張 CEO 逐張看過，這次不重畫。
+- **這批只驗了**：`_uitest --sections 題材,批次6-N1,批次6-圖九,批次6-圖十,淺色主題 --workers 1`（三次皆 0 問題）＋ `_preview.py`（無重疊；有一條既有的 404 console 訊息，未查來源）。pytest 未跑（只動 `site/**`）。
+- 截圖：scratchpad `themediag3/`（A 項）、`themediag3/B1`、`themediag3/B2`、`themediag3/keep7`。
+
 ## 2026-10-07 資金分流樹：去重名＋右欄「資金流向排名」＋成分股依流入排序（UI 專家，分支 `claude/flow-tree` → main，DECISIONS #342）
 - Andy 15:40：「資金流向 名稱重複 幫我改其他名稱…旁邊多一個表格…依據拉Bar時間…點進去的族群…要依據資金流入狀況進行排名」。
 - 改名：資金去向 → **資金分流樹**（卡片、側欄子項、手機分段、總覽、導覽、說明、modules/features/admin/icons、_uitest 段名）；資金流向排行 → **族群資金排行**；頁名「資金流向」不動。
