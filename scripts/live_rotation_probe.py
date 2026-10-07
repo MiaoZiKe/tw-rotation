@@ -409,6 +409,12 @@ def main() -> int:
     if args.summary:
         with open(args.summary, "a", encoding="utf-8") as f:
             f.write(md)
+    if res.get("verdict") == "fail":
+        # 摘要與 artifact 在 Claude 的容器讀不到（重新導向到外部主機被擋），失敗原因另外寫成 Actions 註記，
+        # check-runs annotations API 讀得到 —— 不然遠端除錯只能用猜的。
+        bad = res.get("why") or "；".join(f"{c['label']}：{c['detail']}" for c in res.get("checks", [])
+                                         if c["gate"] and not c["pass"])
+        print(f"::error title=盤中巡檢失敗::{str(bad)[:900].replace(chr(10), ' ')}")
     return 1 if res.get("verdict") == "fail" else 0
 
 
