@@ -1,0 +1,337 @@
+====================================================================================================
+[extra-0] https://www.hnfunds.com.tw/etf/trading-info/redemption-list
+  最終網址: https://www.hnfunds.com.tw/etf/trading-info/redemption-list/  標題: ETF專區-申購買回清單 | 華南永昌投信
+    連結: ETF總覽 -> https://www.hnfunds.com.tw/etf/overview
+    連結: ETF配息專區 -> https://www.hnfunds.com.tw/etf/dividends
+    連結: 即時預估淨值 -> https://www.hnfunds.com.tw/etf/nav-estimation
+    連結: 追蹤差距 -> https://www.hnfunds.com.tw/etf/tracking-difference
+    連結: 申贖費用查詢 -> https://www.hnfunds.com.tw/etf/trading-info/subscription-fees
+    連結: 申購買回清單 -> https://www.hnfunds.com.tw/etf/trading-info/redemption-list
+    連結: ETF表單下載 -> https://www.hnfunds.com.tw/etf/trading-info/forms
+    連結: 收益平準金專區 -> https://www.hnfunds.com.tw/etf/trading-info/equalization-reserve
+    連結: ETF配息帳號變更申請 -> https://www.hnfunds.com.tw/etf/trading-info/etf-dividend-account-change
+    連結: ETF公告 -> https://www.hnfunds.com.tw/etf/announcements
+    連結: ETF總覽 -> https://www.hnfunds.com.tw/etf/overview
+    連結: ETF配息專區 -> https://www.hnfunds.com.tw/etf/dividends
+    連結: 即時預估淨值 -> https://www.hnfunds.com.tw/etf/nav-estimation
+    連結: 追蹤差距 -> https://www.hnfunds.com.tw/etf/tracking-difference
+    連結: 申贖費用查詢 -> https://www.hnfunds.com.tw/etf/trading-info/subscription-fees
+    連結: 申購買回清單 -> https://www.hnfunds.com.tw/etf/trading-info/redemption-list
+    連結: ETF表單下載 -> https://www.hnfunds.com.tw/etf/trading-info/forms
+    連結: 收益平準金專區 -> https://www.hnfunds.com.tw/etf/trading-info/equalization-reserve
+    連結: ETF配息帳號變更申請 -> https://www.hnfunds.com.tw/etf/trading-info/etf-dividend-account-change
+    連結: ETF公告 -> https://www.hnfunds.com.tw/etf/announcements
+  XHR／文件請求 15 個：
+     200 GET https://www.hnfunds.com.tw/etf/trading-info/redemption-list/
+        resp='<!DOCTYPE html><html><head><meta charset="utf-8">\n<meta name="viewport" content="width=device-width, initial-scale=1">\n<title>華南永昌投信</title>\n<link rel="stylesheet" href="/_nuxt/entry.DqqvtsHL.css" crossorigin>\n<link rel="modulepreload" as="script" crossorigin href="/_nuxt/Cp7IpgkT.js">\n<link rel="pr'
+     200 POST https://www.hnfunds.com.tw/WEB_API/HN_OW_PROD/Auth/SysLogin
+        resp='{"access_token":"eyJhbGciOiJSUzI1NiIsImtpZCI6IjAwNTY0MTA1NDA1RDlCRjk1MDY5NzgzMkJGQzZDOTcyIiwidHlwIjoiYXQrand0In0.eyJuYmYiOjE3OTEzODA4OTAsImV4cCI6MTc5MTM4MjY5MSwiaXNzIjoiaHR0cDovL2Ntcy1hcC9pZGVudGl0eXNlcnZlciIsImF1ZCI6InN3X2FwaSIsImNsaWVudF9pZCI6IldGUEFQSVB1YmxpY0NsaWVudCIsInJvbGUiOiJwdWJsaWMiLCJqdGk'
+     200 GET https://www.hnfunds.com.tw/_nuxt/builds/meta/1f3d0e97-0826-4144-ae3d-7190dc1179d3.json
+        resp='{"id":"1f3d0e97-0826-4144-ae3d-7190dc1179d3","timestamp":1784017191701,"matcher":{"static":{},"wildcard":{},"dynamic":{}},"prerendered":[]}'
+     200 GET https://www.hnfunds.com.tw/WEB_API/HN_OW_PROD/CMM/Option/0004
+        resp='{"Data":{"OptionList":[{"OptID":"0004","ListID":"001","ListName":"投資觀點分類","DisplayOrder":1,"IsDefault":"N"}]},"Message":"","MessageType":"03","ResultCode":"01"}'
+     200 POST https://www.hnfunds.com.tw/WEB_API/HN_OW_PROD/Funds/FundTypeList
+        body={"DivYN":"ALL","FundType":"02","FundOrFundNM":""}
+        resp='{"Data":{"FundTypeList":[{"FundKind":"1","FundKindName":"國內股票ETF"},{"FundKind":"2","FundKindName":"海外股票ETF"}]},"Message":"","MessageType":"01","ResultCode":"00"}'
+     200 GET https://www.hnfunds.com.tw/WEB_API/HN_OW_PROD/Official/Url/01
+        resp='{"Data":{"UrlList":[{"UrlNM":"免責聲明","Url":"/CMS/CMS104/免責聲明.pdf"},{"UrlNM":"非金管會核准之證券期貨業者及商品","Url":"\\thttps://3434.twsa.org.tw/"},{"UrlNM":"查詢證券開戶及交易資料","Url":"\\thttps://investor.twse.com.tw/"},{"UrlNM":"性騷擾防治措施專區","Url":"/CMS/CMS104/性騷擾防治措施專區.pdf"},{"UrlNM":"網站隱私權保護聲明","Url":"/CMS/CMS104/網站隱私權保護.p'
+     200 GET https://www.hnfunds.com.tw/WEB_API/HN_OW_PROD/Investment/InvestMenu/001
+        resp='{"Data":{"InvestList":[{"InvestMID":"01","InvestMName":"投資指南","MDisplayOrder":1,"InvestMenuSList":[{"InvestMID":"01","InvestSID":"01","InvestSName":"影音放映室","SDisplayOrder":1},{"InvestMID":"01","InvestSID":"02","InvestSName":"市場評論焦點","SDisplayOrder":2},{"InvestMID":"01","InvestSID":"03","InvestSName"'
+     200 GET https://www.hnfunds.com.tw/WEB_API/HN_OW_PROD/About/Company
+        resp='{"Data":{"BusLicenseNo":"115年金管投信新字第001號","CoLID":"(110)中信顧證字第018號(A0012)","Chargeman":"蕭玉美 董事長","Prolocutor":"吳嘉欽 總經理","BusRange":"證券投資信託業務、全權委託投資業務、其它經金管會核准業務","Addr":"105 台北市松山區民生東路4段54號3F之1","Tel":"(02)2719-6688","Fax":"(02)2545-7976","FileUrl":"/CMS/CMS504/組織圖.jpg"},"Message":"","MessageType":"'
+     200 GET https://www.hnfunds.com.tw/WEB_API/HN_OW_PROD/Official/NoteMemo/06
+        resp='{"Data":{"Note":"<p>(1) 每現金申購/買回基數之實際申購總價金、申購總價金差額及買回總價金，以基金經理公司通知給付之金額為準。\\u2028</p><p>(2) 若因申購失敗或買回失敗而影響當日基金淨值時，每一申購基數申購總價金差額以及實際申購總價金，將以最新資料為準。\\u2028</p><p>(3) 以上資料係依據各基金信託契約相關條款之規定公告。\\n</p>"},"Message":"","MessageType":"01","ResultCode":"00"}'
+     200 POST https://www.hnfunds.com.tw/WEB_API/HN_OW_PROD/Funds/FundSearchBar
+        body={"DivYN":"ALL","FundType":"02","FundOrFundNM":"","PageDisplayCount":1,"PageNo":1,"FundKind":"","FundIssueType":"","FundStatusYN":"Y"}
+        resp='{"Data":{"TotCnt":3,"FundList":[{"FundID":"E101","ETFID":"009808","FundName":"華南永昌台灣優選50ETF基金(本基金之配息來源可能為收益平準金)","FundShName":"華南永昌優選50(本基金之配息來源可能為收益平準金)","FundKindName":"國內股票ETF"}]},"Message":"","MessageType":"01","ResultCode":"00"}'
+     200 GET https://www.hnfunds.com.tw/WEB_API/HN_OW_PROD/Official/NoteMemo/01
+        resp='{"Data":{"Note":"<blockquote><strong style=\\"font-family: Roboto, &quot;Noto Sans TC&quot;, sans-serif; font-size: 10pt;\\">115 年金管投信新字第 001 號</strong></blockquote><p><strong style=\\"font-family: Roboto, &quot;Noto Sans TC&quot;, sans-serif; font-size: 10pt;\\">華南永昌系列基金經金管會核准或同意生效，惟不表示絕無風險。本公司以往之經理績效，'
+     200 POST https://www.hnfunds.com.tw/WEB_API/HN_OW_PROD/Funds/FundSearchBar
+        body={"DivYN":"ALL","FundType":"02","FundOrFundNM":"","PageDisplayCount":8,"PageNo":1,"FundKind":"","FundIssueType":"","FundStatusYN":"Y"}
+        resp='{"Data":{"TotCnt":3,"FundList":[{"FundID":"E101","ETFID":"009808","FundName":"華南永昌台灣優選50ETF基金(本基金之配息來源可能為收益平準金)","FundShName":"華南永昌優選50(本基金之配息來源可能為收益平準金)","FundKindName":"國內股票ETF"},{"FundID":"E102","ETFID":"009818","FundName":"華南永昌NASDAQ100科技ETF基金","FundShName":"華南永昌NASDAQxT","FundKindName":"海外股票ETF'
+     200 GET https://www.hnfunds.com.tw/WEB_API/HN_OW_PROD/Official/NoteMemo/08
+        resp='{"Data":{"Note":"<p><strong style=\\"font-size: 10pt;\\">【華南永昌永昌基金】</strong></p><p><strong style=\\"font-size: 10pt;\\">本基金經金管會核准或同意生效，惟不表示絕無風險。基金經理公司以往之績效或提及之經濟走勢預測不保證本基金之最低投資收益，亦不代表未來績效之保證；基金經理公司除盡善良管理人之注意義務外，不負責本基金之盈虧，亦不保證最低之收益。有關基金應負擔之費用及投資風險已揭露於基金公開說明書中，投資人申購前應詳閱基金公開說明書。本基金投資無受存款保障、保險安定基金或其他相關機制之保障'
+     200 POST https://www.hnfunds.com.tw/WEB_API/HN_OW_PROD/ETF/BuyBack
+        body={"ETFID":"009808","DataDate":""}
+        resp='{"Data":{"DataDate":"2026-10-08T00:00:00+08:00","FundID":"E101","ETFID":"009808","FundName":"華南永昌台灣優選50ETF基金(本基金之配息來源可能為收益平準金)","FundCurrency":"TWD","FundCurrencyNM":"新臺幣","FundIssueType":"1","FundSetupDate":"2025-05-06T00:00:00+08:00","ListingDate":"2025-05-16T00:00:00+08:00","NavDec":2,"Pcf":{"Fun'
+     200 POST https://www.hnfunds.com.tw/WEB_API/HN_OW_PROD/ETF/BuyBack/Excel
+        body={"ETFID":"009808","DataDate":"2026-10-07T08:00:00+08:00"}
+        resp='{"Data":{"FileName":"009808_20261007.xlsx","FileData":"UEsDBBQAAAgIAAiuR10xSZgR8gAAANMCAAALAAAAX3JlbHMvLnJlbHOs0kFOwzAQBdCrWN43kxaEEKrbDZvuEOICxp4kVmKPZU8gnI0FR+IKWEKCtiqhiy5t//l+i/l8/1hvJz+IF0zZUVByWdVSYDBkXWiVHLlZ3MrtZv2Ig+aSyJ2LWZSRkJXsmOMdQDYdep0rihjKS0PJay7H1ELUptctwqqubyDtd8jDTrGzSqadXUrx9Bbxn'
+  含成分股字樣的回應 1 個：
+   ★ 200 POST https://www.hnfunds.com.tw/WEB_API/HN_OW_PROD/ETF/BuyBack
+     POST body: {"ETFID":"009808","DataDate":""}
+     type: application/json; charset=utf-8  bytes: 4899
+     開頭: {"Data":{"DataDate":"2026-10-08T00:00:00+08:00","FundID":"E101","ETFID":"009808","FundName":"華南永昌台灣優選50ETF基金(本基金之配息來源可能為收益平準金)","FundCurrency":"TWD","FundCurrencyNM":"新臺幣","FundIssueType":"1","FundSetupDate":"2025-05-06T00:00:00+08:00","ListingDate":"2025-05-16T00:00:00+08:00","NavDec":2,"Pcf":{"FundSize":1292682619.000000,"TradeBaseUnit":500000.000000,"Punit":33.140000,"TotUnit":39011000.000000,"DiffTotUnit":0.000000,"PunitValue":16568181.000000,"PFunitPrice":18230000.000000,"DiffPunitPrice":-1
+     2330 前後: 8700},{"StockNo":"1590","StockName":"亞德客-KY","Share":3000.000,"Weight":0.00285500},{"StockNo":"1802","StockName":"台灣玻璃","Share":50000.000,"Weight":0.00254100},{"StockNo":"2303","StockName":"聯華電子","Share":255000.000,"Weight":0.02929400},{"StockNo":"2308","StockName":"台達電子","Share":26000.000,"Weight":0.04002500},{"StockNo":"2313","StockName":"華通電腦","Share":24000.000,"Weight":0.00456700},{"StockNo":"2317","StockName":"鴻海精密","Share":152000.000,"Weight":0.02963100},{"StockNo":"2327","StockName":"國巨*","Share":42000.000,"Weight":0.02102100},{"StockNo":"2330","StockName":"台積電","Share":201000.000,"Weight":0.40194200},{"StockNo":"2345","StockName":"智邦科技","Share":8000.000,"Weight":0.01247000},{"StockNo":"2356","StockName":"英業達","Share":76000.000,"Weight":0.00341600},{"StockNo":"2357","StockName":"華碩電
+====================================================================================================
+[extra-1] https://www.uobam.com.tw/fund/etf/pcf?fundID=88329556
+  最終網址: https://www.uobam.com.tw/fund/etf/pcf?fundID=88329556  標題: 
+    連結: ETF總覽 -> https://www.uobam.com.tw/fund/etf
+    連結: ETF配息 -> https://www.uobam.com.tw/dividend?type=etf
+    連結: 即時預估淨值 -> https://www.uobam.com.tw/fund/etf/estimate
+    連結: 申購買回清單 -> https://www.uobam.com.tw/fund/etf/pcf
+    連結: 追蹤偏離度 -> https://www.uobam.com.tw/fund/etf/indextrack
+    連結: ETF配息日程表 -> https://www.uobam.com.tw/dividendschedule
+    連結: ETF公告 -> https://www.uobam.com.tw/news/etf
+    連結: 常見問題 -> https://www.uobam.com.tw/fund/etf/faq
+    連結: 表單下載 -> https://www.uobam.com.tw/etf/form
+    連結: ETF專區 -> https://www.uobam.com.tw/ETFlandingpage
+    連結: 申購買回清單 -> https://www.uobam.com.tw/fund/etf/pcf
+    連結: 檔案下載 -> https://www.uobam.com.tw/api/WebSite/pcfexcel/88329556/20261008
+  XHR／文件請求 7 個：
+     200 GET https://www.uobam.com.tw/fund/etf/pcf?fundID=88329556
+        resp='<!DOCTYPE html><html lang="zh-Hant-TW"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><link rel="icon" href="/favicon.ico"><meta property="og:image" content="https://www.uobam.com.tw/og.png"><script async="" src="https://www.googletagmanager.com/gtm'
+     200 GET https://www.uobam.com.tw/json/reply/WebSiteRouteMapRequest
+        resp='{"result":[{"id":3831,"guid":"3ea7c4ca-7d8b-a40d-77fc-bfa961612e07","name":"首頁","route":"/","views":"FrontA","url":"/","urlType":"_self","show":0,"showl":0,"showm":0,"description":null,"sortValue":null,"metaTitle":"大華銀投信｜深耕台灣在地市場","metaDescription":"大華銀投信傳承新加坡大華資產管理具備的國際色彩以及在亞洲資產管理獨具的投資優勢，深耕台灣在地市場，矢'
+     200 GET https://www.uobam.com.tw/json/reply/WebSiteFrontRequest?u=8db48893-e17a-7b7f-1485-cd5195538896&r=%2Ffund%2Fetf%2Fpcf&p=&n=&a=
+        resp='{"result":[],"breadcrumb":[{"id":3852,"guid":"0acf44ae-7d39-4a83-fcbf-6ce58f1f5e30","name":"ETF專區","route":"/ETFlandingpage","views":"FrontD","url":"/ETFlandingpage","urlType":"_self","show":1,"showl":0,"showm":1,"description":"ETF公告","sortValue":null,"metaTitle":"大華銀投信 | ETF專區","metaDescription":"大'
+     200 GET https://www.uobam.com.tw/json/reply/WebSiteFrontRequest?u=2dafea25-bb35-4b2b-e054-354b4cd20063&r=%2Fwarning&p=1&n=1&a=
+        resp='{"result":[{"id":20,"guid":"76d93223-498f-488d-be1a-5f227cb50c66","title":"公司資訊+全站警語","contents":"<div class=\\"info\\"><div class=\\"group\\"><div class=\\"icon marker\\">&nbsp;</div><div class=\\"text\\">台北市民生東路三段109號16樓</div></div><div class=\\"group\\"><div class=\\"icon phone\\">&nbsp;</div><div class=\\"te'
+     200 GET https://www.uobam.com.tw/json/reply/WebSitePcfRequest?fundID=88329556&pcfDate=
+        resp='{"fundID":"88329556","etf002":"00918","ec020":null,"twName":"大華優利高填息30(本基金並無保證收益及配息且配息來源可能為收益平準金)","announce":"\\/Date(1791388800000+0800)\\/","publish":"\\/Date(1791302400000+0800)\\/","datadate":"\\/Date(1791302400000+0800)\\/","basketValue":"NT$ 18,440,000","totalAV":"NT$ 162,341,033,425","totalIssues"'
+     200 GET https://www.uobam.com.tw/json/reply/WebSiteFrontRequest?r=%2Ffundwarning
+        resp='{"result":[{"id":2566,"guid":"84e927f5-99be-43ea-91e7-493c5c35e835","title":"公司資訊+全站警語","contents":"<div class=\\"info\\"><p style=\\"margin-bottom:0cm; margin:0cm 0cm 8pt; margin-right:0cm; margin-left:0cm\\"><span style=\\"font-size:11pt\\"><span style=\\"line-height:107%\\"><span style=\\"font-family:Cali'
+     200 GET https://www.uobam.com.tw/json/reply/WebSiteStockListRequest
+        resp='{"resultP":[{"result":[{"id":431,"guid":"da3c8657-a0f8-4a31-ac49-713072098357","fundID":"00719554","twName":"大華韓國KOSPI 50","twNameFull":null,"enName":"United Korea KOSPI 50 ETF","contents":"<p style=\\"-webkit-text-stroke-width:0px; margin-top:0px; margin-bottom:1rem; text-align:left\\"><span style=\\"'
+  含成分股字樣的回應 2 個：
+   ★ 200 GET https://www.uobam.com.tw/fund/etf/pcf?fundID=88329556
+     type: text/html  bytes: 192324
+     開頭: <!DOCTYPE html><html lang="zh-Hant-TW"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><link rel="icon" href="/favicon.ico"><meta property="og:image" content="https://www.uobam.com.tw/og.png"><script async="" src="https://www.googletagmanager.com/gtm.js?id=GTM-WTG86ZT"></script><script async="" src="https://www.googletagmanager.com/gtm.js?id=GTM-WTG86ZT"></script><script async="" src="https://www.googletagmanager.com/gtm.js?id=GTM-WTG86ZT"></scri
+     2330 前後: >0.83</td></tr><tr><td>066570 KS</td><td>樂金電子公司</td><td>5,887</td><td>NT$ 30,021,016</td><td>0.8</td></tr><tr><td>035420 KS</td><td>NAVER公司</td><td>6,495</td><td>NT$ 29,472,035</td><td>0.78</td></tr><tr><td>316140 KS</td><td>友利金融集團公司</td><td>36,911</td><td>NT$ 29,192,965</td><td>0.78</td></tr><tr><td>032830 KS</td><td>三星人壽保險有限公司</td><td>4,020</td><td>NT$ 27,428,464</td><td>0.73</td></tr><tr><td>012330 KS</td><td>現代摩比斯有限公司</td><td>2,952</td><td>NT$ 26,727,560</td><td>0.71</td></tr><tr><td>034730 KS</td><td>SK公司</td><td>1,945</td><td>NT$ 26,816,991</td><td>0.71</td></tr><tr><td>005490 KS</td><td>浦項鋼鐵控股公司</td><td>3,241</td><td>NT$ 23,796,715</td><td>0.63</td></tr><tr><td>373220 KS</td><td>LG新能源有限公司</td><td>2,431</td><td>NT$ 21,292,981</td><td>0.57</td></tr><tr><td>000810 KS</td><td>三星火災海上保險有限
+   ★ 200 GET https://www.uobam.com.tw/json/reply/WebSiteStockListRequest
+     type: application/json; charset=utf-8  bytes: 571569
+     開頭: {"resultP":[{"result":[{"id":431,"guid":"da3c8657-a0f8-4a31-ac49-713072098357","fundID":"00719554","twName":"大華韓國KOSPI 50","twNameFull":null,"enName":"United Korea KOSPI 50 ETF","contents":"<p style=\"-webkit-text-stroke-width:0px; margin-top:0px; margin-bottom:1rem; text-align:left\"><span style=\"font-size:medium\"><span style=\"box-sizing:border-box\"><span style=\"outline:none\"><span style=\"color:#333333\"><span style=\"font-family:&quot;Noto Sans TC&quot;, sans-serif\"><span style=\"font-
+     2330 前後: 0":"債券型","ec021":"開放式","ec022":"","ec023":null,"ec024":"國內外","ec025":null,"ec031":null,"ec032":"b97ba2b5-dc53-4cd3-99ab-e4d273466cc5","ec202":4,"ec312":0,"ec313":0,"ec314":1,"ec315":0,"ec501":null,"ec502":null,"ec503":null,"etf001":null,"etf002":null,"etf003":null,"etf004":null,"etf005":null,"etf006":null,"etf007":null,"etf008":null,"etf009":null,"etf010":null,"etf020":0,"announce":null,"nav":"11.2317","navDate":"2026/10/06","change":0.004300,"changeRange":0.000383,"ec01022":"","ec01013":null,"ec01033":null,"ec01034":null,"ec01035":null,"dividendStart":null,"dividendEnd":null,"dividendYear":[],"sort01":0,"sort02":0,"t":null},{"id":413,"guid":"b47ebba3-7bb1-43e9-88b6-eb95de19a862","fundID":"93146965A","twName":"大華銀全球短年期投資等級債券基金 (本基金有相當比重投資於非投資等級之高風險債券且配息來源可能為本金)","twNameFull":null,"enName":
+====================================================================================================
+[extra-2] https://websys.fsit.com.tw/FubonETF/Trade/Pcf.aspx?lan=TW&stkId=006208@@同意
+  點不到： 同意 Locator.click: Timeout 10000ms exceeded.
+Call log:
+  - waiting for get_by_text("同意").first
+    - locator resolved to <b>
+  最終網址: https://websys.fsit.com.tw/FubonETF/Trade/Pcf.aspx?lan=TW&stkId=006208  標題: 申購買回清單 | 富邦投信ETF投資網
+    連結:  -> https://websys.fsit.com.tw/FubonETF/Trade/Pcf.aspx?lan=TW&stkId=006208#
+    連結:  -> https://websys.fsit.com.tw/FubonETF/index.aspx
+    連結:  -> https://websys.fsit.com.tw/FubonETF/Trade/Pcf.aspx?lan=TW&stkId=006208#
+    連結: ETF 產品總覽 -> https://websys.fsit.com.tw/FubonETF/Fund/ETFSeries.aspx
+    連結: ETF 配息查詢 -> https://websys.fsit.com.tw/FubonETF/Dividend/Dividend.aspx
+    連結: ETF 行事曆 -> https://websys.fsit.com.tw/FubonETF/Fund/FundCalendar.aspx
+    連結: 即時估計淨值 -> https://websys.fsit.com.tw/FubonETF/Trade/Estimate.aspx
+    連結: 淨值 & 市價比較圖 -> https://websys.fsit.com.tw/FubonETF/Trade/Comparison.aspx
+    連結: 申購買回清單 -> https://websys.fsit.com.tw/FubonETF/Trade/Pcf.aspx
+    連結: 追蹤差距 -> https://websys.fsit.com.tw/FubonETF/Trade/TrackingError.aspx
+    連結: 折溢價查詢 -> https://websys.fsit.com.tw/FubonETF/Trade/PremiumDiscount.aspx
+    連結: 交易費率資訊 -> https://websys.fsit.com.tw/FubonETF/Trade/TransactionRate.aspx
+    連結: 追蹤指數報價 -> https://websys.fsit.com.tw/FubonETF/Trade/TrackingIndex.aspx
+    連結: 全球股市休市 -> https://websys.fsit.com.tw/FubonETF/Trade/Holiday.aspx
+    連結: 配息專區 -> https://websys.fsit.com.tw/FubonETF/Dividend/Dividend.aspx
+    連結: 投資焦點 -> https://websys.fsit.com.tw/FubonETF/Market/News.aspx?type=Expert
+    連結: 戰略觀點 -> https://websys.fsit.com.tw/FubonETF/Market/News.aspx?type=Strategic
+    連結: 每日市場焦點 -> https://websys.fsit.com.tw/FubonETF/Market/News.aspx?type=Daily
+    連結: ETF 周報 -> https://websys.fsit.com.tw/FubonETF/Market/News.aspx?type=Weekly
+    連結: 影音專區 -> https://websys.fsit.com.tw/FubonETF/Market/Events.aspx?type=Video
+    連結: 全球主要金融指數 -> https://websys.fsit.com.tw/FubonETF/Market/IndexList.aspx
+    連結: 申請ETF e帳單 -> https://etrade.fsit.com.tw/event/ebill/index.aspx
+    連結: 申請ETF收益分配帳號 -> https://etrade.fsit.com.tw/event/ETFdividend/index.aspx
+    連結: ETF客戶配息查詢 -> https://websys.fsit.com.tw/FubonETF/Service/QueryETFdividend.aspx
+    連結: ETF 基本介紹 -> https://websys.fsit.com.tw/FubonETF/Service/Know.aspx?type=Info
+    連結: ETF 策略交易 -> https://websys.fsit.com.tw/FubonETF/Service/Know.aspx?type=Strategy
+    連結: ETF 交易流程 -> https://websys.fsit.com.tw/FubonETF/Service/Know.aspx?type=Trade
+    連結: ETF策略金庫 -> https://etrade.fsit.com.tw/case/event/FBETF/index.html
+    連結: 收益平準金專區 -> https://websys.fsit.com.tw/FubonETF/Service/Know.aspx?type=IncomeEquali
+    連結: 表單下載 -> https://websys.fsit.com.tw/FubonETF/Service/Document.aspx
+    連結: 常見問題 -> https://websys.fsit.com.tw/FubonETF/Service/Question.aspx
+    連結:  -> https://websys.fsit.com.tw/FubonETF/Trade/Pcf.aspx?lan=TW&stkId=006208#
+    連結: 富邦成員 -> https://websys.fsit.com.tw/FubonETF/Trade/Pcf.aspx?lan=TW&stkId=006208#
+    連結: 申請ETF_e帳單 -> https://etrade.fsit.com.tw/event/ebill/index.aspx
+    連結: 即時估計淨值 -> https://websys.fsit.com.tw/FubonETF/Trade/Estimate.aspx
+    連結:  -> https://websys.fsit.com.tw/FubonETF/index.aspx
+    連結: ETF 交易專區 -> https://websys.fsit.com.tw/FubonETF/Trade/Estimate.aspx
+    連結: 申購買回清單 -> https://websys.fsit.com.tw/FubonETF/Trade/Pcf.aspx
+    連結: En -> https://websys.fsit.com.tw/FubonETF/Trade/Pcf.aspx?lan=EN&stkId=006208
+    連結: 中文 -> https://websys.fsit.com.tw/FubonETF/Trade/Pcf.aspx?lan=TW&stkId=006208
+    連結: 基金資產 -> https://websys.fsit.com.tw/FubonETF/Trade/Assets.aspx?stkId=006208&ddate=2026/10/07&lan=TW
+    連結: 台灣旗艦動能50 ETF基金
+      -> https://websys.fsit.com.tw/FubonETF/Trade/Pcf.aspx?stkId=009802&lan=TW
+    連結: 特選台灣高股息30 ETF基金
+     -> https://websys.fsit.com.tw/FubonETF/Trade/Pcf.aspx?stkId=00900&lan=TW
+    連結: 台灣核心半導體ETF基金 -> https://websys.fsit.com.tw/FubonETF/Trade/Pcf.aspx?stkId=00892&lan=TW
+    連結: 台灣淨零轉型ESG 50 ETF基金
+  -> https://websys.fsit.com.tw/FubonETF/Trade/Pcf.aspx?stkId=009809&lan=TW
+    連結: 臺灣中小A級動能50 ETF基金 -> https://websys.fsit.com.tw/FubonETF/Trade/Pcf.aspx?stkId=00733&lan=TW
+    連結: 道瓊臺灣優質高息30 ETF基金
+    -> https://websys.fsit.com.tw/FubonETF/Trade/Pcf.aspx?stkId=00730&lan=TW
+    連結: 臺灣公司治理100基金 -> https://websys.fsit.com.tw/FubonETF/Trade/Pcf.aspx?stkId=00692&lan=TW
+    連結: 台灣釆吉50基金
+            -> https://websys.fsit.com.tw/FubonETF/Trade/Pcf.aspx?stkId=006208&lan=TW
+    連結: 台灣摩根基金 -> https://websys.fsit.com.tw/FubonETF/Trade/Pcf.aspx?stkId=0057&lan=TW
+    連結: 台灣科技指數基金
+            -> https://websys.fsit.com.tw/FubonETF/Trade/Pcf.aspx?stkId=0052&lan=TW
+    連結: 標普美國特別股ETF基金 -> https://websys.fsit.com.tw/FubonETF/Trade/Pcf.aspx?stkId=00717&lan=TW
+    連結: 富時越南ETF基金 -> https://websys.fsit.com.tw/FubonETF/Trade/Pcf.aspx?stkId=00885&lan=TW
+    連結: 上証180基金 -> https://websys.fsit.com.tw/FubonETF/Trade/Pcf.aspx?stkId=006205&lan=TW
+    連結: 深証100基金 -> https://websys.fsit.com.tw/FubonETF/Trade/Pcf.aspx?stkId=00639&lan=TW
+    連結: 中國中証中小500 ETF基金 -> https://websys.fsit.com.tw/FubonETF/Trade/Pcf.aspx?stkId=00783&lan=TW
+    連結: 恒生國企ETF基金 -> https://websys.fsit.com.tw/FubonETF/Trade/Pcf.aspx?stkId=00700&lan=TW
+    連結: 日本東証基金
+              -> https://websys.fsit.com.tw/FubonETF/Trade/Pcf.aspx?stkId=00645&lan=TW
+    連結: 印度NIFTY基金 -> https://websys.fsit.com.tw/FubonETF/Trade/Pcf.aspx?stkId=00652&lan=TW
+    連結: 全球ESG綠色電力ETF基金 -> https://websys.fsit.com.tw/FubonETF/Trade/Pcf.aspx?stkId=00920&lan=TW
+    連結: 全球入息不動產與基礎建設ETF基金
+   -> https://websys.fsit.com.tw/FubonETF/Trade/Pcf.aspx?stkId=00908&lan=TW
+    連結: 元宇宙ETF基金 -> https://websys.fsit.com.tw/FubonETF/Trade/Pcf.aspx?stkId=00903&lan=TW
+    連結: 基因免疫生技ETF基金 -> https://websys.fsit.com.tw/FubonETF/Trade/Pcf.aspx?stkId=00897&lan=TW
+    連結: 未來車ETF基金 -> https://websys.fsit.com.tw/FubonETF/Trade/Pcf.aspx?stkId=00895&lan=TW
+    連結: NASDAQ-100基金 -> https://websys.fsit.com.tw/FubonETF/Trade/Pcf.aspx?stkId=00662&lan=TW
+    連結: 富時歐洲ETF基金 -> https://websys.fsit.com.tw/FubonETF/Trade/Pcf.aspx?stkId=00709&lan=TW
+    連結: 標普500 ETF基金
+         -> https://websys.fsit.com.tw/FubonETF/Trade/Pcf.aspx?stkId=009814&lan=TW
+    連結: 臺灣加權單日正向兩倍基金 -> https://websys.fsit.com.tw/FubonETF/Trade/Pcf.aspx?stkId=00675L&lan=TW
+    連結: 臺灣加權單日反向一倍基金 -> https://websys.fsit.com.tw/FubonETF/Trade/Pcf.aspx?stkId=00676R&lan=TW
+    連結: 上証180單日正向兩倍基金 -> https://websys.fsit.com.tw/FubonETF/Trade/Pcf.aspx?stkId=00633L&lan=TW
+    連結: 上証180單日反向一倍基金 -> https://websys.fsit.com.tw/FubonETF/Trade/Pcf.aspx?stkId=00634R&lan=TW
+    連結: 恒生國企單日正向兩倍基金 -> https://websys.fsit.com.tw/FubonETF/Trade/Pcf.aspx?stkId=00665L&lan=TW
+    連結: 恒生國企單日反向一倍基金 -> https://websys.fsit.com.tw/FubonETF/Trade/Pcf.aspx?stkId=00666R&lan=TW
+    連結: 日本東証單日正向兩倍基金
+        -> https://websys.fsit.com.tw/FubonETF/Trade/Pcf.aspx?stkId=00640L&lan=TW
+    連結: 日本東証單日反向一倍基金
+        -> https://websys.fsit.com.tw/FubonETF/Trade/Pcf.aspx?stkId=00641R&lan=TW
+    連結: 印度NIFTY單日正向兩倍基金 -> https://websys.fsit.com.tw/FubonETF/Trade/Pcf.aspx?stkId=00653L&lan=TW
+    連結: 印度NIFTY單日反向一倍基金 -> https://websys.fsit.com.tw/FubonETF/Trade/Pcf.aspx?stkId=00654R&lan=TW
+    連結: NASDAQ-100單日正向兩倍基金
+  -> https://websys.fsit.com.tw/FubonETF/Trade/Pcf.aspx?stkId=00670L&lan=TW
+    連結: NASDAQ-100單日反向一倍基金
+  -> https://websys.fsit.com.tw/FubonETF/Trade/Pcf.aspx?stkId=00671R&lan=TW
+    連結: 美國政府債券1-3年期基金 -> https://websys.fsit.com.tw/FubonETF/Trade/Pcf.aspx?stkId=00694B&lan=TW
+    連結: 美國政府債券7-10年期基金 -> https://websys.fsit.com.tw/FubonETF/Trade/Pcf.aspx?stkId=00695B&lan=TW
+    連結: 美國政府債券20年期以上基金 -> https://websys.fsit.com.tw/FubonETF/Trade/Pcf.aspx?stkId=00696B&lan=TW
+    連結: 中國以外新興市場美元5年以上投資等級債券 -> https://websys.fsit.com.tw/FubonETF/Trade/Pcf.aspx?stkId=00845B&lan=TW
+    連結: 彭博9-35年A級美元息收公司債券ETF -> https://websys.fsit.com.tw/FubonETF/Trade/Pcf.aspx?stkId=00746B&lan=TW
+    連結: 彭博10年期(以上)BBB美元息收公司債 -> https://websys.fsit.com.tw/FubonETF/Trade/Pcf.aspx?stkId=00740B&lan=TW
+    連結: 彭博優選1-5年非投資等級債券ETF基金 -> https://websys.fsit.com.tw/FubonETF/Trade/Pcf.aspx?stkId=00741B&lan=TW
+    連結: 彭博歐洲區美元7-15年期銀行債ETF基 -> https://websys.fsit.com.tw/FubonETF/Trade/Pcf.aspx?stkId=00846B&lan=TW
+    連結: 全球金融業10年以上美元投等債券ETF基 -> https://websys.fsit.com.tw/FubonETF/Trade/Pcf.aspx?stkId=00785B&lan=TW
+    連結: 環球動態入息投資級債主動式ETF基金
+  -> https://websys.fsit.com.tw/FubonETF/Trade/Pcf.aspx?stkId=00982D&lan=TW
+    連結: 環球複合優選收益債主動式ETF基金
+   -> https://websys.fsit.com.tw/FubonETF/Trade/Pcf.aspx?stkId=00983D&lan=TW
+    連結: 台灣龍耀主動式ETF基金
+        -> https://websys.fsit.com.tw/FubonETF/Trade/Pcf.aspx?stkId=00405A&lan=TW
+    連結: ETF 產品 -> https://websys.fsit.com.tw/FubonETF/Fund/ETFSeries.aspx
+    連結: ETF 產品總覽 -> https://websys.fsit.com.tw/FubonETF/Fund/ETFSeries.aspx
+    連結: ETF 配息查詢 -> https://websys.fsit.com.tw/FubonETF/Dividend/Dividend.aspx
+    連結: ETF 行事曆 -> https://websys.fsit.com.tw/FubonETF/Fund/FundCalendar.aspx
+    連結: ETF 交易專區 -> https://websys.fsit.com.tw/FubonETF/Trade/Estimate.aspx
+    連結: 即時估計淨值 -> https://websys.fsit.com.tw/FubonETF/Trade/Estimate.aspx
+    連結: 淨值 & 市價比較圖 -> https://websys.fsit.com.tw/FubonETF/Trade/Comparison.aspx
+    連結: 申購買回清單 -> https://websys.fsit.com.tw/FubonETF/Trade/Pcf.aspx
+    連結: 追蹤差距 -> https://websys.fsit.com.tw/FubonETF/Trade/TrackingError.aspx
+    連結: 折溢價查詢 -> https://websys.fsit.com.tw/FubonETF/Trade/PremiumDiscount.aspx
+    連結: 交易費率資訊 -> https://websys.fsit.com.tw/FubonETF/Trade/TransactionRate.aspx
+    連結: 追蹤指數報價 -> https://websys.fsit.com.tw/FubonETF/Trade/TrackingIndex.aspx
+    連結: 全球股市休市 -> https://websys.fsit.com.tw/FubonETF/Trade/Holiday.aspx
+    連結: 配息專區 -> https://websys.fsit.com.tw/FubonETF/Dividend/Dividend.aspx
+    連結: 市場訊息 -> https://websys.fsit.com.tw/FubonETF/Market/News.aspx?type=Expert
+    連結: 投資焦點 -> https://websys.fsit.com.tw/FubonETF/Market/News.aspx?type=Expert
+    連結: 戰略觀點 -> https://websys.fsit.com.tw/FubonETF/Market/News.aspx?type=Strategic
+    連結: 每日市場焦點 -> https://websys.fsit.com.tw/FubonETF/Market/News.aspx?type=Daily
+    連結: ETF 周報 -> https://websys.fsit.com.tw/FubonETF/Market/News.aspx?type=Weekly
+    連結: 影音專區 -> https://websys.fsit.com.tw/FubonETF/Market/Events.aspx?type=Video
+    連結: 全球主要金融指數 -> https://websys.fsit.com.tw/FubonETF/Market/IndexList.aspx
+    連結: 申請ETF e帳單 -> https://etrade.fsit.com.tw/event/ebill/index.aspx
+    連結: 申請ETF收益分配帳號 -> https://etrade.fsit.com.tw/event/ETFdividend/index.aspx
+    連結: ETF客戶配息查詢 -> https://websys.fsit.com.tw/FubonETF/Service/QueryETFdividend.aspx
+    連結: ETF 基本介紹 -> https://websys.fsit.com.tw/FubonETF/Service/Know.aspx?type=Info
+    連結: ETF 策略交易 -> https://websys.fsit.com.tw/FubonETF/Service/Know.aspx?type=Strategy
+    連結: ETF 交易流程 -> https://websys.fsit.com.tw/FubonETF/Service/Know.aspx?type=Trade
+    連結: ETF策略金庫 -> https://etrade.fsit.com.tw/case/event/FBETF/index.html
+    連結: 收益平準金專區 -> https://websys.fsit.com.tw/FubonETF/Service/Know.aspx?type=IncomeEquali
+    連結: 表單下載 -> https://websys.fsit.com.tw/FubonETF/Service/Document.aspx
+    連結: 常見問題 -> https://websys.fsit.com.tw/FubonETF/Service/Question.aspx
+  XHR／文件請求 2 個：
+     200 GET https://websys.fsit.com.tw/FubonETF/Trade/Pcf.aspx?lan=TW&stkId=006208
+        resp='\r\n\r\n<!DOCTYPE html>\r\n\r\n<html lang="zh-TW" class="no-js">\r\n<head>\r\n    \r\n    <!-- Google Tag Manager -->\r\n    <script>(function (w, d, s, l, i) {\r\n            w[l] = w[l] || []; w[l].push({\r\n                \'gtm.start\':\r\n                    new Date().getTime(), event: \'gtm.js\'\r\n            }); var\r\n'
+     200 POST https://etrade.fsit.com.tw/asset-management/Json/GetComMadiaData
+        resp='{"contentText":"您即將離開『富邦投信官方網站』至第三方網站，如您進入非本公司網站，將不再適用本公司隱私權聲明之涵蓋範圍，建議您於提供個人資料前，應先行審閱該第三方網站之隱私權政策、聲明或相關條款。"}'
+  含成分股字樣的回應 0 個：
+====================================================================================================
+[extra-3] https://www.tsit.com.tw/ETF/Home/Pcf@@00904
+  點不到： 00904 Locator.click: Timeout 10000ms exceeded.
+Call log:
+  - waiting for get_by_text("00904").first
+    - locator resolved to 
+  最終網址: https://www.tsit.com.tw/ETF/Home/Pcf  標題: 申購買回清單
+    連結: ETF產品總覽 -> https://www.tsit.com.tw/ETF/Home/ETFSeries
+    連結: 即時估計淨值 -> https://www.tsit.com.tw/ETF/Home/Estimate
+    連結: 淨值vs市價比較 -> https://www.tsit.com.tw/ETF/Home/Chart
+    連結: 申購買回清單 -> https://www.tsit.com.tw/ETF/Home/Pcf
+    連結: 追蹤差距 -> https://www.tsit.com.tw/ETF/Home/Track
+    連結: 折溢價查詢 -> https://www.tsit.com.tw/ETF/Home/DPSearch
+    連結: 申贖費用表 -> https://www.tsit.com.tw/ETF/Home/ETFFeeList
+    連結: ETF配息資訊 -> https://www.tsit.com.tw/ETF/Home/ETFDIVList
+    連結: 收益分配電子服務 -> https://www.tsit.com.tw/ETF/Home/Apply
+    連結: 最新消息 -> https://www.tsit.com.tw/ETF/Home/News
+    連結: Q&A -> https://www.tsit.com.tw/ETF/Home/QA
+    連結: 首頁 -> https://www.tsit.com.tw/ETF/
+    連結: 首頁 -> https://www.tsit.com.tw/ETF/
+    連結: 申購買回清單 -> https://www.tsit.com.tw/ETF/Home/Pcf
+  XHR／文件請求 1 個：
+     200 GET https://www.tsit.com.tw/ETF/Home/Pcf
+        resp='<!DOCTYPE html>\r\n<html>\r\n<head>\r\n    <meta charset="utf-8" />\r\n    <meta http-equiv="X-UA-Compatible" content="IE=edge">\r\n    <meta name="viewport" content="width=device-width, initial-scale=1.0">\r\n    <link rel="shortcut icon" href="/ETF/favicon.ico" type="image/x-icon">\r\n    <link rel="icon" href='
+  含成分股字樣的回應 0 個：
+====================================================================================================
+[extra-4] https://www.fsitc.com.tw/FundDetail.aspx?ID=101
+  最終網址: https://www.fsitc.com.tw/FundDetail.aspx?ID=101#TabLinkdivEditTab1  標題: 第一金投信
+    連結: ETF專區 -> https://www.fsitc.com.tw/FundDetail.aspx?ID=101#
+    連結:  -> https://www.fsitc.com.tw/ETFList.aspx#TabLinkdivEditTab1
+    連結:  -> https://www.fsitc.com.tw/ETFAccWeb/
+    連結: 投資組合 -> https://www.fsitc.com.tw/FundDetail.aspx?ID=101#
+    連結: 申購買回清單 -> https://www.fsitc.com.tw/FundDetail.aspx?ID=101#
+    連結: 即時預估淨值 -> https://www.fsitc.com.tw/ETFList.aspx
+    連結: 投資組合 -> https://www.fsitc.com.tw/FundDetail.aspx?ID=101#
+    連結: 申購買回清單 -> https://www.fsitc.com.tw/FundDetail.aspx?ID=101#
+    連結: 即時預估淨值 -> https://www.fsitc.com.tw/ETFList.aspx
+    連結: 【基金訊息】本公司經理之三檔海外ETF基 -> https://www.fsitc.com.tw/Files/EDM/%E6%A0%B8%E5%87%86%E5%85%AC%E5%91%8A(20251230)_%E4%B8%89%E6%AA%94%E6%B5%B7%E5%A4%96ETF%E5%8F%8A%E7%BE%8E%E5%85%83%E5%84%AA%E9%81%B8%E3%80%81%
+    連結: 本公司經理之三檔ETF基金經理人異動公告 -> https://www.fsitc.com.tw/Files/EDM/%E5%85%AC%E5%91%8A_%E5%9F%BA%E9%87%91%E7%B6%93%E7%90%86%E4%BA%BA%E7%95%B0%E5%8B%95-20230607_20230607084747068157.pdf
+    連結: 【基金訊息】第一金彭博美國10年期以上金 -> https://www.fsitc.com.tw/Files/EDM/%E7%AC%AC%E4%B8%80%E9%87%91%E5%BD%AD%E5%8D%9A%E7%BE%8E%E5%9C%8B10%E5%B9%B4%E6%9C%9F%E4%BB%A5%E4%B8%8A%E9%87%91%E8%9E%8D%E5%82%B5%E5%88%B8%E6%
+    連結: 【基金訊息】第一金彭博美國10年期以上金 -> https://www.fsitc.com.tw/Files/EDM/%E5%85%AC%E5%91%8A-%E9%87%91%E8%9E%8D%E5%82%B5ETF%E4%BF%AE%E8%A8%82%E7%94%B3%E8%B4%96%E4%BA%A4%E6%98%93%E8%B2%BB_20221214084827353631.pdf
+    連結: 【基金訊息】第一金彭博美國10年期以上金 -> https://www.fsitc.com.tw/Files/EDM/%E5%85%AC%E5%91%8A-%E9%87%91%E8%9E%8D%E5%82%B5ETF%E4%BF%AE%E8%A8%82%E7%94%B3%E8%B4%96%E4%BA%A4%E6%98%93%E8%B2%BB_20221213052659192771.pdf
+    連結: 【基金訊息】第一金彭博巴克萊美國10年期 -> https://www.fsitc.com.tw/Files/EDM/%E5%85%AC%E5%91%8A-%E9%87%91%E8%9E%8D%E5%82%B5ETF%E6%9B%B4%E5%90%8D_20221019014805350449.pdf
+    連結: 【基金訊息】第一金亞洲新興及第一金彭博巴 -> https://www.fsitc.com.tw/Files/EDM/%E7%AC%AC%E4%B8%80%E9%87%91%E4%BA%9E%E6%B4%B2%E6%96%B0%E8%88%88%E5%8F%8A%E7%AC%AC%E4%B8%80%E9%87%91%E5%BD%AD%E5%8D%9A%E5%B7%B4%E5%85%8B%E8%90
+    連結: 【配息金額公告】第一金彭博巴克萊美國10 -> https://www.fsitc.com.tw/Files/EDM/(%E6%9C%9F%E5%BE%8C%E5%85%AC%E5%91%8A)%E7%AC%AC%E4%B8%80%E9%87%91%E5%BD%AD%E5%8D%9A%E5%B7%B4%E5%85%8B%E8%90%8A%E7%BE%8E%E5%9C%8B10%E5%B9%B4%E
+    連結: 【配息金額公告】第一金彭博巴克萊美國10 -> https://www.fsitc.com.tw/Files/EDM/%E7%AC%AC%E4%B8%80%E9%87%91%E5%BD%AD%E5%8D%9A%E5%B7%B4%E5%85%8B%E8%90%8A%E7%BE%8E%E5%9C%8B10%E5%B9%B4%E6%9C%9F%E4%BB%A5%E4%B8%8A%E9%87%91%E8%
+    連結: 【基金訊息】第一金優債收息ETF傘型基金 -> https://www.fsitc.com.tw/Files/EDM/%E7%AC%AC%E4%B8%80%E9%87%91%E5%84%AA%E5%82%B5%E6%94%B6%E6%81%AFETF%E5%82%98%E5%9E%8B%E5%9F%BA%E9%87%91%E8%AA%BF%E9%99%8D%E4%BF%9D%E7%AE%A1%E8
+    連結: 【配息金額公告】第一金彭博巴克萊美國10 -> https://www.fsitc.com.tw/Files/EDM/191014%20%E7%AC%AC%E4%B8%80%E9%87%91%E5%BD%AD%E5%8D%9A%E5%B7%B4%E5%85%8B%E8%90%8A%E7%BE%8E%E5%9C%8B10%E5%B9%B4%E6%9C%9F%E4%BB%A5%E4%B8%8A%E9%
+    連結: 【基金訊息】第一金優債收息ETF傘型基金 -> https://www.fsitc.com.tw/Files/EDM/%E7%AC%AC%E4%B8%80%E9%87%91%E5%84%AA%E5%82%B5%E6%94%B6%E6%81%AFETF%E5%82%98%E5%9E%8B%E5%9F%BA%E9%87%91%E5%8B%9F%E9%9B%86%E5%85%AC%E5%91%8A_20
+    連結: 【經理人報告】第一金彭博美國10年期以上 -> https://www.fsitc.com.tw//Files/EDM/%E7%B6%93%E7%90%86%E4%BA%BA%E5%A0%B1%E5%91%8A%2000834B%E7%AC%AC%E4%B8%80%E9%87%91%E7%BE%8E%E5%9C%8B10+%E9%87%91%E8%9E%8D%E5%82%B5ETF-2024120
+    連結:  -> https://www.fsitc.com.tw//Files/EDM/%E7%B6%93%E7%90%86%E4%BA%BA%E5%A0%B1%E5%91%8A%2000834B%E7%AC%AC%E4%B8%80%E9%87%91%E7%BE%8E%E5%9C%8B10+%E9%87%91%E8%9E%8D%E5%82%B5ETF-20241205_202412061142454880
+    連結: 【經理人報告】第一金彭博美國10年期以上 -> https://www.fsitc.com.tw//Files/EDM/%E7%B6%93%E7%90%86%E4%BA%BA%E5%A0%B1%E5%91%8A%2000834B%E7%AC%AC%E4%B8%80%E9%87%91%E7%BE%8E%E5%9C%8B10+%E9%87%91%E8%9E%8D%E5%82%B5ETF%E5%A0%B
+    連結:  -> https://www.fsitc.com.tw//Files/EDM/%E7%B6%93%E7%90%86%E4%BA%BA%E5%A0%B1%E5%91%8A%2000834B%E7%AC%AC%E4%B8%80%E9%87%91%E7%BE%8E%E5%9C%8B10+%E9%87%91%E8%9E%8D%E5%82%B5ETF%E5%A0%B1%E5%91%8A_202408230
+    連結: 金融債ETF，抗疫優選 -> https://www.fsitc.com.tw/ManagerEDM.aspx?ID=1919&Type=2
+    連結: 收息好債，首選美國金融債ETF -> https://www.fsitc.com.tw/ManagerEDM.aspx?ID=1856&Type=2
+  XHR／文件請求 5 個：
+     200 GET https://www.fsitc.com.tw/FundDetail.aspx?ID=101
+        resp='\r\n\r\n<!DOCTYPE html>\r\n\r\n<html xmlns="http://www.w3.org/1999/xhtml">\r\n<head>\r\n    <script type="text/javascript">if (top.frames.length != 0) alert(\'error\') </script>\r\n    <script>\r\n        (function(i,s,o,g,r,a,m){i[\'GoogleAnalyticsObject\']=r;i[r]=i[r]||function(){\r\n            (i[r].q=i[r].q||[]).pus'
+     200 POST https://www.fsitc.com.tw/WebAPI.aspx/Get_BuySellA
+        body={ 'pStrFundID':'101','pStrDate':''}
+        resp='{"d":"[{\\"fundid\\":\\"101\\",\\"sdate\\":\\"2026-10-08\\",\\"A\\":\\"基金淨資產價值(元)\\",\\"B\\":\\"TWD 741,024,106\\"},{\\"fundid\\":\\"101\\",\\"sdate\\":\\"2026-10-08\\",\\"A\\":\\"每受益權單位淨資產價值(元)-台幣交易\\",\\"B\\":\\"31.9434\\"},{\\"fundid\\":\\"101\\",\\"sdate\\":\\"2026-10-08\\",\\"A\\":\\"已發行受益權單位總數-台幣交易\\",\\"B\\":\\"23,198,000\\"},{\\"fundid\\":\\'
+     200 POST https://www.fsitc.com.tw/WebAPI.aspx/Get_BuySellB
+        body={ 'pStrFundID':'101','pStrDate':''}
+        resp='{"d":"[{\\"fundid\\":\\"101\\",\\"sdate\\":\\"2026-01-02\\",\\"type\\":\\"1\\",\\"A\\":\\"1 USD=31.3750 NTD\\"}]"}'
+     200 POST https://www.fsitc.com.tw/WebAPI.aspx/Get_BuySellC
+        body={ 'pStrFundID':'101','pStrDate':''}
+        resp='{"d":"[{\\"fundid\\": \\"\\",\\"sdate\\":\\"\\",\\"group\\":\\"\\",\\"type\\": \\"\\",\\"A\\":\\"\\",\\"B\\":\\"\\"}]"}'
+     200 POST https://www.fsitc.com.tw/WebAPI.aspx/Get_hd
+        body={ 'pStrFundID':'101','pStrDate':''}
+        resp='{"d":"[{\\"fundid\\":\\"101\\",\\"sdate\\":\\"2026-10-06\\",\\"group\\":\\"4\\",\\"A\\":\\"現金/存款\\",\\"B\\":\\"TWD 15,545,039\\",\\"C\\":\\"2.10\\",\\"D\\":\\"\\",\\"E\\":\\"\\"},{\\"fundid\\":\\"101\\",\\"sdate\\":\\"2026-10-06\\",\\"group\\":\\"5\\",\\"A\\":\\"債券\\",\\"B\\":\\"96.56%\\",\\"C\\":\\"2\\",\\"D\\":\\"\\",\\"E\\":\\"\\"},{\\"fundid\\":\\"101\\",\\"sdate'
+  含成分股字樣的回應 1 個：
+   ★ 200 GET https://www.fsitc.com.tw/FundDetail.aspx?ID=101
+     type: text/html; charset=utf-8  bytes: 5334117
+     開頭:   <!DOCTYPE html>  <html xmlns="http://www.w3.org/1999/xhtml"> <head>     <script type="text/javascript">if (top.frames.length != 0) alert('error') </script>     <script>         (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){             (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),             m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)         })(window,document,'script','https://www.g
+     2330 前後: uot;,\&amp;quot;Industry\&amp;quot;:\&amp;quot;半導體\&amp;quot;,\&amp;quot;Ratio\&amp;quot;:\&amp;quot;4.06\&amp;quot;,\&amp;quot;Source\&amp;quot;:\&amp;quot;第一金投信\&amp;quot;},{\&amp;quot;YYYYMMDD\&amp;quot;:\&amp;quot;2026/08/31\&amp;quot;,\&amp;quot;FundID\&amp;quot;:\&amp;quot;D11\&amp;quot;,\&amp;quot;FundName\&amp;quot;:\&amp;quot;店頭市場基金\&amp;quot;,\&amp;quot;ProductName\&amp;quot;:\&amp;quot;台積電\&amp;quot;,\&amp;quot;Kind\&amp;quot;:\&amp;quot;股票\&amp;quot;,\&amp;quot;Country\&amp;quot;:\&amp;quot;臺灣，中華民國\&amp;quot;,\&amp;quot;Industry\&amp;quot;:\&amp;quot;半導體\&amp;quot;,\&amp;quot;Ratio\&amp;quot;:\&amp;quot;3.73\&amp;quot;,\&amp;quot;Source\&amp;quot;:\&amp;quot;第一金投信\&amp;quot;}]&amp;quot;,     &amp;quot;cIsIndexTargetCus&amp;quot;: &amp;quot;&amp;quot;,     &amp;quot;cIndexRule
+====================================================================================================
+[extra-5] https://sitc.sinopac.com/SinopacEtf/ETF/PCF
+  最終網址: https://sitc.sinopac.com/SinopacEtf/ETF/PCF  標題: 404 - 找不到檔案或目錄。
+  XHR／文件請求 1 個：
+     404 GET https://sitc.sinopac.com/SinopacEtf/ETF/PCF
+        resp='<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">\r\n<html xmlns="http://www.w3.org/1999/xhtml">\r\n<head>\r\n<meta http-equiv="Content-Type" content="text/html; charset=big5"/>\r\n<title>404 - 找不到檔案或目錄。</title>\r\n<style type="text/css">\r\n<!--\r\nbody'
+  含成分股字樣的回應 0 個：
