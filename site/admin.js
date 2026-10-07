@@ -745,8 +745,12 @@ html[data-theme="light"] #v-admin{--pm-blue:#1f4fd8;--pm-blue-2:#163fb4}
 #admBody .dayyrs{position:relative;height:18px;padding-left:calc(3em + 8px)}#admBody .dayyrs>div{position:relative;height:100%}
 #admBody .dayyrs span{position:absolute;top:0;font:700 12px/16px var(--mono);color:var(--ink-2);padding-left:4px;border-left:1px solid var(--ink-3,#7a879c);white-space:nowrap}
 #admBody .days .yl{position:absolute;top:0;bottom:0;width:0;border-left:1px solid color-mix(in srgb,var(--ink-3,#7a879c) 70%,transparent);pointer-events:none;z-index:1}
-#admDays{position:relative}#admDays .grtog{position:absolute;right:16px;top:12px;z-index:2}
-#admDays .grtog button{min-width:36px}
+/* 週期鈕「日｜週｜月」（10-07 Andy「這邊功能異常」）：原本借用 .nbsw 資料夾分頁，但這裡下面沒有分頁內容框可以接，
+   選中那顆頂邊突出、底邊開口懸在圖上，看起來像壞掉的分頁 —— 改用全站週期鈕 .seg.tiny（跟個股 K 線週期鈕同一款，選中＝實心）。
+   標題留右側空間，窄畫面才不會被鈕蓋住。*/
+#admDays{position:relative}#admDays .grtog{position:absolute;right:16px;top:14px;z-index:2}
+#admDays .grtog button{min-width:34px}
+#admDays>h3,#admDays>p.use{padding-right:128px}
 `;
     /* 2026-10-06：會員名單上方的統計（#ptStats）照流量觀測的卡片／直條／橫條／甜甜圈做 → 流量觀測那一整套 #admBody 底下的規則，
        用 :is(#admBody,#ptStats) 讓 #ptStats 也吃到（特異度不變），不複製、不改上面任何一條規則；#ptStats 專屬的版面規則在 MS_CSS。 */
@@ -1067,7 +1071,7 @@ html[data-theme="light"] #v-admin{--pm-blue:#1f4fd8;--pm-blue-2:#163fb4}
           extra: `<button type="button" class="icobtn" id="admRefresh" title="重新整理" aria-label="重新整理"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12a9 9 0 0 0-15.5-6.2L3 8"/><path d="M3 3v5h5"/><path d="M3 12a9 9 0 0 0 15.5 6.2L21 16"/><path d="M16 16h5v5"/></svg></button>
           <span class="qtip" id="trPrivacy" tabindex="0" role="note" aria-label="隱私說明" title="使用統計只記「每天每一項的次數」（不記是誰、不存 IP），保留 13 個月；細項只存族群名、股票代號、元件名，不存任何人打的字。線上狀態離線即刪。">?</span>` })}</div>
       <div class="admgrid trtop">
-        <div class="card s2" id="admDays">${S.period === 'live' || !bk ? '' : `<div class="nbsw lv2 grtog" id="trGran" role="tablist" aria-label="統計單位">${[['day', '日'], ['week', '週'], ['month', '月']].map(([k, n]) => `<button type="button" role="tab" data-g="${k}" class="${bk.gran === k ? 'on' : ''}" aria-selected="${bk.gran === k}">${n}</button>`).join('')}</div>`}<h3>${S.period === 'live' ? '每小時' : gw}有多少瀏覽？<span class="qtip" id="trDayTip" tabindex="0" role="note" aria-label="說明" title="${esc(dtip)}">?</span></h3><p class="use" title="${esc(dsub)}">${esc(dsub)}</p><div class="cb">${dayChart(days, dmap, dmax, 'admDayBars', S.period === 'live', bk)}</div></div>
+        <div class="card s2" id="admDays">${S.period === 'live' || !bk ? '' : `<div class="seg tiny grtog" id="trGran" role="tablist" aria-label="統計單位">${[['day', '日'], ['week', '週'], ['month', '月']].map(([k, n]) => `<button type="button" role="tab" data-g="${k}" class="${bk.gran === k ? 'on' : ''}" aria-selected="${bk.gran === k}">${n}</button>`).join('')}</div>`}<h3>${S.period === 'live' ? '每小時' : gw}有多少瀏覽？<span class="qtip" id="trDayTip" tabindex="0" role="note" aria-label="說明" title="${esc(dtip)}">?</span></h3><p class="use" title="${esc(dsub)}">${esc(dsub)}</p><div class="cb">${dayChart(days, dmap, dmax, 'admDayBars', S.period === 'live', bk)}</div></div>
         <div class="card" id="trDonut"><h3>開網站的人有多少是登入的？</h3><p class="use" title="訪客、註冊會員、各付費方案各一段${tiers.est ? '（付費與免費依會員名單比例估算）' : ''}">${tiers.est ? '開站身分（估算）' : '開站身分'}</p><div class="cb">${loginDonut(tiers.list, sessions)}</div></div>
       </div>`;
   }
