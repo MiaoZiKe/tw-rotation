@@ -1,5 +1,16 @@
 # HANDOFF.md — 目前進度（接手先讀這份）
 
+## 2026-10-07 ETF 成分股接上資料：各投信每日 PCF 進湖（爬蟲專家，分支 `claude/etf-pcf` → main，DECISIONS #341）
+- Andy 13:55：「成分股怎麼可能找不到…另外台灣證交所那網站沒有嗎?」。前一版說明卡寫「沒有合規來源」是錯的（只查了證交所與 FinMind）。
+- 新來源 `pipeline/sources/etf_pcf.py`：元大、國泰、中國信託、群益、復華、統一、凱基、野村八家投信官網的公開 API（官網前端自己在打的那支）。
+  Actions 實測（`probe-etf-pcf.yml` mode=selftest）108 檔、8,049 列；**00896 接上**（中信 ETFHoldingWeight，10/06，50 檔）。
+- 資料湖新表 `etf_holdings`（date＝投信回應的淨值日）；`run_daily.py` 傍晚那輪 `etf_pcf.holdings`；`build_payload` → `site/data/etf_holdings.json`（`pipeline/compute/etf_holdings.py`）。
+- 前端（industry.js）：沒接上的寫「此檔發行投信（X 投信）資料尚未接上」；人工整理檔標「人工整理・資料日期 X」；元大股數推算的權重註明。
+- 驗收：pytest 全綠（1076 passed）；`_uitest --sections ETF成分股1007,個股 --workers 1`；`_preview.py`。本機 build_payload 全跑被 OOM（exit 137，容器 15GB 與其他 agent 共用），
+  改用 `etf_holdings.build()` 單獨產出那一支 JSON 驗前端 —— 雲端 pages.yml 會整份重算。
+- 待處理：富邦（006208、0052、00692、00662、00900、00405A）Pcf.aspx 找不到成分股端點；大華銀（00918）官網網域沒查到；其餘小投信未探測。
+  凱基的日期取 HTML 片段第一個日期（可能是公告日 T 而非淨值日 T-1）。
+
 ## 2026-10-07 播放器1007：全站播放器「調過日期再按 ▶ 不動」（UI 專家，分支 `claude/play-fix` → main）
 - Andy：「播放後再調整日期，再次點擊播放就不能做動」。全站三支播放器：資金輪盤 `#rotBack`（dayBar）、資金去向 `#sankeyDays`（playBar）、個股本益比河流 `#peEnd`（playBar）；`spanBar` 目前沒有呼叫端。
 - 根因：`route()` 與換主題會 `_players.clear()`，但已畫過的頁不重建拉Bar → 畫面上的播放器從登記表消失，之後換頁／即時停不到它（幽靈計時器，回來時鈕停在 ⏸，按下去只是暫停）；另外 ▶ 按下要等滿一個 frame（420～650ms）才動第一格、鍵盤方向鍵調拉桿不會停播。
