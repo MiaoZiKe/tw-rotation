@@ -1,0 +1,247 @@
+====================================================================================================
+[extra-0] https://www.hnfunds.com.tw/
+  最終網址: https://www.hnfunds.com.tw/  標題: 首頁 | 華南永昌投信
+    連結: ETF專區 -> https://www.hnfunds.com.tw/etf/overview/
+    連結: ETF專區 -> https://www.hnfunds.com.tw/etf/overview/
+    連結: ETF配息專區 -> https://www.hnfunds.com.tw/etf/dividends
+  XHR／文件請求 21 個：
+     200 GET https://www.hnfunds.com.tw/
+        resp='<!DOCTYPE html><html><head><meta charset="utf-8">\n<meta name="viewport" content="width=device-width, initial-scale=1">\n<title>華南永昌投信</title>\n<link rel="stylesheet" href="/_nuxt/entry.DqqvtsHL.css" crossorigin>\n<link rel="modulepreload" as="script" crossorigin href="/_nuxt/Cp7IpgkT.js">\n<link rel="pr'
+     200 POST https://www.hnfunds.com.tw/WEB_API/HN_OW_PROD/Auth/SysLogin
+        resp='{"access_token":"eyJhbGciOiJSUzI1NiIsImtpZCI6IjAwNTY0MTA1NDA1RDlCRjk1MDY5NzgzMkJGQzZDOTcyIiwidHlwIjoiYXQrand0In0.eyJuYmYiOjE3OTEzODA0MzgsImV4cCI6MTc5MTM4MjIzOSwiaXNzIjoiaHR0cDovL2Ntcy1hcC9pZGVudGl0eXNlcnZlciIsImF1ZCI6InN3X2FwaSIsImNsaWVudF9pZCI6IldGUEFQSVB1YmxpY0NsaWVudCIsInJvbGUiOiJwdWJsaWMiLCJqdGk'
+     200 GET https://www.hnfunds.com.tw/_nuxt/builds/meta/1f3d0e97-0826-4144-ae3d-7190dc1179d3.json
+        resp='{"id":"1f3d0e97-0826-4144-ae3d-7190dc1179d3","timestamp":1784017191701,"matcher":{"static":{},"wildcard":{},"dynamic":{}},"prerendered":[]}'
+     200 GET https://www.hnfunds.com.tw/WEB_API/HN_OW_PROD/Official/Url/01
+        resp='{"Data":{"UrlList":[{"UrlNM":"免責聲明","Url":"/CMS/CMS104/免責聲明.pdf"},{"UrlNM":"非金管會核准之證券期貨業者及商品","Url":"\\thttps://3434.twsa.org.tw/"},{"UrlNM":"查詢證券開戶及交易資料","Url":"\\thttps://investor.twse.com.tw/"},{"UrlNM":"性騷擾防治措施專區","Url":"/CMS/CMS104/性騷擾防治措施專區.pdf"},{"UrlNM":"網站隱私權保護聲明","Url":"/CMS/CMS104/網站隱私權保護.p'
+     200 GET https://www.hnfunds.com.tw/WEB_API/HN_OW_PROD/CMM/Option/0004
+        resp='{"Data":{"OptionList":[{"OptID":"0004","ListID":"001","ListName":"投資觀點分類","DisplayOrder":1,"IsDefault":"N"}]},"Message":"","MessageType":"03","ResultCode":"01"}'
+     200 GET https://www.hnfunds.com.tw/WEB_API/HN_OW_PROD/CMM/Option/0004
+        resp='{"Data":{"OptionList":[{"OptID":"0004","ListID":"001","ListName":"投資觀點分類","DisplayOrder":1,"IsDefault":"N"}]},"Message":"","MessageType":"03","ResultCode":"01"}'
+     200 GET https://www.hnfunds.com.tw/WEB_API/HN_OW_PROD/About/Company
+        resp='{"Data":{"BusLicenseNo":"115年金管投信新字第001號","CoLID":"(110)中信顧證字第018號(A0012)","Chargeman":"蕭玉美 董事長","Prolocutor":"吳嘉欽 總經理","BusRange":"證券投資信託業務、全權委託投資業務、其它經金管會核准業務","Addr":"105 台北市松山區民生東路4段54號3F之1","Tel":"(02)2719-6688","Fax":"(02)2545-7976","FileUrl":"/CMS/CMS504/組織圖.jpg"},"Message":"","MessageType":"'
+     200 GET https://www.hnfunds.com.tw/WEB_API/HN_OW_PROD/Investment/InvestMenu/001
+        resp='{"Data":{"InvestList":[{"InvestMID":"01","InvestMName":"投資指南","MDisplayOrder":1,"InvestMenuSList":[{"InvestMID":"01","InvestSID":"01","InvestSName":"影音放映室","SDisplayOrder":1},{"InvestMID":"01","InvestSID":"02","InvestSName":"市場評論焦點","SDisplayOrder":2},{"InvestMID":"01","InvestSID":"03","InvestSName"'
+     200 GET https://www.hnfunds.com.tw/WEB_API/HN_OW_PROD/Investment/InvestMenu/001
+        resp='{"Data":{"InvestList":[{"InvestMID":"01","InvestMName":"投資指南","MDisplayOrder":1,"InvestMenuSList":[{"InvestMID":"01","InvestSID":"01","InvestSName":"影音放映室","SDisplayOrder":1},{"InvestMID":"01","InvestSID":"02","InvestSName":"市場評論焦點","SDisplayOrder":2},{"InvestMID":"01","InvestSID":"03","InvestSName"'
+     200 GET https://www.hnfunds.com.tw/WEB_API/HN_OW_PROD/Official/Banner
+        resp='{"Data":{"TotCnt":7,"BannerList":[{"BannerNM":"華南永昌多重資產入息平衡基金_TISA","BannerUrl":"https://www.hnfunds.com.tw/pdf_file/華南永昌多重資產入息平衡基金_TISA.pdf","BannerShNM":"","FileUrlPC":"/CMS/CMS101/TISA電腦.jpg","FileUrlPhone":"/CMS/CMS101/TISA行動.jpg","DisplayOrder":11},{"BannerNM":"009822","BannerUrl":"https://www.'
+     200 GET https://www.hnfunds.com.tw/WEB_API/HN_OW_PROD/CMM/Option/0016
+        resp='{"Data":{"OptionList":[{"OptID":"0016","ListID":"1","ListName":"國內股票型","DisplayOrder":1,"IsDefault":"N"},{"OptID":"0016","ListID":"2","ListName":"海外股票型","DisplayOrder":2,"IsDefault":"N"},{"OptID":"0016","ListID":"3","ListName":"債券型","DisplayOrder":3,"IsDefault":"N"},{"OptID":"0016","ListID":"4","Lis'
+     200 GET https://www.hnfunds.com.tw/WEB_API/HN_OW_PROD/Customer/Bulletin/002/N/N/99999/1
+        resp='{"Data":{"TotCnt":1,"BulletinList":[{"BulletinID":"20260000056","BulletinDate":"2026-09-30T08:41:15+08:00","CampSDate":"2026-10-01T08:36:46+08:00","CampEDate":"2026-12-31T08:36:46+08:00","SourceCD":"華南永昌投信","BulletinNum":"","ETFYN":"N","BulletinNM":"華南永昌投信115年第4季精選基金手續費優惠活動","BulletinUrl":"","PicUrl'
+     200 GET https://www.hnfunds.com.tw/WEB_API/HN_OW_PROD/Official/HotFund/99999/1
+        resp='{"Data":{"TotCnt":4,"HotFundList":[{"PrtFundCode":"D1","ETFID":"","FundName":"華南永昌永昌基金","FundKind":"國內股票型","FundRiskAttr":"RR4","PicName":"iStock-1696781145.jpg","PicUrl":"/CMS/CMS201/iStock-1696781145.jpg"},{"PrtFundCode":"D39","ETFID":"","FundName":"華南永昌多重資產入息平衡基金 (本基金有相當比重投資於非投資等級之高風險債券且配息來源可能為本金'
+     200 POST https://www.hnfunds.com.tw/WEB_API/HN_OW_PROD/Official/NAVList
+        body={"InvArea":"01","PageDisplayCount":6,"PageNo":1,"OrderType":""}
+        resp='{"Data":{"TotCnt":6,"NavList":[{"FundID":"D83","FundName":"華南永昌台灣環境永續高股息指數基金-新台幣季配型 (本基金並無保證收益及配息)","FundKind":"指數型","NavDate":"2026-10-07T00:00:00+08:00","Nav":14.68000,"NetNav":0.08000,"NetRate":0.005479000000000000000,"NavDec":2},{"FundID":"D82","FundName":"華南永昌台灣環境永續高股息指數基金-新台幣累積型 (本基金並無保證收益及配息)'
+     200 GET https://www.hnfunds.com.tw/WEB_API/HN_OW_PROD/Customer/Bulletin/001/N/N/4/1
+        resp='{"Data":{"TotCnt":59,"BulletinList":[{"BulletinID":"20260000057","BulletinDate":"2026-09-30T09:40:30+08:00","CampSDate":"1900-01-01T00:00:00+00:00","CampEDate":"1900-01-01T00:00:00+00:00","SourceCD":"華南永昌投信","BulletinNum":"華永信字第 1150000313號","ETFYN":"N","BulletinNM":"華南永昌永昌基金修訂信託契約公告 (增加TISA級別及反稀釋費用'
+     200 GET https://www.hnfunds.com.tw/WEB_API/HN_OW_PROD/Customer/Bulletin/003/N/N/99999/1
+        resp='{"Data":{"TotCnt":0,"BulletinList":[]},"Message":"","MessageType":"01","ResultCode":"00"}'
+     200 GET https://www.hnfunds.com.tw/WEB_API/HN_OW_PROD/Customer/Bulletin/001/Y/N/99999/1
+        resp='{"Data":{"TotCnt":0,"BulletinList":[]},"Message":"","MessageType":"01","ResultCode":"00"}'
+     200 GET https://www.hnfunds.com.tw/WEB_API/HN_OW_PROD/Customer/Bulletin/002/Y/N/99999/1
+        resp='{"Data":{"TotCnt":0,"BulletinList":[]},"Message":"","MessageType":"01","ResultCode":"00"}'
+     200 GET https://www.hnfunds.com.tw/WEB_API/HN_OW_PROD/Investment/Invest/10/1/01/ALL
+        resp='{"Data":{"TotCnt":53,"InvestDataList":[{"InvestID":"20260000042","InvestMName":"投資指南","InvestSType":"03","InvestNM":"入座投等艙 航向資產防禦力","InvestUrl":"","SourceCD":"華南永昌投信","InvestDate":"2026-08-31T11:21:52+08:00","InvestNote":"<p>當 AI 熱潮讓市場氣流顛簸，資產配置更需要穩定性。華南永昌全球投資等級債券基金<strong>(本基金之配息來源可能為本金)</strong>嚴選信'
+     200 GET https://www.hnfunds.com.tw/WEB_API/HN_OW_PROD/Official/NoteMemo/01
+        resp='{"Data":{"Note":"<blockquote><strong style=\\"font-family: Roboto, &quot;Noto Sans TC&quot;, sans-serif; font-size: 10pt;\\">115 年金管投信新字第 001 號</strong></blockquote><p><strong style=\\"font-family: Roboto, &quot;Noto Sans TC&quot;, sans-serif; font-size: 10pt;\\">華南永昌系列基金經金管會核准或同意生效，惟不表示絕無風險。本公司以往之經理績效，'
+     200 GET https://www.hnfunds.com.tw/WEB_API/HN_OW_PROD/Official/NoteMemo/08
+        resp='{"Data":{"Note":"<p><strong style=\\"font-size: 10pt;\\">【華南永昌永昌基金】</strong></p><p><strong style=\\"font-size: 10pt;\\">本基金經金管會核准或同意生效，惟不表示絕無風險。基金經理公司以往之績效或提及之經濟走勢預測不保證本基金之最低投資收益，亦不代表未來績效之保證；基金經理公司除盡善良管理人之注意義務外，不負責本基金之盈虧，亦不保證最低之收益。有關基金應負擔之費用及投資風險已揭露於基金公開說明書中，投資人申購前應詳閱基金公開說明書。本基金投資無受存款保障、保險安定基金或其他相關機制之保障'
+  含成分股字樣的回應 1 個：
+   ★ 200 GET https://www.hnfunds.com.tw/WEB_API/HN_OW_PROD/Investment/Invest/10/1/01/ALL
+     type: application/json; charset=utf-8  bytes: 2167043
+     開頭: {"Data":{"TotCnt":53,"InvestDataList":[{"InvestID":"20260000042","InvestMName":"投資指南","InvestSType":"03","InvestNM":"入座投等艙 航向資產防禦力","InvestUrl":"","SourceCD":"華南永昌投信","InvestDate":"2026-08-31T11:21:52+08:00","InvestNote":"<p>當 AI 熱潮讓市場氣流顛簸，資產配置更需要穩定性。華南永昌全球投資等級債券基金<strong>(本基金之配息來源可能為本金)</strong>嚴選信評 BBB 以上優質債息，殖利率正處歷史高檔，如同頭等艙般從容淡定，陪資產穿越亂流，航向長線收益機會。</p><p><br></p><p><strong>美債殖利率持續具吸引力</strong></p><p>近期美國 10 年期公債標售殖利率一度衝上 4.683%，創下 2007 年金融海嘯以來新高，反映市場對於財政赤字與通膨黏性的疑慮仍未完全消化。然而就存續期間偏長的投資等級債而言，殖利率位於歷
+     2330 前後: :19+08:00","InvestNote":"<p>當兆元資本支出如巨浪席捲全球科技版圖，台灣站上這波浪頭。華南永昌未來科技基金鎖定晶圓代工、先進封裝與 AI 供應鏈核心動能，精準卡位每一波成長。</p><p><br></p><p><strong>主計處上修台灣今年經濟成長率</strong></p><p>GDP 預測值創下 39 年來新高，主要歸功於全球 AI 算力需求爆發帶動半導體與載板等供應鏈出口暴衝、買家長約綁定促使廠商擴產帶動民間投資實質成長 11.58%，以及台股創高帶動財富效果外溢至零售、餐飲與旅遊等民間消費，呈現內外皆穩的成長格局。</p><p><span style=\"color: rgb(158, 158, 158); font-size: 8pt;\">資料來源：行政院主計總處，2026/8/14</span></p><p><br></p><p><strong>台積電法說大幅提高 2026 年資本支出</strong></p><p>台積電於 7 月法說會上調全年資本支出（年增 52%），此巨額投資有客戶長約支撐，且供不應求至 2030 年，亦同步透過美日德全球布局分散地緣風險，並預計 2027 年漲價最高 10% 以維持 53% 以上毛利率，奠定 AI 產業無泡沫化的強勁基調。</p><p><span style=\"font-size: 8pt; color: rgb(158, 158, 158);\">資料來源：台積電法說會，2026/8/1</span></p><p><br></p><p><strong>雲端巨頭資本支出仍在上升</strong></p><p>在強勁的 AI 算力需求與零組件成本上漲推動下，微軟、Google、亞馬遜與 Meta 等美系四大雲端服務供應商 2026 年資本支出大幅上修至 7,950 億美元（年增 77%），更
+====================================================================================================
+[extra-1] https://www.tsit.com.tw/ETF/Home/Pcf
+  最終網址: https://www.tsit.com.tw/ETF/Home/Pcf  標題: 申購買回清單
+    連結: ETF產品總覽 -> https://www.tsit.com.tw/ETF/Home/ETFSeries
+    連結: 即時估計淨值 -> https://www.tsit.com.tw/ETF/Home/Estimate
+    連結: 淨值vs市價比較 -> https://www.tsit.com.tw/ETF/Home/Chart
+    連結: 申購買回清單 -> https://www.tsit.com.tw/ETF/Home/Pcf
+    連結: 追蹤差距 -> https://www.tsit.com.tw/ETF/Home/Track
+    連結: 折溢價查詢 -> https://www.tsit.com.tw/ETF/Home/DPSearch
+    連結: 申贖費用表 -> https://www.tsit.com.tw/ETF/Home/ETFFeeList
+    連結: ETF配息資訊 -> https://www.tsit.com.tw/ETF/Home/ETFDIVList
+    連結: 收益分配電子服務 -> https://www.tsit.com.tw/ETF/Home/Apply
+    連結: 最新消息 -> https://www.tsit.com.tw/ETF/Home/News
+    連結: Q&A -> https://www.tsit.com.tw/ETF/Home/QA
+    連結: 首頁 -> https://www.tsit.com.tw/ETF/
+    連結: 首頁 -> https://www.tsit.com.tw/ETF/
+    連結: 申購買回清單 -> https://www.tsit.com.tw/ETF/Home/Pcf
+  XHR／文件請求 1 個：
+     200 GET https://www.tsit.com.tw/ETF/Home/Pcf
+        resp='<!DOCTYPE html>\r\n<html>\r\n<head>\r\n    <meta charset="utf-8" />\r\n    <meta http-equiv="X-UA-Compatible" content="IE=edge">\r\n    <meta name="viewport" content="width=device-width, initial-scale=1.0">\r\n    <link rel="shortcut icon" href="/ETF/favicon.ico" type="image/x-icon">\r\n    <link rel="icon" href='
+  含成分股字樣的回應 0 個：
+====================================================================================================
+[extra-2] https://www.abfunds.com.tw/zh-tw/etfs/pcf.TW00000980D8.html
+  最終網址: https://www.abfunds.com.tw/zh-tw/etfs/pcf.TW00000980D8.html  標題: 申購買回清單 | 聯博投信 AB
+    連結: 00404A 檔案 -> https://www.abfunds.com.tw/zh-tw/funds/etf/active/equities/abitl-taiwan-momentum-equity-premium-income-50-active-etf.-.TW00000404A5.html
+    連結: 00984D 檔案 -> https://www.abfunds.com.tw/zh-tw/funds/etf/active/fixed-income/abitl-select-global-high-yield-active-etf.-.TW00000984D0.html
+    連結: 00980D 檔案 -> https://www.abfunds.com.tw/zh-tw/funds/etf/active/fixed-income/abitl-ig-corp-income-active-etf.-.TW00000980D8.html
+    連結: ETF基金配息 -> https://www.abfunds.com.tw/zh-tw/etfs/dividend.html
+    連結: ETF最新公告 -> https://www.abfunds.com.tw/zh-tw/service-centre/announcements.html?tab=etf
+    連結: ETF表單下載 -> https://www.abfunds.com.tw/zh-tw/etfs/file-download.html
+    連結: ETF常見問題 -> https://www.abfunds.com.tw/zh-tw/etfs/faq.html
+    連結: 收益平準金專區 -> https://www.abfunds.com.tw/zh-tw/etfs/income-equalisation.html
+    連結: 即時預估淨值 -> https://www.abfunds.com.tw/zh-tw/etfs/inav.html
+    連結: 申購買回清單 -> https://www.abfunds.com.tw/zh-tw/etfs/pcf.TW00000980D8.html
+    連結: #主動式ETF -> https://www.abfunds.com.tw/zh-tw/insights-landing/search-results.html?topic=etf
+  XHR／文件請求 55 個：
+     200 GET https://www.abfunds.com.tw/services/commons/dict.zh-tw.json
+        resp='{"dictionaryData":"{\\r\\n  \\"aem-ab-title\\":\\"聯博投信 AB\\",\\r\\n  \\"aem-alliancebernstein\\": \\"首頁\\",\\r\\n  \\"aem-bios-insights\\":\\"相關文章\\",\\r\\n  \\"aem-bios-strategies\\":\\"管理基金\\",\\r\\n  \\"awards-and-achievements\\":\\"學歷與成就\\",\\r\\n  \\"thank-you\\": \\"谢谢！\\",\\r\\n  \\"subscribe-with-your-email\\": \\"使用您的电子邮件订阅\\",\\r\\n'
+     200 GET https://www.abfunds.com.tw/zh-tw/etfs/pcf.TW00000980D8.html
+        resp='\r\n<!DOCTYPE HTML>\r\n<html lang="zh-TW">\r\n    <head>\r\n  \r\n  \r\n  <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>\r\n  <meta http-equiv="X-UA-Compatible" content="IE=edge"/>\r\n  \r\n  \r\n\r\n<title>申購買回清單  &#124; 聯博投信 AB</title>\r\n\r\n\r\n  \r\n  <meta name="template" content="generic-page"/>\r\n  <'
+     200 GET https://ka-p.fontawesome.com/releases/v6.7.2/js/pro.min.js?token=140b6c6c66
+        resp='(()=>{function L(t,e,a){var r;(e="symbol"==typeof(r=((t,e)=>{if("object"!=typeof t||!t)return t;var a=t[Symbol.toPrimitive];if(void 0===a)return("string"===e?String:Number)(t);if("object"!=typeof(a=a.call(t,e||"default")))return a;throw new TypeError("@@toPrimitive must return a primitive value.")})'
+     200 GET https://ka-p.fontawesome.com/releases/v6.7.2/js/pro-v4-shims.min.js?token=140b6c6c66
+        resp='((a,l)=>{"object"==typeof exports&&"undefined"!=typeof module?module.exports=l():"function"==typeof define&&define.amd?define(l):a["fontawesome-pro-shims"]=l()})(this,function(){let a={},l={};try{"undefined"!=typeof window&&(a=window),"undefined"!=typeof document&&(l=document)}catch(a){}var{userAgen'
+     200 POST https://api.company-target.com/api/v3/ip.json?&page=https%3A%2F%2Fwww.abfunds.com.tw%2Fzh-tw%2Fetfs%2Fpcf.TW00000980D8.html&referrer=&page_title=%E7%94%B3%E8%B3%BC%E8%B2%B7%E5%9B%9E%E6%B8%85%E5%96%AE%20%7C%20%E8%81%AF%E5%8D%9A%E6%8A%95%E4%BF%A1%20AB
+        body={"auth":"KQyNgSksTqmMN3uyHVt37l12vjgCQbWCWb5XNWiR","src":"adobelaunch"}
+        resp='{"access_type":"identified_non_business","audience":"SMB","audience_segment":"","digital_domain":null,"information_level":"Basic","isp":false,"region_name":"Iowa","registry_area_code":null,"registry_city":"Des Moines","registry_company_name":"Microsoft Corp","registry_country":"United States","regis'
+     200 GET https://dpm.demdex.net/id?d_visid_ver=4.5.1&d_fieldgroup=MC&d_rtbd=json&d_ver=2&d_orgid=B66802BE533094020A490D4C%40AdobeOrg&d_nsid=0&ts=1791380475004
+        resp='{"d_mid":"26180402900120857226359783090540911471","id_sync_ttl":604800,"d_blob":"6G1ynYcLPuiQxYZrsz_pkqfLG9yMXBpb2zX5dvJdYQJzPXImdj0y","dcs_region":9,"d_ottl":7200,"ibs":[{"id":"411","ttl":10080,"tag":"img","fireURLSync":1,"syncOnPage":1,"url":["//cm.everesttech.net/cm/dd?d_uuid=26203039081327446886'
+     200 POST https://alliancebernstein.tt.omtrdc.net/rest/v1/delivery?client=alliancebernstein&sessionId=35127cd7b74b4309889b18327df62e04&version=2.11.7
+        body={"requestId":"e10d3b53ee3b49b6ab89c491054c9d2b","context":{"userAgent":"Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36","clientHints":{"mobile":false,"platform":"Linux","browserUAWithMajorVersion":"\"HeadlessChrome\";v=\"153\", \"Not_A Brand\";v=\"8
+        resp='{"status":200,"requestId":"e10d3b53ee3b49b6ab89c491054c9d2b","client":"alliancebernstein","id":{"tntId":"35127cd7b74b4309889b18327df62e04.34_0","marketingCloudVisitorId":"26180402900120857226359783090540911471"},"edgeHost":"mboxedge34.tt.omtrdc.net","prefetch":{},"telemetryServerToken":"ytSZo63c32LT'
+     200 GET https://alliancebernstein.demdex.net/dest5.html?d_nsid=0
+        resp='<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">\n<html lang="en-US"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8"><title>Adobe AudienceManager</title><script type="text/javascript">\nvar Demdex={version:"6.2",dest:"5",PR'
+     200 GET https://ka-p.fontawesome.com/releases/v6.7.2/svgs/light/circle-x.svg?token=140b6c6c66
+        resp='<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Pro 6.7.2 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license (Commercial License) Copyright 2024 Fonticons, Inc. --><path d="M256 32a224 224 0 1 1 0 448 224 224 0 1 1 0-448zm0 480A256 25'
+     200 GET https://ka-p.fontawesome.com/releases/v6.7.2/svgs/light/bars.svg?token=140b6c6c66
+        resp='<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Pro 6.7.2 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license (Commercial License) Copyright 2024 Fonticons, Inc. --><path d="M0 80c0-8.8 7.2-16 16-16l416 0c8.8 0 16 7.2 16 16s-7.2 16-16 '
+     200 GET https://ka-p.fontawesome.com/releases/v6.7.2/svgs/light/chevron-right.svg?token=140b6c6c66
+        resp='<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Pro 6.7.2 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license (Commercial License) Copyright 2024 Fonticons, Inc. --><path d="M299.3 244.7c6.2 6.2 6.2 16.4 0 22.6l-192 192c-6.2 6.2-16.4 6'
+     200 GET https://ka-p.fontawesome.com/releases/v6.7.2/svgs/regular/chevron-down.svg?token=140b6c6c66
+        resp='<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Pro 6.7.2 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license (Commercial License) Copyright 2024 Fonticons, Inc. --><path d="M239 401c9.4 9.4 24.6 9.4 33.9 0L465 209c9.4-9.4 9.4-24.6 0-3'
+     200 GET https://ka-p.fontawesome.com/releases/v6.7.2/svgs/regular/angle-right.svg?token=140b6c6c66
+        resp='<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Pro 6.7.2 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license (Commercial License) Copyright 2024 Fonticons, Inc. --><path d="M273 239c9.4 9.4 9.4 24.6 0 33.9L113 433c-9.4 9.4-24.6 9.4-33'
+     200 GET https://ka-p.fontawesome.com/releases/v6.7.2/svgs/brands/youtube.svg?token=140b6c6c66
+        resp='<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Pro 6.7.2 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license (Commercial License) Copyright 2024 Fonticons, Inc. --><path d="M549.655 124.083c-6.281-23.65-24.787-42.276-48.284-48.597C458'
+     200 GET https://ka-p.fontawesome.com/releases/v6.7.2/svgs/regular/xmark.svg?token=140b6c6c66
+        resp='<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 512"><!--! Font Awesome Pro 6.7.2 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license (Commercial License) Copyright 2024 Fonticons, Inc. --><path d="M345 137c9.4-9.4 9.4-24.6 0-33.9s-24.6-9.4-33.9 0l-119 119L73'
+     200 GET https://ka-p.fontawesome.com/releases/v6.7.2/svgs/brands/line.svg?token=140b6c6c66
+        resp='<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Pro 6.7.2 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license (Commercial License) Copyright 2024 Fonticons, Inc. --><path d="M311 196.8v81.3c0 2.1-1.6 3.7-3.7 3.7h-13c-1.3 0-2.4-.7-3-1.5'
+     200 GET https://ka-p.fontawesome.com/releases/v6.7.2/svgs/brands/instagram.svg?token=140b6c6c66
+        resp='<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Pro 6.7.2 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license (Commercial License) Copyright 2024 Fonticons, Inc. --><path d="M224.1 141c-63.6 0-114.9 51.3-114.9 114.9s51.3 114.9 114.9 11'
+     200 GET https://ka-p.fontawesome.com/releases/v6.7.2/svgs/regular/arrow-right.svg?token=140b6c6c66
+        resp='<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Pro 6.7.2 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license (Commercial License) Copyright 2024 Fonticons, Inc. --><path d="M440.6 273.4c4.7-4.5 7.4-10.8 7.4-17.4s-2.7-12.8-7.4-17.4l-17'
+     200 GET https://www.abfunds.com.tw/content/dam/global/static-files/json-data/apac/taiwan/etfDecimalRoundingConfig.json
+        resp='{\r\n  "TW00000980D8": {\r\n    "etf-code": "00980D",\r\n    "rounding": 2\r\n  },\r\n  "TW00000984D0": {\r\n    "etf-code": "00984D",\r\n    "rounding": 4\r\n  },\r\n  "TW00000404A5": {\r\n    "etf-code": "00404A",\r\n    "rounding": 2\r\n  }\r\n}'
+     200 GET https://webapi.alliancebernstein.com/v2/translations/zh-tw
+        resp='{\r\n  "fundfinderdetails-value-a": {\r\n    "base": "A",\r\n    "zh-tw": ""\r\n  },\r\n  "fundfinderdetails-value-a2": {\r\n    "base": "A2",\r\n    "zh-tw": ""\r\n  },\r\n  "fundfinderdetails-value-a2x": {\r\n    "base": "A2X",\r\n    "zh-tw": ""\r\n  },\r\n  "fundfinderdetails-value-aa": {\r\n    "base": "AA",\r\n    "zh-tw":'
+     200 GET https://webapi.alliancebernstein.com/v2/funds/tw/zh-tw/investor/TW00000980D8
+        resp='{"cusip":null,"quotron":null,"isin":"TW00000980D8","wkn":null,"bloomberg":null,"valoren":null,"shareclass":"fundinfo-shareclass-none","shareclassCd":"none","shareclassInceptionDate":"2025-07-24T00:00:00","currency":"fundinfo-currency-twd","currencyType":"fundinfo-currencytype-base","minimumInvestmen'
+     200 POST https://api.company-target.com/api/v3/ip.json?referrer=&page=https%3A%2F%2Fwww.abfunds.com.tw%2Fzh-tw%2Fetfs%2Fpcf.TW00000980D8.html&page_title=%E7%94%B3%E8%B3%BC%E8%B2%B7%E5%9B%9E%E6%B8%85%E5%96%AE%20%7C%20%E8%81%AF%E5%8D%9A%E6%8A%95%E4%BF%A1%20AB
+        body={"src":"tag","auth":"YH7Nv0cSgWKJy5RkpsbKqWk23yRVDKtQngOxtbLe"}
+        resp='{"access_type":"identified_non_business","audience":"SMB","audience_segment":"","digital_domain":null,"information_level":"Basic","isp":false,"region_name":"Iowa","registry_area_code":null,"registry_city":"Des Moines","registry_company_name":"Microsoft Corp","registry_country":"United States","regis'
+     200 GET https://webapi.alliancebernstein.com/v2/translations/zh-tw
+        resp='{\r\n  "fundfinderdetails-value-a": {\r\n    "base": "A",\r\n    "zh-tw": ""\r\n  },\r\n  "fundfinderdetails-value-a2": {\r\n    "base": "A2",\r\n    "zh-tw": ""\r\n  },\r\n  "fundfinderdetails-value-a2x": {\r\n    "base": "A2X",\r\n    "zh-tw": ""\r\n  },\r\n  "fundfinderdetails-value-aa": {\r\n    "base": "AA",\r\n    "zh-tw":'
+     200 GET https://webapi.alliancebernstein.com/v2/translations/zh-tw
+        resp='{\r\n  "fundfinderdetails-value-a": {\r\n    "base": "A",\r\n    "zh-tw": ""\r\n  },\r\n  "fundfinderdetails-value-a2": {\r\n    "base": "A2",\r\n    "zh-tw": ""\r\n  },\r\n  "fundfinderdetails-value-a2x": {\r\n    "base": "A2X",\r\n    "zh-tw": ""\r\n  },\r\n  "fundfinderdetails-value-aa": {\r\n    "base": "AA",\r\n    "zh-tw":'
+     200 GET https://webapi.alliancebernstein.com/v2/translations/zh-tw
+        resp='{\r\n  "fundfinderdetails-value-a": {\r\n    "base": "A",\r\n    "zh-tw": ""\r\n  },\r\n  "fundfinderdetails-value-a2": {\r\n    "base": "A2",\r\n    "zh-tw": ""\r\n  },\r\n  "fundfinderdetails-value-a2x": {\r\n    "base": "A2X",\r\n    "zh-tw": ""\r\n  },\r\n  "fundfinderdetails-value-aa": {\r\n    "base": "AA",\r\n    "zh-tw":'
+     200 GET https://ka-p.fontawesome.com/releases/v6.7.2/svgs/regular/chart-line.svg?token=140b6c6c66
+        resp='<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Pro 6.7.2 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license (Commercial License) Copyright 2024 Fonticons, Inc. --><path d="M48 56c0-13.3-10.7-24-24-24S0 42.7 0 56L0 408c0 39.8 32.2 72 '
+     200 GET https://ka-p.fontawesome.com/releases/v6.7.2/svgs/regular/bookmark.svg?token=140b6c6c66
+        resp='<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 512"><!--! Font Awesome Pro 6.7.2 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license (Commercial License) Copyright 2024 Fonticons, Inc. --><path d="M0 48C0 21.5 21.5 0 48 0l0 48 0 393.4 130.1-92.9c8.3-6 19.6-6'
+     200 GET https://ka-p.fontawesome.com/releases/v6.7.2/svgs/solid/chevron-right.svg?token=140b6c6c66
+        resp='<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Pro 6.7.2 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license (Commercial License) Copyright 2024 Fonticons, Inc. --><path d="M310.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-192 192c-12.5 12.5-3'
+     200 GET https://ka-p.fontawesome.com/releases/v6.7.2/svgs/regular/percent.svg?token=140b6c6c66
+        resp='<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 512"><!--! Font Awesome Pro 6.7.2 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license (Commercial License) Copyright 2024 Fonticons, Inc. --><path d="M369 113c9.4-9.4 9.4-24.6 0-33.9s-24.6-9.4-33.9 0L15 399c-9.4'
+     200 GET https://kit-uploads.fontawesome.com/140b6c6c66/icons/lineapp-01-1.svg?token=140b6c6c66
+        resp='<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 544 512"><path d="M525.8 214.8C525.8 97.7 408.5 2.4 264.2 2.4S2.5 97.7 2.5 214.8c0 104.8 93.1 192.8 218.8 209.5c8.6 2 20.1 5.6 23 13c2.7 6.6 1.7 16.9 .7 23.8c0 0-3.2 18.4-3.7 22.3c-1.2 6.6-5.1 26 22.8 14.2s150.7-88.7 205.5-151.9h0c38-41.9 56.1-84 '
+     200 GET https://kit-uploads.fontawesome.com/140b6c6c66/icons/icon-quicklinks-fund-finder-v3-01-1.svg?token=140b6c6c66
+        resp='<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><path d="M242.7 180.1c-11.4 0-19 7.6-19 19v51.2c0 11.4 7.6 19 19 19s19-7.6 19-19v-51.2c0-9.5-7.6-19-19-19zm-98.6-49.3c-11.4 0-19 7.6-19 19v100.5c0 11.4 7.6 19 19 19s19-7.6 19-19V149.8c0-11.4-9.5-19-19-19zm358.4 347L335.6 322.4s0 0-1.9 0c3'
+     200 GET https://s.company-target.com/s/sync?exc=lr
+        resp='<html>\n\t<head>\n\t\t<title>Pixels</title>\n\t</head>\n\t<body>\n\t\n<img src="https://dsum-sec.casalemedia.com/rum?cm_dsp_id=18&amp;expiry=1807105281&amp;external_user_id=7327668f-c91b-4e27-930a-72f1941c1f47" alt="" width="0" height="0" style="display:none", aria-hidden="true">\n<img src="https://partners.trem'
+     200 GET https://tag-logger.demandbase.com/bg9s?x-amz-cf-id=3h8am3Hfa1GCQLMnnC1wO5vNMkvxdX_TuwwYHiGIU2KjvDvwLnyrCw==&api-version=v3
+        resp=''
+     200 GET https://ka-p.fontawesome.com/releases/v6.7.2/svgs/solid/circle-bookmark.svg?token=140b6c6c66
+        resp='<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Pro 6.7.2 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license (Commercial License) Copyright 2024 Fonticons, Inc. --><path d="M256 512A256 256 0 1 0 256 0a256 256 0 1 0 0 512zM160 176c0-2'
+     200 GET https://ka-p.fontawesome.com/releases/v6.7.2/svgs/solid/arrow-down.svg?token=140b6c6c66
+        resp='<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 512"><!--! Font Awesome Pro 6.7.2 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license (Commercial License) Copyright 2024 Fonticons, Inc. --><path d="M169.4 470.6c12.5 12.5 32.8 12.5 45.3 0l160-160c12.5-12.5 12.'
+     200 GET https://ka-p.fontawesome.com/releases/v6.7.2/svgs/light/chevron-down.svg?token=140b6c6c66
+        resp='<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Pro 6.7.2 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license (Commercial License) Copyright 2024 Fonticons, Inc. --><path d="M267.3 395.3c-6.2 6.2-16.4 6.2-22.6 0l-192-192c-6.2-6.2-6.2-1'
+     200 GET https://kit-uploads.fontawesome.com/140b6c6c66/icons/circle-bookmark-clicked-1.svg?token=140b6c6c66
+        resp='<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><path d="M256 480a224 224 0 1 1 0-448 224 224 0 1 1 0 448zm0 32c141.4 0 256-114.6 256-256S397.3 0 256 0C114.6 0 0 114.6 0 256C0 300.9 11.8 345.1 34.3 384C80 463.2 164.6 512 256 512zM208 128c-26.5 0-48 21.5-48 48v192c0 6.1 3.5 11.8 9.1 14.'
+     200 GET https://ka-p.fontawesome.com/releases/v6.7.2/svgs/light/circle-bookmark.svg?token=140b6c6c66
+        resp='<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Pro 6.7.2 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license (Commercial License) Copyright 2024 Fonticons, Inc. --><path d="M256 32a224 224 0 1 1 0 448 224 224 0 1 1 0-448zm0 480A256 25'
+     200 GET https://webapi.alliancebernstein.com/v2/funds/tw/zh-tw/investor/fundfinder-filters?defaultFilter=onshore
+        resp='{"geoTypes":[{"id":39,"value":"fundfinderdetails-value-offshore","displayName":null,"isChecked":false},{"id":38,"value":"fundfinderdetails-value-onshore","displayName":null,"isChecked":true}],"currencies":[{"id":26,"value":"fundfinderdetails-value-aud","displayName":null,"isChecked":false},{"id":27,'
+     200 GET https://ka-p.fontawesome.com/releases/v6.7.2/svgs/regular/calendar.svg?token=140b6c6c66
+        resp='<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Pro 6.7.2 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license (Commercial License) Copyright 2024 Fonticons, Inc. --><path d="M152 24c0-13.3-10.7-24-24-24s-24 10.7-24 24l0 40L64 64C28.7 6'
+  含成分股字樣的回應 2 個：
+   ★ 200 GET https://webapi.alliancebernstein.com/v2/funds/tw/zh-tw/investor/TW00000980D8/holdings
+     type: application/json; charset=utf-8  bytes: 43712
+     開頭: {"domesticHoldings":[{"asOfDate":"10/06/2026","holdingCategory":"holdings-section-bond","isAllocation":true,"holdings":[{"holding":"APA CORP 6.750000 % 15-FEB-2055","classification":null,"holdingPerc":"0.36041414","holdingCode":"US03743QAT58","holdingShares":224000.0,"holdingValue":220701.88999999998},{"holding":"NEPTUNE BIDCO US INC SER REGS (REG S) 9.29% 15APR2029","classification":null,"holdingPerc":"0.351585232","holdingCode":"USU64059AA31","holdingShares":212000.0,"holdingValue":215295.46},
+     2330 前後: S161175DB78","holdingShares":156000.0,"holdingValue":146786.69},{"holding":"CONCENTRIX CORP (REG) 6.85% 02AUG2033","classification":null,"holdingPerc":"0.702598458","holdingCode":"US20602DAC56","holdingShares":467000.0,"holdingValue":430240.65},{"holding":"DEUTSCHE TELEKOM INT FIN (REG) 8.75% 15JUN2030","classification":null,"holdingPerc":"0.413182049","holdingCode":"US25156PAC77","holdingShares":233000.0,"holdingValue":253014.65999999997},{"holding":"AP CORE HOLDINGS II LLC SER REGS (REG S) 11% 15MAY2031","classification":null,"holdingPerc":"0.387420355","holdingCode":"USU00962AA56","holdingShares":231000.0,"holdingValue":237239.34000000003}]},{"asOfDate":"10/06/2026","holdingCategory":"holdings-section-futures","isAllocation":true,"holdings":[{"holding":"US 2YR NOTE (CBT) DEC26 31-DEC-20
+   ★ 200 GET https://webapi.alliancebernstein.com/v2/funds/tw/zh-tw/investor/TW00000980D8/holdings?date=2026-10-06
+     type: application/json; charset=utf-8  bytes: 42936
+     開頭: {"domesticHoldings":[{"asOfDate":"10/06/2026","holdingCategory":"holdings-section-bond","isAllocation":true,"holdings":[{"holding":"APA CORP 6.750000 % 15-FEB-2055","classification":null,"holdingPerc":"0.36041414","holdingCode":"US03743QAT58","holdingShares":224000.0,"holdingValue":220701.88999999998},{"holding":"NEPTUNE BIDCO US INC SER REGS (REG S) 9.29% 15APR2029","classification":null,"holdingPerc":"0.351585232","holdingCode":"USU64059AA31","holdingShares":212000.0,"holdingValue":215295.46},
+     2330 前後: S161175DB78","holdingShares":156000.0,"holdingValue":146786.69},{"holding":"CONCENTRIX CORP (REG) 6.85% 02AUG2033","classification":null,"holdingPerc":"0.702598458","holdingCode":"US20602DAC56","holdingShares":467000.0,"holdingValue":430240.65},{"holding":"DEUTSCHE TELEKOM INT FIN (REG) 8.75% 15JUN2030","classification":null,"holdingPerc":"0.413182049","holdingCode":"US25156PAC77","holdingShares":233000.0,"holdingValue":253014.65999999997},{"holding":"AP CORE HOLDINGS II LLC SER REGS (REG S) 11% 15MAY2031","classification":null,"holdingPerc":"0.387420355","holdingCode":"USU00962AA56","holdingShares":231000.0,"holdingValue":237239.34000000003}]},{"asOfDate":"10/06/2026","holdingCategory":"holdings-section-futures","isAllocation":true,"holdings":[{"holding":"US 2YR NOTE (CBT) DEC26 31-DEC-20
+====================================================================================================
+[extra-3] https://www.uobam.com.tw/
+  最終網址: https://www.uobam.com.tw/  標題: 大華銀投信｜深耕台灣在地市場
+    連結: ETF專區 -> https://www.uobam.com.tw/ETFlandingpage
+    連結:  -> https://www.uobam.com.tw/events/009815M7ETF
+    連結:  -> https://www.uobam.com.tw/Events/00918ETF/
+    連結:  -> https://www.uobam.com.tw/fund/etf/00515073
+    連結: 優選股利+高填息，雙甜頭全享有
+台灣第一 -> https://www.uobam.com.tw/Events/00918ETF/
+    連結: 00959B 享受更大甜頭
+00959B -> https://www.uobam.com.tw/fund/etf/00515073
+    連結: 優選股利+高填息，雙甜頭全享有
+台灣第一 -> https://www.uobam.com.tw/Events/00918ETF/
+    連結: 00959B 享受更大甜頭
+00959B -> https://www.uobam.com.tw/fund/etf/00515073
+    連結: 優選股利+高填息，雙甜頭全享有
+台灣第一 -> https://www.uobam.com.tw/Events/00918ETF/
+    連結: 00959B 享受更大甜頭
+00959B -> https://www.uobam.com.tw/fund/etf/00515073
+    連結: ETF專區 -> https://www.uobam.com.tw/ETFlandingpage
+  XHR／文件請求 8 個：
+     200 GET https://www.uobam.com.tw/
+        resp='<!DOCTYPE html><html lang="zh-Hant-TW"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><link rel="icon" href="/favicon.ico"><meta property="og:image" content="https://www.uobam.com.tw/og.png"><script async="" src="https://www.googletagmanager.com/gtm'
+     200 GET https://www.uobam.com.tw/json/reply/WebSiteRouteMapRequest
+        resp='{"result":[{"id":3831,"guid":"3ea7c4ca-7d8b-a40d-77fc-bfa961612e07","name":"首頁","route":"/","views":"FrontA","url":"/","urlType":"_self","show":0,"showl":0,"showm":0,"description":null,"sortValue":null,"metaTitle":"大華銀投信｜深耕台灣在地市場","metaDescription":"大華銀投信傳承新加坡大華資產管理具備的國際色彩以及在亞洲資產管理獨具的投資優勢，深耕台灣在地市場，矢'
+     200 GET https://www.uobam.com.tw/json/reply/WebSiteFrontRequest?u=2dafea25-bb35-4b2b-e054-354b4cd20063&r=%2Fwarning&p=1&n=1&a=
+        resp='{"result":[{"id":20,"guid":"76d93223-498f-488d-be1a-5f227cb50c66","title":"公司資訊+全站警語","contents":"<div class=\\"info\\"><div class=\\"group\\"><div class=\\"icon marker\\">&nbsp;</div><div class=\\"text\\">台北市民生東路三段109號16樓</div></div><div class=\\"group\\"><div class=\\"icon phone\\">&nbsp;</div><div class=\\"te'
+     200 GET https://www.uobam.com.tw/json/reply/WebSiteADRequest?r=linkbanner
+        resp='{"result":[{"id":24,"guid":"9d11dd9a-5e56-4d94-8061-dc9848b19992","adArea":"a3bf5424-6551-4eaf-94e9-4b19edb88ac0","name":"最新公告","url":"/news/fund","urlType":"_self","description":null,"description2":null,"descriptionPosition":null,"pic":"https://www.uobam.com.tw/UploadFile/AD/202304/1681899412735_16'
+     200 GET https://www.uobam.com.tw/json/reply/WebSiteADRequest?r=bigbanner
+        resp='{"result":[{"id":67,"guid":"51c89c2a-c6ee-49e6-a515-54a329cb8fa5","adArea":"a9342f20-6a1f-4085-8394-b9071fcc5e5a","name":"00959B 大華投等美債15Y+ \\u000B(基金之配息來源可能為收益平準金)","url":"/fund/etf/00515073","urlType":"_blank","description":null,"description2":null,"descriptionPosition":null,"pic":"https://www.uoba'
+     200 GET https://www.uobam.com.tw/json/reply/WebSiteADRequest?r=fundbanner
+        resp='{"result":[{"id":50,"guid":"fae0afdd-a96f-4b5e-b6e4-da0418f18e36","adArea":"fdf29c1b-c558-44dc-bee6-22f43f56846d","name":"優選股利+高填息，雙甜頭全享有","url":"https://www.uobam.com.tw/Events/00918ETF/","urlType":"_blank","description":"台灣第一檔專注於優選股利+高填息的台股ETF，(00918)大華優利高填息30(本基金並無保證收益及配息且配息來源可能為收益平準金)","descript'
+     200 GET https://www.uobam.com.tw/json/reply/WebSiteFrontRequest?u=3b10defe-1d02-d66c-bcd3-f885847bde6f&r=%2Fpopup&p=&n=&a=
+        resp='{"result":[],"breadcrumb":[{"id":3831,"guid":"3ea7c4ca-7d8b-a40d-77fc-bfa961612e07","name":"首頁","route":"/","views":"FrontA","url":"/","urlType":"_self","show":0,"showl":0,"showm":0,"description":null,"sortValue":null,"metaTitle":"大華銀投信｜深耕台灣在地市場","metaDescription":"大華銀投信傳承新加坡大華資產管理具備的國際色彩以及在亞洲資產管理獨具'
+     200 GET https://www.uobam.com.tw/json/reply/WebSiteFrontRequest?r=%2Ffundwarning
+        resp='{"result":[{"id":2566,"guid":"84e927f5-99be-43ea-91e7-493c5c35e835","title":"公司資訊+全站警語","contents":"<div class=\\"info\\"><p style=\\"margin-bottom:0cm; margin:0cm 0cm 8pt; margin-right:0cm; margin-left:0cm\\"><span style=\\"font-size:11pt\\"><span style=\\"line-height:107%\\"><span style=\\"font-family:Cali'
+  含成分股字樣的回應 0 個：
+====================================================================================================
+[extra-4] https://sitc.sinopac.com/
+  最終網址: https://sitc.sinopac.com/  標題: 
+  XHR／文件請求 1 個：
+     200 GET https://sitc.sinopac.com/
+        resp='<!--meta http-equiv="refresh" content="5;url=\'http://sitc.sinopac.com/web/index.aspx\'" /-->\r\n<meta http-equiv="refresh" content="5;url=\'http://sitc.sinopac.com/newweb/index.html\'" />'
+  含成分股字樣的回應 0 個：
+====================================================================================================
+[extra-5] https://www.fsitc.com.tw/ETFList.aspx
+  最終網址: https://www.fsitc.com.tw/ETFList.aspx#TabLinkdivEditTab1  標題: 第一金投信
+    連結: 登入帳戶 -> https://www.fsitc.com.tw/ETFList.aspx#
+    連結: 基金總覽 -> https://www.fsitc.com.tw/ETFList.aspx#
+    連結: ETF專區 -> https://www.fsitc.com.tw/ETFList.aspx#
+    連結:  -> https://www.fsitc.com.tw/ETFList.aspx#TabLinkdivEditTab1
+    連結:  -> https://www.fsitc.com.tw/ETFAccWeb/
+    連結: 投資情報 -> https://www.fsitc.com.tw/ETFList.aspx#
+    連結: 最新消息 -> https://www.fsitc.com.tw/ETFList.aspx#
+    連結: 服務中心 -> https://www.fsitc.com.tw/ETFList.aspx#
+    連結: 企業永續 -> https://www.fsitc.com.tw/ETFList.aspx#
+    連結: 基金總覽 -> https://www.fsitc.com.tw/ETFList.aspx#
+    連結: ETF系列基金 -> https://www.fsitc.com.tw/FundList.aspx
+    連結: 不同意 -> https://www.fsitc.com.tw/ETFList.aspx#
+  XHR／文件請求 1 個：
+     200 GET https://www.fsitc.com.tw/ETFList.aspx
+        resp='\r\n\r\n<!DOCTYPE html>\r\n\r\n<html xmlns="http://www.w3.org/1999/xhtml">\r\n<head>\r\n    <script type="text/javascript">if (top.frames.length != 0) alert(\'error\') </script>\r\n    <script>\r\n        (function(i,s,o,g,r,a,m){i[\'GoogleAnalyticsObject\']=r;i[r]=i[r]||function(){\r\n            (i[r].q=i[r].q||[]).pus'
+  含成分股字樣的回應 0 個：
