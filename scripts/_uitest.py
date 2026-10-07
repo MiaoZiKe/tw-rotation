@@ -2544,7 +2544,7 @@ def t_etf_income_v2(pg, b, base):
         ok(f"★ [{tag}] 單位：Y 軸「萬」、清單寫「殖利率 x%」與「現價 NT$」", J("() => /萬/.test(echarts.getInstanceByDom(document.getElementById('incBar')).getOption().yAxis[0].axisLabel.formatter(10)) && [...document.querySelectorAll('#incList .mv')].slice(0, 5).every(e => /^殖利率 /.test(e.textContent)) && [...document.querySelectorAll('#incList .lt')].slice(0, 5).every(e => /現價 NT\\$ [\\d.]+/.test(e.textContent))"))
         t = J("() => { const el = document.getElementById('incBar'), c = echarts.getInstanceByDom(el); c.dispatchAction({ type: 'showTip', seriesIndex: 0, dataIndex: 0 }); const a = el.dataset.tip; c.dispatchAction({ type: 'showTip', seriesIndex: 0, dataIndex: 6 }); return [a, el.dataset.tip]; }")
         ok(f"[{tag}] 提示框：不同月份列出各檔該月數值（依大小排）", t[0] and t[1] and t[0] != t[1], t)
-        ok(f"★ [{tag}] 提示框在圖框內（不會跑到側欄底下）", J("() => { const el = document.getElementById('incBar'); const tp = [...el.querySelectorAll('div')].find(d => d.style && /z-index/.test(d.getAttribute('style') || '') && d.offsetParent !== null && d.textContent.indexOf('月入帳') >= 0); if (!tp) return false; const a = tp.getBoundingClientRect(), r = el.getBoundingClientRect(); return a.left >= r.left - 1 && a.right <= r.right + 1; }"))
+        ok(f"★ [{tag}] 提示框在視窗內、不跑到側欄底下（10-07 起提示框掛 body）", J("() => { const el = document.getElementById('incBar'); const tp = [...el.querySelectorAll('div'), ...document.body.children].find(d => d.style && /z-index/.test(d.getAttribute('style') || '') && getComputedStyle(d).display !== 'none' && d.textContent.indexOf('月入帳') >= 0); if (!tp) return false; const a = tp.getBoundingClientRect(), side = [...document.querySelectorAll('.side, #side, nav.l4side, aside')].find(x => { const q = x.getBoundingClientRect(); return q.width > 0 && q.left < 10; }) , sr = side ? side.getBoundingClientRect() : { right: 0 }; return a.left >= sr.right - 1 && a.right <= innerWidth + 1; }"))
         lp.click("#incAmtSeg button[data-v='500000']"); lp.wait_for_timeout(500)
         y50 = J(BAR)
         ok(f"★ [{tag}] 年領 100 萬→50 萬：同一檔張數與金額都變小", y50["codes"] == y0["codes"] and y50["lots"][0] < y0["lots"][0] and y50["costs"][0] < y0["costs"][0], (y0, y50))
@@ -2617,10 +2617,10 @@ def t_etf_income_v2(pg, b, base):
             return mi.every((i, m) => { const a = String(ck[m].itemStyle.color), d = String(dn[i].itemStyle.color); const hex = d.replace('#', ''); const rgb = [0, 2, 4].map(j => parseInt(hex.slice(j, j + 2), 16)).join(','); return a.indexOf(rgb) >= 0 || a.toLowerCase().indexOf(d.toLowerCase()) >= 0; }); }""")
         ok(f"[{tag}] 時鐘格色＝當月主要入帳那檔在甜甜圈的顏色", col)
         tp = J("""() => { const el = document.getElementById('incCdn'), c = echarts.getInstanceByDom(el); c.dispatchAction({ type: 'showTip', seriesIndex: 0, dataIndex: 0 });
-            const tp = [...el.querySelectorAll('div')].find(d => /z-index/.test(d.getAttribute('style') || '') && d.offsetParent !== null && d.textContent.trim()); if (!tp) return 'none';
-            const a = tp.getBoundingClientRect(), r = el.getBoundingClientRect(), side = document.querySelector('.side, #side, nav.l4side, aside'); const sr = side ? side.getBoundingClientRect() : { right: 0 };
-            return a.left >= r.left - 1 && a.right <= r.right + 1 && a.top >= r.top - 1 && a.bottom <= r.bottom + 1 && (sr.left >= r.right || a.left >= sr.right - 1); }""")
-        ok(f"★ [{tag}]（219）甜甜圈提示框在圖框內、不與側欄重疊", tp is True, tp)
+            const tp = [...el.querySelectorAll('div'), ...document.body.children].find(d => /z-index/.test(d.getAttribute('style') || '') && getComputedStyle(d).display !== 'none' && d.textContent.trim()); if (!tp) return 'none';
+            const a = tp.getBoundingClientRect(), side = [...document.querySelectorAll('.side, #side, nav.l4side, aside')].find(x => { const q = x.getBoundingClientRect(); return q.width > 0 && q.left < 10; }); const sr = side ? side.getBoundingClientRect() : { right: 0 };
+            return a.left >= 0 && a.right <= innerWidth + 1 && a.top >= 0 && a.bottom <= innerHeight + 1 && a.left >= sr.right - 1; }""")
+        ok(f"★ [{tag}]（219）甜甜圈提示框在視窗內、不與側欄重疊", tp is True, tp)
         lp.click("#incCView button[data-v='grid']"); lp.wait_for_timeout(1000)
         q = J("() => { const cs = [...document.querySelectorAll('#incGrid .mcell')]; const rows = {}; cs.forEach(c => { const t = Math.round(c.getBoundingClientRect().top); (rows[t] = rows[t] || []).push(+c.dataset.m); }); return Object.values(rows).map(r => r.join(',')); }")
         ok(f"★ [{tag}] 月曆格轉置：3 排 × 4 欄、每欄一季（欄頭 Q1～Q4）", q == ["1,4,7,10", "2,5,8,11", "3,6,9,12"] and J("() => [...document.querySelectorAll('#incGrid .mqh')].map(e => e.textContent).join(',')") == "Q1,Q2,Q3,Q4", q)
