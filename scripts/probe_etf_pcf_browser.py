@@ -54,9 +54,20 @@ with sync_playwright() as p:
                 pass
 
         pg.on("response", on_resp)
+        clicks = []
+        if "@@" in url:   # 網址@@文字1@@文字2：開頁後依序點含該文字的元素（SPA 要點進去才會打 API）
+            url, *clicks = url.split("@@")
         try:
             pg.goto(url, wait_until="networkidle", timeout=60000)
-            pg.wait_for_timeout(4000)
+            pg.wait_for_timeout(3000)
+            for c in clicks:
+                try:
+                    pg.get_by_text(c, exact=False).first.click(timeout=10000)
+                    pg.wait_for_load_state("networkidle", timeout=30000)
+                    pg.wait_for_timeout(3000)
+                    print("  已點：", c, "→", pg.url)
+                except Exception as e:  # noqa: BLE001
+                    print("  點不到：", c, str(e)[:120])
             print("  最終網址:", pg.url, " 標題:", pg.title())
         except Exception as e:  # noqa: BLE001
             print("  開頁失敗:", type(e).__name__, str(e)[:200])
