@@ -32,7 +32,7 @@ with sync_playwright() as p:
     for tag, url in PAGES:
         print("=" * 100)
         print(f"[{tag}] {url}")
-        ctx = br.new_context(locale="zh-TW", user_agent="Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36")
+        ctx = br.new_context(locale="zh-TW", ignore_https_errors=True, user_agent="Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36")
         pg = ctx.new_page()
         hits = []
         allreq = []
