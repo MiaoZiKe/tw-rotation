@@ -42,8 +42,12 @@ with sync_playwright() as p:
                 rt = r.request.resource_type
                 if rt not in ("xhr", "fetch", "document"):
                     return
-                allreq.append(f"{r.status} {r.request.method} {r.url[:200]}")
                 t = r.text()
+                u = r.url
+                if not any(x in u for x in ("google", "doubleclick", "scupio", "on.aws", "facebook", "line-scdn")):
+                    pdd = (r.request.post_data or "")[:300]
+                    allreq.append(f"{r.status} {r.request.method} {u[:300]}" + (f"\n        body={pdd}" if pdd else "")
+                                  + f"\n        resp={t[:300]!r}")
                 if any(k in t for k in KEYS):
                     hits.append((r.status, r.request.method, r.url, r.request.post_data, r.headers.get("content-type", ""), t))
             except Exception:  # noqa: BLE001 —— 探測，抓不到就算了
@@ -56,6 +60,13 @@ with sync_playwright() as p:
             print("  最終網址:", pg.url, " 標題:", pg.title())
         except Exception as e:  # noqa: BLE001
             print("  開頁失敗:", type(e).__name__, str(e)[:200])
+        try:
+            links = pg.eval_on_selector_all("a[href]", "els => els.map(e => (e.innerText||'').trim().slice(0,20) + ' -> ' + e.href)")
+            for l in links:
+                if any(k in l for k in ("PCF", "pcf", "Pcf", "申購買回", "持股", "成分", "投資組合")):
+                    print("    連結:", l[:200])
+        except Exception:  # noqa: BLE001
+            pass
         print(f"  XHR／文件請求 {len(allreq)} 個：")
         for a in allreq[:40]:
             print("    ", a)
