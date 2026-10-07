@@ -43,7 +43,11 @@ if len(sys.argv) > 1 and sys.argv[1] == "--only-extra":
     CANDS = []
     sys.argv.pop(1)
 for i, a in enumerate(sys.argv[1:]):
-    if a.startswith("GREP|"):
+    if a.startswith("GREP~"):
+        # 用 ~ 分隔的版本：正規式裡常需要 |（多選一），舊的 GREP| 寫法會被切壞
+        _, pat, u = a.split("~", 2)
+        CANDS.append((f"grep-{i}", "GREP", u, pat))
+    elif a.startswith("GREP|"):
         _, pat, u = a.split("|", 2)
         CANDS.append((f"grep-{i}", "GREP", u, pat))
     elif a.startswith("POST|"):
