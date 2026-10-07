@@ -834,6 +834,12 @@ def _cells(tr: str) -> list[str]:
 def parse_fubon(etf: str, page: str) -> list[dict]:
     if not isinstance(page, str):
         return []
+    # 不認得的 stkId（已下市的 0058／0059、或 00625K 這種期貨型）官網不報錯，而是回「預設的那一檔」——
+    # 2026-10-07 實測 0058、0059、00625K、00717 拿到同一份 231 列。所以頁首 <h6 class="top…">代號 名稱</h6> 必須等於要的代號。
+    t = re.search(r'<h6[^>]*class="top[^"]*"[^>]*>\s*([0-9A-Z]+)\s', page)
+    if t and t.group(1) != etf:
+        log.info("富邦 %s 官網回的是 %s 的頁面（代號不認得），略過", etf, t.group(1))
+        return []
     m = re.search(r"資料日期[：:]\s*(\d{4}/\d{1,2}/\d{1,2})", page)
     day = _iso(m.group(1)) if m else None
     out = []
@@ -847,7 +853,7 @@ def parse_fubon(etf: str, page: str) -> list[dict]:
             continue
         for tr in re.findall(r"<tr[^>]*>(.*?)</tr>", tb.group(0), re.S)[1:]:   # 第一列是表頭
             c = _cells(tr)
-            if len(c) < 5 or not c[0]:
+            if len(c) < 5 or not c[0] or "合計" in c[0] or not c[1]:     # 表尾「股票合計」列不是成分
                 continue
             out.append({"date": day, "etf": etf, "code": c[0], "name": c[1], "weight": _num(c[4]), "shares": _num(c[2]),
                         "issuer": "富邦", "src": f"{FUBON_ASSETS}?stkId={etf}&lan=TW"})

@@ -199,10 +199,11 @@ def test_hn_login_failure_returns_empty(monkeypatch, caplog):
     assert any("maintenance" in m for m in caplog.messages)
 
 
-FUBON_PAGE = """<div class="mb40"><p class="f13 txt_black_A5A5">  資料日期：2026/10/06  </p></div>
+FUBON_PAGE = """<h6 class="top blue3 mb22">  006208 富邦台50(本基金之配息來源可能為收益平準金)  </h6><div class="mb40"><p class="f13 txt_black_A5A5">  資料日期：2026/10/06  </p></div>
 <h6 class="mb20">股票</h6><div><table class="table1"><tbody>
 <tr class="title"><td class="tac">股票代碼</td><td>股票名稱</td><td>股數</td><td>金額</td><td>權重(%)</td></tr>
 <tr><td class="tac">2330</td><td>台積電</td><td class="tar">108,282,064</td><td class="tar">279,909,135,440</td><td class="tar">56.5342</td></tr>
+<tr><td class="tac">股票合計</td><td></td><td></td><td class="tar">495,000,000,000</td><td class="tar">99.6627</td></tr>
 </tbody></table></div>
 <h6 class="mb20">期貨</h6><div><table><tbody><tr class="title"><td>期貨代碼</td><td>期貨名稱</td><td>口數</td><td>金額</td><td>權重(%)</td></tr>
 <tr><td>TXF</td><td>台指期</td><td>10</td><td>1</td><td>0.5</td></tr></tbody></table></div>
@@ -216,3 +217,4 @@ def test_fubon_assets_page_stock_and_bond_not_futures():
     assert (r[0]["date"], r[0]["weight"], r[0]["shares"], r[0]["issuer"]) == ("2026-10-06", 56.5342, 108282064.0, "富邦")
     assert r[1]["name"] == "T 4 & 3/4 11/15/53"
     assert etf_pcf.parse_fubon("X", "<html>改版了</html>") == [] and etf_pcf.parse_fubon("X", None) == []
+    assert etf_pcf.parse_fubon("0058", FUBON_PAGE) == []       # 官網把不認得的代號導到別檔的頁面：不能收
