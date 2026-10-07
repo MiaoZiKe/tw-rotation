@@ -2295,7 +2295,7 @@
        所以這兩個改走「不透明的蓋片」那條路（`index.html` 的 `#skPx::after`／`.mspine::after`）：
        看起來一樣是淡出，但它是**蓋**在內容上，不是讓內容透出來。
      ⚠ `.mpager` 可以用 `.hsc`，因為它**不是** sticky —— 底下沒有東西會捲過去。*/
-  const SWIPE_SEL = '#chainSwitch,#dgPick,#dgTools,#stockTabs,.tw.cap-lg,.m3-grid,.dgwrap,#themeDiagram,#skTools,.mpager';
+  const SWIPE_SEL = '#chainSwitch,#dgPick,#dgTools,#stockTabs,.tw.cap-lg,.m3-grid,.dgwrap,#themeDiagram,#skTools,.mpager,#v-etf .rettw,#etfCalList';   // 2026-10-08 手機 v2：ETF 報酬比較表（820 寬）與配息清單在手機要有「左右滑」提示
   /* ⚠⚠ 2026-09-23 需求翻轉（Andy：「除了桌面不可以遷就手機 其他你要怎麼優化都可以」）：
      這整套只在 ≤820px 生效。桌機有捲軸、有滾輪、有 hover，本來就看得出來可以捲 ——
      在桌機也掛淡出與提示列，就是替桌機加了它不需要的東西（＝桌機遷就手機）。
