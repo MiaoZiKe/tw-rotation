@@ -437,7 +437,7 @@
     };
   })();
   const STALE = {};            // name → 存檔時間（ms）：目前畫面上這份是存檔、網路版還沒回來
-  let _swrChanged = new Set(), _swrPass = false;
+  let _swrChanged = new Set(), _swrPass = false, _swrDefer = false;
   function staleTag() {
     const ks = Object.keys(STALE);
     let el = document.getElementById('staleTag');
@@ -452,6 +452,13 @@
   function swrSettle() {
     staleTag();
     if (Object.keys(STALE).length || !_swrChanged.size) { if (!Object.keys(STALE).length) _swrChanged.clear(); return; }
+    /* ★ 2026-10-07 晚（Andy 22:57 第三次回報「圖案還是沒更新…清單反灰、等播放結束才恢復」，播放真實條件1007）：
+       線上重現（存檔先貼、網路版晚到而且內容不同 → 這裡重畫整頁）：route() 第一行 stopAllPlay() 把播放停在 07-29，
+       接著 renderFlow 重跑把樹與右欄畫回最新一天（10-06），拉Bar 卻留在 07-29 —— 圖、清單、拉Bar 三個講三個日期。
+       本機驗收的資料是同一份、存檔與網路版一模一樣，這一步永遠不會發生，所以上一輪全綠。
+       改成：有播放器在播就先不重畫，記一筆；播完（或按 ⏸）由 playBar 的 stop() 叫回來再套用。*/
+    if (anyPlaying()) { _swrDefer = true; return; }
+    _swrDefer = false;
     _swrChanged.clear();
     // 有份檔真的換了 → 目前這一頁重畫一次（別頁清掉 rendered，下次進去自然用新的）
     Object.keys(rendered).forEach(k => delete rendered[k]);
@@ -1565,6 +1572,9 @@
   function prunePlayers() {
     _players.forEach((p, el) => { if (!el.isConnected) { try { p.stop(); } catch (e) { /* 忽略 */ } _players.delete(el); } });
   }
+  function anyPlaying() { let on = false; _players.forEach((p, el) => { if (el.isConnected && p.playing()) on = true; }); return on; }
+  /* 播放停下來時：背景存檔更新若被延後過（見 swrSettle），現在補套用。放到下一個工作，讓「停」這一格先畫出來。*/
+  function swrResume() { if (_swrDefer) setTimeout(() => { if (_swrDefer && !anyPlaying()) swrSettle(); }, 0); }
   function stopAllPlay() { _players.forEach(p => { try { p.stop(); } catch (e) { /* 忽略 */ } }); }
   /** 停掉「控制同一個值」的其他播放器（except 傳自己，避免把剛要啟動的那支也停掉）。*/
   function stopPlayGroup(group, except) {
@@ -1672,7 +1682,21 @@
       bPlay.setAttribute('aria-label', bPlay.title);
       box.classList.toggle('playing', !!timer);
     };
-    const stop = () => { if (timer) { clearInterval(timer); timer = null; } paintBtn(); };
+    /* ★ 2026-10-07 晚（播放真實條件1007）：setInterval → 「畫完一格、瀏覽器真的畫出來，才排下一格」。
+       setInterval 不管上一格畫完沒有，時間到就再叫一次：慢機器（或 4 倍降速）一格要 500ms 以上時，
+       回呼會在佇列裡排隊、連續幾格之間瀏覽器沒有機會畫畫面，看起來就是圖停住、播完才一口氣跳到最後一天。
+       現在每一格都是：等 frame 毫秒 → requestAnimationFrame（這一刻前一格已經被畫出來）→ 換下一格 → 再排下一輪。
+       runId 擋掉「已經按了 ⏸ 但 rAF 還在排隊」的那一格。*/
+    let runId = 0;
+    const sched = () => {
+      const id = ++runId;
+      timer = setTimeout(() => requestAnimationFrame(() => {
+        if (id !== runId || !timer) return;
+        tick();
+        if (timer && id === runId) sched();
+      }), o.frame || 600);
+    };
+    const stop = () => { if (timer) { clearTimeout(timer); timer = null; runId++; } paintBtn(); swrResume(); };
     /* dir = -1：播放時值**由大往小**跑。
        2026-09-20（Andy A4 第 5 條「輪動時鐘新增播放功能」）加的：
        輪動時鐘那支拉Bar 的值是「幾天前」，所以「時間往前走」＝值往下掉。
@@ -1702,7 +1726,7 @@
          已經在尾端 → 從頭那一格就是反應；不在尾端 → 立刻往後走一格。*/
       if (d > 0 ? +inp.value >= max : +inp.value <= min) setV(d > 0 ? min : max);   // 已經在尾端就從頭播
       else setV(+inp.value + lim().st * d);
-      timer = setInterval(tick, o.frame || 600);
+      sched();
       paintBtn();
     };
     /* 按 ⏸ 停的是**整個 group**：使用者按的是「停下這個時鐘」，
@@ -1839,7 +1863,7 @@
     box.appendChild(bPlay);
     let timer = null;
     let api = null;
-    const stop = () => { if (timer) { clearInterval(timer); timer = null; } paint(); };
+    const stop = () => { if (timer) { clearInterval(timer); timer = null; } paint(); swrResume(); };
     /* ★ 順序不能反：**先把使用者拖到的值讀出來，再 `stop()`**。
        `stop()` 會呼叫 `paint()`，而 `paint()` 會把 `<input>` 的值寫回目前的 `pHi`／`days` ——
        先 stop 的話這一行就把使用者剛拖出來的值蓋掉了，讀回來永遠是舊值，
@@ -2023,7 +2047,7 @@
       box.classList.toggle('playing', !!timer);
     };
     const save = () => { if (o.key) { try { localStorage.setItem(o.key, String(days)); } catch (e) { /* 私密視窗 */ } } };
-    const stop = () => { if (timer) { clearInterval(timer); timer = null; } paint(); };
+    const stop = () => { if (timer) { clearInterval(timer); timer = null; } paint(); swrResume(); };
     const setDays = (v, fire) => {
       v = Math.max(MIN, Math.min(MAX, Math.round(+v || MIN)));
       const changed = v !== days || frame !== 0;
@@ -9085,8 +9109,9 @@
     whenNear($('#flowSankeyCard'), () => load('sankey_daily', { fallback: { dates: [], groups: [], leaves: {} } }).then(sd => {
       const n = (sd && sd.dates && sd.dates.length) || 0;
       renderSankey(sd, n ? n - 1 : 0);
+      let skBar = null;
       if (n > 1) {
-        playBar('sankeyDays', { min: 0, max: n - 1, value: n - 1, key: 'tw.sankey.day',
+        skBar = playBar('sankeyDays', { min: 0, max: n - 1, value: n - 1, key: 'tw.sankey.day',
           frame: 650, label: '看哪一天', fmt: (v) => (v >= n - 1 ? '最新' : sd.dates[v]),
           /* 拖時間軸＝「我要看過去某一天」，和「即時」是互斥的兩件事。
              不退出的話拉Bar 看起來完全沒作用（畫面還是盤中那一張），像壞掉。*/
@@ -9101,6 +9126,10 @@
             try { renderSankey(sd, v, sankeySel); } catch (e) { console.warn('資金分流樹換日失敗', e); renderSankeyRank(); }
           } });
       }
+      /* ★ 2026-10-07 晚（播放真實條件1007）：拉Bar 會從 localStorage 讀回上次停的那一天（tw.sankey.day），
+         上面那行 renderSankey 卻一律畫最新一天 —— 背景更新重畫整頁、或暫停在中間後重新整理，
+         拉Bar 寫 07-29、樹與右欄卻是 10-06。樹一律跟拉Bar 同一天。*/
+      if (skBar && skBar.value !== n - 1) renderSankey(sd, skBar.value);
       // ★「即時」鈕掛在同一列（Andy：「在紅框那排」）。playBar 會換掉整個容器的
       //   innerHTML，所以一定要等它建完才 append。
       sklMountBtn();
