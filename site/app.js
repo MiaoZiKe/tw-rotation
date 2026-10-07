@@ -13002,8 +13002,36 @@
       return `<div class="sgrow" role="option" aria-selected="false" id="sgo${++nid}" data-c="${fmt.esc(code)}">${logoHTML(code, n, 20)}`
         + `<span class="code">${fmt.esc(code)}</span><span class="nm">${fmt.esc(n)}</span>`
         + `<span class="spkw" data-spk="${fmt.esc(code)}">${sparkSVG(code)}</span>${right || ''}`
+        + starBtn(code, n)
         + (del ? `<button type="button" class="sgdel" data-del="${fmt.esc(code)}" aria-label="從近期搜尋移除 ${fmt.esc(n)}" title="從近期搜尋移除">×</button>` : '')
         + '</div>';
+    };
+    /* 2026-10-07（Andy：「搜尋這邊每檔股票都要出現星星符號，點擊可以馬上加入」）：每一列在 × 左邊放 ☆／★。
+       ☆＝加入「目前作用中的自選分頁」，★＝已在任何一頁自選（點了從所有頁移除，跟個股頁 ☆ 的語意一致：實心＝在自選裡）。
+       不關下拉、不跳頁；超過方案上限由 TwWatch.add 自己跳升級卡片（同一張卡，不另做）。*/
+    const W = () => window.TwWatch;
+    const starBtn = (code, n) => {
+      if (!W()) return '';
+      const on = W().has(code);
+      return `<button type="button" class="sgstar${on ? ' on' : ''}" data-star="${fmt.esc(code)}" aria-pressed="${on}" aria-label="${on ? '從自選移除' : '加入自選'} ${fmt.esc(n)}" title="${on ? '已在自選（點一下移除）' : '加入自選'}">${on ? '★' : '☆'}</button>`;
+    };
+    const sgNote = (m) => {
+      let e = sg.querySelector('#sgNote');
+      if (!e) { e = document.createElement('div'); e.id = 'sgNote'; e.className = 'sgnote'; e.setAttribute('role', 'status'); }
+      sg.prepend(e); e.textContent = m; clearTimeout(sgNote.t); sgNote.t = setTimeout(() => { if (e.isConnected) e.remove(); }, 2600);
+    };
+    const toggleStar = (b) => {
+      const w = W(); if (!w) return;
+      const c = b.dataset.star;
+      if (w.has(c)) { w.tabsWith(c).forEach(id => w.remove(c, id)); sgNote('已從自選移除 ' + c); }
+      else if (w.add(c)) sgNote('已加入〈' + w.curTab().name + '〉');
+      else return;                                  // 被上限擋住：TwWatch 已跳卡片
+      const on = w.has(c);
+      sg.querySelectorAll('.sgstar').forEach(x => {
+        if (x.dataset.star !== c) return;
+        x.classList.toggle('on', on); x.textContent = on ? '★' : '☆'; x.setAttribute('aria-pressed', String(on));
+        x.title = on ? '已在自選（點一下移除）' : '加入自選';
+      });
     };
     const grp = (code) => `<span class="g">${fmt.esc(L.gname[L.cgroup[code]] || '')}</span>`;
     const open = (html, mode) => {
@@ -13074,6 +13102,8 @@
         panel(); q.focus();
         return;
       }
+      const st = e.target.closest('.sgstar');
+      if (st) { e.stopPropagation(); toggleStar(st); q.focus(); return; }   // 不觸發整列的跳個股頁、不關下拉
       if (e.target.closest('#sgClr')) { e.stopPropagation(); recentSet([]); panel(); q.focus(); return; }
       const r = e.target.closest('[data-c]');
       if (r) go(r.dataset.c);

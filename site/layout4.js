@@ -438,7 +438,8 @@
      Worker 的 /v1/admin/* 也只回管理者；這一格只是入口。
      長相跟資金流向的子分頁一樣（l4subtab、縮排在「自選」下面），但不帶 data-l4sub：它是另一個頁面（#admin/perm），不是自選頁裡的一段。 */
   // 2026-10-05（admin-v2c，Andy）：子項順序改成「會員管理」在上、「會員權限」在下，流量觀測維持最後
-  const ADM_SUBS = [['perm', '會員權限', 'admTabPerm', 'scale'], ['traffic', '流量觀測', 'admTabTraffic', 'gauge']];
+  // 2026-10-07（Andy：意見反饋要留在站上、只有我看得到）：管理區下加「意見反饋」（#admin/feedback，support.js 畫；未讀數紅點由 support.js 填 TwSupport.unread）
+  const ADM_SUBS = [['perm', '會員權限', 'admTabPerm', 'scale'], ['traffic', '流量觀測', 'admTabTraffic', 'gauge'], ['feedback', '意見反饋', 'admTabFeedback', 'mail']];
   function isAdmin() { const A = window.TwAccount; const u = A && A.on && A.on() && A.user(); return !!(u && u.admin); }
   function syncPerm() {
     const tabs = $('#tabs');
@@ -479,7 +480,7 @@
       });
     }
     const on = /^#admin\b/.test(location.hash || '');
-    const m = /^#admin\/(perm|members|traffic)\b/.exec(location.hash || ''), cur = on ? (m ? (m[1] === 'members' ? 'perm' : m[1]) : 'traffic') : '';
+    const m = /^#admin\/(perm|members|traffic|feedback)\b/.exec(location.hash || ''), cur = on ? (m ? (m[1] === 'members' ? 'perm' : m[1]) : 'traffic') : '';
     // 子項亮著時「管理區」本身不實心反白（同一個位置不要亮兩格，同資金流向），但保留 .on 讓「在管理區裡」這件事查得到
     b.classList.toggle('on', on); b.classList.toggle('l4hassub', on);
     if (on) b.setAttribute('aria-current', 'page'); else b.removeAttribute('aria-current');
@@ -488,6 +489,8 @@
       x.classList.toggle('on', o);
       if (o) x.setAttribute('aria-current', 'page'); else x.removeAttribute('aria-current');
     });
+    const fbt = $('#admTabFeedback'), S2 = window.TwSupport;
+    if (fbt && S2 && S2.paintDot) S2.paintDot();
     if (root.classList.contains('l4g')) addAdmCar();
   }
 

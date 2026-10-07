@@ -1824,6 +1824,107 @@ def t_side_fold_1005(pg, b, base):
 
 
 # ===================================================================== ETF 專區（2026-10-05，site/etfpage.js）
+def t_etf_hold_1007(pg, b, base):
+    """ETF 成分股分頁（2026-10-07 Andy：「成分股分頁需要左側出現個股清單，右邊出現個股權重圓餅圖」）。
+
+    ⚠ 資料湖目前沒有 ETF 成分股（合規免費來源查不到，docs/etf_holdings_source.md），正式站的 etf_holdings.json 不存在。
+      所以「左清單＋右甜甜圈」用 **假資料** 驗前端：route 攔截 data/etf_holdings.json，成分取自 stocks.json 的真代號
+      （外加一檔非台股成分驗「不能點」）。假資料只在這一段的瀏覽器分頁裡，不寫進任何檔案。
+      沒攔截時（＝正式站現況）驗兩種說明卡：債券型 00679B →「沒有個股成分」、股票型 →「來源尚未接上」，都不能空白。
+    1440 與 390 各跑一次。"""
+    import json as _json
+    tag = "ETF成分股1007"
+    stocks = _json.loads((SITE / "data" / "stocks.json").read_text(encoding="utf-8"))
+    tw = sorted([r for r in stocks if r.get("market") == "TWSE" and not str(r["code"]).startswith("0") and r.get("turnover")],
+                key=lambda r: -r["turnover"])[:30]
+    ws = [round(30 / (i + 1) ** 0.9, 2) for i in range(len(tw))]
+    k = 97.0 / sum(ws)
+    items = [{"code": r["code"], "name": r["name"], "w": round(w * k, 2), "shares": 1000 * (5000 - i * 100)} for i, (r, w) in enumerate(zip(tw, ws))]
+    items.append({"code": "AAPL US", "name": "Apple Inc.", "w": 0.8, "shares": None})
+    FAKE = {"asof": "2026-10-06", "source": "測試假資料", "etfs": {
+        "0050": {"asof": "2026-10-06", "items": items},
+        "00896": {"asof": "2026-10-06", "items": items[:15]}}}
+
+    def fake(route):
+        route.fulfill(status=200, content_type="application/json", body=_json.dumps(FAKE, ensure_ascii=False))
+
+    def open_hold(lp, W):
+        # 手機（≤ 400）走 mobile3.js 的分頁列 #mbTabs，桌機走 #stockTabs
+        sel = "#mbTabs button[data-t='hold']" if W <= 400 else "#stockTabs button[data-t='holdings']"
+        wait_until(lp, f"() => {{ const b = document.querySelector(\"{sel}\"); return !!(b && b.offsetParent); }}", 15000)
+        lp.click(sel)
+
+    for W in (1440, 390):
+        t = f"{tag}@{W}"
+        lp = pg.context.browser.new_page(viewport={"width": W, "height": 1000 if W > 400 else 844})
+        lp.on("pageerror", lambda e: fails.append(f"{t} pageerror: {e}"))
+        lp.route("**/fonts.googleapis.com/**", lambda r: r.abort())
+        lp.route("**/data/etf_holdings.json*", fake)
+        J = lambda js, *a: lp.evaluate(js, *a)
+        try:
+            for code in ("00896", "0050"):
+                lp.goto(f"{base}#stock/{code}", wait_until="networkidle")
+                open_hold(lp, W)
+                wait_until(lp, "() => !!document.querySelector('#etfHoldCard[data-state]')", 8000)
+                wait_until(lp, "() => { const e = document.getElementById('etfHoldPie'); const c = e && echarts.getInstanceByDom(e); return !!(c && c.getOption()); }", 8000)
+                st = J("() => (document.querySelector('#etfHoldCard') || {}).dataset?.state")
+                ok(f"★ [{t}] {code} 成分股分頁有清單與甜甜圈（不是空白）", st == "ok", st)
+                rows = J("() => [...document.querySelectorAll('#etfHoldTbl tbody tr')].map(r => ({c: r.dataset.code, w: +r.dataset.w, go: r.classList.contains('go')}))")
+                ok(f"★ [{t}] {code} 左清單 ≥ 5 列", len(rows) >= 5, len(rows))
+                tw_sum = sum(r["w"] for r in rows)
+                ok(f"[{t}] {code} 權重加總合理（≤ 100.5%、> 0）", 0 < tw_sum <= 100.5, tw_sum)
+                ok(f"[{t}] {code} 依權重由大到小", all(rows[i]["w"] >= rows[i + 1]["w"] for i in range(len(rows) - 1)))
+                pie = J("() => { const c = echarts.getInstanceByDom(document.getElementById('etfHoldPie')); const o = c.getOption(); return { n: o.series[0].data.length, names: o.series[0].data.map(d => d.name), center: (o.title && o.title[0] && o.title[0].text) || '' }; }")
+                ok(f"★ [{t}] {code} 甜甜圈有扇區（前 10 大＋其他）", pie["n"] >= 5 and pie["n"] <= 11 and ("其他" in pie["names"] or len(rows) <= 10), pie)
+                ok(f"[{t}] {code} 中心寫「前 10 大合計 X%」", "前 10 大合計" in pie["center"] and "%" in pie["center"], pie["center"])
+                ok(f"[{t}] {code} 標註資料日期", "資料日期 2026-10-06" in text(lp, "#etfHoldCard h3"), text(lp, "#etfHoldCard h3"))
+                ok(f"[{t}] {code} 沒有橫向捲軸", J("() => document.documentElement.scrollWidth <= innerWidth + 1"))
+                if code == "0050":
+                    # 非台股成分：寫原名、不能點
+                    fr = J("() => { const r = document.querySelector('#etfHoldTbl tr[data-code=\"AAPL US\"]'); return r ? { go: r.classList.contains('go'), a: !!r.querySelector('a'), t: r.textContent } : null; }")
+                    ok(f"[{t}] 非台股成分寫原名、不能點", fr and not fr["go"] and not fr["a"] and "Apple Inc." in fr["t"], fr)
+                    # 搜尋：輸入第二名的名稱 → 只剩它
+                    nm2 = items[1]["name"]
+                    lp.fill("#etfHoldQ", nm2); lp.wait_for_timeout(200)
+                    vis = J("() => [...document.querySelectorAll('#etfHoldTbl tbody tr')].filter(r => !r.hidden).map(r => r.dataset.code)")
+                    ok(f"★ [{t}] 搜尋「{nm2}」→ 清單只剩相符的", items[1]["code"] in vis and len(vis) < len(rows), vis)
+                    lp.fill("#etfHoldQ", ""); lp.wait_for_timeout(200)
+                    if W > 400:
+                        # 滑過清單第 2 列 → 甜甜圈中心換成那一檔、該扇區外框加粗
+                        lp.hover("#etfHoldTbl tbody tr:nth-child(2) td.nm"); lp.wait_for_timeout(300)
+                        hv = J("() => { const o = echarts.getInstanceByDom(document.getElementById('etfHoldPie')).getOption(); return { c: o.title[0].text, bw: o.series[0].data[1].itemStyle.borderWidth }; }")
+                        ok(f"★ [{t}] 滑過清單第 2 列 → 甜甜圈中心換成該檔、扇區強調", nm2[:4] in hv["c"] and hv["bw"] == 3, hv)
+                        # 滑過扇區 → 清單對應列高亮
+                        box = J("() => { const e = document.getElementById('etfHoldPie'); const r = e.getBoundingClientRect(); return [r.left, r.top, r.width, r.height]; }")
+                        lp.mouse.move(box[0] + box[2] * 0.5 + box[2] * 0.40 * 0.25, box[1] + box[3] * 0.5 - box[3] * 0.40 * 0.97); lp.wait_for_timeout(350)
+                        hi = J("() => [...document.querySelectorAll('#etfHoldTbl tr.hi')].map(r => r.dataset.code)")
+                        ok(f"★ [{t}] 滑過扇區 → 左清單對應列高亮", len(hi) == 1, hi)
+                # 點清單第一列 → 跳該個股頁
+                first = rows[0]["c"]
+                lp.click("#etfHoldTbl tbody tr:first-child td.nm"); lp.wait_for_timeout(500)
+                ok(f"★ [{t}] {code} 點清單第一列 → #stock/{first}", J("() => location.hash") == f"#stock/{first}", J("() => location.hash"))
+            # 無股票成分：債券型 00679B → 說明卡
+            lp.goto(f"{base}#stock/00679B", wait_until="networkidle")
+            open_hold(lp, W)
+            wait_until(lp, "() => !!document.querySelector('#etfHoldCard[data-state]')", 8000)
+            ok(f"★ [{t}] 債券型 00679B 顯示「以債券／期貨為主，沒有個股成分」說明卡",
+               J("() => (document.querySelector('#etfHoldCard') || {}).dataset?.state") == "nostock" and "沒有個股成分" in text(lp, "#etfHoldNone"), text(lp, "#etfHoldCard")[:80])
+        finally:
+            lp.close()
+    # 正式站現況（沒有 etf_holdings.json）：股票型顯示「來源尚未接上」，不准空白
+    lp = pg.context.browser.new_page(viewport={"width": 1440, "height": 1000})
+    lp.route("**/fonts.googleapis.com/**", lambda r: r.abort())
+    lp.route("**/data/etf_holdings.json*", lambda r: r.fulfill(status=404, body="not found"))
+    try:
+        lp.goto(f"{base}#stock/0050", wait_until="networkidle")
+        open_hold(lp, 1440)
+        wait_until(lp, "() => !!document.querySelector('#etfHoldCard[data-state]')", 8000)
+        ok(f"★ [{tag}] 沒有成分股資料時 0050 顯示「來源尚未接上」說明卡（不空白）",
+           lp.evaluate("() => (document.querySelector('#etfHoldCard') || {}).dataset?.state") == "nosrc" and "來源尚未接上" in text(lp, "#etfHoldNone"), text(lp, "#etfHoldCard")[:80])
+    finally:
+        lp.close()
+
+
 def t_etf_1005(pg, b, base):
     """ETF 專區第二版（2026-10-05 Andy：行事曆放最上且是真月曆、分類頁三張前 5 並排同高、自選比較清單、填息天數）。
 
@@ -1962,6 +2063,16 @@ def t_etf_1005(pg, b, base):
                  return [Math.round(r.top), Math.round(r.height), Math.round(r.left), Math.round(r.width)]; })""")
         ok(f"★ [{tag}] 配息型：三張前 5 在同一列、由左到右、同高", not J("() => document.querySelector('#etfTri').hidden")
            and len({x[0] for x in box}) == 1 and len({x[1] for x in box}) == 1 and box[0][2] < box[1][2] < box[2][2], box)
+        # Andy 10-07「這邊調整 需要同一排」：三卡的標題、副標、表頭、第 1 列、第 5 列與卡底，上緣差都要 ≤1px
+        al = J("""() => ['#etfPopCard', '#etfRetTopCard', '#etfYldCard'].map(s => { const c = document.querySelector(s);
+                 const t = (e) => e ? +e.getBoundingClientRect().top.toFixed(1) : null, rows = c.querySelectorAll('.rklist > .rkrow');
+                 return { h3: t(c.querySelector('h3')), sub: t(c.querySelector('.etfq')), hd: t(c.querySelector('.rkhd')),
+                          r1: t(rows[0]), r5: t(rows[4]), bot: +c.getBoundingClientRect().bottom.toFixed(1),
+                          subTxt: (c.querySelector('.etfq') || {}).textContent || '' }; })""")
+        spread = {k: (max(x[k] for x in al) - min(x[k] for x in al)) if all(x[k] is not None for x in al) else 999
+                  for k in ("h3", "sub", "hd", "r1", "r5", "bot")}
+        ok(f"★ [{tag}] 1440 三卡逐層對齊（標題／副標／表頭／第1列／第5列／卡底 差 ≤1px）", all(v <= 1 for v in spread.values()), (spread, al))
+        ok(f"★ [{tag}] 三卡都有一行副標", all(x["subTxt"].strip() for x in al), [x["subTxt"] for x in al])
         cats = J("() => Object.fromEntries(window.TwEtfPage.state.data.items.map(i => [i.code, i.cat]))")
         pop_h = CODES("#etfPop")
         lp.click("#etfPopSeg button[data-v='turnover']"); lp.wait_for_timeout(200)
@@ -2104,6 +2215,7 @@ def t_etf_1005(pg, b, base):
         ok(f"[{tag}] 00947 頂部晶片沒有本益比／同業分位／營收 YoY", not ({"pe", "pct", "yoy"} & set(chips)), chips)
         ok(f"[{tag}] 00947 總覽沒有基本面卡（EPS／ROE）", "EPS" not in text(lp, "#stockTab") and "ROE" not in text(lp, "#stockTab"))
         lp.click("#stockTabs button[data-t='holdings']"); lp.wait_for_timeout(300)
+        wait_until(lp, "() => !!document.querySelector('#etfHoldCard[data-state]')", 8000)   # 10-07 起成分股分頁是非同步載入
         # ★ 2026-10-06 廢話普查（docs/copy_audit_1006_r2.md）：資料源查證過程拿掉，只留一句去哪看
         ok(f"★ [{tag}] 成分股分頁：一句話指到投信官網（不寫 OpenAPI／FinMind 查證過程）", "投信官網" in text(lp, "#stockTab") and "OpenAPI" not in text(lp, "#stockTab") and "FinMind" not in text(lp, "#stockTab"))
         lp.click("#stockTabs button[data-t='dividend']"); lp.wait_for_timeout(500)
@@ -24428,6 +24540,8 @@ SECTIONS = {
     "下拉篩選1006":        lambda pg, b, base, code: t_msel_1006(pg, b, base),
     # ★ 2026-10-05 Andy：ETF 專區＋ETF 個股頁分頁（⚠ 一律 --workers 1）
     "ETF專區1005":         lambda pg, b, base, code: t_etf_1005(pg, b, base),
+    # ★ 2026-10-07 Andy：ETF 成分股分頁「左個股清單、右權重甜甜圈」；無股票成分顯示說明卡
+    "ETF成分股1007":       lambda pg, b, base, code: t_etf_hold_1007(pg, b, base),
     "ETF報酬比較1006":     lambda pg, b, base, code: t_etf_ret_1006(pg, b, base),
     # ★ 2026-10-05（晚）Andy：財報日曆（總覽下方的大分頁；月曆＋右側分析面板＋大公司時間表＋權限；⚠ 一律 --workers 1）
     "財報日曆1005":        lambda pg, b, base, code: t_earnings_1005(pg, b, base),
@@ -24770,6 +24884,9 @@ SECTIONS = {
     "功能開關整列對齊1006": lambda pg, b, base, code: t_perm_grid_1006(b, base, code),
     # ★ 2026-10-05（sub-v1）Andy：訂閱頁 #pricing、每日瀏覽次數、右下角客服／意見反饋、帳號選單方案徽章、通知中心（page.route 假 Worker）
     "訂閱與客服1005":      lambda pg, b, base, code: t_sub_1005(b, base, code),
+    # ★ 2026-10-07 Andy：客服改 Gmail、反饋留站上（#admin/feedback）、搜尋下拉每列 ☆ 立即加入自選
+    "客服與反饋1007":      lambda pg, b, base, code: t_support_1007(b, base, code),
+    "搜尋星號1007":        lambda pg, b, base, code: t_search_star_1007(b, base, code),
     # ★ 2026-10-07 額度／開通共用卡片（site/qcard.js）與方案自選上限（Plus／Pro，docs/quota_plan.md）
     "額度卡片1007":        lambda pg, b, base, code: t_qcard_1007(b, base, code),
     "自選上限1007":        lambda pg, b, base, code: t_watch_limit_1007(b, base, code),
@@ -41027,7 +41144,7 @@ def _legal_spy(pg, base):
         return { shown: getComputedStyle(e).display !== 'none' && r.width > 150, w: Math.round(r.width), docW: Math.round(d.width), right: Math.round(r.right),
                  mainR: Math.round(document.getElementById('v-legal').getBoundingClientRect().right), pos: getComputedStyle(e).position,
                  items: e.querySelectorAll('.lgsi').length, rel: e.querySelectorAll('.lgrel a').length, relOn: e.querySelectorAll('.lgrel a.on').length,
-                 on, pn: (e.querySelector('.lgpn') || {}).textContent, bar: e.querySelector('.lgbar i').style.width, mail: !!e.querySelector('a[href^="mailto:"]'),
+                 on, pn: (e.querySelector('.lgpn') || {}).textContent, bar: e.querySelector('.lgbar i').style.width, mail: !!e.querySelector('a[href^="https://mail.google.com/mail/?view=cm"]') && !!e.querySelector('[data-copymail]'),
                  sw: document.documentElement.scrollWidth - innerWidth }; }"""
     pg.set_viewport_size({"width": 1440, "height": 950}); pg.goto(base + "#terms", wait_until="networkidle"); pg.wait_for_timeout(1000)
     sd = pg.evaluate(SD)
@@ -49055,7 +49172,8 @@ def t_sub_1005(b, base, code):
        and "#pricing" in fb[0].get("url", "") and "1440" in fb[0].get("ua", ""), fb)
     ok(f"{T}：送出後清空內容、顯示已收到", pg.input_value("#fbBody") == "" and "已收到" in pg.inner_text("#fbMsg"))
     pg.click("#supPanel .sptabs button[data-t='mail']")
-    ok(f"{T}：寄信分頁有 mailto 連結", (pg.get_attribute("#supMail", "href") or "").startswith("mailto:"))
+    # ★ 2026-10-07 改前→改後（Andy：「聯絡客服改用連結 Gmail」）：改前 mailto: → 改後 Gmail 網頁撰寫（新分頁）＋複製信箱鈕
+    ok(f"{T}：寄信分頁是 Gmail 撰寫連結（新分頁）", (pg.get_attribute("#supMail", "href") or "").startswith("https://mail.google.com/mail/?view=cm") and pg.get_attribute("#supMail", "target") == "_blank")
     pg.click("#supClose")
     ok(f"{T}：× 關閉面板", not pg.is_visible("#supPanel"))
     c.close()
@@ -49245,6 +49363,219 @@ def t_sub_1005(b, base, code):
         pg.wait_for_timeout(150)
     sets = [x[1] for x in sent if x[0] == "/v1/admin/feedback/set"]
     ok(f"{T}：「標為已處理」→ 送 feedback/set（handled）", _handled(), sets)
+    c.close()
+    ok(f"{T}：整段沒有 JS 錯誤", not errs, errs[:3])
+
+
+# ===================================================================== 客服與反饋1007／搜尋星號1007（2026-10-07）
+# Andy 10-07 13:25：
+#   A「聯絡客服改用連結 Gmail」—— mailto: 在 Windows 會跳「郵件」App 設定畫面 → 改 Gmail 網頁撰寫（新分頁）＋複製信箱
+#   B「意見反饋需要改成是可以留在我這網上的，只有我會看到的意見資訊頁，而不用寄送 Mail」→ 送出只存 Worker；#admin/feedback 管理頁
+#   C「搜尋這邊每檔股票都要出現星星符號，點擊可以馬上加入」
+# 假 Worker 用同一份 state（訪客送 → 管理者看得到 → 標已處理 → 刪除），Worker 端的權限在 workers/account-api/tests/sub.test.mjs 驗。
+def _fb1007_ctx(b, who, st, width=1440):
+    def handle(route):
+        req = route.request
+        path = re.sub(r"^https?://[^/]+", "", req.url).split("?")[0]
+        if req.method == "OPTIONS":
+            return route.fulfill(status=204, headers={"access-control-allow-origin": "*", "access-control-allow-headers": "*", "access-control-allow-methods": "POST"})
+        try:
+            body = json.loads(req.post_data or "{}")
+        except Exception:  # noqa: BLE001
+            body = {}
+        st["sent"].append((path, body))
+        me = None if who is None else {"email": "boss@example.com" if who == "admin" else "member@example.com", "name": "管理者" if who == "admin" else "王小明", "admin": who == "admin"}
+        out, code = {}, 200
+        if path == "/v1/me":
+            out, code = ({"user": me}, 200) if me else ({}, 401)
+        elif path == "/v1/perm/me":
+            out = {"who": "member" if me else "guest", "plan": "free" if me else "guest", "planName": "免費會員", "feats": {}, "lims": {}, "dq": None}
+        elif path == "/v1/plans/public":
+            out = {"plans": []}
+        elif path == "/v1/feedback":
+            st["n"] += 1
+            st["fb"].insert(0, {"id": f"f{st['n']}", "contact": body.get("contact", ""), "cat": body.get("cat"), "body": body.get("body"), "url": body.get("url", ""),
+                                "ua": body.get("ua", ""), "created": 1759800000000 + st["n"], "status": "new", "member": bool(me), "name": me["name"] if me else None})
+            out = {"ok": True, "id": f"f{st['n']}"}
+        elif path == "/v1/notices":
+            out = {"notices": []}
+        elif path.startswith("/v1/admin/") and who != "admin":
+            out, code = {"error": "forbidden"}, 403
+        elif path == "/v1/admin/feedback/list":
+            out = {"feedback": [dict(x) for x in st["fb"]], "requests": []}
+        elif path == "/v1/admin/feedback/set":
+            for x in st["fb"]:
+                if x["id"] == body.get("id"):
+                    x["status"] = body.get("status")
+            out = {"ok": True}
+        elif path == "/v1/admin/feedback/del":
+            st["fb"] = [x for x in st["fb"] if x["id"] != body.get("id")]
+            out = {"ok": True}
+        elif path == "/v1/admin/perm/list":
+            out = {"rows": [], "users": []}
+        route.fulfill(status=code, body=json.dumps(out), headers={"access-control-allow-origin": "*", "content-type": "application/json"})
+
+    c = b.new_context(viewport={"width": width, "height": 900})
+    c.add_init_script("window.TW_ACCOUNT_OVERRIDE = " + json.dumps({"api": SUB_API}) + ";"
+                      + ("try { localStorage.setItem('tw.acct.tok', 'tok-test'); } catch (e) {}" if who else ""))
+    c.route("**/fonts.googleapis.com/**", lambda r: r.abort())
+    c.route(SUB_API + "/**", handle)
+    c.route("**/mail.google.com/**", lambda r: r.fulfill(status=200, body="gmail-stub", headers={"content-type": "text/plain"}))
+    return c
+
+
+def t_support_1007(b, base, code):
+    import urllib.parse
+    T = "客服與反饋1007"
+    errs: list[str] = []
+    shots = os.environ.get("TW_SUPPORT_SHOTS")
+    st = {"fb": [], "n": 0, "sent": []}
+    GM = "https://mail.google.com/mail/?view=cm&fs=1&to="
+    # ① 訪客：寄信分頁＝Gmail；送反饋只打 /v1/feedback（不開任何 mailto）
+    c = _fb1007_ctx(b, None, st)
+    pg = c.new_page(); pg.on("pageerror", lambda e: errs.append(str(e)))
+    pg.goto(base + "#overview", wait_until="domcontentloaded")
+    wait_until(pg, "() => !!document.getElementById('supFab')", 8000)
+    pg.click("#supFab")
+    pg.click("#supPanel .sptabs button[data-t='mail']")
+    href = pg.get_attribute("#supMail", "href") or ""
+    ok(f"{T}：寄信分頁 → Gmail 撰寫網址（收件者、主旨「台股資金輪動－客服」）、target=_blank、rel=noopener",
+       href.startswith(GM + "kcq01010909%40gmail.com") and "su=" + urllib.parse.quote("台股資金輪動－客服") in href
+       and pg.get_attribute("#supMail", "target") == "_blank" and "noopener" in (pg.get_attribute("#supMail", "rel") or ""), href)
+    with c.expect_page(timeout=6000) as np:
+        pg.click("#supMail")
+    ok(f"{T}：點 Gmail 連結 → 真的開新分頁、目前頁不變", np.value.url.startswith("https://mail.google.com/") or "mail.google.com" in np.value.url or np.value.url == "about:blank", np.value.url)
+    np.value.close()
+    ok(f"{T}：原頁仍在 #overview", pg.evaluate("() => location.hash") == "#overview")
+    c.grant_permissions(["clipboard-read", "clipboard-write"])
+    pg.click("#supCopy")
+    ok(f"{T}：按「複製信箱」→ 鈕變「已複製」", bool(wait_until(pg, "() => document.getElementById('supCopy') && document.getElementById('supCopy').textContent === '已複製'", 2000)))
+    if shots:
+        pg.locator("#supPanel").screenshot(path=str(pathlib.Path(shots) / "support_mail_tab.png"))
+    ok(f"{T}：全站沒有任何 mailto: 連結", pg.evaluate("() => document.querySelectorAll('a[href^=\"mailto:\"]').length") == 0)
+    pg.click("#supPanel .sptabs button[data-t='fb']")
+    ok(f"{T}：訪客也能送（送出鈕可按）", not pg.evaluate("() => document.getElementById('fbSend').disabled"))
+    pg.select_option("#fbCat", "bug"); pg.fill("#fbBody", "1007 驗收：K 線空白"); pg.fill("#fbMail", "guest@example.com")
+    pg.click("#fbSend")
+    ok(f"{T}：送出 → 顯示已收到、假 Worker 真的存了一筆（訪客、bug、網址含 #overview）",
+       bool(wait_until(pg, "() => /已收到/.test(document.getElementById('fbMsg').textContent)", 4000))
+       and len(st["fb"]) == 1 and st["fb"][0]["cat"] == "bug" and not st["fb"][0]["member"] and "#overview" in st["fb"][0]["url"], st["fb"])
+    pg.goto(base + "#admin/feedback", wait_until="domcontentloaded")
+    ok(f"{T}：訪客進 #admin/feedback → 被擋（沒有列表）",
+       bool(wait_until(pg, "() => !!document.getElementById('fbDenied')", 6000)) and pg.locator("#fbTable").count() == 0
+       and not any(p == "/v1/admin/feedback/list" for p, _ in st["sent"]))
+    c.close()
+    # ② 一般會員：進不去、側欄沒有「意見反饋」
+    c = _fb1007_ctx(b, "member", st)
+    pg = c.new_page(); pg.on("pageerror", lambda e: errs.append(str(e)))
+    pg.goto(base + "#admin/feedback", wait_until="domcontentloaded")
+    ok(f"{T}：一般會員進 #admin/feedback → 被擋、側欄沒有「意見反饋」",
+       bool(wait_until(pg, "() => !!document.getElementById('fbDenied') && !!window.TwAccount && !!TwAccount.user()", 8000))
+       and pg.locator("#fbTable").count() == 0 and pg.locator("#admTabFeedback").count() == 0)
+    c.close()
+    # ③ 管理者：側欄「意見反饋」＋未讀紅點 → 列表 → 篩選 → 標已處理 → 刪除
+    st["fb"].append({"id": "old1", "contact": "", "cat": "idea", "body": "舊建議", "url": "", "ua": "", "created": 1759700000000, "status": "handled", "member": True, "name": "王小明"})
+    c = _fb1007_ctx(b, "admin", st)
+    pg = c.new_page(); pg.on("pageerror", lambda e: errs.append(str(e)))
+    pg.goto(base + "#overview", wait_until="domcontentloaded")
+    ok(f"{T}：管理者側欄有「意見反饋」子項、紅點寫 1（未讀數）",
+       bool(wait_until(pg, "() => { const t = document.getElementById('admTabFeedback'); const d = t && t.querySelector('.fbdot'); return !!d && d.textContent === '1'; }", 10000)),
+       pg.evaluate("() => (document.getElementById('admTabFeedback') || {}).outerHTML"))
+    pg.click("#admTabFeedback")
+    ok(f"{T}：點側欄「意見反饋」→ 到 #admin/feedback、列出 2 筆（訪客那筆排第一、未讀）",
+       bool(wait_until(pg, "() => location.hash === '#admin/feedback' && document.querySelectorAll('#fbTable tbody tr').length === 2", 8000))
+       and pg.evaluate("() => { const r = document.querySelector('#fbTable tbody tr'); return /1007 驗收/.test(r.textContent) && r.classList.contains('unread') && /guest@example.com/.test(r.textContent) && /#overview/.test(r.textContent); }"))
+    ok(f"{T}：聯絡 email 是 Gmail 回覆連結（不是 mailto）",
+       (pg.get_attribute("#fbTable tbody tr:first-child a[data-gmail]", "href") or "").startswith(GM + "guest%40example.com"))
+    if shots:
+        pg.wait_for_timeout(700)      # 等換頁淡入動畫結束
+        pg.screenshot(path=str(pathlib.Path(shots) / "feedback_admin.png"))
+    pg.select_option("#fbFSt", "new")
+    ok(f"{T}：篩選狀態＝未讀 → 只剩 1 筆", bool(wait_until(pg, "() => document.querySelectorAll('#fbTable tbody tr').length === 1", 3000)))
+    pg.select_option("#fbFSt", ""); pg.select_option("#fbFCat", "idea")
+    ok(f"{T}：篩選類別＝功能建議 → 只剩「舊建議」", bool(wait_until(pg, "() => { const r = document.querySelectorAll('#fbTable tbody tr'); return r.length === 1 && /舊建議/.test(r[0].textContent); }", 3000)))
+    pg.select_option("#fbFCat", "")
+    pg.click("#fbTable tr[data-id='f1'] button[data-kind='feedback']")
+    ok(f"{T}：「標為已處理」→ 那一列變已處理、紅點消失",
+       bool(wait_until(pg, "() => { const r = document.querySelector(\"#fbTable tr[data-id='f1']\"); return r && /已處理/.test(r.querySelector('.st').textContent) && !document.querySelector('#admTabFeedback .fbdot'); }", 5000))
+       and st["fb"][0]["status"] == "handled")
+    pg.once("dialog", lambda d: d.dismiss())
+    pg.click("#fbTable tr[data-id='f1'] button[data-del]")
+    pg.wait_for_timeout(400)
+    ok(f"{T}：刪除按「取消」→ 不刪", pg.locator("#fbTable tbody tr").count() == 2 and len(st["fb"]) == 2)
+    pg.once("dialog", lambda d: d.accept())
+    pg.click("#fbTable tr[data-id='f1'] button[data-del]")
+    ok(f"{T}：刪除按「確定」→ 列表剩 1 筆、伺服器那筆真的不見",
+       bool(wait_until(pg, "() => document.querySelectorAll('#fbTable tbody tr').length === 1 && !document.querySelector(\"#fbTable tr[data-id='f1']\")", 5000)) and len(st["fb"]) == 1)
+    c.close()
+    # ④ 法律頁側欄「聯絡客服」與條款內文信箱
+    c = _fb1007_ctx(b, None, st)
+    pg = c.new_page(); pg.on("pageerror", lambda e: errs.append(str(e)))
+    pg.goto(base + "#terms", wait_until="domcontentloaded")
+    wait_until(pg, "() => !!document.getElementById('lgSide')", 8000)
+    lg = pg.evaluate("() => ({ side: (document.querySelector('#lgSide a.lgctab') || {}).href || '', tgt: (document.querySelector('#lgSide a.lgctab') || {}).target || '', cp: !!document.querySelector('#lgSide [data-copymail]'), mt: document.querySelectorAll('a[href^=\"mailto:\"]').length, g: document.querySelectorAll('#v-legal a[data-gmail]').length })")
+    ok(f"{T}：法律頁側欄「聯絡客服」→ Gmail（新分頁）＋複製信箱、全頁沒有 mailto", lg["side"].startswith(GM) and lg["tgt"] == "_blank" and lg["cp"] and lg["mt"] == 0 and lg["g"] >= 2, lg)
+    c.close()
+    ok(f"{T}：整段沒有 JS 錯誤", not errs, errs[:3])
+
+
+def t_search_star_1007(b, base, code):
+    T = "搜尋星號1007"
+    errs: list[str] = []
+    shots = os.environ.get("TW_SUPPORT_SHOTS")
+    for w in (1440, 390):
+        c = b.new_context(viewport={"width": w, "height": 900})
+        c.route("**/fonts.googleapis.com/**", lambda r: r.abort())
+        pg = c.new_page(); pg.on("pageerror", lambda e: errs.append(str(e)))
+        pg.goto(base + "#overview", wait_until="domcontentloaded")
+        wait_until(pg, "() => !!window.TwWatch && !!document.getElementById('q')", 10000)
+        pg.wait_for_timeout(600)
+        if w <= 820 and pg.locator("#mSearchBtn").count() and pg.is_visible("#mSearchBtn"):
+            pg.click("#mSearchBtn")
+        pg.locator("#q").fill("23")
+        ok(f"{T}（{w}）：輸入「23」→ 下拉每一列都有星號", bool(wait_until(pg, "() => { const r = document.querySelectorAll('#sugg .sgrow'); return r.length > 0 && [...r].every(x => x.querySelector('.sgstar')); }", 6000)))
+        c0 = pg.evaluate("() => document.querySelector('#sugg .sgrow').dataset.c")
+        n0 = pg.evaluate("() => TwWatch.codes().length")
+        was = pg.evaluate("(c) => TwWatch.has(c)", c0)
+        if was:
+            pg.evaluate("(c) => TwWatch.tabsWith(c).forEach(id => TwWatch.remove(c, id))", c0); n0 = pg.evaluate("() => TwWatch.codes().length")
+            pg.locator("#q").fill("2"); pg.locator("#q").fill("23"); pg.wait_for_timeout(300)
+        h0 = pg.evaluate("() => location.hash")
+        st0 = pg.locator("#sugg .sgrow").first.locator(".sgstar")
+        ok(f"{T}（{w}）：第一列是空心 ☆", st0.inner_text() == "☆")
+        bx = st0.bounding_box()
+        ok(f"{T}（{w}）：星號在畫面內、點得到（≥24px）", bool(bx) and bx["x"] + bx["width"] <= w and bx["width"] >= 24, bx)
+        st0.click()
+        ok(f"{T}（{w}）：按 ☆ → 變 ★、自選真的多一檔、下拉沒關、沒跳頁、提示「已加入〈…〉」",
+           bool(wait_until(pg, f"() => {{ const s = document.querySelector(\"#sugg .sgstar[data-star='{c0}']\"); return !!s && s.textContent === '★' && TwWatch.has('{c0}'); }}", 2000))
+           and pg.evaluate("() => TwWatch.codes().length") == n0 + 1 and pg.evaluate("() => getComputedStyle(document.getElementById('sugg')).display") != "none"
+           and pg.evaluate("() => location.hash") == h0 and "已加入〈" in (pg.evaluate("() => (document.getElementById('sgNote') || {}).textContent || ''")),
+           pg.evaluate("() => [TwWatch.codes().length, location.hash, (document.getElementById('sgNote') || {}).textContent]"))
+        if shots and w == 1440:
+            pg.locator("#sugg").screenshot(path=str(pathlib.Path(shots) / "search_star.png"))
+        if shots and w == 390:
+            pg.screenshot(path=str(pathlib.Path(shots) / "search_star_390.png"))
+        pg.locator(f"#sugg .sgstar[data-star='{c0}']").first.click()
+        ok(f"{T}（{w}）：再按 ★ → 回 ☆、自選真的少回去、下拉仍開著",
+           bool(wait_until(pg, f"() => document.querySelector(\"#sugg .sgstar[data-star='{c0}']\").textContent === '☆' && !TwWatch.has('{c0}')", 3000))
+           and pg.evaluate("() => TwWatch.codes().length") == n0 and pg.evaluate("() => getComputedStyle(document.getElementById('sugg')).display") != "none")
+        sw = pg.evaluate("() => document.documentElement.scrollWidth - innerWidth")
+        ok(f"{T}（{w}）：沒有橫向捲軸", sw <= 1, sw)
+        c.close()
+    # 超過方案上限 → 跳既有升級卡、清單不變
+    c, sent, st = _sub_ctx(b, "member", feats={})
+    pg = c.new_page(); pg.on("pageerror", lambda e: errs.append(str(e)))
+    pg.goto(base + "#overview", wait_until="domcontentloaded")
+    wait_until(pg, "() => window.TwPerm && TwPerm.state().src === 'server' && TwWatch.MAX_CODES === 10", 12000)
+    pg.wait_for_timeout(1500)        # 等雲端清單載完（載完會整份換掉，先加的會被蓋）
+    pg.evaluate("() => ['2330','2317','2454','2303','2308','2382','2412','2881','2882','2886'].forEach(c => TwWatch.add(c))")
+    ok(f"{T}：先放滿 10 檔", pg.evaluate("() => TwWatch.codes().length") == 10, pg.evaluate("() => [TwWatch.codes().length, TwWatch.mode()]"))
+    pg.locator("#q").fill("23")
+    wait_until(pg, "() => [...document.querySelectorAll('#sugg .sgstar')].some(s => s.textContent === '☆')", 6000)
+    pg.locator("#sugg .sgstar", has_text="☆").first.click()
+    ok(f"{T}：自選滿 10 檔再按 ☆ → 跳「這一頁已經放滿 10 檔」卡、清單仍 10 檔",
+       bool(wait_until(pg, "() => { const m = document.getElementById('qcModal'); return !!m && !m.hidden && /放滿 10 檔/.test(m.textContent); }", 4000)) and pg.evaluate("() => TwWatch.codes().length") == 10,
+       pg.evaluate("() => [TwWatch.codes().length, TwWatch.MAX_CODES, window.TwPerm && TwPerm.state().src, (document.getElementById('qcModal') || {}).hidden, document.getElementById('sugg').style.display, document.querySelectorAll('#sugg .sgstar').length]"))
     c.close()
     ok(f"{T}：整段沒有 JS 錯誤", not errs, errs[:3])
 

@@ -117,6 +117,7 @@ export class Hub {
   constructor(state, env) {
     this.state = state; this.env = env || {};
     this.sql = state.storage.sql;
+    this.fbIp = new Map();          // 訪客反饋：IP → [小時, 次數]（1007：訪客每 IP 每小時上限；只在記憶體）
     this.rate = new Map();          // IP → [分鐘, 次數]（只在記憶體，不落地、不寫進資料庫）
     this.lastClean = 0;
     this.q('CREATE TABLE IF NOT EXISTS kv (k TEXT PRIMARY KEY, v TEXT)');
@@ -666,7 +667,7 @@ const NOTICE_KINDS = ['event', 'feature', 'maint', 'plan'];
 const NOTICE_AUD_RE = /^(all|guest|member|paid|plan:[a-z0-9_-]{1,20})$/;
 const QUOTA_K_RE = /^quota\.[a-z_]{1,24}$/;
 const QUOTA_KEY_RE = /^[0-9A-Za-z_.-]{1,24}$/;
-const MAX_FB_DAY = 20, MAX_SUBREQ_DAY = 5, MAX_NOTICES = 200;
+const MAX_FB_GUEST_IP_HOUR = 5, MAX_FB_DAY = 20, MAX_SUBREQ_DAY = 5, MAX_NOTICES = 200;
 const subClean = (s, n) => String(s == null ? '' : s).replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]/g, '').trim().slice(0, n);
 
 Hub.prototype.subInit = function () {
@@ -733,6 +734,12 @@ Hub.prototype.subRoutes = {
     const n = v ? this.q('SELECT COUNT(*) AS c FROM feedback WHERE created > ? AND uid = ?', since, v.user.uid)[0].c
       : this.q("SELECT COUNT(*) AS c FROM feedback WHERE created > ? AND uid = ''", since)[0].c;
     if (n >= (v ? MAX_FB_DAY : MAX_FB_DAY * 10)) return this.json(req, { error: 'too_many' }, 429);
+    if (!v) {   // 1007：訪客不必登入就能送，但每個 IP 每小時最多 MAX_FB_GUEST_IP_HOUR 筆，擋灌水
+      const ip = req.headers.get('CF-Connecting-IP') || 'local', hr = Math.floor(this.now() / 3600000);
+      const r = this.fbIp.get(ip);
+      if (r && r[0] === hr && r[1] >= MAX_FB_GUEST_IP_HOUR) return this.json(req, { error: 'too_many' }, 429);
+      if (!r || r[0] !== hr) { this.fbIp.set(ip, [hr, 1]); if (this.fbIp.size > 5000) this.fbIp.clear(); } else r[1]++;
+    }
     const id = rand(9);
     this.q('INSERT INTO feedback (id, uid, contact, cat, body, url, ua, created, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
       id, v ? v.user.uid : '', contact, cat, body, url, subClean(b.ua, 300), this.now(), 'new');
@@ -802,6 +809,12 @@ Hub.prototype.subRoutes = {
     const fb = this.q('SELECT f.id, f.uid, f.contact, f.cat, f.body, f.url, f.ua, f.created, f.status, u.name FROM feedback f LEFT JOIN users u ON u.uid = f.uid ORDER BY f.created DESC LIMIT 300');
     const subs = this.q('SELECT s.id, s.email, s.contact, s.plan, s.period, s.note, s.created, s.status, u.name FROM sub_requests s LEFT JOIN users u ON u.uid = s.uid ORDER BY s.created DESC LIMIT 300');
     return this.json(req, { feedback: fb.map(({ uid, ...r }) => ({ ...r, member: !!uid })), requests: subs });
+  },
+  /* 1007：管理者刪除單筆反饋（垃圾訊息、測試留言）。只刪 feedback，不碰訂閱申請。*/
+  '/v1/admin/feedback/del': async function (req, b) {
+    if (!(await this.admin(req, b))) return this.json(req, { error: 'forbidden' }, 403);
+    this.q('DELETE FROM feedback WHERE id = ?', String(b.id || ''));
+    return this.json(req, { ok: true });
   },
   '/v1/admin/feedback/set': async function (req, b) {
     if (!(await this.admin(req, b))) return this.json(req, { error: 'forbidden' }, 403);

@@ -92,6 +92,12 @@ test('意見反饋：訪客也能送；類別與內容要合格；管理者可�
   assert.equal((await post(hub, '/v1/admin/feedback/set', { t: andy, id: c.id, status: 'handled' })).status, 200);
   assert.equal((await post(hub, '/v1/admin/feedback/set', { t: andy, id: c.id, status: 'weird' })).status, 400);
   assert.equal((await post(hub, '/v1/admin/feedback/set', { t: cara, id: c.id, status: 'handled' })).status, 403);
+  assert.equal((await post(hub, '/v1/admin/feedback/del', { t: cara, id: c.id })).status, 403, '非管理者不能刪');
+  assert.equal((await post(hub, '/v1/admin/feedback/del', { t: andy, id: c.id })).status, 200);
+  assert.equal((await pj(hub, '/v1/admin/feedback/list', { t: andy })).j.feedback.length, 1, '刪掉一筆');
+  for (let i = 0; i < 4; i++) assert.equal((await post(hub, '/v1/feedback', { cat: 'other', body: '訪客' + i })).status, 200);
+  assert.equal((await post(hub, '/v1/feedback', { cat: 'other', body: '第六筆' })).status, 429, '訪客每 IP 每小時 5 筆');
+  assert.equal((await post(hub, '/v1/feedback', { t: cara, cat: 'other', body: '會員不受 IP 上限' })).status, 200);
   const saved = clock;
   try {
     clock += 400 * 86400 * 1000;

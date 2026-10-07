@@ -32,6 +32,22 @@
     ['畫面怪怪的、圖表沒出來怎麼辦？', '先按 Ctrl+F5（手機下拉重新整理）強制更新。還是不行的話，請用下面的「意見反饋」選「錯誤回報」，勾選附上目前網址與瀏覽器資訊，我們比較好重現。'],
     ['怎麼聯絡客服？', `用這個面板的「意見反饋」送出，或寄信到 ${SUPPORT_EMAIL}。付款相關的問題請在反饋類別選「付款問題」。`],
   ];
+  /* 2026-10-07（Andy：「聯絡客服改用連結 Gmail」）：mailto: 在沒設郵件程式的 Windows 會跳「郵件」App 設定畫面。改開 Gmail 網頁撰寫。*/
+  const gmail = (to, su) => 'https://mail.google.com/mail/?view=cm&fs=1&to=' + encodeURIComponent(to) + '&su=' + encodeURIComponent(su);
+  /* 全站「複製信箱」鈕（法律頁、客服面板、管理頁）：document 委派，畫面重畫也不用重綁 */
+  document.addEventListener('click', (e) => {
+    const b = e.target.closest && e.target.closest('[data-copymail]'); if (!b) return;
+    e.preventDefault(); e.stopPropagation();
+    const v = b.dataset.copymail, done = () => { const o = b.textContent; b.textContent = '已複製'; b.classList.add('ok'); setTimeout(() => { b.textContent = o; b.classList.remove('ok'); }, 1600); };
+    try {
+      if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(v).then(done, () => { fallbackCopy(v); done(); });
+      else { fallbackCopy(v); done(); }
+    } catch (x) { fallbackCopy(v); done(); }
+  }, true);
+  function fallbackCopy(v) {
+    const t = document.createElement('textarea'); t.value = v; t.style.position = 'fixed'; t.style.opacity = '0'; document.body.appendChild(t); t.select();
+    try { document.execCommand('copy'); } catch (x) { /* 略 */ } t.remove();
+  }
   const CATS = [['bug', '錯誤回報'], ['idea', '功能建議'], ['pay', '付款問題'], ['other', '其他']];
 
   css('supportCss', `
@@ -69,7 +85,13 @@
 .suppanel .go[disabled]{opacity:.6}
 .suppanel .msg{font-size:13.5px;margin-top:8px;min-height:1.2em}
 .suppanel .msg.bad{color:var(--rise)}.suppanel .msg.ok{color:var(--fall)}
-.suppanel .mail{display:block;margin-top:6px;font-size:15px;color:var(--cyan)}
+.suppanel .mailrow{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:6px}
+.suppanel .mail{font-size:15px;color:var(--cyan)}
+.cpmail{height:28px;padding:0 10px;border:1px solid var(--line-2);border-radius:7px;background:var(--panel-2);color:var(--ink-2);font-size:12.5px;cursor:pointer;vertical-align:middle;margin-left:6px}
+.cpmail:hover{color:var(--ink)}.cpmail.ok{color:var(--fall);border-color:var(--fall)}
+.suppanel .mailrow .cpmail{margin-left:0}
+/* 條款內文裡的「複製信箱」是行內小鈕：不撐高行距（法律頁的目錄捲動同步依段落高度判斷，行高一變末段就亮錯節）*/
+#v-legal .cpmail{height:auto;padding:0 7px;line-height:1.35;font-size:12px;vertical-align:baseline}
 .suppanel .note{font-size:12.5px;color:var(--ink-2);line-height:1.65;margin-top:10px}
 #v-subadm{max-width:1280px;margin:0 auto;padding-top:12px}
 #v-subadm .card{margin-top:14px}
@@ -84,6 +106,18 @@
 #v-subadm td button{height:28px;padding:0 10px;border:1px solid var(--line-2);border-radius:7px;background:var(--panel-2);color:var(--ink);font-size:12.5px;cursor:pointer}
 #v-subadm .muted{color:var(--ink-2);font-size:13px}
 #v-subadm .fbbody{white-space:pre-wrap;max-width:520px}
+#v-subadm #fbTable td small{display:block;max-width:260px;white-space:normal;word-break:break-all;overflow-wrap:anywhere}
+#v-subadm #fbTable td small a{word-break:break-all}
+#v-subadm #fbTable .fbbody{min-width:220px}
+#v-subadm .fbflt{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:8px}
+#v-subadm .fbflt h3{margin:0;flex:1;min-width:200px}
+#v-subadm .fbflt select{height:30px;background:var(--panel);color:var(--ink);border:1px solid var(--line-2);border-radius:7px;padding:0 6px}
+#v-subadm tr.unread td:first-child{box-shadow:inset 3px 0 0 var(--rise)}
+#v-subadm .fbact{white-space:nowrap}#v-subadm .fbact button + button{margin-left:6px}
+#v-subadm button.fbdel{color:var(--rise)}
+.fbdot{display:inline-grid;place-items:center;min-width:18px;height:18px;padding:0 5px;margin-left:auto;border-radius:999px;background:var(--rise);color:#fff;font-size:11px;font-weight:700;line-height:1;box-sizing:border-box}
+.fbdot.big{height:22px;font-size:12px;margin-left:10px;vertical-align:middle}
+@media (max-width:820px){#v-subadm table,#v-subadm tbody,#v-subadm tr,#v-subadm td{display:block}#v-subadm thead{display:none}#v-subadm tr{border-bottom:1px solid var(--line-2);padding:6px 0}#v-subadm td{border:0;padding:3px 0}}
 @media (max-width:820px){.supfab{bottom:84px;right:14px;height:42px;padding:0 12px}.supfab span{display:none}.suppanel{right:12px;bottom:134px}}`);
 
   /* ★ admin-v3（Andy E）：圖示改可愛一點 —— 圓角對話泡泡裡一張笑臉（自繪 SVG，stroke＝currentColor，深淺主題都跟字色走）*/
@@ -125,9 +159,12 @@
     // 「即時和盤後差在哪」那一題只給管理者看（data-live-ui，livegate.js 的 CSS 藏；DECISIONS #326）
     if (tab === 'faq') return FAQ.map(([q, a], i) => `<div class="faq" data-i="${i}"${/「即時」/.test(q) ? ' data-live-ui' : ''}><button type="button" aria-expanded="false">${esc(q)}</button><div class="ans">${esc(a)}</div></div>`).join('')
       + `<p class="note">找不到答案？到「意見反饋」留言，或看 <a href="#pricing">訂閱方案</a>。</p>`;
-    if (tab === 'mail') return `<p class="note">寄信給客服（一般 1～2 個工作天內回覆）：</p><a class="mail" id="supMail" href="mailto:${SUPPORT_EMAIL}?subject=${encodeURIComponent('台股資金輪動儀表板｜客服')}">${SUPPORT_EMAIL}</a>
+    if (tab === 'mail') return `<p class="note">寄信給客服（一般 1～2 個工作天內回覆）：</p><div class="mailrow"><a class="mail" id="supMail" data-gmail href="${esc(gmail(SUPPORT_EMAIL, '台股資金輪動－客服'))}" target="_blank" rel="noopener">用 Gmail 寄信給 ${SUPPORT_EMAIL}</a><button type="button" class="cpmail" id="supCopy" data-copymail="${SUPPORT_EMAIL}">複製信箱</button></div>
+      <p class="note">不用 Gmail 的話，按「複製信箱」再貼到你慣用的郵件程式。</p>
       <p class="note">付款或方案問題請在信裡註明你登入用的 email。本網站不是證券投資顧問，無法回答個股買賣問題。</p>`;
     const A = window.TwAccount, u = A && A.on() ? A.user() : null;
+    /* 1007：訪客也能送（Worker 端每 IP 每小時上限）；送出只存本站伺服器，不寄任何信。
+       只有會員伺服器沒設定（TwSub.call 根本沒有網址）時才關掉。*/
     const can = !!(A && A.on());
     return `${can ? '' : '<p class="note" style="color:var(--amber)">線上反饋暫時無法使用，請改用「寄信」。</p>'}
       <label for="fbCat">類別</label><select id="fbCat">${CATS.map(([k, n]) => `<option value="${k}">${n}</option>`).join('')}</select>
@@ -163,28 +200,57 @@
   // ------------------------------------------------------------------ 管理端 #admin/feedback
   const CATN = Object.fromEntries(CATS);
   const dstr = (ms) => { const d = new Date(ms + 8 * 3600 * 1000); return d.toISOString().slice(0, 16).replace('T', ' '); };
+  /* 1007：篩選（類別／狀態）只在前端做，記在記憶體；刪除走 /v1/admin/feedback/del（先確認）。
+     未讀數紅點：側欄「意見反饋」子項與帳號選單共用 unread（管理者登入時抓一次、每次進頁重算）。*/
+  const FL = { cat: '', st: '' };
+  let unread = 0, last = null;
+  function paintDot() {
+    const t = document.getElementById('admTabFeedback'); if (!t) return;
+    let d = t.querySelector('.fbdot');
+    if (!unread) { if (d) d.remove(); return; }
+    if (!d) { d = document.createElement('span'); d.className = 'fbdot'; t.appendChild(d); }
+    d.textContent = unread > 99 ? '99+' : String(unread); d.title = unread + ' 則未讀反饋';
+  }
+  async function refreshUnread() {
+    const A = window.TwAccount, u = A && A.on() ? A.user() : null;
+    if (!u || !u.admin) { unread = 0; paintDot(); return; }
+    const j = await call('/v1/admin/feedback/list', {});
+    if (j && j._s === 200) { last = j; unread = (j.feedback || []).filter((x) => x.status === 'new').length; paintDot(); }
+  }
   async function renderFeedbackAdmin(el) {
     const A = window.TwAccount, u = A && A.on() ? A.user() : null;
-    if (!u || !u.admin) { el.innerHTML = '<div class="card"><h2>管理頁</h2><p class="muted">這一頁只有管理者看得到' + (u ? '' : '，請先登入') + '。</p></div>'; return; }
+    if (!u || !u.admin) { el.innerHTML = '<div class="card" id="fbDenied"><h2>管理頁</h2><p class="muted">這一頁只有管理者看得到' + (u ? '' : '，請先登入') + '。</p></div>'; return; }
     el.innerHTML = '<div class="card"><p class="muted">載入中…</p></div>';
     const j = await call('/v1/admin/feedback/list', {});
     if (!j || j._s !== 200) { el.innerHTML = '<div class="card"><p class="muted">讀取失敗（' + esc(j ? j._s : '連不到') + '）</p></div>'; return; }
-    const fb = j.feedback || [], rq = j.requests || [];
-    const nNew = fb.filter((x) => x.status === 'new').length, rNew = rq.filter((x) => x.status === 'new').length;
-    el.innerHTML = `<div class="sat"><h2>意見反饋與訂閱申請</h2><a href="#admin/notices">公告管理</a><a href="#admin/traffic">回管理區</a><button type="button" id="fbReload">重新整理</button></div>
+    last = j; paintAdmin(el);
+  }
+  function paintAdmin(el) {
+    const j = last || {};
+    const fbAll = j.feedback || [], rq = j.requests || [];
+    unread = fbAll.filter((x) => x.status === 'new').length; paintDot();
+    const fb = fbAll.filter((x) => (!FL.cat || x.cat === FL.cat) && (!FL.st || x.status === FL.st));
+    const rNew = rq.filter((x) => x.status === 'new').length;
+    const sel = (id, cur, opts) => `<select id="${id}">${opts.map(([k, n]) => `<option value="${k}"${k === cur ? ' selected' : ''}>${n}</option>`).join('')}</select>`;
+    el.innerHTML = `<div class="sat"><h2>意見反饋${unread ? `<span class="fbdot big">${unread} 未讀</span>` : ''}</h2><a href="#admin/notices">公告管理</a><button type="button" id="fbReload">重新整理</button></div>
+      <p class="muted">使用者在右下角客服面板送出的反饋只存在本站伺服器，不寄信、只有管理者看得到。處理完按「標為已處理」；垃圾或測試留言可以刪除。</p>
+      <div class="card"><div class="fbflt"><h3>反饋列表（共 ${fbAll.length} 筆，顯示 ${fb.length}）</h3>
+        <label>類別 ${sel('fbFCat', FL.cat, [['', '全部'], ...CATS])}</label>
+        <label>狀態 ${sel('fbFSt', FL.st, [['', '全部'], ['new', '未讀'], ['handled', '已處理']])}</label></div>
+        ${fb.length ? `<table id="fbTable"><thead><tr><th>時間（台北）</th><th>類別</th><th>內容</th><th>聯絡 email</th><th>頁面網址／瀏覽器</th><th>狀態</th><th></th></tr></thead><tbody>${fb.map((r) => `<tr data-id="${esc(r.id)}" class="${r.status === 'new' ? 'unread' : ''}">
+          <td>${dstr(r.created)}</td><td>${esc(CATN[r.cat] || r.cat)}</td><td class="fbbody">${esc(r.body)}</td>
+          <td>${r.contact ? `<a data-gmail href="${esc(gmail(r.contact, '回覆：台股資金輪動意見反饋'))}" target="_blank" rel="noopener">${esc(r.contact)}</a>` : '<span class="muted">（未留）</span>'}${r.member ? '<br><small class="muted">會員' + (r.name ? '：' + esc(r.name) : '') + '</small>' : '<br><small class="muted">訪客</small>'}</td>
+          <td><small>${r.url ? `<a href="${esc(r.url)}" target="_blank" rel="noopener">${esc(r.url)}</a>` : ''}<br>${esc(r.ua || '')}</small></td>
+          <td><span class="st ${r.status === 'new' ? 'new' : ''}">${r.status === 'new' ? '未讀' : '已處理'}</span></td>
+          <td class="fbact"><button type="button" data-kind="feedback" data-id="${esc(r.id)}" data-st="${r.status === 'new' ? 'handled' : 'new'}">${r.status === 'new' ? '標為已處理' : '改回未讀'}</button><button type="button" class="fbdel" data-del="${esc(r.id)}">刪除</button></td></tr>`).join('')}</tbody></table>` : `<p class="muted" id="fbEmpty">${fbAll.length ? '沒有符合篩選的反饋。' : '還沒有反饋。'}</p>`}</div>
       <div class="card"><h3>訂閱申請（${rq.length} 筆，未處理 ${rNew}）</h3><p class="muted">金流尚未串接：確認付款後到「會員管理」替他設定方案與到期日，再把這筆標成「已開通」。</p>
         ${rq.length ? `<table id="rqTable"><thead><tr><th>時間（台北）</th><th>會員</th><th>方案</th><th>週期</th><th>聯絡 email</th><th>備註</th><th>狀態</th><th></th></tr></thead><tbody>${rq.map((r) => `<tr data-id="${esc(r.id)}">
           <td>${dstr(r.created)}</td><td>${esc(r.name || '')}<br><small class="muted">${esc(r.email || '')}</small></td><td>${esc(r.plan)}</td><td>${r.period === 'year' ? '年繳' : '月繳'}</td><td>${esc(r.contact)}</td><td>${esc(r.note || '')}</td>
           <td><span class="st ${r.status === 'new' ? 'new' : ''}">${r.status === 'new' ? '待處理' : '已開通'}</span></td>
-          <td><button type="button" data-kind="request" data-id="${esc(r.id)}" data-st="${r.status === 'new' ? 'done' : 'new'}">${r.status === 'new' ? '標為已開通' : '改回待處理'}</button></td></tr>`).join('')}</tbody></table>` : '<p class="muted">還沒有人申請。</p>'}</div>
-      <div class="card"><h3>意見反饋（${fb.length} 筆，未處理 ${nNew}）</h3>
-        ${fb.length ? `<table id="fbTable"><thead><tr><th>時間（台北）</th><th>類別</th><th>內容</th><th>聯絡</th><th>網址／瀏覽器</th><th>狀態</th><th></th></tr></thead><tbody>${fb.map((r) => `<tr data-id="${esc(r.id)}">
-          <td>${dstr(r.created)}</td><td>${esc(CATN[r.cat] || r.cat)}</td><td class="fbbody">${esc(r.body)}</td>
-          <td>${r.contact ? `<a href="mailto:${esc(r.contact)}">${esc(r.contact)}</a>` : '<span class="muted">（未留）</span>'}${r.member ? '<br><small class="muted">會員' + (r.name ? '：' + esc(r.name) : '') + '</small>' : '<br><small class="muted">訪客</small>'}</td>
-          <td><small>${esc(r.url || '')}<br>${esc(r.ua || '')}</small></td>
-          <td><span class="st ${r.status === 'new' ? 'new' : ''}">${r.status === 'new' ? '未處理' : '已處理'}</span></td>
-          <td><button type="button" data-kind="feedback" data-id="${esc(r.id)}" data-st="${r.status === 'new' ? 'handled' : 'new'}">${r.status === 'new' ? '標為已處理' : '改回未處理'}</button></td></tr>`).join('')}</tbody></table>` : '<p class="muted">還沒有反饋。</p>'}</div>`;
+          <td><button type="button" data-kind="request" data-id="${esc(r.id)}" data-st="${r.status === 'new' ? 'done' : 'new'}">${r.status === 'new' ? '標為已開通' : '改回待處理'}</button></td></tr>`).join('')}</tbody></table>` : '<p class="muted">還沒有人申請。</p>'}</div>`;
     el.querySelector('#fbReload').onclick = () => renderFeedbackAdmin(el);
+    el.querySelector('#fbFCat').onchange = (e) => { FL.cat = e.target.value; paintAdmin(el); };
+    el.querySelector('#fbFSt').onchange = (e) => { FL.st = e.target.value; paintAdmin(el); };
     el.querySelectorAll('button[data-kind]').forEach((b) => {
       b.onclick = async () => {
         b.disabled = true;
@@ -192,8 +258,16 @@
         if (r && r._s === 200) renderFeedbackAdmin(el); else { b.disabled = false; toast('更新失敗'); }
       };
     });
+    el.querySelectorAll('button[data-del]').forEach((b) => {
+      b.onclick = async () => {
+        if (!window.confirm('確定刪除這則反饋？刪除後無法復原。')) return;
+        b.disabled = true;
+        const r = await call('/v1/admin/feedback/del', { id: b.dataset.del });
+        if (r && r._s === 200) { toast('已刪除'); renderFeedbackAdmin(el); } else { b.disabled = false; toast('刪除失敗'); }
+      };
+    });
   }
-  window.TwSupport = { open: () => toggle(true), close: () => toggle(false), renderFeedbackAdmin, email: SUPPORT_EMAIL, faq: FAQ };
+  window.TwSupport = { open: () => toggle(true), close: () => toggle(false), renderFeedbackAdmin, paintDot, refreshUnread, unread: () => unread, email: SUPPORT_EMAIL, faq: FAQ };
   /* 管理端路由：#admin/feedback（這支畫）。#admin/notices 給 notices.js。view 共用 #v-subadm */
   window.TwSubRoutes.push((head, rest) => {
     if (head !== 'admin' || rest[0] !== 'feedback') return null;
@@ -202,6 +276,7 @@
     return 'v-subadm';
   });
   window.addEventListener('tw:account', () => {
+    refreshUnread();
     if ((location.hash || '') === '#admin/feedback') { const v = view('v-subadm'); if (v) renderFeedbackAdmin(v); }
     const p = document.getElementById('supPanel'); if (p && !p.hidden && tab === 'fb') paint();
   });
