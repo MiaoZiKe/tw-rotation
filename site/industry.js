@@ -66,6 +66,9 @@
     if (head !== 'stock') stopLive();   // 離開個股頁就不要再每 5 秒抓報價了
     const [im, sc, gd] = await Promise.all([A.load('industry_map'), A.load('supply_chain'), A.load('groups_detail')]);
     if (head === 'stock') { state.level = 2; state.code = rest[0]; state.dg = null; await renderStock(rest[0], im, sc, gd); return; }
+    /* 2026-10-08 權限矩陣 ind.groups（產業地圖進單一產業鏈每日 N 條）：畫產業鏈頁的唯一入口在這裡，再擋一次 ——
+       app.js route() 開頭與 quota.js 的 hashchange 也擋，但連續快速換頁時實測有漏（同一條鏈不重算，多呼叫不會多扣）。*/
+    if (rest[0] && rest[0] !== 'group' && window.TwQuota && !window.TwQuota.routeOk(location.hash)) return;
     if (rest[0] === 'group' && rest[1]) { state.group = rest[1]; state.dg = null; state.chain = chainOfGroup(im, rest[1]); state.level = 1; renderChain(im, sc, gd); return; }
     if (rest[0]) {
       state.chain = rest[0]; state.group = null; state.dg = null; state.level = 1;

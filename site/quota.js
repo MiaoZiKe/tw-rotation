@@ -77,7 +77,8 @@
       if (m && !/^#industry\/group\//.test(h)) return safeKey('c.' + decodeURIComponent(m[1]));
       return pk;
     }
-    if (k === 'theme') return pk;
+    /* 2026-10-08：題材熱力圖首頁（#heatmap/theme，還沒選題材）下方只有一行「尚未選擇題材」—— 不是看了一個題材，不算（以前會記成 heatmap.<分頁>，白扣一次）*/
+    if (k === 'theme') return /^t\./.test(pk) || /^x/.test(pk) && /^#heatmap\/theme\/./.test(h) ? pk : null;
     /* 族群觀測每個族群是「自己一個功能」：用族群當單位的話一個功能永遠只有一個單位，設每日 N 次等於沒設（覆蓋稽核 10-07）。
        改成「這個族群頁的一次造訪」（同一個瀏覽器分頁來回切不重算，新開分頁再看算下一次），跟其他沒有對象的頁同一個口徑。*/
     if (k === 'group') return pk + '.' + TAB;
@@ -174,6 +175,7 @@
       for (const f of fs) {
         const els = targets(f, h); if (!els.length) continue;
         const key = unitKey(f, h);
+        if (key == null) continue;
         const lim = limitOf(f.id);
         const set = new Set(d.k[f.id] || []);
         if (set.has(key)) continue;
@@ -204,6 +206,7 @@
     if (changed) save(d);
     paint(want);
     ring(ringOn, (d.k[ALL] || []).length);
+    pagePanel(ringOn);
     watch(fs.length > 0 || allLim() !== Infinity);
   }
   const ALL = 'quota.all';
@@ -268,6 +271,72 @@
     const tip = `今日已用 ${u}／${all} 次（${nm}）・台北 0 點重置・同一檔同一天只算一次`;
     el.title = tip; el.setAttribute('aria-label', tip + '。點一下看方案');
   }
+  /* ============================================================================
+     ★ 2026-10-08 本頁限制清單（Andy：「次數那邊若當前分頁有很多限制項目 在幫我標示出來」）
+     額度圓環旁多一顆「本頁 N 項限制・最少剩 X 次」（收合）；點開逐項列出這一頁所有有每日上限的項目：
+     名稱、計次單位（看／篩選／切分頁／下鑽）、已用／上限、還剩幾次、一條小進度條；剩 1 次琥珀色、用完紅色。
+     「這一頁」＝網址對得上那個功能（PAGE_OF 精確對到子分頁；其餘依分類對到頁名）；上限 0 的寫「不開放」。
+     不受限的身分（Pro、擁有者、預覽版）每一項都是不限 → 清單空的 → 整顆不顯示。換頁時 evaluate() 會重算，跟著換成那一頁的項目。
+     ============================================================================ */
+  const PAGE_OF = {
+    'flow.sankey.drill': /^#flow\/sankey/, 'flow.sankey': /^#flow\/sankey/, 'flow.inst.filter': /^#flow\/inst/, 'flow.inst': /^#flow\/inst/, 'flow.conc': /^#flow\/inst/,
+    'flow.rot': /^#flow(\/rotation)?([/?]|$)/, 'etf.calendar': /^#etf\/cal/, 'etf.calendar.tab': /^#etf\/cal/, 'etf.cashflow': /^#etf\/inc/,
+    'heat.detail': /^#heatmap\/theme/, 'heat.theme': /^#heatmap\/theme/, 'heat.market': /^#heatmap(\/industry)?([/?]|$)/,
+  };
+  const CAT_HEAD = { overview: /^#(overview)?([/?]|$)/, flow: /^#flow/, industry: /^#industry/, heatmap: /^#heatmap/, market: /^#market/, stockk: /^#stock\//, stocktab: /^#stock\//,
+    etf: /^#etf(\/list)?([/?]|$)/, explore: /^#explore/, earnings: /^#earnings/, watch: /^#watch/ };
+  const UNIT_TXT = { tab: '切分頁', filter: '篩選', drill: '下鑽', obj: '看' };
+  function onPage(f, h) {
+    if (PAGE_OF[f.id]) return PAGE_OF[f.id].test(h);
+    if (/^season\./.test(f.id)) return /^#season/.test(h);
+    if (f.id === 'ind.groups' || f.id === 'ind.map') return /^#industry/.test(h);
+    const re = CAT_HEAD[f.cat]; return !!(re && re.test(h || '#overview'));
+  }
+  function pageItems(ringOn) {
+    const Ft = F(), p = P(); if (!Ft || !p) return [];
+    const h = location.hash || '#overview', d = load(), st = p.state();
+    const out = [];
+    Object.keys(st.lims || {}).forEach((id) => {
+      const f = Ft.byId(id); if (!f || f.kind === 'limit' || f.cat === 'grp') return;
+      const n = limitOf(id); if (n === Infinity || !onPage(f, h)) return;
+      const used = Math.min(n, (d.k[id] || []).length);
+      out.push({ id, name: f.name, unit: UNIT_TXT[f.act] || '看', used, lim: n, rem: Math.max(0, n - used) });
+    });
+    if (ringOn && allLim() !== Infinity) { const n = allLim(), used = Math.min(n, (d.k[ALL] || []).length); out.push({ id: ALL, name: '研究瀏覽（全站共用）', unit: '看', used, lim: n, rem: Math.max(0, n - used) }); }
+    return out;
+  }
+  function pagePanel(ringOn) {
+    const h = location.hash || '';
+    let el = document.getElementById('twQPage');
+    const items = h.startsWith('#admin') || h.startsWith('#pricing') ? [] : pageItems(ringOn);
+    if (!items.length) { if (el) el.hidden = true; return; }
+    css();
+    if (!el) {
+      el = document.createElement('span'); el.id = 'twQPage'; el.className = 'twqp';
+      el.innerHTML = '<button type="button" class="twqp-b" aria-expanded="false"></button><div class="twqp-pan" role="dialog" aria-label="本頁限制" hidden></div>';
+      el.querySelector('.twqp-b').onclick = (e) => { e.stopPropagation(); const pan = el.querySelector('.twqp-pan'); pan.hidden = !pan.hidden; el.querySelector('.twqp-b').setAttribute('aria-expanded', String(!pan.hidden)); };
+      document.addEventListener('click', (e) => { if (!el.contains(e.target)) { el.querySelector('.twqp-pan').hidden = true; el.querySelector('.twqp-b').setAttribute('aria-expanded', 'false'); } });
+    }
+    const rg = document.getElementById('twQRing'), tb = document.getElementById('twPageTourBtn'), h1 = document.querySelector('#l4Head h1');
+    const desk = !!(h1 && h1.getClientRects().length);
+    el.classList.toggle('mob', !desk);
+    /* 手機（沒有 #l4Head）：頂欄已經被圓環、導覽、搜尋塞滿，再放一顆會撐出橫向捲軸（390 實測 scrollWidth 570）→ 改成左下角浮動的小膠囊 */
+    if (desk) { const after = rg && !rg.hidden && rg.parentNode === h1.parentNode ? rg : (tb && tb.parentNode === h1.parentNode ? tb : h1); if (el.previousElementSibling !== after) after.after(el); }
+    else if (el.parentNode !== document.body) document.body.appendChild(el);
+    el.hidden = false;
+    const lvl = (x) => (x.lim === 0 ? 'off' : x.rem === 0 ? 'out' : x.rem === 1 ? 'low' : 'ok');
+    const min = items.filter((x) => x.lim > 0).reduce((a, x) => (a == null || x.rem < a.rem ? x : a), null);
+    const b = el.querySelector('.twqp-b');
+    const bt = `本頁 ${items.length} 項限制${min ? `・最少剩 ${min.rem} 次` : ''}`;
+    if (b.textContent !== bt) b.textContent = bt;
+    b.dataset.lvl = min ? lvl(min) : 'off';
+    el.dataset.n = String(items.length);
+    const html = `<div class="twqp-h">本頁的每日限制<small>台北 0 點重置・同一個對象同一天只算一次</small></div>` + items.map((x) => `<div class="twqp-r" data-id="${x.id}" data-lvl="${lvl(x)}">
+      <div class="twqp-t"><b>${T() ? T().esc(x.name) : x.name}</b><span>${x.lim === 0 ? '不開放' : `${x.unit} ${x.used}／${x.lim}・剩 ${x.rem} 次`}</span></div>
+      <i class="twqp-bar"><i style="width:${x.lim ? Math.round((x.used / x.lim) * 100) : 100}%"></i></i></div>`).join('')
+      + '<a class="twqp-go" href="#pricing">看方案 →</a>';
+    const pan = el.querySelector('.twqp-pan'); if (pan.dataset.h !== html) { pan.innerHTML = html; pan.dataset.h = html; }
+  }
   /* 節流 200ms：有上限時要觀察整個 body，live.js 每幾秒改一堆格子 —— 不必每一格變動都重算 */
   function schedule() { if (!S.raf) S.raf = setTimeout(evaluate, 200); }
   /* 有上限才觀察 DOM：區塊晚一點才畫出來（個股頁、族群頁都是非同步）也要算到；遮罩被重畫沖掉時補回來 */
@@ -296,6 +365,23 @@
 .twqr[data-lvl="mid"]{--qc:var(--amber,#f5b942)}
 .twqr[data-lvl="out"]{--qc:var(--ink-3,#7a879c)}
 .twqr.mob{margin:0 2px 0 0;width:36px;height:36px}
+.twqp{position:relative;display:inline-flex;align-items:center;margin-left:8px;vertical-align:middle;flex:none}
+.twqp[hidden]{display:none}
+.twqp-b{appearance:none;font:inherit;font-size:12px;height:28px;padding:0 10px;border-radius:999px;border:1px solid var(--line-2);background:var(--panel-2);color:var(--ink-2);cursor:pointer;white-space:nowrap}
+.twqp-b[data-lvl="low"]{border-color:var(--amber,#f5b942);color:var(--amber,#f5b942)}
+.twqp-b[data-lvl="out"]{border-color:var(--down-r,#ef4b5f);color:var(--down-r,#ef4b5f)}
+.twqp.mob{position:fixed;left:12px;bottom:84px;z-index:1250;margin:0}.twqp.mob .twqp-b{max-width:60vw;overflow:hidden;text-overflow:ellipsis;box-shadow:0 4px 12px rgba(0,0,0,.25)}
+.twqp-pan{position:absolute;top:calc(100% + 6px);left:0;z-index:1300;width:min(320px,calc(100vw - 32px));padding:10px 12px;border-radius:10px;border:1px solid var(--line-2);background:var(--panel);box-shadow:0 8px 24px rgba(0,0,0,.3);font-size:13px;color:var(--ink)}
+.twqp.mob .twqp-pan{position:fixed;left:16px;right:16px;top:auto;bottom:124px;width:auto;max-height:60vh;overflow:auto}
+.twqp-pan[hidden]{display:none}
+.twqp-h{font-weight:700;margin-bottom:6px}.twqp-h small{display:block;font-weight:400;font-size:12px;color:var(--ink-3)}
+.twqp-r{padding:6px 0;border-top:1px solid var(--line)}
+.twqp-t{display:flex;justify-content:space-between;gap:8px}.twqp-t b{font-weight:600;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.twqp-t span{flex:none;font-size:12px;color:var(--ink-2)}
+.twqp-bar{display:block;height:4px;margin-top:4px;border-radius:2px;background:color-mix(in srgb,var(--ink-3) 25%,transparent);overflow:hidden}
+.twqp-bar>i{display:block;height:100%;background:var(--cyan,#22d3ee)}
+.twqp-r[data-lvl="low"] .twqp-bar>i{background:var(--amber,#f5b942)}.twqp-r[data-lvl="low"] .twqp-t span{color:var(--amber,#f5b942)}
+.twqp-r[data-lvl="out"] .twqp-bar>i,.twqp-r[data-lvl="off"] .twqp-bar>i{background:var(--down-r,#ef4b5f)}.twqp-r[data-lvl="out"] .twqp-t span,.twqp-r[data-lvl="off"] .twqp-t span{color:var(--down-r,#ef4b5f)}
+.twqp-go{display:block;margin-top:8px;text-align:right;font-size:12px}
 .qlkov:not(.qcov) .qlkgo{margin-top:6px;display:inline-flex;align-items:center;height:36px;padding:0 18px;border-radius:999px;background:var(--amber,#f5b942);color:#1a1203;font-weight:700;font-size:14px;text-decoration:none}`);
   }
 
@@ -318,6 +404,7 @@
         if (!b) continue;
         if (f.route && !f.route.test(h)) continue;
         const d = load(), lim = limitOf(f.id), key = unitKey(f, h);
+        if (key == null) continue;
         const set = new Set(d.k[f.id] || []);
         if (set.has(key)) return;
         if (set.size < lim) { set.add(key); d.k[f.id] = [...set]; save(d); hit(f.id, key); return; }
@@ -328,5 +415,164 @@
       }
     }
   }, true);
-  window.TwQuota = { state: () => load(), limit: limitOf, evaluate: () => evaluate(), day: tpeDay, pageKey, unitKey: (id, h) => unitKey(window.TwFeatures && window.TwFeatures.byId(id), h || location.hash || ''), unitKind: (id) => unitKind(window.TwFeatures && window.TwFeatures.byId(id)) };
+  /* ============================================================================
+     ★ 2026-10-08 動作計次（docs/perm_matrix_1008.md §2）：quota.js 原本只數「區塊出現在畫面上」（visit／obj），
+     矩陣新增四種單位 —— 都是「使用者主動做了某件事」才算，所以由各功能的點擊處呼叫，不靠 MutationObserver：
+       tab    切分頁：點一個不同的分頁（同一分頁重切不重算；預設進來的第一個分頁呼叫端不送）
+       filter 篩選：套用一組不同的篩選條件（條件序列化後當對象；清除／排序／翻頁呼叫端不送）
+       drill  點擊下鑽：從圖上點進一個不同的下一層對象
+       obj    看對象（題材剖析、產業鏈、週期統計換對象）
+       pick   同時選取上限 —— 不是每日次數，存在範本 feats（kind:'limit'），用 pick() 讀
+     單位字串＝「<單位>.<對象>」（非 ASCII 或太長→ FNV 雜湊，同 safeKey），workers/data-gw/tiers.js 的 actUnit() 是同一個函式，
+     測試（workers/data-gw/tests/units.test.mjs）把兩邊跑同一組輸入比對。obj 單位沿用 pageKey 的 t.<題材>／c.<鏈>，
+     跟畫面計次（evaluate）同一個 key、同一個儲存 —— 同一個題材不會被兩邊各扣一次。
+     上限＝範本 lims（TwPerm.lim）：擁有者、預覽版一律 Infinity（perm.js owner()），不送 /v1/quota/hit。
+     用完：跳 qcard 置中卡片，文案照矩陣 §2「{功能}今日 N/N 次已用完（每天台北時間 00:00 重置）。{升級句}」；剩 1 次時角落小字提醒。
+     ============================================================================ */
+  const UNIT_KINDS = ['view', 'obj', 'tab', 'filter', 'drill', 'pick'];
+  function actUnit(kind, obj) {
+    const o = String(obj == null ? '' : obj);
+    if (kind === 'obj' && /^[tcdg]\./.test(o)) return safeKey(o);
+    return safeKey(kind + '.' + o);
+  }
+  /* 升級句要的「下一個方案給幾次」：訂閱頁那一份方案 → 沒有就用建議方案（plan_presets.js）*/
+  function planLim(planId, id) {
+    const TP = window.TwPricing, ps = TP && TP.plans && TP.plans();
+    const p = (ps || []).find((x) => x.id === planId);
+    if (p && p.lims && Object.prototype.hasOwnProperty.call(p.lims, id)) return p.lims[id];
+    const pr = window.TW_PLAN_PRESETS, t = pr && pr.tiers.find((x) => x.key === planId);
+    if (t && t.lims && Object.prototype.hasOwnProperty.call(t.lims, id)) return t.lims[id];
+    return p || t ? Infinity : null;
+  }
+  function meTier() { const st = P() ? P().state() : {}; return st.who === 'guest' || !st.who ? 'guest' : (!st.plan || st.plan === 'free' ? 'free' : st.plan); }
+  function actOpts(id, n, used) {
+    const f = F() && F().byId(id); const nm = f ? f.name : id;
+    const tier = meTier();
+    let up, btn, href;
+    if (tier === 'guest') { const k = planLim('free', id); up = k === Infinity ? '免費註冊即可不限次數' : `免費註冊即可每天 ${k == null ? '更多' : k} 次`; btn = '免費註冊'; href = '#pricing/plan/free'; }
+    else if (tier === 'free') { const k = planLim('plus', id); up = k === Infinity || k == null ? '升級 Plus 不限次數' : `升級 Plus 每天 ${k} 次`; btn = '看方案'; href = '#pricing/need/' + encodeURIComponent(id); }
+    else { up = '升級 Pro 不限次數'; btn = '看方案'; href = '#pricing/need/' + encodeURIComponent(id); }
+    if (n === 0) {
+      const lo = f && window.TwQCard ? window.TwQCard.lockOpts(f, tier === 'guest' ? 'guest' : 'member') : null;
+      return Object.assign(lo || { kind: 'lock', kick: '需要開通', title: '此功能需開通', sub: nm, btn, href }, { title: `${nm}為${tier === 'guest' ? '會員' : '付費'}功能`, btnCls: 'qactgo' });
+    }
+    return { kind: 'quota', kick: '每日次數', title: `${nm}今日 ${used}/${n} 次已用完`, sub: `（每天台北時間 00:00 重置）。${up}`,
+      used, limit: n, lh: '', items: [], btn, href, btnCls: 'qactgo' };
+  }
+  function actBlock(id, n, used) {
+    const QC = window.TwQCard;
+    const m = QC && QC.modal ? QC.modal(actOpts(id, n, used)) : null;
+    if (m) m.dataset.cq = id;
+    return false;
+  }
+  function remainHint(id, rem) {
+    if (rem !== 1) return;
+    let t = document.getElementById('twQRem');
+    if (!t) { t = document.createElement('div'); t.id = 'twQRem'; t.setAttribute('role', 'status');
+      t.style.cssText = 'position:fixed;right:16px;bottom:84px;z-index:1400;padding:6px 12px;border-radius:999px;font-size:12px;background:var(--panel-3,#1c2638);color:var(--amber,#f5b942);border:1px solid var(--line-2,#33415a)';
+      document.body.appendChild(t); }
+    const f = F() && F().byId(id);
+    t.textContent = `${f ? f.name : ''}：今日剩 1 次`; t.hidden = false; clearTimeout(t._h); t._h = setTimeout(() => { t.hidden = true; }, 3500);
+  }
+  /* 用一次：回 true＝放行、false＝擋下（已跳卡片）。obj 空字串＝不算（呼叫端的「預設」）*/
+  function act(id, kind, obj) {
+    try { const ts = window.TwTour && window.TwTour.state(); if (ts && ts.on) return true; } catch (e) { /* 沒有導覽 */ }
+    const n = limitOf(id);
+    if (n === Infinity) return true;
+    if (n === 0) return actBlock(id, 0, 0);
+    const key = actUnit(kind, obj);
+    const d = load(); const set = new Set(d.k[id] || []);
+    if (set.has(key)) return true;
+    if (set.size >= n) return actBlock(id, n, set.size);
+    set.add(key); d.k[id] = [...set]; save(d); hit(id, key);
+    remainHint(id, n - set.size);
+    schedule();   // 本頁限制清單的「已用」跟著 +1
+    return true;
+  }
+  /* 同時選取上限（feats 的 limit 類；最大值＝不限）。擁有者／預覽版／連不到會員伺服器＝不限 */
+  function pick(id) {
+    const p = P(), Ft = F(); if (!p || !Ft) return Infinity;
+    if (p.owner && p.owner()) return Infinity;
+    if (p.state().src === 'default') return Infinity;
+    const f = Ft.byId(id); if (!f) return Infinity;
+    const v = p.value ? p.value(id) : p.limit(id, f.max);
+    return !Number.isInteger(v) || v >= f.max ? Infinity : Math.max(0, v);
+  }
+  function pickBlock(id, n) {
+    const QC = window.TwQCard; if (!QC || !QC.modal) return false;
+    const f = F() && F().byId(id), tier = meTier(), u = (f && f.unit) || '個';
+    const nm = f ? f.name : id;
+    const up = tier === 'guest' ? '免費註冊可以選更多' : tier === 'free' ? '升級 Plus 可以選更多' : '升級 Pro 不限';
+    const m = QC.modal({ kind: 'lock', kick: '同時選取上限', title: `${tier === 'guest' ? '訪客' : '目前方案'}最多 ${n} ${u}`, sub: `${nm}。${up}。`,
+      lh: '', items: [], btn: tier === 'guest' ? '免費註冊' : '看方案', href: tier === 'guest' ? '#pricing/plan/free' : '#pricing/need/' + encodeURIComponent(id), btnCls: 'qactgo' });
+    m.dataset.cq = id;
+    return false;
+  }
+  /* 路由閘（app.js route() 開頭呼叫）：Andy「題材可以點 至多3個熱力圖（上方熱力圖不用鎖住，主要是限制點擊後功能），包含產業Map 也是只能3個」。
+     題材剖析＝heat.detail、單一產業鏈＝ind.groups（矩陣 §3.4／§3.5），對象 key 跟畫面計次同一個（t.<題材>／c.<鏈>）。
+     用完 → 網址退回上一層（題材熱力圖／產業地圖，上方熱力圖照樣在）並跳卡片；回 false 讓 route() 不畫被擋的那一頁。*/
+  function routeOk(hash) {
+    const h = String(hash || '');
+    let m = /^#industry\/([^/?]+)/.exec(h);
+    if (m && m[1] !== 'group') { if (act('ind.groups', 'obj', 'c.' + decodeURIComponent(m[1]))) return true; location.replace('#industry'); return false; }
+    m = /^#heatmap\/theme\/([^/?]+)/.exec(h);
+    if (m) { if (act('heat.detail', 'obj', 't.' + decodeURIComponent(m[1]))) return true; location.replace('#heatmap/theme'); return false; }
+    return true;
+  }
+  /* ============================================================================
+     ★ 2026-10-08 熱力圖點擊跳頁（features.js heat.link；Andy：「熱力圖如果不是付費會員 都不能有點擊連結功能，但如果是才可以點擊連結到其他分頁」）
+     全站樹狀熱力圖的點擊處理散在 app.js／industry.js 好幾支（卡片與放大視窗各一份），各自 `location.hash = …`／goStock()。
+     不逐支改：捕獲階段記下「這一下點在 treemap 上」（找得到 ECharts 實例、而且 series 有 treemap），
+     緊接著（800ms 內）發生的換頁若是**換到別的分頁**（網址前兩段不同）就擋下：網址退回、跳升級卡。
+     同一分頁內的變化（題材頁點方塊開下方剖析圖 #heatmap/theme → #heatmap/theme/<id>）不算跳頁，照矩陣的次數規則走（routeOk 下一段）。
+     沒權限時游標不顯示手指：滑過 treemap 就在它的容器掛 data-hmnl，CSS 用 !important 蓋掉 zrender 寫在行內的 cursor:pointer。
+     擁有者、預覽版、連不到會員伺服器（src＝default，寧可多給）一律放行。
+     ============================================================================ */
+  const HM = { t: 0, from: '' };
+  function heatLinkOk() {
+    const p = P(); if (!p || window.TW_PREVIEW) return true;
+    if (p.owner && p.owner()) return true;
+    if (p.state().src === 'default') return true;
+    return p.can('heat.link');
+  }
+  /* 只認「點在圖的 canvas 上」：ECharts 的結構是 初始化容器 > zrender 外框 > canvas。
+     不往上一路找祖先 —— 有些容器（例如產業地圖整個 view）曾經被拿來初始化過 treemap、實例還掛著，
+     一路往上找會把點分頁鈕也當成點熱力圖（2026-10-08 驗收實測：產業地圖點產業鏈分頁被誤擋）。*/
+  function hmHost(t) {
+    const E = window.echarts; if (!E || !E.getInstanceByDom || !t || t.tagName !== 'CANVAS') return null;
+    for (let el = t.parentElement, i = 0; el && i < 3; el = el.parentElement, i++) {
+      const inst = E.getInstanceByDom(el);
+      if (inst) { try { return ((inst.getOption() || {}).series || []).some((x) => x.type === 'treemap') ? el : null; } catch (e) { return null; } }
+    }
+    return null;
+  }
+  const pageOf = (h) => String(h || '#overview').split('?')[0].split('/').slice(0, 2).join('/');
+  document.addEventListener('click', (e) => { if (hmHost(e.target)) { HM.t = Date.now(); HM.from = location.hash || '#overview'; } }, true);
+  document.addEventListener('mousemove', (e) => {
+    const el = hmHost(e.target); if (!el) return;
+    const no = !heatLinkOk();
+    if (no && !el.hasAttribute('data-hmnl')) el.setAttribute('data-hmnl', ''); else if (!no && el.hasAttribute('data-hmnl')) el.removeAttribute('data-hmnl');
+    if (T()) T().css('hmnlCss', '[data-hmnl],[data-hmnl] *{cursor:default!important}');
+  }, { capture: true, passive: true });
+  function heatLinkBlock() {
+    const QC = window.TwQCard; const tier = meTier();
+    const lo = QC && QC.lockOpts ? QC.lockOpts({ id: 'heat.link', name: '熱力圖點擊跳頁', cat: 'heatmap' }, tier === 'guest' ? 'guest' : 'member') : {};
+    const m = QC && QC.modal ? QC.modal(Object.assign({}, lo, { kind: 'lock', kick: '付費會員功能', title: '點擊熱力圖跳到族群／題材頁是付費會員功能',
+      sub: '提示框、縮放照常可用；升級 Plus／Pro 就能從熱力圖直接點進族群、題材與個股頁。', lh: '這些方案可以使用',
+      items: [{ t: 'Plus', s: '點方塊直接跳頁' }, { t: 'Pro', s: '點方塊直接跳頁' }], btn: '升級 Plus', href: '#pricing/need/heat.link', btnCls: 'qactgo' })) : null;
+    if (m) m.dataset.cq = 'heat.link';
+  }
+  function routeOkAll(hash) {
+    if (HM.t && Date.now() - HM.t < 800) {
+      const from = HM.from; HM.t = 0;
+      if (pageOf(hash) !== pageOf(from) && !heatLinkOk()) { location.replace(from); heatLinkBlock(); return false; }
+    }
+    return routeOk(hash);
+  }
+  /* 也在自己的 hashchange 擋一次（quota.js 比 app.js 早載入，這支監聽先跑）：app.js 的 route() 是 async，
+     上一次換頁還沒畫完就再換（例如產業地圖剛回來就點下一條鏈）時，實測有幾次換頁沒有走到 route() 開頭 → 漏算。
+     act() 同一個對象不重算，所以兩邊都呼叫不會多扣；被擋時這裡先把網址換回去，route() 讀到的就是上一層。*/
+  window.addEventListener('hashchange', () => { routeOkAll(location.hash); });
+  window.TwQuota = { act, pick, pickBlock, routeOk: routeOkAll, heatLinkOk, actUnit, UNIT_KINDS, used: (id) => (load().k[id] || []).slice(),
+    state: () => load(), limit: limitOf, evaluate: () => evaluate(), day: tpeDay, pageKey, unitKey: (id, h) => unitKey(window.TwFeatures && window.TwFeatures.byId(id), h || location.hash || ''), unitKind: (id) => unitKind(window.TwFeatures && window.TwFeatures.byId(id)) };
 })();

@@ -2918,6 +2918,9 @@
     /* 舊版「成分股放寬」留在 <body> 上的 `.memwide` 只清掉 class 就好 ——
        2026-09-28 起事件是預設關著的浮層抽屜，換頁不再需要「把事件欄還回來」。*/
     document.body.classList.remove('memwide');
+    /* ★ 2026-10-08 權限矩陣（site/quota.js TwQuota.routeOk）：產業鏈頁、題材剖析每日上限用完 → 網址換回上一層（產業地圖／題材熱力圖）並跳卡片。
+       放在最前面：被擋的那一頁一格都不畫，不會先閃一下內容再被拿掉。location.replace 會再觸發一次 hashchange → route() 畫上一層。*/
+    if (window.TwQuota && !window.TwQuota.routeOk(location.hash)) return;
     const h = location.hash.replace('#', '') || 'overview';
     const h0 = location.hash;   // 等 lazy 腳本時使用者可能又換頁了，回來比對用
     /* ★ 2026-09-19：一定要逐段 decodeURIComponent。
@@ -3260,6 +3263,9 @@
       id: 'distGroups', label: '族群', placeholder: '搜尋族群或產業鏈…', width: '11.5em',
       items, groups: chainIds.map(k => ({ k, t: k === '_other' ? '其他' : chainLabel(k) })),
       selected: DIST.groups,
+      /* 2026-10-08 權限矩陣 mkt.grp.pick（Andy：「市場明細是限制 至多可以看5個 族群 右邊清單不限制」）：同時最多勾幾個 */
+      max: () => (window.TwQuota ? window.TwQuota.pick('mkt.grp.pick') : Infinity),
+      onMax: (n) => { if (window.TwQuota) window.TwQuota.pickBlock('mkt.grp.pick', n); },
       onChange: (v) => { DIST.groups = v; drawChgDist(); },
     });
   }
@@ -3979,13 +3985,17 @@
     // 今日候選
     const ab = cands.filter(c => c.grade === 'A' || c.grade === 'B');
     const use = ab.length ? ab : cands.slice().sort((a, c) => (c.score_all || 0) - (a.score_all || 0)).slice(0, 40);
+    /* 2026-10-08 權限矩陣 mkt.cand.n：今日關注最多顯示前幾檔（訪客 3、註冊會員 10、付費不限） */
+    const candCap = window.TwQuota ? window.TwQuota.pick('mkt.cand.n') : Infinity;
     title.innerHTML = `今日關注 <small>${ab.length ? `A ${cands.filter(c => c.grade === 'A').length} 檔 / B ${cands.filter(c => c.grade === 'B').length} 檔` : '今天沒有 A / B'}</small>`;
     // A／B 的定義在 HOW.mkt；「今天沒有 A／B」是警示（名單不是進場訊號），留在畫面上
     body.innerHTML = (ab.length ? '' : `<div class="kpinote">今天沒有 A／B：依綜合分列前 40，只是排序、不是型態訊號</div>`)
-      + stockTable(use.map(c => ({ code: c.code, name: c.name, group_id: c.group_id, group_name: c.group,
+      + stockTable(use.slice(0, candCap).map(c => ({ code: c.code, name: c.name, group_id: c.group_id, group_name: c.group,
           chg_pct: c.chg_pct, close: c.close, grade: c.grade, verdict: c.verdict, score: c.score_all })),
         [['判定', r => r.grade ? `<span class="grade ${r.grade}">${r.grade}</span>` : `<span class="muted">${fmt.esc(r.verdict || '—')}</span>`],
-         ['綜合分', r => r.score != null ? fmt.n(r.score, 0) : '—'], PCT, CLOSE]);
+         ['綜合分', r => r.score != null ? fmt.n(r.score, 0) : '—'], PCT, CLOSE])
+      + (use.length > candCap ? `<div class="kpinote" id="candCap">目前方案只顯示前 ${candCap} 檔（共 ${use.length} 檔）<button type="button" class="btn small" id="candCapGo">看更多 →</button></div>` : '');
+    { const g = $('#candCapGo'); if (g) g.onclick = () => window.TwQuota && window.TwQuota.pickBlock('mkt.cand.n', candCap); }
     bind();
   }
 
@@ -9633,6 +9643,8 @@
       ev.stopPropagation();
       const gid = b.dataset.g || null;
       rotCloseMenus();
+      /* 2026-10-08 點擊次數上限：opt.gate 回 false＝今天的次數用完（quota.js TwQuota.act 已跳卡片），選取不變 */
+      if (gid && opt.gate && !opt.gate(gid)) return;
       chipSel[chartId] = gid;
       onPick(gid);
     });
@@ -10335,6 +10347,7 @@
         const gid = a.dataset.g;
         // ◎ ＝ 走到下一階（族群），麵包屑保留「‹ AI 伺服器」這一層
         if (e.target && e.target.dataset && e.target.dataset.only) {
+          if (panelId === 'sankeyPanel' && !skDrillOk(gid)) return;
           const r = (DRILL.chainRows || []).find(z => z.gid === gid) || {};
           drillOpen(gid, r.name || L.gname[gid] || gid, DRILL.notes[panelId], panelId, true);
           chipSel.sankey = gid;
@@ -11061,8 +11074,13 @@
     em.hidden = !!list.length;
     em.textContent = withD.length ? (tab === 'out' ? '這一天沒有族群的資金占比減少' : '這一天沒有族群的資金占比增加') : '';
   }
+  /* ★ 2026-10-08 點擊次數上限（Andy：「訪客只能看到圖二那樣」＝只能看全部族群那一層／資金流向排名）：
+     資金分流樹「點族群展開成個股」每個入口（圖上的族群點、右欄排名、族群下拉、產業鏈清單的 ◎）都走這一支；
+     同一個族群同一天重點不重算，用完 → quota.js 跳卡片、畫面維持原樣。*/
+  const skDrillOk = (gid) => !window.TwQuota || window.TwQuota.act('flow.sankey.drill', 'drill', gid);
   function sankeyPickGroup(gid) {
     const st = sankeyState; if (!st || !gid) return;
+    if (!skDrillOk(gid)) return;
     const D2 = st.sd.dates || [];
     if (SKL.on) sklOff(false);
     chipSel.sankey = gid;
@@ -11830,6 +11848,7 @@
       if (d.gid) {
         // 再點同一個就取消（和下面晶片列、和產業鏈節點同一套語彙）
         if (selG === d.gid) { chipSel.sankey = null; return drillClose(); }
+        if (!skDrillOk(d.gid)) return;
         chipSel.sankey = d.gid;
         // ★ 2026-09-21：和輪動時鐘共用同一份下鑽狀態與同一支清單
         drillOpen(d.gid, L.gname[d.gid] || d.gid, sankeyNote(day, k === lastIdx), 'sankeyPanel');
@@ -11902,7 +11921,7 @@
         if (!nx) return drillClose();
         drillOpen(nx, L.gname[nx] || nx, sankeyNote(day, k === lastIdx), 'sankeyPanel');
         renderSankey(sd, k, { gid: nx });
-      });
+      }, { gate: skDrillOk });
     // 面板開著的話跟著換日期重畫（標題裡的日期與「是不是最新」要跟著走）
     { const box = $('#sankeyPanel');
       // keepChain＝true：換日期不可以把「我是從哪條鏈點進來的」洗掉（麵包屑會突然少一階）
@@ -12115,6 +12134,8 @@
     filterDropdown('instGroups', gsAll.map(g => ({ gid: g.group_id, name: g.group_name })), pick,
       (nx) => renderInstPeriod(p, nx),
       { ...ddo, onText: (nm) => `只亮「${fmt.esc(nm)}」`,
+        /* 2026-10-08 點擊次數上限：每選一個族群算一次（同一個族群同一天不重算）*/
+        gate: (gid) => !window.TwQuota || window.TwQuota.act('flow.inst.filter', 'filter', gid),
         onChain: (c, drop) => renderInstPeriod(p, drop ? null : undefined) });
     instLegend(c);
   }
@@ -12756,7 +12777,7 @@
       head.innerHTML = MONTHS.map((t, i) => { const m = i + 1;
         return `<button type="button" data-m="${m}" class="${m === sortM ? 'on' : ''}${m === nowM ? ' now' : ''}"`
           + ` aria-pressed="${m === sortM}" title="依 ${m} 月由強到弱排序${m === nowM ? '（本月）' : ''}">${colW >= 40 ? t : m}</button>`; }).join('');
-      $$('button', head).forEach(b => b.onclick = () => { sortM = +b.dataset.m; box.scrollTop = 0; drawHeat(); paintPick(); });
+      $$('button', head).forEach(b => b.onclick = () => { if (+b.dataset.m !== sortM && window.TwQuota && !window.TwQuota.act('season.pick', 'obj', 'm.' + b.dataset.m)) return; sortM = +b.dataset.m; box.scrollTop = 0; drawHeat(); paintPick(); });
 
       const K = kindOf(metric);
       const data = [];
@@ -13056,6 +13077,7 @@
       showNum = !showNum; hmLSset('tw.season.num2', showNum ? '1' : '0'); paintView(); drawHeat();
     });
     $$('#seasonPick button').forEach(b => b.onclick = () => {
+      if (b.dataset.v !== pick && window.TwQuota && !window.TwQuota.act('season.pick', 'obj', 'p.' + b.dataset.v)) return;   // 權限矩陣 season.pick
       pick = b.dataset.v; if (pick === 'none') avgOn = true; paintPick(); drawLine(); writeNote();
     });
     $$('#seasonPeriod button').forEach(b => { b.style.display = s3.periods[b.dataset.v] ? '' : 'none'; });

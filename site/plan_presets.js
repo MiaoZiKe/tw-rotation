@@ -8,17 +8,20 @@
      · 訪客那 41 項「各 3 次」拿掉：共用 3 次已經保證每項 ≤ 3，留著只會讓管理頁一片「3/日」徽章、改的時候要改 41 個地方。
      · 自選：註冊會員 1 頁×10 檔、Plus 5 頁×50 檔、Pro 不限頁（硬上限 50）×每頁 200 檔；訪客 0（沿用 JSON：訪客沒有自選）。
        Plus／Pro 的 highlights 文字跟著改成 50 檔／200 檔。
+     · 2026-10-08 全站權限矩陣（docs/perm_matrix_1008.md）：四個範本的 lims（每日次數，含新的 tab／filter／drill／obj 動作計次）、
+       feats（同時選取上限 mkt.grp.pick／explore.list.n／mkt.cand.n／etf.returns.n、etf.cashflow、個股進階分頁）、dq（15／40／300／不限）、
+       highlights（矩陣 §5 新文案）一律照矩陣；熱力圖點擊跳頁 heat.link 訪客／註冊會員關、Plus／Pro 開；上面 10-07 的數字（dq 3／10／50、訪客不設單項次數）被這一版取代。
    這支是**資料**，不是設定：改了不會自動生效，要管理者在 #admin/perm 按一次「套用建議方案」。
    ============================================================================ */
 window.TW_PLAN_PRESETS = {
- "version": "1007",
+ "version": "1008",
  "tiers": [
   {
    "key": "guest",
    "name": "訪客",
    "price": 0,
    "price_year": 0,
-   "dq": 3,
+   "dq": 15,
    "feats": {
     "ov.summary": true,
     "ov.index": true,
@@ -47,21 +50,21 @@ window.TW_PLAN_PRESETS = {
     "stock.k_day": true,
     "stock.tick": true,
     "stock.k_min": false,
-    "stock.k_hour": true,
+    "stock.k_hour": false,
     "stock.mtf": false,
     "stock.ind": false,
     "stock.draw": false,
-    "stock.ai": true,
+    "stock.ai": false,
     "stock.overview": true,
     "stock.basics": true,
-    "stock.tags": true,
+    "stock.tags": false,
     "stock.revenue": true,
-    "stock.profit": true,
+    "stock.profit": false,
     "stock.dividend": true,
-    "stock.inst": true,
-    "stock.margin": true,
-    "stock.holders": true,
-    "stock.news": true,
+    "stock.inst": false,
+    "stock.margin": false,
+    "stock.holders": false,
+    "stock.news": false,
     "live.tick": false,
     "events": true,
     "theme": true,
@@ -80,9 +83,36 @@ window.TW_PLAN_PRESETS = {
     "watch.page": false,
     "watch.tabs": 0,
     "stock.page": true,
-    "watch.size": 0
+    "watch.size": 0,
+    "mkt.grp.pick": 5,
+    "explore.list.n": 5,
+    "mkt.cand.n": 3,
+    "etf.returns.n": 0,
+    "etf.cashflow": false,
+    "heat.link": false
    },
-   "lims": {},
+   "lims": {
+    "flow.sankey.drill": 3,
+    "flow.inst.filter": 5,
+    "earn.tab": 3,
+    "explore.filter": 2,
+    "etf.calendar.tab": 3,
+    "etf.list.tab": 0,
+    "etf.list.filter": 0,
+    "season.pick": 3,
+    "explore.page": 5,
+    "etf.top3": 3,
+    "etf.returns": 0,
+    "etf.list": 0,
+    "heat.detail": 3,
+    "ind.groups": 3,
+    "ind.diagram": 3,
+    "ind.3d": 0,
+    "ind.rel": 0,
+    "stock.page": 3,
+    "stock.ai": 0,
+    "events": 3
+   },
    "meta": {
     "badge": null,
     "tagline": "不用登入，先看看今天錢往哪裡跑",
@@ -102,7 +132,7 @@ window.TW_PLAN_PRESETS = {
    "name": "註冊會員",
    "price": 0,
    "price_year": 0,
-   "dq": 10,
+   "dq": 40,
    "feats": {
     "ov.summary": true,
     "ov.index": true,
@@ -118,7 +148,7 @@ window.TW_PLAN_PRESETS = {
     "ind.map": true,
     "ind.groups": true,
     "ind.diagram": true,
-    "ind.3d": false,
+    "ind.3d": true,
     "ind.rel": true,
     "heat.market": true,
     "heat.theme": true,
@@ -158,20 +188,39 @@ window.TW_PLAN_PRESETS = {
     "etf.rettop": true,
     "etf.yldtop": true,
     "etf.calendar": true,
-    "etf.returns": false,
+    "etf.returns": true,
     "earn.page": true,
     "earn.cal": true,
     "watch.page": true,
     "watch.tabs": 1,
     "stock.page": true,
-    "watch.size": 10
+    "watch.size": 10,
+    "mkt.grp.pick": 10,
+    "explore.list.n": 20,
+    "mkt.cand.n": 10,
+    "etf.returns.n": 3,
+    "etf.cashflow": false,
+    "heat.link": false
    },
    "lims": {
-    "stock.page": 10,
-    "ind.diagram": 10,
+    "flow.sankey.drill": 15,
+    "flow.inst.filter": 15,
+    "earn.tab": 10,
+    "explore.filter": 5,
+    "etf.calendar.tab": 10,
+    "etf.list.tab": 3,
+    "etf.list.filter": 3,
+    "season.pick": 10,
+    "explore.page": 5,
+    "etf.returns": 3,
+    "etf.list": 3,
     "heat.detail": 10,
-    "ind.rel": 10,
-    "ind.groups": 10
+    "ind.groups": 10,
+    "ind.diagram": 10,
+    "ind.3d": 1,
+    "ind.rel": 5,
+    "stock.page": 10,
+    "stock.ai": 3
    },
    "meta": {
     "badge": null,
@@ -179,12 +228,11 @@ window.TW_PLAN_PRESETS = {
     "fit_title": "適合開始建立研究習慣",
     "fit_desc": "每天花 5 分鐘看資金往哪個族群跑、族群貴不貴，再挑幾檔點進去看營收、法人與產業鏈位置。先熟悉流程，再決定要不要更深。",
     "highlights": [
-     "研究瀏覽・每日 10 次（個股、剖析圖、題材剖析）",
-     "資金流向・輪動時鐘・桑基圖・完整功能",
-     "產業鏈剖析圖（2D）・每日 10 張",
-     "自選清單・1 頁 10 檔",
-     "ETF 一覽・配息行事曆・財經日曆",
-     "Email 客服・一般順序回覆"
+     "資金流向・熱力圖・產業地圖・全部看得到",
+     "個股頁每日 10 檔（營收、法人、籌碼全分頁）",
+     "剖析圖・題材剖析・產業鏈 每日各 10 個",
+     "ETF 配息行事曆・ETF 一覽（每日 3 次）",
+     "自選清單 1 頁 10 檔"
     ],
     "price_year": 0
    }
@@ -194,7 +242,7 @@ window.TW_PLAN_PRESETS = {
    "name": "Plus",
    "price": 299,
    "price_year": 2990,
-   "dq": 50,
+   "dq": 300,
    "feats": {
     "ov.summary": true,
     "ov.index": true,
@@ -256,14 +304,24 @@ window.TW_PLAN_PRESETS = {
     "watch.page": true,
     "watch.tabs": 5,
     "stock.page": true,
-    "watch.size": 50
+    "watch.size": 50,
+    "mkt.grp.pick": 30,
+    "explore.list.n": 999,
+    "mkt.cand.n": 999,
+    "etf.returns.n": 8,
+    "etf.cashflow": true,
+    "heat.link": true
    },
    "lims": {
-    "stock.page": 50,
-    "ind.diagram": 50,
+    "flow.sankey.drill": 100,
+    "flow.inst.filter": 100,
+    "explore.filter": 30,
     "heat.detail": 50,
+    "ind.groups": 50,
+    "ind.diagram": 50,
+    "ind.3d": 50,
     "ind.rel": 50,
-    "ind.groups": 50
+    "stock.page": 50
    },
    "meta": {
     "badge": "最受歡迎",
@@ -271,12 +329,12 @@ window.TW_PLAN_PRESETS = {
     "fit_title": "適合每天主動研究",
     "fit_desc": "每天追蹤好幾個族群與自選股：用 3D 剖析圖看懂零件與供應商、四週期同看與畫線工具省下來回切換的時間，5 頁自選清單分題材管理。",
     "highlights": [
-     "研究瀏覽・每日 50 次",
-     "3D 剖析圖・完整功能",
-     "四週期同看・畫線工具・指標自訂",
-     "自選清單・5 頁、每頁 50 檔",
-     "ETF 報酬比較（自選 8 檔）",
-     "客服優先回覆（只限功能與資料說明）"
+     "研究不卡：個股・剖析圖・題材・產業鏈 每日各 50 個",
+     "3D 剖析圖・供應鏈關聯圖",
+     "四週期同看・畫線工具・指標自訂・AI 分析",
+     "選股策略：完整名單・每日 30 次篩選",
+     "ETF 現金流試算（月配／複利）・報酬比較自選 8 檔",
+     "自選清單 5 頁、每頁 50 檔"
     ],
     "price_year": 2990
    }
@@ -348,7 +406,13 @@ window.TW_PLAN_PRESETS = {
     "watch.page": true,
     "watch.tabs": 50,
     "stock.page": true,
-    "watch.size": 200
+    "watch.size": 200,
+    "mkt.grp.pick": 999,
+    "explore.list.n": 999,
+    "mkt.cand.n": 999,
+    "etf.returns.n": 20,
+    "etf.cashflow": true,
+    "heat.link": true
    },
    "lims": {},
    "meta": {
@@ -357,12 +421,11 @@ window.TW_PLAN_PRESETS = {
     "fit_title": "適合追蹤多個題材與大量自選股",
     "fit_desc": "研究頁不限次數、自選清單不限頁數；加上「自選清單日報」把你追蹤的股票今天發生了什麼（營收、法人、籌碼、事件）彙整成一頁，省下逐檔翻的時間。",
     "highlights": [
-     "研究瀏覽・不限次數",
+     "全站不限次數（瀏覽、篩選、下鑽）",
      "Plus 全部功能",
-     "自選清單・不限頁數（每頁 200 檔）",
-     "自選清單日報：營收／法人／籌碼／事件變化一覽（開發中）",
-     "自設條件提醒（開發中）",
-     "剖析圖高解析匯出（開發中）"
+     "選股策略不限篩選・ETF 報酬比較自選 20 檔",
+     "自選清單不限頁數（每頁 200 檔）",
+     "自選清單日報（開發中）・自設條件提醒（開發中）"
     ],
     "price_year": 5268
    }

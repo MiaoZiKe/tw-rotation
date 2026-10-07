@@ -169,6 +169,39 @@
       desc: '每一頁自選清單最多放幾檔（已經放的不會被刪，只是不能再加）', veil: [], mark: [], block: [] }
   ];
 
+  /* ---- 全站權限矩陣 2026-10-08（docs/perm_matrix_1008.md §6；Andy 10-08 原話見那份文件）新增的功能鍵 ----
+     兩種：
+     ① 動作計次（act）：每日 N 次存在範本的 lims（跟其他功能的「每日瀏覽次數」同一個欄位、同一顆 ∞／N/日 徽章），
+        計數在 site/quota.js 的 TwQuota.act(功能鍵, 單位, 對象)，單位＝tab／filter／drill／obj（矩陣 §2）。開關 def:true，
+        關掉或次數 0＝不能用。veil 空：這些是「點了才算」的動作，沒有一整塊要蓋，擋下時跳置中卡片。
+     ② 同時選取上限（pick）：kind:'limit'，存在 feats；defBy＝範本沒寫時依身分的預設（訪客／註冊會員），付費範本沒寫＝不限（max）。
+        不用單一 def：線上的 Plus／Pro 範本沒有這些鍵，只給一個 def 不是訪客沒被擋、就是付費會員被誤擋。
+     Worker（account-api）只驗鍵的格式與整數範圍，所以新增鍵**不必重新部署 Worker**。*/
+  function act(id, cat, name, unit, desc) { return { id: id, name: name, cat: cat, def: true, kind: 'bool', act: unit, desc: desc, veil: [], mark: [], block: [] }; }
+  function pickF(id, cat, name, unit, max, opts, g, fr, desc) { return { id: id, name: name, cat: cat, kind: 'limit', unit: unit, max: max, def: max, opts: opts, defBy: { guest: g, free: fr }, desc: desc, veil: [], mark: [], block: [] }; }
+  LIST.push(
+    act('flow.sankey.drill', 'flow', '分流樹下鑽個股', 'drill', '資金分流樹點族群展開成個股（右欄變族群內個股排行）；每日次數用完只能看全部族群那一層（資金流向排名）。同一族群同一天重點不重算'),
+    act('flow.inst.filter', 'flow', '族群×法人族群篩選', 'filter', '族群×法人左上「族群」下拉每選一個族群算一次（同一族群同一天不重算；選「全部族群」不算）'),
+    act('earn.tab', 'earnings', '財經日曆切分頁', 'tab', '月曆切到其他月份（回本月不算）'),
+    act('explore.filter', 'explore', '選股策略篩選', 'filter', '子標籤勾選的每一組不同條件算一次（清除不算）'),
+    act('etf.calendar.tab', 'etf', '配息行事曆切分頁', 'tab', '配息行事曆切到其他月份（本月不算）'),
+    act('etf.list.tab', 'etf', 'ETF 一覽分類分頁', 'tab', 'ETF 總覽的分類分頁（股票型／債券型…）點一個不同的算一次'),
+    act('etf.list.filter', 'etf', 'ETF 一覽篩選', 'filter', 'ETF 一覽的排序條件（成交值／規模／殖利率／漲跌）換一個不同的算一次'),
+    act('season.pick', 'market', '週期統計切換對象', 'obj', '週期統計換排序月份或換看哪幾個族群（最強／最弱／平均線）'),
+    pickF('mkt.grp.pick', 'market', '市場明細族群篩選上限', '個', 999, [0, 3, 5, 10, 20, 30, 50, 999], 5, 10, '漲跌分佈「族群」篩選同時最多勾幾個（右邊清單不限制）'),
+    pickF('explore.list.n', 'explore', '選股完整名單顯示檔數', '檔', 999, [0, 3, 5, 10, 20, 50, 100, 999], 5, 20, '完整名單最多顯示前幾檔'),
+    pickF('mkt.cand.n', 'market', '今日關注顯示檔數', '檔', 999, [0, 3, 5, 10, 20, 50, 999], 3, 10, '今日關注名單最多顯示前幾檔'),
+    pickF('etf.returns.n', 'etf', '報酬比較自選檔數', '檔', 20, [0, 3, 5, 8, 10, 20], 0, 3, '報酬比較同時最多比幾檔（20＝硬上限）'),
+    { id: 'etf.cashflow', name: 'ETF 現金流試算', cat: 'etf', def: true, kind: 'bool', route: /^#etf\/inc/, desc: '月配／複利現金流試算（矩陣：只給付費會員）', veil: [['#etfInc']], mark: ['#etfSub button[data-v="inc"]'], block: [] },
+    /* 2026-10-08 Andy：「熱力圖如果不是付費會員 都不能有點擊連結功能，但如果是才可以點擊連結到其他分頁」。
+       全站樹狀熱力圖（總覽資金熱力圖／熱門題材、熱力圖產業頁／題材頁、各自的放大視窗）點方塊「跳到其他分頁」只有開著才行；
+       頁內展開（題材頁點方塊開下方剖析圖、總覽熱門題材換成分股）不受這個開關管，照矩陣次數走。實作在 site/quota.js（heatLinkOk）。
+       defBy：範本沒寫時訪客關、註冊會員關，付費範本沒寫＝開。*/
+    { id: 'heat.link', name: '熱力圖點擊跳頁', cat: 'heatmap', def: true, kind: 'bool', defBy: { guest: false, free: false },
+      desc: '點熱力圖方塊跳到族群／題材／個股頁（關掉：提示框、縮放照常，點了跳升級提示、游標不變手指）', veil: [], mark: [], block: [] },
+    { id: 'etf.top3', name: 'ETF 總覽上方三張卡（共用次數）', cat: 'etf', def: true, kind: 'bool', desc: '最受歡迎／報酬率／殖利率前 5 三張卡共用一個每日次數（看一次＝這個分頁打開一次）', veil: [['#etfTri']], mark: [], block: [] }
+  );
+
   /* ---- 瀏覽次數（admin-v3，2026-10-05，蓋掉 sub-v1 的三個 quota.* 開關）
      Andy：「每個功能後面加『瀏覽次數』上限欄位」—— 上限不再是三個獨立的功能，而是**每個功能各自的一個欄位**
      （存在範本的 lims，跟開關 feats 分開；Worker 的 plans.lims，見 worker.js admin-v3 區塊）。
@@ -187,7 +220,9 @@
 
   var BY = {};
   LIST.forEach(function (f) { BY[f.id] = f; });
-  function defaults() { var o = {}; LIST.forEach(function (f) { o[f.id] = f.def; }); return o; }
+  /* 範本沒寫這一項時的值：有 defBy（同時選取上限）就依範本代號（guest／free；其他＝付費）挑，沒有就是 def */
+  function defOf(f, plan) { return f && f.defBy && Object.prototype.hasOwnProperty.call(f.defBy, plan) ? f.defBy[plan] : f ? f.def : undefined; }
+  function defaults(plan) { var o = {}; LIST.forEach(function (f) { o[f.id] = defOf(f, plan); }); return o; }
   function inCat(c) { return LIST.filter(function (f) { return f.cat === c; }); }
 
   /* ---- 族群鍵（grp.<鍵>）—— Worker 的 FEAT_RE 是 /^[a-z][a-z0-9_.]{1,39}$/，group_id 不一定符合：
@@ -228,5 +263,5 @@
     return n;
   }
 
-  window.TwFeatures = { list: LIST, cats: CATS, byId: function (id) { return BY[id] || null; }, defaults: defaults, inCat: inCat, grpKey: grpKey, addGroups: addGroups };
+  window.TwFeatures = { list: LIST, cats: CATS, byId: function (id) { return BY[id] || null; }, defaults: defaults, defOf: defOf, inCat: inCat, grpKey: grpKey, addGroups: addGroups };
 })();

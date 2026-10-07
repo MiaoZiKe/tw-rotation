@@ -89,3 +89,26 @@ export function limUnitOf(name, tier) {
   if (!m) return null;
   return { unit: m[1], feats: [...tier.feats, 'stock.page'] };
 }
+
+/* ============================================================================
+   動作計次的單位（2026-10-08，docs/perm_matrix_1008.md §2）—— 跟前端 site/quota.js 的 TwQuota.actUnit **同一個函式**
+   ----------------------------------------------------------------------------
+   矩陣新增四種單位：tab（切分頁）、filter（篩選）、drill（點擊下鑽）、pick（同時選取上限，不是每日次數，不產生單位字串）；
+   既有的 view（一次造訪）、obj（看對象：個股代號／t.<題材>／c.<鏈>／d.<鏈>.<圖>／g.<族群>）照舊。
+   動作發生在瀏覽器（點分頁、選族群），伺服器看不到檔名 → 不經過 limUnitOf 的檔名規則；登入者的計數由前端送 account-api /v1/quota/hit，
+   key 就是這裡產生的字串。放在這裡是為了「前後端同一份單位定義」：tests/units.test.mjs 把 site/quota.js 載進來比對兩邊輸出。
+   規則：<單位>.<對象>；obj 單位而對象本身已是 t./c./d./g. 開頭（跟畫面計次共用的 key）→ 不加前綴。
+   結果不是 [0-9A-Za-z_.-]{1,24}（中文、太長）→ 'x' + FNV-1a 32 位元十六進位（同 quota.js safeKey、account-api QUOTA_KEY_RE）。
+   ⚠ 只新增匯出、不改任何既有行為 —— data-gw 不必重新部署。
+   ============================================================================ */
+export const UNIT_KINDS = ['view', 'obj', 'tab', 'filter', 'drill', 'pick'];
+function actSafeKey(s) {
+  if (/^[0-9A-Za-z_.-]{1,24}$/.test(s)) return s;
+  let h = 0x811c9dc5; for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619) >>> 0; }
+  return 'x' + h.toString(16);
+}
+export function actUnit(kind, obj) {
+  const o = String(obj == null ? '' : obj);
+  if (kind === 'obj' && /^[tcdg]\./.test(o)) return actSafeKey(o);
+  return actSafeKey(kind + '.' + o);
+}

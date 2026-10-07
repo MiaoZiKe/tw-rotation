@@ -1546,13 +1546,13 @@ html[data-theme="light"] #v-admin{--pm-blue:#1f4fd8;--pm-blue-2:#163fb4}
   const mOver = () => (PS.draft && PS.draft.over) || (PS.rec && PS.rec.over) || {};
   const mExp = () => (PS.draft && PS.draft.expires !== undefined ? PS.draft.expires : (PS.rec ? PS.rec.expires || 0 : 0));
   function baseVals() {
-    const o = FT().defaults();
+    const o = FT().defaults(PS.mode === 'member' ? mPlan() : PS.planSel);
     if (PS.mode === 'member') { const p = planOf(mPlan()); if (p) Object.assign(o, p.feats); }
     return o;
   }
   function curVals() {
     if (PS.mode === 'plan') {
-      const o = FT().defaults(), p = planOf(PS.planSel);
+      const o = FT().defaults(PS.planSel), p = planOf(PS.planSel);
       Object.assign(o, (PS.draft && PS.draft.feats) || (p && p.feats) || {});
       return o;
     }
@@ -2089,7 +2089,7 @@ html[data-theme="light"] #v-admin{--pm-blue:#1f4fd8;--pm-blue-2:#163fb4}
   }
   function presetDiff(m) {
     const F = FT(), t = m.t, c = m.cur || { feats: {}, lims: {}, name: '', price: 0, dq: null };
-    const val = (feats, id) => { const f = F.byId(id); const v = (feats || {})[id]; if (!f) return v; if (f.kind === 'limit') return Number.isInteger(v) ? v : f.def; return typeof v === 'boolean' ? v : f.def; };
+    const val = (feats, id) => { const f = F.byId(id); const v = (feats || {})[id]; if (!f) return v; if (f.kind === 'limit') return Number.isInteger(v) ? v : F.defOf ? F.defOf(f, t.key) : f.def; return typeof v === 'boolean' ? v : f.def; };
     const fn = (id) => (F.byId(id) ? F.byId(id).name : id);
     const show = (id, v) => { const f = F.byId(id); return f && f.kind === 'limit' ? (v >= f.max && f.opts ? '不限' : v + (f.unit || '')) : v ? '開' : '關'; };
     const feats = Object.keys(t.feats).filter((id) => val(c.feats, id) !== val(t.feats, id)).map((id) => `${fn(id)}：${show(id, val(c.feats, id))} → ${show(id, val(t.feats, id))}`);
@@ -2260,7 +2260,7 @@ html[data-theme="light"] #v-admin{--pm-blue:#1f4fd8;--pm-blue-2:#163fb4}
        徽章寫「共用 N」而不是 ∞ —— 以前訪客頁每格都是 ∞，看不出其實全站一天只有 3 次；不計次的功能寫「不計次」。 */
     const dqP = PS.mode === 'plan' ? planOf(PS.planSel) : null, dqN = dqP && Number.isInteger(dqP.dq) ? dqP.dq : null;
     return fs.map((f) => {
-      const val = cur[f.id], diff = PS.mode === 'member' ? (PS.rec && Object.prototype.hasOwnProperty.call(mOver(), f.id)) : val !== f.def;
+      const val = cur[f.id], diff = PS.mode === 'member' ? (PS.rec && Object.prototype.hasOwnProperty.call(mOver(), f.id)) : val !== (FT().defOf ? FT().defOf(f, PS.planSel) : f.def);
       const unsaved = ready && (saved[f.id] !== now[f.id] || (lims && sl[f.id] !== lims[f.id]));
       const ctl = f.kind === 'limit'
         /* 2026-10-07：上限類可以帶 opts（選項清單）與 unit（頁／檔）；最大值＝「不限」（watch.tabs 50、watch.size 200 是硬上限）*/
@@ -2270,7 +2270,7 @@ html[data-theme="light"] #v-admin{--pm-blue:#1f4fd8;--pm-blue-2:#163fb4}
          Andy 要回到「每類一張卡、每列只有開關＋名稱＋一行說明」的乾淨版，但次數上限功能不能丟，所以不讓它常駐佔一欄。 */
       const has = lims && Object.prototype.hasOwnProperty.call(lims, f.id), lv = has ? lims[f.id] : '';
       const limOpen = lims && PS.limOpen === f.id;
-      const badge = lims && f.kind !== 'limit' ? `<button type="button" class="pmlimb${has ? ' set' : (f.metered && dqN != null) || !f.metered ? ' sh' : ''}${lv === 0 ? ' zero' : ''}" data-limb="${esc(f.id)}" title="${has ? '每日瀏覽次數上限' : f.metered && dqN != null ? '計次功能：跟其他研究頁共用全站每日 ' + dqN + ' 次（可另設更嚴的單項上限）' : !f.metered ? '不計次：不吃全站每日額度（可另設單項上限）' : '每日瀏覽次數上限'}" aria-label="${esc(f.name)} 每日瀏覽次數：${has ? lv + ' 次' : f.metered && dqN != null ? '共用 ' + dqN + ' 次' : !f.metered ? '不計次' : '不限'}" aria-expanded="${limOpen}" ${ready ? '' : 'disabled'}>${has ? lv + '/日' : f.metered && dqN != null ? '共用 ' + dqN : !f.metered ? '不計次' : '∞'}</button>` : '';
+      const badge = lims && f.kind !== 'limit' ? `<button type="button" class="pmlimb${has ? ' set' : (f.metered && dqN != null) || (!f.metered && !f.act) ? ' sh' : ''}${lv === 0 ? ' zero' : ''}" data-limb="${esc(f.id)}" title="${has ? '每日瀏覽次數上限' : f.metered && dqN != null ? '計次功能：跟其他研究頁共用全站每日 ' + dqN + ' 次（可另設更嚴的單項上限）' : !f.metered && !f.act ? '不計次：不吃全站每日額度（可另設單項上限）' : '每日瀏覽次數上限'}" aria-label="${esc(f.name)} 每日瀏覽次數：${has ? lv + ' 次' : f.metered && dqN != null ? '共用 ' + dqN + ' 次' : !f.metered && !f.act ? '不計次' : '不限'}" aria-expanded="${limOpen}" ${ready ? '' : 'disabled'}>${has ? lv + '/日' : f.metered && dqN != null ? '共用 ' + dqN : !f.metered && !f.act ? '不計次' : '∞'}</button>` : '';
       const pop = limOpen && f.kind !== 'limit' ? `<div class="pmlimpop" role="dialog" aria-label="${esc(f.name)} 每日瀏覽次數"><span>每日最多</span><input type="number" class="pmlim" data-lim="${esc(f.id)}" min="0" max="9999" step="1" inputmode="numeric" placeholder="不限" value="${lv === '' ? '' : lv}" aria-label="${esc(f.name)} 每日瀏覽次數上限（留空＝不限）"><span>次</span><button type="button" data-limclr="${esc(f.id)}">不限</button><button type="button" class="ok" data-limok="1">確定</button></div>` : '';
       /* 改動用顏色表示、不用文字標籤（Andy 10-05 追加）：未存＝淡琥珀底＋左色條（.dirty）、已存的微調／改過＝淡藍左色條（.tuned）。
          色條用 inset box-shadow 畫，不加 padding —— 撥開關前後版面一像素都不能動。 */

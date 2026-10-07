@@ -26858,6 +26858,8 @@ SECTIONS = {
     "訪客額度顯示1007":    lambda pg, b, base, code: t_guest_quota_ui_1007(b, base, code),
     "套用建議方案1007":    lambda pg, b, base, code: t_plan_preset_1007(b, base, code),
     "套用建議方案正式站1007": lambda pg, b, base, code: t_preset_live_1007(b, base, code),
+    # ★ 2026-10-08 訪客點擊次數上限（site/clickq.js）：資金分流樹下鑽／族群×法人篩選／題材剖析／產業鏈／市場明細族群數，含管理權限頁
+    "訪客權限1008":        lambda pg, b, base, code: t_guest_perm_1008(b, base, code),
     # ★ 2026-09-28 Andy：「所有標題加上小圖示，顏色要搭配」—— 覆蓋、對比 ≥3:1（深淺）、1440／800／390 不擠（A/B）、動效（⚠ 一律 --workers 1）
     "標題圖示":            lambda pg, b, base, code: t_title_icons(pg, b, base, code),
     # ★ 2026-09-30 Andy：部分股票 1 小時／4 小時找不到資料 —— 60 分 K 擴到全市場、每檔獨立 m60 檔、沒有時寫一句話
@@ -50328,7 +50330,7 @@ def t_account_cloud(b, base):
 SUB_API = "https://sub.example.test"
 
 
-def _sub_ctx(b, who, width=1440, feats=None, notices=None, lims=None, dq=None):
+def _sub_ctx(b, who, width=1440, feats=None, notices=None, lims=None, dq=None, owner=False):
     """who: None＝訪客、'member'、'admin'。回傳 (context, 送出的請求清單, 狀態)"""
     sent: list = []
     st = {"notices": notices if notices is not None else [], "read": set(), "fb": [], "req": []}
@@ -50348,6 +50350,8 @@ def _sub_ctx(b, who, width=1440, feats=None, notices=None, lims=None, dq=None):
             body = {}
         sent.append((path, body))
         me = None if who is None else {"email": "boss@example.com" if who == "admin" else "member@example.com", "name": "管理者" if who == "admin" else "王小明", "admin": who == "admin"}
+        if me and owner:    # 2026-10-08 訪客權限1008：站主帳號（/v1/me 的 owner 旗標）一律不受限制
+            me["owner"] = True
         out, code = {}, 200
         if path == "/v1/me":
             out, code = ({"user": me}, 200) if me else ({}, 401)
@@ -50736,7 +50740,9 @@ def _qscan_one(b, base, fid, kind, ra, rb, prep, how, W, errs):
         else:
             wait_until(p2, "() => { const o = document.querySelector('[data-qlk] > .qlkov'); return !!o && o.getClientRects().length > 0; }", 4000)
             res["b_veil"] = p2.evaluate("() => { const o = document.querySelector('[data-qlk] > .qlkov'); return o ? o.parentElement.id || o.parentElement.className : null; }")
-            res["ok"] = res["a_cnt"] == 1 and not res["a_veil"] and bool(res["b_veil"])
+            # 2026-10-08 權限矩陣：產業鏈頁、題材剖析改在「換頁那一下」擋（TwQuota.routeOk）—— 網址退回上一層＋跳同一款卡片，不再畫出來再蓋卡
+            res["b_route"] = p2.evaluate(f"() => {{ const m = document.getElementById('qcModal'); return !!m && !m.hidden && m.dataset.cq === '{fid}' && location.hash !== '{rb}'; }}") if fid in ("ind.groups", "heat.detail") else False
+            res["ok"] = res["a_cnt"] == 1 and not res["a_veil"] and (bool(res["b_veil"]) or res["b_route"])
     except Exception as e:  # noqa: BLE001
         res["err"] = str(e)[:200]
     finally:
@@ -50946,7 +50952,7 @@ def t_plan_preset_1007(b, base, code):
     dl = pg.inner_text("#subDlg")
     ok(f"{T}：確認框列出四個範本、Plus／Pro 新建、299／499 列為刪除、額度變更",
        all(k in dl for k in ("訪客", "註冊會員", "Plus", "Pro"))
-       and "全站每日額度：不限 → 每日 3 次" in dl and "全站每日額度：不限 → 每日 50 次" in dl
+       and "全站每日額度：不限 → 每日 15 次" in dl and "全站每日額度：不限 → 每日 300 次" in dl
        and "刪除「299 會費」" in dl and "刪除「499會費」" in dl and "新建範本（代號 plus）" in dl and "新建範本（代號 pro）" in dl, dl[:1200])
     pg.click("#subDlg details >> nth=0")
     if sh:
@@ -50961,10 +50967,10 @@ def t_plan_preset_1007(b, base, code):
        [x[1].get("id") for x in sent if x[0] == "/v1/admin/plans/put"])
     bodies = {x[1]["id"]: x[1] for x in sent if x[0] == "/v1/admin/plans/put" and not x[1].get("del")}
     g, f, pl, pr = bodies.get("guest", {}), bodies.get("free", {}), bodies.get("plus", {}), bodies.get("pro", {})
-    ok(f"{T}：寫入內容：訪客 dq 3＋沒有逐功能次數＋名稱「訪客」；註冊會員 dq 10、自選 1×10；Plus 改名、299、dq 50、自選 5×50、badge；Pro 改名、549、dq 空白、自選 50×200",
-       g.get("dq") == 3 and g.get("lims") == {} and g.get("name") == "訪客" and g.get("feats", {}).get("ind.3d") is False
-       and f.get("dq") == 10 and f.get("feats", {}).get("watch.tabs") == 1 and f.get("feats", {}).get("watch.size") == 10 and f.get("name") == "註冊會員"
-       and pl.get("name") == "Plus" and pl.get("price") == 299 and pl.get("dq") == 50 and pl.get("feats", {}).get("watch.tabs") == 5 and pl.get("feats", {}).get("watch.size") == 50
+    ok(f"{T}：寫入內容（權限矩陣 1008）：訪客 dq 15＋分流樹下鑽 3＋熱力圖跳頁關＋名稱「訪客」；註冊會員 dq 40、自選 1×10；Plus 改名、299、dq 300、自選 5×50、badge；Pro 改名、549、dq 空白、自選 50×200",
+       g.get("dq") == 15 and (g.get("lims") or {}).get("flow.sankey.drill") == 3 and (g.get("feats") or {}).get("heat.link") is False and g.get("name") == "訪客" and g.get("feats", {}).get("ind.3d") is False
+       and f.get("dq") == 40 and f.get("feats", {}).get("watch.tabs") == 1 and f.get("feats", {}).get("watch.size") == 10 and f.get("name") == "註冊會員"
+       and pl.get("name") == "Plus" and pl.get("price") == 299 and pl.get("dq") == 300 and pl.get("feats", {}).get("watch.tabs") == 5 and pl.get("feats", {}).get("watch.size") == 50
        and (pl.get("pres") or {}).get("badge") == "最受歡迎" and (pl.get("pres") or {}).get("tagline") and pl.get("price_year") == 2990 and "meta" not in pl and len((pl.get("pres") or {}).get("highlights") or []) >= 3
        and pr.get("name") == "Pro" and pr.get("price") == 549 and pr.get("dq") is None and pr.get("feats", {}).get("watch.tabs") == 50 and pr.get("feats", {}).get("watch.size") == 200,
        {k: {kk: (vv if kk != "feats" else {x: vv[x] for x in ("watch.tabs", "watch.size", "ind.3d") if x in vv}) for kk, vv in v.items() if kk != "t"} for k, v in bodies.items()})
@@ -50973,7 +50979,7 @@ def t_plan_preset_1007(b, base, code):
     pg.click("#ptTier button[data-tier='guest']")
     pg.wait_for_timeout(400)
     pg.click("#ptPlanCfg")
-    ok(f"{T}：訪客 ⚙ 的「全站每日額度」顯示 3", pg.input_value("#ptEdDq") == "3", pg.input_value("#ptEdDq"))
+    ok(f"{T}：訪客 ⚙ 的「全站每日額度」顯示 15（權限矩陣 1008）", pg.input_value("#ptEdDq") == "15", pg.input_value("#ptEdDq"))
     if sh:
         pg.screenshot(path=str(pathlib.Path(sh) / "preset_after.png"))
     pg.click("#ptPlanCfg")
@@ -50989,6 +50995,397 @@ def t_plan_preset_1007(b, base, code):
     c.close()
     ok(f"{T}：沒有 JS 錯誤", not errs, errs[:3])
 
+
+
+# ===================================================================== 訪客權限1008（docs/perm_matrix_1008.md；site/quota.js 的 TwQuota.act／pick／routeOk／heatLinkOk）
+# Andy 10-08：「這邊需要限制 訪客只能看到 圖二那樣，幫我在管理權限內補充（這邊也要限制次數）／圖三也是 但是是限制族群篩選次數／
+#   圖4 題材可以點 至多3個熱力圖（上方熱力圖不用鎖住，主要是限制點擊後功能），包含產業Map 也是只能3個／
+#   圖5 市場明細是限制 至多可以看5個 族群 右邊清單不限制」＋全站權限矩陣（docs/perm_matrix_1008.md）＋
+#   「熱力圖如果不是付費會員 都不能有點擊連結功能，但如果是才可以點擊連結到其他分頁」。
+# 用訪客、註冊會員兩種身分，把矩陣裡每一個新的功能鍵都真的點到擋下來（畫面沒變＋跳卡片）；站主不受限；Plus 點熱力圖會跳頁；
+# 管理權限頁看得到新設定、改訪客的次數後真的生效。
+# 範本值讀 site/plan_presets.js（套用建議方案寫進後端的同一份）。註冊會員的「每日 N 次」動作計次（15／10／5…）為了不點幾十下，
+# 把次數覆寫成 1（同一套程式路徑，只是數字小）；同時選取上限（族群 10、名單 20、今日關注 10、報酬比較 3）用範本原值。
+GP_MODAL = "() => { const m = document.getElementById('qcModal'); return !!m && !m.hidden ? { cq: m.dataset.cq || '', t: m.innerText } : null; }"
+GP_CLOSE = "() => { const m = document.getElementById('qcModal'); if (m) m.hidden = true; }"
+GP_ACT = ["flow.sankey.drill", "flow.inst.filter", "earn.tab", "explore.filter", "etf.calendar.tab", "etf.list.tab", "etf.list.filter", "season.pick"]
+
+
+def _gp_presets():
+    src = (ROOT / "site" / "plan_presets.js").read_text(encoding="utf-8")
+    js = "global.window={};" + src + ";process.stdout.write(JSON.stringify(window.TW_PLAN_PRESETS))"
+    out = subprocess.run(["node", "-e", js], capture_output=True, text=True, timeout=30)
+    return {t["key"]: t for t in json.loads(out.stdout)["tiers"]}
+
+
+def _gp_pick_dd(pg, row, gid):
+    """族群下拉（filterDropdown）：真的點開第二層、真的點那一個族群"""
+    pg.click(f".rotfilter[data-for='{row}'] .rotdd[data-dd='group'] .ddbtn")
+    pg.wait_for_timeout(150)
+    pg.click(f".rotfilter[data-for='{row}'] .rotdd[data-dd='group'] button.nm[data-g='{gid}']")
+    pg.wait_for_timeout(350)
+
+
+def _gp_next(pg, row, used):
+    """打開族群下拉，點一個還沒點過的族群（選了之後第一層會跳到它的產業鏈，所以每次重新看清單）。回 (gid, 名稱)"""
+    pg.click(f".rotfilter[data-for='{row}'] .rotdd[data-dd='group'] .ddbtn")
+    pg.wait_for_timeout(150)
+    g = pg.evaluate("([r, u]) => { const b = [...document.querySelectorAll(`.rotfilter[data-for='${r}'] .rotdd[data-dd='group'] button.nm[data-g]`)].find(x => !u.includes(x.dataset.g)); return b ? [b.dataset.g, b.textContent.trim()] : null; }", [row, used])
+    pg.click(f".rotfilter[data-for='{row}'] .rotdd[data-dd='group'] button.nm[data-g='{g[0]}']")
+    pg.wait_for_timeout(350)
+    used.append(g[0])
+    return g
+
+
+def _gp_go(pg, h, ready, t=15000):
+    pg.evaluate("(h) => { location.hash = h; }", h)
+    return wait_until(pg, ready, t)
+
+
+def _gp_blocked(pg, key, closing=True):
+    m = wait_until(pg, f"() => {{ const m = document.getElementById('qcModal'); return !!m && !m.hidden && m.dataset.cq === '{key}' ? m.innerText : null; }}", 3000)
+    if closing:
+        pg.evaluate(GP_CLOSE)
+    return m
+
+
+def _gp_suite(b, base, T, who, feats, lims, errs, shot, tag):
+    """who: None＝訪客、'member'＝註冊會員。逐一操作矩陣的新功能鍵到被擋。"""
+    c, sent, st = _sub_ctx(b, who, feats=feats, lims=lims, dq=None)
+    pg = c.new_page(); pg.on("pageerror", lambda e: errs.append(str(e) + " @ " + str(getattr(e, "stack", ""))[:400]))
+    pg.goto(base + "#flow/sankey", wait_until="domcontentloaded")
+    ok(f"{T}【{tag}】範本已套用（src＝server）", bool(wait_until(pg, "() => window.TwPerm && TwPerm.state().src === 'server' && !!window.TwQuota", 12000)))
+    L = lambda k: lims.get(k)
+
+    # ① 資金分流樹下鑽（drill）
+    n = L("flow.sankey.drill")
+    wait_until(pg, "() => document.querySelectorAll(\".rotfilter[data-for='sankey'] .rotdd[data-dd='group'] button.nm[data-g]\").length >= 6", 15000)
+    used, opened = [], []
+    for i in range(n):
+        g = _gp_next(pg, "sankey", used); opened.append(pg.evaluate("() => (window.App.drillState() || {}).gid"))
+    ok(f"{T}【{tag}】分流樹 額度內 {n} 個族群都真的展開成個股", opened == used and not pg.evaluate(GP_MODAL), (opened, used))
+    _gp_next(pg, "sankey", used)
+    m = _gp_blocked(pg, "flow.sankey.drill", closing=False)
+    ok(f"{T}【{tag}】分流樹 第 {n + 1} 個 → 擋下：卡片「分流樹下鑽個股今日 {n}/{n} 次已用完」、下鑽狀態沒換",
+       bool(m) and f"今日 {n}/{n} 次已用完" in m and "00:00 重置" in m and pg.evaluate("() => (window.App.drillState() || {}).gid") == used[n - 1], m)
+    if who is None: shot(pg, "1_sankey_blocked.png")
+    pg.evaluate(GP_CLOSE)
+
+    # ② 族群×法人篩選（filter）
+    n = L("flow.inst.filter")
+    _gp_go(pg, "#flow/inst", "() => document.querySelectorAll(\".rotfilter[data-for='instGroups'] .rotdd[data-dd='group'] button.nm[data-g]\").length >= 7")
+    lab = "() => (document.querySelector(\".rotfilter[data-for='instGroups'] .rotdd[data-dd='group'] .ddbtn b\") || {}).textContent || ''"
+    good, used, ig = True, [], []
+    for i in range(n):
+        g = _gp_next(pg, "instGroups", used); ig.append(g); good = good and g[1] in pg.evaluate(lab)
+    ok(f"{T}【{tag}】族群×法人 額度內 {n} 個族群都真的套上", good and not pg.evaluate(GP_MODAL), pg.evaluate(lab))
+    g = _gp_next(pg, "instGroups", used)
+    m = _gp_blocked(pg, "flow.inst.filter", closing=False)
+    ok(f"{T}【{tag}】族群×法人 第 {n + 1} 個 → 擋下、按鈕仍是第 {n} 個", bool(m) and ig[-1][1] in pg.evaluate(lab) and g[1] not in pg.evaluate(lab), (m, pg.evaluate(lab)))
+    if who is None: shot(pg, "2_inst_blocked.png")
+    pg.evaluate(GP_CLOSE)
+
+    # ③ 題材剖析（heat.detail obj）：上方熱力圖不鎖
+    n = L("heat.detail")
+    _gp_go(pg, "#heatmap/theme", "() => { const e = document.getElementById('themeMap'); return !!e && e.getClientRects().length > 0 && !!e.querySelector('canvas'); }")
+    ok(f"{T}【{tag}】題材 上方熱力圖照常顯示（沒有遮罩）", pg.evaluate("() => { const e = document.getElementById('themeMap'); return e.getBoundingClientRect().height > 200 && !e.closest('[data-plk],[data-qlk]'); }"))
+    tids = pg.evaluate("async () => { const r = await fetch('data/themes.json'); const j = await r.json(); return (j.themes || []).map(t => t.id); }")
+    for t in tids[:n]:
+        pg.evaluate("(t) => { location.hash = '#heatmap/theme/' + t; }", t); pg.wait_for_timeout(450)
+    ok(f"{T}【{tag}】題材 額度內 {n} 個都打得開", pg.evaluate("() => decodeURIComponent(location.hash)") == "#heatmap/theme/" + tids[n - 1] and not pg.evaluate(GP_MODAL))
+    pg.evaluate("(t) => { location.hash = '#heatmap/theme/' + t; }", tids[n]); pg.wait_for_timeout(600)
+    m = _gp_blocked(pg, "heat.detail", closing=False)
+    ok(f"{T}【{tag}】題材 第 {n + 1} 個 → 擋下：網址退回 #heatmap/theme、上方熱力圖還在",
+       bool(m) and pg.evaluate("() => location.hash") == "#heatmap/theme" and pg.evaluate("() => document.getElementById('themeMap').getBoundingClientRect().height > 200"), (m, pg.evaluate("() => location.hash")))
+    if who is None: shot(pg, "3_theme_blocked.png")
+    pg.evaluate(GP_CLOSE)
+
+    # ④ 產業地圖進產業鏈（ind.groups obj）
+    n = L("ind.groups")
+    _gp_go(pg, "#industry", "() => document.querySelectorAll('#chainSwitch button[data-c]').length >= 5")
+    pg.wait_for_timeout(1500)   # 產業地圖第一次進來要載 industry.js 等；路由還在途中就點分頁，換頁會被路由自己的收尾蓋掉（實測，非產品行為）
+    chs = pg.evaluate("() => [...document.querySelectorAll('#chainSwitch button[data-c]')].map(b => b.dataset.c).filter(c => c !== '_all')")
+    got = []
+    for ch in chs[:n]:
+        _gp_go(pg, "#industry", "() => location.hash === '#industry' && !!document.querySelector(\"#chainSwitch button[data-c='_all'].on\")", 8000); pg.wait_for_timeout(500)
+        pg.click(f"#chainSwitch button[data-c='{ch}']")
+        # 等產業鏈頁真的畫出來（分頁鈕換成這一條）再往下：網址一換就馬上改回 #industry 的話，兩次 hashchange 同一輪才送出、那一條根本沒被路由到（驗收太快，不是產品行為）
+        wait_until(pg, f"() => location.hash.startsWith('#industry/{ch}') && !!document.querySelector(\"#chainSwitch button[data-c='{ch}'].on\")", 10000)
+        got.append(pg.evaluate("() => location.hash.split('/')[1]"))
+    _gp_go(pg, "#industry", "() => location.hash === '#industry' && !!document.querySelector(\"#chainSwitch button[data-c='_all'].on\")", 8000)
+    pg.wait_for_timeout(600)
+    pg.click(f"#chainSwitch button[data-c='{chs[n]}']"); pg.wait_for_timeout(800)
+    m = _gp_blocked(pg, "ind.groups", closing=False)
+    ok(f"{T}【{tag}】產業地圖 前 {n} 條進得去、第 {n + 1} 條擋下（留在 #industry）", got == chs[:n] and bool(m) and pg.evaluate("() => location.hash") == "#industry",
+       (got, chs[n], m, pg.evaluate("() => [location.hash, TwQuota.used('ind.groups'), TwPerm.lim('ind.groups'), (document.getElementById('qcModal') || {}).hidden]")))
+    if who is None: shot(pg, "4_industry_blocked.png")
+    pg.evaluate(GP_CLOSE)
+
+    # ⑤ 市場明細族群篩選（pick）＋今日關注顯示檔數（pick）
+    n = feats["mkt.grp.pick"]
+    _gp_go(pg, "#market", "() => { const d = document.querySelector('#distGroupDD .twms-btn'); return !!d && d.getClientRects().length > 0; }")
+    pg.click("#distGroupDD .twms-btn")
+    wait_until(pg, "() => document.querySelectorAll(\".twms-pan[data-ms='distGroups'] input[type=checkbox][data-v]\").length > 12", 5000)
+    boxes = pg.locator(".twms-pan[data-ms='distGroups'] input[type=checkbox][data-v]")
+    for i in range(n):
+        boxes.nth(i).click(); pg.wait_for_timeout(80)
+    ok(f"{T}【{tag}】市場明細 勾 {n} 個族群 → 已選 {n}", pg.evaluate("() => document.getElementById('distGroupDD').dataset.n") == str(n) and not pg.evaluate(GP_MODAL))
+    boxes.nth(n).click(); pg.wait_for_timeout(300)
+    m = _gp_blocked(pg, "mkt.grp.pick", closing=False)
+    ok(f"{T}【{tag}】市場明細 第 {n + 1} 個勾不起來、跳「{'訪客' if who is None else '目前方案'}最多 {n} 個」",
+       bool(m) and f"最多 {n} 個" in m and ("訪客" in m if who is None else True) and pg.evaluate("() => document.getElementById('distGroupDD').dataset.n") == str(n) and not boxes.nth(n).is_checked(), m)
+    if who is None: shot(pg, "5_market_blocked.png")
+    pg.evaluate(GP_CLOSE); pg.keyboard.press("Escape")
+    ok(f"{T}【{tag}】市場明細 右邊清單不受限制", pg.evaluate("() => document.querySelectorAll('#mktBody tr').length >= 10"))
+    n = feats["mkt.cand.n"]
+    pg.click("#mktSeg2 button[data-k='cand']")
+    wait_until(pg, "() => /今日關注/.test((document.getElementById('mktTitle') || {}).textContent || '') && document.querySelectorAll('#mktBody tbody tr').length > 0", 8000)
+    pg.wait_for_timeout(300)
+    rows = pg.evaluate("() => document.querySelectorAll('#mktBody tbody tr').length")
+    if pg.evaluate("() => !!document.getElementById('candCapGo')"):
+        pg.click("#candCapGo")
+        m = _gp_blocked(pg, "mkt.cand.n")
+        ok(f"{T}【{tag}】今日關注 只列前 {n} 檔＋「看更多」→ 跳升級卡", rows == n and bool(m), (rows, m))
+    else:   # 名單本身不到上限（資料決定），驗「沒有超過上限」
+        ok(f"{T}【{tag}】今日關注 名單 {rows} 檔 ≤ 上限 {n}（今天名單不到上限，沒有截斷）", rows <= n, rows)
+
+    # ⑥ 週期統計切換對象（obj）
+    n = L("season.pick")
+    _gp_go(pg, "#season", "() => document.querySelectorAll('#seasonHeatHead button[data-m]').length === 12")
+    ms = pg.evaluate("() => [...document.querySelectorAll('#seasonHeatHead button[data-m]')].filter(b => !b.classList.contains('on')).map(b => b.dataset.m)")
+    for mm in ms[:n]:
+        pg.click(f"#seasonHeatHead button[data-m='{mm}']"); pg.wait_for_timeout(250)
+    on1 = pg.evaluate("() => (document.querySelector('#seasonHeatHead button.on') || {}).dataset.m")
+    pg.click(f"#seasonHeatHead button[data-m='{ms[n]}']"); pg.wait_for_timeout(300)
+    m = _gp_blocked(pg, "season.pick")
+    ok(f"{T}【{tag}】週期統計 換 {n} 次月份排序都生效、第 {n + 1} 次擋下（排序停在第 {n} 個）",
+       on1 == ms[n - 1] and bool(m) and pg.evaluate("() => (document.querySelector('#seasonHeatHead button.on') || {}).dataset.m") == ms[n - 1], (on1, m))
+
+    # ⑦ 財經日曆切月份（tab）
+    n = L("earn.tab")
+    _gp_go(pg, "#earnings", "() => !!document.getElementById('earnPrev') && document.getElementById('v-earnings').dataset.ready")
+    mon = "() => (document.querySelector('#earnCalCard') || document.body).innerText.match(/\\d{4} 年 \\d{1,2} 月|\\d{4}-\\d{2}/) + ''"
+    seen = []
+    for i in range(n):
+        pg.click("#earnPrev"); pg.wait_for_timeout(250); seen.append(pg.evaluate("() => TwEarnings.state.month"))
+    pg.click("#earnPrev"); pg.wait_for_timeout(300)
+    m = _gp_blocked(pg, "earn.tab")
+    ok(f"{T}【{tag}】財經日曆 往前切 {n} 個月都換、第 {n + 1} 個擋下（月份不動）",
+       len(set(seen)) == n and bool(m) and pg.evaluate("() => TwEarnings.state.month") == seen[-1], (seen, m))
+
+    # ⑧ 選股策略篩選（filter）＋完整名單顯示檔數（pick）
+    n = L("explore.filter")
+    _gp_go(pg, "#explore", "() => !!document.getElementById('slTagDd')")
+    QP_USED = "(id) => { const r = document.querySelector(`#twQPage .twqp-r[data-id='${id}'] .twqp-t span`); return r ? r.textContent : null; }"
+    if who is None:
+        wait_until(pg, "() => { const e = document.getElementById('twQPage'); return !!e && !e.hidden; }", 6000)
+        qp = pg.evaluate("() => ({ n: +document.getElementById('twQPage').dataset.n, b: document.querySelector('#twQPage .twqp-b').textContent, ids: [...document.querySelectorAll('#twQPage .twqp-r')].map(r => r.dataset.id) })")
+        ok(f"{T}【訪客】選股策略 本頁限制 2 項（看頁面 5、篩選 2）、收合寫「本頁 2 項限制・最少剩 X 次」",
+           qp["n"] == 2 and sorted(qp["ids"]) == sorted(["explore.page", "explore.filter"]) and qp["b"].startswith("本頁 2 項限制・最少剩"), qp)
+        shot(pg, "13_qpage_explore_collapsed.png")
+        pg.click("#twQPage .twqp-b"); pg.wait_for_timeout(250)
+        shot(pg, "14_qpage_explore_expanded.png")
+        pg.click("#twQPage .twqp-b"); pg.wait_for_timeout(150)
+    before = pg.evaluate(QP_USED, "explore.filter")
+    pg.click("#slTagDd"); wait_until(pg, "() => document.querySelectorAll('#slTagMenu input[data-tag]').length >= 3", 4000)
+    tags = pg.evaluate("() => [...document.querySelectorAll('#slTagMenu input[data-tag]')].map(i => i.dataset.tag)")
+    pg.click(f"#slTagMenu input[data-tag='{tags[0]}']"); pg.wait_for_timeout(500)
+    after = pg.evaluate(QP_USED, "explore.filter")
+    ok(f"{T}【{tag}】本頁限制清單：套一組篩選後「選股策略篩選」已用 +1（{before} → {after}）",
+       bool(before) and bool(after) and before.startswith("篩選 0／") and after.startswith("篩選 1／"), (before, after))
+    for t in tags[1:n]:
+        pg.click(f"#slTagMenu input[data-tag='{t}']"); pg.wait_for_timeout(200)
+    pg.click(f"#slTagMenu input[data-tag='{tags[n]}']"); pg.wait_for_timeout(300)
+    m = _gp_blocked(pg, "explore.filter")
+    ok(f"{T}【{tag}】選股策略 套 {n} 組條件都生效、第 {n + 1} 組擋下（那一格沒勾）",
+       bool(m) and not pg.evaluate(f"() => {{ const i = document.querySelector(\"#slTagMenu input[data-tag='{tags[n]}']\"); return !!i && i.checked; }}"), m)
+    n = feats["explore.list.n"]
+    sid = pg.evaluate(f"() => {{ const d = TwExplore.debug(); return Object.keys(d.hits).find(k => d.usable[k] && d.hits[k].length > {n}) || ''; }}")
+    if sid:
+        _gp_go(pg, "#explore/" + sid, "() => !!document.getElementById('slCapGo')", 8000)
+        rows = pg.evaluate("() => document.querySelectorAll('#slTbl tbody tr').length")
+        pg.click("#slCapGo"); m = _gp_blocked(pg, "explore.list.n")
+        ok(f"{T}【{tag}】選股完整名單 只列前 {n} 家＋「看更多」→ 升級卡", rows == n and bool(m), (rows, m))
+    else:
+        ok(f"{T}【{tag}】選股完整名單（今天沒有超過 {n} 家的策略，略過）", True)
+
+    # ⑨ ETF：配息行事曆切月份、上方三卡、一覽（分頁／排序）、報酬比較檔數、現金流試算
+    n = L("etf.calendar.tab")
+    _gp_go(pg, "#etf/cal", "() => !!document.getElementById('etfCalNext')")
+    for i in range(n):
+        pg.click("#etfCalNext"); pg.wait_for_timeout(200)
+    m0 = pg.inner_text("#etfCalMonth")
+    pg.click("#etfCalNext"); pg.wait_for_timeout(300)
+    m = _gp_blocked(pg, "etf.calendar.tab")
+    ok(f"{T}【{tag}】配息行事曆 往後切 {n} 個月都換、第 {n + 1} 個擋下（月份不動）", bool(m) and pg.inner_text("#etfCalMonth") == m0, (m0, m))
+    _gp_go(pg, "#etf/list", "() => document.querySelectorAll('#etfCatSeg button[data-v]').length >= 3")
+    if who is None:
+        wait_until(pg, "() => { const e = document.getElementById('twQPage'); return !!e && !e.hidden && /本頁/.test(e.textContent); }", 6000); pg.wait_for_timeout(500)
+        qp = pg.evaluate("() => ({ n: +document.getElementById('twQPage').dataset.n, ids: [...document.querySelectorAll('#twQPage .twqp-r')].map(r => r.dataset.id), t: document.getElementById('twQPage').innerText })")
+        want = ["etf.top3", "etf.returns", "etf.list", "etf.list.tab", "etf.list.filter"]
+        ok(f"{T}【訪客】ETF 總覽 本頁限制 {len(want)} 項＝矩陣這一頁的項目（上方三卡、報酬比較、一覽、一覽分頁、一覽篩選）",
+           qp["n"] == len(want) and sorted(qp["ids"]) == sorted(want), qp)
+        shot(pg, "15_qpage_etf_collapsed.png")
+        pg.click("#twQPage .twqp-b"); pg.wait_for_timeout(250)
+        ok(f"{T}【訪客】ETF 總覽 展開後逐項寫單位與次數（看 N／3、不開放），用完的標紅",
+           pg.evaluate("() => { const t = document.querySelector('#twQPage .twqp-pan').innerText; return /看 \\d／3/.test(t) && /不開放/.test(t) && !!document.querySelector(\"#twQPage .twqp-r[data-lvl='off']\"); }"),
+           pg.evaluate("() => document.querySelector('#twQPage .twqp-pan').innerText"))
+        shot(pg, "16_qpage_etf_expanded.png")
+        pg.click("#twQPage .twqp-b"); pg.wait_for_timeout(150)
+    cats = pg.evaluate("() => [...document.querySelectorAll('#etfCatSeg button[data-v]')].filter(b => !b.classList.contains('on')).map(b => b.dataset.v)")
+    n = L("etf.list.tab")
+    for cv in cats[:n]:
+        pg.click(f"#etfCatSeg button[data-v='{cv}']"); pg.wait_for_timeout(250)
+    on0 = pg.evaluate("() => (document.querySelector('#etfCatSeg button.on') || {}).dataset ? document.querySelector('#etfCatSeg button.on').dataset.v : ''")
+    pg.click(f"#etfCatSeg button[data-v='{cats[n]}']"); pg.wait_for_timeout(300)
+    m = _gp_blocked(pg, "etf.list.tab")
+    ok(f"{T}【{tag}】ETF 一覽分類分頁 {n} 次內可切、第 {n + 1} 次擋下（分類不動）",
+       bool(m) and pg.evaluate("() => (document.querySelector('#etfCatSeg button.on') || {dataset:{}}).dataset.v || ''") == on0, (on0, m))
+    n = L("etf.list.filter")
+    opts = ["size", "yield", "chg"]
+    for v in opts[:n]:
+        pg.select_option("#etfSort", v); pg.wait_for_timeout(200)
+    pg.select_option("#etfSort", opts[n]); pg.wait_for_timeout(300)
+    m = _gp_blocked(pg, "etf.list.filter")
+    ok(f"{T}【{tag}】ETF 一覽篩選 {n} 次內可換、第 {n + 1} 次擋下（選單退回）",
+       bool(m) and pg.input_value("#etfSort") == (opts[n - 1] if n else "tv"), (m, pg.input_value("#etfSort")))
+    if who is None:
+        ok(f"{T}【訪客】ETF 一覽、報酬比較 → 鎖頭卡（次數 0＝會員功能）",
+           bool(wait_until(pg, "() => !!document.querySelector('#etfListCard[data-plk]') && !!document.querySelector('#etfRetCard[data-plk]')", 5000)))
+        shot(pg, "6_etf_list_locked.png")
+        # 上方三卡：每開一個分頁算一次（view），第 4 個分頁蓋卡
+        lim3 = L("etf.top3"); ps = []
+        already = len(pg.evaluate("() => TwQuota.used('etf.top3')"))   # 這個分頁剛剛已經看過一次
+        for i in range(lim3 - already + 1):
+            p2 = c.new_page(); p2.on("pageerror", lambda e: errs.append(str(e))); ps.append(p2)
+            p2.goto(base + "#etf/list", wait_until="domcontentloaded")
+            wait_until(p2, "() => { const t = document.getElementById('etfTri'); return !!t && !t.hidden && t.getClientRects().length > 0; }", 12000)
+            p2.wait_for_timeout(900)
+        ok(f"{T}【訪客】ETF 上方三卡 前 {lim3} 次（每開一個分頁算一次）可看、第 {lim3 + 1} 次蓋「今日已用完」卡",
+           not ps[-2].evaluate("() => !!document.querySelector('#etfTri[data-qlk]')") and bool(wait_until(ps[-1], "() => !!document.querySelector('#etfTri[data-qlk]')", 5000)), already)
+        shot(ps[-1], "7_etf_top3_blocked.png")
+        for p2 in ps: p2.close()
+    else:
+        n = feats["etf.returns.n"]
+        pg.click("#etfCmpDD .ddbtn"); wait_until(pg, "() => document.querySelectorAll('#etfCmpDD .ddlist input[type=checkbox]').length > 6", 4000)
+        cur = pg.evaluate("() => document.querySelectorAll('#etfCmpDD .ddlist input[type=checkbox]:checked').length")
+        unc = pg.locator("#etfCmpDD .ddlist input[type=checkbox]:not(:checked)")
+        for i in range(max(0, n - cur)):
+            unc.nth(0).click(); pg.wait_for_timeout(200)
+        pg.locator("#etfCmpDD .ddlist input[type=checkbox]:not(:checked)").nth(0).click(); pg.wait_for_timeout(300)
+        m = _gp_blocked(pg, "etf.returns.n")
+        ok(f"{T}【{tag}】報酬比較 最多 {n} 檔、第 {n + 1} 檔勾不起來＋升級卡",
+           bool(m) and pg.evaluate("() => document.querySelectorAll('#etfCmpDD .ddlist input[type=checkbox]:checked').length") == n, (m, cur))
+    _gp_go(pg, "#etf/inc", "() => !!document.querySelector('#etfInc[data-plk]')", 8000)
+    ok(f"{T}【{tag}】ETF 現金流試算 → 「此功能需開通」卡（只給付費會員）", pg.evaluate("() => !!document.querySelector('#etfInc[data-plk] .qcard')"))
+    if who is None: shot(pg, "8_etf_cashflow_locked.png")
+
+    # ⑩ 熱力圖點擊跳頁（heat.link）：總覽「熱門題材」選一個題材 → 點成分股方塊，不跳頁、跳升級卡、游標不是手指
+    _hm_overview_click(pg, T, tag, expect_nav=False, shot=shot if who is None else None)
+    c.close()
+
+
+def _hm_overview_click(pg, T, tag, expect_nav, shot=None):
+    pg.evaluate("() => { location.hash = '#overview'; }")
+    wait_until(pg, "() => !!document.querySelector('#ovThemeDD .ddbtn') && !!document.querySelector('#ovTheme canvas')", 15000)
+    pg.click("#ovThemeDD .ddbtn"); pg.wait_for_timeout(200)
+    pg.locator("#ovThemeDD .ddopt[data-t]:not([data-t=''])").first.click(); pg.wait_for_timeout(900)
+    pg.locator("#ovTheme").scroll_into_view_if_needed(); pg.wait_for_timeout(300)
+    bx = pg.locator("#ovTheme canvas").first.bounding_box()
+    x, y = bx["x"] + bx["width"] * 0.2, bx["y"] + bx["height"] * 0.35
+    pg.mouse.move(x, y); pg.wait_for_timeout(300)
+    cur = pg.evaluate("([x, y]) => { const e = document.elementFromPoint(x, y); return e ? getComputedStyle(e).cursor : 'none'; }", [x, y])
+    tip = pg.evaluate("() => [...document.querySelectorAll('div')].some(d => /z-index: ?9999/.test(d.getAttribute('style') || '') && d.style.display !== 'none' && d.innerText.trim().length > 0)")
+    pg.mouse.click(x, y); pg.wait_for_timeout(700)
+    h = pg.evaluate("() => location.hash")
+    if expect_nav:
+        ok(f"{T}【{tag}】熱力圖 點成分股方塊 → 跳到個股頁（{h}）", h.startswith("#stock/"), h)
+    else:
+        m = _gp_blocked(pg, "heat.link", closing=False)
+        ok(f"{T}【{tag}】熱力圖 滑過有提示框、游標不是手指；點方塊 → hash 不變（#overview）、跳「點擊熱力圖跳到族群／題材頁是付費會員功能」",
+           h == "#overview" and bool(m) and "付費會員功能" in m and cur != "pointer" and tip, (h, m, cur, tip))
+        if shot: shot(pg, "9_heat_link_blocked.png")
+        pg.evaluate(GP_CLOSE)
+
+
+def t_guest_perm_1008(b, base, code):
+    T = "訪客權限1008"
+    errs: list[str] = []
+    sh = os.environ.get("TW_GP_SHOTS")
+    shot = (lambda pg, n: pg.screenshot(path=str(pathlib.Path(sh) / n))) if sh else (lambda pg, n: None)
+    PR = _gp_presets()
+    # ① 訪客：範本原值
+    _gp_suite(b, base, T, None, dict(PR["guest"]["feats"]), dict(PR["guest"]["lims"]), errs, shot, "訪客")
+    # ② 註冊會員：動作計次覆寫成 1（不必點十幾下），同時選取上限用範本原值；鎖 0 的項目照範本
+    fl = dict(PR["free"]["lims"])
+    for k in GP_ACT + ["heat.detail", "ind.groups"]:
+        fl[k] = 1
+    _gp_suite(b, base, T, "member", dict(PR["free"]["feats"]), fl, errs, shot, "註冊會員")
+
+    # ③ Plus：熱力圖點了會跳頁；站主：同一套操作不受限
+    c, sent, st = _sub_ctx(b, "member", feats=dict(PR["plus"]["feats"]), lims=dict(PR["plus"]["lims"]))
+    pg = c.new_page(); pg.on("pageerror", lambda e: errs.append(str(e)))
+    pg.goto(base + "#overview", wait_until="domcontentloaded")
+    wait_until(pg, "() => window.TwPerm && TwPerm.state().src === 'server'", 12000)
+    ok(f"{T}【Plus】熱力圖點擊跳頁開著", pg.evaluate("() => TwQuota.heatLinkOk()"))
+    _hm_overview_click(pg, T, "Plus", expect_nav=True)
+    c.close()
+    c, sent, st = _sub_ctx(b, "member", feats=dict(PR["guest"]["feats"]), lims=dict(PR["guest"]["lims"]), owner=True)
+    pg = c.new_page(); pg.on("pageerror", lambda e: errs.append(str(e)))
+    pg.goto(base + "#heatmap/theme", wait_until="domcontentloaded")
+    ok(f"{T}【站主】即使範本是訪客的值，所有上限都是不限",
+       bool(wait_until(pg, "() => window.TwPerm && TwPerm.owner() && TwQuota.heatLinkOk() && ['mkt.grp.pick','explore.list.n','mkt.cand.n'].every(k => TwQuota.pick(k) === Infinity) && TwPerm.lim('flow.sankey.drill') === Infinity", 12000)))
+    tids = pg.evaluate("async () => { const r = await fetch('data/themes.json'); const j = await r.json(); return (j.themes || []).map(t => t.id); }")
+    for t in tids[:5]:
+        pg.evaluate("(t) => { location.hash = '#heatmap/theme/' + t; }", t); pg.wait_for_timeout(300)
+    ok(f"{T}【站主】連開 5 個題材都打得開、沒跳卡", pg.evaluate("() => decodeURIComponent(location.hash)") == "#heatmap/theme/" + tids[4] and not pg.evaluate(GP_MODAL))
+    c.close()
+
+    # ④ 管理權限頁：訪客範本看得到所有新設定；改訪客「題材剖析」每日次數成 1 → 存檔 → 那個值真的擋第 2 個題材
+    c, sent, st = _adm3_ctx(b)
+    pg = c.new_page(); pg.on("pageerror", lambda e: errs.append(str(e)))
+    pg.goto(base + "#admin/perm", wait_until="domcontentloaded")
+    wait_until(pg, "() => !!document.querySelector(\"#ptTier button[data-tier='guest']\")", 12000)
+    pg.click("#ptTier button[data-tier='guest']")
+    wait_until(pg, "() => !!document.querySelector(\"#pmCats [data-limb='flow.sankey.drill']\") && !document.querySelector(\"#pmCats [data-limb='flow.sankey.drill']\").disabled", 8000)
+    acts = GP_ACT + ["etf.top3"]
+    picks = ["mkt.grp.pick", "explore.list.n", "mkt.cand.n", "etf.returns.n"]
+    have = pg.evaluate("([a, p]) => ({ a: a.filter(k => !document.querySelector(`#pmCats [data-limb='${k}']`)), p: p.filter(k => !document.querySelector(`#pmCats select[data-f='${k}']`)),"
+                       " sw: ['etf.cashflow','heat.link'].filter(k => !document.querySelector(`#pmCats input[data-f='${k}']`)), pv: p.map(k => document.querySelector(`#pmCats select[data-f='${k}']`).value),"
+                       " hl: document.querySelector(\"#pmCats input[data-f='heat.link']\").checked })", [acts, picks])
+    ok(f"{T}【管理】訪客範本：8 個動作計次有「每日次數」徽章、4 個同時選取上限下拉（預設 5／5／3／0）、現金流試算與熱力圖點擊跳頁兩個開關（跳頁預設關）",
+       not have["a"] and not have["p"] and not have["sw"] and have["pv"] == ["5", "5", "3", "0"] and have["hl"] is False, have)
+    pg.evaluate("() => document.querySelector(\"#pmCats [data-limb='flow.sankey.drill']\").scrollIntoView({ block: 'center' })"); pg.wait_for_timeout(200)
+    shot(pg, "10_admin_flow.png")
+    pg.evaluate("() => document.querySelector(\"#pmCats select[data-f='mkt.grp.pick']\").scrollIntoView({ block: 'center' })"); pg.wait_for_timeout(200)
+    shot(pg, "11_admin_market.png")
+    pg.evaluate("() => document.querySelector(\"#pmCats input[data-f='etf.cashflow']\").scrollIntoView({ block: 'center' })"); pg.wait_for_timeout(200)
+    shot(pg, "12_admin_etf.png")
+    pg.click("#pmCats [data-limb='heat.detail']")
+    pg.fill("#pmCats input[data-lim='heat.detail']", "1")
+    pg.click("#pmCats .pmlimpop button[data-limok]")
+    pg.uncheck("#pmCats input[data-f='etf.cashflow']") if pg.is_checked("#pmCats input[data-f='etf.cashflow']") else None
+    with pg.expect_response(lambda r: "/v1/admin/plans/put" in r.url, timeout=6000) as ri:
+        pg.click("#pmSaveGo")
+    body = json.loads(ri.value.request.post_data or "{}")
+    ok(f"{T}【管理】改訪客「題材剖析圖」每日次數 1 → 存檔送出 lims.heat.detail＝1（訪客範本的次數可以編輯）",
+       body.get("id") == "guest" and (body.get("lims") or {}).get("heat.detail") == 1, body)
+    pg.click("#ptTier button[data-tier='free']"); pg.wait_for_timeout(500)
+    fv = pg.evaluate("(p) => p.map(k => (document.querySelector(`#pmCats select[data-f='${k}']`) || {}).value)", picks)
+    ok(f"{T}【管理】註冊會員範本 同時選取上限預設 10／20／10／3", fv == ["10", "20", "10", "3"], fv)
+    c.close()
+    c, sent, st = _sub_ctx(b, None, feats={}, lims={"heat.detail": body.get("lims", {}).get("heat.detail", 1)})
+    pg = c.new_page(); pg.on("pageerror", lambda e: errs.append(str(e)))
+    pg.goto(base + "#heatmap/theme", wait_until="domcontentloaded")
+    wait_until(pg, "() => window.TwPerm && TwPerm.state().src === 'server' && TwPerm.lim('heat.detail') === 1", 12000)
+    tids = pg.evaluate("async () => { const r = await fetch('data/themes.json'); const j = await r.json(); return (j.themes || []).map(t => t.id); }")
+    pg.evaluate("(t) => { location.hash = '#heatmap/theme/' + t; }", tids[0]); pg.wait_for_timeout(500)
+    a1 = pg.evaluate("() => decodeURIComponent(location.hash)")
+    pg.evaluate("(t) => { location.hash = '#heatmap/theme/' + t; }", tids[1]); pg.wait_for_timeout(600)
+    m = _gp_blocked(pg, "heat.detail")
+    ok(f"{T}【管理】改成 1 之後 → 第 1 個題材打得開、第 2 個就被擋（1/1）", a1 == "#heatmap/theme/" + tids[0] and bool(m) and "1/1" in m and pg.evaluate("() => location.hash") == "#heatmap/theme", (a1, m))
+    c.close()
+    ok(f"{T}：整段沒有 JS 錯誤", not errs, errs[:3])
 
 
 # ===================================================================== 套用建議方案（正式站狀態）＋範本會員名單1007
@@ -51988,7 +52385,7 @@ def t_member_perm(b, base, code):
         ad.press("#pmEmail", "Enter")
         wait_until(ad, "() => /尚未登入過/.test((document.getElementById('pmWho') || {}).textContent || '')", 6000)
         ok(f"{T}：輸入 email 讀取（大小寫不分）→ 顯示「尚未登入過」與目前方案", PERM_TEST_EMAIL in ad.inner_text("#pmWho") and "免費會員" in ad.inner_text("#pmWho"), ad.inner_text("#pmWho"))
-        ok(f"{T}：讀到人之後開關可以撥、全部預設開啟", ad.evaluate("() => [...document.querySelectorAll('#pmCats input[role=switch]')].every(i => !i.disabled && i.checked)"))
+        ok(f"{T}：讀到人之後開關可以撥、全部預設開啟（熱力圖點擊跳頁例外：權限矩陣 1008 訪客／註冊會員預設關）", ad.evaluate("() => [...document.querySelectorAll('#pmCats input[role=switch]')].every(i => !i.disabled && (i.checked || i.dataset.f === 'heat.link'))"))
 
         def save(pg=None):
             """2026-10-04 起撥開關只是草稿，按底部「儲存」才送 perm/put；回傳那一次的回應"""
@@ -52068,7 +52465,7 @@ def t_member_perm(b, base, code):
         ad.select_option("#pmPlan", tp_plan.get("id", ""))
         save()
         wait_until(ad, "() => /付費測試/.test(document.getElementById('pmWho').textContent)", 5000)
-        ok(f"{T}：會員管理把測試帳號指定到「付費測試」→ 已儲存、個別微調保留", "付費測試" in ad.inner_text("#pmWho") and "個別微調 9 項" in ad.inner_text("#pmWho")
+        ok(f"{T}：會員管理把測試帳號指定到「付費測試」→ 已儲存、個別微調保留（11 項：權限矩陣 1008 資金流向多了 2 個次數項，整組撥動時一起算）", "付費測試" in ad.inner_text("#pmWho") and "個別微調 11 項" in ad.inner_text("#pmWho")
            and ad.evaluate("() => !document.querySelector(\"#pmCats input[data-f='ov.heat']\").checked"), ad.inner_text("#pmWho"))
         to_perm(ad)
         wait_until(ad, "() => location.hash === '#admin/perm' && !!document.getElementById('ptTier') && document.querySelectorAll('#pmCats .pmcat').length > 0", 10000)
@@ -52227,7 +52624,7 @@ def t_member_perm(b, base, code):
         gp.goto(base + f"#stock/{code}", wait_until="domcontentloaded")
         perm_ready(gp)
         gp.wait_for_timeout(800)
-        ok(f"{T}：訪客（訪客範本是空的）畫面上一個鎖頭都沒有", gp.evaluate("() => TwPerm.state().who === 'guest' && TwPerm.locked().length === 0 && !document.querySelector('[data-plk],[data-plkb]')"),
+        ok(f"{T}：訪客（訪客範本是空的）畫面上一個鎖頭都沒有", gp.evaluate("() => TwPerm.state().who === 'guest' && TwPerm.locked().filter(k => k !== 'heat.link').length === 0 && !document.querySelector('[data-plk],[data-plkb]')"),
            gp.evaluate("() => [TwPerm.state(), TwPerm.locked()]"))
         cg.close()
         ct.close(); ca.close()

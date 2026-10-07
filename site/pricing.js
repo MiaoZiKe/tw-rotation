@@ -168,6 +168,15 @@
       feats: { 'stock.k_min': false, 'live.tick': false, 'watch.tabs': 5 },
       lims: { 'quota.all': null, 'stock.page': null, 'ind.diagram': null, 'heat.detail': null, 'ind.rel': null, 'ind.groups': null }, watch: { tabs: null, size: 200 } },
   ];
+  /* ★ 2026-10-08 全站權限矩陣（docs/perm_matrix_1008.md §5）：示範卡的打勾清單、開關、次數改讀 site/plan_presets.js（同一份建議方案），
+     不再在這裡抄一份會過期的副本 —— 矩陣改了，套用建議方案寫進後端的、跟示範卡看到的是同一份。讀不到 presets 才用上面的舊副本。*/
+  (function () {
+    const pr = window.TW_PLAN_PRESETS; if (!pr || !Array.isArray(pr.tiers)) return;
+    DEMO.forEach((d) => { const t = pr.tiers.find((x) => x.key === d.key); if (!t) return;
+      if (t.meta && Array.isArray(t.meta.highlights)) d.highlights = t.meta.highlights.slice();
+      d.feats = Object.assign({}, d.feats, t.feats || {});
+      d.lims = Object.assign({}, t.lims || {}, { 'quota.all': t.dq == null ? null : t.dq }); });
+  })();
   const isDemo = () => /[?&]demo=plans\b/.test(location.search || '');
   /* plan_presets 格式（price{month,year}、feats、lims、watch{tabs,size}）→ 後端 plans/public 的形狀（price＝月價、price_year＝年繳總價、period）。
      watch 物件保留在 p.watch 給比較表寫「N 頁・每頁 M 檔」；tabs 是整數時同步進 feats['watch.tabs']（features.js 的開關鍵）。
@@ -253,7 +262,7 @@
   function priceOf(p) { const r = priceAt(p, p.period === 'year' ? 'year' : 'month'); return r.free ? { amount: 0, unit: '', free: true } : { amount: r.amount || 0, unit: r.unit, free: false, tbd: !!r.tbd }; }
   const monthEq = (p) => { const x = prices(p); return x.free ? 0 : x.month || (x.year ? x.year / 12 : x.once || Infinity); };
   /* 這個方案在某個功能上的值（沒寫＝預設）；上限：Infinity＝不限 */
-  function val(p, f) { const v = (p.feats || {})[f.id]; if (f.kind === 'limit') return Number.isInteger(v) ? v : v === false ? 0 : f.def; return typeof v === 'boolean' ? v : f.def; }
+  function val(p, f) { const v = (p.feats || {})[f.id]; if (f.kind === 'limit') return Number.isInteger(v) ? v : v === false ? 0 : F() && F().defOf ? F().defOf(f, p.id) : f.def; return typeof v === 'boolean' ? v : f.def; }
   const limOf = (p, f) => { const v = (p.lims || {})[f.id]; return Number.isInteger(v) && v >= 0 ? v : Infinity; };
   const on = (p, f) => { if (limOf(p, f) === 0) return false; const v = val(p, f); return typeof v === 'number' ? v > 0 : v !== false; };
   const ltxt = (n) => (n === Infinity ? '不限' : n === 0 ? '不能看' : `每日 ${n} 次`);
@@ -563,7 +572,7 @@
     const Ft = F(); if (!Ft || plans.length < 2) return '';
     const cell = (p, f) => {
       if (f.id === 'watch.tabs') return watchCell(p);
-      if (f.kind === 'limit') { const n = val(p, f); return n ? { c: 'v', t: f.opts && n >= f.max ? '不限' : `最多 ${n} ${f.unit || '頁'}` } : { c: 'n', t: '—' }; }
+      if (f.kind === 'limit') { const n = val(p, f); return n ? { c: 'v', t: f.opts && n >= f.max ? '不限' : f.daily ? `每日 ${n} ${f.unit || '次'}` : `最多 ${n} ${f.unit || '頁'}` } : { c: 'n', t: '—' }; }
       if (!on(p, f)) return { c: 'n', t: '—' };
       const n = limOf(p, f); return n === Infinity ? { c: 'y', t: '✓' } : { c: 'v', t: `每日 ${n} 次` };
     };

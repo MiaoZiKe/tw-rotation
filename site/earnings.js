@@ -594,9 +594,11 @@
     await loadData();
     const d = S.data;
     $('#earnSub').textContent = !d ? '' : `大公司＝市值前 ${(d.universe && d.universe.n) || 50}`;
-    $('#earnPrev').onclick = () => { const [y, m] = S.month.split('-').map(Number); go(new Date(Date.UTC(y, m - 2, 1)).toISOString().slice(0, 7)); };
-    $('#earnNext').onclick = () => { const [y, m] = S.month.split('-').map(Number); go(new Date(Date.UTC(y, m, 1)).toISOString().slice(0, 7)); };
-    $('#earnToday').onclick = () => go(todayTW().slice(0, 7));
+    /* 2026-10-08 權限矩陣 earn.tab：切到其他月份算一次（回本月不算） */
+    const goQ = (m) => { if (m !== todayTW().slice(0, 7) && window.TwQuota && !window.TwQuota.act('earn.tab', 'tab', m)) return; go(m); };
+    $('#earnPrev').onclick = () => { const [y, m] = S.month.split('-').map(Number); goQ(new Date(Date.UTC(y, m - 2, 1)).toISOString().slice(0, 7)); };
+    $('#earnNext').onclick = () => { const [y, m] = S.month.split('-').map(Number); goQ(new Date(Date.UTC(y, m, 1)).toISOString().slice(0, 7)); };
+    $('#earnToday').onclick = () => goQ(todayTW().slice(0, 7));
     $$('#earnFilt button').forEach((b) => {
       b.onclick = () => {
         S.filt = b.dataset.v; $$('#earnFilt button').forEach((x) => x.classList.toggle('on', x === b));

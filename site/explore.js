@@ -295,6 +295,7 @@
     if (!ST.ddDoc) { ST.ddDoc = true; document.addEventListener('pointerdown', (e) => { if (ST.dd && !e.target.closest('.sl-ddw')) { ST.dd = false; paintChips(); } }, true); }
   }
   function paintChips() {
+    if (!$('#slChips')) { ST.dd = false; return; }   // 2026-10-08：子標籤選單開著就換頁，document 的 pointerdown 還會叫到這裡 —— 卡片牆已經不在，不畫（以前丟 TypeError）
     const cnt = (c) => S_.filter((s) => s.cat === c).length;
     $('#slChips').innerHTML = CATS.map(([k, en, zh]) => `<button type="button" class="sl-chip${ST.cat === k ? ' on' : ''}" data-cat="${k}" role="tab" aria-selected="${ST.cat === k}" title="${esc(en)}">${esc(zh)} <em>${cnt(k)}</em></button>`).join('');
     const tags = [...new Set(S_.filter((s) => s.cat === ST.cat).flatMap((s) => s.tags))];
@@ -404,7 +405,10 @@
   function paintFull(root, s) {
     const m = matches(s), can = usable(s);
     const others = (r) => S_.filter((o) => o.id !== s.id && usable(o) && matches(o).includes(r)).map((o) => o.name);
-    const rows = m.slice(0, FULL.n).map((r, i) => {
+    /* 2026-10-08 權限矩陣 explore.list.n：完整名單最多顯示前幾檔（訪客 5、註冊會員 20、付費不限） */
+    const capN = window.TwQuota ? window.TwQuota.pick('explore.list.n') : Infinity;
+    const shown = Math.min(FULL.n, capN);
+    const rows = m.slice(0, shown).map((r, i) => {
       const cs = check(s, r), kv = s.key[1](r), ot = others(r);
       return `<tr data-code="${esc(r.code)}"><td class="num">${i + 1}</td>
         <td><a href="#stock/${esc(r.code)}" class="sl-tlink">${logo(r, 20)}<b>${esc(r.name)}</b> <small>${esc(r.code)}</small></a><div class="sl-grp">${esc(r.group)}</div></td>
@@ -420,7 +424,8 @@
       <div class="card sl-finfo"><h3>篩選條件 ${srcI(srcOf(s))}</h3>${infoHTML(s)}</div>
       <div class="card sl-ftbl"><h3>${can ? `符合的公司 <em class="sl-n" id="slFullN">${m.length}</em> 家 <small>依近 20 日平均成交值排序（流動性），不是好壞名次</small>` : '尚無資料'}</h3>
         ${can && m.length ? `<div class="sl-tw"><table class="sl-table" id="slTbl"><thead><tr><th>#</th><th>公司</th><th>現價／漲跌</th><th>走勢</th><th>${esc(s.key[0])}</th><th>為什麼入選（實際值／門檻）</th><th>也符合</th></tr></thead><tbody>${rows}</tbody></table></div>
-        ${m.length > FULL.n ? `<button type="button" class="sl-all" id="slAll">顯示全部 ${m.length} 家</button>` : ''}` : (can ? '<div class="sl-none">今天沒有公司同時符合全部條件。</div>' : '')}</div>`;
+        ${m.length > capN ? `<div class="sl-cap" id="slCap" role="note">目前方案只顯示前 ${capN} 家（共 ${m.length} 家）<button type="button" class="sl-all" id="slCapGo">看更多 →</button></div>`
+          : m.length > FULL.n ? `<button type="button" class="sl-all" id="slAll">顯示全部 ${m.length} 家</button>` : ''}` : (can ? '<div class="sl-none">今天沒有公司同時符合全部條件。</div>' : '')}</div>`;
     root.onclick = onClick;
     upgrade(root);
   }
@@ -430,7 +435,12 @@
     const ch = e.target.closest('.sl-chip'); if (ch) { ST.cat = ch.dataset.cat; ST.tags = []; ST.dd = false; paintChips(); paintGrid(); return; }
     if (e.target.closest('#slTagDd')) { ST.dd = !ST.dd; paintChips(); return; }
     const tg = e.target.closest('input[data-tag]');
-    if (tg) { const t = tg.dataset.tag; ST.tags = tg.checked ? [...ST.tags, t] : ST.tags.filter((x) => x !== t); paintChips(); paintGrid(); return; }
+    if (tg) {
+      const t = tg.dataset.tag; const nx = tg.checked ? [...ST.tags, t] : ST.tags.filter((x) => x !== t);
+      /* 2026-10-08 權限矩陣 explore.filter：每一組不同的條件（分類＋勾選的子標籤，排序後）算一次；取消勾選回到更少條件也是一組條件，照算；全清掉不算 */
+      if (nx.length && window.TwQuota && !window.TwQuota.act('explore.filter', 'filter', ST.cat + '|' + nx.slice().sort().join(','))) { tg.checked = !tg.checked; return; }
+      ST.tags = nx; paintChips(); paintGrid(); return;
+    }
     if (e.target.closest('.sl-ddclr')) { ST.tags = []; paintChips(); paintGrid(); return; }
     if (e.target.closest('.sl-ddok')) { ST.dd = false; paintChips(); return; }
     if (e.target.closest('#slTagMenu')) return;
@@ -446,6 +456,7 @@
       ST.open[id] = code; row.classList.add('open'); rb.setAttribute('aria-expanded', 'true');
       openPop(rb, reasonBox(SBY[id], RBY[code]), 'why'); return;
     }
+    if (e.target.closest('#slCapGo')) { if (window.TwQuota) window.TwQuota.pickBlock('explore.list.n', window.TwQuota.pick('explore.list.n')); return; }
     const all = e.target.closest('#slAll'); if (all) { FULL.n = 1e9; const s = SBY[(location.hash.split('/')[1] || '')]; if (s) paintFull($('#v-explore'), s); }
   }
 
