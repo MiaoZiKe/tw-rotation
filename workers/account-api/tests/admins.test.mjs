@@ -119,3 +119,19 @@ test('只有擁有者能新增／移除：一般管理者 403；擁有者不能�
   const l2 = await (await post(hub, '/v1/admin/admins/list', { t: a })).json();
   assert.equal(l2.log.length, 3); assert.equal(l2.admins.length, 1);
 });
+
+test('刪除範本頁籤只限擁有者：一般管理者 403（範本還在）、擁有者可以；一般管理者可以排序', async () => {
+  const { hub } = makeHub(env());
+  const a = (await login(hub, 'andy@example.com')).j.tok;
+  const c = (await login(hub, 'carol@example.com')).j.tok;
+  await post(hub, '/v1/admin/admins/add', { t: a, email: 'carol@example.com' });
+  const mk = await post(hub, '/v1/admin/plans/put', { t: c, id: 'p_test', name: '測試方案', feats: {} });
+  assert.equal(mk.status, 200, '一般管理者可以建立／改範本');
+  const ids = (await (await post(hub, '/v1/admin/plans/get', { t: c })).json()).plans.map((p) => p.id);
+  assert.ok(ids.includes('p_test'));
+  const so = await post(hub, '/v1/admin/plans/sort', { t: c, ids: ['p_test'] });
+  assert.notEqual(so.status, 403, '一般管理者可以拖曳排序');
+  assert.equal((await post(hub, '/v1/admin/plans/put', { t: c, id: 'p_test', del: true })).status, 403);
+  assert.ok((await (await post(hub, '/v1/admin/plans/get', { t: a })).json()).plans.some((p) => p.id === 'p_test'), '範本還在');
+  assert.equal((await post(hub, '/v1/admin/plans/put', { t: a, id: 'p_test', del: true })).status, 200);
+});

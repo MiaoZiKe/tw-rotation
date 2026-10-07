@@ -440,7 +440,26 @@
   // 2026-10-05（admin-v2c，Andy）：子項順序改成「會員管理」在上、「會員權限」在下，流量觀測維持最後
   // 2026-10-07（Andy：意見反饋要留在站上、只有我看得到）：管理區下加「意見反饋」（#admin/feedback，support.js 畫；未讀數紅點由 support.js 填 TwSupport.unread）
   // 10-07 15:25（Andy：意見反饋需要圖示）：原本寫 'mail'，但圖示表沒有這個鍵 → 畫出空 svg；改成對話泡泡 message（icons.js 新增）
-  const ADM_SUBS = [['perm', '會員權限', 'admTabPerm', 'scale'], ['traffic', '流量觀測', 'admTabTraffic', 'gauge'], ['feedback', '意見反饋', 'admTabFeedback', 'message'], ['admins', '管理權限', 'admTabAdmins', 'users']];   // 2026-10-07：誰擁有管理權限（admin.js renderAdmins）
+  const ADM_SUBS = [['admins', '管理權限', 'admTabAdmins', 'users'], ['perm', '會員權限', 'admTabPerm', 'scale'], ['traffic', '流量觀測', 'admTabTraffic', 'gauge'], ['feedback', '意見反饋', 'admTabFeedback', 'message']];   // 2026-10-07 15:45 Andy：管理權限移到會員權限上方
+  /* 2026-10-07 15:45 Andy：「旁邊的分頁 有在權限內的帳號也可以進行拖曳 但不能刪除」→ 管理區子項可拖曳排序（只有管理者看得到這一區，所以也只有管理者能拖）；
+     沒有刪除。順序存本機 tw.l4.admOrd；滑鼠移動超過 6px 才算拖曳，放開後吞掉那一次 click。*/
+  const ADM_ORD = 'tw.l4.admOrd';
+  function admOrd() { try { const a = JSON.parse(localStorage.getItem(ADM_ORD) || 'null'); if (Array.isArray(a)) return ADM_SUBS.slice().sort((x, y) => { const i = a.indexOf(x[0]), j = a.indexOf(y[0]); return (i < 0 ? 99 : i) - (j < 0 ? 99 : j); }); } catch (e) { /* 私密視窗 */ } return ADM_SUBS; }
+  let AdmD = null, admEat = false;
+  document.addEventListener('pointerdown', (e) => { if (e.button !== 0 || e.pointerType === 'touch') return; const s = e.target.closest && e.target.closest('.l4subtab[data-parent="admin"]'); if (!s || !isAdmin()) return; AdmD = { s, x: e.clientX, y: e.clientY, on: false }; });
+  document.addEventListener('pointermove', (e) => {
+    if (!AdmD) return;
+    if (!AdmD.on) { if (Math.hypot(e.clientX - AdmD.x, e.clientY - AdmD.y) < 6) return; AdmD.on = true; AdmD.s.classList.add('td-src'); document.documentElement.classList.add('td-dragging'); }
+    e.preventDefault();
+    const sibs = $$('.l4subtab[data-parent="admin"]'), over = sibs.find((x) => { const r = x.getBoundingClientRect(); return x !== AdmD.s && e.clientY >= r.top && e.clientY <= r.bottom; });
+    if (!over) return;
+    if (sibs.indexOf(over) > sibs.indexOf(AdmD.s)) over.after(AdmD.s); else over.before(AdmD.s);
+  });
+  const admEnd = () => { if (!AdmD) return; if (AdmD.on) { AdmD.s.classList.remove('td-src'); document.documentElement.classList.remove('td-dragging');
+      try { localStorage.setItem(ADM_ORD, JSON.stringify($$('.l4subtab[data-parent="admin"]').map((x) => x.dataset.adm))); } catch (e) { /* 私密視窗 */ }
+      admEat = true; setTimeout(() => { admEat = false; }, 0); } AdmD = null; };
+  document.addEventListener('pointerup', admEnd); document.addEventListener('pointercancel', admEnd);
+  window.addEventListener('click', (e) => { if (admEat) { admEat = false; e.stopPropagation(); e.preventDefault(); } }, true);   // 2026-10-07：誰擁有管理權限（admin.js renderAdmins）
   function isAdmin() { const A = window.TwAccount; const u = A && A.on && A.on() && A.user(); return !!(u && u.admin); }
   function syncPerm() {
     const tabs = $('#tabs');
@@ -467,11 +486,11 @@
        有沒存的權限草稿時，換子頁先問一次（admin.js 的 TwAdmin.guard）。 */
     if (!$('.l4subtab[data-parent="admin"]', tabs)) {
       let after = b;
-      ADM_SUBS.forEach(([k, t, id, ic]) => {
+      admOrd().forEach(([k, t, id, ic]) => {
         const s = document.createElement('button');
         s.type = 'button'; s.className = 'l4subtab'; s.id = id; s.dataset.parent = 'admin'; s.dataset.adm = k;
         s.innerHTML = `${subIcon(ic)}<span class="lbl">${esc(t)}</span>`;
-        s.setAttribute('aria-label', t); s.title = '管理區・' + t;
+        s.setAttribute('aria-label', t); s.title = '管理區・' + t + '（可拖曳調整順序）';
         s.onclick = () => {
           if (location.hash === '#admin/' + k) return;
           const G = window.TwAdmin; if (G && G.guard && !G.guard()) return;

@@ -39,7 +39,7 @@
     return c;
   };
   const S = { days: 30, period: '30', since: '', until: '', tab: 'all', sub: 'all', timer: 0, v: null, A: null, page: 'flow', st: null, on: null };
-  const TABS = [['perm', '會員權限', 'admTabPerm'], ['traffic', '流量觀測', 'admTabTraffic'], ['admins', '管理權限', 'admTabAdmins']];   // 2026-10-05：會員管理拿掉（新增會員、逐人微調併進會員權限的會員名單）
+  const TABS = [['admins', '管理權限', 'admTabAdmins'], ['perm', '會員權限', 'admTabPerm'], ['traffic', '流量觀測', 'admTabTraffic']];   // 10-07 15:45：管理權限在會員權限上方   // 2026-10-05：會員管理拿掉（新增會員、逐人微調併進會員權限的會員名單）
   const tabOf = () => { const m = /^#admin\/(perm|members|traffic|admins)\b/.exec(location.hash || ''); return m ? (m[1] === 'members' ? 'perm' : m[1]) : 'traffic'; };
 
   function css() {
@@ -1672,7 +1672,7 @@ html[data-theme="light"] #v-admin{--pm-blue:#1f4fd8;--pm-blue-2:#163fb4}
     const t = (tier, label, plan) => { const on = !PS.adding && PS.tier === tier && (!plan || PS.planSel === plan);
       return `<button type="button" role="tab" aria-selected="${on}" class="${on ? 'on' : ''}" data-tier="${tier}"${plan ? ` data-plan="${esc(plan)}" aria-keyshortcuts="Alt+ArrowLeft Alt+ArrowRight"` : ''} title="${esc(tabInfo(tier, plan))}"><span>${esc(label)}</span></button>`; };
     bar.innerHTML = t('guest', '訪客') + t('free', '註冊會員')
-      + paidPlans().map((p) => `<div class="ptab" draggable="true" data-pid="${esc(p.id)}">${t('paid', tabLabel(p), p.id)}<button type="button" class="ptmore" data-more="${esc(p.id)}" aria-haspopup="dialog" aria-expanded="${PS.menu === p.id}" aria-label="刪除「${esc(p.name)}」範本" title="刪除此範本">×</button></div>`).join('')
+      + paidPlans().map((p) => `<div class="ptab" draggable="true" data-pid="${esc(p.id)}">${t('paid', tabLabel(p), p.id)}${isOwnerU() ? `<button type="button" class="ptmore" data-more="${esc(p.id)}" aria-haspopup="dialog" aria-expanded="${PS.menu === p.id}" aria-label="刪除「${esc(p.name)}」範本" title="刪除此範本">×</button>` : ''}</div>`).join('')
       + `<button type="button" role="tab" id="ptAddTab" aria-selected="${!!PS.adding}" class="add${PS.adding ? ' on' : ''}" aria-label="新增付費範本" title="新增付費範本（名稱、價格、月／年訂閱）">＋</button>`;
     if (keep) { const k = bar.querySelector(keep); if (k) k.focus(); }
     paintMenu();
@@ -1702,6 +1702,8 @@ html[data-theme="light"] #v-admin{--pm-blue:#1f4fd8;--pm-blue-2:#163fb4}
   const delMsg = (id) => `目前有 ${planMembers(id)} 位會員在此範本，刪除後退回註冊會員`;
   /* 還有「有效會員」（指定到這個範本、而且沒到期）的付費範本不能刪：前端先擋（名單來自 perm/list），伺服器也擋（plans/put del → 409 has_members） */
   const activeMembers = (id) => { const now = (PS.list && PS.list.now) || Date.now(); return people().filter((r) => r.plan === id && !(r.expires && r.expires < now)); };
+  /* 10-07 15:45 Andy：「有在權限內的帳號也可以進行拖曳 但不能刪除」→ 刪除範本頁籤只有擁有者（Worker 也擋，plans/put del:true 對非擁有者 403）*/
+  function isOwnerU() { const A = window.TwAccount, u = A && A.user && A.user(); return !!(u && u.owner); }
   async function delPlan(id) {
     const p = planOf(id); if (!p) return;
     if (activeMembers(id).length) { openMenu(id, 'del'); return; }
