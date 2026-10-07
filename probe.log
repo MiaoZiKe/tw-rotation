@@ -1,0 +1,387 @@
+====================================================================================================
+[extra-0] https://etf.allianzgi.com.tw/etf-list@@主動安聯台灣高息
+  點不到： 主動安聯台灣高息 Locator.click: Timeout 10000ms exceeded.
+Call log:
+  - waiting for get_by_text("主動安聯台灣高息").first
+
+  最終網址: https://etf.allianzgi.com.tw/etf-list  標題: 安聯投信 | 主動式ETF專區 掌握即時預估淨值、配息、交易資訊
+    連結: 聯絡我們 -> https://etf.allianzgi.com.tw/contact-us
+  XHR／文件請求 21 個：
+     200 GET https://etf.allianzgi.com.tw/etf-list
+        resp='<!doctype html>\r\n<html lang="en" data-critters-container>\r\n\r\n<head>\r\n  <meta charset="utf-8">\r\n  <title>安聯ETF</title>\r\n  <base href="/">\r\n  <meta name="viewport" content="width=device-width, initial-scale=1">\r\n  <link rel="icon" type="image/x-icon" href="favicon.ico">\r\n  <link rel="stylesheet" href='
+     200 GET https://etf.allianzgi.com.tw/webapi/api/homee/FrontendPublic
+        resp='{"TotalPages":-1,"TotalItems":0,"Entries":{"ApiUrl":"/webapi/api","Domain":"https://etf.allianzgi.com.tw/","Company":"安聯投信","ChangeInterestAccount":{"NonParticipantNotice":{"BeforeLink":"若您為未滿18歲或尚未參與過本公司ETF配息，請於ETF停止過戶日後，再使用本網頁提出申請；或填寫","LinkText":"申請書","AfterLink":"並檢附相關證件以紙本申請變更。","LinkUrl":"http'
+     200 GET https://etf.allianzgi.com.tw/webapi/api/AntiForgery/GetAntiForgeryToken
+        headers={'accept': 'application/json, text/plain, */*', 'accept-encoding': 'gzip, deflate, br, zstd', 'accept-language': 'zh-TW', 'connection': 'keep-alive', 'host': 'etf.allianzgi.com.tw', 'referer': 'https://etf.allianzgi.com.tw/etf-list', 'sec-fetch-dest': 'empty', 'sec-fetch-mode': 'cors', 'sec-fetch-site': 'same-origin', 'sec-ch-ua': '"HeadlessChrome";v="153", "Not_A Brand";v="8", "Chromium";v="153"', 'sec-ch-ua-mobile': '?0', 'sec-ch-ua-platform': '"Linux"'}
+        resp='{"token":"CfDJ8O4lLg5ozXJAnaegOLTBzPQuCmWHY5n0_RG_Ww-mVzcND5hc2kIyMKgBaxGoeE4__mu2aAuEP-cTEImV1HbsL_ZLhSyOLjIyu_JGabdHvJVSJm58039pGX4_H_HfzXd8byvmFaojI2tV1b3D0Knc_2w","issuedAtUtc":1791406035659,"maxAgeSeconds":86400,"expiresAtUtc":1791492435659,"message":"Antiforgery token generated successfully."}'
+     200 GET https://ipapi.co/json/
+        resp='{\n    "ip": "172.182.192.152",\n    "network": "172.182.0.0/16",\n    "version": "IPv4",\n    "city": "Phoenix",\n    "region": "Arizona",\n    "region_code": "AZ",\n    "country": "US",\n    "country_name": "United States",\n    "country_code": "US",\n    "country_code_iso3": "USA",\n    "country_capital": "'
+     200 POST https://etf.allianzgi.com.tw/webapi/api/Home/GetUnit
+        body={"headers":{"normalizedNames":{},"lazyUpdate":null}}
+        resp='{"TotalPages":-1,"TotalItems":0,"Entries":[{"CId":1,"CName":"ETF總覽","CParentID":0,"CIsExternalLinks":false,"CPageUrl":"/etf-list","CIsOpenNewWindow":false,"CIsShowInMainMenu":false,"CPageExplanation":"","CTemplateType":99,"CIsCanAddChildNode":true,"CFunctionID":65,"CSort":1,"CFileName":"","ChildUnit'
+     200 POST https://etf.allianzgi.com.tw/webapi/api/Home/GetFooterContent
+        body={"CId":1}
+        resp='{"TotalPages":-1,"TotalItems":0,"Entries":[{"CId":1,"CTitle":"預設Footer","CContent":"\\u003Cp style=\\u0022text-align: left;\\u0022\\u003E\\u003Cstrong\\u003E【安聯投信\\u3000獨立經營管理】 \\u003C/strong\\u003E115金管投信新字第003號\\u003Cbr /\\u003E\\r\\n\\u003Cstrong\\u003E本基金經金管會核准或同意生效，惟不表示絕無風險。基金經理公司以往之經理績效不保證基金之最低投資收益；基金經理公司除盡善'
+     200 POST https://etf.allianzgi.com.tw/webapi/api/Home/GetHeaderCommunity
+        body={"headers":{"normalizedNames":{},"lazyUpdate":null,"lazyInit":null,"headers":{}}}
+        resp='{"TotalPages":-1,"TotalItems":0,"Entries":[{"CId":4,"CName":"Youtube","CType":2,"CIcon":"https://etf.allianzgi.com.tw/webapi/File/4cc6da0d-c787-4dd7-aec3-a6bfed22976a/youtube-80.png","CUrl":"https://www.youtube.com/channel/UCZrpAoDX6TSCEKndMGZvdNQ","CFooterIcon":"https://etf.allianzgi.com.tw/webapi/'
+     200 POST https://etf.allianzgi.com.tw/webapi/api/Article/GetArticleByUnit
+        body={"PageIndex":1,"PageSize":100,"FunctionID":638,"Keyword":"","Tags":[],"IsPreview":false,"CID":0,"SortColName":"","IsDesc":false,"IsPagination":false}
+        resp='{"TotalPages":-1,"TotalItems":5,"Entries":{"CParentID":6816,"ParentName":"首頁管理","CID":638,"CName":"Footer連結管理","Data":[{"CId":1,"CFunctionId":638,"CCategoryId":0,"CName":"使用條款","CContent":"","CFileNameSys":"https://etf.allianzgi.com.tw/webapi/","CFileNameOld":null,"CFileDescription":null,"CShowStart'
+     200 POST https://etf.allianzgi.com.tw/webapi/api/Article/GetArticleByID
+        body={"PageIndex":1,"PageSize":10,"FunctionID":7343,"ID":4,"IsPreview":false}
+        resp='{"TotalPages":-1,"TotalItems":0,"Entries":null,"Message":"查無該單元！","StatusCode":1,"RedirectUrl":null}'
+     200 POST https://etf.allianzgi.com.tw/webapi/api/Home/GetMetaData
+        body={"headers":{"normalizedNames":{},"lazyUpdate":null,"lazyInit":null,"headers":{}}}
+        resp='{"TotalPages":-1,"TotalItems":0,"Entries":{"CTitle":"安聯投信 | 主動式ETF專區 掌握即時預估淨值、配息、交易資訊","CDescription":"安聯投信 | 主動式ETF專區 掌握即時預估淨值、配息、交易資訊","CKeyWord":"安聯投信 | 主動式ETF專區 掌握即時預估淨值、配息、交易資訊","CGTMCode":"\\u003Chead\\u003E\\r\\n\\u003Cscript src=\\u0022https://cdn.cookielaw.org/scripttemplates/otSDKStub.js\\u0022  '
+     200 GET https://cdn.cookielaw.org/consent/0198dfe4-a01d-75ab-a14a-f4b573f74be8/0198dfe4-a01d-75ab-a14a-f4b573f74be8.json
+        resp='{"CookieSPAEnabled":false,"CookieSameSiteNoneEnabled":false,"CookieV2CSPEnabled":false,"MultiVariantTestingEnabled":false,"UseV2":true,"MobileSDK":false,"SkipGeolocation":true,"ScriptType":"PRODUCTION","Version":"202509.1.0","OptanonDataJSON":"0198dfe4-a01d-75ab-a14a-f4b573f74be8","GeolocationUrl":"'
+     200 GET https://cdn.cookielaw.org/consent/0198dfe4-a01d-75ab-a14a-f4b573f74be8/0198dff9-d3b3-70f8-8b7a-be73049183e1/zh-tw.json
+        resp='{"DomainData":{"pclifeSpanYr":"年","pclifeSpanYrs":"年","pclifeSpanSecs":"幾秒鐘","pclifeSpanWk":"星期","pclifeSpanWks":"週","pccontinueWithoutAcceptText":"不接受而繼續","pccloseButtonType":"Icon","MainText":"資料隱私偏好設定","MainInfoText":"當您瀏覽任何網站時，該網站可能在您的瀏覽器以cookies形式儲存或獲取資訊。該資訊可能與您、您的偏好設定或裝置有關，其目的在讓該網站能夠按照您的期望運作。這'
+     200 GET https://cdn.cookielaw.org/scripttemplates/202509.1.0/assets/v2/otPcCenter.json
+        resp='\n        {\n            "name": "otPcCenter",\n            "html": "PGRpdiBpZD0ib25ldHJ1c3QtcGMtc2RrIiBjbGFzcz0ib3RQY0NlbnRlciBvdC1oaWRlIG90LWZhZGUtaW4iPjxkaXYgcm9sZT0iZGlhbG9nIiBhcmlhLW1vZGFsPSJ0cnVlIj48IS0tIENsb3NlIEJ1dHRvbiAtLT48ZGl2IGNsYXNzPSJvdC1wYy1oZWFkZXIiPjwhLS0gTG9nbyBUYWcgLS0+PGRpdiBjbGFzcz'
+     200 GET https://cdn.cookielaw.org/scripttemplates/202509.1.0/assets/otCommonStyles.css
+        resp='#onetrust-banner-sdk .onetrust-vendors-list-handler{cursor:pointer;color:#1f96db;font-size:inherit;font-weight:bold;text-decoration:none;margin-left:5px}#onetrust-banner-sdk .onetrust-vendors-list-handler:hover{color:#1f96db}#onetrust-banner-sdk:focus{outline:2px solid #000;outline-offset:-2px}#onet'
+     200 GET https://cdn.cookielaw.org/consent/0198dfe4-a01d-75ab-a14a-f4b573f74be8/0198dff9-d3b3-70f8-8b7a-be73049183e1/bLayout-zh-tw.json
+        resp='{"html":"<div id=\\"onetrust-banner-sdk\\" class=\\"otFloatingRoundedCorner ot-bottom-left ot-wo-title\\" tabindex=\\"0\\"><div class=\\"ot-sdk-container\\" role=\\"dialog\\" aria-label=\\"隱私\\"><div class=\\"ot-sdk-row\\"><div id=\\"onetrust-group-container\\" class=\\"ot-sdk-twelve ot-sdk-columns\\"><div id=\\"onetr'
+     200 POST https://etf.allianzgi.com.tw/webapi/api/Category/GetFundTypeDropdownOptions
+        body={"IsAddAllOption":true}
+        resp='{"TotalPages":-1,"TotalItems":2,"Entries":[{"Name":"全部","Id":-1,"ParentID":-1,"Sort":-1},{"Name":"主動式交易所交易基金","Id":6,"ParentID":1,"Sort":1}],"Message":"","StatusCode":0,"RedirectUrl":null}'
+     200 GET https://cdn.cookielaw.org/logos/static/ot_guard_logo.svg
+        resp='<svg xmlns="http://www.w3.org/2000/svg"><path class="ot-floating-button__svg-fill" d="M14.588 0l.445.328c1.807 1.303 3.961 2.533 6.461 3.688 2.015.93 4.576 1.746 7.682 2.446 0 14.178-4.73 24.133-14.19 29.864l-.398.236C4.863 30.87 0 20.837 0 6.462c3.107-.7 5.668-1.516 7.682-2.446 2.709-1.251 5.01-2.5'
+     200 POST https://etf.allianzgi.com.tw/webapi/api/Home/GetBreadCrumbInfo
+        body={"UnitAfterID":1}
+        resp='{"TotalPages":-1,"TotalItems":0,"Entries":{"Title":"ETF總覽","SubTitle":null,"ImageUrl":"","ImageName":"","IsUnit":true,"PageUrl":"/etf-list","SecondPageUrl":"/etf-list","SpecialTitle":"","CTitle":"安聯投信 | 主動式ETF專區 掌握即時預估淨值、配息、交易資訊","CDescription":"安聯投信 | 主動式ETF專區 掌握即時預估淨值、配息、交易資訊","CKeyWord":"安聯投信 | 主'
+     200 POST https://etf.allianzgi.com.tw/webapi/api/Home/PostAnalysisData
+        body={"DeviceType":0,"CurrentPath":"https://etf.allianzgi.com.tw/etf-list","PreviousPath":"","UserID":"dd59f0e1-c5d7-45e8-a341-d9a49d12ff1f","Zone":"US"}
+        resp=''
+     200 POST https://etf.allianzgi.com.tw/webapi/api/Category/GetFundDropdownOptions
+        body={"IsAddAllOption":true,"TypeID":-1}
+        resp='{"TotalPages":-1,"TotalItems":0,"Entries":[{"FundNo":"","FundFullName":"請選擇","FundShortName":"請選擇","FundWarning":"","SecuritiesCode":"","CustodianBank":""},{"FundNo":"E0001","FundFullName":"安聯台灣高息成長主動式ETF證券投資信託基金","FundShortName":"主動安聯台灣高息","FundWarning":"(本基金之配息來源可能為收益平準金且基金並無保證收益及配息)","SecuritiesC'
+     200 POST https://etf.allianzgi.com.tw/webapi/api/Fund/GetFundOverview
+        body={"Keyword":"","FundNo":"","FundType":-1,"PageSize":999,"PageIndex":1}
+        resp='{"TotalPages":-1,"TotalItems":4,"Entries":[{"CFundNo":"E0001","CSecuritiesCode":"00984A","CFullName":"安聯台灣高息成長主動式ETF證券投資信託基金","CWarning":"(本基金之配息來源可能為收益平準金且基金並無保證收益及配息)","CLatestNAV":16.280000,"CLatestNAVStr":"16.28","CLatestNAVDate":"2026-10-07T00:00:00","CLatestNAVDateStr":"2026/10/07","CLatestCha'
+  含成分股字樣的回應 0 個：
+====================================================================================================
+[extra-1] https://etf.allianzgi.com.tw/etf-list@@安聯台灣@@申購買回
+  已點： 安聯台灣 → https://etf.allianzgi.com.tw/etf-info/E0001?tab=1
+  點不到： 申購買回 Locator.click: Timeout 10000ms exceeded.
+Call log:
+  - waiting for get_by_text("申購買回").first
+
+  最終網址: https://etf.allianzgi.com.tw/etf-info/E0001?tab=1  標題: 安聯投信 | 主動式ETF專區 掌握即時預估淨值、配息、交易資訊
+    連結: 聯絡我們 -> https://etf.allianzgi.com.tw/contact-us
+  XHR／文件請求 30 個：
+     200 GET https://etf.allianzgi.com.tw/etf-list
+        resp='<!doctype html>\r\n<html lang="en" data-critters-container>\r\n\r\n<head>\r\n  <meta charset="utf-8">\r\n  <title>安聯ETF</title>\r\n  <base href="/">\r\n  <meta name="viewport" content="width=device-width, initial-scale=1">\r\n  <link rel="icon" type="image/x-icon" href="favicon.ico">\r\n  <link rel="stylesheet" href='
+     200 GET https://etf.allianzgi.com.tw/webapi/api/homee/FrontendPublic
+        resp='{"TotalPages":-1,"TotalItems":0,"Entries":{"ApiUrl":"/webapi/api","Domain":"https://etf.allianzgi.com.tw/","Company":"安聯投信","ChangeInterestAccount":{"NonParticipantNotice":{"BeforeLink":"若您為未滿18歲或尚未參與過本公司ETF配息，請於ETF停止過戶日後，再使用本網頁提出申請；或填寫","LinkText":"申請書","AfterLink":"並檢附相關證件以紙本申請變更。","LinkUrl":"http'
+     200 GET https://etf.allianzgi.com.tw/webapi/api/AntiForgery/GetAntiForgeryToken
+        headers={'accept': 'application/json, text/plain, */*', 'accept-encoding': 'gzip, deflate, br, zstd', 'accept-language': 'zh-TW', 'connection': 'keep-alive', 'host': 'etf.allianzgi.com.tw', 'referer': 'https://etf.allianzgi.com.tw/etf-list', 'sec-fetch-dest': 'empty', 'sec-fetch-mode': 'cors', 'sec-fetch-site': 'same-origin', 'sec-ch-ua': '"HeadlessChrome";v="153", "Not_A Brand";v="8", "Chromium";v="153"', 'sec-ch-ua-mobile': '?0', 'sec-ch-ua-platform': '"Linux"'}
+        resp='{"token":"CfDJ8O4lLg5ozXJAnaegOLTBzPSpC2iCO2Tl5mHGvUK8Q3-NiwdMC2AqA2y3DAF9D0xGGms9pT5PIN9y-aI8MwC3PRX3spxlGBi3GTKh4zMI8BFjAZRimOsUBWmKuebUAq_CztXehqSPAyTyWbG3rZek_yI","issuedAtUtc":1791406054595,"maxAgeSeconds":86400,"expiresAtUtc":1791492454595,"message":"Antiforgery token generated successfully."}'
+     200 GET https://ipapi.co/json/
+        resp='{\n    "ip": "172.182.192.152",\n    "network": "172.182.0.0/16",\n    "version": "IPv4",\n    "city": "Phoenix",\n    "region": "Arizona",\n    "region_code": "AZ",\n    "country": "US",\n    "country_name": "United States",\n    "country_code": "US",\n    "country_code_iso3": "USA",\n    "country_capital": "'
+     200 POST https://etf.allianzgi.com.tw/webapi/api/Home/GetUnit
+        body={"headers":{"normalizedNames":{},"lazyUpdate":null}}
+        resp='{"TotalPages":-1,"TotalItems":0,"Entries":[{"CId":1,"CName":"ETF總覽","CParentID":0,"CIsExternalLinks":false,"CPageUrl":"/etf-list","CIsOpenNewWindow":false,"CIsShowInMainMenu":false,"CPageExplanation":"","CTemplateType":99,"CIsCanAddChildNode":true,"CFunctionID":65,"CSort":1,"CFileName":"","ChildUnit'
+     200 POST https://etf.allianzgi.com.tw/webapi/api/Home/GetHeaderCommunity
+        body={"headers":{"normalizedNames":{},"lazyUpdate":null,"lazyInit":null,"headers":{}}}
+        resp='{"TotalPages":-1,"TotalItems":0,"Entries":[{"CId":4,"CName":"Youtube","CType":2,"CIcon":"https://etf.allianzgi.com.tw/webapi/File/4cc6da0d-c787-4dd7-aec3-a6bfed22976a/youtube-80.png","CUrl":"https://www.youtube.com/channel/UCZrpAoDX6TSCEKndMGZvdNQ","CFooterIcon":"https://etf.allianzgi.com.tw/webapi/'
+     200 POST https://etf.allianzgi.com.tw/webapi/api/Article/GetArticleByUnit
+        body={"PageIndex":1,"PageSize":100,"FunctionID":638,"Keyword":"","Tags":[],"IsPreview":false,"CID":0,"SortColName":"","IsDesc":false,"IsPagination":false}
+        resp='{"TotalPages":-1,"TotalItems":5,"Entries":{"CParentID":6816,"ParentName":"首頁管理","CID":638,"CName":"Footer連結管理","Data":[{"CId":1,"CFunctionId":638,"CCategoryId":0,"CName":"使用條款","CContent":"","CFileNameSys":"https://etf.allianzgi.com.tw/webapi/","CFileNameOld":null,"CFileDescription":null,"CShowStart'
+     200 POST https://etf.allianzgi.com.tw/webapi/api/Home/GetFooterContent
+        body={"CId":1}
+        resp='{"TotalPages":-1,"TotalItems":0,"Entries":[{"CId":1,"CTitle":"預設Footer","CContent":"\\u003Cp style=\\u0022text-align: left;\\u0022\\u003E\\u003Cstrong\\u003E【安聯投信\\u3000獨立經營管理】 \\u003C/strong\\u003E115金管投信新字第003號\\u003Cbr /\\u003E\\r\\n\\u003Cstrong\\u003E本基金經金管會核准或同意生效，惟不表示絕無風險。基金經理公司以往之經理績效不保證基金之最低投資收益；基金經理公司除盡善'
+     200 POST https://etf.allianzgi.com.tw/webapi/api/Article/GetArticleByID
+        body={"PageIndex":1,"PageSize":10,"FunctionID":7343,"ID":4,"IsPreview":false}
+        resp='{"TotalPages":-1,"TotalItems":0,"Entries":null,"Message":"查無該單元！","StatusCode":1,"RedirectUrl":null}'
+     200 POST https://etf.allianzgi.com.tw/webapi/api/Home/GetMetaData
+        body={"headers":{"normalizedNames":{},"lazyUpdate":null,"lazyInit":null,"headers":{}}}
+        resp='{"TotalPages":-1,"TotalItems":0,"Entries":{"CTitle":"安聯投信 | 主動式ETF專區 掌握即時預估淨值、配息、交易資訊","CDescription":"安聯投信 | 主動式ETF專區 掌握即時預估淨值、配息、交易資訊","CKeyWord":"安聯投信 | 主動式ETF專區 掌握即時預估淨值、配息、交易資訊","CGTMCode":"\\u003Chead\\u003E\\r\\n\\u003Cscript src=\\u0022https://cdn.cookielaw.org/scripttemplates/otSDKStub.js\\u0022  '
+     200 GET https://cdn.cookielaw.org/consent/0198dfe4-a01d-75ab-a14a-f4b573f74be8/0198dfe4-a01d-75ab-a14a-f4b573f74be8.json
+        resp='{"CookieSPAEnabled":false,"CookieSameSiteNoneEnabled":false,"CookieV2CSPEnabled":false,"MultiVariantTestingEnabled":false,"UseV2":true,"MobileSDK":false,"SkipGeolocation":true,"ScriptType":"PRODUCTION","Version":"202509.1.0","OptanonDataJSON":"0198dfe4-a01d-75ab-a14a-f4b573f74be8","GeolocationUrl":"'
+     200 GET https://cdn.cookielaw.org/consent/0198dfe4-a01d-75ab-a14a-f4b573f74be8/0198dff9-d3b3-70f8-8b7a-be73049183e1/zh-tw.json
+        resp='{"DomainData":{"pclifeSpanYr":"年","pclifeSpanYrs":"年","pclifeSpanSecs":"幾秒鐘","pclifeSpanWk":"星期","pclifeSpanWks":"週","pccontinueWithoutAcceptText":"不接受而繼續","pccloseButtonType":"Icon","MainText":"資料隱私偏好設定","MainInfoText":"當您瀏覽任何網站時，該網站可能在您的瀏覽器以cookies形式儲存或獲取資訊。該資訊可能與您、您的偏好設定或裝置有關，其目的在讓該網站能夠按照您的期望運作。這'
+     200 GET https://cdn.cookielaw.org/scripttemplates/202509.1.0/assets/v2/otPcCenter.json
+        resp='\n        {\n            "name": "otPcCenter",\n            "html": "PGRpdiBpZD0ib25ldHJ1c3QtcGMtc2RrIiBjbGFzcz0ib3RQY0NlbnRlciBvdC1oaWRlIG90LWZhZGUtaW4iPjxkaXYgcm9sZT0iZGlhbG9nIiBhcmlhLW1vZGFsPSJ0cnVlIj48IS0tIENsb3NlIEJ1dHRvbiAtLT48ZGl2IGNsYXNzPSJvdC1wYy1oZWFkZXIiPjwhLS0gTG9nbyBUYWcgLS0+PGRpdiBjbGFzcz'
+     200 GET https://cdn.cookielaw.org/scripttemplates/202509.1.0/assets/otCommonStyles.css
+        resp='#onetrust-banner-sdk .onetrust-vendors-list-handler{cursor:pointer;color:#1f96db;font-size:inherit;font-weight:bold;text-decoration:none;margin-left:5px}#onetrust-banner-sdk .onetrust-vendors-list-handler:hover{color:#1f96db}#onetrust-banner-sdk:focus{outline:2px solid #000;outline-offset:-2px}#onet'
+     200 GET https://cdn.cookielaw.org/consent/0198dfe4-a01d-75ab-a14a-f4b573f74be8/0198dff9-d3b3-70f8-8b7a-be73049183e1/bLayout-zh-tw.json
+        resp='{"html":"<div id=\\"onetrust-banner-sdk\\" class=\\"otFloatingRoundedCorner ot-bottom-left ot-wo-title\\" tabindex=\\"0\\"><div class=\\"ot-sdk-container\\" role=\\"dialog\\" aria-label=\\"隱私\\"><div class=\\"ot-sdk-row\\"><div id=\\"onetrust-group-container\\" class=\\"ot-sdk-twelve ot-sdk-columns\\"><div id=\\"onetr'
+     200 POST https://etf.allianzgi.com.tw/webapi/api/Category/GetFundTypeDropdownOptions
+        body={"IsAddAllOption":true}
+        resp='{"TotalPages":-1,"TotalItems":2,"Entries":[{"Name":"全部","Id":-1,"ParentID":-1,"Sort":-1},{"Name":"主動式交易所交易基金","Id":6,"ParentID":1,"Sort":1}],"Message":"","StatusCode":0,"RedirectUrl":null}'
+     200 GET https://cdn.cookielaw.org/logos/static/ot_guard_logo.svg
+        resp='<svg xmlns="http://www.w3.org/2000/svg"><path class="ot-floating-button__svg-fill" d="M14.588 0l.445.328c1.807 1.303 3.961 2.533 6.461 3.688 2.015.93 4.576 1.746 7.682 2.446 0 14.178-4.73 24.133-14.19 29.864l-.398.236C4.863 30.87 0 20.837 0 6.462c3.107-.7 5.668-1.516 7.682-2.446 2.709-1.251 5.01-2.5'
+     200 POST https://etf.allianzgi.com.tw/webapi/api/Home/GetBreadCrumbInfo
+        body={"UnitAfterID":1}
+        resp='{"TotalPages":-1,"TotalItems":0,"Entries":{"Title":"ETF總覽","SubTitle":null,"ImageUrl":"","ImageName":"","IsUnit":true,"PageUrl":"/etf-list","SecondPageUrl":"/etf-list","SpecialTitle":"","CTitle":"安聯投信 | 主動式ETF專區 掌握即時預估淨值、配息、交易資訊","CDescription":"安聯投信 | 主動式ETF專區 掌握即時預估淨值、配息、交易資訊","CKeyWord":"安聯投信 | 主'
+     200 POST https://etf.allianzgi.com.tw/webapi/api/Home/PostAnalysisData
+        body={"DeviceType":0,"CurrentPath":"https://etf.allianzgi.com.tw/etf-list","PreviousPath":"","UserID":"c3a81a81-aa33-4c0c-8df9-1e43451d70cb","Zone":"US"}
+        resp=''
+     200 POST https://etf.allianzgi.com.tw/webapi/api/Category/GetFundDropdownOptions
+        body={"IsAddAllOption":true,"TypeID":-1}
+        resp='{"TotalPages":-1,"TotalItems":0,"Entries":[{"FundNo":"","FundFullName":"請選擇","FundShortName":"請選擇","FundWarning":"","SecuritiesCode":"","CustodianBank":""},{"FundNo":"E0001","FundFullName":"安聯台灣高息成長主動式ETF證券投資信託基金","FundShortName":"主動安聯台灣高息","FundWarning":"(本基金之配息來源可能為收益平準金且基金並無保證收益及配息)","SecuritiesC'
+     200 POST https://etf.allianzgi.com.tw/webapi/api/Fund/GetFundOverview
+        body={"Keyword":"","FundNo":"","FundType":-1,"PageSize":999,"PageIndex":1}
+        resp='{"TotalPages":-1,"TotalItems":4,"Entries":[{"CFundNo":"E0001","CSecuritiesCode":"00984A","CFullName":"安聯台灣高息成長主動式ETF證券投資信託基金","CWarning":"(本基金之配息來源可能為收益平準金且基金並無保證收益及配息)","CLatestNAV":16.280000,"CLatestNAVStr":"16.28","CLatestNAVDate":"2026-10-07T00:00:00","CLatestNAVDateStr":"2026/10/07","CLatestCha'
+     200 POST https://etf.allianzgi.com.tw/webapi/api/Fund/GetFundDetail
+        body={"FundNo":"E0001","IsPreview":false}
+        resp='{"TotalPages":-1,"TotalItems":0,"Entries":{"CId":1,"CFundNo":"E0001","CFullName":"安聯台灣高息成長主動式ETF證券投資信託基金","CShortName":"主動安聯台灣高息","CSecuritiesCode":"00984A","CWarning":"(本基金之配息來源可能為收益平準金且基金並無保證收益及配息)","CDescription":"","CInvestmentTarget":"以核心高股息股票作為收益基礎，再搭配具成長潛力之個股，為投資人提供股息收入並追求超額報酬機會。採用多策略模組，不被單一選'
+     200 POST https://etf.allianzgi.com.tw/webapi/api/Fund/GetFundRankImport
+        body={"FundNo":"E0001","IsPreview":false}
+        resp='{"TotalPages":-1,"TotalItems":0,"Entries":{"CId":9,"CNo":"E0001","CRoiYearStartR":null,"CRoiYearStartRStr":"--","CRoi3MonthR":0.37,"CRoi3MonthRStr":"0.37%","CRoi6MonthR":28.34,"CRoi6MonthRStr":"28.34%","CRoi1YearR":65.15,"CRoi1YearRStr":"65.15%","CRoi2YearR":null,"CRoi2YearRStr":"--","CRoi3YearR":nu'
+     200 POST https://etf.allianzgi.com.tw/webapi/api/Fund/GetFundLatestNav
+        body={"FundNo":"E0001","IsPreview":false}
+        resp='{"TotalPages":-1,"TotalItems":0,"Entries":{"CFundNo":"E0001","CNavdigit":2,"CSetUpDt":"2025/07/03","CLatestNAV":16.280000,"CLatestNAVStr":"16.28","CLatestNAVDate":"2026-10-07T00:00:00","CLatestNAVDateStr":"2026/10/07","CLatestChange":0.020000,"CLatestChangeStr":"0.02","CLatestChangeRatio":0.12,"CLat'
+     200 POST https://etf.allianzgi.com.tw/webapi/api/Fund/GetFundAssets
+        body={"FundID":"E0001"}
+        resp='{"TotalPages":-1,"TotalItems":0,"Entries":{"FundID":"E0001","Data":{"FundAsset":{"Aum":"10223604055","Units":"627958000","Nav":"16.28","NavDate":"2026/10/07","PCFDate":"2026/10/08"},"Table":[{"TableTitle":"","Columns":[{"Name":null,"TextAlign":null}],"Rows":[[" "," "," "," "],["股票","TWD$9,998,623,30'
+     200 POST https://etf.allianzgi.com.tw/webapi/api/Fund/GetFundYield
+        body={"FundNo":"E0001","SDate":"2025-10-07T20:47:40.041Z","EDate":"2026-10-07T20:47:40.041Z","FundType":-1}
+        resp='{"TotalPages":-1,"TotalItems":0,"Entries":[{"CFundNo":"E0001","CSecuritiesCode":"00984A","CFullName":"安聯台灣高息成長主動式ETF證券投資信託基金","CWarning":"(本基金之配息來源可能為收益平準金且基金並無保證收益及配息)","CUnitDigit":4,"FundYieldList":[{"CFundNo":null,"CSecuritiesCode":null,"CFullName":null,"CUnitDigit":4,"CBaseDate":"2026-07-15T00:'
+     200 POST https://etf.allianzgi.com.tw/webapi/api/Fund/GetFundFileLink
+        body={"FundNo":"E0001"}
+        resp='{"TotalPages":-1,"TotalItems":0,"Entries":{"MonthUrl":"https://www.allianzglobalinvestors.de/MDBWS/doc/mdioe0001.pdf?c93a10f6c6af35afa61b900a7db50360371f77a0","ProspectusUrl":"https://www.allianzglobalinvestors.de/MDBWS/doc/E0001.pdf?1e01bddc1608bae55f3ea750aaa6fa2cb33617e8","SimpleProspectusUrl":"h'
+     200 POST https://etf.allianzgi.com.tw/webapi/api/Fund/PremiumDiscount/Info
+        body={"TypeList":[1,2]}
+        resp='{"TotalPages":-1,"TotalItems":0,"Entries":[{"CId":1,"CType":1,"Title":"","Content":"\\u003Cp\\u003E\\u003Cspan\\u003E備註說明\\u003C/span\\u003E\\u003C/p\\u003E\\r\\n\\r\\n\\u003Cdiv class=\\u0022flex flex-col items-start mt-2 text-[#5B5B5B] text-sm\\u0022\\u003E\\r\\n\\u003Cul class=\\u0022space-y-2 text-sm leading-snug\\u'
+     200 POST https://etf.allianzgi.com.tw/webapi/api/Home/GetFooterContent
+        body={"CId":1}
+        resp='{"TotalPages":-1,"TotalItems":0,"Entries":[{"CId":1,"CTitle":"預設Footer","CContent":"\\u003Cp style=\\u0022text-align: left;\\u0022\\u003E\\u003Cstrong\\u003E【安聯投信\\u3000獨立經營管理】 \\u003C/strong\\u003E115金管投信新字第003號\\u003Cbr /\\u003E\\r\\n\\u003Cstrong\\u003E本基金經金管會核准或同意生效，惟不表示絕無風險。基金經理公司以往之經理績效不保證基金之最低投資收益；基金經理公司除盡善'
+     200 POST https://etf.allianzgi.com.tw/webapi/api/Home/PostAnalysisData
+        body={"DeviceType":0,"CurrentPath":"https://etf.allianzgi.com.tw/etf-info/E0001?tab=1","PreviousPath":"https://etf.allianzgi.com.tw/etf-list","UserID":"c3a81a81-aa33-4c0c-8df9-1e43451d70cb","Zone":"US"}
+        resp=''
+  含成分股字樣的回應 1 個：
+   ★ 200 POST https://etf.allianzgi.com.tw/webapi/api/Fund/GetFundAssets
+     POST body: {"FundID":"E0001"}
+     type: application/json; charset=utf-8  bytes: 3694
+     開頭: {"TotalPages":-1,"TotalItems":0,"Entries":{"FundID":"E0001","Data":{"FundAsset":{"Aum":"10223604055","Units":"627958000","Nav":"16.28","NavDate":"2026/10/07","PCFDate":"2026/10/08"},"Table":[{"TableTitle":"","Columns":[{"Name":null,"TextAlign":null}],"Rows":[[" "," "," "," "],["股票","TWD$9,998,623,307","TWD","9,998,623,307"]]},{"TableTitle":"股票 (97.80%)","Columns":[{"Name":"序號","TextAlign":"center"},{"Name":"股票代號","TextAlign":"center"},{"Name":"股票名稱","TextAlign":"center"},{"Name":"股數","TextAlign"
+     2330 前後: tle":"","Columns":[{"Name":null,"TextAlign":null}],"Rows":[[" "," "," "," "],["股票","TWD$9,998,623,307","TWD","9,998,623,307"]]},{"TableTitle":"股票 (97.80%)","Columns":[{"Name":"序號","TextAlign":"center"},{"Name":"股票代號","TextAlign":"center"},{"Name":"股票名稱","TextAlign":"center"},{"Name":"股數","TextAlign":"center"},{"Name":"權重(%)","TextAlign":"center"}],"Rows":[["1","3017","奇鋐","129,000","4.47%"],["2","2330","台積電","176,000","4.45%"],["3","2881","富邦金控","2,668,000","4.06%"],["4","2887","台新新光金","8,082,000","3.33%"],["5","6505","台塑石化","3,078,000","3.22%"],["6","2885","元大金","4,665,880","3.19%"],["7","2882","國泰金","2,846,000","3.15%"],["8","1303","南亞","991,000","3.04%"],["9","2395","研華","361,000","2.59%"],["10","2883","凱基金控","6,257,000","2.36%"],["11","6187","萬潤科技","157,000","2.36%"],["12","2059","川湖",
+====================================================================================================
+[extra-2] https://am.jpmorgan.com/tw/zh/asset-management/twetf/funds/jpmorgan-tw-equity-high-income-etf/@@申購買回
+  點不到： 申購買回 Locator.click: Timeout 10000ms exceeded.
+Call log:
+  - waiting for get_by_text("申購買回").first
+    - locator resolved to <
+  最終網址: https://am.jpmorgan.com/tw/zh/asset-management/twetf/funds/jpmorgan-tw-equity-high-income-etf/  標題: 00401A 收益進化 台灣起飛 | J.P. Morgan Asset Management
+    連結: 重要事項及免責聲明 -> https://am.jpmorgan.com/tw/zh/asset-management/twetf/funds/jpmorgan-tw-equity-high-income-etf/#%E9%87%8D%E8%A6%81%E4%BA%8B%E9%A0%85%E5%8F%8A%E5%85%8D%E8%B2%AC%E8%81%B2%E6%98%8E
+    連結: 同意並接受本使用條款、修訂及增補項目 -> https://am.jpmorgan.com/tw/zh/asset-management/twetf/funds/jpmorgan-tw-equity-high-income-etf/#%E5%90%8C%E6%84%8F%E4%B8%A6%E6%8E%A5%E5%8F%97%E6%9C%AC%E4%BD%BF%E7%94%A8%E6%A2%9D%E
+    連結: 隱私權政策 -> https://am.jpmorgan.com/tw/zh/asset-management/twetf/funds/jpmorgan-tw-equity-high-income-etf/#%E9%9A%B1%E7%A7%81%E6%AC%8A%E6%94%BF%E7%AD%96
+    連結: Cookies 政策 -> https://am.jpmorgan.com/tw/zh/asset-management/twetf/funds/jpmorgan-tw-equity-high-income-etf/#cookies_%E6%94%BF%E7%AD%96
+    連結: 網路安全說明 -> https://am.jpmorgan.com/tw/zh/asset-management/twetf/funds/jpmorgan-tw-equity-high-income-etf/#%E7%B6%B2%E8%B7%AF%E5%AE%89%E5%85%A8%E8%AA%AA%E6%98%8E
+    連結: Skip to main content -> https://am.jpmorgan.com/tw/zh/asset-management/twetf/funds/jpmorgan-tw-equity-high-income-etf/#contentStart
+    連結:  -> https://am.jpmorgan.com/tw/zh/asset-management/twetf/
+    連結: ETF 產品中心 -> https://am.jpmorgan.com/tw/zh/asset-management/twetf/funds/jpmorgan-tw-equity-high-income-etf/
+    連結:  -> https://am.jpmorgan.com/tw/zh/asset-management/twetf/funds/jpmorgan-tw-equity-high-income-etf/
+    連結:  -> https://am.jpmorgan.com/tw/zh/asset-management/twetf/funds/jpmorgan-us-tech-leaders-etf/
+    連結:  -> https://am.jpmorgan.com/tw/zh/asset-management/twetf/funds/announcements/
+    連結:  -> https://am.jpmorgan.com/tw/zh/asset-management/twetf/funds/non-dealing-days-calendar/
+    連結: 00989A 摩根主動 極速領跑 -> https://am.jpmorgan.com/tw/zh/asset-management/twetf/funds/jpmorgan-us-tech-leaders-etf/
+    連結: 即時預估淨值 -> https://am.jpmorgan.com/tw/zh/asset-management/twetf/funds/inav/
+    連結: 申購買回清單 -> https://am.jpmorgan.com/tw/zh/asset-management/twetf/products/jpmorgan-taiwan-taiwan-equity-high-income-active-etf-tw00000401a1#/pcf
+    連結: 基金投資組合 -> https://am.jpmorgan.com/tw/zh/asset-management/twetf/products/jpmorgan-taiwan-taiwan-equity-high-income-active-etf-tw00000401a1#/portfolio
+    連結: 投資觀點 -> https://am.jpmorgan.com/tw/zh/asset-management/twetf/investment-ideas/
+    連結:  -> https://am.jpmorgan.com/tw/zh/asset-management/twetf/investment-ideas/etf-insights/
+    連結:  -> https://am.jpmorgan.com/tw/zh/asset-management/twetf/investment-ideas/guide-to-etfs/
+    連結: 服務專區 -> https://am.jpmorgan.com/tw/zh/asset-management/twetf/customer-service/
+    連結:  -> https://am.jpmorgan.com/tw/zh/asset-management/twetf/customer-service/form-download/
+    連結:  -> https://am.jpmorgan.com/tw/zh/asset-management/twetf/customer-service/selfservices/
+    連結: 常見問題 -> https://am.jpmorgan.com/tw/zh/asset-management/twetf/customer-service/frequently-asked-questions/
+    連結: 聯絡我們 -> https://am.jpmorgan.com/tw/zh/asset-management/twetf/customer-service/contact-us/
+    連結: 目前位置: ETF專區 -> https://am.jpmorgan.com/tw/zh/asset-management/twetf/funds/jpmorgan-tw-equity-high-income-etf/#
+    連結: 繼續 -> https://am.jpmorgan.com/tw/zh/asset-management/twetf/funds/jpmorgan-tw-equity-high-income-etf/
+    連結: ETF專區 -> https://am.jpmorgan.com/tw/zh/asset-management/twetf/
+    連結: ETF產品 -> https://am.jpmorgan.com/tw/zh/asset-management/twetf/funds/
+    連結: 00401A最新ETF配息公告 > -> https://cdn.jpmorganfunds.com/content/dam/jpm-am-aem/asiapacific/tw/zh/supplemental/announcements/documents/30092026-ETF-UT58.pdf
+    連結: 了解更多00401A -> https://am.jpmorgan.com/tw/zh/asset-management/twetf/products/jpmorgan-taiwan-taiwan-equity-high-income-active-etf-tw00000401a1
+    連結: 下載DM -> https://cdn.jpmorganfunds.com/content/dam/jpm-am-aem/asiapacific/tw/zh/twetf/funds/jpmorgan-tw-equity-high-income-etf-00401A-dm.pdf
+    連結: 產品概覽 -> https://am.jpmorgan.com/tw/zh/asset-management/twetf/products/jpmorgan-taiwan-taiwan-equity-high-income-active-etf-tw00000401a1#/overview
+    連結: 掩護性買權策略釋例 -> https://am.jpmorgan.com/tw/zh/asset-management/twetf/funds/jpmorgan-tw-equity-high-income-etf/#item0
+    連結: 運用掩護性買權的台股主動式ETF策略 -> https://am.jpmorgan.com/tw/zh/asset-management/twetf/funds/jpmorgan-tw-equity-high-income-etf/#item1
+    連結: 網站地圖 -> https://am.jpmorgan.com/tw/zh/asset-management/twetf/sitemap/
+    連結: 常見問題 -> https://am.jpmorgan.com/tw/zh/asset-management/twetf/customer-service/frequently-asked-questions/
+  XHR／文件請求 30 個：
+     200 GET https://am.jpmorgan.com/tw/zh/asset-management/twetf/funds/jpmorgan-tw-equity-high-income-etf/
+        resp='\n  <!DOCTYPE HTML>\n  \n  \n  \n  <html lang="zh-Hant">\n\n  <head>\n    \n    \n    \n    \n    \n    \n    \n    <meta charset="UTF-8"/>\n    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>\n    <meta name="referrer" content="no-referrer-when-downgrade"/>\n    <meta content="UEgzQAQUVvl5ylE'
+     200 GET https://am.jpmorgan.com/content/jpm-am-aem/countryroleselectorconfigpage.crsmap.tw_zh_twetf.json?currentPath=/content/jpm-am-aem/asiapacific/tw/zh/twetf/includes/header-etf/jcr:content/par/jpm_am_navigation_he
+        resp='{"crsData":[{"regionValue":"Americas","regionDisplayValue":"美洲 | Americas","regionCode":"americas","countryList":[{"countryValue":"Brazil","countryDisplayValue":"巴西 | Brazil","countryCode":"br","flagPath":"/content/dam/jpm-am-aem/global/en/images/common/flags/br.jpg","languages":[{"languageValue":"E'
+     200 GET https://am.jpmorgan.com/content/jpm-am-aem/asiapacific/tw/zh/twetf/funds/jpmorgan-tw-equity-high-income-etf/_jcr_content.videov2.json?v=1790817346660/asiapacific
+        resp='{"groupOfVideos":[{"groupID":"eaemcusuid_20260316070605","style":"Full","theme":"Light","fileReference":"/content/dam/jpm-am-aem/global/en/brightcove-videos/899458537001/6391004977112.mp4","accountNumber":"899458537001","videoID":"6391004977112","brightcoveTitle":"0313_摩根台灣鑫收益主動式ETF_00401A篇_90s "}],'
+     200 GET https://am.jpmorgan.com/content/jpm-am-aem/asiapacific/tw/zh/twetf/funds/jpmorgan-tw-equity-high-income-etf/_jcr_content.statisticscards.json?v=1790817346660/asiapacific
+        resp='{"groupOfCards":[{"groupID":"eaemcusuid_20260715084507","theme":"jp__lightTheme","visibleColumns":3,"statisticSize":"default","paddingStyle":"bottom_padding","lineStyle":"horizontal-line","colorTransition":"jp__lightTheme","listOfCards":[{"statisticLine1":"10/14","cardTextBlock":"<p>參與配息最後買進日</p>","'
+     200 GET https://am.jpmorgan.com/content/jpm-am-aem/countryroleselectorconfigpage.seomap.json
+        resp='{"availableExperiences":["br_en_adv","br_pt_adv","ca_en_adv","ca_fr_adv","ca_en_institutional","mx_en_adv","mx_es_adv","us_en_adv","us_en_per","us_en_institutional","us_en_liq","us_en_bony","us_en_ny529","us_en_smartretirement-vz","us_en_smartretirement-blend","us_en_smartretirement-caterpillar","us'
+     200 GET https://am.jpmorgan.com/content/jpm-am-aem/asiapacific/tw/zh/twetf/funds/jpmorgan-tw-equity-high-income-etf/_jcr_content.herobannerv2.json?v=1790817346660/asiapacific
+        resp='{"groupOfBanners":[{"groupID":"eaemcusuid_20260215074646","formatStyle":"fullImage","enableBreadCrumbs":true,"breadcrumb":{"whatsapp":true,"showEmail":null,"line":true,"facebook":true,"showPrint":true,"startLevel":5,"linkedin":true,"twitter":true,"downloadPath":null,"subscriptionType":null,"showDown'
+     200 GET https://am.jpmorgan.com/bin/servlet/navigationConfigurationService?homePage=%2Fcontent%2Fjpm-am-aem%2Fasiapacific%2Ftw%2Fzh%2Ftwetf
+        resp='{"header":{"menuItems":[{"title":"ETF 產品中心","link":"https://am.jpmorgan.com/tw/zh/asset-management/twetf/funds/jpmorgan-tw-equity-high-income-etf/","description":"00401A 收益進化 台灣起飛","contentAccess":"unlocked","addFundSearch":false,"subItems":[{"links":[{"contentAccess":"unlocked","altText":"00401A摩根台'
+     200 GET https://report.jpm.gbqofs.io/reporting/64654ad3-6f20-4015-a04e-6a2f544f8231/cls_report?_cls_s=7e7e86e4-4662-422a-99bd-2d7aad35bbe1%3A0&_cls_v=120e2e83-204b-4cd6-ac1c-eefb6c968cfb&pv=2&f_cls_s=true
+        resp='{"pv":2,"clss":"7e7e86e4-4662-422a-99bd-2d7aad35bbe1:0","clsv":"120e2e83-204b-4cd6-ac1c-eefb6c968cfb","clse":null,"conf":{"appId":1,"configuration":{"attributeRules":[{"name":"Close_x_survey_amjpmorgancom","pageUrl":"https://am.jpmorgan.com/*","pageHash":"","selector":"SPAN#uz_span_close","accessor"'
+     204 GET https://pixel.quantserve.com/cs?a=p-C08pQh5-6JzpN&gdpr=0&sf2=1
+        resp=''
+     200 GET https://edge.api.brightcove.com/playback/v1/accounts/899458537001/videos/6391004977112
+        resp='{"poster":"https://cf-images.us-east-1.prod.boltdns.net/v1/static/899458537001/5e2957a8-232f-4b13-a0db-ac8fa68dde24/5b6bfa7e-c508-4a38-8533-b9a514b3d6c5/1280x720/match/image.jpg","thumbnail":"https://cf-images.us-east-1.prod.boltdns.net/v1/static/899458537001/5e2957a8-232f-4b13-a0db-ac8fa68dde24/cc8'
+     200 GET https://pips.taboola.com/
+        resp='NULL'
+     200 GET https://manifest.prod.boltdns.net/manifest/v1/hls/v4/clear/899458537001/5e2957a8-232f-4b13-a0db-ac8fa68dde24/10s/master.m3u8?fastly_token=NmFjNzA4NDdfMDA0NDkxMjBkZWFlNjExNTEyZjFlNzEyYTI2M2U2NTg1MDRiYWRmNTQyMWE5OTI0ZGEyMWU4ZTVmZGFmNTdiMg%3D%3D
+        headers={':authority': 'manifest.prod.boltdns.net', ':method': 'GET', ':path': '/manifest/v1/hls/v4/clear/899458537001/5e2957a8-232f-4b13-a0db-ac8fa68dde24/10s/master.m3u8?fastly_token=NmFjNzA4NDdfMDA0NDkxMjBkZWFlNjExNTEyZjFlNzEyYTI2M2U2NTg1MDRiYWRmNTQyMWE5OTI0ZGEyMWU4ZTVmZGFmNTdiMg%3D%3D', ':scheme': 'https', 'accept': '*/*', 'accept-encoding': 'gzip, deflate, br, zstd', 'accept-language': 'zh-TW', 'origin': 'https://am.jpmorgan.com', 'priority': 'u=1, i', 'referer': 'https://am.jpmorgan.com/tw/zh/asset-management/twetf/funds/jpmorgan-tw-equity-high-income-etf/', 'sec-ch-ua': '"HeadlessChrome";v="153
+        resp='#EXTM3U\n#EXT-X-VERSION:4\n#EXT-X-MEDIA:TYPE=AUDIO,GROUP-ID="audio-0",NAME="en (Main)",DEFAULT=YES,AUTOSELECT=YES,LANGUAGE="en",URI="https://manifest.prod.boltdns.net/manifest/v1/hls/v4/clear/899458537001/5e2957a8-232f-4b13-a0db-ac8fa68dde24/78f94d88-a0ce-4cdc-b916-f674248cad57/10s/rendition.m3u8?fast'
+     204 GET https://cds.taboola.com/?uid=7d25c579-2ea1-4f25-8253-032ea090553d-tuct11c0357b&ptf=TGludXg=&ufv=MTUzLjAuODAxMC4xMg==&bnd=SGVhZGxlc3NDaHJvbWU=&bndv=MTUz&bnd=Tm90X0EgQnJhbmQ=&bndv=OA==&bnd=Q2hyb21pdW0=&bndv=MTUz&mbl=ZmFsc2U=&dc=la
+        resp=''
+     200 GET https://manifest.prod.boltdns.net/manifest/v1/hls/v4/clear/899458537001/5e2957a8-232f-4b13-a0db-ac8fa68dde24/cd839a0d-2d09-42f6-8eff-2bee8732eb2d/10s/rendition.m3u8?fastly_token=NmFjNzA4NDhfYjk1ZDc3MzAyMzlkNWYyYTg5NWYwN2RlYWM5YWRlOGRmNTM0NmRhNzZlZWZkZTM4ZjU2MDZkNjgwY2VjNTNlMw%3D%3D
+        headers={':authority': 'manifest.prod.boltdns.net', ':method': 'GET', ':path': '/manifest/v1/hls/v4/clear/899458537001/5e2957a8-232f-4b13-a0db-ac8fa68dde24/cd839a0d-2d09-42f6-8eff-2bee8732eb2d/10s/rendition.m3u8?fastly_token=NmFjNzA4NDhfYjk1ZDc3MzAyMzlkNWYyYTg5NWYwN2RlYWM5YWRlOGRmNTM0NmRhNzZlZWZkZTM4ZjU2MDZkNjgwY2VjNTNlMw%3D%3D', ':scheme': 'https', 'accept': '*/*', 'accept-encoding': 'gzip, deflate, br, zstd', 'accept-language': 'zh-TW', 'origin': 'https://am.jpmorgan.com', 'priority': 'u=1, i', 'referer': 'https://am.jpmorgan.com/tw/zh/asset-management/twetf/funds/jpmorgan-tw-equity-high-income-etf/
+        resp='#EXTM3U\n#EXT-X-VERSION:3\n#EXT-X-PLAYLIST-TYPE:VOD\n#EXT-X-MEDIA-SEQUENCE:0\n#EXT-X-TARGETDURATION:10\n#EXTINF:10.010,\nhttps://fastly-signed-us-east-1-prod.brightcovecdn.com/media/v1/hls/v4/clear/899458537001/5e2957a8-232f-4b13-a0db-ac8fa68dde24/cd839a0d-2d09-42f6-8eff-2bee8732eb2d/5x/segment0.ts?fastly'
+     200 GET https://manifest.prod.boltdns.net/manifest/v1/hls/v4/clear/899458537001/5e2957a8-232f-4b13-a0db-ac8fa68dde24/79bce9ae-7c5b-4db7-b8a6-df58f4402eb0/10s/rendition.m3u8?fastly_token=NmFjNzA4NDhfOTc3Mjc5MjUwODIxODg3NTM1YzRlYzVmN2Q1YTQwMGJlYzlmN2Y0MmZmMWU0ZjUxZTRhMDM0ZWE4YjdmNzRiMQ%3D%3D
+        headers={':authority': 'manifest.prod.boltdns.net', ':method': 'GET', ':path': '/manifest/v1/hls/v4/clear/899458537001/5e2957a8-232f-4b13-a0db-ac8fa68dde24/79bce9ae-7c5b-4db7-b8a6-df58f4402eb0/10s/rendition.m3u8?fastly_token=NmFjNzA4NDhfOTc3Mjc5MjUwODIxODg3NTM1YzRlYzVmN2Q1YTQwMGJlYzlmN2Y0MmZmMWU0ZjUxZTRhMDM0ZWE4YjdmNzRiMQ%3D%3D', ':scheme': 'https', 'accept': '*/*', 'accept-encoding': 'gzip, deflate, br, zstd', 'accept-language': 'zh-TW', 'origin': 'https://am.jpmorgan.com', 'priority': 'u=1, i', 'referer': 'https://am.jpmorgan.com/tw/zh/asset-management/twetf/funds/jpmorgan-tw-equity-high-income-etf/
+        resp='#EXTM3U\n#EXT-X-VERSION:3\n#EXT-X-PLAYLIST-TYPE:VOD\n#EXT-X-MEDIA-SEQUENCE:0\n#EXT-X-TARGETDURATION:10\n#EXTINF:9.920,\nhttps://fastly-signed-us-east-1-prod.brightcovecdn.com/media/v1/hls/v4/clear/899458537001/5e2957a8-232f-4b13-a0db-ac8fa68dde24/79bce9ae-7c5b-4db7-b8a6-df58f4402eb0/5x/segment0.ts?fastly_'
+     200 GET https://match.adsrvr.org/track/cei?advertiser_id=bp333w0&cookie_sync=1&upv=3.0.0&upid=qn8bu0i&ref=https%3a%2f%2fam.jpmorgan.com&redirect=1
+        resp='<html><body><iframe id="ttd_cei_0" height="0" width="0" style="display:none;" allowTransparency sandbox="allow-scripts allow-same-origin" src="https://simage2.pubmatic.com/AdServer/Pug?vcode=bz0yJnR5cGU9MSZjb2RlPTI4NDkmdGw9MTI5NjAw&gdpr=0&gdpr_consent=&piggybackCookie=f67a12e8-969b-47f6-874b-937011f'
+     200 GET https://match.adsrvr.org/track/cei?advertiser_id=i2z2ve3&cookie_sync=1&upv=3.0.0&upid=5r73i28&ref=https%3a%2f%2fam.jpmorgan.com&redirect=1
+        resp='<html><body><iframe id="ttd_cei_0" height="0" width="0" style="display:none;" allowTransparency sandbox="allow-scripts allow-same-origin" src="https://simage2.pubmatic.com/AdServer/Pug?vcode=bz0yJnR5cGU9MSZjb2RlPTI4NDkmdGw9MTI5NjAw&gdpr=0&gdpr_consent=&piggybackCookie=f67a12e8-969b-47f6-874b-937011f'
+     200 POST https://insight.adsrvr.org/track/realtimeconversion
+        body={"data":[{"adv":"i2z2ve3","pixel_ids":["5r73i28"],"referrer_url":"https://am.jpmorgan.com/tw/zh/asset-management/twetf/funds/jpmorgan-tw-equity-high-income-etf/","data_processing_option":null,"privacy_settings":[]}]}
+        resp='{"Message":null,"EventResponses":[]}'
+     200 POST https://insight.adsrvr.org/track/realtimeconversion
+        body={"data":[{"adv":"bp333w0","pixel_ids":["qn8bu0i"],"referrer_url":"https://am.jpmorgan.com/tw/zh/asset-management/twetf/funds/jpmorgan-tw-equity-high-income-etf/","data_processing_option":null,"privacy_settings":[]}]}
+        resp='{"Message":null,"EventResponses":[]}'
+     204 GET https://trc-events.taboola.com/1627601/log/3/unip?en=pre_d_eng_tb&tos=4661&scd=0&ssd=1&est=1791406075669&ver=36&isls=true&src=i&invt=4500&msa=6618&rv=1&tim=1791406080330&vi=1791406075661&ri=556426853db87f1893b8719bebdf987c&sd=v2_719cd133c9094967129026866c1b4221_7d25c579-2ea1-4f25-8253-032ea090553d-t
+        resp=''
+     200 POST https://report.jpm.gbqofs.io/reporting/64654ad3-6f20-4015-a04e-6a2f544f8231/cls_report?clsjsv=%5BLocal_version_prod%5D&_cls_s=7e7e86e4-4662-422a-99bd-2d7aad35bbe1:0&_cls_v=120e2e83-204b-4cd6-ac1c-eefb6c968cfb&pid=ca974270-bd89-449e-8b05-b860fb409c4b&rto=c0&sn=1&cfg&pv=2&aid=
+        body=v=2&r=https%3A%2F%2Fam.jpmorgan.com%2Ftw%2Fzh%2Fasset-management%2Ftwetf%2Ffunds%2Fjpmorgan-tw-equity-high-income-etf%2F&sn=1&p=ca974270-bd89-449e-8b05-b860fb409c4b&seg=%2Ftw%2Fzh%2Fasset-management%2Ftwetf%2Ffunds%2Fjpmorgan-tw-equity-high-income-etf%2F&sp=&pssn=0&e=muykxabm~2~-~Nu_p5895n*s_1280x72
+        resp='{"pv":2,"clss":"7e7e86e4-4662-422a-99bd-2d7aad35bbe1:0","clsv":"120e2e83-204b-4cd6-ac1c-eefb6c968cfb","clse":null,"conf":{"appId":1,"configuration":{"attributeRules":[{"name":"Close_x_survey_amjpmorgancom","pageUrl":"https://am.jpmorgan.com/*","pageHash":"","selector":"SPAN#uz_span_close","accessor"'
+     200 POST https://report.jpm.gbqofs.io/reporting/64654ad3-6f20-4015-a04e-6a2f544f8231/cls_report?clsjsv=%5BLocal_version_prod%5D&_cls_s=7e7e86e4-4662-422a-99bd-2d7aad35bbe1:0&_cls_v=120e2e83-204b-4cd6-ac1c-eefb6c968cfb&pid=ca974270-bd89-449e-8b05-b860fb409c4b&rto=c0&sn=2&cfg&pv=2&aid=
+        body=v=2&r=https%3A%2F%2Fam.jpmorgan.com%2Ftw%2Fzh%2Fasset-management%2Ftwetf%2Ffunds%2Fjpmorgan-tw-equity-high-income-etf%2F&sn=2&p=ca974270-bd89-449e-8b05-b860fb409c4b&seg=%2Ftw%2Fzh%2Fasset-management%2Ftwetf%2Ffunds%2Fjpmorgan-tw-equity-high-income-etf%2F&sp=&pssn=0&e=muykxafc~22~0%23am-country-role-
+        resp='{"pv":2,"clss":"7e7e86e4-4662-422a-99bd-2d7aad35bbe1:0","clsv":"120e2e83-204b-4cd6-ac1c-eefb6c968cfb","clse":null,"conf":{"appId":1,"configuration":{"attributeRules":[{"name":"Close_x_survey_amjpmorgancom","pageUrl":"https://am.jpmorgan.com/*","pageHash":"","selector":"SPAN#uz_span_close","accessor"'
+     200 POST https://report.jpm.gbqofs.io/reporting/64654ad3-6f20-4015-a04e-6a2f544f8231/cls_report?clsjsv=%5BLocal_version_prod%5D&_cls_s=7e7e86e4-4662-422a-99bd-2d7aad35bbe1:0&_cls_v=120e2e83-204b-4cd6-ac1c-eefb6c968cfb&pid=ca974270-bd89-449e-8b05-b860fb409c4b&rto=c0&sn=3&cfg=8e8cbf90&pv=2&aid=
+        body=v=2&r=https%3A%2F%2Fam.jpmorgan.com%2Ftw%2Fzh%2Fasset-management%2Ftwetf%2Ffunds%2Fjpmorgan-tw-equity-high-income-etf%2F&sn=3&p=ca974270-bd89-449e-8b05-b860fb409c4b&seg=%2Ftw%2Fzh%2Fasset-management%2Ftwetf%2Ffunds%2Fjpmorgan-tw-equity-high-income-etf%2F&sp=&pssn=0&e=muykxabm~91~-~Nsn_0*r_*c_YW1fanB
+        resp='{"pv":2,"clss":"7e7e86e4-4662-422a-99bd-2d7aad35bbe1:0","clsv":"120e2e83-204b-4cd6-ac1c-eefb6c968cfb","clse":null,"conf":null,"usage":{"sessionQuotaBreach":false, "apiCallQuotaBreach":true, "customServerCallsBreach":false, "dataLimit": 4194304},"blockRecording":false,"uniqueLocationIdentifier":"-989'
+     200 POST https://report.jpm.gbqofs.io/reporting/64654ad3-6f20-4015-a04e-6a2f544f8231/cls_report?clsjsv=%5BLocal_version_prod%5D&_cls_s=7e7e86e4-4662-422a-99bd-2d7aad35bbe1:0&_cls_v=120e2e83-204b-4cd6-ac1c-eefb6c968cfb&pid=ca974270-bd89-449e-8b05-b860fb409c4b&rto=c0&sn=4&cfg=8e8cbf90&pv=2&aid=
+        body=v=2&r=https%3A%2F%2Fam.jpmorgan.com%2Ftw%2Fzh%2Fasset-management%2Ftwetf%2Ffunds%2Fjpmorgan-tw-equity-high-income-etf%2F&sn=4&p=ca974270-bd89-449e-8b05-b860fb409c4b&seg=%2Ftw%2Fzh%2Fasset-management%2Ftwetf%2Ffunds%2Fjpmorgan-tw-equity-high-income-etf%2F&sp=&pssn=0&e=muykxf0w~34~-~NZGF0YUxheWVyXzJfZ
+        resp='{"pv":2,"clss":"7e7e86e4-4662-422a-99bd-2d7aad35bbe1:0","clsv":"120e2e83-204b-4cd6-ac1c-eefb6c968cfb","clse":null,"conf":null,"usage":{"sessionQuotaBreach":false, "apiCallQuotaBreach":true, "customServerCallsBreach":false, "dataLimit": 4194304},"blockRecording":false,"uniqueLocationIdentifier":"-989'
+     200 POST https://report.jpm.gbqofs.io/reporting/64654ad3-6f20-4015-a04e-6a2f544f8231/cls_report?clsjsv=%5BLocal_version_prod%5D&_cls_s=7e7e86e4-4662-422a-99bd-2d7aad35bbe1:0&_cls_v=120e2e83-204b-4cd6-ac1c-eefb6c968cfb&pid=ca974270-bd89-449e-8b05-b860fb409c4b&rto=c0&sn=5&cfg=8e8cbf90&pv=2&aid=
+        body=v=2&r=https%3A%2F%2Fam.jpmorgan.com%2Ftw%2Fzh%2Fasset-management%2Ftwetf%2Ffunds%2Fjpmorgan-tw-equity-high-income-etf%2F&sn=5&p=ca974270-bd89-449e-8b05-b860fb409c4b&seg=%2Ftw%2Fzh%2Fasset-management%2Ftwetf%2Ffunds%2Fjpmorgan-tw-equity-high-income-etf%2F&sp=&pssn=0&e=muykxgqn~14~-~EMF80MA%3D%3D~even
+        resp='{"pv":2,"clss":"7e7e86e4-4662-422a-99bd-2d7aad35bbe1:0","clsv":"120e2e83-204b-4cd6-ac1c-eefb6c968cfb","clse":null,"conf":null,"usage":{"sessionQuotaBreach":false, "apiCallQuotaBreach":true, "customServerCallsBreach":false, "dataLimit": 4194304},"blockRecording":false,"uniqueLocationIdentifier":"-989'
+     200 POST https://report.jpm.gbqofs.io/reporting/64654ad3-6f20-4015-a04e-6a2f544f8231/cls_report?clsjsv=%5BLocal_version_prod%5D&_cls_s=7e7e86e4-4662-422a-99bd-2d7aad35bbe1:0&_cls_v=120e2e83-204b-4cd6-ac1c-eefb6c968cfb&pid=ca974270-bd89-449e-8b05-b860fb409c4b&rto=c0&sn=6&cfg=8e8cbf90&pv=2&aid=
+        body=v=2&r=https%3A%2F%2Fam.jpmorgan.com%2Ftw%2Fzh%2Fasset-management%2Ftwetf%2Ffunds%2Fjpmorgan-tw-equity-high-income-etf%2F&sn=6&p=ca974270-bd89-449e-8b05-b860fb409c4b&seg=%2Ftw%2Fzh%2Fasset-management%2Ftwetf%2Ffunds%2Fjpmorgan-tw-equity-high-income-etf%2F&sp=&pssn=0&e=muykxhvd~14~-~EMF8z~eventId.0_13
+        resp='{"pv":2,"clss":"7e7e86e4-4662-422a-99bd-2d7aad35bbe1:0","clsv":"120e2e83-204b-4cd6-ac1c-eefb6c968cfb","clse":null,"conf":null,"usage":{"sessionQuotaBreach":false, "apiCallQuotaBreach":true, "customServerCallsBreach":false, "dataLimit": 4194304},"blockRecording":false,"uniqueLocationIdentifier":"-989'
+     204 GET https://trc-events.taboola.com/1627601/log/3/unip?en=pre_d_eng_tb&tos=10163&scd=2&ssd=1&est=1791406075669&ver=36&isls=true&src=i&invt=5500&msa=6613&rv=1&tim=1791406085832&vi=1791406075661&ri=556426853db87f1893b8719bebdf987c&sd=v2_719cd133c9094967129026866c1b4221_7d25c579-2ea1-4f25-8253-032ea090553d-
+        resp=''
+     200 POST https://report.jpm.gbqofs.io/reporting/64654ad3-6f20-4015-a04e-6a2f544f8231/cls_report?clsjsv=%5BLocal_version_prod%5D&_cls_s=7e7e86e4-4662-422a-99bd-2d7aad35bbe1:0&_cls_v=120e2e83-204b-4cd6-ac1c-eefb6c968cfb&pid=ca974270-bd89-449e-8b05-b860fb409c4b&rto=c0&sn=7&cfg=8e8cbf90&pv=2&aid=
+        body=v=2&r=https%3A%2F%2Fam.jpmorgan.com%2Ftw%2Fzh%2Fasset-management%2Ftwetf%2Ffunds%2Fjpmorgan-tw-equity-high-income-etf%2F&sn=7&p=ca974270-bd89-449e-8b05-b860fb409c4b&seg=%2Ftw%2Fzh%2Fasset-management%2Ftwetf%2Ffunds%2Fjpmorgan-tw-equity-high-income-etf%2F&sp=&pssn=0&e=muykxidw~14~-~EMF80MA%3D%3D~even
+        resp='{"pv":2,"clss":"7e7e86e4-4662-422a-99bd-2d7aad35bbe1:0","clsv":"120e2e83-204b-4cd6-ac1c-eefb6c968cfb","clse":null,"conf":null,"usage":{"sessionQuotaBreach":false, "apiCallQuotaBreach":true, "customServerCallsBreach":false, "dataLimit": 4194304},"blockRecording":false,"uniqueLocationIdentifier":"-989'
+     200 POST https://report.jpm.gbqofs.io/reporting/64654ad3-6f20-4015-a04e-6a2f544f8231/cls_report?clsjsv=%5BLocal_version_prod%5D&_cls_s=7e7e86e4-4662-422a-99bd-2d7aad35bbe1:0&_cls_v=120e2e83-204b-4cd6-ac1c-eefb6c968cfb&pid=ca974270-bd89-449e-8b05-b860fb409c4b&rto=c0&sn=8&cfg=8e8cbf90&pv=2&aid=
+        body=v=2&r=https%3A%2F%2Fam.jpmorgan.com%2Ftw%2Fzh%2Fasset-management%2Ftwetf%2Ffunds%2Fjpmorgan-tw-equity-high-income-etf%2F&sn=8&p=ca974270-bd89-449e-8b05-b860fb409c4b&seg=%2Ftw%2Fzh%2Fasset-management%2Ftwetf%2Ffunds%2Fjpmorgan-tw-equity-high-income-etf%2F&sp=&pssn=0&e=muykxj25~22~0%23am-country-role-
+        resp='{"pv":2,"clss":"7e7e86e4-4662-422a-99bd-2d7aad35bbe1:0","clsv":"120e2e83-204b-4cd6-ac1c-eefb6c968cfb","clse":null,"conf":null,"usage":{"sessionQuotaBreach":false, "apiCallQuotaBreach":true, "customServerCallsBreach":false, "dataLimit": 4194304},"blockRecording":false,"uniqueLocationIdentifier":"-989'
+     200 POST https://report.jpm.gbqofs.io/reporting/64654ad3-6f20-4015-a04e-6a2f544f8231/cls_report?clsjsv=%5BLocal_version_prod%5D&_cls_s=7e7e86e4-4662-422a-99bd-2d7aad35bbe1:0&_cls_v=120e2e83-204b-4cd6-ac1c-eefb6c968cfb&pid=ca974270-bd89-449e-8b05-b860fb409c4b&rto=c0&sn=9&cfg=8e8cbf90&pv=2&aid=
+        body=v=2&r=https%3A%2F%2Fam.jpmorgan.com%2Ftw%2Fzh%2Fasset-management%2Ftwetf%2Ffunds%2Fjpmorgan-tw-equity-high-income-etf%2F&sn=9&p=ca974270-bd89-449e-8b05-b860fb409c4b&seg=%2Ftw%2Fzh%2Fasset-management%2Ftwetf%2Ffunds%2Fjpmorgan-tw-equity-high-income-etf%2F&sp=&pssn=0&e=muykxloe~14~-~EMF80MA%3D%3D~even
+        resp='{"pv":2,"clss":"7e7e86e4-4662-422a-99bd-2d7aad35bbe1:0","clsv":"120e2e83-204b-4cd6-ac1c-eefb6c968cfb","clse":null,"conf":null,"usage":{"sessionQuotaBreach":false, "apiCallQuotaBreach":true, "customServerCallsBreach":false, "dataLimit": 4194304},"blockRecording":false,"uniqueLocationIdentifier":"-989'
+  含成分股字樣的回應 0 個：
+====================================================================================================
+[extra-3] https://am.jpmorgan.com/tw/zh/asset-management/twetf/funds/jpmorgan-tw-equity-high-income-etf/@@持股明細
+  點不到： 持股明細 Locator.click: Timeout 10000ms exceeded.
+Call log:
+  - waiting for get_by_text("持股明細").first
+
+  最終網址: https://am.jpmorgan.com/tw/zh/asset-management/twetf/funds/jpmorgan-tw-equity-high-income-etf/  標題: 00401A 收益進化 台灣起飛 | J.P. Morgan Asset Management
+    連結: 重要事項及免責聲明 -> https://am.jpmorgan.com/tw/zh/asset-management/twetf/funds/jpmorgan-tw-equity-high-income-etf/#%E9%87%8D%E8%A6%81%E4%BA%8B%E9%A0%85%E5%8F%8A%E5%85%8D%E8%B2%AC%E8%81%B2%E6%98%8E
+    連結: 同意並接受本使用條款、修訂及增補項目 -> https://am.jpmorgan.com/tw/zh/asset-management/twetf/funds/jpmorgan-tw-equity-high-income-etf/#%E5%90%8C%E6%84%8F%E4%B8%A6%E6%8E%A5%E5%8F%97%E6%9C%AC%E4%BD%BF%E7%94%A8%E6%A2%9D%E
+    連結: 隱私權政策 -> https://am.jpmorgan.com/tw/zh/asset-management/twetf/funds/jpmorgan-tw-equity-high-income-etf/#%E9%9A%B1%E7%A7%81%E6%AC%8A%E6%94%BF%E7%AD%96
+    連結: Cookies 政策 -> https://am.jpmorgan.com/tw/zh/asset-management/twetf/funds/jpmorgan-tw-equity-high-income-etf/#cookies_%E6%94%BF%E7%AD%96
+    連結: 網路安全說明 -> https://am.jpmorgan.com/tw/zh/asset-management/twetf/funds/jpmorgan-tw-equity-high-income-etf/#%E7%B6%B2%E8%B7%AF%E5%AE%89%E5%85%A8%E8%AA%AA%E6%98%8E
+    連結: Skip to main content -> https://am.jpmorgan.com/tw/zh/asset-management/twetf/funds/jpmorgan-tw-equity-high-income-etf/#contentStart
+    連結:  -> https://am.jpmorgan.com/tw/zh/asset-management/twetf/
+    連結: ETF 產品中心 -> https://am.jpmorgan.com/tw/zh/asset-management/twetf/funds/jpmorgan-tw-equity-high-income-etf/
+    連結:  -> https://am.jpmorgan.com/tw/zh/asset-management/twetf/funds/jpmorgan-tw-equity-high-income-etf/
+    連結:  -> https://am.jpmorgan.com/tw/zh/asset-management/twetf/funds/jpmorgan-us-tech-leaders-etf/
+    連結:  -> https://am.jpmorgan.com/tw/zh/asset-management/twetf/funds/announcements/
+    連結:  -> https://am.jpmorgan.com/tw/zh/asset-management/twetf/funds/non-dealing-days-calendar/
+    連結: 00989A 摩根主動 極速領跑 -> https://am.jpmorgan.com/tw/zh/asset-management/twetf/funds/jpmorgan-us-tech-leaders-etf/
+    連結: 即時預估淨值 -> https://am.jpmorgan.com/tw/zh/asset-management/twetf/funds/inav/
+    連結: 申購買回清單 -> https://am.jpmorgan.com/tw/zh/asset-management/twetf/products/jpmorgan-taiwan-taiwan-equity-high-income-active-etf-tw00000401a1#/pcf
+    連結: 基金投資組合 -> https://am.jpmorgan.com/tw/zh/asset-management/twetf/products/jpmorgan-taiwan-taiwan-equity-high-income-active-etf-tw00000401a1#/portfolio
+    連結: 投資觀點 -> https://am.jpmorgan.com/tw/zh/asset-management/twetf/investment-ideas/
+    連結:  -> https://am.jpmorgan.com/tw/zh/asset-management/twetf/investment-ideas/etf-insights/
+    連結:  -> https://am.jpmorgan.com/tw/zh/asset-management/twetf/investment-ideas/guide-to-etfs/
+    連結: 服務專區 -> https://am.jpmorgan.com/tw/zh/asset-management/twetf/customer-service/
+    連結:  -> https://am.jpmorgan.com/tw/zh/asset-management/twetf/customer-service/form-download/
+    連結:  -> https://am.jpmorgan.com/tw/zh/asset-management/twetf/customer-service/selfservices/
+    連結: 常見問題 -> https://am.jpmorgan.com/tw/zh/asset-management/twetf/customer-service/frequently-asked-questions/
+    連結: 聯絡我們 -> https://am.jpmorgan.com/tw/zh/asset-management/twetf/customer-service/contact-us/
+    連結: 目前位置: ETF專區 -> https://am.jpmorgan.com/tw/zh/asset-management/twetf/funds/jpmorgan-tw-equity-high-income-etf/#
+    連結: 繼續 -> https://am.jpmorgan.com/tw/zh/asset-management/twetf/funds/jpmorgan-tw-equity-high-income-etf/
+    連結: ETF專區 -> https://am.jpmorgan.com/tw/zh/asset-management/twetf/
+    連結: ETF產品 -> https://am.jpmorgan.com/tw/zh/asset-management/twetf/funds/
+    連結: 00401A最新ETF配息公告 > -> https://cdn.jpmorganfunds.com/content/dam/jpm-am-aem/asiapacific/tw/zh/supplemental/announcements/documents/30092026-ETF-UT58.pdf
+    連結: 了解更多00401A -> https://am.jpmorgan.com/tw/zh/asset-management/twetf/products/jpmorgan-taiwan-taiwan-equity-high-income-active-etf-tw00000401a1
+    連結: 下載DM -> https://cdn.jpmorganfunds.com/content/dam/jpm-am-aem/asiapacific/tw/zh/twetf/funds/jpmorgan-tw-equity-high-income-etf-00401A-dm.pdf
+    連結: 產品概覽 -> https://am.jpmorgan.com/tw/zh/asset-management/twetf/products/jpmorgan-taiwan-taiwan-equity-high-income-active-etf-tw00000401a1#/overview
+    連結: 掩護性買權策略釋例 -> https://am.jpmorgan.com/tw/zh/asset-management/twetf/funds/jpmorgan-tw-equity-high-income-etf/#item0
+    連結: 運用掩護性買權的台股主動式ETF策略 -> https://am.jpmorgan.com/tw/zh/asset-management/twetf/funds/jpmorgan-tw-equity-high-income-etf/#item1
+    連結: 網站地圖 -> https://am.jpmorgan.com/tw/zh/asset-management/twetf/sitemap/
+    連結: 常見問題 -> https://am.jpmorgan.com/tw/zh/asset-management/twetf/customer-service/frequently-asked-questions/
+  XHR／文件請求 26 個：
+     200 GET https://am.jpmorgan.com/tw/zh/asset-management/twetf/funds/jpmorgan-tw-equity-high-income-etf/
+        resp='\n  <!DOCTYPE HTML>\n  \n  \n  \n  <html lang="zh-Hant">\n\n  <head>\n    \n    \n    \n    \n    \n    \n    \n    <meta charset="UTF-8"/>\n    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>\n    <meta name="referrer" content="no-referrer-when-downgrade"/>\n    <meta content="UEgzQAQUVvl5ylE'
+     200 GET https://am.jpmorgan.com/content/jpm-am-aem/asiapacific/tw/zh/twetf/funds/jpmorgan-tw-equity-high-income-etf/_jcr_content.videov2.json?v=1790817346660/asiapacific
+        resp='{"groupOfVideos":[{"groupID":"eaemcusuid_20260316070605","style":"Full","theme":"Light","fileReference":"/content/dam/jpm-am-aem/global/en/brightcove-videos/899458537001/6391004977112.mp4","accountNumber":"899458537001","videoID":"6391004977112","brightcoveTitle":"0313_摩根台灣鑫收益主動式ETF_00401A篇_90s "}],'
+     200 GET https://am.jpmorgan.com/content/jpm-am-aem/asiapacific/tw/zh/twetf/funds/jpmorgan-tw-equity-high-income-etf/_jcr_content.statisticscards.json?v=1790817346660/asiapacific
+        resp='{"groupOfCards":[{"groupID":"eaemcusuid_20260715084507","theme":"jp__lightTheme","visibleColumns":3,"statisticSize":"default","paddingStyle":"bottom_padding","lineStyle":"horizontal-line","colorTransition":"jp__lightTheme","listOfCards":[{"statisticLine1":"10/14","cardTextBlock":"<p>參與配息最後買進日</p>","'
+     200 GET https://am.jpmorgan.com/content/jpm-am-aem/asiapacific/tw/zh/twetf/funds/jpmorgan-tw-equity-high-income-etf/_jcr_content.herobannerv2.json?v=1790817346660/asiapacific
+        resp='{"groupOfBanners":[{"groupID":"eaemcusuid_20260215074646","formatStyle":"fullImage","enableBreadCrumbs":true,"breadcrumb":{"whatsapp":true,"showEmail":null,"line":true,"facebook":true,"showPrint":true,"startLevel":5,"linkedin":true,"twitter":true,"downloadPath":null,"subscriptionType":null,"showDown'
+     200 GET https://am.jpmorgan.com/content/jpm-am-aem/countryroleselectorconfigpage.seomap.json
+        resp='{"availableExperiences":["br_en_adv","br_pt_adv","ca_en_adv","ca_fr_adv","ca_en_institutional","mx_en_adv","mx_es_adv","us_en_adv","us_en_per","us_en_institutional","us_en_liq","us_en_bony","us_en_ny529","us_en_smartretirement-vz","us_en_smartretirement-blend","us_en_smartretirement-caterpillar","us'
+     200 GET https://am.jpmorgan.com/bin/servlet/navigationConfigurationService?homePage=%2Fcontent%2Fjpm-am-aem%2Fasiapacific%2Ftw%2Fzh%2Ftwetf
+        resp='{"header":{"menuItems":[{"title":"ETF 產品中心","link":"https://am.jpmorgan.com/tw/zh/asset-management/twetf/funds/jpmorgan-tw-equity-high-income-etf/","description":"00401A 收益進化 台灣起飛","contentAccess":"unlocked","addFundSearch":false,"subItems":[{"links":[{"contentAccess":"unlocked","altText":"00401A摩根台'
+     200 GET https://am.jpmorgan.com/content/jpm-am-aem/countryroleselectorconfigpage.crsmap.tw_zh_twetf.json?currentPath=/content/jpm-am-aem/asiapacific/tw/zh/twetf/includes/header-etf/jcr:content/par/jpm_am_navigation_he
+        resp='{"crsData":[{"regionValue":"Americas","regionDisplayValue":"美洲 | Americas","regionCode":"americas","countryList":[{"countryValue":"Brazil","countryDisplayValue":"巴西 | Brazil","countryCode":"br","flagPath":"/content/dam/jpm-am-aem/global/en/images/common/flags/br.jpg","languages":[{"languageValue":"E'
+     200 GET https://report.jpm.gbqofs.io/reporting/64654ad3-6f20-4015-a04e-6a2f544f8231/cls_report?_cls_s=12a29b0a-c5f6-4b94-a106-080f751b8b30%3A0&_cls_v=c67d2db7-b01f-429e-ac76-326892b2b7c0&pv=2&f_cls_s=true
+        resp='{"pv":2,"clss":"12a29b0a-c5f6-4b94-a106-080f751b8b30:0","clsv":"c67d2db7-b01f-429e-ac76-326892b2b7c0","clse":null,"conf":{"appId":1,"configuration":{"attributeRules":[{"name":"Close_x_survey_amjpmorgancom","pageUrl":"https://am.jpmorgan.com/*","pageHash":"","selector":"SPAN#uz_span_close","accessor"'
+     204 GET https://pixel.quantserve.com/cs?a=p-C08pQh5-6JzpN&gdpr=0&sf2=1
+        resp=''
+     200 GET https://edge.api.brightcove.com/playback/v1/accounts/899458537001/videos/6391004977112
+        resp='{"poster":"https://cf-images.us-east-1.prod.boltdns.net/v1/static/899458537001/5e2957a8-232f-4b13-a0db-ac8fa68dde24/5b6bfa7e-c508-4a38-8533-b9a514b3d6c5/1280x720/match/image.jpg","thumbnail":"https://cf-images.us-east-1.prod.boltdns.net/v1/static/899458537001/5e2957a8-232f-4b13-a0db-ac8fa68dde24/cc8'
+     200 GET https://manifest.prod.boltdns.net/manifest/v1/hls/v4/clear/899458537001/5e2957a8-232f-4b13-a0db-ac8fa68dde24/10s/master.m3u8?fastly_token=NmFjNzA4NDdfMDA0NDkxMjBkZWFlNjExNTEyZjFlNzEyYTI2M2U2NTg1MDRiYWRmNTQyMWE5OTI0ZGEyMWU4ZTVmZGFmNTdiMg%3D%3D
+        headers={':authority': 'manifest.prod.boltdns.net', ':method': 'GET', ':path': '/manifest/v1/hls/v4/clear/899458537001/5e2957a8-232f-4b13-a0db-ac8fa68dde24/10s/master.m3u8?fastly_token=NmFjNzA4NDdfMDA0NDkxMjBkZWFlNjExNTEyZjFlNzEyYTI2M2U2NTg1MDRiYWRmNTQyMWE5OTI0ZGEyMWU4ZTVmZGFmNTdiMg%3D%3D', ':scheme': 'https', 'accept': '*/*', 'accept-encoding': 'gzip, deflate, br, zstd', 'accept-language': 'zh-TW', 'origin': 'https://am.jpmorgan.com', 'priority': 'u=1, i', 'referer': 'https://am.jpmorgan.com/tw/zh/asset-management/twetf/funds/jpmorgan-tw-equity-high-income-etf/', 'sec-ch-ua': '"HeadlessChrome";v="153
+        resp='#EXTM3U\n#EXT-X-VERSION:4\n#EXT-X-MEDIA:TYPE=AUDIO,GROUP-ID="audio-0",NAME="en (Main)",DEFAULT=YES,AUTOSELECT=YES,LANGUAGE="en",URI="https://manifest.prod.boltdns.net/manifest/v1/hls/v4/clear/899458537001/5e2957a8-232f-4b13-a0db-ac8fa68dde24/78f94d88-a0ce-4cdc-b916-f674248cad57/10s/rendition.m3u8?fast'
+     200 GET https://manifest.prod.boltdns.net/manifest/v1/hls/v4/clear/899458537001/5e2957a8-232f-4b13-a0db-ac8fa68dde24/cd839a0d-2d09-42f6-8eff-2bee8732eb2d/10s/rendition.m3u8?fastly_token=NmFjNzA4NDhfYjk1ZDc3MzAyMzlkNWYyYTg5NWYwN2RlYWM5YWRlOGRmNTM0NmRhNzZlZWZkZTM4ZjU2MDZkNjgwY2VjNTNlMw%3D%3D
+        headers={':authority': 'manifest.prod.boltdns.net', ':method': 'GET', ':path': '/manifest/v1/hls/v4/clear/899458537001/5e2957a8-232f-4b13-a0db-ac8fa68dde24/cd839a0d-2d09-42f6-8eff-2bee8732eb2d/10s/rendition.m3u8?fastly_token=NmFjNzA4NDhfYjk1ZDc3MzAyMzlkNWYyYTg5NWYwN2RlYWM5YWRlOGRmNTM0NmRhNzZlZWZkZTM4ZjU2MDZkNjgwY2VjNTNlMw%3D%3D', ':scheme': 'https', 'accept': '*/*', 'accept-encoding': 'gzip, deflate, br, zstd', 'accept-language': 'zh-TW', 'origin': 'https://am.jpmorgan.com', 'priority': 'u=1, i', 'referer': 'https://am.jpmorgan.com/tw/zh/asset-management/twetf/funds/jpmorgan-tw-equity-high-income-etf/
+        resp='#EXTM3U\n#EXT-X-VERSION:3\n#EXT-X-PLAYLIST-TYPE:VOD\n#EXT-X-MEDIA-SEQUENCE:0\n#EXT-X-TARGETDURATION:10\n#EXTINF:10.010,\nhttps://fastly-signed-us-east-1-prod.brightcovecdn.com/media/v1/hls/v4/clear/899458537001/5e2957a8-232f-4b13-a0db-ac8fa68dde24/cd839a0d-2d09-42f6-8eff-2bee8732eb2d/5x/segment0.ts?fastly'
+     200 GET https://manifest.prod.boltdns.net/manifest/v1/hls/v4/clear/899458537001/5e2957a8-232f-4b13-a0db-ac8fa68dde24/79bce9ae-7c5b-4db7-b8a6-df58f4402eb0/10s/rendition.m3u8?fastly_token=NmFjNzA4NDhfOTc3Mjc5MjUwODIxODg3NTM1YzRlYzVmN2Q1YTQwMGJlYzlmN2Y0MmZmMWU0ZjUxZTRhMDM0ZWE4YjdmNzRiMQ%3D%3D
+        headers={':authority': 'manifest.prod.boltdns.net', ':method': 'GET', ':path': '/manifest/v1/hls/v4/clear/899458537001/5e2957a8-232f-4b13-a0db-ac8fa68dde24/79bce9ae-7c5b-4db7-b8a6-df58f4402eb0/10s/rendition.m3u8?fastly_token=NmFjNzA4NDhfOTc3Mjc5MjUwODIxODg3NTM1YzRlYzVmN2Q1YTQwMGJlYzlmN2Y0MmZmMWU0ZjUxZTRhMDM0ZWE4YjdmNzRiMQ%3D%3D', ':scheme': 'https', 'accept': '*/*', 'accept-encoding': 'gzip, deflate, br, zstd', 'accept-language': 'zh-TW', 'origin': 'https://am.jpmorgan.com', 'priority': 'u=1, i', 'referer': 'https://am.jpmorgan.com/tw/zh/asset-management/twetf/funds/jpmorgan-tw-equity-high-income-etf/
+        resp='#EXTM3U\n#EXT-X-VERSION:3\n#EXT-X-PLAYLIST-TYPE:VOD\n#EXT-X-MEDIA-SEQUENCE:0\n#EXT-X-TARGETDURATION:10\n#EXTINF:9.920,\nhttps://fastly-signed-us-east-1-prod.brightcovecdn.com/media/v1/hls/v4/clear/899458537001/5e2957a8-232f-4b13-a0db-ac8fa68dde24/79bce9ae-7c5b-4db7-b8a6-df58f4402eb0/5x/segment0.ts?fastly_'
+     200 GET https://pips.taboola.com/
+        resp='NULL'
+     204 GET https://cds.taboola.com/?uid=f1669ee3-82ed-4c42-934c-a00613f5bd90-tuct11c0358d&ptf=TGludXg=&ufv=MTUzLjAuODAxMC4xMg==&bnd=SGVhZGxlc3NDaHJvbWU=&bndv=MTUz&bnd=Tm90X0EgQnJhbmQ=&bndv=OA==&bnd=Q2hyb21pdW0=&bndv=MTUz&mbl=ZmFsc2U=&dc=la
+        resp=''
+     200 GET https://match.adsrvr.org/track/cei?advertiser_id=bp333w0&cookie_sync=1&upv=3.0.0&upid=qn8bu0i&ref=https%3a%2f%2fam.jpmorgan.com&redirect=1
+        resp='<html><body><iframe id="ttd_cei_0" height="0" width="0" style="display:none;" allowTransparency sandbox="allow-scripts allow-same-origin" src="https://pixel.rubiconproject.com/tap.php?v=8981&nid=2307&put=cc02413e-5cd1-46ea-8363-2582c4b69af6&gdpr=0&gdpr_consent=&expires=30&next=https%3A%2F%2Fmatch.ad'
+     200 GET https://match.adsrvr.org/track/cei?advertiser_id=i2z2ve3&cookie_sync=1&upv=3.0.0&upid=5r73i28&ref=https%3a%2f%2fam.jpmorgan.com&redirect=1
+        resp='<html><body><iframe id="ttd_cei_0" height="0" width="0" style="display:none;" allowTransparency sandbox="allow-scripts allow-same-origin" src="https://pixel.rubiconproject.com/tap.php?v=8981&nid=2307&put=cc02413e-5cd1-46ea-8363-2582c4b69af6&gdpr=0&gdpr_consent=&expires=30&next=https%3A%2F%2Fmatch.ad'
+     200 POST https://insight.adsrvr.org/track/realtimeconversion
+        body={"data":[{"adv":"i2z2ve3","pixel_ids":["5r73i28"],"referrer_url":"https://am.jpmorgan.com/tw/zh/asset-management/twetf/funds/jpmorgan-tw-equity-high-income-etf/","data_processing_option":null,"privacy_settings":[]}]}
+        resp='{"Message":null,"EventResponses":[]}'
+     200 POST https://insight.adsrvr.org/track/realtimeconversion
+        body={"data":[{"adv":"bp333w0","pixel_ids":["qn8bu0i"],"referrer_url":"https://am.jpmorgan.com/tw/zh/asset-management/twetf/funds/jpmorgan-tw-equity-high-income-etf/","data_processing_option":null,"privacy_settings":[]}]}
+        resp='{"Message":null,"EventResponses":[]}'
+     204 GET https://trc-events.taboola.com/1627601/log/3/unip?en=pre_d_eng_tb&tos=4696&scd=0&ssd=1&est=1791406093177&ver=36&isls=true&src=i&invt=4500&msa=6618&rv=1&tim=1791406097874&vi=1791406093170&ri=47e82eb91ad23006e9ffc4589aa18d05&sd=v2_169c91f2e7b194c411245bf770cef713_f1669ee3-82ed-4c42-934c-a00613f5bd90-t
+        resp=''
+     200 POST https://report.jpm.gbqofs.io/reporting/64654ad3-6f20-4015-a04e-6a2f544f8231/cls_report?clsjsv=%5BLocal_version_prod%5D&_cls_s=12a29b0a-c5f6-4b94-a106-080f751b8b30:0&_cls_v=c67d2db7-b01f-429e-ac76-326892b2b7c0&pid=711b5b86-2e8a-427d-b217-9e5d80d7970b&rto=c0&sn=1&cfg&pv=2&aid=
+        body=v=2&r=https%3A%2F%2Fam.jpmorgan.com%2Ftw%2Fzh%2Fasset-management%2Ftwetf%2Ffunds%2Fjpmorgan-tw-equity-high-income-etf%2F&sn=1&p=711b5b86-2e8a-427d-b217-9e5d80d7970b&seg=%2Ftw%2Fzh%2Fasset-management%2Ftwetf%2Ffunds%2Fjpmorgan-tw-equity-high-income-etf%2F&sp=&pssn=0&e=muykxobz~2~-~Nu_p5895n*s_1280x72
+        resp='{"pv":2,"clss":"12a29b0a-c5f6-4b94-a106-080f751b8b30:0","clsv":"c67d2db7-b01f-429e-ac76-326892b2b7c0","clse":null,"conf":{"appId":1,"configuration":{"attributeRules":[{"name":"Close_x_survey_amjpmorgancom","pageUrl":"https://am.jpmorgan.com/*","pageHash":"","selector":"SPAN#uz_span_close","accessor"'
+     200 POST https://report.jpm.gbqofs.io/reporting/64654ad3-6f20-4015-a04e-6a2f544f8231/cls_report?clsjsv=%5BLocal_version_prod%5D&_cls_s=12a29b0a-c5f6-4b94-a106-080f751b8b30:0&_cls_v=c67d2db7-b01f-429e-ac76-326892b2b7c0&pid=711b5b86-2e8a-427d-b217-9e5d80d7970b&rto=c0&sn=2&cfg&pv=2&aid=
+        body=v=2&r=https%3A%2F%2Fam.jpmorgan.com%2Ftw%2Fzh%2Fasset-management%2Ftwetf%2Ffunds%2Fjpmorgan-tw-equity-high-income-etf%2F&sn=2&p=711b5b86-2e8a-427d-b217-9e5d80d7970b&seg=%2Ftw%2Fzh%2Fasset-management%2Ftwetf%2Ffunds%2Fjpmorgan-tw-equity-high-income-etf%2F&sp=&pssn=0&e=muykxod4~22~0%23am-country-role-
+        resp='{"pv":2,"clss":"12a29b0a-c5f6-4b94-a106-080f751b8b30:0","clsv":"c67d2db7-b01f-429e-ac76-326892b2b7c0","clse":null,"conf":{"appId":1,"configuration":{"attributeRules":[{"name":"Close_x_survey_amjpmorgancom","pageUrl":"https://am.jpmorgan.com/*","pageHash":"","selector":"SPAN#uz_span_close","accessor"'
+     200 POST https://report.jpm.gbqofs.io/reporting/64654ad3-6f20-4015-a04e-6a2f544f8231/cls_report?clsjsv=%5BLocal_version_prod%5D&_cls_s=12a29b0a-c5f6-4b94-a106-080f751b8b30:0&_cls_v=c67d2db7-b01f-429e-ac76-326892b2b7c0&pid=711b5b86-2e8a-427d-b217-9e5d80d7970b&rto=c0&sn=3&cfg=8e8cbf90&pv=2&aid=
+        body=v=2&r=https%3A%2F%2Fam.jpmorgan.com%2Ftw%2Fzh%2Fasset-management%2Ftwetf%2Ffunds%2Fjpmorgan-tw-equity-high-income-etf%2F&sn=3&p=711b5b86-2e8a-427d-b217-9e5d80d7970b&seg=%2Ftw%2Fzh%2Fasset-management%2Ftwetf%2Ffunds%2Fjpmorgan-tw-equity-high-income-etf%2F&sp=&pssn=0&e=muykxobz~91~-~Nsn_0*r_*c_YW1fanB
+        resp='{"pv":2,"clss":"12a29b0a-c5f6-4b94-a106-080f751b8b30:0","clsv":"c67d2db7-b01f-429e-ac76-326892b2b7c0","clse":null,"conf":null,"usage":{"sessionQuotaBreach":false, "apiCallQuotaBreach":true, "customServerCallsBreach":false, "dataLimit": 4194304},"blockRecording":false,"uniqueLocationIdentifier":"-989'
+     200 POST https://report.jpm.gbqofs.io/reporting/64654ad3-6f20-4015-a04e-6a2f544f8231/cls_report?clsjsv=%5BLocal_version_prod%5D&_cls_s=12a29b0a-c5f6-4b94-a106-080f751b8b30:0&_cls_v=c67d2db7-b01f-429e-ac76-326892b2b7c0&pid=711b5b86-2e8a-427d-b217-9e5d80d7970b&rto=c0&sn=4&cfg=8e8cbf90&pv=2&aid=
+        body=v=2&r=https%3A%2F%2Fam.jpmorgan.com%2Ftw%2Fzh%2Fasset-management%2Ftwetf%2Ffunds%2Fjpmorgan-tw-equity-high-income-etf%2F&sn=4&p=711b5b86-2e8a-427d-b217-9e5d80d7970b&seg=%2Ftw%2Fzh%2Fasset-management%2Ftwetf%2Ffunds%2Fjpmorgan-tw-equity-high-income-etf%2F&sp=&pssn=0&e=muykxt19~34~-~NZGF0YUxheWVyXzJfZ
+        resp='{"pv":2,"clss":"12a29b0a-c5f6-4b94-a106-080f751b8b30:0","clsv":"c67d2db7-b01f-429e-ac76-326892b2b7c0","clse":null,"conf":null,"usage":{"sessionQuotaBreach":false, "apiCallQuotaBreach":true, "customServerCallsBreach":false, "dataLimit": 4194304},"blockRecording":false,"uniqueLocationIdentifier":"-989'
+     204 GET https://trc-events.taboola.com/1627601/log/3/unip?en=pre_d_eng_tb&tos=10197&scd=0&ssd=1&est=1791406093177&ver=36&isls=true&src=i&invt=5500&msa=6618&rv=1&tim=1791406103376&vi=1791406093170&ri=47e82eb91ad23006e9ffc4589aa18d05&sd=v2_169c91f2e7b194c411245bf770cef713_f1669ee3-82ed-4c42-934c-a00613f5bd90-
+        resp=''
+     200 POST https://report.jpm.gbqofs.io/reporting/64654ad3-6f20-4015-a04e-6a2f544f8231/cls_report?clsjsv=%5BLocal_version_prod%5D&_cls_s=12a29b0a-c5f6-4b94-a106-080f751b8b30:0&_cls_v=c67d2db7-b01f-429e-ac76-326892b2b7c0&pid=711b5b86-2e8a-427d-b217-9e5d80d7970b&rto=c0&sn=5&cfg=8e8cbf90&pv=2&aid=
+        body=v=2&r=https%3A%2F%2Fam.jpmorgan.com%2Ftw%2Fzh%2Fasset-management%2Ftwetf%2Ffunds%2Fjpmorgan-tw-equity-high-income-etf%2F&sn=5&p=711b5b86-2e8a-427d-b217-9e5d80d7970b&seg=%2Ftw%2Fzh%2Fasset-management%2Ftwetf%2Ffunds%2Fjpmorgan-tw-equity-high-income-etf%2F&sp=&pssn=0&e=muykxvtd~22~0%23am-country-role-
+        resp='{"pv":2,"clss":"12a29b0a-c5f6-4b94-a106-080f751b8b30:0","clsv":"c67d2db7-b01f-429e-ac76-326892b2b7c0","clse":null,"conf":null,"usage":{"sessionQuotaBreach":false, "apiCallQuotaBreach":true, "customServerCallsBreach":false, "dataLimit": 4194304},"blockRecording":false,"uniqueLocationIdentifier":"-989'
+  含成分股字樣的回應 0 個：
