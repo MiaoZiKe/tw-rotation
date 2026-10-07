@@ -88,6 +88,7 @@
 #v-etf .note1{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
 /* ---- 分類列 */
 #v-etf .etfsub{margin:0 0 10px}
+:root.l4 #v-etf .etfsub{display:none}   /* v9：電腦版子項在左側欄；頁內這排只留給手機（≤820 沒有側欄子項，比照熱力圖手機做法） */
 #v-etf .etfcatbar[hidden],#v-etf .etfbody[hidden]{display:none}   /* v8：.etfcatbar 有 display:flex，hidden 屬性蓋不掉 */
 #v-etf .etfcatbar{display:flex;align-items:center;gap:10px;margin:0;white-space:nowrap;min-width:0}
 #v-etf .etfcatbar .seg{overflow:hidden;flex:0 1 auto;min-width:0}
@@ -1996,9 +1997,9 @@
       const best = vr.slice().sort((p, q) => q.fin - p.fin)[0], pr = vis.find((l) => l.key === 'price'), ca = vis.find((l) => l.key === 'cash');
       $('#cxHead').innerHTML = `從 <b>${D[i0]}</b> 至 ${D[last]}（本金 ${ntw(cost)}）：`
         + [pr ? `只持有、不算配息成長 <b>${pctF(pr.fin / cost - 1)}</b>` : '', ca ? `把配息領出來 <b>${pctF(cashFin / cost - 1)}</b>` : '',
-          best ? `配息<b>${esc(best.name)}</b>為 <b>${pctF(best.fin / cost - 1)}</b>，比只領現金多 <b>${((best.fin - cashFin) / cost * 100).toFixed(1)} 個百分點</b>` : ''].filter(Boolean).join('；') + '。';
+          best ? `配息<b>${esc(best.name)}</b>為 <b>${pctF(best.fin / cost - 1)}</b>，比只領現金多 <b>${((best.fin - cashFin) / cost * 100).toFixed(1)}%</b>` : ''].filter(Boolean).join('；') + '。';
       const row = (l) => { const v = l.fin, r = v / cost - 1, ann = yrs > 0.2 ? Math.pow(v / cost, 1 / yrs) - 1 : null, pp = (v - cashFin) / cost * 100;
-        return `<tr data-key="${esc(l.key)}"><td class="nm"><i style="background:${l.col}"></i>${esc(l.name)}</td><td>${wan(v)}</td><td><span class="${cls(r)}">${pctF(r)}</span></td><td>${l.key === 'cash' ? '—' : `<span class="${cls(pp)}">${pp > 0 ? '+' : ''}${pp.toFixed(1)} 個百分點</span>`}</td><td>${ann == null ? '—' : `<span class="${cls(ann)}">${pctF(ann)}</span>`}</td></tr>`; };
+        return `<tr data-key="${esc(l.key)}"><td class="nm"><i style="background:${l.col}"></i>${esc(l.name)}</td><td>${wan(v)}</td><td><span class="${cls(r)}">${pctF(r)}</span></td><td>${l.key === 'cash' ? '—' : `<span class="${cls(pp)}">${pp > 0 ? '+' : ''}${pp.toFixed(1)}%</span>`}</td><td>${ann == null ? '—' : `<span class="${cls(ann)}">${pctF(ann)}</span>`}</td></tr>`; };
       $('#cxTbl').innerHTML = `<thead><tr><th class="nm">情境</th><th>期末總資產</th><th>報酬率</th><th>比只領現金多</th><th>年化</th></tr></thead><tbody>${vis.map(row).join('')}</tbody>`;
       $('#cxLev').hidden = !vis.some((l) => l.key === '00631L' || LEV_RE.test(nameOf(l.key)));
       el.dataset.shown = vis.map((l) => l.key).join(',');

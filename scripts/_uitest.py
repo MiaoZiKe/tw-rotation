@@ -2167,8 +2167,8 @@ def t_etf_1005(pg, b, base):
            J("() => [...document.querySelectorAll('#etfCatSeg button')].every(b => b.dataset.v !== 'all')") and J("() => document.querySelector('#etfCatSeg button.on').dataset.v") == "配息型"
            and J("() => document.querySelector('#v-etf').dataset.cat") == "配息型")
         # ================= 1. 行事曆＝「配息行事曆」子分頁（v8：ETF 拆成 配息行事曆｜ETF 總覽｜現金流試算）
-        ok(f"★ [{tag}] ETF 三個子分頁：配息行事曆｜ETF 總覽｜現金流試算", J("() => [...document.querySelectorAll('#etfSub button')].map(b => b.textContent).join('|')") == "配息行事曆|ETF 總覽|現金流試算")
-        lp.click("#etfSub button[data-v='cal']"); lp.wait_for_timeout(400)
+        ok(f"★ [{tag}] 側欄 ETF 底下三個子項：配息行事曆｜ETF 總覽｜現金流試算、頁內沒有子分頁鈕", J("() => [...document.querySelectorAll('#tabs .l4subtab[data-parent=etf]')].map(b => b.textContent.trim()).join('|')") == "配息行事曆|ETF 總覽|現金流試算" and not J("() => document.querySelector('#etfSub').getClientRects().length"))
+        lp.click("#tabs .l4subtab[data-l4sub='etf-cal']"); lp.wait_for_timeout(400)
         ok(f"★ [{tag}] 點「配息行事曆」→ hash #etf/cal、只剩行事曆卡", J("() => location.hash") == "#etf/cal" and J("() => !document.querySelector('#etfCalCard').hidden && !document.querySelector('#etfCatBar').getClientRects().length && !document.querySelector('#etfListCard').getClientRects().length"))
         cols = J("() => getComputedStyle(document.querySelector('#etfCalGrid')).gridTemplateColumns.split(' ').length")
         wds = J("() => [...document.querySelectorAll('#etfCalGrid .wd')].map(e => e.textContent)")
@@ -2202,7 +2202,7 @@ def t_etf_1005(pg, b, base):
         ok(f"★ [{tag}] 切月、點格子：行事曆整張卡高度不變", h_cal0 == h_cal1 == H("#etfCalCard"),
            (h_cal0, h_cal1, H("#etfCalCard"), top_cat0, TOP("#etfCatBar")))
         lp.click("#etfCalToday"); lp.wait_for_timeout(150)
-        lp.click("#etfSub button[data-v='list']"); lp.wait_for_timeout(600)
+        lp.click("#tabs .l4subtab[data-l4sub='etf-list']"); lp.wait_for_timeout(600)
         ok(f"★ [{tag}] 點「ETF 總覽」→ hash #etf/list、分類列回來、行事曆收起", J("() => location.hash") == "#etf/list" and J("() => document.querySelector('#etfCalCard').hidden && !document.querySelector('#etfCatBar').hidden"))
         # ================= 2. 全部／其他沒有前 5；配息型三張同高並排
         ok(f"★ [{tag}] 預設「配息型」就有三張前 5 與報酬比較", J("() => !document.querySelector('#etfTri').hidden && !document.querySelector('#etfRetCard').hidden"))
@@ -2492,18 +2492,18 @@ def t_etf_income_1007(pg, b, base):
         ok(f"[{tag}] 市值型卡片也是標籤靠左、數值靠右、沒有配息頻率列", mv["l"] and mv["r"] and mv["f"], mv)
         lp.click("#etfCatSeg button[data-v='配息型']"); lp.wait_for_timeout(400)
         # ---- 進現金流試算
-        lp.click("#etfSub button[data-v='inc']"); lp.wait_for_timeout(1500)
+        lp.click("#tabs .l4subtab[data-l4sub='etf-inc']"); lp.wait_for_timeout(1500)
         wait_until(lp, "() => document.querySelector('#incTbl tbody tr') && document.querySelectorAll('#incCombos .combo').length > 0", 20000)
         ok(f"★ [{tag}] 點「現金流試算」→ 分類內容收起、試算出現、分類頁籤不再選中",
-           J("() => !document.querySelector('#etfInc').hidden && document.querySelector('#etfListCard').hidden && !document.querySelector('#etfCatSeg button.on') && document.querySelector('#etfSub button[data-v=inc]').classList.contains('on')"))
+           J("() => !document.querySelector('#etfInc').hidden && document.querySelector('#etfListCard').hidden && !document.querySelector('#etfCatSeg button.on') && document.querySelector('#tabs .l4subtab[data-l4sub=etf-inc]').classList.contains('on')"))
         ok(f"[{tag}] 頁頂免責一行小字（不代表未來、可能配到本金、不構成投資建議）",
            J("() => /不代表未來/.test(document.querySelector('#incDisc').textContent) && /本金/.test(document.querySelector('#incDisc').textContent) && /不構成投資建議/.test(document.querySelector('#incDisc').textContent)"))
         ok(f"[{tag}] 組合旁註明未計入二代健保與所得稅", J("() => /二代健保/.test(document.querySelector('#incCombo').innerText) && /所得稅/.test(document.querySelector('#incCombo').innerText)"))
         ok(f"[{tag}] 用語中性：沒有「推薦／建議買」", J("() => !/推薦|建議買/.test(document.querySelector('#etfInc').innerText)"))
         # ---- 回分類：資料夾頁籤切回
         lp.goto(f"{base}#etf"); wait_until(lp, "() => document.querySelector('#v-etf') && document.querySelector('#v-etf').dataset.ready === 'full'", 20000)
-        lp.click("#etfSub button[data-v='inc']"); lp.wait_for_timeout(800)
-        lp.click("#etfSub button[data-v='list']"); lp.wait_for_timeout(400)   # v8：分類頁籤只在「ETF 總覽」子分頁
+        lp.click("#tabs .l4subtab[data-l4sub='etf-inc']"); lp.wait_for_timeout(800)
+        lp.click("#tabs .l4subtab[data-l4sub='etf-list']"); lp.wait_for_timeout(400)   # v8：分類頁籤只在「ETF 總覽」子分頁
         lp.click("#etfCatSeg button[data-v='市值型']"); lp.wait_for_timeout(600)
         ok(f"[{tag}] 從試算點回分類頁籤 → 試算收起、卡片清單回來",
            J("() => document.querySelector('#etfInc').hidden && !document.querySelector('#etfListCard').hidden && document.querySelector('#v-etf').dataset.cat === '市值型'"))
@@ -2530,7 +2530,7 @@ def t_etf_income_v2(pg, b, base):
         J("() => { try { Object.keys(localStorage).filter(k => k.indexOf('tw.etf.') === 0).forEach(k => localStorage.removeItem(k)); } catch (e) {} }")
         lp.reload(wait_until="networkidle")
         wait_until(lp, "() => document.querySelector('#v-etf') && document.querySelector('#v-etf').dataset.ready === 'full'", 20000)
-        lp.click("#etfSub button[data-v='inc']"); lp.wait_for_timeout(1500)
+        lp.click("#tabs .l4subtab[data-l4sub='etf-inc']"); lp.wait_for_timeout(1500)
         wait_until(lp, "() => document.querySelector('#incBar') && document.querySelector('#incBar').dataset.codes", 20000)
         ok(f"★ [{tag}] 兩大分頁「月配試算表｜複利試算表」，月配內「單檔 ETF｜組合 A～E」同一排", J("() => [...document.querySelectorAll('#incMain button')].map(b => b.textContent).join('|') === '月配試算表|複利試算表' && [...document.querySelectorAll('#incTabs button')].map(b => b.textContent.slice(0, 4)).join('|') === '單檔 E|組合 A|組合 B|組合 C|組合 D|組合 E' && !document.querySelector('#incPM').hidden && document.querySelector('#incPX').hidden"))
         ok(f"[{tag}] 免責一行、用語中性", J("() => { const t = document.querySelector('#incDisc').textContent; return /不代表未來/.test(t) && /槓桿型/.test(t) && /不構成投資建議/.test(t) && !/推薦|建議買/.test(document.querySelector('#etfInc').innerText); }"))
@@ -2638,9 +2638,9 @@ def t_etf_income_v2(pg, b, base):
         lp.click("#incMode button[data-v='y']"); lp.wait_for_timeout(600)
         lp.click("#incAmtSeg button[data-v='1000000']"); lp.wait_for_timeout(1200)
         # ---- v8：三個子分頁真的切得動、hash 跟著變；每個子分頁的導覽第一步指在那一頁的元素
-        for sub, want, first in (("cal", "etfcal", "#etfSub"), ("list", "etflist", "#etfCatBar"), ("inc", "etfinc", "#incPM .incctl")):
-            lp.click(f"#etfSub button[data-v='{sub}']"); lp.wait_for_timeout(900)
-            ok(f"★ [{tag}] 子分頁「{sub}」→ hash #etf/{sub}、按鈕亮起", J("() => location.hash") == f"#etf/{sub}" and J(f"() => document.querySelector('#etfSub button[data-v=\"{sub}\"]').classList.contains('on')"))
+        for sub, want, first in (("cal", "etfcal", "#etfCalCard"), ("list", "etflist", "#etfCatBar"), ("inc", "etfinc", "#incPM .incctl")):
+            lp.click(f"#tabs .l4subtab[data-l4sub='etf-{sub}']"); lp.wait_for_timeout(900)
+            ok(f"★ [{tag}] 側欄子項「{sub}」→ hash #etf/{sub}、側欄那格亮起、頁內沒有子分頁鈕", J("() => location.hash") == f"#etf/{sub}" and J("() => document.querySelector('#v-etf').dataset.view") == {"cal": "cal", "list": "cat", "inc": "inc"}[sub] and J(f"() => document.querySelector('#tabs .l4subtab[data-l4sub=etf-{sub}]').classList.contains('on') && !document.querySelector('#etfSub').getClientRects().length"))
             J("() => TwTour.start('page')"); lp.wait_for_function("() => { const s = TwTour.state(); return s && s.active && !s.busy && s.i >= 0; }", timeout=15000); lp.wait_for_timeout(400)
             st = J("() => TwTour.state()")
             tg = J(f"() => {{ const e = document.querySelector('{first}'); if (!e) return null; const r = e.getBoundingClientRect(); return [r.left, r.top, r.width, r.height]; }}")
@@ -2648,7 +2648,7 @@ def t_etf_income_v2(pg, b, base):
             okp = tg and abs(hole.get("l", -999) - tg[0]) < 20 and abs(hole.get("w", -999) - tg[2]) < 40
             ok(f"★ [{tag}] 子分頁「{sub}」按導覽 → 開「{want}」、第一步框在 {first}", st.get("tour") == want and okp, (st.get("tour"), st.get("sel"), hole, tg))
             lp.keyboard.press("Escape"); lp.wait_for_timeout(300)
-        lp.click("#etfSub button[data-v='inc']"); lp.wait_for_timeout(800)
+        lp.click("#tabs .l4subtab[data-l4sub='etf-inc']"); lp.wait_for_timeout(800)
         lab4 = J("() => document.getElementById('incCSortW').textContent.replace(/\s+/g, '')")
         sp = J("() => { const w = document.getElementById('incCSortW'), q = document.getElementById('incCQ'); const a = w.getBoundingClientRect(), b = q.getBoundingClientRect(); return [!!w.closest('#incCombo'), Math.abs((a.top + a.height / 2) - (b.top + b.height / 2)) < 20, a.left > b.left]; }")
         ok(f"★ [{tag}] 組合排序放在組合內容區標題列右側（跟說明句同一列）", all(sp), sp)
@@ -2668,6 +2668,7 @@ def t_etf_income_v2(pg, b, base):
         ok(f"★ [{tag}] v8：右側情境表撐到圖高 ≥ 80%（表本身 ≥ 圖高 60%）", th[0] >= th[1] * 0.8 and th[2] >= th[1] * 0.6, th)
         yl = J("() => { const o = echarts.getInstanceByDom(document.getElementById('cxChart')); const m = o.getModel().getComponent('yAxis').axis.scale.getExtent(); const d = o.getOption().series.filter(s => !(s.id && String(s.id).indexOf('__tgrid') === 0)).flatMap(s => s.data).filter(v => typeof v === 'number'); return [m[0], Math.min(...d), o.getOption().series[1].lineStyle.width, +document.getElementById('cxChart').dataset.mlines > 6]; }")
         ok(f"★ [{tag}] v8：y 軸下緣貼緊資料（離最低點 ≤ 10 個百分點）、線寬 1.5、有月份分隔線", yl[0] <= yl[1] and yl[1] - yl[0] <= 10 and yl[2] == 1.5 and yl[3], yl)
+        ok(f"★ [{tag}] 複利區塊單位用 %，文字裡不出現「個百分點」（Andy：「單位不要用百分點 用%」）", "個百分點" not in J("() => document.getElementById('incPX').innerText") and "%" in J("() => (document.querySelector('#cxTbl tbody tr td:nth-child(4)') || {}).textContent || ''"))
         ok(f"★ [{tag}] 情境勾選列已拿掉；左圖右表並排（約 2:1）", J("() => !document.querySelector('#incPX input[data-scn]') && (() => { const l = document.getElementById('cxChart').getBoundingClientRect(), t = document.getElementById('cxTbl').getBoundingClientRect(); return t.left > l.right - 1 && Math.abs(t.top - l.top) < 120 && l.width > t.width * 1.5; })()"))
         x0 = J(CX)
         ok(f"[{tag}] 線：再投入原標的／0050／00631L／只領現金／只看價格", x0["lines"] == "self,0050,00631L,cash,price" and x0["shown"] == x0["lines"], x0)
@@ -24426,7 +24427,7 @@ def t_cal_1006(pg, b, base):
         gp = J("() => { const t = document.querySelector('#etfCatSeg button.on').getBoundingClientRect(), b = document.querySelector('#etfBody').getBoundingClientRect(); return Math.abs(t.bottom - b.top); }")
         ok(f"★ [{tag}] 資料夾式分頁：選中頁籤下緣與內容框上緣距離 ≤ 1px", gp <= 1.5, gp)
         ok(f"[{tag}] 前 5／報酬比較／ETF 一覽都在同一個內容框內", J("() => ['etfListCard'].every(i => document.querySelector('#etfBody #' + i))"))
-        lp.click("#etfSub button[data-v='cal']"); lp.wait_for_timeout(400)
+        lp.click("#tabs .l4subtab[data-l4sub='etf-cal']"); lp.wait_for_timeout(400)
         for _ in range(30):
             cur = J("() => document.querySelector('#etfCal').dataset.month")
             if cur == "2026-10":
@@ -24435,7 +24436,7 @@ def t_cal_1006(pg, b, base):
         ew = J("""() => { const c = [...document.querySelectorAll('#etfCalGrid .cald:not(.out)')]; const bad = c.filter(e => { const g = new Date(e.dataset.d + 'T00:00:00Z').getUTCDay(); return (g === 0 || g === 6) !== e.classList.contains('cg-we'); });
                  const h = document.querySelector('#etfCalGrid .cald[data-d="2026-10-10"] .cg-hl'); return { n: c.length, bad: bad.length, hol: h ? h.textContent : null }; }""")
         ok(f"★ [{tag}] ETF 行事曆：週末反灰、10/10「國慶日・休市」標記", ew["n"] >= 28 and ew["bad"] == 0 and ew["hol"] == "國慶日・休市", ew)
-        lp.click("#etfSub button[data-v='list']"); lp.wait_for_timeout(400)   # v8：分類頁籤只在「ETF 總覽」子分頁
+        lp.click("#tabs .l4subtab[data-l4sub='etf-list']"); lp.wait_for_timeout(400)   # v8：分類頁籤只在「ETF 總覽」子分頁
         lp.click("#etfCatSeg button[data-v='配息型']"); lp.wait_for_timeout(300)
         # 2026-10-06 晚：期間從分類列搬到報酬比較標題列（下拉＋起訖日期框，rangepick.js），選項多了近 1 年與上市以來
         lp.select_option("#etfRng .rpsel", "custom"); lp.wait_for_timeout(250)
@@ -24451,7 +24452,7 @@ def t_cal_1006(pg, b, base):
         ok(f"★ [{tag}] ETF 每個「怎麼看」都沒有「這張回答：…？」自問自答（.howq）",
            J("() => { const h = [...document.querySelectorAll('#v-etf .howtxt')]; return h.length >= 5 && h.every(x => !x.querySelector('.howq') && !/這張回答|回答：/.test(x.innerHTML)); }"))
         # 當天清單：「再點一次同一格」教學句換成標題列「← 回整月」鈕，真的按下去要回到整月清單
-        lp.click("#etfSub button[data-v='cal']"); lp.wait_for_timeout(400)
+        lp.click("#tabs .l4subtab[data-l4sub='etf-cal']"); lp.wait_for_timeout(400)
         hasd = J("() => { const c = document.querySelector('#etfCalGrid .cald.has'); return c ? c.dataset.d : null; }")
         if hasd:
             lp.click(f"#etfCalGrid .cald.has[data-d='{hasd}']"); lp.wait_for_timeout(200)

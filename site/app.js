@@ -2886,6 +2886,10 @@
     } else if (l4on && head === 'heatmap') {
       if (rest[0] !== 'theme' && rest[0] !== 'industry') { location.replace('#heatmap/industry'); return; }
       l4sub = 'heat-' + rest[0];
+    } else if (l4on && head === 'etf') {
+      // v9：ETF 子項在側欄（配息行事曆／ETF 總覽／現金流試算）；沒帶子項＝ETF 總覽（舊連結 #etf 照舊進總覽）
+      if (!['cal', 'list', 'inc'].includes(rest[0])) { location.replace('#etf/list'); return; }
+      l4sub = 'etf-' + rest[0];
     }
     if (l4sub) document.documentElement.setAttribute('data-l4sub', l4sub);
     else document.documentElement.removeAttribute('data-l4sub');

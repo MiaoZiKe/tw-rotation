@@ -102,8 +102,6 @@
 
   /* v8（Andy：「每個分頁都有他獨自導覽，除了管理區」）：ETF 三個子分頁各一套；按「導覽」時依所在子頁（#etf/cal｜list｜inc）挑。 */
   const ETFCAL = [
-    { t: 'ETF 的三個子分頁', sel: '#etfSub', route: '#etf/cal', routeRe: /^#etf\/cal/, view: 'etf',
-      d: '配息行事曆、ETF 總覽、現金流試算各一頁。這一頁是配息行事曆。' },
     { t: '配息行事曆', sel: '#etfCalCard', route: '#etf/cal', routeRe: /^#etf\/cal/, view: 'etf',
       d: '格子裡寫當天除息的 ETF 代號與每單位配息；點有除息的格子，右邊列出那天每一檔的金額、殖利率、發放日與填息天數。' },
   ];
