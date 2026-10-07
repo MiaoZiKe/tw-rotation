@@ -1,0 +1,125 @@
+====================================================================================================
+[grep-0] GREP https://www.hnitc.com.tw/
+  例外: SSLError HTTPSConnectionPool(host='www.hnitc.com.tw', port=443): Max retries exceeded with url: / (Caused by SSLError(SSLCertVerificationError(1, '[SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed: certificate has expired (_ssl.c:1010)')))
+====================================================================================================
+[grep-1] GREP https://www.tsit.com.tw/
+  HTTP 200  bytes=98538
+====================================================================================================
+[grep-2] GREP https://sitc.sinopac.com/SinopacEtf/
+  HTTP 404  bytes=1229
+====================================================================================================
+[grep-3] GREP https://www.megafunds.com.tw/
+  HTTP 403  bytes=378
+====================================================================================================
+[grep-4] GREP https://www.fsitc.com.tw/
+  HTTP 200  bytes=336488
+   >> 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
+====================================================================================================
+[grep-5] GREP https://www.uobam.com.tw/
+  例外: SSLError HTTPSConnectionPool(host='www.uobam.com.tw', port=443): Max retries exceeded with url: / (Caused by SSLError(SSLCertVerificationError(1, '[SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed: unable to get local issuer certificate (_ssl.c:1010)')))
+====================================================================================================
+[extra-6] GET https://www.hnitc.com.tw/
+  例外: SSLError HTTPSConnectionPool(host='www.hnitc.com.tw', port=443): Max retries exceeded with url: / (Caused by SSLError(SSLCertVerificationError(1, '[SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed: certificate has expired (_ssl.c:1010)')))
+====================================================================================================
+[extra-7] GET https://www.tsit.com.tw/
+  HTTP 200  type=text/html; charset=UTF-8  bytes=730
+  前 5000 字: <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><META HTTP-EQUIV="CONTENT-TYPE" CONTENT="TEXT/HTML; CHARSET=utf-8"/><title>Error</title></head><body><H2>Error</H2><table summary="Error" border="0" bgcolor="#FEEE7A" cellpadding="0" cellspacing="0" width="400"><tr><td><table summary="Error" border="0" cellpadding="3" cellspacing="1"><tr valign="top" bgcolor="#FBFFDF" align="left"><td><STRONG>Error</STRONG></td></tr><tr valign="top" bgcolor="#FFFFFF"><td>This page can't be displayed. Contact support for additional information.<br/>The incident ID is: N/A.</td></tr></table></td></tr></table></body></html>
+====================================================================================================
+[extra-8] GET https://sitc.sinopac.com/SinopacEtf/
+  HTTP 404  type=text/html  bytes=1229
+  前 5000 字: <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"> <html xmlns="http://www.w3.org/1999/xhtml"> <head> <meta http-equiv="Content-Type" content="text/html; charset=big5"/> <title>404 - §ä¤£¨ìÀÉ®×©Î¥Ø¿ý¡C</title> <style type="text/css"> <!-- body{margin:0;font-size:.7em;font-family:Verdana, Arial, Helvetica, sans-serif;background:#EEEEEE;} fieldset{padding:0 15px 10px 15px;}  h1{font-size:2.4em;margin:0;color:#FFF;} h2{font-size:1.7em;margin:0;color:#CC0000;}  h3{font-size:1.2em;margin:10px 0 0 0;color:#000000;}  #header{width:96%;margin:0 0 0 0;padding:6px 2% 6px 2%;font-family:"trebuchet MS", Verdana, sans-serif;color:#FFF; background-color:#555555;} #content{margin:0 0 0 2%;position:relative;} .content-container{background:#FFF;width:96%;margin-top:9px;padding:10px;position:relative;} --> </style> </head> <body> <div id="header"><h1>Server Error</h1></div> <div id="content">  <div class="content-container"><fieldset>   <h2>404 - File or directory not found.</h2>   <h3>The resource you are looking for might have been removed, had its name changed, or is temporarily unavailable.</h3>  </fieldset></div> </div> </body> </html> 
+====================================================================================================
+[extra-9] GET https://www.megafunds.com.tw/
+  HTTP 403  type=text/html  bytes=378
+  前 5000 字: <HTML><HEAD> <TITLE>Access Denied</TITLE> </HEAD><BODY> <H1>Access Denied</H1>   You don't have permission to access "http&#58;&#47;&#47;www&#46;megafunds&#46;com&#46;tw&#47;" on this server.<P> Reference&#32;&#35;18&#46;f3263e17&#46;1791379840&#46;6bcd4105 <P>https&#58;&#47;&#47;errors&#46;edgesuite&#46;net&#47;18&#46;f3263e17&#46;1791379840&#46;6bcd4105</P> </BODY> </HTML> 
+====================================================================================================
+[extra-10] GET https://www.fsitc.com.tw/
+  HTTP 200  type=text/html; charset=utf-8  bytes=336488
+  前 5000 字:   <!DOCTYPE html>  <html xmlns="http://www.w3.org/1999/xhtml"> <head>     <script type="text/javascript">if (top.frames.length != 0) alert('error') </script>     <script>         (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){             (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),             m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)         })(window,document,'script','https://www.google-analytics.com/analytics.js','ga');          ga('create', 'UA-66853120-7', 'auto');         ga('send', 'pageview');  </script>     <!-- Google tag (gtag.js) -->     <script src="https://www.googletagmanager.com/gtag/js?id=G-ZJQYX5JPZX"></script>     <script>         window.dataLayer = window.dataLayer || [];         function gtag() { dataLayer.push(arguments); }         gtag('js', new Date());         gtag('config', 'G-ZJQYX5JPZX');     </script>     <meta charset="UTF-8" /><meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" /><meta name="viewport" content="width=device-width, initial-scale=1.0" /><title> 	第一金投信 </title><meta name="Title" content="第一金投信 - 值得您信賴的投資好夥伴"/><meta name="Description" content="第一金投信成立迄今逾30年，以穩健踏實為基調，持續開發具成長趨勢之產品，提供多元且優質的金融商品服務。想快速掌握市場、了解投資理財？歡迎加入第一金投信粉絲團、Line追蹤我們，讓你輕鬆掌握投資訊息！"/><meta name="KeyWord" content="第一金投信, 第一金, 基金, 定時定額, 定期定額, 定時投資, 時來運轉, 母子基金, 投資, 理財, RSP, 收益分配,"/><meta property="og:title" content="第一金投信 - 值得您信賴的投資好夥伴"/><meta property="og:url" content="https://www.fsitc.com.tw/index.aspx"/><meta property="og:image" content="https://www.fsitc.com.tw/images/logo.jpg"/><meta property="og:description" content="第一金投信成立迄今逾30年，以穩健踏實為基調，持續開發具成長趨勢之產品，提供多元且優質的金融商品服務。想快速掌握市場、了解投資理財？歡迎加入第一金投信粉絲團、Line追蹤我們，讓你輕鬆掌握投資訊息！"/><meta property="og:site_name" content="第一金投信"/><meta property="og:type" content="article"/><link rel="icon" href="favicon.ico" type="image/x-icon" /><link href="css/style.css" rel="stylesheet" /><link href="css/r.css" rel="stylesheet" />     <link href="css/inside.css?t=20261007093042" rel="stylesheet" />     <link href="css/step.css" rel="stylesheet" /><link rel="stylesheet" type="text/css" href="source/jquery.fancybox.css?v=2.1.2" media="screen" />     <!--按鈕-->     <link rel="stylesheet" href="css/bnt.css" /><link href="css/flexslider.css" rel="stylesheet" type="text/css" /><link href="css/bootstrapEDM.css" rel="stylesheet" /><link href="css/ScrollBasedAnimations.css" rel="stylesheet" /><link href="js/dist/css/datepicker.css" rel="stylesheet" /><link href="css/themes/base/jquery-ui.css" rel="stylesheet" /><link href="css/jquery.scrollbar.css" rel="stylesheet" />      <script src="js/jquery-3.7.1.min.js"></script>     <script src="js/jquery-urif.min.js"></script>     <script src="js/Migrate.js"></script>     <script type="text/javascript" src="source/jquery.fancybox.js?v=2.1.3"></script>      <script src="js/BasicFuction.js?t=20261007093042"></script>     <script src="js/jquery.mousewheel.js"></script>     <script defer src="js/jquery.flexslider.js"></script>     <script type="text/javascript" src="lib/jquery.mousewheel-3.0.6.pack.js"></script>     <script src="js/jquery.scrollbar.min.js"></script>     <script src="js/slick.js" type="text/javascript" charset="utf-8"></script>     <style type="text/css">         .aaa {             background-color: #ff0000;             border-color: #d9bb00;             opacity: 1;             border-radius: 9px;             color: #fff;         }         .ui-dialog {             z-index: 101;         }     </style>             <!-- 頁簽 -->     <link rel="stylesheet" type="text/css" href="css/bootstrap.css" />     <script type="text/javascript" src="js/bootstrap.min.js"></script>     <script type="text/javascript"></script>      <!--分頁-->     <link rel="stylesheet" type="text/css" href="css/slick-3.css" /><link rel="stylesheet" type="text/css" href="css/slick-theme-3.css" />      <script type="text/javascript">         String.prototype.escapeHTML = function () {             return $('<div/>').text(this).html();         } 		function getCookie(cname) { 			var name = cname + "="; 			var ca = document.cookie.split(';'); 			for (var i = 0; i < ca.length; i++) { 				var c = ca[i].trim(); 				if (c.indexOf(name) == 0) return c.substring(name.length, c.length); 			} 			return ""; 		} 		var MainMenuIndex = -1; 		//MainMenuIndex = getCookie('MenuIndex'); 	</script> 	<script>         function setCookie(cname, cvalue, exdays) {             var d = new Date();             d.setTime(d.getTime() + (exdays * 24 * 60 * 60 * 1000));             var expires = "expires=" + d.toUTCString();             document.cookie = cname + "=" + cvalue + "; " + expires + "; path=/";             // 若站點會在 www 與非 www 之間切換，再加下一行：             // document.cookie = cname + "=" + cvalue + "; " + expires + "; path=/; domain=.fsitc.com.tw";         }         function ChangMain(i) {             
+   js: //ssllogo.twca.com.tw/twcaseal_v3.js
+   js: js/BasicFuction.js?t=20261007093042
+   js: js/Menu.js
+   js: js/Migrate.js
+   js: js/bootstrap.min.js
+   js: js/jPages.js
+   js: js/jquery-3.7.1.min.js
+   js: js/jquery-twooneone.min.js
+   js: js/jquery-urif.min.js
+   js: js/jquery.cookie.js
+   js: js/jquery.flexslider.js
+   js: js/jquery.mousewheel.js
+   js: js/jquery.scrollbar.min.js
+   js: js/script.js
+   js: js/slick.js
+   js: lib/jquery.mousewheel-3.0.6.pack.js
+   js: source/jquery.fancybox.js?v=2.1.3
+====================================================================================================
+[extra-11] GET https://www.uobam.com.tw/
+  例外: SSLError HTTPSConnectionPool(host='www.uobam.com.tw', port=443): Max retries exceeded with url: / (Caused by SSLError(SSLCertVerificationError(1, '[SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed: unable to get local issuer certificate (_ssl.c:1010)')))
+====================================================================================================
+[extra-12] GET https://websys.fsit.com.tw/FubonETF/Trade/Pcf.aspx?lan=TW&stkId=006208
+  HTTP 200  type=text/html; charset=utf-8  bytes=168068
+  前 5000 字:   <!DOCTYPE html>  <html lang="zh-TW" class="no-js"> <head>          <!-- Google Tag Manager -->     <script>(function (w, d, s, l, i) {             w[l] = w[l] || []; w[l].push({                 'gtm.start':                     new Date().getTime(), event: 'gtm.js'             }); var                 f = d.getElementsByTagName(s)[0],                                       j = d.createElement(s), dl = l != 'dataLayer' ? '&l=' + l : ''; j.async = true; j.src =             'https://www.googletagmanager.com/gtm.js?id=' + i + dl; f.parentNode.insertBefore(j, f);                      })(window, document, 'script', 'dataLayer', 'GTM-WWD9WX2D');</script>     <!-- End Google Tag Manager -->                    <meta name="viewport" content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0" /><meta http-equiv="Content-Type" content="text/html; charset=utf-8" /><meta http-equiv="X-UA-Compatible" content="IE=edge, chrome=1" />                         <meta name="title" content="申購買回清單 | 富邦投信ETF投資網" />                         <meta name="description" content="現金申購買回清單，清單中含預收申購總價金、基金淨資產價值、已發行受益權單位總數、每現金申購/買回基數之受益權單位數、初級市場可否申購及基金資產等交易資訊實物申購買回清單，清單中含基金淨資產價值、每受益權單位淨資產價值、每實物申購/買回基數之受益權單位數、初級市場可否申購及基金資產等交易資訊" />                         <meta name="copyright" content="富邦投信" />                            <meta name="keywords" content="富邦投信,富邦投信ETF投資網,富邦,ETF,現金申購買回清單,基金資產,實物申購買回清單" />                                  <title> 	申購買回清單 | 富邦投信ETF投資網 </title>                <link href="../Images/favicon.ico" rel="shortcut icon" />     <link href="../Styles/plugin/jquery.bxslider.css?v=1.0" media="screen, projection" rel="stylesheet" type="text/css" />     <link href="../Styles/plugin/jquery-ui.min.css?v=2.0" media="screen, projection" rel="stylesheet" type="text/css" />     <link href="../Styles/plugin/font-awesome.min.css?v=1.0" media="screen, projection" rel="stylesheet" type="text/css" />     <link href="../Styles/screen.css?v=2.0" media="screen, projection" rel="stylesheet" type="text/css" />     <link href="../Styles/popup.css?v=1.0" media="screen, projection" rel="stylesheet" type="text/css" />     <link href="../Styles/layout/fixed.css?v=1.0" media="screen, projection" rel="stylesheet" type="text/css" />      <script src="../Script/plugin/jquery-3.6.1.min.js?v=1.0"></script>     <script src="../Script/plugin/jquery-ui.min.js?v=1.0"></script>               <script src="../Script/main.js?v=1.1"></script>                    <script src="../Script/jquery.cookie.js?v=2.0"></script>                                    <script async src="https://www.googletagmanager.com/gtag/js?id=G-CVR2R8D5JK"></script>               <script>         window.dataLayer = window.dataLayer || [];         function gtag() { dataLayer.push(arguments); }         gtag('js', new Date());         gtag('config', 'G-CVR2R8D5JK');     </script>               <script type="application/ld+json"> { "@context": "http://schema.org", "@type": "Organization", "url": "https://websys.fsit.com.tw/FubonETF/", "logo": "https://websys.fsit.com.tw/FubonETF/Images/logo.png", "name": "富邦投信ETF投資網", "mainEntityOfPage": { "@type":"WebPage", "@id":"https://websys.fsit.com.tw/FubonETF/" }, "description" : "多樣化ETF產品，提供產品總覽、交易專區、配息專區、市場 訊息、申購買回清單、即時估計淨值。", "address": { "@type": "PostalAddress", "addressRegion": "Taipei", "postalCode": "105", "streetAddress": "台北市敦化南路一段108號8樓" }, "contactPoint" : [{ "name" : "富邦投信", "@type" : "ContactPoint", "telephone" : "+886 2 8771 6688", "contactType" : "Customer support", "areaServed" : "Taiwan" }] } </script>               <link href="../Styles/base.css?v=1.0" media="screen, projection" rel="stylesheet" type="text/css" />       </head> <body>          <!-- Google Tag Manager (noscript) -->     <noscript>         <iframe             src="https://www.googletagmanager.com/ns.html?id=GTM-WWD9WX2D"             height="0" width="0"             style="display: none; visibility: hidden"></iframe>     </noscript>     <!-- End Google Tag Manager (noscript) -->                         <div class="container" itemscope itemtype="https://schema.org/WebPage">              <div>                                       <header itemscope itemtype="https://schema.org/Brand">                              <div class="wrap">                     <div class="hd-main">                         <form action="AAA" id="search" name="search">                             <div class="hd-burger">                                 <a id="btnBurger" href="#" class="i-burger"></a>                             </div>                             <a id="hplLogo" class="hd-logo" itemprop="url" title="富邦投信ETF投資網" href="https://websys.fsit.com.tw/FubonETF/index.aspx"></a>                             <div class="hd-tool">                                 <div class="mo-hd-qa" style="display: block;" id="sys_menu_qa_mo">                             
+   api? ./Pcf.aspx?lan=TW&amp;stkId=006208
+   api? Pcf.aspx
+   api? https://websys.fsit.com.tw/FubonETF/Trade/Pcf.aspx
+   api? https://websys.fsit.com.tw/FubonETF/Trade/Pcf.aspx?lan=EN&amp;stkId=006208
+   api? https://websys.fsit.com.tw/FubonETF/Trade/Pcf.aspx?lan=TW&amp;stkId=006208
+   api? https://websys.fsit.com.tw/FubonETF/Trade/Pcf.aspx?stkId=00405A&lan=TW
+   api? https://websys.fsit.com.tw/FubonETF/Trade/Pcf.aspx?stkId=0052&lan=TW
+   api? https://websys.fsit.com.tw/FubonETF/Trade/Pcf.aspx?stkId=0057&lan=TW
+   api? https://websys.fsit.com.tw/FubonETF/Trade/Pcf.aspx?stkId=006205&lan=TW
+   api? https://websys.fsit.com.tw/FubonETF/Trade/Pcf.aspx?stkId=006208&lan=TW
+   api? https://websys.fsit.com.tw/FubonETF/Trade/Pcf.aspx?stkId=00633L&lan=TW
+   api? https://websys.fsit.com.tw/FubonETF/Trade/Pcf.aspx?stkId=00634R&lan=TW
+   api? https://websys.fsit.com.tw/FubonETF/Trade/Pcf.aspx?stkId=00639&lan=TW
+   api? https://websys.fsit.com.tw/FubonETF/Trade/Pcf.aspx?stkId=00640L&lan=TW
+   api? https://websys.fsit.com.tw/FubonETF/Trade/Pcf.aspx?stkId=00641R&lan=TW
+   api? https://websys.fsit.com.tw/FubonETF/Trade/Pcf.aspx?stkId=00645&lan=TW
+   api? https://websys.fsit.com.tw/FubonETF/Trade/Pcf.aspx?stkId=00652&lan=TW
+   api? https://websys.fsit.com.tw/FubonETF/Trade/Pcf.aspx?stkId=00653L&lan=TW
+   api? https://websys.fsit.com.tw/FubonETF/Trade/Pcf.aspx?stkId=00654R&lan=TW
+   api? https://websys.fsit.com.tw/FubonETF/Trade/Pcf.aspx?stkId=00662&lan=TW
+   api? https://websys.fsit.com.tw/FubonETF/Trade/Pcf.aspx?stkId=00665L&lan=TW
+   api? https://websys.fsit.com.tw/FubonETF/Trade/Pcf.aspx?stkId=00666R&lan=TW
+   api? https://websys.fsit.com.tw/FubonETF/Trade/Pcf.aspx?stkId=00670L&lan=TW
+   api? https://websys.fsit.com.tw/FubonETF/Trade/Pcf.aspx?stkId=00671R&lan=TW
+   api? https://websys.fsit.com.tw/FubonETF/Trade/Pcf.aspx?stkId=00675L&lan=TW
+   api? https://websys.fsit.com.tw/FubonETF/Trade/Pcf.aspx?stkId=00676R&lan=TW
+   api? https://websys.fsit.com.tw/FubonETF/Trade/Pcf.aspx?stkId=00692&lan=TW
+   api? https://websys.fsit.com.tw/FubonETF/Trade/Pcf.aspx?stkId=00694B&lan=TW
+   api? https://websys.fsit.com.tw/FubonETF/Trade/Pcf.aspx?stkId=00695B&lan=TW
+   api? https://websys.fsit.com.tw/FubonETF/Trade/Pcf.aspx?stkId=00696B&lan=TW
+   api? https://websys.fsit.com.tw/FubonETF/Trade/Pcf.aspx?stkId=00700&lan=TW
+   api? https://websys.fsit.com.tw/FubonETF/Trade/Pcf.aspx?stkId=00709&lan=TW
+   api? https://websys.fsit.com.tw/FubonETF/Trade/Pcf.aspx?stkId=00717&lan=TW
+   api? https://websys.fsit.com.tw/FubonETF/Trade/Pcf.aspx?stkId=00730&lan=TW
+   api? https://websys.fsit.com.tw/FubonETF/Trade/Pcf.aspx?stkId=00733&lan=TW
+   api? https://websys.fsit.com.tw/FubonETF/Trade/Pcf.aspx?stkId=00740B&lan=TW
+   api? https://websys.fsit.com.tw/FubonETF/Trade/Pcf.aspx?stkId=00741B&lan=TW
+   api? https://websys.fsit.com.tw/FubonETF/Trade/Pcf.aspx?stkId=00746B&lan=TW
+   api? https://websys.fsit.com.tw/FubonETF/Trade/Pcf.aspx?stkId=00783&lan=TW
+   api? https://websys.fsit.com.tw/FubonETF/Trade/Pcf.aspx?stkId=00785B&lan=TW
+   api? https://websys.fsit.com.tw/FubonETF/Trade/Pcf.aspx?stkId=00845B&lan=TW
+   api? https://websys.fsit.com.tw/FubonETF/Trade/Pcf.aspx?stkId=00846B&lan=TW
+   api? https://websys.fsit.com.tw/FubonETF/Trade/Pcf.aspx?stkId=00885&lan=TW
+   api? https://websys.fsit.com.tw/FubonETF/Trade/Pcf.aspx?stkId=00892&lan=TW
+   api? https://websys.fsit.com.tw/FubonETF/Trade/Pcf.aspx?stkId=00895&lan=TW
+   api? https://websys.fsit.com.tw/FubonETF/Trade/Pcf.aspx?stkId=00897&lan=TW
+   api? https://websys.fsit.com.tw/FubonETF/Trade/Pcf.aspx?stkId=00900&lan=TW
+   api? https://websys.fsit.com.tw/FubonETF/Trade/Pcf.aspx?stkId=00903&lan=TW
+   api? https://websys.fsit.com.tw/FubonETF/Trade/Pcf.aspx?stkId=00908&lan=TW
+   api? https://websys.fsit.com.tw/FubonETF/Trade/Pcf.aspx?stkId=00920&lan=TW
+   api? https://websys.fsit.com.tw/FubonETF/Trade/Pcf.aspx?stkId=009802&lan=TW
+   api? https://websys.fsit.com.tw/FubonETF/Trade/Pcf.aspx?stkId=009809&lan=TW
+   api? https://websys.fsit.com.tw/FubonETF/Trade/Pcf.aspx?stkId=009814&lan=TW
+   api? https://websys.fsit.com.tw/FubonETF/Trade/Pcf.aspx?stkId=00982D&lan=TW
+   api? https://websys.fsit.com.tw/FubonETF/Trade/Pcf.aspx?stkId=00983D&lan=TW
+   js: ../Script/jquery.cookie.js?v=2.0
+   js: ../Script/main.js?v=1.1
+   js: ../Script/plugin/jquery-3.6.1.min.js?v=1.0
+   js: ../Script/plugin/jquery-ui.min.js?v=1.0
