@@ -3283,6 +3283,9 @@ h4.subh small{font-size:11.5px;font-weight:500;color:var(--ink-3)}
    「圖剩幾 px」而不是「螢幕幾 px」，中間還隔著側欄與卡片內距，媒體查詢算不出來。*/
 #sankeyRow.stack{display:block}
 .hpanel .skms{margin-top:8px}
+/* 族群成分股「依流入｜依成交值」與排名表「流入最多｜流出最多」同一個樣子：寬度自適應（不滿版）、外框包住、兩顆同高 */
+#sankeyRank .skr-tab,#sankeyPanel .skms{display:inline-flex;align-self:flex-start;flex:none;width:auto;max-width:100%;box-sizing:border-box;margin-top:8px;align-items:stretch}
+#sankeyRank .skr-tab button,#sankeyPanel .skms button{flex:none;line-height:1.4;padding:var(--sp-1) var(--sp-3);margin:0;font-size:13.5px}
 /* ===== 資金分流樹右欄：資金流向排名（2026-10-07，D 款橫條）===== */
 #sankeyRow #sankeyRank{flex:0 0 340px;max-width:340px;margin-top:0}
 #sankeyRow.stack #sankeyRank{max-width:none;margin-top:12px}
@@ -3313,6 +3316,11 @@ h4.subh small{font-size:11.5px;font-weight:500;color:var(--ink-3)}
   #sankeyRow:not(.stack){align-items:stretch}
   #sankeyRow:not(.stack) #sankeyRank:not([hidden]),#sankeyRow:not(.stack) #sankeyPanel:not([hidden]){
     contain:size;box-sizing:border-box;width:340px;display:flex;flex-direction:column;overflow:hidden}
+  /* ★ 18:25 修（Andy 圖 216：第三層族群全部不見、線延伸到右欄底下）：按「‹ 全部族群」那一刻兩個右欄同時 hidden，
+     樹當場以「整列寬」排版（W 從 1076 變 1428），同一幀內排名表又出現、寬度縮回 1076 —— ResizeObserver 看到的
+     淨變化是 0 不會醒，畫布就停在 1428 寬，族群欄被推到右欄底下。根治：樹的寬度不吃右欄有沒有顯示，
+     並排時一律＝整列 − 340 − 間距（右欄位置永遠保留）。*/
+  #sankeyRow:not(.stack) #sankeyWrap{flex:0 0 calc(100% - 340px - var(--sp-3));max-width:calc(100% - 340px - var(--sp-3))}
   #sankeyRow:not(.stack) #sankeyRank .skr-l{flex:1 1 0;min-height:0;max-height:none}
   #sankeyRow:not(.stack) #sankeyPanel>*{flex:none}
   #sankeyRow:not(.stack) #sankeyPanel>.ms,#sankeyRow:not(.stack) #sankeyPanel>.skr-l{flex:1 1 0;min-height:0;max-height:none;overflow-y:auto}
