@@ -94,8 +94,8 @@
 #admBody .days .dc{flex:1;min-width:2px;max-width:var(--day-max,12px);display:flex;flex-direction:column;justify-content:flex-end;align-items:center;margin:0 auto;position:relative}
 #admBody .days.few{gap:var(--day-gap,24px);padding:0 24px}
 #admBody .days.few .dc{max-width:var(--day-max,24px)}
-#admBody .days i{display:block;width:100%;border-radius:3px 3px 0 0;background:linear-gradient(180deg,var(--cat-1),color-mix(in srgb,var(--cat-1) 45%,transparent))}
-#admBody .days .dc.mx i{background:var(--cat-1)}
+#admBody .days i{display:block;width:100%;border-radius:3px 3px 0 0;background:linear-gradient(180deg,var(--c,var(--cat-1)),color-mix(in srgb,var(--c,var(--cat-1)) 45%,transparent))}
+#admBody .days .dc.mx i{background:linear-gradient(180deg,var(--cat-1),color-mix(in srgb,var(--cat-1) 45%,transparent))}
 #admBody .days .dv{font:600 12px/1 var(--mono);color:var(--ink);margin-bottom:4px;white-space:nowrap}
 #admBody .days .dd{position:absolute;bottom:-20px;font-size:12px;color:var(--ink-2);white-space:nowrap}
 #admBody .days.few{margin-bottom:20px}
@@ -207,7 +207,7 @@ html[data-theme="light"] #v-admin{--pgL:40%}
 #v-admin .trempty{padding:40px 0;text-align:center}
 #admBody .bars .bt.stk{display:block}
 #admBody .bars .bt.stk>span{display:flex;height:100%;border-radius:3px;overflow:hidden}
-#admBody .bars .bt.stk i{flex:none;height:100%;border-radius:0}
+#admBody .bars .bt.stk i{flex:none;height:100%;border-radius:0;background:linear-gradient(90deg,color-mix(in srgb,var(--c) 55%,transparent),var(--c))}
 #admBody .bars .bt.stk i:hover{filter:brightness(1.15)}
 #admBody .bars .bt.stk{cursor:pointer}
 #admBody .dn ul.lg{display:flex;flex-direction:column;gap:8px;flex:0 1 auto;min-width:190px;max-width:320px;font-size:var(--fs-body,14px);justify-content:center}
@@ -464,7 +464,7 @@ html[data-theme="light"] #v-admin{--pgL:40%}
 #v-admin .mdet h4{margin:0 0 6px;font-size:13.5px}
 #v-admin .mdgrid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px}
 #v-admin .mdays{display:flex;align-items:flex-end;gap:3px;height:70px;border-bottom:1px solid var(--line)}
-#v-admin .mdays i{flex:1;background:var(--cyan);border-radius:3px 3px 0 0;min-width:4px}
+#v-admin .mdays i{flex:1;background:linear-gradient(180deg,var(--cyan),color-mix(in srgb,var(--cyan) 45%,transparent));border-radius:3px 3px 0 0;min-width:4px}
 #v-admin .bars.sm{grid-template-columns:minmax(0,9em) minmax(0,1fr) auto;font-size:12.5px;gap:4px 8px}
 #v-admin .bars.sm .bt{height:10px}
 @media (max-width:1320px){#v-admin .memtbl .c-cr{display:none}}
@@ -1126,7 +1126,7 @@ html[data-theme="light"] #v-admin{--pm-blue:#1f4fd8;--pm-blue-2:#163fb4}
       chart = `<div class="dayplot"><div class="dayy">${[1, 0.75, 0.5, 0.25, 0].map((f) => `<span>${nf(Math.round(mx * f))}</span>`).join('')}</div>
         <div class="days hrs${few ? ' few' : ''}${hm === 'open' ? ' stk2' : ''}" data-chart="days" id="trHrBars">${hd.map((x, i) => { const tot = tots[i];
           const tip = tp(`<b>${x.tip}</b><br>${hm === 'open' ? `${series.map((q, j) => `${q.name} ${nf(x.v[j])}`).join('・')}<br>合計 ${nf(tot)} 次・占 ${(tot / Math.max(1, all) * 100).toFixed(1)}%` : `${nf(tot)} 次・占 ${(tot / Math.max(1, all) * 100).toFixed(1)}%`}`);
-          return `<div class="dc" data-row="${i}"${tip}>${few ? `<span class="dv">${nf(tot)}</span>` : ''}${series.map((q, j) => `<i style="height:${(x.v[j] / mx * 100).toFixed(1)}%;${hm === 'open' ? `background:${q.col}` : ''}"></i>`).join('')}<span class="dd">${x.l}</span></div>`; }).join('')}</div></div>
+          return `<div class="dc" data-row="${i}"${tip}>${few ? `<span class="dv">${nf(tot)}</span>` : ''}${series.map((q, j) => `<i style="height:${(x.v[j] / mx * 100).toFixed(1)}%;${hm === 'open' ? `--c:${q.col}` : ''}"></i>`).join('')}<span class="dd">${x.l}</span></div>`; }).join('')}</div></div>
         ${hm === 'open' ? `<div class="hrlg"><span><i style="background:var(--cat-2)"></i>訪客開站</span><span><i style="background:var(--cat-1)"></i>登入開站</span></div>` : ''}`; }
     const since = hs && hs.since && st.from && hs.since > st.from ? `<div class="hrnote">每小時統計從 ${esc(hs.since)} 起</div>` : '';
     const modes = `<div class="hrbar"><div class="nbsw lv2 hrmodes" id="trHrMetric" role="tablist">${[['pv', '頁面瀏覽'], ['open', '開站（登入／訪客）']].map(([k, n]) => `<button type="button" role="tab" data-hm="${k}" class="${hm === k ? 'on' : ''}">${n}</button>`).join('')}</div>
@@ -1267,8 +1267,8 @@ html[data-theme="light"] #v-admin{--pm-blue:#1f4fd8;--pm-blue-2:#163fb4}
     const mx = Math.max(1, ...list.map((x) => x.d.total)), tot = sum(list.map((x) => x.d.total));
     const rows = list.map(({ p, i, d }, ri) => {
       const segs = d.subN.filter((s) => s.v > 0), ssum = sum(segs.map((s) => s.v)), w = d.total / mx * 100;
-      const inner = segs.length > 1 ? segs.map((s) => `<i style="width:${(s.v / Math.max(ssum, 1) * 100).toFixed(2)}%;background:${s.col}" ${tp(`<b>${esc(p.n)}・${esc(s.n)}</b><br>${nf(s.v)} 次・占該頁 ${(s.v / ssum * 100).toFixed(1)}%・占全站 ${(s.v / tot * 100).toFixed(1)}%`)}></i>`).join('')
-        : `<i style="width:100%;background:${pgCol(i, 0, 1)}" ${tp(`<b>${esc(p.n)}</b><br>${nf(d.total)} 次・占全站 ${(d.total / tot * 100).toFixed(1)}%`)}></i>`;
+      const inner = segs.length > 1 ? segs.map((s) => `<i style="width:${(s.v / Math.max(ssum, 1) * 100).toFixed(2)}%;--c:${s.col}" ${tp(`<b>${esc(p.n)}・${esc(s.n)}</b><br>${nf(s.v)} 次・占該頁 ${(s.v / ssum * 100).toFixed(1)}%・占全站 ${(s.v / tot * 100).toFixed(1)}%`)}></i>`).join('')
+        : `<i style="width:100%;--c:${pgCol(i, 0, 1)}" ${tp(`<b>${esc(p.n)}</b><br>${nf(d.total)} 次・占全站 ${(d.total / tot * 100).toFixed(1)}%`)}></i>`;
       const t0 = tp(`<b>${esc(p.n)}</b><br>${nf(d.total)} 次・占全站 ${(d.total / tot * 100).toFixed(1)}%`);
       return `<button type="button" class="bl" data-p="${p.k}" data-row="${ri}"${t0}>${esc(p.n)}</button><span class="bt stk" data-p="${p.k}" data-row="${ri}"><span style="width:${w.toFixed(1)}%">${inner}</span></span><span class="bn" data-row="${ri}" data-p="${p.k}"${t0}>${nf(d.total)}<small>${(d.total / tot * 100).toFixed(0)}%</small></span>`;
     }).join('');

@@ -163,7 +163,7 @@
 #v-subadm .fbvb .col{flex:1;position:relative;display:flex;align-items:flex-end;justify-content:center}
 #v-subadm .fbvb .col i{display:block;width:min(12px,80%);min-height:1px;border-radius:3px 3px 0 0;background:linear-gradient(180deg,var(--cyan),color-mix(in srgb,var(--cyan) 45%,transparent))}
 #v-subadm .fbvb .vb:hover .col i{filter:brightness(1.25);outline:2px solid var(--ink-2)}
-#v-subadm .fbvb .vb.sel .col i{background:var(--amber)}
+#v-subadm .fbvb .vb.sel .col i{background:linear-gradient(180deg,var(--amber),color-mix(in srgb,var(--amber) 45%,transparent))}
 #v-subadm .fbvb .col i{position:relative}#v-subadm .fbvb .col em{position:absolute;bottom:100%;left:50%;transform:translateX(-50%);font-style:normal;font-size:11.5px;color:var(--ink);white-space:nowrap}
 #v-subadm .fbvb .avgl{position:absolute;left:0;right:0;border-top:1px dashed var(--ink-2);opacity:.6;pointer-events:none}
 #v-subadm .fbvb .xl{display:flex}#v-subadm .fbvb .xl span{flex:1;min-width:0;font-size:11px;color:var(--ink-2);white-space:nowrap;overflow:visible;height:18px;line-height:18px}

@@ -1640,7 +1640,7 @@ canvas.rotripple{position:absolute;left:0;top:0;width:100%;height:100%;pointer-e
 .magrid .ma .n em{font-style:normal;font-size:11.5px;color:var(--ink-3);font-family:var(--mono)}
 .magrid .ma .bar{height:var(--chart-bar-h,10px);border-radius:3px;background:var(--panel-3);margin:var(--sp-2) 0 var(--sp-1);overflow:hidden}
 @media (max-width:640px){.magrid .ma .bar{margin:8px 0 6px}}
-.magrid .ma .bar i{display:block;height:100%;border-radius:3px}
+.magrid .ma .bar i{display:block;height:100%;border-radius:3px;background:linear-gradient(90deg,color-mix(in srgb,var(--c) 55%,transparent),var(--c))}  /* 一律同色漸層（--c 由 JS 給；Andy 10-07） */
 .magrid .ma .v{font-family:var(--mono);font-size:11.5px;color:var(--ink-2);display:flex;justify-content:space-between}
 .magrid .ma .v span{color:var(--ink-3)}
 .top5grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:12px}
@@ -4282,7 +4282,7 @@ h3 .howbtn.pop{font-family:inherit}
 .mixs{margin-left:auto;font-size:12.5px;color:var(--ink-2);white-space:nowrap}
 .mixs b{font-family:var(--mono);font-weight:700;color:var(--ink)} .mixs b.up{color:var(--rise)} .mixs b.down{color:var(--fall)}
 .mixbar{display:flex;gap:2px;height:10px;border-radius:3px;overflow:hidden;background:color-mix(in srgb,var(--ink-3) 16%,transparent)}
-.mixbar i{display:block;height:100%;min-width:3px;background:var(--c)}
+.mixbar i{display:block;height:100%;min-width:3px;background:linear-gradient(90deg,color-mix(in srgb,var(--c) 55%,transparent),var(--c))}
 /* 賣超：同一個法人顏色的斜紋淡色（顏色＝誰，斜紋＝賣）；分隔線＝買超段與賣超段的界線 */
 .mixbar i.sell{background:repeating-linear-gradient(135deg,color-mix(in srgb,var(--c) 75%,transparent) 0 2px,color-mix(in srgb,var(--c) 20%,transparent) 2px 5px)}
 .mixbar .mixsep{flex:none;width:2px;background:var(--ink-2);border-radius:1px}
@@ -4306,7 +4306,7 @@ h3 .howbtn.pop{font-family:inherit}
 .mixdtv b{font:700 15px/20px var(--mono);color:var(--ink)}
 /* 進度條（毛利率、當沖率、量比、停損距離共用）：--p＝填多少、--c＝顏色、.tick＝門檻刻度 */
 .meter{position:relative;display:block;height:var(--chart-bar-h,10px);border-radius:3px;background:color-mix(in srgb,var(--ink-3) 18%,transparent);min-width:40px}
-.meter>i{position:absolute;left:0;top:0;bottom:0;width:var(--p,0%);border-radius:3px;background:var(--c,var(--cyan))}
+.meter>i{position:absolute;left:0;top:0;bottom:0;width:var(--p,0%);border-radius:3px;background:linear-gradient(90deg,color-mix(in srgb,var(--c,var(--cyan)) 55%,transparent),var(--c,var(--cyan)))}
 .meter>.tick{position:absolute;top:-3px;bottom:-3px;width:2px;margin-left:-1px;background:var(--ink-2);border-radius:1px}
 .kvs .k .meter{margin-top:6px}
 /* 本益比同業位置：一條細線、中線＝中位、點＝本檔分位 */
@@ -4504,7 +4504,7 @@ h3 .howbtn.pop{font-family:inherit}
 @media (prefers-reduced-motion:reduce){.osc-d.lv .ovl-dot{animation:none}}
 .osc:hover .osc-more{color:var(--cyan)}
 .osc-bar{display:flex;gap:2px;height:6px;border-radius:99px;overflow:hidden;background:color-mix(in srgb,var(--ink-3) 16%,transparent)}
-.osc-bar i{display:block;height:100%;min-width:3px}
+.osc-bar i{display:block;height:100%;min-width:3px;background:linear-gradient(90deg,color-mix(in srgb,var(--c) 55%,transparent),var(--c))}
 .osc-bar i.osc-none{flex:1;background:none}
 .osc-bar.track i.heat{background:linear-gradient(90deg,var(--amber),var(--rise));border-radius:99px}
 .osc-n{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(0,1fr);gap:8px;min-width:0}
@@ -4928,7 +4928,7 @@ h3 .howbtn.pop{font-family:inherit}
   body.m3on .mrank{list-style:none;margin:6px 0 0;padding:0}
   body.m3on .mrank li{position:relative;display:grid;grid-template-columns:22px 1fr auto;gap:8px;align-items:center;min-height:36px;
     padding:0 6px;border-radius:8px;cursor:pointer}
-  body.m3on .mrank li .bar{position:absolute;left:28px;top:6px;bottom:6px;border-radius:0 4px 4px 0;background:color-mix(in srgb,var(--c,var(--cyan)) 22%,transparent);z-index:0}
+  body.m3on .mrank li .bar{position:absolute;left:28px;top:6px;bottom:6px;border-radius:0 4px 4px 0;background:linear-gradient(90deg,color-mix(in srgb,var(--c,var(--cyan)) 8%,transparent),color-mix(in srgb,var(--c,var(--cyan)) 30%,transparent));z-index:0}
   body.m3on .mrank li>*{position:relative;z-index:1}
   body.m3on .mrank li .r{font:600 12px var(--mono);color:var(--ink-3);text-align:right}
   body.m3on .mrank li .n{font-size:13.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -4949,8 +4949,8 @@ h3 .howbtn.pop{font-family:inherit}
   body.m3on .minst li .n{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--ink-2)}
   body.m3on .minst li .t{height:12px}
   body.m3on .minst li .t i{display:block;height:100%;border-radius:3px}
-  body.m3on .minst li.b .t i{background:var(--rise)}
-  body.m3on .minst li.s .t i{background:var(--fall)}
+  body.m3on .minst li.b .t i{background:linear-gradient(90deg,color-mix(in srgb,var(--rise) 55%,transparent),var(--rise))}
+  body.m3on .minst li.s .t i{background:linear-gradient(90deg,color-mix(in srgb,var(--fall) 55%,transparent),var(--fall))}
   body.m3on .minst li .v{font:600 12.5px var(--mono);text-align:right}
   /* 大盤合一張 */
   body.m3on #m3Grid.m3one{display:block!important;overflow:visible}

@@ -1093,7 +1093,7 @@ def t_overview(pg, base):
     ok("★ 漲跌家數是 11 級直條（跌停 … 平 … 漲停）", bool(ud) and ud["type"] == "bar" and ud["cats"] ==
        ["跌停", "<-5", "-5~-3", "-3~-1", "-1~0", "平", "0~1", "1~3", "3~5", ">5", "漲停"], ud and ud["cats"])
     ok("★ 直條家數加總＝總家數（右上寫的那個數）", bool(ud) and ud["sum"] == ud["total"] and str(ud["total"]) in ud["pill"].replace(",", ""), ud and (ud["sum"], ud["total"], ud["pill"]))
-    ok("★ 紅漲綠跌（跌那半邊偏綠、漲那半邊偏紅）", bool(ud) and pg.evaluate("""(cs) => { const rgb = (c) => { const m = String(c).match(/[\\d.]+/g) || [];
+    ok("★ 紅漲綠跌（跌那半邊偏綠、漲那半邊偏紅）", bool(ud) and pg.evaluate("""(cs) => { const rgb = (c) => { if (c && typeof c === 'object') c = c._base || (c.colorStops && c.colorStops[0].color);  /* 10-07 長條一律同色漸層：取漸層底色 */ const m = String(c).match(/[\\d.]+/g) || [];
         if (String(c)[0] === '#') { const h = c.slice(1); return [parseInt(h.slice(0,2),16), parseInt(h.slice(2,4),16), parseInt(h.slice(4,6),16)]; }
         return m.slice(0, 3).map(Number); };
         return [0,1,2,3,4].every(i => { const [r,g] = rgb(cs[i]); return g > r; }) && [6,7,8,9,10].every(i => { const [r,g] = rgb(cs[i]); return r > g; }); }""", ud["col"]), ud and ud["col"])
@@ -25337,6 +25337,8 @@ SECTIONS = {
     # ★ 2026-10-06 Andy：會員名單——新增會員列拿掉、方案分頁標題列拿掉、統計「載入中…」修好並照流量觀測重做（假 Worker，⚠ 一律 --workers 1）
     "會員名單1006":        lambda pg, b, base, code: t_member_list_1006(b, base, code),
     "風格規範":            lambda pg, b, base, code: t_style_guide(b, base, code),
+    # ★ 2026-10-07 Andy：所有長條一律同色漸層（顏色不變；⚠ 一律 --workers 1）
+    "長條漸層1007":        lambda pg, b, base, code: t_bar_gradient_1007(b, base, code),
     "管理區開關1005":      lambda pg, b, base, code: t_admin_sw_1005(b, base, code),
     "功能卡統一次數1006":  lambda pg, b, base, code: t_perm_cnt_1006(b, base, code),
     "功能開關整列對齊1006": lambda pg, b, base, code: t_perm_grid_1006(b, base, code),
@@ -56339,6 +56341,83 @@ def t_stock_tabjump_1004(pg, base):
                 on = pg.evaluate("() => (document.querySelector('#stockTabs button.on') || {}).dataset.t")
                 ok(f"★ {T} {W}px {code} {nm}：分頁列 top 前後差 ≤ 2px（{t0} → {t1}）、分頁真的換了", abs(t1 - t0) <= 2 and on == to, (t0, t1, on, h0))
     pg.set_viewport_size({"width": 1440, "height": 1000})
+
+# ===================================================================== 2026-10-07：長條一律同色漸層
+# Andy 10-07 16:00：「部分長條圖沒有 Follow 圖二那樣的一點漸層風格，幫我補上，改成漸層但對應顏色不變」。
+# 規格：docs/style_guide.md 十二、docs/chart_library.md C／D 款、docs/bar_gradient_audit.md（全站長條盤點）。
+# 驗：① 各頁每一個 ECharts bar 系列的柱色是漸層（物件 linear，或 app.js 補的函式 __grad）——沒有漏網的實心柱
+#     ② 自畫條（.mixbar／.meter／.osc-bar／.magrid .bar）的 background-image 含 linear-gradient
+#     ③ 顏色沒變：總覽漲跌家數直條，漲（上漲家數）那根仍是紅系、跌那根仍是綠系（取漸層第一個色標判斷）
+#     ④ 深色、淺色各掃一輪
+BG1007_SCAN = """() => { const out = { ec: 0, bad: [], dom: 0, domBad: [] };
+  const isG = (x) => x && ((typeof x === 'object' && x.type === 'linear') || (typeof x === 'function' && x.__grad));
+  document.querySelectorAll('[_echarts_instance_]').forEach((el) => {
+    const r = el.getBoundingClientRect(); if (r.width < 20 || r.height < 20) return;
+    const c = window.echarts && echarts.getInstanceByDom(el); if (!c) return; let o; try { o = c.getOption(); } catch (e) { return; }
+    (o.series || []).forEach((s) => {
+      if (s.type !== 'bar' || s.silent || !(s.data || []).length) return;
+      const sc = s.itemStyle && s.itemStyle.color;
+      if (typeof sc === 'string' && /^(transparent|none)$/i.test(sc)) return;
+      const pts = s.data.filter((d) => d != null && (typeof d !== 'object' || Array.isArray(d) || d.value != null));
+      if (!pts.length) return;
+      out.ec++;
+      const own = (d) => d && typeof d === 'object' && !Array.isArray(d) && d.itemStyle && d.itemStyle.color != null;
+      const okk = isG(sc) || pts.every((d) => own(d) && (isG(d.itemStyle.color) || /^(transparent|none)$/i.test(String(d.itemStyle.color))));
+      if (!okk) out.bad.push({ id: el.id || el.className, name: s.name, sc: typeof sc === 'string' ? sc : typeof sc });
+    }); });
+  const sels = ['.mixbar i:not(.sell)', '.meter>i', '.osc-bar i:not(.osc-none)', '.magrid .ma .bar i', '#admBody .bars .bt i', '#admBody .days i'];
+  sels.forEach((q) => document.querySelectorAll(q).forEach((e) => { const r = e.getBoundingClientRect(); if (r.width <= 0 || r.height <= 0) return;
+    out.dom++; if (!/linear-gradient/.test(getComputedStyle(e).backgroundImage)) out.domBad.push(q + ' ' + e.outerHTML.slice(0, 90) + ' ' + getComputedStyle(e).backgroundImage.slice(0, 60)); }));
+  return out; }"""
+BG1007_COLOR = """() => { const el = document.getElementById('breadth'); const c = el && window.echarts && echarts.getInstanceByDom(el); if (!c) return null;
+  const rgb = (s) => { const m = /rgba?\\(\\s*(\\d+)[,\\s]+(\\d+)[,\\s]+(\\d+)/.exec(s); return m ? [+m[1], +m[2], +m[3]] : null; };
+  const res = []; (c.getOption().series || []).forEach((s) => { if (s.type !== 'bar') return;
+    (s.data || []).forEach((d, k) => { const col = d && d.itemStyle && d.itemStyle.color; if (col && col.colorStops) res.push({ k, rgb: rgb(col.colorStops[0].color), rgb2: rgb(col.colorStops[1].color) }); }); });
+  return res; }"""
+
+
+def t_bar_gradient_1007(b, base, code):
+    T = "長條漸層1007"
+    c, _ = _adm2_ctx(b)
+    pg = c.new_page()
+    pg.set_viewport_size({"width": 1440, "height": 950})
+    tot = {"ec": 0, "dom": 0}
+
+    def scan(label):
+        pg.wait_for_timeout(2200)
+        m = pg.evaluate(BG1007_SCAN)
+        tot["ec"] += m["ec"]; tot["dom"] += m["dom"]
+        ok(f"★ [{T}] {label}：{m['ec']} 個 ECharts 長條系列全是漸層", not m["bad"], m["bad"][:5])
+        ok(f"[{T}] {label}：{m['dom']} 條自畫長條全是 linear-gradient", not m["domBad"], m["domBad"][:5])
+        return m
+
+    for theme in ("dark", "light"):
+        pg.goto(base + "#overview")
+        pg.evaluate("(t) => { try { localStorage.setItem('tw.theme', t); } catch (e) {} }", theme)
+        pg.reload()
+        for r in ("overview", "flow", "market", "stock/2330", "etf", "earnings", "season", "industry"):
+            pg.goto(base + "#" + r); pg.wait_for_timeout(1200)
+            scan(f"{theme} #{r}")
+            if r == "stock/2330":
+                for tab in ("資券", "法人", "營收", "配息"):
+                    try:
+                        pg.locator(".nbsw button", has_text=tab).first.click(timeout=2500)
+                        scan(f"{theme} #stock/2330「{tab}」")
+                    except Exception:
+                        pass
+        if theme == "dark":
+            pg.goto(base + "#overview"); pg.wait_for_timeout(3000)
+            col = pg.evaluate(BG1007_COLOR)
+            ok(f"★ [{T}] 總覽漲跌家數：有 per-bar 漸層色標可驗", bool(col), col)
+            if col:
+                red = [x for x in col if x["rgb"] and x["rgb"][0] > x["rgb"][1] + 40]
+                grn = [x for x in col if x["rgb"] and x["rgb"][1] > x["rgb"][0] + 40]
+                ok(f"★ [{T}] 顏色沒變：漲跌家數仍有紅系（漲）與綠系（跌）的柱", bool(red) and bool(grn), col[:6])
+    pg.goto(base + "#admin/traffic"); pg.wait_for_timeout(1500)
+    scan("管理區流量觀測")
+    ok(f"★ [{T}] 全站合計掃到的 ECharts 長條 >= 10、自畫長條 >= 5", tot["ec"] >= 10 and tot["dom"] >= 5, tot)
+    c.close()
+
 
 # ===================================================================== 風格規範（2026-10-05，docs/style_guide.md 的自動檢查）
 # Andy 10-05：「我要求不是很多，但該有的細節／制度要有」。這段把規範裡可量測的條目變成紅燈：
