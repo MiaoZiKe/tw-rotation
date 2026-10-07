@@ -553,6 +553,15 @@ def states(code: str | None = None) -> list[dict]:
         # ★ 2026-09-28：自選獨立成一頁（#watch，手機在「更多」裡；DECISIONS #274）—— 新的一頁要一起被普查
         {"name": "自選", "hash": "#watch"},
         {"name": f"個股{code}", "hash": f"#stock/{code}"},
+        # ★ 2026-10-08 手機 v2（docs/mobile_v2_plan.md）：手機也走側欄子分頁 —— #flow／#heatmap 只會進第一個子頁，
+        #   其他子頁與抽屜新開的入口（選股策略、財經日曆、ETF 三個子頁）要各自列進來，不然整頁沒被點過
+        {"name": "資金分流樹", "hash": "#flow/sankey"},
+        {"name": "族群×法人", "hash": "#flow/inst"},
+        {"name": "財經日曆", "hash": "#earnings"},
+        {"name": "選股策略", "hash": "#explore"},
+        {"name": "ETF配息行事曆", "hash": "#etf/cal"},
+        {"name": "ETF總覽", "hash": "#etf/list"},
+        {"name": "ETF現金流試算", "hash": "#etf/inc"},
     ]
     for cid, nm in (("semiconductor", "半導體"), ("ai_server", "AI伺服器"), ("electronics", "一般電子"),
                     ("software", "軟體"), ("financial", "金融"), ("traditional", "傳產"),

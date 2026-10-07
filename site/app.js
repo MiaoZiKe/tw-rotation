@@ -1260,7 +1260,7 @@
       /* ★ 2026-10-03 電腦版子分頁：資金流向／熱力圖裡「別的子分頁」的卡是 display:none —— 閒下來也不偷畫，
          等切到那個子分頁、卡片露出來（IntersectionObserver 會叫）才畫，這才是「各子分頁只畫自己的卡」。
          只限掛 l4 的電腦版、只限這兩頁：手機分段導覽藏起來的段落照舊閒下來就補畫（行為不變）。 */
-      const sub = document.documentElement.classList.contains('l4') && document.documentElement.hasAttribute('data-l4sub');
+      const sub = (document.documentElement.classList.contains('l4') || document.documentElement.classList.contains('m4')) && document.documentElement.hasAttribute('data-l4sub');
       let pick = null;
       for (const el of _near.keys()) {
         if (sub && !el.getClientRects().length && el.closest('#v-flow, #v-heatmap')) continue;
@@ -2483,15 +2483,28 @@
 
      兩層：**上層是主軸動線的四步（`.mspine`）**，下層是那一步底下的分段（`.mpager`）。
      沒有標 `s` 的分段表（資金流向／個股／產業鏈／題材／季節性）只會畫下層那一條。*/
+  /* 手機 v2：每個側欄子分頁要藏的卡（跟 layout4.css／mobile4.css 的 data-l4sub 規則同一份） */
+  const M4_SUBHIDE = {
+    'flow-rotation': ['#flowSankeyCard', '#flowInstCard', '#flowConcCard'],
+    'flow-sankey': ['#flowRotCard', '#flowInstCard', '#flowConcCard'],
+    'flow-inst': ['#flowRotCard', '#flowSankeyCard'],
+    'heat-industry': ['#themeMapCard', '#themeDetail'],
+    'heat-theme': ['#indHeat'],
+  };
   function miaPager(key, prefer) {
     const view = document.querySelector('main .view.on');
     if (!view) return;
     const groups = MIA_PAGER[key];
     if (!groups || !mIsM()) { miaClearPager(view); return; }
     // 每一段實際抓得到的元素（抓不到的略過：例如簡版個股頁沒有 #aiCard）
-    const found = groups.map(g => ({ s: g.s || 0, n: g.n,
+    /* ★ 2026-10-08 手機 v2（html.m4）：
+       ① 不再畫「錢往哪跑／貴不貴／別進的理由」那一排大步驟鈕（.mspine）—— 步驟拍平成一條分段列（s 一律當 0）；
+       ② 側欄子分頁（data-l4sub）已經藏掉的卡不列成分段（例如 #flow/rotation 只剩輪動，就不必再出分段列）。 */
+    const m4 = document.documentElement.classList.contains('m4');
+    const subOff = m4 ? (M4_SUBHIDE[document.documentElement.getAttribute('data-l4sub') || ''] || []) : [];
+    const found = groups.map(g => ({ s: m4 ? 0 : (g.s || 0), n: g.n,
         els: g.sel.map(x => view.querySelector(x) || document.querySelector(x)).filter(Boolean) }))
-      .filter(g => g.els.length);
+      .filter(g => g.els.length && !g.els.every(el => subOff.some(q => el.matches(q))));
     if (found.length < 2) { miaClearPager(view); return; }   // 只剩一段就沒有分段的意義
 
     const steps = [...new Set(found.map(g => g.s).filter(Boolean))].sort((a, b) => a - b);
@@ -2960,7 +2973,8 @@
        子分頁只決定「這一頁顯示哪幾張卡」（<html data-l4sub>，layout4.css 依它藏其他卡），**計算邏輯一行都沒改**；
        藏起來的卡由 whenNear 延後到真的露出來才畫（見 nearIdle 與 renderFlow 的註解）。
        ≤820（手機版暫停中）不掛 l4：這段整個不跑，#flow／#heatmap 跟以前一模一樣。*/
-    const l4on = document.documentElement.classList.contains('l4');
+    /* ★ 2026-10-08 手機 v2（html.m4，≤640）：手機也用側欄（抽屜），子分頁跟電腦版同一套網址與同一套「只顯示自己的卡」。 */
+    const l4on = document.documentElement.classList.contains('l4') || document.documentElement.classList.contains('m4');
     let l4sub = '';
     if (l4on && head === 'flow') {
       if (!FLOW_SUBS.includes(rest[0])) { location.replace('#flow/' + FLOW_SUBS[0]); return; }

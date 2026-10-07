@@ -742,5 +742,8 @@
       queueScan(); spy(); fitNav();
     });
   }
+  /* ★ 2026-10-08 手機 v2（mobile4.js）：手機的側欄抽屜要「分組與子項完全照桌機」—— 直接讀這裡的同一份清單，不另抄一份。
+     只是把既有常數掛出去，桌機行為一行都沒變。 */
+  window.TwL4Nav = { PAGES, SUBS, GROUPS, admSubs: () => admOrd(), isAdmin, subIcon };
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();
 })();

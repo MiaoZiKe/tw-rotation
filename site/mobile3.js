@@ -32,7 +32,9 @@
     get(k, d) { try { const v = localStorage.getItem('tw.m3.' + k); return v == null ? d : v; } catch (e) { return d; } },
     set(k, v) { try { localStorage.setItem('tw.m3.' + k, v); } catch (e) { /* 私密視窗 */ } },
   };
-  const NAV_H = 58;                         // 底部導覽一列的高度（CSS 同一個數字）
+  /* 底部導覽一列的高度（CSS 同一個數字）。★ 2026-10-08 手機 v2（html.m4）拿掉底部導覽 → 0。 */
+  const m4 = () => document.documentElement.classList.contains('m4');
+  const navH = () => (m4() ? 0 : 58);
 
   /* ====================================================================== A 共用元件
      ---- 底部抽屜 ----
@@ -89,7 +91,7 @@
        （箭頭指向的那顆被自己蓋掉，也點不到它來關）。
        改後：下面放得下＝正下方；上面放得下＝正上方（規格 R2 照舊）；兩邊都放不下＝挑空間大的那一邊，
        把框高限在那一邊的空間（框本來就 overflow:auto，內容一個字都沒少，只是在框裡捲），並標 data-scroll 讓底部淡出提示還有字。*/
-    const roomB = vh - NAV_H - 8 - below, roomA = r.top - 8 - 60;
+    const roomB = vh - navH() - 8 - below, roomA = r.top - 8 - 60;
     let top;
     if (h <= roomB) top = below;
     else if (h <= roomA) top = r.top - 8 - h;
@@ -152,6 +154,9 @@
   const isAdmin = () => { const A = window.TwAccount; const u = A && A.on && A.on() && A.user(); return !!(u && u.admin); };
   function buildNav() {
     const tabs = document.getElementById('tabs');
+    /* ★ 2026-10-08 手機 v2：底部五格＋「更多」退役，換成 mobile4.js 的漢堡鈕側欄抽屜（分組照桌機側欄）。
+       改前：底部一列五顆＋「更多」抽屜；改後：不插 #mTabMore，已經插過的拿掉。 */
+    if (m4()) { const old = document.getElementById('mTabMore'); if (old) old.remove(); return; }
     if (!tabs) return;
     let b = document.getElementById('mTabMore');
     if (!b) {
@@ -380,7 +385,7 @@
       else {
         const vtop = el.getBoundingClientRect().top;
         if (vtop < window.innerHeight) {
-          S = Math.max(260, Math.min(S, Math.floor(window.innerHeight - NAV_H - (vtop + window.scrollY) - opts.fitBelow)));
+          S = Math.max(260, Math.min(S, Math.floor(window.innerHeight - navH() - (vtop + window.scrollY) - opts.fitBelow)));
           el._radarKey = key; el._radarS = S; el._radarTop = vtop + window.scrollY;
           /* ★ 2026-10-06（既有紅字清理，_uitest 足跡輪盤 ⑤）：記住之後 0.7 秒再對一次頂端。
              實測 390×844 資金流向：第一次量時輪盤頂端在 197，之後上方版面收了 4px（193）但整個分頁高度沒變，
@@ -589,7 +594,7 @@
       // 四步列（.mspine）是 sticky、z-index 31，比說明框（z 6）高 —— 沒黏住的時候也一樣會蓋在框上面（360×780 實測框頂被它吃掉），
       // 所以只要它在畫面上，框頂就不准高過它的底。
       const vTop = Math.max(tb, spr && spr.bottom > tb ? spr.bottom : 0) + pad - br.top;          // 框頂最高到這裡（相對於 box）
-      const vBot = window.innerHeight - NAV_H - pad - br.top;                                      // 框底最低到這裡
+      const vBot = window.innerHeight - navH() - pad - br.top;                                      // 框底最低到這裡
       const cy2 = (y) => {
         const lo = Math.max(minY, vTop), hi = Math.min(maxY, vBot - h);
         return lo <= hi ? Math.max(lo, Math.min(hi, y)) : Math.max(vTop, Math.min(vBot - h, y));
@@ -1974,7 +1979,7 @@
   }
 
   window.M3 = {
-    isM, openSheet, closeSheet, tileSheet, spread, overlaps, leaders, esc, LS, NAV_H,
+    isM, openSheet, closeSheet, tileSheet, spread, overlaps, leaders, esc, LS, get NAV_H() { return navH(); },
     /** C／D 段登記：on(view) 在手機每次換頁跑；off() 回桌機時拆。*/
     hook(h) { hooks.push(h); if (isM() && document.body.classList.contains('m3on') && h.on) { try { h.on(curView()); } catch (e) { /* 略 */ } } },
     apply,

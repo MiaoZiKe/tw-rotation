@@ -35,6 +35,9 @@
      不然收合過的人每次開頁都會先看到展開的左欄、再縮回去。沒按過收合時，視窗 ≤1180 預設收合（layout4.js 同一個門檻）。 -->
 <!-- ★ 2026-10-03（Andy：「手機版先停擺，等電腦版 OK 之後再做」）：只有視窗寬 > 820 才掛 l4 —— ≤820（平板與手機）完全是 main 原本的樣子。
      視窗之後被拉寬／縮窄跨過 821，由 layout4.js 的 resize 掛上或撤掉。 -->
+<!-- ★ 2026-10-08 手機 v2（docs/mobile_v2_plan.md）：≤640 掛 html.m4（mobile4.js 之後跨寬度時掛上／撤掉）。要在第一次 route() 之前掛好：
+     app.js 看到 m4 就跟電腦版一樣走側欄子分頁（#flow/rotation…）。桌機（>640）這一行什麼都不做。 -->
+<script>(function(){if(innerWidth<=640)document.documentElement.classList.add('m4');})();</script>
 <script>(function(){if(innerWidth<=820)return;var c=document.documentElement.classList;c.add('l4');try{var v=localStorage.getItem('tw.layout4.nav');if(v?v==='mini':innerWidth<=1180)c.add('l4-mini');}catch(e){}})();</script>
 <!-- ★ 2026-09-24 PWA：圖示改用 site/icons/ 那一組（舊的 icon.png 是 2026-09-18 的 2KB 圖，
      留著當退路沒有刪）。maskable 版是給 Android 啟動器裁切用的。
@@ -5302,6 +5305,7 @@ h3 .howbtn.pop{font-family:inherit}
 <link rel="stylesheet" href="theme4.css">
 <!-- 版面 v2 結構（左側導覽、頁首、本頁功能跳轉列、手機頁名與線條圖示）。只排版、不寫任何色值，顏色全部吃上面 theme4.css 的變數，所以放在它後面。 -->
 <link rel="stylesheet" href="layout4.css">
+<link rel="stylesheet" href="mobile4.css">
 <!-- ★ 2026-10-03 一屏看完（DECISIONS #308，fit.css／fit.js）：每張圖表卡完整落在一屏可視高度內，只動桌機（≥821）的卡高與圖高。 -->
 <link rel="stylesheet" href="fit.css">
 <link rel="stylesheet" href="explore.css">
@@ -5884,6 +5888,8 @@ return {load:load,ready:ready,srcs:srcs};})();
 <!-- ★ 2026-10-02 版面 v2 結構（DECISIONS #291）：頁首、本頁功能跳轉列、導覽收合、手機頂欄頁名。
      只讀畫面、只加導覽節點，不碰路由與資料；放最後：要等 theme4.js 插好「外觀」鈕、account.js 掛好帳號列。 -->
 <script src="layout4.js"></script>
+<!-- ★ 2026-10-08 手機 v2：漢堡鈕＋側欄抽屜（分組照 layout4.js 的 TwL4Nav）；只在 ≤640 作用 -->
+<script src="mobile4.js"></script>
 <!-- ★ 2026-10-07 逐步導覽（spotlight tour，window.TwTour）：要在 layout4.js 之後 —— 「導覽」鈕掛在它畫的頁首頁名旁邊 -->
 <script src="tour.js"></script>
 <div class="zoomov" id="zoomOv" hidden>

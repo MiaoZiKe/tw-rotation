@@ -13064,27 +13064,32 @@ def t_mobile(b, base, code):
               const r = e.getBoundingClientRect(); if (!r.width || !r.height) return false;
               const s = eff(e); return s > 0 && s < (e.ownerSVGElement ? 8 : 11); })
               .map(e => `${(e.className && e.className.baseVal !== undefined ? e.className.baseVal : e.className) || e.tagName}@${eff(e).toFixed(1)}px:${e.textContent.trim().slice(0,10)}`);
+            const v = document.querySelector('main .view.on') || document.body;
+            // 2026-10-08 手機 v2：#heatmap 進的是「產業」子分頁，整頁就是一張 treemap（canvas）——字少不代表沒內容，圖也算
+            const cv = [...v.querySelectorAll('canvas')].filter(c => c.getBoundingClientRect().width > 200 && c.getBoundingClientRect().height > 200).length;
             return { sideways: document.documentElement.scrollWidth > 391,
-                     text: (document.querySelector('main .view.on')||document.body).innerText.trim().length,
+                     text: v.innerText.trim().length + (cv ? 1000 : 0),
                      tiny }; }""")
         ok(f"手機／{name} 沒有橫向捲軸", not st["sideways"], st["sideways"])
         ok(f"手機／{name} 有內容", st["text"] > 60, st["text"])
         ok(f"手機／{name} 沒有看不清楚的小字", not st["tiny"], st["tiny"][:6])
-    # 手機分頁列真的能切
+    # 2026-10-08 手機 v2 改寫（docs/mobile_v2_plan.md）：
+    #   改前：底部分頁列 #tabs 六顆以上、按「熱力圖」→ 熱力圖頁的分段列有「題材熱力／題材細節」。
+    #   改後：底部列退役，導覽是漢堡鈕側欄抽屜（分組照桌機）；熱力圖拆成「產業／題材」兩個子分頁（同桌機），
+    #         題材子分頁裡才有「題材熱力／題材細節」兩段。
     m.goto(f"{base}#overview", wait_until="networkidle"); m.wait_for_timeout(1400)
-    tabs = m.evaluate("[...document.querySelectorAll('#tabs .tab')].map(a => a.dataset.view)")
-    ok("手機有分頁列", len([t for t in tabs if t]) >= 6, tabs)
-    # 分頁列真的按得動（手機上它固定在畫面底部）
-    # ★ 2026-09-24：以前按「題材」，那顆併進「熱力圖」了 —— 改按熱力圖，而且驗題材那一塊真的在
-    ok("手機分頁列沒有「題材」這顆了（併進熱力圖）", "themes" not in tabs, tabs)
-    if tabs:
-        m.evaluate("document.querySelector('#tabs .tab[data-view=heatmap]').click()"); m.wait_for_timeout(1800)
-        st = m.evaluate("""() => ({ hash: location.hash, view: (document.querySelector('main .view.on') || {}).id,
-            pager: [...document.querySelectorAll('#v-heatmap .mpager button')].map(b => b.textContent.trim()) })""")
-        ok("手機分頁列按得動（按熱力圖真的換到熱力圖那一頁）",
-           st["hash"].startswith("#heatmap") and st["view"] == "v-heatmap", st)
-        ok("手機熱力圖分頁的分段裡有題材那兩段（題材熱力、題材細節）",
-           any("題材熱力" in x for x in st["pager"]) and any("題材細節" in x for x in st["pager"]), st)
+    m.locator("#m4Burger").tap(); m.wait_for_timeout(400)
+    items = m.evaluate("[...document.querySelectorAll('#m4Drawer button[data-h]')].map(b => b.dataset.h)")
+    ok("手機有側欄抽屜（漢堡鈕打開、至少 12 項）", len(items) >= 12, items)
+    ok("手機抽屜沒有「題材」這個頂層項（併進熱力圖的子項）", "#themes" not in items and "#heatmap/theme" in items, items)
+    m.locator('#m4Drawer button.m4sub[data-h="#heatmap/industry"]').tap(); m.wait_for_timeout(1800)
+    st = m.evaluate("""() => ({ hash: location.hash, view: (document.querySelector('main .view.on') || {}).id })""")
+    ok("手機抽屜按得動（按熱力圖・產業真的換到熱力圖那一頁）", st["hash"].startswith("#heatmap") and st["view"] == "v-heatmap", st)
+    m.locator("#m4Burger").tap(); m.wait_for_timeout(400)
+    m.locator('#m4Drawer button.m4sub[data-h="#heatmap/theme"]').tap(); m.wait_for_timeout(1800)
+    st = m.evaluate("""() => ({ hash: location.hash, pager: [...document.querySelectorAll('#v-heatmap .mpager button')].map(b => b.textContent.trim()) })""")
+    ok("手機熱力圖・題材子分頁的分段裡有題材那兩段（題材熱力、題材細節）",
+       any("題材熱力" in x for x in st["pager"]) and any("題材細節" in x for x in st["pager"]), st)
     m.close()
 
 
@@ -26060,6 +26065,152 @@ def t_title_dup_1007(b, base):
     ok(f"★ [{T}] 頁首大標沒有被自己的框切掉（scrollHeight ≤ clientHeight）", clip == [], clip)
 
 
+# ===================================================================== 手機 v2（2026-10-08，docs/mobile_v2_plan.md；site/mobile4.js）
+# Andy 10-08：「手機版本 幫我 follow 現在版本進行設計規劃……我是側邊欄位就用側邊欄位進行」
+# ＋「所有頁面接盡可能保持一個原則，開啟就能看到完整資訊」。
+# 390×844＋is_mobile＋has_touch＋DPR2，逐項驗「畫面真的變了」：
+#   ① 漢堡鈕打開抽屜；抽屜的分組＝桌機側欄（layout4.js TwL4Nav.GROUPS）；底部五格與三顆大鈕不在
+#   ② 抽屜每一個子項點下去：網址、頂欄頁名都換成那一項；抽屜收起
+#   ③ 每一頁：沒有水平捲軸、字 ≥ 11px、觸控目標 ≥ 40px（月曆日格、熱圖方塊等「圖本身」列為例外，見 M4_TOUCH_EXEMPT）
+#   ④ 第一屏（不捲動）：該頁的主圖＋摘要列整個在 0～844 之內（M4_FIRST）
+#   ⑤ 每一頁的主要切換真的點得動：點一顆沒選中的切換鈕 → 它變成選中、頁面文字真的變了
+M4_FIRST = {   # 路由 → 第一屏（390×844 不捲動）必須整個看得到的元素：主圖或精簡圖＋它的摘要列（2026-10-08 實測量過才填）
+    "#overview": ["#mbIdx", "#ovRotCard svg"],                                  # 指數三格＋整張輪盤（含四象限家數）
+    "#earnings": ["#earnFilt", "#earnMonth"],                                   # 三分類切換＋月份（月曆本身是例外格）
+    "#flow/rotation": ["#flowRotCard svg", "#mRank > :nth-child(5)"],         # 輪盤＋排行前 5
+    "#flow/sankey": ["#flowSankeyCard .mrank"],                                # 第一層五大類長條（金額＋占比）
+    "#flow/inst": ["#flowInstCard"],                                           # 整張族群×法人（買超前 8＋賣超前 8）
+    "#heatmap/industry": ["#v-heatmap canvas"],                                # 整張 treemap
+    "#heatmap/theme": ["#themeMapCard"],                                       # 整張題材 treemap＋熱度圖例
+    "#industry": ["#gpHost canvas"],                                           # 族群漲跌幅長條
+    "#market": ["#v-market canvas"],                                           # 漲跌分佈圖
+    "#explore": ["#v-explore .sl-row"],                                        # 第一張策略卡的第一檔
+    "#etf/cal": ["#etfCalCard h3", "#etfCalPrev", "#etfCalNext"],
+    "#etf/list": ["#etfPopCard", "#etfRetTopCard"],                            # 最受歡迎前 5＋報酬率前 5
+    "#etf/inc": ["#etfInc select"],                                            # 試算條件
+    "#season": ["#seasonHeatCard canvas"],                                     # 族群×月份熱圖
+    "#watch": ["#v-watch .card"],
+}
+# 例外＝「圖本身」的格子（docs/mobile_v2_plan.md 第三節）：月曆格內的事件晶片／日期／＋N、週期統計月份表頭（同功能有「排序」鈕走 40px 的路）
+M4_TOUCH_EXEMPT = ["#m4Drawer *", "aside *", "footer *", ".footer *", "#v-earnings .chip", "#v-earnings .dn", "#v-earnings .more",
+                   "#v-season button[data-m]"]
+# 第一屏沒有分段鈕的頁：改點它自己的主要操作，驗畫面真的變了（路由 → [要點的選擇器, 選擇 select 的值]）
+M4_ACT = {"#flow/rotation": "#mRank li:nth-child(3), #mRank > *:nth-child(3)", "#etf/cal": "#etfCalNext",
+          "#heatmap/industry": "select#indTreeGroup"}
+
+
+def _m4_measure(m, ex):
+    return m.evaluate("""(EX) => { const W = innerWidth, H = innerHeight, view = document.querySelector('.view.on');
+        const vis = (e) => { const r = e.getBoundingClientRect(); if (!r.width || !r.height) return false; const s = getComputedStyle(e);
+          return s.visibility !== 'hidden' && s.display !== 'none' && +s.opacity !== 0 && r.bottom > 0 && r.top < H * 2 && r.right > 0 && r.left < W; };
+        const ex = (e) => EX.some(q => { try { return e.matches(q); } catch (x) { return false; } });
+        const scope = [document.querySelector('.topbar'), view].filter(Boolean);
+        const small = [], tiny = [];
+        scope.forEach(sc => sc.querySelectorAll('*').forEach(e => {
+          if (!vis(e) || e.closest('svg') || ex(e)) return;
+          if ([...e.childNodes].some(n => n.nodeType === 3 && n.textContent.trim())) { const f = parseFloat(getComputedStyle(e).fontSize); if (f < 11) small.push((e.id || String(e.className).slice(0, 30) || e.tagName) + ':' + f); }
+          if (e.matches('button,select,[role=button],[role=tab],a.btn,a.sl-more,a.lk,.mfocus a') && !e.disabled) { const r = e.getBoundingClientRect(); if (r.height < 39.5 || r.width < 39.5) tiny.push((e.id || e.textContent.trim().slice(0, 8) || String(e.className).slice(0, 30)) + ':' + Math.round(r.width) + 'x' + Math.round(r.height)); }
+        }));
+        return { docW: document.documentElement.scrollWidth, W, small: small.slice(0, 10), ns: small.length, tiny: tiny.slice(0, 10), nt: tiny.length }; }""", ex)
+
+
+def t_mobile_m4(b, base, code):
+    T = "手機v2"
+    m = b.new_page(**MOBILE_VP)
+    m.on("pageerror", lambda e: fails.append(f"{T} pageerror: {e} @ {m.url} || {(getattr(e, 'stack', '') or '')[:500]}"))
+    m.route("**/fonts.googleapis.com/**", lambda r: r.abort())
+    m.goto(base + "#overview", wait_until="domcontentloaded")
+    m.evaluate("() => { try { localStorage.clear(); localStorage.setItem('tw.live.on', '0'); } catch (e) {} }")
+    m.reload(wait_until="domcontentloaded"); m.wait_for_timeout(2500)
+
+    # ① 骨架
+    a = m.evaluate("""() => { const vis = (e) => !!e && e.getClientRects().length > 0 && getComputedStyle(e).display !== 'none';
+        return { m4: document.documentElement.classList.contains('m4'), burger: vis(document.getElementById('m4Burger')),
+                 tabs: vis(document.getElementById('tabs')), more: !!document.getElementById('mTabMore'),
+                 spine: [...document.querySelectorAll('.mspine')].some(vis),
+                 drawer: !!document.getElementById('m4Drawer') && !document.getElementById('m4Drawer').hidden }; }""")
+    ok(f"【{T}】390 寬掛上 html.m4、有漢堡鈕、抽屜一開始收著", a["m4"] and a["burger"] and not a["drawer"], a)
+    ok(f"【{T}】改前底部五格＋「更多」＋三顆大鈕 → 改後都不在畫面上", not a["tabs"] and not a["more"] and not a["spine"], a)
+    m.locator("#m4Burger").tap(); m.wait_for_timeout(400)
+    d = m.evaluate("""() => { const D = document.getElementById('m4Drawer'), N = window.TwL4Nav;
+        const r = D.getBoundingClientRect();
+        return { open: !D.hidden, w: Math.round(r.width), groups: [...D.querySelectorAll('.m4grp:not(.m4tools) .m4gt')].map(e => e.textContent.trim()),
+                 want: N.GROUPS.map(g => g.t), items: [...D.querySelectorAll('button[data-h]')].map(e => ({ h: e.dataset.h, t: e.textContent.trim() })),
+                 bad: [...D.querySelectorAll('button')].filter(e => e.getBoundingClientRect().height < 40).map(e => e.textContent.trim()) }; }""")
+    ok(f"【{T}】點漢堡鈕抽屜真的打開（寬 {d['w']}px）", d["open"] and 240 <= d["w"] <= 340, d["w"])
+    ok(f"【{T}】抽屜分組＝桌機側欄分組（{'／'.join(d['groups'])}）", d["groups"] == d["want"], (d["groups"], d["want"]))
+    hs = [x["h"] for x in d["items"]]
+    need = ["#overview", "#earnings", "#flow/rotation", "#flow/sankey", "#flow/inst", "#heatmap/industry", "#heatmap/theme",
+            "#industry", "#market", "#explore", "#etf/cal", "#etf/list", "#etf/inc", "#season", "#watch"]
+    ok(f"【{T}】抽屜有桌機側欄的每一項與子項（{len(hs)} 項）", all(n in hs for n in need), [n for n in need if n not in hs])
+    ok(f"【{T}】訪客的抽屜裡沒有管理區", not any(h.startswith("#admin") for h in hs), hs)
+    ok(f"【{T}】抽屜每一顆觸控高度 ≥ 40", d["bad"] == [], d["bad"])
+    m.locator("#m4Back").tap(position={"x": 370, "y": 400}); m.wait_for_timeout(300)
+    ok(f"【{T}】點背景抽屜收起", m.evaluate("() => document.getElementById('m4Drawer').hidden"))
+
+    # ②～⑤ 逐項走一遍
+    seen = set()
+    for it in d["items"]:
+        h = it["h"]
+        if h in seen:
+            continue
+        seen.add(h)
+        m.locator("#m4Burger").tap(); m.wait_for_timeout(300)
+        btn = m.locator(f'#m4Drawer button[data-h="{h}"]').first
+        btn.scroll_into_view_if_needed(); btn.tap(); m.wait_for_timeout(2600)
+        st = m.evaluate("""() => { const v = document.querySelector('.view.on'); const t = document.getElementById('m4Title');
+            return { hash: location.hash, view: v ? v.id : '', closed: document.getElementById('m4Drawer').hidden, title: t ? t.innerText.replace(/\\s+/g, ' ') : '' }; }""")
+        ok(f"【{T}】抽屜「{it['t']}」→ 網址 {h}、抽屜收起", st["hash"].startswith(h) and st["closed"], st)
+        ok(f"【{T}】抽屜「{it['t']}」→ 頂欄頁名換成它", it["t"][:2] in st["title"], st["title"])
+        m.evaluate("() => window.scrollTo(0, 0)"); m.wait_for_timeout(200)
+        g = _m4_measure(m, M4_TOUCH_EXEMPT)
+        ok(f"【{T}】{h} 沒有水平捲軸（頁寬 {g['docW']} ≤ {g['W']}）", g["docW"] <= g["W"] + 1, g["docW"])
+        ok(f"【{T}】{h} 字 ≥ 11px", g["ns"] == 0, g["small"])
+        ok(f"【{T}】{h} 觸控目標 ≥ 40px", g["nt"] == 0, g["tiny"])
+        if h in M4_FIRST:
+            fs = m.evaluate("""(sels) => sels.map(q => { const e = [...document.querySelectorAll(q)].find(x => x.getClientRects().length && x.closest('.view.on'));
+                if (!e) return { q, miss: true }; const r = e.getBoundingClientRect();
+                return { q, top: Math.round(r.top), bottom: Math.round(r.bottom), ok: r.top >= 0 && r.bottom <= innerHeight + 1 }; })""", M4_FIRST[h])
+            ok(f"【{T}】{h} 第一屏（不捲動）看得到主圖＋摘要列（bottom ≤ 844）", all(x.get("ok") for x in fs), fs)
+        # ⑤ 主要切換真的點得動
+        ch = m.evaluate("""() => { const v = document.querySelector('.view.on'); const H = innerHeight;
+            document.querySelectorAll('[data-m4try]').forEach(x => x.removeAttribute('data-m4try'));
+            const cand = [...v.querySelectorAll('button')].filter(b => { const r = b.getBoundingClientRect(); return r.width && r.top > 0 && r.bottom < H && !b.disabled; });
+            const isOn = (b) => b.classList.contains('on') || b.getAttribute('aria-selected') === 'true' || b.getAttribute('aria-pressed') === 'true';
+            for (const b of cand) { if (isOn(b)) continue; const sib = [...b.parentElement.children].filter(x => x.tagName === 'BUTTON');
+              if (sib.length >= 2 && sib.some(isOn)) { b.setAttribute('data-m4try', '1'); return { t: b.textContent.trim().slice(0, 12) }; } }
+            return null; }""")
+        if ch is None and h in M4_ACT:
+            sel = M4_ACT[h]
+            before = m.evaluate("() => { const v = document.querySelector('.view.on'); return v.innerText + '|' + v.querySelectorAll('.on,[aria-selected=true]').length + '|' + [...v.querySelectorAll('canvas')].map(c => c.toDataURL().length).join(','); }")
+            if sel.startswith("select"):
+                opts = m.evaluate(f"() => [...document.querySelector('{sel}').options].map(o => o.value)")
+                cur = m.evaluate(f"() => document.querySelector('{sel}').value")
+                m.select_option(sel, [o for o in opts if o != cur][0])
+            else:
+                m.locator(sel).first.tap()
+            m.wait_for_timeout(1500)
+            after = m.evaluate("() => { const v = document.querySelector('.view.on'); return v.innerText + '|' + v.querySelectorAll('.on,[aria-selected=true]').length + '|' + [...v.querySelectorAll('canvas')].map(c => c.toDataURL().length).join(','); }")
+            ok(f"【{T}】{h} 操作「{sel}」→ 畫面真的變了", after != before, sel)
+            continue
+        if ch is None:
+            ok(f"【{T}】{h} 第一屏找得到可以切換的鈕（分段／篩選）", h in ("#watch", "#explore", "#industry", "#etf/inc"), h)
+            continue
+        before = m.evaluate("() => { const v = document.querySelector('.view.on'); return v.innerText.length + '|' + v.innerText.slice(0, 6000) + '|' + v.querySelectorAll('.on,[aria-selected=true]').length; }")
+        m.locator("[data-m4try]").first.tap(); m.wait_for_timeout(1200)
+        after = m.evaluate("""() => { const b = document.querySelector('[data-m4try]'); const on = !b || !b.isConnected || b.classList.contains('on') || b.getAttribute('aria-selected') === 'true' || b.getAttribute('aria-pressed') === 'true';
+            const v = document.querySelector('.view.on'); return { on, txt: v.innerText.length + '|' + v.innerText.slice(0, 6000) + '|' + v.querySelectorAll('.on,[aria-selected=true]').length }; }""")
+        ok(f"【{T}】{h} 點「{ch['t']}」→ 它變成選中、頁面內容真的變了", after["on"] and after["txt"] != before, ch)
+    # 回到桌機寬：抽屜與 m4 全部拆掉
+    m.set_viewport_size({"width": 1440, "height": 900}); m.wait_for_timeout(900)
+    z = m.evaluate("() => ({ m4: document.documentElement.classList.contains('m4'), burger: !!document.getElementById('m4Burger'), drawer: !!document.getElementById('m4Drawer') })")
+    ok(f"【{T}】拉寬到 1440：html.m4、漢堡鈕、抽屜全部拆掉（桌機不留手機節點）", not any(z.values()), z)
+    m.set_viewport_size({"width": 390, "height": 844}); m.wait_for_timeout(900)
+    z = m.evaluate("() => ({ m4: document.documentElement.classList.contains('m4'), burger: !!document.getElementById('m4Burger') })")
+    ok(f"【{T}】再縮回 390：m4 與漢堡鈕回來", all(z.values()), z)
+    m.close()
+
+
 SECTIONS = {
     "標題重複普查":        lambda pg, b, base, code: t_title_dup_1007(b, base),
     "時間軸分隔線1006":    lambda pg, b, base, code: t_timegrid_1006(pg, base),
@@ -26226,6 +26377,8 @@ SECTIONS = {
     "手機個股券商式":      lambda pg, b, base, code: t_mobile_broker(b, base, code),
     # ★ 2026-09-27 手機總覽最上方：指數三格（可左右滑）＋觀察清單（2026-09-27 起是自選清單目前那一頁：localStorage tw.watchlists，只存代號；site/mobile3.js G 段＋site/watchlists.js）
     "手機總覽指數觀察清單": lambda pg, b, base, code: t_mobile_home(b, base, code),
+    # ★ 2026-10-08 手機 v2（docs/mobile_v2_plan.md；site/mobile4.js）：側欄抽屜、每頁第一屏、字級／觸控、主要切換真的點得動
+    "手機v2":              lambda pg, b, base, code: t_mobile_m4(b, base, code),
     # ★ 2026-09-25 手機版 v3（docs/mobile_v3_spec.md §7）：底部一列五顆、「?」氣泡、大盤合一張、新雷達＋焦點條、
     #   資金分流樹長條、法人對稱長條、篩選抽屜、剖析圖只留編號（2D／3D）。390 與 360 各一輪。⚠ 一律 --workers 1（有 3D）
     "手機v3":              lambda pg, b, base, code: t_mobile_v3(b, base, code),
@@ -49076,7 +49229,11 @@ def t_mobile_broker(b, base, code):
        [x.rstrip('*') for x in x1["seg"]] == ["融資", "當沖", "融券", "借券賣"], x1["seg"])
     m2.evaluate(SEG, "dt"); m2.wait_for_timeout(800)
     x2 = m2.evaluate(ST)
-    nm_ = len(pgj.get("margin") or [])
+    # 2026-10-08 改：改前用 margin 總列數；改後只數融資餘額有值的列 —— mobile3.js skMargin 先濾掉 r[1]==null 的列
+    #   （資料湖最後一天常是「當沖已到、融資券還沒到」的半列，例如 2344 的 10-07），注入的 1000+i 在那一列之前就停了。
+    #   這是驗收腳本的口徑錯（main 上同一份資料也紅），不是畫面錯。
+    _mg = pgj.get("margin") or []
+    nm_ = max([i for i, r in enumerate(_mg) if len(r) > 1 and r[1] is not None] or [-1]) + 1
     ok(f"{T}新欄位：切「當沖」→ 圖是當沖張數（最後一天 {1000 + nm_ - 1}）、表有當沖欄且反白",
        bool(x2["series"]) and x2["series"][0]["d"][-1] == 1000 + nm_ - 1 and x2["thSel"] == "當沖", (x2["series"], x2["thSel"], x2["th"]))
     m2.evaluate(TAP, "tag"); m2.wait_for_timeout(700)
