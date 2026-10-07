@@ -298,13 +298,28 @@ KGI_PAGE = "https://www.kgifund.com.tw/Fund/RedemptionList"
 KGI_PCF = "https://www.kgifund.com.tw/Fund/RedemptionVC"
 
 
-def kgi_fund_ids(page_html: str) -> dict[str, str]:
-    """申購買回清單頁的基金下拉選單：<option value="J024">009816 凱基台灣TOP50</option> → {009816: J024}。"""
+def _norm(n: str) -> str:
+    return re.sub(r"\s+", "", str(n or "")).upper()
+
+
+def kgi_fund_ids(page_html: str, names: dict[str, str]) -> dict[str, str]:
+    """申購買回清單頁的隱藏欄位 AllFundName＝[{label: 簡稱, fundID: J024}]（沒有 ETF 代號），
+    用 company_info 的 ETF 簡稱對回代號；對不到的記 log。"""
+    t = _html.unescape(page_html or "")
+    m = re.search(r'id="AllFundName"[^>]*value="(\[.*?\])"', t, re.S) or re.search(r'value="(\[\{"label".*?\])"', t, re.S)
+    try:
+        lst = json.loads(m.group(1)) if m else []
+    except ValueError:
+        lst = []
+    by_name = {_norm(n): c for c, n in names.items()}
     out = {}
-    for m in re.finditer(r'<option[^>]*value="([A-Za-z]\d+)"[^>]*>([^<]*)</option>', page_html or ""):
-        c = re.search(r"\b(\d{4,6}[A-Z]?)\b", _html.unescape(m.group(2)))
-        if c:
-            out[c.group(1)] = m.group(1)
+    for x in lst:
+        lab, fid = x.get("label"), x.get("fundID")
+        c = by_name.get(_norm(lab))
+        if c and fid:
+            out[c] = fid
+        elif fid:
+            log.info("凱基 %s（%s）對不到 ETF 代號", lab, fid)
     return out
 
 
@@ -322,9 +337,9 @@ def parse_kgi(etf: str, frag: str) -> list[dict]:
     return out
 
 
-def kgi() -> pd.DataFrame:
+def kgi(names: dict[str, str]) -> pd.DataFrame:
     page = _req("GET", KGI_PAGE, expect="text")
-    ids = kgi_fund_ids(page or "")
+    ids = kgi_fund_ids(page or "", {c: n for c, n in names.items() if "凱基" in str(n)})
     if not ids:
         log.warning("凱基申購買回清單頁找不到基金選單（前 200 字）：%s", _snip(page))
         return pd.DataFrame(columns=COLS)
@@ -533,26 +548,35 @@ def _nuxt_pick(body: str, key: str, env: dict):
 
 
 def parse_yuanta(etf: str, page: str) -> list[dict]:
-    """元大 PCF 頁：PCF.trandate（淨值日）、osunit／baseunit、InKind.FundComposition[{stkcd,name,qty}]。
-
-    元大只給「每一實物申購基數（baseunit 單位）要交付的股數」，沒有權重：
-    - shares＝qty × 已發行單位數 ÷ 基數單位數（換算成整檔基金的持股）
-    - weight 留空，由 build_payload 用股數×收盤價推算（頁面標註「依股數×收盤價推算」）。"""
+    """元大 PCF 頁（Nuxt SSR）：
+    - 優先讀 `.FundWeights={Summary, StockWeights:[{code, name, weights（%）, qty（基金持有總股數）}]}`
+      —— 2026-10-07 實測 00713（現金申贖型）有這段；
+    - 沒有的話退回 `.InKind={FundComposition:[{stkcd, name, qty（每一申購基數的股數）}]}`（實物申贖型，0050 等），
+      shares＝qty × 已發行單位數 ÷ 基數單位數，weight 留空由 build_payload 用股數×收盤價推算。
+    日期一律用 `.PCF.trandate`（淨值日）。"""
     body, env = _nuxt_env(page)
     m = re.search(r"\.PCF=\{", body)          # 另有一個 .PCF=[...]（欄位說明），只認物件那個
     pcf = _JS(body[m.end() - 1:], env).val() if m else {}
-    comp = _nuxt_pick(body, "FundComposition", env) or []
     day = _iso(pcf.get("trandate")) or _iso(pcf.get("upddate"))
+    src = YUANTA_PCF.format(code=etf)
+    out = []
+    m = re.search(r"\.FundWeights=\{", body)
+    fw = _JS(body[m.end() - 1:], env).val() if m else {}
+    for s in (fw or {}).get("StockWeights") or []:
+        if isinstance(s, dict) and s.get("code"):
+            out.append({"date": day, "etf": etf, "code": str(s.get("code")).strip(), "name": str(s.get("name") or "").strip(),
+                        "weight": _num(s.get("weights")), "shares": _num(s.get("qty")), "issuer": "元大", "src": src})
+    if out:
+        return out
+    comp = _nuxt_pick(body, "FundComposition", env) or []
     os_, base = _num(pcf.get("osunit")), _num(pcf.get("baseunit"))
     mult = os_ / base if os_ and base else None
-    out = []
-    for s in comp:
+    for s in comp if isinstance(comp, list) else []:
         if not isinstance(s, dict):
             continue
         q = _num(s.get("qty"))
         out.append({"date": day, "etf": etf, "code": str(s.get("stkcd") or "").strip(), "name": str(s.get("name") or "").strip(),
-                    "weight": None, "shares": (q * mult if q is not None and mult else None),
-                    "issuer": "元大", "src": YUANTA_PCF.format(code=etf)})
+                    "weight": None, "shares": (q * mult if q is not None and mult else None), "issuer": "元大", "src": src})
     return out
 
 
@@ -606,7 +630,7 @@ def fetch_all(etf_names: dict[str, str]) -> pd.DataFrame:
     for c, n in etf_names.items():
         by.setdefault(issuer_of(n), []).append(c)
     jobs: list[tuple[str, Callable[[], pd.DataFrame]]] = [
-        ("群益", capital), ("復華", fuhhwa), ("統一", uni), ("凱基", kgi), ("國泰", cathay),
+        ("群益", capital), ("復華", fuhhwa), ("統一", uni), ("凱基", lambda: kgi(etf_names)), ("國泰", cathay),
         ("野村", lambda: nomura(sorted(by.get("野村", [])))),
         ("元大", lambda: yuanta(sorted(by.get("元大", [])))),
     ]
