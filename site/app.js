@@ -2959,6 +2959,10 @@
     } else if (l4on && head === 'heatmap') {
       if (rest[0] !== 'theme' && rest[0] !== 'industry') { location.replace('#heatmap/industry'); return; }
       l4sub = 'heat-' + rest[0];
+    } else if (l4on && head === 'etf') {
+      // v9：ETF 子項在側欄（配息行事曆／ETF 總覽／現金流試算）；沒帶子項＝ETF 總覽（舊連結 #etf 照舊進總覽）
+      if (!['cal', 'list', 'inc'].includes(rest[0])) { location.replace('#etf/list'); return; }
+      l4sub = 'etf-' + rest[0];
     }
     if (l4sub) document.documentElement.setAttribute('data-l4sub', l4sub);
     else document.documentElement.removeAttribute('data-l4sub');
@@ -3071,10 +3075,12 @@
     if (view === 'watch' && rendered.watch && window.TwWatchPage) window.TwWatchPage.paint();
     // 選股探索（2026-10-05，site/explore.js）：第一次整頁畫；之後換題目（#explore/<id>）只重畫圖與名單，不重載資料
     if (view === 'explore' && rendered.explore && window.TwExplore) { window.TwExplore.show(rest[0]); setTimeout(resizeVisibleCharts, 30); return; }
+    // v8：ETF 三個子分頁（#etf/cal｜list｜inc）：已經畫過就只切子頁，不重畫整頁（狀態保留）
+    if (view === 'etf' && rendered.etf && window.TwEtfPage && window.TwEtfPage.show) { window.TwEtfPage.show(rest[0]); setTimeout(resizeVisibleCharts, 30); return; }
     if (!rendered[view]) { rendered[view] = true; await ({ overview: renderOverview, flow: renderFlow, market: renderMarket, season: renderSeason, tasks: renderTasks, delivery: renderDelivery,
       watch: () => { if (window.TwWatchPage) window.TwWatchPage.render(); },
       explore: () => (window.TwExplore ? window.TwExplore.render(rest[0]) : null),
-      etf: () => (window.TwEtfPage ? window.TwEtfPage.render() : null),
+      etf: () => (window.TwEtfPage ? window.TwEtfPage.render(rest[0]) : null),
       earnings: () => (window.TwEarnings ? window.TwEarnings.render() : null) })[view](); }
     mia(); setTimeout(mia, 500);
     setTimeout(resizeVisibleCharts, 30);
@@ -13704,7 +13710,8 @@
       trendRange, trendText, pxFmt,   // 迷你走勢的 Y 範圍與提示框文字（DECISIONS #290）
       softenOption,                        // 圖表圓滑化（驗收讀 getOption 就看得到結果，這裡只是讓別的檔也叫得到）
       barStyle: BAR,                       // 長條共用風格（DECISIONS #338）：管理區流量觀測的長條配色＋3px 圓角，全站長條都從這裡取
-      donut: DONUT,                        // 甜甜圈共用風格（DECISIONS #331）：產業地圖成交值占比就是範本，全站圓餅都從這裡取
+      donut: DONUT,
+      msTags, snColor: (i) => PALETTE[SEASON_LINE_IDX[i % SEASON_LINE_IDX.length]],   // 週期統計長條模式的膠囊列與配色（ETF 月配試算表單檔共用，2026-10-07）                        // 甜甜圈共用風格（DECISIONS #331）：產業地圖成交值占比就是範本，全站圓餅都從這裡取
       MONO: MONO_FF,                       // 畫布等寬字族（跟 CSS --mono 同一條退路），別的檔畫圖用
       textW,                               // 量字寬（canvas measureText）：產業地圖的漲跌長條要替負值標籤留左邊的位置
       sankeyFxRunning: () => !!(sankeyFx && sankeyFx.running()),

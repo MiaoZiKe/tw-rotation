@@ -87,6 +87,9 @@
 #v-etf .etfrow .sp{flex:1}
 #v-etf .note1{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
 /* ---- 分類列 */
+#v-etf .etfsub{margin:0 0 10px}
+:root.l4 #v-etf .etfsub{display:none}   /* v9：電腦版子項在左側欄；頁內這排只留給手機（≤820 沒有側欄子項，比照熱力圖手機做法） */
+#v-etf .etfcatbar[hidden],#v-etf .etfbody[hidden]{display:none}   /* v8：.etfcatbar 有 display:flex，hidden 屬性蓋不掉 */
 #v-etf .etfcatbar{display:flex;align-items:center;gap:10px;margin:0;white-space:nowrap;min-width:0}
 #v-etf .etfcatbar .seg{overflow:hidden;flex:0 1 auto;min-width:0}
 /* 分類頁籤：全站共用 .nbsw（產業地圖同款資料夾分頁，DECISIONS #321）；只補「不擠掉右邊期間」 */
@@ -290,6 +293,167 @@
 #v-etf .mcell b{display:block;font:700 12px var(--mono);line-height:16px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--ink)}
 #v-etf .mcell span{display:block;font:11px var(--mono);color:var(--ink-2);line-height:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 #v-etf .inclg{display:flex;flex-wrap:wrap;gap:6px 10px;font-size:12px;color:var(--ink-3);margin:2px 0 8px;align-items:center}
+/* ---- 現金流試算 v2（2026-10-07 晚）：二級分頁、主圖＋總清單、細節卡、時鐘、再投入回測 */
+#v-etf .incctl.incrx{margin-top:-4px}
+#v-etf .incrx .rxchips{font-size:12.5px;color:var(--ink-2);white-space:nowrap}
+#v-etf .incrx input{width:170px;height:30px;border-radius:8px;border:1px solid var(--line-2);background:var(--panel-3);color:var(--ink);padding:0 8px;font:13px var(--mono);box-sizing:border-box;max-width:100%}
+#v-etf .incrx .rxmsg{color:var(--amber);font-size:12px}
+#v-etf .inctabs{margin:4px 0 0}
+#v-etf .incsg{display:grid;grid-template-columns:minmax(0,1fr) 320px;gap:12px;align-items:start}
+#v-etf .incbarw{min-width:0}
+#v-etf .inclist{border:1px solid var(--line);border-radius:10px;background:var(--panel-2);padding:8px;min-width:0;display:flex;flex-direction:column;max-height:380px}
+#v-etf .inclist .ilhd{display:flex;gap:6px;align-items:center}
+#v-etf .inclist input[type=search]{flex:1;min-width:0;height:28px;border-radius:8px;border:1px solid var(--line-2);background:var(--panel-3);color:var(--ink);padding:0 8px;font-size:13px}
+#v-etf .inclist .ilfq{display:flex;flex-wrap:wrap;gap:4px;margin:6px 0 2px}
+#v-etf .inclist .ilfq button{font-size:12px;height:24px;padding:0 8px;border-radius:12px;border:1px solid var(--line-2);background:var(--panel-3);color:var(--ink-2);cursor:pointer}
+#v-etf .inclist .ilfq button.on{background:var(--cyan);border-color:var(--cyan);color:var(--bg)}
+#v-etf .inclist .ilfq button small{opacity:.75;margin-left:2px}
+#v-etf .inclist .ilmsg{margin:4px 0 0;font-size:12px;color:var(--amber);min-height:0}
+#v-etf .inclist .ilmsg:empty{display:none}
+#v-etf .inclist .ilbody{overflow-y:auto;margin-top:6px;flex:1;min-height:0}
+#v-etf .ilr{display:grid;grid-template-columns:18px 22px minmax(0,1fr) auto;grid-template-rows:auto auto;column-gap:6px;align-items:center;padding:4px 4px;border-bottom:1px solid var(--line);font-size:12.5px}
+#v-etf .ilr.on{background:var(--panel-3)}
+#v-etf .ilr input{grid-row:1/3;margin:0;cursor:pointer}
+#v-etf .ilr .rk{grid-row:1/3;font:11px var(--mono);color:var(--ink-3);text-align:right}
+#v-etf .ilr .iln{display:flex;align-items:center;gap:5px;background:none;border:0;padding:0;color:var(--ink);font:inherit;cursor:pointer;min-width:0;text-align:left}
+#v-etf .ilr .iln .nm{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+#v-etf .ilr .iln:hover .nm{text-decoration:underline}
+#v-etf .ilr .cd{font:11.5px var(--mono);color:var(--ink-3)}
+#v-etf .ilr .mv{font:12px var(--mono);color:var(--ink);text-align:right}
+#v-etf .ilr .lt{grid-column:3/5;font:11.5px var(--mono);color:var(--ink-3)}
+#v-etf .incdet{margin-top:12px;border:1px solid var(--line-2);border-radius:10px;background:var(--panel-2);padding:10px 12px}
+#v-etf .incdet .dethd{display:flex;align-items:center;gap:8px 12px;flex-wrap:wrap}
+#v-etf .incdet .dethd>b{font-size:14px;display:flex;align-items:center;gap:6px}
+#v-etf .incdet .dlots{display:flex;align-items:center;gap:4px;font-size:12.5px;color:var(--ink-2)}
+#v-etf .incdet .dlots input{width:80px;height:28px;border-radius:8px;border:1px solid var(--line-2);background:var(--panel-3);color:var(--ink);padding:0 6px;font:13px var(--mono)}
+#v-etf .detg{display:grid;grid-template-columns:220px minmax(0,1fr);gap:12px}
+#v-etf #incMb{height:190px}
+#v-etf .sth{font-size:12px;color:var(--ink-3);margin-bottom:2px}
+#v-etf .incsim{margin-top:10px;border-top:1px dashed var(--line);padding-top:8px;min-width:0}
+#v-etf .incsim .simhd{display:flex;gap:4px 10px;align-items:baseline;flex-wrap:wrap;font-size:13px}
+#v-etf .incsim .simhd small{color:var(--ink-3);font-size:12px}
+#v-etf .incsim .simch{height:280px}
+#v-etf .incsim .simtw{overflow-x:auto;max-width:100%}
+#v-etf table.simt{width:100%;border-collapse:collapse;font-size:12.5px;margin-top:4px}
+#v-etf table.simt th{color:var(--ink-3);font-weight:600;padding:4px 6px;border-bottom:1px solid var(--line);text-align:right;white-space:nowrap}
+#v-etf table.simt td{padding:4px 6px;border-bottom:1px solid var(--line);font-family:var(--mono);text-align:right;white-space:nowrap}
+#v-etf table.simt .nm{text-align:left;font-family:inherit;white-space:normal}
+#v-etf table.simt tr.dim td{color:var(--ink-3)}
+#v-etf .incsim .simlev{margin:4px 0 0;font-size:11.5px;color:var(--ink-3)}
+#v-etf .combo .cbody{display:grid;grid-template-columns:240px 180px minmax(0,1fr);gap:12px;align-items:center}
+#v-etf .combo .cbody.noclk{grid-template-columns:180px minmax(0,1fr)}
+#v-etf .combo .cbody .mem{flex-direction:column;align-items:stretch;margin:0;min-width:0}
+#v-etf .combo .cbody .mem button{flex-wrap:wrap;white-space:normal;text-align:left}
+#v-etf .combo .mem button i{width:9px;height:9px;border-radius:2px;flex:none}
+#v-etf .combo .mgrid{margin-top:8px}
+/* ---- v3（17:40 回饋）：組合 A～E 分頁、左欄兩圖上下同尺寸、右欄曲線＋清單；曲線工具列 */
+#v-etf .cmbtabs{margin:4px 0 8px;flex-wrap:wrap}
+#v-etf .cmbtabs button small{margin-left:6px;font:11.5px var(--mono);opacity:.8}
+#v-etf .incctl input,#v-etf h3 .mlab input{font-family:var(--mono)}
+#v-etf h3 .mlab{font-size:13px;font-weight:600;color:var(--ink-2);display:inline-flex;align-items:center;gap:4px;margin-left:6px}
+#v-etf h3 .mlab input{width:92px;height:28px;border-radius:8px;border:1px solid var(--cat-1,var(--line-2));background:var(--panel-3);color:var(--ink);padding:0 6px;font-size:14px;font-weight:700}
+#v-etf .cgrid{display:grid;grid-template-columns:minmax(300px,420px) minmax(0,1fr);gap:16px;align-items:start}
+#v-etf .cgrid .cleft,#v-etf .cgrid .cright{min-width:0}
+#v-etf .cgrid .cright .incsim{margin-top:0;border-top:0;padding-top:0}
+#v-etf .cdnrow{display:grid;grid-template-columns:300px minmax(0,1fr);align-items:center;gap:6px}
+#v-etf .cdnrow .mem{display:flex;flex-direction:column;gap:6px;margin:0;min-width:0}
+#v-etf .cdnrow .mem button{white-space:normal;text-align:left}
+#v-etf .cleft #incDn{width:100%}
+#v-etf .simbar{display:flex;flex-wrap:wrap;gap:6px 10px;align-items:center;margin:4px 0 6px}
+#v-etf .simbar .cmpw{display:flex;gap:4px;align-items:center;min-width:0}
+#v-etf .simbar .cmpin{width:190px;max-width:100%;height:28px;border-radius:8px;border:1px solid var(--line-2);background:var(--panel-3);color:var(--ink);padding:0 8px;font-size:12.5px;box-sizing:border-box}
+#v-etf .simbar .cmpchips{display:flex;flex-wrap:wrap;gap:4px}
+#v-etf .simbar .chip{border:1px solid var(--line-2);background:var(--panel-3);color:var(--ink);border-radius:999px;padding:1px 8px;font-size:12px;cursor:pointer}
+#v-etf .simbar .rxmsg{color:var(--amber);font-size:12px}
+#v-etf .simbar .rxmsg:empty{display:none}
+#v-etf #incLine{height:400px}
+#v-etf table.simt td.nm i{display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:6px;vertical-align:middle}
+#v-etf .mcell[style*="--fc"]{background:color-mix(in srgb,var(--fc) 30%,var(--panel-3));border-color:var(--fc)}
+@media (max-width:1100px){#v-etf .cgrid{grid-template-columns:1fr}#v-etf .cleft .clk,#v-etf .cleft .cdn{margin:0 auto}}
+@media (max-width:640px){#v-etf .cdnrow{grid-template-columns:1fr}#v-etf .cdnrow .cdn{margin:0 auto}#v-etf .simbar .cmpw{flex:1 1 100%}#v-etf .simbar .cmpin{flex:1}}
+/* ---- v4（18:20 回饋）：月配試算表／複利試算表兩大分頁；圖放大（甜甜圈 320）、清單可拉寬、複利曲線 460 高可縮放 */
+#v-etf .incmain{margin:0 0 10px}
+#v-etf .incmain button{font-size:14.5px;font-weight:700;padding-left:16px;padding-right:16px}
+#v-etf .incsg{display:flex;gap:12px;align-items:flex-start}
+#v-etf .incsg .incbarw{flex:1 1 auto;min-width:0}
+#v-etf .inclist{flex:0 0 auto;width:360px;min-width:260px;max-width:60%;resize:horizontal;overflow:hidden;max-height:460px}
+#v-etf .ilr .mv{font-size:12px;white-space:nowrap}
+#v-etf .cgrid{grid-template-columns:minmax(320px,360px) minmax(0,1fr)}
+#v-etf .dnbig{width:320px;max-width:100%;height:320px}
+#v-etf .mbars{height:320px}
+#v-etf small.lbl{color:var(--ink-3);font-size:12px}
+#v-etf #incCTbl td.nm button{display:flex;align-items:center;gap:6px;background:none;border:0;padding:0;color:var(--ink);font:inherit;cursor:pointer;text-align:left}
+#v-etf #incCTbl td.nm i{margin:0}
+#v-etf #incCTbl td.nm button:hover{text-decoration:underline}
+#v-etf .cxctl{margin-bottom:8px}
+#v-etf .cxctl select{height:30px;border-radius:8px;border:1px solid var(--line-2);background:var(--panel-3);color:var(--ink);padding:0 8px;font-size:13px;max-width:100%;min-width:0}
+#v-etf .cxctl input[type=date]{height:30px;border-radius:8px;border:1px solid var(--line-2);background:var(--panel-3);color:var(--ink);padding:0 8px;font:13px var(--mono)}
+#v-etf .cxctl .cmpin{width:200px;max-width:100%;height:30px;border-radius:8px;border:1px solid var(--line-2);background:var(--panel-3);color:var(--ink);padding:0 8px;font-size:12.5px;box-sizing:border-box}
+#v-etf .cxctl .cmpchips{display:flex;flex-wrap:wrap;gap:4px}
+#v-etf .cxctl .chip{border:1px solid var(--line-2);background:var(--panel-3);color:var(--ink);border-radius:999px;padding:1px 8px;font-size:12px;cursor:pointer}
+#v-etf .cxctl .rxmsg{color:var(--amber);font-size:12px}
+#v-etf .cxhead{font-size:14px;line-height:1.6;color:var(--ink-2);margin:6px 0 4px;min-height:4.8em}   /* v6：固定最小高度，點圖例改結論句時整張圖不會上下跳 */
+@media (max-width:600px){#v-etf .cxhead{min-height:8em}}
+#v-etf .cxhead b{color:var(--ink)}
+#v-etf #cxChart{height:540px}
+#v-etf .simtw{overflow-x:auto;max-width:100%;-webkit-overflow-scrolling:touch}
+#v-etf #cxTbl td.nm i{display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:6px;vertical-align:middle}
+@media (max-width:1100px){#v-etf .incsg{flex-direction:column;align-items:stretch}#v-etf .inclist{width:auto;max-width:none;resize:none}#v-etf .cgrid{grid-template-columns:1fr}#v-etf .dnbig{margin:0 auto}}
+@media (max-width:640px){#v-etf #cxChart{height:380px}#v-etf .dnbig{width:300px;height:300px}#v-etf .cxctl .cmpin{width:100%}#v-etf .cxctl select{width:100%}}
+/* ---- v5（18:50 回饋）：組合三等分、月曆一季一排、複利左圖右表、單檔直條＋膠囊 */
+#v-etf .c3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;align-items:start;margin-bottom:12px}
+#v-etf .c3c{min-width:0}
+#v-etf .c3 .dnbig{width:100%;max-width:340px;height:320px;margin:0 auto}
+#v-etf .c3h{display:flex;align-items:center;justify-content:space-between;gap:6px;flex-wrap:wrap}
+#v-etf .c3h .seg button{padding:2px 10px;font-size:12px}
+#v-etf .mgrid.q4{grid-template-columns:repeat(4,minmax(0,1fr));gap:6px}
+#v-etf .mgrid.q4 .mqh{text-align:center;font:600 12px var(--mono);color:var(--ink-2)}
+#v-etf .inctabrow{display:flex;align-items:flex-end;justify-content:space-between;gap:8px 12px;flex-wrap:wrap;margin:4px 0 0}
+#v-etf .inctabrow .inctabs{margin:0;min-width:0;flex:1 1 auto}
+#v-etf .inctabs button small{margin-left:6px;font:11.5px var(--mono);opacity:.8}
+#v-etf .csortw{display:inline-flex;align-items:center;gap:4px;font-size:13px;color:var(--ink-2);flex-wrap:wrap}
+#v-etf .cmbhd{flex-wrap:nowrap;align-items:center;gap:12px}#v-etf .cmbhd .incq{flex:1 1 auto;min-width:0;margin:0}#v-etf .cmbhd .csortw{flex:none}
+@media (max-width:900px){#v-etf .cmbhd{flex-wrap:wrap}}
+/* v8 收尾：窄畫面右表放不下五欄 → 隱藏「比只領現金多」（結論句裡有同一個數字），外層仍可橫捲保底 */
+#v-etf .cxr .simtw{overflow-x:auto}
+@media (max-width:640px){#v-etf #cxTbl tr > :nth-child(4){display:none}}
+#v-etf .mgrid.q4 .mcell{padding:8px 4px}
+#v-etf .mgrid.q4 .mcell b{font-size:14px;line-height:20px}
+#v-etf .cml{display:flex;flex-direction:column;gap:8px}
+#v-etf .cmr{border:1px solid var(--line);border-radius:8px;padding:8px 10px;background:var(--panel)}
+#v-etf .cmr .cmn{display:inline-flex;align-items:center;gap:6px;background:none;border:0;padding:0;color:var(--ink);font:600 13px inherit;cursor:pointer;text-align:left;margin-right:6px}
+#v-etf .cmr .cmn i{width:10px;height:10px;border-radius:2px;flex:none}
+#v-etf .cmr .cmn:hover{text-decoration:underline}
+#v-etf .cmr dl{display:grid;grid-template-columns:auto 1fr auto 1fr;gap:2px 8px;margin:6px 0 0;font-size:12.5px}
+#v-etf .cmr dt{color:var(--ink-3)}
+#v-etf .cmr dd{margin:0;font-family:var(--mono);color:var(--ink);text-align:right}
+#v-etf #incChips{margin:0 0 6px}
+#v-etf #incChips .addk{cursor:pointer;color:var(--cat-1,var(--ink))}
+#v-etf .cxg{display:grid;grid-template-columns:minmax(0,2fr) minmax(300px,1fr);gap:16px;align-items:start}
+#v-etf .cxl,#v-etf .cxr{min-width:0}
+/* v8（Andy：「複利試算表 清單下方很多空白處」）：右欄跟左圖等高——表格撐滿、列高與字級加大，結論句移到表下面 */
+#v-etf .cxg{align-items:stretch}
+#v-etf .cxr{display:flex;flex-direction:column;gap:8px}
+#v-etf .cxr .simtw{flex:1 1 auto;display:flex}
+#v-etf .cxr table.simt{height:100%;font-size:13.5px}
+#v-etf .cxr table.simt td,#v-etf .cxr table.simt th{padding:8px 8px}
+#v-etf .cxr .cxhead{min-height:0;margin:0;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:var(--panel-2)}
+@media (max-width:900px){#v-etf .cxr table.simt{height:auto}}
+#v-etf .cxlg{display:flex;flex-wrap:wrap;gap:6px 10px;align-items:center;margin-bottom:4px}
+#v-etf .cxlg small{color:var(--ink-3);font-size:12px}
+#v-etf .cxlg .cmpw{display:flex;gap:4px;align-items:center}
+#v-etf .cxlg .cmpin{width:220px;max-width:100%;height:30px;border-radius:8px;border:1px solid var(--line-2);background:var(--panel-3);color:var(--ink);padding:0 8px;font-size:12.5px;box-sizing:border-box}
+#v-etf .cxlg .chip{border:1px solid var(--line-2);background:var(--panel-3);color:var(--ink);border-radius:999px;padding:1px 8px;font-size:12px;cursor:pointer}
+#v-etf .cxlg .rxmsg{color:var(--amber);font-size:12px}
+#v-etf .cxlg .rxmsg:empty{display:none}
+#v-etf .cxr table.simt td,#v-etf .cxr table.simt th{padding:6px 4px}
+@media (max-width:1100px){#v-etf .c3{grid-template-columns:1fr}#v-etf .cxg{grid-template-columns:1fr}}
+@media (max-width:640px){#v-etf .cxlg .cmpw{flex:1 1 100%}#v-etf .cxlg .cmpin{flex:1}}
+@media (max-width:1100px){#v-etf .incsg{grid-template-columns:1fr}#v-etf .inclist{max-height:320px}
+  #v-etf .combo .cbody{grid-template-columns:240px minmax(0,1fr)}#v-etf .combo .cbody .mem{grid-column:1/-1}}
+@media (max-width:640px){#v-etf #incSort,#v-etf #incCSort,#v-etf #incCView{max-width:100%;overflow-x:auto}#v-etf .detg{grid-template-columns:1fr}#v-etf .combo .cbody,#v-etf .combo .cbody.noclk{grid-template-columns:1fr}
+  #v-etf .combo .cbody .clkw,#v-etf .combo .cbody .cdnw{max-width:260px;width:100%;margin:0 auto}#v-etf .incsim .simch{height:240px}
+  #v-etf .incrx input{width:100%}}
 @media (max-width:640px){#v-etf .mgrid{grid-template-columns:repeat(6,minmax(0,1fr))}#v-etf #incBar{height:300px}
   #v-etf .incctl{gap:8px}#v-etf .etfcatbar .etfinctab{margin-left:0}#v-etf #etfInc .row.spread{flex-wrap:wrap}}
 @media (max-width:1100px){#v-etf .etftri{grid-template-columns:1fr}#v-etf .calwrap,#v-etf .retcharts{grid-template-columns:1fr}
@@ -341,9 +505,29 @@
     if (seriesP) return seriesP;
     seriesP = A().load('etf_series', { fallback: null }).catch(() => null).then((d) => {
       S.series = d && d.D && d.s ? d : { D: [], s: {} };
+      fixSplits(S.series);
       return S.series;
     });
     return seriesP;
+  }
+  /* ★ 分割／合併還原（v6）：etf_series.json 的週線價格與含息指數都沒還原分割（例：00631L 2026-04-08 一拆 22，443.15→22.93），
+     直接拿來算「再投入」會把分割當成暴跌，報酬整段算錯（再投入 00631L 反而輸給只領現金）。
+     預覽站讀的是正式站資料，所以先在前端讀進來的唯一入口修：單週漲跌超過 60%、而且含息指數跟價格同比例跳（＝那週不是除息）
+     就視為分割／合併，把那週之前的價格與含息指數乘上同一比例。比例取最接近的整數拆分比（差 15% 以內），否則用原始比例。
+     單檔年化（seriesOf）、複利試算（alignEtf）都吃同一份 S.series，所以一起被修到。
+     TODO：之後在 pipeline 產出 etf_series 那一端（build_payload）就還原分割，前端這段改成只做保險。 */
+  function fixSplits(g) {
+    Object.keys(g.s || {}).forEach((c) => {
+      const x = g.s[c], p = x.p, t = x.t; if (!p) return;
+      for (let k = 1; k < p.length; k++) {
+        if (!(p[k] > 0 && p[k - 1] > 0)) continue;
+        const r = p[k] / p[k - 1]; if (r > 0.4 && r < 1.6) continue;
+        if (t && t[k] > 0 && t[k - 1] > 0 && Math.abs((t[k] / t[k - 1]) / r - 1) > 0.05) continue;   // 含息跟價格不同步＝有除息，不是分割
+        const n = r < 1 ? Math.round(1 / r) : Math.round(r), f0 = r < 1 ? 1 / n : n;
+        const f = n >= 2 && Math.abs(r / f0 - 1) < 0.15 ? f0 : r;
+        for (let j = 0; j < k; j++) { if (p[j] != null) p[j] *= f; if (t && t[j] != null) t[j] *= f; }
+      }
+    });
   }
   function seriesOf(code) {
     const g = S.series;
@@ -376,6 +560,7 @@
       ? { a: '#5B86B8', b: '#D8964A', pal: ['#5B86B8', '#4FA394', '#D8964A', '#8E78C4', '#C9788F', '#86A650', '#4E9DB8', '#B79A4C'] }
       : { a: '#7FA7D9', b: '#EDB36F', pal: ['#7FA7D9', '#6CC4B0', '#EDB36F', '#AB95DB', '#DB91A8', '#A3C477', '#74C3DE', '#D2B76F'] };
   };
+  const SUBS = [['cal', '配息行事曆'], ['list', 'ETF 總覽'], ['inc', '現金流試算']], VIEW_OF = { cal: 'cal', list: 'cat', inc: 'inc' };
   const byCode = () => { const m = new Map(); items().forEach((it) => m.set(it.code, it)); return m; };
   const inCat = () => items().filter((it) => it.cat === S.cat);
   const sizeKey = (it) => (it.size != null ? it.size : -1) * 1e3 + ((it.tv20 || 0) / 1e12);
@@ -389,7 +574,10 @@
   function skeleton(root) {
     const how = (k, q, li) => `<div class="howtxt" id="how-${k}" hidden>${A().howHTML(q, li)}</div>`;
     const hbtn = (k, t) => `<button class="howbtn pop" data-how="${k}" data-ttl="${t}" type="button" aria-label="${t}">?</button>`;
+    /* v8（Andy：「ETF 分成三個子分頁：配息行事曆／ETF 總覽／現金流試算」）：最上層三個子分頁，hash＝#etf/cal、#etf/list、#etf/inc。
+       切換只是顯示／隱藏，S 的狀態（分類、比較清單、試算目標）都留著。#etf 不帶子頁＝ETF 總覽（原本的主畫面，舊連結不變）。 */
     root.innerHTML = `
+<div class="nbsw etfsub" id="etfSub" role="tablist" aria-label="ETF 子分頁">${SUBS.map(([v, t]) => `<button type="button" role="tab" data-v="${v}">${t}</button>`).join('')}</div>
 <div class="card" id="etfCalCard">
   <div class="row spread"><h3 data-icon="calendar" data-tone="yield">配息行事曆 <small id="etfCalSub"></small> ${hbtn('etfcal', '配息行事曆怎麼看')}</h3></div>
   ${how('etfcal', '', [
@@ -403,7 +591,7 @@
 
 <div class="etfcatbar" id="etfCatBar">
   <div class="nbsw etfcats" id="etfCatSeg" role="tablist" aria-label="ETF 分類"></div>
-  <div class="nbsw etfinctab" id="etfIncSeg" role="tablist" aria-label="ETF 工具"><button data-v="inc" role="tab" type="button">現金流試算</button></div><span class="sp"></span>
+<span class="sp"></span>
 </div>
 <div class="etfbody" id="etfBody">
 <div id="etfInc" hidden></div>
@@ -487,12 +675,11 @@
     const seg = $('#etfCatSeg');
     seg.innerHTML = CATS.filter((c) => cnt[c])
       .map((c) => `<button data-v="${c}" role="tab">${c}<em>${cnt[c]}</em></button>`).join('');
-    const catOn = S.view !== 'inc';
+    const catOn = S.view === 'cat';
     $$('button', seg).forEach((b) => { const on = catOn && b.dataset.v === S.cat; b.classList.toggle('on', on); b.setAttribute('aria-selected', on);
-      b.onclick = () => { if (catOn && S.cat === b.dataset.v) return; S.view = 'cat'; S.cat = b.dataset.v; S.shown = PAGE; drawAll(); }; });
-    const ib = $('#etfIncSeg button');
-    if (ib) { ib.classList.toggle('on', !catOn); ib.setAttribute('aria-selected', !catOn);
-      ib.onclick = () => { if (S.view === 'inc') return; S.view = 'inc'; drawAll(); }; }
+      b.onclick = () => { if (catOn && S.cat === b.dataset.v) return; S.view = 'cat'; S.cat = b.dataset.v; S.shown = PAGE; if (/^#etf\/(cal|inc)/.test(location.hash)) history.replaceState(null, '', '#etf/list'); drawAll(); }; });
+    $$('#etfSub button').forEach((b) => { const v = VIEW_OF[b.dataset.v], on = v === S.view; b.classList.toggle('on', on); b.setAttribute('aria-selected', on);
+      b.onclick = () => { const h = '#etf/' + b.dataset.v; if (location.hash !== h) location.hash = h; else show(b.dataset.v); }; });
   }
   /* ---- 期間（2026-10-06 Andy：「週期切換……可以選擇時段如圖二那樣，切換到不同時間週期也可以在旁邊顯示對應年限日期」）
      從分類列最右邊搬到「報酬比較」標題列（只留一套）；元件是共用的 site/rangepick.js（管理區流量觀測同款）。
@@ -1056,7 +1243,7 @@
           minorTick: { show: true, splitNumber: yrsSpan <= 3.2 ? 1 : 3 }, minorSplitLine: { show: false } },
         yAxis: { type: 'value', ...a.axisStyle, splitLine: { show: true, lineStyle: { color: CH.grid, opacity: 1, width: 1 } },
           axisLabel: { ...a.axisStyle.axisLabel, formatter: (v) => v + '%' } },
-        series: lines,
+        series: lines,   // 月份分隔線由全站 TimeGrid（DECISIONS #337）自動補，時間軸不必自己畫
       });
     }
     lineEl.dataset.n = String(lines.length);
@@ -1179,8 +1366,14 @@
     return { mem, lots, costs, cost, mon, by, year, min: Math.min(...mon), y: year / cost, tr };
   }
   function incCombos() {
-    const N = S.inc.mon, key = [N, S.inc.nhi, S.inc.scope, S.inc.csort, perKey(), !!S.series].join('|');
-    if (S._incC && S._incC.key === key && S._incC.d === S.data) return S._incC.v;
+    /* ★ 18:50 剖析：窮舉 2～4 檔（20 選 4 約 6000 組×二分壓張數）只跟「每月目標／健保／範圍」有關；
+       以前快取鍵連「排序方式、報酬期間」一起算，切一次排序就整個重算一輪（CPU 降速 4 倍時單次 1.4 秒＝「卡住」）。
+       現在窮舉結果只看前三者快取；排序與含息年化（隨期間）每次重排即可。 */
+    const N = S.inc.mon, key = [N, S.inc.nhi, S.inc.scope].join('|'), sk = [key, S.inc.csort, perKey(), !!S.series].join('|');
+    if (S._incC && S._incC.sk === sk && S._incC.d === S.data) return S._incC.v;
+    if (!S._incCM || S._incCM.d !== S.data) S._incCM = { d: S.data, m: new Map() };   // 窮舉結果依「目標｜健保｜範圍」各存一份（來回切不重算）
+    const hit = S._incCM.m.get(key);
+    if (hit) { const out = rankCombos(hit.res, hit.n); S._incC = { key, sk, d: S.data, v: out }; return out; }
     const pool = incPool().filter(({ it, mm }) => /^(月配|雙月配|季配)$/.test(it.freq || '') && mm.n >= 3 && (it.tv20 || 0) >= 2e7)
       .sort((a, b) => b.mm.sum / b.it.close - a.mm.sum / a.it.close).slice(0, 20);
     const masks = pool.map((x) => x.mm.m.reduce((a, v, i) => a | (v > 0 ? 1 << i : 0), 0));
@@ -1190,68 +1383,226 @@
       tryC([a, b]);
       for (let c = b + 1; c < n; c++) { tryC([a, b, c]); for (let d = c + 1; d < n; d++) tryC([a, b, c, d]); }
     }
-    const v = S.inc.csort === 'tr' ? res.filter((r) => r.tr != null).sort((a, b) => b.tr - a.tr || a.cost - b.cost) : res.sort((a, b) => a.cost - b.cost);
-    const out = { list: v.slice(0, 5), n: res.length, pool: n };
-    S._incC = { key, d: S.data, v: out };
+    const out = rankCombos(res, n);
+    S._incC = { key, sk, d: S.data, v: out };
+    if (S._incCM.m.size > 24) S._incCM.m.clear();
+    S._incCM.m.set(key, { res, n });
     return out;
   }
-  function incLoad() {
+  function rankCombos(res, n) {
+    res.forEach((r) => { const trs = r.mem.map((x) => trOf(statOf(x.it))); r.tr = trs.every((v) => v != null) ? trs.reduce((a, v, i) => a + v * r.costs[i], 0) / r.cost : null; });
+    const v = S.inc.csort === 'tr' ? res.filter((r) => r.tr != null).sort((a, b) => b.tr - a.tr || a.cost - b.cost) : res.slice().sort((a, b) => a.cost - b.cost);
+    return { list: v.slice(0, 5), n: res.length, pool: n };
+  }
+  /* ------------------------------------------------------------------ 5b. 現金流試算 v4（2026-10-07 晚，Andy 16:40／17:40／18:20 三輪回饋）
+     18:20「幫我改這邊分頁變成兩大項目：第一個是『月配試算表』，裡面就會有單檔 ETF 以及組合 ETF 分頁，並且組合 ETF 內會有 A B C… 組合分頁，
+          月配是在計算若是我一年或是一個月（兩者是切換功能）要配息多少錢，我可以哪些搭配；第二個是『複利試算表』，基於這些組合我可以選定組合，
+          再去投入其他標的或是原來的標的或是不投入，那麼從選定的該日期算起，我的獲利會差多少%」
+          「Y 軸改用 %」「上面的週期可以自己選日期到至今」「圖表需要給出對應單位」「圓餅圖內資訊不可以有換行」「曲線圖太小就用可以用滾輪放大」。
+     · 月配試算表：年領｜月領切換；單檔＝D 款橫條排行（右側總清單勾選替換，最多 10）＋點一檔看甜甜圈與 12 個月直條；
+       組合＝A～E 分頁，左欄投入甜甜圈＋12 個月時鐘（同尺寸、同一套顏色），右欄每月入帳直條＋各檔清單。不放回測曲線。
+     · 複利試算表：選對象（月配試算表裡的組合 A～E 或任一單檔，張數沿用月配試算表算出的）→ 起始日（日期選擇器＋1／3／5 年快捷）→
+       情境（只領現金／再投入原標的／0050／00631L 可勾，另可加自訂標的；合計最多 6 條）→ 報酬率 % 曲線（滾輪縮放、拖曳、下方滑桿）＋結論句＋情境表。
+     · 17:40 修過的「再投入標的沒作用」：個股一律走 App.load('stock/<代號>')、名稱代號都認、Enter／按鈕／選單都觸發（見 addCmp）。 */
+  const LEV_RE = /正2|正二|槓桿|L$/;
+  const CMB = ['A', 'B', 'C', 'D', 'E'];
+    function incLoad() {
     if (S.inc) return;
     const num = (k, d) => { const v = +LS.get(k, ''); return v > 0 ? v : d; };
-    S.inc = { year: num('tw.etf.inc.year', 1000000), mon: num('tw.etf.inc.mon', 20000), sort: LS.get('tw.etf.inc.sort', 'y'),
-      csort: LS.get('tw.etf.inc.csort', 'cost'), scope: LS.get('tw.etf.inc.scope', 'div'), nhi: LS.get('tw.etf.inc.nhi', '') === '1', shown: 20 };
+    S.inc = { fq: LS.get('tw.etf.inc.fq', 'all') || 'all', year: num('tw.etf.inc.year', 1000000), mon: num('tw.etf.inc.mon', 20000), mode: LS.get('tw.etf.inc.mode', 'y') === 'm' ? 'm' : 'y',
+      main: LS.get('tw.etf.inc.main', 'm') === 'x' ? 'x' : 'm',
+      tab: LS.get('tw.etf.inc.tab', 's') === 'c' ? 'c' : 's', sort: LS.get('tw.etf.inc.sort', 'y'), csort: LS.get('tw.etf.inc.csort', 'cost'),
+      scope: LS.get('tw.etf.inc.scope', 'div'), nhi: LS.get('tw.etf.inc.nhi', '') === '1', cview: LS.get('tw.etf.inc.cview', 'clock'),
+      ci: 0, sel: null, det: null, q: '', cmp: [], scn: { cash: 1, self: 1, '0050': 1, '00631L': 1 }, obj: '', xfrom: '' };
+    if (!/^(y|tr|pr)$/.test(S.inc.sort)) S.inc.sort = 'y';
   }
+  const incYearT = () => (S.inc.mode === 'm' ? S.inc.mon * 12 : S.inc.year);
+  const incMonT = () => (S.inc.mode === 'm' ? S.inc.mon : Math.ceil(S.inc.year / 12));
+  const ntw = (v) => (v == null ? '—' : 'NT$ ' + wan(v));
+  const wan1 = (v) => wan(v).replace(' ', '');
+  const prOf = (st) => (st && st.ok && st.price_ann != null ? st.price_ann : null);
+  function incSinglesV2() {
+    const T = incYearT();
+    const R = incPool().map((x) => {
+      const l = lotsFor(T, x.mm);
+      return { ...x, ...l, cost: l.lots * 1000 * x.it.close, y: x.mm.sum / x.it.close, tr: trOf(x.st), pr: prOf(x.st) };
+    });
+    const k = S.inc.sort;
+    return R.filter((r) => r[k] != null).sort((a, b) => b[k] - a[k]).concat(R.filter((r) => r[k] == null));
+  }
+  const SORT_L = [['y', '殖利率'], ['tr', '含息總報酬'], ['pr', '不含息總報酬']];
+  const metricTxt = (r, k) => (k === 'tr' ? `含息年化 ${pct(r.tr, 1)}` : k === 'pr' ? `價格年化 ${pct(r.pr, 1)}` : `殖利率 ${pctU(r.y, 1)}`);
+
+  /* ---------------- 再投入複利模擬：核心（純函式，_uitest 用假資料直接驗口徑）
+     D：週日期陣列（'YYYY-MM-DD'，etf_series 的共同時間軸）；i0：起算那一週。
+     mem：[{ shares, px:[], ev:[{ k: 除息那週索引, amt: 每單位配息, pay: 'YYYY-MM-DD' 發放日 }], T:[] 再投入標的的「含息指數」（標的自己的配息也滾進去）}]
+     口徑：
+       1. 起始日那一週收盤買進 shares 單位，本金之後不動、不加碼。
+       2. 每次配息在「發放日」入帳現金（勾二代健保：單筆 ≥ 2 萬扣 2.11%）；除息週 ≤ i0 的不算（買進時已除息）。
+       3. 入帳的現金在「發放月的下一個月」第一個資料點（週收盤）買進再投入標的（允許零股；以標的含息指數記單位，
+          標的自己的配息在除息日再投入同一標的）。⇒ 1 月發放的錢，2 月才進場。標的那天還沒有價格就續抱現金，等第一個有價的點。
+       4. 總資產＝原持股市值＋已入帳未買進的現金＋再投入部位市值。「只領現金」＝原持股市值＋累積入帳現金（不再投入）。
+          報酬率＝總資產 ÷ 本金（起始日買進成本）− 1。 */
+  function simCore(D, mem, i0, nhi) {
+    const n = D.length, tot = Array(n).fill(null), cash = Array(n).fill(null), price = Array(n).fill(null), buys = [];
+    const st = mem.map((m) => ({ units: 0, cum: 0, ev: (m.ev || []).filter((e) => e.k > i0)
+      .map((e) => { const g = m.shares * e.amt, net = nhi && g >= NHI_MIN ? g * (1 - NHI) : g; return { ...e, net, ym: String(e.pay).slice(0, 7), got: false, done: false }; }) }));
+    for (let k = i0; k < n; k++) {
+      let T = 0, C = 0, P = 0, ok = true;
+      mem.forEach((m, j) => {
+        const s = st[j], p = m.px[k];
+        if (p == null) { ok = false; return; }
+        s.ev.forEach((e) => {
+          if (!e.got && D[k] >= e.pay) { e.got = true; s.cum += e.net; }
+          if (e.got && !e.done && D[k].slice(0, 7) > e.ym && m.T[k] != null && m.T[k] > 0) { e.done = true; s.units += e.net / m.T[k]; buys.push({ k, d: D[k], amt: e.net, pay: e.pay, j }); }
+        });
+        const pend = s.ev.reduce((a, e) => a + (e.got && !e.done ? e.net : 0), 0);
+        const tv = s.units > 0 ? s.units * (m.T[k] != null ? m.T[k] : 0) : 0;
+        T += m.shares * p + pend + tv; C += m.shares * p + s.cum; P += m.shares * p;
+      });
+      if (ok) { tot[k] = T; cash[k] = C; price[k] = P; }
+    }
+    const cost = mem.reduce((a, m) => a + m.shares * (m.px[i0] || 0), 0);
+    return { tot, cash, price, buys, cost };
+  }
+  const ALN = {};
+  function alignEtf(code) {
+    const g = S.series; if (!g || !g.s || !g.s[code]) return null;
+    if (ALN[code] && ALN[code].g === g) return ALN[code].v;
+    const x = g.s[code], n = g.D.length, p = Array(n).fill(null), t = Array(n).fill(null);
+    for (let k = x.i; k < n; k++) { p[k] = x.p[k - x.i]; t[k] = x.t ? x.t[k - x.i] : x.p[k - x.i]; }
+    const v = { p, t, hasT: !!x.t };
+    ALN[code] = { g, v };
+    return v;
+  }
+  /* 從週線「含息÷價格」的跳動反推每次配息（etf_series 沒存配息明細）：g＝(t_k/t_{k-1})/(p_k/p_{k-1})−1 > 0.15% 視為那週除息，
+     每單位配息 ≈ p_k × g；配息行事曆（近 12 個月）同檔除息日落在那週的，改用行事曆的金額與發放日；查不到發放日就以除息後 21 天估。 */
+  const EVC = {};
+  function evOf(code, a) {
+    if (!a || !a.hasT) return [];
+    if (EVC[code] && EVC[code].a === a) return EVC[code].v;
+    const D = S.series.D, cal = ((S.data && S.data.calendar) || []).filter((e) => e.code === code && e.amt > 0), out = [];
+    for (let k = 1; k < D.length; k++) {
+      const p0 = a.p[k - 1], p1 = a.p[k], t0 = a.t[k - 1], t1 = a.t[k];
+      if (!(p0 > 0 && p1 > 0 && t0 > 0 && t1 > 0)) continue;
+      const g = (t1 / t0) / (p1 / p0) - 1; if (!(g > 0.0015)) continue;
+      const c = cal.find((e) => e.ex > D[k - 1] && e.ex <= D[k]);
+      const pay = c && c.pay ? c.pay : new Date(Date.parse(D[k] + 'T00:00:00Z') + 21 * 864e5).toISOString().slice(0, 10);
+      out.push({ k, amt: c ? +c.amt : +(p1 * g).toFixed(4), pay });
+    }
+    EVC[code] = { a, v: out };
+    return out;
+  }
+  const RXC = {};
+  function rxSeries(code) {
+    if (code === 'self') return Promise.resolve('self');
+    const e = alignEtf(code);
+    if (e) return Promise.resolve(e.t);
+    if (RXC[code]) return RXC[code];
+    if (!/^\d{4,6}[A-Z]?$/.test(code)) return Promise.resolve(null);
+    RXC[code] = Promise.resolve(A().load('stock/' + code, { fallback: null })).catch(() => null).then((j) => {
+      const dl = j && j.daily; if (!dl || !dl.length || !S.series) return null;
+      const D = S.series.D, T = Array(D.length).fill(null); let q = 0;
+      for (let k = 0; k < D.length; k++) { while (q < dl.length && dl[q][0] <= D[k]) q++; if (q > 0 && D[k] >= dl[0][0]) T[k] = dl[q - 1][4]; }
+      return T.some((v) => v != null) ? T : null;
+    });
+    return RXC[code];
+  }
+  const nameOf = (c) => { const it = items().find((x) => x.code === c); if (it) return it.name; const L = A().L; return (L && L.cname && L.cname[c]) || ''; };
+  function codeFromInput(v) {
+    v = String(v || '').trim(); if (!v) return '';
+    const m = /([0-9]{4,6}[A-Za-z]?)\s*$/.exec(v) || /^([0-9]{4,6}[A-Za-z]?)/.exec(v);
+    if (m) return m[1].toUpperCase();
+    const it = items().find((x) => x.name === v) || items().find((x) => x.name && x.name.indexOf(v) >= 0);
+    if (it) return it.code;
+    const L = A().L; if (L && L.cname) { const hit = Object.keys(L.cname).find((c) => L.cname[c] === v); if (hit) return hit; }
+    return v.toUpperCase();
+  }
+  const segH = (id, L, v) => `<div class="seg" id="${id}">${L.map(([x, t]) => `<button type="button" data-v="${x}"${String(x) === String(v) ? ' class="on"' : ''}>${t}</button>`).join('')}</div>`;
+  const howH = (k, li) => `<div class="howtxt" id="how-${k}" hidden>${A().howHTML('', li)}</div>`;
+  const hbtnH = (k, t) => `<button class="howbtn pop" data-how="${k}" data-ttl="${t}" type="button" aria-label="${t}">?</button>`;
+
   function incSkeleton(box) {
-    const segH = (id, L, v) => `<div class="seg" id="${id}">${L.map(([x, t]) => `<button type="button" data-v="${x}"${String(x) === String(v) ? ' class="on"' : ''}>${t}</button>`).join('')}</div>`;
-    const how = (k, li) => `<div class="howtxt" id="how-${k}" hidden>${A().howHTML('', li)}</div>`;
-    const hbtn = (k, t) => `<button class="howbtn pop" data-how="${k}" data-ttl="${t}" type="button" aria-label="${t}">?</button>`;
+    const L = A().L, stocks = L && L.cname ? Object.keys(L.cname).filter((c) => /^\d{4}$/.test(c)).slice(0, 2500) : [];
+    const dl = items().filter((x) => x.close > 0).map((x) => `<option value="${esc(x.code)}">${esc(x.name)}</option>`).join('')
+      + stocks.map((c) => `<option value="${esc(c)}">${esc(L.cname[c])}</option>`).join('');
     box.innerHTML = `
-<p class="incdisc" id="incDisc">ⓘ 以下依目前殖利率與價格試算，不代表未來配息與股價；配息可能變動、可能配到本金，僅供參考，不構成投資建議。</p>
+<p class="incdisc" id="incDisc">ⓘ 以下依歷史價格與配息回測／試算，不代表未來；配息可能變動、可能配到本金；槓桿型 ETF 波動與耗損大。僅供參考，不構成投資建議。</p>
+<div class="nbsw incmain" id="incMain" role="tablist"><button type="button" role="tab" data-v="m">月配試算表</button><button type="button" role="tab" data-v="x">複利試算表</button></div>
+<datalist id="incRxList">${dl}</datalist>
+<div id="incPM">
 <div class="incctl">
-  <div class="grp"><b>年領目標</b>${segH('incYSeg', INC_Y, S.inc.year)}<input type="number" id="incYear" min="10000" step="10000" value="${S.inc.year}" aria-label="自訂年領目標（元）"></div>
-  <div class="grp"><b>月領目標</b>${segH('incMSeg', INC_M, S.inc.mon)}<input type="number" id="incMon" min="1000" step="1000" value="${S.inc.mon}" aria-label="自訂月領目標（元）"></div>
+  <div class="grp"><b>目標</b>${segH('incMode', [['y', '年領'], ['m', '月領']], S.inc.mode)}<span id="incAmtBox"></span><input type="number" id="incAmt" min="1000" step="1000" aria-label="自訂目標（元）"><small>元</small></div>
   <div class="grp"><b>範圍</b>${segH('incScope', [['div', '配息型'], ['bond', '配息型＋債券型']], S.inc.scope)}</div>
   <label class="chk"><input type="checkbox" id="incNhi"${S.inc.nhi ? ' checked' : ''}>扣除二代健保（單筆 ≥ 2 萬扣 2.11%）</label>
-  <div class="grp"><span id="etfIncRngBox"></span></div>
+  <div class="grp"><b>報酬期間</b><span id="etfIncRngBox"></span></div>
 </div>
+<div class="inctabrow"><div class="nbsw inctabs" id="incTabs" role="tablist"><button type="button" role="tab" data-v="s">單檔 ETF</button></div></div>
 <div class="incsec" id="incSingle">
-  <div class="row spread"><h3 data-icon="coins" data-tone="yield">單檔：要幾張才領得到 <small id="incYLab"></small> ${hbtn('incs', '單檔試算怎麼看')}</h3>
-    ${segH('incSort', [['y', '殖利率最高'], ['tr', '含息總報酬最高']], S.inc.sort)}</div>
-  ${how('incs', ['<b>每單位年配息</b>＝近 12 個月（含已公告、還沒除息的）每次現金配息加總；依「發放月」算，同一個月只算最新一筆。',
-    '<b>需要張數</b>＝年領目標 ÷（每單位年配息 × 1000），無條件進位；1 張＝1000 單位。<b>需投入</b>＝張數 × 1000 × 最新收盤。',
-    '<b>殖利率</b>＝每單位年配息 ÷ 最新收盤（當下值）。<b>含息總報酬</b>＝上方期間的含息年化（配息在除息日再投入），<b>期間配息年化</b>＝含息年化扣掉價格年化的部分。',
-    '勾「扣除二代健保」：每次發放 ≥ 2 萬元的整筆扣 2.11%（保守估：把整筆都當股利所得；實際只對股利所得部分扣，收益平準金不扣）。',
-    '所以：殖利率高的需要的本金少，但要對照含息總報酬——殖利率高、總報酬低，代表領到的息有一部分是被股價下跌吃回去的。'])}
+  <div class="row spread"><h3 data-icon="coins" data-tone="yield">單檔：要幾張、要多少錢 <small id="incYLab"></small> ${hbtnH('incs', '單檔試算怎麼看')}</h3>
+    <span class="row" style="gap:6px"><small class="lbl">排序</small>${segH('incSort', SORT_L, S.inc.sort)}</span></div>
+  ${howH('incs', ['<b>每單位年配息</b>＝近 12 個月（含已公告、還沒除息的）每次現金配息加總；依「發放月」算，同一個月只算最新一筆。',
+    '<b>張數</b>＝年目標 ÷（每單位年配息 × 1000），無條件進位；月領模式的年目標＝月領 × 12。<b>金額</b>＝張數 × 1000 × 最新收盤。',
+    '<b>殖利率</b>＝每單位年配息 ÷ 最新收盤。<b>含息年化</b>＝「報酬期間」的含息總報酬年化；<b>價格年化</b>＝不含息（只看價格）的年化。這三種決定排序。',
+    '直條＝前 5 名每個月入帳（萬），灰線＝平均；右側清單勾選替換（最多 5 檔），上方膠囊按 × 也會同步取消。點直條或清單名稱看該檔細節。想看「配息再投入能多賺多少」請到上方「複利試算表」。'])}
   <p class="incq" id="incSQ"></p>
-  <div id="incBar" class="chart"></div>
-  <div class="inctw"><table class="inct" id="incTbl"></table></div>
-  <div class="incmore"><button type="button" class="btn small" id="incMore" hidden></button></div>
+  <div class="incsg"><div class="incbarw"><div class="snkey" id="incChips"></div><div id="incBar" class="chart"></div></div>
+    <div class="inclist" id="incListBox"><div class="ilhd"><input type="search" id="incSearch" placeholder="搜尋名稱或代號" aria-label="搜尋 ETF"><button type="button" class="btn small" id="incReset">回前 5</button></div>
+      <div class="ilfq" id="incFq" role="tablist" aria-label="依配息頻率分類"></div>
+      <p class="ilmsg" id="incListMsg"></p><div class="ilbody" id="incList"></div></div></div>
+  <div class="incdet" id="incDet" hidden></div>
 </div>
-<div class="incsec" id="incCombo">
-  <div class="row spread"><h3 data-icon="calendar" data-tone="yield">組合：每個月都領得到 <small id="incMLab"></small> ${hbtn('incc', '組合怎麼找')}</h3>
-    ${segH('incCSort', [['cost', '投入最少'], ['tr', '含息總報酬最高']], S.inc.csort)}</div>
-  ${how('incc', ['季配 ETF 的除息月份錯開（例：1/4/7/10、2/5/8/11、3/6/9/12），三、四檔搭在一起就能每個月都有錢入帳。',
-    '<b>候選</b>：範圍內的月配／雙月配／季配、近 20 日均成交值 ≥ 2000 萬（太冷門的不列）、殖利率前 20 檔。<b>窮舉</b> 2～4 檔，只留 12 個月都有配息的組合。',
-    '<b>張數</b>：先找缺最多的月份，補「那個月每元配息最便宜」的那檔，直到每個月都 ≥ 目標；再逐檔把張數往下壓到剛好不破目標。每檔至少 1 張。',
-    '<b>12 格月曆</b>：每格＝那個月入帳多少、由哪幾檔配；格子顏色＝主要那檔的配息頻率色。月份依各檔近 12 個月的發放月，未來可能調整。',
-    '<b>投入最少</b>：總投入金額由少到多；<b>含息總報酬最高</b>：各檔含息年化依投入金額加權。',
-    '所以：投入最少的組合是「用最少本金換到每月現金流」，但最低那個月才是你每月實際能保證拿到的數字。'])}
-  <p class="incq" id="incCQ"></p>
-  <p class="incq" style="color:var(--ink-3);font-size:12px">ⓘ 未計入二代健保補充保費（單筆 2 萬以上 2.11%）與所得稅；勾上方「扣除二代健保」會改用扣除後的金額試算。</p>
-  <div class="inclg" id="incLg">${FQ_ORDER.slice(0, 3).map((f) => fqBadge(f)).join('')}<span>格子顏色＝那個月主要配息那檔的頻率</span></div>
+<div class="incsec" id="incCombo" hidden>
+  <div class="row spread cmbhd"><p class="incq" id="incCQ"></p><span class="csortw" id="incCSortW"><b>組合</b>（${segH('incCSort', [['cost', '投入最少'], ['tr', '含息報酬最高']], S.inc.csort)}）${hbtnH('incc', '組合怎麼找')}</span></div>
+  ${howH('incc', ['季配 ETF 的發放月份錯開，三、四檔搭在一起就能每個月都有錢入帳。每月目標用上方「目標」：月領＝那個金額；年領＝年領 ÷ 12。',
+    '<b>候選</b>：範圍內的月配／雙月配／季配、近 20 日均成交值 ≥ 2000 萬、殖利率前 20 檔；<b>窮舉</b> 2～4 檔，只留 12 個月都有配息的組合，前 5 名分成 A～E 分頁。',
+    '<b>張數</b>：先補缺最多的月份（補那個月每元配息最便宜的那檔），直到每月 ≥ 目標，再逐檔把張數往下壓到剛好不破目標。每檔至少 1 張。',
+    '<b>甜甜圈</b>＝各檔投入金額占比；<b>時鐘</b>＝12 個月，頂端 12 月、順時針，月份 m 落在 m 點鐘；<b>直條</b>＝每個月入帳金額。三張圖的顏色都＝甜甜圈上那檔的顏色（月份用當月主要入帳那檔）。',
+    '未計入二代健保補充保費與所得稅；勾上方「扣除二代健保」會改用扣除後的金額。選定組合後，可到「複利試算表」看配息再投入的差別。'])}
   <div class="combos" id="incCombos"></div>
+</div>
+</div>
+<div id="incPX" hidden>
+  <div class="row spread"><h3 data-icon="arrow-up" data-tone="up">複利試算：配息拿去再投入，能多賺幾 % ${hbtnH('incx', '複利試算怎麼算')}</h3></div>
+  ${howH('incx', ['<b>對象</b>：月配試算表裡的組合 A～E，或任一檔配息 ETF；張數沿用月配試算表依目標算出的張數（上方改目標，這裡跟著變）。',
+    '<b>起始日</b>：那一週收盤買進，本金之後不動、不加碼；算到資料最新一天。',
+    '<b>配息</b>：每次配息在發放日入帳；<b>再投入</b>＝在發放月的<b>下一個月</b>第一個週收盤買進（零股；標的自己的配息再滾入同一標的）。⇒ 1 月發放的錢 2 月才進場。',
+    '<b>報酬率</b>＝（原持股市值＋待投入現金＋再投入部位）÷ 本金 − 1。<b>只領現金</b>＝原持股＋累積領到的現金；<b>只看價格</b>＝原持股市值（不含任何配息）。',
+    '一年以前的配息由週線含息指數反推、發放日以除息後 21 天估，會有些微誤差；近 12 個月用配息行事曆的實際金額與發放日。'])}
+  <div class="incctl cxctl">
+    <div class="grp"><b>對象</b><select id="cxObj" aria-label="複利試算對象"></select></div>
+    <div class="grp"><b>起始日</b><input type="date" id="cxFrom" aria-label="起始日期">${segH('cxQuick', [['1', '1 年'], ['3', '3 年'], ['5', '5 年']], '')}<small>～至今</small></div>
+  </div>
+  <div class="cxg"><div class="cxl">
+    <div class="cxlg"><small>點下方圖例可開關那條線（右表與結論跟著變）</small><span class="cmpw"><input class="cmpin" id="cxIn" list="incRxList" placeholder="＋自訂再投入標的（代號／名稱）" aria-label="加入自訂再投入標的"><button type="button" class="btn small" id="cxAdd">加入</button></span>
+      <span class="cmpchips" id="cxChips"></span><small class="rxmsg" id="cxMsg"></small></div>
+    <div id="cxChart" class="chart"></div></div>
+    <div class="cxr"><div class="simtw"><table class="simt" id="cxTbl"></table></div>
+    <p class="cxhead" id="cxHead"></p><p class="simlev" id="cxLev">00631L 為 2 倍槓桿型（每日重設），長期報酬受波動耗損影響大，回測結果高度依賴期間。</p></div></div>
 </div>`;
-    const setY = (v) => { if (!(v > 0)) return; S.inc.year = Math.round(v); LS.set('tw.etf.inc.year', S.inc.year); S.inc.shown = 20; drawInc(); };
-    const setM = (v) => { if (!(v > 0)) return; S.inc.mon = Math.round(v); LS.set('tw.etf.inc.mon', S.inc.mon); drawInc(); };
-    $$('#incYSeg button').forEach((b) => { b.onclick = () => setY(+b.dataset.v); });
-    $$('#incMSeg button').forEach((b) => { b.onclick = () => setM(+b.dataset.v); });
-    $('#incYear').onchange = (e) => setY(+e.target.value);
-    $('#incMon').onchange = (e) => setM(+e.target.value);
-    $$('#incScope button').forEach((b) => { b.onclick = () => { S.inc.scope = b.dataset.v; LS.set('tw.etf.inc.scope', S.inc.scope); drawInc(); }; });
+    const setAmt = (v) => { if (!(v > 0)) return; v = Math.round(v); if (S.inc.mode === 'm') { S.inc.mon = v; LS.set('tw.etf.inc.mon', v); } else { S.inc.year = v; LS.set('tw.etf.inc.year', v); } drawInc(); };
+    box._setAmt = setAmt;
+    $$('#incMain button').forEach((b) => { b.onclick = () => { S.inc.main = b.dataset.v; LS.set('tw.etf.inc.main', S.inc.main); drawInc(); }; });
+    $$('#incMode button').forEach((b) => { b.onclick = () => { S.inc.mode = b.dataset.v; LS.set('tw.etf.inc.mode', S.inc.mode); drawInc(); }; });
+    $('#incAmt').onchange = (e) => setAmt(+e.target.value);
+    $$('#incTabs button').forEach((b) => { b.onclick = () => { S.inc.tab = b.dataset.v; LS.set('tw.etf.inc.tab', S.inc.tab); drawInc(); }; });
+    $$('#incScope button').forEach((b) => { b.onclick = () => { S.inc.scope = b.dataset.v; LS.set('tw.etf.inc.scope', S.inc.scope); S.inc.sel = null; drawInc(); }; });
     $$('#incSort button').forEach((b) => { b.onclick = () => { S.inc.sort = b.dataset.v; LS.set('tw.etf.inc.sort', S.inc.sort); drawInc(); }; });
-    $$('#incCSort button').forEach((b) => { b.onclick = () => { S.inc.csort = b.dataset.v; LS.set('tw.etf.inc.csort', S.inc.csort); drawInc(); }; });
+    $$('#incCSort button').forEach((b) => { b.onclick = () => { S.inc.csort = b.dataset.v; LS.set('tw.etf.inc.csort', S.inc.csort); S.inc.ci = 0; drawInc(); }; });
     $('#incNhi').onchange = (e) => { S.inc.nhi = e.target.checked; LS.set('tw.etf.inc.nhi', S.inc.nhi ? '1' : ''); drawInc(); };
-    $('#incMore').onclick = () => { S.inc.shown += 30; drawInc(); };
+    $('#incSearch').oninput = (e) => { S.inc.q = e.target.value.trim(); drawIncList(S._incR || []); };
+    // v7（Andy：清單要依月配／雙月配／季配／半年配分類）：「回前 5」取目前這一類的前 5 檔；「全部」時照舊回整體前 5
+    $('#incReset').onclick = () => { const fq = S.inc.fq || 'all', R0 = S._incR || [];
+      S.inc.sel = fq === 'all' ? null : R0.filter((r) => r.it.freq === fq).slice(0, 5).map((r) => r.it.code);
+      $('#incListMsg').textContent = ''; drawInc(); };
+    // 複利
+    $('#cxObj').onchange = (e) => { S.inc.obj = e.target.value; drawCx(); };
+    $('#cxFrom').max = todayTW();
+    $('#cxFrom').onchange = (e) => { if (e.target.value) { S.inc.xfrom = e.target.value; S.inc.xq = ''; drawCx(); } };
+    $$('#cxQuick button').forEach((b) => { b.onclick = () => { S.inc.xq = b.dataset.v; S.inc.xfrom = yrsAgo(todayTW(), +b.dataset.v); drawCx(); }; });
+    const go = () => addCmp($('#cxIn').value);
+    $('#cxAdd').onclick = go;
+    $('#cxIn').onkeydown = (e) => { if (e.key === 'Enter') { e.preventDefault(); go(); } };   // ★ v6：拿掉 onchange——按「加入」時輸入框失焦也會觸發 change，一次加兩檔
     if (window.RangePick) {
       const r = perRange();
       $('#etfIncRngBox').innerHTML = window.RangePick.html({ id: 'etfIncRng', options: PERS, value: S.per, from: r.from, to: r.to, max: todayTW() });
@@ -1262,104 +1613,432 @@
       } });
     }
   }
+  async function addCmp(v) {
+    const code = codeFromInput(v), msg = $('#cxMsg'); if (!code) return;
+    if (S.inc.cmp.includes(code) || code === '0050' || code === '00631L') { msg.textContent = `${code} 已在情境裡`; return; }
+    if (S.inc.cmp.length >= 5) { msg.textContent = '自訂標的最多 5 檔，請先移除一檔'; return; }
+    if (!S.series) await loadSeries();
+    const T = await rxSeries(code);
+    if (!T) { msg.textContent = `${code} 沒有歷史價格，不能加入`; return; }
+    if (S.inc.cmp.includes(code)) { msg.textContent = `${code} 已在情境裡`; return; }   // 等資料期間可能被別的觸發先加進去了，回來再查一次
+    if (S.inc.cmp.length >= 5) { msg.textContent = '自訂標的最多 5 檔，請先移除一檔'; return; }
+    S.inc.cmp = S.inc.cmp.concat([code]); msg.textContent = ''; $('#cxIn').value = ''; drawCx();
+  }
   function drawInc() {
     incLoad();
     const box = $('#etfInc'); if (!box) return;
-    if (!$('#incTbl', box)) incSkeleton(box);
+    if (!$('#incPX', box)) incSkeleton(box);
     const segOn = (id, v) => $$(`#${id} button`).forEach((b) => b.classList.toggle('on', String(b.dataset.v) === String(v)));
-    segOn('incYSeg', S.inc.year); segOn('incMSeg', S.inc.mon); segOn('incScope', S.inc.scope); segOn('incSort', S.inc.sort); segOn('incCSort', S.inc.csort);
-    $('#incYear').value = S.inc.year; $('#incMon').value = S.inc.mon; $('#incNhi').checked = S.inc.nhi;
+    const P = S.inc.mode === 'm' ? INC_M : INC_Y, amt = S.inc.mode === 'm' ? S.inc.mon : S.inc.year;
+    $('#incAmtBox').innerHTML = `<div class="seg" id="incAmtSeg">${P.map(([x, t]) => `<button type="button" data-v="${x}"${x === amt ? ' class="on"' : ''}>${t}</button>`).join('')}</div>`;
+    $$('#incAmtSeg button').forEach((b) => { b.onclick = () => box._setAmt(+b.dataset.v); });
+    $('#incAmt').value = amt; $('#incAmt').step = S.inc.mode === 'm' ? 1000 : 10000;
+    segOn('incMain', S.inc.main); segOn('incMode', S.inc.mode); segOn('incScope', S.inc.scope); segOn('incSort', S.inc.sort); segOn('incCSort', S.inc.csort); segOn('incCView', S.inc.cview);
+    $('#incNhi').checked = S.inc.nhi;
+    $('#incPM').hidden = S.inc.main !== 'm'; $('#incPX').hidden = S.inc.main !== 'x';
+    $('#incSingle').hidden = S.inc.tab !== 's'; $('#incCombo').hidden = S.inc.tab !== 'c';
     if ($('#etfIncRng')) { const r = perRange(); window.RangePick.set($('#etfIncRng'), { value: S.per, from: r.from, to: r.to }); }
     if (S.fallback || !((S.data && S.data.calendar) || []).length) {
-      $('#incSQ').textContent = '尚無配息資料'; $('#incTbl').innerHTML = ''; $('#incCombos').innerHTML = '<div class="etfprep">尚無配息資料</div>'; return;
+      $('#incSQ').textContent = '尚無配息資料'; $('#incList').innerHTML = ''; $('#incCombos').innerHTML = '<div class="etfprep">尚無配息資料</div>'; return;
     }
-    if (!S.series && !PRE[S.per]) loadSeries().then(() => { if (S.view === 'inc') drawInc(); });
-    drawIncSingle(); drawIncCombos();
-    box.dataset.k = [S.inc.year, S.inc.mon, S.inc.sort, S.inc.csort, S.inc.scope, S.inc.nhi ? 1 : 0, perKey()].join('|');
+    if (!S.series) { loadSeries().then(() => { if (S.view === 'inc') drawInc(); }); }
+    if (S.inc.main === 'x') drawCx();
+    else { incTabsDraw(); if (S.inc.tab === 's') drawIncSingle(); else drawIncCombos(); }
+    reflow(S.inc.main === 'x' ? $('#incPX') : S.inc.tab === 's' ? $('#incSingle') : $('#incCombo'));
+    box.dataset.k = [S.inc.mode, incYearT(), incMonT(), S.inc.sort, S.inc.csort, S.inc.scope, S.inc.nhi ? 1 : 0, perKey(), S.inc.tab, S.inc.main].join('|');
   }
+  const touchy = () => !!(window.matchMedia && window.matchMedia('(hover: none)').matches);
+  function twoTap(key, fn) { if (touchy() && S._tap !== key) { S._tap = key; return; } S._tap = null; fn(); }
+
+  /* ================= 月配試算表：單檔 ================= */
   function drawIncSingle() {
-    const R = incSingles(), T = S.inc.year, pl = perLabel();
-    $('#incYLab').textContent = `年領 ${wan(T)}${S.inc.nhi ? '（扣健保後）' : ''}`;
+    const R = incSinglesV2(), T = incYearT(), k = S.inc.sort;
+    S._incR = R;
+    $('#incYLab').textContent = S.inc.mode === 'm' ? `月領 ${wan(S.inc.mon)}（＝年領 ${wan(T)}）${S.inc.nhi ? '扣健保後' : ''}` : `年領 ${wan(T)}${S.inc.nhi ? '（扣健保後）' : ''}`;
+    const codes = R.map((r) => r.it.code);
+    const sel = S.inc.sel ? S.inc.sel.filter((c) => codes.includes(c)) : codes.slice(0, 5);
+    if (S.inc.sel) S.inc.sel = sel;
+    const top = R.filter((r) => sel.includes(r.it.code));
     const best = R.slice().sort((a, b) => a.cost - b.cost)[0];
-    $('#incSQ').innerHTML = R.length ? `要每年領 <b>${wan(T)}</b>：${R.length} 檔裡投入最少的是 <b>${esc(best.it.name)}</b>（${best.lots.toLocaleString()} 張、約 <b>${wan(best.cost)}</b>）。`
-      + `依<b>${S.inc.sort === 'tr' ? `${pl}含息總報酬（年化）` : '殖利率'}</b>由高到低排；點橫條或列可在表格裡標出那一檔，點名稱進個股頁。` : '這個範圍沒有近 12 個月有配息的 ETF';
-    const L = R.slice(0, S.inc.shown);
-    const hd = `<thead><tr><th class="nm">ETF</th><th>頻率</th><th>收盤</th><th>每單位年配息</th><th>殖利率</th><th>${esc(pl)}含息總報酬</th><th>期間配息年化</th><th>需要張數</th><th>需投入（台幣）</th><th>年領${S.inc.nhi ? '（扣健保）' : ''}</th></tr></thead>`;
-    const cl = (v) => (v == null ? '<span class="na">—</span>' : `<span class="${cls(v)}">${pct(v, 2)}</span>`);
-    $('#incTbl').innerHTML = hd + '<tbody>' + L.map((r, i) => `<tr data-code="${esc(r.it.code)}" data-lots="${r.lots}" data-cost="${Math.round(r.cost)}">
-      <td class="nm" title="${esc(r.it.name)} ${esc(r.it.code)}"><span class="note">${i + 1}</span> ${esc(r.it.name)}<span class="cd">${esc(r.it.code)}</span></td>
-      <td>${fqBadge(r.it.freq) || '<span class="na">—</span>'}</td><td>${A().fmt.n(r.it.close, 2)}</td><td>${(+r.mm.sum.toFixed(3))} 元</td>
-      <td data-y="${r.y}">${pctU(r.y)}</td><td data-tr="${r.tr == null ? '' : r.tr}">${cl(r.tr)}</td><td>${divAnn(r.st) == null ? '<span class="na">—</span>' : pctU(divAnn(r.st))}</td>
-      <td><b>${r.lots.toLocaleString()}</b> 張</td><td>${wan(r.cost)}</td><td>${wan(r.net)}</td></tr>`).join('') + '</tbody>';
-    $$('#incTbl tr[data-code]').forEach((tr) => { tr.onclick = (ev) => { if (ev.target.closest('td.nm')) { A().goStock(tr.dataset.code); return; } markRow(tr.dataset.code); }; });
-    const more = $('#incMore'); more.hidden = R.length <= S.inc.shown; more.textContent = `顯示更多（還有 ${Math.max(0, R.length - S.inc.shown)} 檔）`;
-    $('#incTbl').dataset.codes = L.map((r) => r.it.code).join(',');
-    if (S.inc.mark) { const t = $(`#incTbl tr[data-code="${S.inc.mark}"]`); if (t) t.classList.add('on'); }
-    // D 款橫條：前 10 名的排序指標
-    const top = R.slice(0, 10), key = S.inc.sort === 'tr' ? 'tr' : 'y', a = A(), B = a.barStyle, CH = a.CH;
+    $('#incSQ').innerHTML = R.length ? `要${S.inc.mode === 'm' ? `每月領 <b>${wan(S.inc.mon)}</b>` : `每年領 <b>${wan(T)}</b>`}：${R.length} 檔裡投入最少的是 <b>${esc(best.it.name)}</b>（<b>${best.lots.toLocaleString()} 張・${ntw(best.cost)}</b>）。`
+      + `直條＝依<b>${SORT_L.find((x) => x[0] === k)[1]}</b>排序的前 5 檔，各買上述張數後每個月入帳多少（萬），灰線＝平均；右側清單勾選替換（最多 5 檔）。` : '這個範圍沒有近 12 個月有配息的 ETF';
     const el = $('#incBar');
-    if (!top.length || !window.echarts) { holdEmpty('incBar', '無資料'); return; }
-    if (!window.echarts.getInstanceByDom(el)) el.innerHTML = '';   // 已有圖就別清 DOM（清了會把現有實例的畫布砍掉，畫面空白、點不到）
-    a.chart('incBar', {
-      grid: { left: 8, right: 120, top: 8, bottom: 8, containLabel: true },
-      tooltip: { trigger: 'item', formatter: (p) => { const r = top[p.dataIndex]; return `${esc(r.it.name)} ${r.it.code}<br>殖利率 ${pctU(r.y)}・含息總報酬 ${r.tr == null ? '—' : pct(r.tr, 2)}<br>需 ${r.lots.toLocaleString()} 張・${wan(r.cost)}`; } },
-      xAxis: { type: 'value', show: false },
-      yAxis: { type: 'category', inverse: true, data: top.map((r) => `${r.it.name} ${r.it.code}`), ...a.axisStyle, axisLine: { show: false }, axisTick: { show: false },
-        axisLabel: { ...a.axisStyle.axisLabel, fontSize: 12, color: CH.ink2 } },
-      series: [{ type: 'bar', barWidth: B.H, showBackground: true, backgroundStyle: { color: B.track(), borderRadius: B.R },
-        itemStyle: { color: B.grad(true), borderRadius: [0, B.R, B.R, 0] }, emphasis: { itemStyle: { borderColor: CH.ink, borderWidth: 2 } },
-        label: { show: true, position: 'right', color: CH.ink2, fontSize: 11.5, formatter: (p) => { const r = top[p.dataIndex]; return `${key === 'tr' ? pct(r.tr, 1) : pctU(r.y, 1)}｜${r.lots.toLocaleString()} 張`; } },
-        data: top.map((r) => (r[key] == null ? 0 : +(r[key] * 100).toFixed(2))) }],
-    });
-    const ch = window.echarts.getInstanceByDom(el);
-    if (ch) { ch.off('click'); ch.on('click', (p) => markRow(top[p.dataIndex].it.code)); }
     el.dataset.codes = top.map((r) => r.it.code).join(',');
+    el.dataset.lots = top.map((r) => r.lots).join(',');
+    el.dataset.costs = top.map((r) => Math.round(r.cost)).join(',');
+    el.dataset.vals = top.map((r) => (r[k] == null ? '' : r[k])).join(',');
+    drawSingleCurve(top);
+    drawIncList(R);
+    drawDet();
   }
-  function markRow(code) {
-    $$('#incTbl tr.on').forEach((t) => t.classList.remove('on'));
-    S.inc.mark = code;
-    const tr = $(`#incTbl tr[data-code="${code}"]`); if (!tr) return;
-    tr.classList.add('on'); tr.scrollIntoView({ block: 'nearest' });
+  const firstOfMonthFn = (X) => (i) => i === 0 || X[i].slice(0, 7) !== X[i - 1].slice(0, 7);
+  /* v8（Andy：「曲線圖月份之間都要微微線條區隔」）：每個月一條很淡的直線。顏色用 ink-3 的 16% 透明，深淺主題都看得到但不搶線。 */
+  const monthLine = (a) => ({ color: a.hexA(a.CH.ink3, 0.16), width: 0.8, type: 'solid' });
+  const monthAxis = (X, a) => {
+    const f = firstOfMonthFn(X), CH = a.CH;
+    return { type: 'category', data: X, boundaryGap: false, ...a.axisStyle, axisTick: { show: true, interval: f }, splitLine: { show: true, interval: f, lineStyle: monthLine(a) },
+      axisLabel: { ...a.axisStyle.axisLabel, fontSize: 11, interval: f, hideOverlap: true, formatter: (v) => (v.slice(5, 7) === '01' ? v.slice(0, 4) : String(+v.slice(5, 7)) + '月') } };
+  };
+  /* 18:52「單檔 ETF 改用這方式如圖表示，並且改成前 5 名即可」＋「有需要再從旁邊清單篩選，至多 5 檔」：
+     照週期統計頁的「長條圖」模式（X 軸 1～12 月、每月一組並排直條、每檔一色、一條平均折線、上方膠囊可 ×、提示框依大小排並標高於／低於平均）。
+     值＝該檔依目標張數「那個月入帳多少（萬）」；平均線＝這幾檔的平均。膠囊與右側清單勾選雙向同步，最多 5 檔。
+     配色與膠囊直接用週期統計那支（App.snColor／App.msTags），長條參數照抄 seasonLine（barGap 12%、組間 22%、barMaxWidth 16）。 */
+  function drawSingleCurve(top) {
+    const el = $('#incBar'), a = A(), CH = a.CH, mob = window.matchMedia && window.matchMedia('(max-width: 640px)').matches;
+    const MONTHS = Array.from({ length: 12 }, (_, i) => `${i + 1} 月`), AVG = '平均';
+    const colOf = (i) => (a.snColor ? a.snColor(i) : a.donut.color(i));
+    const vals = top.map((r) => r.mm.m.map((x) => (x > 0 ? +(netOf(r.lots * x * 1000) / 1e4).toFixed(2) : 0)));
+    const avg = MONTHS.map((_, m) => (vals.length ? +(vals.reduce((s, v) => s + v[m], 0) / vals.length).toFixed(2) : null));
+    el.style.height = (mob ? 360 : 440) + 'px';
+    const series = top.map((r, i) => ({ name: `${r.it.name} ${r.it.code}`, code: r.it.code, type: 'bar', barGap: mob ? '0%' : '12%', barCategoryGap: mob ? '16%' : '22%', barMaxWidth: 16, z: 2,
+      label: { show: false }, cursor: 'pointer', emphasis: { focus: 'series' }, itemStyle: { color: colOf(i), borderRadius: [3, 3, 0, 0] }, data: vals[i].map((v) => (v > 0 ? v : null)) }));
+    series.push({ name: AVG, type: 'line', smooth: false, symbol: 'circle', symbolSize: 5, z: 5, data: avg, lineStyle: { width: 2, color: a.hexA(CH.ink2, 0.9) }, itemStyle: { color: CH.ink2 } });
+    a.chart('incBar', {
+      animation: false, timeGrid: false,
+      tooltip: { ...a.tip, confine: true, trigger: 'axis', axisPointer: { type: 'shadow' },
+        formatter: (ps) => { const m = ps[0].dataIndex, av = avg[m];
+          const rest = ps.filter((q) => q.seriesName !== AVG && q.value != null).sort((p, q) => q.value - p.value);
+          el.dataset.tip = `${m + 1}|` + rest.map((q) => q.value).join(',');
+          return `<b>${m + 1} 月入帳</b><br>${a.hexA ? '' : ''}<span style="color:${CH.ink3}">— ${AVG} ${av} 萬</span>`
+            + rest.map((q) => { const r = top[q.seriesIndex]; return `<br>${q.marker}${esc(q.seriesName)} <b>${q.value} 萬</b>（${r.lots.toLocaleString()} 張）<span style="color:${CH.ink3}">（${q.value >= av ? '高於' : '低於'}平均）</span>`; }).join('')
+            + (rest.length < top.length ? `<br><span style="color:${CH.ink3}">其餘 ${top.length - rest.length} 檔這個月沒有配息</span>` : ''); } },
+      legend: { show: false },
+      grid: { left: 52, right: mob ? 12 : 20, top: 16, bottom: 28 },
+      xAxis: { ...a.axisStyle, type: 'category', data: MONTHS, axisTick: { show: false }, axisLabel: { color: CH.ink2, fontSize: 12, interval: 0 },
+        splitLine: { show: true, keep: true, interval: 0, lineStyle: { color: CH.ink2, opacity: 0.18, width: 1, type: 'solid' } } },
+      yAxis: { ...a.axisStyle, type: 'value', name: '萬', nameTextStyle: { color: CH.ink3, fontSize: 11 }, axisLabel: { color: CH.ink3, fontSize: 12, formatter: (v) => v + ' 萬' } },
+      series,
+    }, { notMerge: true });
+    const key = $('#incChips');
+    if (key && a.msTags) {
+      a.msTags(key, top.map((r, i) => ({ name: `${r.it.name} ${r.it.code}`, color: colOf(i), title: `從圖上拿掉 ${r.it.name}（清單也會取消勾選）` })), (n) => {
+        const c = (top.find((r) => `${r.it.name} ${r.it.code}` === n) || {}).it; if (!c) return;
+        S.inc.sel = top.map((r) => r.it.code).filter((x) => x !== c.code); drawIncSingle();
+      }, `<span class="snk avg" title="這幾檔的平均（細灰線）"><i></i>平均</span>`);
+      key.insertAdjacentHTML('beforeend', `<button type="button" class="snk addk" id="incChipAdd" title="從右側清單勾選加入（最多 5 檔）">＋加入</button>`);
+      const ad = $('#incChipAdd'); if (ad) ad.onclick = () => { const s = $('#incSearch'); if (s) { s.focus(); s.scrollIntoView({ block: 'nearest' }); } };
+    }
+    const ch = window.echarts && window.echarts.getInstanceByDom(el);
+    if (ch) { ch.off('click'); ch.on('click', (p) => { const s = series[p.seriesIndex]; if (!s || !s.code) return; twoTap('l' + s.code, () => openDet(S.inc.det === s.code ? null : s.code)); }); }
+    el.dataset.n = String(top.length);
+    el.dataset.groups = vals.map((v) => v.join('/')).join(',');
   }
+  function drawIncList(R) {
+    const k = S.inc.sort, q = (S.inc.q || '').toLowerCase(), list = $('#incList'); if (!list) return;
+    const sel = S.inc.sel || R.slice(0, 5).map((r) => r.it.code), full = sel.length >= 5;
+    /* v7：頻率分頁。只顯示有檔數的類別；已勾選但不在這一類的檔照樣留在圖上（sel 不動），只是清單不列。搜尋在這一類裡面找。 */
+    const FQS = ['月配', '雙月配', '季配', '半年配', '年配'], cnt = {}; R.forEach((r) => { cnt[r.it.freq] = (cnt[r.it.freq] || 0) + 1; });
+    if (S.inc.fq && S.inc.fq !== 'all' && !cnt[S.inc.fq]) S.inc.fq = 'all';
+    const fq = S.inc.fq || 'all', fb = $('#incFq');
+    if (fb) {
+      fb.innerHTML = [['all', '全部', R.length]].concat(FQS.filter((x) => cnt[x]).map((x) => [x, x, cnt[x]]))
+        .map(([v, t, n]) => `<button type="button" role="tab" data-v="${esc(v)}"${v === fq ? ' class="on" aria-selected="true"' : ''}>${esc(t)}<small>${n}</small></button>`).join('');
+      $$('button', fb).forEach((b) => { b.onclick = () => { S.inc.fq = b.dataset.v; LS.set('tw.etf.inc.fq', S.inc.fq); drawIncList(R); }; });
+    }
+    const rows = R.filter((r) => fq === 'all' || r.it.freq === fq).map((r, i) => ({ r, i })).filter(({ r }) => !q || r.it.code.toLowerCase().includes(q) || (r.it.name || '').toLowerCase().includes(q));
+    list.innerHTML = rows.map(({ r, i }) => `<div class="ilr${sel.includes(r.it.code) ? ' in' : ''}${S.inc.det === r.it.code ? ' on' : ''}" data-code="${esc(r.it.code)}" data-fq="${esc(r.it.freq || '')}">
+      <input type="checkbox" aria-label="加入主圖" ${sel.includes(r.it.code) ? 'checked' : full ? 'disabled title="最多 5 檔，先取消一檔"' : ''}><span class="rk">${i + 1}</span>
+      <button type="button" class="iln" title="${esc(r.it.name)} ${esc(r.it.code)}">${fqBadge(r.it.freq)}<span class="nm">${esc(r.it.name)}</span><span class="cd">${esc(r.it.code)}</span></button>
+      <span class="mv">${metricTxt(r, k)}</span><span class="lt">現價 NT$ ${A().fmt.n(r.it.close, 2)}・需 ${r.lots.toLocaleString()} 張・${ntw(r.cost)}</span></div>`).join('') || '<div class="etfprep">找不到</div>';
+    list.dataset.n = String(rows.length);
+    $$('.ilr', list).forEach((row) => {
+      const c = row.dataset.code;
+      $('input', row).onchange = (e) => {
+        let cur = (S.inc.sel || R.slice(0, 5).map((r) => r.it.code)).slice();
+        if (e.target.checked) { if (cur.length >= 5) { e.target.checked = false; $('#incListMsg').textContent = '最多 5 檔，請先取消一檔'; return; } cur.push(c); }
+        else cur = cur.filter((x) => x !== c);
+        $('#incListMsg').textContent = ''; S.inc.sel = cur; drawIncSingle();
+      };
+      $('.iln', row).onclick = () => openDet(S.inc.det === c ? null : c);
+    });
+  }
+  function openDet(code) {
+    S.inc.det = code; drawIncSingle();
+    if (code) { const d = $('#incDet'); if (d && d.scrollIntoView) d.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); }
+  }
+  const DN = 320;
+  /* 甜甜圈：中心兩行（小標＋數字）是 A 款規格；扇區外標籤一律單行 */
+  /* 提示框位置：先照 A 款規則（環外側、避開中心字），再夾回圖框內——自訂 position 函式時 ECharts 的 confine 不會幫忙夾（219：跑到側欄底下）。 */
+  const clampPos = (fn) => (pt, params, dom, rect, size) => {
+    const r = typeof fn === 'function' ? fn(pt, params, dom, rect, size) : [pt[0] + 12, pt[1] + 12];
+    const W = size.viewSize[0], H = size.viewSize[1], w = size.contentSize[0], h = size.contentSize[1];
+    return [Math.max(0, Math.min(W - w, r[0])), Math.max(0, Math.min(H - h, r[1]))];
+  };
+  function donutBig(id, parts, op) {
+    const a = A(), dop = { size: DN, fmtVal: (v) => ntw(v), ...op };
+    const o = a.donut.option(parts, dop).option;
+    o.tooltip = { ...o.tooltip, confine: true, position: clampPos(o.tooltip.position) };   // ★ 18:50（219）：提示框限制在圖框內，不會跑到側欄底下（appendToBody 每次重畫 echarts 會掃整頁 DOM，降速 4 倍時一次 150ms，不用）
+    // ★ 18:20「圓餅圖內資訊不可以有換行」：環跟時鐘同尺寸（內徑 50%、外徑 94%），扇區內單行「N 張・X 萬」，放不下就不畫（滑過看）
+    o.series[0] = { ...o.series[0], radius: ['50%', '94%'], minAngle: 6, label: { show: !!op.label, position: 'inside', color: '#fff', textBorderColor: 'rgba(0,0,0,.5)', textBorderWidth: 2, fontSize: 11.5, overflow: 'none', formatter: op.label || '' }, labelLine: { show: false }, labelLayout: { hideOverlap: true } };
+    o.series[1] = { ...o.series[1], radius: ['48%', '48.6%'] };
+    o.title = a.donut.center(op.centerLabel, op.centerValue, DN, 0.5);
+    $('#' + id).style.height = DN + 'px';
+    a.chart(id, o);
+    a.donut.wireHover(window.echarts && window.echarts.getInstanceByDom($('#' + id)), parts, { ...dop, size: DN });
+  }
+  function monthBars(id, vals, colOf, tipOf) {
+    const a = A(), CH = a.CH, B = a.barStyle;
+    a.chart(id, {
+      grid: { left: 4, right: 4, top: 24, bottom: 4, containLabel: true },
+      tooltip: { ...a.tip, confine: true, trigger: 'item', formatter: (p) => tipOf(p.dataIndex) },
+      xAxis: { type: 'category', data: Array.from({ length: 12 }, (_, i) => `${i + 1}月`), ...a.axisStyle, axisLabel: { ...a.axisStyle.axisLabel, fontSize: 11, interval: 0 } },
+      yAxis: { type: 'value', show: false },
+      series: [{ type: 'bar', barMaxWidth: 22, emphasis: { itemStyle: { borderColor: CH.ink, borderWidth: 2 } },
+        itemStyle: { borderRadius: [3, 3, 0, 0], color: colOf ? (p) => { const c = colOf(p.dataIndex); return { type: 'linear', x: 0, y: 0, x2: 0, y2: 1, colorStops: [{ offset: 0, color: c }, { offset: 1, color: a.hexA(c, 0.45) }] }; } : B.grad(false) },
+        label: { show: true, position: 'top', fontSize: 11, color: CH.ink2, formatter: (p) => (p.value > 0 ? wan1(p.value) : '') }, data: vals.map((v) => Math.round(v)) }],
+    });
+    $('#' + id).dataset.vals = vals.map((v) => Math.round(v)).join(',');
+  }
+  function drawDet() {
+    const box = $('#incDet'), r = (S._incR || []).find((x) => x.it.code === S.inc.det);
+    if (!r) { disposeIn(box); box.hidden = true; box.innerHTML = ''; box.dataset.code = ''; return; }
+    const lots = r.lots, cost = lots * 1000 * r.it.close;
+    const mon = r.mm.m.map((x) => (x > 0 ? netOf(lots * x * 1000) : 0)), year = mon.reduce((p, q) => p + q, 0);
+    if (box.dataset.code !== r.it.code || !$('#incDn', box)) {
+      disposeIn(box);
+      box.innerHTML = `<div class="dethd"><b>${fqBadge(r.it.freq)} ${esc(r.it.name)} ${esc(r.it.code)}</b>
+        <button type="button" class="btn small" id="incDetCx">看複利試算 →</button><button type="button" class="btn small" id="incDetGo">個股頁 →</button><button type="button" class="btn small" id="incDetX" aria-label="收起細節">收起 ✕</button></div>
+        <p class="incq" id="incDetQ"></p>
+        <div class="cgrid"><div class="cleft"><div class="sth">投入本金 vs 一年領回</div><div id="incDn" class="chart dnbig"></div></div>
+        <div class="cright"><div class="sth">一年 12 個月入帳（依發放月，單位：元）</div><div id="incMb" class="chart mbars"></div></div></div>`;
+      $('#incDetX').onclick = () => openDet(null);
+      $('#incDetGo').onclick = () => A().goStock(r.it.code);
+      $('#incDetCx').onclick = () => { S.inc.obj = 's:' + r.it.code; S.inc.main = 'x'; LS.set('tw.etf.inc.main', 'x'); drawInc(); };
+    }
+    box.hidden = false; box.dataset.code = r.it.code;
+    $('#incDetQ').innerHTML = `買 <b>${lots.toLocaleString()} 張・${ntw(cost)}</b>，依近 12 個月配息一年領 <b>${ntw(year)}</b>（殖利率 ${pctU(year / cost)}）；只靠配息約 <b>${year > 0 ? (cost / year).toFixed(1) : '—'} 年</b>領回本金（不計價格變動）。`;
+    const a = A();
+    const parts = [{ name: '一年領回', value: Math.round(year), color: a.donut.color(2) }, { name: '本金其餘', value: Math.max(0, Math.round(cost - year)), isOther: true }];
+    donutBig('incDn', parts, { valLabel: '金額', centerLabel: '殖利率', centerValue: pctU(year / cost, 1), label: (p) => `${p.name} ${wan1(p.value)}` });
+    monthBars('incMb', mon, null, (i) => `${i + 1} 月入帳 <b>${ntw(mon[i])}</b><br>${lots.toLocaleString()} 張 × 每單位 ${r.mm.m[i]} 元`);
+  }
+
+  /* ================= 月配試算表：組合 ================= */
+  function clockOpt(c, S0) {
+    const a = A(), CH = a.CH;
+    const mx = Math.max(...c.mon), mn = Math.min(...c.mon);
+    const data = c.mon.map((v, m) => {
+      const by = c.by[m].map((x, i) => [x, i]).filter((x) => x[0] > 0).sort((p, q) => q[0] - p[0]);
+      const mi = by.length ? by[0][1] : -1, col = mi >= 0 ? a.donut.color(mi) : CH.ink3;
+      const al = mx > mn ? 0.6 + 0.4 * (v - mn) / (mx - mn) : 0.85;
+      return { name: `${m + 1}月`, value: 1, amt: v, by, mi, itemStyle: { color: a.hexA(col, al) } };
+    });
+    return { data, option: {
+      tooltip: { ...a.tip, confine: true, position: clampPos(a.donut.tipPosFor(0.5)), trigger: 'item', formatter: (p) => { const d = data[p.dataIndex];
+        return `<b>${d.name}入帳 ${ntw(d.amt)}</b><br>` + d.by.map(([x, i]) => `${esc(c.mem[i].it.name)} ${c.mem[i].it.code}：${c.lots[i].toLocaleString()} 張 → ${ntw(x)}`).join('<br>'); } },
+      title: a.donut.center('最低月', wan(c.min), S0, 0.5),
+      series: [{ type: 'pie', radius: ['50%', '94%'], center: ['50%', '50%'], startAngle: 75, clockwise: true, padAngle: 1, minAngle: 0,
+        itemStyle: { borderRadius: 4, borderColor: CH.panel, borderWidth: 1 }, avoidLabelOverlap: false, labelLine: { show: false },
+        label: { show: true, position: 'inside', fontSize: 11, lineHeight: 14, color: '#fff', textBorderColor: 'rgba(0,0,0,.45)', textBorderWidth: 2, formatter: (p) => `${p.dataIndex + 1}月\n${wan1(data[p.dataIndex].amt)}` },
+        emphasis: { scale: true, scaleSize: 4, itemStyle: { borderColor: CH.ink, borderWidth: 3 } }, data }],
+    } };
+  }
+  /* ★ 18:50 剖析：整塊 innerHTML 換掉前要先 dispose 裡面的 ECharts 實例，不然舊實例（含 resize 監聽與畫布）留在記憶體——
+     連切 50 次組合 A～E，JS heap 37→107MB 一路漲；這是「用久了變卡」的根因之一（見 docs/income_audit_1007.md）。 */
+  function disposeIn(box) { if (!box || !window.echarts) return; box.querySelectorAll('[_echarts_instance_]').forEach((d) => { const c = window.echarts.getInstanceByDom(d); if (c) c.dispose(); }); }
   function drawIncCombos() {
-    const N = S.inc.mon, C = incCombos(), box = $('#incCombos');
-    $('#incMLab').textContent = `每月 ≥ ${wan(N)}${S.inc.nhi ? '（扣健保後）' : ''}`;
-    $('#incCQ').innerHTML = C.list.length ? `從 ${C.pool} 檔候選裡找到 ${C.n.toLocaleString()} 種「12 個月都有配息」的 2～4 檔組合，列${S.inc.csort === 'tr' ? `${esc(perLabel())}含息總報酬最高` : '總投入最少'}的前 5 名。`
+    const C = combosNow(), box = $('#incCombos');
+    S._incC2 = C;
+    $('#incCQ').innerHTML = C.list.length ? `每月目標 <b>${wan(incMonT())}</b>${S.inc.mode === 'y' ? `（＝上方年領 ${wan(S.inc.year)} ÷ 12）` : ''}${S.inc.nhi ? '（扣健保後）' : ''}：從 ${C.pool} 檔候選裡找到 ${C.n.toLocaleString()} 種「12 個月都有配息」的 2～4 檔組合，${S.inc.csort === 'tr' ? `${esc(perLabel())}含息總報酬最高` : '總投入最少'}的前 ${C.list.length} 名分成 ${CMB.slice(0, C.list.length).join('／')} 分頁。`
       : '這個範圍找不到 12 個月都有配息的組合';
-    const MN = Array.from({ length: 12 }, (_, i) => `${i + 1}月`);
-    box.innerHTML = C.list.map((c, ci) => {
-      const cells = c.mon.map((v, m) => {
-        const by = c.by[m].map((x, i) => [x, i]).filter((x) => x[0] > 0).sort((p, q) => q[0] - p[0]);
-        const main = by.length ? c.mem[by[0][1]].it : null, fk = main ? FQK[main.freq] : '';
-        const who = by.map(([x, i]) => `${c.mem[i].it.code} ${wan(x)}`).join('、');
-        return `<div class="mcell${fk ? ' fqc-' + fk : ''}" data-m="${m + 1}" data-v="${Math.round(v)}" title="${m + 1} 月：${wan(v)}（${esc(who)}）"><small>${MN[m]}</small><b>${wan(v)}</b><span>${by.slice(0, 2).map(([, i]) => esc(c.mem[i].it.code)).join('+')}</span></div>`;
-      }).join('');
-      const mem = c.mem.map((x, i) => `<button type="button" data-code="${esc(x.it.code)}" title="進 ${esc(x.it.name)} 個股頁">${fqBadge(x.it.freq)}<span class="mn">${esc(x.it.name)} ${esc(x.it.code)}</span><span class="ml">${c.lots[i].toLocaleString()} 張・${wan(c.costs[i])}</span></button>`).join('');
-      return `<div class="combo" data-cost="${Math.round(c.cost)}" data-min="${Math.round(c.min)}" data-tr="${c.tr == null ? '' : c.tr}" data-codes="${c.mem.map((x) => x.it.code).join(',')}">
-        <div class="ch"><span class="rk">#${ci + 1}</span><span class="kp"><span>總投入<b>${wan(c.cost)}</b></span><span>年領<b>${wan(c.year)}</b></span><span>最低月<b>${wan(c.min)}</b></span>
-        <span>整體殖利率<b>${pctU(c.y)}</b></span><span>含息總報酬<b>${c.tr == null ? '—' : pct(c.tr, 2)}</b></span></span></div>
-        <div class="mem">${mem}</div><div class="mgrid">${cells}</div></div>`;
-    }).join('') || '<div class="etfprep">無符合的組合</div>';
-    $$('#incCombos .mem button').forEach((b) => { b.onclick = () => A().goStock(b.dataset.code); });
+    if (S.inc.ci >= C.list.length) S.inc.ci = 0;
+    $$('#incTabs button').forEach((b) => b.classList.toggle('on', S.inc.tab === 'c' ? b.dataset.i === String(S.inc.ci) : b.dataset.v === 's'));
+    const c = C.list[S.inc.ci];
+    if (!c) { box.innerHTML = '<div class="etfprep">無符合的組合</div>'; box.dataset.n = '0'; return; }
+    const a = A(), clock = S.inc.cview !== 'grid', MN = Array.from({ length: 12 }, (_, i) => `${i + 1}月`);
+    const mainOf = (m) => { const by = c.by[m].map((x, i) => [x, i]).filter((x) => x[0] > 0).sort((p, q) => q[0] - p[0]); return by.length ? by[0][1] : -1; };
+    const cell = (m) => { const v = c.mon[m], mi = mainOf(m), col = mi >= 0 ? a.donut.color(mi) : '';
+      return `<div class="mcell" style="--fc:${col}" data-m="${m + 1}" data-v="${Math.round(v)}"><small>${MN[m]}</small><b>${wan(v)}</b><span>${mi >= 0 ? esc(c.mem[mi].it.code) : ''}</span></div>`; };
+    // v7（圖一轉置）：每一欄是一季（Q1～Q4），由上往下是那一季的 3 個月 ⇒ 3 排 × 4 欄，欄頭標 Q1～Q4
+    const cells = ['Q1', 'Q2', 'Q3', 'Q4'].map((q) => `<div class="mqh">${q}</div>`).join('') + [0, 1, 2].map((r) => [0, 3, 6, 9].map((q) => cell(q + r)).join('')).join('');
+    const rows = c.mem.map((x, i) => `<div class="cmr"><button type="button" class="cmn" data-code="${esc(x.it.code)}" title="進個股頁"><i style="background:${a.donut.color(i)}"></i>${esc(x.it.name)} ${esc(x.it.code)}</button>${fqBadge(x.it.freq)}
+      <dl><dt>現價</dt><dd>NT$ ${A().fmt.n(x.it.close, 2)}</dd><dt>張數</dt><dd>${c.lots[i].toLocaleString()} 張</dd><dt>投入金額</dt><dd>${ntw(c.costs[i])}</dd><dt>一年領</dt><dd>${ntw(c.by.reduce((s, m) => s + m[i], 0))}</dd></dl></div>`).join('');
+    disposeIn(box);
+    box.innerHTML = `<div class="combo" data-ci="${S.inc.ci}" data-cost="${Math.round(c.cost)}" data-min="${Math.round(c.min)}" data-tr="${c.tr == null ? '' : c.tr}" data-codes="${c.mem.map((x) => x.it.code).join(',')}" data-lots="${c.lots.join(',')}" data-vals="${c.mon.map((v) => Math.round(v)).join(',')}">
+      <div class="ch"><span class="rk">組合 ${CMB[S.inc.ci]}</span><span class="kp"><span>總投入<b>${ntw(c.cost)}</b></span><span>年領<b>${ntw(c.year)}</b></span><span>最低月<b>${ntw(c.min)}</b></span>
+      <span>整體殖利率<b>${pctU(c.y)}</b></span><span>含息年化<b>${c.tr == null ? '—' : pct(c.tr, 2)}</b></span><button type="button" class="btn small" id="incToCx">看複利試算 →</button></span></div>
+      <div class="c3"><div class="c3c"><div class="sth">總投入（各檔張數・金額）</div><div id="incCdn" class="chart dnbig"></div></div>
+        <div class="c3c"><div class="sth c3h"><span>12 個月入帳${clock ? '時鐘（格色＝當月主要入帳那檔）' : '月曆（一欄一季）'}</span>${segH('incCView', [['clock', '時鐘'], ['grid', '月曆格']], S.inc.cview)}</div>
+          ${clock ? '<div class="clk chart dnbig" id="incClk"></div>' : `<div class="mgrid q4" id="incGrid">${cells}</div>`}</div>
+        <div class="c3c"><div class="sth">各檔明細</div><div class="cml" id="incCTbl">${rows}</div></div></div>
+      <div class="sth">每月入帳（單位：萬；顏色＝當月主要入帳那檔）</div><div id="incCmb" class="chart mbars"></div></div>`;
+    const parts = c.mem.map((x, i) => ({ name: `${x.it.name} ${x.it.code}`, value: Math.round(c.costs[i]), color: a.donut.color(i), lots: c.lots[i] }));
+    donutBig('incCdn', parts, { valLabel: '投入', centerLabel: '總投入', centerValue: wan(c.cost), label: (p) => `${parts[p.dataIndex].lots.toLocaleString()} 張・${wan1(p.value)}` });
+    $('#incCdn').dataset.labels = parts.map((p) => `${p.lots.toLocaleString()} 張・${wan1(p.value)}`).join('|');
+    if (clock) {
+      const el = $('#incClk'); el.style.height = DN + 'px';
+      const ck = clockOpt(c, DN);
+      a.chart('incClk', ck.option);
+      el.dataset.n = '12'; el.dataset.cols = ck.data.map((d) => d.mi).join(',');
+      const ch = window.echarts && window.echarts.getInstanceByDom(el);
+      if (ch) { ch.off('mouseover'); ch.off('globalout');
+        ch.on('mouseover', (p) => { try { ch.setOption({ title: a.donut.center(`${p.dataIndex + 1}月`, wan(c.mon[p.dataIndex]), DN, 0.5) }); } catch (e) { /* 競態 */ } });
+        ch.on('globalout', () => { try { ch.setOption({ title: a.donut.center('最低月', wan(c.min), DN, 0.5) }); } catch (e) { /* 競態 */ } }); }
+    }
+    monthBars('incCmb', c.mon, (m) => { const mi = mainOf(m); return mi >= 0 ? a.donut.color(mi) : a.CH.ink3; },
+      (m) => `<b>${m + 1} 月入帳 ${ntw(c.mon[m])}</b><br>` + c.mem.map((x, i) => [x, i]).filter(([, i]) => c.by[m][i] > 0).map(([x, i]) => `${esc(x.it.name)} ${x.it.code}：${c.lots[i].toLocaleString()} 張 → ${ntw(c.by[m][i])}`).join('<br>'));
+    $$('#incCView button').forEach((b) => { b.onclick = () => { S.inc.cview = b.dataset.v; LS.set('tw.etf.inc.cview', S.inc.cview); drawIncCombos(); }; });
+    $$('#incCTbl button[data-code]').forEach((b) => { b.onclick = () => twoTap('m' + b.dataset.code, () => A().goStock(b.dataset.code)); });
+    $('#incToCx').onclick = () => { S.inc.obj = 'c:' + S.inc.ci; S.inc.main = 'x'; LS.set('tw.etf.inc.main', 'x'); drawInc(); };
     box.dataset.n = String(C.list.length);
+  }
+  /* v7（Andy：把組合 A～E 往上拉到「單檔 ETF」那一排）：分頁列＝單檔 ETF｜組合 A～E，停在單檔時也要知道 A～E 的投入金額，
+     所以組合結果依「目標／範圍／健保／期間／排序」快取，切分頁不重算窮舉。 */
+  function combosNow() {
+    const N = incMonT(), k = [N, S.inc.scope, S.inc.nhi ? 1 : 0, perKey(), S.inc.csort, S.series ? 1 : 0].join('|');
+    if (!S._cC || S._cC.k !== k || S._cC.d !== S.data) S._cC = { k, d: S.data, C: incCombosV2(N) };
+    return S._cC.C;
+  }
+  function incTabsDraw() {
+    const C = combosNow(), tabs = $('#incTabs'); if (!tabs) return;
+    if (S.inc.ci >= C.list.length) S.inc.ci = 0;
+    tabs.innerHTML = `<button type="button" role="tab" data-v="s"${S.inc.tab === 's' ? ' class="on"' : ''}>單檔 ETF</button>`
+      + C.list.map((c, i) => `<button type="button" role="tab" data-v="c" data-i="${i}"${S.inc.tab === 'c' && i === S.inc.ci ? ' class="on"' : ''}>組合 ${CMB[i]}<small>投入 ${wan(c.cost)}</small></button>`).join('');
+    $$('button', tabs).forEach((b) => { b.onclick = () => { S.inc.tab = b.dataset.v; LS.set('tw.etf.inc.tab', S.inc.tab); if (b.dataset.i != null) S.inc.ci = +b.dataset.i; drawInc(); }; });
+  }
+  /* v7（圖二：單檔直條被擠成左邊一條細縫）：圖在 hidden 的分頁裡初始化會量到 0 寬；分頁一顯示就把裡面每個 ECharts 實例 resize 一次。 */
+  function reflow(sec) {
+    if (!sec || !window.echarts) return;
+    const go = () => sec.querySelectorAll('[_echarts_instance_]').forEach((d) => { const c = window.echarts.getInstanceByDom(d); if (c && d.clientWidth > 0) c.resize(); });
+    requestAnimationFrame(go); setTimeout(go, 250);
+  }
+  function incCombosV2(N) {
+    const save = S.inc.mon; S.inc.mon = N;
+    try { return incCombos(); } finally { S.inc.mon = save; }
+  }
+
+  /* ================= 複利試算表 =================
+     18:50：「圖表清單需並排，並且上方標籤需要連動下方圖表……情境拿掉，改用下面紅框處（圖例）點擊即可進行篩選」。
+     → 左圖右表（約 2:1）；情境勾選列拿掉，線一律畫（原標的／0050／00631L／只領現金／只看價格＋自訂最多 5 檔），
+       圖例點一下＝開關那條線（ECharts legend selected，記在 S.inc.lsel），右表與結論句只算「看得到的線」。
+     「上方標籤沒連動」根因：對象下拉的選項文字寫的是張數，月配試算表改目標後，複利頁沿用舊的 S.inc.obj 索引（組合排名換了，c:0 指到不同組合，
+       而下拉清單只在重畫時重建）；1／3／5 年按鈕是用「今天往回 N 年」比對亮燈，資料最後一天不是今天時不亮；起始日改完沒有重新同步按鈕。
+       現在：每次重畫都重建下拉、對象改用代號組合字串當鍵、快捷鈕以 S.inc.xq 記住按了哪顆、起始日手改就清掉快捷亮燈。 */
+  function cxObjects() {
+    const C = incCombosV2(incMonT()), R = incSinglesV2(), out = [];
+    C.list.forEach((c, i) => out.push({ v: 'c:' + c.mem.map((x) => x.it.code).join('+'), t: `組合 ${CMB[i]}：${c.mem.map((x, j) => `${x.it.code} ${c.lots[j]}張`).join('＋')}`, mems: c.mem.map((x, j) => ({ code: x.it.code, lots: c.lots[j] })) }));
+    R.forEach((r) => out.push({ v: 's:' + r.it.code, t: `單檔：${r.it.name} ${r.it.code}（${r.lots.toLocaleString()} 張）`, mems: [{ code: r.it.code, lots: r.lots }] }));
+    return out;
+  }
+  async function drawCx() {
+    const objs = cxObjects(), sel = $('#cxObj');
+    if (!objs.length) { $('#cxHead').textContent = '沒有可試算的對象'; return; }
+    if (/^c:\d$/.test(S.inc.obj || '')) { const o = objs.filter((x) => x.v[0] === 'c')[+S.inc.obj.slice(2)]; S.inc.obj = o ? o.v : ''; }
+    if (!objs.some((o) => o.v === S.inc.obj)) S.inc.obj = objs[0].v;
+    sel.innerHTML = `<optgroup label="組合（月配試算表）">${objs.filter((o) => o.v[0] === 'c').map((o) => `<option value="${o.v}">${esc(o.t)}</option>`).join('')}</optgroup>`
+      + `<optgroup label="單檔">${objs.filter((o) => o.v[0] === 's').map((o) => `<option value="${o.v}">${esc(o.t)}</option>`).join('')}</optgroup>`;
+    sel.value = S.inc.obj;
+    if (!S.inc.xfrom) { S.inc.xq = '5'; S.inc.xfrom = yrsAgo(todayTW(), 5); }
+    $('#cxFrom').value = S.inc.xfrom;
+    $$('#cxQuick button').forEach((b) => b.classList.toggle('on', b.dataset.v === S.inc.xq));
+    $('#cxChips').innerHTML = S.inc.cmp.map((c) => `<button type="button" class="chip cmpx" data-code="${esc(c)}" title="移除">再投入 ${esc(nameOf(c))} ${esc(c)} ✕</button>`).join('');
+    $$('#cxChips .cmpx').forEach((b) => { b.onclick = () => { S.inc.cmp = S.inc.cmp.filter((c) => c !== b.dataset.code); drawCx(); }; });
+    const obj = objs.find((o) => o.v === S.inc.obj), el = $('#cxChart'), tok = (el._tok = (el._tok || 0) + 1);
+    el.dataset.state = 'loading';
+    if (!S.series) await loadSeries();
+    if (el._tok !== tok) return;
+    const D = (S.series && S.series.D) || [];
+    const A0 = obj.mems.map((m) => ({ ...m, a: alignEtf(m.code) }));
+    const err = (t) => { $('#cxHead').textContent = t; holdEmpty('cxChart', t); $('#cxTbl').innerHTML = ''; el.dataset.state = 'err'; };
+    if (!D.length || A0.some((m) => !m.a)) { err('這個對象沒有歷史走勢，無法回測'); return; }
+    let i0 = D.findIndex((d) => d >= S.inc.xfrom); if (i0 < 0) { err('起始日晚於最新資料'); return; }
+    while (i0 < D.length && !A0.every((m) => m.a.p[i0] != null)) i0++;
+    if (i0 >= D.length - 3) { err('這段期間資料不足（對象上市較晚，請把起始日往後）'); return; }
+    const ev = A0.map((m) => evOf(m.code, m.a));
+    const keys = ['self', '0050', '00631L'].concat(S.inc.cmp);
+    const runs = [];
+    for (const key of keys) {
+      const T = await rxSeries(key); if (el._tok !== tok) return;
+      if (!T) continue;
+      runs.push({ key, name: key === 'self' ? '再投入原標的' : `再投入 ${nameOf(key)} ${key}`.replace(/\s+/g, ' '),
+        r: simCore(D, A0.map((m, j) => ({ shares: m.lots * 1000, px: m.a.p, ev: ev[j], T: T === 'self' ? m.a.t : T })), i0, S.inc.nhi) });
+    }
+    if (!runs.length) { err('無法計算'); return; }
+    const base = runs[0].r, cost = base.cost, last = D.length - 1, pctA = (arr) => arr.map((v) => (v == null ? null : +((v / cost - 1) * 100).toFixed(2)));
+    const a = A(), CH = a.CH, cols = [0, 1, 5, 2, 3, 4, 6, 7].map((i) => a.donut.color(i));
+    const lines = runs.map((x, i) => ({ key: x.key, name: x.name, col: cols[i], vals: pctA(x.r.tot), fin: x.r.tot[last] }));
+    lines.push({ key: 'cash', name: '只領現金（不投入）', col: CH.ink2, dash: 'dashed', vals: pctA(base.cash), fin: base.cash[last] });
+    lines.push({ key: 'price', name: '只看價格（不含息）', col: CH.ink3, dash: 'dotted', vals: pctA(base.price), fin: base.price[last] });
+    S.inc.lsel = S.inc.lsel || {};
+    const shown = () => lines.filter((l) => S.inc.lsel[l.key] !== false);
+    const X = D.slice(i0);
+    const ser = lines.map((l) => ({ name: l.name, type: 'line', showSymbol: false, data: l.vals.slice(i0), lineStyle: { width: l.key === 'self' ? 2.2 : 1.5, color: l.col, type: l.dash || 'solid' }, itemStyle: { color: l.col },
+      emphasis: { focus: 'series' }, endLabel: { show: true, color: l.col, fontSize: 11.5, formatter: (p) => (p.value == null ? '' : (p.value > 0 ? '+' : '') + (+p.value).toFixed(1) + '%') }, labelLayout: { moveOverlap: 'shiftY' } }));
+    /* v8（Andy：「曲線圖月份之間都要微微線條區隔」）：每月第一週畫一條很淡的直線（markLine 掛在第一條線上、不吃滑鼠）。
+       這張圖有 dataZoom，不走全站 TimeGrid（timeGrid:false），所以自己畫。 */
+    const mk = X.map((d, k) => (k > 0 && d.slice(0, 7) !== X[k - 1].slice(0, 7) ? { xAxis: d } : null)).filter(Boolean);
+    if (ser[0]) ser[0].markLine = { silent: true, symbol: ['none', 'none'], label: { show: false }, emphasis: { disabled: true }, animation: false, lineStyle: monthLine(a), data: mk };
+    el.dataset.mlines = String(mk.length);
+    const selected = {}; lines.forEach((l) => { selected[l.name] = S.inc.lsel[l.key] !== false; });
+    a.chart('cxChart', {
+      timeGrid: false,
+      grid: { left: 8, right: 64, top: el.clientWidth < 600 ? 104 : 64, bottom: 56, containLabel: true },   // v6：窄寬圖例換成三列，top 加大才不會壓到 y 軸名稱「報酬率 %」
+      legend: { type: 'plain', top: 0, left: 0, right: 0, itemWidth: 16, itemHeight: 3, selected, textStyle: { color: CH.ink2, fontSize: 12 }, selectedMode: true, inactiveColor: a.hexA(CH.ink3, 0.45) },
+      // v8：提示框放在滑鼠左／右側、貼圖頂（不壓在線上），confine 不出圖框
+      tooltip: { ...a.tip, confine: true, trigger: 'axis', axisPointer: { type: 'line', lineStyle: { color: CH.ink3 } },
+        position: (pt, _p, _d, _r, sz) => [pt[0] > sz.viewSize[0] / 2 ? Math.max(0, pt[0] - sz.contentSize[0] - 18) : pt[0] + 18, 70],
+        formatter: (ps) => { const i = ps[0].dataIndex, d = X[i]; el.dataset.tip = d + '|' + ps.map((p) => p.value).join(',');
+          return `<b>${d}</b><br>` + ps.slice().sort((p, q) => (q.value || 0) - (p.value || 0)).map((p) => {
+            const v = p.value == null ? null : cost * (1 + p.value / 100);
+            return `${p.marker}${esc(p.seriesName)}：<b>${p.value == null ? '—' : (p.value > 0 ? '+' : '') + (+p.value).toFixed(1) + '%'}</b>（${ntw(v)}）`; }).join('<br>'); } },
+      xAxis: monthAxis(X, a),
+      // v8：y 軸貼緊資料（上下各留 4% 再取整 5），不再從 −10%／−30% 留一大段空白
+      yAxis: { type: 'value', scale: true, name: '報酬率 %', min: (v) => Math.floor((v.min - Math.min(3, (v.max - v.min) * 0.02)) / 5) * 5, max: (v) => Math.ceil((v.max + Math.min(3, (v.max - v.min) * 0.02)) / 5) * 5, nameTextStyle: { color: CH.ink3, fontSize: 11, align: 'left' }, ...a.axisStyle, splitLine: { lineStyle: { color: CH.grid } },
+        axisLabel: { ...a.axisStyle.axisLabel, fontSize: 11, formatter: (v) => v + '%' } },
+      dataZoom: [{ type: 'inside', xAxisIndex: 0, zoomOnMouseWheel: true, moveOnMouseMove: true, minValueSpan: 8 },
+        { type: 'slider', xAxisIndex: 0, height: 18, bottom: 6, labelFormatter: (i) => X[i] || '' }],
+      series: ser,
+    });
+    const pctF = (v) => (v > 0 ? '+' : '') + (v * 100).toFixed(1) + '%';
+    const yrs = (Date.parse(D[last]) - Date.parse(D[i0])) / (365.25 * 864e5);
+    const cashFin = base.cash[last];
+    const paint = () => {
+      const vis = shown(), vr = vis.filter((l) => l.key !== 'cash' && l.key !== 'price');
+      const best = vr.slice().sort((p, q) => q.fin - p.fin)[0], pr = vis.find((l) => l.key === 'price'), ca = vis.find((l) => l.key === 'cash');
+      $('#cxHead').innerHTML = `從 <b>${D[i0]}</b> 至 ${D[last]}（本金 ${ntw(cost)}）：`
+        + [pr ? `只持有、不算配息成長 <b>${pctF(pr.fin / cost - 1)}</b>` : '', ca ? `把配息領出來 <b>${pctF(cashFin / cost - 1)}</b>` : '',
+          best ? `配息<b>${esc(best.name)}</b>為 <b>${pctF(best.fin / cost - 1)}</b>，比只領現金多 <b>${((best.fin - cashFin) / cost * 100).toFixed(1)}%</b>` : ''].filter(Boolean).join('；') + '。';
+      const row = (l) => { const v = l.fin, r = v / cost - 1, ann = yrs > 0.2 ? Math.pow(v / cost, 1 / yrs) - 1 : null, pp = (v - cashFin) / cost * 100;
+        return `<tr data-key="${esc(l.key)}"><td class="nm"><i style="background:${l.col}"></i>${esc(l.name)}</td><td>${wan(v)}</td><td><span class="${cls(r)}">${pctF(r)}</span></td><td>${l.key === 'cash' ? '—' : `<span class="${cls(pp)}">${pp > 0 ? '+' : ''}${pp.toFixed(1)}%</span>`}</td><td>${ann == null ? '—' : `<span class="${cls(ann)}">${pctF(ann)}</span>`}</td></tr>`; };
+      $('#cxTbl').innerHTML = `<thead><tr><th class="nm">情境</th><th>期末總資產</th><th>報酬率</th><th>比只領現金多</th><th>年化</th></tr></thead><tbody>${vis.map(row).join('')}</tbody>`;
+      $('#cxLev').hidden = !vis.some((l) => l.key === '00631L' || LEV_RE.test(nameOf(l.key)));
+      el.dataset.shown = vis.map((l) => l.key).join(',');
+    };
+    paint();
+    const ch = window.echarts && window.echarts.getInstanceByDom(el);
+    if (ch) { ch.off('legendselectchanged'); ch.on('legendselectchanged', (e) => { lines.forEach((l) => { S.inc.lsel[l.key] = e.selected[l.name] !== false; }); paint(); }); }
+    el.dataset.lines = lines.map((l) => l.key).join(',');
+    el.dataset.fin = lines.map((l) => +(l.fin / cost - 1).toFixed(4)).join(',');
+    el.dataset.from = D[i0]; el.dataset.cost = String(Math.round(cost)); el.dataset.obj = S.inc.obj;
+    el.dataset.state = 'ok';
   }
 
   /* ------------------------------------------------------------------ 入口 */
   function drawAll() {
     drawCats();
-    const inc = S.view === 'inc';
-    $('#etfInc').hidden = !inc; $('#etfRetCard').hidden = inc; $('#etfListCard').hidden = inc;
-    const tri = $('#etfTri'); tri.hidden = inc || !!NO_RANK[S.cat];
-    $('#v-etf').dataset.view = inc ? 'inc' : 'cat';
+    const inc = S.view === 'inc', cal = S.view === 'cal', cat = S.view === 'cat';
+    $('#etfCalCard').hidden = !cal; $('#etfCatBar').hidden = !cat; $('#etfBody').hidden = cal;
+    $('#etfInc').hidden = !inc; $('#etfRetCard').hidden = !cat; $('#etfListCard').hidden = !cat;
+    const tri = $('#etfTri'); tri.hidden = !cat || !!NO_RANK[S.cat];
+    $('#v-etf').dataset.view = S.view;
+    if (cal) return;
     if (inc) { drawInc(); return; }
     if (!tri.hidden) { drawPop(); drawRetTop(); drawYld(); }
     drawRet(); drawList();
     $('#v-etf').dataset.cat = S.cat;
   }
-  async function render() {
+  /* 子分頁：hash 的第二段 → S.view。分類頁籤點下去會把 S.view 設成 'cat'，所以從試算點分類頁籤也會回到總覽。 */
+  function show(sub) {
+    const v = VIEW_OF[sub] || 'cat';
+    if (!document.getElementById('etfSub')) { S._sub = sub; return; }
+    if (S.view === v && $('#v-etf').dataset.view === v) return;
+    S.view = v; drawAll();
+    if (window.echarts) setTimeout(() => $$('#v-etf [_echarts_instance_]').forEach((d) => { const c = window.echarts.getInstanceByDom(d); if (c && d.clientWidth > 0) c.resize(); }), 30);
+  }
+  async function render(sub) {
     injectCSS();
     const root = document.getElementById('v-etf'); if (!root) return;
-    S.cat = '配息型'; S.view = 'cat'; S.pop = LS.get('tw.etf.pop', 'holders');
+    S.cat = '配息型'; S.view = VIEW_OF[sub] || 'cat'; S.pop = LS.get('tw.etf.pop', 'holders');
     S.per = LS.get('tw.etf.per', '5y'); if (!PERS.some((x) => x[0] === S.per)) S.per = '5y';
     S.cfrom = LS.get('tw.etf.cfrom', '') || yrsAgo(todayTW(), 3); S.cto = todayTW(); S.basis = LS.get('tw.etf.basis', 'tr'); S.cmp = {};
     try { await window.CalGrid.load(); } catch (e) { /* 沒有休市日只標週末 */ }
@@ -1372,5 +2051,5 @@
     drawCal(); drawAll();
     root.dataset.ready = S.fallback ? 'fallback' : 'full';
   }
-  window.TwEtfPage = { render, classify, state: S };
+  window.TwEtfPage = { render, show, classify, state: S, simCore };
 })();

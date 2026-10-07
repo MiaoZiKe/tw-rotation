@@ -2171,9 +2171,10 @@ def t_etf_1005(pg, b, base):
         ok(f"★ [{tag}] 沒有「全部」頁籤、預設選中「配息型」、重新整理回預設（Andy 10-06：「一樣拿掉」）",
            J("() => [...document.querySelectorAll('#etfCatSeg button')].every(b => b.dataset.v !== 'all')") and J("() => document.querySelector('#etfCatSeg button.on').dataset.v") == "配息型"
            and J("() => document.querySelector('#v-etf').dataset.cat") == "配息型")
-        # ================= 1. 行事曆在最上面、7 欄真月曆
-        order = J("() => [...document.querySelectorAll('#v-etf > .card, #v-etf > .etfcatbar, #v-etf > .etftri')].filter(e => !e.hidden).map(e => e.id)")
-        ok(f"★ [{tag}] 配息行事曆是免責下方第一張（在分類列與其他卡之上）", order[:2] == ["etfCalCard", "etfCatBar"], order)
+        # ================= 1. 行事曆＝「配息行事曆」子分頁（v8：ETF 拆成 配息行事曆｜ETF 總覽｜現金流試算）
+        ok(f"★ [{tag}] 側欄 ETF 底下三個子項：配息行事曆｜ETF 總覽｜現金流試算、頁內沒有子分頁鈕", J("() => [...document.querySelectorAll('#tabs .l4subtab[data-parent=etf]')].map(b => b.textContent.trim()).join('|')") == "配息行事曆|ETF 總覽|現金流試算" and not J("() => document.querySelector('#etfSub').getClientRects().length"))
+        lp.click("#tabs .l4subtab[data-l4sub='etf-cal']"); lp.wait_for_timeout(400)
+        ok(f"★ [{tag}] 點「配息行事曆」→ hash #etf/cal、只剩行事曆卡", J("() => location.hash") == "#etf/cal" and J("() => !document.querySelector('#etfCalCard').hidden && !document.querySelector('#etfCatBar').getClientRects().length && !document.querySelector('#etfListCard').getClientRects().length"))
         cols = J("() => getComputedStyle(document.querySelector('#etfCalGrid')).gridTemplateColumns.split(' ').length")
         wds = J("() => [...document.querySelectorAll('#etfCalGrid .wd')].map(e => e.textContent)")
         ncell = count(lp, "#etfCalGrid .cald")
@@ -2203,9 +2204,11 @@ def t_etf_1005(pg, b, base):
         ok(f"★ [{tag}] 下月／回本月／上月 真的換月", m_next > ym and m_back == ym and m_prev == prev, (m_next, m_back, m_prev))
         ok(f"[{tag}] 上個月 {p16} 有 2 檔、沒有「+N」", J("(k) => document.querySelectorAll(`.cald[data-d='${k}'] .ce`).length", p16) == 2
            and count(lp, f".cald[data-d='{p16}'] .cm") == 0)
-        ok(f"★ [{tag}] 切月、點格子：行事曆整張卡高度不變、下面的分類列不移位", h_cal0 == h_cal1 == H("#etfCalCard") and TOP("#etfCatBar") == top_cat0,
+        ok(f"★ [{tag}] 切月、點格子：行事曆整張卡高度不變", h_cal0 == h_cal1 == H("#etfCalCard"),
            (h_cal0, h_cal1, H("#etfCalCard"), top_cat0, TOP("#etfCatBar")))
         lp.click("#etfCalToday"); lp.wait_for_timeout(150)
+        lp.click("#tabs .l4subtab[data-l4sub='etf-list']"); lp.wait_for_timeout(600)
+        ok(f"★ [{tag}] 點「ETF 總覽」→ hash #etf/list、分類列回來、行事曆收起", J("() => location.hash") == "#etf/list" and J("() => document.querySelector('#etfCalCard').hidden && !document.querySelector('#etfCatBar').hidden"))
         # ================= 2. 全部／其他沒有前 5；配息型三張同高並排
         ok(f"★ [{tag}] 預設「配息型」就有三張前 5 與報酬比較", J("() => !document.querySelector('#etfTri').hidden && !document.querySelector('#etfRetCard').hidden"))
         cat("其他")
@@ -2494,98 +2497,272 @@ def t_etf_income_1007(pg, b, base):
         ok(f"[{tag}] 市值型卡片也是標籤靠左、數值靠右、沒有配息頻率列", mv["l"] and mv["r"] and mv["f"], mv)
         lp.click("#etfCatSeg button[data-v='配息型']"); lp.wait_for_timeout(400)
         # ---- 進現金流試算
-        lp.click("#etfIncSeg button"); lp.wait_for_timeout(1500)
+        lp.click("#tabs .l4subtab[data-l4sub='etf-inc']"); lp.wait_for_timeout(1500)
         wait_until(lp, "() => document.querySelector('#incTbl tbody tr') && document.querySelectorAll('#incCombos .combo').length > 0", 20000)
         ok(f"★ [{tag}] 點「現金流試算」→ 分類內容收起、試算出現、分類頁籤不再選中",
-           J("() => !document.querySelector('#etfInc').hidden && document.querySelector('#etfListCard').hidden && !document.querySelector('#etfCatSeg button.on') && document.querySelector('#etfIncSeg button').classList.contains('on')"))
+           J("() => !document.querySelector('#etfInc').hidden && document.querySelector('#etfListCard').hidden && !document.querySelector('#etfCatSeg button.on') && document.querySelector('#tabs .l4subtab[data-l4sub=etf-inc]').classList.contains('on')"))
         ok(f"[{tag}] 頁頂免責一行小字（不代表未來、可能配到本金、不構成投資建議）",
            J("() => /不代表未來/.test(document.querySelector('#incDisc').textContent) && /本金/.test(document.querySelector('#incDisc').textContent) && /不構成投資建議/.test(document.querySelector('#incDisc').textContent)"))
         ok(f"[{tag}] 組合旁註明未計入二代健保與所得稅", J("() => /二代健保/.test(document.querySelector('#incCombo').innerText) && /所得稅/.test(document.querySelector('#incCombo').innerText)"))
         ok(f"[{tag}] 用語中性：沒有「推薦／建議買」", J("() => !/推薦|建議買/.test(document.querySelector('#etfInc').innerText)"))
-        r100 = J(ROW1)
-        lp.click("#incYSeg button[data-v='500000']"); lp.wait_for_timeout(500)
-        r50 = J(ROW1)
-        ok(f"★ [{tag}] 年領 100 萬→50 萬：同一檔的張數與金額都變小", r100 and r50 and r100[0] == r50[0] and r50[1] < r100[1] and r50[2] < r100[2], (r100, r50))
-        lp.fill("#incYear", "300000"); lp.press("#incYear", "Enter"); lp.dispatch_event("#incYear", "change"); lp.wait_for_timeout(500)
-        r30 = J(ROW1)
-        ok(f"[{tag}] 自訂年領 30 萬：張數比 50 萬再少", r30 and r30[1] < r50[1], (r30, r50))
-        y_codes = J(CODES)
-        lp.click("#incSort button[data-v='tr']"); lp.wait_for_timeout(800)
-        tr_codes = J(CODES)
-        trs = J("() => [...document.querySelectorAll('#incTbl td[data-tr]')].slice(0, 10).map(t => t.dataset.tr === '' ? null : +t.dataset.tr)")
-        ok(f"★ [{tag}] 切「含息總報酬最高」：順序真的變、而且由高到低", y_codes != tr_codes and all(a is not None for a in trs) and trs == sorted(trs, reverse=True), (y_codes[:40], tr_codes[:40], trs))
-        ok(f"[{tag}] 橫條圖跟著排序（D 款，前 10 檔）", J("() => document.querySelector('#incBar').dataset.codes") == ",".join(tr_codes.split(",")[:10]))
-        # 週期鈕
-        tr5 = J("() => document.querySelector('#incTbl td[data-tr]').closest('tr').dataset.code + '|' + document.querySelector('#incTbl td[data-tr]').dataset.tr")
-        lp.select_option("#etfIncRng select", "1y"); lp.wait_for_timeout(1800)
-        tr1 = J("() => document.querySelector('#incTbl td[data-tr]').closest('tr').dataset.code + '|' + document.querySelector('#incTbl td[data-tr]').dataset.tr")
-        ok(f"★ [{tag}] 切週期鈕（近 5 年→近 1 年）：含息總報酬數字真的變", tr5 != tr1 and "1y" in J(K), (tr5, tr1))
-        ok(f"[{tag}] 週期跟其他分頁共用（記在同一個 tw.etf.per）", J("() => localStorage.getItem('tw.etf.per')") == "1y")
-        # 點橫條 → 原地標出表格那一列
-        lp.click("#incSort button[data-v='y']"); lp.wait_for_timeout(600)
-        c2 = J("() => document.querySelector('#incBar').dataset.codes.split(',')[1]")
-        lp.locator("#incBar").scroll_into_view_if_needed(); lp.wait_for_timeout(200)
-        box = J("() => { const c = echarts.getInstanceByDom(document.getElementById('incBar')); const p = c.convertToPixel({ seriesIndex: 0 }, [3, 1]); const r = document.getElementById('incBar').getBoundingClientRect(); return [r.left + p[0], r.top + p[1]]; }")
-        lp.mouse.click(box[0], box[1]); lp.wait_for_timeout(400)
-        ok(f"[{tag}] 點橫條 → 表格裡那一檔被標出（不離開頁面）", J("() => (document.querySelector('#incTbl tr.on') || {}).dataset?.code || ''") == c2 and "#etf" in lp.url, (c2, box, lp.url, J("(p) => { const e = document.elementFromPoint(p[0], p[1]); return e.tagName + '#' + e.id + '.' + e.className + '<' + (e.parentElement.id || e.parentElement.className); }", box), J("() => (document.querySelector('#incTbl tr.on') || {}).dataset?.code || ''")))
-        # ---- 組合
-        c20 = J(COMBOS)
-        ok(f"★ [{tag}] 組合前 5 名：每個組合 2～4 檔、12 格月曆每格都 ≥ 2 萬",
-           len(c20) == 5 and all(2 <= len(c["codes"].split(",")) <= 4 and len(c["cells"]) == 12 and min(c["cells"]) >= 20000 for c in c20), c20[:2])
-        ok(f"[{tag}] 投入最少：依總投入由少到多", [c["cost"] for c in c20] == sorted(c["cost"] for c in c20), [c["cost"] for c in c20])
-        ok(f"[{tag}] 月曆格依主要那檔的頻率上色（至少兩種頻率色）",
-           J("() => new Set([...document.querySelectorAll('#incCombos .mcell')].map(x => getComputedStyle(x).borderTopColor)).size") >= 2)
-        lp.click("#incMSeg button[data-v='10000']"); lp.wait_for_timeout(1200)
-        c10 = J(COMBOS)
-        ok(f"★ [{tag}] 月領 2 萬→1 萬：第 1 名組合總投入變小、每格都 ≥ 1 萬",
-           c10 and c10[0]["cost"] < c20[0]["cost"] and all(min(c["cells"]) >= 10000 for c in c10), (c20[0]["cost"], c10[0]["cost"] if c10 else None))
-        lp.click("#incCSort button[data-v='tr']"); lp.wait_for_timeout(1200)
-        ctr = J("() => [...document.querySelectorAll('#incCombos .combo')].map(c => +c.dataset.tr)")
-        ok(f"[{tag}] 組合改「含息總報酬最高」：順序由高到低、組合換了",
-           len(ctr) >= 1 and ctr == sorted(ctr, reverse=True) and [c["codes"] for c in J(COMBOS)] != [c["codes"] for c in c10], ctr)
-        lp.click("#incCSort button[data-v='cost']"); lp.wait_for_timeout(1000)
-        # 二代健保
-        # 月領 3 萬：每次發放一定 ≥ 2 萬（補充保費門檻），扣與不扣才會有差；月領 1 萬時多半低於門檻、本來就不該變
-        lp.click("#incMSeg button[data-v='30000']"); lp.wait_for_timeout(1200)
-        lp.click("#incYSeg button[data-v='1000000']"); lp.wait_for_timeout(500)
-        a0, cA = J(ROW1), J(COMBOS)
-        lp.check("#incNhi"); lp.wait_for_timeout(1500)
-        a1, cB = J(ROW1), J(COMBOS)
-        ok(f"★ [{tag}] 勾「扣除二代健保」：同一檔需要的張數變多、組合總投入變多",
-           a0 and a1 and a0[0] == a1[0] and a1[1] > a0[1] and cB[0]["cost"] > cA[0]["cost"], (a0, a1, cA[0]["cost"], cB[0]["cost"]))
-        lp.uncheck("#incNhi"); lp.wait_for_timeout(1200)
-        # 點組合成員 → 進個股頁
-        code = J("() => document.querySelector('#incCombos .mem button').dataset.code")
-        lp.click("#incCombos .mem button"); lp.wait_for_timeout(800)
-        ok(f"[{tag}] 點組合裡的 ETF 名稱 → 進個股頁", f"#stock/{code}" in lp.url, lp.url)
         # ---- 回分類：資料夾頁籤切回
         lp.goto(f"{base}#etf"); wait_until(lp, "() => document.querySelector('#v-etf') && document.querySelector('#v-etf').dataset.ready === 'full'", 20000)
-        lp.click("#etfIncSeg button"); lp.wait_for_timeout(800)
+        lp.click("#tabs .l4subtab[data-l4sub='etf-inc']"); lp.wait_for_timeout(800)
+        lp.click("#tabs .l4subtab[data-l4sub='etf-list']"); lp.wait_for_timeout(400)   # v8：分類頁籤只在「ETF 總覽」子分頁
         lp.click("#etfCatSeg button[data-v='市值型']"); lp.wait_for_timeout(600)
         ok(f"[{tag}] 從試算點回分類頁籤 → 試算收起、卡片清單回來",
            J("() => document.querySelector('#etfInc').hidden && !document.querySelector('#etfListCard').hidden && document.querySelector('#v-etf').dataset.cat === '市值型'"))
     finally:
         lp.close()
-    # ---- 手機 390
+
+
+def t_etf_income_v2(pg, b, base):
+    """★ 2026-10-07 晚 Andy 16:40／17:40／18:20／18:50／18:52：現金流試算 v5。
+    月配試算表：單檔＝週期統計同款「1～12 月並排直條＋平均線＋膠囊」，前 5 名、右側清單勾選（最多 5）雙向同步、標現價；
+    組合＝A～E 分頁，三等分（甜甜圈｜時鐘（右上切月曆，月曆一季一排）｜各檔明細含現價），下方每月入帳直條。
+    複利試算表：左圖右表、拿掉情境勾選、圖例點擊開關線＋表格與結論同步。報酬期間連動、提示框不出圖框、壓力測試。"""
+    tag = "ETF現金流v2"
+    lp = pg.context.browser.new_page(viewport={"width": 1440, "height": 1000})
+    lp.on("pageerror", lambda e: fails.append(f"{tag} pageerror: {e}"))
+    lp.route("**/fonts.googleapis.com/**", lambda r: r.abort())
+    J = lambda js, *a: lp.evaluate(js, *a)
+    BAR = """() => { const e = document.querySelector('#incBar'); const c = echarts.getInstanceByDom(e); const ss = c ? c.getOption().series.filter(s => s.type === 'bar') : [];
+        return { codes: e.dataset.codes, lots: e.dataset.lots.split(',').map(Number), costs: e.dataset.costs.split(',').map(Number), n: ss.length, names: ss.map(s => s.name).join('|'), chips: [...document.querySelectorAll('#incChips .snk[data-n]')].map(x => x.dataset.n).join('|') }; }"""
+    CHK = "() => [...document.querySelectorAll('#incList .ilr')].filter(r => r.querySelector('input').checked).map(r => r.dataset.code).join(',')"
+    CX = "() => ({ ...document.getElementById('cxChart').dataset })"
+    try:
+        lp.goto(f"{base}#etf", wait_until="networkidle")
+        J("() => { try { Object.keys(localStorage).filter(k => k.indexOf('tw.etf.') === 0).forEach(k => localStorage.removeItem(k)); } catch (e) {} }")
+        lp.reload(wait_until="networkidle")
+        wait_until(lp, "() => document.querySelector('#v-etf') && document.querySelector('#v-etf').dataset.ready === 'full'", 20000)
+        lp.click("#tabs .l4subtab[data-l4sub='etf-inc']"); lp.wait_for_timeout(1500)
+        wait_until(lp, "() => document.querySelector('#incBar') && document.querySelector('#incBar').dataset.codes", 20000)
+        ok(f"★ [{tag}] 兩大分頁「月配試算表｜複利試算表」，月配內「單檔 ETF｜組合 A～E」同一排", J("() => [...document.querySelectorAll('#incMain button')].map(b => b.textContent).join('|') === '月配試算表|複利試算表' && [...document.querySelectorAll('#incTabs button')].map(b => b.textContent.slice(0, 4)).join('|') === '單檔 E|組合 A|組合 B|組合 C|組合 D|組合 E' && !document.querySelector('#incPM').hidden && document.querySelector('#incPX').hidden"))
+        ok(f"[{tag}] 免責一行、用語中性", J("() => { const t = document.querySelector('#incDisc').textContent; return /不代表未來/.test(t) && /槓桿型/.test(t) && /不構成投資建議/.test(t) && !/推薦|建議買/.test(document.querySelector('#etfInc').innerText); }"))
+        y0 = J(BAR)
+        ok(f"★ [{tag}] 單檔＝週期統計同款：1～12 月並排直條、預設前 5 檔＋平均線、上方膠囊 5 個", y0["n"] == 5 and J("() => { const o = echarts.getInstanceByDom(document.getElementById('incBar')).getOption(); return o.xAxis[0].data.length === 12 && o.series.some(s => s.type === 'line' && s.name === '平均'); }") and len(y0["chips"].split("|")) == 5, y0)
+        ok(f"★ [{tag}] 單位：Y 軸「萬」、清單寫「殖利率 x%」與「現價 NT$」", J("() => /萬/.test(echarts.getInstanceByDom(document.getElementById('incBar')).getOption().yAxis[0].axisLabel.formatter(10)) && [...document.querySelectorAll('#incList .mv')].slice(0, 5).every(e => /^殖利率 /.test(e.textContent)) && [...document.querySelectorAll('#incList .lt')].slice(0, 5).every(e => /現價 NT\\$ [\\d.]+/.test(e.textContent))"))
+        t = J("() => { const el = document.getElementById('incBar'), c = echarts.getInstanceByDom(el); c.dispatchAction({ type: 'showTip', seriesIndex: 0, dataIndex: 0 }); const a = el.dataset.tip; c.dispatchAction({ type: 'showTip', seriesIndex: 0, dataIndex: 6 }); return [a, el.dataset.tip]; }")
+        ok(f"[{tag}] 提示框：不同月份列出各檔該月數值（依大小排）", t[0] and t[1] and t[0] != t[1], t)
+        ok(f"★ [{tag}] 提示框在圖框內（不會跑到側欄底下）", J("() => { const el = document.getElementById('incBar'); const tp = [...el.querySelectorAll('div')].find(d => d.style && /z-index/.test(d.getAttribute('style') || '') && d.offsetParent !== null && d.textContent.indexOf('月入帳') >= 0); if (!tp) return false; const a = tp.getBoundingClientRect(), r = el.getBoundingClientRect(); return a.left >= r.left - 1 && a.right <= r.right + 1; }"))
+        lp.click("#incAmtSeg button[data-v='500000']"); lp.wait_for_timeout(500)
+        y50 = J(BAR)
+        ok(f"★ [{tag}] 年領 100 萬→50 萬：同一檔張數與金額都變小", y50["codes"] == y0["codes"] and y50["lots"][0] < y0["lots"][0] and y50["costs"][0] < y0["costs"][0], (y0, y50))
+        lp.click("#incMode button[data-v='m']"); lp.wait_for_timeout(500)
+        ok(f"★ [{tag}] 切「月領」：快捷鈕換成 5000／1萬／2萬／3萬", J("() => [...document.querySelectorAll('#incAmtSeg button')].map(b => b.dataset.v).join(',')") == "5000,10000,20000,30000")
+        lp.click("#incAmtSeg button[data-v='30000']"); lp.wait_for_timeout(500)
+        m3 = J(BAR); k = J("() => document.querySelector('#etfInc').dataset.k").split("|")
+        ok(f"★ [{tag}] 月領 3 萬＝年目標 36 萬：張數比年領 50 萬少", k[1] == "360000" and m3["codes"] == y0["codes"] and m3["lots"][0] < y50["lots"][0], (k, m3["lots"][:3], y50["lots"][:3]))
+        lp.click("#incMode button[data-v='y']"); lp.click("#incAmtSeg button[data-v='1000000']"); lp.wait_for_timeout(500)
+        orders = {}
+        for v, unit in (("y", "殖利率"), ("tr", "含息年化"), ("pr", "價格年化")):
+            lp.click(f"#incSort button[data-v='{v}']"); lp.wait_for_timeout(900)
+            vals = J("() => document.querySelector('#incBar').dataset.vals.split(',').filter(x => x !== '').map(Number)")
+            orders[v] = J("() => document.querySelector('#incBar').dataset.codes")
+            ok(f"[{tag}] 排序「{unit}」由高到低、清單數字寫「{unit}」", vals == sorted(vals, reverse=True) and len(vals) == 5 and J("(u) => document.querySelector('#incList .mv').textContent.indexOf(u) === 0", unit), vals)
+        ok(f"★ [{tag}] 三種排序選出的 5 檔不同", len(set(orders.values())) == 3, orders)
+        # 報酬期間連動（含息年化排序時）
+        lp.click("#incSort button[data-v='tr']"); lp.wait_for_timeout(700)
+        v5y = J("() => document.querySelector('#incBar').dataset.vals")
+        lp.select_option("#etfIncRng select", "1y"); lp.wait_for_timeout(2000)
+        v1y = J("() => document.querySelector('#incBar').dataset.vals")
+        ok(f"★ [{tag}] 報酬期間 5 年→1 年：單檔排序數值跟著變", v5y != v1y and "1y" in J("() => document.querySelector('#etfInc').dataset.k"), (v5y[:60], v1y[:60]))
+        lp.select_option("#etfIncRng select", "5y"); lp.wait_for_timeout(1200)
+        lp.click("#incSort button[data-v='y']"); lp.wait_for_timeout(600)
+        # 勾選上限 5／取消／膠囊 × 雙向同步
+        first = J("() => document.querySelector('#incList .ilr').dataset.code")
+        lp.click("#incList .ilr:nth-child(1) input"); lp.wait_for_timeout(700)
+        b1 = J(BAR)
+        ok(f"★ [{tag}] 清單取消第 1 檔 → 圖少一組柱、膠囊也少一個", b1["n"] == 4 and first not in b1["codes"] and len(b1["chips"].split("|")) == 4, b1)
+        lp.click("#incList .ilr:nth-child(8) input"); lp.wait_for_timeout(600)
+        ok(f"[{tag}] 勾第 8 名 → 圖回到 5 組", J(BAR)["n"] == 5)
+        dis = J("() => { const r = document.querySelector('#incList .ilr:nth-child(9) input'); return r.disabled; }")
+        lp.evaluate("() => { const r = document.querySelector('#incList .ilr:nth-child(9) input'); r.disabled = false; r.click(); }"); lp.wait_for_timeout(500)
+        ok(f"★ [{tag}] 勾滿 5 檔：其餘勾選框變灰，硬勾第 6 檔被擋並提示「最多 5 檔」", dis and J(BAR)["n"] == 5 and "最多 5 檔" in J("() => document.querySelector('#incListMsg').textContent"))
+        chip = J("() => document.querySelector('#incChips .snk[data-n]').dataset.n")
+        code = chip.split(" ")[-1]
+        lp.click("#incChips .snk[data-n] b"); lp.wait_for_timeout(700)
+        ok(f"★ [{tag}] 膠囊 × 移除 → 圖少一組、清單那檔同步取消勾選", J(BAR)["n"] == 4 and code not in J(CHK).split(","), (code, J(CHK)))
+        lp.click("#incReset"); lp.wait_for_timeout(600)
+        # ★ v7：頻率分頁（全部／月配／雙月配／季配／半年配／年配）
+        n_all = J("() => document.querySelectorAll('#incList .ilr').length")
+        lp.click("#incFq button[data-v='月配']"); lp.wait_for_timeout(700)
+        fqs = J("() => [...document.querySelectorAll('#incList .ilr')].map(r => r.dataset.fq)")
+        ok(f"★ [{tag}] 點「月配」→ 清單每列都是月配、列數變了", len(fqs) > 0 and all(x == "月配" for x in fqs) and len(fqs) != n_all and J("() => document.querySelector('#incFq button.on').dataset.v") == "月配", (n_all, len(fqs)))
+        lp.click("#incReset"); lp.wait_for_timeout(800)
+        ck = J("() => [...document.querySelectorAll('#incList .ilr')].filter(r => r.querySelector('input').checked).map(r => r.dataset.fq)")
+        ok(f"★ [{tag}] 月配分頁按「回前 5」→ 勾選 5 檔都是月配、圖上 5 組", len(ck) == 5 and all(x == "月配" for x in ck) and J(BAR)["n"] == 5, (ck, J(BAR)["n"]))
+        lp.click("#incFq button[data-v='all']"); lp.wait_for_timeout(500)
+        lp.click("#incReset"); lp.wait_for_timeout(600)
+        c1 = J("() => document.querySelector('#incList .ilr').dataset.code")
+        lp.click("#incList .ilr .iln"); lp.wait_for_timeout(800)
+        ok(f"★ [{tag}] 點清單名稱 → 細節卡（甜甜圈＋12 個月直條）", J("() => document.querySelector('#incDet').dataset.code") == c1 and J("() => !!echarts.getInstanceByDom(document.getElementById('incDn')) && echarts.getInstanceByDom(document.getElementById('incMb')).getOption().xAxis[0].data.length === 12"), c1)
+        # ---- 組合
+        lp.click("#incTabs button[data-v='c']"); lp.wait_for_timeout(2000)
+        wait_until(lp, "() => document.querySelector('#incCdn') && echarts.getInstanceByDom(document.getElementById('incCdn'))", 15000)
+        ok(f"★ [{tag}] 組合 A～E 分頁，一次一組", J("() => [...document.querySelectorAll('#incTabs button[data-i]')].map(b => b.textContent.slice(0, 4)).join('|')") == "組合 A|組合 B|組合 C|組合 D|組合 E" and J("() => document.querySelectorAll('#incCombos .combo').length") == 1)
+        g = J("""() => { const cs = [...document.querySelectorAll('#incCombos .c3 > .c3c')].map(c => c.getBoundingClientRect());
+            const w = cs.map(r => Math.round(r.width)), t = cs.map(r => Math.round(r.top));
+            return { n: cs.length, eqW: Math.max(...w) - Math.min(...w) <= 2, sameTop: Math.max(...t) - Math.min(...t) <= 2, order: cs[0].left < cs[1].left && cs[1].left < cs[2].left,
+              mid: !!document.querySelector('#incCombos .c3 > .c3c:nth-child(2) #incClk'), sw: !!document.querySelector('#incCombos .c3 > .c3c:nth-child(2) #incCView'),
+              px: [...document.querySelectorAll('#incCTbl .cmr')].every(r => /現價/.test(r.textContent) && /張/.test(r.textContent) && /一年領/.test(r.textContent)) }; }""")
+        ok(f"★ [{tag}] 三等分並排：左甜甜圈、中時鐘（右上有時鐘／月曆切換）、右明細（含現價）", g["n"] == 3 and g["eqW"] and g["sameTop"] and g["order"] and g["mid"] and g["sw"] and g["px"], g)
+        lab = J("() => document.getElementById('incCdn').dataset.labels.split('|')")
+        ok(f"[{tag}] 甜甜圈圈內單行「N 張・X 萬」", all("\n" not in x and "張" in x and "萬" in x for x in lab), lab)
+        cb = J("() => { const c = document.querySelector('#incCombos .combo'); return { v: c.dataset.vals.split(',').map(Number), n: document.getElementById('incClk').dataset.n }; }")
+        N = int(J("() => document.querySelector('#etfInc').dataset.k").split("|")[2])
+        ok(f"★ [{tag}] 時鐘 12 格每格 ≥ 月目標", cb["n"] == "12" and min(cb["v"]) >= N, (N, cb))
+        col = J("""() => { const ck = echarts.getInstanceByDom(document.getElementById('incClk')).getOption().series[0].data, dn = echarts.getInstanceByDom(document.getElementById('incCdn')).getOption().series[0].data;
+            const mi = document.getElementById('incClk').dataset.cols.split(',').map(Number);
+            return mi.every((i, m) => { const a = String(ck[m].itemStyle.color), d = String(dn[i].itemStyle.color); const hex = d.replace('#', ''); const rgb = [0, 2, 4].map(j => parseInt(hex.slice(j, j + 2), 16)).join(','); return a.indexOf(rgb) >= 0 || a.toLowerCase().indexOf(d.toLowerCase()) >= 0; }); }""")
+        ok(f"[{tag}] 時鐘格色＝當月主要入帳那檔在甜甜圈的顏色", col)
+        tp = J("""() => { const el = document.getElementById('incCdn'), c = echarts.getInstanceByDom(el); c.dispatchAction({ type: 'showTip', seriesIndex: 0, dataIndex: 0 });
+            const tp = [...el.querySelectorAll('div')].find(d => /z-index/.test(d.getAttribute('style') || '') && d.offsetParent !== null && d.textContent.trim()); if (!tp) return 'none';
+            const a = tp.getBoundingClientRect(), r = el.getBoundingClientRect(), side = document.querySelector('.side, #side, nav.l4side, aside'); const sr = side ? side.getBoundingClientRect() : { right: 0 };
+            return a.left >= r.left - 1 && a.right <= r.right + 1 && a.top >= r.top - 1 && a.bottom <= r.bottom + 1 && (sr.left >= r.right || a.left >= sr.right - 1); }""")
+        ok(f"★ [{tag}]（219）甜甜圈提示框在圖框內、不與側欄重疊", tp is True, tp)
+        lp.click("#incCView button[data-v='grid']"); lp.wait_for_timeout(1000)
+        q = J("() => { const cs = [...document.querySelectorAll('#incGrid .mcell')]; const rows = {}; cs.forEach(c => { const t = Math.round(c.getBoundingClientRect().top); (rows[t] = rows[t] || []).push(+c.dataset.m); }); return Object.values(rows).map(r => r.join(',')); }")
+        ok(f"★ [{tag}] 月曆格轉置：3 排 × 4 欄、每欄一季（欄頭 Q1～Q4）", q == ["1,4,7,10", "2,5,8,11", "3,6,9,12"] and J("() => [...document.querySelectorAll('#incGrid .mqh')].map(e => e.textContent).join(',')") == "Q1,Q2,Q3,Q4", q)
+        lp.click("#incCView button[data-v='clock']"); lp.wait_for_timeout(800)
+        c0 = J("() => document.querySelector('#incCombos .combo').dataset.codes")
+        lp.click("#incTabs button[data-i='2']"); lp.wait_for_timeout(1200)
+        ok(f"[{tag}] 點「組合 C」換第 3 組", J("() => document.querySelector('#incCombos .combo').dataset.ci") == "2" and J("() => document.querySelector('#incCombos .combo').dataset.codes") != c0)
+        lp.click("#incCSort button[data-v='tr']"); lp.wait_for_timeout(1000)
+        tr5 = J("() => document.querySelector('#incCombos .combo').dataset.tr")
+        lp.select_option("#etfIncRng select", "1y"); lp.wait_for_timeout(2000)
+        tr1 = J("() => document.querySelector('#incCombos .combo').dataset.tr")
+        ok(f"★ [{tag}] 報酬期間 5 年→1 年：組合（含息總報酬排序）數值跟著變", tr5 != tr1, (tr5, tr1))
+        lp.select_option("#etfIncRng select", "5y"); lp.wait_for_timeout(1200)
+        lp.click("#incCSort button[data-v='cost']"); lp.wait_for_timeout(800)
+        ok(f"[{tag}] v7：組合標題裡的「每月 ≥」輸入框已拿掉，統一用上方功能表", J("() => !document.getElementById('incMonIn')"))
+        lp.click("#incMode button[data-v='m']"); lp.wait_for_timeout(600)
+        lp.fill("#incAmt", "50000"); lp.dispatch_event("#incAmt", "change"); lp.wait_for_timeout(1500)
+        v5 = J("() => document.querySelector('#incCombos .combo').dataset.vals.split(',').map(Number)")
+        ok(f"★ [{tag}] 上方改月領 5 萬 → 組合每月入帳都 ≥ 5 萬", min(v5) >= 50000, v5)
+        lp.click("#incMode button[data-v='y']"); lp.wait_for_timeout(600)
+        lp.click("#incAmtSeg button[data-v='1000000']"); lp.wait_for_timeout(1200)
+        # ---- v8：三個子分頁真的切得動、hash 跟著變；每個子分頁的導覽第一步指在那一頁的元素
+        for sub, want, first in (("cal", "etfcal", "#etfCalCard"), ("list", "etflist", "#etfCatBar"), ("inc", "etfinc", "#incPM .incctl")):
+            lp.click(f"#tabs .l4subtab[data-l4sub='etf-{sub}']"); lp.wait_for_timeout(900)
+            ok(f"★ [{tag}] 側欄子項「{sub}」→ hash #etf/{sub}、側欄那格亮起、頁內沒有子分頁鈕", J("() => location.hash") == f"#etf/{sub}" and J("() => document.querySelector('#v-etf').dataset.view") == {"cal": "cal", "list": "cat", "inc": "inc"}[sub] and J(f"() => document.querySelector('#tabs .l4subtab[data-l4sub=etf-{sub}]').classList.contains('on') && !document.querySelector('#etfSub').getClientRects().length"))
+            J("() => TwTour.start('page')"); lp.wait_for_function("() => { const s = TwTour.state(); return s && s.active && !s.busy && s.i >= 0; }", timeout=15000); lp.wait_for_timeout(400)
+            st = J("() => TwTour.state()")
+            tg = J(f"() => {{ const e = document.querySelector('{first}'); if (!e) return null; const r = e.getBoundingClientRect(); return [r.left, r.top, r.width, r.height]; }}")
+            hole = st.get("target") or st.get("hole") or {}
+            okp = tg and abs(hole.get("l", -999) - tg[0]) < 20 and abs(hole.get("w", -999) - tg[2]) < 40
+            ok(f"★ [{tag}] 子分頁「{sub}」按導覽 → 開「{want}」、第一步框在 {first}", st.get("tour") == want and okp, (st.get("tour"), st.get("sel"), hole, tg))
+            lp.keyboard.press("Escape"); lp.wait_for_timeout(300)
+        lp.click("#tabs .l4subtab[data-l4sub='etf-inc']"); lp.wait_for_timeout(800)
+        lab4 = J("() => document.getElementById('incCSortW').textContent.replace(/\s+/g, '')")
+        sp = J("() => { const w = document.getElementById('incCSortW'), q = document.getElementById('incCQ'); const a = w.getBoundingClientRect(), b = q.getBoundingClientRect(); return [!!w.closest('#incCombo'), Math.abs((a.top + a.height / 2) - (b.top + b.height / 2)) < 20, a.left > b.left]; }")
+        ok(f"★ [{tag}] 組合排序放在組合內容區標題列右側（跟說明句同一列）", all(sp), sp)
+        ok(f"[{tag}] 組合排序標示「組合（投入最少／含息報酬最高）」", lab4.startswith("組合（投入最少含息報酬最高）"), lab4)
+        row = J("() => { const t = [...document.querySelectorAll('#incTabs button')].map(b => Math.round(b.getBoundingClientRect().top)); return Math.max(...t) - Math.min(...t); }")
+        ok(f"★ [{tag}] A～E 分頁與「單檔 ETF」在同一排", row <= 8, row)
+        lp.click("#incTabs button[data-v='s']"); lp.wait_for_timeout(1200)
+        bw = J("() => { const c = echarts.getInstanceByDom(document.getElementById('incBar')); return [document.getElementById('incBar').clientWidth, c ? c.getWidth() : 0]; }")
+        ok(f"★ [{tag}]（圖二）先停組合再切回單檔：直條圖寬 > 600px、不擠成細縫", bw[0] > 600 and bw[1] > 600, bw)
+        lp.click("#incTabs button[data-i='0']"); lp.wait_for_timeout(1000)
+        # ---- 複利試算表
+        lp.click("#incTabs button[data-i='0']"); lp.wait_for_timeout(800)
+        lp.click("#incToCx"); lp.wait_for_timeout(1500)
+        wait_until(lp, "() => document.getElementById('cxChart').dataset.state === 'ok'", 20000)
+        ok(f"★ [{tag}] 組合「看複利試算」→ 切到複利試算表、對象＝組合 A", J("() => !document.querySelector('#incPX').hidden && document.getElementById('cxObj').selectedIndex === 0 && /^組合 A/.test(document.getElementById('cxObj').selectedOptions[0].textContent)"))
+        th = J("() => { const t = document.querySelector('#incPX .cxr').getBoundingClientRect(), c = document.getElementById('cxChart').getBoundingClientRect(); return [Math.round(t.height), Math.round(c.height), Math.round(document.getElementById('cxTbl').getBoundingClientRect().height)]; }")
+        ok(f"★ [{tag}] v8：右側情境表撐到圖高 ≥ 80%（表本身 ≥ 圖高 60%）", th[0] >= th[1] * 0.8 and th[2] >= th[1] * 0.6, th)
+        yl = J("() => { const o = echarts.getInstanceByDom(document.getElementById('cxChart')); const m = o.getModel().getComponent('yAxis').axis.scale.getExtent(); const d = o.getOption().series.filter(s => !(s.id && String(s.id).indexOf('__tgrid') === 0)).flatMap(s => s.data).filter(v => typeof v === 'number'); return [m[0], Math.min(...d), o.getOption().series[1].lineStyle.width, +document.getElementById('cxChart').dataset.mlines > 6]; }")
+        ok(f"★ [{tag}] v8：y 軸下緣貼緊資料（離最低點 ≤ 10 個百分點）、線寬 1.5、有月份分隔線", yl[0] <= yl[1] and yl[1] - yl[0] <= 10 and yl[2] == 1.5 and yl[3], yl)
+        ok(f"★ [{tag}] 複利區塊單位用 %，文字裡不出現「個百分點」（Andy：「單位不要用百分點 用%」）", "個百分點" not in J("() => document.getElementById('incPX').innerText") and "%" in J("() => (document.querySelector('#cxTbl tbody tr td:nth-child(4)') || {}).textContent || ''"))
+        ok(f"★ [{tag}] 情境勾選列已拿掉；左圖右表並排（約 2:1）", J("() => !document.querySelector('#incPX input[data-scn]') && (() => { const l = document.getElementById('cxChart').getBoundingClientRect(), t = document.getElementById('cxTbl').getBoundingClientRect(); return t.left > l.right - 1 && Math.abs(t.top - l.top) < 120 && l.width > t.width * 1.5; })()"))
+        x0 = J(CX)
+        ok(f"[{tag}] 線：再投入原標的／0050／00631L／只領現金／只看價格", x0["lines"] == "self,0050,00631L,cash,price" and x0["shown"] == x0["lines"], x0)
+        ok(f"★ [{tag}] Y 軸 %、可滾輪縮放（inside＋滑桿）", J("() => { const o = echarts.getInstanceByDom(document.getElementById('cxChart')).getOption(); return /%/.test(o.yAxis[0].axisLabel.formatter(10)) && o.dataZoom.some(z => z.type === 'inside' && z.zoomOnMouseWheel) && o.dataZoom.some(z => z.type === 'slider'); }"))
+        fin = [float(x) for x in x0["fin"].split(",")]
+        ok(f"★ [{tag}] 合理性：再投入原標的 ≥ 只領現金 ≥ 只看價格", fin[0] >= fin[3] >= fin[4], x0)
+        h0 = J("() => document.getElementById('cxHead').textContent")
+        J("() => { const c = echarts.getInstanceByDom(document.getElementById('cxChart')); c.dispatchAction({ type: 'legendToggleSelect', name: '再投入原標的' }); c.dispatchAction({ type: 'legendToggleSelect', name: '只看價格（不含息）' }); }"); lp.wait_for_timeout(600)
+        x1 = J(CX)
+        ok(f"★ [{tag}] 圖例點擊關掉兩條 → 表格少兩列、結論句跟著變", x1["shown"] == "0050,00631L,cash" and J("() => document.querySelectorAll('#cxTbl tbody tr').length") == 3 and J("() => document.getElementById('cxHead').textContent") != h0, (x1["shown"], J("() => document.querySelectorAll('#cxTbl tbody tr').length")))
+        J("() => { const c = echarts.getInstanceByDom(document.getElementById('cxChart')); c.dispatchAction({ type: 'legendToggleSelect', name: '再投入原標的' }); c.dispatchAction({ type: 'legendToggleSelect', name: '只看價格（不含息）' }); }"); lp.wait_for_timeout(600)
+        ok(f"[{tag}] 再點一次 → 線與表格列回來", J(CX)["shown"] == x0["lines"] and J("() => document.querySelectorAll('#cxTbl tbody tr').length") == 5)
+        t = J("""() => { const el = document.getElementById('cxChart'), c = echarts.getInstanceByDom(el); const n = c.getOption().series[0].data.length;
+            c.dispatchAction({ type: 'showTip', seriesIndex: 0, dataIndex: 5 }); const a = el.dataset.tip;
+            c.dispatchAction({ type: 'showTip', seriesIndex: 0, dataIndex: n - 2 }); const b = el.dataset.tip; return [a, b]; }""")
+        ok(f"★ [{tag}] 提示框：不同日期，日期與數值都不同", t[0] and t[1] and t[0].split("|")[0] != t[1].split("|")[0] and t[0].split("|")[1] != t[1].split("|")[1], t)
+        bx = J("() => { const r = document.getElementById('cxChart').getBoundingClientRect(); return [r.left + r.width / 2, r.top + r.height / 2]; }")
+        z0 = J("() => echarts.getInstanceByDom(document.getElementById('cxChart')).getOption().dataZoom[0].start")
+        lp.mouse.move(bx[0], bx[1]); lp.mouse.wheel(0, -600); lp.wait_for_timeout(600)
+        z1 = J("() => { const z = echarts.getInstanceByDom(document.getElementById('cxChart')).getOption().dataZoom[0]; return [z.start, z.end]; }")
+        ok(f"★ [{tag}] 滾輪往上 → 曲線放大", z1[0] > z0 or z1[1] < 100, (z0, z1))
+        lp.fill("#cxFrom", "2024-01-02"); lp.dispatch_event("#cxFrom", "change"); lp.wait_for_timeout(1500)
+        wait_until(lp, "() => document.getElementById('cxChart').dataset.state === 'ok'", 15000)
+        x2 = J(CX)
+        ok(f"★ [{tag}] 起始日改 2024-01-02 → 起點與數值都變、1/3/5 年按鈕不亮", "2024-01-02" <= x2["from"] < "2024-01-20" and x2["fin"] != x0["fin"] and not J("() => !!document.querySelector('#cxQuick button.on')"), x2["from"])
+        # ★ v6：etf_series 沒還原分割（00631L 2026-04-08 一拆 22）→ 前端 fixSplits 還原；2024-01 起算，再投入 00631L 必須 ≥ 只領現金
+        fs = J("() => { const d = document.getElementById('cxChart').dataset, ks = d.lines.split(','), F = d.fin.split(',').map(Number); return { l: F[ks.indexOf('00631L')], c: F[ks.indexOf('cash')] }; }")
+        ok(f"★ [{tag}] 分割還原：2024-01 起算，再投入 00631L 報酬 ≥ 只領現金", fs["l"] >= fs["c"], fs)
+        lp.click("#cxQuick button[data-v='3']"); lp.wait_for_timeout(1200)
+        ok(f"★ [{tag}] 快捷 3 年 → 起點約 3 年前、按鈕亮起、日期框同步", J(CX)["from"][:4] == "2023" and J("() => document.querySelector('#cxQuick button.on').dataset.v") == "3" and J("() => document.getElementById('cxFrom').value")[:4] == "2023")
+        o0 = J("() => document.getElementById('cxObj').selectedOptions[0].textContent")
+        lp.click("#incMain button[data-v='m']"); lp.click("#incAmtSeg button[data-v='500000']"); lp.wait_for_timeout(1000)
+        lp.click("#incMain button[data-v='x']"); lp.wait_for_timeout(1500)
+        wait_until(lp, "() => document.getElementById('cxChart').dataset.state === 'ok'", 15000)
+        o1 = J("() => document.getElementById('cxObj').selectedOptions[0].textContent")
+        ok(f"★ [{tag}] 月配改年領 50 萬 → 複利頁對象的張數跟著變（上方標籤連動）", o0 != o1 and o1.startswith("組合"), (o0, o1))
+        lp.click("#incMain button[data-v='m']"); lp.click("#incAmtSeg button[data-v='1000000']"); lp.click("#incMain button[data-v='x']"); lp.wait_for_timeout(1500)
+        nc0 = J("() => document.querySelectorAll('#cxChips .cmpx').length")
+        lp.fill("#cxIn", "2330"); lp.click("#cxAdd"); lp.wait_for_timeout(1500)
+        wait_until(lp, "() => document.getElementById('cxChart').dataset.lines.indexOf('2330') >= 0", 15000)
+        lp.wait_for_timeout(800)
+        nc1 = J("() => document.querySelectorAll('#cxChips .cmpx').length")
+        ok(f"★ [{tag}] 按一次「加入 2330」只多 1 個膠囊（v6：拿掉 onchange 重複觸發）", nc1 == nc0 + 1, (nc0, nc1))
+        x3 = J(CX)
+        ok(f"★ [{tag}] 自訂標的輸入 2330 → 多一條、表格多一列、數值不同", "2330" in x3["lines"] and len(set(x3["fin"].split(","))) == len(x3["fin"].split(",")) and J("() => document.querySelectorAll('#cxTbl tbody tr').length") == 6, x3)
+        lp.fill("#cxIn", "9999X"); lp.press("#cxIn", "Enter"); lp.wait_for_timeout(1000)
+        ok(f"[{tag}] 不存在代號 → 提示不能加入", "不能" in J("() => document.getElementById('cxMsg').textContent"))
+        lp.click("#cxChips .cmpx[data-code='2330']"); lp.wait_for_timeout(1200)
+        ok(f"[{tag}] 按 × 移除 2330：少一條", "2330" not in J(CX)["lines"])
+        r = J("""() => { const D = ['2025-01-06','2025-01-13','2025-01-20','2025-01-27','2025-02-03','2025-02-10','2025-03-03'];
+            const px = D.map(() => 10), T = [1,1,1,1,2,2,4];
+            const out = TwEtfPage.simCore(D, [{ shares: 1000, px, ev: [{ k: 1, amt: 1, pay: '2025-01-20' }], T }], 0, false);
+            return { buys: out.buys.map(b => b.d), tot: out.tot, cash: out.cash }; }""")
+        ok(f"★ [{tag}] 口徑（假資料）：1 月 20 日發放的錢，2 月第一個點（02-03）才買進", r["buys"] == ["2025-02-03"] and r["tot"][3] == 11000 and r["tot"][6] == 12000 and r["cash"][6] == 11000, r)
+        # ---- 壓力測試：頁內連點 50 次，量每一下同步處理時間
+        LOOP = """async ([sels, n]) => { const out = []; const raf = () => new Promise((r) => requestAnimationFrame(() => setTimeout(r, 0)));
+          for (let i = 0; i < n; i++) { const el = document.querySelector(sels[i % sels.length]); if (!el) { out.push(-1); continue; } const t = performance.now(); el.click(); await raf(); out.push(Math.round(performance.now() - t)); } return out; }"""
+        lp.click("#incMain button[data-v='m']"); lp.click("#incTabs button[data-v='s']"); lp.wait_for_timeout(800)
+        e0 = len(fails)
+        s1 = J(LOOP, [["#incMode button[data-v='m']", "#incAmtSeg button:nth-child(2)", "#incMode button[data-v='y']", "#incSort button[data-v='tr']", "#incSort button[data-v='y']", "#incScope button[data-v='bond']", "#incScope button[data-v='div']", "#incList .ilr:nth-child(1) input"], 50])
+        lp.click("#incTabs button[data-v='c']"); lp.wait_for_timeout(1500)
+        s2 = J(LOOP, [["#incTabs button[data-i='1']", "#incCView button[data-v='grid']", "#incTabs button[data-i='3']", "#incCView button[data-v='clock']", "#incCSort button[data-v='tr']", "#incCSort button[data-v='cost']"], 50])
+        lp.click("#incMain button[data-v='x']"); lp.wait_for_timeout(1500)
+        s3 = J(LOOP, [["#cxQuick button[data-v='1']", "#cxQuick button[data-v='5']", "#incMain button[data-v='m']", "#incMain button[data-v='x']"], 50])
+        allv = [x for x in s1 + s2 + s3 if x >= 0]
+        ok(f"★ [{tag}] 壓力測試：月配單檔／組合／複利各連點 50 次，每一下 < 500ms、無 JS 錯誤、ECharts 實例數不增加",
+           len(allv) == 150 and max(allv) < 500 and len(fails) == e0 and J("() => document.querySelectorAll('[_echarts_instance_]').length") <= 8, (max(allv) if allv else None, sorted(allv)[-5:], J("() => document.querySelectorAll('[_echarts_instance_]').length")))
+    finally:
+        lp.close()
     mp = pg.context.browser.new_page(viewport={"width": 390, "height": 844}, is_mobile=True, has_touch=True)
     mp.on("pageerror", lambda e: fails.append(f"{tag}(390) pageerror: {e}"))
     mp.route("**/fonts.googleapis.com/**", lambda r: r.abort())
+    fit = "() => document.querySelector('#etfInc').scrollWidth <= document.querySelector('#etfInc').clientWidth + 1 && document.querySelector('#etfInc').getBoundingClientRect().right <= 391"
     try:
         mp.goto(f"{base}#etf", wait_until="networkidle")
         wait_until(mp, "() => document.querySelector('#v-etf') && document.querySelector('#v-etf').dataset.ready === 'full'", 20000)
-        mp.tap("#etfIncSeg button"); mp.wait_for_timeout(1500)
-        wait_until(mp, "() => document.querySelectorAll('#incCombos .combo').length > 0", 20000)
-        before = mp.evaluate(ROW1)
-        mp.tap("#incYSeg button[data-v='200000']"); mp.wait_for_timeout(600)
-        after = mp.evaluate(ROW1)
-        ok(f"★ [{tag}] 390：點年領 20 萬，張數真的變", before and after and after[1] < before[1], (before, after))
-        sw = mp.evaluate("() => document.documentElement.scrollWidth")
-        ok(f"★ [{tag}] 390：整頁無橫向溢出", sw <= 391, sw)
-        st = mp.evaluate("""() => { const w = document.querySelector('#etfInc .inctw'); const td = document.querySelector('#incTbl td.nm');
-                 return { scroll: w.scrollWidth > w.clientWidth, sticky: getComputedStyle(td).position }; }""")
-        ok(f"[{tag}] 390：表格在自己的容器裡橫滑、第一欄固定", st["scroll"] and st["sticky"] == "sticky", st)
-        small = mp.evaluate("() => [...document.querySelectorAll('#etfInc *')].filter(e => e.childNodes.length && [...e.childNodes].some(n => n.nodeType === 3 && n.textContent.trim()) && e.getClientRects().length && parseFloat(getComputedStyle(e).fontSize) < 11).length")
-        ok(f"[{tag}] 390：試算區沒有小於 11px 的字", small == 0, small)
+        mp.tap("#etfSub button[data-v='inc']"); mp.wait_for_timeout(1500)
+        wait_until(mp, "() => document.querySelector('#incBar') && document.querySelector('#incBar').dataset.codes", 20000)
+        a0 = mp.evaluate("() => document.querySelector('#incBar').dataset.lots")
+        mp.tap("#incAmtSeg button[data-v='200000']"); mp.wait_for_timeout(600)
+        ok(f"★ [{tag}] 390：點年領 20 萬，張數真的變", mp.evaluate("() => document.querySelector('#incBar').dataset.lots") != a0)
+        ok(f"[{tag}] 390：單檔無橫向溢出", mp.evaluate(fit))
+        mp.tap("#incTabs button[data-v='c']"); mp.wait_for_timeout(2000)
+        o = mp.evaluate("() => { const r = (s) => document.querySelector(s).getBoundingClientRect(); return r('#incCdn').bottom <= r('#incClk').top + 1 && r('#incClk').bottom <= r('#incCTbl').top + 1; }")
+        ok(f"★ [{tag}] 390：組合三欄改上下（甜甜圈→時鐘→明細）、無溢出", o and mp.evaluate(fit))
+        mp.tap("#incMain button[data-v='x']"); mp.wait_for_timeout(2500)
+        yv = mp.evaluate("() => { const th = [...document.querySelectorAll('#cxTbl thead th')].find(e => e.textContent === '年化'), w = document.querySelector('#incPX .cxr').getBoundingClientRect(); if (!th) return null; const r = th.getBoundingClientRect(); return [Math.round(r.right), Math.round(w.right), getComputedStyle(document.querySelectorAll('#cxTbl thead th')[3]).display]; }")
+        ok(f"★ [{tag}] 390：複利右表「年化」欄在卡片內看得到（「比只領現金多」窄畫面隱藏）", yv and yv[0] <= yv[1] + 1 and yv[2] == "none", yv)
+        ok(f"★ [{tag}] 390：複利試算表上下排、無溢出", mp.evaluate("() => document.getElementById('cxChart').dataset.state") == "ok" and mp.evaluate(fit) and mp.evaluate("() => document.getElementById('cxTbl').getBoundingClientRect().top >= document.getElementById('cxChart').getBoundingClientRect().bottom - 1"))
     finally:
         mp.close()
 
@@ -24410,6 +24587,7 @@ def t_cal_1006(pg, b, base):
         gp = J("() => { const t = document.querySelector('#etfCatSeg button.on').getBoundingClientRect(), b = document.querySelector('#etfBody').getBoundingClientRect(); return Math.abs(t.bottom - b.top); }")
         ok(f"★ [{tag}] 資料夾式分頁：選中頁籤下緣與內容框上緣距離 ≤ 1px", gp <= 1.5, gp)
         ok(f"[{tag}] 前 5／報酬比較／ETF 一覽都在同一個內容框內", J("() => ['etfListCard'].every(i => document.querySelector('#etfBody #' + i))"))
+        lp.click("#tabs .l4subtab[data-l4sub='etf-cal']"); lp.wait_for_timeout(400)
         for _ in range(30):
             cur = J("() => document.querySelector('#etfCal').dataset.month")
             if cur == "2026-10":
@@ -24418,6 +24596,7 @@ def t_cal_1006(pg, b, base):
         ew = J("""() => { const c = [...document.querySelectorAll('#etfCalGrid .cald:not(.out)')]; const bad = c.filter(e => { const g = new Date(e.dataset.d + 'T00:00:00Z').getUTCDay(); return (g === 0 || g === 6) !== e.classList.contains('cg-we'); });
                  const h = document.querySelector('#etfCalGrid .cald[data-d="2026-10-10"] .cg-hl'); return { n: c.length, bad: bad.length, hol: h ? h.textContent : null }; }""")
         ok(f"★ [{tag}] ETF 行事曆：週末反灰、10/10「國慶日・休市」標記", ew["n"] >= 28 and ew["bad"] == 0 and ew["hol"] == "國慶日・休市", ew)
+        lp.click("#tabs .l4subtab[data-l4sub='etf-list']"); lp.wait_for_timeout(400)   # v8：分類頁籤只在「ETF 總覽」子分頁
         lp.click("#etfCatSeg button[data-v='配息型']"); lp.wait_for_timeout(300)
         # 2026-10-06 晚：期間從分類列搬到報酬比較標題列（下拉＋起訖日期框，rangepick.js），選項多了近 1 年與上市以來
         lp.select_option("#etfRng .rpsel", "custom"); lp.wait_for_timeout(250)
@@ -24433,6 +24612,7 @@ def t_cal_1006(pg, b, base):
         ok(f"★ [{tag}] ETF 每個「怎麼看」都沒有「這張回答：…？」自問自答（.howq）",
            J("() => { const h = [...document.querySelectorAll('#v-etf .howtxt')]; return h.length >= 5 && h.every(x => !x.querySelector('.howq') && !/這張回答|回答：/.test(x.innerHTML)); }"))
         # 當天清單：「再點一次同一格」教學句換成標題列「← 回整月」鈕，真的按下去要回到整月清單
+        lp.click("#tabs .l4subtab[data-l4sub='etf-cal']"); lp.wait_for_timeout(400)
         hasd = J("() => { const c = document.querySelector('#etfCalGrid .cald.has'); return c ? c.dataset.d : null; }")
         if hasd:
             lp.click(f"#etfCalGrid .cald.has[data-d='{hasd}']"); lp.wait_for_timeout(200)
@@ -25524,7 +25704,7 @@ def t_tour_1007(pg, b, base):
     pg.add_init_script(TOUR_LT_INIT)
     pg.goto(base + "#overview", wait_until="networkidle"); pg.wait_for_timeout(2500)
 
-    ok(f"{T} tour.js 載入、提供 TwTour.start 與五套導覽", pg.evaluate("() => !!(window.TwTour && TwTour.start) && TwTour.ids().join(',')") == "site,overview,flow,industry,stock",
+    ok(f"{T} tour.js 載入、提供 TwTour.start 與各頁導覽（含 ETF 三個子分頁）", set((pg.evaluate("() => !!(window.TwTour && TwTour.start) && TwTour.ids().join(',')") or "").split(",")) == {"site", "overview", "flow", "industry", "stock", "etfcal", "etflist", "etfinc"},
        pg.evaluate("() => window.TwTour && TwTour.ids()"))
     ok(f"{T} 第一次來不自動彈出（沒有 #twTour）", pg.locator("#twTour").count() == 0)
     # ---- 說明文字：中性、2～3 行的量級
@@ -25930,6 +26110,8 @@ SECTIONS = {
     "ETF報酬比較1006":     lambda pg, b, base, code: t_etf_ret_1006(pg, b, base),
     # ★ 2026-10-07 Andy：ETF「現金流試算」（年領／月領目標、單檔張數、2～4 檔月月配組合）＋配息型依頻率分組（⚠ 一律 --workers 1）
     "ETF現金流1007":       lambda pg, b, base, code: t_etf_income_1007(pg, b, base),
+    # ★ 2026-10-07 晚 Andy：現金流試算 v2（單檔／組合分頁、年領月領切換、三種排序、總清單、時鐘、配息再投入回測；⚠ 一律 --workers 1）
+    "ETF現金流v2":         lambda pg, b, base, code: t_etf_income_v2(pg, b, base),
     # ★ 2026-10-05（晚）Andy：財報日曆（總覽下方的大分頁；月曆＋右側分析面板＋大公司時間表＋權限；⚠ 一律 --workers 1）
     "財報日曆1005":        lambda pg, b, base, code: t_earnings_1005(pg, b, base),
     "財經日曆1006":        lambda pg, b, base, code: t_cal_1006(pg, b, base),

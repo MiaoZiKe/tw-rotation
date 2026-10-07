@@ -100,6 +100,29 @@
     pick($('.view.on .mpager'), pager);
   };
 
+  /* v8（Andy：「每個分頁都有他獨自導覽，除了管理區」）：ETF 三個子分頁各一套；按「導覽」時依所在子頁（#etf/cal｜list｜inc）挑。 */
+  const ETFCAL = [
+    { t: '配息行事曆', sel: '#etfCalCard', route: '#etf/cal', routeRe: /^#etf\/cal/, view: 'etf',
+      d: '格子裡寫當天除息的 ETF 代號與每單位配息；點有除息的格子，右邊列出那天每一檔的金額、殖利率、發放日與填息天數。' },
+  ];
+  const ETFLIST = [
+    { t: '分類頁籤', sel: '#etfCatBar', route: '#etf/list', routeRe: /^#etf(\/list)?$/, view: 'etf',
+      d: '依配息型、市值型、主題型、主動式、債券型、槓桿反向分開；下面每張卡都只看目前這一類。' },
+    { t: '前 5 名三張卡', sel: '#etfTri', route: '#etf/list', routeRe: /^#etf(\/list)?$/, view: 'etf',
+      d: '最受歡迎（受益人週增／成交值）、報酬率前 5、殖利率前 5，各列這一類的前 5 檔。' },
+    { t: '報酬比較', sel: '#etfRetCard', route: '#etf/list', routeRe: /^#etf(\/list)?$/, view: 'etf',
+      d: '勾進來的幾檔畫在同一張走勢圖，右上切期間與含息／不含息；下表列年化報酬與殖利率。' },
+    { t: 'ETF 一覽', sel: '#etfListCard', route: '#etf/list', routeRe: /^#etf(\/list)?$/, view: 'etf',
+      d: '這一類每一檔一張卡，可依成交值、規模、殖利率排序；點卡片進個股頁。' },
+  ];
+  const ETFINC = [
+    { t: '目標與範圍', sel: '#incPM .incctl', route: '#etf/inc', routeRe: /^#etf\/inc/, view: 'etf', before: () => { const b = $('#incMain button[data-v="m"]'); if (b && !b.classList.contains('on')) b.click(); },
+      d: '先設每年或每月想領多少錢、算哪些 ETF、要不要扣二代健保；下面的張數與金額都跟著這裡算。' },
+    { t: '單檔與組合 A～E', sel: '.inctabrow', route: '#etf/inc', routeRe: /^#etf\/inc/, view: 'etf',
+      d: '單檔＝每一檔要買幾張；組合 A～E＝幾檔搭在一起每個月都有入帳，組合內容右上角切排序方式。' },
+    { t: '複利試算表', sel: '#incMain', route: '#etf/inc', routeRe: /^#etf\/inc/, view: 'etf',
+      d: '切到「複利試算表」看配息拿去再投入、只領現金、只看價格三種情境的報酬差多少。' },
+  ];
   const OVERVIEW = [
     { t: '四張摘要卡', sel: ['#ovSumTrack', '#hero'], route: '#overview', routeRe: /^#?(overview)?$/, view: 'overview',
       d: '漲跌家數、資金輪盤、資金分流樹、熱門題材各一張，十秒看完今天的大概；點卡片可以看下面更完整的圖。',
@@ -228,6 +251,9 @@
 
   const TOURS = {
     site: { name: '全站導覽', steps: SITE },
+    etfcal: { name: '配息行事曆導覽', steps: ETFCAL },
+    etflist: { name: 'ETF 總覽導覽', steps: ETFLIST },
+    etfinc: { name: '現金流試算導覽', steps: ETFINC },
     overview: { name: '總覽導覽', steps: OVERVIEW },
     flow: { name: '資金流向導覽', steps: FLOW },
     industry: { name: '產業地圖導覽', steps: INDUSTRY, onEnd: () => { if (touched.dg3d && ($('#dg3d') || {}).dataset?.mode !== touched.dg3d) { const b = $(`#dg3d button[data-dm="${touched.dg3d}"]`); if (b) b.click(); } } },
@@ -237,6 +263,7 @@
   function pageTour(h) {
     const head = String(h == null ? location.hash : h).replace(/^#/, '').split(/[/?]/)[0] || 'overview';
     if (head === 'stock') return 'stock';
+    if (head === 'etf') { const sub = String(h == null ? location.hash : h).replace(/^#/, '').split(/[/?]/)[1] || 'list'; return sub === 'cal' ? 'etfcal' : sub === 'inc' ? 'etfinc' : 'etflist'; }
     if (head === 'themes') return null;
     return TOURS[head] && head !== 'site' ? head : null;
   }

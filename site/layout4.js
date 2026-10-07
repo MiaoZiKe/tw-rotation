@@ -79,6 +79,12 @@
       { k: 'heat-industry', h: '#heatmap/industry', t: '產業', s: '產業', ic: 'treemap' },
       { k: 'heat-theme', h: '#heatmap/theme', t: '題材', s: '題材', ic: 'flame' },
     ],
+    // v9（Andy：「子分頁是在側邊」）：ETF 三個子項，跟資金流向／熱力圖同一套（頁首自動變「ETF 配息行事曆」）
+    etf: [
+      { k: 'etf-cal', h: '#etf/cal', t: '配息行事曆', s: '行事曆', ic: 'calendar' },
+      { k: 'etf-list', h: '#etf/list', t: 'ETF 總覽', s: '總覽', ic: 'treemap' },
+      { k: 'etf-inc', h: '#etf/inc', t: '現金流試算', s: '試算', ic: 'coins' },
+    ],
   };
   /* 子分頁圖示：優先用 icons.js（全站同一套 Lucide、同一個線寬）；它被擋掉時退回這裡內嵌的同一組路徑 */
   const SUB_IC = {
@@ -87,6 +93,8 @@
     landmark: '<path d="M3 22h18"/><path d="M6 18v-7"/><path d="M10 18v-7"/><path d="M14 18v-7"/><path d="M18 18v-7"/><path d="M12 2 20 7H4z"/>',
     treemap: '<rect width="7" height="9" x="3" y="3" rx="1"/><rect width="7" height="5" x="14" y="3" rx="1"/><rect width="7" height="9" x="14" y="12" rx="1"/><rect width="7" height="5" x="3" y="16" rx="1"/>',
     shield: '<path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/><path d="m9 12 2 2 4-4"/>',
+    calendar: '<path d="M8 2v4"/><path d="M16 2v4"/><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M3 10h18"/>',
+    coins: '<circle cx="8" cy="8" r="6"/><path d="M18.09 10.37A6 6 0 1 1 10.34 18"/><path d="M7 6h1v4"/>',
     flame: '<path d="M12 3q1 4 4 6.5t3 5.5a1 1 0 0 1-14 0 5 5 0 0 1 1-3 1 1 0 0 0 5 0c0-2-1.5-3-1.5-5q0-2 2.5-4"/>',
   };
   function subIcon(key) {
