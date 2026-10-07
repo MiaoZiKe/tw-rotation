@@ -2620,6 +2620,8 @@ def t_etf_income_v2(pg, b, base):
             lp.keyboard.press("Escape"); lp.wait_for_timeout(300)
         lp.click("#etfSub button[data-v='inc']"); lp.wait_for_timeout(800)
         lab4 = J("() => document.getElementById('incCSortW').textContent.replace(/\s+/g, '')")
+        sp = J("() => { const w = document.getElementById('incCSortW'), q = document.getElementById('incCQ'); const a = w.getBoundingClientRect(), b = q.getBoundingClientRect(); return [!!w.closest('#incCombo'), Math.abs((a.top + a.height / 2) - (b.top + b.height / 2)) < 20, a.left > b.left]; }")
+        ok(f"★ [{tag}] 組合排序放在組合內容區標題列右側（跟說明句同一列）", all(sp), sp)
         ok(f"[{tag}] 組合排序標示「組合（投入最少／含息報酬最高）」", lab4.startswith("組合（投入最少含息報酬最高）"), lab4)
         row = J("() => { const t = [...document.querySelectorAll('#incTabs button')].map(b => Math.round(b.getBoundingClientRect().top)); return Math.max(...t) - Math.min(...t); }")
         ok(f"★ [{tag}] A～E 分頁與「單檔 ETF」在同一排", row <= 8, row)
@@ -2722,6 +2724,8 @@ def t_etf_income_v2(pg, b, base):
         o = mp.evaluate("() => { const r = (s) => document.querySelector(s).getBoundingClientRect(); return r('#incCdn').bottom <= r('#incClk').top + 1 && r('#incClk').bottom <= r('#incCTbl').top + 1; }")
         ok(f"★ [{tag}] 390：組合三欄改上下（甜甜圈→時鐘→明細）、無溢出", o and mp.evaluate(fit))
         mp.tap("#incMain button[data-v='x']"); mp.wait_for_timeout(2500)
+        yv = mp.evaluate("() => { const th = [...document.querySelectorAll('#cxTbl thead th')].find(e => e.textContent === '年化'), w = document.querySelector('#incPX .cxr').getBoundingClientRect(); if (!th) return null; const r = th.getBoundingClientRect(); return [Math.round(r.right), Math.round(w.right), getComputedStyle(document.querySelectorAll('#cxTbl thead th')[3]).display]; }")
+        ok(f"★ [{tag}] 390：複利右表「年化」欄在卡片內看得到（「比只領現金多」窄畫面隱藏）", yv and yv[0] <= yv[1] + 1 and yv[2] == "none", yv)
         ok(f"★ [{tag}] 390：複利試算表上下排、無溢出", mp.evaluate("() => document.getElementById('cxChart').dataset.state") == "ok" and mp.evaluate(fit) and mp.evaluate("() => document.getElementById('cxTbl').getBoundingClientRect().top >= document.getElementById('cxChart').getBoundingClientRect().bottom - 1"))
     finally:
         mp.close()

@@ -406,7 +406,11 @@
 #v-etf .inctabrow .inctabs{margin:0;min-width:0;flex:1 1 auto}
 #v-etf .inctabs button small{margin-left:6px;font:11.5px var(--mono);opacity:.8}
 #v-etf .csortw{display:inline-flex;align-items:center;gap:4px;font-size:13px;color:var(--ink-2);flex-wrap:wrap}
-#v-etf .csortw.dim{opacity:.55}
+#v-etf .cmbhd{flex-wrap:nowrap;align-items:center;gap:12px}#v-etf .cmbhd .incq{flex:1 1 auto;min-width:0;margin:0}#v-etf .cmbhd .csortw{flex:none}
+@media (max-width:900px){#v-etf .cmbhd{flex-wrap:wrap}}
+/* v8 收尾：窄畫面右表放不下五欄 → 隱藏「比只領現金多」（結論句裡有同一個數字），外層仍可橫捲保底 */
+#v-etf .cxr .simtw{overflow-x:auto}
+@media (max-width:640px){#v-etf #cxTbl tr > :nth-child(4){display:none}}
 #v-etf .mgrid.q4 .mcell{padding:8px 4px}
 #v-etf .mgrid.q4 .mcell b{font-size:14px;line-height:20px}
 #v-etf .cml{display:flex;flex-direction:column;gap:8px}
@@ -1508,8 +1512,7 @@
   <label class="chk"><input type="checkbox" id="incNhi"${S.inc.nhi ? ' checked' : ''}>扣除二代健保（單筆 ≥ 2 萬扣 2.11%）</label>
   <div class="grp"><b>報酬期間</b><span id="etfIncRngBox"></span></div>
 </div>
-<div class="inctabrow"><div class="nbsw inctabs" id="incTabs" role="tablist"><button type="button" role="tab" data-v="s">單檔 ETF</button></div>
-  <span class="csortw" id="incCSortW"><b>組合</b>（${segH('incCSort', [['cost', '投入最少'], ['tr', '含息報酬最高']], S.inc.csort)}）${hbtnH('incc', '組合怎麼找')}</span></div>
+<div class="inctabrow"><div class="nbsw inctabs" id="incTabs" role="tablist"><button type="button" role="tab" data-v="s">單檔 ETF</button></div></div>
 <div class="incsec" id="incSingle">
   <div class="row spread"><h3 data-icon="coins" data-tone="yield">單檔：要幾張、要多少錢 <small id="incYLab"></small> ${hbtnH('incs', '單檔試算怎麼看')}</h3>
     <span class="row" style="gap:6px"><small class="lbl">排序</small>${segH('incSort', SORT_L, S.inc.sort)}</span></div>
@@ -1525,12 +1528,12 @@
   <div class="incdet" id="incDet" hidden></div>
 </div>
 <div class="incsec" id="incCombo" hidden>
+  <div class="row spread cmbhd"><p class="incq" id="incCQ"></p><span class="csortw" id="incCSortW"><b>組合</b>（${segH('incCSort', [['cost', '投入最少'], ['tr', '含息報酬最高']], S.inc.csort)}）${hbtnH('incc', '組合怎麼找')}</span></div>
   ${howH('incc', ['季配 ETF 的發放月份錯開，三、四檔搭在一起就能每個月都有錢入帳。每月目標用上方「目標」：月領＝那個金額；年領＝年領 ÷ 12。',
     '<b>候選</b>：範圍內的月配／雙月配／季配、近 20 日均成交值 ≥ 2000 萬、殖利率前 20 檔；<b>窮舉</b> 2～4 檔，只留 12 個月都有配息的組合，前 5 名分成 A～E 分頁。',
     '<b>張數</b>：先補缺最多的月份（補那個月每元配息最便宜的那檔），直到每月 ≥ 目標，再逐檔把張數往下壓到剛好不破目標。每檔至少 1 張。',
     '<b>甜甜圈</b>＝各檔投入金額占比；<b>時鐘</b>＝12 個月，頂端 12 月、順時針，月份 m 落在 m 點鐘；<b>直條</b>＝每個月入帳金額。三張圖的顏色都＝甜甜圈上那檔的顏色（月份用當月主要入帳那檔）。',
     '未計入二代健保補充保費與所得稅；勾上方「扣除二代健保」會改用扣除後的金額。選定組合後，可到「複利試算表」看配息再投入的差別。'])}
-  <p class="incq" id="incCQ"></p>
   <div class="combos" id="incCombos"></div>
 </div>
 </div>
@@ -1609,7 +1612,6 @@
     $('#incNhi').checked = S.inc.nhi;
     $('#incPM').hidden = S.inc.main !== 'm'; $('#incPX').hidden = S.inc.main !== 'x';
     $('#incSingle').hidden = S.inc.tab !== 's'; $('#incCombo').hidden = S.inc.tab !== 'c';
-    $('#incCSortW').classList.toggle('dim', S.inc.tab !== 'c');
     if ($('#etfIncRng')) { const r = perRange(); window.RangePick.set($('#etfIncRng'), { value: S.per, from: r.from, to: r.to }); }
     if (S.fallback || !((S.data && S.data.calendar) || []).length) {
       $('#incSQ').textContent = '尚無配息資料'; $('#incList').innerHTML = ''; $('#incCombos').innerHTML = '<div class="etfprep">尚無配息資料</div>'; return;

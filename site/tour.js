@@ -121,7 +121,7 @@
     { t: '目標與範圍', sel: '#incPM .incctl', route: '#etf/inc', routeRe: /^#etf\/inc/, view: 'etf', before: () => { const b = $('#incMain button[data-v="m"]'); if (b && !b.classList.contains('on')) b.click(); },
       d: '先設每年或每月想領多少錢、算哪些 ETF、要不要扣二代健保；下面的張數與金額都跟著這裡算。' },
     { t: '單檔與組合 A～E', sel: '.inctabrow', route: '#etf/inc', routeRe: /^#etf\/inc/, view: 'etf',
-      d: '單檔＝每一檔要買幾張；組合 A～E＝幾檔搭在一起每個月都有入帳，右邊切組合的排序方式。' },
+      d: '單檔＝每一檔要買幾張；組合 A～E＝幾檔搭在一起每個月都有入帳，組合內容右上角切排序方式。' },
     { t: '複利試算表', sel: '#incMain', route: '#etf/inc', routeRe: /^#etf\/inc/, view: 'etf',
       d: '切到「複利試算表」看配息拿去再投入、只領現金、只看價格三種情境的報酬差多少。' },
   ];
