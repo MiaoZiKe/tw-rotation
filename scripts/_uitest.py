@@ -7020,10 +7020,8 @@ def t_new_flow(pg, base):
                 return { cls: b.classList.contains('livedim'), dis: i.disabled, pe: getComputedStyle(i).pointerEvents,
                          v: i.value, x: r.left + 4, y: r.top + r.height / 2 }; }""")
             if sd:
-                ok("資金分流樹：即時開著時日期拉Bar 反灰停用", sd["cls"] and sd["dis"] and sd["pe"] == "none", sd)
-                pg.mouse.click(sd["x"], sd["y"]); pg.wait_for_timeout(400)
-                ok("資金分流樹：即時開著時點拉Bar，日期**不會變**",
-                   pg.evaluate("() => document.querySelector('#sankeyDays input').value") == sd["v"])
+                # ★ 播放器1007b：改前（#283）即時開著反灰停用；改後不反灰、不停用（拖或按 ▶＝退出即時，在「播放普查1007」段真的操作）
+                ok("資金分流樹：即時開著時日期拉Bar **不反灰、不停用**", not sd["cls"] and not sd["dis"] and sd["pe"] != "none", sd)
             ok("鈕自己亮起來（看得出現在畫的不是收盤那一張）",
                pg.evaluate("() => document.getElementById('sankeyLiveBtn').classList.contains('on')"))
             tr = pg.evaluate(SKL_TREE)
@@ -8017,6 +8015,169 @@ def t_player_1007(pg, base):
             ok(f"[{sel} 390] 手機沒顯示這支播放器，它也沒有在背景跑",
                (a is None) or (a["t"] == b2["t"] and not a["on"]), (a, b2))
     pg.set_viewport_size({"width": 1440, "height": 900})
+
+
+def t_play_census_1007(b, base):
+    """播放普查1007（Andy 2026-10-07 三段原話：13:20「播放後再調整日期，再次點擊播放就不能做動」；
+    18:55「播放時右邊清單反灰不做動，等到播放結束才會更新」；21:05「播放動畫都是到當日數據截止，便不會再進行播放…不是說要反灰色」）。
+
+    全站播放器只有三支：#rotBack（足跡輪盤 dayBar）、#sankeyDays（資金分流樹 playBar）、#peEnd（本益比河流 playBar）。
+    （季節性、題材、K 線與其他拉Bar 都沒有 ▶，2026-09-20 拍板移除，不在普查範圍。）
+    每一支真的用滑鼠點，驗「日期真的變了」：
+      ① 停在最後一天按 ▶ → 從頭重播　② 調過日期後再 ▶ → 會動　③ 播到最後一格自己停（鈕回 ▶）→ 再 ▶ 重播
+    資金分流樹再加：播放中連續三格，右欄排名標題日期＝拉Bar 日期、整條祖先 opacity 1、沒有 filter；
+    「即時」開著時 ▶ 不反灰、按下去退出即時並開始播；「動態 開／關」切換不造成右欄反灰。
+    以管理者身分跑（TW_LIVE_OVERRIDE，只在本機認），才看得到 Andy 截圖裡那顆「即時」。淺色主題（截圖用）。"""
+    ctx = b.new_context(viewport={"width": 1440, "height": 900})
+    pg = ctx.new_page()
+    pg.route("**/fonts.googleapis.com/**", lambda r: r.abort())
+    pg.add_init_script("window.TW_LIVE_OVERRIDE = true; try { localStorage.setItem('tw.theme','light'); } catch (e) {}")
+    shot_dir = os.environ.get("PLAY_CENSUS_SHOT", "")
+
+    def st(sel):
+        return pg.evaluate("""(s) => { const b = document.querySelector(s); if (!b) return null;
+            const i = b.querySelector('input'), v = b.querySelector('.val'), p = b.querySelector('.pb.play');
+            return { v: i ? +i.value : null, min: i ? +i.min : null, max: i ? +i.max : null,
+                     t: v ? v.textContent.trim() : '', play: p ? p.textContent : '', pdis: p ? p.disabled : null,
+                     f: (s === '#rotBack' && window.App.rotFrameNow) ? window.App.rotFrameNow() : null }; }""", sel)
+
+    RANK = """() => { const r = document.querySelector('#sankeyRank'); if (!r) return null;
+        let e = r, op = 1; const fl = [];
+        while (e && e !== document.documentElement) { const cs = getComputedStyle(e); op *= +cs.opacity;
+          if (cs.filter !== 'none') fl.push((e.id || e.className) + ':' + cs.filter); e = e.parentElement; }
+        const rows = [...r.querySelectorAll('.skr-r')];
+        rows.slice(0, 3).forEach(x => { const cs = getComputedStyle(x); op = Math.min(op, op * +cs.opacity);
+          if (cs.filter !== 'none') fl.push('row:' + cs.filter); });
+        return { title: (r.querySelector('.skr-t') || {}).textContent || '', op, fl, hid: r.hidden, n: rows.length,
+                 dis: rows.some(x => x.disabled || x.getAttribute('aria-disabled') === 'true') }; }"""
+
+    def ptitle_ok(rk, s):
+        # 拉Bar 寫「最新」時沒有日期可比；其他時候右欄標題的日期要跟拉Bar 一字不差
+        return bool(rk) and (s["t"] == "最新" or s["t"] in rk["title"])
+
+    # ---------------------------------------------------------------- 資金分流樹
+    pg.goto(f"{base}#flow/sankey", wait_until="networkidle")
+    if ok("[播放普查] #sankeyDays 有 ▶", bool(wait_until(pg, "() => !!document.querySelector('#sankeyDays .pb.play')", 15000))):
+        pg.locator("#sankeyDays").scroll_into_view_if_needed(); pg.wait_for_timeout(400)
+        s0 = st("#sankeyDays")
+        ok("[資金分流樹] 一進來停在最後一天（最新）", s0["v"] == s0["max"], s0)
+        pg.click("#sankeyDays .pb.play"); pg.wait_for_timeout(250)
+        s1 = st("#sankeyDays")
+        ok("[資金分流樹] ① 停在最後一天按 ▶ → 從頭重播（日期真的變、回到最前面）",
+           s1["t"] != s0["t"] and s1["v"] <= s1["min"] + 1 and s1["play"] == "⏸", (s0, s1))
+        frames = []
+        for k in range(3):
+            pg.wait_for_timeout(700)
+            s = st("#sankeyDays"); rk = pg.evaluate(RANK)
+            frames.append((s["t"], rk["title"]))
+            ok(f"[資金分流樹] 播放中第 {k+1} 格：右欄標題日期＝拉Bar 日期（{s['t']}）", ptitle_ok(rk, s), (s, rk))
+            ok(f"[資金分流樹] 播放中第 {k+1} 格：右欄 opacity 1、沒有 filter、沒有停用",
+               rk["op"] >= 0.99 and not rk["fl"] and not rk["dis"] and not rk["hid"], rk)
+            if shot_dir:
+                try:
+                    os.makedirs(shot_dir, exist_ok=True)
+                    pg.locator("#flowSankeyCard").screenshot(path=os.path.join(shot_dir, f"sankey_play_{k+1}.png"))
+                except Exception as e:
+                    print("  截圖失敗", e)
+        ok("[資金分流樹] 連續三格的日期都不一樣（右欄真的跟著每一天換）", len({f[1] for f in frames}) == 3, frames)
+        # 播放中按 − ＝自己選日期 → 停；再 ▶ 要接著往後走
+        pg.click("#sankeyDays .pb.step >> nth=0"); pg.wait_for_timeout(250)
+        a = st("#sankeyDays")
+        ok("[資金分流樹] 播放中按 − → 停下、停在選的那一格", a["play"] == "▶", a)
+        pg.click("#sankeyDays .pb.play"); pg.wait_for_timeout(250)
+        c = st("#sankeyDays")
+        ok("[資金分流樹] ② 調過日期再按 ▶ → 日期真的往後走", c["v"] == a["v"] + 1 and c["play"] == "⏸", (a, c))
+        pg.click("#sankeyDays .pb.play"); pg.wait_for_timeout(150)
+        # ③ 播到最後一格自然停 → 再 ▶ 重播
+        pg.focus("#sankeyDays input"); pg.keyboard.press("End"); pg.keyboard.press("ArrowLeft"); pg.keyboard.press("ArrowLeft")
+        pg.wait_for_timeout(250)
+        pg.click("#sankeyDays .pb.play"); pg.wait_for_timeout(2600)
+        e = st("#sankeyDays"); rk = pg.evaluate(RANK)
+        ok("[資金分流樹] ③ 播到最後一天自己停（鈕回 ▶、停在最新）", e["play"] == "▶" and e["v"] == e["max"], e)
+        ok("[資金分流樹] ③ 停下時右欄就是最後一天、不反灰", ptitle_ok(rk, e) and rk["op"] >= 0.99, rk)
+        pg.wait_for_timeout(900)
+        ok("[資金分流樹] ③ 停下之後不會又自己跳回第一天（不再無限循環）", st("#sankeyDays")["v"] == e["max"])
+        pg.click("#sankeyDays .pb.play"); pg.wait_for_timeout(250)
+        r = st("#sankeyDays")
+        ok("[資金分流樹] ③ 播完再按 ▶ → 從頭重播", r["v"] <= r["min"] + 1 and r["play"] == "⏸", (e, r))
+        pg.click("#sankeyDays .pb.play"); pg.wait_for_timeout(200)
+        # 「動態 開／關」不造成右欄反灰
+        if pg.locator("#sankey .ftbtn").count():
+            mb = pg.locator("#sankey .ftbtn").first
+            for _ in range(2):
+                mb.click(); pg.wait_for_timeout(300)
+                rk = pg.evaluate(RANK)
+                ok(f"[資金分流樹] 切成「{mb.text_content()}」之後右欄 opacity 1、沒有 filter", rk["op"] >= 0.99 and not rk["fl"], rk)
+        # 即時開著（Andy 21:05 截圖的狀態）：▶ 不反灰；停在最新按 ▶ 會退出即時並從頭播
+        if ok("[資金分流樹] 管理者看得到「即時」鈕", pg.locator("#sankeyLiveBtn").count() == 1):
+            pg.focus("#sankeyDays input"); pg.keyboard.press("End"); pg.wait_for_timeout(300)
+            pg.click("#sankeyLiveBtn"); pg.wait_for_timeout(800)
+            d = pg.evaluate("""() => { const b = document.querySelector('#sankeyDays'), p = b.querySelector('.pb.play');
+                return { dim: b.classList.contains('livedim'), dis: p.disabled, op: +getComputedStyle(p).opacity,
+                         fl: getComputedStyle(p).filter, live: !!window.App.sankeyLive().on }; }""")
+            ok("[資金分流樹] 即時開著：▶ 不反灰、不停用（Andy：「不是說要反灰色」）",
+               d["live"] and not d["dim"] and not d["dis"] and d["op"] >= 0.99 and d["fl"] == "none", d)
+            e0 = st("#sankeyDays")
+            pg.click("#sankeyDays .pb.play"); pg.wait_for_timeout(300)
+            e1 = st("#sankeyDays")
+            ok("[資金分流樹] 即時開著、停在最新按 ▶ → 退出即時、從頭播（日期真的變）",
+               e1["t"] != e0["t"] and e1["play"] == "⏸" and not pg.evaluate("() => window.App.sankeyLive().on"), (e0, e1))
+            pg.click("#sankeyDays .pb.play"); pg.wait_for_timeout(200)
+
+    # ---------------------------------------------------------------- 足跡輪盤（dayBar：值＝N 天前，回放走到最新就停）
+    pg.goto(f"{base}#flow", wait_until="networkidle"); pg.wait_for_timeout(2500)
+    if ok("[播放普查] #rotBack 有 ▶", pg.locator("#rotBack .pb.play").count() == 1):
+        pg.locator("#rotBack").scroll_into_view_if_needed(); pg.wait_for_timeout(300)
+        for _ in range(40):
+            if (st("#rotBack")["v"] or 0) <= 3:
+                break
+            pg.click("#rotBack .pb.step >> nth=0"); pg.wait_for_timeout(50)
+        s0 = st("#rotBack")
+        ok("[足跡輪盤] 一開始停在最新（frame 0）", s0["f"] == 0, s0)
+        pg.click("#rotBack .pb.play"); pg.wait_for_timeout(250)
+        s1 = st("#rotBack")
+        ok("[足跡輪盤] ① 停在最新按 ▶ → 從 N 天前重播", bool(s1["f"]) and s1["f"] >= s0["v"] - 1 and s1["t"] != s0["t"], (s0, s1))
+        pg.wait_for_timeout(3000)
+        e = st("#rotBack")
+        ok("[足跡輪盤] ③ 走到最新自己停、鈕回 ▶", e["f"] == 0 and e["play"] == "▶", e)
+        pg.click("#rotBack .pb.play"); pg.wait_for_timeout(250)
+        r = st("#rotBack")
+        ok("[足跡輪盤] ③ 播完再按 ▶ → 重播", bool(r["f"]) and r["play"] == "⏸", (e, r))
+        pg.click("#rotBack .pb.step >> nth=1"); pg.wait_for_timeout(250)   # 播放中按 ＋ 調天數 → 停
+        a = st("#rotBack")
+        pg.click("#rotBack .pb.play"); pg.wait_for_timeout(250)
+        c = st("#rotBack")
+        ok("[足跡輪盤] ② 調過天數再按 ▶ → 真的開始回放（日期真的變）",
+           c["play"] == "⏸" and c["t"] != a["t"] and bool(c["f"]), (a, c))
+        pg.click("#rotBack .pb.play"); pg.wait_for_timeout(200)
+
+    # ---------------------------------------------------------------- 本益比河流（個股 → 獲利）
+    pg.goto(f"{base}#stock/2330", wait_until="networkidle"); pg.wait_for_timeout(2600)
+    if pg.locator('#stockTabs button[data-t="profit"]').count():
+        pg.click('#stockTabs button[data-t="profit"]'); pg.wait_for_timeout(1600)
+    if ok("[播放普查] #peEnd 有 ▶", bool(wait_until(pg, "() => !!document.querySelector('#peEnd .pb.play')", 10000))):
+        pg.locator("#peEnd").scroll_into_view_if_needed(); pg.wait_for_timeout(300)
+        pg.focus("#peEnd input"); pg.keyboard.press("End"); pg.wait_for_timeout(300)
+        s0 = st("#peEnd")
+        pg.click("#peEnd .pb.play"); pg.wait_for_timeout(250)
+        s1 = st("#peEnd")
+        ok("[本益比河流] ① 停在最後一格按 ▶ → 從頭重播",
+           s1["v"] <= s1["min"] + 1 and s1["t"] != s0["t"] and s1["play"] == "⏸", (s0, s1))
+        pg.click("#peEnd .pb.step >> nth=1"); pg.wait_for_timeout(250)
+        a = st("#peEnd")
+        pg.click("#peEnd .pb.play"); pg.wait_for_timeout(250)
+        c = st("#peEnd")
+        ok("[本益比河流] ② 調過日期再按 ▶ → 會動", c["v"] == a["v"] + 1 and c["play"] == "⏸", (a, c))
+        pg.click("#peEnd .pb.play"); pg.wait_for_timeout(150)
+        pg.focus("#peEnd input"); pg.keyboard.press("End"); pg.keyboard.press("ArrowLeft"); pg.wait_for_timeout(250)
+        pg.click("#peEnd .pb.play"); pg.wait_for_timeout(1800)
+        e = st("#peEnd")
+        ok("[本益比河流] ③ 播到最後一格自己停", e["play"] == "▶" and e["v"] == e["max"], e)
+        pg.click("#peEnd .pb.play"); pg.wait_for_timeout(250)
+        r = st("#peEnd")
+        ok("[本益比河流] ③ 播完再按 ▶ → 重播", r["v"] <= r["min"] + 1 and r["play"] == "⏸", (e, r))
+        pg.click("#peEnd .pb.play")
+    ctx.close()
 
 
 def t_new_clock(pg, base):
@@ -25431,6 +25592,8 @@ SECTIONS = {
     "新-輪動時鐘":         lambda pg, b, base, code: t_new_clock(pg, base),
     # ★ 2026-10-07 Andy：「播放後再調整日期，再次點擊播放就不能做動」→ 全站三支播放器真操作
     "播放器1007":          lambda pg, b, base, code: t_player_1007(pg, base),
+    # ★ 2026-10-07 晚 Andy：「播放動畫都是到當日數據截止便不會再播放…不是說要反灰色」—— 三支播放器普查＋資金分流樹右欄跟著每一天換（⚠ --workers 1）
+    "播放普查1007":        lambda pg, b, base, code: t_play_census_1007(b, base),
     # ★ 2026-10-07 Andy：改名（資金分流樹／族群資金排行）＋樹旁「資金流向排名」右表＋族群成分股依流入排序（含 390）
     "資金分流樹右欄1007":  lambda pg, b, base, code: t_flow_tree_1007(pg, base),
     "資金分流樹播放1007":  lambda pg, b, base, code: t_flow_tree_play_1007(pg, base),
@@ -31191,18 +31354,20 @@ def t_rot_live(pg, base):
             return { cls: b.classList.contains('livedim'), dis: i.disabled, aria: i.getAttribute('aria-disabled'),
                      tip: i.title, op: +getComputedStyle(i).opacity, pe: getComputedStyle(i).pointerEvents,
                      play: pl ? pl.disabled : null, live: lv ? getComputedStyle(lv).pointerEvents : '' }; }""")
-        ok("即時開著：拉Bar 反灰停用（.livedim、disabled、aria-disabled、半透明、點不到）",
-           dim["cls"] and dim["dis"] and dim["aria"] == "true" and dim["op"] < 0.5 and dim["pe"] == "none", dim)
-        ok("停用時提示寫「關閉即時才能回看歷史」", "關閉即時才能回看歷史" in (dim["tip"] or ""), dim["tip"])
-        ok("▶ 播放鈕也一起停用；「即時」鈕本身仍然按得到", dim["play"] is not False and dim["live"] != "none", dim)
-        v1 = _drag(box, 0.15)
-        ok(f"即時開著時用滑鼠拖拉Bar，值**不會變**（{box['v']} → {v1}），即時也還開著",
-           v1 == box["v"] and pg.evaluate("() => window.App.rotLive().on"), {"前": box["v"], "後": v1})
-        pg.eval_on_selector("#rotLiveBtn", "b => b.click()")
-        pg.wait_for_timeout(900)
-        ok("關掉即時：拉Bar 恢復可用（沒有 .livedim、沒有 disabled）",
-           pg.evaluate("""() => { const b = document.getElementById('rotBack'), i = b.querySelector('input.days');
-               return !b.classList.contains('livedim') && !i.disabled && !i.hasAttribute('aria-disabled'); }"""))
+        # ★ 播放器1007b（Andy 10-07 21:05：「圖一功能不是說要反灰色」＋「到當日數據截止便不會再播放」）：
+        #   改前（#283）：即時開著 → 拉Bar／− ＋ ▶ 全部反灰停用，▶ 按不動。
+        #   改後：同一排有「即時」鈕的拉Bar 不反灰、不停用；拖 N 天＝照舊不退出即時，按 ▶＝退出即時、從 N 天前回放。
+        ok("即時開著：拉Bar **不反灰、不停用**（沒有 .livedim、沒有 disabled、不透明、點得到）",
+           not dim["cls"] and not dim["dis"] and dim["aria"] is None and dim["op"] >= 0.99 and dim["pe"] != "none", dim)
+        ok("▶ 播放鈕也按得到；「即時」鈕本身仍然按得到", dim["play"] is False and dim["live"] != "none", dim)
+        v1 = _drag(box, 0.15 if box["v"] > 8 else 0.85)
+        ok(f"即時開著時用滑鼠拖 N 天，值**真的變了**（{box['v']} → {v1}），點還在最新所以即時照開",
+           v1 != box["v"] and pg.evaluate("() => window.App.rotLive().on"), {"前": box["v"], "後": v1})
+        pg.click("#rotBack .pb.play"); pg.wait_for_timeout(700)
+        ok("即時開著時按 ▶：退出即時、真的開始回放（frame > 0）",
+           not pg.evaluate("() => window.App.rotLive().on") and (pg.evaluate("() => window.App.rotFrameNow()") or 0) > 0,
+           pg.evaluate("() => [window.App.rotLive().on, window.App.rotFrameNow()]"))
+        pg.click("#rotBack .pb.play"); pg.wait_for_timeout(300)
         box = pg.evaluate(_rot_drag)
         sub0 = sub_range(pg, "rankSub")
         v2 = _drag(box, 0.15 if box["v"] > 8 else 0.85)
