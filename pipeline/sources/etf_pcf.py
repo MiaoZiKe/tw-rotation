@@ -33,8 +33,10 @@ log = logging.getLogger(__name__)
 COLS = ["date", "etf", "code", "name", "weight", "shares", "issuer", "src"]
 TIMEOUT = 30
 
-# 非股票型（債券／槓桿反向／期貨／匯率／商品）在這裡就跳過：沒有個股成分，抓了也是白抓。
-_SKIP_SUFFIX = re.compile(r"[BLRUKD]$")
+# 槓桿反向／期貨／匯率／商品（尾碼 L R U K）在這裡就跳過：資產是期貨契約，沒有成分可列。
+# 2026-10-08 起債券型（B）與主動債券型（D）不再跳過：Andy 要「所有 ETF 都要有成分股」，
+# 8 家投信的債券表在 Actions 上實測過（probe-etf-pcf.yml mode=bond，run 37679529998／37680170965），各家 parser 都收債券。
+_SKIP_SUFFIX = re.compile(r"[LRUK]$")
 
 
 def _skip_code(code: str) -> bool:
@@ -106,6 +108,29 @@ def _req(method: str, url: str, *, json_body: Any = None, params: dict | None = 
     return None
 
 
+_FRAC = {"1/8": .125, "1/4": .25, "3/8": .375, "1/2": .5, "5/8": .625, "3/4": .75, "7/8": .875}
+
+
+def bond_terms(name: str) -> tuple[float | None, str | None]:
+    """從債券簡稱讀出票面利率與到期日（各家投信沒有獨立欄位，但名稱照彭博慣例寫在裡面）：
+    「T 3.8 12/01/57」「ACGB 4 1/4 10/21/36」「US TREASURY N/B 4.75% 05/15/2055」「INTEL CORP 5.9-2063/02/10」
+    「EIX V8.125 06/15/53」（V＝浮動轉固定，照寫的利率）。讀不出來回 (None, None)，前端就只顯示名稱。"""
+    t = str(name or "")
+    m = re.search(r"(\d+(?:\.\d+)?)-(\d{4})/(\d{1,2})/(\d{1,2})\s*$", t)          # 國泰：5.9-2063/02/10
+    if m:
+        return float(m.group(1)), f"{int(m.group(2)):04d}-{int(m.group(3)):02d}-{int(m.group(4)):02d}"
+    m = re.search(r"\sV?(\d+(?:\.\d+)?)(?:\s+(\d/\d))?%?\s+(\d{1,2})/(\d{1,2})/(\d{2}|\d{4})\b", t)
+    if not m:
+        return None, None
+    cpn = float(m.group(1)) + _FRAC.get(m.group(2) or "", 0.0)
+    y = int(m.group(5))
+    y = y if y >= 1000 else 2000 + y   # 兩位數年份：目前在外流通的債最晚到 2099，一律 20xx
+    mo, d = int(m.group(3)), int(m.group(4))
+    if not (1 <= mo <= 12 and 1 <= d <= 31) or cpn > 30:
+        return None, None
+    return cpn, f"{y:04d}-{mo:02d}-{d:02d}"
+
+
 def _frame(rows: list[dict]) -> pd.DataFrame:
     if not rows:
         return pd.DataFrame(columns=COLS)
@@ -134,6 +159,11 @@ def parse_capital(etf: str, payload: dict) -> list[dict]:
         out.append({"date": day, "etf": etf, "code": str(s.get("stocNo") or "").strip(),
                     "name": (s.get("stocName") or "").strip(), "weight": _num(s.get("weight")),
                     "shares": _num(s.get("share")), "issuer": "群益", "src": CAPITAL_PCF})
+    # 債券型：data.bonds[] {bondNo（ISIN）, bondName, weight（%）, faceValue（面額，原幣）}（2026-10-08 實測 00722B）
+    for b in data.get("bonds") or []:
+        out.append({"date": day, "etf": etf, "code": str(b.get("bondNo") or "").strip(),
+                    "name": str(b.get("bondName") or "").strip(), "weight": _num(b.get("weight")),
+                    "shares": _num(b.get("faceValue")), "issuer": "群益", "src": CAPITAL_PCF})
     return out
 
 
@@ -150,7 +180,7 @@ def capital() -> pd.DataFrame:
             continue
         p = _req("POST", CAPITAL_PCF, json_body={"fundId": fid, "date": None})
         got = parse_capital(code, p) if p else []
-        if p and not got and ((p.get("data") or {}).get("stocks") is None):
+        if p and not got and ((p.get("data") or {}).get("stocks") is None) and ((p.get("data") or {}).get("bonds") is None):
             log.info("群益 %s 沒有股票清單（前 200 字）：%s", code, _snip(p))
         rows += got
     return _frame(rows)
@@ -166,10 +196,12 @@ def parse_nomura(etf: str, payload: dict) -> list[dict]:
     day = _iso((data.get("FundAsset") or {}).get("NavDate"))
     out = []
     for tb in data.get("Table") or []:
-        if "股票" not in str(tb.get("TableTitle") or ""):
+        if not any(k in str(tb.get("TableTitle") or "") for k in ("股票", "債券")):
             continue
+        # 股票表：[股票代號, 股票名稱, 股數, 權重(%)]；債券表（00987B 實測）：[債券代碼, 債券名稱, 面值, 市值, 持債比例]
         cols = [str(c.get("Name") or "") for c in tb.get("Columns") or []]
-        ix = {k: next((i for i, c in enumerate(cols) if k in c), None) for k in ("代號", "名稱", "股數", "權重")}
+        syn = {"代號": ("代號", "代碼"), "名稱": ("名稱",), "股數": ("股數", "面值", "面額"), "權重": ("權重", "比例")}
+        ix = {k: next((i for i, c in enumerate(cols) if any(w in c for w in ws)), None) for k, ws in syn.items()}
         if ix["代號"] is None or ix["權重"] is None:
             log.warning("野村 %s 欄位對不上：%s", etf, cols)
             continue
@@ -205,7 +237,7 @@ def parse_fuhhwa(payload: dict) -> list[dict]:
         etf = str(blk.get("etf002") or "").strip()
         day = _iso(blk.get("dDate"))
         for d in blk.get("detail") or []:
-            if str(d.get("ftype") or "") != "股票":
+            if str(d.get("ftype") or "") not in ("股票", "債券"):   # 債券：00710B 實測同一張 detail，ftype=債券
                 continue
             out.append({"date": day, "etf": etf, "code": str(d.get("stockid") or "").strip(),
                         "name": str(d.get("stockname") or "").strip(), "weight": _num(d.get("prate_addaccint")),
@@ -252,7 +284,8 @@ def parse_uni(etf: str, payload: dict) -> list[dict]:
             break
     out = []
     for a in payload.get("asset") or []:
-        if not isinstance(a, dict) or "股" not in str(a.get("AssetName") or ""):
+        # 股票類與債券類（AssetCode=BD、AssetName=債券；Share＝面額，00853B 實測）；期貨（名目本金）不算成分
+        if not isinstance(a, dict) or not any(k in str(a.get("AssetName") or "") for k in ("股", "債")):
             continue
         for d in a.get("Details") or []:
             code = str(d.get("DetailCode") or "").strip()
@@ -335,6 +368,17 @@ def parse_kgi(etf: str, frag: str) -> list[dict]:
         if len(tds) >= 4 and re.match(r"^\d{4,6}[A-Z]?$", tds[0]):
             out.append({"date": day, "etf": etf, "code": tds[0], "name": tds[1], "weight": _num(tds[3]),
                         "shares": _num(tds[2]), "issuer": "凱基", "src": KGI_PCF})
+    # 債券型（2026-10-08 實測 凱基A級公司債）：<ul class="js-bond-list"> 裡每列 <li name="content"> 五個 <span>：
+    # [債券代碼, 債券名稱, 面額, 市值, 持債比例]；資料日期在「持債特性 (2026/10/06)」，比片段裡第一個日期（預估發行日）準。
+    bl = re.search(r'js-bond-list.*?</ul>', t, re.S)
+    if bl:
+        pm = re.search(r"持債特性\s*\((\d{4}/\d{1,2}/\d{1,2})\)", t)
+        bday = _iso(pm.group(1)) if pm else day
+        for li in re.findall(r'<li name="content"[^>]*>(.*?)</li>', bl.group(0), re.S):
+            sp = [re.sub(r"<[^>]+>", "", x).strip() for x in re.findall(r"<span[^>]*>(.*?)</span>", li, re.S)]
+            if len(sp) >= 5 and sp[0]:
+                out.append({"date": bday, "etf": etf, "code": sp[0], "name": sp[1], "weight": _num(sp[4]),
+                            "shares": _num(sp[2]), "issuer": "凱基", "src": KGI_PCF})
     return out
 
 
@@ -365,6 +409,16 @@ def kgi(names: dict[str, str]) -> pd.DataFrame:
 CATHAY_LIST = "https://cwapi.cathaysite.com.tw/api/ETF/GetETFList"
 CATHAY_ASSETS = "https://cwapi.cathaysite.com.tw/api/ETF/GetETFAssets"
 CATHAY_STOCKS = "https://cwapi.cathaysite.com.tw/api/ETF/GetETFDetailStockList"
+CATHAY_BONDS = "https://cwapi.cathaysite.com.tw/api/ETF/GetETFDetailBondList"   # 2026-10-08 實測（00687B、00725B）
+
+
+def parse_cathay_bond(etf: str, day: str | None, payload: dict) -> list[dict]:
+    """GetETFDetailBondList：result[] {bondNo, bondName（例「INTEL CORP 5.9-2063/02/10」）, parValue（面額）, ntMkval（占淨值 %）}。"""
+    out = []
+    for r in (payload or {}).get("result") or []:
+        out.append({"date": day, "etf": etf, "code": str(r.get("bondNo") or "").strip(), "name": str(r.get("bondName") or "").strip(),
+                    "weight": _num(r.get("ntMkval")), "shares": _num(r.get("parValue")), "issuer": "國泰", "src": CATHAY_BONDS})
+    return out
 
 
 def parse_cathay(etf: str, day: str | None, payload: dict) -> list[dict]:
@@ -409,6 +463,8 @@ def cathay(today: dt.date | None = None) -> pd.DataFrame:
             continue
         p = _req("GET", CATHAY_STOCKS, params={"FundCode": fc, "SearchDate": day.replace("-", "/")}, retries=1)
         got = parse_cathay(etf, day, p)
+        if not got:   # 債券型：股票清單是空的，改要債券清單
+            got = parse_cathay_bond(etf, day, _req("GET", CATHAY_BONDS, params={"FundCode": fc, "SearchDate": day.replace("-", "/")}, retries=1))
         if not got:
             log.info("國泰 %s 沒有股票清單（前 200 字）：%s", etf, _snip(p))
         rows += got
@@ -427,7 +483,7 @@ def parse_ctbc(etf: str, payload: dict) -> list[dict]:
     day = _iso(fa.get("資料日期")) or _iso(fa.get("NAV_DT"))
     out = []
     for blk in data.get("FundAssetsDetail") or []:
-        if str(blk.get("Code") or "").upper() != "STOCK":
+        if str(blk.get("Code") or "").upper() not in ("STOCK", "BOND"):   # BOND 同一組欄位（00772B 實測）；CASH 不算
             continue
         for r in blk.get("Data") or []:
             out.append({"date": day, "etf": etf, "code": str(r.get("code_") or "").strip(), "name": str(r.get("name_") or "").strip(),
@@ -615,6 +671,11 @@ def parse_yuanta(etf: str, page: str) -> list[dict]:
         if isinstance(s, dict) and s.get("code"):
             out.append({"date": day, "etf": etf, "code": str(s.get("code")).strip(), "name": str(s.get("name") or "").strip(),
                         "weight": _num(s.get("weights")), "shares": _num(s.get("qty")), "issuer": "元大", "src": src})
+    # 債券型（00679B、00720B 實測）：BondWeights[] {code, name, weights（%）, FACE_AMT（面額）, qty（市值）}
+    for s in (fw or {}).get("BondWeights") or []:
+        if isinstance(s, dict) and s.get("code"):
+            out.append({"date": day, "etf": etf, "code": str(s.get("code")).strip(), "name": str(s.get("name") or "").strip(),
+                        "weight": _num(s.get("weights")), "shares": _num(s.get("FACE_AMT")), "issuer": "元大", "src": src})
     if out:
         return out
     comp = _nuxt_pick(body, "FundComposition", env) or []
@@ -1040,6 +1101,185 @@ def uob() -> pd.DataFrame:
     return _frame(rows)
 
 
+# ───────────────────────────────────────────── 永豐（sitc.sinopac.com）
+# 2026-10-08 Actions 實測：永豐投信官網是 sitc.sinopac.com（首頁 meta refresh 到 /newweb/），ETF 專區 /SinopacEtfs/，
+# 「現金申購買回清單」頁 GET /SinopacEtfs/Etfs/Pcf?fundId=<代號>（伺服器端渲染；<select id=fundlist> 就是自家 ETF 清單，
+# 帶 fundId 會回那一檔，selected 的 option 等於要的代號）。每個資產類別一個 <div class="cash_title-s">股票|債券|期貨…</div>
+# 後面一張 PC 版表：股票 [證券代碼, 證券名稱, 股數, 權重%]、債券 [債券代碼, 債券名稱, 面額, 權重%]。
+# 資料日期取「2026/10/07&nbsp;基金淨資產價值(元)」那個淨值日（頁首日期是公告日，不是持股日）。
+SINOPAC_PCF = "https://sitc.sinopac.com/SinopacEtfs/Etfs/Pcf"
+
+
+def sinopac_codes(page: str) -> list[str]:
+    m = re.search(r'<select[^>]*id="fundlist".*?</select>', page or "", re.S)
+    return re.findall(r'value="([0-9A-Z]+)"', m.group(0)) if m else []
+
+
+def parse_sinopac(etf: str, page: str) -> list[dict]:
+    if not isinstance(page, str):
+        return []
+    sel = re.search(r'<option[^>]*selected[^>]*value="([0-9A-Z]+)"', page) or re.search(r'<option[^>]*value="([0-9A-Z]+)"[^>]*selected', page)
+    if sel and sel.group(1) != etf:
+        log.info("永豐 %s 官網回的是 %s 的頁面，略過", etf, sel.group(1))
+        return []
+    m = re.search(r"(\d{4}/\d{1,2}/\d{1,2})(?:&nbsp;|\s)*基金淨資產價值", page)
+    day = _iso(m.group(1)) if m else None
+    out = []
+    for kind, rest in re.findall(r'<div class="cash_title-s">\s*([^<]+?)\s*</div>(.*?)(?=<div class="cash_title-s">|$)', page, re.S):
+        if kind not in ("股票", "債券"):
+            continue
+        tb = re.search(r"<table.*?</table>", rest, re.S)          # 第一張是 PC 版（每列一檔）；行動版是直的，不讀
+        if not tb:
+            continue
+        for tr in re.findall(r"<tr[^>]*>(.*?)</tr>", tb.group(0), re.S):
+            c = _cells(tr)
+            if len(c) < 4 or not c[0]:
+                continue
+            out.append({"date": day, "etf": etf, "code": c[0], "name": c[1], "weight": _num(c[3]), "shares": _num(c[2]),
+                        "issuer": "永豐", "src": f"{SINOPAC_PCF}?fundId={etf}"})
+    return out
+
+
+def sinopac() -> pd.DataFrame:
+    first = _req("GET", SINOPAC_PCF, expect="text")
+    codes = sinopac_codes(first or "")
+    if not codes:
+        log.warning("永豐 PCF 頁找不到基金選單（前 200 字）：%s", _snip(first))
+        return pd.DataFrame(columns=COLS)
+    rows: list[dict] = []
+    for c in codes:
+        if _skip_code(c):
+            continue
+        time.sleep(0.5)
+        page = _req("GET", SINOPAC_PCF, params={"fundId": c}, expect="text")
+        got = parse_sinopac(c, page) if page else []
+        if page and not got:
+            log.info("永豐 %s 沒有股票／債券表（前 200 字）：%s", c, _snip(page))
+        rows += got
+    return _frame(rows)
+
+
+# ───────────────────────────────────────────── 玉山（www.esunam.com；原保德信投信，2025-10 更名）
+# 2026-10-08 實測：網域是 esunam.com（不是 .com.tw；WebSearch 查到客服信箱 service.mailbox@esunam.com 與官網 www.esunam.com 兩處對得上），
+# 申購買回清單頁 /ETF/etf-pcf 背後 POST /ETFAPI/GetFundTradeInfo {"FundNo":"50"}：
+# Entries.CFundShortName（簡稱，沒有代號）、CNavDt（淨值日）、DynamicTableData[]＝{TableTitle 股票|債券|期貨|持債特性, Columns, Rows}。
+# 清單 API（GetETFFundSelectList）空 body 回「查無基金」，所以 FundNo 用掃的（實測 50～53 是 ETF），再用簡稱對回代號。
+ESUN_PCF = "https://www.esunam.com/ETFAPI/GetFundTradeInfo"
+ESUN_SCAN = range(45, 76)    # 目前 50～53；前後留空間給新掛牌的，一輪 31 個小請求
+
+
+def parse_esun(etf: str, payload: Any) -> list[dict]:
+    e = (payload or {}).get("Entries") if isinstance(payload, dict) else None
+    if not isinstance(e, dict):
+        return []
+    day = _iso(e.get("CNavDt"))
+    out = []
+    for tb in e.get("DynamicTableData") or []:
+        if str(tb.get("TableTitle") or "") not in ("股票", "債券"):
+            continue
+        cols = [str(c.get("Name") or "") for c in tb.get("Columns") or []]
+        ix = {k: next((i for i, c in enumerate(cols) if any(w in c for w in ws)), None)
+              for k, ws in (("code", ("代號", "代碼")), ("name", ("名稱",)), ("qty", ("股數", "面額")), ("w", ("權重",)))}
+        if ix["code"] is None or ix["w"] is None:
+            log.warning("玉山 %s 欄位對不上：%s", etf, cols)
+            continue
+        for r in tb.get("Rows") or []:
+            g = lambda k: r[ix[k]] if ix[k] is not None and ix[k] < len(r) else None  # noqa: E731
+            if not g("code"):
+                continue
+            out.append({"date": day, "etf": etf, "code": str(g("code")).strip(), "name": str(g("name") or "").strip(),
+                        "weight": _num(g("w")), "shares": _num(g("qty")), "issuer": "玉山", "src": ESUN_PCF})
+    return out
+
+
+def _name_match(short: str, names: dict[str, str]) -> str | None:
+    """官網簡稱 → 代號。先完全相同，再互相包含（官網「玉山全球算力」vs 證交所「玉山未來全球算力」）；多於一檔對中就不猜。"""
+    n = _norm(short)
+    if not n:
+        return None
+    by = {_norm(v): c for c, v in names.items()}
+    if n in by:
+        return by[n]
+    strip = lambda x: re.sub(r"^玉山", "", x)  # noqa: E731 —— 去掉投信名再比，「全球算力」才包得進「未來全球算力」
+    sn = strip(n)
+    hit = [c for k, c in by.items() if sn and strip(k) and (sn in strip(k) or strip(k) in sn)]
+    return hit[0] if len(hit) == 1 else None
+
+
+def esun(names: dict[str, str]) -> pd.DataFrame:
+    mine = {c: n for c, n in names.items() if issuer_of(n) == "玉山"}
+    rows: list[dict] = []
+    for no in ESUN_SCAN:
+        time.sleep(0.2)
+        p = _req("POST", ESUN_PCF, json_body={"FundNo": str(no)}, retries=1)
+        e = (p or {}).get("Entries") if isinstance(p, dict) else None
+        if not isinstance(e, dict) or not e.get("CFundShortName"):
+            continue
+        code = _name_match(e["CFundShortName"], mine)
+        if not code:
+            log.info("玉山 FundNo=%s「%s」對不到 ETF 代號", no, e.get("CFundShortName"))
+            continue
+        got = parse_esun(code, p)
+        if not got:
+            log.info("玉山 %s 沒有股票／債券表（前 200 字）：%s", code, _snip(p))
+        rows += got
+    return _frame(rows)
+
+
+# ───────────────────────────────────────────── 安聯（etf.allianzgi.com.tw）
+# 2026-10-08 Actions 實測：ETF 專區是 SPA，基金頁 /etf-info/<FundID>，背後 POST /webapi/api/Fund/GetFundAssets {"FundID":"E0001"}，
+# 回應格式跟野村同一套（Entries.Data.FundAsset.NavDate、Table[TableTitle="股票 (97.80%)"].Rows＝[序號, 代號, 名稱, 股數, 權重%]），
+# 直接用 parse_nomura 解析。這組 API 要先 GET /webapi/api/AntiForgery/GetAntiForgeryToken（官網前端每次載入都做），
+# 再把回寫的 X-XSRF-TOKEN cookie 放進同名標頭 —— 不帶就回 400。這是公開頁面自己的防跨站機制，不是登入或付費牆。
+# FundID → 代號沒有 API（GetFundDetail／GetFundDropdownOptions 都回「查無基金」），對照表手寫，依據：
+# - E0001：真瀏覽器在 ETF 總覽點「安聯台灣…」進到 /etf-info/E0001；持股以金融與高股息股為主（富邦金、台新新光金、台塑化、元大金）
+#   → 00984A 主動安聯台灣高息（安聯首檔主動式 ETF，官網橫幅「首檔 主動式高息策略 ETF」）。
+# - E0002：台股、台積電權重最高、另有台指期 → 00993A 主動安聯台灣。
+# - E0003：美股科技（NVDA 居首）→ 00402A 主動安聯美國科技。
+# E0004 之後實測都是空的。新掛牌時要回來補這張表（log 會印「FundID 有資料但不在對照表」）。
+ALLIANZ_API = "https://etf.allianzgi.com.tw/webapi/api/"
+ALLIANZ_IDS = {"E0001": "00984A", "E0002": "00993A", "E0003": "00402A"}
+
+
+def allianz() -> pd.DataFrame:
+    s = http.session()
+    try:
+        s.get(ALLIANZ_API + "AntiForgery/GetAntiForgeryToken", timeout=TIMEOUT)
+    except Exception as exc:  # noqa: BLE001
+        log.warning("安聯 取 token 失敗：%s", exc)
+        return pd.DataFrame(columns=COLS)
+    tok = s.cookies.get("X-XSRF-TOKEN", domain="etf.allianzgi.com.tw") or s.cookies.get("X-XSRF-TOKEN")
+    if not tok:
+        log.warning("安聯 沒拿到 X-XSRF-TOKEN cookie（cookies：%s）", list(s.cookies.keys()))
+        return pd.DataFrame(columns=COLS)
+    hd = {"X-XSRF-TOKEN": tok, "Origin": "https://etf.allianzgi.com.tw", "Referer": "https://etf.allianzgi.com.tw/etf-list"}
+    rows: list[dict] = []
+    for i in range(1, 9):
+        fid = f"E{i:04d}"
+        time.sleep(0.5)
+        try:
+            r = s.post(ALLIANZ_API + "Fund/GetFundAssets", json={"FundID": fid}, headers=hd, timeout=TIMEOUT)
+            p = r.json() if r.status_code == 200 else None
+            if p is None:
+                log.warning("安聯 %s HTTP %s：%s", fid, r.status_code, _snip(r.text))
+                continue
+        except Exception as exc:  # noqa: BLE001
+            log.warning("安聯 %s 失敗：%s", fid, exc)
+            continue
+        data = ((p.get("Entries") or {}).get("Data") if isinstance(p, dict) else None) or {}
+        if not (data.get("FundAsset") and data.get("Table")):     # E0004 之後回 {FundAsset: null, Table: []}，不是新基金
+            continue
+        code = ALLIANZ_IDS.get(fid)
+        if not code:
+            log.warning("安聯 FundID %s 有資料但不在對照表（新掛牌？請補 ALLIANZ_IDS）", fid)
+            continue
+        got = [dict(x, issuer="安聯", src=f"{ALLIANZ_API}Fund/GetFundAssets#{fid}") for x in parse_nomura(code, p)]
+        if not got:
+            log.info("安聯 %s 沒有股票表（前 200 字）：%s", code, _snip(p))
+        rows += got
+    return _frame(rows)
+
+
 # ───────────────────────────────────────────── 總入口
 ISSUER_PREFIX = {  # 從 ETF 簡稱判斷發行投信（給「哪些已接上／哪些沒接上」用）
     "元大": "元大", "國泰": "國泰", "群益": "群益", "富邦": "富邦", "統一": "統一", "凱基": "凱基", "大華": "大華銀",
@@ -1049,18 +1289,15 @@ ISSUER_PREFIX = {  # 從 ETF 簡稱判斷發行投信（給「哪些已接上／
     "FT": "富蘭克林華美", "聯邦": "聯邦",   # FT＝富蘭克林華美（00899 全名「富蘭克林華美全球潔淨能源ETF」）
     "台灣": None,
 }
-CONNECTED = {"大華銀", "群益", "野村", "復華", "統一", "元大", "凱基", "國泰", "中國信託", "第一金", "聯博", "華南永昌", "富邦", "台新"}
+CONNECTED = {"安聯", "永豐", "玉山", "大華銀", "群益", "野村", "復華", "統一", "元大", "凱基", "國泰", "中國信託", "第一金", "聯博", "華南永昌", "富邦", "台新"}
 # 還沒接上的投信 → 給讀者看的原因（前端成分股分頁照抄）。查證過程、關鍵字與來源在 docs/etf_holdings_coverage.md。
 # 寫「為什麼抓不到」而不是「尚未接上」：Andy 2026-10-07 問「為何有 ETF 沒有成分股」，答案要在畫面上。
 NOT_CONNECTED_WHY = {
     "兆豐": "兆豐投信官網擋雲端主機的連線（2026-10-07 實測回 403 Access Denied），自動排程抓不到，只能人工整理。",
-    "永豐": "永豐投信官網的 ETF 持股公告頁還沒找到可以穩定取用的位置（2026-10-07 查過官網首頁與 ETF 路徑都沒有）。",
-    "玉山": "玉山投信（2026 年由保德信投信更名）新官網的申購買回清單位置還沒查到。",
-    "貝萊德": "貝萊德官網在自動排程的主機上開頁逾時，持股頁還沒接上。",
-    "安聯": "安聯投信官網找得到，但 ETF 申購買回清單的資料位置還沒查到。",
-    "摩根": "摩根投信官網 ETF 區還沒查到每日持股的資料位置。",
-    "富蘭克林華美": "富蘭克林華美投信官網在自動排程的主機上開頁逾時，持股頁還沒接上。",
-    "聯邦": "聯邦投信官網在自動排程的主機上開頁逾時，持股頁還沒接上。",
+    "貝萊德": "貝萊德官網在自動排程的主機上開頁逾時（60 秒），2026-10-08 只看到產品頁的前十大持股，沒有完整每日持股可接。",
+    "摩根": "摩根投信官網 ETF 產品頁（am.jpmorgan.com/tw）2026-10-08 用真瀏覽器實測，找不到每日持股或申購買回清單的資料來源。",
+    "富蘭克林華美": "富蘭克林華美投信官網首頁可開，但 2026-10-08 實測找不到 ETF 持股／申購買回清單頁（/ETF 回錯誤頁、首頁開頁逾時）。",
+    "聯邦": "聯邦投信官網（usitc.com.tw）在自動排程的主機上連線逾時（2026-10-07、10-08 兩次實測），抓不到。",
     "街口": "街口投信的 ETF 都是期貨型，持有的是期貨契約，沒有股票成分。",
 }
 
@@ -1087,6 +1324,9 @@ def fetch_all(etf_names: dict[str, str]) -> pd.DataFrame:
         ("華南永昌", lambda: hn(sorted(by.get("華南永昌", [])))),
         ("富邦", lambda: fubon(sorted(by.get("富邦", [])))),
         ("大華銀", uob),
+        ("永豐", sinopac),
+        ("安聯", allianz),
+        ("玉山", lambda: esun(etf_names)),
         ("台新", lambda: tsit(sorted(by.get("台新", []) + by.get("新光", [])))),
     ]
     frames = []

@@ -5716,7 +5716,8 @@
             + `<td class="nm"><i class="dot${isTop ? '' : ' no'}"${isTop ? ` style="background:${topCol(i)}"` : ''}></i>`
             + (tw && A.logo ? A.logo(c, nm, 20, 'hdlogo') : `<span class="slogo hdlogo nolg" data-l="${A.fmt.esc(Array.from(String(nm || '?'))[0])}" style="--lg:#4d5b73;--lz:20px" aria-hidden="true"></span>`)
             + `<span class="nmt">${go ? `<a href="#stock/${A.fmt.esc(c)}">${A.fmt.esc(nm)}</a>` : A.fmt.esc(nm)}<span class="cd mono">${A.fmt.esc(c || '')}</span></span>`
-            + `<span class="gp2">${A.fmt.esc(gp || '—')}</span></td>`
+            /* 2026-10-08：債券成分第二行顯示「票息 X%・到期 YYYY-MM-DD」（管線從名稱讀出，見 etf_pcf.bond_terms），股票照舊顯示族群 */
+            + `<span class="gp2"${x.mat ? ' data-bond="1"' : ''}>${x.mat ? `票息 ${x.cpn != null ? A.fmt.n(x.cpn, 3).replace(/\.?0+$/, '') + '%' : '—'}・到期 ${A.fmt.esc(x.mat)}` : A.fmt.esc(gp || '—')}</span></td>`
             + `<td class="sk">${tw && A.sparkSVG ? `<span class="spkw" data-spk="${A.fmt.esc(c)}" data-w="48" data-h="18">${A.sparkSVG(c, { w: 48, h: 18 })}</span>` : '<span class="muted">—</span>'}</td>`
             + `<td class="mono px">${px == null ? '<span class="muted">—</span>' : `<span class="pv">${A.fmt.n(px, px >= 1000 ? 0 : 2)}</span><span class="pc ${ch == null ? 'muted' : A.fmt.cls(ch)}">${ch == null ? '—' : A.fmt.pct(ch)}</span>`}</td>`
             + `<td class="mono iv ${iv == null ? 'muted' : A.fmt.cls(iv)}">${iv == null ? '—' : `${iv > 0 ? '+' : ''}${A.fmt.i(iv)} 張`}</td>`
