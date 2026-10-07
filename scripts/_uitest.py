@@ -51909,6 +51909,18 @@ def t_traffic_range_1006(b, base, code):
             pg.mouse.move(5, 5)
         pg.select_option("#admDaysSel", "30"); wait_until(pg, "() => document.querySelectorAll('#admDayBars .dc').length === 30", 4000)
         ok(f"{TT}：換期間後切換鈕回到自動（30 天＝「日」被選中）", pg.evaluate("() => document.querySelector('#trGran .on').textContent") == "日")
+        # ★ 10-07 Andy「這邊功能異常」：近 30 天點週／月 → 直條變少、加總不變、平均跟著重算；選中那顆是實心週期鈕（.seg），不是懸空的資料夾分頁
+        gq = """() => { const ds = [...document.querySelectorAll('#admDayBars .dc[data-tip]')], on = document.querySelector('#trGran .on'), cs = on ? getComputedStyle(on) : null;
+          return { n: document.querySelectorAll('#admDayBars .dc').length, sum: ds.reduce((s, d) => { const m = (d.getAttribute('data-tip') || '').match(/([\\d,]+) 次/); return s + (m ? +m[1].replace(/,/g, '') : 0); }, 0),
+            on: on ? on.textContent : '', seg: document.getElementById('trGran').classList.contains('seg'), bg: cs ? cs.backgroundColor + cs.backgroundImage : '', offbg: (c => c.backgroundColor + c.backgroundImage)(getComputedStyle(document.querySelector('#trGran button:not(.on)'))),
+            sel: on ? on.getAttribute('aria-selected') : '', sub: document.querySelector('#admDays .use').textContent }; }"""
+        g0 = pg.evaluate(gq)
+        for g, nm in (("week", "週"), ("month", "月")):
+            pg.click(f"#trGran [data-g={g}]"); wait_until(pg, f"() => (document.querySelector('#trGran .on') || {{}}).textContent === '{nm}'", 4000); pg.wait_for_timeout(400)   # .seg 底色有轉場，等它走完再量
+            g1 = pg.evaluate(gq)
+            ok(f"{TT}：近 30 天點「{nm}」：直條從 {g0['n']} 根變少、加總不變（{g0['sum']}）、副標換成每{nm}", g1["n"] < g0["n"] and g1["sum"] == g0["sum"] and g1["sub"].startswith("每" + nm), (g0, g1))
+            ok(f"{TT}：近 30 天點「{nm}」：選中那顆是 .seg 實心（底色≠未選中、aria-selected=true）", g1["seg"] and g1["bg"] != g1["offbg"] and g1["bg"] != "rgba(0, 0, 0, 0)none" and g1["sel"] == "true", g1)
+        pg.click("#trGran [data-g=day]"); wait_until(pg, "() => document.querySelectorAll('#admDayBars .dc').length === 30", 4000)
         pg.select_option("#admDaysSel", "365"); wait_until(pg, "() => document.querySelectorAll('#admDayBars .dc').length === 13", 4000)
         # 按週：點一格 → 看那一週（chip 顯示起～訖），分頁統計跟著變；再點同一格取消
         pg.select_option("#admDaysSel", "90"); wait_until(pg, "() => document.querySelectorAll('#admDayBars .dc').length === 13", 4000)
