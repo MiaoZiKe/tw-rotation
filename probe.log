@@ -1,0 +1,16 @@
+====================================================================================================
+[extra-0] POST https://etf.allianzgi.com.tw/webapi/api/Fund/GetFundAssets
+  HTTP 400  type=application/problem+json; charset=utf-8  bytes=164
+  前 5000 字: {"type":"https://tools.ietf.org/html/rfc9110#section-15.5.1","title":"Bad Request","status":400,"traceId":"00-be9e799203ee0845daed9964246bb34b-77b14d719e2bb0e5-00"}
+====================================================================================================
+[extra-1] POST https://etf.allianzgi.com.tw/webapi/api/Fund/GetFundDetail
+  HTTP 400  type=application/problem+json; charset=utf-8  bytes=164
+  前 5000 字: {"type":"https://tools.ietf.org/html/rfc9110#section-15.5.1","title":"Bad Request","status":400,"traceId":"00-b06a5389b619b5b87b29ac0ff4ac8be2-a03d405cd0a6123f-00"}
+====================================================================================================
+[extra-2] POST https://etf.allianzgi.com.tw/webapi/api/Category/GetFundDropdownOptions
+  HTTP 400  type=application/problem+json; charset=utf-8  bytes=164
+  前 5000 字: {"type":"https://tools.ietf.org/html/rfc9110#section-15.5.1","title":"Bad Request","status":400,"traceId":"00-9d5f91e0cca20e4ac2aa14d11b549c86-f9261c0c502d9446-00"}
+====================================================================================================
+[extra-3] POST https://etf.allianzgi.com.tw/webapi/api/Fund/GetFundOverview
+  HTTP 400  type=application/problem+json; charset=utf-8  bytes=164
+  前 5000 字: {"type":"https://tools.ietf.org/html/rfc9110#section-15.5.1","title":"Bad Request","status":400,"traceId":"00-295ffebc8072f8ebe58c3f555031f645-047bf11c1eaf35de-00"}
