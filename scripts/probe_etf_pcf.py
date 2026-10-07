@@ -43,7 +43,10 @@ if len(sys.argv) > 1 and sys.argv[1] == "--only-extra":
     CANDS = []
     sys.argv.pop(1)
 for i, a in enumerate(sys.argv[1:]):
-    if a.startswith("POST|"):
+    if a.startswith("GREP|"):
+        _, pat, u = a.split("|", 2)
+        CANDS.append((f"grep-{i}", "GREP", u, pat))
+    elif a.startswith("POST|"):
         _, u, b = a.split("|", 2)
         CANDS.append((f"extra-{i}", "POST", u, json.loads(b)))
     else:
@@ -55,6 +58,13 @@ for tag, m, url, body in CANDS:
     print("=" * 100)
     print(f"[{tag}] {m} {url}")
     try:
+        if m == "GREP":
+            # 在大檔（JS bundle）裡找某個字樣，印前後文 —— 用來找 SPA 背後真正呼叫的 API 與參數
+            r = requests.get(url, headers={"User-Agent": UA}, timeout=30)
+            print(f"  HTTP {r.status_code}  bytes={len(r.content)}")
+            for mm in list(re.finditer(body, r.text))[:25]:
+                print("   >>", r.text[max(0, mm.start() - 250):mm.end() + 350].replace("\n", " "))
+            continue
         if m == "POST":
             r = requests.post(url, json=body, headers={"User-Agent": UA}, timeout=30)
         else:
