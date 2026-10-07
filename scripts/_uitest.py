@@ -25332,6 +25332,7 @@ SECTIONS = {
     "自選上限1007":        lambda pg, b, base, code: t_watch_limit_1007(b, base, code),
     "次數覆蓋掃描1007":    lambda pg, b, base, code: t_quota_scan_1007(b, base, code),
     "全站共用額度1007":    lambda pg, b, base, code: t_quota_all_1007(b, base, code),
+    "訪客額度顯示1007":    lambda pg, b, base, code: t_guest_quota_ui_1007(b, base, code),
     "套用建議方案1007":    lambda pg, b, base, code: t_plan_preset_1007(b, base, code),
     "套用建議方案正式站1007": lambda pg, b, base, code: t_preset_live_1007(b, base, code),
     # ★ 2026-09-28 Andy：「所有標題加上小圖示，顏色要搭配」—— 覆蓋、對比 ≥3:1（深淺）、1440／800／390 不擠（A/B）、動效（⚠ 一律 --workers 1）
@@ -49291,6 +49292,81 @@ def t_quota_all_1007(b, base, code):
         go(pg, "#stock/" + cd, 900)
     ok(f"{T}：Pro（額度空白）開 12 檔都不擋、也不計", pg.evaluate("() => TwPerm.lim('quota.all') === Infinity") and pg.evaluate(BLOCKED) is None
        and not (pg.evaluate("() => TwQuota.state().k['quota.all']") or []))
+    c.close()
+    ok(f"{T}：沒有 JS 錯誤", not errs, errs[:3])
+
+
+
+# ===================================================================== 訪客額度顯示1007（#admin/perm 全站每日額度小卡＋頁首額度圓環）
+# Andy 10-07 16:12：「你忽略的 訪客需要怎麼限制幫我補上」—— 訪客頁每格都是 ∞，看不出全站一天只有 3 次。
+# Andy 追加：「依據不同會員身份，對應該分頁需要有使用次數圓圈提醒」。
+# 真的操作：訪客頁籤看得到「全站每日額度 3 次」卡 → 改 5 存檔 → 重新整理仍是 5；計次功能徽章「共用 N」、不計次「不計次」；
+# 前台：訪客（3 次）開兩個不同研究頁 → 圓環「剩 1」、第三個 →「用完」；Pro（不限）不顯示；390 寬看得到。
+def t_guest_quota_ui_1007(b, base, code):
+    T = "訪客額度顯示1007"
+    errs: list[str] = []
+    shd = os.environ.get("TW_GQ_SHOTS")
+    plans = [{"id": "guest", "name": "訪客", "feats": {"ind.3d": False}, "lims": {}, "builtin": True, "members": 0, "price": 0, "period": "month", "dq": 3},
+             {"id": "free", "name": "註冊會員", "feats": {}, "lims": {}, "builtin": True, "members": 0, "price": 0, "period": "month", "dq": 10}]
+    c, sent, st = _adm3_ctx(b, plans=plans)
+    pg = c.new_page(); pg.on("pageerror", lambda e: errs.append(str(e)))
+    pg.goto(base + "#admin/perm", wait_until="domcontentloaded")
+    wait_until(pg, "() => document.querySelectorAll('#ptTier button').length >= 2", 12000)
+    pg.click("#ptTier button[data-tier='guest']"); pg.wait_for_timeout(500)
+    card = "() => { const e = document.getElementById('pmDqCard'); return e && !e.hidden && e.getClientRects().length ? e.innerText : null; }"
+    txt = wait_until(pg, card, 5000)
+    ok(f"{T}：訪客頁籤看得到「全站每日額度 3 次」卡＋共用說明＋訪客計數說明",
+       bool(txt) and "全站每日額度 3 次" in txt and "每日共 3 次（所有計次功能共用）" in txt and "記在這台瀏覽器" in txt, txt)
+    badge = "(id) => { const e = document.querySelector(`#pmCats .pmrow[data-f='${id}'] .pmlimb`); return e ? e.textContent.trim() : null; }"
+    ok(f"{T}：計次功能（個股頁 stock.page）徽章寫「共用 3」", pg.evaluate(badge, "stock.page") == "共用 3", pg.evaluate(badge, "stock.page"))
+    ok(f"{T}：不計次功能（總覽 ov.summary）徽章寫「不計次」", pg.evaluate(badge, "ov.summary") == "不計次", pg.evaluate(badge, "ov.summary"))
+    if shd:
+        pg.screenshot(path=str(pathlib.Path(shd) / "guest_tab.png"))
+    pg.fill("#pmDqIn", "5"); pg.click("#pmDqSave")
+    ok(f"{T}：改成 5 存檔 → 送 plans/put（guest, dq 5）、卡片變 5 次、徽章變「共用 5」",
+       bool(wait_until(pg, "() => /全站每日額度 5 次/.test((document.getElementById('pmDqCard') || {}).innerText || '')", 5000))
+       and any(x[0] == "/v1/admin/plans/put" and x[1].get("id") == "guest" and x[1].get("dq") == 5 for x in sent) and pg.evaluate(badge, "stock.page") == "共用 5",
+       [x[1] for x in sent if x[0] == "/v1/admin/plans/put"])
+    pg.reload(wait_until="domcontentloaded")
+    wait_until(pg, "() => document.querySelectorAll('#ptTier button').length >= 2", 12000)
+    pg.click("#ptTier button[data-tier='guest']"); pg.wait_for_timeout(500)
+    txt = wait_until(pg, card, 5000)
+    ok(f"{T}：重新整理後仍是 5 次", bool(txt) and "全站每日額度 5 次" in txt, txt)
+    c.close()
+    # ② 前台圓環
+    RING = "() => { const e = document.getElementById('twQRing'); return e && !e.hidden && e.getClientRects().length ? e.innerText.trim() : null; }"
+    def go(pg, route, wait=1800):
+        pg.evaluate(f"() => {{ location.hash = '{route}'; }}"); pg.wait_for_timeout(wait)
+    for w in (1440, 390):
+        c, sent, st = _sub_ctx(b, None, dq=3, width=w)
+        pg = c.new_page(); pg.on("pageerror", lambda e: errs.append(str(e)))
+        pg.goto(base + "#overview", wait_until="domcontentloaded")
+        wait_until(pg, "() => window.TwPerm && TwPerm.state().src === 'server' && TwPerm.lim('quota.all') === 3", 12000)
+        pg.wait_for_timeout(1000)
+        ok(f"{T}（{w}）：總覽（不計次）不顯示圓環", pg.evaluate(RING) is None, pg.evaluate(RING))
+        go(pg, "#stock/" + code)
+        r1 = wait_until(pg, "() => { const e = document.getElementById('twQRing'); return e && !e.hidden && /剩 2/.test(e.innerText) ? e.innerText : null; }", 6000)
+        go(pg, "#stock/" + ("2317" if code != "2317" else "2454"))
+        r2 = wait_until(pg, "() => { const e = document.getElementById('twQRing'); return e && !e.hidden && e.getClientRects().length && /剩 1/.test(e.innerText) ? e.innerText : null; }", 6000)
+        tip = pg.evaluate("() => (document.getElementById('twQRing') || {}).title || ''")
+        ok(f"{T}（{w}）：訪客開兩個不同單位 → 圓環「剩 2」→「剩 1」、提示寫已用 2／3 次（訪客）・台北 0 點重置", bool(r1) and bool(r2) and "今日已用 2／3 次（訪客）" in tip and "台北 0 點重置" in tip, [r1, r2, tip])
+        if w == 390:
+            bx = pg.evaluate("() => { const r = document.getElementById('twQRing').getBoundingClientRect(); return [r.left, r.right, r.top, r.bottom, document.documentElement.scrollWidth]; }")
+            ok(f"{T}（390）：圓環在畫面內、沒有橫向捲軸", bx[0] >= 0 and bx[1] <= 390 and bx[2] >= 0 and bx[4] <= 390, bx)
+        if shd:
+            pg.screenshot(path=str(pathlib.Path(shd) / f"ring_{w}.png"))
+        go(pg, "#flow/rotation")
+        r3 = wait_until(pg, "() => { const e = document.getElementById('twQRing'); return e && !e.hidden && /用完/.test(e.innerText) ? [e.innerText, e.dataset.lvl] : null; }", 6000)
+        ok(f"{T}（{w}）：第三個 → 圓環「用完」、灰色", bool(r3) and r3[1] == "out", r3)
+        pg.click("#twQRing")
+        ok(f"{T}（{w}）：點圓環 → #pricing", bool(wait_until(pg, "() => location.hash.startsWith('#pricing')", 4000)))
+        c.close()
+    c, sent, st = _sub_ctx(b, "member", dq=None)
+    pg = c.new_page(); pg.on("pageerror", lambda e: errs.append(str(e)))
+    pg.goto(base + "#overview", wait_until="domcontentloaded")
+    wait_until(pg, "() => window.TwPerm && TwPerm.state().src === 'server'", 12000)
+    go(pg, "#stock/" + code, 2500)
+    ok(f"{T}：Pro（不限）個股頁不顯示圓環", pg.evaluate(RING) is None, pg.evaluate(RING))
     c.close()
     ok(f"{T}：沒有 JS 錯誤", not errs, errs[:3])
 
