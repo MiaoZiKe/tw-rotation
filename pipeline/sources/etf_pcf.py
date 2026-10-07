@@ -33,8 +33,10 @@ log = logging.getLogger(__name__)
 COLS = ["date", "etf", "code", "name", "weight", "shares", "issuer", "src"]
 TIMEOUT = 30
 
-# 非股票型（債券／槓桿反向／期貨／匯率／商品）在這裡就跳過：沒有個股成分，抓了也是白抓。
-_SKIP_SUFFIX = re.compile(r"[BLRUKD]$")
+# 槓桿反向／期貨／匯率／商品（尾碼 L R U K）在這裡就跳過：資產是期貨契約，沒有成分可列。
+# 2026-10-08 起債券型（B）與主動債券型（D）不再跳過：Andy 要「所有 ETF 都要有成分股」，
+# 8 家投信的債券表在 Actions 上實測過（probe-etf-pcf.yml mode=bond，run 37679529998／37680170965），各家 parser 都收債券。
+_SKIP_SUFFIX = re.compile(r"[LRUK]$")
 
 
 def _skip_code(code: str) -> bool:
@@ -106,6 +108,29 @@ def _req(method: str, url: str, *, json_body: Any = None, params: dict | None = 
     return None
 
 
+_FRAC = {"1/8": .125, "1/4": .25, "3/8": .375, "1/2": .5, "5/8": .625, "3/4": .75, "7/8": .875}
+
+
+def bond_terms(name: str) -> tuple[float | None, str | None]:
+    """從債券簡稱讀出票面利率與到期日（各家投信沒有獨立欄位，但名稱照彭博慣例寫在裡面）：
+    「T 3.8 12/01/57」「ACGB 4 1/4 10/21/36」「US TREASURY N/B 4.75% 05/15/2055」「INTEL CORP 5.9-2063/02/10」
+    「EIX V8.125 06/15/53」（V＝浮動轉固定，照寫的利率）。讀不出來回 (None, None)，前端就只顯示名稱。"""
+    t = str(name or "")
+    m = re.search(r"(\d+(?:\.\d+)?)-(\d{4})/(\d{1,2})/(\d{1,2})\s*$", t)          # 國泰：5.9-2063/02/10
+    if m:
+        return float(m.group(1)), f"{int(m.group(2)):04d}-{int(m.group(3)):02d}-{int(m.group(4)):02d}"
+    m = re.search(r"\sV?(\d+(?:\.\d+)?)(?:\s+(\d/\d))?%?\s+(\d{1,2})/(\d{1,2})/(\d{2}|\d{4})\b", t)
+    if not m:
+        return None, None
+    cpn = float(m.group(1)) + _FRAC.get(m.group(2) or "", 0.0)
+    y = int(m.group(5))
+    y = y if y >= 1000 else 2000 + y   # 兩位數年份：目前在外流通的債最晚到 2099，一律 20xx
+    mo, d = int(m.group(3)), int(m.group(4))
+    if not (1 <= mo <= 12 and 1 <= d <= 31) or cpn > 30:
+        return None, None
+    return cpn, f"{y:04d}-{mo:02d}-{d:02d}"
+
+
 def _frame(rows: list[dict]) -> pd.DataFrame:
     if not rows:
         return pd.DataFrame(columns=COLS)
@@ -134,6 +159,11 @@ def parse_capital(etf: str, payload: dict) -> list[dict]:
         out.append({"date": day, "etf": etf, "code": str(s.get("stocNo") or "").strip(),
                     "name": (s.get("stocName") or "").strip(), "weight": _num(s.get("weight")),
                     "shares": _num(s.get("share")), "issuer": "群益", "src": CAPITAL_PCF})
+    # 債券型：data.bonds[] {bondNo（ISIN）, bondName, weight（%）, faceValue（面額，原幣）}（2026-10-08 實測 00722B）
+    for b in data.get("bonds") or []:
+        out.append({"date": day, "etf": etf, "code": str(b.get("bondNo") or "").strip(),
+                    "name": str(b.get("bondName") or "").strip(), "weight": _num(b.get("weight")),
+                    "shares": _num(b.get("faceValue")), "issuer": "群益", "src": CAPITAL_PCF})
     return out
 
 
@@ -150,7 +180,7 @@ def capital() -> pd.DataFrame:
             continue
         p = _req("POST", CAPITAL_PCF, json_body={"fundId": fid, "date": None})
         got = parse_capital(code, p) if p else []
-        if p and not got and ((p.get("data") or {}).get("stocks") is None):
+        if p and not got and ((p.get("data") or {}).get("stocks") is None) and ((p.get("data") or {}).get("bonds") is None):
             log.info("群益 %s 沒有股票清單（前 200 字）：%s", code, _snip(p))
         rows += got
     return _frame(rows)
@@ -166,10 +196,12 @@ def parse_nomura(etf: str, payload: dict) -> list[dict]:
     day = _iso((data.get("FundAsset") or {}).get("NavDate"))
     out = []
     for tb in data.get("Table") or []:
-        if "股票" not in str(tb.get("TableTitle") or ""):
+        if not any(k in str(tb.get("TableTitle") or "") for k in ("股票", "債券")):
             continue
+        # 股票表：[股票代號, 股票名稱, 股數, 權重(%)]；債券表（00987B 實測）：[債券代碼, 債券名稱, 面值, 市值, 持債比例]
         cols = [str(c.get("Name") or "") for c in tb.get("Columns") or []]
-        ix = {k: next((i for i, c in enumerate(cols) if k in c), None) for k in ("代號", "名稱", "股數", "權重")}
+        syn = {"代號": ("代號", "代碼"), "名稱": ("名稱",), "股數": ("股數", "面值", "面額"), "權重": ("權重", "比例")}
+        ix = {k: next((i for i, c in enumerate(cols) if any(w in c for w in ws)), None) for k, ws in syn.items()}
         if ix["代號"] is None or ix["權重"] is None:
             log.warning("野村 %s 欄位對不上：%s", etf, cols)
             continue
@@ -205,7 +237,7 @@ def parse_fuhhwa(payload: dict) -> list[dict]:
         etf = str(blk.get("etf002") or "").strip()
         day = _iso(blk.get("dDate"))
         for d in blk.get("detail") or []:
-            if str(d.get("ftype") or "") != "股票":
+            if str(d.get("ftype") or "") not in ("股票", "債券"):   # 債券：00710B 實測同一張 detail，ftype=債券
                 continue
             out.append({"date": day, "etf": etf, "code": str(d.get("stockid") or "").strip(),
                         "name": str(d.get("stockname") or "").strip(), "weight": _num(d.get("prate_addaccint")),
@@ -252,7 +284,8 @@ def parse_uni(etf: str, payload: dict) -> list[dict]:
             break
     out = []
     for a in payload.get("asset") or []:
-        if not isinstance(a, dict) or "股" not in str(a.get("AssetName") or ""):
+        # 股票類與債券類（AssetCode=BD、AssetName=債券；Share＝面額，00853B 實測）；期貨（名目本金）不算成分
+        if not isinstance(a, dict) or not any(k in str(a.get("AssetName") or "") for k in ("股", "債")):
             continue
         for d in a.get("Details") or []:
             code = str(d.get("DetailCode") or "").strip()
@@ -335,6 +368,17 @@ def parse_kgi(etf: str, frag: str) -> list[dict]:
         if len(tds) >= 4 and re.match(r"^\d{4,6}[A-Z]?$", tds[0]):
             out.append({"date": day, "etf": etf, "code": tds[0], "name": tds[1], "weight": _num(tds[3]),
                         "shares": _num(tds[2]), "issuer": "凱基", "src": KGI_PCF})
+    # 債券型（2026-10-08 實測 凱基A級公司債）：<ul class="js-bond-list"> 裡每列 <li name="content"> 五個 <span>：
+    # [債券代碼, 債券名稱, 面額, 市值, 持債比例]；資料日期在「持債特性 (2026/10/06)」，比片段裡第一個日期（預估發行日）準。
+    bl = re.search(r'js-bond-list.*?</ul>', t, re.S)
+    if bl:
+        pm = re.search(r"持債特性\s*\((\d{4}/\d{1,2}/\d{1,2})\)", t)
+        bday = _iso(pm.group(1)) if pm else day
+        for li in re.findall(r'<li name="content"[^>]*>(.*?)</li>', bl.group(0), re.S):
+            sp = [re.sub(r"<[^>]+>", "", x).strip() for x in re.findall(r"<span[^>]*>(.*?)</span>", li, re.S)]
+            if len(sp) >= 5 and sp[0]:
+                out.append({"date": bday, "etf": etf, "code": sp[0], "name": sp[1], "weight": _num(sp[4]),
+                            "shares": _num(sp[2]), "issuer": "凱基", "src": KGI_PCF})
     return out
 
 
@@ -365,6 +409,16 @@ def kgi(names: dict[str, str]) -> pd.DataFrame:
 CATHAY_LIST = "https://cwapi.cathaysite.com.tw/api/ETF/GetETFList"
 CATHAY_ASSETS = "https://cwapi.cathaysite.com.tw/api/ETF/GetETFAssets"
 CATHAY_STOCKS = "https://cwapi.cathaysite.com.tw/api/ETF/GetETFDetailStockList"
+CATHAY_BONDS = "https://cwapi.cathaysite.com.tw/api/ETF/GetETFDetailBondList"   # 2026-10-08 實測（00687B、00725B）
+
+
+def parse_cathay_bond(etf: str, day: str | None, payload: dict) -> list[dict]:
+    """GetETFDetailBondList：result[] {bondNo, bondName（例「INTEL CORP 5.9-2063/02/10」）, parValue（面額）, ntMkval（占淨值 %）}。"""
+    out = []
+    for r in (payload or {}).get("result") or []:
+        out.append({"date": day, "etf": etf, "code": str(r.get("bondNo") or "").strip(), "name": str(r.get("bondName") or "").strip(),
+                    "weight": _num(r.get("ntMkval")), "shares": _num(r.get("parValue")), "issuer": "國泰", "src": CATHAY_BONDS})
+    return out
 
 
 def parse_cathay(etf: str, day: str | None, payload: dict) -> list[dict]:
@@ -409,6 +463,8 @@ def cathay(today: dt.date | None = None) -> pd.DataFrame:
             continue
         p = _req("GET", CATHAY_STOCKS, params={"FundCode": fc, "SearchDate": day.replace("-", "/")}, retries=1)
         got = parse_cathay(etf, day, p)
+        if not got:   # 債券型：股票清單是空的，改要債券清單
+            got = parse_cathay_bond(etf, day, _req("GET", CATHAY_BONDS, params={"FundCode": fc, "SearchDate": day.replace("-", "/")}, retries=1))
         if not got:
             log.info("國泰 %s 沒有股票清單（前 200 字）：%s", etf, _snip(p))
         rows += got
@@ -427,7 +483,7 @@ def parse_ctbc(etf: str, payload: dict) -> list[dict]:
     day = _iso(fa.get("資料日期")) or _iso(fa.get("NAV_DT"))
     out = []
     for blk in data.get("FundAssetsDetail") or []:
-        if str(blk.get("Code") or "").upper() != "STOCK":
+        if str(blk.get("Code") or "").upper() not in ("STOCK", "BOND"):   # BOND 同一組欄位（00772B 實測）；CASH 不算
             continue
         for r in blk.get("Data") or []:
             out.append({"date": day, "etf": etf, "code": str(r.get("code_") or "").strip(), "name": str(r.get("name_") or "").strip(),
@@ -615,6 +671,11 @@ def parse_yuanta(etf: str, page: str) -> list[dict]:
         if isinstance(s, dict) and s.get("code"):
             out.append({"date": day, "etf": etf, "code": str(s.get("code")).strip(), "name": str(s.get("name") or "").strip(),
                         "weight": _num(s.get("weights")), "shares": _num(s.get("qty")), "issuer": "元大", "src": src})
+    # 債券型（00679B、00720B 實測）：BondWeights[] {code, name, weights（%）, FACE_AMT（面額）, qty（市值）}
+    for s in (fw or {}).get("BondWeights") or []:
+        if isinstance(s, dict) and s.get("code"):
+            out.append({"date": day, "etf": etf, "code": str(s.get("code")).strip(), "name": str(s.get("name") or "").strip(),
+                        "weight": _num(s.get("weights")), "shares": _num(s.get("FACE_AMT")), "issuer": "元大", "src": src})
     if out:
         return out
     comp = _nuxt_pick(body, "FundComposition", env) or []
