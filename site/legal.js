@@ -317,7 +317,7 @@
 .lgtabs a:hover{border-color:var(--cyan);color:var(--ink)}
 .lgtabs a:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
 .lgtabs a.on{background:var(--cyan);color:var(--ontop);border-color:var(--cyan);font-weight:700}
-@container (min-width:1000px){ .lgtabs{margin-left:244px} }   /* 跟右邊文件卡的左緣對齊（目錄 220 ＋ 間距 24）*/
+@container (min-width:1000px){ .lgtabs{margin:0 auto 20px;max-width:1004px;padding-left:244px;box-sizing:border-box} }  /* 2026-10-07 整組置中 */   /* 跟右邊文件卡的左緣對齊（目錄 220 ＋ 間距 24）*/
 @media (max-width:560px){
   .lgtabs{flex-wrap:nowrap;gap:8px}
   .lgtabs a{flex:1 1 auto;padding:0 12px;font-size:13px;height:36px}
@@ -330,13 +330,13 @@
 .lgtocm a,.lgtoc a{display:block;padding:4px 10px;color:var(--ink-3);text-decoration:none;border-left:2px solid transparent;font-size:13px}
 .lgtoc a.on{color:var(--cyan);border-left-color:var(--cyan)}
 @container (min-width:1060px){
-  .lgwrap{grid-template-columns:176px minmax(0,1fr) 236px!important;gap:16px!important}
+  .lgwrap{grid-template-columns:176px minmax(0,880px) 236px!important;gap:16px!important;max-width:1324px!important;margin-left:auto!important;margin-right:auto!important}
   .lgdoc{width:min(880px,100%)!important}
   .lgwrap .lgside{display:grid;gap:12px;position:sticky;top:80px;align-self:start}
-  .lgtabs{margin-left:192px!important}
+  .lgtabs{margin-left:auto!important;max-width:1324px!important;padding-left:192px!important}
 }
 @container (min-width:1000px){
-  .lgwrap{display:grid;grid-template-columns:220px minmax(0,760px);gap:24px;align-items:start}
+  .lgwrap{display:grid;grid-template-columns:220px minmax(0,760px);gap:24px;align-items:start;max-width:1004px;margin-left:auto;margin-right:auto}
   .lgtoc{display:block;position:sticky;top:80px;font-size:13px}
   .lgtocm{display:none}
 }
