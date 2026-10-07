@@ -88,7 +88,7 @@ def test_fetch_all_one_issuer_crash_does_not_kill_others(monkeypatch):
     monkeypatch.setattr(etf_pcf, "capital", lambda: (_ for _ in ()).throw(RuntimeError("boom")))
     ok = pd.DataFrame([{"date": "2026-10-06", "etf": "00935", "code": "2330", "name": "台積電", "weight": 23.6, "shares": 1.0,
                         "issuer": "野村", "src": "u"}])
-    for fn in ("fuhhwa", "uni", "cathay", "yuanta", "ctbc"):
+    for fn in ("fuhhwa", "uni", "cathay", "yuanta", "ctbc", "fsitc", "ab", "hn"):
         monkeypatch.setattr(etf_pcf, fn, lambda *a, **k: pd.DataFrame(columns=etf_pcf.COLS))
     monkeypatch.setattr(etf_pcf, "kgi", lambda *a, **k: pd.DataFrame(columns=etf_pcf.COLS))
     monkeypatch.setattr(etf_pcf, "nomura", lambda codes: ok)
@@ -134,3 +134,66 @@ def test_ctbc_00896_holding_weight():
     r = etf_pcf.parse_ctbc("00896", CTBC_HOLD)
     assert [x["code"] for x in r] == ["2330", "1303"]
     assert (r[0]["date"], r[0]["weight"], r[0]["shares"], r[0]["issuer"]) == ("2026-10-06", 11.46, 638000.0, "中國信託")
+
+
+# ── 2026-10-07 第二批：第一金、聯博、華南永昌（樣本＝probe-etf-pcf.yml 真瀏覽器記下的 XHR 回應節錄）
+FSITC_HD = {"d": '[{"fundid":"D90","sdate":"2026-10-07","group":"1","A":"2330","B":"台積電","C":"25.43","D":"274,230","E":""},'
+                 '{"fundid":"D90","sdate":"2026-10-07","group":"1","A":"2303","B":"聯電","C":"15.06","D":"2,827,000","E":""},'
+                 '{"fundid":"D90","sdate":"2026-10-07","group":"4","A":"現金/存款","B":"TWD 15,545,039","C":"2.10","D":"","E":""}]'}
+AB_EQ = {"domesticHoldings": [
+    {"asOfDate": "10/07/2026", "holdingCategory": "holdings-section-equity", "holdings": [
+        {"holding": "矽創電子", "holdingPerc": "1.167495", "holdingCode": "8016", "holdingShares": 170000.0}]},
+    {"asOfDate": "10/07/2026", "holdingCategory": "holdings-section-futures", "holdings": [
+        {"holding": "台指期", "holdingPerc": "3.0", "holdingCode": "TXF", "holdingShares": 10.0}]}]}
+AB_BOND = {"domesticHoldings": [{"asOfDate": "10/06/2026", "holdingCategory": "holdings-section-bond", "holdings": [
+    {"holding": "APA CORP 6.750000 % 15-FEB-2055", "holdingPerc": "0.36041414", "holdingCode": "US03743QAT58", "holdingShares": 224000.0}]}]}
+HN_BUYBACK = {"Data": {"DataDate": "2026-10-08T00:00:00+08:00", "FundID": "E101", "ETFID": "009808",
+                       "Pcf": {"FundSize": 1292682619.0, "Punit": 33.14},
+                       "StockList": [{"StockNo": "2330", "StockName": "台積電", "Share": 201000.0, "Weight": 0.401942},
+                                     {"StockNo": "2308", "StockName": "台達電子", "Share": 26000.0, "Weight": 0.040025}]},
+              "Message": "", "ResultCode": "00"}
+
+
+def test_fsitc_only_stock_group():
+    r = etf_pcf.parse_fsitc("00728", FSITC_HD)
+    assert [x["code"] for x in r] == ["2330", "2303"]
+    assert (r[0]["date"], r[0]["weight"], r[1]["shares"], r[0]["issuer"]) == ("2026-10-07", 25.43, 2827000.0, "第一金")
+    assert etf_pcf.parse_fsitc("X", {"d": "not json"}) == [] and etf_pcf.parse_fsitc("X", None) == []
+
+
+def test_ab_equity_bond_and_isin():
+    assert etf_pcf.tw_isin("00404A") == "TW00000404A5" and etf_pcf.tw_isin("00980D") == "TW00000980D8"
+    assert etf_pcf.tw_isin("0050") == "TW0000050004"
+    assert etf_pcf._tw_code_from_isin("TW0002330008") == "2330"
+    r = etf_pcf.parse_ab("00404A", AB_EQ)                      # 期貨類別不算成分
+    assert [(x["code"], x["date"], x["weight"]) for x in r] == [("8016", "2026-10-07", 1.167495)]
+    b = etf_pcf.parse_ab("00980D", AB_BOND)                    # 債券型照收：代號是債券 ISIN，前端顯示名稱＋權重
+    assert b[0]["code"] == "US03743QAT58" and b[0]["name"].startswith("APA CORP") and b[0]["date"] == "2026-10-06"
+    assert etf_pcf.parse_ab("X", {"weird": 1}) == [] and etf_pcf.parse_ab("X", "str") == []
+
+
+def test_hn_009808_weight_fraction_to_percent():
+    """009808（Andy 點名的那檔）：華南永昌 ETF/BuyBack 的權重是小數，要 ×100 才是 %。"""
+    r = etf_pcf.parse_hn("009808", HN_BUYBACK)
+    assert [x["code"] for x in r] == ["2330", "2308"]
+    assert (r[0]["date"], r[0]["weight"], r[0]["shares"], r[0]["issuer"]) == ("2026-10-08", 40.1942, 201000.0, "華南永昌")
+    assert etf_pcf.parse_hn("X", {"Data": None}) == [] and etf_pcf.parse_hn("X", []) == []
+
+
+def test_hn_login_failure_returns_empty(monkeypatch, caplog):
+    class R:
+        status_code = 503
+        text = "<html>maintenance" + "x" * 400
+
+        def json(self):
+            raise ValueError
+
+    class S:
+        def post(self, *a, **k):
+            return R()
+
+    monkeypatch.setattr(etf_pcf.http, "session", lambda: S())
+    with caplog.at_level(logging.WARNING):
+        df = etf_pcf.hn(["009808"])
+    assert df.empty and list(df.columns) == etf_pcf.COLS
+    assert any("maintenance" in m for m in caplog.messages)
