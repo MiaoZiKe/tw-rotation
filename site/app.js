@@ -1440,6 +1440,9 @@
   const zoomClick = (box, fn) => { const z = box && box._zoom; if (z && z.defer) z.defer(fn); else fn(); };
 
   const goStock = (code) => { location.hash = '#stock/' + code; };
+  /* ★ 2026-10-08（Andy 313）熱力圖方塊要跳到別的分頁一律走這支：Plus 以上（含站主、管理員、預覽版）照跳，
+     訪客／註冊會員跳 quota.js 的升級卡、網址不動。quota.js 沒載入（舊快取）就照舊跳。*/
+  const hmGo = (to, fn) => (window.TwQuota && window.TwQuota.heatGo ? window.TwQuota.heatGo(to, fn) : (fn ? fn() : (location.hash = to), true));
   window.goStock = goStock;
 
   // ---------------------------------------------------------------- 全站互通：任何股票／族群／產業鏈／題材名稱都可點
@@ -4849,6 +4852,7 @@
     const close = () => {
       ov.hidden = true; document.body.style.overflow = '';
       const c = echarts.getInstanceByDom($('#zoomBody')); if (c) c.dispose();
+      $('#zoomBody').removeAttribute('data-hmstay');   // 放大視窗共用同一個 body：熱門題材題材層設的「不跳頁」標記不能帶到下一張圖
       $('#zoomChips').innerHTML = '';
       /* ★ 2026-09-20（E2）：控制項列也要清掉。以前只清 #zoomChips，
          所以開過輪動時鐘的放大視窗之後，再去開熱力圖的放大，
@@ -5068,6 +5072,7 @@
     heatNoRot = list.filter(g => !(rot || []).some(r => r.group_id === g.group_id)).length;
     const c = chart('heat', option);
     hmRelabel(c, heatVal);
+    { const hb = $('#heat'); if (hb) hb.setAttribute('data-hmstay', ''); }   // 卡片上點方塊不跳頁（只在原地換產業鏈）→ 游標照常（quota.js）
     wheelZoom($('#heatWrap'), { onZoom: () => { const i = echarts.getInstanceByDom($('#heat')); if (i) i.resize(); } });
     if (c) c.off('click').on('click', p => zoomClick($('#heatWrap'), () => {
       if (!p.data) return;
@@ -5085,7 +5090,7 @@
         hmRelabel(bc, heatVal);
         if (bc) bc.off('click').on('click', p => {
           if (!p.data) return;
-          if (p.data.gid) location.hash = '#industry/group/' + p.data.gid;
+          if (p.data.gid) hmGo('#industry/group/' + p.data.gid);
           else if (p.data.cid) { ch = p.data.cid; draw(); }
         });
       };
@@ -8120,9 +8125,10 @@
         const bc = chart(body, Z.option, { notMerge: true });
         hmRelabel(bc, Z.valOf);
         body.dataset.level = Z.cur ? 'members' : 'themes';     // 驗收用：放大視窗現在是題材層還是成分股層
+        body.toggleAttribute('data-hmstay', !Z.cur);            // 題材層點了是原地換成分股，不是跳頁 → 沒權限也照常顯示手指（quota.js）
         if (bc) bc.off('click').on('click', p => {
           const d = p.data || {};
-          if (d.code) { close(); goStock(d.code); return; }
+          if (d.code) { hmGo('#stock/' + d.code, () => { close(); goStock(d.code); }); return; }   // 沒權限：放大視窗留著，升級卡疊在上面
           if (d.id) { OVT.sel = d.id; OVT.focus = null; renderOvThemes(th); draw(); }
         });
       };
@@ -8134,12 +8140,13 @@
     hmRelabel(c, M.valOf);
     hmLegend('ovTheme', M.kind, OVT.focus, (f) => { OVT.focus = f; renderOvThemes(th); });
     host.dataset.level = M.cur ? 'members' : 'themes';          // 驗收用：現在是題材層還是成分股層
+    host.toggleAttribute('data-hmstay', !M.cur);
     /* ★ 2026-09-26（Andy：「縮放功能呢？沒有設置到」）：跟資金熱力圖同一套滾輪縮放（wheelZoom：滾輪放大、拖曳移動、
        雙擊或按「還原」回 1×）；點擊交給 zoomClick，拖曳結束那一下不會誤觸進題材／個股。*/
     wheelZoom($('#ovThemeWrap'), { onZoom: () => { const i = echarts.getInstanceByDom($('#ovTheme')); if (i) i.resize(); } });
     if (c) c.off('click').on('click', p => zoomClick($('#ovThemeWrap'), () => {
       const d = p.data || {};
-      if (d.code) { goStock(d.code); return; }
+      if (d.code) { hmGo('#stock/' + d.code, () => goStock(d.code)); return; }
       if (d.id) { OVT.sel = d.id; OVT.focus = null; renderOvThemes(th); }
     }));
   }
@@ -12421,6 +12428,7 @@
     hmLegend('themeMap', mode, themeFocus, (f) => { themeFocus = f; renderThemes(sel, true); });
     const c = chart('themeMap', themeOpt(false));
     hmRelabel(c, valOf);
+    { const tm = $('#themeMap'); if (tm) tm.setAttribute('data-hmstay', ''); }   // 點題材＝同一頁開下方剖析圖，不算跳頁
     wheelZoom($('#themeMapWrap'), { onZoom: () => { const i = echarts.getInstanceByDom($('#themeMap')); if (i) i.resize(); } });
     // 點方塊：換下方明細（hash 一樣時 route 不會觸發，所以直接重畫）並捲到明細
     // ★ 2026-09-24：桌機換了 hash 之後由 route() 負責捲（它量得到細節在不在畫面上，見那裡的註解），
@@ -13806,7 +13814,7 @@
     const meta = await load('meta');
     if (meta) { renderFreshness(meta); }
     window.App = { freqBadge, srcInfo, sankeyRankDraw, rotPopMembers, msDD, load, chart, howHTML, fmt, tip, axisStyle, NUM_FONT, CH, PALETTE, chgColor, heatColor, treeSkin, hexA,
-      hmBin, hmColor, hmItem, hmSeries, hmLegend, hmRelabel, hmTip, hmTipOpt, hmLS, hmLSset, HM_KIND, upDown, empty, charts, goStock, D, L, wheelZoom, zoomClick, rangeBar, playBar, theme, applyTheme, liveMerge, onLive, LIVE_KEYS,
+      hmBin, hmColor, hmItem, hmSeries, hmLegend, hmRelabel, hmTip, hmTipOpt, hmLS, hmLSset, HM_KIND, upDown, empty, charts, goStock, hmGo, D, L, wheelZoom, zoomClick, rangeBar, playBar, theme, applyTheme, liveMerge, onLive, LIVE_KEYS,
       /* 給 scripts/_uitest.py 量「小圓點真的在動」用：回傳當下每一顆點的座標。
          用座標而不是 canvas 指紋 —— WebGL/Canvas 的指紋在這個容器裡量過是
          「永遠不會紅的假驗收」（DECISIONS #199），座標會變才是真的在動。*/

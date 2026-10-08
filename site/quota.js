@@ -529,10 +529,18 @@
      擁有者、預覽版、連不到會員伺服器（src＝default，寧可多給）一律放行。
      ============================================================================ */
   const HM = { t: 0, from: '' };
+  /* ★ 2026-10-08 晚（Andy 313：「熱門題材、資金熱力圖，點擊會到該個股的功能需要權限設定，只有 Plus 以上才可以」）：
+     以前這裡「連不到會員伺服器（src＝default）一律放行」—— 但訪客在公司網路、Worker 冷啟動逾時、/v1/perm/me 還沒回來的那幾秒，
+     src 都是 default，於是訪客照樣點得進個股頁。改成：會員系統有開（TwAccount.on()）就一律照身分判斷，
+     範本沒寫時由 perm.js 的 value() 依 defBy 給預設（訪客關、註冊會員關、付費範本開），不靠「套用建議方案」。
+     只有整個會員系統沒設定（repo 本身、本機驗收：account_config.js api 空白＝沒有方案這回事）才放行。
+     管理員（/v1/me 的 admin 旗標）跟站主一樣放行。*/
   function heatLinkOk() {
     const p = P(); if (!p || window.TW_PREVIEW) return true;
     if (p.owner && p.owner()) return true;
-    if (p.state().src === 'default') return true;
+    const A = window.TwAccount, u = A && A.on && A.on() && A.user && A.user();
+    if (!A || !A.on || !A.on()) return true;
+    if (u && u.admin) return true;
     return p.can('heat.link');
   }
   /* 只認「點在圖的 canvas 上」：ECharts 的結構是 初始化容器 > zrender 外框 > canvas。
@@ -550,22 +558,47 @@
   document.addEventListener('click', (e) => { if (hmHost(e.target)) { HM.t = Date.now(); HM.from = location.hash || '#overview'; } }, true);
   document.addEventListener('mousemove', (e) => {
     const el = hmHost(e.target); if (!el) return;
-    const no = !heatLinkOk();
+    /* data-hmstay＝這張圖的點擊只在原地展開（題材層換成分股、題材頁開下方剖析圖），不是跳頁 → 手指照常 */
+    const no = !heatLinkOk() && !el.hasAttribute('data-hmstay');
     if (no && !el.hasAttribute('data-hmnl')) el.setAttribute('data-hmnl', ''); else if (!no && el.hasAttribute('data-hmnl')) el.removeAttribute('data-hmnl');
     if (T()) T().css('hmnlCss', '[data-hmnl],[data-hmnl] *{cursor:default!important}');
   }, { capture: true, passive: true });
-  function heatLinkBlock() {
+  /* to＝原本要去的網址：去個股頁的用 Andy 313 指定的那句（「點熱力圖看個股是 Plus 以上功能」），其餘（族群／題材／產業鏈頁）沿用原本的標題 */
+  function heatLinkBlock(to) {
     const QC = window.TwQCard; const tier = meTier();
+    const stk = /^#stock\//.test(String(to || ''));
     const lo = QC && QC.lockOpts ? QC.lockOpts({ id: 'heat.link', name: '熱力圖點擊跳頁', cat: 'heatmap' }, tier === 'guest' ? 'guest' : 'member') : {};
-    const m = QC && QC.modal ? QC.modal(Object.assign({}, lo, { kind: 'lock', kick: '付費會員功能', title: '點擊熱力圖跳到族群／題材頁是付費會員功能',
+    const m = QC && QC.modal ? QC.modal(Object.assign({}, lo, { kind: 'lock', kick: '付費會員功能',
+      title: stk ? '點熱力圖看個股是 Plus 以上功能' : '點擊熱力圖跳到族群／題材頁是付費會員功能',
       sub: '提示框、縮放照常可用；升級 Plus／Pro 就能從熱力圖直接點進族群、題材與個股頁。', lh: '這些方案可以使用',
       items: [{ t: 'Plus', s: '點方塊直接跳頁' }, { t: 'Pro', s: '點方塊直接跳頁' }], btn: '升級 Plus', href: '#pricing/need/heat.link', btnCls: 'qactgo' })) : null;
     if (m) m.dataset.cq = 'heat.link';
+    /* 手機的「幽靈點擊」：zrender 在 touchend 就發 click → 這裡開出升級卡；瀏覽器接著在同一個座標補發原生 click，
+       正好落在剛開的卡片上（實測 390 觸控：直接按到「升級 Plus」被帶到訂閱頁，或點到背景把卡片關掉）。
+       開卡後 450ms 內落在卡片上的 click 一律吃掉；之後使用者自己按的照常。*/
+    const t0 = Date.now();
+    const eat = (e) => {
+      if (Date.now() - t0 > 450) { document.removeEventListener('click', eat, true); return; }
+      const qm = document.getElementById('qcModal');
+      if (qm && e.target && qm.contains(e.target)) { e.preventDefault(); e.stopImmediatePropagation(); }
+    };
+    document.addEventListener('click', eat, true);
+    setTimeout(() => document.removeEventListener('click', eat, true), 500);
+  }
+  /* 熱力圖的點擊處理要跳到別的分頁時一律先問這支（app.js／industry.js 的 treemap click）：可以就照做、不行就跳升級卡、回 false。
+     為什麼不只靠下面的「捕獲 click → 800ms 內換頁就退回」：手機上 zrender 在 touchend 就發出 click 事件、
+     先改了 location.hash，瀏覽器補發的原生 click 晚到 → 捕獲記錄還沒寫，hashchange 已經過去，擋不到。
+     點擊處理自己先問，就不必猜事件的先後。捕獲那一層留著當保險（漏接的跳頁路徑照樣擋）。*/
+  function heatGo(to, fn) {
+    HM.t = 0;      // 這一下已經判過了：不要讓捕獲那一層再判一次（擋下時也清，不然 800ms 內按升級卡的「升級 Plus」會被當成熱力圖跳頁）
+    if (heatLinkOk()) { if (fn) fn(); else location.hash = to; return true; }
+    heatLinkBlock(to); return false;
   }
   function routeOkAll(hash) {
     if (HM.t && Date.now() - HM.t < 800) {
       const from = HM.from; HM.t = 0;
-      if (pageOf(hash) !== pageOf(from) && !heatLinkOk()) { location.replace(from); heatLinkBlock(); return false; }
+      if (pageOf(hash) !== pageOf(from) && !/^#pricing/.test(String(hash)) && !heatLinkOk()) {   // 去訂閱頁（升級卡的按鈕）永遠放行
+        location.replace(from); heatLinkBlock(hash); return false; }
     }
     return routeOk(hash);
   }
@@ -573,6 +606,6 @@
      上一次換頁還沒畫完就再換（例如產業地圖剛回來就點下一條鏈）時，實測有幾次換頁沒有走到 route() 開頭 → 漏算。
      act() 同一個對象不重算，所以兩邊都呼叫不會多扣；被擋時這裡先把網址換回去，route() 讀到的就是上一層。*/
   window.addEventListener('hashchange', () => { routeOkAll(location.hash); });
-  window.TwQuota = { act, pick, pickBlock, routeOk: routeOkAll, heatLinkOk, actUnit, UNIT_KINDS, used: (id) => (load().k[id] || []).slice(),
+  window.TwQuota = { act, pick, pickBlock, routeOk: routeOkAll, heatLinkOk, heatGo, actUnit, UNIT_KINDS, used: (id) => (load().k[id] || []).slice(),
     state: () => load(), limit: limitOf, evaluate: () => evaluate(), day: tpeDay, pageKey, unitKey: (id, h) => unitKey(window.TwFeatures && window.TwFeatures.byId(id), h || location.hash || ''), unitKind: (id) => unitKind(window.TwFeatures && window.TwFeatures.byId(id)) };
 })();
