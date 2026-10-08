@@ -50438,7 +50438,9 @@ WPT_GEO = """() => { const bar = document.getElementById('wpTabs'), w = document
   const on = bar.querySelector('button.wptab.on'), more = document.getElementById('wpMore'), br = bar.getBoundingClientRect();
   const r = (e) => e ? e.getBoundingClientRect() : null, ro = r(on), rm = r(more);
   return { nbsw: bar.classList.contains('nbsw'), n: bar.querySelectorAll('button.wptab').length,
-    em: [...bar.querySelectorAll('button.wptab')].every(b => !!b.querySelector('em')),
+    // 2026-10-08 Andy：「數字大小需要一樣並且形式為 自選（3）」→ 檔數改成同字級的「（N）」
+    em: [...bar.querySelectorAll('button.wptab')].every(b => { const c = b.querySelector('.wpcnt'), n = b.querySelector('.wpn');
+      return !!c && /^（\d+）$/.test(c.textContent) && getComputedStyle(c).fontSize === getComputedStyle(n).fontSize; }),
     pinned: bar.querySelectorAll('[data-ren], [data-del-tab], .wpic').length,
     onId: on && on.dataset.sel, gap: ro && body ? Math.abs(ro.bottom - body.getBoundingClientRect().top) : 99,
     vis: !!ro && ro.left >= br.left - 1 && (rm ? rm.right : ro.right) <= br.right + 1,

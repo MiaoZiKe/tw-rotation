@@ -195,7 +195,7 @@
       if (P.editing === t.id) {
         return `<span class="wptab wpedit on" data-tab="${esc(t.id)}"><input id="wpRename" value="${esc(t.name)}" maxlength="12" aria-label="新的清單名稱"></span>`;
       }
-      return `<button type="button" class="wptab${on ? ' on hasmore' : ''}" role="tab" aria-selected="${on}" data-sel="${esc(t.id)}" data-tab="${esc(t.id)}" draggable="${isM() ? 'false' : 'true'}" title="${esc(t.name)}（${t.codes.length} 檔）${on ? '・雙擊改名' : ''}"><span class="wpn">${esc(t.name)}</span><em>${t.codes.length}</em></button>`
+      return `<button type="button" class="wptab${on ? ' on hasmore' : ''}" role="tab" aria-selected="${on}" data-sel="${esc(t.id)}" data-tab="${esc(t.id)}" draggable="${isM() ? 'false' : 'true'}" title="${esc(t.name)}（${t.codes.length} 檔）${on ? '・雙擊改名' : ''}"><span class="wpn">${esc(t.name)}</span><span class="wpcnt">（${t.codes.length}）</span></button>`
         + (on ? `<button type="button" class="wpmore" id="wpMore" data-more="${esc(t.id)}" aria-haspopup="menu" aria-expanded="${P.menu ? 'true' : 'false'}" aria-controls="wpMenu" aria-label="「${esc(t.name)}」：重新命名或刪除" title="重新命名／刪除">⋯</button>` : '');
     }).join('');
     /* ★ 2026-10-07 標題重複普查：頁首已有「自選」，卡標題改成「頁名：這張在看什麼」（週期統計同一個模式），不再只寫「自選」。*/
