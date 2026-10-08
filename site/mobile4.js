@@ -582,7 +582,10 @@
   const $$ = (s, r) => Array.from((r || document).querySelectorAll(s));
   const isM = () => window.innerWidth <= 640;
   const ICON = '<svg class="m4sico" viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 4h-7M10 4H3M21 12h-9M8 12H3M21 20h-5M12 20H3M14 2v4M8 10v4M16 18v4"/></svg>';
-  const setHTML = (el, h) => { if (el && el.innerHTML !== h) el.innerHTML = h; };
+  /* ⚠ 不能直接比 el.innerHTML !== h：瀏覽器把 <path …/> 序列化成 <path …></path>，永遠「不一樣」→ 每次都重寫 →
+     鈕上的 MutationObserver 又醒 → 無限迴圈，連帶把 mobile4.js 上面那支 body 觀察器的 120ms 防抖一直往後推（環節卡清單、條件摘要列都長不出來）。
+     改成記住「上次寫進去的字串」與「寫完之後的序列化結果」，兩個都沒變才略過（被 mobile3.js 改過字就會不一樣 → 重寫一次）。*/
+  const setHTML = (el, h) => { if (!el || (el.__m4h === h && el.innerHTML === el.__m4out)) return; el.innerHTML = h; el.__m4h = h; el.__m4out = el.innerHTML; };
   const setAttr = (el, k, v) => { if (el && el.getAttribute(k) !== v) el.setAttribute(k, v); };
   const shown = (e) => !!e && e.style.display !== 'none' && !e.hidden;
 
