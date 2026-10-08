@@ -2366,6 +2366,8 @@
        等於把 844 的可視區再吃掉 20px —— 而這整批改版的目的就是把導覽的高度壓下來
        （CSS 註解：「釘住的東西越高，留給圖的畫布就越少」）。
        淡出已經講得出「右邊還有東西」，文字提示在這裡是負收益。 */
+    /* 2026-10-09 手機 v2（html.m4，≤640；Andy 指著「← 左右滑看更多 →」那行說拿掉）：手機一律只留右緣淡出、不插提示字（插過的拆掉）；641～820 照舊 */
+    if (document.documentElement.classList.contains('m4')) { const n2 = el.nextElementSibling; if (n2 && n2.classList && n2.classList.contains('swipetip')) n2.remove(); return; }
     if (el.id === 'dgTools' || el.classList.contains('mpager')) return;
     const nx = el.nextElementSibling;
     const has = nx && nx.classList && nx.classList.contains('swipetip');

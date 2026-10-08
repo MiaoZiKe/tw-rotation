@@ -97,7 +97,7 @@
            有子頁的主項目點了進「上次看的那個子頁」（沒看過就第一個） */
         let href = HREF[v] || '#' + v;
         if (subs.length) { let last = null; try { last = localStorage.getItem('tw.m4.sub.' + v); } catch (e) { /* 私密視窗 */ } const hit = subs.find((x) => x.h === last); if (hit) href = hit.h; }
-        rows.push(`<button type="button" class="m4item${on ? ' on' : ''}" data-h="${href}" data-v="${v}">${mi(v)}<span>${esc(P.t)}</span></button>`);
+        rows.push(`<button type="button" class="m4item${on ? ' on' : ''}" data-h="${href}" data-v="${v}" title="${esc(P.t)}">${mi(v)}<span>${esc(P.t)}</span></button>`);
       });
       if (rows.length) h += `<div class="m4grp" data-g="${G.g}"><div class="m4gt">${esc(G.t)}</div>${rows.join('')}</div>`;
     });
@@ -158,6 +158,7 @@
         // 已經在同一頁同一子項：不動網址（同電腦版「點已選中的子項不換頁」）
         if (location.hash !== want) location.hash = want;
       });
+      swipeClose(drawer, 'left', close);   // 2026-10-09（Andy：「兩邊側邊欄位都具備可以左右滑動收起功能」）
       document.body.append(back, drawer);
     }
     /* 2026-10-08（Andy：「在線人數 以及 明暗功能 版面風格都跟網頁版一樣放在上方變成小圖。上方留LOGO就好。今日事件重複出現 留左側欄位的」）：
@@ -171,20 +172,49 @@
     paintTitle();
   }
   function teardown() {
+    root.removeAttribute('data-m4flat');
+    document.querySelectorAll('.m4sep,.m4sepb,.m4seg,.m4bleed').forEach((e) => e.classList.remove('m4sep', 'm4sepb', 'm4seg', 'm4bleed', 'm4end'));
     close();
     restoreTools();
-    { const bb = $('#m4BackBtn'); if (bb) bb.remove(); }
     [burger, drawer, back, title].forEach((e) => { if (e) e.remove(); });
     burger = drawer = back = title = null;
     document.body.classList.remove('m4lock');
   }
 
 
+  /* 2026-10-09（Andy：「並且兩邊側邊欄位都具備可以左右滑動收起功能」）：左側選單往左滑、右側今日事件往右滑就收起。
+     抽屜跟著手指走；放開時拖超過抽屜寬 30%，或甩得夠快（≥ 0.5px/ms 且拖了 30px 以上）就關，否則彈回。
+     先判主方向（動了 8px 之後：水平量 > 垂直量 ×1.2 才算左右滑），抽屜裡上下捲清單不會被當成要關；
+     CSS 給兩個抽屜 touch-action:pan-y（mobile4.css 第 3 節），上下捲交給瀏覽器、左右交給這裡。只在手機（html.m4）作用。 */
+  function swipeClose(el, dir, onClose) {
+    if (!el || el._m4swipe) return; el._m4swipe = 1;
+    let x0 = 0, y0 = 0, t0 = 0, mode = null, off = 0;
+    const sign = dir === 'left' ? -1 : 1;
+    const reset = (anim) => { el.style.transition = anim ? 'transform .2s ease-out' : ''; el.style.transform = ''; if (anim) setTimeout(() => { el.style.transition = ''; }, 220); };
+    el.addEventListener('touchstart', (e) => { if (!isM() || e.touches.length !== 1) { mode = 'x'; return; } const t = e.touches[0]; x0 = t.clientX; y0 = t.clientY; t0 = Date.now(); mode = null; off = 0; }, { passive: true });
+    el.addEventListener('touchmove', (e) => {
+      if (mode === 'x' || mode === 'v') return;
+      const t = e.touches[0], dx = t.clientX - x0, dy = t.clientY - y0;
+      if (!mode) { if (Math.abs(dx) < 8 && Math.abs(dy) < 8) return; mode = Math.abs(dx) > Math.abs(dy) * 1.2 ? 'h' : 'v'; if (mode === 'v') return; }
+      off = sign < 0 ? Math.min(0, dx) : Math.max(0, dx);
+      el.style.transition = 'none'; el.style.transform = `translateX(${off}px)`;
+    }, { passive: true });
+    const end = () => {
+      if (mode !== 'h') { mode = null; return; }
+      mode = null;
+      const w = el.getBoundingClientRect().width || 1, dist = Math.abs(off), v = dist / Math.max(1, Date.now() - t0);
+      if (dist > w * 0.3 || (v >= 0.5 && dist > 30)) { el.style.transition = ''; el.style.transform = ''; onClose(); }
+      else reset(true);
+    };
+    el.addEventListener('touchend', end, { passive: true });
+    el.addEventListener('touchcancel', () => { if (mode === 'h') reset(true); mode = null; }, { passive: true });
+  }
+
   /* ---------------- 頂欄右邊的小圖示（全部是「搬節點」：id、onclick 都是原本那顆，跟電腦版 layout4.js syncTools 同一套） ----------------
      順序同電腦版頁首右上：明暗（#themeBtn）→ 版面風格（#t4Btn）→ 平台導覽（#twPageTourBtn）→ 在線（#acctOnline）→ 登入（#acctBtn）。
      會員功能沒開時沒有 #acctBtn：放一顆 #m4Login，講清楚為什麼不能登入（同電腦版 #l4Login 的字）。
      搜尋收進抽屜最上面的「搜尋」；「⋯」選單拿掉（裡面的今日事件、自選都在抽屜）。 */
-  const TOOLS = ['#m4Search', '#themeBtn', '#t4Btn', '#twPageTourBtn', '#acctOnline', '#acctBtn', '#m4Login'];   // #themeBtn 搬進來但藏著（明暗在「外觀」面板裡，去按它本人）
+  const TOOLS = ['#m4Search', '#themeBtn', '#t4Btn', '#twPageTourBtn', '#acctOnline', '#acctBtn', '#m4Login'];   // 2026-10-09 Andy：「把明暗功能分出來」→ #themeBtn 在頂欄看得到（調色盤左邊，同網頁版）
   let tools = null; const home = new Map();
   function acctOn() { const A = window.TwAccount; return !!(A && A.on && A.on()); }
   function buildTools(bar) {
@@ -430,31 +460,6 @@
     });
   }
 
-  /* 細節頁的「‹ 返回」（Andy：「這需要附上一個倒退符號」）：題材細節、單一產業鏈、族群頁、個股頁。
-     有站內上一頁就 history.back()；直接開網址進來的（沒有上一頁）就回到這個功能的上一層。 */
-  let navN = 0;
-  window.addEventListener('hashchange', () => { navN++; });
-  function parentOf(h) {
-    const p = h.replace(/^#/, '').split('/');
-    if (p[0] === 'heatmap' && p[1] === 'theme' && p[2]) return '#heatmap/theme';
-    if (p[0] === 'industry' && p[1] === 'group' && p[2]) return '#industry';
-    if (p[0] === 'industry' && p[1] && p[1] !== 'group') return p[2] ? '#industry/' + p[1] : '#industry';
-    if (p[0] === 'stock' && p[1]) return '#industry';
-    return null;
-  }
-  function paintBack() {
-    if (!isM()) return;
-    const main = $('main'); if (!main) return;
-    let bb = $('#m4BackBtn');
-    const par = parentOf(location.hash || '');
-    if (!par) { if (bb) bb.hidden = true; return; }
-    if (!bb) {
-      bb = document.createElement('button'); bb.type = 'button'; bb.id = 'm4BackBtn'; bb.className = 'm4back2'; bb.innerHTML = '‹ 返回';
-      bb.onclick = () => { const to = parentOf(location.hash || ''); if (navN > 0 && history.length > 1) history.back(); else if (to) location.hash = to; };
-    }
-    if (bb.parentNode !== main || main.firstChild !== bb) main.insertBefore(bb, main.firstChild);
-    bb.hidden = false;
-  }
   function wireCond() {
     if (!isM()) return;
     $$('#v-etf #incPM > .incctl, #v-etf #incPX .cxctl').forEach((ctl) => {
@@ -510,6 +515,63 @@
   }
 
   /* 頂欄頁名：「分組小字＋頁名（子頁名）」—— 側欄收進抽屜之後，這是「我在哪」唯一的提示 */
+  /* ★ 2026-10-09（Andy：「像這類型 子分頁裡面還有的 就用分頁形式表示……並且需要平均分散分頁寬度 填滿左右」）：
+     子頁裡面還有第二層切換（整塊內容換掉的那種）的，手機一律攤平成上方同一排頁籤，第二層那排藏起來（電腦版側欄與頁面一個字都沒動）。
+     普查（402 寬、10-09）三處：
+       資金流向「族群×法人＋集中度」裡的「法人｜集中度」 → 資金輪動｜資金分流樹｜族群×法人｜集中度
+       熱力圖「題材」裡的「題材熱力｜題材細節」          → 產業｜題材｜題材細節
+       ETF「現金流試算」裡的「月配試算表｜複利試算表」    → 配息行事曆｜ETF 總覽｜月配試算｜複利試算
+     名稱對照網頁版：「族群×法人」「集中度」＝網頁版側欄「族群×法人＋集中度」那一頁的上下兩塊；「月配試算」「複利試算」＝網頁版頁內的「月配試算表／複利試算表」。
+     每一格有自己的網址（上一頁／下一頁鍵、分享連結都對）：第二層用網址尾巴分（#flow/inst/conc、#heatmap/theme/<題材>、#etf/inc/cx），
+     app.js route() 只看第一層（rest[0]），尾巴不影響它；第二層那排鈕還在 DOM 裡，切換交給它自己（syncFlat 去按它，記憶、延後畫圖都照舊）。 */
+  const FLAT = {
+    flow: [
+      { k: 'flow-rotation', h: '#flow/rotation', t: '資金輪動', m: /^#flow(\/rotation)?\/?$/ },
+      { k: 'flow-sankey', h: '#flow/sankey', t: '資金分流樹', m: /^#flow\/sankey/ },
+      { k: 'flow-inst', h: '#flow/inst', t: '族群×法人', m: /^#flow\/inst\/?$/, ctl: '#v-flow>.mpager', seg: '法人' },
+      { k: 'flow-conc', h: '#flow/inst/conc', t: '集中度', m: /^#flow\/inst\/conc/, ctl: '#v-flow>.mpager', seg: '集中度' },
+    ],
+    heatmap: [
+      { k: 'heat-industry', h: '#heatmap/industry', t: '產業', m: /^#heatmap(\/industry)?\/?$/ },
+      { k: 'heat-theme', h: '#heatmap/theme', t: '題材', m: /^#heatmap\/theme\/?$/, ctl: '#v-heatmap>.mpager', seg: '題材熱力' },
+      { k: 'heat-detail', h: '', t: '題材細節', m: /^#heatmap\/theme\/[^/]+/, ctl: '#v-heatmap>.mpager', seg: '題材細節' },
+    ],
+    etf: [
+      { k: 'etf-cal', h: '#etf/cal', t: '配息行事曆', m: /^#etf\/cal/ },
+      { k: 'etf-list', h: '#etf/list', t: 'ETF 總覽', m: /^#etf(\/list)?\/?$/ },
+      { k: 'etf-inc', h: '#etf/inc', t: '月配試算', m: /^#etf\/inc\/?$/, ctl: '#incMain', seg: 'm' },
+      { k: 'etf-cx', h: '#etf/inc/cx', t: '複利試算', m: /^#etf\/inc\/cx/, ctl: '#incMain', seg: 'x' },
+    ],
+  };
+  const lsGet = (k) => { try { return localStorage.getItem(k); } catch (e) { return null; } };
+  const lsSet = (k, v) => { try { localStorage.setItem(k, v); } catch (e) { /* 私密視窗 */ } };
+  /* 題材細節那格：回到上次看的題材；沒看過就用 '_'（app.js renderThemeDetail 找不到 id 時畫第一個題材） */
+  function flatHref(x) { return x.k === 'heat-detail' ? '#heatmap/theme/' + (lsGet('tw.m4.theme') || '_') : x.h; }
+  function flatCur(pg) { const L = FLAT[pg], h = location.hash || ''; return L ? (L.find((x) => x.m.test(h)) || null) : null; }
+  /* 第二層：按藏起來的那排鈕，讓它切到網址說的那一格（狀態已經對就什麼都不做） */
+  function syncFlat() {
+    if (!isM()) return;
+    const pg = curPage(), x = flatCur(pg);
+    root.toggleAttribute('data-m4flat', !!FLAT[pg]);
+    const mt = /^#heatmap\/theme\/([^/]+)/.exec(location.hash || ''); if (mt && mt[1] !== '_') lsSet('tw.m4.theme', decodeURIComponent(mt[1]));
+    if (!x || !x.ctl) { flatDone = true; return; }
+    const ctl = $(x.ctl); if (!ctl) return;          // 第二層那排還沒長出來（資料晚到）：下一輪再試
+    flatDone = true;
+    const b = $$('button', ctl).find((e) => (x.ctl === '#incMain' ? e.dataset.v === x.seg : e.textContent.trim().startsWith(x.seg)));
+    if (b && !(b.classList.contains('on') || b.getAttribute('aria-selected') === 'true')) b.click();
+  }
+  /* 反方向：第二層那排被直接按了（例如驗收或導覽用程式去按它），網址與上方頁籤跟著它走（replaceState，不多一筆歷史）。
+     換網址之後要等 syncFlat 先把第二層按到位（flatDone）才開始跟，不然兩邊會互相拉扯 */
+  let flatDone = false;
+  function flatFollow() {
+    if (!isM() || !flatDone) return;
+    const pg = curPage(), L = FLAT[pg], x = flatCur(pg); if (!L || !x || !x.ctl) return;
+    const ctl = $(x.ctl); if (!ctl) return;
+    const on = $$('button', ctl).find((e) => e.classList.contains('on') || e.getAttribute('aria-selected') === 'true'); if (!on) return;
+    const y = L.find((z) => z.ctl === x.ctl && (x.ctl === '#incMain' ? on.dataset.v === z.seg : on.textContent.trim().startsWith(z.seg)));
+    if (y && y !== x) { history.replaceState(history.state, '', flatHref(y)); paintTitle(); }
+  }
+
   function paintTitle() {
     const N = nav(); if (!title || !N) return;
     const pg = curPage(), P = N.PAGES[pg];
@@ -521,21 +583,81 @@
     // 產業鏈頁與個股頁自己有麵包屑／個股名當頁首（產業地圖 › 一般電子），再加一行大標只會把主圖往下推出第一屏
     title.hidden = pg === 'industry' || pg === 'stock';
     // 內容區頁首大標（同電腦版 #l4Head）：「頁名 子頁名」
-    const subs = N.SUBS[pg] || [];
+    const flat = FLAT[pg], fx = flat ? flatCur(pg) : null;
+    const subs = flat ? flat.map((x) => ({ k: x.k, h: flatHref(x), t: x.t })) : (N.SUBS[pg] || []);
+    const onK = flat ? (fx && fx.k) : (s && s.k);
     if (subs.length) {
-      /* 子頁頁籤（底線頁籤）：頁名縮成小字放上面，下面一排頁籤，選中的高亮、自動捲進畫面；放不下時左右拖 */
-      const want = `<small class="m4pgn">${esc(P.t)}</small><nav class="m4subtabs" role="tablist">${subs.map((x) => `<button type="button" role="tab" data-h="${x.h}" data-sub="${x.k}" class="${s && s.k === x.k ? 'on' : ''}" aria-selected="${!!(s && s.k === x.k)}">${esc(x.t)}</button>`).join('')}</nav>`;
+      /* 子頁頁籤（底線頁籤）：頁名縮成小字放上面，下面一排頁籤，選中的高亮；2026-10-09 起每格等寬填滿左右（mobile4.css 第 18 節），不橫捲 */
+      const want = `<small class="m4pgn">${esc(P.t)}</small><nav class="m4subtabs n${subs.length}" role="tablist">${subs.map((x) => `<button type="button" role="tab" data-h="${x.h}" data-sub="${x.k}" class="${onK === x.k ? 'on' : ''}" aria-selected="${onK === x.k}" title="${esc(x.t)}">${esc(x.t)}</button>`).join('')}</nav>`;
       if (title.innerHTML !== want) {
         title.innerHTML = want;
-        $$('.m4subtabs button', title).forEach((b) => { b.onclick = () => { try { localStorage.setItem('tw.m4.sub.' + pg, b.dataset.h); } catch (e) { /* 私密視窗 */ } if (location.hash !== b.dataset.h) location.hash = b.dataset.h; }; });
+        $$('.m4subtabs button', title).forEach((b) => { b.onclick = () => { if (location.hash !== b.dataset.h) location.hash = b.dataset.h; else syncFlat(); }; });
       }
-      if (s) { try { localStorage.setItem('tw.m4.sub.' + pg, s.h); } catch (e) { /* 私密視窗 */ } }
+      // 抽屜「上次看的子頁」記的是側欄那一份（N.SUBS）的網址：攤平出來的第二層記成它所屬的那一頁
+      if (s) lsSet('tw.m4.sub.' + pg, s.h);
       const onB = $('.m4subtabs button.on', title), nv = $('.m4subtabs', title);
       if (onB && nv) nv.scrollLeft = Math.max(0, onB.offsetLeft - (nv.clientWidth - onB.offsetWidth) / 2);
       return;
     }
     title.innerHTML = esc(name || brandName());
   }
+
+  /* 2026-10-09（Andy：「所有大功能需要用線條分開」，延伸 10-08「原本每個功能底下的大方格需要取消，直接用線條區分」）：
+     每一頁最上層的大區塊（.view.on 的直接子元素、看得到、高 ≥ 24）之間一律一條全寬 1px 分隔線（class m4sep，樣式在 mobile4.css 第 29 節）。
+     規則：第一塊不畫；緊跟在「切換列」（分段控制器、頁籤）後面的那塊不畫 —— 切換列跟它控制的內容是同一件事，線畫在切換列上面。
+     哪一塊看得到會跟著分段切換、資料晚到而變，所以掛在 main 的變動上（節流 200ms），只在狀態真的不同時才改 class（不自己觸發自己） */
+  const CTL = '.mpager,.m4subtabs,.mspine,[role=tablist],.seg,.nbsw,.mseg,.chainsw';
+  /* 高度一律扣掉自己加上去的線與內距（.m4sep／.m4sepb 各 1px 線＋12px 內距）再判斷 —— 不扣的話標上線之後高度變了、判斷翻轉、下一輪又拿掉，
+     class 來回跳，版面跟著上下抖（10-09 實測：捲到頂之後 scrollY 還被拉走 68px） */
+  const hOf = (e) => e.getBoundingClientRect().height - (e.classList.contains('m4sep') ? 13 : 0) - (e.classList.contains('m4sepb') ? 13 : 0);
+  const isCtl = (e) => e.matches(CTL) || (!!e.querySelector(CTL) && hOf(e) <= 64);
+  function markSeps() {
+    if (!isM()) return;
+    const view = $('main .view.on'); if (!view) return;
+    const kids = [...view.children].filter((e) => e.getClientRects().length && getComputedStyle(e).display !== 'none' && e.getBoundingClientRect().height >= 24);
+    // 線要畫在 kids[i] 上面：一般區塊用它自己的上框（.m4sep）；切換列本身有膠囊外框、又會橫捲（偽元素會被裁掉），改畫在上一塊的下框（.m4sepb）
+    const top = new Set(), bot = new Set();
+    // 上一塊是矮的頁首／說明條（高 < 80、不是切換列，例如選股策略的標題說明、總覽最上面那排指數）：它跟下一塊是同一件事的開頭，不另畫線
+    kids.forEach((e, i) => { if (i === 0) return; const prev = kids[i - 1]; if (isCtl(prev) && !isCtl(e)) return;
+      if (!isCtl(prev) && hOf(prev) < 80) return; if (isCtl(e)) bot.add(prev); else top.add(e); });
+    const put = (cls, want) => { $$('.' + cls, document).forEach((e) => { if (!want.has(e)) e.classList.remove(cls); }); want.forEach((e) => { if (!e.classList.contains(cls)) e.classList.add(cls); }); };
+    put('m4sep', top); put('m4sepb', bot);
+    // 頁內切換一律同一款分段控制器（mobile4.css 第 23 節）：掛同一個 class，驗收與之後的樣式都認它
+    $$(SEGSEL).forEach((e) => { if (!e.classList.contains('m4seg')) e.classList.add('m4seg'); });
+    markBleed();
+  }
+  /* 2026-10-09（Andy：「左右滑可以拓寬」）：一排放不下、要左右滑的列（分段控制器、個股工具列、剖析圖工具列）拓寬成滿版 ——
+     左右貼齊螢幕邊、第一項與最後一項用內距對齊內容邊（mobile4.css 第 30 節 .m4bleed），右緣淡出暗示還能滑、滑到底淡出收掉（.m4end）。
+     判斷「放不下」量的是內容本身的寬度（第一項左緣到最後一項右緣）對上「沒拓寬時」的可用寬度，拓寬前後判斷結果一樣，不會來回跳 */
+  const BLEED = '.m4seg, #skTools, #dgTools';
+  function markBleed() {
+    $$(BLEED).forEach((e) => {
+      if (!e.closest('.view.on') || !e.getClientRects().length) return;
+      const kids = [...e.children].filter((k) => k.getClientRects().length && getComputedStyle(k).position !== 'absolute');
+      if (kids.length < 2) return;
+      const need = kids[kids.length - 1].offsetLeft + kids[kids.length - 1].offsetWidth - kids[0].offsetLeft;
+      const par = e.parentElement, pcs = getComputedStyle(par);
+      const avail = par.clientWidth - parseFloat(pcs.paddingLeft) - parseFloat(pcs.paddingRight) - 8;
+      // 自己獨佔一列、從父層內容的左緣開始的才拓寬（夾在一排東西中間的不動，免得把旁邊的擠掉）
+      const pr = par.getBoundingClientRect(), cl = pr.left + parseFloat(pcs.paddingLeft) + par.clientLeft, cr = cl + par.clientWidth - parseFloat(pcs.paddingLeft) - parseFloat(pcs.paddingRight);
+      const sib = [...par.children].some((k) => k !== e && k.getClientRects().length && getComputedStyle(k).position !== 'absolute' && Math.abs(k.getBoundingClientRect().top - e.getBoundingClientRect().top) < 4 && k.getBoundingClientRect().height > 4);
+      const on = need > avail && !sib;
+      if (on) {
+        // 量父層內容框到螢幕左右邊的距離（用 clientWidth＝版面寬，不用 100vw：手機模式下頁面一變寬 100vw 會跟著變大，越拓越寬）
+        const L = Math.max(0, Math.round(cl)), R = Math.max(0, Math.round(root.clientWidth - cr));
+        if (e.style.getPropertyValue('--m4bl') !== L + 'px') e.style.setProperty('--m4bl', L + 'px');
+        if (e.style.getPropertyValue('--m4br') !== R + 'px') e.style.setProperty('--m4br', R + 'px');
+        const W = root.clientWidth + 'px'; if (e.style.getPropertyValue('--m4bw') !== W) e.style.setProperty('--m4bw', W);   // 寬度直接給 px（給百分比會跟父層互相撐大：父層寬度又是看子元素算的）
+      }
+      if (on !== e.classList.contains('m4bleed')) e.classList.toggle('m4bleed', on);
+      if (on && !e._m4s) { e._m4s = 1; e.addEventListener('scroll', () => bleedEnd(e), { passive: true }); }
+      if (on) bleedEnd(e);
+    });
+  }
+  function bleedEnd(e) { const end = e.scrollLeft + e.clientWidth >= e.scrollWidth - 4; if (end !== e.classList.contains('m4end')) e.classList.toggle('m4end', end); }
+  const SEGSEL = '.view.on :is(.seg,.nbsw,.mpager,.mseg,[role=tablist]):not(.m4subtabs):not(#mbTabs):not(.hmbar)';
+  let sepT = 0, sepLast = 0;
+  function sepSoon() { if (sepT) return; const wait = Math.max(0, 200 - (Date.now() - sepLast)); sepT = setTimeout(() => { sepT = 0; sepLast = Date.now(); if (flatDone) flatFollow(); else syncFlat(); markSeps(); }, wait); }
 
   function sync() {
     const want = isM();
@@ -551,8 +673,7 @@
     sync();
     let rt = 0;
     window.addEventListener('resize', (e) => { if (e.twEcho) return; clearTimeout(rt); rt = setTimeout(sync, 150); });
-    window.addEventListener('hashchange', () => { close(); [0, 120, 800].forEach((t) => setTimeout(paintTitle, t)); setTimeout(paintBack, 0); });
-    paintBack();
+    window.addEventListener('hashchange', () => { close(); [0, 120, 800].forEach((t) => setTimeout(paintTitle, t)); });
     document.addEventListener('keydown', (e) => { if (e.key === 'Escape') close(); });
     new MutationObserver(paintTitle).observe(root, { attributes: true, attributeFilter: ['data-l4sub'] });
     // 會員功能晚一步才開（account.js 讀完設定檔）、#acctBtn／#acctOnline 晚一步才建：出現時收進頂欄小圖示列
@@ -562,6 +683,11 @@
       .observe(document.body, { childList: true, subtree: true });
     let ct = 0; new MutationObserver(() => { if (!isM()) return; clearTimeout(ct); ct = setTimeout(() => { wireCond(); wireChainList(); wireEtfTri(); wireIndMap(); wireIncMS(); wireCxMS(); wirePricing(); hideLabels(); }, 120); }).observe(document.body, { childList: true, subtree: true });
     wireCond();
+    { const mn = $('main'); if (mn) new MutationObserver(sepSoon).observe(mn, { childList: true, subtree: true, attributes: true, attributeFilter: ['class', 'hidden', 'style'] }); }
+    window.addEventListener('hashchange', () => { flatDone = false; [0, 300, 1200].forEach((t) => setTimeout(() => { if (!flatDone) syncFlat(); markSeps(); }, t)); });
+    window.addEventListener('resize', sepSoon);
+    [0, 600, 1400].forEach((t) => setTimeout(() => { if (!flatDone) syncFlat(); markSeps(); }, t));
+    swipeClose($('#side'), 'right', () => { if (window.twSetSide) window.twSetSide(false); });   // 右側今日事件：往右滑收起
   }
   window.TwM4 = { open, close, isOpen: () => !!(drawer && !drawer.hidden) };
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();

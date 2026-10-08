@@ -936,7 +936,7 @@
     const i = M3IDS.findIndex(x => x[0] === id);
     const pos = document.getElementById('mM3Pos');
     if (pos) { pos.dataset.pos = i + 1; pos.dataset.of = M3IDS.length;
-      pos.innerHTML = M3IDS.map((_, j) => `<i class="${j === i ? 'on' : ''}"></i>`).join('') + `<span>${i + 1} / ${M3IDS.length}　左右滑切換</span>`; }
+      pos.innerHTML = M3IDS.map((_, j) => `<i class="${j === i ? 'on' : ''}"></i>`).join('') + `<span>${i + 1} / ${M3IDS.length}${document.documentElement.classList.contains('m4') ? '' : '　左右滑切換'}</span>`; }   // 2026-10-09 手機 v2（≤640）：提示字拿掉，只留位置（點點＋第幾張）
     if (!quiet) LS.set('idx', id);
     // quiet＝apply() 自己帶的那一次：派出去的 resize 標成回聲（twEcho），apply() 與分段都不再因為它重跑（#284）
     setTimeout(() => { const ev = new Event('resize'); if (quiet) ev.twEcho = 'm3'; window.dispatchEvent(ev); }, 40);
