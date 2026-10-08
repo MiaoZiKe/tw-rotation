@@ -28373,7 +28373,7 @@ def t_wish_1009(b, base):
     pg = c.new_page(); pg.on("pageerror", lambda e: errs.append(str(e)))
     pg.goto(base + "#admin/feedback", wait_until="domcontentloaded")
     R = "() => [...document.querySelectorAll('#fbTable tbody tr')].map(r => ({ id: r.dataset.id, w: r.dataset.wish === '1' }))"
-    wait_until(pg, "() => document.querySelectorAll('#fbTable tbody tr').length >= 3", 10000)
+    wait_until(pg, "() => document.querySelectorAll('#fbTable tbody tr').length >= 3", 25000)   # 機器忙時管理頁要等登入＋列表兩趟
     a0 = pg.evaluate(R)
     ok(f"【{T}】管理頁預設「全部」列 3 筆（2 筆願望＋1 筆一般）", len(a0) == 3 and sum(x["w"] for x in a0) == 2, a0)
     pg.click("#fbFKind button[data-fk='wish']")
