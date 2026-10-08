@@ -386,6 +386,22 @@
     });
   }
 
+  /* ETF 報酬比較的表：手機只留「名稱＋價格年化＋含息年化」三欄（不橫捲），其餘（期間、殖利率、配息年化）點一列展開在下面；
+     展開列裡放「看個股頁 ›」—— 原本「點一列就進個股頁」改成點兩下的路徑，資訊收起來但沒有消失 */
+  document.addEventListener('click', (e) => {
+    if (!isM()) return;
+    const tr = e.target.closest && e.target.closest('#etfRetTbl tbody tr[data-code]'); if (!tr) return;
+    e.stopPropagation(); e.preventDefault();
+    const nx = tr.nextElementSibling;
+    if (nx && nx.classList.contains('m4retx')) { nx.remove(); tr.classList.remove('m4on'); return; }
+    const t = tr.closest('table'), heads = $$('thead th', t).map((h) => h.textContent.trim());
+    const cells = $$(':scope > td', tr);
+    const parts = [1, 4, 5].filter((i) => cells[i]).map((i) => `<span><b>${esc(heads[i] || '')}</b> ${cells[i].innerHTML}</span>`).join('');
+    const row = document.createElement('tr'); row.className = 'm4retx';
+    row.innerHTML = `<td colspan="${heads.length}"><div class="m4retd">${parts}<a href="#stock/${esc(tr.dataset.code)}">看個股頁 ›</a></div></td>`;
+    tr.after(row); tr.classList.add('m4on');
+  }, true);
+
   /* 細節頁的「‹ 返回」（Andy：「這需要附上一個倒退符號」）：題材細節、單一產業鏈、族群頁、個股頁。
      有站內上一頁就 history.back()；直接開網址進來的（沒有上一頁）就回到這個功能的上一層。 */
   let navN = 0;

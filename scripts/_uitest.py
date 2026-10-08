@@ -27207,6 +27207,19 @@ def t_mobile_m4_1008(b, base, code):
         m.locator("#incPM .rpk select").select_option(index=0); m.wait_for_timeout(2000)
         ok(f"【{T}】條件區改「期間」下拉 → 圖／清單真的跟著變", sig() != p0, p0[:80])
         m.set_viewport_size({"width": 390, "height": 844})
+        # ㉔ ETF 報酬比較：控制區 ≤ 84px、標題底到圖頂 ≤ 130px、圖例拿掉（改看已選清單色點）、表不橫捲只留三欄、點一列展開其餘欄（不跳頁）
+        m.set_viewport_size({"width": 402, "height": 874})
+        go("etf/ret", 5000)
+        rt = J("""() => { const c = document.getElementById('etfRetCard'); if (!c) return null; const h3 = c.querySelector('h3').getBoundingClientRect(), ch = document.getElementById('etfRetLine').getBoundingClientRect();
+            const w = document.querySelector('#etfRetBody .rettw'), t = document.getElementById('etfRetTbl'); const e = window.echarts && echarts.getInstanceByDom(document.getElementById('etfRetLine'));
+            return { ctl: Math.round(document.getElementById('etfRetCtl').getBoundingClientRect().height), gap: Math.round(ch.top - h3.bottom), sw: w.scrollWidth - w.clientWidth,
+              cols: [...t.querySelectorAll('thead th')].filter(x => x.getClientRects().length).length, leg: e ? e.getOption().legend[0].show : null }; }""")
+        ok(f"【{T}】ETF 報酬比較：控制區 ≤ 84px、標題底到圖頂 ≤ 130px、圖例拿掉、表不橫捲只留 3 欄（{rt}）", rt and rt["ctl"] <= 84 and rt["gap"] <= 130 and rt["leg"] is False and rt["sw"] <= 1 and rt["cols"] == 3, rt)
+        h0 = J("() => location.hash")
+        m.locator("#etfRetTbl tbody tr[data-code]").first.tap(); m.wait_for_timeout(600)
+        ex = J("() => ({ n: document.querySelectorAll('#etfRetTbl .m4retx').length, txt: (document.querySelector('#etfRetTbl .m4retx') || {}).textContent || '', h: location.hash })")
+        ok(f"【{T}】ETF 報酬比較：點一列 → 下面展開期間／殖利率／配息年化與「看個股頁 ›」、不跳頁", ex["n"] == 1 and "殖利率" in ex["txt"] and "看個股頁" in ex["txt"] and ex["h"] == h0, ex)
+        m.set_viewport_size({"width": 390, "height": 844})
         # ⑨ 卡片標題的「?」不准自己佔一行：「?」與標題文字的垂直中心差 ≤ 8px（看得到的文字節點才算）
         badq = []
         for h in ("overview", "flow/rotation", "flow/sankey", "flow/inst", "heatmap/industry", "market", "etf/list", "etf/inc", "season"):

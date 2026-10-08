@@ -347,4 +347,27 @@
   :root.m4 #v-etf .incctl.m4sel label.chk .m4short{font-size:13px;color:var(--ink-2)}
   /* 期間的兩個日期（RangePick，全站手機通用）：只在選「起始日期～至今」（自訂）時出現 */
   :root.m4 .rpk:not([data-v=custom]):not([data-v=since]) .rpd{display:none!important}
+
+  /* ---- 26. ETF 報酬比較（Andy：「這邊精簡 不要浪費空間」）：控制區一行（期間、已選 N 檔 ▾、含息／不含息），日期收進「自訂」；
+     表只留 名稱＋價格年化＋含息年化，不橫捲，點一列展開其餘欄（mobile4.js） */
+  :root.m4 #etfRetCard>.row.spread{flex-wrap:wrap;gap:4px!important;margin-bottom:4px!important}
+  :root.m4 #etfRetCtl{display:flex!important;flex-wrap:wrap;align-items:center;gap:6px!important;margin:0!important;width:100%}
+  :root.m4 #etfRetCtl .rpk label{font-size:0;margin:0!important;display:inline-flex}
+  :root.m4 #etfRetCtl .rpk select{height:40px;font-size:13px;padding:0 6px;width:auto}
+  :root.m4 #etfRetCtl .cmpmsg:empty{display:none}
+  :root.m4 #etfCmpDD .ddbtn{font-size:0!important;padding:0 10px!important}
+  :root.m4 #etfCmpDD .ddbtn :is(b,i){font-size:13px}
+  :root.m4 #etfRetBody .note1{margin:4px 0 2px!important}
+  :root.m4 #etfRetBody .rettw{overflow-x:visible!important}
+  :root.m4 #etfRetTbl{table-layout:auto!important;width:100%!important;min-width:0!important}
+  :root.m4 #etfRetTbl colgroup{display:none}
+  :root.m4 #etfRetTbl tr>:is(th,td):is(:nth-child(2),:nth-child(5),:nth-child(6)){display:none}
+  :root.m4 #etfRetTbl tr>:first-child{width:56%}
+  :root.m4 #etfRetTbl td:not(:first-child){white-space:nowrap!important;text-align:right}
+  :root.m4 #etfRetTbl :is(th,td){font-size:12px!important;padding:8px 4px!important;white-space:normal!important}
+  :root.m4 #etfRetTbl tr.m4retx>td{display:table-cell!important;padding:4px 6px 10px!important}
+  :root.m4 #etfRetTbl tr.m4on>td{border-bottom:0}
+  :root.m4 .m4retd{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:12px;color:var(--ink-2);text-align:left}
+  :root.m4 .m4retd b{font-weight:600;color:var(--ink-3)}
+  :root.m4 .m4retd a{margin-left:auto;color:var(--t4-accent-solid,var(--cyan));font-weight:600;min-height:32px;display:inline-flex;align-items:center}
 }

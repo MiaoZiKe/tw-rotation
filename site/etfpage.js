@@ -1125,6 +1125,7 @@
     flash._t = setTimeout(() => { el.textContent = ''; }, 2600);
   }
   const PALC = () => SOFT().pal;
+  const M4 = () => document.documentElement.classList.contains('m4');   // 手機 v2 版面（≤640）
   function cmpDD() {
     const dd = $('#etfCmpDD'); if (!dd || !A().msDD) return null;
     const codeOf = (n) => String(n).split(' ')[0];
@@ -1280,7 +1281,8 @@
     } else {
       lineEl.innerHTML = '';
       a.chart('etfRetLine', {
-        grid: { left: 52, right: 14, top: 34, bottom: 28 }, legend: { top: 0, textStyle: { color: CH.ink2, fontSize: 12 }, type: 'scroll' },
+        /* 手機 v2（≤640，html.m4）：圖例拿掉 —— 哪條線是誰改看上方「已選 N 檔 ▾」清單的色點（Andy：圖例改成清單篩選）；桌機照舊 */
+        grid: { left: 52, right: 14, top: M4() ? 10 : 34, bottom: 28 }, legend: { show: !M4(), top: 0, textStyle: { color: CH.ink2, fontSize: 12 }, type: 'scroll' },
         tooltip: { trigger: 'axis', valueFormatter: (v) => (v > 0 ? '+' : '') + v + '%' },
         xAxis: { type: 'time', ...a.axisStyle, splitNumber: yrsSpan <= 3.2 ? 14 : yrsSpan <= 6 ? 12 : 10, splitLine: { show: false },
           axisLabel: { ...a.axisStyle.axisLabel, hideOverlap: true, formatter: { year: '{yyyy}', month: '{M}月', day: '{M}/{d}' } },
