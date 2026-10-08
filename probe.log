@@ -1,0 +1,40 @@
+........................................................................ [  6%]
+................sss.....s............................................... [ 12%]
+........................................................................ [ 19%]
+........................................................................ [ 25%]
+........................................................................ [ 32%]
+........................................................................ [ 38%]
+........................................................................ [ 45%]
+........................................................................ [ 51%]
+........................................................................ [ 58%]
+........................................................................ [ 64%]
+........................................................................ [ 71%]
+........................................................................ [ 77%]
+........................................................................ [ 84%]
+........................................................................ [ 90%]
+...............................................................x........ [ 96%]
+..................................                                       [100%]
+=============================== warnings summary ===============================
+tests/test_freshness.py::test_完整那輪該抓的都抓
+tests/test_freshness.py::test_完整那輪該抓的都抓
+  /home/runner/work/tw-rotation/tw-rotation/pipeline/sources/etf_pcf.py:1332: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    today = (dt.datetime.utcnow() + dt.timedelta(hours=8)).date().isoformat()
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+============================= slowest 15 durations =============================
+316.09s call     tests/test_freshness.py::test_完整那輪該抓的都抓
+81.19s call     tests/test_stage_pipeline_news.py::test_full模式該抓的都抓
+49.39s call     tests/test_stage_pipeline_news.py::test_期交所逐筆只在傍晚與週末那幾輪抓
+48.23s call     tests/test_stage_pipeline_news.py::test_price與full模式仍然靠交易日判斷成敗
+19.72s call     tests/test_revenue_audit_0928.py::test_資料湖每檔的個股頁營收序列_月份連續且缺月不是0
+8.09s call     tests/test_pipeline_e2e.py::test_fundamental_payload_end_to_end
+7.00s call     tests/test_pipeline_e2e.py::test_build_payload_end_to_end
+6.94s call     tests/test_pipeline_e2e.py::test_payload_has_no_nan_literals
+6.89s call     tests/test_pipeline_e2e.py::test_payload_does_not_ship_tasks_json
+5.95s call     tests/test_stage_pipeline_news.py::test_price模式抓價量與新聞但不碰傍晚才落地的來源
+5.14s call     tests/test_stage_pipeline_news.py::test_news模式沒有錯誤時退出碼是0
+4.69s call     tests/test_stage_pipeline_news.py::test_news模式不碰價量
+4.69s call     tests/test_stage_pipeline_news.py::test_news模式有抓新聞與國際盤
+4.22s call     tests/test_stage_pipeline_news.py::test_news模式不動FinMind額度
+3.90s call     tests/test_freshness.py::test_抓到零筆要留下紀錄而不是默默吞掉
+1109 passed, 4 skipped, 1 xfailed, 2 warnings in 622.42s (0:10:22)
