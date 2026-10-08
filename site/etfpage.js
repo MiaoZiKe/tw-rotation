@@ -442,6 +442,13 @@
 #v-etf .cmr dl{display:grid;grid-template-columns:auto 1fr auto 1fr;gap:2px 8px;margin:6px 0 0;font-size:12.5px}
 #v-etf .cmr dt{color:var(--ink-3)}
 #v-etf .cmr dd{margin:0;font-family:var(--mono);color:var(--ink);text-align:right}
+/* 10-08 組合連動（Andy：「點擊特定區塊 整張圖表會連動有反應」）：選中那檔的明細卡＝跟表格 .hl 同一套琥珀色；月曆格不是那檔主要入帳的月份變淡（全站規格 .35、120ms） */
+#v-etf .cmr{cursor:pointer;transition:border-color .12s,background .12s,box-shadow .12s}
+#v-etf .cmr.hl{border-color:var(--amber);background:color-mix(in srgb,var(--amber) 14%,var(--panel));box-shadow:inset 3px 0 0 var(--amber)}
+#v-etf .mgrid .mcell{cursor:pointer;transition:opacity .12s}
+#v-etf .mgrid .mcell.dim{opacity:.35}
+#v-etf .mgrid .mcell.lit{box-shadow:0 0 0 2px var(--ink)}
+@media (prefers-reduced-motion:reduce){#v-etf .cmr,#v-etf .mgrid .mcell{transition:none}}
 #v-etf #incChips{margin:0 0 6px}
 #v-etf #incChips .addk{cursor:pointer;color:var(--cat-1,var(--ink))}
 #v-etf .cxg{display:grid;grid-template-columns:minmax(0,2fr) minmax(300px,1fr);gap:16px;align-items:start}
@@ -1125,6 +1132,7 @@
     flash._t = setTimeout(() => { el.textContent = ''; }, 2600);
   }
   const PALC = () => SOFT().pal;
+  const M4 = () => document.documentElement.classList.contains('m4');   // 手機 v2 版面（≤640）
   function cmpDD() {
     const dd = $('#etfCmpDD'); if (!dd || !A().msDD) return null;
     const codeOf = (n) => String(n).split(' ')[0];
@@ -1280,7 +1288,8 @@
     } else {
       lineEl.innerHTML = '';
       a.chart('etfRetLine', {
-        grid: { left: 52, right: 14, top: 34, bottom: 28 }, legend: { top: 0, textStyle: { color: CH.ink2, fontSize: 12 }, type: 'scroll' },
+        /* 手機 v2（≤640，html.m4）：圖例拿掉 —— 哪條線是誰改看上方「已選 N 檔 ▾」清單的色點（Andy：圖例改成清單篩選）；桌機照舊 */
+        grid: { left: 52, right: 14, top: M4() ? 10 : 34, bottom: 28 }, legend: { show: !M4(), top: 0, textStyle: { color: CH.ink2, fontSize: 12 }, type: 'scroll' },
         tooltip: { trigger: 'axis', valueFormatter: (v) => (v > 0 ? '+' : '') + v + '%' },
         xAxis: { type: 'time', ...a.axisStyle, splitNumber: yrsSpan <= 3.2 ? 14 : yrsSpan <= 6 ? 12 : 10, splitLine: { show: false },
           axisLabel: { ...a.axisStyle.axisLabel, hideOverlap: true, formatter: { year: '{yyyy}', month: '{M}月', day: '{M}/{d}' } },
@@ -1895,7 +1904,7 @@
       return `<div class="mcell" style="--fc:${col}" data-m="${m + 1}" data-v="${Math.round(v)}"><small>${MN[m]}</small><b>${wan(v)}</b><span>${mi >= 0 ? esc(c.mem[mi].it.code) : ''}</span></div>`; };
     // v7（圖一轉置）：每一欄是一季（Q1～Q4），由上往下是那一季的 3 個月 ⇒ 3 排 × 4 欄，欄頭標 Q1～Q4
     const cells = ['Q1', 'Q2', 'Q3', 'Q4'].map((q) => `<div class="mqh">${q}</div>`).join('') + [0, 1, 2].map((r) => [0, 3, 6, 9].map((q) => cell(q + r)).join('')).join('');
-    const rows = c.mem.map((x, i) => `<div class="cmr"><button type="button" class="cmn" data-code="${esc(x.it.code)}" title="進個股頁"><i style="background:${a.donut.color(i)}"></i>${esc(x.it.name)} ${esc(x.it.code)}</button>${fqBadge(x.it.freq)}
+    const rows = c.mem.map((x, i) => `<div class="cmr" data-i="${i}" data-code="${esc(x.it.code)}"><button type="button" class="cmn" data-code="${esc(x.it.code)}" title="點一下選取這檔（三張圖一起標出它的入帳月份），再點一次進個股頁"><i style="background:${a.donut.color(i)}"></i>${esc(x.it.name)} ${esc(x.it.code)}</button>${fqBadge(x.it.freq)}
       <dl><dt>現價</dt><dd>NT$ ${A().fmt.n(x.it.close, 2)}</dd><dt>張數</dt><dd>${c.lots[i].toLocaleString()} 張</dd><dt>投入金額</dt><dd>${ntw(c.costs[i])}</dd><dt>一年領</dt><dd>${ntw(c.by.reduce((s, m) => s + m[i], 0))}</dd></dl></div>`).join('');
     disposeIn(box);
     box.innerHTML = `<div class="combo" data-ci="${S.inc.ci}" data-cost="${Math.round(c.cost)}" data-min="${Math.round(c.min)}" data-tr="${c.tr == null ? '' : c.tr}" data-codes="${c.mem.map((x) => x.it.code).join(',')}" data-lots="${c.lots.join(',')}" data-vals="${c.mon.map((v) => Math.round(v)).join(',')}">
@@ -1909,9 +1918,10 @@
     const parts = c.mem.map((x, i) => ({ name: `${x.it.name} ${x.it.code}`, value: Math.round(c.costs[i]), color: a.donut.color(i), lots: c.lots[i] }));
     donutBig('incCdn', parts, { valLabel: '投入', centerLabel: '總投入', centerValue: wan(c.cost), label: (p) => `${parts[p.dataIndex].lots.toLocaleString()} 張・${wan1(p.value)}` });
     $('#incCdn').dataset.labels = parts.map((p) => `${p.lots.toLocaleString()} 張・${wan1(p.value)}`).join('|');
+    let ck = null;
     if (clock) {
       const el = $('#incClk'); el.style.height = DN + 'px';
-      const ck = clockOpt(c, DN);
+      ck = clockOpt(c, DN);
       a.chart('incClk', ck.option);
       el.dataset.n = '12'; el.dataset.cols = ck.data.map((d) => d.mi).join(',');
       const ch = window.echarts && window.echarts.getInstanceByDom(el);
@@ -1922,9 +1932,87 @@
     monthBars('incCmb', c.mon, (m) => { const mi = mainOf(m); return mi >= 0 ? a.donut.color(mi) : a.CH.ink3; },
       (m) => `<b>${m + 1} 月入帳 ${ntw(c.mon[m])}</b><br>` + c.mem.map((x, i) => [x, i]).filter(([, i]) => c.by[m][i] > 0).map(([x, i]) => `${esc(x.it.name)} ${x.it.code}：${c.lots[i].toLocaleString()} 張 → ${ntw(c.by[m][i])}`).join('<br>'));
     $$('#incCView button').forEach((b) => { b.onclick = () => { S.inc.cview = b.dataset.v; LS.set('tw.etf.inc.cview', S.inc.cview); drawIncCombos(); }; });
-    $$('#incCTbl button[data-code]').forEach((b) => { b.onclick = () => twoTap('m' + b.dataset.code, () => A().goStock(b.dataset.code)); });
+    comboLink(c, parts, ck, mainOf);
     $('#incToCx').onclick = () => { S.inc.obj = 'c:' + S.inc.ci; S.inc.main = 'x'; LS.set('tw.etf.inc.main', 'x'); drawInc(); };
     box.dataset.n = String(C.list.length);
+  }
+  /* ★ 10-08 組合四處連動（Andy：「點擊特定區塊 整張圖表會連動有反應」，316 截圖圈的是 0056 與它主要入帳的 2／5／8／11 月）：
+     原本甜甜圈、時鐘、直條、明細卡各畫各的，只有「顏色相同」把它們串起來 ⇒ 想知道「0056 負責哪幾個月」得自己拿顏色去三張圖比對（兩步推論）。
+     現在選中一檔（點甜甜圈扇區／時鐘一格＝那格的主要入帳檔／直條一根＝同上／明細卡）：
+       · 甜甜圈：那塊 3px 外框，其他扇區 .35；中心字換成那檔的投入占比
+       · 時鐘、月曆格、直條：那檔是「主要入帳」的月份維持全亮（＋外框），其他 .35 ⇒ 一眼看出它撐住哪幾個月
+       · 明細卡：.hl（跟表格選取列同一套琥珀色），桌機不在視窗內時捲進來
+     再點同一個、或點空白處 ⇒ 全部恢復。滑過只做提示＋輕微高亮（不鎖定）。
+     ⚠ 透明度寫在每個資料項的 itemStyle.opacity（不是改顏色），深／淺主題同一個數字都對；.35 照 style_guide「其餘變淡 .3～.4」。
+     ⚠ 選取記在 S.inc.csel（代號）：切時鐘／月曆、改目標重畫後，只要那檔還在這組就保留；換到不含它的組合就自動清掉。
+     ⚠ 手機（≤640）上下排，捲去明細卡會把剛點的圖推出畫面，所以手機不捲、只亮。 */
+  const SEL_DIM = 0.35;
+  function comboLink(c, parts, ck, mainOf) {
+    const a = A(), CH = a.CH, combo = $('#incCombos .combo');
+    if (!combo) return;
+    const codes = c.mem.map((x) => x.it.code), tot = parts.reduce((t, d) => t + (d.value || 0), 0) || 1;
+    const inst = (id) => { const el = $('#' + id); const ch = el && window.echarts ? window.echarts.getInstanceByDom(el) : null; return ch && !ch.isDisposed() ? ch : null; };
+    const dn = inst('incCdn'), clk = inst('incClk'), mb = inst('incCmb');
+    let hov = -1;
+    const selI = () => codes.indexOf(S.inc.csel);
+    const opOf = (on, si) => (si < 0 || on ? 1 : SEL_DIM);
+    function paint(scroll) {
+      const si = selI();
+      if (si < 0) S.inc.csel = null;
+      combo.dataset.sel = si >= 0 ? codes[si] : '';
+      if (dn && !dn.isDisposed()) {
+        const f = hov >= 0 ? hov : si;
+        try { dn.setOption({ title: a.donut.center(f >= 0 ? parts[f].name : '總投入', f >= 0 ? a.fmt.n(parts[f].value / tot * 100, 1) + '%' : wan(c.cost), DN, 0.5),
+          series: [{ data: parts.map((d, i) => { const it = a.donut.item(d, i, i === si || i === hov); it.itemStyle.opacity = i === hov && i !== si ? Math.max(0.7, opOf(false, si)) : opOf(i === si, si); return it; }) }] }); } catch (e) { /* 提示框與 dispose 競態 */ }
+      }
+      if (clk && !clk.isDisposed() && ck) {
+        try { clk.setOption({ series: [{ data: ck.data.map((d) => { const on = si >= 0 && d.mi === si;
+          return { ...d, itemStyle: { ...d.itemStyle, color: on ? a.donut.color(d.mi) : d.itemStyle.color, opacity: opOf(on, si), borderColor: on ? CH.ink : CH.panel, borderWidth: on ? 2 : 1 } }; }) }] }); } catch (e) { /* 競態 */ }
+      }
+      $$('#incGrid .mcell').forEach((el) => { const on = si >= 0 && mainOf(+el.dataset.m - 1) === si; el.classList.toggle('dim', si >= 0 && !on); el.classList.toggle('lit', on); });
+      if (mb && !mb.isDisposed()) {
+        try { mb.setOption({ series: [{ data: c.mon.map((v, m) => { const on = si >= 0 && mainOf(m) === si;
+          // ⚠ 顏色要一起寫：資料項一旦帶 itemStyle，系列層的 color 函式就不再套用，直條會整排退回預設青色（踩過）
+          const mi = mainOf(m), col = mi >= 0 ? a.donut.color(mi) : CH.ink3;
+          return { value: Math.round(v), itemStyle: { color: { type: 'linear', x: 0, y: 0, x2: 0, y2: 1, colorStops: [{ offset: 0, color: col }, { offset: 1, color: a.hexA(col, 0.45) }] },
+            opacity: opOf(on, si), borderColor: on ? CH.ink : 'transparent', borderWidth: on ? 1.5 : 0 }, label: { opacity: si < 0 || on ? 1 : 0.5 } }; }) }] }); } catch (e) { /* 競態 */ }
+      }
+      const cards = $$('#incCTbl .cmr');
+      cards.forEach((r, i) => r.classList.toggle('hl', i === si));
+      if (scroll && si >= 0 && cards[si] && innerWidth > 640) {
+        const r = cards[si].getBoundingClientRect();
+        if ((r.top < 0 || r.bottom > innerHeight) && cards[si].scrollIntoView) cards[si].scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+      }
+    }
+    // i＝要選的那檔序號（-1＝清掉）；再點已選的那檔＝取消
+    // ⚠ 觸控點一下，zrender 會收到指標事件的 click 又收到瀏覽器補發的 click ⇒ 同一處 350ms 內第二下不算，不然「選取→立刻取消」
+    let last = { k: '', t: 0 };
+    const pick = (i, src) => { const k = src + ':' + i, t = Date.now(); if (src && last.k === k && t - last.t < 350) return; last = { k, t };
+      S.inc.csel = i < 0 || codes[i] === S.inc.csel ? null : codes[i]; hov = -1; paint(src !== 'card'); };
+    S._cPick = pick;
+    // ⚠ zr.off('click') 不可以不帶函式：那會連 ECharts 自己掛在 zr 上的 click 一起拔掉，圖上的 'click' 事件就再也不會發（踩過）
+    const blank = (ch) => { const zr = ch.getZr(); if (zr._incBlank) zr.off('click', zr._incBlank); zr._incBlank = (e) => { if (!e.target) S._cPick && S._cPick(-1); }; zr.on('click', zr._incBlank); };
+    if (dn) {
+      dn.off('mouseover'); dn.off('globalout'); dn.off('click');   // 換掉 donutBig 的 wireHover：它重畫扇區時會把「選取的外框與變淡」洗掉
+      dn.on('mouseover', (p) => { if (p.seriesIndex === 0 && hov !== p.dataIndex) { hov = p.dataIndex; paint(false); } });
+      dn.on('globalout', () => { if (hov >= 0) { hov = -1; paint(false); } });
+      dn.on('click', (p) => { if (p.seriesIndex === 0) pick(p.dataIndex, 'dn'); });
+      blank(dn);
+    }
+    if (clk) { clk.off('click'); clk.on('click', (p) => { if (ck && ck.data[p.dataIndex]) pick(ck.data[p.dataIndex].mi, 'clk'); }); blank(clk); }
+    if (mb) { mb.off('click'); mb.on('click', (p) => pick(mainOf(p.dataIndex), 'mb')); blank(mb); }
+    $$('#incGrid .mcell').forEach((el) => { el.onclick = () => pick(mainOf(+el.dataset.m - 1), 'grid'); });
+    $$('#incCTbl .cmr').forEach((r, i) => { r.onclick = (e) => { if (!e.target.closest('.cmn')) pick(i, 'card'); }; });
+    // 名稱鈕：沒選中→先選取；已選中→進個股頁（能點到底，但第一下不把人帶離這頁）
+    $$('#incCTbl button[data-code]').forEach((b, i) => { b.onclick = () => { if (selI() === i) A().goStock(b.dataset.code); else pick(i, 'card'); }; });
+    // 組合卡內的空白處（標題列、小標、圖與圖之間）＝取消
+    combo.onclick = (e) => { if (!e.target.closest('.cmr, .chart, canvas, button, .mcell, .seg, a, input, select, label')) pick(-1); };
+    if (!S._cLinkDoc) {   // 卡片外的空白處也算：整頁只掛一次，靠 S._cPick 拿到目前這一組
+      S._cLinkDoc = true;
+      document.addEventListener('click', (e) => { if (S.inc && S.inc.csel && S._cPick && document.contains(e.target) && !e.target.closest('#incCombos, #incTabs, .echarts-tooltip, [role="dialog"]')) S._cPick(-1); }, true);
+    }
+    if (S.inc.csel) paint(false);
+    else combo.dataset.sel = '';
   }
   /* v7（Andy：把組合 A～E 往上拉到「單檔 ETF」那一排）：分頁列＝單檔 ETF｜組合 A～E，停在單檔時也要知道 A～E 的投入金額，
      所以組合結果依「目標／範圍／健保／期間／排序」快取，切分頁不重算窮舉。 */

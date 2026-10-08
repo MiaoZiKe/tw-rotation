@@ -74,8 +74,8 @@
        分組與順序直接讀 layout4.js 的 GROUPS.views（電腦版側欄用 CSS 依它換位置，畫面順序＝這份；#tabs 的 DOM 順序不是畫面順序）。
        明暗切換頂欄「⋯」裡已經有一個，抽屜不再放；「工具」分組拿掉。 */
     const evn = (($('#evCount') || {}).textContent || '').trim();
-    let h = `<div class="m4grp m4top"><button type="button" class="m4item" data-act="search">${mi('search')}<span>搜尋</span></button>
-      <button type="button" class="m4item" data-act="events">${mi('events')}<span>事件</span>${evn ? `<span class="n">${esc(evn)}</span>` : ''}</button></div>`;
+    // 2026-10-08 晚（Andy：「搜尋功能放在上方欄位」）：搜尋移到頂欄（#m4Search），抽屜不再放
+    let h = `<div class="m4grp m4top"><button type="button" class="m4item" data-act="events">${mi('events')}<span>事件</span>${evn ? `<span class="n">${esc(evn)}</span>` : ''}</button></div>`;
     N.GROUPS.forEach((G) => {
       const rows = [];
       G.views.forEach((v) => {
@@ -169,6 +169,7 @@
   function teardown() {
     close();
     restoreTools();
+    { const bb = $('#m4BackBtn'); if (bb) bb.remove(); }
     [burger, drawer, back, title].forEach((e) => { if (e) e.remove(); });
     burger = drawer = back = title = null;
     document.body.classList.remove('m4lock');
@@ -179,7 +180,7 @@
      順序同電腦版頁首右上：明暗（#themeBtn）→ 版面風格（#t4Btn）→ 平台導覽（#twPageTourBtn）→ 在線（#acctOnline）→ 登入（#acctBtn）。
      會員功能沒開時沒有 #acctBtn：放一顆 #m4Login，講清楚為什麼不能登入（同電腦版 #l4Login 的字）。
      搜尋收進抽屜最上面的「搜尋」；「⋯」選單拿掉（裡面的今日事件、自選都在抽屜）。 */
-  const TOOLS = ['#themeBtn', '#t4Btn', '#twPageTourBtn', '#acctOnline', '#acctBtn', '#m4Login'];   // #themeBtn 搬進來但藏著（明暗在「外觀」面板裡，去按它本人）
+  const TOOLS = ['#m4Search', '#themeBtn', '#t4Btn', '#twPageTourBtn', '#acctOnline', '#acctBtn', '#m4Login'];   // #themeBtn 搬進來但藏著（明暗在「外觀」面板裡，去按它本人）
   let tools = null; const home = new Map();
   function acctOn() { const A = window.TwAccount; return !!(A && A.on && A.on()); }
   function buildTools(bar) {
@@ -193,7 +194,14 @@
         lg.onclick = (e) => { e.stopPropagation(); loginTip(lg); };
       }
     } else if (lg) { lg.remove(); lg = null; }
-    const want = TOOLS.map((q) => (q === '#m4Login' ? lg : $(q))).filter(Boolean);
+    let sb = $('#m4Search');
+    if (!sb) {
+      sb = document.createElement('button'); sb.type = 'button'; sb.id = 'm4Search'; sb.className = 'm4srch'; sb.setAttribute('aria-label', '搜尋個股（代號或簡稱）');
+      sb.innerHTML = mi('search');
+      // 就是去按 mobile3.js 原本那顆 #mSearchBtn：頂欄展開成一條全寬搜尋框、自動 focus、有「取消」；搜尋結果照舊
+      sb.onclick = (e) => { e.stopPropagation(); const m3 = $('#mSearchBtn'); if (m3) m3.click(); };
+    }
+    const want = TOOLS.map((q) => (q === '#m4Login' ? lg : q === '#m4Search' ? sb : $(q))).filter(Boolean);
     want.forEach((e) => { if (e.parentNode !== tools && !home.has(e) && e.id !== 'm4Login') home.set(e, [e.parentNode, e.nextSibling]); });
     const cur = Array.from(tools.children);
     if (want.length !== cur.length || want.some((e, i) => cur[i] !== e)) want.forEach((e) => tools.appendChild(e));
@@ -204,7 +212,7 @@
     home.forEach(([p, nx], e) => { if (p && p.isConnected) p.insertBefore(e, nx && nx.parentNode === p ? nx : null); });
     home.clear();
     const t4 = $('#t4Btn'); if (t4 && t4.dataset.m4txt) { t4.textContent = t4.dataset.m4txt; delete t4.dataset.m4txt; }
-    ['#m4Login', '#m4LoginTip', '#m4Tools'].forEach((q) => { const e = $(q); if (e) e.remove(); });
+    ['#m4Login', '#m4LoginTip', '#m4Search', '#m4Tools'].forEach((q) => { const e = $(q); if (e) e.remove(); });
     tools = null;
   }
   function loginTip(b) {
@@ -271,6 +279,163 @@
     $$('button', seg).forEach((b, i) => { const on = i === triCur; b.classList.toggle('on', on); b.setAttribute('aria-selected', on ? 'true' : 'false'); });
     TRI.forEach(([id], i) => { const c = document.getElementById(id); if (c) c.classList.toggle('m4trioff', i !== triCur); });
   }
+
+  /* 產業地圖：手機只留「成交值占比」甜甜圈（Andy：「產業地圖在手機版本只要留下圓餅圖」）；
+     「族群漲跌幅」橫條圖不拿掉，收進甜甜圈下面一顆預設收起的「族群漲跌幅 ▸」收合列（「其餘不用拿掉，但要收合」） */
+  function wireIndMap() {
+    if (!isM()) return;
+    const grid = $('#v-industry .gpgrid'); if (!grid) return;
+    const bar = $('.gpcard:not(.gppie)', grid); if (!bar) return;
+    let b = $(':scope > .m4fold', grid);
+    if (!b) {
+      b = document.createElement('button'); b.type = 'button'; b.className = 'm4fold'; b.setAttribute('aria-expanded', 'false');
+      b.innerHTML = '族群漲跌幅 <i aria-hidden="true">▸</i>';
+      b.onclick = () => { const on = !bar.classList.contains('m4open'); bar.classList.toggle('m4open', on); b.setAttribute('aria-expanded', on ? 'true' : 'false'); $('i', b).textContent = on ? '▾' : '▸';
+        setTimeout(() => window.dispatchEvent(new Event('resize')), 30); };
+      grid.appendChild(b);
+    }
+    if (b.nextElementSibling !== bar) b.after(bar);   // 收合列在甜甜圈下面、橫條圖接在收合列後面
+  }
+
+  /* ★ 已選膠囊列 → 一顆「已選 N ▾」篩選下拉（Andy：「手機版本出現這種的，就都改成篩選式下拉清單」）。
+     共用元件 = window.MultiSelect.dropdown，底層就是全站已在用的 App.msDD（週期統計、站上均線、ETF 報酬比較同一支），
+     不另寫一套：搜尋框、勾選框、色點、全選／清除都是它的。這裡只負責「長出一顆 msDD 的外殼」，
+     勾選動作一律轉給頁面原本的控制項（清單勾選框、加入鈕、膠囊本身），上限與重畫照頁面自己的規則走。
+     盤點（402 寬）：
+       · 週期統計 #seasonKey、站上均線 #maGroupKey → 旁邊本來就有 msDD 下拉，手機只把膠囊列藏起來（CSS）
+       · 現金流試算單檔 #incChips → 新長一顆下拉，候選＝右側清單 #incList
+       · 複利試算自訂再投入 #cxChips → 新長一顆下拉，候選＝ #incRxList（ETF 與上市個股）
+       · ETF 報酬比較「加入比較」本來就是 msDD（#etfCmpDD），不動 */
+  const MS_SHELL = (label, ph) => `<button type="button" class="ddbtn" aria-haspopup="true" aria-expanded="false">${label}<b>未選</b><i aria-hidden="true">▾</i></button>
+    <div class="ddpanel" hidden><input type="search" class="sndd-q" placeholder="${ph || '搜尋代號或名稱'}" aria-label="${ph || '搜尋代號或名稱'}" autocomplete="off">
+    <div class="ddbar"><span class="muted sndd-n"></span><button type="button" class="btn small dd-all">全選</button><button type="button" class="btn small dd-none">清除</button></div>
+    <div class="ddlist"></div></div>`;
+  window.MultiSelect = window.MultiSelect || {
+    /* host＝放在誰前面；id＝這顆下拉的 id；cfg＝msDD 的 cfg（menu／onToggle／onAll／onNone）。回 msDD 的 api（sync 用） */
+    dropdown(host, id, label, cfg, ph) {
+      const A = window.App; if (!host || !A || !A.msDD) return null;
+      let dd = document.getElementById(id);
+      if (!dd) { dd = document.createElement('div'); dd.id = id; dd.className = 'rotdd wide msdd m4ms'; dd.innerHTML = MS_SHELL(label, ph); host.before(dd); }
+      return A.msDD(dd, cfg);
+    },
+  };
+  const msNote = (t) => { const m = $('#incListMsg') || $('#cxMsg'); if (m && t) m.textContent = t; };
+  function wireIncMS() {
+    if (!isM()) return;
+    const key = $('#incChips'), list = $('#incList'); if (!key || !list) return;
+    const sig = key.innerHTML.length + ':' + list.innerHTML.length + ':' + $$('.ilr.in', list).length;
+    if (key._m4sig === sig && document.getElementById('m4IncMS')) return;
+    key._m4sig = sig;
+    const box = (n) => $(`.ilr[data-code="${CSS.escape(n.split(' ').pop())}"] input[type=checkbox]`, list);
+    const flip = (n, on) => { const c = box(n); if (!c || c.checked === on) return; if (on && c.disabled) { msNote('最多 5 檔，請先取消一檔'); return; } c.checked = on; c.dispatchEvent(new Event('change', { bubbles: true })); };
+    const ms = window.MultiSelect.dropdown(key, 'm4IncMS', '單檔：', {
+      menu: { rf: 'm4', kind: 'inc' },
+      onToggle: (c) => flip(c.dataset.n, c.checked),
+      onAll: (vis) => vis.forEach((n) => flip(n, true)),
+      onNone: (vis) => (vis || $$('.ilr.in', list).map((r) => r.dataset.code)).forEach((n) => flip(n, false)),
+    });
+    if (!ms) return;
+    const col = {}; $$('button.snk[data-n]', key).forEach((b) => { col[b.dataset.n.split(' ').pop()] = b.style.getPropertyValue('--c'); });
+    const rows = $$('.ilr', list).map((r) => { const cb = $('input', r), on = !!(cb && cb.checked);
+      return { name: `${$('.nm', r) ? $('.nm', r).textContent : ''} ${r.dataset.code}`, on, color: on ? (col[r.dataset.code] || 'var(--ink-3)') : 'rgba(128,128,128,.45)',
+        val: ($('.mv', r) || {}).textContent || '', title: cb && cb.disabled && !on ? '最多 5 檔，先取消一檔' : '' }; });
+    const n = rows.filter((r) => r.on).length;
+    const avg = $('.snk.avg', key);
+    ms.sync({ head: avg ? `<div class="ddopt" data-headrow="1" style="--c:var(--ink-3)"><label><span class="nm">— 平均（細灰線，永遠畫）</span></label></div>` : '',
+      rows, count: `最多 5 檔 · 已選 ${n} 檔`, label: n ? `已選 ${n} 檔` : '未選', n });
+    $$('.ddopt input[type=checkbox]', document.getElementById('m4IncMS')).forEach((c) => { if (!c.checked && n >= 5) c.disabled = true; });
+  }
+  function wireCxMS() {
+    if (!isM()) return;
+    const key = $('#cxChips'), dl = $('#incRxList'), inp = $('#cxIn'), add = $('#cxAdd'); if (!key || !dl || !inp || !add) return;
+    const wrap = key.closest('.cxlg') || key.parentElement;
+    const sig = key.innerHTML;
+    if (key._m4sig === sig && document.getElementById('m4CxMS')) return;
+    key._m4sig = sig;
+    const cur = () => $$('.cmpx', key).map((b) => b.dataset.code);
+    const flip = (code, on) => {
+      if (on) { if (cur().includes(code)) return; inp.value = code; add.click(); }
+      else { const b = $(`.cmpx[data-code="${CSS.escape(code)}"]`, key); if (b) b.click(); }
+    };
+    const ms = window.MultiSelect.dropdown(wrap.querySelector('.cmpw') || key, 'm4CxMS', '自訂再投入：', {
+      menu: { rf: 'm4', kind: 'cx' },
+      onToggle: (c) => flip(c.dataset.n.split(' ')[0], c.checked),
+      onAll: (vis) => vis.slice(0, 5).forEach((n) => flip(n.split(' ')[0], true)),
+      onNone: (vis) => (vis ? vis.map((n) => n.split(' ')[0]) : cur()).forEach((c) => flip(c, false)),
+    }, '搜尋代號或名稱（ETF、個股）');
+    if (!ms) return;
+    const on = new Set(cur());
+    const opts = $$('option', dl).map((o) => ({ code: o.value, name: o.textContent }));
+    opts.sort((a, b) => (on.has(b.code) - on.has(a.code)));
+    ms.sync({ rows: opts.map((o) => ({ name: `${o.code} ${o.name}`, on: on.has(o.code), color: on.has(o.code) ? 'var(--accent)' : 'rgba(128,128,128,.45)', val: '' })),
+      count: `已選 ${on.size} 檔`, label: on.size ? `已選 ${on.size} 檔` : '未選', n: on.size });
+  }
+
+  /* 訂閱方案頁（Andy：「已經有格式表，下方就不需要再一次出現，格式表需要一頁看到不同方案，所以需要精簡優化」）：
+     比較表的格子改短寫（每日 10 次 → 10/日、最多 3 檔 → 3 檔、1 頁・每頁 10 檔 → 1×10），原文留在 title；表格本身與方案卡的精簡在 mobile4.css 第 24 節 */
+  const PR_SHORT = [[/^每日\s*(\d+)\s*次$/, '$1/日'], [/^每日\s*(\d+)\s*(\S+)$/, '$1$2/日'], [/^最多\s*(\d+)\s*(\S+)$/, '$1 $2'],
+    [/^(\d+)\s*頁・每頁\s*(\d+)\s*檔$/, '$1×$2'], [/^不限頁・每頁\s*(\d+)\s*檔$/, '不限×$1'], [/^全部方案皆可用$/, '全部皆可']];
+  function wirePricing() {
+    if (!isM()) return;
+    const t = $('#prTable'); if (!t || t._m4short) return;
+    t._m4short = true;
+    $$('tbody td:not(:first-child), tbody tr.base td', t).forEach((td) => {
+      const x = td.textContent.trim(); let y = x;
+      for (const [re, to] of PR_SHORT) if (re.test(y)) { y = y.replace(re, to); break; }
+      if (y !== x) { td.title = x; td.textContent = y; }
+    });
+  }
+
+  /* ETF 報酬比較的表：手機只留「名稱＋價格年化＋含息年化」三欄（不橫捲），其餘（期間、殖利率、配息年化）點一列展開在下面；
+     展開列裡放「看個股頁 ›」—— 原本「點一列就進個股頁」改成點兩下的路徑，資訊收起來但沒有消失 */
+  document.addEventListener('click', (e) => {
+    if (!isM()) return;
+    const tr = e.target.closest && e.target.closest('#etfRetTbl tbody tr[data-code]'); if (!tr) return;
+    e.stopPropagation(); e.preventDefault();
+    const nx = tr.nextElementSibling;
+    if (nx && nx.classList.contains('m4retx')) { nx.remove(); tr.classList.remove('m4on'); return; }
+    const t = tr.closest('table'), heads = $$('thead th', t).map((h) => h.textContent.trim());
+    const cells = $$(':scope > td', tr);
+    const parts = [1, 4, 5].filter((i) => cells[i]).map((i) => `<span><b>${esc(heads[i] || '')}</b> ${cells[i].innerHTML}</span>`).join('');
+    const row = document.createElement('tr'); row.className = 'm4retx';
+    row.innerHTML = `<td colspan="${heads.length}"><div class="m4retd">${parts}<a href="#stock/${esc(tr.dataset.code)}">看個股頁 ›</a></div></td>`;
+    tr.after(row); tr.classList.add('m4on');
+  }, true);
+
+  /* 控制區裡多餘的字（「期間」「加入比較：」「扣除二代健保（…）」）：手機藏起來省寬度。
+     用 span 包起來再藏，不用 font-size:0（全站有「字 ≥ 11px」的普查，字級 0 會被當成違規；而且藏的是字不是控制項） */
+  function hideLabels() {
+    if (!isM()) return;
+    $$('#etfRetCtl .rpk label, #etfCmpDD .ddbtn, #v-etf .incctl.m4sel .rpk label, #v-etf .incctl.m4sel label.chk').forEach((el) => {
+      [...el.childNodes].forEach((n) => { if (n.nodeType === 3 && n.textContent.trim()) { const sp = document.createElement('span'); sp.className = 'm4tx'; sp.textContent = n.textContent; n.replaceWith(sp); } });
+    });
+  }
+
+  /* 細節頁的「‹ 返回」（Andy：「這需要附上一個倒退符號」）：題材細節、單一產業鏈、族群頁、個股頁。
+     有站內上一頁就 history.back()；直接開網址進來的（沒有上一頁）就回到這個功能的上一層。 */
+  let navN = 0;
+  window.addEventListener('hashchange', () => { navN++; });
+  function parentOf(h) {
+    const p = h.replace(/^#/, '').split('/');
+    if (p[0] === 'heatmap' && p[1] === 'theme' && p[2]) return '#heatmap/theme';
+    if (p[0] === 'industry' && p[1] === 'group' && p[2]) return '#industry';
+    if (p[0] === 'industry' && p[1] && p[1] !== 'group') return p[2] ? '#industry/' + p[1] : '#industry';
+    if (p[0] === 'stock' && p[1]) return '#industry';
+    return null;
+  }
+  function paintBack() {
+    if (!isM()) return;
+    const main = $('main'); if (!main) return;
+    let bb = $('#m4BackBtn');
+    const par = parentOf(location.hash || '');
+    if (!par) { if (bb) bb.hidden = true; return; }
+    if (!bb) {
+      bb = document.createElement('button'); bb.type = 'button'; bb.id = 'm4BackBtn'; bb.className = 'm4back2'; bb.innerHTML = '‹ 返回';
+      bb.onclick = () => { const to = parentOf(location.hash || ''); if (navN > 0 && history.length > 1) history.back(); else if (to) location.hash = to; };
+    }
+    if (bb.parentNode !== main || main.firstChild !== bb) main.insertBefore(bb, main.firstChild);
+    bb.hidden = false;
+  }
   function wireCond() {
     if (!isM()) return;
     $$('#v-etf #incPM > .incctl, #v-etf #incPX .cxctl').forEach((ctl) => {
@@ -282,9 +447,47 @@
         new MutationObserver(() => paint()).observe(ctl, { subtree: true, attributes: true, attributeFilter: ['class', 'value'], childList: true });
         ctl.addEventListener('change', () => setTimeout(paint, 0)); ctl.addEventListener('input', () => setTimeout(paint, 0));
       }
+      condSelects(ctl);
       function paint() { const t = '條件：' + (condSummary(ctl) || '—'); const want = `<span>${esc(t)}</span><i aria-hidden="true">${ctl.classList.contains('m4open') ? '▴' : '▾'}</i>`; if (b.innerHTML !== want) b.innerHTML = want; }
       paint();
     });
+  }
+
+  /* 現金流試算／複利試算的條件區：分段鈕群組一律換成下拉（Andy：「不要換行太多」＋協調者：條件區沒有分段鈕群組、全部是 select 或 checkbox、展開 ≤ 84px）。
+     原本的分段鈕留在 DOM 裡（藏起來），下拉改了就去點對應的那顆 —— 狀態與重畫照頁面自己的邏輯走，不另存一份。
+     custom＝最後多一個「自訂」選項：沒有任何一顆亮著時選中它，並把 show（自訂金額框／起始日框）顯示出來；其他時候藏起來。 */
+  function segSelect(seg, opt) {
+    if (!seg) return;
+    const bs = $$(':scope > button', seg); if (!bs.length) return;
+    let sel = seg.nextElementSibling && seg.nextElementSibling.classList.contains('m4segsel') ? seg.nextElementSibling : null;
+    const sig = bs.map((b) => b.textContent.trim() + (b.classList.contains('on') ? '*' : '')).join('|');
+    if (sel && sel._sig === sig) return;
+    if (!sel) {
+      sel = document.createElement('select'); sel.className = 'm4segsel'; sel.setAttribute('aria-label', opt.label || '選擇');
+      sel.onchange = () => {
+        const cur = $$(':scope > button', seg);
+        if (sel.value === 'custom') { if (opt.show) { opt.show.classList.add('m4show'); const i = opt.show.matches('input') ? opt.show : $('input', opt.show); if (i) i.focus(); } return; }
+        if (opt.show) opt.show.classList.remove('m4show');
+        const b = cur[+sel.value]; if (b) b.click();
+      };
+      seg.after(sel);
+    }
+    sel._sig = sig;
+    const on = bs.findIndex((b) => b.classList.contains('on'));
+    sel.innerHTML = bs.map((b, i) => `<option value="${i}">${esc(b.textContent.replace(/\s+/g, ' ').trim())}</option>`).join('') + (opt.custom ? '<option value="custom">自訂…</option>' : '');
+    sel.value = on >= 0 ? String(on) : opt.custom ? 'custom' : '0';
+    if (opt.show) opt.show.classList.toggle('m4show', on < 0);
+  }
+  function condSelects(ctl) {
+    ctl.classList.add('m4sel');
+    segSelect($('#incMode', ctl), { label: '年領或月領' });
+    segSelect($('#incAmtSeg', ctl), { label: '目標金額', custom: true, show: $('#incAmt', ctl) });
+    segSelect($('#incScope', ctl), { label: '範圍' });
+    segSelect($('#cxQuick', ctl), { label: '起始日', custom: true, show: $('#cxFrom', ctl) });
+    const nhi = $('#incNhi', ctl);
+    if (nhi && !nhi.parentElement.querySelector('.m4short')) {   // 勾選框的長說明縮成「二代健保」，完整說明留在 title
+      const lb = nhi.parentElement; lb.title = lb.textContent.trim(); lb.insertAdjacentHTML('beforeend', '<span class="m4short">扣二代健保</span>');
+    }
   }
 
   /* 頂欄頁名：「分組小字＋頁名（子頁名）」—— 側欄收進抽屜之後，這是「我在哪」唯一的提示 */
@@ -329,13 +532,14 @@
     sync();
     let rt = 0;
     window.addEventListener('resize', (e) => { if (e.twEcho) return; clearTimeout(rt); rt = setTimeout(sync, 150); });
-    window.addEventListener('hashchange', () => { close(); [0, 120, 800].forEach((t) => setTimeout(paintTitle, t)); });
+    window.addEventListener('hashchange', () => { close(); [0, 120, 800].forEach((t) => setTimeout(paintTitle, t)); setTimeout(paintBack, 0); });
+    paintBack();
     document.addEventListener('keydown', (e) => { if (e.key === 'Escape') close(); });
     new MutationObserver(paintTitle).observe(root, { attributes: true, attributeFilter: ['data-l4sub'] });
     // 會員功能晚一步才開（account.js 讀完設定檔）、#acctBtn／#acctOnline 晚一步才建：出現時收進頂欄小圖示列
     new MutationObserver(() => { if (tools && isM()) { const bar = $('.topbar'); const miss = TOOLS.some((q) => { const e = $(q); return e && e.parentNode !== tools; }) || (acctOn() && $('#m4Login')); if (bar && miss) buildTools(bar); } })
       .observe(document.body, { childList: true, subtree: true });
-    let ct = 0; new MutationObserver(() => { if (!isM()) return; clearTimeout(ct); ct = setTimeout(() => { wireCond(); wireChainList(); wireEtfTri(); }, 120); }).observe(document.body, { childList: true, subtree: true });
+    let ct = 0; new MutationObserver(() => { if (!isM()) return; clearTimeout(ct); ct = setTimeout(() => { wireCond(); wireChainList(); wireEtfTri(); wireIndMap(); wireIncMS(); wireCxMS(); wirePricing(); hideLabels(); }, 120); }).observe(document.body, { childList: true, subtree: true });
     wireCond();
   }
   window.TwM4 = { open, close, isOpen: () => !!(drawer && !drawer.hidden) };
