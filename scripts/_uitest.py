@@ -26438,9 +26438,25 @@ def t_mobile_m4(b, base, code):
         .sort((x, y) => x.getBoundingClientRect().top - y.getBoundingClientRect().top)   // 電腦版用 CSS 換位置：比畫面上的順序，不比 DOM 順序
         .map(e => (e.querySelector('.lbl') || e).innerText.trim().split('\\n')[0])
         .filter(t => t)""")
+    # ★ 2026-10-08 Andy：「側邊欄位對應圖示不見了」→ 電腦版側欄有圖示的每一項，抽屜也要有（＋搜尋一顆）
+    dk_ic = dk.evaluate("""() => { const vis = (e) => e.getClientRects().length && getComputedStyle(e).display !== 'none';
+        const tabs = [...document.querySelectorAll('#tabs .tab, #tabs .l4subtab')].filter(vis).filter(e => {
+          const sv = e.querySelector('svg'); if (sv) return sv.getBoundingClientRect().width > 0;
+          const a = getComputedStyle(e, '::after'); return (a.maskImage || a.webkitMaskImage || 'none') !== 'none' && parseFloat(a.width) > 0; });
+        const ev = document.getElementById('evToggle'); const b = ev && getComputedStyle(ev, '::before');
+        const evOk = !!ev && vis(ev) && [getComputedStyle(ev, '::before'), getComputedStyle(ev, '::after')].some(x => (x.maskImage || x.webkitMaskImage || 'none') !== 'none');
+        return { n: tabs.length + (evOk ? 1 : 0), ev: evOk }; }""")
     dk.close()
+    m_ic = m.evaluate("""() => { const D = document.getElementById('m4Drawer');
+        const bs = [...D.querySelectorAll('.m4body button')];
+        const bad = bs.filter(b => { const i = b.querySelector('svg, i'); return !i || !(i.getBoundingClientRect().width > 0)
+          || (i.tagName === 'I' && (getComputedStyle(i).maskImage || getComputedStyle(i).webkitMaskImage || 'none') === 'none'); })
+          .map(b => b.textContent.trim());
+        return { n: bs.length, bad }; }""")
+    ok(f"【{T}】抽屜每一項都有圖示（{m_ic['n']} 項）", m_ic["bad"] == [], m_ic)
+    ok(f"【{T}】抽屜圖示數＝電腦版側欄有圖示的項目數 {dk_ic['n']} ＋ 搜尋 1", m_ic["n"] == dk_ic["n"] + 1, (m_ic, dk_ic))
     got = m.evaluate("""() => { const D = document.getElementById('m4Drawer');
-        const top = [...D.querySelectorAll('.m4top button')].map(e => e.firstChild.textContent.trim());
+        const top = [...D.querySelectorAll('.m4top button')].map(e => e.querySelector('span').textContent.trim());
         const seq = [...D.querySelectorAll('.m4grp:not(.m4top) .m4gt, .m4grp:not(.m4top) button[data-h]')]
           .map(e => (e.querySelector('span') || e).textContent.trim());
         const theme = [...D.querySelectorAll('button')].filter(e => /主題/.test(e.textContent)).length;

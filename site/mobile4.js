@@ -37,6 +37,31 @@
   function curSub() { return root.getAttribute('data-l4sub') || ''; }
   function curAdm() { const m = /^#admin\/(\w+)/.exec(location.hash || ''); return /^#admin\b/.test(location.hash || '') ? (m ? (m[1] === 'members' ? 'perm' : m[1]) : 'traffic') : ''; }
 
+  /* ---------------- 主項目圖示：直接讀電腦版側欄（layout4.css）那一格的同一個遮罩，不另外畫一套 ----------------
+     2026-10-08 Andy：「側邊欄位對應圖示不見了」。電腦版的圖示是 :root.l4 .tab[data-view=X] 的 --l4-ic（多半指向 --l4-ic-NAME），
+     手機不掛 l4，這些變數不會生效 → 這裡從樣式表把同一個值讀出來，寫到抽屜那一列的 --m4-ic。 */
+  let IC = null;
+  function icons() {
+    if (IC) return IC;
+    const vars = {}, map = {};
+    const walk = (rules) => { for (const r of rules) {
+      if (r.cssRules && !r.selectorText) { try { walk(r.cssRules); } catch (e) { /* 跨網域樣式表 */ } continue; }
+      const sel = r.selectorText || '', st = r.style; if (!st) continue;
+      if (/^:root\.l4\s*,\s*:root\.l4m$/.test(sel)) for (let i = 0; i < st.length; i++) { const k = st[i]; if (k.startsWith('--l4-ic-')) vars[k] = st.getPropertyValue(k).trim(); }
+      const ic = st.getPropertyValue('--l4-ic').trim(); if (!ic) continue;
+      let m = /^:root\.l4 \.tab\[data-view="(\w+)"\]$/.exec(sel);
+      if (m) map[m[1]] = ic;
+      else if (sel === ':root.l4 .tab.l4perm') map.admin = ic;
+    } };
+    for (const sh of document.styleSheets) { try { walk(sh.cssRules); } catch (e) { /* 跨網域樣式表讀不到 */ } }
+    const res = (v) => { const m = /^var\((--l4-ic-[\w-]+)\)$/.exec(v || ''); return m ? vars[m[1]] : v; };
+    IC = {}; Object.keys(map).forEach((k) => { IC[k] = res(map[k]); });
+    IC.search = vars['--l4-ic-search']; IC.events = vars['--l4-ic-bell'];
+    if (!Object.keys(map).length) IC = null;      // 樣式表還沒載好：下次打開再讀
+    return IC || {};
+  }
+  const mi = (k) => { const v = icons()[k]; return v ? `<i class="m4ic" style="--m4-ic:${esc(v)}" aria-hidden="true"></i>` : ''; };
+
   /* ---------------- 抽屜內容（每次打開都重畫：登入／登出之後管理區要跟著出現或消失） ---------------- */
   function render() {
     const N = nav(); if (!drawer || !N) return;
@@ -49,14 +74,14 @@
        分組與順序直接讀 layout4.js 的 GROUPS.views（電腦版側欄用 CSS 依它換位置，畫面順序＝這份；#tabs 的 DOM 順序不是畫面順序）。
        明暗切換頂欄「⋯」裡已經有一個，抽屜不再放；「工具」分組拿掉。 */
     const evn = (($('#evCount') || {}).textContent || '').trim();
-    let h = `<div class="m4grp m4top"><button type="button" class="m4item" data-act="search">搜尋</button>
-      <button type="button" class="m4item" data-act="events">事件${evn ? `<span class="n">${esc(evn)}</span>` : ''}</button></div>`;
+    let h = `<div class="m4grp m4top"><button type="button" class="m4item" data-act="search">${mi('search')}<span>搜尋</span></button>
+      <button type="button" class="m4item" data-act="events">${mi('events')}<span>事件</span>${evn ? `<span class="n">${esc(evn)}</span>` : ''}</button></div>`;
     N.GROUPS.forEach((G) => {
       const rows = [];
       G.views.forEach((v) => {
         if (v === 'admin') {
           if (!N.isAdmin()) return;
-          rows.push(`<button type="button" class="m4item${adm ? ' on' : ''}" data-h="#admin/perm" data-v="admin">管理區</button>`);
+          rows.push(`<button type="button" class="m4item${adm ? ' on' : ''}" data-h="#admin/perm" data-v="admin">${mi('admin')}<span>管理區</span></button>`);
           N.admSubs().forEach(([k, t, , icn]) => rows.push(`<button type="button" class="m4sub${adm === k ? ' on' : ''}" data-h="#admin/${k}" data-adm="${k}">${ic(icn)}<span>${esc(t)}</span></button>`));
           return;
         }
@@ -64,7 +89,7 @@
         const P = N.PAGES[v] || { t: v };
         const subs = N.SUBS[v] || [];
         const on = pg === v || (v === 'industry' && pg === 'stock');
-        rows.push(`<button type="button" class="m4item${on && !subs.length ? ' on' : ''}${on && subs.length ? ' here' : ''}" data-h="${HREF[v] || '#' + v}" data-v="${v}">${esc(P.t)}</button>`);
+        rows.push(`<button type="button" class="m4item${on && !subs.length ? ' on' : ''}${on && subs.length ? ' here' : ''}" data-h="${HREF[v] || '#' + v}" data-v="${v}">${mi(v)}<span>${esc(P.t)}</span></button>`);
         subs.forEach((s) => rows.push(`<button type="button" class="m4sub${sub === s.k ? ' on' : ''}" data-h="${s.h}" data-sub="${s.k}">${ic(s.ic)}<span>${esc(s.t)}</span></button>`));
       });
       if (rows.length) h += `<div class="m4grp" data-g="${G.g}"><div class="m4gt">${esc(G.t)}</div>${rows.join('')}</div>`;

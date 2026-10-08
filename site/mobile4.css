@@ -44,8 +44,14 @@
   :root.m4 .m4gt{font-size:12px;color:var(--ink-3);padding:4px 10px 2px;letter-spacing:.06em}
   :root.m4 .m4item,:root.m4 .m4sub{display:flex;align-items:center;gap:8px;width:100%;min-height:44px;padding:0 12px;border:0;border-radius:10px;
     background:transparent;color:var(--ink);font-size:15px;font-weight:600;text-align:left;cursor:pointer}
-  :root.m4 .m4sub{min-height:40px;padding-left:30px;font-size:14px;font-weight:500;color:var(--ink-2)}
+  :root.m4 .m4sub{min-height:40px;font-size:14px;font-weight:500;color:var(--ink-2)}
   :root.m4 .m4sub .ic{flex:none;opacity:.85}
+  /* 圖示（同電腦版側欄：主項 19px、子項 16px；子項圖示對齊主項的字，跟電腦版一樣） */
+  :root.m4 .m4ic{flex:none;width:19px;height:19px;background:currentColor;opacity:.85;
+    -webkit-mask:var(--m4-ic) center/contain no-repeat;mask:var(--m4-ic) center/contain no-repeat}
+  :root.m4 .m4item{gap:12px}
+  :root.m4 .m4item.on .m4ic{opacity:1}
+  :root.m4 .m4sub{padding-left:43px;gap:10px}
   :root.m4 .m4item.here{color:var(--t4-accent-solid,var(--cyan))}
   :root.m4 .m4item.on,:root.m4 .m4sub.on{background:color-mix(in srgb,var(--t4-accent-solid,var(--cyan)) 16%,transparent);color:var(--t4-accent-solid,var(--cyan));font-weight:700}
   :root.m4 .m4item .n{margin-left:auto;font-size:12px;min-width:22px;padding:1px 6px;border-radius:10px;background:var(--panel-2);color:var(--ink-2);text-align:center}
