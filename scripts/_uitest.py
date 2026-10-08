@@ -27346,6 +27346,7 @@ def owner_on(target, base, nav=True):
     ctx.route(OWNER_API + "/**", _owner_api)
     if nav and hasattr(target, "goto"):
         target.goto(base + "#overview", wait_until="load")
+        target.reload(wait_until="load")      # 已經在站上時 goto 只換 hash、不會重跑開機腳本 —— 一定要真的重新載入一次 cookie 才生效
         wait_until(target, "() => !!(window.TwLive && TwLive.allowed() && TwLive.state().src !== 'override')", 10000)
 
 
@@ -27364,6 +27365,7 @@ def owner_off(target, base):
         try:
             target.evaluate("() => { try { localStorage.removeItem('tw.acct.tok'); localStorage.removeItem('tw.acct.user'); } catch (e) {} }")
             target.goto(base + "#overview", wait_until="load")
+            target.reload(wait_until="load")  # 同上：要真的重新載入，後門模式才回來
         except Exception:  # noqa: BLE001
             pass
 
