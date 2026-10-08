@@ -20,7 +20,7 @@ BASE = "https://www.sitca.org.tw/ROC/Industry/{}.aspx"
 
 
 def text_of(h: str) -> str:
-    h = re.sub(r"(?is)<(script|style)[^>]*>.*?</\1>", " ", h)
+    h = re.sub(r"(?is)<(script|style|select)[^>]*>.*?</\1>", " ", h)   # 下拉選單的幾百個選項會蓋掉表格
     h = re.sub(r"(?i)<br\s*/?>|</tr>|</p>|</div>", "\n", h)
     h = re.sub(r"(?i)</t[dh]>", " | ", h)
     t = _html.unescape(re.sub(r"<[^>]+>", " ", h))
@@ -57,7 +57,7 @@ for arg in sys.argv[1:]:
         print("  頁面文字（前 1500 字）:", text_of(h)[:1500].replace("\n", " ⏎ "))
         sel = selects(h)
         for k, v in sel.items():
-            print(f"  下拉 {k}：{len(v)} 個選項；前 8：{v[:8]}；最後 3：{v[-3:]}")
+            print(f"  下拉 {k}：{len(v)} 個選項；" + ("全部：" + str([(a, b) for a, b, _ in v]) if "Class" in k or "CLASS" in k else f"前 8：{v[:8]}；最後 3：{v[-3:]}"))
         btns = re.findall(r'(?is)<input[^>]*type="submit"[^>]*name="([^"]+)"[^>]*value="([^"]*)"', h)
         print("  按鈕:", btns)
         data = fields(h)
@@ -77,7 +77,7 @@ for arg in sys.argv[1:]:
         t2 = text_of(r2.text)
         print("  POST HTTP", r2.status_code, "bytes", len(r2.text))
         k = t2.find("台積電")
-        print("  回應文字（前 3000 字）:", t2[:3000].replace("\n", " ⏎ "))
+        print("  回應文字（前 6000 字）:", t2[:6000].replace("\n", " ⏎ "))
         if k >= 0:
             print("  台積電前後:", t2[max(0, k - 1500):k + 1500].replace("\n", " ⏎ "))
         for kw in ("00918", "00921", "00905", "兆豐", "富蘭克林", "ETF"):
