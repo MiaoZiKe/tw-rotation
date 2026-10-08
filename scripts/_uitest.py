@@ -27958,6 +27958,102 @@ def desk_open(pg, base, route):
     pg.evaluate("() => window.scrollTo(0, 0)"); pg.wait_for_timeout(500)
 
 
+# ★ 2026-10-09 長條寬度1009（Andy 10-09：「下方調整長條圖適當寬度」—— 總覽漲跌家數 11 根在 1730 寬只畫 10px，又細又空）：
+#   softenOption（site/app.js）的長條上限改成依類別數決定：≤ 20 個類別 → 每格 50%（上限直條 48、橫條 20）；多的照舊 ≤ 12／10。
+#   這段真的去量 ECharts 算出來的柱寬（getItemLayout）跟格寬（getBandWidth），而且點一根直條（清單打開、其他直條淡掉的局部 setOption）
+#   之後再量一次 —— 局部更新沒帶軸，以前會被壓回 12px，這是最容易漏的路徑。
+BARW_JS = r"""
+(id) => {
+  const el = document.getElementById(id); if (!el || !window.echarts) return null;
+  const inst = echarts.getInstanceByDom(el); if (!inst) return null;
+  const m = inst.getModel(); const opt = inst.getOption(); const out = [];
+  (opt.series || []).forEach((s, i) => { if (s.type !== 'bar') return;
+    const sm = m.getSeriesByIndex(i); if (!sm) return; const d = sm.getData(), ax = sm.getBaseAxis(), vert = ax.isHorizontal();
+    let w = 0; for (let k = 0; k < d.count() && !w; k++) { const L = d.getItemLayout(k); if (L) w = Math.abs(vert ? L.width : L.height); }
+    // 數值標籤：取每根柱的文字框（畫布座標），算有幾對互相重疊
+    const rs = []; for (let k = 0; k < d.count(); k++) { const g = d.getItemGraphicEl(k); const t = g && g.getTextContent && g.getTextContent();
+      if (!t || t.ignore || t.invisible || !t.style || !String(t.style.text || '').trim()) continue;
+      const r = t.getBoundingRect().clone(); r.applyTransform(t.getComputedTransform()); rs.push(r); }
+    let ov = 0; for (let a = 0; a < rs.length; a++) for (let b2 = a + 1; b2 < rs.length; b2++) { const A = rs[a], B = rs[b2];
+      if (A.x < B.x + B.width - 0.5 && B.x < A.x + A.width - 0.5 && A.y < B.y + B.height - 0.5 && B.y < A.y + A.height - 0.5) ov++; }
+    out.push({ n: d.count(), w: +w.toFixed(1), band: +(ax.getBandWidth ? ax.getBandWidth() : 0).toFixed(1), horiz: !vert, labels: rs.length, ov });
+  });
+  return out;
+}
+"""
+
+
+def t_barw_1009(b, base):
+    T = "長條寬度1009"
+
+    def seen(pg, sel):
+        pg.evaluate(f"() => {{ const e = document.querySelector('{sel}'); if (e) e.scrollIntoView({{block:'center'}}); }}")
+        pg.wait_for_timeout(700)
+
+    for W in (1440, 1920):
+        pg = b.new_page(viewport={"width": W, "height": 900})
+        try:
+            pg.goto(f"{base}#overview", wait_until="domcontentloaded")
+            pg.wait_for_timeout(1200)
+            seen(pg, "#ovBreadthCard")
+            wait_until(pg, "() => { const e = document.getElementById('breadth'); return e && window.echarts && echarts.getInstanceByDom(e) && +e.dataset.total > 0; }", 12000)
+            pg.wait_for_timeout(500)
+            s = (pg.evaluate(BARW_JS, "breadth") or [{}])[0]
+            ok(f"★ [{T}] {W} 總覽漲跌家數 11 根：柱寬 ≥ 30px（改前 12px）", s.get("n") == 11 and s.get("w", 0) >= 30, s)
+            ok(f"★ [{T}] {W} 總覽漲跌家數：柱寬 ≤ 格寬 60%（不粗到黏在一起）", bool(s.get("band")) and s.get("w", 99) <= s["band"] * 0.6, s)
+            ok(f"[{T}] {W} 總覽漲跌家數：數值標籤沒有互相重疊", s.get("ov", 1) == 0, s)
+            # 真的點一根直條：清單打開、其他直條淡掉（局部 setOption 只帶 data）→ 柱寬不准被壓回 12
+            box = pg.evaluate("() => { const el = document.getElementById('breadth'); const inst = echarts.getInstanceByDom(el); const L = inst.getModel().getSeriesByIndex(0).getData().getItemLayout(4); const r = el.getBoundingClientRect(); return { x: r.left + L.x + L.width / 2, y: r.top + L.y + L.height - 4 }; }")
+            pg.mouse.click(box["x"], box["y"])
+            wait_until(pg, "() => { const p = document.getElementById('udPanel'); return p && !p.hidden; }", 4000)
+            pg.wait_for_timeout(500)
+            opened = pg.evaluate("() => { const p = document.getElementById('udPanel'); return !!p && !p.hidden && p.dataset.bin === '4'; }")
+            ok(f"[{T}] {W} 點「-1~0」那根直條 → 下方清單打開那一級", opened)
+            s2 = (pg.evaluate(BARW_JS, "breadth") or [{}])[0]
+            ok(f"★ [{T}] {W} 點直條之後（局部重畫）柱寬仍 ≥ 30px", s2.get("w", 0) >= 30, s2)
+            if W == 1440:
+                # 類別多的時間序列：大盤三張圖的量（270 根以上）仍是細條
+                rr = pg.evaluate(BARW_JS, "m3c-TSE") or []
+                many = [x for x in rr if x["n"] > 20]
+                ok(f"★ [{T}] 1440 大盤加權（{many[0]['n'] if many else '?'} 根）類別多的長條仍 ≤ 12px", bool(many) and all(x["w"] <= 12 for x in many), rr)
+                # 市場明細漲跌分佈（12 根）也放寬
+                pg.goto(f"{base}#market/updown", wait_until="domcontentloaded")
+                wait_until(pg, "() => { const e = document.getElementById('chgDist'); return e && window.echarts && echarts.getInstanceByDom(e); }", 12000)
+                pg.wait_for_timeout(700)
+                c = (pg.evaluate(BARW_JS, "chgDist") or [{}])[0]
+                ok(f"★ [{T}] 1440 市場明細漲跌分佈（{c.get('n')} 根）：柱寬約格寬一半（40～60%，改前 ≤ 12px）",
+                   bool(c.get("band")) and c["band"] * 0.4 <= c.get("w", 0) <= c["band"] * 0.6, c)
+                # 個股頁法人買賣超（63 根）仍細
+                pg.goto(f"{base}#stock/2330", wait_until="domcontentloaded")
+                wait_until(pg, "() => !!document.querySelector('#stockTabs button[data-t=inst]')", 12000)
+                pg.click("#stockTabs button[data-t=inst]")
+                wait_until(pg, "() => { const e = document.getElementById('instChart'); return e && echarts.getInstanceByDom(e); }", 8000)
+                pg.wait_for_timeout(700)
+                rr = pg.evaluate(BARW_JS, "instChart") or []
+                ok(f"★ [{T}] 1440 個股法人買賣超（{rr[0]['n'] if rr else '?'} 根）類別多的長條仍 ≤ 12px",
+                   any(x["n"] > 20 for x in rr) and all(x["w"] <= 12 for x in rr if x["n"] > 20), rr)
+        finally:
+            pg.close()
+    # 手機 402：比例跟著格寬縮、數字標籤不重疊、沒有橫向捲軸
+    pg = b.new_page(viewport={"width": 402, "height": 874}, is_mobile=True, has_touch=True)
+    try:
+        pg.goto(f"{base}#overview", wait_until="domcontentloaded")
+        pg.wait_for_timeout(1500)
+        pg.evaluate("() => { const c = document.getElementById('ovBreadthCard'); if (c) c.scrollIntoView({block:'center'}); }")
+        pg.wait_for_timeout(900)
+        got = wait_until(pg, "() => { const e = document.getElementById('breadth'); return e && e.getClientRects().length && window.echarts && echarts.getInstanceByDom(e) && +e.dataset.total > 0; }", 12000)
+        if got:
+            pg.wait_for_timeout(500)
+            s = (pg.evaluate(BARW_JS, "breadth") or [{}])[0]
+            ok(f"★ [{T}] 402 手機漲跌家數：柱寬跟著格寬縮（格寬 40～60%）", bool(s.get("band")) and s["band"] * 0.4 <= s.get("w", 0) <= s["band"] * 0.6, s)
+            ok(f"★ [{T}] 402 手機漲跌家數：數值標籤沒有互相重疊", s.get("ov", 1) == 0, s)
+        else:
+            ok(f"[{T}] 402 手機總覽找得到漲跌家數圖", False, "breadth 沒畫出來")
+        ok(f"[{T}] 402 沒有橫向捲軸", pg.evaluate("() => document.documentElement.scrollWidth <= innerWidth + 1"))
+    finally:
+        pg.close()
+
+
 def t_desk_guard_1008(b, base):
     T = "桌機守門1008"
     c = b.new_context(viewport={"width": 1440, "height": 900})
@@ -28193,6 +28289,8 @@ def _as_owner(fn):
 SECTIONS = {
     # ★ 2026-10-08 Andy：「手機版本…是否也動到網頁版本…兩者不可侵犯」—— 桌機 1440 版面指紋＋剖析圖說明卡在兩側＋關聯圖收合（⚠ --workers 1；改共用檔推 main 前必跑）
     "桌機守門1008":        lambda pg, b, base, code: t_desk_guard_1008(b, base),
+    # ★ 2026-10-09 Andy：「下方調整長條圖適當寬度」—— 類別少的長條依格寬比例（漲跌家數 ≥ 30px、≤ 格寬 60%、點直條後不縮回），類別多的仍 ≤ 12px
+    "長條寬度1009":        lambda pg, b, base, code: t_barw_1009(b, base),
     "2D 圖裁切普查1008":   lambda pg, b, base, code: t_dgclip_1008(b, base),
     "標題重複普查":        lambda pg, b, base, code: t_title_dup_1007(b, base),
     "時間軸分隔線1006":    lambda pg, b, base, code: t_timegrid_1006(pg, base),
