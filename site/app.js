@@ -2530,6 +2530,9 @@
     'heat-industry': ['#themeMapCard', '#themeDetail'],
     'heat-theme': ['#indHeat'],
   };
+  /* 手機 v2（html.m4）總覽：舊分段名 → 合併後的組名（Andy 10-08「大盤也是跟市場寬度一樣」「資金輪盤跟分流樹同一個點擊標籤」
+     「熱力圖也是上下分」）。miaPager 用它組三組、ovsJump 用它把舊分段名換成組名 —— 只有一份，兩邊不會對不起來。 */
+  const M4_OV_SEG = { '大盤': '大盤', '市場寬度': '大盤', '資金輪盤': '資金流向', '資金分流樹': '資金流向', '熱力圖': '熱度', '熱門題材': '熱度' };
   function miaPager(key, prefer) {
     const view = document.querySelector('main .view.on');
     if (!view) return;
@@ -2540,11 +2543,8 @@
        順序：大盤（大盤＋市場寬度）→ 資金流向（輪盤＋分流樹）→ 熱度（熱力圖＋熱門題材）；今日事件從分段拿掉（側欄有「事件」）。 */
     if (document.documentElement.classList.contains('m4') && key === 'overview') {
       const by = (n) => (groups.find(g => g.n === n) || { sel: [] }).sel;
-      groups = [
-        { s: 1, n: '大盤', sel: [...by('大盤'), ...by('市場寬度')] },
-        { s: 1, n: '資金流向', sel: [...by('資金輪盤'), ...by('資金分流樹')] },
-        { s: 1, n: '熱度', sel: [...by('熱力圖'), ...by('熱門題材')] },
-      ];
+      const grp = (n) => Object.keys(M4_OV_SEG).filter(k => M4_OV_SEG[k] === n).flatMap(by);
+      groups = ['大盤', '資金流向', '熱度'].map(n => ({ s: 1, n, sel: grp(n) }));
     }
     // 每一段實際抓得到的元素（抓不到的略過：例如簡版個股頁沒有 #aiCard）
     /* ★ 2026-10-08 手機 v2（html.m4）：
@@ -4768,7 +4768,14 @@
       const s1 = spine && (step ? [...spine.children].find(b => ((b.querySelector('em') || {}).textContent || '').trim() === mark) : spine.children[0]);
       if (s1 && !s1.classList.contains('on')) s1.click();
       const bar = view.querySelector(':scope > .mpager');
-      const b = bar && [...bar.children].find(x => x.textContent.trim() === seg);
+      let b = bar && [...bar.children].find(x => x.textContent.trim() === seg);
+      /* ★ 2026-10-09 審核修：手機 v2（html.m4）總覽分段合成三組（大盤／資金流向／熱度，見 miaPager），
+         舊的分段名（市場寬度、資金輪盤、資金分流樹、熱力圖、熱門題材）找不到鈕 —— 於是停在「熱度」時點摘要卡的
+         「下跌」，分佈卡還是藏著（mp-off），捲過去什麼都看不到。找不到同名鈕時，換成「目標卡所在的那一組」。 */
+      if (!b && bar && document.documentElement.classList.contains('m4')) {
+        const grp = M4_OV_SEG[seg];
+        b = grp && [...bar.children].find(x => x.textContent.trim() === grp);
+      }
       if (b && !b.classList.contains('on')) b.click();
     }
     scrollSettle(anchor, self);
