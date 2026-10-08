@@ -64,11 +64,18 @@ for arg in sys.argv[1:]:
         for k, v in sel.items():
             chosen = [x for x in v if x[2]]
             data[k] = (chosen[0][0] if chosen else (v[-1][0] if "YM" in k.upper() or "DATE" in k.upper() else (v[0][0] if v else "")))
+        if "ONLY" in over:
+            # 照瀏覽器的行為：選了「公司」那顆圓鈕時，其他下拉是 disabled，不會被送出 —— 只送隱藏欄位＋年月＋覆寫的欄位
+            data = {k: v for k, v in data.items() if k.startswith("__") or k.endswith("ddlQ_YM")}
         for o in over:
+            if o == "ONLY":
+                continue
             k, _, v = o.partition("=")
-            for name in list(sel):
-                if name.endswith(k):
-                    data[name] = v
+            hit = [name for name in sel if name.endswith(k)]
+            for name in hit:
+                data[name] = v
+            if not hit:
+                data["ctl00$ContentPlaceHolder1$" + k] = v
         if btns:
             data[btns[0][0]] = btns[0][1]
         print("  送出:", {k: v for k, v in data.items() if not k.startswith("__")})
