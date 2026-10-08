@@ -1,0 +1,7 @@
+====================================================================================================
+[grep-0] GREP https://www.franklin.com.tw/sitemap
+  HTTP 200  bytes=426272
+====================================================================================================
+[grep-1] GREP https://www.franklin.com.tw/overview
+  HTTP 200  bytes=865228
+   >> cyType:a,fundDef:aT,fundDefRate:.17},fundDiv:{nav_P:23.3,nav_Date:dk,div:aV,fundDiv_Tax:.091,div_Rate_YY:.01549999974668026,div_Rate:.38999998569488525,fundDef:dl,reward_Rate:-4.74},fundLipperReward:{valueDate:h,r1:"2.85",m1:"-6.46",m3:"-3.54",m6:"-8.31",y1:"8.86",y2:"20.12",y2_AVG:"9.60",y3:"52.85",y3_AVG:"15.18",y5:"76.25",y5_AVG:"11.99",y10:"143.51",y10_AVG:cb,whole:c,whole_AVG:c,currencyType:e,warning:a},fundLipperRewardOrigin:a,remarks:[],closeDate:a,isKey:b,agencies:[],awards:[{awardBody:"Smart智富台灣基金獎",itemes:[{year:D,name:dn,warning:a},{year:2022,name:dn,warning:a}]}],fundAgency:a,fluctuation:"14.2418411796994 (理柏三年期原幣別)",fluctuationDate:i,tags:[],bondAssetAllocations:[],registerArea:aU,fundNavs:[],highestNav:a,lowestNav:a,averageNav:a,latestFundSize:{size:dm,sizeDate:o,currency:d},nameSuffix:c},{id:259,code:"68119",groupCode:an,fullName:"富蘭克林華美AI新科技基金-累積型-美元",name:ao,enName:ap,dividendType:t,fundClass:aW,currency:d,purchaseType:q,isDelayNav:b,isin:"TW000T4530C5",isHedged:b,isGainDividend:b,isStablize:b,isApproved:b,nameWarning:a,preName:a,preEnName:a,nameChgDate:a,enNameChgDate:a,
