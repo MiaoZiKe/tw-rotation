@@ -205,6 +205,14 @@
     document.body.appendChild(p);
     fab.onclick = () => toggle();
     document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !p.hidden) toggle(false); });
+    /* 2026-10-08 Andy：「客服功能點擊後 點其他地方會自動收回」→ 點面板與浮動鈕以外的地方就收起
+       （用 composedPath：面板內重畫後 target 可能已脫離 DOM，contains 會誤判成「外面」）*/
+    document.addEventListener('pointerdown', (e) => {
+      if (p.hidden) return;
+      const path = e.composedPath ? e.composedPath() : [];
+      if (path.includes(p) || path.includes(fab)) return;
+      toggle(false);
+    }, true);
   }
   function toggle(want) {
     const p = document.getElementById('supPanel'), fab = document.getElementById('supFab');
