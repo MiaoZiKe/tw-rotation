@@ -258,4 +258,31 @@
 
   /* 個股 K 線左上的「還原」小標：手機不要框（去方格準則），留淡底色 */
   :root.m4 .adjtag{border:0!important;box-shadow:none!important}
+
+  /* ---- 19. 頂欄搜尋鈕（Andy：「搜尋功能放在上方欄位」）＋帳號頭像去掉 ▾（Andy：「小三角形拿掉」，只藏手機） */
+  :root.m4 .m4tools .m4srch{display:inline-grid;place-items:center;width:40px;height:40px;padding:0;border:1px solid var(--line-2);border-radius:10px;background:var(--panel);color:var(--ink);cursor:pointer}
+  :root.m4 .topbar.msearch .search{z-index:30}
+  :root.m4 .m4tools #acctBtn{font-size:0!important;width:40px;padding:0!important}
+  :root.m4 .m4tools #acctBtn .ini{font-size:15px}
+  :root.m4 .m4tools #acctBtn .anm{display:none}
+
+  /* ---- 20. 產業地圖：只留甜甜圈，橫條圖收進「族群漲跌幅 ▸」（mobile4.js wireIndMap） */
+  :root.m4 #v-industry .gpgrid{display:flex!important;flex-direction:column}
+  :root.m4 #v-industry .gpgrid>.gpcard:not(.gppie):not(.m4open){display:none!important}
+  :root.m4 #v-industry .gpgrid>.m4fold{display:flex;align-items:center;gap:6px;width:100%;min-height:44px;margin-top:8px;padding:0 2px;border:0;border-top:1px solid var(--line);
+    background:transparent;color:var(--ink);font:inherit;font-size:15px;font-weight:700;text-align:left;cursor:pointer}
+  :root.m4 #v-industry .gpgrid>.m4fold i{font-style:normal;color:var(--ink-3)}
+
+  /* ---- 21. 細節頁的「‹ 返回」（mobile4.js paintBack） */
+  :root.m4 .m4back2{display:inline-flex;align-items:center;min-height:40px;min-width:40px;margin:2px 0 0;padding:0 10px 0 4px;border:0;background:transparent;color:var(--t4-accent-solid,var(--cyan));font:inherit;font-size:15px;font-weight:600;cursor:pointer}
+  :root.m4 .m4back2[hidden]{display:none}
+
+  /* ---- 22. 已選膠囊列 → 一顆「已選 N ▾」篩選下拉（共用 window.MultiSelect.dropdown ＝ App.msDD；mobile4.js wireIncMS／wireCxMS）
+     旁邊本來就有 msDD 的（週期統計、站上均線）只藏膠囊列；沒有的由 mobile4.js 長一顆。資料與勾選都還在原控制項上 */
+  :root.m4 #seasonKey, :root.m4 #maGroupKey, :root.m4 #incChips, :root.m4 #cxChips, :root.m4 .cxlg .cmpw{display:none!important}
+  :root.m4 .m4ms{display:block;width:100%;margin:0 0 6px}
+  :root.m4 .m4ms .ddpanel{left:0;right:0;width:auto;min-width:0}
+  :root.m4 .m4ms .ddbtn{min-height:36px;width:100%;justify-content:flex-start;text-align:left}
+  :root.m4 .m4ms .ddpanel{max-height:min(60vh,460px)}
+  :root.m4 .m4ms .ddlist{max-height:min(46vh,340px);overflow-y:auto;touch-action:pan-y}
 }

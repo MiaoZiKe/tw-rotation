@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>手機版預覽</title>
 <!-- 2026-10-08（Andy：「我是正在使用電腦，所以手機版本看不到，等等給我瀏覽器內容直接就是手機版本」）
-     用電腦打開這一頁就直接看到手機版：中間一個 390×844 的框，裡面用 iframe 開 index.html。
+     用電腦打開這一頁就直接看到手機版：中間一個 402×874 的框（iPhone 17，預設），裡面用 iframe 開 index.html。
      iframe 的寬度就是裡面網頁的視窗寬度，所以 ≤640 的手機樣式會真的生效（不是把桌機縮小）。
      網址的 hash 會帶進去：phone.html#flow/sankey → index.html#flow/sankey；裡面換頁時，外面的網址也跟著換，重新整理會停在同一頁。 -->
 <style>
@@ -28,6 +28,7 @@
 <body>
   <div class="bar" role="toolbar" aria-label="手機尺寸">
     <b>手機版預覽</b>
+    <button type="button" data-w="402" data-h="874">402×874（iPhone 17）</button>
     <button type="button" data-w="390" data-h="844">390×844（iPhone 14）</button>
     <button type="button" data-w="360" data-h="800">360×800（Android）</button>
     <button type="button" data-w="430" data-h="932">430×932（大螢幕）</button>
@@ -35,7 +36,7 @@
     <button type="button" id="pvReload">重新整理</button>
     <button type="button" id="pvOpen">用新分頁開啟</button>
   </div>
-  <div class="frame"><iframe id="pvFrame" title="手機版畫面" width="390" height="844"></iframe></div>
+  <div class="frame"><iframe id="pvFrame" title="手機版畫面" width="402" height="874"></iframe></div>
   <p class="note">框裡就是手機版（寬度 ≤ 640 的版面），可以直接點、捲動。用滑鼠拖曳不會等於手指拖曳；要模擬手指，請用瀏覽器開發者工具的裝置模式。</p>
 <script>
 (function () {
@@ -52,7 +53,7 @@
   document.querySelectorAll('button[data-w]').forEach((b) => { b.onclick = () => setSize(+b.dataset.w, +b.dataset.h); });
   let saved = null; try { saved = localStorage.getItem(SIZE_KEY); } catch (e) { /* 私密視窗 */ }
   const m = /^(\d+)x(\d+)$/.exec(saved || '');
-  setSize(m ? +m[1] : 390, m ? +m[2] : 844);
+  setSize(m ? +m[1] : 402, m ? +m[2] : 874);
   fr.src = 'index.html' + hashNow();
   // 裡面換頁 → 外面網址跟著換（同網域才讀得到）；外面改 hash → 裡面跟著換
   let syncing = false;

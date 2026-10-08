@@ -26787,7 +26787,7 @@ M4_FIRST = {   # 路由 → 第一屏（390×844 不捲動）必須整個看得�
     "#flow/inst": ["#flowInstCard"],                                           # 整張族群×法人（買超前 8＋賣超前 8）
     "#heatmap/industry": ["#v-heatmap canvas"],                                # 整張 treemap
     "#heatmap/theme": ["#themeMapCard"],                                       # 整張題材 treemap＋熱度圖例
-    "#industry": ["#gpHost canvas"],                                           # 族群漲跌幅長條
+    "#industry": ["#gpPie"],                                                   # 成交值占比甜甜圈（2026-10-08 晚：手機只留甜甜圈，橫條圖收合）
     "#market": ["#v-market canvas"],                                           # 漲跌分佈圖
     "#explore": ["#v-explore .sl-row"],                                        # 第一張策略卡的第一檔
     "#etf/cal": ["#etfCalCard h3", "#etfCalPrev", "#etfCalNext"],
@@ -26823,16 +26823,16 @@ def _m4_measure(m, ex):
 
 def t_phone_1008(pg, b, base):
     """2026-10-08（Andy：「我是正在使用電腦，所以手機版本看不到，等等給我瀏覽器內容直接就是手機版本」）：site/phone.html。
-    1440 寬打開 → 框裡 iframe 的 innerWidth＝390、看得到漢堡鈕（真的是手機版）；hash 帶進去；切 360／430 → iframe 寬度真的跟著變。"""
+    1440 寬打開 → 框裡 iframe 的 innerWidth＝402（預設 iPhone 17 402×874）、看得到漢堡鈕（真的是手機版）；hash 帶進去；切 360／430／390 → iframe 寬度真的跟著變。"""
     T = "手機框預覽1008"
     p = b.new_page(viewport={"width": 1440, "height": 1000})
     p.on("pageerror", lambda e: fails.append(f"{T} pageerror: {e}"))
     try:
         p.goto(base.replace("index.html", "phone.html") + "#flow/sankey", wait_until="domcontentloaded"); p.wait_for_timeout(4500)
         fr = p.frame(name=None) if False else [f for f in p.frames if f != p.main_frame][0]
-        st = fr.evaluate("() => ({ w: innerWidth, h: location.hash, burger: !!document.getElementById('m4Burger') && document.getElementById('m4Burger').getClientRects().length > 0 })")
-        ok(f"★ [{T}] 1440 寬打開 phone.html：框內寬 390、有漢堡鈕、hash 帶進去（{st}）", st["w"] == 390 and st["burger"] and st["h"] == "#flow/sankey", st)
-        for w in (360, 430, 390):
+        st = fr.evaluate("() => ({ w: innerWidth, ih: innerHeight, h: location.hash, burger: !!document.getElementById('m4Burger') && document.getElementById('m4Burger').getClientRects().length > 0 })")
+        ok(f"★ [{T}] 1440 寬打開 phone.html：框內寬 402（預設 402×874）、有漢堡鈕、hash 帶進去（{st}）", st["w"] == 402 and st["ih"] == 874 and st["burger"] and st["h"] == "#flow/sankey", st)
+        for w in (360, 430, 390, 402):
             p.click(f'button[data-w="{w}"]'); p.wait_for_timeout(700)
             iw = fr.evaluate("() => innerWidth")
             ok(f"[{T}] 切 {w} → 框內寬 {iw}", iw == w, iw)
@@ -27022,11 +27022,11 @@ def t_mobile_m4_1008(b, base, code):
         # 2026-10-08 晚改（Andy：「圖二需要 Default 展開狀態」）：剖析圖是「收展預設收起」的例外，預設展開
         dg0 = J("() => { const b = document.getElementById('dgBody'); return !!b && getComputedStyle(b).display !== 'none'; }")
         ok(f"【{T}】產業鏈頁剖析圖預設展開（例外：Andy 指定）", dg0, dg0)
-        lst = J("() => ({ btn: !!document.querySelector('#indChain .m4fold'), list: getComputedStyle(document.getElementById('chainList')).display })")
+        lst = J("() => ({ btn: !!document.querySelector('#indChain .chainpane > .m4fold'), list: getComputedStyle(document.getElementById('chainList')).display })")
         ok(f"【{T}】環節卡清單收成「環節卡清單 ▸」、預設收起", lst["btn"] and lst["list"] == "none", lst)
-        m.locator("#indChain .m4fold").tap(); m.wait_for_timeout(400)
+        m.locator("#indChain .chainpane > .m4fold").tap(); m.wait_for_timeout(400)
         ok(f"【{T}】點「環節卡清單 ▸」→ 清單出現", J("() => getComputedStyle(document.getElementById('chainList')).display !== 'none'"))
-        m.locator("#indChain .m4fold").tap(); m.wait_for_timeout(300)
+        m.locator("#indChain .chainpane > .m4fold").tap(); m.wait_for_timeout(300)
         m.locator('#dgPick a:has-text("面板")').first.click(); m.wait_for_timeout(2500)
         J("() => { const b = document.querySelector('#dg3d button[data-dm=\"3d\"]'); if (b) b.click(); }"); m.wait_for_timeout(2500)
         J("() => { const b = document.getElementById('dgNum'); if (b && b.textContent.includes('關')) b.click(); }"); m.wait_for_timeout(800)
@@ -27086,6 +27086,57 @@ def t_mobile_m4_1008(b, base, code):
             return { n: ns.length, out: ns.filter(r => r.right <= S.left + 2 || r.left >= S.right - 2).length, lines: l.querySelectorAll('svg path').length, dash: getComputedStyle(l.querySelector('svg path') || l).strokeDasharray }; }""")
         ok(f"【{T}】2D 編號排在圖的兩側（不壓在零件上）、每顆有虛線引線（{l2}）", l2 and l2["n"] > 0 and l2["out"] == l2["n"] and l2["lines"] >= l2["n"] - 1 and l2["dash"] not in ("none", ""), l2)
         J("() => { try { localStorage.removeItem('tw.dgOpen'); localStorage.removeItem('tw.dgnum'); localStorage.removeItem('tw.dg3d'); } catch (e) {} }")
+        # ⑰ 產業地圖：只留甜甜圈（第一屏看得到）、橫條圖預設收起、點收合列才出現；切到半導體 → 甜甜圈資料換掉
+        go("industry", 3500)
+        im = J("""() => { const p = document.getElementById('gpPie'), b = document.getElementById('gpBar'); const r = p && p.getBoundingClientRect();
+            return { pie: !!r && r.top >= 0 && r.bottom <= innerHeight && r.width > 100, bar: !!b && b.getClientRects().length > 0, lg: (document.getElementById('gpLegend') || {}).textContent || '' }; }""")
+        ok(f"【{T}】產業地圖：甜甜圈在第一屏、橫條圖預設收起", im["pie"] and not im["bar"], im)
+        m.locator("#v-industry .gpgrid > .m4fold").tap(); m.wait_for_timeout(700)
+        ok(f"【{T}】點「族群漲跌幅 ▸」→ 橫條圖出現", J("() => document.getElementById('gpBar').getClientRects().length > 0 && document.getElementById('gpBar').getBoundingClientRect().height > 50"))
+        m.locator("#chainSwitch button[data-c='semiconductor']").first.tap(); m.wait_for_timeout(3000)
+        lg2 = J("() => (document.getElementById('gpLegend') || {}).textContent || ''")
+        ok(f"【{T}】切到「半導體」→ 甜甜圈圖例換成該鏈的資料", lg2 and lg2 != im["lg"], (im["lg"][:40], lg2[:40]))
+        # ⑱ 細節頁的「‹ 返回」：題材細節、產業鏈頁、族群頁 —— 點了回上一層
+        for h0, h1, par in (("heatmap/theme", "heatmap/theme/ai_server", "#heatmap/theme"), ("industry", "industry/semiconductor", "#industry")):
+            go(h0, 2000); J(f"() => {{ location.hash = '#{h1}'; }}"); m.wait_for_timeout(2500)
+            vis = J("() => { const b = document.getElementById('m4BackBtn'); return !!b && !b.hidden && b.getBoundingClientRect().height >= 40; }")
+            ok(f"【{T}】#{h1} 有「‹ 返回」鈕（≥ 40px）", vis, vis)
+            if vis:
+                m.locator("#m4BackBtn").tap(); m.wait_for_timeout(1500)
+                ok(f"【{T}】#{h1} 點「‹ 返回」→ 回到 {par}", J("() => location.hash").startswith(par) and not J("() => location.hash").startswith('#' + h1), J("() => location.hash"))
+        gid = J("() => { const a = document.querySelector('a[href^=\"#industry/group/\"]'); return a ? a.getAttribute('href') : null; }")
+        if gid:
+            m.goto(base + gid, wait_until="domcontentloaded"); m.wait_for_timeout(2500)
+            vis = J("() => { const b = document.getElementById('m4BackBtn'); return !!b && !b.hidden; }")
+            ok(f"【{T}】族群頁 {gid} 有「‹ 返回」鈕", vis, gid)
+            if vis:
+                m.locator("#m4BackBtn").tap(); m.wait_for_timeout(1500)
+                ok(f"【{T}】族群頁點「‹ 返回」→ 離開族群頁", not J("() => location.hash").startswith(gid), J("() => location.hash"))
+        # ⑲ 已選膠囊列 → 「已選 N ▾」篩選下拉（共用 MultiSelect.dropdown ＝ App.msDD）：
+        #    402 寬全站找不到「含 × 的膠囊」> 3 顆的列；現金流試算單檔：取消一檔 → 圖上直條組數真的少一組、再勾一檔 → 多一組；搜尋真的過濾
+        m.set_viewport_size({"width": 402, "height": 874})
+        XROW = """() => { const m = new Map(); for (const e of document.querySelectorAll('.view.on button, .view.on .chip')) {
+            if (!e.getClientRects().length || !/[×✕]\s*$/.test(e.textContent.trim()) || e.textContent.trim().length < 3) continue;
+            const k = e.parentElement; m.set(k, (m.get(k) || 0) + 1); }
+            return [...m].filter(([k, n]) => n > 3).map(([k, n]) => (k.id || k.className) + ':' + n); }"""
+        badx = []
+        for h in ("overview", "flow/rotation", "flow/sankey", "flow/inst", "heatmap/industry", "heatmap/theme", "industry", "market", "explore", "etf/list", "etf/ret", "etf/inc", "season", "watch"):
+            go(h, 2500); badx += [(h, x) for x in J(XROW)]
+        ok(f"【{T}】402 寬全站沒有「含 × 的膠囊」超過 3 顆的列", not badx, badx)
+        go("etf/inc", 4500)
+        n0 = J("() => +(document.getElementById('incBar') || {dataset: {}}).dataset.n || 0")
+        ok(f"【{T}】現金流試算單檔：膠囊列藏起來、換成「單檔：已選 {n0} 檔 ▾」下拉", J("() => !!document.getElementById('m4IncMS') && document.getElementById('m4IncMS').getClientRects().length > 0 && !document.getElementById('incChips').getClientRects().length && /已選\\s*\\d+\\s*檔/.test(document.querySelector('#m4IncMS .ddbtn').textContent)"), n0)
+        m.locator("#m4IncMS .ddbtn").tap(); m.wait_for_timeout(500)
+        m.locator("#m4IncMS .ddopt[data-n] input:checked").first.tap(); m.wait_for_timeout(1500)
+        n1 = J("() => +document.getElementById('incBar').dataset.n")
+        ok(f"【{T}】下拉裡取消一檔 → 圖上直條少一組（{n0}→{n1}）、下拉沒有關", n1 == n0 - 1 and J("() => !document.querySelector('#m4IncMS .ddpanel').hidden"), (n0, n1))
+        m.locator("#m4IncMS .ddopt[data-n] input:not(:checked)").first.tap(); m.wait_for_timeout(1500)
+        n2 = J("() => +document.getElementById('incBar').dataset.n")
+        ok(f"【{T}】再勾一檔 → 直條多一組（{n1}→{n2}）", n2 == n1 + 1, (n1, n2))
+        m.fill("#m4IncMS .sndd-q", "00878"); m.wait_for_timeout(300)
+        vq = J("() => [...document.querySelectorAll('#m4IncMS .ddopt[data-n]')].filter(o => o.style.display !== 'none').map(o => o.dataset.n)")
+        ok(f"【{T}】下拉的搜尋真的過濾（打 00878 → 剩 {len(vq)} 列）", 0 < len(vq) < 5 and all("00878" in x for x in vq), vq)
+        m.set_viewport_size({"width": 390, "height": 844})
         # ⑨ 卡片標題的「?」不准自己佔一行：「?」與標題文字的垂直中心差 ≤ 8px（看得到的文字節點才算）
         badq = []
         for h in ("overview", "flow/rotation", "flow/sankey", "flow/inst", "heatmap/industry", "market", "etf/list", "etf/inc", "season"):
@@ -27159,14 +27210,15 @@ def t_mobile_m4(b, base, code):
           .map(b => b.textContent.trim());
         return { n: bs.length, bad }; }""")
     ok(f"【{T}】抽屜每一項都有圖示（{m_ic['n']} 項）", m_ic["bad"] == [], m_ic)
-    ok(f"【{T}】抽屜圖示數＝電腦版側欄有圖示的項目數 {dk_ic['n']} ＋ 搜尋 1", m_ic["n"] == dk_ic["n"] + 1, (m_ic, dk_ic))
+    ok(f"【{T}】抽屜圖示數＝電腦版側欄有圖示的項目數 {dk_ic['n']}（搜尋不在抽屜）", m_ic["n"] == dk_ic["n"], (m_ic, dk_ic))
     got = m.evaluate("""() => { const D = document.getElementById('m4Drawer');
         const top = [...D.querySelectorAll('.m4top button')].map(e => e.querySelector('span').textContent.trim());
         const seq = [...D.querySelectorAll('.m4grp:not(.m4top) .m4gt, .m4grp:not(.m4top) button[data-h]')]
           .map(e => (e.querySelector('span') || e).textContent.trim());
         const theme = [...D.querySelectorAll('button')].filter(e => /主題/.test(e.textContent)).length;
         return { top, seq, theme, tools: !!D.querySelector('.m4tools') }; }""")
-    ok(f"【{T}】抽屜最上面＝搜尋、事件（同桌機側欄頂端）", got["top"] == ["搜尋", "事件"], got["top"])
+    # 2026-10-08 晚改（Andy：「搜尋功能放在上方欄位」）：搜尋移到頂欄，抽屜最上面只剩「事件」
+    ok(f"【{T}】抽屜最上面＝事件（搜尋已移到頂欄）", got["top"] == ["事件"], got["top"])
     ok(f"【{T}】抽屜項目順序＝桌機側欄主項目順序（不含子項，{len(want_seq)} 項）", got["seq"] == want_seq, (got["seq"], want_seq))
     ok(f"【{T}】抽屜沒有「工具」分組、沒有明暗切換", not got["tools"] and got["theme"] == 0, got)
     m.locator("#m4Back").tap(position={"x": 370, "y": 400}); m.wait_for_timeout(300)
@@ -27184,9 +27236,16 @@ def t_mobile_m4(b, base, code):
                  more: vis(document.getElementById('moreBtn')), nth: [...document.querySelectorAll('#themeBtn, #mmTheme, [data-act=theme], #l4Mode')].filter(vis).length, head: (document.getElementById('m4Title') || {}).textContent || '' }; }""")
     ok(f"【{T}】頂欄只有頭像、沒有頁名文字", tb["logo"] and tb["txt"] == [], tb["txt"])
     # 2026-10-08 改：明暗與版面風格合成一顆「外觀」（Andy：「統一一個功能按鍵在上方」）→ 依序：外觀、平台導覽、（在線）、登入
-    want_tools = ["t4Btn", "twPageTourBtn"]
-    ok(f"【{T}】頂欄右邊依序有外觀、平台導覽、（在線）、登入（{'／'.join(tb['tools'])}）",
-       tb["tools"][:2] == want_tools and tb["tools"][-1] in ("acctBtn", "m4Login") and all(x in ("acctOnline",) for x in tb["tools"][2:-1]), tb["tools"])
+    want_tools = ["m4Search", "t4Btn", "twPageTourBtn"]
+    ok(f"【{T}】頂欄右邊依序有搜尋、外觀、平台導覽、（在線）、登入（{'／'.join(tb['tools'])}）",
+       tb["tools"][:3] == want_tools and tb["tools"][-1] in ("acctBtn", "m4Login") and all(x in ("acctOnline",) for x in tb["tools"][3:-1]), tb["tools"])
+    m.locator("#m4Search").tap(); m.wait_for_timeout(500)
+    m.keyboard.type("2330"); m.wait_for_timeout(900)
+    sr = m.evaluate("() => ({ focus: document.activeElement && document.activeElement.id, n: document.querySelectorAll('#sugg [role=option], #sugg .sg, #sugg > *').length })")
+    ok(f"【{T}】頂欄搜尋鈕：點了出現輸入框且自動 focus、打 2330 有結果（{sr}）", sr["focus"] == "q" and sr["n"] > 0, sr)
+    m.locator("#sugg > *").first.click(); m.wait_for_timeout(1500)
+    ok(f"【{T}】點搜尋結果 → #stock/2330", m.evaluate("() => location.hash").startswith("#stock/2330"), m.evaluate("() => location.hash"))
+    m.goto(base + "#overview", wait_until="domcontentloaded"); m.wait_for_timeout(2000)
     ok(f"【{T}】頂欄小圖示觸控高度 ≥ 40", tb["small"] == [], tb["small"])
     ok(f"【{T}】頂欄不溢出、元素不互相重疊", tb["bw"] <= tb["bcw"] + 1 and tb["sw"] <= 390 and tb["ovl"] == [], tb)
     ok(f"【{T}】「⋯」選單拿掉、頂欄沒有今日事件", not tb["more"] and tb["ev"] == 0, tb)
