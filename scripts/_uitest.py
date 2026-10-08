@@ -1077,13 +1077,13 @@ def t_overview(pg, base):
         click(pg, "#ovThemeDD .ddbtn", 300)
         click(pg, '#ovThemeDD .ddopt[data-t=""]', 700)
         ok("下拉選「全部題材」回到題材層", pg.evaluate(TL)["level"] == "themes", pg.evaluate(TL))
-    # 點題材方塊也能原地展開
+    # ★ 2026-10-08 晚 Andy「熱門題材 也是」：點題材方塊 → 進題材頁（以前是原地換成分股；本機沒有會員系統＝不受 Plus 限制，權限在「熱力圖跳個股1008」驗）
     pg.evaluate("document.getElementById('ovTheme').scrollIntoView({block:'center', behavior:'instant'})"); pg.wait_for_timeout(400)
     bx = pg.evaluate("() => { const r = document.getElementById('ovTheme').getBoundingClientRect(); return {x: r.x + 14, y: r.y + 14}; }")
     pg.mouse.click(bx["x"], bx["y"]); pg.wait_for_timeout(900)
-    ok("★ 點題材方塊 → 原地換成成分股（不跳頁）",
-       pg.evaluate(TL)["level"] == "members" and pg.evaluate("() => location.hash") in ("", "#overview"), pg.evaluate(TL))
-    click(pg, "#ovThemeDD .ddbtn", 300); click(pg, '#ovThemeDD .ddopt[data-t=""]', 700)
+    _h = pg.evaluate("() => decodeURIComponent(location.hash)")
+    ok("★ 點題材方塊 → 進那個題材的題材頁（#heatmap/theme/<id>）", _h.startswith("#heatmap/theme/"), _h)
+    pg.goto(f"{base}#overview", wait_until="networkidle"); pg.wait_for_timeout(1800)
     # --- ⑥ 漲跌家數分佈：11 級直條、加總＝總家數、紅漲綠跌、小圓角 3px；點直條原地列股票
     ud = pg.evaluate("""() => { const e = document.getElementById('breadth'); const c = echarts.getInstanceByDom(e); if (!c) return null;
         const o = c.getOption(), s = o.series[0]; const cats = o.xAxis[0].data;
