@@ -2727,6 +2727,77 @@ def t_etf_income_v2(pg, b, base):
             const mi = document.getElementById('incClk').dataset.cols.split(',').map(Number);
             return mi.every((i, m) => { const a = String(ck[m].itemStyle.color), d = String(dn[i].itemStyle.color); const hex = d.replace('#', ''); const rgb = [0, 2, 4].map(j => parseInt(hex.slice(j, j + 2), 16)).join(','); return a.indexOf(rgb) >= 0 || a.toLowerCase().indexOf(d.toLowerCase()) >= 0; }); }""")
         ok(f"[{tag}] 時鐘格色＝當月主要入帳那檔在甜甜圈的顏色", col)
+        # ---- ★ 10-08 組合四處連動（Andy 316 截圖：「點擊特定區塊 整張圖表會連動有反應」）：全部用真的滑鼠點，座標從 ECharts 版面算
+        lk_shots = os.environ.get("TW_INCLINK_SHOTS")
+        ILK_PT = """([id, i]) => { const el = document.getElementById(id); el.scrollIntoView({ block: 'center', behavior: 'instant' }); const ch = echarts.getInstanceByDom(el), L = ch.getModel().getSeriesByIndex(0).getData().getItemLayout(i), r = el.getBoundingClientRect();
+            if (L.width != null) return [r.left + L.x + L.width / 2, r.top + L.y + L.height / 2];
+            const ang = (L.startAngle + L.endAngle) / 2, rr = (L.r0 + L.r) / 2; return [r.left + L.cx + rr * Math.cos(ang), r.top + L.cy + rr * Math.sin(ang)]; }"""
+        ILK_ST = """() => { const op = (id) => { const c = echarts.getInstanceByDom(document.getElementById(id)); return c ? c.getOption().series[0].data.map(d => (d.itemStyle && d.itemStyle.opacity != null) ? d.itemStyle.opacity : 1) : null; };
+            const cb = document.querySelector('#incCombos .combo'), ck = document.getElementById('incClk');
+            return { sel: cb.dataset.sel || '', codes: cb.dataset.codes.split(','), mi: ck ? ck.dataset.cols.split(',').map(Number) : null, clk: op('incClk'), mb: op('incCmb'), dn: op('incCdn'),
+              hl: [...document.querySelectorAll('#incCTbl .cmr')].map(r => r.classList.contains('hl')) }; }"""
+        def ilk_click(cid, i):
+            x, y = J(ILK_PT, [cid, i]); lp.mouse.click(x, y); lp.wait_for_timeout(450)
+            return J(ILK_ST)
+        def ilk_lit(st, k):   # k＝選中那檔的序號：主要入帳是它的月份 ≥ .9、其他 ≤ .5；明細卡只有它亮
+            return all((o >= 0.9) if m == k else (o <= 0.5) for m, o in zip(st["mi"], st["clk"])) \
+                and all((o >= 0.9) if m == k else (o <= 0.5) for m, o in zip(st["mi"], st["mb"])) \
+                and st["hl"] == [j == k for j in range(len(st["codes"]))] and st["sel"] == st["codes"][k]
+        st0 = J(ILK_ST)
+        ok(f"[{tag}] 連動：預設沒有選取（三張圖全亮、沒有卡片高亮）", st0["sel"] == "" and min(st0["clk"]) >= 0.9 and min(st0["mb"]) >= 0.9 and not any(st0["hl"]), st0)
+        kk = max(range(len(st0["codes"])), key=lambda j: st0["mi"].count(j))   # 挑「主要入帳月份最多」的那檔，確保兩邊都有格可比
+        st = ilk_click("incCdn", kk)
+        ok(f"★ [{tag}] 連動：點甜甜圈「{st0['codes'][kk]}」→ 時鐘／直條中它主要入帳的月份 ≥ .9、其他 ≤ .5，明細卡那張 .hl，甜甜圈其他扇區變淡", ilk_lit(st, kk) and st["dn"][kk] >= 0.9 and all(o <= 0.5 for j, o in enumerate(st["dn"]) if j != kk), st)
+        bc = J("""() => { const mb = echarts.getInstanceByDom(document.getElementById('incCmb')).getOption().series[0].data, dn = echarts.getInstanceByDom(document.getElementById('incCdn')).getOption().series[0].data, mi = document.getElementById('incClk').dataset.cols.split(',').map(Number);
+            return mi.every((i, m) => { const c = mb[m].itemStyle && mb[m].itemStyle.color; const top = c && c.colorStops ? String(c.colorStops[0].color).toLowerCase() : ''; return top === String(dn[i].itemStyle.color).toLowerCase(); }); }""")
+        ok(f"[{tag}] 連動：選取後直條顏色仍＝當月主要入帳那檔的甜甜圈色（資料項帶 itemStyle 會蓋掉系列的 color 函式，踩過整排變青色）", bc)
+        if lk_shots:
+            J("() => document.querySelector('#incCombos .combo').scrollIntoView({ block: 'start' })"); lp.mouse.move(5, 5); lp.wait_for_timeout(500)
+            lp.screenshot(path=f"{lk_shots}/1440_sel_{st0['codes'][kk]}.png")
+        st = ilk_click("incCdn", kk)
+        ok(f"★ [{tag}] 連動：再點同一塊扇區 → 取消、全部恢復", st["sel"] == "" and min(st["clk"]) >= 0.9 and min(st["mb"]) >= 0.9 and not any(st["hl"]), st)
+        st = ilk_click("incClk", 8)
+        k9 = st0["mi"][8]
+        ok(f"★ [{tag}] 連動：點時鐘 9 月 → 選中 9 月的主要入帳檔（{st0['codes'][k9]}），三處一起亮", ilk_lit(st, k9), st)
+        if lk_shots:
+            J("() => document.querySelector('#incCombos .combo').scrollIntoView({ block: 'start' })"); lp.mouse.move(5, 5); lp.wait_for_timeout(500)
+            lp.screenshot(path=f"{lk_shots}/1440_clock9.png")
+        kb = st0["mi"][0] if st0["mi"][0] != k9 else st0["mi"][1]
+        mb_i = 0 if st0["mi"][0] != k9 else 1
+        st = ilk_click("incCmb", mb_i)
+        ok(f"★ [{tag}] 連動：點直條 {mb_i + 1} 月 → 換選 {st0['codes'][kb]}（不用先取消）", ilk_lit(st, kb), st)
+        kc = next(j for j in range(len(st0["codes"])) if j != kb)
+        lp.click(f"#incCTbl .cmr:nth-child({kc + 1}) dl"); lp.wait_for_timeout(450)
+        st = J(ILK_ST)
+        ok(f"★ [{tag}] 連動：點明細卡 {st0['codes'][kc]} → 甜甜圈那塊亮、時鐘／直條跟著換", ilk_lit(st, kc) and st["dn"][kc] >= 0.9 and all(o <= 0.5 for j, o in enumerate(st["dn"]) if j != kc), st)
+        hsh = J("() => location.hash")
+        lp.click(f"#incCTbl .cmr:nth-child({kc + 1}) .cmn"); lp.wait_for_timeout(700)
+        ok(f"[{tag}] 連動：已選中的那張卡再點名稱 → 進個股頁（能點到底）", J("() => location.hash") == f"#stock/{st0['codes'][kc]}", J("() => location.hash"))
+        lp.go_back(); lp.wait_for_timeout(1500)
+        wait_until(lp, "() => document.querySelector('#incCdn') && echarts.getInstanceByDom(document.getElementById('incCdn'))", 15000)
+        if J("() => location.hash") != hsh:
+            J(f"() => {{ location.hash = '{hsh}'; }}"); lp.wait_for_timeout(1500)
+        st = J(ILK_ST)
+        if not st["sel"]:
+            lp.click(f"#incCTbl .cmr:nth-child({kc + 1}) dl"); lp.wait_for_timeout(450)
+        J("() => document.querySelector('#incCombos .combo .ch').scrollIntoView({ block: 'center' })")
+        bx = J("() => { const r = document.querySelector('#incCombos .combo .ch').getBoundingClientRect(), k = document.querySelector('#incCombos .combo .ch .kp').getBoundingClientRect(); return [Math.min(r.right - 4, Math.max(k.right + 8, r.right - 20)), r.top + r.height / 2]; }")
+        lp.mouse.click(*bx); lp.wait_for_timeout(450)
+        st = J(ILK_ST)
+        ok(f"★ [{tag}] 連動：點空白處（組合標題列右側）→ 全部恢復", st["sel"] == "" and min(st["clk"]) >= 0.9 and min(st["mb"]) >= 0.9 and min(st["dn"]) >= 0.9 and not any(st["hl"]), (bx, st))
+        st = ilk_click("incCdn", kk)
+        x, y = J("() => { const el = document.getElementById('incClk'); el.scrollIntoView({ block: 'center' }); const r = el.getBoundingClientRect(); return [r.left + 4, r.top + 4]; }")
+        lp.mouse.click(x, y); lp.wait_for_timeout(450)
+        st = J(ILK_ST)
+        ok(f"[{tag}] 連動：點時鐘圖框的空白角落 → 也算取消", st["sel"] == "" and not any(st["hl"]), st)
+        lp.click("#incCView button[data-v='grid']"); lp.wait_for_timeout(900)
+        lp.click("#incGrid .mcell[data-m='9']"); lp.wait_for_timeout(450)
+        g9 = J("() => ({ sel: document.querySelector('#incCombos .combo').dataset.sel, dim: [...document.querySelectorAll('#incGrid .mcell')].map(c => +getComputedStyle(c).opacity), hl: [...document.querySelectorAll('#incCTbl .cmr')].map(r => r.classList.contains('hl')) })")
+        ok(f"★ [{tag}] 連動：月曆格點 9 月 → 選中 {st0['codes'][k9]}，不是它主要入帳的格子變淡（≤ .5）", g9["sel"] == st0["codes"][k9] and all((o >= 0.9) if st0["mi"][m] == k9 else (o <= 0.5) for m, o in enumerate(J("() => [...document.querySelectorAll('#incGrid .mcell')].sort((a, b) => a.dataset.m - b.dataset.m).map(c => +getComputedStyle(c).opacity)"))) and g9["hl"][k9], g9)
+        lp.click("#incCView button[data-v='clock']"); lp.wait_for_timeout(900)
+        st = J(ILK_ST)
+        ok(f"[{tag}] 連動：切回時鐘，選取保留（同一檔的月份照樣亮）", ilk_lit(st, k9), st)
+        lp.click(f"#incCTbl .cmr:nth-child({k9 + 1}) dl"); lp.wait_for_timeout(400)
         tp = J("""() => { const el = document.getElementById('incCdn'), c = echarts.getInstanceByDom(el); c.dispatchAction({ type: 'showTip', seriesIndex: 0, dataIndex: 0 });
             const tp = [...el.querySelectorAll('div'), ...document.body.children].find(d => /z-index/.test(d.getAttribute('style') || '') && getComputedStyle(d).display !== 'none' && d.textContent.trim()); if (!tp) return 'none';
             const a = tp.getBoundingClientRect(), side = [...document.querySelectorAll('.side, #side, nav.l4side, aside')].find(x => { const q = x.getBoundingClientRect(); return q.width > 0 && q.left < 10; }); const sr = side ? side.getBoundingClientRect() : { right: 0 };
@@ -2861,15 +2932,41 @@ def t_etf_income_v2(pg, b, base):
     try:
         mp.goto(f"{base}#etf", wait_until="networkidle")
         wait_until(mp, "() => document.querySelector('#v-etf') && document.querySelector('#v-etf').dataset.ready === 'full'", 20000)
-        mp.tap("#etfSub button[data-v='inc']"); mp.wait_for_timeout(1500)
+        # v8 起頁內子分頁鈕（#etfSub）藏起來、改由側欄子項切換 ⇒ 看不到就直接走 hash（10-08 這行一直 tap 隱藏的鈕，整段 390 卡 30 秒逾時）
+        if mp.evaluate("() => { const b = document.querySelector(\"#etfSub button[data-v='inc']\"); return !!(b && b.getClientRects().length); }"):
+            mp.tap("#etfSub button[data-v='inc']")
+        else:
+            mp.evaluate("() => { location.hash = '#etf/inc'; }")
+        mp.wait_for_timeout(1500)
         wait_until(mp, "() => document.querySelector('#incBar') && document.querySelector('#incBar').dataset.codes", 20000)
         a0 = mp.evaluate("() => document.querySelector('#incBar').dataset.lots")
+        if not mp.evaluate("() => !!document.querySelector('#incAmtSeg').getClientRects().length"):   # 手機 v2：條件列收在「條件：…」鈕裡
+            mp.tap("#etfInc .m4cond"); mp.wait_for_timeout(400)
         mp.tap("#incAmtSeg button[data-v='200000']"); mp.wait_for_timeout(600)
         ok(f"★ [{tag}] 390：點年領 20 萬，張數真的變", mp.evaluate("() => document.querySelector('#incBar').dataset.lots") != a0)
         ok(f"[{tag}] 390：單檔無橫向溢出", mp.evaluate(fit))
         mp.tap("#incTabs button[data-v='c']"); mp.wait_for_timeout(2000)
         o = mp.evaluate("() => { const r = (s) => document.querySelector(s).getBoundingClientRect(); return r('#incCdn').bottom <= r('#incClk').top + 1 && r('#incClk').bottom <= r('#incCTbl').top + 1; }")
         ok(f"★ [{tag}] 390：組合三欄改上下（甜甜圈→時鐘→明細）、無溢出", o and mp.evaluate(fit))
+        # ★ 10-08 組合連動（手機）：點一下就是選取；手機上下排，不捲去明細卡（會把剛點的圖推出畫面）
+        MPT = """([id, i]) => { const el = document.getElementById(id); el.scrollIntoView({ block: 'center', behavior: 'instant' }); const ch = echarts.getInstanceByDom(el), L = ch.getModel().getSeriesByIndex(0).getData().getItemLayout(i), r = el.getBoundingClientRect();
+            if (L.width != null) return [r.left + L.x + L.width / 2, r.top + L.y + L.height / 2];
+            const ang = (L.startAngle + L.endAngle) / 2, rr = (L.r0 + L.r) / 2; return [r.left + L.cx + rr * Math.cos(ang), r.top + L.cy + rr * Math.sin(ang)]; }"""
+        MST = """() => { const op = (id) => echarts.getInstanceByDom(document.getElementById(id)).getOption().series[0].data.map(d => (d.itemStyle && d.itemStyle.opacity != null) ? d.itemStyle.opacity : 1);
+            const cb = document.querySelector('#incCombos .combo'); return { sel: cb.dataset.sel || '', codes: cb.dataset.codes.split(','), mi: document.getElementById('incClk').dataset.cols.split(',').map(Number), clk: op('incClk'), mb: op('incCmb'), hl: [...document.querySelectorAll('#incCTbl .cmr')].map(r => r.classList.contains('hl')) }; }"""
+        m0 = mp.evaluate(MST)
+        mk = m0["mi"][4]
+        x, y = mp.evaluate(MPT, ["incClk", 4]); y0 = mp.evaluate("() => scrollY")
+        mp.touchscreen.tap(x, y); mp.wait_for_timeout(500)
+        m1 = mp.evaluate(MST)
+        ok(f"★ [{tag}] 390：點一下時鐘 5 月 → 選中 {m0['codes'][mk]}，時鐘／直條／明細卡一起變、頁面沒被捲走",
+           m1["sel"] == m0["codes"][mk] and all((o >= 0.9) if m == mk else (o <= 0.5) for m, o in zip(m1["mi"], m1["mb"])) and all((o >= 0.9) if m == mk else (o <= 0.5) for m, o in zip(m1["mi"], m1["clk"])) and m1["hl"][mk] and abs(mp.evaluate("() => scrollY") - y0) < 5, m1)
+        x, y = mp.evaluate(MPT, ["incCmb", 4]); mp.touchscreen.tap(x, y); mp.wait_for_timeout(500)
+        ok(f"[{tag}] 390：再點直條 5 月（同一檔）→ 取消", mp.evaluate(MST)["sel"] == "")
+        mp.evaluate("() => document.querySelector('#incCTbl .cmr:nth-child(2) dl').scrollIntoView({ block: 'center' })")
+        mp.tap("#incCTbl .cmr:nth-child(2) dl"); mp.wait_for_timeout(500)
+        ok(f"[{tag}] 390：點明細卡第 2 張 → 選中那檔", mp.evaluate(MST)["sel"] == m0["codes"][1] and mp.evaluate(fit))
+        mp.tap("#incCTbl .cmr:nth-child(2) dl"); mp.wait_for_timeout(300)
         mp.tap("#incMain button[data-v='x']"); mp.wait_for_timeout(2500)
         yv = mp.evaluate("() => { const th = [...document.querySelectorAll('#cxTbl thead th')].find(e => e.textContent === '年化'), w = document.querySelector('#incPX .cxr').getBoundingClientRect(); if (!th) return null; const r = th.getBoundingClientRect(); return [Math.round(r.right), Math.round(w.right), getComputedStyle(document.querySelectorAll('#cxTbl thead th')[3]).display]; }")
         ok(f"★ [{tag}] 390：複利右表「年化」欄在卡片內看得到（「比只領現金多」窄畫面隱藏）", yv and yv[0] <= yv[1] + 1 and yv[2] == "none", yv)
