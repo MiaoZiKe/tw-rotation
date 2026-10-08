@@ -10,7 +10,7 @@
 - Actions 實抓（`probe-etf-pcf.yml mode=cover` run 37782980175）：有表格 **108 → 308**（官網每日 280＋公會月資料 28）；現役 ETF 非槓桿反向期貨型 **307／307 有表格**；
   還沒表格的 23 檔全部是已下市代號。人工整理檔 `pipeline/etf/holdings_manual.yaml` 格式已更新（可抄玩股網／口袋，要標出處與資料日），目前 0 檔需要。
 - **合併 main 之後要做**：手動觸發一次 `daily.yml`（phase full）讓湖真的寫進 17 家投信＋公會月資料，pages 重算後正式站才會變；在那之前正式站還是舊的 108 檔。
-- 這批驗了：pytest（本機全套 1098 passed＋新增 14 條；Actions 上整套 1109 passed）、`_uitest --sections ETF成分股全覆蓋1008`（307／307 合格）、`ETF成分股普查1008`（0 問題）、
+- 這批驗了：pytest（本機全套 1098 passed＋新增 14 條；Actions 上整套 1109 passed；合併 main 後的 f0126062 再跑一次 1112 passed，run 37787933649）、`_uitest --sections ETF成分股全覆蓋1008`（307／307 合格）、`ETF成分股普查1008`（0 問題）、
   `ETF成分股1007`（只剩「法人欄」6 條紅：本機 site/data/stocks.json 是 10-06 舊檔、沒有 inst 欄位，與這批無關）、`_preview.py`（0 重疊；只有既有的 404 console）。
   本機 site/data/etf_holdings.json 用 Actions `mode=cover` 產出的那份（容器連不到投信官網）。手機 390 寬沒另外截圖（面板沿用既有 RWD）。
 
