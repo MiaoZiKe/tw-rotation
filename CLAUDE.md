@@ -35,6 +35,11 @@
 
 ## 工作規則
 
+- **★★★★★★★★★★ 2026-10-08：手機改動不准影響桌機（Andy 10-08：「兩者不可侵犯」）。凡改共用檔，必須限定 ≤640（`@media (max-width:640px)`）或 `html.m4`／isMobile4()；推 main 前必跑 `python scripts/_uitest.py --sections 桌機守門1008 --workers 1`。**
+  事故：手機 v2 第三批改共用檔（industry.js 的關聯圖／剖析圖預設收起、關聯圖上下排門檻寫 ≤820），桌機跟著變了 —— 關聯圖預設收起還攤開整份環節卡清單、剖析圖預設收起，展開後說明卡全掉到圖下面。
+  「桌機守門1008」比對 `tests/desktop_baseline/desktop_1440.json`（桌機 1440 的版面指紋，取自手機 v2 第三批之前的 main c9ee5bce），並檢查每一張剖析圖的說明卡在圖的左右兩側、關聯圖預設展開且收合後標題以下全空。
+  桌機版面是 Andy 明確要改的時候才准動基準：`TW_DESK_BASELINE=write` 跑一次這一段，把 json 跟著那批改動一起 commit，並在 commit 訊息寫是哪一句 Andy 原話。
+
 - **★ 2026-10-06：Andy 說「備份」→ 照 `docs/BACKUP_RUNBOOK.md` 做。**
 - **★★★★★★★★ 2026-10-03：要給 Andy 看的半成品，一律推 `preview/<名稱>` 並附預覽網址，不推 main。**
   Andy 原話：「直接開分支給我一版可操作的，以後都這樣，避免覆蓋到原版本」。

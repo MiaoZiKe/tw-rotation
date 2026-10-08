@@ -27437,9 +27437,10 @@ DESK_FP_JS = r"""
   const v = document.querySelector('main .view.on') || document.querySelector('main');
   const out = {}, seen = {};
   if (!v) return out;
-  const SEL = '.card, #dgSec, #dgBody, #prodDiagram, .dggrid, .dgcanvas, .dgcol, .dgcards, #relSec, #relMain, #chainMap, #chainList, #stockTabs, .subtabs';
+  // 頁面骨架（view 底下兩層）＋卡片＋剖析圖／關聯圖／題材圖的關鍵容器
+  const SEL = ':scope > *, :scope > * > *, .card, #dgSec, #dgBody, #prodDiagram, .dggrid, .dgcanvas, .dgcol, .dgcards, #relSec, #relRow, #relMain, #chainMap, #chainList, #stockTabs, .subtabs, #themeDiagram, #themeDetail, .dgwrap';
   const STATE = /^(on|sel|sel-part|open|hover|cyan|dim|haspart|noanim|live|busy|ready|done|isnew|pulse)$/;
-  v.querySelectorAll(SEL).forEach((e) => {
+  [...new Set(v.querySelectorAll(SEL))].filter((e) => !/^(SCRIPT|STYLE|TEMPLATE|LINK)$/.test(e.tagName)).forEach((e) => {
     const key = e.id ? '#' + e.id : e.tagName.toLowerCase() + '.' + [...e.classList].filter((c) => !STATE.test(c)).sort().join('.');
     seen[key] = (seen[key] || 0) + 1;
     if (seen[key] > 20) return;
