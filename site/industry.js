@@ -223,7 +223,9 @@
     if (c) c.off('click').on('click', p => A.zoomClick(document.getElementById('indTreeWrap'), () => {
       // 手機 v3（≤640px）：沒有 hover，小方塊的字又被截掉 —— 先開抽屜給全名與數字，「族群 ›」再進去（桌機照舊直接進族群頁）
       if (p.data && p.data.gid && window.M3 && window.M3.isM()) { window.M3.tileSheet(p.data); return; }
-      if (p.data.gid) location.hash = '#industry/group/' + p.data.gid; else if (p.data.cid) location.hash = '#industry/' + p.data.cid; else if (p.treePathInfo && p.treePathInfo[1]) { const cid = (im.chains.find(x => x.name === p.treePathInfo[1].name) || {}).id; if (cid) location.hash = '#industry/' + cid; } }));
+      // 跳族群頁／產業鏈頁＝離開熱力圖分頁 → 走 hmGo（Plus 以上才跳，其餘跳升級卡；app.js／quota.js heatGo）
+      const go = (h) => (A.hmGo ? A.hmGo(h) : (location.hash = h));
+      if (p.data.gid) go('#industry/group/' + p.data.gid); else if (p.data.cid) go('#industry/' + p.data.cid); else if (p.treePathInfo && p.treePathInfo[1]) { const cid = (im.chains.find(x => x.name === p.treePathInfo[1].name) || {}).id; if (cid) go('#industry/' + cid); } }));
   }
 
   // ================================================================ 活頁簿分頁（第一層：產業鏈）
@@ -275,7 +277,11 @@
     $$('#chainSwitch button', root).forEach(b => b.onclick = () => {
       const id = b.dataset.c;
       if (id === cur) { window.scrollTo({ top: 0, behavior: 'smooth' }); return; }
-      location.hash = id === '_all' ? '#industry' : '#industry/' + id;
+      /* ★ 手機 v2（≤640，html.m4）限定：從產業地圖（甜甜圈）切鏈 → 進那條鏈的「族群總覽」，
+         甜甜圈換成該鏈的資料（協調者 1008：頁籤照留、切了甜甜圈要換）。桌機路徑不變。 */
+      const m4map = document.documentElement.classList.contains('m4') && id !== '_all'
+        && (cur === '_all' || /\/overview$/.test(location.hash));
+      location.hash = id === '_all' ? '#industry' : '#industry/' + id + (m4map ? '/overview' : '');
     });
     scrollTabIntoView(strip);
   }

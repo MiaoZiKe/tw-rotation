@@ -2599,8 +2599,9 @@ def t_etf_1005(pg, b, base):
             if (!w || !t) return null; const r = w.getBoundingClientRect();
             return { wr: Math.round(r.right), iw: innerWidth, sw: w.scrollWidth, cw: w.clientWidth, ov: getComputedStyle(w).overflowX }; }""")
         if rt:
-            ok(f"[{tag}][390] 報酬比較表在自己的容器裡橫向捲（容器不超出畫面、表比容器寬時可捲）",
-               rt["wr"] <= rt["iw"] + 1 and rt["ov"] in ("auto", "scroll"), rt)
+            # 2026-10-08 手機 v2（html.m4）：表只留三欄、根本不必橫捲（Andy：「不要浪費空間」）→ 改驗「表不比容器寬」
+            ok(f"[{tag}][390] 報酬比較表在自己的容器裡橫向捲（容器不超出畫面、表比容器寬時可捲；手機 v2＝三欄不必捲）",
+               rt["wr"] <= rt["iw"] + 1 and (rt["ov"] in ("auto", "scroll") or rt["sw"] <= rt["cw"] + 1), rt)
         # 2026-10-08 手機 v2：底部導覽與「更多」退役，改左上 ☰ 側欄抽屜（改前驗「更多」選單；改後驗抽屜打得開、ETF 那一格在裡面）
         mp.click("#m4Burger"); mp.wait_for_timeout(500)
         ok(f"★ [{tag}][390] 左上 ☰ 點得到、抽屜真的打開、裡面有 ETF",
@@ -2779,6 +2780,77 @@ def t_etf_income_v2(pg, b, base):
             const mi = document.getElementById('incClk').dataset.cols.split(',').map(Number);
             return mi.every((i, m) => { const a = String(ck[m].itemStyle.color), d = String(dn[i].itemStyle.color); const hex = d.replace('#', ''); const rgb = [0, 2, 4].map(j => parseInt(hex.slice(j, j + 2), 16)).join(','); return a.indexOf(rgb) >= 0 || a.toLowerCase().indexOf(d.toLowerCase()) >= 0; }); }""")
         ok(f"[{tag}] 時鐘格色＝當月主要入帳那檔在甜甜圈的顏色", col)
+        # ---- ★ 10-08 組合四處連動（Andy 316 截圖：「點擊特定區塊 整張圖表會連動有反應」）：全部用真的滑鼠點，座標從 ECharts 版面算
+        lk_shots = os.environ.get("TW_INCLINK_SHOTS")
+        ILK_PT = """([id, i]) => { const el = document.getElementById(id); el.scrollIntoView({ block: 'center', behavior: 'instant' }); const ch = echarts.getInstanceByDom(el), L = ch.getModel().getSeriesByIndex(0).getData().getItemLayout(i), r = el.getBoundingClientRect();
+            if (L.width != null) return [r.left + L.x + L.width / 2, r.top + L.y + L.height / 2];
+            const ang = (L.startAngle + L.endAngle) / 2, rr = (L.r0 + L.r) / 2; return [r.left + L.cx + rr * Math.cos(ang), r.top + L.cy + rr * Math.sin(ang)]; }"""
+        ILK_ST = """() => { const op = (id) => { const c = echarts.getInstanceByDom(document.getElementById(id)); return c ? c.getOption().series[0].data.map(d => (d.itemStyle && d.itemStyle.opacity != null) ? d.itemStyle.opacity : 1) : null; };
+            const cb = document.querySelector('#incCombos .combo'), ck = document.getElementById('incClk');
+            return { sel: cb.dataset.sel || '', codes: cb.dataset.codes.split(','), mi: ck ? ck.dataset.cols.split(',').map(Number) : null, clk: op('incClk'), mb: op('incCmb'), dn: op('incCdn'),
+              hl: [...document.querySelectorAll('#incCTbl .cmr')].map(r => r.classList.contains('hl')) }; }"""
+        def ilk_click(cid, i):
+            x, y = J(ILK_PT, [cid, i]); lp.mouse.click(x, y); lp.wait_for_timeout(450)
+            return J(ILK_ST)
+        def ilk_lit(st, k):   # k＝選中那檔的序號：主要入帳是它的月份 ≥ .9、其他 ≤ .5；明細卡只有它亮
+            return all((o >= 0.9) if m == k else (o <= 0.5) for m, o in zip(st["mi"], st["clk"])) \
+                and all((o >= 0.9) if m == k else (o <= 0.5) for m, o in zip(st["mi"], st["mb"])) \
+                and st["hl"] == [j == k for j in range(len(st["codes"]))] and st["sel"] == st["codes"][k]
+        st0 = J(ILK_ST)
+        ok(f"[{tag}] 連動：預設沒有選取（三張圖全亮、沒有卡片高亮）", st0["sel"] == "" and min(st0["clk"]) >= 0.9 and min(st0["mb"]) >= 0.9 and not any(st0["hl"]), st0)
+        kk = max(range(len(st0["codes"])), key=lambda j: st0["mi"].count(j))   # 挑「主要入帳月份最多」的那檔，確保兩邊都有格可比
+        st = ilk_click("incCdn", kk)
+        ok(f"★ [{tag}] 連動：點甜甜圈「{st0['codes'][kk]}」→ 時鐘／直條中它主要入帳的月份 ≥ .9、其他 ≤ .5，明細卡那張 .hl，甜甜圈其他扇區變淡", ilk_lit(st, kk) and st["dn"][kk] >= 0.9 and all(o <= 0.5 for j, o in enumerate(st["dn"]) if j != kk), st)
+        bc = J("""() => { const mb = echarts.getInstanceByDom(document.getElementById('incCmb')).getOption().series[0].data, dn = echarts.getInstanceByDom(document.getElementById('incCdn')).getOption().series[0].data, mi = document.getElementById('incClk').dataset.cols.split(',').map(Number);
+            return mi.every((i, m) => { const c = mb[m].itemStyle && mb[m].itemStyle.color; const top = c && c.colorStops ? String(c.colorStops[0].color).toLowerCase() : ''; return top === String(dn[i].itemStyle.color).toLowerCase(); }); }""")
+        ok(f"[{tag}] 連動：選取後直條顏色仍＝當月主要入帳那檔的甜甜圈色（資料項帶 itemStyle 會蓋掉系列的 color 函式，踩過整排變青色）", bc)
+        if lk_shots:
+            J("() => document.querySelector('#incCombos .combo').scrollIntoView({ block: 'start' })"); lp.mouse.move(5, 5); lp.wait_for_timeout(500)
+            lp.screenshot(path=f"{lk_shots}/1440_sel_{st0['codes'][kk]}.png")
+        st = ilk_click("incCdn", kk)
+        ok(f"★ [{tag}] 連動：再點同一塊扇區 → 取消、全部恢復", st["sel"] == "" and min(st["clk"]) >= 0.9 and min(st["mb"]) >= 0.9 and not any(st["hl"]), st)
+        st = ilk_click("incClk", 8)
+        k9 = st0["mi"][8]
+        ok(f"★ [{tag}] 連動：點時鐘 9 月 → 選中 9 月的主要入帳檔（{st0['codes'][k9]}），三處一起亮", ilk_lit(st, k9), st)
+        if lk_shots:
+            J("() => document.querySelector('#incCombos .combo').scrollIntoView({ block: 'start' })"); lp.mouse.move(5, 5); lp.wait_for_timeout(500)
+            lp.screenshot(path=f"{lk_shots}/1440_clock9.png")
+        kb = st0["mi"][0] if st0["mi"][0] != k9 else st0["mi"][1]
+        mb_i = 0 if st0["mi"][0] != k9 else 1
+        st = ilk_click("incCmb", mb_i)
+        ok(f"★ [{tag}] 連動：點直條 {mb_i + 1} 月 → 換選 {st0['codes'][kb]}（不用先取消）", ilk_lit(st, kb), st)
+        kc = next(j for j in range(len(st0["codes"])) if j != kb)
+        lp.click(f"#incCTbl .cmr:nth-child({kc + 1}) dl"); lp.wait_for_timeout(450)
+        st = J(ILK_ST)
+        ok(f"★ [{tag}] 連動：點明細卡 {st0['codes'][kc]} → 甜甜圈那塊亮、時鐘／直條跟著換", ilk_lit(st, kc) and st["dn"][kc] >= 0.9 and all(o <= 0.5 for j, o in enumerate(st["dn"]) if j != kc), st)
+        hsh = J("() => location.hash")
+        lp.click(f"#incCTbl .cmr:nth-child({kc + 1}) .cmn"); lp.wait_for_timeout(700)
+        ok(f"[{tag}] 連動：已選中的那張卡再點名稱 → 進個股頁（能點到底）", J("() => location.hash") == f"#stock/{st0['codes'][kc]}", J("() => location.hash"))
+        lp.go_back(); lp.wait_for_timeout(1500)
+        wait_until(lp, "() => document.querySelector('#incCdn') && echarts.getInstanceByDom(document.getElementById('incCdn'))", 15000)
+        if J("() => location.hash") != hsh:
+            J(f"() => {{ location.hash = '{hsh}'; }}"); lp.wait_for_timeout(1500)
+        st = J(ILK_ST)
+        if not st["sel"]:
+            lp.click(f"#incCTbl .cmr:nth-child({kc + 1}) dl"); lp.wait_for_timeout(450)
+        J("() => document.querySelector('#incCombos .combo .ch').scrollIntoView({ block: 'center' })")
+        bx = J("() => { const r = document.querySelector('#incCombos .combo .ch').getBoundingClientRect(), k = document.querySelector('#incCombos .combo .ch .kp').getBoundingClientRect(); return [Math.min(r.right - 4, Math.max(k.right + 8, r.right - 20)), r.top + r.height / 2]; }")
+        lp.mouse.click(*bx); lp.wait_for_timeout(450)
+        st = J(ILK_ST)
+        ok(f"★ [{tag}] 連動：點空白處（組合標題列右側）→ 全部恢復", st["sel"] == "" and min(st["clk"]) >= 0.9 and min(st["mb"]) >= 0.9 and min(st["dn"]) >= 0.9 and not any(st["hl"]), (bx, st))
+        st = ilk_click("incCdn", kk)
+        x, y = J("() => { const el = document.getElementById('incClk'); el.scrollIntoView({ block: 'center' }); const r = el.getBoundingClientRect(); return [r.left + 4, r.top + 4]; }")
+        lp.mouse.click(x, y); lp.wait_for_timeout(450)
+        st = J(ILK_ST)
+        ok(f"[{tag}] 連動：點時鐘圖框的空白角落 → 也算取消", st["sel"] == "" and not any(st["hl"]), st)
+        lp.click("#incCView button[data-v='grid']"); lp.wait_for_timeout(900)
+        lp.click("#incGrid .mcell[data-m='9']"); lp.wait_for_timeout(450)
+        g9 = J("() => ({ sel: document.querySelector('#incCombos .combo').dataset.sel, dim: [...document.querySelectorAll('#incGrid .mcell')].map(c => +getComputedStyle(c).opacity), hl: [...document.querySelectorAll('#incCTbl .cmr')].map(r => r.classList.contains('hl')) })")
+        ok(f"★ [{tag}] 連動：月曆格點 9 月 → 選中 {st0['codes'][k9]}，不是它主要入帳的格子變淡（≤ .5）", g9["sel"] == st0["codes"][k9] and all((o >= 0.9) if st0["mi"][m] == k9 else (o <= 0.5) for m, o in enumerate(J("() => [...document.querySelectorAll('#incGrid .mcell')].sort((a, b) => a.dataset.m - b.dataset.m).map(c => +getComputedStyle(c).opacity)"))) and g9["hl"][k9], g9)
+        lp.click("#incCView button[data-v='clock']"); lp.wait_for_timeout(900)
+        st = J(ILK_ST)
+        ok(f"[{tag}] 連動：切回時鐘，選取保留（同一檔的月份照樣亮）", ilk_lit(st, k9), st)
+        lp.click(f"#incCTbl .cmr:nth-child({k9 + 1}) dl"); lp.wait_for_timeout(400)
         tp = J("""() => { const el = document.getElementById('incCdn'), c = echarts.getInstanceByDom(el); c.dispatchAction({ type: 'showTip', seriesIndex: 0, dataIndex: 0 });
             const tp = [...el.querySelectorAll('div'), ...document.body.children].find(d => /z-index/.test(d.getAttribute('style') || '') && getComputedStyle(d).display !== 'none' && d.textContent.trim()); if (!tp) return 'none';
             const a = tp.getBoundingClientRect(), side = [...document.querySelectorAll('.side, #side, nav.l4side, aside')].find(x => { const q = x.getBoundingClientRect(); return q.width > 0 && q.left < 10; }); const sr = side ? side.getBoundingClientRect() : { right: 0 };
@@ -2913,15 +2985,41 @@ def t_etf_income_v2(pg, b, base):
     try:
         mp.goto(f"{base}#etf", wait_until="networkidle")
         wait_until(mp, "() => document.querySelector('#v-etf') && document.querySelector('#v-etf').dataset.ready === 'full'", 20000)
-        mp.tap("#etfSub button[data-v='inc']"); mp.wait_for_timeout(1500)
+        # v8 起頁內子分頁鈕（#etfSub）藏起來、改由側欄子項切換 ⇒ 看不到就直接走 hash（10-08 這行一直 tap 隱藏的鈕，整段 390 卡 30 秒逾時）
+        if mp.evaluate("() => { const b = document.querySelector(\"#etfSub button[data-v='inc']\"); return !!(b && b.getClientRects().length); }"):
+            mp.tap("#etfSub button[data-v='inc']")
+        else:
+            mp.evaluate("() => { location.hash = '#etf/inc'; }")
+        mp.wait_for_timeout(1500)
         wait_until(mp, "() => document.querySelector('#incBar') && document.querySelector('#incBar').dataset.codes", 20000)
         a0 = mp.evaluate("() => document.querySelector('#incBar').dataset.lots")
+        if not mp.evaluate("() => !!document.querySelector('#incAmtSeg').getClientRects().length"):   # 手機 v2：條件列收在「條件：…」鈕裡
+            mp.tap("#etfInc .m4cond"); mp.wait_for_timeout(400)
         mp.tap("#incAmtSeg button[data-v='200000']"); mp.wait_for_timeout(600)
         ok(f"★ [{tag}] 390：點年領 20 萬，張數真的變", mp.evaluate("() => document.querySelector('#incBar').dataset.lots") != a0)
         ok(f"[{tag}] 390：單檔無橫向溢出", mp.evaluate(fit))
         mp.tap("#incTabs button[data-v='c']"); mp.wait_for_timeout(2000)
         o = mp.evaluate("() => { const r = (s) => document.querySelector(s).getBoundingClientRect(); return r('#incCdn').bottom <= r('#incClk').top + 1 && r('#incClk').bottom <= r('#incCTbl').top + 1; }")
         ok(f"★ [{tag}] 390：組合三欄改上下（甜甜圈→時鐘→明細）、無溢出", o and mp.evaluate(fit))
+        # ★ 10-08 組合連動（手機）：點一下就是選取；手機上下排，不捲去明細卡（會把剛點的圖推出畫面）
+        MPT = """([id, i]) => { const el = document.getElementById(id); el.scrollIntoView({ block: 'center', behavior: 'instant' }); const ch = echarts.getInstanceByDom(el), L = ch.getModel().getSeriesByIndex(0).getData().getItemLayout(i), r = el.getBoundingClientRect();
+            if (L.width != null) return [r.left + L.x + L.width / 2, r.top + L.y + L.height / 2];
+            const ang = (L.startAngle + L.endAngle) / 2, rr = (L.r0 + L.r) / 2; return [r.left + L.cx + rr * Math.cos(ang), r.top + L.cy + rr * Math.sin(ang)]; }"""
+        MST = """() => { const op = (id) => echarts.getInstanceByDom(document.getElementById(id)).getOption().series[0].data.map(d => (d.itemStyle && d.itemStyle.opacity != null) ? d.itemStyle.opacity : 1);
+            const cb = document.querySelector('#incCombos .combo'); return { sel: cb.dataset.sel || '', codes: cb.dataset.codes.split(','), mi: document.getElementById('incClk').dataset.cols.split(',').map(Number), clk: op('incClk'), mb: op('incCmb'), hl: [...document.querySelectorAll('#incCTbl .cmr')].map(r => r.classList.contains('hl')) }; }"""
+        m0 = mp.evaluate(MST)
+        mk = m0["mi"][4]
+        x, y = mp.evaluate(MPT, ["incClk", 4]); y0 = mp.evaluate("() => scrollY")
+        mp.touchscreen.tap(x, y); mp.wait_for_timeout(500)
+        m1 = mp.evaluate(MST)
+        ok(f"★ [{tag}] 390：點一下時鐘 5 月 → 選中 {m0['codes'][mk]}，時鐘／直條／明細卡一起變、頁面沒被捲走",
+           m1["sel"] == m0["codes"][mk] and all((o >= 0.9) if m == mk else (o <= 0.5) for m, o in zip(m1["mi"], m1["mb"])) and all((o >= 0.9) if m == mk else (o <= 0.5) for m, o in zip(m1["mi"], m1["clk"])) and m1["hl"][mk] and abs(mp.evaluate("() => scrollY") - y0) < 5, m1)
+        x, y = mp.evaluate(MPT, ["incCmb", 4]); mp.touchscreen.tap(x, y); mp.wait_for_timeout(500)
+        ok(f"[{tag}] 390：再點直條 5 月（同一檔）→ 取消", mp.evaluate(MST)["sel"] == "")
+        mp.evaluate("() => document.querySelector('#incCTbl .cmr:nth-child(2) dl').scrollIntoView({ block: 'center' })")
+        mp.tap("#incCTbl .cmr:nth-child(2) dl"); mp.wait_for_timeout(500)
+        ok(f"[{tag}] 390：點明細卡第 2 張 → 選中那檔", mp.evaluate(MST)["sel"] == m0["codes"][1] and mp.evaluate(fit))
+        mp.tap("#incCTbl .cmr:nth-child(2) dl"); mp.wait_for_timeout(300)
         mp.tap("#incMain button[data-v='x']"); mp.wait_for_timeout(2500)
         yv = mp.evaluate("() => { const th = [...document.querySelectorAll('#cxTbl thead th')].find(e => e.textContent === '年化'), w = document.querySelector('#incPX .cxr').getBoundingClientRect(); if (!th) return null; const r = th.getBoundingClientRect(); return [Math.round(r.right), Math.round(w.right), getComputedStyle(document.querySelectorAll('#cxTbl thead th')[3]).display]; }")
         ok(f"★ [{tag}] 390：複利右表「年化」欄在卡片內看得到（「比只領現金多」窄畫面隱藏）", yv and yv[0] <= yv[1] + 1 and yv[2] == "none", yv)
@@ -12706,11 +12804,13 @@ def t_season(pg, base):
     pg.evaluate("() => { const b = document.querySelector('#seasonView button[data-v=line]'); if (b) b.click(); }"); pg.wait_for_timeout(1400)
     mb = pg.evaluate(LN) or {}
     tap = pg.evaluate("""() => ({ dd: Math.round(document.querySelector('#seasonGroupDD .ddbtn').getBoundingClientRect().height),
-        key: Math.min(999, ...[...document.querySelectorAll('#seasonKey .snk')].map(b => Math.round(b.getBoundingClientRect().height))) })""")
+        key: Math.min(999, ...[...document.querySelectorAll('#seasonKey .snk')].filter(b => b.getClientRects().length).map(b => Math.round(b.getBoundingClientRect().height))),
+        m4: document.documentElement.classList.contains('m4'), keyHidden: !document.getElementById('seasonKey').getClientRects().length })""")
     ok("★ [390px 長條圖] 預設 5 根都畫得下、不重疊、頁面沒有橫向捲軸",
        mb.get("nb") == 5 and mb.get("drawn") == mb.get("sel") == 5 and mb.get("overlap") == 0 and mb.get("over", 9) <= 1,
        {k: mb.get(k) for k in ("nb", "sel", "drawn", "maxbars", "overlap", "minW", "over")})
-    ok("[390px 長條圖] 族群下拉鈕與色票觸控高 ≥ 40px", tap["dd"] >= 40 and tap["key"] >= 40, tap)
+    # ★ 2026-10-08 手機 v2：390 寬（html.m4）已選膠囊列一律收進下拉（Andy：「手機版本出現這種的，就都改成篩選式下拉清單」），色票列藏起來是設計
+    ok("[390px 長條圖] 族群下拉鈕與色票觸控高 ≥ 40px（手機 v2：色票列收進下拉）", tap["dd"] >= 40 and (tap["key"] >= 40 or (tap["m4"] and tap["keyHidden"])), tap)
     pg.evaluate("() => { const b = document.querySelector('#seasonView button[data-v=heat]'); if (b) b.click(); }"); pg.wait_for_timeout(800)
     pg.set_viewport_size({"width": 1500, "height": 1000}); pg.wait_for_timeout(600)
     pg.evaluate("() => { try { ['tw.season.num2','tw.season.rows','tw.season.view'].forEach(k => localStorage.removeItem(k)); } catch (e) {} }")
@@ -26839,7 +26939,7 @@ M4_FIRST = {   # 路由 → 第一屏（390×844 不捲動）必須整個看得�
     "#flow/inst": ["#flowInstCard"],                                           # 整張族群×法人（買超前 8＋賣超前 8）
     "#heatmap/industry": ["#v-heatmap canvas"],                                # 整張 treemap
     "#heatmap/theme": ["#themeMapCard"],                                       # 整張題材 treemap＋熱度圖例
-    "#industry": ["#gpHost canvas"],                                           # 族群漲跌幅長條
+    "#industry": ["#gpPie"],                                                   # 成交值占比甜甜圈（2026-10-08 晚：手機只留甜甜圈，橫條圖收合）
     "#market": ["#v-market canvas"],                                           # 漲跌分佈圖
     "#explore": ["#v-explore .sl-row"],                                        # 第一張策略卡的第一檔
     "#etf/cal": ["#etfCalCard h3", "#etfCalPrev", "#etfCalNext"],
@@ -26875,16 +26975,16 @@ def _m4_measure(m, ex):
 
 def t_phone_1008(pg, b, base):
     """2026-10-08（Andy：「我是正在使用電腦，所以手機版本看不到，等等給我瀏覽器內容直接就是手機版本」）：site/phone.html。
-    1440 寬打開 → 框裡 iframe 的 innerWidth＝390、看得到漢堡鈕（真的是手機版）；hash 帶進去；切 360／430 → iframe 寬度真的跟著變。"""
+    1440 寬打開 → 框裡 iframe 的 innerWidth＝402（預設 iPhone 17 402×874）、看得到漢堡鈕（真的是手機版）；hash 帶進去；切 360／430／390 → iframe 寬度真的跟著變。"""
     T = "手機框預覽1008"
     p = b.new_page(viewport={"width": 1440, "height": 1000})
     p.on("pageerror", lambda e: fails.append(f"{T} pageerror: {e}"))
     try:
         p.goto(base.replace("index.html", "phone.html") + "#flow/sankey", wait_until="domcontentloaded"); p.wait_for_timeout(4500)
         fr = p.frame(name=None) if False else [f for f in p.frames if f != p.main_frame][0]
-        st = fr.evaluate("() => ({ w: innerWidth, h: location.hash, burger: !!document.getElementById('m4Burger') && document.getElementById('m4Burger').getClientRects().length > 0 })")
-        ok(f"★ [{T}] 1440 寬打開 phone.html：框內寬 390、有漢堡鈕、hash 帶進去（{st}）", st["w"] == 390 and st["burger"] and st["h"] == "#flow/sankey", st)
-        for w in (360, 430, 390):
+        st = fr.evaluate("() => ({ w: innerWidth, ih: innerHeight, h: location.hash, burger: !!document.getElementById('m4Burger') && document.getElementById('m4Burger').getClientRects().length > 0 })")
+        ok(f"★ [{T}] 1440 寬打開 phone.html：框內寬 402（預設 402×874）、有漢堡鈕、hash 帶進去（{st}）", st["w"] == 402 and st["ih"] == 874 and st["burger"] and st["h"] == "#flow/sankey", st)
+        for w in (360, 430, 390, 402):
             p.click(f'button[data-w="{w}"]'); p.wait_for_timeout(700)
             iw = fr.evaluate("() => innerWidth")
             ok(f"[{T}] 切 {w} → 框內寬 {iw}", iw == w, iw)
@@ -26970,10 +27070,12 @@ def t_mobile_m4_1008(b, base, code):
         sig = lambda: J("() => (document.getElementById('incSQ') || {}).textContent + '|' + document.querySelectorAll('#incBar *').length")
         m.locator("#v-etf .m4cond").first.tap(); m.wait_for_timeout(300)
         s0 = sig(); t0 = J("() => document.querySelector('#v-etf .m4cond').textContent")
-        m.locator("#incScope button:not(.on)").first.tap(); m.wait_for_timeout(900)
+        # 2026-10-08 起條件區的分段鈕換成下拉（m4segsel）：改用下拉選「另一個」選項
+        nxt = lambda lab: J(f"""() => {{ const s = document.querySelector('#incPM select.m4segsel[aria-label="{lab}"]'); return s ? String((+s.value + 1) % (s.options.length - (s.querySelector('option[value=custom]') ? 1 : 0))) : null; }}""")
+        m.locator('#incPM select.m4segsel[aria-label="範圍"]').select_option(nxt("範圍")); m.wait_for_timeout(900)
         s1 = sig(); t1 = J("() => document.querySelector('#v-etf .m4cond').textContent")
         ok(f"【{T}】現金流試算改範圍 → 摘要列與內容都變", s0 != s1 and t0 != t1, (t0, t1))
-        m.locator("#incMode button:not(.on)").first.tap(); m.wait_for_timeout(900)
+        m.locator('#incPM select.m4segsel[aria-label="年領或月領"]').select_option(nxt("年領或月領")); m.wait_for_timeout(900)
         ok(f"【{T}】現金流試算改年領／月領 → 內容跟著變", sig() != s1, sig())
         # ⑥ 產業鏈：編號開關、關聯圖上下排、拖曳
         go("industry/electronics", 3500)
@@ -27074,11 +27176,11 @@ def t_mobile_m4_1008(b, base, code):
         # 2026-10-08 晚改（Andy：「圖二需要 Default 展開狀態」）：剖析圖是「收展預設收起」的例外，預設展開
         dg0 = J("() => { const b = document.getElementById('dgBody'); return !!b && getComputedStyle(b).display !== 'none'; }")
         ok(f"【{T}】產業鏈頁剖析圖預設展開（例外：Andy 指定）", dg0, dg0)
-        lst = J("() => ({ btn: !!document.querySelector('#indChain .m4fold'), list: getComputedStyle(document.getElementById('chainList')).display })")
+        lst = J("() => ({ btn: !!document.querySelector('#indChain .chainpane > .m4fold'), list: getComputedStyle(document.getElementById('chainList')).display })")
         ok(f"【{T}】環節卡清單收成「環節卡清單 ▸」、預設收起", lst["btn"] and lst["list"] == "none", lst)
-        m.locator("#indChain .m4fold").tap(); m.wait_for_timeout(400)
+        m.locator("#indChain .chainpane > .m4fold").tap(); m.wait_for_timeout(400)
         ok(f"【{T}】點「環節卡清單 ▸」→ 清單出現", J("() => getComputedStyle(document.getElementById('chainList')).display !== 'none'"))
-        m.locator("#indChain .m4fold").tap(); m.wait_for_timeout(300)
+        m.locator("#indChain .chainpane > .m4fold").tap(); m.wait_for_timeout(300)
         m.locator('#dgPick a:has-text("面板")').first.click(); m.wait_for_timeout(2500)
         J("() => { const b = document.querySelector('#dg3d button[data-dm=\"3d\"]'); if (b) b.click(); }"); m.wait_for_timeout(2500)
         J("() => { const b = document.getElementById('dgNum'); if (b && b.textContent.includes('關')) b.click(); }"); m.wait_for_timeout(800)
@@ -27138,6 +27240,208 @@ def t_mobile_m4_1008(b, base, code):
             return { n: ns.length, out: ns.filter(r => r.right <= S.left + 2 || r.left >= S.right - 2).length, lines: l.querySelectorAll('svg path').length, dash: getComputedStyle(l.querySelector('svg path') || l).strokeDasharray }; }""")
         ok(f"【{T}】2D 編號排在圖的兩側（不壓在零件上）、每顆有虛線引線（{l2}）", l2 and l2["n"] > 0 and l2["out"] == l2["n"] and l2["lines"] >= l2["n"] - 1 and l2["dash"] not in ("none", ""), l2)
         J("() => { try { localStorage.removeItem('tw.dgOpen'); localStorage.removeItem('tw.dgnum'); localStorage.removeItem('tw.dg3d'); } catch (e) {} }")
+        # ⑰ 產業地圖：只留甜甜圈（第一屏看得到）、橫條圖預設收起、點收合列才出現；切到半導體 → 甜甜圈資料換掉
+        go("industry", 3500)
+        im = J("""() => { const p = document.getElementById('gpPie'), b = document.getElementById('gpBar'); const r = p && p.getBoundingClientRect();
+            return { pie: !!r && r.top >= 0 && r.bottom <= innerHeight && r.width > 100, bar: !!b && b.getClientRects().length > 0, lg: (document.getElementById('gpLegend') || {}).textContent || '' }; }""")
+        ok(f"【{T}】產業地圖：甜甜圈在第一屏、橫條圖預設收起", im["pie"] and not im["bar"], im)
+        m.locator("#v-industry .gpgrid > .m4fold").tap(); m.wait_for_timeout(700)
+        ok(f"【{T}】點「族群漲跌幅 ▸」→ 橫條圖出現", J("() => document.getElementById('gpBar').getClientRects().length > 0 && document.getElementById('gpBar').getBoundingClientRect().height > 50"))
+        m.locator("#chainSwitch button[data-c='semiconductor']").first.tap(); m.wait_for_timeout(3000)
+        lg2 = J("() => (document.getElementById('gpLegend') || {}).textContent || ''")
+        ok(f"【{T}】切到「半導體」→ 甜甜圈圖例換成該鏈的資料", lg2 and lg2 != im["lg"], (im["lg"][:40], lg2[:40]))
+        # ⑱ 細節頁的「‹ 返回」：題材細節、產業鏈頁、族群頁 —— 點了回上一層
+        for h0, h1, par in (("heatmap/theme", "heatmap/theme/ai_server", "#heatmap/theme"), ("industry", "industry/semiconductor", "#industry")):
+            go(h0, 2000); J(f"() => {{ location.hash = '#{h1}'; }}"); m.wait_for_timeout(2500)
+            vis = J("() => { const b = document.getElementById('m4BackBtn'); return !!b && !b.hidden && b.getBoundingClientRect().height >= 40; }")
+            ok(f"【{T}】#{h1} 有「‹ 返回」鈕（≥ 40px）", vis, vis)
+            if vis:
+                m.locator("#m4BackBtn").tap(); m.wait_for_timeout(1500)
+                ok(f"【{T}】#{h1} 點「‹ 返回」→ 回到 {par}", J("() => location.hash").startswith(par) and not J("() => location.hash").startswith('#' + h1), J("() => location.hash"))
+        gid = J("() => { const a = document.querySelector('a[href^=\"#industry/group/\"]'); return a ? a.getAttribute('href') : null; }")
+        if gid:
+            m.goto(base + gid, wait_until="domcontentloaded"); m.wait_for_timeout(2500)
+            vis = J("() => { const b = document.getElementById('m4BackBtn'); return !!b && !b.hidden; }")
+            ok(f"【{T}】族群頁 {gid} 有「‹ 返回」鈕", vis, gid)
+            if vis:
+                m.locator("#m4BackBtn").tap(); m.wait_for_timeout(1500)
+                ok(f"【{T}】族群頁點「‹ 返回」→ 離開族群頁", not J("() => location.hash").startswith(gid), J("() => location.hash"))
+        # ⑲ 已選膠囊列 → 「已選 N ▾」篩選下拉（共用 MultiSelect.dropdown ＝ App.msDD）：
+        #    402 寬全站找不到「含 × 的膠囊」> 3 顆的列；現金流試算單檔：取消一檔 → 圖上直條組數真的少一組、再勾一檔 → 多一組；搜尋真的過濾
+        m.set_viewport_size({"width": 402, "height": 874})
+        XROW = """() => { const m = new Map(); for (const e of document.querySelectorAll('.view.on button, .view.on .chip')) {
+            if (!e.getClientRects().length || !/[×✕]\s*$/.test(e.textContent.trim()) || e.textContent.trim().length < 3) continue;
+            const k = e.parentElement; m.set(k, (m.get(k) || 0) + 1); }
+            return [...m].filter(([k, n]) => n > 3).map(([k, n]) => (k.id || k.className) + ':' + n); }"""
+        badx = []
+        for h in ("overview", "flow/rotation", "flow/sankey", "flow/inst", "heatmap/industry", "heatmap/theme", "industry", "market", "explore", "etf/list", "etf/ret", "etf/inc", "season", "watch"):
+            go(h, 2500); badx += [(h, x) for x in J(XROW)]
+        ok(f"【{T}】402 寬全站沒有「含 × 的膠囊」超過 3 顆的列", not badx, badx)
+        go("etf/inc", 4500)
+        n0 = J("() => +(document.getElementById('incBar') || {dataset: {}}).dataset.n || 0")
+        ok(f"【{T}】現金流試算單檔：膠囊列藏起來、換成「單檔：已選 {n0} 檔 ▾」下拉", J("() => !!document.getElementById('m4IncMS') && document.getElementById('m4IncMS').getClientRects().length > 0 && !document.getElementById('incChips').getClientRects().length && /已選\\s*\\d+\\s*檔/.test(document.querySelector('#m4IncMS .ddbtn').textContent)"), n0)
+        m.locator("#m4IncMS .ddbtn").tap(); m.wait_for_timeout(500)
+        m.locator("#m4IncMS .ddopt[data-n] input:checked").first.tap(); m.wait_for_timeout(1500)
+        n1 = J("() => +document.getElementById('incBar').dataset.n")
+        ok(f"【{T}】下拉裡取消一檔 → 圖上直條少一組（{n0}→{n1}）、下拉沒有關", n1 == n0 - 1 and J("() => !document.querySelector('#m4IncMS .ddpanel').hidden"), (n0, n1))
+        m.locator("#m4IncMS .ddopt[data-n] input:not(:checked)").first.tap(); m.wait_for_timeout(1500)
+        n2 = J("() => +document.getElementById('incBar').dataset.n")
+        ok(f"【{T}】再勾一檔 → 直條多一組（{n1}→{n2}）", n2 == n1 + 1, (n1, n2))
+        m.fill("#m4IncMS .sndd-q", "00878"); m.wait_for_timeout(300)
+        vq = J("() => [...document.querySelectorAll('#m4IncMS .ddopt[data-n]')].filter(o => o.style.display !== 'none').map(o => o.dataset.n)")
+        ok(f"【{T}】下拉的搜尋真的過濾（打 00878 → 剩 {len(vq)} 列）", 0 < len(vq) < 5 and all("00878" in x for x in vq), vq)
+        m.set_viewport_size({"width": 390, "height": 844})
+        # ⑳ 元件統一普查（402 寬，計算後樣式指紋＝高度／圓角／字級／外框型態）：頁籤 ≤ 2 種（底線頁籤＋分段膠囊）、外框按鈕 ≤ 2 種、「?」1 種
+        #    不算按鈕的（各自有版型）：清單列 .rkrow／.skr-r、ETF 字卡 .etfc、月曆格 .cald、說明圖示 .sl-i、自選加入磚 .mbwadd、自選頁籤裡的「⋯」選單鈕
+        m.set_viewport_size({"width": 402, "height": 874})
+        FP = """() => { const out = [];
+            const vis = (e) => e.getClientRects().length && e.getBoundingClientRect().width > 0 && !e.closest('#m4Drawer,.ddpanel,.topbar,footer');
+            const fp = (e) => { const c = getComputedStyle(e), r = e.getBoundingClientRect(); const bt = parseFloat(c.borderTopWidth), bb = parseFloat(c.borderBottomWidth);
+              return `h${Math.round(r.height / 2) * 2} r${Math.min(20, Math.round(parseFloat(c.borderTopLeftRadius)))} f${Math.round(parseFloat(c.fontSize))} b${Math.max(bt, bb) > 0 ? (bt === bb ? 'box' : 'under') : 0}`; };
+            const tabs = new Set();
+            document.querySelectorAll('.view.on [role=tab], .view.on :is(.seg,.nbsw,.mpager,.mseg)>button, .m4subtabs>button').forEach(e => { if (vis(e) && !e.classList.contains('wpmore')) { tabs.add(e); out.push(['頁籤', fp(e), e.parentElement.id || e.parentElement.className]); } });
+            document.querySelectorAll('.view.on .howbtn').forEach(e => { if (vis(e)) out.push(['?', fp(e), '']); });
+            document.querySelectorAll('.view.on button').forEach(e => { const c = getComputedStyle(e);
+              if (!vis(e) || tabs.has(e) || e.classList.contains('howbtn') || parseFloat(c.borderTopWidth) === 0 || c.borderTopWidth !== c.borderBottomWidth
+                || e.matches('.rkrow,.cald,.sl-i,.mbwadd,.wpmore,.etfc,.skr-r') || e.closest('[role=tablist],.seg,.nbsw,.mpager,.mseg,.ddlist,.mnumlayer,.mdgfolds,table')) return;
+              out.push(['按鈕', fp(e), e.className]); });
+            return out; }"""
+        kinds = {}
+        for h in ("overview", "flow/rotation", "flow/sankey", "flow/inst", "heatmap/industry", "heatmap/theme", "industry", "market", "explore", "etf/list", "etf/ret", "etf/inc", "etf/cal", "season", "watch", "stock/2330"):
+            go(h, 2500)
+            for k, f, w in J(FP): kinds.setdefault(k, {}).setdefault(f, set()).add(f"{h} {w}")
+        brief = {k: {f: sorted(w)[:3] for f, w in d.items()} for k, d in kinds.items()}
+        ok(f"【{T}】元件統一：頁籤指紋 ≤ 2 種（{len(kinds.get('頁籤', {}))}）", 0 < len(kinds.get("頁籤", {})) <= 2, brief.get("頁籤"))
+        ok(f"【{T}】元件統一：外框按鈕指紋 ≤ 2 種（{len(kinds.get('按鈕', {}))}）", 0 < len(kinds.get("按鈕", {})) <= 2, brief.get("按鈕"))
+        ok(f"【{T}】元件統一：「?」說明鈕指紋 1 種（{len(kinds.get('?', {}))}）", len(kinds.get("?", {})) == 1, brief.get("?"))
+        # ㉑ 自選頁籤：每顆高度差 ≤ 2px、「⋯」在選中頁籤裡面、說明列不跟其他元素重疊
+        go("watch", 3000)
+        wt = J("""() => { const t = document.getElementById('wpTabs'); if (!t) return null; const bs = [...t.children].filter(e => e.getClientRects().length && !e.classList.contains('wpmore'));
+            const hs = bs.map(b => b.getBoundingClientRect().height); const on = t.querySelector('.wptab.on').getBoundingClientRect(), mo = document.getElementById('wpMore');
+            const m = mo && mo.getBoundingClientRect();
+            return { dh: Math.max(...hs) - Math.min(...hs), inside: !m || (m.left >= on.left - 1 && m.right <= on.right + 1 && m.top >= on.top - 1 && m.bottom <= on.bottom + 1) }; }""")
+        ok(f"【{T}】自選頁籤列每顆高度差 ≤ 2px、「⋯」在選中頁籤範圍內（{wt}）", wt and wt["dh"] <= 2 and wt["inside"], wt)
+        ov = J("""() => { const h = document.querySelector('#v-watch h2, #v-watch h3'); const row = h && h.parentElement; if (!row) return []; const kids = [...row.querySelectorAll('*')].filter(e => e.children.length === 0 && e.textContent.trim() && e.getClientRects().length);
+            const R = kids.map(e => [e, e.getBoundingClientRect()]); const bad = [];
+            for (let i = 0; i < R.length; i++) for (let j = i + 1; j < R.length; j++) { const a = R[i][1], b = R[j][1];
+              if (R[i][0].contains(R[j][0]) || R[j][0].contains(R[i][0])) continue;
+              if (Math.min(a.right, b.right) - Math.max(a.left, b.left) > 2 && Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top) > 2) bad.push(R[i][0].textContent.trim().slice(0, 8) + '×' + R[j][0].textContent.trim().slice(0, 8)); }
+            return bad; }""")
+        ok(f"【{T}】自選頁標題列的說明文字不跟其他元素重疊", not ov, ov)
+        m.set_viewport_size({"width": 390, "height": 844})
+        # ㉒ 訂閱方案頁（?demo=plans 示範三層方案）：比較表不橫捲、每個方案欄都在畫面內、表頭黏住、方案卡沒有功能條列、格子是短寫
+        m.set_viewport_size({"width": 402, "height": 874})
+        m.goto(base + ("&" if "?" in base else "?") + "demo=plans#pricing", wait_until="domcontentloaded"); m.wait_for_timeout(4000)
+        pr = J("""() => { const t = document.getElementById('prTable'); if (!t) return null; const w = t.closest('.prcmpw');
+            const hs = [...t.rows[0].cells].map(c => c.getBoundingClientRect());
+            const long = [...t.querySelectorAll('tbody td:not(:first-child)')].filter(td => /^每日\\s*\\d+\\s*次$/.test(td.textContent.trim())).length;
+            return { n: hs.length, sw: w.scrollWidth - w.clientWidth, out: hs.filter(r => r.right > innerWidth + 1 || r.left < -1).length, sticky: getComputedStyle(t.querySelector('thead th')).position,
+              hl: [...document.querySelectorAll('#v-pricing .prcard .prhl')].filter(e => e.getClientRects().length).length, long, fs: Math.min(...[...t.querySelectorAll('td')].map(td => parseFloat(getComputedStyle(td).fontSize))) }; }""")
+        ok(f"【{T}】訂閱方案：比較表沒有橫向捲動、{pr and pr['n'] - 1} 個方案欄都在畫面內、表頭黏住、字 ≥ 12px（{pr}）", pr and pr["n"] >= 3 and pr["sw"] <= 1 and pr["out"] == 0 and pr["sticky"] == "sticky" and pr["fs"] >= 12, pr)
+        ok(f"【{T}】訂閱方案：方案卡沒有功能條列（不跟比較表重複）、格子用短寫（沒有「每日 N 次」長寫）", pr and pr["hl"] == 0 and pr["long"] == 0, pr)
+        m.set_viewport_size({"width": 390, "height": 844})
+        # ㉓ 現金流試算條件區：展開後 ≤ 84px、裡面沒有看得到的分段鈕群組（全部是 select／checkbox）；改任何一個下拉，圖真的跟著變
+        m.set_viewport_size({"width": 402, "height": 874})
+        go("etf/inc", 4500)
+        m.locator("#incPM .m4cond").tap(); m.wait_for_timeout(600)
+        cd = J("""() => { const c = document.querySelector('#incPM .incctl'); const vis = (e) => e.getClientRects().length > 0;
+            return { h: Math.round(c.getBoundingClientRect().height), segs: [...c.querySelectorAll('.seg, [role=tablist]')].filter(vis).length,
+              btns: [...c.querySelectorAll('button')].filter(vis).length, sels: [...c.querySelectorAll('select')].filter(vis).length, chk: [...c.querySelectorAll('input[type=checkbox]')].filter(vis).length }; }""")
+        ok(f"【{T}】現金流試算條件區展開 ≤ 84px、沒有分段鈕群組、全部是下拉／勾選框（{cd}）", cd["h"] <= 84 and cd["segs"] == 0 and cd["btns"] == 0 and cd["sels"] >= 4 and cd["chk"] >= 1, cd)
+        sig = lambda: J("() => { const e = document.getElementById('incBar'); return (e.dataset.groups || '') + '|' + (document.getElementById('incYLab') || {}).textContent + '|' + (document.getElementById('incList') || {dataset: {}}).dataset.n; }")
+        for lab in ("目標金額", "範圍", "年領或月領"):   # 前面⑤改過的條件會記在 localStorage，所以一律選「目前以外的另一個」
+            s0 = sig()
+            m.locator(f'#incPM select.m4segsel[aria-label="{lab}"]').select_option(nxt(lab)); m.wait_for_timeout(1500)
+            s1 = sig()
+            ok(f"【{T}】條件區改「{lab}」下拉 → 圖／清單真的跟著變", s1 != s0, (s0[:80], s1[:80]))
+        J("() => { const b = document.querySelectorAll('#incSort button')[1]; if (b) b.click(); }"); m.wait_for_timeout(1500)   # 排序改含息總報酬：期間才會影響圖
+        p0 = sig()
+        m.locator("#incPM .rpk select").select_option(index=0); m.wait_for_timeout(2000)
+        ok(f"【{T}】條件區改「期間」下拉 → 圖／清單真的跟著變", sig() != p0, p0[:80])
+        m.set_viewport_size({"width": 390, "height": 844})
+        # ㉔ ETF 報酬比較：控制區 ≤ 84px、標題底到圖頂 ≤ 130px、圖例拿掉（改看已選清單色點）、表不橫捲只留三欄、點一列展開其餘欄（不跳頁）
+        m.set_viewport_size({"width": 402, "height": 874})
+        go("etf/ret", 5000)
+        rt = J("""() => { const c = document.getElementById('etfRetCard'); if (!c) return null; const h3 = c.querySelector('h3').getBoundingClientRect(), ch = document.getElementById('etfRetLine').getBoundingClientRect();
+            const w = document.querySelector('#etfRetBody .rettw'), t = document.getElementById('etfRetTbl'); const e = window.echarts && echarts.getInstanceByDom(document.getElementById('etfRetLine'));
+            return { ctl: Math.round(document.getElementById('etfRetCtl').getBoundingClientRect().height), gap: Math.round(ch.top - h3.bottom), sw: w.scrollWidth - w.clientWidth,
+              cols: [...t.querySelectorAll('thead th')].filter(x => x.getClientRects().length).length, leg: e ? e.getOption().legend[0].show : null }; }""")
+        ok(f"【{T}】ETF 報酬比較：控制區 ≤ 84px、標題底到圖頂 ≤ 130px、圖例拿掉、表不橫捲只留 3 欄（{rt}）", rt and rt["ctl"] <= 84 and rt["gap"] <= 130 and rt["leg"] is False and rt["sw"] <= 1 and rt["cols"] == 3, rt)
+        h0 = J("() => location.hash")
+        m.locator("#etfRetTbl tbody tr[data-code]").first.tap(); m.wait_for_timeout(600)
+        ex = J("() => ({ n: document.querySelectorAll('#etfRetTbl .m4retx').length, txt: (document.querySelector('#etfRetTbl .m4retx') || {}).textContent || '', h: location.hash })")
+        ok(f"【{T}】ETF 報酬比較：點一列 → 下面展開期間／殖利率／配息年化與「看個股頁 ›」、不跳頁", ex["n"] == 1 and "殖利率" in ex["txt"] and "看個股頁" in ex["txt"] and ex["h"] == h0, ex)
+        m.set_viewport_size({"width": 390, "height": 844})
+        # ㉕ 區塊跑錯子頁普查（402 與 1440）：同一頁的子頁之間，看得到的卡片不准重複；ETF 前 5 名三張卡只准出現在 ETF 總覽
+        SUBP = {"flow": ["flow/rotation", "flow/sankey", "flow/inst"], "heatmap": ["heatmap/industry", "heatmap/theme"], "etf": ["etf/cal", "etf/list", "etf/inc"]}
+        CARDS = "() => [...document.querySelectorAll('.view.on .card[id], .view.on section[id]')].filter(e => e.getClientRects().length && e.getBoundingClientRect().height > 20).map(e => e.id)"
+        def subcensus(pg_):
+            bad = []
+            for k, subs in SUBP.items():
+                seen = {}
+                for h in subs:
+                    pg_.goto(base + "#" + h, wait_until="domcontentloaded"); pg_.wait_for_timeout(2500)
+                    for cid in pg_.evaluate(CARDS): seen.setdefault(cid, []).append(h)
+                bad += [f"{cid} 同時出現在 {'、'.join(hs)}" for cid, hs in seen.items() if len(hs) > 1]
+                bad += [f"{cid} 出現在 {h}" for cid, hs in seen.items() for h in hs if cid in ("etfPopCard", "etfRetTopCard", "etfYldCard") and h != "etf/list"]
+            return bad
+        m.set_viewport_size({"width": 402, "height": 874})
+        b402 = subcensus(m)
+        ok(f"【{T}】402 寬：每個子頁只顯示自己的區塊（資金流向 3 頁、熱力圖 2 頁、ETF 3 頁）", not b402, b402)
+        dctx = b.new_context(viewport={"width": 1440, "height": 900})
+        try:
+            dpg = dctx.new_page(); dpg.route("**/fonts.googleapis.com/**", lambda r: r.abort())
+            b1440 = subcensus(dpg)
+            ok(f"【{T}】1440 寬：每個子頁只顯示自己的區塊", not b1440, b1440)
+        finally:
+            dctx.close()
+        m.set_viewport_size({"width": 390, "height": 844})
+        # ㉖ 收合普查（Andy 準則 5：收合預設收起）：402 寬 18 頁，看得到的收合鈕（aria-expanded／details）一開始都是收起的。
+        #    例外（Andy 指定預設展開）：產業鏈剖析圖、關聯圖 —— 它們不用 aria-expanded 收合列，不在這份清單裡
+        m.set_viewport_size({"width": 402, "height": 874})
+        FOLD = """() => [...document.querySelectorAll('.view.on [aria-expanded], .view.on details')].filter(e => e.getClientRects().length && !e.closest('.ddpanel') && !e.matches('.ddbtn,[aria-haspopup]'))
+            .map(e => [e.tagName === 'DETAILS' ? (e.open ? 'true' : 'false') : e.getAttribute('aria-expanded'), (e.id || e.className || e.tagName) + '：' + e.textContent.trim().replace(/\\s+/g, ' ').slice(0, 14)])"""
+        J("() => { try { localStorage.clear(); } catch (e) {} }")   # 前面的步驟會把收合狀態記住；普查的是「第一次打開」的預設
+        opened, total = [], 0
+        for h in ("overview", "flow/rotation", "flow/sankey", "flow/inst", "heatmap/industry", "heatmap/theme", "industry", "industry/semiconductor", "industry/electronics", "market", "explore", "etf/list", "etf/inc", "etf/cal", "season", "watch", "stock/2330", "earnings"):
+            go(h, 300); m.reload(wait_until="domcontentloaded"); m.wait_for_timeout(2500)   # 只換 hash 不會重新載入頁面（前面步驟打開的收合還開著）→ 每頁真的重新載入
+            r = J(FOLD); total += len(r); opened += [f"{h} {x[1]}" for x in r if x[0] == "true"]
+        ok(f"【{T}】收合普查：18 頁 {total} 個收合鈕，預設全部收起", total > 0 and not opened, opened)
+        m.set_viewport_size({"width": 390, "height": 844})
+        # ㉗ 總覽分三組（大盤／資金流向／熱度）；熱力圖 ≥ 40% 的方塊有字；資金輪盤：點角落只看一段 → 點盤上空白處恢復全部
+        m.set_viewport_size({"width": 390, "height": 844})
+        go("overview", 3500)
+        grp = J("() => [...document.querySelectorAll('#v-overview > .mpager > button, #v-overview .mpager button')].filter(b => b.getClientRects().length).map(b => b.textContent.trim())")
+        ok(f"【{T}】總覽分段只有三組：大盤／資金流向／熱度（{grp}）", [g[:4] for g in grp] == ["大盤", "資金流向", "熱度"], grp)
+        J("() => { try { localStorage.clear(); } catch (e) {} }")
+        go("heatmap/industry", 300); m.reload(wait_until="domcontentloaded"); m.wait_for_timeout(5000)
+        hl = J("() => { const e = [...document.querySelectorAll('.chart')].find(x => x._hmLab); if (!e) return null; const v = Object.values(e._hmLab); return { n: v.length, lab: v.filter(x => x.text).length }; }")
+        ok(f"【{T}】熱力圖 390 寬：≥ 40% 的方塊有字（{hl}）", hl and hl["n"] > 0 and hl["lab"] / hl["n"] >= 0.4, hl)
+        go("flow/rotation", 4000)
+        if J("() => !!document.querySelector('#mRadarFlow .mqb[data-quad=lagging]')"):
+            m.locator("#mRadarFlow .mqb[data-quad=lagging]").tap(); m.wait_for_timeout(700)
+            q1 = J("() => document.getElementById('mRadarFlow').dataset.quad")
+            bx = J("() => { const r = document.querySelector('#mRadarFlow svg').getBoundingClientRect(); return { x: r.left + r.width * 0.7, y: r.top + r.height * 0.32 }; }")   # 只看「落後」時右上（領先區）盤面沒有點
+            m.touchscreen.tap(bx["x"], bx["y"]); m.wait_for_timeout(700)
+            q2 = J("() => document.getElementById('mRadarFlow').dataset.quad")
+            ok(f"【{T}】資金輪盤：點「落後」只看那一段（{q1}）→ 點盤上空白處恢復全部（{q2 or '全部'}）", q1 == "lagging" and q2 == "", (q1, q2))
+        else:
+            ok(f"【{T}】資金輪盤有四個角落鈕", False, "找不到 #mRadarFlow .mqb")
+        # ㉘ 剖析圖章節收合列觸控普查：7 條有剖析圖的產業鏈，各自預設那張圖的每一列「＋…」用手指點 → 真的展開（aria-expanded＝true）
+        dead = []; nrow = 0
+        for ch in ("semiconductor", "ai_server", "electronics", "software", "financial", "traditional", "infrastructure"):
+            go("industry/" + ch, 3500)
+            fids = J("() => [...document.querySelectorAll('.mdgfolds button[data-fold]')].filter(b => b.getClientRects().length).map(b => b.dataset.fold)")
+            for fid in fids[:6]:
+                nrow += 1
+                loc = m.locator(f'.mdgfolds button[data-fold="{fid}"]').first
+                try:
+                    loc.scroll_into_view_if_needed(timeout=3000); loc.tap(timeout=3000); m.wait_for_timeout(350)
+                except Exception as e:
+                    dead.append(f"{ch}/{fid}：點不到（{str(e)[:40]}）"); continue
+                ae = J(f"""() => {{ const b = [...document.querySelectorAll('.mdgfolds button[data-fold="{fid}"]')].find(x => x.isConnected && x.getClientRects().length); return b ? b.getAttribute('aria-expanded') : null; }}""")
+                if ae != "true": dead.append(f"{ch}/{fid}：點了沒展開（{ae}）")
+        ok(f"【{T}】剖析圖章節收合列：7 條鏈 {nrow} 列，手指點了都會展開", nrow > 0 and not dead, dead)
         # ⑨ 卡片標題的「?」不准自己佔一行：「?」與標題文字的垂直中心差 ≤ 8px（看得到的文字節點才算）
         badq = []
         for h in ("overview", "flow/rotation", "flow/sankey", "flow/inst", "heatmap/industry", "market", "etf/list", "etf/inc", "season"):
@@ -27211,14 +27515,15 @@ def t_mobile_m4(b, base, code):
           .map(b => b.textContent.trim());
         return { n: bs.length, bad }; }""")
     ok(f"【{T}】抽屜每一項都有圖示（{m_ic['n']} 項）", m_ic["bad"] == [], m_ic)
-    ok(f"【{T}】抽屜圖示數＝電腦版側欄有圖示的項目數 {dk_ic['n']} ＋ 搜尋 1", m_ic["n"] == dk_ic["n"] + 1, (m_ic, dk_ic))
+    ok(f"【{T}】抽屜圖示數＝電腦版側欄有圖示的項目數 {dk_ic['n']}（搜尋不在抽屜）", m_ic["n"] == dk_ic["n"], (m_ic, dk_ic))
     got = m.evaluate("""() => { const D = document.getElementById('m4Drawer');
         const top = [...D.querySelectorAll('.m4top button')].map(e => e.querySelector('span').textContent.trim());
         const seq = [...D.querySelectorAll('.m4grp:not(.m4top) .m4gt, .m4grp:not(.m4top) button[data-h]')]
           .map(e => (e.querySelector('span') || e).textContent.trim());
         const theme = [...D.querySelectorAll('button')].filter(e => /主題/.test(e.textContent)).length;
         return { top, seq, theme, tools: !!D.querySelector('.m4tools') }; }""")
-    ok(f"【{T}】抽屜最上面＝搜尋、事件（同桌機側欄頂端）", got["top"] == ["搜尋", "事件"], got["top"])
+    # 2026-10-08 晚改（Andy：「搜尋功能放在上方欄位」）：搜尋移到頂欄，抽屜最上面只剩「事件」
+    ok(f"【{T}】抽屜最上面＝事件（搜尋已移到頂欄）", got["top"] == ["事件"], got["top"])
     ok(f"【{T}】抽屜項目順序＝桌機側欄主項目順序（不含子項，{len(want_seq)} 項）", got["seq"] == want_seq, (got["seq"], want_seq))
     ok(f"【{T}】抽屜沒有「工具」分組、沒有明暗切換", not got["tools"] and got["theme"] == 0, got)
     m.locator("#m4Back").tap(position={"x": 370, "y": 400}); m.wait_for_timeout(300)
@@ -27236,9 +27541,16 @@ def t_mobile_m4(b, base, code):
                  more: vis(document.getElementById('moreBtn')), nth: [...document.querySelectorAll('#themeBtn, #mmTheme, [data-act=theme], #l4Mode')].filter(vis).length, head: (document.getElementById('m4Title') || {}).textContent || '' }; }""")
     ok(f"【{T}】頂欄只有頭像、沒有頁名文字", tb["logo"] and tb["txt"] == [], tb["txt"])
     # 2026-10-08 改：明暗與版面風格合成一顆「外觀」（Andy：「統一一個功能按鍵在上方」）→ 依序：外觀、平台導覽、（在線）、登入
-    want_tools = ["t4Btn", "twPageTourBtn"]
-    ok(f"【{T}】頂欄右邊依序有外觀、平台導覽、（在線）、登入（{'／'.join(tb['tools'])}）",
-       tb["tools"][:2] == want_tools and tb["tools"][-1] in ("acctBtn", "m4Login") and all(x in ("acctOnline",) for x in tb["tools"][2:-1]), tb["tools"])
+    want_tools = ["m4Search", "t4Btn", "twPageTourBtn"]
+    ok(f"【{T}】頂欄右邊依序有搜尋、外觀、平台導覽、（在線）、登入（{'／'.join(tb['tools'])}）",
+       tb["tools"][:3] == want_tools and tb["tools"][-1] in ("acctBtn", "m4Login") and all(x in ("acctOnline",) for x in tb["tools"][3:-1]), tb["tools"])
+    m.locator("#m4Search").tap(); m.wait_for_timeout(500)
+    m.keyboard.type("2330"); m.wait_for_timeout(900)
+    sr = m.evaluate("() => ({ focus: document.activeElement && document.activeElement.id, n: document.querySelectorAll('#sugg [role=option], #sugg .sg, #sugg > *').length })")
+    ok(f"【{T}】頂欄搜尋鈕：點了出現輸入框且自動 focus、打 2330 有結果（{sr}）", sr["focus"] == "q" and sr["n"] > 0, sr)
+    m.locator("#sugg > *").first.click(); m.wait_for_timeout(1500)
+    ok(f"【{T}】點搜尋結果 → #stock/2330", m.evaluate("() => location.hash").startswith("#stock/2330"), m.evaluate("() => location.hash"))
+    m.goto(base + "#overview", wait_until="domcontentloaded"); m.wait_for_timeout(2000)
     ok(f"【{T}】頂欄小圖示觸控高度 ≥ 40", tb["small"] == [], tb["small"])
     ok(f"【{T}】頂欄不溢出、元素不互相重疊", tb["bw"] <= tb["bcw"] + 1 and tb["sw"] <= 390 and tb["ovl"] == [], tb)
     ok(f"【{T}】「⋯」選單拿掉、頂欄沒有今日事件", not tb["more"] and tb["ev"] == 0, tb)
@@ -28195,6 +28507,8 @@ SECTIONS = {
     "套用建議方案正式站1007": lambda pg, b, base, code: t_preset_live_1007(b, base, code),
     # ★ 2026-10-08 訪客點擊次數上限（site/clickq.js）：資金分流樹下鑽／族群×法人篩選／題材剖析／產業鏈／市場明細族群數，含管理權限頁
     "訪客權限1008":        lambda pg, b, base, code: t_guest_perm_1008(b, base, code),
+    # ★ 2026-10-08 晚 Andy 313：「熱門題材、資金熱力圖，點擊會到該個股的功能需要權限設定，只有 Plus 以上才可以」（訪客／免費／Plus／Pro 走每條熱力圖跳頁路徑；桌機＋手機觸控）
+    "熱力圖跳個股1008":    lambda pg, b, base, code: t_heat_plus_1008(b, base),
     # ★ 2026-09-28 Andy：「所有標題加上小圖示，顏色要搭配」—— 覆蓋、對比 ≥3:1（深淺）、1440／800／390 不擠（A/B）、動效（⚠ 一律 --workers 1）
     "標題圖示":            lambda pg, b, base, code: t_title_icons(pg, b, base, code),
     # ★ 2026-09-30 Andy：部分股票 1 小時／4 小時找不到資料 —— 60 分 K 擴到全市場、每檔獨立 m60 檔、沒有時寫一句話
@@ -51831,8 +52145,10 @@ def t_account_cloud(b, base):
 SUB_API = "https://sub.example.test"
 
 
-def _sub_ctx(b, who, width=1440, feats=None, notices=None, lims=None, dq=None, owner=False):
-    """who: None＝訪客、'member'、'admin'。回傳 (context, 送出的請求清單, 狀態)"""
+def _sub_ctx(b, who, width=1440, feats=None, notices=None, lims=None, dq=None, owner=False, plan=None, perm_fail=False, touch=False):
+    """who: None＝訪客、'member'、'admin'。回傳 (context, 送出的請求清單, 狀態)
+    plan：/v1/perm/me 回的範本代號（預設 guest／free；熱力圖跳個股1008 用 plus／pro 驗「範本沒寫＝依身分給預設」）；
+    perm_fail：/v1/perm/me 回 503（模擬連不到會員伺服器）；touch：手機觸控（has_touch＋is_mobile）"""
     sent: list = []
     st = {"notices": notices if notices is not None else [], "read": set(), "fb": [], "req": []}
     plans = [{"id": "guest", "name": "訪客（未登入）", "builtin": True, "feats": {}, "price": None, "price_year": None, "period": None},
@@ -51856,8 +52172,10 @@ def _sub_ctx(b, who, width=1440, feats=None, notices=None, lims=None, dq=None, o
         out, code = {}, 200
         if path == "/v1/me":
             out, code = ({"user": me}, 200) if me else ({}, 401)
+        elif path == "/v1/perm/me" and perm_fail:
+            out, code = {"error": "unavailable"}, 503
         elif path == "/v1/perm/me":
-            out = {"who": "member" if me else "guest", "plan": "free" if me else "guest", "planName": "免費會員（預設）" if me else "訪客", "feats": feats if feats is not None else {}, "lims": lims or {}, "dq": dq}
+            out = {"who": "member" if me else "guest", "plan": plan or ("free" if me else "guest"), "planName": "免費會員（預設）" if me else "訪客", "feats": feats if feats is not None else {}, "lims": lims or {}, "dq": dq}
         elif path == "/v1/plans/public":
             out = {"plans": plans}
         elif path == "/v1/subscribe/request":
@@ -51896,7 +52214,7 @@ def _sub_ctx(b, who, width=1440, feats=None, notices=None, lims=None, dq=None, o
             out = {"rows": [], "users": []}
         route.fulfill(status=code, body=json.dumps(out), headers={"access-control-allow-origin": "*", "content-type": "application/json"})
 
-    c = b.new_context(viewport={"width": width, "height": 900})
+    c = b.new_context(viewport={"width": width, "height": 900}, **({"has_touch": True, "is_mobile": True, "device_scale_factor": 2} if touch else {}))
     c.add_init_script("window.TW_ACCOUNT_OVERRIDE = " + json.dumps({"api": SUB_API}) + ";"
                       + ("try { localStorage.setItem('tw.acct.tok', 'tok-test'); } catch (e) {}" if who else ""))
     c.route("**/fonts.googleapis.com/**", lambda r: r.abort())
@@ -60566,6 +60884,219 @@ def t_layout_fit_1007(pg, base):
     finally:
         if vp0:
             pg.set_viewport_size(vp0)
+
+
+# ===================================================================== 熱力圖跳個股1008（site/quota.js heatGo／heatLinkOk；app.js hmGo）
+# Andy 10-08 晚（截圖 313，總覽「熱門題材」選了蘋果供應鏈、滑鼠停在聯發科）：
+#   「熱門題材、資金熱力圖，點擊會到該個股的功能需要權限設定，只有 Plus 以上才可以」。
+# 驗法：四種身分（訪客、免費會員、Plus、Pro）的範本 feats 一律給**空的** —— 驗「範本沒寫時依身分給預設」，不靠套用建議方案。
+# 每條「熱力圖方塊 → 別的分頁」路徑都真的用滑鼠點一個方塊（先把滑鼠移到方塊上、讀 ECharts 的 mouseover 拿到那一塊的資料，確定點的是個股／族群葉子）：
+#   ① 總覽 熱門題材（選了題材後的個股層）　② 同一張的放大視窗　③ 總覽 資金熱力圖的放大視窗（族群 → 族群頁）
+#   ④ 熱力圖產業頁（族群 → 族群頁）　⑤ 熱力圖題材頁（題材 → 同頁剖析圖，不算跳頁，四種身分都要照開）
+#   ⑥ 手機 390 觸控（真的 tap）總覽 熱門題材個股方塊
+# 另外：連不到會員伺服器的訪客（/v1/perm/me 503）也要擋；管理員（免費範本）放行。
+# 訪客／免費：hash 不變＋升級卡（cq＝heat.link、去個股的標題是「點熱力圖看個股是 Plus 以上功能」、有「升級 Plus」）＋提示框照常＋游標不是手指；
+# Plus／Pro：hash 換成 #stock/<代號>（或族群頁）。
+HP_HOOK = """(sel) => { const el = document.querySelector(sel); const i = el && echarts.getInstanceByDom(el); if (!i) return false;
+  if (el._hpInst !== i) { el._hpInst = i; i.on('mouseover', (p) => { window.__hpOver = { sel, name: p.name, data: Object.assign({}, p.data || {}) }; }); }
+  window.__hpOver = null; return true; }"""
+
+
+def _hp_find(pg, sel, key, cols=7, rows=6):
+    """在 sel 這張 treemap 上掃格點：滑鼠真的移過去，第一個 mouseover 拿到 data[key] 的點就回傳 (x, y, data)。"""
+    if not pg.evaluate(HP_HOOK, sel):
+        return None
+    bx = pg.locator(sel + " canvas").first.bounding_box()
+    if not bx:
+        return None
+    for j in range(rows):
+        for i in range(cols):
+            x = bx["x"] + bx["width"] * (i + 0.5) / cols
+            y = bx["y"] + bx["height"] * (j + 0.5) / rows
+            pg.evaluate("() => { window.__hpOver = null; }")
+            pg.mouse.move(x, y); pg.wait_for_timeout(60)
+            o = pg.evaluate("() => window.__hpOver")
+            if o and o.get("sel") == sel and (o.get("data") or {}).get(key):
+                return x, y, o["data"]
+    return None
+
+
+def _hp_probe(pg, x, y):
+    """滑鼠停在 (x, y)：回 (游標, 提示框有沒有字)"""
+    cur = "none"
+    for k in range(3):    # zrender 在 mousemove 時才把游標寫上去；剛畫完（動畫中）那一下可能還沒判到方塊 → 多移幾次
+        pg.mouse.move(x + 1 + k, y + 1); pg.wait_for_timeout(300)
+        cur = pg.evaluate("([x, y]) => { const e = document.elementFromPoint(x, y); return e ? getComputedStyle(e).cursor : 'none'; }", [x + 1 + k, y + 1])
+        if cur != "auto":
+            break
+    tip = pg.evaluate("() => [...document.querySelectorAll('div')].some(d => /z-index: ?9999/.test(d.getAttribute('style') || '') && d.style.display !== 'none' && getComputedStyle(d).opacity !== '0' && d.innerText.trim().length > 0)")
+    return cur, tip
+
+
+def _hp_judge(pg, T, tag, path, before, allow, want, stock, cur=None, tip=None):
+    h = pg.evaluate("() => decodeURIComponent(location.hash)")
+    m = wait_until(pg, "() => { const m = document.getElementById('qcModal'); return !!m && !m.hidden && m.dataset.cq === 'heat.link' ? m.innerText : null; }", 300 if allow else 1500)
+    if allow:
+        ok(f"{T}【{tag}】{path} → 跳到 {want}（{h}）", h.startswith(want) and not m, (h, m))
+    else:
+        need = "點熱力圖看個股是 Plus 以上功能" if stock else "付費會員功能"
+        extra = "" if cur is None else "、提示框照常、游標不是手指"
+        ok(f"{T}【{tag}】{path} → 網址不變（{before}）、跳升級卡（{need}＋升級 Plus）{extra}",
+           h == before and bool(m) and need in m and "升級 Plus" in m and (cur is None or (cur != "pointer" and tip)), (h, m, cur, tip))
+        pg.evaluate(GP_CLOSE)
+    return h
+
+
+def _hp_ov_pick(pg, dd="#ovThemeDD"):
+    """總覽 熱門題材：下拉選第一個題材（成分股層）"""
+    pg.click(dd + " .ddbtn"); pg.wait_for_timeout(200)
+    pg.locator(dd + " .ddopt[data-t]:not([data-t=''])").first.click(); pg.wait_for_timeout(700)
+
+
+def _hp_desktop(b, base, T, tag, who, plan, allow, errs, **kw):
+    c, sent, st = _sub_ctx(b, who, plan=plan, feats={}, lims={}, **kw)
+    pg = c.new_page(); pg.on("pageerror", lambda e: errs.append(str(e)))
+    pg.goto(base + "#overview", wait_until="domcontentloaded")
+    src = "default" if kw.get("perm_fail") else "server"
+    wait_until(pg, f"() => window.TwPerm && TwPerm.state().src === '{src}' && !!window.TwQuota", 12000)
+    if who == "admin":
+        wait_until(pg, "() => !!(window.TwAccount && TwAccount.user() && TwAccount.user().admin)", 8000)
+    ok(f"{T}【{tag}】範本沒寫 heat.link → 依身分預設{'開' if allow else '關'}（TwQuota.heatLinkOk）", pg.evaluate("() => TwQuota.heatLinkOk()") == allow,
+       pg.evaluate("() => TwPerm.state()"))
+    # ① 總覽 熱門題材 個股層
+    wait_until(pg, "() => !!document.querySelector('#ovThemeDD .ddbtn') && !!document.querySelector('#ovTheme canvas')", 15000)
+    pg.locator("#ovThemeCard").scroll_into_view_if_needed(); pg.wait_for_timeout(200)
+    # 題材層（還沒選題材）點方塊＝原地換成分股，不是跳頁 → 沒權限也照常是手指
+    # （先等版面穩定：卡片上方的導讀句 .t4-lede 晚一點才插進來，會把圖往下推，量到的點就落到別的元素上）
+    wait_until(pg, "() => { const r = document.getElementById('ovTheme').getBoundingClientRect(); const y = r.top; return new Promise(ok => setTimeout(() => ok(Math.abs(document.getElementById('ovTheme').getBoundingClientRect().top - y) < 1), 400)); }", 8000)
+    f = _hp_find(pg, "#ovTheme", "id")
+    if f:
+        cur0, _t = _hp_probe(pg, f[0], f[1])
+        ok(f"{T}【{tag}】熱門題材 題材層（點了原地換成分股）游標照常是手指", cur0 == "pointer", (cur0, pg.evaluate("([x, y]) => { const e = document.elementFromPoint(x, y); return e ? e.tagName + '.' + e.className : null; }", [f[0] + 3, f[1] + 1])))
+    _hp_ov_pick(pg)
+    ok(f"{T}【{tag}】熱門題材 選題材 → 個股層", pg.evaluate("() => document.getElementById('ovTheme').dataset.level") == "members")
+    f = _hp_find(pg, "#ovTheme", "code")
+    if not f:
+        ok(f"{T}【{tag}】熱門題材 找得到個股方塊", False); c.close(); return
+    x, y, d = f
+    cur, tip = _hp_probe(pg, x, y)
+    pg.mouse.click(x, y); pg.wait_for_timeout(600)
+    _hp_judge(pg, T, tag, f"總覽 熱門題材 點個股方塊（{d.get('code')}）", "#overview", allow, "#stock/" + d.get("code"), True, None if allow else cur, None if allow else tip)
+    if allow:
+        pg.evaluate("() => { location.hash = '#overview'; }")
+        wait_until(pg, "() => !!document.querySelector('#ovTheme canvas') && document.getElementById('ovTheme').dataset.level === 'members'", 15000)
+    # ② 熱門題材 放大視窗（成分股層）
+    pg.click("#ovThemeZoom")
+    wait_until(pg, "() => !!document.querySelector('#zoomBody canvas') && document.getElementById('zoomBody').dataset.level === 'members'", 8000)
+    pg.wait_for_timeout(300)
+    f = _hp_find(pg, "#zoomBody", "code")
+    if f:
+        x, y, d = f
+        cur, tip = _hp_probe(pg, x, y)
+        pg.mouse.click(x, y); pg.wait_for_timeout(600)
+        _hp_judge(pg, T, tag, f"熱門題材 放大視窗 點個股方塊（{d.get('code')}）", "#overview", allow, "#stock/" + d.get("code"), True, None if allow else cur, None if allow else tip)
+        zopen = pg.evaluate("() => !document.getElementById('zoomOv').hidden")
+        ok(f"{T}【{tag}】熱門題材 放大視窗：{'跳頁時放大視窗已關' if allow else '被擋時放大視窗還開著（關掉升級卡回到原本的圖）'}", zopen != allow, zopen)
+    else:
+        ok(f"{T}【{tag}】熱門題材 放大視窗 找得到個股方塊", False)
+    if not pg.evaluate("() => document.getElementById('zoomOv').hidden"):
+        pg.click("#zoomClose"); pg.wait_for_timeout(200)
+    # ③ 資金熱力圖 放大視窗：族群方塊 → 族群頁
+    pg.evaluate("() => { location.hash = '#overview'; }")
+    wait_until(pg, "() => !!document.querySelector('#heat canvas') && !!document.getElementById('heatZoom')", 15000)
+    pg.locator("#heatZoom").scroll_into_view_if_needed(); pg.click("#heatZoom")
+    wait_until(pg, "() => !!document.querySelector('#zoomBody canvas')", 8000); pg.wait_for_timeout(400)
+    f = _hp_find(pg, "#zoomBody", "gid", cols=9, rows=7)
+    if f:
+        x, y, d = f
+        cur, tip = _hp_probe(pg, x, y)
+        pg.mouse.click(x, y); pg.wait_for_timeout(600)
+        _hp_judge(pg, T, tag, f"資金熱力圖 放大視窗 點族群方塊（{d.get('gid')}）", "#overview", allow, "#industry/group/" + d.get("gid"), False, None if allow else cur, None if allow else tip)
+    else:
+        ok(f"{T}【{tag}】資金熱力圖 放大視窗 找得到族群方塊", False)
+    if not pg.evaluate("() => document.getElementById('zoomOv').hidden"):
+        pg.click("#zoomClose"); pg.wait_for_timeout(200)
+    # ④ 熱力圖產業頁：族群方塊 → 族群頁
+    pg.evaluate("() => { location.hash = '#heatmap/industry'; }")
+    wait_until(pg, "() => !!document.querySelector('#indTree canvas')", 15000); pg.wait_for_timeout(800)
+    f = _hp_find(pg, "#indTree", "gid", cols=9, rows=7)
+    if f:
+        x, y, d = f
+        cur, tip = _hp_probe(pg, x, y)
+        pg.mouse.click(x, y); pg.wait_for_timeout(600)
+        _hp_judge(pg, T, tag, f"熱力圖產業頁 點族群方塊（{d.get('gid')}）", "#heatmap/industry", allow, "#industry/group/" + d.get("gid"), False, None if allow else cur, None if allow else tip)
+    else:
+        ok(f"{T}【{tag}】熱力圖產業頁 找得到族群方塊", False)
+    # ⑤ 熱力圖題材頁：點題材＝同一頁開剖析圖（不是跳頁），每種身分都照開、游標照常是手指
+    pg.evaluate("() => { location.hash = '#heatmap/theme'; }")
+    wait_until(pg, "() => !!document.querySelector('#themeMap canvas')", 15000); pg.wait_for_timeout(800)
+    f = _hp_find(pg, "#themeMap", "id")
+    if f:
+        x, y, d = f
+        cur, tip = _hp_probe(pg, x, y)
+        pg.mouse.click(x, y); pg.wait_for_timeout(700)
+        h = pg.evaluate("() => decodeURIComponent(location.hash)")
+        m = pg.evaluate(GP_MODAL)
+        ok(f"{T}【{tag}】熱力圖題材頁 點題材方塊 → 同頁開剖析圖（{h}），不跳升級卡、游標是手指", h == "#heatmap/theme/" + d.get("id") and not m and cur == "pointer", (h, m, cur))
+    else:
+        ok(f"{T}【{tag}】熱力圖題材頁 找得到題材方塊", False)
+    c.close()
+
+
+def _hp_mobile(b, base, T, tag, who, plan, allow, errs):
+    c, sent, st = _sub_ctx(b, who, width=390, plan=plan, feats={}, lims={}, touch=True)
+    pg = c.new_page(); pg.on("pageerror", lambda e: errs.append(str(e)))
+    pg.goto(base + "#overview", wait_until="domcontentloaded")
+    wait_until(pg, "() => window.TwPerm && TwPerm.state().src === 'server' && !!window.TwQuota", 12000)
+    # 手機總覽是分段導覽（大盤／資金流向／熱度）：熱門題材在「熱度」那一段，真的點那顆
+    wait_until(pg, "() => [...document.querySelectorAll('.mpager button')].some(b => b.textContent.trim() === '熱度')", 15000)
+    pg.locator(".mpager button", has_text="熱度").first.tap()
+    wait_until(pg, "() => { const c = document.getElementById('ovThemeCard'); return !!c && c.getClientRects().length > 0 && !!document.querySelector('#ovTheme canvas'); }", 10000)
+    pg.locator("#ovThemeCard").scroll_into_view_if_needed(); pg.wait_for_timeout(300)
+    pg.locator("#ovThemeDD .ddbtn").tap(); pg.wait_for_timeout(250)
+    pg.locator("#ovThemeDD .ddopt[data-t]:not([data-t=''])").first.tap(); pg.wait_for_timeout(800)
+    pg.locator("#ovTheme").scroll_into_view_if_needed(); pg.wait_for_timeout(300)
+    f = _hp_find(pg, "#ovTheme", "code", cols=4, rows=5)
+    if not f:
+        ok(f"{T}【手機·{tag}】熱門題材 找得到個股方塊", False); c.close(); return
+    x, y, d = f
+    pg.touchscreen.tap(x, y); pg.wait_for_timeout(900)
+    _hp_judge(pg, T, "手機·" + tag, f"390 觸控 總覽 熱門題材 點個股方塊（{d.get('code')}）", "#overview", allow, "#stock/" + d.get("code"), True)
+    sw = pg.evaluate("() => document.documentElement.scrollWidth")
+    ok(f"{T}【手機·{tag}】沒有橫向捲軸（{sw}px）", sw <= 391, sw)
+    c.close()
+
+
+def t_heat_plus_1008(b, base):
+    T = "熱力圖跳個股1008"
+    errs: list[str] = []
+    tiers = [("訪客", None, None, False), ("免費會員", "member", "free", False), ("Plus", "member", "plus", True), ("Pro", "member", "pro", True)]
+    for tag, who, plan, allow in tiers:
+        _hp_desktop(b, base, T, tag, who, plan, allow, errs)
+    for tag, who, plan, allow in tiers:
+        _hp_mobile(b, base, T, tag, who, plan, allow, errs)
+    _hp_desktop(b, base, T, "訪客·連不到會員伺服器", None, None, False, errs, perm_fail=True)
+    _hp_desktop(b, base, T, "管理員（免費範本）", "admin", "free", True, errs)
+    # 截圖（1440；TW_HP_SHOTS＝資料夾）：免費會員點熱門題材個股方塊被擋、Plus 點了進個股頁
+    sh = os.environ.get("TW_HP_SHOTS")
+    if sh:
+        pathlib.Path(sh).mkdir(parents=True, exist_ok=True)
+        for who, plan, allow, n in [("member", "free", False, "free_blocked_1440.png"), ("member", "plus", True, "plus_stock_page_1440.png")]:
+            c, _s, _st = _sub_ctx(b, who, plan=plan, feats={}, lims={})
+            pg = c.new_page()
+            pg.goto(base + "#overview", wait_until="domcontentloaded")
+            wait_until(pg, "() => window.TwPerm && TwPerm.state().src === 'server' && !!document.querySelector('#ovTheme canvas')", 15000)
+            pg.locator("#ovThemeCard").scroll_into_view_if_needed(); _hp_ov_pick(pg)
+            pg.evaluate("() => document.getElementById('ovThemeCard').scrollIntoView({ block: 'center' })"); pg.wait_for_timeout(300)
+            f = _hp_find(pg, "#ovTheme", "code")
+            if f:
+                x, y, d = f
+                _hp_probe(pg, x, y)
+                pg.mouse.click(x, y)
+                pg.wait_for_timeout(3000 if allow else 700)
+                pg.screenshot(path=str(pathlib.Path(sh) / n))
+            c.close()
+    ok(f"{T}：整段沒有 JS 錯誤", not errs, errs[:3])
 
 
 if __name__ == "__main__":
