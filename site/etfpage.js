@@ -1837,7 +1837,7 @@
       tooltip: { ...a.tip, confine: true, trigger: 'item', formatter: (p) => tipOf(p.dataIndex) },
       xAxis: { type: 'category', data: Array.from({ length: 12 }, (_, i) => `${i + 1}月`), ...a.axisStyle, axisLabel: { ...a.axisStyle.axisLabel, fontSize: 11, interval: 0 } },
       yAxis: { type: 'value', show: false },
-      series: [{ type: 'bar', barMaxWidth: 22, emphasis: { focus: 'self', blurScope: 'series', itemStyle: { borderColor: CH.ink, borderWidth: 2 } }, blur: { itemStyle: { opacity: document.documentElement.getAttribute('data-theme') === 'light' ? 0.32 : 0.55 } },   // 10-08：滑過那根加亮、其他變淡（跟行事曆小圖同一套）
+      series: [{ type: 'bar', id: 'tw-thick-bar', barWidth: '50%',   /* 10-08 Andy：直條太細太空 → 每格寬的 50%（1440 約 45px，手機等比）*/  emphasis: { focus: 'self', blurScope: 'series', itemStyle: { borderColor: CH.ink, borderWidth: 2 } }, blur: { itemStyle: { opacity: document.documentElement.getAttribute('data-theme') === 'light' ? 0.32 : 0.55 } },   // 10-08：滑過那根加亮、其他變淡（跟行事曆小圖同一套）
         itemStyle: { borderRadius: [3, 3, 0, 0], color: colOf ? (p) => { const c = colOf(p.dataIndex); return { type: 'linear', x: 0, y: 0, x2: 0, y2: 1, colorStops: [{ offset: 0, color: c }, { offset: 1, color: a.hexA(c, 0.45) }] }; } : B.grad(false) },
         label: { show: true, position: 'top', fontSize: 11, color: CH.ink2, formatter: (p) => (p.value > 0 ? wan1(p.value) : '') }, data: vals.map((v) => Math.round(v)) }],
     });
@@ -1975,7 +1975,7 @@
       }
       $$('#incGrid .mcell').forEach((el) => { const on = si >= 0 && mainOf(+el.dataset.m - 1) === si; el.classList.toggle('dim', si >= 0 && !on); el.classList.toggle('lit', on); });
       if (mb && !mb.isDisposed()) {
-        try { mb.setOption({ series: [{ data: c.mon.map((v, m) => { const on = si >= 0 && mainOf(m) === si;
+        try { mb.setOption({ series: [{ id: 'tw-thick-bar', data: c.mon.map((v, m) => { const on = si >= 0 && mainOf(m) === si;
           // ⚠ 顏色要一起寫：資料項一旦帶 itemStyle，系列層的 color 函式就不再套用，直條會整排退回預設青色（踩過）
           const mi = mainOf(m), col = mi >= 0 ? a.donut.color(mi) : CH.ink3;
           return { value: Math.round(v), itemStyle: { color: { type: 'linear', x: 0, y: 0, x2: 0, y2: 1, colorStops: [{ offset: 0, color: col }, { offset: 1, color: a.hexA(col, 0.45) }] },

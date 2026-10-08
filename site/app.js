@@ -648,9 +648,10 @@
         const h = isHoriz(s, i);
         // 厚度 14～18px（參考圖）：非堆疊的一律上限 18（barMaxWidth 的優先權高於 barWidth，寫成百分比的也壓得住）；
         // 堆疊的多半是一整根「組成」長條（漲跌家數），照它自己寫的
-        if (s.barMaxWidth == null && (s.stack == null || s.barWidth == null)) s.barMaxWidth = 18;
+        const thick = s.id === 'tw-thick-bar';   // 10-08：明確宣告「粗直條」的系列（ETF 每月入帳，Andy 要加粗）不套細長條上限，寬度照它自己寫的 barWidth
+        if (!thick && s.barMaxWidth == null && (s.stack == null || s.barWidth == null)) s.barMaxWidth = 18;
         /* ★ 長條共用風格（BAR，DECISIONS #338）：粗細 ≤ 10／12；非漲跌的色換成管理區青藍漸層（逐色判斷：紅／綠／灰不動）；單一系列、橫條且全為非負值補底軌 */
-        if (s.stack == null) s.barMaxWidth = Math.min(s.barMaxWidth == null ? 99 : s.barMaxWidth, h ? BAR.H : BAR.V_MAX);
+        if (!thick && s.stack == null) s.barMaxWidth = Math.min(s.barMaxWidth == null ? 99 : s.barMaxWidth, h ? BAR.H : BAR.V_MAX);
         {
           const nBar = series.filter((q, qi) => isBar(q, qi)).length;
           let mine = false;

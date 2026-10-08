@@ -291,3 +291,5 @@ ETF 的配息頻率一律用這一套顏色（徽章、卡片左色條、配息�
 
 紅漲綠跌語意色（`--rise`／`--fall`）、`PALETTE_DARK` 34 色鎖定區（loader 的 color_idx 依賴它）、淺色全部未動。`pricing.js` 的方案藍 `#4f8cff` 是獨立變數，未動。
 
+
+**直條加粗（Andy 10-08 追加）**：現金流試算「每月入帳」直條由 barMaxWidth 22（實際被 app.js 全站細條上限壓成 12px）改為 `barWidth: 50%`（每格寬的一半，1440 約 45px，手機等比）；圓角 3px、上實下 45% 漸層、選中變淡連動不變。app.js 細條上限對 `id: tw-thick-bar` 的系列放行（其餘長條仍 <= 12px）。連動重畫的 partial series 也要帶同一個 id，否則 setOption 合併時會被壓回 12px。
