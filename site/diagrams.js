@@ -2093,8 +2093,13 @@
     let L = foldList(host);
     if (!L) {
       L = document.createElement('div'); L.className = 'mdgfolds'; L.setAttribute('role', 'group'); L.setAttribute('aria-label', '圖的章節');
-      const after = host.nextElementSibling && host.nextElementSibling.classList.contains('swipetip') ? host.nextElementSibling : host;
-      after.after(L);
+    }
+    /* 2026-10-08（Andy：「紅框處文字說明與圖片上下交換位置」）：展開列一律放在圖的下面 —— 3D 時圖在 .dg3dbox（排在 #prodDiagram 後面），
+       所以要接在 3D 那一塊的後面，不然 3D 時展開列跑到圖上方。每次重排都檢查一次位置。 */
+    {
+      const box3 = host.parentElement && host.parentElement.querySelector(':scope > .dg3dbox');
+      const after = box3 || (host.nextElementSibling && host.nextElementSibling.classList.contains('swipetip') ? host.nextElementSibling : host);
+      if (after.nextElementSibling !== L) after.after(L);
     }
     L.innerHTML = gs.map((g) => {
       const id = g.getAttribute('data-fold');
@@ -2241,10 +2246,21 @@
       const hd = host.querySelector('.dghead');
       const heads = hd ? $$('b,span', hd).map(x => x.textContent.trim()).filter(Boolean) : [];
       const notes = $$('.dgcards .dgc.note, .dgcards .dgc.warn', host).map(x => x.innerText.replace(/\s+/g, ' ').trim()).filter(Boolean);
-      window.M3.openSheet(`<div class="mshhead"><b>${esc(heads[0] || '圖說')}</b></div><div class="mshbody">`
-        + heads.slice(1).map(t => `<i>${esc(t)}</i>`).join('')
-        + (notes.length ? '<div class="mgrp">公式與注意</div>' + notes.map(t => `<i>${esc(t)}</i>`).join('') : '')
-        + '<div class="mgrp">原創示意圖，非實物比例。圖上每個編號＝一個零件或環節。</div></div>', { kind: 'dginfo' });
+      /* 2026-10-08（Andy：「圖說需要分段簡潔，不要一長串文字」）：分段（小標題）＋條列；長句在句號／分號拆短；
+         每段最多 3 條、整份最多 5 條先看得到，其餘收進「看完整說明 ›」（不刪字，只收合）。 */
+      const split = (t) => String(t).split(/(?<=[。；;])\s*|\s*·\s*/).map(x => x.trim()).filter(Boolean);
+      const secs = [['這張圖在講什麼', heads.slice(1).flatMap(split)], ['公式與注意', notes.flatMap(split)],
+        ['怎麼看', ['原創示意圖，非實物比例。', '圖上每個編號＝一個零件或環節，點編號看說明。']]].filter(x => x[1].length);
+      let shown = 0;
+      const more = [];
+      const body = secs.map(([h, L]) => {
+        const vis = [], rest = [];
+        L.forEach((x) => { if (vis.length < 3 && shown < 5) { vis.push(x); shown++; } else rest.push(x); });
+        if (rest.length) more.push([h, rest]);
+        return vis.length ? `<div class="mgrp">${esc(h)}</div><ul class="mdgl">${vis.map(x => `<li>${esc(x)}</li>`).join('')}</ul>` : '';
+      }).join('');
+      const tail = more.length ? `<details class="mdgmore"><summary>看完整說明 ›</summary>${more.map(([h, L]) => `<div class="mgrp">${esc(h)}</div><ul class="mdgl">${L.map(x => `<li>${esc(x)}</li>`).join('')}</ul>`).join('')}</details>` : '';
+      window.M3.openSheet(`<div class="mshhead"><b>${esc(heads[0] || '圖說')}</b></div><div class="mshbody mdginfo">${body}${tail}</div>`, { kind: 'dginfo' });
     };
     paintZ();
     cur = { host, layer, items, scroller: host, sel: null };

@@ -249,39 +249,45 @@
   function hmLayoutLabels(c, valueOf) {
     if (!c || c.isDisposed()) return {};
     const sm = c.getModel().getSeriesByIndex(0); if (!sm) return {};
-    const tree = sm.getData().tree; const fs = 12;
+    /* ★ 2026-10-08（Andy：「熱力圖至少要一點文字在上面」）：手機（≤640）字級 10px、門檻放寬（寬 ≥ 36、高 ≥ 20 就寫名稱），
+       名稱太長先用短名（拿掉括號與空白後面那段：「高速交換器 800G / 1.6T」→「高速交換器」），再不行才截字（至少 2 字）。桌機規矩不動。 */
+    const mob = (window.innerWidth || 1440) <= 640;
+    const tree = sm.getData().tree; const fs = mob ? 10 : 12;
     const out = {};
     tree.root.eachNode(n => {
       if (n.children && n.children.length) return;
       const l = n.getLayout(); if (!l || !l.isInView) return;
       const raw = n.getModel().option || {};
-      const name = String(n.name || ''), val = valueOf(raw);
+      const full = String(n.name || ''), val = valueOf(raw);
+      const name = mob ? (full.replace(/[（(].*$/, '').split(/\s+/)[0] || full) : full;
       const w = l.width, h = l.height;
       const nw = hmTextW(name, fs), vw = val ? hmTextW(val, fs) : 0;
       let text = '', mode = 0;
       /* ★ 2026-09-25（審查 R4：「HBM 高頻寬記憶體」117×220、「光學鏡頭」這種中型方塊高度夠，卻只寫名字，
          漲跌要滑過才看得到）：以前「兩行」的條件是**整個名字**放得下；名字一長就退成只寫名稱。
          改成：高 ≥ 44 且數值放得下時，名稱照「只寫名稱」同一套規矩截短（至少留一半的字），再接數值那一行。*/
+      const PADW = mob ? 6 : 12;
       const trunc = () => {
-        if (nw + 12 <= w) return name;
+        if (nw + PADW <= w) return name;
         const chars = Array.from(name);
-        const kMin = Math.max(2, Math.ceil(chars.length / 2));
+        const kMin = mob ? 2 : Math.max(2, Math.ceil(chars.length / 2));
         for (let k = chars.length - 1; k >= kMin; k--) {
           const t = chars.slice(0, k).join('') + '…';
-          if (hmTextW(t, fs) + 12 <= w) return t;
+          if (hmTextW(t, fs) + PADW <= w) return t;
         }
         return '';
       };
-      if (val && w >= Math.max(nw, vw) + 16 && h >= 44) { text = name + '\n' + val; mode = 2; }
-      else if (val && w >= 48 && h >= 44 && vw + 16 <= w && trunc()) { text = trunc() + '\n' + val; mode = 2; }
-      else if (w >= 48 && h >= 24) {
-        if (nw + 12 <= w) { text = name; mode = 1; }
+      const H2 = mob ? 30 : 44, WMIN = mob ? 36 : 48, HMIN = mob ? 20 : 24;
+      if (val && w >= Math.max(nw, vw) + PADW + 4 && h >= H2) { text = name + '\n' + val; mode = 2; }
+      else if (val && w >= WMIN && h >= H2 && vw + PADW + 4 <= w && trunc()) { text = trunc() + '\n' + val; mode = 2; }
+      else if (w >= WMIN && h >= HMIN) {
+        if (nw + PADW <= w) { text = name; mode = 1; }
         else {
           const chars = Array.from(name);
-          const kMin = Math.max(2, Math.ceil(chars.length / 2));
+          const kMin = mob ? 2 : Math.max(2, Math.ceil(chars.length / 2));
           for (let k = chars.length - 1; k >= kMin; k--) {
             const t = chars.slice(0, k).join('') + '…';
-            if (hmTextW(t, fs) + 12 <= w) { text = t; mode = 1; break; }
+            if (hmTextW(t, fs) + PADW <= w) { text = t; mode = 1; break; }
           }
         }
       }
@@ -321,7 +327,8 @@
         up[name] = t;
       });
       el._hmUp = up;
-      c.setOption({ series: [{ label: { formatter: (p) => { const m = lab[hmKey(p.data)]; return m ? m.text : ''; } },
+      const mobL = (window.innerWidth || 1440) <= 640;
+      c.setOption({ series: [{ label: Object.assign({ formatter: (p) => { const m = lab[hmKey(p.data)]; return m ? m.text : ''; } }, mobL ? { fontSize: 10, lineHeight: 12 } : {}),
         upperLabel: { formatter: (p) => (p.name in up ? up[p.name] : p.name) } }] });
     };
     /* ★ 2026-09-24 效能：第二段（寫回標籤）挪到下一幀開頭（requestAnimationFrame）。
@@ -2521,8 +2528,19 @@
   function miaPager(key, prefer) {
     const view = document.querySelector('main .view.on');
     if (!view) return;
-    const groups = MIA_PAGER[key];
+    let groups = MIA_PAGER[key];
     if (!groups || !mIsM()) { miaClearPager(view); return; }
+    /* ★ 2026-10-08（Andy：「資金輪盤跟分流樹同一個點擊標籤，並且上下分」「大盤也是跟市場寬度一樣，並且放到最左邊」
+       「熱力圖也是上下分」「今日事件已經有了，需要拿掉」）：手機 v2 的總覽分段合成三組，每一組兩張圖上下排（中間細線），
+       順序：大盤（大盤＋市場寬度）→ 資金流向（輪盤＋分流樹）→ 熱度（熱力圖＋熱門題材）；今日事件從分段拿掉（側欄有「事件」）。 */
+    if (document.documentElement.classList.contains('m4') && key === 'overview') {
+      const by = (n) => (groups.find(g => g.n === n) || { sel: [] }).sel;
+      groups = [
+        { s: 1, n: '大盤', sel: [...by('大盤'), ...by('市場寬度')] },
+        { s: 1, n: '資金流向', sel: [...by('資金輪盤'), ...by('資金分流樹')] },
+        { s: 1, n: '熱度', sel: [...by('熱力圖'), ...by('熱門題材')] },
+      ];
+    }
     // 每一段實際抓得到的元素（抓不到的略過：例如簡版個股頁沒有 #aiCard）
     /* ★ 2026-10-08 手機 v2（html.m4）：
        ① 不再畫「錢往哪跑／貴不貴／別進的理由」那一排大步驟鈕（.mspine）—— 步驟拍平成一條分段列（s 一律當 0）；
@@ -5256,6 +5274,13 @@
         >${STAGE[k].name}<em>${cnt[k] || 0}</em>${nw[k] ? `<i class="nw">+${nw[k]}</i>` : ''}</button>`;
     }).join('');
     $$('.rq', host).forEach(b => b.onclick = (ev) => { ev.stopPropagation(); rotStageToggle(b.dataset.k); });
+    /* 2026-10-08（Andy：「當點擊後 再次點擊背景會恢復預設」）：開著某一段時，點輪盤空白處（ECharts 沒點到任何點）＝收起那一段、回到全部。
+       點到族群點時 ECharts 有 target，不清。 */
+    try {
+      const c = window.echarts && echarts.getInstanceByDom(el);
+      if (c && !el._rotBgClr && document.documentElement.classList.contains('m4')) { el._rotBgClr = true;   // 桌機守門：只限手機 v2（桌機行為不變）
+        c.getZr().on('click', (ev) => { if (!ev.target && rotStageOpen) rotStageToggle(rotStageOpen); }); }
+    } catch (e) { /* 圖還沒建好：下一次排版再掛 */ }
   }
 
   /* 點象限：同時只展開一段（點另一段就換過去、點自己就收起來）。
@@ -12731,7 +12756,7 @@
     /* 2026-10-08（Andy：「週期統計數字選項呢？並且數字需符合方框大小內，可以小」）：手機（≤640）也有「顯示數字」，預設關、開了記住（另一個鍵，跟桌機分開記）；
        手機格子窄：字級依格寬自動縮（最小 9px）、只印整數，還放不下的格子不印 —— 數字絕不超出格子。 */
     const SN_MOBK = 'tw.season.num.m';
-    let showNum = (window.innerWidth <= 640) ? hmLS(SN_MOBK, '0') === '1' : hmLS('tw.season.num2', '1') === '1';          // ★ 2026-10-04 Andy 改口：「這邊 default 有數字」→ 預設印數字（換新鍵，舊的「關」不沿用）
+    let showNum = (window.innerWidth <= 640) ? hmLS(SN_MOBK, '1') === '1' : hmLS('tw.season.num2', '1') === '1';   // 2026-10-08 晚 Andy：「數字 Default 開」（推翻同日手機預設關）          // ★ 2026-10-04 Andy 改口：「這邊 default 有數字」→ 預設印數字（換新鍵，舊的「關」不沿用）
     let focus = null;                                            // 圖例聚焦的那一級
     let pick = 'top', lineSel = new Set(), avgOn = true;         // 曲線圖：top／bot／none／custom
     let fellBack = false;

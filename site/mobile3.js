@@ -520,8 +520,21 @@
       let best = null, bd = 24 * k;
       pts.forEach(q => { const d = Math.hypot(q.x - mx, q.y - my) - q.r; if (d < bd) { bd = d; best = q; } });
       if (best && opts.onPick) opts.onPick(best.p);
+      // 2026-10-08（Andy：「當點擊後 再次點擊背景會恢復預設」）：只看某一段時，點盤上沒有點的地方＝清掉篩選、回到全部
+      else if (!best && opts.quad && opts.onQuad) { e.stopPropagation(); opts.onQuad(opts.quad); }
     });
-    $$('.mqb', el).forEach(b => b.addEventListener('click', () => opts.onQuad && opts.onQuad(b.dataset.quad)));
+    $$('.mqb', el).forEach(b => b.addEventListener('click', (e) => { e.stopPropagation(); if (opts.onQuad) opts.onQuad(b.dataset.quad); }));
+    // 輪盤卡片裡的空白處（盤外、四顆角落鈕以外）也一樣清掉
+    if (!el._m3bgClr) {
+      el._m3bgClr = true;
+      const card = el.closest('.m3keep, .card') || el;
+      card.addEventListener('click', (e) => {
+        const o = el._m3opts; if (!o || !o.quad || !o.onQuad) return;
+        if (e.target.closest('svg, button, a, input, select, .mfocus, .mrank li, li[data-g]')) return;
+        o.onQuad(o.quad);
+      });
+    }
+    el._m3opts = opts;
     return { shown, pts, S };
   }
   /* 焦點條：圖正下方一條（色點＋名字＋階段＋強弱／動能／佔比＋「族群 ›」）。預設選佔比第一名，不留空。*/
@@ -675,6 +688,31 @@
        長條與排名各住一個子容器 —— 長條每點一次就整個重寫，不能把排名一起洗掉。*/
     //   只放在資金流向頁那一份（總覽的「昨日資金分流樹」是摘要，不加長；id 也只能有一個）。
     const onFlow = !!box.closest('#flowSankeyCard');
+    /* ★ 2026-10-08（Andy：「分流樹需要出現樹狀圖而非長條圖」）：手機 v2 總覽那一份畫成真的樹（SVG 節點＋連線，由上往下）：
+       根（台股成交值）→ 產業鏈（前 5）→ 每條鏈的前 3 個族群；節點寫「名稱＋占比」兩行。點整張圖進完整的資金分流樹頁。 */
+    if (!onFlow && document.documentElement.classList.contains('m4')) {
+      const W = Math.max(300, box.clientWidth || 370), top = kids('台股成交值').filter(l => !isOther(l.target)).slice(0, 5);
+      const cw = W / top.length, y0 = 22, y1 = 92, y2 = 150, gh = 34;
+      let svg = `<text x="${W / 2}" y="${y0}" text-anchor="middle" class="tr0">台股成交值 ${yi(total)} 億</text>`;
+      top.forEach((l, i) => {
+        const cx = cw * i + cw / 2, pct = (l.value / total * 100).toFixed(1);
+        svg += `<path d="M${W / 2},${y0 + 8} C${W / 2},${(y0 + y1) / 2} ${cx},${(y0 + y1) / 2 - 10} ${cx},${y1 - 26}" class="tl" style="stroke-width:${Math.max(1.2, Math.min(6, l.value / total * 18)).toFixed(1)}"/>`;
+        svg += `<circle cx="${cx}" cy="${y1 - 20}" r="5" class="tn1"/><text x="${cx}" y="${y1 - 4}" text-anchor="middle" class="tr1">${esc(l.target.length > 5 ? l.target.slice(0, 5) : l.target)}</text><text x="${cx}" y="${y1 + 12}" text-anchor="middle" class="tp">${pct}%</text>`;
+        // 第二層：每條鏈底下一根豎線靠欄的左側，族群掛在線的右邊（名稱＋占比），線不穿過字
+        const lx = cx - cw / 2 + 12, gs = kids(l.target).filter(c => !isOther(c.target)).slice(0, 3);
+        if (gs.length) svg += `<path d="M${cx},${y1 + 16} C${cx},${y1 + 26} ${lx},${y1 + 22} ${lx},${y2 - 12} L${lx},${y2 + (gs.length - 1) * gh - 4}" class="tl2"/>`;
+        gs.forEach((c, j) => {
+          const gy = y2 + j * gh;
+          svg += `<circle cx="${lx}" cy="${gy - 4}" r="3" class="tn2"/>`
+            + `<text x="${lx + 7}" y="${gy}" class="tr2">${esc(c.target.length > 5 ? c.target.slice(0, 5) : c.target)}</text>`
+            + `<text x="${lx + 7}" y="${gy + 13}" class="tp">${(c.value / total * 100).toFixed(1)}%</text>`;
+        });
+      });
+      const H = y2 + 3 * gh;
+      box.innerHTML = `<a class="mtree" href="#flow/sankey" aria-label="資金分流樹（點了看完整版）"><svg viewBox="0 0 ${W} ${H}" width="100%" height="${H}" role="img">${svg}</svg></a><div class="msub">點樹狀圖看完整的資金分流樹 ›</div>`;
+      box.dataset.open = '0';
+      return;
+    }
     /* ★ 2026-10-08（Andy：「資金樹 Default 就在最上方開啟…外面那個框拿掉」）：
        根節點「台股成交值 X 億」放在最上面一列（樹由上往下：根 → 產業鏈 ▸ → 族群 ▸ → 個股）；
        下方的「資金流向排名」改成一顆「資金流向排名 ▸」標題列，預設收起，點了才展開（手機準則第 5 條）。 */
