@@ -27480,6 +27480,7 @@ def desk_pages(pg, base):
     chains = pg.evaluate("async () => (await (await fetch('data/industry_map.json')).json()).chains.map(c => c.id)")
     tids = pg.evaluate("async () => (await (await fetch('data/themes.json')).json()).themes.map(t => t.id)")
     pages += [f"industry/{c}" for c in chains] + [f"themes/{t}" for t in tids]
+    pages += [f"industry/group/{g}" for g in ("foundry", "hbm", "ai_server_odm")]   # 族群頁也有供應鏈關聯圖（10-08 Andy 312 截圖）
     pages += [f"market/{k}" for k in ("updown", "streak", "ma", "cand")]
     pages += ["explore", "etf/cal", "etf/list", "etf/inc", "season", "watch", "pricing", "terms", "privacy", "disclaimer", "admin"]
     for code in ("2330", "00919"):
@@ -27567,21 +27568,38 @@ def t_desk_guard_1008(b, base):
     got = pg.evaluate(DESK_SIDE_JS)
     ok(f"{T}：收合 → 換鏈 → 換回來 → 展開，說明卡仍在圖兩側（{got['n']} 張）", got["n"] > 0 and not got["bad"], got)
     pg.click("#dgFold"); pg.wait_for_timeout(300); pg.click("#dgFold"); pg.wait_for_timeout(300)   # 復原成展開，不影響後面
-    # ④ 關聯圖：預設展開；收合＝標題以下全藏；再展開回來
-    pg.goto("about:blank"); pg.goto(f"{base}#industry/semiconductor", wait_until="domcontentloaded"); pg.wait_for_timeout(2500)
-    REL = """() => { const m = document.getElementById('chainMap'), rm = document.getElementById('relMain'), sec = document.getElementById('relSec'), hd = document.getElementById('relHead');
-        const vis = (e) => !!e && !!e.getClientRects().length && !e.closest('[hidden]');
-        const below = sec ? [...sec.querySelectorAll('*')].filter(e => vis(e) && hd && !hd.contains(e) && e !== hd && !e.contains(hd) && e.getBoundingClientRect().height > 4).length : -1;
-        return { map: vis(m) && document.querySelectorAll('#chainMap .co').length > 0, list: vis(document.getElementById('chainList')), main: vis(rm), below,
-                 btn: (document.getElementById('relFold') || {}).textContent }; }"""
-    s0 = pg.evaluate(REL)
-    ok(f"{T}：關聯圖桌機預設展開（看得到關聯圖本體、鈕寫「收合圖」）", s0["map"] and "收合" in (s0["btn"] or ""), s0)
-    pg.click("#relFold"); pg.wait_for_timeout(700)
-    s1 = pg.evaluate(REL)
-    ok(f"{T}：關聯圖按「收合圖」→ 圖與環節卡清單一起藏起來，標題以下什麼都沒有", not s1["map"] and not s1["list"] and not s1["main"] and s1["below"] == 0, s1)
-    pg.click("#relFold"); pg.wait_for_timeout(1200)
-    s2 = pg.evaluate(REL)
-    ok(f"{T}：關聯圖再按「展開」→ 關聯圖回來", s2["map"], s2)
+    # ④ 關聯圖：預設展開；收合＝標題以下全藏；再展開回來。產業鏈頁＋族群頁（族群頁一進來就選了自己的環節，右側清單有內容），
+    #    預設狀態與「套用環節篩選後」各測一次。
+    #    ⚠ 10-08 第一版的判定用 closest('[hidden]') 當「看不見」，但 .chainrow 的 display:flex 會蓋掉 [hidden] ——
+    #      畫面上明明還攤著兩張環節卡，判定卻說看不見（Andy 312 截圖）。改成量「標題列以下實際佔的可見高度」。
+    REL = """() => { const v = document.querySelector('main .view.on'); const q = (s) => v && v.querySelector(s);
+        const m = q('#chainMap'), sec = q('#relSec'), hd = q('#relHead');
+        const shown = (e) => !!e && e.getClientRects().length > 0 && e.getBoundingClientRect().height > 0 && getComputedStyle(e).visibility !== 'hidden';
+        let under = -1;
+        if (sec && hd) { const hb = hd.getBoundingClientRect().bottom;
+          under = Math.max(0, ...[...sec.querySelectorAll('*')].filter(e => !hd.contains(e) && !e.contains(hd) && shown(e) && !e.closest('.howtxt'))
+            .map(e => Math.round(e.getBoundingClientRect().bottom - Math.max(hb, e.getBoundingClientRect().top)))); }
+        return { map: shown(m) && !!v.querySelector('#chainMap .co'), under, btn: (q('#relFold') || {}).textContent,
+                 sel: [...v.querySelectorAll('#segChips .segchip.sel')].length }; }"""
+    def rel_cycle(tag):
+        s0 = pg.evaluate(REL)
+        ok(f"{T}：{tag} 關聯圖展開中（看得到關聯圖本體、鈕寫「收合圖」）", s0["map"] and "收合" in (s0["btn"] or ""), s0)
+        pg.click("main .view.on #relFold"); pg.wait_for_timeout(700)
+        s1 = pg.evaluate(REL)
+        ok(f"{T}：{tag} 按「收合圖」→ 標題列以下可見高度 = 0（圖、環節卡清單都不顯示）", not s1["map"] and s1["under"] == 0 and "展開" in (s1["btn"] or ""), s1)
+        pg.click("main .view.on #relFold"); pg.wait_for_timeout(1200)
+        s2 = pg.evaluate(REL)
+        ok(f"{T}：{tag} 再按「展開」→ 關聯圖回來", s2["map"], s2)
+    for r in ("industry/semiconductor", "industry/group/foundry", "industry/group/hbm", "industry/group/ai_server_odm"):
+        pg.goto("about:blank"); pg.goto(f"{base}#{r}", wait_until="domcontentloaded"); pg.wait_for_timeout(2600)
+        rel_cycle(f"{r}（預設）")
+        # 套用環節篩選：打開「環節 ▾」下拉，點一格還沒選的環節
+        pg.click("main .view.on #segDDBtn"); pg.wait_for_timeout(300)
+        picked = pg.evaluate("""() => { const c = [...document.querySelectorAll('main .view.on #segChips .segchip:not(.sel):not(.nomem)')].find(e => e.getClientRects().length);
+            if (!c) return null; c.click(); return c.dataset.seg; }""")
+        pg.wait_for_timeout(1200)   # 點了下拉自己會收（segDDOpen(false)）；不要按 Esc —— Esc 會把篩選一起清掉
+        ok(f"{T}：{r} 套用環節篩選（點了 {picked}）", bool(picked) and pg.evaluate(REL)["sel"] > 0, picked)
+        rel_cycle(f"{r}（篩選後）")
     # ⑤ 桌機窄視窗（800）關聯圖照舊左右排
     pg.set_viewport_size({"width": 800, "height": 900})
     pg.goto("about:blank"); pg.goto(f"{base}#industry/semiconductor", wait_until="domcontentloaded"); pg.wait_for_timeout(2500)
