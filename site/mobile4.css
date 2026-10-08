@@ -114,7 +114,7 @@
      卡中卡：內層也不要邊框與內距，標題列留著，區塊之間用細分隔線＋12px 間距。 */
   :root.m4 body main{padding-left:8px!important;padding-right:8px!important}
   :root.m4 main .view .card{border:0!important;border-radius:0!important;box-shadow:none!important;background:transparent!important;
-    padding-left:0!important;padding-right:0!important;padding-top:10px!important;padding-bottom:10px!important;margin-left:0!important;margin-right:0!important}
+    padding-left:0!important;padding-right:0!important;padding-top:4px!important;padding-bottom:10px!important;margin-left:0!important;margin-right:0!important}
   /* 其他頁自己的外框容器（ETF 頁的 .etfbody 分頁外框）也一樣攤平 */
   :root.m4 #v-etf .etfbody{border:0!important;border-radius:0!important;background:transparent!important;padding:0!important;box-shadow:none!important}
   :root.m4 main .view .card::before,:root.m4 main .view .card::after{display:none!important}
@@ -252,7 +252,10 @@
 
   /* ---- 18. 子頁頁籤（底線頁籤；mobile4.js paintTitle）：抽屜不再列子項 */
   :root.m4 .m4pghead .m4pgn{display:none}   /* 有子頁時直接用頁籤取代頁名（省一行，主圖才留在第一屏） */
-  :root.m4 .m4subtabs{display:flex;gap:4px;overflow-x:auto;scrollbar-width:none;touch-action:pan-x pan-y;border-bottom:1px solid var(--line);margin-top:2px}
+  :root.m4 .m4subtabs{display:flex;gap:4px;overflow-x:auto;scrollbar-width:none;touch-action:pan-x pan-y;border-bottom:1px solid var(--line);margin-top:0}
   :root.m4 .m4subtabs button{flex:none;min-height:40px;padding:0 12px;border:0;border-bottom:2px solid transparent;background:transparent;color:var(--ink-2);font:inherit;font-size:15px;font-weight:600;white-space:nowrap;cursor:pointer}
   :root.m4 .m4subtabs button.on{color:var(--t4-accent-solid,var(--cyan));border-bottom-color:var(--t4-accent-solid,var(--cyan))}
+
+  /* 個股 K 線左上的「還原」小標：手機不要框（去方格準則），留淡底色 */
+  :root.m4 .adjtag{border:0!important;box-shadow:none!important}
 }

@@ -13332,13 +13332,13 @@ def t_mobile(b, base, code):
     m.goto(f"{base}#overview", wait_until="networkidle"); m.wait_for_timeout(1400)
     m.locator("#m4Burger").tap(); m.wait_for_timeout(400)
     items = m.evaluate("[...document.querySelectorAll('#m4Drawer button[data-h]')].map(b => b.dataset.h)")
-    ok("手機有側欄抽屜（漢堡鈕打開、至少 12 項）", len(items) >= 12, items)
-    ok("手機抽屜沒有「題材」這個頂層項（併進熱力圖的子項）", "#themes" not in items and "#heatmap/theme" in items, items)
-    m.locator('#m4Drawer button.m4sub[data-h="#heatmap/industry"]').tap(); m.wait_for_timeout(1800)
+    # 2026-10-08 晚改（Andy：「手機版本的側邊欄位，子分頁都需要變成在圖二那邊」）：抽屜只列主項目（≥ 10 項），子頁在頁面頂端的頁籤
+    ok("手機有側欄抽屜（漢堡鈕打開、至少 10 個主項目）", len(items) >= 10, items)
+    ok("手機抽屜沒有「題材」這個頂層項、熱力圖是一個主項目", "#themes" not in items and any(h.startswith("#heatmap") for h in items), items)
+    m.locator('#m4Drawer button[data-v="heatmap"]').tap(); m.wait_for_timeout(1800)
     st = m.evaluate("""() => ({ hash: location.hash, view: (document.querySelector('main .view.on') || {}).id })""")
-    ok("手機抽屜按得動（按熱力圖・產業真的換到熱力圖那一頁）", st["hash"].startswith("#heatmap") and st["view"] == "v-heatmap", st)
-    m.locator("#m4Burger").tap(); m.wait_for_timeout(400)
-    m.locator('#m4Drawer button.m4sub[data-h="#heatmap/theme"]').tap(); m.wait_for_timeout(1800)
+    ok("手機抽屜按得動（按熱力圖真的換到熱力圖那一頁）", st["hash"].startswith("#heatmap") and st["view"] == "v-heatmap", st)
+    m.locator('#m4Title .m4subtabs button[data-h="#heatmap/theme"]').tap(); m.wait_for_timeout(1800)
     st = m.evaluate("""() => ({ hash: location.hash, pager: [...document.querySelectorAll('#v-heatmap .mpager button')].map(b => b.textContent.trim()) })""")
     ok("手機熱力圖・題材子分頁的分段裡有題材那兩段（題材熱力、題材細節）",
        any("題材熱力" in x for x in st["pager"]) and any("題材細節" in x for x in st["pager"]), st)
@@ -50838,6 +50838,11 @@ def t_mobile_home(b, base, code):
     w1 = m.evaluate(W)
     ok(f"{T}加入兩檔 → 清單真的出現兩格（華邦電、台積電）", w1["codes"] == ["2344", "2330"] and "華邦電" in w1["names"] and not w1["hidden"], w1)
     ok(f"{T}有清單時整塊 ≤ 124px（指數列＋一列清單）", 0 < w1["homeH"] <= 124, w1["homeH"])
+    # 2026-10-08 晚：手機 v2 總覽預設停在「大盤」組，輪盤在「資金流向」組 —— 先切過去再量
+    if m.evaluate("() => document.documentElement.classList.contains('m4')"):
+        b2 = m.locator('.view.on .mpager button:has-text("資金流向")')
+        if b2.count():
+            b2.first.tap(); m.wait_for_timeout(1500); m.evaluate("() => window.scrollTo({ top: 0, behavior: 'instant' })"); m.wait_for_timeout(300)
     # 有清單時，第①步的輪盤仍在第一屏（跟「手機v3」#1 同一條量法）
     # ★ 2026-09-29（mobile-onescreen-fix）：焦點條是 DECISIONS #274 刻意拿掉的（總覽輪盤只留點、點一顆出點旁說明框 #mOvPop），
     #   所以改量「輪盤整張」＋「點盤上最下面那一顆之後，說明框整個在頂欄與底部導覽之間」。
