@@ -12654,11 +12654,13 @@ def t_season(pg, base):
     pg.evaluate("() => { const b = document.querySelector('#seasonView button[data-v=line]'); if (b) b.click(); }"); pg.wait_for_timeout(1400)
     mb = pg.evaluate(LN) or {}
     tap = pg.evaluate("""() => ({ dd: Math.round(document.querySelector('#seasonGroupDD .ddbtn').getBoundingClientRect().height),
-        key: Math.min(999, ...[...document.querySelectorAll('#seasonKey .snk')].map(b => Math.round(b.getBoundingClientRect().height))) })""")
+        key: Math.min(999, ...[...document.querySelectorAll('#seasonKey .snk')].filter(b => b.getClientRects().length).map(b => Math.round(b.getBoundingClientRect().height))),
+        m4: document.documentElement.classList.contains('m4'), keyHidden: !document.getElementById('seasonKey').getClientRects().length })""")
     ok("★ [390px 長條圖] 預設 5 根都畫得下、不重疊、頁面沒有橫向捲軸",
        mb.get("nb") == 5 and mb.get("drawn") == mb.get("sel") == 5 and mb.get("overlap") == 0 and mb.get("over", 9) <= 1,
        {k: mb.get(k) for k in ("nb", "sel", "drawn", "maxbars", "overlap", "minW", "over")})
-    ok("[390px 長條圖] 族群下拉鈕與色票觸控高 ≥ 40px", tap["dd"] >= 40 and tap["key"] >= 40, tap)
+    # ★ 2026-10-08 手機 v2：390 寬（html.m4）已選膠囊列一律收進下拉（Andy：「手機版本出現這種的，就都改成篩選式下拉清單」），色票列藏起來是設計
+    ok("[390px 長條圖] 族群下拉鈕與色票觸控高 ≥ 40px（手機 v2：色票列收進下拉）", tap["dd"] >= 40 and (tap["key"] >= 40 or (tap["m4"] and tap["keyHidden"])), tap)
     pg.evaluate("() => { const b = document.querySelector('#seasonView button[data-v=heat]'); if (b) b.click(); }"); pg.wait_for_timeout(800)
     pg.set_viewport_size({"width": 1500, "height": 1000}); pg.wait_for_timeout(600)
     pg.evaluate("() => { try { ['tw.season.num2','tw.season.rows','tw.season.view'].forEach(k => localStorage.removeItem(k)); } catch (e) {} }")
@@ -27136,6 +27138,74 @@ def t_mobile_m4_1008(b, base, code):
         m.fill("#m4IncMS .sndd-q", "00878"); m.wait_for_timeout(300)
         vq = J("() => [...document.querySelectorAll('#m4IncMS .ddopt[data-n]')].filter(o => o.style.display !== 'none').map(o => o.dataset.n)")
         ok(f"【{T}】下拉的搜尋真的過濾（打 00878 → 剩 {len(vq)} 列）", 0 < len(vq) < 5 and all("00878" in x for x in vq), vq)
+        m.set_viewport_size({"width": 390, "height": 844})
+        # ⑳ 元件統一普查（402 寬，計算後樣式指紋＝高度／圓角／字級／外框型態）：頁籤 ≤ 2 種（底線頁籤＋分段膠囊）、外框按鈕 ≤ 2 種、「?」1 種
+        #    不算按鈕的（各自有版型）：清單列 .rkrow、月曆格 .cald、說明圖示 .sl-i、自選加入磚 .mbwadd、自選頁籤裡的「⋯」選單鈕
+        m.set_viewport_size({"width": 402, "height": 874})
+        FP = """() => { const out = [];
+            const vis = (e) => e.getClientRects().length && e.getBoundingClientRect().width > 0 && !e.closest('#m4Drawer,.ddpanel,.topbar,footer');
+            const fp = (e) => { const c = getComputedStyle(e), r = e.getBoundingClientRect(); const bt = parseFloat(c.borderTopWidth), bb = parseFloat(c.borderBottomWidth);
+              return `h${Math.round(r.height / 2) * 2} r${Math.min(20, Math.round(parseFloat(c.borderTopLeftRadius)))} f${Math.round(parseFloat(c.fontSize))} b${Math.max(bt, bb) > 0 ? (bt === bb ? 'box' : 'under') : 0}`; };
+            const tabs = new Set();
+            document.querySelectorAll('.view.on [role=tab], .view.on :is(.seg,.nbsw,.mpager,.mseg)>button, .m4subtabs>button').forEach(e => { if (vis(e) && !e.classList.contains('wpmore')) { tabs.add(e); out.push(['頁籤', fp(e), e.parentElement.id || e.parentElement.className]); } });
+            document.querySelectorAll('.view.on .howbtn').forEach(e => { if (vis(e)) out.push(['?', fp(e), '']); });
+            document.querySelectorAll('.view.on button').forEach(e => { const c = getComputedStyle(e);
+              if (!vis(e) || tabs.has(e) || e.classList.contains('howbtn') || parseFloat(c.borderTopWidth) === 0 || c.borderTopWidth !== c.borderBottomWidth
+                || e.matches('.rkrow,.cald,.sl-i,.mbwadd,.wpmore') || e.closest('[role=tablist],.seg,.nbsw,.mpager,.mseg,.ddlist,.mnumlayer,.mdgfolds,table')) return;
+              out.push(['按鈕', fp(e), e.className]); });
+            return out; }"""
+        kinds = {}
+        for h in ("overview", "flow/rotation", "flow/sankey", "flow/inst", "heatmap/industry", "heatmap/theme", "industry", "market", "explore", "etf/list", "etf/ret", "etf/inc", "etf/cal", "season", "watch", "stock/2330"):
+            go(h, 2500)
+            for k, f, w in J(FP): kinds.setdefault(k, {}).setdefault(f, set()).add(f"{h} {w}")
+        brief = {k: {f: sorted(w)[:3] for f, w in d.items()} for k, d in kinds.items()}
+        ok(f"【{T}】元件統一：頁籤指紋 ≤ 2 種（{len(kinds.get('頁籤', {}))}）", 0 < len(kinds.get("頁籤", {})) <= 2, brief.get("頁籤"))
+        ok(f"【{T}】元件統一：外框按鈕指紋 ≤ 2 種（{len(kinds.get('按鈕', {}))}）", 0 < len(kinds.get("按鈕", {})) <= 2, brief.get("按鈕"))
+        ok(f"【{T}】元件統一：「?」說明鈕指紋 1 種（{len(kinds.get('?', {}))}）", len(kinds.get("?", {})) == 1, brief.get("?"))
+        # ㉑ 自選頁籤：每顆高度差 ≤ 2px、「⋯」在選中頁籤裡面、說明列不跟其他元素重疊
+        go("watch", 3000)
+        wt = J("""() => { const t = document.getElementById('wpTabs'); if (!t) return null; const bs = [...t.children].filter(e => e.getClientRects().length && !e.classList.contains('wpmore'));
+            const hs = bs.map(b => b.getBoundingClientRect().height); const on = t.querySelector('.wptab.on').getBoundingClientRect(), mo = document.getElementById('wpMore');
+            const m = mo && mo.getBoundingClientRect();
+            return { dh: Math.max(...hs) - Math.min(...hs), inside: !m || (m.left >= on.left - 1 && m.right <= on.right + 1 && m.top >= on.top - 1 && m.bottom <= on.bottom + 1) }; }""")
+        ok(f"【{T}】自選頁籤列每顆高度差 ≤ 2px、「⋯」在選中頁籤範圍內（{wt}）", wt and wt["dh"] <= 2 and wt["inside"], wt)
+        ov = J("""() => { const h = document.querySelector('#v-watch h2, #v-watch h3'); const row = h && h.parentElement; if (!row) return []; const kids = [...row.querySelectorAll('*')].filter(e => e.children.length === 0 && e.textContent.trim() && e.getClientRects().length);
+            const R = kids.map(e => [e, e.getBoundingClientRect()]); const bad = [];
+            for (let i = 0; i < R.length; i++) for (let j = i + 1; j < R.length; j++) { const a = R[i][1], b = R[j][1];
+              if (R[i][0].contains(R[j][0]) || R[j][0].contains(R[i][0])) continue;
+              if (Math.min(a.right, b.right) - Math.max(a.left, b.left) > 2 && Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top) > 2) bad.push(R[i][0].textContent.trim().slice(0, 8) + '×' + R[j][0].textContent.trim().slice(0, 8)); }
+            return bad; }""")
+        ok(f"【{T}】自選頁標題列的說明文字不跟其他元素重疊", not ov, ov)
+        m.set_viewport_size({"width": 390, "height": 844})
+        # ㉒ 訂閱方案頁（?demo=plans 示範三層方案）：比較表不橫捲、每個方案欄都在畫面內、表頭黏住、方案卡沒有功能條列、格子是短寫
+        m.set_viewport_size({"width": 402, "height": 874})
+        m.goto(base + ("&" if "?" in base else "?") + "demo=plans#pricing", wait_until="domcontentloaded"); m.wait_for_timeout(4000)
+        pr = J("""() => { const t = document.getElementById('prTable'); if (!t) return null; const w = t.closest('.prcmpw');
+            const hs = [...t.rows[0].cells].map(c => c.getBoundingClientRect());
+            const long = [...t.querySelectorAll('tbody td:not(:first-child)')].filter(td => /^每日\\s*\\d+\\s*次$/.test(td.textContent.trim())).length;
+            return { n: hs.length, sw: w.scrollWidth - w.clientWidth, out: hs.filter(r => r.right > innerWidth + 1 || r.left < -1).length, sticky: getComputedStyle(t.querySelector('thead th')).position,
+              hl: [...document.querySelectorAll('#v-pricing .prcard .prhl')].filter(e => e.getClientRects().length).length, long, fs: Math.min(...[...t.querySelectorAll('td')].map(td => parseFloat(getComputedStyle(td).fontSize))) }; }""")
+        ok(f"【{T}】訂閱方案：比較表沒有橫向捲動、{pr and pr['n'] - 1} 個方案欄都在畫面內、表頭黏住、字 ≥ 12px（{pr}）", pr and pr["n"] >= 3 and pr["sw"] <= 1 and pr["out"] == 0 and pr["sticky"] == "sticky" and pr["fs"] >= 12, pr)
+        ok(f"【{T}】訂閱方案：方案卡沒有功能條列（不跟比較表重複）、格子用短寫（沒有「每日 N 次」長寫）", pr and pr["hl"] == 0 and pr["long"] == 0, pr)
+        m.set_viewport_size({"width": 390, "height": 844})
+        # ㉓ 現金流試算條件區：展開後 ≤ 84px、裡面沒有看得到的分段鈕群組（全部是 select／checkbox）；改任何一個下拉，圖真的跟著變
+        m.set_viewport_size({"width": 402, "height": 874})
+        go("etf/inc", 4500)
+        m.locator("#incPM .m4cond").tap(); m.wait_for_timeout(600)
+        cd = J("""() => { const c = document.querySelector('#incPM .incctl'); const vis = (e) => e.getClientRects().length > 0;
+            return { h: Math.round(c.getBoundingClientRect().height), segs: [...c.querySelectorAll('.seg, [role=tablist]')].filter(vis).length,
+              btns: [...c.querySelectorAll('button')].filter(vis).length, sels: [...c.querySelectorAll('select')].filter(vis).length, chk: [...c.querySelectorAll('input[type=checkbox]')].filter(vis).length }; }""")
+        ok(f"【{T}】現金流試算條件區展開 ≤ 84px、沒有分段鈕群組、全部是下拉／勾選框（{cd}）", cd["h"] <= 84 and cd["segs"] == 0 and cd["btns"] == 0 and cd["sels"] >= 4 and cd["chk"] >= 1, cd)
+        sig = lambda: J("() => { const e = document.getElementById('incBar'); return (e.dataset.groups || '') + '|' + (document.getElementById('incYLab') || {}).textContent + '|' + (document.getElementById('incList') || {dataset: {}}).dataset.n; }")
+        for lab, idx in (("目標金額", "0"), ("範圍", "1"), ("年領或月領", "1")):
+            s0 = sig()
+            m.locator(f'#incPM select.m4segsel[aria-label="{lab}"]').select_option(idx); m.wait_for_timeout(1500)
+            s1 = sig()
+            ok(f"【{T}】條件區改「{lab}」下拉 → 圖／清單真的跟著變", s1 != s0, (s0[:80], s1[:80]))
+        J("() => { const b = document.querySelectorAll('#incSort button')[1]; if (b) b.click(); }"); m.wait_for_timeout(1500)   # 排序改含息總報酬：期間才會影響圖
+        p0 = sig()
+        m.locator("#incPM .rpk select").select_option(index=0); m.wait_for_timeout(2000)
+        ok(f"【{T}】條件區改「期間」下拉 → 圖／清單真的跟著變", sig() != p0, p0[:80])
         m.set_viewport_size({"width": 390, "height": 844})
         # ⑨ 卡片標題的「?」不准自己佔一行：「?」與標題文字的垂直中心差 ≤ 8px（看得到的文字節點才算）
         badq = []

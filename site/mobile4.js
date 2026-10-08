@@ -371,6 +371,21 @@
       count: `已選 ${on.size} 檔`, label: on.size ? `已選 ${on.size} 檔` : '未選', n: on.size });
   }
 
+  /* 訂閱方案頁（Andy：「已經有格式表，下方就不需要再一次出現，格式表需要一頁看到不同方案，所以需要精簡優化」）：
+     比較表的格子改短寫（每日 10 次 → 10/日、最多 3 檔 → 3 檔、1 頁・每頁 10 檔 → 1×10），原文留在 title；表格本身與方案卡的精簡在 mobile4.css 第 24 節 */
+  const PR_SHORT = [[/^每日\s*(\d+)\s*次$/, '$1/日'], [/^每日\s*(\d+)\s*(\S+)$/, '$1$2/日'], [/^最多\s*(\d+)\s*(\S+)$/, '$1 $2'],
+    [/^(\d+)\s*頁・每頁\s*(\d+)\s*檔$/, '$1×$2'], [/^不限頁・每頁\s*(\d+)\s*檔$/, '不限×$1'], [/^全部方案皆可用$/, '全部皆可']];
+  function wirePricing() {
+    if (!isM()) return;
+    const t = $('#prTable'); if (!t || t._m4short) return;
+    t._m4short = true;
+    $$('tbody td:not(:first-child), tbody tr.base td', t).forEach((td) => {
+      const x = td.textContent.trim(); let y = x;
+      for (const [re, to] of PR_SHORT) if (re.test(y)) { y = y.replace(re, to); break; }
+      if (y !== x) { td.title = x; td.textContent = y; }
+    });
+  }
+
   /* 細節頁的「‹ 返回」（Andy：「這需要附上一個倒退符號」）：題材細節、單一產業鏈、族群頁、個股頁。
      有站內上一頁就 history.back()；直接開網址進來的（沒有上一頁）就回到這個功能的上一層。 */
   let navN = 0;
@@ -407,9 +422,47 @@
         new MutationObserver(() => paint()).observe(ctl, { subtree: true, attributes: true, attributeFilter: ['class', 'value'], childList: true });
         ctl.addEventListener('change', () => setTimeout(paint, 0)); ctl.addEventListener('input', () => setTimeout(paint, 0));
       }
+      condSelects(ctl);
       function paint() { const t = '條件：' + (condSummary(ctl) || '—'); const want = `<span>${esc(t)}</span><i aria-hidden="true">${ctl.classList.contains('m4open') ? '▴' : '▾'}</i>`; if (b.innerHTML !== want) b.innerHTML = want; }
       paint();
     });
+  }
+
+  /* 現金流試算／複利試算的條件區：分段鈕群組一律換成下拉（Andy：「不要換行太多」＋協調者：條件區沒有分段鈕群組、全部是 select 或 checkbox、展開 ≤ 84px）。
+     原本的分段鈕留在 DOM 裡（藏起來），下拉改了就去點對應的那顆 —— 狀態與重畫照頁面自己的邏輯走，不另存一份。
+     custom＝最後多一個「自訂」選項：沒有任何一顆亮著時選中它，並把 show（自訂金額框／起始日框）顯示出來；其他時候藏起來。 */
+  function segSelect(seg, opt) {
+    if (!seg) return;
+    const bs = $$(':scope > button', seg); if (!bs.length) return;
+    let sel = seg.nextElementSibling && seg.nextElementSibling.classList.contains('m4segsel') ? seg.nextElementSibling : null;
+    const sig = bs.map((b) => b.textContent.trim() + (b.classList.contains('on') ? '*' : '')).join('|');
+    if (sel && sel._sig === sig) return;
+    if (!sel) {
+      sel = document.createElement('select'); sel.className = 'm4segsel'; sel.setAttribute('aria-label', opt.label || '選擇');
+      sel.onchange = () => {
+        const cur = $$(':scope > button', seg);
+        if (sel.value === 'custom') { if (opt.show) { opt.show.classList.add('m4show'); const i = opt.show.matches('input') ? opt.show : $('input', opt.show); if (i) i.focus(); } return; }
+        if (opt.show) opt.show.classList.remove('m4show');
+        const b = cur[+sel.value]; if (b) b.click();
+      };
+      seg.after(sel);
+    }
+    sel._sig = sig;
+    const on = bs.findIndex((b) => b.classList.contains('on'));
+    sel.innerHTML = bs.map((b, i) => `<option value="${i}">${esc(b.textContent.replace(/\s+/g, ' ').trim())}</option>`).join('') + (opt.custom ? '<option value="custom">自訂…</option>' : '');
+    sel.value = on >= 0 ? String(on) : opt.custom ? 'custom' : '0';
+    if (opt.show) opt.show.classList.toggle('m4show', on < 0);
+  }
+  function condSelects(ctl) {
+    ctl.classList.add('m4sel');
+    segSelect($('#incMode', ctl), { label: '年領或月領' });
+    segSelect($('#incAmtSeg', ctl), { label: '目標金額', custom: true, show: $('#incAmt', ctl) });
+    segSelect($('#incScope', ctl), { label: '範圍' });
+    segSelect($('#cxQuick', ctl), { label: '起始日', custom: true, show: $('#cxFrom', ctl) });
+    const nhi = $('#incNhi', ctl);
+    if (nhi && !nhi.parentElement.querySelector('.m4short')) {   // 勾選框的長說明縮成「二代健保」，完整說明留在 title
+      const lb = nhi.parentElement; lb.title = lb.textContent.trim(); lb.insertAdjacentHTML('beforeend', '<span class="m4short">扣二代健保</span>');
+    }
   }
 
   /* 頂欄頁名：「分組小字＋頁名（子頁名）」—— 側欄收進抽屜之後，這是「我在哪」唯一的提示 */
@@ -461,7 +514,7 @@
     // 會員功能晚一步才開（account.js 讀完設定檔）、#acctBtn／#acctOnline 晚一步才建：出現時收進頂欄小圖示列
     new MutationObserver(() => { if (tools && isM()) { const bar = $('.topbar'); const miss = TOOLS.some((q) => { const e = $(q); return e && e.parentNode !== tools; }) || (acctOn() && $('#m4Login')); if (bar && miss) buildTools(bar); } })
       .observe(document.body, { childList: true, subtree: true });
-    let ct = 0; new MutationObserver(() => { if (!isM()) return; clearTimeout(ct); ct = setTimeout(() => { wireCond(); wireChainList(); wireEtfTri(); wireIndMap(); wireIncMS(); wireCxMS(); }, 120); }).observe(document.body, { childList: true, subtree: true });
+    let ct = 0; new MutationObserver(() => { if (!isM()) return; clearTimeout(ct); ct = setTimeout(() => { wireCond(); wireChainList(); wireEtfTri(); wireIndMap(); wireIncMS(); wireCxMS(); wirePricing(); }, 120); }).observe(document.body, { childList: true, subtree: true });
     wireCond();
   }
   window.TwM4 = { open, close, isOpen: () => !!(drawer && !drawer.hidden) };
