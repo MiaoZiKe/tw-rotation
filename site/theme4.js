@@ -118,11 +118,16 @@
     const pop = document.createElement('div');
     pop.className = 't4pop'; pop.id = 't4Pop'; pop.hidden = true; pop.setAttribute('role', 'dialog');
     pop.setAttribute('aria-label', '外觀設定');
-    pop.innerHTML = `<h4>版面風格</h4><div class="t4opts">${THEMES.map(t =>
+    /* 2026-10-08（Andy：「將切換版面風格、明暗這部分統一一個功能按鍵在上方」）：明暗併進「外觀」面板最上面（深色｜淺色），
+       按下去就是去按原本那顆 #themeBtn（app.js 的 applyTheme 一行都沒重寫）；頁首的 ☀ 鈕本身藏起來（index.html／mobile4.css）。 */
+    pop.innerHTML = `<h4>明暗</h4><div class="t4mode seg" role="group" aria-label="明暗"><button type="button" data-mode="dark" aria-pressed="false">深色</button><button type="button" data-mode="light" aria-pressed="false">淺色</button></div><h4>版面風格</h4><div class="t4opts">${THEMES.map(t =>
       `<button type="button" class="t4o" data-t4="${t.id}" aria-pressed="false"><span class="sw" style="background:${t.sw}"></span><b>${t.name}</b><small>${t.sub}</small></button>`).join('')}</div>`;
     document.body.appendChild(pop);
     pop.addEventListener('click', (e) => {
       const b = e.target.closest('.t4o'); if (b) set(b.dataset.t4);
+      const md = e.target.closest('.t4mode button[data-mode]');
+      if (md && mode() !== md.dataset.mode) { const tb = $('#themeBtn'); if (tb) tb.click(); }
+      if (md) syncButtons();
     });
     return pop;
   }
@@ -134,6 +139,7 @@
   function syncButtons() {
     const v = get(), m = mode();
     document.querySelectorAll('[data-t4]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.t4 === v)));
+    document.querySelectorAll('.t4mode button[data-mode]').forEach(b => { const on = b.dataset.mode === m; b.setAttribute('aria-pressed', String(on)); b.classList.toggle('on', on); });
     const btn = $('#t4Btn');
     if (btn) { const t = THEMES.find(x => x.id === v); btn.title = `外觀設定（目前：${t.name}・${m === 'light' ? '淺色' : '深色'}）`; }
   }

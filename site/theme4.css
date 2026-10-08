@@ -573,3 +573,8 @@
   #relHead>.segdd{margin:0 auto 0 12px}
   .relsec.ddhead .relmain{margin-top:8px}
 }
+/* 2026-10-08（Andy：「將切換版面風格、明暗這部分統一一個功能按鍵在上方」）：明暗併進「外觀」面板，頁首那顆 ☀ 本人藏起來（仍在 DOM，面板裡的「深色／淺色」去按它） */
+.t4pop .t4mode{display:flex;gap:0;margin-bottom:12px}
+.t4pop .t4mode button{flex:1 1 0;min-height:36px}
+.t4pop .t4mode button.on{background:var(--cyan);color:var(--ontop,#04121a);font-weight:700}
+:root.l4 #l4Tools #themeBtn,:root.m4 #m4Tools #themeBtn{display:none!important}

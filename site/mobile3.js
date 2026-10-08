@@ -979,6 +979,15 @@
       };
     }
     s.textContent = label();
+    /* 2026-10-08（Andy：「週期統計數字選項呢？」）：「排序」旁邊一顆「數字：開／關」，按下去就是去按桌機那顆 #seasonNum（app.js 只有一份邏輯，手機預設關、開了記住） */
+    let nb = document.getElementById('mSeasonNum');
+    const numOn = () => { const b = document.querySelector('#seasonNum button'); return !!b && b.getAttribute('aria-pressed') === 'true'; };
+    if (!nb) {
+      nb = document.createElement('button'); nb.type = 'button'; nb.id = 'mSeasonNum'; nb.className = 'mfilt';
+      s.after(nb);
+      nb.onclick = () => { const b = document.querySelector('#seasonNum button'); if (b) b.click(); setTimeout(() => { nb.textContent = '數字：' + (numOn() ? '開' : '關'); nb.setAttribute('aria-pressed', String(numOn())); }, 50); };
+    }
+    nb.textContent = '數字：' + (numOn() ? '開' : '關'); nb.setAttribute('aria-pressed', String(numOn()));
     /* 表頭是 app.js 畫完熱力圖才生出來的（也會因為換條件重畫）：表頭一換，鈕上的「N 月」跟著換 */
     const hd = document.getElementById('seasonHeatHead');
     if (hd && !hd.__mSort) {
@@ -988,6 +997,7 @@
   }
   function unSeasonCtl() {
     const s = document.getElementById('mSeasonSort'); if (s) s.remove();
+    const n2 = document.getElementById('mSeasonNum'); if (n2) n2.remove();
     const b = document.getElementById('mSeasonBtn'); if (b) b.remove();
     const c = document.getElementById('seasonCtl'); if (c) c.classList.remove('mhide', 'min');
   }

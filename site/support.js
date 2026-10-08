@@ -74,7 +74,7 @@
 .supfab svg{width:26px;height:26px}
 /* ★ 2026-10-07（Andy：「客服圖示改成跟logo一樣可愛的天竺鼠」）：對話泡泡換成品牌頭像（site/brand/mark-64/128）。
    圓形裁切＋一圈白邊，深色（青底）與淺色主題下都跟按鈕底色分得開；滑過時頭像歪頭晃一下（減少動態偏好時不動）。 */
-.supfab .supmark{width:32px;height:32px;border-radius:28%;object-fit:cover;flex:none;display:block;box-shadow:0 0 0 2px #fff;background:none;padding:0;transition:transform .2s}
+.supfab .supmark{width:34px;height:34px;flex:none;display:block;overflow:visible;transition:transform .2s;color:var(--ontop,#04121a)}
 .supfab:hover .supmark{animation:supwig .5s ease-in-out;transform:scale(1.1)}
 @keyframes supwig{0%,100%{transform:scale(1.1) rotate(0)}30%{transform:scale(1.1) rotate(-10deg)}65%{transform:scale(1.1) rotate(8deg)}}
 @media (prefers-reduced-motion:reduce){.supfab:hover .supmark{animation:none}}
@@ -184,7 +184,8 @@
 #v-subadm .fbchip button{height:22px;width:22px;padding:0;border:0;background:none;color:var(--ink);font-size:15px;cursor:pointer}
 @media (max-width:1100px){#v-subadm .fbstat{grid-template-columns:minmax(0,1fr)}}
 @media (max-width:820px){#v-subadm .fbkpi{grid-template-columns:repeat(2,minmax(0,1fr))}#v-subadm .fbcatw{grid-template-columns:minmax(0,1fr)}#v-subadm .fbvb .plot{height:140px}}
-@media (max-width:820px){.supfab{bottom:84px;right:14px;height:42px;padding:0 12px}.supfab span{display:none}.suppanel{right:12px;bottom:134px}}`);
+/* 2026-10-08：底部導覽已經拿掉 → 手機與平板（≤820）一律貼右下角＋安全區，52px 圓鈕只放泡泡（不放字），面板開在它正上方 */
+@media (max-width:820px){.supfab{bottom:calc(16px + env(safe-area-inset-bottom));right:16px;width:52px;height:52px;padding:0;justify-content:center}.supfab span{display:none}.suppanel{right:12px;bottom:calc(76px + env(safe-area-inset-bottom))}}`);
 
   /* ★ admin-v3（Andy E）：圖示改可愛一點 —— 圓角對話泡泡裡一張笑臉（自繪 SVG，stroke＝currentColor，深淺主題都跟字色走）*/
   const ICON = '<svg viewBox="0 0 28 28" fill="none" aria-hidden="true"><path d="M6.5 4.5h15a4 4 0 0 1 4 4v8.5a4 4 0 0 1-4 4h-7.2l-5.1 4.1c-.5.4-1.2 0-1.2-.6v-3.5H6.5a4 4 0 0 1-4-4V8.5a4 4 0 0 1 4-4z" fill="currentColor" fill-opacity=".14" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round"/>'
@@ -192,7 +193,12 @@
     + '<path d="M9.8 15.1c1.1 1.5 2.5 2.2 4.2 2.2s3.1-.7 4.2-2.2" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/>'
     + '<circle cx="7.6" cy="14.6" r="1.1" fill="#ff8fa3" fill-opacity=".75"/><circle cx="20.4" cy="14.6" r="1.1" fill="#ff8fa3" fill-opacity=".75"/></svg>';
   // 2026-10-07：浮動鈕改用品牌天竺鼠頭像（上面的 ICON 目前沒人用，留著當退路）
-  const MARK = '<img class="supmark" src="brand/mark-64.png" srcset="brand/mark-64.webp 1x, brand/mark-128.webp 2x" width="32" height="32" alt="" aria-hidden="true">';
+  /* 2026-10-08（Andy：「右下角的客服需要再優化，並且改成原本的 LOGO 樣式，但是表情是天竺鼠」）：
+     外形回到原本 ICON 的對話泡泡（同一條路徑），泡泡裡面的笑臉換成天竺鼠頭像（brand/mark-128，裁進泡泡的圓角框裡）。 */
+  const BUB = 'M6.5 4.5h15a4 4 0 0 1 4 4v8.5a4 4 0 0 1-4 4h-7.2l-5.1 4.1c-.5.4-1.2 0-1.2-.6v-3.5H6.5a4 4 0 0 1-4-4V8.5a4 4 0 0 1 4-4z';
+  const MARK = '<svg class="supmark supbub" viewBox="0 0 28 28" aria-hidden="true" focusable="false"><defs><clipPath id="supBubClip"><rect x="3.4" y="5.4" width="21.2" height="14.8" rx="3.2"/></clipPath></defs>'
+    + `<path d="${BUB}" fill="#fff" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>`
+    + '<image href="brand/mark-128.png" x="3.4" y="5.4" width="21.2" height="14.8" preserveAspectRatio="xMidYMid slice" clip-path="url(#supBubClip)"/></svg>';
   let tab = 'faq';
   function ensure() {
     let fab = document.getElementById('supFab');

@@ -2103,6 +2103,13 @@
       const b = e.target.closest('button[data-fold]'); if (!b) return;
       const g = $$('g.dgfold[data-fold]', host).find(x => x.getAttribute('data-fold') === b.dataset.fold);
       if (!g) return;
+      /* 2026-10-08（Andy：「這些點擊沒有用」）：這幾列展開的是 2D 圖裡的章節；手機停在 3D 時 2D 圖是藏著的，
+         以前點了只在看不到的圖裡展開 → 畫面完全沒變。改成：在 3D 就先切回 2D（按站上那顆 2D 鈕本人），再展開。 */
+      if (!host.getClientRects().length) {
+        const b2 = document.querySelector('#dg3d button[data-dm="2d"]');
+        const fid = b.dataset.fold;
+        if (b2) { b2.click(); setTimeout(() => { const nb = $$('.mdgfolds button[data-fold]').find(x => x.dataset.fold === fid && x.isConnected); (nb || b).click(); }, 150); return; }
+      }
       g.dispatchEvent(new MouseEvent('click', { bubbles: true }));
       paintFolds(host, L);
       requestAnimationFrame(() => {
@@ -2251,6 +2258,22 @@
         lines: [(d.querySelector('i') || {}).textContent || ''].filter(Boolean), codes: chips, color: d.dataset.dgcolor || '#3ee0ff' };
     }).filter(x => x.no).sort((a, b) => a.no.localeCompare(b.no));
   }
+  /* 2026-10-08（Andy：「編號在手機版本，不要直接標在物件上，需要拉一條虛線，將編號放旁邊」）：
+     3D 的編號圈不再擺在零件上，改成「引線標註」—— 依零件在畫面左半／右半分到左右兩側各一欄（貼著圖框內緣），
+     同一欄依零件高度由上到下排、上下至少隔 MIN（不重疊，引線就不會交叉），每個圈拉一條虛線回零件（M3.leaders 畫，虛線樣式在 index.html）。 */
+  function sideCols(P, W, H) {
+    const pad = 16, gap = MIN + 2;
+    // 左右兩欄各分一半（依零件的左右位置，偏左的那一半放左欄），兩欄才不會一邊擠爆
+    const byX = P.slice().sort((a, b) => a.x0 - b.x0), half = Math.ceil(byX.length / 2);
+    const L = byX.slice(0, half).sort((a, b) => a.y0 - b.y0), R = byX.slice(half).sort((a, b) => a.y0 - b.y0);
+    const col = (arr, x) => {
+      let y = pad;
+      arr.forEach((p) => { p.x = x; p.y = Math.max(y, Math.min(H - pad, p.y0)); y = p.y + gap; });
+      // 擠到底就整欄往上推回來
+      for (let i = arr.length - 1; i >= 0; i--) { const lim = H - pad - (arr.length - 1 - i) * gap; if (arr[i].y > lim) arr[i].y = lim; if (i < arr.length - 1 && arr[i + 1].y - arr[i].y < gap) arr[i].y = arr[i + 1].y - gap; }
+    };
+    col(L, pad); col(R, W - pad);
+  }
   function mobileNums3d(h3, view) {
     if (!h3) return;
     const old = h3.querySelector(':scope > .mnumlayer'); if (old) old.remove();
@@ -2267,7 +2290,7 @@
         const base = h3.getBoundingClientRect();
         const P = ctx.items.map((it, i) => { const q = view.pointOf(it.part); if (!q) return null;
           const x = q.x - base.left, y = q.y - base.top; return { i, x, y, x0: x, y0: y, c: it.color, back: !q.front }; }).filter(Boolean);
-        window.M3.spread(P, MIN, { x0: 15, y0: 15, x1: base.width - 15, y1: base.height - 15 });
+        sideCols(P, base.width, base.height);
         layer.innerHTML = `<svg width="${base.width}" height="${base.height}" style="position:absolute;left:0;top:0;overflow:visible">${window.M3.leaders(P)}</svg>` + numBtns(P, ctx.items, ctx.sel);
         layer.dataset.overlap = window.M3.overlaps(P, MIN); layer.dataset.n = P.length; h3.dataset.mn = ctx.items.length;
       }

@@ -12709,7 +12709,10 @@
     const nowM = new Date().getMonth() + 1;
     let sortM = nowM;                                            // 熱力圖依哪個月排序（點表頭換）
     let rowsMode = hmLS('tw.season.rows', '20') === 'all' ? 'all' : '20';
-    let showNum = hmLS('tw.season.num2', '1') === '1';          // ★ 2026-10-04 Andy 改口：「這邊 default 有數字」→ 預設印數字（換新鍵，舊的「關」不沿用）
+    /* 2026-10-08（Andy：「週期統計數字選項呢？並且數字需符合方框大小內，可以小」）：手機（≤640）也有「顯示數字」，預設關、開了記住（另一個鍵，跟桌機分開記）；
+       手機格子窄：字級依格寬自動縮（最小 9px）、只印整數，還放不下的格子不印 —— 數字絕不超出格子。 */
+    const SN_MOBK = 'tw.season.num.m';
+    let showNum = (window.innerWidth <= 640) ? hmLS(SN_MOBK, '0') === '1' : hmLS('tw.season.num2', '1') === '1';          // ★ 2026-10-04 Andy 改口：「這邊 default 有數字」→ 預設印數字（換新鍵，舊的「關」不沿用）
     let focus = null;                                            // 圖例聚焦的那一級
     let pick = 'top', lineSel = new Set(), avgOn = true;         // 曲線圖：top／bot／none／custom
     let fellBack = false;
@@ -12809,8 +12812,10 @@
       });
       // 放得下才印：列高至少 16（12px 字＋上下各 2）；手機寬度扣 6px 邊，桌機是「字寬＋左右各 4 ≤ 格子看得到的寬」
       /* 數字字級：格子吃滿之後在 1440 以上每格 90～120px，12px 的數字縮在中間顯得太小 → 格寬 ≥ 72 且列高 ≥ 22 時用 13px（Andy：不變大太多）。*/
-      const numFs = !mob && cellW >= 72 && rowH >= 22 ? 13 : 12;
-      const fits = (t) => !!t && rowH >= 16 && (mob ? snTextW(t) <= colW - 6 : snTextW(t, numFs) + 8 <= cellW);
+      const mTxt = (t) => { const n = Math.round(parseFloat(t)); return String(n === 0 ? 0 : n); };   // 手機：四捨五入成整數、不帶 + 與 %（正負看顏色就知道；-0 印成 0）
+      const mFs = mob ? Math.max(9, Math.min(12, Math.floor(rowH - 4))) : 12;
+      const numFs = mob ? mFs : (cellW >= 72 && rowH >= 22 ? 13 : 12);
+      const fits = (t) => !!t && (mob ? rowH >= mFs + 2 && snTextW(mTxt(t), mFs) <= colW - 3 : rowH >= 16 && snTextW(t, numFs) + 8 <= cellW);
       const nFit = data.filter(d => fits(cellTxt(d.value[2], metric))).length;
       const nLab = showNum ? nFit : 0;
       /* 一格都放不下（手機 390px：每欄約 17px，最短的「0%」也要 20px）→「顯示數字」這顆整個收起來，
@@ -12839,7 +12844,7 @@
           itemStyle: { borderColor: CH.card, borderWidth: GAP, borderRadius: mob ? 3 : 3 + GAP / 2 },
           emphasis: { itemStyle: { borderColor: CH.ink, borderWidth: mob ? 1.5 : 2 } },
           label: { show: showNum, fontSize: numFs, fontWeight: 600, fontFamily: SN_MONO, color: '#fff', align: 'center', verticalAlign: 'middle',
-            formatter: (p) => { const t = cellTxt(p.data.value[2], metric); return fits(t) ? t : ''; } } }],
+            formatter: (p) => { const t = cellTxt(p.data.value[2], metric); return fits(t) ? (mob ? mTxt(t) : t) : ''; } } }],
       }, { notMerge: true });
       // ★ 點格子只出提示框（ECharts 預設就會），不做別的事：逐年明細那張卡已經拿掉，不留一個點了沒反應的入口
       if (c) c.off('click');
@@ -13089,7 +13094,7 @@
       $('#seasonHeatBox').scrollTop = 0; paintView(); drawHeat();
     });
     $$('#seasonNum button').forEach(b => b.onclick = () => {
-      showNum = !showNum; hmLSset('tw.season.num2', showNum ? '1' : '0'); paintView(); drawHeat();
+      showNum = !showNum; hmLSset(window.innerWidth <= 640 ? SN_MOBK : 'tw.season.num2', showNum ? '1' : '0'); paintView(); drawHeat();
     });
     $$('#seasonPick button').forEach(b => b.onclick = () => {
       if (b.dataset.v !== pick && window.TwQuota && !window.TwQuota.act('season.pick', 'obj', 'p.' + b.dataset.v)) return;   // 權限矩陣 season.pick

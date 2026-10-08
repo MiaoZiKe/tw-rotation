@@ -1701,7 +1701,9 @@
          而 Default 真正要給人看的是下面那份環節卡清單（有上下游與個股標籤）。
          桌機預設展開；選擇記在 localStorage，跟剖析圖那顆是同一種做法。*/
       const foldRel = $('#relFold', el);
-      let relOpen = window.innerWidth >= 640 || document.documentElement.classList.contains('m4');   // 2026-10-08 手機 v2：圖改成上下排、不用左右滑，預設打開
+      /* 2026-10-08：關聯圖＝產業鏈頁手機上唯一保留的主體（Andy：「手機版本只留下關聯圖，其餘…一定要收合」），手機預設打開；
+         桌機照「收展預設收起」準則改成預設收起（改前桌機預設展開）。使用者切過就記住（tw.relOpen）。 */
+      let relOpen = document.documentElement.classList.contains('m4');
       try { const v = localStorage.getItem('tw.relOpen'); if (v != null) relOpen = v === '1'; } catch (e) { /* 忽略 */ }
       const paintRelFold = () => {
         if (mapHost) mapHost.hidden = !relOpen;
@@ -1757,7 +1759,9 @@
          收起來不是把功能拿掉：鈕就在標題旁邊，按一下就展開，而且會記住。
          640px 這條線刻意比 820px（手機版面斷點）低 —— 800px 的筆電半視窗仍然直接看得到圖。*/
       const foldBtn = $('#dgFold', el), dgBody = $('#dgBody', el);
-      dgOpen = window.innerWidth >= 640;
+      /* 2026-10-08（Andy 手機五條準則第 5 條：「所有收展功能預設收起，網頁和手機都一樣」）：改前桌機預設展開、手機強制展開；
+         改後一律預設收起，使用者自己展開過（tw.dgOpen）才記住；直接走到某張圖的網址照舊展開。 */
+      dgOpen = false;
       try { const v = localStorage.getItem('tw.dgOpen'); if (v != null) dgOpen = v === '1'; } catch (e) { /* 忽略 */ }
       /* ★ 直接走到某一張圖自己的網址（#industry/<chain>/dg/<slot>）＝使用者明確說
          「我就是要看這張」。手機的預設收合是給「順著鏈逛進來」的人省高度用的，
@@ -1767,7 +1771,6 @@
          當初收合的理由是「字卡把圖撐到 1000px 以上」；手機 v3 字卡拿掉、只留編號之後圖只剩約 300px，
          收合反而讓這一頁的主角要多點一下才看得到。手機上「收合圖」那顆鈕也一起藏起來（index.html）。
          桌機（>640）不走這一行。*/
-      if (window.innerWidth <= 640) dgOpen = true;
       did3d = false;
       const dgSecEl = $('#dgSec', el);
       /* ★ 2026-09-23 第二批（W3-1 ＋ W3-9）：設定列改到**右上角**，

@@ -176,7 +176,7 @@
      順序同電腦版頁首右上：明暗（#themeBtn）→ 版面風格（#t4Btn）→ 平台導覽（#twPageTourBtn）→ 在線（#acctOnline）→ 登入（#acctBtn）。
      會員功能沒開時沒有 #acctBtn：放一顆 #m4Login，講清楚為什麼不能登入（同電腦版 #l4Login 的字）。
      搜尋收進抽屜最上面的「搜尋」；「⋯」選單拿掉（裡面的今日事件、自選都在抽屜）。 */
-  const TOOLS = ['#themeBtn', '#t4Btn', '#twPageTourBtn', '#acctOnline', '#acctBtn', '#m4Login'];
+  const TOOLS = ['#themeBtn', '#t4Btn', '#twPageTourBtn', '#acctOnline', '#acctBtn', '#m4Login'];   // #themeBtn 搬進來但藏著（明暗在「外觀」面板裡，去按它本人）
   let tools = null; const home = new Map();
   function acctOn() { const A = window.TwAccount; return !!(A && A.on && A.on()); }
   function buildTools(bar) {
@@ -233,6 +233,19 @@
     const rng = $('#etfIncRngBox', ctl); const per = rng ? txt($('select', rng) || $('.on', rng)) : '';
     return [mode + (amt ? ' ' + amt : ''), scope, per, nhi].filter(Boolean).join('・');
   }
+
+  /* 產業鏈頁：環節卡清單（#chainList）與「全部展開」列（#segTools）收進一顆「環節卡清單 ▸」收合列，預設收起（Andy：「其餘的可以不用拿掉，但一定要收合」） */
+  function wireChainList() {
+    if (!isM()) return;
+    const pane = $('#indChain .chainpane'); if (!pane || !$('#chainList', pane)) return;
+    let b = $(':scope > .m4fold', pane);
+    if (!b) {
+      b = document.createElement('button'); b.type = 'button'; b.className = 'm4fold'; b.setAttribute('aria-expanded', 'false');
+      b.innerHTML = '環節卡清單 <i aria-hidden="true">▸</i>';
+      b.onclick = () => { const on = !pane.classList.contains('m4listopen'); pane.classList.toggle('m4listopen', on); b.setAttribute('aria-expanded', on ? 'true' : 'false'); $('i', b).textContent = on ? '▾' : '▸'; };
+      const anchor = $('#segTools', pane) || $('#chainList', pane); pane.insertBefore(b, anchor);
+    }
+  }
   function wireCond() {
     if (!isM()) return;
     $$('#v-etf #incPM > .incctl, #v-etf #incPX .cxctl').forEach((ctl) => {
@@ -284,7 +297,7 @@
     // 會員功能晚一步才開（account.js 讀完設定檔）、#acctBtn／#acctOnline 晚一步才建：出現時收進頂欄小圖示列
     new MutationObserver(() => { if (tools && isM()) { const bar = $('.topbar'); const miss = TOOLS.some((q) => { const e = $(q); return e && e.parentNode !== tools; }) || (acctOn() && $('#m4Login')); if (bar && miss) buildTools(bar); } })
       .observe(document.body, { childList: true, subtree: true });
-    let ct = 0; new MutationObserver(() => { if (!isM()) return; clearTimeout(ct); ct = setTimeout(wireCond, 120); }).observe(document.body, { childList: true, subtree: true });
+    let ct = 0; new MutationObserver(() => { if (!isM()) return; clearTimeout(ct); ct = setTimeout(() => { wireCond(); wireChainList(); }, 120); }).observe(document.body, { childList: true, subtree: true });
     wireCond();
   }
   window.TwM4 = { open, close, isOpen: () => !!(drawer && !drawer.hidden) };

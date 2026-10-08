@@ -26591,6 +26591,58 @@ def t_mobile_m4_1008(b, base, code):
         ok(f"【{T}】資金流向排名預設收起、標題列看得到", sk["shut"] and sk["hd"], sk)
         m.locator("#mSankeyRankHd").tap(); m.wait_for_timeout(400)
         ok(f"【{T}】點「資金流向排名 ▸」→ 排名展開", J("() => getComputedStyle(document.getElementById('mSankeyRank')).display !== 'none' && document.querySelectorAll('#mSankeyRank .skr-r').length > 0"))
+        # ⑪ 客服鈕：泡泡裡有天竺鼠
+        go("overview", 2000)
+        ok(f"【{T}】客服鈕是對話泡泡＋天竺鼠（泡泡 svg 裡有 brand/mark 圖）", J("() => !!document.querySelector('.supfab svg.supbub image[href*=\"brand/mark\"]')"))
+        # ⑫ 週期統計：打開「數字」→ 每格數字的方框都在格子裡（ECharts 畫在 canvas：用 app.js 寫在 #seasonHeat 的 nlab／nval 與「放不下不印」的規則驗）
+        go("season", 3500)
+        n0 = J("() => +document.getElementById('seasonHeat').dataset.nlab")
+        m.locator("#mSeasonNum").tap(); m.wait_for_timeout(1200)
+        sn = J("() => { const e = document.getElementById('seasonHeat'); return { nlab: +e.dataset.nlab, nval: +e.dataset.nval, colw: +e.dataset.colw, btn: document.getElementById('mSeasonNum').textContent }; }")
+        ok(f"【{T}】週期統計手機預設不印數字（{n0}）、按「數字」之後印出 {sn['nlab']}／{sn['nval']} 格（{sn['btn']}）", n0 == 0 and sn["nlab"] > 0, sn)
+        m.locator("#mSeasonNum").tap(); m.wait_for_timeout(600)
+        # ⑬ 產業鏈：剖析圖預設收起、環節卡清單收成收合列、②③④ 展開列觸控有效、3D 編號是引線標註
+        go("industry/electronics", 3500)
+        dg0 = J("() => { const b = document.getElementById('dgBody'); return !!b && getComputedStyle(b).display === 'none'; }")
+        ok(f"【{T}】產業鏈頁剖析圖預設收起（點「展開剖析圖」才打開）", dg0, dg0)
+        lst = J("() => ({ btn: !!document.querySelector('#indChain .m4fold'), list: getComputedStyle(document.getElementById('chainList')).display })")
+        ok(f"【{T}】環節卡清單收成「環節卡清單 ▸」、預設收起", lst["btn"] and lst["list"] == "none", lst)
+        m.locator("#indChain .m4fold").tap(); m.wait_for_timeout(400)
+        ok(f"【{T}】點「環節卡清單 ▸」→ 清單出現", J("() => getComputedStyle(document.getElementById('chainList')).display !== 'none'"))
+        m.locator("#indChain .m4fold").tap(); m.wait_for_timeout(300)
+        m.locator("#dgFold").tap(); m.wait_for_timeout(1500)
+        m.locator('#dgPick a:has-text("面板")').first.click(); m.wait_for_timeout(2500)
+        J("() => { const b = document.querySelector('#dg3d button[data-dm=\"3d\"]'); if (b) b.click(); }"); m.wait_for_timeout(2500)
+        J("() => { const b = document.getElementById('dgNum'); if (b && b.textContent.includes('關')) b.click(); }"); m.wait_for_timeout(800)
+        ld = J("""() => { const l = document.querySelector('#prod3d .mnumlayer'); if (!l || !l.getClientRects().length) return null; const W = l.getBoundingClientRect();
+            const ns = [...l.querySelectorAll('.mnum')].map(b => b.getBoundingClientRect());
+            const side = ns.filter(r => r.left - W.left < 40 || W.right - r.right < 40).length;
+            return { n: ns.length, side, lines: l.querySelectorAll('svg path').length }; }""")
+        ok(f"【{T}】3D 編號改成引線標註：編號圈都排在左右兩側、每個圈有一條引線（{ld}）", ld and ld["n"] > 0 and ld["side"] == ld["n"] and ld["lines"] >= ld["n"] - 1, ld)
+        rows = J("() => [...document.querySelectorAll('.mdgfolds button[data-fold]')].map(b => b.dataset.fold)")
+        badf = []
+        for fid in rows:
+            h0 = J("() => document.getElementById('prodDiagram').getBoundingClientRect().height")
+            m.locator(f'.mdgfolds button[data-fold="{fid}"]').tap(); m.wait_for_timeout(900)
+            st = J(f"""() => {{ const b = document.querySelector('.mdgfolds button[data-fold="{fid}"]'); return {{ ae: b && b.getAttribute('aria-expanded'), h: document.getElementById('prodDiagram').getBoundingClientRect().height }}; }}""")
+            if st["ae"] != "true" or st["h"] <= h0 + 4:
+                badf.append((fid, h0, st))
+        ok(f"【{T}】剖析圖 ②③④ 展開列用觸控點了都真的展開（{len(rows)} 列；在 3D 時先切回 2D）", rows and not badf, badf)
+        # ⑭ 手機一律不用方格：402 寬主內容區（按鈕、輸入框、切換鈕、月曆格除外）沒有四邊框、沒有陰影
+        m.set_viewport_size({"width": 402, "height": 874})
+        badb = {}
+        for h in ("overview", "flow/sankey", "flow/rotation", "heatmap/industry", "industry", "market", "explore", "etf/list", "etf/inc", "season", "watch", "stock/" + code):
+            go(h, 2600)
+            r = J("""() => { const CTRL = '.ed,.cald,.hmbar,.snk,.st,.badge,button,input,select,textarea,label,a,[role=button],[role=tab],.seg,.mseg,.nbsw,.pill,.chip,.ddbtn,.segdd,.etag,.fq,.fqtag,summary,.mnum';
+                const out = []; document.querySelectorAll('main .view.on *').forEach(e => { if (!e.getClientRects().length || e.matches(CTRL) || e.closest(CTRL) || e.ownerSVGElement || e.tagName === 'svg' || e.tagName === 'CANVAS') return;
+                  const cs = getComputedStyle(e); const r = e.getBoundingClientRect(); if (r.width < 30 || r.height < 16) return;
+                  const b4 = ['Top', 'Right', 'Bottom', 'Left'].every(k => parseFloat(cs['border' + k + 'Width']) > 0 && cs['border' + k + 'Style'] !== 'none');
+                  const sh = cs.boxShadow !== 'none' && !/inset/.test(cs.boxShadow);
+                  if (b4 || sh) out.push((e.id ? '#' + e.id : '') + '.' + String(e.className).split(' ')[0] + (b4 ? '[框]' : '') + (sh ? '[影]' : '')); }); return [...new Set(out)].slice(0, 8); }""")
+            if r:
+                badb[h] = r
+        ok(f"【{T}】402 寬主內容區沒有方框與陰影（只用線條分區）", not badb, badb)
+        m.set_viewport_size({"width": 390, "height": 844})
         # ⑨ 卡片標題的「?」不准自己佔一行：「?」與標題文字的垂直中心差 ≤ 8px（看得到的文字節點才算）
         badq = []
         for h in ("overview", "flow/rotation", "flow/sankey", "flow/inst", "heatmap/industry", "market", "etf/list", "etf/inc", "season"):
@@ -26687,22 +26739,29 @@ def t_mobile_m4(b, base, code):
                  sw: document.documentElement.scrollWidth, bw: bar.scrollWidth, bcw: bar.clientWidth, ovl, ev: evHidden,
                  more: vis(document.getElementById('moreBtn')), nth: [...document.querySelectorAll('#themeBtn, #mmTheme, [data-act=theme], #l4Mode')].filter(vis).length, head: (document.getElementById('m4Title') || {}).textContent || '' }; }""")
     ok(f"【{T}】頂欄只有頭像、沒有頁名文字", tb["logo"] and tb["txt"] == [], tb["txt"])
-    want_tools = ["themeBtn", "t4Btn", "twPageTourBtn"]
-    ok(f"【{T}】頂欄右邊依序有明暗、版面風格、平台導覽、（在線）、登入（{'／'.join(tb['tools'])}）",
-       tb["tools"][:3] == want_tools and tb["tools"][-1] in ("acctBtn", "m4Login") and all(x in ("acctOnline",) for x in tb["tools"][3:-1]), tb["tools"])
+    # 2026-10-08 改：明暗與版面風格合成一顆「外觀」（Andy：「統一一個功能按鍵在上方」）→ 依序：外觀、平台導覽、（在線）、登入
+    want_tools = ["t4Btn", "twPageTourBtn"]
+    ok(f"【{T}】頂欄右邊依序有外觀、平台導覽、（在線）、登入（{'／'.join(tb['tools'])}）",
+       tb["tools"][:2] == want_tools and tb["tools"][-1] in ("acctBtn", "m4Login") and all(x in ("acctOnline",) for x in tb["tools"][2:-1]), tb["tools"])
     ok(f"【{T}】頂欄小圖示觸控高度 ≥ 40", tb["small"] == [], tb["small"])
     ok(f"【{T}】頂欄不溢出、元素不互相重疊", tb["bw"] <= tb["bcw"] + 1 and tb["sw"] <= 390 and tb["ovl"] == [], tb)
     ok(f"【{T}】「⋯」選單拿掉、頂欄沒有今日事件", not tb["more"] and tb["ev"] == 0, tb)
-    ok(f"【{T}】整頁只有一個明暗切換（頂欄那一顆）", tb["nth"] == 1, tb["nth"])
+    ok(f"【{T}】頁面上沒有另外一顆明暗鈕（明暗在「外觀」面板裡）", tb["nth"] == 0, tb["nth"])
     ok(f"【{T}】頁名搬到內容區最上面（{tb['head']}）", tb["head"].strip() == "總覽", tb["head"])
-    th0 = m.evaluate("() => document.documentElement.dataset.theme || ''")
-    m.locator("#m4Tools #themeBtn").tap(); m.wait_for_timeout(400)
-    th1 = m.evaluate("() => document.documentElement.dataset.theme || ''")
-    ok(f"【{T}】頂欄明暗鈕點了主題真的切換（{th0}→{th1}）", th0 != th1, (th0, th1))
-    m.locator("#m4Tools #themeBtn").tap(); m.wait_for_timeout(300)
     m.locator("#m4Tools #t4Btn").tap(); m.wait_for_timeout(400)
-    pan = m.evaluate("""() => { const p = document.getElementById('t4Panel') || document.querySelector('.t4panel, .t4pop'); return !!p && !p.hidden && p.getClientRects().length > 0; }""")
-    ok(f"【{T}】頂欄版面風格鈕點了打開面板", pan, pan)
+    pan = m.evaluate("""() => { const p = document.getElementById('t4Pop'); return !!p && !p.hidden && p.getClientRects().length > 0 && !!p.querySelector('.t4mode') && p.querySelectorAll('.t4o').length > 1; }""")
+    ok(f"【{T}】頂欄「外觀」點了打開面板（上面明暗、下面版面風格）", pan, pan)
+    th0 = m.evaluate("() => document.documentElement.dataset.theme || ''")
+    m.locator("#t4Pop .t4mode button:not(.on)").first.tap(); m.wait_for_timeout(400)
+    th1 = m.evaluate("() => document.documentElement.dataset.theme || ''")
+    ok(f"【{T}】外觀面板切深淺主題真的切換（{th0}→{th1}）", th0 != th1, (th0, th1))
+    m.locator("#t4Pop .t4mode button:not(.on)").first.tap(); m.wait_for_timeout(300)
+    s0 = m.evaluate("() => document.documentElement.getAttribute('data-theme4') || ''")
+    m.locator("#t4Pop .t4o[aria-pressed=false]").first.tap(); m.wait_for_timeout(400)
+    s1 = m.evaluate("() => document.documentElement.getAttribute('data-theme4') || ''")
+    ok(f"【{T}】外觀面板換版面風格真的生效（{s0}→{s1}）", s0 != s1, (s0, s1))
+    m.locator(f"#t4Pop .t4o[data-t4='{s0}']").first.tap() if s0 else None
+    m.wait_for_timeout(200)
     m.keyboard.press("Escape"); m.wait_for_timeout(200); m.mouse.click(200, 700); m.wait_for_timeout(300)
     lg = m.locator("#m4Tools #m4Login, #m4Tools #acctBtn").first; lg.tap(); m.wait_for_timeout(400)
     lgo = m.evaluate("""() => { const t = document.getElementById('m4LoginTip'); const d = document.querySelector('.acctdlg, .acctmenu, #acctDlg');
@@ -26765,7 +26824,8 @@ def t_mobile_m4(b, base, code):
         # ⑤ 主要切換真的點得動
         ch = m.evaluate("""() => { const v = document.querySelector('.view.on'); const H = innerHeight;
             document.querySelectorAll('[data-m4try]').forEach(x => x.removeAttribute('data-m4try'));
-            const cand = [...v.querySelectorAll('button')].filter(b => { const r = b.getBoundingClientRect(); return r.width && r.top > 0 && r.bottom < H && !b.disabled; });
+            // 「⋯」是開選單的鈕（自選分頁式 2026-10-08 合併進來），不是分段切換，不算
+            const cand = [...v.querySelectorAll('button')].filter(b => { const r = b.getBoundingClientRect(); return r.width && r.top > 0 && r.bottom < H && !b.disabled && b.textContent.trim() !== '⋯'; });
             const isOn = (b) => b.classList.contains('on') || b.getAttribute('aria-selected') === 'true' || b.getAttribute('aria-pressed') === 'true';
             for (const b of cand) { if (isOn(b)) continue; const sib = [...b.parentElement.children].filter(x => x.tagName === 'BUTTON');
               if (sib.length >= 2 && sib.some(isOn)) { b.setAttribute('data-m4try', '1'); return { t: b.textContent.trim().slice(0, 12) }; } }
