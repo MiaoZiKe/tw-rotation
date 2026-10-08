@@ -191,7 +191,7 @@
   /* ★ 2026-10-06 即時僅管理者（DECISIONS #326）：不是管理者 → 這三張圖整個不碰即時來源
      （證交所分時檔、台指期日盤／夜盤、Yahoo 1 分線、推送），只畫資料湖的最近交易日（seedLake）＝盤後版本。
      m3On 經過 live.js 的 cardOn 已經含這個判斷；這支另外擋「mount 那一次／別人呼叫 refresh(true)」那幾條不看 m3On 的路。*/
-  const liveOK = () => !!(window.TwLive && window.TwLive.allowed());
+  const liveOK = () => !!(window.TwLive && window.TwLive.canLive());   // 2026-10-08：站主或管理員（livegate.js canLive）
   /* ★ 2026-09-29 順手修：`#m3` 寫死在 index.html 的總覽區塊裡，**換到別頁它還在 DOM 裡**（只是 .view 被 display:none）。
      所以以前那句「不在總覽就不用抓」（`!getElementById('m3')`）從來沒成立過 —— 實測在 #market、#flow 也照樣
      每 10 秒打三個分時檔。改成看「畫面上真的看得到」（getClientRects），別頁一律不抓。*/
@@ -985,6 +985,7 @@
     if (window.Live && window.Live.slot) await window.Live.slot(1);
     // 排隊等節流閥的期間使用者把「即時」關了 → 這一個就不打（關掉之後不准再有請求）
     if (!state.runManual && !m3On()) throw new Error('OFF');
+    if (!liveOK()) throw new Error('OFF');               // 2026-10-08：排隊期間站主或管理員登出（閘門原地關）→ 不打
     const r = await fetch(base + '/chart?id=' + id + '&t=' + Date.now(), { cache: 'no-store' });
     if (r.status === 404 || r.status === 400) {
       // Worker 還是舊版（只有 /quote）。這是 Andy 要自己去 Cloudflare 重貼的那一步，直接寫在畫面上。
@@ -1284,6 +1285,10 @@
       tip: '盤中：加權、櫃買每 5 秒更新；台指期日盤每 15 秒；分時走勢線每 10 秒' });
   }
   window.addEventListener('tw:live', () => { patchFromLive(); });
+  /* ★ 2026-10-08 站主或管理員登入／登出不重新載入（livegate.js 檔頭 ④）：閘門一變就重排計時器 ——
+     關＝schedule() 經 m3On（live.js cardOn 含閘門）把三組會打端點的計時器收掉；開＝排回去。
+     畫面本身交給 app.js 的整頁重畫（總覽重畫時 mount() 會依閘門決定種資料湖還是抓即時）。*/
+  window.addEventListener('tw:livegate', () => { schedule(); });
   window.addEventListener('tw:livecard', (e) => {
     if (!e.detail || e.detail.key !== 'm3' || !document.getElementById('m3')) return;
     schedule();

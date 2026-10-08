@@ -912,7 +912,8 @@
       + '<p>這個網站把公開的成交、法人、營收與新聞資料，照「錢往哪跑 → 貴不貴 → 何時進場 → 別進的理由」排成一條路徑。</p>'
       + '<div class="lgcards">'
       + '<div class="lgcard"><b>⤢ 紅漲綠跌</b>跟台股看盤軟體一樣。</div>'
-      + '<div class="lgcard"><b>◷ 每天盤後更新</b>盤中的數字另外標「即時」。</div>'
+      /* 2026-10-08（Andy：「有類似功能都拿掉 因為都是盤後」）：「盤中另外標即時」只對站主或管理員成立，那半句標 data-live-ui（非站主或管理員由 livegate.js 的 CSS 藏）*/
+      + '<div class="lgcard"><b>◷ 每天盤後更新</b><span data-live-ui>盤中的數字另外標「即時」。</span></div>'
       + '<div class="lgcard"><b>⛉ 不是投資建議</b>所有數字都是公開資料算出來的結果。</div></div>'
       + '<div id="lgStepBox"></div>'
       + '<div class="lgdots" id="lgDots" aria-hidden="true">' + STEPS.map(() => '<i></i>').join('') + '</div>'

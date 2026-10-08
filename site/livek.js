@@ -243,6 +243,7 @@
     try {
       const url = base + '/quote?ex_ch=' + encodeURIComponent(exch(state.code, state.market));
       if (window.Live && window.Live.slot) await window.Live.slot(0);
+      if (!(window.TwLive && window.TwLive.canLive())) throw new Error('即時已關閉');   // 2026-10-08：排隊期間站主或管理員登出 → 不打
       const r = await fetch(url, { cache: 'no-store' });
       if (!r.ok) throw new Error('代理回 HTTP ' + r.status);
       const j = await r.json();
@@ -674,7 +675,7 @@
       /* ★ 2026-10-06 即時僅管理者（DECISIONS #326）：不是管理者 → 不讀這台瀏覽器存過的今天 5 秒序列、不輪詢、不打 Yahoo。
          poll() 問 cardOn（live.js 的 permLive 含閘門）、loadHistory() 拿不到代理網址（Live.proxy() 回空字串），
          所以下面照常走完只會得到「沒有即時來源」（histErr）＋ settled —— 個股頁的分時會立刻改用資料湖的 60 分 K，不會等 8 秒。*/
-      if (window.TwLive && window.TwLive.allowed()) load();
+      if (window.TwLive && window.TwLive.canLive()) load();
       startTimer();
       await poll();
       await loadHistory();
