@@ -17,7 +17,7 @@
   /* ★ 2026-10-06 即時僅管理者（Andy：「所有的即時功能，只有在我這帳號才會出現，其他帳號都隱藏」，DECISIONS #326）。
      這支檔裡的即時入口：族群總覽的「即時」鈕、個股週期列的 1分／5分／15分（只有即時來源，非管理者沒有任何資料可畫）。
      分時（tick）留著：非管理者看的是資料湖 60 分 K 的最近交易日（盤後版本），livek.js 不 attach 輪詢。*/
-  const liveOK = () => !!(window.TwLive && window.TwLive.allowed());
+  const liveOK = () => !!(window.TwLive && window.TwLive.canLive());   // 2026-10-08：站主或管理員（livegate.js canLive）
   let A;                                   // window.App（app.js 提供）
   /* ★ 2026-09-28 預設週期改成「分時」（Andy：「K線圖新增分時走勢（Default 設定在上面…）」）。
      tfAuto＝這次的週期是「預設帶進來的」不是使用者按的：分時真的沒資料時只有這種情況才自動改用日 K；
@@ -371,8 +371,8 @@
         <h4 id="gpTitle" style="min-width:0"></h4>
         <div class="row gplive">
           <button class="btn small" id="gpBack" type="button" hidden title="回到族群層級的長條圖">← 回到族群</button>
-          <span class="rbar" data-live-ui><button class="pb livebtn" id="gpLiveBtn" type="button" aria-pressed="false"
-            title="切到盤中即時：用當下的成交價與累積成交量重算漲跌與占比，每 5 秒更新（盤中暫定值）">即時</button></span>
+          ${liveOK() ? `<span class="rbar" data-live-ui><button class="pb livebtn" id="gpLiveBtn" type="button" aria-pressed="false"
+            title="切到盤中即時：用當下的成交價與累積成交量重算漲跌與占比，每 5 秒更新（盤中暫定值）">即時</button></span>` : ''}
         </div>
       </div>
       <!-- ★ 2026-09-24 說明精簡：#gpHint（這張圖回答／怎麼用）與即時的估算口徑搬進「怎麼看 ?」；
@@ -503,7 +503,8 @@
       paint();
     });
     const stopTimer = () => { if (gpTimer) { clearInterval(gpTimer); gpTimer = null; } };
-    liveBtn.onclick = () => {
+    /* ★ 2026-10-08：不是站主或管理員時「即時」鈕根本不畫（上面的模板），這裡就沒有鈕可以綁 */
+    if (liveBtn) liveBtn.onclick = () => {
       if (!live && !liveOK()) return;   // 不是管理者：即時打不開（鈕本來就藏著，這裡是第二道，DECISIONS #326）
       live = !live;
       liveBtn.classList.toggle('on', live);
@@ -513,7 +514,11 @@
       paint();                          // 先把「抓取中」寫上去，不要讓畫面看起來沒反應
       if (window.Live && window.Live.report) window.Live.report('gp', true);   // 重新打開：清掉上次的退避
       liveTick();
-      gpTimer = setInterval(() => { if (!document.hidden && live) liveTick(); }, GP_LIVE_MS);
+      /* 2026-10-08：站主或管理員登出（閘門原地關，不重新載入）→ 下一跳自己退出即時、收掉計時器，不再打任何端點 */
+      gpTimer = setInterval(() => {
+        if (live && !liveOK()) { live = false; stopTimer(); q = null; liveErr = ''; cov = [0, 0]; if (host.isConnected) paint(); return; }
+        if (!document.hidden && live) liveTick();
+      }, GP_LIVE_MS);
     };
     backBtn.onclick = () => {
       drill = null; hi = null;
@@ -1703,13 +1708,20 @@
       const foldRel = $('#relFold', el);
       /* 2026-10-08：關聯圖＝產業鏈頁手機上唯一保留的主體（Andy：「手機版本只留下關聯圖，其餘…一定要收合」），手機預設打開；
          桌機照「收展預設收起」準則改成預設收起（改前桌機預設展開）。使用者切過就記住（tw.relOpen）。 */
-      let relOpen = document.documentElement.classList.contains('m4');
+      /* ★ 2026-10-08 桌機守門（Andy 17:13：「網頁版不要變成這樣，Default 就是展開關聯圖，收合就是都收合…
+         收合狀態下方不會有資訊，展開就是關聯圖以及說明資訊」「兩者不可侵犯」）：
+         手機 v2 把桌機也改成預設收起、收起時攤開整份環節卡清單 —— 那是手機的改動漏到桌機。
+         桌機（沒有 html.m4）：預設展開；收合＝關聯圖與環節卡清單一起藏，標題以下什麼都沒有。
+         手機（html.m4）：照手機 v2（預設展開、收起時留清單），一行都不動。 */
+      const relM4 = document.documentElement.classList.contains('m4');
+      let relOpen = true;
       try { const v = localStorage.getItem('tw.relOpen'); if (v != null) relOpen = v === '1'; } catch (e) { /* 忽略 */ }
       const paintRelFold = () => {
         if (mapHost) mapHost.hidden = !relOpen;
         /* 清單平常與圖等高（它自己的高度不算進版面）；圖收起來之後沒有「圖的高度」可以對齊，
            .mapfold 讓清單改成佔滿整列、用自己的高度（上限 70vh）—— 不然收合圖會連清單一起收成 0。*/
         const rm = $('#relMain', el); if (rm) rm.classList.toggle('mapfold', !relOpen);
+        const rr = $('#relRow', el); if (rr) rr.hidden = !relOpen && !relM4;   // 桌機收合：整列（圖、環節詳情、環節卡清單）一起藏，標題以下什麼都沒有
         if (foldRel) { foldRel.textContent = relOpen ? '收合圖 ▴' : '展開關聯圖 ▾'; foldRel.classList.toggle('cyan', !relOpen); }
         placeRelCol(el);        // 圖收起來 → 卡片回到文件流（清掉浮動座標）；展開 → 重新貼回圖上
       };
@@ -1761,7 +1773,8 @@
       const foldBtn = $('#dgFold', el), dgBody = $('#dgBody', el);
       /* 2026-10-08（Andy 手機五條準則第 5 條：「所有收展功能預設收起，網頁和手機都一樣」）：改前桌機預設展開、手機強制展開；
          改後一律預設收起，使用者自己展開過（tw.dgOpen）才記住；直接走到某張圖的網址照舊展開。 */
-      dgOpen = true;   // 2026-10-08 Andy：「圖二需要 Default 展開狀態」—— 剖析圖是「收展預設收起」準則的例外（Andy 明確指定），使用者收起過才記住
+      /* ★ 2026-10-08 桌機守門：桌機（>640）預設展開（同改前）；手機也預設展開（Andy：「圖二需要 Default 展開狀態」，收展準則的例外）。使用者收起過才記住。 */
+      dgOpen = true;
       try { const v = localStorage.getItem('tw.dgOpen'); if (v != null) dgOpen = v === '1'; } catch (e) { /* 忽略 */ }
       /* ★ 直接走到某一張圖自己的網址（#industry/<chain>/dg/<slot>）＝使用者明確說
          「我就是要看這張」。手機的預設收合是給「順著鏈逛進來」的人省高度用的，
@@ -3414,9 +3427,9 @@
        只在非桌機（≤820，原本就是要左右滑的寬度）判斷；桌機版面一律照舊左右排。 */
     const HW0 = (host && host.clientWidth) || ((window.innerWidth || 390) - 16);
     const needW = layerCols * 136 + Math.max(0, layerCols - 1) * 18 + 52;
-    /* 2026-10-08 晚（Andy：「關聯圖回到原本水平的，並且只有點到的題材族群內容才會打開」）：推翻上一輪「放不下就改垂直」——
-       一律水平排；寬度不夠就讓這個框自己左右拖（手指拖、平移）。上下排的程式留著但不再走到（vert 恆為 false）。 */
-    const vert = false && (window.innerWidth || 1440) <= 820 && HW0 < needW;
+    /* 2026-10-08 晚（Andy：「關聯圖回到原本水平的，並且只有點到的題材族群內容才會打開」）：手機也一律水平排、寬度不夠就左右拖；
+       上下排的程式留著但不再走到（vert 恆為 false）。桌機本來就水平排（桌機守門：桌機行為不變）。 */
+    const vert = false && document.documentElement.classList.contains('m4') && HW0 < needW;
     if (host && host.dataset) { host.dataset.layout = vert ? 'vert' : 'horiz'; host.dataset.needw = String(needW); host.dataset.hw = String(Math.round(HW0)); }
     const VHW = Math.max(300, HW0);
     const fit = vert ? (() => { const pad = 4, g = 12, cw = Math.floor((VHW - pad * 2 - g) / 2); return { colW: cw, colGap: g, padX: pad, W: VHW, HW: VHW, CW: VHW - pad * 2 }; })()

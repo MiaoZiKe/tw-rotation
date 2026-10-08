@@ -678,7 +678,8 @@
       document.documentElement.dataset.twtHold = '1';
       if (st.before) { try { await st.before(); } catch (e) { /* 示範動作失敗就當沒有這一步的前置，照樣去找元素 */ } }
       delete document.documentElement.dataset.twtHold;
-      if (!moved && Math.abs(window.scrollY - y0) > 1) {
+      // 2026-10-08 桌機守門：這個「放回原處」只為手機分段而加，桌機（沒有 html.m4）照改前不動
+      if (!moved && document.documentElement.classList.contains('m4') && Math.abs(window.scrollY - y0) > 1) {
         const maxY = Math.max(0, document.documentElement.scrollHeight - window.innerHeight);
         window.scrollTo({ top: Math.min(y0, maxY), behavior: 'instant' });
       }

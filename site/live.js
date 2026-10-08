@@ -194,7 +194,7 @@
   /* ★ 2026-10-06 即時僅管理者（DECISIONS #326）：不是管理者 → 代理網址一律給空字串。
      market3.js、livek.js、app.js／industry.js 的族群即時模式全部經過這一支（或 fetchQuotes）拿網址，
      所以這一行就是「訪客不會打到 quote-proxy／Deno／mis」的網路層保險：就算哪個入口忘了問閘門，也只會拿到「還沒設定來源」。*/
-  const gateOK = () => !!(window.TwLive && window.TwLive.allowed());
+  const gateOK = () => !!(window.TwLive && window.TwLive.canLive());   // 2026-10-08：站主或管理員
   const proxy = () => (gateOK() ? (ls.get(KEY_PROXY, '') || DEFAULT_PROXY).replace(/\/+$/, '') : '');
   const autoOn = () => ls.get(KEY_ON, '1') === '1';
 
@@ -371,6 +371,9 @@
     codes.forEach(c => exch(c).forEach(t => ex.push(t)));
     const url = base + '/quote?ex_ch=' + encodeURIComponent(ex.slice(0, MAX_CODES * 2).join('|'));
     await slot(opts && opts.prio != null ? opts.prio : 2);
+    /* ★ 2026-10-08：排隊的時候站主或管理員登出了（閘門原地關、不重新載入）→ 排在節流閥裡的請求放行時再問一次，不准送出去。
+       驗收實測抓到：登出前排進去的兩批族群報價，登出後 5 秒才被放行打出去。*/
+    if (!gateOK()) throw new Error('即時已關閉');
     state.reqs++;
     // ★ 2026-09-24：加逾時。以前代理卡住時 fetch 永遠不回，即時模式就停在「更新中」不動。
     const ctl = (typeof AbortController === 'function') ? new AbortController() : null;
@@ -1043,6 +1046,24 @@
       // 並且把 SSE 的訂閱換成新的那一組（不換的話新頁面的格子永遠不會動）
       window.addEventListener('hashchange', () => setTimeout(() => { mountAll(); tick(false); syncStream(); }, 800));
       window.addEventListener('pagehide', () => closeStream(true));
+      /* ★ 2026-10-08 站主或管理員登入／登出不重新載入（livegate.js 檔頭 ④）：
+         關 → 收掉推送連線、被即時層改過的格子退回盤後值（data-lst）、拔掉所有卡片開關；之後 tick() 每一輪問 permLive() 就只剩 meta 比對。
+         開 → 掛開關、馬上抓一輪、開推送（app.js 那邊會整頁重畫，MutationObserver 也會再補掛一次）。*/
+      window.addEventListener('tw:livegate', () => {
+        if (!gateOK()) {
+          closeStream(true);
+          document.querySelectorAll('[data-live][data-lc]').forEach(el => {
+            if (el.dataset.lst === undefined) return;
+            el.textContent = el.dataset.lst; el.className = el.dataset.lstc || el.className;
+            delete el.dataset.lst; delete el.dataset.lstc;
+          });
+          document.querySelectorAll('.livetg').forEach(el => el.remove());
+          stamp();
+        } else {
+          state.ssePaused = false;            // 關的時候 closeStream(true) 標了暫停，不清掉推送就永遠開不起來
+          mountAll(); tick(false); openStream();
+        }
+      });
       tick(false);
       openStream();
     },

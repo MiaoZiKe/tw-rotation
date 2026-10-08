@@ -29,7 +29,8 @@ from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
-SITE = ROOT / "site"
+# ★ 2026-10-08 桌機守門1008：要拿「改前的網站快照」產生對照指紋時，用 TW_UITEST_SITE 指到那份 site/（沒設＝本 repo 的 site/）
+SITE = Path(os.environ.get("TW_UITEST_SITE") or (ROOT / "site"))
 # 埠可以用環境變數蓋掉（TW_UITEST_PORT / TW_PREVIEW_PORT）。
 # 2026-09-20 加的：同時派幾個 agent 各自驗自己那一段時，固定埠會互相搶，
 # 第二個起來的直接 OSError: Address already in use，看起來像程式壞了。
@@ -2267,6 +2268,42 @@ def t_etf_1005(pg, b, base):
         ok(f"★ [{tag}] 當天清單寫填息天數：已填「3 天」、未填「尚未填息（已 5 天）」、算不出來「—」",
            "3 天" in rows[0] and "尚未填息（已 5 天）" in rows[1] and rows[2].endswith("—"), rows)
         ok(f"[{tag}] 選中的格子有框", J("(k) => document.querySelector(`.cald[data-d='${k}']`).classList.contains('sel')", d16))
+        # ---- 2026-10-08：單檔明細小圖＝共用 C 款直條（漸層＋圓角）＋滑過提示＋點直條 ⇄ 表格列雙向連動
+        lp.click("#etfDayTbl tbody tr[data-code='0056']"); lp.wait_for_timeout(500)
+        wait_until(lp, "() => { const e = document.querySelector('#etfCalList .cgmini'); return e && window.echarts && echarts.getInstanceByDom(e); }", 5000)
+        cgi = J(CG_MINI_INFO, "#etfCalList .cgmini")
+        ok(f"★ [{tag}] 單檔明細小圖：配息直條是同色漸層（LinearGradient，上實下淡）、頂端圓角 > 0、寬 ≤ 12px、疊殖利率折線（寬 2）",
+           bool(cgi) and cgi.get("inst") and cgi["n"] >= 1 and cgi["grad"] and cgi["rad"] > 0 and (cgi["maxW"] or 99) <= 12 and cgi["line"] and cgi["lineW"] == 2, cgi)
+        if cgi and cgi.get("inst") and cgi["n"] >= 1:
+            k = cgi["n"] - 1
+            lp.mouse.move(*cg_bar_xy(cgi, k)); lp.wait_for_timeout(450)
+            tip = J(CG_TIP_TEXT)
+            amt = J("(k) => { const t = document.querySelector(`#etfCodeTbl tbody tr[data-i='${k}'] td:nth-child(2)`); return t ? t.textContent.trim() : ''; }", k)
+            hv = J(CG_MINI_INFO, "#etfCalList .cgmini")
+            ok(f"★ [{tag}] 滑鼠停在第 {k + 1} 根直條：出現提示框（日期／配息 {amt} 元／殖利率／填息天數）、那根被標成滑過",
+               "配息" in tip and bool(amt) and amt in tip and "殖利率" in tip and "填息天數" in tip and hv["hov"] == str(k), (tip, amt, hv["hov"]))
+            lp.mouse.click(*cg_bar_xy(cgi, k)); lp.wait_for_timeout(400)
+            hl = J("() => [...document.querySelectorAll('#etfCodeTbl tbody tr.hl')].map(t => t.dataset.i)")
+            s1 = J(CG_MINI_INFO, "#etfCalList .cgmini")["sel"]
+            op = J("() => { const c = echarts.getInstanceByDom(document.querySelector('#etfCalList .cgmini')); const b = c.getOption().series.find(s => s.type === 'bar');"
+                   " return b.data.map(d => (d && d.itemStyle && d.itemStyle.opacity != null) ? d.itemStyle.opacity : 1); }")
+            ok(f"★ [{tag}] 點直條 → 表格對應那一列加上 .hl（且只有那一列）、圖上那根被選取、其他根變淡",
+               hl == [str(k)] and s1 == str(k) and all((o < 1) == (j != k) for j, o in enumerate(op)), (hl, s1, op))
+            vis = J("() => { const t = document.querySelector('#etfCodeTbl tr.hl'), b = document.querySelector('#etfCalList'); if (!t || !b) return false;"
+                    " const r = t.getBoundingClientRect(), q = b.getBoundingClientRect(); return r.top >= q.top - 1 && r.bottom <= q.bottom + 1; }")
+            ok(f"[{tag}] 高亮的那一列在清單框可見範圍內（有捲到看得見）", vis)
+            if cgi["n"] >= 2:
+                lp.click("#etfCodeTbl tbody tr[data-i='0']"); lp.wait_for_timeout(400)
+                s2 = J(CG_MINI_INFO, "#etfCalList .cgmini")["sel"]
+                hl2 = J("() => [...document.querySelectorAll('#etfCodeTbl tbody tr.hl')].map(t => t.dataset.i)")
+                ok(f"★ [{tag}] 反向：點表格第一次配息那一列 → 圖上第 1 根被選取、表格高亮換到那一列", s2 == "0" and hl2 == ["0"], (s2, hl2))
+                lp.click("#etfCodeTbl tbody tr[data-i='0']"); lp.wait_for_timeout(300)
+                ok(f"[{tag}] 再點同一列 → 取消選取（圖與表格都清掉）", J(CG_MINI_INFO, "#etfCalList .cgmini")["sel"] == "" and count(lp, "#etfCodeTbl tr.hl") == 0)
+            ok(f"[{tag}] 點表格列不會離開單檔明細（原地連動，不換頁）", J("() => document.querySelector('#etfCal').dataset.code") == "0056")
+        lp.click("#etfCodeBack"); lp.wait_for_timeout(200)
+        lp.click(f".cald.has[data-d='{d16}']"); lp.wait_for_timeout(200)
+        if not J("(k) => document.querySelector('#etfCal').dataset.day === k", d16):
+            lp.click(f".cald.has[data-d='{d16}']"); lp.wait_for_timeout(200)
         lp.click("#etfCalNext"); lp.wait_for_timeout(200)
         m_next = J("() => document.querySelector('#etfCal').dataset.month")
         h_cal1 = H("#etfCalCard")
@@ -4338,12 +4375,11 @@ def t_industry(pg, base):
     # ★ 2026-09-23 C5 退版：關聯圖的節點從「族群大圓點」換回「公司卡」（分層圖）。
     # 這一條守的事情沒有變（關聯圖真的畫出來了），只是量的對象跟著退版換回去。
     ok("產業鏈頁有分層關聯圖的公司卡", count(pg, "#chainMap .co") > 0)
-    # 2026-10-08 起（手機五條準則第 5 條「所有收展功能預設收起，網頁和手機都一樣」）桌機關聯圖預設收起：
-    #   先驗「預設收起、按『展開關聯圖』才打開」，再展開讓後面那幾條照舊驗公司卡的互動
-    if pg.evaluate("() => { const h = document.getElementById('chainMap'); return !!h && h.hidden; }"):
-        ok("桌機關聯圖預設收起、鈕寫「展開關聯圖」", "展開" in pg.inner_text("#relFold"), pg.inner_text("#relFold"))
-        pg.click("#relFold"); pg.wait_for_timeout(1200)
-        ok("按「展開關聯圖」→ 圖真的打開", pg.evaluate("() => !document.getElementById('chainMap').hidden && document.querySelectorAll('#chainMap .co').length > 0"))
+    # 2026-10-08 桌機守門（Andy 17:13：「網頁版…Default 就是展開關聯圖」）：手機 v2 一度把桌機改成預設收起，已限回手機；
+    #   桌機一律預設展開（改前這裡驗「預設收起」，那條是錯的方向）
+    ok("桌機關聯圖預設展開（看得到圖、鈕寫「收合圖」）",
+       pg.evaluate("() => { const h = document.getElementById('chainMap'); return !!h && !h.hidden && !h.closest('[hidden]'); }") and "收合" in pg.inner_text("#relFold"),
+       pg.inner_text("#relFold"))
     # ★ 2026-09-23 第二批（W3-2，Andy 點名）：下方那張「成分股」卡片整塊移除。
     #   原本這一大段驗的是表格自己（預設排序／記進 localStorage／上市上櫃／點列進個股頁）——
     #   東西沒了，斷言留著就是假綠，所以整組改成驗「真的移除了」＋「它的新家還在做同一件事」。
@@ -8626,11 +8662,12 @@ def t_play_census_1007(b, base):
       ① 停在最後一天按 ▶ → 從頭重播　② 調過日期後再 ▶ → 會動　③ 播到最後一格自己停（鈕回 ▶）→ 再 ▶ 重播
     資金分流樹再加：播放中連續三格，右欄排名標題日期＝拉Bar 日期、整條祖先 opacity 1、沒有 filter；
     「即時」開著時 ▶ 不反灰、按下去退出即時並開始播；「動態 開／關」切換不造成右欄反灰。
-    以管理者身分跑（TW_LIVE_OVERRIDE，只在本機認），才看得到 Andy 截圖裡那顆「即時」。淺色主題（截圖用）。"""
+    以站主身分跑（2026-10-08 改前：TW_LIVE_OVERRIDE 後門；改後：owner_on 假站主登入 —— 即時只給站主），才看得到 Andy 截圖裡那顆「即時」。淺色主題（截圖用）。"""
     ctx = b.new_context(viewport={"width": 1440, "height": 900})
+    owner_on(ctx, base, nav=False)
     pg = ctx.new_page()
     pg.route("**/fonts.googleapis.com/**", lambda r: r.abort())
-    pg.add_init_script("window.TW_LIVE_OVERRIDE = true; try { localStorage.setItem('tw.theme','light'); } catch (e) {}")
+    pg.add_init_script("try { localStorage.setItem('tw.theme','light'); } catch (e) {}")
     shot_dir = os.environ.get("PLAY_CENSUS_SHOT", "")
 
     def st(sel):
@@ -24770,6 +24807,32 @@ def t_explore_1005(pg, base):
 EARN_API = "https://acct-earn.example.test"
 
 
+# ---- 2026-10-08（Andy：「日曆圖內的長條圖都要優化，符合我們原本要的漸層效果及回應互動效果」）
+#      行事曆面板小圖（site/calgrid.js 的 CalGrid.mini）的共用量測：ETF專區1005、財經日曆1006 兩段都用。
+CG_MINI_INFO = """(sel) => { const el = document.querySelector(sel); if (!el) return null;
+  const c = window.echarts && echarts.getInstanceByDom(el); if (!c) return { el: true, inst: false };
+  const o = c.getOption(), b = (o.series || []).find(s => s.type === 'bar'), ln = (o.series || []).find(s => s.type === 'line');
+  const col = b && b.itemStyle && b.itemStyle.color;
+  const fnGrad = typeof col === 'function';
+  const br = b && b.itemStyle && b.itemStyle.borderRadius;
+  const r = el.getBoundingClientRect();
+  return { el: true, inst: true, n: b ? b.data.length : 0, grad: !!col && typeof col === 'object' && col.type === 'linear' && (col.colorStops || []).length >= 2,
+           stops: col && col.colorStops ? col.colorStops.map(s => s.color) : null, fnGrad,
+           rad: Array.isArray(br) ? Math.max(...br) : (+br || 0), maxW: b ? b.barMaxWidth : null,
+           line: !!ln, lineW: ln && ln.lineStyle ? ln.lineStyle.width : null,
+           box: [r.left, r.top, r.width, r.height], sel: el.dataset.sel, hov: el.dataset.hov }; }"""
+# 掛在 body 上、正在顯示的 ECharts 提示框文字（tipSafe 一律 appendToBody；z-index 9999999）
+CG_TIP_TEXT = """() => [...document.body.children].filter(d => (d.getAttribute('style') || '').includes('9999999')
+  && getComputedStyle(d).display !== 'none' && +getComputedStyle(d).opacity > 0 && getComputedStyle(d).visibility !== 'hidden')
+  .map(d => d.innerText.trim()).filter(Boolean).join(' | ')"""
+
+
+def cg_bar_xy(info, i, frac=0.75):
+    """第 i 根直條那一欄的中心點（圖只有 2px 左右邊界，欄寬＝寬 ÷ 根數）；frac＝由上往下的比例"""
+    x, y, w, h = info["box"]
+    return x + w * (i + 0.5) / info["n"], y + h * frac
+
+
 def t_cal_1006(pg, b, base):
     """【財經日曆＋ETF 行事曆 2026-10-06 改版】週末反灰、台股休市日標記、面板圖表、分類排他、資料夾式分頁、日期自訂
     驗收（Andy 10-06 原話）：「國定假日也需要標上日曆上面，週末就反灰色」「空白處不可以太多」
@@ -24816,8 +24879,32 @@ def t_cal_1006(pg, b, base):
                           pinned: Math.abs(top2) <= 12, bottomBtns: p.querySelectorAll('#earnGoStock, .pact').length, dates: /\d{4}-\d\d-\d\d/.test([...p.querySelectorAll('h4')].map(e => e.textContent).join(' ')) }; }""")
         ok(f"★ [{tag}] 公司面板：「← 回本週重點」在標題列左側且捲動時釘在最上方、股票名稱＋代號是連結（#stock/…）、底部沒有按鈕、段落標題沒有日期",
            hd["back"] and hd["backLeft"] and (hd["link"] or "").startswith("#stock/") and hd["pinned"] and hd["bottomBtns"] == 0 and not hd["dates"], hd)
-        pv = J("() => { const p = document.querySelector('#earnPanel'); return { mode: p.dataset.mode, minis: p.querySelectorAll('.mini svg').length, secs: [...p.querySelectorAll('.sec[data-chart=\"1\"]')].map(e => e.dataset.sec) }; }")
+        # 2026-10-08：面板小圖改成 ECharts（CalGrid.mini），量 .cgmini（估值位置條不是圖、另算在 secs 裡）
+        pv = J("() => { const p = document.querySelector('#earnPanel'); return { mode: p.dataset.mode, minis: p.querySelectorAll('.mini .cgmini').length, secs: [...p.querySelectorAll('.sec[data-chart=\"1\"]')].map(e => e.dataset.sec) }; }")
         ok(f"★ [{tag}] 點公司 → 面板有圖（月營收／獲利／法人／估值至少 3 張）", pv["mode"] == "co" and (pv["minis"] >= 3 or len(pv["secs"]) >= 3), pv)
+        # ---- 2026-10-08（Andy：「日曆圖內的長條圖都要優化，符合我們原本要的漸層效果及回應互動效果」）：公司面板小圖＝共用 C 款直條
+        csel = J("() => { const s = document.querySelector('#earnPanel .sec[data-sec=rev] .cgmini') || document.querySelector('#earnPanel .cgmini'); return s ? '#' + s.id : null; }")
+        if csel:
+            lp.wait_for_timeout(300)
+            ci = J(CG_MINI_INFO, csel)
+            ok(f"★ [{tag}] 公司面板小圖（{csel}）：直條是同色漸層（LinearGradient）、頂端圓角 > 0、寬 ≤ 12px",
+               bool(ci) and ci.get("inst") and ci["n"] >= 3 and (ci["grad"] or ci["fnGrad"]) and ci["rad"] > 0 and (ci["maxW"] or 99) <= 12, ci)
+            if ci and ci.get("inst") and ci["n"] >= 3:
+                J("(s) => document.querySelector(s).scrollIntoView({ block: 'center' })", csel); lp.wait_for_timeout(200)
+                ci = J(CG_MINI_INFO, csel)
+                k = ci["n"] - 2
+                lp.mouse.move(*cg_bar_xy(ci, k)); lp.wait_for_timeout(450)
+                tip = J(CG_TIP_TEXT)
+                ok(f"★ [{tag}] 滑鼠停在公司面板第 {k + 1} 根直條：出現提示框（含期別與數值）、那根被標成滑過",
+                   bool(tip) and ("營收" in tip or "EPS" in tip or "法人" in tip) and J(CG_MINI_INFO, csel)["hov"] == str(k), tip)
+                lp.mouse.click(*cg_bar_xy(ci, k)); lp.wait_for_timeout(400)
+                s1 = J(CG_MINI_INFO, csel)["sel"]
+                lp.mouse.click(*cg_bar_xy(ci, k)); lp.wait_for_timeout(400)
+                s2 = J(CG_MINI_INFO, csel)["sel"]
+                ok(f"★ [{tag}] 點直條 → 選取那根；再點一次 → 取消（面板沒有對應表格，只驗圖上狀態）", s1 == str(k) and s2 == "", (s1, s2))
+                lp.mouse.move(5, 5); lp.wait_for_timeout(200)
+        else:
+            ok(f"[{tag}] （這家公司面板沒有小圖，略過小圖互動）", True)
         lp.click("#earnBack"); lp.wait_for_timeout(150)
         # 三分類排他
         for v, bad_words in (("rep", ("接下來的 FED", "FOMC")), ("conf", ("接下來的 FED", "FOMC", "財報董事會")), ("fed", ())):
@@ -24945,6 +25032,23 @@ def t_cal_1006(pg, b, base):
             lp.click("#etfDayTbl tbody tr[data-code] >> nth=0"); lp.wait_for_timeout(250)
             cd = J("() => ({ code: document.querySelector('#etfCal').dataset.code, si: !!document.querySelector('#etfCalList .ph .srcinfo[title*=出處]'), line: /資料：/.test(document.querySelector('#etfCalList').innerText) })")
             ok(f"★ [{tag}] 點一檔 → 明細標題列有出處 ⓘ、沒有整行「資料：…」", cd["code"] and cd["si"] and not cd["line"], cd)
+            # 2026-10-08：真資料（多次配息）驗「點直條 ⇄ 表格列」雙向連動與深淺主題的漸層色（ETF專區1005 的假資料只有 1 次配息，驗不到換列）
+            lp.wait_for_timeout(300)
+            ei = J(CG_MINI_INFO, "#etfCalList .cgmini")
+            ok(f"★ [{tag}] ETF 單檔明細小圖：配息直條同色漸層、頂端圓角 > 0", bool(ei) and ei.get("inst") and ei["grad"] and ei["rad"] > 0, ei)
+            if ei and ei.get("inst") and ei["n"] >= 2:
+                lp.mouse.move(*cg_bar_xy(ei, 0)); lp.wait_for_timeout(400)
+                t0 = J(CG_TIP_TEXT)
+                ok(f"★ [{tag}] 滑過第 1 根：提示框寫配息金額與填息天數", "配息" in t0 and "元" in t0 and "填息天數" in t0, t0)
+                lp.mouse.click(*cg_bar_xy(ei, 0)); lp.wait_for_timeout(400)
+                h0 = J("() => [...document.querySelectorAll('#etfCodeTbl tbody tr.hl')].map(t => t.dataset.i)")
+                last = ei["n"] - 1
+                lp.click(f"#etfCodeTbl tbody tr[data-i='{last}']"); lp.wait_for_timeout(400)
+                h1 = J("() => [...document.querySelectorAll('#etfCodeTbl tbody tr.hl')].map(t => t.dataset.i)")
+                s1 = J(CG_MINI_INFO, "#etfCalList .cgmini")["sel"]
+                ok(f"★ [{tag}] 點第 1 根直條 → 表格最舊那列高亮；改點表格最新那列 → 圖上選取換到最後一根、高亮跟著換",
+                   h0 == ["0"] and h1 == [str(last)] and s1 == str(last), (h0, h1, s1))
+                lp.mouse.move(5, 5); lp.wait_for_timeout(150)
             lp.click("#etfCodeBack"); lp.wait_for_timeout(150)
         else:
             ok(f"[{tag}] （本月沒有除息格，略過當天清單驗收）", True)
@@ -25573,6 +25677,295 @@ def t_live_admin_1006(b, base, code):
         g = pg.evaluate("() => ({ on: document.documentElement.classList.contains('live-on'), vis: (" + LIVEADM_VIS + ")() })")
         ok(f"★ [{T}] 快取寫管理者、Worker 回 admin:false → 關掉（重新載入後依 Worker 的結果）", bool(off) and not g["on"] and not g["vis"], g)
         ok(f"[{T}] 不會一直重新載入（最多重新載入 1 次）", len(navs) <= 1, navs)
+    finally:
+        ctx.close()
+
+
+# ★ 2026-10-08 Andy：「即時功能全拿掉，除了有管理權限帳號」「有類似功能都拿掉 因為都是盤後」
+#   （site/livegate.js canLive()＝/v1/me 的 owner 或 admin；預覽版也不例外；非管理身分整個不畫、登入登出原地切換）
+LIVEOWN_API = "https://acct-live8.example.test"
+# 非管理身分時「整個不畫」的即時控制項（#liveState 是 index.html 的固定格子，只驗看不見，不驗 DOM）
+LIVEOWN_CTRL = ".livetg, .livebtn, #rotLiveBtn, #rotLiveTag, #sankeyLiveBtn, #mktMode, #gpLiveBtn, .ovl-tg"
+
+
+def t_live_mgr_1008(b, base, code):
+    """即時僅管理1008。走真的閘門（不注入後門）：Browser 原版 new_context ＋ 假的會員 Worker ＋ 假時鐘（台北週二 10:30 盤中）＋ 假報價。
+    六種身分各走一輪：總覽 → 資金流向（輪動時鐘）→ 資金分流樹 → 市場明細（漲跌家數）→ 個股 → 自選。
+      · 訪客、免費、Plus、Pro（都不是管理員）：每一頁**DOM 裡**都沒有任何即時控制項（不是藏起來）、
+        也沒有任何「含『盤後』的切換鈕組」或字含「即時」的鈕；看得到的即時 UI 是 0；
+        走完整段對任何即時來源 0 個請求、live.js 的 Live.reqs＝0。
+        ⚠ 每一種身分的瀏覽器都預先寫好報價代理網址（tw.live.proxy）—— 證明擋住的是閘門，不是「沒設定來源」。
+      · 管理員（admin:true、owner:false）與站主（owner:true）：每一頁的控制項都在、看得到；真的按：
+        總覽摘要卡開關切得動、輪動時鐘與資金分流樹的「即時」按下去亮起來並多打報價、
+        漲跌家數「⚡ 即時」打開後狀態列出現並多打報價、個股有 1分 而且報價格子真的被即時值換掉、自選頁有「即時」開關。
+      · 站主登出：**不重新載入**，即時控制項當場消失、之後 0 個請求。
+      · 快取寫 Pro、Worker 回管理員：**不重新載入**，即時控制項當場出現。"""
+    import time as _time
+    from urllib.parse import urlparse, parse_qs
+    T = "即時僅管理1008"
+    code = "2330"
+    raw = getattr(type(b), "_tw_raw_new_context", None)
+    if not ok(f"[{T}] 拿得到 Browser 原版 new_context（這段要繞開全站的 TW_LIVE_OVERRIDE）", raw is not None):
+        return
+    shot_dir = os.environ.get("LIVE_OWNER_SHOT", "")
+    USERS = {
+        "free": {"email": "free@example.com", "name": "免費會員", "admin": False},
+        "plus": {"email": "plus@example.com", "name": "Plus 會員", "admin": False},
+        "pro": {"email": "pro@example.com", "name": "Pro 會員", "admin": False},
+        "admin": {"email": "admin2@example.com", "name": "管理員", "admin": True, "owner": False},
+        "owner": {"email": "owner@example.com", "name": "站主", "admin": True, "owner": True},
+    }
+    PERM = {"plus": {"who": "member", "plan": "plus", "planName": "Plus", "feats": {}, "lims": {}},
+            "pro": {"who": "member", "plan": "pro", "planName": "Pro", "feats": {}, "lims": {}}}
+    S = {"me": None, "k": 0}
+    NET: list = []
+    CORS = {"access-control-allow-origin": "*", "content-type": "application/json"}
+
+    def live_route(route):
+        u = route.request.url
+        NET.append((_time.time(), u))
+        p = urlparse(u)
+        if p.path == "/quote":
+            S["k"] += 1
+            k = S["k"]
+            ex = (parse_qs(p.query).get("ex_ch") or [""])[0]
+            arr = []
+            for tok in [t for t in ex.split("|") if t]:
+                try:
+                    c = tok.split("_", 1)[1].split(".")[0]
+                except IndexError:
+                    continue
+                z, y = (20100 + k, 20000) if c == "t00" else ((300 + k / 10, 299) if c == "o00" else (1000 + k, 990))
+                arr.append({"c": c, "n": "測" + c, "ex": tok[:3], "z": f"{z:.2f}", "y": f"{y:.2f}", "o": f"{y:.2f}",
+                            "h": f"{z + 5:.2f}", "l": f"{y - 5:.2f}", "v": str(10000 + k * 10),
+                            "t": "10:30:%02d" % (k % 60), "d": "20261006"})
+            route.fulfill(status=200, content_type="application/json; charset=utf-8",
+                          body=json.dumps({"rtcode": "0000", "rtmessage": "OK", "msgArray": arr}))
+            return
+        route.fulfill(status=404, content_type="application/json", body='{"error":"not found"}')
+
+    def acct(route):
+        req = route.request
+        path = re.sub(r"^https?://[^/]+", "", req.url).split("?")[0]
+        if req.method == "OPTIONS":
+            return route.fulfill(status=204, headers={"access-control-allow-origin": "*", "access-control-allow-headers": "*",
+                                                      "access-control-allow-methods": "POST"})
+        out = {}
+        if path == "/v1/me":
+            if S["me"] in USERS:
+                out = {"user": USERS[S["me"]]}
+            else:
+                return route.fulfill(status=401, body='{"error":"unauthorized"}', headers=CORS)
+        elif path == "/v1/perm/me":
+            out = PERM.get(S["me"], {"who": "member", "plan": "free", "planName": "免費會員", "feats": {}, "lims": {}})
+        elif path == "/v1/notices":
+            out = {"notices": []}
+        route.fulfill(status=200, body=json.dumps(out), headers=CORS)
+
+    def open_as(who, hash_, w=1440, h=1000):
+        """who：guest／free／plus／pro／admin／owner —— 快取寫的身分；Worker 回什麼由 S['me'] 決定。"""
+        ctx = raw(b, viewport={"width": w, "height": h}, timezone_id="Asia/Taipei")
+        ctx.add_init_script(CONSENT_PRESET)          # 同意條款／導覽預寫；刻意**不**注入 TW_LIVE_OVERRIDE
+        user = USERS.get(who)
+        ctx.add_init_script("window.TW_ACCOUNT_OVERRIDE = " + json.dumps({"api": LIVEOWN_API}) + ";"
+                            "try{ if(!sessionStorage.getItem('_lvown')){ sessionStorage.setItem('_lvown','1');"
+                            "localStorage.setItem('tw.kcfg', JSON.stringify({tfOn:['tick','1m','5m','15m','60m','240m','1d','1w','1M'], tickMig:1}));"
+                            + ("localStorage.setItem('tw.acct.tok','tok-" + who + "');localStorage.setItem('tw.acct.user'," + json.dumps(json.dumps(user)) + ");" if user else "")
+                            + "localStorage.setItem('tw.live.proxy','https://fake-worker.test');"   # 每一種身分都設好來源：擋住的是閘門
+                            + "} }catch(e){}")
+        ctx.route("**/fonts.googleapis.com/**", lambda r: r.abort())
+        ctx.route(LIVEOWN_API + "/**", acct)
+        for hst in LIVEADM_HOSTS:
+            ctx.route(f"**://{hst}/**", live_route)
+            ctx.route(f"**://*.{hst}/**", live_route)
+        pg = ctx.new_page()
+        pg.on("pageerror", lambda e: fails.append(f"{T} pageerror（{who}）: {str(e)[:160]}"))
+        pg.clock.install(time=LIVEADM_INTRA)       # ★ 一定要在 goto 之前
+        pg.goto(f"{base}#{hash_}", wait_until="load")
+        pg.evaluate("() => { window.__noReload = 1; }")   # 重新載入會洗掉它：用來證明「登入／登出沒有重新整理」
+        return ctx, pg
+
+    def net_since(t0):
+        return [u for t, u in NET if t >= t0]
+
+    def ctrl_dom(pg):
+        # 2026-10-08 補（Andy：「有類似功能都拿掉 因為都是盤後」）：除了已知的即時控制項，再掃一次「含『盤後』的切換鈕組」——
+        #   任何一組（同一個父節點底下兩顆以上的鈕）裡有一顆字含「盤後」，或任何一顆鈕的字含「即時」，都算（不管藏沒藏，DOM 裡就不准有）
+        return pg.evaluate("""(s) => [...document.querySelectorAll(s)].map(e => (e.id ? '#' + e.id : '') + '.' + String(e.className || e.tagName).slice(0, 24))
+            .concat([...document.querySelectorAll('button')].filter(b => { const t = b.textContent.trim();
+                if (/即時/.test(t)) return true;
+                return /盤後/.test(t) && b.parentElement && b.parentElement.querySelectorAll(':scope > button').length > 1; })
+              .map(b => '切換鈕:' + b.textContent.trim().slice(0, 12)))""", LIVEOWN_CTRL)
+
+    def snap(pg, who, w):
+        if not shot_dir:
+            return
+        os.makedirs(shot_dir, exist_ok=True)
+        el = pg.query_selector('.osc[data-k="updown"]')
+        try:
+            (el or pg).screenshot(path=os.path.join(shot_dir, f"card_{who}_{w}.png"))
+            pg.screenshot(path=os.path.join(shot_dir, f"overview_{who}_{w}.png"))
+        except Exception as e:  # noqa: BLE001
+            notes.append(f"[{T}] 截圖失敗 {who} {w}: {e}")
+
+    def goto_hash(pg, h, cond, timeout=15000):
+        pg.evaluate("(h) => { location.hash = h; }", h)
+        return wait_until(pg, cond, timeout)
+
+    # ------------------------------------------------------------------ ① 四種非管理身分
+    for who, label in (("guest", "訪客"), ("free", "免費會員"), ("plus", "Plus"), ("pro", "Pro")):
+        S["me"] = None if who == "guest" else who
+        ctx, pg = open_as(who, "overview")
+        try:
+            t0 = _time.time()
+            wait_until(pg, "() => !!document.getElementById('m3Frame') && document.querySelectorAll('.osc').length >= 4", 20000)
+            if who != "guest":
+                wait_until(pg, f"() => window.TwAccount && TwAccount.user() && TwAccount.user().email === '{USERS[who]['email']}'", 10000)
+            pg.wait_for_timeout(6500)                 # 超過一輪 5 秒：管理身分的話這段時間一定會打報價
+            g = pg.evaluate("() => ({ on: document.documentElement.classList.contains('live-on'), st: window.TwLive && TwLive.state(),"
+                            " can: !!(window.canLive && window.canLive()), intra: !!(window.Live && Live.isIntraday()) })")
+            ok(f"[{T}] {label}：假時鐘在盤中，canLive() 是 false、<html> 沒有 live-on", g["intra"] and not g["on"] and not g["can"] and g["st"] and not g["st"]["on"], g)
+            seen = {}
+            seen["總覽"] = ctrl_dom(pg)
+            if who in ("guest", "pro"):
+                snap(pg, who, 1440)
+            goto_hash(pg, "#flow", "() => !!document.querySelector('#rotBack button, #rotBack input[type=range]')")
+            pg.wait_for_timeout(1200)
+            seen["資金流向"] = ctrl_dom(pg)
+            goto_hash(pg, "#flow/sankey", "() => { const d = document.getElementById('sankeyDays'); return !!d && d.innerHTML.length > 0 && d.getClientRects().length > 0; }")
+            pg.wait_for_timeout(800)
+            seen["資金分流樹"] = ctrl_dom(pg)
+            goto_hash(pg, "#market/updown", "() => !!document.getElementById('chgDist')", 12000)
+            pg.wait_for_timeout(800)
+            seen["市場明細"] = ctrl_dom(pg)
+            goto_hash(pg, f"#stock/{code}", "() => document.querySelectorAll('#tfSeg button').length > 0", 20000)
+            pg.wait_for_timeout(6000)
+            seen["個股"] = ctrl_dom(pg)
+            tfs = pg.evaluate("() => [...document.querySelectorAll('#tfSeg button')].map(b => b.dataset.tf)")
+            goto_hash(pg, "#watch", "() => true", 3000)
+            pg.wait_for_timeout(2000)
+            seen["自選"] = ctrl_dom(pg)
+            vis = pg.evaluate(LIVEADM_VIS)
+            for page_, lst in seen.items():
+                ok(f"★ [{T}] {label} {page_}：DOM 裡沒有任何即時控制項、也沒有「盤後／即時」切換鈕組（整個不畫，不是藏起來）", not lst, lst[:6])
+            ok(f"[{T}] {label} 個股：週期列沒有 1分／5分／15分（存檔勾著也不列）", not any(t in tfs for t in ("1m", "5m", "15m")) and "1d" in tfs, tfs)
+            ok(f"[{T}] {label}：畫面上看得到的即時 UI 是 0（含頂欄狀態、說明裡的即時段落）", not vis, vis)
+            got = net_since(t0)
+            st = pg.evaluate("() => ({ reqs: window.Live && Live.reqs, proxy: window.Live && Live.proxy(), deno: window.Live && Live.taifexProxy() })")
+            ok(f"★★ [{T}] {label}：走完六頁、停留超過 20 秒，對報價代理／Deno／證交所／Yahoo **0 個請求**", not got, got[:5])
+            ok(f"[{T}] {label}：live.js 一次都沒打、代理網址拿到空字串（網路層保險；來源其實設好了）", st["reqs"] == 0 and st["proxy"] == "" and st["deno"] == "", st)
+        finally:
+            ctx.close()
+
+    # 402 手機寬：訪客／管理員／站主的總覽（截圖給 Andy 對照；訪客一樣沒有任何即時控制項）
+    for who in ("guest", "admin", "owner"):
+        S["me"] = None if who == "guest" else who
+        ctx, pg = open_as(who, "overview", w=402, h=874)
+        try:
+            wait_until(pg, "() => document.querySelectorAll('.osc').length >= 4", 20000)
+            if who != "guest":
+                wait_until(pg, "() => document.querySelectorAll('.ovl-tg').length >= 4", 10000)
+            pg.wait_for_timeout(2500)
+            n = len(ctrl_dom(pg))
+            if who == "guest":
+                ok(f"[{T}] 訪客 402：總覽沒有任何即時控制項", n == 0, ctrl_dom(pg)[:4])
+            else:
+                ok(f"[{T}] {who} 402：總覽摘要卡有「即時」", pg.evaluate("() => document.querySelectorAll('.ovl-tg').length") >= 4)
+            snap(pg, who, 402)
+        finally:
+            ctx.close()
+
+    # ------------------------------------------------------------------ ② 管理員（非站主）與站主：看得到、按得動
+    for who, label in (("admin", "管理員（非站主）"), ("owner", "站主")):
+        S["me"] = who
+        ctx, pg = open_as(who, "overview")
+        try:
+            t0 = _time.time()
+            a = wait_until(pg, "() => document.documentElement.classList.contains('live-on') && !!document.querySelector('.livetg[data-livekey=\"m3\"]')"
+                               " && window.Live && Live.reqs > 0", 30000)
+            g = pg.evaluate("() => ({ on: document.documentElement.classList.contains('live-on'), st: TwLive.state(), can: window.canLive(), reqs: Live.reqs })")
+            ok(f"★ [{T}] {label}：canLive() 開（依據是登入身分，不是後門）、大盤卡「即時」開關在、live.js 真的在打報價",
+               bool(a) and g["on"] and g["can"] and g["st"]["src"] in ("account", "cache") and g["reqs"] > 0, g)
+            wait_until(pg, "() => document.querySelectorAll('.ovl-tg').length >= 4", 8000)
+            snap(pg, who, 1440)
+            ov = pg.evaluate("() => [...document.querySelectorAll('.ovl-tg')].map(b => ({ vis: b.getClientRects().length > 0, p: b.getAttribute('aria-pressed') }))")
+            ok(f"★ [{T}] {label} 總覽：四張摘要卡右上角都有「即時」開關、看得到", len(ov) >= 4 and all(x["vis"] for x in ov), ov)
+            p0 = pg.evaluate("() => document.querySelector('.ovl-tg').getAttribute('aria-pressed')")
+            pg.click(".ovl-tg")
+            pg.wait_for_timeout(400)
+            p1 = pg.evaluate("() => document.querySelector('.ovl-tg').getAttribute('aria-pressed')")
+            ok(f"[{T}] {label} 總覽：點摘要卡的「即時」真的切換（aria-pressed {p0} → {p1}）", p0 != p1, [p0, p1])
+            if p1 == "false":
+                pg.click(".ovl-tg")                     # 切回開著，不影響後面
+            # 輪動時鐘
+            fr = goto_hash(pg, "#flow", "() => !!document.getElementById('rotLiveBtn') && document.getElementById('rotLiveBtn').getClientRects().length > 0")
+            n0 = len(net_since(t0))
+            if fr:
+                pg.click("#rotLiveBtn")
+            rl = wait_until(pg, "() => !!document.getElementById('rotLiveBtn') && document.getElementById('rotLiveBtn').classList.contains('on')", 5000)
+            pg.wait_for_timeout(6000)
+            ok(f"★ [{T}] {label} 資金流向：輪動時鐘「即時」在、按下去亮起來而且真的多打了報價", bool(fr) and bool(rl) and len(net_since(t0)) > n0, [bool(fr), bool(rl), n0, len(net_since(t0))])
+            if rl:
+                pg.click("#rotLiveBtn")
+            # 資金分流樹
+            fs = goto_hash(pg, "#flow/sankey", "() => !!document.getElementById('sankeyLiveBtn') && document.getElementById('sankeyLiveBtn').getClientRects().length > 0")
+            n0 = len(net_since(t0))
+            if fs:
+                pg.click("#sankeyLiveBtn")
+            sl = wait_until(pg, "() => !!document.getElementById('sankeyLiveBtn') && document.getElementById('sankeyLiveBtn').classList.contains('on')", 5000)
+            pg.wait_for_timeout(6000)
+            ok(f"★ [{T}] {label} 資金分流樹：「即時」在、按下去亮起來而且真的多打了報價", bool(fs) and bool(sl) and len(net_since(t0)) > n0, [bool(fs), bool(sl), n0, len(net_since(t0))])
+            if sl:
+                pg.click("#sankeyLiveBtn")
+            # 市場明細
+            mk = goto_hash(pg, "#market/updown", "() => !!document.querySelector('#mktMode') && document.querySelector('#mktMode').getClientRects().length > 0", 12000)
+            n0 = len(net_since(t0))
+            if mk:
+                pg.click('#mktMode button[data-m="live"]')
+            lv = wait_until(pg, "() => !document.getElementById('mktLive').hidden && /即時/.test(document.getElementById('mktTitle').textContent)", 8000)
+            pg.wait_for_timeout(6000)
+            ok(f"★ [{T}] {label} 市場明細：「盤後／⚡ 即時」在，按「⚡ 即時」→ 狀態列出現、真的多打了報價", bool(mk) and bool(lv) and len(net_since(t0)) > n0, [bool(mk), bool(lv), n0, len(net_since(t0))])
+            if mk:
+                pg.click('#mktMode button[data-m="eod"]')
+            # 個股
+            sk = goto_hash(pg, f"#stock/{code}", "() => !!document.querySelector('#tfSeg button[data-tf=\"1m\"]') && !!document.querySelector('.livetg[data-livekey=\"stock\"]')", 20000)
+            moved = wait_until(pg, "() => [...document.querySelectorAll('[data-live][data-lc]')].filter(e => e.dataset.lst !== undefined && e.textContent.trim() !== e.dataset.lst.trim()).length", 20000)
+            ok(f"★ [{T}] {label} 個股：週期列有 1分、報價列有「即時」開關、報價格子真的被即時值換掉", bool(sk) and (moved or 0) > 0,
+               [bool(sk), moved, pg.evaluate("() => [...document.querySelectorAll('#tfSeg button')].map(b => b.dataset.tf)")])
+            # 自選頁：Andy 截圖的「● 即時」
+            wt = goto_hash(pg, "#watch", "() => !!document.querySelector('.livetg[data-livekey=\"watch\"]')", 8000)
+            ok(f"[{T}] {label} 自選：卡片的「即時」開關在", bool(wt))
+            if who != "owner":
+                continue
+            # ③ 站主登出：不重新載入，控制項當場消失、之後 0 請求
+            goto_hash(pg, "#overview", "() => document.querySelectorAll('.ovl-tg').length >= 4", 15000)
+            pg.wait_for_timeout(800)
+            pg.evaluate("() => TwAccount.logout()")
+            gone = wait_until(pg, "() => !document.documentElement.classList.contains('live-on') && document.querySelectorAll('" + LIVEOWN_CTRL + "').length === 0", 8000)
+            t1 = _time.time()
+            pg.wait_for_timeout(6500)
+            g = pg.evaluate("() => ({ noReload: window.__noReload === 1, on: TwLive.state().on, ctrl: [...document.querySelectorAll('" + LIVEOWN_CTRL + "')].length,"
+                            " vis: (" + LIVEADM_VIS + ")(), cards: document.querySelectorAll('.osc').length, m3: !!document.getElementById('m3Frame') })")
+            ok(f"★ [{T}] 站主登出 → 不重新整理，即時控制項當場全部消失（總覽卡片、大盤三張圖照常在）",
+               bool(gone) and g["noReload"] and not g["on"] and g["ctrl"] == 0 and not g["vis"] and g["cards"] >= 4 and g["m3"], g)
+            ok(f"★ [{T}] 站主登出之後 0 個即時請求（含登出前已經排在節流閥裡的）", not net_since(t1), net_since(t1)[:3])
+            goto_hash(pg, f"#stock/{code}", "() => document.querySelectorAll('#tfSeg button').length > 0", 20000)
+            pg.wait_for_timeout(1500)
+            tfs = pg.evaluate("() => [...document.querySelectorAll('#tfSeg button')].map(b => b.dataset.tf)")
+            ok(f"[{T}] 站主登出後個股：1分／5分／15分 收掉、沒有即時開關、還是同一個頁面（沒重新整理）",
+               not any(t in tfs for t in ("1m", "5m", "15m")) and pg.evaluate("() => window.__noReload === 1 && !document.querySelector('.livetg')"), tfs)
+        finally:
+            ctx.close()
+
+    # ------------------------------------------------------------------ ④ 快取寫 Pro、Worker 回管理員 → 不重新載入、當場出現
+    S["me"] = "admin"
+    ctx, pg = open_as("pro", "overview")
+    try:
+        on = wait_until(pg, "() => window.TwLive && TwLive.canLive() && document.querySelectorAll('.ovl-tg').length >= 4", 15000)
+        g = pg.evaluate("() => ({ noReload: window.__noReload === 1, flips: TwLive.state().flips, n: document.querySelectorAll('.ovl-tg').length })")
+        ok(f"★ [{T}] 身分變成管理員（Worker 回 admin）→ 不重新整理，摘要卡的「即時」當場出現", bool(on) and g["noReload"] and g["flips"] >= 1, g)
+        fr = goto_hash(pg, "#flow", "() => !!document.getElementById('rotLiveBtn')")
+        ok(f"[{T}] 身分變成管理員之後，資金流向的「即時」鈕也在（同一個頁面）", bool(fr) and pg.evaluate("() => window.__noReload === 1"))
     finally:
         ctx.close()
 
@@ -27053,7 +27446,248 @@ def t_dgclip_1008(b, base):
     c.close()
 
 
+
+# ★ 2026-10-08 桌機守門1008（Andy 17:13：「你改手機版本是否也動到網頁版本…這事情很嚴重，兩者不可侵犯」）：
+#   手機 v2 第三批改了共用檔（industry.js／diagrams.js…），有幾處沒限定 ≤640，桌機跟著變了
+#   （關聯圖預設收起還攤開整份環節卡、剖析圖預設收起 → 展開後說明卡掉到圖下面）。
+#   這一段守「桌機 1440 的版面跟存好的基準一樣」，凡是改共用檔的人推 main 前都要跑它。
+#   ① 結構指紋：逐頁量主要元件（卡片、剖析圖格線／畫布／左右欄、關聯圖、分頁列）的「看不看得到、x、寬、display、grid 區塊」，
+#      跟 tests/desktop_baseline/desktop_1440.json 比。為什麼不存截圖：圖表有動畫粒子、K 線每天換資料，
+#      像素比對每天都會紅；位置與寬度不會因為資料換了就變，但「卡片從圖旁邊掉到圖下面」「整塊被收起來」一定會變。
+#      高度不比（清單長短跟著資料走）。基準要更新（Andy 明確要求桌機改版時）：TW_DESK_BASELINE=write 跑一次這一段，把 json 一起 commit。
+#   ② 每一張 2D 剖析圖：說明卡一律在圖的左邊或右邊（right ≤ 圖 left，或 left ≥ 圖 right），不准在圖下面（Andy 範本：AI 伺服器）。
+#   ③ 剖析圖「收合 → 換鏈 → 換回來 → 展開」之後說明卡仍在圖旁邊（10-08 的 309 截圖就是這條路徑）。
+#   ④ 關聯圖：桌機預設展開；按「收合圖」→ 標題以下什麼都沒有（圖與環節卡清單一起藏）；再按回來 → 圖回來。
+#   ⑤ 641～820 寬（桌機窄視窗）關聯圖照舊左右排，不准變成手機的上下排。
+DESK_BASE_FILE = ROOT / "tests" / "desktop_baseline" / "desktop_1440.json"
+DESK_FP_JS = r"""
+() => {
+  const v = document.querySelector('main .view.on') || document.querySelector('main');
+  const out = {}, seen = {};
+  if (!v) return out;
+  // 頁面骨架（view 底下兩層）＋卡片＋剖析圖／關聯圖／題材圖的關鍵容器
+  const SEL = ':scope > *, :scope > * > *, .card, #dgSec, #dgBody, #prodDiagram, .dggrid, .dgcanvas, .dgcol, .dgcards, #relSec, #relRow, #relMain, #chainMap, #chainList, #stockTabs, .subtabs, #themeDiagram, #themeDetail, .dgwrap';
+  const STATE = /^(on|sel|sel-part|open|hover|cyan|dim|haspart|noanim|live|busy|ready|done|isnew|pulse)$/;
+  [...new Set(v.querySelectorAll(SEL))].filter((e) => !/^(SCRIPT|STYLE|TEMPLATE|LINK)$/.test(e.tagName)).forEach((e) => {
+    const key = e.id ? '#' + e.id : e.tagName.toLowerCase() + '.' + [...e.classList].filter((c) => !STATE.test(c)).sort().join('.');
+    seen[key] = (seen[key] || 0) + 1;
+    if (seen[key] > 20) return;
+    const r = e.getBoundingClientRect(), cs = getComputedStyle(e);
+    const vis = !!(r.width || r.height) && cs.display !== 'none' && cs.visibility !== 'hidden' && !e.closest('[hidden]');
+    out[key + '@' + seen[key]] = [vis ? 1 : 0, Math.round(r.left + scrollX), Math.round(r.width), cs.display, cs.gridTemplateAreas === 'none' ? '' : cs.gridTemplateAreas];
+  });
+  return out;
+}
+"""
+DESK_SIDE_JS = r"""
+() => {
+  const bad = [];
+  let n = 0;
+  document.querySelectorAll('main .view.on .dgwrap').forEach((host) => {
+    const cv = host.querySelector('.dgcanvas') || host.querySelector('svg');
+    if (!cv || !host.getClientRects().length) return;
+    const c = cv.getBoundingClientRect();
+    if (!c.width) return;
+    host.querySelectorAll('.dgcards .dgc').forEach((card) => {
+      const r = card.getBoundingClientRect();
+      if (!r.width && !r.height) return;
+      n++;
+      if (!(r.right <= c.left + 2 || r.left >= c.right - 2))
+        bad.push(((card.innerText || '').replace(/\s+/g, ' ').slice(0, 20)) + ` 卡[${Math.round(r.left)},${Math.round(r.top)}] 圖[${Math.round(c.left)}~${Math.round(c.right)}]`);
+    });
+  });
+  return { n, bad };
+}
+"""
+
+
+def desk_pages(pg, base):
+    """守門要走的頁：路由不寫死，產業鏈、題材、個股分頁都從頁面或資料讀，新增的自動進來。"""
+    pages = ["overview", "earnings", "flow/rotation", "flow/sankey", "flow/inst", "heatmap/industry", "heatmap/theme", "industry"]
+    pg.goto(f"{base}#industry", wait_until="domcontentloaded"); pg.wait_for_timeout(1500)
+    chains = pg.evaluate("async () => (await (await fetch('data/industry_map.json')).json()).chains.map(c => c.id)")
+    tids = pg.evaluate("async () => (await (await fetch('data/themes.json')).json()).themes.map(t => t.id)")
+    pages += [f"industry/{c}" for c in chains] + [f"themes/{t}" for t in tids]
+    pages += [f"market/{k}" for k in ("updown", "streak", "ma", "cand")]
+    pages += ["explore", "etf/cal", "etf/list", "etf/inc", "season", "watch", "pricing", "terms", "privacy", "disclaimer", "admin"]
+    for code in ("2330", "00919"):
+        pg.goto(f"{base}#stock/{code}", wait_until="domcontentloaded"); pg.wait_for_timeout(2200)
+        for t in pg.evaluate("() => [...document.querySelectorAll('#stockTabs button')].map(b => b.dataset.t)"):
+            pages.append(f"stock/{code}?tab={t}")
+    return pages, chains, tids
+
+
+def desk_open(pg, base, route):
+    r, _, tab = route.partition("?tab=")
+    pg.goto("about:blank"); pg.goto(f"{base}#{r}", wait_until="domcontentloaded"); pg.wait_for_timeout(1800)
+    if tab:
+        pg.evaluate("(t) => { const b = [...document.querySelectorAll('#stockTabs button')].find(x => x.dataset.t === t); if (b) b.click(); }", tab)
+        pg.wait_for_timeout(900)
+    # 捲到底再回頂：延後畫的卡（whenNear）都畫出來，版面才是使用者看到的那個
+    h = pg.evaluate("() => document.documentElement.scrollHeight")
+    for y in range(0, min(h, 8000), 900):
+        pg.evaluate(f"() => window.scrollTo(0, {y})"); pg.wait_for_timeout(60)
+    pg.evaluate("() => window.scrollTo(0, 0)"); pg.wait_for_timeout(500)
+
+
+def t_desk_guard_1008(b, base):
+    T = "桌機守門1008"
+    c = b.new_context(viewport={"width": 1440, "height": 900})
+    c.add_init_script("try{localStorage.setItem('tw.dg3d','0')}catch(e){}")
+    pg = c.new_page()
+    pages, chains, tids = desk_pages(pg, base)
+    ok(f"{T}：收得到要守的頁（{len(pages)} 頁，含 {len(chains)} 條產業鏈、{len(tids)} 個題材、個股分頁）",
+       len(pages) >= 60 and len(chains) >= 5 and len(tids) >= 20, len(pages))
+    # ① 結構指紋
+    fp = {}
+    for r in pages:
+        desk_open(pg, base, r)
+        fp[r] = pg.evaluate(DESK_FP_JS)
+    if os.environ.get("TW_DESK_BASELINE") == "write":
+        DESK_BASE_FILE.parent.mkdir(parents=True, exist_ok=True)
+        DESK_BASE_FILE.write_text(json.dumps(fp, ensure_ascii=False, sort_keys=True, separators=(",", ":")), encoding="utf-8")
+        notes.append(f"{T}：已寫入基準 {DESK_BASE_FILE}（{len(fp)} 頁）")
+    base_fp = json.loads(DESK_BASE_FILE.read_text(encoding="utf-8")) if DESK_BASE_FILE.exists() else {}
+    ok(f"{T}：基準檔存在（tests/desktop_baseline/desktop_1440.json）", bool(base_fp))
+    TOL = 8
+    diffs = []
+    for r, want in base_fp.items():
+        got = fp.get(r)
+        if got is None:
+            diffs.append(f"{r}：這一頁沒走到"); continue
+        for k, w in want.items():
+            g = got.get(k)
+            if g is None:
+                if w[0]: diffs.append(f"{r} {k}：基準看得到，現在不見了")
+                continue
+            if g[0] != w[0]:
+                diffs.append(f"{r} {k}：{'基準看得到 → 現在藏起來' if w[0] else '基準藏著 → 現在攤開'}")
+            elif w[0] and (abs(g[1] - w[1]) > TOL or abs(g[2] - w[2]) > TOL):
+                diffs.append(f"{r} {k}：x {w[1]}→{g[1]}、寬 {w[2]}→{g[2]}")
+            elif w[0] and (g[3] != w[3] or g[4] != w[4]):
+                diffs.append(f"{r} {k}：排法 {w[3]} {w[4]!r} → {g[3]} {g[4]!r}")
+        for k, g in got.items():
+            if k not in want and g[0]:
+                diffs.append(f"{r} {k}：基準沒有、現在多出來（x {g[1]} 寬 {g[2]}）")
+    ok(f"{T}：1440 寬 {len(base_fp)} 頁的版面指紋跟基準一樣（{len(diffs)} 處不同）", not diffs, diffs[:40])
+    # ② 每一張 2D 剖析圖的說明卡在圖的左右兩側
+    dg_routes = []
+    for ch in chains:
+        pg.goto("about:blank"); pg.goto(f"{base}#industry/{ch}", wait_until="domcontentloaded"); pg.wait_for_timeout(1500)
+        for r in pg.evaluate("() => [...document.querySelectorAll('#dgPick a[data-dgid]')].map(a => a.getAttribute('href').slice(1))"):
+            if r not in dg_routes: dg_routes.append(r)
+    side_bad, side_n, side_pages = [], 0, 0
+    for r in dg_routes + [f"themes/{t}" for t in tids]:
+        pg.goto("about:blank"); pg.goto(f"{base}#{r}", wait_until="domcontentloaded"); pg.wait_for_timeout(1600)
+        got = pg.evaluate(DESK_SIDE_JS)
+        if got["n"]: side_pages += 1
+        side_n += got["n"]; side_bad += [f"{r}：{x}" for x in got["bad"]]
+    ok(f"{T}：量到的剖析圖說明卡（{side_pages} 張圖、{side_n} 張卡）", side_pages >= max(5, len(dg_routes) // 2) and side_n > 0, (side_pages, len(dg_routes)))
+    ok(f"{T}：剖析圖說明卡全部在圖的左右兩側、沒有掉到圖下面（{len(side_bad)} 張不對）", not side_bad, side_bad[:20])
+    # ③ 收合 → 換鏈 → 換回來 → 展開（309 截圖的路徑）
+    pg.goto("about:blank"); pg.goto(f"{base}#industry/software", wait_until="domcontentloaded"); pg.wait_for_timeout(2200)
+    ok(f"{T}：軟體鏈剖析圖桌機預設展開（鈕寫「收合圖」）", "收合" in (pg.text_content("#dgFold") or ""), pg.text_content("#dgFold"))
+    pg.click("#dgFold"); pg.wait_for_timeout(600)
+    ok(f"{T}：按「收合圖」→ 剖析圖真的收起來", pg.evaluate("() => getComputedStyle(document.getElementById('dgBody')).display === 'none'"))
+    pg.evaluate("() => { location.hash = '#industry/financial'; }"); pg.wait_for_timeout(1800)
+    pg.evaluate("() => { location.hash = '#industry/software'; }"); pg.wait_for_timeout(2200)
+    pg.click("#dgFold"); pg.wait_for_timeout(1500)
+    got = pg.evaluate(DESK_SIDE_JS)
+    ok(f"{T}：收合 → 換鏈 → 換回來 → 展開，說明卡仍在圖兩側（{got['n']} 張）", got["n"] > 0 and not got["bad"], got)
+    pg.click("#dgFold"); pg.wait_for_timeout(300); pg.click("#dgFold"); pg.wait_for_timeout(300)   # 復原成展開，不影響後面
+    # ④ 關聯圖：預設展開；收合＝標題以下全藏；再展開回來
+    pg.goto("about:blank"); pg.goto(f"{base}#industry/semiconductor", wait_until="domcontentloaded"); pg.wait_for_timeout(2500)
+    REL = """() => { const m = document.getElementById('chainMap'), rm = document.getElementById('relMain'), sec = document.getElementById('relSec'), hd = document.getElementById('relHead');
+        const vis = (e) => !!e && !!e.getClientRects().length && !e.closest('[hidden]');
+        const below = sec ? [...sec.querySelectorAll('*')].filter(e => vis(e) && hd && !hd.contains(e) && e !== hd && !e.contains(hd) && e.getBoundingClientRect().height > 4).length : -1;
+        return { map: vis(m) && document.querySelectorAll('#chainMap .co').length > 0, list: vis(document.getElementById('chainList')), main: vis(rm), below,
+                 btn: (document.getElementById('relFold') || {}).textContent }; }"""
+    s0 = pg.evaluate(REL)
+    ok(f"{T}：關聯圖桌機預設展開（看得到關聯圖本體、鈕寫「收合圖」）", s0["map"] and "收合" in (s0["btn"] or ""), s0)
+    pg.click("#relFold"); pg.wait_for_timeout(700)
+    s1 = pg.evaluate(REL)
+    ok(f"{T}：關聯圖按「收合圖」→ 圖與環節卡清單一起藏起來，標題以下什麼都沒有", not s1["map"] and not s1["list"] and not s1["main"] and s1["below"] == 0, s1)
+    pg.click("#relFold"); pg.wait_for_timeout(1200)
+    s2 = pg.evaluate(REL)
+    ok(f"{T}：關聯圖再按「展開」→ 關聯圖回來", s2["map"], s2)
+    # ⑤ 桌機窄視窗（800）關聯圖照舊左右排
+    pg.set_viewport_size({"width": 800, "height": 900})
+    pg.goto("about:blank"); pg.goto(f"{base}#industry/semiconductor", wait_until="domcontentloaded"); pg.wait_for_timeout(2500)
+    lay = pg.evaluate("() => { const h = document.getElementById('chainMap'); return h ? h.dataset.layout || '' : null; }")
+    ok(f"{T}：800 寬（桌機窄視窗）關聯圖照舊左右排，不是手機的上下排", lay != "vert", lay)
+    c.close()
+# ★ 2026-10-08 站主身分的驗收工具（說明見 LIVE_ADMIN_PRESET 那段註解）
+OWNER_API = "https://acct-owner.example.test"
+OWNER_USER = {"email": "owner@example.com", "name": "測試站主", "admin": True, "owner": True}
+OWNER_COOKIE = "__tw_owner"
+
+
+def _owner_api(route):
+    """假的會員 Worker：/v1/me 回站主；權限回空（站主本來就不受範本限制）；其他一律 200 {}。"""
+    req = route.request
+    hd = {"access-control-allow-origin": "*", "access-control-allow-headers": "*", "access-control-allow-methods": "POST, GET, OPTIONS"}
+    if req.method == "OPTIONS":
+        return route.fulfill(status=204, headers=hd)
+    path = re.sub(r"^https?://[^/]+", "", req.url).split("?")[0]
+    out: dict = {}
+    if path == "/v1/me":
+        out = {"user": OWNER_USER}
+    elif path == "/v1/perm/me":
+        out = {"who": "member", "plan": "", "planName": "站主", "feats": {}, "lims": {}}
+    elif path == "/v1/notices":
+        out = {"notices": []}
+    route.fulfill(status=200, body=json.dumps(out), headers=dict(hd, **{"content-type": "application/json"}))
+
+
+def owner_on(target, base, nav=True):
+    """把這個 page（或 context）切成「站主已登入」。nav=True 時重新開一次頁面，並等閘門真的打開。"""
+    ctx = target if not hasattr(target, "goto") else target.context
+    origin = re.match(r"^https?://[^/]+", base).group(0)
+    ctx.add_cookies([{"name": OWNER_COOKIE, "value": "1", "url": origin}])
+    ctx.route(OWNER_API + "/**", _owner_api)
+    if nav and hasattr(target, "goto"):
+        target.goto(base + "#overview", wait_until="load")
+        target.reload(wait_until="load")      # 已經在站上時 goto 只換 hash、不會重跑開機腳本 —— 一定要真的重新載入一次 cookie 才生效
+        wait_until(target, "() => !!(window.TwLive && TwLive.allowed() && TwLive.state().src !== 'override')", 10000)
+
+
+def owner_off(target, base):
+    """收回站主身分：拿掉 cookie、假 Worker、登入快取，回到一般段落的後門模式。"""
+    ctx = target if not hasattr(target, "goto") else target.context
+    try:
+        ctx.clear_cookies(name=OWNER_COOKIE)
+    except TypeError:                     # 舊版 Playwright 沒有 name 參數
+        ctx.clear_cookies()
+    try:
+        ctx.unroute(OWNER_API + "/**")
+    except Exception:  # noqa: BLE001
+        pass
+    if hasattr(target, "goto"):
+        try:
+            target.evaluate("() => { try { localStorage.removeItem('tw.acct.tok'); localStorage.removeItem('tw.acct.user'); } catch (e) {} }")
+            target.goto(base + "#overview", wait_until="load")
+            target.reload(wait_until="load")  # 同上：要真的重新載入，後門模式才回來
+        except Exception:  # noqa: BLE001
+            pass
+
+
+def _as_owner(fn):
+    """段落包裝：以站主身分跑完這一段，跑完（不管成敗）收回。"""
+    def run(pg, b, base, code):
+        owner_on(pg, base)
+        ok("[站主身分] 段落開始前閘門已經是站主（不是本機後門）",
+           pg.evaluate("() => !!(window.TwLive && TwLive.allowed() && TwLive.state().src !== 'override')"),
+           pg.evaluate("() => window.TwLive && TwLive.state()"))
+        try:
+            return fn(pg, b, base, code)
+        finally:
+            owner_off(pg, base)
+    return run
+
+
 SECTIONS = {
+    # ★ 2026-10-08 Andy：「手機版本…是否也動到網頁版本…兩者不可侵犯」—— 桌機 1440 版面指紋＋剖析圖說明卡在兩側＋關聯圖收合（⚠ --workers 1；改共用檔推 main 前必跑）
+    "桌機守門1008":        lambda pg, b, base, code: t_desk_guard_1008(b, base),
     "2D 圖裁切普查1008":   lambda pg, b, base, code: t_dgclip_1008(b, base),
     "標題重複普查":        lambda pg, b, base, code: t_title_dup_1007(b, base),
     "時間軸分隔線1006":    lambda pg, b, base, code: t_timegrid_1006(pg, base),
@@ -27068,7 +27702,8 @@ SECTIONS = {
     "設計v4主題":          lambda pg, b, base, code: t_design_v4(b, base, code),
     "設計v4第二批2A":      lambda pg, b, base, code: t_design_v4_2a(b, base, code),
     "設計v4第二批2B":      lambda pg, b, base, code: t_design_v4_2b(b, base, code),
-    "盤中即時":            lambda pg, b, base, code: t_live(pg, base),
+    # 2026-10-08 改前：吃全站預設的 TW_LIVE_OVERRIDE（本機後門）；改後：_as_owner 以站主真的登入跑（即時僅管理：站主或管理員才有即時）
+    "盤中即時": _as_owner(lambda pg, b, base, code: t_live(pg, base)),
     "即時推送":            lambda pg, b, base, code: t_live_sse(pg, base),
     # ★ 2026-09-29 Andy：「即時…至少 5S 更新一次」＋可即時的卡片加「即時」開關與最後更新時間（假時間＋假報價，深夜也能驗）
     "即時5秒0929":         lambda pg, b, base, code: t_live5s_0929(b, base, code),
@@ -27076,7 +27711,10 @@ SECTIONS = {
     "總覽摘要卡即時":      lambda pg, b, base, code: t_ov_kpi_live_1002(b, base, code),
     # ★ 2026-10-06 Andy：「所有的即時功能，只有在我這帳號才會出現，其他帳號都隱藏」（DECISIONS #326，site/livegate.js）。
     #   這一段走真的閘門（不注入 TW_LIVE_OVERRIDE）：訪客／會員看不到也不打任何即時來源、管理者全部出現且真的更新、登出收掉（⚠ --workers 1）
-    "即時僅管理者1006":    lambda pg, b, base, code: t_live_admin_1006(b, base, code),
+    # ★ 2026-10-08 改前：「即時僅管理者1006」（admin:true 就看得到、登出整頁重新載入）；
+    #   改後：即時只給站主或管理員、預覽版也擋、非管理身分整個不畫，登入／登出原地切換 —— 1006 的斷言整批過時，由下面這段取代（t_live_admin_1006 函式留著當歷史，不再接進來）。
+    #   六種身分（訪客／免費／Plus／Pro／管理員／站主）× 總覽、資金流向、資金分流樹、市場明細、個股、自選；站主或管理員看得到（Andy：「除了有管理權限帳號」）；假時鐘＋假報價（⚠ --workers 1）
+    "即時僅管理1008":      lambda pg, b, base, code: t_live_mgr_1008(b, base, code),
     "大盤三張圖":          lambda pg, b, base, code: t_market3(pg, base),
     "今日事件":            lambda pg, b, base, code: t_events(pg, base),
     # ★ 2026-09-28 Andy：今日事件預設隱藏、浮層抽屜、點背景關、關掉再開回到預設、修寬度 bug
@@ -27090,7 +27728,8 @@ SECTIONS = {
     "漲跌家數市場別":      lambda pg, b, base, code: t_ud_market(pg, base),
     # ★ 2026-10-06 Andy：「漲跌浮點即是連結到下面」「而非市場明細分頁」—— 摘要卡 → 下方分佈卡、點上漲／平盤／下跌直接列出那一側（含手機 390）
     "漲跌連結1006":        lambda pg, b, base, code: t_updown_link_1006(pg, b, base),
-    "市場明細":            lambda pg, b, base, code: t_market(pg, base),
+    # 2026-10-08 改前：吃全站預設的 TW_LIVE_OVERRIDE（本機後門）；改後：_as_owner 以站主真的登入跑（即時僅管理：站主或管理員才有即時）
+    "市場明細": _as_owner(lambda pg, b, base, code: t_market(pg, base)),
     # ★ 2026-09-28 Andy：法人連續買賣超搬到市場明細；漲跌分佈點長條 → 右側列出那一段的個股（⚠ 一律 --workers 1）
     "市場明細下鑽0928":    lambda pg, b, base, code: t_market_drill_0928(pg, b, base),
     "市場明細即時1005":    lambda pg, b, base, code: t_market_live_1005(pg, b, base),
@@ -27133,7 +27772,8 @@ SECTIONS = {
     # ★ 2026-09-28 Andy：櫃買 1H／4H 有歷史、加權 15／30／1H 真實成交值、量副圖拖一張另外兩張連動
     "大盤K線0928":         lambda pg, b, base, code: t_index_kline_0928(pg, base),
     "新-產業與個股":       lambda pg, b, base, code: t_new_industry(pg, base),
-    "新-資金流向":         lambda pg, b, base, code: t_new_flow(pg, base),
+    # 2026-10-08 改前：吃全站預設的 TW_LIVE_OVERRIDE（本機後門）；改後：_as_owner 以站主真的登入跑（即時僅管理：站主或管理員才有即時）
+    "新-資金流向": _as_owner(lambda pg, b, base, code: t_new_flow(pg, base)),
     "新-輪動時鐘":         lambda pg, b, base, code: t_new_clock(pg, base),
     # ★ 2026-10-07 Andy：「播放後再調整日期，再次點擊播放就不能做動」→ 全站三支播放器真操作
     "播放器1007":          lambda pg, b, base, code: t_player_1007(pg, base),
@@ -27183,7 +27823,8 @@ SECTIONS = {
     "分時說明拿掉1006":    lambda pg, b, base, code: t_tick_note_1006(b, base, code),
     "個股版面1004":        lambda pg, b, base, code: t_stock_lay_1004(pg, base),
     "個股週期即時1005":    lambda pg, b, base, code: t_stock_livek_1005(b, base, code),
-    "個股即時分K":         lambda pg, b, base, code: t_livek(pg, base, code),
+    # 2026-10-08 改前：吃全站預設的 TW_LIVE_OVERRIDE（本機後門）；改後：_as_owner 以站主真的登入跑（即時僅管理：站主或管理員才有即時）
+    "個股即時分K": _as_owner(lambda pg, b, base, code: t_livek(pg, base, code)),
     # ★ 2026-10-02 Andy：「個股分時需要有即時走勢」—— 分鐘聚合、缺口虛線、Yahoo 重抓、重新整理保留、隔天清掉（⚠ --workers 1）
     "分時一路即時":        lambda pg, b, base, code: t_tick_live_1002(b, base, code),
     # ★ 2026-09-28 Andy：K 線預設「分時」且放最前面＋搜尋列迷你走勢圖
@@ -27235,7 +27876,8 @@ SECTIONS = {
     "批次14-輕油裂解":     lambda pg, b, base, code: t_naphtha(pg, base),
     "批次14-變壓器GIS":    lambda pg, b, base, code: t_transformer(pg, base),
     # 批次21：輪動時鐘的盤中即時（Andy 2026-09-22「幫我也做一個即時功能像是圖一那樣」）
-    "輪動時鐘即時":        lambda pg, b, base, code: t_rot_live(pg, base),
+    # 2026-10-08 改前：吃全站預設的 TW_LIVE_OVERRIDE（本機後門）；改後：_as_owner 以站主真的登入跑（即時僅管理：站主或管理員才有即時）
+    "輪動時鐘即時": _as_owner(lambda pg, b, base, code: t_rot_live(pg, base)),
     # 批次21：半導體三張剖析圖（S1 晶圓代工／S2 矽晶圓／S3 HBM）
     "批次21-晶圓代工":     lambda pg, b, base, code: t_b21_foundry(pg, base),
     "批次21-矽晶圓":       lambda pg, b, base, code: t_b21_silicon_wafer(pg, base),
@@ -30914,7 +31556,19 @@ if os.environ.get("TW_UITEST_REALRESET") != "1":
 #   它們驗的正是「管理者看到的樣子」。所以預設替每一頁注入 TW_LIVE_OVERRIDE=true（livegate.js 只在 127.0.0.1／localhost 認這個後門），
 #   不必每段都去模擬登入。訪客／會員／登出那幾種情況由「即時僅管理者1006」一段專門驗（它用 Browser 原版 new_context，不吃這一行）。
 #   ⚠ 用 Browser._tw_raw_new_page／_tw_raw_new_context 開的段落（同意條款、預覽版前綴…）沒有這一行 ＝ 訪客視角。
-LIVE_ADMIN_PRESET = "window.TW_LIVE_OVERRIDE = true;"
+# ★ 2026-10-08 即時僅管理（Andy：「即時功能全拿掉，除了有管理權限帳號」，site/livegate.js canLive()＝/v1/me 的 owner 或 admin；預覽版也擋）。
+#   改前：這一行無條件注入 TW_LIVE_OVERRIDE=true（＝本機後門，誰都當成看得到即時的人）。
+#   改後：同一行多一個分支 —— 這個瀏覽器帶著 cookie `__tw_owner=1` 時**不設後門**，改成「站主真的登入」：
+#     account.js 指到假的會員 Worker（OWNER_API，/v1/me 回 owner:true）、登入快取寫成站主。
+#     直接驗即時的段落（盤中即時、市場明細、個股即時分K、輪動時鐘即時、新-資金流向、播放普查1007）用 _as_owner()／owner_on() 打開這個 cookie，
+#     走的是正式站同一條閘門（TwAccount.user().owner），不是後門。其他段落沒有 cookie，照舊吃後門（它們驗的不是「誰看得到即時」）。
+#   用 cookie 而不是 localStorage 當開關：段落裡清 localStorage 也不會把身分洗掉；每次載入都把站主快取寫回去。
+LIVE_ADMIN_PRESET = ("try{if(document.cookie.indexOf('" + OWNER_COOKIE + "=1')>=0){"
+                     "window.TW_ACCOUNT_OVERRIDE={api:'" + OWNER_API + "'};"
+                     "localStorage.setItem('tw.acct.tok','tok-owner');"
+                     "localStorage.setItem('tw.acct.user'," + json.dumps(json.dumps(OWNER_USER)) + ");"
+                     "}else{window.TW_LIVE_OVERRIDE=true;}}catch(e){window.TW_LIVE_OVERRIDE=true;}")
+
 
 
 def real_reload(pg, wait_until="networkidle", wait_ms=0):
@@ -50466,7 +51120,9 @@ WPT_GEO = """() => { const bar = document.getElementById('wpTabs'), w = document
   const on = bar.querySelector('button.wptab.on'), more = document.getElementById('wpMore'), br = bar.getBoundingClientRect();
   const r = (e) => e ? e.getBoundingClientRect() : null, ro = r(on), rm = r(more);
   return { nbsw: bar.classList.contains('nbsw'), n: bar.querySelectorAll('button.wptab').length,
-    em: [...bar.querySelectorAll('button.wptab')].every(b => !!b.querySelector('em')),
+    // 2026-10-08 Andy：「數字大小需要一樣並且形式為 自選（3）」→ 檔數改成同字級的「（N）」
+    em: [...bar.querySelectorAll('button.wptab')].every(b => { const c = b.querySelector('.wpcnt'), n = b.querySelector('.wpn');
+      return !!c && /^（\d+）$/.test(c.textContent) && getComputedStyle(c).fontSize === getComputedStyle(n).fontSize; }),
     pinned: bar.querySelectorAll('[data-ren], [data-del-tab], .wpic').length,
     onId: on && on.dataset.sel, gap: ro && body ? Math.abs(ro.bottom - body.getBoundingClientRect().top) : 99,
     vis: !!ro && ro.left >= br.left - 1 && (rm ? rm.right : ro.right) <= br.right + 1,

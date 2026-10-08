@@ -105,7 +105,7 @@
     /* 2026-10-06（DECISIONS #326）：即時只給管理者 —— 非管理者的「分時」是最近交易日的盤後分時（資料湖 60 分 K），名稱拿掉「即時」（id 不改）；
        1／5／15 分 K 只有即時來源，非管理者整排不列，標 adminOnly（訂閱頁的權益對照表不列，免得寫成付費就有）。*/
     ktf('stock.tick', '分時走勢', ['tick'], '分時走勢（管理者盤中即時；其他人看最近交易日的盤後分時）'),
-    Object.assign(ktf('stock.k_min', '分 K（1／5／15 分）', ['1m', '5m', '15m'], '短週期分 K（即時來源，只有管理者帳號看得到）'), { adminOnly: true }),
+    Object.assign(ktf('stock.k_min', '分 K（1／5／15 分）', ['1m', '5m', '15m'], '短週期分 K（即時來源，2026-10-08 起僅站主與管理員看得到）'), { adminOnly: true }),
     ktf('stock.k_hour', '1H／4H K 線', ['60m', '240m'], '60 分與 240 分 K'),
     { id: 'stock.mtf', name: '四週期同看', cat: 'stockk', def: true, kind: 'bool', desc: '一次看四個週期的小圖',
       veil: [['#chartWrap', '#mtfGrid']], mark: [], block: ['#mtfBtn'] },
@@ -135,8 +135,12 @@
     /* ★ 2026-10-06（Andy：「所有的即時功能，只有在我這帳號才會出現，其他帳號都隱藏」，DECISIONS #326）：
        即時另外有一道「只有管理者」的閘門（site/livegate.js），這個開關只對管理者自己還有意義；對其他人開或關都一樣看不到。
        adminOnly＝訂閱頁的權益對照表不列。block 拿掉 .ovl-tg：非管理者的那顆只是資料日期標籤，不該掛鎖頭。*/
-    { id: 'live.tick', name: '盤中即時（5 秒）', cat: 'global', def: true, kind: 'bool', adminOnly: true,
-      desc: '盤中每 5 秒更新報價（2026-10-06 起只有管理者帳號看得到；這個開關對其他人沒有作用）', veil: [], mark: [], block: ['.livetg-b'] },
+    /* ★ 2026-10-08（Andy：「即時功能全拿掉，除了有管理權限帳號」）：**僅管理**＝站主（/v1/me owner）或管理員（admin），site/livegate.js canLive()。
+       改前：同樣只給管理者，但預覽版全開、非管理者多半只是 CSS 藏；改後：預覽版也擋、非管理身分整個不畫。
+       ownerOnly＝管理權限頁這一列的開關鎖住不能撥（撥了也沒用：方案範本管不到 —— 會員本來就看不到，站主不受範本限制），名稱直接寫「僅管理」。
+       id 不改（改了＝所有範本存過的值歸零）。*/
+    { id: 'live.tick', name: '盤中即時（僅站主或管理員）', cat: 'global', def: true, kind: 'bool', adminOnly: true, ownerOnly: true,
+      desc: '盤中每 5 秒更新報價。2026-10-08 起只有站主與管理員看得到、也只有他們會打報價；訪客、免費、Plus、Pro、預覽版一律沒有 —— 這個開關對會員範本沒有作用', veil: [], mark: [], block: ['.livetg-b'] },
     { id: 'events', name: '今日事件中心', cat: 'global', def: true, kind: 'bool', desc: '新聞／法說／總經事件抽屜',
       veil: [['#side'], ['#ovEvents']], mark: [], block: ['#evToggle', '#mmEvents'] },
     { id: 'theme', name: '主題外觀', cat: 'global', def: true, kind: 'bool', desc: '切換深淺色與版面風格（關掉時維持目前外觀）',

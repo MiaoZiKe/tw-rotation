@@ -2265,6 +2265,8 @@ html[data-theme="light"] #v-admin{--pm-blue:#1f4fd8;--pm-blue-2:#163fb4}
       const ctl = f.kind === 'limit'
         /* 2026-10-07：上限類可以帶 opts（選項清單）與 unit（頁／檔）；最大值＝「不限」（watch.tabs 50、watch.size 200 是硬上限）*/
         ? `<select data-f="${esc(f.id)}" aria-label="${esc(f.name)}" ${ready ? '' : 'disabled'}>${limOpts(f, val).map((i) => `<option value="${i}" ${i === val ? 'selected' : ''}>${i === 0 ? '不能用' : i === f.max && f.opts ? '不限' : i + ' ' + (f.unit || '頁')}</option>`).join('')}</select>`
+        /* ★ 2026-10-08 ownerOnly（盤中即時）：僅管理（站主＋管理員）—— 開關鎖住、提示寫清楚為什麼撥不動（撥了對任何會員範本都沒有作用）*/
+        : f.ownerOnly ? `<label class="psw" title="僅站主或管理員：只有站主與管理員看得到即時，這個開關對會員範本沒有作用"><input type="checkbox" role="switch" data-f="${esc(f.id)}" aria-label="${esc(f.name)}（僅站主或管理員，不能調整）" checked disabled><span></span></label>`
         : `<label class="psw"><input type="checkbox" role="switch" data-f="${esc(f.id)}" aria-label="${esc(f.name)}" ${val !== false ? 'checked' : ''} ${ready ? '' : 'disabled'}><span></span></label>`;
       /* 瀏覽次數（每日上限）：perm-cards（2026-10-05）改成名稱右側一顆小徽章（∞／N/日），點了才彈出小輸入框 ——
          Andy 要回到「每類一張卡、每列只有開關＋名稱＋一行說明」的乾淨版，但次數上限功能不能丟，所以不讓它常駐佔一欄。 */
