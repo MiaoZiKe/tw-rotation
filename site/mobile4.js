@@ -560,3 +560,55 @@
   window.TwM4 = { open, close, isOpen: () => !!(drawer && !drawer.hidden) };
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();
 })();
+
+/* ============================================================================
+   提示框殘留1009（Andy 2026-10-09 04:2x：「所有分頁會發生當我點擊資訊，他顯示的訊息框會殘留…正常情況是點擊背景會消失」）
+   手機沒有滑鼠「離開」這回事：ECharts 的提示框（全站一律 appendToBody，掛在 body 底下）點一下出現之後，
+   只有再點同一張圖才會換掉／收掉 —— 點背景、點別張圖、捲頁、換分頁，它都留在原地（現金流試算的時鐘、熱力圖方塊都是）。
+   做法（只限 html.m4；桌機有 hover，行為一個字都不動 —— 守門1008）：
+     ① document 的 pointerdown（capture 階段先跑，但不攔、不 preventDefault —— 圖上原本的「點選」「點空白處恢復」照舊）：
+        按在哪一張圖裡面，那一張交給 ECharts 自己決定（要換成新的提示框）；其他每一張都 hideTip。
+     ② 換分頁（hashchange）、整頁捲動超過 24px：全部 hideTip。
+     ③ 保險：hideTip 之後，body 底下還看得見的 ECharts 提示框，照 ECharts 自己收起來的樣子藏掉
+        （換頁時舊頁的圖可能已經被 dispose 或藏起來，dispatchAction 叫不到它）；下一次 ECharts 要顯示時會整段蓋掉這兩個樣式。
+     「?」說明（#howPop）與點了才出現的面板（app.js dismissable）原本就會點背景關、換頁關，這裡不重做。
+   ============================================================================ */
+(function () {
+  'use strict';
+  const isM4 = () => document.documentElement.classList.contains('m4');
+  const TIP_Z = '9999999';   // ECharts 提示框的 z-index（appendToBody 的那一層 div）
+  const isTipDiv = (d) => !!d && d.parentElement === document.body && d.tagName === 'DIV' && d.style && d.style.zIndex === TIP_Z;
+  function hideTips(keep) {
+    if (window.echarts) {
+      document.querySelectorAll('[_echarts_instance_]').forEach((el) => {
+        if (keep && el.contains(keep)) return;
+        let c = null; try { c = echarts.getInstanceByDom(el); } catch (e) { /* 已經 dispose */ }
+        if (!c || (c.isDisposed && c.isDisposed())) return;
+        try { c.dispatchAction({ type: 'hideTip' }); } catch (e) { /* 這張沒有 tooltip 元件 */ }
+      });
+    }
+    if (keep) return;   // 按在某張圖裡：那一張的提示框正要換成新的，不做保險清除
+    for (const d of document.body.children) {
+      if (!isTipDiv(d)) continue;
+      const cs = getComputedStyle(d);
+      if (cs.display === 'none' || cs.visibility === 'hidden' || cs.opacity === '0') continue;
+      d.style.visibility = 'hidden'; d.style.opacity = '0';
+    }
+  }
+  document.addEventListener('pointerdown', (e) => {
+    if (!isM4()) return;
+    const t = e.target;
+    if (!t || !t.closest) return;
+    for (let n = t; n && n !== document.body; n = n.parentElement) if (isTipDiv(n)) return;   // 按在提示框本身：不動
+    hideTips(t.closest('[_echarts_instance_]'));
+  }, true);
+  window.addEventListener('hashchange', () => { if (isM4()) hideTips(null); });
+  let y0 = window.scrollY;
+  window.addEventListener('scroll', () => {
+    if (!isM4()) { y0 = window.scrollY; return; }
+    if (Math.abs(window.scrollY - y0) < 24) return;
+    y0 = window.scrollY;
+    hideTips(null);
+  }, { passive: true });
+  window.TwM4Tips = { hide: () => hideTips(null) };
+})();

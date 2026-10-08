@@ -488,6 +488,12 @@
     constructor(el, opts) {
       this.el = el; this.opts = Object.assign({ mini: false, tf: '1d' }, opts);
       this.chart = LWC.createChart(el, baseOptions(this.opts));
+      /* ★ 2026-10-09 拖曳邊界1009（Andy：「所有圖扁長寬到了就好…不可以還能一直滑過頭超出範圍」）：
+         圖表庫預設可以把 K 線往左拖到最新一根的右邊一大片空白、往右拖過第一根、兩指縮小到整段資料只剩中間一小條。
+         手機（html.m4）把兩邊釘住：fixLeftEdge＝第一根貼左緣就拖不動、fixRightEdge＝最新一根貼右緣就拖不動，
+         兩個一起開也順便讓「縮小」最多縮到整段資料剛好填滿（＝1×），不會再縮出空白。
+         只限手機：桌機的右側留白（rightOffset 4 根）與自由拖曳照舊（桌機守門1008）。 */
+      if (document.documentElement.classList.contains('m4')) this.chart.applyOptions({ timeScale: { fixLeftEdge: true, fixRightEdge: true } });
       this.candle = this.chart.addSeries(LWC.CandlestickSeries, { upColor: C.up, downColor: C.down, borderUpColor: C.up, borderDownColor: C.down, wickUpColor: C.up, wickDownColor: C.down, priceLineVisible: true, lastValueVisible: true });
       this.zones = new ZonesPrimitive([]); this.candle.attachPrimitive(this.zones);
       this.tgrid = []; { const g0 = new TimeGridPrimitive(this); this.candle.attachPrimitive(g0); this.tgrid.push(g0); this._tgPanes = { 0: g0 }; }   // 時間軸分隔線（DECISIONS #337）
