@@ -27200,7 +27200,8 @@ def t_mobile_m4_1008(b, base, code):
         badb = {}
         for h in ("overview", "flow/sankey", "flow/rotation", "heatmap/industry", "industry", "market", "explore", "etf/list", "etf/inc", "season", "watch", "stock/" + code):
             go(h, 2600)
-            r = J("""() => { const CTRL = '.ed,.cald,.hmbar,.snk,.st,.badge,button,input,select,textarea,label,a,[role=button],[role=tab],.seg,.mseg,.nbsw,.pill,.chip,.ddbtn,.segdd,.etag,.fq,.fqtag,summary,.mnum';
+            # 2026-10-09：分段控制器（.m4trisg；Andy：「改成分段控制器（跟網頁版走勢圖｜K 線同一款）」）本身就是一個外框的切換鈕，跟 .seg 一樣算控制項
+            r = J("""() => { const CTRL = '.ed,.cald,.hmbar,.snk,.st,.badge,button,input,select,textarea,label,a,[role=button],[role=tab],.seg,.mseg,.nbsw,.m4trisg,.pill,.chip,.ddbtn,.segdd,.etag,.fq,.fqtag,summary,.mnum';
                 const out = []; document.querySelectorAll('main .view.on *').forEach(e => { if (!e.getClientRects().length || e.matches(CTRL) || e.closest(CTRL) || e.ownerSVGElement || e.tagName === 'svg' || e.tagName === 'CANVAS') return;
                   const cs = getComputedStyle(e); const r = e.getBoundingClientRect(); if (r.width < 30 || r.height < 16) return;
                   const b4 = ['Top', 'Right', 'Bottom', 'Left'].every(k => parseFloat(cs['border' + k + 'Width']) > 0 && cs['border' + k + 'Style'] !== 'none');
@@ -27308,7 +27309,8 @@ def t_mobile_m4_1008(b, base, code):
             go(h, 2500)
             for k, f, w in J(FP): kinds.setdefault(k, {}).setdefault(f, set()).add(f"{h} {w}")
         brief = {k: {f: sorted(w)[:3] for f, w in d.items()} for k, d in kinds.items()}
-        ok(f"【{T}】元件統一：頁籤指紋 ≤ 2 種（{len(kinds.get('頁籤', {}))}）", 0 < len(kinds.get("頁籤", {})) <= 2, brief.get("頁籤"))
+        # 2026-10-09 Andy 指定第三款：分段控制器（ETF 前 5 名、月配／複利試算表；「跟網頁版走勢圖｜K 線同一款」）→ 上限 2 → 3（底線頁籤＋分段膠囊＋分段控制器）
+        ok(f"【{T}】元件統一：頁籤指紋 ≤ 3 種（{len(kinds.get('頁籤', {}))}）", 0 < len(kinds.get("頁籤", {})) <= 3, brief.get("頁籤"))
         ok(f"【{T}】元件統一：外框按鈕指紋 ≤ 2 種（{len(kinds.get('按鈕', {}))}）", 0 < len(kinds.get("按鈕", {})) <= 2, brief.get("按鈕"))
         ok(f"【{T}】元件統一：「?」說明鈕指紋 1 種（{len(kinds.get('?', {}))}）", len(kinds.get("?", {})) == 1, brief.get("?"))
         # ㉑ 自選頁籤：每顆高度差 ≤ 2px、「⋯」在選中頁籤裡面、說明列不跟其他元素重疊

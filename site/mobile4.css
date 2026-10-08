@@ -418,14 +418,14 @@
    權重：第 23 節頁內切換規則是 (1,7,1)＋!important，這裡用「頁面 id＋元件 id」拉到 (2,x,x) 才蓋得掉，不去改第 23 節本身。
    ============================================================================ */
 @media (max-width:640px){
-  /* ---- 29a. 分頁式頁籤（底線頁籤，跟上方 .m4subtabs 同一款、小一號 14px）：選中＝主色字＋2px 主色底線，底下一條細線 */
+  /* ---- 29a. 分頁式頁籤（底線頁籤，跟上方 .m4subtabs 同一款：高 40、15px）：選中＝主色字＋2px 主色底線，底下一條細線 */
   :root.m4 #v-explore.view.on #slChips.sl-chips.nbsw,
   :root.m4 #v-etf.view.on #etfCatSeg.etfcats.nbsw{display:flex!important;flex-wrap:nowrap!important;gap:0!important;width:100%;max-width:100%;min-width:0;
     margin:0 0 8px!important;padding:0!important;border:0!important;border-bottom:1px solid var(--line)!important;border-radius:0!important;background:transparent!important;box-shadow:none!important}
   :root.m4 #v-explore.view.on #slChips.sl-chips.nbsw>button,
   :root.m4 #v-etf.view.on #etfCatSeg.etfcats.nbsw>button{height:40px!important;min-height:40px!important;margin:0 0 -1px!important;padding:0 10px!important;
     border:0!important;border-bottom:2px solid transparent!important;border-radius:0!important;background:transparent!important;box-shadow:none!important;
-    color:var(--ink-2)!important;font-size:14px!important;font-weight:600;white-space:nowrap}
+    color:var(--ink-2)!important;font-size:15px!important;font-weight:600;white-space:nowrap}
   :root.m4 #v-explore.view.on #slChips.sl-chips.nbsw>button:is(.on,[aria-selected=true]),
   :root.m4 #v-etf.view.on #etfCatSeg.etfcats.nbsw>button:is(.on,[aria-selected=true]){color:var(--t4-accent-solid,var(--cyan))!important;border-bottom-color:var(--t4-accent-solid,var(--cyan))!important;font-weight:700;background:transparent!important}
   /* 選股：四格等寬填滿左右 */

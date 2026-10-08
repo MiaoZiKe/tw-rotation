@@ -26,7 +26,7 @@
 
   /* 頁面 → 抽屜裡要點的網址（有子項的大項點了進第一個子項，跟電腦版一樣） */
   const HREF = { overview: '#overview', earnings: '#earnings', flow: '#flow/rotation', heatmap: '#heatmap/industry',
-    industry: '#industry', market: '#market', explore: '#explore', etf: '#etf/list', season: '#season', watch: '#watch', delivery: '#delivery' };
+    industry: '#industry', market: '#market', explore: '#explore', etf: '#etf/cal', season: '#season', watch: '#watch', delivery: '#delivery' };
 
   function nav() { return window.TwL4Nav || null; }
   function brandName() { const b = $('.topbar .brand b'); return (b && b.textContent.trim()) || '哩股哩股'; }
@@ -565,7 +565,8 @@
    ★ 2026-10-09 Andy（手機 430 寬）：選股策略（#explore）與 ETF（#etf）的手機重排 —— 樣式在 mobile4.css 第 29 節
    這一節只做 CSS 做不到的四件事，而且只在 html.m4（≤640）動作：
      1. 手機打開 ETF 預設停在「配息行事曆」（Andy：「手機打開 ETF 時，預設停在配息行事曆分頁」）：
-        抽屜裡的 ETF 一律進 #etf/cal；直接開 #etf（沒帶子頁）也導到 #etf/cal。桌機照舊進 #etf/list（app.js 那行沒動）。
+        抽屜裡的 ETF 預設進 #etf/cal（本檔最上面 HREF 那一格，2026-10-09 由 #etf/list 改）；看過別的子頁的照舊回上次那一頁（跟其他有子頁的主項目同一套）；
+        直接開 #etf（沒帶子頁）也導到 #etf/cal。桌機照舊進 #etf/list（app.js 那行沒動）。
      2. 選股頁大標的文字包一層 span（.m4tt），才能「單行＋放不下用 …」（flex 容器裡的裸文字沒辦法加省略號）。
      3. 橫捲的頁籤列（ETF 分類、現金流「單檔／組合」、配息頻率）：選中的那一格捲進畫面；右側淡出，捲到底拿掉（.m4end）。
      4. 配息行事曆點某一檔 → 細節區在月曆下面，自動捲到細節區的標題列（不然點了看起來沒反應）。
@@ -585,11 +586,6 @@
   window.addEventListener('hashchange', (e) => {
     if (isM() && /#etf\/?$/.test(e.newURL || '') && location.hash !== '#etf/cal') location.replace('#etf/cal');
   });
-  document.addEventListener('click', (e) => {
-    if (!isM()) return;
-    const b = e.target.closest && e.target.closest('#m4Drawer .m4item[data-v="etf"]');
-    if (b) b.dataset.h = '#etf/cal';   // 抽屜自己的 click（冒泡階段）讀 data-h 換頁；這裡在 capture 階段先改好
-  }, true);
 
   /* 2. 選股頁大標：裸文字 → <span class="m4tt">（字一個不改，原文留在 title） */
   function wrapTitles() {
