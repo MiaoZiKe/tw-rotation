@@ -28225,9 +28225,122 @@ def _as_owner(fn):
     return run
 
 
+# ★ 2026-10-09 縮放混合版（Andy 03:5x：「剛剛手機版本發現嚴重BUG，不能有縮放功能，版面就固定這麼大，不會出現這樣縮放後的 BUG」）：
+#   電腦 Chrome 縮窄／Ctrl+放大到 CSS 寬 641～820 時，畫面是「舊頂欄＋桌機卡片＋蓋掉半個畫面的舊底部分頁格子」。
+#   根因：641～820 掛不到 l4（電腦版）也掛不到 m4（手機 v2），吃 index.html @media (max-width:820px) 的舊導覽。
+#   修法：只剩兩種版面 —— ≤640 html.m4、>640 html.l4（含 641～820）；手機另外鎖縮放（viewport meta＋html.tzl）。
+#   這一段用「沒有觸控的桌面 context」真的拖寬度、真的 Ctrl+縮放（CDP 換 deviceScaleFactor），每一步都驗畫面狀態。
+ZM_STATE_JS = """() => {
+  const vis = (e) => { if (!e) return false; const cs = getComputedStyle(e); if (cs.display === 'none' || cs.visibility === 'hidden') return false;
+    const r = e.getBoundingClientRect(); return r.width > 0 && r.height > 0 && r.bottom > 0 && r.top < innerHeight && r.right > 0 && r.left < innerWidth; };
+  const root = document.documentElement, tabs = document.getElementById('tabs');
+  const tcs = tabs ? getComputedStyle(tabs) : null;
+  // 「舊底部分頁格子」＝ #tabs 釘在視窗底（position:fixed 且下緣貼齊視窗底）且看得到
+  const oldGrid = !!(tabs && vis(tabs) && tcs.position === 'fixed' && Math.abs(tabs.getBoundingClientRect().bottom - innerHeight) <= 2);
+  const mobVis = ['#m4Burger', '#m4Drawer', '.m4subtabs', '#mTabMore', '.mspine', '.mpager'].filter((q) => [...document.querySelectorAll(q)].some(vis));
+  const head = document.getElementById('l4Head');
+  return { w: innerWidth, m4: root.classList.contains('m4'), l4: root.classList.contains('l4'), m3on: document.body.classList.contains('m3on'),
+    burger: vis(document.getElementById('m4Burger')), oldGrid, tabsPos: tcs ? tcs.position : '', tabsH: tabs ? Math.round(tabs.getBoundingClientRect().height) : 0,
+    l4Head: vis(head), headTitleW: head && head.firstElementChild ? Math.round(head.firstElementChild.getBoundingClientRect().width) : 0,
+    mobVis, hs: root.scrollWidth - innerWidth };
+}"""
+
+
+def zm_check(T, pg, tag):
+    # mobile4.js／layout4.js 的 resize 有 150ms 去抖，再加 route() 重跑；機器忙時要更久 ——
+    # 輪詢到「該寬度應有的版面」成立為止（最多 10 秒），之後才逐條斷言（輪詢只是等，不放寬判準）
+    def settled(x):
+        if x["hs"] > 0 or x["oldGrid"]:
+            return False
+        if x["w"] <= 640:
+            return x["m4"] and not x["l4"] and x["burger"] and not x["l4Head"]
+        return x["l4"] and not x["m4"] and not x["m3on"] and x["tabsPos"] != "fixed" and x["l4Head"] and x["headTitleW"] > 0 and not x["mobVis"]
+    pg.wait_for_timeout(400)
+    for _ in range(50):
+        s = pg.evaluate(ZM_STATE_JS)
+        if settled(s):
+            break
+        pg.wait_for_timeout(200)
+    w = s["w"]
+    ok(f"{T}：{tag}（CSS 寬 {w}）頁面沒有橫向捲軸", s["hs"] <= 0, s)
+    ok(f"{T}：{tag}（CSS 寬 {w}）舊底部分頁格子不可見", not s["oldGrid"], s)
+    if w <= 640:
+        ok(f"{T}：{tag}（CSS 寬 {w}）≤640 是完整手機 v2：html.m4、沒有 l4、頂欄是手機版（漢堡鈕看得到、電腦版頁首不在）",
+           s["m4"] and not s["l4"] and s["burger"] and not s["l4Head"], s)
+    else:
+        ok(f"{T}：{tag}（CSS 寬 {w}）>640 是完整電腦版：html.l4、沒有 m4／m3on、左側導覽（#tabs 不是 fixed）、頁首頁名看得到",
+           s["l4"] and not s["m4"] and not s["m3on"] and s["tabsPos"] != "fixed" and s["l4Head"] and s["headTitleW"] > 0, s)
+        ok(f"{T}：{tag}（CSS 寬 {w}）>640 沒有任何手機元件可見", not s["mobVis"] and not s["burger"], s)
+    return s
+
+
+def t_zoom_mix_1009(b, base):
+    T = "縮放混合版1009"
+    # ① 沒有觸控的桌面 context：拖視窗寬 1440→600→1440→800→640→641→390
+    c = b.new_context(viewport={"width": 1440, "height": 900})
+    pg = c.new_page()
+    pg.goto(base + "#overview", wait_until="load"); pg.wait_for_timeout(1500)
+    ok(f"{T}：桌面 context 沒有觸控（pointer:fine、有 hover）",
+       pg.evaluate("() => matchMedia('(pointer:fine)').matches && matchMedia('(hover:hover)').matches"))
+    seen = []
+    for w in (1440, 600, 1440, 800, 640, 641, 390):
+        pg.set_viewport_size({"width": w, "height": 900})
+        seen.append(zm_check(T, pg, f"拖寬度 → {w}"))
+    ok(f"{T}：拖寬度那一輪兩種版面真的有來回切換（m4 出現又消失）",
+       [x["m4"] for x in seen] == [False, True, False, False, True, False, True], [x["m4"] for x in seen])
+    # 修前的樣子：800 寬 #tabs 是 fixed、高 150（三列格子）—— 現在要是左側導覽的一部分
+    s800 = seen[3]
+    ok(f"{T}：800 寬的分頁列在左側導覽裡（修前是釘在底部、高約 150px 的三列格子）", s800["tabsPos"] != "fixed", s800)
+    # 子分頁頁面跨門檻（#flow 有子分頁，route() 要重跑）
+    pg.set_viewport_size({"width": 1440, "height": 900}); pg.goto(base + "#flow/rotation", wait_until="load"); pg.wait_for_timeout(1500)
+    for w in (600, 760, 641, 500):
+        pg.set_viewport_size({"width": w, "height": 900})
+        zm_check(T, pg, f"資金流向 拖寬度 → {w}")
+    # ② Ctrl+縮放：1440×900 的視窗放大 250% ＝ CSS 寬 576、高 360、deviceScaleFactor 2.5（CDP 直接換，不重新載入）
+    pg.set_viewport_size({"width": 1440, "height": 900}); pg.goto(base + "#overview", wait_until="load"); pg.wait_for_timeout(1500)
+    cdp = c.new_cdp_session(pg)
+    for pct, (cw, ch) in ((250, (576, 360)), (175, (823, 514)), (200, (720, 450))):
+        cdp.send("Emulation.setDeviceMetricsOverride", {"width": cw, "height": ch, "deviceScaleFactor": pct / 100, "mobile": False})
+        s = zm_check(T, pg, f"Ctrl+縮放 {pct}%")
+        ok(f"{T}：Ctrl+縮放 {pct}% 的 devicePixelRatio 真的換了", abs(pg.evaluate("() => devicePixelRatio") - pct / 100) < 0.01, pg.evaluate("() => devicePixelRatio"))
+    cdp.send("Emulation.clearDeviceMetricsOverride")
+    pg.set_viewport_size({"width": 1440, "height": 900})
+    zm_check(T, pg, "Ctrl+縮放回 100%")
+    # 用 250% 直接開新頁（不是從 1440 縮過去）
+    c2 = b.new_context(viewport={"width": 576, "height": 360}, device_scale_factor=2.5)
+    p2 = c2.new_page(); p2.goto(base + "#overview", wait_until="load"); p2.wait_for_timeout(1500)
+    zm_check(T, p2, "Ctrl+縮放 250% 直接開頁")
+    # ③ 桌機沒有縮放鎖：沒掛 tzl、touch-action 是 auto、gesturestart 沒被擋（電腦瀏覽器的 Ctrl+縮放不該擋）
+    st = pg.evaluate("""() => { const e = new Event('gesturestart', { cancelable: true }); document.dispatchEvent(e);
+      return { tzl: document.documentElement.classList.contains('tzl'), ta: getComputedStyle(document.documentElement).touchAction, blocked: e.defaultPrevented }; }""")
+    ok(f"{T}：桌機沒有縮放鎖（沒有 html.tzl、touch-action auto、gesturestart 沒被擋）", not st["tzl"] and st["ta"] == "auto" and not st["blocked"], st)
+    c.close(); c2.close()
+    # ④ 手機 context（390、is_mobile、has_touch、DPR2）：viewport meta 禁縮放、雙指／雙擊縮放鎖、輸入框 ≥16px
+    m = b.new_context(viewport={"width": 390, "height": 844}, is_mobile=True, has_touch=True, device_scale_factor=2)
+    mp = m.new_page(); mp.goto(base + "#overview", wait_until="load"); mp.wait_for_timeout(1500)
+    vp = mp.evaluate("() => (document.querySelector('meta[name=viewport]') || {}).content || ''")
+    ok(f"{T}：手機 viewport meta 含 user-scalable=no 與 maximum-scale=1", "user-scalable=no" in vp and "maximum-scale=1" in vp, vp)
+    st = mp.evaluate("""() => { const e = new Event('gesturestart', { cancelable: true }); document.dispatchEvent(e);
+      const q = document.getElementById('q');
+      return { tzl: document.documentElement.classList.contains('tzl'), ta: getComputedStyle(document.documentElement).touchAction,
+        bta: getComputedStyle(document.body).touchAction, blocked: e.defaultPrevented, qfs: q ? parseFloat(getComputedStyle(q).fontSize) : 0,
+        small: [...document.querySelectorAll('input:not([type=checkbox]):not([type=radio]):not([type=range]):not([type=color]),select,textarea')]
+          .filter((x) => parseFloat(getComputedStyle(x).fontSize) < 16).map((x) => x.id || x.name || x.className).slice(0, 8) }; }""")
+    ok(f"{T}：手機掛上縮放鎖（html.tzl、touch-action 擋雙指與雙擊、gesturestart 被擋）",
+       st["tzl"] and st["ta"] == "pan-x pan-y" and st["blocked"], st)
+    ok(f"{T}：手機所有輸入框字級 ≥16px（iOS 聚焦不會自動放大）", st["qfs"] >= 16 and not st["small"], st)
+    # 雙擊（真的點兩下）之後畫面沒有被放大：visualViewport.scale 仍是 1
+    mp.touchscreen.tap(200, 500); mp.wait_for_timeout(80); mp.touchscreen.tap(200, 500); mp.wait_for_timeout(600)
+    ok(f"{T}：手機點兩下之後畫面沒有放大（visualViewport.scale = 1）", abs(mp.evaluate("() => visualViewport.scale") - 1) < 0.001, mp.evaluate("() => visualViewport.scale"))
+    zm_check(T, mp, "手機 390")
+    m.close()
+
+
 SECTIONS = {
     # ★ 2026-10-08 Andy：「手機版本…是否也動到網頁版本…兩者不可侵犯」—— 桌機 1440 版面指紋＋剖析圖說明卡在兩側＋關聯圖收合（⚠ --workers 1；改共用檔推 main 前必跑）
     "桌機守門1008":        lambda pg, b, base, code: t_desk_guard_1008(b, base),
+    # ★ 2026-10-09 Andy：「手機版本…不能有縮放功能…不會出現這樣縮放後的 BUG」—— 只剩兩種版面（≤640 m4／>640 l4）＋手機縮放鎖（⚠ --workers 1）
+    "縮放混合版1009":      lambda pg, b, base, code: t_zoom_mix_1009(b, base),
     "2D 圖裁切普查1008":   lambda pg, b, base, code: t_dgclip_1008(b, base),
     "標題重複普查":        lambda pg, b, base, code: t_title_dup_1007(b, base),
     "時間軸分隔線1006":    lambda pg, b, base, code: t_timegrid_1006(pg, base),

@@ -66,7 +66,7 @@
     if (document.getElementById('earnCss')) return;
     const s = document.createElement('style'); s.id = 'earnCss';
     s.textContent = `
-@media (max-width:820px){ .tab[data-view="earnings"]{display:none!important} }
+@media (max-width:820px){ :root:not(.l4) .tab[data-view="earnings"]{display:none!important} }
 #v-earnings .edisc{margin:8px 2px 0;font-size:12px;line-height:16px;color:var(--ink-3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 #v-earnings .card{margin-bottom:var(--sp-3)}
 #v-earnings .card h3{flex-wrap:nowrap;white-space:nowrap;min-width:0}
