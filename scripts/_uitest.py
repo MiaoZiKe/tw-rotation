@@ -29239,6 +29239,8 @@ SECTIONS = {
     "訪客權限1008":        lambda pg, b, base, code: t_guest_perm_1008(b, base, code),
     # ★ 2026-10-09 Andy：「我明明訪客開 1000 次…是否在會員權限裡面有什麼沒設定到」—— 管理頁小卡列出更嚴的單項上限＋一鍵共用、本頁限制寫來源
     "訪客額度1009":        lambda pg, b, base, code: t_guest_quota_1009(b, base, code),
+    # ★ 2026-10-09 Andy：手機帳號選單（site/acctm4.js）—— 六種身分各一次：徽章、無自選、每項導頁、額度頁項目數、刪除帳號二次確認、管理區、客服開關（⚠ --workers 1）
+    "帳號選單1009":        lambda pg, b, base, code: t_acct_menu_1009(b, base, code),
     # ★ 2026-10-08 晚 Andy 313：「熱門題材、資金熱力圖，點擊會到該個股的功能需要權限設定，只有 Plus 以上才可以」（訪客／免費／Plus／Pro 走每條熱力圖跳頁路徑；桌機＋手機觸控）
     "熱力圖跳個股1008":    lambda pg, b, base, code: t_heat_plus_1008(b, base),
     # ★ 2026-09-28 Andy：「所有標題加上小圖示，顏色要搭配」—— 覆蓋、對比 ≥3:1（深淺）、1440／800／390 不擠（A/B）、動效（⚠ 一律 --workers 1）
@@ -62057,6 +62059,423 @@ def t_heat_plus_1008(b, base):
                 pg.screenshot(path=str(pathlib.Path(sh) / n))
             c.close()
     ok(f"{T}：整段沒有 JS 錯誤", not errs, errs[:3])
+
+
+# ===================================================================== 帳號選單1009（site/acctm4.js；Andy 2026-10-09 06:5x＋07:0x）
+#   手機（430 寬、觸控）右上角頭像打開的帳號選單：六種身分（訪客／註冊會員／Plus／Pro／管理員／站主）各跑一次，真的用手指點：
+#   ① 徽章文字對、四種方案顏色不同、管理員多一顆「管理」  ② 沒有「自選清單」  ③ 每一項點了真的到對應功能（hash 換了／面板開了）
+#   ④ 額度頁列出的項目數＝該身分有上限的功能數（全站每日額度＋每日次數＋同時數量上限）  ⑤ 刪除帳號：沒輸入「刪除」前停用、站主停用；
+#      成功後登出回首頁、伺服器還沒開放（404）時顯示白話錯誤  ⑥ 管理區只有管理員與站主看得到（收合群組，預設收起）
+#   ⑦ 客服開關（07:0x）：關→浮動鈕不見、重新整理仍不見；關著時「意見回饋」照樣打開客服面板；開→回來
+#   截圖：TW_ACCTM4_SHOTS=<資料夾>（小張 jpg）。⚠ 一律 --workers 1
+ACCTM4_API = "https://acctm4.example.test"
+ACCTM4_WHO = {
+    # 身分：(me, /v1/perm/me 回應)
+    "guest": (None, {"who": "guest", "plan": "guest", "planName": "訪客", "feats": {}, "lims": {"heat.detail": 3, "ind.groups": 3}, "dq": 3}),
+    "free":  ({"email": "mem@example.com", "name": "王小明", "admin": False, "owner": False},
+              {"who": "member", "plan": "free", "planName": "免費會員", "feats": {}, "lims": {"heat.detail": 10, "ind.groups": 10, "stock.ai": 3}, "dq": 10}),
+    "plus":  ({"email": "plus@example.com", "name": "陳 Plus", "admin": False, "owner": False},
+              {"who": "member", "plan": "plus", "planName": "Plus", "feats": {"watch.tabs": 5, "watch.size": 50}, "lims": {"explore.filter": 30}, "dq": 50}),
+    "pro":   ({"email": "pro@example.com", "name": "林 Pro", "admin": False, "owner": False},
+              {"who": "member", "plan": "pro", "planName": "Pro", "feats": {"watch.tabs": 50, "watch.size": 200}, "lims": {}, "dq": None}),
+    "admin": ({"email": "adm@example.com", "name": "管理員甲", "admin": True, "owner": False},
+              {"who": "member", "plan": "free", "planName": "免費會員", "feats": {}, "lims": {"stock.ai": 3}, "dq": 10}),
+    "owner": ({"email": "boss@example.com", "name": "ChengChiao Ke", "admin": True, "owner": True},
+              {"who": "owner", "plan": "owner", "planName": "擁有者（不受限制）", "feats": {}, "lims": {}, "dq": None, "owner": True}),
+}
+
+
+def _acctm4_ctx(b, who, del_status=200, bill=None, desk=False):
+    """bill：/v1/billing/me 要回什麼（None＝依身分給預設；"off"＝回 404，模擬 Worker 還沒部署這支）。desk＝桌機 1440（不觸控）。"""
+    me, perm = ACCTM4_WHO[who]
+    now = int(time.time() * 1000)
+    st = {"me": me, "del": 0, "chg": []}
+    paid = who in ("plus", "pro")
+    if bill is None:
+        bill = {"plan": perm["plan"], "planName": perm["planName"], "paid": paid, "owner": who == "owner", "periodEnd": now + 20 * 86400000 if paid else 0,
+                "firstPaid": now - 2 * 86400000 if paid else 0, "refundDays": 7, "trialUsed": False, "refundUsed": False,
+                "canRefund": paid, "refundWhy": "" if paid else "not_paid", "cancel": None, "refund": None}
+    st["bill"] = bill
+    plans = [{"id": "guest", "name": "訪客", "feats": {}, "lims": {}, "builtin": True, "price": 0, "period": "month"},
+             {"id": "free", "name": "免費會員", "feats": {}, "lims": {}, "builtin": True, "price": 0, "period": "month", "dq": 10},
+             {"id": "plus", "name": "Plus", "feats": {}, "lims": {}, "builtin": False, "price": 299, "period": "month", "dq": 50},
+             {"id": "pro", "name": "Pro", "feats": {}, "lims": {}, "builtin": False, "price": 549, "period": "month"}]
+
+    def handle(route):
+        req = route.request
+        path = re.sub(r"^https?://[^/]+", "", req.url).split("?")[0]
+        if req.method == "OPTIONS":
+            return route.fulfill(status=204, headers={"access-control-allow-origin": "*", "access-control-allow-headers": "*", "access-control-allow-methods": "POST"})
+        out, code = {}, 200
+        m = st["me"]
+        if path == "/v1/me":
+            out, code = ({"user": m}, 200) if m else ({}, 401)
+        elif path == "/v1/perm/me":
+            out = perm if m else ACCTM4_WHO["guest"][1]
+        elif path == "/v1/plans/public":
+            out = {"plans": plans}
+        elif path == "/v1/notices":
+            out = {"notices": [{"id": "n1", "title": "帳號選單測試公告", "body": "測試", "kind": "feature", "start": now - 3600000, "pinned": False}]}
+        elif path == "/v1/delete":
+            st["del"] += 1
+            if not m:
+                out, code = {"error": "auth"}, 401
+            elif m.get("owner"):
+                out, code = {"error": "owner"}, 403
+            elif del_status != 200:
+                out, code = {"error": "not_found"}, del_status
+            else:
+                out = {"ok": True, "deleted": True}
+                st["me"] = None
+        elif path == "/v1/quota/hit":
+            out = {"day": "x", "k": "", "n": 0, "keys": []}
+        elif path == "/v1/billing/me":
+            out, code = ({"error": "not_found"}, 404) if st["bill"] == "off" or not m else (st["bill"], 200)
+        elif path == "/v1/subscribe/change":
+            try:
+                body = json.loads(req.post_data or "{}")
+            except Exception:  # noqa: BLE001
+                body = {}
+            st["chg"].append(body)
+            if st["bill"] == "off":
+                out, code = {"error": "not_found"}, 404
+            else:
+                bl = dict(st["bill"])
+                bl[body.get("type")] = {"id": "r" + str(len(st["chg"])), "created": now}
+                bl["trialUsed"] = True
+                bl["canRefund"] = False
+                if body.get("type") == "refund":
+                    bl["refundUsed"] = True
+                st["bill"] = bl
+                out = {"ok": True, "id": "r1", **bl}
+        else:
+            out = {"ok": True}
+        route.fulfill(status=code, body=json.dumps(out), headers={"access-control-allow-origin": "*", "content-type": "application/json"})
+
+    c = (b.new_context(viewport={"width": 1440, "height": 900}) if desk
+         else b.new_context(viewport={"width": 430, "height": 932}, device_scale_factor=2, is_mobile=True, has_touch=True))
+    init = "window.TW_ACCOUNT_OVERRIDE = " + json.dumps({"api": ACCTM4_API}) + ";"
+    init += "try { localStorage.setItem('tw.live.on', '0'); } catch (e) {}"
+    if me:
+        init += "try { if (!sessionStorage.getItem('am4seed')) { sessionStorage.setItem('am4seed', '1'); localStorage.setItem('tw.acct.tok', 'tok-test'); } } catch (e) {}"
+    c.add_init_script(init)
+    c.route("**/fonts.googleapis.com/**", lambda r: r.abort())
+    c.route(ACCTM4_API + "/**", handle)
+    return c, st
+
+
+def _am4_open(pg):
+    """點右上角頭像（#acctBtn，手機收在 #m4Tools）打開帳號選單；回傳選單有沒有打開。"""
+    pg.evaluate("() => { const m = document.getElementById('acctMenu'); if (m) m.hidden = true; }")
+    try:
+        pg.locator("#m4Tools #acctBtn").tap(timeout=6000)
+    except Exception:  # noqa: BLE001  頂欄小圖示列在額度圓環／導覽鈕插進來時會位移，Playwright 判「不穩定」→ 等一下再點一次
+        pg.wait_for_timeout(600)
+        pg.locator("#m4Tools #acctBtn").tap(timeout=6000, force=True)
+    return bool(wait_until(pg, "() => { const m = document.getElementById('acctMenu'); return !!m && !m.hidden && m.classList.contains('m4am'); }", 3000))
+
+
+def t_acct_menu_1009(b, base, code):
+    T = "帳號選單1009"
+    shots = os.environ.get("TW_ACCTM4_SHOTS")
+    if shots:
+        pathlib.Path(shots).mkdir(parents=True, exist_ok=True)
+    want_label = {"guest": "訪客", "free": "註冊會員", "plus": "Plus", "pro": "Pro", "admin": "註冊會員", "owner": "站主"}
+    vis_fab = "() => { const f = document.getElementById('supFab'); return !!f && f.getClientRects().length > 0 && getComputedStyle(f).display !== 'none'; }"
+    sup_open = "() => { const p = document.getElementById('supPanel'); return !!p && !p.hidden && p.getClientRects().length > 0; }"
+    colors = {}
+    for who in ["guest", "free", "plus", "pro", "admin", "owner"]:
+        errs: list = []
+        c, st = _acctm4_ctx(b, who)
+        pg = c.new_page()
+        pg.on("pageerror", lambda e, w=who: errs.append(f"{w}: {e}"))
+        pg.goto(base + "#overview", wait_until="domcontentloaded")
+        ready = wait_until(pg, "() => document.documentElement.classList.contains('m4') && !!document.querySelector('#m4Tools #acctBtn') && window.TwPerm && TwPerm.state().src === 'server'"
+                           + (" && !!TwAccount.user()" if who != "guest" else "") + " && window.TwNotices && TwNotices.unread() > 0", 15000)
+        if not ok(f"【{T}】{who}：430 手機版、會員系統與權限都到位", bool(ready),
+                  pg.evaluate("() => ({ m4: document.documentElement.classList.contains('m4'), btn: !!document.querySelector('#m4Tools #acctBtn'), src: window.TwPerm && TwPerm.state().src, n: window.TwNotices && TwNotices.unread() })")):
+            c.close()
+            continue
+        pg.wait_for_timeout(300)
+        ok(f"【{T}】{who}：點頭像打開手機帳號選單", _am4_open(pg))
+        g = pg.evaluate("""() => { const m = document.getElementById('acctMenu'), vis = (e) => !!e && e.getClientRects().length > 0 && getComputedStyle(e).display !== 'none';
+            const bd = m.querySelector('.mh .planbadge'), r = m.getBoundingClientRect(), dl = m.querySelector('[data-m=del]');
+            return { label: bd ? bd.textContent.trim() : '', color: bd ? getComputedStyle(bd).color : '', role: [...m.querySelectorAll('.m4role')].map(e => e.textContent.trim()),
+                     txt: m.innerText, login: vis(m.querySelector('[data-m=login]')), adm: vis(m.querySelector('[data-m=admgrp]')),
+                     sub: m.querySelectorAll('.m4sub [data-a]').length, subVis: [...m.querySelectorAll('.m4sub [data-a]')].some(vis),
+                     del: dl ? (dl.getAttribute('aria-disabled') || 'no') : null,
+                     logout: !!m.querySelector('[data-a=logout]'), num: ((m.querySelector('[data-m=notify] .num:not([hidden])') || {}).textContent || '').trim(),
+                     inView: r.left >= 0 && r.right <= innerWidth + 0.5, sw: document.documentElement.scrollWidth <= innerWidth + 1,
+                     items: [...m.querySelectorAll('[data-m],[data-a]')].map(e => e.dataset.m || e.dataset.a) }; }""")
+        colors[who] = g["color"]
+        ok(f"【{T}】{who}：徽章＝「{want_label[who]}」（實際「{g['label']}」）", g["label"] == want_label[who], g["label"])
+        ok(f"【{T}】{who}：管理員多一顆「管理」徽章、其他身分沒有", g["role"] == (["管理"] if who == "admin" else []), g["role"])
+        ok(f"【{T}】{who}：選單裡沒有「自選清單」項目", "watch" not in g["items"] and "★ 自選清單" not in g["txt"], g["items"])
+        ok(f"【{T}】{who}：訂閱方案、通知、額度上限、意見回饋、客服按鈕、使用條款、隱私權政策都在",
+           all(k in g["items"] for k in ["pricing", "notify", "quota", "feedback", "fab", "terms", "privacy"]), g["items"])
+        ok(f"【{T}】{who}：通知顯示未讀數字 1（有一則公告沒讀）", g["num"] == "1", g["num"])
+        ok(f"【{T}】{who}：管理區只有管理員與站主看得到，而且預設收起",
+           (g["adm"] and g["sub"] >= 4 and not g["subVis"]) if who in ("admin", "owner") else (not g["adm"] and g["sub"] == 0), g)
+        ok(f"【{T}】{who}：訪客有「登入／註冊」、沒有刪除帳號與登出；登入者相反",
+           (g["login"] and g["del"] is None and not g["logout"]) if who == "guest" else (not g["login"] and g["del"] is not None and g["logout"]), g)
+        ok(f"【{T}】{who}：選單在畫面內、沒有撐出橫向捲軸", g["inView"] and g["sw"], g)
+        if shots and who in ("guest", "plus", "owner"):
+            pg.screenshot(path=str(pathlib.Path(shots) / f"menu_{who}.jpg"), type="jpeg", quality=70)
+        # ⑥ 管理區群組：點開才看得到；點「會員功能權限」真的到 #admin/perm
+        if who in ("admin", "owner"):
+            pg.locator("#acctMenu [data-m=admgrp]").tap()
+            pg.wait_for_timeout(200)
+            ok(f"【{T}】{who}：點「管理區 ›」展開四項以上",
+               pg.evaluate("() => [...document.querySelectorAll('#acctMenu .m4sub [data-a]')].filter(e => e.getClientRects().length).length") >= 4)
+            pg.locator("#acctMenu .m4sub [data-a=perm]").tap()
+            ok(f"【{T}】{who}：點「會員功能權限」→ #admin/perm", bool(wait_until(pg, "() => location.hash === '#admin/perm'", 3000)), pg.evaluate("() => location.hash"))
+            pg.evaluate("() => { location.hash = '#overview'; }")
+            pg.wait_for_timeout(500)
+        # ④ 額度頁：項目數＝該身分有上限的功能數
+        _am4_open(pg)
+        exp = pg.evaluate("""() => { const p = TwPerm, F = TwFeatures, st = p.state();
+            const daily = Object.keys(st.lims || {}).filter(id => { const f = F.byId(id); return f && f.kind !== 'limit' && p.lim(id) !== Infinity; }).length;
+            const all = p.lim('quota.all') !== Infinity ? 1 : 0;
+            const cnt = F.list.filter(f => f.kind === 'limit' && p.limit(f.id, f.max) < f.max).length;
+            return { daily, all, cnt, n: daily + all + cnt }; }""")
+        perm = ACCTM4_WHO[who][1]
+        want_daily = 0 if who == "owner" else len(perm["lims"])
+        want_all = 0 if who == "owner" or perm.get("dq") is None else 1
+        ok(f"【{T}】{who}：權限 API 讀到的每日次數＝模擬範本的 {want_daily} 項、全站額度 {want_all}", exp["daily"] == want_daily and exp["all"] == want_all, exp)
+        pg.locator("#acctMenu [data-m=quota]").tap()
+        q = wait_until(pg, "() => { const d = document.getElementById('m4Quota'); return d && !d.hidden && d.getClientRects().length ? { n: d.querySelectorAll('.qi').length, all: d.querySelectorAll('.qi.all').length, none: !!d.querySelector('.none'), txt: d.innerText } : null; }", 3000)
+        ok(f"【{T}】{who}：額度上限頁打開、列出 {exp['n']} 項（＝有上限的功能數）",
+           bool(q) and q["n"] == exp["n"] and q["all"] == exp["all"] and q["none"] == (exp["n"] == 0), (q, exp))
+        if q and exp["all"]:
+            ok(f"【{T}】{who}：全站每日額度排第一、寫「已用／上限・剩幾次」",
+               pg.evaluate("() => document.querySelector('#m4Quota .qi').classList.contains('all')") and "剩" in q["txt"] and "已用" in q["txt"], q["txt"])
+        if shots and who == "free":
+            pg.screenshot(path=str(pathlib.Path(shots) / "quota_free.jpg"), type="jpeg", quality=70)
+        if q:
+            pg.locator("#m4Quota [data-x]").tap()
+            pg.wait_for_timeout(200)
+            ok(f"【{T}】{who}：額度頁按 ✕ 關掉", pg.evaluate("() => document.getElementById('m4Quota').hidden"))
+        # ③ 各項點了真的到對應功能（訪客與註冊會員走全部；其他身分抽訂閱方案）
+        navs = [("pricing", "#pricing"), ("notify", "#notices"), ("terms", "#terms"), ("privacy", "#privacy")] if who in ("guest", "free") else [("pricing", "#pricing")]
+        for k, h in navs:
+            _am4_open(pg)
+            pg.locator(f"#acctMenu [data-m={k}]" if k != "privacy" else "#acctMenu [data-a=privacy]").tap()
+            ok(f"【{T}】{who}：點「{k}」→ {h}、選單收起",
+               bool(wait_until(pg, f"() => location.hash.startsWith({json.dumps(h)}) && document.getElementById('acctMenu').hidden", 3000)), pg.evaluate("() => location.hash"))
+        pg.evaluate("() => { location.hash = '#overview'; }")
+        pg.wait_for_timeout(400)
+        _am4_open(pg)
+        pg.locator("#acctMenu [data-m=feedback]").tap()
+        ok(f"【{T}】{who}：點「意見回饋」→ 客服面板打開", bool(wait_until(pg, sup_open, 3000)))
+        pg.evaluate("() => window.TwSupport && TwSupport.close()")
+        if who == "guest":
+            _am4_open(pg)
+            pg.locator("#acctMenu [data-m=login]").tap()
+            ok(f"【{T}】guest：點「登入／註冊」→ 登入告知框",
+               bool(wait_until(pg, "() => { const d = document.getElementById('acctDlg'); return !!d && !d.hidden && d.dataset.kind === 'notice'; }", 3000)))
+            pg.evaluate("() => { document.getElementById('acctDlg').hidden = true; }")
+            # ⑦ 客服開關
+            ok(f"【{T}】guest：一開始客服浮動鈕看得到", pg.evaluate(vis_fab))
+            _am4_open(pg)
+            pg.locator("#acctMenu [data-m=fab]").tap()
+            pg.wait_for_timeout(200)
+            f1 = pg.evaluate("() => ({ chk: document.querySelector('#acctMenu [data-m=fab]').getAttribute('aria-checked'), cls: document.documentElement.classList.contains('fab-off'), ls: localStorage.getItem('tw.fab.off'), open: !document.getElementById('acctMenu').hidden })")
+            ok(f"【{T}】guest：切到關 → 開關變關、html.fab-off、localStorage tw.fab.off='1'、選單沒收", f1 == {"chk": "false", "cls": True, "ls": "1", "open": True}, f1)
+            ok(f"【{T}】guest：關掉後客服浮動鈕不可見", not pg.evaluate(vis_fab))
+            pg.reload(wait_until="domcontentloaded")
+            wait_until(pg, "() => !!document.getElementById('supFab') && !!document.querySelector('#m4Tools #acctBtn')", 10000)
+            ok(f"【{T}】guest：重新整理後客服鈕仍不可見（開頭就掛上 fab-off）",
+               not pg.evaluate(vis_fab) and pg.evaluate("() => document.documentElement.classList.contains('fab-off')"))
+            _am4_open(pg)
+            pg.locator("#acctMenu [data-m=feedback]").tap()
+            ok(f"【{T}】guest：客服鈕關著時「意見回饋」照樣打開客服面板", bool(wait_until(pg, sup_open, 3000)))
+            pg.evaluate("() => window.TwSupport && TwSupport.close()")
+            _am4_open(pg)
+            pg.locator("#acctMenu [data-m=fab]").tap()
+            pg.wait_for_timeout(200)
+            ok(f"【{T}】guest：切回開 → 客服鈕看得到、localStorage 清掉", pg.evaluate(vis_fab) and pg.evaluate("() => localStorage.getItem('tw.fab.off') === null"))
+            pg.evaluate("() => { document.getElementById('acctMenu').hidden = true; }")
+        # ⑤ 刪除帳號
+        if who == "owner":
+            _am4_open(pg)
+            pg.locator("#acctMenu [data-m=del]").tap(force=True)    # aria-disabled：Playwright 預設不點停用的鈕，硬點一下驗「點了也沒反應」
+            pg.wait_for_timeout(300)
+            ok(f"【{T}】owner：刪除帳號停用（aria-disabled）、有說明、點了不開確認框、沒送刪除",
+               g["del"] == "true" and "站主帳號不可刪除" in g["txt"] and not pg.evaluate("() => { const d = document.getElementById('m4Del'); return !!d && !d.hidden; }") and st["del"] == 0, (g["del"], st["del"]))
+        elif who in ("free", "plus", "pro", "admin"):
+            ok(f"【{T}】{who}：刪除帳號可以按（不是站主）", g["del"] == "no", g["del"])
+        if who in ("free", "plus"):
+            _am4_open(pg)
+            ok(f"【{T}】{who}：刪除帳號是紅字",
+               pg.evaluate("() => { const c = getComputedStyle(document.querySelector('#acctMenu [data-m=del]')).color.match(/\\d+/g).map(Number); return c[0] > 200 && c[1] < 140; }"))
+            pg.locator("#acctMenu [data-m=del]").tap()
+            dv = wait_until(pg, "() => { const d = document.getElementById('m4Del'); return d && !d.hidden ? { dis: d.querySelector('#m4DelYes').disabled, txt: d.innerText } : null; }", 3000)
+            ok(f"【{T}】{who}：確認框打開、說明會刪什麼（自選、設定、方案）、沒輸入前停用",
+               bool(dv) and dv["dis"] and "自選" in dv["txt"] and "設定" in dv["txt"] and "方案" in dv["txt"], dv)
+            pg.locator("#m4DelTxt").fill("刪")
+            pg.wait_for_timeout(100)
+            ok(f"【{T}】{who}：只輸入「刪」仍停用", pg.evaluate("() => document.getElementById('m4DelYes').disabled"))
+            pg.locator("#m4DelTxt").fill("刪除")
+            pg.wait_for_timeout(100)
+            ok(f"【{T}】{who}：輸入「刪除」後可以按", not pg.evaluate("() => document.getElementById('m4DelYes').disabled"))
+            if shots and who == "free":
+                pg.screenshot(path=str(pathlib.Path(shots) / "delete_confirm.jpg"), type="jpeg", quality=70)
+            if who == "free":
+                pg.locator("#m4DelYes").tap()
+                ok(f"【{T}】free：刪除成功 → 登出、回 #overview、確認框關掉",
+                   bool(wait_until(pg, "() => !TwAccount.user() && location.hash === '#overview' && document.getElementById('m4Del').hidden", 4000)) and st["del"] == 1,
+                   pg.evaluate("() => ({ u: TwAccount.user(), h: location.hash })"))
+            else:
+                pg.locator("#m4Del [data-close]").first.tap()
+                ok(f"【{T}】{who}：按「取消」確認框關掉、沒送刪除", pg.evaluate("() => document.getElementById('m4Del').hidden") and st["del"] == 0)
+        # 登出（Pro）
+        if who == "pro":
+            _am4_open(pg)
+            pg.locator("#acctMenu [data-a=logout]").tap()
+            ok(f"【{T}】pro：點「登出」→ 變回訪客", bool(wait_until(pg, "() => !TwAccount.user()", 3000)))
+        ok(f"【{T}】{who}：沒有 JS 錯誤", not errs, errs)
+        c.close()
+    # Worker 還沒開放刪帳號（404）：白話錯誤、帳號還在
+    c, st = _acctm4_ctx(b, "plus", del_status=404)
+    pg = c.new_page()
+    pg.goto(base + "#overview", wait_until="domcontentloaded")
+    if wait_until(pg, "() => !!document.querySelector('#m4Tools #acctBtn') && window.TwAccount && !!TwAccount.user() && TwPerm.state().src === 'server'", 15000):
+        _am4_open(pg)
+        pg.locator("#acctMenu [data-m=del]").tap()
+        wait_until(pg, "() => { const d = document.getElementById('m4Del'); return d && !d.hidden; }", 3000)
+        pg.locator("#m4DelTxt").fill("刪除")
+        pg.locator("#m4DelYes").tap()
+        m404 = wait_until(pg, "() => (document.getElementById('m4DelMsg').textContent || '').includes('還沒在伺服器上開放') ? document.getElementById('m4DelMsg').textContent : null", 3000)
+        ok(f"【{T}】Worker 還沒部署（404）：顯示白話錯誤、帳號還在、確認框沒關",
+           bool(m404) and pg.evaluate("() => !!TwAccount.user() && !document.getElementById('m4Del').hidden"), m404)
+    else:
+        ok(f"【{T}】404 情境：登入狀態到位", False)
+    c.close()
+    four = [colors.get(k) for k in ("guest", "free", "plus", "pro")]
+    ok(f"【{T}】訪客／註冊會員／Plus／Pro 四種徽章顏色都不同", len(set(four)) == 4 and all(four), colors)
+    ok(f"【{T}】站主徽章顏色跟四種方案都不同", bool(colors.get("owner")) and colors.get("owner") not in four, colors)
+    t_billing_1009(b, base, shots)
+
+
+def _bill_open_desk(pg):
+    pg.evaluate("() => { const m = document.getElementById('acctMenu'); if (m) m.hidden = true; }")
+    pg.click("#acctBtn")
+    return bool(wait_until(pg, "() => { const m = document.getElementById('acctMenu'); return !!m && !m.hidden; }", 3000))
+
+
+BILL_ITEMS_JS = """() => [...document.querySelectorAll('#acctMenu [data-b]')].map(e => ({ k: e.dataset.b, dis: e.getAttribute('aria-disabled') === 'true', t: e.innerText.replace(/\\s+/g, ' ').trim() }))"""
+BILL_READY_M4 = "() => !!document.querySelector('#m4Tools #acctBtn') && !!TwAccount.user() && TwPerm.state().src === 'server' && TwBilling.state().st === "
+TRIAL_PROBE = "() => { const d = document.createElement('div'); d.id = 'trialProbe'; d.setAttribute('data-trial', ''); d.textContent = '七天免費試用'; document.body.appendChild(d); }"
+
+
+def t_billing_1009(b, base, shots):
+    """帳本 48（Andy 07:5x）：網頁版與手機帳號選單的「取消訂閱」「申請退款」＋七天保證防呆。"""
+    T = "帳號選單1009"
+    items = BILL_ITEMS_JS
+    dlg_open = "() => { const d = document.getElementById('billDlg'); return !!d && !d.hidden; }"
+    # ① 網頁版（1440）Plus：看得到兩項、退款可按；取消 → 確認框寫本期結束日 → 送出 body.type='cancel' → 選單變「已申請取消，可用到 …」
+    errs: list = []
+    c, st = _acctm4_ctx(b, "plus", desk=True)
+    pg = c.new_page()
+    pg.on("pageerror", lambda e: errs.append(str(e)))
+    pg.goto(base + "#overview", wait_until="domcontentloaded")
+    if ok(f"【{T}】網頁版 Plus：會員與帳務狀態到位", bool(wait_until(pg, "() => !!document.getElementById('acctBtn') && window.TwAccount && !!TwAccount.user() && TwPerm.state().src === 'server' && TwBilling.state().st === 'ok'", 15000))):
+        ok(f"【{T}】網頁版 Plus：試用入口放行（Worker 回沒用過 → html.trial-ok）", pg.evaluate("() => document.documentElement.classList.contains('trial-ok')"))
+        _bill_open_desk(pg)
+        it = pg.evaluate(items)
+        ok(f"【{T}】網頁版 Plus：帳號選單有「取消訂閱」「申請退款」兩項、都可以按", [x["k"] for x in it] == ["cancel", "refund"] and not any(x["dis"] for x in it), it)
+        if shots:
+            pg.locator("#acctMenu").screenshot(path=str(pathlib.Path(shots) / "desk_menu_plus.jpg"), type="jpeg", quality=75)
+        end = pg.evaluate("() => new Date(TwBilling.state().data.periodEnd + 8 * 3600000).toISOString().slice(0, 10)")
+        pg.click("#acctMenu [data-b=cancel]")
+        dv = wait_until(pg, "() => { const d = document.getElementById('billDlg'); return d && !d.hidden ? d.innerText : null; }", 3000)
+        ok(f"【{T}】網頁版 Plus：點取消訂閱 → 確認框寫「可用到本期結束日 {end}」「次期不再扣款」、選單收起",
+           bool(dv) and end in dv and "不再扣款" in dv and "七天" in dv and pg.evaluate("() => document.getElementById('acctMenu').hidden"), dv)
+        if shots:
+            pg.screenshot(path=str(pathlib.Path(shots) / "desk_cancel_confirm.jpg"), type="jpeg", quality=70)
+        pg.click("#billYes")
+        ok(f"【{T}】網頁版 Plus：送出後請求 body.type='cancel'、確認框關掉",
+           bool(wait_until(pg, "() => document.getElementById('billDlg').hidden", 3000)) and bool(st["chg"]) and st["chg"][-1].get("type") == "cancel", st["chg"])
+        _bill_open_desk(pg)
+        it = pg.evaluate(items)
+        cx = next((x for x in it if x["k"] == "cancel"), {})
+        rf = next((x for x in it if x["k"] == "refund"), {})
+        ok(f"【{T}】網頁版 Plus：取消後選單顯示「已申請取消，可用到 {end}」、停用", bool(cx.get("dis")) and f"已申請取消，可用到 {end}" in cx.get("t", ""), cx)
+        ok(f"【{T}】網頁版 Plus：取消過 → 退款鈕停用、寫「此帳號已使用過七天保證」；試用入口收起",
+           bool(rf.get("dis")) and "此帳號已使用過七天保證" in rf.get("t", "") and not pg.evaluate("() => document.documentElement.classList.contains('trial-ok')"), rf)
+    ok(f"【{T}】網頁版 Plus：沒有 JS 錯誤", not errs, errs)
+    c.close()
+    # ② 網頁版：訪客、免費會員看不到；站主看得到但停用並寫原因
+    for who in ("guest", "free", "owner"):
+        c, st = _acctm4_ctx(b, who, desk=True)
+        pg = c.new_page()
+        pg.goto(base + "#overview", wait_until="domcontentloaded")
+        wait_until(pg, "() => !!document.getElementById('acctBtn') && window.TwPerm && TwPerm.state().src === 'server'" + (" && !!TwAccount.user()" if who != "guest" else ""), 15000)
+        pg.wait_for_timeout(300)
+        if who == "guest":
+            pg.click("#acctBtn")      # 桌機訪客：按了是登入告知框（不是選單）
+            pg.wait_for_timeout(300)
+            ok(f"【{T}】網頁版訪客：看不到取消訂閱／申請退款", pg.evaluate("() => document.querySelectorAll('[data-b]').length") == 0)
+        else:
+            _bill_open_desk(pg)
+            it = pg.evaluate(items)
+            if who == "free":
+                ok(f"【{T}】網頁版免費會員：看不到取消訂閱／申請退款", it == [], it)
+            else:
+                ok(f"【{T}】網頁版站主：兩項都在但停用、寫明原因", len(it) == 2 and all(x["dis"] and "站主" in x["t"] for x in it), it)
+                pg.click("#acctMenu [data-b=cancel]", force=True)
+                pg.wait_for_timeout(300)
+                ok(f"【{T}】網頁版站主：點了不開確認框、沒送申請", not pg.evaluate(dlg_open) and not st["chg"])
+        # 試用入口：訪客（沒登入、無從比對）與站主不給；免費會員沒用過 → 給（Worker 回 trialUsed=false）
+        want_trial = who == "free"
+        ok(f"【{T}】網頁版{who}：試用入口{'顯示' if want_trial else '不顯示'}（html.trial-ok＝{want_trial}）",
+           bool(wait_until(pg, "() => document.documentElement.classList.contains('trial-ok') === " + ("true" if want_trial else "false"), 3000)))
+        c.close()
+    # ③ 手機 Plus、refund_used=true：退款鈕停用「此帳號已使用過七天保證」、試用入口（[data-trial]）不顯示
+    now = int(time.time() * 1000)
+    used = {"plan": "plus", "planName": "Plus", "paid": True, "owner": False, "periodEnd": now + 20 * 86400000, "firstPaid": now - 2 * 86400000, "refundDays": 7,
+            "trialUsed": True, "refundUsed": True, "canRefund": False, "refundWhy": "used", "cancel": None, "refund": None}
+    c, st = _acctm4_ctx(b, "plus", bill=used)
+    pg = c.new_page()
+    pg.goto(base + "#overview", wait_until="domcontentloaded")
+    if ok(f"【{T}】手機 Plus（refund_used）：狀態到位", bool(wait_until(pg, BILL_READY_M4 + "'ok'", 15000))):
+        pg.evaluate(TRIAL_PROBE)
+        _am4_open(pg)
+        it = pg.evaluate(items)
+        rf = next((x for x in it if x["k"] == "refund"), {})
+        ok(f"【{T}】手機 Plus（refund_used）：選單有兩項、退款停用並寫「此帳號已使用過七天保證」",
+           len(it) == 2 and bool(rf.get("dis")) and "此帳號已使用過七天保證" in rf.get("t", ""), it)
+        ok(f"【{T}】手機 Plus（refund_used）：試用入口不顯示", not pg.evaluate("() => document.getElementById('trialProbe').getClientRects().length > 0"))
+        if shots:
+            pg.screenshot(path=str(pathlib.Path(shots) / "m4_refund_used.jpg"), type="jpeg", quality=70)
+        pg.locator("#acctMenu [data-b=refund]").tap(force=True)
+        pg.wait_for_timeout(300)
+        ok(f"【{T}】手機 Plus（refund_used）：點停用的退款鈕不開確認框、沒送申請", not pg.evaluate(dlg_open) and not st["chg"])
+    c.close()
+    # ④ 手機 Plus（沒用過）：試用入口顯示（對照組，證明不是永遠藏）；退款送出 body.type='refund'
+    c, st = _acctm4_ctx(b, "plus")
+    pg = c.new_page()
+    pg.goto(base + "#overview", wait_until="domcontentloaded")
+    if ok(f"【{T}】手機 Plus（沒用過）：狀態到位", bool(wait_until(pg, BILL_READY_M4 + "'ok'", 15000))):
+        pg.evaluate(TRIAL_PROBE)
+        ok(f"【{T}】手機 Plus（沒用過）：試用入口顯示（html.trial-ok）", pg.evaluate("() => document.getElementById('trialProbe').getClientRects().length > 0"))
+        _am4_open(pg)
+        pg.locator("#acctMenu [data-b=refund]").tap()
+        wait_until(pg, dlg_open, 3000)
+        pg.locator("#billYes").tap()
+        ok(f"【{T}】手機 Plus：退款送出 body.type='refund'、之後試用入口收起",
+           bool(wait_until(pg, "() => document.getElementById('billDlg').hidden && !document.documentElement.classList.contains('trial-ok')", 3000)) and bool(st["chg"]) and st["chg"][-1].get("type") == "refund", st["chg"])
+    c.close()
+    # ⑤ Worker 還沒部署 /v1/billing/me（404）：安全預設 —— 不提供試用、兩項停用並寫「尚未開放」
+    c, st = _acctm4_ctx(b, "plus", bill="off")
+    pg = c.new_page()
+    pg.goto(base + "#overview", wait_until="domcontentloaded")
+    if ok(f"【{T}】Worker 未部署情境：狀態到位", bool(wait_until(pg, BILL_READY_M4 + "'off'", 15000)), pg.evaluate("() => window.TwBilling && TwBilling.state()")):
+        _am4_open(pg)
+        it = pg.evaluate(items)
+        ok(f"【{T}】Worker 未部署：不提供試用、兩項停用寫「尚未開放」",
+           not pg.evaluate("() => document.documentElement.classList.contains('trial-ok')") and len(it) == 2 and all(x["dis"] and "尚未開放" in x["t"] for x in it), it)
+    c.close()
 
 
 if __name__ == "__main__":

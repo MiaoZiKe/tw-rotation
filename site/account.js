@@ -345,11 +345,13 @@
   }
   function onBtn(e) {
     e.stopPropagation();
-    if (!S.user) return openDlg('notice');
+    /* 2026-10-09 手機（html.m4）：訪客也打開帳號選單（頂部「訪客」徽章＋「登入／註冊」，site/acctm4.js）；桌機照舊直接跳登入告知 */
+    if (!S.user && !m4Menu()) return openDlg('notice');
     const m = document.getElementById('acctMenu');
     if (m && !m.hidden) { m.hidden = true; return; }
     openMenu(e.currentTarget);
   }
+  const m4Menu = () => document.documentElement.classList.contains('m4') && !!window.TwAcctM4;
   function openMenu(anchor) {
     let m = document.getElementById('acctMenu');
     if (!m) {
@@ -370,12 +372,18 @@
         if (a.dataset.a === 'logout') logout();
       });
     }
+    /* 2026-10-09 Andy：手機的帳號選單整份換成 site/acctm4.js 畫（身分徽章、通知、額度上限、客服開關、刪除帳號…）。
+       桌機（沒有 html.m4）一律走下面原本的選單，一個字都不變（CLAUDE.md「手機改動不准影響桌機」）。*/
+    if (m4Menu()) { window.TwAcctM4.paint(m, anchor); return; }
+    m.classList.remove('m4am'); m.style.removeProperty('--m4am-top');
     const u = S.user || {};
     /* 2026-10-05（sub-v1）頂部：頭像字母＋名字＋方案徽章（pricing.js 的 TwPlanBadge，點了到 #pricing）*/
     const ini = esc((u.name || u.email || '?').trim().charAt(0).toUpperCase());
     m.innerHTML = `<div class="mh mhx"><span class="av" aria-hidden="true">${ini}</span><span class="nm"><b>${esc(u.name || '')}</b>${window.TwPlanBadge ? window.TwPlanBadge() : ''}</span><small>${esc(u.email || '')}</small></div>`
       + `<button type="button" role="menuitem" data-a="watch">★ 自選清單</button>`
       + `<button type="button" role="menuitem" data-a="pricing">訂閱方案</button>`
+      /* 2026-10-09（帳本 48，Andy 明確要網頁版也加）：取消訂閱／申請退款 —— 只有付費方案顯示、站主停用；內容與規則在 site/billing.js */
+      + (window.TwBilling ? window.TwBilling.menuHTML('desk') : '')
       + (u.admin ? `<button type="button" role="menuitem" data-a="feedback">管理區：意見反饋與訂閱申請</button><button type="button" role="menuitem" data-a="notices">管理區：公告</button>` : '')
       + (u.admin ? `<button type="button" role="menuitem" data-a="admin">管理區：流量觀測與線上名單</button><button type="button" role="menuitem" data-a="perm">管理區：會員功能權限</button>` : '')
       + (u.admin && window.TwGw && window.TwGw.on() ? `<button type="button" role="menuitem" data-a="gw">管理區：付費資料異常</button>` : '')   // 2026-10-06 data-gw 第三階段（site/admingw.js）
@@ -538,6 +546,8 @@
     on: () => S.on, user: () => S.user, api: () => S.api, online: () => S.online,
     tok: () => S.tok,   // 2026-10-06 data-gw：site/datagw.js 拿它去換 5 分鐘的資料權杖
     call, route, login: () => openDlg('notice'), logout, track,
+    /* 2026-10-09 手機選單的「刪除帳號」成功後用：清掉登入狀態＋一句提示（不算一次「登出」事件）*/
+    signedOut: (msg) => { setUser(null, null); if (msg) toast(msg); },
     /* 給驗收腳本：現在排隊中的統計（還沒送出的）*/
     pending: () => Object.assign({}, S.q),
     flush: () => { beat(); return send(); },

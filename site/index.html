@@ -50,6 +50,10 @@
      現在只剩兩種：≤640 ＝ 手機 v2（html.m4），>640 ＝ 電腦版（html.l4）。跨過 640 由 mobile4.js／layout4.js 的 resize 即時切換。
      判定只看 CSS 視窗寬（innerWidth），不看觸控、不看 UA —— Ctrl+縮放、拖視窗、旋轉都一樣落在兩種之一。 -->
 <script>(function(){if(innerWidth<=640)document.documentElement.classList.add('m4');})();</script>
+<!-- ★ 2026-10-09 Andy：「新增一個 客服 關／開 功能」—— 手機帳號選單的「客服按鈕」開關（site/acctm4.js）關掉時 localStorage tw.fab.off='1'。
+     要在畫面畫出來之前掛上 html.fab-off，客服浮動鈕才不會先閃一下再消失。網頁版沒有入口，沒按過就不會有這個 class。 -->
+<script>try{if(localStorage.getItem('tw.fab.off')==='1')document.documentElement.classList.add('fab-off');}catch(e){}</script>
+<style>html.fab-off #supFab{display:none!important}</style>
 <!-- 手機縮放鎖：只在真的手機上（主要指標是手指、沒有滑鼠懸停、螢幕短邊 ≤640）掛 html.tzl。
      · touch-action：除了 auto 以外的值都會關掉雙擊縮放；pan-x pan-y 再關掉雙指縮放（圖表自己用 touch-action:none 接手勢，不受影響）
      · gesturestart／gesturechange：iOS Safari 不理 user-scalable=no 的雙指縮放，這裡擋
@@ -5922,6 +5926,8 @@ return {load:load,ready:ready,srcs:srcs};})();
 <script src="quota.js"></script>
 <script src="support.js"></script>
 <script src="notices.js"></script>
+<script src="billing.js"></script><!-- 2026-10-09 取消訂閱／申請退款＋七天保證防呆（桌機與手機帳號選單共用；選單收著時不插任何節點）-->
+<script src="acctm4.js"></script><!-- 2026-10-09 手機（html.m4）帳號選單：身分徽章、通知、額度上限、客服開關、刪除帳號；桌機不插任何節點 -->
 <script src="admingw.js"></script><!-- 管理區：付費資料異常 #admin/gw（docs/datagw_plan.md 第三階段） -->
 <!-- 資金分流樹拓撲版（桌機 > 820px）：app.js 的 renderSankey() 會呼叫 window.FlowTopo，所以要在它之前 -->
 <script src="fit.js"></script>
