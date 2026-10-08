@@ -207,8 +207,8 @@
 /* 手機（html.m4）：mobile4.css 給 main 裡每顆按鈕 min-width:40px，管理頁每日直條 30 根 × 40px 撐出 818px 橫向捲軸 —— 直條是圖不是按鈕列，放回 0 */
 :root.m4 #v-subadm .fbvb .vb{min-width:0!important}
 #v-subadm select.wsst{font:inherit;font-size:13px;min-height:32px;background:var(--panel);color:var(--ink);border:1px solid var(--line-2);border-radius:8px}
-/* 帳號選單關掉客服（html.fab-off，claude/acct-menu）：鈕與面板都不顯示 */
-html.fab-off .supfab,html.fab-off .suppanel{display:none!important}`);
+/* 帳號選單關掉客服（html.fab-off，claude/acct-menu）：只藏浮動鈕；面板保留，帳號選單「意見回饋」照樣打得開（Andy 10-09「新增一個 客服 關／開 功能」） */
+html.fab-off .supfab{display:none!important}`);
 
   /* ★ admin-v3（Andy E）：圖示改可愛一點 —— 圓角對話泡泡裡一張笑臉（自繪 SVG，stroke＝currentColor，深淺主題都跟字色走）*/
   const ICON = '<svg viewBox="0 0 28 28" fill="none" aria-hidden="true"><path d="M6.5 4.5h15a4 4 0 0 1 4 4v8.5a4 4 0 0 1-4 4h-7.2l-5.1 4.1c-.5.4-1.2 0-1.2-.6v-3.5H6.5a4 4 0 0 1-4-4V8.5a4 4 0 0 1 4-4z" fill="currentColor" fill-opacity=".14" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round"/>'
