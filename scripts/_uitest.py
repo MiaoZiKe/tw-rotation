@@ -28212,8 +28212,20 @@ ZM_STATE_JS = """() => {
 
 
 def zm_check(T, pg, tag):
-    pg.wait_for_timeout(900)          # mobile4.js／layout4.js 的 resize 有 150ms 去抖，再留時間給 route() 重跑
-    s = pg.evaluate(ZM_STATE_JS)
+    # mobile4.js／layout4.js 的 resize 有 150ms 去抖，再加 route() 重跑；機器忙時要更久 ——
+    # 輪詢到「該寬度應有的版面」成立為止（最多 10 秒），之後才逐條斷言（輪詢只是等，不放寬判準）
+    def settled(x):
+        if x["hs"] > 0 or x["oldGrid"]:
+            return False
+        if x["w"] <= 640:
+            return x["m4"] and not x["l4"] and x["burger"] and not x["l4Head"]
+        return x["l4"] and not x["m4"] and not x["m3on"] and x["tabsPos"] != "fixed" and x["l4Head"] and x["headTitleW"] > 0 and not x["mobVis"]
+    pg.wait_for_timeout(400)
+    for _ in range(50):
+        s = pg.evaluate(ZM_STATE_JS)
+        if settled(s):
+            break
+        pg.wait_for_timeout(200)
     w = s["w"]
     ok(f"{T}：{tag}（CSS 寬 {w}）頁面沒有橫向捲軸", s["hs"] <= 0, s)
     ok(f"{T}：{tag}（CSS 寬 {w}）舊底部分頁格子不可見", not s["oldGrid"], s)
