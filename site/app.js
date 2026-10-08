@@ -648,9 +648,10 @@
         const h = isHoriz(s, i);
         // 厚度 14～18px（參考圖）：非堆疊的一律上限 18（barMaxWidth 的優先權高於 barWidth，寫成百分比的也壓得住）；
         // 堆疊的多半是一整根「組成」長條（漲跌家數），照它自己寫的
-        if (s.barMaxWidth == null && (s.stack == null || s.barWidth == null)) s.barMaxWidth = 18;
+        const thick = s.id === 'tw-thick-bar';   // 10-08：明確宣告「粗直條」的系列（ETF 每月入帳，Andy 要加粗）不套細長條上限，寬度照它自己寫的 barWidth
+        if (!thick && s.barMaxWidth == null && (s.stack == null || s.barWidth == null)) s.barMaxWidth = 18;
         /* ★ 長條共用風格（BAR，DECISIONS #338）：粗細 ≤ 10／12；非漲跌的色換成管理區青藍漸層（逐色判斷：紅／綠／灰不動）；單一系列、橫條且全為非負值補底軌 */
-        if (s.stack == null) s.barMaxWidth = Math.min(s.barMaxWidth == null ? 99 : s.barMaxWidth, h ? BAR.H : BAR.V_MAX);
+        if (!thick && s.stack == null) s.barMaxWidth = Math.min(s.barMaxWidth == null ? 99 : s.barMaxWidth, h ? BAR.H : BAR.V_MAX);
         {
           const nBar = series.filter((q, qi) => isBar(q, qi)).length;
           let mine = false;
@@ -958,7 +959,8 @@
        · 提示框：A.tip 底，標題粗體＝名稱，下面「值（占比）」「漲跌（紅漲綠跌，有才寫）」，有下一層才寫一句「點一下…」
        · 圖例：右側一列一項（色塊｜名稱｜值｜占比）；卡寬 < 420 才退到下面（照 #328） */
   const DONUT_COLORS = {
-    dark: ['#4f8cff', '#ff7a59', '#2bc4b0', '#d49a5a', '#f06aa6', '#9b82ff', '#e6b422', '#6fcf3a', '#2cc0ee', '#8da0c4'],
+    /* 10-08 暗色提亮（見 style_guide 第十七節）：同色相、明度拉到 L≈68–80，在 #0b1220 上對比 ≥7，未選中疊 .5 透明度仍保有色相 */
+    dark: ['#5b9dff', '#ff8a6b', '#34d6c0', '#e8b06e', '#f58bbd', '#b39bff', '#f5c842', '#84e05a', '#3fd0f7', '#a9b8d8'],
     light: ['#2f5fb3', '#d9482b', '#1f8f82', '#8a5a2b', '#cf4a86', '#6f4fc2', '#b8860b', '#4a8a15', '#0b7fa6', '#5d6b88'],
   };
   const DONUT = {

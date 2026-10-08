@@ -447,6 +447,7 @@
 #v-etf .cmr.hl{border-color:var(--amber);background:color-mix(in srgb,var(--amber) 14%,var(--panel));box-shadow:inset 3px 0 0 var(--amber)}
 #v-etf .mgrid .mcell{cursor:pointer;transition:opacity .12s}
 #v-etf .mgrid .mcell.dim{opacity:.35}
+:root:not([data-theme="light"]) #v-etf .mgrid .mcell.dim{opacity:.55}   /* 暗色未選中不要糊成泥色，淺色不動 */
 #v-etf .mgrid .mcell.lit{box-shadow:0 0 0 2px var(--ink)}
 @media (prefers-reduced-motion:reduce){#v-etf .cmr,#v-etf .mgrid .mcell{transition:none}}
 #v-etf #incChips{margin:0 0 6px}
@@ -1836,7 +1837,7 @@
       tooltip: { ...a.tip, confine: true, trigger: 'item', formatter: (p) => tipOf(p.dataIndex) },
       xAxis: { type: 'category', data: Array.from({ length: 12 }, (_, i) => `${i + 1}月`), ...a.axisStyle, axisLabel: { ...a.axisStyle.axisLabel, fontSize: 11, interval: 0 } },
       yAxis: { type: 'value', show: false },
-      series: [{ type: 'bar', barMaxWidth: 22, emphasis: { focus: 'self', blurScope: 'series', itemStyle: { borderColor: CH.ink, borderWidth: 2 } }, blur: { itemStyle: { opacity: 0.32 } },   // 10-08：滑過那根加亮、其他變淡（跟行事曆小圖同一套）
+      series: [{ type: 'bar', id: 'tw-thick-bar', barWidth: '50%',   /* 10-08 Andy：直條太細太空 → 每格寬的 50%（1440 約 45px，手機等比）*/  emphasis: { focus: 'self', blurScope: 'series', itemStyle: { borderColor: CH.ink, borderWidth: 2 } }, blur: { itemStyle: { opacity: document.documentElement.getAttribute('data-theme') === 'light' ? 0.32 : 0.55 } },   // 10-08：滑過那根加亮、其他變淡（跟行事曆小圖同一套）
         itemStyle: { borderRadius: [3, 3, 0, 0], color: colOf ? (p) => { const c = colOf(p.dataIndex); return { type: 'linear', x: 0, y: 0, x2: 0, y2: 1, colorStops: [{ offset: 0, color: c }, { offset: 1, color: a.hexA(c, 0.45) }] }; } : B.grad(false) },
         label: { show: true, position: 'top', fontSize: 11, color: CH.ink2, formatter: (p) => (p.value > 0 ? wan1(p.value) : '') }, data: vals.map((v) => Math.round(v)) }],
     });
@@ -1946,7 +1947,10 @@
      ⚠ 透明度寫在每個資料項的 itemStyle.opacity（不是改顏色），深／淺主題同一個數字都對；.35 照 style_guide「其餘變淡 .3～.4」。
      ⚠ 選取記在 S.inc.csel（代號）：切時鐘／月曆、改目標重畫後，只要那檔還在這組就保留；換到不含它的組合就自動清掉。
      ⚠ 手機（≤640）上下排，捲去明細卡會把剛點的圖推出畫面，所以手機不捲、只亮。 */
-  const SEL_DIM = 0.35;
+  /* 10-08 暗色優化（Andy：「暗色系圖表顏色實在太暗沉太醜了」）：深色底上 .35 透明度會把亮藍、珊瑚疊成 #233a6b／#5a3a3a 這種泥色；
+     深色主題未選中改 .55（疊在 #0b1220 上仍保有色相，同時跟全亮＋外框的選中那塊差距夠大），淺色維持 .35 不動。 */
+  const SEL_DIM_DARK = 0.55, SEL_DIM_LIGHT = 0.35;
+  const selDim = () => (document.documentElement.getAttribute('data-theme') === 'light' ? SEL_DIM_LIGHT : SEL_DIM_DARK);
   function comboLink(c, parts, ck, mainOf) {
     const a = A(), CH = a.CH, combo = $('#incCombos .combo');
     if (!combo) return;
@@ -1955,7 +1959,7 @@
     const dn = inst('incCdn'), clk = inst('incClk'), mb = inst('incCmb');
     let hov = -1;
     const selI = () => codes.indexOf(S.inc.csel);
-    const opOf = (on, si) => (si < 0 || on ? 1 : SEL_DIM);
+    const opOf = (on, si) => (si < 0 || on ? 1 : selDim());
     function paint(scroll) {
       const si = selI();
       if (si < 0) S.inc.csel = null;
@@ -1971,11 +1975,11 @@
       }
       $$('#incGrid .mcell').forEach((el) => { const on = si >= 0 && mainOf(+el.dataset.m - 1) === si; el.classList.toggle('dim', si >= 0 && !on); el.classList.toggle('lit', on); });
       if (mb && !mb.isDisposed()) {
-        try { mb.setOption({ series: [{ data: c.mon.map((v, m) => { const on = si >= 0 && mainOf(m) === si;
+        try { mb.setOption({ series: [{ id: 'tw-thick-bar', data: c.mon.map((v, m) => { const on = si >= 0 && mainOf(m) === si;
           // ⚠ 顏色要一起寫：資料項一旦帶 itemStyle，系列層的 color 函式就不再套用，直條會整排退回預設青色（踩過）
           const mi = mainOf(m), col = mi >= 0 ? a.donut.color(mi) : CH.ink3;
           return { value: Math.round(v), itemStyle: { color: { type: 'linear', x: 0, y: 0, x2: 0, y2: 1, colorStops: [{ offset: 0, color: col }, { offset: 1, color: a.hexA(col, 0.45) }] },
-            opacity: opOf(on, si), borderColor: on ? CH.ink : 'transparent', borderWidth: on ? 1.5 : 0 }, label: { opacity: si < 0 || on ? 1 : 0.5 } }; }) }] }); } catch (e) { /* 競態 */ }
+            opacity: opOf(on, si), borderColor: on ? CH.ink : 'transparent', borderWidth: on ? 1.5 : 0 }, label: { opacity: si < 0 || on ? 1 : (selDim() === SEL_DIM_DARK ? 0.7 : 0.5) } }; }) }] }); } catch (e) { /* 競態 */ }
       }
       const cards = $$('#incCTbl .cmr');
       cards.forEach((r, i) => r.classList.toggle('hl', i === si));
