@@ -53691,7 +53691,8 @@ def t_sub_1005(b, base, code):
     # 卡片內容：頂端標籤、打勾清單項目數、行動鈕
     cd = pg.evaluate("""() => [...document.querySelectorAll('#prCards .prcard')].map(c => ({ id: c.dataset.plan, tag: (c.querySelector('.prtag') || {}).textContent || '',
         n: c.querySelectorAll('.prhl li').length, btn: c.querySelector('.prgo').textContent.trim(), dis: c.querySelector('.prgo').disabled, go: c.querySelector('.prgo').dataset.go || '',
-        last: c.lastElementChild === c.querySelector('.prgo') }))""")
+        /* 2026-10-09 改前→改後：改前按鈕是卡片最後一個元素；改後按鈕下面固定多一行「付款前請先閱讀…」（.prpre，免費卡是隱形佔位），按鈕是倒數第二個 */
+        last: c.lastElementChild === c.querySelector('.prgo') || (c.lastElementChild.classList.contains('prpre') && c.lastElementChild.previousElementSibling === c.querySelector('.prgo')) }))""")
     ok(f"{T}：頂端標籤：399＝★ 最受歡迎、799＝✦ 功能最齊、註冊會員沒有", [x["tag"] for x in cd] == ["", "★ 最受歡迎", "✦ 功能最齊"], cd)
     ok(f"{T}：打勾清單（範本沒填 → 依次數與開關自動產生）：註冊會員 5 項、399 3 項、799 2 項", [x["n"] for x in cd] == [5, 3, 2], cd)
     ok(f"{T}：行動鈕在卡片最底：註冊會員＝目前方案（不能按）、399＝升級 399 即時、799＝升級 799 全功能",
