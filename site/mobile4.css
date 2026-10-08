@@ -17,7 +17,7 @@
   :root.m4 .m4burger{display:inline-grid;place-items:center;flex:none;width:44px;height:44px;margin:0 2px 0 -4px;padding:0;
     border:1px solid var(--line-2);border-radius:12px;background:var(--panel);color:var(--ink);cursor:pointer}
   :root.m4 .topbar .brand .logo{flex:none;width:32px;height:32px}
-  :root.m4 .topbar .brand .logo img{width:32px;height:32px;display:block}
+  :root.m4 .topbar .brand .logo img{width:32px;height:32px;display:block;object-fit:cover}
   :root.m4 .topbar .brand b{display:none}
   :root.m4 .topbar .brand{min-width:0;flex:1 1 auto;margin-right:8px;overflow:hidden}
   :root.m4 .topbar .brand>div{min-width:0}
@@ -35,7 +35,7 @@
   :root.m4 .m4drawer[hidden],:root.m4 .m4back[hidden]{display:none}
   :root.m4 .m4head{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:10px 10px 8px 16px;border-bottom:1px solid var(--line)}
   :root.m4 .m4brand{display:flex;align-items:center;gap:10px}
-  :root.m4 .m4brand img{width:32px;height:32px;border-radius:50%;display:block}
+  :root.m4 .m4brand img{width:32px;height:32px;border-radius:28%;display:block;object-fit:cover;padding:0;background:none}  /* 2026-10-08 Andy「頭像滿版、不要被切到」：圓形會切掉帽尖 → 圓角方形 */
   :root.m4 .m4head b{font-size:16px;color:var(--ink)}
   :root.m4 .m4x{width:44px;height:44px;border:0;border-radius:10px;background:transparent;color:var(--ink-2);font-size:18px}
   :root.m4 .m4body{flex:1 1 auto;overflow-y:auto;overscroll-behavior:contain;padding:6px 8px calc(16px + env(safe-area-inset-bottom))}

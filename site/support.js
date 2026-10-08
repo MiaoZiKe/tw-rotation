@@ -74,7 +74,7 @@
 .supfab svg{width:26px;height:26px}
 /* ★ 2026-10-07（Andy：「客服圖示改成跟logo一樣可愛的天竺鼠」）：對話泡泡換成品牌頭像（site/brand/mark-64/128）。
    圓形裁切＋一圈白邊，深色（青底）與淺色主題下都跟按鈕底色分得開；滑過時頭像歪頭晃一下（減少動態偏好時不動）。 */
-.supfab .supmark{width:32px;height:32px;border-radius:50%;object-fit:cover;flex:none;display:block;box-shadow:0 0 0 2px #fff;background:#8ac5f5;transition:transform .2s}
+.supfab .supmark{width:32px;height:32px;border-radius:28%;object-fit:cover;flex:none;display:block;box-shadow:0 0 0 2px #fff;background:none;padding:0;transition:transform .2s}
 .supfab:hover .supmark{animation:supwig .5s ease-in-out;transform:scale(1.1)}
 @keyframes supwig{0%,100%{transform:scale(1.1) rotate(0)}30%{transform:scale(1.1) rotate(-10deg)}65%{transform:scale(1.1) rotate(8deg)}}
 @media (prefers-reduced-motion:reduce){.supfab:hover .supmark{animation:none}}
