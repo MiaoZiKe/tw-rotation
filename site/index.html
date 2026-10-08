@@ -2,7 +2,10 @@
 <html lang="zh-Hant">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<!-- ★ 2026-10-09（Andy：「手機版本……不能有縮放功能，版面就固定這麼大」）：手機禁止雙指與雙擊縮放。
+     maximum-scale=1 同時擋掉 iOS 輸入框聚焦時的自動放大；電腦瀏覽器不吃 viewport meta，桌機 Ctrl+縮放照舊（也不該擋）。
+     iOS Safari 不理 user-scalable=no，另由下面「手機縮放鎖」那段擋 gesturestart＋touch-action。 -->
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <title>哩股哩股</title>
 <meta property="og:title" content="哩股哩股">
 <meta property="og:site_name" content="哩股哩股">
@@ -40,8 +43,28 @@
      視窗之後被拉寬／縮窄跨過 821，由 layout4.js 的 resize 掛上或撤掉。 -->
 <!-- ★ 2026-10-08 手機 v2（docs/mobile_v2_plan.md）：≤640 掛 html.m4（mobile4.js 之後跨寬度時掛上／撤掉）。要在第一次 route() 之前掛好：
      app.js 看到 m4 就跟電腦版一樣走側欄子分頁（#flow/rotation…）。桌機（>640）這一行什麼都不做。 -->
+<!-- ★ 2026-10-09 縮放混合版（Andy：「剛剛手機版本發現嚴重BUG……不會出現這樣縮放後的 BUG」）：
+     根因：以前有「三種」版面 —— ≤640 手機 v2（m4）、≥821 電腦版（l4 左側導覽），中間 641～820 掛不到任何一個，
+     吃的是 main 最早的舊頂欄＋index.html「@media (max-width:820px)」把 #tabs 釘在底部的舊導覽格子；
+     分頁從 7 顆長到 10 顆以後格子折成三列、蓋掉下半個畫面。電腦 Chrome 縮窄視窗或 Ctrl+放大到 CSS 寬 641～820 就踩到。
+     現在只剩兩種：≤640 ＝ 手機 v2（html.m4），>640 ＝ 電腦版（html.l4）。跨過 640 由 mobile4.js／layout4.js 的 resize 即時切換。
+     判定只看 CSS 視窗寬（innerWidth），不看觸控、不看 UA —— Ctrl+縮放、拖視窗、旋轉都一樣落在兩種之一。 -->
 <script>(function(){if(innerWidth<=640)document.documentElement.classList.add('m4');})();</script>
-<script>(function(){if(innerWidth<=820)return;var c=document.documentElement.classList;c.add('l4');try{var v=localStorage.getItem('tw.layout4.nav');if(v?v==='mini':innerWidth<=1180)c.add('l4-mini');}catch(e){}})();</script>
+<!-- 手機縮放鎖：只在真的手機上（主要指標是手指、沒有滑鼠懸停、螢幕短邊 ≤640）掛 html.tzl。
+     · touch-action：除了 auto 以外的值都會關掉雙擊縮放；pan-x pan-y 再關掉雙指縮放（圖表自己用 touch-action:none 接手勢，不受影響）
+     · gesturestart／gesturechange：iOS Safari 不理 user-scalable=no 的雙指縮放，這裡擋
+       （不掛整頁的非被動 touchmove：那會讓每一次捲動都等主執行緒，捲起來會卡）
+     · 輸入框字級 ≥16px：iOS 聚焦字級 <16px 的輸入框會自動放大（CSS 在 index.html「手機縮放鎖」那段）
+     電腦（含觸控筆電：有滑鼠懸停）不掛 —— 電腦瀏覽器的 Ctrl+縮放不擋。 -->
+<script>(function(){try{var m=function(q){return window.matchMedia&&matchMedia(q).matches;};var s=Math.min(screen.width||9999,screen.height||9999);
+if(!(m('(pointer:coarse)')&&m('(hover:none)')&&s<=640))return;document.documentElement.classList.add('tzl');
+var no=function(e){e.preventDefault();};document.addEventListener('gesturestart',no,{passive:false});document.addEventListener('gesturechange',no,{passive:false});}catch(e){}})();</script>
+<style>
+html.tzl{touch-action:pan-x pan-y}
+html.tzl body{touch-action:manipulation}
+html.tzl input:not([type=checkbox]):not([type=radio]):not([type=range]):not([type=color]),html.tzl select,html.tzl textarea{font-size:16px!important}
+</style>
+<script>(function(){if(innerWidth<=640)return;var c=document.documentElement.classList;c.add('l4');try{var v=localStorage.getItem('tw.layout4.nav');if(v?v==='mini':innerWidth<=1180)c.add('l4-mini');}catch(e){}})();</script>
 <!-- ★ 2026-09-24 PWA：圖示改用 site/icons/ 那一組（舊的 icon.png 是 2026-09-18 的 2KB 圖，
      留著當退路沒有刪）。maskable 版是給 Android 啟動器裁切用的。
      ⚠ 這組圖示是**暫時版** —— 命名與視覺識別還沒定案（docs/product_strategy.md 提了 8 個候選），

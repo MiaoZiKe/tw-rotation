@@ -33,7 +33,7 @@
     get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } },
     set(k, v) { try { localStorage.setItem(k, v); } catch (e) { /* 私密視窗，忽略 */ } },
   };
-  const DESK = () => window.innerWidth > 820;
+  const DESK = () => window.innerWidth > 640;   // ★ 2026-10-09 縮放混合版：>640 一律電腦版（以前 641～820 掛不到 l4，吃舊頂欄＋底部格子）
   /* ★ 2026-10-03 手機版暫停（Andy：「手機版先停擺，等電腦版 OK 之後再做。電腦版要先上線」）：
      MOBILE＝false 時，視窗 ≤820 這支**什麼都不做**：不掛 l4、不插任何節點（#l4Head／#l4Jump／.l4foot／.brand .l4pt）、
      不寫任何 inline style、不動分頁的 title／aria-label —— ≤820 的畫面與 DOM 跟 main 一樣。
