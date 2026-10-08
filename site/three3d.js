@@ -9321,10 +9321,13 @@
       /* 初始距離＝fill ÷ INIT_SCALE_3D（透視投影下螢幕大小 ∝ 1／距離）。#306 是 0.7，#317 回到 1.0。
          「重設視角」走同一支。拉近的下限照「填滿」距離算（fill × 0.28），滾輪拉近能看到的細節不變。*/
       const dist = fill / INIT_SCALE_3D;
-      fitInfo = { fill, dist, est, exact };
+      fitInfo = { fill, dist, est, exact, r: sph.radius };
       controls.target.copy(sph.center);
       camera.position.copy(sph.center).addScaledVector(dir, dist);
       controls.minDistance = fill * 0.28; controls.maxDistance = dist * 2.6;
+      /* ★ 2026-10-09 拖曳邊界1009（手機 html.m4 限定）：縮小最多縮回「剛好填滿」的預設距離（＝1×），
+         不准再往外退到模型只剩中間一小點、四周一大片空白。桌機照舊可以退到 2.6 倍。 */
+      if (document.documentElement.classList.contains('m4')) controls.maxDistance = dist;
       camera.updateProjectionMatrix();
       controls.update();
       if (keepT !== 1) applyExplode(keepT);       // 還原成量之前的展開程度
@@ -10288,6 +10291,17 @@
     let raf = null, alive = true, visible = true, relayout = 0, t0 = performance.now();
     // （dirty／lastDraw／markDirty 宣告在 applyExplode 那一段：#246 的補間在建場景階段就會用到）
     controls.addEventListener('change', markDirty);
+    /* ★ 2026-10-09 拖曳邊界1009（Andy：「不可以…還能一直滑過頭超出範圍」）：手機（html.m4）上兩指平移（或切到「平移」模式單指拖）可以把整台模型拖出畫布、
+       只剩一片空白。把平移的中心（controls.target）夾在「取景中心 ± 半個外接球」以內 —— 模型最多被推到半邊出框，
+       一定還看得到、拖不走。超過的那一段相機跟著退回同樣的量（只平移、不改視角與距離）。桌機不夾（守門1008）。 */
+    const panClamp = () => {
+      if (!fitPose || !fitInfo.r || !document.documentElement.classList.contains('m4')) return;
+      const lim = fitInfo.r * 0.5, off = controls.target.clone().sub(fitPose.t), len = off.length();
+      if (len <= lim) return;
+      const back = off.multiplyScalar(1 - lim / len);
+      controls.target.sub(back); camera.position.sub(back);
+    };
+    controls.addEventListener('change', panClamp);
     const tick = () => {
       if (!alive) return;
       raf = requestAnimationFrame(tick);

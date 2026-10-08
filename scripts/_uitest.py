@@ -28236,6 +28236,269 @@ def t_dgclip_1008(b, base):
 
 
 
+# ★ 2026-10-09 手機拖曳邊界1009（Andy 04:1x：「所有圖扁長寬到了就好，不可以他長度原本是那樣，但還能一直滑過頭超出範圍」）
+#   手機（html.m4）每一種能拖、能平移、能縮放的圖：放大後往四個方向各用手指拖一大段（比內容還長）＋一次快速甩動（慣性），
+#   每次都量「內容外框仍蓋滿整個可視框、四邊沒有空白」；1× 時拖不動。K 線拖到兩端與縮到最小不能露出資料外的空白；
+#   3D 場景兩指平移拖不出畫布。原生捲動框一律 overscroll-behavior:none（iOS 不回彈露空白）。桌機的 K 線兩端不釘（守門）。
+PAN_COVER = """(wid) => { const b = document.getElementById(wid), p = b.querySelector(':scope > .zpane'), i = p && p.firstElementChild; if (!i) return null;
+    const pr = p.getBoundingClientRect(); let u = null;
+    for (const c of i.querySelectorAll('canvas, svg')) { if (!c.getClientRects().length || c.closest('.zbadge')) continue; const r = c.getBoundingClientRect();
+      if (r.width < 40 || r.height < 40) continue;
+      u = u ? { l: Math.min(u.l, r.left), t: Math.min(u.t, r.top), r: Math.max(u.r, r.right), b: Math.max(u.b, r.bottom) } : { l: r.left, t: r.top, r: r.right, b: r.bottom }; }
+    if (!u) return null;
+    // 內容外框（圖的畫布）與可視框（.zpane 的內容區，扣掉捲軸）四邊各差多少：正數＝那一邊露出空白
+    const cw = p.clientWidth, ch = p.clientHeight;
+    return { k: +((b._zoom && b._zoom.scale) || 1).toFixed(2), sl: Math.round(p.scrollLeft), st: Math.round(p.scrollTop),
+      gap: [Math.round(u.l - pr.left), Math.round(u.t - pr.top), Math.round(pr.left + cw - u.r), Math.round(pr.top + ch - u.b)],
+      osb: getComputedStyle(p).overscrollBehaviorX + '/' + getComputedStyle(p).overscrollBehaviorY }; }"""
+
+
+def t_pan_clamp_1009(b, base, code):
+    T = "手機拖曳邊界1009"
+    ctx = b.new_context(viewport={"width": 430, "height": 932}, device_scale_factor=2, is_mobile=True, has_touch=True)
+    ctx.add_init_script("try{ if(!sessionStorage.getItem('pc9')){ localStorage.clear(); localStorage.setItem('tw.live.on','0'); localStorage.setItem('tw.tourDone','1'); sessionStorage.setItem('pc9','1'); } }catch(e){}")
+    m = ctx.new_page()
+    m.on("pageerror", lambda e: fails.append(f"{T} pageerror: {e} @ {m.url}"))
+    m.route("**/fonts.googleapis.com/**", lambda r: r.abort())
+    cdp = ctx.new_cdp_session(m)
+    J = lambda js, *a: m.evaluate(js, *a)
+
+    def go(h, wait=3500):
+        m.goto(base + "#" + h, wait_until="domcontentloaded"); m.wait_for_timeout(wait)
+
+    def touch(pts_from, pts_to, steps=12, gap=16):
+        """手指拖曳：pts_* 是一或兩根手指的 (x, y)。steps 少＋gap 短＝快速甩動（慣性）。"""
+        mk = lambda pts: [{"x": x, "y": y, "id": i} for i, (x, y) in enumerate(pts)]
+        cdp.send("Input.dispatchTouchEvent", {"type": "touchStart", "touchPoints": mk(pts_from)})
+        for k in range(1, steps + 1):
+            cur = [(a[0] + (c[0] - a[0]) * k / steps, a[1] + (c[1] - a[1]) * k / steps) for a, c in zip(pts_from, pts_to)]
+            cdp.send("Input.dispatchTouchEvent", {"type": "touchMove", "touchPoints": mk(cur)}); m.wait_for_timeout(gap)
+        cdp.send("Input.dispatchTouchEvent", {"type": "touchEnd", "touchPoints": []}); m.wait_for_timeout(450)
+
+    try:
+        ok(f"【{T}】430 寬是手機版（html.m4）", (go("overview", 2500) or True) and J("() => document.documentElement.classList.contains('m4')"))
+        # ① 熱力圖類（wheelZoom 的 .zpane）：每一頁看得到的每一個縮放框
+        seen = []
+        for h in ("heatmap/industry", "heatmap/theme", "overview", "flow/inst", "industry"):
+            go(h)
+            wids = J("() => [...document.querySelectorAll('.view.on .zwrap')].filter(e => e.getClientRects().length && e.querySelector(':scope > .zpane') && e._zoom).map(e => e.id)")
+            for wid in wids:
+                J("(w) => { const e = document.getElementById(w); window.scrollTo({ top: e.getBoundingClientRect().top + scrollY - 90, behavior: 'instant' }); }", wid)
+                m.wait_for_timeout(500)
+                r = J("(w) => { const r = document.getElementById(w).querySelector(':scope > .zpane').getBoundingClientRect(); return [r.left, r.top, r.width, Math.min(r.height, innerHeight - r.top - 20)]; }", wid)
+                if not r or r[2] < 100 or r[3] < 100:
+                    continue
+                seen.append(f"{h}:{wid}")
+                cx, cy = r[0] + r[2] / 2, r[1] + r[3] / 2
+                s0 = J(PAN_COVER, wid)
+                ok(f"【{T}】{h} {wid} 的捲動框不回彈（overscroll-behavior {s0 and s0['osb']}）", bool(s0) and s0["osb"] == "none/none", s0)
+                # 1×：手指往四個方向拖，圖不動（框的捲動位置還是 0、四邊貼齊）
+                y_before = J("() => scrollY")
+                touch([(cx, cy)], [(cx - 300, cy)])
+                touch([(cx, cy)], [(cx + 300, cy)])
+                # 往右滑在 Chrome 會被當成「上一頁」手勢：整片頁面滑出畫面、跳回上一頁（修前實測回到 #overview）
+                hh = J("() => location.hash")
+                ok(f"【{T}】{h} 1× 時在圖上左右滑：頁面不會被當成「上一頁」整片滑走（網址 {hh}）", hh.startswith("#" + h), hh)
+                s1 = J(PAN_COVER, wid)
+                ok(f"【{T}】{h} {wid} 1× 時左右拖不動（捲動 {s1 and (s1['sl'], s1['st'])}、四邊差 {s1 and s1['gap']}）",
+                   bool(s1) and s1["k"] == 1 and s1["sl"] == 0 and s1["st"] == 0 and max(abs(g) for g in s1["gap"]) <= 2,
+                   s1 or J("(w) => { const b = document.getElementById(w), p = b && b.querySelector(':scope > .zpane'); return { hash: location.hash, wrap: !!b, vis: !!b && b.getClientRects().length, pane: !!p, kid: p && p.firstElementChild && p.firstElementChild.id, cv: p && [...p.querySelectorAll('canvas,svg')].map(c => c.tagName + Math.round(c.getBoundingClientRect().width) + 'x' + Math.round(c.getBoundingClientRect().height)) }; }", wid))
+                J("() => window.scrollTo({ top: %d, behavior: 'instant' })" % y_before); m.wait_for_timeout(300)
+                r = J("(w) => { const r = document.getElementById(w).querySelector(':scope > .zpane').getBoundingClientRect(); return [r.left, r.top, r.width, Math.min(r.height, innerHeight - r.top - 20)]; }", wid)
+                cx, cy = r[0] + r[2] / 2, r[1] + r[3] / 2
+                # 放大到 ~1.9×（滾輪四格；手機的雙指縮放另一位在做，這裡只驗放大之後的邊界）
+                m.mouse.move(cx, cy)
+                for _ in range(4):
+                    m.mouse.wheel(0, -120); m.wait_for_timeout(160)
+                m.wait_for_timeout(700)
+                sz = J(PAN_COVER, wid)
+                if not sz or sz["k"] <= 1.05:
+                    ok(f"【{T}】{h} {wid} 滾輪放大得起來", False, sz)
+                    continue
+                bad = []
+                for nm, dx, dy in (("往右下", 1600, 1600), ("往左上", -1600, -1600), ("往右上", 1600, -1600), ("往左下", -1600, 1600)):
+                    touch([(cx, cy)], [(cx + dx, cy + dy)])
+                    s = J(PAN_COVER, wid)
+                    if not s or max(s["gap"]) > 1 or s["k"] != sz["k"]:
+                        bad.append((nm, s))
+                # 快速甩動（3 步、每步 8ms）：放手後不能被慣性帶出邊界
+                for nm, dx, dy in (("甩右", 900, 0), ("甩下", 0, 900)):
+                    touch([(cx, cy)], [(cx + dx, cy + dy)], steps=3, gap=8)
+                    m.wait_for_timeout(500)
+                    s = J(PAN_COVER, wid)
+                    if not s or max(s["gap"]) > 1:
+                        bad.append((nm, s))
+                ok(f"【{T}】{h} {wid} 放大 {sz['k']}× 後四個方向各拖 1600px＋快速甩動：內容始終蓋滿可視框、沒有空白邊", not bad, bad)
+                # 拖到右下角盡頭，應該剛好貼齊（捲動位置在最大值）
+                touch([(cx, cy)], [(cx - 1600, cy - 1600)])
+                e = J("(w) => { const p = document.getElementById(w).querySelector(':scope > .zpane'); return [Math.round(p.scrollLeft), p.scrollWidth - p.clientWidth, Math.round(p.scrollTop), p.scrollHeight - p.clientHeight]; }", wid)
+                ok(f"【{T}】{h} {wid} 往左上拖到底＝內容右下角剛好貼齊框（捲動 {e}）", abs(e[0] - e[1]) <= 1 and abs(e[2] - e[3]) <= 1, e)
+                J("(w) => document.getElementById(w)._zoom.reset()", wid); m.wait_for_timeout(500)
+        ok(f"【{T}】找到手機上可放大的熱力圖框（{seen}）", len(seen) >= 2, seen)
+
+        # ② 原生捲動框（橫向捲動的籤列／表格、關聯圖框）：main 裡每一個捲動容器都不回彈
+        for h in ("overview", "industry/semi", "market", "etf/inc", "stock/" + code):
+            go(h, 3000)
+            bad = J("""() => [...document.querySelectorAll('main *')].filter(e => { const cs = getComputedStyle(e);
+                return /(auto|scroll)/.test(cs.overflowX + cs.overflowY) && (e.scrollWidth > e.clientWidth + 1 || e.scrollHeight > e.clientHeight + 1)
+                  && e.getClientRects().length && (cs.overscrollBehaviorX !== 'none' || cs.overscrollBehaviorY !== 'none'); })
+                .slice(0, 6).map(e => (e.id || e.className || e.tagName) + '')""")
+            ok(f"【{T}】{h} 頁內所有原生捲動框都設了不回彈（違規 {bad}）", bad == [], bad)
+
+        # ③ K 線（Lightweight Charts）：拖到兩端、縮到最小，都不能露出資料以外的空白
+        go("stock/" + code, 3500)
+        J("() => { const b = document.querySelector('#tfSeg button[data-tf=\"1d\"]'); if (b) b.click(); }"); m.wait_for_timeout(2000)
+        kb = J("""() => { const k = window.KChart && window.KChart.last; if (!k || !k.chart) return null; k.el.scrollIntoView({ block: 'center', behavior: 'instant' });
+            const r = k.el.getBoundingClientRect(), o = k.chart.options().timeScale; return { x: r.left, y: r.top, w: r.width, h: r.height, fl: o.fixLeftEdge, fr: o.fixRightEdge, n: k.candle.data().length }; }""")
+        if not kb:
+            ok(f"【{T}】個股頁找得到日 K", False, kb)
+        else:
+            ok(f"【{T}】手機 K 線兩端釘住（fixLeftEdge {kb['fl']}／fixRightEdge {kb['fr']}）", kb["fl"] and kb["fr"], kb)
+            KR = "() => { const k = window.KChart.last, r = k.chart.timeScale().getVisibleLogicalRange(); return r ? [+r.from.toFixed(2), +r.to.toFixed(2)] : null; }"
+            y = kb["y"] + kb["h"] * 0.35
+            for _ in range(3):   # 往左拖三大段＝往未來拖：最新一根要貼在右緣，不能拖出空白
+                touch([(kb["x"] + kb["w"] - 30, y)], [(kb["x"] + 20, y)])
+            rr = J(KR)
+            ok(f"【{T}】K 線往左拖過頭：最新一根停在右緣（可見範圍 {rr}，共 {kb['n']} 根）", rr and rr[1] <= kb["n"] - 1 + 0.6, rr)
+            m.mouse.move(kb["x"] + kb["w"] / 2, y)
+            for _ in range(25):   # 縮到最小（滾輪往下）：最多縮到整段剛好填滿
+                m.mouse.wheel(0, 240); m.wait_for_timeout(40)
+            m.wait_for_timeout(400)
+            for _ in range(4):    # 再往右拖四大段＝往過去拖：第一根要貼在左緣
+                touch([(kb["x"] + 20, y)], [(kb["x"] + kb["w"] - 30, y)])
+            rr = J(KR)
+            ok(f"【{T}】K 線縮到最小再往右拖過頭：第一根停在左緣、右邊也沒露出空白（可見範圍 {rr}，共 {kb['n']} 根）",
+               rr and rr[0] >= -0.6 and rr[1] <= kb["n"] - 1 + 0.6, rr)
+
+        # ④ 3D 剖析圖（three.js）：兩指平移往同一邊拖很遠，模型中心不能離開畫布
+        go("industry/ai_server", 3500)
+        has3d = J("() => !!(window.Rack3D && window.Rack3D.supported() && document.querySelector('#dg3d button:not(.on)'))")
+        if has3d:
+            J("() => { const b = document.querySelector('#dg3d button:not(.on)'); b.scrollIntoView({ block: 'center', behavior: 'instant' }); b.click(); }")
+            m.wait_for_timeout(4500)
+            cv = J("() => { const v = window.Rack3D && window.Rack3D.current; const c = document.querySelector('#prod3d canvas'); if (!v || !c) return null; c.scrollIntoView({ block: 'center', behavior: 'instant' }); const r = c.getBoundingClientRect(); return [r.left, r.top, r.width, r.height]; }")
+            if cv:
+                cx, cy = cv[0] + cv[2] / 2, cv[1] + cv[3] / 2
+                for _ in range(4):
+                    touch([(cx - 30, cy), (cx + 30, cy)], [(cx - 30 + 1200, cy + 900), (cx + 30 + 1200, cy + 900)])
+                bd = J("() => window.Rack3D.current.bounds()")
+                inside = bd and bd["canvas"]["x"] <= bd["cx"] <= bd["canvas"]["x"] + bd["canvas"]["w"] and bd["canvas"]["y"] <= bd["cy"] <= bd["canvas"]["y"] + bd["canvas"]["h"]
+                ok(f"【{T}】3D 兩指往右下平移四大段：模型中心還在畫布裡（{bd and (round(bd['cx']), round(bd['cy']))}）", bool(inside), bd)
+            else:
+                ok(f"【{T}】3D 按下去有畫布", False, cv)
+        else:
+            print(f"  （{T}）手機產業鏈頁沒有 3D 鈕（或沒有 WebGL）：3D 這一項不適用")
+    finally:
+        ctx.close()
+    # ⑤ 桌機不變：K 線兩端不釘（右側留白、自由拖曳照舊）
+    dctx = b.new_context(viewport={"width": 1440, "height": 900})
+    dctx.add_init_script("try{ localStorage.setItem('tw.live.on','0'); localStorage.setItem('tw.tourDone','1'); }catch(e){}")
+    d = dctx.new_page()
+    try:
+        d.goto(base + "#stock/" + code, wait_until="domcontentloaded"); d.wait_for_timeout(3500)
+        d.evaluate("() => { const b = document.querySelector('#tfSeg button[data-tf=\"1d\"]'); if (b) b.click(); }"); d.wait_for_timeout(1800)
+        o = d.evaluate("() => { const k = window.KChart && window.KChart.last; if (!k) return null; const o = k.chart.options().timeScale; return { m4: document.documentElement.classList.contains('m4'), fl: o.fixLeftEdge, fr: o.fixRightEdge }; }")
+        ok(f"【{T}】桌機 1440 的 K 線兩端照舊不釘（{o}）", bool(o) and not o["m4"] and not o["fl"] and not o["fr"], o)
+    finally:
+        dctx.close()
+
+
+# ★ 2026-10-09 提示框殘留1009（Andy 04:2x：「所有分頁會發生當我點擊資訊，他顯示的訊息框會殘留…正常情況是點擊背景會消失」）
+#   手機逐頁：點一張圖讓提示框出現 → 點背景 → 提示框不見；再點一次讓它出現 → 換到別的分頁 → 新頁沒有殘留提示框。
+TIP_VIS = """() => [...document.body.children].filter(d => d.tagName === 'DIV' && d.style.zIndex === '9999999').filter(d => {
+    const cs = getComputedStyle(d), r = d.getBoundingClientRect();
+    return cs.display !== 'none' && cs.visibility !== 'hidden' && +cs.opacity > 0.05 && r.width > 4 && r.height > 4 && r.bottom > 0 && r.top < innerHeight; })
+  .map(d => (d.textContent || '').trim().slice(0, 24))"""
+
+
+def t_tip_residue_1009(b, base, code):
+    T = "提示框殘留1009"
+    ctx = b.new_context(**MOBILE_VP)
+    ctx.add_init_script("try{ if(!sessionStorage.getItem('tr9')){ localStorage.clear(); localStorage.setItem('tw.live.on','0'); localStorage.setItem('tw.tourDone','1'); sessionStorage.setItem('tr9','1'); } }catch(e){}")
+    m = ctx.new_page()
+    m.on("pageerror", lambda e: fails.append(f"{T} pageerror: {e} @ {m.url}"))
+    m.route("**/fonts.googleapis.com/**", lambda r: r.abort())
+    J = lambda js, *a: m.evaluate(js, *a)
+
+    def go(h, wait=3500):
+        m.goto(base + "#" + h, wait_until="domcontentloaded"); m.wait_for_timeout(wait)
+
+    def show_tip(h):
+        """在這一頁的圖上找一個點得出提示框的位置（點到會換頁的就回來換下一個點）。回傳 (圖 id, x, y) 或 None。"""
+        charts = J("""() => [...document.querySelectorAll('.view.on [_echarts_instance_]')].filter(e => { const r = e.getBoundingClientRect();
+            return e.getClientRects().length && r.width > 120 && r.height > 90; }).map(e => e.id).filter(Boolean)""")
+        for cid in charts[:5]:
+            J("(c) => { const e = document.getElementById(c); window.scrollTo({ top: e.getBoundingClientRect().top + scrollY - 160, behavior: 'instant' }); }", cid)
+            m.wait_for_timeout(450)
+            r = J("(c) => { const r = document.getElementById(c).getBoundingClientRect(); return [r.left, r.top, r.width, Math.min(r.height, innerHeight - r.top - 10)]; }", cid)
+            for fx, fy in ((0.5, 0.5), (0.3, 0.4), (0.7, 0.6), (0.5, 0.25), (0.2, 0.7), (0.8, 0.3)):
+                x, y = r[0] + r[2] * fx, r[1] + r[3] * fy
+                m.touchscreen.tap(x, y); m.wait_for_timeout(650)
+                if not m.evaluate("() => location.hash").startswith("#" + h):
+                    go(h); J("(c) => { const e = document.getElementById(c); if (e) window.scrollTo({ top: e.getBoundingClientRect().top + scrollY - 160, behavior: 'instant' }); }", cid); m.wait_for_timeout(450)
+                    continue
+                if J(TIP_VIS):
+                    return (cid, x, y)
+        return None
+
+    def tap_bg():
+        """點背景：頁面標題列右邊的空白（不是按鈕、連結、圖）。找不到就點頁尾版權那一行。"""
+        p = J("""() => { const cand = [...document.querySelectorAll('.view.on p, .view.on h2, .view.on h3, .view.on .m4pghead, footer p, footer')].filter(e => e.getClientRects().length);
+            for (const e of cand) { const r = e.getBoundingClientRect(); if (r.top < 70 || r.bottom > innerHeight - 10) continue;
+              for (const fx of [0.97, 0.9, 0.8]) { const x = r.left + r.width * fx, y = r.top + r.height / 2; const t = document.elementFromPoint(x, y);
+                if (t && !t.closest('a, button, input, select, label, [role=button], [_echarts_instance_], canvas, svg, .supfab')) return [x, y, (t.className || t.tagName) + '']; } }
+            return null; }""")
+        if not p:
+            J("() => window.scrollBy({ top: -40, behavior: 'instant' })"); m.wait_for_timeout(300)
+            p = J("""() => { for (let y = 120; y < innerHeight - 60; y += 37) for (const x of [6, innerWidth - 6]) { const t = document.elementFromPoint(x, y);
+                if (t && !t.closest('a, button, input, select, label, [role=button], [_echarts_instance_], canvas, svg, .supfab')) return [x, y, (t.className || t.tagName) + '']; } return null; }""")
+        if p:
+            m.touchscreen.tap(p[0], p[1]); m.wait_for_timeout(600)
+        return p
+
+    pages = ["overview", "flow/rotation", "flow/sankey", "flow/inst", "heatmap/industry", "heatmap/theme", "industry", "etf/inc", "stock/" + code]
+    shown = []
+    try:
+        for i, h in enumerate(pages):
+            go(h, 4200 if h.startswith(("stock/", "etf/")) else 3500)
+            ok(f"【{T}】進 {h} 時畫面上沒有殘留提示框", J(TIP_VIS) == [], J(TIP_VIS))
+            hit = show_tip(h)
+            if not hit:
+                print(f"  （{T}）{h}：手機版這一頁沒有點了會跳 ECharts 提示框的圖（清單／自繪圖），只驗「進頁沒有殘留」")
+                continue
+            shown.append(h)
+            bg = tap_bg()
+            left = J(TIP_VIS)
+            ok(f"【{T}】{h} 點圖（{hit[0]}）出現提示框 → 點背景（{bg and bg[2]}）→ 提示框消失", bool(bg) and left == [], {"bg": bg, "還看得到": left})
+            # 再點一次讓它出現，接著切到下一個分頁
+            nxt = pages[(i + 1) % len(pages)]
+            J("(c) => { const e = document.getElementById(c); window.scrollTo({ top: e.getBoundingClientRect().top + scrollY - 160, behavior: 'instant' }); }", hit[0]); m.wait_for_timeout(400)
+            hit2 = show_tip(h)
+            if hit2:
+                J("(h) => { location.hash = '#' + h; }", nxt); m.wait_for_timeout(1800)
+                ok(f"【{T}】{h} 提示框開著直接切到 {nxt} → 新頁沒有殘留提示框", J(TIP_VIS) == [], J(TIP_VIS))
+                # 再回原頁點一次，捲動頁面 → 也要收掉
+                go(h)
+                hit3 = show_tip(h)
+                if hit3:
+                    J("() => window.scrollBy({ top: 200, behavior: 'instant' })"); m.wait_for_timeout(500)
+                    ok(f"【{T}】{h} 提示框開著捲動頁面 → 提示框收掉", J(TIP_VIS) == [], J(TIP_VIS))
+        ok(f"【{T}】至少 4 頁真的點出了提示框來驗（{shown}）", len(shown) >= 4, shown)
+        # 不擋原本的點圖互動：熱力圖點方塊照舊出提示框；現金流試算點長條照舊出提示框（上面 show_tip 已經各點出來過）
+        ok(f"【{T}】熱力圖與現金流試算點圖仍會出提示框（原本互動沒被擋掉）", "heatmap/industry" in shown and "etf/inc" in shown, shown)
+    finally:
+        ctx.close()
+    # 桌機不變：桌機點背景不由這一段收（桌機有 hover，滑鼠離開圖 ECharts 自己會收）—— 驗這段程式在桌機完全不動作
+    dctx = b.new_context(viewport={"width": 1440, "height": 900})
+    dctx.add_init_script("try{ localStorage.setItem('tw.live.on','0'); localStorage.setItem('tw.tourDone','1'); }catch(e){}")
+    d = dctx.new_page()
+    try:
+        d.goto(base + "#overview", wait_until="domcontentloaded"); d.wait_for_timeout(2500)
+        ok(f"【{T}】桌機 1440 不是手機版（提示框收法不介入）", not d.evaluate("() => document.documentElement.classList.contains('m4')"))
+    finally:
+        dctx.close()
+
+
 # ★ 2026-10-08 桌機守門1008（Andy 17:13：「你改手機版本是否也動到網頁版本…這事情很嚴重，兩者不可侵犯」）：
 #   手機 v2 第三批改了共用檔（industry.js／diagrams.js…），有幾處沒限定 ≤640，桌機跟著變了
 #   （關聯圖預設收起還攤開整份環節卡、剖析圖預設收起 → 展開後說明卡掉到圖下面）。
@@ -29341,6 +29604,10 @@ SECTIONS = {
     "手機v2":              lambda pg, b, base, code: (t_mobile_m4(b, base, code), t_mobile_m4_1008(b, base, code), t_mobile_m4_1009(b, base, code), t_mobile_m4_market(b, base, code)),
     # ★ 2026-10-09 手機市場明細（Andy 06:1x）單獨跑：手機v2 也包含這一段
     "手機v2市場明細":      lambda pg, b, base, code: t_mobile_m4_market(b, base, code),
+    # ★ 2026-10-09 Andy：「所有圖扁長寬到了就好，不可以…還能一直滑過頭超出範圍」（熱力圖放大後拖、K 線兩端、3D 平移、原生捲動不回彈）
+    "手機拖曳邊界1009":    lambda pg, b, base, code: t_pan_clamp_1009(b, base, code),
+    # ★ 2026-10-09 Andy：「點擊資訊…顯示的訊息框會殘留…正常情況是點擊背景會消失」（手機逐頁點圖→點背景／換頁／捲動）
+    "提示框殘留1009":      lambda pg, b, base, code: t_tip_residue_1009(b, base, code),
     "手機框預覽1008":      lambda pg, b, base, code: t_phone_1008(pg, b, base),
     # ★ 2026-10-09 Andy：「手機剛剛發現嚴重BUG，畫面在產業地圖點擊都會卡頓沒反應」（402×874／DPR 3／CPU 降速 4 倍；⚠ --workers 1）
     "手機產業地圖回應1009": lambda pg, b, base, code: t_m4_ind_1009(b, base),
