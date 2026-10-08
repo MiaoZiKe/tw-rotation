@@ -275,7 +275,11 @@
     $$('#chainSwitch button', root).forEach(b => b.onclick = () => {
       const id = b.dataset.c;
       if (id === cur) { window.scrollTo({ top: 0, behavior: 'smooth' }); return; }
-      location.hash = id === '_all' ? '#industry' : '#industry/' + id;
+      /* ★ 手機 v2（≤640，html.m4）限定：從產業地圖（甜甜圈）切鏈 → 進那條鏈的「族群總覽」，
+         甜甜圈換成該鏈的資料（協調者 1008：頁籤照留、切了甜甜圈要換）。桌機路徑不變。 */
+      const m4map = document.documentElement.classList.contains('m4') && id !== '_all'
+        && (cur === '_all' || /\/overview$/.test(location.hash));
+      location.hash = id === '_all' ? '#industry' : '#industry/' + id + (m4map ? '/overview' : '');
     });
     scrollTabIntoView(strip);
   }
