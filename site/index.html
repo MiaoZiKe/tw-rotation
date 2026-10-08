@@ -583,6 +583,13 @@ small{font-size:12.5px}
 .brand .logo{width:32px;height:32px;flex:none;border-radius:9px;overflow:hidden;background:none;
   box-shadow:0 0 0 1px var(--line);display:block}
 .brand .logo img{width:100%;height:100%;display:block;object-fit:cover}
+/* ★ 2026-10-08（Andy：「左上方 LOGO 需要是圓的，不會被截到」）：頭像一律圓形。
+   brand/mark-64／128 已經從 logo_src 重裁成「天竺鼠＋帽子縮小置中、四周留邊、淺藍底」，圓形遮罩剛好包住帽尖。
+   選擇器刻意加重：theme4.css 的 [data-theme4] .brand .logo（圓角方形）與 mobile4.css 的 .m4brand img（28% 圓角）都要蓋過去，
+   但那兩支不在這一批能動的範圍，所以從這裡蓋。 */
+:root .topbar .brand .logo,:root body .brand .logo{border-radius:50%}
+:root .topbar .brand .logo img,:root body .brand .logo img{border-radius:50%}
+:root.m4 body .m4head .m4brand img,:root body .m4brand img{border-radius:50%}
 .brand b{font-size:16px;letter-spacing:.02em}
 .brand small{display:block;font-family:var(--mono);font-size:10.5px;letter-spacing:.12em;color:var(--ink-3);line-height:1;margin-top:3px}
 /* ★ 2026-09-23 UI 精修 #4：分頁列的包裝層。它唯一的工作是當左右箭頭的定位基準 ——

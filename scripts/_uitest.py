@@ -13529,7 +13529,7 @@ def t_brand(b, base):
     a = info()
     ok("品牌：側欄品牌字是「哩股哩股」", a["txt"] == BRAND_NAME, a)
     ok("品牌：頭像圖真的載入（naturalWidth>0）且畫面上有尺寸", a["nw"] > 0 and a["w"] >= 24 and a["h"] >= 24, a)
-    ok("品牌：頭像是圓角", a["rad"] not in ("", "0px"), a)
+    ok("品牌：頭像是圓形（10-08 起，圓角方形改圓）", a["rad"] == "50%", a)
     ok("品牌：document.title 含「哩股哩股」", BRAND_NAME in a["title"], a)
     hits = pg.evaluate(scan_js, BRAND_OLD_WHITELIST)
     ok("品牌：總覽可見文字沒有舊站名", not hits, hits)
@@ -13566,14 +13566,35 @@ def t_brand(b, base):
         ok("品牌：頁尾 © 寫的是「哩股哩股」", BRAND_NAME in copy, copy)
     man = pg.evaluate("() => fetch('manifest.webmanifest').then(r => r.json()).then(m => ({ n: m.name, s: m.short_name }))")
     ok("品牌：manifest 的 name／short_name 是「哩股哩股」", man["n"] == BRAND_NAME and man["s"] == BRAND_NAME, man)
-    # 客服浮動鈕（Andy 2026-10-07：「客服圖示改成跟logo一樣可愛的天竺鼠」）：頭像載入、字還在、真的點得開面板
+    # 客服入口（Andy 2026-10-08：「改成一隻天竺鼠，像是 Claude 那樣的吉祥物…會動來動去」）：
+    # 改前是 .supfab 膠囊＋.supmark 對話泡泡＋「客服」字；改後是站在右下角的天竺鼠吉祥物（button、aria-label＝客服、沒有可見文字）。
     pg.evaluate("() => { location.hash = '#overview'; }")
-    pg.wait_for_selector("#supFab .supmark", timeout=15000)
-    # 改前（10-07）：頭像 <img>、不要對話泡泡。改後（10-08 Andy：「改成原本的 LOGO 樣式，但是表情是天竺鼠」）：對話泡泡（svg）裡放天竺鼠頭像（svg <image>）
-    pg.wait_for_function("() => !!document.querySelector('#supFab svg.supbub image')", timeout=15000)
-    fab = pg.evaluate("""() => new Promise((ok) => { const f = document.getElementById('supFab'); const href = f.querySelector('svg.supbub image').getAttribute('href');
-        const im = new Image(); im.onload = () => ok({ nw: im.naturalWidth, txt: f.textContent.trim(), href }); im.onerror = () => ok({ nw: 0, txt: f.textContent.trim(), href }); im.src = href; })""")
-    ok("客服鈕：對話泡泡裡是天竺鼠頭像（圖真的載得到）、「客服」字還在", fab["nw"] > 0 and fab["txt"] == "客服" and "brand/mark" in fab["href"], fab)
+    pg.wait_for_selector("#supFab svg.pig", timeout=15000)
+    pg.wait_for_timeout(300)
+    fab = pg.evaluate("""() => { const f = document.getElementById('supFab'), r = f.getBoundingClientRect(), cs = getComputedStyle(f);
+        return { tag: f.tagName, aria: f.getAttribute('aria-label'), txt: [...f.childNodes].filter(n => !(n.classList && n.classList.contains('pigtip'))).map(n => n.textContent).join('').trim(),
+                 pig: !!f.querySelector('svg.pig .pig-hat') && !!f.querySelector('svg.pig .pig-eyes') && !!f.querySelector('svg.pig .pig-earR'),
+                 old: !!f.querySelector('.supmark'), w: Math.round(r.width), h: Math.round(r.height), bg: cs.backgroundColor,
+                 anims: document.getAnimations().filter(a => a.effect && a.effect.target && a.effect.target.closest && a.effect.target.closest('#supFab') && a.playState === 'running').length,
+                 rgt: Math.round(innerWidth - r.right), bot: Math.round(innerHeight - r.bottom) }; }""")
+    ok("客服入口：是天竺鼠吉祥物 button（帽子／眼睛／耳朵都在），aria-label＝客服，不是 .supmark＋「客服」字的膠囊",
+       fab["tag"] == "BUTTON" and fab["aria"] == "客服" and fab["pig"] and not fab["old"] and fab["txt"] == "" and fab["bg"] in ("rgba(0, 0, 0, 0)", "transparent"), fab)
+    ok("客服入口：桌機 56～64px、貼右下角（右／下 ≤ 24px）", 56 <= fab["w"] <= 64 and 56 <= fab["h"] <= 68 and fab["rgt"] <= 24 and fab["bot"] <= 24, fab)
+    ok("客服入口：待機動畫真的在跑（呼吸／眨眼／耳朵／帽尖）", fab["anims"] >= 4, fab)
+    # 滑鼠移上去：冒出「需要幫忙嗎？」、眼睛跟著游標（--lx/--ly 被寫進去）
+    bb = pg.locator("#supFab").bounding_box()
+    pg.mouse.move(bb["x"] + 5, bb["y"] + 4); pg.wait_for_timeout(400)
+    hv = pg.evaluate("""() => { const t = document.querySelector('#supFab .pigtip'), l = document.querySelector('#supFab .pig-look');
+        return { op: +getComputedStyle(t).opacity, txt: t.textContent, lx: l.style.getPropertyValue('--lx') }; }""")
+    ok("客服入口：滑鼠移上去冒出「需要幫忙嗎？」、眼睛跟著游標", hv["op"] > 0.9 and hv["txt"] == "需要幫忙嗎？" and hv["lx"] not in ("", "0px"), hv)
+    # 分頁在背景：暫停（pig-paused → animation-play-state:paused）；回來恢復
+    pz = pg.evaluate("""() => { const f = document.getElementById('supFab');
+        Object.defineProperty(document, 'hidden', { configurable: true, get: () => true }); document.dispatchEvent(new Event('visibilitychange'));
+        const a = { cls: f.classList.contains('pig-paused'), st: getComputedStyle(f.querySelector('.pig-body')).animationPlayState };
+        Object.defineProperty(document, 'hidden', { configurable: true, get: () => false }); document.dispatchEvent(new Event('visibilitychange'));
+        a.back = !f.classList.contains('pig-paused'); return a; }""")
+    ok("客服入口：分頁在背景時動畫暫停、回來恢復", pz["cls"] and pz["st"] == "paused" and pz["back"], pz)
+    pg.mouse.move(600, 400); pg.wait_for_timeout(200)
     pg.click("#supFab")
     pg.wait_for_timeout(500)
     opened = pg.evaluate("() => { const p = document.getElementById('supPanel'); return !!p && !p.hidden && p.getBoundingClientRect().height > 0; }")
@@ -13583,6 +13604,28 @@ def t_brand(b, base):
     ok("客服面板：點面板裡面不會收起", pg.evaluate("() => !document.getElementById('supPanel').hidden"))
     pg.mouse.click(300, 300); pg.wait_for_timeout(300)
     ok("客服面板：點面板以外的地方自動收起", pg.evaluate("() => document.getElementById('supPanel').hidden"))
+    # 面板底下的動畫開關：真的按 → localStorage 寫 off、動畫全停；再按一次恢復
+    pg.click("#supFab"); pg.wait_for_timeout(400)
+    pg.click("#supPigTgl"); pg.wait_for_timeout(300)
+    off = pg.evaluate("""() => ({ ls: localStorage.getItem('tw.pigAnim'), still: document.getElementById('supFab').classList.contains('pig-still'),
+        run: document.getAnimations().filter(a => a.effect && a.effect.target && a.effect.target.closest && a.effect.target.closest('#supFab') && a.playState === 'running').length,
+        lab: document.getElementById('supPigTgl').textContent })""")
+    ok("客服面板：按「右下角天竺鼠動畫」開關 → 記進 localStorage、動畫全停、鈕變「關」", off["ls"] == "off" and off["still"] and off["run"] == 0 and off["lab"] == "關", off)
+    pg.click("#supPigTgl"); pg.wait_for_timeout(300)
+    ok("客服面板：再按一次動畫恢復", pg.evaluate("() => localStorage.getItem('tw.pigAnim') === 'on' && !document.getElementById('supFab').classList.contains('pig-still')"))
+    # 左上角頭像改圓形（Andy 2026-10-08：「左上方 LOGO 需要是圓的，不會被截到」）
+    rad = pg.evaluate("() => { const l = document.querySelector('.topbar > .brand .logo') || document.querySelector('.brand .logo'); return { box: getComputedStyle(l).borderRadius, img: getComputedStyle(l.querySelector('img')).borderRadius }; }")
+    ok("品牌：側欄頭像 computed border-radius 是 50%", rad["box"] == "50%" and rad["img"] == "50%", rad)
+    ctx.close()
+    # 減少動態（prefers-reduced-motion）：吉祥物沒有任何在跑的 animation，連小動作都不觸發
+    ctx = b.new_context(viewport={"width": 1440, "height": 900}, reduced_motion="reduce")
+    pg = ctx.new_page()
+    pg.goto(base + "#overview", wait_until="domcontentloaded")
+    pg.wait_for_selector("#supFab svg.pig", timeout=15000)
+    pg.wait_for_timeout(800)
+    pg.evaluate("() => window.TwPig && TwPig.act('pa-hop')"); pg.wait_for_timeout(200)
+    rm = pg.evaluate("() => document.getAnimations().filter(a => a.effect && a.effect.target && a.effect.target.closest && a.effect.target.closest('#supFab') && a.playState === 'running').map(a => a.animationName || '?')")
+    ok("客服入口：reduced-motion 下沒有在跑的 animation（只剩靜態圖）", rm == [], rm)
     ctx.close()
     # 手機 390：頂欄
     ctx = b.new_context(viewport={"width": 390, "height": 844}, device_scale_factor=2)
@@ -13591,8 +13634,10 @@ def t_brand(b, base):
     pg.wait_for_timeout(2500)
     m = pg.evaluate("""() => { const im = [...document.querySelectorAll('.brand .logo img')].find(i => i.getBoundingClientRect().width > 0);
         return { nw: im ? im.naturalWidth : 0, cur: im ? im.currentSrc : '', txt: document.body.innerText.includes('哩股哩股'),
-                 sw: document.documentElement.scrollWidth }; }""")
+                 sw: document.documentElement.scrollWidth, rad: im ? getComputedStyle(im.closest('.logo')).borderRadius : '',
+                 fab: (() => { const f = document.getElementById('supFab'); if (!f) return null; const r = f.getBoundingClientRect(); return { w: Math.round(r.width), pig: !!f.querySelector('svg.pig') }; })() }; }""")
     ok("品牌：手機頂欄頭像載入（2x 拿 128 那張）、看得到「哩股哩股」、無橫向捲軸", m["nw"] > 0 and m["txt"] and m["sw"] <= 390, m)
+    ok("品牌：手機頂欄頭像是圓形、右下角是同一隻天竺鼠（縮小成 44～56px）", m["rad"] == "50%" and m["fab"] and m["fab"]["pig"] and 44 <= m["fab"]["w"] <= 56, m)
     ctx.close()
 
 
@@ -26703,7 +26748,8 @@ def t_mobile_m4_1008(b, base, code):
         ok(f"【{T}】點「資金流向排名 ▸」→ 排名展開", J("() => getComputedStyle(document.getElementById('mSankeyRank')).display !== 'none' && document.querySelectorAll('#mSankeyRank .skr-r').length > 0"))
         # ⑪ 客服鈕：泡泡裡有天竺鼠
         go("overview", 2000)
-        ok(f"【{T}】客服鈕是對話泡泡＋天竺鼠（泡泡 svg 裡有 brand/mark 圖）", J("() => !!document.querySelector('.supfab svg.supbub image[href*=\"brand/mark\"]')"))
+        # 10-08 晚（Andy：「改成一隻天竺鼠…會動來動去」）：對話泡泡 → 天竺鼠吉祥物（svg.pig）
+        ok(f"【{T}】客服鈕是天竺鼠吉祥物（svg.pig、aria-label＝客服）", J("() => { const f = document.querySelector('.supfab'); return !!f && !!f.querySelector('svg.pig .pig-hat') && f.getAttribute('aria-label') === '客服'; }"))
         # ⑫ 週期統計：打開「數字」→ 每格數字的方框都在格子裡（ECharts 畫在 canvas：用 app.js 寫在 #seasonHeat 的 nlab／nval 與「放不下不印」的規則驗）
         go("season", 3500)
         n0 = J("() => +document.getElementById('seasonHeat').dataset.nlab")
@@ -55708,8 +55754,9 @@ def t_admin_v3(b, base, code):
             const svg = f.querySelector('svg'), r = svg.getBoundingClientRect();
             return { bg, a: m ? +m[1] : 1, bf: cs.backdropFilter || cs.webkitBackdropFilter || '', face: svg.querySelectorAll('circle').length, w: r.width,
                      theme: document.documentElement.getAttribute('data-theme') || '' }; }""")
-        ok(f"{T}（{th}）：客服鈕背景半透明（alpha {fab['a']}）、有毛玻璃、圖示是對話泡泡＋笑臉",
-           0.7 <= fab["a"] <= 0.9 and "blur" in fab["bf"] and fab["face"] >= 2 and fab["w"] >= 22, fab)
+        # 10-08 晚：膠囊（半透明＋毛玻璃）改成天竺鼠吉祥物 → 鈕本身透明、沒有毛玻璃；臉（眼睛 circle）還在
+        ok(f"{T}（{th}）：客服鈕是天竺鼠吉祥物（鈕本身透明、svg 有眼睛）",
+           fab["a"] == 0 and fab["face"] >= 2 and fab["w"] >= 44, fab)
         shot(pg, f"8_fab_{th}", "#supFab")
         c.close()
     ok(f"{T}：整段沒有 JS 錯誤", not errs, errs[:3])
