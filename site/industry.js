@@ -17,7 +17,7 @@
   /* ★ 2026-10-06 即時僅管理者（Andy：「所有的即時功能，只有在我這帳號才會出現，其他帳號都隱藏」，DECISIONS #326）。
      這支檔裡的即時入口：族群總覽的「即時」鈕、個股週期列的 1分／5分／15分（只有即時來源，非管理者沒有任何資料可畫）。
      分時（tick）留著：非管理者看的是資料湖 60 分 K 的最近交易日（盤後版本），livek.js 不 attach 輪詢。*/
-  const liveOK = () => !!(window.TwLive && window.TwLive.allowed());
+  const liveOK = () => !!(window.TwLive && window.TwLive.canLive());   // 2026-10-08：站主或管理員（livegate.js canLive）
   let A;                                   // window.App（app.js 提供）
   /* ★ 2026-09-28 預設週期改成「分時」（Andy：「K線圖新增分時走勢（Default 設定在上面…）」）。
      tfAuto＝這次的週期是「預設帶進來的」不是使用者按的：分時真的沒資料時只有這種情況才自動改用日 K；
@@ -371,8 +371,8 @@
         <h4 id="gpTitle" style="min-width:0"></h4>
         <div class="row gplive">
           <button class="btn small" id="gpBack" type="button" hidden title="回到族群層級的長條圖">← 回到族群</button>
-          <span class="rbar" data-live-ui><button class="pb livebtn" id="gpLiveBtn" type="button" aria-pressed="false"
-            title="切到盤中即時：用當下的成交價與累積成交量重算漲跌與占比，每 5 秒更新（盤中暫定值）">即時</button></span>
+          ${liveOK() ? `<span class="rbar" data-live-ui><button class="pb livebtn" id="gpLiveBtn" type="button" aria-pressed="false"
+            title="切到盤中即時：用當下的成交價與累積成交量重算漲跌與占比，每 5 秒更新（盤中暫定值）">即時</button></span>` : ''}
         </div>
       </div>
       <!-- ★ 2026-09-24 說明精簡：#gpHint（這張圖回答／怎麼用）與即時的估算口徑搬進「怎麼看 ?」；
@@ -503,7 +503,8 @@
       paint();
     });
     const stopTimer = () => { if (gpTimer) { clearInterval(gpTimer); gpTimer = null; } };
-    liveBtn.onclick = () => {
+    /* ★ 2026-10-08：不是站主或管理員時「即時」鈕根本不畫（上面的模板），這裡就沒有鈕可以綁 */
+    if (liveBtn) liveBtn.onclick = () => {
       if (!live && !liveOK()) return;   // 不是管理者：即時打不開（鈕本來就藏著，這裡是第二道，DECISIONS #326）
       live = !live;
       liveBtn.classList.toggle('on', live);
@@ -513,7 +514,11 @@
       paint();                          // 先把「抓取中」寫上去，不要讓畫面看起來沒反應
       if (window.Live && window.Live.report) window.Live.report('gp', true);   // 重新打開：清掉上次的退避
       liveTick();
-      gpTimer = setInterval(() => { if (!document.hidden && live) liveTick(); }, GP_LIVE_MS);
+      /* 2026-10-08：站主或管理員登出（閘門原地關，不重新載入）→ 下一跳自己退出即時、收掉計時器，不再打任何端點 */
+      gpTimer = setInterval(() => {
+        if (live && !liveOK()) { live = false; stopTimer(); q = null; liveErr = ''; cov = [0, 0]; if (host.isConnected) paint(); return; }
+        if (!document.hidden && live) liveTick();
+      }, GP_LIVE_MS);
     };
     backBtn.onclick = () => {
       drill = null; hi = null;
