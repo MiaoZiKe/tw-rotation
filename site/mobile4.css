@@ -182,7 +182,8 @@
   :root.m4 .suppanel{bottom:calc(76px + env(safe-area-inset-bottom))!important}
 
   /* ---- 11. ETF 總覽的三張前 5 名：手機改成分頁（mobile4.js wireEtfTri；Andy：「把上方變成分頁式 不要用滑動」，推翻同日的左右滑） */
-  :root.m4 #v-etf .etftri{display:block!important;overflow:visible}
+  :root.m4 #v-etf .etftri:not([hidden]){display:block!important;overflow:visible}   /* 不准蓋掉 hidden（10-08：曾經用 !important 蓋掉，三張卡跑到現金流試算頁）*/
+  :root.m4 #v-etf .etftri[hidden]{display:none!important}
   :root.m4 #v-etf .etftri>.card.m4trioff{display:none!important}
   :root.m4 #v-etf .m4trisg[hidden],:root.m4 #v-etf .m4trisg:has(+ .etftri[hidden]){display:none}
   :root.m4 #v-etf .etftri .rkrow .nm{white-space:normal}

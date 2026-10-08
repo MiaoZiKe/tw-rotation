@@ -26887,7 +26887,7 @@ def t_mobile_m4(b, base, code):
         ch = m.evaluate("""() => { const v = document.querySelector('.view.on'); const H = innerHeight;
             document.querySelectorAll('[data-m4try]').forEach(x => x.removeAttribute('data-m4try'));
             // 「⋯」是開選單的鈕（自選分頁式 2026-10-08 合併進來），不是分段切換，不算
-            const cand = [...v.querySelectorAll('button')].filter(b => { const r = b.getBoundingClientRect(); return r.width && r.top > 0 && r.bottom < H && !b.disabled && b.textContent.trim() !== '⋯'; });
+            const cand = [...v.querySelectorAll('button')].filter(b => { const r = b.getBoundingClientRect(); return r.width && r.top > 0 && r.bottom < H && !b.disabled && b.textContent.trim() !== '⋯' && !b.classList.contains('mfilt'); });   // .mfilt＝開底部抽屜的設定鈕，不是分段切換
             const isOn = (b) => b.classList.contains('on') || b.getAttribute('aria-selected') === 'true' || b.getAttribute('aria-pressed') === 'true';
             for (const b of cand) { if (isOn(b)) continue; const sib = [...b.parentElement.children].filter(x => x.tagName === 'BUTTON');
               if (sib.length >= 2 && sib.some(isOn)) { b.setAttribute('data-m4try', '1'); return { t: b.textContent.trim().slice(0, 12) }; } }
