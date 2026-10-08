@@ -3427,14 +3427,19 @@
        有任何一條邊就照舊一層一欄 —— 那時候欄的左右就是上下游，不能拆。*/
     const inChain0 = new Set(cos.map(c => c.id));
     const nEdge0 = (sc.edges || []).filter(e => e.rel !== 'competes' && inChain0.has(e.from) && inChain0.has(e.to)).length;
-    const noEdge = nEdge0 === 0 && segs.length > layers.length;
+    /* 手機（html.m4）不拆：一格一欄在 360～402 寬要左右拖，而沒有連線的鏈上下排在同一欄、置中就看得完（2026-10-09）。*/
+    const M4c = document.documentElement.classList.contains('m4');
+    const noEdge = !M4c && nEdge0 === 0 && segs.length > layers.length;
     const layerCols = noEdge ? segs.length : layers.length;
     /* ★ 2026-10-08（Andy：「手機版若是太小，把關聯圖改成垂直」）：手機 v2（html.m4，≤640）改成上下排 ——
        上游在上、下游在下，每一層一列、一列最多兩格，連線改成上下走向；寬度＝容器寬，不再有 min-width（不准橫向捲）。 */
     /* 2026-10-08 Andy：「關聯圖若是空間不夠可以考慮改垂直，你自行安排」—— 不寫死斷點，用量的：
        左右排最少要「欄數 × 最窄欄寬 136 ＋ 欄距 18 ×（欄數−1）＋ 左右內距 26×2」；容器比這個窄就改上下排。
        只在非桌機（≤820，原本就是要左右滑的寬度）判斷；桌機版面一律照舊左右排。 */
-    const HW0 = (host && host.clientWidth) || ((window.innerWidth || 390) - 16);
+    /* ★ 2026-10-09（手機關聯圖不重疊）：手機量的是容器「扣掉左右內距」的寬 —— 外層要包大框（另一位同事做外框 CSS），
+       內距一變可用寬度就跟著變，不寫死；寬度改變時 renderChain 的 ResizeObserver（reflow）會整張重畫。桌機照舊讀 clientWidth（走 fitCols）。*/
+    const padLR = (() => { if (!M4c || !host) return 0; try { const cs = getComputedStyle(host); return (parseFloat(cs.paddingLeft) || 0) + (parseFloat(cs.paddingRight) || 0); } catch (e) { return 0; } })();
+    const HW0 = (host && host.clientWidth ? host.clientWidth - padLR : 0) || ((window.innerWidth || 390) - 16);
     const needW = layerCols * 136 + Math.max(0, layerCols - 1) * 18 + 52;
     /* 2026-10-08 晚（Andy：「關聯圖回到原本水平的，並且只有點到的題材族群內容才會打開」）：手機也一律水平排、寬度不夠就左右拖；
        上下排的程式留著但不再走到（vert 恆為 false）。桌機本來就水平排（桌機守門：桌機行為不變）。 */
@@ -3443,10 +3448,17 @@
     const VHW = Math.max(300, HW0);
     const fit = vert ? (() => { const pad = 4, g = 12, cw = Math.floor((VHW - pad * 2 - g) / 2); return { colW: cw, colGap: g, padX: pad, W: VHW, HW: VHW, CW: VHW - pad * 2 }; })()
       : document.documentElement.classList.contains('m4')
-        ? (() => { const cw = 168, g = 22, pd = 12, W2 = layerCols * cw + (layerCols - 1) * g + pd * 2; return { colW: cw, colGap: g, padX: pd, W: Math.max(W2, VHW), HW: VHW, CW: W2 - pd * 2 }; })()   // 手機：欄寬固定 168（標題放得下），比畫面寬就左右拖
+        /* ★ 2026-10-09（Andy：「出現格式跑掉 請確實修正每個圖片」）：手機欄寬改成依可用寬度算（132～200），不再寫死 168 ——
+           寫死時 360 寬兩欄就要左右拖、402 寬兩欄內容靠左；內容比畫面窄時左右內距平分剩下的寬，節點少也置中。
+           欄數多到 132 都放不下才比畫面寬、左右拖（Andy 10-08 晚：「關聯圖回到原本水平的」）。*/
+        ? (() => { const g = 22, pdMin = 10;
+            const cw = Math.max(132, Math.min(200, Math.floor((VHW - pdMin * 2 - g * (layerCols - 1)) / layerCols)));
+            const CW = layerCols * cw + (layerCols - 1) * g, pd = Math.max(pdMin, Math.floor((VHW - CW) / 2));
+            return { colW: cw, colGap: g, padX: pd, W: Math.max(CW + pd * 2, VHW), HW: VHW, CW }; })()
         : fitCols(host, layerCols, { colW: 178, gap: 30, maxColW: 260, maxGap: 86, minColW: 136, minGap: 18, pad: 26 });
     const colW = fit.colW, colGap = fit.colGap, padX = fit.padX;
-    const cardH = 36, gapY = 8, padY = 36;
+    /* 手機收合的環節是一顆 24px 高的膠囊（外框＝膠囊），上下相鄰留 10px（≥ 膠囊高＋8 的節距）；最上面那顆離畫布頂 6px。*/
+    const cardH = 36, gapY = 8, padY = M4c ? 30 : 36, CAP_H = 24, CAP_GAP = 10;
     const bySeg = {}; cos.forEach(c => (bySeg[c.segment] = bySeg[c.segment] || []).push(c));
     const cols = noEdge ? segs.map(s => [s]) : layers.map(Lr => segs.filter(s => s.layer === Lr));
     let maxH = 0; const pos = {};
@@ -3525,9 +3537,13 @@
         out.push(Object.assign({ dx: x, dy: row * (CHIP_H + CHIP_GY) }, k)); x += k.w + CHIP_GX; });
       return { items: out, h: list.length ? (row + 1) * (CHIP_H + CHIP_GY) - CHIP_GY + 4 : 0 };
     };
-    const segBodyH = (s, list) => (M4 && isFolded(s.id) ? 6 : list.length && isFolded(s.id)
+    /* ★ 2026-10-09 根因：手機收合時以前回 6 —— 外框高 6＋8＝14px，標題色塊卻有 19px 高，
+       框的下緣那條線剛好劃過標題字（Andy 看到的「刪除線」），節距 30 也只比色塊多 11px，看起來擠成一疊。
+       改成：外框＝整顆膠囊（CAP_H），段距 CAP_GAP 另外算（segBoxH 分開，展開的環節照舊「內容＋8」）。*/
+    const segBodyH = (s, list) => (M4 && isFolded(s.id) ? CAP_GAP : list.length && isFolded(s.id)
       ? 4 + chipLay(list).h + 18
       : list.length * (cardH + gapY) + (list.length ? 0 : noteLines(s, list) * NOTE_LH + 6) + 18);   // 沒台股只有說明的環節多 6px：說明最後一行的字腳才不會貼在外框底線上（2026-10-03）
+    const segBoxH = (s, list) => (M4 && isFolded(s.id) ? CAP_H : segBodyH(s, list) + 8);
     const colH = cols.map(col => col.reduce((t, s) => t + 24 + segBodyH(s, bySeg[s.id] || []), 0));
     const bodyH = Math.max.apply(null, colH.concat([0]));
     if (vert) {
@@ -3577,14 +3593,16 @@
     const segBoxes = [];                      // 每個環節外框的範圍：走線的匯流道要從框底下過，不能切過框
     segs.forEach(s => { const p = pos[s.id]; if (!p) return; const col = segColor(s.id);
       const tMax = colW - 25 - (foldOn && p.list.length ? 29 : 7);
+      const cntT = M4 ? ` ${p.list.length}${isFolded(s.id) ? '▸' : '▾'}` : '';
       /* 外框：頂端比標題色塊高 4px、底端在最後一列內容下方 6px（segBodyH 的 18px 段距裡，框吃掉 2px、框與框之間留 16px）。
          畫在最前面，標題、晶片、卡片都疊在它上面。*/
-      const fy = p.y - 24, fh = segBodyH(s, p.list) + 8;
+      const fy = p.y - 24, fh = segBoxH(s, p.list);
       segBoxes.push({ x: p.x, y: fy, w: colW, h: fh });
       nodes += `<rect class="segbox" data-seg="${s.id}" x="${p.x + 0.5}" y="${fy + 0.5}" width="${colW - 1}" height="${fh - 1}" rx="8" style="--c:${col}"/>`;
-      const cntT = M4 ? ` ${p.list.length}${isFolded(s.id) ? '▸' : '▾'}` : '';
-      nodes += `<g class="segtitle" data-seg="${s.id}" style="--c:${col}"><rect x="${p.x + 3}" y="${p.y - 21}" width="${colW - 6}" height="19" rx="5" fill="${col}" fill-opacity=".14"/><circle cx="${p.x + 13}" cy="${p.y - 11.5}" r="3.5" fill="${col}"/><text class="seg-title" x="${p.x + 22}" y="${p.y - 7}" fill="${col}">${A.fmt.esc(fitTitle(s.name, tMax - (M4 ? 28 : 0)))}${cntT}</text></g>`;
-      if (M4 && isFolded(s.id)) { p.list.forEach(c => { coPos[c.id] = { x: p.x, y: p.y - 21, w: colW, h: 19 }; }); return; }   // 收著：只留標題列（名稱＋檔數），線接到標題列
+      /* 手機：名稱放不下就切「…」（量過檔數那段字的實際寬度再切，不再估 28px），完整名稱放 <title>（長按看得到），點一下展開那一格。*/
+      const m4Tip = M4 ? `<title>${A.fmt.esc(s.name)}（${p.list.length} 檔，點一下${isFolded(s.id) ? '展開' : '收起'}）</title>` : '';
+      nodes += `<g class="segtitle" data-seg="${s.id}" style="--c:${col}"><rect x="${p.x + 3}" y="${p.y - 21}" width="${colW - 6}" height="19" rx="5" fill="${col}" fill-opacity=".14"/><circle cx="${p.x + 13}" cy="${p.y - 11.5}" r="3.5" fill="${col}"/><text class="seg-title" x="${p.x + 22}" y="${p.y - 7}" fill="${col}">${A.fmt.esc(fitTitle(s.name, tMax - (M4 ? Math.ceil(titleW(cntT)) : 0)))}${cntT}</text>${m4Tip}</g>`;
+      if (M4 && isFolded(s.id)) { p.list.forEach(c => { coPos[c.id] = { x: p.x, y: fy, w: colW, h: fh }; }); return; }   // 收著：只留膠囊（名稱＋檔數），線接到膠囊左右緣的中點
       /* 沒有台股的環節：有 note 就講 note，不要一律寫「台股無直接對應」。
          2026-09-19 踩到：三家設備商搬去 pkg_equipment 之後，「先進封裝 CoWoS/SoIC」變成空的，
          但 CoWoS 明明是台積電自己做的 —— 寫「台股無直接對應」是錯的。*/
@@ -3681,7 +3699,7 @@
         /* 端點接在「環節外框」的上下緣（不是公司卡）：從卡片下緣出的話會一路穿過同一格下面的其他公司 */
         const ax = a.x + a.w / 2, bx = b.x + b.w / 2;
         const sa = pos[coSeg[e.from]], sb = pos[coSeg[e.to]];
-        const boxB = (sp, sid) => sp.y - 24 + segBodyH(segs.find(q => q.id === sid) || {}, sp.list) + 8, boxT = (sp) => sp.y - 24;
+        const boxB = (sp, sid) => sp.y - 24 + segBoxH(segs.find(q => q.id === sid) || {}, sp.list), boxT = (sp) => sp.y - 24;
         if (sa && sb && sb.y > sa.y) { const y1 = boxB(sa, coSeg[e.from]), y2 = boxT(sb), my = (y1 + y2) / 2; d = `M${ax},${y1} C${ax},${my} ${bx},${my} ${bx},${y2}`; }
         else if (b.y >= a.y + a.h) { const y1 = a.y + a.h, y2 = b.y, my = (y1 + y2) / 2; d = `M${ax},${y1} C${ax},${my} ${bx},${my} ${bx},${y2}`; }
         else if (b.y + b.h <= a.y) { const y1 = a.y, y2 = b.y + b.h, my = (y1 + y2) / 2; d = `M${ax},${y1} C${ax},${my} ${bx},${my} ${bx},${y2}`; }
@@ -3713,7 +3731,9 @@
       const cls = `edge${e.rel === 'outsources_to' ? ' dash' : ''}${e.rel === 'designated_by' ? ' spec' : ''}${eq ? ' eq' : ''}${mat ? ' mat' : ''}`;
       edges += `<path class="${cls}" data-from="${e.from}" data-to="${e.to}" data-rel="${A.fmt.esc(e.rel || '')}" style="--w:${w.toFixed(2)}" marker-end="url(#scArrow)" d="${d}"><title>${A.fmt.esc(relLabel(e))}</title></path>`;
     });
-    const H = Math.max(maxH, laneMax + 18, 300);
+    /* 手機：高度跟著節點走（最下面那格的框底＋10），不再墊到 300 —— 4 個環節的圖下面空出 150px 一大片，看起來沒有對齊。*/
+    /* 手機 min-width 不封頂 860：六欄的鏈（AI 伺服器、一般電子）以前被壓成 0.75 倍，12px 標題字在螢幕上只剩 9px（2026-10-09 普查量到）。手機一律 1:1、寬就左右拖。*/
+    const H = M4 ? Math.max(Math.max.apply(null, segBoxes.map(f => f.y + f.h).concat([0])) + 10, laneMax + 18, 120) : Math.max(maxH, laneMax + 18, 300);
     /* 箭頭：markerUnits 用 userSpaceOnUse，不然細線的箭頭會跟著縮到看不見；
        fill 用 context-stroke，線變色（hover 成青色、設備灰）箭頭才跟著變。*/
     const defs = '<defs><marker id="scArrow" viewBox="0 0 8 8" refX="7.2" refY="4" markerWidth="8" markerHeight="8" markerUnits="userSpaceOnUse" orient="auto"><path d="M0.5,0.8 L7.5,4 L0.5,7.2 z" fill="context-stroke"/></marker></defs>';
@@ -3728,7 +3748,7 @@
        data-fold 跟著寫「按下去要變成什麼」（all＝全收、none＝全展），tw.chainFold 的存法一個字都沒改。*/
     const anyFolded = segs.some(s => (pos[s.id] && pos[s.id].list.length) && isFolded(s.id));
     const foldBar = foldOn && cos.length ? `<div class="foldbar"><button type="button" class="foldtg" data-fold="${anyFolded ? 'none' : 'all'}" title="${anyFolded ? '每檔一張卡' : '只留個股標籤'}">${anyFolded ? '全部展開' : '全部收合'}</button></div>` : '';
-    host.innerHTML = `${empty}${foldBar}<svg viewBox="0 0 ${W} ${H}" style="width:100%;height:auto;${vert ? '' : `min-width:${Math.min(W, 860)}px;`}display:block"${vert ? ' data-vert="1"' : ''}>${defs}${nodes}<g class="elayer">${edges}</g></svg>`;
+    host.innerHTML = `${empty}${foldBar}<svg viewBox="0 0 ${W} ${H}" style="width:100%;height:auto;${vert ? '' : `min-width:${M4c ? W : Math.min(W, 860)}px;`}display:block"${vert ? ' data-vert="1"' : ''}>${defs}${nodes}<g class="elayer">${edges}</g></svg>`;
     markFit(host, fit);
     paintRelFocus(host, focus, cos);
     /* ★ 2026-09-23 C5 優化：hover 一張卡，**線與另一端的公司卡一起提亮**。

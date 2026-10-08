@@ -28190,7 +28190,123 @@ def _as_owner(fn):
     return run
 
 
+# ★ 2026-10-09 手機關聯圖不重疊1009（Andy 05:5x：「出現格式跑掉 請確實修正每個圖片」，截圖：402 淺色、族群頁「線上零售與網路通路」）：
+#   手機（html.m4）上供應鏈關聯圖的環節膠囊擠在一起 —— 外框（rect.segbox）只有 14px 高、標題色塊 19px，
+#   框的下緣那條線正好從標題字中間劃過去（看起來像刪除線），下一顆又緊貼著上來。
+#   這一段在 402／360 × 深色／淺色，對每一條產業鏈：先量預設畫面，再從「篩選環節 ▾」逐一點每一個環節、
+#   再點圖上那一格把它展開（手機一次只開一格，展開會改版面），每一步都量：
+#     ① 環節外框（節點）兩兩交集面積 = 0，同一欄上下相鄰的間距 ≥ 8px
+#     ② 標題色塊、標題文字、公司卡、晶片都在自己那一格的外框裡（文字沒有超出、沒有被框線劃過）
+#     ③ 每一格都在 SVG 畫布裡（不准畫到畫布外被切掉）
+#     ④ 連線的起點與終點落在某一格（或某張公司卡）的邊上（±2px）
+#     ⑤ 標題字在螢幕上 ≥ 11px（乘 getScreenCTM）
+#   另外量「節點少的時候有沒有置中」：內容左右留白差 ≤ 12px（畫布比容器寬、要左右拖的鏈不算）。
+M4REL_JS = r"""
+() => {
+  const host = document.querySelector('#chainMap'); const svg = host && host.querySelector('svg');
+  if (!svg || !host.getClientRects().length) return { ok: false, why: 'no-svg' };
+  const R = (e) => e.getBoundingClientRect();
+  const inside = (a, b, t) => a.left >= b.left - t && a.right <= b.right + t && a.top >= b.top - t && a.bottom <= b.bottom + t;
+  const area = (a, b) => Math.max(0, Math.min(a.right, b.right) - Math.max(a.left, b.left)) * Math.max(0, Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top));
+  const sr = R(svg), boxes = [...svg.querySelectorAll('rect.segbox')].map((e) => ({ seg: e.dataset.seg, r: R(e) }));
+  const bySeg = {}; boxes.forEach((b) => (bySeg[b.seg] = b.r));
+  const out = { ok: true, n: boxes.length, overlap: [], gap: [], outT: [], outCo: [], outSvg: [], ends: [], small: [] };
+  const nm = (s) => { const t = svg.querySelector('.segtitle[data-seg="' + s + '"] text'); return t ? t.textContent.trim().slice(0, 10) : s; };
+  for (let i = 0; i < boxes.length; i++) for (let j = i + 1; j < boxes.length; j++) {
+    const a = boxes[i].r, b = boxes[j].r;
+    if (area(a, b) > 0.5) out.overlap.push(nm(boxes[i].seg) + '×' + nm(boxes[j].seg));
+    else if (Math.abs(a.left - b.left) < 2) { const g = a.top < b.top ? b.top - a.bottom : a.top - b.bottom; if (g < 7.5) out.gap.push(nm(boxes[i].seg) + '/' + nm(boxes[j].seg) + ' ' + g.toFixed(1)); }
+  }
+  svg.querySelectorAll('.segtitle').forEach((g) => {
+    const b = bySeg[g.dataset.seg]; if (!b) return;
+    const rc = g.querySelector('rect'), tx = g.querySelector('text');
+    if (rc && !inside(R(rc), b, 1)) out.outT.push(nm(g.dataset.seg) + ' 標題色塊超出外框');
+    if (tx && rc && !inside(R(tx), R(rc), 1.5)) out.outT.push(nm(g.dataset.seg) + ' 標題字超出色塊');
+    if (tx) { const fs = parseFloat(getComputedStyle(tx).fontSize) * (svg.getScreenCTM() ? svg.getScreenCTM().a : 1); if (fs < 10.95) out.small.push(nm(g.dataset.seg) + ' ' + fs.toFixed(1)); }
+  });
+  svg.querySelectorAll('.co').forEach((c) => { const b = bySeg[c.dataset.segment], r = R(c.querySelector('rect') || c); if (b && !inside(r, b, 1)) out.outCo.push((c.textContent || '').trim().slice(0, 8)); });
+  boxes.forEach((b) => { if (!inside(b.r, sr, 1)) out.outSvg.push(nm(b.seg)); });
+  const tgts = boxes.map((b) => b.r).concat([...svg.querySelectorAll('.co rect:first-child')].map(R));
+  const onEdge = (x, y) => tgts.some((r) => (Math.abs(x - r.left) <= 2.5 || Math.abs(x - r.right) <= 2.5) && y >= r.top - 2.5 && y <= r.bottom + 2.5
+                                        || (Math.abs(y - r.top) <= 2.5 || Math.abs(y - r.bottom) <= 2.5) && x >= r.left - 2.5 && x <= r.right + 2.5);
+  const m = svg.getScreenCTM();
+  svg.querySelectorAll('path.edge').forEach((p) => {
+    if (!m || !p.getTotalLength) return; const L = p.getTotalLength(); if (!L) return;
+    [p.getPointAtLength(0), p.getPointAtLength(L)].forEach((q, k) => { const x = m.a * q.x + m.c * q.y + m.e, y = m.b * q.x + m.d * q.y + m.f;
+      if (!onEdge(x, y)) out.ends.push((k ? '終' : '起') + ' ' + p.dataset.from + '→' + p.dataset.to); });
+  });
+  // 置中：內容（所有外框的聯集）左右留白差；畫布比容器寬（要拖）不算
+  if (boxes.length && sr.width <= host.clientWidth + 1) {
+    const l = Math.min(...boxes.map((b) => b.r.left)) - sr.left, r = sr.right - Math.max(...boxes.map((b) => b.r.right));
+    out.center = Math.round(Math.abs(l - r));
+  }
+  out.bad = out.overlap.length + out.gap.length + out.outT.length + out.outCo.length + out.outSvg.length + out.ends.length + out.small.length + ((out.center || 0) > 12 ? 1 : 0);
+  return out;
+}
+"""
+
+
+def t_m4rel_1009(b, base):
+    T = "手機關聯圖不重疊1009"
+    pg0 = b.new_page()
+    pg0.goto(base + "#industry", wait_until="domcontentloaded"); pg0.wait_for_timeout(1200)
+    chains = pg0.evaluate("async () => (await (await fetch('data/industry_map.json')).json()).chains.map(c => c.id)")
+    pg0.close()
+    total, steps = [], 0
+    for w, theme in ((402, "light"), (402, "dark"), (360, "light"), (360, "dark")):
+        vp = dict(MOBILE_VP); vp["viewport"] = {"width": w, "height": 844}
+        ctx = b.new_context(**vp)
+        ctx.add_init_script("try{ if(!sessionStorage.getItem('m4rel')){ localStorage.clear(); localStorage.setItem('tw.live.on','0'); localStorage.setItem('tw.tourDone','1');"
+                            f" localStorage.setItem('tw.theme','{theme}'); sessionStorage.setItem('m4rel','1'); }} }}catch(e){{}}")
+        m = ctx.new_page()
+        m.route("**/fonts.googleapis.com/**", lambda r: r.abort())
+        m.on("pageerror", lambda e: fails.append(f"{T} pageerror: {e} @ {m.url}"))
+        tag = f"{w}{'淺' if theme == 'light' else '深'}"
+        bad = []
+        def meas(where):
+            nonlocal steps
+            r = m.evaluate(M4REL_JS); steps += 1
+            if r.get("ok") and r["bad"]:
+                bad.append(f"{where}：" + "；".join(f"{k}={r[k][:3]}" for k in ("overlap", "gap", "outT", "outCo", "outSvg", "ends", "small") if r[k])
+                           + (f"；置中差 {r['center']}px" if (r.get("center") or 0) > 12 else ""))
+            return r
+        nch = 0
+        for ch in chains:
+            m.goto(base + "#industry/" + ch, wait_until="domcontentloaded"); m.wait_for_timeout(1800)
+            if not m.evaluate("() => !!document.querySelector('#chainMap svg') && !document.querySelector('#relSec').hidden"):
+                continue
+            nch += 1
+            if nch == 1:
+                ok(f"{T}（{tag}）html.m4 有掛上（手機版面）", m.evaluate("() => document.documentElement.classList.contains('m4')"))
+            meas(f"{ch} 預設")
+            segs = m.evaluate("() => [...document.querySelectorAll('#segChips .segchip[data-seg]')].map(c => c.dataset.seg)")
+            for sg in segs:
+                # 從「篩選環節 ▾」選這一格（真的點）→ 量；再點圖上那一格展開 → 量；再點一次收回
+                m.evaluate("() => { const b = document.querySelector('#segDDBtn'); if (b && !b.closest('.segdd').classList.contains('open')) b.click(); }")
+                m.wait_for_timeout(60)
+                m.evaluate("(s) => { const c = document.querySelector('#segChips .segchip[data-seg=\"' + s + '\"]'); if (c) c.click(); }", sg)
+                m.wait_for_timeout(120)
+                meas(f"{ch} 篩選 {sg}")
+                hit = m.evaluate("(s) => { const t = document.querySelector('#chainMap .segtitle[data-seg=\"' + s + '\"]'); if (!t) return false; t.dispatchEvent(new MouseEvent('click', {bubbles: true})); return true; }", sg)
+                if hit:
+                    m.wait_for_timeout(120)
+                    r = meas(f"{ch} 展開 {sg}")
+                    m.evaluate("(s) => { const t = document.querySelector('#chainMap .segtitle[data-seg=\"' + s + '\"]'); if (t) t.dispatchEvent(new MouseEvent('click', {bubbles: true})); }", sg)
+                    m.wait_for_timeout(80)
+        # Andy 截圖那一頁：族群頁（線上零售與網路通路）
+        m.goto(base + "#industry/group/ecommerce", wait_until="domcontentloaded"); m.wait_for_timeout(2000)
+        r = meas("族群頁 ecommerce")
+        ok(f"{T}（{tag}）Andy 截圖那頁（族群頁 線上零售與網路通路）量得到 ≥4 個環節節點且 0 問題", r.get("ok") and r["n"] >= 4 and not r["bad"], r)
+        ok(f"{T}（{tag}）{nch} 條有關聯圖的產業鏈 × 每個環節篩選／展開：節點不重疊、間距 ≥8、文字在框內、節點在畫布內、連線接在邊上（{len(bad)} 處問題）",
+           nch >= 3 and not bad, bad[:12])
+        total += bad
+        ctx.close()
+    notes.append(f"{T}：共量 {steps} 個畫面，問題 {len(total)} 處")
+
+
 SECTIONS = {
+    # ★ 2026-10-09 Andy：「出現格式跑掉 請確實修正每個圖片」—— 手機關聯圖每條鏈每個環節：節點不重疊、文字在框內、連線接在邊上（402／360 × 深／淺）
+    "手機關聯圖不重疊1009": lambda pg, b, base, code: t_m4rel_1009(b, base),
     # ★ 2026-10-08 Andy：「手機版本…是否也動到網頁版本…兩者不可侵犯」—— 桌機 1440 版面指紋＋剖析圖說明卡在兩側＋關聯圖收合（⚠ --workers 1；改共用檔推 main 前必跑）
     "桌機守門1008":        lambda pg, b, base, code: t_desk_guard_1008(b, base),
     "2D 圖裁切普查1008":   lambda pg, b, base, code: t_dgclip_1008(b, base),
