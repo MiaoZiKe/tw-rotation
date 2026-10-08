@@ -2465,7 +2465,9 @@
      **分段／限筆／收合這一套只給真正的手機寬度（≤640px）**；
      820px 那一批（左右滑提示、底部兩列分頁、字級）維持原樣不動。*/
   const MIA_MAX = 640;
-  const mIsM = () => window.innerWidth <= MIA_MAX;
+  // ★ 2026-10-09（手機卡頓）：innerWidth 在 DOM 剛改過時會逼瀏覽器排版；matchMedia 同一條 ≤640 界線、不必排版
+  const miaMq = window.matchMedia ? window.matchMedia('(max-width: ' + MIA_MAX + 'px)') : null;
+  const mIsM = () => (miaMq ? miaMq.matches : window.innerWidth <= MIA_MAX);
 
   /* 分段表：key ＝ route() 算出來的 `pageKey`（見下面 applyMobileIA 的呼叫點）。
      `sel` 裡的每一個選擇器都是**要一起顯示的元素**；沒有被任何一段列到的東西

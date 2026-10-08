@@ -603,8 +603,14 @@
        所屬的框＝字的起點落在裡面的最小那個 frame（跟普查腳本「文字超出所屬格子」同一條定義）。
        量的是螢幕座標，所以段落的 translate、scale 都自動算進去。*/
     const frames = [].slice.call(svg.querySelectorAll('rect.frame,rect.row')).map((f) => ({ f, r: f.getBoundingClientRect() })).filter((x) => x.r.width > 0);
-    svg.querySelectorAll('text').forEach((t) => {
-      if (t.hasAttribute('textLength')) { t.removeAttribute('textLength'); t.removeAttribute('lengthAdjust'); }
+    /* ★ 2026-10-09（Andy：「手機…產業地圖點擊都會卡頓沒反應」）：以前是「每一行字：拿掉 textLength → 量 → 寫回 textLength」
+       一行接一行做，寫完下一行一量就逼瀏覽器重排版一次 —— 先進封裝那張一百多行字，4 倍降速的手機上進族群頁一次 2～3.5 秒長任務，
+       整段時間點什麼都沒反應。改成三段：先一次拿掉全部、再一次量完全部、最後一次寫回。
+       每一行的量測只看它自己有沒有 textLength（框 rect 先量好、不受字影響），所以結果跟逐行做完全一樣，只是只排版一次。 */
+    const texts = [].slice.call(svg.querySelectorAll('text'));
+    texts.forEach((t) => { if (t.hasAttribute('textLength')) { t.removeAttribute('textLength'); t.removeAttribute('lengthAdjust'); } });
+    const put = [];
+    texts.forEach((t) => {
       let b, tr; try { b = t.getBBox(); tr = t.getBoundingClientRect(); } catch (e) { return; }
       if (!b || !b.width || !tr || !tr.width) return;
       let want;
@@ -630,9 +636,9 @@
         want = b.width - (tr.right - lim) / kk / per;
       }
       if (want / b.width < 0.88) return;
-      t.setAttribute('lengthAdjust', 'spacingAndGlyphs');
-      t.setAttribute('textLength', want.toFixed(1));
+      put.push([t, want.toFixed(1)]);
     });
+    put.forEach(([t, w]) => { t.setAttribute('lengthAdjust', 'spacingAndGlyphs'); t.setAttribute('textLength', w); });
   }
   window.addEventListener('tw:dgpal', () => { document.querySelectorAll('svg.dg').forEach((s) => { fitTexts(s); if (s.__dgRefitHints) s.__dgRefitHints(); }); });
 
@@ -666,8 +672,10 @@
     if (!svg.__dgLateFit) {
       svg.__dgLateFit = true;
       const late = () => { if (svg.isConnected) { fitTexts(svg); if (svg.__dgRefitHints) svg.__dgRefitHints(); } };
-      requestAnimationFrame(late); setTimeout(late, 350);
-      try { if (document.fonts && document.fonts.ready) document.fonts.ready.then(late); } catch (e) { /* 忽略 */ }
+      /* ★ 2026-10-09（手機卡頓）：讀 document.fonts.ready 會逼瀏覽器當場排版一次（trace 量到：進族群頁那一個長任務裡 149ms 一次）。
+         挪到下一幀再讀 —— 那時本來就要排版，不會多一次；「字型到齊再量」的行為不變。 */
+      requestAnimationFrame(() => { late(); try { if (document.fonts && document.fonts.ready) document.fonts.ready.then(late); } catch (e) { /* 忽略 */ } });
+      setTimeout(late, 350);
     }
     if (svg.dataset.dgFold === '1') { fitTexts(svg); return; }   // 同一張圖被 stamp 兩次不要重複綁，但字要重量
     const all = [].slice.call(svg.querySelectorAll('g.dgfold[data-fold],g.dgbody[data-fold]'));
@@ -2001,7 +2009,9 @@
 (function () {
   'use strict';
   if (!window.DG) return;
-  const isM = () => window.innerWidth <= 640 && !!window.M3;
+  // ★ 2026-10-09（手機卡頓）：innerWidth 在 DOM 剛改過時會逼瀏覽器排版；matchMedia 同一條 ≤640 界線、不必排版
+  const mq640 = window.matchMedia ? window.matchMedia('(max-width: 640px)') : null;
+  const isM = () => (mq640 ? mq640.matches : window.innerWidth <= 640) && !!window.M3;
   const $$ = (s, r) => [].slice.call((r || document).querySelectorAll(s));
   const esc = (s) => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   const MIN = 30;                                    // 兩顆編號中心的最小距離（28px 鈕＋2px 縫）
@@ -2271,7 +2281,8 @@
     setTimeout(() => layout2d(host), 400);
     /* 2026-10-06：躲字要用「字排定之後」的位置 —— 字型晚到、externalize 補排會讓圖上的字在 400ms 之後還移動，
        用舊位置躲過的鈕會又壓回字上（矽晶圓 03／08 實測）。字型就緒與 1.2 秒各再排一次（排版只動編號層，不動圖）。*/
-    if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => layout2d(host));
+    // ★ 2026-10-09（手機卡頓）：document.fonts.ready 一讀就當場排版（同上 wireFolds），挪到下一幀再讀
+    requestAnimationFrame(() => { if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => layout2d(host)); });
     setTimeout(() => layout2d(host), 1200);
   }
   let rz = null;
@@ -2332,8 +2343,13 @@
         const P = ctx.items.map((it, i) => { const q = view.pointOf(it.part); if (!q) return null;
           const x = q.x - base.left, y = q.y - base.top; return { i, x, y, x0: x, y0: y, c: it.color, back: !q.front }; }).filter(Boolean);
         P._base = base; sideCols(P, base.width, base.height);
-        layer.innerHTML = `<svg width="${base.width}" height="${base.height}" style="position:absolute;left:0;top:0;overflow:visible">${window.M3.leaders(P)}</svg>` + numBtns(P, ctx.items, ctx.sel);
-        layer.dataset.overlap = window.M3.overlaps(P, MIN); layer.dataset.n = P.length; h3.dataset.mn = ctx.items.length;
+        /* ★ 2026-10-09（Andy：「手機…產業地圖點擊都會卡頓沒反應」）：以前每 76ms 無條件整層 innerHTML 重寫一次 ——
+           3D 停著不動也一秒重建 13 次編號鈕，每次都叫醒全站掛在 body 上的 MutationObserver（perm／icons／mobile4…）並重排版；
+           而且手指按下去的那顆鈕 76ms 內就被換掉，click 落到外層 → 點編號沒反應。改成：算出來跟上一次一樣就不動 DOM。 */
+        const html = `<svg width="${base.width}" height="${base.height}" style="position:absolute;left:0;top:0;overflow:visible">${window.M3.leaders(P)}</svg>` + numBtns(P, ctx.items, ctx.sel);
+        if (layer._html !== html) { layer._html = html; layer.innerHTML = html; }
+        const sd = (el, k, v) => { v = String(v); if (el.dataset[k] !== v) el.dataset[k] = v; };   // 值沒變不寫（同值也會產生 MutationObserver 紀錄）
+        sd(layer, 'overlap', window.M3.overlaps(P, MIN)); sd(layer, 'n', P.length); sd(h3, 'mn', ctx.items.length);
       }
       setTimeout(() => requestAnimationFrame(tick), 60);
     };

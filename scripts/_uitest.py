@@ -27958,6 +27958,112 @@ def desk_open(pg, base, route):
     pg.evaluate("() => window.scrollTo(0, 0)"); pg.wait_for_timeout(500)
 
 
+def t_m4_ind_1009(b, base):
+    """★ 2026-10-09 Andy：「手機剛剛發現嚴重BUG，畫面在產業地圖點擊都會卡頓沒反應」。
+    真手機的條件：402×874、DPR 3、觸控，CPU 用 CDP 降速 4 倍。照 Andy 的路線一下一下點：
+    產業地圖 → 甜甜圈扇區 → 產業鏈頁籤 → 族群頁（先進封裝）→ 剖析圖編號 → 關聯圖節點 → 3D → 回 2D。
+    每一下都量「手指按下 → 畫面第一次真的變了」（頁面裡的 MutationObserver 記時間，不是 Python 輪詢），以及主執行緒長任務。
+    修前（origin/main d03abcd1 之後）：手機 3D 一開就自轉 30fps、剖析圖 2D 的流向動畫一直重畫，停著不動主執行緒照樣被吃滿，
+    切到 3D 之後連 Playwright 截圖都 30 秒等不到一幀 —— 這段要紅。
+    ⚠ 長任務的毫秒數跟機器忙不忙有關；判定用「停著不動有沒有長任務」「有沒有動畫還在跑」這種修前修後差好幾倍的量。"""
+    T = "手機產業地圖回應1009"
+    ctx = b.new_context(viewport={"width": 402, "height": 874}, device_scale_factor=3, is_mobile=True, has_touch=True)
+    ctx.add_init_script("try{ if(!sessionStorage.getItem('ind1009')){ localStorage.clear(); localStorage.setItem('tw.live.on','0'); localStorage.setItem('tw.tourDone','1'); sessionStorage.setItem('ind1009','1'); } }catch(e){}"
+                        "window.__lt=[]; try{ new PerformanceObserver(l=>{ for (const e of l.getEntries()) window.__lt.push(Math.round(e.duration)); }).observe({type:'longtask', buffered:true}); }catch(e){}"
+                        # 3D 每畫一張就會呼叫 drawElements／drawArrays：數它，就知道停著不動時 3D 有沒有還在一直畫（跟機器忙不忙無關）
+                        "window.__dc=0; try{ for (const P of [WebGL2RenderingContext.prototype, WebGLRenderingContext.prototype]) { const a=P.drawElements, d=P.drawArrays; P.drawElements=function(){ window.__dc++; return a.apply(this, arguments); }; P.drawArrays=function(){ window.__dc++; return d.apply(this, arguments); }; } }catch(e){}")
+    m = ctx.new_page()
+    m.on("pageerror", lambda e: fails.append(f"{T} pageerror: {e} @ {m.url}"))
+    m.route("**/fonts.googleapis.com/**", lambda r: r.abort())
+    cdp = ctx.new_cdp_session(m)
+    cdp.send("Emulation.setCPUThrottlingRate", {"rate": 4})
+    J = lambda js: m.evaluate(js)
+    take = lambda: J("() => window.__lt.splice(0)")
+    ALL = []                      # 整段的長任務（毫秒）
+    # 按下那一刻起算，第一筆「節點增減／hidden／class 變了」的時間（畫面真的因此改變）
+    ARM = """() => { window.__chg = null; window.__t0 = null;
+      const mo = new MutationObserver((r) => { if (window.__t0 != null && window.__chg == null && r.some(x => x.type === 'childList' || x.attributeName === 'hidden' || x.attributeName === 'class')) { window.__chg = performance.now() - window.__t0; mo.disconnect(); } });
+      mo.observe(document.body, { subtree: true, childList: true, attributes: true, attributeFilter: ['hidden', 'class'] });
+      addEventListener('pointerdown', () => { if (window.__t0 == null) window.__t0 = performance.now(); }, { capture: true, once: true }); }"""
+    center = lambda q: f"""() => {{ const e = [...document.querySelectorAll({q!r})].find(x => x.getClientRects().length && x.closest('.view.on'));
+        if (!e) return null; e.scrollIntoView({{ block: 'center', behavior: 'instant' }}); const r = e.getBoundingClientRect(); return [r.left + r.width / 2, r.top + r.height / 2]; }}"""
+    res = {}
+
+    def step(label, finder):
+        J("() => { const s = document.getElementById('mSheetBack'); if (s && !s.hidden) s.click(); }"); m.wait_for_timeout(400)
+        box = J(finder)
+        if not ok(f"【{T}】{label}：畫面上找得到要點的東西", bool(box), box):
+            return
+        m.wait_for_timeout(300); pre = take(); ALL.extend(pre)
+        J(ARM)
+        m.touchscreen.tap(box[0], box[1]); m.wait_for_timeout(2500)
+        r = J("() => ({ chg: window.__chg, lt: window.__lt.splice(0) })")
+        ALL.extend(r["lt"])
+        chg = None if r["chg"] is None else round(r["chg"])
+        res[label] = {"變化ms": chg, "長任務": r["lt"], "按之前": pre}
+        ok(f"【{T}】{label}：按下去 500ms 內畫面有變化（{chg}ms，長任務 {r['lt']}）", chg is not None and chg <= 500, res[label])
+
+    try:
+        m.goto(base + "#industry", wait_until="domcontentloaded"); m.wait_for_timeout(7000); take()
+        step("甜甜圈扇區", """() => { const c = [...document.querySelectorAll('.view.on canvas')].find(e => e.getClientRects().length && e.getBoundingClientRect().width > 200);
+            if (!c) return null; c.scrollIntoView({ block: 'center', behavior: 'instant' }); const r = c.getBoundingClientRect(); return [r.left + r.width * 0.8, r.top + r.height * 0.38]; }""")
+        step("產業鏈頁籤（半導體）", """() => { const e = [...document.querySelectorAll('.view.on button')].find(e => e.getClientRects().length && /^半導體/.test(e.textContent.trim()));
+            if (!e) return null; e.scrollIntoView({ block: 'center', behavior: 'instant' }); const r = e.getBoundingClientRect(); return [r.left + r.width / 2, r.top + r.height / 2]; }""")
+        step("進族群頁（先進封裝）", center("a.segchip[href$='/dg/ai_adv_packaging']"))
+        ok(f"【{T}】進族群頁之後網址是先進封裝（{J('() => location.hash')}）", J("() => location.hash").endswith("/dg/ai_adv_packaging"))
+        step("剖析圖編號", center("#prodDiagram .mnum"))
+        step("關聯圖節點", center("#chainMap g.segtitle"))
+        # 手機停在 2D：剖析圖的動畫（CSS 流向虛線＋SMIL 白點）要是停的 —— 修前 14 個 CSS 動畫一直重畫
+        J("() => { const s = document.getElementById('mSheetBack'); if (s && !s.hidden) s.click(); }")
+        m.wait_for_timeout(1500); take()
+        m.wait_for_timeout(3000); idle2d = take()
+        an = J("() => document.getAnimations().filter(a => a.playState === 'running' && a.effect && a.effect.target && a.effect.target.closest && a.effect.target.closest('#prodDiagram')).length")
+        ok(f"【{T}】族群頁 2D 停著不動：剖析圖沒有動畫在跑（{an} 個；修前 14 個 CSS 流向動畫一直重畫）", an == 0, {"anim": an, "lt": idle2d})
+        res["2D 停著"] = {"動畫": an, "長任務": idle2d}
+        step("切 3D", center("#dg3d button[data-dm='3d']"))
+        # ⚠ 切 3D 那一下的長任務（建場景、編譯著色器）不算進「整段 ≤ 1 秒」：這個容器沒有 GPU，WebGL 走軟體算繪（SwiftShader），
+        #   同一段在有 GPU 的手機上不是這個量級；這裡只看「建好之後停著不動」主執行緒有沒有被放掉。
+        mount3d = res.get("切 3D", {}).get("長任務", [])
+        for x in mount3d:
+            if x in ALL:
+                ALL.remove(x)
+        # 等 3D 真的畫出第一張（three.js 是動態載入的），之後再給 4 秒讓相機阻尼、補畫都停下來 —— 這段建場景的長任務一樣不算
+        drew = wait_until(m, "() => window.__dc > 0 && !!document.querySelector('#prod3d canvas')", 30000, 300)
+        ok(f"【{T}】切 3D 之後 3D 真的畫出來了", drew)
+        m.wait_for_timeout(4000); take()
+        J("() => { window.__dc = 0; window.__mn = 0; const l = document.querySelector('.mnumlayer.m3d'); if (l) new MutationObserver((r) => { window.__mn += r.length; }).observe(l, { childList: true, subtree: true }); }")
+        m.wait_for_timeout(3000)
+        idle3d = J("() => ({ draws: window.__dc, mnum: window.__mn, lt: window.__lt.splice(0) })")
+        ok(f"【{T}】3D 停著不動 3 秒：不再一直重畫（drawElements {idle3d['draws']} 次）、編號層不再一直重建（{idle3d['mnum']} 筆）—— 修前自轉 30fps＋每 76ms 重寫編號層",
+           idle3d["draws"] == 0 and idle3d["mnum"] == 0, idle3d)
+        res["3D 停著"] = idle3d
+        step("回 2D", center("#dg3d button[data-dm='2d']"))
+        # 每個編號：點哪個，抽屜就開哪個（抽屜的 data-no 跟按下去那顆一致）
+        nos = J("() => [...document.querySelectorAll('#prodDiagram .mnum')].filter(e => e.getClientRects().length).map(e => e.dataset.no)")
+        bad = []
+        for no in nos:
+            J("() => { const s = document.getElementById('mSheetBack'); if (s && !s.hidden) s.click(); }"); m.wait_for_timeout(250)
+            box = J(center(f"#prodDiagram .mnum[data-no='{no}']"))
+            if not box:
+                bad.append((no, "找不到")); continue
+            m.touchscreen.tap(box[0], box[1]); m.wait_for_timeout(450)
+            got = J("() => { const s = document.getElementById('mSheet'); return s && !s.hidden ? s.dataset.no : null; }")
+            if got != no:
+                bad.append((no, got))
+        ok(f"【{T}】剖析圖 {len(nos)} 個編號：點哪個，抽屜就開哪個（不一致：{bad}）", len(nos) >= 5 and not bad, bad)
+        lt_nums = take(); ALL.extend(lt_nums); res["編號巡一圈"] = {"長任務": lt_nums}
+        mx = max(ALL or [0])
+        ok(f"【{T}】整段（4 倍降速）沒有超過 1 秒的長任務（最長 {mx}ms）", mx <= 1000, {"最長": mx, "每一步": res})
+        print(f"  [{T}] 每一步：{res}　最長長任務 {mx}ms")
+    except Exception as e:
+        ok(f"【{T}】整段跑完沒有例外（修前 3D 開著時主執行緒被吃滿，截圖／操作會等到逾時）", False, repr(e)[:300])
+    finally:
+        try:
+            ctx.close()
+        except Exception:
+            pass
+
+
 def t_desk_guard_1008(b, base):
     T = "桌機守門1008"
     c = b.new_context(viewport={"width": 1440, "height": 900})
@@ -28375,6 +28481,8 @@ SECTIONS = {
     # ★ 2026-10-08 手機 v2（docs/mobile_v2_plan.md；site/mobile4.js）：側欄抽屜、每頁第一屏、字級／觸控、主要切換真的點得動
     "手機v2":              lambda pg, b, base, code: (t_mobile_m4(b, base, code), t_mobile_m4_1008(b, base, code)),
     "手機框預覽1008":      lambda pg, b, base, code: t_phone_1008(pg, b, base),
+    # ★ 2026-10-09 Andy：「手機剛剛發現嚴重BUG，畫面在產業地圖點擊都會卡頓沒反應」（402×874／DPR 3／CPU 降速 4 倍；⚠ --workers 1）
+    "手機產業地圖回應1009": lambda pg, b, base, code: t_m4_ind_1009(b, base),
     # ★ 2026-09-25 手機版 v3（docs/mobile_v3_spec.md §7）：底部一列五顆、「?」氣泡、大盤合一張、新雷達＋焦點條、
     #   資金分流樹長條、法人對稱長條、篩選抽屜、剖析圖只留編號（2D／3D）。390 與 360 各一輪。⚠ 一律 --workers 1（有 3D）
     "手機v3":              lambda pg, b, base, code: t_mobile_v3(b, base, code),

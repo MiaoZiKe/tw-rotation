@@ -54,12 +54,20 @@
   const V = './vendor/';
   let mods = null;                 // 動態 import 的結果，載一次就好
 
+  /* ★ 2026-10-09（Andy：「手機…產業地圖點擊都會卡頓沒反應」）：以前每進一次剖析圖頁就新開一個 WebGL context 來試、用完不放。
+     4 倍降速的手機上一次 0.7 秒，而且 context 一直累積（瀏覽器有上限，超過會把最舊的弄丟）。
+     改成：試一次就記住答案，試完馬上把那個 context 交還（WEBGL_lose_context）。 */
+  const isM4 = () => document.documentElement.classList.contains('m4');
+  let okGL = null;
   function supported() {
+    if (okGL != null) return okGL;
     try {
       const c = document.createElement('canvas');
-      return !!(window.WebGLRenderingContext
-        && (c.getContext('webgl2') || c.getContext('webgl') || c.getContext('experimental-webgl')));
-    } catch (e) { return false; }
+      const gl = window.WebGLRenderingContext && (c.getContext('webgl2') || c.getContext('webgl') || c.getContext('experimental-webgl'));
+      okGL = !!gl;
+      try { const x = gl && gl.getExtension('WEBGL_lose_context'); if (x) x.loseContext(); } catch (e) { /* 交還失敗不影響判定 */ }
+    } catch (e) { okGL = false; }
+    return okGL;
   }
 
   async function load() {
@@ -8864,7 +8872,8 @@
        爆炸補間（#246）在「建完場景、還沒進 tick()」的階段就會呼叫 markDirty()，
        留在原本 tick() 上面那一段（const 宣告）會踩到 TDZ，3D 直接退回平面圖。*/
     let dirty = true, lastDraw = 0;
-    const markDirty = () => { dirty = true; };
+    let lastDirty = performance.now();
+    const markDirty = () => { dirty = true; lastDirty = performance.now(); };
     /* 一個 group 的最終位置 ＝ 原位 ＋ 爆炸位移 × expT ＋ 運轉位移（C6 ⑤ move）。
        兩件事必須疊加而不是互相覆寫：螺帽沿軸走的時候，使用者可能同時把圖拆開。*/
     const place = (g) => {
@@ -10317,6 +10326,9 @@
       }
       controls.update();
       if (!run && !dirty && now0 - lastDraw < 400) return;       // ②③ 靜止：沒變就不畫，400ms 補一張
+      /* ★ 2026-10-09（手機卡頓）：手機（html.m4）上「400ms 補一張」只在最近 3 秒有變動時才補 ——
+         停著不動還每秒畫 2.5 張整個場景，主執行緒一直被佔，點別的東西就像沒反應。桌機照舊。 */
+      if (!run && !dirty && isM4() && now0 - lastDirty > 3000) return;
       renderer.render(scene, camera);
       if (firstDrawMs == null) firstDrawMs = Math.round(performance.now() - tMount0);
       lastDraw = now0; dirty = false;
