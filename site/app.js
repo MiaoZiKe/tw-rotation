@@ -9,7 +9,7 @@
   /* ★ 2026-10-06 即時僅管理者（Andy：「所有的即時功能，只有在我這帳號才會出現，其他帳號都隱藏」，DECISIONS #326）。
      閘門在 site/livegate.js；這支檔裡的即時入口（漲跌家數「盤後／⚡ 即時」、輪動時鐘與資金分流樹的「即時」鈕、
      總覽摘要卡右上角的即時開關）開頭都問它。不是管理者 → 鈕不掛（或整列藏起來）、按了也不動作、不打任何報價端點。*/
-  const liveOK = () => !!(window.TwLive && window.TwLive.allowed());
+  const liveOK = () => !!(window.TwLive && window.TwLive.canLive());   // 2026-10-08：站主或管理員（livegate.js canLive）
   const D = {};                       // 已載入的 JSON
   const charts = {};                  // ECharts 實例
   /* ★ 2026-09-25（R3 審查）：畫布上的等寬字一律用這一串，跟 CSS `--mono` 同一條退路。
@@ -3895,11 +3895,13 @@
       };
       /* ★ D4：模式切換列。盤後是預設（Andy 指定），即時那一顆亮起來的樣子沿用
          全站那顆 `.pb.livebtn`（資金分流樹、輪動時鐘都是同一顆），不另外發明一種。*/
-      body.innerHTML = `<div class="row" style="gap:8px;align-items:center;margin:0 0 10px" data-live-ui>
+      /* ★ 2026-10-08：模式切換列只畫給站主或管理員（改前：人人都畫、data-live-ui 靠 CSS 藏；改後：不是站主或管理員整列不進 DOM）。
+         #mktLive（即時狀態字）照留 —— 它預設 hidden、mudStamp 要寫它，非站主或管理員時永遠不會打開。*/
+      body.innerHTML = (liveOK() ? `<div class="row" style="gap:8px;align-items:center;margin:0 0 10px" data-live-ui>
           <div class="seg tiny" id="mktMode">
             <button data-m="eod" class="${live || MUD.on ? '' : 'on'}">盤後</button>
             <button data-m="live" class="${MUD.on ? 'on' : ''}">⚡ 即時</button></div>
-        </div>
+        </div>` : '') + `
         <div id="mktLive" class="note livenote" ${MUD.on ? '' : 'hidden'}></div>
         <div class="mktduo" id="mktDuo">
         <div class="card mktdist" style="padding:12px 14px">
@@ -4135,7 +4137,9 @@
   /* ★ 2026-10-06（Andy：「這類資訊一律拿掉」，DECISIONS #329）：鈕上不再顯示日期（MM/DD）與「即時 HH:MM:SS」，一律只寫「即時」；
      狀態用樣子講（lv＝紅框＋呼吸點、stale＝琥珀、off＝虛線框），原本那串字留在 data-stamp 當機器讀數（驗收用，畫面不顯示），
      細節照舊在鈕的滑鼠提示（這顆是開關，提示是開關說明，不是另外加的圖示）。*/
-  const ovsDate = (k, d) => `<button type="button" class="osc-d ovl-tg arm" data-k="${k}" data-stamp="${fmt.esc(ovsMd(d) || '—')}" aria-pressed="true" title="總覽摘要卡的即時開關">`
+  /* ★ 2026-10-08（Andy：「即時功能 除了我這個帳號其他都不能附上」）：改前＝人人都畫、非管理者靠 CSS 藏；
+     改後＝不是站主或管理員就**根本不畫**（DOM 裡沒有這顆），登入／登出時 tw:livegate 會整頁重畫，那時再依閘門決定。*/
+  const ovsDate = (k, d) => !liveOK() ? '' : `<button type="button" class="osc-d ovl-tg arm" data-k="${k}" data-stamp="${fmt.esc(ovsMd(d) || '—')}" aria-pressed="true" title="總覽摘要卡的即時開關">`
     + `<i class="ovl-dot" aria-hidden="true"></i><span class="ovl-t">即時</span></button>`;
   // 比例條的一段：flex-grow＝數值（0 的段不畫，不然會留一條看不見的縫）
   const ovsSeg = (v, color, tip, cls) => v > 0 ? `<i${cls ? ` class="${cls}"` : ''} style="flex-grow:${v};--c:${color}" title="${fmt.esc(tip)}"></i>` : '';
@@ -4697,6 +4701,21 @@
     const d = (e && e.detail) || {};
     if (!d.ok) OVL.err = d.err || '這一輪沒抓到';
     if (OVS.src && ovsShown()) ovlStamp();
+  });
+  /* ★ 2026-10-08 站主或管理員登入／登出不重新載入（livegate.js 檔頭 ④）：閘門一變，
+     ① 三種族群即時模式（漲跌家數、輪動時鐘、資金分流樹）先關掉、計時器收掉 —— 關掉之後就不會再打任何報價端點；
+     ② 已經掛上去的即時鈕／狀態字拔掉（它們不在各 view 重畫的範圍內，例如時鐘標題旁的 .rotlivewrap）；
+     ③ 整頁重畫一次（跟換主題同一條路：清 rendered、dispose 圖表、route()），重畫時各處依新的閘門決定要不要畫即時鈕。
+     開的時候同一條路：重畫就會把鈕畫出來，live.js 那邊自己掛卡片開關、馬上抓一輪。*/
+  window.addEventListener('tw:livegate', () => {
+    try { if (MUD.on || MUD.timer) mudOff(false); } catch (e) { /* 還沒初始化 */ }
+    try { if (RLV.on || RLV.timer) rlvOff(false); } catch (e) { /* 同上 */ }
+    try { if (SKL.on || SKL.timer) sklOff(false); } catch (e) { /* 同上 */ }
+    if (!liveOK()) $$('#rotLiveBtn, .rotlivewrap, #sankeyLiveBtn, #mktMode, .ovl-tg').forEach(el => {
+      const row = el.id === 'mktMode' ? el.closest('.row') : null;
+      (row || el).remove();
+    });
+    applyTheme(theme(), true);
   });
   window.addEventListener('tw:livecard', (e) => {
     const d = (e && e.detail) || {};
