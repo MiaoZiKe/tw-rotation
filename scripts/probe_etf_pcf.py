@@ -47,6 +47,9 @@ for i, a in enumerate(sys.argv[1:]):
         # 用 ~ 分隔的版本：正規式裡常需要 |（多選一），舊的 GREP| 寫法會被切壞
         _, pat, u = a.split("~", 2)
         CANDS.append((f"grep-{i}", "GREP", u, pat))
+    elif a.startswith("DUMP~"):
+        # 整份回應原樣印出（前 200KB）：要照實寫 parser 時，GREP 的前後文不夠看表單與表格結構（2026-10-08 第五輪）
+        CANDS.append((f"dump-{i}", "DUMP", a[5:], None))
     elif a.startswith("FORM~"):
         # 表單 POST（application/x-www-form-urlencoded）：FORM~網址~k=v&k=v，印回應裡 2330／台積電前後文
         _, u, b = a.split("~", 2)
@@ -72,6 +75,12 @@ for tag, m, url, body in CANDS:
             print(f"  HTTP {r.status_code}  bytes={len(r.content)}")
             for mm in list(re.finditer(body, r.text))[:25]:
                 print("   >>", r.text[max(0, mm.start() - 250):mm.end() + 350].replace("\n", " "))
+            continue
+        if m == "DUMP":
+            r = requests.get(url, headers={"User-Agent": UA}, timeout=40)
+            r.encoding = r.apparent_encoding or r.encoding
+            print(f"  HTTP {r.status_code}  type={r.headers.get('content-type', '')}  bytes={len(r.content)}")
+            print(r.text[:200000])
             continue
         if m == "FORM":
             from urllib.parse import parse_qsl
