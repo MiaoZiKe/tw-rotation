@@ -26925,9 +26925,11 @@ def t_title_dup_1007(b, base):
 M4_FIRST = {   # 路由 → 第一屏（390×844 不捲動）必須整個看得到的元素：主圖或精簡圖＋它的摘要列（2026-10-08 實測量過才填）
     "#overview": ["#mbIdx", "#m3"],                                             # 指數三格＋大盤（2026-10-08 晚起總覽預設停在「大盤」組）
     "#earnings": ["#earnFilt", "#earnMonth"],                                   # 三分類切換＋月份（月曆本身是例外格）
-    "#flow/rotation": ["#flowRotCard svg", "#mRank > :nth-child(5)"],         # 輪盤＋排行前 5
-    "#flow/sankey": ["#flowSankeyCard .mrank"],                                # 第一層五大類長條（金額＋占比）
-    "#flow/inst": ["#flowInstCard"],                                           # 整張族群×法人（買超前 8＋賣超前 8）
+    # 2026-10-09 改（Andy：「資金輪動直接是完整版」「資金分流樹……跟網頁版本一模一樣」「族群 × 法人……跟網頁版一樣直接上長條圖」）：
+    # 改前驗 mobile3 的手機替身（SVG 輪盤＋排行、長條式分流樹、買賣超細條）；改後手機直接畫網頁版那幾張圖
+    "#flow/rotation": ["#flowRotFilter", "#rotClock"],                         # 篩選列（常駐，不收展）＋整張輪盤
+    "#flow/sankey": ["#sankeyDays"],                                           # 日期拉桿（樹本身比一屏高；「樹的上半在第一屏」另在 t_mobile_m4_charts_1009 驗）
+    "#flow/inst": ["#flowInstCard .ddbtn", "#instGroups"],                    # 兩個篩選下拉＋整張三色堆疊長條
     "#heatmap/industry": ["#v-heatmap canvas"],                                # 整張 treemap
     "#heatmap/theme": ["#themeMapCard"],                                       # 整張題材 treemap＋熱度圖例
     "#industry": ["#gpPie"],                                                   # 成交值占比甜甜圈（2026-10-08 晚：手機只留甜甜圈，橫條圖收合）
@@ -26943,7 +26945,7 @@ M4_FIRST = {   # 路由 → 第一屏（390×844 不捲動）必須整個看得�
 M4_TOUCH_EXEMPT = ["#m4Drawer *", "aside *", "footer *", ".footer *", "#v-earnings .chip", "#v-earnings .dn", "#v-earnings .more",
                    "#v-season button[data-m]"]
 # 第一屏沒有分段鈕的頁：改點它自己的主要操作，驗畫面真的變了（路由 → [要點的選擇器, 選擇 select 的值]）
-M4_ACT = {"#season": "#mSeasonNum", "#flow/rotation": "#mRank li:nth-child(3), #mRank > *:nth-child(3)", "#etf/cal": "#etfCalNext",
+M4_ACT = {"#season": "#mSeasonNum", "#flow/rotation": "#rotTools .rot-trail", "#etf/cal": "#etfCalNext",   # 2026-10-09：輪動頁改網頁版完整輪盤，改點「顯示腳印」
           "#heatmap/industry": "select#indTreeGroup"}
 
 
@@ -27139,18 +27141,14 @@ def t_mobile_m4_1008(b, base, code):
                 if bx and sl < 20:
                     badd.append((h, J(f"() => {{ const e = document.querySelector('{sel}'); return (e.id || '') + '.' + String(e.className).split(' ')[0]; }}"), sl))
         ok(f"【{T}】每個可以左右捲的容器，手指從右往左拖 100px 都真的捲動", not badd, badd)
-        # ⑩ 資金分流樹：根節點在第一屏、容器沒有外框、標籤不重疊；排名預設收起、點了展開
+        # ⑩ 資金分流樹（2026-10-09 改）：改前驗 mobile3 的長條式分流樹（.mroot／.mdtree／「資金流向排名 ▸」）；
+        #    改後手機直接畫網頁版的光纖分流樹（Andy：「光 子樹特效都要一模一樣跟網頁版本」），逐項驗在 t_mobile_m4_charts_1009。
+        #    這裡只留「樹在第一屏、容器沒有外框」兩條版面規矩。
         go("flow/sankey", 4000)
-        sk = J("""() => { const rt = document.querySelector('#flowSankeyCard .mroot'); const r = rt && rt.getBoundingClientRect();
-            const tree = document.querySelector('#flowSankeyCard .mdtree'); let bw = 0; for (let n = tree; n && n.tagName !== 'MAIN'; n = n.parentElement) bw += parseFloat(getComputedStyle(n).borderLeftWidth) || 0;
-            const ns = [...document.querySelectorAll('#flowSankeyCard .mdtree .n, #flowSankeyCard .mdtree .v')].map(e => e.getBoundingClientRect()); let ov = 0;
-            ns.forEach((a, i) => ns.forEach((b2, j) => { if (j > i && a.left < b2.right - 1 && b2.left < a.right - 1 && a.top < b2.bottom - 1 && b2.top < a.bottom - 1) ov++; }));
-            const rk = document.getElementById('mSankeyRank'), hd = document.getElementById('mSankeyRankHd');
-            return { root: !!r && r.top >= 0 && r.bottom <= innerHeight, txt: rt ? rt.textContent : '', bw, ov, shut: !!rk && getComputedStyle(rk).display === 'none', hd: !!hd && !hd.hidden }; }""")
-        ok(f"【{T}】資金分流樹：根節點「{sk['txt']}」在第一屏、樹沒有外框（{sk['bw']}px）、標籤不重疊（{sk['ov']}）", sk["root"] and sk["bw"] == 0 and sk["ov"] == 0, sk)
-        ok(f"【{T}】資金流向排名預設收起、標題列看得到", sk["shut"] and sk["hd"], sk)
-        m.locator("#mSankeyRankHd").tap(); m.wait_for_timeout(400)
-        ok(f"【{T}】點「資金流向排名 ▸」→ 排名展開", J("() => getComputedStyle(document.getElementById('mSankeyRank')).display !== 'none' && document.querySelectorAll('#mSankeyRank .skr-r').length > 0"))
+        sk = J("""() => { const e = document.getElementById('sankey'); if (!e) return null; const r = e.getBoundingClientRect(); let bw = 0;
+            for (let n = e; n && n.tagName !== 'MAIN'; n = n.parentElement) bw += parseFloat(getComputedStyle(n).borderLeftWidth) || 0;
+            return { top: Math.round(r.top), h: Math.round(r.height), bw, ft: !!(window.FlowTopo && FlowTopo.has(e)) }; }""")
+        ok(f"【{T}】資金分流樹：光纖樹在第一屏開始（上緣 {sk and sk['top']}px）、樹沒有外框（{sk and sk['bw']}px）", bool(sk) and sk["ft"] and 0 <= sk["top"] < 844 * 0.5 and sk["bw"] == 0, sk)
         # ⑪ 客服鈕：泡泡裡有天竺鼠
         go("overview", 2000)
         ok(f"【{T}】客服鈕是對話泡泡＋天竺鼠（泡泡 svg 裡有 brand/mark 圖）", J("() => !!document.querySelector('.supfab svg.supbub image[href*=\"brand/mark\"]')"))
@@ -27204,22 +27202,8 @@ def t_mobile_m4_1008(b, base, code):
                 badb[h] = r
         ok(f"【{T}】402 寬主內容區沒有方框與陰影（只用線條分區）", not badb, badb)
         m.set_viewport_size({"width": 390, "height": 844})
-        # ⑮ 資金分流樹日期拉桿：手指拖把手 → 日期與樹真的換；▶ 播放中拉桿鎖住
-        go("flow/sankey", 4500)
-        d0 = J("() => { const r = document.querySelector('.mdaybar input'); if (!r) return null; const b = r.getBoundingClientRect(); return { v: +r.value, x: b.left + b.width - 16, y: b.top + b.height / 2, top: b.top, txt: document.querySelector('#flowSankeyCard .mroot').textContent }; }")
-        ok(f"【{T}】資金分流樹有日期拉桿、在第一屏（{d0 and round(d0['top'])}）", d0 and 0 < d0["top"] < 844, d0)
-        if d0:
-            tp = lambda t, x: cdp.send("Input.dispatchTouchEvent", {"type": t, "touchPoints": [] if t == "touchEnd" else [{"x": x, "y": d0["y"]}]})
-            tp("touchStart", d0["x"])
-            for k in range(1, 13):
-                tp("touchMove", d0["x"] - 10 * k); m.wait_for_timeout(16)
-            tp("touchEnd", 0); m.wait_for_timeout(600)
-            d1 = J("() => ({ v: +document.querySelector('.mdaybar input').value, txt: document.querySelector('#flowSankeyCard .mroot').textContent, th: (() => { const r = document.querySelector('.mdaybar input'); return parseFloat(getComputedStyle(r, '::-webkit-slider-thumb').width) || 32; })() })")
-            ok(f"【{T}】手指拖拉桿 → 日期真的往前（{d0['v']}→{d1['v']}）、樹的數字跟著換", d1["v"] < d0["v"] and d1["txt"] != d0["txt"], (d0, d1))
-            m.locator(".mdaybar .mplay").tap(); m.wait_for_timeout(1600)
-            pl = J("() => ({ dis: document.querySelector('.mdaybar input').disabled, v: +document.querySelector('.mdaybar input').value })")
-            ok(f"【{T}】按 ▶ 播放 → 拉桿鎖住、日期一天一天往後（{pl}）", pl["dis"], pl)
-            m.locator(".mdaybar .mplay").tap(); m.wait_for_timeout(300)
+        # ⑮ 資金分流樹日期拉桿（2026-10-09 改）：改前是 mobile3 的 .mdaybar；改後是網頁版同一支 playBar（#sankeyDays），
+        #    手指拖、▶ 播放鎖住拉桿的驗收搬到 t_mobile_m4_charts_1009（同一段「手機v2」會跑到）。
         # ⑯ 2D 剖析圖編號：整張模式排在兩側＋虛線引線
         go("industry/electronics", 3500)
         J("() => { try { localStorage.setItem('tw.dgOpen', '1'); localStorage.setItem('tw.dgnum', '1'); localStorage.setItem('tw.dg3d', '2d'); } catch (e) {} }")
@@ -27414,6 +27398,8 @@ def t_mobile_m4_1008(b, base, code):
         m.set_viewport_size({"width": 390, "height": 844})
         # ㉖ 收合普查（Andy 準則 5：收合預設收起）：402 寬 18 頁，看得到的收合鈕（aria-expanded／details）一開始都是收起的。
         #    例外（Andy 指定預設展開）：產業鏈剖析圖、關聯圖 —— 它們不用 aria-expanded 收合列，不在這份清單裡
+        #    例外（Andy 2026-10-09 04:0x：「這頁拿掉收展功能」）：資金輪動頁的「篩選與期間」收展鈕整個拿掉、篩選常駐 ——
+        #    沒有鈕就不在清單裡；「沒有這顆鈕、篩選控制直接看得到」在 t_mobile_m4_charts_1009 驗
         m.set_viewport_size({"width": 402, "height": 874})
         FOLD = """() => [...document.querySelectorAll('.view.on [aria-expanded], .view.on details')].filter(e => e.getClientRects().length && !e.closest('.ddpanel') && !e.matches('.ddbtn,[aria-haspopup]'))
             .map(e => [e.tagName === 'DETAILS' ? (e.open ? 'true' : 'false') : e.getAttribute('aria-expanded'), (e.id || e.className || e.tagName) + '：' + e.textContent.trim().replace(/\\s+/g, ' ').slice(0, 14)])"""
@@ -27433,16 +27419,8 @@ def t_mobile_m4_1008(b, base, code):
         go("heatmap/industry", 300); m.reload(wait_until="domcontentloaded"); m.wait_for_timeout(5000)
         hl = J("() => { const e = [...document.querySelectorAll('.chart')].find(x => x._hmLab); if (!e) return null; const v = Object.values(e._hmLab); return { n: v.length, lab: v.filter(x => x.text).length }; }")
         ok(f"【{T}】熱力圖 390 寬：≥ 40% 的方塊有字（{hl}）", hl and hl["n"] > 0 and hl["lab"] / hl["n"] >= 0.4, hl)
-        go("flow/rotation", 4000)
-        if J("() => !!document.querySelector('#mRadarFlow .mqb[data-quad=lagging]')"):
-            m.locator("#mRadarFlow .mqb[data-quad=lagging]").tap(); m.wait_for_timeout(700)
-            q1 = J("() => document.getElementById('mRadarFlow').dataset.quad")
-            bx = J("() => { const r = document.querySelector('#mRadarFlow svg').getBoundingClientRect(); return { x: r.left + r.width * 0.7, y: r.top + r.height * 0.32 }; }")   # 只看「落後」時右上（領先區）盤面沒有點
-            m.touchscreen.tap(bx["x"], bx["y"]); m.wait_for_timeout(700)
-            q2 = J("() => document.getElementById('mRadarFlow').dataset.quad")
-            ok(f"【{T}】資金輪盤：點「落後」只看那一段（{q1}）→ 點盤上空白處恢復全部（{q2 or '全部'}）", q1 == "lagging" and q2 == "", (q1, q2))
-        else:
-            ok(f"【{T}】資金輪盤有四個角落鈕", False, "找不到 #mRadarFlow .mqb")
+        # 資金輪盤點角落只看一段（2026-10-09 改）：改前點 mobile3 SVG 輪盤的 #mRadarFlow .mqb；改後手機是網頁版完整輪盤（Andy：「資金輪動直接是完整版」），
+        #    角落徽章是網頁版的 .rotquads .rq —— 驗收在 t_mobile_m4_charts_1009（點角落 → 盤上只剩那一段 → 再點恢復）。
         # ㉘ 剖析圖章節收合列觸控普查：7 條有剖析圖的產業鏈，各自預設那張圖的每一列「＋…」用手指點 → 真的展開（aria-expanded＝true）
         dead = []; nrow = 0
         for ch in ("semiconductor", "ai_server", "electronics", "software", "financial", "traditional", "infrastructure"):
@@ -27692,7 +27670,7 @@ def t_mobile_m4(b, base, code):
             continue
         if ch is None:
             # #flow/sankey：2026-10-08 起手機是「根節點＋可以點開的長條」，每一條本身就是第一屏的切換（▸ 展開下一層），排名收進「資金流向排名 ▸」
-            ok(f"【{T}】{h} 第一屏找得到可以切換的鈕（分段／篩選）", h in ("#watch", "#explore", "#industry", "#etf/inc", "#flow/sankey"), h)
+            ok(f"【{T}】{h} 第一屏找得到可以切換的鈕（分段／篩選）", h in ("#watch", "#explore", "#industry", "#etf/inc", "#flow/sankey"), h)   # #flow/sankey：2026-10-09 起是網頁版分流樹，第一屏是日期拉桿＋▶（不是分段鈕）
             continue
         before = m.evaluate("() => { const v = document.querySelector('.view.on'); return v.innerText.length + '|' + v.innerText.slice(0, 6000) + '|' + v.querySelectorAll('.on,[aria-selected=true]').length; }")
         m.locator("[data-m4try]").first.tap(); m.wait_for_timeout(1200)
@@ -27797,6 +27775,203 @@ DGCLIP_JS = r"""
 })()
 """
 DGCLIP_WIDTHS = (1440, 1280, 1024, 800)
+
+
+# ===================================================================== 手機 v2 圖表跟網頁版同一套（2026-10-09，claude/m4-charts）
+# Andy 10-09 03:3x：「資金分流樹剛開始就要出現，並切顏色風格 像是，光 子樹特效都要一模一樣跟網頁版本。
+#   這邊注意 所有的圖表 圓餅圖 長條圖 時中圖 樹狀圖 顏色風格 都要一樣」
+# Andy 10-09 03:4x：「資金輪動直接是完整版 並且上方功能展開」→ 更正「這頁拿掉收展功能」
+# Andy 10-09 04:0x：「族群 × 法人 法人這頁跟網頁版一樣直接上長條圖，並且需要下拉是篩選清單」
+# 改前：mobile3.js 在 html.m4 也把資金輪盤、資金分流樹、族群×法人換成手機替身（SVG 輪盤、長條式分流樹、SVG 小樹、單色細條＋「完整版 ›」）。
+# 改後：手機直接畫網頁版那幾張圖（app.js rotM4()／sankeyTopoOn()、flowtopo.js clNarrow），只有尺寸跟著寬度縮。
+M4C_SIG_JS = r"""() => {
+  const sig = (v) => { if (v == null) return null; if (typeof v === 'string' || typeof v === 'number') return v;
+    if (typeof v === 'function') return 'fn'; if (v.colorStops) return (v.type || '') + ':' + v.colorStops.map(s => s.color).join('>'); return JSON.stringify(v).slice(0, 80); };
+  const res = {};
+  document.querySelectorAll('.view.on [_echarts_instance_]').forEach(el => {
+    if (!el.getClientRects().length || !el.id) return;
+    const c = echarts.getInstanceByDom(el); if (!c) return;
+    const o = c.getOption();
+    // 只比「系列層級」的視覺設定（色盤、系列色、線色、面積色、發光、特效、堆疊）；資料點層級會因為盤面大小（例如腳印離點太近不放）而不同，不算風格
+    res[el.id] = { color: (o.color || []).slice(0, 10).map(sig), series: (o.series || []).map(s => {
+      const is = s.itemStyle || {}, ls = s.lineStyle || {};
+      return [s.type, s.stack || null, sig(is.color), is.shadowBlur || ls.shadowBlur || 0, sig(ls.color), sig(s.areaStyle && s.areaStyle.color), !!(s.effect && s.effect.show)].join('|');
+    }) };
+  });
+  return res;
+}"""
+M4C_FT_JS = r"""(id) => { const e = document.getElementById(id); if (!e || !window.FlowTopo || !FlowTopo.has(e)) return null; const p = FlowTopo.probe(e);
+  return { layout: p.layout, n: p.nodes.length, l: p.links.length, motion: p.motion, pending: p.pending, maxBlur: p.maxBlur, stageBg: p.stageBg, dark: p.dark,
+    dots: [...new Set(p.nodes.map(n => n.dot))].sort().join(','), linkW: [...new Set(p.links.map(x => x.lv + ':' + x.w))].length, particles: p.particles,
+    labs: p.nodes.filter(n => n.lab && n.lv < 3 && n.vis > 0.5).map(n => [n.lab.x, n.lab.y, n.lab.w, n.lab.h, n.name]), W: p.W, H: p.H, minFont: p.minFont,
+    root: (p.nodes.find(n => n.lv === 0) || {}).value }; }"""
+
+
+def t_mobile_m4_charts_1009(b, base, code):
+    T = "手機v2"
+    vp_m = {"viewport": {"width": 402, "height": 874}, "device_scale_factor": 2, "is_mobile": True, "has_touch": True}
+    vp_d = {"viewport": {"width": 1440, "height": 900}}
+    init = lambda th: f"try{{ if(!sessionStorage.getItem('m4c')){{ localStorage.clear(); sessionStorage.setItem('m4c','1'); }} localStorage.setItem('tw.theme','{th}'); localStorage.setItem('tw.live.on','0'); localStorage.setItem('tw.tourDone','1'); }}catch(e){{}}"
+    ctxs = []
+
+    def page(vp, th):
+        c = b.new_context(**vp); ctxs.append(c)
+        c.add_init_script(init(th))
+        p = c.new_page()
+        p.on("pageerror", lambda e: fails.append(f"{T}(圖表1009) pageerror: {e} @ {p.url}"))
+        p.route("**/fonts.googleapis.com/**", lambda r: r.abort())
+        return c, p
+
+    def go(p, h, wait=3500):
+        p.goto(base + "#" + h, wait_until="domcontentloaded"); p.wait_for_timeout(wait)
+
+    def ov_group(p, name):
+        p.evaluate(f"() => {{ const b = [...document.querySelectorAll('#v-overview .mpager button')].find(x => x.textContent.includes('{name}')); if (b) b.click(); }}")
+        p.wait_for_timeout(1500)
+
+    try:
+        for th in ("light", "dark"):
+            tl = "淺色" if th == "light" else "深色"
+            _, d = page(vp_d, th)
+            cm, m = page(vp_m, th)
+            cdp = cm.new_cdp_session(m)
+            # ① 資金分流樹：一進頁面就完整出現（≤ 500ms 內節點與連線都 > 0、已畫）
+            go(m, "overview", 3500)
+            seq = m.evaluate("""() => new Promise(res => { const t0 = performance.now(); location.hash = '#flow/sankey'; const out = [];
+                const tick = () => { const e = document.getElementById('sankey'); const t = Math.round(performance.now() - t0); let st = null;
+                  try { if (e && window.FlowTopo && FlowTopo.has(e)) { const p = FlowTopo.probe(e); st = { n: p.nodes.length, l: p.links.length, drawn: !p.pending }; } } catch (x) { st = null; }
+                  out.push([t, st]); if (t > 1500 || (st && st.n > 0 && st.l > 0 && st.drawn)) return res(out); requestAnimationFrame(tick); };
+                tick(); })""")
+            hit = next((x for x in seq if x[1] and x[1]["n"] > 0 and x[1]["l"] > 0 and x[1]["drawn"]), None)
+            ok(f"【{T}】{tl}：切進資金分流樹 {hit and hit[0]}ms 內樹就畫好（節點 {hit and hit[1]['n']}、連線 {hit and hit[1]['l']}，上限 500ms）",
+               bool(hit) and hit[0] <= 500, seq[-3:])
+            m.wait_for_timeout(1500)
+            go(d, "flow/sankey", 4500)
+            fm, fd = m.evaluate(M4C_FT_JS, "sankey"), d.evaluate(M4C_FT_JS, "sankey")
+            same = fm and fd and all(fm[k] == fd[k] for k in ("layout", "motion", "dots", "stageBg", "dark"))
+            ok(f"【{T}】{tl}：手機與網頁版的分流樹是同一支光纖引擎、同一份色盤、動態特效都開（手機 {fm and {k: fm[k] for k in ('layout', 'motion', 'maxBlur', 'particles')}}）",
+               bool(same) and fm["maxBlur"] > 0 and fd["maxBlur"] > 0 and fm["n"] == fd["n"] and fm["l"] == fd["l"],
+               {k: (fm and fm.get(k), fd and fd.get(k)) for k in ("layout", "motion", "dots", "stageBg", "maxBlur", "n", "l")})
+            labs = (fm or {}).get("labs", [])
+            ov = [(a[4], c[4]) for i, a in enumerate(labs) for c in labs[i + 1:] if a[0] < c[0] + c[2] - 1 and c[0] < a[0] + a[2] - 1 and a[1] < c[1] + c[3] - 1 and c[1] < a[1] + a[3] - 1]
+            out = [a[4] for a in labs if a[0] < 0 or a[0] + a[2] > (fm or {}).get("W", 0) + 1]
+            cut = [a[4] for a in labs if a[4].endswith("…")]
+            ok(f"【{T}】{tl}：手機分流樹 {len(labs)} 個標籤不重疊、不出界、名稱沒有被截（畫布 {fm and fm['W']}×{fm and fm['H']}，字 ≥ {fm and fm['minFont']}px）",
+               bool(labs) and not ov and not out and not cut and (fm["minFont"] or 12) >= 11, (ov[:4], out[:4], cut[:4]))
+            if th == "light":
+                # 日期拉桿：觸控高度 ≥ 32、手指拖了日期與樹真的換；播放中拉桿鎖住
+                r0 = m.evaluate("""() => { const i = document.querySelector('#sankeyDays input[type=range]'); if (!i) return null; i.scrollIntoView({ block: 'center' }); const r = i.getBoundingClientRect();
+                    return { v: +i.value, h: r.height, x: r.right - 10, y: r.top + r.height / 2, root: FlowTopo.probe(document.getElementById('sankey')).nodes[0].value }; }""")
+                ok(f"【{T}】資金分流樹日期拉桿觸控高度 ≥ 32px（{r0 and r0['h']}）", bool(r0) and r0["h"] >= 32, r0)
+                if r0:
+                    tp = lambda t, x: cdp.send("Input.dispatchTouchEvent", {"type": t, "touchPoints": [] if t == "touchEnd" else [{"x": x, "y": r0["y"]}]})
+                    tp("touchStart", r0["x"])
+                    for k in range(1, 13):
+                        tp("touchMove", r0["x"] - 12 * k); m.wait_for_timeout(16)
+                    tp("touchEnd", 0); m.wait_for_timeout(900)
+                    r1 = m.evaluate("() => ({ v: +document.querySelector('#sankeyDays input[type=range]').value, root: FlowTopo.probe(document.getElementById('sankey')).nodes[0].value })")
+                    ok(f"【{T}】手指拖分流樹拉桿 → 日期往前（{r0['v']}→{r1['v']}）、樹的總額跟著換", r1["v"] < r0["v"] and r1["root"] != r0["root"], (r0, r1))
+                    m.locator("#sankeyDays .pb.play").tap(); m.wait_for_timeout(1500)
+                    pl = m.evaluate("() => ({ dis: document.querySelector('#sankeyDays input[type=range]').disabled, playing: document.getElementById('sankeyDays').classList.contains('playing') })")
+                    ok(f"【{T}】按 ▶ 播放 → 拉桿鎖住（{pl}）", pl["playing"] and pl["dis"], pl)
+                    m.locator("#sankeyDays .pb.play").tap(); m.wait_for_timeout(300)
+                # 點族群 → 成分股面板在原地展開（同桌機 drillOpen）
+                g = m.evaluate("() => { const e = document.getElementById('sankey'); const n = FlowTopo.probe(e).nodes.find(x => x.lv === 2 && !x.dim); return n ? { x: n.cx, y: n.cy, name: n.name } : null; }")
+                if g:
+                    m.evaluate(f"() => window.scrollTo(0, scrollY + {g['y']} - 400)"); m.wait_for_timeout(300)
+                    g = m.evaluate("() => { const e = document.getElementById('sankey'); const n = FlowTopo.probe(e).nodes.find(x => x.lv === 2 && !x.dim); return { x: n.cx, y: n.cy, name: n.name }; }")
+                    m.touchscreen.tap(g["x"], g["y"]); m.wait_for_timeout(1200)
+                    pn = m.evaluate("() => { const p = document.getElementById('sankeyPanel'); return { open: !!p && !p.hidden && p.getClientRects().length > 0, txt: p ? p.textContent.slice(0, 40) : '', hash: location.hash }; }")
+                    ok(f"【{T}】點分流樹的族群「{g['name']}」→ 成分股面板原地展開、不換頁（{pn['txt'][:20]}）", pn["open"] and pn["hash"].startswith("#flow/sankey"), pn)
+            # ② 總覽「昨日資金分流樹」：同一支引擎的緊湊版、同一份色盤
+            go(m, "overview", 3000); ov_group(m, "資金流向")
+            m.evaluate("() => { const e = document.getElementById('ovFlow'); if (e) e.scrollIntoView({ block: 'center' }); }"); m.wait_for_timeout(1500)
+            go(d, "overview", 4500)
+            d.evaluate("() => { const e = document.getElementById('ovFlow'); if (e) e.scrollIntoView({ block: 'center' }); }"); d.wait_for_timeout(1500)
+            om, od = m.evaluate(M4C_FT_JS, "ovFlow"), d.evaluate(M4C_FT_JS, "ovFlow")
+            ok(f"【{T}】{tl}：總覽昨日資金分流樹手機＝網頁版同一支緊湊版光纖（{om and om['layout']}／{od and od['layout']}）、色盤相同、有發光",
+               bool(om and od) and om["layout"] == od["layout"] == "mini" and om["dots"] == od["dots"] and om["maxBlur"] > 0 and om["stageBg"] == od["stageBg"],
+               {k: (om and om.get(k), od and od.get(k)) for k in ("layout", "dots", "maxBlur", "stageBg", "n")})
+            # ③ 資金輪動：完整版（同一張 ECharts、同系列數、同軌跡開關）、沒有收展鈕、篩選直接看得到、盤寬 ≥ 85% 視窗且整張在一屏高度內
+            go(m, "flow/rotation", 4500); go(d, "flow/rotation", 4500)
+            ctl = m.evaluate("""() => { const vis = (q) => { const e = document.querySelector(q); return !!e && e.getClientRects().length > 0 && getComputedStyle(e).display !== 'none'; };
+                const dds = [...document.querySelectorAll('#flowRotCard .ddbtn')].filter(e => e.getClientRects().length).map(e => e.textContent.trim().slice(0, 4));
+                return { fold: !!document.getElementById('mfFlowCtl') || [...document.querySelectorAll('#v-flow .mfold')].some(e => e.getClientRects().length && /篩選與期間/.test(e.textContent)),
+                  filter: vis('#flowRotFilter'), time: vis('#flowRotTime'), range: vis('#flowRotCard .rbar input[type=range]'), dds,
+                  chk: [...document.querySelectorAll('#rotTools .rotchk input')].filter(e => e.getClientRects().length).map(e => e.className + ':' + e.checked) }; }""")
+            ok(f"【{T}】{tl}：資金輪動頁沒有「篩選與期間」收展鈕，產業鏈／族群下拉、期間拉桿直接看得到（{ctl['dds']}）",
+               not ctl["fold"] and ctl["filter"] and ctl["time"] and ctl["range"] and len(ctl["dds"]) >= 2, ctl)
+            chd = d.evaluate("() => [...document.querySelectorAll('#rotTools .rotchk input')].filter(e => e.getClientRects().length).map(e => e.className + ':' + e.checked)")
+            ok(f"【{T}】{tl}：輪盤的軌跡／腳印／水波／掃描開關跟網頁版一樣（{ctl['chk']}）", ctl["chk"] == chd and len(chd) == 4, (ctl["chk"], chd))
+            rg = m.evaluate("""() => { const e = document.getElementById('rotClock'); const c = e && echarts.getInstanceByDom(e); if (!c) return null; const r = e.getBoundingClientRect(); const o = c.getOption();
+                return { w: Math.round(r.width), h: Math.round(r.height), vw: innerWidth, vh: innerHeight, ns: o.series.length, types: o.series.map(s => s.type).join(','),
+                  lab: o.series.filter(s => s.type === 'scatter').map(s => !!(s.label && s.label.show && s.label.backgroundColor)).join(','), sweep: !!e.querySelector('.rotbeam') }; }""")
+            rd = d.evaluate("""() => { const e = document.getElementById('rotClock'); const c = e && echarts.getInstanceByDom(e); if (!c) return null; const o = c.getOption();
+                return { ns: o.series.length, types: o.series.map(s => s.type).join(','), lab: o.series.filter(s => s.type === 'scatter').map(s => !!(s.label && s.label.show && s.label.backgroundColor)).join(','), sweep: !!e.querySelector('.rotbeam') }; }""")
+            ok(f"【{T}】{tl}：輪盤寬 {rg and rg['w']} ≥ 視窗 85%（{rg and rg['vw']}）、高 {rg and rg['h']} ≤ 視窗高 {rg and rg['vh']}（整張一屏看得到）",
+               bool(rg) and rg["w"] >= 0.85 * rg["vw"] and rg["h"] <= rg["vh"], rg)
+            ok(f"【{T}】{tl}：手機輪盤跟網頁版系列數一致（{rg and rg['ns']}／{rd and rd['ns']}）、名字膠囊、掃描都一樣",
+               bool(rg and rd) and rg["ns"] == rd["ns"] and rg["types"] == rd["types"] and rg["lab"] == rd["lab"] and rg["sweep"] == rd["sweep"], (rg, rd))
+            if th == "light":
+                # 點角落徽章（網頁版同一支 rotStageToggle）→ 那一顆亮起、象限面板打開列出該段族群；再點一次收起
+                QS = "() => { const b = document.querySelector('#flowRotCard .rotquads .rq[data-k=lagging]') || document.querySelector('#flowRotCard .rotquads .rq'); const p = document.getElementById('stagePanel'); return { k: b && b.dataset.k, on: !!b && b.classList.contains('on'), panel: !!p && !p.hidden && p.getClientRects().length > 0, txt: p ? p.textContent.trim().slice(0, 20) : '' }; }"
+                m.evaluate("() => { const b = document.querySelector('#flowRotCard .rotquads .rq[data-k=lagging]') || document.querySelector('#flowRotCard .rotquads .rq'); b.setAttribute('data-m4q', '1'); b.scrollIntoView({ block: 'center' }); }")
+                m.wait_for_timeout(300)
+                m.locator("[data-m4q]").first.tap(); m.wait_for_timeout(1200)
+                q1 = m.evaluate(QS)
+                m.locator("[data-m4q]").first.tap(); m.wait_for_timeout(1200)
+                q2 = m.evaluate(QS)
+                ok(f"【{T}】點輪盤角落徽章「{q1['k']}」→ 徽章亮起、象限面板打開（{q1['txt']}）；再點一次收起", q1["on"] and q1["panel"] and not q2["on"] and not q2["panel"], (q1, q2))
+            # ④ 族群×法人：網頁版那張三色堆疊長條、兩個篩選下拉、沒有「完整版 ›」
+            go(m, "flow/inst", 4500)
+            ig = m.evaluate("""() => { const e = document.getElementById('instGroups'); const c = e && echarts.getInstanceByDom(e); if (!c) return null; const o = c.getOption();
+                const bars = o.series.filter(s => s.type === 'bar');
+                return { n: bars.length, names: bars.map(s => s.name).join(','), stack: bars.every(s => !!s.stack), cats: ((o.yAxis || [])[0] || {}).data ? o.yAxis[0].data.length : 0,
+                  full: [...document.querySelectorAll('#v-flow .mfullbtn')].filter(x => x.getClientRects().length).length,
+                  dds: [...document.querySelectorAll('#flowInstCard .ddbtn')].filter(x => x.getClientRects().length).length, w: Math.round(e.getBoundingClientRect().width) }; }""")
+            ok(f"【{T}】{tl}：族群×法人是三色堆疊長條（{ig and ig['names']}）、兩個篩選下拉、沒有「完整版 ›」",
+               bool(ig) and ig["n"] == 3 and ig["stack"] and ig["dds"] == 2 and ig["full"] == 0 and ig["w"] >= 360, ig)
+            if th == "light" and ig:
+                m.locator("#flowInstCard .ddbtn").first.tap(); m.wait_for_timeout(600)
+                opn = m.evaluate("() => [...document.querySelectorAll('.ddpanel, .rotddp, [role=listbox], [role=menu]')].filter(e => e.getClientRects().length).length")
+                picked = m.evaluate("""() => { const p = [...document.querySelectorAll('.ddpanel, .rotddp, [role=listbox], [role=menu]')].find(e => e.getClientRects().length); if (!p) return null;
+                    // 挑族群數最少的那一條鏈（選項字尾是族群數，例如「半導體24」）——長條數一定會變少
+                    const its = [...p.querySelectorAll('button, [role=option], li, label')].filter(e => e.getClientRects().length && !/全部/.test(e.textContent));
+                    const n = (e) => { const m = /(\d+)\s*$/.exec(e.textContent.trim()); return m ? +m[1] : 999; };
+                    const it = its.sort((a, b) => n(a) - n(b))[0]; if (!it) return null; it.setAttribute('data-m4pick', '1'); return it.textContent.trim().slice(0, 12); }""")
+                if picked:
+                    m.locator("[data-m4pick]").first.tap(); m.wait_for_timeout(1500)
+                    m.evaluate("() => { document.body.click(); }"); m.wait_for_timeout(400)
+                ig2 = m.evaluate("() => { const o = echarts.getInstanceByDom(document.getElementById('instGroups')).getOption(); return ((o.yAxis || [])[0] || {}).data ? o.yAxis[0].data.length : 0; }")
+                ok(f"【{T}】點「產業鏈」下拉 → 展開（{opn} 個面板）、選「{picked}」→ 長條數真的變（{ig['cats']}→{ig2}）", opn > 0 and bool(picked) and ig2 != ig["cats"], (opn, picked, ig["cats"], ig2))
+            # ⑤ 普查：每一類圖（甜甜圈、長條、時鐘環、熱力圖、樹狀圖、K 線旁的圖），手機色盤＝網頁版色盤
+            diffs, seen = [], set()
+            for h, grp in (("overview", "大盤"), ("overview", "資金流向"), ("overview", "熱度"), ("flow/rotation", None), ("flow/inst", None), ("heatmap/industry", None),
+                           ("heatmap/theme", None), ("industry", None), ("market", None), ("etf/list", None), ("etf/inc", None), ("season", None)):
+                go(m, h, 3200); go(d, h, 3200)
+                if grp:
+                    ov_group(m, grp)
+                for p in (m, d):
+                    p.evaluate("async () => { for (let y = 0; y < document.documentElement.scrollHeight; y += 500) { scrollTo(0, y); await new Promise(r => setTimeout(r, 80)); } scrollTo(0, 0); }")
+                    p.wait_for_timeout(1200)
+                sm, sd = m.evaluate(M4C_SIG_JS), d.evaluate(M4C_SIG_JS)
+                for k in sorted(set(sm) & set(sd)):
+                    seen.add(k)
+                    if sm[k]["color"] != sd[k]["color"] or sm[k]["series"] != sd[k]["series"]:
+                        diffs.append((h, k, [x for x in zip(sm[k]["series"], sd[k]["series"]) if x[0] != x[1]][:2] or (sm[k]["color"][:3], sd[k]["color"][:3])))
+            ok(f"【{T}】{tl}：普查 {len(seen)} 張圖（{'、'.join(sorted(seen))}），手機色盤與系列視覺設定＝網頁版", len(seen) >= 12 and not diffs, diffs[:6])
+            for c in ctxs:
+                try:
+                    c.close()
+                except Exception:  # noqa: BLE001
+                    pass
+            ctxs.clear()
+    finally:
+        for c in ctxs:
+            try:
+                c.close()
+            except Exception:  # noqa: BLE001
+                pass
 
 
 def t_dgclip_1008(b, base):
@@ -28373,7 +28548,9 @@ SECTIONS = {
     # ★ 2026-09-27 手機總覽最上方：指數三格（可左右滑）＋觀察清單（2026-09-27 起是自選清單目前那一頁：localStorage tw.watchlists，只存代號；site/mobile3.js G 段＋site/watchlists.js）
     "手機總覽指數觀察清單": lambda pg, b, base, code: t_mobile_home(b, base, code),
     # ★ 2026-10-08 手機 v2（docs/mobile_v2_plan.md；site/mobile4.js）：側欄抽屜、每頁第一屏、字級／觸控、主要切換真的點得動
-    "手機v2":              lambda pg, b, base, code: (t_mobile_m4(b, base, code), t_mobile_m4_1008(b, base, code)),
+    "手機v2":              lambda pg, b, base, code: (t_mobile_m4(b, base, code), t_mobile_m4_1008(b, base, code), t_mobile_m4_charts_1009(b, base, code)),
+    # 2026-10-09：手機 v2 圖表跟網頁版同一套（「手機v2」整段已含這一段；單獨跑這段比較快）
+    "手機v2圖表1009":       lambda pg, b, base, code: t_mobile_m4_charts_1009(b, base, code),
     "手機框預覽1008":      lambda pg, b, base, code: t_phone_1008(pg, b, base),
     # ★ 2026-09-25 手機版 v3（docs/mobile_v3_spec.md §7）：底部一列五顆、「?」氣泡、大盤合一張、新雷達＋焦點條、
     #   資金分流樹長條、法人對稱長條、篩選抽屜、剖析圖只留編號（2D／3D）。390 與 360 各一輪。⚠ 一律 --workers 1（有 3D）
