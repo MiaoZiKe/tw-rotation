@@ -1761,7 +1761,7 @@
       const foldBtn = $('#dgFold', el), dgBody = $('#dgBody', el);
       /* 2026-10-08（Andy 手機五條準則第 5 條：「所有收展功能預設收起，網頁和手機都一樣」）：改前桌機預設展開、手機強制展開；
          改後一律預設收起，使用者自己展開過（tw.dgOpen）才記住；直接走到某張圖的網址照舊展開。 */
-      dgOpen = false;
+      dgOpen = true;   // 2026-10-08 Andy：「圖二需要 Default 展開狀態」—— 剖析圖是「收展預設收起」準則的例外（Andy 明確指定），使用者收起過才記住
       try { const v = localStorage.getItem('tw.dgOpen'); if (v != null) dgOpen = v === '1'; } catch (e) { /* 忽略 */ }
       /* ★ 直接走到某一張圖自己的網址（#industry/<chain>/dg/<slot>）＝使用者明確說
          「我就是要看這張」。手機的預設收合是給「順著鏈逛進來」的人省高度用的，
@@ -1853,7 +1853,7 @@
          關掉＝圖上的編號圈（手機的 .mnumlayer、桌機 2D 的 .anc、3D 的 .ld-no）全部藏起來，只看圖。
          預設：手機（≤640）關、桌機開；使用者切過就記在 tw.dgnum。 */
       const numBtn = $('#dgNum', el);
-      const numPref = () => { let v = null; try { v = localStorage.getItem('tw.dgnum'); } catch (e) { /* 私密視窗 */ } return v == null ? !window.matchMedia('(max-width:640px)').matches : v === '1'; };
+      const numPref = () => { let v = null; try { v = localStorage.getItem('tw.dgnum'); } catch (e) { /* 私密視窗 */ } return v == null ? true : v === '1'; };   // 2026-10-08 Andy：「編號 Default 打開」（改成引線標註後不會蓋住零件）—— 推翻上一輪「手機預設關」
       const setNum = (on, save) => {
         el.classList.toggle('dgnumoff', !on);
         if (numBtn) { numBtn.textContent = on ? '編號：開' : '編號：關'; numBtn.classList.toggle('cyan', on); numBtn.setAttribute('aria-pressed', on ? 'true' : 'false'); }
@@ -3384,6 +3384,7 @@
     return { nSeg: segs.length, nTw: nTw, nEdge: nEdge };
   }
 
+  let m4OpenSeg = null;   // 手機 v2 關聯圖：目前展開的那一格（一次一格）
   function drawChainMap(host, sc, chainId, im, handlers) {
     if (!host) return;
     /* ★ 2026-10-03 晚（Andy：「下方的關聯圖為何其他的都不見了，需要有對應那族群的所有關聯圖，並且反亮那族群」，DECISIONS #317）：
@@ -3413,11 +3414,15 @@
        只在非桌機（≤820，原本就是要左右滑的寬度）判斷；桌機版面一律照舊左右排。 */
     const HW0 = (host && host.clientWidth) || ((window.innerWidth || 390) - 16);
     const needW = layerCols * 136 + Math.max(0, layerCols - 1) * 18 + 52;
-    const vert = (window.innerWidth || 1440) <= 820 && HW0 < needW;
+    /* 2026-10-08 晚（Andy：「關聯圖回到原本水平的，並且只有點到的題材族群內容才會打開」）：推翻上一輪「放不下就改垂直」——
+       一律水平排；寬度不夠就讓這個框自己左右拖（手指拖、平移）。上下排的程式留著但不再走到（vert 恆為 false）。 */
+    const vert = false && (window.innerWidth || 1440) <= 820 && HW0 < needW;
     if (host && host.dataset) { host.dataset.layout = vert ? 'vert' : 'horiz'; host.dataset.needw = String(needW); host.dataset.hw = String(Math.round(HW0)); }
     const VHW = Math.max(300, HW0);
     const fit = vert ? (() => { const pad = 4, g = 12, cw = Math.floor((VHW - pad * 2 - g) / 2); return { colW: cw, colGap: g, padX: pad, W: VHW, HW: VHW, CW: VHW - pad * 2 }; })()
-      : fitCols(host, layerCols, { colW: 178, gap: 30, maxColW: 260, maxGap: 86, minColW: 136, minGap: 18, pad: 26 });
+      : document.documentElement.classList.contains('m4')
+        ? (() => { const cw = 168, g = 22, pd = 12, W2 = layerCols * cw + (layerCols - 1) * g + pd * 2; return { colW: cw, colGap: g, padX: pd, W: Math.max(W2, VHW), HW: VHW, CW: W2 - pd * 2 }; })()   // 手機：欄寬固定 168（標題放得下），比畫面寬就左右拖
+        : fitCols(host, layerCols, { colW: 178, gap: 30, maxColW: 260, maxGap: 86, minColW: 136, minGap: 18, pad: 26 });
     const colW = fit.colW, colGap = fit.colGap, padX = fit.padX;
     const cardH = 36, gapY = 8, padY = 36;
     const bySeg = {}; cos.forEach(c => (bySeg[c.segment] = bySeg[c.segment] || []).push(c));
@@ -3475,9 +3480,11 @@
        個股小晶片（名稱＋代號、漲跌色邊、外商灰字），高度只剩原本的三分之一左右。
        預設全部收合（Andy 要短），逐鏈記在 localStorage `tw.chainFold`。
        只在桌機（>820px）生效：手機另有一套清單版面，窄畫面一律照舊展開。*/
+    /* 手機 v2（html.m4）：每一格預設只顯示環節名稱＋檔數（內容全收）；點到哪一格只展開那一格，點別格前一格收回（一次一格，記在模組變數 m4OpenSeg） */
+    const M4 = document.documentElement.classList.contains('m4');
     const foldOn = (window.innerWidth || 1440) > 820;
     const foldSt = chainFoldGet(chainId);
-    const isFolded = (sid) => foldOn && (foldSt.seg[sid] != null ? foldSt.seg[sid] : foldSt.def);
+    const isFolded = (sid) => (M4 ? sid !== m4OpenSeg : foldOn && (foldSt.seg[sid] != null ? foldSt.seg[sid] : foldSt.def));
     const CHIP_H = 22, CHIP_GX = 5, CHIP_GY = 5;
     const chipW = (c) => {
       const code = c.tw_code || '外商';
@@ -3496,7 +3503,7 @@
         out.push(Object.assign({ dx: x, dy: row * (CHIP_H + CHIP_GY) }, k)); x += k.w + CHIP_GX; });
       return { items: out, h: list.length ? (row + 1) * (CHIP_H + CHIP_GY) - CHIP_GY + 4 : 0 };
     };
-    const segBodyH = (s, list) => (list.length && isFolded(s.id)
+    const segBodyH = (s, list) => (M4 && isFolded(s.id) ? 6 : list.length && isFolded(s.id)
       ? 4 + chipLay(list).h + 18
       : list.length * (cardH + gapY) + (list.length ? 0 : noteLines(s, list) * NOTE_LH + 6) + 18);   // 沒台股只有說明的環節多 6px：說明最後一行的字腳才不會貼在外框底線上（2026-10-03）
     const colH = cols.map(col => col.reduce((t, s) => t + 24 + segBodyH(s, bySeg[s.id] || []), 0));
@@ -3553,7 +3560,9 @@
       const fy = p.y - 24, fh = segBodyH(s, p.list) + 8;
       segBoxes.push({ x: p.x, y: fy, w: colW, h: fh });
       nodes += `<rect class="segbox" data-seg="${s.id}" x="${p.x + 0.5}" y="${fy + 0.5}" width="${colW - 1}" height="${fh - 1}" rx="8" style="--c:${col}"/>`;
-      nodes += `<g class="segtitle" data-seg="${s.id}" style="--c:${col}"><rect x="${p.x + 3}" y="${p.y - 21}" width="${colW - 6}" height="19" rx="5" fill="${col}" fill-opacity=".14"/><circle cx="${p.x + 13}" cy="${p.y - 11.5}" r="3.5" fill="${col}"/><text class="seg-title" x="${p.x + 22}" y="${p.y - 7}" fill="${col}">${A.fmt.esc(fitTitle(s.name, tMax))}</text></g>`;
+      const cntT = M4 ? ` ${p.list.length}${isFolded(s.id) ? '▸' : '▾'}` : '';
+      nodes += `<g class="segtitle" data-seg="${s.id}" style="--c:${col}"><rect x="${p.x + 3}" y="${p.y - 21}" width="${colW - 6}" height="19" rx="5" fill="${col}" fill-opacity=".14"/><circle cx="${p.x + 13}" cy="${p.y - 11.5}" r="3.5" fill="${col}"/><text class="seg-title" x="${p.x + 22}" y="${p.y - 7}" fill="${col}">${A.fmt.esc(fitTitle(s.name, tMax - (M4 ? 28 : 0)))}${cntT}</text></g>`;
+      if (M4 && isFolded(s.id)) { p.list.forEach(c => { coPos[c.id] = { x: p.x, y: p.y - 21, w: colW, h: 19 }; }); return; }   // 收著：只留標題列（名稱＋檔數），線接到標題列
       /* 沒有台股的環節：有 note 就講 note，不要一律寫「台股無直接對應」。
          2026-09-19 踩到：三家設備商搬去 pkg_equipment 之後，「先進封裝 CoWoS/SoIC」變成空的，
          但 CoWoS 明明是台積電自己做的 —— 寫「台股無直接對應」是錯的。*/
@@ -3734,7 +3743,10 @@
       const st2 = chainFoldGet(chainId); st2.seg[n.dataset.seg] = n.dataset.folded !== '1'; chainFoldSet(chainId, st2); redraw(); });
     // 切換鈕：data-fold 就是「按下去要變成的狀態」（畫的時候依目前狀態寫好），清掉逐環節的例外
     $$('.foldbar button', host).forEach(b => b.onclick = () => { chainFoldSet(chainId, { def: b.dataset.fold === 'all', seg: {} }); redraw(); });
-    $$('.segtitle', host).forEach(n => n.onclick = () => handlers.onSegment && handlers.onSegment(n.dataset.seg));
+    $$('.segtitle', host).forEach(n => n.onclick = () => {
+      // 手機 v2：點環節標題＝展開這一格（其他格收回）；再點同一格＝收回
+      if (document.documentElement.classList.contains('m4')) { m4OpenSeg = m4OpenSeg === n.dataset.seg ? null : n.dataset.seg; redraw(); return; }
+      if (handlers.onSegment) handlers.onSegment(n.dataset.seg); });
     /* 把目前這檔的卡片捲進視野 —— 但**只捲關聯圖自己那個框**，不准動到整頁。
        原本用 scrollIntoView，它會一路往上找每一個可捲的祖先，連 document 也算。
        在個股頁把產業鏈搬到最下面之後（Andy 2026-09-20），那一下等於把整頁拉到底，

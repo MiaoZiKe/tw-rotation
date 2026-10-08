@@ -142,7 +142,7 @@
     background:transparent;color:var(--ink);font:inherit;font-size:15px;font-weight:700;text-align:left;cursor:pointer}
   :root.m4 #indChain .m4fold i{font-style:normal;color:var(--ink-3)}
   :root.m4 body.m3on #dgFold{display:inline-flex!important}
-  :root.m4 #indChain #chainMap{max-height:78vh;overflow-y:auto;overflow-x:hidden;overscroll-behavior:contain;touch-action:pan-y;
+  :root.m4 #indChain #chainMap{max-height:78vh;overflow:auto;overscroll-behavior:contain;touch-action:pan-x pan-y;
     border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
 
   /* ---- 7. 月曆格（2026-10-08 Andy：「所有日曆若是不夠放下全部文字，至少留重點，像圖中重點是股票代碼」）
@@ -152,20 +152,22 @@
   :root.m4 #v-etf .cald .ce .cc{overflow:visible!important;text-overflow:clip!important;font-size:11px!important;letter-spacing:-.02em}
   :root.m4 #v-etf .cald .cm{font-size:11px}
 
-  /* ---- 8. ETF 一覽精簡列（2026-10-08 Andy：「手機版本底下 ETF 子卡再縮減，不要一直要往下滑，改成 代號 名稱 價格 配息方式 殖利率」）
-     同一顆 .etfc（點了照常進個股頁），只把卡片排成一行五欄；成交值、規模、走勢小圖、分類徽章在手機不出現。 */
-  :root.m4 #v-etf .etfgrid{grid-template-columns:1fr!important;gap:0!important}
-  :root.m4 #v-etf .etfc{display:grid!important;grid-template-columns:52px minmax(0,1fr) 58px 54px 48px;align-items:center;column-gap:5px;
-    min-height:46px;padding:4px 4px!important;border:0!important;border-bottom:1px solid var(--line)!important;border-radius:0!important;background:transparent!important}
+  /* ---- 8. ETF 一覽：小方塊字卡（2026-10-08 晚 Andy：「ETF 這邊需要改用方塊字卡表示，依據版面大小調整，可能 3 個或 4 個換行」；
+     推翻同日稍早的「一行五欄精簡列」）。同一顆 .etfc（點了照常進個股頁），網格 auto-fill，402 寬 3 欄、430 以上 4 欄；
+     由上往下：代號（大字）→ 名稱（最多 2 行）→ 價格（紅漲綠跌）→ 配息徽章＋殖利率。只用細框線，不用大方框。 */
+  :root.m4 #v-etf .etfgrid{grid-template-columns:repeat(auto-fill,minmax(104px,1fr))!important;gap:6px!important}
+  :root.m4 #v-etf .etfgrid>.fqhd{grid-column:1/-1}
+  :root.m4 #v-etf .etfc{display:grid!important;grid-template-columns:1fr auto;grid-template-rows:auto auto auto auto;align-content:start;column-gap:4px;row-gap:1px;
+    min-height:90px;padding:6px 7px!important;border:1px solid var(--line)!important;border-radius:8px!important;background:transparent!important}
   :root.m4 #v-etf .etfc.fqbar::before,:root.m4 #v-etf .etfc.sgbar::before{display:none!important}
   :root.m4 #v-etf .etfc .h,:root.m4 #v-etf .etfc .px,:root.m4 #v-etf .etfc dl{display:contents!important}
   :root.m4 #v-etf .etfc .h>.sp,:root.m4 #v-etf .etfc .h>.etag,:root.m4 #v-etf .etfc .px>span,:root.m4 #v-etf .etfc dt,:root.m4 #v-etf .etfc dd{display:none!important}
-  :root.m4 #v-etf .etfc .cd{grid-column:1;grid-row:1;font:600 13px var(--mono)!important;color:var(--ink)!important}
-  :root.m4 #v-etf .etfc .nm{grid-column:2;grid-row:1;font-size:14px!important;font-weight:600}
-  :root.m4 #v-etf .etfc .px>b{grid-column:3;grid-row:1;font:700 14px var(--mono)!important;text-align:right}
-  :root.m4 #v-etf .etfc .fq{grid-column:4;grid-row:1;justify-self:center;font-size:12px;white-space:nowrap;padding-left:4px;padding-right:4px}
-  :root.m4 #v-etf .etfc dd.yv{display:block!important;grid-column:5;grid-row:1;text-align:right;font:13px var(--mono);color:var(--amber)}
-
+  :root.m4 #v-etf .etfc .cd{grid-column:1/-1;grid-row:1;font:700 15px var(--mono)!important;color:var(--ink)!important;line-height:1.2}
+  :root.m4 #v-etf .etfc .nm{grid-column:1/-1;grid-row:2;font-size:12px!important;font-weight:500;color:var(--ink-2);white-space:normal!important;
+    display:-webkit-box!important;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;line-height:1.3;min-height:31px}
+  :root.m4 #v-etf .etfc .px>b{grid-column:1/-1;grid-row:3;font:700 14px var(--mono)!important}
+  :root.m4 #v-etf .etfc .fq{grid-column:1;grid-row:4;justify-self:start;font-size:12px;white-space:nowrap;padding:0 5px}
+  :root.m4 #v-etf .etfc dd.yv{display:block!important;grid-column:2;grid-row:4;text-align:right;font:12px var(--mono);color:var(--amber);align-self:center}
   /* ---- 9. 現金流試算／複利試算的控制區：手機收成一行「條件 ▾」摘要（mobile4.js wireCond），點開才看到全部控制項 */
   :root.m4 #v-etf .m4cond{display:flex;align-items:center;gap:8px;width:100%;min-height:44px;margin:0 0 8px;padding:0 12px;border:1px solid var(--line-2);border-radius:10px;
     background:var(--panel-2);color:var(--ink);font:inherit;font-size:14px;text-align:left;cursor:pointer}
@@ -179,9 +181,11 @@
   :root.m4 .supfab{bottom:calc(16px + env(safe-area-inset-bottom))!important;right:16px!important}
   :root.m4 .suppanel{bottom:calc(76px + env(safe-area-inset-bottom))!important}
 
-  /* ---- 11. ETF 總覽的三張前 5 名：手機改成左右滑的一列（一次一張多一點），整頁才壓得進 3 屏（Andy 手機準則第 1 條） */
-  :root.m4 #v-etf .etftri{display:flex!important;overflow-x:auto;scroll-snap-type:x mandatory;gap:10px;scrollbar-width:none;touch-action:pan-x pan-y}
-  :root.m4 #v-etf .etftri>.card{flex:0 0 86%;scroll-snap-align:start}
+  /* ---- 11. ETF 總覽的三張前 5 名：手機改成分頁（mobile4.js wireEtfTri；Andy：「把上方變成分頁式 不要用滑動」，推翻同日的左右滑） */
+  :root.m4 #v-etf .etftri{display:block!important;overflow:visible}
+  :root.m4 #v-etf .etftri>.card.m4trioff{display:none!important}
+  :root.m4 #v-etf .m4trisg[hidden],:root.m4 #v-etf .m4trisg:has(+ .etftri[hidden]){display:none}
+  :root.m4 #v-etf .etftri .rkrow .nm{white-space:normal}
 
   /* main 左右內距從 14 改 8 之後，個股頁那幾塊「貼齊螢幕」的負邊距也要跟著改（不然多出 6px 橫向捲軸） */
   :root.m4 body.m3on .mbhead{margin:-8px -8px 0!important}
@@ -233,4 +237,21 @@
   :root.m4 .mdaybar input[type=range]:disabled{opacity:.45}
   :root.m4 .mdaybar .mdl{flex:none;font:600 13px var(--mono);color:var(--ink-2);min-width:44px;text-align:right}
   :root.m4 .mdtree .mroot .mday{margin-left:auto;font:12px var(--mono);color:var(--ink-3)}
+
+  /* ---- 17. 總覽分段合成三組（app.js miaPager）＋總覽的資金分流樹畫成樹（mobile3.js drill） */
+  :root.m4 #ovEvents{display:none!important}
+  :root.m4 .mtree{display:block;text-decoration:none;color:inherit}
+  :root.m4 .mtree svg{display:block;overflow:visible}
+  :root.m4 .mtree .tl{fill:none;stroke:color-mix(in srgb,var(--cyan) 55%,transparent)}
+  :root.m4 .mtree .tl2{fill:none;stroke:color-mix(in srgb,var(--violet) 55%,transparent);stroke-width:1.2}
+  :root.m4 .mtree .tn1{fill:var(--cyan)} :root.m4 .mtree .tn2{fill:var(--violet)}
+  :root.m4 .mtree text{fill:var(--ink);font-size:12px}
+  :root.m4 .mtree .tr0{font-size:14px;font-weight:700} :root.m4 .mtree .tr1{font-size:12.5px;font-weight:700}
+  :root.m4 .mtree .tp{fill:var(--ink-3);font:12px var(--mono)} :root.m4 .mtree .tr2{fill:var(--ink-2);font-size:11px}
+
+  /* ---- 18. 子頁頁籤（底線頁籤；mobile4.js paintTitle）：抽屜不再列子項 */
+  :root.m4 .m4pghead .m4pgn{display:none}   /* 有子頁時直接用頁籤取代頁名（省一行，主圖才留在第一屏） */
+  :root.m4 .m4subtabs{display:flex;gap:4px;overflow-x:auto;scrollbar-width:none;touch-action:pan-x pan-y;border-bottom:1px solid var(--line);margin-top:2px}
+  :root.m4 .m4subtabs button{flex:none;min-height:40px;padding:0 12px;border:0;border-bottom:2px solid transparent;background:transparent;color:var(--ink-2);font:inherit;font-size:15px;font-weight:600;white-space:nowrap;cursor:pointer}
+  :root.m4 .m4subtabs button.on{color:var(--t4-accent-solid,var(--cyan));border-bottom-color:var(--t4-accent-solid,var(--cyan))}
 }

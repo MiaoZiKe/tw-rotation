@@ -89,8 +89,11 @@
         const P = N.PAGES[v] || { t: v };
         const subs = N.SUBS[v] || [];
         const on = pg === v || (v === 'industry' && pg === 'stock');
-        rows.push(`<button type="button" class="m4item${on && !subs.length ? ' on' : ''}${on && subs.length ? ' here' : ''}" data-h="${HREF[v] || '#' + v}" data-v="${v}">${mi(v)}<span>${esc(P.t)}</span></button>`);
-        subs.forEach((s) => rows.push(`<button type="button" class="m4sub${sub === s.k ? ' on' : ''}" data-h="${s.h}" data-sub="${s.k}">${ic(s.ic)}<span>${esc(s.t)}</span></button>`));
+        /* 2026-10-08 晚（Andy：「手機版本的側邊欄位，子分頁都需要變成在圖二那邊」）：抽屜只列主項目，子頁改成頁面頂端的頁籤（paintTitle）；
+           有子頁的主項目點了進「上次看的那個子頁」（沒看過就第一個） */
+        let href = HREF[v] || '#' + v;
+        if (subs.length) { let last = null; try { last = localStorage.getItem('tw.m4.sub.' + v); } catch (e) { /* 私密視窗 */ } const hit = subs.find((x) => x.h === last); if (hit) href = hit.h; }
+        rows.push(`<button type="button" class="m4item${on ? ' on' : ''}" data-h="${href}" data-v="${v}">${mi(v)}<span>${esc(P.t)}</span></button>`);
       });
       if (rows.length) h += `<div class="m4grp" data-g="${G.g}"><div class="m4gt">${esc(G.t)}</div>${rows.join('')}</div>`;
     });
@@ -246,6 +249,28 @@
       const anchor = $('#segTools', pane) || $('#chainList', pane); pane.insertBefore(b, anchor);
     }
   }
+
+  /* ETF 總覽上方三張前 5 名卡：手機改成分頁（Andy：「把上方變成分頁式 不要用滑動」）—— 一排膠囊分段鈕，一次只顯示一張；卡片本身與裡面的切換一個都沒換 */
+  const TRI = [['etfPopCard', '最受歡迎'], ['etfRetTopCard', '報酬率'], ['etfYldCard', '殖利率']];
+  let triCur = 0;
+  function wireEtfTri() {
+    if (!isM()) return;
+    const tri = $('#etfTri'); if (!tri) return;
+    let seg = tri.previousElementSibling;
+    if (!seg || !seg.classList.contains('m4trisg')) {
+      seg = document.createElement('div'); seg.className = 'mpager m4trisg'; seg.setAttribute('role', 'tablist');
+      seg.innerHTML = TRI.map(([id, t], i) => `<button type="button" role="tab" data-i="${i}">${t}</button>`).join('');
+      seg.onclick = (e) => { const b = e.target.closest('button[data-i]'); if (!b) return; triCur = +b.dataset.i; paintTri(); };
+      tri.before(seg);
+    }
+    seg.hidden = tri.hidden;
+    paintTri();
+  }
+  function paintTri() {
+    const seg = $('.m4trisg'); if (!seg) return;
+    $$('button', seg).forEach((b, i) => { const on = i === triCur; b.classList.toggle('on', on); b.setAttribute('aria-selected', on ? 'true' : 'false'); });
+    TRI.forEach(([id], i) => { const c = document.getElementById(id); if (c) c.classList.toggle('m4trioff', i !== triCur); });
+  }
   function wireCond() {
     if (!isM()) return;
     $$('#v-etf #incPM > .incctl, #v-etf #incPX .cxctl').forEach((ctl) => {
@@ -274,7 +299,20 @@
     // 產業鏈頁與個股頁自己有麵包屑／個股名當頁首（產業地圖 › 一般電子），再加一行大標只會把主圖往下推出第一屏
     title.hidden = pg === 'industry' || pg === 'stock';
     // 內容區頁首大標（同電腦版 #l4Head）：「頁名 子頁名」
-    title.innerHTML = s ? `${esc(P.t)} <span>${esc(s.t)}</span>` : esc(name || brandName());
+    const subs = N.SUBS[pg] || [];
+    if (subs.length) {
+      /* 子頁頁籤（底線頁籤）：頁名縮成小字放上面，下面一排頁籤，選中的高亮、自動捲進畫面；放不下時左右拖 */
+      const want = `<small class="m4pgn">${esc(P.t)}</small><nav class="m4subtabs" role="tablist">${subs.map((x) => `<button type="button" role="tab" data-h="${x.h}" data-sub="${x.k}" class="${s && s.k === x.k ? 'on' : ''}" aria-selected="${!!(s && s.k === x.k)}">${esc(x.t)}</button>`).join('')}</nav>`;
+      if (title.innerHTML !== want) {
+        title.innerHTML = want;
+        $$('.m4subtabs button', title).forEach((b) => { b.onclick = () => { try { localStorage.setItem('tw.m4.sub.' + pg, b.dataset.h); } catch (e) { /* 私密視窗 */ } if (location.hash !== b.dataset.h) location.hash = b.dataset.h; }; });
+      }
+      if (s) { try { localStorage.setItem('tw.m4.sub.' + pg, s.h); } catch (e) { /* 私密視窗 */ } }
+      const onB = $('.m4subtabs button.on', title), nv = $('.m4subtabs', title);
+      if (onB && nv) nv.scrollLeft = Math.max(0, onB.offsetLeft - (nv.clientWidth - onB.offsetWidth) / 2);
+      return;
+    }
+    title.innerHTML = esc(name || brandName());
   }
 
   function sync() {
@@ -297,7 +335,7 @@
     // 會員功能晚一步才開（account.js 讀完設定檔）、#acctBtn／#acctOnline 晚一步才建：出現時收進頂欄小圖示列
     new MutationObserver(() => { if (tools && isM()) { const bar = $('.topbar'); const miss = TOOLS.some((q) => { const e = $(q); return e && e.parentNode !== tools; }) || (acctOn() && $('#m4Login')); if (bar && miss) buildTools(bar); } })
       .observe(document.body, { childList: true, subtree: true });
-    let ct = 0; new MutationObserver(() => { if (!isM()) return; clearTimeout(ct); ct = setTimeout(() => { wireCond(); wireChainList(); }, 120); }).observe(document.body, { childList: true, subtree: true });
+    let ct = 0; new MutationObserver(() => { if (!isM()) return; clearTimeout(ct); ct = setTimeout(() => { wireCond(); wireChainList(); wireEtfTri(); }, 120); }).observe(document.body, { childList: true, subtree: true });
     wireCond();
   }
   window.TwM4 = { open, close, isOpen: () => !!(drawer && !drawer.hidden) };

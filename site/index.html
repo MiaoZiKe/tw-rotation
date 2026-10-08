@@ -5097,6 +5097,10 @@ h3 .howbtn.pop{font-family:inherit}
   body.m3on .mnum2d:not(.mbig).hsc{-webkit-mask-image:none;mask-image:none}
   body.m3on .mnumlayer{position:absolute;left:0;top:0;pointer-events:none;z-index:4}
   body.m3on .mnumlayer.m3d{inset:0}
+  /* 2026-10-08（Andy：展開列出現兩次）：手機把章節列搬到圖外（.mdgfolds）之後，圖裡那一組章節列不再畫，只留圖外一組 */
+  body.m3on .mfoldon svg g.dgfold{display:none}
+  body.m3on .mdginfo .mdgl{margin:4px 0 10px;padding-left:18px} body.m3on .mdginfo .mdgl li{margin:2px 0;line-height:1.5}
+  body.m3on .mdginfo .mdgmore summary{min-height:40px;display:flex;align-items:center;color:var(--cyan);cursor:pointer}
   body.m3on .mnumlayer svg path{stroke-dasharray:3 3;stroke-width:1.2}   /* 2026-10-08：2D／3D 編號都改引線標註，引線一律虛線 */
   body.m3on .mnum2d.mlead:not(.mbig) .dgcanvas{padding-left:24px;padding-right:24px;box-sizing:border-box}   /* 整張模式：左右各讓 24px 給編號欄 */
   body.m3on .mnum{position:absolute;width:28px;height:28px;margin:-14px 0 0 -14px;border-radius:50%;pointer-events:auto;
