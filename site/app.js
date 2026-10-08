@@ -4854,7 +4854,6 @@
     const close = () => {
       ov.hidden = true; document.body.style.overflow = '';
       const c = echarts.getInstanceByDom($('#zoomBody')); if (c) c.dispose();
-      $('#zoomBody').removeAttribute('data-hmstay');   // 放大視窗共用同一個 body：熱門題材題材層設的「不跳頁」標記不能帶到下一張圖
       $('#zoomChips').innerHTML = '';
       /* ★ 2026-09-20（E2）：控制項列也要清掉。以前只清 #zoomChips，
          所以開過輪動時鐘的放大視窗之後，再去開熱力圖的放大，
@@ -5074,12 +5073,14 @@
     heatNoRot = list.filter(g => !(rot || []).some(r => r.group_id === g.group_id)).length;
     const c = chart('heat', option);
     hmRelabel(c, heatVal);
-    { const hb = $('#heat'); if (hb) hb.setAttribute('data-hmstay', ''); }   // 卡片上點方塊不跳頁（只在原地換產業鏈）→ 游標照常（quota.js）
     wheelZoom($('#heatWrap'), { onZoom: () => { const i = echarts.getInstanceByDom($('#heat')); if (i) i.resize(); } });
     if (c) c.off('click').on('click', p => zoomClick($('#heatWrap'), () => {
       if (!p.data) return;
-      // ★ 2026-10-05 Andy：熱力圖下方的成分股面板「這邊拿掉」→ 點族群方塊不再展開面板；保留 admin-v2 的埋點與族群權限提示
-      if (p.data.gid) { twT('heat_tile', p.name); twGrpBlock(p.data.gid, p.name); return; }
+      // ★ 2026-10-05 Andy：熱力圖下方的成分股面板「這邊拿掉」→ 點族群方塊不再展開面板（不加回來）；保留 admin-v2 的埋點與族群權限提示
+      // ★ 2026-10-08 晚 Andy：「資金熱力圖 點擊後會跳到該產業地圖族群，並將此功能權限進去」→ 點族群方塊直接進族群頁，
+      //   走 hmGo：Plus 以上／站主／管理員照跳，訪客與免費會員跳升級卡、網址不動。族群本身被鎖（twGrpBlock）就停在鎖頭提示。
+      //   點產業鏈那一層照舊原地切換。手機 ≤640 同一套（這張卡沒有 tileSheet 抽屜）。
+      if (p.data.gid) { twT('heat_tile', p.name); if (twGrpBlock(p.data.gid, p.name)) return; hmGo('#industry/group/' + p.data.gid); return; }
       else if (p.data.cid) { heatChain = p.data.cid; renderHeat(gt, rot); }
     }));
     const zb = $('#heatZoom');
@@ -8047,7 +8048,8 @@
             （樣式同資金輪動卡的『產業鏈：全部 ▾』）」。
      這張圖回答：**哪幾個題材現在吸金最多、而且熱度高**。
        · 方塊大小＝題材成交值（錢在哪裡），顏色＝熱度 0～100（跟熱力圖分頁的題材熱力同一把 5 格尺、同一組配色）。
-       · 下拉選一個題材（或直接點方塊）→ 同一張圖**原地**換成那個題材的成分股：大小＝個股成交值、顏色＝漲跌幅（紅漲綠跌）。
+       · 下拉選一個題材 → 同一張圖**原地**換成那個題材的成分股：大小＝個股成交值、顏色＝漲跌幅（紅漲綠跌）。
+         （2026-10-08 晚起直接點題材方塊＝進題材頁，不再原地換；見 renderOvThemes 的點擊處理）
          點成分股方塊進個股頁（能點的東西要能點到底）；下拉選「全部題材」回到題材層。
        · 位置固定、不能拖（roam:false，DECISIONS #61／#67）。
      以前是 8 張文字小卡塞在 615px 的捲動框裡（審查 R1：第 4 張被切一半，看起來像壞掉）。*/
@@ -8117,7 +8119,7 @@
        跟 #heatZoom 同一支 openZoom（全螢幕、點背景／✕／Esc 關、位置固定不能拖）。
        放大視窗標題旁也有一顆同樣的題材下拉，選了**兩邊一起換**（值寫回 OVT.sel、卡片同步重畫），
        關掉放大之後卡片停在剛剛看的那個題材 —— 不會出現「放大裡看半導體、關掉回到全部」的落差。
-       放大裡點題材方塊＝原地換成分股；點成分股先關放大再進個股頁（不留一層全螢幕罩在個股頁上）。*/
+       放大裡點題材方塊＝進題材頁（2026-10-08 晚起，同卡片）；點成分股先關放大再進個股頁（不留一層全螢幕罩在個股頁上）。*/
     const zb = $('#ovThemeZoom');
     if (zb) zb.onclick = () => openZoom('熱門題材', (body, chipBox, close) => {
       const draw = () => {
@@ -8127,11 +8129,10 @@
         const bc = chart(body, Z.option, { notMerge: true });
         hmRelabel(bc, Z.valOf);
         body.dataset.level = Z.cur ? 'members' : 'themes';     // 驗收用：放大視窗現在是題材層還是成分股層
-        body.toggleAttribute('data-hmstay', !Z.cur);            // 題材層點了是原地換成分股，不是跳頁 → 沒權限也照常顯示手指（quota.js）
         if (bc) bc.off('click').on('click', p => {
           const d = p.data || {};
           if (d.code) { hmGo('#stock/' + d.code, () => { close(); goStock(d.code); }); return; }   // 沒權限：放大視窗留著，升級卡疊在上面
-          if (d.id) { OVT.sel = d.id; OVT.focus = null; renderOvThemes(th); draw(); }
+          if (d.id) hmGo(themeHash(d.id), () => { close(); location.hash = themeHash(d.id); });   // 題材方塊＝進題材頁（同 Plus 規則）
         });
       };
       draw();
@@ -8142,14 +8143,15 @@
     hmRelabel(c, M.valOf);
     hmLegend('ovTheme', M.kind, OVT.focus, (f) => { OVT.focus = f; renderOvThemes(th); });
     host.dataset.level = M.cur ? 'members' : 'themes';          // 驗收用：現在是題材層還是成分股層
-    host.toggleAttribute('data-hmstay', !M.cur);
     /* ★ 2026-09-26（Andy：「縮放功能呢？沒有設置到」）：跟資金熱力圖同一套滾輪縮放（wheelZoom：滾輪放大、拖曳移動、
        雙擊或按「還原」回 1×）；點擊交給 zoomClick，拖曳結束那一下不會誤觸進題材／個股。*/
     wheelZoom($('#ovThemeWrap'), { onZoom: () => { const i = echarts.getInstanceByDom($('#ovTheme')); if (i) i.resize(); } });
     if (c) c.off('click').on('click', p => zoomClick($('#ovThemeWrap'), () => {
       const d = p.data || {};
       if (d.code) { hmGo('#stock/' + d.code, () => goStock(d.code)); return; }
-      if (d.id) { OVT.sel = d.id; OVT.focus = null; renderOvThemes(th); }
+      /* ★ 2026-10-08 晚 Andy：「熱門題材 也是」→ 點題材方塊不再原地換成分股，直接進該題材頁（#heatmap/theme/<id>，同頁開剖析圖），
+         權限同資金熱力圖（hmGo）。成分股層仍可以從標題旁的「題材：」下拉進去，那一層點個股照舊走 hmGo 去個股頁。*/
+      if (d.id) hmGo(themeHash(d.id));
     }));
   }
 
@@ -8708,6 +8710,7 @@
       '方塊大小＝族群吃掉多少成交值',
       '顏色＝5 日減 20 日成交值佔比（pp），非今天漲跌',
       '紅方塊但今天收綠＝股價回檔，錢還在進',
+      '點族群方塊＝進族群頁看成分股（Plus 以上）；點產業鏈標題只看那條鏈',
     ], '顏色看的是 5 日成交值佔比減 20 日佔比，不是今天的漲跌。'
       + (heatNoRot ? `目前有 ${heatNoRot} 個族群還沒有 5 日 vs 20 日的資金流向，第二行標「漲跌」，顏色改用當日漲跌幅 ÷3 對到同一把尺。` : '')),
     /* ★ 2026-10-04（docs/howto_audit_1004.md 第三節）：補「?」的卡。說明只寫畫面上看得到的東西；
@@ -8748,6 +8751,7 @@
       '方塊大小＝題材成交值',
       '顏色＝熱度 0～100（資金＋法人＋新聞合成）',
       '成分股層：顏色＝漲跌幅，紅漲綠跌',
+      '點題材方塊＝進題材頁看剖析圖；想看成分股用左上「題材：」下拉（點個股進個股頁，Plus 以上）',
     ], '熱度 0～100＝資金佔比變化＋法人買賣＋近 7 天新聞則數合成。一檔股票可以同時屬於好幾個題材，成交值不拆分，所以題材加總會大於全市場。完整的題材剖析圖在「熱力圖」分頁。'),
     /* ★ 2026-09-24：大盤三張圖上方原本那行常駐說明（#m3Note）搬進「?」。它會跟著模式／週期換字，所以寫成函式。*/
     m3: () => howHTML('加權、櫃買、台指期今天怎麼走。', [

@@ -1077,13 +1077,13 @@ def t_overview(pg, base):
         click(pg, "#ovThemeDD .ddbtn", 300)
         click(pg, '#ovThemeDD .ddopt[data-t=""]', 700)
         ok("下拉選「全部題材」回到題材層", pg.evaluate(TL)["level"] == "themes", pg.evaluate(TL))
-    # 點題材方塊也能原地展開
+    # ★ 2026-10-08 晚 Andy「熱門題材 也是」：點題材方塊 → 進題材頁（以前是原地換成分股；本機沒有會員系統＝不受 Plus 限制，權限在「熱力圖跳個股1008」驗）
     pg.evaluate("document.getElementById('ovTheme').scrollIntoView({block:'center', behavior:'instant'})"); pg.wait_for_timeout(400)
     bx = pg.evaluate("() => { const r = document.getElementById('ovTheme').getBoundingClientRect(); return {x: r.x + 14, y: r.y + 14}; }")
     pg.mouse.click(bx["x"], bx["y"]); pg.wait_for_timeout(900)
-    ok("★ 點題材方塊 → 原地換成成分股（不跳頁）",
-       pg.evaluate(TL)["level"] == "members" and pg.evaluate("() => location.hash") in ("", "#overview"), pg.evaluate(TL))
-    click(pg, "#ovThemeDD .ddbtn", 300); click(pg, '#ovThemeDD .ddopt[data-t=""]', 700)
+    _h = pg.evaluate("() => decodeURIComponent(location.hash)")
+    ok("★ 點題材方塊 → 進那個題材的題材頁（#heatmap/theme/<id>）", _h.startswith("#heatmap/theme/"), _h)
+    pg.goto(f"{base}#overview", wait_until="networkidle"); pg.wait_for_timeout(1800)
     # --- ⑥ 漲跌家數分佈：11 級直條、加總＝總家數、紅漲綠跌、小圓角 3px；點直條原地列股票
     ud = pg.evaluate("""() => { const e = document.getElementById('breadth'); const c = echarts.getInstanceByDom(e); if (!c) return null;
         const o = c.getOption(), s = o.series[0]; const cats = o.xAxis[0].data;
@@ -1177,30 +1177,19 @@ def t_overview(pg, base):
     back = pg.evaluate(TM)
     ok("選「全部」回到原本的分組圖", back and back["nested"] and back["n"] == all0["n"], back)
 
-    # 下鑽之後點方塊 → 原地列出成分股（不跳頁）
+    # 下鑽之後點族群方塊：10-05 拿掉成分股面板（不加回來）；10-08 晚 Andy「資金熱力圖 點擊後會跳到該產業地圖族群」→ 直接進族群頁
+    # （本機沒有會員系統＝不受 Plus 限制；四種身分的權限在「熱力圖跳個股1008」驗）
     first_chain = next((c for c in chips if c), None)
     if first_chain:
         heat_dd_pick(pg, first_chain)
         pg.evaluate("document.getElementById('heat').scrollIntoView({block:'center'})"); pg.wait_for_timeout(450)
-        box = pg.evaluate("() => { const r = document.getElementById('heat').getBoundingClientRect(); return {x:r.x,y:r.y,w:r.width,h:r.height}; }")
-        h_before = pg.evaluate("location.hash")
-        READ = """() => ({ open: !document.getElementById('heatPanel').hidden,
-            title: (document.querySelector('#heatPanel .hh b')||{}).textContent,
-            stocks: document.querySelectorAll('#heatPanel .ms a').length,
-            link: !!document.querySelector('#heatPanel a[href^="#industry/group/"]') })"""
-        # 方塊的位置是 treemap 依面積算出來的，會隨資料變動；固定打一個相對座標
-        # 偶爾會落在方塊之間的縫或標題列上，面板就沒開，整段連帶假失敗。
-        # 多試幾個點，只要有一個真的開了就算數（這是測試的穩定度問題，不是功能問題）。
-        st = {"open": False}
-        for fx, fy in ((0.2, 0.35), (0.45, 0.5), (0.72, 0.4), (0.3, 0.68)):
-            pg.mouse.click(box["x"] + box["w"] * fx, box["y"] + box["h"] * fy)
-            pg.wait_for_timeout(900)
-            st = pg.evaluate(READ)
-            if st["open"]:
-                break
-        # ★ 2026-10-05 Andy：「這邊拿掉」→ 點方塊不再展開成分股面板，也不跳頁
-        ok("點熱力圖方塊不再展開成分股面板（Andy 10-05 拿掉）", not st["open"], st)
-        ok("點方塊不會把人帶離總覽", pg.evaluate("location.hash") == h_before, pg.evaluate("location.hash"))
+        _lf = (pg.evaluate(HM_LEAF_XY, {"id": "heat"}) or [None])[0]
+        if ok("下鑽後找得到族群方塊（前提）", bool(_lf), _lf):
+            pg.mouse.click(_lf["cx"], _lf["cy"]); pg.wait_for_timeout(900)
+            h = pg.evaluate("decodeURIComponent(location.hash)")
+            ok("點熱力圖族群方塊不展開成分股面板（Andy 10-05 拿掉）", not pg.evaluate("() => { const p = document.getElementById('heatPanel'); return !!p && !p.hidden; }"))
+            ok(f"點族群方塊「{_lf['name']}」→ 進族群頁（{h}）", h.startswith("#industry/group/"), h)
+            pg.goto(f"{base}#overview", wait_until="networkidle"); pg.wait_for_timeout(1500)
 
     # --- 滾輪放大：往上滾要變大，往下滾最多回到原始大小（不會縮成一小塊）
     ZK = """() => { const b = document.getElementById('heatWrap'); const pane = b.querySelector('.zpane');
@@ -10221,6 +10210,7 @@ def t_themes(pg, base):
 
     # 總覽的熱門題材 → ★ 2026-09-24 總覽改版：題材方塊（#themeStrip .tile）換成**題材熱力圖**（#ovTheme）。
     #   點一個題材方塊 → 就地展開成那個題材的成分股（data-level 從 themes 變 members），不再換頁。
+    #   ★ 2026-10-08 晚改：點題材方塊＝進題材頁（Andy「熱門題材 也是」），成分股層只從下拉進。
     #   2026-09-25 跟著改驗（舊的「總覽有熱門題材方塊」查的是已經拿掉的元素，永遠紅）。
     pg.goto(f"{base}#overview", wait_until="networkidle"); pg.wait_for_timeout(1500)
     scroll_to(pg, "ovTheme"); pg.wait_for_timeout(900)          # 首屏以下的卡片捲近了才畫（whenNear）
@@ -10236,8 +10226,9 @@ def t_themes(pg, base):
             return { x: r.left + best.x, y: r.top + best.y, name: best.name }; }""")
         if ok("題材熱力圖讀得到最大那一格的位置", bool(pt), pt):
             pg.mouse.click(pt["x"], pt["y"]); pg.wait_for_timeout(1200)
-            lv = pg.evaluate("() => document.getElementById('ovTheme').dataset.level")
-            ok("點題材方塊 → 就地展開成那個題材的成分股（題材層 → 成分股層）", lv == "members", [pt["name"], lv])
+            # ★ 2026-10-08 晚 Andy「熱門題材 也是」：點題材方塊改成直接進題材頁（本機沒有會員系統＝不受 Plus 限制）；成分股層改由下拉進
+            h = pg.evaluate("() => decodeURIComponent(location.hash)")
+            ok("點題材方塊 → 進那個題材的題材頁（#heatmap/theme/<id>）", h.startswith("#heatmap/theme/"), [pt["name"], h])
 
     # 題材頁：族群分組 + 剖析圖零件點得到個股
     tids = pg.evaluate("(window.ThemeDiagrams ? Object.keys(window.ThemeDiagrams).filter(k => k !== 'fit') : [])")
@@ -45823,8 +45814,9 @@ def t_dismiss(pg, b, base, code):
     _lf = (pg.evaluate(HM_LEAF_XY, {"id": "heat"}) or [None])[0]
     if ok("[總覽熱力圖] 找得到最大的族群方塊（前提）", bool(_lf), _lf):
         pg.mouse.click(_lf["cx"], _lf["cy"]); pg.wait_for_timeout(900)
-        ok(f"[總覽熱力圖] 點「{_lf['name']}」→ 不展開成分股面板、不換頁（10-05 拿掉面板）",
-           not _dz_vis(pg, "#heatPanel") and pg.evaluate("location.hash") == "#overview", pg.evaluate("location.hash"))
+        # 10-08 晚 Andy：「資金熱力圖 點擊後會跳到該產業地圖族群」→ 改成進族群頁（本機無會員系統＝不受 Plus 限制）
+        ok(f"[總覽熱力圖] 點「{_lf['name']}」→ 不展開成分股面板（10-05 拿掉）、直接進族群頁",
+           not _dz_vis(pg, "#heatPanel") and pg.evaluate("location.hash").startswith("#industry/group/"), pg.evaluate("location.hash"))
 
     # ---- 7. 市場明細：漲跌分佈點一段 → 清單
     pg.goto(f"{base}#market", wait_until="networkidle"); pg.wait_for_timeout(2600)
@@ -61005,6 +60997,10 @@ HP_HOOK = """(sel) => { const el = document.querySelector(sel); const i = el && 
   window.__hpOver = null; return true; }"""
 
 
+# 版面穩定：這個元素 400ms 內上緣沒動才算（卡片上方的導讀句、晚畫的卡片會把圖往下推）
+HP_STABLE = "() => { const e = document.getElementById('ID'); if (!e) return false; const y = e.getBoundingClientRect().top; return new Promise(ok => setTimeout(() => ok(Math.abs(document.getElementById('ID').getBoundingClientRect().top - y) < 1), 400)); }"
+
+
 def _hp_find(pg, sel, key, cols=7, rows=6):
     """在 sel 這張 treemap 上掃格點：滑鼠真的移過去，第一個 mouseover 拿到 data[key] 的點就回傳 (x, y, data)。"""
     if not pg.evaluate(HP_HOOK, sel):
@@ -61066,16 +61062,61 @@ def _hp_desktop(b, base, T, tag, who, plan, allow, errs, **kw):
         wait_until(pg, "() => !!(window.TwAccount && TwAccount.user() && TwAccount.user().admin)", 8000)
     ok(f"{T}【{tag}】範本沒寫 heat.link → 依身分預設{'開' if allow else '關'}（TwQuota.heatLinkOk）", pg.evaluate("() => TwQuota.heatLinkOk()") == allow,
        pg.evaluate("() => TwPerm.state()"))
-    # ① 總覽 熱門題材 個股層
-    wait_until(pg, "() => !!document.querySelector('#ovThemeDD .ddbtn') && !!document.querySelector('#ovTheme canvas')", 15000)
-    pg.locator("#ovThemeCard").scroll_into_view_if_needed(); pg.wait_for_timeout(200)
-    # 題材層（還沒選題材）點方塊＝原地換成分股，不是跳頁 → 沒權限也照常是手指
+    # ⓪ 總覽 資金熱力圖卡片：族群方塊 → 族群頁（10-08 晚 Andy「資金熱力圖 點擊後會跳到該產業地圖族群，並將此功能權限進去」）
+    wait_until(pg, "() => !!document.querySelector('#heat canvas')", 15000)
+    pg.evaluate("() => document.getElementById('heat').scrollIntoView({ block: 'center' })")
+    wait_until(pg, HP_STABLE.replace("ID", "heat"), 8000)
+    f = _hp_find(pg, "#heat", "gid", cols=9, rows=7)
+    if f:
+        x, y, d = f
+        cur, tip = _hp_probe(pg, x, y)
+        pg.mouse.click(x, y); pg.wait_for_timeout(700)
+        _hp_judge(pg, T, tag, f"總覽 資金熱力圖卡片 點族群方塊（{d.get('gid')}）", "#overview", allow, "#industry/group/" + d.get("gid"), False, None if allow else cur, None if allow else tip)
+        ok(f"{T}【{tag}】資金熱力圖卡片：點方塊不會展開成分股面板（10-05 拿掉，不加回來）", not pg.evaluate("() => { const p = document.getElementById('heatPanel'); return !!p && !p.hidden && p.getClientRects().length > 0; }"))
+        if allow:
+            pg.evaluate("() => { location.hash = '#overview'; }"); wait_until(pg, "() => !!document.querySelector('#heat canvas')", 15000)
+    else:
+        ok(f"{T}【{tag}】資金熱力圖卡片 找得到族群方塊", False)
+    # ① 總覽 熱門題材：題材層點題材方塊 → 題材頁（10-08 晚 Andy「熱門題材 也是」）
+    wait_until(pg, "() => !!document.querySelector('#ovThemeDD .ddbtn') && !!document.querySelector('#ovTheme canvas') && document.getElementById('ovTheme').dataset.level === 'themes'", 15000)
+    pg.evaluate("() => document.getElementById('ovThemeCard').scrollIntoView({ block: 'center' })")
     # （先等版面穩定：卡片上方的導讀句 .t4-lede 晚一點才插進來，會把圖往下推，量到的點就落到別的元素上）
-    wait_until(pg, "() => { const r = document.getElementById('ovTheme').getBoundingClientRect(); const y = r.top; return new Promise(ok => setTimeout(() => ok(Math.abs(document.getElementById('ovTheme').getBoundingClientRect().top - y) < 1), 400)); }", 8000)
+    wait_until(pg, HP_STABLE.replace("ID", "ovTheme"), 8000)
     f = _hp_find(pg, "#ovTheme", "id")
     if f:
-        cur0, _t = _hp_probe(pg, f[0], f[1])
-        ok(f"{T}【{tag}】熱門題材 題材層（點了原地換成分股）游標照常是手指", cur0 == "pointer", (cur0, pg.evaluate("([x, y]) => { const e = document.elementFromPoint(x, y); return e ? e.tagName + '.' + e.className : null; }", [f[0] + 3, f[1] + 1])))
+        x, y, d = f
+        cur, tip = _hp_probe(pg, x, y)
+        pg.mouse.click(x, y); pg.wait_for_timeout(700)
+        _hp_judge(pg, T, tag, f"總覽 熱門題材 點題材方塊（{d.get('id')}）", "#overview", allow, "#heatmap/theme/" + d.get("id"), False, None if allow else cur, None if allow else tip)
+        lv = pg.evaluate("() => (document.getElementById('ovTheme') || {dataset: {}}).dataset.level")
+        if not allow:
+            ok(f"{T}【{tag}】熱門題材：被擋時不會偷偷原地換成成分股（還在題材層）", lv == "themes", lv)
+        else:
+            pg.evaluate("() => { location.hash = '#overview'; }")
+            wait_until(pg, "() => !!document.querySelector('#ovTheme canvas')", 15000)
+    else:
+        ok(f"{T}【{tag}】熱門題材 找得到題材方塊", False, pg.evaluate("() => { const e = document.getElementById('ovTheme'); const r = e.getBoundingClientRect(); const m = document.getElementById('qcModal'); return [location.hash, e.dataset.level, Math.round(r.top), innerHeight, m && !m.hidden, document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2)?.className]; }"))
+    # ①b 熱門題材 放大視窗（題材層）：點題材方塊 → 題材頁
+    pg.locator("#ovThemeZoom").scroll_into_view_if_needed(); pg.click("#ovThemeZoom")
+    wait_until(pg, "() => !!document.querySelector('#zoomBody canvas') && document.getElementById('zoomBody').dataset.level === 'themes'", 8000)
+    pg.wait_for_timeout(400)
+    f = _hp_find(pg, "#zoomBody", "id")
+    if f:
+        x, y, d = f
+        cur, tip = _hp_probe(pg, x, y)
+        pg.mouse.click(x, y); pg.wait_for_timeout(700)
+        _hp_judge(pg, T, tag, f"熱門題材 放大視窗 點題材方塊（{d.get('id')}）", "#overview", allow, "#heatmap/theme/" + d.get("id"), False, None if allow else cur, None if allow else tip)
+        zopen = pg.evaluate("() => !document.getElementById('zoomOv').hidden")
+        ok(f"{T}【{tag}】熱門題材 放大視窗（題材層）：{'跳頁時放大視窗已關' if allow else '被擋時放大視窗還開著'}", zopen != allow, zopen)
+    else:
+        ok(f"{T}【{tag}】熱門題材 放大視窗 找得到題材方塊", False)
+    if not pg.evaluate("() => document.getElementById('zoomOv').hidden"):
+        pg.click("#zoomClose"); pg.wait_for_timeout(200)
+    if pg.evaluate("() => location.hash") != "#overview":
+        pg.evaluate("() => { location.hash = '#overview'; }")
+    # ② 熱門題材 個股層（下拉選題材才進得去）
+    wait_until(pg, "() => !!document.querySelector('#ovThemeDD .ddbtn') && !!document.querySelector('#ovTheme canvas')", 15000)
+    pg.locator("#ovThemeCard").scroll_into_view_if_needed(); pg.wait_for_timeout(200)
     _hp_ov_pick(pg)
     ok(f"{T}【{tag}】熱門題材 選題材 → 個股層", pg.evaluate("() => document.getElementById('ovTheme').dataset.level") == "members")
     f = _hp_find(pg, "#ovTheme", "code")
@@ -61151,20 +61192,46 @@ def _hp_mobile(b, base, T, tag, who, plan, allow, errs):
     pg = c.new_page(); pg.on("pageerror", lambda e: errs.append(str(e)))
     pg.goto(base + "#overview", wait_until="domcontentloaded")
     wait_until(pg, "() => window.TwPerm && TwPerm.state().src === 'server' && !!window.TwQuota", 12000)
-    # 手機總覽是分段導覽（大盤／資金流向／熱度）：熱門題材在「熱度」那一段，真的點那顆
-    wait_until(pg, "() => [...document.querySelectorAll('.mpager button')].some(b => b.textContent.trim() === '熱度')", 15000)
-    pg.locator(".mpager button", has_text="熱度").first.tap()
-    wait_until(pg, "() => { const c = document.getElementById('ovThemeCard'); return !!c && c.getClientRects().length > 0 && !!document.querySelector('#ovTheme canvas'); }", 10000)
-    pg.locator("#ovThemeCard").scroll_into_view_if_needed(); pg.wait_for_timeout(300)
+    # 手機總覽是分段導覽（大盤／資金流向／熱度）：資金熱力圖與熱門題材都在「熱度」那一段，真的點那顆分段鈕
+    def seg(name, el):
+        if pg.evaluate("() => location.hash") != "#overview":
+            pg.evaluate("() => { location.hash = '#overview'; }")
+        wait_until(pg, f"() => [...document.querySelectorAll('.mpager button')].some(b => b.textContent.trim() === '{name}')", 15000)
+        pg.locator(".mpager button", has_text=name).first.tap()
+        wait_until(pg, f"() => {{ const c = document.getElementById('{el}'); return !!c && c.getClientRects().length > 0 && !!c.querySelector('canvas'); }}", 10000)
+        pg.evaluate(f"() => document.getElementById('{el}').scrollIntoView({{ block: 'center' }})")
+        wait_until(pg, HP_STABLE.replace("ID", el), 8000)
+    MT = "手機·" + tag
+    # 資金熱力圖卡片 族群方塊（這張卡沒有 tileSheet 抽屜：直接跳頁或升級卡）
+    seg("熱度", "heat")
+    f = _hp_find(pg, "#heat", "gid", cols=5, rows=6)
+    if f:
+        x, y, d = f
+        pg.touchscreen.tap(x, y); pg.wait_for_timeout(900)
+        _hp_judge(pg, T, MT, f"390 觸控 總覽 資金熱力圖 點族群方塊（{d.get('gid')}）", "#overview", allow, "#industry/group/" + d.get("gid"), False)
+        ok(f"{T}【{MT}】資金熱力圖：沒有開手機抽屜（tileSheet）", not pg.evaluate("() => [...document.querySelectorAll('.m3sheet, .msheet')].some(e => e.getClientRects().length > 0 && !e.hidden)"))
+    else:
+        ok(f"{T}【{MT}】資金熱力圖 找得到族群方塊", False)
+    # 熱門題材 題材方塊 → 題材頁
+    seg("熱度", "ovTheme")
+    f = _hp_find(pg, "#ovTheme", "id", cols=4, rows=5)
+    if f:
+        x, y, d = f
+        pg.touchscreen.tap(x, y); pg.wait_for_timeout(900)
+        _hp_judge(pg, T, MT, f"390 觸控 總覽 熱門題材 點題材方塊（{d.get('id')}）", "#overview", allow, "#heatmap/theme/" + d.get("id"), False)
+    else:
+        ok(f"{T}【{MT}】熱門題材 找得到題材方塊", False)
+    # 熱門題材 個股層（下拉選題材）→ 個股頁
+    seg("熱度", "ovTheme")
     pg.locator("#ovThemeDD .ddbtn").tap(); pg.wait_for_timeout(250)
     pg.locator("#ovThemeDD .ddopt[data-t]:not([data-t=''])").first.tap(); pg.wait_for_timeout(800)
-    pg.locator("#ovTheme").scroll_into_view_if_needed(); pg.wait_for_timeout(300)
+    pg.evaluate("() => document.getElementById('ovTheme').scrollIntoView({ block: 'center' })"); pg.wait_for_timeout(300)
     f = _hp_find(pg, "#ovTheme", "code", cols=4, rows=5)
     if not f:
-        ok(f"{T}【手機·{tag}】熱門題材 找得到個股方塊", False); c.close(); return
+        ok(f"{T}【{MT}】熱門題材 找得到個股方塊", False); c.close(); return
     x, y, d = f
     pg.touchscreen.tap(x, y); pg.wait_for_timeout(900)
-    _hp_judge(pg, T, "手機·" + tag, f"390 觸控 總覽 熱門題材 點個股方塊（{d.get('code')}）", "#overview", allow, "#stock/" + d.get("code"), True)
+    _hp_judge(pg, T, MT, f"390 觸控 總覽 熱門題材 點個股方塊（{d.get('code')}）", "#overview", allow, "#stock/" + d.get("code"), True)
     sw = pg.evaluate("() => document.documentElement.scrollWidth")
     ok(f"{T}【手機·{tag}】沒有橫向捲軸（{sw}px）", sw <= 391, sw)
     c.close()
@@ -61197,6 +61264,26 @@ def t_heat_plus_1008(b, base):
                 _hp_probe(pg, x, y)
                 pg.mouse.click(x, y)
                 pg.wait_for_timeout(3000 if allow else 700)
+                pg.screenshot(path=str(pathlib.Path(sh) / n))
+            c.close()
+    # 截圖（1440；TW_HG_SHOTS＝資料夾）：資金熱力圖卡片、熱門題材題材方塊 —— 免費會員被擋、Plus 進族群頁／題材頁
+    sh = os.environ.get("TW_HG_SHOTS")
+    if sh:
+        pathlib.Path(sh).mkdir(parents=True, exist_ok=True)
+        for plan, allow, el, key, n in [("free", False, "heat", "gid", "free_heat_blocked_1440.png"), ("plus", True, "heat", "gid", "plus_group_page_1440.png"),
+                                        ("free", False, "ovTheme", "id", "free_theme_blocked_1440.png"), ("plus", True, "ovTheme", "id", "plus_theme_page_1440.png")]:
+            c, _s, _st = _sub_ctx(b, "member", plan=plan, feats={}, lims={})
+            pg = c.new_page()
+            pg.goto(base + "#overview", wait_until="domcontentloaded")
+            wait_until(pg, f"() => window.TwPerm && TwPerm.state().src === 'server' && !!document.querySelector('#{el} canvas')", 15000)
+            pg.evaluate(f"() => document.getElementById('{el}').scrollIntoView({{ block: 'center' }})")
+            wait_until(pg, HP_STABLE.replace("ID", el), 8000)
+            f = _hp_find(pg, "#" + el, key, cols=9, rows=7)
+            if f:
+                x, y, d = f
+                _hp_probe(pg, x, y)
+                pg.mouse.click(x, y)
+                pg.wait_for_timeout(3500 if allow else 700)
                 pg.screenshot(path=str(pathlib.Path(sh) / n))
             c.close()
     ok(f"{T}：整段沒有 JS 錯誤", not errs, errs[:3])
