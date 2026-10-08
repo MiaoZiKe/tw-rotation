@@ -185,7 +185,30 @@
 @media (max-width:1100px){#v-subadm .fbstat{grid-template-columns:minmax(0,1fr)}}
 @media (max-width:820px){#v-subadm .fbkpi{grid-template-columns:repeat(2,minmax(0,1fr))}#v-subadm .fbcatw{grid-template-columns:minmax(0,1fr)}#v-subadm .fbvb .plot{height:140px}}
 /* 2026-10-08：底部導覽已經拿掉 → 手機與平板（≤820）一律貼右下角＋安全區，52px 圓鈕只放泡泡（不放字），面板開在它正上方 */
-@media (max-width:820px){.supfab{bottom:calc(16px + env(safe-area-inset-bottom));right:16px;width:52px;height:52px;padding:0;justify-content:center}.supfab span{display:none}.suppanel{right:12px;bottom:calc(76px + env(safe-area-inset-bottom))}}`);
+@media (max-width:820px){.supfab{bottom:calc(16px + env(safe-area-inset-bottom));right:16px;width:52px;height:52px;padding:0;justify-content:center}.supfab span{display:none}.suppanel{right:12px;bottom:calc(76px + env(safe-area-inset-bottom))}}
+/* 2026-10-09（Andy：「客服功能可拖曳，他擋到按鈕了」）：可拖曳＋自動避讓。
+   這幾條都不改初始畫面：沒拖過＝沒有任何行內位置，照舊貼右下角（桌機守門 0 差異）。
+   touch-action:none 只在手指按在鈕上時生效（拖的時候頁面不跟著捲）；拖曳中關掉過場，手指到哪鈕到哪。
+   避讓（supaway）：抽屜／彈窗／底部固定列蓋到鈕的位置時整顆藏起來（不能點、不佔畫面），收起後回原位。 */
+.supfab{touch-action:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+.supfab.supdrag{transition:none;cursor:grabbing;box-shadow:0 16px 36px -10px rgba(0,0,0,.7)}
+.supfab.supdrag:hover{transform:none}
+.supfab.supsnap{transition:left .18s ease-out,right .18s ease-out,top .18s ease-out,transform .15s,background .15s}
+.supfab.supaway{visibility:hidden;opacity:0;pointer-events:none}
+/* 願望清單（2026-10-09）：面板裡「意見回饋｜願望清單」分段控制器；管理頁同款的「全部｜意見回饋｜願望清單」 */
+.fbkind{display:flex;gap:0;margin:0 0 10px;border:1px solid var(--line-2);border-radius:10px;overflow:hidden;background:var(--panel)}
+.fbkind button{flex:1;min-height:36px;border:0;background:none;color:var(--ink-2);font:inherit;font-size:13.5px;cursor:pointer;padding:6px 10px;display:inline-flex;align-items:center;justify-content:center;gap:6px}
+.fbkind button+button{border-left:1px solid var(--line-2)}
+.fbkind button.on{background:color-mix(in srgb,var(--cyan) 22%,transparent);color:var(--ink);font-weight:700}
+.fbkind button small{font-size:12px;color:var(--ink-3);font-weight:400}
+.fbkind.adm{max-width:420px}
+.suppanel textarea.sm{min-height:64px}
+#v-subadm .fbcat.fbwish{background:color-mix(in srgb,var(--violet) 25%,transparent);color:var(--ink)}
+/* 手機（html.m4）：mobile4.css 給 main 裡每顆按鈕 min-width:40px，管理頁每日直條 30 根 × 40px 撐出 818px 橫向捲軸 —— 直條是圖不是按鈕列，放回 0 */
+:root.m4 #v-subadm .fbvb .vb{min-width:0!important}
+#v-subadm select.wsst{font:inherit;font-size:13px;min-height:32px;background:var(--panel);color:var(--ink);border:1px solid var(--line-2);border-radius:8px}
+/* 帳號選單關掉客服（html.fab-off，claude/acct-menu）：鈕與面板都不顯示 */
+html.fab-off .supfab,html.fab-off .suppanel{display:none!important}`);
 
   /* ★ admin-v3（Andy E）：圖示改可愛一點 —— 圓角對話泡泡裡一張笑臉（自繪 SVG，stroke＝currentColor，深淺主題都跟字色走）*/
   const ICON = '<svg viewBox="0 0 28 28" fill="none" aria-hidden="true"><path d="M6.5 4.5h15a4 4 0 0 1 4 4v8.5a4 4 0 0 1-4 4h-7.2l-5.1 4.1c-.5.4-1.2 0-1.2-.6v-3.5H6.5a4 4 0 0 1-4-4V8.5a4 4 0 0 1 4-4z" fill="currentColor" fill-opacity=".14" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round"/>'
@@ -199,7 +222,13 @@
   const MARK = '<svg class="supmark supbub" viewBox="0 0 28 28" aria-hidden="true" focusable="false"><defs><clipPath id="supBubClip"><rect x="3.4" y="5.4" width="21.2" height="14.8" rx="3.2"/></clipPath></defs>'
     + `<path d="${BUB}" fill="#fff" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>`
     + '<image href="brand/mark-128.png" x="3.4" y="5.4" width="21.2" height="14.8" preserveAspectRatio="xMidYMid slice" clip-path="url(#supBubClip)"/></svg>';
-  let tab = 'faq';
+  let tab = 'faq', fbKind = 'fb';
+  const WISH_TAG = '【願望清單】';
+  const isWish = (r) => r.type === 'wish' || String(r.body || '').startsWith(WISH_TAG);
+  /* 願望的狀態：新／評估中／已做／不做（Worker 要支援 eval／done／no 才存得住；舊 Worker 只認 new／handled，見 sendWishSt） */
+  const WST = [['new', '新'], ['eval', '評估中'], ['done', '已做'], ['no', '不做']];
+  const WSTN = Object.fromEntries(WST);
+  const wstOver = {};   // 舊 Worker 不收 eval／done／no 時，這次瀏覽先記在記憶體（重新整理就沒了）
   function ensure() {
     let fab = document.getElementById('supFab');
     if (fab) return;
@@ -210,6 +239,7 @@
     const p = document.createElement('div'); p.id = 'supPanel'; p.className = 'suppanel'; p.hidden = true; p.setAttribute('role', 'dialog'); p.setAttribute('aria-label', '客服與意見反饋');
     document.body.appendChild(p);
     fab.onclick = () => toggle();
+    wireDrag(fab);
     document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !p.hidden) toggle(false); });
     /* 2026-10-08 Andy：「客服功能點擊後 點其他地方會自動收回」→ 點面板與浮動鈕以外的地方就收起
        （用 composedPath：面板內重畫後 target 可能已脫離 DOM，contains 會誤判成「外面」）*/
@@ -224,8 +254,195 @@
     const p = document.getElementById('supPanel'), fab = document.getElementById('supFab');
     const open = want == null ? p.hidden : want;
     p.hidden = !open; fab.setAttribute('aria-expanded', String(open));
-    if (open) paint();
+    if (open) { paint(); placePanel(); }
   }
+
+  /* ======================================================================
+     客服鈕：拖曳＋吸邊＋記住位置＋自動避讓（2026-10-09，Andy：「客服功能可拖曳，他擋到按鈕了」）
+     ----------------------------------------------------------------------
+     · 手機（html.m4／≤640）與網頁版都能拖；預設位置不變（右下角），沒拖過就不寫任何行內樣式。
+     · 放開後吸到最近的左緣或右緣，上下位置保留；範圍夾在視窗內、不壓頂欄（header.topbar）。
+     · 位置記在 localStorage（手機、網頁各一個鍵；tw.layout4. 前綴＝外觀偏好，重新整理保留，見 viewreset.js）。
+     · 位移 < 6px 才算點擊（打開客服）；超過就是拖曳，那一下的 click 整個吞掉（連 account.js 的點擊統計都不算）。
+     · 位置用行內 left/right/top 加 !important：mobile4.css 對 .supfab 的 right/bottom 有 !important，一般行內樣式蓋不過。
+     ====================================================================== */
+  const DRAG_PX = 6;
+  const isMob = () => document.documentElement.classList.contains('m4') || window.innerWidth <= 640;
+  const posKey = () => (isMob() ? 'tw.layout4.supfab.m' : 'tw.layout4.supfab.d');
+  const edge = () => (window.innerWidth <= 820 ? 16 : 20);   // 跟 CSS 的預設右距同一個數字
+  function loadPos() { try { const v = JSON.parse(localStorage.getItem(posKey()) || 'null'); return v && (v.s === 'L' || v.s === 'R') && isFinite(v.t) ? v : null; } catch (e) { return null; } }
+  function savePos(v) { try { localStorage.setItem(posKey(), JSON.stringify(v)); } catch (e) { /* 私密視窗：這次瀏覽有效，下次回右下角 */ } }
+  function topLimit() {
+    const tb = document.querySelector('header.topbar');
+    let lim = 8;
+    if (tb && tb.getClientRects().length) {
+      const cs = getComputedStyle(tb), r = tb.getBoundingClientRect();
+      if ((cs.position === 'fixed' || cs.position === 'sticky') && r.bottom > 0) lim = Math.max(lim, r.bottom + 8);
+    }
+    return lim;
+  }
+  function clampTop(t, h) { const lo = topLimit(), hi = window.innerHeight - h - edge(); return Math.round(Math.max(lo, Math.min(hi, t))); }
+  /* side：'L' 用 left、'R' 用 right、'' 拖曳中一律用 left */
+  function setXY(fab, side, x, top) {
+    const st = fab.style;
+    if (side === 'R') { st.setProperty('right', x + 'px', 'important'); st.setProperty('left', 'auto', 'important'); }
+    else { st.setProperty('left', x + 'px', 'important'); st.setProperty('right', 'auto', 'important'); }
+    st.setProperty('top', top + 'px', 'important'); st.setProperty('bottom', 'auto', 'important');
+  }
+  function clearXY(fab) { ['left', 'right', 'top', 'bottom'].forEach((k) => fab.style.removeProperty(k)); }
+  /** 依存好的位置擺（沒存＝清掉行內樣式，回 CSS 的右下角） */
+  function applyPos() {
+    const fab = document.getElementById('supFab'); if (!fab) return;
+    const v = loadPos();
+    if (!v) { clearXY(fab); delete fab.dataset.side; placePanel(); return; }
+    setXY(fab, v.s, edge(), clampTop(v.t, fab.offsetHeight || 52));
+    fab.dataset.side = v.s;
+    placePanel();
+  }
+  /** 鈕被拖走時，面板跟著開在鈕旁邊（左邊就靠左；鈕在上半部就往下開）。沒拖過＝照 CSS 原位。 */
+  function placePanel() {
+    const p = document.getElementById('supPanel'), fab = document.getElementById('supFab');
+    if (!p || !fab) return;
+    const pst = p.style;
+    ['left', 'right', 'top', 'bottom', 'max-height'].forEach((k) => pst.removeProperty(k));
+    if (!fab.dataset.side || p.hidden) return;
+    const r = fab.getBoundingClientRect(), vh = window.innerHeight, m = window.innerWidth <= 820 ? 12 : 20;
+    if (fab.dataset.side === 'L') { pst.setProperty('left', m + 'px', 'important'); pst.setProperty('right', 'auto', 'important'); }
+    else { pst.setProperty('right', m + 'px', 'important'); pst.setProperty('left', 'auto', 'important'); }
+    if (r.top + r.height / 2 > vh / 2) {
+      pst.setProperty('bottom', Math.round(vh - r.top + 10) + 'px', 'important'); pst.setProperty('top', 'auto', 'important');
+      pst.setProperty('max-height', Math.round(Math.min(640, r.top - topLimit() - 10)) + 'px', 'important');
+    } else {
+      pst.setProperty('top', Math.round(r.bottom + 10) + 'px', 'important'); pst.setProperty('bottom', 'auto', 'important');
+      pst.setProperty('max-height', Math.round(Math.min(640, vh - r.bottom - 20)) + 'px', 'important');
+    }
+  }
+  function wireDrag(fab) {
+    let st = null;   // { id, x0, y0, l0, t0, drag }
+    fab.addEventListener('pointerdown', (e) => {
+      if (e.pointerType === 'mouse' && e.button !== 0) return;
+      const r = fab.getBoundingClientRect();
+      st = { id: e.pointerId, x0: e.clientX, y0: e.clientY, l0: r.left, t0: r.top, drag: false };
+      /* 一按下就抓住指標：滑鼠拖得快時第一步就離開鈕了，沒抓住的話 move 事件會跑到底下的元素去 */
+      try { fab.setPointerCapture(e.pointerId); } catch (er) { /* 沒有 capture：照樣用 move 事件 */ }
+    });
+    fab.addEventListener('pointermove', (e) => {
+      if (!st || e.pointerId !== st.id) return;
+      const dx = e.clientX - st.x0, dy = e.clientY - st.y0;
+      if (!st.drag) {
+        if (Math.hypot(dx, dy) < DRAG_PX) return;
+        st.drag = true;
+        fab.classList.remove('supsnap', 'supaway'); fab.classList.add('supdrag');
+        const p = document.getElementById('supPanel'); if (p && !p.hidden) toggle(false);
+      }
+      e.preventDefault();
+      const w = fab.offsetWidth, h = fab.offsetHeight, m = edge();
+      const l = Math.round(Math.max(m, Math.min(window.innerWidth - w - m, st.l0 + dx)));
+      setXY(fab, '', l, clampTop(st.t0 + dy, h));
+    });
+    const end = (e) => {
+      if (!st || e.pointerId !== st.id) return;
+      const was = st; st = null;
+      try { fab.releasePointerCapture(e.pointerId); } catch (er) { /* 沒拿過 capture */ }
+      if (!was.drag) return;   // 小位移：交給原生 click 打開客服
+      fab.classList.remove('supdrag');
+      const r = fab.getBoundingClientRect();
+      const side = (r.left + r.width / 2) < window.innerWidth / 2 ? 'L' : 'R';
+      const v = { s: side, t: clampTop(r.top, r.height) };
+      savePos(v);
+      /* 先把位置換成同一側的距離（畫面不動），再換成吸邊的數字，過場才會從手放開的地方滑過去 */
+      setXY(fab, side, side === 'L' ? Math.round(r.left) : Math.round(window.innerWidth - r.right), v.t);
+      void fab.offsetWidth;
+      fab.classList.add('supsnap');
+      setXY(fab, side, edge(), v.t);
+      fab.dataset.side = side;
+      setTimeout(() => { fab.classList.remove('supsnap'); checkAway(); }, 260);
+      /* 拖曳放開後的那一下 click（滑鼠在鈕上放開會觸發）整個吞掉：不開客服、不記點擊統計 */
+      const eat = (ev) => { const t = ev.target; if (t && t.closest && t.closest('#supFab')) { ev.stopImmediatePropagation(); ev.preventDefault(); } };
+      window.addEventListener('click', eat, true);
+      setTimeout(() => window.removeEventListener('click', eat, true), 400);
+    };
+    fab.addEventListener('pointerup', end);
+    fab.addEventListener('pointercancel', end);
+    applyPos();
+    let rz = 0;
+    window.addEventListener('resize', () => { clearTimeout(rz); rz = setTimeout(() => { applyPos(); checkAway(); }, 120); });
+    startAway();
+  }
+
+  /* ---- 自動避讓：一套通用偵測，不替每個抽屜各寫一套 ----
+     客服鈕現在的位置「被蓋到」的兩種情形（任一成立就整顆藏起來；都不成立就回來）：
+       ① role="dialog"／aria-modal／.msheet 的框跟鈕重疊（底部抽屜 #mSheet、帳號／訂閱／報價彈窗、通知、自選、登入提示…）
+       ② 鈕底下（取 5 個點）有 position:fixed、或 sticky 且貼底（bottom 不是 auto）的元素，而且不是整個視窗高的
+          （排除全螢幕遮罩、桌機側欄、頂欄）—— 升級卡、底部固定列（例如管理區「儲存」列）、吐司走這條
+     為什麼選「藏」不選「往上挪」：底部抽屜打開時，剖析圖會把選到的編號捲到抽屜正上方（diagrams.js openNo），
+     往上挪剛好又蓋在那顆編號上；藏起來保證什麼都不擋，抽屜收起就回原位。客服自己的面板不算障礙。 */
+  /* 帳號選單的「客服 開／關」（claude/acct-menu 負責，存 tw.fab.off）：關掉時 <html> 帶 fab-off。
+     這裡只負責相容：fab-off 時鈕與面板不顯示（CSS），避讓的觀察器整個斷開（省效能），class 拿掉就接回來、重新擺位。 */
+  const fabOff = () => document.documentElement.classList.contains('fab-off');
+  let awayTimer = 0, awayMo = null;
+  const kick = () => { if (awayTimer || fabOff()) return; awayTimer = setTimeout(() => { awayTimer = 0; checkAway(); }, 90); };
+  function awayOn() {
+    if (awayMo || fabOff()) return;
+    try {
+      awayMo = new MutationObserver(kick);
+      awayMo.observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ['hidden', 'class', 'open', 'aria-hidden', 'aria-modal'] });
+    } catch (e) { awayMo = null; /* 沒有 MutationObserver：只靠捲動與縮放觸發 */ }
+    kick();
+  }
+  function awayOff() { if (awayMo) { awayMo.disconnect(); awayMo = null; } clearTimeout(awayTimer); awayTimer = 0; }
+  function startAway() {
+    window.addEventListener('scroll', kick, { passive: true, capture: true });
+    let was = fabOff();
+    try {
+      new MutationObserver(() => {
+        const off = fabOff(); if (off === was) return; was = off;
+        if (off) { awayOff(); const p = document.getElementById('supPanel'); if (p && !p.hidden) toggle(false); }
+        else { applyPos(); awayOn(); }
+      }).observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
+    } catch (e) { /* 舊瀏覽器：開關要重新整理才生效 */ }
+    awayOn();
+  }
+  function shown(el) {
+    if (!el || !el.isConnected || el.hidden || el.closest('[hidden]')) return false;
+    const cs = getComputedStyle(el);
+    if (cs.display === 'none' || cs.visibility === 'hidden' || +cs.opacity === 0) return false;
+    const r = el.getBoundingClientRect(); return r.width > 0 && r.height > 0;
+  }
+  const overlap = (a, b, pad) => a.left - pad < b.right && b.left < a.right + pad && a.top - pad < b.bottom && b.top < a.bottom + pad;
+  function blockers(fab) {
+    const p = document.getElementById('supPanel');
+    /* 新手導覽（#twTour）有一步就是指著客服鈕介紹它：導覽的遮罩與卡片不算障礙 */
+    const mine = (el) => el === fab || fab.contains(el) || (p && (el === p || p.contains(el))) || !!(el.closest && el.closest('#twTour'));
+    const fr = fab.getBoundingClientRect(), out = [];
+    document.querySelectorAll('[role="dialog"], [aria-modal="true"], .msheet').forEach((d) => { if (!mine(d) && out.indexOf(d) < 0 && shown(d) && overlap(d.getBoundingClientRect(), fr, 2)) out.push(d); });
+    if (out.length || !fr.width) return out;
+    const vh = window.innerHeight, pts = [[0.5, 0.5], [0.15, 0.15], [0.85, 0.15], [0.15, 0.85], [0.85, 0.85]];
+    for (const [ax, ay] of pts) {
+      for (const el of document.elementsFromPoint(fr.left + fr.width * ax, fr.top + fr.height * ay)) {
+        if (el === document.body || el === document.documentElement || mine(el)) continue;
+        for (let a = el, n = 0; a && a !== document.body && n < 14; a = a.parentElement, n++) {
+          const cs = getComputedStyle(a);
+          if (cs.position !== 'fixed' && !(cs.position === 'sticky' && cs.bottom !== 'auto')) continue;
+          if (!mine(a) && a.getBoundingClientRect().height < vh * 0.85 && !a.matches('header.topbar') && out.indexOf(a) < 0) out.push(a);
+          break;
+        }
+      }
+    }
+    return out;
+  }
+  function checkAway() {
+    const fab = document.getElementById('supFab'); if (!fab || fab.hidden || fabOff() || fab.classList.contains('supdrag')) return;
+    const p = document.getElementById('supPanel');
+    /* 鈕藏起來是 visibility:hidden：框還在原位，elementsFromPoint 也不會回傳它自己 → 可以照樣量「原位被不被蓋」 */
+    const b = (p && !p.hidden) ? [] : blockers(fab);
+    const away = b.length > 0;
+    if (away === fab.classList.contains('supaway')) return;
+    fab.classList.toggle('supaway', away);
+    if (away) { fab.dataset.away = b.map((x) => x.id || (typeof x.className === 'string' ? x.className : '') || x.tagName).join('|').slice(0, 80); fab.setAttribute('aria-hidden', 'true'); fab.tabIndex = -1; }
+    else { delete fab.dataset.away; fab.removeAttribute('aria-hidden'); fab.removeAttribute('tabindex'); }
+  }
+  window.TwSupFab = { applyPos, checkAway, placePanel, observing: () => !!awayMo };
   function paint() {
     const p = document.getElementById('supPanel'); if (!p) return;
     p.innerHTML = `<div class="sph"><b>需要幫忙嗎？</b><button type="button" id="supClose" aria-label="關閉">×</button></div>
@@ -236,6 +453,7 @@
     p.querySelector('.sptabs').onclick = (e) => { const b = e.target.closest('button[data-t]'); if (b) { tab = b.dataset.t; paint(); } };
     p.querySelectorAll('.faq > button').forEach((b) => { b.onclick = () => { const f = b.parentElement; f.classList.toggle('on'); b.setAttribute('aria-expanded', String(f.classList.contains('on'))); }; });
     const go = p.querySelector('#fbSend'); if (go) go.onclick = send;
+    const ks = p.querySelector('#fbKind'); if (ks) ks.onclick = (e) => { const b = e.target.closest('button[data-fk]'); if (b && b.dataset.fk !== fbKind) { fbKind = b.dataset.fk; paint(); } };
     const cs = p.querySelector('#fbCat');
     if (cs) cs.onchange = () => { const w = p.querySelector('#fbSubWrap'), o = subOpts(cs.value); p.querySelector('#fbSub').innerHTML = o; w.hidden = !o.includes('value="') || cs.value === 'other'; };
   }
@@ -254,7 +472,20 @@
     /* 1007：訪客也能送（Worker 端每 IP 每小時上限）；送出只存本站伺服器，不寄任何信。
        只有會員伺服器沒設定（TwSub.call 根本沒有網址）時才關掉。*/
     const can = !!(A && A.on());
-    return `${can ? '' : '<p class="note" style="color:var(--amber)">線上反饋暫時無法使用，請改用「寄信」。</p>'}
+    /* 2026-10-09（Andy：「再新增一個願望清單，所以我意見回饋需要多一個功能：願望清單」）：
+       分段控制器切「意見回饋｜願望清單」。願望清單＝想要的新功能（必填）＋為什麼需要（選填）＋聯絡方式（選填，會員自動帶入），
+       送出走同一條 /v1/feedback（type='wish'），只存本站伺服器。*/
+    const seg = `<div class="fbkind" id="fbKind" role="tablist" aria-label="反饋種類">${[['fb', '意見回饋'], ['wish', '願望清單']].map(([k, n]) => `<button type="button" role="tab" data-fk="${k}" class="${fbKind === k ? 'on' : ''}" aria-selected="${fbKind === k}">${n}</button>`).join('')}</div>`;
+    const off = can ? '' : '<p class="note" style="color:var(--amber)">線上反饋暫時無法使用，請改用「寄信」。</p>';
+    if (fbKind === 'wish') return `${seg}${off}
+      <p class="note">想要網站多一個什麼功能？寫下來，我們會逐則評估，做了會在公告裡說。</p>
+      <label for="wsWant">想要的功能（必填）</label><textarea id="wsWant" maxlength="600" placeholder="例如：自選股可以設價格提醒、族群頁加上本益比排行…"></textarea>
+      <label for="wsWhy">為什麼需要（選填）</label><textarea id="wsWhy" class="sm" maxlength="1000" placeholder="你平常怎麼用、現在卡在哪裡"></textarea>
+      <label for="fbMail">聯絡方式 email（選填，做好時通知你）</label><input type="email" id="fbMail" maxlength="200" value="${esc(u && u.email || '')}" autocomplete="email">
+      <button type="button" class="go" id="fbSend" ${can ? '' : 'disabled'}>送出願望</button>
+      <div class="msg" id="fbMsg" role="status"></div>
+      <p class="note">願望只存在本站伺服器（保存 13 個月，刪除帳號時一併刪除），不會提供給第三方。</p>`;
+    return `${seg}${off}
       <label for="fbCat">類別（先選大類）</label><select id="fbCat">${CATS.map(([k, n]) => `<option value="${k}">${n}</option>`).join('')}</select>
       <div id="fbSubWrap"><label for="fbSub">細項（可不選）</label><select id="fbSub">${subOpts('bug')}</select></div>
       <label for="fbBody">內容</label><textarea id="fbBody" maxlength="2000" placeholder="發生了什麼事、在哪一頁、希望怎麼改…"></textarea>
@@ -267,6 +498,7 @@
   async function send() {
     const p = document.getElementById('supPanel');
     const msg = p.querySelector('#fbMsg'), btn = p.querySelector('#fbSend');
+    if (fbKind === 'wish') return sendWish(p, msg, btn);
     const text = p.querySelector('#fbBody').value.trim(), contact = p.querySelector('#fbMail').value.trim();
     if (text.length < 2) { msg.className = 'msg bad'; msg.textContent = '請先寫一點內容'; return; }
     if (contact && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(contact)) { msg.className = 'msg bad'; msg.textContent = 'email 格式不對（不想留可以空白）'; return; }
@@ -287,6 +519,26 @@
     }
   }
 
+  /* 願望清單送出：type='wish'。cat 固定 'idea'（功能建議），內文前面加「【願望清單】」——
+     現行 Worker 還沒有 type 欄位時，管理頁靠這個前綴認出願望（Worker 補上 type 欄之後兩種都認）。*/
+  async function sendWish(p, msg, btn) {
+    const want = p.querySelector('#wsWant').value.trim(), why = p.querySelector('#wsWhy').value.trim(), contact = p.querySelector('#fbMail').value.trim();
+    if (want.length < 2) { msg.className = 'msg bad'; msg.textContent = '請先寫下想要的功能'; return; }
+    if (contact && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(contact)) { msg.className = 'msg bad'; msg.textContent = 'email 格式不對（不想留可以空白）'; return; }
+    const body = { type: 'wish', cat: 'idea', body: (WISH_TAG + want + (why ? '\n為什麼需要：' + why : '')).slice(0, 2000), url: location.href.slice(0, 300) };
+    if (contact) body.contact = contact;
+    btn.disabled = true; msg.className = 'msg'; msg.textContent = '送出中…';
+    const j = await call('/v1/feedback', body);
+    btn.disabled = false;
+    if (j && j._s === 200 && j.ok) {
+      p.querySelector('#wsWant').value = ''; p.querySelector('#wsWhy').value = '';
+      msg.className = 'msg ok'; msg.textContent = '願望收到了，謝謝你！' + (contact ? '做好會通知 ' + contact : '');
+    } else {
+      msg.className = 'msg bad';
+      msg.textContent = j && j._s === 429 ? '今天送出太多次了，請改用寄信' : '送出失敗，請稍後再試，或改用「寄信」';
+    }
+  }
+
   // ------------------------------------------------------------------ 管理端 #admin/feedback
   const CATN = Object.fromEntries(CATS);
   const dstr = (ms) => { const d = new Date(ms + 8 * 3600 * 1000); return d.toISOString().slice(0, 16).replace('T', ' '); };
@@ -299,7 +551,9 @@
        一律能取消：再點同一塊、列表標題旁膠囊的 ×、或下拉選「全部」。
      · 篩選只在前端做（Worker 一次給最近 2000 筆），記在記憶體，重新整理回預設（近 30 天、不篩）。
      未讀數紅點：側欄「意見反饋」子項與帳號選單共用 unread（不受期間影響，算全部未讀）。*/
-  const FL = { cat: '', sub: '', st: '', day: '' };
+  /* kind：''＝全部、'fb'＝只看意見回饋、'wish'＝只看願望清單（2026-10-09 願望清單）*/
+  const FL = { cat: '', sub: '', st: '', day: '', kind: '' };
+  const stOf = (r) => wstOver[r.id] || r.status;
   const RG = { v: '30', from: '', to: '' };
   let unread = 0, last = null;
   function rangeNow() {
@@ -380,17 +634,22 @@
     unread = fbAll.filter((x) => x.status === 'new').length; paintDot();
     const rg = rangeNow();
     if (FL.day && (FL.day < rg.from || FL.day > rg.to)) FL.day = '';
-    const inR = fbAll.filter((x) => { const d = dayOf(x.created); return d >= rg.from && d <= rg.to; });
+    const inR0 = fbAll.filter((x) => { const d = dayOf(x.created); return d >= rg.from && d <= rg.to; });
+    const nWish = inR0.filter(isWish).length;
+    const inR = inR0.filter((x) => !FL.kind || (FL.kind === 'wish') === isWish(x));
     const byDay = inR.filter((x) => !FL.day || dayOf(x.created) === FL.day);              // 甜甜圈、細項橫條、小卡吃這個（有選某天就只算那天）
     const byCat = inR.filter((x) => (!FL.cat || x.cat === FL.cat) && (!FL.sub || x.sub === FL.sub));   // 每日直條吃這個（有選類別就只畫那類每天幾則）
-    const fb = byDay.filter((x) => (!FL.cat || x.cat === FL.cat) && (!FL.sub || x.sub === FL.sub) && (!FL.st || x.status === FL.st));
+    const fb = byDay.filter((x) => (!FL.cat || x.cat === FL.cat) && (!FL.sub || x.sub === FL.sub) && (!FL.st || stOf(x) === FL.st));
     const handled = byDay.filter((x) => x.status !== 'new').length, unreadR = byDay.length - handled;
     const sm = {}; byDay.forEach((r) => { if (r.sub) { const k = r.cat + '/' + r.sub; sm[k] = (sm[k] || 0) + 1; } });
     const topSub = Object.entries(sm).sort((a, b) => b[1] - a[1])[0];
     const rNew = rq.filter((x) => x.status === 'new').length;
     const sel = (id, cur, opts) => `<select id="${id}">${opts.map(([k, n]) => `<option value="${k}"${k === cur ? ' selected' : ''}>${n}</option>`).join('')}</select>`;
     const subList = FL.cat ? ((TREE.find((x) => x[0] === FL.cat) || [])[2] || []) : [];
-    const chips = [FL.cat && ['cat', CATN[FL.cat] + (FL.sub ? '・' + (SUBN[FL.cat + '/' + FL.sub] || FL.sub) : '')], FL.day && ['day', FL.day], FL.st && ['st', FL.st === 'new' ? '未讀' : '已處理']].filter(Boolean)
+    const stName = (s) => (FL.kind === 'wish' ? WSTN[s] || s : s === 'new' ? '未讀' : s === 'handled' ? '已處理' : WSTN[s] || s);
+    const stOpts = FL.kind === 'wish' ? WST : [['new', '未讀'], ['handled', '已處理']];
+    if (FL.st && !stOpts.some(([k]) => k === FL.st)) FL.st = '';
+    const chips = [FL.cat && ['cat', CATN[FL.cat] + (FL.sub ? '・' + (SUBN[FL.cat + '/' + FL.sub] || FL.sub) : '')], FL.day && ['day', FL.day], FL.st && ['st', stName(FL.st)]].filter(Boolean)
       .map(([k, t]) => `<span class="fbchip" data-clr="${k}"><b>${esc(t)}</b><button type="button" aria-label="取消這個篩選" title="取消這個篩選">×</button></span>`).join('');
     const rtxt = rg.from === rg.to ? rg.from : rg.from + '～' + rg.to;
     el.innerHTML = `<div class="sat"><h2>意見反饋${unread ? `<span class="fbdot big">${unread} 未讀</span>` : ''}</h2>
@@ -408,16 +667,19 @@
           <div class="fbcatw">${donut(byDay)}<div class="fbsubc"><h4>細項前幾名${FL.cat ? '（' + esc(CATN[FL.cat]) + '）' : ''}</h4>${subBars(FL.cat ? byDay.filter((x) => x.cat === FL.cat) : byDay)}</div></div></div>
         <div class="card" id="fbDayCard"><h3>每天收到幾則？</h3><p class="muted">${FL.cat ? '只算「' + esc(CATN[FL.cat]) + '」' : '全部類別'}；虛線＝平均。點某天的直條，上面統計與下面列表只看那天。</p>${dayBars(byCat, rg)}</div>
       </div>
-      <div class="card"><div class="fbflt"><h3>反饋列表（期間 ${inR.length} 筆，顯示 ${fb.length}）</h3>${chips}
+      <div class="card"><div class="fbkind adm" id="fbFKind" role="tablist" aria-label="反饋種類">${[['', '全部', inR0.length], ['fb', '意見回饋', inR0.length - nWish], ['wish', '願望清單', nWish]].map(([k, n, c]) => `<button type="button" role="tab" data-fk="${k}" class="${FL.kind === k ? 'on' : ''}" aria-selected="${FL.kind === k}">${n}<small>${c}</small></button>`).join('')}</div>
+        <div class="fbflt"><h3>${FL.kind === 'wish' ? '願望清單' : '反饋列表'}（期間 ${inR.length} 筆，顯示 ${fb.length}）</h3>${chips}
         <label>大類 ${sel('fbFCat', FL.cat, [['', '全部'], ...CATS])}</label>
         <label>細項 ${sel('fbFSub', FL.sub, [['', '全部'], ...subList])}</label>
-        <label>狀態 ${sel('fbFSt', FL.st, [['', '全部'], ['new', '未讀'], ['handled', '已處理']])}</label></div>
-        ${fb.length ? `<table id="fbTable"><thead><tr><th>時間（台北）</th><th>類別</th><th>內容</th><th>聯絡 email</th><th>頁面網址／瀏覽器</th><th>狀態</th><th></th></tr></thead><tbody>${fb.map((r) => `<tr data-id="${esc(r.id)}" data-cat="${esc(r.cat)}" data-sub="${esc(r.sub)}" class="${r.status === 'new' ? 'unread' : ''}">
-          <td>${dstr(r.created)}</td><td class="fbcatc">${catBadge(r)}</td><td class="fbbody">${esc(r.body)}</td>
+        <label>狀態 ${sel('fbFSt', FL.st, [['', '全部'], ...stOpts])}</label></div>
+        ${fb.length ? `<table id="fbTable"><thead><tr><th>時間（台北）</th><th>類別</th><th>內容</th><th>聯絡 email</th><th>頁面網址／瀏覽器</th><th>狀態</th><th></th></tr></thead><tbody>${fb.map((r) => { const w = isWish(r); return `<tr data-id="${esc(r.id)}" data-cat="${esc(r.cat)}" data-sub="${esc(r.sub)}"${w ? ' data-wish="1"' : ''} class="${r.status === 'new' ? 'unread' : ''}">
+          <td>${dstr(r.created)}</td><td class="fbcatc">${w ? '<span class="fbcat fbwish">願望清單</span>' : catBadge(r)}</td><td class="fbbody">${esc(w ? String(r.body || '').replace(WISH_TAG, '') : r.body)}</td>
           <td>${r.contact ? `<a data-gmail href="${esc(gmail(r.contact, '回覆：哩股哩股意見反饋'))}" target="_blank" rel="noopener">${esc(r.contact)}</a>` : '<span class="muted">（未留）</span>'}${r.member ? '<br><small class="muted">會員' + (r.name ? '：' + esc(r.name) : '') + '</small>' : '<br><small class="muted">訪客</small>'}</td>
           <td><small>${r.url ? `<a href="${esc(r.url)}" target="_blank" rel="noopener">${esc(r.url)}</a>` : ''}<br>${esc(r.ua || '')}</small></td>
-          <td><span class="st ${r.status === 'new' ? 'new' : ''}">${r.status === 'new' ? '未讀' : '已處理'}</span></td>
-          <td class="fbact"><button type="button" data-kind="feedback" data-id="${esc(r.id)}" data-st="${r.status === 'new' ? 'handled' : 'new'}">${r.status === 'new' ? '標為已處理' : '改回未讀'}</button><button type="button" class="fbdel" data-del="${esc(r.id)}">刪除</button></td></tr>`).join('')}</tbody></table>` : `<p class="muted" id="fbEmpty">${inR.length ? '沒有符合篩選的反饋。' : '這段期間還沒有反饋。'}</p>`}</div>
+          ${w ? `<td><select class="wsst" data-id="${esc(r.id)}" aria-label="願望狀態">${WST.map(([k, n]) => `<option value="${k}"${stOf(r) === k ? ' selected' : ''}>${n}</option>`).join('')}${WSTN[stOf(r)] ? '' : '<option value="handled" selected>已處理</option>'}</select></td>
+          <td class="fbact"><button type="button" class="fbdel" data-del="${esc(r.id)}">刪除</button></td></tr>`
+          : `<td><span class="st ${r.status === 'new' ? 'new' : ''}">${r.status === 'new' ? '未讀' : '已處理'}</span></td>
+          <td class="fbact"><button type="button" data-kind="feedback" data-id="${esc(r.id)}" data-st="${r.status === 'new' ? 'handled' : 'new'}">${r.status === 'new' ? '標為已處理' : '改回未讀'}</button><button type="button" class="fbdel" data-del="${esc(r.id)}">刪除</button></td></tr>`}`; }).join('')}</tbody></table>` : `<p class="muted" id="fbEmpty">${inR.length ? '沒有符合篩選的反饋。' : '這段期間還沒有反饋。'}</p>`}</div>
       <div class="card"><h3>訂閱申請（${rq.length} 筆，未處理 ${rNew}）</h3><p class="muted">金流尚未串接：確認付款後到「會員管理」替他設定方案與到期日，再把這筆標成「已開通」。</p>
         ${rq.length ? `<table id="rqTable"><thead><tr><th>時間（台北）</th><th>會員</th><th>方案</th><th>週期</th><th>聯絡 email</th><th>備註</th><th>狀態</th><th></th></tr></thead><tbody>${rq.map((r) => `<tr data-id="${esc(r.id)}">
           <td>${dstr(r.created)}</td><td>${esc(r.name || '')}<br><small class="muted">${esc(r.email || '')}</small></td><td>${esc(r.plan)}</td><td>${r.period === 'year' ? '年繳' : '月繳'}</td><td>${esc(r.contact)}</td><td>${esc(r.note || '')}</td>
@@ -432,6 +694,20 @@
     el.querySelector('#fbFCat').onchange = (e) => { FL.cat = e.target.value; FL.sub = ''; re(); };
     el.querySelector('#fbFSub').onchange = (e) => { FL.sub = e.target.value; re(); };
     el.querySelector('#fbFSt').onchange = (e) => { FL.st = e.target.value; re(); };
+    el.querySelector('#fbFKind').onclick = (e) => { const b = e.target.closest('button[data-fk]'); if (b && b.dataset.fk !== FL.kind) { FL.kind = b.dataset.fk; FL.st = ''; re(); } };
+    /* 願望狀態：先試 Worker 的新狀態（eval／done／no）；舊 Worker 回 400 時，伺服器端改記「new／handled」（未讀紅點照樣會消），
+       細的狀態這次瀏覽先記在記憶體，並提示 Worker 要更新才存得住。*/
+    el.querySelectorAll('select.wsst').forEach((s) => {
+      s.onchange = async () => {
+        const id = s.dataset.id, v = s.value; s.disabled = true;
+        let r = await call('/v1/admin/feedback/set', { kind: 'feedback', id, status: v });
+        if (r && r._s === 400 && v !== 'new') {
+          r = await call('/v1/admin/feedback/set', { kind: 'feedback', id, status: 'handled' });
+          if (r && r._s === 200) { wstOver[id] = v; toast('伺服器還不認「' + WSTN[v] + '」：先記成已處理，細的狀態重新整理後會不見（要更新 Worker）'); }
+        } else if (r && r._s === 200) delete wstOver[id];
+        if (r && r._s === 200) renderFeedbackAdmin(el); else { s.disabled = false; toast('更新失敗'); }
+      };
+    });
     el.querySelectorAll('.fbchip button').forEach((b) => { b.onclick = () => { const k = b.parentElement.dataset.clr; if (k === 'cat') { FL.cat = ''; FL.sub = ''; } else FL[k] = ''; re(); }; });
     const pickCat = (k) => { if (FL.cat === k && !FL.sub) FL.cat = ''; else FL.cat = k; FL.sub = ''; re(); };
     el.querySelectorAll('#fbDonut .fbseg, .fblgd li').forEach((s) => { s.onclick = () => pickCat(s.dataset.cat); });
