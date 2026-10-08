@@ -28142,6 +28142,8 @@ SECTIONS = {
     "套用建議方案正式站1007": lambda pg, b, base, code: t_preset_live_1007(b, base, code),
     # ★ 2026-10-08 訪客點擊次數上限（site/clickq.js）：資金分流樹下鑽／族群×法人篩選／題材剖析／產業鏈／市場明細族群數，含管理權限頁
     "訪客權限1008":        lambda pg, b, base, code: t_guest_perm_1008(b, base, code),
+    # ★ 2026-10-08 晚 Andy 313：「熱門題材、資金熱力圖，點擊會到該個股的功能需要權限設定，只有 Plus 以上才可以」（訪客／免費／Plus／Pro 走每條熱力圖跳頁路徑；桌機＋手機觸控）
+    "熱力圖跳個股1008":    lambda pg, b, base, code: t_heat_plus_1008(b, base),
     # ★ 2026-09-28 Andy：「所有標題加上小圖示，顏色要搭配」—— 覆蓋、對比 ≥3:1（深淺）、1440／800／390 不擠（A/B）、動效（⚠ 一律 --workers 1）
     "標題圖示":            lambda pg, b, base, code: t_title_icons(pg, b, base, code),
     # ★ 2026-09-30 Andy：部分股票 1 小時／4 小時找不到資料 —— 60 分 K 擴到全市場、每檔獨立 m60 檔、沒有時寫一句話
@@ -51778,8 +51780,10 @@ def t_account_cloud(b, base):
 SUB_API = "https://sub.example.test"
 
 
-def _sub_ctx(b, who, width=1440, feats=None, notices=None, lims=None, dq=None, owner=False):
-    """who: None＝訪客、'member'、'admin'。回傳 (context, 送出的請求清單, 狀態)"""
+def _sub_ctx(b, who, width=1440, feats=None, notices=None, lims=None, dq=None, owner=False, plan=None, perm_fail=False, touch=False):
+    """who: None＝訪客、'member'、'admin'。回傳 (context, 送出的請求清單, 狀態)
+    plan：/v1/perm/me 回的範本代號（預設 guest／free；熱力圖跳個股1008 用 plus／pro 驗「範本沒寫＝依身分給預設」）；
+    perm_fail：/v1/perm/me 回 503（模擬連不到會員伺服器）；touch：手機觸控（has_touch＋is_mobile）"""
     sent: list = []
     st = {"notices": notices if notices is not None else [], "read": set(), "fb": [], "req": []}
     plans = [{"id": "guest", "name": "訪客（未登入）", "builtin": True, "feats": {}, "price": None, "price_year": None, "period": None},
@@ -51803,8 +51807,10 @@ def _sub_ctx(b, who, width=1440, feats=None, notices=None, lims=None, dq=None, o
         out, code = {}, 200
         if path == "/v1/me":
             out, code = ({"user": me}, 200) if me else ({}, 401)
+        elif path == "/v1/perm/me" and perm_fail:
+            out, code = {"error": "unavailable"}, 503
         elif path == "/v1/perm/me":
-            out = {"who": "member" if me else "guest", "plan": "free" if me else "guest", "planName": "免費會員（預設）" if me else "訪客", "feats": feats if feats is not None else {}, "lims": lims or {}, "dq": dq}
+            out = {"who": "member" if me else "guest", "plan": plan or ("free" if me else "guest"), "planName": "免費會員（預設）" if me else "訪客", "feats": feats if feats is not None else {}, "lims": lims or {}, "dq": dq}
         elif path == "/v1/plans/public":
             out = {"plans": plans}
         elif path == "/v1/subscribe/request":
@@ -51843,7 +51849,7 @@ def _sub_ctx(b, who, width=1440, feats=None, notices=None, lims=None, dq=None, o
             out = {"rows": [], "users": []}
         route.fulfill(status=code, body=json.dumps(out), headers={"access-control-allow-origin": "*", "content-type": "application/json"})
 
-    c = b.new_context(viewport={"width": width, "height": 900})
+    c = b.new_context(viewport={"width": width, "height": 900}, **({"has_touch": True, "is_mobile": True, "device_scale_factor": 2} if touch else {}))
     c.add_init_script("window.TW_ACCOUNT_OVERRIDE = " + json.dumps({"api": SUB_API}) + ";"
                       + ("try { localStorage.setItem('tw.acct.tok', 'tok-test'); } catch (e) {}" if who else ""))
     c.route("**/fonts.googleapis.com/**", lambda r: r.abort())
@@ -52976,7 +52982,7 @@ def _tier_ctx(b, who, theme="dark", width=1440):
             out = {"day": "x", "k": "", "n": 0, "keys": []}
         route.fulfill(status=200, body=json.dumps(out), headers={"access-control-allow-origin": "*", "content-type": "application/json"})
 
-    c = b.new_context(viewport={"width": width, "height": 900})
+    c = b.new_context(viewport={"width": width, "height": 900}, **({"has_touch": True, "is_mobile": True, "device_scale_factor": 2} if touch else {}))
     c.add_init_script("window.TW_ACCOUNT_OVERRIDE = " + json.dumps({"api": SUB_API}) + ";"
                       + "try { localStorage.setItem('tw.acct.tok', 'tok-test'); localStorage.setItem('tw.theme', " + json.dumps(theme) + "); } catch (e) {}")
     c.route("**/fonts.googleapis.com/**", lambda r: r.abort())
@@ -53453,8 +53459,10 @@ def _fb1007_ctx(b, who, st, width=1440):
         out, code = {}, 200
         if path == "/v1/me":
             out, code = ({"user": me}, 200) if me else ({}, 401)
+        elif path == "/v1/perm/me" and perm_fail:
+            out, code = {"error": "unavailable"}, 503
         elif path == "/v1/perm/me":
-            out = {"who": "member" if me else "guest", "plan": "free" if me else "guest", "planName": "免費會員", "feats": {}, "lims": {}, "dq": None}
+            out = {"who": "member" if me else "guest", "plan": plan or ("free" if me else "guest"), "planName": "免費會員", "feats": {}, "lims": {}, "dq": None}
         elif path == "/v1/plans/public":
             out = {"plans": []}
         elif path == "/v1/feedback":
@@ -53480,7 +53488,7 @@ def _fb1007_ctx(b, who, st, width=1440):
             out = {"rows": [], "users": []}
         route.fulfill(status=code, body=json.dumps(out), headers={"access-control-allow-origin": "*", "content-type": "application/json"})
 
-    c = b.new_context(viewport={"width": width, "height": 900})
+    c = b.new_context(viewport={"width": width, "height": 900}, **({"has_touch": True, "is_mobile": True, "device_scale_factor": 2} if touch else {}))
     c.add_init_script("window.TW_ACCOUNT_OVERRIDE = " + json.dumps({"api": SUB_API}) + ";"
                       + ("try { localStorage.setItem('tw.acct.tok', 'tok-test'); } catch (e) {}" if who else ""))
     c.route("**/fonts.googleapis.com/**", lambda r: r.abort())
@@ -55364,8 +55372,10 @@ def _adm3_ctx(b, who="admin", width=1440, feats=None, lims=None, theme=None, pla
         out, code = {}, 200
         if path == "/v1/me":
             out, code = ({"user": me}, 200) if me else ({}, 401)
+        elif path == "/v1/perm/me" and perm_fail:
+            out, code = {"error": "unavailable"}, 503
         elif path == "/v1/perm/me":
-            out = {"who": "member" if me else "guest", "plan": "free" if me else "guest", "planName": "免費會員", "feats": feats or {}, "lims": lims or {}}
+            out = {"who": "member" if me else "guest", "plan": plan or ("free" if me else "guest"), "planName": "免費會員", "feats": feats or {}, "lims": lims or {}}
         elif path == "/v1/plans/public":
             out = {"plans": [{k: v for k, v in p.items() if k != "members"} for p in st["plans"]]}
         elif path in ("/v1/beat", "/v1/track/batch", "/v1/quota/hit"):
@@ -60513,6 +60523,219 @@ def t_layout_fit_1007(pg, base):
     finally:
         if vp0:
             pg.set_viewport_size(vp0)
+
+
+# ===================================================================== 熱力圖跳個股1008（site/quota.js heatGo／heatLinkOk；app.js hmGo）
+# Andy 10-08 晚（截圖 313，總覽「熱門題材」選了蘋果供應鏈、滑鼠停在聯發科）：
+#   「熱門題材、資金熱力圖，點擊會到該個股的功能需要權限設定，只有 Plus 以上才可以」。
+# 驗法：四種身分（訪客、免費會員、Plus、Pro）的範本 feats 一律給**空的** —— 驗「範本沒寫時依身分給預設」，不靠套用建議方案。
+# 每條「熱力圖方塊 → 別的分頁」路徑都真的用滑鼠點一個方塊（先把滑鼠移到方塊上、讀 ECharts 的 mouseover 拿到那一塊的資料，確定點的是個股／族群葉子）：
+#   ① 總覽 熱門題材（選了題材後的個股層）　② 同一張的放大視窗　③ 總覽 資金熱力圖的放大視窗（族群 → 族群頁）
+#   ④ 熱力圖產業頁（族群 → 族群頁）　⑤ 熱力圖題材頁（題材 → 同頁剖析圖，不算跳頁，四種身分都要照開）
+#   ⑥ 手機 390 觸控（真的 tap）總覽 熱門題材個股方塊
+# 另外：連不到會員伺服器的訪客（/v1/perm/me 503）也要擋；管理員（免費範本）放行。
+# 訪客／免費：hash 不變＋升級卡（cq＝heat.link、去個股的標題是「點熱力圖看個股是 Plus 以上功能」、有「升級 Plus」）＋提示框照常＋游標不是手指；
+# Plus／Pro：hash 換成 #stock/<代號>（或族群頁）。
+HP_HOOK = """(sel) => { const el = document.querySelector(sel); const i = el && echarts.getInstanceByDom(el); if (!i) return false;
+  if (el._hpInst !== i) { el._hpInst = i; i.on('mouseover', (p) => { window.__hpOver = { sel, name: p.name, data: Object.assign({}, p.data || {}) }; }); }
+  window.__hpOver = null; return true; }"""
+
+
+def _hp_find(pg, sel, key, cols=7, rows=6):
+    """在 sel 這張 treemap 上掃格點：滑鼠真的移過去，第一個 mouseover 拿到 data[key] 的點就回傳 (x, y, data)。"""
+    if not pg.evaluate(HP_HOOK, sel):
+        return None
+    bx = pg.locator(sel + " canvas").first.bounding_box()
+    if not bx:
+        return None
+    for j in range(rows):
+        for i in range(cols):
+            x = bx["x"] + bx["width"] * (i + 0.5) / cols
+            y = bx["y"] + bx["height"] * (j + 0.5) / rows
+            pg.evaluate("() => { window.__hpOver = null; }")
+            pg.mouse.move(x, y); pg.wait_for_timeout(60)
+            o = pg.evaluate("() => window.__hpOver")
+            if o and o.get("sel") == sel and (o.get("data") or {}).get(key):
+                return x, y, o["data"]
+    return None
+
+
+def _hp_probe(pg, x, y):
+    """滑鼠停在 (x, y)：回 (游標, 提示框有沒有字)"""
+    cur = "none"
+    for k in range(3):    # zrender 在 mousemove 時才把游標寫上去；剛畫完（動畫中）那一下可能還沒判到方塊 → 多移幾次
+        pg.mouse.move(x + 1 + k, y + 1); pg.wait_for_timeout(300)
+        cur = pg.evaluate("([x, y]) => { const e = document.elementFromPoint(x, y); return e ? getComputedStyle(e).cursor : 'none'; }", [x + 1 + k, y + 1])
+        if cur != "auto":
+            break
+    tip = pg.evaluate("() => [...document.querySelectorAll('div')].some(d => /z-index: ?9999/.test(d.getAttribute('style') || '') && d.style.display !== 'none' && getComputedStyle(d).opacity !== '0' && d.innerText.trim().length > 0)")
+    return cur, tip
+
+
+def _hp_judge(pg, T, tag, path, before, allow, want, stock, cur=None, tip=None):
+    h = pg.evaluate("() => decodeURIComponent(location.hash)")
+    m = wait_until(pg, "() => { const m = document.getElementById('qcModal'); return !!m && !m.hidden && m.dataset.cq === 'heat.link' ? m.innerText : null; }", 300 if allow else 1500)
+    if allow:
+        ok(f"{T}【{tag}】{path} → 跳到 {want}（{h}）", h.startswith(want) and not m, (h, m))
+    else:
+        need = "點熱力圖看個股是 Plus 以上功能" if stock else "付費會員功能"
+        extra = "" if cur is None else "、提示框照常、游標不是手指"
+        ok(f"{T}【{tag}】{path} → 網址不變（{before}）、跳升級卡（{need}＋升級 Plus）{extra}",
+           h == before and bool(m) and need in m and "升級 Plus" in m and (cur is None or (cur != "pointer" and tip)), (h, m, cur, tip))
+        pg.evaluate(GP_CLOSE)
+    return h
+
+
+def _hp_ov_pick(pg, dd="#ovThemeDD"):
+    """總覽 熱門題材：下拉選第一個題材（成分股層）"""
+    pg.click(dd + " .ddbtn"); pg.wait_for_timeout(200)
+    pg.locator(dd + " .ddopt[data-t]:not([data-t=''])").first.click(); pg.wait_for_timeout(700)
+
+
+def _hp_desktop(b, base, T, tag, who, plan, allow, errs, **kw):
+    c, sent, st = _sub_ctx(b, who, plan=plan, feats={}, lims={}, **kw)
+    pg = c.new_page(); pg.on("pageerror", lambda e: errs.append(str(e)))
+    pg.goto(base + "#overview", wait_until="domcontentloaded")
+    src = "default" if kw.get("perm_fail") else "server"
+    wait_until(pg, f"() => window.TwPerm && TwPerm.state().src === '{src}' && !!window.TwQuota", 12000)
+    if who == "admin":
+        wait_until(pg, "() => !!(window.TwAccount && TwAccount.user() && TwAccount.user().admin)", 8000)
+    ok(f"{T}【{tag}】範本沒寫 heat.link → 依身分預設{'開' if allow else '關'}（TwQuota.heatLinkOk）", pg.evaluate("() => TwQuota.heatLinkOk()") == allow,
+       pg.evaluate("() => TwPerm.state()"))
+    # ① 總覽 熱門題材 個股層
+    wait_until(pg, "() => !!document.querySelector('#ovThemeDD .ddbtn') && !!document.querySelector('#ovTheme canvas')", 15000)
+    pg.locator("#ovThemeCard").scroll_into_view_if_needed(); pg.wait_for_timeout(200)
+    # 題材層（還沒選題材）點方塊＝原地換成分股，不是跳頁 → 沒權限也照常是手指
+    # （先等版面穩定：卡片上方的導讀句 .t4-lede 晚一點才插進來，會把圖往下推，量到的點就落到別的元素上）
+    wait_until(pg, "() => { const r = document.getElementById('ovTheme').getBoundingClientRect(); const y = r.top; return new Promise(ok => setTimeout(() => ok(Math.abs(document.getElementById('ovTheme').getBoundingClientRect().top - y) < 1), 400)); }", 8000)
+    f = _hp_find(pg, "#ovTheme", "id")
+    if f:
+        cur0, _t = _hp_probe(pg, f[0], f[1])
+        ok(f"{T}【{tag}】熱門題材 題材層（點了原地換成分股）游標照常是手指", cur0 == "pointer", (cur0, pg.evaluate("([x, y]) => { const e = document.elementFromPoint(x, y); return e ? e.tagName + '.' + e.className : null; }", [f[0] + 3, f[1] + 1])))
+    _hp_ov_pick(pg)
+    ok(f"{T}【{tag}】熱門題材 選題材 → 個股層", pg.evaluate("() => document.getElementById('ovTheme').dataset.level") == "members")
+    f = _hp_find(pg, "#ovTheme", "code")
+    if not f:
+        ok(f"{T}【{tag}】熱門題材 找得到個股方塊", False); c.close(); return
+    x, y, d = f
+    cur, tip = _hp_probe(pg, x, y)
+    pg.mouse.click(x, y); pg.wait_for_timeout(600)
+    _hp_judge(pg, T, tag, f"總覽 熱門題材 點個股方塊（{d.get('code')}）", "#overview", allow, "#stock/" + d.get("code"), True, None if allow else cur, None if allow else tip)
+    if allow:
+        pg.evaluate("() => { location.hash = '#overview'; }")
+        wait_until(pg, "() => !!document.querySelector('#ovTheme canvas') && document.getElementById('ovTheme').dataset.level === 'members'", 15000)
+    # ② 熱門題材 放大視窗（成分股層）
+    pg.click("#ovThemeZoom")
+    wait_until(pg, "() => !!document.querySelector('#zoomBody canvas') && document.getElementById('zoomBody').dataset.level === 'members'", 8000)
+    pg.wait_for_timeout(300)
+    f = _hp_find(pg, "#zoomBody", "code")
+    if f:
+        x, y, d = f
+        cur, tip = _hp_probe(pg, x, y)
+        pg.mouse.click(x, y); pg.wait_for_timeout(600)
+        _hp_judge(pg, T, tag, f"熱門題材 放大視窗 點個股方塊（{d.get('code')}）", "#overview", allow, "#stock/" + d.get("code"), True, None if allow else cur, None if allow else tip)
+        zopen = pg.evaluate("() => !document.getElementById('zoomOv').hidden")
+        ok(f"{T}【{tag}】熱門題材 放大視窗：{'跳頁時放大視窗已關' if allow else '被擋時放大視窗還開著（關掉升級卡回到原本的圖）'}", zopen != allow, zopen)
+    else:
+        ok(f"{T}【{tag}】熱門題材 放大視窗 找得到個股方塊", False)
+    if not pg.evaluate("() => document.getElementById('zoomOv').hidden"):
+        pg.click("#zoomClose"); pg.wait_for_timeout(200)
+    # ③ 資金熱力圖 放大視窗：族群方塊 → 族群頁
+    pg.evaluate("() => { location.hash = '#overview'; }")
+    wait_until(pg, "() => !!document.querySelector('#heat canvas') && !!document.getElementById('heatZoom')", 15000)
+    pg.locator("#heatZoom").scroll_into_view_if_needed(); pg.click("#heatZoom")
+    wait_until(pg, "() => !!document.querySelector('#zoomBody canvas')", 8000); pg.wait_for_timeout(400)
+    f = _hp_find(pg, "#zoomBody", "gid", cols=9, rows=7)
+    if f:
+        x, y, d = f
+        cur, tip = _hp_probe(pg, x, y)
+        pg.mouse.click(x, y); pg.wait_for_timeout(600)
+        _hp_judge(pg, T, tag, f"資金熱力圖 放大視窗 點族群方塊（{d.get('gid')}）", "#overview", allow, "#industry/group/" + d.get("gid"), False, None if allow else cur, None if allow else tip)
+    else:
+        ok(f"{T}【{tag}】資金熱力圖 放大視窗 找得到族群方塊", False)
+    if not pg.evaluate("() => document.getElementById('zoomOv').hidden"):
+        pg.click("#zoomClose"); pg.wait_for_timeout(200)
+    # ④ 熱力圖產業頁：族群方塊 → 族群頁
+    pg.evaluate("() => { location.hash = '#heatmap/industry'; }")
+    wait_until(pg, "() => !!document.querySelector('#indTree canvas')", 15000); pg.wait_for_timeout(800)
+    f = _hp_find(pg, "#indTree", "gid", cols=9, rows=7)
+    if f:
+        x, y, d = f
+        cur, tip = _hp_probe(pg, x, y)
+        pg.mouse.click(x, y); pg.wait_for_timeout(600)
+        _hp_judge(pg, T, tag, f"熱力圖產業頁 點族群方塊（{d.get('gid')}）", "#heatmap/industry", allow, "#industry/group/" + d.get("gid"), False, None if allow else cur, None if allow else tip)
+    else:
+        ok(f"{T}【{tag}】熱力圖產業頁 找得到族群方塊", False)
+    # ⑤ 熱力圖題材頁：點題材＝同一頁開剖析圖（不是跳頁），每種身分都照開、游標照常是手指
+    pg.evaluate("() => { location.hash = '#heatmap/theme'; }")
+    wait_until(pg, "() => !!document.querySelector('#themeMap canvas')", 15000); pg.wait_for_timeout(800)
+    f = _hp_find(pg, "#themeMap", "id")
+    if f:
+        x, y, d = f
+        cur, tip = _hp_probe(pg, x, y)
+        pg.mouse.click(x, y); pg.wait_for_timeout(700)
+        h = pg.evaluate("() => decodeURIComponent(location.hash)")
+        m = pg.evaluate(GP_MODAL)
+        ok(f"{T}【{tag}】熱力圖題材頁 點題材方塊 → 同頁開剖析圖（{h}），不跳升級卡、游標是手指", h == "#heatmap/theme/" + d.get("id") and not m and cur == "pointer", (h, m, cur))
+    else:
+        ok(f"{T}【{tag}】熱力圖題材頁 找得到題材方塊", False)
+    c.close()
+
+
+def _hp_mobile(b, base, T, tag, who, plan, allow, errs):
+    c, sent, st = _sub_ctx(b, who, width=390, plan=plan, feats={}, lims={}, touch=True)
+    pg = c.new_page(); pg.on("pageerror", lambda e: errs.append(str(e)))
+    pg.goto(base + "#overview", wait_until="domcontentloaded")
+    wait_until(pg, "() => window.TwPerm && TwPerm.state().src === 'server' && !!window.TwQuota", 12000)
+    # 手機總覽是分段導覽（大盤／資金流向／熱度）：熱門題材在「熱度」那一段，真的點那顆
+    wait_until(pg, "() => [...document.querySelectorAll('.mpager button')].some(b => b.textContent.trim() === '熱度')", 15000)
+    pg.locator(".mpager button", has_text="熱度").first.tap()
+    wait_until(pg, "() => { const c = document.getElementById('ovThemeCard'); return !!c && c.getClientRects().length > 0 && !!document.querySelector('#ovTheme canvas'); }", 10000)
+    pg.locator("#ovThemeCard").scroll_into_view_if_needed(); pg.wait_for_timeout(300)
+    pg.locator("#ovThemeDD .ddbtn").tap(); pg.wait_for_timeout(250)
+    pg.locator("#ovThemeDD .ddopt[data-t]:not([data-t=''])").first.tap(); pg.wait_for_timeout(800)
+    pg.locator("#ovTheme").scroll_into_view_if_needed(); pg.wait_for_timeout(300)
+    f = _hp_find(pg, "#ovTheme", "code", cols=4, rows=5)
+    if not f:
+        ok(f"{T}【手機·{tag}】熱門題材 找得到個股方塊", False); c.close(); return
+    x, y, d = f
+    pg.touchscreen.tap(x, y); pg.wait_for_timeout(900)
+    _hp_judge(pg, T, "手機·" + tag, f"390 觸控 總覽 熱門題材 點個股方塊（{d.get('code')}）", "#overview", allow, "#stock/" + d.get("code"), True)
+    sw = pg.evaluate("() => document.documentElement.scrollWidth")
+    ok(f"{T}【手機·{tag}】沒有橫向捲軸（{sw}px）", sw <= 391, sw)
+    c.close()
+
+
+def t_heat_plus_1008(b, base):
+    T = "熱力圖跳個股1008"
+    errs: list[str] = []
+    tiers = [("訪客", None, None, False), ("免費會員", "member", "free", False), ("Plus", "member", "plus", True), ("Pro", "member", "pro", True)]
+    for tag, who, plan, allow in tiers:
+        _hp_desktop(b, base, T, tag, who, plan, allow, errs)
+    for tag, who, plan, allow in tiers:
+        _hp_mobile(b, base, T, tag, who, plan, allow, errs)
+    _hp_desktop(b, base, T, "訪客·連不到會員伺服器", None, None, False, errs, perm_fail=True)
+    _hp_desktop(b, base, T, "管理員（免費範本）", "admin", "free", True, errs)
+    # 截圖（1440；TW_HP_SHOTS＝資料夾）：免費會員點熱門題材個股方塊被擋、Plus 點了進個股頁
+    sh = os.environ.get("TW_HP_SHOTS")
+    if sh:
+        pathlib.Path(sh).mkdir(parents=True, exist_ok=True)
+        for who, plan, allow, n in [("member", "free", False, "free_blocked_1440.png"), ("member", "plus", True, "plus_stock_page_1440.png")]:
+            c, _s, _st = _sub_ctx(b, who, plan=plan, feats={}, lims={})
+            pg = c.new_page()
+            pg.goto(base + "#overview", wait_until="domcontentloaded")
+            wait_until(pg, "() => window.TwPerm && TwPerm.state().src === 'server' && !!document.querySelector('#ovTheme canvas')", 15000)
+            pg.locator("#ovThemeCard").scroll_into_view_if_needed(); _hp_ov_pick(pg)
+            pg.evaluate("() => document.getElementById('ovThemeCard').scrollIntoView({ block: 'center' })"); pg.wait_for_timeout(300)
+            f = _hp_find(pg, "#ovTheme", "code")
+            if f:
+                x, y, d = f
+                _hp_probe(pg, x, y)
+                pg.mouse.click(x, y)
+                pg.wait_for_timeout(3000 if allow else 700)
+                pg.screenshot(path=str(pathlib.Path(sh) / n))
+            c.close()
+    ok(f"{T}：整段沒有 JS 錯誤", not errs, errs[:3])
 
 
 if __name__ == "__main__":
