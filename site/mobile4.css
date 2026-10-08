@@ -222,4 +222,15 @@
 
   /* ---- 15. 手機頂欄不透明（2026-10-08：半透明時，往下捲後面的分段鈕會透過頂欄跟圖示疊在一起） */
   :root.m4 .topbar{background:var(--bg)!important;-webkit-backdrop-filter:none!important;backdrop-filter:none!important;border-bottom:1px solid var(--line)!important}
+
+  /* ---- 16. 資金分流樹的日期拉桿（mobile3.js drill）：把手 32px、手指拖得動；播放中鎖住 */
+  :root.m4 .mdaybar{display:flex;align-items:center;gap:10px;margin:6px 0 4px;touch-action:pan-y}
+  :root.m4 .mdaybar .mplay{flex:none;width:40px;height:40px;border:1px solid var(--line-2);border-radius:10px;background:var(--panel-2);color:var(--ink);font-size:14px}
+  :root.m4 .mdaybar input[type=range]{flex:1 1 auto;min-width:0;height:40px;margin:0;accent-color:var(--cyan);touch-action:pan-x;-webkit-appearance:none;appearance:none;background:transparent}
+  :root.m4 .mdaybar input[type=range]::-webkit-slider-runnable-track{height:6px;border-radius:3px;background:var(--line-2)}
+  :root.m4 .mdaybar input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:32px;height:32px;margin-top:-13px;border-radius:50%;background:var(--cyan);border:3px solid var(--bg);box-shadow:0 0 0 1px var(--cyan)}
+  :root.m4 .mdaybar input[type=range]::-moz-range-thumb{width:32px;height:32px;border-radius:50%;background:var(--cyan);border:3px solid var(--bg)}
+  :root.m4 .mdaybar input[type=range]:disabled{opacity:.45}
+  :root.m4 .mdaybar .mdl{flex:none;font:600 13px var(--mono);color:var(--ink-2);min-width:44px;text-align:right}
+  :root.m4 .mdtree .mroot .mday{margin-left:auto;font:12px var(--mono);color:var(--ink-3)}
 }

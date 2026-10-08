@@ -2130,6 +2130,10 @@
   function layout2d(host) {
     if (!cur || cur.host !== host || !host.isConnected) return;
     const layer = cur.layer;
+    /* 2026-10-08（Andy：「編號…不要直接標在物件上，需要拉一條虛線，將編號放旁邊」）：整張模式（不是「放大」）圖的左右各讓出一條窄邊，
+       編號排在兩側、依零件高度由上往下排、虛線拉回零件（同 3D 的 sideCols）。放大模式（原寸、左右捲）照舊推擠＋躲字。 */
+    const LEAD = !host.classList.contains('mbig');
+    host.classList.toggle('mlead', LEAD);
     const base = host.getBoundingClientRect();
     if (!base.width) return;
     const P = cur.items.map((it, i) => {
@@ -2164,6 +2168,16 @@
       q.B = f ? { x0: Math.max(B.x0, f.x0), y0: Math.max(B.y0, f.y0), x1: Math.min(B.x1, f.x1), y1: Math.min(B.y1, f.y1) } : B; });
     const clampQ = (q) => { q.x = Math.max(q.B.x0, Math.min(q.B.x1, q.x)); q.y = Math.max(q.B.y0, Math.min(q.B.y1, q.y)); };
     P.forEach(clampQ);
+    let textHit = 0;
+    if (LEAD) {
+      const xl = sr.left - base.left + host.scrollLeft - RAD - 2, xr = sr.right - base.left + host.scrollLeft + RAD + 2;
+      const yt = sr.top - base.top + host.scrollTop, yb = sr.bottom - base.top + host.scrollTop;
+      const byX = P.slice().sort((a, b) => a.x0 - b.x0), half = Math.ceil(byX.length / 2);
+      const colY = (arr, x) => { arr.sort((a, b) => a.y0 - b.y0); const g2 = Math.max(MINv, Math.min(MINv + 8, (yb - yt - 2 * RAD) / Math.max(1, arr.length - 1)));
+        let y = yt + RAD; arr.forEach((q) => { q.x = x; q.y = Math.max(y, Math.min(yb - RAD, q.y0)); y = q.y + g2; });
+        for (let i = arr.length - 1; i >= 0; i--) { const lim = yb - RAD - (arr.length - 1 - i) * g2; if (arr[i].y > lim) arr[i].y = lim; if (i < arr.length - 1 && arr[i + 1].y - arr[i].y < g2) arr[i].y = arr[i + 1].y - g2; } };
+      colY(byX.slice(0, half), xl); colY(byX.slice(half), xr);
+    } else {
     /* 推開（全畫布邊界）與夾回各自的格子交替做；夾回去又疊上的那幾顆，放寬成只夾畫布再推一次 */
     for (let k = 0; k < 6; k++) { window.M3.spread(P, MINv, B); P.forEach(clampQ); if (!window.M3.overlaps(P, MINv)) break; }
     if (window.M3.overlaps(P, MINv)) { P.forEach(q => { if (P.some(o => o !== q && Math.hypot(o.x - q.x, o.y - q.y) < MINv - 2)) q.B = B; }); window.M3.spread(P, MINv, B); P.forEach(clampQ); }
@@ -2175,7 +2189,6 @@
     const PAD = RAD + 2;   // 多留 2px：編號層的原點在 host 的 padding box，跟 getBoundingClientRect 的 border box 差 1px 邊框
     const hitT = (x, y) => T.some(r => x + PAD > r.l && x - PAD < r.r && y + PAD > r.t && y - PAD < r.b);
     const hitP = (q, x, y) => P.some(o => o !== q && Math.hypot(o.x - x, o.y - y) < MINv);
-    let textHit = 0;
     P.forEach(q => {
       if (!hitT(q.x, q.y)) return;
       for (let rr = 3; rr <= 160; rr += 3) for (let k = 0; k < 24; k++) {
@@ -2185,6 +2198,7 @@
       }
       textHit++;
     });
+    }
     const ov = window.M3.overlaps(P, MINv);
     layer.dataset.texthit = textHit; layer.dataset.rad = RAD;
     layer.style.width = W + 'px'; layer.style.height = H + 'px';

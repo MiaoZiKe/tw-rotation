@@ -26650,6 +26650,33 @@ def t_mobile_m4_1008(b, base, code):
                 badb[h] = r
         ok(f"【{T}】402 寬主內容區沒有方框與陰影（只用線條分區）", not badb, badb)
         m.set_viewport_size({"width": 390, "height": 844})
+        # ⑮ 資金分流樹日期拉桿：手指拖把手 → 日期與樹真的換；▶ 播放中拉桿鎖住
+        go("flow/sankey", 4500)
+        d0 = J("() => { const r = document.querySelector('.mdaybar input'); if (!r) return null; const b = r.getBoundingClientRect(); return { v: +r.value, x: b.left + b.width - 16, y: b.top + b.height / 2, top: b.top, txt: document.querySelector('#flowSankeyCard .mroot').textContent }; }")
+        ok(f"【{T}】資金分流樹有日期拉桿、在第一屏（{d0 and round(d0['top'])}）", d0 and 0 < d0["top"] < 844, d0)
+        if d0:
+            tp = lambda t, x: cdp.send("Input.dispatchTouchEvent", {"type": t, "touchPoints": [] if t == "touchEnd" else [{"x": x, "y": d0["y"]}]})
+            tp("touchStart", d0["x"])
+            for k in range(1, 13):
+                tp("touchMove", d0["x"] - 10 * k); m.wait_for_timeout(16)
+            tp("touchEnd", 0); m.wait_for_timeout(600)
+            d1 = J("() => ({ v: +document.querySelector('.mdaybar input').value, txt: document.querySelector('#flowSankeyCard .mroot').textContent, th: (() => { const r = document.querySelector('.mdaybar input'); return parseFloat(getComputedStyle(r, '::-webkit-slider-thumb').width) || 32; })() })")
+            ok(f"【{T}】手指拖拉桿 → 日期真的往前（{d0['v']}→{d1['v']}）、樹的數字跟著換", d1["v"] < d0["v"] and d1["txt"] != d0["txt"], (d0, d1))
+            m.locator(".mdaybar .mplay").tap(); m.wait_for_timeout(1600)
+            pl = J("() => ({ dis: document.querySelector('.mdaybar input').disabled, v: +document.querySelector('.mdaybar input').value })")
+            ok(f"【{T}】按 ▶ 播放 → 拉桿鎖住、日期一天一天往後（{pl}）", pl["dis"], pl)
+            m.locator(".mdaybar .mplay").tap(); m.wait_for_timeout(300)
+        # ⑯ 2D 剖析圖編號：整張模式排在兩側＋虛線引線
+        go("industry/electronics", 3500)
+        J("() => { try { localStorage.setItem('tw.dgOpen', '1'); localStorage.setItem('tw.dgnum', '1'); localStorage.setItem('tw.dg3d', '2d'); } catch (e) {} }")
+        go("industry/electronics", 3500)
+        m.locator('#dgPick a:has-text("面板")').first.click(); m.wait_for_timeout(3000)
+        J("() => { const b = document.querySelector('#dg3d button[data-dm=\"2d\"]'); if (b) b.click(); }"); m.wait_for_timeout(1500)
+        l2 = J("""() => { const l = document.querySelector('#prodDiagram .mnumlayer'); const s = document.querySelector('#prodDiagram .dgcanvas svg') || document.querySelector('#prodDiagram svg.dg');
+            if (!l || !s) return null; const S = s.getBoundingClientRect(); const ns = [...l.querySelectorAll('.mnum')].map(b => b.getBoundingClientRect());
+            return { n: ns.length, out: ns.filter(r => r.right <= S.left + 2 || r.left >= S.right - 2).length, lines: l.querySelectorAll('svg path').length, dash: getComputedStyle(l.querySelector('svg path') || l).strokeDasharray }; }""")
+        ok(f"【{T}】2D 編號排在圖的兩側（不壓在零件上）、每顆有虛線引線（{l2}）", l2 and l2["n"] > 0 and l2["out"] == l2["n"] and l2["lines"] >= l2["n"] - 1 and l2["dash"] not in ("none", ""), l2)
+        J("() => { try { localStorage.removeItem('tw.dgOpen'); localStorage.removeItem('tw.dgnum'); localStorage.removeItem('tw.dg3d'); } catch (e) {} }")
         # ⑨ 卡片標題的「?」不准自己佔一行：「?」與標題文字的垂直中心差 ≤ 8px（看得到的文字節點才算）
         badq = []
         for h in ("overview", "flow/rotation", "flow/sankey", "flow/inst", "heatmap/industry", "market", "etf/list", "etf/inc", "season"):
