@@ -2626,7 +2626,8 @@
     };
     const after = () => {
       // 換段＝換一件事，回到這一段的最上面（不然會停在上一段捲到的位置）
-      window.scrollTo({ top: 0 });
+      // 2026-10-08：導覽（tour.js）代按分段時不捲 —— 導覽自己會捲一次到目標，這裡再捲會變成「先跳到頂、再滑下來」
+      if (!document.documentElement.dataset.twtHold) window.scrollTo({ top: 0 });
       setTimeout(miaResize, 30); setTimeout(miaResize, 260);
       if (window.twSwipeScan) setTimeout(window.twSwipeScan, 80);
       miaMore();

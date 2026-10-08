@@ -88,7 +88,8 @@
        站名（.lbl）15px、說明（.stn .sub）13px、代號膠囊 12px（＝--dg-fs-min，不動）、
        圖標題 16px、上中下游色帶 13px、流程格名稱 14px／副字 12px。
      ⚠ 說明字從 12 改 13，wrapSub 的估寬（SUB_FW／SUB_HW）與列距 SUB_LH 要跟著改 —— 三個數字是同一組。*/
-  const TH_STYLE = `<style>.dg.dg3{--dg-fs-ttl:16px;--dg-fs-hd:12.5px;--dg-fs-lbl:15px;--dg-fs-min:12px}
+  const TH_STYLE = `<style>.dg3 .capbtn{fill:var(--dg-accent-2d,#3ee0ff);cursor:pointer;text-decoration:underline} .dg3 .info{fill:var(--dg-ink-3,#8aa);font-size:14px;cursor:pointer}
+    .dg.dg3{--dg-fs-ttl:16px;--dg-fs-hd:12.5px;--dg-fs-lbl:15px;--dg-fs-min:12px}
     .dg.dg3 .stn .sub{font-size:13px} .dg.dg3 .band text{font-size:13px}
     .dg.dg3 .step .lbl{font-size:14px} .dg.dg3 .step .sub{font-size:12px;fill:var(--dg-text-2)}
     .dg3 .m-drum .part{stroke:var(--dg-accent-muted)} .dg3 .desat{filter:saturate(.9)}
@@ -178,7 +179,10 @@
        行數不寫死，不然搬過來的「圖上：…」會直接撞上標籤（processBar 那個老毛病）。
        欄寬夠（1440 以上）時每一條說明都是單行，不會折。*/
     const subs = st.map(s => (s.sub || []).reduce((a, t) => a.concat(wrapSub(t, W - 2)), []));
-    const nsub = Math.max(2, ...subs.map(a => a.length));
+    /* ★ 2026-10-08（Andy：「手機版面 題材跑掉…文字部分再想辦法隱藏，主體被看到就好」）：手機（≤640）每一格只畫零件圖、環節名稱、個股膠囊；
+       說明文字不畫在圖上（不佔高度、不會壓到別的東西），收進 data-desc，點那一格（或右上 ⓘ）從下方展開完整說明；頁首長說明也收成「說明 ›」。 */
+    const MOB = typeof matchMedia === 'function' && matchMedia('(max-width:640px)').matches;
+    const nsub = MOB ? 0 : Math.max(2, ...subs.map(a => a.length));
     const CY = SUB_Y0 + nsub * SUB_LH - 3;
     const slot = (i) => PADX + i * (W + GX);
     /* ★ 2026-10-03 第二輪（Andy：「也不可以發生表格長度不一樣」）：五格一律等高、底線對齊。
@@ -189,10 +193,11 @@
     const body = st.map((s, i) => {
       const x = slot(i), cx = x + W / 2;
       const ch = chs[i];
-      const sub = subs[i].map((t, j) => `<text class="sub" x="${x}" y="${SUB_Y0 + j * SUB_LH}">${esc(t)}</text>`).join('');
+      const sub = MOB ? `<text class="info" x="${x + W - 4}" y="${CAP_Y}" text-anchor="end" aria-hidden="true">ⓘ</text>`
+        : subs[i].map((t, j) => `<text class="sub" x="${x}" y="${SUB_Y0 + j * SUB_LH}">${esc(t)}</text>`).join('');
       /* 零件外面包一層 g.art 並帶上框的尺寸：fit()（SVG 進 DOM 之後）會量 bbox 再等比縮進框裡。
          transform 先寫一個保底值，萬一 fit() 沒被呼叫也不會整排零件疊在原點。*/
-      return `<g class="p3 stn" data-part="${s.id}" data-codes="${(s.codes || []).join(',')}"${s.seg ? ` data-seg="${s.seg}"` : ''}>
+      return `<g class="p3 stn" data-part="${s.id}" data-codes="${(s.codes || []).join(',')}"${s.seg ? ` data-seg="${s.seg}"` : ''}${MOB ? ` data-lbl="${esc(s.label)}" data-desc="${esc((s.sub || []).join('\n'))}"` : ''}>
         <rect class="slot" x="${x - 7}" y="${BAND_Y + 12}" width="${W + 14}" height="${slotH}" rx="10"/>
         <g class="art" data-cx="${cx}" data-cy="${ART_C}" data-mw="${W - 8}" data-mh="${ART_MH}" data-k="${s.k || 1}"
            transform="translate(${cx},${ART_B - 14}) scale(${Math.min(1, s.k || 1)})">${s.art()}</g>
@@ -228,17 +233,29 @@
     }).join('');
     /* o.unit ＝ 這張圖「該怎麼讀」那一行。爆炸圖時代寫的是「由上而下」的拆解順序，
        改成水平之後方向語意跟著換成「由左到右」，每一張各自照自己的鏈重寫（見各 T.* 的那一行）。*/
-    const unit = o.unit ? `<text class="cap" x="${PADX}" y="64">${esc(o.unit)}</text>` : '';
+    const unit = o.unit && !MOB ? `<text class="cap" x="${PADX}" y="64">${esc(o.unit)}</text>` : '';
     return `<svg class="dg dg3" data-cw="${CANW}"${curTid ? ` data-tid="${curTid}"` : ''} viewBox="0 0 ${CANW} ${H}" width="100%" style="display:block">${STYLE}${TH_STYLE}${AI_STYLE}${MAT_STYLE}
       <defs><radialGradient id="dg3sh"><stop offset="0" style="stop-color:var(--dg-drop)"/><stop offset=".55" style="stop-color:var(--dg-drop);stop-opacity:.7"/><stop offset="1" style="stop-color:var(--dg-drop);stop-opacity:0"/></radialGradient></defs>
       <text class="ttl" x="${PADX}" y="24">${esc(o.title)}</text>
-      <text class="cap" x="${PADX}" y="45">${esc(o.cap)}</text>
+      ${MOB ? `<text class="cap capbtn" x="${PADX}" y="45" data-cap="${esc([o.cap, o.unit].filter(Boolean).join('\n'))}">說明 ›</text>` : `<text class="cap" x="${PADX}" y="45">${esc(o.cap)}</text>`}
       ${unit}${bands}${ribbon}${body}
       <text class="cap" x="${PADX}" y="${sy - 9}">${esc(o.flowTitle || '產業鏈流程')}</text>${strip}
       <text class="cap" x="${PADX}" y="${H - 12}">原創等角示意圖，非實物比例；每個環節的顏色＝族群色</text>
     </svg>`;
   }
   const S = (id, band, label, sub, codes, seg, art, k) => ({ id, band, label, sub, codes, seg, art, k });
+  /* 手機：點一格（或頁首「說明 ›」）從下方展開完整說明（data-desc／data-cap；只有手機版的圖才有這兩個屬性） */
+  document.addEventListener('click', (e) => {
+    const t = e.target; if (!t || !t.closest || !window.M3 || !window.M3.openSheet) return;
+    const cap = t.closest('svg.dg3 .capbtn');
+    const st = !cap && t.closest('svg.dg3 .p3.stn[data-desc]');
+    if (!cap && !st) return;
+    const head = cap ? '這張圖怎麼看' : st.dataset.lbl;
+    const lines = (cap ? cap.dataset.cap : st.dataset.desc || '').split('\n').filter(Boolean);
+    // 晚一拍開：點一格同時會選起那一格（可能換網址），換網址會把下方說明關掉
+    const html = `<div class="mshhead"><b>${esc(head)}</b></div><div class="mshbody">${lines.map((x) => `<i>${esc(x)}</i>`).join('') || '<i>（這一格沒有額外說明）</i>'}</div>`;
+    setTimeout(() => window.M3.openSheet(html, { kind: 'dg3info' }), 80);
+  }, true);   // capture：題材頁的選取處理會 stopPropagation，冒泡階段收不到
 
   /* ★ 2026-09-23 批次 0923-D：垂直的爆炸圖版面（explodeScene／EX／EX980／BAND_TAG）在這裡整個刪掉。
      Andy 原話：「也看到部分提才是垂直版面，題材一律統一水平」。
@@ -2092,23 +2109,26 @@
     layout(root);
     watch(root);
   }
-  function layout(root) {
+  function layout(root, n) {
     nativeWidth(root);
+    let retry = false;
     root.querySelectorAll('.p3.stn > g.art').forEach(art => {
       const cx = +art.dataset.cx, cy = +art.dataset.cy;
       const mh = +art.dataset.mh, mw = +art.dataset.mw;
       if (!mh || !mw) return;
       const hint = Math.max(.5, Math.min(1, +art.dataset.k || 1));
-      art.removeAttribute('transform');
       let bb;
-      try { bb = art.getBBox(); } catch (e) { return; }
-      if (!bb || !bb.height || !bb.width) return;
+      try { bb = art.getBBox(); } catch (e) { bb = null; }
+      /* 2026-10-08（Andy 手機截圖：零件圖壓在標題和環節名上）：圖還沒顯示出來（換題材那一刻、在收起來的分頁裡）量不到大小，
+         以前就直接放棄、零件停在保底位置 —— 正好蓋在標題與環節名上。改成等看得到了再排一次。 */
+      if (!bb || !bb.height || !bb.width) { retry = true; return; }
       // 上限 1.7 → 2.4：畫布變寬之後框最高 128px、寬到約 290px，零件要能跟著放大，不然框長高了圖還是小小一顆
       const k = Math.max(.3, Math.min(2.4, Math.min(mh / bb.height, mw / bb.width))) * hint;
       const tx = cx - (bb.x + bb.width / 2) * k;
       const ty = cy - (bb.y + bb.height / 2) * k;
       art.setAttribute('transform', `translate(${tx.toFixed(1)},${ty.toFixed(1)}) scale(${k.toFixed(3)})`);
     });
+    if (retry && (n || 0) < 20 && root.isConnected) setTimeout(() => layout(root, (n || 0) + 1), 250);
   }
 
   /* ---------------------------------------------------------------- 原尺寸（native）

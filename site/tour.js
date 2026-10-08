@@ -627,7 +627,8 @@
     const r = typeof st.route === 'function' ? st.route() : st.route;
     if (!r) return true;
     const h = location.hash || '';
-    const re = (isMob() && st.mobRe) || st.routeRe;   // 手機分段不改網址：已經在那一頁就不重切
+    // 手機分段不改網址：已經在那一頁就不重切。2026-10-08 手機 v2（html.m4）的子頁是真的網址（#flow/sankey…，同電腦版），照電腦版的規則切
+    const re = (isMob() && !document.documentElement.classList.contains('m4') && st.mobRe) || st.routeRe;
     return re ? re.test(h) : h === r;
   }
   function viewOn(v) { const e = document.getElementById('v-' + v); return !v || (e && e.classList.contains('on')); }
@@ -669,7 +670,18 @@
         const r = typeof st.route === 'function' ? st.route() : st.route;
         if (r) { cardOut(); location.hash = r; moved = true; }
       }
+      /* 2026-10-08（Andy：「導覽功能在確認 會一直上下上下移動」）：手機的前置動作（切分段）會讓 app.js 把整頁捲回最上面
+         （miaPager 的「換段回到頂端」），接著 bring() 又往下捲到目標 —— 一步裡先跳到頂、再滑下來。
+         前置動作之後把捲動位置放回原處（瞬間、不動畫），讓 bring() 從原處只捲一次。 */
+      const y0 = window.scrollY;
+      // app.js 的「換段回到頂端」看到這個旗標就不捲（它是 smooth，會在 bring() 之後才開始跑，所以不能事後再捲回來）
+      document.documentElement.dataset.twtHold = '1';
       if (st.before) { try { await st.before(); } catch (e) { /* 示範動作失敗就當沒有這一步的前置，照樣去找元素 */ } }
+      delete document.documentElement.dataset.twtHold;
+      if (!moved && Math.abs(window.scrollY - y0) > 1) {
+        const maxY = Math.max(0, document.documentElement.scrollHeight - window.innerHeight);
+        window.scrollTo({ top: Math.min(y0, maxY), behavior: 'instant' });
+      }
       if (!run || run.seq !== my) return;
       const got = await waitFor(st, moved ? 7000 : (st.fast ? 600 : 2200), my);
       if (!run || run.seq !== my) return;
@@ -757,6 +769,7 @@
     if (!run) return;
     const r = run; run = null;
     watch(false);
+    delete document.documentElement.dataset.twtHold;
     window.removeEventListener('keydown', onKey, true);
     if (ui) { ui.root.remove(); }
     locks();

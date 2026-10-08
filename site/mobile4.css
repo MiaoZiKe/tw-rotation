@@ -7,7 +7,7 @@
 @media (max-width:640px){
   /* ---- 1. 底部五格導覽退役：#tabs 整條藏起來（節點還在，route() 照舊用 .tab 標目前頁；側欄抽屜在 mobile4.js） ---- */
   :root.m4 body.m3on #tabsWrap,:root.m4 body.m3on .tabs,:root.m4 #mTabMore{display:none!important}
-  :root.m4 body.m3on main,:root.m4 body.m3on.miaon main{padding-bottom:calc(24px + env(safe-area-inset-bottom))}
+  :root.m4 body.m3on main,:root.m4 body.m3on.miaon main{padding-bottom:calc(72px + env(safe-area-inset-bottom))}   /* 2026-10-08：留給右下角客服鈕（42px＋16px），最後一列不被蓋住 */
   /* 舊的三顆大步驟鈕與「下一步」：app.js 在 m4 下已經不畫，這裡是第二道保險 */
   :root.m4 .mspine,:root.m4 .mnext{display:none!important}
   /* 側欄子分頁已經把 ETF 的頁內三顆子分頁取代掉（同電腦版 :root.l4 #v-etf .etfsub） */
@@ -21,10 +21,31 @@
   :root.m4 .topbar .brand b{display:none}
   :root.m4 .topbar .brand{min-width:0;flex:1 1 auto;margin-right:8px;overflow:hidden}
   :root.m4 .topbar .brand>div{min-width:0}
-  :root.m4 .m4title{display:flex;flex-direction:column;line-height:1.2;min-width:0}
-  :root.m4 .m4title i{font-style:normal;font-size:12px;color:var(--ink-3);letter-spacing:.02em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block}
-  :root.m4 .m4title span{font-size:16px;font-weight:700;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  :root.m4 body.m3on .msearchbtn{margin-left:4px}
+  /* 2026-10-08 Andy：「上方留LOGO就好」→ 頂欄只剩 ☰＋頭像＋右邊一排小圖示；頁名搬到內容區頁首（.m4pghead） */
+  :root.m4 .topbar .brand>div:not(.logo){display:none}
+  :root.m4 .topbar .brand{flex:0 0 auto;margin-right:auto}
+  :root.m4 .topbar #moreBtn,:root.m4 .topbar #mSearchBtn,:root.m4 #morePop{display:none!important}
+  :root.m4 .m4tools{display:flex;align-items:center;gap:4px;flex:none;min-width:0}
+  :root.m4 .m4tools>*{flex:none}
+  :root.m4 .m4tools #themeBtn,:root.m4 .m4tools #t4Btn,:root.m4 .m4tools #twPageTourBtn,:root.m4 .m4tools .m4login,:root.m4 .m4tools #acctBtn{
+    display:inline-grid!important;place-items:center;min-width:40px;height:40px;margin:0;padding:0 6px;border:1px solid var(--line-2);border-radius:10px;
+    background:var(--panel);color:var(--ink);font-size:14px;line-height:1;cursor:pointer;box-sizing:border-box}
+  :root.m4 .m4tools #themeBtn,:root.m4 .m4tools #t4Btn,:root.m4 .m4tools #twPageTourBtn{width:40px;padding:0}
+  :root.m4 .m4tools #t4Btn .m4ic{width:19px;height:19px}
+  :root.m4 .m4tools #acctBtn .anm{display:none}
+  :root.m4 .m4tools #acctBtn img{width:24px;height:24px;border-radius:50%}
+  :root.m4 .m4tools #acctOnline{display:inline-flex;align-items:center;gap:4px;height:40px;padding:0 2px;border:0;background:none;color:var(--ink-2);font-size:12px;white-space:nowrap}
+  :root.m4 .m4tools #acctOnline[hidden]{display:none}
+  :root.m4 .m4tools #acctOnline i{width:8px;height:8px;border-radius:50%;background:#35d07f;box-shadow:0 0 0 3px rgba(53,208,127,.18)}
+  :root.m4 .m4tools #acctOnline span{display:none}
+  :root.m4 .m4logintip{position:fixed;z-index:2100;max-width:280px;padding:12px 14px;border:1px solid var(--line-2);border-radius:12px;background:var(--panel);color:var(--ink);font-size:13px;box-shadow:0 8px 24px rgba(0,0,0,.35)}
+  :root.m4 .m4logintip p{margin:6px 0 0;color:var(--ink-2)}
+  :root.m4 .m4logintip[hidden]{display:none}
+  /* 內容區頁首大標（同電腦版 #l4Head 的頁名） */
+  .m4pghead{display:none}
+  :root.m4 .m4pghead[hidden]{display:none}
+  :root.m4 .m4pghead:not([hidden]){display:block;margin:8px 0 0;font-size:18px;font-weight:700;line-height:1.3;color:var(--ink)}
+  :root.m4 .m4pghead span{font-size:16px;font-weight:600;color:var(--ink-2);margin-left:6px}
 
   /* ---- 3. 側欄抽屜 ---- */
   :root.m4 .m4back{position:fixed;inset:0;z-index:1990;background:rgba(0,0,0,.55)}
@@ -87,4 +108,94 @@
 @media (max-width:640px){
   /* 導覽浮層的「略過」38×34 → 40（手機按鈕普查） */
   :root.m4 #twTour .twt-skip{min-height:40px;min-width:40px}
+
+  /* ---- 5. 內容卡攤平（2026-10-08 Andy：「因為手機版面受限，旁邊的邊框都不要了，並且將所有內容框展開，調整適當大小」） ----
+     外層卡：不要邊框、圓角、陰影、左右內距，內容貼齊螢幕（main 左右只留 8px）；
+     卡中卡：內層也不要邊框與內距，標題列留著，區塊之間用細分隔線＋12px 間距。 */
+  :root.m4 body main{padding-left:8px!important;padding-right:8px!important}
+  :root.m4 main .view .card{border:0!important;border-radius:0!important;box-shadow:none!important;background:transparent!important;
+    padding-left:0!important;padding-right:0!important;padding-top:10px!important;padding-bottom:10px!important;margin-left:0!important;margin-right:0!important}
+  /* 其他頁自己的外框容器（ETF 頁的 .etfbody 分頁外框）也一樣攤平 */
+  :root.m4 #v-etf .etfbody{border:0!important;border-radius:0!important;background:transparent!important;padding:0!important;box-shadow:none!important}
+  :root.m4 main .view .card::before,:root.m4 main .view .card::after{display:none!important}
+  :root.m4 main .view>.card+.card,:root.m4 main .view .card~.card{border-top:1px solid var(--line)!important}
+  :root.m4 main .view .card .card{padding-top:12px!important;padding-bottom:0!important;margin-top:12px!important;border-top:1px solid var(--line)!important}
+  :root.m4 .m4pghead{margin:2px 0 0;font-size:18px;line-height:1.2}
+
+  /* ---- 6. 產業鏈頁的供應鏈關聯圖（2026-10-08 Andy：「下方只要出現關聯圖就好，而且關聯圖可以拖曳移動，手機版若是太小，把關聯圖改成垂直」）
+     · 環節色標那一大串收成一顆「篩選環節 ▾」下拉（同電腦版 .segdd 的面板）；
+     · 環節卡清單（#chainList）與「全部展開」那列不出現 —— 只留關聯圖本體（industry.js 在 m4 下畫成上下排）；
+     · 關聯圖自己一個可以用手指拖曳捲動的框（高度上限一屏左右），不准左右捲。 */
+  :root.m4 .segdd .ddbtn{display:inline-flex!important;align-items:center;gap:6px;min-height:40px;padding:0 12px;border-radius:10px;border:1px solid var(--line-2);
+    background:var(--panel-2);color:var(--ink-2);font-size:14px;font-family:inherit;white-space:nowrap;max-width:100%}
+  :root.m4 .segdd .ddbtn::before{content:"篩選"}
+  :root.m4 .segdd .ddbtn b{color:var(--ink);font-weight:600;overflow:hidden;text-overflow:ellipsis}
+  :root.m4 .segdd .ddbtn i{font-style:normal;color:var(--ink-3);font-size:12px}
+  :root.m4 .segdd{position:relative;display:inline-flex;margin-bottom:8px}
+  :root.m4 #segChips{display:none!important}
+  :root.m4 .segdd.open #segChips{display:flex!important;position:absolute;z-index:40;top:calc(100% + 4px);left:0;margin:0;flex-direction:column;flex-wrap:nowrap;gap:0;
+    width:calc(100vw - 32px);max-height:60vh;overflow-y:auto;padding:4px;border-radius:10px;border:1px solid var(--line-2);background:var(--panel);box-shadow:0 10px 26px rgba(0,0,0,.35)}
+  :root.m4 .segdd.open #segChips>*{width:100%;justify-content:flex-start;min-height:40px;border-radius:7px}
+  :root.m4 #indChain #chainList,:root.m4 #indChain #segTools{display:none!important}
+  :root.m4 #indChain #chainMap{max-height:78vh;overflow-y:auto;overflow-x:hidden;overscroll-behavior:contain;touch-action:pan-y;
+    border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+
+  /* ---- 7. 月曆格（2026-10-08 Andy：「所有日曆若是不夠放下全部文字，至少留重點，像圖中重點是股票代碼」）
+     配息行事曆：代號一定完整，金額拿掉（點格子在下面清單看完整金額）；放不下的收成「+N 檔」（etfpage.js 原本就會）。 */
+  :root.m4 #v-etf .cald{padding:3px 2px!important}
+  :root.m4 #v-etf .cald .ce .ca{display:none!important}
+  :root.m4 #v-etf .cald .ce .cc{overflow:visible!important;text-overflow:clip!important;font-size:11px!important;letter-spacing:-.02em}
+  :root.m4 #v-etf .cald .cm{font-size:11px}
+
+  /* ---- 8. ETF 一覽精簡列（2026-10-08 Andy：「手機版本底下 ETF 子卡再縮減，不要一直要往下滑，改成 代號 名稱 價格 配息方式 殖利率」）
+     同一顆 .etfc（點了照常進個股頁），只把卡片排成一行五欄；成交值、規模、走勢小圖、分類徽章在手機不出現。 */
+  :root.m4 #v-etf .etfgrid{grid-template-columns:1fr!important;gap:0!important}
+  :root.m4 #v-etf .etfc{display:grid!important;grid-template-columns:52px minmax(0,1fr) 58px 54px 48px;align-items:center;column-gap:5px;
+    min-height:46px;padding:4px 4px!important;border:0!important;border-bottom:1px solid var(--line)!important;border-radius:0!important;background:transparent!important}
+  :root.m4 #v-etf .etfc.fqbar::before,:root.m4 #v-etf .etfc.sgbar::before{display:none!important}
+  :root.m4 #v-etf .etfc .h,:root.m4 #v-etf .etfc .px,:root.m4 #v-etf .etfc dl{display:contents!important}
+  :root.m4 #v-etf .etfc .h>.sp,:root.m4 #v-etf .etfc .h>.etag,:root.m4 #v-etf .etfc .px>span,:root.m4 #v-etf .etfc dt,:root.m4 #v-etf .etfc dd{display:none!important}
+  :root.m4 #v-etf .etfc .cd{grid-column:1;grid-row:1;font:600 13px var(--mono)!important;color:var(--ink)!important}
+  :root.m4 #v-etf .etfc .nm{grid-column:2;grid-row:1;font-size:14px!important;font-weight:600}
+  :root.m4 #v-etf .etfc .px>b{grid-column:3;grid-row:1;font:700 14px var(--mono)!important;text-align:right}
+  :root.m4 #v-etf .etfc .fq{grid-column:4;grid-row:1;justify-self:center;font-size:12px;white-space:nowrap;padding-left:4px;padding-right:4px}
+  :root.m4 #v-etf .etfc dd.yv{display:block!important;grid-column:5;grid-row:1;text-align:right;font:13px var(--mono);color:var(--amber)}
+
+  /* ---- 9. 現金流試算／複利試算的控制區：手機收成一行「條件 ▾」摘要（mobile4.js wireCond），點開才看到全部控制項 */
+  :root.m4 #v-etf .m4cond{display:flex;align-items:center;gap:8px;width:100%;min-height:44px;margin:0 0 8px;padding:0 12px;border:1px solid var(--line-2);border-radius:10px;
+    background:var(--panel-2);color:var(--ink);font:inherit;font-size:14px;text-align:left;cursor:pointer}
+  :root.m4 #v-etf .m4cond span{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  :root.m4 #v-etf .m4cond i{font-style:normal;color:var(--ink-3)}
+  :root.m4 #v-etf #incPM>.incctl:not(.m4open),:root.m4 #v-etf #incPX .cxctl:not(.m4open){display:none!important}
+  :root.m4 #v-etf .inctabrow .inctabs{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none}
+  :root.m4 #v-etf .inctabrow .inctabs>button{flex:none}
+
+  /* ---- 10. 客服鈕回到右下角（2026-10-08 Andy 手機準則第 4 條）：底部導覽已經拿掉，不用再墊 84px */
+  :root.m4 .supfab{bottom:calc(16px + env(safe-area-inset-bottom))!important;right:16px!important}
+  :root.m4 .suppanel{bottom:calc(68px + env(safe-area-inset-bottom))!important}
+
+  /* ---- 11. ETF 總覽的三張前 5 名：手機改成左右滑的一列（一次一張多一點），整頁才壓得進 3 屏（Andy 手機準則第 1 條） */
+  :root.m4 #v-etf .etftri{display:flex!important;overflow-x:auto;scroll-snap-type:x mandatory;gap:10px;scrollbar-width:none;touch-action:pan-x pan-y}
+  :root.m4 #v-etf .etftri>.card{flex:0 0 86%;scroll-snap-align:start}
+
+  /* main 左右內距從 14 改 8 之後，個股頁那幾塊「貼齊螢幕」的負邊距也要跟著改（不然多出 6px 橫向捲軸） */
+  :root.m4 body.m3on .mbhead{margin:-8px -8px 0!important}
+  :root.m4 body.m3on .mbtblwrap,:root.m4 body.m3on .mbtags,:root.m4 body.m3on .mbnews,:root.m4 body.m3on .mbkv,:root.m4 body.m3on .mbmiss{margin-left:-8px!important;margin-right:-8px!important}
+
+  /* ---- 12. 資金分流樹（2026-10-08 Andy：「資金樹 Default 就在最上方開啟…外面那個框拿掉」） */
+  :root.m4 .mdtree .mroot{display:flex;align-items:baseline;gap:8px;padding:6px 2px 2px;font-size:16px;font-weight:700;color:var(--ink)}
+  :root.m4 .mdtree .mroot b{font:700 16px var(--mono);color:var(--cyan)}
+  :root.m4 #mSankeyRank.m4shut{display:none!important}
+  :root.m4 #mSankeyRank{border:0!important;border-radius:0!important;background:transparent!important;padding:0!important;box-shadow:none!important}
+  :root.m4 .mrkhd{display:flex;align-items:center;gap:6px;width:100%;min-height:44px;margin-top:12px;padding:0 2px;border:0;border-top:1px solid var(--line);
+    background:transparent;color:var(--ink);font:inherit;font-size:15px;font-weight:700;text-align:left;cursor:pointer}
+  :root.m4 .mrkhd[hidden]{display:none}
+  :root.m4 .mrkhd i{font-style:normal;color:var(--ink-3)}
+  .mdtree .mroot{display:none}
+  :root.m4 .mdtree .mroot{display:flex}
+
+  /* ---- 13. 卡片標題列的「?」不准自己佔一行（2026-10-08）：標題後面那行小字（檔數／平均／標準差…）排到最後、自己一行，「?」留在標題旁邊 */
+  :root.m4 main .view h3:has(>.howbtn)>small{order:10;flex-basis:100%;margin:2px 0 0;white-space:normal}
+  :root.m4 main .view .row.spread:has(>h3>.howbtn){flex-wrap:wrap}
+  :root.m4 main .view .row.spread>h3:has(>.howbtn){flex:1 1 100%;min-width:0}
 }

@@ -16,7 +16,8 @@
 .cg-we:not(.today):not(.out):not(.sel){background:color-mix(in srgb,var(--ink) 14%,var(--panel))!important;color:var(--ink-3)!important}
 .cg-we:not(.out) .dn b{color:var(--ink-3)!important}
 .cg-hol:not(.today):not(.out):not(.sel){background:color-mix(in srgb,var(--violet) 16%,var(--panel-2))!important}
-.cg-hl{display:block;font-size:12px;line-height:16px;color:var(--violet);font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}`;
+.cg-hl{display:block;font-size:12px;line-height:16px;color:var(--violet);font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+@media (max-width:640px){.cg-hl[data-s]{text-overflow:clip}.cg-hl[data-s]>.cg-hf{display:none}.cg-hl[data-s]::after{content:attr(data-s)}}`;
     document.head.appendChild(s);
   }
   function load() {
@@ -34,7 +35,9 @@
   /* 格內小字「國慶日・休市」；非休市日回空字串。
      滑過提示只寫「X・台股休市（證交所公告）」：tw_holidays.json 的 verified 是查證紀錄（WebSearch 摘要、資料湖交易日對照），
      讀者用不到，10-06 廢話普查第二輪拿掉（只留在 pipeline/calendar/tw_holidays.yaml）。 */
-  const tag = (k) => { const h = holiday(k); return h ? `<span class="cg-hl" title="${esc(h)}・台股休市（證交所公告）">${esc(h)}・休市</span>` : ''; };
+  /* 2026-10-08（Andy：「所有日曆若是不夠放下全部文字，至少留重點」）：手機（≤640）格子窄，只放兩字簡稱（國慶、光復），不出現「國慶日…」；桌機照舊全名 */
+  const short2 = (h) => String(h).replace(/[（(].*$/, '').slice(0, 2);
+  const tag = (k) => { const h = holiday(k); return h ? `<span class="cg-hl" data-s="${esc(short2(h))}" title="${esc(h)}・台股休市（證交所公告）"><span class="cg-hf">${esc(h)}・休市</span></span>` : ''; };
   /* 一屏格高：格高＝（視窗剩下的高度 − 星期列 − 間距）÷ 列數，夾在 min～max；回傳格高 */
   function fit(grid, rows, min, max, gap, extra) {
     const top = grid.getBoundingClientRect().top + window.scrollY;

@@ -675,9 +675,13 @@
        長條與排名各住一個子容器 —— 長條每點一次就整個重寫，不能把排名一起洗掉。*/
     //   只放在資金流向頁那一份（總覽的「昨日資金分流樹」是摘要，不加長；id 也只能有一個）。
     const onFlow = !!box.closest('#flowSankeyCard');
-    box.innerHTML = '<div class="mdtree"></div>' + (onFlow ? '<div class="hpanel skrank" id="mSankeyRank" hidden></div>' : '');
-    const tree = box.querySelector('.mdtree'), rk = box.querySelector('#mSankeyRank');
-    const draw = () => { tree.innerHTML = `<div class="msub">台股 → 產業鏈 → 族群 → 個股</div><ul class="mrank">${rows('台股成交值', 1)}</ul>`; box.dataset.open = open.size; };
+    /* ★ 2026-10-08（Andy：「資金樹 Default 就在最上方開啟…外面那個框拿掉」）：
+       根節點「台股成交值 X 億」放在最上面一列（樹由上往下：根 → 產業鏈 ▸ → 族群 ▸ → 個股）；
+       下方的「資金流向排名」改成一顆「資金流向排名 ▸」標題列，預設收起，點了才展開（手機準則第 5 條）。 */
+    box.innerHTML = '<div class="mdtree"></div>' + (onFlow ? '<button type="button" class="mrkhd" id="mSankeyRankHd" aria-expanded="false" hidden>資金流向排名 <i aria-hidden="true">▸</i></button><div class="hpanel skrank m4shut" id="mSankeyRank" hidden></div>' : '');
+    const tree = box.querySelector('.mdtree'), rk = box.querySelector('#mSankeyRank'), rkh = box.querySelector('#mSankeyRankHd');
+    if (rkh) rkh.onclick = () => { const on = rk.classList.contains('m4shut'); rk.classList.toggle('m4shut', !on); rkh.setAttribute('aria-expanded', on ? 'true' : 'false'); rkh.querySelector('i').textContent = on ? '▾' : '▸'; };
+    const draw = () => { tree.innerHTML = `<div class="mroot"><span class="n">台股成交值</span><b>${yi(total)} 億</b></div><div class="msub">台股 → 產業鏈 → 族群 → 個股</div><ul class="mrank">${rows('台股成交值', 1)}</ul>`; box.dataset.open = open.size; };
     tree.addEventListener('click', (e) => {
       const li = e.target.closest('li[data-k]'); if (!li) return;
       const k = li.dataset.k; open.has(k) ? open.delete(k) : open.add(k); draw();
@@ -685,7 +689,7 @@
     draw();
     if (rk) load('sankey_daily').then(sd => {
       if (!sd || !(sd.dates || []).length || !box.isConnected || !(window.App && App.sankeyRankDraw)) return;
-      rk.hidden = false;
+      rk.hidden = false; if (rkh) rkh.hidden = false;
       /* 點排名的列＝在上面的長條裡展開那個族群（找到它掛在哪一條鏈底下），再捲過去 —— 原地展開，不換頁。*/
       App.sankeyRankDraw(rk, sd, sd.dates.length - 1, (gid) => {
         const g = (sd.groups || []).find(x => x.gid === gid); if (!g) return;

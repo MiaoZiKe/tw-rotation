@@ -870,7 +870,10 @@
       hdHTML = (k, it) => `class="fqhd sghd sgc-${it._sgi % 8}" data-sg="${esc(k)}"><i></i>${esc(k)}`;
     }
     list.forEach((it) => { const k = keyOf(it); cnt[k] = (cnt[k] || 0) + 1; });
-    const fold = new Set(foldGet()[S.cat] || []);
+    /* 2026-10-08（Andy：「Default 是收起來的」）：從來沒操作過（tw.etf.fold 沒有這個分類）＝全部收起；只有一組的分類照舊展開（不然畫面是空的）。
+       改前：沒記錄＝全部展開。使用者展開／收起之後照舊記在 tw.etf.fold（空陣列＝全部展開）。 */
+    const F0 = foldGet()[S.cat], keys0 = Object.keys(cnt);
+    const fold = new Set(F0 != null ? F0 : (keys0.length > 1 ? keys0 : []));
     let html = '', cur = null, vis = 0, visTotal = 0;
     list.forEach((it) => { if (!fold.has(keyOf(it))) visTotal++; });
     for (const it of list) {
@@ -884,11 +887,11 @@
     g.innerHTML = html || '<div class="etfprep">無資料</div>';
     if (!grp) g.dataset.sgcnt = JSON.stringify(cnt);
     $$('button.fqhd', g).forEach((h) => { h.onclick = () => {
-      const F = foldGet(), st = new Set(F[S.cat] || []), k = h.dataset.key;
+      const F = foldGet(), st = new Set(F[S.cat] != null ? F[S.cat] : [...fold]), k = h.dataset.key;
       st.has(k) ? st.delete(k) : st.add(k); F[S.cat] = [...st]; foldSet(F); drawList();
       const nh = $$('button.fqhd', g).find((x) => x.dataset.key === k); if (nh) nh.focus(); }; });
     $('#etfFoldAll').onclick = () => { const F = foldGet(); F[S.cat] = Object.keys(cnt); foldSet(F); drawList(); };
-    $('#etfOpenAll').onclick = () => { const F = foldGet(); delete F[S.cat]; foldSet(F); drawList(); };
+    $('#etfOpenAll').onclick = () => { const F = foldGet(); F[S.cat] = []; foldSet(F); drawList(); };   // 空陣列＝全部展開（沒有記錄＝預設全部收起）
     $$('.etfc', g).forEach((c) => { c.onclick = () => A().goStock(c.dataset.code); });
     const more = $('#etfMore'); more.hidden = visTotal <= S.shown;
     more.textContent = `顯示更多（還有 ${Math.max(0, visTotal - S.shown)} 檔）`;

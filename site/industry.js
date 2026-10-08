@@ -1258,7 +1258,7 @@
                    手動那顆就是多餘的；他要的是跟著主題，不是自己按。
                    自動切換那條路（themePal／tw:theme）一行都沒動，wirePal 仍然會被呼叫來接 3D 的 setPal。
                「收合圖 ▴」#dgFold 因此不再被前面三顆擠到第二行，跟其餘設定鈕同一排。 -->
-          <div class="dgsectitle"><small class="muted" id="dgTitle"></small><button class="howbtn pop" data-how="dg" data-ttl="產品剖析圖" type="button" aria-label="產品剖析圖怎麼看">?</button></div><span class="row" id="dgTools" style="gap:6px"><span class="seg tiny dgmode" id="dg3d" data-mode="2d" role="group" aria-label="剖析圖顯示方式：平面或立體" hidden><button type="button" data-dm="2d" class="on" aria-pressed="true" title="平面剖析圖">2D</button><button type="button" data-dm="3d" aria-pressed="false" title="立體剖析圖（可拖曳轉動、滾輪拉近）">3D</button></span><span class="pill" id="dgAnim" style="cursor:pointer">動畫：開</span><span class="pill" id="dgFold" style="cursor:pointer">收合圖 ▴</span></span></div>
+          <div class="dgsectitle"><small class="muted" id="dgTitle"></small><button class="howbtn pop" data-how="dg" data-ttl="產品剖析圖" type="button" aria-label="產品剖析圖怎麼看">?</button></div><span class="row" id="dgTools" style="gap:6px"><span class="seg tiny dgmode" id="dg3d" data-mode="2d" role="group" aria-label="剖析圖顯示方式：平面或立體" hidden><button type="button" data-dm="2d" class="on" aria-pressed="true" title="平面剖析圖">2D</button><button type="button" data-dm="3d" aria-pressed="false" title="立體剖析圖（可拖曳轉動、滾輪拉近）">3D</button></span><span class="pill" id="dgNum" style="cursor:pointer" role="button" aria-pressed="true">編號：開</span><span class="pill" id="dgAnim" style="cursor:pointer">動畫：開</span><span class="pill" id="dgFold" style="cursor:pointer">收合圖 ▴</span></span></div>
           <!-- ★ 2026-09-24 說明精簡：「這張圖回答」(#dgQ) 與操作說明搬進「怎麼看 ?」；圖名與「原創示意圖，非實物比例」留在 #dgTitle。 -->
           <div class="howtxt" id="how-dg" hidden><div id="dgQ"></div>${A.howHTML('', [
             /* ★ 2026-10-04（docs/howto_audit_1004.md 第 5 項）：改前五條寫死給所有鏈，傳產這類鏈沒有關聯圖、也沒有 2D/3D，
@@ -1701,7 +1701,7 @@
          而 Default 真正要給人看的是下面那份環節卡清單（有上下游與個股標籤）。
          桌機預設展開；選擇記在 localStorage，跟剖析圖那顆是同一種做法。*/
       const foldRel = $('#relFold', el);
-      let relOpen = window.innerWidth >= 640;
+      let relOpen = window.innerWidth >= 640 || document.documentElement.classList.contains('m4');   // 2026-10-08 手機 v2：圖改成上下排、不用左右滑，預設打開
       try { const v = localStorage.getItem('tw.relOpen'); if (v != null) relOpen = v === '1'; } catch (e) { /* 忽略 */ }
       const paintRelFold = () => {
         if (mapHost) mapHost.hidden = !relOpen;
@@ -1846,6 +1846,20 @@
         try { localStorage.setItem('tw.dganim', on ? '1' : '0'); } catch (e) { /* 忽略 */ }
       };
       if (animBtn) animBtn.onclick = () => setAnimAll($('#prodDiagram', el).classList.contains('noanim'));
+      /* 2026-10-08（Andy：「手機版面已經很小了，所以需要多一個說明編號開關選項」）：剖析圖編號開／關，2D 與 3D 共用。
+         關掉＝圖上的編號圈（手機的 .mnumlayer、桌機 2D 的 .anc、3D 的 .ld-no）全部藏起來，只看圖。
+         預設：手機（≤640）關、桌機開；使用者切過就記在 tw.dgnum。 */
+      const numBtn = $('#dgNum', el);
+      const numPref = () => { let v = null; try { v = localStorage.getItem('tw.dgnum'); } catch (e) { /* 私密視窗 */ } return v == null ? !window.matchMedia('(max-width:640px)').matches : v === '1'; };
+      const setNum = (on, save) => {
+        el.classList.toggle('dgnumoff', !on);
+        if (numBtn) { numBtn.textContent = on ? '編號：開' : '編號：關'; numBtn.classList.toggle('cyan', on); numBtn.setAttribute('aria-pressed', on ? 'true' : 'false'); }
+        if (save) { try { localStorage.setItem('tw.dgnum', on ? '1' : '0'); } catch (e) { /* 私密視窗 */ } }
+        // 手機 2D 的編號層藏著的時候量不到位置（排出來是 0 個）：打開的當下重排一次
+        if (on && save && window.DG && window.DG.mobileNums) { const h = $('#prodDiagram', el); if (h && h.classList.contains('mnum2d')) requestAnimationFrame(() => window.DG.mobileNums(h)); }
+      };
+      if (numBtn) numBtn.onclick = () => setNum(el.classList.contains('dgnumoff'), true);
+      setNum(numPref(), false);
       setAnimAll(animPref());
       // wire3D 是模組層級的函式，看不到這裡的 segHi／segFilter／syncHighlight，
       // 所以把要用到的動作當參數傳進去（之前直接寫在函式裡會噴 syncHighlight is not defined）。
@@ -3389,7 +3403,18 @@
     const nEdge0 = (sc.edges || []).filter(e => e.rel !== 'competes' && inChain0.has(e.from) && inChain0.has(e.to)).length;
     const noEdge = nEdge0 === 0 && segs.length > layers.length;
     const layerCols = noEdge ? segs.length : layers.length;
-    const fit = fitCols(host, layerCols, { colW: 178, gap: 30, maxColW: 260, maxGap: 86, minColW: 136, minGap: 18, pad: 26 });
+    /* ★ 2026-10-08（Andy：「手機版若是太小，把關聯圖改成垂直」）：手機 v2（html.m4，≤640）改成上下排 ——
+       上游在上、下游在下，每一層一列、一列最多兩格，連線改成上下走向；寬度＝容器寬，不再有 min-width（不准橫向捲）。 */
+    /* 2026-10-08 Andy：「關聯圖若是空間不夠可以考慮改垂直，你自行安排」—— 不寫死斷點，用量的：
+       左右排最少要「欄數 × 最窄欄寬 136 ＋ 欄距 18 ×（欄數−1）＋ 左右內距 26×2」；容器比這個窄就改上下排。
+       只在非桌機（≤820，原本就是要左右滑的寬度）判斷；桌機版面一律照舊左右排。 */
+    const HW0 = (host && host.clientWidth) || ((window.innerWidth || 390) - 16);
+    const needW = layerCols * 136 + Math.max(0, layerCols - 1) * 18 + 52;
+    const vert = (window.innerWidth || 1440) <= 820 && HW0 < needW;
+    if (host && host.dataset) { host.dataset.layout = vert ? 'vert' : 'horiz'; host.dataset.needw = String(needW); host.dataset.hw = String(Math.round(HW0)); }
+    const VHW = Math.max(300, HW0);
+    const fit = vert ? (() => { const pad = 4, g = 12, cw = Math.floor((VHW - pad * 2 - g) / 2); return { colW: cw, colGap: g, padX: pad, W: VHW, HW: VHW, CW: VHW - pad * 2 }; })()
+      : fitCols(host, layerCols, { colW: 178, gap: 30, maxColW: 260, maxGap: 86, minColW: 136, minGap: 18, pad: 26 });
     const colW = fit.colW, colGap = fit.colGap, padX = fit.padX;
     const cardH = 36, gapY = 8, padY = 36;
     const bySeg = {}; cos.forEach(c => (bySeg[c.segment] = bySeg[c.segment] || []).push(c));
@@ -3473,6 +3498,22 @@
       : list.length * (cardH + gapY) + (list.length ? 0 : noteLines(s, list) * NOTE_LH + 6) + 18);   // 沒台股只有說明的環節多 6px：說明最後一行的字腳才不會貼在外框底線上（2026-10-03）
     const colH = cols.map(col => col.reduce((t, s) => t + 24 + segBodyH(s, bySeg[s.id] || []), 0));
     const bodyH = Math.max.apply(null, colH.concat([0]));
+    if (vert) {
+      // 一層一列（一列最多兩格，單格置中）；層與層之間留 40px 給上下走向的連線
+      let y = 20;
+      cols.forEach((col) => {
+        for (let k = 0; k < col.length; k += 2) {
+          const row = col.slice(k, k + 2);
+          let rh = 0;
+          row.forEach((s, j) => { const list = bySeg[s.id] || [];
+            const x = row.length === 1 ? Math.round((VHW - colW) / 2) : padX + j * (colW + colGap);
+            pos[s.id] = { x, y: y + 24, list }; rh = Math.max(rh, 24 + segBodyH(s, list)); });
+          y += rh + 14;
+        }
+        y += 26;
+      });
+      maxH = y;
+    } else
     cols.forEach((col, ci) => { let y = padY + Math.round((bodyH - colH[ci]) / 2); col.forEach(s => { const list = bySeg[s.id] || []; pos[s.id] = { x: padX + ci * (colW + colGap), y, list }; y += 24 + segBodyH(s, list); }); maxH = Math.max(maxH, y); });
     /* 寬度＝內容寬＋左右各 padX。**左右對稱**，內容就一定水平置中。
        舊版是 `... + 24`（只加在右邊，給同一欄回頭線那條 24px 通道用），
@@ -3601,7 +3642,17 @@
       const a = coPos[e.from], b = coPos[e.to]; if (!a || !b) return;
       const ay = a.y + a.h / 2, by = b.y + b.h / 2;
       let d;
-      if (b.x > a.x) {
+      if (vert) {
+        /* 上下走向：從來源卡的下緣中點出、進目標卡的上緣中點；目標在上面（回頭線）就從來源卡上緣出、進目標下緣 */
+        /* 端點接在「環節外框」的上下緣（不是公司卡）：從卡片下緣出的話會一路穿過同一格下面的其他公司 */
+        const ax = a.x + a.w / 2, bx = b.x + b.w / 2;
+        const sa = pos[coSeg[e.from]], sb = pos[coSeg[e.to]];
+        const boxB = (sp, sid) => sp.y - 24 + segBodyH(segs.find(q => q.id === sid) || {}, sp.list) + 8, boxT = (sp) => sp.y - 24;
+        if (sa && sb && sb.y > sa.y) { const y1 = boxB(sa, coSeg[e.from]), y2 = boxT(sb), my = (y1 + y2) / 2; d = `M${ax},${y1} C${ax},${my} ${bx},${my} ${bx},${y2}`; }
+        else if (b.y >= a.y + a.h) { const y1 = a.y + a.h, y2 = b.y, my = (y1 + y2) / 2; d = `M${ax},${y1} C${ax},${my} ${bx},${my} ${bx},${y2}`; }
+        else if (b.y + b.h <= a.y) { const y1 = a.y, y2 = b.y + b.h, my = (y1 + y2) / 2; d = `M${ax},${y1} C${ax},${my} ${bx},${my} ${bx},${y2}`; }
+        else { const x1 = a.x + a.w, xo = Math.min(VHW - 2, x1 + 6); d = corner([[x1, ay], [xo, ay], [xo, by], [b.x + b.w, by]]); }
+      } else if (b.x > a.x) {
         const x1 = a.x + a.w, x2 = b.x;
         if (x2 - x1 <= colGap + 1) { const mx = (x1 + x2) / 2; d = `M${x1},${ay} C${mx},${ay} ${mx},${by} ${x2},${by}`; }
         else { const ly = nextLane(x1 + gapMid, x2 - gapMid, ay, by); d = corner([[x1, ay], [x1 + gapMid, ay], [x1 + gapMid, ly], [x2 - gapMid, ly], [x2 - gapMid, by], [x2, by]]); }
@@ -3643,7 +3694,7 @@
        data-fold 跟著寫「按下去要變成什麼」（all＝全收、none＝全展），tw.chainFold 的存法一個字都沒改。*/
     const anyFolded = segs.some(s => (pos[s.id] && pos[s.id].list.length) && isFolded(s.id));
     const foldBar = foldOn && cos.length ? `<div class="foldbar"><button type="button" class="foldtg" data-fold="${anyFolded ? 'none' : 'all'}" title="${anyFolded ? '每檔一張卡' : '只留個股標籤'}">${anyFolded ? '全部展開' : '全部收合'}</button></div>` : '';
-    host.innerHTML = `${empty}${foldBar}<svg viewBox="0 0 ${W} ${H}" style="width:100%;height:auto;min-width:${Math.min(W, 860)}px;display:block">${defs}${nodes}<g class="elayer">${edges}</g></svg>`;
+    host.innerHTML = `${empty}${foldBar}<svg viewBox="0 0 ${W} ${H}" style="width:100%;height:auto;${vert ? '' : `min-width:${Math.min(W, 860)}px;`}display:block"${vert ? ' data-vert="1"' : ''}>${defs}${nodes}<g class="elayer">${edges}</g></svg>`;
     markFit(host, fit);
     paintRelFocus(host, focus, cos);
     /* ★ 2026-09-23 C5 優化：hover 一張卡，**線與另一端的公司卡一起提亮**。

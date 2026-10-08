@@ -56,7 +56,7 @@
     for (const sh of document.styleSheets) { try { walk(sh.cssRules); } catch (e) { /* 跨網域樣式表讀不到 */ } }
     const res = (v) => { const m = /^var\((--l4-ic-[\w-]+)\)$/.exec(v || ''); return m ? vars[m[1]] : v; };
     IC = {}; Object.keys(map).forEach((k) => { IC[k] = res(map[k]); });
-    IC.search = vars['--l4-ic-search']; IC.events = vars['--l4-ic-bell'];
+    IC.search = vars['--l4-ic-search']; IC.palette = vars['--l4-ic-palette']; IC.events = vars['--l4-ic-bell'];
     if (!Object.keys(map).length) IC = null;      // 樣式表還沒載好：下次打開再讀
     return IC || {};
   }
@@ -153,31 +153,115 @@
       });
       document.body.append(back, drawer);
     }
-    const brand = $('.brand > div:not(.logo)', bar);
-    if (brand && !title) {
-      title = document.createElement('span'); title.id = 'm4Title'; title.className = 'm4title';
-      brand.insertBefore(title, brand.firstChild);
+    /* 2026-10-08（Andy：「在線人數 以及 明暗功能 版面風格都跟網頁版一樣放在上方變成小圖。上方留LOGO就好。今日事件重複出現 留左側欄位的」）：
+       頁名從頂欄搬到內容區最上面（同電腦版頁首大標）；頂欄只留 ☰＋頭像，右邊一排小圖示（明暗、版面風格、平台導覽、在線、登入）。 */
+    const main = $('main');
+    if (main && !title) {
+      title = document.createElement('h1'); title.id = 'm4Title'; title.className = 'm4pghead';
+      main.insertBefore(title, main.firstChild);
     }
+    buildTools(bar);
     paintTitle();
   }
   function teardown() {
     close();
+    restoreTools();
     [burger, drawer, back, title].forEach((e) => { if (e) e.remove(); });
     burger = drawer = back = title = null;
     document.body.classList.remove('m4lock');
+  }
+
+
+  /* ---------------- 頂欄右邊的小圖示（全部是「搬節點」：id、onclick 都是原本那顆，跟電腦版 layout4.js syncTools 同一套） ----------------
+     順序同電腦版頁首右上：明暗（#themeBtn）→ 版面風格（#t4Btn）→ 平台導覽（#twPageTourBtn）→ 在線（#acctOnline）→ 登入（#acctBtn）。
+     會員功能沒開時沒有 #acctBtn：放一顆 #m4Login，講清楚為什麼不能登入（同電腦版 #l4Login 的字）。
+     搜尋收進抽屜最上面的「搜尋」；「⋯」選單拿掉（裡面的今日事件、自選都在抽屜）。 */
+  const TOOLS = ['#themeBtn', '#t4Btn', '#twPageTourBtn', '#acctOnline', '#acctBtn', '#m4Login'];
+  let tools = null; const home = new Map();
+  function acctOn() { const A = window.TwAccount; return !!(A && A.on && A.on()); }
+  function buildTools(bar) {
+    if (!tools) { tools = document.createElement('div'); tools.id = 'm4Tools'; tools.className = 'm4tools'; }
+    if (tools.parentNode !== bar) bar.appendChild(tools);
+    let lg = $('#m4Login');
+    if (!acctOn() && !$('#acctBtn')) {
+      if (!lg) {
+        lg = document.createElement('button'); lg.type = 'button'; lg.id = 'm4Login'; lg.className = 'm4login';
+        lg.textContent = '登入'; lg.title = '會員登入（目前沒有連上線）'; lg.setAttribute('aria-haspopup', 'dialog');
+        lg.onclick = (e) => { e.stopPropagation(); loginTip(lg); };
+      }
+    } else if (lg) { lg.remove(); lg = null; }
+    const want = TOOLS.map((q) => (q === '#m4Login' ? lg : $(q))).filter(Boolean);
+    want.forEach((e) => { if (e.parentNode !== tools && !home.has(e) && e.id !== 'm4Login') home.set(e, [e.parentNode, e.nextSibling]); });
+    const cur = Array.from(tools.children);
+    if (want.length !== cur.length || want.some((e, i) => cur[i] !== e)) want.forEach((e) => tools.appendChild(e));
+    const t4 = $('#t4Btn'), I = icons();
+    if (t4 && !$('.m4ic', t4) && I.palette) { t4.dataset.m4txt = t4.textContent; t4.setAttribute('aria-label', '版面風格'); t4.innerHTML = mi('palette'); }
+  }
+  function restoreTools() {
+    home.forEach(([p, nx], e) => { if (p && p.isConnected) p.insertBefore(e, nx && nx.parentNode === p ? nx : null); });
+    home.clear();
+    const t4 = $('#t4Btn'); if (t4 && t4.dataset.m4txt) { t4.textContent = t4.dataset.m4txt; delete t4.dataset.m4txt; }
+    ['#m4Login', '#m4LoginTip', '#m4Tools'].forEach((q) => { const e = $(q); if (e) e.remove(); });
+    tools = null;
+  }
+  function loginTip(b) {
+    let tip = $('#m4LoginTip');
+    if (tip && !tip.hidden) { tip.hidden = true; return; }
+    if (!tip) {
+      tip = document.createElement('div'); tip.id = 'm4LoginTip'; tip.className = 'm4logintip'; tip.setAttribute('role', 'dialog'); tip.setAttribute('aria-label', '會員登入');
+      tip.innerHTML = '<b>會員系統目前沒有連上線</b><p>網站暫時連不到會員系統，所以現在不能登入。</p><p>自選清單照樣可以用，會存在這台瀏覽器。</p>';
+      document.body.appendChild(tip);
+      document.addEventListener('pointerdown', (e) => { if (!tip.hidden && !tip.contains(e.target) && e.target !== $('#m4Login')) tip.hidden = true; }, true);
+    }
+    tip.hidden = false;
+    const r = b.getBoundingClientRect();
+    tip.style.top = Math.round(r.bottom + 8) + 'px'; tip.style.right = '8px';
+  }
+
+
+  /* ---------------- 現金流試算／複利試算的控制區收成一顆「條件 ▾」摘要列（2026-10-08 Andy：「這邊版面優化 不要換行太多」） ----------------
+     控制項本身一個都沒換（id、onclick 照舊在 etfpage.js），只是在手機預設收起來，上面放一行摘要（例如「年領 100 萬・配息型・近 5 年」），點開才看到全部。 */
+  const txt = (e) => (e ? (e.tagName === 'SELECT' ? ((e.options[e.selectedIndex] || {}).text || '') : e.textContent) : '').replace(/\s+/g, ' ').trim();
+  function condSummary(ctl) {
+    if (ctl.classList.contains('cxctl')) {
+      const o = txt($('#cxObj', ctl)), f = ($('#cxFrom', ctl) || {}).value || '';
+      return [o, f ? f + ' 起' : ''].filter(Boolean).join('・');
+    }
+    const mode = txt($('#incMode .on', ctl)), amtB = txt($('#incAmtBox .on', ctl)), amtI = ($('#incAmt', ctl) || {}).value;
+    const amt = amtB || (amtI ? Number(amtI).toLocaleString('zh-TW') + ' 元' : '');
+    const scope = txt($('#incScope .on', ctl)), nhi = ($('#incNhi', ctl) || {}).checked ? '扣二代健保' : '';
+    const rng = $('#etfIncRngBox', ctl); const per = rng ? txt($('select', rng) || $('.on', rng)) : '';
+    return [mode + (amt ? ' ' + amt : ''), scope, per, nhi].filter(Boolean).join('・');
+  }
+  function wireCond() {
+    if (!isM()) return;
+    $$('#v-etf #incPM > .incctl, #v-etf #incPX .cxctl').forEach((ctl) => {
+      let b = ctl.previousElementSibling;
+      if (!b || !b.classList.contains('m4cond')) {
+        b = document.createElement('button'); b.type = 'button'; b.className = 'm4cond'; b.setAttribute('aria-expanded', 'false');
+        b.onclick = () => { const on = !ctl.classList.contains('m4open'); ctl.classList.toggle('m4open', on); b.setAttribute('aria-expanded', on ? 'true' : 'false'); paint(); };
+        ctl.before(b);
+        new MutationObserver(() => paint()).observe(ctl, { subtree: true, attributes: true, attributeFilter: ['class', 'value'], childList: true });
+        ctl.addEventListener('change', () => setTimeout(paint, 0)); ctl.addEventListener('input', () => setTimeout(paint, 0));
+      }
+      function paint() { const t = '條件：' + (condSummary(ctl) || '—'); const want = `<span>${esc(t)}</span><i aria-hidden="true">${ctl.classList.contains('m4open') ? '▴' : '▾'}</i>`; if (b.innerHTML !== want) b.innerHTML = want; }
+      paint();
+    });
   }
 
   /* 頂欄頁名：「分組小字＋頁名（子頁名）」—— 側欄收進抽屜之後，這是「我在哪」唯一的提示 */
   function paintTitle() {
     const N = nav(); if (!title || !N) return;
     const pg = curPage(), P = N.PAGES[pg];
-    let name = P ? P.t : '', grp = P ? P.grp : '';
+    let name = P ? P.t : '';
     const s = (N.SUBS[pg] || []).find((x) => x.k === curSub());
-    if (s) { grp = P.t; name = s.t; }        // 子頁：小字寫母頁（資金流向），大字寫子頁（資金輪動）—— 390 寬放不下「資金流向・族群×法人＋集中度」
-    if (pg === 'admin') { name = '管理區'; grp = '專案'; }
+    
+    if (pg === 'admin') name = '管理區';
     if (pg === 'stock') { const c = $('#indCrumbs .cur'); if (c && c.textContent.trim()) name = c.textContent.trim(); }
-    // 小字：站名・分組（品牌一直看得到）；大字：頁名
-    title.innerHTML = `<i>${esc(brandName())}${grp ? '・' + esc(grp) : ''}</i><span>${esc(name || brandName())}</span>`;
+    // 產業鏈頁與個股頁自己有麵包屑／個股名當頁首（產業地圖 › 一般電子），再加一行大標只會把主圖往下推出第一屏
+    title.hidden = pg === 'industry' || pg === 'stock';
+    // 內容區頁首大標（同電腦版 #l4Head）：「頁名 子頁名」
+    title.innerHTML = s ? `${esc(P.t)} <span>${esc(s.t)}</span>` : esc(name || brandName());
   }
 
   function sync() {
@@ -197,6 +281,11 @@
     window.addEventListener('hashchange', () => { close(); [0, 120, 800].forEach((t) => setTimeout(paintTitle, t)); });
     document.addEventListener('keydown', (e) => { if (e.key === 'Escape') close(); });
     new MutationObserver(paintTitle).observe(root, { attributes: true, attributeFilter: ['data-l4sub'] });
+    // 會員功能晚一步才開（account.js 讀完設定檔）、#acctBtn／#acctOnline 晚一步才建：出現時收進頂欄小圖示列
+    new MutationObserver(() => { if (tools && isM()) { const bar = $('.topbar'); const miss = TOOLS.some((q) => { const e = $(q); return e && e.parentNode !== tools; }) || (acctOn() && $('#m4Login')); if (bar && miss) buildTools(bar); } })
+      .observe(document.body, { childList: true, subtree: true });
+    let ct = 0; new MutationObserver(() => { if (!isM()) return; clearTimeout(ct); ct = setTimeout(wireCond, 120); }).observe(document.body, { childList: true, subtree: true });
+    wireCond();
   }
   window.TwM4 = { open, close, isOpen: () => !!(drawer && !drawer.hidden) };
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();
