@@ -397,48 +397,38 @@
     return `<span class="srcinfo muted" tabindex="0" role="note" aria-label="出處" title="${esc('出處：' + s0)}">ⓘ</span>`;
   };
   const toneCls = (t) => (t > 0 ? 'up' : t < 0 ? 'down' : '');
-  /* ------------------------------------------------------------------ 小圖（純 SVG，不放文字：標籤用 HTML，字級才守得住 12px 下限） */
-  const W = 250, H = 84;
+  /* ------------------------------------------------------------------ 小圖
+     2026-10-08（Andy：「日曆圖內的長條圖都要優化，符合我們原本要的漸層效果及回應互動效果」）：
+     以前這裡自己手刻一套 SVG 直條（跟 ETF 行事曆各一份），平的實心方塊、沒有提示框。
+     改用 calgrid.js 的共用小圖（CalGrid.mini → App.chart）：同色漸層、頂端圓角、寬 ≤ 12px、滑過加亮其他變淡＋提示框、點了選取。
+     圖內仍然不放文字（標籤用 HTML，字級守得住 12px 下限）。 */
   const nz = (v) => v != null && isFinite(v);
-  function svgBars(vals, o) {            // vals：數字陣列（可含 null）；o.base0＝基準線在 0（可正可負）
-    const v = vals.filter(nz); if (!v.length) return '';
-    const lo = o.base0 ? Math.min(0, ...v) : 0, hi = Math.max(0, ...v), span = (hi - lo) || 1;
-    const n = vals.length, bw = W / n, y = (x) => H - 4 - ((x - lo) / span) * (H - 8);
-    const y0 = y(0);
-    return vals.map((x, i) => (!nz(x) ? '' : `<rect x="${(i * bw + bw * .18).toFixed(1)}" y="${Math.min(y(x), y0).toFixed(1)}" width="${(bw * .64).toFixed(1)}" height="${Math.max(1, Math.abs(y(x) - y0)).toFixed(1)}" rx="1.5" fill="${o.color ? o.color(x, i) : 'var(--cat-1)'}"><title>${esc(o.tip ? o.tip(i) : x)}</title></rect>`)).join('')
-      + (o.base0 ? `<line x1="0" x2="${W}" y1="${y0.toFixed(1)}" y2="${y0.toFixed(1)}" stroke="var(--grid)" stroke-width="1"/>` : '');
-  }
-  function svgLine(vals, o) {            // 折線（疊在直條上用：自己的縮放）
-    const v = vals.filter(nz); if (v.length < 2) return '';
-    const lo = Math.min(...v), hi = Math.max(...v), span = (hi - lo) || 1, n = vals.length, bw = W / n;
-    const pts = vals.map((x, i) => (nz(x) ? [(i * bw + bw / 2), 6 + (1 - (x - lo) / span) * (H - 16)] : null)).filter(Boolean);
-    return `<polyline points="${pts.map((q) => q[0].toFixed(1) + ',' + q[1].toFixed(1)).join(' ')}" fill="none" stroke="${o.color}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>`
-      + pts.map((q) => `<circle cx="${q[0].toFixed(1)}" cy="${q[1].toFixed(1)}" r="2.4" fill="${o.color}"/>`).join('');
-  }
-  function grid3() { return [.25, .5, .75].map((f) => `<line x1="0" x2="${W}" y1="${(H * f).toFixed(1)}" y2="${(H * f).toFixed(1)}" stroke="var(--grid)" stroke-width="1" opacity=".6"/>`).join(''); }
-  const wrapSvg = (inner) => `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" role="img" aria-hidden="true">${grid3()}${inner}</svg>`;
+  const cgMini = (spec) => (window.CalGrid && window.CalGrid.mini ? window.CalGrid.mini(spec) : '');
   const sgn = (v, d) => (v == null ? '—' : (v > 0 ? '+' : '') + (+v).toFixed(d == null ? 1 : d));
   const mini = (k1, k2, k3, chart, lab) => `<div class="mini"><div class="mk"><b class="${k3 || ''}">${k1}</b><small>${k2}</small></div><div class="mc">${chart}<div class="ml">${lab}</div></div></div>`;
   function chartFor(s) {
     const ser = s.series || [];
     if (s.key === 'rev' && ser.length >= 3) {
       const last = ser[ser.length - 1];
-      const bars = svgBars(ser.map((r) => r[1]), { tip: (i) => `${ser[i][0]} 營收 ${ser[i][1]} 億・年增 ${sgn(ser[i][2])}%` });
-      const line = svgLine(ser.map((r) => r[2]), { color: 'var(--amber)' });
-      return mini(`${last[1]} 億`, `年增 ${sgn(last[2])}%`, toneCls(last[2]), wrapSvg(bars + line),
+      const ch = cgMini({ labels: ser.map((r) => r[0]), bars: { vals: ser.map((r) => r[1]), color: 'var(--cat-1)', name: '營收' },
+        line: { vals: ser.map((r) => r[2]), color: 'var(--amber)', name: '年增' }, aria: '月營收與年增率',
+        tip: (i) => `<b>${esc(ser[i][0])}</b><br>營收 <b>${esc(ser[i][1])} 億</b><br>年增 ${sgn(ser[i][2])}%` });
+      return mini(`${last[1]} 億`, `年增 ${sgn(last[2])}%`, toneCls(last[2]), ch,
         `<span>${esc(ser[0][0])}</span><span class="lg"><i style="background:var(--cat-1)"></i>營收　<i style="background:var(--amber)"></i>年增</span><span>${esc(last[0])}</span>`);
     }
     if (s.key === 'profit' && ser.length >= 3) {
       const last = ser[ser.length - 1];
-      const bars = svgBars(ser.map((r) => r[1]), { base0: true, color: (x) => (x >= 0 ? 'var(--cat-1)' : 'var(--fall)'), tip: (i) => `${ser[i][0]} EPS ${ser[i][1]}・毛利率 ${ser[i][2]}%` });
-      const line = svgLine(ser.map((r) => r[2]), { color: 'var(--amber)' });
-      return mini(`${(+last[1]).toFixed(2)}`, `EPS・毛利率 ${last[2] == null ? '—' : last[2] + '%'}`, '', wrapSvg(bars + line),
+      const ch = cgMini({ labels: ser.map((r) => r[0]), bars: { vals: ser.map((r) => r[1]), color: (x) => (x >= 0 ? 'var(--cat-1)' : 'var(--fall)'), name: 'EPS' },
+        line: { vals: ser.map((r) => r[2]), color: 'var(--amber)', name: '毛利率' }, aria: 'EPS 與毛利率',
+        tip: (i) => `<b>${esc(ser[i][0])}</b><br>EPS <b>${esc(ser[i][1])}</b><br>毛利率 ${ser[i][2] == null ? '—' : esc(ser[i][2]) + '%'}` });
+      return mini(`${(+last[1]).toFixed(2)}`, `EPS・毛利率 ${last[2] == null ? '—' : last[2] + '%'}`, '', ch,
         `<span>${esc(ser[0][0])}</span><span class="lg"><i style="background:var(--cat-1)"></i>EPS　<i style="background:var(--amber)"></i>毛利率</span><span>${esc(last[0])}</span>`);
     }
     if (s.key === 'inst' && ser.length >= 5) {
       const tot = ser.reduce((a, r) => a + (r[1] || 0), 0);
-      const bars = svgBars(ser.map((r) => r[1]), { base0: true, color: (x) => (x >= 0 ? 'var(--rise)' : 'var(--fall)'), tip: (i) => `${ser[i][0]} 三大法人 ${ser[i][1] > 0 ? '買超' : '賣超'} ${Math.abs(ser[i][1]).toLocaleString()} 張` });
-      return mini(`${tot > 0 ? '+' : ''}${tot.toLocaleString()}`, `20 日合計（張）${tot >= 0 ? '買超' : '賣超'}`, toneCls(tot), wrapSvg(bars),
+      const ch = cgMini({ labels: ser.map((r) => r[0]), bars: { vals: ser.map((r) => r[1]), color: (x) => (x >= 0 ? 'var(--rise)' : 'var(--fall)'), name: '三大法人' }, aria: '三大法人每日買賣超',
+        tip: (i) => `<b>${esc(ser[i][0])}</b><br>三大法人 <b>${ser[i][1] > 0 ? '買超' : '賣超'} ${Math.abs(ser[i][1]).toLocaleString()} 張</b>` });
+      return mini(`${tot > 0 ? '+' : ''}${tot.toLocaleString()}`, `20 日合計（張）${tot >= 0 ? '買超' : '賣超'}`, toneCls(tot), ch,
         `<span>${esc(md(ser[0][0]))}</span><span>三大法人每日買賣超（紅買綠賣）</span><span>${esc(md(ser[ser.length - 1][0]))}</span>`);
     }
     if (s.key === 'val' && s.pos != null && s.lo != null) {
@@ -450,9 +440,11 @@
   /* FED 數值的小走勢（一條折線＋最後一點） */
   function sparkFor(x) {
     const ser = (x && x.series) || []; if (ser.length < 3) return '';
-    const vals = ser.map((r) => r[1]);
-    const bars = x.label && /新增就業/.test(x.label) ? svgBars(vals, { base0: true, color: (v) => (v >= 0 ? 'var(--cat-1)' : 'var(--fall)'), tip: (i) => `${ser[i][0]} ${ser[i][1]}` }) : svgLine(vals, { color: 'var(--cat-1)' });
-    return mini(esc(x.value), esc(x.label), '', wrapSvg(bars), `<span>${esc(ser[0][0])}</span><span>近 ${ser.length} 期</span><span>${esc(ser[ser.length - 1][0])}</span>`);
+    const vals = ser.map((r) => r[1]), isBar = !!(x.label && /新增就業/.test(x.label));
+    const tip = (i) => `<b>${esc(ser[i][0])}</b><br>${esc(x.label || '')} <b>${esc(ser[i][1])}</b>`;
+    const ch = cgMini(isBar ? { labels: ser.map((r) => r[0]), bars: { vals, color: (v) => (v >= 0 ? 'var(--cat-1)' : 'var(--fall)'), name: x.label || '' }, tip, aria: x.label || '' }
+      : { labels: ser.map((r) => r[0]), line: { vals, color: 'var(--cat-1)', name: x.label || '' }, tip, aria: x.label || '' });
+    return mini(esc(x.value), esc(x.label), '', ch, `<span>${esc(ser[0][0])}</span><span>近 ${ser.length} 期</span><span>${esc(ser[ser.length - 1][0])}</span>`);
   }
 
 
@@ -555,6 +547,7 @@
     box.innerHTML = html; box.scrollTop = 0;
     box.dataset.mode = mode; box.dataset.key = key;
     bindRows(box);
+    if (window.CalGrid && window.CalGrid.mount) window.CalGrid.mount(box);   // 面板小圖（共用 C 款直條）
     const back = $('#earnBack', box); if (back) back.onclick = () => pick({ t: 'week' });
     $$('.plink', box).forEach((a) => { a.onclick = (ev) => { ev.preventDefault(); A().goStock(a.dataset.code); }; });
   }

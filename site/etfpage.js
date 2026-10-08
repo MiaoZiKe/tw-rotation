@@ -232,6 +232,8 @@
 #v-etf .callist .mk{text-align:center;min-width:0} #v-etf .callist .mk b{display:block;font:700 18px var(--mono);line-height:24px}
 #v-etf .callist .mk small{display:block;font-size:12px;color:var(--ink-3);line-height:16px;white-space:nowrap}
 #v-etf .callist .mc svg{width:100%;height:84px;display:block}
+#v-etf table.et tr.hl td{background:color-mix(in srgb,var(--amber) 18%,var(--panel-2))!important}
+#v-etf table.et tr.hl td:first-child{box-shadow:inset 3px 0 0 var(--amber)}
 #v-etf .callist .ml{display:flex;justify-content:space-between;gap:6px;font-size:12px;color:var(--ink-3);white-space:nowrap;margin-top:2px}
 #v-etf .callist .ml i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:4px;vertical-align:-1px}
 #v-etf .callist .ph.stk{position:sticky;top:-8px;z-index:3;background:var(--panel-2);margin:-8px -10px 6px;padding:8px 10px;border-bottom:1px solid var(--line)}
@@ -1024,15 +1026,20 @@
     $('#etfCalNext').onclick = () => go(new Date(Date.UTC(y, mo, 1)).toISOString().slice(0, 7));
     $('#etfCalToday').onclick = () => go(curM);
     $$('.cald.has', box).forEach((c) => { c.onclick = () => { S.code = null; S.day = S.day === c.dataset.d ? null : c.dataset.d; drawCal(); }; });
-    $$('#etfCalList tr[data-code]', box).forEach((tr) => { tr.onclick = () => { S.code = tr.dataset.code; drawCal(); }; });
+    $$('#etfCalList tr[data-code]', box).forEach((tr) => {
+      // 單檔明細表（有 data-i）：點列＝在圖上選那一次配息（雙向連動），再點一次取消；其他清單點列＝打開那一檔
+      if (tr.dataset.i != null) { tr.onclick = () => { const el = $('#etfCalList .cgmini', box); const i = +tr.dataset.i; if (el) window.CalGrid.pick(el, el._cgSel === i ? null : i); }; return; }
+      tr.onclick = () => { S.code = tr.dataset.code; drawCal(); };
+    });
+    if (S.code) window.CalGrid.mount($('#etfCalList', box));
     const bk = $('#etfCodeBack', box); if (bk) bk.onclick = () => { S.code = null; drawCal(); };
     const db = $('#etfDayBack', box); if (db) db.onclick = () => { S.day = null; drawCal(); };
     $$('#etfCalList .plink', box).forEach((a) => { a.onclick = (ev) => { ev.preventDefault(); A().goStock(a.dataset.code); }; });
     $$('#etfRetTbl tr[data-code]').forEach((tr) => { tr.onclick = () => A().goStock(tr.dataset.code); });
   }
   const COLS = '<colgroup><col><col style="width:56px"><col style="width:80px"><col style="width:58px"><col style="width:162px"></colgroup>';
-  function calRows(L, withDate) {
-    return L.map((e) => `<tr data-code="${esc(e.code)}" title="${esc(e.name)} ${esc(e.code)}：除息 ${e.ex}，配 ${e.amt} 元">
+  function calRows(L, withDate, idxOf) {
+    return L.map((e, k) => `<tr data-code="${esc(e.code)}"${idxOf ? ` data-i="${idxOf(k)}"` : ''} title="${esc(e.name)} ${esc(e.code)}：除息 ${e.ex}，配 ${e.amt} 元">
       <td>${withDate ? `<span class="note">${e.ex.slice(5)}</span> ` : ''}${esc(e.name)} <span class="note">${esc(e.code)}</span></td>
       <td>${A().fmt.n(e.amt, 3)}</td><td title="${esc(e.basis)}">${pctU(e.y)}${/估/.test(e.basis || '') ? '<span class="na">估</span>' : ''}</td>
       <td>${e.pay ? e.pay.slice(5) : '<span class="na">—</span>'}</td>
@@ -1041,7 +1048,7 @@
   const THEAD = (first) => `<thead><tr><th>${first}</th><th title="每單位配息（元）">配息</th><th>當次殖利率</th><th>發放</th><th>填息天數</th></tr></thead>`;
   /* 點某一檔：近幾次配息小長條＋當次殖利率走勢＋填息天數（資料＝行事曆近 400 天的除息紀錄） */
   function codeDetail(code) {
-    const CGs = window.CalGrid.svg, all = ((S.data && S.data.calendar) || []).filter((e) => e.code === code).sort((a, b) => (a.ex < b.ex ? -1 : 1));
+    const CGs = window.CalGrid, all = ((S.data && S.data.calendar) || []).filter((e) => e.code === code).sort((a, b) => (a.ex < b.ex ? -1 : 1));
     const it = byCode().get(code) || { name: code };
     const done = all.filter((e) => e.ex <= (S.data.asof || '9999')), L = (done.length ? done : all).slice(-8);
     const src = '證交所／櫃買中心除息紀錄（近 400 天）；當次殖利率＝配息 ÷ 除息前一日收盤（未除息者用最新收盤估算）';
@@ -1049,14 +1056,35 @@
     if (!L.length) return `${head}<p class="note">無除息紀錄</p>`;
     const fills = all.filter((e) => e.fill != null).map((e) => e.fill), avg = fills.length ? Math.round(fills.reduce((a, b) => a + b, 0) / fills.length) : null;
     const last = L[L.length - 1], ys = L.map((e) => (e.y == null ? null : +(e.y * 100).toFixed(2)));
-    const bars = CGs.bars(L.map((e) => +e.amt), { color: () => 'var(--amber)', tip: (i) => `${L[i].ex} 配 ${L[i].amt} 元` });
-    const ln = CGs.line(ys, { color: 'var(--cyan)', tip: (i) => `${L[i].ex} 當次殖利率 ${ys[i]}%` });
+    /* 2026-10-08（Andy：「日曆圖內的長條圖都要優化，符合我們原本要的漸層效果及回應互動效果」）：
+       改用共用 C 款小圖（calgrid.js mini → App.chart：配息色同色漸層、頂端圓角、寬 ≤ 12px）；
+       滑過那一欄提示框寫日期／配息／殖利率／填息天數；點直條 ⇄ 下方表格那一列雙向連動（表格是新到舊，序號反過來對） */
+    const tipOf = (i) => { const e = L[i]; return `<b>${esc(e.ex)} 除息</b><br>配息 <b>${A().fmt.n(e.amt, 3)} 元</b><br>當次殖利率 ${e.y == null ? '—' : pctU(e.y, 2)}<br>填息天數 ${esc(fillTxt(e.fill, e.fill_wait))}`; };
+    const chartHTML = CGs.mini({ labels: L.map((e) => e.ex), bars: { vals: L.map((e) => +e.amt), color: 'var(--amber)', name: '配息' },
+      line: { vals: ys, color: 'var(--cyan)', name: '殖利率' }, tip: tipOf, aria: `${it.name} 近 ${L.length} 次配息與當次殖利率`,
+      onPick: (i) => codeRowHL(i, true) });
     return `${head}
       <div class="kpis"><div><small>最近一次配息</small><b>${A().fmt.n(last.amt, 3)} 元</b></div><div><small>當次殖利率</small><b>${last.y == null ? '—' : pctU(last.y, 2)}</b></div>
         <div><small>平均填息</small><b>${avg == null ? '—' : avg + ' 天'}</b></div></div>
-      <div class="mini"><div class="mk"><b>${L.length} 次</b><small>近期配息</small></div><div class="mc">${CGs.wrap(bars + ln)}
+      <div class="mini"><div class="mk"><b>${L.length} 次</b><small>近期配息</small></div><div class="mc">${chartHTML}
         <div class="ml"><span>${esc(L[0].ex.slice(2))}</span><span><i style="background:var(--amber)"></i>配息　<i style="background:var(--cyan)"></i>殖利率</span><span>${esc(last.ex.slice(2))}</span></div></div></div>
-      <table class="et" id="etfCodeTbl">${COLS}${THEAD('除息日')}<tbody>${calRows(L.slice().reverse(), true)}</tbody></table>`;
+      <table class="et" id="etfCodeTbl">${COLS}${THEAD('除息日')}<tbody>${calRows(L.slice().reverse(), true, (k) => L.length - 1 - k)}</tbody></table>`;
+  }
+  /* 單檔明細：圖上選了第 i 次配息 → 表格那一列加 .hl 並捲到看得見（清單框內捲，不動整頁）；i＝null 清掉 */
+  function codeRowHL(i, scroll) {
+    const tb = document.getElementById('etfCodeTbl'); if (!tb) return;
+    tb.querySelectorAll('tr.hl').forEach((r) => r.classList.remove('hl'));
+    const tr = i == null ? null : tb.querySelector(`tbody tr[data-i="${i}"]`);
+    if (!tr) return;
+    tr.classList.add('hl');
+    if (scroll) {
+      const box = document.getElementById('etfCalList');
+      if (box) {
+        const br = box.getBoundingClientRect(), rr = tr.getBoundingClientRect(), head = (box.querySelector('.ph.stk') || { offsetHeight: 0 }).offsetHeight;
+        if (rr.top < br.top + head) box.scrollTop -= br.top + head - rr.top + 4;
+        else if (rr.bottom > br.bottom) box.scrollTop += rr.bottom - br.bottom + 4;
+      }
+    }
   }
   function calList(day, L) {
     const wd = WD[new Date(day + 'T00:00:00Z').getUTCDay()];
@@ -1799,7 +1827,7 @@
       tooltip: { ...a.tip, confine: true, trigger: 'item', formatter: (p) => tipOf(p.dataIndex) },
       xAxis: { type: 'category', data: Array.from({ length: 12 }, (_, i) => `${i + 1}月`), ...a.axisStyle, axisLabel: { ...a.axisStyle.axisLabel, fontSize: 11, interval: 0 } },
       yAxis: { type: 'value', show: false },
-      series: [{ type: 'bar', barMaxWidth: 22, emphasis: { itemStyle: { borderColor: CH.ink, borderWidth: 2 } },
+      series: [{ type: 'bar', barMaxWidth: 22, emphasis: { focus: 'self', blurScope: 'series', itemStyle: { borderColor: CH.ink, borderWidth: 2 } }, blur: { itemStyle: { opacity: 0.32 } },   // 10-08：滑過那根加亮、其他變淡（跟行事曆小圖同一套）
         itemStyle: { borderRadius: [3, 3, 0, 0], color: colOf ? (p) => { const c = colOf(p.dataIndex); return { type: 'linear', x: 0, y: 0, x2: 0, y2: 1, colorStops: [{ offset: 0, color: c }, { offset: 1, color: a.hexA(c, 0.45) }] }; } : B.grad(false) },
         label: { show: true, position: 'top', fontSize: 11, color: CH.ink2, formatter: (p) => (p.value > 0 ? wan1(p.value) : '') }, data: vals.map((v) => Math.round(v)) }],
     });
