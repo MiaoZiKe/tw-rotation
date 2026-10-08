@@ -53,6 +53,11 @@ TABLES: dict[str, list[str]] = {
     #   weight＝占淨值 %（元大只給股數，留空由 build_payload 以股數×收盤價推算）、shares＝基金持有總股數。
     #   每天一份快照、只增不改；來源與實測紀錄見 docs/etf_holdings_source.md。
     "etf_holdings":       ["date", "etf", "code"],
+    # v16（2026-10-08，ETF 成分股全覆蓋）：投信投顧公會每月公告的「基金前十大投資標的」（pipeline/sources/sitca.py）。
+    #   發行投信官網抓不到的那幾檔（兆豐、貝萊德、摩根、富蘭克林華美…）的第二順位來源：月資料、只有前十大。
+    #   date＝該月最後一天、ym＝YYYYMM、fund＝公會表上的基金全名（etf 由簡稱對回，對不上的留空）、code＝標的代號或 ISIN。
+    #   一個月抓一次（湖裡已有公會最新月份就不抓），只增不改。
+    "etf_holdings_monthly": ["date", "fund", "code"],
     # v4：大盤／櫃買／台指期的日 K（給總覽那三張圖的歷史週期用）。
     # Yahoo 的櫃買代號 ^TWOII 已經壞掉、台指期沒有免費代號，所以改走 FinMind：
     #   TaiwanStockPrice(TAIEX / TPEx) 與 TaiwanFuturesDaily(TX)

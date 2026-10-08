@@ -95,7 +95,8 @@ def build(hold: pd.DataFrame, price: pd.DataFrame, names: dict[str, str],
         if not items:
             continue
         etfs[code] = {"asof": asof, "issuer": m.get("issuer") or issuer_of(names.get(code, "")) or "",
-                      "src": m.get("src") or "", "manual": True, "note": m.get("note") or "", "items": items}
+                      "src": m.get("src") or "", "src_name": m.get("src_name") or "", "manual": True,
+                      "note": m.get("note") or "", "items": items}
     codes = set(etf_codes or ()) | set(etfs)
     issuers = {c: (issuer_of(names.get(c, "")) or "") for c in sorted(codes)}
     asof = max((v["asof"] for v in etfs.values()), default="")

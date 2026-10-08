@@ -64,6 +64,10 @@ def _run(monkeypatch, phase, tmp_path):
     monkeypatch.setattr(run_daily, "refresh_financials", rec("finmind.financial_refresh"))
     # ★ 2026-09-26：期交所逐筆也要 mock —— 沒 mock 的話會對窗內約 30 個日期各試下載一次（每次重試兩輪）。
     monkeypatch.setattr(run_daily, "collect_taifex_minute", rec("taifex.futures_minute"))
+    # 2026-10-08：ETF 成分股（各投信官網 PCF、公會前十大）也要 mock —— 不然 full 會真的去打二十幾家投信官網與公會，
+    # 測試變慢又會因為對方網站狀況時好時壞而紅。
+    monkeypatch.setattr(run_daily, "collect_etf_holdings", rec("etf_pcf.holdings"))
+    monkeypatch.setattr(run_daily, "collect_etf_holdings_monthly", rec("sitca.etf_top10"))
     monkeypatch.setattr(run_daily.config, "STATE", tmp_path)
     monkeypatch.setattr(run_daily.store, "table_summary", lambda: pd.DataFrame())
     monkeypatch.setattr(run_daily.loader, "health", lambda: {})
@@ -113,7 +117,7 @@ def test_price模式抓價量與新聞但不碰傍晚才落地的來源(monkeypa
 def test_full模式該抓的都抓(monkeypatch, tmp_path):
     called, _ = _run(monkeypatch, "full", tmp_path)
     for name in ("twse.price_daily", "twse.margin_daily", "tdcc.shareholding_weekly",
-                 "news.collect", "macro.intl_daily"):
+                 "news.collect", "macro.intl_daily", "etf_pcf.holdings", "sitca.etf_top10"):
         assert name in called, f"phase=full 應該要呼叫 {name}"
 
 

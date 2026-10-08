@@ -1871,6 +1871,53 @@ def t_etf_census_1008(pg, b, base):
     lp.close()
 
 
+def t_etf_cover_1008(pg, b, base):
+    """★ 2026-10-08 20:29 Andy：「我要的結果就是必須跟其他有成分股的 ETF 介面一樣。每次檢查驗證，就是直接看有沒有圖」。
+    逐檔打開 #stock/<代號>，真的點「成分股」分頁鈕，非槓桿／反向／期貨型的每一檔都必須：
+      ① #etfHoldPie 裡真的有 ECharts 畫出來的 <canvas>（寬高 > 0），② 清單 #etfHoldTbl 列數 > 0，③ 資料日小字有寫（「資料日 YYYY-MM-DD」）。
+    「只有兩站連結」「說明卡」一律算不合格。槓桿反向／期貨型（代號尾碼 L／R／U／K、分類槓桿反向、名稱含期貨／正2／反1）照現況顯示說明，不算。
+    不合格清單寫到 etf_cover_1008.tsv；不合格數 > 0 就紅燈。用的是本機 site/data 的真資料（沒有攔截），所以要先 build_payload。"""
+    import json as _json
+    import re as _re
+    tag = "ETF成分股全覆蓋1008"
+    ej = _json.loads((SITE / "data" / "etf.json").read_text(encoding="utf-8"))
+    etfs = [(str(x["code"]), x.get("name", ""), x.get("cat", "")) for x in (ej.get("items") or [])]
+    lev = lambda c, n, k: bool(_re.search(r"[LRUK]$", c)) or k == "槓桿反向" or bool(_re.search(r"期貨|正2|反1", n))
+    lp = pg.context.browser.new_page(viewport={"width": 1440, "height": 1000})
+    lp.route("**/fonts.googleapis.com/**", lambda r: r.abort())
+    res, bad, n_lev = [], [], 0
+    for code, name, cat in etfs:
+        if lev(code, name, cat):
+            n_lev += 1
+            continue
+        d = {}
+        try:
+            lp.goto(f"{base}#stock/{code}", wait_until="domcontentloaded")
+            sel = "#stockTabs button[data-t='holdings']"
+            wait_until(lp, f"() => {{ const b = document.querySelector(\"{sel}\"); return !!(b && b.offsetParent); }}", 15000)
+            lp.click(sel)
+            wait_until(lp, "() => !!document.querySelector('#etfHoldCard[data-state]')", 8000)
+            wait_until(lp, "() => { const c = document.querySelector('#etfHoldPie canvas'); return !!c || (document.querySelector('#etfHoldCard') || {}).dataset?.state !== 'ok'; }", 6000)
+            d = lp.evaluate("""() => { const c = document.querySelector('#etfHoldCard'), cv = c.querySelector('#etfHoldPie canvas');
+              return { st: c.dataset.state, rows: c.querySelectorAll('#etfHoldTbl tbody tr[data-i]').length,
+                       canvas: !!(cv && cv.width > 0 && cv.height > 0), asof: (c.querySelector('#etfHoldAsof') || {}).textContent || '',
+                       src: (c.querySelector('#etfHoldAsof') || {}).dataset?.src || '' }; }""")
+        except Exception as e:  # noqa: BLE001
+            d = {"err": str(e)[:120]}
+        good = bool(d.get("canvas")) and d.get("rows", 0) > 0 and bool(_re.search(r"資料日 \d{4}-\d{2}-\d{2}", d.get("asof", "")))
+        res.append((code, name, cat, "ok" if good else "不合格", str(d.get("rows", "")), d.get("src", ""), d.get("asof", "")[:60]))
+        if not good:
+            bad.append(f"{code} {name}（{d.get('st') or d.get('err') or '?'}）")
+    out = ROOT / "etf_cover_1008.tsv"
+    out.write_text("代號\t名稱\t分類\t結果\t清單列數\t來源種類\t資料日小字\n" + "\n".join("\t".join(r) for r in res), encoding="utf-8")
+    print(f"  [{tag}] 需要有表格的 {len(res)} 檔（另 {n_lev} 檔槓桿反向／期貨型不算）：合格 {len(res) - len(bad)}／不合格 {len(bad)}（清單 {out}）")
+    for x in bad:
+        print("    不合格：", x)
+    ok(f"★ [{tag}] 逐檔點過（非槓桿反向期貨型）", len(res) >= 200, len(res))
+    ok(f"★ [{tag}] 每一檔都有甜甜圈 canvas＋清單列數 > 0＋資料日（不合格＝0）", not bad, bad[:40])
+    lp.close()
+
+
 def t_etf_hold_1007(pg, b, base):
     """ETF 成分股分頁（2026-10-07 Andy：「成分股分頁需要左側出現個股清單，右邊出現個股權重圓餅圖」）。
 
@@ -27760,6 +27807,7 @@ SECTIONS = {
     "ETF成分股1007":       lambda pg, b, base, code: t_etf_hold_1007(pg, b, base),
     # ★ 2026-10-08 Andy：「請點擊所有，所有ETF 確認沒有成分股的補上」—— 逐檔點成分股分頁，有表格或有兩站連結（⚠ --workers 1，約 311 檔）
     "ETF成分股普查1008":   lambda pg, b, base, code: t_etf_census_1008(pg, b, base),
+    "ETF成分股全覆蓋1008": lambda pg, b, base, code: t_etf_cover_1008(pg, b, base),
     # ★ 2026-10-07 Andy：「幫我處理這問題 其他圖表一樣不要發生」—— 全站 ECharts 提示框不准被卡片裁切／超出視窗（1440＋390，⚠ 一律 --workers 1）
     "提示框普查1007":      lambda pg, b, base, code: t_tip_census_1007(pg, b, base),
     "ETF報酬比較1006":     lambda pg, b, base, code: t_etf_ret_1006(pg, b, base),

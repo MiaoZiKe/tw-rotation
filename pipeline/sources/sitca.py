@@ -173,7 +173,8 @@ def match_code(fund: str, names: dict[str, str]) -> str | None:
     return hits[0][1]
 
 
-def top10(names: dict[str, str], ym: str | None = None, classes: list[str] | None = None) -> pd.DataFrame:
+def top10(names: dict[str, str], ym: str | None = None, classes: list[str] | None = None,
+          have_yms: set[str] | None = None) -> pd.DataFrame:
     """抓公會「基金前十大投資標的」ETF 類型的全部基金，對回代號。ym 不給就用公會最新已公告月。
     回傳欄位 COLS；對不回代號的基金照樣保留（etf 空白），build 時只用有代號的。"""
     s = http.session()
@@ -185,6 +186,10 @@ def top10(names: dict[str, str], ym: str | None = None, classes: list[str] | Non
         log.warning("公會前十大 GET 失敗：%s", str(exc)[:200])
         return pd.DataFrame(columns=COLS)
     ym = ym or latest_ym(first)
+    if ym and have_yms and ym in have_yms:
+        # 資料湖已經有公會最新這個月 → 不重抓（DECISIONS #155：會重複用到的存湖、抓取一律增量）
+        log.info("公會前十大 %s 已在資料湖，跳過", ym)
+        return pd.DataFrame(columns=COLS)
     base = hidden_fields(first)
     if not ym or "__VIEWSTATE" not in base:
         log.warning("公會前十大頁面認不得（前 200 字）：%s", _snip(first))

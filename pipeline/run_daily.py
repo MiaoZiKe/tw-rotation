@@ -483,6 +483,19 @@ def collect_etf_holdings() -> pd.DataFrame:
     return etf_pcf.fetch_all(names)
 
 
+def collect_etf_holdings_monthly() -> pd.DataFrame:
+    """投信投顧公會每月前十大（官網抓不到的 ETF 的第二順位來源）。湖裡已有公會最新月份就不抓。"""
+    from .sources import sitca
+    ci = store.read("company_info")
+    names = {}
+    if not ci.empty and {"code", "name", "industry"} <= set(ci.columns):
+        e = ci[ci["industry"].astype(str).isin(["ETF", "上櫃ETF"])]
+        names = dict(zip(e["code"].astype(str), e["name"].astype(str)))
+    old = store.read("etf_holdings_monthly")
+    have = set(old["ym"].astype(str)) if not old.empty and "ym" in old.columns else set()
+    return sitca.top10(names, have_yms=have)
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description="台股資金輪動儀表板 — 每日盤後管線")
     ap.add_argument("--skip-finmind", action="store_true",
@@ -631,6 +644,9 @@ def main() -> int:
         # 放在傍晚那輪：投信約 16:00～18:00 才更新當天的 PCF。只增不改，鍵 (date, etf, code)，
         # date 用投信回應裡的淨值日，所以同一天重跑只會去重、不會多出一天。約 2～3 分鐘、一百多個請求。
         save("etf_holdings", step("etf_pcf.holdings", collect_etf_holdings))
+        # 2026-10-08（Andy：「所有 ETF 的成分股分頁都要有圖、有清單」）：官網抓不到的那幾檔用公會每月前十大補（月資料）。
+        # 一個月只會真的抓一次（湖裡有最新月份就跳過），十幾個 POST、不耗額度。
+        save("etf_holdings_monthly", step("sitca.etf_top10", collect_etf_holdings_monthly))
 
         # ---------------------------------------------- 新聞與國際
         news_df = step("news.collect", news.collect)

@@ -5708,6 +5708,7 @@
 #etfHoldCard .wv{display:inline-block;min-width:3.6em;text-align:right}
 #etfHoldCard tr.hdsep td{height:24px;padding:0 10px;text-align:left;font-size:12px;color:var(--ink-3);background:var(--panel-2);border-top:1px solid var(--line-2,var(--line))}
 #etfHoldCard .hdasof{color:var(--ink-3);font-size:12px;font-weight:400;margin-left:8px}
+#etfHoldCard .hdasof a.hdsrc{color:inherit;text-decoration:underline dotted}
 #etfHoldCard .hdnote{line-height:1.7;color:var(--ink-2);font-size:13.5px;padding:10px 2px}
 #etfHoldCard .hdnote b{color:var(--ink)}
 @media (max-width:1099px){#etfHoldCard .hdgrid{grid-template-columns:minmax(0,1fr);gap:16px}
@@ -5726,13 +5727,16 @@
     const cat = info.cat || '';
     const rec = hd && hd.etfs && hd.etfs[code];
     const items = rec && Array.isArray(rec.items) ? rec.items.filter(x => x && x.w != null && x.w > 0) : [];
-    /* 沒有個股成分的判定：etf.json 分類（債券型／槓桿反向，後者多以期貨曝險）＋名稱關鍵字（etf.json 讀不到時的退路）*/
-    const noStock = cat === '債券型' || cat === '槓桿反向' || /債|期貨|正2|反1|原油|黃金|VIX|美元/.test(name);
+    /* 沒有成分可列的判定：只剩槓桿反向／期貨型（資產是期貨契約）。代號尾碼 L／R／U／K（管線 etf_pcf._skip_code 同一條規則）
+       ＋etf.json 分類「槓桿反向」＋名稱關鍵字（etf.json 讀不到時的退路）。
+       2026-10-08 起債券型不再算「沒有成分」：Andy「所有 ETF 的成分股分頁都要跟有成分股的 ETF 一樣，有圖、有清單」，
+       債券型有逐檔債券持股，沒資料時要講「這檔還沒抓到」，不是講「沒有成分」。*/
+    const noStock = /[LRUK]$/.test(code) || cat === '槓桿反向' || /期貨|正2|反1/.test(name);
     if (!items.length) {
       card.dataset.state = noStock ? 'nostock' : 'nosrc';
       card.innerHTML = noStock
-        ? `<h3>成分股</h3><div class="hdnote" id="etfHoldNone"><b>這檔以債券／期貨為主，沒有個股成分。</b><br>
-            ${A.fmt.esc(name)}${cat ? `（${A.fmt.esc(cat)}）` : ''}的資產是債券或期貨契約，不是一籃子股票，所以這裡不會有個股清單與權重圖。
+        ? `<h3>成分股</h3><div class="hdnote" id="etfHoldNone"><b>這檔是槓桿／反向／期貨型，沒有成分股。</b><br>
+            ${A.fmt.esc(name)}${cat ? `（${A.fmt.esc(cat)}）` : ''}的資產是期貨契約，不是一籃子股票或債券，所以這裡不會有成分清單與權重圖。
             價格走勢看「總覽」，配息看「配息」分頁。</div>`
         : (() => { const iss = (hd && hd.issuers && hd.issuers[code]) || '';
             /* 2026-10-07 Andy：「為何有 ETF 沒有成分股」。補不上的投信，管線在 etf_holdings.json 的 why 寫原因
@@ -5740,10 +5744,10 @@
             const why = (hd && hd.why && iss && hd.why[iss]) || '';
             const conn = !!(hd && Array.isArray(hd.connected) && iss && hd.connected.includes(iss));
             const head = why ? `此檔發行投信（${A.fmt.esc(iss)}投信）的每日持股目前抓不到。`
-              : conn ? `${A.fmt.esc(iss)}投信今天沒有公告這檔的持股明細。`
+              : conn ? `資料湖裡還沒有這檔的持股明細（${A.fmt.esc(iss)}投信）。`
               : `此檔發行投信${iss ? `（${A.fmt.esc(iss)}投信）` : ''}資料尚未接上。`;
             const body = why ? `原因：${A.fmt.esc(why)}`
-              : conn ? '這家投信已接上，但這一檔官網沒有逐檔持股（可能是期貨型、剛掛牌，或官網只公告類別彙總），這裡不用估計值充數。'
+              : conn ? '這家投信已接上，但從來沒有抓到過這一檔的逐檔持股（只要抓到過一次，就會一直顯示最近一次那份並標資料日），這裡不用估計值充數。'
               : '成分股取自各發行投信每日公告的申購買回清單；這家投信的公告還沒接進來，這裡先不放清單、也不用估計值充數。';
             return `<h3>成分股</h3><div class="hdnote" id="etfHoldNone"><b>${head}</b><br>
             ${body}請以發行投信官網每日公告的持股為準。</div>`; })();
@@ -5777,16 +5781,22 @@
     const maxW = items[0].w || 1;
     const asof = rec.asof || hd.asof || '';
         card.dataset.state = 'ok';
-    /* 2026-10-07：標出處 —— 人工整理（pipeline/etf/holdings_manual.yaml）／權重是用股數×收盤價推算的（元大實物申贖型） */
-    const tag = rec.manual ? `人工整理・資料日期 ${A.fmt.esc(asof)}` : `資料日期 ${A.fmt.esc(asof)}`;
-    const srcTxt = rec.issuer ? `${A.fmt.esc(rec.issuer)}投信公告${rec.est ? '・權重依股數×收盤價推算（占股票部位）' : ''}` : '';
+    /* 2026-10-07：標出處 —— 人工整理（pipeline/etf/holdings_manual.yaml）／權重是用股數×收盤價推算的（元大實物申贖型）
+       2026-10-08：面板一律長一樣，只有這一行小字不同：「資料日 X・來源 Y」。資料日是**資料湖裡最近一次抓到的那一份**的持股基準日
+       （管線不會因為今天官網沒回應就清空），讀者看得出這份是哪一天的。
+       來源三種：投信官網每日公告（auto）／投信月報（monthly，標「月資料」）／人工整理（manual，寫整理時看的網址）。*/
+    const srcKind = rec.manual ? 'manual' : (rec.monthly ? 'monthly' : 'auto');
+    const srcName = rec.src_name || (rec.issuer ? `${rec.issuer}投信${rec.monthly ? '月報' : '官網公告'}` : '');
+    const tag = (rec.manual ? '人工整理・' : '') + (rec.monthly ? '月資料・' : '') + `資料日 ${A.fmt.esc(asof)}`;
+    const srcHref = /^https?:\/\//.test(String(rec.src || '')) ? String(rec.src) : '';
+    const srcTxt = srcName ? `來源 ${srcHref ? `<a href="${A.fmt.esc(srcHref)}" target="_blank" rel="noopener" class="hdsrc">${A.fmt.esc(srcName)}</a>` : A.fmt.esc(srcName)}${rec.est ? '・權重依股數×收盤價推算（占股票部位）' : ''}` : '';
     /* 簡稱：stocks.json 的名稱（台積電、南亞、鴻海；去掉櫃買／權證常見的尾端 *）；查不到（非台股成分）才用成分股原名 */
     const nameOf = new Map((stocks || []).map(r => [r.code, String(r.name || '').replace(/\*+$/, '')]));
     const shortName = (x) => nameOf.get(String(x.code)) || x.name || x.code;
     const topCol = (i) => A.donut.color(i);
     const fmtSh = (x) => (x.shares != null ? `持股 ${A.fmt.i(Math.round(x.shares / 1000))} 張` : '');
     const sepAt = rest.length && restSum > 0.005 ? HOLD_TOPN : -1;
-    card.innerHTML = `<div class="hdhead"><h3>成分股<span class="hdasof" id="etfHoldAsof">${tag}・共 ${items.length} 檔${srcTxt ? `・<span title="${A.fmt.esc(rec.src || '')}">${srcTxt}</span>` : ''}</span></h3>
+    card.innerHTML = `<div class="hdhead"><h3>成分股<span class="hdasof" id="etfHoldAsof" data-src="${srcKind}">${tag}・共 ${items.length} 檔${srcTxt ? `・<span>${srcTxt}</span>` : ''}</span></h3>
         <input class="hdq" id="etfHoldQ" type="search" placeholder="搜尋代號或名稱" aria-label="搜尋成分股"></div>
       <div class="hdgrid"><div class="hdleft"><div class="hdpie" id="etfHoldPie"></div><div class="gplegend" id="etfHoldLegend" aria-label="前 10 大圖例"></div></div>
         <div class="hdlist"><div class="hdlistin"><div class="hdscroll"><table id="etfHoldTbl"><thead><tr><th>名稱</th><th class="sk">走勢</th><th>現價・漲跌</th><th class="ivh" title="三大法人（外資＋投信＋自營商）合計買賣超，單位張${instD ? `，資料日 ${A.fmt.esc(instD)}` : ""}">法人${instD ? ` ${A.fmt.esc(instD.slice(5).replace("-", "/"))}` : "買賣超"}</th><th>權重</th></tr></thead><tbody>
