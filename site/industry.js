@@ -1678,7 +1678,13 @@
       /* ⚠ 不用 App.whenNear：它一進來就讀 getBoundingClientRect 判斷「在不在首屏」—— 那本身就是這裡要避開的強制排版。
          上面有剖析圖（桌機、這條鏈有圖）時關聯圖一定在首屏以下，直接交給 IntersectionObserver ＋ 閒置補畫；
          沒有剖析圖或手機寬時照舊當場畫。*/
-      const mapBelow = !!(mapHost && hasSlots && dgId && window.innerWidth > 640);
+      /* ★ 2026-10-09（手機卡頓）：寬度改問 matchMedia。這一行在整頁剛畫完、還沒排版時讀 innerWidth，
+         會當場逼一次全頁排版（trace：手機 4 倍降速進族群頁時這一下 360ms）；同一條 >640 界線，結果不變。 */
+      /* ★ 2026-10-09（手機卡頓）：手機（html.m4）族群頁上面是剖析圖（族群總覽上面是甜甜圈），關聯圖一樣在首屏以下（402×874 實測上緣約 1100px），
+         改成跟桌機一樣延後畫（IntersectionObserver＋閒置補畫，最晚 2.5 秒）。以前手機當場畫，
+         整頁剛插進來還沒排版就去量關聯圖，跟剖析圖各逼一次全頁排版，4 倍降速時多一段 200～360ms。桌機（>640）判斷不變。 */
+      const mapBelow = !!(mapHost && ((hasSlots && dgId && (window.matchMedia ? !window.matchMedia('(max-width: 640px)').matches : window.innerWidth > 640))
+        || document.documentElement.classList.contains('m4')));   // 手機族群總覽：上面是甜甜圈，關聯圖同樣在首屏以下
       /* 範圍的兩個出口：整塊藏起來（交集是空的）、整條鏈＋反亮那幾格（DECISIONS #317）。只有反亮的範圍真的變了才重畫。*/
       let relKey = relScope ? [...relScope].sort().join(',') : '*';
       const paintRelScope = () => {
@@ -1855,7 +1861,7 @@
          以前它只把 SVG 加上 .noanim，切到 3D 之後這顆鈕等於是壞的。
          3D 的「動態」＝場景緩慢自轉 ＋ 風扇轉 ＋ 指示燈呼吸；「靜止」＝完全不自己動。*/
       const animBtn = $('#dgAnim', el);
-      const setAnimAll = (on) => {
+      const setAnimAll = (on, keep) => {
         const wrap = $('#prodDiagram', el);
         wrap.classList.toggle('noanim', !on);
         /* B4（art-director 2026-09-21）：`.dgwrap.noanim *{animation:none!important}` **只管 CSS 動畫**。
@@ -1868,7 +1874,7 @@
         });
         if (animBtn) { animBtn.textContent = on ? '動畫：開' : '動畫：關'; animBtn.classList.toggle('cyan', on); }
         if (view3d && view3d.setAnim) view3d.setAnim(on);
-        try { localStorage.setItem('tw.dganim', on ? '1' : '0'); } catch (e) { /* 忽略 */ }
+        if (!keep) { try { localStorage.setItem('tw.dganim', on ? '1' : '0'); } catch (e) { /* 忽略 */ } }
       };
       if (animBtn) animBtn.onclick = () => setAnimAll($('#prodDiagram', el).classList.contains('noanim'));
       /* 2026-10-08（Andy：「手機版面已經很小了，所以需要多一個說明編號開關選項」）：剖析圖編號開／關，2D 與 3D 共用。
@@ -1885,7 +1891,11 @@
       };
       if (numBtn) numBtn.onclick = () => setNum(el.classList.contains('dgnumoff'), true);
       setNum(numPref(), false);
-      setAnimAll(animPref());
+      /* ★ 2026-10-09（Andy：「手機…產業地圖點擊都會卡頓沒反應」）：手機（html.m4）2D 也預設不跑動畫。
+         剖析圖的流向虛線（CSS dgdash）＋SMIL 白點是 SVG 濾鏡底下的重繪，停著不動 4 倍降速時 5 秒內 19 個長任務、主執行緒八成在重畫，
+         點什麼都排在後面；手機又沒有「動畫」鈕（body.m3on #dgAnim 藏起來）可以關。暫停後同一段只剩 1 個。
+         初始化這一下不寫回 localStorage（keep）：值本來就是讀出來的，桌機行為不變；手機也不會把「關」寫進去影響桌機。 */
+      setAnimAll(document.documentElement.classList.contains('m4') ? anim3dPref() : animPref(), true);
       // wire3D 是模組層級的函式，看不到這裡的 segHi／segFilter／syncHighlight，
       // 所以把要用到的動作當參數傳進去（之前直接寫在函式裡會噴 syncHighlight is not defined）。
       if (skip3d) return;                 // 收合狀態下不掛 3D（展開時才補掛）
@@ -2603,6 +2613,13 @@
   let view3d = null;                 // 目前掛著的 3D 場景（沒有就是 null）
   // 動畫偏好（平面圖與 3D 共用同一個開關）；沒設定過就是開
   const animPref = () => { try { return localStorage.getItem('tw.dganim') !== '0'; } catch (e) { return true; } };
+  /* ★ 2026-10-09（Andy：「手機…產業地圖點擊都會卡頓沒反應」）：手機（html.m4）沒有「動畫」鈕（body.m3on #dgAnim 藏起來），
+     3D 一開就自轉、每秒 30 張整個場景畫到底，使用者也關不掉，其他點擊全排在它後面。
+     手機在使用者沒選過的情況下 3D 預設不自轉（拖、點、展開照常；有存過 tw.dganim 就照存的）。桌機照舊。 */
+  const anim3dPref = () => {
+    if (!document.documentElement.classList.contains('m4')) return animPref();
+    try { const v = localStorage.getItem('tw.dganim'); return v == null ? false : v !== '0'; } catch (e) { return false; }
+  };
 
   let fit3dOff = null;               // Fit.on 的取消函式（3D 畫布高度跟著視窗高度走，#317）
   function dispose3D() {
@@ -2790,7 +2807,7 @@
           onSeg: (seg, data) => onSeg(seg, data),
           // 點到場景空白處（raycast 沒打到任何零件）→ 回到 Default，跟 2D 同一支 clearPart
           onBg: hk.onBg || null,
-          anim: animPref(),          // E4：一掛上去就照使用者目前的動畫偏好，不要先動起來再被關掉
+          anim: anim3dPref(),        // E4：一掛上去就照使用者目前的動畫偏好，不要先動起來再被關掉
           members: hk.members || null,   // 圖九 2-3：文字框底下那排可點的台股晶片
           onStock: hk.onStock || null,
           pal: palPref(),                // 圖九 2-2：三種配色，記在 localStorage
@@ -3152,7 +3169,9 @@
     if (!card) return;
     const head = card.querySelector(':scope>.nbhead'), sw = card.querySelector(':scope>#dgPick');
     card.classList.remove('nbinl');
-    if (!head || !sw || !(window.innerWidth > 640)) return;
+    /* ★ 2026-10-09（手機卡頓）：寬度改問 matchMedia —— 剛畫完整頁就讀 innerWidth 會當場排版一次（手機 4 倍降速 120ms），手機又用不到併列 */
+    const wide = window.matchMedia ? !window.matchMedia('(max-width: 640px)').matches : window.innerWidth > 640;
+    if (!head || !sw || !wide) return;
     card.classList.add('nbinl');
     if (sw.scrollWidth > sw.clientWidth + 1) card.classList.remove('nbinl');
   }

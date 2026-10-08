@@ -21,7 +21,11 @@
   const $ = (s, r) => (r || document).querySelector(s);
   const $$ = (s, r) => Array.from((r || document).querySelectorAll(s));
   const esc = (s) => String(s == null ? '' : s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
-  const isM = () => window.innerWidth <= MAX;
+  /* ★ 2026-10-09（Andy：「手機…產業地圖點擊都會卡頓沒反應」）：以前每次都讀 window.innerWidth。
+     底下兩支掛在 body 上的 MutationObserver 每一批 DOM 變動都會呼叫 isM()，畫面剛被改過時讀 innerWidth 會逼瀏覽器先排版一次
+     （CPU profile 裡 isM 自己就佔 0.3～0.6 秒）。改用 matchMedia 的結果（跟 innerWidth ≤ 640 同一條界線，含捲軸寬），不必排版。 */
+  const mqM = window.matchMedia ? window.matchMedia('(max-width: ' + MAX + 'px)') : null;
+  const isM = () => (mqM ? mqM.matches : window.innerWidth <= MAX);
   let burger = null, drawer = null, back = null, title = null;
 
   /* 頁面 → 抽屜裡要點的網址（有子項的大項點了進第一個子項，跟電腦版一樣） */
@@ -552,7 +556,9 @@
     document.addEventListener('keydown', (e) => { if (e.key === 'Escape') close(); });
     new MutationObserver(paintTitle).observe(root, { attributes: true, attributeFilter: ['data-l4sub'] });
     // 會員功能晚一步才開（account.js 讀完設定檔）、#acctBtn／#acctOnline 晚一步才建：出現時收進頂欄小圖示列
-    new MutationObserver(() => { if (tools && isM()) { const bar = $('.topbar'); const miss = TOOLS.some((q) => { const e = $(q); return e && e.parentNode !== tools; }) || (acctOn() && $('#m4Login')); if (bar && miss) buildTools(bar); } })
+    // ★ 2026-10-09：一幀最多檢查一次（以前每一批 DOM 變動都跑一次 7 個 querySelector；進族群頁會連續來幾十批）
+    let tr = 0;
+    new MutationObserver(() => { if (tr || !tools || !isM()) return; tr = requestAnimationFrame(() => { tr = 0; if (!tools || !isM()) return; const bar = $('.topbar'); const miss = TOOLS.some((q) => { const e = $(q); return e && e.parentNode !== tools; }) || (acctOn() && $('#m4Login')); if (bar && miss) buildTools(bar); }); })
       .observe(document.body, { childList: true, subtree: true });
     let ct = 0; new MutationObserver(() => { if (!isM()) return; clearTimeout(ct); ct = setTimeout(() => { wireCond(); wireChainList(); wireEtfTri(); wireIndMap(); wireIncMS(); wireCxMS(); wirePricing(); hideLabels(); }, 120); }).observe(document.body, { childList: true, subtree: true });
     wireCond();
