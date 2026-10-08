@@ -11,6 +11,10 @@
      · 2026-10-08 全站權限矩陣（docs/perm_matrix_1008.md）：四個範本的 lims（每日次數，含新的 tab／filter／drill／obj 動作計次）、
        feats（同時選取上限 mkt.grp.pick／explore.list.n／mkt.cand.n／etf.returns.n、etf.cashflow、個股進階分頁）、dq（15／40／300／不限）、
        highlights（矩陣 §5 新文案）一律照矩陣；熱力圖點擊跳頁 heat.link 訪客／註冊會員關、Plus／Pro 開；上面 10-07 的數字（dq 3／10／50、訪客不設單項次數）被這一版取代。
+     · ★ 2026-10-09（Andy 04:4x：「我明明訪客開 1000 次，但為何會出現這樣的情況」）：訪客範本**不再寫計次功能的單項上限**
+       （拿掉 explore.page 5、heat.detail 3、ind.groups 3、ind.diagram 3、stock.page 3），研究頁只靠全站每日額度（dq）——
+       管理頁改全站額度就是訪客實際能用的次數。0＝不開放（3D、關聯圖、ETF 一覽／報酬比較、AI）與動作次數（下鑽、篩選、切分頁）照留。
+       註冊會員／Plus 的單項上限沒動（這次 Andy 只回報訪客）；管理頁全站每日額度小卡會把任何範本「比全站額度更嚴的單項上限」列出來，可一鍵改成共用。
    這支是**資料**，不是設定：改了不會自動生效，要管理者在 #admin/perm 按一次「套用建議方案」。
    ============================================================================ */
 window.TW_PLAN_PRESETS = {
@@ -100,16 +104,11 @@ window.TW_PLAN_PRESETS = {
     "etf.list.tab": 0,
     "etf.list.filter": 0,
     "season.pick": 3,
-    "explore.page": 5,
     "etf.top3": 3,
     "etf.returns": 0,
     "etf.list": 0,
-    "heat.detail": 3,
-    "ind.groups": 3,
-    "ind.diagram": 3,
     "ind.3d": 0,
     "ind.rel": 0,
-    "stock.page": 3,
     "stock.ai": 0,
     "events": 3
    },

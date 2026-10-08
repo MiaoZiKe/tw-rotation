@@ -276,6 +276,7 @@
      額度圓環旁多一顆「本頁 N 項限制・最少剩 X 次」（收合）；點開逐項列出這一頁所有有每日上限的項目：
      名稱、計次單位（看／篩選／切分頁／下鑽）、已用／上限、還剩幾次、一條小進度條；剩 1 次琥珀色、用完紅色。
      「這一頁」＝網址對得上那個功能（PAGE_OF 精確對到子分頁；其餘依分類對到頁名）；上限 0 的寫「不開放」。
+     ⚠ 2026-10-09 起不再點開清單（Andy：「不要出現訊息框」），逐項內容改放 title，見下面 pagePanel。
      不受限的身分（Pro、擁有者、預覽版）每一項都是不限 → 清單空的 → 整顆不顯示。換頁時 evaluate() 會重算，跟著換成那一頁的項目。
      ============================================================================ */
   const PAGE_OF = {
@@ -305,6 +306,9 @@
     if (ringOn && allLim() !== Infinity) { const n = allLim(), used = Math.min(n, (d.k[ALL] || []).length); out.push({ id: ALL, name: '研究瀏覽（全站共用）', unit: '看', used, lim: n, rem: Math.max(0, n - used) }); }
     return out;
   }
+  /* ★ 2026-10-09 Andy 05:1x：「出現『本頁限制次數』這個只顯示在上方就好，不要出現訊息框」→ 拿掉點開的下拉清單（.twqp-pan），
+     只留頁首一行精簡字；點那行字直接到看方案頁（#pricing），逐項細節放在 title（滑過看得到，不彈任何浮層）。用完（剩 0 次）字變紅。
+     手機：不再是左下角浮動膠囊，改放頂欄（額度圓環左邊），字縮成「限制：剩 X 次」。限制來源（單項上限／全站額度／未開放）只在管理頁小卡說明。 */
   function pagePanel(ringOn) {
     const h = location.hash || '';
     let el = document.getElementById('twQPage');
@@ -312,30 +316,32 @@
     if (!items.length) { if (el) el.hidden = true; return; }
     css();
     if (!el) {
-      el = document.createElement('span'); el.id = 'twQPage'; el.className = 'twqp';
-      el.innerHTML = '<button type="button" class="twqp-b" aria-expanded="false"></button><div class="twqp-pan" role="dialog" aria-label="本頁限制" hidden></div>';
-      el.querySelector('.twqp-b').onclick = (e) => { e.stopPropagation(); const pan = el.querySelector('.twqp-pan'); pan.hidden = !pan.hidden; el.querySelector('.twqp-b').setAttribute('aria-expanded', String(!pan.hidden)); };
-      document.addEventListener('click', (e) => { if (!el.contains(e.target)) { el.querySelector('.twqp-pan').hidden = true; el.querySelector('.twqp-b').setAttribute('aria-expanded', 'false'); } });
+      el = document.createElement('a'); el.id = 'twQPage'; el.className = 'twqp'; el.href = '#pricing';
+      el.innerHTML = '<span class="twqp-b"></span>';
     }
     const rg = document.getElementById('twQRing'), tb = document.getElementById('twPageTourBtn'), h1 = document.querySelector('#l4Head h1');
     const desk = !!(h1 && h1.getClientRects().length);
     el.classList.toggle('mob', !desk);
-    /* 手機（沒有 #l4Head）：頂欄已經被圓環、導覽、搜尋塞滿，再放一顆會撐出橫向捲軸（390 實測 scrollWidth 570）→ 改成左下角浮動的小膠囊 */
     if (desk) { const after = rg && !rg.hidden && rg.parentNode === h1.parentNode ? rg : (tb && tb.parentNode === h1.parentNode ? tb : h1); if (el.previousElementSibling !== after) after.after(el); }
-    else if (el.parentNode !== document.body) document.body.appendChild(el);
+    else {
+      /* 手機頂欄：放在額度圓環（或導覽鈕）左邊，跟圓環同一套定位；都沒有就放搜尋鈕左邊 */
+      const a = rg && !rg.hidden && rg.parentNode ? rg : (tb && tb.parentNode ? tb : document.querySelector('#mSearchBtn') || document.querySelector('.topbar .search'));
+      if (a) { if (el.nextElementSibling !== a) a.before(el); } else { el.hidden = true; return; }
+    }
     el.hidden = false;
     const lvl = (x) => (x.lim === 0 ? 'off' : x.rem === 0 ? 'out' : x.rem === 1 ? 'low' : 'ok');
     const min = items.filter((x) => x.lim > 0).reduce((a, x) => (a == null || x.rem < a.rem ? x : a), null);
     const b = el.querySelector('.twqp-b');
-    const bt = `本頁 ${items.length} 項限制${min ? `・最少剩 ${min.rem} 次` : ''}`;
+    const bt = desk ? `本頁 ${items.length} 項限制${min ? `・最少剩 ${min.rem} 次` : ''}` : (min ? `限制：剩 ${min.rem} 次` : `限制：${items.length} 項`);
     if (b.textContent !== bt) b.textContent = bt;
-    b.dataset.lvl = min ? lvl(min) : 'off';
+    const lv = min ? lvl(min) : 'off';
+    b.dataset.lvl = lv; el.dataset.lvl = lv;
     el.dataset.n = String(items.length);
-    const html = `<div class="twqp-h">本頁的每日限制<small>台北 0 點重置・同一個對象同一天只算一次</small></div>` + items.map((x) => `<div class="twqp-r" data-id="${x.id}" data-lvl="${lvl(x)}">
-      <div class="twqp-t"><b>${T() ? T().esc(x.name) : x.name}</b><span>${x.lim === 0 ? '不開放' : `${x.unit} ${x.used}／${x.lim}・剩 ${x.rem} 次`}</span></div>
-      <i class="twqp-bar"><i style="width:${x.lim ? Math.round((x.used / x.lim) * 100) : 100}%"></i></i></div>`).join('')
-      + '<a class="twqp-go" href="#pricing">看方案 →</a>';
-    const pan = el.querySelector('.twqp-pan'); if (pan.dataset.h !== html) { pan.innerHTML = html; pan.dataset.h = html; }
+    el.dataset.ids = items.map((x) => x.id).join(',');
+    const line = (x) => `${x.name}：${x.lim === 0 ? '不開放' : `${x.unit} ${x.used}／${x.lim}・剩 ${x.rem} 次`}`;
+    el.dataset.items = JSON.stringify(items.map((x) => [x.id, x.lim === 0 ? '不開放' : `${x.unit} ${x.used}／${x.lim}・剩 ${x.rem} 次`]));
+    const tip = `本頁的每日限制（台北 0 點重置）\n${items.map(line).join('\n')}\n點一下看方案`;
+    if (el.title !== tip) { el.title = tip; el.setAttribute('aria-label', `本頁 ${items.length} 項每日限制${min ? `，最少剩 ${min.rem} 次` : ''}。點一下看方案`); }
   }
   /* 節流 200ms：有上限時要觀察整個 body，live.js 每幾秒改一堆格子 —— 不必每一格變動都重算 */
   function schedule() { if (!S.raf) S.raf = setTimeout(evaluate, 200); }
@@ -365,23 +371,13 @@
 .twqr[data-lvl="mid"]{--qc:var(--amber,#f5b942)}
 .twqr[data-lvl="out"]{--qc:var(--ink-3,#7a879c)}
 .twqr.mob{margin:0 2px 0 0;width:36px;height:36px}
-.twqp{position:relative;display:inline-flex;align-items:center;margin-left:8px;vertical-align:middle;flex:none}
+.twqp{position:relative;display:inline-flex;align-items:center;margin-left:8px;vertical-align:middle;flex:none;text-decoration:none;min-width:0}
 .twqp[hidden]{display:none}
-.twqp-b{appearance:none;font:inherit;font-size:12px;height:28px;padding:0 10px;border-radius:999px;border:1px solid var(--line-2);background:var(--panel-2);color:var(--ink-2);cursor:pointer;white-space:nowrap}
-.twqp-b[data-lvl="low"]{border-color:var(--amber,#f5b942);color:var(--amber,#f5b942)}
-.twqp-b[data-lvl="out"]{border-color:var(--down-r,#ef4b5f);color:var(--down-r,#ef4b5f)}
-.twqp.mob{position:fixed;left:12px;bottom:84px;z-index:1250;margin:0}.twqp.mob .twqp-b{max-width:60vw;overflow:hidden;text-overflow:ellipsis;box-shadow:0 4px 12px rgba(0,0,0,.25)}
-.twqp-pan{position:absolute;top:calc(100% + 6px);left:0;z-index:1300;width:min(320px,calc(100vw - 32px));padding:10px 12px;border-radius:10px;border:1px solid var(--line-2);background:var(--panel);box-shadow:0 8px 24px rgba(0,0,0,.3);font-size:13px;color:var(--ink)}
-.twqp.mob .twqp-pan{position:fixed;left:16px;right:16px;top:auto;bottom:124px;width:auto;max-height:60vh;overflow:auto}
-.twqp-pan[hidden]{display:none}
-.twqp-h{font-weight:700;margin-bottom:6px}.twqp-h small{display:block;font-weight:400;font-size:12px;color:var(--ink-3)}
-.twqp-r{padding:6px 0;border-top:1px solid var(--line)}
-.twqp-t{display:flex;justify-content:space-between;gap:8px}.twqp-t b{font-weight:600;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.twqp-t span{flex:none;font-size:12px;color:var(--ink-2)}
-.twqp-bar{display:block;height:4px;margin-top:4px;border-radius:2px;background:color-mix(in srgb,var(--ink-3) 25%,transparent);overflow:hidden}
-.twqp-bar>i{display:block;height:100%;background:var(--cyan,#22d3ee)}
-.twqp-r[data-lvl="low"] .twqp-bar>i{background:var(--amber,#f5b942)}.twqp-r[data-lvl="low"] .twqp-t span{color:var(--amber,#f5b942)}
-.twqp-r[data-lvl="out"] .twqp-bar>i,.twqp-r[data-lvl="off"] .twqp-bar>i{background:var(--down-r,#ef4b5f)}.twqp-r[data-lvl="out"] .twqp-t span,.twqp-r[data-lvl="off"] .twqp-t span{color:var(--down-r,#ef4b5f)}
-.twqp-go{display:block;margin-top:8px;text-align:right;font-size:12px}
+.twqp-b{font-size:12px;line-height:28px;height:28px;padding:0 4px;color:var(--ink-2);white-space:nowrap;cursor:pointer}
+.twqp:hover .twqp-b{text-decoration:underline}
+.twqp-b[data-lvl="low"]{color:var(--amber,#f5b942)}
+.twqp-b[data-lvl="out"]{color:var(--down-r,#ef4b5f);font-weight:600}
+.twqp.mob{margin:0 4px 0 0}.twqp.mob .twqp-b{font-size:11px;padding:0 2px;max-width:30vw;overflow:hidden;text-overflow:ellipsis}
 .qlkov:not(.qcov) .qlkgo{margin-top:6px;display:inline-flex;align-items:center;height:36px;padding:0 18px;border-radius:999px;background:var(--amber,#f5b942);color:#1a1203;font-weight:700;font-size:14px;text-decoration:none}`);
   }
 

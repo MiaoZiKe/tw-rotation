@@ -27717,12 +27717,14 @@ def t_mobile_m4(b, base, code):
     qp = q.evaluate("""() => { const e = document.getElementById('twQPage'), r = e ? e.querySelector('.twqp-b').getBoundingClientRect() : null;
         return { n: e ? +e.dataset.n : 0, txt: e ? e.querySelector('.twqp-b').textContent : '', r: r && [Math.round(r.left), Math.round(r.top), Math.round(r.right), Math.round(r.bottom)],
                  W: innerWidth, H: innerHeight, docW: document.documentElement.scrollWidth, m4: document.documentElement.classList.contains('m4') }; }""")
-    ok(f"【{T}】訪客在手機看得到「本頁限制」膠囊（{qp['txt']}），整顆在畫面內、沒撐出橫向捲軸",
+    ok(f"【{T}】訪客在手機看得到「本頁限制」那行字（{qp['txt']}），整顆在畫面內、沒撐出橫向捲軸",
        bool(okp) and qp["m4"] and qp["n"] >= 1 and qp["r"] and qp["r"][0] >= 0 and qp["r"][2] <= qp["W"] and qp["r"][3] <= qp["H"] and qp["docW"] <= qp["W"] + 1, qp)
-    q.locator("#twQPage .twqp-b").click(); q.wait_for_timeout(300)
-    pn = q.evaluate("""() => { const p = document.querySelector('#twQPage .twqp-pan'); if (!p || p.hidden) return null; const r = p.getBoundingClientRect();
-        return { rows: p.querySelectorAll('.twqp-r').length, l: Math.round(r.left), r: Math.round(r.right), t: Math.round(r.top), b: Math.round(r.bottom), W: innerWidth, H: innerHeight }; }""")
-    ok(f"【{T}】點「本頁限制」→ 清單真的展開、逐項列出、整塊在畫面內", bool(pn) and pn["rows"] == qp["n"] and pn["l"] >= 0 and pn["r"] <= pn["W"] and pn["t"] >= 0 and pn["b"] <= pn["H"], pn)
+    # 2026-10-09 Andy：「本頁限制只顯示在上方就好，不要出現訊息框」→ 手機在頁首（頂欄）內、不是左下浮動；點了到看方案頁、不彈任何浮層
+    pos = q.evaluate("() => { const e = document.getElementById('twQPage'); return { fixed: getComputedStyle(e).position === 'fixed', top: !!e.closest('.topbar, header'), y: Math.round(e.getBoundingClientRect().top) }; }")
+    ok(f"【{T}】手機「本頁限制」在頁首頂欄內（不是左下角浮動）", not pos["fixed"] and pos["top"] and pos["y"] < 80, pos)
+    q.locator("#twQPage").click(); q.wait_for_timeout(500)
+    pn = q.evaluate("() => ({ pan: !!document.querySelector('.twqp-pan'), dlg: [...document.querySelectorAll('[role=dialog]')].filter(d => d.getClientRects().length && !d.hidden).length, h: location.hash })")
+    ok(f"【{T}】點「本頁限制」→ 不出現任何下拉／訊息框，直接到看方案頁", not pn["pan"] and pn["dlg"] == 0 and pn["h"].startswith("#pricing"), pn)
     c.close()
     # 管理者：抽屜「專案」組裡有管理區與子項
     c, _sent, _st = _sub_ctx(b, "admin", width=390)
@@ -28630,6 +28632,8 @@ SECTIONS = {
     "套用建議方案正式站1007": lambda pg, b, base, code: t_preset_live_1007(b, base, code),
     # ★ 2026-10-08 訪客點擊次數上限（site/clickq.js）：資金分流樹下鑽／族群×法人篩選／題材剖析／產業鏈／市場明細族群數，含管理權限頁
     "訪客權限1008":        lambda pg, b, base, code: t_guest_perm_1008(b, base, code),
+    # ★ 2026-10-09 Andy：「我明明訪客開 1000 次…是否在會員權限裡面有什麼沒設定到」—— 管理頁小卡列出更嚴的單項上限＋一鍵共用、本頁限制寫來源
+    "訪客額度1009":        lambda pg, b, base, code: t_guest_quota_1009(b, base, code),
     # ★ 2026-10-08 晚 Andy 313：「熱門題材、資金熱力圖，點擊會到該個股的功能需要權限設定，只有 Plus 以上才可以」（訪客／免費／Plus／Pro 走每條熱力圖跳頁路徑；桌機＋手機觸控）
     "熱力圖跳個股1008":    lambda pg, b, base, code: t_heat_plus_1008(b, base),
     # ★ 2026-09-28 Andy：「所有標題加上小圖示，顏色要搭配」—— 覆蓋、對比 ≥3:1（深淺）、1440／800／390 不擠（A/B）、動效（⚠ 一律 --workers 1）
@@ -53119,16 +53123,14 @@ def _gp_suite(b, base, T, who, feats, lims, errs, shot, tag):
     # ⑧ 選股策略篩選（filter）＋完整名單顯示檔數（pick）
     n = L("explore.filter")
     _gp_go(pg, "#explore", "() => !!document.getElementById('slTagDd')")
-    QP_USED = "(id) => { const r = document.querySelector(`#twQPage .twqp-r[data-id='${id}'] .twqp-t span`); return r ? r.textContent : null; }"
+    # 2026-10-09 Andy：「本頁限制只顯示在上方就好，不要出現訊息框」→ 逐項細節不再是下拉清單，改讀頁首那行字的 data-items（同 title 的內容）
+    QP_USED = "(id) => { const e = document.getElementById('twQPage'); if (!e || !e.dataset.items) return null; const r = JSON.parse(e.dataset.items).find(x => x[0] === id); return r ? r[1] : null; }"
     if who is None:
         wait_until(pg, "() => { const e = document.getElementById('twQPage'); return !!e && !e.hidden; }", 6000)
-        qp = pg.evaluate("() => ({ n: +document.getElementById('twQPage').dataset.n, b: document.querySelector('#twQPage .twqp-b').textContent, ids: [...document.querySelectorAll('#twQPage .twqp-r')].map(r => r.dataset.id) })")
+        qp = pg.evaluate("() => ({ n: +document.getElementById('twQPage').dataset.n, b: document.querySelector('#twQPage .twqp-b').textContent, ids: document.getElementById('twQPage').dataset.ids.split(',') })")
         ok(f"{T}【訪客】選股策略 本頁限制 2 項（看頁面 5、篩選 2）、收合寫「本頁 2 項限制・最少剩 X 次」",
            qp["n"] == 2 and sorted(qp["ids"]) == sorted(["explore.page", "explore.filter"]) and qp["b"].startswith("本頁 2 項限制・最少剩"), qp)
         shot(pg, "13_qpage_explore_collapsed.png")
-        pg.click("#twQPage .twqp-b"); pg.wait_for_timeout(250)
-        shot(pg, "14_qpage_explore_expanded.png")
-        pg.click("#twQPage .twqp-b"); pg.wait_for_timeout(150)
     before = pg.evaluate(QP_USED, "explore.filter")
     pg.click("#slTagDd"); wait_until(pg, "() => document.querySelectorAll('#slTagMenu input[data-tag]').length >= 3", 4000)
     tags = pg.evaluate("() => [...document.querySelectorAll('#slTagMenu input[data-tag]')].map(i => i.dataset.tag)")
@@ -53164,17 +53166,14 @@ def _gp_suite(b, base, T, who, feats, lims, errs, shot, tag):
     _gp_go(pg, "#etf/list", "() => document.querySelectorAll('#etfCatSeg button[data-v]').length >= 3")
     if who is None:
         wait_until(pg, "() => { const e = document.getElementById('twQPage'); return !!e && !e.hidden && /本頁/.test(e.textContent); }", 6000); pg.wait_for_timeout(500)
-        qp = pg.evaluate("() => ({ n: +document.getElementById('twQPage').dataset.n, ids: [...document.querySelectorAll('#twQPage .twqp-r')].map(r => r.dataset.id), t: document.getElementById('twQPage').innerText })")
+        qp = pg.evaluate("() => ({ n: +document.getElementById('twQPage').dataset.n, ids: document.getElementById('twQPage').dataset.ids.split(','), t: document.getElementById('twQPage').innerText })")
         want = ["etf.top3", "etf.returns", "etf.list", "etf.list.tab", "etf.list.filter"]
         ok(f"{T}【訪客】ETF 總覽 本頁限制 {len(want)} 項＝矩陣這一頁的項目（上方三卡、報酬比較、一覽、一覽分頁、一覽篩選）",
            qp["n"] == len(want) and sorted(qp["ids"]) == sorted(want), qp)
         shot(pg, "15_qpage_etf_collapsed.png")
-        pg.click("#twQPage .twqp-b"); pg.wait_for_timeout(250)
-        ok(f"{T}【訪客】ETF 總覽 展開後逐項寫單位與次數（看 N／3、不開放），用完的標紅",
-           pg.evaluate("() => { const t = document.querySelector('#twQPage .twqp-pan').innerText; return /看 \\d／3/.test(t) && /不開放/.test(t) && !!document.querySelector(\"#twQPage .twqp-r[data-lvl='off']\"); }"),
-           pg.evaluate("() => document.querySelector('#twQPage .twqp-pan').innerText"))
-        shot(pg, "16_qpage_etf_expanded.png")
-        pg.click("#twQPage .twqp-b"); pg.wait_for_timeout(150)
+        ok(f"{T}【訪客】ETF 總覽 頁首那行字的 title 逐項寫單位與次數（看 N／3、不開放）",
+           pg.evaluate("() => { const t = document.getElementById('twQPage').title; return /看 \\d／3/.test(t) && /不開放/.test(t); }"),
+           pg.evaluate("() => document.getElementById('twQPage').title"))
     cats = pg.evaluate("() => [...document.querySelectorAll('#etfCatSeg button[data-v]')].filter(b => !b.classList.contains('on')).map(b => b.dataset.v)")
     n = L("etf.list.tab")
     for cv in cats[:n]:
@@ -53258,7 +53257,8 @@ def t_guest_perm_1008(b, base, code):
     shot = (lambda pg, n: pg.screenshot(path=str(pathlib.Path(sh) / n))) if sh else (lambda pg, n: None)
     PR = _gp_presets()
     # ① 訪客：範本原值
-    _gp_suite(b, base, T, None, dict(PR["guest"]["feats"]), dict(PR["guest"]["lims"]), errs, shot, "訪客")
+    # 2026-10-09：訪客範本不再寫計次功能的單項上限（只靠全站額度，Andy「我明明訪客開 1000 次」）；單項上限的程式路徑照驗 → 測試自己給 3／3／5
+    _gp_suite(b, base, T, None, dict(PR["guest"]["feats"]), {**PR["guest"]["lims"], "heat.detail": 3, "ind.groups": 3, "explore.page": 5}, errs, shot, "訪客")
     # ② 註冊會員：動作計次覆寫成 1（不必點十幾下），同時選取上限用範本原值；鎖 0 的項目照範本
     fl = dict(PR["free"]["lims"])
     for k in GP_ACT + ["heat.detail", "ind.groups"]:
@@ -53328,6 +53328,137 @@ def t_guest_perm_1008(b, base, code):
     m = _gp_blocked(pg, "heat.detail")
     ok(f"{T}【管理】改成 1 之後 → 第 1 個題材打得開、第 2 個就被擋（1/1）", a1 == "#heatmap/theme/" + tids[0] and bool(m) and "1/1" in m and pg.evaluate("() => location.hash") == "#heatmap/theme", (a1, m))
     c.close()
+    ok(f"{T}：整段沒有 JS 錯誤", not errs, errs[:3])
+
+
+# ===================================================================== 訪客額度1009（site/admin.js 全站每日額度小卡、site/quota.js 本頁限制面板）
+# Andy 10-09 04:4x：「我明明訪客開 1000 次，但為何會出現這樣的情況，你是否在會員權限裡面有什麼沒設定到」「幫我確實修復」。
+# 根因：10-08 版「套用建議方案」在訪客範本寫了單項上限（族群總覽 3、剖析圖 3、3D 0、關聯圖 0）；小卡改全站額度只送 dq、不送 lims，
+#   Worker 對沒帶 lims 的 plans/put 維持原值 → 全站 1000 與單項 3 同時生效，管理頁上看不出還有更嚴的單項上限。
+# 這段用假的會員 Worker 驗：① 小卡列出更嚴的單項上限與不開放項目；② 一鍵改成跟全站共用 → 確認框列出會改的項 → 存檔 body 的 lims 沒有任何正數上限；
+#   ③ 不開放的項目在小卡上按「打開」→ 存檔把開關打開、0 次上限拿掉；按名稱 → 捲到分類卡那一列並閃一下；
+#   ④ 頁首「本頁 N 項限制」每一項寫出限制來源；⑤ 範本 dq=1000、沒有單項上限 → 訪客連看 4 條產業鏈都不被擋（對照組：單項 3 時第 4 條被擋）。
+GQ_GUEST = {"id": "guest", "name": "訪客", "builtin": True, "members": 0, "price": 0, "period": "month", "dq": 1000,
+            "feats": {"ind.3d": False}, "lims": {"ind.groups": 3, "ind.diagram": 3, "ind.3d": 0, "ind.rel": 0, "flow.sankey.drill": 3}}
+
+
+def t_guest_quota_1009(b, base, code):
+    T = "訪客額度1009"
+    errs: list[str] = []
+    sh = os.environ.get("TW_GQ_SHOTS")
+    shot = (lambda loc, n: loc.screenshot(path=str(pathlib.Path(sh) / n))) if sh else (lambda loc, n: None)
+    plans = [json.loads(json.dumps(GQ_GUEST)),
+             {"id": "free", "name": "註冊會員", "feats": {}, "lims": {}, "builtin": True, "members": 0, "price": 0, "period": "month", "dq": 40}]
+    c, sent, st = _adm3_ctx(b, plans=plans)
+    pg = c.new_page(); pg.on("pageerror", lambda e: errs.append(str(e)))
+    pg.goto(base + "#admin/perm", wait_until="domcontentloaded")
+    wait_until(pg, "() => !!document.querySelector(\"#ptTier button[data-tier='guest']\")", 12000)
+    pg.click("#ptTier button[data-tier='guest']")
+    wait_until(pg, "() => { const c = document.getElementById('pmDqCard'); return !!c && !c.hidden && /1000/.test(c.textContent); }", 8000)
+    pg.wait_for_timeout(300)
+    pg.evaluate("() => document.getElementById('pmDqCard').scrollIntoView({ block: 'center' })"); pg.wait_for_timeout(200)
+    shot(pg.locator("#pmDqCard"), "admin_card.png")
+    card = pg.evaluate("""() => { const c = document.getElementById('pmDqCard');
+        return { t: c.innerText, lim: [...c.querySelectorAll('[data-qlim]')].map(e => e.dataset.qlim + '=' + e.textContent.trim()),
+                 act: [...c.querySelectorAll('[data-qact]')].map(e => e.dataset.qact), off: [...c.querySelectorAll('[data-qoff]')].map(e => e.dataset.qoff),
+                 btn: !!document.getElementById('pmDqShare') }; }""")
+    ok(f"{T}【管理】訪客 dq=1000＋單項上限：小卡列出「比全站額度更嚴的單項上限」族群總覽 3/日、剖析圖 3/日",
+       "比全站額度更嚴的單項上限" in card["t"] and any(x.startswith("ind.groups=") and "3/日" in x for x in card["lim"])
+       and any(x.startswith("ind.diagram=") and "3/日" in x for x in card["lim"]) and card["btn"], card)
+    ok(f"{T}【管理】小卡列出「不開放」：3D 剖析圖、供應鏈關聯圖", "ind.3d" in card["off"] and "ind.rel" in card["off"] and "不開放" in card["t"], card)
+    ok(f"{T}【管理】動作次數（分流樹下鑽 3/日）另列，不算進「共用」那一顆會清的項目", "flow.sankey.drill" in card["act"] and not any(x.startswith("flow.sankey.drill=") for x in card["lim"]), card)
+
+    # ② 一鍵改成跟全站共用：先跳確認框列出會改的項，按取消不送；再按一次確定才送
+    n0 = len([x for x in sent if x[0] == "/v1/admin/plans/put"])
+    pg.click("#pmDqShare")
+    dl = wait_until(pg, "() => { const g = document.getElementById('pmQsGo'); return g && g.offsetParent ? (g.closest('.box') || document.body).innerText : null; }", 4000)
+    ok(f"{T}【管理】按「單項上限全部改成跟全站共用」→ 確認框列出會改的項（族群總覽、產業鏈剖析圖，改成共用全站 1000 次）",
+       bool(dl) and "族群總覽" in dl and "產業鏈剖析圖" in dl and "1000" in dl, dl)
+    shot(pg.locator("#pmQsGo").locator("xpath=ancestor::div[contains(@class,'box')][1]"), "admin_confirm.png")
+    pg.click("#pmQsCancel"); pg.wait_for_timeout(250)
+    ok(f"{T}【管理】確認框按取消 → 沒有送任何存檔", len([x for x in sent if x[0] == "/v1/admin/plans/put"]) == n0)
+    pg.click("#pmDqShare")
+    wait_until(pg, "() => { const g = document.getElementById('pmQsGo'); return !!g && !!g.offsetParent; }", 3000)
+    with pg.expect_response(lambda r: "/v1/admin/plans/put" in r.url, timeout=6000) as ri:
+        pg.click("#pmQsGo")
+    body = json.loads(ri.value.request.post_data or "{}")
+    lm = body.get("lims") or {}
+    ok(f"{T}【管理】確定 → 存檔 body：id＝guest、lims 裡沒有任何正數的計次單項上限（族群總覽、剖析圖都拿掉；0＝不開放與動作次數照留）、dq 不動",
+       body.get("id") == "guest" and "lims" in body and "ind.groups" not in lm and "ind.diagram" not in lm
+       and lm.get("ind.3d") == 0 and lm.get("ind.rel") == 0 and lm.get("flow.sankey.drill") == 3 and body.get("dq", 1000) == 1000, body)
+    wait_until(pg, "() => /已儲存/.test(document.getElementById('pmStat').textContent)", 4000)
+    pg.wait_for_timeout(300)
+    card2 = pg.evaluate("() => { const c = document.getElementById('pmDqCard'); return { t: c.innerText, lim: c.querySelectorAll('[data-qlim]').length, btn: !!document.getElementById('pmDqShare') }; }")
+    ok(f"{T}【管理】存檔後小卡不再列「更嚴的單項上限」、按鈕消失；族群總覽的徽章改寫「共用 1000」",
+       card2["lim"] == 0 and not card2["btn"] and pg.evaluate("() => (document.querySelector(\"#pmCats [data-limb='ind.groups']\") || {}).textContent") == "共用 1000", card2)
+    shot(pg.locator("#pmDqCard"), "admin_card_after_share.png")
+
+    # ③ 不開放：按名稱 → 捲到分類卡那一列並閃一下；按「打開」→ 確認 → 開關打開、0 次上限拿掉
+    pg.evaluate("() => window.scrollTo(0, 0)")
+    pg.click("#pmDqCard [data-qoff='ind.rel'] button[data-qgo]"); pg.wait_for_timeout(700)
+    row = pg.evaluate("() => { const r = document.querySelector(\"#pmCats .pmrow[data-f='ind.rel']\"); const b = r.getBoundingClientRect(); return { fl: r.classList.contains('qflash'), top: b.top, bot: b.bottom, H: innerHeight }; }")
+    ok(f"{T}【管理】不開放「供應鏈關聯圖」按名稱 → 捲到產業地圖卡那一列（在畫面內、閃一下）", row["fl"] and row["top"] >= 0 and row["bot"] <= row["H"], row)
+    pg.click("#pmDqCard [data-qoff='ind.3d'] button[data-qopen]")
+    dl = wait_until(pg, "() => { const g = document.getElementById('pmQsGo'); return g && g.offsetParent ? (g.closest('.box') || document.body).innerText : null; }", 3000)
+    ok(f"{T}【管理】按 3D 剖析圖的「打開」→ 確認框列出 3D 剖析圖要改的內容", bool(dl) and "3D 剖析圖" in dl, dl)
+    with pg.expect_response(lambda r: "/v1/admin/plans/put" in r.url, timeout=6000) as ri:
+        pg.click("#pmQsGo")
+    b2 = json.loads(ri.value.request.post_data or "{}")
+    ok(f"{T}【管理】打開 3D → 存檔 feats.ind.3d＝true、lims 拿掉 ind.3d、關聯圖仍是 0",
+       (b2.get("feats") or {}).get("ind.3d") is True and "ind.3d" not in (b2.get("lims") or {}) and (b2.get("lims") or {}).get("ind.rel") == 0, b2)
+    pg.wait_for_timeout(400)
+    ok(f"{T}【管理】打開後小卡的「不開放」不再有 3D、分類卡 3D 開關是開的",
+       pg.evaluate("() => !document.querySelector(\"#pmDqCard [data-qoff='ind.3d']\") && document.querySelector(\"#pmCats input[data-f='ind.3d']\").checked"))
+    c.close()
+
+    # ④ 頁首本頁限制（Andy 05:1x：「只顯示在上方就好，不要出現訊息框」）：訪客 dq=1000＋單項 3（已看 3 條）→ 一行字「最少剩 0 次」紅字；
+    #    點那行字 → 不出現 .twqp-pan、不出現任何 role=dialog，直接到看方案頁；手機在頁首頂欄內，不是左下浮動
+    day = time.strftime("%Y-%m-%d", time.gmtime(time.time() + 8 * 3600))
+    seed = {"day": day, "k": {"ind.groups": ["c.a1", "c.a2", "c.a3"], "ind.diagram": ["d.x.1", "d.x.2", "d.x.3"]}}
+    for W in (1440, 390):
+        c, sent, st = _sub_ctx(b, None, width=W, feats={"ind.3d": False}, lims=dict(GQ_GUEST["lims"]), dq=1000)
+        c.add_init_script("try { if (!sessionStorage.getItem('gq.seed')) { sessionStorage.setItem('gq.seed', '1'); localStorage.setItem('tw.quota', " + json.dumps(json.dumps(seed)) + "); } } catch (e) {}")
+        pg = c.new_page(); pg.on("pageerror", lambda e: errs.append(str(e)))
+        pg.goto(base + "#industry", wait_until="domcontentloaded")
+        wait_until(pg, "() => { const e = document.getElementById('twQPage'); return !!e && !e.hidden && window.TwPerm && TwPerm.state().src === 'server' && /剩 0 次/.test(e.textContent); }", 15000)
+        pg.wait_for_timeout(800)
+        st0 = pg.evaluate("""() => { const e = document.getElementById('twQPage'), b = e.querySelector('.twqp-b'), r = e.getBoundingClientRect();
+            return { t: b.textContent, lvl: b.dataset.lvl, red: getComputedStyle(b).color, fixed: getComputedStyle(e).position === 'fixed', inHead: !!e.closest('#l4Head, .topbar, header'),
+                     y: Math.round(r.top), l: Math.round(r.left), r: Math.round(r.right), W: innerWidth, sw: document.documentElement.scrollWidth, title: e.title }; }""")
+        want_t = "本頁 4 項限制・最少剩 0 次" if W == 1440 else "限制：剩 0 次"
+        ok(f"{T}【頁首 {W}】一行字「{want_t}」、用完標紅（data-lvl＝out）、在頁首內不浮動、沒撐出橫向捲軸",
+           st0["t"] == want_t and st0["lvl"] == "out" and not st0["fixed"] and st0["inHead"] and st0["y"] < 120 and st0["l"] >= 0 and st0["r"] <= st0["W"] and st0["sw"] <= st0["W"] + 1, st0)
+        ok(f"{T}【頁首 {W}】逐項細節放在 title（族群總覽 看 3／3、3D 不開放）", "族群總覽（長條＋圓餅）：看 3／3・剩 0 次" in st0["title"] and "3D 剖析圖：不開放" in st0["title"], st0["title"])
+        shot(pg, f"header_{W}.png")
+        pg.click("#twQPage"); pg.wait_for_timeout(600)
+        pn = pg.evaluate("() => ({ pan: !!document.querySelector('.twqp-pan'), dlg: [...document.querySelectorAll('[role=dialog]')].filter(d => d.getClientRects().length && !d.hidden).length, h: location.hash })")
+        ok(f"{T}【頁首 {W}】點那行字 → 沒有 .twqp-pan、沒有任何 role=dialog，直接到看方案頁", not pn["pan"] and pn["dlg"] == 0 and pn["h"].startswith("#pricing"), pn)
+        c.close()
+
+    # ⑤ dq=1000、沒有單項上限 → 訪客連看 4 條產業鏈都不擋；對照組（單項 3）第 4 條被擋
+    def chains(lims):
+        c, sent, st = _sub_ctx(b, None, feats={}, lims=lims, dq=1000)
+        pg = c.new_page(); pg.on("pageerror", lambda e: errs.append(str(e)))
+        pg.goto(base + "#industry", wait_until="domcontentloaded")
+        wait_until(pg, "() => window.TwPerm && TwPerm.state().src === 'server' && document.querySelectorAll('#chainSwitch button[data-c]').length >= 5", 15000)
+        pg.wait_for_timeout(1200)
+        chs = pg.evaluate("() => [...document.querySelectorAll('#chainSwitch button[data-c]')].map(b => b.dataset.c).filter(c => c !== '_all')")[:4]
+        got = []
+        for ch in chs:
+            pg.evaluate("(c) => { location.hash = '#industry/' + c; }", ch)
+            wait_until(pg, f"() => (location.hash.startsWith('#industry/{ch}') && !!document.querySelector(\"#chainSwitch button[data-c='{ch}'].on\")) || !!(document.getElementById('qcModal') && !document.getElementById('qcModal').hidden)", 8000)
+            pg.wait_for_timeout(600)
+            got.append(pg.evaluate("() => location.hash.split('/')[1] || ''"))
+        r = {"chs": chs, "got": got, "modal": pg.evaluate(GP_MODAL), "qlk": pg.evaluate("() => [...document.querySelectorAll('[data-qlk]')].filter(e => e.getClientRects().length).length"),
+             "all": pg.evaluate("() => [TwPerm.lim('quota.all'), (TwQuota.used('quota.all') || []).length]")}
+        c.close()
+        return r
+    r = chains({})
+    ok(f"{T}【訪客】範本 dq=1000、沒有單項上限 → 連看 4 條產業鏈都進得去、沒有跳卡、沒有遮罩（全站額度照算）",
+       len(r["chs"]) == 4 and r["got"] == r["chs"] and not r["modal"] and r["qlk"] == 0 and r["all"][0] == 1000 and r["all"][1] >= 4, r)
+    r2 = chains({"ind.groups": 3})
+    ok(f"{T}【對照】同樣 dq=1000 但族群總覽單項 3 → 第 4 條被擋（證明上一條不是驗不到）",
+       r2["got"][:3] == r2["chs"][:3] and r2["got"][3] != r2["chs"][3] and bool(r2["modal"]) and r2["modal"]["cq"] == "ind.groups", r2)
     ok(f"{T}：整段沒有 JS 錯誤", not errs, errs[:3])
 
 

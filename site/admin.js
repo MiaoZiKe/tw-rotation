@@ -631,6 +631,20 @@ html[data-theme="light"] #v-admin{--pm-blue:#1f4fd8;--pm-blue-2:#163fb4}
 #v-admin .pmdq .pmdqe{display:inline-flex;align-items:center;gap:8px;font-size:13px;color:var(--ink-2)}
 #v-admin .pmdq input{width:5.5em;height:28px;box-sizing:border-box}
 #v-admin .pmdq .pmdqn{flex:1 1 100%;font-size:12px;color:var(--ink-3);line-height:1.5}
+/* 2026-10-09 小卡：更嚴的單項上限／另外計次的動作／不開放（Andy：「我明明訪客開 1000 次」）*/
+#v-admin .pmdq .pmqx{flex:1 1 100%;display:flex;flex-wrap:wrap;align-items:center;gap:6px 8px;font-size:13px;color:var(--ink-2);padding-top:8px;border-top:1px dashed color-mix(in srgb,var(--cyan,#4cc9f0) 35%,var(--line));min-width:0}
+#v-admin .pmdq .pmqx-h{flex:1 1 100%;font-weight:600;color:var(--ink)}
+#v-admin .pmdq .pmqx-lim .pmqx-h{color:var(--amber,#f5b942)}
+#v-admin .pmdq .pmqx-c{display:inline-flex;align-items:center;gap:4px;min-height:26px;padding:0 8px;border-radius:999px;border:1px solid var(--line-2);background:var(--panel);font-size:12.5px;max-width:100%;min-width:0}
+#v-admin .pmdq .pmqx-c b{color:var(--amber,#f5b942)}#v-admin .pmdq .pmqx-c small{font-size:11px;color:var(--ink-3)}
+#v-admin .pmdq .pmqx-c.off{padding:0 2px 0 0;gap:0}
+#v-admin .pmdq .pmqx-c.off button{appearance:none;border:0;background:none;color:var(--ink);font:inherit;font-size:12.5px;cursor:pointer;padding:0 8px;height:26px;display:inline-flex;align-items:center;gap:4px}
+#v-admin .pmdq .pmqx-c.off button[data-qgo]:hover{text-decoration:underline}
+#v-admin .pmdq .pmqx-c.off .pmqx-open{border-left:1px solid var(--line-2);color:var(--cyan,#4cc9f0);font-weight:600}
+#v-admin .pmdq .pmqx-go{height:28px;padding:0 12px;border-radius:8px;border:1px solid var(--amber,#f5b942);background:color-mix(in srgb,var(--amber,#f5b942) 14%,transparent);color:var(--ink);font:inherit;font-size:13px;font-weight:600;cursor:pointer}
+#v-admin .pmrow.qflash{animation:pmqflash 2.2s ease-out}
+@keyframes pmqflash{0%,35%{box-shadow:inset 0 0 0 2px var(--amber,#f5b942);background:color-mix(in srgb,var(--amber,#f5b942) 18%,transparent)}100%{box-shadow:none}}
+.subdlg .pmqs-l{margin:8px 0 0;padding-left:20px;font-size:13.5px;line-height:1.7;color:var(--ink-2)}
 #v-admin .pmcats.pmcards .pmlimb.sh{font-size:11px;font-family:inherit;width:auto;min-width:44px;padding:0 4px}
 #v-admin .pmcats.pmcards .pmcathd .pmglim{margin-left:auto;font-size:12px;height:24px;padding:0 6px;white-space:nowrap}
 #v-admin .pmcats.pmcards .pmcathd .pmglim+button.psw3{margin-left:0}
@@ -2025,11 +2039,104 @@ html[data-theme="light"] #v-admin{--pm-blue:#1f4fd8;--pm-blue-2:#163fb4}
     const guest = PS.tier === 'guest' || p.id === 'guest';
     box.hidden = false;
     box.innerHTML = `<b class="pmdqt">全站每日額度 <span id="pmDqVal">${n == null ? '不限' : n + ' 次'}</span></b>
-      <span class="pmdqs">${n == null ? '計次功能不限次數' : `每日共 ${n} 次（所有計次功能共用）`}</span>
+      <span class="pmdqs">${n == null ? '計次功能不限次數' : hiddenOf(p).strict.length ? `每日共 ${n} 次（所有計次功能共用；下面列出的單項上限另外再限）` : `每日共 ${n} 次（所有計次功能共用）`}</span>
       <span class="pmdqe"><label>改成 <input type="number" id="pmDqIn" min="0" max="9999" step="1" inputmode="numeric" placeholder="不限" value="${n == null ? '' : n}" aria-label="全站每日額度（次，空白＝不限）"> 次</label><button type="button" class="pri" id="pmDqSave">存檔</button></span>
       ${guest ? '<small class="pmdqn">訪客沒有帳號，次數記在這台瀏覽器；清除網站資料會重算（伺服器端保護上線後改依 IP）</small>' : ''}`;
+    box.insertAdjacentHTML('beforeend', hiddenHtml(p));
     box.querySelector('#pmDqSave').onclick = () => saveDqCard(p);
     box.querySelector('#pmDqIn').onkeydown = (e) => { if (e.key === 'Enter') saveDqCard(p); };
+    const sh = box.querySelector('#pmDqShare'); if (sh) sh.onclick = () => shareAsk(p);
+    box.querySelectorAll('button[data-qgo]').forEach((b) => { b.onclick = () => goRow(b.dataset.qgo); });
+    box.querySelectorAll('button[data-qopen]').forEach((b) => { b.onclick = () => openAsk(p, b.dataset.qopen); });
+  }
+  /* ============================================================================
+     ★ 2026-10-09 Andy 04:4x：「我明明訪客開 1000 次，但為何會出現這樣的情況，你是否在會員權限裡面有什麼沒設定到」「幫我確實修復」。
+     根因（程式碼證據，docs/perm_matrix_1008.md §10）：10-08 版「套用建議方案」（site/plan_presets.js）在訪客範本的 lims 寫了
+       族群總覽 3、產業鏈剖析圖 3、3D 0、關聯圖 0。之後在這張小卡把全站額度改成 1000，saveDqCard 只送 dq、不送 lims，
+       Worker（workers/account-api/worker.js 的 v3 plans/put：b.lims === undefined → 不動）照留原本的單項上限 →
+       全站 1000 與單項 3 兩道限制同時生效，取較嚴的；而那個 3 只藏在產業地圖卡的小徽章裡，小卡還寫「每日共 1000 次（所有計次功能共用）」。
+     修法：小卡直接列出「比全站額度更嚴的單項上限」「另外計次的動作」「不開放」三組，
+       更嚴的單項上限一鍵改成跟全站共用（確認框列出會改什麼，走同一支 plans/put），不開放的可以在這裡直接打開、或按名稱跳到分類卡那一列。
+     讀的是「已存」的範本（不是草稿）：小卡描述的是線上真的在生效的內容；有未存草稿時按鈕一律先擋。
+     ============================================================================ */
+  const posInt = (v) => Number.isInteger(v) && v >= 1;
+  function hiddenOf(p) {
+    const F = FT(); if (!F || !p) return { strict: [], wide: [], acts: [], off: [] };
+    const lims = p.lims || {}, dq = Number.isInteger(p.dq) ? p.dq : null;
+    const vals = Object.assign(F.defaults(p.id), p.feats || {});
+    const order = new Map(F.list.map((f, i) => [f.id, i]));
+    const by = (a, b) => (order.get(a.f.id) || 0) - (order.get(b.f.id) || 0);
+    const strict = [], wide = [], acts = [], off = [];
+    Object.keys(lims).forEach((id) => {
+      const f = F.byId(id), n = lims[id]; if (!f || f.kind === 'limit' || !posInt(n)) return;
+      /* 「計次功能」＝吃全站額度的研究頁（features.js metered）與族群觀測；動作計次（下鑽／篩選／切分頁，f.act）不吃全站額度，另列不清 */
+      if (f.metered || f.cat === 'grp') (dq == null || n < dq ? strict : wide).push({ f, n });
+      else acts.push({ f, n });
+    });
+    F.list.forEach((f) => {
+      if (f.kind === 'limit' || f.ownerOnly || f.cat === 'grp') return;
+      const sw = vals[f.id] === false, z = lims[f.id] === 0;
+      if (sw || z) off.push({ f, sw, z });
+    });
+    return { strict: strict.sort(by), wide: wide.sort(by), acts: acts.sort(by), off: off.sort(by), dq };
+  }
+  function hiddenHtml(p) {
+    const h = hiddenOf(p), dq = h.dq;
+    const unitT = { tab: '切分頁', filter: '篩選', drill: '下鑽', obj: '看' };
+    const chip = (x, attr, extra) => `<span class="pmqx-c" ${attr}="${esc(x.f.id)}" title="${esc(x.f.name)}">${esc(x.f.name)} <b>${x.n}/日</b>${extra || ''}</span>`;
+    let out = '';
+    if (h.strict.length) {
+      out += `<div class="pmqx pmqx-lim"><span class="pmqx-h">${dq == null ? '這個範本另外設了單項上限（全站不限，這幾項仍有次數）' : `這個範本另外還有比全站額度更嚴的單項上限（實際取較嚴的）`}：</span>${h.strict.map((x) => chip(x, 'data-qlim')).join('')}
+        <button type="button" class="pmqx-go" id="pmDqShare" title="把這些單項上限拿掉，計次一律只看全站每日額度（存檔前會先列出會改哪些項）">單項上限全部改成跟全站共用</button></div>`;
+    }
+    if (h.acts.length) {
+      out += `<div class="pmqx pmqx-act"><span class="pmqx-h">另外計次的動作（不吃全站額度，各自每日上限）：</span>${h.acts.map((x) => chip(x, 'data-qact', `<small>${esc(unitT[x.f.act] || '次')}</small>`)).join('')}</div>`;
+    }
+    if (h.off.length) {
+      out += `<div class="pmqx pmqx-off"><span class="pmqx-h">不開放（${h.off.length} 項，訪客看到鎖頭）：</span>${h.off.map((x) => `<span class="pmqx-c off" data-qoff="${esc(x.f.id)}"><button type="button" data-qgo="${esc(x.f.id)}" title="跳到「${esc(x.f.name)}」在分類卡的那一列">${esc(x.f.name)}<small>${x.sw ? '開關關閉' : '每日 0 次'}</small></button><button type="button" class="pmqx-open" data-qopen="${esc(x.f.id)}" aria-label="打開 ${esc(x.f.name)}">打開</button></span>`).join('')}</div>`;
+    }
+    return out;
+  }
+  /* 名稱 → 捲到分類卡那一列並閃一下（族群觀測以外的功能都在一般分類卡裡，不必展開）*/
+  function goRow(id) {
+    const r = PS.v && PS.v.querySelector(`#pmCats .pmrow[data-f="${(window.CSS && CSS.escape) ? CSS.escape(id) : id}"]`); if (!r) return;
+    r.scrollIntoView({ block: 'center', behavior: 'instant' });
+    r.classList.remove('qflash'); void r.offsetWidth; r.classList.add('qflash');
+    clearTimeout(r._qf); r._qf = setTimeout(() => r.classList.remove('qflash'), 2400);
+  }
+  /* 共用：確認框列出會改的項 → 確定才送 plans/put（feats＋lims 整份送；lims 一定要帶：沒帶的話 Worker 會維持原值，等於沒清）*/
+  function quickAsk(p, title, lead, lines, feats, lims, done) {
+    if (PS.draft) { setStat('有未儲存的變更，請先儲存或取消', 'bad'); return; }
+    const D = window.TwSub && window.TwSub.dialog; if (!D) return;
+    D(`<h3>${esc(title)}</h3><p>${esc(lead)}</p><ul class="pmqs-l" id="pmQsList">${lines.map((x) => `<li>${esc(x)}</li>`).join('')}</ul>
+      <div class="msg" id="pmQsMsg" role="status"></div><div class="row2"><button type="button" id="pmQsCancel" data-close>取消</button><button type="button" class="pri" id="pmQsGo">確定存檔</button></div>`, (d) => {
+      d.querySelector('#pmQsGo').onclick = async () => {
+        const go = d.querySelector('#pmQsGo'), msg = d.querySelector('#pmQsMsg');
+        go.disabled = true; msg.className = 'msg'; msg.textContent = '儲存中…';
+        const j = await PS.A.call('/v1/admin/plans/put', { id: p.id, name: p.name, feats, lims });
+        if (j && j._s === 200) {
+          PS.plans = j.plans; d.hidden = true; paintTabs(); paintTarget(); paintCats();
+          setStat(`${done}・已儲存到「${p.name}」（台北 ${tpeTime()}）`, 'ok');
+          if (window.TwPerm) window.TwPerm.refresh();
+        } else { go.disabled = false; msg.className = 'msg bad'; msg.textContent = '儲存失敗：' + errText(j); }
+      };
+    });
+  }
+  function shareAsk(p) {
+    const h = hiddenOf(p), all = h.strict.concat(h.wide);
+    if (!all.length) return;
+    const lims = Object.assign({}, p.lims || {}); all.forEach((x) => { delete lims[x.f.id]; });
+    const tail = h.dq == null ? '不限' : `共用全站每日 ${h.dq} 次`;
+    quickAsk(p, '單項上限全部改成跟全站共用', `「${p.name}」下面 ${all.length} 項的單項上限會拿掉，改成${tail}。0 次（不開放）與動作次數（下鑽、篩選、切分頁）不動。`,
+      all.map((x) => `${x.f.name}：每日 ${x.n} 次 → ${tail}`), Object.assign({}, p.feats || {}), lims, `${all.length} 項單項上限改成跟全站共用`);
+  }
+  function openAsk(p, id) {
+    const F = FT(), f = F && F.byId(id); if (!f) return;
+    const h = hiddenOf(p), x = h.off.find((o) => o.f.id === id); if (!x) return;
+    const feats = Object.assign({}, p.feats || {}), lims = Object.assign({}, p.lims || {}), lines = [];
+    if (x.sw) { feats[id] = true; lines.push(`開關：關 → 開`); }
+    if (x.z) { delete lims[id]; lines.push(`每日次數：0 次 → ${f.metered && h.dq != null ? '共用全站每日 ' + h.dq + ' 次' : '不限'}`); }
+    quickAsk(p, `打開「${f.name}」`, `「${p.name}」的「${f.name}」會改成：`, lines, feats, lims, `已打開「${f.name}」`);
   }
   async function saveDqCard(p) {
     if (PS.draft) { setStat('有未儲存的變更，請先儲存或取消', 'bad'); return; }
