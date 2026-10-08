@@ -120,7 +120,7 @@
   :root.m4 main .view .card::before,:root.m4 main .view .card::after{display:none!important}
   :root.m4 main .view>.card+.card,:root.m4 main .view .card~.card{border-top:1px solid var(--line)!important}
   :root.m4 main .view .card .card{padding-top:12px!important;padding-bottom:0!important;margin-top:12px!important;border-top:1px solid var(--line)!important}
-  :root.m4 .m4pghead{margin:2px 0 0;font-size:18px;line-height:1.2}
+  :root.m4 .m4pghead{margin:0;font-size:17px;line-height:1.2}
 
   /* ---- 6. 產業鏈頁的供應鏈關聯圖（2026-10-08 Andy：「下方只要出現關聯圖就好，而且關聯圖可以拖曳移動，手機版若是太小，把關聯圖改成垂直」）
      · 環節色標那一大串收成一顆「篩選環節 ▾」下拉（同電腦版 .segdd 的面板）；
@@ -219,4 +219,7 @@
   :root.m4 main .view .mbidxbox{border:0!important;border-radius:0!important;background:transparent!important;box-shadow:none!important}
   :root.m4 main .view .mbidxbox+.mbidxbox{border-left:1px solid var(--line)!important}
   :root.m4 main .view :is(td,th).nmc{box-shadow:none!important}
+
+  /* ---- 15. 手機頂欄不透明（2026-10-08：半透明時，往下捲後面的分段鈕會透過頂欄跟圖示疊在一起） */
+  :root.m4 .topbar{background:var(--bg)!important;-webkit-backdrop-filter:none!important;backdrop-filter:none!important;border-bottom:1px solid var(--line)!important}
 }

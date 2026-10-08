@@ -2266,13 +2266,17 @@
     // 左右兩欄各分一半（依零件的左右位置，偏左的那一半放左欄），兩欄才不會一邊擠爆
     const byX = P.slice().sort((a, b) => a.x0 - b.x0), half = Math.ceil(byX.length / 2);
     const L = byX.slice(0, half).sort((a, b) => a.y0 - b.y0), R = byX.slice(half).sort((a, b) => a.y0 - b.y0);
-    const col = (arr, x) => {
+    const col = (arr, x, HH) => {
       let y = pad;
-      arr.forEach((p) => { p.x = x; p.y = Math.max(y, Math.min(H - pad, p.y0)); y = p.y + gap; });
+      arr.forEach((p) => { p.x = x; p.y = Math.max(y, Math.min(HH - pad, p.y0)); y = p.y + gap; });
       // 擠到底就整欄往上推回來
-      for (let i = arr.length - 1; i >= 0; i--) { const lim = H - pad - (arr.length - 1 - i) * gap; if (arr[i].y > lim) arr[i].y = lim; if (i < arr.length - 1 && arr[i + 1].y - arr[i].y < gap) arr[i].y = arr[i + 1].y - gap; }
+      for (let i = arr.length - 1; i >= 0; i--) { const lim = HH - pad - (arr.length - 1 - i) * gap; if (arr[i].y > lim) arr[i].y = lim; if (i < arr.length - 1 && arr[i + 1].y - arr[i].y < gap) arr[i].y = arr[i + 1].y - gap; }
     };
-    col(L, pad); col(R, W - pad);
+    /* 右下角是客服鈕（固定在視窗右下，約 72×72）：右欄最下面那顆要停在它上面；圖框底端若貼近視窗底，右欄可用高度扣掉 72 */
+    const fab = document.getElementById('supFab'), host = P.length && P[0].host;
+    let rH = H;
+    if (fab && fab.getClientRects().length && P._base) { const fr = fab.getBoundingClientRect(); const bottomInView = P._base.top + H; if (fr.top < bottomInView) rH = Math.max(pad * 2, fr.top - P._base.top - 8); }
+    col(L, pad, H); col(R, W - pad, rH);
   }
   function mobileNums3d(h3, view) {
     if (!h3) return;
@@ -2290,7 +2294,7 @@
         const base = h3.getBoundingClientRect();
         const P = ctx.items.map((it, i) => { const q = view.pointOf(it.part); if (!q) return null;
           const x = q.x - base.left, y = q.y - base.top; return { i, x, y, x0: x, y0: y, c: it.color, back: !q.front }; }).filter(Boolean);
-        sideCols(P, base.width, base.height);
+        P._base = base; sideCols(P, base.width, base.height);
         layer.innerHTML = `<svg width="${base.width}" height="${base.height}" style="position:absolute;left:0;top:0;overflow:visible">${window.M3.leaders(P)}</svg>` + numBtns(P, ctx.items, ctx.sel);
         layer.dataset.overlap = window.M3.overlaps(P, MIN); layer.dataset.n = P.length; h3.dataset.mn = ctx.items.length;
       }

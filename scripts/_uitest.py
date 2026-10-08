@@ -4338,6 +4338,12 @@ def t_industry(pg, base):
     # ★ 2026-09-23 C5 退版：關聯圖的節點從「族群大圓點」換回「公司卡」（分層圖）。
     # 這一條守的事情沒有變（關聯圖真的畫出來了），只是量的對象跟著退版換回去。
     ok("產業鏈頁有分層關聯圖的公司卡", count(pg, "#chainMap .co") > 0)
+    # 2026-10-08 起（手機五條準則第 5 條「所有收展功能預設收起，網頁和手機都一樣」）桌機關聯圖預設收起：
+    #   先驗「預設收起、按『展開關聯圖』才打開」，再展開讓後面那幾條照舊驗公司卡的互動
+    if pg.evaluate("() => { const h = document.getElementById('chainMap'); return !!h && h.hidden; }"):
+        ok("桌機關聯圖預設收起、鈕寫「展開關聯圖」", "展開" in pg.inner_text("#relFold"), pg.inner_text("#relFold"))
+        pg.click("#relFold"); pg.wait_for_timeout(1200)
+        ok("按「展開關聯圖」→ 圖真的打開", pg.evaluate("() => !document.getElementById('chainMap').hidden && document.querySelectorAll('#chainMap .co').length > 0"))
     # ★ 2026-09-23 第二批（W3-2，Andy 點名）：下方那張「成分股」卡片整塊移除。
     #   原本這一大段驗的是表格自己（預設排序／記進 localStorage／上市上櫃／點列進個股頁）——
     #   東西沒了，斷言留著就是假綠，所以整組改成驗「真的移除了」＋「它的新家還在做同一件事」。
@@ -13527,10 +13533,11 @@ def t_brand(b, base):
     # 客服浮動鈕（Andy 2026-10-07：「客服圖示改成跟logo一樣可愛的天竺鼠」）：頭像載入、字還在、真的點得開面板
     pg.evaluate("() => { location.hash = '#overview'; }")
     pg.wait_for_selector("#supFab .supmark", timeout=15000)
-    pg.wait_for_function("() => { const i = document.querySelector('#supFab .supmark'); return i && i.complete; }", timeout=15000)
-    fab = pg.evaluate("() => { const f = document.getElementById('supFab'); const i = f.querySelector('.supmark');"
-                      " return { nw: i.naturalWidth, txt: f.textContent.trim(), svg: !!f.querySelector('svg') }; }")
-    ok("客服鈕：天竺鼠頭像載入（naturalWidth>0）、「客服」字還在、舊對話泡泡拿掉", fab["nw"] > 0 and fab["txt"] == "客服" and not fab["svg"], fab)
+    # 改前（10-07）：頭像 <img>、不要對話泡泡。改後（10-08 Andy：「改成原本的 LOGO 樣式，但是表情是天竺鼠」）：對話泡泡（svg）裡放天竺鼠頭像（svg <image>）
+    pg.wait_for_function("() => !!document.querySelector('#supFab svg.supbub image')", timeout=15000)
+    fab = pg.evaluate("""() => new Promise((ok) => { const f = document.getElementById('supFab'); const href = f.querySelector('svg.supbub image').getAttribute('href');
+        const im = new Image(); im.onload = () => ok({ nw: im.naturalWidth, txt: f.textContent.trim(), href }); im.onerror = () => ok({ nw: 0, txt: f.textContent.trim(), href }); im.src = href; })""")
+    ok("客服鈕：對話泡泡裡是天竺鼠頭像（圖真的載得到）、「客服」字還在", fab["nw"] > 0 and fab["txt"] == "客服" and "brand/mark" in fab["href"], fab)
     pg.click("#supFab")
     pg.wait_for_timeout(500)
     opened = pg.evaluate("() => { const p = document.getElementById('supPanel'); return !!p && !p.hidden && p.getBoundingClientRect().height > 0; }")
@@ -50130,7 +50137,9 @@ def t_mobile_home(b, base, code):
         return { r: r ? Math.round(r.getBoundingClientRect().bottom) : null, t: r ? Math.round(r.getBoundingClientRect().top) : null,
                  pt: pr ? Math.round(pr.top) : null, pb: pr ? Math.round(pr.bottom) : null, vh: innerHeight, sy: Math.round(scrollY) }; }"""
     rf = m.evaluate(RF)
-    ok(f"{T}有兩檔觀察時，輪盤整張還在第一屏（底 ≤ {rf['vh'] - 58}）", rf["r"] is not None and rf["t"] >= 52 and rf["r"] <= rf["vh"] - 58, rf)
+    # 2026-10-08 手機 v2（html.m4）：底部 58px 導覽已經拿掉，第一屏的下緣就是視窗底；舊版（沒有 m4）照舊扣 58
+    nav_h = 0 if m.evaluate("() => document.documentElement.classList.contains('m4')") else 58
+    ok(f"{T}有兩檔觀察時，輪盤整張還在第一屏（底 ≤ {rf['vh'] - nav_h}）", rf["r"] is not None and rf["t"] >= 52 and rf["r"] <= rf["vh"] - nav_h, rf)
     low = m.evaluate("""() => { const d = [...document.querySelectorAll('#mRadarOv svg g[data-g]')].map(g => { const c = g.querySelectorAll('circle')[1].getBoundingClientRect();
         return { x: c.left + c.width / 2, y: c.top + c.height / 2 }; }).sort((a, b) => b.y - a.y); return d[0] || null; }""")
     if low:
@@ -50361,9 +50370,10 @@ def t_watchlists_guest(b, base):
     r = m.evaluate("() => ({ sw: document.documentElement.scrollWidth, iw: innerWidth })")
     ok("手機自選 390：沒有橫向捲軸", r["sw"] <= r["iw"] + 1, r)
     # 「⋯」清單裡的自選清單
-    m.click("#moreBtn")
-    ok("手機自選：「⋯」清單裡有「自選清單」", m.is_visible("#mmWatch"))
-    m.click("#mmWatch")
+    # 2026-10-08 手機 v2：「⋯」清單退役，自選改從左上 ☰ 側欄抽屜進（改前驗「⋯ → 自選清單」）
+    m.click("#m4Burger"); m.wait_for_timeout(400)
+    ok("手機自選：☰ 抽屜裡有「自選」", m.is_visible('#m4Drawer button[data-v="watch"]'))
+    m.click('#m4Drawer button[data-v="watch"]')
     # 2026-09-28 改前：「⋯ → 自選清單」打開底部抽屜面板 → 改後：到自選分頁（#watch）整頁
     wait_until(m, "() => location.hash === '#watch' && !!document.getElementById('wpTabs')", 6000)
     ok("手機自選：點「自選清單」到自選分頁", m.evaluate("() => location.hash") == "#watch")
