@@ -407,3 +407,96 @@
   :root.m4 #v-pricing #prTable :is(th,td){height:auto!important;padding:5px 3px!important;line-height:1.3!important}
   :root.m4 #v-pricing #prTable tr.cat td{padding:4px!important}
 }
+
+/* ===== 30. 題材頁上下排＋剖析圖直排（2026-10-09 Andy 手機截圖：紅框 1「熱力圖上面 下面題材」、紅框 2「垂直，塗在左邊 文字補充右邊」、「需要線條區分」）
+   · 第二層「題材熱力｜題材細節」分段拿掉（app.js miaPager 在 m4 把兩段併成一組），熱力圖在上、該題材剖析圖在下；
+   · 熱力圖與剖析圖之間一條全寬 1px 分隔線；剖析圖本身改直排（themes3d.js chainSceneV，卡與卡、段與段之間的線畫在 SVG 裡）；
+   · 線色＝--m4-div（claude/m4-seg 的大功能分隔線變數，＝主題 --line-2），那批還沒合併前 fallback 到 --line-2。
+   只在 ≤640＋html.m4 生效，桌機不吃。 */
+@media (max-width:640px){
+  :root.m4 #v-heatmap #themeDetail{border-top:1px solid var(--m4-div,var(--line-2))!important;margin-top:12px!important;padding-top:12px!important}
+  :root.m4 #v-heatmap #themeDetail>.card{margin-top:0}
+  /* 直排版畫布＝容器寬：不再左右滑（themes3d.js nativeWidth 會設 overflow-x:auto，寬度剛好就不會出捲軸，這裡再保險一次） */
+  :root.m4 #themeDiagram:has(svg.dg3v){overflow-x:hidden!important}
+  :root.m4 #themeDiagram:has(svg.dg3v)+.swipetip{display:none!important}
+}
+
+/* ===== 31. 產業鏈剖析圖控制列一排＋2D/3D 圓鈕＋大功能分隔線（2026-10-09 Andy 手機截圖紅框兩排控制列：
+   「這邊都需要同一排，並且大功能需要線條分開，2D/3D 變成一個切換功能就好，一個圓圈，原本 2D 點一下變成 3D，來回可切換」）
+   · 第二排（整張｜放大｜圖說，diagrams.js mobileNums 建的 .mdgbar）在 m4 搬進 #dgTools，跟 2D/3D、編號、收合同一排、不換行；
+     收合鈕整顆拿掉（見下面）；「15 個編號」那行資訊字收掉（圖上的編號本身就數得到）。
+   · 2D/3D：只露出「另一個模式」那一格，撐成 40px 圓鈕、鈕上寫**目前**模式（::before），點它＝切過去（industry.js paintMode 補讀屏標籤）；
+     點到的是真的 button[data-dm]，3D 權限鎖頭（features.js ind.3d block）照舊攔、照舊掛 🔒。
+   · 分隔線：頁籤列｜控制列｜圖｜①～⑤ 展開段｜供應鏈關聯圖，各一條全寬 1px（--m4-div，同第 30 節）。
+   只在 ≤640＋html.m4 生效，桌機控制列一個像素都不動。 */
+@media (max-width:640px){
+  :root.m4 #dgSec #dgTools{display:flex!important;flex-wrap:nowrap!important;justify-content:flex-start!important;align-items:center;gap:6px!important;width:100%;min-width:0}
+  :root.m4 #dgSec #dgTools>*{flex:none}
+  :root.m4 #dgSec #dgTools .mdgbar{display:flex!important;flex-wrap:nowrap!important;align-items:center;gap:6px!important;margin:0!important;flex:none}
+  :root.m4 #dgSec #dgTools .mdgcnt{display:none!important}
+  /* 「整張／放大」兩顆拿掉（2026-10-09 Andy：「放大功能拿掉，沒屁用」「還有整張功能也是」）；diagrams.js zoomOf() 在 m4 一律回 fit。
+     個股頁等沒有 #dgTools 的剖析圖一樣拿掉（.mdgbar 的 .mdgzoom 不分在哪）。 */
+  :root.m4 .mdgbar .mdgzoom{display:none!important}
+  /* 編號層的引線 svg 被 index.html 的手機規則 `.dgwrap svg{min-width:940px}` 撐成 940px（那條是給圖本身原寸左右滑用的），
+     圖框因此多一塊 570px 的隱形橫捲；引線層照編號層的大小（diagrams.js layout2d 寫好的 W×H）。 */
+  :root.m4 .dgwrap .mnumlayer>svg{min-width:0!important;width:100%!important;height:100%!important}
+  :root.m4 #dgSec.dgfold #dgTools .mdgbar{display:none!important}
+  :root.m4 #dgSec #dgTools :is(.pill,.mdginfo,.mdgzoom button){height:40px;min-height:40px!important;box-sizing:border-box;display:inline-flex;align-items:center;justify-content:center;padding:0 10px!important;font-size:13px!important;white-space:nowrap}
+  :root.m4 #dgSec #dgTools .mdgzoom{display:inline-flex;flex-wrap:nowrap}
+  /* 「收合圖」鈕（剖析圖 #dgFold、關聯圖 #relFold）手機拿掉（2026-10-09 Andy HBM 頁：「這分頁收合功能都拿掉」），內容一律展開（industry.js 在 m4 強制 dgOpen／relOpen） */
+  :root.m4 #dgSec #dgTools #dgFold,:root.m4 #indChain #relFold{display:none!important}
+  /* 2D/3D 圓鈕 */
+  :root.m4 #dgSec #dg3d{width:40px;height:40px;min-width:40px;padding:0!important;border-radius:50%!important;overflow:visible;display:inline-flex;position:relative;gap:0!important;border:0!important;background:transparent!important}
+  :root.m4 #dgSec #dg3d[data-mode="2d"] button[data-dm="2d"],:root.m4 #dgSec #dg3d[data-mode="3d"] button[data-dm="3d"]{display:none!important}
+  :root.m4 #dgSec #dg3d button{width:40px;height:40px;min-width:40px!important;min-height:40px!important;padding:0!important;margin:0!important;border-radius:50%!important;
+    font-size:0!important;border:1.5px solid var(--cyan,var(--accent))!important;background:color-mix(in srgb,var(--cyan,var(--accent)) 14%,var(--panel))!important;color:var(--cyan,var(--accent))!important;position:relative}
+  :root.m4 #dgSec #dg3d[data-mode="2d"] button::before{content:"2D";font-size:14px;font-weight:700}
+  :root.m4 #dgSec #dg3d[data-mode="3d"] button::before{content:"3D";font-size:14px;font-weight:700}
+  :root.m4 #dgSec #dg3d button[data-plkb]::after{position:absolute;right:-6px;top:-6px;font-size:12px!important;margin:0!important}
+  /* 精簡字：編號：開／關 → 「編號」（開＝主色、關＝灰，狀態看顏色與 aria-pressed）*/
+  :root.m4 #dgSec #dgTools #dgNum.pill{font-size:0!important}
+  :root.m4 #dgSec #dgTools #dgNum::before{content:"編號";font-size:13px}
+  :root.m4 #dgSec #dgTools #dgNum[aria-pressed="false"]{opacity:.7}
+  :root.m4 #dgSec #dgTools .mdgbar .mdginfo{font-size:0!important}
+  :root.m4 #dgSec #dgTools .mdgbar .mdginfo::before{content:"圖說";font-size:13px}
+  /* 大功能分隔線 */
+  :root.m4 #dgSec #dgBody,:root.m4 #dgSec .mdgfolds{border-top:1px solid var(--m4-div,var(--line-2))!important;padding-top:12px!important;margin-top:12px!important}
+  /* 頁籤列｜剖析圖、剖析圖｜關聯圖之間：兩塊各自是一個大框（第 33 節），框與框之間 12px 間距 */
+}
+
+/* ===== 32. 剖析圖下方「延伸閱讀」跟圖上編號分開（2026-10-09 Andy：「手機版本需要說清楚下面編號在說明什麼，因為會被誤認是在說上方編號」）
+   diagrams.js mobileFolds 在 m4 插兩行：一行小字「點圖上的編號（01、02…）看各零件說明」、一條分隔線＋小標題「延伸閱讀（點開看細節）」；
+   章節序號由 ①②③ 改成「延伸 1｜…」。只在 ≤640＋html.m4。 */
+@media (max-width:640px){
+  :root.m4 .mdgfolds .mdgnumhint{font-size:12px;color:var(--ink-3);line-height:1.5;margin:0 0 10px}
+  :root.m4 .mdgfolds .mdgfhd{border-top:1px solid var(--m4-div,var(--line-2));padding-top:12px;margin:0 0 6px;font-size:14px;font-weight:700;color:var(--ink)}
+  /* 切到 3D 時，只屬於 2D 的「延伸閱讀」整區（小字、標題、分隔線、章節鈕）藏起來；切回 2D 照原狀態出現（展開與否記在 2D 圖的 g.dgfold.open，藏起來不會丟）。
+     2026-10-09 Andy：「切換 3D 後 下方 2D 說明就要不見」。章節沒有「2D／3D 都適用」的標記，所以整區一起藏。 */
+  :root.m4 #prodDiagram[hidden]~.mdgfolds{display:none!important}
+}
+
+/* ===== 33. 剖析圖與供應鏈關聯圖各包一個大框＋右上角 ↻ 重設（2026-10-09）
+   Andy：「供應鏈關聯圖，以及上方 2D／3D 圖，需要給大框，但框格需要貼手機螢幕。目的是美觀、區分功能，但不可以與螢幕間隙太大」
+   ——這兩塊是「大方格取消、用線條區分」的明確例外（style_guide 第十六節有記），其他區塊照舊用線條。
+   · 框：圓角 --r-sm、1px 主題 line 色（--m4-div＝--line-2，深淺都看得見）、很淡的卡片底、內距 8px；
+     左右用負 margin 抵掉頁面內距，框外到螢幕邊 4px（#dgSec 在 .nbbody 的 8px 內距裡、外面還有 main 的 8px → -12px；#relSec 只有 main 的 8px → -4px；
+     題材剖析圖卡在 main 的 8px 裡 → -4px）。不會撐出整頁橫捲（框寬 = 394，螢幕 402）。
+   · ↻：Andy「只需要給一個迴圈（reset 符號）就好，在圖片右上方」—— 剖析圖框右上角一顆 34px 半透明小圓鈕（industry.js／app.js 只在 m4 插），
+     3D 原本右上那組（拖曳／重設視角，手機本來就藏著、只剩一顆空的小圓點）整組拿掉，改由這顆 ↻ 代按。
+   只在 ≤640＋html.m4。 */
+@media (max-width:640px){
+  :root.m4 #indChain #dgSec,:root.m4 #indChain #relSec,:root.m4 #v-heatmap #themeDetail>.card{
+    border:1px solid var(--m4-div,var(--line-2))!important;border-radius:var(--r-sm,10px)!important;
+    background:color-mix(in srgb,var(--panel,#fff) 70%,transparent)!important;padding:8px!important;box-sizing:border-box;box-shadow:none!important}
+  :root.m4 #indChain #dgSec{margin:12px -12px 0!important}
+  :root.m4 #indChain #relSec{margin:12px -4px 0!important;width:auto!important;max-width:none!important}
+  :root.m4 #indChain #dgSec{width:auto!important;max-width:none!important}
+  :root.m4 #v-heatmap #themeDetail>.card{margin:0 -4px!important}
+  /* ↻ 重設 */
+  :root.m4 #dgSec #dgBody,:root.m4 #themeDiagram{position:relative}
+  :root.m4 .m4rst{position:absolute;top:16px;right:4px;z-index:7;width:40px;height:40px;min-width:40px!important;min-height:40px!important;padding:0!important;
+    border-radius:50%!important;border:1px solid var(--m4-div,var(--line-2))!important;background:color-mix(in srgb,var(--panel,#fff) 72%,transparent)!important;
+    color:var(--ink-2)!important;font-size:18px!important;line-height:1;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;backdrop-filter:blur(2px)}
+  :root.m4 #themeDiagram>.m4rst{top:2px;right:2px}
+  :root.m4 #dgSec #dg3dCtl{display:none!important}
+}

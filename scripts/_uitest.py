@@ -26944,7 +26944,9 @@ M4_TOUCH_EXEMPT = ["#m4Drawer *", "aside *", "footer *", ".footer *", "#v-earnin
                    "#v-season button[data-m]"]
 # 第一屏沒有分段鈕的頁：改點它自己的主要操作，驗畫面真的變了（路由 → [要點的選擇器, 選擇 select 的值]）
 M4_ACT = {"#season": "#mSeasonNum", "#flow/rotation": "#mRank li:nth-child(3), #mRank > *:nth-child(3)", "#etf/cal": "#etfCalNext",
-          "#heatmap/industry": "select#indTreeGroup"}
+          "#heatmap/industry": "select#indTreeGroup",
+          # 2026-10-09（Andy：「熱力圖上面 下面題材」）：題材頁第二層分段拿掉，第一屏可以切的是熱力圖的「顏色」下拉
+          "#heatmap/theme": "select#themeColorSel"}
 
 
 def _m4_measure(m, ex):
@@ -27114,7 +27116,8 @@ def t_mobile_m4_1008(b, base, code):
         for tid in (tids or ["ai_server", "pcb_ccl"]):
             go("heatmap/theme/" + tid, 3200)
             r = J("""() => { const s = document.querySelector('#themeDiagram svg.dg3'); if (!s) return { miss: true };
-                const subs = s.querySelectorAll('.stn .sub').length; const arts = [...s.querySelectorAll('.stn > g.art')].map(a => a.getBoundingClientRect());
+                // 2026-10-09（Andy：「垂直，塗在左邊 文字補充右邊」）：手機 v2 直排版右欄的重點說明（.vsub）是 Andy 要的，不算「說明文字在圖上」；「圖上：…」那行照舊只在點開的說明面板
+                const subs = s.querySelectorAll('.stn .sub:not(.vsub)').length; const arts = [...s.querySelectorAll('.stn > g.art')].map(a => a.getBoundingClientRect());
                 const txt = [...s.querySelectorAll('text.ttl, text.cap, .stn text.lbl')].map(t => t.getBoundingClientRect());
                 let ov = 0; arts.forEach(a => txt.forEach(t => { if (a.left < t.right - 2 && t.left < a.right - 2 && a.top < t.bottom - 2 && t.top < a.bottom - 2) ov++; }));
                 return { subs, ov, desc: s.querySelectorAll('.stn[data-desc]').length }; }""")
@@ -27180,6 +27183,9 @@ def t_mobile_m4_1008(b, base, code):
             const side = ns.filter(r => r.left - W.left < 40 || W.right - r.right < 40).length;
             return { n: ns.length, side, lines: l.querySelectorAll('svg path').length }; }""")
         ok(f"【{T}】3D 編號改成引線標註：編號圈都排在左右兩側、每個圈有一條引線（{ld}）", ld and ld["n"] > 0 and ld["side"] == ld["n"] and ld["lines"] >= ld["n"] - 1, ld)
+        # 2026-10-09（Andy：「切換 3D 後 下方 2D 說明就要不見」）：3D 時延伸閱讀整區藏起來 → 先按圓鈕回 2D 再點
+        if J("() => (document.getElementById('dg3d') || {}).dataset && document.getElementById('dg3d').dataset.mode === '3d'"):
+            m.locator("#dg3d button:visible").first.tap(); m.wait_for_timeout(1500)
         rows = J("() => [...document.querySelectorAll('.mdgfolds button[data-fold]')].map(b => b.dataset.fold)")
         badf = []
         for fid in rows:
@@ -27195,7 +27201,9 @@ def t_mobile_m4_1008(b, base, code):
         for h in ("overview", "flow/sankey", "flow/rotation", "heatmap/industry", "industry", "market", "explore", "etf/list", "etf/inc", "season", "watch", "stock/" + code):
             go(h, 2600)
             r = J("""() => { const CTRL = '.ed,.cald,.hmbar,.snk,.st,.badge,button,input,select,textarea,label,a,[role=button],[role=tab],.seg,.mseg,.nbsw,.pill,.chip,.ddbtn,.segdd,.etag,.fq,.fqtag,summary,.mnum';
-                const out = []; document.querySelectorAll('main .view.on *').forEach(e => { if (!e.getClientRects().length || e.matches(CTRL) || e.closest(CTRL) || e.ownerSVGElement || e.tagName === 'svg' || e.tagName === 'CANVAS') return;
+                // 白名單（2026-10-09 Andy：「供應鏈關聯圖，以及上方 2D／3D 圖，需要給大框，但框格需要貼手機螢幕」）：剖析圖框、關聯圖框、題材剖析圖框是明確例外
+                const FRAME = '#dgSec,#relSec,#themeDetail>.card';
+                const out = []; document.querySelectorAll('main .view.on *').forEach(e => { if (!e.getClientRects().length || e.matches(CTRL) || e.closest(CTRL) || e.matches(FRAME) || e.ownerSVGElement || e.tagName === 'svg' || e.tagName === 'CANVAS') return;
                   const cs = getComputedStyle(e); const r = e.getBoundingClientRect(); if (r.width < 30 || r.height < 16) return;
                   const b4 = ['Top', 'Right', 'Bottom', 'Left'].every(k => parseFloat(cs['border' + k + 'Width']) > 0 && cs['border' + k + 'Style'] !== 'none');
                   const sh = cs.boxShadow !== 'none' && !/inset/.test(cs.boxShadow);
@@ -27414,6 +27422,9 @@ def t_mobile_m4_1008(b, base, code):
         m.set_viewport_size({"width": 390, "height": 844})
         # ㉖ 收合普查（Andy 準則 5：收合預設收起）：402 寬 18 頁，看得到的收合鈕（aria-expanded／details）一開始都是收起的。
         #    例外（Andy 指定預設展開）：產業鏈剖析圖、關聯圖 —— 它們不用 aria-expanded 收合列，不在這份清單裡
+        #    白名單（2026-10-09 Andy 手機 HBM 頁：「這分頁收合功能都拿掉」）：產業鏈頁／族群頁（industry/<鏈>、industry/<鏈>/dg/<圖>、industry/group/<族群>）
+        #    手機沒有「收合圖」鈕，剖析圖與關聯圖一律展開 —— 這幾頁的剖析圖／關聯圖不算「預設收起」的對象（t_mobile_m4_1009 正面驗「沒有收合圖、內容可見」）。
+        #    頁上「延伸閱讀」的章節鈕（.mdgfolds，aria-expanded）照舊預設收起，照舊在這份普查裡。
         m.set_viewport_size({"width": 402, "height": 874})
         FOLD = """() => [...document.querySelectorAll('.view.on [aria-expanded], .view.on details')].filter(e => e.getClientRects().length && !e.closest('.ddpanel') && !e.matches('.ddbtn,[aria-haspopup]'))
             .map(e => [e.tagName === 'DETAILS' ? (e.open ? 'true' : 'false') : e.getAttribute('aria-expanded'), (e.id || e.className || e.tagName) + '：' + e.textContent.trim().replace(/\\s+/g, ' ').slice(0, 14)])"""
@@ -27486,6 +27497,170 @@ def t_mobile_m4_1008(b, base, code):
             ctx.close()
         except Exception:  # noqa: BLE001
             pass
+
+
+def t_mobile_m4_1009(b, base, code):
+    """手機 v2 · 2026-10-09 題材頁上下排＋剖析圖直排＋產業鏈剖析圖控制列一排（Andy 04:3x～06:0x 七則截圖指示，分支 claude/m4-theme）。
+    每一條都驗「畫面真的因此改變了」：方塊點下去細節標題真的換、圓鈕點下去 3D 畫布真的出現、↻ 按下去選取真的清掉……"""
+    T = "手機v2"
+    vp = dict(MOBILE_VP); vp["viewport"] = {"width": 402, "height": 874}
+    ctx = b.new_context(**vp)
+    # 先存「放大」與「收起」：手機 v2 要一律忽略（Andy：「放大功能拿掉」「這分頁收合功能都拿掉」）
+    ctx.add_init_script("try{ if(!sessionStorage.getItem('m4t')){ localStorage.clear(); localStorage.setItem('tw.live.on','0'); localStorage.setItem('tw.tourDone','1');"
+                        " localStorage.setItem('tw.m3.dgzoom','big'); localStorage.setItem('tw.dgOpen','0'); localStorage.setItem('tw.relOpen','0'); localStorage.setItem('tw.dg3d','0');"
+                        " localStorage.setItem('tw.dganim','0'); sessionStorage.setItem('m4t','1'); } }catch(e){}")
+    m = ctx.new_page()
+    m.on("pageerror", lambda e: fails.append(f"{T} pageerror: {e} @ {m.url}"))
+    m.route("**/fonts.googleapis.com/**", lambda r: r.abort())
+    cdp = ctx.new_cdp_session(m)
+    J = lambda js, *a: m.evaluate(js, *a)
+    def go(h, wait=3000):
+        m.goto(base + "#" + h, wait_until="domcontentloaded"); m.wait_for_timeout(wait)
+    VIS = "const vis = (e) => !!e && e.getClientRects().length > 0 && getComputedStyle(e).visibility !== 'hidden' && getComputedStyle(e).display !== 'none';"
+    try:
+        # ── 一、題材頁：熱力圖在上、細節在下，沒有第二層「題材熱力｜題材細節」
+        go("heatmap/theme/ai_server", 4500)
+        a = J("() => { " + VIS + """ const t = [...document.querySelectorAll('#v-heatmap button, #v-heatmap [role=tab]')].filter(vis).map(e => e.textContent.trim());
+            const mp = document.getElementById('themeMapCard').getBoundingClientRect(), d = document.getElementById('themeDetail'), dr = d.getBoundingClientRect();
+            const cs = getComputedStyle(d);
+            return { segs: t.filter(x => x === '題材熱力' || x === '題材細節'), mapB: Math.round(mp.bottom), detT: Math.round(dr.top), line: cs.borderTopWidth + ' ' + cs.borderTopStyle,
+              lineC: cs.borderTopColor, bg: getComputedStyle(document.body).backgroundColor,
+              title: ((d.querySelector('svg.dg3 .ttl') || {}).textContent || '') }; }""")
+        ok(f"【{T}】題材頁：第二層「題材熱力｜題材細節」拿掉（改前 2 顆 → 改後 {len(a['segs'])} 顆）", not a["segs"], a["segs"])
+        ok(f"【{T}】題材頁：熱力圖在上（底 {a['mapB']}）、細節在下（頂 {a['detT']}）", a["mapB"] <= a["detT"], a)
+        ok(f"【{T}】題材頁：熱力圖與細節之間一條 1px 分隔線（{a['line']}，色 {a['lineC']}）", a["line"] == "1px solid" and a["lineC"] != a["bg"], a)
+        t0 = a["title"]
+        # 用手指點熱力圖上別的方塊（掃幾個點，直到網址換成另一個題材）→ 下面細節的標題真的換掉
+        box = J("() => { const r = document.getElementById('themeMap').getBoundingClientRect(); window.scrollTo({ top: r.top + scrollY - 80, behavior: 'instant' }); const q = document.getElementById('themeMap').getBoundingClientRect(); return [q.left, q.top, q.width, q.height]; }")
+        t1, h1 = t0, ""
+        for fx, fy in ((.85, .12), (.15, .8), (.5, .5), (.85, .7), (.3, .3), (.6, .9)):
+            m.touchscreen.tap(box[0] + box[2] * fx, box[1] + box[3] * fy); m.wait_for_timeout(1800)
+            h1 = J("() => location.hash"); t1 = J("() => ((document.querySelector('#themeDetail svg.dg3 .ttl') || {}).textContent || '')")
+            if t1 and t1 != t0:
+                break
+        ok(f"【{T}】點另一個題材方塊 → 下面細節標題真的換（{t0} → {t1}，{h1}）", bool(t1) and t1 != t0, (t0, t1, h1))
+        # ── 二、22 個題材的剖析圖全部直排：卡 x 相同、y 遞增、圖左文右、無橫捲、卡與卡之間有分隔線
+        ids = J("() => fetch('data/themes.json').then(r => r.json()).then(d => d.themes.map(t => t.id))")
+        badv = []
+        for tid in ids:
+            J(f"() => {{ location.hash = '#heatmap/theme/{tid}'; }}"); m.wait_for_timeout(1500)
+            r = J("""() => { const svg = document.querySelector('#themeDiagram svg.dg3'), root = document.getElementById('themeDiagram');
+                if (!svg) return { nodg: !!document.querySelector('[data-nodg]') };
+                const st = [...svg.querySelectorAll('.p3.stn')];
+                const xs = st.map(g => Math.round(g.querySelector('.slot').getBoundingClientRect().left)), ys = st.map(g => Math.round(g.getBoundingClientRect().top));
+                const lr = st.every(g => g.querySelector('g.art').getBoundingClientRect().right <= g.querySelector('.lbl').getBoundingClientRect().left + 1);
+                const sr = svg.getBoundingClientRect(), over = [...svg.querySelectorAll('text')].filter(t => { const b = t.getBoundingClientRect(); return b.width && b.right > sr.right + 1; }).length;
+                const ln = [...svg.querySelectorAll('.m4ln')], lc = ln.length ? getComputedStyle(ln[0]).stroke : '';
+                return { v: svg.dataset.v, n: st.length, xsame: new Set(xs).size === 1, yinc: ys.every((y, i) => !i || y > ys[i - 1]), lr, over,
+                  hs: root.scrollWidth - root.clientWidth, sw: document.documentElement.scrollWidth - innerWidth, lines: ln.length, lc,
+                  tip: [...document.querySelectorAll('#themeDetail .swipetip')].some(e => e.getClientRects().length) }; }""")
+            if r.get("nodg"):
+                continue
+            if not (r["v"] == "1" and r["xsame"] and r["yinc"] and r["lr"] and not r["over"] and r["hs"] <= 0 and r["sw"] <= 0
+                    and r["lines"] >= r["n"] - 1 and r["lc"] not in ("", "none", "rgba(0, 0, 0, 0)") and not r["tip"]):
+                badv.append((tid, r))
+        ok(f"【{T}】{len(ids)} 個題材剖析圖全部直排（卡 x 相同、y 遞增、圖左文右、沒有橫捲與「左右滑」、卡與卡之間量得到分隔線）", ids and not badv, badv[:3])
+        # 題材剖析圖的 ↻：先點一個環節（sel）→ 按 ↻ → 選取真的清掉
+        J("() => { location.hash = '#heatmap/theme/ai_server'; }"); m.wait_for_timeout(1800)
+        J("() => { const g = document.querySelector('#themeDiagram .p3.stn'); g.scrollIntoView({ block: 'center' }); }"); m.wait_for_timeout(300)
+        m.locator("#themeDiagram .p3.stn .lbl").first.tap(); m.wait_for_timeout(500)
+        s1 = J("() => document.querySelectorAll('#themeDiagram .p3.stn.sel').length")
+        J("() => { if (window.M3 && M3.closeSheet) M3.closeSheet(); document.getElementById('themeDiagram').scrollIntoView({ block: 'start' }); }"); m.wait_for_timeout(400)
+        m.locator("#themeDiagram > .m4rst").tap(); m.wait_for_timeout(400)
+        s2 = J("() => document.querySelectorAll('#themeDiagram .p3.stn.sel').length")
+        ok(f"【{T}】題材剖析圖右上角 ↻：選起一格（{s1}）→ 按 ↻ → 選取清掉（{s2}）", s1 == 1 and s2 == 0, (s1, s2))
+        # ── 三、產業鏈剖析圖（晶圓代工）：控制列一排、2D/3D 一顆圓鈕、沒有收合／整張／放大、延伸閱讀、↻、大框
+        go("industry/semiconductor/dg/foundry", 5000)
+        ST = "() => { " + VIS + """ const ctl = [...document.querySelectorAll('#dgTools > *:not(.mdgbar), #dgTools .mdgbar > *')].filter(vis);
+            const tops = ctl.map(e => Math.round(e.getBoundingClientRect().top)), t = document.getElementById('dgTools');
+            const L = document.querySelector('.mdgfolds'), h = document.getElementById('prodDiagram');
+            const fr = (s) => { const e = document.querySelector(s); if (!vis(e)) return null; const r = e.getBoundingClientRect(), c = getComputedStyle(e); return [Math.round(r.left), Math.round(innerWidth - r.right), c.borderTopWidth, c.borderTopColor]; };
+            const bt = (s) => { const e = document.querySelector(s); return e ? getComputedStyle(e).borderTopWidth + ' ' + getComputedStyle(e).borderTopStyle : null; };
+            return { n: ctl.length, spread: tops.length ? Math.max(...tops) - Math.min(...tops) : 99, ts: t ? t.scrollWidth - t.clientWidth : 99,
+              circ: [...document.querySelectorAll('#dg3d button')].filter(vis).map(e => [Math.round(e.getBoundingClientRect().width), getComputedStyle(e, '::before').content]),
+              mode: (document.getElementById('dg3d') || {}).dataset ? document.getElementById('dg3d').dataset.mode : null,
+              svg: vis(h), c3d: vis(document.querySelector('#prod3d canvas')), folds: vis(L),
+              fhd: L ? ((L.querySelector('.mdgfhd') || {}).textContent || '') : '', fhdLine: bt('.mdgfolds .mdgfhd'), bodyLine: bt('#dgBody'),
+              circNum: L ? [...L.querySelectorAll('button[data-fold] b')].some(b => /[\\u2460-\\u2473\\u2776-\\u277F]/.test(b.textContent)) : null,
+              nums: [...document.querySelectorAll('#prodDiagram .mnum')].map(e => e.textContent.trim()),
+              fold: [...document.querySelectorAll('#dgFold, #relFold')].filter(vis).length,
+              zoom: [...document.querySelectorAll('.mdgzoom button, .mdgbar button')].filter(vis).filter(e => /整張|放大/.test(e.textContent)).length,
+              hs: h ? h.scrollWidth - h.clientWidth : null, sw: document.documentElement.scrollWidth - innerWidth,
+              body: vis(document.getElementById('dgBody')), rel: vis(document.querySelector('#relSec #chainMap')),
+              rst: (() => { const r = document.querySelector('#dgBody > .m4rst'), bd = document.getElementById('dgBody'); if (!vis(r)) return null; const a = r.getBoundingClientRect(), c = bd.getBoundingClientRect();
+                return [Math.round(c.right - a.right), Math.round(a.top - c.top), Math.round(a.width)]; })(),
+              dgF: fr('#dgSec'), relF: fr('#relSec'), bg: getComputedStyle(document.body).backgroundColor }; }"""
+        s = J(ST)
+        ok(f"【{T}】剖析圖控制列只有一排（{s['n']} 顆，top 差 {s['spread']}px）、沒有橫捲", s["n"] >= 2 and s["spread"] <= 4 and s["ts"] <= 0, s)
+        ok(f"【{T}】2D/3D 只有一顆 40px 圓鈕、鈕上寫目前模式（{s['circ']}）", len(s["circ"]) <= 1 and (not s["circ"] or (s["circ"][0][0] >= 40 and "2D" in s["circ"][0][1])), s["circ"])
+        ok(f"【{T}】手機剖析圖沒有「收合圖」（剖析圖、關聯圖都直接展開：{s['body']}／{s['rel']}；就算以前存過收起）", s["fold"] == 0 and s["body"] and s["rel"], s)
+        ok(f"【{T}】手機剖析圖沒有「整張」「放大」鈕；以前存過放大也是整張、圖框沒有橫捲（{s['hs']}px）", s["zoom"] == 0 and s["hs"] is not None and s["hs"] <= 2 and s["sw"] <= 0, s)
+        ok(f"【{T}】展開段上方有「延伸閱讀」標題＋分隔線（{s['fhd']}，{s['fhdLine']}）", "延伸閱讀" in s["fhd"] and s["fhdLine"] == "1px solid", s)
+        ok(f"【{T}】展開段標題不含 ①～⑳ 圓圈數字", s["circNum"] is False, s)
+        ok(f"【{T}】圖上編號圈維持 01～N（{len(s['nums'])} 個）", s["nums"] and all(len(x) == 2 and x.isdigit() for x in s["nums"]), s["nums"][:6])
+        ok(f"【{T}】控制列｜圖｜延伸閱讀之間量得到分隔線（{s['bodyLine']}／{s['fhdLine']}）", s["bodyLine"] == "1px solid" and s["fhdLine"] == "1px solid", s)
+        ok(f"【{T}】剖析圖框與關聯圖框都在、邊框可見、左右各距螢幕邊 ≤ 6px（{s['dgF']}／{s['relF']}）、整頁沒有橫捲",
+           all(f and f[0] <= 6 and f[1] <= 6 and f[2] == "1px" and f[3] != s["bg"] for f in (s["dgF"], s["relF"])) and s["sw"] <= 0, s)
+        ok(f"【{T}】圖框右上角有 ↻（距右 {s['rst'] and s['rst'][0]}px、距上 {s['rst'] and s['rst'][1]}px、{s['rst'] and s['rst'][2]}px）",
+           s["rst"] and s["rst"][0] <= 12 and s["rst"][1] <= 30 and s["rst"][2] >= 40, s["rst"])
+        # 2D 的 ↻：點圖上一個零件（選起來：.haspart，其他零件變淡）→ 按 ↻ → 選取真的清掉
+        #   （點編號會開底部說明面板，面板的遮罩蓋住整頁，點哪裡都是先關面板，所以這裡用「點零件」驗）
+        J("() => { const p = document.querySelector('#prodDiagram [data-dgkey]'); p.dispatchEvent(new MouseEvent('click', { bubbles: true })); }"); m.wait_for_timeout(700)
+        on1 = J("() => document.querySelectorAll('#prodDiagram svg.haspart').length")
+        J("() => { document.getElementById('dgBody').scrollIntoView({ block: 'start' }); window.scrollBy(0, -70); }"); m.wait_for_timeout(300)
+        m.locator("#dgBody > .m4rst").tap(); m.wait_for_timeout(600)
+        on2 = J("() => document.querySelectorAll('#prodDiagram svg.haspart').length")
+        ok(f"【{T}】2D ↻：點一個零件選起來（{on1}）→ 按 ↻ → 選取清掉（{on2}）", on1 >= 1 and on2 == 0, (on1, on2))
+        # 2D/3D 圓鈕：點一下 → 3D（畫布出現、延伸閱讀藏起來）；再點一下 → 回 2D（延伸閱讀回來）
+        if s["circ"]:
+            m.locator("#dg3d button:visible").first.tap(); m.wait_for_timeout(5000)
+            s3 = J(ST)
+            ok(f"【{T}】點 2D/3D 圓鈕 → 模式切到 3D、3D 畫布真的出現、圓鈕改寫「3D」（{s3['mode']}，{s3['circ']}）",
+               s3["mode"] == "3d" and s3["c3d"] and not s3["svg"] and s3["circ"] and "3D" in s3["circ"][0][1], s3)
+            ok(f"【{T}】切到 3D 後，只屬於 2D 的「延伸閱讀」整區不可見", not s3["folds"], s3)
+            # 3D 的 ↻：拖一下畫布（畫面真的變）→ 按 ↻ → 回到初始視角（截圖跟初始差很少；動畫先關掉 tw.dganim＝0，不然自轉會讓兩張永遠不一樣）
+            cv = J("() => { const c = document.querySelector('#prod3d canvas'); c.scrollIntoView({ block: 'center' }); const r = c.getBoundingClientRect(); return [r.left, r.top, r.width, r.height]; }")
+            m.wait_for_timeout(600)
+            clip = {"x": cv[0] + 10, "y": cv[1] + 10, "width": max(40, cv[2] - 20), "height": max(40, min(cv[3] - 20, 300))}
+            def snap():
+                return m.screenshot(clip=clip)
+            def diff(a1, a2):
+                from PIL import Image, ImageChops
+                import io
+                i1, i2 = Image.open(io.BytesIO(a1)).convert("L"), Image.open(io.BytesIO(a2)).convert("L")
+                d = ImageChops.difference(i1, i2); h = d.histogram(); tot = sum(h)
+                return sum(h[24:]) / max(1, tot)
+            p0 = snap()
+            x0, y0 = cv[0] + cv[2] * .5, cv[1] + min(cv[3] * .5, 200)
+            tp = lambda t, x: cdp.send("Input.dispatchTouchEvent", {"type": t, "touchPoints": [] if t == "touchEnd" else [{"x": x, "y": y0}]})
+            tp("touchStart", x0)
+            for k in range(1, 13):
+                tp("touchMove", x0 - 60 + 20 * k); m.wait_for_timeout(20)
+            tp("touchEnd", 0); m.wait_for_timeout(900)
+            p1 = snap()
+            J("() => { document.getElementById('dgBody').scrollIntoView({ block: 'start' }); window.scrollBy(0, -70); }"); m.wait_for_timeout(300)
+            m.locator("#dgBody > .m4rst").tap(); m.wait_for_timeout(1200)
+            J(f"() => window.scrollTo({{ top: 0 }})"); J("() => { document.querySelector('#prod3d canvas').scrollIntoView({ block: 'center' }); }"); m.wait_for_timeout(600)
+            p2 = snap()
+            d01, d02 = diff(p0, p1), diff(p0, p2)
+            ok(f"【{T}】3D ↻：拖一下畫面真的轉了（差 {d01:.1%}）→ 按 ↻ → 回到初始視角（差 {d02:.1%}）", d01 > 0.008 and d02 < d01 / 3, (d01, d02))
+            m.locator("#dg3d button:visible").first.tap(); m.wait_for_timeout(2500)
+            s4 = J(ST)
+            ok(f"【{T}】再點一下圓鈕 → 回 2D（平面圖出現、3D 畫布收掉、圓鈕寫「2D」）", s4["mode"] == "2d" and s4["svg"] and not s4["c3d"] and "2D" in s4["circ"][0][1], s4)
+            ok(f"【{T}】回 2D 後「延伸閱讀」區又看得到", s4["folds"], s4)
+        else:
+            ok(f"【{T}】晶圓代工有 2D/3D 切換鈕", False, s)
+        # 族群頁（#industry/group/…）同一個版型：沒有收合圖、兩個框都在
+        go("industry/group/hbm", 4500)
+        g = J(ST)
+        ok(f"【{T}】族群頁（HBM）：沒有「收合圖」、剖析圖與關聯圖都看得到、兩個框貼螢幕邊（{g['dgF']}／{g['relF']}）",
+           g["fold"] == 0 and g["body"] and g["rel"] and all(f and f[0] <= 6 and f[1] <= 6 for f in (g["dgF"], g["relF"])), g)
+    finally:
+        try:
+            ctx.close()
+        except Exception:  # noqa: BLE001
+            pass
+
 
 def t_mobile_m4(b, base, code):
     T = "手機v2"
@@ -28373,7 +28548,10 @@ SECTIONS = {
     # ★ 2026-09-27 手機總覽最上方：指數三格（可左右滑）＋觀察清單（2026-09-27 起是自選清單目前那一頁：localStorage tw.watchlists，只存代號；site/mobile3.js G 段＋site/watchlists.js）
     "手機總覽指數觀察清單": lambda pg, b, base, code: t_mobile_home(b, base, code),
     # ★ 2026-10-08 手機 v2（docs/mobile_v2_plan.md；site/mobile4.js）：側欄抽屜、每頁第一屏、字級／觸控、主要切換真的點得動
-    "手機v2":              lambda pg, b, base, code: (t_mobile_m4(b, base, code), t_mobile_m4_1008(b, base, code)),
+    # ★ 2026-10-09 加 t_mobile_m4_1009：題材頁上下排＋剖析圖直排＋產業鏈剖析圖控制列一排／2D3D 圓鈕／延伸閱讀／↻／大框（分支 claude/m4-theme）
+    "手機v2":              lambda pg, b, base, code: (t_mobile_m4(b, base, code), t_mobile_m4_1008(b, base, code), t_mobile_m4_1009(b, base, code)),
+    # 只跑 t_mobile_m4_1009 那一段（手機v2 整段 15 分鐘、機器忙時容易中途當掉，單獨重跑用）
+    "手機v2題材剖析1009":  lambda pg, b, base, code: t_mobile_m4_1009(b, base, code),
     "手機框預覽1008":      lambda pg, b, base, code: t_phone_1008(pg, b, base),
     # ★ 2026-09-25 手機版 v3（docs/mobile_v3_spec.md §7）：底部一列五顆、「?」氣泡、大盤合一張、新雷達＋焦點條、
     #   資金分流樹長條、法人對稱長條、篩選抽屜、剖析圖只留編號（2D／3D）。390 與 360 各一輪。⚠ 一律 --workers 1（有 3D）
