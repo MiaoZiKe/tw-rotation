@@ -1725,7 +1725,10 @@
         /* 清單平常與圖等高（它自己的高度不算進版面）；圖收起來之後沒有「圖的高度」可以對齊，
            .mapfold 讓清單改成佔滿整列、用自己的高度（上限 70vh）—— 不然收合圖會連清單一起收成 0。*/
         const rm = $('#relMain', el); if (rm) rm.classList.toggle('mapfold', !relOpen);
-        const rr = $('#relRow', el); if (rr) rr.hidden = !relOpen && !relM4;   // 桌機收合：整列（圖、環節詳情、環節卡清單）一起藏，標題以下什麼都沒有
+        /* 桌機收合：整列（圖、環節詳情、右側／整列的環節卡清單 #relList）一起藏，標題以下什麼都沒有。
+           ⚠ 不能只設 hidden：.chainrow 有 display:flex，會蓋掉 [hidden] 的 display:none（10-08 第一版就是這樣漏掉的 ——
+           產業鏈頁沒選環節時清單是空的看不出來，族群頁一進來就選了自己的環節，收合後兩張環節卡照樣攤開，Andy 312 截圖）。 */
+        const rr = $('#relRow', el); if (rr) { const off = !relOpen && !relM4; rr.hidden = off; rr.style.display = off ? 'none' : ''; }
         if (foldRel) { foldRel.textContent = relOpen ? '收合圖 ▴' : '展開關聯圖 ▾'; foldRel.classList.toggle('cyan', !relOpen); }
         placeRelCol(el);        // 圖收起來 → 卡片回到文件流（清掉浮動座標）；展開 → 重新貼回圖上
       };
