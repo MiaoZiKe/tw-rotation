@@ -111,6 +111,12 @@ export default {
     const id = env.HUB.idFromName('hub');
     return env.HUB.get(id).fetch(req);
   },
+  /* 2026-10-09 cron trigger（wrangler.toml [triggers]）：每天清一次過期的「七天保證比對碼」（benefit_hash，保存 365 天）。
+     用一個外面打不到的主機名（internal.cron）把請求丟進同一個 Durable Object，那邊只做刪除過期資料這一件事。*/
+  async scheduled(ev, env) {
+    const id = env.HUB.idFromName('hub');
+    await env.HUB.get(id).fetch(new Request('https://internal.cron/cron/bill-clean', { method: 'POST' }));
+  },
 };
 
 export class Hub {
@@ -2156,3 +2162,176 @@ Hub.prototype.permMe = async function (req, b) {
   if (!v || !this.isOwner(v.user)) return ownOrigPermMe.call(this, req, b);
   return this.json(req, { who: 'owner', plan: 'owner', planName: '擁有者（不受限制）', feats: {}, lims: {}, dq: null, owner: true });
 };
+
+/* 2026-10-09 Andy（手機帳號選單新增「刪除帳號」）：站主帳號（ADMIN_EMAILS）不可自刪 —— 前端已經把按鈕停用，
+   這裡在伺服器端再擋一次（繞過前端直接打 /v1/delete 也刪不掉）。理由：站主是管理區最高權限的來源，
+   刪掉 users 那一列不會讓 ADMIN_EMAILS 消失，只會留下一個「有權限、沒資料」的空殼，而且雲端自選全沒了。
+   要移交站主：改 Worker 的 ADMIN_EMAILS 設定後再刪。回 403 { error: 'owner' }（前端寫「站主帳號不可刪除」）。*/
+const ownOrigDelete = Hub.prototype.deleteMe;
+Hub.prototype.deleteMe = async function (req, b) {
+  const v = await this.auth(req, b || {});
+  if (v && this.isOwner(v.user)) return this.json(req, { error: 'owner' }, 403);
+  return ownOrigDelete.call(this, req, b);
+};
+
+/* ============================================================================ 取消訂閱／申請退款＋七天保證防呆（2026-10-09，帳本 48）
+   Andy 07:5x：「這邊需要新增退款以及取消訂閱功能，並且需要防呆機制，他取消後就不能再享有七天免費功能」。
+   ★ 現在沒有線上金流（申請制、專人開通），所以「取消」「退款」都只是建立一筆申請，走管理區「意見反饋與訂閱申請」那條既有路徑：
+     sub_requests 多一欄 type（'subscribe' 舊資料預設／'cancel'／'refund'），管理者照舊用 /v1/admin/feedback/set 標「已處理」。
+   ★ 防呆：一個人只要申請過取消或退款，就不能再享有「七天免費試用」與「七天退款保證」（CEO 10-09 定案的實作規格）：
+     · 帳號還在：旗標存 bill_flags（以 email 為鍵，跟 perm 同一種個資；刪帳號時一起刪）
+         first_paid（第一次被設成付費方案的時間，退款七天從這天算）、trial_used、refund_used、cancel_at、refund_at
+     · 刪除帳號時：用過的保證改存 benefit_hash —— **只存「比對碼＋用過哪種保證＋時間」**：
+         比對碼＝HMAC-SHA256(信箱先去前後空白、轉小寫)，金鑰是 Worker secret TRIAL_HMAC_KEY（**不准進 repo**）。
+         同一個信箱重新註冊，算出同一個比對碼 → 旗標接得回來；資料庫外流也還原不出信箱。
+     · benefit_hash 保存 BILL_HASH_DAYS（365）天，cron trigger 每天清一次過期的（wrangler.toml [triggers]；DO alarm 每小時也順手清）。
+         天數跟 site/legal_config.js 的 HASH_RETENTION_DAYS 是同一個數字（法遵在 claude/refund-policy 新增；改一邊要改另一邊）。
+     · 沒設 TRIAL_HMAC_KEY：退回用本站的簽章金鑰（kv 裡的 hmac，一樣不在 repo），並在 /v1/billing/me 回 hk:'fallback' 提醒；設好之後換新金鑰，
+       舊比對碼就對不上了（=那些人的旗標失效），所以**上線前就要先設好**。
+   REFUND_DAYS：前端讀 site/legal_config.js 的 REFUND_DAYS 只是顯示；能不能退款**以這裡的 BILL_REFUND_DAYS 為準**。
+   ============================================================================ */
+const BILL_REFUND_DAYS = 7;     // = site/legal_config.js REFUND_DAYS（法遵分支新增前，前端也先用常數 7）
+const BILL_HASH_DAYS = 365;     // = site/legal_config.js HASH_RETENTION_DAYS
+Hub.prototype.billInit = function () {
+  if (this._billOk) return;
+  this.subInit();
+  if (!this.q('PRAGMA table_info(sub_requests)').some((c) => c.name === 'type')) this.q("ALTER TABLE sub_requests ADD COLUMN type TEXT DEFAULT 'subscribe'");
+  this.q('CREATE TABLE IF NOT EXISTS bill_flags (email TEXT PRIMARY KEY, first_paid INTEGER, trial_used INTEGER DEFAULT 0, refund_used INTEGER DEFAULT 0, cancel_at INTEGER, refund_at INTEGER, updated INTEGER)');
+  this.q('CREATE TABLE IF NOT EXISTS benefit_hash (emh TEXT, kind TEXT, at INTEGER, PRIMARY KEY (emh, kind))');
+  this._billOk = true;
+};
+const billNorm = (email) => String(email || '').trim().toLowerCase();
+/* 比對碼：HMAC-SHA256(正規化信箱)，hex。金鑰＝TRIAL_HMAC_KEY（Worker secret）；沒設退回本站簽章金鑰 */
+Hub.prototype.billHash = async function (email) {
+  const k = this.env.TRIAL_HMAC_KEY;
+  if (!k) return 'f:' + (await this.hmac('benefit:' + billNorm(email)));
+  const key = await crypto.subtle.importKey('raw', enc.encode(String(k)), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
+  const sig = new Uint8Array(await crypto.subtle.sign('HMAC', key, enc.encode(billNorm(email))));
+  return [...sig].map((x) => x.toString(16).padStart(2, '0')).join('');
+};
+Hub.prototype.billFlags = function (email) { this.billInit(); return this.q('SELECT * FROM bill_flags WHERE email = ?', billNorm(email))[0] || null; };
+Hub.prototype.billHashKinds = async function (email) {
+  this.billInit();
+  const emh = await this.billHash(email);
+  const since = this.now() - BILL_HASH_DAYS * 86400 * 1000;
+  return new Set(this.q('SELECT kind FROM benefit_hash WHERE emh = ? AND at >= ?', emh, since).map((r) => r.kind));
+};
+Hub.prototype.billCleanup = function () {
+  this.billInit();
+  this.q('DELETE FROM benefit_hash WHERE at < ?', this.now() - BILL_HASH_DAYS * 86400 * 1000);
+};
+/* 這個人的帳務狀態（前端選單與 #pricing 讀這一份）*/
+Hub.prototype.billState = async function (v) {
+  const email = billNorm(v.user.email);
+  const e = this.effective(email);
+  const plan = e.expired ? 'free' : e.plan;
+  const paid = plan !== 'free' && plan !== 'guest';
+  const row = this.billFlags(email);
+  const hk = await this.billHashKinds(email);           // 刪過帳號、用同一個信箱回來的人
+  const firstPaid = (row && row.first_paid) || (paid ? e.updated || 0 : 0);
+  const open = (t) => this.q("SELECT id, created FROM sub_requests WHERE uid = ? AND type = ? AND status = 'new' ORDER BY created DESC LIMIT 1", v.user.uid, t)[0] || null;
+  const inWindow = !!(paid && firstPaid && this.now() - firstPaid <= BILL_REFUND_DAYS * 86400 * 1000);
+  const refundUsed = !!(row && row.refund_used) || hk.has('refund');
+  /* 防呆：取消過也算用過七天保證（Andy：「他取消後就不能再享有七天免費功能」）；想退款要直接按退款，不是先取消 */
+  const trialUsed = !!(row && row.trial_used) || hk.has('trial') || refundUsed;
+  const owner = this.isOwner(v.user);
+  return {
+    plan, planName: e.planName, paid, owner,
+    periodEnd: e.expires || 0, firstPaid, refundDays: BILL_REFUND_DAYS,
+    trialUsed, refundUsed,
+    canRefund: paid && inWindow && !trialUsed && !owner,
+    refundWhy: !paid ? 'not_paid' : trialUsed ? 'used' : !inWindow ? 'window' : '',
+    cancel: open('cancel'), refund: open('refund'),
+    hk: this.env.TRIAL_HMAC_KEY ? 'secret' : 'fallback',
+  };
+};
+Hub.prototype.billUpsert = function (email, set) {
+  this.billInit();
+  const em = billNorm(email), now = this.now();
+  if (!this.billFlags(em)) this.q('INSERT INTO bill_flags (email, first_paid, trial_used, refund_used, updated) VALUES (?, NULL, 0, 0, ?)', em, now);
+  for (const [k, val] of Object.entries(set)) this.q(`UPDATE bill_flags SET ${k} = ?, updated = ? WHERE email = ?`, val, now, em);
+};
+Object.assign(Hub.prototype.subRoutes, {
+  '/v1/billing/me': async function (req, b) {
+    const v = await this.auth(req, b);
+    if (!v) return this.json(req, { error: 'auth' }, 401);
+    return this.json(req, await this.billState(v));
+  },
+  '/v1/subscribe/change': async function (req, b) {
+    const v = await this.auth(req, b);
+    if (!v) return this.json(req, { error: 'auth' }, 401);
+    const type = b.type === 'cancel' || b.type === 'refund' ? b.type : null;
+    if (!type) return this.json(req, { error: 'bad_type' }, 400);
+    if (this.isOwner(v.user)) return this.json(req, { error: 'owner' }, 403);
+    const s = await this.billState(v);
+    if (!s.paid) return this.json(req, { error: 'not_paid' }, 409);
+    if (s[type]) return this.json(req, { error: 'exists', ...s }, 409);
+    if (type === 'refund' && !s.canRefund) return this.json(req, { error: s.refundWhy === 'used' ? 'refund_used' : 'refund_window', ...s }, 409);
+    const email = billNorm(v.user.email);
+    const id = rand(9), now = this.now();
+    this.q('INSERT INTO sub_requests (id, uid, email, contact, plan, period, note, created, status, type) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+      id, v.user.uid, email, email, s.plan, 'month', subClean(b.note, 300), now, 'new', type);
+    this.billUpsert(email, type === 'cancel' ? { trial_used: 1, cancel_at: now } : { trial_used: 1, refund_used: 1, refund_at: now });
+    return this.json(req, { ok: true, id, ...(await this.billState(v)) });
+  },
+});
+/* 第一次被設成付費方案：記 first_paid（退款七天從這天算）。已有就不動 —— 續訂、改方案不會讓七天重新起算。*/
+const billOrigPermPut = Hub.prototype.adminPermPut;
+Hub.prototype.adminPermPut = async function (req, b) {
+  const res = await billOrigPermPut.call(this, req, b);
+  try {
+    const plan = String((b && b.plan) || 'free');
+    const email = this.cleanEmail(b && b.email);
+    if (res.status === 200 && email && !(b && b.reset) && plan !== 'free' && plan !== 'guest') {
+      const row = this.billFlags(email);
+      if (!row || !row.first_paid) this.billUpsert(email, { first_paid: this.now() });
+    }
+  } catch (e) { /* 記不到 first_paid 不影響權限設定本身 */ }
+  return res;
+};
+/* 刪除帳號：用過的保證改存成「比對碼＋種類＋時間」，bill_flags（含信箱原文）一起刪 */
+const billOrigDelete = Hub.prototype.deleteMe;
+Hub.prototype.deleteMe = async function (req, b) {
+  const v = await this.auth(req, b || {});
+  const row = v ? this.billFlags(v.user.email) : null;
+  const res = await billOrigDelete.call(this, req, b);
+  if (v && res.status === 200) {
+    const kinds = [];
+    if (row && (row.trial_used || row.refund_used)) kinds.push('trial');
+    if (row && row.refund_used) kinds.push('refund');
+    if (kinds.length) {
+      const emh = await this.billHash(v.user.email);
+      for (const k of kinds) this.q('INSERT INTO benefit_hash (emh, kind, at) VALUES (?, ?, ?) ON CONFLICT(emh, kind) DO UPDATE SET at = excluded.at', emh, k, this.now());
+    }
+    this.q('DELETE FROM bill_flags WHERE email = ?', billNorm(v.user.email));
+  }
+  return res;
+};
+/* 保存期限：每小時的 alarm 順手清；另外 cron trigger 每天打一次 /cron/bill-clean（見最上面 export default 的 scheduled）*/
+const billOrigCleanup = Hub.prototype.cleanup;
+Hub.prototype.cleanup = function () { billOrigCleanup.call(this); this.billCleanup(); };
+const billOrigFetch = Hub.prototype.fetch;
+Hub.prototype.fetch = async function (req) {
+  /* 只接受 Worker 自己的 scheduled() 帶進來的內部請求（網址主機是 internal.cron，外面打不到這個主機名）。
+     就算被外面打到也只會「刪掉已過期的比對碼」，沒有任何讀取或寫入。*/
+  const u = new URL(req.url);
+  if (u.hostname === 'internal.cron' && u.pathname === '/cron/bill-clean') { this.billCleanup(); return new Response('ok'); }
+  return billOrigFetch.call(this, req);
+};
+/* 管理區申請列表帶上 type（舊資料是 NULL → 'subscribe'），前端用它篩選 取消／退款 */
+const billOrigFbList = Hub.prototype.subRoutes['/v1/admin/feedback/list'];
+Hub.prototype.subRoutes['/v1/admin/feedback/list'] = async function (req, b) {
+  this.billInit();
+  const res = await billOrigFbList.call(this, req, b);
+  if (res.status !== 200) return res;
+  const j = await res.json();
+  const ty = {}; this.q('SELECT id, type FROM sub_requests').forEach((r) => { ty[r.id] = r.type || 'subscribe'; });
+  j.requests = (j.requests || []).map((r) => ({ ...r, type: ty[r.id] || 'subscribe' }));
+  return this.json(req, j);
+};
+/* 備份／還原（docs/BACKUP_RUNBOOK.md）：sub_requests 多了 type 欄、兩張新表 —— 匯出前要先建好（不然空庫還原時欄位對不上）；
+   benefit_hash 也要進備份：防呆旗標是「刪帳號也不刪」的資料，還原後不能讓大家的七天保證重新歸零。*/
+const billOrigExpInit = Hub.prototype.expInit;
+Hub.prototype.expInit = function () { billOrigExpInit.call(this); this.billInit(); };
+for (const t of ['bill_flags', 'benefit_hash']) if (!EXPORT_TABLES.includes(t)) EXPORT_TABLES.push(t);
+/* ============================================================================ 取消訂閱／退款區塊結束 */

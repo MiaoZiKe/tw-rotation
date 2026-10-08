@@ -41,6 +41,10 @@
 <!-- ★ 2026-10-08 手機 v2（docs/mobile_v2_plan.md）：≤640 掛 html.m4（mobile4.js 之後跨寬度時掛上／撤掉）。要在第一次 route() 之前掛好：
      app.js 看到 m4 就跟電腦版一樣走側欄子分頁（#flow/rotation…）。桌機（>640）這一行什麼都不做。 -->
 <script>(function(){if(innerWidth<=640)document.documentElement.classList.add('m4');})();</script>
+<!-- ★ 2026-10-09 Andy：「新增一個 客服 關／開 功能」—— 手機帳號選單的「客服按鈕」開關（site/acctm4.js）關掉時 localStorage tw.fab.off='1'。
+     要在畫面畫出來之前掛上 html.fab-off，客服浮動鈕才不會先閃一下再消失。網頁版沒有入口，沒按過就不會有這個 class。 -->
+<script>try{if(localStorage.getItem('tw.fab.off')==='1')document.documentElement.classList.add('fab-off');}catch(e){}</script>
+<style>html.fab-off #supFab{display:none!important}</style>
 <script>(function(){if(innerWidth<=820)return;var c=document.documentElement.classList;c.add('l4');try{var v=localStorage.getItem('tw.layout4.nav');if(v?v==='mini':innerWidth<=1180)c.add('l4-mini');}catch(e){}})();</script>
 <!-- ★ 2026-09-24 PWA：圖示改用 site/icons/ 那一組（舊的 icon.png 是 2026-09-18 的 2KB 圖，
      留著當退路沒有刪）。maskable 版是給 Android 啟動器裁切用的。
@@ -5899,6 +5903,8 @@ return {load:load,ready:ready,srcs:srcs};})();
 <script src="quota.js"></script>
 <script src="support.js"></script>
 <script src="notices.js"></script>
+<script src="billing.js"></script><!-- 2026-10-09 取消訂閱／申請退款＋七天保證防呆（桌機與手機帳號選單共用；選單收著時不插任何節點）-->
+<script src="acctm4.js"></script><!-- 2026-10-09 手機（html.m4）帳號選單：身分徽章、通知、額度上限、客服開關、刪除帳號；桌機不插任何節點 -->
 <script src="admingw.js"></script><!-- 管理區：付費資料異常 #admin/gw（docs/datagw_plan.md 第三階段） -->
 <!-- 資金分流樹拓撲版（桌機 > 820px）：app.js 的 renderSankey() 會呼叫 window.FlowTopo，所以要在它之前 -->
 <script src="fit.js"></script>

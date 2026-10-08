@@ -300,6 +300,9 @@
      · 篩選只在前端做（Worker 一次給最近 2000 筆），記在記憶體，重新整理回預設（近 30 天、不篩）。
      未讀數紅點：側欄「意見反饋」子項與帳號選單共用 unread（不受期間影響，算全部未讀）。*/
   const FL = { cat: '', sub: '', st: '', day: '' };
+  /* 2026-10-09（帳本 48）訂閱申請多了「取消訂閱」「申請退款」兩種（Worker sub_requests.type）：申請列表可篩選類型 */
+  const RQT = { subscribe: '訂閱', cancel: '取消訂閱', refund: '申請退款' };
+  let RQF = '';
   const RG = { v: '30', from: '', to: '' };
   let unread = 0, last = null;
   function rangeNow() {
@@ -388,6 +391,8 @@
     const sm = {}; byDay.forEach((r) => { if (r.sub) { const k = r.cat + '/' + r.sub; sm[k] = (sm[k] || 0) + 1; } });
     const topSub = Object.entries(sm).sort((a, b) => b[1] - a[1])[0];
     const rNew = rq.filter((x) => x.status === 'new').length;
+    const rqv = rq.filter((x) => !RQF || (x.type || 'subscribe') === RQF);
+    const rqDone = (r) => ((r.type || 'subscribe') === 'subscribe' ? ['已開通', '標為已開通'] : ['已處理', '標為已處理']);
     const sel = (id, cur, opts) => `<select id="${id}">${opts.map(([k, n]) => `<option value="${k}"${k === cur ? ' selected' : ''}>${n}</option>`).join('')}</select>`;
     const subList = FL.cat ? ((TREE.find((x) => x[0] === FL.cat) || [])[2] || []) : [];
     const chips = [FL.cat && ['cat', CATN[FL.cat] + (FL.sub ? '・' + (SUBN[FL.cat + '/' + FL.sub] || FL.sub) : '')], FL.day && ['day', FL.day], FL.st && ['st', FL.st === 'new' ? '未讀' : '已處理']].filter(Boolean)
@@ -418,11 +423,11 @@
           <td><small>${r.url ? `<a href="${esc(r.url)}" target="_blank" rel="noopener">${esc(r.url)}</a>` : ''}<br>${esc(r.ua || '')}</small></td>
           <td><span class="st ${r.status === 'new' ? 'new' : ''}">${r.status === 'new' ? '未讀' : '已處理'}</span></td>
           <td class="fbact"><button type="button" data-kind="feedback" data-id="${esc(r.id)}" data-st="${r.status === 'new' ? 'handled' : 'new'}">${r.status === 'new' ? '標為已處理' : '改回未讀'}</button><button type="button" class="fbdel" data-del="${esc(r.id)}">刪除</button></td></tr>`).join('')}</tbody></table>` : `<p class="muted" id="fbEmpty">${inR.length ? '沒有符合篩選的反饋。' : '這段期間還沒有反饋。'}</p>`}</div>
-      <div class="card"><h3>訂閱申請（${rq.length} 筆，未處理 ${rNew}）</h3><p class="muted">金流尚未串接：確認付款後到「會員管理」替他設定方案與到期日，再把這筆標成「已開通」。</p>
-        ${rq.length ? `<table id="rqTable"><thead><tr><th>時間（台北）</th><th>會員</th><th>方案</th><th>週期</th><th>聯絡 email</th><th>備註</th><th>狀態</th><th></th></tr></thead><tbody>${rq.map((r) => `<tr data-id="${esc(r.id)}">
-          <td>${dstr(r.created)}</td><td>${esc(r.name || '')}<br><small class="muted">${esc(r.email || '')}</small></td><td>${esc(r.plan)}</td><td>${r.period === 'year' ? '年繳' : '月繳'}</td><td>${esc(r.contact)}</td><td>${esc(r.note || '')}</td>
-          <td><span class="st ${r.status === 'new' ? 'new' : ''}">${r.status === 'new' ? '待處理' : '已開通'}</span></td>
-          <td><button type="button" data-kind="request" data-id="${esc(r.id)}" data-st="${r.status === 'new' ? 'done' : 'new'}">${r.status === 'new' ? '標為已開通' : '改回待處理'}</button></td></tr>`).join('')}</tbody></table>` : '<p class="muted">還沒有人申請。</p>'}</div>`;
+      <div class="card"><div class="fbflt"><h3>訂閱申請（${rq.length} 筆，未處理 ${rNew}）</h3><label>類型 ${sel('rqFType', RQF, [['', '全部'], ['subscribe', '訂閱'], ['cancel', '取消訂閱'], ['refund', '申請退款']])}</label></div><p class="muted">金流尚未串接：訂閱＝確認付款後到「會員管理」替他設定方案與到期日，再標成「已開通」；取消訂閱＝到期日留在本期結束、次期不再續；申請退款＝退款完成後把方案改回免費會員，再標成「已處理」。</p>
+        ${rqv.length ? `<table id="rqTable"><thead><tr><th>時間（台北）</th><th>類型</th><th>會員</th><th>方案</th><th>週期</th><th>聯絡 email</th><th>備註</th><th>狀態</th><th></th></tr></thead><tbody>${rqv.map((r) => `<tr data-id="${esc(r.id)}" data-type="${esc(r.type || 'subscribe')}">
+          <td>${dstr(r.created)}</td><td>${esc(RQT[r.type || 'subscribe'] || r.type)}</td><td>${esc(r.name || '')}<br><small class="muted">${esc(r.email || '')}</small></td><td>${esc(r.plan)}</td><td>${r.period === 'year' ? '年繳' : '月繳'}</td><td>${esc(r.contact)}</td><td>${esc(r.note || '')}</td>
+          <td><span class="st ${r.status === 'new' ? 'new' : ''}">${r.status === 'new' ? '待處理' : rqDone(r)[0]}</span></td>
+          <td><button type="button" data-kind="request" data-id="${esc(r.id)}" data-st="${r.status === 'new' ? 'done' : 'new'}">${r.status === 'new' ? rqDone(r)[1] : '改回待處理'}</button></td></tr>`).join('')}</tbody></table>` : `<p class="muted" id="rqEmpty">${rq.length ? '沒有符合這個類型的申請。' : '還沒有人申請。'}</p>`}</div>`;
     const re = () => paintAdmin(el);
     el.querySelector('#fbReload').onclick = () => renderFeedbackAdmin(el);
     if (window.RangePick) window.RangePick.bind(el.querySelector('#fbRange'), { onChange: ({ value, from, to }) => {
@@ -432,6 +437,7 @@
     el.querySelector('#fbFCat').onchange = (e) => { FL.cat = e.target.value; FL.sub = ''; re(); };
     el.querySelector('#fbFSub').onchange = (e) => { FL.sub = e.target.value; re(); };
     el.querySelector('#fbFSt').onchange = (e) => { FL.st = e.target.value; re(); };
+    el.querySelector('#rqFType').onchange = (e) => { RQF = e.target.value; re(); };
     el.querySelectorAll('.fbchip button').forEach((b) => { b.onclick = () => { const k = b.parentElement.dataset.clr; if (k === 'cat') { FL.cat = ''; FL.sub = ''; } else FL[k] = ''; re(); }; });
     const pickCat = (k) => { if (FL.cat === k && !FL.sub) FL.cat = ''; else FL.cat = k; FL.sub = ''; re(); };
     el.querySelectorAll('#fbDonut .fbseg, .fblgd li').forEach((s) => { s.onclick = () => pickCat(s.dataset.cat); });

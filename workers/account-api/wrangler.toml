@@ -12,6 +12,10 @@ ALLOWED_ORIGINS = "https://miaozike.github.io https://tw-rotation.pages.dev"
 # 2026-10-07 每日額度：第一次啟動時種 Plus（每日 50）與 Pro（不限）兩個付費範本（只種一次；管理者刪掉不會再長回來，docs/quota_plan.md）
 SEED_PLANS = "plus,pro"
 
+# 2026-10-09 每天台北 03:17 清一次過期的「七天保證比對碼」（benefit_hash 保存 365 天，worker.js 取消訂閱／退款區塊）
+[triggers]
+crons = ["17 19 * * *"]
+
 # 單一 Durable Object（SQLite 儲存）。免費方案可用：每天 10 萬列寫入、500 萬列讀取、1 GB。
 [[durable_objects.bindings]]
 name = "HUB"
@@ -25,3 +29,5 @@ new_sqlite_classes = ["Hub"]
 #   GOOGLE_CLIENT_ID      Google OAuth 用戶端 ID
 #   GOOGLE_CLIENT_SECRET  Google OAuth 用戶端密碼
 #   ADMIN_EMAILS          管理者 email（逗號分隔），只有這些人看得到 #admin 的報表與線上名單
+#   TRIAL_HMAC_KEY        （2026-10-09）七天保證防呆的比對碼金鑰：wrangler secret put TRIAL_HMAC_KEY
+#                         產生：openssl rand -base64 48 。上線前就要設；設了之後不要換（換了舊比對碼就對不上）

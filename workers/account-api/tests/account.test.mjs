@@ -531,3 +531,81 @@ test('相容遷移：舊版 plans 表（沒有 price／period）啟動後自動�
   const p = h.plan('p399');
   assert.deepEqual([p.name, p.feats, p.price, p.period], ['399 即時', { 'ov.theme': false }, 0, 'month']);
 });
+
+test('2026-10-09 站主（ADMIN_EMAILS）不可自刪：/v1/delete 回 403 owner、資料原封不動；一般會員照常可刪', async () => {
+  const { hub, db } = makeHub(env());
+  const andy = (await login(hub, 'andy@example.com')).j.tok;
+  const r = await post(hub, '/v1/delete', { t: andy });
+  assert.equal(r.status, 403);
+  assert.equal((await r.json()).error, 'owner');
+  assert.equal(db.prepare("SELECT COUNT(*) c FROM users WHERE email = 'andy@example.com'").get().c, 1);
+  assert.equal((await post(hub, '/v1/me', { t: andy })).status, 200);
+  const bob = (await login(hub, 'bob@example.com')).j.tok;
+  assert.equal((await post(hub, '/v1/delete', { t: bob })).status, 200);
+});
+
+test('2026-10-09 取消訂閱／申請退款：建立 type 申請、七天保證用過就不能再用、刪帳號重註冊旗標還在', async () => {
+  const { hub, db } = makeHub(env({ TRIAL_HMAC_KEY: 'test-trial-key' }));
+  const andy = (await login(hub, 'andy@example.com')).j.tok;
+  let bob = (await login(hub, 'bob@example.com')).j.tok;
+  // 免費會員：不能取消、不能退款
+  assert.equal((await post(hub, '/v1/subscribe/change', { t: bob, type: 'cancel' })).status, 409);
+  const exp = clock + 30 * 86400 * 1000;
+  assert.equal((await post(hub, '/v1/admin/perm/put', { t: andy, email: 'bob@example.com', plan: 'paid', over: {}, expires: exp })).status, 200);
+  let s = await (await post(hub, '/v1/billing/me', { t: bob })).json();
+  assert.equal(s.paid, true); assert.equal(s.periodEnd, exp); assert.equal(s.canRefund, true); assert.equal(s.trialUsed, false);
+  // 取消：建立 type=cancel、試用旗標寫入、重複申請擋下
+  const c = await post(hub, '/v1/subscribe/change', { t: bob, type: 'cancel' });
+  assert.equal(c.status, 200);
+  const cj = await c.json(); assert.ok(cj.cancel && cj.trialUsed);
+  assert.equal((await post(hub, '/v1/subscribe/change', { t: bob, type: 'cancel' })).status, 409);
+  assert.equal(db.prepare("SELECT COUNT(*) c FROM sub_requests WHERE type = 'cancel'").get().c, 1);
+  // 防呆：取消過就不再享有七天退款保證（Andy：「他取消後就不能再享有七天免費功能」）
+  s = await (await post(hub, '/v1/billing/me', { t: bob })).json();
+  assert.equal(s.canRefund, false); assert.equal(s.refundWhy, 'used');
+  const rx = await post(hub, '/v1/subscribe/change', { t: bob, type: 'refund' });
+  assert.equal(rx.status, 409); assert.equal((await rx.json()).error, 'refund_used');
+  // 另一個人：七天內第一次退款可以；第二次 refund_used
+  const dan = (await login(hub, 'dan@example.com')).j.tok;
+  assert.equal((await post(hub, '/v1/admin/perm/put', { t: andy, email: 'dan@example.com', plan: 'paid', over: {}, expires: exp })).status, 200);
+  assert.equal((await post(hub, '/v1/subscribe/change', { t: dan, type: 'refund' })).status, 200);
+  s = await (await post(hub, '/v1/billing/me', { t: dan })).json();
+  assert.equal(s.refundUsed, true); assert.equal(s.trialUsed, true); assert.equal(s.canRefund, false);
+  // 管理區列表帶 type
+  const li = await (await post(hub, '/v1/admin/feedback/list', { t: andy })).json();
+  assert.deepEqual(li.requests.map((r) => r.type).sort(), ['cancel', 'refund']);
+  // 刪帳號 → 同一個信箱重新註冊 → 旗標還在（防呆）
+  assert.equal((await post(hub, '/v1/delete', { t: bob })).status, 200);
+  bob = (await login(hub, 'bob@example.com')).j.tok;
+  assert.equal((await post(hub, '/v1/admin/perm/put', { t: andy, email: 'bob@example.com', plan: 'paid', over: {}, expires: exp })).status, 200);
+  s = await (await post(hub, '/v1/billing/me', { t: bob })).json();
+  assert.equal(s.trialUsed, true); assert.equal(s.canRefund, false);
+  const r2 = await post(hub, '/v1/subscribe/change', { t: bob, type: 'refund' });
+  assert.equal(r2.status, 409); assert.equal((await r2.json()).error, 'refund_used');
+  // benefit 只存雜湊，不存 email 原文
+  // 刪帳號後只留「比對碼＋種類＋時間」：比對碼＝HMAC-SHA256(TRIAL_HMAC_KEY, 去空白轉小寫的信箱)；bill_flags（含信箱原文）不留
+  const { createHmac } = await import('node:crypto');
+  const want = createHmac('sha256', 'test-trial-key').update('bob@example.com').digest('hex');
+  assert.deepEqual(db.prepare('SELECT * FROM benefit_hash').all().map((r) => [r.emh, r.kind]), [[want, 'trial']]);
+  assert.deepEqual(Object.keys(db.prepare('SELECT * FROM benefit_hash').get()).sort(), ['at', 'emh', 'kind']);
+  // 保存 365 天：過期之後清掉（cron／alarm 呼叫 billCleanup），同一個信箱就不再被擋
+  clock += 366 * 86400 * 1000;
+  await hub.fetch(new Request('https://internal.cron/cron/bill-clean', { method: 'POST' }));
+  assert.equal(db.prepare('SELECT COUNT(*) c FROM benefit_hash').get().c, 0);
+  clock -= 366 * 86400 * 1000;
+  // 站主：403
+  assert.equal((await post(hub, '/v1/subscribe/change', { t: andy, type: 'cancel' })).status, 403);
+});
+
+test('2026-10-09 退款七天：首次付款超過 7 天就不能退款（續訂不重算）', async () => {
+  const { hub } = makeHub(env());
+  const andy = (await login(hub, 'andy@example.com')).j.tok;
+  const carol = (await login(hub, 'carol@example.com')).j.tok;
+  assert.equal((await post(hub, '/v1/admin/perm/put', { t: andy, email: 'carol@example.com', plan: 'paid', over: {} })).status, 200);
+  clock += 8 * 86400 * 1000;
+  assert.equal((await post(hub, '/v1/admin/perm/put', { t: andy, email: 'carol@example.com', plan: 'paid', over: {} })).status, 200);   // 續訂
+  const s = await (await post(hub, '/v1/billing/me', { t: carol })).json();
+  assert.equal(s.canRefund, false); assert.equal(s.refundWhy, 'window');
+  const r = await post(hub, '/v1/subscribe/change', { t: carol, type: 'refund' });
+  assert.equal(r.status, 409); assert.equal((await r.json()).error, 'refund_window');
+});
