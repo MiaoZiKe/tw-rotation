@@ -577,4 +577,7 @@
 .t4pop .t4mode{display:flex;gap:0;margin-bottom:12px}
 .t4pop .t4mode button{flex:1 1 0;min-height:36px}
 .t4pop .t4mode button.on{background:var(--cyan);color:var(--ontop,#04121a);font-weight:700}
-:root.l4 #l4Tools #themeBtn,:root.m4 #m4Tools #themeBtn{display:none!important}
+/* ★ 2026-10-08 晚（Andy：「網頁版 這明暗功能切換 獨立一個圖示」）：上面那條「明暗併進外觀面板」只留給手機（html.m4）。
+   桌機（>640）恢復成基準版：頁首右上角獨立一顆 ☀／🌙（#themeBtn 本人，在調色盤左邊），外觀面板只剩「版面風格」。 */
+:root.m4 #m4Tools #themeBtn{display:none!important}
+:root:not(.m4) .t4pop .t4mode,:root:not(.m4) .t4pop .t4modeh{display:none!important}

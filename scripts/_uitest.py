@@ -27940,6 +27940,25 @@ def t_desk_guard_1008(b, base):
         pg.wait_for_timeout(1200)   # 點了下拉自己會收（segDDOpen(false)）；不要按 Esc —— Esc 會把篩選一起清掉
         ok(f"{T}：{r} 套用環節篩選（點了 {picked}）", bool(picked) and pg.evaluate(REL)["sel"] > 0, picked)
         rel_cycle(f"{r}（篩選後）")
+    # ⑥ 明暗（10-08 晚 Andy：「網頁版 這明暗功能切換 獨立一個圖示」）：頂欄有獨立 ☀／🌙（在外觀調色盤左邊），點了真的換主題；外觀面板只剩版面風格
+    pg.set_viewport_size({"width": 1440, "height": 900})
+    pg.goto("about:blank"); pg.goto(f"{base}#overview", wait_until="domcontentloaded"); pg.wait_for_timeout(1800)
+    TB = """() => { const b = document.getElementById('themeBtn'), t = document.getElementById('t4Btn');
+        const r = b && b.getBoundingClientRect(), r2 = t && t.getBoundingClientRect();
+        return { vis: !!b && b.getClientRects().length > 0 && r.width > 20, left: !!(r && r2) && r.right <= r2.left + 1, txt: b ? b.textContent.trim() : '',
+                 theme: document.documentElement.getAttribute('data-theme') || 'dark' }; }"""
+    t0 = pg.evaluate(TB)
+    ok(f"{T}：頂欄有獨立的明暗鈕、在外觀調色盤左邊", t0["vis"] and t0["left"], t0)
+    pg.click("#themeBtn"); pg.wait_for_timeout(700)
+    t1 = pg.evaluate(TB)
+    ok(f"{T}：按明暗鈕 → 主題真的切換（{t0['theme']}→{t1['theme']}）、圖示跟著換", t1["theme"] != t0["theme"] and t1["txt"] != t0["txt"], (t0, t1))
+    pg.click("#themeBtn"); pg.wait_for_timeout(500)   # 切回來，不影響後面
+    pg.click("#t4Btn"); pg.wait_for_timeout(500)
+    pop = pg.evaluate("""() => { const p = document.getElementById('t4Pop'); return { open: !!p && !p.hidden,
+        mode: !!p && [...p.querySelectorAll('.t4mode, .t4modeh')].some((e) => e.getClientRects().length),
+        style: !!p && [...p.querySelectorAll('.t4o')].some((e) => e.getClientRects().length) }; }""")
+    ok(f"{T}：外觀面板只有版面風格、沒有明暗段", pop["open"] and not pop["mode"] and pop["style"], pop)
+    pg.keyboard.press("Escape"); pg.wait_for_timeout(200)
     # ⑤ 桌機窄視窗（800）關聯圖照舊左右排
     pg.set_viewport_size({"width": 800, "height": 900})
     pg.goto("about:blank"); pg.goto(f"{base}#industry/semiconductor", wait_until="domcontentloaded"); pg.wait_for_timeout(2500)
