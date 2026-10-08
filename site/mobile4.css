@@ -4,6 +4,8 @@
    放在 layout4.css 之後、index.html 內嵌樣式之後載入：同權重後寫的贏，蓋得掉 mobile3 那批 body.m3on 規則
    （需要時用 :root.m4 body.m3on 把權重拉高一級）。
    ============================================================================ */
+/* 手機短標題（mobile4.js shortTitles）：只在 :root.m4 顯示；拉寬回桌機時藏起來，原標題（.m4tx）回來 */
+.m4sh{display:none}
 @media (max-width:640px){
   /* ---- 1. 底部五格導覽退役：#tabs 整條藏起來（節點還在，route() 照舊用 .tab 標目前頁；側欄抽屜在 mobile4.js） ---- */
   :root.m4 body.m3on #tabsWrap,:root.m4 body.m3on .tabs,:root.m4 #mTabMore{display:none!important}
@@ -370,4 +372,38 @@
   :root.m4 .m4retd{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:12px;color:var(--ink-2);text-align:left}
   :root.m4 .m4retd b{font-weight:600;color:var(--ink-3)}
   :root.m4 .m4retd a{margin-left:auto;color:var(--t4-accent-solid,var(--cyan));font-weight:600;min-height:32px;display:inline-flex;align-items:center}
+
+  :root.m4 .m4sh{display:inline!important}
+  /* ---- 27. 市場明細「漲跌分佈」篩選列（2026-10-08 CEO 交辦：「族群：不限 ▾」被擠到第二行，主圖往下約 40px）：
+     全部／上市／上櫃、含 ETF、族群下拉同一行 —— 分段鈕縮內距（寬仍 ≥ 44）、勾選框不換行、族群下拉吃剩下的寬度（文字太長用 … 收）。標籤一個字都沒拿掉 */
+  :root.m4 #v-market #distFilter{flex-wrap:nowrap!important;gap:6px!important;align-items:center}
+  :root.m4 #v-market #distFilter #distMkt{flex:none;gap:4px!important}
+  :root.m4 #v-market #distFilter #distMkt#distMkt>button{padding:0 9px!important;min-width:44px}
+  :root.m4 #v-market #distFilter>label{flex:none;white-space:nowrap;min-height:40px}
+  :root.m4 #v-market #distFilter #distGroupDD{flex:1 1 auto;min-width:0;--ms-w:100%}
+  :root.m4 #v-market #distFilter #distGroupDD .twms-btn{width:100%!important;min-width:0;padding:0 8px!important}
+  /* ---- 28. 訂閱方案頁壓到 ≤ 3 屏（2026-10-08 CEO 交辦：整頁 3.9 屏）：
+     · 三張方案卡改成並排三格的精簡摘要（名稱、價格、升級鈕；「最受歡迎」標籤留著）—— 每個方案「適合誰」那一句跟上面標題下的說明重複，手機收起；
+       原價／年繳總價／每天約多少留在卡片 title 與比較表上面的月繳／年繳切換裡，資訊沒有拿掉
+     · 比較表每列從 40px 壓到約 28px（字仍 12px），一屏看得到全部方案欄（不橫捲，同第 24 節） */
+  :root.m4 #v-pricing #prCards.prcards{grid-template-columns:repeat(var(--n,3),minmax(0,1fr))!important;gap:6px!important;margin-top:14px!important}
+  :root.m4 #v-pricing #prCards .prcard{padding:16px 6px 8px!important;border-radius:12px!important;text-align:center;align-items:stretch}
+  :root.m4 #v-pricing #prCards .prcard :is(.prico,.who,.prday){display:none!important}
+  :root.m4 #v-pricing #prCards .prcard .prhd{display:block;margin:0 0 2px!important;padding:0!important;min-height:0!important}
+  :root.m4 #v-pricing #prCards .prcard .prhd h2{font-size:15px!important;margin:0!important;line-height:1.3}
+  :root.m4 #v-pricing #prCards .prcard .prprice{justify-content:center;flex-wrap:wrap;margin:2px 0 0!important;gap:0 2px;line-height:1.2}
+  :root.m4 #v-pricing #prCards .prcard .prprice{min-height:30px;display:flex;align-items:center}
+  :root.m4 #v-pricing #prCards .prcard .prprice.free{font-size:20px!important;line-height:1.2}
+  :root.m4 #v-pricing #prCards .prcard .prprice .cur{font-size:12px!important}
+  :root.m4 #v-pricing #prCards .prcard .prprice b{font-size:20px!important}
+  :root.m4 #v-pricing #prCards .prcard .prprice small{font-size:12px!important}
+  :root.m4 #v-pricing #prCards .prcard .prgo{margin-top:auto!important;min-height:40px;padding:0 4px!important;font-size:12px!important;line-height:1.2;white-space:normal}
+  :root.m4 #v-pricing #prCards .prcard .prtag{font-size:12px!important;padding:1px 6px!important;top:-10px;white-space:nowrap}
+  :root.m4 #v-pricing #prCards .prcard>*:not(.prtag):not(.prgo){margin-bottom:6px}
+  :root.m4 #v-pricing .prhero{padding-top:12px!important}
+  :root.m4 #v-pricing .prhero h1{font-size:20px!important;margin:0 0 4px!important}
+  :root.m4 #v-pricing .prhero p{margin:0!important;font-size:13px!important}
+  :root.m4 #v-pricing .prcmp{margin-top:16px!important}
+  :root.m4 #v-pricing #prTable :is(th,td){height:auto!important;padding:5px 3px!important;line-height:1.3!important}
+  :root.m4 #v-pricing #prTable tr.cat td{padding:4px!important}
 }

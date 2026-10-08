@@ -27339,6 +27339,31 @@ def t_mobile_m4_1008(b, base, code):
               hl: [...document.querySelectorAll('#v-pricing .prcard .prhl')].filter(e => e.getClientRects().length).length, long, fs: Math.min(...[...t.querySelectorAll('td')].map(td => parseFloat(getComputedStyle(td).fontSize))) }; }""")
         ok(f"【{T}】訂閱方案：比較表沒有橫向捲動、{pr and pr['n'] - 1} 個方案欄都在畫面內、表頭黏住、字 ≥ 12px（{pr}）", pr and pr["n"] >= 3 and pr["sw"] <= 1 and pr["out"] == 0 and pr["sticky"] == "sticky" and pr["fs"] >= 12, pr)
         ok(f"【{T}】訂閱方案：方案卡沒有功能條列（不跟比較表重複）、格子用短寫（沒有「每日 N 次」長寫）", pr and pr["hl"] == 0 and pr["long"] == 0, pr)
+        # 2026-10-08 CEO 交辦（修前 3422px＝3.9 屏）：整頁 ≤ 3 屏；三張方案卡並排成一列精簡摘要，每張仍看得到名稱、價格、升級鈕（且鈕 ≥ 40px、點得到）
+        pc = J("""() => { const cs = [...document.querySelectorAll('#prCards .prcard')].filter(e => e.getClientRects().length);
+            const R = cs.map(c => c.getBoundingClientRect());
+            return { H: document.documentElement.scrollHeight, vh: innerHeight, n: cs.length, rowDy: R.length ? Math.round(Math.max(...R.map(r => r.top)) - Math.min(...R.map(r => r.top))) : -1,
+              miss: cs.filter(c => { const v = (q) => { const e = c.querySelector(q); return e && e.getClientRects().length && e.textContent.trim(); };
+                const g = c.querySelector('.prgo'); return !v('h2') || !v('.prprice') || !g || g.getBoundingClientRect().height < 39.5; }).map(c => c.dataset.plan),
+              tblTop: Math.round(document.getElementById('prTable').getBoundingClientRect().top + scrollY) }; }""")
+        ok(f"【{T}】訂閱方案整頁 ≤ 3 屏（{pc['H']}px ≤ {3 * pc['vh']}；修前 3422）、{pc['n']} 張方案卡並排同一列、每張有名稱／價格／升級鈕（{pc}）",
+           pc["H"] <= 3 * pc["vh"] and pc["n"] >= 3 and pc["rowDy"] <= 2 and not pc["miss"], pc)
+        m.locator("#prCards .prcard[data-plan=plus] .prgo, #prCards .prcard[data-tier=paid] .prgo").first.tap(); m.wait_for_timeout(800)
+        ok(f"【{T}】訂閱方案：精簡卡的升級鈕手指點得到、有反應（跳出申請／登入）",
+           J("() => [...document.querySelectorAll('.subdlg:not([hidden]), dialog[open], .modal:not([hidden]), [role=dialog]:not([hidden]), #m4LoginTip:not([hidden]), .prdlg:not([hidden]), .acctdlg:not([hidden])')].some(e => e.getClientRects().length) || location.hash !== '#pricing'"), None)
+        J("() => document.querySelectorAll('.subdlg [data-close]').forEach(b => b.getClientRects().length && b.click())"); m.keyboard.press("Escape")
+        # 市場明細「漲跌分佈」篩選列（修前「族群：不限 ▾」掉到第二行、主圖往下約 48px）：全部／上市／上櫃、含 ETF、族群下拉同一行、都在畫面內；族群下拉真的點得開
+        go("market", 3500)
+        df = J("""() => { const f = document.getElementById('distFilter'); if (!f) return null;
+            const ks = [...f.querySelectorAll('#distMkt > button, label, .twms-btn')].filter(e => e.getClientRects().length).map(e => { const r = e.getBoundingClientRect(); return { t: e.textContent.trim().slice(0, 8), top: Math.round(r.top), l: Math.round(r.left), r: Math.round(r.right), h: Math.round(r.height), w: Math.round(r.width) }; });
+            const c = document.querySelector('#v-market canvas');
+            return { ks, dy: Math.max(...ks.map(k => k.top + k.h / 2)) - Math.min(...ks.map(k => k.top + k.h / 2)), out: ks.filter(k => k.l < 0 || k.r > innerWidth).length,
+              tiny: ks.filter(k => k.t !== '含 ETF' && (k.h < 39.5 || k.w < 39.5)).length, fh: Math.round(f.getBoundingClientRect().height), cb: c ? Math.round(c.getBoundingClientRect().bottom) : 9999, vh: innerHeight }; }""")
+        ok(f"【{T}】市場明細：族群下拉與全部／上市／上櫃／含 ETF 同一行（中心差 {df and df['dy']}px、列高 {df and df['fh']}px ≤ 48）、都在畫面內、鈕 ≥ 40、主圖底 {df and df['cb']} ≤ {df and df['vh']}",
+           df and len(df["ks"]) >= 5 and df["dy"] <= 4 and df["fh"] <= 48 and df["out"] == 0 and df["tiny"] == 0 and df["cb"] <= df["vh"], df)
+        m.locator("#distFilter .twms-btn").tap(); m.wait_for_timeout(500)
+        ok(f"【{T}】市場明細：族群下拉點了真的打開（aria-expanded＝true）", J("() => document.querySelector('#distFilter .twms-btn').getAttribute('aria-expanded') === 'true'"), None)
+        m.keyboard.press("Escape"); m.wait_for_timeout(200)
         m.set_viewport_size({"width": 390, "height": 844})
         # ㉓ 現金流試算條件區：展開後 ≤ 84px、裡面沒有看得到的分段鈕群組（全部是 select／checkbox）；改任何一個下拉，圖真的跟著變
         m.set_viewport_size({"width": 402, "height": 874})
@@ -27443,15 +27468,27 @@ def t_mobile_m4_1008(b, base, code):
                 if ae != "true": dead.append(f"{ch}/{fid}：點了沒展開（{ae}）")
         ok(f"【{T}】剖析圖章節收合列：7 條鏈 {nrow} 列，手指點了都會展開", nrow > 0 and not dead, dead)
         # ⑨ 卡片標題的「?」不准自己佔一行：「?」與標題文字的垂直中心差 ≤ 8px（看得到的文字節點才算）
-        badq = []
-        for h in ("overview", "flow/rotation", "flow/sankey", "flow/inst", "heatmap/industry", "market", "etf/list", "etf/inc", "season"):
-            go(h, 2500)
-            badq += [(h, x) for x in J("""() => [...document.querySelectorAll('.view.on h3 > .howbtn, .view.on h2 > .howbtn')].filter(b => b.getClientRects().length).map(b => {
+        QJS = """() => [...document.querySelectorAll('.view.on h3 > .howbtn, .view.on h2 > .howbtn')].filter(b => b.getClientRects().length).map(b => {
                 const hd = b.parentElement; const rg = document.createRange(); let best = null;
                 [...hd.childNodes].forEach(n => { if (n === b || !n.textContent.trim()) return; if (n.nodeType === 1 && (!n.getClientRects().length || n.tagName === 'SMALL' || n.classList.contains('ticon'))) return;
                   rg.selectNodeContents(n); const r = rg.getBoundingClientRect(); if (r.width && !best) best = r; });
                 if (!best) return null; const q = b.getBoundingClientRect();
-                const d = Math.round((q.top + q.height / 2) - (best.top + best.height / 2)); return Math.abs(d) > 8 ? hd.textContent.trim().slice(0, 12) + ':' + d : null; }).filter(Boolean)""")]
+                const d = Math.round((q.top + q.height / 2) - (best.top + best.height / 2)); return Math.abs(d) > 8 ? hd.textContent.trim().slice(0, 12) + ':' + d : null; }).filter(Boolean)"""
+        badq = []
+        for h in ("overview", "flow/rotation", "flow/sankey", "flow/inst", "heatmap/industry", "market", "etf/list", "etf/inc", "season"):
+            go(h, 2500)
+            badq += [(h, x) for x in J(QJS)]
+        # 2026-10-08 CEO 交辦擴大：ETF 現金流試算的「複利試算表」分頁（預設是月配分頁，上面那輪量不到它）—— 402 與 390 兩種寬各點進去量一次
+        nq = 0
+        for wq in (402, 390):
+            m.set_viewport_size({"width": wq, "height": 874 if wq == 402 else 844})
+            go("etf/inc", 3500)
+            m.locator("#incMain button[data-v=x]").tap(); m.wait_for_timeout(1800)
+            on_x = J("() => !document.getElementById('incPX').hidden && document.querySelector('#incMain button[data-v=x]').classList.contains('on')")
+            nq += J("() => [...document.querySelectorAll('#incPX h3 > .howbtn')].filter(b => b.getClientRects().length).length")
+            badq += [(f"etf/inc 複利 {wq}", x) for x in J(QJS)] + ([] if on_x else [(f"etf/inc 複利 {wq}", "點了沒切到複利分頁")])
+        m.set_viewport_size({"width": 390, "height": 844})
+        ok(f"【{T}】複利試算表分頁真的切進去、量到它標題的「?」（402／390 共 {nq} 個）", nq >= 2, nq)
         ok(f"【{T}】卡片標題的「?」都在標題旁邊、沒有自己佔一行", not badq, badq)
     finally:
         try:
