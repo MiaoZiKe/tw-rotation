@@ -402,6 +402,15 @@
     tr.after(row); tr.classList.add('m4on');
   }, true);
 
+  /* 控制區裡多餘的字（「期間」「加入比較：」「扣除二代健保（…）」）：手機藏起來省寬度。
+     用 span 包起來再藏，不用 font-size:0（全站有「字 ≥ 11px」的普查，字級 0 會被當成違規；而且藏的是字不是控制項） */
+  function hideLabels() {
+    if (!isM()) return;
+    $$('#etfRetCtl .rpk label, #etfCmpDD .ddbtn, #v-etf .incctl.m4sel .rpk label, #v-etf .incctl.m4sel label.chk').forEach((el) => {
+      [...el.childNodes].forEach((n) => { if (n.nodeType === 3 && n.textContent.trim()) { const sp = document.createElement('span'); sp.className = 'm4tx'; sp.textContent = n.textContent; n.replaceWith(sp); } });
+    });
+  }
+
   /* 細節頁的「‹ 返回」（Andy：「這需要附上一個倒退符號」）：題材細節、單一產業鏈、族群頁、個股頁。
      有站內上一頁就 history.back()；直接開網址進來的（沒有上一頁）就回到這個功能的上一層。 */
   let navN = 0;
@@ -530,7 +539,7 @@
     // 會員功能晚一步才開（account.js 讀完設定檔）、#acctBtn／#acctOnline 晚一步才建：出現時收進頂欄小圖示列
     new MutationObserver(() => { if (tools && isM()) { const bar = $('.topbar'); const miss = TOOLS.some((q) => { const e = $(q); return e && e.parentNode !== tools; }) || (acctOn() && $('#m4Login')); if (bar && miss) buildTools(bar); } })
       .observe(document.body, { childList: true, subtree: true });
-    let ct = 0; new MutationObserver(() => { if (!isM()) return; clearTimeout(ct); ct = setTimeout(() => { wireCond(); wireChainList(); wireEtfTri(); wireIndMap(); wireIncMS(); wireCxMS(); wirePricing(); }, 120); }).observe(document.body, { childList: true, subtree: true });
+    let ct = 0; new MutationObserver(() => { if (!isM()) return; clearTimeout(ct); ct = setTimeout(() => { wireCond(); wireChainList(); wireEtfTri(); wireIndMap(); wireIncMS(); wireCxMS(); wirePricing(); hideLabels(); }, 120); }).observe(document.body, { childList: true, subtree: true });
     wireCond();
   }
   window.TwM4 = { open, close, isOpen: () => !!(drawer && !drawer.hidden) };

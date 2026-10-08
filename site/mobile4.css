@@ -306,9 +306,9 @@
   :root.m4 .view.on :is(.seg,.nbsw,.mseg,[role=tablist]):not(.m4subtabs):not(#mbTabs)::after{display:none!important}
   /* 個股頁最上方的分頁（#mbTabs）也是「切子頁」→ 跟 .m4subtabs 同一款底線頁籤：高 40、15px */
   :root.m4 #mbTabs>button{min-height:40px!important;height:40px!important;font-size:15px!important}
-  /* 按鈕：次要＝外框（.btn、下拉鈕 .ddbtn、篩選 .mfilt、完整版 .mfullbtn、條件摘要 .m4cond、播放 .mplay、選股下拉 .sl-dd、輪盤象限 .mqb），高 40、圓角 --r-sm、13px
+  /* 按鈕：次要＝外框（.btn、下拉鈕 .ddbtn、篩選 .mfilt、完整版 .mfullbtn、條件摘要 .m4cond、播放 .mplay、選股下拉 .sl-dd、輪盤象限 .mqb、即時 .livetg-b／.livebtn、圖層開關 .ovl-tg），高 40、圓角 --r-sm、13px
      不算按鈕的（各有自己的版型）：清單列 .rkrow、月曆格 .cald、說明圖示 .sl-i、自選加入磚 .mbwadd */
-  :root.m4 .view.on :is(.btn,.ddbtn,.mfilt,.mfullbtn,.m4cond,.mplay,.sl-dd,.mqb):not(.howbtn){min-height:36px!important;border-radius:var(--r-sm,8px)!important;font-size:13px!important;border-width:1px!important;border-style:solid!important;box-shadow:none!important}
+  :root.m4 .view.on :is(.btn,.ddbtn,.mfilt,.mfullbtn,.m4cond,.mplay,.sl-dd,.mqb,.livetg-b,.ovl-tg,.livebtn):not(.howbtn){min-height:36px!important;border-radius:var(--r-sm,8px)!important;font-size:13px!important;border-width:1px!important;border-style:solid!important;box-shadow:none!important}
   /* 自選頁籤：「⋯」收進選中頁籤的右側（頁籤右邊留 44px，⋯ 用負邊界疊進去：-48＝自身 40＋列間距 6＋2），「＋」跟其他頁籤一樣高 */
   :root.m4 #wpTabs#wpTabs>.wptab.hasmore{padding-right:44px!important}
   :root.m4 #wpTabs#wpTabs>.wpmore{margin-left:-48px!important;width:40px!important;min-width:40px;height:40px!important;align-self:center;border:0!important;background:transparent!important;color:inherit;font-size:15px;z-index:1;padding:0!important;box-shadow:none!important}
@@ -335,28 +335,28 @@
   :root.m4 #v-etf .incctl.m4sel.m4open{display:flex!important}
   :root.m4 #v-etf .incctl.m4sel .grp{display:contents!important}
   :root.m4 #v-etf .incctl.m4sel .grp>b,:root.m4 #v-etf .incctl.m4sel .grp>small,:root.m4 #v-etf .incctl.m4sel .rpk>label>:not(select){display:none!important}
-  :root.m4 #v-etf .incctl.m4sel .rpk label{font-size:0;margin:0!important;padding:0!important;display:inline-flex}
+  :root.m4 #v-etf .incctl.m4sel .rpk label{margin:0!important;padding:0!important;display:inline-flex}
   :root.m4 #v-etf .incctl.m4sel :is(#incMode,#incAmtSeg,#incScope,#cxQuick){display:none!important}
   :root.m4 #v-etf .incctl.m4sel :is(select,.m4segsel){height:40px;width:auto!important;max-width:100%;min-width:0;padding:0 6px;font-size:13px;border-radius:var(--r-sm,8px);border:1px solid var(--line-2);background:var(--panel-3,var(--panel));color:var(--ink)}
   :root.m4 #v-etf .incctl.m4sel #cxObj{flex:1 1 100%;width:100%!important}
   :root.m4 #v-etf .incctl.m4sel :is(#incAmt,#cxFrom):not(.m4show){display:none!important}
   :root.m4 #v-etf .incctl.m4sel :is(#incAmt,#cxFrom).m4show{width:118px;height:40px;font-size:13px}
   :root.m4 #v-etf .incctl.m4sel .rpk{display:contents}
-  :root.m4 #v-etf .incctl.m4sel label.chk{display:inline-flex;align-items:center;gap:4px;font-size:0;min-height:40px;margin:0}
+  :root.m4 #v-etf .incctl.m4sel label.chk{display:inline-flex;align-items:center;gap:4px;min-height:40px;margin:0}
   :root.m4 #v-etf .incctl.m4sel label.chk input{width:20px;height:20px;margin:0}
   :root.m4 #v-etf .incctl.m4sel label.chk .m4short{font-size:13px;color:var(--ink-2)}
   /* 期間的兩個日期（RangePick，全站手機通用）：只在選「起始日期～至今」（自訂）時出現 */
   :root.m4 .rpk:not([data-v=custom]):not([data-v=since]) .rpd{display:none!important}
 
+  :root.m4 .m4tx{display:none!important}   /* mobile4.js hideLabels：控制區裡多餘的字 */
   /* ---- 26. ETF 報酬比較（Andy：「這邊精簡 不要浪費空間」）：控制區一行（期間、已選 N 檔 ▾、含息／不含息），日期收進「自訂」；
      表只留 名稱＋價格年化＋含息年化，不橫捲，點一列展開其餘欄（mobile4.js） */
   :root.m4 #etfRetCard>.row.spread{flex-wrap:wrap;gap:4px!important;margin-bottom:4px!important}
   :root.m4 #etfRetCtl{display:flex!important;flex-wrap:wrap;align-items:center;gap:6px!important;margin:0!important;width:100%}
-  :root.m4 #etfRetCtl .rpk label{font-size:0;margin:0!important;display:inline-flex}
+  :root.m4 #etfRetCtl .rpk label{margin:0!important;display:inline-flex}
   :root.m4 #etfRetCtl .rpk select{height:40px;font-size:13px;padding:0 6px;width:auto}
   :root.m4 #etfRetCtl .cmpmsg:empty{display:none}
-  :root.m4 #etfCmpDD .ddbtn{font-size:0!important;padding:0 10px!important}
-  :root.m4 #etfCmpDD .ddbtn :is(b,i){font-size:13px}
+  :root.m4 #etfCmpDD .ddbtn{padding:0 10px!important}
   :root.m4 #etfRetBody .note1{margin:4px 0 2px!important}
   :root.m4 #etfRetBody .rettw{overflow-x:visible!important}
   :root.m4 #etfRetTbl{table-layout:auto!important;width:100%!important;min-width:0!important}

@@ -2547,8 +2547,9 @@ def t_etf_1005(pg, b, base):
             if (!w || !t) return null; const r = w.getBoundingClientRect();
             return { wr: Math.round(r.right), iw: innerWidth, sw: w.scrollWidth, cw: w.clientWidth, ov: getComputedStyle(w).overflowX }; }""")
         if rt:
-            ok(f"[{tag}][390] 報酬比較表在自己的容器裡橫向捲（容器不超出畫面、表比容器寬時可捲）",
-               rt["wr"] <= rt["iw"] + 1 and rt["ov"] in ("auto", "scroll"), rt)
+            # 2026-10-08 手機 v2（html.m4）：表只留三欄、根本不必橫捲（Andy：「不要浪費空間」）→ 改驗「表不比容器寬」
+            ok(f"[{tag}][390] 報酬比較表在自己的容器裡橫向捲（容器不超出畫面、表比容器寬時可捲；手機 v2＝三欄不必捲）",
+               rt["wr"] <= rt["iw"] + 1 and (rt["ov"] in ("auto", "scroll") or rt["sw"] <= rt["cw"] + 1), rt)
         # 2026-10-08 手機 v2：底部導覽與「更多」退役，改左上 ☰ 側欄抽屜（改前驗「更多」選單；改後驗抽屜打得開、ETF 那一格在裡面）
         mp.click("#m4Burger"); mp.wait_for_timeout(500)
         ok(f"★ [{tag}][390] 左上 ☰ 點得到、抽屜真的打開、裡面有 ETF",
@@ -27142,7 +27143,7 @@ def t_mobile_m4_1008(b, base, code):
         ok(f"【{T}】下拉的搜尋真的過濾（打 00878 → 剩 {len(vq)} 列）", 0 < len(vq) < 5 and all("00878" in x for x in vq), vq)
         m.set_viewport_size({"width": 390, "height": 844})
         # ⑳ 元件統一普查（402 寬，計算後樣式指紋＝高度／圓角／字級／外框型態）：頁籤 ≤ 2 種（底線頁籤＋分段膠囊）、外框按鈕 ≤ 2 種、「?」1 種
-        #    不算按鈕的（各自有版型）：清單列 .rkrow、月曆格 .cald、說明圖示 .sl-i、自選加入磚 .mbwadd、自選頁籤裡的「⋯」選單鈕
+        #    不算按鈕的（各自有版型）：清單列 .rkrow／.skr-r、ETF 字卡 .etfc、月曆格 .cald、說明圖示 .sl-i、自選加入磚 .mbwadd、自選頁籤裡的「⋯」選單鈕
         m.set_viewport_size({"width": 402, "height": 874})
         FP = """() => { const out = [];
             const vis = (e) => e.getClientRects().length && e.getBoundingClientRect().width > 0 && !e.closest('#m4Drawer,.ddpanel,.topbar,footer');
@@ -27153,7 +27154,7 @@ def t_mobile_m4_1008(b, base, code):
             document.querySelectorAll('.view.on .howbtn').forEach(e => { if (vis(e)) out.push(['?', fp(e), '']); });
             document.querySelectorAll('.view.on button').forEach(e => { const c = getComputedStyle(e);
               if (!vis(e) || tabs.has(e) || e.classList.contains('howbtn') || parseFloat(c.borderTopWidth) === 0 || c.borderTopWidth !== c.borderBottomWidth
-                || e.matches('.rkrow,.cald,.sl-i,.mbwadd,.wpmore') || e.closest('[role=tablist],.seg,.nbsw,.mpager,.mseg,.ddlist,.mnumlayer,.mdgfolds,table')) return;
+                || e.matches('.rkrow,.cald,.sl-i,.mbwadd,.wpmore,.etfc,.skr-r') || e.closest('[role=tablist],.seg,.nbsw,.mpager,.mseg,.ddlist,.mnumlayer,.mdgfolds,table')) return;
               out.push(['按鈕', fp(e), e.className]); });
             return out; }"""
         kinds = {}
@@ -27199,9 +27200,9 @@ def t_mobile_m4_1008(b, base, code):
               btns: [...c.querySelectorAll('button')].filter(vis).length, sels: [...c.querySelectorAll('select')].filter(vis).length, chk: [...c.querySelectorAll('input[type=checkbox]')].filter(vis).length }; }""")
         ok(f"【{T}】現金流試算條件區展開 ≤ 84px、沒有分段鈕群組、全部是下拉／勾選框（{cd}）", cd["h"] <= 84 and cd["segs"] == 0 and cd["btns"] == 0 and cd["sels"] >= 4 and cd["chk"] >= 1, cd)
         sig = lambda: J("() => { const e = document.getElementById('incBar'); return (e.dataset.groups || '') + '|' + (document.getElementById('incYLab') || {}).textContent + '|' + (document.getElementById('incList') || {dataset: {}}).dataset.n; }")
-        for lab, idx in (("目標金額", "0"), ("範圍", "1"), ("年領或月領", "1")):
+        for lab in ("目標金額", "範圍", "年領或月領"):   # 前面⑤改過的條件會記在 localStorage，所以一律選「目前以外的另一個」
             s0 = sig()
-            m.locator(f'#incPM select.m4segsel[aria-label="{lab}"]').select_option(idx); m.wait_for_timeout(1500)
+            m.locator(f'#incPM select.m4segsel[aria-label="{lab}"]').select_option(nxt(lab)); m.wait_for_timeout(1500)
             s1 = sig()
             ok(f"【{T}】條件區改「{lab}」下拉 → 圖／清單真的跟著變", s1 != s0, (s0[:80], s1[:80]))
         J("() => { const b = document.querySelectorAll('#incSort button')[1]; if (b) b.click(); }"); m.wait_for_timeout(1500)   # 排序改含息總報酬：期間才會影響圖
@@ -27251,6 +27252,7 @@ def t_mobile_m4_1008(b, base, code):
         m.set_viewport_size({"width": 402, "height": 874})
         FOLD = """() => [...document.querySelectorAll('.view.on [aria-expanded], .view.on details')].filter(e => e.getClientRects().length && !e.closest('.ddpanel') && !e.matches('.ddbtn,[aria-haspopup]'))
             .map(e => [e.tagName === 'DETAILS' ? (e.open ? 'true' : 'false') : e.getAttribute('aria-expanded'), (e.id || e.className || e.tagName) + '：' + e.textContent.trim().replace(/\\s+/g, ' ').slice(0, 14)])"""
+        J("() => { try { localStorage.clear(); } catch (e) {} }")   # 前面的步驟會把收合狀態記住；普查的是「第一次打開」的預設
         opened, total = [], 0
         for h in ("overview", "flow/rotation", "flow/sankey", "flow/inst", "heatmap/industry", "heatmap/theme", "industry", "industry/semiconductor", "industry/electronics", "market", "explore", "etf/list", "etf/inc", "etf/cal", "season", "watch", "stock/2330", "earnings"):
             go(h, 2500); r = J(FOLD); total += len(r); opened += [f"{h} {x[1]}" for x in r if x[0] == "true"]
@@ -27261,14 +27263,15 @@ def t_mobile_m4_1008(b, base, code):
         go("overview", 3500)
         grp = J("() => [...document.querySelectorAll('#v-overview > .mpager > button, #v-overview .mpager button')].filter(b => b.getClientRects().length).map(b => b.textContent.trim())")
         ok(f"【{T}】總覽分段只有三組：大盤／資金流向／熱度（{grp}）", [g[:4] for g in grp] == ["大盤", "資金流向", "熱度"], grp)
-        go("heatmap/industry", 4000)
+        J("() => { try { localStorage.clear(); } catch (e) {} }")
+        go("heatmap/industry", 5000)
         hl = J("() => { const e = [...document.querySelectorAll('.chart')].find(x => x._hmLab); if (!e) return null; const v = Object.values(e._hmLab); return { n: v.length, lab: v.filter(x => x.text).length }; }")
         ok(f"【{T}】熱力圖 390 寬：≥ 40% 的方塊有字（{hl}）", hl and hl["n"] > 0 and hl["lab"] / hl["n"] >= 0.4, hl)
         go("flow/rotation", 4000)
         if J("() => !!document.querySelector('#mRadarFlow .mqb[data-quad=lagging]')"):
             m.locator("#mRadarFlow .mqb[data-quad=lagging]").tap(); m.wait_for_timeout(700)
             q1 = J("() => document.getElementById('mRadarFlow').dataset.quad")
-            bx = J("() => { const r = document.querySelector('#mRadarFlow svg').getBoundingClientRect(); return { x: r.left + 6, y: r.top + 6 }; }")
+            bx = J("() => { const r = document.querySelector('#mRadarFlow svg').getBoundingClientRect(); return { x: r.left + r.width * 0.7, y: r.top + r.height * 0.32 }; }")   # 只看「落後」時右上（領先區）盤面沒有點
             m.touchscreen.tap(bx["x"], bx["y"]); m.wait_for_timeout(700)
             q2 = J("() => document.getElementById('mRadarFlow').dataset.quad")
             ok(f"【{T}】資金輪盤：點「落後」只看那一段（{q1}）→ 點盤上空白處恢復全部（{q2 or '全部'}）", q1 == "lagging" and q2 == "", (q1, q2))
