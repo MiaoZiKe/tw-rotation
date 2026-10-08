@@ -301,7 +301,7 @@
     background:color-mix(in srgb,var(--t4-accent-solid,var(--cyan)) 14%,var(--t4-ctl,var(--panel)))!important}
   :root.m4 .view.on :is(.seg,.nbsw,.mpager,.mseg,[role=tablist]):not(.m4subtabs):not(#mbTabs):not(.hmbar)>button :is(em,small){font-size:12px!important;font-style:normal;margin-left:2px;opacity:.85}
   :root.m4 .view.on :is(.seg,.nbsw,.mpager,.mseg,[role=tablist]):not(.m4subtabs):not(#mbTabs):not(.hmbar){
-    flex-wrap:nowrap;gap:6px;overflow-x:auto;scrollbar-width:none;touch-action:pan-x pan-y;border:0!important;background:transparent!important;padding:2px 0!important;box-shadow:none!important}
+    flex-wrap:nowrap;gap:6px;overflow-x:auto;scrollbar-width:none;touch-action:pan-x pan-y;border:0!important;background:transparent!important;padding:0!important;box-shadow:none!important}
   :root.m4 .view.on :is(.seg,.nbsw,.mseg,[role=tablist]):not(.m4subtabs):not(#mbTabs)::before,
   :root.m4 .view.on :is(.seg,.nbsw,.mseg,[role=tablist]):not(.m4subtabs):not(#mbTabs)::after{display:none!important}
   /* 個股頁最上方的分頁（#mbTabs）也是「切子頁」→ 跟 .m4subtabs 同一款底線頁籤：高 40、15px */

@@ -26920,10 +26920,12 @@ def t_mobile_m4_1008(b, base, code):
         sig = lambda: J("() => (document.getElementById('incSQ') || {}).textContent + '|' + document.querySelectorAll('#incBar *').length")
         m.locator("#v-etf .m4cond").first.tap(); m.wait_for_timeout(300)
         s0 = sig(); t0 = J("() => document.querySelector('#v-etf .m4cond').textContent")
-        m.locator("#incScope button:not(.on)").first.tap(); m.wait_for_timeout(900)
+        # 2026-10-08 起條件區的分段鈕換成下拉（m4segsel）：改用下拉選「另一個」選項
+        nxt = lambda lab: J(f"""() => {{ const s = document.querySelector('#incPM select.m4segsel[aria-label="{lab}"]'); return s ? String((+s.value + 1) % (s.options.length - (s.querySelector('option[value=custom]') ? 1 : 0))) : null; }}""")
+        m.locator('#incPM select.m4segsel[aria-label="範圍"]').select_option(nxt("範圍")); m.wait_for_timeout(900)
         s1 = sig(); t1 = J("() => document.querySelector('#v-etf .m4cond').textContent")
         ok(f"【{T}】現金流試算改範圍 → 摘要列與內容都變", s0 != s1 and t0 != t1, (t0, t1))
-        m.locator("#incMode button:not(.on)").first.tap(); m.wait_for_timeout(900)
+        m.locator('#incPM select.m4segsel[aria-label="年領或月領"]').select_option(nxt("年領或月領")); m.wait_for_timeout(900)
         ok(f"【{T}】現金流試算改年領／月領 → 內容跟著變", sig() != s1, sig())
         # ⑥ 產業鏈：編號開關、關聯圖上下排、拖曳
         go("industry/electronics", 3500)
@@ -27220,6 +27222,73 @@ def t_mobile_m4_1008(b, base, code):
         ex = J("() => ({ n: document.querySelectorAll('#etfRetTbl .m4retx').length, txt: (document.querySelector('#etfRetTbl .m4retx') || {}).textContent || '', h: location.hash })")
         ok(f"【{T}】ETF 報酬比較：點一列 → 下面展開期間／殖利率／配息年化與「看個股頁 ›」、不跳頁", ex["n"] == 1 and "殖利率" in ex["txt"] and "看個股頁" in ex["txt"] and ex["h"] == h0, ex)
         m.set_viewport_size({"width": 390, "height": 844})
+        # ㉕ 區塊跑錯子頁普查（402 與 1440）：同一頁的子頁之間，看得到的卡片不准重複；ETF 前 5 名三張卡只准出現在 ETF 總覽
+        SUBP = {"flow": ["flow/rotation", "flow/sankey", "flow/inst"], "heatmap": ["heatmap/industry", "heatmap/theme"], "etf": ["etf/cal", "etf/list", "etf/inc"]}
+        CARDS = "() => [...document.querySelectorAll('.view.on .card[id], .view.on section[id]')].filter(e => e.getClientRects().length && e.getBoundingClientRect().height > 20).map(e => e.id)"
+        def subcensus(pg_):
+            bad = []
+            for k, subs in SUBP.items():
+                seen = {}
+                for h in subs:
+                    pg_.goto(base + "#" + h, wait_until="domcontentloaded"); pg_.wait_for_timeout(2500)
+                    for cid in pg_.evaluate(CARDS): seen.setdefault(cid, []).append(h)
+                bad += [f"{cid} 同時出現在 {'、'.join(hs)}" for cid, hs in seen.items() if len(hs) > 1]
+                bad += [f"{cid} 出現在 {h}" for cid, hs in seen.items() for h in hs if cid in ("etfPopCard", "etfRetTopCard", "etfYldCard") and h != "etf/list"]
+            return bad
+        m.set_viewport_size({"width": 402, "height": 874})
+        b402 = subcensus(m)
+        ok(f"【{T}】402 寬：每個子頁只顯示自己的區塊（資金流向 3 頁、熱力圖 2 頁、ETF 3 頁）", not b402, b402)
+        dctx = b.new_context(viewport={"width": 1440, "height": 900})
+        try:
+            dpg = dctx.new_page(); dpg.route("**/fonts.googleapis.com/**", lambda r: r.abort())
+            b1440 = subcensus(dpg)
+            ok(f"【{T}】1440 寬：每個子頁只顯示自己的區塊", not b1440, b1440)
+        finally:
+            dctx.close()
+        m.set_viewport_size({"width": 390, "height": 844})
+        # ㉖ 收合普查（Andy 準則 5：收合預設收起）：402 寬 18 頁，看得到的收合鈕（aria-expanded／details）一開始都是收起的。
+        #    例外（Andy 指定預設展開）：產業鏈剖析圖、關聯圖 —— 它們不用 aria-expanded 收合列，不在這份清單裡
+        m.set_viewport_size({"width": 402, "height": 874})
+        FOLD = """() => [...document.querySelectorAll('.view.on [aria-expanded], .view.on details')].filter(e => e.getClientRects().length && !e.closest('.ddpanel') && !e.matches('.ddbtn,[aria-haspopup]'))
+            .map(e => [e.tagName === 'DETAILS' ? (e.open ? 'true' : 'false') : e.getAttribute('aria-expanded'), (e.id || e.className || e.tagName) + '：' + e.textContent.trim().replace(/\\s+/g, ' ').slice(0, 14)])"""
+        opened, total = [], 0
+        for h in ("overview", "flow/rotation", "flow/sankey", "flow/inst", "heatmap/industry", "heatmap/theme", "industry", "industry/semiconductor", "industry/electronics", "market", "explore", "etf/list", "etf/inc", "etf/cal", "season", "watch", "stock/2330", "earnings"):
+            go(h, 2500); r = J(FOLD); total += len(r); opened += [f"{h} {x[1]}" for x in r if x[0] == "true"]
+        ok(f"【{T}】收合普查：18 頁 {total} 個收合鈕，預設全部收起", total > 0 and not opened, opened)
+        m.set_viewport_size({"width": 390, "height": 844})
+        # ㉗ 總覽分三組（大盤／資金流向／熱度）；熱力圖 ≥ 40% 的方塊有字；資金輪盤：點角落只看一段 → 點盤上空白處恢復全部
+        m.set_viewport_size({"width": 390, "height": 844})
+        go("overview", 3500)
+        grp = J("() => [...document.querySelectorAll('#v-overview > .mpager > button, #v-overview .mpager button')].filter(b => b.getClientRects().length).map(b => b.textContent.trim())")
+        ok(f"【{T}】總覽分段只有三組：大盤／資金流向／熱度（{grp}）", [g[:4] for g in grp] == ["大盤", "資金流向", "熱度"], grp)
+        go("heatmap/industry", 4000)
+        hl = J("() => { const e = [...document.querySelectorAll('.chart')].find(x => x._hmLab); if (!e) return null; const v = Object.values(e._hmLab); return { n: v.length, lab: v.filter(x => x.text).length }; }")
+        ok(f"【{T}】熱力圖 390 寬：≥ 40% 的方塊有字（{hl}）", hl and hl["n"] > 0 and hl["lab"] / hl["n"] >= 0.4, hl)
+        go("flow/rotation", 4000)
+        if J("() => !!document.querySelector('#mRadarFlow .mqb[data-quad=lagging]')"):
+            m.locator("#mRadarFlow .mqb[data-quad=lagging]").tap(); m.wait_for_timeout(700)
+            q1 = J("() => document.getElementById('mRadarFlow').dataset.quad")
+            bx = J("() => { const r = document.querySelector('#mRadarFlow svg').getBoundingClientRect(); return { x: r.left + 6, y: r.top + 6 }; }")
+            m.touchscreen.tap(bx["x"], bx["y"]); m.wait_for_timeout(700)
+            q2 = J("() => document.getElementById('mRadarFlow').dataset.quad")
+            ok(f"【{T}】資金輪盤：點「落後」只看那一段（{q1}）→ 點盤上空白處恢復全部（{q2 or '全部'}）", q1 == "lagging" and q2 == "", (q1, q2))
+        else:
+            ok(f"【{T}】資金輪盤有四個角落鈕", False, "找不到 #mRadarFlow .mqb")
+        # ㉘ 剖析圖章節收合列觸控普查：7 條有剖析圖的產業鏈，各自預設那張圖的每一列「＋…」用手指點 → 真的展開（aria-expanded＝true）
+        dead = []; nrow = 0
+        for ch in ("semiconductor", "ai_server", "electronics", "software", "financial", "traditional", "infrastructure"):
+            go("industry/" + ch, 3500)
+            fids = J("() => [...document.querySelectorAll('.mdgfolds button[data-fold]')].filter(b => b.getClientRects().length).map(b => b.dataset.fold)")
+            for fid in fids[:6]:
+                nrow += 1
+                loc = m.locator(f'.mdgfolds button[data-fold="{fid}"]').first
+                try:
+                    loc.scroll_into_view_if_needed(timeout=3000); loc.tap(timeout=3000); m.wait_for_timeout(350)
+                except Exception as e:
+                    dead.append(f"{ch}/{fid}：點不到（{str(e)[:40]}）"); continue
+                ae = J(f"""() => {{ const b = [...document.querySelectorAll('.mdgfolds button[data-fold="{fid}"]')].find(x => x.isConnected && x.getClientRects().length); return b ? b.getAttribute('aria-expanded') : null; }}""")
+                if ae != "true": dead.append(f"{ch}/{fid}：點了沒展開（{ae}）")
+        ok(f"【{T}】剖析圖章節收合列：7 條鏈 {nrow} 列，手指點了都會展開", nrow > 0 and not dead, dead)
         # ⑨ 卡片標題的「?」不准自己佔一行：「?」與標題文字的垂直中心差 ≤ 8px（看得到的文字節點才算）
         badq = []
         for h in ("overview", "flow/rotation", "flow/sankey", "flow/inst", "heatmap/industry", "market", "etf/list", "etf/inc", "season"):
