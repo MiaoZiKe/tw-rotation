@@ -2267,6 +2267,42 @@ def t_etf_1005(pg, b, base):
         ok(f"★ [{tag}] 當天清單寫填息天數：已填「3 天」、未填「尚未填息（已 5 天）」、算不出來「—」",
            "3 天" in rows[0] and "尚未填息（已 5 天）" in rows[1] and rows[2].endswith("—"), rows)
         ok(f"[{tag}] 選中的格子有框", J("(k) => document.querySelector(`.cald[data-d='${k}']`).classList.contains('sel')", d16))
+        # ---- 2026-10-08：單檔明細小圖＝共用 C 款直條（漸層＋圓角）＋滑過提示＋點直條 ⇄ 表格列雙向連動
+        lp.click("#etfDayTbl tbody tr[data-code='0056']"); lp.wait_for_timeout(500)
+        wait_until(lp, "() => { const e = document.querySelector('#etfCalList .cgmini'); return e && window.echarts && echarts.getInstanceByDom(e); }", 5000)
+        cgi = J(CG_MINI_INFO, "#etfCalList .cgmini")
+        ok(f"★ [{tag}] 單檔明細小圖：配息直條是同色漸層（LinearGradient，上實下淡）、頂端圓角 > 0、寬 ≤ 12px、疊殖利率折線（寬 2）",
+           bool(cgi) and cgi.get("inst") and cgi["n"] >= 1 and cgi["grad"] and cgi["rad"] > 0 and (cgi["maxW"] or 99) <= 12 and cgi["line"] and cgi["lineW"] == 2, cgi)
+        if cgi and cgi.get("inst") and cgi["n"] >= 1:
+            k = cgi["n"] - 1
+            lp.mouse.move(*cg_bar_xy(cgi, k)); lp.wait_for_timeout(450)
+            tip = J(CG_TIP_TEXT)
+            amt = J("(k) => { const t = document.querySelector(`#etfCodeTbl tbody tr[data-i='${k}'] td:nth-child(2)`); return t ? t.textContent.trim() : ''; }", k)
+            hv = J(CG_MINI_INFO, "#etfCalList .cgmini")
+            ok(f"★ [{tag}] 滑鼠停在第 {k + 1} 根直條：出現提示框（日期／配息 {amt} 元／殖利率／填息天數）、那根被標成滑過",
+               "配息" in tip and bool(amt) and amt in tip and "殖利率" in tip and "填息天數" in tip and hv["hov"] == str(k), (tip, amt, hv["hov"]))
+            lp.mouse.click(*cg_bar_xy(cgi, k)); lp.wait_for_timeout(400)
+            hl = J("() => [...document.querySelectorAll('#etfCodeTbl tbody tr.hl')].map(t => t.dataset.i)")
+            s1 = J(CG_MINI_INFO, "#etfCalList .cgmini")["sel"]
+            op = J("() => { const c = echarts.getInstanceByDom(document.querySelector('#etfCalList .cgmini')); const b = c.getOption().series.find(s => s.type === 'bar');"
+                   " return b.data.map(d => (d && d.itemStyle && d.itemStyle.opacity != null) ? d.itemStyle.opacity : 1); }")
+            ok(f"★ [{tag}] 點直條 → 表格對應那一列加上 .hl（且只有那一列）、圖上那根被選取、其他根變淡",
+               hl == [str(k)] and s1 == str(k) and all((o < 1) == (j != k) for j, o in enumerate(op)), (hl, s1, op))
+            vis = J("() => { const t = document.querySelector('#etfCodeTbl tr.hl'), b = document.querySelector('#etfCalList'); if (!t || !b) return false;"
+                    " const r = t.getBoundingClientRect(), q = b.getBoundingClientRect(); return r.top >= q.top - 1 && r.bottom <= q.bottom + 1; }")
+            ok(f"[{tag}] 高亮的那一列在清單框可見範圍內（有捲到看得見）", vis)
+            if cgi["n"] >= 2:
+                lp.click("#etfCodeTbl tbody tr[data-i='0']"); lp.wait_for_timeout(400)
+                s2 = J(CG_MINI_INFO, "#etfCalList .cgmini")["sel"]
+                hl2 = J("() => [...document.querySelectorAll('#etfCodeTbl tbody tr.hl')].map(t => t.dataset.i)")
+                ok(f"★ [{tag}] 反向：點表格第一次配息那一列 → 圖上第 1 根被選取、表格高亮換到那一列", s2 == "0" and hl2 == ["0"], (s2, hl2))
+                lp.click("#etfCodeTbl tbody tr[data-i='0']"); lp.wait_for_timeout(300)
+                ok(f"[{tag}] 再點同一列 → 取消選取（圖與表格都清掉）", J(CG_MINI_INFO, "#etfCalList .cgmini")["sel"] == "" and count(lp, "#etfCodeTbl tr.hl") == 0)
+            ok(f"[{tag}] 點表格列不會離開單檔明細（原地連動，不換頁）", J("() => document.querySelector('#etfCal').dataset.code") == "0056")
+        lp.click("#etfCodeBack"); lp.wait_for_timeout(200)
+        lp.click(f".cald.has[data-d='{d16}']"); lp.wait_for_timeout(200)
+        if not J("(k) => document.querySelector('#etfCal').dataset.day === k", d16):
+            lp.click(f".cald.has[data-d='{d16}']"); lp.wait_for_timeout(200)
         lp.click("#etfCalNext"); lp.wait_for_timeout(200)
         m_next = J("() => document.querySelector('#etfCal').dataset.month")
         h_cal1 = H("#etfCalCard")
@@ -24770,6 +24806,32 @@ def t_explore_1005(pg, base):
 EARN_API = "https://acct-earn.example.test"
 
 
+# ---- 2026-10-08（Andy：「日曆圖內的長條圖都要優化，符合我們原本要的漸層效果及回應互動效果」）
+#      行事曆面板小圖（site/calgrid.js 的 CalGrid.mini）的共用量測：ETF專區1005、財經日曆1006 兩段都用。
+CG_MINI_INFO = """(sel) => { const el = document.querySelector(sel); if (!el) return null;
+  const c = window.echarts && echarts.getInstanceByDom(el); if (!c) return { el: true, inst: false };
+  const o = c.getOption(), b = (o.series || []).find(s => s.type === 'bar'), ln = (o.series || []).find(s => s.type === 'line');
+  const col = b && b.itemStyle && b.itemStyle.color;
+  const fnGrad = typeof col === 'function';
+  const br = b && b.itemStyle && b.itemStyle.borderRadius;
+  const r = el.getBoundingClientRect();
+  return { el: true, inst: true, n: b ? b.data.length : 0, grad: !!col && typeof col === 'object' && col.type === 'linear' && (col.colorStops || []).length >= 2,
+           stops: col && col.colorStops ? col.colorStops.map(s => s.color) : null, fnGrad,
+           rad: Array.isArray(br) ? Math.max(...br) : (+br || 0), maxW: b ? b.barMaxWidth : null,
+           line: !!ln, lineW: ln && ln.lineStyle ? ln.lineStyle.width : null,
+           box: [r.left, r.top, r.width, r.height], sel: el.dataset.sel, hov: el.dataset.hov }; }"""
+# 掛在 body 上、正在顯示的 ECharts 提示框文字（tipSafe 一律 appendToBody；z-index 9999999）
+CG_TIP_TEXT = """() => [...document.body.children].filter(d => (d.getAttribute('style') || '').includes('9999999')
+  && getComputedStyle(d).display !== 'none' && +getComputedStyle(d).opacity > 0 && getComputedStyle(d).visibility !== 'hidden')
+  .map(d => d.innerText.trim()).filter(Boolean).join(' | ')"""
+
+
+def cg_bar_xy(info, i, frac=0.75):
+    """第 i 根直條那一欄的中心點（圖只有 2px 左右邊界，欄寬＝寬 ÷ 根數）；frac＝由上往下的比例"""
+    x, y, w, h = info["box"]
+    return x + w * (i + 0.5) / info["n"], y + h * frac
+
+
 def t_cal_1006(pg, b, base):
     """【財經日曆＋ETF 行事曆 2026-10-06 改版】週末反灰、台股休市日標記、面板圖表、分類排他、資料夾式分頁、日期自訂
     驗收（Andy 10-06 原話）：「國定假日也需要標上日曆上面，週末就反灰色」「空白處不可以太多」
@@ -24816,8 +24878,32 @@ def t_cal_1006(pg, b, base):
                           pinned: Math.abs(top2) <= 12, bottomBtns: p.querySelectorAll('#earnGoStock, .pact').length, dates: /\d{4}-\d\d-\d\d/.test([...p.querySelectorAll('h4')].map(e => e.textContent).join(' ')) }; }""")
         ok(f"★ [{tag}] 公司面板：「← 回本週重點」在標題列左側且捲動時釘在最上方、股票名稱＋代號是連結（#stock/…）、底部沒有按鈕、段落標題沒有日期",
            hd["back"] and hd["backLeft"] and (hd["link"] or "").startswith("#stock/") and hd["pinned"] and hd["bottomBtns"] == 0 and not hd["dates"], hd)
-        pv = J("() => { const p = document.querySelector('#earnPanel'); return { mode: p.dataset.mode, minis: p.querySelectorAll('.mini svg').length, secs: [...p.querySelectorAll('.sec[data-chart=\"1\"]')].map(e => e.dataset.sec) }; }")
+        # 2026-10-08：面板小圖改成 ECharts（CalGrid.mini），量 .cgmini（估值位置條不是圖、另算在 secs 裡）
+        pv = J("() => { const p = document.querySelector('#earnPanel'); return { mode: p.dataset.mode, minis: p.querySelectorAll('.mini .cgmini').length, secs: [...p.querySelectorAll('.sec[data-chart=\"1\"]')].map(e => e.dataset.sec) }; }")
         ok(f"★ [{tag}] 點公司 → 面板有圖（月營收／獲利／法人／估值至少 3 張）", pv["mode"] == "co" and (pv["minis"] >= 3 or len(pv["secs"]) >= 3), pv)
+        # ---- 2026-10-08（Andy：「日曆圖內的長條圖都要優化，符合我們原本要的漸層效果及回應互動效果」）：公司面板小圖＝共用 C 款直條
+        csel = J("() => { const s = document.querySelector('#earnPanel .sec[data-sec=rev] .cgmini') || document.querySelector('#earnPanel .cgmini'); return s ? '#' + s.id : null; }")
+        if csel:
+            lp.wait_for_timeout(300)
+            ci = J(CG_MINI_INFO, csel)
+            ok(f"★ [{tag}] 公司面板小圖（{csel}）：直條是同色漸層（LinearGradient）、頂端圓角 > 0、寬 ≤ 12px",
+               bool(ci) and ci.get("inst") and ci["n"] >= 3 and (ci["grad"] or ci["fnGrad"]) and ci["rad"] > 0 and (ci["maxW"] or 99) <= 12, ci)
+            if ci and ci.get("inst") and ci["n"] >= 3:
+                J("(s) => document.querySelector(s).scrollIntoView({ block: 'center' })", csel); lp.wait_for_timeout(200)
+                ci = J(CG_MINI_INFO, csel)
+                k = ci["n"] - 2
+                lp.mouse.move(*cg_bar_xy(ci, k)); lp.wait_for_timeout(450)
+                tip = J(CG_TIP_TEXT)
+                ok(f"★ [{tag}] 滑鼠停在公司面板第 {k + 1} 根直條：出現提示框（含期別與數值）、那根被標成滑過",
+                   bool(tip) and ("營收" in tip or "EPS" in tip or "法人" in tip) and J(CG_MINI_INFO, csel)["hov"] == str(k), tip)
+                lp.mouse.click(*cg_bar_xy(ci, k)); lp.wait_for_timeout(400)
+                s1 = J(CG_MINI_INFO, csel)["sel"]
+                lp.mouse.click(*cg_bar_xy(ci, k)); lp.wait_for_timeout(400)
+                s2 = J(CG_MINI_INFO, csel)["sel"]
+                ok(f"★ [{tag}] 點直條 → 選取那根；再點一次 → 取消（面板沒有對應表格，只驗圖上狀態）", s1 == str(k) and s2 == "", (s1, s2))
+                lp.mouse.move(5, 5); lp.wait_for_timeout(200)
+        else:
+            ok(f"[{tag}] （這家公司面板沒有小圖，略過小圖互動）", True)
         lp.click("#earnBack"); lp.wait_for_timeout(150)
         # 三分類排他
         for v, bad_words in (("rep", ("接下來的 FED", "FOMC")), ("conf", ("接下來的 FED", "FOMC", "財報董事會")), ("fed", ())):
@@ -24945,6 +25031,23 @@ def t_cal_1006(pg, b, base):
             lp.click("#etfDayTbl tbody tr[data-code] >> nth=0"); lp.wait_for_timeout(250)
             cd = J("() => ({ code: document.querySelector('#etfCal').dataset.code, si: !!document.querySelector('#etfCalList .ph .srcinfo[title*=出處]'), line: /資料：/.test(document.querySelector('#etfCalList').innerText) })")
             ok(f"★ [{tag}] 點一檔 → 明細標題列有出處 ⓘ、沒有整行「資料：…」", cd["code"] and cd["si"] and not cd["line"], cd)
+            # 2026-10-08：真資料（多次配息）驗「點直條 ⇄ 表格列」雙向連動與深淺主題的漸層色（ETF專區1005 的假資料只有 1 次配息，驗不到換列）
+            lp.wait_for_timeout(300)
+            ei = J(CG_MINI_INFO, "#etfCalList .cgmini")
+            ok(f"★ [{tag}] ETF 單檔明細小圖：配息直條同色漸層、頂端圓角 > 0", bool(ei) and ei.get("inst") and ei["grad"] and ei["rad"] > 0, ei)
+            if ei and ei.get("inst") and ei["n"] >= 2:
+                lp.mouse.move(*cg_bar_xy(ei, 0)); lp.wait_for_timeout(400)
+                t0 = J(CG_TIP_TEXT)
+                ok(f"★ [{tag}] 滑過第 1 根：提示框寫配息金額與填息天數", "配息" in t0 and "元" in t0 and "填息天數" in t0, t0)
+                lp.mouse.click(*cg_bar_xy(ei, 0)); lp.wait_for_timeout(400)
+                h0 = J("() => [...document.querySelectorAll('#etfCodeTbl tbody tr.hl')].map(t => t.dataset.i)")
+                last = ei["n"] - 1
+                lp.click(f"#etfCodeTbl tbody tr[data-i='{last}']"); lp.wait_for_timeout(400)
+                h1 = J("() => [...document.querySelectorAll('#etfCodeTbl tbody tr.hl')].map(t => t.dataset.i)")
+                s1 = J(CG_MINI_INFO, "#etfCalList .cgmini")["sel"]
+                ok(f"★ [{tag}] 點第 1 根直條 → 表格最舊那列高亮；改點表格最新那列 → 圖上選取換到最後一根、高亮跟著換",
+                   h0 == ["0"] and h1 == [str(last)] and s1 == str(last), (h0, h1, s1))
+                lp.mouse.move(5, 5); lp.wait_for_timeout(150)
             lp.click("#etfCodeBack"); lp.wait_for_timeout(150)
         else:
             ok(f"[{tag}] （本月沒有除息格，略過當天清單驗收）", True)
