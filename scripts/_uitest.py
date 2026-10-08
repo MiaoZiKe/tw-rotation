@@ -27255,7 +27255,8 @@ def t_mobile_m4_1008(b, base, code):
         J("() => { try { localStorage.clear(); } catch (e) {} }")   # 前面的步驟會把收合狀態記住；普查的是「第一次打開」的預設
         opened, total = [], 0
         for h in ("overview", "flow/rotation", "flow/sankey", "flow/inst", "heatmap/industry", "heatmap/theme", "industry", "industry/semiconductor", "industry/electronics", "market", "explore", "etf/list", "etf/inc", "etf/cal", "season", "watch", "stock/2330", "earnings"):
-            go(h, 2500); r = J(FOLD); total += len(r); opened += [f"{h} {x[1]}" for x in r if x[0] == "true"]
+            go(h, 300); m.reload(wait_until="domcontentloaded"); m.wait_for_timeout(2500)   # 只換 hash 不會重新載入頁面（前面步驟打開的收合還開著）→ 每頁真的重新載入
+            r = J(FOLD); total += len(r); opened += [f"{h} {x[1]}" for x in r if x[0] == "true"]
         ok(f"【{T}】收合普查：18 頁 {total} 個收合鈕，預設全部收起", total > 0 and not opened, opened)
         m.set_viewport_size({"width": 390, "height": 844})
         # ㉗ 總覽分三組（大盤／資金流向／熱度）；熱力圖 ≥ 40% 的方塊有字；資金輪盤：點角落只看一段 → 點盤上空白處恢復全部
@@ -27264,7 +27265,7 @@ def t_mobile_m4_1008(b, base, code):
         grp = J("() => [...document.querySelectorAll('#v-overview > .mpager > button, #v-overview .mpager button')].filter(b => b.getClientRects().length).map(b => b.textContent.trim())")
         ok(f"【{T}】總覽分段只有三組：大盤／資金流向／熱度（{grp}）", [g[:4] for g in grp] == ["大盤", "資金流向", "熱度"], grp)
         J("() => { try { localStorage.clear(); } catch (e) {} }")
-        go("heatmap/industry", 5000)
+        go("heatmap/industry", 300); m.reload(wait_until="domcontentloaded"); m.wait_for_timeout(5000)
         hl = J("() => { const e = [...document.querySelectorAll('.chart')].find(x => x._hmLab); if (!e) return null; const v = Object.values(e._hmLab); return { n: v.length, lab: v.filter(x => x.text).length }; }")
         ok(f"【{T}】熱力圖 390 寬：≥ 40% 的方塊有字（{hl}）", hl and hl["n"] > 0 and hl["lab"] / hl["n"] >= 0.4, hl)
         go("flow/rotation", 4000)
