@@ -656,10 +656,10 @@
     const f = await load('flow_v3'); if (!f || !f.sankey || !box.isConnected) return;
     box.dataset.done = '1';
     box.parentElement.classList.add('m3host');        // 資料到了才藏桌機那一份（ready）
-    const Lk = f.sankey.links;
+    let Lk = f.sankey.links;
     const isOther = (n) => /^其他/.test(n);
     const kids = (name) => Lk.filter(l => l.source === name).sort((a, b) => (isOther(a.target) - isOther(b.target)) || (b.value - a.value));
-    const total = kids('台股成交值').reduce((s, l) => s + l.value, 0) || 1;
+    let total = kids('台股成交值').reduce((s, l) => s + l.value, 0) || 1;
     const open = new Set();
     const baseOf = (ls) => Math.max(1, ...ls.filter(l => !isOther(l.target)).map(l => l.value));
     const rows = (src, lv) => { const ks = kids(src), base = baseOf(ks); return ks.map((l, i) => {
@@ -681,7 +681,25 @@
     box.innerHTML = '<div class="mdtree"></div>' + (onFlow ? '<button type="button" class="mrkhd" id="mSankeyRankHd" aria-expanded="false" hidden>資金流向排名 <i aria-hidden="true">▸</i></button><div class="hpanel skrank m4shut" id="mSankeyRank" hidden></div>' : '');
     const tree = box.querySelector('.mdtree'), rk = box.querySelector('#mSankeyRank'), rkh = box.querySelector('#mSankeyRankHd');
     if (rkh) rkh.onclick = () => { const on = rk.classList.contains('m4shut'); rk.classList.toggle('m4shut', !on); rkh.setAttribute('aria-expanded', on ? 'true' : 'false'); rkh.querySelector('i').textContent = on ? '▾' : '▸'; };
-    const draw = () => { tree.innerHTML = `<div class="mroot"><span class="n">台股成交值</span><b>${yi(total)} 億</b></div><div class="msub">台股 → 產業鏈 → 族群 → 個股</div><ul class="mrank">${rows('台股成交值', 1)}</ul>`; box.dataset.open = open.size; };
+    /* ★ 2026-10-08（Andy：日期拉桿手機也要有）：讀桌機同一份 sankey_daily（每天各族群成交值＋成分股），拉到哪一天，樹就換成那一天。
+       拉桿把手 ≥ 32px、手指拖得動；▶ 播放一天一天往後，播放中拉桿鎖住（同桌機）。沒有 sankey_daily 時照舊只看最新一天（flow_v3）。 */
+    let dayIdx = -1, dayDates = [];
+    const linksOfDay = (sd, i) => {
+      const L = [], byChain = {};
+      (sd.groups || []).forEach((g) => { const v = (g.tv || [])[i]; if (!(v > 0)) return; const ch = g.chain_name || g.chain || '其他產業';
+        (byChain[ch] = byChain[ch] || []).push({ g, v }); });
+      Object.entries(byChain).forEach(([ch, gs]) => {
+        L.push({ source: '台股成交值', target: ch, value: gs.reduce((a, x) => a + x.v, 0) });
+        gs.forEach(({ g, v }) => {
+          L.push({ source: ch, target: g.name, value: v });
+          const mem = (sd.members || {})[g.gid] || {};
+          Object.entries(mem).map(([code, arr]) => ({ code, v: (arr || [])[i] })).filter((x) => x.v > 0).sort((a, b) => b.v - a.v).slice(0, 8)
+            .forEach((x) => L.push({ source: g.name, target: (sd.names || {})[x.code] || x.code, value: x.v }));
+        });
+      });
+      return L;
+    };
+    const draw = () => { tree.innerHTML = `<div class="mroot"><span class="n">${dayIdx >= 0 ? '族群成交值合計' : '台股成交值'}</span><b>${yi(total)} 億</b>${dayIdx >= 0 ? `<small class="mday">${esc(dayDates[dayIdx])}</small>` : ''}</div><div class="msub">台股 → 產業鏈 → 族群 → 個股</div><ul class="mrank">${rows('台股成交值', 1)}</ul>`; box.dataset.open = open.size; };
     tree.addEventListener('click', (e) => {
       const li = e.target.closest('li[data-k]'); if (!li) return;
       const k = li.dataset.k; open.has(k) ? open.delete(k) : open.add(k); draw();
@@ -689,9 +707,32 @@
     draw();
     if (rk) load('sankey_daily').then(sd => {
       if (!sd || !(sd.dates || []).length || !box.isConnected || !(window.App && App.sankeyRankDraw)) return;
+      // 日期拉桿＋播放（只在手機 v2；放在樹的上面，第一屏看得到）
+      if (document.documentElement.classList.contains('m4') && !box.querySelector('.mdaybar')) {
+        dayDates = sd.dates; dayIdx = sd.dates.length - 1;
+        const bar = document.createElement('div'); bar.className = 'mdaybar';
+        bar.innerHTML = `<button type="button" class="mplay" aria-label="播放：一天一天往後看">▶</button><input type="range" class="mday" min="0" max="${sd.dates.length - 1}" step="1" value="${dayIdx}" aria-label="看哪一天"><span class="mdl"></span>`;
+        box.insertBefore(bar, tree);
+        const rg = bar.querySelector('input'), lab = bar.querySelector('.mdl'), pb = bar.querySelector('.mplay');
+        const setDay = (i) => { dayIdx = i; rg.value = String(i); lab.textContent = sd.dates[i].slice(5);
+          Lk = linksOfDay(sd, i); total = kids('台股成交值').reduce((a, l) => a + l.value, 0) || 1; open.clear(); draw();
+          box.dataset.day = sd.dates[i];
+          try { App.sankeyRankDraw(rk, sd, i, rk._pick); } catch (e) { /* 排名畫不出來不擋樹 */ } };
+        rg.addEventListener('input', () => setDay(+rg.value));
+        let timer = 0;
+        const stop = () => { clearInterval(timer); timer = 0; pb.textContent = '▶'; rg.disabled = false; bar.classList.remove('playing'); };
+        pb.onclick = () => {
+          if (timer) { stop(); return; }
+          let i = +rg.value >= sd.dates.length - 1 ? Math.max(0, sd.dates.length - 20) : +rg.value;
+          pb.textContent = '❚❚'; rg.disabled = true; bar.classList.add('playing'); setDay(i);
+          timer = setInterval(() => { i += 1; if (i >= sd.dates.length || !box.isConnected) { stop(); return; } setDay(i); }, 700);
+        };
+        // 一進來就用同一份每日資料畫最新一天（拉來拉去口徑才一致：每天都是「有對到族群的成交值合計」，不混用 flow_v3 的全市場口徑）
+        setDay(dayIdx);
+      }
       rk.hidden = false; if (rkh) rkh.hidden = false;
       /* 點排名的列＝在上面的長條裡展開那個族群（找到它掛在哪一條鏈底下），再捲過去 —— 原地展開，不換頁。*/
-      App.sankeyRankDraw(rk, sd, sd.dates.length - 1, (gid) => {
+      App.sankeyRankDraw(rk, sd, sd.dates.length - 1, rk._pick = (gid) => {
         const g = (sd.groups || []).find(x => x.gid === gid); if (!g) return;
         const ch = kids('台股成交值').find(l => kids(l.target).some(c => c.target === g.name));
         if (!ch) return;
