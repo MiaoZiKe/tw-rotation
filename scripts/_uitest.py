@@ -52982,7 +52982,7 @@ def _tier_ctx(b, who, theme="dark", width=1440):
             out = {"day": "x", "k": "", "n": 0, "keys": []}
         route.fulfill(status=200, body=json.dumps(out), headers={"access-control-allow-origin": "*", "content-type": "application/json"})
 
-    c = b.new_context(viewport={"width": width, "height": 900}, **({"has_touch": True, "is_mobile": True, "device_scale_factor": 2} if touch else {}))
+    c = b.new_context(viewport={"width": width, "height": 900})
     c.add_init_script("window.TW_ACCOUNT_OVERRIDE = " + json.dumps({"api": SUB_API}) + ";"
                       + "try { localStorage.setItem('tw.acct.tok', 'tok-test'); localStorage.setItem('tw.theme', " + json.dumps(theme) + "); } catch (e) {}")
     c.route("**/fonts.googleapis.com/**", lambda r: r.abort())
@@ -53459,10 +53459,8 @@ def _fb1007_ctx(b, who, st, width=1440):
         out, code = {}, 200
         if path == "/v1/me":
             out, code = ({"user": me}, 200) if me else ({}, 401)
-        elif path == "/v1/perm/me" and perm_fail:
-            out, code = {"error": "unavailable"}, 503
         elif path == "/v1/perm/me":
-            out = {"who": "member" if me else "guest", "plan": plan or ("free" if me else "guest"), "planName": "免費會員", "feats": {}, "lims": {}, "dq": None}
+            out = {"who": "member" if me else "guest", "plan": "free" if me else "guest", "planName": "免費會員", "feats": {}, "lims": {}, "dq": None}
         elif path == "/v1/plans/public":
             out = {"plans": []}
         elif path == "/v1/feedback":
@@ -53488,7 +53486,7 @@ def _fb1007_ctx(b, who, st, width=1440):
             out = {"rows": [], "users": []}
         route.fulfill(status=code, body=json.dumps(out), headers={"access-control-allow-origin": "*", "content-type": "application/json"})
 
-    c = b.new_context(viewport={"width": width, "height": 900}, **({"has_touch": True, "is_mobile": True, "device_scale_factor": 2} if touch else {}))
+    c = b.new_context(viewport={"width": width, "height": 900})
     c.add_init_script("window.TW_ACCOUNT_OVERRIDE = " + json.dumps({"api": SUB_API}) + ";"
                       + ("try { localStorage.setItem('tw.acct.tok', 'tok-test'); } catch (e) {}" if who else ""))
     c.route("**/fonts.googleapis.com/**", lambda r: r.abort())
@@ -55372,10 +55370,8 @@ def _adm3_ctx(b, who="admin", width=1440, feats=None, lims=None, theme=None, pla
         out, code = {}, 200
         if path == "/v1/me":
             out, code = ({"user": me}, 200) if me else ({}, 401)
-        elif path == "/v1/perm/me" and perm_fail:
-            out, code = {"error": "unavailable"}, 503
         elif path == "/v1/perm/me":
-            out = {"who": "member" if me else "guest", "plan": plan or ("free" if me else "guest"), "planName": "免費會員", "feats": feats or {}, "lims": lims or {}}
+            out = {"who": "member" if me else "guest", "plan": "free" if me else "guest", "planName": "免費會員", "feats": feats or {}, "lims": lims or {}}
         elif path == "/v1/plans/public":
             out = {"plans": [{k: v for k, v in p.items() if k != "members"} for p in st["plans"]]}
         elif path in ("/v1/beat", "/v1/track/batch", "/v1/quota/hit"):
