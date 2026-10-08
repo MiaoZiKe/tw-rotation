@@ -185,3 +185,29 @@ def test_來源優先順序_官網每日_公會月資料_人工整理():
     assert out["00690"]["monthly"] is True and out["00690"]["asof"] == "2026-08-31"      # ② 公會月資料（取最新月份）
     assert out["00690"]["items"][0]["w"] == 25.56 and "公會" in out["00690"]["src_name"]
     assert out["00911"]["manual"] is True                                                # ③ 前兩個都沒有才用人工檔
+
+
+# ───────────────────────────── 資料日要是持股基準日，不是清單適用的下一個營業日（10-08 晚上公告的是 10-12）
+def test_台新_資料日取實際申購總價金那天_不是PUB_DATE():
+    page = """<input type="text" id="PUB_DATE" name="PUB_DATE" value="2026-10-12" />
+    <h4>台新臺灣永續高息中小型ETF基金(00936)</h4>
+    <tr><td>2026/10/8每基數實際申購總價金(元)</td><td>TWD 10,853,053</td></tr>
+    <div class="card-header">股票</div><table><tr><th>股票代號</th><th>股票名稱</th><th>股數</th><th>權重(%)</th></tr>
+    <tr><td>2330 TT</td><td>台積電</td><td>1,000</td><td>5.1</td></tr></table>"""
+    rows = etf_pcf.parse_tsit("00936", page)
+    assert rows and rows[0]["date"] == "2026-10-08" and rows[0]["code"] == "2330"
+
+
+def test_凱基_資料日取淨值日():
+    frag = """<div>凱基優選30(00938)</div><div>2026/10/12</div><div>現金申購買回清單公告</div>
+    <div>(2026/10/08)每受益權單位淨資產價值(元)</div><div>TWD$26.87</div>
+    <table><tr name="content"><td>2330</td><td>台積電</td><td>1,000</td><td>9.5</td></tr></table>"""
+    rows = etf_pcf.parse_kgi("00938", frag)
+    assert rows and rows[0]["date"] == "2026-10-08"
+
+
+def test_華南永昌_資料日取BalDate():
+    payload = {"Data": {"DataDate": "2026-10-12T00:00:00+08:00", "Pcf": {"BalDate": "2026-10-08T00:00:00+08:00"},
+                        "Stocks": [{"StockNo": "2330", "StockName": "台積電", "Weight": 0.4019, "Share": 1000}]}}
+    rows = etf_pcf.parse_hn("009808", payload)
+    assert rows and rows[0]["date"] == "2026-10-08" and rows[0]["weight"] == 40.19

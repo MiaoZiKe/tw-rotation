@@ -360,8 +360,12 @@ def kgi_fund_ids(page_html: str, names: dict[str, str]) -> dict[str, str]:
 def parse_kgi(etf: str, frag: str) -> list[dict]:
     """RedemptionVC 回的 HTML 片段：股票表 <tr name="content"><td>代號<td>名稱<td>股數<td>權重(%)；資料日期取片段裡第一個日期。"""
     t = _html.unescape(frag or "")
+    # 2026-10-08 第五輪（run 37782607472）：片段裡第一個日期是「現金申購買回清單公告」適用日（下一個營業日，例 10-12），
+    # 持股基準日是「(2026/10/08)每受益權單位淨資產價值」那個；找不到才退回第一個日期。
+    flat = re.sub(r"\s+", " ", re.sub(r"<[^>]+>", " ", t))
+    nav = re.search(r"\((\d{4}/\d{1,2}/\d{1,2})\)\s*每受益權單位淨資產價值", flat)
     dm = re.search(r"(\d{4})[/-](\d{1,2})[/-](\d{1,2})", t) or re.search(r"(\d{3})/(\d{1,2})/(\d{1,2})", t)
-    day = _iso("/".join(dm.groups())) if dm else None
+    day = _iso(nav.group(1)) if nav else (_iso("/".join(dm.groups())) if dm else None)
     out = []
     for tr in re.findall(r'<tr name="content"[^>]*>(.*?)</tr>', t, re.S):
         tds = [re.sub(r"<[^>]+>", "", x).strip() for x in re.findall(r"<td[^>]*>(.*?)</td>", tr, re.S)]
@@ -839,7 +843,10 @@ def parse_hn(etf: str, payload: Any) -> list[dict]:
     data = (payload or {}).get("Data") if isinstance(payload, dict) else None
     if not isinstance(data, dict):
         return []
-    day = _iso(str(data.get("NavDate") or data.get("DataDate") or "")[:10])
+    # 2026-10-08 第五輪（run 37782607472）：Data.DataDate 是清單適用的下一個營業日（10-12）；
+    # 持股基準日在 Data.Pcf.BalDate（同 PreDataDate、DataDate2 ＝ 10-08）。
+    pcf = data.get("Pcf") if isinstance(data.get("Pcf"), dict) else {}
+    day = _iso(str(pcf.get("BalDate") or pcf.get("PreDataDate") or data.get("NavDate") or data.get("DataDate") or "")[:10])
     out = []
     for r in _find_rows(data, "StockNo"):
         code = str(r.get("StockNo") or "").strip()
@@ -946,8 +953,12 @@ TSIT_PCF = "https://www.tsit.com.tw/ETF/Home/Pcf/{code}"
 def parse_tsit(etf: str, page: str) -> list[dict]:
     if not isinstance(page, str):
         return []
+    # 2026-10-08 第五輪（probe-etf-pcf.yml mode=dates run 37782607472）：PUB_DATE／DATA_DATE 是「這份清單適用的下一個營業日」
+    # （10-08 晚上公告的是 10-12，中間 10-09、10-10 連假），不是持股基準日。基準日是「2026/10/8每基數實際申購總價金」那個日期。
+    flat = re.sub(r"\s+", " ", _html.unescape(re.sub(r"<[^>]+>", " ", page)))
+    nav = re.search(r"(\d{4}/\d{1,2}/\d{1,2})\s*每基數實際申購總價金", flat)
     m = re.search(r'id="PUB_DATE"[^>]*value="([0-9-]{8,10})"', page)
-    day = _iso(m.group(1)) if m else None
+    day = _iso(nav.group(1)) if nav else (_iso(m.group(1)) if m else None)
     t = re.search(r"<h4>[^<]*\((\w+)\)\s*</h4>", page)
     if t and t.group(1) != etf:
         log.info("台新 %s 官網回的是 %s 的頁面，略過", etf, t.group(1))
