@@ -176,9 +176,14 @@ def match_code(fund: str, names: dict[str, str]) -> str | None:
     return hits[0][1]
 
 
+# 簡稱跟全名差太多、字對不起來的，逐檔寫死（附理由）：
+#   0061 元大寶滬深＝「元大標智滬深300基金」—— 原寶來投信發行（簡稱沿用「寶」字），2026-10-08 公會表上的全名不含「寶」。
+FUND_ALIAS = {"元大標智滬深300基金": "0061"}
+
+
 def match_all(funds: list[str], names: dict[str, str]) -> dict[str, str | None]:
     """整批對：一檔 ETF 被兩個以上公會基金對上時，只留全名多出來的字最少的那個，其他的改回 None（不猜）。"""
-    out = {f: match_code(f, names) for f in funds}
+    out = {f: (FUND_ALIAS[f] if f in FUND_ALIAS and FUND_ALIAS[f] in names else match_code(f, names)) for f in funds}
     by: dict[str, list[tuple[int, str]]] = {}
     for f, c in out.items():
         if c:

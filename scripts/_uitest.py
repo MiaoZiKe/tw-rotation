@@ -1975,9 +1975,9 @@ def t_etf_hold_1007(pg, b, base):
                 pie = J("() => { const c = echarts.getInstanceByDom(document.getElementById('etfHoldPie')); const o = c.getOption(); return { n: o.series[0].data.length, names: o.series[0].data.map(d => d.name), center: (o.title && o.title[0] && o.title[0].text) || '' }; }")
                 ok(f"★ [{t}] {code} 甜甜圈有扇區（前 10 大＋其他）", pie["n"] >= 5 and pie["n"] <= 11 and ("其他" in pie["names"] or len(rows) <= 10), pie)
                 ok(f"[{t}] {code} 中心寫「前 10 大合計 X%」", "前 10 大合計" in pie["center"] and "%" in pie["center"], pie["center"])
-                ok(f"[{t}] {code} 標註資料日期", "資料日期 2026-10-06" in text(lp, "#etfHoldCard h3"), text(lp, "#etfHoldCard h3"))
+                ok(f"[{t}] {code} 標註資料日（2026-10-08 起統一寫「資料日」）", "資料日 2026-10-06" in text(lp, "#etfHoldCard h3"), text(lp, "#etfHoldCard h3"))
                 if code == "00896":   # 2026-10-07：人工整理檔（holdings_manual.yaml）要標「人工整理・資料日期 X」
-                    ok(f"★ [{t}] 00896 人工整理的資料標「人工整理・資料日期」", "人工整理・資料日期 2026-10-06" in text(lp, "#etfHoldCard h3"), text(lp, "#etfHoldCard h3"))
+                    ok(f"★ [{t}] 00896 人工整理的資料標「人工整理・資料日」", "人工整理・資料日 2026-10-06" in text(lp, "#etfHoldCard h3"), text(lp, "#etfHoldCard h3"))
                 ok(f"[{t}] {code} 沒有橫向捲軸", J("() => document.documentElement.scrollWidth <= innerWidth + 1"))
                 if code == "0050":
                     # ★ 2026-10-07 17:30 版面：甜甜圈在清單左邊（堆疊時在上）、圖例 11 列、簡稱、色點＝扇區色
@@ -2076,11 +2076,12 @@ def t_etf_hold_1007(pg, b, base):
             ok(f"★ [{t}] 債券型 00679B 有成分清單（不是說明卡）", bd["st"] == "ok" and bd["n"] == 2, bd)
             ok(f"★ [{t}] 債券成分第二行顯示票息與到期日", bd["l2"][:1] == ["票息 4.75%・到期 2055-05-15"], bd["l2"])
             # 沒有成分的債券型（假資料裡沒有 00720B）→ 說明卡＋兩站連結
+            # 2026-10-08 起債券型不再當「沒有成分」（Andy：所有 ETF 都要有圖、有清單），沒資料時是「還沒抓到」（nosrc）
             lp.goto(f"{base}#stock/00720B", wait_until="networkidle")
             open_hold(lp, W)
             wait_until(lp, "() => !!document.querySelector('#etfHoldCard[data-state]')", 8000)
-            ok(f"★ [{t}] 沒資料的債券型 00720B 有說明卡＋玩股網／口袋連結",
-               J("() => (document.querySelector('#etfHoldCard') || {}).dataset?.state") == "nostock"
+            ok(f"★ [{t}] 沒資料的債券型 00720B 有說明卡＋玩股網／口袋連結（狀態是「還沒抓到」，不是「沒有成分」）",
+               J("() => (document.querySelector('#etfHoldCard') || {}).dataset?.state") == "nosrc"
                and J("() => document.querySelectorAll('#etfHoldLinks a').length") == 2, text(lp, "#etfHoldCard")[:80])
         finally:
             lp.close()
