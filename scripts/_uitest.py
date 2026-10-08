@@ -1891,19 +1891,23 @@ def t_etf_cover_1008(pg, b, base):
             n_lev += 1
             continue
         d = {}
-        try:
-            lp.goto(f"{base}#stock/{code}", wait_until="domcontentloaded")
-            sel = "#stockTabs button[data-t='holdings']"
-            wait_until(lp, f"() => {{ const b = document.querySelector(\"{sel}\"); return !!(b && b.offsetParent); }}", 15000)
-            lp.click(sel)
-            wait_until(lp, "() => !!document.querySelector('#etfHoldCard[data-state]')", 8000)
-            wait_until(lp, "() => { const c = document.querySelector('#etfHoldPie canvas'); return !!c || (document.querySelector('#etfHoldCard') || {}).dataset?.state !== 'ok'; }", 6000)
-            d = lp.evaluate("""() => { const c = document.querySelector('#etfHoldCard'), cv = c.querySelector('#etfHoldPie canvas');
-              return { st: c.dataset.state, rows: c.querySelectorAll('#etfHoldTbl tbody tr[data-i]').length,
-                       canvas: !!(cv && cv.width > 0 && cv.height > 0), asof: (c.querySelector('#etfHoldAsof') || {}).textContent || '',
-                       src: (c.querySelector('#etfHoldAsof') || {}).dataset?.src || '' }; }""")
-        except Exception as e:  # noqa: BLE001
-            d = {"err": str(e)[:120]}
+        for attempt in range(2):   # 359 檔連續開，偶爾一頁載太慢（10-08 實測 00786B 等分頁鈕逾時 30 秒）→ 重開一次再判
+            try:
+                lp.goto(f"{base}#stock/{code}", wait_until="domcontentloaded")
+                if attempt:
+                    lp.reload(wait_until="domcontentloaded")
+                sel = "#stockTabs button[data-t='holdings']"
+                wait_until(lp, f"() => {{ const b = document.querySelector(\"{sel}\"); return !!(b && b.offsetParent); }}", 15000)
+                lp.click(sel, timeout=15000)
+                wait_until(lp, "() => !!document.querySelector('#etfHoldCard[data-state]')", 8000)
+                wait_until(lp, "() => { const c = document.querySelector('#etfHoldPie canvas'); return !!c || (document.querySelector('#etfHoldCard') || {}).dataset?.state !== 'ok'; }", 6000)
+                d = lp.evaluate("""() => { const c = document.querySelector('#etfHoldCard'), cv = c.querySelector('#etfHoldPie canvas');
+                  return { st: c.dataset.state, rows: c.querySelectorAll('#etfHoldTbl tbody tr[data-i]').length,
+                           canvas: !!(cv && cv.width > 0 && cv.height > 0), asof: (c.querySelector('#etfHoldAsof') || {}).textContent || '',
+                           src: (c.querySelector('#etfHoldAsof') || {}).dataset?.src || '' }; }""")
+                break
+            except Exception as e:  # noqa: BLE001
+                d = {"err": str(e)[:120]}
         good = bool(d.get("canvas")) and d.get("rows", 0) > 0 and bool(_re.search(r"資料日 \d{4}-\d{2}-\d{2}", d.get("asof", "")))
         res.append((code, name, cat, "ok" if good else "不合格", str(d.get("rows", "")), d.get("src", ""), d.get("asof", "")[:60]))
         if not good:
