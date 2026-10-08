@@ -1,6 +1,17 @@
 # HANDOFF.md — 目前進度（接手先讀這份）
 
-## 2026-10-08 ETF 成分股全覆蓋（第五輪，爬蟲專家，分支 `claude/etf-holdings-all`，未推 main；DECISIONS #347，細節 `docs/etf_holdings_coverage.md` 文末）
+## 2026-10-08 晚 CEO 合併紀錄（台北，每批都是 deploy_wait ✅ 才算上線）
+- 21:36 現金流組合四處連動（甜甜圈／時鐘／直條／明細卡，`etfpage.js`）。驗了：桌機守門1008、ETF現金流v2（壓力測試 <500ms 在高負載誤報，基線同樣紅）。
+- 21:52 熱力圖點方塊跳個股限 Plus 以上（`quota.js` heatLinkOk／heatGo、`app.js` hmGo）。驗了：桌機守門1008、熱力圖跳個股1008。
+  ⚠ 後台範本若明寫 `heat.link:true` 前端照範本放行 —— 已請 Andy 確認訪客／免費範本是關的。
+- 22:45 ETF 成分股全覆蓋（見下一節）。
+- 22:50 頂欄明暗獨立圖示（`theme4.css` 藏 ☀ 只限 html.m4）、先進封裝走線錨點＋被動元件 07（`diagrams.js` note() 支援 ax/ay）、
+  暗色色盤提亮＋未選中 .55（淺色 .35 不變）、每月入帳直條 `id:'tw-thick-bar'` 放行 50% 寬、手機三點（市場明細族群同行、複利「?」、方案頁 2.7 屏）。
+  驗了：桌機守門1008、淺色主題、設定面板、手機v2（合併後 0）。
+- 23:37 總覽資金熱力圖點族群→`#industry/group/<id>`、熱門題材點題材→`#heatmap/theme/<id>`（同一套 hmGo 權限）。驗了：桌機守門1008、總覽、熱力圖跳個股1008（併跑時 Pro 一條時序紅，單跑 0）。
+- 進行中：全站整輪驗收（reviewer，分支 `claude/final-verify-1008`）。
+
+## 2026-10-08 ETF 成分股全覆蓋（第五輪，爬蟲專家，分支 `claude/etf-holdings-all` → main b39a6eba，22:45 上線；daily full 已觸發、湖已寫入 280 檔＋月資料，23:37 部署；DECISIONS #347，細節 `docs/etf_holdings_coverage.md` 文末）
 - Andy 20:29：「必須跟其他有成分股的 ETF 介面一樣…直接看有沒有圖，清單比對是否與找得到的網站資訊相符」（第 3 次以上提）。
 - **00918 退步根因**：`tests/test_etf_pcf.py` 的 fetch_all 測試漏 mock 第三、四輪新接的投信 → 雲端真的連到官網 → 斷言紅 → `daily.yml`「跑指標庫測試」失敗、
   10-08 整天的每日管線都沒跑 → 資料湖停在 10-07 早上（8 家、108 檔），大華銀從沒進湖。已修（mock 補齊＋測試裡禁外網）；Actions 上整套 pytest 1109 passed（run 37780876670）。
