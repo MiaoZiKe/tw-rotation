@@ -407,3 +407,85 @@
   :root.m4 #v-pricing #prTable :is(th,td){height:auto!important;padding:5px 3px!important;line-height:1.3!important}
   :root.m4 #v-pricing #prTable tr.cat td{padding:4px!important}
 }
+
+/* ---- 29. 市場明細（#market）手機版（2026-10-09 Andy：「上方全部改用分頁呈現……今日關注 正常表清單形式 控制好範圍調整適當大小」）
+   行為在 mobile4.js 第 29 節。只寫 :root.m4 #v-market 底下；桌機（>640）不吃這一段。
+   · 頂部四顆子頁（#mktSeg2）：等寬底線分頁、填滿左右、不橫捲不換行，排在內容卡最上面（標題列改成上下排、分頁在上）
+   · mobile3.js 的第二層「分佈圖／名單」（#mMktSeg）不要了：圖與清單同頁上下排，中間一條分隔線
+   · 頁內的單選切換（全部／上市／上櫃、漲停／跌停…、投信／外資／合計、5 日～240 日）一律等寬分段、不橫捲 */
+@media (max-width:640px){
+  :root.m4 #v-market .mkthead{flex-direction:column-reverse!important;align-items:stretch!important;gap:8px!important;flex-wrap:nowrap!important}
+  :root.m4 #v-market .mkthead>h3{margin:0!important}
+  :root.m4 #v-market .mkthead .mktpre{display:none}          /* 「市場明細：」跟頁首大標重複 */
+  :root.m4 #v-market .mkthead>.mktright{width:100%;margin:0!important;flex-direction:column;align-items:stretch;gap:6px}
+  :root.m4 #v-market #mktSeg2#mktSeg2{display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr));gap:0!important;width:100%;
+    overflow:hidden!important;border-bottom:1px solid var(--line)!important;padding:0!important;margin:0!important}
+  :root.m4 #v-market #mktSeg2#mktSeg2>button{min-width:0!important;width:100%;height:42px!important;min-height:42px!important;padding:0 2px!important;
+    border:0!important;border-bottom:2px solid transparent!important;border-radius:0!important;background:transparent!important;
+    color:var(--ink-2)!important;font-size:14px!important;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  :root.m4 #v-market #mktSeg2#mktSeg2>button.on{color:var(--t4-accent-solid,var(--cyan))!important;border-bottom-color:var(--t4-accent-solid,var(--cyan))!important;
+    background:transparent!important;font-weight:700}
+  :root.m4 #v-market #mktDisc{order:2}                     /* 今日關注的免責小字排在分頁下面 */
+  :root.m4 #mMktSeg{display:none!important}
+  :root.m4 body.m3on #mktBody.mseg-dist .mktduo>.mktlist,
+  :root.m4 body.m3on #mktBody.mseg-list .mktduo>.mktdist{display:flex!important}
+  :root.m4 body.m3on #mktBody.mseg-list>.card{display:block!important}
+
+  /* 等寬分段：選項少的單選切換填滿一整列 */
+  :root.m4 #v-market :is(#mktTabs,#streakWho,#maSeg)#mktTabs,
+  :root.m4 #v-market :is(#mktTabs,#streakWho,#maSeg)#streakWho,
+  :root.m4 #v-market :is(#mktTabs,#streakWho,#maSeg)#maSeg{display:grid!important;grid-auto-flow:column;grid-auto-columns:minmax(0,1fr);gap:4px!important;overflow:hidden!important;width:100%}
+  :root.m4 #v-market :is(#mktTabs,#streakWho,#maSeg)>button{min-width:0!important;padding:0 2px!important;width:100%}
+  /* 漲跌家數清單五顆：短名＋檔數上下兩行 */
+  :root.m4 #v-market #mktTabs#mktTabs>button{flex-direction:column!important;gap:1px!important;line-height:1.15!important;height:44px!important;min-height:44px!important}
+  :root.m4 #v-market #mktTabs>button em{margin:0!important}
+  :root.m4 #v-market .mktlist>#mktTabs{align-self:stretch!important}
+
+  /* 漲跌家數：圖在上、清單在下，中間一條分隔線；清單卡自己最多 460 再捲（不橫捲） */
+  :root.m4 #v-market .mktduo{gap:0!important}
+  :root.m4 #v-market .mktduo>.mktlist{border-top:1px solid var(--line-2)!important;margin-top:14px!important;padding-top:14px!important}
+  :root.m4 #v-market #mktInner .tw{overflow-x:hidden!important}
+  :root.m4 #v-market #mktInner table{width:100%;table-layout:auto}
+  :root.m4 #v-market #mktBody table td{vertical-align:middle!important}
+  :root.m4 #v-market #mktInner :is(th,td){padding-left:4px!important;padding-right:4px!important;white-space:nowrap}
+  :root.m4 #v-market #mktInner :is(th,td):nth-child(2){display:none}      /* 族群欄：清單本身就是「今天的前段」，族群點個股頁看 */
+  :root.m4 #v-market #mktInner td.l>.lk-stock{max-width:8.5em}
+
+  /* 法人連買賣：分段（投信／外資／合計）＋天數下拉＋「?」同一列 */
+  :root.m4 #v-market .mktstreakbar>.row{display:grid!important;grid-template-columns:minmax(0,1fr) auto auto;gap:6px!important;width:100%;align-items:center}
+  :root.m4 #v-market .mktstreakbar #streakDays{height:40px;min-width:84px}
+
+  /* 站上均線：七條均線一列等寬；下拉滿寬；已選膠囊不要（style_guide 十六：已選一律收在「已選 N ▾」裡） */
+  :root.m4 #v-market #maPick{gap:6px!important}
+  :root.m4 #v-market #maPick>.muted:first-child{display:none}
+  :root.m4 #v-market #maSeg>button{font-size:12px!important}
+  :root.m4 #v-market #maGroupDD{width:100%}
+  :root.m4 #v-market #maGroupDD>.ddbtn{width:100%;justify-content:flex-start;gap:4px}
+  :root.m4 #v-market #maGroupDD>.ddbtn>i{margin-left:auto}
+  :root.m4 #v-market #maGroupKey{display:none!important}
+  :root.m4 #v-market .m4mafolds{border-top:1px solid var(--line-2);margin-top:4px}
+  :root.m4 #v-market .m4mafolds>.m4fold{display:flex;align-items:center;gap:8px;width:100%;min-height:44px;padding:0 4px;border:0;border-bottom:1px solid var(--line);
+    background:transparent;color:var(--ink);font:inherit;font-size:15px;font-weight:600;text-align:left;cursor:pointer}
+  :root.m4 #v-market .m4mafolds>.m4fold small{font-size:12px;font-weight:400;color:var(--ink-3)}
+  :root.m4 #v-market .m4mafolds>.m4fold i{margin-left:auto;font-style:normal;color:var(--ink-3)}
+  :root.m4 #v-market .m4mafolds>.m4fbox{padding:10px 0 12px}
+  /* 展開後兩欄（單欄 22 張要捲 2000px）：名字太長截斷、全名在卡片 title */
+  :root.m4 #v-market .m4mafolds>.m4fbox.magrid{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:8px!important}
+  :root.m4 #v-market .m4mafolds .ma{padding:8px 10px!important;min-width:0}
+  :root.m4 #v-market .m4mafolds .ma .n{gap:4px;font-size:13px!important;min-width:0}
+  :root.m4 #v-market .m4mafolds .ma .n{overflow:hidden;white-space:nowrap}
+  :root.m4 #v-market .m4mafolds .ma .bar{margin:6px 0 4px!important}
+  :root.m4 #v-market .m4mafolds .ma .v{font-size:12px!important;gap:4px}
+  :root.m4 #v-market .m4mafolds .ma .n em{font-size:12px!important;flex:none}
+  :root.m4 #v-market .m4mafolds .ma .n .m4nm{flex:1 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis}
+  :root.m4 #v-market .m4mafolds :is(.m4fold,.m4fbox,.ma)[hidden]{display:none!important}
+
+  /* 今日關注：留「股票／判定／漲跌／收盤」，族群與綜合分點一列展開（mobile4.js 第 29 節） */
+  :root.m4 #v-market #mktBody>.tw{overflow-x:hidden!important}
+  :root.m4 #v-market #mktBody>.tw table{width:100%}
+  :root.m4 #v-market #mktBody>.tw :is(th,td){padding-left:4px!important;padding-right:4px!important;white-space:nowrap}
+  :root.m4 #v-market #mktBody>.tw tr>:is(th,td):is(:nth-child(2),:nth-child(4)){display:none}
+  :root.m4 #v-market #mktBody>.tw tr.m4retx>td{display:table-cell!important;padding:4px 6px 10px!important}
+  :root.m4 #v-market #mktBody>.tw tr.m4on>td{border-bottom:0}
+  :root.m4 #v-market #mktBody>.tw td.l>.lk-stock{max-width:11em;display:inline-block;overflow:hidden;text-overflow:ellipsis;vertical-align:middle}
+}

@@ -3849,9 +3849,13 @@ def t_market(pg, base):
         pg.set_viewport_size({"width": w, "height": 900}); pg.wait_for_timeout(700)
         nr = pg.evaluate("""() => { const seg = document.getElementById('mktSeg2'), h = document.querySelector('#v-market h3:has(#mktTitle)'),
             card = document.getElementById('mktBody').closest('.card'); const s = seg.getBoundingClientRect(), t = h.getBoundingClientRect(), c = card.getBoundingClientRect();
-            return { below: s.top >= t.bottom - 1, inside: s.left >= c.left - 1 && s.right <= c.right + 1, hscroll: document.documentElement.scrollWidth > innerWidth + 1,
+            return { below: s.top >= t.bottom - 1, above: s.bottom <= t.top + 1, inside: s.left >= c.left - 1 && s.right <= c.right + 1, hscroll: document.documentElement.scrollWidth > innerWidth + 1,
                      s: [Math.round(s.left), Math.round(s.right), Math.round(s.top)], c: [Math.round(c.left), Math.round(c.right)], t: Math.round(t.bottom) }; }""")
-        ok(f"★ 市場明細 {w} 寬：分頁鈕換行到標題下方、不溢出內容卡、無橫向捲軸", nr["below"] and nr["inside"] and not nr["hscroll"], nr)
+        # ★ 2026-10-09（Andy：「上方全部改用分頁呈現」）：手機（≤640，html.m4）四顆改成內容卡最上面的等寬分頁，排在標題上方；800 寬照舊在標題下方
+        if w <= 640:
+            ok(f"★ 市場明細 {w} 寬（手機）：分頁在標題上方、不溢出內容卡、無橫向捲軸", nr["above"] and nr["inside"] and not nr["hscroll"], nr)
+        else:
+            ok(f"★ 市場明細 {w} 寬：分頁鈕換行到標題下方、不溢出內容卡、無橫向捲軸", nr["below"] and nr["inside"] and not nr["hscroll"], nr)
     pg.set_viewport_size({"width": 1440, "height": 900}); pg.wait_for_timeout(500)
     # 漲跌家數底下還有漲停／跌停／漲幅前段的子分頁
     click(pg, '#mktSeg2 button[data-k="updown"]', 900)
@@ -27836,6 +27840,123 @@ DGCLIP_JS = r"""
 DGCLIP_WIDTHS = (1440, 1280, 1024, 800)
 
 
+
+def t_mobile_m4_market(b, base, code):
+    """★ 2026-10-09 手機「市場明細」（#market）改版（Andy 06:1x）：
+    「上方全部改用分頁呈現／漲跌家數分上 長條圖 下清單 並且都是分段式控制／法人連續買賣超也是分段式控制以及下拉清單／
+      站上均線也是分段式控制以及下拉清單／下方的方格圖 需要依據清單篩選，有幾個分類就做幾個收合 Default 是收狀態／
+      今日關注 正常表清單形式 控制好範圍調整適當大小」（site/mobile4.js 與 mobile4.css 第 29 節）。
+    每一條都真的點、驗畫面真的換了；座標用 getBoundingClientRect 量（402×874、is_mobile、has_touch、DPR2）。"""
+    T = "手機v2"
+    vp = dict(MOBILE_VP); vp["viewport"] = {"width": 402, "height": 874}
+    ctx = b.new_context(**vp)
+    ctx.add_init_script("try{ if(!sessionStorage.getItem('m4mk')){ localStorage.clear(); localStorage.setItem('tw.live.on','0'); localStorage.setItem('tw.tourDone','1'); sessionStorage.setItem('m4mk','1'); } }catch(e){}")
+    m = ctx.new_page()
+    m.on("pageerror", lambda e: fails.append(f"{T} 市場明細 pageerror: {e} @ {m.url}"))
+    m.route("**/fonts.googleapis.com/**", lambda r: r.abort())
+    J = lambda js, *a: m.evaluate(js, *a)
+    try:
+        m.goto(base + "#market/updown", wait_until="domcontentloaded"); m.wait_for_timeout(3500)
+        # ① 頂部四頁籤：等寬、同一列、填滿、不橫捲；各點一次，內容真的換
+        t = J("""() => { const s = document.getElementById('mktSeg2'), bs = [...s.querySelectorAll('button')].map(b => b.getBoundingClientRect());
+            return { n: bs.length, w: bs.map(r => Math.round(r.width)), top: bs.map(r => Math.round(r.top)), sw: s.scrollWidth, cw: s.clientWidth,
+                     span: Math.round(bs[bs.length - 1].right - bs[0].left), vw: innerWidth, page: document.documentElement.scrollWidth,
+                     seg2nd: !!document.getElementById('mMktSeg') && getComputedStyle(document.getElementById('mMktSeg')).display !== 'none' }; }""")
+        ok(f"【{T}】市場明細頂部 4 頁籤等寬（{t['w']}）、同一列、填滿左右（{t['span']}／{t['vw']}）、不橫捲",
+           t["n"] == 4 and max(t["w"]) - min(t["w"]) <= 1 and len(set(t["top"])) == 1 and t["span"] >= t["vw"] - 40 and t["sw"] <= t["cw"] + 1, t)
+        ok(f"【{T}】市場明細的第二層「分佈圖／名單」拿掉、整頁不橫捲", not t["seg2nd"] and t["page"] <= t["vw"], t)
+        seen = []
+        for k, probe in [("streak", "#trust canvas"), ("ma", "#maTrend canvas"), ("cand", "#mktBody table"), ("updown", "#chgDist canvas")]:
+            m.locator(f"#mktSeg2 button[data-k={k}]").tap(); m.wait_for_timeout(1800)
+            seen.append(J(f"""() => ({{ h: location.hash, on: (document.querySelector('#mktSeg2 button.on') || {{}}).dataset?.k,
+                ttl: document.getElementById('mktTitle').textContent.trim().slice(0, 6), has: !!document.querySelector({probe!r}) }})"""))
+        ok(f"【{T}】市場明細四頁籤各點一次，網址、亮起的頁籤、標題與主體都真的換了",
+           all(s["h"].endswith(k) and s["on"] == k and s["has"] for s, k in zip(seen, ["streak", "ma", "cand", "updown"])) and len({s["ttl"] for s in seen}) == 4, seen)
+
+        # ② 漲跌家數：圖在清單上方、圖整張在第一屏；切「上櫃」檔數真的變；切「跌停」清單真的換
+        g = J("""() => { const c = document.getElementById('chgDist').getBoundingClientRect(), l = document.querySelector('.mktlist').getBoundingClientRect();
+            return { cb: Math.round(c.bottom), lt: Math.round(l.top), vh: innerHeight }; }""")
+        ok(f"【{T}】漲跌家數：長條圖在清單上方（圖底 {g['cb']} ≤ 清單頂 {g['lt']}），圖在第一屏（≤ {g['vh']}）", g["cb"] <= g["lt"] and g["cb"] <= g["vh"], g)
+        n0 = J("() => document.getElementById('distSub').textContent.trim()")
+        m.locator("#distMkt button", has_text="上櫃").tap(); m.wait_for_timeout(700)
+        n1 = J("() => document.getElementById('distSub').textContent.trim()")
+        ok(f"【{T}】漲跌分佈切「上櫃」後檔數真的變（{n0[:12]} → {n1[:12]}）", n0 != n1 and n1, (n0, n1))
+        seg = J("""() => { const s = document.getElementById('mktTabs'), bs = [...s.querySelectorAll('button')].map(b => b.getBoundingClientRect());
+            return { w: bs.map(r => Math.round(r.width)), top: [...new Set(bs.map(r => Math.round(r.top)))].length, sw: s.scrollWidth, cw: s.clientWidth }; }""")
+        ok(f"【{T}】漲停／跌停／漲幅／跌幅／成交值五段同一列等寬、不橫捲（{seg['w']}）", seg["top"] == 1 and max(seg["w"]) - min(seg["w"]) <= 1 and seg["sw"] <= seg["cw"] + 1, seg)
+        r0 = J("() => [...document.querySelectorAll('#mktInner tr[data-code]')].map(r => r.dataset.code).join(',')")
+        m.locator("#mktTabs button").nth(1).tap(); m.wait_for_timeout(500)
+        r1 = J("() => [...document.querySelectorAll('#mktInner tr[data-code]')].map(r => r.dataset.code).join(',') || document.getElementById('mktInner').textContent.trim()")
+        ok(f"【{T}】清單切「跌停」後內容真的換了", r0 != r1 and bool(r1), (r0[:40], r1[:40]))
+        tw = J("() => { const t = document.querySelector('#mktInner .tw'); return t ? [t.scrollWidth, t.clientWidth] : null; }")
+        ok(f"【{T}】漲跌家數清單不橫捲", tw is None or tw[0] <= tw[1] + 1, tw)
+
+        # ③ 法人連買賣：切「外資」散佈點真的變；下拉 ≥5 天後點數真的變
+        m.locator("#mktSeg2 button[data-k=streak]").tap(); m.wait_for_timeout(1800)
+        P = """() => { const c = echarts.getInstanceByDom(document.getElementById('trust')); if (!c) return null;
+            const ss = c.getOption().series || []; const pts = ss.reduce((a, s) => a + ((s.data || []).length), 0);
+            return { pts, sig: ss.map(s => (s.data || []).slice(0, 3).map(d => JSON.stringify(d.value || d)).join('|')).join('/') }; }"""
+        s0 = J(P)
+        # 先在預設的「投信」換天數（外資／合計在 ≥8 天以內都是買 40／賣 40 的上限，點數不會變），再切外資
+        m.select_option("#streakDays", "5"); m.wait_for_timeout(900)
+        s1 = J(P)
+        ok(f"【{T}】天數下拉選 ≥5 天後點數真的變（{s0 and s0['pts']} → {s1 and s1['pts']}）", s0 and s1 and s1["pts"] != s0["pts"], (s0, s1))
+        m.locator("#streakWho button[data-w=foreign]").tap(); m.wait_for_timeout(900)
+        s2 = J(P)
+        ok(f"【{T}】法人連買賣切「外資」後散佈點真的變", s1 and s2 and s1["sig"] != s2["sig"], (s1 and s1["pts"], s2 and s2["pts"]))
+        sb = J("""() => { const w = document.getElementById('streakWho').getBoundingClientRect(), d = document.getElementById('streakDays').getBoundingClientRect();
+            return { same: Math.abs(w.top - d.top) < 4, tag: document.getElementById('streakDays').tagName }; }""")
+        ok(f"【{T}】投信／外資／合計分段與天數下拉在同一列、天數是下拉", sb["same"] and sb["tag"] == "SELECT", sb)
+
+        # ④ 站上均線：圖例不畫；下拉多選勾一條 → 線多一條、取消 → 線真的少一條；方格收合段預設收起，點開才看得到
+        m.locator("#mktSeg2 button[data-k=ma]").tap(); m.wait_for_timeout(2500)
+        L = """() => { const c = echarts.getInstanceByDom(document.getElementById('maTrend')); if (!c) return null;
+            const o = c.getOption(), lg = o.legend[0], sel = lg.selected || {};
+            return { show: lg.show, drawn: (o.series || []).filter(s => sel[s.name] !== false).length }; }"""
+        l0 = J(L)
+        ms = J("""() => { const s = document.getElementById('maSeg'); return { sw: s.scrollWidth, cw: s.clientWidth, n: s.querySelectorAll('button').length,
+            top: new Set([...s.querySelectorAll('button')].map(b => Math.round(b.getBoundingClientRect().top))).size }; }""")
+        ok(f"【{T}】站上均線：七條均線分段同一列、不橫捲（{ms['n']} 顆）", ms["top"] == 1 and ms["sw"] <= ms["cw"] + 1, ms)
+        ok(f"【{T}】站上均線：手機不畫 43 個族群的圖例（改用下拉清單）", l0 and l0["show"] is False, l0)
+        f0 = J("""() => ({ folds: [...document.querySelectorAll('#mktBody .m4mafolds > .m4fold')].filter(e => !e.hidden).length,
+            open: [...document.querySelectorAll('#mktBody .m4mafolds > .m4fbox')].filter(e => !e.hidden).length,
+            vis: [...document.querySelectorAll('#mktBody .ma')].filter(e => e.getClientRects().length).length })""")
+        ok(f"【{T}】族群方格依產業鏈分 {f0['folds']} 段、預設全部收起（看得到的卡 {f0['vis']}）", f0["folds"] >= 2 and f0["open"] == 0 and f0["vis"] == 0, f0)
+        m.locator("#mktBody .m4mafolds > .m4fold").first.tap(); m.wait_for_timeout(300)
+        f1 = J("""() => { const h = document.querySelector('#mktBody .m4mafolds > .m4fold'); return { exp: h.getAttribute('aria-expanded'),
+            vis: [...document.querySelectorAll('#mktBody .ma')].filter(e => e.getClientRects().length).length }; }""")
+        ok(f"【{T}】點開第一段才看得到卡片（{f1['vis']} 張）", f1["exp"] == "true" and f1["vis"] > 0, f1)
+        m.locator("#maGroupDD .ddbtn").tap(); m.wait_for_timeout(300)
+        nm = J("() => document.querySelector('#maGroupDD .ddlist input[type=checkbox]').dataset.n")
+        m.locator("#maGroupDD .ddlist input[type=checkbox]").first.check(); m.wait_for_timeout(600)
+        l1 = J(L)
+        f2 = J("""() => ({ vis: [...document.querySelectorAll('#mktBody .ma')].filter(e => e.getClientRects().length).map(e => e.querySelector('.n').firstChild.textContent.trim()),
+            folds: [...document.querySelectorAll('#mktBody .m4mafolds > .m4fold')].filter(e => !e.hidden).length })""")
+        ok(f"【{T}】下拉勾「{nm}」→ 圖上的線多一條（{l0 and l0['drawn']} → {l1 and l1['drawn']}）", l0 and l1 and l1["drawn"] == l0["drawn"] + 1, (l0, l1))
+        ok(f"【{T}】方格跟著同一份清單篩選：只剩「{nm}」一段一張、直接展開", f2["vis"] == [nm] and f2["folds"] == 1, f2)
+        m.locator("#maGroupDD .ddlist input[type=checkbox]").first.uncheck(); m.wait_for_timeout(600)
+        l2 = J(L)
+        ok(f"【{T}】下拉取消「{nm}」→ 圖上的線真的少一條（{l1 and l1['drawn']} → {l2 and l2['drawn']}）", l1 and l2 and l2["drawn"] == l1["drawn"] - 1, (l1, l2))
+        m.mouse.click(5, 300); m.wait_for_timeout(200)
+
+        # ⑤ 今日關注：表格不橫捲；點一列展開細節（族群、綜合分、看個股頁）
+        m.locator("#mktSeg2 button[data-k=cand]").tap(); m.wait_for_timeout(1500)
+        c = J("""() => { const t = document.querySelector('#mktBody .tw'), tb = t && t.querySelector('table');
+            return t ? { sw: t.scrollWidth, cw: t.clientWidth, tw: Math.round(tb.getBoundingClientRect().width), page: document.documentElement.scrollWidth,
+                         heads: [...tb.querySelectorAll('thead th')].filter(h => h.getClientRects().length).map(h => h.textContent.trim()) } : null; }""")
+        ok(f"【{T}】今日關注表格不橫捲（{c and c['heads']}）、寬 ≤ 402", c and c["sw"] <= c["cw"] + 1 and c["page"] <= 402 and c["tw"] <= 402, c)
+        if c and m.locator("#mktBody tbody tr[data-code]").count():
+            h0 = J("() => location.hash")
+            m.locator("#mktBody tbody tr[data-code] td").nth(2).tap(); m.wait_for_timeout(300)
+            x = J("""() => { const r = document.querySelector('#mktBody tr.m4retx'); return { row: !!r, txt: r ? r.textContent : '', h: location.hash }; }""")
+            ok(f"【{T}】今日關注點一列展開細節（族群、綜合分、看個股頁），不直接跳頁", x["row"] and "族群" in x["txt"] and "看個股頁" in x["txt"] and x["h"] == h0, x)
+    finally:
+        try:
+            ctx.close()
+        except Exception:  # noqa: BLE001
+            pass
+
+
 def t_dgclip_1008(b, base):
     T = "2D 圖裁切普查1008"
     c = b.new_context(viewport={"width": 1440, "height": 1000})
@@ -28978,7 +29099,9 @@ SECTIONS = {
     # ★ 2026-09-27 手機總覽最上方：指數三格（可左右滑）＋觀察清單（2026-09-27 起是自選清單目前那一頁：localStorage tw.watchlists，只存代號；site/mobile3.js G 段＋site/watchlists.js）
     "手機總覽指數觀察清單": lambda pg, b, base, code: t_mobile_home(b, base, code),
     # ★ 2026-10-08 手機 v2（docs/mobile_v2_plan.md；site/mobile4.js）：側欄抽屜、每頁第一屏、字級／觸控、主要切換真的點得動
-    "手機v2":              lambda pg, b, base, code: (t_mobile_m4(b, base, code), t_mobile_m4_1008(b, base, code)),
+    "手機v2":              lambda pg, b, base, code: (t_mobile_m4(b, base, code), t_mobile_m4_1008(b, base, code), t_mobile_m4_market(b, base, code)),
+    # ★ 2026-10-09 手機市場明細（Andy 06:1x）單獨跑：手機v2 也包含這一段
+    "手機v2市場明細":      lambda pg, b, base, code: t_mobile_m4_market(b, base, code),
     "手機框預覽1008":      lambda pg, b, base, code: t_phone_1008(pg, b, base),
     # ★ 2026-10-09 Andy：「手機剛剛發現嚴重BUG，畫面在產業地圖點擊都會卡頓沒反應」（402×874／DPR 3／CPU 降速 4 倍；⚠ --workers 1）
     "手機產業地圖回應1009": lambda pg, b, base, code: t_m4_ind_1009(b, base),
