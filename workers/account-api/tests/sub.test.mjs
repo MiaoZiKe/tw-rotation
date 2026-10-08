@@ -184,3 +184,24 @@ test('既有 API 不受影響：未知路徑仍 404、OPTIONS 仍 204', async ()
   assert.equal((await post(hub, '/v1/nope', {})).status, 404);
   assert.equal((await hub.fetch(new Request(API + '/v1/feedback', { method: 'OPTIONS', headers: { Origin: ORIGIN } }))).status, 204);
 });
+
+/* 2026-10-09 願望清單（Andy：「意見回饋需要多一個功能：願望清單」）：type='wish' 存得住、列得出；
+   願望狀態 eval／done／no 只有管理者能設，亂填仍 400；亂填的 type 當一般反饋。*/
+test('願望清單：type=wish 存進同一張表、管理者可設 評估中／已做／不做', async () => {
+  const { hub } = makeHub(env());
+  const andy = await login(hub, 'andy@example.com');
+  const cara = await login(hub, 'cara@example.com');
+  assert.equal((await post(hub, '/v1/feedback', { t: cara, type: 'wish', cat: 'idea', body: '【願望清單】自選股價格提醒' })).status, 200);
+  assert.equal((await post(hub, '/v1/feedback', { t: cara, cat: 'bug', body: '一般反饋' })).status, 200);
+  assert.equal((await post(hub, '/v1/feedback', { t: cara, type: 'evil', cat: 'bug', body: '亂填 type 當一般反饋' })).status, 200);
+  const l = (await pj(hub, '/v1/admin/feedback/list', { t: andy })).j.feedback;
+  const w = l.find((x) => x.type === 'wish');
+  assert.ok(w && /價格提醒/.test(w.body), '願望列得出、type=wish');
+  assert.equal(l.filter((x) => x.type === 'wish').length, 1, '亂填的 type 不會變成願望');
+  for (const st of ['eval', 'done', 'no', 'new']) {
+    assert.equal((await post(hub, '/v1/admin/feedback/set', { t: andy, id: w.id, status: st })).status, 200, st);
+    assert.equal((await pj(hub, '/v1/admin/feedback/list', { t: andy })).j.feedback.find((x) => x.id === w.id).status, st);
+  }
+  assert.equal((await post(hub, '/v1/admin/feedback/set', { t: cara, id: w.id, status: 'done' })).status, 403, '非管理者不能改');
+  assert.equal((await post(hub, '/v1/admin/feedback/set', { t: andy, id: w.id, status: 'weird' })).status, 400);
+});

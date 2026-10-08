@@ -688,6 +688,8 @@ Hub.prototype.subInit = function () {
   this.q('CREATE TABLE IF NOT EXISTS feedback (id TEXT PRIMARY KEY, uid TEXT, contact TEXT, cat TEXT, body TEXT, url TEXT, ua TEXT, created INTEGER, status TEXT)');
   // 1007 v2：小類欄。舊表沒有就補（ALTER 重跑會報錯，先看 table_info）；舊資料 sub 為 NULL，前端依 FB_LEGACY 對應
   if (!this.q('PRAGMA table_info(feedback)').some((c) => c.name === 'sub')) this.q('ALTER TABLE feedback ADD COLUMN sub TEXT');
+  // 2026-10-09 願望清單：type 欄（'wish'＝願望清單，空＝一般意見回饋）。舊資料為 NULL
+  if (!this.q('PRAGMA table_info(feedback)').some((c) => c.name === 'type')) this.q('ALTER TABLE feedback ADD COLUMN type TEXT');
   this.q('CREATE TABLE IF NOT EXISTS quota_hits (uid TEXT, day TEXT, k TEXT, key TEXT, PRIMARY KEY (uid, day, k, key))');
   this.q('CREATE TABLE IF NOT EXISTS notices (id TEXT PRIMARY KEY, title TEXT, body TEXT, kind TEXT, audience TEXT, t0 INTEGER, t1 INTEGER, pinned INTEGER, created INTEGER, updated INTEGER)');
   this.q('CREATE TABLE IF NOT EXISTS notice_reads (email TEXT, id TEXT, at INTEGER, PRIMARY KEY (email, id))');
@@ -758,8 +760,9 @@ Hub.prototype.subRoutes = {
       if (!r || r[0] !== hr) { this.fbIp.set(ip, [hr, 1]); if (this.fbIp.size > 5000) this.fbIp.clear(); } else r[1]++;
     }
     const id = rand(9);
-    this.q('INSERT INTO feedback (id, uid, contact, cat, sub, body, url, ua, created, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-      id, v ? v.user.uid : '', contact, cat, sub, body, url, subClean(b.ua, 300), this.now(), 'new');
+    const type = b.type === 'wish' ? 'wish' : '';
+    this.q('INSERT INTO feedback (id, uid, contact, cat, sub, body, url, ua, created, status, type) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+      id, v ? v.user.uid : '', contact, cat, sub, body, url, subClean(b.ua, 300), this.now(), 'new', type);
     return this.json(req, { ok: true, id });
   },
   '/v1/quota/hit': async function (req, b) {
@@ -823,7 +826,7 @@ Hub.prototype.subRoutes = {
   },
   '/v1/admin/feedback/list': async function (req, b) {
     if (!(await this.admin(req, b))) return this.json(req, { error: 'forbidden' }, 403);
-    const fb = this.q('SELECT f.id, f.uid, f.contact, f.cat, f.sub, f.body, f.url, f.ua, f.created, f.status, u.name FROM feedback f LEFT JOIN users u ON u.uid = f.uid ORDER BY f.created DESC LIMIT 2000');
+    const fb = this.q('SELECT f.id, f.uid, f.contact, f.cat, f.sub, f.body, f.url, f.ua, f.created, f.status, f.type, u.name FROM feedback f LEFT JOIN users u ON u.uid = f.uid ORDER BY f.created DESC LIMIT 2000');
     const subs = this.q('SELECT s.id, s.email, s.contact, s.plan, s.period, s.note, s.created, s.status, u.name FROM sub_requests s LEFT JOIN users u ON u.uid = s.uid ORDER BY s.created DESC LIMIT 300');
     // 舊資料（cat='pay'、sub 空）在回傳時就換成新兩層，前端統計不必再認舊鍵（資料庫原樣保留，不改寫）
     return this.json(req, { feedback: fb.map(({ uid, ...r }) => { const lg = FB_LEGACY[r.cat]; return { ...r, cat: lg ? lg[0] : r.cat, sub: lg ? lg[1] : r.sub || '', legacy: lg ? r.cat : undefined, member: !!uid }; }), requests: subs });
@@ -838,7 +841,7 @@ Hub.prototype.subRoutes = {
     if (!(await this.admin(req, b))) return this.json(req, { error: 'forbidden' }, 403);
     const id = String(b.id || '');
     const isReq = b.kind === 'request';
-    const st = isReq ? (['new', 'done'].includes(b.status) ? b.status : null) : (['new', 'handled'].includes(b.status) ? b.status : null);
+    const st = isReq ? (['new', 'done'].includes(b.status) ? b.status : null) : (['new', 'handled', 'eval', 'done', 'no'].includes(b.status) ? b.status : null);   // eval／done／no＝願望清單的評估中／已做／不做
     if (!st) return this.json(req, { error: 'bad_status' }, 400);
     this.q(isReq ? 'UPDATE sub_requests SET status = ? WHERE id = ?' : 'UPDATE feedback SET status = ? WHERE id = ?', st, id);
     return this.json(req, { ok: true });

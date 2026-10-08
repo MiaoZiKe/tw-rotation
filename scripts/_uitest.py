@@ -28556,9 +28556,242 @@ def t_m4rel_1009(b, base):
     notes.append(f"{T}：共量 {steps} 個畫面，問題 {len(total)} 處")
 
 
+# ★ 2026-10-09 客服鈕1009（Andy 05:0x：「客服功能可拖曳，他擋到按鈕了」）：
+#   手機剖析圖編號抽屜打開時，右下角客服圓鈕剛好蓋在「›」下一個編號上。site/support.js 改成：
+#   可拖曳（放開吸左右邊、記 localStorage、拖不出視窗、不壓頂欄、< 6px 才算點擊）＋抽屜／彈窗／底部固定列蓋到時自動藏起來。
+#   手機觸控（390、is_mobile、has_touch、DPR2；CDP 真的送觸控事件）與網頁版滑鼠（1440）各跑一次，每一項都驗「畫面真的變了」。
+SUPFAB_JS = """() => { const f = document.getElementById('supFab'), p = document.getElementById('supPanel');
+  if (!f) return null; const r = f.getBoundingClientRect(), cs = getComputedStyle(f);
+  let ls = null; try { ls = { m: localStorage.getItem('tw.layout4.supfab.m'), d: localStorage.getItem('tw.layout4.supfab.d') }; } catch (e) {}
+  const tb = document.querySelector('header.topbar'), tr = tb ? tb.getBoundingClientRect() : null;
+  return { l: Math.round(r.left), t: Math.round(r.top), r: Math.round(r.right), b: Math.round(r.bottom), w: Math.round(r.width), h: Math.round(r.height),
+           vw: innerWidth, vh: innerHeight, vis: cs.visibility, away: f.dataset.away || '', side: f.dataset.side || '', inline: f.getAttribute('style') || '',
+           panel: !!p && !p.hidden, ls, tbB: tr ? Math.round(tr.bottom) : 0 }; }"""
+
+
+def _fab_drag(pg, cdp, x0, y0, x1, y1, steps=12):
+    """手機：CDP 送真的觸控（touchStart→touchMove×N→touchEnd）；桌機：滑鼠按住拖。"""
+    if cdp:
+        cdp.send("Input.dispatchTouchEvent", {"type": "touchStart", "touchPoints": [{"x": x0, "y": y0, "id": 1}]})
+        for i in range(1, steps + 1):
+            cdp.send("Input.dispatchTouchEvent", {"type": "touchMove", "touchPoints": [{"x": x0 + (x1 - x0) * i / steps, "y": y0 + (y1 - y0) * i / steps, "id": 1}]})
+            pg.wait_for_timeout(16)
+        cdp.send("Input.dispatchTouchEvent", {"type": "touchEnd", "touchPoints": []})
+    else:
+        pg.mouse.move(x0, y0); pg.mouse.down()
+        for i in range(1, steps + 1):
+            pg.mouse.move(x0 + (x1 - x0) * i / steps, y0 + (y1 - y0) * i / steps); pg.wait_for_timeout(16)
+        pg.mouse.up()
+    pg.wait_for_timeout(500)
+
+
+def t_supfab_1009(b, base):
+    T = "客服鈕1009"
+    for mode in ("手機觸控", "網頁滑鼠"):
+        mob = mode == "手機觸控"
+        c = b.new_context(**MOBILE_VP) if mob else b.new_context(viewport={"width": 1440, "height": 900})
+        c.add_init_script(CONSENT_PRESET + "try{localStorage.setItem('tw.live.on','0')}catch(e){}")
+        pg = c.new_page()
+        pg.on("pageerror", lambda e, mode=mode: fails.append(f"{T} {mode} pageerror: {e}"))
+        pg.route("**/fonts.googleapis.com/**", lambda r: r.abort())
+        cdp = c.new_cdp_session(pg) if mob else None
+        F = lambda: pg.evaluate(SUPFAB_JS)
+        pg.goto(base + "#overview", wait_until="domcontentloaded")
+        pg.evaluate("() => { try { localStorage.removeItem('tw.layout4.supfab.m'); localStorage.removeItem('tw.layout4.supfab.d'); } catch (e) {} }")
+        pg.reload(wait_until="domcontentloaded"); pg.wait_for_timeout(2500)
+        f0 = F()
+        edge = 16 if mob else 20
+        # ⓪ 預設位置不變：右下角、沒有任何行內位置、沒被誤藏
+        ok(f"【{T}】{mode}：沒拖過＝照舊貼右下角（右距 {f0['vw'] - f0['r']}、下距 {f0['vh'] - f0['b']}）、沒有行內位置、沒被藏",
+           abs(f0["vw"] - f0["r"] - edge) <= 2 and abs(f0["vh"] - f0["b"] - edge) <= 24 and not f0["inline"] and f0["vis"] == "visible" and not f0["away"], f0)
+        # ① 拖到左上方放開 → 位置真的變了、吸到左緣、記進 localStorage、沒打開客服
+        cx, cy = (f0["l"] + f0["r"]) / 2, (f0["t"] + f0["b"]) / 2
+        _fab_drag(pg, cdp, cx, cy, 70, 260)
+        f1 = F()
+        key = "m" if mob else "d"
+        saved = json.loads((f1["ls"] or {}).get(key) or "null")
+        ok(f"【{T}】{mode}：拖到左上方放開 → 吸到左緣（左距 {f1['l']}）、上下位置保留（top {f0['t']}→{f1['t']}）",
+           abs(f1["l"] - edge) <= 2 and abs((f1["t"] + f1["h"] / 2) - 260) <= 6 and f1["t"] < f0["t"] - 200, {"before": f0, "after": f1})
+        ok(f"【{T}】{mode}：位置寫進 localStorage（tw.layout4.supfab.{key}＝{saved}）", bool(saved) and saved.get("s") == "L" and abs(saved.get("t", -1) - f1["t"]) <= 1, f1["ls"])
+        ok(f"【{T}】{mode}：拖曳放開不會打開客服面板", not f1["panel"], f1)
+        # ② 真的重新整理（走 viewreset 正式流程）→ 位置沿用
+        real_reload(pg, wait_until="domcontentloaded"); pg.wait_for_timeout(2500)
+        f2 = F()
+        ok(f"【{T}】{mode}：重新整理後位置沿用（左距 {f2['l']}、top {f2['t']}）", abs(f2["l"] - f1["l"]) <= 2 and abs(f2["t"] - f1["t"]) <= 2 and f2["side"] == "L", {"before": f1, "after": f2})
+        # ③ 小位移（3px）點一下 → 打開客服；再拖 40px → 不打開
+        cx, cy = (f2["l"] + f2["r"]) / 2, (f2["t"] + f2["b"]) / 2
+        _fab_drag(pg, cdp, cx, cy, cx + 3, cy + 2, steps=2)
+        f3 = F()
+        ok(f"【{T}】{mode}：位移 3px 的點擊 → 客服面板真的打開", f3["panel"], f3)
+        pa = pg.evaluate("() => { const p = document.getElementById('supPanel').getBoundingClientRect(); return { l: Math.round(p.left), r: Math.round(p.right), t: Math.round(p.top), b: Math.round(p.bottom) }; }")
+        ok(f"【{T}】{mode}：鈕在左邊時面板跟著開在左邊、整個在視窗內（{pa}）", pa["l"] <= 24 and pa["t"] >= 0 and pa["b"] <= f3["vh"] and pa["r"] <= f3["vw"], pa)
+        pg.keyboard.press("Escape"); pg.wait_for_timeout(300)
+        ok(f"【{T}】{mode}：Esc 收起面板", not F()["panel"])
+        _fab_drag(pg, cdp, cx, cy, cx + 10, cy + 40, steps=6)
+        f4 = F()
+        ok(f"【{T}】{mode}：拖 40px（超過 6px）→ 不打開面板、位置跟著變（top {f2['t']}→{f4['t']}）", not f4["panel"] and abs(f4["t"] - f2["t"] - 40) <= 4, f4)
+        # ④ 拖不出視窗：往左上角外面拖 → 夾在頂欄下方；往右下角外面拖 → 夾在視窗內、吸右緣
+        cx, cy = (f4["l"] + f4["r"]) / 2, (f4["t"] + f4["b"]) / 2
+        _fab_drag(pg, cdp, cx, cy, -80, -80)
+        f5 = F()
+        ok(f"【{T}】{mode}：往左上角外面拖 → 停在視窗內、不壓頂欄（top {f5['t']} ≥ 頂欄底 {f5['tbB']}、left {f5['l']} ≥ 0）",
+           f5["l"] >= 0 and f5["t"] >= max(0, f5["tbB"]) and f5["vis"] == "visible", f5)
+        cx, cy = (f5["l"] + f5["r"]) / 2, (f5["t"] + f5["b"]) / 2
+        _fab_drag(pg, cdp, cx, cy, f5["vw"] + 120, f5["vh"] + 120)
+        f6 = F()
+        ok(f"【{T}】{mode}：往右下角外面拖 → 夾在視窗內並吸右緣（右距 {f6['vw'] - f6['r']}、下距 {f6['vh'] - f6['b']}）",
+           f6["r"] <= f6["vw"] and f6["b"] <= f6["vh"] and abs(f6["vw"] - f6["r"] - edge) <= 2 and f6["side"] == "R", f6)
+        if mob:
+            # ⑤ 剖析圖編號抽屜（Andy 截圖那一幕）：回到預設右下角 → 打開 09 → 客服鈕不准壓到抽屜裡任何按鈕；收起後回原位
+            pg.evaluate("() => { try { localStorage.removeItem('tw.layout4.supfab.m'); } catch (e) {} }")
+            pg.goto(base + "#industry/semiconductor", wait_until="domcontentloaded"); pg.wait_for_timeout(4000)
+            pg.evaluate("() => { const e = document.getElementById('prodDiagram'); if (e) window.scrollTo(0, e.getBoundingClientRect().top + scrollY - 120); }")
+            pg.wait_for_timeout(500)
+            g0 = F()
+            nos = pg.evaluate("() => [...document.querySelectorAll('#prodDiagram .mnum')].map(b => b.dataset.no)")
+            no = "09" if "09" in nos else (nos[len(nos) // 2] if nos else None)
+            ok(f"【{T}】{mode}：半導體剖析圖有編號鈕可點（{len(nos)} 顆）", bool(no), nos)
+            if no:
+                pg.tap(f'#prodDiagram .mnum[data-no="{no}"]'); pg.wait_for_timeout(700)
+                OV = """() => { const f = document.getElementById('supFab'), s = document.getElementById('mSheet');
+                  const fr = f.getBoundingClientRect(), vis = getComputedStyle(f).visibility === 'visible' && getComputedStyle(f).pointerEvents !== 'none';
+                  const bs = s && !s.hidden ? [...s.querySelectorAll('button, a')].filter(b => b.getClientRects().length) : [];
+                  const hit = vis ? bs.filter(b => { const r = b.getBoundingClientRect(); return r.left < fr.right && fr.left < r.right && r.top < fr.bottom && fr.top < r.bottom; }).map(b => b.textContent.trim().slice(0, 6)) : [];
+                  const nx = s && s.querySelector('.mshnav button[data-d="1"]'), nr = nx ? nx.getBoundingClientRect() : null;
+                  const top = nr ? document.elementFromPoint(nr.left + nr.width / 2, nr.top + nr.height / 2) : null;
+                  return { open: !!s && !s.hidden, no: s && s.dataset.no, n: bs.length, hit, vis, away: f.dataset.away || '', nextTop: !!(top && nx && (top === nx || nx.contains(top))) }; }"""
+                o1 = pg.evaluate(OV)
+                ok(f"【{T}】{mode}：打開編號 {no} 的抽屜 → 客服鈕跟抽屜裡 {o1['n']} 顆按鈕都不重疊（重疊：{o1['hit']}）",
+                   o1["open"] and o1["n"] >= 2 and not o1["hit"], o1)
+                ok(f"【{T}】{mode}：抽屜的「›」下一個編號鈕中心點最上層就是它自己（點得到）", o1["nextTop"], o1)
+                pg.tap('#mSheet .mshnav button[data-d="1"]'); pg.wait_for_timeout(500)
+                o2 = pg.evaluate(OV)
+                ok(f"【{T}】{mode}：真的點「›」→ 抽屜換到下一個編號（{o1['no']}→{o2['no']}）、客服鈕仍不擋", o2["open"] and o2["no"] != o1["no"] and not o2["hit"], o2)
+                pg.keyboard.press("Escape"); pg.wait_for_timeout(500)
+                g1 = F()
+                ok(f"【{T}】{mode}：抽屜收起 → 客服鈕回原位、看得到（{g0['l']},{g0['t']} → {g1['l']},{g1['t']}）",
+                   g1["vis"] == "visible" and not g1["away"] and abs(g1["l"] - g0["l"]) <= 2 and abs(g1["t"] - g0["t"]) <= 2, {"before": g0, "after": g1})
+        # ⑥ 初始畫面幾頁都不會被誤判成「被蓋到」而藏起來（避讓只在真的有東西蓋上來時才動）
+        pg.evaluate("() => { try { localStorage.removeItem('tw.layout4.supfab.m'); localStorage.removeItem('tw.layout4.supfab.d'); } catch (e) {} }")
+        pg.reload(wait_until="domcontentloaded"); pg.wait_for_timeout(1500)
+        bad = []
+        for r in ("overview", "flow/rotation", "industry", "stock/2330", "etf/list", "pricing", "season"):
+            pg.goto(f"{base}#{r}", wait_until="domcontentloaded"); pg.wait_for_timeout(2200)
+            x = F()
+            if not x or x["vis"] != "visible" or x["away"] or x["inline"]:
+                bad.append((r, x and x["away"], x and x["inline"]))
+        ok(f"【{T}】{mode}：7 頁初始畫面客服鈕都在預設位置、沒被誤藏（{len(bad)} 頁不對）", not bad, bad)
+        # ⑦ 帳號選單「客服 開／關」（claude/acct-menu 加的 html.fab-off）：關 → 鈕看不到、避讓觀察器斷開；開 → 回來
+        V = "() => { const f = document.getElementById('supFab'); return { vis: !!f && f.getClientRects().length > 0 && getComputedStyle(f).display !== 'none', obs: window.TwSupFab.observing() }; }"
+        k0 = pg.evaluate(V)
+        pg.evaluate("() => document.documentElement.classList.add('fab-off')"); pg.wait_for_timeout(300)
+        k1 = pg.evaluate(V)
+        ok(f"【{T}】{mode}：html 加上 fab-off → 客服鈕看不到、避讓觀察器停掉（{k0} → {k1}）", k0["vis"] and k0["obs"] and not k1["vis"] and not k1["obs"], [k0, k1])
+        pg.evaluate("() => document.documentElement.classList.remove('fab-off')"); pg.wait_for_timeout(300)
+        k2 = pg.evaluate(V)
+        ok(f"【{T}】{mode}：fab-off 拿掉 → 客服鈕回來、觀察器接回（{k2}）", k2["vis"] and k2["obs"], k2)
+        c.close()
+
+
+# ★ 2026-10-09 願望清單1009（Andy 07:0x：「再新增一個願望清單，所以我意見回饋需要多一個功能：願望清單」）：
+#   客服面板「意見反饋」分頁加分段控制器「意見回饋｜願望清單」；願望走同一條 /v1/feedback（type='wish'）；
+#   管理頁 #admin/feedback 加「全部｜意見回饋｜願望清單」篩選＋願望狀態（新／評估中／已做／不做）。假 Worker 同 客服與反饋1007。
+WISH_SHOT_DIR = os.environ.get("TW_WISH_SHOTS")
+
+
+def t_wish_1009(b, base):
+    T = "願望清單1009"
+    errs: list[str] = []
+    st = {"fb": [], "n": 0, "sent": []}
+    fbs = lambda: [x for p, x in st["sent"] if p == "/v1/feedback"]
+    for mode, mob in (("網頁", False), ("手機觸控", True)):
+        c = _fb1007_ctx(b, "member", st, mobile=mob)
+        pg = c.new_page(); pg.on("pageerror", lambda e: errs.append(str(e)))
+        pg.goto(base + "#overview", wait_until="domcontentloaded")
+        wait_until(pg, "() => !!document.getElementById('supFab') && !!window.TwAccount && !!TwAccount.user()", 10000)
+        (pg.tap if mob else pg.click)("#supFab")
+        (pg.tap if mob else pg.click)("#supPanel .sptabs button[data-t='fb']")
+        k0 = pg.evaluate("() => ({ on: (document.querySelector('#fbKind button.on') || {}).dataset?.fk, cat: !!document.getElementById('fbCat'), want: !!document.getElementById('wsWant') })")
+        ok(f"【{T}】{mode}：意見反饋分頁有「意見回饋｜願望清單」分段、預設意見回饋（類別選單在、願望表單不在）", k0["on"] == "fb" and k0["cat"] and not k0["want"], k0)
+        (pg.tap if mob else pg.click)("#fbKind button[data-fk='wish']")
+        k1 = pg.evaluate("() => ({ on: (document.querySelector('#fbKind button.on') || {}).dataset?.fk, cat: !!document.getElementById('fbCat'), want: !!document.getElementById('wsWant'), why: !!document.getElementById('wsWhy'), mail: (document.getElementById('fbMail') || {}).value })")
+        ok(f"【{T}】{mode}：切到願望清單 → 表單換成 想要的功能／為什麼需要／聯絡方式，會員 email 自動帶入（{k1['mail']}）",
+           k1["on"] == "wish" and not k1["cat"] and k1["want"] and k1["why"] and k1["mail"] == "member@example.com", k1)
+        n0 = len(fbs())
+        (pg.tap if mob else pg.click)("#fbSend"); pg.wait_for_timeout(300)
+        ok(f"【{T}】{mode}：沒填想要的功能就送 → 擋下、提示、沒有送出請求",
+           "請先寫下" in pg.inner_text("#fbMsg") and len(fbs()) == n0)
+        want = f"自選股價格提醒（{mode}）"
+        pg.fill("#wsWant", want); pg.fill("#wsWhy", "盤中不能一直盯")
+        if WISH_SHOT_DIR and not mob:
+            pg.locator("#supPanel").screenshot(path=str(pathlib.Path(WISH_SHOT_DIR) / "wish_form.png"))
+        (pg.tap if mob else pg.click)("#fbSend")
+        got = wait_until(pg, "() => /願望收到了/.test(document.getElementById('fbMsg').textContent)", 4000)
+        last = fbs()[-1] if fbs() else {}
+        ok(f"【{T}】{mode}：送出 → 顯示已收到；請求 body 含 type='wish'、cat=idea、想要的功能與理由都在",
+           bool(got) and len(fbs()) == n0 + 1 and last.get("type") == "wish" and last.get("cat") == "idea" and want in last.get("body", "") and "盤中不能一直盯" in last.get("body", ""), last)
+        ok(f"【{T}】{mode}：送出後輸入框清空、仍停在願望清單", pg.input_value("#wsWant") == "" and pg.evaluate("() => document.querySelector('#fbKind button.on').dataset.fk") == "wish")
+        c.close()
+    # 管理頁：一般反饋 1 筆＋剛才兩筆願望
+    now_ms = int(time.time() * 1000)
+    st["fb"].append({"id": "nfb1", "contact": "", "cat": "bug", "sub": "ui", "body": "一般反饋：表格跑版", "url": "", "ua": "", "created": now_ms - 3600000, "status": "new", "member": False, "name": None, "type": ""})
+    c = _fb1007_ctx(b, "admin", st)
+    pg = c.new_page(); pg.on("pageerror", lambda e: errs.append(str(e)))
+    pg.goto(base + "#admin/feedback", wait_until="domcontentloaded")
+    R = "() => [...document.querySelectorAll('#fbTable tbody tr')].map(r => ({ id: r.dataset.id, w: r.dataset.wish === '1' }))"
+    wait_until(pg, "() => document.querySelectorAll('#fbTable tbody tr').length >= 3", 25000)   # 機器忙時管理頁要等登入＋列表兩趟
+    a0 = pg.evaluate(R)
+    ok(f"【{T}】管理頁預設「全部」列 3 筆（2 筆願望＋1 筆一般）", len(a0) == 3 and sum(x["w"] for x in a0) == 2, a0)
+    pg.click("#fbFKind button[data-fk='wish']")
+    wait_until(pg, "() => document.querySelectorAll('#fbTable tbody tr').length === 2", 3000)
+    a1 = pg.evaluate(R)
+    ok(f"【{T}】點「願望清單」→ 筆數 3→{len(a1)}、全部是願望、標題換成願望清單、徽章寫願望清單",
+       len(a1) == 2 and all(x["w"] for x in a1) and "願望清單" in pg.inner_text("#fbFKind ~ .fbflt h3")
+       and pg.locator("#fbTable .fbcat.fbwish").count() == 2, a1)
+    ok(f"【{T}】願望內文不帶「【願望清單】」前綴", pg.evaluate("() => [...document.querySelectorAll('#fbTable .fbbody')].every(e => !e.textContent.includes('【願望清單】'))"))
+    ok(f"【{T}】願望列的狀態是下拉：新／評估中／已做／不做",
+       pg.evaluate("() => [...document.querySelectorAll('#fbTable select.wsst')[0].options].map(o => o.textContent).join('/')") == "新/評估中/已做/不做")
+    if WISH_SHOT_DIR:
+        pg.wait_for_timeout(500)
+        pg.screenshot(path=str(pathlib.Path(WISH_SHOT_DIR) / "wish_admin.png"), full_page=True)
+    wid = a1[0]["id"]
+    pg.select_option(f"#fbTable select.wsst[data-id='{wid}']", "eval")
+    ok(f"【{T}】把一筆願望改「評估中」→ 伺服器那筆真的變 eval、重畫後下拉停在評估中",
+       bool(wait_until(pg, f"() => {{ const s = document.querySelector(\"#fbTable select.wsst[data-id='{wid}']\"); return !!s && s.value === 'eval' && !s.disabled; }}", 4000))
+       and next(x for x in st["fb"] if x["id"] == wid)["status"] == "eval")
+    pg.select_option("#fbFSt", "eval")
+    ok(f"【{T}】狀態篩「評估中」→ 只剩那一筆", bool(wait_until(pg, f"() => {{ const r = document.querySelectorAll('#fbTable tbody tr'); return r.length === 1 && r[0].dataset.id === '{wid}'; }}", 3000)))
+    pg.select_option("#fbFSt", "")
+    pg.click("#fbFKind button[data-fk='fb']")
+    ok(f"【{T}】點「意見回饋」→ 只剩一般反饋那 1 筆、沒有願望",
+       bool(wait_until(pg, "() => { const r = document.querySelectorAll('#fbTable tbody tr'); return r.length === 1 && r[0].dataset.id === 'nfb1'; }", 3000)))
+    # 還沒更新的 Worker（只認 new／handled）：改「不做」→ 伺服器記 handled、畫面這次瀏覽仍顯示不做
+    st["old_worker"] = True
+    pg.click("#fbFKind button[data-fk='wish']")
+    wait_until(pg, "() => document.querySelectorAll('#fbTable select.wsst').length === 2", 3000)
+    wid2 = a1[1]["id"]
+    pg.select_option(f"#fbTable select.wsst[data-id='{wid2}']", "no")
+    ok(f"【{T}】舊 Worker 不認「不做」→ 退回記成已處理（伺服器 handled）、畫面仍顯示不做",
+       bool(wait_until(pg, f"() => {{ const s = document.querySelector(\"#fbTable select.wsst[data-id='{wid2}']\"); return !!s && s.value === 'no' && !s.disabled; }}", 4000))
+       and next(x for x in st["fb"] if x["id"] == wid2)["status"] == "handled")
+    st["old_worker"] = False
+    pg.set_viewport_size({"width": 390, "height": 844}); pg.wait_for_timeout(400)
+    ow = pg.evaluate("""() => ({ sw: document.documentElement.scrollWidth - innerWidth,
+        wide: [...document.querySelectorAll('#v-subadm *')].filter(e => e.getBoundingClientRect().right > innerWidth + 1 && e.getClientRects().length)
+          .slice(0, 6).map(e => e.tagName + '.' + [...e.classList].join('.') + '#' + e.id + ':' + Math.round(e.getBoundingClientRect().right)),
+        w: ['#v-subadm', '.fbstat', '#fbDayCard', '#fbDayBars', '#fbCatCard', 'main'].map(s => { const e = document.querySelector(s); return s + ':' + (e ? Math.round(e.getBoundingClientRect().width) : -1); }) })""")
+    ok(f"【{T}】390 寬管理頁願望清單沒有橫向捲軸（多出 {ow['sw']}px）", ow["sw"] <= 1, ow)
+    c.close()
+    ok(f"【{T}】整段沒有 JS 錯誤", not errs, errs[:3])
+
+
 SECTIONS = {
     # ★ 2026-10-09 Andy：「出現格式跑掉 請確實修正每個圖片」—— 手機關聯圖每條鏈每個環節：節點不重疊、文字在框內、連線接在邊上（402／360 × 深／淺）
     "手機關聯圖不重疊1009": lambda pg, b, base, code: t_m4rel_1009(b, base),
+    # ★ 2026-10-09 Andy：「再新增一個願望清單」—— 面板分段「意見回饋｜願望清單」、type='wish' 送出、管理頁篩選與願望狀態（網頁＋手機觸控）
+    "願望清單1009":        lambda pg, b, base, code: t_wish_1009(b, base),
+    # ★ 2026-10-09 Andy：「客服功能可拖曳，他擋到按鈕了」—— 拖曳、吸邊、記位置、拖不出視窗、點擊與拖曳分開、抽屜打開自動避讓（手機觸控＋網頁滑鼠各一輪）
+    "客服鈕1009":          lambda pg, b, base, code: t_supfab_1009(b, base),
     # ★ 2026-10-08 Andy：「手機版本…是否也動到網頁版本…兩者不可侵犯」—— 桌機 1440 版面指紋＋剖析圖說明卡在兩側＋關聯圖收合（⚠ --workers 1；改共用檔推 main 前必跑）
     "桌機守門1008":        lambda pg, b, base, code: t_desk_guard_1008(b, base),
     # ★ 2026-10-09 Andy：「手機版本…不能有縮放功能…不會出現這樣縮放後的 BUG」—— 只剩兩種版面（≤640 m4／>640 l4）＋手機縮放鎖（⚠ --workers 1）
@@ -54307,7 +54540,7 @@ def t_sub_1005(b, base, code):
 #   B「意見反饋需要改成是可以留在我這網上的，只有我會看到的意見資訊頁，而不用寄送 Mail」→ 送出只存 Worker；#admin/feedback 管理頁
 #   C「搜尋這邊每檔股票都要出現星星符號，點擊可以馬上加入」
 # 假 Worker 用同一份 state（訪客送 → 管理者看得到 → 標已處理 → 刪除），Worker 端的權限在 workers/account-api/tests/sub.test.mjs 驗。
-def _fb1007_ctx(b, who, st, width=1440):
+def _fb1007_ctx(b, who, st, width=1440, mobile=False):
     def handle(route):
         req = route.request
         path = re.sub(r"^https?://[^/]+", "", req.url).split("?")[0]
@@ -54329,7 +54562,8 @@ def _fb1007_ctx(b, who, st, width=1440):
         elif path == "/v1/feedback":
             st["n"] += 1
             st["fb"].insert(0, {"id": f"f{st['n']}", "contact": body.get("contact", ""), "cat": body.get("cat"), "body": body.get("body"), "url": body.get("url", ""),
-                                "ua": body.get("ua", ""), "created": int(time.time() * 1000) + st["n"], "status": "new", "sub": body.get("sub", ""), "member": bool(me), "name": me["name"] if me else None})
+                                "ua": body.get("ua", ""), "created": int(time.time() * 1000) + st["n"], "status": "new", "sub": body.get("sub", ""), "member": bool(me), "name": me["name"] if me else None,
+                                "type": "wish" if body.get("type") == "wish" else ""})
             out = {"ok": True, "id": f"f{st['n']}"}
         elif path == "/v1/notices":
             out = {"notices": []}
@@ -54337,6 +54571,8 @@ def _fb1007_ctx(b, who, st, width=1440):
             out, code = {"error": "forbidden"}, 403
         elif path == "/v1/admin/feedback/list":
             out = {"feedback": [dict(x) for x in st["fb"]], "requests": []}
+        elif path == "/v1/admin/feedback/set" and st.get("old_worker") and body.get("kind") != "request" and body.get("status") not in ("new", "handled"):
+            out, code = {"error": "bad_status"}, 400      # 模擬還沒更新的 Worker（只認 new／handled）
         elif path == "/v1/admin/feedback/set":
             for x in st["fb"]:
                 if x["id"] == body.get("id"):
@@ -54349,7 +54585,7 @@ def _fb1007_ctx(b, who, st, width=1440):
             out = {"rows": [], "users": []}
         route.fulfill(status=code, body=json.dumps(out), headers={"access-control-allow-origin": "*", "content-type": "application/json"})
 
-    c = b.new_context(viewport={"width": width, "height": 900})
+    c = b.new_context(**MOBILE_VP) if mobile else b.new_context(viewport={"width": width, "height": 900})
     c.add_init_script("window.TW_ACCOUNT_OVERRIDE = " + json.dumps({"api": SUB_API}) + ";"
                       + ("try { localStorage.setItem('tw.acct.tok', 'tok-test'); } catch (e) {}" if who else ""))
     c.route("**/fonts.googleapis.com/**", lambda r: r.abort())
