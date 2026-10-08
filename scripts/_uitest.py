@@ -49701,8 +49701,10 @@ def t_watchlists_guest(b, base):
     wait_until(pg, "() => !!document.querySelector(\"#wpList tr[data-go='2303']\")", 3000)
     ok("自選：畫面上真的出現 2303 那一列", pg.locator("#wpList tr[data-go='2303']").count() == 1)
 
-    # ⑤ 改名（✎ 鈕）
-    pg.click("#wpTabs button[data-ren]")
+    # ⑤ 改名（「⋯」→ 重新命名）
+    # ★ 2026-10-08 改前→改後（Andy：「自選 手機 網頁 這邊都要變成分頁式」）：改前 ✎／✕ 常駐在選中的膠囊上（#wpTabs button[data-ren]／[data-del-tab]）；
+    #   改後頁籤是 .nbsw 資料夾頁籤，改名／刪除收進選中頁籤右邊「⋯」（#wpMore）的選單 #wpMenu —— 所以先按 ⋯ 再按選單項，資料口徑不變。
+    pg.click("#wpMore"); pg.click("#wpMenu button[data-ren]")
     pg.fill("#wpRename", "晶圓代工")
     pg.press("#wpRename", "Enter")
     ok("自選：改名鈕改得動（半導體 → 晶圓代工）", pg.evaluate("() => TwWatch.curTab().name") == "晶圓代工")
@@ -49719,11 +49721,13 @@ def t_watchlists_guest(b, base):
     ok("自選：頁首寫著 5／5 頁", "5／5" in pg.inner_text("#wpCnt"), pg.inner_text("#wpCnt"))
 
     # ⑦ 刪除一頁（要先確認）
-    pg.click("#wpTabs button[data-del-tab]")
+    # ★ 2026-10-08 改前→改後（Andy：「自選 手機 網頁 這邊都要變成分頁式」）：改前 ✎／✕ 常駐在選中的膠囊上（#wpTabs button[data-ren]／[data-del-tab]）；
+    #   改後頁籤是 .nbsw 資料夾頁籤，改名／刪除收進選中頁籤右邊「⋯」（#wpMore）的選單 #wpMenu —— 所以先按 ⋯ 再按選單項，資料口徑不變。
+    pg.click("#wpMore"); pg.click("#wpMenu button[data-del-tab]")
     ok("自選：刪除要先確認（出現確定刪除）", pg.is_visible("#wpDelYes"))
     pg.click("#wpDelNo")
     ok("自選：按取消不會刪", pg.evaluate("() => TwWatch.tabs().length") == 5)
-    pg.click("#wpTabs button[data-del-tab]"); pg.click("#wpDelYes")
+    pg.click("#wpMore"); pg.click("#wpMenu button[data-del-tab]"); pg.click("#wpDelYes")
     ok("自選：確定刪除後剩四頁", pg.evaluate("() => TwWatch.tabs().map(t => t.name)") == ["自選 1", "晶圓代工", "AI", "PCB"],
        pg.evaluate("() => TwWatch.tabs().map(t => t.name)"))
     ok("自選：＋ 又能按了（不滿五頁）", pg.evaluate("() => document.getElementById('wpNew').disabled") is False)
@@ -49833,8 +49837,142 @@ def t_watchlists_guest(b, base):
     wait_until(m, "() => document.getElementById('mbStar').textContent.trim() === '★'", 3000)
     ok("手機自選：☆ 變成 ★", m.inner_text("#mbStar").strip() == "★")
     mctx.close()
+    _wp_tabs_1008(b, base, errs)
     ok("自選：整段沒有 JS 錯誤", not errs, errs[:3])
 
+
+
+# ===================================================================== 自選分頁式（2026-10-08）
+# Andy 10-08：「自選 手機 網頁 這邊都要變成分頁式」（截圖：清單切換是一排獨立膠囊、選中那顆常駐 ✎ ✕、「＋ 新增分頁」也是膠囊）。
+# 改後：全站共用資料夾頁籤 .nbsw；改名／刪除收進選中頁籤右邊「⋯」；最後一顆「＋」頁籤；放不下左右捲、兩端漸層；手機頁籤 ≥ 40px。
+# 每一項都真的按，驗畫面／localStorage 因此改變：
+#   1440：① 結構（.nbsw、數字在 <em> 小字、頁籤上沒有常駐 ✎ ✕、選中頁籤下緣貼著內容框上緣 ≤ 1px）
+#         ② 點頁籤換清單（表格列真的換）③ 「⋯」打開選單、Esc 與點外面都會收 ④ 「⋯→重新命名」⑤ 雙擊改名
+#         ⑥ 「⋯→刪除這一頁」要先確認、取消不刪、確定才刪 ⑦ 「＋」新增一頁並直接改名、新頁被選中
+#   390：⑧ 五頁放不下 → 頁籤列可橫捲、沒有整頁橫向捲軸、選中的頁籤（含 ⋯）在可見範圍、兩端漸層跟著捲動位置
+#        ⑨ 頁籤高 ≥ 40px ⑩ 點最左一頁 → 換頁、仍在可見範圍 ⑪ 「⋯」選單整塊在畫面內
+WPT_GEO = """() => { const bar = document.getElementById('wpTabs'), w = document.getElementById('wpTabW'), body = document.getElementById('wpBody');
+  const on = bar.querySelector('button.wptab.on'), more = document.getElementById('wpMore'), br = bar.getBoundingClientRect();
+  const r = (e) => e ? e.getBoundingClientRect() : null, ro = r(on), rm = r(more);
+  return { nbsw: bar.classList.contains('nbsw'), n: bar.querySelectorAll('button.wptab').length,
+    em: [...bar.querySelectorAll('button.wptab')].every(b => !!b.querySelector('em')),
+    pinned: bar.querySelectorAll('[data-ren], [data-del-tab], .wpic').length,
+    onId: on && on.dataset.sel, gap: ro && body ? Math.abs(ro.bottom - body.getBoundingClientRect().top) : 99,
+    vis: !!ro && ro.left >= br.left - 1 && (rm ? rm.right : ro.right) <= br.right + 1,
+    sl: bar.scrollLeft, sw: bar.scrollWidth, cw: bar.clientWidth, ovl: w.classList.contains('ovl'), ovr: w.classList.contains('ovr'),
+    hmin: Math.min(...[...bar.querySelectorAll('button')].map(b => b.getBoundingClientRect().height)),
+    page: document.documentElement.scrollWidth - innerWidth, rows: [...document.querySelectorAll('#wpList tr[data-go]')].map(t => t.dataset.go),
+    menu: !document.getElementById('wpMenu').hidden }; }"""
+
+
+def _wp_tabs_1008(b, base, errs):
+    T = "[自選分頁式]"
+    tabs = [{"id": "p1", "name": "自選 1", "codes": ["2330", "2454"]}, {"id": "p2", "name": "半導體", "codes": ["2303"]},
+            {"id": "p3", "name": "AI", "codes": []}]
+    seed = ("try{if(!sessionStorage.getItem('wpt')){sessionStorage.setItem('wpt','1');localStorage.setItem('tw.live.on','0');"
+            "localStorage.setItem('tw.watchlists'," + json.dumps(json.dumps({"v": 1, "tabs": tabs})) + ");localStorage.setItem('tw.watchcur','p1');}}catch(e){}")
+    c = b.new_context(viewport={"width": 1440, "height": 900})
+    c.add_init_script(seed)
+    pg = c.new_page()
+    pg.on("pageerror", lambda e: errs.append("分頁式 1440: " + str(e)))
+    pg.route("**/fonts.googleapis.com/**", lambda r: r.abort())
+    pg.goto(base + "#watch", wait_until="domcontentloaded")
+    wait_until(pg, "() => !!document.getElementById('wpTabs') && document.querySelectorAll('#wpList tr[data-go]').length === 2", 10000)
+    g = pg.evaluate(WPT_GEO)
+    ok(f"★ {T} ① 清單頁籤是全站共用資料夾頁籤 .nbsw、每頁一顆、數字是旁邊的小字 <em>", g["nbsw"] and g["n"] == 3 and g["em"], g)
+    ok(f"★ {T} ① 頁籤上沒有常駐的 ✎ ✕（改名／刪除收進「⋯」）", g["pinned"] == 0, g)
+    ok(f"★ {T} ① 選中頁籤下緣貼著內容框上緣（≤ 1px，資料夾式）", g["gap"] <= 1, g)
+    ok(f"{T} ① 「⋯」只在選中那顆旁邊（全列只有一顆）", pg.locator("#wpTabs .wpmore").count() == 1)
+    # ② 點頁籤換清單
+    pg.click("#wpTabs button[data-sel='p2']")
+    wait_until(pg, "() => TwWatch.cur() === 'p2'", 3000)
+    g = pg.evaluate(WPT_GEO)
+    ok(f"★ {T} ② 點「半導體」頁籤 → 選中換了、表格換成 2303", g["onId"] == "p2" and g["rows"] == ["2303"], g)
+    ok(f"{T} ② 「⋯」跟著搬到新選中的頁籤旁", pg.evaluate("() => document.getElementById('wpMore').previousElementSibling.dataset.sel") == "p2")
+    # ③ 「⋯」打開／Esc／點外面
+    pg.click("#wpMore")
+    g = pg.evaluate(WPT_GEO)
+    mr = pg.evaluate("() => { const m = document.getElementById('wpMenu').getBoundingClientRect(), b = document.getElementById('wpMore').getBoundingClientRect(); return { top: m.top, bb: b.bottom, l: m.left, r: m.right, iw: innerWidth, txt: document.getElementById('wpMenu').innerText }; }")
+    ok(f"★ {T} ③ 按「⋯」→ 選單打開，有「重新命名」「刪除這一頁」，在 ⋯ 正下方",
+       g["menu"] and "重新命名" in mr["txt"] and "刪除" in mr["txt"] and mr["top"] >= mr["bb"] - 1 and mr["r"] <= mr["iw"], mr)
+    pg.keyboard.press("Escape")
+    ok(f"{T} ③ Esc 收起選單", not pg.evaluate(WPT_GEO)["menu"])
+    pg.click("#wpMore")
+    pg.click("#wpCnt")                                   # 點卡片標題列右邊「N／M 頁」那段字＝選單外面、又不會點到任何會換頁的東西
+    pg.wait_for_timeout(200)
+    ok(f"{T} ③ 點選單外面收起選單", not pg.evaluate(WPT_GEO)["menu"])
+    # ④ 「⋯」→ 重新命名
+    pg.click("#wpMore"); pg.click("#wpMenu button[data-ren]")
+    ok(f"{T} ④ 按「重新命名」→ 頁籤變成輸入框", pg.is_visible("#wpRename"))
+    pg.fill("#wpRename", "晶圓")
+    pg.press("#wpRename", "Enter")
+    nm = [t["name"] for t in _wl_ls(pg, "tw.watchlists")["tabs"]]
+    ok(f"★ {T} ④ 「⋯→重新命名」真的改名（localStorage 與頁籤上的字都換了）", nm[1] == "晶圓" and "晶圓" in pg.inner_text("#wpTabs button[data-sel='p2']"), nm)
+    # ⑤ 雙擊改名
+    pg.dblclick("#wpTabs button[data-sel='p2']")
+    wait_until(pg, "() => !!document.getElementById('wpRename')", 3000)
+    pg.fill("#wpRename", "晶圓代工"); pg.press("#wpRename", "Enter")
+    ok(f"{T} ⑤ 雙擊頁籤直接改名", pg.evaluate("() => TwWatch.curTab().name") == "晶圓代工")
+    # ⑥ 刪除（先確認）
+    pg.click("#wpTabs button[data-sel='p3']")
+    wait_until(pg, "() => TwWatch.cur() === 'p3'", 3000)
+    pg.click("#wpMore"); pg.click("#wpMenu button[data-del-tab]")
+    ok(f"{T} ⑥ 「⋯→刪除這一頁」先跳確認、還沒刪", pg.is_visible("#wpDelYes") and pg.evaluate("() => TwWatch.tabs().length") == 3)
+    pg.click("#wpDelNo")
+    ok(f"{T} ⑥ 按取消 → 不刪、確認列收起", pg.evaluate("() => TwWatch.tabs().length") == 3 and pg.locator("#wpDelYes").count() == 0)
+    pg.click("#wpMore"); pg.click("#wpMenu button[data-del-tab]"); pg.click("#wpDelYes")
+    wait_until(pg, "() => TwWatch.tabs().length === 2", 3000)
+    g = pg.evaluate(WPT_GEO)
+    ok(f"★ {T} ⑥ 確定刪除 → 「AI」那顆頁籤真的不見、剩兩頁、localStorage 也剩兩頁",
+       g["n"] == 2 and pg.locator("#wpTabs button[data-sel='p3']").count() == 0 and len(_wl_ls(pg, "tw.watchlists")["tabs"]) == 2, g)
+    # ⑦ ＋ 新增
+    ok(f"{T} ⑦ 「＋」是頁籤列最後一顆", pg.evaluate("() => document.getElementById('wpTabs').lastElementChild.id") == "wpNew")
+    pg.click("#wpNew")
+    ok(f"{T} ⑦ 按「＋」→ 新頁直接進入改名", pg.is_visible("#wpRename"))
+    pg.fill("#wpRename", "新清單"); pg.press("#wpRename", "Enter")
+    wait_until(pg, "() => document.querySelectorAll('#wpTabs button.wptab').length === 3", 3000)
+    g = pg.evaluate(WPT_GEO)
+    ok(f"★ {T} ⑦ 「＋」真的多一頁、新頁被選中、表格是空的",
+       g["n"] == 3 and pg.evaluate("() => TwWatch.curTab().name") == "新清單" and g["onId"] == pg.evaluate("() => TwWatch.cur()") and not g["rows"]
+       and "還沒有股票" in pg.inner_text("#wpList"), g)
+    ok(f"{T} 1440 沒有整頁橫向捲軸", g["page"] <= 1, g)
+    c.close()
+
+    # 390 手機
+    tabs5 = [{"id": f"q{i}", "name": f"清單{i}號", "codes": (["2330"] if i == 1 else [])} for i in range(1, 6)]
+    seed5 = ("try{if(!sessionStorage.getItem('wpt')){sessionStorage.setItem('wpt','1');localStorage.setItem('tw.live.on','0');"
+             "localStorage.setItem('tw.watchlists'," + json.dumps(json.dumps({"v": 1, "tabs": tabs5})) + ");localStorage.setItem('tw.watchcur','q5');}}catch(e){}")
+    m = b.new_context(viewport={"width": 390, "height": 844}, is_mobile=True, has_touch=True, device_scale_factor=2)
+    m.add_init_script(seed5)
+    mp = m.new_page()
+    mp.on("pageerror", lambda e: errs.append("分頁式 390: " + str(e)))
+    mp.route("**/fonts.googleapis.com/**", lambda r: r.abort())
+    mp.goto(base + "#watch", wait_until="domcontentloaded")
+    wait_until(mp, "() => !!document.getElementById('wpTabs') && document.querySelectorAll('#wpTabs button.wptab').length === 5", 10000)
+    mp.wait_for_timeout(300)
+    g = mp.evaluate(WPT_GEO)
+    ok(f"★ {T} ⑧ 390：五頁放不下 → 頁籤列可以橫捲、整頁沒有橫向捲軸", g["sw"] > g["cw"] + 4 and g["page"] <= 1, g)
+    ok(f"★ {T} ⑧ 390：選中的最後一頁（含 ⋯）自動捲進可見範圍", g["onId"] == "q5" and g["vis"] and g["sl"] > 0, g)
+    ok(f"{T} ⑧ 390：左邊還有頁籤 → 左端有漸層提示", g["ovl"], g)
+    ok(f"★ {T} ⑨ 390：頁籤（含 ⋯ 與 ＋）高度 ≥ 40px", g["hmin"] >= 40, g)
+    ok(f"{T} ⑨ 390：選中頁籤下緣貼著內容框上緣", g["gap"] <= 1, g)
+    mp.eval_on_selector("#wpTabs", "e => { e.scrollLeft = 0; e.dispatchEvent(new Event('scroll')); }")
+    mp.wait_for_timeout(100)
+    g = mp.evaluate(WPT_GEO)
+    ok(f"{T} ⑧ 390：滑回最左 → 左端漸層消失、右端漸層出現", not g["ovl"] and g["ovr"], g)
+    mp.tap("#wpTabs button[data-sel='q1']")
+    wait_until(mp, "() => TwWatch.cur() === 'q1'", 3000)
+    mp.wait_for_timeout(200)
+    g = mp.evaluate(WPT_GEO)
+    ok(f"★ {T} ⑩ 390：點第一頁 → 換頁（表格換成 2330）、選中頁籤在可見範圍", g["onId"] == "q1" and g["rows"] == ["2330"] and g["vis"], g)
+    mp.tap("#wpMore")
+    mr = mp.evaluate("() => { const m = document.getElementById('wpMenu').getBoundingClientRect(); return { l: m.left, r: m.right, iw: innerWidth, h: document.querySelector('#wpMenu button').getBoundingClientRect().height }; }")
+    ok(f"{T} ⑪ 390：「⋯」選單整塊在畫面內、選項好按（≥ 40px）", mr["l"] >= 0 and mr["r"] <= mr["iw"] + 0.5 and mr["h"] >= 40, mr)
+    mp.tap("#wpMenu button[data-ren]")
+    mp.fill("#wpRename", "手機頁"); mp.press("#wpRename", "Enter")
+    ok(f"{T} ⑪ 390：「⋯→重新命名」生效", mp.evaluate("() => TwWatch.curTab().name") == "手機頁")
+    ok(f"{T} 390 改完名仍沒有整頁橫向捲軸", mp.evaluate("() => document.documentElement.scrollWidth - innerWidth") <= 1)
+    m.close()
 
 
 # ===================================================================== 首頁輪盤只留點＋自選獨立分頁（2026-09-28）
@@ -50019,7 +50157,9 @@ def t_wheel_watch_0928(b, base, code):
     wait_until(m, "() => location.hash === '#watch' && document.querySelectorAll('#wpTabs .wptab').length === 5", 8000)
     ok(f"{tag} ④ 點「自選」→ 到自選分頁、5 個分頁", m.evaluate("() => document.querySelectorAll('#wpTabs .wptab').length") == 5)
     m.click("#wpTabs button[data-sel='t2']"); m.wait_for_timeout(300)
-    m.click("#wpTabs button[data-ren='t2']")
+    # ★ 2026-10-08 改前→改後（Andy：「自選 手機 網頁 這邊都要變成分頁式」）：改前 ✎／✕ 常駐在選中的膠囊上（#wpTabs button[data-ren]／[data-del-tab]）；
+    #   改後頁籤是 .nbsw 資料夾頁籤，改名／刪除收進選中頁籤右邊「⋯」（#wpMore）的選單 #wpMenu —— 所以先按 ⋯ 再按選單項，資料口徑不變。
+    m.click("#wpMore"); m.click("#wpMenu button[data-ren='t2']")
     wait_until(m, "() => !!document.getElementById('wpRename')", 3000)
     m.fill("#wpRename", "手機改名"); m.press("#wpRename", "Enter"); m.wait_for_timeout(300)
     nm = [t["name"] for t in (_wl_ls(m, "tw.watchlists") or {}).get("tabs", [])]
