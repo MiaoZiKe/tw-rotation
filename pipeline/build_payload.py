@@ -690,7 +690,8 @@ def build() -> None:
     try:
         _etf_codes = set(company.loc[company["industry"].astype(str).isin(["ETF", "上櫃ETF"]), "code"].astype(str)) \
             if not company.empty and "industry" in company.columns else set()
-        _write("etf_holdings", etf_holdings.build(store.read("etf_holdings"), price, names, _etf_codes))
+        _write("etf_holdings", etf_holdings.build(store.read("etf_holdings"), price, names, _etf_codes,
+                                                  monthly=store.read("etf_holdings_monthly")))
     except Exception as exc:  # noqa: BLE001
         log.warning("ETF 成分股產出失敗：%s", exc)
     lap("ETF 成分股")

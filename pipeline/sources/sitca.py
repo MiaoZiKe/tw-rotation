@@ -112,57 +112,60 @@ def parse_top10(page: str, ym: str) -> list[dict]:
 
 
 # ───────────────────────────── 基金全名 → ETF 代號
-_ABBR = [("US", "美國"), ("美債", "美國公債"), ("非投等", "非投資等級"), ("投等", "投資級"), ("臺", "台"), ("ＥＴＦ", "ETF"),
-         ("+", ""), ("＋", "")]
-_ISSUER_WORDS = ("富蘭克林華美", "富蘭克林", "兆豐", "貝萊德", "摩根", "聯邦", "第一金", "元大", "國泰", "群益", "富邦", "統一", "凱基",
-                 "大華銀", "大華", "復華", "中信", "中國信託", "野村", "新光", "台新", "永豐", "聯博", "安聯", "玉山", "華南永昌", "街口")
+# 公會表上只有基金全名（「兆豐臺灣藍籌30ETF基金」），我們手上是證交所簡稱（「兆豐藍籌30」）。
+# 做法：兩邊都先換成同一套寫法（臺→台、US→美國、投等→投資級…），認出發行投信（只在同一家裡找），
+# 再看「簡稱去掉投信名」的每個字是不是都出現在全名裡（字序不要求：「金融債10+」對「10年期以上金融債券」）。
+# 對上兩檔以上時取全名多出來的字最少的；平手就不猜（寧可空著，也不要把 A 的成分放到 B 頭上）。
+# 2026-10-08 在 Actions 上對 306 檔公會 ETF 實跑過（probe-etf-pcf.yml mode=sitca_selftest），逐一看過對應表。
+_ABBR = [("US", "美國"), ("美債", "美國公債"), ("非投等", "非投資等級"), ("投等", "投資級"), ("投資等級", "投資級"),
+         ("臺", "台"), ("ＥＴＦ", "ETF"), ("+", ""), ("＋", ""), ("&", ""), ("-", ""), ("至", ""), ("以上", ""), ("年期", ""), ("年", "")]
+# 全名／簡稱開頭 → 投信（同一家投信的不同寫法放同一個值）
+_ISSUERS = [("富蘭克林華美", "富蘭克林華美"), ("FT", "富蘭克林華美"), ("中國信託", "中國信託"), ("中信", "中國信託"),
+            ("大華銀", "大華銀"), ("大華", "大華銀"), ("華南永昌", "華南永昌"), ("第一金", "第一金"), ("兆豐", "兆豐"),
+            ("貝萊德", "貝萊德"), ("摩根", "摩根"), ("聯邦", "聯邦"), ("元大", "元大"), ("國泰", "國泰"), ("群益", "群益"),
+            ("富邦", "富邦"), ("統一", "統一"), ("凱基", "凱基"), ("復華", "復華"), ("野村", "野村"), ("新光", "台新"), ("台新", "台新"),
+            ("永豐", "永豐"), ("聯博", "聯博"), ("安聯", "安聯"), ("玉山", "玉山"), ("街口", "街口")]
 
 
 def _norm(s: str) -> str:
-    s = re.sub(r"[（(].*?[)）]", "", str(s or ""))        # 「(基金之配息來源可能為收益平準金)」這類括號註記
+    s = re.sub(r"[（(][^)）]*[)）]", "", str(s or ""))        # 「(基金之配息來源可能為收益平準金)」這類括號註記
     s = re.sub(r"^(主動|平衡|期)", "", s.strip())
-    s = re.sub(r"^FT", "富蘭克林華美", s)                   # 證交所簡稱「FT臺灣Smart」＝富蘭克林華美
+    if "傘型基金之" in s:                                       # 「凱基全球息收ETF傘型基金之凱基10年期以上…」→ 取子基金名
+        umb, sub = s.split("傘型基金之", 1)
+        # 子基金名沒寫投信（「國泰台灣高股息傘型基金之台灣ESG永續高股息ETF基金」）→ 補上傘型基金的投信
+        pre = next((w for w, _ in _ISSUERS if umb.startswith(w)), "")
+        s = sub if (not pre or any(sub.startswith(w) for w, _ in _ISSUERS)) else pre + sub
     for a, b in _ABBR:
         s = s.replace(a, b)
     return re.sub(r"\s+", "", s)
 
 
-def _core(short: str) -> str:
-    s = _norm(short)
-    for w in _ISSUER_WORDS:
+def _split_issuer(s: str) -> tuple[str, str]:
+    """（投信, 去掉投信名的其餘部分）"""
+    for w, iss in _ISSUERS:
         if s.startswith(w):
-            return s[len(w):]
-    return s
+            return iss, s[len(w):]
+    return "", s
 
 
-def _issuer_prefix(full: str) -> str:
-    s = _norm(full)
-    for w in _ISSUER_WORDS:
-        if s.startswith(w):
-            return w
-    return ""
-
-
-def _subseq(a: str, b: str) -> bool:
-    it = iter(b)
-    return all(ch in it for ch in a)
+def _covers(core: str, body: str) -> bool:
+    """core 的每個字（含重複次數）都出現在 body 裡。"""
+    from collections import Counter
+    need, have = Counter(core), Counter(body)
+    return all(have[ch] >= n for ch, n in need.items())
 
 
 def match_code(fund: str, names: dict[str, str]) -> str | None:
-    """基金全名 → ETF 代號。names＝{代號: 簡稱}。只在同一家投信的 ETF 裡找；簡稱核心字依序出現在全名裡才算；
-    對上兩檔以上時，取「全名去掉投信與 ETF/基金 字樣後最短、而且只有一檔是最短」的；還是平手就回 None（不猜）。"""
-    full = _norm(fund)
-    pre = _issuer_prefix(fund)
-    body = full[len(pre):] if pre else full
-    body = re.sub(r"(證券投資信託|ETF|基金|傘型|子基金)", "", body)
+    """基金全名 → ETF 代號。names＝{代號: 簡稱}。"""
+    iss, body = _split_issuer(_norm(fund))
+    body = re.sub(r"(證券投資信託|ETF|基金|指數股票型|指數)", "", body)
     hits = []
     for code, short in names.items():
-        sn = _norm(short)
-        spre = _issuer_prefix(short)
-        if pre and spre and _norm(spre)[:2] != _norm(pre)[:2]:
+        siss, core = _split_issuer(_norm(short))
+        if not iss or siss != iss:
             continue
-        core = re.sub(r"(ETF)", "", _core(short))
-        if core and _subseq(core, body):
+        core = core.replace("ETF", "")
+        if core and _covers(core, body):
             hits.append((len(body) - len(core), code))
     if not hits:
         return None
@@ -171,6 +174,25 @@ def match_code(fund: str, names: dict[str, str]) -> str | None:
         log.info("公會基金「%s」對到兩檔以上（%s），不猜", fund, [c for _, c in hits[:4]])
         return None
     return hits[0][1]
+
+
+def match_all(funds: list[str], names: dict[str, str]) -> dict[str, str | None]:
+    """整批對：一檔 ETF 被兩個以上公會基金對上時，只留全名多出來的字最少的那個，其他的改回 None（不猜）。"""
+    out = {f: match_code(f, names) for f in funds}
+    by: dict[str, list[tuple[int, str]]] = {}
+    for f, c in out.items():
+        if c:
+            _, body = _split_issuer(_norm(f))
+            by.setdefault(c, []).append((len(body), f))
+    for c, lst in by.items():
+        if len(lst) > 1:
+            lst.sort()
+            keep = lst[0][1] if lst[0][0] != lst[1][0] else None
+            for _, f in lst:
+                if f != keep:
+                    out[f] = None
+            log.info("ETF %s 被 %d 個公會基金對上，留「%s」", c, len(lst), keep)
+    return out
 
 
 def top10(names: dict[str, str], ym: str | None = None, classes: list[str] | None = None,
@@ -213,7 +235,7 @@ def top10(names: dict[str, str], ym: str | None = None, classes: list[str] | Non
     if not rows:
         return pd.DataFrame(columns=COLS)
     df = pd.DataFrame(rows)
-    fmap = {f: match_code(f, names) for f in df["fund"].unique()}
+    fmap = match_all(list(df["fund"].unique()), names)
     df["etf"] = df["fund"].map(fmap)
     from .etf_pcf import issuer_of
     df["issuer"] = df["etf"].map(lambda c: issuer_of(names.get(c, "")) if c else None)

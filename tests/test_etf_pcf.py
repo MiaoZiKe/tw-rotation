@@ -88,7 +88,17 @@ def test_fetch_all_one_issuer_crash_does_not_kill_others(monkeypatch):
     monkeypatch.setattr(etf_pcf, "capital", lambda: (_ for _ in ()).throw(RuntimeError("boom")))
     ok = pd.DataFrame([{"date": "2026-10-06", "etf": "00935", "code": "2330", "name": "台積電", "weight": 23.6, "shares": 1.0,
                         "issuer": "野村", "src": "u"}])
-    for fn in ("fuhhwa", "uni", "cathay", "yuanta", "ctbc", "fsitc", "ab", "hn", "fubon", "tsit"):
+    # 2026-10-08 根因：第三、四輪新接的投信（大華銀 uob、永豐 sinopac、玉山 esun、安聯 allianz）沒有加進這張 mock 清單，
+    # 本機容器出口被擋所以照樣綠，但 GitHub Actions 上會真的打到官網、拿到真資料 → 這條斷言紅 →
+    # 每日管線卡在「跑指標庫測試」、整條沒跑（10-08 兩輪都是），資料湖一直停在 10-07 那份，00918 就變成「沒有公告」。
+    # 改法：① 清單補齊（含第五輪的聯邦 usitc）② 再加一道保險：任何漏 mock 的投信一碰網路就丟例外（被 fetch_all 吃掉、回空），
+    #       以後新接投信忘了加進來，測試也不會因為外網通不通而在本機與雲端給出不同答案。
+    def _no_net(*a, **k):
+        raise RuntimeError("測試不准連外網")
+    monkeypatch.setattr(etf_pcf.http, "session", _no_net)
+    monkeypatch.setattr(etf_pcf, "_req", _no_net)
+    for fn in ("fuhhwa", "uni", "cathay", "yuanta", "ctbc", "fsitc", "ab", "hn", "fubon", "tsit",
+               "uob", "sinopac", "esun", "allianz", "usitc"):
         monkeypatch.setattr(etf_pcf, fn, lambda *a, **k: pd.DataFrame(columns=etf_pcf.COLS))
     monkeypatch.setattr(etf_pcf, "kgi", lambda *a, **k: pd.DataFrame(columns=etf_pcf.COLS))
     monkeypatch.setattr(etf_pcf, "nomura", lambda codes: ok)

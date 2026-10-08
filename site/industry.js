@@ -5817,9 +5817,13 @@
         </tbody></table></div></div></div></div>`;
     const parts = top.map(x => ({ name: shortName(x), value: x.w, code: x.code }));
     if (restSum > 0.005) parts.push({ name: '其他', value: restSum, isOther: true, hint: `其餘 ${rest.length} 檔` });
+    /* 2026-10-08：公會月資料只揭露前十大 —— 圓環補一塊灰色「其餘（未揭露）」＝100% − 前十大合計，
+       不然 10 塊會被畫成整圈，讀者會以為前十大就是全部。*/
+    const undisclosed = rec.monthly ? Math.max(0, 100 - tot) : 0;
+    if (undisclosed > 0.05) parts.push({ name: '其餘（未揭露）', value: undisclosed, isOther: true, hint: '公會月報只揭露前十大' });
     const legEl = document.getElementById('etfHoldLegend');
     legEl.innerHTML = parts.map((d, i) => `<div class="lg${d.isOther ? ' other' : ''}" data-n="${i}"><i style="background:${d.isOther ? 'color-mix(in srgb,var(--ink-3) 38%,transparent)' : topCol(i)}"></i>`
-      + `<span class="nm">${d.isOther ? `其他 ${rest.length} 檔` : A.fmt.esc(d.name)}</span><span class="vl">${d.isOther ? '' : A.fmt.esc(String(d.code))}</span><span class="pc">${A.fmt.n(d.value, 2)}%</span></div>`).join('');
+      + `<span class="nm">${d.isOther ? (d.name === '其他' ? `其他 ${rest.length} 檔` : A.fmt.esc(d.name)) : A.fmt.esc(d.name)}</span><span class="vl">${d.isOther ? '' : A.fmt.esc(String(d.code))}</span><span class="pc">${A.fmt.n(d.value, 2)}%</span></div>`).join('');
     const pieEl = document.getElementById('etfHoldPie');
     const S = Math.round(pieEl.clientWidth || 280);
     const op = { size: S, fmtVal: (v) => A.fmt.n(v, 2) + '%', valLabel: '權重', centerLabel: `前 ${top.length} 大合計`, centerValue: A.fmt.n(topSum, 1) + '%', cursor: 'pointer' };
