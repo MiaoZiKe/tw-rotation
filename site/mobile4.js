@@ -560,3 +560,185 @@
   window.TwM4 = { open, close, isOpen: () => !!(drawer && !drawer.hidden) };
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();
 })();
+
+/* ============================================================================
+   ★ 29. 市場明細（#market）手機版（2026-10-09 Andy 06:1x，附三張截圖）
+   Andy 原話：「上方全部改用分頁呈現／漲跌家數分上 長條圖 下清單 並且都是分段式控制／
+              法人連續買賣超也是分段式控制以及下拉清單／站上均線也是分段式控制以及下拉清單／
+              下方的方格圖 需要依據清單篩選，有幾個分類就做幾個收合 Default 是收狀態，並且紅框是清單式篩選／
+              今日關注 正常表清單形式 控制好範圍調整適當大小」
+   只在 html.m4（≤640）動；桌機那條路徑（app.js drawMarket）一行沒改。樣式在 mobile4.css 第 29 節。
+     · 頂部四顆子頁（#mktSeg2）→ 等寬底線分頁（純 CSS）；mobile3.js 的第二層「分佈圖／名單」藏掉，圖與清單同頁上下排。
+     · 漲跌家數清單的五顆分頁（#mktTabs）：手機換短名「漲停／跌停／漲幅／跌幅／成交值」，檔數疊在下面一行（原名留在 title）。
+     · 站上均線：ECharts 圖例（43 個族群、分頁 1/43）手機不畫，改由既有的「族群」下拉多選（App.msDD）決定畫哪幾條；
+       下方族群方格依產業鏈分成收合段，預設全收（只有一段時直接展開），並跟著同一份下拉清單篩選。
+     · 今日關注：表格只留「股票／判定／漲跌／收盤」，族群與綜合分點一列展開在下面（同 ETF 報酬比較表的做法）。
+   觸發：只觀察 #v-market 這一塊（節流 120ms）；⚠ 不在 body 上掛 MutationObserver（另一條分支正在收斂那幾個）。
+   ============================================================================ */
+(function () {
+  'use strict';
+  const MAX = 640;
+  const root = document.documentElement;
+  const $ = (s, r) => (r || document).querySelector(s);
+  const $$ = (s, r) => Array.from((r || document).querySelectorAll(s));
+  const esc = (s) => String(s == null ? '' : s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  const isM = () => window.innerWidth <= MAX && root.classList.contains('m4');
+  const kindNow = () => { const b = $('#mktSeg2 button.on'); return (b && b.dataset.k) || ((location.hash || '').split('/')[1]) || 'updown'; };
+  const CHAIN = { semiconductor: '半導體', ai_server: 'AI 伺服器', electronics: '一般電子', software: '軟體與資訊服務', financial: '金融',
+    traditional: '傳產', infrastructure: '基礎建設', industry: '法定產業別', _other: '其他族群' };
+  const CHAIN_ORDER = Object.keys(CHAIN);
+  /* 收合段的開關只記在這一次開頁裡（Andy 10-04：市場明細的設定切分頁、離開再回來一律回預設，所以不寫 localStorage） */
+  const OPEN = new Map();
+  let chainOf = null;   // group_id → chain（groups_today）
+
+  /* 按鈕文字換短名：原字包進 .m4tx（手機藏、桌機顯示），短名放 .m4sh（只在手機顯示）；原名留在 title */
+  function shortBtn(b, short) {
+    if (b.querySelector('.m4sh')) return;
+    const n = [...b.childNodes].find((x) => x.nodeType === 3 && x.textContent.trim()); if (!n) return;
+    const tx = document.createElement('span'); tx.className = 'm4tx'; tx.textContent = n.textContent;
+    const sh = document.createElement('span'); sh.className = 'm4sh'; sh.textContent = short;
+    if (!b.title) b.title = n.textContent.trim();
+    n.replaceWith(tx, sh);
+  }
+  const LIST_SHORT = { '漲停': '漲停', '跌停': '跌停', '漲幅前段': '漲幅', '跌幅前段': '跌幅', '成交值前段': '成交值' };
+  function wireUpdown() {
+    $$('#mktTabs > button').forEach((b) => {
+      const t = [...b.childNodes].find((x) => x.nodeType === 3 && x.textContent.trim());
+      if (t && LIST_SHORT[t.textContent.trim()]) shortBtn(b, LIST_SHORT[t.textContent.trim()]);
+    });
+  }
+
+  /* ---- 站上均線：圖例不畫（改由下拉清單挑線）---- */
+  function hideLegendOpt(o) {
+    if (!o || !o.legend || Array.isArray(o.legend)) return o;
+    const g = o.grid && !Array.isArray(o.grid) ? Object.assign({}, o.grid, { top: 14 }) : o.grid;
+    return Object.assign({}, o, { legend: Object.assign({}, o.legend, { show: false }), grid: g });
+  }
+  function wireMaLegend() {
+    const el = $('#maTrend'); if (!el || typeof echarts === 'undefined') return;
+    const ci = echarts.getInstanceByDom(el); if (!ci || ci.isDisposed()) return;
+    if (!ci._m4leg) {
+      const raw = ci.setOption.bind(ci);
+      ci.setOption = (o, ...r) => raw(isM() ? hideLegendOpt(o) : o, ...r);
+      ci._m4leg = raw;
+    }
+    const op = ci.getOption(), lg = op && op.legend && op.legend[0];
+    if (isM() && lg && lg.show !== false) ci._m4leg({ legend: { show: false }, grid: { top: 14 } });
+  }
+  /* 下拉裡勾了哪幾個族群（App.msDD 的勾選框，data-n＝族群名）；沒勾＝不篩 */
+  function maPicked() { return new Set($$('#maGroupDD .ddlist input[type=checkbox]:checked').map((c) => c.dataset.n)); }
+  const cardName = (c) => { const n = $('.n', c); if (!n) return ''; const w = $('.m4nm', n); if (w) return w.textContent.trim();
+    const t = [...n.childNodes].find((x) => x.nodeType === 3); return t ? t.textContent.trim() : ''; };
+  /* 兩欄卡片的族群名太長時截斷（…）：把名字那段文字包進 span 才截得動；拆收合段時還原成原本的文字節點 */
+  function wrapName(c) {
+    const n = $('.n', c); if (!n || $('.m4nm', n)) return;
+    const t = [...n.childNodes].find((x) => x.nodeType === 3 && x.textContent.trim()); if (!t) return;
+    const sp = document.createElement('span'); sp.className = 'm4nm'; t.replaceWith(sp); sp.appendChild(t);
+  }
+  function unwrapName(c) { const w = $('.n .m4nm', c); if (w) w.replaceWith(...w.childNodes); }
+
+  /* ---- 站上均線：族群方格 → 依產業鏈收合段 ---- */
+  let foldBusy = false;
+  function wireMaFolds() {
+    const grid = $('#mktBody > .magrid'); if (!grid) return;
+    if (!chainOf) {
+      if (!window.App || !window.App.load || foldBusy) return;
+      foldBusy = true;
+      Promise.resolve(window.App.load('groups_today', { fallback: [] })).then((gt) => {
+        chainOf = {}; (gt || []).forEach((g) => { if (g && g.group_id) chainOf[g.group_id] = g.chain || '_other'; });
+      }).catch(() => { chainOf = {}; }).then(() => { foldBusy = false; if (isM()) wireMaFolds(); });
+      return;
+    }
+    let wrap = grid.nextElementSibling && grid.nextElementSibling.classList.contains('m4mafolds') ? grid.nextElementSibling : null;
+    if (!wrap) {
+      const cards = $$(':scope > .ma[data-gid]', grid); if (!cards.length) return;
+      const by = {};
+      cards.forEach((c) => { const ch = chainOf[c.dataset.gid] || '_other'; (by[ch] = by[ch] || []).push(c); if (!c.title) c.title = cardName(c); wrapName(c); });
+      const rank = (k) => { const i = CHAIN_ORDER.indexOf(k); return i < 0 ? 99 : i; };
+      const order = Object.keys(by).sort((a, b) => rank(a) - rank(b));
+      wrap = document.createElement('div'); wrap.className = 'm4mafolds'; wrap._cards = cards;
+      order.forEach((ch) => {
+        const hd = document.createElement('button'); hd.type = 'button'; hd.className = 'm4fold'; hd.dataset.ch = ch;
+        const box = document.createElement('div'); box.className = 'magrid m4fbox'; box.dataset.ch = ch;
+        by[ch].forEach((c) => box.appendChild(c));
+        hd.onclick = () => { OPEN.set(ch, box.hidden); paintFolds(); };
+        wrap.append(hd, box);
+      });
+      grid.hidden = true; grid.after(wrap);
+    }
+    paintFolds();
+  }
+  function paintFolds() {
+    const wrap = $('#mktBody .m4mafolds'); if (!wrap) return;
+    const pick = maPicked();
+    const hds = $$(':scope > .m4fold', wrap);
+    let shown = 0;
+    hds.forEach((hd) => {
+      const box = hd.nextElementSibling; let n = 0;
+      $$(':scope > .ma', box).forEach((c) => { const on = !pick.size || pick.has(cardName(c)); if (c.hidden === on) c.hidden = !on; if (on) n++; });
+      hd._n = n; if (n) shown++;
+      if (hd.hidden !== !n) hd.hidden = !n;
+    });
+    hds.forEach((hd) => {
+      const box = hd.nextElementSibling;
+      const open = !!hd._n && (shown === 1 ? true : !!OPEN.get(hd.dataset.ch));
+      if (box.hidden !== !open) box.hidden = !open;
+      if (!hd._n) return;
+      const want = `<span>${esc(CHAIN[hd.dataset.ch] || hd.dataset.ch)}</span><small>${hd._n} 個族群${pick.size ? '（已篩選）' : ''}</small><i aria-hidden="true">${open ? '▾' : '▸'}</i>`;
+      if (hd.innerHTML !== want) hd.innerHTML = want;
+      hd.setAttribute('aria-expanded', open ? 'true' : 'false');
+    });
+  }
+  function unFolds() {
+    $$('#mktBody .m4mafolds').forEach((w) => {
+      const grid = w.previousElementSibling;
+      if (grid && grid.classList.contains('magrid')) { (w._cards || []).forEach((c) => { c.hidden = false; if (c.title === cardName(c)) c.removeAttribute('title'); unwrapName(c); grid.appendChild(c); }); grid.hidden = false; }
+      w.remove();
+    });
+  }
+
+  function wire() {
+    if (!isM() || !/^#market(\/|$)/.test(location.hash || '')) return;
+    const k = kindNow();
+    if (k === 'updown') wireUpdown();
+    if (k === 'ma') { wireMaLegend(); wireMaFolds(); }
+  }
+
+  /* 今日關注表：點一列展開「族群、綜合分」與「看個股頁 ›」（原本點一列直接進個股頁 → 改成兩步，資訊收起來沒有消失） */
+  document.addEventListener('click', (e) => {
+    if (!isM() || kindNow() !== 'cand') return;
+    const tr = e.target.closest && e.target.closest('#v-market #mktBody tbody tr[data-code]'); if (!tr) return;
+    e.stopPropagation(); e.preventDefault();
+    const nx = tr.nextElementSibling;
+    if (nx && nx.classList.contains('m4retx')) { nx.remove(); tr.classList.remove('m4on'); return; }
+    const t = tr.closest('table'), heads = $$('thead th', t).map((h) => h.textContent.trim());
+    const cells = $$(':scope > td', tr);
+    const parts = [1, 3].filter((i) => cells[i]).map((i) => `<span><b>${esc(heads[i] || '')}</b> ${cells[i].innerHTML}</span>`).join('');
+    const row = document.createElement('tr'); row.className = 'm4retx';
+    row.innerHTML = `<td colspan="${heads.length}"><div class="m4retd">${parts}<a href="#stock/${esc(tr.dataset.code)}">看個股頁 ›</a></div></td>`;
+    tr.after(row); tr.classList.add('m4on');
+  }, true);
+
+  let tm = 0;
+  function kick() { clearTimeout(tm); tm = setTimeout(wire, 120); }
+  function init() {
+    const v = $('#v-market'); if (!v) return;
+    // 只看 #v-market 這一塊（drawMarket 每次整塊換 #mktBody、msDD 每次重寫清單、ECharts 第一次建立畫布都會進來）
+    new MutationObserver(() => { if (isM()) kick(); }).observe(v, { childList: true, subtree: true });
+    // 下拉清單勾選／全選／全不選：方格跟著重篩（msDD 會重寫清單 → 上面的觀察者也會進來，這裡是保險）
+    v.addEventListener('change', (e) => { if (isM() && e.target.closest && e.target.closest('#maGroupDD')) setTimeout(paintFolds, 0); });
+    let wasM = isM(), rt = 0;
+    window.addEventListener('resize', () => {
+      clearTimeout(rt); rt = setTimeout(() => {
+        const m = isM(); if (m === wasM) return; wasM = m;
+        if (!m) {     // 拉寬回桌機：拆掉收合段、讓 drawMarket 重畫一次（圖例回來）
+          unFolds();
+          if (/^#market(\/|$)/.test(location.hash || '')) window.dispatchEvent(new HashChangeEvent('hashchange'));
+        } else kick();
+      }, 200);
+    });
+    window.addEventListener('hashchange', kick);
+    kick();
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();
+})();
