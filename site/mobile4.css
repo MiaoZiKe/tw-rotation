@@ -407,3 +407,38 @@
   :root.m4 #v-pricing #prTable :is(th,td){height:auto!important;padding:5px 3px!important;line-height:1.3!important}
   :root.m4 #v-pricing #prTable tr.cat td{padding:4px!important}
 }
+
+/* ---- 29. 週期統計四點＋多組切換一律「摘要鈕 → 底部抽屜」（2026-10-09 Andy；mobile4.js 第 29 節）
+   Andy：「需要解決換行問題，可以縮窄文字、精簡」「有類似圖一的功能需要多個切換，一律用這個方式，簡潔明瞭」
+   ⚠ 全部在 @media (max-width:640px) 而且掛 :root.m4 —— 桌機一條都不吃。 */
+@media (max-width:640px){
+  /* 摘要列：同一行、不換行；摘要鈕吃剩下的寬度（放不下時字尾變「…」，完整的字在 aria-label／title），其他鈕照字寬 */
+  :root.m4 .m4ctlrow{display:flex;flex-wrap:nowrap;align-items:center;gap:6px;width:100%;margin:4px 0 6px}
+  :root.m4 .m4ctlrow>.mfilt,:root.m4 #m3Frame.m4set .m3-bar>.mfilt{display:inline-flex!important;align-items:center;gap:4px;flex:none;width:auto;max-width:none;margin:0!important;
+    min-height:40px!important;height:40px;padding:0 10px!important;white-space:nowrap}
+  :root.m4 .m4ctlrow>#mSeasonBtn,:root.m4 #m3Frame.m4set #m4M3Set{flex:1 1 auto;min-width:0}
+  :root.m4 :is(.m4ctlrow,#m3Frame.m4set .m3-bar)>.mfilt .m4st{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  :root.m4 :is(.m4ctlrow,#m3Frame.m4set .m3-bar)>.mfilt .m4sico{flex:none;opacity:.8}
+  :root.m4 :is(.m4ctlrow,#m3Frame.m4set .m3-bar)>.mfilt>i{flex:none;font-style:normal;opacity:.7}
+  :root.m4 :is(.m4ctlrow,#m3Frame.m4set .m3-bar)>.mfilt b{font-weight:700;color:var(--ink)}
+  :root.m4 .m4ctlrow>#mSeasonNum[aria-pressed=true] b{color:var(--t4-accent-solid,var(--cyan))}
+  :root.m4 .m4ctlrow>.m4gone{display:none!important}
+
+  /* 週期統計月份列：一格只有 19～25px，「12月」（12px 字約 26px）物理上放不下 → 列首（族群名稱欄上方）加一個「(月)」 */
+  :root.m4 #seasonHeatHead{position:sticky}
+  :root.m4 #seasonHeatHead::before{content:'(月)';position:absolute;left:4px;top:0;bottom:0;display:flex;align-items:center;font-size:12px;color:var(--ink-3);pointer-events:none}
+
+  /* 抽屜裡的分段控制器（圖一＝Andy 認可的範本）：每組一排、上下疊；每顆高 40（觸控下限），排序抽屜的 12 個月跟它同一套 */
+  :root.m4 .msheet :is(#seasonCtl,.m4shsegs,.mballgrid.m4mseg) .seg>button{min-height:40px}
+  :root.m4 .msheet .m4shsegs,:root.m4 .msheet .mballgrid.m4mseg{display:flex!important;flex-direction:column;align-items:flex-start;gap:10px;margin-top:10px}
+  :root.m4 .msheet .mballgrid.m4mseg>.seg>button{min-height:40px;min-width:50px;border:0;border-radius:7px;font-size:14px;padding:0 8px}
+  :root.m4 .msheet .mballgrid.m4mseg>.seg>button:not(.on){background:transparent;color:var(--ink-2)}
+
+  /* 總覽大盤走勢：走勢圖／K 線、週期收進摘要鈕；「加權｜櫃買｜台指期」換頁鈕、摘要鈕、「?」同一行 */
+  :root.m4 #m3Frame.m4set .m3-bar{flex-wrap:nowrap;gap:6px}
+  :root.m4 #m3Frame.m4set .m3-bar>:is(#m3Mode,.m3-tfsel){display:none!important}
+  :root.m4 #m3Frame.m4set .m3-bar>#mM3Sw{flex:none;margin:0!important}
+  :root.m4 #m3Frame.m4set .m3-bar>.howbtn{flex:none}
+  /* 360 寬：摘要鈕的小圖示讓位給字 */
+  @media (max-width:380px){ :root.m4 :is(.m4ctlrow,#m3Frame.m4set .m3-bar)>.mfilt .m4sico{display:none} :root.m4 :is(.m4ctlrow,#m3Frame.m4set .m3-bar)>.mfilt{padding:0 8px!important} }
+}

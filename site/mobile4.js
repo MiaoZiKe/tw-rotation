@@ -560,3 +560,170 @@
   window.TwM4 = { open, close, isOpen: () => !!(drawer && !drawer.hidden) };
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();
 })();
+
+/* ============================================================================
+   ★ 第 29 節（2026-10-09 Andy 對 430 寬「週期統計」的四點＋全站巡視）
+   Andy 原話：「需要解決換行問題，可以縮窄文字、精簡」
+             「有類似圖一的功能需要多個切換，一律用這個方式，簡潔明瞭，幫我巡視所有分頁」
+   「圖一」＝週期統計設定的底部抽屜：一個標題，下面每組一排分段控制器上下疊。這一節做三件事：
+     A. 週期統計：「設定／排序／數字」三顆收成同一行（字縮短：全部・超額・熱力・前20；排序 10月；數字 開），
+        完整的字留在 aria-label 與 title；鈕上的字每次都從當下的選項現算（順手修掉「鈕寫數字：關、格子卻有數字」的舊錯：
+        mobile3.js 在 app.js 還沒套上記住的設定之前就算好字，之後沒再更新）。
+     B. 週期統計「排序」抽屜：12 個大方格 → 兩排分段控制器（1月～6月／7月～12月），跟設定抽屜同一套樣式。
+     C. 總覽「大盤走勢」：走勢圖／K 線＋週期兩組切換收成一顆摘要鈕 → 底部抽屜（每組一排分段控制器），
+        摘要鈕跟「加權｜櫃買｜台指期」換頁鈕、「?」排成同一行（三張圖的換頁鈕配左右滑與 1/3 位置指示，所以留在畫面上）。
+   做法：只在手機（≤640、html.m4）插節點；原本的控制項一個都沒換（id、事件照舊在 app.js／market3.js／mobile3.js），
+   抽屜裡的分段鈕按下去＝去按原本那一顆。掛在 mobile3.js 的 M3.hook（換頁、跨寬度時跑），不新增 body 上的 MutationObserver。
+   ⚠ 桌機（>640）：什麼都不插；回桌機時把插過的拆掉。
+   ============================================================================ */
+(function () {
+  'use strict';
+  const $ = (s, r) => (r || document).querySelector(s);
+  const $$ = (s, r) => Array.from((r || document).querySelectorAll(s));
+  const isM = () => window.innerWidth <= 640;
+  const ICON = '<svg class="m4sico" viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 4h-7M10 4H3M21 12h-9M8 12H3M21 20h-5M12 20H3M14 2v4M8 10v4M16 18v4"/></svg>';
+  const setHTML = (el, h) => { if (el && el.innerHTML !== h) el.innerHTML = h; };
+  const setAttr = (el, k, v) => { if (el && el.getAttribute(k) !== v) el.setAttribute(k, v); };
+  const shown = (e) => !!e && e.style.display !== 'none' && !e.hidden;
+
+  /* ---------------- A. 週期統計：三顆同一行＋短字 ---------------- */
+  const SN_SHORT = { all: '全部', '10y': '10年', '5y': '5年', '3y': '3年', avg_excess: '超額', avg_return: '絕對', win_rate: '勝率', heat: '熱力', line: '長條' };
+  function snSummary() {
+    const ctl = $('#seasonCtl'); if (!ctl) return { s: '', l: '' };
+    const parts = [], full = [];
+    ['#seasonPeriod', '#seasonMetric', '#seasonView', '#seasonRows'].forEach((q) => {
+      const g = $(q, ctl); if (!g || !shown(g)) return;
+      const on = $('button.on', g); if (!on) return;
+      full.push(on.textContent.trim());
+      parts.push(q === '#seasonRows' ? (on.dataset.v === 'all' ? '全列' : '前20') : (SN_SHORT[on.dataset.v] || on.textContent.trim()));
+    });
+    return { s: parts.join('・'), l: full.join(' · ') };
+  }
+  function snPaint() {
+    const b = $('#mSeasonBtn'), s = $('#mSeasonSort'), n = $('#mSeasonNum');
+    if (b) {
+      const x = snSummary();
+      setHTML(b, `${ICON}<span class="m4st">${x.s || '設定'}</span><i aria-hidden="true">›</i>`);
+      setAttr(b, 'aria-label', '設定：' + (x.l || '預設')); setAttr(b, 'title', '週期統計設定：' + (x.l || '預設'));
+    }
+    if (s) {
+      const on = $('#seasonHeatHead button.on'), m = on ? +on.dataset.m : null;
+      setHTML(s, m ? `排序 <b>${m}月</b><i aria-hidden="true">›</i>` : '排序<i aria-hidden="true">›</i>');
+      setAttr(s, 'aria-label', m ? `依 ${m} 月由強到弱排序` : '依月份排序');
+    }
+    if (n) {
+      const nb = $('#seasonNum button'), seg = $('#seasonNum'), on = !!nb && nb.getAttribute('aria-pressed') === 'true';
+      setHTML(n, `數字 <b>${on ? '開' : '關'}</b>`);
+      setAttr(n, 'aria-pressed', String(on)); setAttr(n, 'aria-label', '格子裡的數字：' + (on ? '開' : '關'));
+      n.classList.toggle('m4gone', !shown(seg));   // 長條圖、或一格都放不下數字時，桌機那顆會收起來 → 手機這顆跟著收
+    }
+  }
+  let snT = 0;
+  const snLater = () => { clearTimeout(snT); snT = setTimeout(snPaint, 40); };
+  /* 三顆鈕被 mobile3.js 改字（textContent）時換回短字：只看這三顆自己（不是 body） */
+  const snMO = typeof MutationObserver !== 'undefined' ? new MutationObserver(snLater) : null;
+  function snWire() {
+    const b = $('#mSeasonBtn'), s = $('#mSeasonSort'), n = $('#mSeasonNum');
+    if (!b || !s || !n) return false;
+    let row = $('#m4SnRow');
+    if (!row) { row = document.createElement('div'); row.id = 'm4SnRow'; row.className = 'm4ctlrow'; b.before(row); }
+    if (b.parentNode !== row || s.parentNode !== row || n.parentNode !== row) row.append(b, s, n);
+    [b, s, n].forEach((e) => { if (!e.__m4mo && snMO) { snMO.observe(e, { childList: true, characterData: true, subtree: true }); e.__m4mo = 1; } });
+    const ctl = $('#seasonCtl');
+    if (ctl && !ctl.__m4c) { ctl.__m4c = 1; ctl.addEventListener('click', () => setTimeout(snPaint, 80)); }
+    if (!s.__m4s) { s.__m4s = 1; s.addEventListener('click', snSortSheet); }   // mobile3.js 的 onclick 先開抽屜，這裡接著把方格換成分段控制器
+    snPaint();
+    return true;
+  }
+  /* ---------------- B. 排序抽屜：12 個方格 → 兩排分段控制器 ---------------- */
+  function snSortSheet() {
+    const sh = $('#mSheet'); if (!sh || sh.hidden || sh.dataset.kind !== 'seasonsort') return;
+    const grid = $('.mballgrid', sh); if (!grid || grid.classList.contains('m4mseg')) return;
+    const on = $('#seasonHeatHead button.on'), m0 = on ? +on.dataset.m : null;
+    const row = (a) => `<div class="seg">${a.map((m) => `<button type="button" data-m="${m}" class="${m === m0 ? 'on' : ''}" aria-pressed="${m === m0}">${m}月</button>`).join('')}</div>`;
+    grid.classList.add('m4mseg');   // 點擊照舊由 mobile3.js 掛在 .mballgrid 上的委派處理（closest('button[data-m]')）
+    grid.innerHTML = row([1, 2, 3, 4, 5, 6]) + row([7, 8, 9, 10, 11, 12]);
+  }
+  function snUnwire() {
+    const row = $('#m4SnRow'); if (!row) return;
+    const ctl = $('#seasonCtl');
+    $$('button', row).forEach((e) => { if (ctl) ctl.before(e); });
+    row.remove();
+  }
+
+  /* ---------------- C. 總覽大盤走勢：走勢圖／K 線＋週期 → 一顆摘要鈕＋底部抽屜 ---------------- */
+  function m3Summary() {
+    const k = $('#m3Mode button[data-m="k"]'), isK = !!k && k.classList.contains('on');
+    const tf = $('#m3Tf'), tt = tf && tf.options[tf.selectedIndex] ? tf.options[tf.selectedIndex].text.trim() : '';
+    return isK ? `K 線・${tt}` : '走勢圖';
+  }
+  function m3Paint() {
+    const b = $('#m4M3Set'); if (!b) return;
+    const t = m3Summary();
+    setHTML(b, `${ICON}<span class="m4st">${t}</span><i aria-hidden="true">›</i>`);
+    setAttr(b, 'aria-label', '大盤走勢設定：' + t); setAttr(b, 'title', '大盤走勢設定：' + t);
+  }
+  function m3SheetBody(body) {
+    const isK = !!$('#m3Mode button[data-m="k"].on'), tf = $('#m3Tf');
+    const seg = (attr, items) => `<div class="seg">${items.map(([v, t, on]) => `<button type="button" ${attr}="${v}" class="${on ? 'on' : ''}" aria-pressed="${!!on}">${t}</button>`).join('')}</div>`;
+    let h = seg('data-m3m', $$('#m3Mode button').map((x) => [x.dataset.m, x.textContent.trim(), x.classList.contains('on')]));
+    if (isK && tf) h += seg('data-m3t', Array.from(tf.options).map((o) => [o.value, o.text.trim(), o.value === tf.value]));
+    body.innerHTML = h;
+  }
+  function m3Open() {
+    const api = window.M3; if (!api) return;
+    const wrap = document.createElement('div');
+    wrap.innerHTML = '<div class="mshhead"><b>大盤走勢設定</b></div><div class="m4shsegs" id="m4M3Segs"></div>';
+    const body = $('.m4shsegs', wrap);
+    m3SheetBody(body);
+    body.addEventListener('click', (e) => {
+      const bm = e.target.closest('button[data-m3m]'), bt = e.target.closest('button[data-m3t]');
+      if (bm) { const o = $(`#m3Mode button[data-m="${bm.dataset.m3m}"]`); if (o && !o.classList.contains('on')) o.click(); }
+      else if (bt) { const tf = $('#m3Tf'); if (tf && tf.value !== bt.dataset.m3t) { tf.value = bt.dataset.m3t; tf.dispatchEvent(new Event('change', { bubbles: true })); } }
+      else return;
+      setTimeout(() => { m3SheetBody(body); m3Paint(); }, 30);
+    });
+    api.openSheet(wrap, { kind: 'm3set', onClose: m3Paint });
+  }
+  function m3Wire() {
+    const fr = $('#m3Frame'), bar = fr && $('.m3-bar', fr), mode = $('#m3Mode'), sw = $('#mM3Sw');
+    if (!bar || !mode || !sw) return false;
+    let b = $('#m4M3Set');
+    if (!b || !fr.contains(b)) {
+      if (b) b.remove();
+      b = document.createElement('button'); b.type = 'button'; b.id = 'm4M3Set'; b.className = 'mfilt';
+      b.setAttribute('aria-haspopup', 'dialog');
+      b.onclick = m3Open;
+    }
+    const how = $(':scope > .howbtn', bar);
+    if (sw.parentNode !== bar) bar.insertBefore(sw, how || null);   // 換頁鈕搬進同一行（mobile3.js 回桌機時整顆拆掉）
+    if (b.previousElementSibling !== sw) sw.after(b);
+    fr.classList.add('m4set');
+    m3Paint();
+    return true;
+  }
+  function m3Unwire() {
+    const b = $('#m4M3Set'); if (b) b.remove();
+    const fr = $('#m3Frame'); if (fr) fr.classList.remove('m4set');
+    const sw = $('#mM3Sw'), g = $('#m3Grid'); if (sw && g && sw.nextElementSibling !== g) g.before(sw);
+  }
+
+  /* ---------------- 生命週期：換頁／跨寬度時跑（mobile3.js 的 hook），頁面內容晚到就再試幾次 ---------------- */
+  let tries = [];
+  function on() {
+    tries.forEach(clearTimeout); tries = [];
+    if (!isM()) return;
+    const run = () => {
+      if (!isM()) return true;
+      const cur = (location.hash.replace('#', '').split('/')[0]) || 'overview';
+      if (cur === 'season') return snWire();
+      if (cur === 'overview') return m3Wire();
+      return true;
+    };
+    if (run()) return;
+    [150, 500, 1200, 2500, 4500].forEach((t) => tries.push(setTimeout(run, t)));
+  }
+  function off() { tries.forEach(clearTimeout); tries = []; snUnwire(); m3Unwire(); }
+  function boot() { if (window.M3 && window.M3.hook) window.M3.hook({ on, off }); }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot); else boot();
+})();
