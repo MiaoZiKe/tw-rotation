@@ -1,0 +1,295 @@
+====================================================================================================
+[extra-0] https://www.usitc.com.tw/CustCenter/BuyBackList
+  最終網址: https://www.usitc.com.tw/CustCenter/BuyBackList  標題: 聯邦投信-申購買回清單
+    連結: ETF專區 -> https://www.usitc.com.tw/CustCenter/BuyBackList#
+    連結: 申購買回清單 -> https://www.usitc.com.tw/CustCenter/BuyBackList
+    連結: 配息紀錄 -> https://www.usitc.com.tw/Fund/FundDividend_ETF
+    連結: ETF問答集 -> https://www.usitc.com.tw/CustCenter/Etf_QA
+    連結: 申購買回流程 -> https://www.usitc.com.tw/CustCenter/buyStep
+    連結: 申購買回清單 -> https://www.usitc.com.tw/CustCenter/BuyBackList#list-fid
+    連結: 基金成分股 -> https://www.usitc.com.tw/CustCenter/BuyBackList#list-pbl
+  XHR／文件請求 1 個：
+     200 GET https://www.usitc.com.tw/CustCenter/BuyBackList
+        resp='<!DOCTYPE html>\r\n<html>\r\n<head>\r\n    <meta charset="UTF-8">\r\n    <meta name="viewport" content="width=device-width, initial-scale=1.0">\r\n    <meta name="format-detection" content="telephone=no">\r\n    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">\r\n    <title>聯邦投信-申購買回清單</title>\r\n    '
+  含成分股字樣的回應 1 個：
+   ★ 200 GET https://www.usitc.com.tw/CustCenter/BuyBackList
+     type: text/html; charset=utf-8  bytes: 56673
+     開頭: <!DOCTYPE html> <html> <head>     <meta charset="UTF-8">     <meta name="viewport" content="width=device-width, initial-scale=1.0">     <meta name="format-detection" content="telephone=no">     <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">     <title>聯邦投信-申購買回清單</title>     <link rel="shortcut icon" href="/favicon.ico" type="image/x-icon" />           <meta data-n-head="ssr" data-hid="keywords" name="keywords" content="聯邦, 聯邦投信, 聯邦基金理財網,基金管理平台, 聯邦基金理財網,基金,投資理財,基金投資">
+     2330 前後: tr>                                             </thead>                                             <tbody>                                                 <div class="card stepTitle">                                                                  <tr data-toggle="collapse" class="accordion-toggle">                                                                     <td data-title="股票代號">2330</td>                                                                     <td data-title="股票名稱">台積電</td>                                                                     <td data-title="股數">399,525</td>                                                                     <td data-title="權重">29.5002</td>                                                                 </tr>               
+====================================================================================================
+[extra-1] https://www.usitc.com.tw/CustCenter/NavDetail
+  最終網址: https://www.usitc.com.tw/CustCenter/NavDetail  標題: 聯邦投信-淨值組成查詢
+    連結: ETF專區 -> https://www.usitc.com.tw/CustCenter/NavDetail#
+    連結: 申購買回清單 -> https://www.usitc.com.tw/CustCenter/BuyBackList
+    連結: 配息紀錄 -> https://www.usitc.com.tw/Fund/FundDividend_ETF
+    連結: ETF問答集 -> https://www.usitc.com.tw/CustCenter/Etf_QA
+    連結: 申購買回流程 -> https://www.usitc.com.tw/CustCenter/buyStep
+  XHR／文件請求 1 個：
+     200 GET https://www.usitc.com.tw/CustCenter/NavDetail
+        resp='<!DOCTYPE html>\r\n<html>\r\n<head>\r\n    <meta charset="UTF-8">\r\n    <meta name="viewport" content="width=device-width, initial-scale=1.0">\r\n    <meta name="format-detection" content="telephone=no">\r\n    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">\r\n    <title>聯邦投信-淨值組成查詢</title>\r\n    '
+  含成分股字樣的回應 1 個：
+   ★ 200 GET https://www.usitc.com.tw/CustCenter/NavDetail
+     type: text/html; charset=utf-8  bytes: 33486
+     開頭: <!DOCTYPE html> <html> <head>     <meta charset="UTF-8">     <meta name="viewport" content="width=device-width, initial-scale=1.0">     <meta name="format-detection" content="telephone=no">     <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">     <title>聯邦投信-淨值組成查詢</title>     <link rel="shortcut icon" href="/favicon.ico" type="image/x-icon" />           <meta data-n-head="ssr" data-hid="keywords" name="keywords" content="聯邦, 聯邦投信, 聯邦基金理財網,基金管理平台, 聯邦基金理財網,基金,投資理財,基金投資">
+     2330 前後: Center?PType=8" style="font-size:16px;">ESG基金專區</a></h3>  							<h3><a href="/CustCenter/InfoCenter?PType=9" style="font-size:16px;">反金融投資詐騙專區</a></h3>                              <h3><a href="/CustCenter/InfoCenter?PType=11" style="font-size:16px;">永續發展專區</a></h3>                         </nav>                         <br />                         <p style="font-size:16px;">本網站建議使用Chrome、Microsoft Edge以上版本瀏覽器，以獲得最佳瀏覽體驗</p>                     </div>                 </div>             </div>         </div>             <div class="footer-copyright">                 <div class="gd_seal">                                          <p class="ml-3">                         客服信箱 <i class="fas fa-envelope"></i><a href="mailto:usitc.cs@usitc.com.tw"> usitc.cs@usitc.com.tw</a> | 客服專線
+====================================================================================================
+[extra-2] https://www.blackrock.com/tw/products/345655/
+  最終網址: https://www.blackrock.com/tw/products/345655/  標題: Access Denied
+  XHR／文件請求 1 個：
+     403 GET https://www.blackrock.com/tw/products/345655/
+        resp='<HTML><HEAD>\n<TITLE>Access Denied</TITLE>\n</HEAD><BODY>\n<H1>Access Denied</H1>\n \nYou don\'t have permission to access "http&#58;&#47;&#47;www&#46;blackrock&#46;com&#47;tw&#47;products&#47;345655&#47;" on this server.<P>\nReference&#32;&#35;18&#46;650c0317&#46;1791463288&#46;70435851\n<P>https&#58;&#47;'
+  含成分股字樣的回應 0 個：
+====================================================================================================
+[extra-3] https://www.blackrock.com/tw/ishares/global-allcap-equity-etf
+  networkidle 等不到（照樣往下）: TimeoutError Page.goto: Timeout 45000ms exceeded.
+Call log:
+  - navigating to "https://www.blackrock.com/tw/ishares/global-allcap-equ
+  最終網址: https://www.blackrock.com/tw/ishares/global-allcap-equity-etf  標題: 世界不只一站 投資，也不必只停一站丨009826丨貝萊德iShares – BlackRock
+    連結: Skip to content -> https://www.blackrock.com/tw/ishares/global-allcap-equity-etf#bodyWrapper
+    連結: 登入 -> https://www.blackrock.com/tw/sign-on.oauth?redirectUrl=%2Ftw%2Fishares%2Fglobal-allcap-equity-etf%3FsignInAppWithOkta%3Dtrue
+    連結: 基金總覽 -> https://www.blackrock.com/tw/ishares/global-allcap-equity-etf#
+    連結: 焦點基金 -> https://www.blackrock.com/tw/ishares/global-allcap-equity-etf#
+    連結: iShares ETF專區 -> https://www.blackrock.com/tw/ishares/global-allcap-equity-etf#
+    連結: 投資觀點 -> https://www.blackrock.com/tw/ishares/global-allcap-equity-etf#
+    連結: 資料中心 -> https://www.blackrock.com/tw/ishares/global-allcap-equity-etf#
+    連結: 關於我們 -> https://www.blackrock.com/tw/ishares/global-allcap-equity-etf#
+    連結: iShares安碩ETF -> https://www.blackrock.com/tw/products/products-list#/?productView=ishares&dataView=perfNav
+    連結: 認識貝萊德iShares ETF -> https://www.blackrock.com/tw/ishares
+    連結: 009826 -> https://www.blackrock.com/tw/ishares/global-allcap-equity-etf
+    連結: 00991B -> https://www.blackrock.com/tw/ishares/global-usd-a-bond-etf
+    連結: ETF即時預估淨值 -> https://www.blackrock.com/tw/ishares/inav
+    連結: ETF公告 -> https://www.blackrock.com/tw/ishares/etf-announcement
+    連結: ETF配息資訊 -> https://www.blackrock.com/tw/etf-dividend-record
+    連結: 定期定額券商一覽表 -> https://www.blackrock.com/tw/etf-regular-savings-plan
+    連結: 收益平準金專區 -> https://www.blackrock.com/tw/ishares/etf-income-equalization-education
+    連結: 常見問題 -> https://www.blackrock.com/tw/ishares/etf-frequently-asked-questions
+    連結: 基金收益分配資料異動申請書 -> https://www.blackrock.com/tw/literature/forms/blackrock-etf-data-change-request-form.pdf
+    連結: 現金申購/買回/撤銷申購/撤銷買回申請書 -> https://www.blackrock.com/tw/literature/forms/blackrock-subscription-buyback-cancellation-application.pdf
+    連結: Vast
+全球一次買 -> https://www.blackrock.com/tw/ishares/global-allcap-equity-etf#vast
+    連結: Trend
+趨勢自動跟 -> https://www.blackrock.com/tw/ishares/global-allcap-equity-etf#trend
+    連結: +Plus
+世界級把關 -> https://www.blackrock.com/tw/ishares/global-allcap-equity-etf#plus
+    連結: 基金小檔案 -> https://www.blackrock.com/tw/ishares/global-allcap-equity-etf#fund-profile
+    連結: 立即申購 -> https://www.blackrock.com/tw/ishares/global-allcap-equity-etf#subscribe-now
+    連結: 點我認識貝萊德iShares ETF -> https://www.blackrock.com/tw/ishares
+    連結: 了解更多 › -> https://www.blackrock.com/tw/ishares/global-allcap-equity-etf
+    連結: DM -> https://www.blackrock.com/tw/literature/brochure/ishares-009826-flyer.pdf
+    連結: 公開說明書 -> https://www.blackrock.com/tw/literature/prospectus/009826-00991b-umbrella-etf-prospectus.pdf
+    連結: 簡式公開說明書 -> https://www.blackrock.com/tw/literature/prospectus/009826-umbrella-etf-prospectus-simplified.pdf
+    連結: iShares安碩ETF -> https://www.blackrock.com/tw/products/products-list#/?productView=ishares&dataView=perfNav
+    連結: 認識貝萊德iShares ETF -> https://www.blackrock.com/tw/ishares
+    連結: 009826 -> https://www.blackrock.com/tw/ishares/global-allcap-equity-etf
+    連結: 00991B -> https://www.blackrock.com/tw/ishares/global-usd-a-bond-etf
+    連結: ETF即時預估淨值 -> https://www.blackrock.com/tw/ishares/inav
+    連結: ETF公告 -> https://www.blackrock.com/tw/ishares/etf-announcement
+    連結: ETF配息資訊 -> https://www.blackrock.com/tw/etf-dividend-record
+    連結: 定期定額券商一覽表 -> https://www.blackrock.com/tw/etf-regular-savings-plan
+    連結: 收益平準金專區 -> https://www.blackrock.com/tw/ishares/etf-income-equalization-education
+    連結: 常見問題 -> https://www.blackrock.com/tw/ishares/etf-frequently-asked-questions
+    連結: 基金收益分配資料異動申請書 -> https://www.blackrock.com/tw/literature/forms/blackrock-etf-data-change-request-form.pdf
+    連結: 現金申購/買回/撤銷申購/撤銷買回申請書 -> https://www.blackrock.com/tw/literature/forms/blackrock-subscription-buyback-cancellation-application.pdf
+    連結: 金融友善服務專區 -> https://www.blackrock.com/tw/literature/publication/disability-customer-service.pdf
+  XHR／文件請求 22 個：
+     200 GET https://www.blackrock.com/tw/ishares/global-allcap-equity-etf
+        resp='<!DOCTYPE html>\n<html xmlns="http://www.w3.org/1999/xhtml" prefix="og: http://ogp.me/ns#" lang="zh-TW" xml:lang="zh-TW">\n<head>\n<link rel="preload" href="/apac-retail-c-assets/include/bundles/minified-a08f3474d776f30e0e0f0655abd90b53.css" as="style" />\n<link rel="preload" href="/apac-retail-c-assets'
+     200 GET https://cdn.cookielaw.org/consent/1d844f07-6416-4f37-97e9-e7e8b80732f2/1d844f07-6416-4f37-97e9-e7e8b80732f2.json
+        resp='{"CookieSPAEnabled":false,"CookieSameSiteNoneEnabled":false,"CookieV2CSPEnabled":true,"MultiVariantTestingEnabled":false,"UseV2":true,"MobileSDK":false,"SkipGeolocation":false,"ScriptType":"PRODUCTION","Version":"202609.1.0","OptanonDataJSON":"1d844f07-6416-4f37-97e9-e7e8b80732f2","GeolocationUrl":"'
+     200 GET https://geolocation.onetrust.com/cookieconsentpub/v1/geo/location
+        resp='{"country":"US","state":"VA","stateName":"Virginia","continent":"NA"}'
+     200 GET https://cdn.cookielaw.org/consent/1d844f07-6416-4f37-97e9-e7e8b80732f2/0199190f-a997-7151-87ee-00c0af94baf1/en.json
+        resp='{"DomainData":{"pclifeSpanYr":"Year","pclifeSpanYrs":"Years","pclifeSpanSecs":"A few seconds","pclifeSpanWk":"Week","pclifeSpanWks":"Weeks","pccontinueWithoutAcceptText":"Continue without Accepting","pccloseButtonType":"Icon","MainText":"Manage your cookies","MainInfoText":"BlackRock uses cookies to'
+     200 GET https://cdn.cookielaw.org/scripttemplates/202609.1.0/assets/v2/otPcCenter.json
+        resp='\n        {\n            "name": "otPcCenter",\n            "html": "PGRpdiBpZD0ib25ldHJ1c3QtcGMtc2RrIiBjbGFzcz0ib3RQY0NlbnRlciBvdC1oaWRlIG90LWZhZGUtaW4iPjxkaXYgcm9sZT0iZGlhbG9nIiBhcmlhLW1vZGFsPSJ0cnVlIj48IS0tIENsb3NlIEJ1dHRvbiAtLT48ZGl2IGNsYXNzPSJvdC1wYy1oZWFkZXIiPjwhLS0gTG9nbyBUYWcgLS0+PGRpdiBjbGFzcz'
+     200 GET https://cdn.cookielaw.org/scripttemplates/202609.1.0/assets/otFlat.json
+        resp='\n            {\n                "name": "otFlat",\n                "html": "PGRpdiBpZD0ib25ldHJ1c3QtYmFubmVyLXNkayIgY2xhc3M9Im90RmxhdCI+PGRpdiByb2xlPSJkaWFsb2ciPjxkaXYgY2xhc3M9Im90LXNkay1jb250YWluZXIiPjxkaXYgY2xhc3M9Im90LXNkay1yb3ciPjxkaXYgaWQ9Im9uZXRydXN0LWdyb3VwLWNvbnRhaW5lciIgY2xhc3M9Im90LXNkay1laW'
+     200 GET https://cdn.cookielaw.org/scripttemplates/202609.1.0/assets/otCommonStyles.css
+        resp='#onetrust-banner-sdk .onetrust-vendors-list-handler{cursor:pointer;color:#1f96db;font-size:inherit;font-weight:bold;text-decoration:none;margin-left:5px;white-space:normal;word-wrap:break-word;text-align:left}#onetrust-banner-sdk .onetrust-vendors-list-handler:hover{color:#1f96db}#onetrust-banner-sd'
+     200 GET https://cdn.cookielaw.org/logos/static/ot_guard_logo.svg
+        resp='<svg xmlns="http://www.w3.org/2000/svg"><path class="ot-floating-button__svg-fill" d="M14.588 0l.445.328c1.807 1.303 3.961 2.533 6.461 3.688 2.015.93 4.576 1.746 7.682 2.446 0 14.178-4.73 24.133-14.19 29.864l-.398.236C4.863 30.87 0 20.837 0 6.462c3.107-.7 5.668-1.516 7.682-2.446 2.709-1.251 5.01-2.5'
+     200 POST https://securemetrics.blackrock.com/b/ss//6
+        body=<?xml version="1.0" encoding="UTF-8"?><request><sc_xml_ver>1.0</sc_xml_ver><reportSuiteID>blk-anonymised-prod</reportSuiteID><server>blk-anonymised-prod</server><browserHeight>720</browserHeight><browserWidth>1280</browserWidth><colorDepth>24</colorDepth><channel>content</channel><pageName>tw-one|co
+        resp='<?xml version="1.0" encoding="UTF-8"?>\n<status>SUCCESS</status>\n'
+     200 GET https://dpm.demdex.net/id?d_visid_ver=3.3.0&d_fieldgroup=MC&d_rtbd=json&d_ver=2&d_orgid=631FF31455E575197F000101%40AdobeOrg&d_nsid=0&ts=1791463295712
+        resp='{"d_mid":"24031453306168008761403838136215063686","id_sync_ttl":604800,"d_blob":"6G1ynYcLPuiQxYZrsz_pkqfLG9yMXBpb2zX5dvJdYQJzPXImdj0y","dcs_region":7,"d_ottl":7200,"ibs":[],"subdomain":"blackrock","tid":"bZfR/RUrpW0="}'
+     200 POST https://api.company-target.com/api/v3/ip.json?referrer=&page=https%3A%2F%2Fwww.blackrock.com%2Ftw%2Fishares%2Fglobal-allcap-equity-etf&page_title=%E4%B8%96%E7%95%8C%E4%B8%8D%E5%8F%AA%E4%B8%80%E7%AB%99%20%E6%8A%95%E8%B3%87%EF%BC%8C%E4%B9%9F%E4%B8%8D%E5%BF%85%E5%8F%AA%E5%81%9C%E4%B8%80%E7%AB%99%E4%B8%
+        body={"src":"tag","auth":"ONhVghWL76O2ssW8AwEJcDmbavyfMPcIBfxRtSGc"}
+        resp='{"access_type":"identified_non_business","audience":"Bot","audience_segment":"Bot","digital_domain":null,"information_level":"Basic","isp":false,"region_name":"Virginia","registry_area_code":null,"registry_city":"Dulles Town Center","registry_company_name":"Microsoft Corp","registry_country":"United'
+     200 GET https://s.company-target.com/s/sync?exc=lr
+        resp='<html>\n\t<head>\n\t\t<title>Pixels</title>\n\t</head>\n\t<body>\n\t\n<img src="https://dsum-sec.casalemedia.com/rum?cm_dsp_id=18&amp;expiry=1807188095&amp;external_user_id=78303be6-8584-4b5a-8ac7-547975348d73" alt="" width="0" height="0" style="display:none", aria-hidden="true">\n<img src="https://partners.trem'
+     200 POST https://adobedc.demdex.net/ee/v1/interact?configId=175dbcf4-f683-4dc1-875e-45103fcc9e7b&requestId=f520fee9-2fc3-4328-94b3-906e3524a1f5
+        body={"meta":{"configOverrides":{},"state":{"domain":"blackrock.com","cookiesEnabled":true}},"events":[{"query":{"personalization":{"schemas":["https://ns.adobe.com/personalization/default-content-item","https://ns.adobe.com/personalization/html-content-item","https://ns.adobe.com/personalization/json-co
+        resp='{"requestId":"f520fee9-2fc3-4328-94b3-906e3524a1f5-39b6db8f63df4949","handle":[{"payload":[{"id":"24031453306168008761403838136215063686","namespace":{"code":"ECID"}}],"type":"identity:result"},{"payload":[],"type":"activation:pull","eventIndex":0},{"payload":[],"type":"personalization:decisions","e'
+     200 GET https://vice01.blackrock.com/blackrock/blackrockprod/1.23.10.8/
+        resp='<!DOCTYPE html>\n<html>\n\n<head>\n\t<meta name="robots" content="noindex, nofollow, noarchive, nosnippet" />\n\t<link rel="icon" href="data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAIAOw==" />\n</head>\n\n<body>\n\t<script type="text/javascript">\n\t\t"use strict";\n\t\tconst allowedDomains = [\'blac'
+     200 GET https://tag-logger.demandbase.com/bg9s?x-amz-cf-id=8NL9jA5C4TjJbnIvY6etBrb1COppCm5fQmTBtngwcuVu2Qn_TXSZ4Q==&api-version=v3
+        resp=''
+     200 GET https://csxd.efront.com/xdframe-1.1.1.html
+        resp='<!DOCTYPE html><html><head><meta charset="UTF-8"><script>window.parent.postMessage(["_cs_id","_cs_s","_cs_cvars","_cs_ex","_cs_s_ctx","_cs_i","_cs_ep"].reduce(function(e,c){var _=function(e){var c=new RegExp("(^|;)[ ]*"+e+"=([^;]*)"),_=c.exec(document.cookie);return _?decodeURIComponent(_[2]):null}('
+     200 GET https://csxd.ishares.com/xdframe-1.1.1.html
+        resp='<!DOCTYPE html><html><head><meta charset="UTF-8"><script>window.parent.postMessage(["_cs_id","_cs_s","_cs_cvars","_cs_ex","_cs_s_ctx","_cs_i","_cs_ep"].reduce(function(e,c){var _=function(e){var c=new RegExp("(^|;)[ ]*"+e+"=([^;]*)"),_=c.exec(document.cookie);return _?decodeURIComponent(_[2]):null}('
+     200 GET https://csxd.careers.blackrock.com/xdframe-1.1.1.html
+        resp='<!DOCTYPE html><html><head><meta charset="UTF-8"><script>window.parent.postMessage(["_cs_id","_cs_s","_cs_cvars","_cs_ex","_cs_s_ctx","_cs_i","_cs_ep"].reduce(function(e,c){var _=function(e){var c=new RegExp("(^|;)[ ]*"+e+"=([^;]*)"),_=c.exec(document.cookie);return _?decodeURIComponent(_[2]):null}('
+     204 POST https://c.contentsquare.net/pageview?ex=&dt=27&pvt=n&cvars=%7B%221%22%3A%5B%22pageName%22%2C%22ishares%2Fglobal-allcap-equity-etf%22%5D%2C%222%22%3A%5B%22siteSection%22%2C%22content%22%5D%2C%225%22%3A%5B%22siteName%22%2C%22tw-one%22%5D%2C%226%22%3A%5B%22loggedIn%22%2C%22no%22%5D%2C%227%22%3A%5B%22co
+        resp=''
+     204 GET https://c.contentsquare.net/dvar?v=15.263.3&pid=5397&pn=1&sn=1&uu=b2854803-fc59-a3fa-db75-3c34e5b6e500&dv=H4sIAAAAAAAAA6tWSi72TSxJzsjMS%2FdOrVSyUjLQszA3MbMwtzS0tLQ0NjSzsIw3BHJMzIyNLE1NzQ2VagGzbSh4NAAAAA%3D%3D&ct=2&r=107021
+        resp=''
+     204 GET https://c.contentsquare.net/dvar?v=15.263.3&pid=5397&pn=1&sn=1&uu=b2854803-fc59-a3fa-db75-3c34e5b6e500&dv=H4sIAAAAAAAAA6tWSi72TSxJzsjMS%2FdOrVSyUjLQszA3MbMwtzS0tLQ0NjSzsIw3BHJMzIyNLE1NzQ2VagGzbSh4NAAAAA%3D%3D&ct=2&r=177894
+        resp=''
+     204 POST https://px.ads.linkedin.com/wa/?medium=fetch&fmt=g
+        body=H4sIAAAAAAAAA22QzWoUQRSFX2W4665M/1RXd9cugoaBLCQzZCMiVdW3Z4qp/klXjSGEQFyIECIRJIKguA1xpwtHEH0X6TGz8xWkZ8SVy8u555x7v1NodG6BPwqTOIij9LEHVrW6cYfYWl1XwAPf9/0o8sDpEoEHSRZQFoUZS33qQV6XQlfA4alW6Ac70gg1b2s131F1CR4sWgMcZs41lg+H/1sauuOhtjPRoh1OTS2FIcIYJRqCRwvtTgi6Ajw4Rmm1w7GeVsIc4NECrRvlwCFM4zBjlJIiowVRDJHIQCQk
+        resp=''
+  含成分股字樣的回應 5 個：
+   ★ 200 GET https://www.blackrock.com/tw/ishares/global-allcap-equity-etf
+     type: text/html;charset=UTF-8  bytes: 164877
+     開頭: <!DOCTYPE html> <html xmlns="http://www.w3.org/1999/xhtml" prefix="og: http://ogp.me/ns#" lang="zh-TW" xml:lang="zh-TW"> <head> <link rel="preload" href="/apac-retail-c-assets/include/bundles/minified-a08f3474d776f30e0e0f0655abd90b53.css" as="style" /> <link rel="preload" href="/apac-retail-c-assets/include/bundles/minified-b5892778fd11fdfc60c517ee85c2e763.css" as="style" /> <link rel="preload" href="/apac-retail-c-assets/include/bundles/minified-ab281c381a9a55a75eee36a7e2c993ea.css" as="style" 
+     2330 前後: enter; justify-content: space-between; gap: 64px; } .blk-content-scope .hero-text-content { flex: 1 1 auto; max-width: 560px; display: flex; flex-direction: column; gap: 32px; } .blk-content-scope .hero-subtitle img { margin: 0; height: 50px; width: auto; } .blk-content-scope .hero-title { font-family: "FortBold", "NotoSans-TC-Bold", "Noto Sans TC", -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft JhengHei", Roboto, "Helvetica Neue", Arial, sans-serif; font-size: 50px; line-height: 1.2; font-weight: 900; margin: 0; white-space: nowrap; } .blk-content-scope .hero-badge { width: 100%; max-width: 480px; margin: 0 auto; } .blk-content-scope .hero-badge img { width: 100%; height: auto; display: block; } .blk-content-scope .hero-launch { font-family: "FortBold", "NotoSans-TC-Bold", "Not
+   ★ 200 GET https://cdn.cookielaw.org/consent/1d844f07-6416-4f37-97e9-e7e8b80732f2/1d844f07-6416-4f37-97e9-e7e8b80732f2.json
+     type: application/json  bytes: 6097
+     開頭: {"CookieSPAEnabled":false,"CookieSameSiteNoneEnabled":false,"CookieV2CSPEnabled":true,"MultiVariantTestingEnabled":false,"UseV2":true,"MobileSDK":false,"SkipGeolocation":false,"ScriptType":"PRODUCTION","Version":"202609.1.0","OptanonDataJSON":"1d844f07-6416-4f37-97e9-e7e8b80732f2","GeolocationUrl":"https://geolocation.onetrust.com/cookieconsentpub/v1/geo/location","BulkDomainCheckUrl":"https://cookies-data.onetrust.io/bannersdk/v1/domaingroupcheck","RuleSet":[{"Id":"0199190f-aba7-759e-9f5f-f8211
+     2330 前後: :{"CookieV2BannerFocus":true,"CookieV2RejectAll":true,"CookieV2TargetedTemplates":true,"CookieV2GPC":true,"CookieV2GeolocationJsonApi":true,"CookieV2TCF21":true,"CookieV2SkipCategory":true,"CookieV2BannerLogo":true,"ConsentStoreConsentStrings":true,"features.cmp-amazon-consent-Signal":true,"CookieV2AssignTemplateRule":true,"CookiesV2TCF2.3Adoption":true,"MobileAuthenticatedConsents":true,"CookieV2MicrosoftUET":true,"CookieV2GCMDMA":true,"CookieV2CSP":true,"CookieV2RemoveSettingsIcon":true,"CookieV2NewConsentReceiptAPI":true,"CookieV2GeneralVendors":true,"CookieV2GPP":true},"IsSuppressBanner":false,"IsSuppressPC":false,"PublisherCC":"DE","Domain":"www.blackrock.com","TenantGuid":"0f4f4874-7cfe-421a-9e95-77ce81461e4e","EnvId":"app-de-prod","RemoteActionsEnabled":false,"GeoRuleGroupName":"Bla
+   ★ 200 GET https://cdn.cookielaw.org/consent/1d844f07-6416-4f37-97e9-e7e8b80732f2/0199190f-a997-7151-87ee-00c0af94baf1/en.json
+     type: application/json  bytes: 141899
+     開頭: {"DomainData":{"pclifeSpanYr":"Year","pclifeSpanYrs":"Years","pclifeSpanSecs":"A few seconds","pclifeSpanWk":"Week","pclifeSpanWks":"Weeks","pccontinueWithoutAcceptText":"Continue without Accepting","pccloseButtonType":"Icon","MainText":"Manage your cookies","MainInfoText":"BlackRock uses cookies to enhance your experience on our websites and tailor content to your interests. Cookies help us understand how our site is used, provide relevant advertising, and enable key features.\nYou can choose h
+     2330 前後: ecognize a return visitor as a unique user and to feed data from forms to our internal databases","thirdPartyDescription":null,"patternKey":null,"thirdPartyKey":"","firstPartyKey":null,"DurationType":1,"category":null,"isThirdParty":false},{"id":"b367b9a7-c466-485d-a33e-031029071bae","Name":"_uetsid","Host":"blackrock.com","IsSession":false,"Length":"0","description":"This is a cookie utilised by Microsoft Bing Ads and is a tracking cookie. It allows us to engage with a user that has previously visited our website.","thirdPartyDescription":null,"patternKey":null,"thirdPartyKey":"","firstPartyKey":"Cookie_uetsid","DurationType":1,"category":null,"isThirdParty":false},{"id":"1bc93627-e2a5-4fbc-918b-0e61140ac621","Name":"_uetvid","Host":"blackrock.com","IsSession":false,"Length":"389","descri
+   ★ 200 POST https://api.company-target.com/api/v3/ip.json?referrer=&page=https%3A%2F%2Fwww.blackrock.com%2Ftw%2Fishares%2Fglobal-allcap-equity-etf&page_title=%E4%B8%96%E7%95%8C%E4%B8%8D%E5%8F%AA%E4%B8%80%E7%AB%99%20%E6%8A%95%E8%B3%87%EF%BC%8C%E4%B9%9F%E4%B8%8D%E5%BF%85%E5%8F%AA%E5%81%9C%E4%B8%80%E7%AB%99%E4%B8%A8009826%E4%B8%A8%E8%B2%9D%E8%90%8A%E5%BE%B7iShares%20%E2%80%93%20BlackRock
+     POST body: {"src":"tag","auth":"ONhVghWL76O2ssW8AwEJcDmbavyfMPcIBfxRtSGc"}
+     type: application/json; charset=utf-8  bytes: 578
+     開頭: {"access_type":"identified_non_business","audience":"Bot","audience_segment":"Bot","digital_domain":null,"information_level":"Basic","isp":false,"region_name":"Virginia","registry_area_code":null,"registry_city":"Dulles Town Center","registry_company_name":"Microsoft Corp","registry_country":"United States","registry_country_code":"US","registry_country_code3":null,"registry_dma_code":511,"registry_latitude":39.04,"registry_longitude":-77.42,"registry_state":"VA","registry_zip_code":"20164","vis
+     2330 前後: {"access_type":"identified_non_business","audience":"Bot","audience_segment":"Bot","digital_domain":null,"information_level":"Basic","isp":false,"region_name":"Virginia","registry_area_code":null,"registry_city":"Dulles Town Center","registry_company_name":"Microsoft Corp","registry_country":"United States","registry_country_code":"US","registry_country_code3":null,"registry_dma_code":511,"registry_latitude":39.04,"registry_longitude":-77.42,"registry_state":"VA","registry_zip_code":"20164","visitor_id":"FP7bf5d408d3e7032148c372ce6078bf51220fcbcc94438854a01c520614fdb892"}
+   ★ 200 GET https://vice01.blackrock.com/blackrock/blackrockprod/1.23.10.8/
+     type: text/html; charset=utf-8  bytes: 204037
+     開頭: <!DOCTYPE html> <html>  <head> 	<meta name="robots" content="noindex, nofollow, noarchive, nosnippet" /> 	<link rel="icon" href="data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAIAOw==" /> </head>  <body> 	<script type="text/javascript"> 		"use strict"; 		const allowedDomains = ['blackrock.com'] || []; 		const referrerHostname = "." + new URL(document.referrer).hostname; 		const selfParentHostname = document.domain.replace(/^[^.]+\./, ""); 		allowedDomains.push(selfParentHostname)
+     2330 前後: a",/Opera\/([0-9\.]+)(?:\s|$)/],["opera",/OPR\/([0-9\.]+)(:?\s|$)/],["ie",/Trident\/7\.0.*rv:([0-9\.]+).*\).*Gecko$/],["ie",/MSIE\s([0-9\.]+);.*Trident\/[4-7].0/], ["ie",/MSIE\s(7\.0)/],["android",/Android\s([0-9\.]+)/],["ios",/Version\/([0-9\._]+).*Mobile.*Safari.*/],["safari",/Version\/([0-9\._]+).*Safari/],["facebook",/FB[AS]V\/([0-9\.]+)/],["instagram",/Instagram\s([0-9\.]+)/],["ios-webview",/AppleWebKit\/([0-9\.]+).*Mobile/],["ios-webview",/AppleWebKit\/([0-9\.]+).*Gecko\)$/]],Kd=[["iOS",/iP(hone|od|ad)/],["Android OS",/Android/],["BlackBerry OS",/BlackBerry|BB10/],["Windows Mobile",/IEMobile/]];var gg={Sa:U[23]||0},hg={Sa:U[24]||0,Jf:!0},ig={Zc:!0},jg= {Sa:U[25]||0},kg={Sa:U[20]||0,Qa:!0},lg={Sa:U[27]||0,ne:!0},mg={Sa:U[26]||0,ne:!0},ng={Sa:U[18]||0,nc:!0},og={Sa:U[19]||0,nc:!0};let 
+====================================================================================================
+[extra-4] https://am.jpmorgan.com/tw/zh/asset-management/twetf/funds/jpmorgan-tw-equity-high-income-etf/
+  最終網址: https://am.jpmorgan.com/tw/zh/asset-management/twetf/funds/jpmorgan-tw-equity-high-income-etf/  標題: 00401A 收益進化 台灣起飛 | J.P. Morgan Asset Management
+    連結: 重要事項及免責聲明 -> https://am.jpmorgan.com/tw/zh/asset-management/twetf/funds/jpmorgan-tw-equity-high-income-etf/#%E9%87%8D%E8%A6%81%E4%BA%8B%E9%A0%85%E5%8F%8A%E5%85%8D%E8%B2%AC%E8%81%B2%E6%98%8E
+    連結: 同意並接受本使用條款、修訂及增補項目 -> https://am.jpmorgan.com/tw/zh/asset-management/twetf/funds/jpmorgan-tw-equity-high-income-etf/#%E5%90%8C%E6%84%8F%E4%B8%A6%E6%8E%A5%E5%8F%97%E6%9C%AC%E4%BD%BF%E7%94%A8%E6%A2%9D%E
+    連結: 隱私權政策 -> https://am.jpmorgan.com/tw/zh/asset-management/twetf/funds/jpmorgan-tw-equity-high-income-etf/#%E9%9A%B1%E7%A7%81%E6%AC%8A%E6%94%BF%E7%AD%96
+    連結: Cookies 政策 -> https://am.jpmorgan.com/tw/zh/asset-management/twetf/funds/jpmorgan-tw-equity-high-income-etf/#cookies_%E6%94%BF%E7%AD%96
+    連結: 網路安全說明 -> https://am.jpmorgan.com/tw/zh/asset-management/twetf/funds/jpmorgan-tw-equity-high-income-etf/#%E7%B6%B2%E8%B7%AF%E5%AE%89%E5%85%A8%E8%AA%AA%E6%98%8E
+    連結: Skip to main content -> https://am.jpmorgan.com/tw/zh/asset-management/twetf/funds/jpmorgan-tw-equity-high-income-etf/#contentStart
+    連結:  -> https://am.jpmorgan.com/tw/zh/asset-management/twetf/
+    連結: ETF 產品中心 -> https://am.jpmorgan.com/tw/zh/asset-management/twetf/funds/jpmorgan-tw-equity-high-income-etf/
+    連結:  -> https://am.jpmorgan.com/tw/zh/asset-management/twetf/funds/jpmorgan-tw-equity-high-income-etf/
+    連結:  -> https://am.jpmorgan.com/tw/zh/asset-management/twetf/funds/jpmorgan-us-tech-leaders-etf/
+    連結:  -> https://am.jpmorgan.com/tw/zh/asset-management/twetf/funds/announcements/
+    連結:  -> https://am.jpmorgan.com/tw/zh/asset-management/twetf/funds/non-dealing-days-calendar/
+    連結: 00989A 摩根主動 極速領跑 -> https://am.jpmorgan.com/tw/zh/asset-management/twetf/funds/jpmorgan-us-tech-leaders-etf/
+    連結: 即時預估淨值 -> https://am.jpmorgan.com/tw/zh/asset-management/twetf/funds/inav/
+    連結: 申購買回清單 -> https://am.jpmorgan.com/tw/zh/asset-management/twetf/products/jpmorgan-taiwan-taiwan-equity-high-income-active-etf-tw00000401a1#/pcf
+    連結: 基金投資組合 -> https://am.jpmorgan.com/tw/zh/asset-management/twetf/products/jpmorgan-taiwan-taiwan-equity-high-income-active-etf-tw00000401a1#/portfolio
+    連結: 投資觀點 -> https://am.jpmorgan.com/tw/zh/asset-management/twetf/investment-ideas/
+    連結:  -> https://am.jpmorgan.com/tw/zh/asset-management/twetf/investment-ideas/
+    連結:  -> https://am.jpmorgan.com/tw/zh/asset-management/twetf/investment-ideas/etf-insights/
+    連結:  -> https://am.jpmorgan.com/tw/zh/asset-management/twetf/investment-ideas/guide-to-etfs/
+    連結: 服務專區 -> https://am.jpmorgan.com/tw/zh/asset-management/twetf/customer-service/
+    連結:  -> https://am.jpmorgan.com/tw/zh/asset-management/twetf/customer-service/
+    連結:  -> https://am.jpmorgan.com/tw/zh/asset-management/twetf/customer-service/form-download/
+    連結:  -> https://am.jpmorgan.com/tw/zh/asset-management/twetf/customer-service/selfservices/
+    連結: 常見問題 -> https://am.jpmorgan.com/tw/zh/asset-management/twetf/customer-service/frequently-asked-questions/
+    連結: 聯絡我們 -> https://am.jpmorgan.com/tw/zh/asset-management/twetf/customer-service/contact-us/
+    連結: 目前位置: ETF專區 -> https://am.jpmorgan.com/tw/zh/asset-management/twetf/funds/jpmorgan-tw-equity-high-income-etf/#
+    連結: 繼續 -> https://am.jpmorgan.com/tw/zh/asset-management/twetf/funds/jpmorgan-tw-equity-high-income-etf/
+    連結: ETF專區 -> https://am.jpmorgan.com/tw/zh/asset-management/twetf/
+    連結: ETF產品 -> https://am.jpmorgan.com/tw/zh/asset-management/twetf/funds/
+    連結: 下載月報 -> https://am.jpmorgan.com/content/dam/jpm-am-aem/asiapacific/tw/zh/literature/fact-sheet/tw00000401a1.pdf
+    連結: 00401A最新ETF配息公告 > -> https://cdn.jpmorganfunds.com/content/dam/jpm-am-aem/asiapacific/tw/zh/supplemental/announcements/documents/30092026-ETF-UT58.pdf
+    連結: 了解更多00401A -> https://am.jpmorgan.com/tw/zh/asset-management/twetf/products/jpmorgan-taiwan-taiwan-equity-high-income-active-etf-tw00000401a1
+    連結: 下載DM -> https://cdn.jpmorganfunds.com/content/dam/jpm-am-aem/asiapacific/tw/zh/twetf/funds/jpmorgan-tw-equity-high-income-etf-00401A-dm.pdf
+    連結: 產品概覽 -> https://am.jpmorgan.com/tw/zh/asset-management/twetf/products/jpmorgan-taiwan-taiwan-equity-high-income-active-etf-tw00000401a1#/overview
+    連結: 掩護性買權策略釋例 -> https://am.jpmorgan.com/tw/zh/asset-management/twetf/funds/jpmorgan-tw-equity-high-income-etf/#item0
+    連結: 運用掩護性買權的台股主動式ETF策略 -> https://am.jpmorgan.com/tw/zh/asset-management/twetf/funds/jpmorgan-tw-equity-high-income-etf/#item1
+    連結: 金融友善服務 -> https://am.jpmorgan.com/content/dam/jpm-am-aem/asiapacific/tw/zh/policies/accessibility-statement/friendly.pdf
+    連結: 網站地圖 -> https://am.jpmorgan.com/tw/zh/asset-management/twetf/sitemap/
+    連結: 常見問題 -> https://am.jpmorgan.com/tw/zh/asset-management/twetf/customer-service/frequently-asked-questions/
+  XHR／文件請求 21 個：
+     200 GET https://am.jpmorgan.com/tw/zh/asset-management/twetf/funds/jpmorgan-tw-equity-high-income-etf/
+        resp='\n  <!DOCTYPE HTML>\n  \n  \n  \n  <html lang="zh-Hant">\n\n  <head>\n    \n    \n    \n    \n    \n    \n    \n    <meta charset="UTF-8"/>\n    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>\n    <meta name="referrer" content="no-referrer-when-downgrade"/>\n    <meta content="UEgzQAQUVvl5ylE'
+     200 GET https://am.jpmorgan.com/content/jpm-am-aem/countryroleselectorconfigpage.crsmap.tw_zh_twetf.json?currentPath=/content/jpm-am-aem/asiapacific/tw/zh/twetf/includes/header-etf/jcr:content/par/jpm_am_navigation_he
+        resp='{"crsData":[{"regionValue":"Americas","regionDisplayValue":"美洲 | Americas","regionCode":"americas","countryList":[{"countryValue":"Brazil","countryDisplayValue":"巴西 | Brazil","countryCode":"br","flagPath":"/content/dam/jpm-am-aem/global/en/images/common/flags/br.jpg","languages":[{"languageValue":"E'
+     200 GET https://am.jpmorgan.com/content/jpm-am-aem/asiapacific/tw/zh/twetf/funds/jpmorgan-tw-equity-high-income-etf/_jcr_content.videov2.json?v=1790817346660/asiapacific
+        resp='{"groupOfVideos":[{"groupID":"eaemcusuid_20260316070605","style":"Full","theme":"Light","fileReference":"/content/dam/jpm-am-aem/global/en/brightcove-videos/899458537001/6391004977112.mp4","accountNumber":"899458537001","videoID":"6391004977112","brightcoveTitle":"0313_摩根台灣鑫收益主動式ETF_00401A篇_90s "}],'
+     200 GET https://am.jpmorgan.com/content/jpm-am-aem/asiapacific/tw/zh/twetf/funds/jpmorgan-tw-equity-high-income-etf/_jcr_content.statisticscards.json?v=1790817346660/asiapacific
+        resp='{"groupOfCards":[{"groupID":"eaemcusuid_20260715084507","theme":"jp__lightTheme","visibleColumns":3,"statisticSize":"default","paddingStyle":"bottom_padding","lineStyle":"horizontal-line","colorTransition":"jp__lightTheme","listOfCards":[{"statisticLine1":"10/14","cardTextBlock":"<p>參與配息最後買進日</p>","'
+     200 GET https://am.jpmorgan.com/content/jpm-am-aem/asiapacific/tw/zh/twetf/funds/jpmorgan-tw-equity-high-income-etf/_jcr_content.herobannerv2.json?v=1790817346660/asiapacific
+        resp='{"groupOfBanners":[{"groupID":"eaemcusuid_20260215074646","formatStyle":"fullImage","enableBreadCrumbs":true,"breadcrumb":{"whatsapp":true,"showEmail":null,"line":true,"facebook":true,"showPrint":true,"startLevel":5,"linkedin":true,"twitter":true,"downloadPath":null,"subscriptionType":null,"showDown'
+     200 GET https://am.jpmorgan.com/bin/servlet/navigationConfigurationService?homePage=%2Fcontent%2Fjpm-am-aem%2Fasiapacific%2Ftw%2Fzh%2Ftwetf
+        resp='{"header":{"menuItems":[{"title":"ETF 產品中心","link":"https://am.jpmorgan.com/tw/zh/asset-management/twetf/funds/jpmorgan-tw-equity-high-income-etf/","description":"00401A 收益進化 台灣起飛","contentAccess":"unlocked","addFundSearch":false,"subItems":[{"links":[{"contentAccess":"unlocked","altText":"00401A摩根台'
+     200 GET https://edge.api.brightcove.com/playback/v1/accounts/899458537001/videos/6391004977112
+        resp='{"poster":"https://cf-images.us-east-1.prod.boltdns.net/v1/static/899458537001/5e2957a8-232f-4b13-a0db-ac8fa68dde24/5b6bfa7e-c508-4a38-8533-b9a514b3d6c5/1280x720/match/image.jpg","thumbnail":"https://cf-images.us-east-1.prod.boltdns.net/v1/static/899458537001/5e2957a8-232f-4b13-a0db-ac8fa68dde24/cc8'
+     200 GET https://manifest.prod.boltdns.net/manifest/v1/hls/v4/clear/899458537001/5e2957a8-232f-4b13-a0db-ac8fa68dde24/10s/master.m3u8?fastly_token=NmFjN2U3ZmVfN2UyNDAwMTJiYjYyMzkxODgyNzljNGM1ZjVhNGY3ZTNjZTZiNjY4NmYxYjYxNjg1N2FkMTllNTI2ZDM5ZmQ0Yw%3D%3D
+        headers={':authority': 'manifest.prod.boltdns.net', ':method': 'GET', ':path': '/manifest/v1/hls/v4/clear/899458537001/5e2957a8-232f-4b13-a0db-ac8fa68dde24/10s/master.m3u8?fastly_token=NmFjN2U3ZmVfN2UyNDAwMTJiYjYyMzkxODgyNzljNGM1ZjVhNGY3ZTNjZTZiNjY4NmYxYjYxNjg1N2FkMTllNTI2ZDM5ZmQ0Yw%3D%3D', ':scheme': 'https', 'accept': '*/*', 'accept-encoding': 'gzip, deflate, br, zstd', 'accept-language': 'zh-TW', 'origin': 'https://am.jpmorgan.com', 'priority': 'u=1, i', 'referer': 'https://am.jpmorgan.com/tw/zh/asset-management/twetf/funds/jpmorgan-tw-equity-high-income-etf/', 'sec-ch-ua': '"HeadlessChrome";v="153
+        resp='#EXTM3U\n#EXT-X-VERSION:4\n#EXT-X-MEDIA:TYPE=AUDIO,GROUP-ID="audio-0",NAME="en (Main)",DEFAULT=YES,AUTOSELECT=YES,LANGUAGE="en",URI="https://manifest.prod.boltdns.net/manifest/v1/hls/v4/clear/899458537001/5e2957a8-232f-4b13-a0db-ac8fa68dde24/78f94d88-a0ce-4cdc-b916-f674248cad57/10s/rendition.m3u8?fast'
+     200 GET https://manifest.prod.boltdns.net/manifest/v1/hls/v4/clear/899458537001/5e2957a8-232f-4b13-a0db-ac8fa68dde24/cd839a0d-2d09-42f6-8eff-2bee8732eb2d/10s/rendition.m3u8?fastly_token=NmFjN2U3ZmVfZTZkZmI2M2Q2NzYwYWE4Y2M0ZDhkZDZhZWI0N2YzNzE5YjkwM2UwZTQ3ZjQ1YmEyMDNiYWNmYTkxNTcyZThkNg%3D%3D
+        headers={':authority': 'manifest.prod.boltdns.net', ':method': 'GET', ':path': '/manifest/v1/hls/v4/clear/899458537001/5e2957a8-232f-4b13-a0db-ac8fa68dde24/cd839a0d-2d09-42f6-8eff-2bee8732eb2d/10s/rendition.m3u8?fastly_token=NmFjN2U3ZmVfZTZkZmI2M2Q2NzYwYWE4Y2M0ZDhkZDZhZWI0N2YzNzE5YjkwM2UwZTQ3ZjQ1YmEyMDNiYWNmYTkxNTcyZThkNg%3D%3D', ':scheme': 'https', 'accept': '*/*', 'accept-encoding': 'gzip, deflate, br, zstd', 'accept-language': 'zh-TW', 'origin': 'https://am.jpmorgan.com', 'priority': 'u=1, i', 'referer': 'https://am.jpmorgan.com/tw/zh/asset-management/twetf/funds/jpmorgan-tw-equity-high-income-etf/
+        resp='#EXTM3U\n#EXT-X-VERSION:3\n#EXT-X-PLAYLIST-TYPE:VOD\n#EXT-X-MEDIA-SEQUENCE:0\n#EXT-X-TARGETDURATION:10\n#EXTINF:10.010,\nhttps://fastly-signed-us-east-1-prod.brightcovecdn.com/media/v1/hls/v4/clear/899458537001/5e2957a8-232f-4b13-a0db-ac8fa68dde24/cd839a0d-2d09-42f6-8eff-2bee8732eb2d/5x/segment0.ts?fastly'
+     200 GET https://manifest.prod.boltdns.net/manifest/v1/hls/v4/clear/899458537001/5e2957a8-232f-4b13-a0db-ac8fa68dde24/79bce9ae-7c5b-4db7-b8a6-df58f4402eb0/10s/rendition.m3u8?fastly_token=NmFjN2U3ZmVfODU2ZDgwMGI2MTE1NDQ2OWNlYjVlN2MwZWMwMmYwMjBiMTY2NjZhZWRjMmViNWI1ZTMxNmRlYzA0M2ZkMTJjNQ%3D%3D
+        headers={':authority': 'manifest.prod.boltdns.net', ':method': 'GET', ':path': '/manifest/v1/hls/v4/clear/899458537001/5e2957a8-232f-4b13-a0db-ac8fa68dde24/79bce9ae-7c5b-4db7-b8a6-df58f4402eb0/10s/rendition.m3u8?fastly_token=NmFjN2U3ZmVfODU2ZDgwMGI2MTE1NDQ2OWNlYjVlN2MwZWMwMmYwMjBiMTY2NjZhZWRjMmViNWI1ZTMxNmRlYzA0M2ZkMTJjNQ%3D%3D', ':scheme': 'https', 'accept': '*/*', 'accept-encoding': 'gzip, deflate, br, zstd', 'accept-language': 'zh-TW', 'origin': 'https://am.jpmorgan.com', 'priority': 'u=1, i', 'referer': 'https://am.jpmorgan.com/tw/zh/asset-management/twetf/funds/jpmorgan-tw-equity-high-income-etf/
+        resp='#EXTM3U\n#EXT-X-VERSION:3\n#EXT-X-PLAYLIST-TYPE:VOD\n#EXT-X-MEDIA-SEQUENCE:0\n#EXT-X-TARGETDURATION:10\n#EXTINF:9.920,\nhttps://fastly-signed-us-east-1-prod.brightcovecdn.com/media/v1/hls/v4/clear/899458537001/5e2957a8-232f-4b13-a0db-ac8fa68dde24/79bce9ae-7c5b-4db7-b8a6-df58f4402eb0/5x/segment0.ts?fastly_'
+     200 GET https://report.jpm.gbqofs.io/reporting/64654ad3-6f20-4015-a04e-6a2f544f8231/cls_report?_cls_s=9e3a975c-39c1-4b84-9efc-c9a6fb9be60b%3A0&_cls_v=401e7a0f-e7d8-4968-bf47-184399a0e366&pv=2&f_cls_s=true
+        resp='{"pv":2,"clss":"9e3a975c-39c1-4b84-9efc-c9a6fb9be60b:0","clsv":"401e7a0f-e7d8-4968-bf47-184399a0e366","clse":null,"conf":{"appId":1,"configuration":{"attributeRules":[{"name":"Close_x_survey_amjpmorgancom","pageUrl":"https://am.jpmorgan.com/*","pageHash":"","selector":"SPAN#uz_span_close","accessor"'
+     200 GET https://pips.taboola.com/
+        resp='NULL'
+     204 GET https://cds.taboola.com/?uid=7cc26eeb-60ce-40a2-99f8-627d5d0575a6-tuct11c11532&ptf=TGludXg=&ufv=MTUzLjAuODAxMC4xMg==&bnd=SGVhZGxlc3NDaHJvbWU=&bndv=MTUz&bnd=Tm90X0EgQnJhbmQ=&bndv=OA==&bnd=Q2hyb21pdW0=&bndv=MTUz&mbl=ZmFsc2U=&dc=ch
+        resp=''
+     200 GET https://match.adsrvr.org/track/cei?advertiser_id=i2z2ve3&cookie_sync=1&upv=3.0.0&upid=5r73i28&ref=https%3a%2f%2fam.jpmorgan.com&redirect=1
+        resp='<html><body><iframe id="ttd_cei_0" height="0" width="0" style="display:none;" allowTransparency sandbox="allow-scripts allow-same-origin" src="https://pixel.rubiconproject.com/tap.php?v=8981&nid=2307&put=f84a9591-f778-4cf8-ad02-8b9d711f8c48&gdpr=0&gdpr_consent=&expires=30&next=https%3A%2F%2Fmatch.ad'
+     200 GET https://match.adsrvr.org/track/cei?advertiser_id=bp333w0&cookie_sync=1&upv=3.0.0&upid=qn8bu0i&ref=https%3a%2f%2fam.jpmorgan.com&redirect=1
+        resp='<html><body><iframe id="ttd_cei_0" height="0" width="0" style="display:none;" allowTransparency sandbox="allow-scripts allow-same-origin" src="https://cm.g.doubleclick.net/pixel?google_nid=TheTradeDesk&google_cm&google_sc&google_hm=Zjg0YTk1OTEtZjc3OC00Y2Y4LWFkMDItOGI5ZDcxMWY4YzQ4&gdpr=0&gdpr_consent'
+     200 POST https://insight.adsrvr.org/track/realtimeconversion
+        body={"data":[{"adv":"bp333w0","pixel_ids":["qn8bu0i"],"referrer_url":"https://am.jpmorgan.com/tw/zh/asset-management/twetf/funds/jpmorgan-tw-equity-high-income-etf/","data_processing_option":null,"privacy_settings":[]}]}
+        resp='{"Message":null,"EventResponses":[]}'
+     200 POST https://insight.adsrvr.org/track/realtimeconversion
+        body={"data":[{"adv":"i2z2ve3","pixel_ids":["5r73i28"],"referrer_url":"https://am.jpmorgan.com/tw/zh/asset-management/twetf/funds/jpmorgan-tw-equity-high-income-etf/","data_processing_option":null,"privacy_settings":[]}]}
+        resp='{"Message":null,"EventResponses":[]}'
+     204 GET https://trc-events.taboola.com/1627601/log/3/unip?en=pre_d_eng_tb&tos=4614&scd=0&ssd=1&est=1791463346235&ver=36&isls=true&src=i&invt=4500&msa=6579&rv=1&tim=1791463350848&vi=1791463346227&ri=009b2f170f652213e0f284f006b1ccee&sd=v2_d7f29acbb36b791894a856fe2f7ebe67_7cc26eeb-60ce-40a2-99f8-627d5d0575a6-t
+        resp=''
+     200 POST https://report.jpm.gbqofs.io/reporting/64654ad3-6f20-4015-a04e-6a2f544f8231/cls_report?clsjsv=%5BLocal_version_prod%5D&_cls_s=9e3a975c-39c1-4b84-9efc-c9a6fb9be60b:0&_cls_v=401e7a0f-e7d8-4968-bf47-184399a0e366&pid=9a0ddbab-07bb-411c-b049-6c7e40848bd0&rto=c0&sn=1&cfg&pv=2&aid=
+        body=v=2&r=https%3A%2F%2Fam.jpmorgan.com%2Ftw%2Fzh%2Fasset-management%2Ftwetf%2Ffunds%2Fjpmorgan-tw-equity-high-income-etf%2F&sn=1&p=9a0ddbab-07bb-411c-b049-6c7e40848bd0&seg=%2Ftw%2Fzh%2Fasset-management%2Ftwetf%2Ffunds%2Fjpmorgan-tw-equity-high-income-etf%2F&sp=&pssn=0&e=muzj0su6~2~-~Nu_p5895n*s_1280x72
+        resp='{"pv":2,"clss":"9e3a975c-39c1-4b84-9efc-c9a6fb9be60b:0","clsv":"401e7a0f-e7d8-4968-bf47-184399a0e366","clse":null,"conf":{"appId":1,"configuration":{"attributeRules":[{"name":"Close_x_survey_amjpmorgancom","pageUrl":"https://am.jpmorgan.com/*","pageHash":"","selector":"SPAN#uz_span_close","accessor"'
+     200 POST https://report.jpm.gbqofs.io/reporting/64654ad3-6f20-4015-a04e-6a2f544f8231/cls_report?clsjsv=%5BLocal_version_prod%5D&_cls_s=9e3a975c-39c1-4b84-9efc-c9a6fb9be60b:0&_cls_v=401e7a0f-e7d8-4968-bf47-184399a0e366&pid=9a0ddbab-07bb-411c-b049-6c7e40848bd0&rto=c0&sn=2&cfg&pv=2&aid=
+        body=v=2&r=https%3A%2F%2Fam.jpmorgan.com%2Ftw%2Fzh%2Fasset-management%2Ftwetf%2Ffunds%2Fjpmorgan-tw-equity-high-income-etf%2F&sn=2&p=9a0ddbab-07bb-411c-b049-6c7e40848bd0&seg=%2Ftw%2Fzh%2Fasset-management%2Ftwetf%2Ffunds%2Fjpmorgan-tw-equity-high-income-etf%2F&sp=&pssn=0&e=muzj0sy1~22~0%23am-country-role-
+        resp='{"pv":2,"clss":"9e3a975c-39c1-4b84-9efc-c9a6fb9be60b:0","clsv":"401e7a0f-e7d8-4968-bf47-184399a0e366","clse":null,"conf":{"appId":1,"configuration":{"attributeRules":[{"name":"Close_x_survey_amjpmorgancom","pageUrl":"https://am.jpmorgan.com/*","pageHash":"","selector":"SPAN#uz_span_close","accessor"'
+     200 POST https://report.jpm.gbqofs.io/reporting/64654ad3-6f20-4015-a04e-6a2f544f8231/cls_report?clsjsv=%5BLocal_version_prod%5D&_cls_s=9e3a975c-39c1-4b84-9efc-c9a6fb9be60b:0&_cls_v=401e7a0f-e7d8-4968-bf47-184399a0e366&pid=9a0ddbab-07bb-411c-b049-6c7e40848bd0&rto=c0&sn=3&cfg=8e8cbf90&pv=2&aid=
+        body=v=2&r=https%3A%2F%2Fam.jpmorgan.com%2Ftw%2Fzh%2Fasset-management%2Ftwetf%2Ffunds%2Fjpmorgan-tw-equity-high-income-etf%2F&sn=3&p=9a0ddbab-07bb-411c-b049-6c7e40848bd0&seg=%2Ftw%2Fzh%2Fasset-management%2Ftwetf%2Ffunds%2Fjpmorgan-tw-equity-high-income-etf%2F&sp=&pssn=0&e=muzj0su6~91~-~Nsn_0*r_*c_anBtX2Z
+        resp='{"pv":2,"clss":"9e3a975c-39c1-4b84-9efc-c9a6fb9be60b:0","clsv":"401e7a0f-e7d8-4968-bf47-184399a0e366","clse":null,"conf":null,"usage":{"sessionQuotaBreach":false, "apiCallQuotaBreach":true, "customServerCallsBreach":false, "dataLimit": 4194304},"blockRecording":false,"uniqueLocationIdentifier":"1899'
+  含成分股字樣的回應 1 個：
+   ★ 200 GET https://am.jpmorgan.com/content/jpm-am-aem/countryroleselectorconfigpage.crsmap.tw_zh_twetf.json?currentPath=/content/jpm-am-aem/asiapacific/tw/zh/twetf/includes/header-etf/jcr:content/par/jpm_am_navigation_he
+     type: application/json  bytes: 1550722
+     開頭: {"crsData":[{"regionValue":"Americas","regionDisplayValue":"美洲 | Americas","regionCode":"americas","countryList":[{"countryValue":"Brazil","countryDisplayValue":"巴西 | Brazil","countryCode":"br","flagPath":"/content/dam/jpm-am-aem/global/en/images/common/flags/br.jpg","languages":[{"languageValue":"English","languageCode":"en"},{"languageValue":"Portuguese","languageCode":"pt"}],"roles":[{"roleCode":"adv","roleLabel":"Financial Advisors","url":"/br/en/asset-management/adv/","termsAndConditionPath
+     2330 前後: uld interfere with any other party's use of the website. You may not use any robot, spider, other automatic device or manual process to monitor or copy our web pages, data or the content contained herein or for any other unauthorized purpose without our prior expressed written permission.<br>\n</p>\n<p>&nbsp;</p>\n<h3>Means of Access</h3>\n<p>&nbsp;</p>\n<p>This site is optimised for viewing with Microsoft Internet Explorer (version 6.0 SP1 or above) or Netscape Navigator (version 4.76 or above). Recommended screen resolution is 1024 x 768. Although you may use other means to access the website, be aware that the website may not appear accurately through other access methods, and you use them only at your own risk. You are responsible for setting the cache settings on your browsers to ensu
+====================================================================================================
+[extra-5] https://www.franklin.com.tw/sitemap
+  最終網址: https://www.franklin.com.tw/sitemap  標題: 網站導覽 | 富蘭克林
+    連結: 共同基金、ETF如何選 -> https://event.franklin.com.tw/mutualFunds/index.html
+  XHR／文件請求 11 個：
+     200 GET https://www.franklin.com.tw/sitemap
+        resp='<!doctype html>\n<html data-n-head-ssr lang="zh-TW" data-n-head="%7B%22lang%22:%7B%22ssr%22:%22zh-TW%22%7D%7D">\n    <head >\n        <meta data-n-head="ssr" charset="utf-8"><meta data-n-head="ssr" data-hid="description" name="description" content="基金專業投資顧問-富蘭克林坦伯頓基金,您的投資理財最佳顧問,富蘭克林基金提供您多樣化的基金組合,專業市場分析'
+     200 GET https://pips.taboola.com/
+        resp='NULL'
+     204 GET https://cmsapi.franklin-dm.dev/broadcast
+        resp=''
+     204 GET https://cds.taboola.com/?uid=404840a6-ca32-4b3e-85d2-11fde745217a-tuct11c1153b&ptf=TGludXg=&ufv=MTUzLjAuODAxMC4xMg==&bnd=SGVhZGxlc3NDaHJvbWU=&bndv=MTUz&bnd=Tm90X0EgQnJhbmQ=&bndv=OA==&bnd=Q2hyb21pdW0=&bndv=MTUz&mbl=ZmFsc2U=&dc=ch
+        resp=''
+     200 GET https://api-next.no8.io/live_chat/check_pass?encrypted_org_id=9vy5bUGpnzIIXQ%3D%3D
+        resp='{"success":true}'
+     200 GET https://live-chat-console.no8.io/?encryptedOrgId=9vy5bUGpnzIIXQ%3D%3D&browserLanguage=zh-TW&browserLanguages=zh-TW&hostColorScheme=light
+        resp='<!doctype html><html lang="en"><head><title>chat</title><meta charset="utf-8"/><meta http-equiv="X-UA-Compatible" content="IE=edge"/><meta name="viewport" content="width=device-width,initial-scale=1"/><meta name="description" content="Bootstrap 4 Book/eBook Landing Page Template For Developers"/><sc'
+     200 GET https://api.popin.cc/iframe/piuid.html?ac=piuid&t=15009898
+        resp='\n<!DOCTYPE html>\n<html><head></head><body>\n<script type="text/javascript">window.Cookies=(function(){function a(){var e=0;var f={};for(;e<arguments.length;e++){var c=arguments[e];for(var d in c){f[d]=c[d]}}return f}function b(c){function d(s,q,k){var p;if(typeof document==="undefined"){return}if(arg'
+     200 GET https://assets.no8.io/prod/live_chat/style/9vy5bUGpnzIIXQ%3D%3D.json
+        resp='{"logo":"https://assets.no8.io/app-api-uploader/prod/1744971003895/180.png","livechatTextColor":"#f5f5f5","livechatBackgroundColor":"#005bd9","title":"親愛的富蘭克林貴賓","content":"歡迎您來到富蘭克林\\n很高興為貴賓您服務","buttonTextColor":"#ffffff","buttonColor":"#006bd1","position":"bottom-right","positionSettings":{"bottom'
+     200 GET https://api-next.no8.io/live_chat/brand/9vy5bUGpnzIIXQ==
+        resp='{"icon":"https://assets.no8.io/app-api-uploader/prod/1744851082223/%E7%B5%A6%E5%AE%A2%E6%9C%8DFT-logo250X250.jpg","displayName":"富蘭克林證券投顧","enableGA4":false}'
+     200 GET https://api-next.no8.io/live_chat/logo/show/9vy5bUGpnzIIXQ==
+        resp='{"isShow":true,"isSuper8":true}'
+     204 GET https://trc-events.taboola.com/1885777/log/3/unip?en=pre_d_eng_tb&tos=4574&scd=0&ssd=1&est=1791463355157&ver=36&isls=true&src=i&invt=4500&msa=2548&rv=1&tim=1791463359731&vi=1791463355147&ri=728045c481b757b949fd4b7a714d36ec&sd=v2_509217ab38031f8f3f64e92175cb2d45_404840a6-ca32-4b3e-85d2-11fde745217a-t
+        resp=''
+  含成分股字樣的回應 1 個：
+   ★ 200 GET https://www.franklin.com.tw/sitemap
+     type: text/html; charset=utf-8  bytes: 416902
+     開頭: <!doctype html> <html data-n-head-ssr lang="zh-TW" data-n-head="%7B%22lang%22:%7B%22ssr%22:%22zh-TW%22%7D%7D">     <head >         <meta data-n-head="ssr" charset="utf-8"><meta data-n-head="ssr" data-hid="description" name="description" content="基金專業投資顧問-富蘭克林坦伯頓基金,您的投資理財最佳顧問,富蘭克林基金提供您多樣化的基金組合,專業市場分析,基金投資建議,國際金融行情與國際財經新聞,讓您了解市場焦點,理財資訊,投資理財輕鬆上手。"><meta data-n-head="ssr" name="viewport" content="width=device-width, initial-scale=1"><meta data-n-head="ssr" name="format-detection" content="telephone=
+     2330 前後: font-style:normal;font-weight:900;src:url(https://officialweb.franklin-dm.dev/_nuxt/fonts/NotoSansTC-Black.695d4cb.woff2) format("woff2"),url(https://officialweb.franklin-dm.dev/_nuxt/fonts/NotoSansTC-Black.71ed0fb.woff) format("woff"),url(https://officialweb.franklin-dm.dev/_nuxt/fonts/NotoSansTC-Black.fd0d894.otf) format("opentype")}.month_report_layout .month_report{font-family:"Noto Sans TC","Microsoft JhengHei",sans-serif;line-height:1.6;color:#333}.month_report_layout :root{--primary-color: #005598;--secondary-color: #163a95;--accent-color: #ff5400;--text-color: #333;--text-light: #666;--text-lighter: #999;--border-color: #e9ecef;--bg-light: #f8f9fa;--white: #fff;--spacing-xs: 4px;--spacing-sm: 8px;--spacing-md: 16px;--spacing-lg: 24px;--spacing-xl: 32px;--spacing-xxl: 48px;--border-
