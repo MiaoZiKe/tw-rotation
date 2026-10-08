@@ -120,7 +120,7 @@
     pop.setAttribute('aria-label', '外觀設定');
     /* 2026-10-08（Andy：「將切換版面風格、明暗這部分統一一個功能按鍵在上方」）：明暗併進「外觀」面板最上面（深色｜淺色），
        按下去就是去按原本那顆 #themeBtn（app.js 的 applyTheme 一行都沒重寫）；頁首的 ☀ 鈕本身藏起來（index.html／mobile4.css）。 */
-    pop.innerHTML = `<h4>明暗</h4><div class="t4mode seg" role="group" aria-label="明暗"><button type="button" data-mode="dark" aria-pressed="false">深色</button><button type="button" data-mode="light" aria-pressed="false">淺色</button></div><h4>版面風格</h4><div class="t4opts">${THEMES.map(t =>
+    pop.innerHTML = `<h4 class="t4modeh">明暗</h4><div class="t4mode seg" role="group" aria-label="明暗"><button type="button" data-mode="dark" aria-pressed="false">深色</button><button type="button" data-mode="light" aria-pressed="false">淺色</button></div><h4>版面風格</h4><div class="t4opts">${THEMES.map(t =>
       `<button type="button" class="t4o" data-t4="${t.id}" aria-pressed="false"><span class="sw" style="background:${t.sw}"></span><b>${t.name}</b><small>${t.sub}</small></button>`).join('')}</div>`;
     document.body.appendChild(pop);
     pop.addEventListener('click', (e) => {

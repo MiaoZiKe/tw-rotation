@@ -27865,6 +27865,41 @@ DESK_SIDE_JS = r"""
 """
 
 
+DESK_ORPHAN_JS = r"""
+() => {
+  // 10-08 晚 Andy 314 截圖（先進封裝）：畫布左緣五條「--- 01～05」樣本線跟左欄卡片之間什麼都沒接，浮在空白裡。
+  // ① 畫布上的兩位數編號字不在錨點圈（g.anc）裡＝孤兒編號；② 有編號的說明卡，畫布上找不到同編號的錨點；
+  // ③ 每一條引線（.dglead path）的方框都要碰到畫布、也要碰到某一張卡片 —— 不准漂在兩者中間。
+  const out = [];
+  const hit = (a, b, pad) => a.right + pad >= b.left && b.right + pad >= a.left && a.bottom + pad >= b.top && b.bottom + pad >= a.top;
+  document.querySelectorAll('main .view.on .dgwrap').forEach((host) => {
+    if (!host.getClientRects().length) return;
+    const cv = host.querySelector('.dgcanvas'), svg = (cv && cv.querySelector('svg')) || host.querySelector('svg.dg');
+    if (!svg) return;
+    const ancNos = new Set([...svg.querySelectorAll('g.anc text.non')].map((t) => t.textContent.trim()));
+    [...svg.querySelectorAll('text')].forEach((t) => {
+      const v = (t.textContent || '').trim();
+      if (!/^\d{2}$/.test(v) || t.closest('g.anc') || t.closest('.lrow.ext')) return;
+      if (!t.getBoundingClientRect().width || getComputedStyle(t).visibility === 'hidden') return;
+      out.push('畫布上孤立的編號字「' + v + '」');
+    });
+    const cards = [...host.querySelectorAll('.dgcards .dgc')].filter((c) => c.getClientRects().length);
+    cards.forEach((c) => {
+      const no = c.querySelector(':scope > .no'); if (!no) return;
+      const v = no.textContent.trim();
+      if (!ancNos.has(v)) out.push('編號卡「' + v + ' ' + (c.innerText || '').replace(/\s+/g, ' ').slice(2, 16) + '」在圖上沒有對應的編號錨點');
+    });
+    const cr = (cv || svg).getBoundingClientRect(), rs = cards.map((c) => c.getBoundingClientRect());
+    host.querySelectorAll('.dglead path').forEach((p) => {
+      const r = p.getBoundingClientRect(); if (!r.width && !r.height) return;
+      if (!hit(r, cr, 2) || !rs.some((q) => hit(r, q, 12))) out.push('引線沒有同時碰到畫布與卡片 [' + Math.round(r.left) + ',' + Math.round(r.top) + ' ' + Math.round(r.width) + '×' + Math.round(r.height) + ']');
+    });
+  });
+  return out;
+}
+"""
+
+
 def desk_pages(pg, base):
     """守門要走的頁：路由不寫死，產業鏈、題材、個股分頁都從頁面或資料讀，新增的自動進來。"""
     pages = ["overview", "earnings", "flow/rotation", "flow/sankey", "flow/inst", "heatmap/industry", "heatmap/theme", "industry"]
@@ -27949,6 +27984,18 @@ def t_desk_guard_1008(b, base):
         side_n += got["n"]; side_bad += [f"{r}：{x}" for x in got["bad"]]
     ok(f"{T}：量到的剖析圖說明卡（{side_pages} 張圖、{side_n} 張卡）", side_pages >= max(5, len(dg_routes) // 2) and side_n > 0, (side_pages, len(dg_routes)))
     ok(f"{T}：剖析圖說明卡全部在圖的左右兩側、沒有掉到圖下面（{len(side_bad)} 張不對）", not side_bad, side_bad[:20])
+    # ②-b 孤兒編號／沒錨點的編號卡／漂浮引線：1440（兩欄）與 1920（三欄，卡片在圖左右兩側）各普查一次；先進封裝一定在清單裡
+    orph = []
+    adv = "industry/semiconductor/dg/ai_adv_packaging"
+    o_routes = dg_routes + [f"themes/{t}" for t in tids]
+    ok(f"{T}：普查清單含先進封裝（Andy 314 那張）", adv in o_routes, len(o_routes))
+    for w in (1440, 1920):
+        pg.set_viewport_size({"width": w, "height": 1000})
+        for r in o_routes:
+            pg.goto("about:blank"); pg.goto(f"{base}#{r}", wait_until="domcontentloaded"); pg.wait_for_timeout(1500)
+            orph += [f"{w} {r}：{x}" for x in pg.evaluate(DESK_ORPHAN_JS)]
+    pg.set_viewport_size({"width": 1440, "height": 900})
+    ok(f"{T}：剖析圖沒有孤兒編號、每張編號卡都有錨點、引線都接到畫布與卡片（{len(orph)} 處不對）", not orph, orph[:20])
     # ③ 收合 → 換鏈 → 換回來 → 展開（309 截圖的路徑）
     pg.goto("about:blank"); pg.goto(f"{base}#industry/software", wait_until="domcontentloaded"); pg.wait_for_timeout(2200)
     ok(f"{T}：軟體鏈剖析圖桌機預設展開（鈕寫「收合圖」）", "收合" in (pg.text_content("#dgFold") or ""), pg.text_content("#dgFold"))
@@ -27992,6 +28039,25 @@ def t_desk_guard_1008(b, base):
         pg.wait_for_timeout(1200)   # 點了下拉自己會收（segDDOpen(false)）；不要按 Esc —— Esc 會把篩選一起清掉
         ok(f"{T}：{r} 套用環節篩選（點了 {picked}）", bool(picked) and pg.evaluate(REL)["sel"] > 0, picked)
         rel_cycle(f"{r}（篩選後）")
+    # ⑥ 明暗（10-08 晚 Andy：「網頁版 這明暗功能切換 獨立一個圖示」）：頂欄有獨立 ☀／🌙（在外觀調色盤左邊），點了真的換主題；外觀面板只剩版面風格
+    pg.set_viewport_size({"width": 1440, "height": 900})
+    pg.goto("about:blank"); pg.goto(f"{base}#overview", wait_until="domcontentloaded"); pg.wait_for_timeout(1800)
+    TB = """() => { const b = document.getElementById('themeBtn'), t = document.getElementById('t4Btn');
+        const r = b && b.getBoundingClientRect(), r2 = t && t.getBoundingClientRect();
+        return { vis: !!b && b.getClientRects().length > 0 && r.width > 20, left: !!(r && r2) && r.right <= r2.left + 1, txt: b ? b.textContent.trim() : '',
+                 theme: document.documentElement.getAttribute('data-theme') || 'dark' }; }"""
+    t0 = pg.evaluate(TB)
+    ok(f"{T}：頂欄有獨立的明暗鈕、在外觀調色盤左邊", t0["vis"] and t0["left"], t0)
+    pg.click("#themeBtn"); pg.wait_for_timeout(700)
+    t1 = pg.evaluate(TB)
+    ok(f"{T}：按明暗鈕 → 主題真的切換（{t0['theme']}→{t1['theme']}）、圖示跟著換", t1["theme"] != t0["theme"] and t1["txt"] != t0["txt"], (t0, t1))
+    pg.click("#themeBtn"); pg.wait_for_timeout(500)   # 切回來，不影響後面
+    pg.click("#t4Btn"); pg.wait_for_timeout(500)
+    pop = pg.evaluate("""() => { const p = document.getElementById('t4Pop'); return { open: !!p && !p.hidden,
+        mode: !!p && [...p.querySelectorAll('.t4mode, .t4modeh')].some((e) => e.getClientRects().length),
+        style: !!p && [...p.querySelectorAll('.t4o')].some((e) => e.getClientRects().length) }; }""")
+    ok(f"{T}：外觀面板只有版面風格、沒有明暗段", pop["open"] and not pop["mode"] and pop["style"], pop)
+    pg.keyboard.press("Escape"); pg.wait_for_timeout(200)
     # ⑤ 桌機窄視窗（800）關聯圖照舊左右排
     pg.set_viewport_size({"width": 800, "height": 900})
     pg.goto("about:blank"); pg.goto(f"{base}#industry/semiconductor", wait_until="domcontentloaded"); pg.wait_for_timeout(2500)

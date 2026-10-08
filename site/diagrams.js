@@ -911,7 +911,9 @@
       : `<circle class="anchor" cx="${o.ax}" cy="${o.ay}" r="2.8"/>`) + `</g>`;
   }
   /* 沒有錨點的說明卡（公式、結論、警語）。lines 可以是字串或陣列；warn＝警語樣式 */
-  const note = (o) => extRow({ side: o.side, title: o.title, sub: o.lines, no: o.no, warn: o.warn, note: true, color: o.color, order: o.order });
+  /* 2026-10-08（Andy 314 截圖「修復問題」）：note 也可以帶錨點（ax／ay）—— 有錨點就跟零件卡一樣拉引線到畫布上那一點。
+     沒傳 ax 的照舊是無錨點的說明卡（其他圖一張都沒變）。 */
+  const note = (o) => extRow({ side: o.side, title: o.title, sub: o.lines, no: o.no, warn: o.warn, note: true, color: o.color, order: o.order, ax: o.ax, ay: o.ay });
 
   function labelRow(seg, x, y, title, sub, tx, ty, w, dropY, no, side) {
     if (side) return extRow({ seg, title, sub, no, side, ax: tx, ay: ty });
