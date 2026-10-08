@@ -409,6 +409,21 @@
     $$('#etfRetCtl .rpk label, #etfCmpDD .ddbtn, #v-etf .incctl.m4sel .rpk label, #v-etf .incctl.m4sel label.chk').forEach((el) => {
       [...el.childNodes].forEach((n) => { if (n.nodeType === 3 && n.textContent.trim()) { const sp = document.createElement('span'); sp.className = 'm4tx'; sp.textContent = n.textContent; n.replaceWith(sp); } });
     });
+    shortTitles();
+  }
+
+  /* 卡片標題太長、「?」被擠到第二行的：手機換一個短標題（原標題包進 .m4tx 藏起來、保留在 DOM 與 title 裡，點「?」的說明一字未改）。
+     2026-10-08 CEO 交辦：複利試算的標題在 390 寬（與 iPhone 的蘋方字寬）會把「?」擠成自己一行。 */
+  const SHORT_TTL = [['#incPX > .row > h3', '複利試算：配息再投入多賺幾 %']];
+  function shortTitles() {
+    SHORT_TTL.forEach(([q, short]) => {
+      const h = $(q); if (!h || h.querySelector('.m4sh')) return;
+      const n = [...h.childNodes].find((x) => x.nodeType === 3 && x.textContent.trim()); if (!n) return;
+      const full = n.textContent.trim();
+      const sp = document.createElement('span'); sp.className = 'm4tx'; sp.textContent = n.textContent;
+      const sh = document.createElement('span'); sh.className = 'm4sh'; sh.textContent = short + ' '; sh.title = full;
+      n.replaceWith(sp, sh);
+    });
   }
 
   /* 細節頁的「‹ 返回」（Andy：「這需要附上一個倒退符號」）：題材細節、單一產業鏈、族群頁、個股頁。
