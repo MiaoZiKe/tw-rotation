@@ -28024,6 +28024,35 @@ def t_desk_guard_1008(b, base):
             orph += [f"{w} {r}：{x}" for x in pg.evaluate(DESK_ORPHAN_JS)]
     pg.set_viewport_size({"width": 1440, "height": 900})
     ok(f"{T}：剖析圖沒有孤兒編號、每張編號卡都有錨點、引線都接到畫布與卡片（{len(orph)} 處不對）", not orph, orph[:20])
+    # ②-c（10-09 Andy 第二次退回先進封裝：「這邊確實處理」）：動線卡 01～05 的編號圈要釘在主剖面上那條線本身，
+    #   不准再浮在剖面外的空白（上一版是畫布左緣的樣本線圖例）。剖面外框＝上蓋、載板、BGA 三塊的聯集（上蓋頂 → BGA 底）；
+    #   1440／1920 × 淺色／深色各量一次，而且五個都要量到（找不到錨點不准算綠）。
+    ADV_IN_JS = r"""() => {
+      const svg = document.querySelector('#prodDiagram svg.dg.icp'); if (!svg) return { n: 0, bad: ['找不到先進封裝的 svg'] };
+      const rs = ['icp_lid', 'icp_sub', 'icp_bga'].map((k) => svg.querySelector(`.icpmain [data-part="${k}"]`)).filter(Boolean).map((e) => e.getBoundingClientRect());
+      if (rs.length < 3) return { n: 0, bad: ['主剖面的上蓋／載板／BGA 少了一塊（或剖面不在 g.icpmain 裡）'] };
+      const F = { l: Math.min(...rs.map((r) => r.left)), r: Math.max(...rs.map((r) => r.right)), t: Math.min(...rs.map((r) => r.top)), b: Math.max(...rs.map((r) => r.bottom)) };
+      const bad = []; let n = 0;
+      [...svg.querySelectorAll('g.anc')].forEach((a) => {
+        const t = a.querySelector('text.non'); const v = t ? t.textContent.trim() : '';
+        if (!/^0[1-5]$/.test(v)) return;
+        n++;
+        const c = a.querySelector('.anchor').getBoundingClientRect(), x = c.left + c.width / 2, y = c.top + c.height / 2;
+        if (!(x > F.l && x < F.r && y > F.t && y < F.b)) bad.push(`${v} 圓心(${Math.round(x)},${Math.round(y)}) 不在剖面外框 [${Math.round(F.l)}~${Math.round(F.r)}, ${Math.round(F.t)}~${Math.round(F.b)}]`);
+      });
+      return { n, bad };
+    }"""
+    adv_bad, adv_n = [], 0
+    for w in (1440, 1920):
+        for th in ("light", "dark"):
+            pg.set_viewport_size({"width": w, "height": 1000})
+            pg.goto("about:blank"); pg.goto(f"{base}#{adv}", wait_until="domcontentloaded")
+            pg.evaluate(f"() => {{ try {{ localStorage.setItem('tw.theme', '{th}'); }} catch (e) {{}} }}")
+            pg.reload(wait_until="domcontentloaded"); pg.wait_for_timeout(1600)
+            got = pg.evaluate(ADV_IN_JS); adv_n += got["n"]; adv_bad += [f"{w} {th}：{x}" for x in got["bad"]]
+    pg.evaluate("() => { try { localStorage.removeItem('tw.theme'); } catch (e) {} }")
+    pg.set_viewport_size({"width": 1440, "height": 900})
+    ok(f"{T}：先進封裝動線卡 01～05 的編號圈都落在主剖面外框裡（量到 {adv_n}／20，{len(adv_bad)} 處不對）", adv_n == 20 and not adv_bad, adv_bad[:10])
     # ③ 收合 → 換鏈 → 換回來 → 展開（309 截圖的路徑）
     pg.goto("about:blank"); pg.goto(f"{base}#industry/software", wait_until="domcontentloaded"); pg.wait_for_timeout(2200)
     ok(f"{T}：軟體鏈剖析圖桌機預設展開（鈕寫「收合圖」）", "收合" in (pg.text_content("#dgFold") or ""), pg.text_content("#dgFold"))
