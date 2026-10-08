@@ -26429,6 +26429,41 @@ def t_mobile_m4(b, base, code):
             "#industry", "#market", "#explore", "#etf/cal", "#etf/list", "#etf/inc", "#season", "#watch"]
     ok(f"【{T}】抽屜有桌機側欄的每一項與子項（{len(hs)} 項）", all(n in hs for n in need), [n for n in need if n not in hs])
     ok(f"【{T}】訪客的抽屜裡沒有管理區", not any(h.startswith("#admin") for h in hs), hs)
+    # ★ 2026-10-08 Andy：「左側的內容需要排序跟網頁版一樣，切換明暗也出現一個就夠」
+    dk = b.new_page(viewport={"width": 1440, "height": 900})
+    dk.route("**/fonts.googleapis.com/**", lambda r: r.abort())
+    dk.goto(base + "#overview", wait_until="domcontentloaded"); dk.wait_for_timeout(2500)
+    want_seq = dk.evaluate("""() => [...document.querySelectorAll('#tabs .l4grp, #tabs .tab, #tabs .l4subtab')]
+        .filter(e => e.getClientRects().length && getComputedStyle(e).display !== 'none')
+        .sort((x, y) => x.getBoundingClientRect().top - y.getBoundingClientRect().top)   // 電腦版用 CSS 換位置：比畫面上的順序，不比 DOM 順序
+        .map(e => (e.querySelector('.lbl') || e).innerText.trim().split('\\n')[0])
+        .filter(t => t)""")
+    dk.close()
+    got = m.evaluate("""() => { const D = document.getElementById('m4Drawer');
+        const top = [...D.querySelectorAll('.m4top button')].map(e => e.firstChild.textContent.trim());
+        const seq = [...D.querySelectorAll('.m4grp:not(.m4top) .m4gt, .m4grp:not(.m4top) button[data-h]')]
+          .map(e => (e.querySelector('span') || e).textContent.trim());
+        const theme = [...D.querySelectorAll('button')].filter(e => /主題/.test(e.textContent)).length;
+        return { top, seq, theme, tools: !!D.querySelector('.m4tools') }; }""")
+    ok(f"【{T}】抽屜最上面＝搜尋、事件（同桌機側欄頂端）", got["top"] == ["搜尋", "事件"], got["top"])
+    ok(f"【{T}】抽屜項目順序＝桌機側欄順序（{len(want_seq)} 項）", got["seq"] == want_seq, (got["seq"], want_seq))
+    ok(f"【{T}】抽屜沒有「工具」分組、沒有明暗切換", not got["tools"] and got["theme"] == 0, got)
+    m.locator("#m4Back").tap(position={"x": 370, "y": 400}); m.wait_for_timeout(300)
+    nth = m.evaluate("""() => { const vis = (e) => e.getClientRects().length && getComputedStyle(e).display !== 'none' && getComputedStyle(e).visibility !== 'hidden';
+        return [...document.querySelectorAll('#themeBtn, #mmTheme, [data-act=theme], #l4Mode')].filter(vis).length; }""")
+    m.locator("#moreBtn").tap(); m.wait_for_timeout(400)
+    nth2 = m.evaluate("""() => { const vis = (e) => e.getClientRects().length && getComputedStyle(e).display !== 'none' && getComputedStyle(e).visibility !== 'hidden';
+        return [...document.querySelectorAll('#themeBtn, #mmTheme, [data-act=theme], #l4Mode')].filter(vis).map(e => e.id || e.className); }""")
+    m.keyboard.press("Escape"); m.wait_for_timeout(200)
+    m.mouse.click(200, 600); m.wait_for_timeout(300)
+    ok(f"【{T}】整頁只有一個明暗切換（頂欄「⋯」裡那一個）", nth == 0 and len(nth2) == 1, (nth, nth2))
+    ov = m.evaluate("""() => { const t = document.querySelector('.topbar .brand').getBoundingClientRect();
+        const c = document.getElementById('twPageTourBtn'); if (!c) return { gap: 99 };
+        const r = c.getBoundingClientRect(); let maxR = 0;
+        document.querySelectorAll('.topbar .brand .m4title i, .topbar .brand .m4title span').forEach(e => { const q = e.getBoundingClientRect(); maxR = Math.max(maxR, Math.min(q.right, t.right)); });
+        return { gap: Math.round(r.left - maxR), brandR: t.right, tour: r.left }; }""")
+    ok(f"【{T}】頂欄文字跟羅盤鈕不重疊、留 ≥8px（{ov['gap']}px）", ov["gap"] >= 8, ov)
+    m.locator("#m4Burger").tap(); m.wait_for_timeout(400)
     ok(f"【{T}】抽屜每一顆觸控高度 ≥ 40", d["bad"] == [], d["bad"])
     m.locator("#m4Back").tap(position={"x": 370, "y": 400}); m.wait_for_timeout(300)
     ok(f"【{T}】點背景抽屜收起", m.evaluate("() => document.getElementById('m4Drawer').hidden"))

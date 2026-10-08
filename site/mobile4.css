@@ -19,10 +19,10 @@
   :root.m4 .topbar .brand .logo{flex:none;width:32px;height:32px}
   :root.m4 .topbar .brand .logo img{width:32px;height:32px;display:block}
   :root.m4 .topbar .brand b{display:none}
-  :root.m4 .topbar .brand{min-width:0;flex:1 1 auto}
+  :root.m4 .topbar .brand{min-width:0;flex:1 1 auto;margin-right:8px;overflow:hidden}
   :root.m4 .topbar .brand>div{min-width:0}
   :root.m4 .m4title{display:flex;flex-direction:column;line-height:1.2;min-width:0}
-  :root.m4 .m4title i{font-style:normal;font-size:11px;color:var(--ink-3);letter-spacing:.04em}
+  :root.m4 .m4title i{font-style:normal;font-size:12px;color:var(--ink-3);letter-spacing:.02em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block}
   :root.m4 .m4title span{font-size:16px;font-weight:700;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   :root.m4 body.m3on .msearchbtn{margin-left:4px}
 

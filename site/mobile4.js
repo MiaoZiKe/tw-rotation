@@ -44,7 +44,13 @@
     const has = (v) => !!(tabs && $(`.tab[data-view="${v}"]`, tabs)) || v === 'delivery';
     const pg = curPage(), sub = curSub(), adm = curAdm();
     const ic = (k) => (N.subIcon ? N.subIcon(k) : '');
-    let h = '';
+    /* 2026-10-08（Andy：「左側的內容需要排序跟網頁版一樣，切換明暗也出現一個就夠」）：
+       順序＝電腦版側欄：最上面搜尋、再來「事件」（件數徽章），之後各分組。
+       分組與順序直接讀 layout4.js 的 GROUPS.views（電腦版側欄用 CSS 依它換位置，畫面順序＝這份；#tabs 的 DOM 順序不是畫面順序）。
+       明暗切換頂欄「⋯」裡已經有一個，抽屜不再放；「工具」分組拿掉。 */
+    const evn = (($('#evCount') || {}).textContent || '').trim();
+    let h = `<div class="m4grp m4top"><button type="button" class="m4item" data-act="search">搜尋</button>
+      <button type="button" class="m4item" data-act="events">事件${evn ? `<span class="n">${esc(evn)}</span>` : ''}</button></div>`;
     N.GROUPS.forEach((G) => {
       const rows = [];
       G.views.forEach((v) => {
@@ -54,7 +60,7 @@
           N.admSubs().forEach(([k, t, , icn]) => rows.push(`<button type="button" class="m4sub${adm === k ? ' on' : ''}" data-h="#admin/${k}" data-adm="${k}">${ic(icn)}<span>${esc(t)}</span></button>`));
           return;
         }
-        if (v === 'stock' || v === 'delivery' || !has(v)) return;    // 個股頁沒有側欄入口（從搜尋／圖點進去）；交付清單入口桌機也收掉了
+        if (v === 'stock' || v === 'delivery' || !has(v)) return;    // 個股頁沒有側欄入口；交付清單入口桌機也收掉了
         const P = N.PAGES[v] || { t: v };
         const subs = N.SUBS[v] || [];
         const on = pg === v || (v === 'industry' && pg === 'stock');
@@ -63,13 +69,8 @@
       });
       if (rows.length) h += `<div class="m4grp" data-g="${G.g}"><div class="m4gt">${esc(G.t)}</div>${rows.join('')}</div>`;
     });
-    const evn = (($('#evCount') || {}).textContent || '').trim();
     const ver = (($('#buildver') || {}).textContent || '').trim();
-    const dark = root.dataset.theme !== 'light';
-    h += `<div class="m4grp m4tools"><div class="m4gt">工具</div>
-      <button type="button" class="m4item" data-act="events">今日事件${evn ? `<span class="n">${esc(evn)}</span>` : ''}</button>
-      <button type="button" class="m4item" data-act="theme">切換成${dark ? '明亮' : '深色'}主題</button>
-      <div class="m4ver">網頁版號 <span class="mono">${esc(ver || '—')}</span></div></div>`;
+    h += `<div class="m4ver">網頁版號 <span class="mono">${esc(ver || '—')}</span></div>`;
     $('.m4body', drawer).innerHTML = h;
   }
 
@@ -115,7 +116,7 @@
         const b = e.target.closest('button[data-h], button[data-act]'); if (!b) return;
         if (b.dataset.act) {
           close();
-          const t = document.getElementById(b.dataset.act === 'events' ? 'evToggle' : 'themeBtn');
+          const t = document.getElementById(b.dataset.act === 'events' ? 'evToggle' : 'mSearchBtn');
           if (t) t.click();
           return;
         }
