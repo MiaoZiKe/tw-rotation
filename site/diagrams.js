@@ -209,7 +209,12 @@
          改成「看這張 svg 自己有沒有被包進 .dgcanvas」；上一張留下的觀察器與 class 由 teardownV2 收掉。*/
       const v2 = svg.classList.contains('rs') && host.classList && host.classList.contains('dgwrap') && !host.closest('.xmini');
       if (v2) externalize(host, svg);
-      else if (host.dataset && host.dataset.dgv2 === '1') teardownV2(host);   // 上一張是 v2、這一張不是：殘留清掉
+      /* ★ 2026-10-08 桌機守門（Andy 309 截圖：軟體鏈說明卡全掉到圖下面）：
+         querySelectorAll('svg') 也會掃到 v2 自己建的引線層（.dglead）與卡片裡的小 svg —— 它們不是 .rs，
+         以前就會走進這一支把整套 v2 拆掉（.dgv2 class 沒了 → 容器查詢失效 → 卡片落到圖下面一整列）。
+         第一次畫圖時引線層還沒建，所以平常看不出來；「剖析圖收著時畫好、之後才展開」會再跑一次 stampParts，就踩到了
+         （手機 v2 把桌機預設改成收起之後，每次重新整理都會踩到）。改成：容器裡還有一張外掛過的 v2 圖就不拆。 */
+      else if (host.dataset && host.dataset.dgv2 === '1' && !host.querySelector('.dgcanvas svg.rs')) teardownV2(host);   // 上一張是 v2、這一張不是：殘留清掉
       const ns = [].slice.call(svg.querySelectorAll('[data-seg]'));
       ns.forEach((n, i) => { n.dataset.dgkey = n.getAttribute('data-part') || (n.getAttribute('data-seg') + ':' + i); });
       /* 單一環節的圖自己判定，不要求畫圖的人記得加 class ——

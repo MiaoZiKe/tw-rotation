@@ -1703,13 +1703,19 @@
       const foldRel = $('#relFold', el);
       /* 2026-10-08：關聯圖＝產業鏈頁手機上唯一保留的主體（Andy：「手機版本只留下關聯圖，其餘…一定要收合」），手機預設打開；
          桌機照「收展預設收起」準則改成預設收起（改前桌機預設展開）。使用者切過就記住（tw.relOpen）。 */
-      let relOpen = document.documentElement.classList.contains('m4');
+      /* ★ 2026-10-08 桌機守門（Andy 17:13：「網頁版不要變成這樣，Default 就是展開關聯圖，收合就是都收合…
+         收合狀態下方不會有資訊，展開就是關聯圖以及說明資訊」「兩者不可侵犯」）：
+         手機 v2 把桌機也改成預設收起、收起時攤開整份環節卡清單 —— 那是手機的改動漏到桌機。
+         桌機（沒有 html.m4）：預設展開；收合＝關聯圖與環節卡清單一起藏，標題以下什麼都沒有。
+         手機（html.m4）：照手機 v2（預設展開、收起時留清單），一行都不動。 */
+      const relM4 = document.documentElement.classList.contains('m4');
+      let relOpen = true;
       try { const v = localStorage.getItem('tw.relOpen'); if (v != null) relOpen = v === '1'; } catch (e) { /* 忽略 */ }
       const paintRelFold = () => {
         if (mapHost) mapHost.hidden = !relOpen;
         /* 清單平常與圖等高（它自己的高度不算進版面）；圖收起來之後沒有「圖的高度」可以對齊，
            .mapfold 讓清單改成佔滿整列、用自己的高度（上限 70vh）—— 不然收合圖會連清單一起收成 0。*/
-        const rm = $('#relMain', el); if (rm) rm.classList.toggle('mapfold', !relOpen);
+        const rm = $('#relMain', el); if (rm) { rm.classList.toggle('mapfold', !relOpen); rm.hidden = !relOpen && !relM4; }
         if (foldRel) { foldRel.textContent = relOpen ? '收合圖 ▴' : '展開關聯圖 ▾'; foldRel.classList.toggle('cyan', !relOpen); }
         placeRelCol(el);        // 圖收起來 → 卡片回到文件流（清掉浮動座標）；展開 → 重新貼回圖上
       };
@@ -1761,7 +1767,8 @@
       const foldBtn = $('#dgFold', el), dgBody = $('#dgBody', el);
       /* 2026-10-08（Andy 手機五條準則第 5 條：「所有收展功能預設收起，網頁和手機都一樣」）：改前桌機預設展開、手機強制展開；
          改後一律預設收起，使用者自己展開過（tw.dgOpen）才記住；直接走到某張圖的網址照舊展開。 */
-      dgOpen = false;
+      /* ★ 2026-10-08 桌機守門：Andy 指定「關聯圖和剖析圖是例外，桌機預設展開」→ 桌機（>640）預設展開（同改前），手機照上面那條預設收起。 */
+      dgOpen = !document.documentElement.classList.contains('m4') && window.innerWidth > 640;
       try { const v = localStorage.getItem('tw.dgOpen'); if (v != null) dgOpen = v === '1'; } catch (e) { /* 忽略 */ }
       /* ★ 直接走到某一張圖自己的網址（#industry/<chain>/dg/<slot>）＝使用者明確說
          「我就是要看這張」。手機的預設收合是給「順著鏈逛進來」的人省高度用的，
@@ -3413,7 +3420,7 @@
        只在非桌機（≤820，原本就是要左右滑的寬度）判斷；桌機版面一律照舊左右排。 */
     const HW0 = (host && host.clientWidth) || ((window.innerWidth || 390) - 16);
     const needW = layerCols * 136 + Math.max(0, layerCols - 1) * 18 + 52;
-    const vert = (window.innerWidth || 1440) <= 820 && HW0 < needW;
+    const vert = document.documentElement.classList.contains('m4') && HW0 < needW;   // 2026-10-08 桌機守門：只限手機 v2（≤640，html.m4）；改前寫 ≤820，641～820 的桌機窄視窗也被改成上下排
     if (host && host.dataset) { host.dataset.layout = vert ? 'vert' : 'horiz'; host.dataset.needw = String(needW); host.dataset.hw = String(Math.round(HW0)); }
     const VHW = Math.max(300, HW0);
     const fit = vert ? (() => { const pad = 4, g = 12, cw = Math.floor((VHW - pad * 2 - g) / 2); return { colW: cw, colGap: g, padX: pad, W: VHW, HW: VHW, CW: VHW - pad * 2 }; })()
