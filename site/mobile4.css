@@ -51,10 +51,26 @@
 
   /* ---- 3. 側欄抽屜 ---- */
   :root.m4 .m4back{position:fixed;inset:0;z-index:1990;background:rgba(0,0,0,.55)}
-  :root.m4 .m4drawer{position:fixed;left:0;top:0;bottom:0;z-index:1991;width:min(84vw,320px);display:flex;flex-direction:column;
+  :root.m4 .m4drawer{position:fixed;left:0;top:0;bottom:0;z-index:1991;width:min(280px,72vw);display:flex;flex-direction:column;
     background:var(--bg);border-right:1px solid var(--line-2);box-shadow:8px 0 32px rgba(0,0,0,.35);
     transform:translateX(-8px);opacity:.98;transition:transform .16s ease-out}
   :root.m4 .m4drawer.in{transform:none}
+  /* 2026-10-09（Andy：「事件需要調整適當寬度」「兩邊側邊欄位都具備可以左右滑動收起功能」）：
+     右側今日事件抽屜跟左側選單同一個規格 —— 寬 min(300px,78vw)（430 寬＝300、右邊露出 30% 頁面；360 寬＝281）；
+     標題列「今日事件｜全部（N）▾｜×」同一行；分類（全部／台股／科技／總經／券商）改成同一款分段控制器、一行、放不下就框裡橫捲。
+     兩個抽屜 touch-action:pan-y：上下捲交給瀏覽器、左右滑收起交給 mobile4.js swipeClose */
+  :root.m4 aside#side{width:min(300px,78vw)}
+  :root.m4 .m4drawer,:root.m4 aside#side{touch-action:pan-y}
+  :root.m4 #side .side-h{gap:6px;padding:10px 8px 8px 12px;flex-wrap:nowrap}
+  :root.m4 #side .side-h h3{flex:none;white-space:nowrap;margin:0}
+  :root.m4 #side .side-h .row{flex:0 1 auto;min-width:0;flex-wrap:nowrap;gap:4px}
+  :root.m4 #side .side-h #evDate{min-width:0;max-width:100%;height:36px;font-size:13px;padding:0 4px}
+  :root.m4 #side .side-h #evClose{flex:none;min-width:40px;min-height:40px}
+  :root.m4 #side #evFilters{display:flex;flex-wrap:nowrap;gap:2px;width:fit-content;max-width:calc(100% - 24px);margin:0 12px 10px;padding:3px;overflow-x:auto;scrollbar-width:none;touch-action:pan-x pan-y;
+    border:1px solid var(--t4-ctl-edge,var(--line-2));border-radius:9px;background:var(--t4-ctl,var(--panel-3));box-sizing:border-box}
+  :root.m4 #side #evFilters::-webkit-scrollbar{display:none}
+  :root.m4 #side #evFilters>button{flex:none;min-height:36px;padding:0 12px;border:0;border-radius:7px;background:transparent;color:var(--ink-2);font-size:13px;font-weight:600;white-space:nowrap}
+  :root.m4 #side #evFilters>button.on{background:var(--t4-accent,var(--cyan));color:var(--on-accent,var(--ontop));font-weight:700}
   :root.m4 .m4drawer[hidden],:root.m4 .m4back[hidden]{display:none}
   :root.m4 .m4head{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:10px 10px 8px 16px;border-bottom:1px solid var(--line)}
   :root.m4 .m4brand{display:flex;align-items:center;gap:10px}
@@ -68,6 +84,10 @@
   :root.m4 .m4item,:root.m4 .m4sub{display:flex;align-items:center;gap:8px;width:100%;min-height:44px;padding:0 12px;border:0;border-radius:10px;
     background:transparent;color:var(--ink);font-size:15px;font-weight:600;text-align:left;cursor:pointer}
   :root.m4 .m4sub{min-height:40px;font-size:14px;font-weight:500;color:var(--ink-2)}
+  /* 2026-10-09（Andy：「側邊欄位打開不要太寬 調整適當大小」）：抽屜改 min(280px,72vw)（常見 App 抽屜 256～300px，右邊至少留 28% 看得到底下頁面）；
+     字級、圖示、項目高度不變。變窄後項目一律單行：放不下的長字用 … 收（全文在 title／原字串），不准換行 */
+  :root.m4 .m4item,:root.m4 .m4sub{white-space:nowrap;min-width:0}
+  :root.m4 :is(.m4item,.m4sub)>span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   :root.m4 .m4sub .ic{flex:none;opacity:.85}
   /* 圖示（同電腦版側欄：主項 19px、子項 16px；子項圖示對齊主項的字，跟電腦版一樣） */
   :root.m4 .m4ic{flex:none;width:19px;height:19px;background:currentColor;opacity:.85;
@@ -257,6 +277,12 @@
   :root.m4 .m4subtabs{display:flex;gap:4px;overflow-x:auto;scrollbar-width:none;touch-action:pan-x pan-y;border-bottom:1px solid var(--line);margin-top:0}
   :root.m4 .m4subtabs button{flex:none;min-height:40px;padding:0 12px;border:0;border-bottom:2px solid transparent;background:transparent;color:var(--ink-2);font:inherit;font-size:15px;font-weight:600;white-space:nowrap;cursor:pointer}
   :root.m4 .m4subtabs button.on{color:var(--t4-accent-solid,var(--cyan));border-bottom-color:var(--t4-accent-solid,var(--cyan))}
+  /* 2026-10-09（Andy：「子分頁裡面還有的 就用分頁形式表示……並且需要平均分散分頁寬度 填滿左右」）：
+     子頁頁籤每格等寬、填滿左右，不橫捲、不換行；字維持 15px（360 寬 4 格每格 86px，五個字 75px＋左右內距 8px 放得下「配息行事曆」「資金分流樹」），字再長就 …（全名在 title）。
+     攤平後第二層那排（資金流向的「法人｜集中度」、熱力圖的「題材熱力｜題材細節」、ETF 的「月配試算表｜複利試算表」）藏起來：mobile4.js FLAT／syncFlat */
+  :root.m4 .m4subtabs{overflow:hidden;gap:0}
+  :root.m4 .m4subtabs button{flex:1 1 0;min-width:0;padding:0 4px;overflow:hidden;text-overflow:ellipsis}
+  :root.m4[data-m4flat] :is(#v-flow,#v-heatmap)>.mpager,:root.m4[data-m4flat] #incMain{display:none!important}
 
   /* 個股 K 線左上的「還原」小標：手機不要框（去方格準則），留淡底色 */
   :root.m4 .adjtag{border:0!important;box-shadow:none!important}
@@ -275,9 +301,7 @@
     background:transparent;color:var(--ink);font:inherit;font-size:15px;font-weight:700;text-align:left;cursor:pointer}
   :root.m4 #v-industry .gpgrid>.m4fold i{font-style:normal;color:var(--ink-3)}
 
-  /* ---- 21. 細節頁的「‹ 返回」（mobile4.js paintBack） */
-  :root.m4 .m4back2{display:inline-flex;align-items:center;min-height:40px;min-width:40px;margin:2px 0 0;padding:0 10px 0 4px;border:0;background:transparent;color:var(--t4-accent-solid,var(--cyan));font:inherit;font-size:15px;font-weight:600;cursor:pointer}
-  :root.m4 .m4back2[hidden]{display:none}
+  /* ---- 21.（2026-10-09 拿掉：Andy「不需要返回功能」—— 細節頁的「‹ 返回」鈕連程式一起刪；回上一層用手機本身的返回鍵、上方頁籤或抽屜） */
 
   /* ---- 22. 已選膠囊列 → 一顆「已選 N ▾」篩選下拉（共用 window.MultiSelect.dropdown ＝ App.msDD；mobile4.js wireIncMS／wireCxMS）
      旁邊本來就有 msDD 的（週期統計、站上均線）只藏膠囊列；沒有的由 mobile4.js 長一顆。資料與勾選都還在原控制項上 */
@@ -292,18 +316,28 @@
      頁籤只准兩種：頁面最上方切子頁＝底線頁籤（.m4subtabs、個股 #mbTabs）；頁內切換＝分段膠囊（下面這組）。高度跟全站觸控下限（第 102 行的 40px）一致。
      資料夾頁籤（.nbsw）、黑底膠囊、方框分段（.seg）一律改成分段膠囊：高 40、圓角 --r-sm、1px 細框、13px；
      選中＝主色淡底＋主色字＋主色框（跟 layout4.css 的 .mpager 同一組顏色） */
-  :root.m4 .view.on :is(.seg,.nbsw,.mpager,.mseg,[role=tablist]):not(.m4subtabs):not(#mbTabs):not(.hmbar)>button{
+  /* ★ 2026-10-09 改版（Andy：「圖一需要全部改成切換開關 如圖二」，圖二＝網頁版總覽「走勢圖｜K 線」那顆 .seg#m3Mode）：
+     頁內切換一律改成**網頁版 .seg 同一款分段控制器** —— 一個圓角外框包住所有選項（外框＝控制項底 --t4-ctl＋1px --t4-ctl-edge、圓角 9、內距 3（手機 2：總覽主圖要留在第一屏 844 內）、間距 2；
+     index.html 的 .seg 與 theme4.css 的 [data-theme4] .seg），選項本身沒有框、透明底；選中＝ --t4-accent 實心填色＋ --on-accent 字（theme4.css 的 .seg button.on）。
+     手機只改兩件事：選項高 40（觸控下限）、一排放不下就在外框裡橫向手指拖曳（不換行）。
+     不在這組的：子頁底線頁籤（.m4subtabs、#mbTabs）、熱力圖的 .hmbar。 */
+  :root.m4 .view.on :is(.seg,.nbsw,.mpager,.mseg,[role=tablist]):not(.m4subtabs):not(#mbTabs):not(.hmbar)>:is(button,a){
     flex:none;display:inline-flex;align-items:center;justify-content:center;gap:4px;
-    min-height:40px!important;height:40px!important;padding:0 12px!important;margin:0!important;
-    border:1px solid var(--t4-ctl-edge,var(--line-2))!important;border-radius:var(--r-sm,8px)!important;
-    background:var(--t4-ctl,var(--panel))!important;color:var(--ink-2)!important;
-    font-size:13px!important;font-weight:600;line-height:1;white-space:nowrap;box-shadow:none!important}
-  :root.m4 .view.on :is(.seg,.nbsw,.mpager,.mseg,[role=tablist]):not(.m4subtabs):not(#mbTabs):not(.hmbar)>button:is(.on,[aria-selected=true]){
-    border-color:var(--t4-accent-solid,var(--cyan))!important;color:var(--t4-accent-solid,var(--cyan))!important;font-weight:700;
-    background:color-mix(in srgb,var(--t4-accent-solid,var(--cyan)) 14%,var(--t4-ctl,var(--panel)))!important}
-  :root.m4 .view.on :is(.seg,.nbsw,.mpager,.mseg,[role=tablist]):not(.m4subtabs):not(#mbTabs):not(.hmbar)>button :is(em,small){font-size:12px!important;font-style:normal;margin-left:2px;opacity:.85}
+    min-height:40px!important;height:40px!important;padding:0 14px!important;margin:0!important;
+    border:0!important;border-radius:7px!important;
+    background:transparent!important;color:var(--ink-2)!important;
+    font-size:13px!important;font-weight:600;line-height:1;white-space:nowrap;box-shadow:none!important;text-decoration:none}
+  :root.m4 .view.on :is(.seg,.nbsw,.mpager,.mseg,[role=tablist]):not(.m4subtabs):not(#mbTabs):not(.hmbar)>:is(button,a):is(.on,[aria-selected=true]){
+    color:var(--on-accent,var(--ontop))!important;font-weight:700;
+    background:var(--t4-accent,var(--cyan))!important}
+  :root.m4 .view.on :is(.seg,.nbsw,.mpager,.mseg,[role=tablist]):not(.m4subtabs):not(#mbTabs):not(.hmbar)>:is(button,a) :is(em,small){font-size:12px!important;font-style:normal;margin-left:2px;opacity:.85}
+  :root.m4 .view.on :is(.seg,.nbsw,.mpager,.mseg,[role=tablist]):not(.m4subtabs):not(#mbTabs):not(.hmbar)>:is(button,a):is(.on,[aria-selected=true]) :is(em,small,b,i){color:inherit!important}
   :root.m4 .view.on :is(.seg,.nbsw,.mpager,.mseg,[role=tablist]):not(.m4subtabs):not(#mbTabs):not(.hmbar){
-    flex-wrap:nowrap;gap:6px;overflow-x:auto;scrollbar-width:none;touch-action:pan-x pan-y;border:0!important;background:transparent!important;padding:0!important;box-shadow:none!important}
+    flex-wrap:nowrap!important;gap:2px!important;width:fit-content!important;max-width:100%;min-width:0;box-sizing:border-box;
+    overflow-x:auto;overflow-y:hidden;scrollbar-width:none;touch-action:pan-x pan-y;-webkit-overflow-scrolling:touch;
+    border:1px solid var(--t4-ctl-edge,var(--line-2))!important;border-radius:9px!important;
+    background:var(--t4-ctl,var(--panel-3))!important;padding:2px!important;box-shadow:none!important}
+  :root.m4 .view.on :is(.seg,.nbsw,.mpager,.mseg,[role=tablist]):not(.m4subtabs):not(#mbTabs):not(.hmbar)::-webkit-scrollbar{display:none}
   :root.m4 .view.on :is(.seg,.nbsw,.mseg,[role=tablist]):not(.m4subtabs):not(#mbTabs)::before,
   :root.m4 .view.on :is(.seg,.nbsw,.mseg,[role=tablist]):not(.m4subtabs):not(#mbTabs)::after{display:none!important}
   /* 個股頁最上方的分頁（#mbTabs）也是「切子頁」→ 跟 .m4subtabs 同一款底線頁籤：高 40、15px */
@@ -406,4 +440,25 @@
   :root.m4 #v-pricing .prcmp{margin-top:16px!important}
   :root.m4 #v-pricing #prTable :is(th,td){height:auto!important;padding:5px 3px!important;line-height:1.3!important}
   :root.m4 #v-pricing #prTable tr.cat td{padding:4px!important}
+  /* ---- 29. 大功能之間的分隔線（2026-10-09 Andy：「所有大功能需要用線條分開」）：全站同一款 —— 全寬 1px、顏色 --m4-div（＝主題的 --line-2；
+     原本的 --line 在淺色主題對底色只有 1.19:1，看不出來）、線上下各 8px（原本卡中卡 12px、清單 8px 兩種，統一成 8：總覽主圖與資金排行前 5 名才留得在第一屏 844 內）。
+     · 頁面最上層的大區塊：mobile4.js markSeps() 標 .m4sep（線在上）；下一塊是切換列時改標上一塊 .m4sepb（線在下）；第一塊與緊跟在切換列後面的那塊不標
+     · 卡片之間、卡中卡、清單區塊（第 5、14 節原本的線）：同一個顏色
+     · 資金輪動卡裡「輪盤」與「排行」之間（.m3keep 裡第二個以後的 .mhead） */
+  :root.m4{--m4-div:var(--line-2)}
+  /* :is(…,#m4-none) 只為了把權重拉到 ID 等級（蓋得過 #v-etf .etfbody{border:0!important} 這種）；#m4-none 不存在 */
+  :root.m4 main .view.on>:is(.m4sep,#m4-none){border-top:1px solid var(--m4-div)!important;margin-top:8px!important;padding-top:8px!important}
+  :root.m4 main .view.on>:is(.m4sepb,#m4-none){border-bottom:1px solid var(--m4-div)!important;margin-bottom:8px!important;padding-bottom:8px!important}
+  :root.m4 main .view>.card+.card,:root.m4 main .view .card~.card,:root.m4 main .view .card .card,
+  :root.m4 main .view :is(.callist,.inclist,.mfocus,.relsec,.incsec),:root.m4 main .view :is(.gpcard,.sl-card)+:is(.gpcard,.sl-card){border-top-color:var(--m4-div)!important;margin-top:8px!important;padding-top:8px!important}
+  :root.m4 main .view :is(.m4fold,.mrkhd){border-top-color:var(--m4-div)!important}
+  :root.m4 main .view .card .card,:root.m4 main .view .card~.card{margin-top:8px!important;padding-top:8px!important}
+  :root.m4 main .view.on .m3keep>.mhead~.mhead{border-top:1px solid var(--m4-div);margin-top:8px;padding-top:8px}
+  /* ---- 30. 要左右滑的列拓寬成滿版（2026-10-09 Andy：「左右滑可以拓寬」；mobile4.js markBleed 標 .m4bleed）：
+     左右貼齊螢幕（JS 量父層內容框到螢幕邊的距離 --m4bl／--m4br，用負邊界抵掉）、第一項與最後一項用 8px 內距對齊內容邊；分段控制器的左右框與圓角拿掉（變成一條滿版的帶子，上下細框留著）；
+     右緣 28px 淡出＝還能滑（取代以前那行「← 左右滑看更多 →」），滑到底（.m4end）淡出收掉。兩個 :is(…,#m4-none) 只為了把權重拉到兩個 ID（蓋得過第 23 節那條帶 :not(#mbTabs) 的 width:fit-content!important） */
+  :root.m4 main .view.on :is(.m4bleed,#m4-none):is(.m4bleed,#m4-none2){width:var(--m4bw,100%)!important;min-width:0!important;max-width:none!important;margin-left:calc(-1 * var(--m4bl,0px))!important;margin-right:calc(-1 * var(--m4br,0px))!important;
+    padding-left:8px!important;padding-right:8px!important;box-sizing:border-box!important;border-left-width:0!important;border-right-width:0!important;border-radius:0!important;
+    scroll-padding-inline:8px;-webkit-mask-image:linear-gradient(90deg,#000 0,#000 calc(100% - 28px),transparent 100%);mask-image:linear-gradient(90deg,#000 0,#000 calc(100% - 28px),transparent 100%)}
+  :root.m4 main .view.on :is(.m4bleed,#m4-none):is(.m4bleed,#m4-none2).m4end{-webkit-mask-image:none;mask-image:none}
 }

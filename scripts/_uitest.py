@@ -3009,7 +3009,12 @@ def t_etf_income_v2(pg, b, base):
         mp.tap("#incCTbl .cmr:nth-child(2) dl"); mp.wait_for_timeout(500)
         ok(f"[{tag}] 390：點明細卡第 2 張 → 選中那檔", mp.evaluate(MST)["sel"] == m0["codes"][1] and mp.evaluate(fit))
         mp.tap("#incCTbl .cmr:nth-child(2) dl"); mp.wait_for_timeout(300)
-        mp.tap("#incMain button[data-v='x']"); mp.wait_for_timeout(2500)
+        # 2026-10-09 手機攤平子頁（Andy：「子分頁裡面還有的 就用分頁形式表示」）：手機的 #incMain 藏起來，複利改點上方「複利試算」頁籤
+        if mp.evaluate("() => !!document.querySelector('#incMain').getClientRects().length"):
+            mp.tap("#incMain button[data-v='x']")
+        else:
+            mp.tap("#m4Title .m4subtabs button[data-sub='etf-cx']")
+        mp.wait_for_timeout(2500)
         yv = mp.evaluate("() => { const th = [...document.querySelectorAll('#cxTbl thead th')].find(e => e.textContent === '年化'), w = document.querySelector('#incPX .cxr').getBoundingClientRect(); if (!th) return null; const r = th.getBoundingClientRect(); return [Math.round(r.right), Math.round(w.right), getComputedStyle(document.querySelectorAll('#cxTbl thead th')[3]).display]; }")
         ok(f"★ [{tag}] 390：複利右表「年化」欄在卡片內看得到（「比只領現金多」窄畫面隱藏）", yv and yv[0] <= yv[1] + 1 and yv[2] == "none", yv)
         ok(f"★ [{tag}] 390：複利試算表上下排、無溢出", mp.evaluate("() => document.getElementById('cxChart').dataset.state") == "ok" and mp.evaluate(fit) and mp.evaluate("() => document.getElementById('cxTbl').getBoundingClientRect().top >= document.getElementById('cxChart').getBoundingClientRect().bottom - 1"))
@@ -26982,6 +26987,255 @@ def t_phone_1008(pg, b, base):
     finally:
         p.close()
 
+# ★ 2026-10-09 手機第四批（Andy 10-09 五句話，一批做完）：
+#   ①「以上手機版需要優化地方 1.圖一需要全部改成切換開關 如圖二」（圖二＝網頁版總覽「走勢圖｜K 線」那顆 .seg）
+#   ②「把明暗功能分出來」  ③「所有大功能需要用線條分開」  ④「側邊欄位打開不要太寬 調整適當大小」
+#   ⑤「像這類型 子分頁裡面還有的 就用分頁形式表示，變成總共 4 個分頁在上面，並且需要平均分散分頁寬度 填滿左右」
+M4_DIV_JS = r"""() => {
+  const vw = innerWidth;
+  const vis = (e) => e.getClientRects().length && getComputedStyle(e).display !== 'none' && getComputedStyle(e).visibility !== 'hidden';
+  const rgb = (s) => { const m = (s || '').match(/[\d.]+/g); if (!m) return null; if (/^color\(srgb/.test(s)) return [m[0]*255, m[1]*255, m[2]*255, m[3] == null ? 1 : +m[3]]; return [+m[0], +m[1], +m[2], m[3] == null ? 1 : +m[3]]; };
+  const lum = (c) => { const f = (v) => { v /= 255; return v <= .03928 ? v / 12.92 : Math.pow((v + .055) / 1.055, 2.4); }; return .2126 * f(c[0]) + .7152 * f(c[1]) + .0722 * f(c[2]); };
+  let bgc = rgb(getComputedStyle(document.body).backgroundColor);
+  if (!bgc || bgc[3] === 0) bgc = rgb(getComputedStyle(document.documentElement).backgroundColor) || [255, 255, 255, 1];
+  const mix = (c) => [c[0] * c[3] + bgc[0] * (1 - c[3]), c[1] * c[3] + bgc[1] * (1 - c[3]), c[2] * c[3] + bgc[2] * (1 - c[3])];
+  const cr = (c) => { const a = lum(mix(c)), b = lum(bgc); return (Math.max(a, b) + .05) / (Math.min(a, b) + .05); };
+  const view = document.querySelector('.view.on'); if (!view) return { pairs: [] };
+  const CTL = '.mpager,.m4subtabs,.mspine,[role=tablist],.seg,.nbsw,.mseg,.chainsw';
+  const kids = [...view.children].filter((e) => vis(e) && e.getBoundingClientRect().height >= 24);
+  // 大區塊＝最上層子元素；切換列跟它後面那塊算同一塊（線畫在切換列上面）
+  const hOf = (e) => e.getBoundingClientRect().height - (e.classList.contains('m4sep') ? 13 : 0) - (e.classList.contains('m4sepb') ? 13 : 0);
+  const isCtl = (e) => e.matches(CTL) || (!!e.querySelector(CTL) && hOf(e) <= 64);
+  const blocks = []; kids.forEach((e, i) => { if (i > 0 && isCtl(kids[i - 1]) && !isCtl(e)) return;
+    if (i < kids.length - 1 && !isCtl(e) && hOf(e) < 80) return;   // 矮的頁首／說明條算下一塊的開頭
+    blocks.push(e); });
+  const name = (e) => (e.id ? '#' + e.id : '') + '.' + [...e.classList].slice(0, 3).join('.');
+  const lineOf = (el, side, y0, y1) => {
+    const cs = getComputedStyle(el), r = el.getBoundingClientRect();
+    const w = parseFloat(cs[`border${side}Width`]); if (!(w >= 1) || cs[`border${side}Style`] === 'none') return null;
+    const y = side === 'Top' ? r.top : r.bottom; if (y < y0 - 2 || y > y1 + 2) return null;
+    return { el: name(el), how: 'border-' + side.toLowerCase(), w: Math.round(r.width), c: cs[`border${side}Color`], cr: +cr(rgb(cs[`border${side}Color`])).toFixed(2) };
+  };
+  const pseudo = (el, y0, y1) => {
+    for (const ps of ['::before', '::after']) { const cs = getComputedStyle(el, ps); if (cs.content === 'none' || cs.display === 'none') continue;
+      const h = parseFloat(cs.height), w = parseFloat(cs.width); const c = rgb(cs.backgroundColor);
+      if (h > 0 && h <= 3 && c && c[3] > 0) return { el: name(el) + ps, how: 'pseudo', w: Math.round(w), c: cs.backgroundColor, cr: +cr(c).toFixed(2) }; }
+    return null;
+  };
+  const pairs = [];
+  for (let i = 1; i < blocks.length; i++) {
+    const A = blocks[i - 1], B = blocks[i], ra = A.getBoundingClientRect(), rb = B.getBoundingClientRect();
+    if (rb.top < ra.bottom - 4) continue;   // 並排的不算
+    const y0 = ra.bottom, y1 = rb.top + 2; const found = [];
+    for (let e = B; e && e !== view.parentElement && !e.contains(A); e = e.parentElement) { const l = lineOf(e, 'Top', y0, y1) || pseudo(e, y0, y1); if (l) found.push(l); }
+    for (let e = A; e && e !== view.parentElement && !e.contains(B); e = e.parentElement) { const l = lineOf(e, 'Bottom', y0, y1); if (l) found.push(l); }
+    // 夾在中間的元素（例如分隔用的 hr、收合列）
+    for (const e of view.querySelectorAll('*')) { if (A.contains(e) || B.contains(e) || e.contains(A) || e.contains(B) || !vis(e)) continue; const r = e.getBoundingClientRect();
+      if (r.top >= y0 - 2 && r.height <= 80) { const l = lineOf(e, 'Top', y0, y1) || lineOf(e, 'Bottom', y0, y1); if (l) found.push(l); } }
+    const good = found.filter((l) => l.w >= vw * .9 && l.cr >= 1.3);
+    pairs.push({ a: name(A), b: name(B), y: Math.round(rb.top + scrollY), gap: Math.round(rb.top - ra.bottom), ok: good.length > 0, found: found.slice(0, 3) });
+  }
+  // 區塊裡面的線（卡中卡、資金輪動卡裡「輪盤」與「排行」之間…）：同一個顏色、看得出來
+  const inner = [...view.querySelectorAll('.card .card, .card~.card, .m3keep>.mhead~.mhead, :is(.callist,.inclist,.mfocus,.relsec,.incsec)')].filter((e) => vis(e) && e.getBoundingClientRect().height > 20)
+    .map((e) => { const cs = getComputedStyle(e); return { el: name(e), w: parseFloat(cs.borderTopWidth), cr: +cr(rgb(cs.borderTopColor) || [0, 0, 0, 0]).toFixed(2) }; })
+    .filter((x) => x.w >= 1 && x.cr < 1.3);
+  return { pairs, inner, bg: bgc };
+}"""
+
+
+def t_mobile_m4_1009(b, base, code):
+    T = "手機v2"
+    ctx = b.new_context(**dict(MOBILE_VP, viewport={"width": 402, "height": 874}))
+    ctx.add_init_script("try{ if(!sessionStorage.getItem('m4i9')){ localStorage.clear(); localStorage.setItem('tw.live.on','0'); localStorage.setItem('tw.tourDone','1'); localStorage.setItem('tw.theme','light'); sessionStorage.setItem('m4i9','1'); } }catch(e){}")
+    m = ctx.new_page()
+    m.on("pageerror", lambda e: fails.append(f"{T}(1009) pageerror: {e} @ {m.url}"))
+    m.route("**/fonts.googleapis.com/**", lambda r: r.abort())
+    cdp = ctx.new_cdp_session(m)
+    J = lambda js, *a: m.evaluate(js, *a)
+
+    def go(h, wait=3000):
+        m.goto(base + "#" + h, wait_until="domcontentloaded"); m.wait_for_timeout(wait)
+
+    def swipe(x0, y, dx, steps=10):
+        tp = lambda t, x: cdp.send("Input.dispatchTouchEvent", {"type": t, "touchPoints": [] if t == "touchEnd" else [{"x": x, "y": y}]})
+        tp("touchStart", x0)
+        for k in range(1, steps + 1):
+            tp("touchMove", x0 + dx * k / steps); m.wait_for_timeout(16)
+        tp("touchEnd", 0)
+    try:
+        # ① 分段控制器：總覽三組（大盤｜資金流向｜熱度、走勢圖｜K 線、加權｜櫃買｜台指期）＝同一個 class、同一組計算後樣式
+        go("overview", 3500)
+        SG = """(q) => { const e = document.querySelector(q); if (!e || !e.getClientRects().length) return null; const c = getComputedStyle(e);
+            const bs = [...e.children].filter(x => x.tagName === 'BUTTON' && x.getClientRects().length); const r = e.getBoundingClientRect();
+            const sty = (x) => { const s = getComputedStyle(x); return { bg: s.backgroundColor, img: s.backgroundImage, bw: s.borderTopWidth, col: s.color }; };
+            return { cls: e.classList.contains('m4seg'), fp: [c.borderTopWidth, c.borderTopStyle, c.borderTopLeftRadius, c.paddingTop, c.backgroundColor].join(' '),
+                     bfp: [...new Set(bs.map(x => { const s = getComputedStyle(x); return [s.borderTopWidth, s.borderTopLeftRadius, s.fontSize, Math.round(x.getBoundingClientRect().height)].join(' '); }))],
+                     rows: new Set(bs.map(x => Math.round(x.getBoundingClientRect().top))).size, h: Math.round(r.height), n: bs.length,
+                     ow: c.overflowX, on: bs.map(x => x.classList.contains('on')), st: bs.map(sty) }; }"""
+        g3 = {q: J(SG, q) for q in ("#v-overview > .mpager", "#m3Mode", "#mM3Sw")}
+        ok(f"【{T}】總覽三組都是同一個分段控制器（class m4seg）", all(v and v["cls"] for v in g3.values()), g3)
+        fps = {v["fp"] for v in g3.values() if v}
+        bfps = {x for v in g3.values() if v for x in v["bfp"]}
+        ok(f"【{T}】三組外框樣式一致（{fps}）、選項樣式一致（{bfps}）：外框 1px＋圓角、選項無框",
+           len(fps) == 1 and len(bfps) == 1 and list(fps)[0].startswith("1px solid") and list(bfps)[0].startswith("0px"), (fps, bfps))
+        ok(f"【{T}】三組都不換行（同一列）、選項高 ≥ 40",
+           all(v and v["rows"] == 1 and v["h"] <= 50 for v in g3.values()) and all(int(x.split()[-1]) >= 40 for x in bfps),
+           {k: (v and (v["rows"], v["h"])) for k, v in g3.items()})
+        solid = lambda s: s["img"] != "none" or (s["bg"].startswith("rgb(") and not s["bg"].startswith("rgba"))
+        clear = lambda s: s["img"] == "none" and s["bg"] in ("rgba(0, 0, 0, 0)", "transparent")
+        a0 = g3["#m3Mode"]
+        i0 = a0["on"].index(True) if a0 and True in a0["on"] else 0
+        m.locator("#m3Mode > button").nth(1 - i0).tap(); m.wait_for_timeout(1500)
+        a1 = J(SG, "#m3Mode")
+        ok(f"【{T}】點「{('K 線', '走勢圖')[i0]}」→ 選中格換成實心填色、前一格變回透明",
+           bool(a0 and a1 and a1["on"][1 - i0] and solid(a1["st"][1 - i0]) and clear(a1["st"][i0]) and solid(a0["st"][i0])), (a0 and a0["st"], a1 and a1["st"]))
+        m.locator("#m3Mode > button").nth(i0).tap(); m.wait_for_timeout(1200)
+        # ② 「?」與「● 即時」不是切換選項：在分段控制器外面、同一列；即時不存在（非管理者）時照樣一列
+        q = J("""() => { const s = document.getElementById('m3Mode'), h = document.querySelector('.m3-bar .howbtn[data-how="m3"]'), l = document.querySelector('.m3-bar .livetg');
+            const mid = (e) => { const r = e.getBoundingClientRect(); return r.top + r.height / 2; };
+            return { qIn: !!h && s.contains(h), lIn: !!l && s.contains(l), live: !!l && !!l.getClientRects().length, sameRow: !!h && Math.abs(mid(h) - mid(s)) < 6,
+                     liveRow: !l || !l.getClientRects().length || Math.abs(mid(l) - mid(s)) < 6 }; }""")
+        ok(f"【{T}】「?」「即時」在分段控制器外面、同一列（即時{'有' if q['live'] else '沒有'}出現）", not q["qIn"] and not q["lIn"] and q["sameRow"] and q["liveRow"], q)
+        J("() => { const l = document.querySelector('.m3-bar .livetg'); if (l) l.remove(); }"); m.wait_for_timeout(200)
+        a2 = J(SG, "#m3Mode")
+        same = J("""() => { const s = document.getElementById('m3Mode').getBoundingClientRect(), h = document.querySelector('.m3-bar .howbtn[data-how="m3"]').getBoundingClientRect();
+            return Math.abs((s.top + s.height / 2) - (h.top + h.height / 2)) < 6; }""")
+        ok(f"【{T}】拿掉即時鈕（非管理者的樣子）→ 分段控制器照樣一列、「?」不掉行", bool(a2 and a2["rows"] == 1 and same), a2)
+        # 一排放不下 → 外框裡橫向手指拖（產業地圖的產業鏈切換：9 格）
+        go("industry", 3000)
+        cs = J(SG, "#chainSwitch")
+        sw = J("() => { const e = document.getElementById('chainSwitch'); return [e.scrollWidth, e.clientWidth]; }")
+        ok(f"【{T}】放不下的分段控制器不換行、外框裡可橫捲（{sw}）", bool(cs and cs["cls"] and cs["rows"] == 1 and cs["ow"] in ("auto", "scroll") and sw[0] > sw[1]), (cs and cs["rows"], sw))
+        bx = J("() => { const r = document.getElementById('chainSwitch').getBoundingClientRect(); return [r.left + r.width - 30, r.top + r.height / 2]; }")
+        swipe(bx[0], bx[1], -200); m.wait_for_timeout(400)
+        sl = J("() => document.getElementById('chainSwitch').scrollLeft")
+        ok(f"【{T}】手指往左拖產業鏈切換 → 真的捲動（scrollLeft {sl}）", sl > 20, sl)
+        # ③ 頂欄獨立明暗鈕（在外觀調色盤左邊）、402 寬一列不溢出；點了真的切主題、圖示跟著換；外觀面板沒有明暗段
+        go("overview", 2500)
+        tb = J("""() => { const t = document.getElementById('themeBtn'), p = document.getElementById('t4Btn'), bar = document.querySelector('.topbar');
+            const vis = (e) => !!e && e.getClientRects().length > 0 && getComputedStyle(e).display !== 'none';
+            const tools = [...document.querySelectorAll('#m4Tools > *')].filter(vis);
+            return { vis: vis(t), left: vis(t) && vis(p) && t.getBoundingClientRect().right <= p.getBoundingClientRect().left, h: vis(t) ? Math.round(t.getBoundingClientRect().height) : 0,
+                     rows: new Set(tools.map(e => Math.round(e.getBoundingClientRect().top))).size, bh: Math.round(bar.getBoundingClientRect().height), ovf: bar.scrollWidth > bar.clientWidth + 1,
+                     theme: document.documentElement.dataset.theme || '', txt: vis(t) ? t.textContent.trim() : '' }; }""")
+        ok(f"【{T}】402 頂欄看得到獨立明暗鈕 #themeBtn（高 {tb['h']}）、在外觀調色盤左邊、整排一列不溢出",
+           tb["vis"] and tb["left"] and tb["h"] >= 40 and tb["rows"] == 1 and not tb["ovf"] and tb["bh"] <= 60, tb)
+        m.locator("#m4Tools #themeBtn").tap(); m.wait_for_timeout(900)
+        tb1 = J("() => ({ theme: document.documentElement.dataset.theme || '', txt: document.getElementById('themeBtn').textContent.trim() })")
+        ok(f"【{T}】點明暗鈕 → 主題真的切換（{tb['theme']}→{tb1['theme']}）、圖示跟著換（{tb['txt']}→{tb1['txt']}）",
+           tb1["theme"] != tb["theme"] and tb1["txt"] != tb["txt"], (tb, tb1))
+        m.locator("#m4Tools #themeBtn").tap(); m.wait_for_timeout(700)
+        m.locator("#m4Tools #t4Btn").tap(); m.wait_for_timeout(400)
+        pp = J("""() => { const p = document.getElementById('t4Pop'); return { open: !!p && !p.hidden && p.getClientRects().length > 0,
+            mode: !!p && [...p.querySelectorAll('.t4mode, .t4modeh')].some(e => e.getClientRects().length), style: !!p && p.querySelectorAll('.t4o').length > 1 }; }""")
+        ok(f"【{T}】外觀面板裡沒有明暗段、只有版面風格", pp["open"] and not pp["mode"] and pp["style"], pp)
+        m.keyboard.press("Escape"); m.mouse.click(200, 700); m.wait_for_timeout(300)
+        # ④ 抽屜寬度：360／390／402／430 都 ≤ 300px 且 ≤ 75% 視窗；項目文字不換行；點遮罩真的關、手指往左滑也關
+        for w in (360, 390, 402, 430):
+            m.set_viewport_size({"width": w, "height": 932 if w == 430 else 844}); m.wait_for_timeout(500)
+            m.locator("#m4Burger").tap(); m.wait_for_timeout(500)
+            d = J("""() => { const D = document.getElementById('m4Drawer'), r = D.getBoundingClientRect();
+                const bs = [...D.querySelectorAll('.m4body button')].filter(b => b.getClientRects().length);
+                const wrap = bs.filter(b => { const s = b.querySelector('span') || b; return s.getBoundingClientRect().height > parseFloat(getComputedStyle(s).fontSize) * 1.9 || s.scrollWidth > s.clientWidth + 1; }).map(b => b.textContent.trim());
+                return { open: !D.hidden, w: Math.round(r.width), vw: innerWidth, wrap, minH: Math.min(...bs.map(b => b.getBoundingClientRect().height)) }; }""")
+            ok(f"【{T}】{w} 寬抽屜寬 {d['w']}px ≤ 300 且 ≤ 75% 視窗、項目不換行不截字、項目高 ≥ 40",
+               d["open"] and d["w"] <= 300 and d["w"] <= 0.75 * w and not d["wrap"] and d["minH"] >= 40, d)
+            m.locator("#m4Back").tap(position={"x": w - 40 - (w - d["w"] - 40) // 2, "y": 400}); m.wait_for_timeout(500)
+            ok(f"【{T}】{w} 寬點遮罩 → 抽屜真的關起來", J("() => document.getElementById('m4Drawer').hidden"))
+        # ④-2（10-09 Andy：「並且兩邊側邊欄位都具備可以左右滑動收起功能」）：先判主方向 —— 上下滑不關、左滑 150px 關
+        def swipe2(x0, y0, dx, dy, steps=10):
+            tp = lambda t, x, y: cdp.send("Input.dispatchTouchEvent", {"type": t, "touchPoints": [] if t == "touchEnd" else [{"x": x, "y": y}]})
+            tp("touchStart", x0, y0)
+            for k in range(1, steps + 1):
+                tp("touchMove", x0 + dx * k / steps, y0 + dy * k / steps); m.wait_for_timeout(16)
+            tp("touchEnd", 0, 0); m.wait_for_timeout(600)
+        m.locator("#m4Burger").tap(); m.wait_for_timeout(500)
+        swipe2(200, 500, 0, -220)
+        ok(f"【{T}】左側選單裡上下滑 → 不會關", not J("() => document.getElementById('m4Drawer').hidden"))
+        swipe2(200, 500, -150, 0)
+        ok(f"【{T}】左側選單往左滑 150px → 關起來", J("() => document.getElementById('m4Drawer').hidden"))
+        # ④-3（10-09 Andy：「事件需要調整適當寬度」）：右側今日事件抽屜 ≤ 300px 且 ≤ 80% 視窗、標題列與分類各一行；往右滑 150px 關、上下滑不關
+        for w in (360, 430):
+            m.set_viewport_size({"width": w, "height": 932 if w == 430 else 844}); m.wait_for_timeout(400)
+            J("() => window.twSetSide(true)"); m.wait_for_timeout(700)
+            ev = J("""() => { const s = document.getElementById('side'), r = s.getBoundingClientRect(), row = (q) => new Set([...s.querySelectorAll(q)].filter(e => e.getClientRects().length).map(e => Math.round(e.getBoundingClientRect().top + e.getBoundingClientRect().height / 2))).size;
+                return { open: s.classList.contains('open'), w: Math.round(r.width), vw: innerWidth, head: row('.side-h > h3, .side-h #evDate, .side-h #evClose'), cats: row('#evFilters > button') }; }""")
+            ok(f"【{T}】{w} 寬今日事件抽屜寬 {ev['w']}px ≤ 300 且 ≤ 80% 視窗、標題列一行、分類一行", ev["open"] and ev["w"] <= 300 and ev["w"] <= 0.8 * w and ev["head"] == 1 and ev["cats"] == 1, ev)
+            swipe2(w - 150, 520, 0, -220)
+            ok(f"【{T}】{w} 寬事件抽屜裡上下滑 → 不會關", J("() => document.getElementById('side').classList.contains('open')"))
+            swipe2(w - 220, 520, 150, 0)
+            ok(f"【{T}】{w} 寬事件抽屜往右滑 150px → 關起來", not J("() => document.getElementById('side').classList.contains('open')"))
+        m.set_viewport_size({"width": 402, "height": 874}); m.wait_for_timeout(400)
+        # ⑤ 子頁攤平：資金流向上方 4 格、等寬、填滿；沒有第二層「法人｜集中度」；4 格各點一次內容真的換；返回鍵回上一格
+        go("flow/rotation", 3000)
+        TABS = """() => { const n = document.querySelector('#m4Title .m4subtabs'); if (!n) return null; const bs = [...n.querySelectorAll('button')];
+            const ws = bs.map(b => b.getBoundingClientRect().width);
+            const vis = (e) => !!e && e.getClientRects().length > 0;
+            const cards = ['#flowRotCard', '#flowSankeyCard', '#flowInstCard', '#flowConcCard'].filter(q => { const e = document.querySelector(q); return vis(e) && e.getBoundingClientRect().height > 40; });
+            return { n: bs.length, t: bs.map(b => b.textContent.trim()), on: bs.findIndex(b => b.classList.contains('on')), dw: Math.max(...ws) - Math.min(...ws), sum: ws.reduce((a, b) => a + b, 0), cw: n.clientWidth,
+                     scroll: n.scrollWidth > n.clientWidth + 1, wrap: bs.filter(b => b.scrollWidth > b.clientWidth + 1 || b.getBoundingClientRect().height > 44).map(b => b.textContent),
+                     sec: [...document.querySelectorAll('#v-flow > .mpager')].filter(vis).map(e => e.textContent.trim()), hash: location.hash, cards }; }"""
+        f0 = J(TABS)
+        ok(f"【{T}】資金流向上方頁籤 4 格（{f0 and f0['t']}）、寬度差 ≤ 2px、總寬 ≥ 容器 98%、不橫捲不換行",
+           bool(f0 and f0["n"] == 4 and f0["dw"] <= 2 and f0["sum"] >= 0.98 * f0["cw"] and not f0["scroll"] and not f0["wrap"]), f0)
+        want = ["#flowRotCard", "#flowSankeyCard", "#flowInstCard", "#flowConcCard"]
+        for i in range(4):
+            m.locator("#m4Title .m4subtabs button").nth(i).tap(); m.wait_for_timeout(2500)
+            fi = J(TABS)
+            ok(f"【{T}】點頁籤「{fi and fi['t'][i]}」→ 頁籤高亮、只剩 {want[i]}、網址 {fi and fi['hash']}、沒有第二層「法人｜集中度」",
+               bool(fi and fi["on"] == i and fi["cards"] == [want[i]] and not fi["sec"]), fi)
+        m.go_back(); m.wait_for_timeout(2200)
+        fb = J(TABS)
+        ok(f"【{T}】返回鍵 → 回到上一格「族群×法人」（{fb and fb['hash']}）", bool(fb and fb["on"] == 2 and fb["cards"] == ["#flowInstCard"]), fb)
+        # 全站普查：沒有任何一頁同時出現「上方子頁頁籤」＋「第二層整頁切換」；上方子頁頁籤都等寬不橫捲
+        TWO = """() => { const vis = (e) => !!e && e.getClientRects().length > 0 && getComputedStyle(e).display !== 'none';
+            const n = document.querySelector('#m4Title .m4subtabs'), top = vis(n);
+            const sec = [...document.querySelectorAll('.view.on > .mpager, .view.on > .mspine, #incMain, #etfSub')].filter(vis).map(e => e.id || e.className);
+            const ws = n ? [...n.querySelectorAll('button')].map(b => b.getBoundingClientRect().width) : [];
+            return { top, sec, dw: ws.length ? Math.max(...ws) - Math.min(...ws) : 0, scroll: !!n && n.scrollWidth > n.clientWidth + 1 }; }"""
+        bad2 = []
+        for h in ("overview", "earnings", "flow/rotation", "flow/sankey", "flow/inst", "flow/inst/conc", "heatmap/industry", "heatmap/theme", "heatmap/theme/_",
+                  "industry", "market", "explore", "etf/cal", "etf/list", "etf/inc", "etf/inc/cx", "season", "watch", "stock/2330"):
+            go(h, 2600)
+            r = J(TWO)
+            if r["top"] and (r["sec"] or r["dw"] > 2 or r["scroll"]):
+                bad2.append((h, r))
+        ok(f"【{T}】全站普查：沒有任何一頁出現兩層子頁籤、上方子頁頁籤都等寬不橫捲", not bad2, bad2)
+        # ⑦ 「不需要返回功能」：全站沒有 #m4BackBtn；「← 左右滑看更多 →」提示字全站拿掉
+        # ⑧ 「左右滑可以拓寬」：還要左右滑的列（分段控制器、工具列）左右貼齊螢幕邊（誤差 ≤ 1px）、整頁沒有橫向捲軸
+        BL = """() => { const vw = document.documentElement.clientWidth, vis = (e) => e.getClientRects().length && getComputedStyle(e).display !== 'none';
+            const rows = [...document.querySelectorAll('.view.on .m4seg, .view.on #skTools, .view.on #dgTools')].filter(vis).filter(e => e.scrollWidth > e.clientWidth + 2);
+            return { vw, docW: document.documentElement.scrollWidth, back: !!document.getElementById('m4BackBtn'),
+                     tip: /左右滑看更多/.test(document.body.innerText), n: rows.length,
+                     bad: rows.map(e => { const r = e.getBoundingClientRect(); return { el: e.id || e.className, l: Math.round(r.left * 10) / 10, r: Math.round(r.right * 10) / 10 }; })
+                              .filter(x => Math.abs(x.l) > 1 || Math.abs(x.r - vw) > 1) }; }"""
+        badb, nrow = [], 0
+        for h in ("overview", "earnings", "flow/rotation", "flow/inst", "heatmap/theme", "heatmap/theme/_", "industry", "industry/semiconductor", "market",
+                  "explore", "etf/list", "etf/inc", "etf/inc/cx", "etf/cal", "season", "watch", "stock/2330"):
+            go(h, 2600)
+            r = J(BL); nrow += r["n"]
+            if r["back"] or r["tip"] or r["bad"] or r["docW"] > r["vw"]:
+                badb.append((h, r))
+        ok(f"【{T}】全站沒有「‹ 返回」鈕、沒有「左右滑看更多」字樣、要左右滑的列（{nrow} 列）都拓寬到左右貼齊螢幕、沒有整頁橫捲", nrow >= 3 and not badb, badb)
+        # ⑥ 大區塊之間的分隔線：淺色、深色各掃一次 —— 相鄰兩塊之間量得到一條寬 ≥ 90% 視窗、對底色 ≥ 1.3:1 的線；區塊裡的線也看得出來
+        for th in ("light", "dark"):
+            badd, npair = [], 0
+            for h in ("overview", "earnings", "flow/rotation", "flow/sankey", "flow/inst", "heatmap/industry", "heatmap/theme", "industry", "industry/semiconductor",
+                      "market", "explore", "etf/list", "etf/inc", "etf/cal", "season", "watch", "stock/2330", "pricing"):
+                go(h, 2600)
+                if J("() => document.documentElement.dataset.theme") != th:
+                    J("() => document.getElementById('themeBtn').click()"); m.wait_for_timeout(1200)
+                r = J(M4_DIV_JS)
+                npair += len(r["pairs"])
+                badd += [(h, x["a"], x["b"], x["found"][:1]) for x in r["pairs"] if not x["ok"]] + [(h, "區塊內", x) for x in r["inner"]]
+            ok(f"【{T}】{th}：全站大區塊之間都有一條看得見的分隔線（{npair} 處）、區塊內的線也看得見", npair >= 4 and not badd, badd[:8])
+    finally:
+        try:
+            ctx.close()
+        except Exception:  # noqa: BLE001
+            pass
+
+
 def t_mobile_m4_1008(b, base, code):
     """手機 v2 第三批（2026-10-08 Andy 的手機五條準則與這一批的逐條需求）。每一條都驗「畫面真的因此改變了」。"""
     T = "手機v2"
@@ -27194,7 +27448,8 @@ def t_mobile_m4_1008(b, base, code):
         badb = {}
         for h in ("overview", "flow/sankey", "flow/rotation", "heatmap/industry", "industry", "market", "explore", "etf/list", "etf/inc", "season", "watch", "stock/" + code):
             go(h, 2600)
-            r = J("""() => { const CTRL = '.ed,.cald,.hmbar,.snk,.st,.badge,button,input,select,textarea,label,a,[role=button],[role=tab],.seg,.mseg,.nbsw,.pill,.chip,.ddbtn,.segdd,.etag,.fq,.fqtag,summary,.mnum';
+            # 2026-10-09：頁內切換改成網頁版 .seg 同一款分段控制器（外框包住選項；Andy「圖一需要全部改成切換開關 如圖二」）—— 那是控制項本身的框，不是內容方格（.m4seg、[role=tablist] 排除）
+            r = J("""() => { const CTRL = '.ed,.cald,.hmbar,.snk,.st,.badge,button,input,select,textarea,label,a,[role=button],[role=tab],.seg,.mseg,.nbsw,.m4seg,[role=tablist],.pill,.chip,.ddbtn,.segdd,.etag,.fq,.fqtag,summary,.mnum';
                 const out = []; document.querySelectorAll('main .view.on *').forEach(e => { if (!e.getClientRects().length || e.matches(CTRL) || e.closest(CTRL) || e.ownerSVGElement || e.tagName === 'svg' || e.tagName === 'CANVAS') return;
                   const cs = getComputedStyle(e); const r = e.getBoundingClientRect(); if (r.width < 30 || r.height < 16) return;
                   const b4 = ['Top', 'Right', 'Bottom', 'Left'].every(k => parseFloat(cs['border' + k + 'Width']) > 0 && cs['border' + k + 'Style'] !== 'none');
@@ -27241,22 +27496,7 @@ def t_mobile_m4_1008(b, base, code):
         m.locator("#chainSwitch button[data-c='semiconductor']").first.tap(); m.wait_for_timeout(3000)
         lg2 = J("() => (document.getElementById('gpLegend') || {}).textContent || ''")
         ok(f"【{T}】切到「半導體」→ 甜甜圈圖例換成該鏈的資料", lg2 and lg2 != im["lg"], (im["lg"][:40], lg2[:40]))
-        # ⑱ 細節頁的「‹ 返回」：題材細節、產業鏈頁、族群頁 —— 點了回上一層
-        for h0, h1, par in (("heatmap/theme", "heatmap/theme/ai_server", "#heatmap/theme"), ("industry", "industry/semiconductor", "#industry")):
-            go(h0, 2000); J(f"() => {{ location.hash = '#{h1}'; }}"); m.wait_for_timeout(2500)
-            vis = J("() => { const b = document.getElementById('m4BackBtn'); return !!b && !b.hidden && b.getBoundingClientRect().height >= 40; }")
-            ok(f"【{T}】#{h1} 有「‹ 返回」鈕（≥ 40px）", vis, vis)
-            if vis:
-                m.locator("#m4BackBtn").tap(); m.wait_for_timeout(1500)
-                ok(f"【{T}】#{h1} 點「‹ 返回」→ 回到 {par}", J("() => location.hash").startswith(par) and not J("() => location.hash").startswith('#' + h1), J("() => location.hash"))
-        gid = J("() => { const a = document.querySelector('a[href^=\"#industry/group/\"]'); return a ? a.getAttribute('href') : null; }")
-        if gid:
-            m.goto(base + gid, wait_until="domcontentloaded"); m.wait_for_timeout(2500)
-            vis = J("() => { const b = document.getElementById('m4BackBtn'); return !!b && !b.hidden; }")
-            ok(f"【{T}】族群頁 {gid} 有「‹ 返回」鈕", vis, gid)
-            if vis:
-                m.locator("#m4BackBtn").tap(); m.wait_for_timeout(1500)
-                ok(f"【{T}】族群頁點「‹ 返回」→ 離開族群頁", not J("() => location.hash").startswith(gid), J("() => location.hash"))
+        # ⑱（2026-10-09 拿掉：Andy「不需要返回功能」—— 「‹ 返回」鈕刪除，斷言改在 t_mobile_m4_1009：全站沒有 #m4BackBtn）
         # ⑲ 已選膠囊列 → 「已選 N ▾」篩選下拉（共用 MultiSelect.dropdown ＝ App.msDD）：
         #    402 寬全站找不到「含 × 的膠囊」> 3 顆的列；現金流試算單檔：取消一檔 → 圖上直條組數真的少一組、再勾一檔 → 多一組；搜尋真的過濾
         m.set_viewport_size({"width": 402, "height": 874})
@@ -27474,7 +27714,7 @@ def t_mobile_m4_1008(b, base, code):
         for wq in (402, 390):
             m.set_viewport_size({"width": wq, "height": 874 if wq == 402 else 844})
             go("etf/inc", 3500)
-            m.locator("#incMain button[data-v=x]").tap(); m.wait_for_timeout(1800)
+            m.locator("#m4Title .m4subtabs button[data-sub='etf-cx']").tap(); m.wait_for_timeout(1800)   # 2026-10-09 攤平：複利是上方頁籤
             on_x = J("() => !document.getElementById('incPX').hidden && document.querySelector('#incMain button[data-v=x]').classList.contains('on')")
             nq += J("() => [...document.querySelectorAll('#incPX h3 > .howbtn')].filter(b => b.getClientRects().length).length")
             badq += [(f"etf/inc 複利 {wq}", x) for x in J(QJS)] + ([] if on_x else [(f"etf/inc 複利 {wq}", "點了沒切到複利分頁")])
@@ -27569,9 +27809,10 @@ def t_mobile_m4(b, base, code):
                  more: vis(document.getElementById('moreBtn')), nth: [...document.querySelectorAll('#themeBtn, #mmTheme, [data-act=theme], #l4Mode')].filter(vis).length, head: (document.getElementById('m4Title') || {}).textContent || '' }; }""")
     ok(f"【{T}】頂欄只有頭像、沒有頁名文字", tb["logo"] and tb["txt"] == [], tb["txt"])
     # 2026-10-08 改：明暗與版面風格合成一顆「外觀」（Andy：「統一一個功能按鍵在上方」）→ 依序：外觀、平台導覽、（在線）、登入
-    want_tools = ["m4Search", "t4Btn", "twPageTourBtn"]
-    ok(f"【{T}】頂欄右邊依序有搜尋、外觀、平台導覽、（在線）、登入（{'／'.join(tb['tools'])}）",
-       tb["tools"][:3] == want_tools and tb["tools"][-1] in ("acctBtn", "m4Login") and all(x in ("acctOnline",) for x in tb["tools"][3:-1]), tb["tools"])
+    # 2026-10-09 改（Andy：「把明暗功能分出來」）：明暗又獨立一顆、在外觀調色盤左邊（同網頁版）→ 依序：搜尋、明暗、外觀、平台導覽、（在線）、登入
+    want_tools = ["m4Search", "themeBtn", "t4Btn", "twPageTourBtn"]
+    ok(f"【{T}】頂欄右邊依序有搜尋、明暗、外觀、平台導覽、（在線）、登入（{'／'.join(tb['tools'])}）",
+       tb["tools"][:4] == want_tools and tb["tools"][-1] in ("acctBtn", "m4Login") and all(x in ("acctOnline",) for x in tb["tools"][4:-1]), tb["tools"])
     m.locator("#m4Search").tap(); m.wait_for_timeout(500)
     m.keyboard.type("2330"); m.wait_for_timeout(900)
     sr = m.evaluate("() => ({ focus: document.activeElement && document.activeElement.id, n: document.querySelectorAll('#sugg [role=option], #sugg .sg, #sugg > *').length })")
@@ -27582,16 +27823,12 @@ def t_mobile_m4(b, base, code):
     ok(f"【{T}】頂欄小圖示觸控高度 ≥ 40", tb["small"] == [], tb["small"])
     ok(f"【{T}】頂欄不溢出、元素不互相重疊", tb["bw"] <= tb["bcw"] + 1 and tb["sw"] <= 390 and tb["ovl"] == [], tb)
     ok(f"【{T}】「⋯」選單拿掉、頂欄沒有今日事件", not tb["more"] and tb["ev"] == 0, tb)
-    ok(f"【{T}】頁面上沒有另外一顆明暗鈕（明暗在「外觀」面板裡）", tb["nth"] == 0, tb["nth"])
+    ok(f"【{T}】明暗鈕只有頂欄那一顆（10-09 起獨立在頂欄，同網頁版）", tb["nth"] == 1, tb["nth"])
     ok(f"【{T}】頁名搬到內容區最上面（{tb['head']}）", tb["head"].strip() == "總覽", tb["head"])
     m.locator("#m4Tools #t4Btn").tap(); m.wait_for_timeout(400)
-    pan = m.evaluate("""() => { const p = document.getElementById('t4Pop'); return !!p && !p.hidden && p.getClientRects().length > 0 && !!p.querySelector('.t4mode') && p.querySelectorAll('.t4o').length > 1; }""")
-    ok(f"【{T}】頂欄「外觀」點了打開面板（上面明暗、下面版面風格）", pan, pan)
-    th0 = m.evaluate("() => document.documentElement.dataset.theme || ''")
-    m.locator("#t4Pop .t4mode button:not(.on)").first.tap(); m.wait_for_timeout(400)
-    th1 = m.evaluate("() => document.documentElement.dataset.theme || ''")
-    ok(f"【{T}】外觀面板切深淺主題真的切換（{th0}→{th1}）", th0 != th1, (th0, th1))
-    m.locator("#t4Pop .t4mode button:not(.on)").first.tap(); m.wait_for_timeout(300)
+    pan = m.evaluate("""() => { const p = document.getElementById('t4Pop'); return !!p && !p.hidden && p.getClientRects().length > 0
+        && ![...p.querySelectorAll('.t4mode, .t4modeh')].some(e => e.getClientRects().length) && p.querySelectorAll('.t4o').length > 1; }""")
+    ok(f"【{T}】頂欄「外觀」點了打開面板（只有版面風格、沒有明暗段，同網頁版）", pan, pan)
     s0 = m.evaluate("() => document.documentElement.getAttribute('data-theme4') || ''")
     m.locator("#t4Pop .t4o[aria-pressed=false]").first.tap(); m.wait_for_timeout(400)
     s1 = m.evaluate("() => document.documentElement.getAttribute('data-theme4') || ''")
@@ -27692,7 +27929,9 @@ def t_mobile_m4(b, base, code):
             continue
         if ch is None:
             # #flow/sankey：2026-10-08 起手機是「根節點＋可以點開的長條」，每一條本身就是第一屏的切換（▸ 展開下一層），排名收進「資金流向排名 ▸」
-            ok(f"【{T}】{h} 第一屏找得到可以切換的鈕（分段／篩選）", h in ("#watch", "#explore", "#industry", "#etf/inc", "#flow/sankey"), h)
+            # #heatmap/theme：2026-10-09 子頁攤平（Andy：「子分頁裡面還有的 就用分頁形式表示」）之後「題材熱力｜題材細節」搬到頁面最上方的子頁頁籤（在 .view 外面），頁內不再有第二層
+            ok(f"【{T}】{h} 第一屏找得到可以切換的鈕（分段／篩選）", h in ("#watch", "#explore", "#industry", "#etf/inc", "#flow/sankey")
+               or (h == "#heatmap/theme" and m.evaluate("() => document.querySelectorAll('#m4Title .m4subtabs button').length >= 3")), h)
             continue
         before = m.evaluate("() => { const v = document.querySelector('.view.on'); return v.innerText.length + '|' + v.innerText.slice(0, 6000) + '|' + v.querySelectorAll('.on,[aria-selected=true]').length; }")
         m.locator("[data-m4try]").first.tap(); m.wait_for_timeout(1200)
@@ -28373,7 +28612,7 @@ SECTIONS = {
     # ★ 2026-09-27 手機總覽最上方：指數三格（可左右滑）＋觀察清單（2026-09-27 起是自選清單目前那一頁：localStorage tw.watchlists，只存代號；site/mobile3.js G 段＋site/watchlists.js）
     "手機總覽指數觀察清單": lambda pg, b, base, code: t_mobile_home(b, base, code),
     # ★ 2026-10-08 手機 v2（docs/mobile_v2_plan.md；site/mobile4.js）：側欄抽屜、每頁第一屏、字級／觸控、主要切換真的點得動
-    "手機v2":              lambda pg, b, base, code: (t_mobile_m4(b, base, code), t_mobile_m4_1008(b, base, code)),
+    "手機v2":              lambda pg, b, base, code: (t_mobile_m4(b, base, code), t_mobile_m4_1008(b, base, code), t_mobile_m4_1009(b, base, code)),
     "手機框預覽1008":      lambda pg, b, base, code: t_phone_1008(pg, b, base),
     # ★ 2026-09-25 手機版 v3（docs/mobile_v3_spec.md §7）：底部一列五顆、「?」氣泡、大盤合一張、新雷達＋焦點條、
     #   資金分流樹長條、法人對稱長條、篩選抽屜、剖析圖只留編號（2D／3D）。390 與 360 各一輪。⚠ 一律 --workers 1（有 3D）
@@ -42026,8 +42265,9 @@ def t_mobile_v2(b, base, code):
         const t = e.nextElementSibling;
         return { cw: e.clientWidth, sw: e.scrollWidth, hsc: e.classList.contains('hsc'),
                  tip: !!(t && t.classList && t.classList.contains('swipetip')) }; }""")
-    ok("[390px] 產業鏈分頁列捲得動的時候有淡出與「左右滑」提示（八條鏈只看得到三條）",
-       sc and sc["sw"] > sc["cw"] and sc["hsc"] and sc["tip"], sc)
+    # 2026-10-09 改（Andy 指著「← 左右滑看更多 →」：拿掉；「左右滑可以拓寬」）：手機（≤640）只留右緣淡出、不放提示字
+    ok("[390px] 產業鏈分頁列捲得動的時候有右緣淡出、沒有「左右滑」提示字（八條鏈只看得到三條）",
+       sc and sc["sw"] > sc["cw"] and sc["hsc"] and not sc["tip"], sc)
 
     # ---------- G7（手機 v3 改寫）：剖析圖手機預設展開、只留編號（§9 第 1 條）----------
     m.goto(f"{base}#industry/semiconductor", wait_until="networkidle"); m.wait_for_timeout(3600)
