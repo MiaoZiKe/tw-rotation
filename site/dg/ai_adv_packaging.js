@@ -399,9 +399,13 @@
        ⚠ 說明從 x=16 起、寬度只到 300，最長不准超過 23 個中文字。*/
     /* ★ 2026-09-23：樣本線留在畫布上（它要**真的在動**，「動畫：關」時要跟圖上那條一起停），
        標題與說明搬到左欄的 HTML 卡片（`note()`）。編號把兩邊對起來。*/
-    const animRow = (y, cls, col, w, no) => `<g pointer-events="none">
-      <path class="flow ${cls}" d="M8,${y} H50" stroke="${col}" stroke-width="${w}" fill="none"/>
-      <text class="cap" x="58" y="${y + 4}" style="fill:${col}">${String(no).padStart(2, '0')}</text></g>`;
+    /* ★ 2026-10-08（Andy 314 截圖「修復問題」）：樣本線旁邊原本是一個「01」純文字，跟左欄卡片之間沒有任何連結 ——
+       三欄版面（≥1280）時畫布置中，五條樣本線就孤零零浮在左欄卡片與主剖面中間的空白裡。
+       改成：編號由左欄卡片的錨點畫（note 帶 ax／ay，跟右欄零件卡一樣拉引線過來），樣本線停在編號圈右邊。
+       讀法變成「卡片 → 引線 → 編號圈 → 這條樣本線＝圖上那條」，一路接得起來。 */
+    const ANC_X = 14;   // 編號圈圓心 x（半徑 9.5，貼畫布左緣）
+    const animRow = (y, cls, col, w) => `<g pointer-events="none">
+      <path class="flow ${cls}" d="M${ANC_X + 14},${y} H${ANC_X + 56}" stroke="${col}" stroke-width="${w}" fill="none"/></g>`;
 
     /* 「沒有對應環節」的那兩個：★ 2026-09-22 第二輪從兩個框併成一個。
        原本兩框各佔 44px，而且各自的副標（「日系材料廠為主」「跨到 AI 伺服器鏈」）
@@ -612,16 +616,16 @@
       <text class="cap ext" x="0" y="0">畫布上是一顆 2.5D AI 加速器封裝的剖面（由下到上）；右欄的卡片逐層講它屬於哪個供應鏈環節，左欄的五張卡片講圖上五條動線各在說什麼原理（畫布左緣那五條會動的樣本線就是它們，編號對得起來）。</text>
 
       <!-- ================= 畫布左緣：動線樣本（說明在左欄卡片上） ================= -->
-      ${animRow(108, 'fast', C.sig, 2.6, 1)}
-      ${animRow(150, 'slow', C.sig, 2.6, 2)}
-      ${animRow(192, 'slow rev', C.pwr, 2.8, 3)}
-      ${animRow(234, 'fast', C.pwr, 2.2, 4)}
-      ${animRow(276, '', C.hot, 2.2, 5)}
-      ${note({ side: 'l', no: 1, order: 1, color: C.sig, title: '晶粒 ↔ 隔壁的 HBM', lines: ['橫著走中介層的重佈線就到了，不必繞到載板 —— 這就是 2.5D 的意義。'] })}
-      ${note({ side: 'l', no: 2, order: 2, color: C.sig, title: '要離開封裝的訊號', lines: ['µbump → TSV → C4 → 載板 → BGA → 主機板。要離開封裝的才往下走。'] })}
-      ${note({ side: 'l', no: 3, order: 3, color: C.pwr, title: '供電：方向跟訊號相反', lines: ['從主機板往上灌 BGA → 載板 → C4 → 晶粒。'] })}
-      ${note({ side: 'l', no: 4, order: 4, color: C.pwr, title: '去耦電容補瞬間電流', lines: ['晶粒一瞬間抽電來不及等主機板，就近由電容補 —— 所以這條路徑特別短。'] })}
-      ${note({ side: 'l', no: 5, order: 5, color: C.hot, title: '熱往上出去', lines: ['晶粒 → TIM1 → 上蓋 → TIM2 → 外部散熱器。'] })}
+      ${animRow(108, 'fast', C.sig, 2.6)}
+      ${animRow(150, 'slow', C.sig, 2.6)}
+      ${animRow(192, 'slow rev', C.pwr, 2.8)}
+      ${animRow(234, 'fast', C.pwr, 2.2)}
+      ${animRow(276, '', C.hot, 2.2)}
+      ${note({ side: 'l', no: 1, order: 1, ax: ANC_X, ay: 108, color: C.sig, title: '晶粒 ↔ 隔壁的 HBM', lines: ['橫著走中介層的重佈線就到了，不必繞到載板 —— 這就是 2.5D 的意義。'] })}
+      ${note({ side: 'l', no: 2, order: 2, ax: ANC_X, ay: 150, color: C.sig, title: '要離開封裝的訊號', lines: ['µbump → TSV → C4 → 載板 → BGA → 主機板。要離開封裝的才往下走。'] })}
+      ${note({ side: 'l', no: 3, order: 3, ax: ANC_X, ay: 192, color: C.pwr, title: '供電：方向跟訊號相反', lines: ['從主機板往上灌 BGA → 載板 → C4 → 晶粒。'] })}
+      ${note({ side: 'l', no: 4, order: 4, ax: ANC_X, ay: 234, color: C.pwr, title: '去耦電容補瞬間電流', lines: ['晶粒一瞬間抽電來不及等主機板，就近由電容補 —— 所以這條路徑特別短。'] })}
+      ${note({ side: 'l', no: 5, order: 5, ax: ANC_X, ay: 276, color: C.hot, title: '熱往上出去', lines: ['晶粒 → TIM1 → 上蓋 → TIM2 → 外部散熱器。'] })}
       ${note({ side: 'l', order: 6, title: '動線圖例：每一條線都在講一件事', lines: ['冷色＝電訊號、橘＝供電、暖＝熱。按上面的「動畫：關」五條一起停（畫布左緣的樣本線也會一起停）。'] })}
 
       <!-- ================= 主剖面（由下到上）＝ 這張圖的命題，永遠不收 =================
