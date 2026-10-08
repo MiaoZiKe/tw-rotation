@@ -13515,6 +13515,11 @@ def t_brand(b, base):
     pg.wait_for_timeout(500)
     opened = pg.evaluate("() => { const p = document.getElementById('supPanel'); return !!p && !p.hidden && p.getBoundingClientRect().height > 0; }")
     ok("客服鈕：點了照常打開客服面板", opened)
+    # 2026-10-08 Andy：「點其他地方會自動收回」→ 面板內點一下不收；點面板外收起
+    pg.click("#supPanel", position={"x": 20, "y": 20}); pg.wait_for_timeout(300)
+    ok("客服面板：點面板裡面不會收起", pg.evaluate("() => !document.getElementById('supPanel').hidden"))
+    pg.mouse.click(300, 300); pg.wait_for_timeout(300)
+    ok("客服面板：點面板以外的地方自動收起", pg.evaluate("() => document.getElementById('supPanel').hidden"))
     ctx.close()
     # 手機 390：頂欄
     ctx = b.new_context(viewport={"width": 390, "height": 844}, device_scale_factor=2)
