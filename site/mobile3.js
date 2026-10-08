@@ -744,7 +744,10 @@
     });
     draw();
     if (rk) load('sankey_daily').then(sd => {
-      if (!sd || !(sd.dates || []).length || !box.isConnected || !(window.App && App.sankeyRankDraw)) return;
+      /* ★ 2026-10-09 審核修：sankey_daily 是非同步載入的；等它回來之前這張卡可能已經重畫過一次（box.innerHTML 換新、
+         舊的 tree 被拔掉），這時再 box.insertBefore(bar, 舊tree) 會丟 NotFoundError（_uitest 新-版面等高與多寬度 560／390 抓到）。
+         舊 tree 已經不在 box 裡＝這一輪作廢，交給新的那一輪畫。 */
+      if (!sd || !(sd.dates || []).length || !box.isConnected || tree.parentNode !== box || !(window.App && App.sankeyRankDraw)) return;
       // 日期拉桿＋播放（只在手機 v2；放在樹的上面，第一屏看得到）
       if (document.documentElement.classList.contains('m4') && !box.querySelector('.mdaybar')) {
         dayDates = sd.dates; dayIdx = sd.dates.length - 1;

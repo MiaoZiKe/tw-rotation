@@ -2619,6 +2619,12 @@ def t_etf_income_1007(pg, b, base):
         lp.reload(wait_until="networkidle")
         wait_until(lp, "() => document.querySelector('#v-etf') && document.querySelector('#v-etf').dataset.ready === 'full'", 20000)
         lp.wait_for_timeout(600)
+        # ★ 2026-10-09 審核：10-08 Andy「Default 是收起來的」（450723a3）→ 分組預設全部收起、只剩標題，卡片 0 張。
+        #   這一段要量卡片，所以先真的按「全部展開」，並驗它真的把卡片攤出來（不是直接改 localStorage）。
+        n0 = J("() => document.querySelectorAll('#etfGrid .etfc').length")
+        lp.click("#etfOpenAll"); lp.wait_for_timeout(500)
+        n1 = J("() => document.querySelectorAll('#etfGrid .etfc').length")
+        ok(f"[{tag}] 分組預設收起（0 張卡）→ 按「全部展開」卡片真的出來", n0 == 0 and n1 >= 10, (n0, n1))
         # ---- 配息型分組
         g = J("""() => { const hs = [...document.querySelectorAll('#etfGrid .fqhd')].map(h => h.dataset.fq);
                  const cs = [...document.querySelectorAll('#etfGrid .etfc')].map(c => c.dataset.fq || '');
@@ -2646,6 +2652,7 @@ def t_etf_income_1007(pg, b, base):
         ok(f"★ [{tag}] 頻率徽章在「配息型」旁同一列、沒有「配息頻率」列、沒殖利率的不寫也不標、同排卡片等高",
            cd["n"] >= 10 and cd["hdr"] and cd["noFreqRow"] and cd["noEmptyY"] and cd["noYnoTag"] and cd["even"], cd)
         lp.click("#etfCatSeg button[data-v='市值型']"); lp.wait_for_timeout(500)
+        lp.click("#etfOpenAll"); lp.wait_for_timeout(500)   # 市值型也是預設收起（10-08），先展開才量得到卡片
         mv = J("() => ({ l: [...document.querySelectorAll('#etfGrid .etfc dt:not(.blank)')].every(e => getComputedStyle(e).textAlign === 'left'), r: [...document.querySelectorAll('#etfGrid .etfc dd:not(.blank)')].every(e => getComputedStyle(e).textAlign === 'right'), f: ![...document.querySelectorAll('#etfGrid dt')].some(d => /配息頻率/.test(d.textContent)) })")
         ok(f"[{tag}] 市值型卡片也是標籤靠左、數值靠右、沒有配息頻率列", mv["l"] and mv["r"] and mv["f"], mv)
         lp.click("#etfCatSeg button[data-v='配息型']"); lp.wait_for_timeout(400)
@@ -2984,7 +2991,14 @@ def t_etf_income_v2(pg, b, base):
         a0 = mp.evaluate("() => document.querySelector('#incBar').dataset.lots")
         if not mp.evaluate("() => !!document.querySelector('#incAmtSeg').getClientRects().length"):   # 手機 v2：條件列收在「條件：…」鈕裡
             mp.tap("#etfInc .m4cond"); mp.wait_for_timeout(400)
-        mp.tap("#incAmtSeg button[data-v='200000']"); mp.wait_for_timeout(600)
+        if mp.evaluate("() => !!document.querySelector('#incAmtSeg').getClientRects().length"):
+            mp.tap("#incAmtSeg button[data-v='200000']")
+        else:
+            # ★ 2026-10-09 審核：手機 v2（983b33f5／2d3b4287，10-08）條件區的分段鈕一律換成下拉（.m4segsel，原鈕藏在 DOM 裡、
+            #   下拉改了去點對應那顆）。照使用者看得到的那個下拉真的選「20 萬」。
+            idx = mp.evaluate("() => [...document.querySelectorAll('#incAmtSeg > button')].findIndex(b => b.dataset.v === '200000')")
+            mp.locator("#incAmtSeg + select.m4segsel").select_option(str(idx))
+        mp.wait_for_timeout(600)
         ok(f"★ [{tag}] 390：點年領 20 萬，張數真的變", mp.evaluate("() => document.querySelector('#incBar').dataset.lots") != a0)
         ok(f"[{tag}] 390：單檔無橫向溢出", mp.evaluate(fit))
         mp.tap("#incTabs button[data-v='c']"); mp.wait_for_timeout(2000)
@@ -15051,7 +15065,12 @@ def t_events_drawer(b, base, code):
                  docSW: document.documentElement.scrollWidth, docCW: document.documentElement.clientWidth }; }"""
 
     def open_drawer(pg, w):
-        if w <= 820:
+        if w <= 640 and pg.evaluate("() => document.documentElement.classList.contains('m4')"):
+            # ★ 2026-10-09 審核：手機 v2（10-08，mobile4.js）拿掉「⋯」選單，今日事件改在左側抽屜最上面
+            #   （漢堡 #m4Burger → #m4Drawer 的「事件」，按下去就是去按 #evToggle 本人）。照新入口真的點。
+            pg.locator("#m4Burger").click(timeout=6000); pg.wait_for_timeout(400)
+            pg.locator("#m4Drawer button[data-act='events']").click(timeout=6000)
+        elif w <= 820:
             # 窄畫面的入口是頂欄「⋯」清單裡的「今日事件」（桌機那顆鈕在 ≤820 被藏起來）
             pg.locator("#moreBtn").click(timeout=6000); pg.wait_for_timeout(450)
             if pg.locator("#mmEvents").is_visible():
@@ -19128,12 +19147,14 @@ def t_ud_market(pg, base):
     #      真的點過去（不這樣做的話卡片是 display:none，量到的全是 0，「在卡片內」會假綠 —— 第一版就是這樣）。
     pg.set_viewport_size({"width": 390, "height": 900}); pg.wait_for_timeout(600)
     pg.reload(wait_until="networkidle"); pg.wait_for_timeout(1600)
-    stepped = pg.evaluate("""() => { const sp = [...document.querySelectorAll('#v-overview .mspine button, .mspine button')].find(b => /貴不貴/.test(b.textContent));
+    # ★ 2026-10-09 審核：手機 v2（html.m4，Andy 10-08「大盤也是跟市場寬度一樣」）沒有四步列，這張卡在「大盤」那一組
+    m4 = pg.evaluate("() => document.documentElement.classList.contains('m4')")
+    stepped = "ok" if m4 else pg.evaluate("""() => { const sp = [...document.querySelectorAll('#v-overview .mspine button, .mspine button')].find(b => /貴不貴/.test(b.textContent));
         if (!sp) return 'no-spine'; sp.click(); return 'ok'; }""")
     pg.wait_for_timeout(700)
-    seg_hit = pg.evaluate("""() => { const b = [...document.querySelectorAll('.mpager button')].find(x => /市場寬度|漲跌家數/.test(x.textContent) && x.offsetParent);
+    seg_hit = pg.evaluate("""(re) => { const b = [...document.querySelectorAll('.mpager button')].find(x => new RegExp(re).test(x.textContent.trim()) && x.offsetParent);
         if (!b) return [...document.querySelectorAll('.mpager button')].filter(x => x.offsetParent).map(x => x.textContent);
-        b.click(); return 'ok'; }""")
+        b.click(); return 'ok'; }""", "^大盤$" if m4 else "市場寬度|漲跌家數")
     pg.wait_for_timeout(1200)
     ok("手機 390：點「② 貴不貴」→「市場寬度」到得了這張卡", stepped == "ok" and seg_hit == "ok", (stepped, seg_hit))
     scroll_to(pg, "breadth"); pg.wait_for_timeout(600)
@@ -19322,6 +19343,14 @@ def t_updown_link_1006(pg, b, base):
     mp.goto(f"{base}#overview", wait_until="networkidle")
     wait_until(mp, "() => document.querySelectorAll('#hero .osc[data-k=\"updown\"] .osn[data-v]').length === 3", 8000)
     mp.evaluate("() => { const b = document.querySelector('#v-overview > .mspine > button'); if (b && !b.classList.contains('on')) b.click(); }")
+    # ★ 2026-10-09 審核：手機 v2（html.m4）沒有四步列，總覽分段合成「大盤／資金流向／熱度」三組，分佈卡在「大盤」組。
+    #   故意先停在「熱度」再點「下跌」—— 驗的是「自己切到分佈卡那一組」，不是剛好本來就停在那一組（10-09 抓到的就是這個漏洞）。
+    m4 = mp.evaluate("() => document.documentElement.classList.contains('m4')")
+    if m4:
+        mp.evaluate("() => { const b = [...document.querySelectorAll('#v-overview > .mpager > button')].find(x => x.textContent.trim() === '熱度'); b && b.click(); }")
+        mp.wait_for_timeout(400)
+        ok("[漲跌連結 手機 m4] 前提：先停在「熱度」分段（分佈卡藏著）",
+           mp.evaluate("() => !!document.getElementById('ovBreadthCard').closest('.mp-off')"))
     mp.wait_for_timeout(600)
     mp.evaluate("() => window.scrollTo({ top: 0, behavior: 'instant' })"); mp.wait_for_timeout(300)
     mp.tap('#hero .osc[data-k="updown"] .osn[data-v="down"]')
@@ -19338,7 +19367,8 @@ def t_updown_link_1006(pg, b, base):
         function _n(m) { const x = (m && m.textContent || '').match(/(\\d+)\\s*檔/); return x ? +x[1] : null; } }""", 9000)
     mc = mp.evaluate(UDL_CARD)
     ok("★ [漲跌連結 手機] 點「下跌」→ 自己切到「② 貴不貴 → 市場寬度」、留在總覽、清單是下跌",
-       bool(mm) and "貴不貴" in mm["step"] and mm["seg"] == "市場寬度" and mm["hash"] == "#overview" and mm["n"] == mc["down"], [mm, mc])
+       bool(mm) and ((mm["step"] == "" and mm["seg"] == "大盤") if m4 else ("貴不貴" in mm["step"] and mm["seg"] == "市場寬度"))
+       and mm["hash"] == "#overview" and mm["n"] == mc["down"], [mm, mc])
     ok("★ [漲跌連結 手機] 卡片標題在四步列下面露出來（沒被 sticky 頂欄蓋住）、在視窗內",
        bool(mm) and mm["h3top"] >= mm["spineBottom"] - 1 and mm["h3top"] < mm["vh"] - 100, mm)
     ok("[漲跌連結 手機] 整頁沒有橫向捲動、清單字 ≥ 11px", bool(mm) and not mm["sideways"] and mm["minFs"] >= 11, mm)
@@ -20329,10 +20359,13 @@ def t_design_v4(b, base, code):
         const r = p.getBoundingClientRect(); return r.width > 100 && r.bottom < innerHeight + 2 && r.right <= innerWidth + 1; }"""))
     ok("② 面板裡三套風格", count(pg, "#t4Pop .t4o") == 3)
     # ★ 2026-10-03 去重：面板裡不准再有任何明暗控制（舊的 .t4m／data-t4m、標題「明暗」、寫著深色／淺色的按鈕），說明指向右上角 ☀／🌙
-    dd = pg.evaluate("""() => { const p = document.getElementById('t4Pop');
-        return { t4m: p.querySelectorAll('.t4m, [data-t4m], .t4modes').length,
-                 h4: [...p.querySelectorAll('h4')].map(h => h.textContent.trim()),
-                 modeBtns: [...p.querySelectorAll('button')].filter(b => /深色|淺色|明暗/.test(b.textContent)).length,
+    # ★ 2026-10-09 審核：手機 v2（bcd2e633）把「明暗」段放進同一個 #t4Pop 的 DOM，桌機用 theme4.css
+    #   `:root:not(.m4) .t4pop .t4mode, .t4modeh{display:none}` 藏起來 —— 所以這裡只數**看得見的**，
+    #   不然 DOM 裡藏著的手機段會被誤判成「桌機面板又有明暗控制」（桌機守門1008 也是只數看得見的）。
+    dd = pg.evaluate("""() => { const p = document.getElementById('t4Pop'), V = (e) => e.getClientRects().length > 0;
+        return { t4m: [...p.querySelectorAll('.t4m, [data-t4m], .t4modes, .t4mode')].filter(V).length,
+                 h4: [...p.querySelectorAll('h4')].filter(V).map(h => h.textContent.trim()),
+                 modeBtns: [...p.querySelectorAll('button')].filter(b => V(b) && /深色|淺色|明暗/.test(b.textContent)).length,
                  hint: (p.querySelector('.t4hint') || {}).textContent || '' }; }""")
     ok("② 去重：外觀面板裡沒有明暗控制（沒有 .t4m／data-t4m、沒有「明暗」標題、沒有寫深色／淺色的按鈕）",
        dd["t4m"] == 0 and dd["h4"] == ["版面風格"] and dd["modeBtns"] == 0, dd)
@@ -20428,31 +20461,33 @@ def t_design_v4(b, base, code):
     c.close()
     c = b.new_context(viewport={"width": 390, "height": 844}, is_mobile=True, has_touch=True)
     p = c.new_page(); p.goto(base + "#overview", wait_until="networkidle"); p.wait_for_timeout(2200)
-    p.locator("#moreBtn").click(timeout=6000); p.wait_for_timeout(400)
-    ok("⑥ 390：「⋯」清單裡有三套風格", count(p, "#mmT4 [data-t4]") == 3)
-    p.locator('#mmT4 [data-t4="pro"]').click(timeout=6000); p.wait_for_timeout(1500)
+    # ★ 2026-10-09 審核：手機 v2（10-08，mobile4.css／mobile4.js）拿掉了「⋯」選單（#moreBtn 在 html.m4 一律藏起來），
+    #   版面風格與明暗都改從頂欄「外觀」鈕（#m4Tools #t4Btn）打開同一個 #t4Pop：上面明暗（深色｜淺色）、下面三套風格
+    #   （Andy 10-08：「將切換版面風格、明暗這部分統一一個功能按鍵在上方」）。這裡照新入口真的點一遍，驗的事情不變：
+    #   三套風格都在、點「專業有力」真的切過去並記住、沒有橫向捲軸、明暗按了真的換且記住、風格不受影響。
+    ok("⑥ 390：手機 v2 拿掉「⋯」選單（#moreBtn 看不到）",
+       p.evaluate("() => { const m = document.getElementById('moreBtn'); return !m || m.getClientRects().length === 0; }"))
+    p.locator("#m4Tools #t4Btn").tap(timeout=6000); p.wait_for_timeout(400)
+    ok("⑥ 390：頂欄「外觀」點了打開面板、裡面三套風格", p.evaluate("""() => { const q = document.getElementById('t4Pop');
+        return !!q && !q.hidden && [...q.querySelectorAll('.t4o[data-t4]')].filter(e => e.getClientRects().length).length === 3; }"""))
+    p.locator('#t4Pop .t4o[data-t4="pro"]').tap(timeout=6000); p.wait_for_timeout(1500)
     ok("⑥ 390：點「專業有力」真的切過去並記住",
        p.evaluate("() => [document.documentElement.getAttribute('data-theme4'), localStorage.getItem('tw.theme4')]") == ["pro", "pro"])
     ov = p.evaluate("() => document.documentElement.scrollWidth - document.documentElement.clientWidth")
     ok("⑥ 390：沒有橫向捲軸", ov <= 1, ov)
-    ok("⑥ 390：頂欄「外觀」鈕收起來（入口在清單裡）", p.evaluate("() => getComputedStyle(document.getElementById('t4Btn')).display") == "none")
-    # ★ 2026-10-03 去重：手機的風格段也不准有明暗控制；明暗入口仍在頁首右上（「⋯」→「明亮／深色主題」），而且按了真的換
-    if p.evaluate("() => document.getElementById('morePop').hidden"):
-        p.locator("#moreBtn").click(timeout=6000); p.wait_for_timeout(400)
-    mm = p.evaluate("""() => { const box = document.getElementById('mmT4'), mb = document.getElementById('moreBtn'), r = mb.getBoundingClientRect(),
-        tb = document.querySelector('.topbar').getBoundingClientRect(), th = document.getElementById('mmTheme');
-        return { t4m: box.querySelectorAll('.t4m, [data-t4m]').length,
-                 modeBtns: [...box.querySelectorAll('button')].filter(b => /深色|淺色|明暗/.test(b.textContent)).length,
-                 more: { right: Math.round(r.right), vw: innerWidth, top: Math.round(r.top), bot: Math.round(r.bottom), tbB: Math.round(tb.bottom), w: Math.round(r.width) },
-                 theme: !!th && th.getClientRects().length > 0 && th.getBoundingClientRect().height >= 40,
+    if p.evaluate("() => document.getElementById('t4Pop').hidden"):
+        p.locator("#m4Tools #t4Btn").tap(timeout=6000); p.wait_for_timeout(400)
+    mm = p.evaluate("""() => { const q = document.getElementById('t4Pop'), V = (e) => e.getClientRects().length > 0,
+        tb = document.getElementById('t4Btn').getBoundingClientRect(), top = document.querySelector('.topbar').getBoundingClientRect();
+        return { modeBtns: [...q.querySelectorAll('.t4mode button[data-mode]')].filter(V).length,
+                 btn: { right: Math.round(tb.right), vw: innerWidth, bot: Math.round(tb.bottom), tbB: Math.round(top.bottom), w: Math.round(tb.width) },
                  mode: document.documentElement.getAttribute('data-theme') || 'dark' }; }""")
-    ok("⑥ 390 去重：「⋯」清單的風格段沒有明暗控制", mm["t4m"] == 0 and mm["modeBtns"] == 0, mm)
-    ok("⑥ 390：明暗入口仍在頁首右上（「⋯」在頂欄右半、清單裡「明亮／深色主題」看得到）",
-       mm["more"]["w"] > 0 and mm["more"]["right"] > mm["more"]["vw"] * 0.6 and mm["more"]["right"] <= mm["more"]["vw"]
-       and mm["more"]["bot"] <= mm["more"]["tbB"] + 2 and mm["theme"], mm)
-    p.locator("#mmTheme").click(timeout=6000); p.wait_for_timeout(1200)
+    ok("⑥ 390：明暗入口在頂欄右半的「外觀」面板裡（深色｜淺色兩顆看得到）",
+       mm["modeBtns"] == 2 and mm["btn"]["w"] > 0 and mm["btn"]["right"] > mm["btn"]["vw"] * 0.5
+       and mm["btn"]["right"] <= mm["btn"]["vw"] and mm["btn"]["bot"] <= mm["btn"]["tbB"] + 2, mm)
+    p.locator("#t4Pop .t4mode button:not(.on)").first.tap(timeout=6000); p.wait_for_timeout(1200)
     m2 = p.evaluate("() => [document.documentElement.getAttribute('data-theme') || 'dark', localStorage.getItem('tw.theme'), document.documentElement.getAttribute('data-theme4')]")
-    ok("⑥ 390：按「明亮／深色主題」→ 明暗真的換、記住，風格不受影響（還是專業有力）",
+    ok("⑥ 390：按面板裡的深色／淺色 → 明暗真的換、記住，風格不受影響（還是專業有力）",
        m2[0] != mm["mode"] and m2[1] == m2[0] and m2[2] == "pro", {"前": mm["mode"], "後": m2})
     c.close()
 
@@ -32228,7 +32263,9 @@ def _icon_pna_blank(msg: str, page_url: str) -> bool:
     線上不會發生：① 使用者不會被帶去 about:blank；② github.io 的圖示是公網位址，PNA 只擋「往更私有的位址」。
     所以只放過「頁面此刻是 about:、訊息是 origin null ＋ loopback ＋ /icons/ 底下的檔」這一種，其他 CORS 錯照報。"""
     return ((page_url or "").startswith("about:") and "from origin 'null'" in msg
-            and "address space `loopback`" in msg and "/icons/" in msg)
+            # 2026-10-09 審核：10-07 品牌改名（a67fe8ec）把網站圖示從 icons/ 搬到 brand/，白名單沒跟著改，
+            #   於是同一個「about: 頁上的 PNA 圖示抓取」在即時推送、新-大盤三張圖等段落又冒出來當紅字。
+            and "address space `loopback`" in msg and ("/icons/" in msg or "/brand/icon" in msg))
 
 
 def _report(t0: float) -> int:
