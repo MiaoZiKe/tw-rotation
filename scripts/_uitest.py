@@ -29,7 +29,8 @@ from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
-SITE = ROOT / "site"
+# ★ 2026-10-08 桌機守門1008：要拿「改前的網站快照」產生對照指紋時，用 TW_UITEST_SITE 指到那份 site/（沒設＝本 repo 的 site/）
+SITE = Path(os.environ.get("TW_UITEST_SITE") or (ROOT / "site"))
 # 埠可以用環境變數蓋掉（TW_UITEST_PORT / TW_PREVIEW_PORT）。
 # 2026-09-20 加的：同時派幾個 agent 各自驗自己那一段時，固定埠會互相搶，
 # 第二個起來的直接 OSError: Address already in use，看起來像程式壞了。
@@ -27128,7 +27129,180 @@ def t_dgclip_1008(b, base):
     c.close()
 
 
+
+# ★ 2026-10-08 桌機守門1008（Andy 17:13：「你改手機版本是否也動到網頁版本…這事情很嚴重，兩者不可侵犯」）：
+#   手機 v2 第三批改了共用檔（industry.js／diagrams.js…），有幾處沒限定 ≤640，桌機跟著變了
+#   （關聯圖預設收起還攤開整份環節卡、剖析圖預設收起 → 展開後說明卡掉到圖下面）。
+#   這一段守「桌機 1440 的版面跟存好的基準一樣」，凡是改共用檔的人推 main 前都要跑它。
+#   ① 結構指紋：逐頁量主要元件（卡片、剖析圖格線／畫布／左右欄、關聯圖、分頁列）的「看不看得到、x、寬、display、grid 區塊」，
+#      跟 tests/desktop_baseline/desktop_1440.json 比。為什麼不存截圖：圖表有動畫粒子、K 線每天換資料，
+#      像素比對每天都會紅；位置與寬度不會因為資料換了就變，但「卡片從圖旁邊掉到圖下面」「整塊被收起來」一定會變。
+#      高度不比（清單長短跟著資料走）。基準要更新（Andy 明確要求桌機改版時）：TW_DESK_BASELINE=write 跑一次這一段，把 json 一起 commit。
+#   ② 每一張 2D 剖析圖：說明卡一律在圖的左邊或右邊（right ≤ 圖 left，或 left ≥ 圖 right），不准在圖下面（Andy 範本：AI 伺服器）。
+#   ③ 剖析圖「收合 → 換鏈 → 換回來 → 展開」之後說明卡仍在圖旁邊（10-08 的 309 截圖就是這條路徑）。
+#   ④ 關聯圖：桌機預設展開；按「收合圖」→ 標題以下什麼都沒有（圖與環節卡清單一起藏）；再按回來 → 圖回來。
+#   ⑤ 641～820 寬（桌機窄視窗）關聯圖照舊左右排，不准變成手機的上下排。
+DESK_BASE_FILE = ROOT / "tests" / "desktop_baseline" / "desktop_1440.json"
+DESK_FP_JS = r"""
+() => {
+  const v = document.querySelector('main .view.on') || document.querySelector('main');
+  const out = {}, seen = {};
+  if (!v) return out;
+  const SEL = '.card, #dgSec, #dgBody, #prodDiagram, .dggrid, .dgcanvas, .dgcol, .dgcards, #relSec, #relMain, #chainMap, #chainList, #stockTabs, .subtabs';
+  const STATE = /^(on|sel|sel-part|open|hover|cyan|dim|haspart|noanim|live|busy|ready|done|isnew|pulse)$/;
+  v.querySelectorAll(SEL).forEach((e) => {
+    const key = e.id ? '#' + e.id : e.tagName.toLowerCase() + '.' + [...e.classList].filter((c) => !STATE.test(c)).sort().join('.');
+    seen[key] = (seen[key] || 0) + 1;
+    if (seen[key] > 20) return;
+    const r = e.getBoundingClientRect(), cs = getComputedStyle(e);
+    const vis = !!(r.width || r.height) && cs.display !== 'none' && cs.visibility !== 'hidden' && !e.closest('[hidden]');
+    out[key + '@' + seen[key]] = [vis ? 1 : 0, Math.round(r.left + scrollX), Math.round(r.width), cs.display, cs.gridTemplateAreas === 'none' ? '' : cs.gridTemplateAreas];
+  });
+  return out;
+}
+"""
+DESK_SIDE_JS = r"""
+() => {
+  const bad = [];
+  let n = 0;
+  document.querySelectorAll('main .view.on .dgwrap').forEach((host) => {
+    const cv = host.querySelector('.dgcanvas') || host.querySelector('svg');
+    if (!cv || !host.getClientRects().length) return;
+    const c = cv.getBoundingClientRect();
+    if (!c.width) return;
+    host.querySelectorAll('.dgcards .dgc').forEach((card) => {
+      const r = card.getBoundingClientRect();
+      if (!r.width && !r.height) return;
+      n++;
+      if (!(r.right <= c.left + 2 || r.left >= c.right - 2))
+        bad.push(((card.innerText || '').replace(/\s+/g, ' ').slice(0, 20)) + ` 卡[${Math.round(r.left)},${Math.round(r.top)}] 圖[${Math.round(c.left)}~${Math.round(c.right)}]`);
+    });
+  });
+  return { n, bad };
+}
+"""
+
+
+def desk_pages(pg, base):
+    """守門要走的頁：路由不寫死，產業鏈、題材、個股分頁都從頁面或資料讀，新增的自動進來。"""
+    pages = ["overview", "earnings", "flow/rotation", "flow/sankey", "flow/inst", "heatmap/industry", "heatmap/theme", "industry"]
+    pg.goto(f"{base}#industry", wait_until="domcontentloaded"); pg.wait_for_timeout(1500)
+    chains = pg.evaluate("async () => (await (await fetch('data/industry_map.json')).json()).chains.map(c => c.id)")
+    tids = pg.evaluate("async () => (await (await fetch('data/themes.json')).json()).themes.map(t => t.id)")
+    pages += [f"industry/{c}" for c in chains] + [f"themes/{t}" for t in tids]
+    pages += [f"market/{k}" for k in ("updown", "streak", "ma", "cand")]
+    pages += ["explore", "etf/cal", "etf/list", "etf/inc", "season", "watch", "pricing", "terms", "privacy", "disclaimer", "admin"]
+    for code in ("2330", "00919"):
+        pg.goto(f"{base}#stock/{code}", wait_until="domcontentloaded"); pg.wait_for_timeout(2200)
+        for t in pg.evaluate("() => [...document.querySelectorAll('#stockTabs button')].map(b => b.dataset.t)"):
+            pages.append(f"stock/{code}?tab={t}")
+    return pages, chains, tids
+
+
+def desk_open(pg, base, route):
+    r, _, tab = route.partition("?tab=")
+    pg.goto("about:blank"); pg.goto(f"{base}#{r}", wait_until="domcontentloaded"); pg.wait_for_timeout(1800)
+    if tab:
+        pg.evaluate("(t) => { const b = [...document.querySelectorAll('#stockTabs button')].find(x => x.dataset.t === t); if (b) b.click(); }", tab)
+        pg.wait_for_timeout(900)
+    # 捲到底再回頂：延後畫的卡（whenNear）都畫出來，版面才是使用者看到的那個
+    h = pg.evaluate("() => document.documentElement.scrollHeight")
+    for y in range(0, min(h, 8000), 900):
+        pg.evaluate(f"() => window.scrollTo(0, {y})"); pg.wait_for_timeout(60)
+    pg.evaluate("() => window.scrollTo(0, 0)"); pg.wait_for_timeout(500)
+
+
+def t_desk_guard_1008(b, base):
+    T = "桌機守門1008"
+    c = b.new_context(viewport={"width": 1440, "height": 900})
+    c.add_init_script("try{localStorage.setItem('tw.dg3d','0')}catch(e){}")
+    pg = c.new_page()
+    pages, chains, tids = desk_pages(pg, base)
+    ok(f"{T}：收得到要守的頁（{len(pages)} 頁，含 {len(chains)} 條產業鏈、{len(tids)} 個題材、個股分頁）",
+       len(pages) >= 60 and len(chains) >= 5 and len(tids) >= 20, len(pages))
+    # ① 結構指紋
+    fp = {}
+    for r in pages:
+        desk_open(pg, base, r)
+        fp[r] = pg.evaluate(DESK_FP_JS)
+    if os.environ.get("TW_DESK_BASELINE") == "write":
+        DESK_BASE_FILE.parent.mkdir(parents=True, exist_ok=True)
+        DESK_BASE_FILE.write_text(json.dumps(fp, ensure_ascii=False, sort_keys=True, separators=(",", ":")), encoding="utf-8")
+        notes.append(f"{T}：已寫入基準 {DESK_BASE_FILE}（{len(fp)} 頁）")
+    base_fp = json.loads(DESK_BASE_FILE.read_text(encoding="utf-8")) if DESK_BASE_FILE.exists() else {}
+    ok(f"{T}：基準檔存在（tests/desktop_baseline/desktop_1440.json）", bool(base_fp))
+    TOL = 8
+    diffs = []
+    for r, want in base_fp.items():
+        got = fp.get(r)
+        if got is None:
+            diffs.append(f"{r}：這一頁沒走到"); continue
+        for k, w in want.items():
+            g = got.get(k)
+            if g is None:
+                if w[0]: diffs.append(f"{r} {k}：基準看得到，現在不見了")
+                continue
+            if g[0] != w[0]:
+                diffs.append(f"{r} {k}：{'基準看得到 → 現在藏起來' if w[0] else '基準藏著 → 現在攤開'}")
+            elif w[0] and (abs(g[1] - w[1]) > TOL or abs(g[2] - w[2]) > TOL):
+                diffs.append(f"{r} {k}：x {w[1]}→{g[1]}、寬 {w[2]}→{g[2]}")
+            elif w[0] and (g[3] != w[3] or g[4] != w[4]):
+                diffs.append(f"{r} {k}：排法 {w[3]} {w[4]!r} → {g[3]} {g[4]!r}")
+        for k, g in got.items():
+            if k not in want and g[0]:
+                diffs.append(f"{r} {k}：基準沒有、現在多出來（x {g[1]} 寬 {g[2]}）")
+    ok(f"{T}：1440 寬 {len(base_fp)} 頁的版面指紋跟基準一樣（{len(diffs)} 處不同）", not diffs, diffs[:40])
+    # ② 每一張 2D 剖析圖的說明卡在圖的左右兩側
+    dg_routes = []
+    for ch in chains:
+        pg.goto("about:blank"); pg.goto(f"{base}#industry/{ch}", wait_until="domcontentloaded"); pg.wait_for_timeout(1500)
+        for r in pg.evaluate("() => [...document.querySelectorAll('#dgPick a[data-dgid]')].map(a => a.getAttribute('href').slice(1))"):
+            if r not in dg_routes: dg_routes.append(r)
+    side_bad, side_n, side_pages = [], 0, 0
+    for r in dg_routes + [f"themes/{t}" for t in tids]:
+        pg.goto("about:blank"); pg.goto(f"{base}#{r}", wait_until="domcontentloaded"); pg.wait_for_timeout(1600)
+        got = pg.evaluate(DESK_SIDE_JS)
+        if got["n"]: side_pages += 1
+        side_n += got["n"]; side_bad += [f"{r}：{x}" for x in got["bad"]]
+    ok(f"{T}：量到的剖析圖說明卡（{side_pages} 張圖、{side_n} 張卡）", side_pages >= max(5, len(dg_routes) // 2) and side_n > 0, (side_pages, len(dg_routes)))
+    ok(f"{T}：剖析圖說明卡全部在圖的左右兩側、沒有掉到圖下面（{len(side_bad)} 張不對）", not side_bad, side_bad[:20])
+    # ③ 收合 → 換鏈 → 換回來 → 展開（309 截圖的路徑）
+    pg.goto("about:blank"); pg.goto(f"{base}#industry/software", wait_until="domcontentloaded"); pg.wait_for_timeout(2200)
+    ok(f"{T}：軟體鏈剖析圖桌機預設展開（鈕寫「收合圖」）", "收合" in (pg.text_content("#dgFold") or ""), pg.text_content("#dgFold"))
+    pg.click("#dgFold"); pg.wait_for_timeout(600)
+    ok(f"{T}：按「收合圖」→ 剖析圖真的收起來", pg.evaluate("() => getComputedStyle(document.getElementById('dgBody')).display === 'none'"))
+    pg.evaluate("() => { location.hash = '#industry/financial'; }"); pg.wait_for_timeout(1800)
+    pg.evaluate("() => { location.hash = '#industry/software'; }"); pg.wait_for_timeout(2200)
+    pg.click("#dgFold"); pg.wait_for_timeout(1500)
+    got = pg.evaluate(DESK_SIDE_JS)
+    ok(f"{T}：收合 → 換鏈 → 換回來 → 展開，說明卡仍在圖兩側（{got['n']} 張）", got["n"] > 0 and not got["bad"], got)
+    pg.click("#dgFold"); pg.wait_for_timeout(300); pg.click("#dgFold"); pg.wait_for_timeout(300)   # 復原成展開，不影響後面
+    # ④ 關聯圖：預設展開；收合＝標題以下全藏；再展開回來
+    pg.goto("about:blank"); pg.goto(f"{base}#industry/semiconductor", wait_until="domcontentloaded"); pg.wait_for_timeout(2500)
+    REL = """() => { const m = document.getElementById('chainMap'), rm = document.getElementById('relMain'), sec = document.getElementById('relSec'), hd = document.getElementById('relHead');
+        const vis = (e) => !!e && !!e.getClientRects().length && !e.closest('[hidden]');
+        const below = sec ? [...sec.querySelectorAll('*')].filter(e => vis(e) && hd && !hd.contains(e) && e !== hd && !e.contains(hd) && e.getBoundingClientRect().height > 4).length : -1;
+        return { map: vis(m) && document.querySelectorAll('#chainMap .co').length > 0, list: vis(document.getElementById('chainList')), main: vis(rm), below,
+                 btn: (document.getElementById('relFold') || {}).textContent }; }"""
+    s0 = pg.evaluate(REL)
+    ok(f"{T}：關聯圖桌機預設展開（看得到關聯圖本體、鈕寫「收合圖」）", s0["map"] and "收合" in (s0["btn"] or ""), s0)
+    pg.click("#relFold"); pg.wait_for_timeout(700)
+    s1 = pg.evaluate(REL)
+    ok(f"{T}：關聯圖按「收合圖」→ 圖與環節卡清單一起藏起來，標題以下什麼都沒有", not s1["map"] and not s1["list"] and not s1["main"] and s1["below"] == 0, s1)
+    pg.click("#relFold"); pg.wait_for_timeout(1200)
+    s2 = pg.evaluate(REL)
+    ok(f"{T}：關聯圖再按「展開」→ 關聯圖回來", s2["map"], s2)
+    # ⑤ 桌機窄視窗（800）關聯圖照舊左右排
+    pg.set_viewport_size({"width": 800, "height": 900})
+    pg.goto("about:blank"); pg.goto(f"{base}#industry/semiconductor", wait_until="domcontentloaded"); pg.wait_for_timeout(2500)
+    lay = pg.evaluate("() => { const h = document.getElementById('chainMap'); return h ? h.dataset.layout || '' : null; }")
+    ok(f"{T}：800 寬（桌機窄視窗）關聯圖照舊左右排，不是手機的上下排", lay != "vert", lay)
+    c.close()
+
+
 SECTIONS = {
+    # ★ 2026-10-08 Andy：「手機版本…是否也動到網頁版本…兩者不可侵犯」—— 桌機 1440 版面指紋＋剖析圖說明卡在兩側＋關聯圖收合（⚠ --workers 1；改共用檔推 main 前必跑）
+    "桌機守門1008":        lambda pg, b, base, code: t_desk_guard_1008(b, base),
     "2D 圖裁切普查1008":   lambda pg, b, base, code: t_dgclip_1008(b, base),
     "標題重複普查":        lambda pg, b, base, code: t_title_dup_1007(b, base),
     "時間軸分隔線1006":    lambda pg, b, base, code: t_timegrid_1006(pg, base),
