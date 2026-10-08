@@ -1,0 +1,528 @@
+====================================================================================================
+[dump-0] DUMP https://www.sitca.org.tw/ROC/Industry/IN2629.aspx
+  HTTP 200  type=text/html; charset=utf-8  bytes=49278
+
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "https://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="https://www.w3.org/1999/xhtml">
+<head><title>
+	中華民國證券投資信託暨顧問商業同業公會
+</title><link rel="stylesheet" href="../../WDataStyle.css" type="text/css" media="screen" charset="utf-8" /><meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1" /><meta http-equiv="Content-Security-Policy" content="upgrade-insecure-requests" /><link rel="shortcut icon" type="image/vsd.microsoft.ico" href="../../image/ico_sitca.ico" charset="utf-8" /><link rel="stylesheet" type="text/css" media="screen" href="../../css/mod_settings.css" charset="utf-8" />
+    
+    <script type="text/javascript" src="../../lib/tablerow.js"></script>
+    <link rel="stylesheet" type="text/css" media="screen" href="../../css/table1.css" charset="utf-8" /><link rel="stylesheet" type="text/css" media="screen" href="../../css/layout1.css" charset="utf-8" /></head>
+<body>
+    <form name="aspnetForm" method="post" action="./IN2629.aspx" id="aspnetForm">
+<div>
+<input type="hidden" name="__EVENTTARGET" id="__EVENTTARGET" value="" />
+<input type="hidden" name="__EVENTARGUMENT" id="__EVENTARGUMENT" value="" />
+<input type="hidden" name="__LASTFOCUS" id="__LASTFOCUS" value="" />
+<input type="hidden" name="__VIEWSTATE" id="__VIEWSTATE" value="/wEPDwUKLTgzNTYzMTY3Mw9kFgJmD2QWAgIDD2QWBAIBDw8WAh4EVGV4dGVkZAIDD2QWBAIBDxYCHwBlZAIDD2QWAgIBD2QWCGYPZBYCAgEPZBYCAgEPEGQQFYcBDzIwMTUg5bm0IDA2IOaciA8yMDE1IOW5tCAwNyDmnIgPMjAxNSDlubQgMDgg5pyIDzIwMTUg5bm0IDA5IOaciA8yMDE1IOW5tCAxMCDmnIgPMjAxNSDlubQgMTEg5pyIDzIwMTUg5bm0IDEyIOaciA8yMDE2IOW5tCAwMSDmnIgPMjAxNiDlubQgMDIg5pyIDzIwMTYg5bm0IDAzIOaciA8yMDE2IOW5tCAwNCDmnIgPMjAxNiDlubQgMDUg5pyIDzIwMTYg5bm0IDA2IOaciA8yMDE2IOW5tCAwNyDmnIgPMjAxNiDlubQgMDgg5pyIDzIwMTYg5bm0IDA5IOaciA8yMDE2IOW5tCAxMCDmnIgPMjAxNiDlubQgMTEg5pyIDzIwMTYg5bm0IDEyIOaciA8yMDE3IOW5tCAwMSDmnIgPMjAxNyDlubQgMDIg5pyIDzIwMTcg5bm0IDAzIOaciA8yMDE3IOW5tCAwNCDmnIgPMjAxNyDlubQgMDUg5pyIDzIwMTcg5bm0IDA2IOaciA8yMDE3IOW5tCAwNyDmnIgPMjAxNyDlubQgMDgg5pyIDzIwMTcg5bm0IDA5IOaciA8yMDE3IOW5tCAxMCDmnIgPMjAxNyDlubQgMTEg5pyIDzIwMTcg5bm0IDEyIOaciA8yMDE4IOW5tCAwMSDmnIgPMjAxOCDlubQgMDIg5pyIDzIwMTgg5bm0IDAzIOaciA8yMDE4IOW5tCAwNCDmnIgPMjAxOCDlubQgMDUg5pyIDzIwMTgg5bm0IDA2IOaciA8yMDE4IOW5tCAwNyDmnIgPMjAxOCDlubQgMDgg5pyIDzIwMTgg5bm0IDA5IOaciA8yMDE4IOW5tCAxMCDmnIgPMjAxOCDlubQgMTEg5pyIDzIwMTgg5bm0IDEyIOaciA8yMDE5IOW5tCAwMSDmnIgPMjAxOSDlubQgMDIg5pyIDzIwMTkg5bm0IDAzIOaciA8yMDE5IOW5tCAwNCDmnIgPMjAxOSDlubQgMDUg5pyIDzIwMTkg5bm0IDA2IOaciA8yMDE5IOW5tCAwNyDmnIgPMjAxOSDlubQgMDgg5pyIDzIwMTkg5bm0IDA5IOaciA8yMDE5IOW5tCAxMCDmnIgPMjAxOSDlubQgMTEg5pyIDzIwMTkg5bm0IDEyIOaciA8yMDIwIOW5tCAwMSDmnIgPMjAyMCDlubQgMDIg5pyIDzIwMjAg5bm0IDAzIOaciA8yMDIwIOW5tCAwNCDmnIgPMjAyMCDlubQgMDUg5pyIDzIwMjAg5bm0IDA2IOaciA8yMDIwIOW5tCAwNyDmnIgPMjAyMCDlubQgMDgg5pyIDzIwMjAg5bm0IDA5IOaciA8yMDIwIOW5tCAxMCDmnIgPMjAyMCDlubQgMTEg5pyIDzIwMjAg5bm0IDEyIOaciA8yMDIxIOW5tCAwMSDmnIgPMjAyMSDlubQgMDIg5pyIDzIwMjEg5bm0IDAzIOaciA8yMDIxIOW5tCAwNCDmnIgPMjAyMSDlubQgMDUg5pyIDzIwMjEg5bm0IDA2IOaciA8yMDIxIOW5tCAwNyDmnIgPMjAyMSDlubQgMDgg5pyIDzIwMjEg5bm0IDA5IOaciA8yMDIxIOW5tCAxMCDmnIgPMjAyMSDlubQgMTEg5pyIDzIwMjEg5bm0IDEyIOaciA8yMDIyIOW5tCAwMSDmnIgPMjAyMiDlubQgMDIg5pyIDzIwMjIg5bm0IDAzIOaciA8yMDIyIOW5tCAwNCDmnIgPMjAyMiDlubQgMDUg5pyIDzIwMjIg5bm0IDA2IOaciA8yMDIyIOW5tCAwNyDmnIgPMjAyMiDlubQgMDgg5pyIDzIwMjIg5bm0IDA5IOaciA8yMDIyIOW5tCAxMCDmnIgPMjAyMiDlubQgMTEg5pyIDzIwMjIg5bm0IDEyIOaciA8yMDIzIOW5tCAwMSDmnIgPMjAyMyDlubQgMDIg5pyIDzIwMjMg5bm0IDAzIOaciA8yMDIzIOW5tCAwNCDmnIgPMjAyMyDlubQgMDUg5pyIDzIwMjMg5bm0IDA2IOaciA8yMDIzIOW5tCAwNyDmnIgPMjAyMyDlubQgMDgg5pyIDzIwMjMg5bm0IDA5IOaciA8yMDIzIOW5tCAxMCDmnIgPMjAyMyDlubQgMTEg5pyIDzIwMjMg5bm0IDEyIOaciA8yMDI0IOW5tCAwMSDmnIgPMjAyNCDlubQgMDIg5pyIDzIwMjQg5bm0IDAzIOaciA8yMDI0IOW5tCAw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ipXos4fogqHnpajlnosZQUEyLui3qOWci+aKleizh+iCoeelqOWeixlBQjEu5ZyL5YWn5oqV6LOH5bmz6KGh5Z6LGUFCMi7ot6jlnIvmipXos4flubPooaHlnossQUMxMi7lnIvlhafmipXos4flm7rlrprmlLbnm4rkuIDoiKzlgrXliLjlnossQUMyMS7ot6jlnIvmipXos4flm7rlrprmlLbnm4rkuIDoiKzlgrXliLjlnosdQUMyMi7ph5Hono3os4fnlKLorYnliLjljJblnosdQUMyMy7pnZ7mipXos4fnrYnntJrlgrXliLjlnosiQUQxLuWci+WFp+aKleizh+iyqOW5o+W4guWgtOWfuumHkSJBRDIu6Leo5ZyL5oqV6LOH6LKo5bmj5biC5aC05Z+66YeRGUFFMS7lnIvlhafmipXos4fntYTlkIjlnoskQUUyMS7ot6jlnIvmipXos4fntYTlkIjlnotf6IKh56Wo5Z6LJEFFMjIu6Leo5ZyL5oqV6LOH57WE5ZCI5Z6LX+WCteWIuOWeiyRBRTIzLui3qOWci+aKleizh+e1hOWQiOWei1/lubPooaHlnoshQUUyNC7ot6jlnIvmipXos4fntYTlkIjlnotf5YW25LuWDEFGLuS/neacrOWeixhBRy7kuI3li5XnlKLorYnliLjljJblnosqQUgxMS7lnIvlhafmipXos4fmjIfmlbjogqHnpajlnotf6IKh56Wo5Z6LKkFIMTIu5ZyL5YWn5oqV6LOH5oyH5pW46IKh56Wo5Z6LX+WCteWIuOWeizRBSDEzLuWci+WFp+aKleizh+aMh+aVuOiCoeelqOWei1/mp5Pmob/lnosv5Y+N5ZCR5Z6LJ0FIMTQu5ZyL5YWn5oqV6LOH5oyH5pW46IKh56Wo5Z6LX+WFtuS7lipBSDE1LuWci+WFp+aKleizh+aMh+aVuOiCoeelqOWei1/lubPooaHlnosqQUgyMS7ot6jlnIvmipXos4fmjIfmlbjogqHnpajlnotf6IKh56Wo5Z6LKkFIMjIu6Leo5ZyL5oqV6LOH5oyH5pW46IKh56Wo5Z6LX+WCteWIuOWeiztBSDIzLui3qOWci+aKleizh+aMh+aVuOiCoeelqOWei1/mp5Pmob/lnosv5Y+N5ZCR5Z6LX+iCoeelqDtBSDI0Lui3qOWc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jeWLleeUouitieWIuOWMluWeiypBSDExLuWci+WFp+aKleizh+aMh+aVuOiCoeelqOWei1/ogqHnpajlnosqQUgxMi7lnIvlhafmipXos4fmjIfmlbjogqHnpajlnotf5YK15Yi45Z6LNEFIMTMu5ZyL5YWn5oqV6LOH5oyH5pW46IKh56Wo5Z6LX+ank+ahv+Weiy/lj43lkJHlnosnQUgxNC7lnIvlhafmipXos4fmjIfmlbjogqHnpajlnotf5YW25LuWKkFIMTUu5ZyL5YWn5oqV6LOH5oyH5pW46IKh56Wo5Z6LX+W5s+ihoeWeiypBSDIxLui3qOWci+aKleizh+aMh+aVuOiCoeelqOWei1/ogqHnpajlnosqQUgyMi7ot6jlnIvmipXos4fmjIfmlbjogqHnpajlnotf5YK15Yi45Z6LO0FIMjMu6Leo5ZyL5oqV6LOH5oyH5pW46IKh56Wo5Z6LX+ank+ahv+Weiy/lj43lkJHlnotf6IKh56WoO0FIMjQu6Leo5ZyL5oqV6LOH5oyH5pW46IKh56Wo5Z6LX+ank+ahv+Weiy/lj43lkJHlnotf5YK15Yi4OkFIMjUu6Leo5ZyL5oqV6LOH5oyH5pW46IKh56Wo5Z6LX+S4jeWLleeUouitieWIuOWMli/lhbbku5YqQUgyNi7ot6jlnIvmipXos4fmjIfmlbjogqHnpajlnotf5bmz6KGh5Z6LGUFJMS7lnIvlhafmipXos4fmjIfmlbjlnosZQUkyLui3qOWci+aKleizh+aMh+aVuOWeix9BSjEu5ZyL5YWn5oqV6LOH5aSa6YeN6LOH55Si5Z6LH0FKMi7ot6jlnIvmipXos4flpJrph43os4fnlKLlnos1QUsxMS7lnIvlhafmipXos4fmjIfmlbjogqHnpajlnovln7rph5HkuYvpgKPntZDln7rph5E+QUsxMi7lnIvlhafmipXos4fkuLvli5XlvI/kuqTmmJPmiYDkuqTmmJPln7rph5HkuYvpgKPntZDln7rph5E1QUsyMS7ot6jlnIvmipXos4fmjIfmlbjogqHnpajlnovln7rph5HkuYvpgKPntZDln7rph5E+QUsyMi7ot6jlnIvmipXos4fkuLvli5XlvI/kuqTmmJPmiYDkuqTmmJPln7rph5HkuYvpgKPntZDln7rph5E5QUwxMS7lnIvlhafmipXos4fkuLvli5XlvI/kuqTmmJPmiYDkuqTmmJPln7rph5Ff6IKh56Wo5Z6LOUFMMTIu5ZyL5YWn5oqV6LOH5Li75YuV5byP5Lqk5piT5omA5Lqk5piT5Z+66YeRX+WCteWIuOWeizZBTDE5LuWci+WFp+aKleizh+S4u+WLleW8j+S6pOaYk+aJgOS6pOaYk+WfuumHkV/lhbbku5Y5QUwyMS7ot6jlnIvmipXos4fkuLvli5XlvI/kuqTmmJPmiYDkuqTmmJPln7rph5Ff6IKh56Wo5Z6LOUFMMjIu6Leo5ZyL5oqV6LOH5Li75YuV5byP5Lqk5piT5omA5Lqk5piT5Z+66YeRX+WCteWIuOWeizZBTDI5Lui3qOWci+aKleizh+S4u+WLleW8j+S6pOaYk+aJgOS6pOaYk+WfuumHkV/lhbbku5YVKwADQUExA0FBMgNBQjEDQUIyBEFDMTIEQUMyMQRBQzIyBEFDMjMDQUQxA0FEMgNBRTEEQUUyMQRBRTIyBEFFMjMEQUUyNAJBRgJBRwRBSDExBEFIMTIEQUgxMwRBSDE0BEFIMTUEQUgyMQRBSDIyBEFIMjMEQUgyNARBSDI1BEFIMjYDQUkxA0FJMgNBSjEDQUoyBEFLMTEEQUsxMgRBSzIxBEFLMjIEQUwxMQRBTDEyBEFMMTkEQUwyMQRBTDIyBEFMMjkUKwMrZ2dnZ2dnZ2dnZ2dnZ2dnZ2dnZ2dnZ2dnZ2dnZ2dnZ2dnZ2dnZ2dnZ2dnZxYBZmQYAQUeX19Db250cm9sc1JlcXVpcmVQb3N0QmFja0tleV9fFgUFIWN0bDAwJENvbnRlbnRQbGFjZUhvbGRlcjEkcmJDb21pZAUhY3RsMDAkQ29udGVudFBsYWNlSG9sZGVyMSRyYkNsYXNzBSFjdGwwMCRDb250ZW50UGxhY2VIb2xkZXIxJHJiQ2xhc3MFIWN0bDAwJENvbnRlbnRQbGFjZUhvbGRlcjEkcmJDb21DTAUhY3RsMDAkQ29udGVudFBsYWNlSG9sZGVyMSRyYkNvbUNMvfUO2o+AQOZ0TXY1D+rec4cxLUA23QVu0Mw5CzFHiq0=" />
+</div>
+
+<script type="text/javascript">
+//<![CDATA[
+var theForm = document.forms['aspnetForm'];
+if (!theForm) {
+    theForm = document.aspnetForm;
+}
+function __doPostBack(eventTarget, eventArgument) {
+    if (!theForm.onsubmit || (theForm.onsubmit() != false)) {
+        theForm.__EVENTTARGET.value = eventTarget;
+        theForm.__EVENTARGUMENT.value = eventArgument;
+        theForm.submit();
+    }
+}
+//]]>
+</script>
+
+
+<div>
+
+	<input type="hidden" name="__VIEWSTATEGENERATOR" id="__VIEWSTATEGENERATOR" value="C0A743AB" />
+	<input type="hidden" name="__EVENTVALIDATION" id="__EVENTVALIDATION" value="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" />
+</div>
+    <table width='100%'>
+        <tr>
+            <td>
+                <div>
+                    <span id="ctl00_ltrProgName" style="color:Red;font-size:12px;font-weight:bold;"></span><br />
+                    
+<script language="javascript" type="text/javascript">
+    function rbtype(){
+		        var elementPrefix = "ctl00_ContentPlaceHolder1_";
+		        
+		        if (document.getElementById(elementPrefix + "rbComid").checked==true)
+		        {
+
+		            document.getElementById(elementPrefix + "ddlQ_Comid").disabled=false;
+		            document.getElementById(elementPrefix + "ddlQ_Class").disabled = true;
+		            document.getElementById(elementPrefix + "ddlQ_Comid1").disabled = true;
+		            document.getElementById(elementPrefix + "ddlQ_Class1").disabled = true;
+					
+					document.getElementById(elementPrefix + "ddlQ_Comid").selectedIndex=0;
+					document.getElementById(elementPrefix + "ddlQ_Class").selectedIndex = 0;
+					document.getElementById(elementPrefix + "ddlQ_Comid1").selectedIndex = 0;
+					document.getElementById(elementPrefix + "ddlQ_Class1").selectedIndex = 0;
+		        }
+		        if (document.getElementById(elementPrefix + "rbClass").checked==true)
+		        {
+
+		            document.getElementById(elementPrefix + "ddlQ_Comid").disabled=true;
+		            document.getElementById(elementPrefix + "ddlQ_Class").disabled = false;
+		            document.getElementById(elementPrefix + "ddlQ_Comid1").disabled = true;
+		            document.getElementById(elementPrefix + "ddlQ_Class1").disabled = true;
+					
+					document.getElementById(elementPrefix + "ddlQ_Comid").selectedIndex=0;
+					document.getElementById(elementPrefix + "ddlQ_Class").selectedIndex = 0;
+					document.getElementById(elementPrefix + "ddlQ_Comid1").selectedIndex = 0;
+					document.getElementById(elementPrefix + "ddlQ_Class1").selectedIndex = 0;
+		        }
+	            if (document.getElementById(elementPrefix + "rbComCL").checked == true) {
+
+	                document.getElementById(elementPrefix + "ddlQ_Comid").disabled = true;
+	                document.getElementById(elementPrefix + "ddlQ_Class").disabled = true;
+	                document.getElementById(elementPrefix + "ddlQ_Comid1").disabled = false;
+	                document.getElementById(elementPrefix + "ddlQ_Class1").disabled = false;
+
+	                document.getElementById(elementPrefix + "ddlQ_Comid").selectedIndex = 0;
+	                document.getElementById(elementPrefix + "ddlQ_Class").selectedIndex = 0;
+	                document.getElementById(elementPrefix + "ddlQ_Comid1").selectedIndex = 0;
+	                document.getElementById(elementPrefix + "ddlQ_Class1").selectedIndex = 0;
+	            }
+
+  }
+  
+  function QueryCheck() {
+        var elementPrefix = "ctl00_ContentPlaceHolder1_";
+        var errorStr = "";
+
+        if (document.getElementById(elementPrefix + "ddlQ_Comid").value.length == 0) {
+            errorStr += "公司別請勿空白";
+        }
+
+        if (document.getElementById(elementPrefix + "ddlQ_Class").value.length == 0) {
+            errorStr += "類型別請勿空白";
+        }
+
+        if (errorStr.length > 0) {
+            alert(errorStr);
+            return false;
+        } else {
+            return true;
+        }
+    }
+
+    function ShowDis(){
+        var sAgent = navigator.userAgent.toLowerCase(); 
+        if (this.isFF = (sAgent.indexOf('firefox')!=-1)){
+            document.getElementById('divBlock').style.display=''; 
+       } else {
+            divBlock.style.display=''; 
+       }
+   }
+</script>
+
+<legend><b><font color="#3333cc">
+    </font></b></legend>
+    <table id="GlobalTable" cellspacing="0" cellpadding="0" width="100%" border="0"
+       >
+        <tbody>
+            <tr>
+                <td style="height: 9px" colspan="2" width="100%" align="center">
+                    <div id="ctl00_ContentPlaceHolder1_QryPanel" style="color:White;border-color:#9999CC;border-width:1px;border-style:Solid;">
+	                        
+                        <table id="ctl00_ContentPlaceHolder1_QryTable" width="80%" style="border-right: silver 1px double; border-top: silver 1px double; border-left: silver 1px double; border-bottom: silver 1px double; background-color: whitesmoke" cellpadding="2" cellspacing="5" border="0">
+		<tr>
+			<td align="right">
+                                    <span id="ctl00_ContentPlaceHolder1_Label11" style="display:inline-block;color:Blue;font-size:12px;font-weight:bold;width:60px;">年月</span>
+                                </td>
+			<td align="left">
+                                    <select name="ctl00$ContentPlaceHolder1$ddlQ_YM" onchange="javascript:setTimeout(&#39;__doPostBack(\&#39;ctl00$ContentPlaceHolder1$ddlQ_YM\&#39;,\&#39;\&#39;)&#39;, 0)" id="ctl00_ContentPlaceHolder1_ddlQ_YM">
+				<option value="201506">2015 年 06 月</option>
+				<option value="201507">2015 年 07 月</option>
+				<option value="201508">2015 年 08 月</option>
+				<option value="201509">2015 年 09 月</option>
+				<option value="201510">2015 年 10 月</option>
+				<option value="201511">2015 年 11 月</option>
+				<option value="201512">2015 年 12 月</option>
+				<option value="201601">2016 年 01 月</option>
+				<option value="201602">2016 年 02 月</option>
+				<option value="201603">2016 年 03 月</option>
+				<option value="201604">2016 年 04 月</option>
+				<option value="201605">2016 年 05 月</option>
+				<option value="201606">2016 年 06 月</option>
+				<option value="201607">2016 年 07 月</option>
+				<option value="201608">2016 年 08 月</option>
+				<option value="201609">2016 年 09 月</option>
+				<option value="201610">2016 年 10 月</option>
+				<option value="201611">2016 年 11 月</option>
+				<option value="201612">2016 年 12 月</option>
+				<option value="201701">2017 年 01 月</option>
+				<option value="201702">2017 年 02 月</option>
+				<option value="201703">2017 年 03 月</option>
+				<option value="201704">2017 年 04 月</option>
+				<option value="201705">2017 年 05 月</option>
+				<option value="201706">2017 年 06 月</option>
+				<option value="201707">2017 年 07 月</option>
+				<option value="201708">2017 年 08 月</option>
+				<option value="201709">2017 年 09 月</option>
+				<option value="201710">2017 年 10 月</option>
+				<option value="201711">2017 年 11 月</option>
+				<option value="201712">2017 年 12 月</option>
+				<option value="201801">2018 年 01 月</option>
+				<option value="201802">2018 年 02 月</option>
+				<option value="201803">2018 年 03 月</option>
+				<option value="201804">2018 年 04 月</option>
+				<option value="201805">2018 年 05 月</option>
+				<option value="201806">2018 年 06 月</option>
+				<option value="201807">2018 年 07 月</option>
+				<option value="201808">2018 年 08 月</option>
+				<option value="201809">2018 年 09 月</option>
+				<option value="201810">2018 年 10 月</option>
+				<option value="201811">2018 年 11 月</option>
+				<option value="201812">2018 年 12 月</option>
+				<option value="201901">2019 年 01 月</option>
+				<option value="201902">2019 年 02 月</option>
+				<option value="201903">2019 年 03 月</option>
+				<option value="201904">2019 年 04 月</option>
+				<option value="201905">2019 年 05 月</option>
+				<option value="201906">2019 年 06 月</option>
+				<option value="201907">2019 年 07 月</option>
+				<option value="201908">2019 年 08 月</option>
+				<option value="201909">2019 年 09 月</option>
+				<option value="201910">2019 年 10 月</option>
+				<option value="201911">2019 年 11 月</option>
+				<option value="201912">2019 年 12 月</option>
+				<option value="202001">2020 年 01 月</option>
+				<option value="202002">2020 年 02 月</option>
+				<option value="202003">2020 年 03 月</option>
+				<option value="202004">2020 年 04 月</option>
+				<option value="202005">2020 年 05 月</option>
+				<option value="202006">2020 年 06 月</option>
+				<option value="202007">2020 年 07 月</option>
+				<option value="202008">2020 年 08 月</option>
+				<option value="202009">2020 年 09 月</option>
+				<option value="202010">2020 年 10 月</option>
+				<option value="202011">2020 年 11 月</option>
+				<option value="202012">2020 年 12 月</option>
+				<option value="202101">2021 年 01 月</option>
+				<option value="202102">2021 年 02 月</option>
+				<option value="202103">2021 年 03 月</option>
+				<option value="202104">2021 年 04 月</option>
+				<option value="202105">2021 年 05 月</option>
+				<option value="202106">2021 年 06 月</option>
+				<option value="202107">2021 年 07 月</option>
+				<option value="202108">2021 年 08 月</option>
+				<option value="202109">2021 年 09 月</option>
+				<option value="202110">2021 年 10 月</option>
+				<option value="202111">2021 年 11 月</option>
+				<option value="202112">2021 年 12 月</option>
+				<option value="202201">2022 年 01 月</option>
+				<option value="202202">2022 年 02 月</option>
+				<option value="202203">2022 年 03 月</option>
+				<option value="202204">2022 年 04 月</option>
+				<option value="202205">2022 年 05 月</option>
+				<option value="202206">2022 年 06 月</option>
+				<option value="202207">2022 年 07 月</option>
+				<option value="202208">2022 年 08 月</option>
+				<option value="202209">2022 年 09 月</option>
+				<option value="202210">2022 年 10 月</option>
+				<option value="202211">2022 年 11 月</option>
+				<option value="202212">2022 年 12 月</option>
+				<option value="202301">2023 年 01 月</option>
+				<option value="202302">2023 年 02 月</option>
+				<option value="202303">2023 年 03 月</option>
+				<option value="202304">2023 年 04 月</option>
+				<option value="202305">2023 年 05 月</option>
+				<option value="202306">2023 年 06 月</option>
+				<option value="202307">2023 年 07 月</option>
+				<option value="202308">2023 年 08 月</option>
+				<option value="202309">2023 年 09 月</option>
+				<option value="202310">2023 年 10 月</option>
+				<option value="202311">2023 年 11 月</option>
+				<option value="202312">2023 年 12 月</option>
+				<option value="202401">2024 年 01 月</option>
+				<option value="202402">2024 年 02 月</option>
+				<option value="202403">2024 年 03 月</option>
+				<option value="202404">2024 年 04 月</option>
+				<option value="202405">2024 年 05 月</option>
+				<option value="202406">2024 年 06 月</option>
+				<option value="202407">2024 年 07 月</option>
+				<option value="202408">2024 年 08 月</option>
+				<option value="202409">2024 年 09 月</option>
+				<option value="202410">2024 年 10 月</option>
+				<option value="202411">2024 年 11 月</option>
+				<option value="202412">2024 年 12 月</option>
+				<option value="202501">2025 年 01 月</option>
+				<option value="202502">2025 年 02 月</option>
+				<option value="202503">2025 年 03 月</option>
+				<option value="202504">2025 年 04 月</option>
+				<option value="202505">2025 年 05 月</option>
+				<option value="202506">2025 年 06 月</option>
+				<option value="202507">2025 年 07 月</option>
+				<option value="202508">2025 年 08 月</option>
+				<option value="202509">2025 年 09 月</option>
+				<option value="202510">2025 年 10 月</option>
+				<option value="202511">2025 年 11 月</option>
+				<option value="202512">2025 年 12 月</option>
+				<option value="202601">2026 年 01 月</option>
+				<option value="202602">2026 年 02 月</option>
+				<option value="202603">2026 年 03 月</option>
+				<option value="202604">2026 年 04 月</option>
+				<option value="202605">2026 年 05 月</option>
+				<option value="202606">2026 年 06 月</option>
+				<option value="202607">2026 年 07 月</option>
+				<option selected="selected" value="202608">2026 年 08 月</option>
+
+			</select>
+                                </td>
+			<td>&nbsp;</td>
+		</tr>
+		<tr>
+			<td align="right"><input id="ctl00_ContentPlaceHolder1_rbComid" type="radio" name="ctl00$ContentPlaceHolder1$rdo1" value="rbComid" checked="checked" onclick="javascript: rbtype();" />
+                                <span id="ctl00_ContentPlaceHolder1_Label1" style="display:inline-block;color:Blue;font-size:12px;font-weight:bold;width:60px;">公司</span>
+                                </td>
+			<td align="left">
+                                    <select name="ctl00$ContentPlaceHolder1$ddlQ_Comid" id="ctl00_ContentPlaceHolder1_ddlQ_Comid">
+				<option value="A0001">A0001 兆豐投信</option>
+				<option value="A0003">A0003 第一金投信</option>
+				<option value="A0004">A0004 滙豐投信</option>
+				<option value="A0005">A0005 元大投信</option>
+				<option value="A0006">A0006 景順投信</option>
+				<option value="A0007">A0007 瀚亞投信</option>
+				<option value="A0008">A0008 玉山投信</option>
+				<option value="A0009">A0009 統一投信</option>
+				<option value="A0010">A0010 富邦投信</option>
+				<option value="A0011">A0011 摩根投信</option>
+				<option value="A0012">A0012 華南永昌投信</option>
+				<option value="A0015">A0015 瑞銀投信</option>
+				<option value="A0016">A0016 群益投信</option>
+				<option value="A0017">A0017 台中銀投信</option>
+				<option value="A0018">A0018 聯博投信</option>
+				<option value="A0021">A0021 大都會投信</option>
+				<option value="A0022">A0022 復華投信</option>
+				<option value="A0025">A0025 永豐投信</option>
+				<option value="A0026">A0026 中國信託投信</option>
+				<option value="A0027">A0027 宏利投信</option>
+				<option value="A0031">A0031 貝萊德投信</option>
+				<option value="A0032">A0032 野村投信</option>
+				<option value="A0033">A0033 聯邦投信</option>
+				<option value="A0035">A0035 東方匯理投信</option>
+				<option value="A0036">A0036 安聯投信</option>
+				<option value="A0037">A0037 國泰投信</option>
+				<option value="A0038">A0038 富達投信</option>
+				<option value="A0040">A0040 德銀遠東投信</option>
+				<option value="A0041">A0041 凱基投信</option>
+				<option value="A0042">A0042 施羅德投信</option>
+				<option value="A0043">A0043 街口投信</option>
+				<option value="A0045">A0045 富蘭克林華美投信</option>
+				<option value="A0047">A0047 台新投信</option>
+				<option value="A0048">A0048 合庫投信</option>
+				<option value="A0049">A0049 大華銀投信</option>
+				<option value="A0050">A0050 路博邁投信</option>
+
+			</select>
+                                </td>
+			<td>&nbsp;</td>
+		</tr>
+		<tr>
+			<td align="right"><input id="ctl00_ContentPlaceHolder1_rbClass" type="radio" name="ctl00$ContentPlaceHolder1$rdo1" value="rbClass" onclick="javascript: rbtype();" />
+                                <span id="ctl00_ContentPlaceHolder1_Label3" style="display:inline-block;color:Blue;font-size:12px;font-weight:bold;width:60px;">類型</span>
+                                </td>
+			<td align="left">
+                                    <select name="ctl00$ContentPlaceHolder1$ddlQ_Class" id="ctl00_ContentPlaceHolder1_ddlQ_Class" disabled="disabled">
+				<option selected="selected" value="AA1">AA1.國內投資股票型</option>
+				<option value="AA2">AA2.跨國投資股票型</option>
+				<option value="AB1">AB1.國內投資平衡型</option>
+				<option value="AB2">AB2.跨國投資平衡型</option>
+				<option value="AC12">AC12.國內投資固定收益一般債券型</option>
+				<option value="AC21">AC21.跨國投資固定收益一般債券型</option>
+				<option value="AC22">AC22.金融資產證券化型</option>
+				<option value="AC23">AC23.非投資等級債券型</option>
+				<option value="AD1">AD1.國內投資貨幣市場基金</option>
+				<option value="AD2">AD2.跨國投資貨幣市場基金</option>
+				<option value="AE1">AE1.國內投資組合型</option>
+				<option value="AE21">AE21.跨國投資組合型_股票型</option>
+				<option value="AE22">AE22.跨國投資組合型_債券型</option>
+				<option value="AE23">AE23.跨國投資組合型_平衡型</option>
+				<option value="AE24">AE24.跨國投資組合型_其他</option>
+				<option value="AF">AF.保本型</option>
+				<option value="AG">AG.不動產證券化型</option>
+				<option value="AH11">AH11.國內投資指數股票型_股票型</option>
+				<option value="AH12">AH12.國內投資指數股票型_債券型</option>
+				<option value="AH13">AH13.國內投資指數股票型_槓桿型/反向型</option>
+				<option value="AH14">AH14.國內投資指數股票型_其他</option>
+				<option value="AH15">AH15.國內投資指數股票型_平衡型</option>
+				<option value="AH21">AH21.跨國投資指數股票型_股票型</option>
+				<option value="AH22">AH22.跨國投資指數股票型_債券型</option>
+				<option value="AH23">AH23.跨國投資指數股票型_槓桿型/反向型_股票</option>
+				<option value="AH24">AH24.跨國投資指數股票型_槓桿型/反向型_債券</option>
+				<option value="AH25">AH25.跨國投資指數股票型_不動產證券化/其他</option>
+				<option value="AH26">AH26.跨國投資指數股票型_平衡型</option>
+				<option value="AI1">AI1.國內投資指數型</option>
+				<option value="AI2">AI2.跨國投資指數型</option>
+				<option value="AJ1">AJ1.國內投資多重資產型</option>
+				<option value="AJ2">AJ2.跨國投資多重資產型</option>
+				<option value="AK11">AK11.國內投資指數股票型基金之連結基金</option>
+				<option value="AK12">AK12.國內投資主動式交易所交易基金之連結基金</option>
+				<option value="AK21">AK21.跨國投資指數股票型基金之連結基金</option>
+				<option value="AK22">AK22.跨國投資主動式交易所交易基金之連結基金</option>
+				<option value="AL11">AL11.國內投資主動式交易所交易基金_股票型</option>
+				<option value="AL12">AL12.國內投資主動式交易所交易基金_債券型</option>
+				<option value="AL19">AL19.國內投資主動式交易所交易基金_其他</option>
+				<option value="AL21">AL21.跨國投資主動式交易所交易基金_股票型</option>
+				<option value="AL22">AL22.跨國投資主動式交易所交易基金_債券型</option>
+				<option value="AL29">AL29.跨國投資主動式交易所交易基金_其他</option>
+
+			</select>
+                                </td>
+		</tr>
+		<tr>
+			<td align="right"><input id="ctl00_ContentPlaceHolder1_rbComCL" type="radio" name="ctl00$ContentPlaceHolder1$rdo1" value="rbComCL" onclick="javascript: rbtype();" />
+                                    <span id="ctl00_ContentPlaceHolder1_Label4" style="display:inline-block;color:Blue;font-size:12px;font-weight:bold;width:60px;">公司+類型</span>
+                                </td>
+			<td align="left">
+                                    <select name="ctl00$ContentPlaceHolder1$ddlQ_Comid1" id="ctl00_ContentPlaceHolder1_ddlQ_Comid1" disabled="disabled">
+				<option selected="selected" value="A0001">A0001 兆豐投信</option>
+				<option value="A0003">A0003 第一金投信</option>
+				<option value="A0004">A0004 滙豐投信</option>
+				<option value="A0005">A0005 元大投信</option>
+				<option value="A0006">A0006 景順投信</option>
+				<option value="A0007">A0007 瀚亞投信</option>
+				<option value="A0008">A0008 玉山投信</option>
+				<option value="A0009">A0009 統一投信</option>
+				<option value="A0010">A0010 富邦投信</option>
+				<option value="A0011">A0011 摩根投信</option>
+				<option value="A0012">A0012 華南永昌投信</option>
+				<option value="A0015">A0015 瑞銀投信</option>
+				<option value="A0016">A0016 群益投信</option>
+				<option value="A0017">A0017 台中銀投信</option>
+				<option value="A0018">A0018 聯博投信</option>
+				<option value="A0021">A0021 大都會投信</option>
+				<option value="A0022">A0022 復華投信</option>
+				<option value="A0025">A0025 永豐投信</option>
+				<option value="A0026">A0026 中國信託投信</option>
+				<option value="A0027">A0027 宏利投信</option>
+				<option value="A0031">A0031 貝萊德投信</option>
+				<option value="A0032">A0032 野村投信</option>
+				<option value="A0033">A0033 聯邦投信</option>
+				<option value="A0035">A0035 東方匯理投信</option>
+				<option value="A0036">A0036 安聯投信</option>
+				<option value="A0037">A0037 國泰投信</option>
+				<option value="A0038">A0038 富達投信</option>
+				<option value="A0040">A0040 德銀遠東投信</option>
+				<option value="A0041">A0041 凱基投信</option>
+				<option value="A0042">A0042 施羅德投信</option>
+				<option value="A0043">A0043 街口投信</option>
+				<option value="A0045">A0045 富蘭克林華美投信</option>
+				<option value="A0047">A0047 台新投信</option>
+				<option value="A0048">A0048 合庫投信</option>
+				<option value="A0049">A0049 大華銀投信</option>
+				<option value="A0050">A0050 路博邁投信</option>
+
+			</select>&nbsp;&nbsp;<select name="ctl00$ContentPlaceHolder1$ddlQ_Class1" id="ctl00_ContentPlaceHolder1_ddlQ_Class1" disabled="disabled">
+				<option selected="selected" value="">所有類型</option>
+				<option value="AA1">AA1.國內投資股票型</option>
+				<option value="AA2">AA2.跨國投資股票型</option>
+				<option value="AB1">AB1.國內投資平衡型</option>
+				<option value="AB2">AB2.跨國投資平衡型</option>
+				<option value="AC12">AC12.國內投資固定收益一般債券型</option>
+				<option value="AC21">AC21.跨國投資固定收益一般債券型</option>
+				<option value="AC22">AC22.金融資產證券化型</option>
+				<option value="AC23">AC23.非投資等級債券型</option>
+				<option value="AD1">AD1.國內投資貨幣市場基金</option>
+				<option value="AD2">AD2.跨國投資貨幣市場基金</option>
+				<option value="AE1">AE1.國內投資組合型</option>
+				<option value="AE21">AE21.跨國投資組合型_股票型</option>
+				<option value="AE22">AE22.跨國投資組合型_債券型</option>
+				<option value="AE23">AE23.跨國投資組合型_平衡型</option>
+				<option value="AE24">AE24.跨國投資組合型_其他</option>
+				<option value="AF">AF.保本型</option>
+				<option value="AG">AG.不動產證券化型</option>
+				<option value="AH11">AH11.國內投資指數股票型_股票型</option>
+				<option value="AH12">AH12.國內投資指數股票型_債券型</option>
+				<option value="AH13">AH13.國內投資指數股票型_槓桿型/反向型</option>
+				<option value="AH14">AH14.國內投資指數股票型_其他</option>
+				<option value="AH15">AH15.國內投資指數股票型_平衡型</option>
+				<option value="AH21">AH21.跨國投資指數股票型_股票型</option>
+				<option value="AH22">AH22.跨國投資指數股票型_債券型</option>
+				<option value="AH23">AH23.跨國投資指數股票型_槓桿型/反向型_股票</option>
+				<option value="AH24">AH24.跨國投資指數股票型_槓桿型/反向型_債券</option>
+				<option value="AH25">AH25.跨國投資指數股票型_不動產證券化/其他</option>
+				<option value="AH26">AH26.跨國投資指數股票型_平衡型</option>
+				<option value="AI1">AI1.國內投資指數型</option>
+				<option value="AI2">AI2.跨國投資指數型</option>
+				<option value="AJ1">AJ1.國內投資多重資產型</option>
+				<option value="AJ2">AJ2.跨國投資多重資產型</option>
+				<option value="AK11">AK11.國內投資指數股票型基金之連結基金</option>
+				<option value="AK12">AK12.國內投資主動式交易所交易基金之連結基金</option>
+				<option value="AK21">AK21.跨國投資指數股票型基金之連結基金</option>
+				<option value="AK22">AK22.跨國投資主動式交易所交易基金之連結基金</option>
+				<option value="AL11">AL11.國內投資主動式交易所交易基金_股票型</option>
+				<option value="AL12">AL12.國內投資主動式交易所交易基金_債券型</option>
+				<option value="AL19">AL19.國內投資主動式交易所交易基金_其他</option>
+				<option value="AL21">AL21.跨國投資主動式交易所交易基金_股票型</option>
+				<option value="AL22">AL22.跨國投資主動式交易所交易基金_債券型</option>
+				<option value="AL29">AL29.跨國投資主動式交易所交易基金_其他</option>
+
+			</select>
+                                </td>
+			<td>                                    
+                                    <input type="submit" name="ctl00$ContentPlaceHolder1$BtnQuery" value="查詢" onclick="ShowDis();this.disabled=false;" id="ctl00_ContentPlaceHolder1_BtnQuery" title="依條件查詢" />                                    
+                                    <input type="submit" name="ctl00$ContentPlaceHolder1$BtnExport" value="匯出" onclick="ShowDis();this.disabled=false;" id="ctl00_ContentPlaceHolder1_BtnExport" />
+                                    <div id="divBlock" style="border-style: solid; border-width: 1px; z-index: 100; top:0px; left:0px; position: absolute; height: 100%; width: 100%; background-color: #808080; filter: Alpha(Opacity=80); opacity: 0.8;-moz-opacity:0.8;display:none;text-align:center;line-height:500px;font-family:Comic Sans MS; font-size:20px;">
+                                        <h1>Loading...</h1>
+                                    </div> 
+                                </td>
+		</tr>
+	</table>
+	
+                    
+</div>
+                </td>
+            </tr>
+            
+            <tr>
+                <td align="left" colspan="2">
+                    <span style="font-size: small">*資料來源:</span></td>
+            </tr>
+            <tr>
+                <td colspan="2" align="center">                    
+                    
+                </td>
+            </tr>
+            <tr>
+                <td align="left" colspan ="2">
+                    <span style="font-size: small">＊＊基金投資固定收益商品(買賣斷)適用<br />＊＊＊基金投資子基金適用</span></td>
+            </tr>
+            <tr>
+                <td  colspan ="2"><small>註 1：標的種類係指股票、債券、基金受益憑證、金融資產證券化公開招募受益證券、金融資產證券化公開招募資產基礎證券等。</small></td>
+            </tr>
+            <!--tr>
+                <td  colspan ="2"><small>註 2：基金投資明細_季占基金淨資產1%之「名次」乙欄係空白。</small></td>
+            </tr-->            
+        </tbody>
+    </table>
+ 
+  <script type="text/javascript" language="javascript">
+      document.getElementById('divBlock').style.display = '';
+      setTimeout('ShowBlock();', 3000);
+      function ShowBlock() {
+          document.getElementById('divBlock').style.display = 'none';
+      }
+ </script>
+
+                </div>
+            </td>
+        </tr>
+    </table>
+    <div id='popCalendar' name='popCalendar' style='position: absolute; visibility: hidden;
+        border: 2px ridge; width: 10'>
+        <iframe id="popiFrame" name="popiFrame" src="../../Common/popcalendarfordata.htm"
+            frameborder="0" scrolling="no" width="183" height="188"></iframe>
+    </div>
+    </form>
+</body>
+</html>
+
