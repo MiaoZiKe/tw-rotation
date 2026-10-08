@@ -69,10 +69,11 @@
   /* ---- 7. 財經日曆：標題太長把「?」擠出畫面（10-08 量到頁寬 406）→ 標題可換行 ---- */
   :root.m4 #v-earnings .card h3{flex-wrap:wrap;white-space:normal;min-width:0}
   :root.m4 #v-earnings .row.spread{min-width:0;flex-wrap:wrap}
-  /* ---- 8. 觸控目標 ≥40（Andy 10-08 規格）：主內容裡的按鈕、下拉一律至少 40 高；單字小鈕（✎ ✕ ‹ ›）至少 40 寬 ----
+  /* ---- 8. 觸控目標 ≥40（Andy 10-08 規格）
+     ⚠ 剖析圖的編號圈（.mnum）與圖裡的零件不吃這條：編號的位置是 M3.spread 依原本尺寸推開的，放大會互相蓋住（普查抓到 244 顆）：主內容裡的按鈕、下拉一律至少 40 高；單字小鈕（✎ ✕ ‹ ›）至少 40 寬 ----
      例外（不放大，見 docs/mobile_v2_plan.md 第三節）：月曆日格、週期統計月份表頭、熱圖方塊 —— 它們是圖本身。 */
-  :root.m4 main :is(button,select,[role=button],[role=tab]):not(.sl-rbtn):not(#v-season button[data-m]):not(#v-earnings .chip):not(#v-earnings .dn):not(#v-earnings .more){min-height:40px!important}
-  :root.m4 main :is(button,[role=button]):not(#v-season button[data-m]):not(#v-earnings .chip):not(#v-earnings .dn):not(#v-earnings .more){min-width:40px}
+  :root.m4 main :is(button,select,[role=button],[role=tab]):not(.sl-rbtn):not(#v-season button[data-m]):not(#v-earnings .chip):not(#v-earnings .dn):not(#v-earnings .more):not(.mnum):not(.dgwrap *):not(#themeDiagram *){min-height:40px!important}
+  :root.m4 main :is(button,[role=button]):not(#v-season button[data-m]):not(#v-earnings .chip):not(#v-earnings .dn):not(#v-earnings .more):not(.mnum):not(.dgwrap *):not(#themeDiagram *){min-width:40px}
   /* 獨立的連結鈕（不是句子裡的字）：選股策略卡片「›」、輪盤焦點條「族群 ›」、產業地圖「產業熱力圖 →」 */
   :root.m4 #v-explore a.sl-more,:root.m4 main a.lk[href^="#heatmap"],:root.m4 main .mfocus a[href^="#industry/group"]{
     display:inline-flex;align-items:center;justify-content:center;min-width:40px;min-height:40px}

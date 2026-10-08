@@ -45,9 +45,10 @@
        before     框之前先做的事（例如按個股分頁，讓背後的內容跟著換）
      ⚠ 選擇器一律挑「外框」（卡片、整排分頁），不挑 canvas —— 圖還在畫的時候 canvas 尺寸會跳。 */
   const SITE = [
-    { t: '全站目錄在這一排', sel: ['#tabsWrap', '#tabs'], route: '#overview', routeRe: /^#?(overview)?$/, view: 'overview', fast: true,
+    { t: '全站目錄在這一排', sel: ['#tabsWrap', '#tabs', '#m4Burger'], route: '#overview', routeRe: /^#?(overview)?$/, view: 'overview', fast: true,
       d: '左邊由上到下分五組：今日市場、資金流水、族群與個股、歷史規律、專案。接下來一格一格看，每一頁各自回答一個問題。',
-      m: '最下面這排是主要頁面，其他頁收在「更多」。接下來一格一格看，每一頁各自回答一個問題。' },
+      // 2026-10-08 手機 v2：底部那排換成左上角 ☰ 側欄抽屜（mobile4.js），分組跟電腦版一樣
+      m: '左上角 ☰ 打開全站目錄，分組跟電腦版一樣：今日市場、資金流水、族群與個股、歷史規律、專案。' },
     { t: '總覽：今天市場的全貌', sel: tab('overview'), route: '#overview', routeRe: /^#?(overview)?$/, view: 'overview', fast: true,
       d: '大盤三張走勢圖、漲跌家數、資金熱力圖與資金輪盤放在同一頁。第一次來，從這一頁開始看。' },
     { t: '財經日曆：接下來有哪些事', sel: tab('earnings'), route: '#earnings', view: 'earnings', fast: true,
