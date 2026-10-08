@@ -66,73 +66,20 @@
   const norm = (r) => { const lg = FB_LEGACY[r.cat]; return lg ? { ...r, cat: lg[0], sub: lg[1], legacy: r.cat } : { ...r, sub: r.sub || '' }; };
 
   css('supportCss', `
-/* ★ 2026-10-08（Andy：「改成一隻天竺鼠，像是 Claude 那樣的吉祥物…會動來動去的動畫，感覺更親人」）：
-   膠囊鈕＋「客服」字拿掉，改成一隻站在右下角的小天竺鼠（自繪 SVG，照 logo：白毛、藍色星星帽、粉耳、腮紅）。
-   動畫全部是 CSS（transform／opacity，不碰版面），JS 只負責：每 8～15 秒挑一個小動作、滑鼠移上去時眼睛跟著游標、分頁在背景時暫停。
-   · 待機：呼吸（身體上下 2.5%）、約 5 秒眨一次眼、耳朵與帽尖輕晃 —— 幅度刻意壓小，不閃、不發光。
-   · 小動作：左右張望／小跳一下／往左走兩步再走回來（.pa-look／.pa-hop／.pa-walk，動完自己拿掉 class）。
-   · 滑鼠移上去：抬頭、眼睛看游標、左邊冒出「需要幫忙嗎？」。面板打開時泡泡收起。
-   · 關掉動畫：系統「減少動態」或面板底下的開關（localStorage tw.pigAnim=off）→ 所有 animation 停掉、只剩靜態圖。
-   · 保留 id #supFab 與 class .supfab（導覽 tour.js、account.js 的事件統計、diagrams.js 的避讓、mobile4.css 的位置都認這兩個名字）。 */
-.supfab{position:fixed;right:18px;bottom:14px;z-index:1200;width:60px;height:64px;padding:0;margin:0;border:0;background:none;cursor:pointer;
-  -webkit-tap-highlight-color:transparent;color:inherit;font:inherit;border-radius:14px}
-.supfab:focus-visible{outline:2px solid var(--cyan);outline-offset:3px}
+/* ★ admin-v3（Andy E）：半透明（背景約 80% 不透明＋毛玻璃），看得到後面的底色；深淺主題各自一組前景色 */
+.supfab{position:fixed;right:20px;bottom:20px;z-index:1200;display:inline-flex;align-items:center;gap:8px;height:48px;padding:0 18px 0 12px;border-radius:999px;cursor:pointer;
+  background:color-mix(in srgb,var(--cyan) 80%,transparent);-webkit-backdrop-filter:blur(10px) saturate(1.3);backdrop-filter:blur(10px) saturate(1.3);
+  border:1px solid color-mix(in srgb,#fff 35%,transparent);color:var(--ontop,#04121a);font-size:14.5px;font-weight:700;box-shadow:0 10px 28px -10px rgba(0,0,0,.55);transition:transform .15s,background .15s}
+.supfab:hover{transform:translateY(-1px);background:color-mix(in srgb,var(--cyan) 90%,transparent)}
+.supfab svg{width:26px;height:26px}
+/* ★ 2026-10-07（Andy：「客服圖示改成跟logo一樣可愛的天竺鼠」）：對話泡泡換成品牌頭像（site/brand/mark-64/128）。
+   圓形裁切＋一圈白邊，深色（青底）與淺色主題下都跟按鈕底色分得開；滑過時頭像歪頭晃一下（減少動態偏好時不動）。 */
+.supfab .supmark{width:34px;height:34px;flex:none;display:block;overflow:visible;transition:transform .2s;color:var(--ontop,#04121a)}
+.supfab:hover .supmark{animation:supwig .5s ease-in-out;transform:scale(1.1)}
+@keyframes supwig{0%,100%{transform:scale(1.1) rotate(0)}30%{transform:scale(1.1) rotate(-10deg)}65%{transform:scale(1.1) rotate(8deg)}}
+@media (prefers-reduced-motion:reduce){.supfab:hover .supmark{animation:none}}
 .supfab[hidden]{display:none}
-.supfab .pigmove{position:absolute;inset:0;display:block;transform-origin:50% 100%;will-change:transform;contain:layout paint style}
-.supfab svg.pig{width:100%;height:100%;display:block;overflow:visible}
-.supfab .pig g,.supfab .pig .pig-shadow,.supfab .pig .pig-footL,.supfab .pig .pig-footR{transform-box:fill-box}
-.supfab .pig-body{transform-origin:50% 100%;animation:pigBreath 3.4s ease-in-out infinite}
-.supfab .pig-eyes{transform-origin:50% 50%;animation:pigBlink 5.3s infinite}
-.supfab .pig-look{transform:translate(var(--lx,0px),var(--ly,0px));transition:transform .18s ease-out}
-.supfab .pig-earL{transform-origin:90% 60%;animation:pigEarL 6.1s ease-in-out infinite}
-.supfab .pig-earR{transform-origin:10% 70%;animation:pigEarR 7.3s ease-in-out infinite}
-.supfab .pig-hat{transform-origin:50% 100%;animation:pigHat 4.6s ease-in-out infinite}
-.supfab .pig-head{transform-origin:50% 80%;transition:transform .25s ease-out}
-.supfab .pig-face{transition:transform .25s ease-out}
-.supfab .pig-shadow{transform-origin:50% 50%}
-@keyframes pigBreath{0%,100%{transform:scale(1,1)}50%{transform:scale(1.012,1.028)}}
-@keyframes pigBlink{0%,92%,100%{transform:scaleY(1)}94.5%{transform:scaleY(.12)}97%{transform:scaleY(1)}}
-@keyframes pigEarL{0%,70%,100%{transform:rotate(0)}78%{transform:rotate(-12deg)}86%{transform:rotate(4deg)}}
-@keyframes pigEarR{0%,55%,100%{transform:rotate(0)}63%{transform:rotate(12deg)}71%{transform:rotate(-4deg)}}
-@keyframes pigHat{0%,100%{transform:rotate(0)}30%{transform:rotate(-3deg)}65%{transform:rotate(2deg)}}
-/* 滑鼠移上去：抬頭（頭往後仰一點、臉往上）；只在真的有滑鼠的裝置 */
-@media (hover:hover){.supfab:hover .pig-head{transform:rotate(-5deg) translateY(-1px)}.supfab:hover .pig-face{transform:translateY(-1.2px)}}
-/* 小動作 */
-.supfab .pigmove.pa-hop{animation:pigHop .9s cubic-bezier(.3,.7,.4,1)}
-.supfab .pigmove.pa-hop .pig-shadow{animation:pigShadow .9s ease-in-out}
-@keyframes pigHop{0%{transform:none}15%{transform:scale(1.08,.9)}45%{transform:translateY(-12px) scale(.96,1.05)}70%{transform:translateY(0) scale(1.06,.93)}85%{transform:scale(.98,1.02)}100%{transform:none}}
-@keyframes pigShadow{0%,100%{transform:none;opacity:1}45%{transform:scale(.6);opacity:.5}}
-.supfab .pigmove.pa-look .pig-face{animation:pigLookFace 2.2s ease-in-out}
-.supfab .pigmove.pa-look .pig-head{animation:pigLookHead 2.2s ease-in-out}
-@keyframes pigLookFace{0%,100%{transform:none}15%,40%{transform:translateX(-3px)}55%,85%{transform:translateX(3px)}}
-@keyframes pigLookHead{0%,100%{transform:none}15%,40%{transform:rotate(-4deg)}55%,85%{transform:rotate(4deg)}}
-.supfab .pigmove.pa-walk{animation:pigWalk 3.2s ease-in-out}
-.supfab .pigmove.pa-walk .pig-body{animation:pigWaddle .4s ease-in-out 8}
-.supfab .pigmove.pa-walk .pig-footL{animation:pigStep .4s ease-in-out 8}
-.supfab .pigmove.pa-walk .pig-footR{animation:pigStep .4s ease-in-out .2s 8}
-.supfab .pigmove.pa-walk .pig-face{animation:pigWalkFace 3.2s ease-in-out}
-@keyframes pigWalk{0%{transform:none}12%{transform:translate(-8px,-1.5px)}25%{transform:translate(-16px,0)}37%{transform:translate(-24px,-1.5px)}50%{transform:translate(-30px,0)}62%{transform:translate(-22px,-1.5px)}75%{transform:translate(-14px,0)}87%{transform:translate(-6px,-1.5px)}100%{transform:none}}
-@keyframes pigWaddle{0%,100%{transform:rotate(0)}25%{transform:rotate(-3deg)}75%{transform:rotate(3deg)}}
-@keyframes pigStep{0%,100%{transform:none}50%{transform:translateY(-2px)}}
-@keyframes pigWalkFace{0%,100%{transform:none}8%,46%{transform:translateX(-2.5px)}56%,92%{transform:translateX(2.5px)}}
-/* 點下去的回饋：縮一下 */
-.supfab:active .pigmove{transform:scale(.94)}
-/* 「需要幫忙嗎？」泡泡（只在滑鼠移上去／鍵盤聚焦時出現；面板開著就不出現） */
-.supfab .pigtip{position:absolute;right:calc(100% + 6px);bottom:34px;white-space:nowrap;font-size:13px;font-weight:600;line-height:1;padding:8px 11px;border-radius:12px;
-  background:var(--panel-2);color:var(--ink);border:1px solid var(--line-2);box-shadow:0 8px 20px -10px rgba(0,0,0,.5);
-  opacity:0;transform:translateX(6px) scale(.92);transform-origin:100% 80%;transition:opacity .16s,transform .16s;pointer-events:none}
-.supfab .pigtip::after{content:"";position:absolute;right:-5px;bottom:10px;width:8px;height:8px;background:inherit;border:inherit;border-width:0 1px 1px 0;transform:rotate(-45deg)}
-@media (hover:hover){.supfab:hover .pigtip{opacity:1;transform:none}}
-.supfab:focus-visible .pigtip{opacity:1;transform:none}
-.supfab[aria-expanded="true"] .pigtip{opacity:0!important}
-/* 暫停：分頁在背景（pig-paused）；關掉：減少動態／使用者關掉（pig-still，連小動作與轉場一起停） */
-.supfab.pig-paused *{animation-play-state:paused!important}
-.supfab.pig-still *,.supfab.pig-still .pigmove{animation:none!important;transition:none!important}
-@media (prefers-reduced-motion:reduce){.supfab *,.supfab .pigmove{animation:none!important;transition:none!important}}
-.suppanel .spfoot{display:flex;align-items:center;gap:8px;padding:8px 16px;border-top:1px solid var(--line);font-size:12.5px;color:var(--ink-2)}
-.suppanel .spfoot button{margin-left:auto;height:26px;padding:0 10px;border:1px solid var(--line-2);border-radius:999px;background:transparent;color:var(--ink-2);font-size:12.5px;cursor:pointer}
-.suppanel .spfoot button[aria-pressed="true"]{color:var(--ink);border-color:var(--cyan)}
-.suppanel{position:fixed;right:20px;bottom:88px;z-index:1201;width:min(400px,calc(100vw - 32px));max-height:min(640px,calc(100vh - 110px));display:flex;flex-direction:column;
+.suppanel{position:fixed;right:20px;bottom:78px;z-index:1201;width:min(400px,calc(100vw - 32px));max-height:min(640px,calc(100vh - 110px));display:flex;flex-direction:column;
   background:var(--panel-2);color:var(--ink);border:1px solid var(--line-2);border-radius:16px;box-shadow:0 24px 60px -20px rgba(0,0,0,.75);overflow:hidden}
 .suppanel[hidden]{display:none}
 .suppanel .sph{display:flex;align-items:center;gap:10px;padding:14px 16px 10px;border-bottom:1px solid var(--line)}
@@ -238,11 +185,7 @@
 @media (max-width:1100px){#v-subadm .fbstat{grid-template-columns:minmax(0,1fr)}}
 @media (max-width:820px){#v-subadm .fbkpi{grid-template-columns:repeat(2,minmax(0,1fr))}#v-subadm .fbcatw{grid-template-columns:minmax(0,1fr)}#v-subadm .fbvb .plot{height:140px}}
 /* 2026-10-08：底部導覽已經拿掉 → 手機與平板（≤820）一律貼右下角＋安全區，52px 圓鈕只放泡泡（不放字），面板開在它正上方 */
-/* 安全區（Andy：不准擋到頁面最後一列）：頁尾是每一頁的最後一列，右側讓出吉祥物的寬度，捲到底時天竺鼠只會站在頁尾右邊的空白上 */
-.sitefoot{padding-right:88px!important}
-@media (max-width:820px){.sitefoot{padding-right:68px!important}}
-/* 2026-10-08 吉祥物：手機與平板（≤820）同一隻、縮小成 50×54 */
-@media (max-width:820px){.supfab{bottom:calc(12px + env(safe-area-inset-bottom));right:14px;width:50px;height:54px}.supfab .pigtip{display:none}.suppanel{right:12px;bottom:calc(74px + env(safe-area-inset-bottom))}}`);
+@media (max-width:820px){.supfab{bottom:calc(16px + env(safe-area-inset-bottom));right:16px;width:52px;height:52px;padding:0;justify-content:center}.supfab span{display:none}.suppanel{right:12px;bottom:calc(76px + env(safe-area-inset-bottom))}}`);
 
   /* ★ admin-v3（Andy E）：圖示改可愛一點 —— 圓角對話泡泡裡一張笑臉（自繪 SVG，stroke＝currentColor，深淺主題都跟字色走）*/
   const ICON = '<svg viewBox="0 0 28 28" fill="none" aria-hidden="true"><path d="M6.5 4.5h15a4 4 0 0 1 4 4v8.5a4 4 0 0 1-4 4h-7.2l-5.1 4.1c-.5.4-1.2 0-1.2-.6v-3.5H6.5a4 4 0 0 1-4-4V8.5a4 4 0 0 1 4-4z" fill="currentColor" fill-opacity=".14" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round"/>'
@@ -256,87 +199,14 @@
   const MARK = '<svg class="supmark supbub" viewBox="0 0 28 28" aria-hidden="true" focusable="false"><defs><clipPath id="supBubClip"><rect x="3.4" y="5.4" width="21.2" height="14.8" rx="3.2"/></clipPath></defs>'
     + `<path d="${BUB}" fill="#fff" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>`
     + '<image href="brand/mark-128.png" x="3.4" y="5.4" width="21.2" height="14.8" preserveAspectRatio="xMidYMid slice" clip-path="url(#supBubClip)"/></svg>';
-  /* 2026-10-08 吉祥物（上面的 MARK 對話泡泡留著當退路，目前沒人用）。
-     座標系 64×68：身體是一團毛（上緣與兩側有小毛尖）、右耳露在外面、左耳貼在臉側、帽子斜戴在左上（跟 logo 同一個方向）。
-     顏色：毛 #fffaf3、描邊 #1d2b4a、帽 #3f6fd8、星 #ffd45c、耳與腮紅粉色 —— 不用紅綠（本站紅綠＝漲跌）。 */
-  const INK = '#1d2b4a';
-  const PIG = `<svg class="pig" viewBox="0 0 64 68" aria-hidden="true" focusable="false">
-<ellipse class="pig-shadow" cx="32" cy="64.5" rx="18" ry="2.6" fill="${INK}" opacity=".18"/>
-<g class="pig-body">
- <ellipse class="pig-footL" cx="23" cy="61.6" rx="4.2" ry="2.5" fill="#f7c3cc" stroke="${INK}" stroke-width="1.4"/>
- <ellipse class="pig-footR" cx="41" cy="61.6" rx="4.2" ry="2.5" fill="#f7c3cc" stroke="${INK}" stroke-width="1.4"/>
- <g class="pig-head">
-  <g class="pig-earR"><ellipse cx="51.5" cy="30.5" rx="5.2" ry="4.4" transform="rotate(25 51.5 30.5)" fill="#f7b6c2" stroke="${INK}" stroke-width="1.5"/><ellipse cx="51.8" cy="31" rx="2.6" ry="2" transform="rotate(25 51.8 31)" fill="#ffd9df"/></g>
-  <path d="M10 44 Q8 38 12 33 Q12 29 16 28 Q18 24 23 25 Q26 21 30 23 Q33 19 36 23 Q40 21 42 25 Q47 25 49 29 Q53 31 53 35 Q57 40 55 45 Q57 52 52 56 Q48 62 40 61.5 L24 61.5 Q16 62 12 56 Q7 51 10 44 Z" fill="#fffaf3" stroke="${INK}" stroke-width="1.8" stroke-linejoin="round"/>
-  <path d="M15 52 q2 -1.6 4 -.4 M45 52 q2 -1.2 4 .4 M26 56.5 q2.5 -1.3 5 0 M34 56.5 q2.5 -1.3 5 0" fill="none" stroke="#e5d9c6" stroke-width="1.1" stroke-linecap="round"/>
-  <g class="pig-earL"><ellipse cx="11.2" cy="37" rx="4.6" ry="3.8" transform="rotate(-30 11.2 37)" fill="#f7b6c2" stroke="${INK}" stroke-width="1.5"/><ellipse cx="11.6" cy="37.3" rx="2.2" ry="1.7" transform="rotate(-30 11.6 37.3)" fill="#ffd9df"/></g>
-  <g class="pig-face">
-   <ellipse cx="18.5" cy="46.5" rx="3.6" ry="2.3" fill="#ff9fb0" opacity=".55"/><ellipse cx="45.5" cy="46.5" rx="3.6" ry="2.3" fill="#ff9fb0" opacity=".55"/>
-   <g class="pig-look"><g class="pig-eyes">
-    <circle cx="24.5" cy="40.5" r="2.7" fill="${INK}"/><circle cx="39.5" cy="40.5" r="2.7" fill="${INK}"/>
-    <circle cx="25.4" cy="39.5" r=".95" fill="#fff"/><circle cx="40.4" cy="39.5" r=".95" fill="#fff"/>
-   </g></g>
-   <path d="M30.4 43.2 h3.2 q-.4 1.7 -1.6 2 q-1.2 -.3 -1.6 -2z" fill="#f29aa8" stroke="${INK}" stroke-width=".8" stroke-linejoin="round"/>
-   <path d="M28.6 47.2 Q32 53 35.4 47.2 Q32 48.6 28.6 47.2 Z" fill="#e8687c" stroke="${INK}" stroke-width="1.1" stroke-linejoin="round"/>
-   <path d="M47 44.5 l6 -1.3 M47.3 46.6 l6 .6 M17 44.5 l-6 -1.3 M16.7 46.6 l-6 .6" stroke="#b9c2d3" stroke-width=".7" stroke-linecap="round"/>
-  </g>
-  <g class="pig-hat">
-   <path d="M14.5 29.5 Q26 23.5 39.5 26.5 L23.5 4.8 Z" fill="#3f6fd8" stroke="${INK}" stroke-width="1.6" stroke-linejoin="round"/>
-   <path d="M15.5 29 Q26 24.2 38.5 26.6" fill="none" stroke="#7fa3f0" stroke-width="1.3" stroke-linecap="round"/>
-   <path d="M27.6 15.2 l1.1 2.3 2.5 .3 -1.9 1.7 .5 2.5 -2.2 -1.3 -2.2 1.3 .5 -2.5 -1.9 -1.7 2.5 -.3z" fill="#ffd45c" stroke="${INK}" stroke-width=".6" stroke-linejoin="round"/>
-   <circle cx="22" cy="21.5" r=".9" fill="#fff"/><circle cx="33.5" cy="22.8" r=".8" fill="#fff"/><circle cx="25.2" cy="11" r=".7" fill="#fff"/>
-   <circle cx="23.3" cy="4.6" r="3.3" fill="#fff" stroke="${INK}" stroke-width="1.4"/>
-  </g>
- </g>
-</g></svg>`;
-  /* 動畫開關：系統「減少動態」一律不動；否則看 localStorage（預設開） */
-  const PIG_KEY = 'tw.pigAnim';
-  const rmq = window.matchMedia ? window.matchMedia('(prefers-reduced-motion: reduce)') : { matches: false };
-  function pigOn() { if (rmq.matches) return false; try { return localStorage.getItem(PIG_KEY) !== 'off'; } catch (x) { return true; } }
-  let pigTimer = 0;
-  function pigSchedule() {
-    clearTimeout(pigTimer); pigTimer = 0;
-    const fab = document.getElementById('supFab'); if (!fab) return;
-    const on = pigOn();
-    fab.classList.toggle('pig-still', !on);
-    fab.classList.toggle('pig-paused', document.hidden);
-    if (!on || document.hidden) return;
-    pigTimer = setTimeout(() => {
-      const mv = fab.querySelector('.pigmove');
-      // 面板開著、滑鼠正停在上面時不亂動（使用者在看它）
-      if (mv && fab.getAttribute('aria-expanded') !== 'true' && !fab.matches(':hover')) pigAct(['pa-look', 'pa-hop', 'pa-walk'][Math.floor(Math.random() * 3)]);
-      pigSchedule();
-    }, 8000 + Math.random() * 7000);
-  }
-  function pigAct(cls) {
-    const fab = document.getElementById('supFab'), mv = fab && fab.querySelector('.pigmove');
-    if (!mv || !pigOn()) return;
-    mv.classList.remove('pa-look', 'pa-hop', 'pa-walk'); void mv.getBoundingClientRect();
-    mv.classList.add(cls);
-    const end = (e) => { if (e.target !== mv) return; mv.classList.remove(cls); mv.removeEventListener('animationend', end); };
-    // pa-look 只動臉與頭，pigmove 自己沒有動畫 → 用計時器收掉
-    if (cls === 'pa-look') setTimeout(() => mv.classList.remove(cls), 2300); else mv.addEventListener('animationend', end);
-  }
-  window.TwPig = { act: pigAct, on: pigOn, key: PIG_KEY };
   let tab = 'faq';
   function ensure() {
     let fab = document.getElementById('supFab');
     if (fab) return;
-    fab = document.createElement('button'); fab.type = 'button'; fab.id = 'supFab'; fab.className = 'supfab twpig';
-    fab.setAttribute('aria-haspopup', 'dialog'); fab.setAttribute('aria-expanded', 'false'); fab.setAttribute('aria-label', '客服');
-    fab.innerHTML = `<span class="pigmove">${PIG}</span><span class="pigtip" aria-hidden="true">需要幫忙嗎？</span>`;
+    fab = document.createElement('button'); fab.type = 'button'; fab.id = 'supFab'; fab.className = 'supfab';
+    fab.setAttribute('aria-haspopup', 'dialog'); fab.setAttribute('aria-expanded', 'false');
+    fab.innerHTML = MARK + '<span>客服</span>';
     document.body.appendChild(fab);
-    // 滑鼠移上去：眼睛看游標（瞳孔最多移 1.6px）
-    fab.addEventListener('pointermove', (e) => {
-      if (e.pointerType !== 'mouse') return;
-      const r = fab.getBoundingClientRect(), dx = e.clientX - (r.left + r.width / 2), dy = e.clientY - (r.top + r.height * 0.6), d = Math.hypot(dx, dy) || 1;
-      const k = Math.min(1, d / 30) * 1.6, look = fab.querySelector('.pig-look');
-      look.style.setProperty('--lx', (dx / d * k).toFixed(2) + 'px'); look.style.setProperty('--ly', (dy / d * k).toFixed(2) + 'px');
-    });
-    fab.addEventListener('pointerleave', () => { const look = fab.querySelector('.pig-look'); look.style.removeProperty('--lx'); look.style.removeProperty('--ly'); });
-    document.addEventListener('visibilitychange', pigSchedule);
-    if (rmq.addEventListener) rmq.addEventListener('change', pigSchedule);
-    pigSchedule();
     const p = document.createElement('div'); p.id = 'supPanel'; p.className = 'suppanel'; p.hidden = true; p.setAttribute('role', 'dialog'); p.setAttribute('aria-label', '客服與意見反饋');
     document.body.appendChild(p);
     fab.onclick = () => toggle();
@@ -361,10 +231,8 @@
     p.innerHTML = `<div class="sph"><b>需要幫忙嗎？</b><button type="button" id="supClose" aria-label="關閉">×</button></div>
       <div class="spai"><b>AI 客服即將推出</b>　目前請先看常見問題，或留言給我們（真人回覆）。</div>
       <div class="sptabs" role="tablist">${[['faq', '常見問題'], ['fb', '意見反饋'], ['mail', '寄信']].map(([k, n]) => `<button type="button" role="tab" data-t="${k}" class="${tab === k ? 'on' : ''}" aria-selected="${tab === k}">${n}</button>`).join('')}</div>
-      <div class="spbody" id="supBody">${body()}</div>
-      <div class="spfoot"><span>右下角天竺鼠動畫</span><button type="button" id="supPigTgl" aria-pressed="${pigOn()}"${rmq.matches ? ' disabled title="系統已設定減少動態"' : ''}>${pigOn() ? '開' : '關'}</button></div>`;
+      <div class="spbody" id="supBody">${body()}</div>`;
     p.querySelector('#supClose').onclick = () => toggle(false);
-    p.querySelector('#supPigTgl').onclick = () => { try { localStorage.setItem(PIG_KEY, pigOn() ? 'off' : 'on'); } catch (x) { /* 私密視窗寫不進去：照舊 */ } pigSchedule(); paint(); };
     p.querySelector('.sptabs').onclick = (e) => { const b = e.target.closest('button[data-t]'); if (b) { tab = b.dataset.t; paint(); } };
     p.querySelectorAll('.faq > button').forEach((b) => { b.onclick = () => { const f = b.parentElement; f.classList.toggle('on'); b.setAttribute('aria-expanded', String(f.classList.contains('on'))); }; });
     const go = p.querySelector('#fbSend'); if (go) go.onclick = send;
