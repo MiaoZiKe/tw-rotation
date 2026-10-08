@@ -560,3 +560,84 @@
   window.TwM4 = { open, close, isOpen: () => !!(drawer && !drawer.hidden) };
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();
 })();
+
+/* ============================================================================
+   ★ 2026-10-09 Andy（手機 430 寬）：選股策略（#explore）與 ETF（#etf）的手機重排 —— 樣式在 mobile4.css 第 29 節
+   這一節只做 CSS 做不到的四件事，而且只在 html.m4（≤640）動作：
+     1. 手機打開 ETF 預設停在「配息行事曆」（Andy：「手機打開 ETF 時，預設停在配息行事曆分頁」）：
+        抽屜裡的 ETF 一律進 #etf/cal；直接開 #etf（沒帶子頁）也導到 #etf/cal。桌機照舊進 #etf/list（app.js 那行沒動）。
+     2. 選股頁大標的文字包一層 span（.m4tt），才能「單行＋放不下用 …」（flex 容器裡的裸文字沒辦法加省略號）。
+     3. 橫捲的頁籤列（ETF 分類、現金流「單檔／組合」、配息頻率）：選中的那一格捲進畫面；右側淡出，捲到底拿掉（.m4end）。
+     4. 配息行事曆點某一檔 → 細節區在月曆下面，自動捲到細節區的標題列（不然點了看起來沒反應）。
+   監看範圍只有 #v-explore 與 #v-etf 兩個區塊（不掛 body 的 MutationObserver）。
+   ============================================================================ */
+(function () {
+  'use strict';
+  const root = document.documentElement;
+  const isM = () => root.classList.contains('m4') && window.innerWidth <= 640;
+  const $ = (s, r) => (r || document).querySelector(s);
+  const $$ = (s, r) => Array.from((r || document).querySelectorAll(s));
+
+  /* 1. ETF 預設子頁。第一次載入：在 app.js 第一次 route() 之前把 #etf 改成 #etf/cal。
+        之後站內換到 #etf（沒帶子頁）：app.js 的 route() 會先 location.replace('#etf/list')（實測它比這裡的 hashchange 先跑），
+        所以看 e.newURL 是不是「沒帶子頁的 #etf」，是就再 replace 成 #etf/cal（replace 不多留歷史，上一頁照樣回得去） */
+  if (isM() && /^#etf\/?$/.test(location.hash || '')) history.replaceState(null, '', '#etf/cal');
+  window.addEventListener('hashchange', (e) => {
+    if (isM() && /#etf\/?$/.test(e.newURL || '') && location.hash !== '#etf/cal') location.replace('#etf/cal');
+  });
+  document.addEventListener('click', (e) => {
+    if (!isM()) return;
+    const b = e.target.closest && e.target.closest('#m4Drawer .m4item[data-v="etf"]');
+    if (b) b.dataset.h = '#etf/cal';   // 抽屜自己的 click（冒泡階段）讀 data-h 換頁；這裡在 capture 階段先改好
+  }, true);
+
+  /* 2. 選股頁大標：裸文字 → <span class="m4tt">（字一個不改，原文留在 title） */
+  function wrapTitles() {
+    $$('#v-explore :is(.sl-head,.sl-fhead) > h2').forEach((h) => {
+      [...h.childNodes].forEach((n) => {
+        if (n.nodeType !== 3 || !n.textContent.trim()) return;
+        const sp = document.createElement('span'); sp.className = 'm4tt'; sp.textContent = n.textContent; sp.title = n.textContent.trim();
+        n.replaceWith(sp);
+      });
+    });
+  }
+
+  /* 3. 橫捲的頁籤列（ETF 分類、現金流的「單檔／組合 A～E」、單檔清單的配息頻率）：選中的那一格捲進畫面；
+        右側淡出提示「還有」，捲到底（.m4end）就拿掉。只在換了選中項（或剛畫好）時置中，使用者自己拖的位置不去動 */
+  function scrollBars() {
+    ['#etfCatSeg', '#incTabs', '#incFq'].forEach((q) => {
+      const s = $(q); if (!s || !s.getClientRects().length) return;
+      const fade = () => s.classList.toggle('m4end', s.scrollLeft + s.clientWidth >= s.scrollWidth - 2);
+      if (!s._m4f) { s._m4f = 1; s.classList.add('m4fade'); s.addEventListener('scroll', fade, { passive: true }); }
+      const on = $(':scope > .on', s), k = on ? (on.dataset.v || on.textContent) : '';
+      if (on && s._m4on !== k) {
+        s._m4on = k;
+        const x = on.getBoundingClientRect().left - s.getBoundingClientRect().left + s.scrollLeft;
+        s.scrollLeft = Math.max(0, x - (s.clientWidth - on.offsetWidth) / 2);
+      }
+      fade();
+    });
+  }
+
+  /* 4. 行事曆點某一檔 → 捲到細節區（點列的處理在 etfpage.js；這裡等它重畫完再捲） */
+  document.addEventListener('click', (e) => {
+    if (!isM()) return;
+    const tr = e.target.closest && e.target.closest('#etfCalList tr[data-code]');
+    if (!tr || tr.dataset.i != null) return;   // 細節表自己的列（data-i）是「在圖上選那一次配息」，不捲
+    setTimeout(() => {
+      const l = $('#etfCalList'); if (!l || !$('#etfCodeBack', l)) return;
+      const bar = $('.topbar'), off = (bar ? bar.getBoundingClientRect().bottom : 56) + 6;
+      window.scrollTo({ top: Math.max(0, l.getBoundingClientRect().top + window.scrollY - off), behavior: 'instant' });
+    }, 60);
+  });
+
+  function run() { if (!isM()) return; wrapTitles(); scrollBars(); }
+  function init() {
+    let t = 0; const kick = () => { clearTimeout(t); t = setTimeout(run, 80); };
+    ['v-explore', 'v-etf'].forEach((id) => { const v = document.getElementById(id); if (v) new MutationObserver(kick).observe(v, { childList: true, subtree: true }); });
+    window.addEventListener('hashchange', kick);
+    window.addEventListener('resize', kick);
+    run();
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();
+})();

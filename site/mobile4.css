@@ -407,3 +407,101 @@
   :root.m4 #v-pricing #prTable :is(th,td){height:auto!important;padding:5px 3px!important;line-height:1.3!important}
   :root.m4 #v-pricing #prTable tr.cat td{padding:4px!important}
 }
+
+/* ============================================================================
+   29. 2026-10-09 Andy（手機 430 寬）：選股策略（#explore）與 ETF（#etf）重排 —— 程式在 mobile4.js 最後一節（2026-10-09 那個 IIFE）
+   · 選股：「基本面／技術面／籌碼面／消息面」改成上方分頁式（底線頁籤，等寬填滿）；頁面標題單行；子標籤一行；策略卡之間一條線
+   · ETF：分類列改成分頁式（太多就整條橫捲＋右側淡出）；「最受歡迎／報酬率／殖利率」與「月配試算表／複利試算表」改成分段控制器
+     （跟網頁版「走勢圖｜K 線」同一款：一個外框、選中那格實色）；拿掉「全部收合／全部展開」；行事曆細節區上下排、表格不截字；
+     現金流條件列一排；單檔清單每列「勾選｜名稱代號｜殖利率」＋第二行「現價・張數」
+   ⚠ 全部在 @media (max-width:640px) 而且掛 :root.m4 —— 桌機一條都不吃（桌機守門1008 驗）。
+   權重：第 23 節頁內切換規則是 (1,7,1)＋!important，這裡用「頁面 id＋元件 id」拉到 (2,x,x) 才蓋得掉，不去改第 23 節本身。
+   ============================================================================ */
+@media (max-width:640px){
+  /* ---- 29a. 分頁式頁籤（底線頁籤，跟上方 .m4subtabs 同一款、小一號 14px）：選中＝主色字＋2px 主色底線，底下一條細線 */
+  :root.m4 #v-explore.view.on #slChips.sl-chips.nbsw,
+  :root.m4 #v-etf.view.on #etfCatSeg.etfcats.nbsw{display:flex!important;flex-wrap:nowrap!important;gap:0!important;width:100%;max-width:100%;min-width:0;
+    margin:0 0 8px!important;padding:0!important;border:0!important;border-bottom:1px solid var(--line)!important;border-radius:0!important;background:transparent!important;box-shadow:none!important}
+  :root.m4 #v-explore.view.on #slChips.sl-chips.nbsw>button,
+  :root.m4 #v-etf.view.on #etfCatSeg.etfcats.nbsw>button{height:40px!important;min-height:40px!important;margin:0 0 -1px!important;padding:0 10px!important;
+    border:0!important;border-bottom:2px solid transparent!important;border-radius:0!important;background:transparent!important;box-shadow:none!important;
+    color:var(--ink-2)!important;font-size:14px!important;font-weight:600;white-space:nowrap}
+  :root.m4 #v-explore.view.on #slChips.sl-chips.nbsw>button:is(.on,[aria-selected=true]),
+  :root.m4 #v-etf.view.on #etfCatSeg.etfcats.nbsw>button:is(.on,[aria-selected=true]){color:var(--t4-accent-solid,var(--cyan))!important;border-bottom-color:var(--t4-accent-solid,var(--cyan))!important;font-weight:700;background:transparent!important}
+  /* 選股：四格等寬填滿左右 */
+  :root.m4 #v-explore.view.on #slChips.sl-chips.nbsw{overflow:visible!important}
+  :root.m4 #v-explore.view.on #slChips.sl-chips.nbsw>button{flex:1 1 0!important;min-width:0!important;padding:0 2px!important}
+  /* ETF 分類：七類放不下 → 整條橫捲（手指拖），右側淡出提示還有；捲到底（.m4end）淡出拿掉。不放「左右滑」字 */
+  :root.m4 #v-etf .etfcatbar:not([hidden]){display:block!important}   /* 不准蓋掉 hidden（行事曆／試算頁的分類列是 hidden）*/
+  :root.m4 #v-etf .etfcatbar>.sp{display:none}
+  :root.m4 #v-etf.view.on #etfCatSeg.etfcats.nbsw{overflow-x:auto!important;scrollbar-width:none;touch-action:pan-x pan-y;-webkit-overflow-scrolling:touch}
+  :root.m4 #v-etf.view.on #etfCatSeg.etfcats.nbsw::-webkit-scrollbar{display:none}
+  :root.m4 #v-etf.view.on .m4fade:not(.m4end){-webkit-mask-image:linear-gradient(90deg,#000 calc(100% - 40px),transparent);mask-image:linear-gradient(90deg,#000 calc(100% - 40px),transparent)}
+  :root.m4 #v-etf.view.on #etfCatSeg.etfcats.nbsw>button{flex:none!important}
+
+  /* ---- 29b. 分段控制器（同網頁版 #m3Mode「走勢圖｜K 線」：.seg 外框＋選中格實色 --t4-accent）；手機每格高 40（觸控下限）、等寬填滿 */
+  :root.m4 #v-etf.view.on :is(.m4trisg,#incMain):not([hidden]){display:flex!important;flex-wrap:nowrap!important;gap:2px!important;width:100%;box-sizing:border-box;overflow:visible!important;
+    margin:0 0 8px!important;padding:2px!important;border:1px solid var(--t4-ctl-edge,var(--line-2))!important;border-radius:9px!important;background:var(--t4-ctl,var(--panel-3))!important;box-shadow:none!important}
+  :root.m4 #v-etf.view.on .m4trisg:has(+ .etftri[hidden]){display:none!important}
+  :root.m4 #v-etf.view.on :is(.m4trisg,#incMain)>button{flex:1 1 0!important;min-width:0!important;height:40px!important;min-height:40px!important;margin:0!important;padding:0 6px!important;
+    border:0!important;border-radius:7px!important;background:transparent!important;color:var(--ink-2)!important;font-size:14px!important;font-weight:600;box-shadow:none!important;white-space:nowrap}
+  :root.m4 #v-etf.view.on :is(.m4trisg,#incMain)>button:is(.on,[aria-selected=true]){background:var(--t4-accent,var(--cyan))!important;color:var(--on-accent,var(--ontop))!important;font-weight:700}
+
+  /* ---- 29c. 標題一律單行（Andy：「所有分頁的標題都不能換行，最多一行」）：選股頁大標縮到 18px、放不下用 …；旁邊那段免責小字自己一行（字一個沒刪） */
+  :root.m4 #v-explore :is(.sl-head,.sl-fhead) h2{flex-wrap:wrap!important;row-gap:2px;font-size:18px!important;margin:6px 0 8px!important;line-height:1.35}
+  :root.m4 #v-explore :is(.sl-head,.sl-fhead) h2>.m4tt{flex:0 1 auto;min-width:0;max-width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  :root.m4 #v-explore .sl-head h2>.xp-legal{flex:1 1 100%!important;margin:0!important;white-space:normal!important;overflow:visible!important;font-size:12px;line-height:1.45;letter-spacing:0}
+
+  /* ---- 29d. 子標籤一行：「子標籤」字不縮，下拉鈕吃剩下的寬度、字太長用 … */
+  :root.m4 #v-explore #slTags.sl-tags{flex-wrap:nowrap!important;min-width:0;margin-bottom:8px}
+  :root.m4 #v-explore #slTags .sl-tl{flex:none}
+  :root.m4 #v-explore #slTags .sl-ddw{flex:0 1 auto;min-width:0;max-width:100%}
+  :root.m4 #v-explore #slTags .sl-dd{max-width:100%!important;min-width:0}
+
+  /* ---- 29e. 策略卡之間一條線（第 14 節那條被同節的 border:0 蓋掉了：那條的 :is() 裡有 #lwc，權重是 id 級） */
+  :root.m4 #v-explore.view.on .sl-grid>.sl-card+.sl-card{border-top:1px solid var(--line-2)!important;margin-top:10px!important;padding-top:12px!important}
+  :root.m4 #v-explore.view.on .sl-sec+.sl-sec{border-top:1px solid var(--line-2);margin-top:12px;padding-top:12px}
+
+  /* ---- 29f. ETF 一覽：拿掉「全部收合／全部展開」（Andy：「拿掉」）；每一組照樣點標題列收展 */
+  :root.m4 #v-etf :is(#etfFoldAll,#etfOpenAll){display:none!important}
+
+  /* ---- 29g. 配息行事曆的清單／細節區：不再是固定高 320 的內捲框（標題列黏頂會蓋在圖上）→ 標題列、指標、圖、表 上下排好跟著整頁捲；
+     表格改自動欄寬（拿掉桌機那組固定欄寬），每一格都不截字：第一欄（日期＋名稱＋代號）可換行，其餘數字欄不換行 */
+  :root.m4 #v-etf #etfCalList.callist{height:auto!important;max-height:none!important;overflow:visible!important}
+  :root.m4 #v-etf #etfCalList .ph.stk{position:static!important;margin:0 0 8px!important;padding:0 0 8px!important;background:transparent!important;flex-wrap:nowrap}
+  :root.m4 #v-etf #etfCalList .ph :is(.plink,b){flex:1 1 auto;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:15px}
+  :root.m4 #v-etf #etfCalList .ph .btn{flex:none}
+  :root.m4 #v-etf #etfCalList .mini{grid-template-columns:72px minmax(0,1fr)!important;gap:8px!important}
+  :root.m4 #v-etf #etfCalList table.et{table-layout:auto!important;width:100%!important}
+  :root.m4 #v-etf #etfCalList table.et colgroup{display:none}
+  :root.m4 #v-etf #etfCalList table.et :is(th,td){overflow:visible!important;text-overflow:clip!important;white-space:nowrap!important;padding:6px 3px!important;font-size:12px!important}
+  :root.m4 #v-etf #etfCalList table.et :is(th,td):first-child{white-space:normal!important;text-align:left!important;line-height:1.35}
+
+  /* ---- 29h. 現金流試算 ---- */
+  /* 條件列一排（年領｜100 萬｜配息型｜扣二代健保｜近 5 年）：不再收成「條件 ▾」摘要（一排放得下就不必多點一下）；
+     下拉改成小箭頭、內距縮小，放不下時下拉自己縮（選項字用 …）。只有選「自訂金額」多出輸入框時才准換第二行 */
+  :root.m4 #v-etf #incPM>.m4cond{display:none!important}
+  :root.m4 #v-etf #incPM>.incctl.m4sel.incctl{display:flex!important;flex-wrap:nowrap!important;align-items:center;gap:4px!important;margin:0 0 8px!important;min-width:0}
+  :root.m4 #v-etf #incPM>.incctl.m4sel.incctl:is(:has(.m4show),:has(.rpk[data-v=custom]),:has(.rpk[data-v=since])){flex-wrap:wrap!important}
+  :root.m4 #v-etf #incPM>.incctl.m4sel.incctl :is(#incAmtBox,#etfIncRngBox,#etfIncRngBox .rpk,#etfIncRngBox label){display:contents!important}
+  /* 下拉寬度：年領／目標金額照最長選項（很短）；範圍與期間兩個平分剩下的寬度（選項最長「配息型＋債券型」「起始日期～至今」放不下時用 …） */
+  :root.m4 #v-etf #incPM>.incctl.m4sel.incctl select{flex:none!important;width:auto!important;max-width:none!important;padding:0 15px 0 6px!important;text-overflow:ellipsis;
+    -webkit-appearance:none;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='5'%3E%3Cpath d='M0 0l4 5 4-5z' fill='%238aa0b4'/%3E%3C/svg%3E");
+    background-repeat:no-repeat;background-position:right 5px center;background-size:8px 5px}
+  :root.m4 #v-etf #incPM>.incctl.m4sel.incctl :is(select[aria-label="範圍"],select.rpsel){flex:1 1 0!important;width:0!important;min-width:0!important}
+  :root.m4 #v-etf #incPM>.incctl.m4sel.incctl label.chk{flex:none;gap:3px!important;white-space:nowrap}
+  :root.m4 #v-etf #incPM>.incctl.m4sel.incctl label.chk .m4short{font-size:13px}
+  /* 單檔清單：搜尋列與頻率分頁不准被清單擠扁（改前頻率分頁被壓成 3px 高，看起來是一排空白膠囊）；清單本身約 5 列高、在框內捲 */
+  :root.m4 #v-etf #incListBox.inclist{max-height:none!important;height:auto!important;display:flex;flex-direction:column}
+  :root.m4 #v-etf #incListBox>:is(.ilhd,.ilfq,.ilmsg){flex:none!important}
+  :root.m4 #v-etf #incListBox #incSearch{height:40px!important}
+  :root.m4 #v-etf #incListBox>.ilfq{margin:6px 0 2px!important}
+  :root.m4 #v-etf #incListBox>.ilbody{flex:none!important;max-height:330px;overflow-y:auto;touch-action:pan-y}
+  /* 每列：勾選｜名稱代號（配息頻率徽章＋名稱＋代號）｜殖利率；第二行：現價・張數・金額 —— 欄位固定，不互相疊 */
+  :root.m4 #v-etf #incList .ilr{grid-template-columns:30px minmax(0,1fr) auto!important;grid-template-rows:auto auto!important;column-gap:6px!important;row-gap:0!important;padding:4px 2px!important;align-items:center}
+  :root.m4 #v-etf #incList .ilr>input{grid-column:1!important;grid-row:1/3!important;width:22px;height:22px;margin:0!important;justify-self:center;align-self:center}
+  :root.m4 #v-etf #incList .ilr>.rk{display:none!important}
+  :root.m4 #v-etf #incList .ilr>.iln{grid-column:2!important;grid-row:1!important;min-width:0;min-height:40px;font-size:13px}
+  :root.m4 #v-etf #incList .ilr>.mv{grid-column:3!important;grid-row:1!important;white-space:nowrap;font-size:12px}
+  :root.m4 #v-etf #incList .ilr>.lt{grid-column:2/4!important;grid-row:2!important;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:12px!important;line-height:18px;padding-bottom:2px}
+}
