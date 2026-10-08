@@ -1280,6 +1280,69 @@ def allianz() -> pd.DataFrame:
     return _frame(rows)
 
 
+# ───────────────────────────────────────────── 聯邦（www.usitc.com.tw）
+# 2026-10-08 第五輪 Actions 實測（probe-etf-pcf.yml run 37778500842、37779130534）：前兩輪「連線逾時」是當時的狀況，
+# 這一輪 requests 與真瀏覽器都 200。ETF 專區「申購買回清單」頁 /CustCenter/BuyBackList 伺服器端渲染：
+# <select name="FundNo"> 就是自家 ETF 清單（009804、009825）；表單 POST FundNo=<代號>&sDate=YYYY-MM-DD 回那一檔。
+# 「基金成分股」分頁：「資料日期： 2026-10-08」＋「股票投資比例」表，每列 <td data-title="股票代號|股票名稱|股數|權重">。
+# 期貨（台指期）不收：期貨部位不是成分股。
+USITC_PCF = "https://www.usitc.com.tw/CustCenter/BuyBackList"
+
+
+def usitc_codes(page: str) -> list[str]:
+    m = re.search(r'<select[^>]*name="FundNo".*?</select>', page or "", re.S)
+    return re.findall(r'value="?([0-9A-Z]{4,7})"?', m.group(0)) if m else []
+
+
+def parse_usitc(etf: str, page: str) -> list[dict]:
+    if not isinstance(page, str):
+        return []
+    h = re.search(r"<h2>[^<]*\(\s*([0-9A-Z]{4,7})\s*\)\s*</h2>", page)      # 頁首「聯邦台灣精彩50ETF基金 ( 009804 )」
+    if h and h.group(1) != etf:
+        log.info("聯邦 %s 官網回的是 %s 的頁面，略過", etf, h.group(1))
+        return []
+    m = re.search(r"資料日期[：:]\s*(\d{4}[-/]\d{1,2}[-/]\d{1,2})", page)
+    day = _iso(m.group(1)) if m else None
+    out = []
+    for tr in re.findall(r"<tr[^>]*>(.*?)</tr>", page, re.S):
+        cells = dict(re.findall(r'<td[^>]*data-title="([^"]+)"[^>]*>(.*?)</td>', tr, re.S))
+        code = _html.unescape(re.sub(r"<[^>]+>", "", cells.get("股票代號", ""))).strip()
+        if not code:
+            continue
+        name = _html.unescape(re.sub(r"<[^>]+>", "", cells.get("股票名稱", ""))).strip().rstrip("*")
+        out.append({"date": day, "etf": etf, "code": code, "name": name, "weight": _num(cells.get("權重")),
+                    "shares": _num(cells.get("股數")), "issuer": "聯邦", "src": USITC_PCF})
+    return out
+
+
+def usitc() -> pd.DataFrame:
+    first = _req("GET", USITC_PCF, expect="text")
+    codes = usitc_codes(first or "")
+    if not codes:
+        log.warning("聯邦 申購買回清單頁找不到基金選單（前 200 字）：%s", _snip(first))
+        return pd.DataFrame(columns=COLS)
+    rows: list[dict] = []
+    for c in codes:
+        if _skip_code(c):
+            continue
+        page = None
+        try:
+            time.sleep(0.5)
+            # sDate 用台北今天：這只是「查詢哪一天的公告」，回應裡的「資料日期」才是持股基準日（存的是那個）
+            today = (dt.datetime.utcnow() + dt.timedelta(hours=8)).date().isoformat()
+            r = http.session().post(USITC_PCF, data={"FundNo": c, "sDate": today}, timeout=TIMEOUT)
+            page = r.text if r.status_code == 200 else None
+            if page is None:
+                log.warning("聯邦 %s HTTP %s：%s", c, r.status_code, _snip(r.text))
+        except Exception as exc:  # noqa: BLE001
+            log.warning("聯邦 %s 失敗：%s", c, str(exc)[:200])
+        got = parse_usitc(c, page) if page else []
+        if page and not got:
+            log.info("聯邦 %s 沒有股票表（前 200 字）：%s", c, _snip(page))
+        rows += got
+    return _frame(rows)
+
+
 # ───────────────────────────────────────────── 總入口
 ISSUER_PREFIX = {  # 從 ETF 簡稱判斷發行投信（給「哪些已接上／哪些沒接上」用）
     "元大": "元大", "國泰": "國泰", "群益": "群益", "富邦": "富邦", "統一": "統一", "凱基": "凱基", "大華": "大華銀",
@@ -1289,7 +1352,7 @@ ISSUER_PREFIX = {  # 從 ETF 簡稱判斷發行投信（給「哪些已接上／
     "FT": "富蘭克林華美", "聯邦": "聯邦",   # FT＝富蘭克林華美（00899 全名「富蘭克林華美全球潔淨能源ETF」）
     "台灣": None,
 }
-CONNECTED = {"安聯", "永豐", "玉山", "大華銀", "群益", "野村", "復華", "統一", "元大", "凱基", "國泰", "中國信託", "第一金", "聯博", "華南永昌", "富邦", "台新"}
+CONNECTED = {"聯邦", "安聯", "永豐", "玉山", "大華銀", "群益", "野村", "復華", "統一", "元大", "凱基", "國泰", "中國信託", "第一金", "聯博", "華南永昌", "富邦", "台新"}
 # 還沒接上的投信 → 給讀者看的原因（前端成分股分頁照抄）。查證過程、關鍵字與來源在 docs/etf_holdings_coverage.md。
 # 寫「為什麼抓不到」而不是「尚未接上」：Andy 2026-10-07 問「為何有 ETF 沒有成分股」，答案要在畫面上。
 NOT_CONNECTED_WHY = {
@@ -1297,7 +1360,6 @@ NOT_CONNECTED_WHY = {
     "貝萊德": "貝萊德官網在自動排程的主機上開頁逾時（60 秒），2026-10-08 只看到產品頁的前十大持股，沒有完整每日持股可接。",
     "摩根": "摩根投信官網 ETF 產品頁（am.jpmorgan.com/tw）2026-10-08 用真瀏覽器實測，找不到每日持股或申購買回清單的資料來源。",
     "富蘭克林華美": "富蘭克林華美投信官網首頁可開，但 2026-10-08 實測找不到 ETF 持股／申購買回清單頁（/ETF 回錯誤頁、首頁開頁逾時）。",
-    "聯邦": "聯邦投信官網（usitc.com.tw）在自動排程的主機上連線逾時（2026-10-07、10-08 兩次實測），抓不到。",
     "街口": "街口投信的 ETF 都是期貨型，持有的是期貨契約，沒有股票成分。",
 }
 
@@ -1327,6 +1389,7 @@ def fetch_all(etf_names: dict[str, str]) -> pd.DataFrame:
         ("永豐", sinopac),
         ("安聯", allianz),
         ("玉山", lambda: esun(etf_names)),
+        ("聯邦", usitc),
         ("台新", lambda: tsit(sorted(by.get("台新", []) + by.get("新光", [])))),
     ]
     frames = []
