@@ -16,6 +16,14 @@ on:
         description: "額外要探測的網址（空白分隔；開頭加 --only-extra 只跑這些）"
         type: string
         default: ""
+      keys:
+        description: "browser 模式：回應裡要找的關鍵字（逗號分隔，空白＝2330,台積電,2317,鴻海；海外股或債券型 ETF 換成 NVIDIA,Apple…）"
+        type: string
+        default: ""
+      all_links:
+        description: "browser 模式：印出頁面上所有連結（找 ETF 專區入口用）"
+        type: boolean
+        default: false
 
 permissions:
   contents: write   # 只為了推 probe-log/<run id> 分支
@@ -36,6 +44,8 @@ jobs:
         if: inputs.mode == 'browser'
         env:
           EXTRA: ${{ inputs.extra }}
+          PROBE_KEYS: ${{ inputs.keys }}
+          PROBE_ALL_LINKS: ${{ inputs.all_links && '1' || '' }}
         run: python scripts/probe_etf_pcf_browser.py $EXTRA 2>&1 | tee -a /tmp/probe.log
       - name: 實抓自我測試（不寫湖、不 commit）
         if: inputs.mode == 'selftest'

@@ -25,7 +25,11 @@ PAGES = [
 if len(sys.argv) > 1:
     PAGES = [(f"extra-{i}", u) for i, u in enumerate(sys.argv[1:])]
 
-KEYS = ("2330", "台積電", "2317", "鴻海")
+import os
+
+# 2026-10-08 第五輪：海外股票型／債券型的成分不含台積電，用 PROBE_KEYS（逗號分隔）換關鍵字，例如 NVIDIA,Apple,微軟
+KEYS = tuple(k for k in (os.environ.get("PROBE_KEYS") or "2330,台積電,2317,鴻海").split(",") if k)
+ALL_LINKS = os.environ.get("PROBE_ALL_LINKS") == "1"   # 印出頁面上所有連結（找不到 ETF 專區入口時用）
 
 with sync_playwright() as p:
     br = p.chromium.launch()
@@ -65,8 +69,11 @@ with sync_playwright() as p:
         if "@@" in url:   # 網址@@文字1@@文字2：開頁後依序點含該文字的元素（SPA 要點進去才會打 API）
             url, *clicks = url.split("@@")
         try:
-            pg.goto(url, wait_until="networkidle", timeout=60000)
-            pg.wait_for_timeout(3000)
+            try:
+                pg.goto(url, wait_until="networkidle", timeout=45000)
+            except Exception as e:  # noqa: BLE001 —— 有長輪詢的網站永遠等不到 networkidle；頁面多半已經出來了，照樣往下看
+                print("  networkidle 等不到（照樣往下）:", type(e).__name__, str(e)[:120])
+            pg.wait_for_timeout(5000)
             for c in clicks:
                 try:
                     pg.get_by_text(c, exact=False).first.click(timeout=10000)
@@ -81,12 +88,12 @@ with sync_playwright() as p:
         try:
             links = pg.eval_on_selector_all("a[href]", "els => els.map(e => (e.innerText||'').trim().slice(0,20) + ' -> ' + e.href)")
             for l in links:
-                if any(k in l for k in ("PCF", "pcf", "Pcf", "申購買回", "持股", "成分", "投資組合", "ETF", "etf")):
+                if ALL_LINKS or any(k in l for k in ("PCF", "pcf", "Pcf", "申購買回", "持股", "成分", "投資組合", "ETF", "etf", "xls", "csv", "pdf", "Holding", "holding")):
                     print("    連結:", l[:200])
         except Exception:  # noqa: BLE001
             pass
         print(f"  XHR／文件請求 {len(allreq)} 個：")
-        for a in allreq[:40]:
+        for a in allreq[:80]:
             print("    ", a)
         print(f"  含成分股字樣的回應 {len(hits)} 個：")
         for st, m, u, pd_, ct, t in hits[:6]:
