@@ -1,0 +1,746 @@
+====================================================================================================
+[extra-0] https://www.franklin.com.tw/
+  networkidle 等不到（照樣往下）: TimeoutError Page.goto: Timeout 45000ms exceeded.
+Call log:
+  - navigating to "https://www.franklin.com.tw/", waiting until "networki
+  最終網址: https://www.franklin.com.tw/  標題: 富蘭克林‧國民的基金 | 富蘭克林
+    連結: 跳至主要內容 -> https://www.franklin.com.tw/#main-content
+    連結:  -> https://event.franklin.com.tw/emerging-market/index.html
+    連結:  -> https://www.franklin.com.tw/event/C2017_08_Q3_0839/
+    連結:  -> https://event.franklin.com.tw/gold-precious-metals-fund/index.html
+    連結:  -> https://event.franklin.com.tw/emergingMarketScale/
+    連結:  -> https://event.franklin.com.tw/growth-income-opportunity/index.html
+    連結: 2026/10/08
+經理人評論 \ 最 -> https://www.franklin.com.tw/investment/943
+    連結: 2026/10/07
+熱門市場快訊 \  -> https://www.franklin.com.tw/investment/942
+    連結: 2026/10/06
+熱門市場快訊 \  -> https://www.franklin.com.tw/investment/941
+    連結: 詳全文> -> https://www.franklin.com.tw/Announces/2
+    連結: 詳全文> -> https://www.franklin.com.tw/Announces/3
+    連結: 看更多焦點 -> https://www.franklin.com.tw/daily
+    連結: ESG 基金專區 -> https://www.franklin.com.tw/Regulations/esg.html
+    連結: ESG 基金專區 -> https://www.franklin.com.tw/Regulations/esg.html
+    連結: 國際股債市日訊 -> https://www.franklin.com.tw/daily
+    連結: 富蘭克林提醒您 謹防詐騙並與相關單位反應 -> https://www.franklin.com.tw/announces/2
+    連結: 重要交易提醒 -> https://www.franklin.com.tw/announces/3
+    連結: 2026年10月最新投資觀點 -> https://static.franklin-dm.dev/2026/10/be351a0e-b98a-4d59-8565-98d9255e5eca.pdf
+    連結: 前往開戶 > -> https://etrade.franklin.com.tw/openAccount/?_ga=2.138443637.719470903.1706493705-1010200321.1673071579
+    連結: 立即使用 > -> https://www.franklin.com.tw/overview
+    連結: 前往投資 > -> https://event.franklin.com.tw/regular-rsp/?_ga=2.138443637.719470903.1706493705-1010200321.1673071579
+    連結: 聯繫專人 > -> https://www.franklin.com.tw/ContactUs
+    連結:  -> https://play.google.com/store/apps/details?id=com.sice_app
+    連結:  -> https://apps.apple.com/tw/app/%E5%AF%8C%E8%98%AD%E5%85%8B%E6%9E%97-%E5%9C%8B%E6%B0%91e%E5%B8%B3%E6%88%B6/id1508279002
+    連結: 加入好友 -> http://line.naver.jp/ti/p/%40franklin
+    連結: 關於我們 -> https://www.franklin.com.tw/about
+    連結: 隱私權保護政策 -> https://www.franklin.com.tw/privacy
+    連結: 金融友善服務 -> https://www.franklin.com.tw/friendlyFinancialService
+    連結: 防制洗錢及客戶審查常見問答集 -> https://www.franklin.com.tw/investConcept
+    連結: 網站導覽 -> https://www.franklin.com.tw/sitemap
+    連結: 聯絡我們 -> https://www.franklin.com.tw/ContactUs/Index
+    連結:  -> https://event.franklin.com.tw/app-propaganda/index.html
+    連結:  -> https://www.facebook.com/franklin.taiwan/
+    連結:  -> http://line.naver.jp/ti/p/%40franklin
+    連結:  -> https://www.youtube.com/user/franklin0800885888
+    連結: 0800-885-888 -> tel:0800-885-888
+    連結: https://www.franklin -> https://www.franklin.com.tw/Regulations/esg.html
+    連結: https://www.fundclea -> https://www.fundclear.com.tw/esg
+    連結: https://www.franklin -> https://www.franklin.com.tw/
+    連結: https://www.franklin -> https://www.franklin.com.tw/
+    連結: https://www.fundclea -> https://www.fundclear.com.tw/
+    連結: https://www.franklin -> https://www.franklin.com.tw/
+    連結: 立即下載 -> https://www.microsoft.com/zh-tw/edge
+    連結: 立即下載 -> https://www.google.com/intl/zh-TW/chrome/
+    連結: 立即下載 -> https://www.mozilla.org/zh-TW/firefox/new/
+    連結: 立即下載 -> https://www.microsoft.com/zh-tw/edge
+    連結: 立即下載 -> https://www.google.com/intl/zh-TW/chrome/
+    連結: 立即下載 -> https://www.mozilla.org/zh-TW/firefox/new/
+  XHR／文件請求 23 個：
+     200 GET https://www.franklin.com.tw/
+        resp='<!doctype html>\n<html data-n-head-ssr lang="zh-TW" data-n-head="%7B%22lang%22:%7B%22ssr%22:%22zh-TW%22%7D%7D">\n    <head >\n        <meta data-n-head="ssr" charset="utf-8"><meta data-n-head="ssr" data-hid="description" name="description" content="基金專業投資顧問-富蘭克林坦伯頓基金,您的投資理財最佳顧問,富蘭克林基金提供您多樣化的基金組合,專業市場分析'
+     200 GET https://www.youtube.com/embed/esXTCEz4JEA
+        resp='<!DOCTYPE html><html lang="zh-TW" dir="ltr" data-cast-api-enabled="true"><head><meta name="viewport" content="width=device-width, initial-scale=1"><script nonce="3fW0xi_FVy_cPc4kGz-xJg">if (\'undefined\' == typeof Symbol || \'undefined\' == typeof Symbol.iterator) {delete Array.prototype.entries;}</scri'
+     204 GET https://cmsapi.franklin-dm.dev/broadcast
+        resp=''
+     200 GET https://cmsapi.franklin-dm.dev/funds/0805/nav?startDate=2023-09-08&endDate=2026-10-08
+        resp='[{"currency":null,"nav_P":29.75,"nav_Date":"2023-09-08T00:00:00+08:00","nav_Dec":2,"nav_Unit":1.131268827809865,"fundDiv":null,"fundDiv_Tax":null,"currencyType":null,"fundDef":-0.04,"fundDefRate":-0.13},{"currency":null,"nav_P":30.12,"nav_Date":"2023-09-11T00:00:00+08:00","nav_Dec":2,"nav_Unit":1.13'
+     200 GET https://cmsapi.franklin-dm.dev/funds/0815/nav?startDate=2023-09-08&endDate=2026-10-08
+        resp='[{"currency":null,"nav_P":21.83,"nav_Date":"2023-09-08T00:00:00+08:00","nav_Dec":2,"nav_Unit":1.784967686919,"fundDiv":null,"fundDiv_Tax":null,"currencyType":null,"fundDef":0.03,"fundDefRate":0.14},{"currency":null,"nav_P":21.97,"nav_Date":"2023-09-11T00:00:00+08:00","nav_Dec":2,"nav_Unit":1.7849676'
+     200 GET https://cmsapi.franklin-dm.dev/funds/0839/nav?startDate=2023-09-08&endDate=2026-10-08
+        resp='[{"currency":null,"nav_P":9.65,"nav_Date":"2023-09-08T00:00:00+08:00","nav_Dec":2,"nav_Unit":3.324137962112395,"fundDiv":0.067,"fundDiv_Tax":null,"currencyType":null,"fundDef":-0.05,"fundDefRate":-0.52},{"currency":null,"nav_P":9.65,"nav_Date":"2023-09-11T00:00:00+08:00","nav_Dec":2,"nav_Unit":3.324'
+     200 GET https://cmsapi.franklin-dm.dev/funds/0797/nav?startDate=2023-09-08&endDate=2026-10-08
+        resp='[{"currency":null,"nav_P":36.6,"nav_Date":"2023-09-08T00:00:00+08:00","nav_Dec":2,"nav_Unit":1,"fundDiv":null,"fundDiv_Tax":null,"currencyType":null,"fundDef":-0.09,"fundDefRate":-0.25},{"currency":null,"nav_P":36.93,"nav_Date":"2023-09-11T00:00:00+08:00","nav_Dec":2,"nav_Unit":1,"fundDiv":null,"fun'
+     200 GET https://cmsapi.franklin-dm.dev/funds/2062/nav?startDate=2023-09-08&endDate=2026-10-08
+        resp='[{"currency":null,"nav_P":6.55,"nav_Date":"2023-09-08T00:00:00+08:00","nav_Dec":2,"nav_Unit":1.356065973272684,"fundDiv":0.042,"fundDiv_Tax":null,"currencyType":null,"fundDef":-0.03,"fundDefRate":-0.46},{"currency":null,"nav_P":6.59,"nav_Date":"2023-09-11T00:00:00+08:00","nav_Dec":2,"nav_Unit":1.356'
+     200 GET https://api-next.no8.io/live_chat/check_pass?encrypted_org_id=9vy5bUGpnzIIXQ%3D%3D
+        resp='{"success":true}'
+     200 GET https://live-chat-console.no8.io/?encryptedOrgId=9vy5bUGpnzIIXQ%3D%3D&browserLanguage=zh-TW&browserLanguages=zh-TW&hostColorScheme=light
+        resp='<!doctype html><html lang="en"><head><title>chat</title><meta charset="utf-8"/><meta http-equiv="X-UA-Compatible" content="IE=edge"/><meta name="viewport" content="width=device-width,initial-scale=1"/><meta name="description" content="Bootstrap 4 Book/eBook Landing Page Template For Developers"/><sc'
+     200 GET https://pips.taboola.com/
+        resp='NULL'
+     200 GET https://api.popin.cc/iframe/piuid.html?ac=piuid&t=15009898
+        resp='\n<!DOCTYPE html>\n<html><head></head><body>\n<script type="text/javascript">window.Cookies=(function(){function a(){var e=0;var f={};for(;e<arguments.length;e++){var c=arguments[e];for(var d in c){f[d]=c[d]}}return f}function b(c){function d(s,q,k){var p;if(typeof document==="undefined"){return}if(arg'
+     204 GET https://cds.taboola.com/?uid=0cbf6cec-b8db-4544-920d-a1f555ab5280-tuct11c113e5&ptf=TGludXg=&ufv=MTUzLjAuODAxMC4xMg==&bnd=SGVhZGxlc3NDaHJvbWU=&bndv=MTUz&bnd=Tm90X0EgQnJhbmQ=&bndv=OA==&bnd=Q2hyb21pdW0=&bndv=MTUz&mbl=ZmFsc2U=&dc=la
+        resp=''
+     200 GET https://assets.no8.io/prod/live_chat/style/9vy5bUGpnzIIXQ%3D%3D.json
+        resp='{"logo":"https://assets.no8.io/app-api-uploader/prod/1744971003895/180.png","livechatTextColor":"#f5f5f5","livechatBackgroundColor":"#005bd9","title":"親愛的富蘭克林貴賓","content":"歡迎您來到富蘭克林\\n很高興為貴賓您服務","buttonTextColor":"#ffffff","buttonColor":"#006bd1","position":"bottom-right","positionSettings":{"bottom'
+     200 GET https://api-next.no8.io/live_chat/brand/9vy5bUGpnzIIXQ==
+        resp='{"icon":"https://assets.no8.io/app-api-uploader/prod/1744851082223/%E7%B5%A6%E5%AE%A2%E6%9C%8DFT-logo250X250.jpg","displayName":"富蘭克林證券投顧","enableGA4":false}'
+     200 GET https://api-next.no8.io/live_chat/logo/show/9vy5bUGpnzIIXQ==
+        resp='{"isShow":true,"isSuper8":true}'
+     200 POST https://www.youtube.com/youtubei/v1/log_event?alt=json
+        body={"context":{"client":{"hl":"zh-TW","gl":"US","clientName":56,"clientVersion":"2.20261007.00.00","configInfo":{"appInstallData":"COScntYGEMn2gBMQyvuAExD36NIcEKSOgRMQwY_QHBDt-9IcEL22rgUQm-XSHBDbrdIcELjkzhwQ2vfOHBCHrM4cEK-KuCIQv9rSHBCfz4ATEMzfrgUQnZWBExDevM4cEPDe0RwQgc3OHBCZjbEFEParsAUQvoTRHBD4xIATENLa
+        resp='{\n  "responseContext": {}\n}\n'
+     204 GET https://trc-events.taboola.com/1885777/log/3/unip?en=pre_d_eng_tb&tos=4567&scd=0&ssd=1&est=1791463013388&ver=36&isls=true&src=i&invt=4500&msa=6602&rv=1&tim=1791463017955&vi=1791463013371&ri=c36cbde9eb6c0ddc6ea93ebc9ecd8106&sd=v2_3102b27457568595f2e5c15a911a0426_0cbf6cec-b8db-4544-920d-a1f555ab5280-t
+        resp=''
+     204 GET https://trc-events.taboola.com/1885777/log/3/unip?en=pre_d_eng_tb&tos=10068&scd=0&ssd=1&est=1791463013388&ver=36&isls=true&src=i&invt=5500&msa=6602&rv=1&tim=1791463023457&vi=1791463013371&ri=c36cbde9eb6c0ddc6ea93ebc9ecd8106&sd=v2_3102b27457568595f2e5c15a911a0426_0cbf6cec-b8db-4544-920d-a1f555ab5280-
+        resp=''
+     204 GET https://trc-events.taboola.com/1885777/log/3/unip?en=pre_d_eng_tb&tos=20069&scd=0&ssd=1&est=1791463013388&ver=36&isls=true&src=i&invt=10000&msa=6602&rv=1&tim=1791463033458&vi=1791463013371&ri=c36cbde9eb6c0ddc6ea93ebc9ecd8106&sd=v2_3102b27457568595f2e5c15a911a0426_0cbf6cec-b8db-4544-920d-a1f555ab5280
+        resp=''
+     200 POST https://log.popin.cc/discovery/trace?type=readlogs
+        body=eyJ0ZF92ZXJzaW9uIjoiMS43LjEiLCJ0ZF9jbGllbnRfaWQiOiJkNGM3ZGU0Ni00MmM1LTRiZGYtYWJhNy1kODY0MzUyN2I3OGMiLCJ0ZF9jaGFyc2V0IjoidXRmLTgiLCJ0ZF9sYW5ndWFnZSI6InpoLXR3IiwidGRfY29sb3IiOiIyNC1iaXQiLCJ0ZF9zY3JlZW4iOiIxMjgweDcyMCIsInRkX3ZpZXdwb3J0IjoiMTI4MHg3MjAiLCJ0ZF90aXRsZSI6IuWvjOiYreWFi+ael+KAp+Wci+awkeeahOWf
+        resp='{"data":true,"errcode":0,"errmsg":"Success","errno":0}'
+     204 GET https://trc-events.taboola.com/1885777/log/3/unip?en=pre_d_eng_tb&tos=30070&scd=0&ssd=1&est=1791463013388&ver=36&isls=true&src=i&invt=10000&msa=6602&rv=1&tim=1791463043459&vi=1791463013371&ri=c36cbde9eb6c0ddc6ea93ebc9ecd8106&sd=v2_3102b27457568595f2e5c15a911a0426_0cbf6cec-b8db-4544-920d-a1f555ab5280
+        resp=''
+     204 GET https://trc-events.taboola.com/1885777/log/3/unip?en=pre_d_eng_tb&tos=40072&scd=0&ssd=1&est=1791463013388&ver=36&isls=true&src=i&invt=10000&msa=6602&rv=1&tim=1791463053460&vi=1791463013371&ri=c36cbde9eb6c0ddc6ea93ebc9ecd8106&sd=v2_3102b27457568595f2e5c15a911a0426_0cbf6cec-b8db-4544-920d-a1f555ab5280
+        resp=''
+  含成分股字樣的回應 1 個：
+   ★ 200 GET https://www.youtube.com/embed/esXTCEz4JEA
+     type: text/html; charset=utf-8  bytes: 151321
+     開頭: <!DOCTYPE html><html lang="zh-TW" dir="ltr" data-cast-api-enabled="true"><head><meta name="viewport" content="width=device-width, initial-scale=1"><script nonce="3fW0xi_FVy_cPc4kGz-xJg">if ('undefined' == typeof Symbol || 'undefined' == typeof Symbol.iterator) {delete Array.prototype.entries;}</script><style name="www-roboto" nonce="WGf0G7J0AeJlLnLndRyaKg">@font-face{font-family:'Roboto';font-style:normal;font-weight:400;font-stretch:100%;src:url(//fonts.gstatic.com/s/roboto/v48/KFO7CnqEu92Fr1ME
+     2330 前後: hTlJ6d3NkSkF3UnFMdHlGc2U0STRBNmlSQkNOZktwZGlEN2lLV3BiQ2xiWGF3eXBjRFZ6VDhfeTN0d0VhOGRHSUJJNHpoYWtlRGF4YmVFbGNobUdacWJVNmJpQUYzUlVzX1hpZEZ4NW15QjlsekZOdWJSZWpOZ2Z3UnFTLW1Oa21kTDZ6NVhQUXo4Ty05dzdYNjBUQ2NyT20wdGdsc2ZLTENvdGhrYTVxcUpKcENDZGN5SWctOFZhdkJtNmxNNUx4MnBGbDdQV2taRFc2X3E5QnNMY3pBaUNpSldHU3I2VnI0a2t2ZHNEM2VrWFRzcG1yaU1DckdfOFVIX2xhZXJ4Q1lRdw%3D%3D","userAgent":"Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36,gzip(gfe)","clientName":"WEB_EMBEDDED_PLAYER","clientVersion":"2.20261007.00.00","osName":"X11","osVersion":"","originalUrl":"https://www.youtube.com/embed/esXTCEz4JEA","platform":"DESKTOP","clientFormFactor":"UNKNOWN_FORM_FACTOR","configInfo":{"appInstallData":"COScntYGEMn2gBMQyvuAExD36NIcEKSOgRMQwY_QHBDt-9IcEL22rgUQm-XSHBDbrdIcELj
+====================================================================================================
+[extra-1] https://www.usitc.com.tw/
+  最終網址: https://www.usitc.com.tw/  標題: 聯邦投信-首頁
+    連結:  -> https://www.usitc.com.tw/Home/Index
+    連結: 基金專區 -> https://www.usitc.com.tw/#
+    連結: 基金總覽 -> https://www.usitc.com.tw/Fund/FundOverview
+    連結: 最新淨值 -> https://www.usitc.com.tw/Fund/NAV
+    連結: 配息紀錄 -> https://www.usitc.com.tw/Fund/FundDividend
+    連結: 基金行事曆 -> https://www.usitc.com.tw/Fund/FundCalendar
+    連結: ETF專區 -> https://www.usitc.com.tw/#
+    連結: 收益平準金專區 -> https://www.usitc.com.tw/CustCenter/Equalization
+    連結: 即時估計淨值 -> https://www.usitc.com.tw/CustCenter/InstantNav_Preview
+    連結: 申購買回清單 -> https://www.usitc.com.tw/CustCenter/BuyBackList
+    連結: 淨值組成查詢 -> https://www.usitc.com.tw/CustCenter/NavDetail
+    連結: 歷史折溢價 -> https://www.usitc.com.tw/CustCenter/NPDDetail
+    連結: 追蹤差距 -> https://www.usitc.com.tw/CustCenter/Tracking_TWD
+    連結: 配息紀錄 -> https://www.usitc.com.tw/Fund/FundDividend_ETF
+    連結: ETF問答集 -> https://www.usitc.com.tw/CustCenter/Etf_QA
+    連結: 交易登入 -> https://www.usitc.com.tw/#
+    連結: 投資人登入 -> https://www.usitc.com.tw/Trade
+    連結: 立即開戶 -> https://www.usitc.com.tw/CustCenter/download
+    連結: 服務專區 -> https://www.usitc.com.tw/#
+    連結: 下載專區 -> https://www.usitc.com.tw/CustCenter/download
+    連結: 申購買回流程 -> https://www.usitc.com.tw/CustCenter/buyStep
+    連結: 短線交易規範 -> https://www.usitc.com.tw/CustCenter/sRule
+    連結: 銷售買回機構 -> https://www.usitc.com.tw/CustCenter/sGroup
+    連結: 常見問題 -> https://www.usitc.com.tw/CustCenter/faq
+    連結: 投資宣導專區 -> https://www.usitc.com.tw/CustCenter/lawInfo
+    連結: 盡職治理 -> https://www.usitc.com.tw/CustCenter/InfoCenter?PType=5
+    連結: 防制洗錢專區 -> https://www.usitc.com.tw/CustCenter/InfoCenter?PType=7
+    連結: 關於聯邦 -> https://www.usitc.com.tw/Home/About
+    連結: 聯絡我們 -> https://www.usitc.com.tw/Home/Contact
+    連結:  -> https://www.usitc.com.tw/Home/BannerPage?idx=6
+    連結:  -> https://www.usitc.com.tw/UNUSFinanceInnovators_009825/index.htm
+    連結:  -> https://www.usitc.com.tw/Home/BannerPage?idx=7
+    連結:  -> https://www.usitc.com.tw/UNTaiwan50_009804/index.htm
+    連結:  -> https://www.usitc.com.tw/CustCenter/ShowFile?fileName=Info/info_20220818_1.pdf&filePath=
+    連結: Prev -> https://www.usitc.com.tw/#indexCarousel
+    連結: Next -> https://www.usitc.com.tw/#indexCarousel
+    連結: 【聯邦投資週報】市場消化升息影響，台股震 -> https://www.usitc.com.tw/CustCenter/ShowFile?fileName=Act/info_20260923_1.pdf&filePath=
+    連結: 【聯邦投資週報】美國與日本利率會議牽引本 -> https://www.usitc.com.tw/CustCenter/ShowFile?fileName=Act/info_20260916_1.pdf&filePath=
+    連結: 【聯邦投資週報】台灣基本面仍強，AI供應 -> https://www.usitc.com.tw/CustCenter/ShowFile?fileName=Act/info_20260909_1.pdf&filePath=
+    連結: 【聯邦投資週報】AI晶片需求強勁及企業資 -> https://www.usitc.com.tw/CustCenter/ShowFile?fileName=Act/info_20260831_1.pdf&filePath=
+    連結: 【聯邦投資週報】AI進入下半年出貨旺季  -> https://www.usitc.com.tw/CustCenter/ShowFile?fileName=Act/info_20260824_1.pdf&filePath=
+    連結: 【聯邦投資週報】AI需求續強　台股聚焦產 -> https://www.usitc.com.tw/CustCenter/ShowFile?fileName=Act/info_20260817_1.pdf&filePath=
+    連結: 【投資週報】財報展現韌性，AI供應鏈續撐 -> https://www.usitc.com.tw/CustCenter/ShowFile?fileName=Act/info_20260811_1.pdf&filePath=
+    連結: 【聯邦投資週報】AI基本面穩健支撐 台股 -> https://www.usitc.com.tw/CustCenter/ShowFile?fileName=Act/info_20260727_1.pdf&filePath=
+    連結: 股票型 -> https://www.usitc.com.tw/#list-s1
+    連結: 平衡型 -> https://www.usitc.com.tw/#list-s2
+    連結: 組合型 -> https://www.usitc.com.tw/#list-s3
+    連結: 貨幣市場型 -> https://www.usitc.com.tw/#list-s4
+    連結: 債券型 -> https://www.usitc.com.tw/#list-s5
+    連結: 多重資產型 -> https://www.usitc.com.tw/#list-s6
+    連結: ETF -> https://www.usitc.com.tw/#list-s7
+    連結: 更多 -> https://www.usitc.com.tw/Fund/NewNAV
+    連結: 聯邦精選科技基金-A類型(新台幣) -> https://www.usitc.com.tw/Fund/FundPage?FundNo=17597236A
+    連結: 聯邦精選科技基金-NA類型(新臺幣) -> https://www.usitc.com.tw/Fund/FundPage?FundNo=17597236B
+    連結: 聯邦中國龍基金-A類型(新台幣) -> https://www.usitc.com.tw/Fund/FundPage?FundNo=18496290A
+    連結: 聯邦中國龍基金-NA類型(新台幣) -> https://www.usitc.com.tw/Fund/FundPage?FundNo=18496290B
+    連結: 民生基礎建設股票入息基金-A類型(新臺幣 -> https://www.usitc.com.tw/Fund/FundPage?FundNo=88319683A
+    連結: 民生基礎建設股票入息基金-B類型(新臺幣 -> https://www.usitc.com.tw/Fund/FundPage?FundNo=88319683B
+    連結: 民生基礎建設股票入息基金-NA類型(新臺 -> https://www.usitc.com.tw/Fund/FundPage?FundNo=88319683C
+    連結: 民生基礎建設股票入息基金-ND類型(新臺 -> https://www.usitc.com.tw/Fund/FundPage?FundNo=88319683D
+    連結: 民生基礎建設股票入息基金-A類型(美元) -> https://www.usitc.com.tw/Fund/FundPage?FundNo=88319683E
+    連結: 民生基礎建設股票入息基金-B類型(美元) -> https://www.usitc.com.tw/Fund/FundPage?FundNo=88319683F
+    連結: 民生基礎建設股票入息基金-NA類型(美元 -> https://www.usitc.com.tw/Fund/FundPage?FundNo=88319683G
+    連結: 民生基礎建設股票入息基金-ND類型(美元 -> https://www.usitc.com.tw/Fund/FundPage?FundNo=88319683H
+    連結: 聯邦金鑽平衡基金-A類型(新台幣) -> https://www.usitc.com.tw/Fund/FundPage?FundNo=98669575A
+    連結: 聯邦金鑽平衡基金-NA類型(新台幣) -> https://www.usitc.com.tw/Fund/FundPage?FundNo=98669575B
+    連結: 環太平洋平衡基金-A累積型(新臺幣) -> https://www.usitc.com.tw/Fund/FundPage?FundNo=38546327A
+    連結: 環太平洋平衡基金-B月配型(新臺幣) -> https://www.usitc.com.tw/Fund/FundPage?FundNo=38546327B
+    連結: 環太平洋平衡基金-A累積型(人民幣避險) -> https://www.usitc.com.tw/Fund/FundPage?FundNo=38546327C
+    連結: 環太平洋平衡基金-B月配型(人民幣避險) -> https://www.usitc.com.tw/Fund/FundPage?FundNo=38546327D
+    連結: 環太平洋平衡基金-A累積型(美元) -> https://www.usitc.com.tw/Fund/FundPage?FundNo=38546327E
+    連結: 環太平洋平衡基金-B月配型(美元) -> https://www.usitc.com.tw/Fund/FundPage?FundNo=38546327F
+    連結: 環太平洋平衡基金-NA累積型(新臺幣) -> https://www.usitc.com.tw/Fund/FundPage?FundNo=38546327G
+    連結: 環太平洋平衡基金-ND月配型(新臺幣) -> https://www.usitc.com.tw/Fund/FundPage?FundNo=38546327H
+    連結: 環太平洋平衡基金-NA累積型(美元) -> https://www.usitc.com.tw/Fund/FundPage?FundNo=38546327I
+    連結: 環太平洋平衡基金-ND月配型(美元) -> https://www.usitc.com.tw/Fund/FundPage?FundNo=38546327J
+    連結: 優勢策略全球債券組合基金 -> https://www.usitc.com.tw/Fund/FundPage?FundNo=13984587
+    連結: 貨幣市場基金 -> https://www.usitc.com.tw/Fund/FundPage?FundNo=17144332
+    連結: 永騰亞洲非投資等級債券基金-A累積型(新 -> https://www.usitc.com.tw/Fund/FundPage?FundNo=42386420A
+    連結: 永騰亞洲非投資等級債券基金-B月配型(新 -> https://www.usitc.com.tw/Fund/FundPage?FundNo=42386420B
+    連結: 永騰亞洲非投資等級債券基金-A累積型(人 -> https://www.usitc.com.tw/Fund/FundPage?FundNo=42386420C
+    連結: 永騰亞洲非投資等級債券基金-B月配型(人 -> https://www.usitc.com.tw/Fund/FundPage?FundNo=42386420D
+    連結: 永騰亞洲非投資等級債券基金-A累積型(美 -> https://www.usitc.com.tw/Fund/FundPage?FundNo=42386420E
+    連結: 永騰亞洲非投資等級債券基金-B月配型(美 -> https://www.usitc.com.tw/Fund/FundPage?FundNo=42386420F
+    連結: 聯邦美國優選投資等級債券基金-A類型(新 -> https://www.usitc.com.tw/Fund/FundPage?FundNo=93217829A
+    連結: 聯邦美國優選投資等級債券基金-B類型(新 -> https://www.usitc.com.tw/Fund/FundPage?FundNo=93217829B
+    連結: 聯邦美國優選投資等級債券基金-NA類型( -> https://www.usitc.com.tw/Fund/FundPage?FundNo=93217829C
+    連結: 聯邦美國優選投資等級債券基金-ND類型( -> https://www.usitc.com.tw/Fund/FundPage?FundNo=93217829D
+    連結: 聯邦美國優選投資等級債券基金-A類型(美 -> https://www.usitc.com.tw/Fund/FundPage?FundNo=93217829E
+    連結: 聯邦美國優選投資等級債券基金-B類型(美 -> https://www.usitc.com.tw/Fund/FundPage?FundNo=93217829F
+    連結: 聯邦美國優選投資等級債券基金-NA類型( -> https://www.usitc.com.tw/Fund/FundPage?FundNo=93217829G
+    連結: 聯邦美國優選投資等級債券基金-ND類型( -> https://www.usitc.com.tw/Fund/FundPage?FundNo=93217829H
+    連結: 高息策略多重資產基金-A累積型(新臺幣) -> https://www.usitc.com.tw/Fund/FundPage?FundNo=79044973A
+    連結: 高息策略多重資產基金-B月配型(新臺幣) -> https://www.usitc.com.tw/Fund/FundPage?FundNo=79044973B
+    連結: 高息策略多重資產基金-ND月配型(新臺幣 -> https://www.usitc.com.tw/Fund/FundPage?FundNo=79044973C
+    連結: 高息策略多重資產基金-A累積型(美元) -> https://www.usitc.com.tw/Fund/FundPage?FundNo=79044973D
+    連結: 高息策略多重資產基金-B月配型(美元) -> https://www.usitc.com.tw/Fund/FundPage?FundNo=79044973E
+    連結: 高息策略多重資產基金-ND月配型(美元) -> https://www.usitc.com.tw/Fund/FundPage?FundNo=79044973F
+    連結: 高息策略多重資產基金-A累積型(南非幣) -> https://www.usitc.com.tw/Fund/FundPage?FundNo=79044973G
+    連結: 高息策略多重資產基金-B月配型(南非幣) -> https://www.usitc.com.tw/Fund/FundPage?FundNo=79044973H
+    連結: 高息策略多重資產基金-ND月配型(南非幣 -> https://www.usitc.com.tw/Fund/FundPage?FundNo=79044973I
+    連結: 低碳目標多重資產基金-Ａ類型(新臺幣) -> https://www.usitc.com.tw/Fund/FundPage?FundNo=88236255A
+    連結: 低碳目標多重資產基金-NA類型(新臺幣) -> https://www.usitc.com.tw/Fund/FundPage?FundNo=88236255B
+    連結: 低碳目標多重資產基金-Ａ類型(美元) -> https://www.usitc.com.tw/Fund/FundPage?FundNo=88236255C
+    連結: 低碳目標多重資產基金-NA類型(美元) -> https://www.usitc.com.tw/Fund/FundPage?FundNo=88236255D
+    連結: 臺灣精選收益多重資產基金-A類型(新臺幣 -> https://www.usitc.com.tw/Fund/FundPage?FundNo=93101355A
+    連結: 臺灣精選收益多重資產基金-B類型(新臺幣 -> https://www.usitc.com.tw/Fund/FundPage?FundNo=93101355B
+    連結: 臺灣精選收益多重資產基金NA類型(新臺幣 -> https://www.usitc.com.tw/Fund/FundPage?FundNo=93101355C
+    連結: 臺灣精選收益多重資產基金ND類型(新臺幣 -> https://www.usitc.com.tw/Fund/FundPage?FundNo=93101355D
+    連結: 聯邦日本收益成長多重資產基金-A類型(新 -> https://www.usitc.com.tw/Fund/FundPage?FundNo=00645548A
+    連結: 聯邦日本收益成長多重資產基金-B類型(新 -> https://www.usitc.com.tw/Fund/FundPage?FundNo=00645548B
+    連結: 聯邦日本收益成長多重資產基金-NA類型( -> https://www.usitc.com.tw/Fund/FundPage?FundNo=00645548C
+    連結: 聯邦日本收益成長多重資產基金-ND類型( -> https://www.usitc.com.tw/Fund/FundPage?FundNo=00645548D
+    連結: 聯邦日本收益成長多重資產基金-A類型(美 -> https://www.usitc.com.tw/Fund/FundPage?FundNo=00645548E
+    連結: 聯邦日本收益成長多重資產基金-B類型(美 -> https://www.usitc.com.tw/Fund/FundPage?FundNo=00645548F
+    連結: 聯邦日本收益成長多重資產基金-NA類型( -> https://www.usitc.com.tw/Fund/FundPage?FundNo=00645548G
+    連結: 聯邦日本收益成長多重資產基金-ND類型( -> https://www.usitc.com.tw/Fund/FundPage?FundNo=00645548H
+    連結: 聯邦日本收益成長多重資產基金-A類型(日 -> https://www.usitc.com.tw/Fund/FundPage?FundNo=00645548I
+    連結: 聯邦日本收益成長多重資產基金-B類型(日 -> https://www.usitc.com.tw/Fund/FundPage?FundNo=00645548J
+    連結: 聯邦日本收益成長多重資產基金-NA類型( -> https://www.usitc.com.tw/Fund/FundPage?FundNo=00645548K
+    連結: 聯邦日本收益成長多重資產基金-ND類型( -> https://www.usitc.com.tw/Fund/FundPage?FundNo=00645548L
+    連結: 聯邦日本收益成長多重資產基金-A類型(美 -> https://www.usitc.com.tw/Fund/FundPage?FundNo=00645548M
+    連結: 聯邦日本收益成長多重資產基金-B類型(美 -> https://www.usitc.com.tw/Fund/FundPage?FundNo=00645548N
+    連結: 聯邦日本收益成長多重資產基金-NA類型( -> https://www.usitc.com.tw/Fund/FundPage?FundNo=00645548O
+    連結: 聯邦日本收益成長多重資產基金-ND類型( -> https://www.usitc.com.tw/Fund/FundPage?FundNo=00645548P
+    連結: 聯邦台灣精彩50ETF基金 -> https://www.usitc.com.tw/Fund/FundPage?FundNo=00572518
+    連結: 聯邦美國金融創新ETF基金 -> https://www.usitc.com.tw/Fund/FundPage?FundNo=00684464
+    連結: 基金淨值一覽表 -> https://www.usitc.com.tw/Fund/NewNAV
+    連結: 聯邦台灣精彩50ETF基金(本基金之配息 -> https://www.usitc.com.tw/Fund/FundPage?FundNo=00572518
+    連結: 聯邦美國金融創新ETF基金(本基金之配息 -> https://www.usitc.com.tw/Fund/FundPage?FundNo=00684464
+    連結: 最新公告 -> https://www.usitc.com.tw/#list-pld
+    連結: 媒體報導 -> https://www.usitc.com.tw/#list-media
+    連結: 優惠活動 -> https://www.usitc.com.tw/#list-fact
+    連結: 2025 投資流程納入ESG評估 -> https://www.usitc.com.tw/CustCenter/ShowFile?fileName=Info/info_20261008_7.pdf&filePath=
+    連結: 聯邦投信「2026上半年股東會投票紀錄」 -> https://www.usitc.com.tw/CustCenter/ShowFile?fileName=Info/info_20261008_6.pdf&filePath=
+    連結: 聯邦投信「2025上半年股東會投票紀錄」 -> https://www.usitc.com.tw/CustCenter/ShowFile?fileName=Info/info_20261008_5.pdf&filePath=
+    連結: 聯邦投信「2024上半年股東會投票紀錄」 -> https://www.usitc.com.tw/CustCenter/ShowFile?fileName=Info/info_20261008_4.pdf&filePath=
+    連結: 聯邦投信「2025議合紀錄」 -> https://www.usitc.com.tw/CustCenter/ShowFile?fileName=Info/info_20261008_3.pdf&filePath=
+    連結: 聯邦投信「2024議合紀錄」 -> https://www.usitc.com.tw/CustCenter/ShowFile?fileName=Info/info_20261008_2.pdf&filePath=
+    連結: 聯邦投信「2024議合紀錄」 -> https://www.usitc.com.tw/CustCenter/ShowFile?fileName=Info/info_20261008_1.pdf&filePath=
+    連結: 聯邦2023年到期全球優質債券基金俄羅斯 -> https://www.usitc.com.tw/CustCenter/ShowFile?fileName=Info/info_20261006_4.pdf&filePath=
+    連結: more -> https://www.usitc.com.tw/CustCenter/InfoCenter
+    連結: 2026.8.27聯邦台灣精彩50ETF -> https://www.usitc.com.tw/CustCenter/ShowFile?fileName=Info/info_20260827_1.pdf&filePath=
+    連結: 2026.7.31聯邦台灣精彩50ETF -> https://www.usitc.com.tw/CustCenter/ShowFile?fileName=Info/info_20260731_1.pdf&filePath=
+    連結: 2026.7.30聯邦美國金融創新ETF -> https://www.usitc.com.tw/CustCenter/ShowFile?fileName=Info/info_20260730_1.pdf&filePath=
+    連結: 2026.7.20聯邦美國金融創新ETF -> https://www.usitc.com.tw/CustCenter/ShowFile?fileName=Info/info_20260720_1.pdf&filePath=
+    連結: 2026.7.9聯邦美國金融創新ETF媒 -> https://www.usitc.com.tw/CustCenter/ShowFile?fileName=Info/info_20260709_1.pdf&filePath=
+    連結: 2026.7.7聯邦美國金融創新ETF媒 -> https://www.usitc.com.tw/CustCenter/ShowFile?fileName=Info/info_20260707_3.pdf&filePath=
+    連結: 2026.7.7聯邦台灣精彩50ETF基 -> https://www.usitc.com.tw/CustCenter/ShowFile?fileName=Info/info_20260707_4.pdf&filePath=
+    連結: 2026.7.3聯邦美國金融創新ETF媒 -> https://www.usitc.com.tw/CustCenter/ShowFile?fileName=Info/info_20260703_2.pdf&filePath=
+    連結: more -> https://www.usitc.com.tw/CustCenter/InfoCenter
+    連結: 定期定額0手續費，現正優惠中 !! -> https://www.usitc.com.tw/CustCenter/ShowFile?fileName=Act/info_20230920_1.pdf&filePath=
+    連結: 盡職治理遵循專區 -> https://www.usitc.com.tw/CustCenter/InfoCenter?PType=5
+    連結: 洗錢防制及反恐專區 -> https://www.usitc.com.tw/CustCenter/InfoCenter?PType=7
+    連結: 網路釣魚宣導暨網站安全提醒 -> https://www.usitc.com.tw/CustCenter/safety
+    連結: 金融友善服務 -> https://www.usitc.com.tw/Home/About?pg=4
+    連結: ESG基金專區 -> https://www.usitc.com.tw/CustCenter/InfoCenter?PType=8
+    連結: 反金融投資詐騙專區 -> https://www.usitc.com.tw/CustCenter/InfoCenter?PType=9
+    連結: 永續發展專區 -> https://www.usitc.com.tw/CustCenter/InfoCenter?PType=11
+    連結: usitc.cs@usitc.com.t -> mailto:usitc.cs@usitc.com.tw
+    連結: (02)6618-9901 -> tel:0266189901
+  XHR／文件請求 1 個：
+     200 GET https://www.usitc.com.tw/
+        resp='<!DOCTYPE html>\r\n<html>\r\n<head>\r\n    <meta charset="UTF-8">\r\n    <meta name="viewport" content="width=device-width, initial-scale=1.0">\r\n    <meta name="format-detection" content="telephone=no">\r\n    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">\r\n    <title>聯邦投信-首頁</title>\r\n    <lin'
+  含成分股字樣的回應 0 個：
+====================================================================================================
+[extra-2] https://www.blackrock.com/tw
+  networkidle 等不到（照樣往下）: TimeoutError Page.goto: Timeout 45000ms exceeded.
+Call log:
+  - navigating to "https://www.blackrock.com/tw", waiting until "networki
+  最終網址: https://www.blackrock.com/tw  標題: 貝萊德投信 | BlackRock
+    連結: Skip to content -> https://www.blackrock.com/tw#bodyWrapper
+    連結: 貝萊德BlackRock -> https://www.blackrock.com/tw
+    連結: iShares安碩 -> https://www.blackrock.com/tw/ishares
+    連結: 全球首頁(英文) -> https://www.blackrock.com/corporate
+    連結: 登入 -> https://www.blackrock.com/tw/sign-on.oauth?redirectUrl=%2Ftw%3FsignInAppWithOkta%3Dtrue
+    連結: Americas Offshore -> https://www.blackrock.com/americas-offshore/
+    連結: Australia -> https://www.blackrock.com/au
+    連結: Austria -> https://www.blackrock.com/at
+    連結: Belgium -> https://www.blackrock.com/be
+    連結: Brazil -> https://www.blackrock.com/br
+    連結: Canada -> https://www.blackrock.com/ca
+    連結: Chile -> https://www.blackrock.com/cl
+    連結: China Offshore - 中國境 -> https://www.blackrock.com/cn
+    連結: China Onshore - 中國境内 -> https://www.blackrock.com.cn/
+    連結: Colombia -> https://www.blackrock.com/co
+    連結: Czech Republic -> https://www.blackrock.com/cz
+    連結: Denmark -> https://www.blackrock.com/dk
+    連結: Dubai (IFC) -> https://www.blackrock.com/ae
+    連結: Finland -> https://www.blackrock.com/fi
+    連結: France -> https://www.blackrock.com/fr
+    連結: Germany -> https://www.blackrock.com/de
+    連結: Hong Kong - 香港 -> https://www.blackrock.com/hk
+    連結: Hungary -> https://www.blackrock.com/hu
+    連結: Israel -> https://www.blackrock.com/il
+    連結: Italy -> https://www.blackrock.com/it
+    連結: Japan - 日本 -> https://www.blackrock.com/jp/individual/ja
+    連結: Kuwait -> https://www.blackrock.com/kw
+    連結: Luxembourg -> https://www.blackrock.com/lu
+    連結: México -> https://www.blackrock.com/mx
+    連結: Netherlands -> https://www.blackrock.com/nl
+    連結: Norway -> https://www.blackrock.com/no
+    連結: Poland -> https://www.blackrock.com/pl
+    連結: Portugal -> https://www.blackrock.com/pt
+    連結: Saudi Arabia -> https://www.blackrock.com/sa
+    連結: Singapore -> https://www.blackrock.com/sg
+    連結: Slovakia -> https://www.blackrock.com/sk
+    連結: South Africa -> https://www.blackrock.com/za
+    連結: Spain -> https://www.blackrock.com/es
+    連結: Sweden -> https://www.blackrock.com/se
+    連結: Switzerland -> https://www.blackrock.com/ch
+    連結: Taiwan - 台灣 -> https://www.blackrock.com/tw
+    連結: United Kingdom -> https://www.blackrock.com/uk
+    連結: United States -> https://www.blackrock.com/us/individual
+    連結: Location not listed -> https://www.blackrock.com/corporate
+    連結: 使用條款及隱私政策 -> https://www.blackrock.com/tw/terms-of-use
+    連結: 不同意 -> https://www.blackrock.com/corporate
+    連結:  -> https://www.blackrock.com/tw
+    連結: 基金總覽 -> https://www.blackrock.com/tw#
+    連結: 焦點基金 -> https://www.blackrock.com/tw#
+    連結: iShares ETF專區 -> https://www.blackrock.com/tw#
+    連結: 投資觀點 -> https://www.blackrock.com/tw#
+    連結: 資料中心 -> https://www.blackrock.com/tw#
+    連結: 關於我們 -> https://www.blackrock.com/tw#
+    連結: 全系列基金 -> https://www.blackrock.com/tw/products/products-list
+    連結: iShares安碩ETF -> https://www.blackrock.com/tw/products/products-list#/?productView=ishares&dataView=perfNav
+    連結: 境外後收系列基金(B級別) -> https://www.blackrock.com/tw/back-end-load-share
+    連結: 全球基金A、B級別簡介 -> https://www.blackrock.com/tw/education/what-is-share-class
+    連結: 月配息基金配息紀錄 -> https://www.blackrock.com/tw/monthly-dividend-record-mutualfund
+    連結: 配息組成項目表 -> https://www.blackrock.com/tw/document-centre?materialType=dividends&glsLanguage=zh
+    連結: 貝萊德全球智慧數據股票入息基金(基金之配 -> https://www.blackrock.com/tw/systematic-global-equity-high-income-fund
+    連結: 貝萊德智慧數據收益成長基金(基金之配息來 -> https://www.blackrock.com/tw/bgf-systematic-global-income-growth-fund
+    連結: 貝萊德環球資產配置基金(基金之配息來源可 -> https://www.blackrock.com/tw/global-allocation-fund
+    連結: 貝萊德環球動態趨勢多元資產組合基金(基金 -> https://www.blackrock.com/tw/global-dynamic-trends-multi-asset-fund-of-fund
+    連結: 貝萊德多元收益成長基金(基金有相當比重投 -> https://www.blackrock.com/tw/dynamic-high-income-fund
+    連結: 貝萊德美國靈活股票基金（基金之配息來源可 -> https://www.blackrock.com/tw/us-flexible-equity-fund
+    連結: 認識貝萊德iShares ETF -> https://www.blackrock.com/tw/ishares
+    連結: iShares全球資金流通週報 -> https://www.blackrock.com/tw/insights/ishares-weekly-fundflow
+    連結: 009826 -> https://www.blackrock.com/tw/ishares/global-allcap-equity-etf
+    連結: 00991B -> https://www.blackrock.com/tw/ishares/global-usd-a-bond-etf
+    連結: 00985D -> https://www.blackrock.com/tw/products/349339/
+    連結: 009813 -> https://www.blackrock.com/tw/products/345655/
+    連結: ETF即時預估淨值 -> https://www.blackrock.com/tw/ishares/inav
+    連結: ETF公告 -> https://www.blackrock.com/tw/ishares/etf-announcement
+    連結: ETF配息資訊 -> https://www.blackrock.com/tw/etf-dividend-record
+    連結: 定期定額券商一覽表 -> https://www.blackrock.com/tw/etf-regular-savings-plan
+    連結: 收益平準金專區 -> https://www.blackrock.com/tw/ishares/etf-income-equalization-education
+    連結: 常見問題 -> https://www.blackrock.com/tw/ishares/etf-frequently-asked-questions
+    連結: 基金收益分配資料異動申請書 -> https://www.blackrock.com/tw/literature/forms/blackrock-etf-data-change-request-form.pdf
+    連結: 現金申購/買回/撤銷申購/撤銷買回申請書 -> https://www.blackrock.com/tw/literature/forms/blackrock-subscription-buyback-cancellation-application.pdf
+    連結: 市場觀點總覽 -> https://www.blackrock.com/tw/insights/insights-home
+    連結: 每週全球投資評論 -> https://www.blackrock.com/tw/insights/global-weekly-commentary
+    連結: 每季投資建議 -> https://www.blackrock.com/tw/insights/investment-directions-the-road-ahead
+    連結: iShares全球資金流通週報 -> https://www.blackrock.com/tw/insights/ishares-weekly-fundflow
+    連結: 投資 AI熱潮 -> https://www.blackrock.com/tw/insights/ai-investment-theme
+    連結: 智慧數據 放大投資影響力 -> https://www.blackrock.com/tw/systematic-investing
+    連結: 全球投資展望 -> https://www.blackrock.com/tw/insights/global-investment-outlook
+    連結: 永續與轉型投資 -> https://www.blackrock.com/tw/investment-ideas/sustainable-and-transition-investing
+    連結: 下載專區 -> https://www.blackrock.com/tw/document-centre
+    連結: 基金月報 -> https://www.blackrock.com/tw/document-centre?materialType=fact+sheet&glsLanguage=zh
+    連結: 基金文宣 -> https://www.blackrock.com/tw/document-centre?materialType=fund+in+focus%7Ebrochure
+    連結: 投資宣導專區 -> https://www.blackrock.com/tw/getting-started/with-fund/fund-investing
+    連結: 永續發展轉型揭露專區 -> https://www.blackrock.com/tw/sustainable-investment-disclosure
+    連結: 認識貝萊德 -> https://www.blackrock.com/tw/about-blackrock
+    連結: 認識 iShares 安碩 -> https://www.blackrock.com/tw/about-ishares
+    連結: 貝萊德智庫 -> https://www.blackrock.com/tw/insights/blackrock-investment-institute
+    連結: 永續經營承諾 (英文) -> https://www.blackrock.com/corporate/sustainability
+    連結: 盡職治理專區 -> https://www.blackrock.com/tw/about-blackrock/investment-stewardship
+    連結: 資產管理獎項 -> https://www.blackrock.com/tw/awards
+    連結: 聯絡我們 -> https://www.blackrock.com/tw/about-blackrock/contact-us
+    連結: 工作機會 -> https://careers.blackrock.com/
+    連結: 貝萊德機構投資網 -> https://www.blackrock.com/institutions/en-axj
+    連結:  -> https://www.blackrock.com/tw
+    連結: 立即了解 -> https://www.blackrock.com/tw/ishares
+    連結: 了解更多 -> https://www.blackrock.com/tw/insights/global-weekly-commentary
+    連結: 了解更多 -> https://www.blackrock.com/tw/etf-dividend-record
+    連結: 了解更多 -> https://www.blackrock.com/tw/monthly-dividend-record
+    連結: 查看全部搜尋結果
+查看全部搜尋結果
+
+
+ -> https://www.blackrock.com/tw/products/products-list
+    連結: 多元資產
+
+貝萊德環球資產配置基金(基金 -> https://www.blackrock.com/tw/global-allocation-fund#unrestricted-investment-structure
+    連結: 入息基金
+
+貝萊德全球智慧數據股票入息基 -> https://www.blackrock.com/tw/systematic-global-equity-high-income-fund
+    連結: 多元資產
+
+貝萊德環球動態趨勢多元資產組 -> https://www.blackrock.com/tw/global-dynamic-trends-multi-asset-fund-of-fund
+    連結: 了解 iShares ETF -> https://www.blackrock.com/tw/ishares
+    連結: 了解貝萊德後收型基金 -> https://www.blackrock.com/tw/back-end-load-share
+    連結: 詳閱全文 -> https://www.blackrock.com/tw/investment-ideas/sustainable-and-transition-investing
+    連結: 了解更多 -> https://www.blackrock.com/tw/education/what-is-share-class
+    連結: 基金配息資訊 -> https://www.blackrock.com/tw/document-centre?materialType=dividends&glsLanguage=zh
+    連結: 月配息基金配息紀錄 -> https://www.blackrock.com/tw/monthly-dividend-record
+    連結: 基金總覽 -> https://www.blackrock.com/tw/products/products-list
+    連結: 基金行事曆 -> https://www.blackrock.com/tw/literature/calendars-and-schedules/blackrock-global-fund-calendars-tw.pdf
+    連結: 現在就行動 -> https://line.naver.jp/ti/p/@blackrocktw
+    連結: 認識貝萊德 -> https://www.blackrock.com/tw/about-blackrock/rising-giant
+    連結: 獎項與殊榮 -> https://www.blackrock.com/tw/awards
+    連結: 貝萊德機構投資網 -> https://www.blackrock.com/institutions/en-axj
+    連結: 盡職治理專區 -> https://www.blackrock.com/tw/about-blackrock/investment-stewardship
+    連結: 防詐騙提醒聲明 -> https://www.blackrock.com/tw/literature/shareholder-letters/blackrock-website-disclaimer-taiwan.pdf
+    連結: 反詐騙警語及澄清訊息: 請留意冒用本公司 -> https://www.blackrock.com/tw/literature/shareholder-letters/blackrock-website-disclaimer-taiwan.pdf
+    連結: 全系列基金 -> https://www.blackrock.com/tw/products/products-list
+    連結: iShares安碩ETF -> https://www.blackrock.com/tw/products/products-list#/?productView=ishares&dataView=perfNav
+    連結: 境外後收系列基金(B級別) -> https://www.blackrock.com/tw/back-end-load-share
+    連結: 全球基金A、B級別簡介 -> https://www.blackrock.com/tw/education/what-is-share-class
+    連結: 月配息基金配息紀錄 -> https://www.blackrock.com/tw/monthly-dividend-record-mutualfund
+    連結: 配息組成項目表 -> https://www.blackrock.com/tw/document-centre?materialType=dividends&glsLanguage=zh
+    連結: 貝萊德全球智慧數據股票入息基金(基金之配 -> https://www.blackrock.com/tw/systematic-global-equity-high-income-fund
+    連結: 貝萊德智慧數據收益成長基金(基金之配息來 -> https://www.blackrock.com/tw/bgf-systematic-global-income-growth-fund
+    連結: 貝萊德環球資產配置基金(基金之配息來源可 -> https://www.blackrock.com/tw/global-allocation-fund
+    連結: 貝萊德環球動態趨勢多元資產組合基金(基金 -> https://www.blackrock.com/tw/global-dynamic-trends-multi-asset-fund-of-fund
+    連結: 貝萊德多元收益成長基金(基金有相當比重投 -> https://www.blackrock.com/tw/dynamic-high-income-fund
+    連結: 貝萊德美國靈活股票基金（基金之配息來源可 -> https://www.blackrock.com/tw/us-flexible-equity-fund
+    連結: 認識貝萊德iShares ETF -> https://www.blackrock.com/tw/ishares
+    連結: iShares全球資金流通週報 -> https://www.blackrock.com/tw/insights/ishares-weekly-fundflow
+    連結: 009826 -> https://www.blackrock.com/tw/ishares/global-allcap-equity-etf
+    連結: 00991B -> https://www.blackrock.com/tw/ishares/global-usd-a-bond-etf
+    連結: 00985D -> https://www.blackrock.com/tw/products/349339/
+    連結: 009813 -> https://www.blackrock.com/tw/products/345655/
+    連結: ETF即時預估淨值 -> https://www.blackrock.com/tw/ishares/inav
+    連結: ETF公告 -> https://www.blackrock.com/tw/ishares/etf-announcement
+    連結: ETF配息資訊 -> https://www.blackrock.com/tw/etf-dividend-record
+    連結: 定期定額券商一覽表 -> https://www.blackrock.com/tw/etf-regular-savings-plan
+    連結: 收益平準金專區 -> https://www.blackrock.com/tw/ishares/etf-income-equalization-education
+    連結: 常見問題 -> https://www.blackrock.com/tw/ishares/etf-frequently-asked-questions
+    連結: 基金收益分配資料異動申請書 -> https://www.blackrock.com/tw/literature/forms/blackrock-etf-data-change-request-form.pdf
+    連結: 現金申購/買回/撤銷申購/撤銷買回申請書 -> https://www.blackrock.com/tw/literature/forms/blackrock-subscription-buyback-cancellation-application.pdf
+    連結: 市場觀點總覽 -> https://www.blackrock.com/tw/insights/insights-home
+    連結: 每週全球投資評論 -> https://www.blackrock.com/tw/insights/global-weekly-commentary
+    連結: 每季投資建議 -> https://www.blackrock.com/tw/insights/investment-directions-the-road-ahead
+    連結: iShares全球資金流通週報 -> https://www.blackrock.com/tw/insights/ishares-weekly-fundflow
+    連結: 投資 AI熱潮 -> https://www.blackrock.com/tw/insights/ai-investment-theme
+    連結: 智慧數據 放大投資影響力 -> https://www.blackrock.com/tw/systematic-investing
+    連結: 全球投資展望 -> https://www.blackrock.com/tw/insights/global-investment-outlook
+    連結: 永續與轉型投資 -> https://www.blackrock.com/tw/investment-ideas/sustainable-and-transition-investing
+    連結: 下載專區 -> https://www.blackrock.com/tw/document-centre
+    連結: 基金月報 -> https://www.blackrock.com/tw/document-centre?materialType=fact+sheet&glsLanguage=zh
+    連結: 基金文宣 -> https://www.blackrock.com/tw/document-centre?materialType=fund+in+focus%7Ebrochure
+    連結: 投資宣導專區 -> https://www.blackrock.com/tw/getting-started/with-fund/fund-investing
+    連結: 永續發展轉型揭露專區 -> https://www.blackrock.com/tw/sustainable-investment-disclosure
+    連結: 認識貝萊德 -> https://www.blackrock.com/tw/about-blackrock
+    連結: 認識 iShares 安碩 -> https://www.blackrock.com/tw/about-ishares
+    連結: 貝萊德智庫 -> https://www.blackrock.com/tw/insights/blackrock-investment-institute
+    連結: 永續經營承諾 (英文) -> https://www.blackrock.com/corporate/sustainability
+    連結: 盡職治理專區 -> https://www.blackrock.com/tw/about-blackrock/investment-stewardship
+    連結: 資產管理獎項 -> https://www.blackrock.com/tw/awards
+    連結: 聯絡我們 -> https://www.blackrock.com/tw/about-blackrock/contact-us
+    連結: 工作機會 -> https://careers.blackrock.com/
+    連結: 貝萊德機構投資網 -> https://www.blackrock.com/institutions/en-axj
+    連結:  -> https://www.blackrock.com/tw
+    連結:  -> https://line.naver.jp/ti/p/@blackrocktw
+    連結:  -> https://www.youtube.com/channel/UCKCeujsUEEo1GVZUDam_uKg?sub_confirmation=1
+    連結: 工作機會 -> https://careers.blackrock.com/
+    連結: (集團)新聞中心 -> https://www.blackrock.com/corporate/newsroom
+    連結: 聯絡我們 -> https://www.blackrock.com/tw/about-blackrock/contact-us
+    連結: (集團)投資人關係 -> https://ir.blackrock.com/home/default.aspx
+    連結: 洗錢防制宣導專區 -> https://www.blackrock.com/tw/money-laundering-prevention
+    連結: 使用條款 -> https://www.blackrock.com/tw/terms-of-use
+    連結: 隱私聲明 -> https://www.blackrock.com/corporate/compliance/privacy-notice
+    連結: 金融消費爭議處理專區 -> https://www.foi.org.tw/index.aspx
+    連結: 檢舉制度與管道 -> https://www.blackrock.com/tw/reporting
+    連結: (集團)營運持續計畫 -> https://www.blackrock.com/corporate/compliance/business-continuity
+    連結: 金融友善服務專區 -> https://www.blackrock.com/tw/literature/publication/disability-customer-service.pdf
+    連結: Cookie聲明 -> https://www.blackrock.com/corporate/compliance/privacy-notice#cookie-notice
+    連結: https://www.blackroc -> https://www.blackrock.com/tw
+    連結: https://mops.twse.co -> https://mops.twse.com.tw/
+    連結: 網紅互動辦法 -> https://www.blackrock.com/tw/influencer-disclaimer
+    連結: Cookie Notice -> https://www.blackrock.com/corporate/compliance/privacy-policy#cookie-notice
+    連結: BlackRock Cookie Not -> https://www.blackrock.com/corporate/compliance/privacy-policy#cookie-notice
+    連結:  -> https://www.onetrust.com/solutions/consent-and-preferences/
+  XHR／文件請求 24 個：
+     200 GET https://www.blackrock.com/tw
+        resp='<!DOCTYPE html>\n<html xmlns="http://www.w3.org/1999/xhtml" prefix="og: http://ogp.me/ns#" lang="zh-TW" xml:lang="zh-TW">\n<head>\n<link rel="preload" href="/apac-retail-c-assets/include/bundles/minified-a08f3474d776f30e0e0f0655abd90b53.css" as="style" />\n<link rel="preload" href="/apac-retail-c-assets'
+     200 GET https://cdn.cookielaw.org/consent/1d844f07-6416-4f37-97e9-e7e8b80732f2/1d844f07-6416-4f37-97e9-e7e8b80732f2.json
+        resp='{"CookieSPAEnabled":false,"CookieSameSiteNoneEnabled":false,"CookieV2CSPEnabled":true,"MultiVariantTestingEnabled":false,"UseV2":true,"MobileSDK":false,"SkipGeolocation":false,"ScriptType":"PRODUCTION","Version":"202609.1.0","OptanonDataJSON":"1d844f07-6416-4f37-97e9-e7e8b80732f2","GeolocationUrl":"'
+     200 GET https://geolocation.onetrust.com/cookieconsentpub/v1/geo/location
+        resp='{"country":"US","state":"WA","stateName":"Washington","continent":"NA"}'
+     200 GET https://cdn.cookielaw.org/consent/1d844f07-6416-4f37-97e9-e7e8b80732f2/0199190f-a997-7151-87ee-00c0af94baf1/en.json
+        resp='{"DomainData":{"pclifeSpanYr":"Year","pclifeSpanYrs":"Years","pclifeSpanSecs":"A few seconds","pclifeSpanWk":"Week","pclifeSpanWks":"Weeks","pccontinueWithoutAcceptText":"Continue without Accepting","pccloseButtonType":"Icon","MainText":"Manage your cookies","MainInfoText":"BlackRock uses cookies to'
+     200 GET https://cdn.cookielaw.org/scripttemplates/202609.1.0/assets/otFlat.json
+        resp='\n            {\n                "name": "otFlat",\n                "html": "PGRpdiBpZD0ib25ldHJ1c3QtYmFubmVyLXNkayIgY2xhc3M9Im90RmxhdCI+PGRpdiByb2xlPSJkaWFsb2ciPjxkaXYgY2xhc3M9Im90LXNkay1jb250YWluZXIiPjxkaXYgY2xhc3M9Im90LXNkay1yb3ciPjxkaXYgaWQ9Im9uZXRydXN0LWdyb3VwLWNvbnRhaW5lciIgY2xhc3M9Im90LXNkay1laW'
+     200 GET https://cdn.cookielaw.org/scripttemplates/202609.1.0/assets/v2/otPcCenter.json
+        resp='\n        {\n            "name": "otPcCenter",\n            "html": "PGRpdiBpZD0ib25ldHJ1c3QtcGMtc2RrIiBjbGFzcz0ib3RQY0NlbnRlciBvdC1oaWRlIG90LWZhZGUtaW4iPjxkaXYgcm9sZT0iZGlhbG9nIiBhcmlhLW1vZGFsPSJ0cnVlIj48IS0tIENsb3NlIEJ1dHRvbiAtLT48ZGl2IGNsYXNzPSJvdC1wYy1oZWFkZXIiPjwhLS0gTG9nbyBUYWcgLS0+PGRpdiBjbGFzcz'
+     200 GET https://cdn.cookielaw.org/scripttemplates/202609.1.0/assets/otCommonStyles.css
+        resp='#onetrust-banner-sdk .onetrust-vendors-list-handler{cursor:pointer;color:#1f96db;font-size:inherit;font-weight:bold;text-decoration:none;margin-left:5px;white-space:normal;word-wrap:break-word;text-align:left}#onetrust-banner-sdk .onetrust-vendors-list-handler:hover{color:#1f96db}#onetrust-banner-sd'
+     200 GET https://cdn.cookielaw.org/logos/static/ot_guard_logo.svg
+        resp='<svg xmlns="http://www.w3.org/2000/svg"><path class="ot-floating-button__svg-fill" d="M14.588 0l.445.328c1.807 1.303 3.961 2.533 6.461 3.688 2.015.93 4.576 1.746 7.682 2.446 0 14.178-4.73 24.133-14.19 29.864l-.398.236C4.863 30.87 0 20.837 0 6.462c3.107-.7 5.668-1.516 7.682-2.446 2.709-1.251 5.01-2.5'
+     200 POST https://api.company-target.com/api/v3/ip.json?referrer=&page=https%3A%2F%2Fwww.blackrock.com%2Ftw&page_title=%E8%B2%9D%E8%90%8A%E5%BE%B7%E6%8A%95%E4%BF%A1%20%7C%20BlackRock
+        body={"src":"tag","auth":"ONhVghWL76O2ssW8AwEJcDmbavyfMPcIBfxRtSGc"}
+        resp='{"access_type":"identified_non_business","audience":"SMB","audience_segment":"","digital_domain":null,"information_level":"Basic","isp":false,"region_name":"Washington","registry_area_code":null,"registry_city":"Moses Lake","registry_company_name":"Microsoft Corp","registry_country":"United States",'
+     200 POST https://securemetrics.blackrock.com/b/ss//6
+        body=<?xml version="1.0" encoding="UTF-8"?><request><sc_xml_ver>1.0</sc_xml_ver><reportSuiteID>blk-anonymised-prod</reportSuiteID><server>blk-anonymised-prod</server><browserHeight>720</browserHeight><browserWidth>1280</browserWidth><colorDepth>24</colorDepth><channel>main</channel><pageName>tw-one|main|
+        resp='<?xml version="1.0" encoding="UTF-8"?>\n<status>SUCCESS</status>\n'
+     200 GET https://dpm.demdex.net/id?d_visid_ver=3.3.0&d_fieldgroup=MC&d_rtbd=json&d_ver=2&d_orgid=631FF31455E575197F000101%40AdobeOrg&d_nsid=0&ts=1791463072088
+        resp='{"d_mid":"72982407822279819905810175005700179570","id_sync_ttl":604800,"d_blob":"6G1ynYcLPuiQxYZrsz_pkqfLG9yMXBpb2zX5dvJdYQJzPXImdj0y","dcs_region":9,"d_ottl":7200,"ibs":[],"subdomain":"blackrock","tid":"EsBEf5K4Q6Y="}'
+     200 GET https://tag-logger.demandbase.com/bg9s?x-amz-cf-id=cjBBwOWojBhGd-V1qvwOd65vXxXdmfsAy8Ie5dKt4H52Lb5YrrQ_6Q==&api-version=v3
+        resp=''
+     200 GET https://s.company-target.com/s/sync?exc=lr
+        resp='<html>\n\t<head>\n\t\t<title>Pixels</title>\n\t</head>\n\t<body>\n\t\n<img src="https://dsum-sec.casalemedia.com/rum?cm_dsp_id=18&amp;expiry=1807187872&amp;external_user_id=4c196817-69b2-4eee-a212-adf0dd408a37" alt="" width="0" height="0" style="display:none", aria-hidden="true">\n<img src="https://partners.trem'
+     200 GET https://csxd.ishares.com/xdframe-1.1.1.html
+        resp='<!DOCTYPE html><html><head><meta charset="UTF-8"><script>window.parent.postMessage(["_cs_id","_cs_s","_cs_cvars","_cs_ex","_cs_s_ctx","_cs_i","_cs_ep"].reduce(function(e,c){var _=function(e){var c=new RegExp("(^|;)[ ]*"+e+"=([^;]*)"),_=c.exec(document.cookie);return _?decodeURIComponent(_[2]):null}('
+     200 GET https://vice01.blackrock.com/blackrock/blackrockprod/1.23.10.8/
+        resp='<!DOCTYPE html>\n<html>\n\n<head>\n\t<meta name="robots" content="noindex, nofollow, noarchive, nosnippet" />\n\t<link rel="icon" href="data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAIAOw==" />\n</head>\n\n<body>\n\t<script type="text/javascript">\n\t\t"use strict";\n\t\tconst allowedDomains = [\'blac'
+     200 GET https://csxd.careers.blackrock.com/xdframe-1.1.1.html
+        resp='<!DOCTYPE html><html><head><meta charset="UTF-8"><script>window.parent.postMessage(["_cs_id","_cs_s","_cs_cvars","_cs_ex","_cs_s_ctx","_cs_i","_cs_ep"].reduce(function(e,c){var _=function(e){var c=new RegExp("(^|;)[ ]*"+e+"=([^;]*)"),_=c.exec(document.cookie);return _?decodeURIComponent(_[2]):null}('
+     200 POST https://adobedc.demdex.net/ee/v1/interact?configId=175dbcf4-f683-4dc1-875e-45103fcc9e7b&requestId=b617de3c-59d7-4970-8b15-9f66a94fe537
+        body={"meta":{"configOverrides":{},"state":{"domain":"blackrock.com","cookiesEnabled":true}},"events":[{"query":{"personalization":{"schemas":["https://ns.adobe.com/personalization/default-content-item","https://ns.adobe.com/personalization/html-content-item","https://ns.adobe.com/personalization/json-co
+        resp='{"requestId":"b617de3c-59d7-4970-8b15-9f66a94fe537-3e5c1a2de24d4b84","handle":[{"payload":[{"id":"72982407822279819905810175005700179570","namespace":{"code":"ECID"}}],"type":"identity:result"},{"payload":[],"type":"activation:pull","eventIndex":0},{"payload":[],"type":"personalization:decisions","e'
+     200 GET https://csxd.efront.com/xdframe-1.1.1.html
+        resp='<!DOCTYPE html><html><head><meta charset="UTF-8"><script>window.parent.postMessage(["_cs_id","_cs_s","_cs_cvars","_cs_ex","_cs_s_ctx","_cs_i","_cs_ep"].reduce(function(e,c){var _=function(e){var c=new RegExp("(^|;)[ ]*"+e+"=([^;]*)"),_=c.exec(document.cookie);return _?decodeURIComponent(_[2]):null}('
+     204 POST https://c.contentsquare.net/pageview?ex=&dt=51&pvt=n&cvars=%7B%221%22%3A%5B%22pageName%22%2C%22index%22%5D%2C%222%22%3A%5B%22siteSection%22%2C%22main%22%5D%2C%225%22%3A%5B%22siteName%22%2C%22tw-one%22%5D%2C%226%22%3A%5B%22loggedIn%22%2C%22no%22%5D%2C%227%22%3A%5B%22country%22%2C%22tw%22%5D%2C%228%22
+        resp=''
+     204 GET https://c.contentsquare.net/dvar?v=15.263.3&pid=5397&pn=1&sn=1&uu=9cd32f20-fc59-a039-ac2f-8566aba38ac4&dv=H4sIAAAAAAAAA6tWSi72TSxJzsjMS%2FdOrVSyUjLQMzA3NDMwsjQ3MzGzNDMwNDSKNzS3NDQxMwZKWBgYKNUCADAFoI01AAAA&ct=2&r=789149
+        resp=''
+     204 GET https://c.contentsquare.net/dvar?v=15.263.3&pid=5397&pn=1&sn=1&uu=9cd32f20-fc59-a039-ac2f-8566aba38ac4&dv=H4sIAAAAAAAAA6tWSi72TSxJzsjMS%2FdOrVSyUjLQMzA3NDMwsjQ3MzGzNDMwNDSKNzS3NDQxMwZKWBgYKNUCADAFoI01AAAA&ct=2&r=954594
+        resp=''
+     204 POST https://px.ads.linkedin.com/wa/?medium=fetch&fmt=g
+        body=H4sIAAAAAAAAA22QsU7dMBiFXwX9s8114jh2vFGpoEgMFfeKpaoqx/4D1nWcEPsWVZQXYOrSsUNfgaVb+zIt4jFoLhUT45H+7/znnBuYvEug35dSFIKrDwSSnf2Uz3FOfoygC8YY45xA9gOCLmRTVDVnkjMpCLhxMD6Chk/eIisOu2Dsdh7t9tCOAxDYzQE0XOY8Jb1avXa0ytdA4Bq75DOu/UU04Qyvdphy60CD7DhXrFS04TXSuu8LWrKG04qrnnGhjJQ1EJjMBZ6Oxu2ZxihmVWeps1jTCh2jXdVLKpWo
+        resp=''
+     200 GET https://services.sdiapi.com/reporter/1.1.0.1/reporter.html
+        resp='<!DOCTYPE html><html> <!-- Copyright 2026 Source Defense LTD. All Rights Reserved. Build 1783010683821 e29e8c30ac3984753423dbd6286dfe29f29e5d3a     Version 1.1.0.1 built at 2026-Jul-02 16:44:43. --><head><meta name="robots" content="noindex, nofollow, noarchive, nosnippet" /><title>Logger</title><sc'
+     200 POST https://reports.sdiapi.com/service/viceEvent
+        body=W3siZGF0YSI6eyJsb2FkZXJWZXJzaW9uIjoiMS4yMy4xMC44IiwiZmlyc3RPblBhZ2UiOnRydWUsImZvcHIiOjMxLCJ2b28iOjAsInZvcCI6MCwidm9wdiI6MTAwMCwib29vIjowLCJ3b28iOjEsImJvbyI6MX0sInNpIjoiZWZlYmM0Y2ItMTczMS00NzZjLWI4NzYtZWM4NjY5NWQzZTU3IiwidHJhZmZpY1BlcmNlbnRhZ2UiOjEwMDAwLCJub1NpIjowLCJ0eXBlIjo1LCJwYWdlVmlldyI6ImVmZWJj
+        resp='OK'
+  含成分股字樣的回應 1 個：
+   ★ 200 GET https://vice01.blackrock.com/blackrock/blackrockprod/1.23.10.8/
+     type: text/html; charset=utf-8  bytes: 204037
+     開頭: <!DOCTYPE html> <html>  <head> 	<meta name="robots" content="noindex, nofollow, noarchive, nosnippet" /> 	<link rel="icon" href="data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAIAOw==" /> </head>  <body> 	<script type="text/javascript"> 		"use strict"; 		const allowedDomains = ['blackrock.com'] || []; 		const referrerHostname = "." + new URL(document.referrer).hostname; 		const selfParentHostname = document.domain.replace(/^[^.]+\./, ""); 		allowedDomains.push(selfParentHostname)
+     2330 前後: a",/Opera\/([0-9\.]+)(?:\s|$)/],["opera",/OPR\/([0-9\.]+)(:?\s|$)/],["ie",/Trident\/7\.0.*rv:([0-9\.]+).*\).*Gecko$/],["ie",/MSIE\s([0-9\.]+);.*Trident\/[4-7].0/], ["ie",/MSIE\s(7\.0)/],["android",/Android\s([0-9\.]+)/],["ios",/Version\/([0-9\._]+).*Mobile.*Safari.*/],["safari",/Version\/([0-9\._]+).*Safari/],["facebook",/FB[AS]V\/([0-9\.]+)/],["instagram",/Instagram\s([0-9\.]+)/],["ios-webview",/AppleWebKit\/([0-9\.]+).*Mobile/],["ios-webview",/AppleWebKit\/([0-9\.]+).*Gecko\)$/]],Kd=[["iOS",/iP(hone|od|ad)/],["Android OS",/Android/],["BlackBerry OS",/BlackBerry|BB10/],["Windows Mobile",/IEMobile/]];var gg={Sa:U[23]||0},hg={Sa:U[24]||0,Jf:!0},ig={Zc:!0},jg= {Sa:U[25]||0},kg={Sa:U[20]||0,Qa:!0},lg={Sa:U[27]||0,ne:!0},mg={Sa:U[26]||0,ne:!0},ng={Sa:U[18]||0,nc:!0},og={Sa:U[19]||0,nc:!0};let 
+====================================================================================================
+[extra-3] https://am.jpmorgan.com/tw/zh/asset-management/per/
+  最終網址: https://am.jpmorgan.com/tw/zh/asset-management/per/  標題: 首頁 | J.P. Morgan Asset Management
+    連結: 重要事項及免責聲明 -> https://am.jpmorgan.com/tw/zh/asset-management/per/#%E9%87%8D%E8%A6%81%E4%BA%8B%E9%A0%85%E5%8F%8A%E5%85%8D%E8%B2%AC%E8%81%B2%E6%98%8E
+    連結: 同意並接受本使用條款、修訂及增補項目 -> https://am.jpmorgan.com/tw/zh/asset-management/per/#%E5%90%8C%E6%84%8F%E4%B8%A6%E6%8E%A5%E5%8F%97%E6%9C%AC%E4%BD%BF%E7%94%A8%E6%A2%9D%E6%AC%BE%E3%80%81%E4%BF%AE%E8%A8%82%E5%8F%8A
+    連結: 隱私權政策 -> https://am.jpmorgan.com/tw/zh/asset-management/per/#%E9%9A%B1%E7%A7%81%E6%AC%8A%E6%94%BF%E7%AD%96
+    連結: Cookies 政策 -> https://am.jpmorgan.com/tw/zh/asset-management/per/#cookies_%E6%94%BF%E7%AD%96
+    連結: 網路安全說明 -> https://am.jpmorgan.com/tw/zh/asset-management/per/#%E7%B6%B2%E8%B7%AF%E5%AE%89%E5%85%A8%E8%AA%AA%E6%98%8E
+    連結: 接受 -> javascript:void(0)
+    連結: 拒絕 -> https://www.jpmorgan.com/
+    連結: Skip to main content -> https://am.jpmorgan.com/tw/zh/asset-management/per/#contentStart
+    連結:  -> https://am.jpmorgan.com/tw/zh/asset-management/per/
+    連結: ETF專區 -> https://am.jpmorgan.com/tw/zh/asset-management/twetf/
+    連結: 產品中心 -> https://am.jpmorgan.com/tw/zh/asset-management/per/funds/
+    連結:  -> https://am.jpmorgan.com/tw/zh/asset-management/per/funds/
+    連結:  -> https://am.jpmorgan.com/tw/zh/asset-management/per/products/fund-explorer
+    連結:  -> https://am.jpmorgan.com/tw/zh/asset-management/per/products/fund-documents/
+    連結:  -> https://am.jpmorgan.com/tw/zh/asset-management/per/funds/announcements/
+    連結:  -> https://am.jpmorgan.com/tw/zh/asset-management/per/funds/non-dealing-days-calendar/
+    連結: 固定收益 -> https://am.jpmorgan.com/tw/zh/asset-management/per/funds/fixed-income/
+    連結: ETF投資 -> https://am.jpmorgan.com/tw/zh/asset-management/per/funds/jpm-active-etf/
+    連結: 主動研究實力 -> https://am.jpmorgan.com/tw/zh/asset-management/per/funds/investment-research/
+    連結: AI驅動 台灣起飛 -> https://am.jpmorgan.com/tw/zh/asset-management/per/funds/taiwan-tech-theme/
+    連結: 關鍵時刻　領先出擊 -> https://am.jpmorgan.com/tw/zh/asset-management/per/funds/us-high-income-fund/
+    連結: 跨越11年　多重收益好實力 -> https://am.jpmorgan.com/tw/zh/asset-management/per/funds/global-income-fund/
+    連結: 美國科技型基金 -> https://am.jpmorgan.com/tw/zh/asset-management/per/funds/us-tech-fund/
+    連結: 美國股票型基金 -> https://am.jpmorgan.com/tw/zh/asset-management/per/funds/america-equity-fund/
+    連結: 非投資等級債券型基金 -> https://am.jpmorgan.com/tw/zh/asset-management/per/funds/global-high-yield-bond-fund/
+    連結: 債券收益型基金 -> https://am.jpmorgan.com/tw/zh/asset-management/per/funds/income-fund/
+    連結: 定期定額首選 數位級別基金 -> https://am.jpmorgan.com/tw/zh/asset-management/per/funds/morgandirect-dshare/
+    連結: 洞察系列 -> https://am.jpmorgan.com/tw/zh/asset-management/per/insights/
+    連結:  -> https://am.jpmorgan.com/tw/zh/asset-management/per/insights/
+    連結:  -> https://am.jpmorgan.com/tw/zh/asset-management/per/insights/market-insights/
+    連結:  -> https://am.jpmorgan.com/tw/zh/asset-management/per/insights/market-insights/guide-to-the-markets/
+    連結:  -> https://am.jpmorgan.com/tw/zh/asset-management/per/insights/market-insights/principles-for-successful-long-term-investing/
+    連結:  -> https://am.jpmorgan.com/tw/zh/asset-management/per/insights/etf-insights/guide-to-etfs/
+    連結: 投資觀點 -> https://am.jpmorgan.com/tw/zh/asset-management/per/investment-ideas/
+    連結:  -> https://am.jpmorgan.com/tw/zh/asset-management/per/investment-ideas/
+    連結:  -> https://am.jpmorgan.com/tw/zh/asset-management/per/investment-ideas/us-market-investment/
+    連結:  -> https://am.jpmorgan.com/tw/zh/asset-management/per/investment-ideas/weekly-commentary/
+    連結:  -> https://am.jpmorgan.com/tw/zh/asset-management/per/investment-ideas/market-volatility-momentum/
+    連結:  -> https://am.jpmorgan.com/tw/zh/asset-management/per/investment-ideas/investment-strategies/
+    連結:  -> https://am.jpmorgan.com/tw/zh/asset-management/per/investment-ideas/regular-saving-plan/
+    連結:  -> https://am.jpmorgan.com/tw/zh/asset-management/per/investment-ideas/income/
+    連結:  -> https://am.jpmorgan.com/tw/zh/asset-management/per/investment-ideas/sustainable-investing-solutions/
+    連結: 數位理財 -> https://am.jpmorgan.com/tw/zh/asset-management/per/digital-investment/morgandirect/
+    連結:  -> https://am.jpmorgan.com/tw/zh/asset-management/per/digital-investment/AIinvestment/
+    連結:  -> https://am.jpmorgan.com/tw/zh/asset-management/per/digital-investment/twequity/
+    連結:  -> https://am.jpmorgan.com/tw/zh/asset-management/per/digital-investment/koreafund/
+    連結:  -> https://am.jpmorgan.com/tw/zh/asset-management/per/digital-investment/vietnam-fund/
+    連結:  -> https://am.jpmorgan.com/tw/zh/asset-management/per/digital-investment/epayment/
+    連結:  -> https://am.jpmorgan.com/tw/zh/asset-management/per/digital-investment/ipo-us-high-income-fund/
+    連結:  -> https://am.jpmorgan.com/tw/zh/asset-management/per/digital-investment/event-promotions/
+    連結:  -> https://am.jpmorgan.com/tw/zh/asset-management/per/digital-investment/bulletin/
+    連結:  -> https://am.jpmorgan.com/tw/zh/asset-management/per/digital-investment/multimedia/
+    連結: 數位理財 -> https://am.jpmorgan.com/tw/zh/asset-management/per/digital-investment/morgandirect/
+    連結: 立即開戶 -> https://am.jpmorgan.com/tw/zh/asset-management/per/digital-investment/open-an-account/
+    連結: 外幣投資 -> https://am.jpmorgan.com/tw/zh/asset-management/per/digital-investment/foreign-exchange/
+    連結: 投資回報計算器 -> https://am.jpmorgan.com/tw/zh/asset-management/per/digital-investment/calculators/
+    連結: 定期定額 操作攻略 -> https://am.jpmorgan.com/tw/zh/asset-management/per/digital-investment/jp-morgan-daily-rsp-investment/
+    連結: 核心投資 配息專區 -> https://am.jpmorgan.com/tw/zh/asset-management/per/digital-investment/2025incomesite/
+    連結: 投資進化 定期不定額 -> https://am.jpmorgan.com/tw/zh/asset-management/per/digital-investment/drsp/
+    連結: 網站導覽 -> https://am.jpmorgan.com/tw/zh/asset-management/per/digital-investment/website-navigator-campaign/
+    連結: 摩根 Insights App -> https://am.jpmorgan.com/tw/zh/asset-management/per/digital-investment/insights-app/
+    連結: 自助服務區 -> https://am.jpmorgan.com/tw/zh/asset-management/per/self-service-center/
+    連結:  -> https://am.jpmorgan.com/tw/zh/asset-management/per/self-service-center/
+    連結:  -> https://am.jpmorgan.com/tw/zh/asset-management/per/self-service-center/frequently-asked-questions/
+    連結:  -> https://am.jpmorgan.com/tw/zh/asset-management/per/self-service-center/forms/
+    連結:  -> https://am.jpmorgan.com/tw/zh/asset-management/per/self-service-center/contact-us/
+    連結: 關於我們 -> https://am.jpmorgan.com/tw/zh/asset-management/per/about-us/
+    連結:  -> https://am.jpmorgan.com/tw/zh/asset-management/per/about-us/
+    連結:  -> https://am.jpmorgan.com/tw/zh/asset-management/per/about-us/fund-awards/
+    連結:  -> https://am.jpmorgan.com/tw/zh/asset-management/per/about-us/leadership/
+    連結: 交易網站登入 -> https://www.jpmorganfunds.com.tw/eTrading/v2/login
+    連結: 線上開戶 -> https://www.jpmorganfunds.com.tw/accountOpening/#/eForm-v2/home?event_code=AEM00
+    連結: 立即了解 -> https://am.jpmorgan.com/tw/zh/asset-management/per/funds/taiwan-tech-theme/
+    連結: 台股數位級別基金 -> https://am.jpmorgan.com/tw/zh/asset-management/per/digital-investment/twequity/
+    連結: 立即開戶 -> https://www.jpmorganfunds.com.tw/accountOpening/?_gl=1*1op97g8*_ga*MjAwOTIwNTk3NC4xNzUzNDA5ODQ2*_ga_NX1RX3CMWF*czE3NzMxMzEyMDgkbzE0NSRnMCR0MTc3MzEzMTIxMCRqNTgkbDAkaDA.#/eForm-v2/home?event_cod
+    連結: AI深度投資 -> https://am.jpmorgan.com/tw/zh/asset-management/per/digital-investment/AIinvestment/
+    連結: 0手續費申購 -> https://www.jpmorganfunds.com.tw/eTrading/#/escheduler/buy/placeOrder/51-63
+    連結: 領息攻略看這裡 -> https://am.jpmorgan.com/tw/zh/asset-management/per/digital-investment/2025incomesite/#4
+    連結: 點此了解更多 -> https://am.jpmorgan.com/tw/zh/asset-management/per/digital-investment/koreafund/
+    連結:  -> https://am.jpmorgan.com/tw/zh/asset-management/per/funds/morgandirect-dshare/
+    連結:  -> https://am.jpmorgan.com/tw/zh/asset-management/twetf/funds/jpmorgan-tw-equity-high-income-etf/
+    連結:  -> https://campaign.businessweekly.com.tw/bw/morgan2026-887?utm_source=morgan
+    連結:  -> https://am.jpmorgan.com/tw/zh/asset-management/per/digital-investment/AIinvestment/
+    連結:  -> https://web.gim.jpmorgan.com/315039/Welcome?email_campaign=315039&memid=7225615&utm_medium=social&open_reg=true
+    連結:  -> https://am.jpmorgan.com/tw/zh/asset-management/per/digital-investment/drsp
+    連結: 數位級別 -> https://am.jpmorgan.com/tw/zh/asset-management/per/funds/morgandirect-dshare/
+    連結: 配息專區 -> https://am.jpmorgan.com/tw/zh/asset-management/per/digital-investment/2025incomesite/
+    連結: 定期定額 -> https://am.jpmorgan.com/tw/zh/asset-management/per/digital-investment/jp-morgan-daily-rsp-investment/
+    連結: 基金淨值 -> https://am.jpmorgan.com/tw/zh/asset-management/per/products/fund-explorer/onshore-funds
+    連結: 休市公告 -> https://am.jpmorgan.com/tw/zh/asset-management/per/funds/non-dealing-days-calendar/
+    連結: 配息日查詢 -> https://am.jpmorgan.com/tw/zh/asset-management/per/dividend-calendar/
+    連結: 認識摩根DIRECT 自主投資 -> https://am.jpmorgan.com/tw/zh/asset-management/per/digital-investment/morgandirect/
+    連結:  -> https://am.jpmorgan.com/tw/zh/asset-management/per/insights/market-insights/guide-to-the-markets/
+    連結:  -> https://am.jpmorgan.com/tw/zh/asset-management/per/investment-ideas/weekly-commentary/
+    連結:  -> https://am.jpmorgan.com/tw/zh/asset-management/per/insights/market-insights/principles-for-successful-long-term-investing/
+    連結:  -> https://am.jpmorgan.com/tw/zh/asset-management/per/digital-investment/multimedia/#item1
+    連結: 加入LINE好友 -> https://lin.ee/zxdjxT
+    連結: 盡職治理專區 -> https://am.jpmorgan.com/tw/zh/asset-management/per/about-us/stewardship/
+    連結: 永續投資 -> https://am.jpmorgan.com/tw/zh/asset-management/per/investment-ideas/sustainable-investing/
+    連結: 使用條款 -> https://am.jpmorgan.com/tw/zh/asset-management/per/terms-of-use/
+    連結: 隱私權政策 -> https://am.jpmorgan.com/tw/zh/asset-management/per/privacy-statement/
+    連結: Cookies政策 -> https://am.jpmorgan.com/tw/zh/asset-management/per/cookies-policy/
+    連結: 網路安全說明 -> https://am.jpmorgan.com/tw/zh/asset-management/per/security/
+    連結: 盡職治理專區 -> https://am.jpmorgan.com/tw/zh/asset-management/per/about-us/stewardship/
+    連結: 反詐騙宣導專區 -> https://am.jpmorgan.com/tw/zh/asset-management/per/digital-investment/bulletin/bulletin-anti-fraud/
+    連結: 金融友善服務 -> https://am.jpmorgan.com/content/dam/jpm-am-aem/asiapacific/tw/zh/policies/accessibility-statement/friendly.pdf
+    連結: 洗錢防制專區 -> https://am.jpmorgan.com/tw/zh/asset-management/per/aml-Information/
+    連結: 網站地圖 -> https://am.jpmorgan.com/tw/zh/asset-management/per/sitemap/
+    連結: 常見問題 -> https://am.jpmorgan.com/tw/zh/asset-management/per/self-service-center/frequently-asked-questions/
+    連結: 公司治理專區 -> https://am.jpmorgan.com/tw/zh/asset-management/per/reporting-information/
+    連結:  -> https://lin.ee/zxdjxT
+    連結: 業務據點 -> https://am.jpmorgan.com/tw/zh/asset-management/per/about-us/branch-offices/
+    連結: 摩根大通 (J.P. Morgan) -> https://www.jpmorgan.com/TW/en/about-us
+    連結: 摩根大通集團 -> https://www.jpmorganchase.com/
+    連結: 大通銀行 -> https://www.chase.com/
+    連結: 人才招募 -> https://careers.jpmorgan.com/global/en/home
+  XHR／文件請求 27 個：
+     200 GET https://am.jpmorgan.com/tw/zh/asset-management/per/
+        resp='\n  <!DOCTYPE HTML>\n  \n  \n  \n  <html lang="zh-Hant">\n\n  <head>\n    \n    \n    \n    \n    \n    \n    \n    <meta charset="UTF-8"/>\n    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>\n    <meta name="referrer" content="no-referrer-when-downgrade"/>\n    <meta content="UEgzQAQUVvl5ylE'
+     200 GET https://am.jpmorgan.com/content/jpm-am-aem/countryroleselectorconfigpage.crsmap.tw_zh_per.json?currentPath=/content/jpm-am-aem/asiapacific/tw/zh/per/includes/header/jcr:content/par/jpm_am_navigation_he
+        resp='{"crsData":[{"regionValue":"Americas","regionDisplayValue":"美洲 | Americas","regionCode":"americas","countryList":[{"countryValue":"Brazil","countryDisplayValue":"巴西 | Brazil","countryCode":"br","flagPath":"/content/dam/jpm-am-aem/global/en/images/common/flags/br.jpg","languages":[{"languageValue":"E'
+     200 GET https://am.jpmorgan.com/content/jpm-am-aem/asiapacific/tw/zh/per/_jcr_content.linklistv2.json?v=1791259347497/asiapacific
+        resp='{"groupOfLinkLists":[{"groupID":"eaemcusuid_20240212041802","template":"pageTurn","paddingStyle":"bottom_padding","eyebrowRequired":"no","theme":"dark","numberOfColumns":"2","listOfLinks":[{"eyebrowText":"基金淨值","linkLabel":"基金淨值","linkToValue":"/tw/zh/asset-management/per/products/fund-explorer/onsh'
+     200 GET https://am.jpmorgan.com/content/jpm-am-aem/asiapacific/tw/zh/per/_jcr_content.generalcardv2.json?v=1791259347497/asiapacific
+        resp='{"groupOfcards":[{"groupID":"eaemcusuid_20240212033913","visibleColumns":3,"theme":"jp__lightTheme","featuredCardAlignment":"left","cardStyle":"default","peoplesDesignVariant":"default","toolsCardColour":"teal","carouselOptions":"none","dynamicAuthorsEnabled":false,"enableLoadMoreLayout":false,"late'
+     200 GET https://am.jpmorgan.com/content/jpm-am-aem/asiapacific/tw/zh/per/_jcr_content.textcardctav2.json?v=1791259347497/asiapacific
+        resp='{"groupOfcards":[{"groupID":"eaemcusuid_20240212031643","visibleColumns":3,"textCardType":"textOnly","theme":"dark","paddingStyle":"bottom_padding_32","borderStyle":"borderLeft","listOfCards":[{"header":"<p>摩根台股數位級別就是比較省！</p>\\r\\n","cardTextBlock":"<p>0手續費、0信託管理費、0分銷費、經理費最低3.8折起&#xff01;</p>\\r\\n","cta'
+     200 GET https://am.jpmorgan.com/bin/servlet/navigationConfigurationService?homePage=%2Fcontent%2Fjpm-am-aem%2Fasiapacific%2Ftw%2Fzh%2Fper
+        resp='{"header":{"menuItems":[{"title":"ETF專區","link":"https://am.jpmorgan.com/tw/zh/asset-management/twetf/","description":"摩根資產管理提供灼見及可行的策略，引領您在不同市場週期中向前，達成投資目標。","contentAccess":"unlocked","addFundSearch":false},{"title":"產品中心","link":"https://am.jpmorgan.com/tw/zh/asset-management/per/funds/","descrip'
+     200 GET https://am.jpmorgan.com/content/jpm-am-aem/countryroleselectorconfigpage.seomap.json
+        resp='{"availableExperiences":["br_en_adv","br_pt_adv","ca_en_adv","ca_fr_adv","ca_en_institutional","mx_en_adv","mx_es_adv","us_en_adv","us_en_per","us_en_institutional","us_en_liq","us_en_bony","us_en_ny529","us_en_smartretirement-vz","us_en_smartretirement-blend","us_en_smartretirement-caterpillar","us'
+     200 GET https://am.jpmorgan.com/content/jpm-am-aem/asiapacific/tw/zh/per/_jcr_content.herobannerv2.json?v=1791259347497/asiapacific
+        resp='{"groupOfBanners":[{"groupID":"eaemcusuid_20241009100301","formatStyle":"fullImage","heroBannerSize":"medium","fileReference":"/content/dam/jpm-am-aem/asiapacific/tw/zh/images/taiwan-tech-theme/JPMAM_APAC_TW_TZH__F_NewTech_TWMFPRODUCTEQUITIESNEWTECHINSIGHT_2800X1200_BAN_.jpg","eyebrowText":"穿越多空驗證，經'
+     200 GET https://report.jpm.gbqofs.io/reporting/64654ad3-6f20-4015-a04e-6a2f544f8231/cls_report?_cls_s=fb4d655b-05e0-4469-a2f8-04e8341c0482%3A0&_cls_v=9e4b07d8-d61b-4d32-859a-1d67c6029d3a&pv=2&f_cls_s=true
+        resp='{"pv":2,"clss":"fb4d655b-05e0-4469-a2f8-04e8341c0482:0","clsv":"9e4b07d8-d61b-4d32-859a-1d67c6029d3a","clse":null,"conf":{"appId":1,"configuration":{"attributeRules":[{"name":"Close_x_survey_amjpmorgancom","pageUrl":"https://am.jpmorgan.com/*","pageHash":"","selector":"SPAN#uz_span_close","accessor"'
+     200 GET https://pips.taboola.com/
+        resp='NULL'
+     204 GET https://cds.taboola.com/?uid=2193916d-77fe-4a54-aec0-8fc049244897-tuct11c11453&ptf=TGludXg=&ufv=MTUzLjAuODAxMC4xMg==&bnd=SGVhZGxlc3NDaHJvbWU=&bndv=MTUz&bnd=Tm90X0EgQnJhbmQ=&bndv=OA==&bnd=Q2hyb21pdW0=&bndv=MTUz&mbl=ZmFsc2U=&dc=la
+        resp=''
+     200 GET https://am.jpmorgan.com/FundsMarketingHandler/fund-explorer-label?country=tw&language=zh&version=9.17_1790647528
+        resp='{"Benchmark":"Benchmark ","benchmark-in-currency":"(in <CURRENCY>)","country-chile-(public-offering)":"Chile","country-hk":"香港","country-mu":"模里西斯","country-lu":"盧森堡","currency-amount":"{amount} {currency}","currency-code-AUD":"澳幣","currency-code-CAD":"加元","currency-code-CNH":"人民幣","currency-code-CN'
+     200 GET https://match.adsrvr.org/track/cei?advertiser_id=i2z2ve3&cookie_sync=1&upv=3.0.0&upid=5r73i28&ref=https%3a%2f%2fam.jpmorgan.com&redirect=1
+        resp='<html><body><iframe id="ttd_cei_0" height="0" width="0" style="display:none;" allowTransparency sandbox="allow-scripts allow-same-origin" src="https://ib.adnxs.com/getuid?https%3a%2f%2fmatch.adsrvr.org%2ftrack%2fcmf%2fappnexus%3fttd%3d1%26anid%3d%24UID&ttd_tdid=5c0ec5fe-a658-4851-a1de-85296e155f3c">'
+     200 GET https://match.adsrvr.org/track/cei?advertiser_id=bp333w0&cookie_sync=1&upv=3.0.0&upid=qn8bu0i&ref=https%3a%2f%2fam.jpmorgan.com&redirect=1
+        resp='<html><body><iframe id="ttd_cei_0" height="0" width="0" style="display:none;" allowTransparency sandbox="allow-scripts allow-same-origin" src="https://x.bidswitch.net/syncd?dsp_id=93&user_group=1&user_id=5c0ec5fe-a658-4851-a1de-85296e155f3c&expires=30&redir=https%3A%2F%2Fmatch.adsrvr.org%2Ftrack%2Fc'
+     200 GET https://am.jpmorgan.com/Amelia/api/init
+        resp='{"loggedIn":true,"csrfToken":"d8282b5e-989b-4960-92b5-5726c03658a0","user":{"userId":"180fa580-b214-4427-8475-aae8b154f5bd","email":"anon-180fa580-b214-4427-8475-aae8b154f5bd@anonymous-amelia.ipsoft.com","name":"Anonymous User","anonymous":true,"agent":false,"availability":"OFFLINE","primaryDomainId'
+     200 GET https://am.jpmorgan.com/FundsMarketingHandler/autocomplete?country=tw&role=per&language=zh&userLoggedIn=false&version=9.17_1790647528
+        resp='[{"cusip":"TW000T1148C9","name":"JPMorgan (Taiwan) Total Emerging Markets Income Solution Fund  - Monthly Distribution Class (USD)","shareclassName":"JPMorgan (Taiwan) Total Emerging Markets Income Solution Fund  - Monthly Distribution Class (USD)","translatedFundName":{"zh":"摩根新興雙利平衡基金"},"translate'
+     200 GET https://am.jpmorgan.com/Amelia/api/domains
+        resp='{"content":[{"id":"1a335ff7-7667-11ed-91fc-025ddde90f56","name":"pb-chat-wechat-sc","code":"pbchatwechatsc","localeDisplayName":"English (United States)","localeLanguageTag":"en-US","requireLogin":false,"hidden":false,"webGlEnabled":false,"imageEnabled":false},{"id":"1a4b4860-7667-11ed-91fc-025ddde9'
+     200 POST https://insight.adsrvr.org/track/realtimeconversion
+        body={"data":[{"adv":"i2z2ve3","pixel_ids":["5r73i28"],"referrer_url":"https://am.jpmorgan.com/tw/zh/asset-management/per/","data_processing_option":null,"privacy_settings":[]}]}
+        resp='{"Message":null,"EventResponses":[]}'
+     200 POST https://insight.adsrvr.org/track/realtimeconversion
+        body={"data":[{"adv":"bp333w0","pixel_ids":["qn8bu0i"],"referrer_url":"https://am.jpmorgan.com/tw/zh/asset-management/per/","data_processing_option":null,"privacy_settings":[]}]}
+        resp='{"Message":null,"EventResponses":[]}'
+     200 GET https://am.jpmorgan.com/Amelia/api/sock/info?t=1791463124562
+        resp='{"entropy":-2048746121,"origins":["*:*"],"cookie_needed":true,"websocket":true}'
+     200 GET https://am.jpmorgan.com/Amelia/api/conversations/my/open
+        resp='{"content":[],"last":true,"first":true,"totalPages":1,"totalElements":0,"number":0,"numberOfElements":0,"start":1,"end":0,"size":20}'
+     200 POST https://am.jpmorgan.com/Amelia/api/conversations/new
+        body={"domainCode":"amchattw","clientTimestamp":1791463125728,"userInterface":"WEB_USER","channel":"webchat_coreuser","initialBpnVariables":{"domain_code":"amchattw"},"initialAttributes":{"channel":"jpmChat","user_role":"per","current_url":"https://am.jpmorgan.com/tw/zh/asset-management/per/"},"sessionLo
+        resp='{"conversationId":"NBDOC7HEYCAAA","sessionId":"01a11b85-f395-7962-b522-13eb4b93f2a3"}'
+     204 GET https://trc-events.taboola.com/1627601/log/3/unip?en=pre_d_eng_tb&tos=4632&scd=0&ssd=1&est=1791463123522&ver=36&isls=true&src=i&invt=4500&msa=5251&rv=1&tim=1791463128154&vi=1791463123515&ri=95d594d184b65f01ed2b9b858d6c4cf7&sd=v2_22e822a44c5811bba709c2b01b1422bb_2193916d-77fe-4a54-aec0-8fc049244897-t
+        resp=''
+     200 POST https://report.jpm.gbqofs.io/reporting/64654ad3-6f20-4015-a04e-6a2f544f8231/cls_report?clsjsv=%5BLocal_version_prod%5D&_cls_s=fb4d655b-05e0-4469-a2f8-04e8341c0482:0&_cls_v=9e4b07d8-d61b-4d32-859a-1d67c6029d3a&pid=c9a77ff9-da0c-4508-b9d9-68e85e0d424a&rto=c0&sn=1&cfg&pv=2&aid=
+        body=v=2&r=https%3A%2F%2Fam.jpmorgan.com%2Ftw%2Fzh%2Fasset-management%2Fper%2F&sn=1&p=c9a77ff9-da0c-4508-b9d9-68e85e0d424a&seg=%2Ftw%2Fzh%2Fasset-management%2Fper%2F&sp=&pssn=0&e=muziw0t2~2~-~Nu_urib8t*s_1280x720*sc_1280x720~eventId.0_1*vn.2_6aaW6aCBIHwgSi5QLiBNb3JnYW4gQXNzZXQgTWFuYWdlbWVudA%3D%3D*window
+        resp='{"pv":2,"clss":"fb4d655b-05e0-4469-a2f8-04e8341c0482:0","clsv":"9e4b07d8-d61b-4d32-859a-1d67c6029d3a","clse":null,"conf":{"appId":1,"configuration":{"attributeRules":[{"name":"Close_x_survey_amjpmorgancom","pageUrl":"https://am.jpmorgan.com/*","pageHash":"","selector":"SPAN#uz_span_close","accessor"'
+     200 POST https://report.jpm.gbqofs.io/reporting/64654ad3-6f20-4015-a04e-6a2f544f8231/cls_report?clsjsv=%5BLocal_version_prod%5D&_cls_s=fb4d655b-05e0-4469-a2f8-04e8341c0482:0&_cls_v=9e4b07d8-d61b-4d32-859a-1d67c6029d3a&pid=c9a77ff9-da0c-4508-b9d9-68e85e0d424a&rto=c0&sn=2&cfg&pv=2&aid=
+        body=v=2&r=https%3A%2F%2Fam.jpmorgan.com%2Ftw%2Fzh%2Fasset-management%2Fper%2F&sn=2&p=c9a77ff9-da0c-4508-b9d9-68e85e0d424a&seg=%2Ftw%2Fzh%2Fasset-management%2Fper%2F&sp=&pssn=0&e=muziw12a~22~0%23am-country-role-selector-dialog~Nsn_3*m_POST*u_aHR0cHM6Ly93d3cuZ29vZ2xlLmNvbS9jY20vY29sbGVjdD9yY2I9MSZmcm09MCZ
+        resp='{"pv":2,"clss":"fb4d655b-05e0-4469-a2f8-04e8341c0482:0","clsv":"9e4b07d8-d61b-4d32-859a-1d67c6029d3a","clse":null,"conf":{"appId":1,"configuration":{"attributeRules":[{"name":"Close_x_survey_amjpmorgancom","pageUrl":"https://am.jpmorgan.com/*","pageHash":"","selector":"SPAN#uz_span_close","accessor"'
+     200 POST https://report.jpm.gbqofs.io/reporting/64654ad3-6f20-4015-a04e-6a2f544f8231/cls_report?clsjsv=%5BLocal_version_prod%5D&_cls_s=fb4d655b-05e0-4469-a2f8-04e8341c0482:0&_cls_v=9e4b07d8-d61b-4d32-859a-1d67c6029d3a&pid=c9a77ff9-da0c-4508-b9d9-68e85e0d424a&rto=c0&sn=3&cfg=8e8cbf90&pv=2&aid=
+        body=v=2&r=https%3A%2F%2Fam.jpmorgan.com%2Ftw%2Fzh%2Fasset-management%2Fper%2F&sn=3&p=c9a77ff9-da0c-4508-b9d9-68e85e0d424a&seg=%2Ftw%2Fzh%2Fasset-management%2Fper%2F&sp=&pssn=0&e=muziw0t2~91~-~Nsn_0*r_*c_YW1fanBtX2dlb2xvY2F0aW9uPVVTOyBUUzAxYzc4MTRiPTAxMzBkMzczNzk5NzZjNGU1OTAyNWM2Nzk4YjYxMzg0NjY2M2NiYmNhN
+        resp='{"pv":2,"clss":"fb4d655b-05e0-4469-a2f8-04e8341c0482:0","clsv":"9e4b07d8-d61b-4d32-859a-1d67c6029d3a","clse":null,"conf":null,"usage":{"sessionQuotaBreach":false, "apiCallQuotaBreach":true, "customServerCallsBreach":false, "dataLimit": 4194304},"blockRecording":false,"uniqueLocationIdentifier":"3034'
+     200 POST https://report.jpm.gbqofs.io/reporting/64654ad3-6f20-4015-a04e-6a2f544f8231/cls_report?clsjsv=%5BLocal_version_prod%5D&_cls_s=fb4d655b-05e0-4469-a2f8-04e8341c0482:0&_cls_v=9e4b07d8-d61b-4d32-859a-1d67c6029d3a&pid=c9a77ff9-da0c-4508-b9d9-68e85e0d424a&rto=c0&sn=4&cfg=8e8cbf90&pv=2&aid=
+        body=v=2&r=https%3A%2F%2Fam.jpmorgan.com%2Ftw%2Fzh%2Fasset-management%2Fper%2F&sn=4&p=c9a77ff9-da0c-4508-b9d9-68e85e0d424a&seg=%2Ftw%2Fzh%2Fasset-management%2Fper%2F&sp=&pssn=0&e=muziw5kg~34~-~NZGF0YUxheWVyXzlfZXZlbnRBY3Rpb24%3D_YmFzZWxpbmU%3D*ZGF0YUxheWVyXzlfZXZlbnRDYXRlZ29yeQ%3D%3D_c2Nyb2xsIHBlcmNlbnRh
+        resp='{"pv":2,"clss":"fb4d655b-05e0-4469-a2f8-04e8341c0482:0","clsv":"9e4b07d8-d61b-4d32-859a-1d67c6029d3a","clse":null,"conf":null,"usage":{"sessionQuotaBreach":false, "apiCallQuotaBreach":true, "customServerCallsBreach":false, "dataLimit": 4194304},"blockRecording":false,"uniqueLocationIdentifier":"3034'
+  含成分股字樣的回應 0 個：
+====================================================================================================
+[extra-4] https://www.sitca.org.tw/ROC/Industry/IN2629.aspx
+  最終網址: https://www.sitca.org.tw/ROC/Industry/IN2629.aspx  標題: 中華民國證券投資信託暨顧問商業同業公會
+  XHR／文件請求 2 個：
+     200 GET https://www.sitca.org.tw/ROC/Industry/IN2629.aspx
+        resp='\r\n\r\n<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "https://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">\r\n<html xmlns="https://www.w3.org/1999/xhtml">\r\n<head><title>\r\n\t中華民國證券投資信託暨顧問商業同業公會\r\n</title><link rel="stylesheet" href="../../WDataStyle.css" type="text/css" media="screen"'
+     200 GET https://www.sitca.org.tw/Common/popcalendarfordata.htm
+        resp='<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN">\r\n<html>\r\n\t<META HTTP-EQUIV="Content-Type" CONTENT="text/html; charset=big5">\r\n\t<title>日曆</title>\r\n\t<body leftmargin="0" topmargin="0" bgcolor="#ffccff">\r\n\t<script language="JScript">\r\n\r\nvar gdCtrl = new Object();\r\nvar gcGray = "#148EC4";'
+  含成分股字樣的回應 0 個：
+====================================================================================================
+[extra-5] https://www.megafunds.com.tw/MEGA/etf/
+  最終網址: https://www.megafunds.com.tw/MEGA/etf/  標題: Access Denied
+  XHR／文件請求 1 個：
+     403 GET https://www.megafunds.com.tw/MEGA/etf/
+        resp='<HTML><HEAD>\n<TITLE>Access Denied</TITLE>\n</HEAD><BODY>\n<H1>Access Denied</H1>\n \nYou don\'t have permission to access "http&#58;&#47;&#47;www&#46;megafunds&#46;com&#46;tw&#47;MEGA&#47;etf&#47;" on this server.<P>\nReference&#32;&#35;18&#46;45532217&#46;1791463139&#46;23d5f5c\n<P>https&#58;&#47;&#47;err'
+  含成分股字樣的回應 0 個：
