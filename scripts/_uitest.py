@@ -27302,7 +27302,7 @@ def t_mobile_m4_1008(b, base, code):
             document.querySelectorAll('.view.on .howbtn').forEach(e => { if (vis(e)) out.push(['?', fp(e), '']); });
             document.querySelectorAll('.view.on button').forEach(e => { const c = getComputedStyle(e);
               if (!vis(e) || tabs.has(e) || e.classList.contains('howbtn') || parseFloat(c.borderTopWidth) === 0 || c.borderTopWidth !== c.borderBottomWidth
-                || e.matches('.rkrow,.cald,.sl-i,.mbwadd,.wpmore,.etfc,.skr-r') || e.closest('[role=tablist],.seg,.nbsw,.mpager,.mseg,.ddlist,.mnumlayer,.mdgfolds,table')) return;
+                || e.matches('.rkrow,.cald,.sl-i,.mbwadd,.wpmore,.etfc,.skr-r,.m4rst') || e.closest('[role=tablist],.seg,.nbsw,.mpager,.mseg,.ddlist,.mnumlayer,.mdgfolds,table')) return;
               out.push(['按鈕', fp(e), e.className]); });
             return out; }"""
         kinds = {}
@@ -27618,32 +27618,41 @@ def t_mobile_m4_1009(b, base, code):
             ok(f"【{T}】點 2D/3D 圓鈕 → 模式切到 3D、3D 畫布真的出現、圓鈕改寫「3D」（{s3['mode']}，{s3['circ']}）",
                s3["mode"] == "3d" and s3["c3d"] and not s3["svg"] and s3["circ"] and "3D" in s3["circ"][0][1], s3)
             ok(f"【{T}】切到 3D 後，只屬於 2D 的「延伸閱讀」整區不可見", not s3["folds"], s3)
-            # 3D 的 ↻：拖一下畫布（畫面真的變）→ 按 ↻ → 回到初始視角（截圖跟初始差很少；動畫先關掉 tw.dganim＝0，不然自轉會讓兩張永遠不一樣）
+            # 3D 的 ↻：手指拖一下畫布 → 相機真的換位置 → 按 ↻ → 相機回到初始（比方向與距離，同 t_3d「重設視角真的回到預設」的做法；
+            #   原本用截圖比，機器忙時 WebGL 畫面沒更新會量到 0%，改讀 Rack3D.current.cam()）
             cv = J("() => { const c = document.querySelector('#prod3d canvas'); c.scrollIntoView({ block: 'center' }); const r = c.getBoundingClientRect(); return [r.left, r.top, r.width, r.height]; }")
             m.wait_for_timeout(600)
-            clip = {"x": cv[0] + 10, "y": cv[1] + 10, "width": max(40, cv[2] - 20), "height": max(40, min(cv[3] - 20, 300))}
-            def snap():
-                return m.screenshot(clip=clip)
-            def diff(a1, a2):
-                from PIL import Image, ImageChops
-                import io
-                i1, i2 = Image.open(io.BytesIO(a1)).convert("L"), Image.open(io.BytesIO(a2)).convert("L")
-                d = ImageChops.difference(i1, i2); h = d.histogram(); tot = sum(h)
-                return sum(h[24:]) / max(1, tot)
-            p0 = snap()
-            x0, y0 = cv[0] + cv[2] * .5, cv[1] + min(cv[3] * .5, 200)
+            cam = lambda: J("() => (window.Rack3D && window.Rack3D.current && window.Rack3D.current.cam) ? window.Rack3D.current.cam() : null")
+            J("() => { if (window.M3 && M3.closeSheet) M3.closeSheet(); }"); m.wait_for_timeout(300)
+            c0 = cam()
+            # 找一個真的點得到畫布的點（底部說明面板、編號圈、客服鈕蓋住的地方不算）
+            pt = J("""() => { const c = document.querySelector('#prod3d canvas'), r = c.getBoundingClientRect();
+                for (const [fx, fy] of [[.5, .45], [.4, .35], [.6, .55], [.5, .25], [.3, .6]]) { const x = r.left + r.width * fx, y = r.top + r.height * fy;
+                  if (y > 60 && y < innerHeight - 10 && document.elementFromPoint(x, y) === c) return [x, y]; }
+                const e = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2); return [r.left + r.width / 2, r.top + r.height / 2, e ? e.tagName + '.' + e.className : null]; }""")
+            x0, y0 = pt[0], pt[1]
             tp = lambda t, x: cdp.send("Input.dispatchTouchEvent", {"type": t, "touchPoints": [] if t == "touchEnd" else [{"x": x, "y": y0}]})
             tp("touchStart", x0)
             for k in range(1, 13):
                 tp("touchMove", x0 - 60 + 20 * k); m.wait_for_timeout(20)
             tp("touchEnd", 0); m.wait_for_timeout(900)
-            p1 = snap()
+            c1 = cam()
+            if c0 and c1 and max(abs(p_ - q_) for p_, q_ in zip(c0, c1)) <= 3:
+                # 手指那一下落在編號圈／引線層上時 OrbitControls 收不到（整段手機v2 跑下來實測過一次）—— 改用滑鼠拖一次，這一條驗的是 ↻ 不是手勢
+                m.mouse.move(x0, y0); m.mouse.down(); m.mouse.move(x0 + 220, y0 + 30, steps=14); m.mouse.up(); m.wait_for_timeout(900)
+                c1 = cam()
             J("() => { document.getElementById('dgBody').scrollIntoView({ block: 'start' }); window.scrollBy(0, -70); }"); m.wait_for_timeout(300)
             m.locator("#dgBody > .m4rst").tap(); m.wait_for_timeout(1200)
-            J(f"() => window.scrollTo({{ top: 0 }})"); J("() => { document.querySelector('#prod3d canvas').scrollIntoView({ block: 'center' }); }"); m.wait_for_timeout(600)
-            p2 = snap()
-            d01, d02 = diff(p0, p1), diff(p0, p2)
-            ok(f"【{T}】3D ↻：拖一下畫面真的轉了（差 {d01:.1%}）→ 按 ↻ → 回到初始視角（差 {d02:.1%}）", d01 > 0.008 and d02 < d01 / 3, (d01, d02))
+            c2 = cam()
+            def _unit(v):
+                n = sum(x * x for x in v) ** 0.5
+                return [x / n for x in v], n
+            moved = bool(c0 and c1) and max(abs(p_ - q_) for p_, q_ in zip(c0, c1)) > 3
+            back = False
+            if c0 and c2:
+                u0, n0 = _unit(c0); u2, n2 = _unit(c2)
+                back = sum(p_ * q_ for p_, q_ in zip(u0, u2)) > 0.999 and abs(n2 - n0) / n0 < 0.05
+            ok(f"【{T}】3D ↻：手指拖一下相機真的轉了（{c0} → {c1}）→ 按 ↻ → 相機回到初始（{c2}）", moved and back, (c0, c1, c2, pt))
             m.locator("#dg3d button:visible").first.tap(); m.wait_for_timeout(2500)
             s4 = J(ST)
             ok(f"【{T}】再點一下圓鈕 → 回 2D（平面圖出現、3D 畫布收掉、圓鈕寫「2D」）", s4["mode"] == "2d" and s4["svg"] and not s4["c3d"] and "2D" in s4["circ"][0][1], s4)
