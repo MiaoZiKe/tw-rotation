@@ -28421,6 +28421,20 @@ def t_mobile_m4_misc1009(b, base, code):
             ok(f"【{T}】{W} 寬個股 K 線圖頭：開／高／低／收四個數字都在、每一個「標籤＋數字」同一行、沒有一個被「還原」小標蓋到",
                len({x["k"] for x in it}) == 4 and all(x["lines"] == 1 and not x["hit"] for x in it)
                and k["sw"] <= k["cw"] + 1 and k["page"] <= k["vw"], k)
+            # (a2) 手機監督退件：每組（開／高／低／收＋漲跌%／振幅／量／每條均線）整組同一行、不碰小標；圖頭右緣 ≤ 價格軸左緣
+            g = m.evaluate("""() => { const lg = document.getElementById('legendOv'), tag = document.getElementById('adjTag'); if (!lg) return null;
+                const lr = lg.getBoundingClientRect(), tr = tag && tag.getBoundingClientRect();
+                const hit = (b) => tr && Math.min(b.right, tr.right) - Math.max(b.left, tr.left) > 0.5 && Math.min(b.bottom, tr.bottom) - Math.max(b.top, tr.top) > 0.5;
+                const grp = [...lg.querySelectorAll('.kv, br ~ span[style]')].map(e => { const rs = [...e.getClientRects()].filter(r => r.width > 0);
+                  return { t: e.textContent.trim(), lines: new Set(rs.map(r => Math.round(r.top))).size, hit: rs.some(hit) }; });
+                const td = lg.parentElement.querySelector('table tr td:last-child'), ax = td ? td.getBoundingClientRect().left : null;
+                return { grp, lgR: Math.round(lr.right), ax: ax == null ? null : Math.round(ax) }; }""")
+            want = ("開", "高", "低", "收", "振幅", "量")
+            ok(f"【{T}】{W} 寬個股 K 線圖頭：每組「標籤＋數值」整組同一行（收含漲跌%）、沒碰到「還原」小標，圖頭右緣 ≤ 價格軸左緣（{g and g['lgR']} ≤ {g and g['ax']}）",
+               g and g["ax"] is not None and g["lgR"] <= g["ax"] + 0.5
+               and all(any(x["t"].startswith(w + " ") for x in g["grp"]) for w in want)
+               and any(x["t"].startswith("收 ") and "%" in x["t"] for x in g["grp"])
+               and all(x["lines"] == 1 and not x["hit"] for x in g["grp"]), g)
             # (b) 財經日曆月份列
             m.goto(base + "#earnings", wait_until="domcontentloaded"); m.wait_for_timeout(3000)
             e = m.evaluate(_M4MISC_HD, "#v-earnings .ehd")

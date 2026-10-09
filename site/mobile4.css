@@ -820,8 +820,10 @@
   /* (a) 個股 K 線圖頭：右上「還原」小標（.adjtag，絕對定位在 .chartwrap 右邊 72px）蓋住「高 2,590.00」。
      圖頭文字（.legend-ov）每次十字線移動都會重寫 innerHTML，所以不能在文字裡塞東西 ——
      改用 ::before 在第一行右側浮一塊空位，第一行的字自己繞開小標；第二行以後照舊滿寬。
-     寬度＝72（小標離右緣）＋小標寬約 40＋6 間距。 */
-  :root.m4 #lwc .legend-ov::before{content:'';float:right;width:120px;height:18px}
+     空位寬高由 industry.js fitM4Legend() 依小標實際位置量（--m4adjw／--m4adjh），圖頭右緣也由它收在價格軸左緣。 */
+  :root.m4 #lwc .legend-ov::before{content:'';float:right;width:var(--m4adjw,120px);height:var(--m4adjh,18px)}
+  /* 每組「標籤＋數值」（industry.js 手機分支包成 .kv）與每條均線讀數整組不換行、整組一起換行 */
+  :root.m4 #lwc .legend-ov :is(.kv,span[style]){white-space:nowrap}
 
   /* (b) 財經日曆月份列：#earnMonth 在 ≤640 被寫死 96px，「2026 年 10 月」15px 字要 108px → 溢出蓋到「下月 ›」。改成照字寬 */
   :root.m4 #v-earnings .ehd b{width:auto;flex:none}
