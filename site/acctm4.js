@@ -17,7 +17,7 @@
                 （資料只讀 TwPerm.lim／TwPerm.limit／TwQuota.used —— 頁首那顆額度圓環是另一位同事在改，這裡不碰）
      意見回饋 → support.js 的客服面板（TwSupport.open()；客服浮動鈕關掉時照樣打得開）
      客服功能 → 開關（10-09 09:2x Andy：「客服按鈕改成『客服功能』」，只改名、開關行為不變）：關＝右下角客服浮動鈕藏起來（localStorage tw.fab.off＝'1'；<html class="fab-off">，index.html 開頭就先套用，不會先閃一下）
-     版面風格 → 收合群組（預設收起）：三套版面風格（親和休閒／科技 HUD／專業有力），點了就是 window.T4.set()，跟原本外觀面板同一支
+     版面風格 → 收合群組（預設收起）：兩套版面風格（科技 HUD／專業有力；10-10 Andy「休閒風格拿掉 手機 網頁都是」），點了就是 window.T4.set()，跟原本外觀面板同一支
                 （10-09 08:4x Andy 圖一＋圖二：「將紅框改成這功能（明暗切換）／風格在圖二改」——明暗改由頂欄那顆 ☀／🌙 直接切，
                  原本「深色模式」開關這一列改成「風格」；頂欄的外觀調色盤鈕 #t4Btn 在手機藏起來，不留兩顆重複的入口）
      管理區 › → 只有管理員／站主看得到；收合群組（預設收起），裡面是原本的四～五項
@@ -185,7 +185,7 @@ html.m4 .m4deldlg .msg{min-height:1.4em;font-size:13px;color:#ff6b7a;margin:4px 
   /* ---------------- 選單內容 ---------------- */
   const ver = () => { const b = document.getElementById('buildver'); const t = b && b.textContent.trim(); if (t) return t; const m = document.querySelector('meta[name="tw:build"]'); return 'v ' + (((m && m.content) || 'dev').split('|')[0] || 'dev'); };
   /* 版面風格：清單讀 theme4.js 的 T4.THEMES（只有 id），名稱照外觀面板的寫法 */
-  const STY = { casual: ['親和休閒', 'linear-gradient(135deg,#FFE8DA,#6A55E6)'], hud: ['科技 HUD', 'linear-gradient(135deg,#050A13,#37E2FF)'], pro: ['專業有力', 'linear-gradient(135deg,#0A0C10,#2E5BDB)'] };
+  const STY = { hud: ['科技 HUD', 'linear-gradient(135deg,#050A13,#37E2FF)'], pro: ['專業有力', 'linear-gradient(135deg,#0A0C10,#2E5BDB)'] };
   const styIds = () => ((window.T4 && window.T4.THEMES) || Object.keys(STY)).filter((k) => STY[k]);
   const styCur = () => (window.T4 && window.T4.get ? window.T4.get() : (document.documentElement.getAttribute('data-theme4') || 'hud'));
   const styName = (k) => (STY[k] || [k])[0];
