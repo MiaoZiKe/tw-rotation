@@ -26739,7 +26739,7 @@ def t_tour_1007(pg, b, base):
         ok(f"{T} 390 全站第 {r['i'] + 1} 步「{r['title']}」：框在畫面內、說明卡不出畫面且貼底或貼頂", c_ok and h_ok and r["place"] in ("sheet-bottom", "sheet-top"),
            (r["sel"], r["hole"], r["card"], r["place"]))
     # 2026-10-09（導覽普查1009）：手機 v2 沒有底部導覽列與「更多」（全站目錄收進 ☰ 抽屜）→ 每一頁那一步換到那一頁、框內容區最上面的頁名（#m4Title）
-    nav = [r for r in rows if r["sel"] == "#m4Title"]
+    nav = [r for r in rows if "#m4Title" in r["sel"] or r["sel"] == "#chainSwitch"]   # 資金流向／熱力圖是聯集框、產業地圖手機沒有頁名改框鏈分頁
     ok(f"{T} 390：全站導覽逐頁走過（框各頁頁名 #m4Title ≥ 8 頁，背後的頁面真的換了）",
        len(nav) >= 8 and len({r["view"] for r in nav}) >= 8, [(r["title"], r["view"]) for r in nav])
     ok(f"{T} 390：第一步框住左上角 ☰（全站目錄）", bool(rows) and rows[0]["sel"] == "#m4Burger", rows and rows[0]["sel"])
