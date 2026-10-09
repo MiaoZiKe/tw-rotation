@@ -26968,7 +26968,7 @@ def t_title_dup_1007(b, base):
 #   ④ 第一屏（不捲動）：該頁的主圖＋摘要列整個在 0～844 之內（M4_FIRST）
 #   ⑤ 每一頁的主要切換真的點得動：點一顆沒選中的切換鈕 → 它變成選中、頁面文字真的變了
 M4_FIRST = {   # 路由 → 第一屏（390×844 不捲動）必須整個看得到的元素：主圖或精簡圖＋它的摘要列（2026-10-08 實測量過才填）
-    "#overview": ["#mbIdx", "#m3"],                                             # 指數三格＋大盤（2026-10-08 晚起總覽預設停在「大盤」組）
+    "#overview": ["#hero", "#m3"],                                              # 摘要卡＋大盤（2026-10-09 Andy「上方拿掉」：指數三格拿掉，摘要卡變第一塊）
     "#earnings": ["#earnFilt", "#earnMonth"],                                   # 三分類切換＋月份（月曆本身是例外格）
     "#flow/rotation": ["#flowRotCard svg", "#mRank > :nth-child(5)"],         # 輪盤＋排行前 5
     "#flow/sankey": ["#flowSankeyCard .mrank"],                                # 第一層五大類長條（金額＋占比）
@@ -28025,7 +28025,7 @@ def t_mobile_m4(b, base, code):
         ch = m.evaluate("""() => { const v = document.querySelector('.view.on'); const H = innerHeight;
             document.querySelectorAll('[data-m4try]').forEach(x => x.removeAttribute('data-m4try'));
             // 「⋯」是開選單的鈕（自選分頁式 2026-10-08 合併進來），不是分段切換，不算
-            const cand = [...v.querySelectorAll('button')].filter(b => { const r = b.getBoundingClientRect(); return r.width && r.top > 0 && r.bottom < H && !b.disabled && b.textContent.trim() !== '⋯' && !b.classList.contains('mfilt'); });   // .mfilt＝開底部抽屜的設定鈕，不是分段切換
+            const cand = [...v.querySelectorAll('button')].filter(b => { const r = b.getBoundingClientRect(); return r.width && r.top > 0 && r.bottom < H && !b.disabled && b.textContent.trim() !== '⋯' && !b.classList.contains('mfilt') && !b.closest('.m4ovdots'); });   // .mfilt＝開底部抽屜的設定鈕，不是分段切換；.m4ovdots＝摘要卡圓點頁數（換卡不換內容，ov2 段另外驗）
             const isOn = (b) => b.classList.contains('on') || b.getAttribute('aria-selected') === 'true' || b.getAttribute('aria-pressed') === 'true';
             for (const b of cand) { if (isOn(b)) continue; const sib = [...b.parentElement.children].filter(x => x.tagName === 'BUTTON');
               if (sib.length >= 2 && sib.some(isOn)) { b.setAttribute('data-m4try', '1'); return { t: b.textContent.trim().slice(0, 12) }; } }
@@ -28673,6 +28673,7 @@ def t_mobile_m4_ov2(b, base, code):
 
         # ④ K 線／走勢圖 Y 軸刻度完整在圖框內、精簡寫法（總覽大盤＋個股頁）
         go("overview", 4000)
+        J("() => { const b = document.querySelector('#m3Mode button[data-m=\"line\"]'); if (b && !b.classList.contains('on')) b.click(); }"); m.wait_for_timeout(2500)   # 先切回走勢圖（ECharts）
         def yaxis_ok(sel):
             return J("""(sel) => { const c = document.querySelector(sel); if (!c) return null; const box = c.getBoundingClientRect();
                 const ec = window.echarts && echarts.getInstanceByDom(c);
@@ -28732,6 +28733,7 @@ def t_mobile_m4_ov2(b, base, code):
         m.locator("#themeDiagram g.stn").first.tap(); m.wait_for_timeout(500)
         J("() => window.M3 && window.M3.closeSheet && window.M3.closeSheet()"); m.wait_for_timeout(200)
         sel1 = J("() => document.querySelectorAll('#themeDiagram .sel').length")
+        J("() => document.querySelector('#themeDiagram svg .ttl').scrollIntoView({ block: 'center' })"); m.wait_for_timeout(300)   # 標題可能被頂欄蓋住：先捲到中間再點
         tt = J("() => { const t = document.querySelector('#themeDiagram svg .ttl'); const r = t.getBoundingClientRect(); return { x: r.left + 4, y: r.top + r.height / 2 }; }")
         m.touchscreen.tap(tt["x"], tt["y"]); m.wait_for_timeout(500)
         sel2 = J("() => document.querySelectorAll('#themeDiagram .sel').length")
