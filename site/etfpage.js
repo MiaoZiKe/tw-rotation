@@ -1838,12 +1838,15 @@
          最寬 3 個字放得進一格、相鄰還留 ≥ 4px；字級拉回 12px 下限；
          柱寬 56%；再加 hideOverlap 當最後一道保險。完整金額在提示框（點一下就出現）。桌機（m4=false）一個字都沒改。 */
     const m4 = document.documentElement.classList.contains('m4');
-    const lab = m4 ? { show: true, position: 'top', fontSize: 12, fontFamily: 'system-ui, -apple-system, "Segoe UI", Roboto, sans-serif', color: CH.ink2, formatter: (p) => { const w = p.value / 1e4; return p.value > 0 ? (w < 10 ? w.toFixed(1) : String(Math.round(w))) : ''; } }
+    /* 360 寬（監督退件 36）：圖寬 340 時每格只剩約 21px，「8.3」約 19px，相鄰只差 2.5px（402 寬圖寬 382 時差 6px）
+       → 圖寬 < 370 一律取整數（「8」約 8px），完整金額在提示框。圖還沒排版（寬 0）時用視窗寬估 */
+    const cw = (document.getElementById(id) || {}).clientWidth || window.innerWidth - 20, intOnly = cw < 370;
+    const lab = m4 ? { show: true, position: 'top', fontSize: 12, fontFamily: 'system-ui, -apple-system, "Segoe UI", Roboto, sans-serif', color: CH.ink2, formatter: (p) => { const w = p.value / 1e4; return p.value > 0 ? (w < 10 && !intOnly ? w.toFixed(1) : String(Math.round(w))) : ''; } }
       : { show: true, position: 'top', fontSize: 11, color: CH.ink2, formatter: (p) => (p.value > 0 ? wan1(p.value) : '') };
     a.chart(id, {
       grid: { left: 4, right: 4, top: 24, bottom: 4, containLabel: true },
       tooltip: { ...a.tip, confine: true, trigger: 'item', formatter: (p) => tipOf(p.dataIndex) },
-      xAxis: { type: 'category', data: Array.from({ length: 12 }, (_, i) => `${i + 1}月`), ...a.axisStyle, axisLabel: { ...a.axisStyle.axisLabel, fontSize: 11, interval: 0 } },
+      xAxis: { type: 'category', data: Array.from({ length: 12 }, (_, i) => `${i + 1}月`), ...a.axisStyle, axisLabel: m4 ? { ...a.axisStyle.axisLabel, fontSize: 12, interval: 0, formatter: (v) => String(parseInt(v, 10)) } : { ...a.axisStyle.axisLabel, fontSize: 11, interval: 0 } },   // 手機：X 軸只寫 1～12（「10月11月12月」在 360 寬會黏在一起；圖上方小標已寫「每月入帳」）
       yAxis: { type: 'value', show: false },
       series: [{ type: 'bar', id: 'tw-thick-bar', barWidth: m4 ? '56%' : '50%',   /* 10-08 Andy：直條太細太空 → 每格寬的 50%（1440 約 45px，手機等比）*/  emphasis: { focus: 'self', blurScope: 'series', itemStyle: { borderColor: CH.ink, borderWidth: 2 } }, blur: { itemStyle: { opacity: document.documentElement.getAttribute('data-theme') === 'light' ? 0.32 : 0.55 } },   // 10-08：滑過那根加亮、其他變淡（跟行事曆小圖同一套）
         itemStyle: { borderRadius: [3, 3, 0, 0], color: colOf ? (p) => { const c = colOf(p.dataIndex); return { type: 'linear', x: 0, y: 0, x2: 0, y2: 1, colorStops: [{ offset: 0, color: c }, { offset: 1, color: a.hexA(c, 0.45) }] }; } : B.grad(false) },

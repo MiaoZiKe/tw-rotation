@@ -504,4 +504,15 @@
   :root.m4 #v-etf #incList .ilr>.iln{grid-column:2!important;grid-row:1!important;min-width:0;min-height:40px;font-size:13px}
   :root.m4 #v-etf #incList .ilr>.mv{grid-column:3!important;grid-row:1!important;white-space:nowrap;font-size:12px}
   :root.m4 #v-etf #incList .ilr>.lt{grid-column:2/4!important;grid-row:2!important;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:12px!important;line-height:18px;padding-bottom:2px}
+  /* ---- 29i. ETF 前 5 名每列（2026-10-09 手機 UI 監督退件 32：點「報酬率」後名稱往上溢出列外、「上市以來 N 年」跟名稱疊在一起）：
+     每列兩行 —— 第一行名稱（單行，放不下用 …）、第二行「代號・上市以來 N 年」；列高跟著內容長（不再固定 36px），字一個沒拿掉 */
+  :root.m4 #v-etf.view.on .etftri :is(.rkrow,.rkhd){grid-template-columns:18px minmax(0,1fr) 70px 54px!important;gap:6px!important}   /* 兩欄數字縮窄（84／92 → 70／54），名稱欄才放得下「代號・上市以來 N 年」 */
+  :root.m4 #v-etf.view.on .etftri .rkrow{height:auto!important;min-height:48px;padding:5px 8px!important;align-items:center}
+  :root.m4 #v-etf.view.on .etftri .rkrow>.nm{display:block;white-space:nowrap!important;overflow:hidden;text-overflow:ellipsis;line-height:1.35;text-align:left}
+  :root.m4 #v-etf.view.on .etftri .rkrow>.nm>.cd{margin-left:0!important}
+  :root.m4 #v-etf.view.on .etftri .rkrow>.nm>.cd::before{content:"\A";white-space:pre}
+
+  /* ---- 29j. 頁尾那行免責（「公開資料整理與統計，非投資建議；過去績效不代表未來報酬。」）：桌機一行用 …，手機 360 寬會被截 → 手機可換行、不截字 */
+  :root.m4 #v-etf .etfdisc{white-space:normal!important;overflow:visible!important;text-overflow:clip!important}
+
 }

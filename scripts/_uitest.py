@@ -27504,11 +27504,14 @@ M4_TTL_JS = """() => { const out = []; document.querySelectorAll('.view.on h2, .
     if (k > 1) out.push(h.textContent.trim().slice(0, 20) + '：' + k + ' 行'); }); return out; }"""
 M4_LABS_JS = """(id) => { const el = document.getElementById(id); const ch = el && window.echarts && echarts.getInstanceByDom(el); if (!ch) return null; const L = [];
     ch.getZr().storage.getDisplayList(true).forEach(d => { if ((d.type !== 'text' && d.type !== 'tspan') || d.ignore || d.invisible || (d.style && d.style.opacity === 0)) return;
-      const t = d.style && d.style.text; if (!t || /月$/.test(t)) return; const r = d.getBoundingRect().clone(); if (d.transform) r.applyTransform(d.transform);
+      const t = d.style && d.style.text; if (!t) return; const r = d.getBoundingRect().clone(); if (d.transform) r.applyTransform(d.transform);
       L.push({ t, x: r.x, y: r.y, w: r.width, h: r.height }); });
-    const ov = []; for (let i = 0; i < L.length; i++) for (let j = i + 1; j < L.length; j++) { const a = L[i], b = L[j];
+    // X 軸刻度＝最下面那一排（y 最大）；其餘是直條上的數字標籤
+    const yMax = Math.max(...L.map(l => l.y)); const ax = L.filter(l => l.y > yMax - 2), B = L.filter(l => l.y <= yMax - 2);
+    const gap = (A) => { const S = A.slice().sort((a, b) => a.x - b.x); let g = 99; for (let i = 1; i < S.length; i++) if (Math.abs((S[i].y + S[i].h / 2) - (S[i - 1].y + S[i - 1].h / 2)) < S[i].h) g = Math.min(g, S[i].x - (S[i - 1].x + S[i - 1].w)); return Math.round(g * 10) / 10; };
+    const ov = []; for (let i = 0; i < B.length; i++) for (let j = i + 1; j < B.length; j++) { const a = B[i], b = B[j];
       if (a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h) ov.push(a.t + '×' + b.t); }
-    return { n: L.length, ov, txt: L.map(l => l.t) }; }"""
+    return { n: B.length, ov, txt: B.map(l => l.t), gap: gap(B), axis: ax.sort((a, b) => a.x - b.x).map(l => l.t), axGap: gap(ax) }; }"""
 
 
 def t_m4_xpetf_1009(b, base):
@@ -27684,8 +27687,35 @@ def t_m4_xpetf_1009(b, base):
         bw = J("""() => { const ch = echarts.getInstanceByDom(document.getElementById('incCmb')); const d = ch.getModel().getSeriesByIndex(0).getData();
             const ws = []; for (let i = 0; i < d.count(); i++) { const L = d.getItemLayout(i); if (L) ws.push(Math.round(L.width)); }
             const o = ch.getOption().series[0]; return { ws, id: o.id, fs: o.label.fontSize }; }""")
-        ok(f"【{T}】現金流每月入帳長條圖：{lb and lb['n']} 個數字標籤互不重疊（{lb and lb['txt'][:6]}）、字 {bw['fs']}px ≥ 12、柱寬 {bw['ws'][:3]}、系列 id 仍是 tw-thick-bar",
-           lb and lb["n"] >= 6 and lb["ov"] == [] and bw["fs"] >= 12 and min(bw["ws"]) >= 10 and bw["id"] == "tw-thick-bar", (lb, bw))
+        ok(f"【{T}】現金流每月入帳長條圖：{lb and lb['n']} 個數字標籤互不重疊、相鄰間距 {lb and lb['gap']}px ≥ 4（{lb and lb['txt'][:6]}）、字 {bw['fs']}px ≥ 12、柱寬 {bw['ws'][:3]}、系列 id 仍是 tw-thick-bar",
+           lb and lb["n"] >= 6 and lb["ov"] == [] and lb["gap"] >= 4 and bw["fs"] >= 12 and min(bw["ws"]) >= 10 and bw["id"] == "tw-thick-bar", (lb, bw))
+        # 2026-10-09 手機 UI 監督退件 36：360 寬也要過 —— 數字標籤間距 ≥ 4、X 軸 12 個刻度都在而且不黏、圖下那行免責不截字
+        m.set_viewport_size({"width": 360, "height": 780}); m.wait_for_timeout(1500)
+        J("() => document.getElementById('incCmb').scrollIntoView({ block: 'center', behavior: 'instant' })"); m.wait_for_timeout(400)
+        l3 = J(M4_LABS_JS, "incCmb")
+        ok(f"【{T}】360 寬每月入帳：標籤不重疊、間距 {l3 and l3['gap']}px ≥ 4；X 軸 {l3 and len(l3['axis'])} 個刻度（{l3 and l3['axis'][:4]}…）、刻度間距 {l3 and l3['axGap']}px ≥ 4",
+           l3 and l3["n"] >= 6 and l3["ov"] == [] and l3["gap"] >= 4 and len(l3["axis"]) == 12 and l3["axGap"] >= 4, l3)
+        dc = J("() => { const e = document.getElementById('etfDisc'); return { cut: e.scrollWidth > e.clientWidth + 1, txt: e.textContent.trim() }; }")
+        ok(f"【{T}】360 寬：圖下那行免責完整顯示、不截字（…{dc['txt'][-10:]}）", not dc["cut"] and dc["txt"].endswith("報酬。"), dc)
+        # 2026-10-09 手機 UI 監督退件 32：前 5 名（報酬率）每列名稱、「代號・上市以來 N 年」都包在列內、最多兩行
+        go("etf/list", 3000)
+        m.locator(".m4trisg > button").nth(1).tap(); m.wait_for_timeout(600)
+        RK = """() => { const rows = [...document.querySelectorAll('#etfRetTopCard .rkrow:not(.ghost)')].filter(r => r.getClientRects().length);
+            const out = []; rows.forEach(r => { const R = r.getBoundingClientRect();
+              r.querySelectorAll('.nm, .cd, .v, .v2, .rk').forEach(e => [...e.getClientRects()].forEach(q => { if (q.top < R.top - 0.5 || q.bottom > R.bottom + 0.5) out.push(r.dataset.code + ' ' + e.className + ' 溢出列外'); }));
+              const rg = document.createRange(); const tops = new Set();
+              r.querySelector('.nm').childNodes.forEach(n => { if (n.nodeType === 3) { rg.selectNodeContents(n); [...rg.getClientRects()].forEach(x => tops.add(Math.round(x.top))); } });
+              [...r.querySelector('.cd').getClientRects()].forEach(x => tops.add(Math.round(x.top)));
+              // 字級不同（名稱 15px、代號 12px 等寬字）同一行的 top 會差幾 px，又有 ::before 換行留下的空片段 → 相差 > 8px 才算另一行
+              const ts = [...tops].sort((a, b) => a - b); let nl = ts.length ? 1 : 0; for (let i = 1; i < ts.length; i++) if (ts[i] - ts[i - 1] > 8) nl++;
+              if (nl > 2) out.push(r.dataset.code + ' 名稱區 ' + nl + ' 行');
+              const nm = r.querySelector('.nm'); if (nm.scrollWidth > nm.clientWidth + 1) out.push(r.dataset.code + ' 名稱或「上市以來 N 年」被截'); });
+            return { n: rows.length, bad: out, tags: rows.map(r => r.querySelector('.cd').textContent) }; }"""
+        for w in (360, 402):
+            m.set_viewport_size({"width": w, "height": 874}); m.wait_for_timeout(800)
+            rk = J(RK)
+            ok(f"【{T}】{w} 寬 ETF 報酬率前 5：每列名稱與「代號・上市以來 N 年」都包在列內、最多兩行（{rk['n']} 列，問題 {rk['bad'][:3]}）", rk["n"] == 5 and rk["bad"] == [], rk)
+        m.set_viewport_size({"width": 402, "height": 874})
         bad = J(M4_TTL_JS)
         ok(f"【{T}】現金流：標題都只有一行", bad == [], bad)
     finally:
