@@ -1482,6 +1482,28 @@
   /* 圖上的點擊交給所在縮放框決定要不要延後（見 wheelZoom 的 defer）；沒有縮放框就立刻執行。*/
   const zoomClick = (box, fn) => { const z = box && box._zoom; if (z && z.defer) z.defer(fn); else fn(); };
 
+  /* ★ 2026-10-09（Andy：「點擊LOGO 會顯示LOGO圖」）：點左上角 LOGO（含手機頂欄、側邊抽屜的頭像）跳出整張 LOGO 大圖；
+     點任何地方、✕ 或 Esc 收起。capture 階段攔下，.brand 上原本「點一下回總覽」的 onclick 不會跟著觸發（點站名照舊回總覽）。*/
+  (function logoLightbox() {
+    let box = null;
+    const close = () => { if (box) box.hidden = true; };
+    const open = () => {
+      if (!box) {
+        box = document.createElement('div'); box.className = 'logobox'; box.id = 'logoBox'; box.hidden = true;
+        box.setAttribute('role', 'dialog'); box.setAttribute('aria-label', '哩股哩股 LOGO');
+        box.innerHTML = '<img src="brand/logo-1024.webp?v=1009" alt="哩股哩股 LOGO"><button type="button" aria-label="關閉">✕</button>';
+        box.addEventListener('click', close);
+        document.body.appendChild(box);
+      }
+      box.hidden = false;
+    };
+    document.addEventListener('click', (e) => {
+      const t = e.target.closest && e.target.closest('.brand .logo, .m4brand picture');
+      if (!t) return;
+      e.preventDefault(); e.stopPropagation(); open();
+    }, true);
+    document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && box && !box.hidden) close(); });
+  })();
   const goStock = (code) => { location.hash = '#stock/' + code; };
   /* ★ 2026-10-08（Andy 313）熱力圖方塊要跳到別的分頁一律走這支：Plus 以上（含站主、管理員、預覽版）照跳，
      訪客／註冊會員跳 quota.js 的升級卡、網址不動。quota.js 沒載入（舊快取）就照舊跳。*/

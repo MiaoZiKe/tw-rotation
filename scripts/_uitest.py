@@ -13854,7 +13854,8 @@ def t_brand(b, base):
     a = info()
     ok("品牌：側欄品牌字是「哩股哩股」", a["txt"] == BRAND_NAME, a)
     ok("品牌：頭像圖真的載入（naturalWidth>0）且畫面上有尺寸", a["nw"] > 0 and a["w"] >= 24 and a["h"] >= 24, a)
-    ok("品牌：頭像是圓角", a["rad"] not in ("", "0px"), a)
+    # 改前：容器裁圓角。改後（10-09 Andy：「LOGO 不要被裁切到 請調整適當大小」）：整張 LOGO（圖自帶圓角）不裁切、桌機 40px
+    ok("品牌：LOGO 整張不裁切（容器不再裁圓角）、桌機 40px", a["rad"] in ("", "0px") and a["w"] >= 39, a)
     ok("品牌：document.title 含「哩股哩股」", BRAND_NAME in a["title"], a)
     hits = pg.evaluate(scan_js, BRAND_OLD_WHITELIST)
     ok("品牌：總覽可見文字沒有舊站名", not hits, hits)
@@ -13865,7 +13866,7 @@ def t_brand(b, base):
     pg.wait_for_timeout(500)
     lt = pg.evaluate("() => ({ th: document.documentElement.getAttribute('data-theme'), nw: document.querySelector('.brand .logo img').naturalWidth,"
                      " sh: getComputedStyle(document.querySelector('.brand .logo')).boxShadow })")
-    ok("品牌：淺色主題頭像照常顯示、有外框收邊", lt["th"] == "light" and lt["nw"] > 0 and lt["sh"] not in ("", "none"), lt)
+    ok("品牌：淺色主題 LOGO 照常顯示（10-09 起整張 LOGO 自帶藍底，不再加外框）", lt["th"] == "light" and lt["nw"] > 0, lt)
     # 收合側欄：只剩頭像
     pg.evaluate("() => { localStorage.setItem('tw.theme','dark'); localStorage.setItem('tw.layout4.nav','mini'); }")
     pg.reload(wait_until="domcontentloaded")
@@ -13878,9 +13879,24 @@ def t_brand(b, base):
     # 點品牌回總覽（真的點）
     pg.evaluate("() => { location.hash = '#flow'; }")
     pg.wait_for_timeout(800)
+    # 改前：點頭像回總覽。改後（10-09 Andy：「點擊LOGO 會顯示LOGO圖」）：點 LOGO 跳出大圖、網址不動；Esc 收起
     pg.click(".topbar > .brand .logo")
     pg.wait_for_timeout(800)
-    ok("品牌：點頭像回到總覽", pg.evaluate("location.hash") == "#overview", pg.evaluate("location.hash"))
+    lb = pg.evaluate("() => { const b = document.getElementById('logoBox'); const i = b && b.querySelector('img');"
+                     " return { open: !!b && !b.hidden, nw: i ? i.naturalWidth : 0, hash: location.hash }; }")
+    ok("品牌：點 LOGO 跳出 LOGO 大圖（圖載得到）、網址不動", lb["open"] and lb["nw"] > 0 and lb["hash"].startswith("#flow"), lb)
+    pg.keyboard.press("Escape"); pg.wait_for_timeout(300)
+    ok("品牌：Esc 收起 LOGO 大圖", pg.evaluate("() => document.getElementById('logoBox').hidden"))
+    pg.evaluate("() => { localStorage.setItem('tw.layout4.nav','full'); }")
+    pg.reload(wait_until="domcontentloaded"); pg.wait_for_timeout(1500)
+    pg.evaluate("() => { location.hash = '#flow'; }"); pg.wait_for_timeout(800)
+    pg.click(".topbar > .brand b")
+    pg.wait_for_timeout(800)
+    ok("品牌：點站名照舊回到總覽", pg.evaluate("location.hash") == "#overview", pg.evaluate("location.hash"))
+    st = pg.evaluate("() => { const b = document.querySelector('.topbar > .brand b.brandtxt'); if (!b) return null; const y = b.querySelector('.y');"
+                     " return { stroke: getComputedStyle(b).webkitTextStrokeWidth, w: getComputedStyle(b).fontWeight, y: y ? getComputedStyle(y).color : '' }; }")
+    ok("品牌：站名跟 LOGO 同字樣（特粗、深色描邊、「股」黃色）（10-09「LOGO 文字風格也要一樣」）",
+       bool(st) and st["stroke"] not in ("", "0px") and int(st["w"]) >= 800 and st["y"] == "rgb(255, 210, 31)", st)
     for h in ("#terms", "#privacy", "#disclaimer", "#pricing"):
         pg.evaluate(f"() => {{ location.hash = '{h}'; }}")
         pg.wait_for_timeout(1200)
