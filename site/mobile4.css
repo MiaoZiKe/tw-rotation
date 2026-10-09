@@ -886,7 +886,9 @@
      · 摘要句（.t4-lede）不斷在詞中間：第 31i 節的 keep-all 已涵蓋（「HBM 高頻寬記憶體」整詞一起折）。 */
   :root.m4 main .view .skrank :is(.skr-k,small){font-size:12px!important}
   :root.m4 main .view .row:has(>.disc-line){flex-wrap:wrap!important}   /* 免責那行自己一整行（不跟標題搶寬，不然 360 寬會被擠到斷詞） */
-  :root.m4 main .view .disc-line{white-space:normal!important;overflow:visible!important;text-overflow:clip!important;flex:1 1 100%;min-width:0;max-width:100%;
+  /* index.html ≤1100 給資金輪動標題列右邊留 190px 放「.rotbtns」兩顆鈕；手機沒有那兩顆鈕（實測 DOM 裡沒有），留白只會把免責擠成 154px 寬 */
+  :root.m4 #flowRotCard .rothead:not(:has(.rotbtns)){padding-right:0!important}
+  :root.m4 main .view .disc-line{white-space:normal!important;overflow:visible!important;text-overflow:clip!important;flex:1 1 100%!important;min-width:0;width:100%!important;max-width:100%!important;text-align:left!important;
     word-break:keep-all;overflow-wrap:anywhere}
 
   /* 31l. 資金輪動「⚙ 顯示 ›」摘要鈕＋底部抽屜（mobile4.js 第 31 節 wireRot；範本＝週期統計那款） */
