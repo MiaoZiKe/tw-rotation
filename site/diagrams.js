@@ -2236,7 +2236,7 @@
     // 圖的配色變數掛在外層容器上（.dgwrap／host），抽屜在 body 底下吃不到 → 把 host 量到的 --dg-* 抄到抽屜的框上
     try { const cs = getComputedStyle(svg); for (let i = 0; i < cs.length; i++) { const nm = cs[i]; if (nm.startsWith('--dg')) box.style.setProperty(nm, cs.getPropertyValue(nm)); } } catch (e) { /* 忽略 */ }
     box.appendChild(c);
-    try { const b = c.getBBox(); if (b && b.width > 0 && b.height > 0) c.setAttribute('viewBox', `${(b.x - 8).toFixed(1)} ${(b.y - 8).toFixed(1)} ${(b.width + 16).toFixed(1)} ${(b.height + 16).toFixed(1)}`); } catch (e) { /* 量不到就用原本的 viewBox */ }
+    try { const b = foldBox(c) || c.getBBox(); if (b && b.width > 0 && b.height > 0) c.setAttribute('viewBox', `${(b.x - 8).toFixed(1)} ${(b.y - 8).toFixed(1)} ${(b.width + 16).toFixed(1)} ${(b.height + 16).toFixed(1)}`); } catch (e) { /* 量不到就用原本的 viewBox */ }
     foldReadable(box, c);
     $$('.mshnav button', sh).forEach(b => b.onclick = (e) => { e.stopPropagation(); foldSheet(host, (k + (+b.dataset.d) + n) % n); });
   }
@@ -2245,6 +2245,24 @@
      改成「預設就放大到圖裡最小的字 ≥ 12px」，比抽屜寬的部分在框內用手指左右拖（原生捲動：不影響頁面、頁面不橫捲、抽屜不跳動）；
      框邊淡出＋一行提示告訴人可以左右拖，另給一顆「看全圖／放大看字」切換（想先看全貌時用；預設是放大）。
      只在 m4 的抽屜裡跑（foldSheet 只有 m4 會呼叫），桌機那條路徑不經過這裡。 */
+  /* ★ 2026-10-09 手機監督退件（13230472）：抽屜圖上方一大片空白 —— c.getBBox() 把「沿線跑的動畫小圓點」也算進去，
+     它在動畫開始前停在 (0,0)，外框就從 y≈-4 一路包到內容（實際從 y≈700 才開始），放大後空白跟著放大到要捲 500px。
+     改成：只量看得到、沒在動的圖形（跳過 defs／marker 等定義區與帶動畫的元素），把它們的螢幕外框換回圖內座標再聯集。*/
+  function foldBox(svg) {
+    const m = svg.getScreenCTM(); if (!m) return null;
+    const inv = m.inverse(), pt = svg.createSVGPoint();
+    const moving = (e) => { for (let p = e; p && p !== svg; p = p.parentNode) {
+      if (p.querySelector && p.querySelector(':scope > animateMotion, :scope > animateTransform, :scope > animate')) return true;
+      const cs = getComputedStyle(p); if ((cs.animationName && cs.animationName !== 'none') || (cs.offsetPath && cs.offsetPath !== 'none')) return true; } return false; };
+    let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+    svg.querySelectorAll('path,rect,circle,ellipse,line,polyline,polygon,text,image,use,foreignObject').forEach((e) => {
+      if (e.closest('defs,marker,clipPath,mask,pattern,symbol') || !e.getClientRects().length || moving(e)) return;
+      const r = e.getBoundingClientRect(); if (!r.width && !r.height) return;
+      [[r.left, r.top], [r.right, r.bottom]].forEach(([x, y]) => { pt.x = x; pt.y = y; const q = pt.matrixTransform(inv);
+        x0 = Math.min(x0, q.x); y0 = Math.min(y0, q.y); x1 = Math.max(x1, q.x); y1 = Math.max(y1, q.y); });
+    });
+    return isFinite(x0) && x1 > x0 && y1 > y0 ? { x: x0, y: y0, width: x1 - x0, height: y1 - y0 } : null;
+  }
   const FOLD_MIN_PX = 12.3;   // 目標最小字級（留一點餘裕，免得換算後掉到 11.9）
   function foldReadable(box, svg) {
     const vb = svg.viewBox && svg.viewBox.baseVal;

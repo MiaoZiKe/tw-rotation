@@ -29088,18 +29088,27 @@ def t_mobile_m4_foldread1009(b, base, code):
         return { no: s.dataset.no, n: f.length, min: f.length ? +Math.min(...f).toFixed(2) : null, z: box.dataset.z || null,
           svgW: Math.round(svg.getBoundingClientRect().width), boxW: Math.round(box.clientWidth), wrap: !!wrap, sl: wrap ? Math.round(wrap.scrollLeft) : null,
           sw: document.documentElement.scrollWidth, vw: innerWidth, sx: scrollX, tog: !!box.querySelector('.mfztog'),
+          gap: (() => { const fr = (wrap || svg).getBoundingClientRect(), sr = s.getBoundingClientRect(); let t = Infinity;   // 圖框頂到第一個看得到的字或圖形（跳過定義區與沿線跑的動畫點）
+            svg.querySelectorAll('path,rect,circle,ellipse,line,polyline,polygon,text,image,use').forEach(e => { if (e.closest('defs,marker,clipPath,mask,pattern,symbol') || !e.getClientRects().length) return;
+              for (let p = e; p && p !== svg; p = p.parentNode) { if (p.querySelector(':scope > animateMotion, :scope > animateTransform, :scope > animate')) return; const c = getComputedStyle(p); if (c.animationName !== 'none' || (c.offsetPath && c.offsetPath !== 'none')) return; }
+              const r = e.getBoundingClientRect(); if (r.width || r.height) t = Math.min(t, r.top); });
+            return isFinite(t) ? [Math.round(t - Math.max(fr.top, sr.top)), Math.round(t), Math.round(Math.min(sr.bottom, innerHeight))] : null; })(),
           nav: (() => { const n = s.querySelector('.mshnav'); if (!n) return null; const q = n.getBoundingClientRect(); return [Math.round(q.top), Math.round(q.bottom), innerHeight]; })() }; }"""
     ctxs = []
     try:
         for W, H in ((402, 874), (360, 780)):
             ctx = b.new_context(viewport={"width": W, "height": H}, device_scale_factor=2, is_mobile=True, has_touch=True); ctxs.append(ctx)
-            ctx.add_init_script("try{ if(!sessionStorage.getItem('m4fr')){ localStorage.clear(); localStorage.setItem('tw.live.on','0'); localStorage.setItem('tw.tourDone','1'); sessionStorage.setItem('m4fr','1'); } }catch(e){}")
+            ctx.add_init_script("try{ if(!sessionStorage.getItem('m4fr')){ localStorage.clear(); localStorage.setItem('tw.live.on','0'); localStorage.setItem('tw.tourDone','1'); sessionStorage.setItem('m4fr','1'); } localStorage.setItem('tw.theme','" + ("light" if W == 360 else "dark") + "'); }catch(e){}")   # 退件那次是 360 淺色
             m = ctx.new_page(); J = m.evaluate
             m.on("pageerror", lambda e, W=W: fails.append(f"{T} 延伸閱讀字級 {W} pageerror: {e} @ {m.url}"))
             m.route("**/fonts.googleapis.com/**", lambda r: r.abort())
             cdp = ctx.new_cdp_session(m)
             bad, nsheet, drag, tog = [], 0, [], []
-            for h in ("industry/electronics", "industry/semiconductor", "industry/semiconductor/dg/hbm", "industry/ai_server/dg/liquid_cooling"):
+            # 2026-10-09 退件後擴大：43 段全量（7 條鏈預設圖＋9 張有延伸閱讀的族群剖析圖），每頁從延伸 1 用 › 翻到最後一段（ai_server 預設圖沒有延伸閱讀列，不列）
+            PG = ["industry/" + c for c in ("semiconductor", "electronics", "software", "financial", "traditional", "infrastructure")] \
+                + ["industry/semiconductor/dg/" + x for x in ("hbm", "foundry", "ai_adv_packaging", "silicon_wafer", "wide_bandgap")] \
+                + ["industry/ai_server/dg/liquid_cooling", "industry/ai_server/dg/air_cooling", "industry/infrastructure/dg/heavy_electric", "industry/traditional/dg/petrochemical"]
+            for h in PG:
                 m.goto(base + "#" + h, wait_until="domcontentloaded"); m.wait_for_timeout(3800)
                 fids = J("() => [...document.querySelectorAll('.mdgfolds button[data-fold]')].filter(b => b.getClientRects().length).map(b => b.dataset.fold)")
                 if not fids:
@@ -29112,6 +29121,8 @@ def t_mobile_m4_foldread1009(b, base, code):
                     nsheet += 1
                     if not r or r["min"] is None or r["min"] < 12 or r["sw"] > r["vw"]:
                         bad.append(f"{h} 延伸{k + 1}：{r}")
+                    if r and not (r["gap"] and r["gap"][0] <= 120 and r["gap"][1] + 20 <= r["gap"][2]):   # 退件 13230472：圖框頂往下 120px 內就要看到第一個字或圖形（不准上方一大片空白）
+                        bad.append(f"{h} 延伸{k + 1}：圖框頂到第一個內容 {r['gap'] and r['gap'][0]}px（> 120，上方空白）")
                     if r and not (r["nav"] and r["nav"][1] <= r["nav"][2] + 1):   # 圖放大後抽屜變高：‹ › 切換列要黏在抽屜底、不必先捲到底
                         bad.append(f"{h} 延伸{k + 1}：‹ › 切換列不在畫面內 {r['nav']}")
                     if k == 0:
@@ -29143,8 +29154,8 @@ def t_mobile_m4_foldread1009(b, base, code):
                         r = J(FS)
                         if not r or r["no"] != str(k + 2): bad.append(f"{h}：› 沒切到延伸 {k + 2}（{r and r['no']}）")
                 J("() => { const b = document.getElementById('mSheetBack'); if (b) b.click(); }"); m.wait_for_timeout(300)
-            ok(f"【{T}】延伸閱讀抽屜 {W} 寬：{nsheet} 段圖內字全部 ≥ 12px、頁面不橫捲、點開頁面不跳、‹ › 切換列在畫面內", nsheet >= 8 and not bad, bad)
-            ok(f"【{T}】延伸閱讀抽屜 {W} 寬：手指左右拖圖框真的捲動、頁面不動（{drag}）", len(drag) >= 3 and not [x for x in bad if '拖' in x], drag)
+            ok(f"【{T}】延伸閱讀抽屜 {W} 寬：{nsheet} 段圖內字全部 ≥ 12px、圖框頂 120px 內就有內容、頁面不橫捲、點開頁面不跳、‹ › 切換列在畫面內", nsheet >= 40 and not bad, bad)
+            ok(f"【{T}】延伸閱讀抽屜 {W} 寬：手指左右拖圖框真的捲動、頁面不動（{drag}）", len(drag) >= 8 and not [x for x in bad if '拖' in x], drag)
             ok(f"【{T}】延伸閱讀抽屜 {W} 寬：「看全圖／放大看字」圖寬真的切換（{tog}）", len(tog) >= 3 and not [x for x in bad if '切換' in x], tog)
     except Exception as ex:
         fails.append(f"{T} 延伸閱讀字級例外：{ex}")
