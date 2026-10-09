@@ -67016,6 +67016,7 @@ def t_acct_menu_1009(b, base, code):
                   fs: bs.map(e => parseFloat(getComputedStyle(e).fontSize)), clip: bs.filter(e => e.scrollWidth > e.clientWidth + 0.5 || /…/.test(e.textContent)).map(e => e.textContent),
                   lines: bs.filter(e => { const r = document.createRange(); r.selectNodeContents(e); return r.getClientRects().length > 1; }).map(e => e.textContent),
                   txt: bs.map(e => e.textContent.trim()), segR: g ? Math.round(R(g).right) : 0, menuR: Math.round(R(m).right),
+                  gapR: g && bs.length ? Math.round(R(g).right - R(bs[bs.length - 1]).right) : 99,
                   lblTop: lb ? Math.round((R(lb).top + R(lb).bottom) / 2) : -1, segTop: g ? Math.round((R(g).top + R(g).bottom) / 2) : -1, lblFs: lb ? parseFloat(getComputedStyle(lb).fontSize) : 0,
                   t4: document.documentElement.getAttribute('data-theme4'), ls: localStorage.getItem('tw.theme4'),
                   on: bs.filter(e => e.getAttribute('aria-checked') === 'true').map(e => e.dataset.sty),
@@ -67025,11 +67026,12 @@ def t_acct_menu_1009(b, base, code):
 
             def seg_ok(tag, q):
                 ok(f"【{T}】{who}{tag}：版面風格是兩格分段（10-10 休閒拿掉；radiogroup，沒有收合列／直排子清單），兩格都看得到", q["n"] == 2 and q["vis"] == 2 and not q["grp"], q)
-                ok(f"【{T}】{who}{tag}：三格同一排（top 差 ≤ 2：{q['tops']}）、等寬（{q['ws']}）、每格高 ≥ 40（{q['hs']}）",
+                ok(f"【{T}】{who}{tag}：兩格同一排（top 差 ≤ 2：{q['tops']}）、等寬（{q['ws']}）、每格高 ≥ 40（{q['hs']}）",
                    q["tops"] and max(q["tops"]) - min(q["tops"]) <= 2 and max(q["ws"]) - min(q["ws"]) <= 1 and min(q["hs"]) >= 40, q)
                 ok(f"【{T}】{who}{tag}：字 ≥ 12（{q['fs']}、標題 {q['lblFs']}）、不截字不換行（{q['txt']}）、分段不超出選單、沒有橫向捲軸",
                    min(q["fs"]) >= 12 and q["lblFs"] >= 12 and not q["clip"] and not q["lines"] and q["segR"] <= q["menuR"] and q["sw"]
                    and q["txt"] == ["科技 HUD", "專業有力"], q)
+                ok(f"【{T}】{who}{tag}：兩格撐滿分段框（最後一格右緣離框右緣 {q['gapR']}px ≤ 6；10-10 Andy 截圖：只剩兩格時右邊空一格）", q["gapR"] <= 6, q)
                 ok(f"【{T}】{who}{tag}：選中格實心高亮（跟沒選的底色不同）、只有一格選中＝目前風格",
                    q["on"] == [q["t4"]] and q["onBg"] and q["onBg"] != q["offBg"], q)
 
@@ -67076,6 +67078,11 @@ def t_acct_menu_1009(b, base, code):
         _am4_open(pg)
         pg.locator("#acctMenu [data-m=feedback]").tap()
         ok(f"【{T}】{who}：點「意見回饋」→ 客服面板打開", bool(wait_until(pg, sup_open, 3000)))
+        # 10-10 Andy：「意見回饋功能 點擊會切到對應分頁」→ 開在「意見反饋」分頁＋「意見回饋」子分頁（不是常見問題）
+        fbt = pg.evaluate("""() => { const p = document.getElementById('supPanel'); if (!p) return null;
+            const a = p.querySelector('.sptabs [role=tab].on'), b = p.querySelector('#fbKind [role=tab].on');
+            return { tab: a ? a.dataset.t : '', kind: b ? b.dataset.fk : '' }; }""")
+        ok(f"【{T}】{who}：點「意見回饋」→ 面板直接停在「意見反饋＞意見回饋」分頁（{fbt}）", bool(fbt) and fbt["tab"] == "fb" and fbt["kind"] == "fb", fbt)
         pg.evaluate("() => window.TwSupport && TwSupport.close()")
         if who == "guest":
             _am4_open(pg)
