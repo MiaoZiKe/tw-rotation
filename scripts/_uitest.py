@@ -27826,10 +27826,15 @@ def t_mobile_m4_1008(b, base, code):
             const c = document.querySelector('#v-market canvas');
             return { ks, dy: Math.max(...ks.map(k => k.top + k.h / 2)) - Math.min(...ks.map(k => k.top + k.h / 2)), out: ks.filter(k => k.l < 0 || k.r > innerWidth).length,
               tiny: ks.filter(k => k.t !== '含 ETF' && (k.h < 39.5 || k.w < 39.5)).length, fh: Math.round(f.getBoundingClientRect().height), cb: c ? Math.round(c.getBoundingClientRect().bottom) : 9999, vh: innerHeight }; }""")
-        ok(f"【{T}】市場明細：族群下拉與全部／上市／上櫃／含 ETF 同一行（中心差 {df and df['dy']}px、列高 {df and df['fh']}px ≤ 48）、都在畫面內、鈕 ≥ 40、主圖底 {df and df['cb']} ≤ {df and df['vh']}",
-           df and len(df["ks"]) >= 5 and df["dy"] <= 4 and df["fh"] <= 48 and df["out"] == 0 and df["tiny"] == 0 and df["cb"] <= df["vh"], df)
-        m.locator("#distFilter .twms-btn").tap(); m.wait_for_timeout(500)
-        ok(f"【{T}】市場明細：族群下拉點了真的打開（aria-expanded＝true）", J("() => document.querySelector('#distFilter .twms-btn').getAttribute('aria-expanded') === 'true'"), None)
+        # 2026-10-09 帳本 38（市場明細多組切換收進「摘要鈕＋底部抽屜」）：頁面上的篩選列改由摘要鈕 #m4MkSet 取代，
+        #   抽屜裡逐組切換、族群下拉在抽屜裡打得開，由「手機v2市場抽屜」段落驗；這裡只驗摘要鈕在第一屏、主圖在第一屏
+        mk = J("""() => { const b = document.getElementById('m4MkSet'), f = document.getElementById('distFilter');
+            const vis = e => !!e && e.getClientRects().length > 0 && getComputedStyle(e).visibility !== 'hidden';
+            const r = b && b.getBoundingClientRect(), c = document.querySelector('#v-market canvas');
+            return { btn: vis(b), h: r ? Math.round(r.height) : 0, in: !!r && r.left >= 0 && r.right <= innerWidth, filt: vis(f),
+                     cb: c ? Math.round(c.getBoundingClientRect().bottom) : 9999, vh: innerHeight }; }""")
+        ok(f"【{T}】市場明細：篩選收成摘要鈕 #m4MkSet（高 {mk['h']} ≥ 40、在畫面內）、頁面上不再攤開篩選列、主圖底 {mk['cb']} ≤ {mk['vh']}",
+           mk["btn"] and mk["h"] >= 40 and mk["in"] and not mk["filt"] and mk["cb"] <= mk["vh"], (df, mk))
         m.keyboard.press("Escape"); m.wait_for_timeout(200)
         m.set_viewport_size({"width": 390, "height": 844})
         # ㉓ 現金流試算條件區：展開後 ≤ 84px、裡面沒有看得到的分段鈕群組（全部是 select／checkbox）；改任何一個下拉，圖真的跟著變
@@ -28497,10 +28502,8 @@ def t_mobile_m4_market(b, base, code):
         g = J("""() => { const c = document.getElementById('chgDist').getBoundingClientRect(), l = document.querySelector('.mktlist').getBoundingClientRect();
             return { cb: Math.round(c.bottom), lt: Math.round(l.top), vh: innerHeight }; }""")
         ok(f"【{T}】漲跌家數：長條圖在清單上方（圖底 {g['cb']} ≤ 清單頂 {g['lt']}），圖在第一屏（≤ {g['vh']}）", g["cb"] <= g["lt"] and g["cb"] <= g["vh"], g)
-        n0 = J("() => document.getElementById('distSub').textContent.trim()")
-        m.locator("#distMkt button", has_text="上櫃").tap(); m.wait_for_timeout(700)
-        n1 = J("() => document.getElementById('distSub').textContent.trim()")
-        ok(f"【{T}】漲跌分佈切「上櫃」後檔數真的變（{n0[:12]} → {n1[:12]}）", n0 != n1 and n1, (n0, n1))
+        # 2026-10-09 帳本 38：市場明細的條件（市場／ETF／法人／天數／均線期間／族群）手機收進「摘要鈕 #m4MkSet＋底部抽屜」，頁面上原本那組藏起；
+        #   在抽屜裡切換、畫面真的變，改由「手機v2市場抽屜」段落驗（這裡不再點頁面上已藏起的控制項）
         seg = J("""() => { const s = document.getElementById('mktTabs'), bs = [...s.querySelectorAll('button')].map(b => b.getBoundingClientRect());
             return { w: bs.map(r => Math.round(r.width)), top: [...new Set(bs.map(r => Math.round(r.top)))].length, sw: s.scrollWidth, cw: s.clientWidth }; }""")
         ok(f"【{T}】漲停／跌停／漲幅／跌幅／成交值五段同一列等寬、不橫捲（{seg['w']}）", seg["top"] == 1 and max(seg["w"]) - min(seg["w"]) <= 1 and seg["sw"] <= seg["cw"] + 1, seg)
@@ -28511,32 +28514,12 @@ def t_mobile_m4_market(b, base, code):
         tw = J("() => { const t = document.querySelector('#mktInner .tw'); return t ? [t.scrollWidth, t.clientWidth] : null; }")
         ok(f"【{T}】漲跌家數清單不橫捲", tw is None or tw[0] <= tw[1] + 1, tw)
 
-        # ③ 法人連買賣：切「外資」散佈點真的變；下拉 ≥5 天後點數真的變
-        m.locator("#mktSeg2 button[data-k=streak]").tap(); m.wait_for_timeout(1800)
-        P = """() => { const c = echarts.getInstanceByDom(document.getElementById('trust')); if (!c) return null;
-            const ss = c.getOption().series || []; const pts = ss.reduce((a, s) => a + ((s.data || []).length), 0);
-            return { pts, sig: ss.map(s => (s.data || []).slice(0, 3).map(d => JSON.stringify(d.value || d)).join('|')).join('/') }; }"""
-        s0 = J(P)
-        # 先在預設的「投信」換天數（外資／合計在 ≥8 天以內都是買 40／賣 40 的上限，點數不會變），再切外資
-        m.select_option("#streakDays", "5"); m.wait_for_timeout(900)
-        s1 = J(P)
-        ok(f"【{T}】天數下拉選 ≥5 天後點數真的變（{s0 and s0['pts']} → {s1 and s1['pts']}）", s0 and s1 and s1["pts"] != s0["pts"], (s0, s1))
-        m.locator("#streakWho button[data-w=foreign]").tap(); m.wait_for_timeout(900)
-        s2 = J(P)
-        ok(f"【{T}】法人連買賣切「外資」後散佈點真的變", s1 and s2 and s1["sig"] != s2["sig"], (s1 and s1["pts"], s2 and s2["pts"]))
-        sb = J("""() => { const w = document.getElementById('streakWho').getBoundingClientRect(), d = document.getElementById('streakDays').getBoundingClientRect();
-            return { same: Math.abs(w.top - d.top) < 4, tag: document.getElementById('streakDays').tagName }; }""")
-        ok(f"【{T}】投信／外資／合計分段與天數下拉在同一列、天數是下拉", sb["same"] and sb["tag"] == "SELECT", sb)
-
         # ④ 站上均線：圖例不畫；下拉多選勾一條 → 線多一條、取消 → 線真的少一條；方格收合段預設收起，點開才看得到
         m.locator("#mktSeg2 button[data-k=ma]").tap(); m.wait_for_timeout(2500)
         L = """() => { const c = echarts.getInstanceByDom(document.getElementById('maTrend')); if (!c) return null;
             const o = c.getOption(), lg = o.legend[0], sel = lg.selected || {};
             return { show: lg.show, drawn: (o.series || []).filter(s => sel[s.name] !== false).length }; }"""
         l0 = J(L)
-        ms = J("""() => { const s = document.getElementById('maSeg'); return { sw: s.scrollWidth, cw: s.clientWidth, n: s.querySelectorAll('button').length,
-            top: new Set([...s.querySelectorAll('button')].map(b => Math.round(b.getBoundingClientRect().top))).size }; }""")
-        ok(f"【{T}】站上均線：七條均線分段同一列、不橫捲（{ms['n']} 顆）", ms["top"] == 1 and ms["sw"] <= ms["cw"] + 1, ms)
         ok(f"【{T}】站上均線：手機不畫 43 個族群的圖例（改用下拉清單）", l0 and l0["show"] is False, l0)
         f0 = J("""() => ({ folds: [...document.querySelectorAll('#mktBody .m4mafolds > .m4fold')].filter(e => !e.hidden).length,
             open: [...document.querySelectorAll('#mktBody .m4mafolds > .m4fbox')].filter(e => !e.hidden).length,
@@ -28546,17 +28529,6 @@ def t_mobile_m4_market(b, base, code):
         f1 = J("""() => { const h = document.querySelector('#mktBody .m4mafolds > .m4fold'); return { exp: h.getAttribute('aria-expanded'),
             vis: [...document.querySelectorAll('#mktBody .ma')].filter(e => e.getClientRects().length).length }; }""")
         ok(f"【{T}】點開第一段才看得到卡片（{f1['vis']} 張）", f1["exp"] == "true" and f1["vis"] > 0, f1)
-        m.locator("#maGroupDD .ddbtn").tap(); m.wait_for_timeout(300)
-        nm = J("() => document.querySelector('#maGroupDD .ddlist input[type=checkbox]').dataset.n")
-        m.locator("#maGroupDD .ddlist input[type=checkbox]").first.check(); m.wait_for_timeout(600)
-        l1 = J(L)
-        f2 = J("""() => ({ vis: [...document.querySelectorAll('#mktBody .ma')].filter(e => e.getClientRects().length).map(e => e.querySelector('.n').firstChild.textContent.trim()),
-            folds: [...document.querySelectorAll('#mktBody .m4mafolds > .m4fold')].filter(e => !e.hidden).length })""")
-        ok(f"【{T}】下拉勾「{nm}」→ 圖上的線多一條（{l0 and l0['drawn']} → {l1 and l1['drawn']}）", l0 and l1 and l1["drawn"] == l0["drawn"] + 1, (l0, l1))
-        ok(f"【{T}】方格跟著同一份清單篩選：只剩「{nm}」一段一張、直接展開", f2["vis"] == [nm] and f2["folds"] == 1, f2)
-        m.locator("#maGroupDD .ddlist input[type=checkbox]").first.uncheck(); m.wait_for_timeout(600)
-        l2 = J(L)
-        ok(f"【{T}】下拉取消「{nm}」→ 圖上的線真的少一條（{l1 and l1['drawn']} → {l2 and l2['drawn']}）", l1 and l2 and l2["drawn"] == l1["drawn"] - 1, (l1, l2))
         m.mouse.click(5, 300); m.wait_for_timeout(200)
 
         # ⑤ 今日關注：表格不橫捲；點一列展開細節（族群、綜合分、看個股頁）
