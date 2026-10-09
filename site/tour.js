@@ -288,14 +288,15 @@
       d: '上方切換顏色依據；「放大」把整張圖開成全螢幕，方塊裡的字看得更清楚。' },
   ];
   const MARKET = [
-    { t: '四個分頁', sel: ['#mktSeg2', '#mMktSeg'], route: '#market', routeRe: /^#market/, view: 'market',
+    // 2026-10-10：電腦版四個分頁搬到左側欄「市場明細」底下（頁內 #mktSeg2 藏起來）→ 框側欄那四格；手機照舊框頁內那排
+    { t: '四個分頁', sel: ['#mktSeg2', '#mMktSeg', '#tabs .l4subtab[data-parent="market"]'], union: true, route: '#market', routeRe: /^#market/, view: 'market',
       d: '漲跌分佈、站上均線、法人連續買賣、各項排行，各是一份完整名單；點一格換下面的內容。' },
     { t: '完整名單', sel: ['#mktBody'],
       d: '表頭可以點來排序；每一列都點得進個股頁。' },
   ];
   const EXPLORE = [
-    { t: '策略分類', sel: ['#slChips'], route: '#explore', routeRe: /^#explore/, view: 'explore',
-      d: '獲利、估值、成長、技術、法人、股利、動能，每一類底下有幾組公開條件。' },
+    { t: '策略分類', sel: ['#slChips', '#tabs .l4subtab[data-parent="explore"]'], union: true, route: '#explore', routeRe: /^#explore/, view: 'explore',
+      d: '基本面、技術面、籌碼面、消息面四個面向，每一面底下有幾組公開條件；點一個面向，下面換成那一面的策略卡。' },
     { t: '條件標籤', sel: ['#slTags', '#slTagDd'],
       d: '勾選標籤只看帶這些條件的策略卡；下拉看全部標籤。' },
     { t: '策略卡', sel: ['#slGrid'],

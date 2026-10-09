@@ -85,7 +85,27 @@
       { k: 'etf-list', h: '#etf/list', t: 'ETF 總覽', s: '總覽', ic: 'treemap' },
       { k: 'etf-inc', h: '#etf/inc', t: '現金流試算', s: '試算', ic: 'coins' },
     ],
+    /* ★ 2026-10-10（Andy：「市場明細 與 選股策略 分頁都改成像 ETF 側邊欄位一樣 變成子分頁」）：
+       跟 ETF 同一套（同一個 buildSubs／markSubs／收展箭頭）。網址沿用市場明細原本就有的 #market/<頁>；
+       選股策略新開 #explore/<面向>（fund／tech／chip／news，explore.js show() 讀網址決定面向）。
+       頁內那排分頁（#mktSeg2、#slChips）在電腦版藏起來（同 ETF 的 .etfsub），手機照舊用頁內分頁 —— 所以這兩組**只給電腦版**，
+       匯出給 mobile4.js 的 TwL4Nav.SUBS 不含它們（見檔尾 DESK_ONLY），手機抽屜一格都不會多。
+       圖示：漲跌家數＝上下箭頭、法人連買賣＝法人機構（跟資金流向「族群×法人」同一個）、站上均線＝折線、今日關注＝靶心；
+       四面向＝長條（基本面）、脈搏（技術面，走勢與量）、人群（籌碼面，誰在買）、報紙（消息面）。 */
+    market: [
+      { k: 'mkt-updown', h: '#market/updown', t: '漲跌家數', s: '漲跌', ic: 'updown' },
+      { k: 'mkt-streak', h: '#market/streak', t: '法人連買賣', s: '法人', ic: 'landmark' },
+      { k: 'mkt-ma', h: '#market/ma', t: '站上均線', s: '均線', ic: 'line' },
+      { k: 'mkt-cand', h: '#market/cand', t: '今日關注', s: '關注', ic: 'target' },
+    ],
+    explore: [
+      { k: 'xp-fund', h: '#explore/fund', t: '基本面', s: '基本', ic: 'bars' },
+      { k: 'xp-tech', h: '#explore/tech', t: '技術面', s: '技術', ic: 'pulse' },
+      { k: 'xp-chip', h: '#explore/chip', t: '籌碼面', s: '籌碼', ic: 'users' },
+      { k: 'xp-news', h: '#explore/news', t: '消息面', s: '消息', ic: 'news' },
+    ],
   };
+  const DESK_ONLY = ['market', 'explore'];   // 只有電腦版側欄有子項；手機抽屜（mobile4.js 讀 TwL4Nav.SUBS）不給
   /* 子分頁圖示：優先用 icons.js（全站同一套 Lucide、同一個線寬）；它被擋掉時退回這裡內嵌的同一組路徑 */
   const SUB_IC = {
     compass: '<circle cx="12" cy="12" r="10"/><path d="m16.24 7.76-1.804 5.411a2 2 0 0 1-1.265 1.265L7.76 16.24l1.804-5.411a2 2 0 0 1 1.265-1.265z"/>',
@@ -96,6 +116,13 @@
     calendar: '<path d="M8 2v4"/><path d="M16 2v4"/><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M3 10h18"/>',
     coins: '<circle cx="8" cy="8" r="6"/><path d="M18.09 10.37A6 6 0 1 1 10.34 18"/><path d="M7 6h1v4"/>',
     flame: '<path d="M12 3q1 4 4 6.5t3 5.5a1 1 0 0 1-14 0 5 5 0 0 1 1-3 1 1 0 0 0 5 0c0-2-1.5-3-1.5-5q0-2 2.5-4"/>',
+    updown: '<path d="m21 16-4 4-4-4"/><path d="M17 20V4"/><path d="m3 8 4-4 4 4"/><path d="M7 4v16"/>',
+    line: '<path d="M3 3v16a2 2 0 0 0 2 2h16"/><path d="M7 16c.5-2 1.5-7 4-7 2 0 2 3 4 3 2.5 0 4.5-5 5-7"/>',
+    target: '<circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/>',
+    bars: '<path d="M3 3v16a2 2 0 0 0 2 2h16"/><path d="M18 17V9"/><path d="M13 17V5"/><path d="M8 17v-3"/>',
+    pulse: '<path d="M22 12h-2.48a2 2 0 0 0-1.93 1.46l-2.35 8.36a.25.25 0 0 1-.48 0L9.24 2.18a.25.25 0 0 0-.48 0l-2.35 8.36A2 2 0 0 1 4.49 12H2"/>',
+    users: '<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><path d="M16 3.128a4 4 0 0 1 0 7.744"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><circle cx="9" cy="7" r="4"/>',
+    news: '<path d="M15 18h-5"/><path d="M18 14h-8"/><path d="M4 22h16a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2H8a2 2 0 0 0-2 2v16a2 2 0 0 1-4 0v-9a2 2 0 0 1 2-2h2"/><rect width="8" height="4" x="10" y="6" rx="1"/>',
   };
   function subIcon(key) {
     const I = window.TwIcons;
@@ -747,6 +774,7 @@
   }
   /* ★ 2026-10-08 手機 v2（mobile4.js）：手機的側欄抽屜要「分組與子項完全照桌機」—— 直接讀這裡的同一份清單，不另抄一份。
      只是把既有常數掛出去，桌機行為一行都沒變。 */
-  window.TwL4Nav = { PAGES, SUBS, GROUPS, admSubs: () => admOrd(), isAdmin, subIcon };
+  const SUBS_M = Object.fromEntries(Object.entries(SUBS).filter(([k]) => !DESK_ONLY.includes(k)));
+  window.TwL4Nav = { PAGES, SUBS: SUBS_M, SUBS_DESK: SUBS, GROUPS, admSubs: () => admOrd(), isAdmin, subIcon };
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();
 })();
