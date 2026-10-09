@@ -3,7 +3,7 @@
     "twse.price_daily": {
       "ok": true,
       "rows": 1326,
-      "seconds": 1.4
+      "seconds": 1.9
     },
     "price_daily": {
       "stored": 0
@@ -11,23 +11,23 @@
     "twse.valuation": {
       "ok": true,
       "rows": 1082,
-      "seconds": 1.2
+      "seconds": 0.4
     },
     "valuation_daily": {
-      "stored": 1082
+      "stored": 0
     },
     "twse.index": {
       "ok": true,
       "rows": 265,
-      "seconds": 0.3
+      "seconds": 0.1
     },
     "index_daily": {
-      "stored": 265
+      "stored": 0
     },
     "twse.market": {
       "ok": true,
       "rows": 6,
-      "seconds": 0.2
+      "seconds": 0.1
     },
     "market_daily": {
       "stored": 0
@@ -35,7 +35,7 @@
     "tpex.price_daily": {
       "ok": true,
       "rows": 1004,
-      "seconds": 8.5
+      "seconds": 12.6
     },
     "mis.date_check": {
       "mis_date": "2026-10-08",
@@ -49,7 +49,7 @@
     "mis.price_snapshot": {
       "ok": false,
       "rows": 0,
-      "seconds": 2.0
+      "seconds": 1.4
     },
     "intraday.since": {
       "since": "2026-10-08T13:00:00+08:00",
@@ -63,28 +63,105 @@
     "yahoo.intraday_60m": {
       "ok": false,
       "rows": 0,
-      "seconds": 173.2
+      "seconds": 239.4
     },
     "yahoo.index_intraday": {
       "ok": false,
       "rows": 0,
-      "seconds": 0.8
+      "seconds": 1.0
     },
     "mis.index_minute": {
       "ok": true,
       "rows": 540,
-      "seconds": 1.3
+      "seconds": 2.8
     },
     "index_intraday": {
+      "stored": 1350
+    },
+    "taifex.futures_minute": {
+      "ok": false,
+      "rows": 0,
+      "seconds": 1.2
+    },
+    "twse.margin": {
+      "ok": true,
+      "rows": 1298,
+      "seconds": 2.9
+    },
+    "margin_daily": {
+      "stored": 242
+    },
+    "twse.company_info": {
+      "ok": true,
+      "rows": 1095,
+      "seconds": 10.1
+    },
+    "company_info": {
       "stored": 0
+    },
+    "finmind.stock_info": {
+      "ok": true,
+      "rows": 3154,
+      "seconds": 0.6,
+      "added": 2059
+    },
+    "twse.revenue": {
+      "ok": true,
+      "rows": 1086,
+      "seconds": 4.0
+    },
+    "revenue_monthly": {
+      "stored": 0
+    },
+    "twse.financial": {
+      "ok": true,
+      "rows": 1084,
+      "seconds": 2.1
+    },
+    "financial_q": {
+      "stored": 0
+    },
+    "twse.dividend": {
+      "ok": true,
+      "rows": 1171,
+      "seconds": 16.5
+    },
+    "dividend": {
+      "stored": 0
+    },
+    "twse.dividend_events": {
+      "ok": true,
+      "rows": 958,
+      "seconds": 0.0
+    },
+    "tdcc.shareholding": {
+      "ok": true,
+      "rows": 69496,
+      "seconds": 2.8
+    },
+    "shareholding_weekly": {
+      "stored": 69496
+    },
+    "etf_pcf.holdings": {
+      "ok": true,
+      "rows": 29783,
+      "seconds": 445.7
+    },
+    "etf_holdings": {
+      "stored": 0
+    },
+    "sitca.etf_top10": {
+      "ok": false,
+      "rows": 0,
+      "seconds": 4.3
     },
     "news.collect": {
       "ok": true,
-      "rows": 123,
-      "seconds": 2.7
+      "rows": 122,
+      "seconds": 2.3
     },
     "news": {
-      "stored": 45
+      "stored": 30
     },
     "news.broker_views": {
       "ok": true,
@@ -92,28 +169,95 @@
       "seconds": 0.0
     },
     "broker_views": {
-      "stored": 6
+      "stored": 0
     },
     "mops.material_news": {
       "ok": true,
       "rows": 116,
-      "seconds": 5.8
+      "seconds": 1.6
     },
     "material_news": {
+      "stored": 0
+    },
+    "mops.insider_holdings": {
+      "ok": true,
+      "rows": 1975,
+      "seconds": 29.3
+    },
+    "insider_holding": {
+      "stored": 0
+    },
+    "macro.intl": {
+      "ok": true,
+      "rows": 1765,
+      "seconds": 1.3
+    },
+    "intl_daily": {
+      "stored": 5
+    },
+    "macro.fred": {
+      "ok": true,
+      "rows": 15513,
+      "seconds": 3.0
+    },
+    "macro": {
+      "stored": 2
+    },
+    "macro.fred_calendar": {
+      "ok": true,
+      "rows": 26,
+      "seconds": 0.6
+    },
+    "macro_calendar": {
       "stored": 0
     },
     "finmind.index_ohlc": {
       "ok": true,
       "rows": 54,
-      "seconds": 1.7
+      "seconds": 0.6
     },
     "index_ohlc": {
-      "stored": 1
+      "stored": 0
     },
     "finmind.futures_ohlc": {
       "ok": true,
       "rows": 55,
       "seconds": 0.3
+    },
+    "finmind.futures_60m": {
+      "ok": false,
+      "rows": 0,
+      "seconds": 0.1
+    },
+    "finmind.otc_60m": {
+      "ok": false,
+      "rows": 0,
+      "seconds": 0.1
+    },
+    "finmind.tse_minute": {
+      "ok": true,
+      "rows": 1350,
+      "seconds": 2.7
+    },
+    "institutional_codes": {
+      "requested": 63,
+      "returned": 63
+    },
+    "finmind.institutional": {
+      "ok": true,
+      "rows": 502,
+      "seconds": 23.2
+    },
+    "inst_daily": {
+      "stored": 62
+    },
+    "balance_q": {
+      "stored": 0
+    },
+    "finmind.financial_refresh": {
+      "ok": true,
+      "rows": 232,
+      "seconds": 18.7
     },
     "build_payload": {
       "ok": true
@@ -123,9 +267,12 @@
   "empty": [
     "mis.price_snapshot",
     "yahoo.intraday_60m",
-    "yahoo.index_intraday"
+    "yahoo.index_intraday",
+    "sitca.etf_top10",
+    "finmind.futures_60m",
+    "finmind.otc_60m"
   ],
-  "phase": "price",
+  "phase": "full",
   "index_minute_days": {
     "OTC": [
       "2026-10-08"
@@ -134,12 +281,12 @@
       "2026-10-08"
     ]
   },
-  "started_at": "2026-10-09T07:11:36.321290+00:00",
-  "finished_at": "2026-10-09T07:32:19.622824+00:00",
-  "duration_seconds": 1243.3,
+  "started_at": "2026-10-09T14:40:20.239709+00:00",
+  "finished_at": "2026-10-09T15:10:27.224039+00:00",
+  "duration_seconds": 1807.0,
   "trade_date": "2026-10-08",
   "complete": true,
-  "finmind_budget_left": 437,
+  "finmind_budget_left": 243,
   "tables": [
     {
       "table": "price_daily",
@@ -153,7 +300,7 @@
     },
     {
       "table": "margin_daily",
-      "rows": 2661916,
+      "rows": 2662158,
       "latest": "2026-10-08"
     },
     {
@@ -168,7 +315,7 @@
     },
     {
       "table": "inst_daily",
-      "rows": 3988936,
+      "rows": 3990049,
       "latest": "2026-10-08"
     },
     {
@@ -193,8 +340,8 @@
     },
     {
       "table": "shareholding_weekly",
-      "rows": 345423,
-      "latest": "2026-10-02"
+      "rows": 414919,
+      "latest": "2026-10-08"
     },
     {
       "table": "company_info",
@@ -203,7 +350,7 @@
     },
     {
       "table": "news",
-      "rows": 4701,
+      "rows": 4731,
       "latest": "2026-10-09"
     },
     {
@@ -213,13 +360,13 @@
     },
     {
       "table": "intl_daily",
-      "rows": 1910,
+      "rows": 1915,
       "latest": "2026-10-09"
     },
     {
       "table": "macro",
-      "rows": 15511,
-      "latest": "2026-10-08"
+      "rows": 15513,
+      "latest": "2026-10-09"
     },
     {
       "table": "macro_calendar",
@@ -263,7 +410,7 @@
     },
     {
       "table": "index_intraday",
-      "rows": 197572,
+      "rows": 198922,
       "latest": "—"
     },
     {
