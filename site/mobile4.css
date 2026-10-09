@@ -885,6 +885,7 @@
      · 資金輪動頁的免責「以下為依公開資料統計計算之結果…」原本 nowrap＋overflow:hidden 被切掉 → 完整顯示、自己一行、只在標點換行；
      · 摘要句（.t4-lede）不斷在詞中間：第 31i 節的 keep-all 已涵蓋（「HBM 高頻寬記憶體」整詞一起折）。 */
   :root.m4 main .view .skrank :is(.skr-k,small){font-size:12px!important}
+  :root.m4 main .view .row:has(>.disc-line){flex-wrap:wrap!important}   /* 免責那行自己一整行（不跟標題搶寬，不然 360 寬會被擠到斷詞） */
   :root.m4 main .view .disc-line{white-space:normal!important;overflow:visible!important;text-overflow:clip!important;flex:1 1 100%;min-width:0;max-width:100%;
     word-break:keep-all;overflow-wrap:anywhere}
 

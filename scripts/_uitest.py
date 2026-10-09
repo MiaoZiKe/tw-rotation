@@ -28673,7 +28673,8 @@ def t_mobile_m4_ov2(b, base, code):
 
         # ④ K 線／走勢圖 Y 軸刻度完整在圖框內、精簡寫法（總覽大盤＋個股頁）
         go("overview", 4000)
-        J("() => { const b = document.querySelector('#m3Mode button[data-m=\"line\"]'); if (b && !b.classList.contains('on')) b.click(); }"); m.wait_for_timeout(2500)   # 先切回走勢圖（ECharts）
+        J("() => { const b = document.querySelector('#m3Mode button[data-m=\"line\"]'); if (b) b.click(); }"); m.wait_for_timeout(1500)   # 先切回走勢圖（ECharts）
+        wait_until(m, "() => { const c = document.querySelector('#m3Grid .m3-card.mcur .m3-chart'); return !!(c && window.echarts && echarts.getInstanceByDom(c)); }", 10000)
         def yaxis_ok(sel):
             return J("""(sel) => { const c = document.querySelector(sel); if (!c) return null; const box = c.getBoundingClientRect();
                 const ec = window.echarts && echarts.getInstanceByDom(c);

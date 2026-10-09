@@ -1226,6 +1226,10 @@
     $$('[_echarts_instance_]', mn).forEach((e) => { if (big(e)) e.classList.add('m4cbox'); });
     $$('.tv-lightweight-charts', mn).forEach((c) => { const e = c.parentElement; if (e && e.id !== 'lwc' && big(e)) e.classList.add('m4cbox', 'm4lwc'); });
     $$('canvas', mn).forEach((c) => { if (c.closest('[_echarts_instance_],.tv-lightweight-charts,.m4cbox,#lwc')) return; const e = c.parentElement; if (big(e)) e.classList.add('m4cbox'); });
+    /* 掛上外框＝容器內寬少 2px → ECharts 的 ResizeObserver 重畫一次（只改屬性、不增刪節點）。theme4.js 的「一句結論」（.t4-lede）
+       是靠 main 的節點增刪觸發去讀圖上的資料，重畫之後沒有節點變動就不會再讀 —— 實測資金輪動那句結論因此沒長出來。
+       這裡有新框時補叫一次（去抖 600ms；T4.decorate 只讀圖、寫一句字，重複叫不會疊）。 */
+    if ($$('.m4cbox', mn).length !== chartBoxes.n) { chartBoxes.n = $$('.m4cbox', mn).length; clearTimeout(chartBoxes.t); chartBoxes.t = setTimeout(() => { if (window.T4 && window.T4.decorate) window.T4.decorate(); }, 600); }
   }
 
   /* ---- 資金輪動「顯示軌跡／腳印／水波／掃描」4 個勾選框 → 一顆「⚙ 顯示 ›」摘要鈕 → 底部抽屜，每組一排「開｜關」分段控制器
