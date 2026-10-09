@@ -28341,16 +28341,22 @@ def t_mobile_m4_mkset1009(b, base, code):
         m.locator("#mktSeg2 button[data-k=streak]").tap(); m.wait_for_timeout(2000)
         P = """() => { const c = echarts.getInstanceByDom(document.getElementById('trust')); if (!c) return null;
             return (c.getOption().series || []).map(s => (s.data || []).length + ':' + (s.data || []).slice(0, 2).map(d => JSON.stringify(d.value || d)).join('|')).join('/'); }"""
-        hid = J("() => [getComputedStyle(document.getElementById('streakWho')).display, getComputedStyle(document.getElementById('streakDays')).display]")
+        hid = J("() => ['streakView', 'streakWho', 'streakDays'].map(i => { const e = document.getElementById(i); return e ? getComputedStyle(e).display : 'none'; })")
         b0 = J(BTN); p0 = J(P)
         m.locator("#m4MkSet").tap(); m.wait_for_timeout(500); s0 = J(SEG)
+        # 畫法（main 79c69fd8 的 #streakView）：手機預設四象限；抽屜裡切「排行」→ 排行表出來、四象限藏起；再切回四象限
+        VW = "() => ({ rank: !!document.getElementById('trustRank') && !document.getElementById('trustRank').hidden && document.getElementById('trustRank').getBoundingClientRect().height > 0, quad: !!document.getElementById('trustWrap') && !document.getElementById('trustWrap').hidden })"
+        v0 = J(VW)
+        m.locator("#mSheet .seg[data-mk=view] button", has_text="排行").tap(); m.wait_for_timeout(900); v1 = J(VW); bv = J(BTN)
+        m.locator("#mSheet .seg[data-mk=view] button", has_text="四象限").tap(); m.wait_for_timeout(900); v2 = J(VW)
         m.locator("#mSheet .seg[data-mk=days] button", has_text="≥5 天").tap(); m.wait_for_timeout(900); p1 = J(P)
         m.locator("#mSheet .seg[data-mk=who] button", has_text="外資").tap(); m.wait_for_timeout(900); p2 = J(P)
         shut(); b1 = J(BTN)
-        ok(f"【{T}】市場明細法人連買賣：投信／外資／合計＋天數收進抽屜（天數由下拉改成分段）；抽屜裡改 ≥5 天、外資，散佈點真的變；摘要字換成 {b1 and b1['t']}",
-           hid == ["none", "none"] and b0 and s0 and [r["k"] for r in s0["rows"]] == ["who", "days"] and all(r["lines"] == 1 and r["sw"] <= r["cw"] + 1 for r in s0["rows"])
+        ok(f"【{T}】市場明細法人連買賣：畫法（排行／四象限）＋投信／外資／合計＋天數收進抽屜，抽屜裡切排行／四象限畫面真的換（天數由下拉改成分段）；抽屜裡改 ≥5 天、外資，散佈點真的變；摘要字換成 {b1 and b1['t']}",
+           hid == ["none", "none", "none"] and b0 and s0 and [r["k"] for r in s0["rows"]] == ["view", "who", "days"] and all(r["lines"] == 1 and r["sw"] <= r["cw"] + 1 for r in s0["rows"])
+           and v0 == {"rank": False, "quad": True} and v1 == {"rank": True, "quad": False} and v2 == {"rank": False, "quad": True} and bv and "排行" in bv["t"]
            and p0 and p1 and p2 and p0 != p1 and p1 != p2 and b1 and "外資" in b1["t"] and "≥5" in b1["t"],
-           dict(hid=hid, b0=b0, b1=b1, s0=s0))
+           dict(hid=hid, b0=b0, b1=b1, bv=bv, s0=s0, v=(v0, v1, v2)))
         # ③ 站上均線：期間一排＋族群；改 60 日主線真的換、勾一個族群線真的多一條
         m.locator("#mktSeg2 button[data-k=ma]").tap(); m.wait_for_timeout(2500)
         L = """() => { const c = echarts.getInstanceByDom(document.getElementById('maTrend')); if (!c) return null; const o = c.getOption(), sel = (o.legend[0] || {}).selected || {};
