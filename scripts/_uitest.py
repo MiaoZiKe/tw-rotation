@@ -30059,14 +30059,14 @@ def t_mobile_m4_ov2(b, base, code):
             const box = cats.map((t, i) => [t, i]).filter(([t, i]) => typeof f === 'function' ? f(i, t) : true)
               .map(([t, i]) => { const x = ec.convertToPixel({ xAxisIndex: 1 }, i), w = ctx.measureText(t).width; return { t, l: x - w / 2, r: x + w / 2 }; });
             const gaps = box.slice(1).map((b, k) => b.l - box[k].r);
-            return { n: box.length, labels: box.map(b => b.t), minGap: gaps.length ? Math.round(Math.min(...gaps) * 10) / 10 : null, fs: lab.fontSize }; }"""
+            return { n: box.length, labels: box.map(b => b.t), minGap: gaps.length ? Math.round(Math.min(...gaps) * 10) / 10 : null, fs: lab.fontSize, ecW: ec.getWidth(), boxW: c.clientWidth }; }"""
         for wid in (360, 402):
             m.set_viewport_size({"width": wid, "height": 800})
             go("overview", 3500)
             # 前面的步驟切過「熱度」組（分段會記住）→ 先切回「大盤」，不然大盤卡藏著、量到的是寬 0 時的座標
             J("() => { const b = [...document.querySelectorAll('#v-overview .mpager button')].find(x => x.textContent.trim().startsWith('大盤')); if (b && !b.classList.contains('on')) b.click(); }"); m.wait_for_timeout(1200)
             J("() => { const b = document.querySelector('#m3Mode button[data-m=\"line\"]'); if (b) b.click(); }")
-            wait_until(m, "() => { const c = document.querySelector('#m3Grid .m3-card.mcur .m3-chart'); return !!(c && c.clientWidth > 100 && window.echarts && echarts.getInstanceByDom(c)); }", 10000)
+            wait_until(m, "() => { const c = document.querySelector('#m3Grid .m3-card.mcur .m3-chart'); const e = c && window.echarts && echarts.getInstanceByDom(c); return !!(e && c.clientWidth > 100 && Math.abs(e.getWidth() - c.clientWidth) <= 2); }", 10000)   # 等圖表庫自己的寬度跟上容器（視窗剛換寬時 ResizeObserver 晚一拍）
             m.wait_for_timeout(600)
             xa = J(XA)
             ok(f"【{T}】{wid} 寬總覽分時圖時間軸：刻度字框不重疊、間距 ≥ 4px（{xa and xa['labels']}，最小間距 {xa and xa['minGap']}）",
