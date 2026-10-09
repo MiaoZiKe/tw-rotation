@@ -871,6 +871,10 @@
   :root.m4 #v-flow .rbar:is(#rotBack,#sankeyDays)>input[type=range]{flex:1 1 60px;width:auto!important;min-width:48px}
   :root.m4 #v-flow .rbar:is(#rotBack,#sankeyDays)>:is(.val,.ago,.t){flex:none;white-space:nowrap;min-width:0}
   :root.m4 #v-flow #sankeyDays.playing>.ago{display:none}
+  /* 31e-2.（手機監督 10-09：360 寬暫停在過去某天時「52 天前 2026-07-22」把 ▶ 擠出畫面一半，量到 ▶ 右緣 386 > 視窗 360）
+     「看哪一天」標籤收起（拉桿＋日期本身就說明了），日期改短格式「07-22」（app.js 的 fmt，只在 html.m4）。
+     改後 360 寬最長的一刻（暫停在過去：− 拉桿 ＋ N 天前 MM-DD ▶）拉桿仍有 ≥ 90px。*/
+  :root.m4 #v-flow #sankeyDays>.t{display:none}
   /* 31f. 熱力圖右上「放大 ⤢」拿掉（Andy 09:3x：題材頁和產業熱力圖兩處都拿；總覽「熱度」組的兩顆是同一款，一併拿掉）。
      手機本來就是滿寬、可以兩指縮放，放大罩在手機只是多一層。節點留著（桌機照舊用）。 */
   :root.m4 :is(#heatZoom,#ovThemeZoom,#themeZoom){display:none!important}

@@ -31535,7 +31535,80 @@ def t_m4_sankey_lbl_1009(b, base):
         finally:
             ctx.close()
 
+# ★ 2026-10-09（手機監督）：360 寬資金分流樹暫停在過去某天時「1 天前 2026-10-05」把 ▶／⏸ 擠出畫面一半（帳本 60 改成不換行後變成溢出被裁）。
+#   修法：手機日期改「MM-DD」、「看哪一天」標籤收起（app.js fmt＋mobile4.css 31e-2）。
+#   這段在 360／402 觸控、播放中每 100ms 取樣，取日期字最長的那一刻，以及按 ⏸ 停在過去某天的那一刻，量：
+#   ▶ 右緣 ≤ 列右緣、≤ 視窗寬；整列一行（每個子元素同一列、列高 ≤ 44）；日期字沒有被截（scrollWidth ≤ clientWidth）。
+#   資金輪動（#rotBack）回放 30 天同樣量。1440 桌機另驗：分流樹日期仍是完整 YYYY-MM-DD、「看哪一天」標籤還在。
+PB360_JS = """(id) => { const b = document.getElementById(id); if (!b) return null; const r = b.getBoundingClientRect();
+  const kids = [...b.children].filter(e => e.getClientRects().length);
+  const play = b.querySelector('.pb.play'); const pr = play ? play.getBoundingClientRect() : null;
+  const tops = kids.map(e => { const q = e.getBoundingClientRect(); return q.top + q.height / 2; });
+  const txt = kids.filter(e => e.matches('.val,.ago,.t'));
+  return { R: r.right, H: r.height, vw: innerWidth, pr: pr ? pr.right : null, pl: pr ? pr.left : null,
+    spread: tops.length ? Math.max(...tops) - Math.min(...tops) : 0,
+    cut: txt.filter(e => e.scrollWidth > e.clientWidth + 1).map(e => e.textContent),
+    val: ((b.querySelector('.val') || {}).textContent || ''), tw: txt.reduce((a, e) => a + e.getBoundingClientRect().width, 0),
+    t: !!(b.querySelector('.t') && b.querySelector('.t').getClientRects().length), playing: b.classList.contains('playing') }; }"""
+
+
+def t_m4_playbar360_1009(b, base):
+    T = "手機播放列360"
+    for w in (360, 402, 1440):
+        mob = w < 1000
+        vp = {"viewport": {"width": w, "height": 844 if mob else 900}}
+        if mob:
+            vp.update({"device_scale_factor": 2, "is_mobile": True, "has_touch": True})
+        ctx = b.new_context(**vp)
+        ctx.add_init_script("try{ localStorage.setItem('tw.theme','light'); localStorage.setItem('tw.live.on','0'); localStorage.setItem('tw.tourDone','1');"
+                            " localStorage.removeItem('tw.sankey.day'); localStorage.setItem('tw.rot.days','30'); }catch(e){}")
+        m = ctx.new_page()
+        m.route("**/fonts.googleapis.com/**", lambda r: r.abort())
+        m.on("pageerror", lambda e: fails.append(f"{T} pageerror: {e} @ {m.url}"))
+        tag = f"{w}" + ("（手機觸控）" if mob else "（桌機）")
+        try:
+            for h, bid, name in (("flow/sankey", "sankeyDays", "資金分流樹"), ("flow/rotation", "rotBack", "資金輪動")):
+                m.goto(base + "#" + h, wait_until="domcontentloaded")
+                if not wait_until(m, f"() => document.querySelector('#{bid} .pb.play') && document.getElementById('{bid}').getClientRects().length ? 1 : 0", 15000):
+                    ok(f"{T} {tag} {name}：播放列出現", False); continue
+                m.wait_for_timeout(1200)
+                m.evaluate(f"() => document.getElementById('{bid}').scrollIntoView({{block: 'center'}})")
+                if not mob:
+                    if bid == "sankeyDays":
+                        m.evaluate("() => { const i = document.querySelector('#sankeyDays input[type=range]'); i.value = 3; i.dispatchEvent(new Event('input', {bubbles: true})); }")
+                        r = m.evaluate(PB360_JS, bid)
+                        ok(f"{T} {tag} 資金分流樹：桌機日期仍是完整 YYYY-MM-DD、「看哪一天」標籤還在（{r['val']}）",
+                           bool(re.match(r"^\d{4}-\d{2}-\d{2}$", r["val"])) and r["t"], r)
+                    continue
+                if bid == "sankeyDays":           # 從最舊那天播，日期一定在過去
+                    m.evaluate("() => { const i = document.querySelector('#sankeyDays input[type=range]'); i.value = 0; i.dispatchEvent(new Event('input', {bubbles: true})); i.dispatchEvent(new Event('change', {bubbles: true})); }")
+                    m.wait_for_timeout(600)
+                m.evaluate(f"() => document.querySelector('#{bid} .pb.play').click()")
+                smp = []
+                for _ in range(28):
+                    m.wait_for_timeout(100)
+                    r = m.evaluate(PB360_JS, bid)
+                    if r: smp.append(r)
+                vals = {x["val"] for x in smp}
+                pl = [x for x in smp if x["playing"]]
+                worst = max(pl, key=lambda x: x["tw"]) if pl else None
+                ok(f"{T} {tag} {name}：播放中真的在換日（取樣 {len(smp)} 次、播放中 {len(pl)} 次、讀數 {len(vals)} 種）", len(pl) >= 10 and len(vals) >= 2, sorted(vals)[:6])
+                m.evaluate(f"() => {{ const b = document.querySelector('#{bid} .pb.play'); if (b.textContent.includes('⏸')) b.click(); }}")
+                m.wait_for_timeout(500)
+                paused = m.evaluate(PB360_JS, bid)
+                for lab, r in (("播放中日期字最長的那一刻", worst), ("按 ⏸ 停在過去某天", paused)):
+                    good = bool(r) and r["pr"] is not None and r["pr"] <= r["R"] + 0.5 and r["pr"] <= r["vw"] and r["spread"] <= 2 and r["H"] <= 44 and not r["cut"]
+                    ok(f"{T} {tag} {name}：{lab}「{r and r['val']}」▶ 右緣 {r and round(r['pr'])} ≤ 列右緣 {r and round(r['R'])}、≤ 視窗 {w}；一行（列高 {r and round(r['H'])}）；日期沒被截",
+                       good, r)
+                if bid == "sankeyDays":
+                    ok(f"{T} {tag} 資金分流樹：手機日期是短格式（MM-DD 或「最新」），「看哪一天」標籤收起",
+                       all(re.match(r"^(\d{2}-\d{2}|最新)$", x["val"]) for x in smp + [paused]) and not paused["t"], sorted(vals)[:6])
+        finally:
+            ctx.close()
+
 SECTIONS = {
+    # ★ 2026-10-09 手機監督：360 寬播放列 ▶／⏸ 被長日期擠出畫面 —— 360／402 播放中最長那刻＋暫停在過去：▶ 在列內、一行、日期不截；1440 日期仍完整
+    "手機播放列360":       lambda pg, b, base, code: t_m4_playbar360_1009(b, base),
     # ★ 2026-10-09 手機監督：手機資金分流樹 ▶ 播放時換位補間中族群標籤短暫疊在一起 —— 402／360 播放每 50ms 取樣、標籤字框重疊次數＝0；1440 播放中標籤一塊都不准被淡出
     "手機分流樹標籤1009":  lambda pg, b, base, code: t_m4_sankey_lbl_1009(b, base),
     # ★ 2026-10-09 Andy（網頁版）：法人連買賣改直觀（排行預設、四象限可切）、站上均線圖例→下拉＋族群卡依產業鏈收合、漲跌分佈加寬、個股新聞限高捲動

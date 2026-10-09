@@ -9488,7 +9488,10 @@
       let skBar = null;
       if (n > 1) {
         skBar = playBar('sankeyDays', { min: 0, max: n - 1, value: n - 1, key: 'tw.sankey.day',
-          frame: 650, label: '看哪一天', fmt: (v) => (v >= n - 1 ? '最新' : sd.dates[v]),
+          /* ★ 2026-10-09（手機監督：360 寬「1 天前 2026-10-05」把 ▶ 擠出畫面一半）：手機（html.m4）日期只寫「10-05」，
+             旁邊的「N 天前」補足是哪一天；「看哪一天」標籤在手機由 mobile4.css 收起。桌機照舊寫完整日期。*/
+          frame: 650, label: '看哪一天', fmt: (v) => (v >= n - 1 ? '最新'
+            : (document.documentElement.classList.contains('m4') ? String(sd.dates[v] || '').slice(5) : sd.dates[v])),
           ago: (v) => (v >= n - 1 ? '' : (n - 1 - v) + ' 天前'),   // 2026-10-08 補天數（交易日）；最新那天 .val 已寫「最新」，這格留空收掉
           /* 拖時間軸＝「我要看過去某一天」，和「即時」是互斥的兩件事。
              不退出的話拉Bar 看起來完全沒作用（畫面還是盤中那一張），像壞掉。*/
