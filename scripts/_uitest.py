@@ -27192,7 +27192,7 @@ def t_mobile_m4_1008(b, base, code):
         badb = {}
         for h in ("overview", "flow/sankey", "flow/rotation", "heatmap/industry", "industry", "market", "explore", "etf/list", "etf/inc", "season", "watch", "stock/" + code):
             go(h, 2600)
-            r = J("""() => { const CTRL = '.ed,.cald,.hmbar,.snk,.st,.badge,button,input,select,textarea,label,a,[role=button],[role=tab],.seg,.mseg,.nbsw,.pill,.chip,.ddbtn,.segdd,.etag,.fq,.fqtag,summary,.mnum';
+            r = J("""() => { const CTRL = '.ed,.cald,.hmbar,.snk,.st,.badge,button,input,select,textarea,label,a,[role=button],[role=tab],.seg,.mseg,.nbsw,.pill,.chip,.ddbtn,.segdd,.etag,.fq,.fqtag,summary,.mnum,.rotping';   // .rotping＝輪盤掃描的聲納圈（圖的特效，2026-10-09 手機改用網頁版輪盤後出現）
                 const out = []; document.querySelectorAll('main .view.on *').forEach(e => { if (!e.getClientRects().length || e.matches(CTRL) || e.closest(CTRL) || e.ownerSVGElement || e.tagName === 'svg' || e.tagName === 'CANVAS') return;
                   const cs = getComputedStyle(e); const r = e.getBoundingClientRect(); if (r.width < 30 || r.height < 16) return;
                   const b4 = ['Top', 'Right', 'Bottom', 'Left'].every(k => parseFloat(cs['border' + k + 'Width']) > 0 && cs['border' + k + 'Style'] !== 'none');
@@ -27278,7 +27278,8 @@ def t_mobile_m4_1008(b, base, code):
             document.querySelectorAll('.view.on .howbtn').forEach(e => { if (vis(e)) out.push(['?', fp(e), '']); });
             document.querySelectorAll('.view.on button').forEach(e => { const c = getComputedStyle(e);
               if (!vis(e) || tabs.has(e) || e.classList.contains('howbtn') || parseFloat(c.borderTopWidth) === 0 || c.borderTopWidth !== c.borderBottomWidth
-                || e.matches('.rkrow,.cald,.sl-i,.mbwadd,.wpmore,.etfc,.skr-r') || e.closest('[role=tablist],.seg,.nbsw,.mpager,.mseg,.ddlist,.mnumlayer,.mdgfolds,table')) return;
+                || e.matches('.rkrow,.cald,.sl-i,.mbwadd,.wpmore,.etfc,.skr-r') || e.closest('[role=tablist],.seg,.nbsw,.mpager,.mseg,.ddlist,.mnumlayer,.mdgfolds,table,.rotquads,.ftbar')) return;
+              // ↑ 2026-10-09：.rotquads（輪盤四角象限徽章）、.ftbar（分流樹畫布右上「動態」鈕）是圖的一部分，手機照網頁版長相（Andy：「跟網頁版本一模一樣」），不算介面按鈕
               out.push(['按鈕', fp(e), e.className]); });
             return out; }"""
         kinds = {}
@@ -27915,11 +27916,13 @@ def t_mobile_m4_charts_1009(b, base, code):
             if th == "light":
                 # 點角落徽章（網頁版同一支 rotStageToggle）→ 那一顆亮起、象限面板打開列出該段族群；再點一次收起
                 QS = "() => { const b = document.querySelector('#flowRotCard .rotquads .rq[data-k=lagging]') || document.querySelector('#flowRotCard .rotquads .rq'); const p = document.getElementById('stagePanel'); return { k: b && b.dataset.k, on: !!b && b.classList.contains('on'), panel: !!p && !p.hidden && p.getClientRects().length > 0, txt: p ? p.textContent.trim().slice(0, 20) : '' }; }"
-                m.evaluate("() => { const b = document.querySelector('#flowRotCard .rotquads .rq[data-k=lagging]') || document.querySelector('#flowRotCard .rotquads .rq'); b.setAttribute('data-m4q', '1'); b.scrollIntoView({ block: 'center' }); }")
-                m.wait_for_timeout(300)
-                m.locator("[data-m4q]").first.tap(); m.wait_for_timeout(1200)
+                # 徽章是 rotQuadChips 每次排版整排重寫的（innerHTML），所以用選擇器找，不在元素上做記號
+                QB = "#flowRotCard .rotquads .rq[data-k=lagging]"
+                m.evaluate(f"() => document.querySelector('{QB}').scrollIntoView({{ block: 'center' }})")
+                m.wait_for_timeout(600)
+                m.locator(QB).first.tap(); m.wait_for_timeout(1200)
                 q1 = m.evaluate(QS)
-                m.locator("[data-m4q]").first.tap(); m.wait_for_timeout(1200)
+                m.locator(QB).first.tap(); m.wait_for_timeout(1200)
                 q2 = m.evaluate(QS)
                 ok(f"【{T}】點輪盤角落徽章「{q1['k']}」→ 徽章亮起、象限面板打開（{q1['txt']}）；再點一次收起", q1["on"] and q1["panel"] and not q2["on"] and not q2["panel"], (q1, q2))
             # ④ 族群×法人：網頁版那張三色堆疊長條、兩個篩選下拉、沒有「完整版 ›」
@@ -27946,6 +27949,11 @@ def t_mobile_m4_charts_1009(b, base, code):
                 ok(f"【{T}】點「產業鏈」下拉 → 展開（{opn} 個面板）、選「{picked}」→ 長條數真的變（{ig['cats']}→{ig2}）", opn > 0 and bool(picked) and ig2 != ig["cats"], (opn, picked, ig["cats"], ig2))
             # ⑤ 普查：每一類圖（甜甜圈、長條、時鐘環、熱力圖、樹狀圖、K 線旁的圖），手機色盤＝網頁版色盤
             diffs, seen = [], set()
+            # 前面操作過的篩選（法人產業鏈下拉、輪盤…）會記在 localStorage；普查比的是「同一份資料」的視覺設定，兩邊先回到預設
+            # （篩過的資料可能沒有負值 → 長條漸層走單向、網頁版有負值 → 走依正負換方向的函式，那是資料差不是風格差）
+            for p in (m, d):
+                p.evaluate(f"() => {{ try {{ localStorage.clear(); localStorage.setItem('tw.theme', '{th}'); localStorage.setItem('tw.live.on', '0'); localStorage.setItem('tw.tourDone', '1'); }} catch (e) {{}} }}")
+                p.reload(wait_until="domcontentloaded"); p.wait_for_timeout(1500)
             for h, grp in (("overview", "大盤"), ("overview", "資金流向"), ("overview", "熱度"), ("flow/rotation", None), ("flow/inst", None), ("heatmap/industry", None),
                            ("heatmap/theme", None), ("industry", None), ("market", None), ("etf/list", None), ("etf/inc", None), ("season", None)):
                 go(m, h, 3200); go(d, h, 3200)
