@@ -294,6 +294,75 @@
 .acctdlg .row2 .danger{background:#c9303f;border-color:#c9303f;color:#fff;font-weight:700}
 .acctdlg .muted{color:var(--ink-2);font-size:13px}
 .accttoast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);z-index:1500;background:var(--panel-3);color:var(--ink);border:1px solid var(--line-2);border-radius:10px;padding:10px 16px;font-size:14px;box-shadow:0 8px 24px rgba(0,0,0,.3);max-width:calc(100vw - 32px)}
+/* ★ 2026-10-10 網頁版同步（Andy 10-10 經手機 session 轉達）：桌機帳號選單多三列 —— 額度上限、客服鈕開關、刪除帳號。
+   全部限定 html:not(.m4)：手機選單由 acctm4.js 畫，一個像素都不受影響（CLAUDE.md 10-08「兩者不可侵犯」）。
+   額度上限面板與刪除確認框是 acctm4.js 同一支（openQuota／openDel）畫的內容，這裡只給桌機的外觀（手機那份樣式全部掛在 html.m4 底下，桌機吃不到）。 */
+html:not(.m4) .acctmenu .dk{display:flex;align-items:center;gap:10px}
+html:not(.m4) .acctmenu .dk .t{flex:1;min-width:0}
+html:not(.m4) .acctmenu .dk .r{color:var(--ink-2);font-size:12.5px;white-space:nowrap}
+html:not(.m4) .acctmenu .dk .sw{position:relative;width:36px;height:20px;border-radius:999px;background:var(--line-2);flex:none;transition:background .15s}
+html:not(.m4) .acctmenu .dk .sw::after{content:'';position:absolute;top:3px;left:3px;width:14px;height:14px;border-radius:50%;background:#fff;transition:transform .15s}
+html:not(.m4) .acctmenu .dk[aria-checked="true"] .sw{background:var(--cyan)}
+html:not(.m4) .acctmenu .dk[aria-checked="true"] .sw::after{transform:translateX(16px)}
+html:not(.m4) .acctmenu .dkdel{color:#ff6b7a;flex-wrap:wrap}
+html:not(.m4) .acctmenu .dkdel[aria-disabled="true"]{opacity:.55;cursor:not-allowed}
+html:not(.m4) .acctmenu .dkdel[aria-disabled="true"]:hover{background:none}
+html:not(.m4) .acctmenu .dkdel small{flex-basis:100%;color:var(--ink-2);font-size:12px;line-height:1.45;white-space:normal}
+html:not(.m4) .acctmenu .hr{height:1px;background:var(--line);margin:4px 2px}
+html:not(.m4) .acctmenu.dkm{width:260px}
+html:not(.m4) #m4Quota{position:fixed;inset:0;z-index:1450;background:rgba(3,6,14,.35)}
+html:not(.m4) #m4Quota[hidden]{display:none}
+html:not(.m4) #m4Quota .bx{position:fixed;top:var(--dq-top,64px);right:var(--dq-right,16px);width:440px;max-width:calc(100vw - 32px);max-height:min(680px,calc(100vh - var(--dq-top,64px) - 16px));
+  display:flex;flex-direction:column;overflow:hidden;box-sizing:border-box;padding:14px 16px 12px;background:var(--panel);color:var(--ink);border:1px solid var(--line-2);border-radius:14px;
+  box-shadow:0 16px 48px rgba(0,0,0,.4);font-size:14px}
+html:not(.m4) #m4Quota .hd{flex:none;display:flex;align-items:center;gap:8px;margin-bottom:6px}
+html:not(.m4) #m4Quota .hd h3{margin:0;font-size:16px;flex:1}
+html:not(.m4) #m4Quota .x{width:32px;height:32px;border-radius:8px;border:1px solid var(--line-2);background:var(--panel-2);color:var(--ink);font-size:15px;cursor:pointer}
+html:not(.m4) #m4Quota .sc{flex:1 1 auto;min-height:0;overflow-y:auto;overflow-x:hidden;overscroll-behavior:contain;margin-right:-8px;padding-right:8px;
+  scrollbar-width:thin;scrollbar-color:color-mix(in srgb,var(--ink-2) 55%,transparent) transparent}
+html:not(.m4) #m4Quota .sc::-webkit-scrollbar{width:6px}
+html:not(.m4) #m4Quota .sc::-webkit-scrollbar-thumb{background:color-mix(in srgb,var(--ink-2) 55%,transparent);border-radius:999px}
+html:not(.m4) #m4Quota .bx.more .sc{-webkit-mask-image:linear-gradient(#000 calc(100% - 28px),transparent);mask-image:linear-gradient(#000 calc(100% - 28px),transparent)}
+html:not(.m4) #m4Quota .lead{margin:0 0 8px;color:var(--ink-2);font-size:13px;line-height:1.55}
+html:not(.m4) #m4Quota .qh{display:flex;align-items:baseline;gap:8px;margin:12px 0 6px;font-size:13px;color:var(--ink-2);font-weight:700}
+html:not(.m4) #m4Quota .qh small{margin-left:auto;font-weight:400;font-size:12px}
+html:not(.m4) #m4Quota .qi{padding:8px 0;border-bottom:1px solid var(--line)}
+html:not(.m4) #m4Quota .qi .r1{display:flex;gap:8px;align-items:center}
+html:not(.m4) #m4Quota .qi .r1 b{flex:1;min-width:0;font-weight:600}
+html:not(.m4) #m4Quota .qi .r1 span{white-space:nowrap;font-size:12.5px;color:var(--ink-2)}
+html:not(.m4) #m4Quota .qi .r1 em{font-style:normal;font-weight:700;white-space:nowrap}
+html:not(.m4) #m4Quota .qi.all{border:1px solid var(--line-2);border-radius:10px;padding:10px 12px;background:var(--panel-2)}
+html:not(.m4) #m4Quota .bar{height:5px;border-radius:999px;background:var(--line);margin-top:6px;overflow:hidden}
+html:not(.m4) #m4Quota .bar i{display:block;height:100%;background:var(--cyan);border-radius:999px}
+html:not(.m4) #m4Quota .qi[data-lvl="low"] em{color:var(--amber)}
+html:not(.m4) #m4Quota .qi[data-lvl="low"] .bar i{background:var(--amber)}
+html:not(.m4) #m4Quota .qi[data-lvl="out"] em{color:#ff6b7a}
+html:not(.m4) #m4Quota .qi[data-lvl="out"] .bar i{background:#ff6b7a}
+html:not(.m4) #m4Quota .none{padding:14px 0;color:var(--ink-2)}
+html:not(.m4) #m4Quota .qg{border:1px solid var(--line);border-radius:10px;margin:0 0 6px;background:var(--panel-2);overflow:hidden}
+html:not(.m4) #m4Quota .qgh{display:flex;align-items:center;gap:8px;width:100%;min-height:40px;padding:6px 12px;border:0;background:none;color:var(--ink);font:inherit;text-align:left;cursor:pointer}
+html:not(.m4) #m4Quota .qgh:hover{background:var(--row-hover)}
+html:not(.m4) #m4Quota .qgh .t{font-weight:700;font-size:14px;white-space:nowrap}
+html:not(.m4) #m4Quota .qgh small{color:var(--ink-2);font-size:12px;white-space:nowrap}
+html:not(.m4) #m4Quota .qgh .s{flex:1;min-width:0;display:flex;flex-wrap:wrap;justify-content:flex-end;gap:2px 8px}
+html:not(.m4) #m4Quota .qgh .s em{font-style:normal;font-size:12px;color:var(--ink-2);white-space:nowrap}
+html:not(.m4) #m4Quota .qgh .s em.low,html:not(.m4) #m4Quota .qgh .s em.pl{color:var(--amber)}
+html:not(.m4) #m4Quota .qgh .s em.out{color:#ff6b7a}
+html:not(.m4) #m4Quota .qgh i{font-style:normal;color:var(--ink-2);font-size:16px;line-height:1;transition:transform .15s}
+html:not(.m4) #m4Quota .qgh[aria-expanded="true"] i{transform:rotate(90deg)}
+html:not(.m4) #m4Quota .qgb{padding:0 12px 2px;border-top:1px solid var(--line)}
+html:not(.m4) #m4Quota .qgb[hidden]{display:none}
+html:not(.m4) #m4Quota .qgb .qi:last-child{border-bottom:0}
+html:not(.m4) #m4Quota .qplan{flex:none;display:inline-flex;align-items:center;height:22px;padding:0 9px;border-radius:999px;font-size:12px;font-weight:700;white-space:nowrap;
+  color:var(--amber);background:color-mix(in srgb,var(--amber) 14%,transparent);border:1px solid color-mix(in srgb,var(--amber) 45%,transparent)}
+html:not(.m4) #m4Quota .qplan::before{content:'★';margin-right:4px;font-size:11px}
+html:not(.m4) #m4Quota .ft{flex:none;display:flex;gap:8px;align-items:center;margin-top:8px;padding-top:8px;border-top:1px solid var(--line)}
+html:not(.m4) #m4Quota .ft small{flex:1;color:var(--ink-2);font-size:12.5px}
+html:not(.m4) #m4Quota .go{height:34px;padding:0 14px;border-radius:9px;background:var(--cyan);color:#04121a;font-weight:700;font-size:13.5px;text-decoration:none;display:inline-flex;align-items:center}
+html:not(.m4) .m4deldlg input{width:100%;height:38px;box-sizing:border-box;border-radius:9px;border:1px solid var(--line-2);background:var(--panel-2);color:var(--ink);font-size:15px;padding:0 12px;margin:6px 0 2px}
+html:not(.m4) .m4deldlg label{font-weight:600}
+html:not(.m4) .m4deldlg .danger:disabled{opacity:.45;cursor:not-allowed}
+html:not(.m4) .m4deldlg .msg{min-height:1.4em;font-size:13px;color:#ff6b7a;margin:4px 0 0}
 @media (max-width:820px){
   .acctbar .abtn{height:34px;padding:0 8px;font-size:13px}
   .acctbar .ame .anm,.acctbar .aonline span{display:none}
@@ -358,6 +427,9 @@
       m = document.createElement('div'); m.id = 'acctMenu'; m.className = 'acctmenu'; m.setAttribute('role', 'menu'); document.body.appendChild(m);
       m.addEventListener('click', (e) => {
         if (e.target.closest('.planbadge')) { m.hidden = true; return; }
+        /* 2026-10-10 桌機新加的三列（data-d；手機選單用 data-m，acctm4.js 自己接）—— 邏輯全部交給 acctm4.js 同一支 */
+        const d = !m.classList.contains('m4am') && e.target.closest('[data-d]');
+        if (d) { deskItem(m, d); return; }
         const a = e.target.closest('[data-a]'); if (!a) return;
         m.hidden = true;
         if (a.dataset.a === 'watch') location.hash = '#watch';   // 2026-09-28：自選改成整頁（#watch）
@@ -387,13 +459,55 @@
       + (u.admin ? `<button type="button" role="menuitem" data-a="feedback">管理區：意見反饋與訂閱申請</button><button type="button" role="menuitem" data-a="notices">管理區：公告</button>` : '')
       + (u.admin ? `<button type="button" role="menuitem" data-a="admin">管理區：流量觀測與線上名單</button><button type="button" role="menuitem" data-a="perm">管理區：會員功能權限</button>` : '')
       + (u.admin && window.TwGw && window.TwGw.on() ? `<button type="button" role="menuitem" data-a="gw">管理區：付費資料異常</button>` : '')   // 2026-10-06 data-gw 第三階段（site/admingw.js）
+      + deskRows(u)
       + `<button type="button" role="menuitem" data-a="privacy">隱私權政策</button>`
-      /* 10-05 Andy：選單拿掉「刪除我的資料」；刪除改由客服信箱申請（隱私權政策「您的權利」）*/
+      /* 10-05 Andy 拿掉「刪除我的資料」；10-10 Andy 選 B「都能直接刪除」→ 加回「刪除帳號」（deskDel，流程同手機）*/
+      + deskDel(u)
       + `<button type="button" role="menuitem" data-a="logout">登出</button>`;
+    m.classList.add('dkm');
     m.hidden = false;
-    const r = anchor.getBoundingClientRect();
+    const r = anchor.getBoundingClientRect(), w = m.offsetWidth || 260;
     m.style.top = (r.bottom + 6) + 'px';
-    m.style.left = Math.max(8, Math.min(window.innerWidth - 236, r.right - 228)) + 'px';
+    m.style.left = Math.max(8, Math.min(window.innerWidth - w - 8, r.right - w)) + 'px';
+  }
+  /* ---------------- 2026-10-10 桌機帳號選單：額度上限、客服鈕開關、刪除帳號（Andy 10-10 經手機 session 轉達的同步稽核）----------------
+     三列的「做什麼」全部是 acctm4.js 那一支（TwAcctM4.openQuota／setFab／openDel），桌機只決定長相與位置 —— 同一件事不寫兩份。
+     · 額度上限（Andy：「額度上限使用收合功能將每個母分頁內所有有限制的功能標示出來，太長就用拉Bar。不要寫"不開放" 幫我改成plus 會員」）：
+       右邊寫「今日剩 N／M」或「N 項」；點了在頭像下方開面板（依母分頁分組、預設收起、只有一組時展開、手動展開的記住、中間那段自己捲）。
+     · 客服鈕：跟手機同一個鍵 tw.fab.off（html.fab-off），切了選單不收，重新整理照樣記得。
+     · 刪除帳號（Andy 選 B「都能直接刪除」）：紅字；站主停用＋小字原因；點了開確認框（說明會刪什麼 → 輸入「刪除」才按得下去 → POST /v1/delete），
+       付費會員多一句「剩餘期間不會自動退費」＋退款政策連結（acctm4.js openDel 同一段字）。 */
+  const M4 = () => window.TwAcctM4 || null;
+  function deskRows(u) {
+    const M = M4(); if (!M) return '';
+    const on = !M.fabOff();
+    return `<button type="button" class="dk" role="menuitem" data-d="quota"><span class="t">額度上限</span><span class="r">${esc(M.remText ? M.remText() : '')}</span></button>`
+      + `<button type="button" class="dk" role="menuitemcheckbox" aria-checked="${on}" data-d="fab" title="右下角的客服浮動鈕（手機帳號選單的「客服功能」是同一個開關）"><span class="t">客服鈕：${on ? '顯示' : '隱藏'}</span><span class="sw" aria-hidden="true"></span></button>`;
+  }
+  function deskDel(u) {
+    if (!M4()) return '';
+    const own = !!(u && u.owner);
+    return '<div class="hr" role="separator"></div>'
+      + `<button type="button" class="dk dkdel" role="menuitem" data-d="del"${own ? ' aria-disabled="true"' : ''}><span class="t">刪除帳號</span>`
+      + (own ? '<small>站主帳號不可刪除：網站的最高管理權限綁在這個帳號上，刪了管理區就沒有擁有者</small>' : '') + '</button>';
+  }
+  function deskItem(m, d) {
+    const M = M4(); if (!M) return;
+    const k = d.dataset.d;
+    if (k === 'fab') {
+      const off = !M.fabOff(); M.setFab(off);
+      d.setAttribute('aria-checked', String(!off));
+      const t = d.querySelector('.t'); if (t) t.textContent = '客服鈕：' + (off ? '隱藏' : '顯示');
+      return;   // 選單留著，看得到開關換了
+    }
+    if (d.getAttribute('aria-disabled') === 'true') return;   // 站主的刪除帳號：停用，點了不做事
+    m.hidden = true;
+    if (k === 'quota') {
+      injectCSS();
+      M.openQuota();
+      const q = document.getElementById('m4Quota'), btn = document.getElementById('acctBtn');
+      if (q && btn) { const r = btn.getBoundingClientRect(); q.style.setProperty('--dq-top', Math.round(r.bottom + 8) + 'px'); q.style.setProperty('--dq-right', Math.max(16, Math.round(window.innerWidth - r.right)) + 'px'); }
+    } else if (k === 'del') { injectCSS(); M.openDel(); }
   }
   document.addEventListener('pointerdown', (e) => {
     const m = document.getElementById('acctMenu');
@@ -415,7 +529,7 @@
         <li><b>線上狀態</b>：關掉分頁，或 7 分鐘沒有訊號，就刪除。</li>
         <li><b>保存期限</b>：會員資料保存到你刪除為止；連續 24 個月沒有使用會自動刪除。</li>
         <li><b>存放</b>：Cloudflare（Workers／Durable Objects）；登入經由 Google 驗證身分。</li>
-        <li><b>刪除</b>：來信客服 kcq01010909@gmail.com 申請，十五日內刪除會員資料與雲端自選清單。</li>
+        <li><b>刪除</b>：可於登入後的帳號選單自行刪除帳號（立即刪除會員資料與雲端自選清單），或來信客服 kcq01010909@gmail.com 申請，十五日內處理。</li>
       </ul>
       <p class="muted">詳見 <a href="#privacy" data-close>隱私權政策</a>。按下「用 Google 帳號登入」即表示你同意上述蒐集與利用。</p>
       <div class="row2"><button type="button" data-close>取消</button><button type="button" class="pri" id="acctGo">用 Google 帳號登入</button></div>`;

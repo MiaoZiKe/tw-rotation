@@ -110,7 +110,7 @@
         <td><b>${esc(d.name)}</b><br><small class="muted">${esc(d.id)}${live(d) ? '・<span style="color:var(--fall,#2fbf71)">進行中</span>' : d.on ? '・未在期間內' : ''}</small></td>
         <td><span class="kd ${d.kind}">${d.kind === 'promo' ? '上市體驗週' : '新會員體驗'}</span></td>
         <td>${esc(period(d))}</td>
-        <td class="fl">${Object.entries(d.feats).map(([k, m]) => `${esc(fname(k))} ${m} 次`).join('、')}${d.per === 'day' ? '（每天）' : '（期間合計）'}${d.audience === 'member' ? '・所有會員' : '・只給免費會員'}</td>
+        <td class="fl">${Object.entries(d.feats).map(([k, m]) => `${esc(fname(k))} ${m} 次`).join('、')}${d.per === 'day' ? '（每天）' : '（期間合計）'}${d.audience === 'member' ? '・所有會員' : '・只給註冊會員'}</td>
         <td>${d.issued || 0} 人</td><td>${d.used || 0} 次</td>
         <td><button type="button" data-edit="${esc(d.id)}">編輯</button></td></tr>`).join('') || '<tr><td colspan="8" class="muted">還沒有活動</td></tr>'}
       </tbody></table></div><div class="st" id="agrSt" role="status"></div></div>
@@ -153,7 +153,7 @@
         <label class="w-promo" for="agrT0">活動日期</label><div class="inl w-promo"><input type="date" id="agrT0" value="${esc(tpeYmd(d.t0 || fromYmd(today)))}" aria-label="開始日期"> 到 <input type="date" id="agrT1" value="${esc(tpeYmd((d.t1 || fromYmd(today) + 14 * DAY) - 1))}" aria-label="結束日期"><small class="muted" style="margin:0">（臺北時間，開始日 00:00 到結束日 23:59）</small></div>
         <label class="w-wel" for="agrDays">有效天數</label><div class="inl w-wel"><input type="number" id="agrDays" min="1" max="60" value="${esc(d.days || 7)}" style="width:90px"> 天（從註冊那一刻算）</div>
         <label for="agrPer">次數算法</label><select id="agrPer"><option value="total"${d.per !== 'day' ? ' selected' : ''}>期間合計（整段期間每項 M 次）</option><option value="day"${d.per === 'day' ? ' selected' : ''}>每天（每天每項 M 次）</option></select>
-        <label for="agrAud">對象</label><select id="agrAud"><option value="free"${d.audience !== 'member' ? ' selected' : ''}>只給免費會員</option><option value="member"${d.audience === 'member' ? ' selected' : ''}>所有登入會員（付費會員本來就能用，不會被扣）</option></select>
+        <label for="agrAud">對象</label><select id="agrAud"><option value="free"${d.audience !== 'member' ? ' selected' : ''}>只給註冊會員</option><option value="member"${d.audience === 'member' ? ' selected' : ''}>所有登入會員（付費會員本來就能用，不會被扣）</option></select>
         <label for="agrM">每項次數</label><div class="inl"><input type="number" id="agrM" min="1" max="999" value="${esc(m0)}" style="width:90px"><button type="button" id="agrMAll">套用到已勾的功能</button></div>
         <label>功能</label><div><div class="fg" id="agrFeats">${groups.map(([c, a]) => `<div class="cat">${esc(c.name)}</div>` + a.map((f) => {
           const on = Object.prototype.hasOwnProperty.call(d.feats, f.id);

@@ -91,6 +91,14 @@
   opacity:1!important;filter:none!important;width:auto!important;height:auto!important;transform:none!important}
 [data-plkb]::after{content:" 🔒"!important;font-size:.85em!important;color:inherit!important;opacity:.9!important;margin-left:2px!important;vertical-align:0!important}
 [data-plkb="block"]{opacity:.62}
+/* ★ 2026-10-10 備註模式（features.js note；Andy：「這種訊息不要用跳出的方式表示，功能反灰旁邊備註就好」）：
+   鈕反灰、游標 not-allowed、不加 🔒；旁邊一行小字（.plknote）。點了什麼都不發生（不跳卡、不 toast）。*/
+[data-plkb="note"]{opacity:.42!important;cursor:not-allowed!important;filter:grayscale(1)}
+[data-plkb="note"]::after{content:none!important}
+/* 手機（html.m4）資金輪動／分流樹的期間列規定一行不換行（mobile4.css 31e），「Plus 以上可播放」塞不下 → 畫面上縮成「Plus 限定」（讀屏仍是原文）*/
+:root.m4 #v-flow .rbar:is(#rotBack,#sankeyDays)>.plknote{flex:none;font-size:0!important;margin-left:2px}
+:root.m4 #v-flow .rbar:is(#rotBack,#sankeyDays)>.plknote::before{content:"Plus 限定";font-size:12px;color:var(--ink-3)}
+.plknote{display:inline-flex;align-items:center;font-size:12px;line-height:1.4;color:var(--ink-3);white-space:nowrap;margin-left:6px;font-weight:400;pointer-events:none}
 .permtoast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);z-index:1500;background:var(--panel-3,#1c2638);color:var(--ink,#e6edf6);
   border:1px solid var(--line-2,#33415a);border-radius:10px;padding:10px 16px;font-size:14px;box-shadow:0 8px 24px rgba(0,0,0,.3);max-width:calc(100vw - 32px)}
 .permtoast[hidden]{display:none}`;
@@ -129,6 +137,10 @@
     S.raf = 0;
     css();
     const want = new Map(), wantB = new Map(), wantF = new Map();
+    /* ★ 2026-10-10（同步稽核 7-1）：側欄子分頁（layout4.js 的 .l4subtab[data-l4sub]）掛同款 🔒 —— features.js 的 sub。
+       不看 route：側欄每一頁都看得到。只掛電腦版側欄；手機頁首子分頁（.m4subtabs）是 mobile4.js 每次整段 innerHTML 重畫的，
+       在那裡掛屬性會讓它以為內容變了又重畫（無限迴圈），手機自己讀 TwFeatures.bySub() 畫。 */
+    for (const f of lockedList()) (f.sub || []).forEach((k) => q(`.l4subtab[data-l4sub="${k}"]`).forEach((el) => wantB.set(el, 'mark')));
     for (const f of lockedList()) {
       if (!routeOk(f)) continue;
       for (const [sel, when] of f.veil || []) {
@@ -136,7 +148,7 @@
         q(sel).forEach((el) => { if (!want.has(el)) { want.set(el, msgOf(f)); wantF.set(el, f.id); } });
       }
       (f.mark || []).forEach((sel) => q(sel).forEach((el) => { if (!wantB.has(el)) wantB.set(el, 'mark'); }));
-      (f.block || []).forEach((sel) => q(sel).forEach((el) => wantB.set(el, 'block')));
+      (f.block || []).forEach((sel) => q(sel).forEach((el) => wantB.set(el, f.note ? 'note' : 'block')));
     }
     /* 族群觀測：族群頁＋族群下拉（canvas 圖走 grpBlock）*/
     const lg = lockedGrp();
@@ -164,14 +176,22 @@
       veilKids(el, wantF.get(el));
     });
     q('[data-plkb]').forEach((el) => { if (!wantB.has(el)) { el.removeAttribute('data-plkb'); if (el.dataset.plkTitle != null) { el.title = el.dataset.plkTitle; delete el.dataset.plkTitle; } } });
+    notes(wantB);
     wantB.forEach((k, el) => {
       if (el.getAttribute('data-plkb') !== k) {
         el.setAttribute('data-plkb', k);
         if (el.dataset.plkTitle == null) el.dataset.plkTitle = el.title || '';
-        el.title = '此功能需開通';
+        el.title = k === 'note' ? ((lockedList().find((x) => (x.block || []).some((sl) => { try { return el.matches(sl); } catch (er) { return false; } })) || {}).note || '')
+          : el.classList.contains('l4subtab') ? subTip(el) : '此功能需開通';
       }
     });
     watch(want.size + wantB.size > 0 || lockedList().length > 0);
+  }
+  /* 側欄子分頁的滑過說明：原本的「頁名・子頁名」＋「🔒 需 Plus 會員」（方案名跟額度上限面板同一支 needPlan，acctm4.js；沒載入就寫「升級方案」）*/
+  function subTip(el) {
+    const ids = F.bySub ? F.bySub(el.dataset.l4sub || '') : [];
+    const M = window.TwAcctM4, need = ids.length && M && M.needPlan ? M.needPlan(ids[0]) : '升級方案';
+    return `${el.dataset.plkTitle || el.title || ''}（🔒 需${need}）`;
   }
   /* ★ admin-v3（Andy D③）：鎖頭上要有一顆能點的「升級查看」→ #pricing/need/<功能鍵>（訂閱頁把能解鎖它的方案標出來）。
      原本整塊 inert（連鈕都點不到）→ 改成「外框不 inert、裡面原本的子節點逐一 inert」，只有升級鈕可以點。
@@ -211,9 +231,17 @@
   }
   /* 「按了不會動作」的鈕：捕獲階段攔下來（比各自的 onclick 早），不必改那幾支別人正在改的檔案 */
   document.addEventListener('click', (e) => {
-    const b = e.target && e.target.closest && e.target.closest('[data-plkb="block"]');
+    const b = e.target && e.target.closest && e.target.closest('[data-plkb="block"], [data-plkb="note"]');
     if (!b) return;
     e.preventDefault(); e.stopImmediatePropagation();
+    /* ★ 2026-10-10 備註模式：不跳卡、不 toast（旁邊已經寫了）。唯一例外：這個人手上真的還有體驗額度 → 跳體驗卡（「繼續看」才扣），
+       那是他領到的權益，不是叫他訂閱。 */
+    if (b.getAttribute('data-plkb') === 'note') {
+      const fn = lockedList().find((x) => (x.block || []).some((sl) => { try { return b.matches(sl); } catch (er) { return false; } }));
+      const G2 = window.TwGrants, QC2 = window.TwQCard, x = fn && G2 ? G2.extra(fn.id) : null;
+      if (fn && x && x.left > 0 && QC2 && QC2.modal) { G2.pending(fn.id, b); QC2.modal(QC2.lockOpts(fn, S.who)); }
+      return;
+    }
     const gi = b.querySelector && b.querySelector('input[data-g]');
     const gf = gi ? F.byId(F.grpKey(gi.dataset.g)) : null;
     if (gf) { toast('🔒 此族群需開通：' + gf.name); return; }
@@ -224,6 +252,26 @@
     if (f && G && QC && QC.modal && G.extra(f.id)) { G.pending(f.id, b); QC.modal(QC.lockOpts(f, S.who)); return; }
     toast('🔒 此功能需開通' + (f ? '：' + f.name : ''));
   }, true);
+
+  /* 備註小字：每個被鎖的「備註模式」鈕旁邊一行（features.js noteAt＝插在哪個外框後面，例如下拉整組 .rotdd；沒寫＝鈕本身後面）。
+     只有 noteOn 列出的選擇器才插字（週期統計的色票一顆顆都鎖，但只在下拉旁邊寫一次）。外框被整個重畫時 MutationObserver 再補。*/
+  function notes(wantB) {
+    const keep = new Set();
+    lockedList().forEach((f) => {
+      if (!f.note || !routeOk(f)) return;
+      (f.noteOn || f.block || []).forEach((sel) => q(sel).forEach((el) => {
+        if (wantB.get(el) !== 'note') return;
+        const at = (f.noteAt && el.closest(f.noteAt)) || el;
+        let n = at.nextElementSibling;
+        if (!n || !n.classList.contains('plknote') || n.dataset.f !== f.id) {
+          n = document.createElement('span'); n.className = 'plknote'; n.dataset.f = f.id; n.textContent = f.note;
+          at.after(n);
+        }
+        keep.add(n);
+      }));
+    });
+    q('.plknote').forEach((n) => { if (!keep.has(n)) n.remove(); });
+  }
 
   // ------------------------------------------------------------------ 讀取
   /* 示範開關 ?demo=lock（給 Andy 在預覽站看「需開通」卡，site/qcard.js 檔頭）：只在這個分頁、只改畫面，
@@ -273,6 +321,7 @@
     grpOk: (gid) => { if (owner()) return true; const k = F.grpKey(gid); const f = F.byId(k); return f ? can(k) : S.feats[k] !== false; }, owner };
   window.addEventListener('hashchange', schedule);
   window.addEventListener('tw:plans', schedule);
+  window.addEventListener('tw:grants', schedule);   // 2026-10-10：體驗額度換了（can() 會看 TwGrants.open）→ 側欄子分頁 🔒 跟著更新
   window.addEventListener('tw:tour', () => { if (typeof apply === 'function') apply(); });
 
   /* 啟動：account.js 先跑（它決定會員功能開不開），開了會發 tw:account-config；沒開就照預設全開。

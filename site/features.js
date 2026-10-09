@@ -79,12 +79,22 @@
     box('flow.sankey', 'flow', '資金分流樹（桑基）', ['#flowSankeyCard'], '大盤 → 產業鏈 → 族群的資金分流圖'),
     box('flow.inst', 'flow', '族群 × 法人', ['#flowInstCard'], '三大法人淨買超落在哪些族群'),
     box('flow.conc', 'flow', '資金集中度', ['#flowConcCard'], '前 5／10 大族群佔成交值比重'),
+    /* 2026-10-10 Andy：「資金輪動 跟分流樹 播放功能在此會員不開放」→ 只鎖 ▶ 播放（拉桿、− ＋ 手動照用）。
+       note＝備註模式（perm.js）：▶ 反灰、旁邊一行小字，點了沒反應、不跳視窗（Andy 10-10：「功能反灰旁邊備註就好」）；
+       defBy 訪客／註冊會員關，範本沒寫也生效（account-api GRANT_DEF_OFF 同步）。*/
+    { id: 'flow.play', name: '資金輪動／分流樹 ▶ 播放', cat: 'flow', def: true, defBy: { guest: false, free: false }, kind: 'bool', note: 'Plus 以上可播放',
+      desc: '資金輪動「N 天前」回放與資金分流樹「看哪一天」的 ▶ 播放（關掉：▶ 反灰、旁邊註明 Plus 以上可播放；拉桿與 − ＋ 照常）', veil: [], mark: [], block: ['#rotBack .pb.play', '#sankeyDays .pb.play'] },
     // ---- 產業
     box('ind.map', 'industry', '產業地圖', ['#indMap'], '產業鏈列表與強弱（產業地圖首頁）'),
     box('ind.groups', 'industry', '族群總覽（長條＋圓餅）', ['#gpSec'], '單一產業鏈裡各族群的漲跌與成交值占比'),
     box('ind.diagram', 'industry', '產業鏈剖析圖（2D）', ['#dgSec'], '產品／製程剖析圖、點零件看供應商'),
-    { id: 'ind.3d', name: '3D 剖析圖', cat: 'industry', def: true, kind: 'bool', desc: '剖析圖的 3D 模式（2D 不受影響）',
-      veil: [['.dg3dbox']], mark: [], block: ['button[data-dm="3d"]'] },
+    /* 2026-10-10（Andy：「3D 剖析開放 3 次」＋「功能反灰旁邊備註就好」）：
+       · veil 加條件 #prod3d:not([hidden])＝**真的在看 3D** 才算一次（以前 .dg3dbox 在 2D 也有外框，看 2D 也被扣 3D 次數）
+       · qbtn：每日次數用完時不蓋額度卡 —— 3D 鈕反灰、2D｜3D 旁邊一行小字；停在 3D 的話退回 2D（qoff）。實作在 site/quota.js。
+         （不用 qnote：qnote 是同日 ETF 試算用的「蓋區塊、卡片改一行字」模式，兩種行為不同。）*/
+    { id: 'ind.3d', name: '3D 剖析圖', cat: 'industry', def: true, kind: 'bool', desc: '剖析圖的 3D 模式（2D 不受影響；每日次數用完：3D 鈕反灰、旁邊註明）',
+      qbtn: '今日次數已用完・Plus 以上可增加', qbtnAt: '.dgmode', qoff: '#dg3d button[data-dm="2d"]',
+      veil: [['.dg3dbox', '#prod3d:not([hidden])']], mark: [], block: ['button[data-dm="3d"]'] },
     box('ind.rel', 'industry', '供應鏈關聯圖', ['#relSec'], '環節詳情與分層關聯圖'),
     // ---- 熱力圖
     box('heat.market', 'heatmap', '全市場熱力圖', ['#indHeat'], '整個台股一次看的產業熱力方塊'),
@@ -97,9 +107,17 @@
       veil: [['#mktBody', '#mktSeg2 button[data-k="streak"].on']], mark: ['#mktSeg2 button[data-k="streak"]'], block: [] },
     { id: 'mkt.ma', name: '市場明細：站上均線', cat: 'market', def: true, kind: 'bool', desc: '站上均線名單',
       veil: [['#mktBody', '#mktSeg2 button[data-k="ma"].on']], mark: ['#mktSeg2 button[data-k="ma"]'], block: [] },
-    { id: 'mkt.cand', name: '市場明細：今日關注', cat: 'market', def: true, kind: 'bool', desc: '回檔型態／突破型態條件名單',
-      veil: [['#mktBody', '#mktSeg2 button[data-k="cand"].on']], mark: ['#mktSeg2 button[data-k="cand"]'], block: [] },
+    /* 2026-10-10 Andy：「註冊免費會員 今日關注限制不可以看」→ defBy 訪客／註冊會員關（範本沒寫這一項時的預設；範本寫了以範本為準），
+       plan_presets.js 訪客／註冊會員也寫 false。今日關注依法遵不能放進體驗額度（grants GRANT_BAN）。*/
+    /* 關掉時不再蓋需開通卡（veil 拿掉）：app.js 在原位置畫一塊反灰示意＋「Plus 以上可查看今日關注」（Andy 10-10：不要跳出視窗），名單根本不畫進畫面 */
+    { id: 'mkt.cand', name: '市場明細：今日關注', cat: 'market', def: true, defBy: { guest: false, free: false }, kind: 'bool', desc: '回檔型態／突破型態條件名單（關掉：分頁照常點得進去，內容換成「Plus 以上可查看今日關注」說明區）',
+      veil: [], mark: ['#mktSeg2 button[data-k="cand"]'], block: [] },
     box('season.month', 'market', '週期統計', ['#v-season'], '族群在各月份的歷史表現（整頁）'),
+    /* 2026-10-10 Andy：「週期統計 免費註冊會員不開放 族群篩選功能」→ 長條圖上方「族群：已選 N 個」多選下拉與下方色票（點一下拿掉）鎖住，
+       反灰＋旁邊小字（note，Andy 10-10：「功能反灰旁邊備註就好」，不跳視窗），畫面維持預設族群；期間、超額／絕對／勝率、熱力圖／長條圖、最強／最弱照舊（那些是 season.pick 計次）。*/
+    { id: 'season.groups', name: '週期統計：族群篩選', cat: 'market', def: true, defBy: { guest: false, free: false }, kind: 'bool',
+      note: 'Plus 以上可篩選族群', noteOn: ['#seasonGroupDD .ddbtn'], noteAt: '.rotdd',
+      desc: '長條圖「族群：已選 N 個」多選下拉（關掉：下拉反灰、旁邊註明 Plus 以上可用，維持預設族群）', veil: [], mark: [], block: ['#seasonGroupDD .ddbtn', '#seasonKey > *'] },
     // ---- 個股頁：K 線與工具
     ktf('stock.k_day', 'K 線（日／週／月）', ['1d', '1w', '1M'], '日、週、月 K 週期鈕'),
     /* 2026-10-06（DECISIONS #326）：即時只給管理者 —— 非管理者的「分時」是最近交易日的盤後分時（資料湖 60 分 K），名稱拿掉「即時」（id 不改）；
@@ -121,7 +139,14 @@
       veil: [['#skAi'], ['#aiCard'], ['#mbBody[data-tab="ai"]'], ['#ovAiBrief'], ['#ovFacets [data-ai]']], mark: ['#mbTabs button[data-t="ai"]'], block: [] },
     // ---- 個股頁：分頁
     // 2026-10-02：排列順序跟著個股分頁的新順序（基本資料搬到總覽旁邊，#294）；id 一個都沒改（改了＝所有人的設定歸零）
-    stab('stock.overview', '總覽（技術訊號）', 'overview', [], '個股分頁「總覽」：基本面與籌碼小圖、技術面訊號卡、同業比較'),
+    /* ★ 2026-10-10（網頁手機同步稽核 7-3）：手機沒有「總覽」分頁 —— 桌機那一組分頁（含總覽）收在手機最後一格「完整版」（mobile3.js SK_TABS full）。
+       所以手機對應＝「完整版」那顆鈕掛 🔒 小標（mark，照樣點得進去）；不另外蓋 #mbBody[data-tab="full"] —— 完整版裡面還有營收、法人…其他分頁，
+       總覽那一頁本身的遮罩由桌機那條 veil（#stockTab，條件「總覽」鈕 .on）負責，在完整版裡一樣生效。 */
+    Object.assign(stab('stock.overview', '總覽（技術訊號）', 'overview', [], '個股分頁「總覽」：基本面與籌碼小圖、技術面訊號卡、同業比較（手機在「完整版」裡）'),
+      { mark: ['#stockTabs button[data-t="overview"]', '#mbTabs button[data-t="full"]'] }),
+    /* ★ 2026-10-10（同步稽核 7-3）：ETF 個股頁的「成分股」分頁（桌機 holdings、手機 hold）以前沒有任何權限鍵 —— 補一個對應。
+       def true（只加對應，不改任何方案的開關值；plan_presets 沒寫＝依 def 全開），要收費時管理者在 #admin/perm 關。 */
+    stab('stock.holdings', '成分股（ETF）', 'holdings', ['hold'], 'ETF 個股頁的成分股分頁（左清單、右權重甜甜圈）'),
     stab('stock.basics', '基本資料', 'basics', ['basic'], '公司基本資料'),
     stab('stock.tags', '指標', 'tags', ['tag'], '個股分頁「指標」'),
     stab('stock.revenue', '營收', 'revenue', ['rev'], '月營收、年增率'),
@@ -193,6 +218,9 @@
     act('etf.list.tab', 'etf', 'ETF 一覽分類分頁', 'tab', 'ETF 總覽的分類分頁（股票型／債券型…）點一個不同的算一次'),
     act('etf.list.filter', 'etf', 'ETF 一覽篩選', 'filter', 'ETF 一覽的排序條件（成交值／規模／殖利率／漲跌）換一個不同的算一次'),
     act('season.pick', 'market', '週期統計切換對象', 'obj', '週期統計換排序月份或換看哪幾個族群（最強／最弱／平均線）'),
+    /* 2026-10-10 Andy：「新增 "事件" 觀看次數 10 次 點擊新聞連結」→ 今日事件面板（側欄「事件」打開的右側抽屜；手機總覽的今日事件卡）
+       點新聞標題開外部連結才算一次；同一則同一天重點不重扣（單位＝obj.<網址雜湊>）；瀏覽標題不扣。實作在 site/quota.js 檔尾。*/
+    act('news.open', 'global', '今日事件：點新聞連結', 'obj', '今日事件面板點新聞標題開原文（外部網站）算一次；同一則同一天重點不重算，只看標題不算'),
     pickF('mkt.grp.pick', 'market', '市場明細族群篩選上限', '個', 999, [0, 3, 5, 10, 20, 30, 50, 999], 5, 10, '漲跌分佈「族群」篩選同時最多勾幾個（右邊清單不限制）'),
     pickF('explore.list.n', 'explore', '選股完整名單顯示檔數', '檔', 999, [0, 3, 5, 10, 20, 50, 100, 999], 5, 20, '完整名單最多顯示前幾檔'),
     pickF('mkt.cand.n', 'market', '今日關注顯示檔數', '檔', 999, [0, 3, 5, 10, 20, 50, 999], 3, 10, '今日關注名單最多顯示前幾檔'),
@@ -221,8 +249,11 @@
        全站樹狀熱力圖（總覽資金熱力圖／熱門題材、熱力圖產業頁／題材頁、各自的放大視窗）點方塊「跳到其他分頁」只有開著才行；
        頁內展開（題材頁點方塊開下方剖析圖、總覽熱門題材換成分股）不受這個開關管，照矩陣次數走。實作在 site/quota.js（heatLinkOk）。
        defBy：範本沒寫時訪客關、註冊會員關，付費範本沒寫＝開。*/
-    { id: 'heat.link', name: '熱力圖點擊跳頁', cat: 'heatmap', def: true, kind: 'bool', defBy: { guest: false, free: false },
-      desc: '點熱力圖方塊跳到族群／題材／個股頁（關掉：提示框、縮放照常，點了跳升級提示、游標不變手指）', veil: [], mark: [], block: [] },
+    /* 2026-10-10 Andy：「總攬資金輪盤不開放跳要連結」「plus 之後會 總攬所有點擊都可以有連結功能」→ 同一個鍵擴大成「總覽上所有跳到其他分頁的點擊」
+       （資金輪盤說明框「進族群頁 →」、分流樹節點、法人連結、提示框裡的個股…），不另開 ov.link：
+       Andy 10-08 的熱力圖跳頁本來就是 Plus 以上，同一個身分界線用同一個開關，管理區只需撥一個。id 不改（改了範本存的值歸零）。*/
+    { id: 'heat.link', name: '總覽／熱力圖點擊跳頁', cat: 'heatmap', def: true, kind: 'bool', defBy: { guest: false, free: false },
+      desc: '總覽上任何點擊跳到其他分頁（族群、題材、個股、市場明細…）與全站熱力圖點方塊跳頁（關掉：頁內展開、提示框、縮放照常，點了跳升級卡、網址不動）', veil: [], mark: [], block: [] },
     { id: 'etf.top3', name: 'ETF 總覽上方三張卡（共用次數）', cat: 'etf', def: true, kind: 'bool', desc: '最受歡迎／報酬率／殖利率前 5 三張卡共用一個每日次數（看一次＝這個分頁打開一次）', veil: [['#etfTri']], mark: [], block: [] }
   );
 
@@ -241,6 +272,20 @@
      不然 #admin/perm 會把它畫成一顆開關。單位＝這一頁（site/quota.js 的 pageKey：個股代號／剖析圖／題材／族群／一次造訪）。*/
   var METERED = ["earn.cal", "earn.page", "etf.calendar", "etf.list", "etf.popular", "etf.rettop", "etf.yldtop", "explore.chart", "explore.combo", "explore.list", "explore.page", "flow.conc", "flow.inst", "flow.rot", "flow.sankey", "heat.detail", "heat.market", "heat.theme", "ind.diagram", "ind.groups", "ind.rel", "mkt.cand", "mkt.ma", "mkt.streak", "mkt.updown", "season.month", "stock.ai", "stock.basics", "stock.dividend", "stock.holders", "stock.inst", "stock.k_day", "stock.k_hour", "stock.margin", "stock.news", "stock.overview", "stock.page", "stock.profit", "stock.revenue", "stock.tags", "stock.tick"];
   METERED.forEach(function (id) { var f = LIST.filter(function (x) { return x.id === id; })[0]; if (f) f.metered = true; });
+
+  /* ★ 2026-10-10（網頁手機同步稽核 7-1、Andy 10-10 經手機 session 轉達）：側欄子分頁 → 功能鍵。
+     市場明細、ETF 改成側欄子分頁之後，mark 掛在頁內那排（#mktSeg2、#etfSub）—— 電腦版那排藏起來，🔒 就看不到了。
+     sub 列的是 layout4.js SUBS 的子項代號（.l4subtab[data-l4sub]）；perm.js 依它在側欄那格掛同款 🔒（mark：照樣點得進去，進去看到的是原本的鎖法）。
+     這一條**不看 route**：側欄在每一頁都看得到，鎖頭要一直掛著（mark／veil 的 route 只管「這一頁」的區塊）。
+     手機頁首子分頁（mobile4.js .m4subtabs button[data-sub]）的代號是同一套（另多 etf-cx＝複利試算），手機可以用 TwFeatures.bySub() 查，不必另寫對照表。 */
+  var SUB_OF = {
+    'flow.rot': ['flow-rotation'], 'flow.sankey': ['flow-sankey'], 'flow.inst': ['flow-inst'],
+    'heat.market': ['heat-industry'], 'heat.theme': ['heat-theme'],
+    'mkt.updown': ['mkt-updown'], 'mkt.streak': ['mkt-streak'], 'mkt.ma': ['mkt-ma'], 'mkt.cand': ['mkt-cand'],
+    'etf.calendar': ['etf-cal'], 'etf.list': ['etf-list'], 'etf.cashflow': ['etf-inc'], 'etf.inc.comp': ['etf-cx']
+  };
+  LIST.forEach(function (f) { if (SUB_OF[f.id]) f.sub = SUB_OF[f.id]; });
+  function bySub(k) { return LIST.filter(function (f) { return (f.sub || []).indexOf(k) >= 0; }).map(function (f) { return f.id; }); }
 
   var BY = {};
   LIST.forEach(function (f) { BY[f.id] = f; });
@@ -287,5 +332,5 @@
     return n;
   }
 
-  window.TwFeatures = { list: LIST, cats: CATS, byId: function (id) { return BY[id] || null; }, defaults: defaults, defOf: defOf, inCat: inCat, grpKey: grpKey, addGroups: addGroups };
+  window.TwFeatures = { list: LIST, cats: CATS, byId: function (id) { return BY[id] || null; }, defaults: defaults, defOf: defOf, inCat: inCat, grpKey: grpKey, addGroups: addGroups, bySub: bySub };
 })();

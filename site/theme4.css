@@ -428,6 +428,9 @@
 .t4pop button.t4o[aria-pressed="true"]{border-color:var(--cyan);box-shadow:0 0 0 1px var(--cyan) inset}
 .t4pop .t4hint{margin-top:8px;font-size:12px;color:var(--ink-3)}
 .t4pop h4+.t4opts{margin-bottom:12px}
+/* 2026-10-10：外觀面板最下面「客服鈕」一列（theme4.js buildPop；跟帳號選單的客服開關同一個鍵） */
+.t4pop .t4fab{display:flex;align-items:center;gap:8px;font-size:13.5px;color:var(--ink);cursor:pointer;min-height:28px}
+.t4pop .t4fab input{width:16px;height:16px;margin:0;accent-color:var(--cyan);cursor:pointer}
 .morepop .t4mm button[aria-pressed="true"]{background:var(--panel-2);font-weight:700}
 /* 手機（≤820）頂欄的 ☀／事件已經收進「⋯」清單，「風格」鈕跟著收（清單裡有「版面風格」那一段） */
 @media (max-width:820px){ #t4Btn{display:none} }

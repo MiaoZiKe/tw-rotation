@@ -1194,7 +1194,8 @@
     /* #twTour（site/tour.js 逐步導覽）：按「下一步」不算點在面板外面 —— 不然導覽正在框的零件小卡、抽屜會被自己的按鈕關掉 */
     /* 2026-10-09（導覽普查1009）：導覽的入口鈕（右上「平台導覽」、頁名旁「導覽」／手機 🧭、手機兩列小選單）也不算點外面 ——
        族群頁的剖析圖就是這裡登記的面板，按「導覽」那一下把它收回「族群總覽」，導覽第二步就框不到圖、卡住 20 秒 */
-    e.ignore = (o.ignore || []).concat(['#lgBanner', '#lgTour', '#twTour', '#twTourBtn', '#twPageTourBtn', '#twTourPick'],
+    /* 2026-10-10：#qcModal（置中升級卡）也不算點外面 —— 今日事件抽屜裡點第 11 則新聞跳出升級卡，關卡片那一下不該順手把抽屜收掉 */
+    e.ignore = (o.ignore || []).concat(['#lgBanner', '#lgTour', '#twTour', '#twTourBtn', '#twPageTourBtn', '#twTourPick', '#qcModal'],
       el.classList && el.classList.contains('howtxt') ? [] : ['.howbtn', '.howtxt']);
     e.isOpen = o.isOpen || (() => el.isConnected && !el.hidden && el.getClientRects().length > 0);
     if (!e.mo && typeof MutationObserver !== 'undefined') {
@@ -1510,6 +1511,8 @@
   const goStock = (code) => { location.hash = '#stock/' + code; };
   /* ★ 2026-10-08（Andy 313）熱力圖方塊要跳到別的分頁一律走這支：Plus 以上（含站主、管理員、預覽版）照跳，
      訪客／註冊會員跳 quota.js 的升級卡、網址不動。quota.js 沒載入（舊快取）就照舊跳。*/
+  /* 2026-10-10 總覽的頁內下鑽（漲跌家數點長條展開清單）也算「總覽點擊」：Plus 以上才有（heat.link；Andy：「下方清單拿掉」「單純點擊無效」）*/
+  const ovLinkOk = () => !window.TwQuota || !window.TwQuota.heatLinkOk || window.TwQuota.heatLinkOk();
   const hmGo = (to, fn) => (window.TwQuota && window.TwQuota.heatGo ? window.TwQuota.heatGo(to, fn) : (fn ? fn() : (location.hash = to), true));
   window.goStock = goStock;
 
@@ -1790,6 +1793,11 @@
      其他元件的埋點全部在 account.js 用委派監聽（docs/account_analytics.md「細項事件」有完整清單）。*/
   function twT(comp, detail) { try { if (window.TwT) window.TwT(comp, detail); } catch (e) { /* 統計失敗不影響功能 */ } }
   function twGrpBlock(gid, name) { try { return !!(window.TwPerm && window.TwPerm.grpBlock && window.TwPerm.grpBlock(gid, name)); } catch (e) { return false; } }
+  /* ★ 2026-10-10 Andy：「資金輪動 跟分流樹 播放功能在此會員不開放」—— 權限鍵 flow.play（features.js；perm.js 把 ▶ 反灰＋旁邊小字）。
+     這裡是第二道：所有播放器（playBar／spanBar／dayBar）的 start() 先問一次，不管是哪顆鈕、哪個抽屜、還是程式直接呼叫，都播不起來。
+     只管資金輪動（#rotBack）與資金分流樹（#sankeyDays）；本益比河流圖等其他播放器不受影響。*/
+  const PLAY_GATED = ['rotBack', 'sankeyDays'];
+  const playOk = (box) => !(box && PLAY_GATED.includes(box.id)) || !window.TwPerm || window.TwPerm.can('flow.play');
   function playBar(box, o) {
     box = typeof box === 'string' ? document.getElementById(box) : box;
     if (!box) return null;
@@ -1878,7 +1886,7 @@
       paintBtn();
     };
     const start = () => {
-      if (timer) return;
+      if (timer || !playOk(box)) return;   // 2026-10-10 ▶ 播放權限（flow.play）掛在 start 本身：手機抽屜、程式呼叫 api.start() 也擋
       if (api && box.isConnected) _players.set(box, api);   // 播放器1007：補登記，換頁／即時一定停得到它
       stopPlayGroup(o.group, api);      // 同一個值一次只准一支在播（見 _players 那一段的量測）
       const { min, max } = lim();
@@ -2049,7 +2057,7 @@
     bMinus.onclick = () => { stop(); slide(-1); };
     bPlus.onclick = () => { stop(); slide(1); };
     const start = () => {
-      if (timer) return;
+      if (timer || !playOk(box)) return;   // 2026-10-10 ▶ 播放權限（flow.play）掛在 start 本身：手機抽屜、程式呼叫 api.start() 也擋
       if (api && box.isConnected) _players.set(box, api);   // 播放器1007：補登記
       stopPlayGroup(o.group, api);                    // 同一個值一次只准一支在播
       if (pHi >= PMAX) { pHi = days; paint(); fire(); }   // 已經在最新了就從最舊重播
@@ -2233,7 +2241,7 @@
     bMinus.onclick = () => { stop(); setDays(days - 1); save(); };
     bPlus.onclick = () => { stop(); setDays(days + 1); save(); };
     const start = () => {
-      if (timer) return;
+      if (timer || !playOk(box)) return;   // 2026-10-10 ▶ 播放權限（flow.play）掛在 start 本身：手機抽屜、程式呼叫 api.start() 也擋
       if (api && box.isConnected) _players.set(box, api);   // 播放器1007：補登記
       stopPlayGroup(o.group, api);
       if (frame <= 0) seek(days);          // 已經在最新就從 N 天前出發
@@ -3127,8 +3135,11 @@
       if (rest[0] !== 'theme' && rest[0] !== 'industry') { location.replace('#heatmap/industry'); return; }
       l4sub = 'heat-' + rest[0];
     } else if (l4on && head === 'etf') {
-      // v9：ETF 子項在側欄（配息行事曆／ETF 總覽／現金流試算）；沒帶子項＝ETF 總覽（舊連結 #etf 照舊進總覽）
-      if (!['cal', 'list', 'inc'].includes(rest[0])) { location.replace('#etf/list'); return; }
+      // v9：ETF 子項在側欄（配息行事曆／ETF 總覽／現金流試算）
+      /* ★ 2026-10-10（Andy 答「好」：子分頁預設最左邊）：沒帶子項＝側欄最上面那格「配息行事曆」（以前是 ETF 總覽），跟資金流向、熱力圖、
+         市場明細、選股策略同一條規矩 —— 從主選單／母項點進來一律落在第一格，不記上次停在哪；直接開帶子頁的網址（#etf/list、#etf/inc）照網址。
+         手機（mobile4.js 第 1 節）10-09 起本來就導到 #etf/cal，現在兩邊同一個落點。 */
+      if (!['cal', 'list', 'inc'].includes(rest[0])) { location.replace('#etf/cal'); return; }
       l4sub = 'etf-' + rest[0];
     } else if (head === 'market' && document.documentElement.classList.contains('l4')) {
       /* ★ 2026-10-10（Andy：「市場明細 與 選股策略 分頁都改成像 ETF 側邊欄位一樣 變成子分頁」）—— **只在電腦版（html.l4）**：
@@ -3955,6 +3966,8 @@
     });
   }
 
+  /* 2026-10-10：今日關注的權限晚到（/v1/perm/me 回來前先照預設畫了名單）→ 權限一換就重畫這一頁 */
+  window.addEventListener('tw:perm', () => { if (/^#market\/cand/.test(location.hash || '') && typeof mktKind !== 'undefined' && mktKind === 'cand') { try { drawMarket('cand'); } catch (e) { /* 頁還沒準備好：下次進來照新權限畫 */ } } });
   function drawMarket(kind) {
     // 舊書籤 #market/top5 進來時落回漲跌家數（那一頁 2026-09-18 拿掉了）
     if (!MKT.some(m => m[0] === kind)) kind = 'updown';
@@ -4162,6 +4175,18 @@
     }
 
     // 今日候選
+    /* ★ 2026-10-10 Andy：「註冊免費會員 今日關注限制不可以看」＋「這種訊息不要用跳出的方式表示，功能反灰旁邊備註就好」：
+       沒權限（features.js mkt.cand；訪客／註冊會員預設關）→ 名單**根本不畫進畫面**（不是畫了再模糊），原位置放一塊反灰示意列＋一行字。
+       不跳視窗、不蓋升級卡。權限晚到（tw:perm）時下面的監聽會重畫這一頁。*/
+    if (window.TwPerm && !window.TwPerm.can('mkt.cand')) {
+      title.innerHTML = '今日關注';
+      const bar = (w) => `<span style="display:block;height:10px;border-radius:5px;width:${w}%;background:var(--line-2)"></span>`;
+      body.innerHTML = `<div class="candlock" id="candLock" aria-label="今日關注：Plus 以上可查看" style="position:relative;padding:4px 0 8px">
+        <table class="tbl" aria-hidden="true" style="opacity:.45;filter:grayscale(1);width:100%;pointer-events:none"><thead><tr><th class="l">股票</th><th>判定</th><th>綜合分</th><th>漲跌</th><th>收盤</th></tr></thead>
+        <tbody>${[62, 48, 70, 55, 40, 66].map(w => `<tr><td class="l">${bar(w)}</td><td>${bar(40)}</td><td>${bar(50)}</td><td>${bar(60)}</td><td>${bar(55)}</td></tr>`).join('')}</tbody></table>
+        <p class="candlock-t" style="margin:12px 0 0;font-size:14px;color:var(--ink-2);text-align:center">Plus 以上可查看今日關注</p></div>`;
+      return;
+    }
     const ab = cands.filter(c => c.grade === 'A' || c.grade === 'B');
     const use = ab.length ? ab : cands.slice().sort((a, c) => (c.score_all || 0) - (a.score_all || 0)).slice(0, 40);
     /* 2026-10-08 權限矩陣 mkt.cand.n：今日關注最多顯示前幾檔（訪客 3、註冊會員 10、付費不限） */
@@ -5065,7 +5090,10 @@
       + `<dt>成交值佔比</dt><dd class="num">${fmt.n(r.share, 1)}%</dd></dl>`
       + (r.was && STAGE[r.was] ? `<div class="rp-was">${back} 天前在「${STAGE[r.was].name}」${r.moved ? '，剛換段' : ''}</div>` : '')
       + rotPopMembers(r.gid)
-      + `<a class="rp-go" href="#industry/group/${encodeURIComponent(r.gid)}">進族群頁 →</a>`;
+      /* ★ 2026-10-10 Andy：「資金輪盤提示框的『進族群頁 →』…這種訊息不要用跳出的方式表示，功能反灰旁邊備註就好」→
+         沒權限（heat.link，Plus 以上）時照樣顯示但反灰、不是連結，旁邊小字「Plus 以上可跳轉」；點了沒反應。*/
+      + (ovLinkOk() ? `<a class="rp-go" href="#industry/group/${encodeURIComponent(r.gid)}">進族群頁 →</a>`
+        : `<span class="rp-go off" aria-disabled="true" title="Plus 以上可跳轉">進族群頁 →</span><span class="rp-note">Plus 以上可跳轉</span>`);
     box.dataset.gid = r.gid;
     box.hidden = false;
     box._vw = window.innerWidth; box._vh = window.innerHeight;     // 下面 resize 監聽用：視窗真的變了才收
@@ -8631,13 +8659,13 @@
       tooltip: { ...tip, trigger: 'axis', axisPointer: { type: 'shadow' },
         formatter: (ps) => { const i = ps[0].dataIndex;
           const lab = i === 0 ? '跌停（≤ -9.5%）' : i === 10 ? '漲停（≥ +9.5%）' : i === 5 ? '平盤' : UD_BINS[i].k + '%';
-          return `<b>${lab}</b>${udMkt === 'all' ? '' : `　<small>${UD_MKT_NAME[udMkt]}</small>`}<br>${cnt[i]} 檔（佔${UD_MKT_NAME[udMkt]} ${fmt.n(cnt[i] / pool.length * 100, 1)}%）<br><small>點一下列出這一級的股票</small>`; } },
+          return `<b>${lab}</b>${udMkt === 'all' ? '' : `　<small>${UD_MKT_NAME[udMkt]}</small>`}<br>${cnt[i]} 檔（佔${UD_MKT_NAME[udMkt]} ${fmt.n(cnt[i] / pool.length * 100, 1)}%）${ovLinkOk() ? '<br><small>點一下列出這一級的股票</small>' : ''}`; } },
       grid: { left: 44, right: 12, top: 26, bottom: narrow ? 50 : 28 },
       xAxis: { ...axisStyle, type: 'category', data: UD_BINS.map(b => b.k),
         axisLabel: { color: CH.ink2, fontSize: 12, interval: 0, rotate: narrow ? 45 : 0 }, axisTick: { show: false } },
       // 縱軸不寫「家數」：直條頂端本來就標了家數，軸名在 1280～1920 都會戳出容器上緣 2px（_preview 抓到的）
       yAxis: { ...axisStyle, axisLabel: { color: CH.ink3, fontSize: 12 } },
-      series: [{ type: 'bar', barWidth: '50%', cursor: 'pointer',   // 10-09 Andy「下方調整長條圖適當寬度」：每格 50%（上限 48px，見 softenOption #348）
+      series: [{ type: 'bar', barWidth: '50%', cursor: ovLinkOk() ? 'pointer' : 'default',   // 2026-10-10：不能展開清單的身分游標不變手指   // 10-09 Andy「下方調整長條圖適當寬度」：每格 50%（上限 48px，見 softenOption #348）
         data: barData(),
         label: { show: true, position: 'top', color: CH.ink2, fontSize: 12, formatter: (q) => (q.value ? String(q.value) : '') } }],
     }, { notMerge: true });
@@ -8648,6 +8676,7 @@
     const arm = () => dismissable(box, () => { box.hidden = true; UDJ.sel = null; if (UDJ.mark) UDJ.mark(); }, { ignore: ['#udMkt'] });
     const show = (sel) => {
       if (!box || !sel) return;
+      if (!ovLinkOk()) { box.hidden = true; UDJ.sel = null; return; }   // 2026-10-10：註冊會員／訪客點了不展開、不提示（Andy：「單純點擊無效」）
       UDJ.sel = sel;
       if (sel.side) udSideFill(box, sel.side, sel.lv, rowsOf, (lv) => show({ side: sel.side, lv }));
       else udPanelFill(box, sel.bin, rowsOf(sel.bin));
