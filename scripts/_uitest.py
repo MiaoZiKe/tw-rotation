@@ -66526,12 +66526,12 @@ def t_acct_menu_1009(b, base, code):
                   sw: document.documentElement.scrollWidth <= innerWidth + 1 }; }"""
 
             def seg_ok(tag, q):
-                ok(f"【{T}】{who}{tag}：版面風格是三格分段（radiogroup，沒有收合列／直排子清單），三格都看得到", q["n"] == 3 and q["vis"] == 3 and not q["grp"], q)
+                ok(f"【{T}】{who}{tag}：版面風格是兩格分段（10-10 休閒拿掉；radiogroup，沒有收合列／直排子清單），兩格都看得到", q["n"] == 2 and q["vis"] == 2 and not q["grp"], q)
                 ok(f"【{T}】{who}{tag}：三格同一排（top 差 ≤ 2：{q['tops']}）、等寬（{q['ws']}）、每格高 ≥ 40（{q['hs']}）",
                    q["tops"] and max(q["tops"]) - min(q["tops"]) <= 2 and max(q["ws"]) - min(q["ws"]) <= 1 and min(q["hs"]) >= 40, q)
                 ok(f"【{T}】{who}{tag}：字 ≥ 12（{q['fs']}、標題 {q['lblFs']}）、不截字不換行（{q['txt']}）、分段不超出選單、沒有橫向捲軸",
                    min(q["fs"]) >= 12 and q["lblFs"] >= 12 and not q["clip"] and not q["lines"] and q["segR"] <= q["menuR"] and q["sw"]
-                   and q["txt"] == ["親和休閒", "科技 HUD", "專業有力"], q)
+                   and q["txt"] == ["科技 HUD", "專業有力"], q)
                 ok(f"【{T}】{who}{tag}：選中格實心高亮（跟沒選的底色不同）、只有一格選中＝目前風格",
                    q["on"] == [q["t4"]] and q["onBg"] and q["onBg"] != q["offBg"], q)
 
@@ -66539,7 +66539,7 @@ def t_acct_menu_1009(b, base, code):
             s0 = pg.evaluate(SEGM)
             seg_ok("（430）", s0)
             ok(f"【{T}】{who}（430）：寬度夠時標題與分段在同一排（垂直中線：標題 {s0['lblTop']}、分段 {s0['segTop']}）", abs(s0["lblTop"] - s0["segTop"]) <= 3, s0)
-            pick = "pro" if s0["t4"] != "pro" else "casual"
+            pick = "pro" if s0["t4"] != "pro" else "hud"
             pg.locator(f"#acctMenu [data-m=sty][data-sty={pick}]").tap()
             pg.wait_for_timeout(700)
             s1 = pg.evaluate(SEGM)
