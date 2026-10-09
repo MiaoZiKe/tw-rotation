@@ -28736,7 +28736,7 @@ def t_mobile_m4_ov2(b, base, code):
         m.locator("#themeDiagram g.stn").first.tap(); m.wait_for_timeout(500)
         J("() => window.M3 && window.M3.closeSheet && window.M3.closeSheet()"); m.wait_for_timeout(200)
         sel1 = J("() => document.querySelectorAll('#themeDiagram .sel').length")
-        J("() => document.querySelector('#themeDiagram svg .ttl').scrollIntoView({ block: 'center' })"); m.wait_for_timeout(300)   # 標題可能被頂欄蓋住：先捲到中間再點
+        J("() => document.querySelector('#themeDiagram svg .ttl').scrollIntoView({ block: 'center', behavior: 'instant' })"); m.wait_for_timeout(700)   # 標題可能被頂欄蓋住：先捲到中間再點；捲動要停下來再點（還在平滑捲動時的觸控會被當成「停住捲動」而不發 click）
         tt = J("() => { const t = document.querySelector('#themeDiagram svg .ttl'); const r = t.getBoundingClientRect(); return { x: r.left + 4, y: r.top + r.height / 2 }; }")
         m.touchscreen.tap(tt["x"], tt["y"]); m.wait_for_timeout(500)
         sel2 = J("() => document.querySelectorAll('#themeDiagram .sel').length")
