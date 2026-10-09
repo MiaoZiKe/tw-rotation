@@ -80,6 +80,10 @@
   :root.m4 .m4brand{display:flex;align-items:center;gap:10px}
   :root.m4 .m4brand img{width:32px;height:32px;border-radius:28%;display:block;object-fit:cover;padding:0;background:none}  /* 2026-10-08 Andy「頭像滿版、不要被切到」：圓形會切掉帽尖 → 圓角方形 */
   :root.m4 .m4head b{font-size:16px;color:var(--ink)}
+  /* 2026-10-09 帳本 78（Andy：「標題圖跑掉了」）：上一行把 .m4head 裡所有 <b> 染成 var(--ink)，淺色主題＝深藍字，
+     疊上站名 .brandtxt 的深棕描邊就糊成「▇股▇股」。站名照 LOGO 固定白字（「股」黃字由 .y 管），深淺主題同一組；可點（回總覽）。 */
+  :root.m4 .m4head b.brandtxt{color:#fff;white-space:nowrap;cursor:pointer}
+  :root.m4 .m4brand picture{cursor:zoom-in}
   :root.m4 .m4x{width:44px;height:44px;border:0;border-radius:10px;background:transparent;color:var(--ink-2);font-size:18px}
   :root.m4 .m4body{flex:1 1 auto;overflow-y:auto;overscroll-behavior:contain;padding:6px 8px calc(16px + env(safe-area-inset-bottom))}
   :root.m4 .m4grp{padding:6px 0;border-bottom:1px solid var(--line)}
@@ -896,6 +900,12 @@
      圖例跟頁面內容同寬，名稱靠左、成交值與占比靠右（全站手機的甜甜圈圖例都是 .gplegend 這一款）。 */
   :root.m4 .gpdonut>.gplegend{align-self:stretch;width:100%!important;max-width:none!important;box-sizing:border-box}
   :root.m4 .gpdonut>.gplegend{display:flex!important;flex-direction:column}
+  /* 31g-3.（10-09 手機監督：360 寬族群總覽副標「成交值前／18 名」斷成兩行，違反 Andy「上方備註不准斷句」）
+     標題旁的短副標（標題裡的 <small>）整句當一個不換行的塊：放得下就跟在標題後面，放不下整句換到下一列，副標本身不斷開。 */
+  :root.m4 :is(h1,h2,h3,h4,h5,h6)>small{display:inline-block;white-space:nowrap;max-width:100%}
+  /* 31g-2.（帳本 77，10-09 22:0x「產業地圖跑掉了」）圖例滿寬就一定要在圓餅下面：手機甜甜圈一律直排、圓餅置中，
+     不靠 layoutDonut 的 .dnbelow（卡寬 ≥ 420 時它會判成圖例在右，圖例滿寬把圓餅擠出卡片）。 */
+  :root.m4 .gpdonut{flex-direction:column!important;align-items:center!important;gap:var(--sp-2,8px)}
   :root.m4 .gplegend .lg{display:flex!important;align-items:center;gap:12px;width:100%;box-sizing:border-box}
   :root.m4 .gplegend .lg i{flex:none}
   :root.m4 .gplegend .lg .vl{flex:none;min-width:5.2em}
@@ -906,16 +916,17 @@
   :root.m4 .msheet[data-kind=dgfold]{max-height:70vh}
   :root.m4 .msheet .mdgfoldsvg{padding:4px 0 8px}
   :root.m4 .msheet .mdgfoldsvg svg{display:block;width:100%;height:auto}
-  /* 31h-2. 2026-10-09 抽屜圖內小字：預設放大到最小字 ≥ 12px，框內手指左右拖（diagrams.js foldReadable）；框邊淡出＝那一邊還有圖 */
   /* 圖放大後抽屜變高、內容在抽屜裡上下捲 → ‹ 延伸 n / N › 那一列黏在抽屜底，不必捲到底才切得了下一段 */
   :root.m4 .msheet[data-kind=dgfold] .mshnav{position:sticky;bottom:calc(-14px - env(safe-area-inset-bottom));z-index:2;margin:6px -14px 0;padding:8px 14px calc(14px + env(safe-area-inset-bottom));background:var(--panel-2);border-top:1px solid var(--line-2)}
-  :root.m4 .msheet .mfztip{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:0 0 6px;font-size:12px;color:var(--ink-3)}
-  :root.m4 .msheet .mfztip>span{min-width:0;flex:1 1 auto}
-  :root.m4 .msheet .mfztog{flex:none;min-height:36px;min-width:76px;padding:0 10px;border:1px solid var(--line-2);border-radius:8px;background:transparent;color:var(--cyan);font-size:13px}
-  :root.m4 .msheet .mfzwrap{overflow-x:auto;overflow-y:hidden;overscroll-behavior-x:contain;touch-action:pan-x pan-y;max-width:100%}
-  :root.m4 .msheet .mfzwrap[data-fade=r]{-webkit-mask-image:linear-gradient(90deg,#000 88%,transparent);mask-image:linear-gradient(90deg,#000 88%,transparent)}
-  :root.m4 .msheet .mfzwrap[data-fade=l]{-webkit-mask-image:linear-gradient(90deg,transparent,#000 12%);mask-image:linear-gradient(90deg,transparent,#000 12%)}
-  :root.m4 .msheet .mfzwrap[data-fade=lr]{-webkit-mask-image:linear-gradient(90deg,transparent,#000 10%,#000 90%,transparent);mask-image:linear-gradient(90deg,transparent,#000 10%,#000 90%,transparent)}
+  /* 31h-2. 2026-10-09 帳本 82（Andy 22:2x：只准上下捲、左右不行）：抽屜圖貼合寬度；圖內字 < 12px 時用 HTML 文字（diagrams.js foldFit） */
+  :root.m4 .msheet .mdgfoldsvg{max-width:100%}
+  :root.m4 .msheet .mfztxt{font-size:13px;line-height:1.6;color:var(--ink-2);overflow-wrap:anywhere;margin-top:8px}
+  :root.m4 .msheet .mfztxt.only{margin-top:2px}
+  :root.m4 .msheet .mfztxt .cap{font-size:12px;color:var(--ink-3);border-top:1px dashed var(--line-2);padding-top:8px;margin-bottom:4px}
+  :root.m4 .msheet .mfztxt p{margin:0 0 6px}
+  :root.m4 .msheet .mfztxt p.hd{font-size:14px;font-weight:700;color:var(--ink);margin-top:10px}
+  :root.m4 .msheet .mfztxt p.hd:first-child,:root.m4 .msheet .mfztxt .cap+p.hd{margin-top:0}
+  :root.m4 .msheet .mfztxt p.star{color:var(--amber)}
 
   /* 31i. 頁面備註與副標不准斷在句子中間（Andy 09:4x：「列出成交值前 18 個族群」被拆成兩行，「族群」掉到下一行）：
      · 標題旁的短副標（h2／h3 > small、頁首副標）：整句不換行 —— 放不下就整句移到下一行（inline 的 nowrap 自己會整塊折下去）；

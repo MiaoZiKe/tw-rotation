@@ -93,10 +93,11 @@
         const P = N.PAGES[v] || { t: v };
         const subs = N.SUBS[v] || [];
         const on = pg === v || (v === 'industry' && pg === 'stock');
-        /* 2026-10-08 晚（Andy：「手機版本的側邊欄位，子分頁都需要變成在圖二那邊」）：抽屜只列主項目，子頁改成頁面頂端的頁籤（paintTitle）；
-           有子頁的主項目點了進「上次看的那個子頁」（沒看過就第一個） */
-        let href = HREF[v] || '#' + v;
-        if (subs.length) { let last = null; try { last = localStorage.getItem('tw.m4.sub.' + v); } catch (e) { /* 私密視窗 */ } const hit = subs.find((x) => x.h === last); if (hit) href = hit.h; }
+        /* 2026-10-08 晚（Andy：「手機版本的側邊欄位，子分頁都需要變成在圖二那邊」）：抽屜只列主項目，子頁改成頁面頂端的頁籤（paintTitle）。
+           ★ 2026-10-09 帳本 85（Andy：「所有分頁打開來 Default 都是最左邊的子分頁，不會跳到其他分頁」）：
+           改前：有子頁的主項目點了進「上次看的那個子頁」（localStorage tw.m4.sub.<頁>，沒看過才第一個）；
+           改後：一律進最左邊那個子頁（N.SUBS 的第一格），不記上次。頁內自己點子頁、網址直接帶子頁、上一頁鍵都照網址走，不受影響。 */
+        const href = subs.length ? subs[0].h : (HREF[v] || '#' + v);
         rows.push(`<button type="button" class="m4item${on ? ' on' : ''}" data-h="${href}" data-v="${v}" title="${esc(P.t)}">${mi(v)}<span>${esc(P.t)}</span></button>`);
       });
       if (rows.length) h += `<div class="m4grp" data-g="${G.g}"><div class="m4gt">${esc(G.t)}</div>${rows.join('')}</div>`;
@@ -104,6 +105,35 @@
     const ver = (($('#buildver') || {}).textContent || '').trim();
     h += `<div class="m4ver">網頁版號 <span class="mono">${esc(ver || '—')}</span></div>`;
     $('.m4body', drawer).innerHTML = h;
+  }
+
+  /* ★ 2026-10-09 帳本 85（Andy：「所有分頁打開來 Default 都是最左邊的子分頁，不會跳到其他分頁」）：
+     網址分不出子分頁的那幾頁（子分頁記在 localStorage 或頁面自己的變數裡），從抽屜點進來時要另外把它們切回最左邊那格：
+       總覽「大盤｜資金流向｜熱度」（app.js miaPager，記在 tw.mia.overview.0）、選股四面向（#slChips）、財經日曆三類（#earnFilt）、
+       自選的清單頁籤（#wpTabs，只算清單本身、不含 ⋯／＋）。
+     有網址的子分頁（資金流向、熱力圖、ETF、市場明細、產業地圖）靠抽屜的網址（render 裡的 href）就落在第一格，不必在這裡處理。
+     「最左邊」看畫面位置（getBoundingClientRect().left），不看 DOM 順序 —— tabdrag.js 讓使用者拖過順序的，畫面最左那格才是最左。
+     只有抽屜會叫這支（html.m4、≤640）；頁內自己點、上一頁鍵、站內連結都不經過這裡。 */
+  const MENU_FIRST = { overview: { sel: '#v-overview > .mpager', ls: 'tw.mia.overview.' }, explore: { sel: '#slChips' },
+    earnings: { sel: '#earnFilt' }, watch: { sel: '#wpTabs', btn: 'button.wptab' } };
+  let menuTok = 0;
+  function menuFirst(v, pre) {
+    const M = MENU_FIRST[v]; if (!M) return;
+    if (pre) {
+      if (M.ls) { try { Object.keys(localStorage).filter((k) => k.startsWith(M.ls)).forEach((k) => localStorage.removeItem(k)); } catch (e) { /* 私密視窗 */ } }
+      return;
+    }
+    const tok = ++menuTok, t0 = Date.now();
+    const tick = () => {
+      if (tok !== menuTok || !isM() || curPage() !== v) return;     // 又點了別的、或已經離開這頁：不搶
+      const bar = $(M.sel);
+      const bs = bar ? $$(M.btn || 'button', bar).filter((e) => e.getClientRects().length && !e.disabled) : [];
+      if (!bs.length) { if (Date.now() - t0 < 6000) setTimeout(tick, 150); return; }
+      const first = bs.reduce((a, e) => (e.getBoundingClientRect().left < a.getBoundingClientRect().left ? e : a));
+      if (!(first.classList.contains('on') || first.getAttribute('aria-selected') === 'true')) first.click();
+      bar.scrollLeft = 0;
+    };
+    setTimeout(tick, 60);
   }
 
   function open() {
@@ -145,6 +175,8 @@
         + '<button type="button" class="m4x" aria-label="關閉導覽">✕</button></div><div class="m4body"></div>';
       $('.m4x', drawer).onclick = close;
       drawer.addEventListener('click', (e) => {
+        // 2026-10-09 帳本 79：抽屜頂端的站名字樣＝回總覽並關抽屜（頭像＝放大，由 app.js logoLightbox 處理）
+        if (e.target.closest('.m4brand .brandtxt')) { close(); if (location.hash !== '#overview') location.hash = '#overview'; return; }
         const b = e.target.closest('button[data-h], button[data-act]'); if (!b) return;
         if (b.dataset.act) {
           close();
@@ -155,8 +187,10 @@
         const want = b.dataset.h;
         close();
         if (b.dataset.adm) { const G = window.TwAdmin; if (G && G.guard && !G.guard()) return; }
+        if (b.dataset.v) menuFirst(b.dataset.v, true);      // 帳本 85：從主選單進來 → 頁內子分頁回最左邊（換網址之前先清記憶，免得先閃一下上次那段）
         // 已經在同一頁同一子項：不動網址（同電腦版「點已選中的子項不換頁」）
         if (location.hash !== want) location.hash = want;
+        if (b.dataset.v) menuFirst(b.dataset.v, false);
       });
       swipeClose(drawer, 'left', close);   // 2026-10-09（Andy：「兩邊側邊欄位都具備可以左右滑動收起功能」）
       document.body.append(back, drawer);
@@ -515,7 +549,7 @@
      子頁裡面還有第二層切換（整塊內容換掉的那種）的，手機一律攤平成上方同一排頁籤，第二層那排藏起來（電腦版側欄與頁面一個字都沒動）。
      普查（402 寬、10-09）三處：
        資金流向「族群×法人＋集中度」裡的「法人｜集中度」 → 資金輪動｜資金分流樹｜族群×法人｜集中度
-       熱力圖「題材」裡的「題材熱力｜題材細節」          → 產業｜題材｜題材細節
+       熱力圖「題材」裡的「題材熱力｜題材細節」          → 產業｜題材（10-09 帳本 80 拿掉「題材細節」格，改點方塊進入）
        ETF「現金流試算」裡的「月配試算表｜複利試算表」    → 配息行事曆｜ETF 總覽｜月配試算｜複利試算
      名稱對照網頁版：「族群×法人」「集中度」＝網頁版側欄「族群×法人＋集中度」那一頁的上下兩塊；「月配試算」「複利試算」＝網頁版頁內的「月配試算表／複利試算表」。
      每一格有自己的網址（上一頁／下一頁鍵、分享連結都對）：第二層用網址尾巴分（#flow/inst/conc、#heatmap/theme/<題材>、#etf/inc/cx），
@@ -529,8 +563,10 @@
     ],
     heatmap: [
       { k: 'heat-industry', h: '#heatmap/industry', t: '產業', m: /^#heatmap(\/industry)?\/?$/ },
-      { k: 'heat-theme', h: '#heatmap/theme', t: '題材', m: /^#heatmap\/theme\/?$/, ctl: '#v-heatmap>.mpager', seg: '題材熱力' },
-      { k: 'heat-detail', h: '', t: '題材細節', m: /^#heatmap\/theme\/[^/]+/, ctl: '#v-heatmap>.mpager', seg: '題材細節' },
+      /* ★ 2026-10-09（帳本 80，Andy 22:0x：「圖四 不該多題材細節」）：拿掉第三格「題材細節」，剩「產業｜題材」兩格等寬。
+         題材細節（#heatmap/theme/<id>）改由點題材熱力圖方塊進入（app.js 原本的下鑽），那時上方仍亮「題材」這一格。
+         手機題材頁的第二層「題材熱力｜題材細節」分段早已併成一段（app.js miaPager），沒有第二層鈕可按，所以這格不帶 ctl。 */
+      { k: 'heat-theme', h: '#heatmap/theme', t: '題材', m: /^#heatmap\/theme(\/|$)/ },
     ],
     etf: [
       { k: 'etf-cal', h: '#etf/cal', t: '配息行事曆', m: /^#etf\/cal/ },
@@ -539,17 +575,14 @@
       { k: 'etf-cx', h: '#etf/inc/cx', t: '複利試算', m: /^#etf\/inc\/cx/, ctl: '#incMain', seg: 'x' },
     ],
   };
-  const lsGet = (k) => { try { return localStorage.getItem(k); } catch (e) { return null; } };
   const lsSet = (k, v) => { try { localStorage.setItem(k, v); } catch (e) { /* 私密視窗 */ } };
-  /* 題材細節那格：回到上次看的題材；沒看過就用 '_'（app.js renderThemeDetail 找不到 id 時畫第一個題材） */
-  function flatHref(x) { return x.k === 'heat-detail' ? '#heatmap/theme/' + (lsGet('tw.m4.theme') || '_') : x.h; }
+  function flatHref(x) { return x.h; }
   function flatCur(pg) { const L = FLAT[pg], h = location.hash || ''; return L ? (L.find((x) => x.m.test(h)) || null) : null; }
   /* 第二層：按藏起來的那排鈕，讓它切到網址說的那一格（狀態已經對就什麼都不做） */
   function syncFlat() {
     if (!isM()) return;
     const pg = curPage(), x = flatCur(pg);
     root.toggleAttribute('data-m4flat', !!FLAT[pg]);
-    const mt = /^#heatmap\/theme\/([^/]+)/.exec(location.hash || ''); if (mt && mt[1] !== '_') lsSet('tw.m4.theme', decodeURIComponent(mt[1]));
     if (!x || !x.ctl) { flatDone = true; return; }
     const ctl = $(x.ctl); if (!ctl) return;          // 第二層那排還沒長出來（資料晚到）：下一輪再試
     flatDone = true;
@@ -589,8 +622,7 @@
         title.innerHTML = want;
         $$('.m4subtabs button', title).forEach((b) => { b.onclick = () => { if (location.hash !== b.dataset.h) location.hash = b.dataset.h; else syncFlat(); }; });
       }
-      // 抽屜「上次看的子頁」記的是側欄那一份（N.SUBS）的網址：攤平出來的第二層記成它所屬的那一頁
-      if (s) lsSet('tw.m4.sub.' + pg, s.h);
+      // （帳本 85 起抽屜不再回「上次看的子頁」，這裡原本寫 tw.m4.sub.<頁> 的那行拿掉了）
       const onB = $('.m4subtabs button.on', title), nv = $('.m4subtabs', title);
       if (onB && nv) nv.scrollLeft = Math.max(0, onB.offsetLeft - (nv.clientWidth - onB.offsetWidth) / 2);
       return;
@@ -928,7 +960,7 @@
    ★ 2026-10-09 Andy（手機 430 寬）：選股策略（#explore）與 ETF（#etf）的手機重排 —— 樣式在 mobile4.css 第 29 節
    這一節只做 CSS 做不到的四件事，而且只在 html.m4（≤640）動作：
      1. 手機打開 ETF 預設停在「配息行事曆」（Andy：「手機打開 ETF 時，預設停在配息行事曆分頁」）：
-        抽屜裡的 ETF 預設進 #etf/cal（本檔最上面 HREF 那一格，2026-10-09 由 #etf/list 改）；看過別的子頁的照舊回上次那一頁（跟其他有子頁的主項目同一套）；
+        抽屜裡的 ETF 預設進 #etf/cal（本檔最上面 HREF 那一格，2026-10-09 由 #etf/list 改）；帳本 85（10-09）起不再回上次看的子頁，從抽屜進來一律是最左邊的配息行事曆（跟其他有子頁的主項目同一套）；
         直接開 #etf（沒帶子頁）也導到 #etf/cal。桌機照舊進 #etf/list（app.js 那行沒動）。
      2. 選股頁大標的文字包一層 span（.m4tt），才能「單行＋放不下用 …」（flex 容器裡的裸文字沒辦法加省略號）。
      3. 橫捲的頁籤列（ETF 分類、現金流「單檔／組合」、配息頻率）：選中的那一格捲進畫面；右側淡出，捲到底拿掉（.m4end）。

@@ -78,9 +78,10 @@
 .supfab:hover .supmark{animation:supwig .5s ease-in-out;transform:scale(1.1)}
 /* 只有 GIF：蓋掉上面膠囊的底色、框線、陰影與毛玻璃（拖曳／吸邊／避讓那些照舊吃 .supfab） */
 .supfab.supgifonly,.supfab.supgifonly:hover{width:76px;height:76px;padding:0;gap:0;justify-content:center;background:none;border:0;box-shadow:none;-webkit-backdrop-filter:none;backdrop-filter:none;border-radius:50%}
-.supfab.supgifonly .supgif{width:72px;height:72px;flex:none;display:block;pointer-events:none;filter:drop-shadow(0 4px 8px rgba(0,0,0,.35));animation:none!important;transform:none}
+.supfab.supgifonly .supgif{width:72px;height:72px;flex:none;display:block;pointer-events:none;filter:none;animation:none!important;transform:none}  /* 10-09 Andy：「外框 LOGO 陰影消除」—— 不加陰影，只留本體 */
 .supfab.supgifonly:hover .supgif{transform:scale(1.06)}
-.supfab.supgifonly.supdrag{box-shadow:none}
+.supfab.supgifonly.supdrag,.supfab.supgifonly:focus,.supfab.supgifonly:active{box-shadow:none;outline:none}
+.supfab.supgifonly{-webkit-tap-highlight-color:transparent}
 .supfab.supgifonly:focus-visible{outline:2px solid var(--cyan);outline-offset:2px}
 @media (max-width:820px){.supfab.supgifonly,.supfab.supgifonly:hover{width:60px;height:60px}.supfab.supgifonly .supgif{width:56px;height:56px}}
 .supfab .supsr{position:absolute!important;width:1px;height:1px;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}

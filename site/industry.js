@@ -718,7 +718,10 @@
       const cr = card.getBoundingClientRect();
       if (!(cr.width > 0)) return false;
       const twoCol = !!barCard && Math.abs(barCard.getBoundingClientRect().top - cr.top) < 2;
-      const side = cr.width >= DN_SIDE_MIN;
+      /* ★ 2026-10-09 帳本 77（Andy「產業地圖跑掉了」）：手機（html.m4）一律圖例在下。
+         手機 CSS（mobile4.css 31g）把圖例拉成 100% 寬，卡寬 ≥ 420（約 436～640 視窗）時這裡卻判成「圖例在右」——
+         圖例滿寬佔掉整列、圓餅被擠到卡片左外側裁掉一半、卡片橫向溢出。桌機沒有 m4，這行對桌機不變。*/
+      const side = !document.documentElement.classList.contains('m4') && cr.width >= DN_SIDE_MIN;
       card.classList.toggle('dnside', side); card.classList.toggle('dnbelow', !side);
       const cs = getComputedStyle(card);
       const cw = card.clientWidth - (parseFloat(cs.paddingLeft) || 0) - (parseFloat(cs.paddingRight) || 0);
