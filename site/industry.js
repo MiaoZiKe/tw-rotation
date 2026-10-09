@@ -1901,6 +1901,13 @@
       const animBtn = $('#dgAnim', el);
       const setAnimAll = (on, keep) => {
         const wrap = $('#prodDiagram', el);
+        /* 帳本 84：手機（m4）的動畫開關只管 3D 自轉；2D 一律靜止（卡頓那條），也不寫 tw.dganim（桌機的偏好）。 */
+        if (document.documentElement.classList.contains('m4')) {
+          wrap.classList.add('noanim');
+          wrap.querySelectorAll('svg').forEach(s => { try { s.pauseAnimations(); } catch (e) { /* 舊瀏覽器 */ } });
+          if (view3d && view3d.setAnim) view3d.setAnim(on);
+          return;
+        }
         wrap.classList.toggle('noanim', !on);
         /* B4（art-director 2026-09-21）：`.dgwrap.noanim *{animation:none!important}` **只管 CSS 動畫**。
            processBar 那顆白點走的是 SVG 的 SMIL（<animateMotion>），CSS 完全管不到它 ——
@@ -2689,10 +2696,41 @@
   /* ★ 2026-10-09（Andy：「手機…產業地圖點擊都會卡頓沒反應」）：手機（html.m4）沒有「動畫」鈕（body.m3on #dgAnim 藏起來），
      3D 一開就自轉、每秒 30 張整個場景畫到底，使用者也關不掉，其他點擊全排在它後面。
      手機在使用者沒選過的情況下 3D 預設不自轉（拖、點、展開照常；有存過 tw.dganim 就照存的）。桌機照舊。 */
+  /* ★ 2026-10-09 帳本 84（Andy 22:2x：「3D圖片需要 Default 跟網頁版一樣慢慢旋轉，並且可以關閉動畫功能」「3D手機版需具備動畫 跟網頁版一樣」）：
+     推翻上一條「手機 3D 預設不自轉」—— 手機 3D 預設跟網頁版一樣自轉（同一套 three3d.js 自轉參數與 hold／release），
+     3D 時工具列多一顆「動畫 開｜關」分段（wireM4Anim）。記在 tw.m4.3danim（跟桌機的 tw.dganim 分開，手機的選擇不影響桌機）；
+     沒選過：系統「減少動態效果」→ 關，否則開。手機 2D 照舊不跑動畫（setAnimAll 在 m4 只管 3D），卡頓那條的改善不退。 */
+  const reducedMotion = () => { try { return !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches); } catch (e) { return false; } };
   const anim3dPref = () => {
     if (!document.documentElement.classList.contains('m4')) return animPref();
-    try { const v = localStorage.getItem('tw.dganim'); return v == null ? false : v !== '0'; } catch (e) { return false; }
+    try { const v = localStorage.getItem('tw.m4.3danim'); if (v != null) return v === '1'; } catch (e) { /* 私密視窗 */ }
+    return !reducedMotion();
   };
+  /* 手機 3D 的「動畫 開｜關」分段：住在 #dgTools（編號、圖說同一列），只在 3D 掛起來時出現。wire3D 每換一張圖就跑一次 → 元素沿用、處理函式換新。*/
+  function wireM4Anim(el, show) {
+    if (!document.documentElement.classList.contains('m4')) return;
+    const tools = $('#dgTools', el); if (!tools) return;
+    let box = $('.m4anim', tools);
+    if (!box) {
+      box = document.createElement('span');
+      box.className = 'm4anim';
+      box.innerHTML = '<span class="m4animlb" aria-hidden="true">動畫</span><span class="seg m4animseg" role="group" aria-label="3D 動畫（自轉）開或關">'
+        + '<button type="button" data-an="1" aria-pressed="false" aria-label="動畫開">開</button><button type="button" data-an="0" aria-pressed="false" aria-label="動畫關">關</button></span>';
+      tools.appendChild(box);
+    }
+    const paint = (on) => $$('button[data-an]', box).forEach(b => { const cur = (b.dataset.an === '1') === on; b.classList.toggle('on', cur); b.setAttribute('aria-pressed', cur ? 'true' : 'false'); });
+    box.hidden = !show;
+    paint(anim3dPref());
+    // 使用者自己選過「開」：系統減少動態效果也照轉（three3d.js setAnim 第二個參數＝使用者明確選的）
+    if (show && view3d && view3d.setAnim) { let v = null; try { v = localStorage.getItem('tw.m4.3danim'); } catch (e) { /* 私密視窗 */ } if (v != null) view3d.setAnim(v === '1', true); }
+    $('.m4animseg', box).onclick = (ev) => {
+      const b = ev.target && ev.target.closest ? ev.target.closest('button[data-an]') : null; if (!b) return;
+      const on = b.dataset.an === '1';
+      try { localStorage.setItem('tw.m4.3danim', on ? '1' : '0'); } catch (e) { /* 私密視窗 */ }
+      paint(on);
+      if (view3d && view3d.setAnim) view3d.setAnim(on, true);
+    };
+  }
 
   let fit3dOff = null;               // Fit.on 的取消函式（3D 畫布高度跟著視窗高度走，#317）
   function dispose3D() {
@@ -2859,9 +2897,8 @@
          手機只露出「另一個模式」那一格、圓鈕上用 CSS 寫出**目前**模式（mobile4.css 第 31 節），點它＝切過去；
          點的是真的那一格，所以 3D 的權限鎖頭（features.js ind.3d 的 block: button[data-dm="3d"]）照舊攔得到。
          這裡只補讀屏標籤；桌機（沒有 m4）不寫。*/
-      if (document.documentElement.classList.contains('m4')) {
-        $$('button[data-dm]', btn).forEach(b => b.setAttribute('aria-label', is3d ? '目前 3D，點一下切到 2D' : '目前 2D，點一下切到 3D'));
-      }
+      /* 2026-10-09 帳本 83（Andy：「2D /3D 功能改用分段控制開關」）：手機圓鈕改回分段控制器「2D｜3D」（兩格都看得到、亮的＝目前），
+         上一版圓鈕補的「目前 3D，點一下切到 2D」讀屏標籤拿掉，讀屏照兩格各自的字與 aria-pressed。*/
     };
     const setMode = async (on) => {
       try { localStorage.setItem('tw.dg3d', on ? '1' : '0'); } catch (e) { /* 忽略 */ }
@@ -2869,6 +2906,7 @@
       // 「拖曳：轉動」「重設視角」只對 3D 有意義 —— 2D 時整組藏起來，不留一顆按了沒反應的鈕。
       // ★ 2026-09-26 起藏的是外面那層 #dg3dCtl：兩顆是 .pill（display:inline-flex），單獨設 hidden 會被蓋掉。
       if (ctl) ctl.hidden = !on;
+      wireM4Anim(el, false);                  // 帳本 84：手機「動畫 開｜關」先藏，3D 真的掛起來才露出來
       svg.hidden = on; host.hidden = !on;     // 配色不跟著 3D 開關（2D 也吃同一組 --dg-*）
       /* 切換 2D／3D 之後重套一次「原尺寸」規則：native 的橫向捲動只給 2D，
          3D 一律不捲（見 applyDgNative 的註解）。不重套的話切回 2D 會少掉捲動、
@@ -2903,6 +2941,7 @@
       }
       if (!v) { note.textContent = '3D 起不來，已退回平面剖析圖。'; svg.hidden = false; host.hidden = true; if (ctl) ctl.hidden = true; paintMode(false); return; }
       view3d = v;
+      wireM4Anim(el, true);
       if (ctl) host.appendChild(ctl);   // 3D 掛好才搬進畫面框（原因見 clear3dHost 上面的說明）
       // 手機 v3（≤640px）：3D 的字卡欄與 .ld-no 收掉，改用會自己避讓的 HTML 編號層（桌機進去就 return）
       if (window.DG && window.DG.mobileNums3d) window.DG.mobileNums3d(host, v);

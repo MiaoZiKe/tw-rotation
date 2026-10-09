@@ -30407,7 +30407,8 @@ def t_m4_ind_1009(b, base):
     ⚠ 長任務的毫秒數跟機器忙不忙有關；判定用「停著不動有沒有長任務」「有沒有動畫還在跑」這種修前修後差好幾倍的量。"""
     T = "手機產業地圖回應1009"
     ctx = b.new_context(viewport={"width": 402, "height": 874}, device_scale_factor=3, is_mobile=True, has_touch=True)
-    ctx.add_init_script("try{ if(!sessionStorage.getItem('ind1009')){ localStorage.clear(); localStorage.setItem('tw.live.on','0'); localStorage.setItem('tw.tourDone','1'); sessionStorage.setItem('ind1009','1'); } }catch(e){}"
+    # 2026-10-09 帳本 84：手機 3D 改成預設自轉（Andy 22:2x）→ 這段驗的是「動畫關」時停著不動不重畫，所以先把手機 3D 動畫設成關（tw.m4.3danim＝0）
+    ctx.add_init_script("try{ if(!sessionStorage.getItem('ind1009')){ localStorage.clear(); localStorage.setItem('tw.live.on','0'); localStorage.setItem('tw.tourDone','1'); localStorage.setItem('tw.m4.3danim','0'); sessionStorage.setItem('ind1009','1'); } }catch(e){}"
                         "window.__lt=[]; try{ new PerformanceObserver(l=>{ for (const e of l.getEntries()) window.__lt.push(Math.round(e.duration)); }).observe({type:'longtask', buffered:true}); }catch(e){}"
                         # 3D 每畫一張就會呼叫 drawElements／drawArrays：數它，就知道停著不動時 3D 有沒有還在一直畫（跟機器忙不忙無關）
                         "window.__dc=0; try{ for (const P of [WebGL2RenderingContext.prototype, WebGLRenderingContext.prototype]) { const a=P.drawElements, d=P.drawArrays; P.drawElements=function(){ window.__dc++; return a.apply(this, arguments); }; P.drawArrays=function(){ window.__dc++; return d.apply(this, arguments); }; } }catch(e){}")
@@ -30552,7 +30553,9 @@ def t_m4_3d_1009(b, base):
     T = "手機3D說明1009"
     SHOT = os.environ.get("TW_M43D_SHOT")          # 交件截圖用（不設就不拍）
     ctx = b.new_context(viewport={"width": 402, "height": 874}, device_scale_factor=1, is_mobile=True, has_touch=True)
-    ctx.add_init_script("try{ if(!sessionStorage.getItem('m43d')){ localStorage.clear(); localStorage.setItem('tw.live.on','0'); localStorage.setItem('tw.tourDone','1'); sessionStorage.setItem('m43d','1'); } localStorage.setItem('tw.dg3d','1'); }catch(e){}")
+    # 2026-10-09 帳本 84：手機 3D 改預設自轉。這段驗的是引線幾何與「點哪個零件開哪個抽屜」（先掃出零件的螢幕座標再點）——
+    #   模型在轉時掃完到點下去之間零件已經轉走，會量到假紅；所以這段把手機 3D 動畫設成關（tw.m4.3danim＝0）。自轉中點零件另在「手機3D分段與自轉1009」驗。
+    ctx.add_init_script("try{ if(!sessionStorage.getItem('m43d')){ localStorage.clear(); localStorage.setItem('tw.live.on','0'); localStorage.setItem('tw.tourDone','1'); localStorage.setItem('tw.m4.3danim','0'); sessionStorage.setItem('m43d','1'); } localStorage.setItem('tw.dg3d','1'); }catch(e){}")
     m = ctx.new_page()
     m.on("pageerror", lambda e: fails.append(f"{T} pageerror: {e} @ {m.url}"))
     m.route("**/fonts.googleapis.com/**", lambda r: r.abort())
@@ -30680,6 +30683,182 @@ def t_m4_3d_1009(b, base):
             ctx.close()
         except Exception:
             pass
+
+
+# ★ 2026-10-09 手機3D分段與自轉1009（帳本 83、84，Andy 22:2x：「2D /3D 功能改用分段控制開關」
+#   「3D圖片需要 Default 跟網頁版一樣慢慢旋轉，並且可以關閉動畫功能」「3D手機版需具備動畫 跟網頁版一樣」）。
+#   402／360 觸控（is_mobile、has_touch）各一輪，逐項驗畫面真的變了：
+#     (a) 2D｜3D 是單排兩格等寬的分段控制器（外框、高 ≥ 40、字 ≥ 12），點 3D 真的換成 3D 畫布、點 2D 換回來；
+#     (b) 進 3D 後 2 秒內相機座標真的在變（自轉）；按「動畫 關」後 2 秒內不變；再按「開」又變；
+#     (c) 手指按住拖曳期間不自轉（autoRotate 關、手指停著時相機不動），放開 ~2.5 秒後照網頁版接回去；
+#     (d) 捲到畫面外 → 不再畫（stats().draws 不增加）；捲回來又畫；自轉期間 longtask（> 50ms）次數另記。
+#   另外：系統「減少動態效果」→ 預設「關」、不轉；1440 桌機：工具列照舊（沒有手機動畫分段、#dgAnim 在）、預設自轉照舊。
+M43DSEG_SEG = r"""() => { const g = document.querySelector('#dg3d'); if (!g || !g.getClientRects().length) return null;
+  const bs = [...g.querySelectorAll('button[data-dm]')].map(b => { const r = b.getBoundingClientRect(), cs = getComputedStyle(b);
+    return { dm: b.dataset.dm, on: b.classList.contains('on'), w: Math.round(r.width), h: Math.round(r.height), top: Math.round(r.top), vis: r.width > 0 && cs.display !== 'none', fs: parseFloat(cs.fontSize), txt: b.textContent.trim() }; });
+  const gs = getComputedStyle(g), r = g.getBoundingClientRect();
+  return { bs, bw: parseFloat(gs.borderTopWidth), h: Math.round(r.height), right: Math.round(r.right), vw: innerWidth,
+    mode: g.dataset.mode, d3: !!(document.querySelector('#prod3d') && !document.querySelector('#prod3d').hidden), d2: !document.querySelector('#prodDiagram').hidden }; }"""
+M43DSEG_ANIM = r"""() => { const a = document.querySelector('#dgTools .m4anim'); if (!a || !a.getClientRects().length) return null;
+  const bs = [...a.querySelectorAll('button[data-an]')].map(b => { const r = b.getBoundingClientRect(); return { an: b.dataset.an, on: b.classList.contains('on'), h: Math.round(r.height), c: [r.left + r.width / 2, r.top + r.height / 2] }; });
+  return { bs, on: (bs.find(b => b.on) || {}).an }; }"""
+
+
+def t_m4_3dseg_1009(b, base):
+    T = "手機3D分段與自轉1009"
+    SHOT = os.environ.get("TW_M43DSEG_SHOT")
+    cam = "() => Rack3D.current.cam()"
+    url = base + "#industry/semiconductor/dg/silicon_wafer"
+    for W, H in ((402, 874), (360, 780)):
+        ctx = b.new_context(viewport={"width": W, "height": H}, device_scale_factor=1, is_mobile=True, has_touch=True)
+        # 每個 rAF 回呼（three3d.js 的 tick、編號層 tick）各花多少毫秒：這是「我們每幀在主執行緒上做的事」
+        ctx.add_init_script("window.__rafd=[]; { const R = window.requestAnimationFrame.bind(window); window.requestAnimationFrame = (f) => R((t) => { const a = performance.now(); try { f(t); } finally { window.__rafd.push(performance.now() - a); } }); }")
+        ctx.add_init_script("try{ if(!sessionStorage.getItem('m43s')){ localStorage.clear(); localStorage.setItem('tw.live.on','0'); localStorage.setItem('tw.tourDone','1'); localStorage.setItem('tw.dg3d','0'); sessionStorage.setItem('m43s','1'); } }catch(e){}")
+        m = ctx.new_page()
+        m.on("pageerror", lambda e, W=W: fails.append(f"{T} {W} pageerror: {e}"))
+        m.route("**/fonts.googleapis.com/**", lambda r: r.abort())
+        J = m.evaluate
+        try:
+            m.goto(url, wait_until="domcontentloaded")
+            wait_until(m, "() => { const g = document.querySelector('#dg3d'); return !!(g && g.getClientRects().length && document.querySelector('#prodDiagram svg')); }", 20000, 300)
+            J("() => document.querySelector('#dgSec').scrollIntoView({ block: 'start', behavior: 'instant' })"); m.wait_for_timeout(700)
+            s0 = J(M43DSEG_SEG)
+            if not ok(f"【{T}】{W} 有 2D｜3D 分段", bool(s0), s0):
+                continue
+            bs = s0["bs"]
+            ok(f"【{T}】{W} 2D｜3D 兩格都看得到、同一排、等寬（{[(x['txt'], x['w'], x['top']) for x in bs]}）、高 ≥ 40、字 ≥ 12、有外框、不超出螢幕（右緣 {s0['right']}／{s0['vw']}）",
+               len(bs) == 2 and all(x["vis"] for x in bs) and bs[0]["top"] == bs[1]["top"] and abs(bs[0]["w"] - bs[1]["w"]) <= 1
+               and all(x["h"] >= 40 and x["fs"] >= 12 for x in bs) and s0["bw"] >= 1 and s0["right"] <= s0["vw"]
+               and [x["txt"] for x in bs] == ["2D", "3D"], s0)
+            ok(f"【{T}】{W} 預設 2D：2D 那格亮、看得到平面圖", s0["mode"] == "2d" and [x["on"] for x in bs] == [True, False] and s0["d2"] and not s0["d3"], s0)
+            ok(f"【{T}】{W} 2D 時沒有「動畫 開｜關」", J(M43DSEG_ANIM) is None)
+            if SHOT and W == 402:
+                m.screenshot(path=os.path.join(SHOT, "m43dseg_402_2d.png"))
+            c3 = [x for x in bs if x["dm"] == "3d"][0]
+            r3 = J("() => { const r = document.querySelector(\"#dg3d button[data-dm='3d']\").getBoundingClientRect(); return [r.left + r.width / 2, r.top + r.height / 2]; }")
+            m.touchscreen.tap(*r3)
+            got3 = wait_until(m, "() => !!(window.Rack3D && Rack3D.current && Rack3D.current.cam && !document.querySelector('#prod3d').hidden)", 30000, 300)
+            s1 = J(M43DSEG_SEG)
+            ok(f"【{T}】{W} 點 3D 那格：換成 3D 畫布、平面圖藏起來、3D 那格亮、記住",
+               got3 and s1 and s1["mode"] == "3d" and s1["d3"] and not s1["d2"] and [x["on"] for x in s1["bs"]] == [False, True] and J("() => localStorage.getItem('tw.dg3d')") == "1", s1)
+            m.wait_for_timeout(1500)
+            a0 = J(M43DSEG_ANIM)
+            ok(f"【{T}】{W} 3D 時工具列出現「動畫 開｜關」，預設「開」、每格高 ≥ 40", bool(a0) and a0["on"] == "1" and all(x["h"] >= 40 for x in a0["bs"]), a0)
+            # (b) 自轉
+            k0 = J(cam); m.wait_for_timeout(2000); k1 = J(cam)
+            st = J("() => Rack3D.current.stats()")
+            ok(f"【{T}】{W} 3D 預設自轉：2 秒內相機在動（{k0}→{k1}）、autoRotate＝{st.get('autoRotate')}", k0 != k1 and st.get("autoRotate") is True, {"k0": k0, "k1": k1})
+            # 每幀成本：自轉期間 3 秒。判定看 rAF 回呼（我們的 JS：更新相機、送出算繪指令、重排編號層）每幀 < 50ms。
+            # ⚠ 瀏覽器自己的 longtask 另外印出來但不判定：這個容器沒有 GPU，WebGL 走軟體算繪（SwiftShader），CPU profile 顯示 96% 是「(program)」原生點陣化、
+            #   JS 只佔 1～2%；同一份場景在有 GPU 的手機上那段在 GPU 跑。桌機網頁版在這個容器自轉也一樣有。
+            J("() => { window.__rafd = []; }")
+            lt = J("""() => new Promise(res => { const xs = []; let po = null;
+                try { po = new PerformanceObserver(l => l.getEntries().forEach(e => xs.push(Math.round(e.duration)))); po.observe({ type: 'longtask', buffered: false }); } catch (e) { return res(null); }
+                setTimeout(() => { po.disconnect(); res(xs); }, 3000); })""")
+            rf = J("() => { const x = window.__rafd.slice(); return { n: x.length, max: Math.round(Math.max(0, ...x)), top: x.sort((a, b) => b - a).slice(0, 5).map(Math.round) }; }")
+            print(f"    [{T}] {W} 自轉 3 秒：rAF 回呼 {rf}；瀏覽器 longtask（軟體 WebGL，僅供參考）{lt}")
+            ok(f"【{T}】{W} 自轉 3 秒：每幀 JS（rAF 回呼）< 50ms（最長 {rf['max']}ms、共 {rf['n']} 次）", rf["n"] >= 20 and rf["max"] < 50, rf)
+            if SHOT and W == 402:
+                m.screenshot(path=os.path.join(SHOT, "m43dseg_402_3d_spin.png"))
+            # 動畫關
+            m.touchscreen.tap(*[x for x in a0["bs"] if x["an"] == "0"][0]["c"]); m.wait_for_timeout(400)
+            k2 = J(cam); m.wait_for_timeout(2000); k3 = J(cam)
+            a1 = J(M43DSEG_ANIM)
+            ok(f"【{T}】{W} 按「動畫 關」：關那格亮、2 秒內相機不動（{k2}→{k3}）、記住到 tw.m4.3danim",
+               a1 and a1["on"] == "0" and k2 == k3 and not J("() => Rack3D.current.stats().autoRotate") and J("() => localStorage.getItem('tw.m4.3danim')") == "0", {"a1": a1, "k2": k2, "k3": k3})
+            if SHOT and W == 402:
+                m.screenshot(path=os.path.join(SHOT, "m43dseg_402_3d_off.png"))
+            m.touchscreen.tap(*[x for x in a1["bs"] if x["an"] == "1"][0]["c"]); m.wait_for_timeout(400)
+            k4 = J(cam); m.wait_for_timeout(2000); k5 = J(cam)
+            ok(f"【{T}】{W} 再按「開」：又轉起來（{k4}→{k5}）", k4 != k5 and J("() => Rack3D.current.stats().autoRotate") is True, {"k4": k4, "k5": k5})
+            # 自轉中直接點零件：一樣開抽屜（找點與點下去之間模型還在轉，所以找到就立刻點）
+            m.wait_for_timeout(3000)
+            pk = J("() => { const v = Rack3D.current, c = document.querySelector('#prod3d canvas').getBoundingClientRect();"
+                   " for (let y = c.top + 30; y < Math.min(c.bottom, innerHeight) - 20; y += 9) for (let x = c.left + 60; x < c.right - 60; x += 9) { const p = v.hitAt(x, y); if (p && document.elementFromPoint(x, y).tagName === 'CANVAS') return [x, y, p]; } return null; }")
+            if pk:
+                m.touchscreen.tap(pk[0], pk[1]); m.wait_for_timeout(800)
+                sh = J("() => { const s = document.getElementById('mSheet'); return !!(s && !s.hidden); }")
+                ok(f"【{T}】{W} 自轉中手指點零件（{pk[2]}）：開零件抽屜", sh, pk)
+                J("() => { const s = document.getElementById('mSheetBack'); if (s && !s.hidden) s.click(); }"); m.wait_for_timeout(3200)
+            else:
+                ok(f"【{T}】{W} 自轉中找得到可點的零件", False)
+            # (c) 手指按住拖曳：拖完手指停著 → 不自轉；放開 → 2.5 秒後接回去
+            cdp = ctx.new_cdp_session(m)
+            cc = J("() => { const r = document.querySelector('#prod3d canvas').getBoundingClientRect(); return [r.left + r.width * 0.3, r.top + r.height * 0.75]; }")
+            tp = lambda typ, x, y: cdp.send("Input.dispatchTouchEvent", {"type": typ, "touchPoints": ([] if typ == "touchEnd" else [{"x": x, "y": y, "id": 1}])})
+            tp("touchStart", *cc)
+            for i in range(1, 9):
+                tp("touchMove", cc[0] + i * 6, cc[1]); m.wait_for_timeout(30)
+            # 拖曳的阻尼慣性先吃完（OrbitControls 阻尼每幀衰減，機器忙時要 2～5 秒）：手指停著、相機連續 0.6 秒不動才開始量
+            wait_until(m, "() => new Promise(r => { const a = JSON.stringify(Rack3D.current.cam()); setTimeout(() => r(a === JSON.stringify(Rack3D.current.cam())), 600); })", 9000, 100)
+            h0 = J(cam); hs = J("() => Rack3D.current.stats().autoRotate"); m.wait_for_timeout(1500); h1 = J(cam)
+            ok(f"【{T}】{W} 手指按住（拖完停著）：autoRotate＝{hs}、1.5 秒相機不動（{h0}→{h1}）", hs is False and h0 == h1, {"h0": h0, "h1": h1})
+            tp("touchEnd", 0, 0)
+            m.wait_for_timeout(3300)
+            r0 = J(cam); m.wait_for_timeout(1500); r1 = J(cam)
+            ok(f"【{T}】{W} 放開後照網頁版約 2.5 秒接回自轉（{r0}→{r1}）", r0 != r1 and J("() => Rack3D.current.stats().autoRotate") is True, {"r0": r0, "r1": r1})
+            J("() => { const s = document.getElementById('mSheetBack'); if (s && !s.hidden) s.click(); }")
+            # (d) 捲到畫面外 → 不畫
+            J("() => window.scrollTo(0, document.documentElement.scrollHeight)"); m.wait_for_timeout(800)
+            wait_until(m, "() => Rack3D.current.stats().visible === false", 5000, 150); m.wait_for_timeout(300)   # IntersectionObserver 是非同步的，機器忙時晚一點才回報
+            d0 = J("() => Rack3D.current.stats()"); m.wait_for_timeout(1500); d1 = J("() => Rack3D.current.stats()")
+            ok(f"【{T}】{W} 捲到畫面外：visible＝{d1.get('visible')}、1.5 秒沒有再畫（draws {d0.get('draws')}→{d1.get('draws')}）",
+               d1.get("visible") is False and d0.get("draws") == d1.get("draws"), {"d0": d0.get("draws"), "d1": d1.get("draws")})
+            J("() => document.querySelector('#prod3d').scrollIntoView({ block: 'center', behavior: 'instant' })"); m.wait_for_timeout(1200)
+            d2 = J("() => Rack3D.current.stats()")
+            ok(f"【{T}】{W} 捲回來又開始畫（draws {d1.get('draws')}→{d2.get('draws')}）", d2.get("visible") is True and d2.get("draws", 0) > d1.get("draws", 0))
+            # 收合鈕仍在、不跟動畫分段重疊
+            ov = J("() => { const c = document.querySelector('#prod3d > .m4c3d'), a = document.querySelector('#dgTools .m4anim'); if (!c || !a) return null; const x = c.getBoundingClientRect(), y = a.getBoundingClientRect();"
+                   " return { c3d: !!c.getClientRects().length, hit: !(x.right <= y.left || y.right <= x.left || x.bottom <= y.top || y.bottom <= x.top) }; }")
+            ok(f"【{T}】{W} 3D 收合鈕還在、跟「動畫」分段不重疊", bool(ov) and ov["c3d"] and not ov["hit"], ov)
+            # 點 2D 換回來：平面圖回來、動畫分段藏起來
+            J("() => document.querySelector('#dgSec').scrollIntoView({ block: 'start', behavior: 'instant' })"); m.wait_for_timeout(500)
+            r2 = J("() => { const r = document.querySelector(\"#dg3d button[data-dm='2d']\").getBoundingClientRect(); return [r.left + r.width / 2, r.top + r.height / 2]; }")
+            m.touchscreen.tap(*r2); m.wait_for_timeout(1000)
+            s2 = J(M43DSEG_SEG)
+            ok(f"【{T}】{W} 點 2D 那格：換回平面圖、2D 那格亮、「動畫」分段藏起來、記住（tw.dg3d＝0）",
+               s2 and s2["mode"] == "2d" and s2["d2"] and not s2["d3"] and J(M43DSEG_ANIM) is None and J("() => localStorage.getItem('tw.dg3d')") == "0", s2)
+        except Exception as e:
+            ok(f"【{T}】{W} 整段跑完沒有例外", False, repr(e)[:300])
+        finally:
+            try:
+                ctx.close()
+            except Exception:
+                pass
+    # 系統「減少動態效果」：手機預設關、不轉
+    ctx = b.new_context(viewport={"width": 402, "height": 874}, device_scale_factor=1, is_mobile=True, has_touch=True, reduced_motion="reduce")
+    ctx.add_init_script("try{ if(!sessionStorage.getItem('m43r')){ localStorage.clear(); localStorage.setItem('tw.live.on','0'); localStorage.setItem('tw.tourDone','1'); localStorage.setItem('tw.dg3d','1'); sessionStorage.setItem('m43r','1'); } }catch(e){}")
+    m = ctx.new_page(); m.route("**/fonts.googleapis.com/**", lambda r: r.abort())
+    try:
+        m.goto(url, wait_until="domcontentloaded")
+        wait_until(m, "() => !!(window.Rack3D && Rack3D.current && Rack3D.current.cam && !document.querySelector('#prod3d').hidden)", 30000, 300)
+        m.wait_for_timeout(1500)
+        a = m.evaluate(M43DSEG_ANIM); k0 = m.evaluate(cam); m.wait_for_timeout(2000); k1 = m.evaluate(cam)
+        ok(f"【{T}】減少動態效果：預設「關」、2 秒相機不動（{k0}→{k1}）", bool(a) and a["on"] == "0" and k0 == k1, a)
+        m.touchscreen.tap(*[x for x in a["bs"] if x["an"] == "1"][0]["c"]); m.wait_for_timeout(400)
+        k2 = m.evaluate(cam); m.wait_for_timeout(2000); k3 = m.evaluate(cam)
+        ok(f"【{T}】減少動態效果下使用者自己按「開」：照轉（{k2}→{k3}）", k2 != k3, {"k2": k2, "k3": k3})
+    except Exception as e:
+        ok(f"【{T}】減少動態效果段沒有例外", False, repr(e)[:300])
+    finally:
+        ctx.close()
+    # 1440 桌機：工具列與自轉照舊
+    pg = b.new_page(viewport={"width": 1440, "height": 900})
+    pg.add_init_script("try{ if(!sessionStorage.getItem('m43d1')){ localStorage.clear(); localStorage.setItem('tw.live.on','0'); localStorage.setItem('tw.tourDone','1'); localStorage.setItem('tw.dg3d','1'); localStorage.setItem('tw.dgOpen','1'); sessionStorage.setItem('m43d1','1'); } }catch(e){}")
+    try:
+        pg.goto(url, wait_until="domcontentloaded")
+        wait_until(pg, "() => !!(window.Rack3D && Rack3D.current && Rack3D.current.cam && !document.querySelector('#prod3d').hidden)", 30000, 300)
+        pg.wait_for_timeout(1500)
+        d = pg.evaluate("() => { const g = document.querySelector('#dg3d'), a = document.querySelector('#dgAnim'); return { m4: document.documentElement.classList.contains('m4'), anim: !!document.querySelector('.m4anim'),"
+                        " dgAnim: !!(a && a.getClientRects().length), at: a && a.textContent, segH: Math.round(g.getBoundingClientRect().height), bs: [...g.querySelectorAll('button')].map(b => b.getClientRects().length > 0) }; }")
+        ok(f"【{T}】1440 桌機：不是 m4、沒有手機「動畫」分段、原本的「動畫：開」鈕在、2D｜3D 兩格照舊（{d}）",
+           not d["m4"] and not d["anim"] and d["dgAnim"] and d["at"] == "動畫：開" and d["bs"] == [True, True], d)
+        k0 = pg.evaluate(cam); pg.wait_for_timeout(2000); k1 = pg.evaluate(cam)
+        ok(f"【{T}】1440 桌機 3D 照舊預設自轉（{k0}→{k1}）", k0 != k1, {"k0": k0, "k1": k1})
+    except Exception as e:
+        ok(f"【{T}】1440 段沒有例外", False, repr(e)[:300])
+    finally:
+        pg.close()
 
 
 # ★ 2026-10-09 長條寬度1009（Andy 10-09：「下方調整長條圖適當寬度」—— 總覽漲跌家數 11 根在 1730 寬只畫 10px，又細又空）：
@@ -31879,6 +32058,128 @@ def t_m4_playbar360_1009(b, base):
         finally:
             ctx.close()
 
+# ★ 2026-10-09 帳本 85（Andy 22:3x 附截圖：「所有分頁打開來 Default 都是最左邊的子分頁，不會跳到其他分頁」）：
+#   手機（402 觸控）從側欄抽屜點進任何有子分頁的頁 → 落在最左邊那個子分頁（hash 與選中格都要對），不記上次看的子分頁。
+#   例外照網址走：直接開帶子頁的網址、上一頁鍵；頁內自己點子分頁照常切。個股頁從別頁點進來一律 K線。
+#   1440 桌機：抽兩頁確認行為跟改前一樣（改前實測：側欄 ETF → #etf/list、資金流向 → #flow/rotation，桌機不記上次子頁）。
+SUBTAB_1009 = {   # 頁 → (子分頁列選擇器, 要點的按鈕選擇器, 切到第幾格（非最左）, 最左那格進來時的 hash)
+    "overview": ("#v-overview > .mpager", "button", 2, "#overview"),
+    "flow":     ("#m4Title .m4subtabs", "button", 1, "#flow/rotation"),
+    "heatmap":  ("#m4Title .m4subtabs", "button", 1, "#heatmap/industry"),
+    "industry": ("#chainSwitch", "button", 1, "#industry"),
+    "market":   ("#mktSeg2", "button", 1, "#market"),
+    "explore":  ("#slChips", "button", 2, "#explore"),
+    "etf":      ("#m4Title .m4subtabs", "button", 2, "#etf/cal"),
+    "earnings": ("#earnFilt", "button", 1, "#earnings"),
+    "watch":    ("#wpTabs", "button.wptab", 1, "#watch"),
+}
+_ST_SEL_JS = """([s, q]) => { const e = document.querySelector(s); if (!e) return null;
+  const bs = [...e.querySelectorAll(q)].filter(b => b.getClientRects().length && !b.disabled).sort((a, b) => a.getBoundingClientRect().left - b.getBoundingClientRect().left);
+  return { hash: location.hash, n: bs.length, on: bs.findIndex(b => b.classList.contains('on') || b.getAttribute('aria-selected') === 'true'),
+           names: bs.map(b => b.textContent.trim().slice(0, 8)) }; }"""
+
+
+def t_m4_subtab_first_1009(b, base):
+    T = "手機子分頁預設1009"
+    ctx = b.new_context(viewport={"width": 402, "height": 874}, is_mobile=True, has_touch=True, device_scale_factor=2)
+    ctx.add_init_script("try{localStorage.setItem('tw.live.on','0')}catch(e){}")
+    m = ctx.new_page()
+    errs = []
+    m.on("pageerror", lambda e: errs.append(str(e)))
+    J = m.evaluate
+
+    def drawer(v, wait=2600):
+        m.locator("#m4Burger").tap(); m.wait_for_timeout(450)
+        m.locator(f'#m4Drawer .m4item[data-v="{v}"]').tap(); m.wait_for_timeout(wait)
+
+    def st(v):
+        sel, q, _, _ = SUBTAB_1009[v]
+        r = None
+        for _ in range(20):
+            r = J(_ST_SEL_JS, [sel, q])
+            if r and r["n"]:
+                break
+            m.wait_for_timeout(250)
+        return r
+
+    m.goto(base + "#overview", wait_until="domcontentloaded"); m.wait_for_timeout(3000)
+    # 自選要有兩個清單才有「非最左」可切
+    J("() => { if (window.TwWatch && window.TwWatch.newTab && document.querySelectorAll('#wpTabs button.wptab').length < 2) window.TwWatch.newTab('第二頁'); }")
+    for v, (sel, q, idx, h0) in SUBTAB_1009.items():
+        drawer(v)
+        a = st(v)
+        ok(f"【{T}】{v}：從抽屜第一次進來 → 最左邊（{a and (a['hash'], a['on'], a['names'][:4])}）", bool(a) and a["on"] == 0 and a["hash"] == h0, a)
+        if not a or a["n"] <= idx:
+            ok(f"【{T}】{v}：子分頁至少 {idx + 1} 格才能驗「切走再回來」", False, a)
+            continue
+        # 頁內自己點：照常切（畫面真的換到那一格）
+        J("([s, q, i]) => { const bs = [...document.querySelector(s).querySelectorAll(q)].filter(b => b.getClientRects().length && !b.disabled).sort((a, b) => a.getBoundingClientRect().left - b.getBoundingClientRect().left); bs[i].click(); }", [sel, q, idx])
+        m.wait_for_timeout(1500)
+        c = st(v)
+        ok(f"【{T}】{v}：頁內點第 {idx + 1} 格 → 真的切過去（{c and (c['hash'], c['on'])}）", bool(c) and c["on"] == idx, c)
+        # 離開到別頁，再從抽屜點回來 → 回最左邊
+        drawer("season" if v != "season" else "overview", 1800)
+        drawer(v)
+        d = st(v)
+        ok(f"【{T}】{v}：切到第 {idx + 1} 格 → 離開 → 從抽屜點回來 → 最左邊（{d and (d['hash'], d['on'])}；改前會停在第 {idx + 1} 格）",
+           bool(d) and d["on"] == 0 and d["hash"] == h0, d)
+    # 同一頁再點一次主選單：總覽停在「熱度」時點抽屜「總覽」→ 回「大盤」（網址沒變也要回）
+    drawer("overview")
+    J("() => { const bs = [...document.querySelectorAll('#v-overview > .mpager button')]; bs[bs.length - 1].click(); }"); m.wait_for_timeout(1200)
+    s1 = st("overview")
+    drawer("overview")
+    s2 = st("overview")
+    ok(f"【{T}】總覽：停在第 {s1 and s1['on'] + 1} 格時再點抽屜「總覽」→ 回最左邊（{s2 and s2['on']}）", bool(s1) and s1["on"] > 0 and bool(s2) and s2["on"] == 0, (s1, s2))
+    # 例外一：直接開帶子頁的網址 → 照網址
+    for h, v, want in (("#etf/inc", "etf", 2), ("#flow/sankey", "flow", 1), ("#heatmap/theme", "heatmap", 1)):
+        m.goto(base + h, wait_until="domcontentloaded"); m.wait_for_timeout(3200)
+        r = st(v)
+        ok(f"【{T}】直接開 {h} → 照網址停在第 {want + 1} 格（{r and (r['hash'], r['on'])}）", bool(r) and r["hash"] == h and r["on"] == want, r)
+    # 例外二：上一頁鍵 → 照網址（ETF 月配試算 → 抽屜去季節性 → 上一頁 → 回月配試算）
+    m.goto(base + "#etf/inc", wait_until="domcontentloaded"); m.wait_for_timeout(3200)
+    drawer("season", 1800)
+    m.go_back(); m.wait_for_timeout(2500)
+    r = st("etf")
+    ok(f"【{T}】上一頁鍵回 ETF → 照網址停在月配試算（{r and (r['hash'], r['on'])}）", bool(r) and r["hash"] == "#etf/inc" and r["on"] == 2, r)
+    # 例外三：站內連結明確指到子頁 → 照網址
+    J("() => { location.hash = '#etf/list'; }"); m.wait_for_timeout(2200)
+    r = st("etf")
+    ok(f"【{T}】站內連到 #etf/list → 停在 ETF 總覽（{r and (r['hash'], r['on'])}）", bool(r) and r["hash"] == "#etf/list" and r["on"] == 1, r)
+    # 個股頁：K線起。切到「基本資料」→ 離開 → 從別頁點進同一檔 → K線
+    m.goto(base + "#stock/2330", wait_until="domcontentloaded")
+    okk = wait_until(m, "() => !!document.querySelector('#mbTabs button[data-t]')", 10000)
+    if okk:
+        k0 = J("() => document.querySelector('#mbTabs button.on') && document.querySelector('#mbTabs button.on').dataset.t")
+        m.locator("#mbTabs button[data-t]").nth(1).tap(); m.wait_for_timeout(1200)
+        k1 = J("() => document.querySelector('#mbTabs button.on').dataset.t")
+        drawer("market", 2000)
+        J("() => { location.hash = '#stock/2330'; }")
+        wait_until(m, "() => !!document.querySelector('#mbTabs button.on')", 10000); m.wait_for_timeout(800)
+        k2 = J("() => { const b = document.querySelector('#mbTabs button.on'); const l = [...document.querySelectorAll('#mbTabs button[data-t]')].sort((a, c) => a.getBoundingClientRect().left - c.getBoundingClientRect().left)[0]; return [b && b.dataset.t, l && l.dataset.t]; }")
+        ok(f"【{T}】個股：切到 {k1} → 離開 → 再點進來 → 最左邊 K線（{k0}→{k1}→{k2}）", k1 != "k" and k2[0] == "k" and k2[1] == "k", (k0, k1, k2))
+    else:
+        ok(f"【{T}】個股：分頁列長出來", False)
+    ok(f"【{T}】402 全程沒有 pageerror", not errs, errs[:3])
+    # 截圖：ETF 從側欄點進去落在配息行事曆
+    drawer("overview", 1500); drawer("etf", 3000)
+    try:
+        m.screenshot(path=str(Path(os.environ.get("TW_SHOT_DIR", "/tmp")) / "m4_subtab_etf_1009.png"))
+    except Exception:
+        pass
+    ctx.close()
+    # 1440 桌機：行為跟改前一樣（改前實測：側欄 ETF → #etf/list、資金流向 → #flow/rotation；桌機沒有抽屜，這批的程式碼一行都不會跑）
+    d = b.new_page(viewport={"width": 1440, "height": 900})
+    d.goto(base + "#overview", wait_until="domcontentloaded"); d.wait_for_timeout(2500)
+    for v, sub, want in (("etf", "#etf/inc", "#etf/list"), ("flow", "#flow/sankey", "#flow/rotation")):
+        d.evaluate("h => { location.hash = h; }", sub); d.wait_for_timeout(1500)
+        d.evaluate("() => { location.hash = '#overview'; }"); d.wait_for_timeout(1200)
+        d.locator(f'#tabs .tab[data-view="{v}"]').click(); d.wait_for_timeout(1500)
+        h = d.evaluate("() => location.hash")
+        ok(f"【{T}】1440 桌機：看過 {sub} 再點側欄「{v}」→ {h}（跟改前一樣 {want}）", h == want, h)
+    ok(f"【{T}】1440 桌機：沒有手機抽屜", d.evaluate("() => !document.getElementById('m4Drawer')"))
+    d.close()
+
+
 SECTIONS = {
     # ★ 2026-10-09 手機監督：360 寬播放列 ▶／⏸ 被長日期擠出畫面 —— 360／402 播放中最長那刻＋暫停在過去：▶ 在列內、一行、日期不截；1440 日期仍完整
     "手機播放列360":       lambda pg, b, base, code: t_m4_playbar360_1009(b, base),
@@ -32108,9 +32409,13 @@ SECTIONS = {
     # ★ 2026-10-09 Andy：「3D 圖為何還會出現下方欄位…圖四可以看到他的線條指到未知地方」＋帳本 67 3D 收合鈕（402 寬、全部 3D 圖；⚠ --workers 1）
     # ★ 2026-10-09 導覽普查（main）
     "導覽普查1009":        lambda pg, b, base, code: t_tour_census_1009(b, base),
+    # ★ 2026-10-09 帳本 85：手機從側欄進任何有子分頁的頁 → 最左邊子分頁（402 觸控＋1440 桌機抽查）
+    "手機子分頁預設1009":  lambda pg, b, base, code: t_m4_subtab_first_1009(b, base),
     # ★ 2026-10-09 帳本 80／81（Andy 22:0x：「圖四 不該多題材細節」「圖五 …應該為穿差的」）：熱力圖頂部兩格＋題材流程步驟與環節卡穿插（402／360 觸控）
     "手機題材流程1009":    lambda pg, b, base, code: t_m4_theme_flow_1009(b, base),
     "手機3D說明1009":      lambda pg, b, base, code: t_m4_3d_1009(b, base),
+    # ★ 2026-10-09 帳本 83、84：手機 2D｜3D 分段控制器＋3D 預設自轉／動畫開關（402／360 觸控＋1440 守網頁版；⚠ --workers 1）
+    "手機3D分段與自轉1009": lambda pg, b, base, code: t_m4_3dseg_1009(b, base),
     # ★ 2026-09-25 手機版 v3（docs/mobile_v3_spec.md §7）：底部一列五顆、「?」氣泡、大盤合一張、新雷達＋焦點條、
     #   資金分流樹長條、法人對稱長條、篩選抽屜、剖析圖只留編號（2D／3D）。390 與 360 各一輪。⚠ 一律 --workers 1（有 3D）
     "手機v3":              lambda pg, b, base, code: t_mobile_v3(b, base, code),
