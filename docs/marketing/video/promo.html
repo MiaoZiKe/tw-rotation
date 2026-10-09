@@ -29,14 +29,14 @@
   const W = FMT === 'h' ? 1920 : 1080, H = FMT === 'h' ? 1080 : 1920;
   const cv = document.getElementById('cv');
   cv.width = W; cv.height = H;
-  const ctx = cv.getContext('2d');
+  let ctx = cv.getContext('2d');
   const FONT = '"Noto Sans CJK TC","Noto Sans TC","Microsoft JhengHei","WenQuanYi Zen Hei",sans-serif';
   const C = {
     bg0:'#050A13', bg1:'#0B1626', panel:'#0F1C2F', line:'rgba(55,226,255,0.10)',
     accent:'#37E2FF', text:'#EAF6FF', sub:'#9FB4C8', cream:'#FBF3EA',
     up:'#F0465A', down:'#21C08B', amber:'#FFBE5C'
   };
-  const TOTAL = 42;
+  const TOTAL = 45;
   const DATA_DATE = '2026-10-08';
 
   /* ---------- 素材 ---------- */
@@ -98,14 +98,14 @@
   const P = FMT === 'v' ? 'm_' : 'd_';
 
   /* ---------- 腳本（跟 script_1009.md 同一份） ---------- */
-  // roi：[中心x, 中心y, 寬]（素材像素），hl：圈選框 [x0,y0,x1,y1]
+  // roi：[中心x, 中心y, 寬]（素材像素），hl：圈選框 [x0,y0,x1,y1]；hc：整塊淡光暈圓 [中心x, 中心y, 半徑]
   const FEAT = [
     { t0: 9.0, t1: 14.5, key:'flow', step:'01', big:'錢往哪個族群跑', sub:['資金輪動：看成交佔比','在各族群之間怎麼移動'],
-      d:{ a:[1216,900,2432], b:[900,1000,1900], hl:[1164,566,1330,628] },
-      m:{ a:[585,843,1170], b:[585,1850,1170], hl:[855,1470,1100,1594] } },
+      d:{ a:[1216,900,2432], b:[860,1060,1900], hc:[728,1110,630] },
+      m:{ a:[585,843,1170], b:[585,1850,1170], hc:[585,1927,400] } },
     { t0:14.5, t1:20.0, key:'heat', step:'02', big:'一眼看出強弱', sub:['整個台股一張圖，紅漲綠跌','方塊越大＝成交值越大'],
-      d:{ a:[1216,900,2432], b:[800,700,1500], hl:[592,552,1012,820] },
-      m:{ a:[585,1100,1170], b:[450,1150,900], hl:[270,1044,481,1342] } },
+      d:{ a:[1216,900,2432], b:[830,770,1700], hl:[66,200,1590,1056] },
+      m:{ a:[585,1100,1170], b:[450,1150,900], hl:[25,614,667,1722] } },
     { t0:20.0, t1:25.5, key:'season', step:'03', big:'每個月的歷史規律', sub:['族群 × 月份的歷史平均表現','（2000 年起；歷史不代表未來）'],
       d:{ a:[1216,900,2432], b:[1600,900,1700], hl:[1850,300,2026,1474] },
       m:{ a:[585,1100,1170], b:[700,1300,900], hl:[936,738,1003,2010] } },
@@ -204,7 +204,22 @@
     ctx.drawImage(im, sx, sy, sw, sh, fx, fy, F.w, F.h);
     // 圈選：暗化周圍＋線條描上去（之後靜止）
     const hA = prog(lt, 1.6, 2.2) * outA;
-    if (hA > 0) {
+    if (hA > 0 && cfg.hc) {
+      // 整個輪盤淡淡光暈：極淡壓暗周圍＋柔和圓環（畫一圈後靜止）
+      const sc = F.w / sw;
+      const ccx = fx + (cfg.hc[0] - sx) * sc, ccy = fy + (cfg.hc[1] - sy) * sc, cr = cfg.hc[2] * sc;
+      ctx.save();
+      ctx.fillStyle = `rgba(3,8,16,${0.22 * hA})`;
+      ctx.beginPath(); ctx.rect(fx, fy, F.w, F.h); ctx.moveTo(ccx + cr + 10, ccy); ctx.arc(ccx, ccy, cr + 10, 0, Math.PI * 2); ctx.fill('evenodd');
+      const g = ctx.createRadialGradient(ccx, ccy, cr * 0.92, ccx, ccy, cr * 1.12);
+      g.addColorStop(0, 'rgba(55,226,255,0)'); g.addColorStop(0.45, `rgba(55,226,255,${0.18 * hA})`); g.addColorStop(1, 'rgba(55,226,255,0)');
+      ctx.fillStyle = g; ctx.beginPath(); ctx.arc(ccx, ccy, cr * 1.12, 0, Math.PI * 2); ctx.fill();
+      const draw = easeOut(prog(lt, 1.7, 2.5));
+      ctx.beginPath(); ctx.arc(ccx, ccy, cr + 10, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * draw);
+      ctx.strokeStyle = 'rgba(55,226,255,0.55)'; ctx.lineWidth = 3; ctx.shadowColor = 'rgba(55,226,255,0.7)'; ctx.shadowBlur = 6;
+      ctx.globalAlpha = alpha; ctx.stroke();
+      ctx.restore();
+    } else if (hA > 0) {
       const sc = F.w / sw;
       const hx = fx + (cfg.hl[0] - sx) * sc, hy = fy + (cfg.hl[1] - sy) * sc;
       const hw = (cfg.hl[2] - cfg.hl[0]) * sc, hh = (cfg.hl[3] - cfg.hl[1]) * sc;
@@ -380,19 +395,55 @@
     mascot(t, mx, my0 - hop, ms, ctx.globalAlpha);
     if (!v) mascot(t + 0.35, 260, my0 - hop, ms, ctx.globalAlpha);
     ctx.restore();
-    // 免責（1.0 秒後出現並保持到片尾）
-    const da = easeOut(prog(lt, 1.0, 1.6));
-    ctx.save(); ctx.globalAlpha = da; ctx.textAlign = 'center';
-    const dy = v ? 1760 : 990;
-    ctx.fillStyle = 'rgba(11,22,38,0.92)'; rr(v ? 60 : 360, dy - 52, v ? W - 120 : W - 720, 84, 20); ctx.fill();
-    ctx.strokeStyle = 'rgba(159,180,200,0.35)'; ctx.lineWidth = 2; ctx.stroke();
-    ctx.font = font(v ? 34 : 32, 600); ctx.fillStyle = '#D7E3EE';
-    ctx.fillText('本站為公開資料整理與統計工具，不構成投資建議。', W / 2, dy + 2);
+  }
+
+  /* ---------- 第 9 段：法遵版免責字卡（40～45 秒，完整可讀約 4.6 秒） ---------- */
+  // 文字照 docs/launch_gap_legal_1009.md 第 3 節「影片片尾版」，一字不改；字級不小於主字幕。
+  const LEGAL_V = ['哩股哩股為公開市場資料之整理與視覺化工具，', '並非證券投資顧問事業。', '影片內容僅供功能說明，',
+                   '不構成任何投資建議或買賣依據；', '投資有風險，過去表現不代表未來，', '請自行審慎判斷。'];
+  const LEGAL_H = ['哩股哩股為公開市場資料之整理與視覺化工具，並非證券投資顧問事業。',
+                   '影片內容僅供功能說明，不構成任何投資建議或買賣依據；', '投資有風險，過去表現不代表未來，請自行審慎判斷。'];
+  function seg9(t) {
+    const lt = t - 40.0, v = FMT === 'v';
+    const a = easeOut(prog(lt, 0, 0.4));
+    ctx.save(); ctx.textAlign = 'center'; ctx.globalAlpha = a;
+    // 上方：小 LOGO＋網址（讓觀眾記得去哪）
+    const ls = v ? 150 : 120, ly = v ? 300 : 150;
+    if (IMG.logo) { ctx.save(); rr(W / 2 - ls / 2, ly - ls / 2, ls, ls, ls * 0.22); ctx.clip(); ctx.drawImage(IMG.logo, W / 2 - ls / 2, ly - ls / 2, ls, ls); ctx.restore(); }
+    ctx.font = font(v ? 44 : 40, 800); ctx.fillStyle = C.accent;
+    ctx.fillText('miaozike.github.io/tw-rotation', W / 2, ly + ls / 2 + (v ? 70 : 60));
+    // 免責面板
+    const lines = v ? LEGAL_V : LEGAL_H;
+    const px = v ? 42 : 42, lh = px * 1.62;
+    ctx.font = font(px, 600);
+    const tw = Math.max(...lines.map(s => ctx.measureText(s).width));
+    const pw = tw + (v ? 90 : 140), ph = lines.length * lh + (v ? 150 : 130);
+    const py = v ? 640 : 380;
+    ctx.fillStyle = 'rgba(11,22,38,0.94)'; rr(W / 2 - pw / 2, py, pw, ph, 28); ctx.fill();
+    ctx.strokeStyle = 'rgba(55,226,255,0.40)'; ctx.lineWidth = 2; ctx.stroke();
+    ctx.font = font(v ? 34 : 30, 700); ctx.fillStyle = C.accent;
+    ctx.fillText('投資警語', W / 2, py + (v ? 70 : 60));
+    ctx.font = font(px, 600); ctx.fillStyle = '#EAF2FA';
+    lines.forEach((s, i) => ctx.fillText(s, W / 2, py + (v ? 150 : 128) + i * lh));
+    // 吉祥物在面板下方安靜待著（只用原本動作）
+    mascot(t, W / 2, v ? py + ph + 230 : py + ph + 110, v ? 240 : 150, a);
     ctx.restore();
   }
 
+  /* 整段先畫在離屏畫布，再整體淡出（seg8 裡的 globalAlpha 太多處，不逐一改） */
+  let fadeCv = null;
+  function withFade(alpha, fn) {
+    if (alpha >= 1) { fn(); return; }
+    if (alpha <= 0) return;
+    if (!fadeCv) { fadeCv = document.createElement('canvas'); fadeCv.width = W; fadeCv.height = H; }
+    const real = ctx; const fc = fadeCv.getContext('2d');
+    fc.setTransform(1, 0, 0, 1, 0, 0); fc.clearRect(0, 0, W, H);
+    ctx = fc; try { fn(); } finally { ctx = real; }
+    ctx.save(); ctx.globalAlpha = alpha; ctx.drawImage(fadeCv, 0, 0); ctx.restore();
+  }
+
   /* ---------- 轉場：段落交界處一道青色掃光（0.35 秒，一次性） ---------- */
-  const CUTS = [4.5, 9.0, 14.5, 20.0, 25.5, 31.0, 36.5];
+  const CUTS = [4.5, 9.0, 14.5, 20.0, 25.5, 31.0, 36.5, 40.0];
   function wipe(t) {
     for (const c of CUTS) {
       const p = (t - (c - 0.2)) / 0.4;
@@ -418,7 +469,8 @@
     if (t < 4.5) seg1(t);
     else if (t < 9.0) seg2(t);
     else if (t < 36.5) { const f = FEAT.find(x => t >= x.t0 && t < x.t1); if (f) featSeg(t, f); }
-    else seg8(t);
+    else if (t < 40.0) withFade(1 - prog(t, 39.6, 40.0), () => seg8(t));
+    else seg9(t);
     wipe(t);
     progressBar(t);
   }
@@ -436,7 +488,7 @@
   if (!qs.get('capture')) {
     const reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     window.__ready.then(() => {
-      if (reduce) { render(39.5); return; }   // 只畫片尾靜態格（含網址與免責）
+      if (reduce) { render(43); return; }   // 只畫片尾靜態格（網址＋免責）
       let start = performance.now();
       cv.addEventListener('click', () => { start = performance.now(); });
       const loop = (now) => { render(((now - start) / 1000) % TOTAL); requestAnimationFrame(loop); };

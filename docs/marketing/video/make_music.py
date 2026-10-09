@@ -1,7 +1,7 @@
 """哩股哩股宣傳影片背景音樂（自行合成，無版權疑慮）。
 
 用 numpy 從零合成：電鋼琴和弦（Cmaj7 → Am7 → Fmaj7 → G7）＋簡單五聲音階旋律＋輕鼓點（大鼓、小鼓、腳踏鈸）＋極淡黑膠底噪。
-90 BPM、長度 42 秒；前兩小節只有琴（痛點開場），第三小節起進鼓；最後一個 Cmaj7 延音並淡出，不會突然斷掉。
+90 BPM、長度 45 秒；前兩小節只有琴（痛點開場），第三小節起進鼓；最後一個 Cmaj7 延音並淡出，不會突然斷掉。
 
 用法：python docs/marketing/video/make_music.py <輸出 wav 路徑>
 """
@@ -16,7 +16,7 @@ SR = 44100
 BPM = 90
 BEAT = 60 / BPM
 BAR = BEAT * 4
-TOTAL = 42.0
+TOTAL = 45.0
 rng = np.random.default_rng(1009)
 
 
@@ -85,7 +85,7 @@ def main(out: str) -> None:
         (41, [57, 60, 64, 65]),
         (43, [59, 62, 65, 67]),
     ]
-    bars = 15
+    bars = 16
     for b in range(bars):
         root, notes = chords[b % 4]
         t0 = b * BAR
@@ -105,7 +105,7 @@ def main(out: str) -> None:
         [(0.0, 72, 1.0), (1.0, 74, 0.5), (1.5, 76, 1.0), (3.0, 79, 1.0)],
         [(0.0, 81, 1.5), (2.0, 79, 1.0), (3.0, 74, 1.0)],
     ]
-    for b in range(2, 14):
+    for b in range(2, 15):
         for beat, note, d in phrases[b % 4]:
             if note not in pent:
                 continue
@@ -115,7 +115,7 @@ def main(out: str) -> None:
 
     # 鼓：第 3 小節到第 14 小節；最後一小節只剩和弦
     K, S, H = kick(), snare(), hat()
-    for b in range(2, 14):
+    for b in range(2, 15):
         t0 = b * BAR
         add(buf, K, t0)
         add(buf, K * 0.7, t0 + BEAT * 2.5)
