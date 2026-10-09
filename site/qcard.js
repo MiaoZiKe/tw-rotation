@@ -64,6 +64,9 @@
 body.m3on .m3host:not(.mfull)>.qcov:not(.m3keep):not(.m3keep-h),body.m3on .m3host.mfull>.qcov:not(.m3keep):not(.m3keep-h){display:flex!important}
 .qcard{--qc-on:var(--bg);width:min(520px,100%);box-sizing:border-box;background:var(--panel);color:var(--ink);border:1px solid var(--line-2);border-radius:16px;
   padding:24px 28px;box-shadow:0 24px 60px -28px rgba(0,0,0,.55);text-align:left;font-family:"Noto Sans TC","PingFang TC","Microsoft JhengHei",system-ui,sans-serif}
+.qcard.qcnote{width:auto;max-width:100%;display:inline-flex;align-items:center;flex-wrap:wrap;gap:6px 8px;padding:8px 14px;border-radius:999px;font-size:13px;font-weight:600;color:var(--ink-2);box-shadow:none}
+.qcard.qcnote>svg{width:14px;height:14px;flex:none}
+.qcard.qcnote .qc-try{margin:0;width:auto;padding:4px 10px;font-size:12px}
 :root[data-theme="light"] .qcard{--qc-on:var(--panel);box-shadow:0 18px 48px -26px rgba(40,30,10,.35)}
 .qcov.tall .qcard{position:sticky}
 .qcard .qc-kick{display:flex;align-items:center;gap:6px;font-size:var(--fs-sm,13px);font-weight:700;color:var(--amber);line-height:20px;margin:0 0 8px}
@@ -119,6 +122,13 @@ body.m3on .m3host:not(.mfull)>.qcov:not(.m3keep):not(.m3keep-h),body.m3on .m3hos
   /* o：{ kind, kick, title, sub, used, limit, reset, lh, items, btn, href, compact, btnCls } */
   function html(o) {
     const quota = o.kind === 'quota';
+    /* ★ 2026-10-10 inline 備註模式（Andy：「這種訊息不要用跳出的方式表示，功能反灰旁邊備註就好」）：
+       o.inline＝true → 不畫大卡（沒有大標、清單、升級大按鈕），只在原位置放一行靜態小字 o.note（下面的內容照舊模糊反灰當示意）。
+       有體驗額度時保留一顆「繼續看（用掉 1 次體驗）」小鈕（不是彈出，是同一行）。只有呼叫端明確給 inline 才走這裡，其他既有呼叫完全不變。*/
+    if (o.inline) {
+      const gi = o.gk && window.TwGrants && window.TwGrants.cardHtml ? window.TwGrants.cardHtml(o) : null;
+      return `<div class="qcard qcnote" data-kind="${quota ? 'quota' : 'lock'}"${o.gk ? ` data-gk="${esc(o.gk)}"` : ''} role="note">${ICON.lock}<span class="qcn-t">${esc(o.note || '')}</span>${gi ? gi.tag + gi.btn : ''}</div>`;
+    }
     const body = quota ? `${bar(o.used, o.limit)}<div class="qc-meta"><span>今日已使用 <b>${esc(o.used)} / ${esc(o.limit)}</b> 次</span><span class="qc-reset">${ICON.clock}<span class="qc-rt">${esc(resetText(o.reset))}</span></span></div>` : '';
     const lst = !o.compact && o.items && o.items.length ? `<hr><div class="qc-lh">${esc(o.lh || '')}</div>${list(o.items)}` : '';
     /* 2026-10-09 體驗額度（site/grants.js）：o.gk＝這張卡擋的是哪個功能；有體驗就多「體驗剩 N 次」標籤＋「繼續看」鈕，用完多一句「體驗額度已用完」 */
@@ -243,6 +253,8 @@ body.m3on .m3host:not(.mfull)>.qcov:not(.m3keep):not(.m3keep-h),body.m3on .m3hos
   }
   /* 需開通卡的選項（perm.js 的鎖頭）：哪些方案有這個功能、按鈕寫最便宜能解鎖的那個 */
   function lockOpts(f, who) {
+    /* 2026-10-10：功能清單有寫 note（例 ETF 報酬比較、複利試算表；跟 perm.js 鈕的「備註模式」同一個欄位）→ veil 蓋的內容改 inline 備註（一行字，不是大卡） */
+    if (f && f.note && (f.veil || []).length) return { kind: 'lock', inline: true, note: f.note, title: '', gk: f.cat === 'grp' ? '' : f.id };
     const P = window.TwPricing;
     let ok = P && P.unlockers ? P.unlockers(f.id) : null;
     if (DEMO === 'lock' || !ok) ok = null;

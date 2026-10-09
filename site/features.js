@@ -196,7 +196,26 @@
     pickF('explore.list.n', 'explore', '選股完整名單顯示檔數', '檔', 999, [0, 3, 5, 10, 20, 50, 100, 999], 5, 20, '完整名單最多顯示前幾檔'),
     pickF('mkt.cand.n', 'market', '今日關注顯示檔數', '檔', 999, [0, 3, 5, 10, 20, 50, 999], 3, 10, '今日關注名單最多顯示前幾檔'),
     pickF('etf.returns.n', 'etf', '報酬比較自選檔數', '檔', 20, [0, 3, 5, 8, 10, 20], 0, 3, '報酬比較同時最多比幾檔（20＝硬上限）'),
-    { id: 'etf.cashflow', name: 'ETF 現金流試算', cat: 'etf', def: true, kind: 'bool', route: /^#etf\/inc/, desc: '月配／複利現金流試算（矩陣：只給付費會員）', veil: [['#etfInc']], mark: ['#etfSub button[data-v="inc"]'], block: [] },
+    /* 2026-10-10 Andy：「ETF 試算 註冊的免費會員 改成只能看 5 次，上面參數都不可以調整（包含複利表）」→ 註冊會員改成開＋每日 5 次（plan_presets lims），
+       參數鎖另外一個鍵 etf.inc.params（下一行）。*/
+    { id: 'etf.cashflow', name: 'ETF 現金流試算', cat: 'etf', def: true, kind: 'bool', route: /^#etf\/inc/, desc: '月配／複利現金流試算（註冊會員每日 5 次、只看預設參數；Plus 以上可自訂參數）', veil: [['#etfInc']], mark: ['#etfSub button[data-v="inc"]'], block: [],
+      qnote: '今日次數已用完・Plus 以上可增加' },
+    /* 參數鎖：關掉 → 月配與複利試算表上方所有參數（目標、金額、範圍、二代健保、報酬期間、單檔／組合分頁、右側勾選清單、複利的對象／起始日／自訂標的）
+       停用、只顯示預設值算出來的結果，旁邊一顆「🔒 升級可自訂參數」→ 升級卡。排序、圖表互動、看細節照常。實作在 site/etfpage.js（incParamsOk）。
+       defBy：範本沒寫時訪客關、註冊會員關，付費範本沒寫＝開（跟 heat.link 同一套，不必先按「套用建議方案」也照身分生效）。
+       體驗額度打開 etf.cashflow 的那天（TwGrants.open）＝當作已開通，參數也一起放開。*/
+    { id: 'etf.inc.params', name: 'ETF 試算自訂參數', cat: 'etf', def: true, kind: 'bool', defBy: { guest: false, free: false }, route: /^#etf\/inc/,
+      desc: '現金流試算（月配＋複利）上方參數可以調整（關掉：參數鎖住、只看預設條件的結果，點了跳升級卡；排序照常）', veil: [], mark: [], block: [] },
+    /* 2026-10-10 Andy 00:4x：「ETF 報酬比較 與 複利試算表 不開放此會員等級」（＝註冊會員；訪客本來就更嚴）。
+       用新鍵＋defBy（訪客、註冊會員預設關，付費範本沒寫＝開），不改舊的 etf.returns —— 正式站範本裡 etf.returns 已經明寫 true，
+       改舊鍵要管理者先按「套用建議方案」才生效；新鍵範本裡沒寫，部署後就照身分生效。
+       報酬比較：只蓋內容（#etfRetBody），卡片標題留著讓人知道有這功能；標題列的「加入比較」「含息／不含息」反灰、點了沒反應（etfpage.js）。
+       複利試算表：月配試算表照舊（每日 5 次＋參數鎖），「複利試算表」分頁鈕反灰＋小字，點進去原位置反灰示意＋一行字。
+       ★ 同日 Andy：「這種訊息不要用跳出的方式表示，功能反灰旁邊備註就好」→ note／qnote＝qcard 的 inline 備註模式（note 跟 perm.js 備註模式同一個欄位名）（一行字，不是大卡、不彈出）。*/
+    { id: 'etf.cmp', name: 'ETF 報酬比較（付費）', cat: 'etf', def: true, kind: 'bool', defBy: { guest: false, free: false },
+      desc: 'ETF 總覽下方「報酬比較」卡的內容（累積報酬走勢、年化報酬率橫條、明細表）；關掉：標題留著、內容蓋需開通卡', veil: [['#etfRetBody']], mark: [], block: [], note: 'Plus 以上可查看' },
+    { id: 'etf.inc.comp', name: 'ETF 複利試算表', cat: 'etf', def: true, kind: 'bool', defBy: { guest: false, free: false }, route: /^#etf\/inc/,
+      desc: '現金流試算的「複利試算表」分頁（配息再投入回測）；關掉：分頁鈕掛 🔒，點進去整塊蓋需開通卡', veil: [['#incPX']], mark: [], block: [], note: 'Plus 以上可查看' },
     /* 2026-10-08 Andy：「熱力圖如果不是付費會員 都不能有點擊連結功能，但如果是才可以點擊連結到其他分頁」。
        全站樹狀熱力圖（總覽資金熱力圖／熱門題材、熱力圖產業頁／題材頁、各自的放大視窗）點方塊「跳到其他分頁」只有開著才行；
        頁內展開（題材頁點方塊開下方剖析圖、總覽熱門題材換成分股）不受這個開關管，照矩陣次數走。實作在 site/quota.js（heatLinkOk）。
