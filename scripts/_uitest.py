@@ -58232,7 +58232,7 @@ def t_trial_grants_1009(b, base):
         rx = put_promo(t0=now_ms - 3 * 86400000, t1=now_ms - 86400000)
         tp.reload(wait_until="domcontentloaded")
         exp_ = wait_until(tp, "() => { const e = document.getElementById('etfInc'); return window.TwGrants && TwGrants.state().me && e && e.hasAttribute('data-plk') && !e.querySelector('.qc-gtag'); }", 10000)
-        ok(f"{T}：活動到期（起訖改到過去）→ 回原狀：內容蓋回去、沒有體驗標籤、總覽沒有橫幅",
+        ok(f"{T}：活動到期（起訖改到過去）→ 回原狀：內容蓋回去、沒有體驗標籤、伺服器回沒有有效體驗",
            rx.get("_s") == 200 and bool(exp_) and call(tp, "/v1/grants/me", {}).get("grants") == [], (rx.get("_s"), tp.evaluate(CARD, "#etfInc")))
         rn = call(ad, "/v1/admin/grants/defs/put", {"id": "promo-m390", "kind": "promo", "name": "上市體驗週", "feats": {"etf.cashflow": 2, "stock.ind": 2},
                                                     "per": "total", "t0": now_ms - 86400000, "t1": now_ms + 13 * 86400000, "audience": "free", "on": True})

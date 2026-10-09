@@ -125,7 +125,7 @@
         const d = defs.find((x) => x.id === inp.dataset.on); if (!d) return;
         inp.disabled = true;
         const r = await T().call('/v1/admin/grants/defs/put', { id: d.id, kind: d.kind, name: d.name, feats: d.feats, per: d.per, days: d.days, t0: d.t0, t1: d.t1, audience: d.audience, on: inp.checked });
-        if (r && r._s === 200) { S.d = r; paint(v); st(`「${d.name}」已${inp.checked ? '打開' : '關閉'}`); if (window.TwGrants) window.TwGrants.refresh(); }
+        if (r && r._s === 200) { S.d = r; paint(v); st(`「${d.name}」已${inp.checked ? '打開' : '關閉'}`); if (window.TwGrants) window.TwGrants.refresh(true); }
         else { inp.checked = !inp.checked; inp.disabled = false; st('沒有成功：' + (ERR[r && r.error] || (r ? r._s : '連不到')), true); }
       };
     });
@@ -183,7 +183,7 @@
       $('#agrSave').disabled = true;
       const r = await T().call('/v1/admin/grants/defs/put', body);
       $('#agrSave').disabled = false;
-      if (r && r._s === 200) { S.d = r; paint(v); const s2 = v.querySelector('#agrSt'); if (s2) { s2.textContent = `已儲存「${body.name}」${body.on ? '（開著）' : '（關著）'}`; s2.className = 'st ok'; } if (window.TwGrants) window.TwGrants.refresh(); return; }
+      if (r && r._s === 200) { S.d = r; paint(v); const s2 = v.querySelector('#agrSt'); if (s2) { s2.textContent = `已儲存「${body.name}」${body.on ? '（開著）' : '（關著）'}`; s2.className = 'st ok'; } if (window.TwGrants) window.TwGrants.refresh(true); return; }
       st('沒有存進去：' + (ERR[r && r.error] || (r ? r._s : '連不到')) + (r && r.k ? `（${fname(r.k)}）` : ''), true);
     };
     const del = $('#agrDel');

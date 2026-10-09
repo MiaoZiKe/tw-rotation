@@ -80,12 +80,16 @@
   }
 
   // ------------------------------------------------------------------ 讀取
-  async function refresh() {
+  async function refresh(force) {
     const a = A(); if (!a || !a.on || !a.on()) { G.pub = null; G.me = null; paint(); return; }
     const seq = ++G.seq;
-    const [pub, me] = await Promise.all([a.call('/v1/grants/public', {}), logged() ? a.call('/v1/grants/me', {}) : Promise.resolve(null)]);
+    /* 公開的活動設定：同一個分頁 1 分鐘內重用（每換一頁都打一次 Worker 沒有意義；管理區改了會叫 refresh(true)）*/
+    let pubC = null;
+    if (!force) { try { const c = JSON.parse(sessionStorage.getItem('tw.grantPub') || 'null'); if (c && Date.now() - c.at < 60000 && c.d) pubC = c.d; } catch (e) { pubC = null; } }
+    const [pub, me] = await Promise.all([pubC ? Promise.resolve(pubC) : a.call('/v1/grants/public', {}), logged() ? a.call('/v1/grants/me', {}) : Promise.resolve(null)]);
     if (seq !== G.seq) return;
     G.pub = pub && pub._s === 200 ? pub : null;
+    if (G.pub && !pubC) { try { sessionStorage.setItem('tw.grantPub', JSON.stringify({ at: Date.now(), d: G.pub })); } catch (e) { /* 私密視窗 */ } }
     G.me = me && me._s === 200 ? me : null;
     G.open = {};
     if (G.me && G.me.today) for (const [k, arr] of Object.entries(G.me.today)) G.open[k] = new Set(arr);
