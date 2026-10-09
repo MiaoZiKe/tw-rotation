@@ -8965,6 +8965,20 @@
   const ROT_BOARD_WIN = 5;         // 輪動階段看板：和幾個交易日前比（窗長，與「看哪一天」無關）
   let flowState = { period: 'w0', back: 0, concTop: 5 };
   async function renderFlow() {
+    /* ★ 2026-10-09（Andy：「資金分流樹剛開始就要出現」）：手機 v2（html.m4）在「資金分流樹」子頁時，樹不等下面那三份檔
+       （flow_v3 1MB＋concentration＋groups_detail，合計約 2MB，分流樹一份都用不到）—— 自己那份 sankey_daily 一到就先畫最新一天；
+       下面 whenNear 那一段照舊會再畫一次（同一天、同一份資料，flowtopo 只更新不重建），並掛上拉桿與「即時」鈕。
+       桌機不進這一段（桌機行為一個字不變）。 */
+    if (rotM4()) {
+      const skc = $('#flowSankeyCard');
+      if (skc && skc.getClientRects().length && !($('#sankey') && window.FlowTopo && window.FlowTopo.has($('#sankey')))) {
+        load('sankey_daily', { fallback: { dates: [], groups: [], leaves: {} } }).then(sd => {
+          const el = $('#sankey');
+          if (!el || (window.FlowTopo && window.FlowTopo.has(el)) || !sd || !(sd.dates || []).length) return;
+          try { renderSankey(sd, sd.dates.length - 1); } catch (e) { console.warn('資金分流樹（手機先畫）失敗', e); }
+        });
+      }
+    }
     // groups_detail：輪動板點族群要原地展開成分股（Andy 2026-09-18 圖五），這頁也要先載
     const [f3, conc] = await Promise.all([load('flow_v3'), load('concentration'), load('groups_detail')]);
     wireHowto($('#v-flow'));

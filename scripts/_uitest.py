@@ -27839,13 +27839,18 @@ def t_mobile_m4_charts_1009(b, base, code):
             # ① 資金分流樹：一進頁面就完整出現（≤ 500ms 內節點與連線都 > 0、已畫）
             go(m, "overview", 3500)
             seq = m.evaluate("""() => new Promise(res => { const t0 = performance.now(); location.hash = '#flow/sankey'; const out = [];
+                // 每一幀記：卡片看不看得到（vis）、樹畫好了沒。「空白時間」＝卡片第一次看得到 → 樹畫好（Andy：「剛開始就要出現」，CEO 上限 300ms）。
+                // 只量「切進頁 → 樹畫好」的總時間會把機器忙的時候路由本身的延遲也算進來（2026-10-09 機器滿載時第一幀就在 1148ms），那不是樹慢。
                 const tick = () => { const e = document.getElementById('sankey'); const t = Math.round(performance.now() - t0); let st = null;
+                  const vis = !!e && e.getClientRects().length > 0 && e.getBoundingClientRect().width > 0;
                   try { if (e && window.FlowTopo && FlowTopo.has(e)) { const p = FlowTopo.probe(e); st = { n: p.nodes.length, l: p.links.length, drawn: !p.pending }; } } catch (x) { st = null; }
-                  out.push([t, st]); if (t > 1500 || (st && st.n > 0 && st.l > 0 && st.drawn)) return res(out); requestAnimationFrame(tick); };
+                  out.push([t, vis, st]); if (t > 4000 || (st && st.n > 0 && st.l > 0 && st.drawn)) return res(out); requestAnimationFrame(tick); };
                 tick(); })""")
-            hit = next((x for x in seq if x[1] and x[1]["n"] > 0 and x[1]["l"] > 0 and x[1]["drawn"]), None)
-            ok(f"【{T}】{tl}：切進資金分流樹 {hit and hit[0]}ms 內樹就畫好（節點 {hit and hit[1]['n']}、連線 {hit and hit[1]['l']}，上限 500ms）",
-               bool(hit) and hit[0] <= 500, seq[-3:])
+            hit = next((x for x in seq if x[2] and x[2]["n"] > 0 and x[2]["l"] > 0 and x[2]["drawn"]), None)
+            vis0 = next((x[0] for x in seq if x[1]), None)
+            blank = (hit[0] - vis0) if (hit and vis0 is not None) else None
+            ok(f"【{T}】{tl}：資金分流樹卡片出現 → 樹畫好的空白時間 {blank}ms（≤ 300；切進頁到畫好共 {hit and hit[0]}ms，節點 {hit and hit[2]['n']}、連線 {hit and hit[2]['l']}）",
+               bool(hit) and blank is not None and blank <= 300, seq[-4:])
             m.wait_for_timeout(1500)
             go(d, "flow/sankey", 4500)
             fm, fd = m.evaluate(M4C_FT_JS, "sankey"), d.evaluate(M4C_FT_JS, "sankey")
@@ -27890,7 +27895,12 @@ def t_mobile_m4_charts_1009(b, base, code):
             go(m, "overview", 3000); ov_group(m, "資金流向")
             m.evaluate("() => { const e = document.getElementById('ovFlow'); if (e) e.scrollIntoView({ block: 'center' }); }"); m.wait_for_timeout(1500)
             go(d, "overview", 4500)
-            d.evaluate("() => { const e = document.getElementById('ovFlow'); if (e) e.scrollIntoView({ block: 'center' }); }"); d.wait_for_timeout(1500)
+            d.evaluate("() => { const e = document.getElementById('ovFlow'); if (e) e.scrollIntoView({ block: 'center' }); }")
+            # 總覽的分流樹是捲近了才畫（whenNear）；機器忙的時候 1.5 秒不夠，等到兩邊都畫好（最多 10 秒）
+            for _ in range(20):
+                d.wait_for_timeout(500)
+                if d.evaluate("() => { const e = document.getElementById('ovFlow'); return !!(e && window.FlowTopo && FlowTopo.has(e) && !FlowTopo.probe(e).pending); }"):
+                    break
             om, od = m.evaluate(M4C_FT_JS, "ovFlow"), d.evaluate(M4C_FT_JS, "ovFlow")
             ok(f"【{T}】{tl}：總覽昨日資金分流樹手機＝網頁版同一支緊湊版光纖（{om and om['layout']}／{od and od['layout']}）、色盤相同、有發光",
                bool(om and od) and om["layout"] == od["layout"] == "mini" and om["dots"] == od["dots"] and om["maxBlur"] > 0 and om["stageBg"] == od["stageBg"],
