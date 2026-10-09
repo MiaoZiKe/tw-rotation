@@ -2237,7 +2237,7 @@
     try { const cs = getComputedStyle(svg); for (let i = 0; i < cs.length; i++) { const nm = cs[i]; if (nm.startsWith('--dg')) box.style.setProperty(nm, cs.getPropertyValue(nm)); } } catch (e) { /* 忽略 */ }
     box.appendChild(c);
     try { const b = foldBox(c) || c.getBBox(); if (b && b.width > 0 && b.height > 0) c.setAttribute('viewBox', `${(b.x - 8).toFixed(1)} ${(b.y - 8).toFixed(1)} ${(b.width + 16).toFixed(1)} ${(b.height + 16).toFixed(1)}`); } catch (e) { /* 量不到就用原本的 viewBox */ }
-    foldReadable(box, c);
+    foldFit(box, c);
     $$('.mshnav button', sh).forEach(b => b.onclick = (e) => { e.stopPropagation(); foldSheet(host, (k + (+b.dataset.d) + n) % n); });
   }
   /* ★ 2026-10-09 手機監督（延伸閱讀抽屜的圖內小字讀不清楚）：抽屜裡的圖原本整張縮到抽屜寬 ——
@@ -2263,47 +2263,49 @@
     });
     return isFinite(x0) && x1 > x0 && y1 > y0 ? { x: x0, y: y0, width: x1 - x0, height: y1 - y0 } : null;
   }
-  const FOLD_MIN_PX = 12.3;   // 目標最小字級（留一點餘裕，免得換算後掉到 11.9）
-  function foldReadable(box, svg) {
-    const vb = svg.viewBox && svg.viewBox.baseVal;
-    const bw = box.clientWidth;
-    if (!vb || !vb.width || !bw) return;
-    let fmin = Infinity;
-    svg.querySelectorAll('text').forEach((t) => {
-      if (!t.textContent.trim() || !t.getClientRects().length) return;
-      const f = parseFloat(getComputedStyle(t).fontSize);
-      if (f > 0 && f < fmin) fmin = f;
+  /* ★ 2026-10-09 帳本 82（Andy 22:2x：「確保2D圖片說明 訊息指寬度調整適當只能出現上下拉Bar 左右不行」）：
+     蓋掉 21:20 那版「放大到 12px＋框內左右拖」—— 抽屜裡一律貼合抽屜寬、只准上下捲。字太小的問題改這樣解：
+       · 文字／卡片段（圖形只有底框與一兩條線，例：延伸 3 節點卡、延伸 4 整段字）：不放縮小的圖，直接改成 HTML 文字自動換行（≥ 13px），卡片上下排。
+       · 真的是圖的段：圖縮到抽屜寬；圖內字 < 12px 時，圖下方用 HTML 列出「圖中文字」（≥ 13px，自動換行），圖上看形狀、下面讀字。
+     圖內字本來就 ≥ 12px 的段照原樣只放圖。只在 m4 的抽屜裡跑（foldSheet 只有 m4 會呼叫），桌機那條路徑不經過這裡。 */
+  const FOLD_MIN_PX = 12;
+  const FOLD_NUM = /^(\d{1,2}|[\u2460-\u2473])$/;
+  function foldFit(box, svg) {
+    // 純編號（01、17…，圖上指零件的小圈）不列進文字版 —— 那是給點的記號，列出來只是一排孤零零的數字
+    const ts = [...svg.querySelectorAll('text')].filter((t) => t.textContent.trim() && t.getClientRects().length && !t.closest('defs,marker,symbol') && !FOLD_NUM.test(t.textContent.trim()));
+    if (!ts.length) return;
+    const sc = (() => { const m = svg.getScreenCTM(); return m ? Math.hypot(m.a, m.b) : 1; })();
+    const it = ts.map((t) => {
+      const cs = getComputedStyle(t), r = t.getBoundingClientRect();
+      return { s: t.textContent.replace(/\s+/g, ' ').trim(), x: r.left, y: r.top, h: r.height, fs: parseFloat(cs.fontSize), fw: parseInt(cs.fontWeight, 10) || 400 };
     });
-    if (!isFinite(fmin)) return;
-    const fit = bw / vb.width;                          // 整張塞進抽屜寬時，1 個圖內單位＝幾 px
-    const k = Math.min(4, FOLD_MIN_PX / (fmin * fit));  // 要放大幾倍字才夠 12px（上限 4 倍，免得極端情況變成一條長廊）
-    if (k <= 1.01) return;                              // 本來就讀得清楚 → 照原樣整張
-    box.classList.add('mfzoom');
-    const wrap = document.createElement('div'); wrap.className = 'mfzwrap';
-    box.insertBefore(wrap, svg); wrap.appendChild(svg);
-    const tip = document.createElement('div'); tip.className = 'mfztip';
-    tip.innerHTML = '<span></span><button type="button" class="mfztog"></button>';
-    box.insertBefore(tip, wrap);
-    const tg = tip.querySelector('.mfztog');
-    const edge = () => {   // 左右還有沒捲到的內容，那一邊才淡出
-      const L = wrap.scrollLeft > 2, R = wrap.scrollLeft + wrap.clientWidth < wrap.scrollWidth - 2;
-      wrap.dataset.fade = (L ? 'l' : '') + (R ? 'r' : '');
-    };
-    const setW = (z) => {
-      svg.style.width = Math.round(bw * z) + 'px'; svg.style.maxWidth = 'none';
-      box.dataset.z = z > 1 ? 'big' : 'fit';
-      tg.textContent = z > 1 ? '看全圖' : '放大看字'; tg.setAttribute('aria-pressed', z > 1 ? 'false' : 'true');
-      tip.firstChild.textContent = z > 1 ? '‹ 手指左右拖，看整張 ›' : '全圖：字較小，點「放大看字」';
-      edge();
-    };
-    wrap.addEventListener('scroll', edge, { passive: true });
-    tg.onclick = (e) => {
-      e.stopPropagation();
-      const big = box.dataset.z !== 'big';
-      setW(big ? k : 1);
-      if (big) wrap.scrollLeft = 0;
-    };
-    setW(k);
+    const fmin = Math.min(...it.map((q) => q.fs * sc));
+    if (fmin >= FOLD_MIN_PX) return;                 // 圖內字已經夠大 → 只放圖
+    // 是不是「文字／卡片段」：除了底框（rect）以外的圖形 ≤ 2 個
+    const shapes = [...svg.querySelectorAll('path,circle,ellipse,line,polyline,polygon,image,use')].filter((e) => !e.closest('defs,marker,clipPath,mask,pattern,symbol') && e.getClientRects().length).length;
+    const textOnly = shapes <= 2;
+    // 同一段落被圖拆成好幾行（同 x、同字級、行距內）→ 併回一段，讓 HTML 自己換行
+    const fsMed = it.map((q) => q.fs).sort((a, b) => a - b)[it.length >> 1];
+    const paras = [];
+    it.forEach((q) => {
+      const p = paras[paras.length - 1];
+      if (p && Math.abs(q.x - p.x) < 3 && q.fs === p.fs && q.fw === p.fw && q.y > p.y1 - 1 && q.y - p.y1 < q.h * 0.9) {
+        p.s += (/[\x21-\x7e]$/.test(p.s) && /^[\x21-\x7e]/.test(q.s) ? ' ' : '') + q.s; p.y1 = q.y + q.h;
+      } else paras.push({ s: q.s, x: q.x, y1: q.y + q.h, fs: q.fs, fw: q.fw });
+    });
+    paras.forEach((p, i) => { p.hd = p.fw >= 600 || p.fs > fsMed * 1.12 || (i === 0 && textOnly); });
+    // 卡片標題常是「短代號＋一行副標」兩個粗體（例：N5／FinFET）→ 併成一行「N5　FinFET」，卡片上下排時一張卡一個標題
+    for (let i = paras.length - 1; i > 0; i--) {
+      const a = paras[i - 1], b = paras[i];
+      if (a.hd && b.hd && a.s.length <= 6 && i - 1 > 0) { a.s += '　' + b.s; paras.splice(i, 1); }
+    }
+    const html = paras.map((p) => `<p class="${p.hd ? 'hd' : ''}${/^★/.test(p.s) ? ' star' : ''}">${esc(p.s)}</p>`).join('');
+    const tx = document.createElement('div');
+    tx.className = 'mfztxt' + (textOnly ? ' only' : '');
+    tx.innerHTML = (textOnly ? '' : '<div class="cap">圖中文字</div>') + html;
+    if (textOnly) svg.style.display = 'none';
+    box.dataset.fit = textOnly ? 'text' : 'fig';
+    box.appendChild(tx);
   }
   window.DG.mobileFolds = mobileFolds;
   function layout2d(host) {

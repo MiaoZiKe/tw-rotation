@@ -145,6 +145,8 @@
         + '<button type="button" class="m4x" aria-label="關閉導覽">✕</button></div><div class="m4body"></div>';
       $('.m4x', drawer).onclick = close;
       drawer.addEventListener('click', (e) => {
+        // 2026-10-09 帳本 79：抽屜頂端的站名字樣＝回總覽並關抽屜（頭像＝放大，由 app.js logoLightbox 處理）
+        if (e.target.closest('.m4brand .brandtxt')) { close(); if (location.hash !== '#overview') location.hash = '#overview'; return; }
         const b = e.target.closest('button[data-h], button[data-act]'); if (!b) return;
         if (b.dataset.act) {
           close();
@@ -515,7 +517,7 @@
      子頁裡面還有第二層切換（整塊內容換掉的那種）的，手機一律攤平成上方同一排頁籤，第二層那排藏起來（電腦版側欄與頁面一個字都沒動）。
      普查（402 寬、10-09）三處：
        資金流向「族群×法人＋集中度」裡的「法人｜集中度」 → 資金輪動｜資金分流樹｜族群×法人｜集中度
-       熱力圖「題材」裡的「題材熱力｜題材細節」          → 產業｜題材｜題材細節
+       熱力圖「題材」裡的「題材熱力｜題材細節」          → 產業｜題材（10-09 帳本 80 拿掉「題材細節」格，改點方塊進入）
        ETF「現金流試算」裡的「月配試算表｜複利試算表」    → 配息行事曆｜ETF 總覽｜月配試算｜複利試算
      名稱對照網頁版：「族群×法人」「集中度」＝網頁版側欄「族群×法人＋集中度」那一頁的上下兩塊；「月配試算」「複利試算」＝網頁版頁內的「月配試算表／複利試算表」。
      每一格有自己的網址（上一頁／下一頁鍵、分享連結都對）：第二層用網址尾巴分（#flow/inst/conc、#heatmap/theme/<題材>、#etf/inc/cx），
@@ -529,8 +531,10 @@
     ],
     heatmap: [
       { k: 'heat-industry', h: '#heatmap/industry', t: '產業', m: /^#heatmap(\/industry)?\/?$/ },
-      { k: 'heat-theme', h: '#heatmap/theme', t: '題材', m: /^#heatmap\/theme\/?$/, ctl: '#v-heatmap>.mpager', seg: '題材熱力' },
-      { k: 'heat-detail', h: '', t: '題材細節', m: /^#heatmap\/theme\/[^/]+/, ctl: '#v-heatmap>.mpager', seg: '題材細節' },
+      /* ★ 2026-10-09（帳本 80，Andy 22:0x：「圖四 不該多題材細節」）：拿掉第三格「題材細節」，剩「產業｜題材」兩格等寬。
+         題材細節（#heatmap/theme/<id>）改由點題材熱力圖方塊進入（app.js 原本的下鑽），那時上方仍亮「題材」這一格。
+         手機題材頁的第二層「題材熱力｜題材細節」分段早已併成一段（app.js miaPager），沒有第二層鈕可按，所以這格不帶 ctl。 */
+      { k: 'heat-theme', h: '#heatmap/theme', t: '題材', m: /^#heatmap\/theme(\/|$)/ },
     ],
     etf: [
       { k: 'etf-cal', h: '#etf/cal', t: '配息行事曆', m: /^#etf\/cal/ },
@@ -539,17 +543,14 @@
       { k: 'etf-cx', h: '#etf/inc/cx', t: '複利試算', m: /^#etf\/inc\/cx/, ctl: '#incMain', seg: 'x' },
     ],
   };
-  const lsGet = (k) => { try { return localStorage.getItem(k); } catch (e) { return null; } };
   const lsSet = (k, v) => { try { localStorage.setItem(k, v); } catch (e) { /* 私密視窗 */ } };
-  /* 題材細節那格：回到上次看的題材；沒看過就用 '_'（app.js renderThemeDetail 找不到 id 時畫第一個題材） */
-  function flatHref(x) { return x.k === 'heat-detail' ? '#heatmap/theme/' + (lsGet('tw.m4.theme') || '_') : x.h; }
+  function flatHref(x) { return x.h; }
   function flatCur(pg) { const L = FLAT[pg], h = location.hash || ''; return L ? (L.find((x) => x.m.test(h)) || null) : null; }
   /* 第二層：按藏起來的那排鈕，讓它切到網址說的那一格（狀態已經對就什麼都不做） */
   function syncFlat() {
     if (!isM()) return;
     const pg = curPage(), x = flatCur(pg);
     root.toggleAttribute('data-m4flat', !!FLAT[pg]);
-    const mt = /^#heatmap\/theme\/([^/]+)/.exec(location.hash || ''); if (mt && mt[1] !== '_') lsSet('tw.m4.theme', decodeURIComponent(mt[1]));
     if (!x || !x.ctl) { flatDone = true; return; }
     const ctl = $(x.ctl); if (!ctl) return;          // 第二層那排還沒長出來（資料晚到）：下一輪再試
     flatDone = true;

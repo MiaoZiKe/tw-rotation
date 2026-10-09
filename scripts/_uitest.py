@@ -29075,37 +29075,49 @@ def t_mobile_m4_mkset1009(b, base, code):
 
 
 def t_mobile_m4_foldread1009(b, base, code):
-    """★ 2026-10-09 手機監督：剖析圖「延伸閱讀」底部抽屜（diagrams.js foldSheet → foldReadable）圖內小字讀不清楚。
-    改前實測：402 寬圖內字 6.8～8.9px、360 寬 6.0～8.1px，全部 < 12px（抽屜把整張圖縮到抽屜寬）。
-    改後：抽屜一打開，圖就放大到最小字 ≥ 12px，比抽屜寬的部分在框內手指左右拖；「看全圖／放大看字」可切。
-    驗：402×874 與 360×780、is_mobile、has_touch、DPR2 —— ① 預設狀態圖內每個字 ≥ 12px（getScreenCTM 換算成螢幕 px）
-    ② 手指在圖框裡左右拖，框的 scrollLeft 真的變了、頁面 scrollX 不動 ③ 整頁 scrollWidth ≤ 視窗寬 ④ 「看全圖」圖寬真的縮回抽屜寬、
-    再點「放大看字」又變寬 ⑤ ‹ › 切到下一段，新的那段也照樣 ≥ 12px ⑥ 點延伸列時頁面 scrollY 不跳。"""
+    """★ 2026-10-09 帳本 82（Andy 22:2x：「確保2D圖片說明 訊息指寬度調整適當只能出現上下拉Bar 左右不行」）：剖析圖「延伸閱讀」底部抽屜。
+    蓋掉 21:20 那版「放大＋框內左右拖」。現在：圖一律貼合抽屜寬，只准上下捲；圖內字 < 12px 時 ——
+    文字／卡片段直接改成 HTML 文字（data-fit=text），真的是圖的段圖下方列「圖中文字」（data-fit=fig）（diagrams.js foldFit）。
+    驗（43 段全量，402 深色、360 淺色，is_mobile、has_touch、DPR2）：
+    ① 圖框與抽屜都不能左右捲（scrollWidth ≤ clientWidth），整頁不橫捲 ② 使用者預設看到的字 ≥ 12px：
+       圖還看得到而且圖內字 < 12px 時，圖下方一定有 HTML 文字列，而且圖裡每一段字都在列表裡、列表字 ≥ 12px
+    ③ 打開就看到內容：圖框頂往下 120px 內有第一個字或圖形 ④ 不准再有左右拖的提示與「看全圖」鈕 ⑤ › 真的切到下一段
+    ⑥ 點延伸列時頁面 scrollY 不跳 ⑦ ‹ › 切換列在畫面內。"""
     T = "手機v2"
     FS = """() => { const s = document.getElementById('mSheet'); if (!s || s.hidden || s.dataset.kind !== 'dgfold') return null;
-        const box = s.querySelector('.mdgfoldsvg'), svg = box && box.querySelector('svg'), wrap = box && box.querySelector('.mfzwrap'); if (!svg) return null;
-        const f = []; svg.querySelectorAll('text').forEach(t => { if (!t.textContent.trim() || !t.getClientRects().length) return; const m = t.getScreenCTM();
-          f.push(parseFloat(getComputedStyle(t).fontSize) * (m ? Math.hypot(m.a, m.b) : 1)); });
-        return { no: s.dataset.no, n: f.length, min: f.length ? +Math.min(...f).toFixed(2) : null, z: box.dataset.z || null,
-          svgW: Math.round(svg.getBoundingClientRect().width), boxW: Math.round(box.clientWidth), wrap: !!wrap, sl: wrap ? Math.round(wrap.scrollLeft) : null,
-          sw: document.documentElement.scrollWidth, vw: innerWidth, sx: scrollX, tog: !!box.querySelector('.mfztog'),
-          gap: (() => { const fr = (wrap || svg).getBoundingClientRect(), sr = s.getBoundingClientRect(); let t = Infinity;   // 圖框頂到第一個看得到的字或圖形（跳過定義區與沿線跑的動畫點）
-            svg.querySelectorAll('path,rect,circle,ellipse,line,polyline,polygon,text,image,use').forEach(e => { if (e.closest('defs,marker,clipPath,mask,pattern,symbol') || !e.getClientRects().length) return;
-              for (let p = e; p && p !== svg; p = p.parentNode) { if (p.querySelector(':scope > animateMotion, :scope > animateTransform, :scope > animate')) return; const c = getComputedStyle(p); if (c.animationName !== 'none' || (c.offsetPath && c.offsetPath !== 'none')) return; }
-              const r = e.getBoundingClientRect(); if (r.width || r.height) t = Math.min(t, r.top); });
-            return isFinite(t) ? [Math.round(t - Math.max(fr.top, sr.top)), Math.round(t), Math.round(Math.min(sr.bottom, innerHeight))] : null; })(),
-          nav: (() => { const n = s.querySelector('.mshnav'); if (!n) return null; const q = n.getBoundingClientRect(); return [Math.round(q.top), Math.round(q.bottom), innerHeight]; })() }; }"""
+        const box = s.querySelector('.mdgfoldsvg'), svg = box && box.querySelector('svg'); if (!svg) return null;
+        const svgOn = !!svg.getClientRects().length && getComputedStyle(svg).display !== 'none';
+        // 圖裡「看得到的」每一段字（文字版時圖藏著 → 暫時打開量一次再藏回去；圖裡本來就藏著的字不算）
+        const d0 = svg.style.display; if (!svgOn) svg.style.display = 'block';
+        const words = [...svg.querySelectorAll('text')].filter(t => t.textContent.trim() && t.getClientRects().length && !/^(\\d{1,2}|[\\u2460-\\u2473])$/.test(t.textContent.trim())).map(t => t.textContent.replace(/\\s+/g, ''));   // 純編號（指零件的小圈）不列
+        svg.style.display = d0;
+        const f = []; svg.querySelectorAll('text').forEach(t => { if (!t.textContent.trim() || /^(\\d{1,2}|[\\u2460-\\u2473])$/.test(t.textContent.trim())) return;
+          if (!svgOn || !t.getClientRects().length) return; const m = t.getScreenCTM(); f.push(parseFloat(getComputedStyle(t).fontSize) * (m ? Math.hypot(m.a, m.b) : 1)); });
+        const tx = box.querySelector('.mfztxt'); const txOn = !!(tx && tx.getClientRects().length);
+        const tf = txOn ? [...tx.querySelectorAll('*')].filter(e => e.childNodes.length && [...e.childNodes].some(n => n.nodeType === 3 && n.textContent.trim())).map(e => parseFloat(getComputedStyle(e).fontSize)) : [];
+        const all = txOn ? tx.textContent.replace(/\\s+/g, '') : '';
+        const miss = txOn ? words.filter(w => !all.includes(w)).slice(0, 3) : [];
+        const fr = box.getBoundingClientRect(), sr = s.getBoundingClientRect(); let t0 = Infinity;
+        if (svgOn) svg.querySelectorAll('path,rect,circle,ellipse,line,polyline,polygon,text,image,use').forEach(e => { if (e.closest('defs,marker,clipPath,mask,pattern,symbol') || !e.getClientRects().length) return;
+          for (let p = e; p && p !== svg; p = p.parentNode) { if (p.querySelector(':scope > animateMotion, :scope > animateTransform, :scope > animate')) return; const c = getComputedStyle(p); if (c.animationName !== 'none' || (c.offsetPath && c.offsetPath !== 'none')) return; }
+          const r = e.getBoundingClientRect(); if (r.width || r.height) t0 = Math.min(t0, r.top); });
+        if (txOn) { const p = tx.querySelector('p'); if (p) t0 = Math.min(t0, p.getBoundingClientRect().top); }
+        const n = s.querySelector('.mshnav'), nq = n && n.getBoundingClientRect();
+        return { no: s.dataset.no, fit: box.dataset.fit || null, svgOn, svgMin: f.length ? +Math.min(...f).toFixed(2) : null, txOn, txMin: tf.length ? Math.min(...tf) : null, miss,
+          bsw: box.scrollWidth, bcw: box.clientWidth, ssw: s.scrollWidth, scw: s.clientWidth, sw: document.documentElement.scrollWidth, vw: innerWidth, sx: scrollX,
+          old: !!s.querySelector('.mfztog,.mfztip,.mfzwrap'),
+          gap: isFinite(t0) ? [Math.round(t0 - Math.max(fr.top, sr.top)), Math.round(t0), Math.round(Math.min(sr.bottom, innerHeight))] : null,
+          nav: nq ? [Math.round(nq.top), Math.round(nq.bottom), innerHeight] : null }; }"""
     ctxs = []
     try:
         for W, H in ((402, 874), (360, 780)):
             ctx = b.new_context(viewport={"width": W, "height": H}, device_scale_factor=2, is_mobile=True, has_touch=True); ctxs.append(ctx)
-            ctx.add_init_script("try{ if(!sessionStorage.getItem('m4fr')){ localStorage.clear(); localStorage.setItem('tw.live.on','0'); localStorage.setItem('tw.tourDone','1'); sessionStorage.setItem('m4fr','1'); } localStorage.setItem('tw.theme','" + ("light" if W == 360 else "dark") + "'); }catch(e){}")   # 退件那次是 360 淺色
+            ctx.add_init_script("try{ if(!sessionStorage.getItem('m4fr')){ localStorage.clear(); localStorage.setItem('tw.live.on','0'); localStorage.setItem('tw.tourDone','1'); sessionStorage.setItem('m4fr','1'); } localStorage.setItem('tw.theme','" + ("light" if W == 360 else "dark") + "'); }catch(e){}")   # 21:xx 退件那次是 360 淺色
             m = ctx.new_page(); J = m.evaluate
-            m.on("pageerror", lambda e, W=W: fails.append(f"{T} 延伸閱讀字級 {W} pageerror: {e} @ {m.url}"))
+            m.on("pageerror", lambda e, W=W: fails.append(f"{T} 延伸閱讀字級 {W} pageerror: {e}"))
             m.route("**/fonts.googleapis.com/**", lambda r: r.abort())
-            cdp = ctx.new_cdp_session(m)
-            bad, nsheet, drag, tog = [], 0, [], []
-            # 2026-10-09 退件後擴大：43 段全量（7 條鏈預設圖＋9 張有延伸閱讀的族群剖析圖），每頁從延伸 1 用 › 翻到最後一段（ai_server 預設圖沒有延伸閱讀列，不列）
+            bad, nsheet, kinds = [], 0, {"text": 0, "fig": 0, None: 0}
+            # 43 段全量（6 條鏈預設圖＋9 張有延伸閱讀的族群剖析圖；ai_server 預設圖沒有延伸閱讀列，不列），每頁從延伸 1 用 › 翻到最後一段
             PG = ["industry/" + c for c in ("semiconductor", "electronics", "software", "financial", "traditional", "infrastructure")] \
                 + ["industry/semiconductor/dg/" + x for x in ("hbm", "foundry", "ai_adv_packaging", "silicon_wafer", "wide_bandgap")] \
                 + ["industry/ai_server/dg/liquid_cooling", "industry/ai_server/dg/air_cooling", "industry/infrastructure/dg/heavy_electric", "industry/traditional/dg/petrochemical"]
@@ -29118,46 +29130,31 @@ def t_mobile_m4_foldread1009(b, base, code):
                 loc.scroll_into_view_if_needed(timeout=3000); m.wait_for_timeout(200)
                 y0 = J("() => scrollY"); loc.tap(timeout=3000); m.wait_for_timeout(700)
                 r = J(FS); y1 = J("() => scrollY")
+                if abs(y1 - y0) > 1: bad.append(f"{h}：點延伸列頁面跳了 {y0}→{y1}")
                 for k in range(len(fids)):
-                    nsheet += 1
-                    if not r or r["min"] is None or r["min"] < 12 or r["sw"] > r["vw"]:
-                        bad.append(f"{h} 延伸{k + 1}：{r}")
-                    if r and not (r["gap"] and r["gap"][0] <= 120 and r["gap"][1] + 20 <= r["gap"][2]):   # 退件 13230472：圖框頂往下 120px 內就要看到第一個字或圖形（不准上方一大片空白）
-                        bad.append(f"{h} 延伸{k + 1}：圖框頂到第一個內容 {r['gap'] and r['gap'][0]}px（> 120，上方空白）")
-                    if r and not (r["nav"] and r["nav"][1] <= r["nav"][2] + 1):   # 圖放大後抽屜變高：‹ › 切換列要黏在抽屜底、不必先捲到底
-                        bad.append(f"{h} 延伸{k + 1}：‹ › 切換列不在畫面內 {r['nav']}")
-                    if k == 0:
-                        if abs(y1 - y0) > 1: bad.append(f"{h}：點延伸列頁面跳了 {y0}→{y1}")
-                        if r and r["wrap"] and r["svgW"] > r["boxW"] + 4:
-                            # ② 手指在圖框裡往左拖 160px → 框的 scrollLeft 要變大、頁面不准跟著橫移
-                            bx = J("() => { const w = document.querySelector('#mSheet .mfzwrap'); const q = w.getBoundingClientRect(); return [q.left + q.width - 30, q.top + Math.min(q.height / 2, 120)]; }")
-                            tp = lambda t, x: cdp.send("Input.dispatchTouchEvent", {"type": t, "touchPoints": [] if t == "touchEnd" else [{"x": x, "y": bx[1]}]})
-                            tp("touchStart", bx[0])
-                            for s in range(1, 11):
-                                tp("touchMove", bx[0] - 160 * s / 10); m.wait_for_timeout(16)
-                            tp("touchEnd", 0); m.wait_for_timeout(400)
-                            r2 = J(FS); drag.append((h, r["sl"], r2 and r2["sl"], r2 and r2["sx"], r2 and r2["sw"]))
-                            if not (r2 and r2["sl"] > r["sl"] + 20 and r2["sx"] == 0 and r2["sw"] <= r2["vw"]):
-                                bad.append(f"{h}：手指拖圖框沒有捲動（{r['sl']}→{r2 and r2['sl']}，頁面 scrollX {r2 and r2['sx']}）")
-                            # ④ 看全圖 → 圖寬縮回抽屜寬；再點放大看字 → 又變寬、字 ≥ 12
-                            m.locator("#mSheet .mfztog").tap(); m.wait_for_timeout(300); f1 = J(FS)
-                            m.locator("#mSheet .mfztog").tap(); m.wait_for_timeout(300); f2 = J(FS)
-                            tog.append((h, r["svgW"], f1 and f1["svgW"], f2 and f2["svgW"]))
-                            if not (f1 and f1["z"] == "fit" and abs(f1["svgW"] - f1["boxW"]) <= 2 and f2 and f2["z"] == "big" and f2["svgW"] == r["svgW"] and f2["min"] >= 12):
-                                bad.append(f"{h}：看全圖／放大看字切換無效（{r['svgW']}→{f1 and f1['svgW']}→{f2 and f2['svgW']}）")
-                        elif r and r["min"] is not None and r["min"] >= 12 and not r["wrap"]:
-                            pass   # 本來就夠大、整張放得下 → 不必拖
-                        else:
-                            bad.append(f"{h}：圖沒有比抽屜寬卻也沒到 12px（{r}）")
+                    nsheet += 1; tag = f"{h} 延伸{k + 1}"
+                    if not r:
+                        bad.append(f"{tag}：抽屜沒開"); break
+                    kinds[r["fit"]] = kinds.get(r["fit"], 0) + 1
+                    if r["bsw"] > r["bcw"] + 1 or r["ssw"] > r["scw"] + 1: bad.append(f"{tag}：框內可以左右捲（圖框 {r['bsw']}/{r['bcw']}、抽屜 {r['ssw']}/{r['scw']}）")
+                    if r["sw"] > r["vw"] or r["sx"] != 0: bad.append(f"{tag}：整頁橫捲 {r['sw']}/{r['vw']}")
+                    if r["old"]: bad.append(f"{tag}：還有左右拖提示或「看全圖」鈕")
+                    if r["svgOn"] and r["svgMin"] is not None and r["svgMin"] < 12:
+                        if not r["txOn"] or r["txMin"] is None or r["txMin"] < 12 or r["miss"]:
+                            bad.append(f"{tag}：圖內字 {r['svgMin']}px 但圖下方沒有 ≥ 12px 的文字列（{r['txOn']}、{r['txMin']}、缺 {r['miss']}）")
+                    if not r["svgOn"] and not (r["txOn"] and r["txMin"] and r["txMin"] >= 12 and not r["miss"]):
+                        bad.append(f"{tag}：圖藏起來了但文字版不完整（{r['txMin']}、缺 {r['miss']}）")
+                    if not (r["gap"] and r["gap"][0] <= 120 and r["gap"][1] + 20 <= r["gap"][2]):   # 13230472 退件：圖框頂往下 120px 內就要看到第一個字或圖形
+                        bad.append(f"{tag}：圖框頂到第一個內容 {r['gap']}（> 120 或不在抽屜可視範圍）")
+                    if not (r["nav"] and r["nav"][1] <= r["nav"][2] + 1):
+                        bad.append(f"{tag}：‹ › 切換列不在畫面內 {r['nav']}")
                     if k + 1 < len(fids):
-                        # ⑤ › 切下一段：段號要真的換、新那段照樣 ≥ 12px
                         m.locator("#mSheet .mshnav button[data-d='1']").tap(); m.wait_for_timeout(600)
                         r = J(FS)
                         if not r or r["no"] != str(k + 2): bad.append(f"{h}：› 沒切到延伸 {k + 2}（{r and r['no']}）")
                 J("() => { const b = document.getElementById('mSheetBack'); if (b) b.click(); }"); m.wait_for_timeout(300)
-            ok(f"【{T}】延伸閱讀抽屜 {W} 寬：{nsheet} 段圖內字全部 ≥ 12px、圖框頂 120px 內就有內容、頁面不橫捲、點開頁面不跳、‹ › 切換列在畫面內", nsheet >= 40 and not bad, bad)
-            ok(f"【{T}】延伸閱讀抽屜 {W} 寬：手指左右拖圖框真的捲動、頁面不動（{drag}）", len(drag) >= 8 and not [x for x in bad if '拖' in x], drag)
-            ok(f"【{T}】延伸閱讀抽屜 {W} 寬：「看全圖／放大看字」圖寬真的切換（{tog}）", len(tog) >= 3 and not [x for x in bad if '切換' in x], tog)
+            ok(f"【{T}】延伸閱讀抽屜 {W} 寬：{nsheet} 段只上下捲（圖框／抽屜／整頁都不左右捲）、看到的字 ≥ 12px（文字版 {kinds.get('text')} 段、圖＋圖中文字 {kinds.get('fig')} 段）、打開就看到內容、‹ › 在畫面內",
+               nsheet >= 43 and not bad, bad)
     except Exception as ex:
         fails.append(f"{T} 延伸閱讀字級例外：{ex}")
     finally:
@@ -29589,6 +29586,71 @@ def t_dgclip_1008(b, base):
     c.close()
 
 
+
+
+# ★ 2026-10-09 帳本 77（Andy 22:0x 截圖：「產業地圖跑掉了」）手機產業地圖「成交值占比」甜甜圈：
+#   約 420～640 寬時卡寬 ≥ 420，layoutDonut 判成「圖例在右」，但手機 CSS（31g）把圖例拉成 100% 寬 ——
+#   圖例把圓餅擠到最左、被裁掉一半，下面的字也被蓋到。改成手機（html.m4）一律圖例在下。
+#   驗：360／402／430／480／560／640 寬（is_mobile、has_touch、DPR2）各量一次 ——
+#   ① 圓餅 canvas 外框完全在卡片內 ② 圓心水平置中（≤ 8px）③ 圖例頂 ≥ 圓餅底 ④ 圖例左右緣 ≈ 卡片內緣（≤ 2px）
+#   ⑤ 卡片後面看得到的字（收合列、讀數列、連結列）頂 ≥ 圖例底與卡片底 ⑥ 卡片與整頁都不橫捲。
+def t_mobile_m4_indpie_1009(b, base, code):
+    T = "手機產業圓餅1009"
+    MEAS = """() => { const card = document.querySelector('#v-industry .gppie'), pie = document.getElementById('gpPie'), lg = document.getElementById('gpLegend');
+        if (!card || !pie || !lg) return null; const cv = pie.querySelector('canvas'); if (!cv) return null;
+        const R = (e) => { const r = e.getBoundingClientRect(); return { l: r.left, r: r.right, t: r.top, b: r.bottom, w: r.width, h: r.height }; };
+        const cs = getComputedStyle(card), c = R(card), il = c.l + parseFloat(cs.borderLeftWidth) + parseFloat(cs.paddingLeft), ir = c.r - parseFloat(cs.borderRightWidth) - parseFloat(cs.paddingRight);
+        const after = []; let n = card.nextElementSibling; const seen = new Set();
+        const pushAll = (e) => { for (; e; e = e.nextElementSibling) { if (seen.has(e)) continue; seen.add(e); const r = e.getBoundingClientRect(); if (r.height > 0 && r.width > 0 && e.textContent.trim()) after.push({ id: e.id || e.className, t: r.top }); } };
+        pushAll(n); const grid = card.closest('.gpgrid'); if (grid) pushAll(grid.nextElementSibling);
+        return { cv: R(cv), card: c, il, ir, lg: R(lg), nl: lg.querySelectorAll('.lg').length, after, cardSW: card.scrollWidth, cardCW: card.clientWidth,
+          sw: document.documentElement.scrollWidth, vw: innerWidth, dn: card.dataset.dn || '' }; }"""
+    for W in (360, 402, 430, 480, 560, 640):
+        ctx = b.new_context(viewport={"width": W, "height": 844}, device_scale_factor=2, is_mobile=True, has_touch=True)
+        try:
+            ctx.add_init_script("try{ localStorage.setItem('tw.live.on','0'); localStorage.setItem('tw.tourDone','1'); }catch(e){}")
+            m = ctx.new_page()
+            m.on("pageerror", lambda e, W=W: fails.append(f"{T} {W} pageerror: {e} @ {m.url}"))
+            m.route("**/fonts.googleapis.com/**", lambda r: r.abort())
+            m.goto(base + "#industry", wait_until="domcontentloaded")
+            wait_until(m, "(() => { const p = document.getElementById('gpPie'); return !!(p && p.querySelector('canvas') && document.querySelectorAll('#gpLegend .lg').length && document.documentElement.classList.contains('m4')); })()", 15000)
+            m.wait_for_timeout(1200)
+            d = m.evaluate(MEAS)
+            if not ok(f"【{T}】{W} 寬：找得到甜甜圈、canvas 與圖例", bool(d and d["nl"] > 0), d):
+                continue
+            cv, c, lg = d["cv"], d["card"], d["lg"]
+            ok(f"【{T}】{W} 寬：圓餅 canvas 完全在卡片內（不被裁）", cv["l"] >= c["l"] - 0.5 and cv["r"] <= c["r"] + 0.5 and cv["t"] >= c["t"] - 0.5 and cv["b"] <= c["b"] + 0.5 and cv["w"] >= 160,
+               {"canvas": cv, "card": c, "dn": d["dn"]})
+            cx, ic = (cv["l"] + cv["r"]) / 2, (d["il"] + d["ir"]) / 2
+            ok(f"【{T}】{W} 寬：圓心水平置中（差 {abs(cx - ic):.1f}px ≤ 8）", abs(cx - ic) <= 8, {"圓心": cx, "卡片中線": ic})
+            ok(f"【{T}】{W} 寬：圖例在圓餅下方（圖例頂 {lg['t']:.0f} ≥ 圓餅底 {cv['b']:.0f}）", lg["t"] >= cv["b"] - 0.5, d["dn"])
+            ok(f"【{T}】{W} 寬：圖例左右緣貼齊卡片內緣（左差 {abs(lg['l'] - d['il']):.1f}、右差 {abs(lg['r'] - d['ir']):.1f}）",
+               abs(lg["l"] - d["il"]) <= 2 and abs(lg["r"] - d["ir"]) <= 2, {"legend": lg, "il": d["il"], "ir": d["ir"]})
+            low = max(lg["b"], c["b"])
+            hit = [a for a in d["after"] if a["t"] < low - 0.5]
+            ok(f"【{T}】{W} 寬：卡片下面的字沒被圖例或圓餅蓋到", not hit and lg["b"] <= c["b"] + 0.5, {"被蓋": hit, "圖例底": lg["b"], "卡片底": c["b"]})
+            ok(f"【{T}】{W} 寬：卡片與整頁都不橫捲", d["cardSW"] <= d["cardCW"] + 1 and d["sw"] <= d["vw"], {"card": [d["cardSW"], d["cardCW"]], "page": [d["sw"], d["vw"]]})
+            if W in (402, 480):
+                try:
+                    m.locator("#v-industry .gppie").scroll_into_view_if_needed()
+                    m.screenshot(path=f"/tmp/claude-0/-home-user-tw-rotation/961abebc-d4ed-566f-ba74-0ada1686b229/scratchpad/indpie_{W}.png")
+                except Exception:
+                    pass
+            # 10-09 手機監督：360 寬族群總覽副標「成交值前／18 名」斷成兩行（Andy「上方備註不准斷句」）。
+            # 360、402 寬：全市場與半導體族群總覽（標題最長的一條鏈之一）的副標都只有一行 —— 放不下就整句換到下一列，不准從中間斷開。
+            if W in (360, 402):
+                for hs in ("industry", "industry/semiconductor/overview", "industry/traditional/overview"):
+                    if hs != "industry":
+                        m.goto(base + "#" + hs, wait_until="domcontentloaded")
+                        wait_until(m, "(() => [...document.querySelectorAll('[id=gpTitle]')].some(h => h.getClientRects().length && h.querySelector('small')))()", 15000)
+                        m.wait_for_timeout(600)
+                    sub = m.evaluate("""() => { const h = [...document.querySelectorAll('[id=gpTitle]')].find(x => x.getClientRects().length && x.querySelector('small'));
+                        if (!h) return null; const s = h.querySelector('small'), rg = document.createRange(); rg.selectNodeContents(s);
+                        const tops = new Set([...rg.getClientRects()].filter(r => r.width > 0).map(r => Math.round(r.top)));
+                        const sr = s.getBoundingClientRect(); return { t: s.textContent.trim(), lines: tops.size, right: Math.round(sr.right), vw: innerWidth }; }""")
+                    ok(f"【{T}】{W} 寬 #{hs}：族群總覽副標只有一行、沒超出畫面", bool(sub) and sub["lines"] == 1 and sub["right"] <= sub["vw"], sub)
+        finally:
+            ctx.close()
 
 # ★ 2026-10-09 手機拖曳邊界1009（Andy 04:1x：「所有圖扁長寬到了就好，不可以他長度原本是那樣，但還能一直滑過頭超出範圍」）
 #   手機（html.m4）每一種能拖、能平移、能縮放的圖：放大後往四個方向各用手指拖一大段（比內容還長）＋一次快速甩動（慣性），
@@ -31486,6 +31548,113 @@ def _tour_walk_1009(pg, name, want, mob):
     return n, bad
 
 
+def t_m4_theme_flow_1009(b, base):
+    """帳本 80／81（Andy 10-09 22:0x：「圖四 不該多題材細節 並且圖五 不應該標題跟內容 方兩區，應該為穿差的，
+    磊晶材料下方是對應圖片 下方標題以此類推」）。402／360 觸控（is_mobile＋has_touch）：
+      (a) 熱力圖頁頂分頁只剩「產業｜題材」兩格、等寬，沒有「題材細節」；點題材熱力圖的方塊仍進得去題材細節，上一頁回得來。
+      (b) 抽 3 個題材：DOM 順序＝步驟1標題 → 步驟1的卡 → 步驟2標題 → …；沒有獨立的步驟列表、沒有上中下游段標題列；
+          同一張卡不重複；點步驟標題真的收合／展開（卡的數量變、aria-expanded 變、localStorage 寫進去，重新整理後還在）。
+      (c) 整頁不橫捲、看得到的字 ≥ 12px。"""
+    T = "手機題材流程1009"
+    ORD = """() => [...document.querySelectorAll('#themeDiagram svg.dg3v .vstep, #themeDiagram svg.dg3v .stn')]
+        .map(n => n.classList.contains('vstep') ? 'S' + n.dataset.i : n.dataset.part)"""
+    INFO = """() => { const s = document.querySelector('#themeDiagram svg.dg3v'); if (!s) return null;
+        const hs = [...s.querySelectorAll('.vstep')], st = [...s.querySelectorAll('.stn')];
+        const tops = [...s.querySelectorAll('.vstep, .stn')].map(n => Math.round(n.getBoundingClientRect().top));
+        return { tid: s.dataset.tid, n: hs.length, btn: hs.filter(h => h.getAttribute('role') === 'button').map(h => +h.dataset.i),
+                 exp: hs.map(h => h.getAttribute('aria-expanded')), cards: st.length, parts: st.map(n => n.dataset.part),
+                 band: s.querySelectorAll('g.band').length, mono: tops.every((t, i) => !i || t >= tops[i - 1]) }; }"""
+    FONT = """() => { const bad = []; document.querySelectorAll('main .view.on *, #m4Title *').forEach(e => {
+        if (e.children.length && e.tagName !== 'text') return; if (!(e.textContent || '').trim() || !e.getClientRects().length) return;
+        const cs = getComputedStyle(e); if (cs.visibility === 'hidden' || +cs.opacity === 0) return;
+        let fs = parseFloat(cs.fontSize); const svg = e.closest('svg');
+        if (svg && svg.viewBox && svg.viewBox.baseVal && svg.viewBox.baseVal.width) fs *= svg.getBoundingClientRect().width / svg.viewBox.baseVal.width;
+        const r = e.getBoundingClientRect(); if (r.width < 2 || r.height < 2) return;
+        if (fs < 11.95) bad.push((e.textContent || '').trim().slice(0, 12) + ':' + fs.toFixed(1)); }); return bad.slice(0, 8); }"""
+    for W, H in ((402, 874), (360, 780)):
+        ctx = b.new_context(viewport={"width": W, "height": H}, is_mobile=True, has_touch=True, device_scale_factor=2)
+        ctx.add_init_script("try{localStorage.setItem('tw.live.on','0')}catch(e){}")
+        pg = ctx.new_page()
+        errs = []
+        pg.on("pageerror", lambda e: errs.append(str(e)))
+        J = pg.evaluate
+        try:
+            # (a) 頂部分頁
+            pg.goto(base + "#heatmap/theme"); pg.wait_for_timeout(3500)
+            tb = J("""() => [...document.querySelectorAll('#m4Title .m4subtabs button')].filter(b => b.getClientRects().length)
+                .map(b => ({ t: b.textContent.trim(), w: Math.round(b.getBoundingClientRect().width), on: b.classList.contains('on') }))""")
+            names = [x["t"] for x in tb]
+            ok(f"【{T}】{W}：熱力圖頁頂分頁只有「產業｜題材」兩格（{names}）", names == ["產業", "題材"], tb)
+            ok(f"【{T}】{W}：沒有「題材細節」那一格", "題材細節" not in names, names)
+            ok(f"【{T}】{W}：兩格等寬（{[x['w'] for x in tb]}）且填滿左右（合計 ≥ {W - 40}）",
+               len(tb) == 2 and abs(tb[0]["w"] - tb[1]["w"]) <= 2 and sum(x["w"] for x in tb) >= W - 40, tb)
+            # 點題材熱力圖方塊（挑一塊有剖析圖、而且跟現在畫的不同的）→ 進題材細節
+            J("document.getElementById('themeMap').scrollIntoView({block:'center'})"); pg.wait_for_timeout(700)
+            cur = J("() => { const s = document.querySelector('#themeDiagram svg.dg3'); return s ? s.dataset.tid : null; }")
+            tiles = [v for v in (J(HM_LEAF_XY, {"id": "themeMap"}) or []) if v["key"] != cur and J("(k) => !!(window.ThemeDiagrams || {})[k]", v["key"])]
+            if ok(f"【{T}】{W}：題材熱力圖上有可點的方塊", bool(tiles), cur):
+                k = tiles[0]["key"]
+                pg.touchscreen.tap(tiles[0]["cx"], tiles[0]["cy"]); pg.wait_for_timeout(2500)
+                h1 = J("location.hash"); i1 = J(INFO)
+                on1 = J("() => [...document.querySelectorAll('#m4Title .m4subtabs button.on')].map(b => b.textContent.trim())")
+                ok(f"【{T}】{W}：點方塊「{tiles[0]['name']}」→ 進題材細節（網址 {h1}、剖析圖 {i1 and i1['tid']}）",
+                   h1 == "#heatmap/theme/" + k and i1 and i1["tid"] == k, (h1, i1))
+                ok(f"【{T}】{W}：在題材細節頁，頂部仍亮「題材」那一格（{on1}）", on1 == ["題材"], on1)
+                pg.go_back(); pg.wait_for_timeout(2000)
+                ok(f"【{T}】{W}：按上一頁回到題材熱力圖（{J('location.hash')}）",
+                   J("location.hash") == "#heatmap/theme" and J("() => !!document.querySelector('#themeMap canvas') && document.querySelector('#themeMap').getClientRects().length > 0"),
+                   J("location.hash"))
+            # (b) 穿插
+            for tid in ("silicon_photonics", "thermal", "apple_chain"):
+                J(f"() => {{ try {{ localStorage.removeItem('tw.m4.tflow.{tid}'); }} catch (e) {{}} }}")
+                pg.goto(base + "#heatmap/theme/" + tid); pg.wait_for_timeout(3500)
+                o0, i0 = J(ORD), J(INFO)
+                if not ok(f"【{T}】{W} {tid}：直排剖析圖有流程步驟", i0 and i0["n"] >= 2, i0):
+                    continue
+                ok(f"【{T}】{W} {tid}：預設只展開第 1 步（{i0['exp']}）",
+                   i0["exp"][0] == "true" and all(e != "true" for e in i0["exp"][1:]), i0["exp"])
+                s1 = o0.index("S1") if "S1" in o0 else -1
+                ok(f"【{T}】{W} {tid}：DOM 開頭＝步驟1標題 → 步驟1的卡 → 步驟2標題（{o0[:6]}）",
+                   o0[0] == "S0" and s1 >= 2 and all(not x.startswith("S") for x in o0[1:s1]), o0)
+                ok(f"【{T}】{W} {tid}：沒有獨立步驟列表／段標題列（段標題 {i0['band']} 個）、畫面由上而下＝DOM 順序", i0["band"] == 0 and i0["mono"], i0)
+                # 點每一個收起來的步驟 → 全部展開
+                for i in i0["btn"]:
+                    if i0["exp"][i] == "true":
+                        continue
+                    before = J(INFO)["cards"]
+                    loc = pg.locator(f'#themeDiagram svg.dg3v .vstep[data-i="{i}"]')
+                    loc.scroll_into_view_if_needed(); pg.wait_for_timeout(250); loc.tap(); pg.wait_for_timeout(500)
+                    after = J(INFO)
+                    ok(f"【{T}】{W} {tid}：點第 {i + 1} 步標題 → 展開（卡 {before}→{after['cards']}、aria {after['exp'][i]}）",
+                       after["cards"] > before and after["exp"][i] == "true", after)
+                o1, i1 = J(ORD), J(INFO)
+                ok(f"【{T}】{W} {tid}：全部展開後同一張卡不重複（{len(i1['parts'])} 張）", len(set(i1["parts"])) == len(i1["parts"]), i1["parts"])
+                # 每一個可點的步驟標題後面緊跟著它自己的卡（到下一個標題之前至少一張）
+                hdr = [j for j, x in enumerate(o1) if x.startswith("S")]
+                lone = [o1[j] for j in hdr if J(f"() => document.querySelector('#themeDiagram .vstep[data-i=\"{o1[j][1:]}\"]').getAttribute('role') === 'button'")
+                        and (j + 1 >= len(o1) or o1[j + 1].startswith("S"))]
+                ok(f"【{T}】{W} {tid}：穿插順序（{' '.join(o1)}）—— 每個可點的步驟後面都接著自己的卡", not lone and i1["mono"], lone)
+                ls = J(f"() => localStorage.getItem('tw.m4.tflow.{tid}')")
+                ok(f"【{T}】{W} {tid}：展開狀態寫進 localStorage（{ls}）", bool(ls) and len(ls.split(",")) == len(i0["btn"]), ls)
+                # 收合第 1 步
+                c0 = i1["cards"]
+                loc = pg.locator('#themeDiagram svg.dg3v .vstep[data-i="0"]'); loc.scroll_into_view_if_needed(); pg.wait_for_timeout(250); loc.tap(); pg.wait_for_timeout(500)
+                i2, o2 = J(INFO), J(ORD)
+                ok(f"【{T}】{W} {tid}：再點第 1 步 → 收合（卡 {c0}→{i2['cards']}、緊接著就是第 2 步標題）",
+                   i2["cards"] < c0 and i2["exp"][0] == "false" and o2[:2] == ["S0", "S1"], (i2, o2[:4]))
+                pg.reload(); pg.wait_for_timeout(3500)
+                i3 = J(INFO)
+                ok(f"【{T}】{W} {tid}：重新整理後記得收展狀態（{i3 and i3['exp']}）", i3 and i3["exp"] == i2["exp"], (i2["exp"], i3 and i3["exp"]))
+                # (c)
+                sw = J("() => [document.documentElement.scrollWidth, document.documentElement.clientWidth]")
+                ok(f"【{T}】{W} {tid}：整頁不橫捲（{sw}）", sw[0] <= sw[1], sw)
+                fb = J(FONT)
+                ok(f"【{T}】{W} {tid}：看得到的字都 ≥ 12px", not fb, fb)
+            ok(f"【{T}】{W}：沒有 JS 錯誤", not errs, errs[:3])
+        finally:
+            ctx.close()
+
+
 def t_tour_census_1009(b, base):
     T = "[導覽普查1009]"
     for mode in ("desk", "mob"):
@@ -31917,7 +32086,8 @@ SECTIONS = {
     # ★ 2026-10-09 帳本 73（K 線圖頭還原小標／財經日曆月份列／ETF 配息行事曆月份列）單獨跑：手機v2 也包含這一段
     "手機v2帳本73":        lambda pg, b, base, code: t_mobile_m4_misc1009(b, base, code),
     # ★ 2026-10-09 帳本 38 退件（市場明細三頁多組切換 → 摘要鈕＋抽屜）單獨跑：手機v2 也包含這一段
-    # ★ 2026-10-09 手機監督：剖析圖延伸閱讀抽屜的圖內字 ≥ 12px、框內手指拖、看全圖切換（diagrams.js foldReadable）單獨跑：手機v2 也包含這一段
+    "手機產業圓餅1009":    lambda pg, b, base, code: t_mobile_m4_indpie_1009(b, base, code),
+    # ★ 2026-10-09 帳本 82：剖析圖延伸閱讀抽屜只准上下捲、看到的字 ≥ 12px（diagrams.js foldFit）單獨跑：手機v2 也包含這一段
     "手機v2延伸閱讀字級":  lambda pg, b, base, code: t_mobile_m4_foldread1009(b, base, code),
     "手機v2市場抽屜":      lambda pg, b, base, code: t_mobile_m4_mkset1009(b, base, code),
     # ★ 2026-10-09：選股／ETF 這兩段放最前面 —— 元組裡前一段丟例外（例：總覽導覽 tap 逾時，preview/m4-all 底就有）後面整串都不跑，放最後等於沒驗
@@ -31938,6 +32108,8 @@ SECTIONS = {
     # ★ 2026-10-09 Andy：「3D 圖為何還會出現下方欄位…圖四可以看到他的線條指到未知地方」＋帳本 67 3D 收合鈕（402 寬、全部 3D 圖；⚠ --workers 1）
     # ★ 2026-10-09 導覽普查（main）
     "導覽普查1009":        lambda pg, b, base, code: t_tour_census_1009(b, base),
+    # ★ 2026-10-09 帳本 80／81（Andy 22:0x：「圖四 不該多題材細節」「圖五 …應該為穿差的」）：熱力圖頂部兩格＋題材流程步驟與環節卡穿插（402／360 觸控）
+    "手機題材流程1009":    lambda pg, b, base, code: t_m4_theme_flow_1009(b, base),
     "手機3D說明1009":      lambda pg, b, base, code: t_m4_3d_1009(b, base),
     # ★ 2026-09-25 手機版 v3（docs/mobile_v3_spec.md §7）：底部一列五顆、「?」氣泡、大盤合一張、新雷達＋焦點條、
     #   資金分流樹長條、法人對稱長條、篩選抽屜、剖析圖只留編號（2D／3D）。390 與 360 各一輪。⚠ 一律 --workers 1（有 3D）
@@ -32202,6 +32374,8 @@ SECTIONS = {
     "帳號選單1009":        lambda pg, b, base, code: t_acct_menu_1009(b, base, code),
     # ★ 2026-10-09 Andy：「部分付費功能…兩個方式開放給他們用，但是有期限且限制次數…重點是得要有曝光」—— 體驗額度（devserver 真的 worker.js；⚠ --workers 1）
     "體驗額度1009":        lambda pg, b, base, code: t_trial_grants_1009(b, base),
+    # ★ 2026-10-09 帳本 78、79：手機抽屜站名字樣不被色塊蓋；頂欄 LOGO＝回總覽、抽屜 LOGO＝放大、抽屜站名＝回總覽關抽屜；桌機 LOGO 仍放大
+    "手機品牌1009":        lambda pg, b, base, code: t_m4_brand_1009(b, base),
     # ★ 2026-10-08 晚 Andy 313：「熱門題材、資金熱力圖，點擊會到該個股的功能需要權限設定，只有 Plus 以上才可以」（訪客／免費／Plus／Pro 走每條熱力圖跳頁路徑；桌機＋手機觸控）
     "熱力圖跳個股1008":    lambda pg, b, base, code: t_heat_plus_1008(b, base),
     # ★ 2026-09-28 Andy：「所有標題加上小圖示，顏色要搭配」—— 覆蓋、對比 ≥3:1（深淺）、1440／800／390 不擠（A/B）、動效（⚠ 一律 --workers 1）
@@ -65368,6 +65542,77 @@ def t_heat_plus_1008(b, base):
                 pg.screenshot(path=str(pathlib.Path(sh) / n))
             c.close()
     ok(f"{T}：整段沒有 JS 錯誤", not errs, errs[:3])
+
+
+# ===================================================================== 手機品牌1009（帳本 78、79；Andy 2026-10-09 22:0x）
+#   原話：「標題圖跑掉了，並且點擊後不會跑到總攬頁面」「LOGO放大功能只有在側邊藍打開才有，上方的是回總攬功能」
+#   根因：mobile4.css `:root.m4 .m4head b{color:var(--ink)}` 把抽屜站名 .brandtxt 染成 --ink，淺色主題＝深藍字＋深棕描邊 → 「▇股▇股」。
+#   402／360 觸控 × 深淺：(a) 抽屜站名可見、沒被蓋（elementFromPoint）、「哩」字是白色  (b) 頂欄 LOGO → #overview、不跳 #logoBox
+#   (c) 抽屜 LOGO → #logoBox  (d) 抽屜站名 → #overview、抽屜關閉；1440 桌機：.brand .logo 仍跳 #logoBox
+def t_m4_brand_1009(b, base):
+    T = "手機品牌1009"
+    box_on = "() => { const x = document.getElementById('logoBox'); return !!x && !x.hidden; }"
+    for w in (402, 360):
+        for th in ("dark", "light"):
+            tag = f"{w} {th}"
+            c = b.new_context(viewport={"width": w, "height": 844}, device_scale_factor=2, is_mobile=True, has_touch=True)
+            c.add_init_script(f"try {{ localStorage.setItem('tw.theme', '{th}'); localStorage.setItem('tw.live.on', '0'); }} catch (e) {{}}")
+            c.route("**/fonts.googleapis.com/**", lambda r: r.abort())
+            pg = c.new_page()
+            pg.goto(base + "#flow", wait_until="domcontentloaded")
+            if not ok(f"【{T}】{tag}：手機版與 ☰ 就緒", bool(wait_until(pg, "() => document.documentElement.classList.contains('m4') && !!document.getElementById('m4Burger') && !!document.querySelector('.topbar .brand .logo img')", 20000))):
+                c.close(); continue
+            pg.wait_for_timeout(600)
+            # (b) 頂欄 LOGO → 回總覽、不放大
+            pg.locator(".topbar .brand .logo img").tap()
+            okb = wait_until(pg, "() => location.hash === '#overview'", 3000)
+            pg.wait_for_timeout(250)
+            ok(f"【{T}】{tag}：點頂欄 LOGO → #overview、沒有跳 LOGO 大圖", bool(okb) and not pg.evaluate(box_on),
+               pg.evaluate("() => ({ h: location.hash, box: !!document.getElementById('logoBox') && !document.getElementById('logoBox').hidden })"))
+            pg.evaluate("() => { location.hash = '#flow'; }"); pg.wait_for_timeout(500)
+            # (a) 抽屜站名
+            pg.locator("#m4Burger").tap()
+            wait_until(pg, "() => { const d = document.getElementById('m4Drawer'); return d && !d.hidden && d.getBoundingClientRect().left > -1; }", 3000)
+            pg.wait_for_timeout(400)
+            a = pg.evaluate("""() => { const t = document.querySelector('#m4Drawer .m4brand .brandtxt'); if (!t) return null;
+                const r = t.getBoundingClientRect(), sp = [...t.children];
+                const hits = sp.map(e => { const q = e.getBoundingClientRect(); const h = document.elementFromPoint(q.left + q.width / 2, q.top + q.height / 2); return !!h && (h === e || e.contains(h) || h === t); });
+                return { w: r.width, h: r.height, txt: t.textContent, clip: t.scrollWidth > t.clientWidth + 1,
+                         c0: getComputedStyle(sp[0]).color, c1: getComputedStyle(sp[1]).color, hits,
+                         inDrawer: r.right <= document.getElementById('m4Drawer').getBoundingClientRect().right }; }""")
+            ok(f"【{T}】{tag}：抽屜站名「哩股哩股」寬高 >0、不截字、在抽屜內", bool(a) and a["w"] > 40 and a["h"] > 10 and a["txt"] == "哩股哩股" and not a["clip"] and a["inDrawer"], a)
+            ok(f"【{T}】{tag}：抽屜站名四個字都沒被別的元素蓋（elementFromPoint）", bool(a) and all(a["hits"]), a and a["hits"])
+            ok(f"【{T}】{tag}：「哩」白字、「股」黃字（不再被染成主題字色糊成色塊）",
+               bool(a) and a["c0"] == "rgb(255, 255, 255)" and a["c1"] == "rgb(255, 210, 31)", a and (a["c0"], a["c1"]))
+            # (c) 抽屜 LOGO → 放大
+            pg.locator("#m4Drawer .m4brand picture img").tap()
+            ok(f"【{T}】{tag}：抽屜打開時點抽屜 LOGO → LOGO 大圖出現", bool(wait_until(pg, box_on, 3000)))
+            pg.locator("#logoBox").tap(); pg.wait_for_timeout(250)
+            ok(f"【{T}】{tag}：點大圖收起", not pg.evaluate(box_on))
+            # (d) 抽屜站名 → 回總覽、抽屜關
+            if pg.evaluate("() => document.getElementById('m4Drawer').hidden"):
+                pg.locator("#m4Burger").tap(); pg.wait_for_timeout(400)
+            pg.locator("#m4Drawer .m4brand .brandtxt").tap()
+            okd = wait_until(pg, "() => location.hash === '#overview' && document.getElementById('m4Drawer').hidden", 3000)
+            ok(f"【{T}】{tag}：點抽屜站名 → #overview、抽屜關閉、沒跳大圖", bool(okd) and not pg.evaluate(box_on),
+               pg.evaluate("() => ({ h: location.hash, drawerHidden: document.getElementById('m4Drawer').hidden })"))
+            c.close()
+    # 桌機 1440：網頁版行為守住
+    c = b.new_context(viewport={"width": 1440, "height": 900})
+    c.add_init_script("try { localStorage.setItem('tw.live.on', '0'); } catch (e) {}")
+    c.route("**/fonts.googleapis.com/**", lambda r: r.abort())
+    pg = c.new_page()
+    pg.goto(base + "#flow", wait_until="domcontentloaded")
+    wait_until(pg, "() => !!document.querySelector('.topbar .brand .logo img') && !document.documentElement.classList.contains('m4')", 20000)
+    pg.wait_for_timeout(600)
+    h0 = pg.evaluate("() => location.hash")
+    pg.locator(".topbar .brand .logo img").click()
+    ok(f"【{T}】1440 桌機：點 .brand .logo 仍跳 LOGO 大圖、網址不動", bool(wait_until(pg, box_on, 3000)) and pg.evaluate("() => location.hash") == h0,
+       (h0, pg.evaluate("() => location.hash")))
+    pg.keyboard.press("Escape"); pg.wait_for_timeout(200)
+    pg.locator(".topbar .brand b.brandtxt").click()
+    ok(f"【{T}】1440 桌機：點站名照舊回總覽", bool(wait_until(pg, "() => location.hash === '#overview'", 3000)) and not pg.evaluate(box_on))
+    c.close()
 
 
 # ===================================================================== 帳號選單1009（site/acctm4.js；Andy 2026-10-09 06:5x＋07:0x）
