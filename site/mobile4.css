@@ -586,6 +586,14 @@
   :root.m4 #rotClock{min-height:0!important}
   /* 播放鈕（▶）字級跟手機統一按鈕一致（13px）；其餘外觀照網頁版 */
   :root.m4 #v-flow .rbar .pb.play{font-size:13px}
+  /* 2026-10-09 手機 UI 監督退件三處：
+     ① 分流樹下方「資金流向排名」（網頁版那一份，桌機右欄字 11.5px）在手機字級下限 12px
+     ② 資金輪動一句話（theme4.js t4-lede）斷在詞中間（「高頻寬記｜憶體」）→ keep-all：只在空白、標點處換行
+     ③ 免責一行（法遵字句）在手機不准被截成「…」→ 允許換行、完整顯示 */
+  :root.m4 #sankeyRank :is(small,.skr-k){font-size:12px!important}
+  :root.m4 #flowRotCard .t4-lede{word-break:keep-all;overflow-wrap:normal}
+  :root.m4 #flowRotCard .rothead{flex-wrap:wrap;padding-right:0!important}   /* index.html ≤1100 留給已拿掉的 .rotbtns 的 190px 右邊距，手機把免責字擠成 196px 寬 */
+  :root.m4 #flowRotDisc.disc-line{white-space:normal!important;text-overflow:clip!important;overflow:visible!important;flex:1 1 100%;text-align:left;font-size:12px}
 }
 
 /* ===== 30. 題材頁上下排＋剖析圖直排（2026-10-09 Andy 手機截圖：紅框 1「熱力圖上面 下面題材」、紅框 2「垂直，塗在左邊 文字補充右邊」、「需要線條區分」）
