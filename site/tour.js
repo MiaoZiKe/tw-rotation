@@ -206,7 +206,9 @@
       d: '把產品拆成零件的原創示意圖（非實物比例）。圖上每個圓圈編號對應右邊同號的說明卡；下面幾段可以展開看尺寸、製程與各段台股。' },
     { t: '點零件，看是誰做的', sel: ['#prodDiagram .dgc[data-seg]', '#prodDiagram [data-part]', '#prodDiagram [data-seg]'], before: dgMode('2d'),
       d: '圖上的零件或右邊的編號卡都點得下去。下一步示範點一個零件會出現什麼。' },
-    { t: '這個零件是誰做的', sel: '#partCard',
+    /* 2026-10-09 手機（claude/m4-3dfix 之後）：點零件不再在圖下面出 #partCard，改從底部抽屜（#mSheet）出同一份說明 —— 手機框抽屜（導覽普查1009 抓到這一步在手機被跳過） */
+    { t: '這個零件是誰做的', sel: ['#partCard', '#mSheet:not([hidden])'],
+      m: '點了零件，底部抽屜列出這個零件的說明與做它的台股；點名稱進個股頁，點背景收起。',
       before: async () => {
         await dgMode('2d')();
         const pc = $('#partCard');
@@ -215,12 +217,14 @@
         if (p) p.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, view: window }));
       },
       d: '點了零件，這張小卡列出做這個零件的台股與同一格的外商、進料與出貨；下面的供應鏈關聯圖也會亮起同一個環節。' },
-    { t: '切到 3D', sel: '#dg3d', before: dgMode('2d'),
+    { t: '切到 3D', sel: '#dg3d', before: async () => { if (window.M3 && window.M3.closeSheet) window.M3.closeSheet(); await dgMode('2d')(); },
       d: '剖析圖右上這顆「2D｜3D」切換平面圖與立體圖，亮的那一格就是現在的模式。下一步切到 3D。' },
     { t: '3D 立體剖析圖', sel: '#prod3d', before: dgMode('3d'),
       d: '同一組零件改成立體：左鍵拖曳轉動、滾輪拉近拉遠、點兩下回到一開始的視角。立體看得出層與層的上下關係，平面圖適合看編號與細節。',
       m: '同一組零件改成立體：手指拖曳轉動、兩指縮放、點兩下回到一開始的視角。立體看得出層與層的上下關係。' },
-    { t: '3D 展示：拆開與自轉', sel: ['#dg3dCtl', '#dgAnim'], union: true, before: dgMode('3d'),
+    /* 2026-10-09 手機：拖曳／重設／動畫那排在手機藏起來（mobile4.css；點兩下＝重設、點背景＝回預設），右上角只剩 ⤢／⤡ 收合鈕 → 手機框那顆 */
+    { t: '3D 展示：拆開與自轉', sel: ['#dg3dCtl', '#dgAnim', '#prod3d > .m4c3d'], union: true, before: dgMode('3d'),
+      m: '一切到 3D，零件會從原位慢慢拆開，層次一目了然。右上角 ⤡／⤢ 收合或展開 3D 圖；手指拖曳轉動、點兩下回到一開始的視角。',
       d: '一切到 3D，零件會從原位慢慢拆開（爆炸拆解），層次一目了然。「動畫：開」場景緩慢自轉、關掉就靜止；「拖曳：轉動」可切成平移，「重設視角」回到原位。' },
     { t: '3D 裡也能點台股', sel: ['#prod3d .chip3d', '#prod3d'], before: dgMode('3d'),
       d: '立體圖旁邊的編號卡跟 2D 是同一套，卡上列出做這個零件的台股，點名稱進個股頁；點畫面上的零件一樣會選起它所屬的環節。' },
