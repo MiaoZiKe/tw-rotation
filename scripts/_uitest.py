@@ -29152,16 +29152,19 @@ def t_mobile_m4_market(b, base, code):
             const ss = c.getOption().series || []; const pts = ss.reduce((a, s) => a + ((s.data || []).length), 0);
             return { pts, sig: ss.map(s => (s.data || []).slice(0, 3).map(d => JSON.stringify(d.value || d)).join('|')).join('/') }; }"""
         s0 = J(P)
-        # 先在預設的「投信」換天數（外資／合計在 ≥8 天以內都是買 40／賣 40 的上限，點數不會變），再切外資
-        m.select_option("#streakDays", "5"); m.wait_for_timeout(900)
+        # 2026-10-09（帳本 38／claude/m4-misc）：法人、天數、畫法收進「設定」摘要鈕的底部抽屜（每組一排分段；抽屜裡那顆＝按頁面上原本那顆／改原本那個下拉）
+        #   先在預設的「投信」換天數（外資／合計在 ≥8 天以內都是買 40／賣 40 的上限，點數不會變），再切外資
+        m.locator("#m4MkSet").tap(); m.wait_for_timeout(500)
+        m.locator('#mSheet .seg[data-mk=days] button[data-v="5"]').tap(); m.wait_for_timeout(1100)
         s1 = J(P)
-        ok(f"【{T}】天數下拉選 ≥5 天後點數真的變（{s0 and s0['pts']} → {s1 and s1['pts']}）", s0 and s1 and s1["pts"] != s0["pts"], (s0, s1))
-        m.locator("#streakWho button[data-w=foreign]").tap(); m.wait_for_timeout(900)
+        ok(f"【{T}】抽屜裡天數選 ≥5 天後點數真的變（{s0 and s0['pts']} → {s1 and s1['pts']}）", s0 and s1 and s1["pts"] != s0["pts"], (s0, s1))
+        m.locator('#mSheet .seg[data-mk=who] button[data-v="foreign"]').tap(); m.wait_for_timeout(1100)
         s2 = J(P)
-        ok(f"【{T}】法人連買賣切「外資」後散佈點真的變", s1 and s2 and s1["sig"] != s2["sig"], (s1 and s1["pts"], s2 and s2["pts"]))
-        sb = J("""() => { const w = document.getElementById('streakWho').getBoundingClientRect(), d = document.getElementById('streakDays').getBoundingClientRect();
-            return { same: Math.abs(w.top - d.top) < 4, tag: document.getElementById('streakDays').tagName }; }""")
-        ok(f"【{T}】投信／外資／合計分段與天數下拉在同一列、天數是下拉", sb["same"] and sb["tag"] == "SELECT", sb)
+        ok(f"【{T}】抽屜裡法人切「外資」後散佈點真的變", s1 and s2 and s1["sig"] != s2["sig"], (s1 and s1["pts"], s2 and s2["pts"]))
+        sb = J("""() => { const s = document.getElementById('mSheet'); const rows = [...s.querySelectorAll('.m4mkrow > .seg')];
+            return { keys: rows.map(g => g.dataset.mk), oneLine: rows.every(g => new Set([...g.children].map(x => Math.round(x.getBoundingClientRect().top))).size === 1) }; }""")
+        ok(f"【{T}】法人連買賣抽屜：法人、天數各一排分段（{sb['keys']}），每排不換行", "who" in sb["keys"] and "days" in sb["keys"] and sb["oneLine"], sb)
+        J("() => window.M3 && window.M3.closeSheet && window.M3.closeSheet()"); m.wait_for_timeout(300)
 
         # ④ 站上均線：圖例不畫；下拉多選勾一條 → 線多一條、取消 → 線真的少一條；方格收合段預設收起，點開才看得到
         m.locator("#mktSeg2 button[data-k=ma]").tap(); m.wait_for_timeout(2500)
@@ -29169,9 +29172,12 @@ def t_mobile_m4_market(b, base, code):
             const o = c.getOption(), lg = o.legend[0], sel = lg.selected || {};
             return { show: lg.show, drawn: (o.series || []).filter(s => sel[s.name] !== false).length }; }"""
         l0 = J(L)
-        ms = J("""() => { const s = document.getElementById('maSeg'); return { sw: s.scrollWidth, cw: s.clientWidth, n: s.querySelectorAll('button').length,
+        # 2026-10-09（帳本 38）：均線期間與族群收進「設定」抽屜 → 在抽屜裡量那一排
+        m.locator("#m4MkSet").tap(); m.wait_for_timeout(500)
+        ms = J("""() => { const s = document.querySelector('#mSheet .seg[data-mk=ma]'); if (!s) return { n: 0, top: 0, sw: 1, cw: 0 }; return { sw: s.scrollWidth, cw: s.clientWidth, n: s.querySelectorAll('button').length,
             top: new Set([...s.querySelectorAll('button')].map(b => Math.round(b.getBoundingClientRect().top))).size }; }""")
-        ok(f"【{T}】站上均線：七條均線分段同一列、不橫捲（{ms['n']} 顆）", ms["top"] == 1 and ms["sw"] <= ms["cw"] + 1, ms)
+        ok(f"【{T}】站上均線：抽屜裡均線期間分段同一列、不橫捲（{ms['n']} 顆）", ms["n"] >= 5 and ms["top"] == 1 and ms["sw"] <= ms["cw"] + 1, ms)
+        J("() => window.M3 && window.M3.closeSheet && window.M3.closeSheet()"); m.wait_for_timeout(300)
         ok(f"【{T}】站上均線：手機不畫 43 個族群的圖例（改用下拉清單）", l0 and l0["show"] is False, l0)
         f0 = J("""() => ({ folds: [...document.querySelectorAll('#mktBody .m4mafolds > .m4fold')].filter(e => !e.hidden).length,
             open: [...document.querySelectorAll('#mktBody .m4mafolds > .m4fbox')].filter(e => !e.hidden).length,
@@ -29181,6 +29187,7 @@ def t_mobile_m4_market(b, base, code):
         f1 = J("""() => { const h = document.querySelector('#mktBody .m4mafolds > .m4fold'); return { exp: h.getAttribute('aria-expanded'),
             vis: [...document.querySelectorAll('#mktBody .ma')].filter(e => e.getClientRects().length).length }; }""")
         ok(f"【{T}】點開第一段才看得到卡片（{f1['vis']} 張）", f1["exp"] == "true" and f1["vis"] > 0, f1)
+        m.locator("#m4MkSet").tap(); m.wait_for_timeout(500)   # 族群下拉在抽屜裡（同一個節點搬進去）
         m.locator("#maGroupDD .ddbtn").tap(); m.wait_for_timeout(300)
         nm = J("() => document.querySelector('#maGroupDD .ddlist input[type=checkbox]').dataset.n")
         m.locator("#maGroupDD .ddlist input[type=checkbox]").first.check(); m.wait_for_timeout(600)
@@ -29192,7 +29199,7 @@ def t_mobile_m4_market(b, base, code):
         m.locator("#maGroupDD .ddlist input[type=checkbox]").first.uncheck(); m.wait_for_timeout(600)
         l2 = J(L)
         ok(f"【{T}】下拉取消「{nm}」→ 圖上的線真的少一條（{l1 and l1['drawn']} → {l2 and l2['drawn']}）", l1 and l2 and l2["drawn"] == l1["drawn"] - 1, (l1, l2))
-        m.mouse.click(5, 300); m.wait_for_timeout(200)
+        J("() => window.M3 && window.M3.closeSheet && window.M3.closeSheet()"); m.wait_for_timeout(300)
 
         # ⑤ 今日關注：表格不橫捲；點一列展開細節（族群、綜合分、看個股頁）
         m.locator("#mktSeg2 button[data-k=cand]").tap(); m.wait_for_timeout(1500)
