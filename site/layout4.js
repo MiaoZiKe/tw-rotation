@@ -581,7 +581,10 @@
        所以改成：會員功能關著時，右上角照樣有一顆「登入」（#l4Login，不是 #acctBtn），按了用一小段字講清楚「這次部署沒有讀到
        會員伺服器設定、暫時不能登入、自選照樣存在這台瀏覽器」—— 入口不消失，原因直接寫在畫面上，下一次就不必猜。
        account.js 一開（tw:account-config）它就自己拿掉，換成真的 #acctBtn。 */
-  const TOOL_ORDER = ['#themeBtn', '#t4Btn', '#acctOnline', '#acctBtn', '#l4Login'];
+  /* 2026-10-09 加 #twTourBtn（tour.js 的「平台導覽」，本來就放在 #t4Btn 右邊）：舊清單沒有它 → 這裡每次重排都把它擠到最前面、
+     tour.js 的觀察器再把它搬回 #t4Btn 後面，開站頭幾秒兩邊互搬，按鈕左右跳、點不到（導覽普查1009 實測 1440 總覽 5 秒內被搬 10 次）。
+     排進固定順序之後兩邊要的位置一樣，誰都不再動它；版面位置跟原本相同。 */
+  const TOOL_ORDER = ['#themeBtn', '#t4Btn', '#twTourBtn', '#acctOnline', '#acctBtn', '#l4Login'];
   let tools = null;
   function acctOn() { const A = window.TwAccount; return !!(A && A.on && A.on()); }
   function syncTools() {
