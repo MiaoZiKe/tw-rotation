@@ -27614,7 +27614,12 @@ def t_mobile_m4_1008(b, base, code):
         go("etf/list", 3500)
         z = J("() => ({ hd: document.querySelectorAll('#etfGrid button.fqhd').length, cards: document.querySelectorAll('#etfGrid .etfc').length })")
         ok(f"【{T}】清空 localStorage 後 ETF 一覽每一組都是收起（{z}）", z["hd"] >= 2 and z["cards"] == 0, z)
-        m.click("#etfOpenAll"); m.wait_for_timeout(400)
+        # 2026-10-09（m4-etf 第 29f 節，Andy：「拿掉」）：手機沒有「全部展開」了 → 照使用者會做的，點第一組的標題列展開
+        if J("() => !!document.getElementById('etfOpenAll').getClientRects().length"):
+            m.click("#etfOpenAll")
+        else:
+            m.locator("#etfGrid button.fqhd").first.tap()
+        m.wait_for_timeout(400)
         J("() => { const f = document.querySelector('#etfGrid .etfc'); window.scrollTo({ top: f.getBoundingClientRect().top + scrollY - 140, behavior: 'instant' }); }"); m.wait_for_timeout(300)
         # 2026-10-08 晚改（Andy：「ETF 這邊需要改用方塊字卡表示…3 個或 4 個換行」）：改前驗一行五欄精簡列，改後驗方塊字卡
         rw = J("""() => { const rs = [...document.querySelectorAll('#etfGrid .etfc')]; const vis = (e) => e && e.getClientRects().length && getComputedStyle(e).display !== 'none';
@@ -30037,8 +30042,12 @@ SECTIONS = {
     # ★ 2026-09-27 手機總覽最上方：指數三格（可左右滑）＋觀察清單（2026-09-27 起是自選清單目前那一頁：localStorage tw.watchlists，只存代號；site/mobile3.js G 段＋site/watchlists.js）
     "手機總覽指數觀察清單": lambda pg, b, base, code: t_mobile_home(b, base, code),
     # ★ 2026-10-08 手機 v2（docs/mobile_v2_plan.md；site/mobile4.js）：側欄抽屜、每頁第一屏、字級／觸控、主要切換真的點得動
-    "手機v2":              lambda pg, b, base, code: (t_mobile_m4(b, base, code), t_mobile_m4_1008(b, base, code), t_mobile_m4_1009(b, base, code), t_mobile_m4_market(b, base, code), t_mobile_m4_etf2_1009(b, base, code), t_mobile_m4_etfqa_1009(b, base, code)),
+    # ★ 2026-10-09：選股／ETF 這兩段放最前面 —— 元組裡前一段丟例外（例：總覽導覽 tap 逾時，preview/m4-all 底就有）後面整串都不跑，放最後等於沒驗
+    "手機v2":              lambda pg, b, base, code: (t_mobile_m4_etf2_1009(b, base, code), t_mobile_m4_etfqa_1009(b, base, code), t_mobile_m4(b, base, code), t_mobile_m4_1008(b, base, code), t_mobile_m4_1009(b, base, code), t_mobile_m4_market(b, base, code)),
     # ★ 2026-10-09 10:0x（選股頁籤／除息表拉 Bar／區間縮放拉桿／每月入帳／自選刪除免二次詢問）單獨跑：手機v2 也包含這一段
+    # 手機v2 的第三批（10-08）、第四批（10-09）單獨跑：元組前面一段丟例外時後面不跑，要分開確認時用這兩段
+    "手機v2第三批":        lambda pg, b, base, code: t_mobile_m4_1008(b, base, code),
+    "手機v2第四批":        lambda pg, b, base, code: t_mobile_m4_1009(b, base, code),
     "手機v2選股ETF":       lambda pg, b, base, code: (t_mobile_m4_etf2_1009(b, base, code), t_mobile_m4_etfqa_1009(b, base, code)),
     # ★ 2026-10-09 手機市場明細（Andy 06:1x）單獨跑：手機v2 也包含這一段
     "手機v2市場明細":      lambda pg, b, base, code: t_mobile_m4_market(b, base, code),
