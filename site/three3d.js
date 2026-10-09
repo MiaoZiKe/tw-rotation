@@ -10315,6 +10315,10 @@
       if (!alive) return;
       raf = requestAnimationFrame(tick);
       if (!visible) return;
+      /* ★ 2026-10-09 手機捲頁讓路（html.m4 限定）：手指捲頁期間（scroll／不在畫布上的 touchmove）3D 不畫、自轉不前進，停手 300ms 後接回。
+         無 GPU 機器實測：自轉開著捲頁只剩約 21fps、31 個長任務；畫布上拖曳旋轉不算捲頁（那時頁面本來就不捲）。桌機不走這條。 */
+      if (scrollAt && performance.now() - scrollAt < 300) { t0 = performance.now(); scrollHeld = true; return; }
+      if (scrollHeld) scrollHeld = false;
       const now0 = performance.now();
       const run = motionOn();
       if (run && now0 - lastDraw < 32) return;                   // ① 動畫上限 30fps
@@ -10362,6 +10366,14 @@
       ? new IntersectionObserver(es => { ioVis = es.some(x => x.isIntersecting); visible = isM4() ? ioVis && docVis : ioVis; }, { threshold: 0.02 }) : null;
     if (io) io.observe(el);
     /* ★ 2026-10-09 帳本 84：手機（html.m4）預設自轉 → 切回分頁時不能把「捲到畫面外」的停畫蓋掉（兩個條件都要成立才畫）。桌機照舊。*/
+    let scrollAt = 0, scrollHeld = false;
+    const onScrollPg = (e) => {
+      if (!isM4()) return;
+      if (e && e.type === 'touchmove' && e.target && e.target.closest && e.target === renderer.domElement) return;   // 在 3D 圖上拖＝轉模型，不是捲頁
+      scrollAt = performance.now();
+    };
+    document.addEventListener('scroll', onScrollPg, { capture: true, passive: true });
+    document.addEventListener('touchmove', onScrollPg, { capture: true, passive: true });
     const onVis = () => { docVis = document.visibilityState !== 'hidden'; visible = isM4() ? ioVis && docVis : docVis; };
     document.addEventListener('visibilitychange', onVis);
     /* ★ 2026-09-24（Andy 回報：AI 伺服器 → 電源，3D 按「收合圖」再打開，模型縮成左上角一小塊、
@@ -10426,6 +10438,8 @@
       if (io) io.disconnect();
       if (ro) ro.disconnect();
       document.removeEventListener('visibilitychange', onVis);
+      document.removeEventListener('scroll', onScrollPg, { capture: true });
+      document.removeEventListener('touchmove', onScrollPg, { capture: true });
       window.removeEventListener('resize', onResize);
       el.removeEventListener('pointerenter', onEnter);      // #246：容器是重用的，監聽一定要拆
       el.removeEventListener('pointerleave', onLeave);
@@ -10558,7 +10572,7 @@
       return { drawCalls: ri.calls, triangles: ri.triangles, programs: (renderer.info.programs || []).length, micro: microN, meshN, arrows: arrowN, firstDrawMs: firstDrawMs,
         parts: byIdx.filter(Boolean).length, meshes, maxEmissive: +maxEm.toFixed(3),
         idleEmissive: +idleEm.toFixed(3), maxMetal: +maxMetal.toFixed(2), leds: ledN,
-        spinners: spinners.length, spinAt: +spinAt.toFixed(3), anim, autoRotate: !!controls.autoRotate, draws: drawN, visible,
+        spinners: spinners.length, spinAt: +spinAt.toFixed(3), anim, autoRotate: !!controls.autoRotate, draws: drawN, visible, scrollHeld,
         /* ★ C6 的量測介面。驗「這台機器在運作」一律比**這些數字有沒有變**，
            不是比「有沒有 pulses 這個陣列」——「元素存在」從來不算驗收。
              ispinAt  ＝ 陣列風扇（風扇牆）轉到哪（弧度和）

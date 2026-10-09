@@ -30807,6 +30807,18 @@ def t_m4_3dseg_1009(b, base):
             J("() => document.querySelector('#prod3d').scrollIntoView({ block: 'center', behavior: 'instant' })"); m.wait_for_timeout(1200)
             d2 = J("() => Rack3D.current.stats()")
             ok(f"【{T}】{W} 捲回來又開始畫（draws {d1.get('draws')}→{d2.get('draws')}）", d2.get("visible") is True and d2.get("draws", 0) > d1.get("draws", 0))
+            # (e) 手指捲頁讓路（2026-10-09 補強）：捲頁期間（連續 scroll）3D 不畫、自轉不前進；停手約 300ms 後接回自轉
+            J("() => { const h = document.querySelector('#prod3d'); window.scrollTo(0, h.getBoundingClientRect().top + scrollY - 60); }")
+            wait_until(m, "() => Rack3D.current.stats().visible === true", 5000, 150); m.wait_for_timeout(600)
+            e0 = J("""() => new Promise(res => { let i = 0; const s0 = Rack3D.current.stats().draws, c0 = JSON.stringify(Rack3D.current.cam());
+                const t = setInterval(() => { window.scrollBy(0, (i++ % 2) ? -2 : 2); }, 40);
+                setTimeout(() => { const a = Rack3D.current.stats().draws, ca = JSON.stringify(Rack3D.current.cam()); setTimeout(() => { clearInterval(t);
+                  res({ d0: s0, d1: a, d2: Rack3D.current.stats().draws, c1: ca, c2: JSON.stringify(Rack3D.current.cam()), held: Rack3D.current.stats().scrollHeld }); }, 1500); }, 300); })""")
+            ok(f"【{T}】{W} 手指捲頁期間 1.5 秒：3D 不畫（draws {e0['d1']}→{e0['d2']}）、相機不動（自轉暫停）", e0["d1"] == e0["d2"] and e0["c1"] == e0["c2"] and e0["held"] is True, e0)
+            m.wait_for_timeout(900)
+            e1 = J("() => ({ d: Rack3D.current.stats().draws, c: Rack3D.current.cam() })"); m.wait_for_timeout(1500)
+            e2 = J("() => ({ d: Rack3D.current.stats().draws, c: Rack3D.current.cam() })")
+            ok(f"【{T}】{W} 停手後接回：又開始畫（draws {e1['d']}→{e2['d']}）、自轉繼續（{e1['c']}→{e2['c']}）", e2["d"] > e1["d"] and e1["c"] != e2["c"], {"e1": e1, "e2": e2})
             # 收合鈕仍在、不跟動畫分段重疊
             ov = J("() => { const c = document.querySelector('#prod3d > .m4c3d'), a = document.querySelector('#dgTools .m4anim'); if (!c || !a) return null; const x = c.getBoundingClientRect(), y = a.getBoundingClientRect();"
                    " return { c3d: !!c.getClientRects().length, hit: !(x.right <= y.left || y.right <= x.left || x.bottom <= y.top || y.bottom <= x.top) }; }")
