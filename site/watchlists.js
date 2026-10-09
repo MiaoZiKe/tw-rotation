@@ -181,6 +181,18 @@
       btn: `升級 ${up.name}`, href: '#pricing/plan/' + encodeURIComponent(up.id), btnCls: 'wlup' });
     if (TP && TP.ensure && !TP.plans()) TP.ensure();
   }
+  let lastDel = null;
+  /* 刪除後的復原提示（全站一個，固定在畫面底部；手機往上讓開底部導覽列、右邊讓開客服鈕）。5 秒自己收掉 */
+  function undoToast(name) {
+    let el = document.getElementById('wlUndo');
+    if (!el) { el = document.createElement('div'); el.id = 'wlUndo'; el.className = 'wlundo'; el.setAttribute('role', 'status'); el.setAttribute('aria-live', 'polite'); document.body.appendChild(el); }
+    el.innerHTML = `<span class="wlut">已刪除「${esc(name)}」</span><button type="button" id="wlUndoBtn">復原</button>`;
+    el.hidden = false;
+    clearTimeout(undoToast._t);
+    const done = () => { clearTimeout(undoToast._t); el.hidden = true; };
+    el.querySelector('#wlUndoBtn').onclick = () => { done(); API.undoDel(); };
+    undoToast._t = setTimeout(() => { el.hidden = true; lastDel = null; }, 5000);
+  }
   const API = {
     get MAX_TABS() { return capTabs(); },
     get MAX_CODES() { return capCodes(); },
@@ -236,9 +248,29 @@
     /* 刪掉最後一頁時留一頁空的「自選 1」—— 永遠至少有一頁，其他地方不必處理「沒有清單」的情況 */
     delTab(id) {
       const i = S.tabs.findIndex((x) => x.id === id); if (i < 0) return false;
+      const t = S.tabs[i];
+      lastDel = { tab: { id: t.id, name: t.name, codes: t.codes.slice() }, i, wasCur: S.cur === id };
       S.tabs.splice(i, 1); if (!S.tabs.length) S.tabs = blank();
       if (S.cur === id) S.cur = S.tabs[Math.max(0, i - 1)].id;
       commit(); return true;
+    },
+    /* ★ 2026-10-09 Andy：「自選刪除不必 2 次詢問」→ 刪除改成點一次就刪，刪完底部 5 秒「已刪除『X』［復原］」。
+       復原＝把剛刪的那一頁（名稱、股票、原本的位置、是不是選中那頁）原樣放回去；雲端同步照 commit 那條路。
+       只留得住最後刪的那一頁（提示只有 5 秒，連刪兩頁時前一頁的提示已經被換掉）。 */
+    undoDel() {
+      const d = lastDel; lastDel = null; if (!d) return false;
+      if (S.tabs.some((x) => x.id === d.tab.id)) return false;
+      S.tabs.splice(Math.min(d.i, S.tabs.length), 0, { id: d.tab.id, name: d.tab.name, codes: d.tab.codes.slice() });
+      if (d.wasCur) { S.cur = d.tab.id; try { localStorage.setItem(K_CUR, d.tab.id); } catch (e) { /* 略 */ } }
+      commit(); return true;
+    },
+    /* 點一次就刪（不再跳確認列）＋底部 5 秒復原提示；只剩一頁時不准刪（回 false，呼叫端自己講一句「至少要留一頁」）*/
+    delWithUndo(id) {
+      if (S.tabs.length <= 1) return false;
+      const t = S.tabs.find((x) => x.id === id); if (!t) return false;
+      const name = t.name;
+      if (!API.delTab(id)) return false;
+      undoToast(name); return true;
     },
     /* 2026-09-28 自選分頁的拖曳排序：把 id 那一頁搬到第 to 個位置（只改順序，內容不動；雲端同步照 commit 那條路）*/
     moveTab(id, to) {
@@ -278,6 +310,12 @@
 .wlact button{height:30px;padding:0 10px;border:1px solid var(--line-2);border-radius:7px;background:var(--panel-2);color:var(--ink);font-size:13px;cursor:pointer}
 .wlact button.danger{color:#ff6b7a;border-color:rgba(255,107,122,.45)}
 .wlact .wlconf{font-size:13px;color:var(--ink)}
+.wlundo{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);z-index:1300;display:flex;align-items:center;gap:12px;max-width:calc(100vw - 32px);box-sizing:border-box;
+  padding:8px 8px 8px 16px;border:1px solid var(--line-2);border-radius:12px;background:var(--panel-2,var(--panel));color:var(--ink);font-size:14px;box-shadow:0 8px 24px rgba(0,0,0,.35)}
+.wlundo[hidden]{display:none}
+.wlundo .wlut{min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.wlundo button{flex:none;height:36px;min-width:64px;padding:0 14px;border:0;border-radius:8px;background:var(--t4-accent,var(--cyan));color:var(--on-accent,#06131f);font-size:14px;font-weight:700;cursor:pointer}
+@media (max-width:640px){ .wlundo{left:16px;right:88px;transform:none;bottom:calc(20px + env(safe-area-inset-bottom,0px));max-width:none} .wlundo button{height:40px} }
 .wladd{position:relative;padding:0 10px 8px}
 .wladd input{width:100%;box-sizing:border-box;height:34px;font-size:14px;padding:0 10px;border:1px solid var(--line-2);border-radius:8px;background:var(--panel-2);color:var(--ink)}
 .wlres{list-style:none;margin:4px 0 0;padding:0;max-height:220px;overflow:auto}
@@ -451,7 +489,8 @@
     if (tb) { if (tb.dataset.tab === curTab().id) { P.editing = tb.dataset.tab; paintPanel(); } else { P.confirm = false; API.setCur(tb.dataset.tab); } return; }
     if (q('#wlNew')) { const id = API.newTab(''); if (id) { P.editing = id; paintPanel(); } return; }
     if (q('#wlRen')) { P.editing = curTab().id; paintPanel(); return; }
-    if (q('#wlDel')) { P.confirm = true; paintPanel(); return; }
+    // 2026-10-09 Andy：「自選刪除不必 2 次詢問」→ 點一次就刪＋底部 5 秒復原（API.delWithUndo）；只剩一頁不准刪
+    if (q('#wlDel')) { P.confirm = false; if (!API.delWithUndo(curTab().id)) setMsg('至少要保留一頁清單'); return; }
     if (q('#wlDelNo')) { P.confirm = false; paintPanel(); return; }
     if (q('#wlDelYes')) { P.confirm = false; API.delTab(curTab().id); return; }
     const ad = q('button[data-add]'); if (ad && !ad.disabled) { API.add(ad.dataset.add); paintRes(); return; }

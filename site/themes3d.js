@@ -163,8 +163,115 @@
     return out.length ? out : [''];
   }
 
+  /* ---------------------------------------------------------------- 手機 v2 直排版（2026-10-09）
+     Andy 手機截圖紅框 2 旁註：「垂直，塗在左邊 文字補充右邊」＋「需要線條區分」。
+     只在手機 v2（<html class="m4">，≤640）走這支：一個環節一列 —— 左邊 40% 放等角圖、右邊放環節名、重點說明、個股膠囊；
+     上游／中游／下游段標題、組裝流程也一格一列往下排；列與列、段與段之間各一條全寬 1px 分隔線（主題 line 色）。
+     桌機（>640 沒有 m4）一行都不走這裡，chainScene 原本那條水平路徑原封不動。*/
+  const isV = () => typeof matchMedia === 'function' && matchMedia('(max-width:640px)').matches
+    && typeof document !== 'undefined' && document.documentElement.classList.contains('m4');
+  const V_W0 = 360;                       // 還沒量到容器寬時的暫定畫布寬（fit() 進 DOM 後馬上依實際寬度重畫）
+  /* 分隔線：跟手機全站「大功能分隔線」同一個變數 --m4-div（claude/m4-seg 定義＝主題的 --line-2）；
+     那批還沒合併前 fallback 到 --line-2，兩邊合併後自動統一。*/
+  const V_STYLE = `<style>.dg3v .m4ln{stroke:var(--m4-div,var(--line-2));stroke-width:1;shape-rendering:crispEdges;vector-effect:non-scaling-stroke}
+    .dg3v .stn .slot{fill:transparent;stroke:none} .dg3v .stn.sel .slot{fill:color-mix(in srgb,var(--c,var(--dg-accent-2d)) 10%,transparent);stroke:none}
+    .dg.dg3v .stn .vsub{font-size:13px;fill:var(--dg-text-2,var(--dg-ink-2))}</style>`;
+  // 通用斷行（標題 16px、站名 15px 用）：fw＝全形字寬、hw＝半形字寬
+  function wrapAt(t, maxW, fw, hw) {
+    const out = []; let line = '', w = 0;
+    for (const ch of String(t == null ? '' : t)) {
+      const cw = isHalf(ch) ? hw : fw;
+      if (w + cw > maxW && line) { out.push(line); line = ''; w = 0; }
+      line += ch; w += cw;
+    }
+    if (line) out.push(line);
+    return out.length ? out : [''];
+  }
+  /* ★ 2026-10-09（CEO 轉派帳本 23／65：題材卡標題在 402 寬斷成「…怎麼壓出來｜的」、360 寬「…怎麼壓｜出來的」）：
+     標題斷行規則 —— ① 有「：」而且冒號後那一段一行放得下：就斷在冒號後面（前後各自再照寬度折）；
+     ② 否則照寬度折，最後一行少於 4 個字就從上一行搬字過去，不准剩一兩個字落單。 */
+  function wrapTitle(t, maxW, fw, hw) {
+    const s = String(t == null ? '' : t), k = s.indexOf('：');
+    if (k > 0 && k < s.length - 1) {
+      const a = wrapAt(s.slice(0, k + 1), maxW, fw, hw), b = wrapAt(s.slice(k + 1), maxW, fw, hw);
+      if (b.length === 1 && a.length === 1) return a.concat(b);
+    }
+    const L = wrapAt(s, maxW, fw, hw);
+    if (L.length >= 2) {
+      const last = [...L[L.length - 1]], prev = [...L[L.length - 2]];
+      const need = Math.min(4 - last.length, prev.length - 4);
+      if (last.length < 4 && need > 0) { L[L.length - 1] = prev.slice(-need).join('') + last.join(''); L[L.length - 2] = prev.slice(0, -need).join(''); }
+    }
+    return L;
+  }
+  function chainSceneV(o) {
+    const st = o.stations;
+    const W = Math.max(280, Math.round(ctxW || V_W0)), PX = 2;
+    const ARTW = Math.round(W * .4), ARTH = 96, X1 = ARTW + 10, RW = W - X1 - PX;
+    const ln = (y) => `<path class="m4ln" d="M0,${Math.round(y) + .5} H${W}"/>`;
+    let y = 0, out = '';
+    // 標題吃滿寬（2026-10-09 起右上角不再有 ↻ 重設鈕：改成點背景重設，見 app.js wireThemeDiagram）
+    wrapTitle(o.title, W - 4, 16, 9).forEach(t => { y += 22; out += `<text class="ttl" x="${PX}" y="${y}">${esc(t)}</text>`; });
+    y += 22;
+    out += `<text class="cap capbtn" x="${PX}" y="${y}" data-cap="${esc([o.cap, o.unit].filter(Boolean).join('\n'))}">說明 ›</text>`;
+    y += 14;
+    /* ★ 2026-10-09（Andy 09:3x：最下面「PCB 製作流程／組裝流程」那段，標題和第一格要移到剖析圖上方、「說明 ›」那一行的位置；所有題材都套用）：
+       流程段（標題＋一步一列）整段搬到「說明 ›」下面、環節卡清單上面；跟環節卡之間一條分隔線。只在這支手機直排版（m4）動。 */
+    const steps = o.steps || [];
+    if (steps.length) {
+      y += 22;
+      out += `<text class="cap vflow" x="${PX}" y="${y}">${esc(o.flowTitle || '產業鏈流程')}</text>`;
+      y += 10;
+      steps.forEach((s, i) => {
+        out += `<g class="p3 step" data-part="${s.p || ''}"><rect class="part f2" x="0" y="${y}" width="${W}" height="40" rx="8"/>
+          <circle class="num" cx="17" cy="${y + 20}" r="10"/><text class="nn" x="17" y="${y + 24.5}" text-anchor="middle">${i + 1}</text>
+          <text class="lbl" x="34" y="${y + 17}">${esc(s.t)}</text>
+          <text class="sub" x="34" y="${y + 33}">${esc(s.s || '')}</text></g>`;
+        y += 40;
+        if (i < steps.length - 1) { out += `<path class="flow fast" d="M17,${y} L17,${y + 8}" stroke="var(--dg-accent-2d)" stroke-width="2"/>`; y += 8; }
+      });
+      y += 10; out += ln(y); y += 6;
+    }
+    let lastBand = -1, first = true;
+    st.forEach((s) => {
+      if (s.band !== lastBand) {                           // 段標題（上游／中游／下游）
+        if (!first) { y += 8; out += ln(y); y += 12; } else y += 4;
+        out += `<g class="band b${s.band}"><rect x="0" y="${y}" width="${W}" height="26" rx="7"/><text x="12" y="${y + 18}">${BANDS[s.band] || ''}</text></g>`;
+        y += 26 + 6; lastBand = s.band;
+      } else { y += 6; out += ln(y); y += 6; }            // 同一段裡卡與卡之間
+      first = false;
+      const y0 = y;
+      // 右欄：環節名（15px）→ 重點說明（13px；「圖上：…」那行是看圖說明，收進點一下的說明面板）→ 個股膠囊
+      const lbl = wrapAt(s.label, RW - 20, 15, 8.4);
+      let ty = y0 + 16, txt = '';
+      lbl.forEach((t, j) => { txt += `<text class="lbl" x="${X1}" y="${ty}">${esc(t)}</text>`; if (j < lbl.length - 1) ty += 19; });
+      txt += `<text class="info" x="${W - PX}" y="${y0 + 16}" text-anchor="end" aria-hidden="true">ⓘ</text>`;
+      const key = (s.sub || []).filter(t => !/^圖上/.test(t));
+      const subL = key.length ? wrapSub(key.join('・'), RW - 14) : [];   // 估寬偏樂觀（全形＋、・實際比 13px 寬），留 14px 安全邊
+      ty += 4;
+      subL.forEach(t => { ty += SUB_LH; txt += `<text class="sub vsub" x="${X1}" y="${ty}">${esc(t)}</text>`; });
+      const ch = chips(s.codes, X1, ty + 9, RW);
+      const textB = ty + 9 + (s.codes && s.codes.length ? ch.rows * CHIP_ROW - 4 : 0);
+      const rowH = Math.max(ARTH + 8, textB - y0 + 4);
+      const acy = y0 + rowH / 2;
+      out += `<g class="p3 stn" data-part="${s.id}" data-codes="${(s.codes || []).join(',')}"${s.seg ? ` data-seg="${s.seg}"` : ''} data-lbl="${esc(s.label)}" data-desc="${esc((s.sub || []).join('\n'))}">
+        <rect class="slot" x="0" y="${y0 - 4}" width="${W}" height="${rowH + 8}" rx="8"/>
+        <g class="art" data-cx="${ARTW / 2}" data-cy="${acy}" data-mw="${ARTW - 12}" data-mh="${ARTH}" data-k="${s.k || 1}"
+           transform="translate(${ARTW / 2},${acy}) scale(${Math.min(1, s.k || 1) * .6})">${s.art()}</g>${txt}${ch.svg}</g>`;
+      y = y0 + rowH;
+    });
+    y += 10; out += ln(y);
+    let foot = '';
+    wrapAt('原創等角示意圖，非實物比例；每個環節的顏色＝族群色', W - PX * 2, 12, 6.7).forEach(t => { y += 18; foot += `<text class="cap" x="${PX}" y="${y}">${esc(t)}</text>`; });
+    const H = y + 8;
+    return `<svg class="dg dg3 dg3v" data-cw="${W}" data-v="1"${curTid ? ` data-tid="${curTid}"` : ''} viewBox="0 0 ${W} ${H}" width="100%" style="display:block">${STYLE}${TH_STYLE}${AI_STYLE}${MAT_STYLE}${V_STYLE}
+      <defs><radialGradient id="dg3sh"><stop offset="0" style="stop-color:var(--dg-drop)"/><stop offset=".55" style="stop-color:var(--dg-drop);stop-opacity:.7"/><stop offset="1" style="stop-color:var(--dg-drop);stop-opacity:0"/></radialGradient></defs>
+      ${out}${foot}</svg>`;
+  }
+
   // ---------------------------------------------------------------- 場景外框
   function chainScene(o) {
+    if (isV()) return chainSceneV(o);
     const st = o.stations, n = st.length;
     /* ★ 2026-09-23：畫布寬可以自己決定。1440 螢幕上題材頁放圖的那一欄只有 996px，
        1180 的畫布永遠要左右滑；十八張一起收到 980，1440 下一次看完。*/
@@ -2063,7 +2170,9 @@
     return Math.floor(root.clientWidth - (parseFloat(cs.paddingLeft) || 0) - (parseFloat(cs.paddingRight) || 0));
   }
   // 0＝容器比下限窄（或還看不到），照舊用作者寫的 o.cw（980）
-  const wantW = (root) => { const a = availW(root); return a >= CW_MIN ? Math.min(CW_MAX, a) : 0; };
+  const wantW = (root) => { const a = availW(root); if (isV()) return a > 0 ? a : 0; return a >= CW_MIN ? Math.min(CW_MAX, a) : 0; };
+  // 這一次應該畫多寬：直排版（手機 v2）＝容器寬（量不到就暫定 V_W0）；其他＝原本的規則（下限 CW_MIN、量不到用 980）
+  const wantCanvas = (w) => (isV() ? (w || V_W0) : (w ? Math.max(CW_MIN, w) : 980));
   function rerender(root, w) {
     const svg = root.querySelector('svg.dg3'), tid = svg && svg.dataset.tid;
     if (!tid || typeof T[tid] !== 'function') return false;
@@ -2076,8 +2185,9 @@
   function refit(root) {
     if (!root.isConnected) { if (root._dg3ro) root._dg3ro.disconnect(); root._dg3ro = null; return; }
     const svg = root.querySelector('svg.dg3'); if (!svg) return;
-    const w = wantW(root), cur = +svg.dataset.cw || 0, want = w ? Math.max(CW_MIN, w) : 980;
-    if (want === cur || (want > cur && want - cur < GROW_MIN)) return;
+    const w = wantW(root), cur = +svg.dataset.cw || 0, want = wantCanvas(w);
+    // 直排版跟水平版互換（跨過 640）一定重畫；同一種版面才套「變寬差 24px 以上才重畫」
+    if ((svg.dataset.v === '1') === isV() && (want === cur || (want > cur && want - cur < GROW_MIN))) return;
     const selN = root.querySelector('.p3.stn.sel');
     const sel = selN && selN.dataset.part;
     if (!rerender(root, w)) return;
@@ -2103,8 +2213,8 @@
     if (typeof rewire === 'function') root._dg3Rewire = rewire;
     const svg = root.querySelector('svg.dg3');
     if (svg) {
-      const w = wantW(root), want = w ? Math.max(CW_MIN, w) : 980;
-      if (want !== (+svg.dataset.cw || 0)) rerender(root, w);
+      const w = wantW(root), want = wantCanvas(w);
+      if (want !== (+svg.dataset.cw || 0) || (svg.dataset.v === '1') !== isV()) rerender(root, w);
     }
     layout(root);
     watch(root);

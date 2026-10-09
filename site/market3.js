@@ -1501,6 +1501,21 @@
   function decorVol(x, k) {
     const s = k && k.panes && k.panes.vol && k.panes.vol[0];
     if (!s) return;
+    /* ★ 2026-10-09 手機 v2（Andy：「K線圖 走勢圖 Y軸都沒資訊了」「成交量軸也一樣處理」）：手機量軸頂格「20000億」七個字、
+       又貼著面板分隔線被切一半 → 改寫成「2.0兆／850億／12萬口」並在面板頂端留 18% 空白。只限 html.m4，桌機走下面原本那條。*/
+    if (document.documentElement.classList.contains('m4')) {
+      try {
+        const yi = (v) => { const a = Math.abs(v); return a >= 1e12 ? (v / 1e12).toFixed(1) + '兆' : a >= 1e8 ? Math.round(v / 1e8) + '億' : a >= 1e4 ? Math.round(v / 1e4) + '萬' : String(Math.round(v)); };
+        const ko = (v) => { const a = Math.abs(v); return a >= 1e4 ? (a >= 1e5 ? Math.round(v / 1e4) : (v / 1e4).toFixed(1)) + '萬口' : Math.round(v) + '口'; };
+        const fm = isMoney(x) ? yi : ko;
+        // 量不可能是負的：下限夾在 0、負數刻度不印（chart.js 手機開了 ensureEdgeTickMarksVisible，量面板底下若留空白，最底那格會落在負數）
+        s.applyOptions({ priceFormat: { type: 'custom', minMove: 1, formatter: fm, tickmarksFormatter: (ps) => ps.map((v) => (v < 0 ? '' : v === 0 ? '0' : fm(v))) },
+          autoscaleInfoProvider: (orig) => { const r = orig(); if (r && r.priceRange) r.priceRange.minValue = 0; return r; } });
+        const cur = (s.priceScale().options() || {}).scaleMargins || {};
+        s.priceScale().applyOptions({ scaleMargins: { top: Math.max(0.18, cur.top || 0), bottom: 0 } });
+      } catch (e) { /* 圖表庫不支援就維持預設刻度 */ }
+      return;
+    }
     try {
       s.applyOptions({ priceFormat: { type: 'custom', minMove: 1, formatter: isMoney(x)
         ? (v) => (Math.abs(v) >= 1e8 ? (v / 1e8).toFixed(Math.abs(v) >= 1e10 ? 0 : 1) + '億' : Math.round(v / 1e4) + '萬')
@@ -2373,6 +2388,7 @@
     const L = lineData(x, d);
     if (L.cats.length !== H.cats.length) return false;
     if (H.dec != null && H.dec !== axisDec(L.hi - L.lo)) return false;   // 軸刻度小數位數要換 → 整張畫（2026-10-01）
+    if (H.noVol != null && H.noVol !== !(L.vmax > 1)) return false;   // 手機：量從無到有（或反過來）→ 量格高度要換，整張畫（2026-10-09）
     // tooltip 與量柱顏色的 callback 讀的是這個盒子（不是閉包裡那份陣列）——
     // 就地換掉，滑鼠移上去看到的才是最新的值，而不是上一輪的殘影。
     H.price = L.price; H.vol = L.vol; H.d = d;
@@ -2407,7 +2423,7 @@
        如果它們直接抓上面那幾個 const，`patchLine()` 換完資料之後它們讀到的還是舊陣列。
        所以統一從這個掛在容器上的盒子裡讀 —— 補資料時就地換掉它的欄位就好。*/
     const H = el._m3line = { cats, price, vol, d, night: !!d.night, prev: d.prev, s0, dec: axisDec(hi - lo) };
-    A.chart(el, {
+    const opt = {
       /* ★ 2026-09-24（Andy：「走勢圖／K 線左右擴充到適當範圍，不要留太多空白」）：
          左 14→2、右 58→4（containLabel 會自己把右側價格軸的字算進來，不必再多留 54px）。*/
       grid: [{ left: 2, right: 4, top: 10, bottom: 70, containLabel: true },
@@ -2477,7 +2493,35 @@
             return (H.price[i] != null && prev != null && H.price[i] >= prev) ? hexa('#ff4d6d', .7) : hexa('#2ee59d', .7);
           } } },
       ],
-    }, { notMerge: true });
+    };
+    /* ★ 2026-10-09 手機 v2（Andy 09:1x：「K線圖 走勢圖 Y軸都沒資訊了，需要你完整他」「價格刻度用縮寫或精簡位數」「成交量軸也一樣處理」）：
+       桌機那組（containLabel、10／9px 字）在手機有三個毛病：① 價格格與量格各自 containLabel，兩張圖右緣對不齊、量軸字被擠出圖框；
+       ② 9～10px 低於全站 12px 下限；③「49,865」「2,000 億」這種長刻度一多就互壓、被 hideOverlap 藏到只剩一兩格。
+       手機改成：兩格右邊固定留 44px 給刻度（不靠 containLabel）、字 12px、價格 ≥ 10,000 寫 49.5k、量軸寫 2.0兆／850億／12萬口。
+       只限 html.m4；桌機走上面原本那組（桌機守門1008）。 */
+    if (document.documentElement.classList.contains('m4')) {
+      const kf = (v) => { const a = Math.abs(v); if (a >= 1e4) { const k = v / 1000; return (Math.abs(k - Math.round(k)) < 0.05 ? Math.round(k) : k.toFixed(1)) + 'k'; } return f.n(v, axisDec(hi - lo)); };
+      const vf = (v) => { if (x.id === 'FUT') return v >= 1e4 ? Math.round(v / 1e4) + '萬口' : f.i(v) + '口';
+        const y = v * 1e6; return y >= 1e12 ? (y / 1e12).toFixed(1) + '兆' : y >= 1e8 ? Math.round(y / 1e8) + '億' : Math.round(y / 1e4) + '萬'; };
+      /* 沒有量（vmax ≤ 1：種子不帶量、或這一段沒有真實分鐘量）時，量那一格是一條 44px 的空白帶，夾在價格最低刻度與時間軸之間
+         （CEO 退件：402 總覽「47.5k 下面到底線還有約 150px 空白」）→ 手機把量格收成 1px，價格格直接接到時間軸上。 */
+      const noVol = !(vmax > 1);
+      H.noVol = noVol;
+      opt.grid = [{ left: 2, right: 44, top: 10, bottom: noVol ? 26 : 70, containLabel: false },
+        { left: 2, right: 44, height: noVol ? 1 : 44, bottom: 22, containLabel: false }];
+      Object.assign(opt.yAxis[0].axisLabel, { fontSize: 12, margin: 4, formatter: kf });
+      Object.assign(opt.yAxis[1].axisLabel, { fontSize: 12, margin: 4, formatter: vf });
+      /* 時間軸（監督退件：360 寬圖進了方框變窄，「10:3011:0011:3012:00」黏在一起）：照實際繪圖寬算每 30 分鐘一格有多寬，
+         放不下「HH:MM」（12px 約 34px）＋ 4px 間距就改成每 60 分鐘、再不行每 90 分鐘一個刻度；hideOverlap 留著當最後一道保險。 */
+      const per30 = Math.max(1, Math.ceil(cats.length / 30));
+      // 藏著的那幾張（加權｜櫃買｜台指期一次只顯示一張）量不到自己的寬 → 用外框寬扣掉卡片左右內距估
+      const w0 = el.clientWidth || (((document.getElementById('m3Grid') || {}).clientWidth || 330) - 28);
+      const plotW = Math.max(100, w0 - 46);
+      const stepMin = (plotW / per30 >= 38 ? 30 : plotW / per30 >= 19 ? 60 : 90) * (cats.length > 280 ? 2 : 1);
+      Object.assign(opt.xAxis[1].axisLabel, { fontSize: 12, hideOverlap: true, interval: (i) => (s0 + i) % stepMin === 0 });
+      H.xStep = stepMin;
+    }
+    A.chart(el, opt, { notMerge: true });
 
     /* ---- 呼吸燈：標出「最新的那一點」，而且只在真的還在更新時才呼吸。
        位置不是算出來寫死的，是每次跟 ECharts 要（`convertToPixel`），

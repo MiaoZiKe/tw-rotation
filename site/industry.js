@@ -843,7 +843,7 @@
       const gpQ = '<button class="howbtn pop" data-how="gp" type="button" aria-label="這張圖怎麼看">?</button>';
       $('#gpTitle', host).innerHTML = drill
         ? `${A.fmt.esc(drill.name)}${gpQ}　<small class="muted">這個族群的個股漲幅（${b.asc.length}／${(drill.members || []).length} 檔）</small>`
-        : `${A.fmt.esc(ctx.scope)}族群漲幅與占比${gpQ}　<small class="muted">列出成交值前 ${b.asc.length} 個族群</small>`;
+        : `${A.fmt.esc(ctx.scope)}族群漲幅與占比${gpQ}　<small class="muted">${document.documentElement.classList.contains('m4') ? '成交值前 ' + b.asc.length + ' 名' : '列出成交值前 ' + b.asc.length + ' 個族群'}</small>`;   // 手機精簡成一句放得下的長度（2026-10-09 Andy：「上方備註不准斷句」）
       /* ★ 2026-09-24 說明精簡：同一份內容改成「一句問題 → 條列 → 最下面一行小字」，住在「怎麼看 ?」裡。*/
       const gpFine = '甜甜圈其餘併成「其他」，中心寫前五大合計；滑過任一邊，另一邊對應的那一塊同步標起來，下方那行寫出它的數字。'
         + '按「即時」＝盤中暫定值，每 5 秒更新：成交值是<b>估算</b>的（最新價 × 累積張數），'
@@ -1451,7 +1451,9 @@
          Default（沒選任何一格）時它是空的、高度 0；點色標或環節卡才展開。
          它跟右側資訊欄 `#coBox.relside` 是兩件事：資訊欄講「某一檔公司」，
          環節詳情講「某一格環節」，各自有自己的位置，不互相取代。*/
-      renderSegBox($('#segBox', el), sc, shown, ch, { filtered: !!segFilter, onFilter: () => {
+      /* 手機 v2（html.m4）：點零件只開底部抽屜 —— 關聯圖下面的環節詳情（#segBox）不因為「點零件」長出來（頁面不准跳、不往頁面插東西）；
+         真的選了一格（segFilter：下拉、色標）照舊展開。桌機不變。*/
+      renderSegBox($('#segBox', el), sc, (partSel && !segFilter && m4Part()) ? null : shown, ch, { filtered: !!segFilter, onFilter: () => {
         segFilter = shown; segHi = null; partHi = partSel = null; state.group = null; syncHighlight();
       } });
       /* 族群換了就換圖。★ 2026-09-21：換到「沒有圖」也是一種結果 ——
@@ -1467,7 +1469,12 @@
       const t = $('#dgTitle', el), q = $('#dgQ', el) || document.getElementById('dgQ');   // 「?」開著時 #dgQ 在 #howPop 裡
       if (t) {
         /* 說明精簡：圖名＋誠實標示留在畫面；「點零件看供應商／原尺寸可左右滑」搬進「怎麼看 ?」 */
-        t.textContent = dgId
+        /* ★ 2026-10-09 手機 v2（CEO 轉派帳本 21／62：「原創示意圖，非實物比例」在手機被拆成「…非實物比｜例」）：
+           m4 時圖名與誠實標示各包一個 span（mobile4.css 第 31 節：標示整段不換行，放不下就整段折到下一行）；桌機照舊純文字。*/
+        if (dgId && document.documentElement.classList.contains('m4')) {
+          const e2 = (x) => String(x).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+          t.innerHTML = `<span class="dgtn">${e2(DS.name(dgId))}</span><span class="dgtm">　·　原創示意圖，非實物比例</span>`;
+        } else t.textContent = dgId
           ? `${DS.name(dgId)}　·　原創示意圖，非實物比例`
           /* 沒有選圖＝正在看族群總覽。以前這裡寫「在下面選一張」是指圖別選單，
              選單移除之後要改成指**上方的分頁列**，不然會叫使用者去看一個不存在的東西。*/
@@ -1538,6 +1545,12 @@
       partSel = (partHi || segHi) ? { seg, key: key || null } : null;
       segFilter = null;
       syncHighlight({ quiet: true });
+      /* 手機 v2（html.m4）：選起來＝開底部抽屜（跟點編號同一個）；再點一次同一個零件（取消）＝關抽屜。頁面不插東西、不捲。*/
+      if (m4Part()) {
+        const h3 = $('#prod3d', el), host = h3 && !h3.hidden ? h3 : $('#prodDiagram', el);
+        if (partSel) window.DG.mobileOpenPart(host, partSel.key, partSel.seg);
+        else if (window.M3 && window.M3.closeSheet) { const sh = document.getElementById('mSheet'); if (sh && !sh.hidden && sh.dataset.kind === 'dgno') window.M3.closeSheet(); }
+      }
     };
     /* 點背景 ＝ 回到 Default：全部零件恢復全亮、零件小卡收掉（Andy 2026-09-22）。
        ⚠ **刻意不動 segFilter** —— 那是環節色標的「篩選」，跟零件的「高亮」是兩件事。
@@ -1549,6 +1562,9 @@
       partHi = partSel = segHi = null;      // partSel 是小卡的狀態，忘了清小卡就收不掉
       syncHighlight({ quiet: true, noscroll: true });
     };
+    /* 手機抽屜（diagrams.js）要的兩個掛鉤：「更多 ›」的內容、關抽屜＝取消選取。掛在兩個圖框上（2D／3D 各一個抽屜來源）。
+       桌機也掛，但只有 m4 的抽屜會呼叫，桌機畫面沒有任何東西讀它。*/
+    [$('#prodDiagram', el), $('#prod3d', el)].forEach(h => { if (h) { h._mInfo = (key, seg) => partInfoM4(el, sc, dgId, seg, key); h._mClose = clearPart; } });
     /* ★ 2026-09-24（Andy：「不需要"收起"選項，點擊背景即可消除（每個點擊資訊都確保是這樣功能）」）：
        零件小卡登記進全站那一份「點外面就關、按 Esc 也關」（app.js 的 dismissable）。
        剖析圖那一整區（含 3D／拖曳／重設／動畫／收合那排鈕）與關聯圖**不算外面**：
@@ -1728,6 +1744,9 @@
       const relM4 = document.documentElement.classList.contains('m4');
       let relOpen = true;
       try { const v = localStorage.getItem('tw.relOpen'); if (v != null) relOpen = v === '1'; } catch (e) { /* 忽略 */ }
+      /* ★ 2026-10-09（Andy 手機 HBM 頁截圖：「這分頁收合功能都拿掉」）：手機產業鏈／族群頁的「收合圖」鈕拿掉（mobile4.css 第 31 節），
+         內容一律展開 —— 以前收起過（tw.relOpen＝0）也不准停在收起，不然鈕沒了就再也打不開。桌機照舊。*/
+      if (relM4) relOpen = true;
       const paintRelFold = () => {
         if (mapHost) mapHost.hidden = !relOpen;
         /* 清單平常與圖等高（它自己的高度不算進版面）；圖收起來之後沒有「圖的高度」可以對齊，
@@ -1795,6 +1814,8 @@
          「我就是要看這張」。手機的預設收合是給「順著鏈逛進來」的人省高度用的，
          不該蓋掉明確的意圖 —— 否則從圖別選單點一張圖進來，看到的是一顆收合鈕。*/
       if (dgExplicit) dgOpen = true;
+      // ★ 2026-10-09（Andy：「這分頁收合功能都拿掉」）：手機 v2 沒有收合鈕，一律展開（同上面關聯圖那段）
+      if (document.documentElement.classList.contains('m4')) dgOpen = true;
       /* ★ 手機 v3（≤640px，docs/mobile_v3_spec.md §9 第 1 條）：剖析圖預設**展開**。
          當初收合的理由是「字卡把圖撐到 1000px 以上」；手機 v3 字卡拿掉、只留編號之後圖只剩約 300px，
          收合反而讓這一頁的主角要多點一下才看得到。手機上「收合圖」那顆鈕也一起藏起來（index.html）。
@@ -1851,7 +1872,21 @@
       applyDgNative($('#prodDiagram', el), dgId);
       paintDiagram($('#prodDiagram', el));
       // 剖析圖不加縮放：Andy 明講「產業與個股 剖析圖不用新增縮放功能」（本來就可以左右滑）
-      wireDiagram(el, pickPart, clearPart);
+      /* ★ 2026-10-09 手機 v2（Andy 09:3x：「↻ 改點背景重設」「產業鏈剖析圖的 ↻ 也照同一規則處理：拿掉鈕，改成點背景重設。3D 只在輕點（不是拖曳）時才重設」）：
+         上一版右上角那顆 ↻ 拿掉；點圖的空白處（2D：沒點到零件／章節列；3D：three3d.js onUp 已擋掉拖超過 5px 的，走到 onBg 的一定是原地輕點而且沒打到零件）
+         ＝回到預設：3D 視角回初始（按 #dgReset 本人，同一支 resetView）、圖框捲動歸零、說明面板收掉、編號高亮與選取全部清掉。
+         桌機（沒有 html.m4）照舊只 clearPart，一行沒變。*/
+      const m4dg = document.documentElement.classList.contains('m4');
+      const bgReset = !m4dg ? clearPart : () => {
+        const h3 = $('#prod3d', el), h2 = $('#prodDiagram', el);
+        if (h3 && !h3.hidden) { const r = $('#dgReset', el); if (r) r.click(); }
+        if (h2) { h2.scrollLeft = 0; h2.scrollTop = 0; }
+        if (window.M3 && window.M3.closeSheet) window.M3.closeSheet();
+        $$('.mnum.on', el).forEach(b => b.classList.remove('on'));
+        clearPart();
+      };
+      wireDiagram(el, pickPart, bgReset);
+      if (m4dg) { const old = $('#dgBody > .m4rst', el); if (old) old.remove(); }
       if (window.DG && window.DG.fillChips) window.DG.fillChips($('#prodDiagram', el), (seg) => { const tw = twOf(sc, seg);
         return { list: tw.slice(0, 4).map(c => ({ code: c.tw_code, name: c.name })), total: tw.length }; });
       /* 配色鈕：跟 3D 無關，只要這一頁上有剖析圖就該能按（2D 也要能換配色）。
@@ -1901,8 +1936,8 @@
       if (skip3d) return;                 // 收合狀態下不掛 3D（展開時才補掛）
       wire3D(el, DS.scene(dgId), {
         onSeg: (seg, data) => pickPart(seg, data && data.part),
-        // 3D 場景點空白處＝跟 2D 一樣回到 Default（Andy 2026-09-22 明講「3D 也要」）
-        onBg: clearPart,
+        // 3D 場景點空白處＝跟 2D 一樣回到 Default（Andy 2026-09-22 明講「3D 也要」）；手機另外把視角也回初始（bgReset，2026-10-09）
+        onBg: bgReset,
         sync: () => syncHighlight({ quiet: true }),
         /* 圖九 2-3（規格書 docs/diagram_specs/dg3d_standard.md）：
            3D 的文字框以前只有「零件名＋一行說明」，是死的。
@@ -2156,8 +2191,41 @@
   }
 
   /* 小卡本體。`seg` 一定有（零件的 data-seg）；`key` 可能沒有（3D 場景的零件沒對到 2D 時）。*/
+  /* ★ 2026-10-09 手機 v2（html.m4，≤640）：零件卡不插在圖下面（Andy：「3D 圖為何還會出現下方欄位，已經有編號可以說明了」），
+     改由 diagrams.js 的底部抽屜（DG.mobileOpenPart）呈現。桌機（沒有 m4）renderPartCard 一個字不變。*/
+  const m4Part = () => document.documentElement.classList.contains('m4') && window.innerWidth <= 640 && !!(window.DG && window.DG.mobileOpenPart);
+  /* 手機抽屜要的那一份：名稱、短說明、台股代號、環節色，以及收進「更多 ›」的長清單（環節／外商／進料／出貨／附註）。
+     資料口徑跟 renderPartCard 同一套（def.cos／twOf、foreignOf、def.items／segItems），只是排成抽屜的樣子；
+     顏色只用站上 token（mobile4.css 檔尾那一節），不吃 .partcard 的 --dg-* 底色。*/
+  function partInfoM4(root, sc, dgId, seg, key) {
+    const def = (key && DS && DS.parts && (DS.parts(dgId) || {})[key]) || null;
+    if (!sc || (!seg && !def)) return null;
+    const onFig = partTextOf(root, key);
+    const s = (sc.segments || []).find(x => x.id === seg) || {};
+    const segNm = s.name || seg || '';
+    const name = (def && def.name) || (onFig && onFig.name) || segNm;
+    const desc = (def && def.desc) || (onFig && onFig.desc) || (s.desc || '');
+    const tw = def && def.cos ? def.cos.map(c => (sc.companies || []).find(x => x.tw_code === c || x.id === c)).filter(Boolean) : twOf(sc, seg);
+    const fo = foreignOf(sc, seg);
+    let inn, out;
+    if (def && def.items) { const all = (sc.edges || []).filter(e => e && e.item); inn = def.items.map(it => all.find(e => e.item === it) || { item: it, confidence: null }); out = []; }
+    else { const r = segItems(sc, seg); inn = r.inn; out = r.out; }
+    const E = A.fmt.esc;
+    const co = (c) => `<span class="mpcco">${E(c.name)}${(c.tech || []).length ? `<small>${E(c.tech.join('、'))}</small>` : ''}</span>`;
+    const it = (e) => `<span class="mpcit">${E(e.item)}${e.confidence ? `<small>${E(CONF_TEXT[e.confidence] || e.confidence)}</small>` : ''}</span>`;
+    const row = (k, html) => (html ? `<div class="mpcrow"><span class="k">${E(k)}</span><span class="v">${html}</span></div>` : '');
+    const noneTxt = def && def.none ? def.none : (fo.length ? `台股沒有廠商做這一格，實際上做的是：${fo.map(c => c.name).join('、')}。` : '');
+    const more = row('環節', seg ? E(segNm) : '')
+      + (tw.length ? row('做這個的台股', tw.map(co).join('')) : row('台股有沒有人做', noneTxt ? `<span class="mpcnone">${E(noneTxt)}</span>` : ''))
+      + (tw.length && fo.length ? row('同一格的外商', fo.map(co).join('')) : '')
+      + ((def && def.items) ? row('相關料號', inn.map(it).join('')) : (row('進料', inn.map(it).join('')) + row('出貨', out.map(it).join(''))))
+      + (def && def.note ? `<div class="mpcnote">★ ${E(def.note)}</div>` : '');
+    return { name, desc, codes: tw.map(c => c.tw_code).filter(Boolean), color: segColor(seg),
+      more: more ? more + '<div class="mpcft">標籤＝資料可信度（官方揭露／媒體報導／產業推論）</div>' : '' };
+  }
   function renderPartCard(box, root, sc, dgId, seg, key, opt) {
     if (!box) return;
+    if (m4Part()) { box.hidden = true; box.innerHTML = ''; return; }
     ensurePartCss();
     const o = opt || {};
     const def = (key && DS && DS.parts && (DS.parts(dgId) || {})[key]) || null;
@@ -2389,7 +2457,9 @@
     // 記住這張圖的 id：切 2D／3D 時要重套一次，那時候只拿得到 DOM
     if (id) host.dataset.dgid = id; else id = host.dataset.dgid || '';
     const w = (!on3d && DS && DS.native) ? DS.native(id) : 0;
-    const svg = host.querySelector('svg');
+    /* ★ 2026-10-09：跳過手機編號層（.mnumlayer，diagrams.js mobileNums 插的引線 svg）—— 圖本身不是 svg 的版型（HBM 那種卡片格）
+       以前會抓到引線 svg、把它釘成原寸 940px，手機圖框多出 570px 的隱形橫捲。桌機沒有 .mnumlayer，抓到的元素跟以前完全一樣。*/
+    const svg = host.querySelector('svg:not(.mnumlayer svg)');
     /* ★ 2026-09-23（W3-5）：v2 版面的 svg 已經被 `externalize()` 包進 `.dgcanvas`
        （diagrams.js:286 當場就把 host 的 overflow 清掉，捲動交給那一層）。
        這一支在切 2D／3D、換圖時會再跑一次 —— 如果照舊把 `overflow-x:auto` 設回 host，
@@ -2782,6 +2852,13 @@
         b.classList.toggle('on', cur); b.setAttribute('aria-pressed', cur ? 'true' : 'false');
       });
       btn.dataset.mode = is3d ? '3d' : '2d';
+      /* ★ 2026-10-09 手機 v2（Andy：「2D/3D 變成一個切換功能就好，一個圓圈，原本 2D 點一下變成 3D，來回可切換」）：
+         手機只露出「另一個模式」那一格、圓鈕上用 CSS 寫出**目前**模式（mobile4.css 第 31 節），點它＝切過去；
+         點的是真的那一格，所以 3D 的權限鎖頭（features.js ind.3d 的 block: button[data-dm="3d"]）照舊攔得到。
+         這裡只補讀屏標籤；桌機（沒有 m4）不寫。*/
+      if (document.documentElement.classList.contains('m4')) {
+        $$('button[data-dm]', btn).forEach(b => b.setAttribute('aria-label', is3d ? '目前 3D，點一下切到 2D' : '目前 2D，點一下切到 3D'));
+      }
     };
     const setMode = async (on) => {
       try { localStorage.setItem('tw.dg3d', on ? '1' : '0'); } catch (e) { /* 忽略 */ }
@@ -2826,6 +2903,33 @@
       if (ctl) host.appendChild(ctl);   // 3D 掛好才搬進畫面框（原因見 clear3dHost 上面的說明）
       // 手機 v3（≤640px）：3D 的字卡欄與 .ld-no 收掉，改用會自己避讓的 HTML 編號層（桌機進去就 return）
       if (window.DG && window.DG.mobileNums3d) window.DG.mobileNums3d(host, v);
+      /* ★ 2026-10-09 手機 v2（Andy 帳本 67：「當切到 3D 圖，需要在圖片右上角新增展開及收合 3D 圖片功能」）：
+         只在手機（html.m4）、只在 3D 時：圖框右上角一顆圓鈕（住在 #prod3d 裡，切回 2D 跟著框一起藏）。
+         收合＝畫布 220px、只看模型縮圖，編號與引線藏起來；展開＝原高、編號回來。兩邊都重新取景（v.setCompact）。
+         預設展開；切過就記在 localStorage tw.m4.3dmin。頁面不准跳：切換前後量 scrollY，被捲動錨點拉走就拉回來。桌機不插。*/
+      if (document.documentElement.classList.contains('m4') && v.setCompact) {
+        const minPref = () => { try { return localStorage.getItem('tw.m4.3dmin') === '1'; } catch (e) { return false; } };
+        const cb = document.createElement('button');
+        cb.type = 'button'; cb.className = 'm4c3d';
+        const paintC = (mn) => {
+          host.classList.toggle('m4c3dmin', mn);
+          cb.textContent = mn ? '⤢' : '⤡';
+          cb.setAttribute('aria-label', mn ? '展開 3D 圖' : '收合 3D 圖'); cb.title = mn ? '展開 3D 圖' : '收合 3D 圖';
+          cb.setAttribute('aria-pressed', mn ? 'true' : 'false');
+        };
+        const applyC = (mn) => { paintC(mn); v.setCompact(mn ? 220 : null); };
+        cb.onclick = (ev) => {
+          ev.stopPropagation();
+          const y0 = window.scrollY, mn = !host.classList.contains('m4c3dmin');
+          try { localStorage.setItem('tw.m4.3dmin', mn ? '1' : '0'); } catch (e) { /* 私密視窗 */ }
+          if (mn && window.M3 && window.M3.closeSheet) window.M3.closeSheet();
+          applyC(mn);
+          if (Math.abs(window.scrollY - y0) > 0) window.scrollTo({ top: y0, behavior: 'instant' });
+          requestAnimationFrame(() => { if (Math.abs(window.scrollY - y0) > 0) window.scrollTo({ top: y0, behavior: 'instant' }); });
+        };
+        host.appendChild(cb);
+        if (minPref()) applyC(true); else paintC(false);
+      }
       /* N1（Andy 2026-09-19）：「3D圖需要可以游標抓取移動，並且可以 360 都觀測，
          我發現下面看不到」。仰角限制已在 three3d.js 解開（0 ~ π），
          這裡再補一顆「拖曳：轉動／平移」——OrbitControls 預設右鍵才平移，

@@ -484,6 +484,31 @@
     };
   }
 
+
+  /* ★ 2026-10-09 手機 v2（Andy 09:1x 看 402 寬預覽：「K線圖 走勢圖 Y軸都沒資訊了，需要你完整他」）：
+     手機的價格軸只有 60～70px 寬，「48475.74」「47500.00」這種八、九個字的刻度一多就互相壓、最上面那一格被現價標籤蓋掉、
+     量軸頂格「20000億」被面板分隔線切一半。只在 html.m4（≤640）改「刻度怎麼寫」，桌機一行不動（桌機守門1008）：
+       · 刻度（tickmarksPriceFormatter）：≥ 10,000 寫成 48k／47.5k；≥ 1,000 去小數；其他依刻度間距給 0～2 位小數。
+       · 現價標籤與十字游標（priceFormatter）：≥ 1,000 去小數（2585、48476），< 1,000 保留兩位 —— 精確值在圖上方的大字與 OHLC 框。
+       · 量軸（自訂格式的量柱）照它自己的單位，不吃上面兩條（大盤量軸的精簡與頂端留白在 market3.js decorVol）。*/
+  const isM4 = () => document.documentElement.classList.contains('m4');
+  function m4Tick(ps) {
+    const a = ps.filter(Number.isFinite), step = a.length > 1 ? Math.abs(a[1] - a[0]) : 1;
+    const dec = step >= 1 ? 0 : step >= 0.1 ? 1 : 2;
+    return ps.map((v) => {
+      const x = Math.abs(v);
+      if (x >= 1e4) { const k = v / 1000; return (Math.abs(k - Math.round(k)) < 0.05 ? Math.round(k) : k.toFixed(1)) + 'k'; }
+      if (x >= 1000) return String(Math.round(v));
+      return v.toFixed(dec);
+    });
+  }
+  function m4Price(v) { return Math.abs(v) >= 1000 ? String(Math.round(v)) : v.toFixed(2); }
+  /* 主圖那條序列（K 棒／分時面積線）的格式：自訂格式＋刻度格式，只套在它身上 ——
+     ⚠ 不用整張圖的 localization.tickmarksPriceFormatter：那條會連量軸（自訂單位「萬張／億」）一起蓋掉（實測變成「2000000000k」）。*/
+  function m4Fmt(series) {
+    if (!isM4() || !series) return;
+    try { series.applyOptions({ priceFormat: { type: 'custom', minMove: 0.01, formatter: m4Price, tickmarksFormatter: m4Tick } }); } catch (e) { /* 舊版：維持預設 */ }
+  }
   class KChart {
     constructor(el, opts) {
       this.el = el; this.opts = Object.assign({ mini: false, tf: '1d' }, opts);
@@ -494,7 +519,10 @@
          兩個一起開也順便讓「縮小」最多縮到整段資料剛好填滿（＝1×），不會再縮出空白。
          只限手機：桌機的右側留白（rightOffset 4 根）與自由拖曳照舊（桌機守門1008）。 */
       if (document.documentElement.classList.contains('m4')) this.chart.applyOptions({ timeScale: { fixLeftEdge: true, fixRightEdge: true } });
+      // 手機：價格軸最上／最下那格刻度整個畫在面板裡（不被面板上緣或分隔線切一半；Andy 10-09「Y軸都沒資訊了，需要你完整他」）
+      if (isM4()) { this.chart.applyOptions({ rightPriceScale: { ensureEdgeTickMarksVisible: true } }); el._m4kc = this; }   // _m4kc：給手機驗收量價格軸用（只在手機掛）
       this.candle = this.chart.addSeries(LWC.CandlestickSeries, { upColor: C.up, downColor: C.down, borderUpColor: C.up, borderDownColor: C.down, wickUpColor: C.up, wickDownColor: C.down, priceLineVisible: true, lastValueVisible: true });
+      m4Fmt(this.candle);   // 手機價格軸刻度精簡（見 m4Tick）
       this.zones = new ZonesPrimitive([]); this.candle.attachPrimitive(this.zones);
       this.tgrid = []; { const g0 = new TimeGridPrimitive(this); this.candle.attachPrimitive(g0); this.tgrid.push(g0); this._tgPanes = { 0: g0 }; }   // 時間軸分隔線（DECISIONS #337）
       this.divPrice = new DivPrimitive(); this.candle.attachPrimitive(this.divPrice);
@@ -1044,6 +1072,14 @@
     }
     _hist(vals, colorFn, pane) {
       const s = this.chart.addSeries(LWC.HistogramSeries, { priceLineVisible: false, lastValueVisible: false, priceFormat: pane === 1 && this.cfg && this.cfg.vol ? { type: 'custom', minMove: 1, formatter: (v) => (Math.abs(v) >= 1e7 ? (v / 1e7).toFixed(1) + '萬張' : (v / 1000).toFixed(0) + '張') } : { type: 'price', precision: 2, minMove: 0.01 } }, pane);
+      /* ★ 2026-10-09 手機（CEO 退件：個股成交量軸出現「-2000張」）：手機把價格軸最上／最下那格刻度一定畫出來（ensureEdgeTickMarksVisible），
+         量面板底下原本留 8% 空白 → 最底那格落在負數。量不可能是負的：手機的量面板自動縮放下限夾在 0、底下不留空白，負數刻度一律不印。桌機不走這裡。 */
+      if (isM4() && pane === 1 && this.cfg && this.cfg.vol) {
+        const vf = (v) => (Math.abs(v) >= 1e7 ? (v / 1e7).toFixed(1) + '萬張' : (v / 1000).toFixed(0) + '張');
+        s.applyOptions({ priceFormat: { type: 'custom', minMove: 1, formatter: vf, tickmarksFormatter: (ps) => ps.map((v) => (v < 0 ? '' : v === 0 ? '0' : vf(v))) },
+          autoscaleInfoProvider: (orig) => { const r = orig(); if (r && r.priceRange) r.priceRange.minValue = 0; return r; } });
+        try { const cur = (s.priceScale().options() || {}).scaleMargins || {}; s.priceScale().applyOptions({ scaleMargins: { top: cur.top != null ? cur.top : 0.1, bottom: 0 } }); } catch (e) { /* 圖剛銷毀 */ }
+      }
       // 同 _line：缺值給 whitespace，NaN／Infinity 一起擋（以前這裡連 NaN 都沒擋）
       s.setData(this.data.map((d, i) => Number.isFinite(vals[i]) ? { time: d.time, value: vals[i], color: colorFn(i) } : { time: d.time }));
       this._tgAttach(s, pane);
@@ -1449,6 +1485,7 @@
       base.layout.panes = Object.assign({}, base.layout.panes, { enableResize: false });
       this.chart = LWC.createChart(el, base);
       this.line = this.chart.addSeries(LWC.AreaSeries, this._areaOpts(true), 0);
+      m4Fmt(this.line);   // 手機價格軸刻度精簡（見 m4Tick）
       /* 缺口之後的每一段各用一條面積線（this.more）。圖表庫的線會直接跨過空白點連過去（實測 v5.2.1：
          缺口那 19 分鐘明明是空白點，畫面上還是一條斜線從 10:10 拉到 10:30）—— 斷不開就分成好幾條。*/
       this.more = [];

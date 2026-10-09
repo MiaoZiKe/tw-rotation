@@ -163,7 +163,7 @@
     width:calc(100vw - 32px);max-height:60vh;overflow-y:auto;padding:4px;border-radius:10px;border:1px solid var(--line-2);background:var(--panel);box-shadow:0 10px 26px rgba(0,0,0,.35)}
   :root.m4 .segdd.open #segChips>*{width:100%;justify-content:flex-start;min-height:40px;border-radius:7px}
   /* 環節卡清單與「全部展開」那列：不拿掉，收進一顆預設收起的「環節卡清單 ▸」收合列（mobile4.js wireChainList）；剖析圖也預設收起（#dgFold 在手機重新露出來當收合列） */
-  :root.m4 #indChain .chainpane:not(.m4listopen) #chainList,:root.m4 #indChain .chainpane:not(.m4listopen) #segTools{display:none!important}
+  :root.m4 #indChain .chainpane #chainList,:root.m4 #indChain .chainpane #segTools,:root.m4 #indChain .chainpane>.m4fold{display:none!important}   /* 2026-10-09 收合列拿掉（Andy 05:1x「這分頁收合功能都拿掉」）：整段不顯示 */
   :root.m4 #indChain .m4fold{display:flex;align-items:center;gap:6px;width:100%;min-height:44px;margin-top:12px;padding:0 2px;border:0;border-top:1px solid var(--line);
     background:transparent;color:var(--ink);font:inherit;font-size:15px;font-weight:700;text-align:left;cursor:pointer}
   :root.m4 #indChain .m4fold i{font-style:normal;color:var(--ink-3)}
@@ -238,8 +238,9 @@
 
   /* ---- 14. 手機一律不用方格（2026-10-08 Andy：「礙於手機空間有限，原本每個功能底下的大方格需要取消，直接用線條去做區分即可」）
      功能區塊、卡中卡、面板：拿掉邊框、底色塊、圓角、陰影、四角裝飾；區塊之間只留 1px 細線＋12px 間距。
-     例外：按鈕、輸入框、分段切換鈕本身的外框；月曆的日期格（格子本身就是資料的座標）；指數三格改成淡分隔線。 */
-  :root.m4 main .view :is(.nbbody,.epanel,.mfocus,.gpcard,.dgwrap,.mdgfolds,.chainmap,.sl-secn,.sl-card,.callist,.inclist,.wpbody,#lwc,.osc,.hpanel,.panel,.mpanel,.relsec,.dgsec,.nbcard,.segbox,.howtxt,.incsec,.cxl,.cxr,.simtw,.rellist,.mcard,.qcard){
+     例外：按鈕、輸入框、分段切換鈕本身的外框；月曆的日期格（格子本身就是資料的座標）；指數三格改成淡分隔線。
+     ★ 2026-10-09 起圖表本身另有規則（Andy：「圖表都不是透明的，需要有自己的底色方框」）：#lwc、.dgwrap、摘要卡 .osc 從這張清單移出，框在第 31 節。 */
+  :root.m4 main .view :is(.nbbody,.epanel,.mfocus,.gpcard,.mdgfolds,.chainmap,.sl-secn,.sl-card,.callist,.inclist,.wpbody,.hpanel,.panel,.mpanel,.relsec,.dgsec,.nbcard,.segbox,.howtxt,.incsec,.cxl,.cxr,.simtw,.rellist,.mcard,.qcard){
     border:0!important;border-radius:0!important;box-shadow:none!important;background:transparent!important}
   :root.m4 main .view :is(.nbbody,.epanel,.mfocus,.gpcard,.dgwrap,.sl-card,.callist,.inclist,.wpbody,.hpanel,.relsec,.incsec)::before,
   :root.m4 main .view :is(.nbbody,.epanel,.mfocus,.gpcard,.dgwrap,.sl-card,.callist,.inclist,.wpbody,.hpanel,.relsec,.incsec)::after{display:none!important}
@@ -577,6 +578,386 @@
   :root.m4,:root.m4 body{overscroll-behavior-x:none}
 }
 
+/* ---- 29. 圖表跟網頁版同一套（2026-10-09 Andy：「所有的圖表 圓餅圖 長條圖 時中圖 樹狀圖 顏色風格 都要一樣」「資金輪動直接是完整版」）
+   index.html 在 ≤820 把輪盤的「掃描」勾選藏起來（舊手機長相沒有掃描）；手機 v2 的輪盤改用完整版（app.js rotM4），掃描開關跟網頁版一樣常駐。
+   ⚠ 這一節由 claude/m4-charts 新增，跟分段控制器／明暗鈕那幾節分開，避免撞檔。 */
+@media (max-width:640px){
+  :root.m4 .rottools .rot-scanlbl{display:inline-flex}
+  /* 手機準則 2「拉桿把手 ≥ 32px、手指拖得動」：資金流向頁改用網頁版的「看哪一天」拉桿（資金分流樹 playBar、資金輪盤 dayBar）——
+     長相照網頁版，只把整條拉桿的觸控高度撐到 32px（原生拉桿點／拖整條高度都算數）；族群×法人的雙把手區間桿本來就有 32px 觸控區。 */
+  :root.m4 #v-flow .rbar:not(.drange) input[type=range]{height:32px;min-height:32px;touch-action:none}
+  /* 輪盤容器的 inline min-height:440（桌機版面用）在手機會讓盤高 440 > 欄寬，390×844 時盤底超出第一屏 31px；手機盤是正方形（app.js rotFitH 的 rotM4 分支） */
+  :root.m4 #rotClock{min-height:0!important}
+  /* 播放鈕（▶）字級跟手機統一按鈕一致（13px）；其餘外觀照網頁版 */
+  :root.m4 #v-flow .rbar .pb.play{font-size:13px}
+  /* 2026-10-09 手機 UI 監督退件三處：
+     ① 分流樹下方「資金流向排名」（網頁版那一份，桌機右欄字 11.5px）在手機字級下限 12px
+     ② 資金輪動一句話（theme4.js t4-lede）斷在詞中間（「高頻寬記｜憶體」）→ keep-all：只在空白、標點處換行
+     ③ 免責一行（法遵字句）在手機不准被截成「…」→ 允許換行、完整顯示 */
+  :root.m4 #sankeyRank :is(small,.skr-k){font-size:12px!important}
+  :root.m4 #flowRotCard .t4-lede{word-break:keep-all;overflow-wrap:normal}
+  :root.m4 #flowRotCard .rothead{flex-wrap:wrap;padding-right:0!important}   /* index.html ≤1100 留給已拿掉的 .rotbtns 的 190px 右邊距，手機把免責字擠成 196px 寬 */
+  :root.m4 #flowRotDisc.disc-line{white-space:normal!important;text-overflow:clip!important;overflow:visible!important;flex:1 1 100%;text-align:left;font-size:12px}
+}
+
+/* ===== 30. 題材頁上下排＋剖析圖直排（2026-10-09 Andy 手機截圖：紅框 1「熱力圖上面 下面題材」、紅框 2「垂直，塗在左邊 文字補充右邊」、「需要線條區分」）
+   · 第二層「題材熱力｜題材細節」分段拿掉（app.js miaPager 在 m4 把兩段併成一組），熱力圖在上、該題材剖析圖在下；
+   · 熱力圖與剖析圖之間一條全寬 1px 分隔線；剖析圖本身改直排（themes3d.js chainSceneV，卡與卡、段與段之間的線畫在 SVG 裡）；
+   · 線色＝--m4-div（claude/m4-seg 的大功能分隔線變數，＝主題 --line-2），那批還沒合併前 fallback 到 --line-2。
+   只在 ≤640＋html.m4 生效，桌機不吃。 */
+@media (max-width:640px){
+  :root.m4 #v-heatmap #themeDetail{border-top:1px solid var(--m4-div,var(--line-2))!important;margin-top:12px!important;padding-top:12px!important}
+  :root.m4 #v-heatmap #themeDetail>.card{margin-top:0}
+  /* 直排版畫布＝容器寬：不再左右滑（themes3d.js nativeWidth 會設 overflow-x:auto，寬度剛好就不會出捲軸，這裡再保險一次） */
+  :root.m4 #themeDiagram:has(svg.dg3v){overflow-x:hidden!important}
+  :root.m4 #themeDiagram:has(svg.dg3v)+.swipetip{display:none!important}
+}
+
+/* ===== 31. 產業鏈剖析圖控制列一排＋2D/3D 圓鈕＋大功能分隔線（2026-10-09 Andy 手機截圖紅框兩排控制列：
+   「這邊都需要同一排，並且大功能需要線條分開，2D/3D 變成一個切換功能就好，一個圓圈，原本 2D 點一下變成 3D，來回可切換」）
+   · 第二排（整張｜放大｜圖說，diagrams.js mobileNums 建的 .mdgbar）在 m4 搬進 #dgTools，跟 2D/3D、編號、收合同一排、不換行；
+     收合鈕整顆拿掉（見下面）；「15 個編號」那行資訊字收掉（圖上的編號本身就數得到）。
+   · 2D/3D：只露出「另一個模式」那一格，撐成 40px 圓鈕、鈕上寫**目前**模式（::before），點它＝切過去（industry.js paintMode 補讀屏標籤）；
+     點到的是真的 button[data-dm]，3D 權限鎖頭（features.js ind.3d block）照舊攔、照舊掛 🔒。
+   · 分隔線：頁籤列｜控制列｜圖｜①～⑤ 展開段｜供應鏈關聯圖，各一條全寬 1px（--m4-div，同第 30 節）。
+   只在 ≤640＋html.m4 生效，桌機控制列一個像素都不動。 */
+@media (max-width:640px){
+  :root.m4 #dgSec #dgTools{display:flex!important;flex-wrap:nowrap!important;justify-content:flex-start!important;align-items:center;gap:6px!important;width:100%;min-width:0}
+  :root.m4 #dgSec #dgTools>*{flex:none}
+  :root.m4 #dgSec #dgTools .mdgbar{display:flex!important;flex-wrap:nowrap!important;align-items:center;gap:6px!important;margin:0!important;flex:none}
+  :root.m4 #dgSec #dgTools .mdgcnt{display:none!important}
+  /* 「整張／放大」兩顆拿掉（2026-10-09 Andy：「放大功能拿掉，沒屁用」「還有整張功能也是」）；diagrams.js zoomOf() 在 m4 一律回 fit。
+     個股頁等沒有 #dgTools 的剖析圖一樣拿掉（.mdgbar 的 .mdgzoom 不分在哪）。 */
+  :root.m4 .mdgbar .mdgzoom{display:none!important}
+  /* 編號層的引線 svg 被 index.html 的手機規則 `.dgwrap svg{min-width:940px}` 撐成 940px（那條是給圖本身原寸左右滑用的），
+     圖框因此多一塊 570px 的隱形橫捲；引線層照編號層的大小（diagrams.js layout2d 寫好的 W×H）。 */
+  :root.m4 .dgwrap .mnumlayer>svg{min-width:0!important;width:100%!important;height:100%!important}
+  :root.m4 #dgSec.dgfold #dgTools .mdgbar{display:none!important}
+  :root.m4 #dgSec #dgTools :is(.pill,.mdginfo,.mdgzoom button){height:40px;min-height:40px!important;box-sizing:border-box;display:inline-flex;align-items:center;justify-content:center;padding:0 10px!important;font-size:13px!important;white-space:nowrap}
+  :root.m4 #dgSec #dgTools .mdgzoom{display:inline-flex;flex-wrap:nowrap}
+  /* 「收合圖」鈕（剖析圖 #dgFold、關聯圖 #relFold）手機拿掉（2026-10-09 Andy HBM 頁：「這分頁收合功能都拿掉」），內容一律展開（industry.js 在 m4 強制 dgOpen／relOpen） */
+  :root.m4 #dgSec #dgTools #dgFold,:root.m4 #indChain #relFold{display:none!important}
+  /* 2D/3D 圓鈕 */
+  :root.m4 #dgSec #dg3d{width:40px;height:40px;min-width:40px;padding:0!important;border-radius:50%!important;overflow:visible;display:inline-flex;position:relative;gap:0!important;border:0!important;background:transparent!important}
+  :root.m4 #dgSec #dg3d[data-mode="2d"] button[data-dm="2d"],:root.m4 #dgSec #dg3d[data-mode="3d"] button[data-dm="3d"]{display:none!important}
+  :root.m4 #dgSec #dg3d button{width:40px;height:40px;min-width:40px!important;min-height:40px!important;padding:0!important;margin:0!important;border-radius:50%!important;
+    font-size:0!important;border:1.5px solid var(--cyan,var(--accent))!important;background:color-mix(in srgb,var(--cyan,var(--accent)) 14%,var(--panel))!important;color:var(--cyan,var(--accent))!important;position:relative}
+  :root.m4 #dgSec #dg3d[data-mode="2d"] button::before{content:"2D";font-size:14px;font-weight:700}
+  :root.m4 #dgSec #dg3d[data-mode="3d"] button::before{content:"3D";font-size:14px;font-weight:700}
+  :root.m4 #dgSec #dg3d button[data-plkb]::after{position:absolute;right:-6px;top:-6px;font-size:12px!important;margin:0!important}
+  /* 精簡字：編號：開／關 → 「編號」（開＝主色、關＝灰，狀態看顏色與 aria-pressed）*/
+  :root.m4 #dgSec #dgTools #dgNum.pill{font-size:0!important}
+  :root.m4 #dgSec #dgTools #dgNum::before{content:"編號";font-size:13px}
+  :root.m4 #dgSec #dgTools #dgNum[aria-pressed="false"]{opacity:.7}
+  :root.m4 #dgSec #dgTools .mdgbar .mdginfo{font-size:0!important}
+  :root.m4 #dgSec #dgTools .mdgbar .mdginfo::before{content:"圖說";font-size:13px}
+  /* 大功能分隔線 */
+  :root.m4 #dgSec #dgBody,:root.m4 #dgSec .mdgfolds{border-top:1px solid var(--m4-div,var(--line-2))!important;padding-top:12px!important;margin-top:12px!important}
+  /* 頁籤列｜剖析圖、剖析圖｜關聯圖之間：兩塊各自是一個大框（第 33 節），框與框之間 12px 間距 */
+}
+
+/* ===== 32. 剖析圖下方「延伸閱讀」跟圖上編號分開（2026-10-09 Andy：「手機版本需要說清楚下面編號在說明什麼，因為會被誤認是在說上方編號」）
+   diagrams.js mobileFolds 在 m4 插兩行：一行小字「點圖上的編號（01、02…）看各零件說明」、一條分隔線＋小標題「延伸閱讀（點開看細節）」；
+   章節序號由 ①②③ 改成「延伸 1｜…」。只在 ≤640＋html.m4。 */
+@media (max-width:640px){
+  :root.m4 .mdgfolds .mdgnumhint{font-size:12px;color:var(--ink-3);line-height:1.5;margin:0 0 10px}
+  :root.m4 .mdgfolds .mdgfhd{border-top:1px solid var(--m4-div,var(--line-2));padding-top:12px;margin:0 0 6px;font-size:14px;font-weight:700;color:var(--ink)}
+  /* 切到 3D 時，只屬於 2D 的「延伸閱讀」整區（小字、標題、分隔線、章節鈕）藏起來；切回 2D 照原狀態出現（展開與否記在 2D 圖的 g.dgfold.open，藏起來不會丟）。
+     2026-10-09 Andy：「切換 3D 後 下方 2D 說明就要不見」。章節沒有「2D／3D 都適用」的標記，所以整區一起藏。 */
+  :root.m4 #prodDiagram[hidden]~.mdgfolds{display:none!important}
+}
+
+/* ===== 33. 剖析圖與供應鏈關聯圖各包一個大框＋右上角 ↻ 重設（2026-10-09）
+   Andy：「供應鏈關聯圖，以及上方 2D／3D 圖，需要給大框，但框格需要貼手機螢幕。目的是美觀、區分功能，但不可以與螢幕間隙太大」
+   ——這兩塊是「大方格取消、用線條區分」的明確例外（style_guide 第十六節有記），其他區塊照舊用線條。
+   · 框：圓角 --r-sm、1px 主題 line 色（--m4-div＝--line-2，深淺都看得見）、很淡的卡片底、內距 8px；
+     左右用負 margin 抵掉頁面內距，框外到螢幕邊 4px（#dgSec 在 .nbbody 的 8px 內距裡、外面還有 main 的 8px → -12px；#relSec 只有 main 的 8px → -4px；
+     題材剖析圖卡在 main 的 8px 裡 → -4px）。不會撐出整頁橫捲（框寬 = 394，螢幕 402）。
+   · ↻：Andy「只需要給一個迴圈（reset 符號）就好，在圖片右上方」—— 剖析圖框右上角一顆 34px 半透明小圓鈕（industry.js／app.js 只在 m4 插），
+     3D 原本右上那組（拖曳／重設視角，手機本來就藏著、只剩一顆空的小圓點）整組拿掉，改由這顆 ↻ 代按。
+   只在 ≤640＋html.m4。 */
+@media (max-width:640px){
+  :root.m4 #indChain #dgSec,:root.m4 #indChain #relSec,:root.m4 #v-heatmap #themeDetail>.card{
+    border:1px solid var(--m4-div,var(--line-2))!important;border-radius:var(--r-sm,10px)!important;
+    background:color-mix(in srgb,var(--panel,#fff) 70%,transparent)!important;padding:8px!important;box-sizing:border-box;box-shadow:none!important}
+  :root.m4 #indChain #dgSec{margin:12px -12px 0!important}
+  :root.m4 #indChain #relSec{margin:12px -4px 0!important;width:auto!important;max-width:none!important}
+  :root.m4 #indChain #dgSec{width:auto!important;max-width:none!important}
+  :root.m4 #v-heatmap #themeDetail>.card{margin:0 -4px!important}
+  /* ↻ 重設鈕 2026-10-09 09:3x 拿掉（Andy：改點背景重設；app.js wireThemeDiagram、industry.js wireDg） */
+  :root.m4 #dgSec #dgBody,:root.m4 #themeDiagram{position:relative}
+  :root.m4 #dgSec #dg3dCtl{display:none!important}
+}
+
+/* ============================================================================
+   29. 2026-10-09 Andy（手機 430 寬）：選股策略（#explore）與 ETF（#etf）重排 —— 程式在 mobile4.js 最後一節（2026-10-09 那個 IIFE）
+   · 選股：「基本面／技術面／籌碼面／消息面」改成上方分頁式（底線頁籤，等寬填滿）；頁面標題單行；子標籤一行；策略卡之間一條線
+   · ETF：分類列改成分頁式（太多就整條橫捲＋右側淡出）；「最受歡迎／報酬率／殖利率」與「月配試算表／複利試算表」改成分段控制器
+     （跟網頁版「走勢圖｜K 線」同一款：一個外框、選中那格實色）；拿掉「全部收合／全部展開」；行事曆細節區上下排、表格不截字；
+     現金流條件列一排；單檔清單每列「勾選｜名稱代號｜殖利率」＋第二行「現價・張數」
+   ⚠ 全部在 @media (max-width:640px) 而且掛 :root.m4 —— 桌機一條都不吃（桌機守門1008 驗）。
+   權重：第 23 節頁內切換規則是 (1,7,1)＋!important，這裡用「頁面 id＋元件 id」拉到 (2,x,x) 才蓋得掉，不去改第 23 節本身。
+   ============================================================================ */
+@media (max-width:640px){
+  /* ---- 29a. 分頁式頁籤（底線頁籤，跟上方 .m4subtabs 同一款：高 40、15px）：選中＝主色字＋2px 主色底線，底下一條細線 */
+  :root.m4 #v-explore.view.on #slChips.sl-chips.nbsw,
+  :root.m4 #v-etf.view.on #etfCatSeg.etfcats.nbsw{display:flex!important;flex-wrap:nowrap!important;gap:0!important;width:100%;max-width:100%;min-width:0;
+    margin:0 0 8px!important;padding:0!important;border:0!important;border-bottom:1px solid var(--line)!important;border-radius:0!important;background:transparent!important;box-shadow:none!important}
+  :root.m4 #v-explore.view.on #slChips.sl-chips.nbsw>button,
+  :root.m4 #v-etf.view.on #etfCatSeg.etfcats.nbsw>button{height:40px!important;min-height:40px!important;margin:0 0 -1px!important;padding:0 10px!important;
+    border:0!important;border-bottom:2px solid transparent!important;border-radius:0!important;background:transparent!important;box-shadow:none!important;
+    color:var(--ink-2)!important;font-size:15px!important;font-weight:600;white-space:nowrap}
+  :root.m4 #v-explore.view.on #slChips.sl-chips.nbsw>button:is(.on,[aria-selected=true]),
+  :root.m4 #v-etf.view.on #etfCatSeg.etfcats.nbsw>button:is(.on,[aria-selected=true]){color:var(--t4-accent-solid,var(--cyan))!important;border-bottom-color:var(--t4-accent-solid,var(--cyan))!important;font-weight:700;background:transparent!important}
+  /* 選股：四格等寬填滿左右 */
+  :root.m4 #v-explore.view.on #slChips.sl-chips.nbsw{overflow:visible!important}
+  :root.m4 #v-explore.view.on #slChips.sl-chips.nbsw>button{flex:1 1 0!important;min-width:0!important;padding:0 2px!important}
+  /* ETF 分類：七類放不下 → 整條橫捲（手指拖），右側淡出提示還有；捲到底（.m4end）淡出拿掉。不放「左右滑」字 */
+  :root.m4 #v-etf .etfcatbar:not([hidden]){display:block!important}   /* 不准蓋掉 hidden（行事曆／試算頁的分類列是 hidden）*/
+  :root.m4 #v-etf .etfcatbar>.sp{display:none}
+  :root.m4 #v-etf.view.on #etfCatSeg.etfcats.nbsw{overflow-x:auto!important;scrollbar-width:none;touch-action:pan-x pan-y;-webkit-overflow-scrolling:touch}
+  :root.m4 #v-etf.view.on #etfCatSeg.etfcats.nbsw::-webkit-scrollbar{display:none}
+  :root.m4 #v-etf.view.on .m4fade:not(.m4end){-webkit-mask-image:linear-gradient(90deg,#000 calc(100% - 40px),transparent);mask-image:linear-gradient(90deg,#000 calc(100% - 40px),transparent)}
+  :root.m4 #v-etf.view.on #etfCatSeg.etfcats.nbsw>button{flex:none!important}
+
+  /* ---- 29b. 分段控制器（同網頁版 #m3Mode「走勢圖｜K 線」：.seg 外框＋選中格實色 --t4-accent）；手機每格高 40（觸控下限）、等寬填滿 */
+  :root.m4 #v-etf.view.on :is(.m4trisg,#incMain):not([hidden]){display:flex!important;flex-wrap:nowrap!important;gap:2px!important;width:100%;box-sizing:border-box;overflow:visible!important;
+    margin:0 0 8px!important;padding:2px!important;border:1px solid var(--t4-ctl-edge,var(--line-2))!important;border-radius:9px!important;background:var(--t4-ctl,var(--panel-3))!important;box-shadow:none!important}
+  :root.m4 #v-etf.view.on .m4trisg:has(+ .etftri[hidden]){display:none!important}
+  :root.m4 #v-etf.view.on :is(.m4trisg,#incMain)>button{flex:1 1 0!important;min-width:0!important;height:40px!important;min-height:40px!important;margin:0!important;padding:0 6px!important;
+    border:0!important;border-radius:7px!important;background:transparent!important;color:var(--ink-2)!important;font-size:14px!important;font-weight:600;box-shadow:none!important;white-space:nowrap}
+  :root.m4 #v-etf.view.on :is(.m4trisg,#incMain)>button:is(.on,[aria-selected=true]){background:var(--t4-accent,var(--cyan))!important;color:var(--on-accent,var(--ontop))!important;font-weight:700}
+
+  /* ---- 29c. 標題一律單行（Andy：「所有分頁的標題都不能換行，最多一行」）：選股頁大標縮到 18px、放不下用 …；旁邊那段免責小字自己一行（字一個沒刪） */
+  :root.m4 #v-explore :is(.sl-head,.sl-fhead) h2{flex-wrap:wrap!important;row-gap:2px;font-size:18px!important;margin:6px 0 8px!important;line-height:1.35}
+  :root.m4 #v-explore :is(.sl-head,.sl-fhead) h2>.m4tt{flex:0 1 auto;min-width:0;max-width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  :root.m4 #v-explore .sl-head h2>.xp-legal{flex:1 1 100%!important;margin:0!important;white-space:normal!important;overflow:visible!important;font-size:12px;line-height:1.45;letter-spacing:0}
+
+  /* ---- 29d. 子標籤一行：「子標籤」字不縮，下拉鈕吃剩下的寬度、字太長用 … */
+  :root.m4 #v-explore #slTags.sl-tags{flex-wrap:nowrap!important;min-width:0;margin-bottom:8px}
+  :root.m4 #v-explore #slTags .sl-tl{flex:none}
+  :root.m4 #v-explore #slTags .sl-ddw{flex:0 1 auto;min-width:0;max-width:100%}
+  :root.m4 #v-explore #slTags .sl-dd{max-width:100%!important;min-width:0}
+
+  /* ---- 29e. 策略卡之間一條線（第 14 節那條被同節的 border:0 蓋掉了：那條的 :is() 裡有 #lwc，權重是 id 級） */
+  :root.m4 #v-explore.view.on .sl-grid>.sl-card+.sl-card{border-top:1px solid var(--line-2)!important;margin-top:10px!important;padding-top:12px!important}
+  :root.m4 #v-explore.view.on .sl-sec+.sl-sec{border-top:1px solid var(--line-2);margin-top:12px;padding-top:12px}
+
+  /* ---- 29f. ETF 一覽：拿掉「全部收合／全部展開」（Andy：「拿掉」）；每一組照樣點標題列收展 */
+  :root.m4 #v-etf :is(#etfFoldAll,#etfOpenAll){display:none!important}
+
+  /* ---- 29g. 配息行事曆的清單／細節區：不再是固定高 320 的內捲框（標題列黏頂會蓋在圖上）→ 標題列、指標、圖、表 上下排好跟著整頁捲；
+     表格改自動欄寬（拿掉桌機那組固定欄寬），每一格都不截字：第一欄（日期＋名稱＋代號）可換行，其餘數字欄不換行 */
+  :root.m4 #v-etf #etfCalList.callist{height:auto!important;max-height:none!important;overflow:visible!important}
+  :root.m4 #v-etf #etfCalList .ph.stk{position:static!important;margin:0 0 8px!important;padding:0 0 8px!important;background:transparent!important;flex-wrap:nowrap}
+  :root.m4 #v-etf #etfCalList .ph :is(.plink,b){flex:1 1 auto;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:15px}
+  :root.m4 #v-etf #etfCalList .ph .btn{flex:none}
+  :root.m4 #v-etf #etfCalList .mini{grid-template-columns:72px minmax(0,1fr)!important;gap:8px!important}
+  :root.m4 #v-etf #etfCalList table.et{table-layout:auto!important;width:100%!important}
+  :root.m4 #v-etf #etfCalList table.et colgroup{display:none}
+  :root.m4 #v-etf #etfCalList table.et :is(th,td){overflow:visible!important;text-overflow:clip!important;white-space:nowrap!important;padding:6px 3px!important;font-size:12px!important}
+  :root.m4 #v-etf #etfCalList table.et :is(th,td):first-child{white-space:normal!important;text-align:left!important;line-height:1.35}
+
+  /* ---- 29h. 現金流試算 ---- */
+  /* 條件列一排（年領｜100 萬｜配息型｜扣二代健保｜近 5 年）：不再收成「條件 ▾」摘要（一排放得下就不必多點一下）；
+     下拉改成小箭頭、內距縮小，放不下時下拉自己縮（選項字用 …）。只有選「自訂金額」多出輸入框時才准換第二行 */
+  :root.m4 #v-etf #incPM>.m4cond{display:none!important}
+  :root.m4 #v-etf #incPM>.incctl.m4sel.incctl{display:flex!important;flex-wrap:nowrap!important;align-items:center;gap:4px!important;margin:0 0 8px!important;min-width:0}
+  :root.m4 #v-etf #incPM>.incctl.m4sel.incctl:is(:has(.m4show),:has(.rpk[data-v=custom]),:has(.rpk[data-v=since])){flex-wrap:wrap!important}
+  :root.m4 #v-etf #incPM>.incctl.m4sel.incctl :is(#incAmtBox,#etfIncRngBox,#etfIncRngBox .rpk,#etfIncRngBox label){display:contents!important}
+  /* 下拉寬度：年領／目標金額照最長選項（很短）；範圍與期間兩個平分剩下的寬度（選項最長「配息型＋債券型」「起始日期～至今」放不下時用 …） */
+  :root.m4 #v-etf #incPM>.incctl.m4sel.incctl select{flex:none!important;width:auto!important;max-width:none!important;padding:0 15px 0 6px!important;text-overflow:ellipsis;
+    -webkit-appearance:none;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='5'%3E%3Cpath d='M0 0l4 5 4-5z' fill='%238aa0b4'/%3E%3C/svg%3E");
+    background-repeat:no-repeat;background-position:right 5px center;background-size:8px 5px}
+  :root.m4 #v-etf #incPM>.incctl.m4sel.incctl :is(select[aria-label="範圍"],select.rpsel){flex:1 1 0!important;width:0!important;min-width:0!important}
+  :root.m4 #v-etf #incPM>.incctl.m4sel.incctl label.chk{flex:none;gap:3px!important;white-space:nowrap}
+  :root.m4 #v-etf #incPM>.incctl.m4sel.incctl label.chk .m4short{font-size:13px}
+  /* 單檔清單：搜尋列與頻率分頁不准被清單擠扁（改前頻率分頁被壓成 3px 高，看起來是一排空白膠囊）；清單本身約 5 列高、在框內捲 */
+  :root.m4 #v-etf #incListBox.inclist{max-height:none!important;height:auto!important;display:flex;flex-direction:column}
+  :root.m4 #v-etf #incListBox>:is(.ilhd,.ilfq,.ilmsg){flex:none!important}
+  :root.m4 #v-etf #incListBox #incSearch{height:40px!important}
+  :root.m4 #v-etf #incListBox>.ilfq{margin:6px 0 2px!important}
+  :root.m4 #v-etf #incListBox>.ilbody{flex:none!important;max-height:330px;overflow-y:auto;touch-action:pan-y}
+  /* 每列：勾選｜名稱代號（配息頻率徽章＋名稱＋代號）｜殖利率；第二行：現價・張數・金額 —— 欄位固定，不互相疊 */
+  :root.m4 #v-etf #incList .ilr{grid-template-columns:30px minmax(0,1fr) auto!important;grid-template-rows:auto auto!important;column-gap:6px!important;row-gap:0!important;padding:4px 2px!important;align-items:center}
+  :root.m4 #v-etf #incList .ilr>input{grid-column:1!important;grid-row:1/3!important;width:22px;height:22px;margin:0!important;justify-self:center;align-self:center}
+  :root.m4 #v-etf #incList .ilr>.rk{display:none!important}
+  :root.m4 #v-etf #incList .ilr>.iln{grid-column:2!important;grid-row:1!important;min-width:0;min-height:40px;font-size:13px}
+  :root.m4 #v-etf #incList .ilr>.mv{grid-column:3!important;grid-row:1!important;white-space:nowrap;font-size:12px}
+  :root.m4 #v-etf #incList .ilr>.lt{grid-column:2/4!important;grid-row:2!important;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:12px!important;line-height:18px;padding-bottom:2px}
+  /* ---- 29i. ETF 前 5 名每列（2026-10-09 手機 UI 監督退件 32：點「報酬率」後名稱往上溢出列外、「上市以來 N 年」跟名稱疊在一起）：
+     每列兩行 —— 第一行名稱（單行，放不下用 …）、第二行「代號・上市以來 N 年」；列高跟著內容長（不再固定 36px），字一個沒拿掉 */
+  :root.m4 #v-etf.view.on .etftri :is(.rkrow,.rkhd){grid-template-columns:18px minmax(0,1fr) 70px 54px!important;gap:6px!important}   /* 兩欄數字縮窄（84／92 → 70／54），名稱欄才放得下「代號・上市以來 N 年」 */
+  :root.m4 #v-etf.view.on .etftri .rkrow{height:auto!important;min-height:48px;padding:5px 8px!important;align-items:center}
+  :root.m4 #v-etf.view.on .etftri .rkrow>.nm{display:block;white-space:nowrap!important;overflow:hidden;text-overflow:ellipsis;line-height:1.35;text-align:left}
+  :root.m4 #v-etf.view.on .etftri .rkrow>.nm>.cd{margin-left:0!important}
+  :root.m4 #v-etf.view.on .etftri .rkrow>.nm>.cd::before{content:"\A";white-space:pre}
+
+  /* ---- 29j. 頁尾那行免責（「公開資料整理與統計，非投資建議；過去績效不代表未來報酬。」）：桌機一行用 …，手機 360 寬會被截 → 手機可換行、不截字 */
+  :root.m4 #v-etf .etfdisc{white-space:normal!important;overflow:visible!important;text-overflow:clip!important}
+
+}
+
+/* ---- 29. 週期統計四點＋多組切換一律「摘要鈕 → 底部抽屜」（2026-10-09 Andy；mobile4.js 第 29 節）
+   Andy：「需要解決換行問題，可以縮窄文字、精簡」「有類似圖一的功能需要多個切換，一律用這個方式，簡潔明瞭」
+   ⚠ 全部在 @media (max-width:640px) 而且掛 :root.m4 —— 桌機一條都不吃。 */
+@media (max-width:640px){
+  /* 摘要列：同一行、不換行；摘要鈕吃剩下的寬度（放不下時字尾變「…」，完整的字在 aria-label／title），其他鈕照字寬 */
+  :root.m4 .m4ctlrow{display:flex;flex-wrap:nowrap;align-items:center;gap:6px;width:100%;margin:4px 0 6px}
+  :root.m4 .m4ctlrow>.mfilt,:root.m4 #m3Frame.m4set .m3-bar>.mfilt{display:inline-flex!important;align-items:center;gap:4px;flex:none;width:auto;max-width:none;margin:0!important;
+    min-height:40px!important;height:40px;padding:0 10px!important;white-space:nowrap}
+  :root.m4 .m4ctlrow>#mSeasonBtn{flex:1 1 auto;min-width:0}
+  /* 大盤走勢摘要鈕（10-09 監督退件：合併版被截成「K 線・…」）：字改短、而且鈕本身不縮；擠的時候改由「加權｜櫃買｜台指期」那排在框內左右滑 */
+  :root.m4 #m3Frame.m4set #m4M3Set{flex:none}
+  :root.m4 :is(.m4ctlrow,#m3Frame.m4set .m3-bar)>.mfilt .m4st{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  :root.m4 :is(.m4ctlrow,#m3Frame.m4set .m3-bar)>.mfilt .m4sico{flex:none;opacity:.8}
+  :root.m4 :is(.m4ctlrow,#m3Frame.m4set .m3-bar)>.mfilt>i{flex:none;font-style:normal;opacity:.7}
+  :root.m4 :is(.m4ctlrow,#m3Frame.m4set .m3-bar)>.mfilt b{font-weight:700;color:var(--ink)}
+  :root.m4 .m4ctlrow>#mSeasonNum[aria-pressed=true] b{color:var(--t4-accent-solid,var(--cyan))}
+  :root.m4 .m4ctlrow>.m4gone{display:none!important}
+
+  /* 週期統計月份列：一格只有 19～25px，「12月」（12px 字約 26px）物理上放不下 → 列首（族群名稱欄上方）加一個「(月)」 */
+  :root.m4 #seasonHeatHead{position:sticky}
+  :root.m4 #seasonHeatHead::before{content:'(月)';position:absolute;left:4px;top:0;bottom:0;display:flex;align-items:center;font-size:12px;color:var(--ink-3);pointer-events:none}
+
+  /* 抽屜裡的分段控制器（圖一＝Andy 認可的範本）：每組一排、上下疊；每顆高 40（觸控下限），排序抽屜的 12 個月跟它同一套 */
+  :root.m4 .msheet :is(#seasonCtl,.m4shsegs,.mballgrid.m4mseg) .seg>button{min-height:40px}
+  :root.m4 .msheet .m4shsegs,:root.m4 .msheet .mballgrid.m4mseg{display:flex!important;flex-direction:column;align-items:flex-start;gap:10px;margin-top:10px}
+  :root.m4 .msheet .mballgrid.m4mseg>.seg>button{min-height:40px;min-width:50px;border:0;border-radius:7px;font-size:14px;padding:0 8px}
+  :root.m4 .msheet .mballgrid.m4mseg>.seg>button:not(.on){background:transparent;color:var(--ink-2)}
+
+  /* 總覽大盤走勢：走勢圖／K 線、週期收進摘要鈕；「加權｜櫃買｜台指期」換頁鈕、摘要鈕、「?」同一行 */
+  :root.m4 #m3Frame.m4set .m3-bar{flex-wrap:nowrap;gap:6px}
+  :root.m4 #m3Frame.m4set .m3-bar>:is(#m3Mode,.m3-tfsel){display:none!important}
+  :root.m4 #m3Frame.m4set .m3-bar>#mM3Sw{flex:0 1 auto;min-width:0;margin:0!important}
+  /* 設定抽屜裡那組「顯示數字」只有一顆、跟外面的「數字 開／關」重複（10-09 監督建議）→ 抽屜裡藏起來；外面那顆按的就是它 */
+  :root.m4 .msheet #seasonCtl>#seasonNum{display:none!important}
+  :root.m4 #m3Frame.m4set .m3-bar>.howbtn{flex:none}
+  /* 360 寬：摘要鈕的小圖示讓位給字 */
+  @media (max-width:380px){ :root.m4 :is(.m4ctlrow,#m3Frame.m4set .m3-bar)>.mfilt .m4sico{display:none} :root.m4 :is(.m4ctlrow,#m3Frame.m4set .m3-bar)>.mfilt{padding:0 8px!important} }
+}
+
+/* ---- 31. 總覽上方瘦身＋摘要卡一張一屏＋圖表方框＋Y 軸完整（2026-10-09 Andy 09:1x，三張截圖；程式在 mobile4.js 第 31 節）
+   Andy：「上方拿掉／圖二需要每個方框都跟螢幕一樣寬，並且底下附上圓圈頁數／K線圖 走勢圖 Y軸都沒資訊了，需要你完整他，
+   並且 圖表都不是透明的，需要有自己的底色方框，所有圖表都是 需要有方框，並且大功能會用線條區分」。
+   ⚠ 全部在 @media (max-width:640px) 而且掛 :root.m4 —— 桌機一條都不吃（桌機守門1008）。 */
+@media (max-width:640px){
+  /* 31a. 總覽最上方指數三格（加權／上櫃／台指近全日盤＋1/3 點點）與「＋觀察」整列拿掉（圖一紅框） */
+  :root.m4 #mbHome{display:none!important}
+
+  /* 31b. 摘要卡：一張＝可用寬，一次一張，手指左右滑（scroll-snap），下方圓點頁數（mobile4.js 畫 .m4ovdots） */
+  :root.m4 #hero.ovsum .ovsum-track{grid-auto-columns:100%!important;gap:0!important;padding:0!important;scroll-snap-type:x mandatory;touch-action:pan-x pan-y}
+  :root.m4 #hero.ovsum .osc{scroll-snap-align:start;scroll-snap-stop:always;width:100%}
+  :root.m4 #hero.ovsum .ovsum-nav{display:none!important}
+  :root.m4 .m4ovdots{display:flex;justify-content:center;align-items:center;gap:0;margin:0;height:36px}
+  :root.m4 .m4ovdots button{width:36px;height:36px;padding:0;border:0;background:transparent;display:grid;place-items:center;cursor:pointer}
+  :root.m4 .m4ovdots button::before{content:'';width:8px;height:8px;border-radius:50%;background:var(--line-2);transition:background .15s,transform .15s}
+  :root.m4 .m4ovdots button.on::before{background:var(--t4-accent-solid,var(--cyan));transform:scale(1.25)}
+
+  /* 31c. 圖表方框：圖表本身（ECharts 容器、Lightweight Charts 容器、canvas 圖、剖析圖、摘要卡）一律有底色＋1px 外框＋圓角；
+     「大功能」不加框，照舊用第 29 節的分隔線分開（2026-10-08「大方格取消」不變：框只包圖，不包整個功能區）。
+     .m4cbox 由 mobile4.js chartBoxes() 掛（寬 ≥ 160、高 ≥ 100 才算圖，表格裡的小走勢線不加框）。 */
+  :root.m4 main .view :is(.m4cbox,#lwc,.dgwrap,#hero.ovsum .osc){background:var(--t4-card-bg,var(--panel))!important;border:1px solid var(--line)!important;border-radius:10px!important;box-sizing:border-box}
+  :root.m4 main .view .m4cbox.m4lwc,:root.m4 main .view #lwc{overflow:hidden}
+
+  /* 31d.（合併 claude/m4-misc 後拿掉）個股 K 線圖頭不蓋價格軸：改由 industry.js fitM4Legend() 依價格軸實際寬度量（帳本 73），
+     這裡原本寫死的 max-width:calc(100% - 84px) 會比實際價格軸（k 縮寫後約 70px）多讓 14px、讓圖頭多折一行，兩邊會打架 → 只留一套。 */
+
+  /* 31e. 期間列（資金輪動 #rotBack、資金分流樹 #sankeyDays）播放中／暫停都維持一行（Andy 09:3x：按 ▶ 之後 ⏸ 掉到下一行）：
+     原因：播放中右邊文字變長（「20 天前 · 回放 9/7」「57 天前＋2026-07-15」），index.html 的 .rbar 是 flex-wrap:wrap。
+     手機改成不換行、拉桿吃剩下的寬度（最少 48px）、鈕固定 40px；分流樹播放中「57 天前」先藏（日期本身就說了是哪天）。 */
+  :root.m4 #v-flow .rbar:is(#rotBack,#sankeyDays){display:flex;flex-wrap:nowrap!important;width:100%;max-width:100%;gap:6px;min-width:0}
+  :root.m4 #v-flow .rbar:is(#rotBack,#sankeyDays)>.pb{flex:none}
+  :root.m4 #v-flow .rbar:is(#rotBack,#sankeyDays)>input[type=range]{flex:1 1 60px;width:auto!important;min-width:48px}
+  :root.m4 #v-flow .rbar:is(#rotBack,#sankeyDays)>:is(.val,.ago,.t){flex:none;white-space:nowrap;min-width:0}
+  :root.m4 #v-flow #sankeyDays.playing>.ago{display:none}
+  /* 31f. 熱力圖右上「放大 ⤢」拿掉（Andy 09:3x：題材頁和產業熱力圖兩處都拿；總覽「熱度」組的兩顆是同一款，一併拿掉）。
+     手機本來就是滿寬、可以兩指縮放，放大罩在手機只是多一層。節點留著（桌機照舊用）。 */
+  :root.m4 :is(#heatZoom,#ovThemeZoom,#themeZoom){display:none!important}
+
+  /* 31g. 甜甜圈圖例拉滿寬（Andy 09:4x 圖一：產業地圖、半導體族群總覽圓餅下方的圖例左右留白很大）：
+     圖例跟頁面內容同寬，名稱靠左、成交值與占比靠右（全站手機的甜甜圈圖例都是 .gplegend 這一款）。 */
+  :root.m4 .gpdonut>.gplegend{align-self:stretch;width:100%!important;max-width:none!important;box-sizing:border-box}
+  :root.m4 .gpdonut>.gplegend{display:flex!important;flex-direction:column}
+  :root.m4 .gplegend .lg{display:flex!important;align-items:center;gap:12px;width:100%;box-sizing:border-box}
+  :root.m4 .gplegend .lg i{flex:none}
+  :root.m4 .gplegend .lg .vl{flex:none;min-width:5.2em}
+  :root.m4 .gplegend .lg .pc{flex:none;min-width:3.6em}
+  :root.m4 .gplegend .lg .nm{flex:1 1 auto;text-align:left}
+
+  /* 31h. 延伸閱讀抽屜（diagrams.js foldSheet；Andy 09:4x：「延伸 1｜尺度…」改成從底部滑出、左右箭頭切換、抽屜上限約 70% 螢幕，內容長就抽屜內捲） */
+  :root.m4 .msheet[data-kind=dgfold]{max-height:70vh}
+  :root.m4 .msheet .mdgfoldsvg{padding:4px 0 8px}
+  :root.m4 .msheet .mdgfoldsvg svg{display:block;width:100%;height:auto}
+
+  /* 31i. 頁面備註與副標不准斷在句子中間（Andy 09:4x：「列出成交值前 18 個族群」被拆成兩行，「族群」掉到下一行）：
+     · 標題旁的短副標（h2／h3 > small、頁首副標）：整句不換行 —— 放不下就整句移到下一行（inline 的 nowrap 自己會整塊折下去）；
+       真的比一整行還長才用「…」收尾（完整文字在 title，mobile4.js 第 31 節補）。
+     · 一兩行的說明句（.t4-lede、資金分流樹的 .skr-s／.skr-k、ETF 的 .incq／.incdisc 等）：中文不在字與字中間斷（keep-all），
+       只在空白與標點（、；：，）後面換行；一個片段長過一整行時才讓它斷（overflow-wrap:anywhere，不准撐破版面）。 */
+  :root.m4 main .view :is(h2,h3)>small,:root.m4 .m4pghead span{white-space:nowrap;max-width:100%;overflow:hidden;text-overflow:ellipsis;vertical-align:bottom}
+  :root.m4 main .view :is(h2,h3)>small{display:inline-block}
+  :root.m4 main .view :is(.t4-lede,.skr-s,.skr-k,.incq,.incdisc,.etfdisc,.disc-line,p.muted,.card>.muted,.mdgnumhint){word-break:keep-all;overflow-wrap:anywhere;line-break:strict}
+
+  /* 31j. 產業鏈剖析圖頂端「圖名 · 原創示意圖，非實物比例」：標示那一段整段不換行（放不下就整段折到下一行），圖名只在空白與標點換行（industry.js paintDgTitle 在 m4 包 span） */
+  :root.m4 #dgTitle .dgtm{white-space:nowrap;display:inline-block;max-width:100%}
+  :root.m4 #dgTitle .dgtn{word-break:keep-all;overflow-wrap:anywhere}
+
+  /* 31k. 資金流向（CEO 轉派第 2 批 m4-charts 退件，限手機）：
+     · 資金分流樹下方排名清單（.skrank）的 .skr-k 與名稱／數值的副標 small 是 11.5px → 12px（全站 12px 下限）；
+     · 資金輪動頁的免責「以下為依公開資料統計計算之結果…」原本 nowrap＋overflow:hidden 被切掉 → 完整顯示、自己一行、只在標點換行；
+     · 摘要句（.t4-lede）不斷在詞中間：第 31i 節的 keep-all 已涵蓋（「HBM 高頻寬記憶體」整詞一起折）。 */
+  :root.m4 main .view .skrank :is(.skr-k,small){font-size:12px!important}
+  :root.m4 main .view .row:has(>.disc-line){flex-wrap:wrap!important}   /* 免責那行自己一整行（不跟標題搶寬，不然 360 寬會被擠到斷詞） */
+  /* index.html ≤1100 給資金輪動標題列右邊留 190px 放「.rotbtns」兩顆鈕；手機沒有那兩顆鈕（實測 DOM 裡沒有），留白只會把免責擠成 154px 寬 */
+  :root.m4 #flowRotCard .rothead:not(:has(.rotbtns)){padding-right:0!important}
+  :root.m4 main .view .disc-line{white-space:normal!important;overflow:visible!important;text-overflow:clip!important;flex:1 1 100%!important;min-width:0;width:100%!important;max-width:100%!important;text-align:left!important;
+    word-break:keep-all;overflow-wrap:anywhere}
+
+  /* 31l. 資金輪動「⚙ 顯示 ›」摘要鈕＋底部抽屜（mobile4.js 第 31 節 wireRot；範本＝週期統計那款） */
+  :root.m4 #rotTools.m4gone{display:none!important}
+  :root.m4 #m4RotSet{display:inline-flex!important;align-items:center;gap:6px;min-height:40px;height:40px;margin:6px 0 0;padding:0 12px;white-space:nowrap}
+  :root.m4 #m4RotSet>i{font-style:normal;opacity:.7}
+  :root.m4 .msheet #m4RotSegs .m4shrow{display:flex;align-items:center;justify-content:space-between;gap:12px;width:100%}
+  :root.m4 .msheet #m4RotSegs .m4shlab{font-size:14px;color:var(--ink)}
+  :root.m4 .msheet #m4RotSegs .seg>button{min-width:56px}
+}
+
+/* ============================================================================
+   ★ 2026-10-09 手機 3D／零件說明（Andy 10-09：「3D 圖為何還會出現下方欄位，已經有編號可以說明了」）—— 繪圖專家這一節
+   點零件不再在圖下面插零件卡，改開底部抽屜（diagrams.js openNo／mobileOpenPart）。這一節只排抽屜裡「更多 ›」的長清單。
+   ============================================================================ */
+@media (max-width:640px){
+  :root.m4 .msheet .mpcmore{margin-top:10px;border-top:1px dashed var(--line-2)}
+  :root.m4 .msheet .mpcmore>summary{list-style:none;cursor:pointer;min-height:40px;display:flex;align-items:center;font-size:13px;color:var(--cyan)}
+  :root.m4 .msheet .mpcmore>summary::-webkit-details-marker{display:none}
+  :root.m4 .msheet .mpcmore[open]>summary{color:var(--ink-3)}
+  :root.m4 .msheet .mpcbody{font-size:13px;line-height:1.6;color:var(--ink-2);overflow-wrap:anywhere}
+  :root.m4 .msheet .mpcrow{display:flex;gap:8px;align-items:baseline;margin:6px 0}
+  :root.m4 .msheet .mpcrow>.k{flex:none;width:84px;font-size:12px;color:var(--ink-3)}
+  :root.m4 .msheet .mpcrow>.v{display:flex;flex-wrap:wrap;gap:4px 6px;min-width:0}
+  :root.m4 .msheet :is(.mpcco,.mpcit){display:inline-flex;flex-wrap:wrap;align-items:baseline;gap:0 4px;padding:1px 7px;border:1px solid var(--line-2);border-radius:7px;font-size:12.5px}
+  :root.m4 .msheet :is(.mpcco,.mpcit) small{font-size:12px;color:var(--ink-3)}
+  :root.m4 .msheet .mpcnone{color:var(--amber)}
+  :root.m4 .msheet :is(.mpcnote,.mpcft){font-size:12px;color:var(--ink-3);margin-top:6px}
+  /* ★ Andy 圖四那條「從上往下、指到空白處」的長斜線：是 three3d.js 自己的桌機引線（svg.lead3d 裡的 path.ld.sel），
+     從被選的零件拉到那張零件字卡 —— 手機的字卡（.lbl3d）早就藏起來了，字卡量到的位置是 (0,−143) 一帶，
+     畫布一重排（Safari 工具列收放觸發 resize、收合／展開）而且有零件被選著，那條線就從零件拉到框外左上角。
+     手機 3D 一律改用編號層（.mnumlayer）的引線，桌機那一套整層藏掉。*/
+  :root.m4 #prod3d.mnum3d .lead3d{display:none!important}
+}
+
+/* ★ 2026-10-09 手機 3D 收合／展開（帳本 67，Andy：「當切到 3D 圖，需要在圖片右上角新增展開及收合 3D 圖片功能」）
+   鈕住在 #prod3d 裡（切回 2D 跟著框藏）；↻（.m4rst，#dgBody 右上）還在的話往左讓一顆。收合時編號層與引線藏起來。*/
+@media (max-width:640px){
+  :root.m4 #prod3d>.m4c3d{position:absolute;top:8px;right:8px;z-index:8;width:36px;height:36px;min-width:36px!important;min-height:36px!important;padding:0!important;
+    border-radius:50%;border:1px solid var(--line-2);background:color-mix(in srgb,var(--panel,var(--bg)) 82%,transparent);color:var(--ink);
+    font-size:18px;line-height:1;display:grid;place-items:center;cursor:pointer}
+  :root.m4 #dgBody:has(>.m4rst) #prod3d>.m4c3d{right:52px}   /* 2026-10-09 起 ↻ 拿掉（改點背景重設），這條不再生效 → 收合鈕自己補到右上角 right:8px */
+  :root.m4 #prod3d.m4c3dmin{min-height:0}
+  :root.m4 #prod3d.m4c3dmin>.mnumlayer{display:none!important}
+}
+
 /* ---- 30. 訂閱方案頁修版（2026-10-09 Andy 圖四「格式都跑掉了 請修復」）
    病因：頁上「合併表」版面在手機沒有專屬樣式 —— 方案欄頭用的是桌機那套（名稱／定位句／適合誰一律單行＋「…」、價格 28px 不換行），
          被第 24 節的「比較表固定欄寬不橫捲」壓成三格約 80px，於是名稱變「註…／P…」、NT$ 249 被切、說明全成「…」、右緣超出視窗；
@@ -672,4 +1053,119 @@
   /* 族群面板在抽屜裡往下長：開著時抽屜拉高到 86vh，不用在 46vh 的小窗裡捲 */
   :root.m4 .msheet[data-kind=m4mkset]:has(.m4mkslot .ddpanel:not([hidden])){max-height:86vh}
   :root.m4 .msheet .m4mkslot .ddpanel{position:static!important;width:100%!important;max-width:none!important;box-sizing:border-box;margin-top:6px}
+}
+
+/* ============================================================================
+   31. 2026-10-09 10:0x Andy（手機預覽版）：選股頁籤等寬／ETF 除息表拉 Bar／名稱兩行 —— 程式在 mobile4.js 第 31 節
+   ⚠ 全部在 @media (max-width:640px) 而且掛 :root.m4 —— 桌機一條都不吃（桌機守門1008 驗）。
+   ============================================================================ */
+@media (max-width:640px){
+  /* ---- 31a. 選股「基本面／技術面／籌碼面／消息面」四格等寬填滿（Andy：「分頁式排法，並且需平均分散」）
+     根因：合併 m4-seg 之後，第 23 節把所有頁內切換（.nbsw 也算）掛成分段控制器，寫了 width:fit-content!important，
+     權重 (1,6,0)（:not(#mbTabs) 算一個 id）。第 29a 節的 width:100% 沒有 !important → 輸了，容器縮成字寬（402 寬時只剩 249px），
+     四格 flex:1 也只能在 249 裡平分，看起來就是擠在左邊一排小字。這裡用三個 id 的權重＋!important 蓋回滿寬，不去改第 23 節（其他頁要它）。 */
+  :root.m4 #v-explore.view.on #slChips#slChips.sl-chips{width:100%!important;max-width:none!important;min-width:0!important;margin-left:0!important;margin-right:0!important;
+    overflow:visible!important;-webkit-mask-image:none!important;mask-image:none!important}
+  :root.m4 #v-explore.view.on #slChips#slChips.sl-chips>button{flex:1 1 0!important;min-width:0!important;width:auto!important}
+
+  /* ---- 31b. 除息表高度上限＝上方月曆高度（mobile4.js 量好寫進 --m4calh），超過就在框裡捲；表頭黏在框頂；右側自畫拉 Bar（.m4rail） */
+  :root.m4 #v-etf .calwrap{position:relative}
+  :root.m4 #v-etf #etfCalList#etfCalList.callist.m4cs{max-height:var(--m4calh,420px)!important;height:auto!important;overflow-y:auto!important;overflow-x:hidden!important;
+    overscroll-behavior:contain;touch-action:pan-y;padding-right:18px!important;box-sizing:border-box;scrollbar-width:none}
+  :root.m4 #v-etf #etfCalList#etfCalList.callist.m4cs::-webkit-scrollbar{display:none}
+  :root.m4 #v-etf #etfCalList.m4cs table.et{border-collapse:separate!important;border-spacing:0}
+  :root.m4 #v-etf #etfCalList.m4cs table.et thead th{position:sticky!important;top:0;z-index:2;background:var(--panel,#0f1a2b)!important;box-shadow:0 1px 0 var(--line-2)}
+  :root.m4 #v-etf .calwrap>.m4rail{position:absolute;right:-6px;width:28px;z-index:3;touch-action:none;cursor:pointer}
+  :root.m4 #v-etf .calwrap>.m4rail::before{content:'';position:absolute;left:12px;width:4px;top:0;bottom:0;border-radius:2px;background:var(--line-2)}
+  :root.m4 #v-etf .calwrap>.m4rail>.m4thumb{position:absolute;left:0;top:0;width:28px;display:block;cursor:grab}
+  :root.m4 #v-etf .calwrap>.m4rail>.m4thumb::before{content:'';position:absolute;left:11px;width:6px;top:0;bottom:0;border-radius:3px;background:var(--t4-accent-solid,var(--cyan));opacity:.75}
+  :root.m4 #v-etf .calwrap>.m4rail.on>.m4thumb::before{opacity:1;left:10px;width:8px}
+
+  /* ---- 31c. 除息表第一欄：名稱一行（放不下用 …）＋「日期・代號」一行（Andy：「名稱被拆成三行，請精簡」） */
+  :root.m4 #v-etf #etfCalList table.et td:first-child>.cw{display:flex;flex-wrap:wrap;align-items:baseline;column-gap:4px;max-width:9.5em}
+  :root.m4 #v-etf #etfCalList table.et td:first-child>.cw>.cn{order:-1;flex:1 1 100%;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--ink)}
+  :root.m4 #v-etf #etfCalList table.et td:first-child>.cw>.note{white-space:nowrap;font-size:12px}
+  :root.m4 #v-etf #etfCalList table.et td:first-child>.cw>.note+.note::before{content:'・'}
+  /* 右邊讓出 18px 給拉 Bar 之後表格比框寬（「尚未填息（已 12 天）」一欄就 124px）→ 最後一欄准換行（列本來就是兩行高：名稱＋代號），字一個都不截 */
+  :root.m4 #v-etf #etfCalList.m4cs table.et :is(th,td):last-child{white-space:normal!important;min-width:4.6em}
+  :root.m4 #v-etf #etfCalList#etfCalList.callist.m4cs{padding-left:2px!important;padding-top:0!important}
+}
+
+/* ---- 31d～31h. 2026-10-09 手機監督退件（第 4 批 m4-etf 合併到 preview/m4-all 之後）——同一個根因：第 23 節把頁內切換一律掛成分段控制器
+   （width:fit-content!important；:not(#mbTabs) 讓它帶一個 id 的權重），第 29 節沒加 !important 的寬度設定全部輸掉；第 30 節 .m4bleed 又把寬度改成滿版＋負邊距，
+   跟第 29a 的 margin:0!important 打架（寬度吃到滿版、邊距被歸零 → 右緣多 8px，整頁橫捲）。這裡一律三個 id＋!important 蓋回，不去改第 23／30 節（其他頁要它）。 */
+@media (max-width:640px){
+  /* 31d. ETF 總覽分類列：寬度＝內容寬（不滿版拓寬），列內自己橫捲；整頁不准多出橫捲 */
+  :root.m4 #v-etf.view.on #etfCatSeg#etfCatSeg.etfcats{width:100%!important;max-width:100%!important;min-width:0!important;margin-left:0!important;margin-right:0!important;box-sizing:border-box}
+  /* 31e. 「最受歡迎｜報酬率｜殖利率」分段鈕：等寬、填滿整列
+     （第 30 節 .m4bleed 用兩個 :is(…,#m4-none) 拉到兩個 id；這裡同一招再加 #v-etf 成三個 id） */
+  :root.m4 body #v-etf.view.on .m4trisg:is(.m4trisg,#m4-none):is(.m4trisg,#m4-none2){width:100%!important;max-width:none!important;margin-left:0!important;margin-right:0!important}
+  :root.m4 body #v-etf.view.on .m4trisg:is(.m4trisg,#m4-none):is(.m4trisg,#m4-none2)>button{flex:1 1 0!important;min-width:0!important}
+  /* 31f. 月配試算頁：上方子頁已有「月配試算／複利試算」，第二層「月配試算表｜複利試算表」（#incMain）藏起來（FLAT 設計；第 29b 節權重較高把它叫回來了） */
+  :root.m4[data-m4flat] #v-etf.view.on #incMain#incMain{display:none!important}
+  /* 31g. 前 5 名清單：交給第 29i 節（m4-etf 77fef29c：兩行、數字欄 70／54px、列高跟著長）；這裡原本那組規則合併時拿掉（.cd 改 block 會跟 29i 的換行字元疊成三行） */
+  /* 31h. 字級下限 12px：選股策略卡英文副標、卡內小字（「60 日」「OSC」「營收年增」）；ETF 行事曆格子裡的代號／金額／「+N 檔」／「今天」；前 5 名表頭 */
+  :root.m4 #v-explore.view.on :is(.sl-en,small){font-size:12px!important}
+  :root.m4 #v-etf.view.on .cald :is(.cc,.ca,.cm,.dn i){font-size:12px!important}
+  :root.m4 #v-etf.view.on .rkhd span{font-size:12px!important}
+  /* 31i. 360 寬：ETF 頁底的免責一行（桌機是單行 …）放不下會被截 → 手機准換行，字一個不少 */
+  :root.m4 #v-etf #etfDisc.etfdisc{white-space:normal!important;overflow:visible!important;text-overflow:clip!important;height:auto}
+}
+
+/* ---- 31j. ETF 總覽／月配試算：設定收進底部抽屜（mobile4.js 第 31j 節；範本＝週期統計第 29 節的摘要鈕＋抽屜） */
+@media (max-width:640px){
+  /* 第 29h 節把條件列寫成 (2 個 id)＋!important 的 display:flex → 用 :is(#不存在,.m4dwhide) 再疊三個 id 的權重蓋過去（只對掛了 .m4dwhide 的生效） */
+  :root.m4 #v-etf .m4dwhide:is(#m4-x1,.m4dwhide):is(#m4-x2,.m4dwhide):is(#m4-x3,.m4dwhide){display:none!important}
+  :root.m4 #v-etf .m4etfrow[hidden]{display:none!important}
+  :root.m4 #v-etf .m4etfrow{margin:0 0 8px}
+  :root.m4 #v-etf .m4etfrow>.mfilt{flex:1 1 auto;min-width:0;display:inline-flex!important;align-items:center;gap:6px;height:40px;min-height:40px!important;padding:0 12px!important;
+    border:1px solid var(--t4-ctl-edge,var(--line-2));border-radius:9px;background:var(--t4-ctl,var(--panel-3));color:var(--ink);font-size:14px;white-space:nowrap}
+  :root.m4 #v-etf .m4etfrow>.mfilt .m4st{flex:1 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;text-align:left}
+  :root.m4 .msheet .m4dw .m4dwg{display:flex;flex-direction:column;gap:4px;width:100%}
+  :root.m4 .msheet .m4dw .m4dwg>small{font-size:12px;color:var(--ink-3)}
+  :root.m4 .msheet .m4dw .seg{display:flex;flex-wrap:wrap;gap:2px;max-width:100%}
+  :root.m4 .msheet .m4dw .seg>button{min-height:40px;font-size:14px}
+}
+
+/* ---- 31k. 2026-10-09 手機監督退件（claude/m4-etf2 e0472550）六處 —— 全部限 html.m4／≤640 */
+@media (max-width:640px){
+  /* 1. 除息表最後一欄：「（已 N 天）」整段不斷行 → 最多兩行「尚未填息／（已 1 天）」，數字跟單位不拆開 */
+  :root.m4 #v-etf #etfCalList table.et td .nw{white-space:nowrap}
+  /* 2. 抽屜裡的分段控制器一排放不下（金額 5 格、報酬期間 6 格）：不換行，框裡手指橫拖，右緣淡出（style_guide 第十六節）；拖到底（.m4end）淡出拿掉 */
+  :root.m4 .msheet .m4dw .seg{flex-wrap:nowrap!important;overflow-x:auto;overflow-y:hidden;scrollbar-width:none;touch-action:pan-x;-webkit-overflow-scrolling:touch;max-width:100%;box-sizing:border-box}
+  :root.m4 .msheet .m4dw .seg::-webkit-scrollbar{display:none}
+  :root.m4 .msheet .m4dw .seg>button{flex:none!important;white-space:nowrap}
+  :root.m4 .msheet .m4dw .seg.m4ovf:not(.m4end){-webkit-mask-image:linear-gradient(90deg,#000 calc(100% - 32px),transparent);mask-image:linear-gradient(90deg,#000 calc(100% - 32px),transparent)}
+  /* 5. 表頭「價格年化（不含息）」：括號那段另起一行，不在詞中間斷 */
+  :root.m4 #v-etf th .thsub{display:block;white-space:nowrap}
+  /* 6. 月配試算單檔清單：配息頻率徽章與代號 11.5px → 12px */
+  :root.m4 #v-etf #incList .iln :is(.fqb,.cd){font-size:12px!important}
+}
+
+/* ---- 31l. 2026-10-09 手機監督重驗（360 寬）：除息表右邊要讓出拉 Bar 的 28px —— 表寬 343 > 內容寬 324，最後一欄字壓在拉 Bar 底下、框內多出 19px 橫捲。
+   ≤380 寬：名稱欄上限 9.5em → 7.6em（名稱照樣一行、放不下用 …，全名在列的 title）、表頭准換行（「當次殖利率」→「當次／殖利率」），數字欄本身不斷行 */
+@media (max-width:380px){
+  :root.m4 #v-etf #etfCalList table.et td:first-child>.cw{max-width:7.6em}
+  :root.m4 #v-etf #etfCalList.m4cs table.et th{white-space:normal!important;line-height:1.3;word-break:keep-all}
+  :root.m4 #v-etf #etfCalList#etfCalList.callist.m4cs{padding-right:24px!important}   /* 拉 Bar 左緣在框右緣往內 22px：表格右緣（含格內距）要停在它左邊 */
+}
+/* 31l 補（協調者：「不截字、不用 …」）：≤380 名稱欄 7.6em 放不下時換行，最多兩行，不用 …。
+   ⚠ 不用 word-break:keep-all：ETF 名稱是連續中文（「主動中信台灣收益」沒有空白），keep-all 在中文裡等於「整串不准斷」，
+   名稱會撐出欄外或被裁掉；改用一般中文斷行（line-break:strict，標點不落行首），7.6em 一行約 7 字、兩行 14 字，名稱最長 12 字放得下。 */
+@media (max-width:380px){
+  :root.m4 #v-etf #etfCalList table.et td:first-child>.cw>.cn{white-space:normal!important;overflow:visible!important;text-overflow:clip!important;word-break:normal;line-break:strict;text-wrap:balance}   /* balance：兩行字數接近（「主動中信／台灣收益」），不會只剩一個字掉到第二行 */
+  /* 名稱欄固定 7.6em（不讓表格把它壓得更窄、把「日期・代號」也拆成兩行）；第二行「日期・代號」不斷行 */
+  :root.m4 #v-etf #etfCalList table.et td:first-child>.cw{width:7.6em;column-gap:2px}
+  :root.m4 #v-etf #etfCalList table.et td:first-child>.cw>.note{letter-spacing:-.2px}
+}
+
+/* ---- 31m. 2026-10-09 手機監督（main 原本就有的兩個小問題，只限 ≤640）
+   · 個股頁頂端股名在 360 寬被截成「台…」（全站規則：不准裁切）→ 股名可以換行、價格字級跟著寬度縮（30px → 360 寬約 24px），
+     股名欄最少留 3.2 個字寬；長名稱（ETF）折成兩行，不再用「…」。
+   · 市場明細「今日關注」的配息頻率標籤（季配／月配…）11.5px → 12px（全站 12px 下限）。 */
+@media (max-width:640px){
+  :root.m4 body.m3on #mbHead .mbq{grid-template-columns:40px minmax(3.2em,1fr) auto auto 40px}
+  :root.m4 body.m3on #mbHead .mbname{white-space:normal;overflow:visible;text-overflow:clip;overflow-wrap:anywhere;line-height:1.15}
+  :root.m4 body.m3on #mbHead .mbpx{font-size:clamp(20px,6.8vw,30px)}
+  :root.m4 #v-market :is(.fqbdg,.fqb,.fqtag){font-size:12px!important}
 }

@@ -30,7 +30,7 @@
 
   /* 頁面 → 抽屜裡要點的網址（有子項的大項點了進第一個子項，跟電腦版一樣） */
   const HREF = { overview: '#overview', earnings: '#earnings', flow: '#flow/rotation', heatmap: '#heatmap/industry',
-    industry: '#industry', market: '#market', explore: '#explore', etf: '#etf/list', season: '#season', watch: '#watch', delivery: '#delivery' };
+    industry: '#industry', market: '#market', explore: '#explore', etf: '#etf/cal', season: '#season', watch: '#watch', delivery: '#delivery' };
 
   function nav() { return window.TwL4Nav || null; }
   function brandName() { const b = $('.topbar .brand b'); return (b && b.textContent.trim()) || '哩股哩股'; }
@@ -280,16 +280,12 @@
   }
 
   /* 產業鏈頁：環節卡清單（#chainList）與「全部展開」列（#segTools）收進一顆「環節卡清單 ▸」收合列，預設收起（Andy：「其餘的可以不用拿掉，但一定要收合」） */
+  /* ★ 2026-10-09（CEO 轉派帳本 62／65，依 Andy 10-09 05:1x「這分頁收合功能都拿掉」）：「環節卡清單 ▸」收合列拿掉，所有族群子頁都一樣。
+     手機上環節卡清單與「全部展開」那列整段不顯示（mobile4.css 第 6 節）—— 回到 10-08「下方只要出現關聯圖就好」：
+     同樣的環節與個股都在上面的關聯圖裡，展開整份清單會把族群子頁撐過 3 屏。舊版插過的收合鈕在這裡拆掉。 */
   function wireChainList() {
     if (!isM()) return;
-    const pane = $('#indChain .chainpane'); if (!pane || !$('#chainList', pane)) return;
-    let b = $(':scope > .m4fold', pane);
-    if (!b) {
-      b = document.createElement('button'); b.type = 'button'; b.className = 'm4fold'; b.setAttribute('aria-expanded', 'false');
-      b.innerHTML = '環節卡清單 <i aria-hidden="true">▸</i>';
-      b.onclick = () => { const on = !pane.classList.contains('m4listopen'); pane.classList.toggle('m4listopen', on); b.setAttribute('aria-expanded', on ? 'true' : 'false'); $('i', b).textContent = on ? '▾' : '▸'; };
-      const anchor = $('#segTools', pane) || $('#chainList', pane); pane.insertBefore(b, anchor);
-    }
+    $$('#indChain .chainpane > .m4fold').forEach((b) => b.remove());
   }
 
   /* ETF 總覽上方三張前 5 名卡：手機改成分頁（Andy：「把上方變成分頁式 不要用滑動」）—— 一排膠囊分段鈕，一次只顯示一張；卡片本身與裡面的切換一個都沒換 */
@@ -656,7 +652,7 @@
     });
   }
   function bleedEnd(e) { const end = e.scrollLeft + e.clientWidth >= e.scrollWidth - 4; if (end !== e.classList.contains('m4end')) e.classList.toggle('m4end', end); }
-  const SEGSEL = '.view.on :is(.seg,.nbsw,.mpager,.mseg,[role=tablist]):not(.m4subtabs):not(#mbTabs):not(.hmbar)';
+  const SEGSEL = '.view.on :is(.seg,.nbsw,.mpager,.mseg,[role=tablist]):not(.m4subtabs):not(#mbTabs):not(.hmbar):not(.m4ovdots)';
   let sepT = 0, sepLast = 0;
   function sepSoon() { if (sepT) return; const wait = Math.max(0, 200 - (Date.now() - sepLast)); sepT = setTimeout(() => { sepT = 0; sepLast = Date.now(); if (flatDone) flatFollow(); else syncFlat(); markSeps(); }, wait); }
 
@@ -929,6 +925,374 @@
 })();
 
 /* ============================================================================
+   ★ 2026-10-09 Andy（手機 430 寬）：選股策略（#explore）與 ETF（#etf）的手機重排 —— 樣式在 mobile4.css 第 29 節
+   這一節只做 CSS 做不到的四件事，而且只在 html.m4（≤640）動作：
+     1. 手機打開 ETF 預設停在「配息行事曆」（Andy：「手機打開 ETF 時，預設停在配息行事曆分頁」）：
+        抽屜裡的 ETF 預設進 #etf/cal（本檔最上面 HREF 那一格，2026-10-09 由 #etf/list 改）；看過別的子頁的照舊回上次那一頁（跟其他有子頁的主項目同一套）；
+        直接開 #etf（沒帶子頁）也導到 #etf/cal。桌機照舊進 #etf/list（app.js 那行沒動）。
+     2. 選股頁大標的文字包一層 span（.m4tt），才能「單行＋放不下用 …」（flex 容器裡的裸文字沒辦法加省略號）。
+     3. 橫捲的頁籤列（ETF 分類、現金流「單檔／組合」、配息頻率）：選中的那一格捲進畫面；右側淡出，捲到底拿掉（.m4end）。
+     4. 配息行事曆點某一檔 → 細節區在月曆下面，自動捲到細節區的標題列（不然點了看起來沒反應）。
+   監看範圍只有 #v-explore 與 #v-etf 兩個區塊（不掛 body 的 MutationObserver）。
+   ============================================================================ */
+(function () {
+  'use strict';
+  const root = document.documentElement;
+  const isM = () => root.classList.contains('m4') && window.innerWidth <= 640;
+  const $ = (s, r) => (r || document).querySelector(s);
+  const $$ = (s, r) => Array.from((r || document).querySelectorAll(s));
+
+  /* 1. ETF 預設子頁。第一次載入：在 app.js 第一次 route() 之前把 #etf 改成 #etf/cal。
+        之後站內換到 #etf（沒帶子頁）：app.js 的 route() 會先 location.replace('#etf/list')（實測它比這裡的 hashchange 先跑），
+        所以看 e.newURL 是不是「沒帶子頁的 #etf」，是就再 replace 成 #etf/cal（replace 不多留歷史，上一頁照樣回得去） */
+  if (isM() && /^#etf\/?$/.test(location.hash || '')) history.replaceState(null, '', '#etf/cal');
+  window.addEventListener('hashchange', (e) => {
+    if (isM() && /#etf\/?$/.test(e.newURL || '') && location.hash !== '#etf/cal') location.replace('#etf/cal');
+  });
+
+  /* 2. 選股頁大標：裸文字 → <span class="m4tt">（字一個不改，原文留在 title） */
+  function wrapTitles() {
+    $$('#v-explore :is(.sl-head,.sl-fhead) > h2').forEach((h) => {
+      [...h.childNodes].forEach((n) => {
+        if (n.nodeType !== 3 || !n.textContent.trim()) return;
+        const sp = document.createElement('span'); sp.className = 'm4tt'; sp.textContent = n.textContent; sp.title = n.textContent.trim();
+        n.replaceWith(sp);
+      });
+    });
+  }
+
+  /* 3. 橫捲的頁籤列（ETF 分類、現金流的「單檔／組合 A～E」、單檔清單的配息頻率）：選中的那一格捲進畫面；
+        右側淡出提示「還有」，捲到底（.m4end）就拿掉。只在換了選中項（或剛畫好）時置中，使用者自己拖的位置不去動 */
+  function scrollBars() {
+    ['#etfCatSeg', '#incTabs', '#incFq'].forEach((q) => {
+      const s = $(q); if (!s || !s.getClientRects().length) return;
+      const fade = () => s.classList.toggle('m4end', s.scrollLeft + s.clientWidth >= s.scrollWidth - 2);
+      if (!s._m4f) { s._m4f = 1; s.classList.add('m4fade'); s.addEventListener('scroll', fade, { passive: true }); }
+      const on = $(':scope > .on', s), k = on ? (on.dataset.v || on.textContent) : '';
+      if (on && s._m4on !== k) {
+        s._m4on = k;
+        const x = on.getBoundingClientRect().left - s.getBoundingClientRect().left + s.scrollLeft;
+        s.scrollLeft = Math.max(0, x - (s.clientWidth - on.offsetWidth) / 2);
+      }
+      fade();
+    });
+  }
+
+  /* 4. 行事曆點某一檔 → 捲到細節區（點列的處理在 etfpage.js；這裡等它重畫完再捲） */
+  document.addEventListener('click', (e) => {
+    if (!isM()) return;
+    const tr = e.target.closest && e.target.closest('#etfCalList tr[data-code]');
+    if (!tr || tr.dataset.i != null) return;   // 細節表自己的列（data-i）是「在圖上選那一次配息」，不捲
+    setTimeout(() => {
+      const l = $('#etfCalList'); if (!l || !$('#etfCodeBack', l)) return;
+      const bar = $('.topbar'), off = (bar ? bar.getBoundingClientRect().bottom : 56) + 6;
+      window.scrollTo({ top: Math.max(0, l.getBoundingClientRect().top + window.scrollY - off), behavior: 'instant' });
+    }, 60);
+  });
+
+  function run() { if (!isM()) return; wrapTitles(); scrollBars(); }
+  function init() {
+    let t = 0; const kick = () => { clearTimeout(t); t = setTimeout(run, 80); };
+    ['v-explore', 'v-etf'].forEach((id) => { const v = document.getElementById(id); if (v) new MutationObserver(kick).observe(v, { childList: true, subtree: true }); });
+    window.addEventListener('hashchange', kick);
+    window.addEventListener('resize', kick);
+    run();
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();
+})();
+
+/* ============================================================================
+   ★ 第 29 節（2026-10-09 Andy 對 430 寬「週期統計」的四點＋全站巡視）
+   Andy 原話：「需要解決換行問題，可以縮窄文字、精簡」
+             「有類似圖一的功能需要多個切換，一律用這個方式，簡潔明瞭，幫我巡視所有分頁」
+   「圖一」＝週期統計設定的底部抽屜：一個標題，下面每組一排分段控制器上下疊。這一節做三件事：
+     A. 週期統計：「設定／排序／數字」三顆收成同一行（字縮短：全部・超額・熱力・前20；排序 10月；數字 開），
+        完整的字留在 aria-label 與 title；鈕上的字每次都從當下的選項現算（順手修掉「鈕寫數字：關、格子卻有數字」的舊錯：
+        mobile3.js 在 app.js 還沒套上記住的設定之前就算好字，之後沒再更新）。
+     B. 週期統計「排序」抽屜：12 個大方格 → 兩排分段控制器（1月～6月／7月～12月），跟設定抽屜同一套樣式。
+     C. 總覽「大盤走勢」：走勢圖／K 線＋週期兩組切換收成一顆摘要鈕 → 底部抽屜（每組一排分段控制器），
+        摘要鈕跟「加權｜櫃買｜台指期」換頁鈕、「?」排成同一行（三張圖的換頁鈕配左右滑與 1/3 位置指示，所以留在畫面上）。
+   做法：只在手機（≤640、html.m4）插節點；原本的控制項一個都沒換（id、事件照舊在 app.js／market3.js／mobile3.js），
+   抽屜裡的分段鈕按下去＝去按原本那一顆。掛在 mobile3.js 的 M3.hook（換頁、跨寬度時跑），不新增 body 上的 MutationObserver。
+   ⚠ 桌機（>640）：什麼都不插；回桌機時把插過的拆掉。
+   ============================================================================ */
+(function () {
+  'use strict';
+  const $ = (s, r) => (r || document).querySelector(s);
+  const $$ = (s, r) => Array.from((r || document).querySelectorAll(s));
+  const isM = () => window.innerWidth <= 640;
+  const ICON = '<svg class="m4sico" viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 4h-7M10 4H3M21 12h-9M8 12H3M21 20h-5M12 20H3M14 2v4M8 10v4M16 18v4"/></svg>';
+  /* ⚠ 不能直接比 el.innerHTML !== h：瀏覽器把 <path …/> 序列化成 <path …></path>，永遠「不一樣」→ 每次都重寫 →
+     鈕上的 MutationObserver 又醒 → 無限迴圈，連帶把 mobile4.js 上面那支 body 觀察器的 120ms 防抖一直往後推（環節卡清單、條件摘要列都長不出來）。
+     改成記住「上次寫進去的字串」與「寫完之後的序列化結果」，兩個都沒變才略過（被 mobile3.js 改過字就會不一樣 → 重寫一次）。*/
+  const setHTML = (el, h) => { if (!el || (el.__m4h === h && el.innerHTML === el.__m4out)) return; el.innerHTML = h; el.__m4h = h; el.__m4out = el.innerHTML; };
+  const setAttr = (el, k, v) => { if (el && el.getAttribute(k) !== v) el.setAttribute(k, v); };
+  const shown = (e) => !!e && e.style.display !== 'none' && !e.hidden;
+
+  /* ---------------- A. 週期統計：三顆同一行＋短字 ---------------- */
+  const SN_SHORT = { all: '全部', '10y': '10年', '5y': '5年', '3y': '3年', avg_excess: '超額', avg_return: '絕對', win_rate: '勝率', heat: '熱力', line: '長條' };
+  function snSummary() {
+    const ctl = $('#seasonCtl'); if (!ctl) return { s: '', l: '' };
+    const parts = [], full = [];
+    ['#seasonPeriod', '#seasonMetric', '#seasonView', '#seasonRows'].forEach((q) => {
+      const g = $(q, ctl); if (!g || !shown(g)) return;
+      const on = $('button.on', g); if (!on) return;
+      full.push(on.textContent.trim());
+      parts.push(q === '#seasonRows' ? (on.dataset.v === 'all' ? '全列' : '前20') : (SN_SHORT[on.dataset.v] || on.textContent.trim()));
+    });
+    return { s: parts.join('・'), l: full.join(' · ') };
+  }
+  function snPaint() {
+    const b = $('#mSeasonBtn'), s = $('#mSeasonSort'), n = $('#mSeasonNum');
+    if (b) {
+      const x = snSummary();
+      setHTML(b, `${ICON}<span class="m4st">${x.s || '設定'}</span><i aria-hidden="true">›</i>`);
+      setAttr(b, 'aria-label', '設定：' + (x.l || '預設')); setAttr(b, 'title', '週期統計設定：' + (x.l || '預設'));
+    }
+    if (s) {
+      const on = $('#seasonHeatHead button.on'), m = on ? +on.dataset.m : null;
+      setHTML(s, m ? `排序 <b>${m}月</b><i aria-hidden="true">›</i>` : '排序<i aria-hidden="true">›</i>');
+      setAttr(s, 'aria-label', m ? `依 ${m} 月由強到弱排序` : '依月份排序');
+    }
+    if (n) {
+      const nb = $('#seasonNum button'), seg = $('#seasonNum'), on = !!nb && nb.getAttribute('aria-pressed') === 'true';
+      setHTML(n, `數字 <b>${on ? '開' : '關'}</b>`);
+      setAttr(n, 'aria-pressed', String(on)); setAttr(n, 'aria-label', '格子裡的數字：' + (on ? '開' : '關'));
+      n.classList.toggle('m4gone', !shown(seg));   // 長條圖、或一格都放不下數字時，桌機那顆會收起來 → 手機這顆跟著收
+    }
+  }
+  let snT = 0;
+  const snLater = () => { clearTimeout(snT); snT = setTimeout(snPaint, 40); };
+  /* 三顆鈕被 mobile3.js 改字（textContent）時換回短字：只看這三顆自己（不是 body） */
+  const snMO = typeof MutationObserver !== 'undefined' ? new MutationObserver(snLater) : null;
+  function snWire() {
+    const b = $('#mSeasonBtn'), s = $('#mSeasonSort'), n = $('#mSeasonNum');
+    if (!b || !s || !n) return false;
+    let row = $('#m4SnRow');
+    if (!row) { row = document.createElement('div'); row.id = 'm4SnRow'; row.className = 'm4ctlrow'; b.before(row); }
+    if (b.parentNode !== row || s.parentNode !== row || n.parentNode !== row) row.append(b, s, n);
+    [b, s, n].forEach((e) => { if (!e.__m4mo && snMO) { snMO.observe(e, { childList: true, characterData: true, subtree: true }); e.__m4mo = 1; } });
+    const ctl = $('#seasonCtl');
+    if (ctl && !ctl.__m4c) { ctl.__m4c = 1; ctl.addEventListener('click', () => setTimeout(snPaint, 80)); }
+    if (!s.__m4s) { s.__m4s = 1; s.addEventListener('click', snSortSheet); }   // mobile3.js 的 onclick 先開抽屜，這裡接著把方格換成分段控制器
+    snPaint();
+    return true;
+  }
+  /* ---------------- B. 排序抽屜：12 個方格 → 兩排分段控制器 ---------------- */
+  function snSortSheet() {
+    const sh = $('#mSheet'); if (!sh || sh.hidden || sh.dataset.kind !== 'seasonsort') return;
+    const grid = $('.mballgrid', sh); if (!grid || grid.classList.contains('m4mseg')) return;
+    const on = $('#seasonHeatHead button.on'), m0 = on ? +on.dataset.m : null;
+    const row = (a) => `<div class="seg">${a.map((m) => `<button type="button" data-m="${m}" class="${m === m0 ? 'on' : ''}" aria-pressed="${m === m0}">${m}月</button>`).join('')}</div>`;
+    grid.classList.add('m4mseg');   // 點擊照舊由 mobile3.js 掛在 .mballgrid 上的委派處理（closest('button[data-m]')）
+    grid.innerHTML = row([1, 2, 3, 4, 5, 6]) + row([7, 8, 9, 10, 11, 12]);
+  }
+  function snUnwire() {
+    const row = $('#m4SnRow'); if (!row) return;
+    const ctl = $('#seasonCtl');
+    $$('button', row).forEach((e) => { if (ctl) ctl.before(e); });
+    row.remove();
+  }
+
+  /* ---------------- C. 總覽大盤走勢：走勢圖／K 線＋週期 → 一顆摘要鈕＋底部抽屜 ---------------- */
+  function m3Summary() {
+    const k = $('#m3Mode button[data-m="k"]'), isK = !!k && k.classList.contains('on');
+    const tf = $('#m3Tf'), tt = tf && tf.options[tf.selectedIndex] ? tf.options[tf.selectedIndex].text.trim() : '';
+    /* 短字（監督 10-09 退件：合併版同一行多了第 1 批的分段外框，「K 線・日 K」被截成「K 線・…」）：
+       「K・日」「走勢」，完整說法在 aria-label／title；不准出現「…」 */
+    return isK ? `K・${tt.replace(/\s*K$/i, '').trim()}` : '走勢';
+  }
+  function m3Paint() {
+    const b = $('#m4M3Set'); if (!b) return;
+    const t = m3Summary();
+    const tf = $('#m3Tf'), full = $('#m3Mode button[data-m="k"].on') ? 'K 線・' + (tf && tf.options[tf.selectedIndex] ? tf.options[tf.selectedIndex].text.trim() : '') : '走勢圖';
+    setHTML(b, `${ICON}<span class="m4st">${t}</span><i aria-hidden="true">›</i>`);
+    setAttr(b, 'aria-label', '大盤走勢設定：' + full); setAttr(b, 'title', '大盤走勢設定：' + full);
+  }
+  function m3SheetBody(body) {
+    const isK = !!$('#m3Mode button[data-m="k"].on'), tf = $('#m3Tf');
+    const seg = (attr, items) => `<div class="seg">${items.map(([v, t, on]) => `<button type="button" ${attr}="${v}" class="${on ? 'on' : ''}" aria-pressed="${!!on}">${t}</button>`).join('')}</div>`;
+    let h = seg('data-m3m', $$('#m3Mode button').map((x) => [x.dataset.m, x.textContent.trim(), x.classList.contains('on')]));
+    if (isK && tf) h += seg('data-m3t', Array.from(tf.options).map((o) => [o.value, o.text.trim(), o.value === tf.value]));
+    body.innerHTML = h;
+  }
+  function m3Open() {
+    const api = window.M3; if (!api) return;
+    const wrap = document.createElement('div');
+    wrap.innerHTML = '<div class="mshhead"><b>大盤走勢設定</b></div><div class="m4shsegs" id="m4M3Segs"></div>';
+    const body = $('.m4shsegs', wrap);
+    m3SheetBody(body);
+    body.addEventListener('click', (e) => {
+      const bm = e.target.closest('button[data-m3m]'), bt = e.target.closest('button[data-m3t]');
+      if (bm) { const o = $(`#m3Mode button[data-m="${bm.dataset.m3m}"]`); if (o && !o.classList.contains('on')) o.click(); }
+      else if (bt) { const tf = $('#m3Tf'); if (tf && tf.value !== bt.dataset.m3t) { tf.value = bt.dataset.m3t; tf.dispatchEvent(new Event('change', { bubbles: true })); } }
+      else return;
+      setTimeout(() => { m3SheetBody(body); m3Paint(); }, 30);
+    });
+    api.openSheet(wrap, { kind: 'm3set', onClose: m3Paint });
+  }
+  function m3Wire() {
+    const fr = $('#m3Frame'), bar = fr && $('.m3-bar', fr), mode = $('#m3Mode'), sw = $('#mM3Sw');
+    if (!bar || !mode || !sw) return false;
+    let b = $('#m4M3Set');
+    if (!b || !fr.contains(b)) {
+      if (b) b.remove();
+      b = document.createElement('button'); b.type = 'button'; b.id = 'm4M3Set'; b.className = 'mfilt';
+      b.setAttribute('aria-haspopup', 'dialog');
+      b.onclick = m3Open;
+    }
+    const how = $(':scope > .howbtn', bar);
+    if (sw.parentNode !== bar) bar.insertBefore(sw, how || null);   // 換頁鈕搬進同一行（mobile3.js 回桌機時整顆拆掉）
+    if (b.previousElementSibling !== sw) sw.after(b);
+    fr.classList.add('m4set');
+    m3Paint();
+    return true;
+  }
+  function m3Unwire() {
+    const b = $('#m4M3Set'); if (b) b.remove();
+    const fr = $('#m3Frame'); if (fr) fr.classList.remove('m4set');
+    const sw = $('#mM3Sw'), g = $('#m3Grid'); if (sw && g && sw.nextElementSibling !== g) g.before(sw);
+  }
+
+  /* ---------------- 生命週期：換頁／跨寬度時跑（mobile3.js 的 hook），頁面內容晚到就再試幾次 ---------------- */
+  let tries = [];
+  function on() {
+    tries.forEach(clearTimeout); tries = [];
+    if (!isM()) return;
+    const run = () => {
+      if (!isM()) return true;
+      const cur = (location.hash.replace('#', '').split('/')[0]) || 'overview';
+      if (cur === 'season') return snWire();
+      if (cur === 'overview') return m3Wire();
+      return true;
+    };
+    if (run()) return;
+    [150, 500, 1200, 2500, 4500].forEach((t) => tries.push(setTimeout(run, t)));
+  }
+  function off() { tries.forEach(clearTimeout); tries = []; snUnwire(); m3Unwire(); }
+  function boot() { if (window.M3 && window.M3.hook) window.M3.hook({ on, off }); }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot); else boot();
+})();
+
+/* ============================================================================
+   ★ 31. 總覽摘要卡一張一屏＋圓點頁數、圖表方框標記（2026-10-09 Andy 09:1x；樣式在 mobile4.css 第 31 節）
+   Andy：「圖二需要每個方框都跟螢幕一樣寬，並且底下附上圓圈頁數」「圖表都不是透明的，需要有自己的底色方框，所有圖表都是 需要有方框」。
+     · 摘要卡（#hero .ovsum-track）：CSS 讓每張＝可用寬、scroll-snap；這裡在卡列下方畫 .m4ovdots（每張一顆，可點，目前那張亮）。
+       app.js renderOvSummary 每次重畫都整個換掉 #hero 的內容 → 觀察者看到點點不見就重插。
+     · 圖表方框：掃 main 裡的 ECharts 容器（[_echarts_instance_]）、Lightweight Charts 容器（.tv-lightweight-charts 的父層）、
+       獨立 canvas 圖的父層，寬 ≥ 160、高 ≥ 100 的掛 .m4cbox（小走勢線不掛）。
+   ⚠ 只在 html.m4（≤640）動；觀察範圍只有 <main>（不掛 body）；桌機什麼都不插。
+   ============================================================================ */
+(function () {
+  'use strict';
+  const root = document.documentElement;
+  const isM4 = () => root.classList.contains('m4');
+  const $ = (s, r) => (r || document).querySelector(s);
+  const $$ = (s, r) => Array.from((r || document).querySelectorAll(s));
+
+  function curIdx(t) { const w = t.clientWidth || 1; return Math.max(0, Math.min(t.children.length - 1, Math.round(t.scrollLeft / w))); }
+  function paintDots() {
+    const h = $('#hero.ovsum'), t = h && $('#ovSumTrack', h), d = h && $('.m4ovdots', h);
+    if (!t || !d) return;
+    const i = curIdx(t);
+    $$('button', d).forEach((b, k) => { const on = k === i; if (b.classList.contains('on') !== on) b.classList.toggle('on', on); if (b.getAttribute('aria-current') !== String(on)) b.setAttribute('aria-current', String(on)); });
+  }
+  function wireDots() {
+    if (!isM4()) { $$('.m4ovdots').forEach((e) => e.remove()); return; }
+    const h = $('#hero.ovsum'), t = h && $('#ovSumTrack', h);
+    if (!t) return;
+    const n = t.children.length;
+    let d = $('.m4ovdots', h);
+    if (!d || d.children.length !== n || d.previousElementSibling !== t) {
+      if (d) d.remove();
+      d = document.createElement('div'); d.className = 'm4ovdots'; d.setAttribute('role', 'group'); d.setAttribute('aria-label', '摘要卡頁數');   // 不用 tablist：那會被第 23 節套成分段控制器
+      for (let k = 0; k < n; k++) {
+        const b = document.createElement('button'); b.type = 'button';
+        const tt = t.children[k].querySelector('.osc-t');
+        b.setAttribute('aria-label', '第 ' + (k + 1) + ' 張／共 ' + n + ' 張' + (tt ? '：' + tt.textContent.trim() : ''));
+        b.onclick = (e) => { e.stopPropagation(); t.scrollTo({ left: k * t.clientWidth, behavior: 'smooth' }); setTimeout(paintDots, 450); };
+        d.appendChild(b);
+      }
+      t.after(d);
+    }
+    if (!t._m4dots) { t._m4dots = 1; t.addEventListener('scroll', () => { if (t._m4r) return; t._m4r = requestAnimationFrame(() => { t._m4r = 0; paintDots(); }); }, { passive: true }); }
+    paintDots();
+  }
+
+  function chartBoxes() {
+    if (!isM4()) return;
+    const mn = $('main'); if (!mn) return;
+    const big = (e) => { if (!e || e.classList.contains('m4cbox')) return false; const r = e.getBoundingClientRect(); return r.width >= 160 && r.height >= 100; };
+    $$('[_echarts_instance_]', mn).forEach((e) => { if (big(e)) e.classList.add('m4cbox'); });
+    $$('.tv-lightweight-charts', mn).forEach((c) => { const e = c.parentElement; if (e && e.id !== 'lwc' && big(e)) e.classList.add('m4cbox', 'm4lwc'); });
+    $$('canvas', mn).forEach((c) => { if (c.closest('[_echarts_instance_],.tv-lightweight-charts,.m4cbox,#lwc')) return; const e = c.parentElement; if (big(e)) e.classList.add('m4cbox'); });
+    /* 掛上外框＝容器內寬少 2px → ECharts 的 ResizeObserver 重畫一次（只改屬性、不增刪節點）。theme4.js 的「一句結論」（.t4-lede）
+       是靠 main 的節點增刪觸發去讀圖上的資料，重畫之後沒有節點變動就不會再讀 —— 實測資金輪動那句結論因此沒長出來。
+       這裡有新框時補叫一次（去抖 600ms；T4.decorate 只讀圖、寫一句字，重複叫不會疊）。 */
+    if ($$('.m4cbox', mn).length !== chartBoxes.n) { chartBoxes.n = $$('.m4cbox', mn).length; clearTimeout(chartBoxes.t); chartBoxes.t = setTimeout(() => { if (window.T4 && window.T4.decorate) window.T4.decorate(); }, 600); }
+  }
+
+  /* ---- 資金輪動「顯示軌跡／腳印／水波／掃描」4 個勾選框 → 一顆「⚙ 顯示 ›」摘要鈕 → 底部抽屜，每組一排「開｜關」分段控制器
+     （CEO 轉派帳本 38；範本＝Andy 認可的週期統計那款：摘要鈕 → 底部抽屜 → 每組一排分段控制器，mobile4.js 第 29 節）。
+     勾選框本身不動（藏起來），抽屜裡按「開／關」＝按那顆勾選框本人（click()，app.js 原本的 change 監聽照走、記憶照存）。 */
+  const ROT_OPTS = [['rot-line', '顯示軌跡'], ['rot-trail', '顯示腳印'], ['rot-ripple', '水波'], ['rot-scan', '掃描']];
+  const GEAR = '<svg class="m4sico" viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>';
+  function rotCb(cls) { const t = document.getElementById('rotTools'); return t ? t.querySelector('input.' + cls) : null; }
+  function rotSummary() { const on = ROT_OPTS.filter(([c]) => { const x = rotCb(c); return x && x.checked; }); return { n: on.length, txt: on.map(([, t]) => t.replace('顯示', '')).join('・') || '全關' }; }
+  function rotPaint() {
+    const b = document.getElementById('m4RotSet'); if (!b) return;
+    const s = rotSummary(), html = `${GEAR}<span class="m4st">顯示 ${s.n}/${ROT_OPTS.length}</span><i aria-hidden="true">›</i>`;
+    if (b.innerHTML !== html) b.innerHTML = html;
+    const lab = '顯示設定：' + s.txt; if (b.getAttribute('aria-label') !== lab) { b.setAttribute('aria-label', lab); b.title = lab; }
+  }
+  function rotSheetBody(body) {
+    body.innerHTML = ROT_OPTS.map(([c, t]) => { const x = rotCb(c), on = !!(x && x.checked);
+      return `<div class="m4shrow"><span class="m4shlab">${t}</span><div class="seg" role="group" aria-label="${t}">`
+        + `<button type="button" data-rc="${c}" data-v="1" class="${on ? 'on' : ''}" aria-pressed="${on}">開</button>`
+        + `<button type="button" data-rc="${c}" data-v="0" class="${on ? '' : 'on'}" aria-pressed="${!on}">關</button></div></div>`; }).join('');
+  }
+  function rotOpen() {
+    if (!window.M3 || !window.M3.openSheet) return;
+    const wrap = document.createElement('div');
+    wrap.innerHTML = '<div class="mshhead"><b>顯示</b></div><div class="m4shsegs" id="m4RotSegs"></div>';
+    const body = wrap.querySelector('.m4shsegs');
+    rotSheetBody(body);
+    body.addEventListener('click', (e) => {
+      const bt = e.target.closest('button[data-rc]'); if (!bt) return;
+      const x = rotCb(bt.dataset.rc); if (x && x.checked !== (bt.dataset.v === '1')) x.click();
+      setTimeout(() => { rotSheetBody(body); rotPaint(); }, 30);
+    });
+    const sh = window.M3.openSheet(wrap, { kind: 'rotset', onClose: rotPaint });
+    if (sh) sh.dataset.kind = 'rotset';
+  }
+  function wireRot() {
+    const t = document.getElementById('rotTools');
+    if (!t) return;
+    if (!isM4()) { t.classList.remove('m4gone'); const b0 = document.getElementById('m4RotSet'); if (b0) b0.remove(); return; }
+    if (!t.classList.contains('m4gone')) t.classList.add('m4gone');
+    let b = document.getElementById('m4RotSet');
+    if (!b || b.previousElementSibling !== t) {
+      if (b) b.remove();
+      b = document.createElement('button'); b.type = 'button'; b.id = 'm4RotSet'; b.className = 'mfilt m4rotset'; b.setAttribute('aria-haspopup', 'dialog');
+      b.onclick = rotOpen; t.after(b);
+    }
+    rotPaint();
+  }
+
+  let tm = 0;
+  function run() { tm = 0; wireDots(); chartBoxes(); wireRot(); }
+  function kick() { if (!tm) tm = setTimeout(run, 150); }
+  function init() {
+    const mn = $('main');
+    if (mn) new MutationObserver(() => { if (isM4()) kick(); }).observe(mn, { childList: true, subtree: true, attributes: true, attributeFilter: ['class', 'hidden'] });
+    window.addEventListener('hashchange', kick);
+    window.addEventListener('resize', kick);
+    kick();
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();
+})();
+
+/* ============================================================================
    ★ 31. 市場明細三頁的多組切換 → 一顆摘要鈕＋底部抽屜（2026-10-09，帳本 38 退件）
    照週期統計範本（第 C 段 m3／週期統計）：一顆摘要鈕 → 底部抽屜 → 每組一排分段控制器。只有一組的頁不收。
      · 漲跌家數：市場（全部／上市／上櫃）＋ ETF（不含／含）＋ 族群
@@ -1116,4 +1480,259 @@
     kick();
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();
+})();
+
+/* ============================================================================
+   31. 2026-10-09 10:0x Andy（手機預覽版）—— ETF 除息表拉 Bar／區間縮放拉桿（樣式在 mobile4.css 第 31 節）
+   ⚠ 只在 html.m4（≤640）生效；桌機進來一律原樣回傳，一行都不動（桌機守門1008 驗）。
+   ============================================================================ */
+(function () {
+  'use strict';
+  const root = document.documentElement;
+  const isM = () => root.classList.contains('m4') && window.innerWidth <= 640;
+  const css = (n, fb) => { try { return getComputedStyle(root).getPropertyValue(n).trim() || fb; } catch (e) { return fb; } };
+
+  /* ---- 31a. 區間縮放拉桿（Andy：「所有曲線圖表新增下面縮放功能，並告訴我他的專有名稱」）
+     專有名稱：區間縮放拉桿（ECharts dataZoom slider；也有人叫 range slider／brush slider）。
+     範圍＝手機上「橫軸是時間」的 ECharts 折線圖（至少一條 line 系列）。K 線是 lightweight-charts，本來就能拖曳縮放，不經這裡。
+     不加的：純長條（週期統計之類）、橫軸藏起來的、容器矮於 150px 的走勢小圖（拉桿 28px 放進去就沒有圖了）、多個 grid／多條 x 軸的連動圖。
+     只用 slider，不加 inside：inside 會把手指在圖上的上下滑吃掉，整頁捲不動（DECISIONS #192 同一類問題）。
+     把手：ECharts 5 的把手命中範圍是圖示的外接矩形（rectHover）→ 圖示路徑兩側各放一個不畫線的 moveTo 把外接框撐到 32×36，
+     看得到的只有中間那條 8px 寬的膠囊，手指的命中範圍是 32×36（≥ 32 的觸控下限）。 */
+  const DATE_RE = /^(\d{4}$|\d{4}[-/.]\d{1,2}|\d{2,3}[-/.]\d{1,2}|\d{1,2}[-/]\d{1,2}$|\d{4}Q\d|\d{4}年|\d{1,2}月)/;
+  const arr = (x) => (Array.isArray(x) ? x : x == null ? [] : [x]);
+  const HANDLE = 'path://M-16,0 M16,36 M-4,6 Q-4,2 0,2 Q4,2 4,6 L4,30 Q4,34 0,34 Q-4,34 -4,30 Z';
+  function sliderStyle() {
+    const acc = css('--t4-accent-solid', css('--cyan', '#37e2ff')), ink3 = css('--ink-3', '#8aa0b4'), line = css('--line-2', 'rgba(140,160,180,.35)');
+    const light = root.getAttribute('data-theme') === 'light';
+    const hexA = (c, a) => { const m = /^#([0-9a-f]{6})$/i.exec(c); if (!m) return c; const n = parseInt(m[1], 16); return `rgba(${n >> 16},${(n >> 8) & 255},${n & 255},${a})`; };
+    return {
+      type: 'slider', id: 'm4dz', xAxisIndex: 0, height: 28, bottom: 4, left: 22, right: 22,
+      showDetail: false, brushSelect: false, realtime: true, zoomLock: false, minSpan: 5,
+      borderColor: line, borderRadius: 6, backgroundColor: light ? 'rgba(20,40,60,.04)' : 'rgba(255,255,255,.03)',
+      fillerColor: hexA(acc, light ? 0.16 : 0.2),
+      dataBackground: { lineStyle: { color: ink3, opacity: 0.55, width: 1 }, areaStyle: { color: ink3, opacity: light ? 0.12 : 0.16 } },
+      selectedDataBackground: { lineStyle: { color: acc, opacity: 0.9, width: 1 }, areaStyle: { color: acc, opacity: light ? 0.18 : 0.22 } },
+      handleIcon: HANDLE, handleSize: '128%',
+      handleStyle: { color: acc, borderColor: light ? '#ffffff' : 'rgba(0,0,0,.35)', borderWidth: 1 },
+      emphasis: { handleStyle: { color: acc, borderColor: light ? '#0b1a2a' : '#ffffff', borderWidth: 1.5 } },
+      moveHandleSize: 0, textStyle: { color: ink3, fontSize: 11 },
+    };
+  }
+  function isTimeAxis(x) {
+    if (!x || x.show === false) return false;
+    if (x.type === 'time') return true;
+    if (x.type && x.type !== 'category') return false;
+    const d = arr(x.data).map((v) => (v && typeof v === 'object' ? v.value : v)).filter((v) => v != null);
+    if (d.length < 8) return false;
+    const hit = d.filter((v) => DATE_RE.test(String(v))).length;
+    return hit >= d.length * 0.8;
+  }
+  window.M4DZ = function (o, el) {
+    if (!o || typeof o !== 'object') return o;
+    const off = o.m4dz === false; delete o.m4dz;
+    if (off || !isM()) return o;
+    const xa = arr(o.xAxis); if (xa.length !== 1 || !isTimeAxis(xa[0])) return o;
+    if (!arr(o.series).some((s) => s && s.type === 'line')) return o;
+    if (Array.isArray(o.grid) && o.grid.length > 1) return o;
+    const h = el && el.clientHeight; if (h && h < 150) { el.dataset.m4dz = 'short'; return o; }
+    const dz = arr(o.dataZoom).slice(), st = sliderStyle();
+    const k = dz.findIndex((z) => z && z.type === 'slider');
+    if (k >= 0) {   // 已經有拉桿的（ETF 複利試算）：統一樣式；位置與高度一律照這裡，原本的範圍設定保留
+      const keep = {}; ['xAxisIndex', 'start', 'end', 'minValueSpan'].forEach((p) => { if (dz[k][p] != null) keep[p] = dz[k][p]; });
+      dz[k] = Object.assign({}, dz[k], st, keep); delete dz[k].labelFormatter;
+    } else dz.push(st);
+    /* 拉桿佔底部 4～32px：grid 底部往上讓 34px，X 軸日期一個都不被蓋（containLabel 開不開，原本留給日期的那段都還在） */
+    const g = Object.assign({}, Array.isArray(o.grid) ? o.grid[0] : o.grid || {});
+    const gb = typeof g.bottom === 'number' ? g.bottom : (g.containLabel ? 8 : 40);
+    g.bottom = k < 0 ? gb + 34 : Math.max(gb, g.containLabel ? 42 : 62);
+    const out = Object.assign({}, o, { grid: Array.isArray(o.grid) ? [g] : g, dataZoom: dz });
+    /* 監督退件 3：加了拉桿的圖（ETF 報酬比較的 time 軸）在 402 寬出現「20244月」「20254月」—— 年份跟月份標籤黏在一起。
+       一律 hideOverlap，標籤左右各加 3px 內距（ECharts 判斷重疊用的框含內距 → 留下來的標籤之間至少 6px） */
+    out.xAxis = Object.assign({}, xa[0], { axisLabel: Object.assign({}, xa[0].axisLabel || {}, { hideOverlap: true, padding: [0, 3] }) }, xa[0].type === 'time' ? { splitNumber: 4 } : {});   // time 軸刻度少一點（402 寬 11 個 → 約 5 個）
+    /* 只挑「第一／中間／最後」那幾格標日期的圖（個股營收、獲利小圖：interval 是函式）：拉桿拉近之後那幾格不在範圍內，X 軸一個日期都不剩
+       → 改回 ECharts 自動間隔＋hideOverlap，原本的 formatter 回空字串的格子改顯示原值（放得下才顯示，放不下自動藏） */
+    const xl = xa[0].axisLabel;
+    if (xl && typeof xl.interval === 'function') {
+      const f0 = xl.formatter;
+      const nl = Object.assign({}, xl, { interval: 'auto', hideOverlap: true });
+      if (typeof f0 === 'function') nl.formatter = (v, i) => { const r = f0(v, i); return r === '' || r == null ? String(v) : r; };
+      out.xAxis = Object.assign({}, out.xAxis, { axisLabel: Object.assign(nl, { padding: [0, 3] }) });
+    }
+    const lg = o.legend && !Array.isArray(o.legend) ? o.legend : null;
+    if (lg && typeof lg.bottom === 'number' && lg.top == null) out.legend = Object.assign({}, lg, { bottom: lg.bottom + 34 });
+    if (el) el.dataset.m4dz = k >= 0 ? 'restyle' : 'add';
+    return out;
+  };
+
+  /* ---- 31b. ETF 配息行事曆的除息表（Andy：「ETF 表格若長度超過上面圖表長度，則改用拉 Bar 下滑」）
+     表格框高度上限＝上方月曆（標題列＋格子）的高度；超過就在框裡上下捲（overflow-y:auto），表頭黏在框頂。
+     手機瀏覽器的卷軸是「捲動時才浮現」的細線、手指也拖不到 → 框右側自己畫一條拉 Bar（.m4rail）：一直看得見，拇指高 ≥ 40、
+     觸控寬 28（看得到的是中間 6px），手指按住拖＝捲表格；捲表格時拇指跟著動。 */
+  function calFit() {
+    const list = document.getElementById('etfCalList');
+    const wrap = list && list.parentElement;
+    if (!list || !wrap || !wrap.classList.contains('calwrap')) return;
+    const r0 = wrap.querySelector(':scope>.m4rail');
+    if (!isM()) { list.classList.remove('m4cs'); list.style.removeProperty('--m4calh'); if (r0) r0.remove(); return; }
+    const cal = list.previousElementSibling; if (!cal) return;
+    const ch = Math.round(cal.getBoundingClientRect().height);
+    if (ch < 120) return;
+    const hasTbl = !!list.querySelector('table.et');
+    list.classList.toggle('m4cs', hasTbl);
+    list.style.setProperty('--m4calh', ch + 'px');
+    const need = hasTbl && list.scrollHeight > list.clientHeight + 2;
+    if (!need) { if (r0) r0.remove(); return; }
+    let rail = r0;
+    if (!rail) {
+      rail = document.createElement('div'); rail.className = 'm4rail'; rail.setAttribute('aria-hidden', 'true');
+      rail.innerHTML = '<i class="m4thumb"></i>'; wrap.appendChild(rail);
+      const th = rail.firstChild;
+      let y0 = 0, s0 = 0, drag = false;
+      const ratio = () => (list.scrollHeight - list.clientHeight) / Math.max(1, rail.clientHeight - th.offsetHeight);
+      const start = (y) => { drag = true; y0 = y; s0 = list.scrollTop; rail.classList.add('on'); };
+      const move = (y) => { if (drag) list.scrollTop = s0 + (y - y0) * ratio(); };
+      const end = () => { drag = false; rail.classList.remove('on'); };
+      th.addEventListener('touchstart', (e) => { start(e.touches[0].clientY); e.preventDefault(); e.stopPropagation(); }, { passive: false });
+      th.addEventListener('touchmove', (e) => { move(e.touches[0].clientY); e.preventDefault(); e.stopPropagation(); }, { passive: false });
+      th.addEventListener('touchend', end); th.addEventListener('touchcancel', end);
+      th.addEventListener('mousedown', (e) => { start(e.clientY); e.preventDefault();
+        const mm = (ev) => move(ev.clientY), mu = () => { end(); removeEventListener('mousemove', mm); removeEventListener('mouseup', mu); };
+        addEventListener('mousemove', mm); addEventListener('mouseup', mu); });
+      // 點軌道空白處：往那個方向翻一頁
+      rail.addEventListener('click', (e) => { if (e.target !== rail) return; const r = th.getBoundingClientRect(); list.scrollTop += (e.clientY < r.top ? -1 : 1) * list.clientHeight * 0.9; });
+    }
+    if (list._m4rail !== rail) { list._m4rail = rail; list.addEventListener('scroll', () => railPaint(list), { passive: true }); }
+    railPaint(list);
+  }
+  function railPaint(list) {
+    const wrap = list.parentElement, rail = wrap && wrap.querySelector(':scope>.m4rail'); if (!rail) return;
+    const th = rail.firstChild, lr = list.getBoundingClientRect(), wr = wrap.getBoundingClientRect();
+    rail.style.top = Math.round(lr.top - wr.top) + 'px'; rail.style.height = Math.round(list.clientHeight) + 'px';
+    const H = list.clientHeight, tH = Math.max(40, Math.round(H * H / Math.max(1, list.scrollHeight)));
+    th.style.height = tH + 'px';
+    const max = list.scrollHeight - H;
+    th.style.transform = `translateY(${Math.round(max > 0 ? (list.scrollTop / max) * (H - tH) : 0)}px)`;
+  }
+  let raf = 0;
+  const kick = () => { if (raf) return; raf = requestAnimationFrame(() => { raf = 0; try { calFit(); } catch (e) { /* 不擋頁面 */ } }); };
+  function boot() {
+    const v = document.getElementById('v-etf');
+    if (v && typeof MutationObserver !== 'undefined') new MutationObserver(kick).observe(v, { childList: true, subtree: true });
+    addEventListener('resize', kick); addEventListener('hashchange', () => setTimeout(kick, 300));
+    kick();
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot); else boot();
+})();
+
+/* ============================================================================
+   31j. 2026-10-09 帳本 38 退件（ETF 部分）：ETF 總覽 4 組切換、月配試算 4 組切換＋勾選框 → 一顆摘要鈕 → 底部抽屜 → 每組一排分段控制器
+   範本＝週期統計（第 29 節 snWire／m3Open：.m4ctlrow＋.mfilt 摘要鈕＋M3.openSheet＋.m4shsegs）。
+   · ETF 總覽：「最受歡迎依（受益人｜成交值）」「報酬期間」「報酬口徑（含息｜不含息）」「一覽排序」四組收進抽屜。
+     不收：分類列（已是上方分頁式頁籤）、「最受歡迎｜報酬率｜殖利率」（只有它一組在卡片上方切卡片，留在頁面上）、「加入比較」（是挑股票的清單，不是切換）。
+   · 月配試算：選「整個條件列改成摘要鈕＋抽屜」（不選「條件列維持一排、其他收抽屜」）：
+     402／360 寬時一排四個下拉，「範圍」「期間」只剩 2～3 個字加 …，看不出現在選了什麼；摘要鈕把五個值全部寫出來（例：年領・100 萬・配息型・扣健保・近 5 年），
+     抽屜裡每組一排、每個選項都完整看得到，資訊比較清楚。
+     例外：選了「自訂…」金額或「起始日期～至今」時，要填數字／日期的那一列照樣露出來（抽屜裡不放輸入框，填完直接在頁面上看結果）。
+   · 抽屜裡的分段鈕按下去＝去改原本那一個控制項（點原本的鈕、或改原本的 select 再發 change）—— 狀態、重畫、記憶都照 etfpage.js 原本的邏輯，不另存一份。
+   ⚠ 只在 html.m4（≤640）；桌機什麼都不插，回到桌機寬時拆掉。
+   ============================================================================ */
+(function () {
+  'use strict';
+  const root = document.documentElement;
+  const $ = (s, r) => (r || document).querySelector(s);
+  const $$ = (s, r) => Array.from((r || document).querySelectorAll(s));
+  const isM = () => root.classList.contains('m4') && window.innerWidth <= 640;
+  const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
+  const ICON = '<svg class="m4sico" viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 4h-7M10 4H3M21 12h-9M8 12H3M21 20h-5M12 20H3M14 2v4M8 10v4M16 18v4"/></svg>';
+  const vis = (e) => !!e && !!e.getClientRects().length;
+  // 頁面自己藏起來的切換（例：槓桿反向沒有「含息｜不含息」，etfpage.js 寫 style.display='none'）不放進抽屜、也不寫進摘要
+  const live = (q) => { const e = $(q); return e && e.style.display !== 'none' && !e.closest('[hidden]') ? e : null; };
+  const rpkCustom = (el) => { const r = el && el.closest('.rpk'); return !!r && r.dataset.v === (r.dataset.custom || 'custom'); };
+
+  /* 每一組：k＝驗收用代號、t＝抽屜裡的組名、取值／選項／套用 */
+  const segG = (k, t, q, short) => ({ k, t, el: () => live(q), opts: (e) => $$(':scope > button', e).map((b) => [b.dataset.v || b.textContent.trim(), b.textContent.trim(), b.classList.contains('on')]),
+    set: (e, v) => { const b = $$(':scope > button', e).find((x) => (x.dataset.v || x.textContent.trim()) === v); if (b && !b.classList.contains('on')) b.click(); }, short });
+  const selG = (k, t, q, short) => ({ k, t, el: () => live(q), opts: (e) => Array.from(e.options).map((o) => [o.value, o.text.replace(/\s+/g, ' ').trim(), o.value === e.value]),
+    set: (e, v) => { if (e.value === v) return; e.value = v; e.dispatchEvent(new Event('change', { bubbles: true })); }, short });
+  const chkG = (k, t, q) => ({ k, t, el: () => live(q), opts: (e) => [['1', '扣除', e.checked], ['0', '不扣', !e.checked]],
+    set: (e, v) => { if (e.checked !== (v === '1')) e.click(); }, short: (o) => (o[0] === '1' ? '扣健保' : '不扣健保') });
+  const PAGES = [
+    { id: 'list', title: 'ETF 總覽設定', on: () => vis($('#etfRetCard')) || vis($('#etfListCard')),
+      anchor: () => $('#v-etf .m4trisg') || $('#etfTri'),
+      groups: [segG('pop', '最受歡迎依', '#etfPopSeg'), selG('rng', '報酬期間', '#etfRngBox select.rpsel'), segG('basis', '報酬口徑', '#etfBasisSeg'), selG('sort', '一覽排序', '#etfSort')],
+      // 原本的位置藏起來（只藏切換本身，旁邊的說明字、「加入比較」照舊）；選了起始日期時日期列照樣露出來
+      hide: () => [['#etfPopSeg', true], ['#etfRngBox', !rpkCustom($('#etfRngBox select.rpsel'))], ['#etfBasisSeg', true], ['#etfSort', true], ['label[for="etfSort"]', true]] },
+    { id: 'inc', title: '月配試算條件', on: () => vis($('#incPM')),
+      // 插在 wireCond 的「條件 ▾」鈕前面（它認「緊鄰 .incctl 的前一個兄弟」，插在中間它會一直再生一顆新的）
+      anchor: () => $('#incPM > .m4cond') || $('#incPM > .incctl'),
+      groups: [selG('mode', '目標', '#incPM #incMode + select.m4segsel'), selG('amt', '金額', '#incPM #incAmtSeg + select.m4segsel'), selG('scope', '範圍', '#incPM #incScope + select.m4segsel'),
+        chkG('nhi', '二代健保（單筆 ≥ 2 萬扣 2.11%）', '#incNhi'), selG('rng', '報酬期間', '#etfIncRngBox select.rpsel')],
+      hide: () => { const amt = $('#incAmt'), need = (amt && amt.classList.contains('m4show')) || rpkCustom($('#etfIncRngBox select.rpsel'));
+        return [['#incPM > .incctl', !need], ['#incPM > .m4cond', true]]; } },
+  ];
+  const summary = (P) => P.groups.map((g) => { const e = g.el(); if (!e) return null; const o = g.opts(e).find((x) => x[2]); if (!o) return null;
+    return { t: g.short ? g.short(o) : o[1].replace(/\s+/g, ''), full: g.t + '：' + o[1] }; }).filter(Boolean);
+  function paint(P, b) {
+    const s = summary(P), txt = s.map((x) => x.t).join('・') || '設定', full = s.map((x) => x.full).join('；');
+    const h = `${ICON}<span class="m4st">${esc(txt)}</span><i aria-hidden="true">›</i>`;
+    if (b.__h !== h) { b.innerHTML = h; b.__h = h; }
+    if (b.getAttribute('aria-label') !== P.title + '：' + full) { b.setAttribute('aria-label', P.title + '：' + full); b.title = P.title + '：' + full; }
+  }
+  function sheetBody(P, body) {
+    body.innerHTML = P.groups.map((g) => { const e = g.el(); if (!e) return '';
+      return `<div class="m4dwg" data-g="${g.k}"><small>${esc(g.t)}</small><div class="seg">${g.opts(e).map(([v, t, on]) => `<button type="button" data-g="${g.k}" data-v="${esc(v)}" class="${on ? 'on' : ''}" aria-pressed="${on}">${esc(t)}</button>`).join('')}</div></div>`; }).join('');
+    /* 一排放不下的組（金額 5 格、報酬期間 6 格）：不換行、框裡橫拖，右緣淡出；選中那格捲進看得到的範圍；拖到底淡出拿掉（監督退件 2） */
+    requestAnimationFrame(() => $$('.seg', body).forEach((sg) => {
+      const ovf = sg.scrollWidth > sg.clientWidth + 1; sg.classList.toggle('m4ovf', ovf); if (!ovf) return;
+      const on = $('button.on', sg); if (on) sg.scrollLeft = Math.max(0, on.offsetLeft - (sg.clientWidth - on.offsetWidth) / 2);
+      const end = () => sg.classList.toggle('m4end', sg.scrollLeft + sg.clientWidth >= sg.scrollWidth - 2);
+      end(); sg.addEventListener('scroll', end, { passive: true });
+    }));
+  }
+  function open(P) {
+    const api = window.M3; if (!api || !api.openSheet) return;
+    const wrap = document.createElement('div');
+    wrap.innerHTML = `<div class="mshhead"><b>${esc(P.title)}</b></div><div class="m4shsegs m4dw" id="m4EtfSegs" data-p="${P.id}"></div>`;
+    const body = $('.m4shsegs', wrap);
+    sheetBody(P, body);
+    body.addEventListener('click', (ev) => {
+      const bt = ev.target.closest('button[data-g]'); if (!bt) return;
+      const g = P.groups.find((x) => x.k === bt.dataset.g), e = g && g.el(); if (!e) return;
+      g.set(e, bt.dataset.v);
+      // 選了「自訂…」金額／起始日期：要在頁面上填數字或日期 → 收起抽屜，那一列會露出來
+      if (bt.dataset.v === 'custom' || rpkCustom(e)) { setTimeout(() => { if (api.closeSheet) api.closeSheet(); else { const x = $('#mSheet .mshx, #mScrim'); if (x) x.click(); } }, 60); return; }
+      setTimeout(() => { sheetBody(P, body); kick(); }, 80);
+    });
+    api.openSheet(wrap, { kind: 'etfset-' + P.id, onClose: kick });
+  }
+  function ensure() {
+    const v = $('#v-etf');
+    if (!isM()) { $$('.m4etfrow').forEach((r) => r.remove()); $$('.m4dwhide').forEach((e) => e.classList.remove('m4dwhide')); return; }
+    if (!v || !v.classList.contains('on')) return;
+    PAGES.forEach((P) => {
+      let row = $(`#m4EtfRow-${P.id}`);
+      const on = P.on(), anc = P.anchor();
+      if (!on || !anc) { if (row) row.hidden = true; return; }
+      if (!row) {
+        row = document.createElement('div'); row.id = `m4EtfRow-${P.id}`; row.className = 'm4ctlrow m4etfrow';
+        row.innerHTML = `<button type="button" class="mfilt m4etfset" id="m4EtfSet-${P.id}" aria-haspopup="dialog"></button>`;
+        $('button', row).onclick = () => open(P);
+      }
+      if (row.nextElementSibling !== anc) anc.before(row);
+      row.hidden = false;
+      P.hide().forEach(([q, h]) => $$(q).forEach((e) => { if (e.classList.contains('m4dwhide') !== h) e.classList.toggle('m4dwhide', h); }));
+      paint(P, $('button', row));
+    });
+  }
+  let raf = 0;
+  function kick() { if (raf) return; raf = requestAnimationFrame(() => { raf = 0; try { ensure(); } catch (e) { /* 不擋頁面 */ } }); }
+  function boot() {
+    const v = $('#v-etf');
+    if (v && typeof MutationObserver !== 'undefined') new MutationObserver((ms) => { if (ms.some((m) => !(m.target.closest && m.target.closest('.m4etfrow')))) kick(); }).observe(v, { childList: true, subtree: true, attributes: true, attributeFilter: ['class', 'hidden', 'data-v'] });
+    v && v.addEventListener('change', () => setTimeout(kick, 30));
+    addEventListener('resize', kick); addEventListener('hashchange', () => setTimeout(kick, 300));
+    kick();
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot); else boot();
 })();

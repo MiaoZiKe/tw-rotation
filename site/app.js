@@ -876,6 +876,9 @@
        橫軸是時間（time 軸、或類別是日期字串）的圖，統一補一組很淡的垂直分隔線（年線較明顯、月線極淡）。
        不逐張手改；細節與分層規則在 site/timegrid.js。圖自己不要的：option.timeGrid = false 或 xAxis.timeGrid = false。*/
     if (window.TimeGrid) { full = window.TimeGrid.applyToOption(full, el); delete full.timeGrid; }
+    /* ★ 2026-10-09 Andy（手機）：「所有曲線圖表新增下面縮放功能」→ 手機（html.m4）時間序列折線圖統一補「區間縮放拉桿」（ECharts dataZoom slider）。
+       規則與樣式只在 mobile4.js 最後一節（M4DZ）；桌機 M4DZ 一進來就原樣回傳，一個屬性都不動。圖自己不要的：option.m4dz = false。 */
+    if (window.M4DZ) full = window.M4DZ(full, el); else delete full.m4dz;
     c.setOption(full, opts && opts.notMerge !== false);
     // 容器在 display:none 或還沒排版時 init 出來會是 0×0，畫完就是一片空白而且不會自己好。
     // 盯著容器尺寸，一變就 resize，這樣切分頁、展開說明、視窗縮放都不會留下空白圖。
@@ -2588,6 +2591,14 @@
       const grp = (n) => Object.keys(M4_OV_SEG).filter(k => M4_OV_SEG[k] === n).flatMap(by);
       groups = ['大盤', '資金流向', '熱度'].map(n => ({ s: 1, n, sel: grp(n) }));
     }
+    /* ★ 2026-10-09（Andy 手機截圖紅框：「熱力圖上面 下面題材」）：手機 v2 題材頁拿掉第二層「題材熱力｜題材細節」分段，
+       兩段併成一組上下排（上＝題材熱力圖、下＝該題材的剖析圖，中間一條分隔線，見 mobile4.css 第 30 節）。
+       併成一組之後只剩一段 → 下面 found.length < 2 就不出分段列。桌機不走這裡（上一行 mIsM() 已擋）。 */
+    if (document.documentElement.classList.contains('m4') && key === 'heatmap') {
+      const by = (n) => (groups.find(g => g.n === n) || { sel: [] }).sel;
+      groups = groups.filter(g => g.n !== '題材熱力' && g.n !== '題材細節')
+        .concat([{ s: (groups.find(g => g.n === '題材熱力') || {}).s || 0, n: '題材', sel: [...by('題材熱力'), ...by('題材細節')] }]);
+    }
     // 每一段實際抓得到的元素（抓不到的略過：例如簡版個股頁沒有 #aiCard）
     /* ★ 2026-10-08 手機 v2（html.m4）：
        ① 不再畫「錢往哪跑／貴不貴／別進的理由」那一排大步驟鈕（.mspine）—— 步驟拍平成一條分段列（s 一律當 0）；
@@ -2872,6 +2883,13 @@
      ＝ 233px 的**控制項**排在兩張圖之前。手機上先看圖、要調才展開控制項，
      所以收成一顆「篩選與期間 ▾」。⚠ 一樣是收起來，不是拿掉。*/
   function miaFlow() {
+    /* ★ 2026-10-09 Andy：「這頁拿掉收展功能」—— 手機 v2（html.m4）的資金輪動頁不要「篩選與期間」收展鈕，
+       產業鏈／族群下拉、期間拉桿、軌跡／腳印／水波／掃描勾選直接常駐（跟網頁版同一排）。只限 m4；手機 v1 照舊收起。*/
+    if (document.documentElement.classList.contains('m4')) {
+      const b = document.getElementById('mfFlowCtl'); if (b) b.remove();
+      ['#flowRotFilter', '#flowRotTime'].forEach(q => { const e = document.querySelector(q); if (e) e.classList.remove('mf-off'); });
+      return;
+    }
     miaFold('#how-rot', '篩選與期間', ['#flowRotFilter', '#flowRotTime'], 'mfFlowCtl');
   }
 
@@ -6128,6 +6146,7 @@
   const ROT_CROWD_OP = 0.5;
   const ROT_REST_SZ = 0.78;
   const ROT_REST_GAP = 2;              // 非焦點腳印的間距倍數（每兩步畫一步）
+  const rotM4 = () => document.documentElement.classList.contains('m4');   // 手機 v2：輪盤用完整版（見 renderClock 的 numMode）
   const ROT_NUM_W = 560;               // 容器窄於這個寬度 → 編號模式
   /* 象限底色的徑向漸層（2026-09-24 取代第 5 批的三圈硬邊色塊）：[深色, 淺色] × [圓心, 半圈虛線, 外圈虛線, 盤緣]。
      中間兩個錨點取第 5 批三圈的中間值，讀起來的「深淺」跟三圈版一致，只是變成平順過渡。*/
@@ -6143,7 +6162,10 @@
      象限底色仍然保留「離圓心越遠越濃」的徑向漸層（Andy 同一天稍早要的「分層需要漸層」），
      只是整體拉到參考檔的濃度：圓心 .12 → 盤緣 .27（淺色主題 .07 → .18，淺底上同樣的 α 會顯得重很多）。*/
   const ROT_GRAD_V2 = [[.12, .17, .22, .27], [.07, .10, .14, .18]];
-  const rotDesk = () => { try { return !window.matchMedia('(max-width:820px)').matches; } catch (e) { return true; } };
+  /* ★ 2026-10-09（Andy：「資金輪動直接是完整版」「顏色風格都要一樣」）：手機 v2（html.m4）也算「桌機長相」——
+     發光核心＋白外圈、名字膠囊、掃描、桌機的盤高公式全部同一套，只有尺寸跟著寬度縮。
+     舊的 ≤820 手機長相（水滴點、無掃描）只剩「桌機視窗拉窄到 ≤820」這條路會用到，桌機行為不變。*/
+  const rotDesk = () => { if (rotM4()) return true; try { return !window.matchMedia('(max-width:820px)').matches; } catch (e) { return true; } };
   const rotNum = {};                   // 圖表 id → 這一輪是不是編號模式
   /* 白字／深字寫在點裡夠不夠清楚（≥ 4.5:1）。點的顏色是 mixHex 混出來的 #rrggbb；
      靠圓心的點被調淡過，白字常常不夠 —— 那種就換深字，兩種都不夠就寫在點外面。*/
@@ -6761,6 +6783,8 @@
     if (!rotDesk()) { if (el.style.height) el.style.height = ''; return; }
     const w = (el.parentNode && el.parentNode.clientWidth) || el.clientWidth || 0;
     if (!(w > 0)) return;
+    // 手機 v2：盤是正方形、寬＝欄寬（402 寬約 370px），整張一屏看得到；桌機不進這一行
+    if (rotM4()) { if (Math.abs((el.clientHeight || 0) - w) > 2) el.style.height = w + 'px'; return; }
     /* ★ 2026-09-28 設計 v4 第二批 2A：比例與上限改由 CSS 變數決定（theme4.css 依欄寬分段設 --rot-hk／--rot-hmax），
        沒設就是原本的 0.8／640。版面數字放在樣式表裡，跟兩欄／單欄的斷點寫在同一處，不會一邊改了一邊忘了。*/
     const cs = getComputedStyle(el);
@@ -7094,7 +7118,9 @@
     const crowded = (r) => crowdN >= ROT_CROWD_N && r.p[0] < CLOCK_MAXR / 2;
     const trailOp = (r) => (shownTrail(r) ? 1 : (restDim && !r.isStock ? ROT_REST_OP * (crowded(r) ? ROT_CROWD_OP : 1) : 0));
     // 編號模式（容器 < 560px）：圖上只寫編號，名字在圖下方清單
-    const numMode = !compact && (el.clientWidth || 0) > 0 && el.clientWidth < ROT_NUM_W;
+    /* ★ 2026-10-09（Andy：「資金輪動直接是完整版」）：手機 v2（html.m4）不走編號模式 —— 圖上直接寫族群名（同桌機），
+       編號模式是桌機窄視窗的退路，不是手機的精簡版。桌機（沒有 m4）判準一個字不變。*/
+    const numMode = !compact && !rotM4() && (el.clientWidth || 0) > 0 && el.clientWidth < ROT_NUM_W;
     rotNum[id] = numMode;
     top.forEach((r, i) => {
       r.sz = r.isStock ? stockSize(r) : groupSize(r);
@@ -7748,7 +7774,7 @@
         if (cur !== c) return;                       // 圖被換掉或 dispose 了就不要再動它
         /* 寬度跨過 560px（編號模式 ⇄ 左右兩欄）：formatter、標籤樣式、圖下清單全部要換，整張重畫最省事。
            重畫時 numMode 是用同一個 clientWidth 算的，所以不會來回觸發。*/
-        const wantNum = (el.clientWidth || 0) > 0 && el.clientWidth < ROT_NUM_W;
+        const wantNum = !rotM4() && (el.clientWidth || 0) > 0 && el.clientWidth < ROT_NUM_W;
         if (wantNum !== !!rotNum[id] && el._rotRedraw) { el._rotRedraw(); return; }
         applyLbl(c);
         // 盤的半徑是像素（rotGeo），容器變了要跟著換 —— 不然放大視窗／象限面板開合之後盤會凸出或縮在中間
@@ -8009,7 +8035,7 @@
         + (d.base ? `<br>佔上一層 <b>${pct(d.value, d.base)}%</b>` : '')
         + `<br>佔全場 ${pct(d.value, total)}%`;
     };
-    if (window.FlowTopo && window.innerWidth > 820) {
+    if (window.FlowTopo && (window.innerWidth > 820 || rotM4())) {   // 2026-10-09：手機 v2 也用同一支光纖引擎（緊湊版窄排法），跟網頁版同一套光、粒子、配色
       try { const ec = window.echarts && echarts.getInstanceByDom(el); if (ec) { ec.dispose(); delete charts[el.id]; } } catch (e) { /* 忽略 */ }
       el.classList.remove('isempty');
       const tree = { name: '加權指數', value: total, isRoot: true,
@@ -9089,6 +9115,20 @@
   const ROT_BOARD_WIN = 5;         // 輪動階段看板：和幾個交易日前比（窗長，與「看哪一天」無關）
   let flowState = { period: 'w0', back: 0, concTop: 5 };
   async function renderFlow() {
+    /* ★ 2026-10-09（Andy：「資金分流樹剛開始就要出現」）：手機 v2（html.m4）在「資金分流樹」子頁時，樹不等下面那三份檔
+       （flow_v3 1MB＋concentration＋groups_detail，合計約 2MB，分流樹一份都用不到）—— 自己那份 sankey_daily 一到就先畫最新一天；
+       下面 whenNear 那一段照舊會再畫一次（同一天、同一份資料，flowtopo 只更新不重建），並掛上拉桿與「即時」鈕。
+       桌機不進這一段（桌機行為一個字不變）。 */
+    if (rotM4()) {
+      const skc = $('#flowSankeyCard');
+      if (skc && skc.getClientRects().length && !($('#sankey') && window.FlowTopo && window.FlowTopo.has($('#sankey')))) {
+        load('sankey_daily', { fallback: { dates: [], groups: [], leaves: {} } }).then(sd => {
+          const el = $('#sankey');
+          if (!el || (window.FlowTopo && window.FlowTopo.has(el)) || !sd || !(sd.dates || []).length) return;
+          try { renderSankey(sd, sd.dates.length - 1); } catch (e) { console.warn('資金分流樹（手機先畫）失敗', e); }
+        });
+      }
+    }
     // groups_detail：輪動板點族群要原地展開成分股（Andy 2026-09-18 圖五），這頁也要先載
     const [f3, conc] = await Promise.all([load('flow_v3'), load('concentration'), load('groups_detail')]);
     wireHowto($('#v-flow'));
@@ -11342,7 +11382,7 @@
   const sankeyStyle = () => sankeyStyleForce || 'fx';
   const paintSankeySeg = () => {};      // 分段鈕已拿掉（留著空函式，舊的呼叫點不用一一拆）
   // 「由 flowtopo.js 的 Canvas 引擎畫」＝經典光纖或拓撲（兩者共用同一支引擎，只差版面）
-  const sankeyTopoOn = () => !!(window.FlowTopo && window.FlowTopo.render) && window.innerWidth > 820 && sankeyStyle() !== 'classic';
+  const sankeyTopoOn = () => !!(window.FlowTopo && window.FlowTopo.render) && (window.innerWidth > 820 || document.documentElement.classList.contains('m4')) && sankeyStyle() !== 'classic';
 
   /* ------------------------------------------------ 盤中即時資金分流樹（Andy 2026-09-21）
      「好那在幫我多新增一個『即時』項目可以點選觀看　在紅框那排」
@@ -12685,6 +12725,24 @@
     };
     let cur = null;
     nodes.forEach(n => { n.onclick = (e) => { e.stopPropagation(); cur = (cur === n.dataset.part) ? null : n.dataset.part; paint(cur); }; });
+    /* ★ 2026-10-09 手機 v2（Andy 09:3x：「↻ 改點背景重設」）：題材剖析圖右上角的 ↻ 鈕拿掉，
+       改成點圖的空白處（沒點到任何環節、代號、說明鈕、按鈕）＝清掉選起來的環節（sel／dim）、收掉說明面板、捲動歸零。
+       themes3d.js 依寬度重畫只換 root 的內容、root 本身不換 → 監聽器掛一次（root._m4bg），重設動作每次換成最新的閉包。
+       桌機（沒有 html.m4）不掛。*/
+    if (document.documentElement.classList.contains('m4')) {
+      const old = root.querySelector(':scope > .m4rst'); if (old) old.remove();
+      /* 手機直排版的「選起來」有一部分是 themes3d.js 自己掛的（點一格開說明時加 .sel），而且依寬度重畫後節點會換 —— paint() 手上那份 nodes 可能是舊的，
+         所以重設時直接把圖裡現有的 .sel／.dim 全部拿掉（實測只靠 paint(null) 會留下一格亮著）。 */
+      root._m4reset = () => { cur = null; paint(null); root.querySelectorAll('.sel, .dim').forEach((n) => n.classList.remove('sel', 'dim')); root.scrollLeft = 0; if (window.M3 && window.M3.closeSheet) window.M3.closeSheet(); };
+      if (!root._m4bg) {
+        root._m4bg = 1;
+        root.addEventListener('click', (e) => {
+          if (!document.documentElement.classList.contains('m4')) return;
+          if (e.target.closest && e.target.closest('[data-part],[data-chain],.scode,.capbtn,.info,button,a,input,select,details')) return;
+          if (root._m4reset) root._m4reset();
+        });
+      }
+    }
   }
   /* ★ 2026-09-23（Andy：「題材這頁 將中間這兩個表格拿掉」）：
      原本這裡有兩張卡片 —— 左邊「題材標題 ＋ 五個數字方塊 ＋ 熱度走勢折線」、
@@ -12708,6 +12766,14 @@
        舊的題材頁一打開就畫第一個題材的剖析圖 —— 那一頁只有題材，這樣合理；
        現在這一頁的主角是兩張熱力圖，一進來就在下面攤一張大剖析圖，等於替使用者選了一個他沒選的題材。
        Andy 描述的行為是「點題材格子會展開題材細節」，所以改成點了才展開，沒點就只留一句怎麼用。*/
+    /* ★ 2026-10-09（手機 v2 題材頁上下排）：手機題材頁不再分「熱力｜細節」兩段，細節就排在熱力圖正下方 ——
+       沒選題材時下方一整塊「尚未選擇題材」等於空著，所以手機預設展開熱度最高、而且有剖析圖的那一個（網址不變）。
+       桌機照舊「點了才展開」（上面 2026-09-24 那段）。*/
+    const m4v = document.documentElement.classList.contains('m4') && mIsM();
+    if (!id && m4v) {
+      const hot = th.themes.filter(x => (window.ThemeDiagrams || {})[x.id]).sort((a, b) => (+b.heat || 0) - (+a.heat || 0))[0];
+      if (hot) id = hot.id;
+    }
     if (!id) {
       el.innerHTML = `<div class="muted themehint" title="點上方「題材資金熱力」任一方塊，在這裡展開它的剖析圖">尚未選擇題材</div>`;
       fitThemeView(); return;
@@ -12750,7 +12816,8 @@
       // 剖析圖不加滾輪縮放（跟產業／個股剖析圖一致，DECISIONS #84；Andy 09-13 再確認）
       // 要看大圖按右上角「放大」，那是明確的按鈕，不會搶走頁面捲動
       wireThemeDiagram(el, t);
-      dismissable(el, () => { if (location.hash.startsWith('#heatmap/theme/')) location.hash = '#heatmap/theme'; }, {
+      /* 手機 v2：細節是這一頁固定的下半段（不是就地展開的面板），點外面不收（收了也只會換回預設題材）。*/
+      if (!m4v) dismissable(el, () => { if (location.hash.startsWith('#heatmap/theme/')) location.hash = '#heatmap/theme'; }, {
         ignore: ['#themeMapCard'],
         isOpen: () => !!$('#themeDiagram', el) && el.getClientRects().length > 0 && location.hash.startsWith('#heatmap/theme/'),
       });
