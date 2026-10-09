@@ -33,17 +33,37 @@ window.TW_LEGAL = {
   /* ---- 已知的事實，先幫忙填好（不對就改）---- */
   site_name: '哩股哩股',   // 2026-10-07 Andy 定案站名「哩股哩股」
   repo_url: '',          // ★ 2026-09-24 Andy：原始碼不能公開，網站上不准出現 repo 連結；這一欄保持空的
-  // 隱私權政策「資料存在哪裡」：本站目前實際用到的兩個第三方服務
-  hosting: 'GitHub Pages（GitHub, Inc.，美國；網站本身）、Cloudflare Workers（Cloudflare, Inc.，全球節點；僅用於轉送盤中報價）',
+  // 隱私權政策「資料存在哪裡」：本站目前實際用到的第三方服務（2026-10-09 依程式碼更新：會員資料也在 Cloudflare；期貨盤中報價走 Deno Deploy）
+  hosting: 'GitHub Pages（GitHub, Inc.，美國；網站本身）、Cloudflare Workers（Cloudflare, Inc.，全球節點；會員資料、自選清單、使用統計與盤中報價轉送）、Deno Deploy（Deno Land Inc.；期貨盤中報價轉送）、Google（Google 帳號登入）',
 
-  /* ---- 功能旗標：還沒有的服務，對應的條款段落不顯示 ----
-     草稿裡有「付費訂閱」「電子報」「跨裝置同步」三塊，本站目前一個都沒有。
-     把不存在的服務寫進條款，等於要使用者同意一件不存在的事，而且會多出一堆填不了的空格
-     （退款規則、電子報服務商、特定目的代號…）。開了哪一項，對應的段落與空格就會出現。*/
-  paid: false,
+  /* ---- 功能旗標（2026-10-09 依現況改正）----
+     ⚠ 2026-10-07 起 legal.js 的三份條文改成直接寫死現況（不再用這四個旗標切段落），所以這四格目前只是「現況紀錄」，
+       不會讓畫面多出或少掉段落；改它們不影響版面。保留的理由：日後若改回旗標切段，值必須是對的。
+     · paid：#pricing 已在販售 Plus／Pro（申請制、專人開通；線上付款尚未上線）→ true
+     · sync：會員雲端自選清單已上線（workers/account-api，/v1/lists）→ true
+     · analytics：管理區「流量觀測」有不具名彙總統計＋登入者使用明細（worker.js USAGE_KEEP_MONTHS=13）→ true
+     · presence：頂欄「N 人在線」與管理區線上名單（worker.js presence 表，PRESENCE_TTL_MS=7 分鐘）→ true
+     · newsletter：目前不寄任何電子報或行銷信 → false */
+  paid: true,
   newsletter: false,
-  sync: false,
-  analytics: false,      // 流量統計：本站目前沒有裝任何統計程式（已 grep 過 site/），所以那一列不顯示
+  sync: true,
+  analytics: true,
+  presence: true,
+
+  /* ---- 退款與取消訂閱政策（#refund，2026-10-09）----
+     ★ 下面的數字是「商業承諾」，由 Andy 決定；目前先照 Andy 給的參考預設，未經他確認（docs/legal_refund_1009.md「需要 Andy 確認」）。
+     其他檔要讀：window.TW_LEGAL.REFUND_DAYS（或 window.TwLegal.refund().days，有驗收覆寫時以後者為準）。
+     claude/acct-menu（帳號選單「申請退款」「取消訂閱」）請讀這裡，不要自己再寫一個 7。*/
+  REFUND_DAYS: 7,            // 首次付款後幾日內可申請全額退款（退款保證）
+  REFUND_PROCESS_DAYS: 14,   // 收到退款申請後，幾日內完成審核並通知金流服務商退款（日曆天）
+  REFUND_OUTAGE_DAYS: 7,     // 本站連續幾日無法提供核心功能時，付費者得按未使用日數比例申請退款
+  // 刪除帳號後，信箱比對碼（以 Worker secret 金鑰 HMAC 過的信箱，只用來判斷退款保證／試用資格）保存幾天；期滿自動刪除。
+  // 2026-10-09 CEO 決定預設 365（Andy：「寧可不給也不讓人鑽漏洞」；網路實例 30 天～6 個月，沒有業界標準）
+  HASH_RETENTION_DAYS: 365,
+  PAY_ONLINE: false,         // 線上付款上線 → true：退款頁改寫「帳號選單自助取消」；⚠ 同時結帳頁必須有七日解除權例外的勾選同意
+  PAY_PROVIDER: '',          // 金流服務商名稱（上線時填，例如公司全名）；空的＝寫「第三方金流服務商（上線時於本頁公告名稱）」
+  APP_STORE_IAP: false,      // 有 App 且在 App Store／Google Play 內購時才開；目前沒有 App
+  SELF_DELETE: false,        // 帳號選單「刪除帳號」上線（claude/acct-menu）→ true：隱私權政策改寫「可於帳號選單自行刪除」
 
   /* ---- 總開關 ---- */
   enabled: false,
