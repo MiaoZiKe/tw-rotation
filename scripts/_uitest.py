@@ -26778,6 +26778,8 @@ def t_tour_1007(pg, b, base):
     m.locator("#twPickSite").tap()
     rows = _tour_walk(m, "全站 390")
     ok(f"{T} 390：全站導覽走了 8 步以上（底部導覽列四格＋更多＋搜尋＋⋯＋客服）", len(rows) >= 8, [r["title"] for r in rows])
+    li = m.evaluate("() => TwTour.last()") or {}
+    ok(f"{T} 390：全站導覽一步都沒被跳過（skipped 為空）", li.get("tour") == "site" and not li.get("skipped"), li)
     for r in rows:
         c_ok, h_ok = _tour_inview(r)
         ok(f"{T} 390 全站第 {r['i'] + 1} 步「{r['title']}」：框在畫面內、說明卡不出畫面且貼底或貼頂", c_ok and h_ok and r["place"] in ("sheet-bottom", "sheet-top"),
@@ -29526,11 +29528,11 @@ TOUR_ROUTES_1009 = ["#overview", "#flow/rotation", "#flow/sankey", "#flow/inst",
 # 每套導覽在兩種寬度至少要走到幾步（照 2026-10-09 修好後的實測，留 1 步餘裕給資料暫缺的那一格）
 TOUR_FLOOR_1009 = {
     # 2026-10-09 實測（1440／402）：全站 15／15、總覽 8／9、資金流向 7／4～5、產業地圖 13／13、產業鏈 11／11、個股 7／5，其餘 1～4 步全數走到
-    ("site", "desk"): 14, ("site", "mob"): 14, ("overview", "desk"): 7, ("overview", "mob"): 8, ("flow", "desk"): 6, ("flow", "mob"): 4,
+    ("site", "desk"): 14, ("site", "mob"): 15, ("overview", "desk"): 7, ("overview", "mob"): 9, ("flow", "desk"): 6, ("flow", "mob"): 6,
     ("industry", "desk"): 12, ("industry", "mob"): 12, ("chain", "desk"): 10, ("chain", "mob"): 10, ("stock", "desk"): 6, ("stock", "mob"): 4,
     ("heatind", "desk"): 3, ("heatind", "mob"): 2, ("heattheme", "desk"): 2, ("heattheme", "mob"): 2, ("market", "desk"): 2, ("market", "mob"): 2,
     ("explore", "desk"): 3, ("explore", "mob"): 3, ("etflist", "desk"): 4, ("etflist", "mob"): 4, ("etfcal", "desk"): 1, ("etfcal", "mob"): 1,
-    ("etfinc", "desk"): 3, ("etfinc", "mob"): 2, ("season", "desk"): 2, ("season", "mob"): 2, ("watch", "desk"): 3, ("watch", "mob"): 3,
+    ("etfinc", "desk"): 3, ("etfinc", "mob"): 3, ("season", "desk"): 2, ("season", "mob"): 2, ("watch", "desk"): 3, ("watch", "mob"): 3,
     ("earnings", "desk"): 3, ("earnings", "mob"): 3,
 }
 TOUR_CHK_1009 = """() => { const s = TwTour.state(); if (!s.active) return { active: false };
@@ -29593,6 +29595,10 @@ def _tour_walk_1009(pg, name, want, mob):
     if pg.evaluate("() => !!document.getElementById('twTour') || TwTour.state().active"):
         bad.append(f"{name}：按「完成」之後遮罩還在")
         pg.evaluate("() => TwTour.stop()")
+    # 2026-10-09 手機監督退件：步驟被默默跳過＝使用者看不到 → 每一套在兩種寬度扣掉 only 另一邊的步驟之後，一步都不准跳（TwTour.last().skipped 必須是空的）
+    li = pg.evaluate("() => TwTour.last && TwTour.last()") or {}
+    if li.get("skipped"):
+        bad.append(f"{name}：有步驟被跳過（使用者看不到）：{li.get('titles')}")
     return n, bad
 
 
