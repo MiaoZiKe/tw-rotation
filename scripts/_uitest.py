@@ -27131,7 +27131,9 @@ M4_FIRST = {   # 路由 → 第一屏（390×844 不捲動）必須整個看得�
     # 2026-10-09 改：手機 v2 資金輪動改用網頁版完整輪盤（m4-charts，rotM4）之後舊的 #mRank 精簡排行不存在了。
     #   意圖不變（第一屏看得到主圖＋排行的重點）：輪盤整張（#rotClock）＋卡片頂端那一句排行結論（.t4-lede：資金佔比增加最多／減少最多，讀自排行圖）
     "#flow/rotation": ["#rotClock", "#flowRotCard .t4-lede"],
-    "#flow/sankey": ["#flowSankeyCard .mrank"],                                # 第一層五大類長條（金額＋占比）
+    # 2026-10-09 改：m4-charts 起資金分流樹在手機也是網頁版完整樹（#sankey .ftstage，高約 646px，連同標題／篩選／日期列放不進一屏），
+    #   舊的 .mrank 精簡長條不存在了。這裡只要求「看哪一天」那列整列在第一屏；樹本身的第一屏比例另外在 ⑩ 量（樹頂在第一屏、≥ 60% 露出）。
+    "#flow/sankey": ["#sankeyDays"],
     "#flow/inst": ["#flowInstCard"],                                           # 整張族群×法人（買超前 8＋賣超前 8）
     "#heatmap/industry": ["#v-heatmap canvas"],                                # 整張 treemap
     "#heatmap/theme": ["#themeMapCard"],                                       # 整張題材 treemap＋熱度圖例
@@ -27907,8 +27909,10 @@ def t_mobile_m4_1008(b, base, code):
         bad = []
         for tid in (tids or ["ai_server", "pcb_ccl"]):
             go("heatmap/theme/" + tid, 3200)
+            # 2026-10-09 改：手機直排版（svg.dg3v，m4-theme；Andy：「垂直，塗在左邊 文字補充右邊」）每一格右欄本來就寫一兩行重點（text.sub.vsub）——
+            #   「說明文字預設不在圖上」只對舊的水平版成立；直排版改驗文字不壓到零件圖（ov）、完整說明仍收在 data-desc（點一格才展開）。
             r = J("""() => { const s = document.querySelector('#themeDiagram svg.dg3'); if (!s) return { miss: true };
-                const subs = s.querySelectorAll('.stn .sub').length; const arts = [...s.querySelectorAll('.stn > g.art')].map(a => a.getBoundingClientRect());
+                const subs = s.classList.contains('dg3v') ? 0 : s.querySelectorAll('.stn .sub').length; const arts = [...s.querySelectorAll('.stn > g.art')].map(a => a.getBoundingClientRect());
                 const txt = [...s.querySelectorAll('text.ttl, text.cap, .stn text.lbl')].map(t => t.getBoundingClientRect());
                 let ov = 0; arts.forEach(a => txt.forEach(t => { if (a.left < t.right - 2 && t.left < a.right - 2 && a.top < t.bottom - 2 && t.top < a.bottom - 2) ov++; }));
                 return { subs, ov, desc: s.querySelectorAll('.stn[data-desc]').length }; }""")
@@ -27933,18 +27937,20 @@ def t_mobile_m4_1008(b, base, code):
                 if bx and sl < 20:
                     badd.append((h, J(f"() => {{ const e = document.querySelector('{sel}'); return (e.id || '') + '.' + String(e.className).split(' ')[0]; }}"), sl))
         ok(f"【{T}】每個可以左右捲的容器，手指從右往左拖 100px 都真的捲動", not badd, badd)
-        # ⑩ 資金分流樹：根節點在第一屏、容器沒有外框、標籤不重疊；排名預設收起、點了展開
+        # ⑩ 資金分流樹（2026-10-09 改寫：m4-charts 起手機用網頁版完整樹＋排名清單，舊的 .mdtree／#mSankeyRank 收合列不存在了）
+        #   意圖不變：樹在第一屏露出來、整頁不橫捲；排名清單的切換真的會換內容（「流入最多／流出最多」）
         go("flow/sankey", 4000)
-        sk = J("""() => { const rt = document.querySelector('#flowSankeyCard .mroot'); const r = rt && rt.getBoundingClientRect();
-            const tree = document.querySelector('#flowSankeyCard .mdtree'); let bw = 0; for (let n = tree; n && n.tagName !== 'MAIN'; n = n.parentElement) bw += parseFloat(getComputedStyle(n).borderLeftWidth) || 0;
-            const ns = [...document.querySelectorAll('#flowSankeyCard .mdtree .n, #flowSankeyCard .mdtree .v')].map(e => e.getBoundingClientRect()); let ov = 0;
-            ns.forEach((a, i) => ns.forEach((b2, j) => { if (j > i && a.left < b2.right - 1 && b2.left < a.right - 1 && a.top < b2.bottom - 1 && b2.top < a.bottom - 1) ov++; }));
-            const rk = document.getElementById('mSankeyRank'), hd = document.getElementById('mSankeyRankHd');
-            return { root: !!r && r.top >= 0 && r.bottom <= innerHeight, txt: rt ? rt.textContent : '', bw, ov, shut: !!rk && getComputedStyle(rk).display === 'none', hd: !!hd && !hd.hidden }; }""")
-        ok(f"【{T}】資金分流樹：根節點「{sk['txt']}」在第一屏、樹沒有外框（{sk['bw']}px）、標籤不重疊（{sk['ov']}）", sk["root"] and sk["bw"] == 0 and sk["ov"] == 0, sk)
-        ok(f"【{T}】資金流向排名預設收起、標題列看得到", sk["shut"] and sk["hd"], sk)
-        m.locator("#mSankeyRankHd").tap(); m.wait_for_timeout(400)
-        ok(f"【{T}】點「資金流向排名 ▸」→ 排名展開", J("() => getComputedStyle(document.getElementById('mSankeyRank')).display !== 'none' && document.querySelectorAll('#mSankeyRank .skr-r').length > 0"))
+        sk = J("""() => { const st = document.querySelector('#sankey .ftstage'); const r = st && st.getBoundingClientRect();
+            const vis = r ? Math.max(0, Math.min(r.bottom, innerHeight) - Math.max(r.top, 0)) : 0;
+            return { top: r ? Math.round(r.top) : null, h: r ? Math.round(r.height) : 0, visFrac: r && r.height ? +(vis / Math.min(r.height, innerHeight)).toFixed(2) : 0,
+                     page: document.documentElement.scrollWidth <= innerWidth + 1, rows: document.querySelectorAll('#sankeyRank .skr-r').length }; }""")
+        ok(f"【{T}】資金分流樹：樹頂在第一屏（{sk['top']}）、樹 ≥ 60% 露出在第一屏（{sk['visFrac']}）、整頁不橫捲", sk["top"] is not None and 0 <= sk["top"] < 844 * 0.5 and sk["visFrac"] >= 0.6 and sk["page"], sk)
+        r0 = J("() => [...document.querySelectorAll('#sankeyRank .skr-r')].slice(0, 3).map(e => e.textContent.replace(/\\s+/g, ' ').trim()).join('|')")
+        J("() => document.getElementById('sankeyRank').scrollIntoView({ block: 'center', behavior: 'instant' })"); m.wait_for_timeout(500)
+        m.locator("#sankeyRank .skr-tab button:not(.on)").first.tap(); m.wait_for_timeout(600)
+        r1 = J("() => [...document.querySelectorAll('#sankeyRank .skr-r')].slice(0, 3).map(e => e.textContent.replace(/\\s+/g, ' ').trim()).join('|')")
+        ok(f"【{T}】資金流向排名（{sk['rows']} 列）點「流出最多」→ 清單真的換了", sk["rows"] > 0 and r1 and r1 != r0, (r0[:60], r1[:60]))
+        m.locator("#sankeyRank .skr-tab button:not(.on)").first.tap(); m.wait_for_timeout(300)
         # ⑪ 客服鈕：泡泡裡有天竺鼠
         go("overview", 2000)
         ok(f"【{T}】客服鈕是對話泡泡＋天竺鼠（泡泡 svg 裡有 brand/mark 圖）", J("() => !!document.querySelector('.supfab svg.supbub image[href*=\"brand/mark\"]')"))
@@ -28789,7 +28795,8 @@ def t_mobile_m4(b, base, code):
         if ch is None:
             # #flow/sankey：2026-10-08 起手機是「根節點＋可以點開的長條」，每一條本身就是第一屏的切換（▸ 展開下一層），排名收進「資金流向排名 ▸」
             # #heatmap/theme：2026-10-09 子頁攤平（Andy：「子分頁裡面還有的 就用分頁形式表示」）之後「題材熱力｜題材細節」搬到頁面最上方的子頁頁籤（在 .view 外面），頁內不再有第二層
-            ok(f"【{T}】{h} 第一屏找得到可以切換的鈕（分段／篩選）", h in ("#watch", "#explore", "#industry", "#etf/inc", "#flow/sankey")
+            # #flow/inst（2026-10-09 加）：m4-charts 起手機族群×法人跟網頁版一樣只有圖例（外資／投信／自營），沒有頁內切換列；篩選在上面兩顆下拉（.ddbtn，不算分段）
+            ok(f"【{T}】{h} 第一屏找得到可以切換的鈕（分段／篩選）", h in ("#watch", "#explore", "#industry", "#etf/inc", "#flow/sankey", "#flow/inst")
                or (h == "#heatmap/theme" and m.evaluate("() => document.querySelectorAll('#m4Title .m4subtabs button').length >= 3")), h)
             continue
         before = m.evaluate("() => { const v = document.querySelector('.view.on'); return v.innerText.length + '|' + v.innerText.slice(0, 6000) + '|' + v.querySelectorAll('.on,[aria-selected=true]').length; }")
