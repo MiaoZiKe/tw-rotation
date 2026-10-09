@@ -30491,7 +30491,9 @@ def t_m4_3d_1009(b, base):
     T = "手機3D說明1009"
     SHOT = os.environ.get("TW_M43D_SHOT")          # 交件截圖用（不設就不拍）
     ctx = b.new_context(viewport={"width": 402, "height": 874}, device_scale_factor=1, is_mobile=True, has_touch=True)
-    ctx.add_init_script("try{ if(!sessionStorage.getItem('m43d')){ localStorage.clear(); localStorage.setItem('tw.live.on','0'); localStorage.setItem('tw.tourDone','1'); sessionStorage.setItem('m43d','1'); } localStorage.setItem('tw.dg3d','1'); }catch(e){}")
+    # 2026-10-09 帳本 84：手機 3D 改預設自轉。這段驗的是引線幾何與「點哪個零件開哪個抽屜」（先掃出零件的螢幕座標再點）——
+    #   模型在轉時掃完到點下去之間零件已經轉走，會量到假紅；所以這段把手機 3D 動畫設成關（tw.m4.3danim＝0）。自轉中點零件另在「手機3D分段與自轉1009」驗。
+    ctx.add_init_script("try{ if(!sessionStorage.getItem('m43d')){ localStorage.clear(); localStorage.setItem('tw.live.on','0'); localStorage.setItem('tw.tourDone','1'); localStorage.setItem('tw.m4.3danim','0'); sessionStorage.setItem('m43d','1'); } localStorage.setItem('tw.dg3d','1'); }catch(e){}")
     m = ctx.new_page()
     m.on("pageerror", lambda e: fails.append(f"{T} pageerror: {e} @ {m.url}"))
     m.route("**/fonts.googleapis.com/**", lambda r: r.abort())
@@ -30707,6 +30709,17 @@ def t_m4_3dseg_1009(b, base):
             m.touchscreen.tap(*[x for x in a1["bs"] if x["an"] == "1"][0]["c"]); m.wait_for_timeout(400)
             k4 = J(cam); m.wait_for_timeout(2000); k5 = J(cam)
             ok(f"【{T}】{W} 再按「開」：又轉起來（{k4}→{k5}）", k4 != k5 and J("() => Rack3D.current.stats().autoRotate") is True, {"k4": k4, "k5": k5})
+            # 自轉中直接點零件：一樣開抽屜（找點與點下去之間模型還在轉，所以找到就立刻點）
+            m.wait_for_timeout(3000)
+            pk = J("() => { const v = Rack3D.current, c = document.querySelector('#prod3d canvas').getBoundingClientRect();"
+                   " for (let y = c.top + 30; y < Math.min(c.bottom, innerHeight) - 20; y += 9) for (let x = c.left + 60; x < c.right - 60; x += 9) { const p = v.hitAt(x, y); if (p && document.elementFromPoint(x, y).tagName === 'CANVAS') return [x, y, p]; } return null; }")
+            if pk:
+                m.touchscreen.tap(pk[0], pk[1]); m.wait_for_timeout(800)
+                sh = J("() => { const s = document.getElementById('mSheet'); return !!(s && !s.hidden); }")
+                ok(f"【{T}】{W} 自轉中手指點零件（{pk[2]}）：開零件抽屜", sh, pk)
+                J("() => { const s = document.getElementById('mSheetBack'); if (s && !s.hidden) s.click(); }"); m.wait_for_timeout(3200)
+            else:
+                ok(f"【{T}】{W} 自轉中找得到可點的零件", False)
             # (c) 手指按住拖曳：拖完手指停著 → 不自轉；放開 → 2.5 秒後接回去
             cdp = ctx.new_cdp_session(m)
             cc = J("() => { const r = document.querySelector('#prod3d canvas').getBoundingClientRect(); return [r.left + r.width * 0.3, r.top + r.height * 0.75]; }")
@@ -30714,7 +30727,8 @@ def t_m4_3dseg_1009(b, base):
             tp("touchStart", *cc)
             for i in range(1, 9):
                 tp("touchMove", cc[0] + i * 6, cc[1]); m.wait_for_timeout(30)
-            m.wait_for_timeout(1500)            # 拖曳的阻尼慣性先吃完（手指停著，相機不該再被自轉帶著走）
+            # 拖曳的阻尼慣性先吃完（OrbitControls 阻尼每幀衰減，機器忙時要 2～5 秒）：手指停著、相機連續 0.6 秒不動才開始量
+            wait_until(m, "() => new Promise(r => { const a = JSON.stringify(Rack3D.current.cam()); setTimeout(() => r(a === JSON.stringify(Rack3D.current.cam())), 600); })", 9000, 100)
             h0 = J(cam); hs = J("() => Rack3D.current.stats().autoRotate"); m.wait_for_timeout(1500); h1 = J(cam)
             ok(f"【{T}】{W} 手指按住（拖完停著）：autoRotate＝{hs}、1.5 秒相機不動（{h0}→{h1}）", hs is False and h0 == h1, {"h0": h0, "h1": h1})
             tp("touchEnd", 0, 0)
@@ -30724,6 +30738,7 @@ def t_m4_3dseg_1009(b, base):
             J("() => { const s = document.getElementById('mSheetBack'); if (s && !s.hidden) s.click(); }")
             # (d) 捲到畫面外 → 不畫
             J("() => window.scrollTo(0, document.documentElement.scrollHeight)"); m.wait_for_timeout(800)
+            wait_until(m, "() => Rack3D.current.stats().visible === false", 5000, 150); m.wait_for_timeout(300)   # IntersectionObserver 是非同步的，機器忙時晚一點才回報
             d0 = J("() => Rack3D.current.stats()"); m.wait_for_timeout(1500); d1 = J("() => Rack3D.current.stats()")
             ok(f"【{T}】{W} 捲到畫面外：visible＝{d1.get('visible')}、1.5 秒沒有再畫（draws {d0.get('draws')}→{d1.get('draws')}）",
                d1.get("visible") is False and d0.get("draws") == d1.get("draws"), {"d0": d0.get("draws"), "d1": d1.get("draws")})
