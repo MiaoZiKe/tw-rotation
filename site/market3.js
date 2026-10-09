@@ -2511,7 +2511,15 @@
         { left: 2, right: 44, height: noVol ? 1 : 44, bottom: 22, containLabel: false }];
       Object.assign(opt.yAxis[0].axisLabel, { fontSize: 12, margin: 4, formatter: kf });
       Object.assign(opt.yAxis[1].axisLabel, { fontSize: 12, margin: 4, formatter: vf });
-      Object.assign(opt.xAxis[1].axisLabel, { fontSize: 12 });
+      /* 時間軸（監督退件：360 寬圖進了方框變窄，「10:3011:0011:3012:00」黏在一起）：照實際繪圖寬算每 30 分鐘一格有多寬，
+         放不下「HH:MM」（12px 約 34px）＋ 4px 間距就改成每 60 分鐘、再不行每 90 分鐘一個刻度；hideOverlap 留著當最後一道保險。 */
+      const per30 = Math.max(1, Math.ceil(cats.length / 30));
+      // 藏著的那幾張（加權｜櫃買｜台指期一次只顯示一張）量不到自己的寬 → 用外框寬扣掉卡片左右內距估
+      const w0 = el.clientWidth || (((document.getElementById('m3Grid') || {}).clientWidth || 330) - 28);
+      const plotW = Math.max(100, w0 - 46);
+      const stepMin = (plotW / per30 >= 38 ? 30 : plotW / per30 >= 19 ? 60 : 90) * (cats.length > 280 ? 2 : 1);
+      Object.assign(opt.xAxis[1].axisLabel, { fontSize: 12, hideOverlap: true, interval: (i) => (s0 + i) % stepMin === 0 });
+      H.xStep = stepMin;
     }
     A.chart(el, opt, { notMerge: true });
 

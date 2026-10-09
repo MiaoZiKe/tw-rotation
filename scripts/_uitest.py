@@ -30051,6 +30051,34 @@ def t_mobile_m4_ov2(b, base, code):
                     badbrk[f"{wid}:{h}"] = r
         m.set_viewport_size({"width": 402, "height": 874})
         ok(f"【{T}】全站副標與備註：換行只發生在空白或標點後，沒有詞被拆到下一行", not badbrk, badbrk)
+
+        # ⑩ 監督退件（2026-10-09）：圖進了方框變窄，360 寬總覽分時圖的時間刻度黏成「10:3011:0011:3012:00」；個股頁股名被截成「台…」；今日關注「季配」11.5px
+        XA = """() => { const c = document.querySelector('#m3Grid .m3-card.mcur .m3-chart'); const ec = c && window.echarts && echarts.getInstanceByDom(c); if (!ec) return null;
+            const o = ec.getOption(), xa = o.xAxis[1], lab = xa.axisLabel, cats = xa.data, f = lab.interval;
+            const ctx = document.createElement('canvas').getContext('2d'); ctx.font = (lab.fontSize || 12) + 'px sans-serif';
+            const box = cats.map((t, i) => [t, i]).filter(([t, i]) => typeof f === 'function' ? f(i, t) : true)
+              .map(([t, i]) => { const x = ec.convertToPixel({ xAxisIndex: 1 }, i), w = ctx.measureText(t).width; return { t, l: x - w / 2, r: x + w / 2 }; });
+            const gaps = box.slice(1).map((b, k) => b.l - box[k].r);
+            return { n: box.length, labels: box.map(b => b.t), minGap: gaps.length ? Math.round(Math.min(...gaps) * 10) / 10 : null, fs: lab.fontSize }; }"""
+        for wid in (360, 402):
+            m.set_viewport_size({"width": wid, "height": 800})
+            go("overview", 3500)
+            J("() => { const b = document.querySelector('#m3Mode button[data-m=\"line\"]'); if (b) b.click(); }")
+            wait_until(m, "() => { const c = document.querySelector('#m3Grid .m3-card.mcur .m3-chart'); return !!(c && window.echarts && echarts.getInstanceByDom(c)); }", 10000)
+            xa = J(XA)
+            ok(f"【{T}】{wid} 寬總覽分時圖時間軸：刻度字框不重疊、間距 ≥ 4px（{xa and xa['labels']}，最小間距 {xa and xa['minGap']}）",
+               xa and xa["n"] >= 3 and xa["minGap"] is not None and xa["minGap"] >= 4 and xa["fs"] >= 12, xa)
+            go("stock/" + code, 4000)
+            wait_until(m, "() => !!document.querySelector('#mbHead .mbname')", 8000)
+            nm = J("""() => [...document.querySelectorAll('#mbHead *')].filter(e => e.getClientRects().length && getComputedStyle(e).textOverflow === 'ellipsis' && e.scrollWidth > e.clientWidth + 1)
+                .map(e => (e.className || e.tagName) + ':' + e.textContent.trim().slice(0, 10))""")
+            nmt = J("() => { const n = document.querySelector('#mbHead .mbname'); return n ? [n.textContent.trim(), n.scrollWidth <= n.clientWidth + 1] : null; }")
+            ok(f"【{T}】{wid} 寬個股頁頂端股名完整（{nmt}）、ellipsis 截字 0 處（{nm}）", not nm and nmt and nmt[1], (nm, nmt))
+        m.set_viewport_size({"width": 402, "height": 874})
+        go("market/cand", 3500)
+        J("() => { const b = document.querySelector('#mktSeg2 button[data-k=cand]'); if (b) b.click(); }"); m.wait_for_timeout(1800)
+        fq = J("() => [...document.querySelectorAll('#v-market *')].filter(e => e.getClientRects().length && [...e.childNodes].some(n => n.nodeType === 3 && n.textContent.trim()) && parseFloat(getComputedStyle(e).fontSize) < 12).map(e => e.className + ':' + e.textContent.trim().slice(0, 6) + '@' + getComputedStyle(e).fontSize)")
+        ok(f"【{T}】市場明細「今日關注」沒有小於 12px 的字（季配等配息頻率標籤 12px）", not fq, fq[:6])
     finally:
         ctx.close()
 

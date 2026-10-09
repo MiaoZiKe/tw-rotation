@@ -1158,3 +1158,14 @@
   :root.m4 #v-etf #etfCalList table.et td:first-child>.cw{width:7.6em;column-gap:2px}
   :root.m4 #v-etf #etfCalList table.et td:first-child>.cw>.note{letter-spacing:-.2px}
 }
+
+/* ---- 31m. 2026-10-09 手機監督（main 原本就有的兩個小問題，只限 ≤640）
+   · 個股頁頂端股名在 360 寬被截成「台…」（全站規則：不准裁切）→ 股名可以換行、價格字級跟著寬度縮（30px → 360 寬約 24px），
+     股名欄最少留 3.2 個字寬；長名稱（ETF）折成兩行，不再用「…」。
+   · 市場明細「今日關注」的配息頻率標籤（季配／月配…）11.5px → 12px（全站 12px 下限）。 */
+@media (max-width:640px){
+  :root.m4 body.m3on #mbHead .mbq{grid-template-columns:40px minmax(3.2em,1fr) auto auto 40px}
+  :root.m4 body.m3on #mbHead .mbname{white-space:normal;overflow:visible;text-overflow:clip;overflow-wrap:anywhere;line-height:1.15}
+  :root.m4 body.m3on #mbHead .mbpx{font-size:clamp(20px,6.8vw,30px)}
+  :root.m4 #v-market :is(.fqbdg,.fqb,.fqtag){font-size:12px!important}
+}
