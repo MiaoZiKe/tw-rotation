@@ -31485,6 +31485,113 @@ def _tour_walk_1009(pg, name, want, mob):
     return n, bad
 
 
+def t_m4_theme_flow_1009(b, base):
+    """帳本 80／81（Andy 10-09 22:0x：「圖四 不該多題材細節 並且圖五 不應該標題跟內容 方兩區，應該為穿差的，
+    磊晶材料下方是對應圖片 下方標題以此類推」）。402／360 觸控（is_mobile＋has_touch）：
+      (a) 熱力圖頁頂分頁只剩「產業｜題材」兩格、等寬，沒有「題材細節」；點題材熱力圖的方塊仍進得去題材細節，上一頁回得來。
+      (b) 抽 3 個題材：DOM 順序＝步驟1標題 → 步驟1的卡 → 步驟2標題 → …；沒有獨立的步驟列表、沒有上中下游段標題列；
+          同一張卡不重複；點步驟標題真的收合／展開（卡的數量變、aria-expanded 變、localStorage 寫進去，重新整理後還在）。
+      (c) 整頁不橫捲、看得到的字 ≥ 12px。"""
+    T = "手機題材流程1009"
+    ORD = """() => [...document.querySelectorAll('#themeDiagram svg.dg3v .vstep, #themeDiagram svg.dg3v .stn')]
+        .map(n => n.classList.contains('vstep') ? 'S' + n.dataset.i : n.dataset.part)"""
+    INFO = """() => { const s = document.querySelector('#themeDiagram svg.dg3v'); if (!s) return null;
+        const hs = [...s.querySelectorAll('.vstep')], st = [...s.querySelectorAll('.stn')];
+        const tops = [...s.querySelectorAll('.vstep, .stn')].map(n => Math.round(n.getBoundingClientRect().top));
+        return { tid: s.dataset.tid, n: hs.length, btn: hs.filter(h => h.getAttribute('role') === 'button').map(h => +h.dataset.i),
+                 exp: hs.map(h => h.getAttribute('aria-expanded')), cards: st.length, parts: st.map(n => n.dataset.part),
+                 band: s.querySelectorAll('g.band').length, mono: tops.every((t, i) => !i || t >= tops[i - 1]) }; }"""
+    FONT = """() => { const bad = []; document.querySelectorAll('main .view.on *, #m4Title *').forEach(e => {
+        if (e.children.length && e.tagName !== 'text') return; if (!(e.textContent || '').trim() || !e.getClientRects().length) return;
+        const cs = getComputedStyle(e); if (cs.visibility === 'hidden' || +cs.opacity === 0) return;
+        let fs = parseFloat(cs.fontSize); const svg = e.closest('svg');
+        if (svg && svg.viewBox && svg.viewBox.baseVal && svg.viewBox.baseVal.width) fs *= svg.getBoundingClientRect().width / svg.viewBox.baseVal.width;
+        const r = e.getBoundingClientRect(); if (r.width < 2 || r.height < 2) return;
+        if (fs < 11.95) bad.push((e.textContent || '').trim().slice(0, 12) + ':' + fs.toFixed(1)); }); return bad.slice(0, 8); }"""
+    for W, H in ((402, 874), (360, 780)):
+        ctx = b.new_context(viewport={"width": W, "height": H}, is_mobile=True, has_touch=True, device_scale_factor=2)
+        ctx.add_init_script("try{localStorage.setItem('tw.live.on','0')}catch(e){}")
+        pg = ctx.new_page()
+        errs = []
+        pg.on("pageerror", lambda e: errs.append(str(e)))
+        J = pg.evaluate
+        try:
+            # (a) 頂部分頁
+            pg.goto(base + "#heatmap/theme"); pg.wait_for_timeout(3500)
+            tb = J("""() => [...document.querySelectorAll('#m4Title .m4subtabs button')].filter(b => b.getClientRects().length)
+                .map(b => ({ t: b.textContent.trim(), w: Math.round(b.getBoundingClientRect().width), on: b.classList.contains('on') }))""")
+            names = [x["t"] for x in tb]
+            ok(f"【{T}】{W}：熱力圖頁頂分頁只有「產業｜題材」兩格（{names}）", names == ["產業", "題材"], tb)
+            ok(f"【{T}】{W}：沒有「題材細節」那一格", "題材細節" not in names, names)
+            ok(f"【{T}】{W}：兩格等寬（{[x['w'] for x in tb]}）且填滿左右（合計 ≥ {W - 40}）",
+               len(tb) == 2 and abs(tb[0]["w"] - tb[1]["w"]) <= 2 and sum(x["w"] for x in tb) >= W - 40, tb)
+            # 點題材熱力圖方塊（挑一塊有剖析圖、而且跟現在畫的不同的）→ 進題材細節
+            J("document.getElementById('themeMap').scrollIntoView({block:'center'})"); pg.wait_for_timeout(700)
+            cur = J("() => { const s = document.querySelector('#themeDiagram svg.dg3'); return s ? s.dataset.tid : null; }")
+            tiles = [v for v in (J(HM_LEAF_XY, {"id": "themeMap"}) or []) if v["key"] != cur and J("(k) => !!(window.ThemeDiagrams || {})[k]", v["key"])]
+            if ok(f"【{T}】{W}：題材熱力圖上有可點的方塊", bool(tiles), cur):
+                k = tiles[0]["key"]
+                pg.touchscreen.tap(tiles[0]["cx"], tiles[0]["cy"]); pg.wait_for_timeout(2500)
+                h1 = J("location.hash"); i1 = J(INFO)
+                on1 = J("() => [...document.querySelectorAll('#m4Title .m4subtabs button.on')].map(b => b.textContent.trim())")
+                ok(f"【{T}】{W}：點方塊「{tiles[0]['name']}」→ 進題材細節（網址 {h1}、剖析圖 {i1 and i1['tid']}）",
+                   h1 == "#heatmap/theme/" + k and i1 and i1["tid"] == k, (h1, i1))
+                ok(f"【{T}】{W}：在題材細節頁，頂部仍亮「題材」那一格（{on1}）", on1 == ["題材"], on1)
+                pg.go_back(); pg.wait_for_timeout(2000)
+                ok(f"【{T}】{W}：按上一頁回到題材熱力圖（{J('location.hash')}）",
+                   J("location.hash") == "#heatmap/theme" and J("() => !!document.querySelector('#themeMap canvas') && document.querySelector('#themeMap').getClientRects().length > 0"),
+                   J("location.hash"))
+            # (b) 穿插
+            for tid in ("silicon_photonics", "thermal", "apple_chain"):
+                J(f"() => {{ try {{ localStorage.removeItem('tw.m4.tflow.{tid}'); }} catch (e) {{}} }}")
+                pg.goto(base + "#heatmap/theme/" + tid); pg.wait_for_timeout(3500)
+                o0, i0 = J(ORD), J(INFO)
+                if not ok(f"【{T}】{W} {tid}：直排剖析圖有流程步驟", i0 and i0["n"] >= 2, i0):
+                    continue
+                ok(f"【{T}】{W} {tid}：預設只展開第 1 步（{i0['exp']}）",
+                   i0["exp"][0] == "true" and all(e != "true" for e in i0["exp"][1:]), i0["exp"])
+                s1 = o0.index("S1") if "S1" in o0 else -1
+                ok(f"【{T}】{W} {tid}：DOM 開頭＝步驟1標題 → 步驟1的卡 → 步驟2標題（{o0[:6]}）",
+                   o0[0] == "S0" and s1 >= 2 and all(not x.startswith("S") for x in o0[1:s1]), o0)
+                ok(f"【{T}】{W} {tid}：沒有獨立步驟列表／段標題列（段標題 {i0['band']} 個）、畫面由上而下＝DOM 順序", i0["band"] == 0 and i0["mono"], i0)
+                # 點每一個收起來的步驟 → 全部展開
+                for i in i0["btn"]:
+                    if i0["exp"][i] == "true":
+                        continue
+                    before = J(INFO)["cards"]
+                    loc = pg.locator(f'#themeDiagram svg.dg3v .vstep[data-i="{i}"]')
+                    loc.scroll_into_view_if_needed(); pg.wait_for_timeout(250); loc.tap(); pg.wait_for_timeout(500)
+                    after = J(INFO)
+                    ok(f"【{T}】{W} {tid}：點第 {i + 1} 步標題 → 展開（卡 {before}→{after['cards']}、aria {after['exp'][i]}）",
+                       after["cards"] > before and after["exp"][i] == "true", after)
+                o1, i1 = J(ORD), J(INFO)
+                ok(f"【{T}】{W} {tid}：全部展開後同一張卡不重複（{len(i1['parts'])} 張）", len(set(i1["parts"])) == len(i1["parts"]), i1["parts"])
+                # 每一個可點的步驟標題後面緊跟著它自己的卡（到下一個標題之前至少一張）
+                hdr = [j for j, x in enumerate(o1) if x.startswith("S")]
+                lone = [o1[j] for j in hdr if J(f"() => document.querySelector('#themeDiagram .vstep[data-i=\"{o1[j][1:]}\"]').getAttribute('role') === 'button'")
+                        and (j + 1 >= len(o1) or o1[j + 1].startswith("S"))]
+                ok(f"【{T}】{W} {tid}：穿插順序（{' '.join(o1)}）—— 每個可點的步驟後面都接著自己的卡", not lone and i1["mono"], lone)
+                ls = J(f"() => localStorage.getItem('tw.m4.tflow.{tid}')")
+                ok(f"【{T}】{W} {tid}：展開狀態寫進 localStorage（{ls}）", bool(ls) and len(ls.split(",")) == len(i0["btn"]), ls)
+                # 收合第 1 步
+                c0 = i1["cards"]
+                loc = pg.locator('#themeDiagram svg.dg3v .vstep[data-i="0"]'); loc.scroll_into_view_if_needed(); pg.wait_for_timeout(250); loc.tap(); pg.wait_for_timeout(500)
+                i2, o2 = J(INFO), J(ORD)
+                ok(f"【{T}】{W} {tid}：再點第 1 步 → 收合（卡 {c0}→{i2['cards']}、緊接著就是第 2 步標題）",
+                   i2["cards"] < c0 and i2["exp"][0] == "false" and o2[:2] == ["S0", "S1"], (i2, o2[:4]))
+                pg.reload(); pg.wait_for_timeout(3500)
+                i3 = J(INFO)
+                ok(f"【{T}】{W} {tid}：重新整理後記得收展狀態（{i3 and i3['exp']}）", i3 and i3["exp"] == i2["exp"], (i2["exp"], i3 and i3["exp"]))
+                # (c)
+                sw = J("() => [document.documentElement.scrollWidth, document.documentElement.clientWidth]")
+                ok(f"【{T}】{W} {tid}：整頁不橫捲（{sw}）", sw[0] <= sw[1], sw)
+                fb = J(FONT)
+                ok(f"【{T}】{W} {tid}：看得到的字都 ≥ 12px", not fb, fb)
+            ok(f"【{T}】{W}：沒有 JS 錯誤", not errs, errs[:3])
+        finally:
+            ctx.close()
+
+
 def t_tour_census_1009(b, base):
     T = "[導覽普查1009]"
     for mode in ("desk", "mob"):
@@ -31937,6 +32044,8 @@ SECTIONS = {
     # ★ 2026-10-09 Andy：「3D 圖為何還會出現下方欄位…圖四可以看到他的線條指到未知地方」＋帳本 67 3D 收合鈕（402 寬、全部 3D 圖；⚠ --workers 1）
     # ★ 2026-10-09 導覽普查（main）
     "導覽普查1009":        lambda pg, b, base, code: t_tour_census_1009(b, base),
+    # ★ 2026-10-09 帳本 80／81（Andy 22:0x：「圖四 不該多題材細節」「圖五 …應該為穿差的」）：熱力圖頂部兩格＋題材流程步驟與環節卡穿插（402／360 觸控）
+    "手機題材流程1009":    lambda pg, b, base, code: t_m4_theme_flow_1009(b, base),
     "手機3D說明1009":      lambda pg, b, base, code: t_m4_3d_1009(b, base),
     # ★ 2026-09-25 手機版 v3（docs/mobile_v3_spec.md §7）：底部一列五顆、「?」氣泡、大盤合一張、新雷達＋焦點條、
     #   資金分流樹長條、法人對稱長條、篩選抽屜、剖析圖只留編號（2D／3D）。390 與 360 各一輪。⚠ 一律 --workers 1（有 3D）

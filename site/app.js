@@ -12730,6 +12730,9 @@
       while (used.has(PALETTE[i % PALETTE.length]) && i < PALETTE.length * 2) i++;
       const c = PALETTE[i++ % PALETTE.length]; used.add(c); return c;
     };
+    /* 手機直排版的流程步驟標題（themes3d.js .vstep，帳本 81）跟它那張卡同色。收起來的步驟底下沒有卡，所以顏色先照步驟順序配，
+       收合／展開之後每一步的顏色都不變；桌機的圖沒有 .vstep，這一行不做任何事。 */
+    $$('.vstep[data-p]', root).forEach(n => { const id = n.dataset.p; if (!(id in color)) color[id] = pick(n.dataset.seg); n.style.setProperty('--c', color[id]); });
     nodes.forEach(n => {
       const id = n.dataset.part; if (!id) return;
       if (!(id in color)) color[id] = pick(n.dataset.seg);
