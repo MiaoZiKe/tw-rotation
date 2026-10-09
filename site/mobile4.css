@@ -1280,3 +1280,95 @@
   /* 「動畫」小字跟分段同一條中線 */
   :root.m4 #dgSec #dgTools .m4anim{height:46px}
 }
+
+/* ---- 32. 個股頁照桌機版型（2026-10-10 Andy；程式在 mobile3.js F 段 skPlace／skOv／skKSet）
+   Andy：「個股資訊幫我依據網頁版型式呈現，唯一不同就是調整大小，上方是K線 走勢圖，篩選方式可以參考市場明細那邊的方式，下方是總覽 基本資訊等等」
+        「剛剛手機版右邊滑動還會出現一片空白，請確實調整整個大小是否符合手機寬度」「功能切換一定都要同一排」「下方資訊若太長，就使用拉Bar」
+   改前：K 線只在「K線」分頁；分頁列黏在報價列底下；最後一頁「完整版」把桌機整組分頁塞進來（畫面上兩排分頁）。
+   改後：報價列 → K 線卡（永遠在）→ 一排分頁（跟桌機同一份清單）→ 分頁內容。
+   ⚠ 全部在 @media (max-width:640px) 而且掛 :root.m4 —— 桌機一條都不吃。 */
+@media (max-width:640px){
+  /* 整頁不准左右拖出空白：只有 body overflow-x:hidden 時，iOS Safari 手指照樣拖得動整頁（body 的 hidden 是傳給視窗的，它不認）。
+     html 與 body 一起用 clip：clip 不會把 body 變成捲動容器，報價列／分頁列的 sticky 照常；放不下的列一律在自己的框裡左右滑。 */
+  :root.m4:has(body.mbon),:root.m4 body.mbon{overflow-x:clip!important}
+
+  /* K 線卡永遠看得到（不再是分頁）；桌機那排分頁列永遠藏；#stockTab（桌機的分頁內容）只在「總覽」露 */
+  :root.m4 body.m3on.mbon #stockPage>#skChartCard,:root.m4 body.m3on.mbon #stockPage>#skChartCard.mp-off{display:block!important;margin-top:8px!important}
+  :root.m4 body.m3on.mbon #stockPage>#stockTabs{display:none!important}
+  :root.m4 body.m3on.mbon:not([data-mbt="ov"]) #stockPage>#stockTab{display:none!important}
+  :root.m4 body.m3on.mbon[data-mbt="ov"] #stockPage>#stockTab,:root.m4 body.m3on.mbon[data-mbt="ov"] #stockPage>#stockTab.mp-off{display:block!important;margin-top:0!important}
+  :root.m4 body.m3on.mbon #stockPage>#aiCard{display:none!important}
+  :root.m4 body.m3on.mbon[data-mbt="ov"] #stockPage>#mbBody:empty{display:none}
+
+  /* 分頁列：K 線卡下面一排，捲下來看內容時釘在報價列下面（--mbtop＝頂欄＋報價列高，mobile3.js 量的） */
+  :root.m4 body.m3on #mbTabRow{position:sticky;top:var(--mbtop,115px);z-index:28;margin:10px -8px 0;border-top:1px solid var(--line);border-bottom:1px solid var(--line);background:var(--panel)}
+  :root.m4 body.m3on #mbTabRow .mbtabs>button{padding:0 11px}
+  :root.m4 body.m3on #stockPage>#mbBody{padding-top:10px}
+
+  /* 總覽：分段鈕一次只露一張卡（基本面｜籌碼快照｜AI 分析） */
+  :root.m4 body.mbon #stockTab[data-mov="fund"] :is(#skChipCard,#ovAiCard),
+  :root.m4 body.mbon #stockTab[data-mov="chip"] :is(#skFundCard,#ovAiCard),
+  :root.m4 body.mbon #stockTab[data-mov="ai"] :is(#skFundCard,#skChipCard){display:none!important}
+  :root.m4 body.mbon #stockTab[data-mov] #skOv3{display:block!important}
+  :root.m4 body.mbon #stockTab[data-mov] :is(#skFundCard,#skChipCard,#ovAiCard){margin:0!important;height:auto!important;max-height:none!important;contain:none!important}
+
+  /* 拉 Bar：長的表格、新聞清單放進固定高度的框，在框裡上下捲（框高＝分頁列釘住時剩下的那一屏） */
+  :root.m4 body.m3on.mbon{--mbbox:min(440px,calc(100svh - var(--mbtop,115px) - 120px));--mbfull:calc(100svh - var(--mbtop,115px) - 64px)}
+  :root.m4 body.m3on #mbBody .mbtblwrap{margin:0 -8px;max-height:var(--mbbox);overflow-y:auto;overflow-x:hidden;overscroll-behavior-y:contain;border-top:1px solid var(--line-2);border-bottom:1px solid var(--line-2)}
+  :root.m4 body.m3on #mbBody .mbtbl th{top:0}
+  :root.m4 body.m3on #mbBody .mbtbl caption{position:sticky;left:0}
+  :root.m4 body.m3on #mbBody .mbnews{margin:0 -8px;max-height:var(--mbfull);overflow-y:auto;overscroll-behavior-y:contain;border-bottom:1px solid var(--line-2)}
+  :root.m4 body.m3on #mbBody>.mbtags,:root.m4 body.m3on #mbBody .mbmiss .mbtags{max-height:var(--mbfull);overflow-y:auto;overscroll-behavior-y:contain}
+  /* 原本左右各拉出 -14px 貼邊（手機 v1 的頁邊距）；手機 v2 頁邊距只有 8px，多拉的 6px 就是整頁可以往右拖的那一截 */
+  :root.m4 body.m3on #mbBody :is(.mbtags,.mbkv,.mbmiss){margin-left:-8px;margin-right:-8px}
+  :root.m4 body.m3on #mbBody .mbmiss .mbtags{margin:0}
+
+  /* 功能切換一律同一排：分段鈕、圖例、大戶／散戶三顆色塊都不換行，放不下就在自己的框裡左右滑 */
+  :root.m4 body.m3on #mbBody .mbseg{flex-wrap:nowrap}
+  :root.m4 body.m3on #mbBody .mbseg>button{padding:0 10px;font-size:14px}
+  :root.m4 body.m3on #mbBody .mblegend{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;white-space:nowrap;gap:4px 10px}
+  :root.m4 body.m3on #mbBody .mblegend::-webkit-scrollbar{display:none}
+  :root.m4 body.m3on #mbBody .mblegend>span{flex:none}
+  /* 大戶／散戶三顆色塊（Andy 附圖：千張以上／400～1000 張／≤10 張被擠成兩行）：
+     改前 一顆一行字（名稱＋比例＋週增減）→ 390 寬排不下第三顆、掉到第二行；
+     改後 三顆平分一排，顆內兩行：上＝色條＋名稱、下＝比例＋週增減（字 ≥12px） */
+  :root.m4 body.m3on #mbBody .mbhotgls{flex-wrap:nowrap;gap:4px}
+  :root.m4 body.m3on #mbBody .mbhotgl{flex:1 1 0;min-width:0;flex-wrap:wrap;align-items:center;gap:1px 4px;padding:4px 6px;min-height:44px}
+  :root.m4 body.m3on #mbBody .mbhotgl i{width:12px}
+  :root.m4 body.m3on #mbBody .mbhotgl .nm{flex:1 1 calc(100% - 16px);min-width:0;font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-align:left}
+  :root.m4 body.m3on #mbBody .mbhotgl b{font-size:13px}
+  :root.m4 body.m3on #mbBody .mbhotgl small{font-size:12px}
+
+  /* K 線工具列：週期分段鈕＋「設定」同一排；＋、指標、四週期同看、畫線、? 收進設定抽屜（按的還是原本那幾顆） */
+  :root.m4 body.mbon #skTools>:is(#mtfBtn,#drawTgl,.howbtn,.sp){display:none!important}
+  /* 指標、＋ 這兩顆的面板（#cfgPop）會一直確認「按鈕還在畫面上」，按鈕量不到寬度就自己關掉 —— 所以不能 display:none，
+     改成縮成 1×1、透明、點不到，疊在「設定」鈕的位置（看不見，但量得到） */
+  :root.m4 body.mbon #skTools>:is(#tfAdd,#indBtn){position:absolute!important;right:12px;top:12px;width:1px!important;height:1px!important;min-width:0!important;min-height:0!important;
+    padding:0!important;margin:0!important;border:0!important;opacity:0!important;pointer-events:none!important;overflow:hidden!important}
+  :root.m4 body.mbon #skTools{flex-wrap:nowrap!important;gap:6px!important;overflow:visible!important;-webkit-mask-image:none!important;mask-image:none!important}
+  :root.m4 body.mbon #skTools>#tfSeg{flex:1 1 auto;min-width:0;display:flex;flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none}
+  :root.m4 body.mbon #skTools>#tfSeg::-webkit-scrollbar{display:none}
+  :root.m4 body.mbon #skTools>#tfSeg>button{flex:1 0 auto;min-width:36px;padding-left:4px!important;padding-right:4px!important}
+  :root.m4 body.mbon #skTools>#mbKSet{flex:none;display:inline-flex!important;align-items:center;gap:4px;height:40px;min-height:40px!important;padding:0 10px!important;margin:0!important;white-space:nowrap}
+  :root.m4 body.mbon #skTools>#mbKSet>i{font-style:normal;opacity:.7}
+  @media (max-width:380px){ :root.m4 body.mbon #skTools>#mbKSet .m4sico{display:none} :root.m4 body.mbon #skTools>#mbKSet{padding:0 8px!important} }
+  /* 指標／自訂週期面板（industry.js 的 #cfgPop）：手機上從底部滑上來，不跟著藏起來的那顆鈕定位 */
+  :root.m4 body.mbon #cfgPop:not([hidden]){position:fixed!important;left:0!important;right:0!important;top:auto!important;bottom:0!important;width:auto!important;max-width:none!important;
+    max-height:72vh!important;overflow-y:auto!important;border-radius:16px 16px 0 0!important;transform:none!important;z-index:1200!important;box-sizing:border-box}
+  /* 指標面板裡「週期」那排勾選（分時｜1時｜4時｜日｜週｜月＋自訂）：同一排，放不下在框裡左右滑 */
+  :root.m4 body.mbon #cfgPop #tfChk{display:flex!important;flex-wrap:nowrap!important;overflow-x:auto;scrollbar-width:none;gap:4px}
+  :root.m4 body.mbon #cfgPop #tfChk::-webkit-scrollbar{display:none}
+  :root.m4 body.mbon #cfgPop #tfChk>.tfc{flex:none;margin:0!important}
+  /* 設定抽屜 */
+  :root.m4 .msheet[data-kind="mbkset"] .mbkbtns{display:flex;gap:8px;margin-top:14px}
+  :root.m4 .msheet[data-kind="mbkset"] .mbkbtns>.btn{flex:1 1 0;min-height:44px;font-size:14px}
+  :root.m4 .msheet[data-kind="mbkset"] .mbkhow{margin-top:12px;border-top:1px solid var(--line)}
+  :root.m4 .msheet[data-kind="mbkset"] .mbkhow>summary{list-style:none;min-height:44px;display:flex;align-items:center;color:var(--ink-2);font-size:14px;cursor:pointer}
+  :root.m4 .msheet[data-kind="mbkset"] .mbkhow>summary::-webkit-details-marker{display:none}
+  :root.m4 .msheet[data-kind="mbkset"] .mbkhowt{font-size:13px;line-height:1.6;color:var(--ink-2)}
+}
+@media (max-width:640px){
+  /* K 線圖高再讓出 70px：第一屏要看得到 K 線卡底下那排分頁＋分段鈕（Andy 10-08 準則 1「第一屏要看到主圖＋摘要」） */
+  :root.m4 body.m3on.mbon #lwc{height:clamp(320px,calc(100svh - var(--mbtop,115px) - 58px - 198px),560px)!important}
+  :root.m4 body.m3on.mbon #skChartCard:has(#liveNote:not([hidden])) #lwc{height:clamp(320px,calc(100svh - var(--mbtop,115px) - 58px - 232px),560px)!important}
+}

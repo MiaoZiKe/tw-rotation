@@ -1152,33 +1152,50 @@
      除權息、法人、資券、大戶／散戶；「AI 分析」照 09-27 的決定留在新聞前面，「完整版」最後。
      改前：K線、指標、法人、資券、大戶／散戶、營收、獲利、財務、基本資料、除權息、AI 分析、新聞、完整版。
      會員權限（features.js）是用 data-t 對 #mbTabs 的鈕，不看位置。*/
+  /* ★★ 2026-10-10（Andy：「手機版個股下方資訊發現嚴重問題，為何還會一個完整版，個股資訊幫我依據網頁版型式呈現，唯一不同就是調整大小，
+     上方是K線 走勢圖……下方是總覽 基本資訊等等……若是像總覽內有基本面、籌碼快照、AI分析，出現2個以上的功能表，就需要分段式開關切換分頁」）：
+     改前：分頁列在報價列底下，第一頁是「K線」、K 線只在那一頁看得到；清單 K線、(成分股)、基本資料、指標、營收、獲利、財務、除權息、法人、資券、大戶／散戶、AI 分析、新聞、完整版。
+     改後：跟桌機同一個版型 —— K 線卡永遠在上面（不是一個分頁），K 線底下一排分頁，清單與順序＝桌機 industry.js STOCK_TABS／ETF_TABS：
+       個股：總覽、基本資料、指標、營收、獲利、除權息、法人、資券、大戶／散戶、公告／新聞
+       ETF ：總覽、成分股、配息、法人、資券、受益人分布、公告／新聞（桌機 ETF 沒有基本資料、指標）
+     手機舊分頁的去處（回報裡也列了）：
+       · K線   → 不再是分頁，永遠在分頁列上面（跟桌機一樣）
+       · 財務  → 併進「獲利」的分段：季走勢｜年度走勢｜本益比｜營收淨利（桌機的本益比河流圖也在獲利分頁）
+       · AI 分析 → 併進「總覽」的分段：基本面｜籌碼快照｜AI 分析（桌機總覽右欄就是 AI 卡）
+       · 新聞  → 改名「公告／新聞」（內容本來就含重大訊息）
+       · 完整版 → 拿掉；它裡面獨有的東西（總覽三張卡、本益比、技術訊號）都已經在上面那幾格
+     data-t 的鍵沿用舊的（basic、tag、rev…；features.js 的權限鎖是用 data-t 對鈕，不看位置）。*/
+  const skEtf = (pg) => /^00/.test(String((pg && pg.meta && pg.meta.code) || ''));
   const SK_TABS = [
-    { t: 'k', n: 'K線' },
-    /* ★ 2026-10-07（Andy：ETF 成分股要「左清單、右權重甜甜圈」）：手機原本沒有成分股這一頁 —— ETF 才出現，內容直接用桌機那支（StockHold.render，手機上下堆疊）*/
-    { t: 'hold', n: '成分股', has: (pg) => /^00/.test(String((pg.meta && pg.meta.code) || '')) && !!window.StockHold },
-    { t: 'basic', n: '基本資料' },
-    { t: 'tag', n: '指標' },
-    { t: 'rev', n: '營收', has: (pg) => ((pg.revenue && pg.revenue.monthly) || []).length > 0 },
-    { t: 'profit', n: '獲利', has: (pg) => ((pg.profit && pg.profit.quarters) || []).some(r => r[5] != null) },
-    { t: 'fin', n: '財務', has: (pg) => (pg.pe_history || []).some(r => r.pe != null) || ((pg.profit && pg.profit.quarters) || []).length > 0 },
-    { t: 'div', n: '除權息', has: (pg) => { const d = pg.dividends || {}; return (d.by_year || []).some(y => y.n > 0 || y.cash > 0 || y.stock > 0) || (d.upcoming || []).length > 0 || (d.by_period || []).length > 0; } },
-    /* 2026-09-28（Andy）：「籌碼」（集保）與「大戶」（主力替代）兩頁併成「大戶／散戶」一頁（三條持股線）；
-       主力替代與股東人數拿掉。順序跟桌機一樣：法人、資券、大戶／散戶。*/
-    { t: 'inst', n: '法人', has: (pg) => skInstRows(pg).length > 0 },
-    { t: 'margin', n: '資券', has: (pg) => (pg.margin || []).some(r => r[1] != null) },
-    { t: 'big', n: '大戶／散戶', has: (pg) => (pg.holders || []).some(r => r[1] != null) },
-    { t: 'ai', n: 'AI 分析', has: () => !!window.StockAI && !!document.getElementById('aiCard') },
-    { t: 'news', n: '新聞', has: (pg) => (pg.news || []).length > 0 || (pg.material_news || []).length > 0 },
-    { t: 'full', n: '完整版' },
+    { t: 'ov', n: '總覽' },
+    { t: 'hold', n: '成分股', has: (pg) => skEtf(pg) && !!window.StockHold },
+    { t: 'basic', n: '基本資料', has: (pg) => !skEtf(pg) },
+    { t: 'tag', n: '指標', has: (pg) => !skEtf(pg) },
+    /* 桌機這幾頁不管有沒有資料都在（沒有資料寫一句「尚無…」）；手機照桌機，不再因為沒資料就整顆拿掉 —— 位置才會跟桌機一樣 */
+    { t: 'rev', n: '營收', has: (pg) => !skEtf(pg) },
+    { t: 'profit', n: '獲利', has: (pg) => !skEtf(pg) },
+    { t: 'div', n: (pg) => skEtf(pg) ? '配息' : '除權息' },
+    /* 2026-09-28（Andy）：「籌碼」（集保）與「大戶」（主力替代）兩頁併成「大戶／散戶」一頁（三條持股線）；ETF 叫「受益人分布」（同桌機）*/
+    { t: 'inst', n: '法人' },
+    { t: 'margin', n: '資券' },
+    { t: 'big', n: (pg) => skEtf(pg) ? '受益人分布' : '大戶／散戶' },
+    { t: 'news', n: '公告／新聞' },
   ];
+  const skName = (x, pg) => typeof x.n === 'function' ? x.n(pg) : x.n;
   const SK_WIN = 63;                      // 一季 ≈ 63 個交易日（截圖是 7/02～9/24；跟桌機籌碼預設、docs/stock_page_audit_0927.md 同一個數）
   const SK = { code: null, pg: null, wait: null, tries: 0, card: null, ro: null };
   const skApp = () => window.App;
   const skInstRows = (pg) => ((pg.inst_v3 && pg.inst_v3.daily) || []).filter(r => r[1] != null || r[2] != null || r[3] != null);
   /* 這一檔看得到的分頁（沒有資料的那幾頁整顆不出現）*/
   const skTabs = (pg) => SK_TABS.filter(x => { if (!x.has || !pg) return true; try { return !!x.has(pg); } catch (e) { return false; } });
-  // 舊版記住的「籌碼」分頁（chip）已併進「大戶／散戶」（big）
-  const skTab = () => { const t0 = LS.get('sk.tab', 'k'), t = t0 === 'chip' ? 'big' : t0; return skTabs(SK.pg).some(x => x.t === t) ? t : 'k'; };
+  /* 舊版記住的分頁換到新家：籌碼（chip）→ 大戶／散戶；K線／完整版／AI 分析 → 總覽；財務 → 獲利（2026-10-10 分頁對應表見 SK_TABS 上面）*/
+  const SK_OLD = { chip: 'big', k: 'ov', full: 'ov', ai: 'ov', fin: 'profit' };
+  const skTab = () => { const t0 = LS.get('sk.tab', 'ov'), t = SK_OLD[t0] || t0; return skTabs(SK.pg).some(x => x.t === t) ? t : 'ov'; };
+  /* 子分頁（分段鈕）記憶全部清掉：離開個股頁後，下一次每一頁都從最左邊那一段開始（帳本 85：「所有分頁打開來 Default 都是最左邊的子分頁」）*/
+  function skSegReset() {
+    try { Object.keys(localStorage).filter(k => k.indexOf('tw.m3.sk.seg.') === 0).forEach(k => localStorage.removeItem(k)); } catch (e) { /* 私密視窗 */ }
+    SK.ovSeg = null;
+  }
   const skSeg = (t, d) => LS.get('sk.seg.' + t, d);
   const int = (v) => v == null || !isFinite(v) ? '—' : Math.round(v).toLocaleString('en-US');
   const sInt = (v) => v == null || !isFinite(v) ? '—' : (v > 0 ? '+' : '') + int(v);
@@ -1195,7 +1212,8 @@
   function skOn(v) {
     /* ★ 2026-10-09 帳本 85（Andy：「所有分頁打開來 Default 都是最左邊的子分頁」）：手機 v2（html.m4）離開個股頁 → 下次從別頁點進任何一檔都從最左邊「K線」開始。
        改前：記住上次看的分頁（tw.m3.sk.tab），從清單點進另一檔也停在上次那格；改後：只有在個股頁裡換檔（‹ ›、同頁連結）才保留分頁。 */
-    if (v !== 'stock') { if (SK.code && document.documentElement.classList.contains('m4')) LS.set('sk.tab', 'k'); skOff(); return; }
+    /* ★ 2026-10-10：最左邊那一格改成「總覽」（K 線不再是分頁）；子分頁的記憶一起清（skSegReset）*/
+    if (v !== 'stock') { if (SK.code && document.documentElement.classList.contains('m4')) { LS.set('sk.tab', 'ov'); skSegReset(); } skOff(); return; }
     const code = skCode();
     if (!code) { skOff(); return; }
     clearTimeout(SK.wait);
@@ -1230,8 +1248,9 @@
   }
   function skOff() {
     clearTimeout(SK.wait);
-    ['mbHead', 'mbBody'].forEach(id => { const e = document.getElementById(id); if (e) e.remove(); });
+    ['mbHead', 'mbBody', 'mbTabRow', 'mbKSet'].forEach(id => { const e = document.getElementById(id); if (e) e.remove(); });
     document.body.classList.remove('mbon');
+    const stb = document.getElementById('stockTab'); if (stb) delete stb.dataset.mov;
     delete document.body.dataset.mbt;
     if (SK.ro) { try { SK.ro.disconnect(); } catch (e) { /* 略 */ } SK.ro = null; }
     SK.code = null; SK.pg = null; SK.card = null;
@@ -1243,29 +1262,21 @@
     const A = skApp(), m = pg.meta || {}, s = pg.summary || {};
     const st = document.getElementById('stockPage');
     if (!st) return;
-    let head = document.getElementById('mbHead'), body = document.getElementById('mbBody');
+    let head = document.getElementById('mbHead');
     if (!head) { head = document.createElement('div'); head.id = 'mbHead'; head.className = 'mbhead'; st.before(head); }
-    if (!body) { body = document.createElement('div'); body.id = 'mbBody'; body.className = 'mbbody'; st.before(body); }
     const mk = m.market === 'TPEX' ? ['櫃', '上櫃'] : m.market === 'TWSE' ? ['市', '上市'] : ['興', m.market || ''];
     head.innerHTML = `<div class="mbq" id="mbQuote">
         <button type="button" class="mbarrow" id="mbPrev" aria-label="上一檔" disabled>◀</button>
         <div class="mbid"><b class="mbname">${esc(m.name || '')}</b><span class="mbcode"><i class="mbmkt" title="${esc(mk[1])}">${mk[0]}</i><span class="num">${esc(m.code || '')}</span></span></div>
         <div class="mbpx num" id="mbPx" data-live="close" data-lc="${esc(m.code)}">${A.fmt.n(s.close)}</div>
         <div class="mbchg"><span class="num" id="mbDelta"></span><span class="num" id="mbPct" data-live="chg" data-lc="${esc(m.code)}">${A.fmt.pct(s.chg_pct, 2)}</span></div>
-        <button type="button" class="mbarrow" id="mbNext" aria-label="下一檔" disabled>▶</button></div>
-      <div class="mbtabwrap"><button type="button" class="mball" id="mbAll" aria-label="全部分頁">☰</button>
-        <nav class="mbtabs" id="mbTabs" role="tablist">${skTabs(pg).map(x => `<button type="button" role="tab" data-t="${x.t}">${x.n}</button>`).join('')}</nav>
-        <button type="button" class="mbstar" id="mbStar" aria-pressed="false">☆</button></div>`;
+        <button type="button" class="mbarrow" id="mbNext" aria-label="下一檔" disabled>▶</button></div>`;
+    /* ★ 2026-10-10：分頁列不再跟報價列綁在一起 —— 搬到 K 線卡下面（跟桌機一樣：上面 K 線、下面分頁），由 skPlace 插 */
+    const old = document.getElementById('mbTabRow'); if (old) old.remove();
     SK.prev0 = skPrev0(pg);
     skQuoteColor();
     skNeighbours(pg);
-    const tabs = document.getElementById('mbTabs');
-    tabs.onclick = (e) => { const b = e.target.closest('button[data-t]'); if (b) skGo(b.dataset.t); };
-    tabs.addEventListener('scroll', () => tabs.classList.toggle('end', tabs.scrollLeft + tabs.clientWidth >= tabs.scrollWidth - 4), { passive: true });
-    document.getElementById('mbAll').onclick = skAllSheet;
-    /* ☆：跳出「要放進哪幾頁」（watchlists.js 的 pick，手機是底部抽屜）*/
-    document.getElementById('mbStar').onclick = (e) => { if (SK.pg && TW()) TW().pick(SK.pg.meta.code, e.currentTarget); };
-    skStar();
+    skPlace();
     document.body.classList.add('mbon');
     /* 表頭釘在報價列＋分頁列正下方：高度用量的（字型載入前後會差幾 px），寫進 --mbtop */
     const setTop = () => { const h = head.getBoundingClientRect().height; document.body.style.setProperty('--mbtop', (52 + h) + 'px'); };
@@ -1327,6 +1338,31 @@
     });
   }
   /* 觀察清單的 ☆（跟總覽的觀察清單同一份 localStorage `tw.watch`，只存代號；見 G 段）*/
+  /* ---- 分頁列＋分頁內容：插在 K 線卡（#skChartCard）正後面 ----
+     industry.js 換股或重畫個股頁時會整個重寫 #stockPage，插在裡面的這兩塊會一起被洗掉 —— 所以每次 skPaint 都先叫這支補回來。
+     插在 #stockPage 裡面（不是外面）：分頁列要 sticky 在報價列下面，而 K 線卡在 #stockPage 裡，兩者要在同一個盒子裡才排得對。*/
+  function skPlace() {
+    const pg = SK.pg || null, card = document.getElementById('skChartCard');
+    if (!pg || !card) return;
+    let row = document.getElementById('mbTabRow'), body = document.getElementById('mbBody');
+    if (!row) {
+      row = document.createElement('div'); row.id = 'mbTabRow'; row.className = 'mbtabwrap';
+      row.innerHTML = `<button type="button" class="mball" id="mbAll" aria-label="全部分頁">☰</button>
+        <nav class="mbtabs" id="mbTabs" role="tablist">${skTabs(pg).map(x => `<button type="button" role="tab" data-t="${x.t}">${esc(skName(x, pg))}</button>`).join('')}</nav>
+        <button type="button" class="mbstar" id="mbStar" aria-pressed="false">☆</button>`;
+      const tabs = $('#mbTabs', row);
+      tabs.onclick = (e) => { const b = e.target.closest('button[data-t]'); if (b) skGo(b.dataset.t); };
+      tabs.addEventListener('scroll', () => tabs.classList.toggle('end', tabs.scrollLeft + tabs.clientWidth >= tabs.scrollWidth - 4), { passive: true });
+      $('#mbAll', row).onclick = skAllSheet;
+      /* ☆：跳出「要放進哪幾頁」（watchlists.js 的 pick，手機是底部抽屜）*/
+      $('#mbStar', row).onclick = (e) => { if (SK.pg && TW()) TW().pick(SK.pg.meta.code, e.currentTarget); };
+    }
+    if (!body) { body = document.createElement('div'); body.id = 'mbBody'; body.className = 'mbbody'; }
+    if (card.nextElementSibling !== row) card.after(row);
+    if (row.nextElementSibling !== body) row.after(body);
+    skStar();
+    skKSet();
+  }
   function skStar() {
     const b = document.getElementById('mbStar'); if (!b || !SK.pg) return;
     const on = wHas(SK.pg.meta.code);
@@ -1336,21 +1372,36 @@
   function skAllSheet() {
     const cur = skTab();
     const sh = openSheet(`<div class="mshhead"><b>全部分頁</b></div><div class="mballgrid">${skTabs(SK.pg).map(x =>
-      `<button type="button" data-t="${x.t}" class="${x.t === cur ? 'on' : ''}">${x.n}</button>`).join('')}</div>`, { kind: 'sktabs' });
+      `<button type="button" data-t="${x.t}" class="${x.t === cur ? 'on' : ''}">${esc(skName(x, SK.pg))}</button>`).join('')}</div>`, { kind: 'sktabs' });
     sh.querySelector('.mballgrid').onclick = (e) => { const b = e.target.closest('button[data-t]'); if (!b) return; closeSheet(); skGo(b.dataset.t); };
   }
-  function skGo(t) {
+  /* ★ 2026-10-10：K 線不是分頁了 —— 指標頁那幾條「站上 20 日均線」之類（go:'k'）改成捲回頂端看 K 線；
+     「財務」併進獲利（go:'fin' → 獲利的「本益比」段）。
+     換分頁不再一律捲回頂端（K 線在上面，捲回頂端等於把剛點的那一頁推出畫面）：
+     分頁列已經釘在報價列下面（使用者捲下來看內容了）→ 換完讓分頁列留在原位、新內容從它下面開始；還沒捲下來 → 位置不動。*/
+  function skGo(t, seg) {
+    if (t === 'k') { window.scrollTo({ top: 0 }); return; }
+    if (t === 'fin') { t = 'profit'; seg = seg || 'pe'; }
+    if (seg) LS.set('sk.seg.' + t, seg);
+    const row = document.getElementById('mbTabRow');
+    const top = parseFloat(getComputedStyle(document.body).getPropertyValue('--mbtop')) || 0;
+    const stuck = row && row.getBoundingClientRect().top <= top + 1;
     LS.set('sk.tab', t);
     skPaint();
-    /* K 線卡／完整版的圖剛從 display:none 回來：叫圖表重排一次（只在使用者切分頁時發，見 skOn 的註解）*/
-    if (t === 'k' || t === 'full') setTimeout(() => window.dispatchEvent(new Event('resize')), 60);
-    /* 換分頁回到頂端（報價列下方）：不然從很長的新聞清單切到 K 線，會停在半截 */
-    window.scrollTo({ top: 0 });
+    if (stuck) skStick();
+  }
+  /* 把分頁列放回「釘住」的位置（分頁內容的頂端貼著分頁列底下）*/
+  function skStick() {
+    const row = document.getElementById('mbTabRow'), body = document.getElementById('mbBody'); if (!row || !body) return;
+    const top = parseFloat(getComputedStyle(document.body).getPropertyValue('--mbtop')) || 0;
+    const y = window.scrollY + body.getBoundingClientRect().top - top - row.offsetHeight;
+    window.scrollTo({ top: Math.max(0, y), behavior: 'instant' });
   }
 
   /* ---- 畫目前的分頁 ---- */
   function skPaint() {
     const pg = SK.pg; if (!pg) return;
+    skPlace();
     const t = skTab();
     document.body.dataset.mbt = t;
     const tabs = document.getElementById('mbTabs');
@@ -1361,16 +1412,11 @@
     }
     const body = document.getElementById('mbBody'); if (!body) return;
     body.dataset.tab = t;
-    /* K 線與「完整版」用的是 industry.js 畫好的節點：順手把（藏起來的）第二版分段列切到對應那一段，
-       它掛的 .mp-off 才不會跟這裡打架（K 線卡在「K 線」段、#stockTabs／#stockTab 在「財報籌碼」段）。*/
-    const want = t === 'k' ? 'K 線' : t === 'full' ? '財報籌碼' : t === 'ai' ? 'AI 分析' : null;
-    if (want) { const pb = $$('#v-industry > .mpager button').find(x => x.textContent.trim() === want); if (pb && !pb.classList.contains('on')) pb.click(); }
-    if (t === 'k') { body.innerHTML = ''; return; }
-    if (t === 'full') {
-      body.innerHTML = '';
-      return;
-    }
-    const fn = { hold: (p, b) => window.StockHold.render(p, b), ai: skAi, tag: skTagTab, inst: skInst, big: skBig, margin: skMargin, rev: skRev, fin: skFin, profit: skProfit, basic: skBasic, div: skDiv, news: skNews }[t];
+    /* K 線卡與桌機的 #stockTab（總覽用）是 industry.js 畫好的節點；藏起來的第二版分段列（.mpager）會替它們掛 .mp-off ——
+       手機 v2 的 CSS 在個股頁一律無視 .mp-off（mobile4.css 第 32 節），這裡順手拿掉，免得回到桌機寬度時還帶著。*/
+    ['skChartCard', 'stockTab'].forEach(id => { const e = document.getElementById(id); if (e) e.classList.remove('mp-off'); });
+    const stb = document.getElementById('stockTab'); if (stb && t !== 'ov') delete stb.dataset.mov;
+    const fn = { ov: skOv, hold: (p, b) => window.StockHold.render(p, b), tag: skTagTab, inst: skInst, big: skBig, margin: skMargin, rev: skRev, profit: skProfitAll, basic: skBasic, div: skDiv, news: skNews }[t];
     try { fn(pg, body); } catch (e) { console.warn('[m3 個股]', e); body.innerHTML = '<div class="mbempty">這一頁載入失敗</div>'; }
   }
 
@@ -1435,18 +1481,93 @@
   }
   const empty = (msg) => `<div class="mbempty">${msg}</div>`;
 
-  /* ---- AI 分析：不另外 render —— 用 app.js miaStock 搬進 #aiCard 的那一個 #skAi 節點（積木 stock.mtf，四標籤版）----
-     2026-09-27 協調：AI 分析四標籤版（claude/ai-topright）桌機住在 K 線卡右上角；手機由 miaStock 把**同一個節點**
-     搬進空殼 #aiCard（分段導覽的「AI 分析」段）。這裡只負責讓 #aiCard 在「AI 分析」分頁露出來（CSS 看 data-mbt="ai"），
-     順便把藏起來的第二版分段列切到「AI 分析」段，它掛的 .mp-off 才不會把 #aiCard 藏掉。
-     選中的標籤、收合狀態都跟著節點走，不重畫。*/
-  function skAi(pg, body) {
-    const card = document.getElementById('aiCard'), ai = document.getElementById('skAi');
-    if (!card || !ai) { body.innerHTML = empty('AI 分析載入失敗'); return; }
-    body.innerHTML = '';
-    if (ai.parentElement !== card) card.appendChild(ai);      // miaStock 還沒跑到（或順序不同）時先搬，行為跟它一樣
-    card.classList.remove('mp-off');
-    if (window.StockAI && window.StockAI.refit) setTimeout(() => { try { window.StockAI.refit(); } catch (e) { /* 略 */ } }, 30);
+  /* ---- 總覽（2026-10-10 Andy：「若是像總覽內有基本面、籌碼快照、AI分析，出現2個以上的功能表，就需要分段式開關切換分頁」）----
+     內容不另外寫一份：用桌機那一份（industry.js tabOverview 畫在 #stockTab 的 #skFundCard／#skChipCard／#ovAiCard），
+     「唯一不同就是調整大小」—— 上面加一排分段鈕「基本面｜籌碼快照｜AI 分析」，一次只露一張（CSS 看 #stockTab[data-mov]），預設最左邊。
+     ETF 桌機總覽只有籌碼快照一張 → 不放分段鈕。
+     改前：手機沒有總覽；AI 分析是獨立一頁（K 線卡右上那份 #skAi 搬進 #aiCard），基本面、籌碼快照只在「完整版」裡看得到。*/
+  const OV_SEG = [['fund', '基本面', 'skFundCard'], ['chip', '籌碼快照', 'skChipCard'], ['ai', 'AI 分析', 'ovAiCard']];
+  function skOv(pg, body) {
+    const st = document.getElementById('stockTab');
+    if (!st) { body.innerHTML = empty('總覽載入失敗'); return; }
+    if (!st.querySelector('#skOv')) {
+      /* 桌機寬度時切去別的分頁再縮回手機：叫桌機那排（藏起來的）分頁切回總覽；它會為了「分頁列不跳」捲一下，捲回原位 */
+      const b = document.querySelector('#stockTabs button[data-t="overview"]');
+      if (b) { const y = window.scrollY; b.click(); window.scrollTo({ top: y, behavior: 'instant' }); setTimeout(() => { st.style.minHeight = ''; }, 200); }
+    }
+    st.style.minHeight = '';
+    const SEG = OV_SEG.filter(x => st.querySelector('#' + x[2]));
+    if (!SEG.length) { body.innerHTML = empty('總覽載入失敗'); delete st.dataset.mov; return; }
+    const seg = SK.ovSeg && SEG.some(x => x[0] === SK.ovSeg) ? SK.ovSeg : SEG[0][0];
+    body.innerHTML = SEG.length > 1 ? segBar('ov', SEG, seg) : '';
+    st.dataset.mov = seg;
+    const bar = $('.mbseg', body);
+    if (bar) bar.onclick = (e) => { const b = e.target.closest('button[data-s]'); if (!b || b.classList.contains('on')) return; SK.ovSeg = b.dataset.s; skPaint(); };
+    /* 剛從 display:none 露出來的那張卡如果有圖（ECharts），叫它量一次寬度 */
+    setTimeout(() => { const A = skApp(); Object.values((A && A.charts) || {}).forEach(c => { try { if (c && c.getDom && st.contains(c.getDom()) && c.resize) c.resize(); } catch (e) { /* 略 */ } }); }, 30);
+  }
+
+  /* ---- K 線工具列：一排週期分段鈕＋一顆「設定」（2026-10-10 Andy：「篩選方式可以參考市場明細那邊的方式」）----
+     改前：分時｜1時｜4時｜日｜週｜月、＋、指標 ▾、四週期同看、✎ 畫線、? 擠在一條可以左右滑的列（量到 696px 寬、手機只看得到一半）。
+     改後：週期分段鈕留在外面（最常切的那件事），其他四件收進「設定」抽屜（mobile4.js 市場明細摘要鈕＋抽屜同一套樣式）：
+       · 顯示：單一週期｜四週期同看（按的是原本那顆 #mtfBtn）
+       · 畫線：關｜開（#drawTgl）
+       · 指標：開關、參數、顏色（#indBtn 的面板，手機改成從底部滑上來，mobile4.css 第 32 節）
+       · ＋ 自訂時間週期（#tfAdd）
+       · K 線怎麼看（原本「?」的內容，收在最下面，點了才展開）
+     原本那幾顆鈕不拆、只藏起來（CSS），抽屜裡按的就是它們 —— 桌機那條路徑一行都沒動。*/
+  const K_ICON = '<svg class="m4sico" viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 4h-7M10 4H3M21 12h-9M8 12H3M21 20h-5M12 20H3M14 2v4M8 10v4M16 18v4"/></svg>';
+  const kMtf = () => { const b = document.getElementById('mtfBtn'); return !!(b && b.textContent.trim() === '單一週期'); };   // 鈕上寫「單一週期」＝現在是四週期同看
+  const kDraw = () => { const w = document.getElementById('chartWrap'); return !!(w && w.classList.contains('drawon')); };
+  const kIndN = () => { const n = document.getElementById('indN'), m = n && /\d+/.exec(n.textContent); return m ? m[0] : ''; };   // #indN 寫「（已開 2）」，只取數字
+  function skKSum() {
+    const b = document.getElementById('mbKSet'); if (!b) return;
+    const parts = ['指標' + (kIndN() ? ' ' + kIndN() : ''), kMtf() ? '四週期同看' : '', kDraw() ? '畫線' : ''].filter(Boolean);
+    const lbl = 'K 線設定：' + parts.join('、');
+    const want = `${K_ICON}<span class="m4st">設定</span><i aria-hidden="true">›</i>`;
+    if (b.innerHTML !== want) b.innerHTML = want;
+    if (b.getAttribute('aria-label') !== lbl) { b.setAttribute('aria-label', lbl); b.title = lbl; }
+  }
+  function skKSet() {
+    const seg = document.getElementById('tfSeg'); if (!seg) return;
+    let b = document.getElementById('mbKSet');
+    if (!b) { b = document.createElement('button'); b.type = 'button'; b.id = 'mbKSet'; b.className = 'mfilt mbkset'; b.setAttribute('aria-haspopup', 'dialog'); b.onclick = skKSheet; }
+    if (seg.nextElementSibling !== b) seg.after(b);
+    skKSum();
+  }
+  function skKSheet() {
+    const how = document.getElementById('how-kline');
+    const drawDis = !!(document.getElementById('drawTgl') || {}).disabled;
+    const row = (k, lbl, items) => `<div class="m4mkrow"><span class="m4mklbl">${lbl}</span><div class="seg" data-mk="${k}">${items.map(([v, t, on]) =>
+      `<button type="button" data-v="${v}" class="${on ? 'on' : ''}" aria-pressed="${!!on}"${k === 'draw' && drawDis ? ' disabled' : ''}>${t}</button>`).join('')}</div></div>`;
+    const paint = (wrap) => {
+      $('.m4mksegs', wrap).innerHTML = row('mtf', '顯示', [['0', '單一週期', !kMtf()], ['1', '四週期同看', kMtf()]])
+        + row('draw', '畫線' + (drawDis ? '（分時不能畫線，先切 K 線週期）' : ''), [['0', '關', !kDraw()], ['1', '開', kDraw()]]);
+      const n = $('.mbkind b', wrap); if (n) n.textContent = kIndN() ? kIndN() + ' 個' : '';
+    };
+    const wrap = document.createElement('div');
+    wrap.innerHTML = `<div class="mshhead"><b>K 線設定</b></div><div class="m4shsegs m4mksegs"></div>
+      <div class="mbkbtns"><button type="button" class="btn mbkind" data-go="indBtn">指標設定 <b></b> ›</button>
+      <button type="button" class="btn" data-go="tfAdd">＋ 自訂時間週期</button></div>
+      ${how ? `<details class="mbkhow"><summary>K 線怎麼看 ›</summary><div class="mbkhowt">${how.innerHTML}</div></details>` : ''}`;
+    paint(wrap);
+    wrap.addEventListener('click', (e) => {
+      const b = e.target.closest('.seg[data-mk] > button');
+      if (b) {
+        const k = b.parentNode.dataset.mk, want = b.dataset.v === '1';
+        if (k === 'mtf' && kMtf() !== want) { const x = document.getElementById('mtfBtn'); if (x) x.click(); }
+        if (k === 'draw' && kDraw() !== want) { const x = document.getElementById('drawTgl'); if (x && !x.disabled) x.click(); }
+        setTimeout(() => { paint(wrap); skKSum(); }, 80); setTimeout(() => { if (wrap.isConnected) paint(wrap); skKSum(); }, 500);
+        return;
+      }
+      const g = e.target.closest('button[data-go]');
+      if (g) {
+        closeSheet();
+        /* 指標面板與自訂週期面板是 industry.js 的 #cfgPop：等抽屜收掉、這一次點擊結束，再按原本那顆鈕（不然「點外面就關」會把它當成外面那一下）*/
+        setTimeout(() => { const x = document.getElementById(g.dataset.go); if (x) x.click(); }, 60);
+      }
+    });
+    openSheet(wrap, { kind: 'mbkset', onClose: () => setTimeout(skKSum, 0) });
   }
 
   /* ---- 指標：一列一個標籤（產業鏈／族群／題材／指標），點了進去 ----
@@ -1772,15 +1893,27 @@
 
   /* ---- 獲利（照截圖）：季 EPS 柱＋毛利率、淨利率兩條線（雙軸）；表＝季、毛利率、淨利率、EPS、累計 EPS ----
      profit.quarters 每列＝[季, 營收, 毛利率, 營益率, 淨利率, EPS, 累計 EPS, EPS 年增, 稅後淨利] */
-  function skProfit(pg, body) {
+  /* ★ 2026-10-10：「財務」（本益比、營收與淨利）併進「獲利」—— 桌機的本益比河流圖本來就在獲利分頁。
+     改前：獲利（季走勢｜年度走勢）＋另一頁財務（本益比｜營收與淨利）；改後：獲利一頁四段 季走勢｜年度走勢｜本益比｜營收淨利（沒資料的那段不出現）。*/
+  function skProfitAll(pg, body) {
+    const q = ((pg.profit && pg.profit.quarters) || []);
+    const pe = (pg.pe_history || []).filter(r => r.pe != null);
+    const yr = ((pg.profit && pg.profit.yearly) || []).filter(y => y.eps != null);
+    const SEG = [].concat(q.some(r => r[5] != null) ? [['q', '季走勢']] : []).concat(yr.length && q.some(r => r[5] != null) ? [['y', '年度走勢']] : [])
+      .concat(pe.length ? [['pe', '本益比']] : []).concat(q.length ? [['ni', '營收淨利']] : []);
+    if (!SEG.length) { body.innerHTML = empty('尚無季報資料'); return; }
+    const seg = SEG.some(x => x[0] === skSeg('profit', SEG[0][0])) ? skSeg('profit', SEG[0][0]) : SEG[0][0];
+    if (seg === 'pe' || seg === 'ni') skFin(pg, body, seg, SEG); else skProfit(pg, body, seg, SEG);
+  }
+  function skProfit(pg, body, seg0, SEG0) {
     const q = ((pg.profit && pg.profit.quarters) || []);
     if (!q.some(r => r[5] != null)) { body.innerHTML = empty('尚無季報資料'); return; }
     const A = skApp(), CH = A.CH, f = pg.fundamental || {};
     const epsC = light() ? '#3b82c4' : '#4aa8f0';
     /* 年度分段：finance-quant 的 profit.yearly（四季單季加總，今年標「前 n 季」）到了才出現 */
     const yr = ((pg.profit && pg.profit.yearly) || []).filter(y => y.eps != null);
-    const SEG = [['q', '季走勢']].concat(yr.length ? [['y', '年度走勢']] : []);
-    const seg = SEG.some(x => x[0] === skSeg('profit', 'q')) ? skSeg('profit', 'q') : 'q';
+    const SEG = SEG0 || [['q', '季走勢']].concat(yr.length ? [['y', '年度走勢']] : []);
+    const seg = seg0 || (SEG.some(x => x[0] === skSeg('profit', 'q')) ? skSeg('profit', 'q') : 'q');
     const p2 = (v) => v == null ? '—' : (+v).toFixed(2);
     const lg = legend([['EPS（元，左軸）', epsC], ['毛利率（%，右軸）', CH.cyan, 1], ['淨利率（%，右軸）', CH.violet, 1]]);
     const opt = { yfmt: (v) => (+v).toFixed(1), ytip: (v) => (+v).toFixed(2) + ' 元', y2fmt: (v) => Math.round(v) + '', y2tip: (v) => (+v).toFixed(2) + '%' };
@@ -1812,19 +1945,20 @@
 
   /* ---- 財務：本益比｜營收與淨利（每季）----
      pe_history 每筆＝{period, ttm_eps, pe, pe_high, pe_low}（該季財報公布後那段期間的本益比與區間高低） */
-  function skFin(pg, body) {
+  function skFin(pg, body, seg0, SEG0) {
     const A = skApp(), CH = A.CH;
     const pe = (pg.pe_history || []).filter(r => r.pe != null);
     const q = ((pg.profit && pg.profit.quarters) || []);
     const SEG = [['pe', '本益比'], ['ni', '營收與淨利']];
-    let seg = skSeg('fin', 'pe') === 'ni' ? 'ni' : 'pe';
+    const sk = SEG0 ? 'profit' : 'fin';      // 從「獲利」叫進來：分段鈕記在獲利那一組
+    let seg = seg0 || (skSeg('fin', 'pe') === 'ni' ? 'ni' : 'pe');
     if (!pe.length && q.length) seg = 'ni';
     if (!pe.length && !q.length) { body.innerHTML = empty('尚無財報資料'); return; }
-    const segs = SEG.filter(s => s[0] === 'pe' ? pe.length : q.length);
+    const segs = SEG0 || SEG.filter(s => s[0] === 'pe' ? pe.length : q.length);
     const f = pg.fundamental || {};
     if (seg === 'pe') {
       const last = pe[pe.length - 1];
-      body.innerHTML = (segs.length > 1 ? segBar('fin', segs, seg) : '')
+      body.innerHTML = (segs.length > 1 ? segBar(sk, segs, seg) : '')
         + chartBox(kpi([['目前本益比', f.pe ? (+f.pe).toFixed(1) : '—'], ['同族群中位', f.group_median != null ? (+f.group_median).toFixed(1) : '—'], ['股價淨值比', f.pb != null ? (+f.pb).toFixed(2) : '—'], ['近四季 EPS', f.ttm_eps != null ? (+f.ttm_eps).toFixed(2) : '—']])
           + legend([['本益比（期間平均）', CH.cyan, 1], ['期間最高', CH.up, 1], ['期間最低', CH.down, 1]]))
         + table([{ h: '財報季', f: r => [r.period] }, { h: '近四季 EPS', f: r => [r.ttm_eps == null ? '—' : (+r.ttm_eps).toFixed(2), r.ttm_eps < 0 ? 'dn' : ''] },
@@ -1833,11 +1967,11 @@
       const draw = () => barChart({ x: pe.map(r => r.period), linesOnly: true, bars: [], scale: true,
         lines: [{ name: '本益比', data: pe.map(r => r.pe), color: CH.cyan, left: true }, { name: '最高', data: pe.map(r => r.pe_high), color: CH.up, left: true }, { name: '最低', data: pe.map(r => r.pe_low), color: CH.down, left: true }],
         yfmt: (v) => Math.round(v) + '', ytip: (v) => (+v).toFixed(1) + ' 倍' });
-      wireSeg(body, 'fin'); wireFold(body, draw); draw();
+      wireSeg(body, sk); wireFold(body, draw); draw();
     } else {
       const X = q.slice(-12), last = X[X.length - 1];
       const revC = light() ? '#3b82c4' : '#4aa8f0';
-      body.innerHTML = (segs.length > 1 ? segBar('fin', segs, seg) : '')
+      body.innerHTML = (segs.length > 1 ? segBar(sk, segs, seg) : '')
         + chartBox(kpi([[`${last[0]} 營收`, last[1] != null ? (last[1] / 1e8).toFixed(1) + ' 億' : '—'], ['稅後淨利', last[8] != null ? (last[8] / 1e8).toFixed(1) + ' 億' : '—', uc(last[8])], ['營益率', last[3] != null ? (+last[3]).toFixed(1) + '%' : '—'], ['ROE', f.roe != null ? (+f.roe).toFixed(1) + '%' : '—']])
           + legend([['營收（億，左軸）', revC], ['稅後淨利（億，右軸）', CH.amber, 1]]))
         + table([{ h: '季', f: r => [r[0]] }, { h: '營收（億）', f: r => [r[1] == null ? '—' : (r[1] / 1e8).toFixed(1)] }, { h: '淨利（億）', f: r => [r[8] == null ? '—' : (r[8] / 1e8).toFixed(1), r[8] < 0 ? 'dn' : ''] },
@@ -1846,7 +1980,7 @@
       const draw = () => barChart({ x: X.map(r => r[0].slice(2)), full: X.map(r => r[0]), bars: [{ name: '營收', data: X.map(r => r[1] == null ? null : +(r[1] / 1e8).toFixed(1)), color: revC }],
         lines: [{ name: '稅後淨利', data: X.map(r => r[8] == null ? null : +(r[8] / 1e8).toFixed(1)), color: CH.amber }],
         yfmt: (v) => Math.round(v) + '', ytip: (v) => (+v).toFixed(1) + ' 億', y2fmt: (v) => Math.round(v) + '', y2tip: (v) => (+v).toFixed(1) + ' 億' });
-      wireSeg(body, 'fin'); wireFold(body, draw); draw();
+      wireSeg(body, sk); wireFold(body, draw); draw();
     }
   }
 

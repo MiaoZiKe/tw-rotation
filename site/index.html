@@ -5233,7 +5233,8 @@ h3 .howbtn.pop{font-family:inherit}
 @media (max-width:640px){
   body.m3on.mbon #indCrumbs,body.m3on.mbon #v-industry>.mpager,body.m3on.mbon #v-industry>.mspine,body.m3on.mbon #v-industry>.mnext{display:none!important}
   /* K 線分頁看 #skChartCard；「完整版」分頁看桌機那一組分頁（#stockTabs＋#stockTab）；其他分頁全部藏，改看 #mbBody */
-  body.m3on.mbon #stockPage>*:not(#skChartCard):not(#stockTabs):not(#stockTab):not(#aiCard){display:none!important}
+  /* ★ 2026-10-10：分頁列（#mbTabRow）與分頁內容（#mbBody）搬進 #stockPage（K 線卡正後面），這條要放它們過（只有 ≤640 吃得到）*/
+  body.m3on.mbon #stockPage>*:not(#skChartCard):not(#stockTabs):not(#stockTab):not(#aiCard):not(#mbTabRow):not(#mbBody){display:none!important}
   /* AI 分析分頁：看 #aiCard（app.js miaStock 把 #skAi 同一個節點搬進來；見 mobile3.js skAi）*/
   body.m3on.mbon:not([data-mbt="ai"]) #stockPage>#aiCard{display:none!important}
   body.m3on.mbon[data-mbt="ai"] #stockPage>#aiCard{display:block!important;margin-top:10px!important}
