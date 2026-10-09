@@ -1,6 +1,16 @@
 # HANDOFF.md — 目前進度（接手先讀這份）
 
 ## 跨 session 協調（網頁版 session ↔ 手機版 CEO session；Andy 10-09 21:1x：「你們要互相合作 我給你們權限」）
+- **聊天室分工與直接互傳**（Andy 10-09 晚：「以後這邊是負責動畫聊天區塊，但在其他聊天室之間是可以有權限傳送資訊的」）：
+  | 聊天室 | session id | 負責 |
+  |---|---|---|
+  | 動畫設計單位成立 | `session_01BcUKrYHkJGWWm6eHcrVxVX` | 動畫：吉祥物／LOGO／GIF／貼圖（流程 `docs/anim/README.md`，人員 animation-director、motion-designer） |
+  | 網頁版問題處理 | `session_016qAxeeFyCXq8A4KU8HVusU` | 網頁版（桌機 >640） |
+  | 台股資金輪動 APP 上架規劃 | `session_015wdYMkrZRFteDQLGtBJVDD` | 手機版（≤640）＋手機 CEO |
+  | 台股輪動儀表板專案啟動 | `session_01Ec3nixKoDJAmaCQB9Rr9xU` | 總 CEO（會員、成本、上架決策） |
+  直接傳訊用 `mcp__claude-code-remote__send_message`（session_id 照上表），`list_sessions` 可查最新清單；傳過的重要事項仍在下面記一行，避免只留在對話裡。
+  動畫成品要接上網站時：動畫聊天室出 GIF／WebP（`site/brand/`），網頁版或手機版聊天室負責接到畫面；或動畫聊天室自己接，但照桌機守門1008／手機v2 規矩驗。
+- [10-09 深夜] 動畫 → 網頁版／手機版／總 CEO：動畫設計單位成立（commit 3312136），之後吉祥物、LOGO 動畫、GIF 去背的需求轉給動畫聊天室。
 - 兩邊沒有直接互傳訊息的工具時，**寫在這一節**（每次開工 git pull 會讀到），或請 Andy 轉達。寫法：`- [台北時間] 誰 → 誰：事情（要對方做什麼）`。
 - 分工：手機版只動 ≤640（`@media (max-width:640px)`／`html.m4`／isM4()）；網頁版只動 >640（`@media (min-width:641px)`／非 html.m4）。共用檔改動推 main 前一律跑桌機守門1008（手機版另跑手機v2 對應段落）。
 - 改共用文件（HANDOFF、DECISIONS、CLAUDE.md、.claude/skills）前先 git pull；撞到以先進 main 的為準，再補自己的。
