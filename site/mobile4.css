@@ -812,3 +812,39 @@
   /* 360 寬：摘要鈕的小圖示讓位給字 */
   @media (max-width:380px){ :root.m4 :is(.m4ctlrow,#m3Frame.m4set .m3-bar)>.mfilt .m4sico{display:none} :root.m4 :is(.m4ctlrow,#m3Frame.m4set .m3-bar)>.mfilt{padding:0 8px!important} }
 }
+
+/* ============================================================================
+   31. 2026-10-09 10:0x Andy（手機預覽版）：選股頁籤等寬／ETF 除息表拉 Bar／名稱兩行 —— 程式在 mobile4.js 第 31 節
+   ⚠ 全部在 @media (max-width:640px) 而且掛 :root.m4 —— 桌機一條都不吃（桌機守門1008 驗）。
+   ============================================================================ */
+@media (max-width:640px){
+  /* ---- 31a. 選股「基本面／技術面／籌碼面／消息面」四格等寬填滿（Andy：「分頁式排法，並且需平均分散」）
+     根因：合併 m4-seg 之後，第 23 節把所有頁內切換（.nbsw 也算）掛成分段控制器，寫了 width:fit-content!important，
+     權重 (1,6,0)（:not(#mbTabs) 算一個 id）。第 29a 節的 width:100% 沒有 !important → 輸了，容器縮成字寬（402 寬時只剩 249px），
+     四格 flex:1 也只能在 249 裡平分，看起來就是擠在左邊一排小字。這裡用三個 id 的權重＋!important 蓋回滿寬，不去改第 23 節（其他頁要它）。 */
+  :root.m4 #v-explore.view.on #slChips#slChips.sl-chips{width:100%!important;max-width:none!important;min-width:0!important;margin-left:0!important;margin-right:0!important;
+    overflow:visible!important;-webkit-mask-image:none!important;mask-image:none!important}
+  :root.m4 #v-explore.view.on #slChips#slChips.sl-chips>button{flex:1 1 0!important;min-width:0!important;width:auto!important}
+
+  /* ---- 31b. 除息表高度上限＝上方月曆高度（mobile4.js 量好寫進 --m4calh），超過就在框裡捲；表頭黏在框頂；右側自畫拉 Bar（.m4rail） */
+  :root.m4 #v-etf .calwrap{position:relative}
+  :root.m4 #v-etf #etfCalList#etfCalList.callist.m4cs{max-height:var(--m4calh,420px)!important;height:auto!important;overflow-y:auto!important;overflow-x:hidden!important;
+    overscroll-behavior:contain;touch-action:pan-y;padding-right:18px!important;box-sizing:border-box;scrollbar-width:none}
+  :root.m4 #v-etf #etfCalList#etfCalList.callist.m4cs::-webkit-scrollbar{display:none}
+  :root.m4 #v-etf #etfCalList.m4cs table.et{border-collapse:separate!important;border-spacing:0}
+  :root.m4 #v-etf #etfCalList.m4cs table.et thead th{position:sticky!important;top:0;z-index:2;background:var(--panel,#0f1a2b)!important;box-shadow:0 1px 0 var(--line-2)}
+  :root.m4 #v-etf .calwrap>.m4rail{position:absolute;right:-6px;width:28px;z-index:3;touch-action:none;cursor:pointer}
+  :root.m4 #v-etf .calwrap>.m4rail::before{content:'';position:absolute;left:12px;width:4px;top:0;bottom:0;border-radius:2px;background:var(--line-2)}
+  :root.m4 #v-etf .calwrap>.m4rail>.m4thumb{position:absolute;left:0;top:0;width:28px;display:block;cursor:grab}
+  :root.m4 #v-etf .calwrap>.m4rail>.m4thumb::before{content:'';position:absolute;left:11px;width:6px;top:0;bottom:0;border-radius:3px;background:var(--t4-accent-solid,var(--cyan));opacity:.75}
+  :root.m4 #v-etf .calwrap>.m4rail.on>.m4thumb::before{opacity:1;left:10px;width:8px}
+
+  /* ---- 31c. 除息表第一欄：名稱一行（放不下用 …）＋「日期・代號」一行（Andy：「名稱被拆成三行，請精簡」） */
+  :root.m4 #v-etf #etfCalList table.et td:first-child>.cw{display:flex;flex-wrap:wrap;align-items:baseline;column-gap:4px;max-width:9.5em}
+  :root.m4 #v-etf #etfCalList table.et td:first-child>.cw>.cn{order:-1;flex:1 1 100%;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--ink)}
+  :root.m4 #v-etf #etfCalList table.et td:first-child>.cw>.note{white-space:nowrap;font-size:12px}
+  :root.m4 #v-etf #etfCalList table.et td:first-child>.cw>.note+.note::before{content:'・'}
+  /* 右邊讓出 18px 給拉 Bar 之後表格比框寬（「尚未填息（已 12 天）」一欄就 124px）→ 最後一欄准換行（列本來就是兩行高：名稱＋代號），字一個都不截 */
+  :root.m4 #v-etf #etfCalList.m4cs table.et :is(th,td):last-child{white-space:normal!important;min-width:4.6em}
+  :root.m4 #v-etf #etfCalList#etfCalList.callist.m4cs{padding-left:2px!important;padding-top:0!important}
+}

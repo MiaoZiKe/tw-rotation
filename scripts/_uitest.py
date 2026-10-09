@@ -27276,6 +27276,146 @@ def t_mobile_m4_1009(b, base, code):
             pass
 
 
+def t_mobile_m4_etf2_1009(b, base, code):
+    """2026-10-09 10:0x Andy（手機預覽版）：選股頁籤等寬、ETF 除息表拉 Bar、所有曲線圖加區間縮放拉桿、每月入帳平均分散、自選刪除不必 2 次詢問。
+    每一條都真的用手指操作（CDP 觸控），驗「畫面真的因此改變了」。"""
+    T = "手機v2"
+    ctx = b.new_context(**dict(MOBILE_VP, viewport={"width": 402, "height": 874}))
+    ctx.add_init_script("try{ if(!sessionStorage.getItem('m4e2')){ localStorage.clear(); localStorage.setItem('tw.live.on','0'); localStorage.setItem('tw.tourDone','1'); sessionStorage.setItem('m4e2','1'); } }catch(e){}")
+    m = ctx.new_page()
+    m.on("pageerror", lambda e: fails.append(f"{T}(etf2) pageerror: {e} @ {m.url}"))
+    m.route("**/fonts.googleapis.com/**", lambda r: r.abort())
+    cdp = ctx.new_cdp_session(m)
+    J = lambda js, *a: m.evaluate(js, *a)
+
+    def go(h, wait=3500):
+        m.goto(base + "#" + h, wait_until="domcontentloaded"); m.wait_for_timeout(wait)
+
+    def drag(x0, y0, dx, dy=0, steps=12):
+        tp = lambda t, x, y: cdp.send("Input.dispatchTouchEvent", {"type": t, "touchPoints": [] if t == "touchEnd" else [{"x": x, "y": y}]})
+        tp("touchStart", x0, y0)
+        for k in range(1, steps + 1):
+            tp("touchMove", x0 + dx * k / steps, y0 + dy * k / steps); m.wait_for_timeout(16)
+        tp("touchEnd", 0, 0); m.wait_for_timeout(500)
+    try:
+        # ① 選股：「基本面／技術面／籌碼面／消息面」四格等寬、填滿左右（根因：第 23 節 width:fit-content!important 蓋掉滿寬）
+        go("explore")
+        t = J("""() => { const s = document.getElementById('slChips'); const bs = [...s.querySelectorAll('button')].map(b => b.getBoundingClientRect());
+            const p = s.parentElement.getBoundingClientRect(); return { n: bs.length, w: bs.map(r => Math.round(r.width * 10) / 10), span: bs[bs.length - 1].right - bs[0].left, pw: p.width,
+            rows: new Set(bs.map(r => Math.round(r.top))).size }; }""")
+        ok(f"【{T}】選股四個頁籤等寬（{t['w']}，差 ≤ 2）、同一列、總寬 ≥ 98%（{round(t['span'])}／{round(t['pw'])}）",
+           t["n"] == 4 and max(t["w"]) - min(t["w"]) <= 2 and t["rows"] == 1 and t["span"] >= t["pw"] * 0.98, t)
+        m.locator("#slChips button[data-cat]").nth(2).tap(); m.wait_for_timeout(800)
+        ok(f"【{T}】選股點第三個頁籤（籌碼面）→ 那一格亮起", J("() => document.querySelectorAll('#slChips button')[2].classList.contains('on')"))
+
+        # ② ETF 配息行事曆：除息表高度 ≤ 上方月曆高度、超過就框內捲（overflow auto）、表頭黏頂、右側拉 Bar 手指拖得動
+        go("etf/cal", 4500)
+        CAL = """() => { const l = document.getElementById('etfCalList'), cal = l.previousElementSibling, c = getComputedStyle(l), th = l.querySelector('thead th'),
+            rail = document.querySelector('.calwrap > .m4rail'), tb = rail && rail.firstElementChild.getBoundingClientRect();
+            const td = l.querySelector('tbody td'), cw = td && td.querySelector('.cw'), cn = cw && cw.querySelector('.cn');
+            return { lh: l.getBoundingClientRect().height, calh: cal.getBoundingClientRect().height, sh: l.scrollHeight, ch: l.clientHeight, ov: c.overflowY, st: l.scrollTop,
+                     thd: th ? Math.round(th.getBoundingClientRect().top - l.getBoundingClientRect().top) : null, sticky: th && getComputedStyle(th).position,
+                     rail: rail ? { x: tb.left + tb.width / 2, y: tb.top + tb.height / 2, w: tb.width, h: tb.height, vis: getComputedStyle(rail).display !== 'none' } : null,
+                     nameLines: cn ? Math.round(cn.getBoundingClientRect().height / parseFloat(getComputedStyle(cn).lineHeight || 18)) : null,
+                     cellH: td ? Math.round(td.getBoundingClientRect().height) : null, fs: cn ? parseFloat(getComputedStyle(cn).fontSize) : null,
+                     page: document.documentElement.scrollWidth, vw: innerWidth }; }"""
+        J("() => document.getElementById('etfCalList').scrollIntoView({block:'start', behavior:'instant'})"); m.wait_for_timeout(400)
+        c0 = J(CAL)
+        ok(f"【{T}】除息表框高 ≤ 上方月曆高（{round(c0['lh'])}／{round(c0['calh'])}）",
+           c0["lh"] <= c0["calh"] + 1, c0)
+        ok(f"【{T}】除息表超過框高時在框內捲（scrollHeight {c0['sh']} > {c0['ch']} → overflow-y {c0['ov']}）、整頁不橫捲",
+           (c0["sh"] <= c0["ch"] + 1 or c0["ov"] == "auto") and c0["page"] <= c0["vw"], c0)
+        if c0["sh"] > c0["ch"] + 1:
+            ok(f"【{T}】拉 Bar 看得見、拇指觸控寬 ≥ 28、高 ≥ 40", c0["rail"] and c0["rail"]["vis"] and c0["rail"]["w"] >= 28 and c0["rail"]["h"] >= 40, c0["rail"])
+            drag(c0["rail"]["x"], c0["rail"]["y"], 0, 120)
+            c1 = J(CAL)
+            ok(f"【{T}】手指拖拉 Bar 往下 120px → 表格真的往下捲（scrollTop {c0['st']} → {c1['st']}）、表頭仍黏在框頂（{c1['thd']}px）",
+               c1["st"] > c0["st"] + 30 and c1["sticky"] == "sticky" and c1["thd"] is not None and abs(c1["thd"]) <= 2, c1)
+            ok(f"【{T}】拉 Bar 的拇指跟著表格往下移", c1["rail"]["y"] > c0["rail"]["y"] + 10, (c0["rail"], c1["rail"]))
+        ok(f"【{T}】除息表名稱一行（{c0['nameLines']} 行）＋代號一行，字 ≥ 11px", c0["nameLines"] == 1 and (c0["fs"] or 0) >= 11 and (c0["cellH"] or 99) <= 48, c0)
+
+        # ③ 區間縮放拉桿（ECharts dataZoom slider）：指定的曲線圖都有；手指拖左把手、右把手、中間平移，x 範圍真的變
+        HP = """(id) => { const el = document.getElementById(id); if (!el) return null; el.scrollIntoView({block:'center', behavior:'instant'}); const c = echarts.getInstanceByDom(el); if (!c) return null; const o = c.getOption();
+            const k = (o.dataZoom || []).findIndex(z => z.type === 'slider'); if (k < 0) return { k }; const z = o.dataZoom[k], r = el.getBoundingClientRect(), w = r.width - z.left - z.right;
+            const ext = c.getModel().getComponent('xAxis', 0).axis.scale.getExtent(), g = c.getModel().getComponent('grid', 0).coordinateSystem.getRect();
+            return { k, start: z.start, end: z.end, h: z.height, hs: z.handleSize, lx: r.left + z.left + w * z.start / 100, rx: r.left + z.left + w * z.end / 100, y: r.bottom - z.bottom - z.height / 2,
+                     ext: ext.map(v => Math.round(v)), gridBottom: g.y + g.height, ch: el.clientHeight, cl: !!o.grid[0].containLabel, mark: el.dataset.m4dz }; }"""
+        cases = [("etf/list", [], "etfRetLine", "ETF 報酬比較"), ("etf/inc", ["#incMain button[data-v='x']"], "cxChart", "複利試算"),
+                 ("flow/inst/conc", [], "conc", "資金流向（集中度）"), ("stock/2330", ["#mbTabs button[data-t='rev']"], "mbChart", "個股營收小圖")]
+        for h, clicks, cid, nm in cases:
+            go(h, 4500)
+            for q in clicks:
+                m.locator(q).first.tap(); m.wait_for_timeout(2200)
+            a = J(HP, cid); m.wait_for_timeout(400); a = J(HP, cid)
+            if not ok(f"【{T}】{nm}（#{cid}）底下有區間縮放拉桿（高 {a and a.get('h')}）", bool(a) and a.get("k", -1) >= 0 and a.get("h") == 28, a):
+                continue
+            # 拉桿佔底部 4～32px：X 軸日期（containLabel 時在 grid 裡；否則在 grid 下面約 20px）不能跟它疊
+            lab_bot = a["gridBottom"] + (0 if a["cl"] else 20)
+            ok(f"【{T}】{nm}：拉桿不蓋 X 軸日期（日期底 {round(lab_bot)} ≤ 拉桿頂 {a['ch'] - 32}）", lab_bot <= a["ch"] - 32, a)
+            drag(a["lx"], a["y"], 90)
+            b1 = J(HP, cid)
+            drag(b1["rx"], b1["y"], -60)
+            c1 = J(HP, cid)
+            drag((c1["lx"] + c1["rx"]) / 2, c1["y"], -40)
+            d1 = J(HP, cid)
+            ok(f"【{T}】{nm}：手指拖左把手 → 起點變（{round(a['start'])}→{round(b1['start'])}%）、x 範圍真的變（{a['ext']}→{b1['ext']}）",
+               b1["start"] > a["start"] + 5 and b1["ext"] != a["ext"], (a, b1))
+            ok(f"【{T}】{nm}：拖右把手 → 終點變（{round(b1['end'])}→{round(c1['end'])}%）；拖中間 → 整段平移（{round(c1['start'])}–{round(c1['end'])} → {round(d1['start'])}–{round(d1['end'])}）",
+               c1["end"] < b1["end"] - 5 and d1["start"] < c1["start"] - 3 and abs((d1["end"] - d1["start"]) - (c1["end"] - c1["start"])) < 1.5, (b1, c1, d1))
+
+        # ④ 每月入帳 12 根：平均分散到整個圖寬（第一根左緣、最後一根右緣到圖邊各 ≤ 一格寬 60%）、柱寬約 55%、標籤不疊；tw-thick-bar 與選取變淡照舊
+        go("etf/inc", 4500)
+        m.locator("#incTabs button[data-v='c']").first.tap(); m.wait_for_timeout(2500)
+        BARS = """() => { const el = document.getElementById('incCmb'); el.scrollIntoView({block:'center', behavior:'instant'}); const c = echarts.getInstanceByDom(el), o = c.getOption();
+            const d = c.getModel().getSeriesByIndex(0).getData(), n = d.count(), L = [...Array(n)].map((_, i) => d.getItemLayout(i));
+            const cell = c.convertToPixel({ xAxisIndex: 0 }, 1) - c.convertToPixel({ xAxisIndex: 0 }, 0), W = el.clientWidth;
+            const txt = []; const seen = new Set(); const take = (e) => { if (!e || seen.has(e)) return; seen.add(e); if (e.type === 'text' && e.style && /^\\d/.test(String(e.style.text || '')) && !e.ignore && !e.invisible && e.style.opacity !== 0) {
+                e.updateTransform && e.updateTransform(); const r = e.getBoundingRect().clone(); if (e.transform) r.applyTransform(e.transform); if (r.y < el.clientHeight - 24) txt.push([r.x, r.x + r.width, r.y, r.y + r.height]); } };
+            c.getZr().storage.getDisplayList(true).forEach(e => { take(e); if (e.getTextContent) take(e.getTextContent()); });
+            txt.sort((p, q) => p[0] - q[0]); let ov = 0; for (let i = 1; i < txt.length; i++) if (txt[i][0] < txt[i - 1][1] - 0.5 && Math.min(txt[i][3], txt[i - 1][3]) > Math.max(txt[i][2], txt[i - 1][2])) ov++;
+            return { n, id: o.series[0].id, cell, W, left: L[0].x, right: W - (L[n - 1].x + L[n - 1].width), bw: L[0].width, labels: txt.length, ov }; }"""
+        bb = J(BARS)
+        ok(f"【{T}】每月入帳：第一根左緣到圖左緣 {round(bb['left'])}px、最後一根右緣到圖右緣 {round(bb['right'])}px，各 ≤ 一格寬（{round(bb['cell'], 1)}）的 60%",
+           bb["n"] == 12 and bb["left"] <= bb["cell"] * 0.6 and bb["right"] <= bb["cell"] * 0.6, bb)
+        ok(f"【{T}】每月入帳：柱寬約每格 55%（{round(bb['bw'] / bb['cell'] * 100)}%）、數字標籤 {bb['labels']} 個互不重疊、系列 id 仍是 tw-thick-bar",
+           0.5 <= bb["bw"] / bb["cell"] <= 0.6 and bb["ov"] == 0 and bb["labels"] >= 6 and bb["id"] == "tw-thick-bar", bb)
+        MPT = """(i) => { const el = document.getElementById('incCmb'), ch = echarts.getInstanceByDom(el), L = ch.getModel().getSeriesByIndex(0).getData().getItemLayout(i), r = el.getBoundingClientRect();
+            return [r.left + L.x + L.width / 2, r.top + L.y + Math.max(4, L.height / 2)]; }"""
+        x, y = J(MPT, 8); m.touchscreen.tap(x, y); m.wait_for_timeout(600)
+        dim = J("() => echarts.getInstanceByDom(document.getElementById('incCmb')).getOption().series[0].data.map(d => (d && d.itemStyle && d.itemStyle.opacity != null) ? d.itemStyle.opacity : 1)")
+        ok(f"【{T}】每月入帳：點一根柱子 → 選取連動照舊（有亮有暗：{sorted(set(dim))}）", len(set(dim)) >= 2, dim)
+
+        # ⑤ 自選：刪除點一次就刪（沒有確認列）、底部 5 秒「已刪除『X』［復原］」；復原 → 頁數與股票都回來；5 秒後提示自己消失；只剩一頁不准刪
+        go("watch", 3000)
+        J("""() => { const W = TwWatch; while (W.tabs().length > 1) W.delTab(W.tabs()[W.tabs().length - 1].id); W.setCodes(['2330', '2317'], W.tabs()[0].id);
+            const id = W.newTab('自選 2'); W.setCodes(['2454', '3034', '2603'], id); W.setCur(id); }""")
+        m.wait_for_timeout(800)
+        WS = "() => ({ n: TwWatch.tabs().length, names: TwWatch.tabs().map(t => t.name), codes: TwWatch.tabs().map(t => t.codes.join(',')), cur: TwWatch.curTab().name, tabs: document.querySelectorAll('#wpTabs button[data-sel]').length, conf: !!document.querySelector('#wpConf, #wpDelYes'), toast: (() => { const t = document.getElementById('wlUndo'); return t && !t.hidden && t.getClientRects().length ? t.textContent.trim() : ''; })() })"
+        w0 = J(WS)
+        m.locator("#wpMore").tap(); m.wait_for_timeout(300); m.locator("#wpMenu button[data-del-tab]").tap(); m.wait_for_timeout(400)
+        w1 = J(WS)
+        ok(f"【{T}】自選「⋯→刪除這一頁」點一次就刪：頁數立刻 {w0['n']}→{w1['n']}、畫面頁籤 {w0['tabs']}→{w1['tabs']}、沒有確認列",
+           w1["n"] == w0["n"] - 1 and w1["tabs"] == w0["tabs"] - 1 and not w1["conf"], (w0, w1))
+        ok(f"【{T}】刪除後底部出現「{w1['toast']}」提示（含「復原」）", "已刪除「自選 2」" in w1["toast"] and "復原" in w1["toast"], w1)
+        m.locator("#wlUndoBtn").tap(); m.wait_for_timeout(600)
+        w2 = J(WS)
+        ok(f"【{T}】按「復原」→ 頁數回到 {w2['n']}、那一頁的股票原樣回來（{w2['codes']}）、選中的也回到它",
+           w2["n"] == w0["n"] and w2["codes"] == w0["codes"] and w2["names"] == w0["names"] and w2["cur"] == "自選 2" and w2["tabs"] == w0["tabs"] and not w2["toast"], (w0, w2))
+        m.locator("#wpMore").tap(); m.wait_for_timeout(300); m.locator("#wpMenu button[data-del-tab]").tap(); m.wait_for_timeout(400)
+        ok(f"【{T}】再刪一次：提示出現", bool(J(WS)["toast"]))
+        m.wait_for_timeout(5300)
+        w3 = J(WS)
+        ok(f"【{T}】5 秒後提示自己消失、刪掉的那頁沒有被復原（{w3['n']} 頁）", not w3["toast"] and w3["n"] == w0["n"] - 1, w3)
+        m.locator("#wpMore").tap(); m.wait_for_timeout(300); m.locator("#wpMenu button[data-del-tab]").tap(); m.wait_for_timeout(400)
+        w4 = J(WS)
+        ok(f"【{T}】只剩最後一頁時不准刪（還是 {w4['n']} 頁、股票還在、沒有復原提示）", w4["n"] == 1 and w4["codes"] == ["2330,2317"] and not w4["toast"], w4)
+    finally:
+        try:
+            ctx.close()
+        except Exception:  # noqa: BLE001
+            pass
+
+
 def t_mobile_m4_1008(b, base, code):
     """手機 v2 第三批（2026-10-08 Andy 的手機五條準則與這一批的逐條需求）。每一條都驗「畫面真的因此改變了」。"""
     T = "手機v2"
@@ -29758,7 +29898,9 @@ SECTIONS = {
     # ★ 2026-09-27 手機總覽最上方：指數三格（可左右滑）＋觀察清單（2026-09-27 起是自選清單目前那一頁：localStorage tw.watchlists，只存代號；site/mobile3.js G 段＋site/watchlists.js）
     "手機總覽指數觀察清單": lambda pg, b, base, code: t_mobile_home(b, base, code),
     # ★ 2026-10-08 手機 v2（docs/mobile_v2_plan.md；site/mobile4.js）：側欄抽屜、每頁第一屏、字級／觸控、主要切換真的點得動
-    "手機v2":              lambda pg, b, base, code: (t_mobile_m4(b, base, code), t_mobile_m4_1008(b, base, code), t_mobile_m4_1009(b, base, code), t_mobile_m4_market(b, base, code)),
+    "手機v2":              lambda pg, b, base, code: (t_mobile_m4(b, base, code), t_mobile_m4_1008(b, base, code), t_mobile_m4_1009(b, base, code), t_mobile_m4_market(b, base, code), t_mobile_m4_etf2_1009(b, base, code)),
+    # ★ 2026-10-09 10:0x（選股頁籤／除息表拉 Bar／區間縮放拉桿／每月入帳／自選刪除免二次詢問）單獨跑：手機v2 也包含這一段
+    "手機v2選股ETF":       lambda pg, b, base, code: t_mobile_m4_etf2_1009(b, base, code),
     # ★ 2026-10-09 手機市場明細（Andy 06:1x）單獨跑：手機v2 也包含這一段
     "手機v2市場明細":      lambda pg, b, base, code: t_mobile_m4_market(b, base, code),
     # ★ 2026-10-09 Andy：「所有圖扁長寬到了就好，不可以…還能一直滑過頭超出範圍」（熱力圖放大後拖、K 線兩端、3D 平移、原生捲動不回彈）
@@ -53004,12 +53146,11 @@ def t_watchlists_guest(b, base):
     # ⑦ 刪除一頁（要先確認）
     # ★ 2026-10-08 改前→改後（Andy：「自選 手機 網頁 這邊都要變成分頁式」）：改前 ✎／✕ 常駐在選中的膠囊上（#wpTabs button[data-ren]／[data-del-tab]）；
     #   改後頁籤是 .nbsw 資料夾頁籤，改名／刪除收進選中頁籤右邊「⋯」（#wpMore）的選單 #wpMenu —— 所以先按 ⋯ 再按選單項，資料口徑不變。
+    # ★ 2026-10-09 改前→改後（Andy：「自選刪除不必 2 次詢問」）：改前「⋯→刪除」先跳確認列（#wpDelYes／#wpDelNo）；
+    #   改後點一次就刪，底部 5 秒「已刪除『X』［復原］」（#wlUndo）。復原的完整驗收在「手機v2」的自選段（t_mobile_m4_etf2_1009）。
     pg.click("#wpMore"); pg.click("#wpMenu button[data-del-tab]")
-    ok("自選：刪除要先確認（出現確定刪除）", pg.is_visible("#wpDelYes"))
-    pg.click("#wpDelNo")
-    ok("自選：按取消不會刪", pg.evaluate("() => TwWatch.tabs().length") == 5)
-    pg.click("#wpMore"); pg.click("#wpMenu button[data-del-tab]"); pg.click("#wpDelYes")
-    ok("自選：確定刪除後剩四頁", pg.evaluate("() => TwWatch.tabs().map(t => t.name)") == ["自選 1", "晶圓代工", "AI", "PCB"],
+    ok("自選：刪除點一次就刪（不再跳確認列）、底部出現復原提示", pg.locator("#wpDelYes").count() == 0 and pg.evaluate("() => TwWatch.tabs().length") == 4 and pg.is_visible("#wlUndo"))
+    ok("自選：刪除後剩四頁", pg.evaluate("() => TwWatch.tabs().map(t => t.name)") == ["自選 1", "晶圓代工", "AI", "PCB"],
        pg.evaluate("() => TwWatch.tabs().map(t => t.name)"))
     ok("自選：＋ 又能按了（不滿五頁）", pg.evaluate("() => document.getElementById('wpNew').disabled") is False)
 
@@ -53200,11 +53341,9 @@ def _wp_tabs_1008(b, base, errs):
     # ⑥ 刪除（先確認）
     pg.click("#wpTabs button[data-sel='p3']")
     wait_until(pg, "() => TwWatch.cur() === 'p3'", 3000)
+    # ★ 2026-10-09（Andy：「自選刪除不必 2 次詢問」）：點一次就刪，不再有確認列
     pg.click("#wpMore"); pg.click("#wpMenu button[data-del-tab]")
-    ok(f"{T} ⑥ 「⋯→刪除這一頁」先跳確認、還沒刪", pg.is_visible("#wpDelYes") and pg.evaluate("() => TwWatch.tabs().length") == 3)
-    pg.click("#wpDelNo")
-    ok(f"{T} ⑥ 按取消 → 不刪、確認列收起", pg.evaluate("() => TwWatch.tabs().length") == 3 and pg.locator("#wpDelYes").count() == 0)
-    pg.click("#wpMore"); pg.click("#wpMenu button[data-del-tab]"); pg.click("#wpDelYes")
+    ok(f"{T} ⑥ 「⋯→刪除這一頁」點一次就刪、沒有確認列", pg.locator("#wpDelYes").count() == 0)
     wait_until(pg, "() => TwWatch.tabs().length === 2", 3000)
     g = pg.evaluate(WPT_GEO)
     ok(f"★ {T} ⑥ 確定刪除 → 「AI」那顆頁籤真的不見、剩兩頁、localStorage 也剩兩頁",

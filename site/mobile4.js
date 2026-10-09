@@ -1174,3 +1174,143 @@
   function boot() { if (window.M3 && window.M3.hook) window.M3.hook({ on, off }); }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot); else boot();
 })();
+
+/* ============================================================================
+   31. 2026-10-09 10:0x Andy（手機預覽版）—— ETF 除息表拉 Bar／區間縮放拉桿（樣式在 mobile4.css 第 31 節）
+   ⚠ 只在 html.m4（≤640）生效；桌機進來一律原樣回傳，一行都不動（桌機守門1008 驗）。
+   ============================================================================ */
+(function () {
+  'use strict';
+  const root = document.documentElement;
+  const isM = () => root.classList.contains('m4') && window.innerWidth <= 640;
+  const css = (n, fb) => { try { return getComputedStyle(root).getPropertyValue(n).trim() || fb; } catch (e) { return fb; } };
+
+  /* ---- 31a. 區間縮放拉桿（Andy：「所有曲線圖表新增下面縮放功能，並告訴我他的專有名稱」）
+     專有名稱：區間縮放拉桿（ECharts dataZoom slider；也有人叫 range slider／brush slider）。
+     範圍＝手機上「橫軸是時間」的 ECharts 折線圖（至少一條 line 系列）。K 線是 lightweight-charts，本來就能拖曳縮放，不經這裡。
+     不加的：純長條（週期統計之類）、橫軸藏起來的、容器矮於 150px 的走勢小圖（拉桿 28px 放進去就沒有圖了）、多個 grid／多條 x 軸的連動圖。
+     只用 slider，不加 inside：inside 會把手指在圖上的上下滑吃掉，整頁捲不動（DECISIONS #192 同一類問題）。
+     把手：ECharts 5 的把手命中範圍是圖示的外接矩形（rectHover）→ 圖示路徑兩側各放一個不畫線的 moveTo 把外接框撐到 32×36，
+     看得到的只有中間那條 8px 寬的膠囊，手指的命中範圍是 32×36（≥ 32 的觸控下限）。 */
+  const DATE_RE = /^(\d{4}$|\d{4}[-/.]\d{1,2}|\d{2,3}[-/.]\d{1,2}|\d{1,2}[-/]\d{1,2}$|\d{4}Q\d|\d{4}年|\d{1,2}月)/;
+  const arr = (x) => (Array.isArray(x) ? x : x == null ? [] : [x]);
+  const HANDLE = 'path://M-16,0 M16,36 M-4,6 Q-4,2 0,2 Q4,2 4,6 L4,30 Q4,34 0,34 Q-4,34 -4,30 Z';
+  function sliderStyle() {
+    const acc = css('--t4-accent-solid', css('--cyan', '#37e2ff')), ink3 = css('--ink-3', '#8aa0b4'), line = css('--line-2', 'rgba(140,160,180,.35)');
+    const light = root.getAttribute('data-theme') === 'light';
+    const hexA = (c, a) => { const m = /^#([0-9a-f]{6})$/i.exec(c); if (!m) return c; const n = parseInt(m[1], 16); return `rgba(${n >> 16},${(n >> 8) & 255},${n & 255},${a})`; };
+    return {
+      type: 'slider', id: 'm4dz', xAxisIndex: 0, height: 28, bottom: 4, left: 22, right: 22,
+      showDetail: false, brushSelect: false, realtime: true, zoomLock: false, minSpan: 5,
+      borderColor: line, borderRadius: 6, backgroundColor: light ? 'rgba(20,40,60,.04)' : 'rgba(255,255,255,.03)',
+      fillerColor: hexA(acc, light ? 0.16 : 0.2),
+      dataBackground: { lineStyle: { color: ink3, opacity: 0.55, width: 1 }, areaStyle: { color: ink3, opacity: light ? 0.12 : 0.16 } },
+      selectedDataBackground: { lineStyle: { color: acc, opacity: 0.9, width: 1 }, areaStyle: { color: acc, opacity: light ? 0.18 : 0.22 } },
+      handleIcon: HANDLE, handleSize: '128%',
+      handleStyle: { color: acc, borderColor: light ? '#ffffff' : 'rgba(0,0,0,.35)', borderWidth: 1 },
+      emphasis: { handleStyle: { color: acc, borderColor: light ? '#0b1a2a' : '#ffffff', borderWidth: 1.5 } },
+      moveHandleSize: 0, textStyle: { color: ink3, fontSize: 11 },
+    };
+  }
+  function isTimeAxis(x) {
+    if (!x || x.show === false) return false;
+    if (x.type === 'time') return true;
+    if (x.type && x.type !== 'category') return false;
+    const d = arr(x.data).map((v) => (v && typeof v === 'object' ? v.value : v)).filter((v) => v != null);
+    if (d.length < 8) return false;
+    const hit = d.filter((v) => DATE_RE.test(String(v))).length;
+    return hit >= d.length * 0.8;
+  }
+  window.M4DZ = function (o, el) {
+    if (!o || typeof o !== 'object') return o;
+    const off = o.m4dz === false; delete o.m4dz;
+    if (off || !isM()) return o;
+    const xa = arr(o.xAxis); if (xa.length !== 1 || !isTimeAxis(xa[0])) return o;
+    if (!arr(o.series).some((s) => s && s.type === 'line')) return o;
+    if (Array.isArray(o.grid) && o.grid.length > 1) return o;
+    const h = el && el.clientHeight; if (h && h < 150) { el.dataset.m4dz = 'short'; return o; }
+    const dz = arr(o.dataZoom).slice(), st = sliderStyle();
+    const k = dz.findIndex((z) => z && z.type === 'slider');
+    if (k >= 0) {   // 已經有拉桿的（ETF 複利試算）：統一樣式；位置與高度一律照這裡，原本的範圍設定保留
+      const keep = {}; ['xAxisIndex', 'start', 'end', 'minValueSpan'].forEach((p) => { if (dz[k][p] != null) keep[p] = dz[k][p]; });
+      dz[k] = Object.assign({}, dz[k], st, keep); delete dz[k].labelFormatter;
+    } else dz.push(st);
+    /* 拉桿佔底部 4～32px：grid 底部往上讓 34px，X 軸日期一個都不被蓋（containLabel 開不開，原本留給日期的那段都還在） */
+    const g = Object.assign({}, Array.isArray(o.grid) ? o.grid[0] : o.grid || {});
+    const gb = typeof g.bottom === 'number' ? g.bottom : (g.containLabel ? 8 : 40);
+    g.bottom = k < 0 ? gb + 34 : Math.max(gb, g.containLabel ? 42 : 62);
+    const out = Object.assign({}, o, { grid: Array.isArray(o.grid) ? [g] : g, dataZoom: dz });
+    /* 只挑「第一／中間／最後」那幾格標日期的圖（個股營收、獲利小圖：interval 是函式）：拉桿拉近之後那幾格不在範圍內，X 軸一個日期都不剩
+       → 改回 ECharts 自動間隔＋hideOverlap，原本的 formatter 回空字串的格子改顯示原值（放得下才顯示，放不下自動藏） */
+    const xl = xa[0].axisLabel;
+    if (xl && typeof xl.interval === 'function') {
+      const f0 = xl.formatter;
+      const nl = Object.assign({}, xl, { interval: 'auto', hideOverlap: true });
+      if (typeof f0 === 'function') nl.formatter = (v, i) => { const r = f0(v, i); return r === '' || r == null ? String(v) : r; };
+      out.xAxis = Object.assign({}, xa[0], { axisLabel: nl });
+    }
+    const lg = o.legend && !Array.isArray(o.legend) ? o.legend : null;
+    if (lg && typeof lg.bottom === 'number' && lg.top == null) out.legend = Object.assign({}, lg, { bottom: lg.bottom + 34 });
+    if (el) el.dataset.m4dz = k >= 0 ? 'restyle' : 'add';
+    return out;
+  };
+
+  /* ---- 31b. ETF 配息行事曆的除息表（Andy：「ETF 表格若長度超過上面圖表長度，則改用拉 Bar 下滑」）
+     表格框高度上限＝上方月曆（標題列＋格子）的高度；超過就在框裡上下捲（overflow-y:auto），表頭黏在框頂。
+     手機瀏覽器的卷軸是「捲動時才浮現」的細線、手指也拖不到 → 框右側自己畫一條拉 Bar（.m4rail）：一直看得見，拇指高 ≥ 40、
+     觸控寬 28（看得到的是中間 6px），手指按住拖＝捲表格；捲表格時拇指跟著動。 */
+  function calFit() {
+    const list = document.getElementById('etfCalList');
+    const wrap = list && list.parentElement;
+    if (!list || !wrap || !wrap.classList.contains('calwrap')) return;
+    const r0 = wrap.querySelector(':scope>.m4rail');
+    if (!isM()) { list.classList.remove('m4cs'); list.style.removeProperty('--m4calh'); if (r0) r0.remove(); return; }
+    const cal = list.previousElementSibling; if (!cal) return;
+    const ch = Math.round(cal.getBoundingClientRect().height);
+    if (ch < 120) return;
+    const hasTbl = !!list.querySelector('table.et');
+    list.classList.toggle('m4cs', hasTbl);
+    list.style.setProperty('--m4calh', ch + 'px');
+    const need = hasTbl && list.scrollHeight > list.clientHeight + 2;
+    if (!need) { if (r0) r0.remove(); return; }
+    let rail = r0;
+    if (!rail) {
+      rail = document.createElement('div'); rail.className = 'm4rail'; rail.setAttribute('aria-hidden', 'true');
+      rail.innerHTML = '<i class="m4thumb"></i>'; wrap.appendChild(rail);
+      const th = rail.firstChild;
+      let y0 = 0, s0 = 0, drag = false;
+      const ratio = () => (list.scrollHeight - list.clientHeight) / Math.max(1, rail.clientHeight - th.offsetHeight);
+      const start = (y) => { drag = true; y0 = y; s0 = list.scrollTop; rail.classList.add('on'); };
+      const move = (y) => { if (drag) list.scrollTop = s0 + (y - y0) * ratio(); };
+      const end = () => { drag = false; rail.classList.remove('on'); };
+      th.addEventListener('touchstart', (e) => { start(e.touches[0].clientY); e.preventDefault(); e.stopPropagation(); }, { passive: false });
+      th.addEventListener('touchmove', (e) => { move(e.touches[0].clientY); e.preventDefault(); e.stopPropagation(); }, { passive: false });
+      th.addEventListener('touchend', end); th.addEventListener('touchcancel', end);
+      th.addEventListener('mousedown', (e) => { start(e.clientY); e.preventDefault();
+        const mm = (ev) => move(ev.clientY), mu = () => { end(); removeEventListener('mousemove', mm); removeEventListener('mouseup', mu); };
+        addEventListener('mousemove', mm); addEventListener('mouseup', mu); });
+      // 點軌道空白處：往那個方向翻一頁
+      rail.addEventListener('click', (e) => { if (e.target !== rail) return; const r = th.getBoundingClientRect(); list.scrollTop += (e.clientY < r.top ? -1 : 1) * list.clientHeight * 0.9; });
+    }
+    if (list._m4rail !== rail) { list._m4rail = rail; list.addEventListener('scroll', () => railPaint(list), { passive: true }); }
+    railPaint(list);
+  }
+  function railPaint(list) {
+    const wrap = list.parentElement, rail = wrap && wrap.querySelector(':scope>.m4rail'); if (!rail) return;
+    const th = rail.firstChild, lr = list.getBoundingClientRect(), wr = wrap.getBoundingClientRect();
+    rail.style.top = Math.round(lr.top - wr.top) + 'px'; rail.style.height = Math.round(list.clientHeight) + 'px';
+    const H = list.clientHeight, tH = Math.max(40, Math.round(H * H / Math.max(1, list.scrollHeight)));
+    th.style.height = tH + 'px';
+    const max = list.scrollHeight - H;
+    th.style.transform = `translateY(${Math.round(max > 0 ? (list.scrollTop / max) * (H - tH) : 0)}px)`;
+  }
+  let raf = 0;
+  const kick = () => { if (raf) return; raf = requestAnimationFrame(() => { raf = 0; try { calFit(); } catch (e) { /* 不擋頁面 */ } }); };
+  function boot() {
+    const v = document.getElementById('v-etf');
+    if (v && typeof MutationObserver !== 'undefined') new MutationObserver(kick).observe(v, { childList: true, subtree: true });
+    addEventListener('resize', kick); addEventListener('hashchange', () => setTimeout(kick, 300));
+    kick();
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot); else boot();
+})();
