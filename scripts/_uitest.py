@@ -19013,13 +19013,14 @@ def t_mobile_v3(b, base, code):
         m.tap('#mMktSeg button[data-s="dist"]'); m.wait_for_timeout(300)
         # ---- 週期統計：四列選項收進抽屜，換一個選項 → 鈕上的字跟著變 ----
         m.goto(f"{base}#season", wait_until="networkidle"); m.wait_for_timeout(3000)
-        s0 = m.evaluate("() => ({ btn: (document.getElementById('mSeasonBtn') || {}).textContent || '', ctl: getComputedStyle(document.getElementById('seasonCtl')).display })")
+        s0 = m.evaluate("() => ({ btn: (e => e ? (e.getAttribute('aria-label') || e.textContent) : '')(document.getElementById('mSeasonBtn')), ctl: getComputedStyle(document.getElementById('seasonCtl')).display })")
+        # 2026-10-09（Andy：「需要解決換行問題…縮窄文字、精簡」）：鈕上改短字，完整的「設定：…」在 aria-label（mobile4.js 第 29 節）
         ok(f"{T} 週期統計：選項收成一顆「設定 · …」鈕（四列選項平常不佔版面）", s0["btn"].startswith("設定") and s0["ctl"] == "none", s0)
         m.tap('#mSeasonBtn'); m.wait_for_timeout(400)
         alt = m.evaluate("() => { const b = [...document.querySelectorAll('#mSheet #seasonCtl button')].find(x => !x.classList.contains('on')); if (b) b.click(); return b ? b.textContent.trim() : null; }")
         m.wait_for_timeout(1200)
         m.touchscreen.tap(W / 2, 80); m.wait_for_timeout(400)
-        s1 = m.evaluate("() => ({ btn: (document.getElementById('mSeasonBtn') || {}).textContent || '', home: document.getElementById('seasonCtl').closest('#seasonHeatCard') !== null })")
+        s1 = m.evaluate("() => ({ btn: (e => e ? (e.getAttribute('aria-label') || e.textContent) : '')(document.getElementById('mSeasonBtn')), home: document.getElementById('seasonCtl').closest('#seasonHeatCard') !== null })")
         ok(f"{T} 週期統計：抽屜裡換一個選項 → 關掉後鈕上的字變了、選項搬回原位", bool(alt) and s1["btn"] != s0["btn"] and alt in s1["btn"] and s1["home"], {"alt": alt, **s1})
 
         # ---- #17 全部頁：不准橫向捲、HTML 字 ≥ 12px ----
@@ -27762,6 +27763,64 @@ def t_mobile_m4_1008(b, base, code):
         m.set_viewport_size({"width": 390, "height": 844})
         ok(f"【{T}】複利試算表分頁真的切進去、量到它標題的「?」（402／390 共 {nq} 個）", nq >= 2, nq)
         ok(f"【{T}】卡片標題的「?」都在標題旁邊、沒有自己佔一行", not badq, badq)
+        # ㉙ 2026-10-09 Andy（430 寬週期統計四點＋「有類似圖一的功能需要多個切換，一律用這個方式」；mobile4.js／mobile4.css 第 29 節）
+        m.set_viewport_size({"width": 402, "height": 874})
+        go("season", 3500)
+        HEAT = "() => { const c = echarts.getInstanceByDom(document.getElementById('seasonHeat')); if (!c) return ''; const o = c.getOption(); const y = o.yAxis && o.yAxis[0]; const d = o.series && o.series[0] && o.series[0].data || []; return ((y && y.data) || []).map(v => v && v.value !== undefined ? v.value : v).join('|') + '#' + d.slice(0, 40).map(x => (x.value || x)[2]).join(','); }"
+        ROW3 = "() => [...document.querySelectorAll('#mSeasonBtn,#mSeasonSort,#mSeasonNum')].map(e => ({ id: e.id, top: Math.round(e.getBoundingClientRect().top), h: Math.round(e.getBoundingClientRect().height), t: e.textContent.trim(), a: e.getAttribute('aria-label') || '' }))"
+        hd = J("() => { const h = document.getElementById('seasonHeatHead'); return { pre: getComputedStyle(h, '::before').content, txt: h.textContent }; }")
+        ok(f"【{T}】週期統計：月份列有單位「月」（列首「(月)」：{hd['pre']}）", "月" in (hd["pre"] or "") + hd["txt"], hd)
+        for wq in (402, 360):
+            m.set_viewport_size({"width": wq, "height": 874}); m.wait_for_timeout(700)
+            r3 = J(ROW3)
+            tops = [x["top"] for x in r3]
+            ok(f"【{T}】週期統計 {wq} 寬：「設定・排序・數字」三顆在同一行（top {tops}、差 ≤ 4px）、每顆高 ≥ 40、整頁不橫捲",
+               len(r3) == 3 and max(tops) - min(tops) <= 4 and min(x["h"] for x in r3) >= 40 and J("() => document.documentElement.scrollWidth <= innerWidth + 1"), r3)
+        m.set_viewport_size({"width": 402, "height": 874}); m.wait_for_timeout(700)
+        nb = J("() => ({ btn: document.getElementById('mSeasonNum').getAttribute('aria-pressed'), real: document.querySelector('#seasonNum button').getAttribute('aria-pressed'), nlab: +document.getElementById('seasonHeat').dataset.nlab })")
+        ok(f"【{T}】週期統計「數字 開／關」跟格子裡真的有沒有數字一致（修前：鈕寫「關」格子卻有數字）", nb["btn"] == nb["real"] and (nb["nlab"] > 0) == (nb["real"] == "true"), nb)
+        h0 = J(HEAT); lab0 = J("() => document.getElementById('mSeasonBtn').textContent")
+        m.locator("#mSeasonBtn").tap(); m.wait_for_timeout(500)
+        sg = J("() => { const c = document.querySelector('#mSheet #seasonCtl'); if (!c) return null; const kids = [...c.children].filter(e => e.getClientRects().length); return { n: kids.length, seg: kids.filter(e => e.classList.contains('seg')).length, minH: Math.min(...[...c.querySelectorAll('.seg>button')].filter(b => b.getClientRects().length).map(b => b.getBoundingClientRect().height)) }; }")
+        ok(f"【{T}】週期統計設定抽屜：每組都是一排分段控制器（{sg and sg['seg']}／{sg and sg['n']} 組）、每顆高 ≥ 40", bool(sg) and sg["n"] >= 4 and sg["seg"] == sg["n"] and sg["minH"] >= 40, sg)
+        m.locator('#mSheet #seasonMetric button[data-v="win_rate"]').tap(); m.wait_for_timeout(1200)
+        h1 = J(HEAT)
+        m.touchscreen.tap(201, 80); m.wait_for_timeout(500)
+        lab1 = J("() => document.getElementById('mSeasonBtn').textContent")
+        ok(f"【{T}】設定抽屜點「勝率」→ 熱力圖真的換了、摘要鈕字跟著變（{lab0} → {lab1}）", bool(h1) and h1 != h0 and "勝率" in lab1 and lab1 != lab0, {"前": lab0, "後": lab1})
+        m.locator("#mSeasonBtn").tap(); m.wait_for_timeout(400)
+        m.locator('#mSheet #seasonMetric button[data-v="avg_excess"]').tap(); m.wait_for_timeout(900)
+        m.touchscreen.tap(201, 80); m.wait_for_timeout(400)
+        # 排序抽屜：12 個方格 → 兩排分段控制器（跟設定抽屜同一套），點一個月 → 族群順序真的變了
+        s0 = J("() => +(document.querySelector('#seasonHeatHead button.on') || { dataset: {} }).dataset.m")
+        r0 = J(HEAT)
+        m.locator("#mSeasonSort").tap(); m.wait_for_timeout(500)
+        ss = J("() => { const g = document.querySelector('#mSheet .mballgrid'); return g ? { segs: g.querySelectorAll(':scope > .seg').length, n: g.querySelectorAll('.seg > button[data-m]').length, minH: Math.min(...[...g.querySelectorAll('button[data-m]')].map(b => b.getBoundingClientRect().height)), txt: [...g.querySelectorAll('button[data-m]')].map(b => b.textContent).join(' ') } : null; }")
+        ok(f"【{T}】排序抽屜：兩排分段控制器、12 個月（「1月」…「12月」）、每顆高 ≥ 40", bool(ss) and ss["segs"] == 2 and ss["n"] == 12 and ss["minH"] >= 40 and "12月" in ss["txt"], ss)
+        tgt = 3 if s0 != 3 else 5
+        m.locator(f'#mSheet .mballgrid button[data-m="{tgt}"]').tap(); m.wait_for_timeout(900)
+        s1 = J("() => ({ on: +(document.querySelector('#seasonHeatHead button.on') || { dataset: {} }).dataset.m, lab: document.getElementById('mSeasonSort').textContent, shut: document.getElementById('mSheet').hidden })")
+        r1 = J(HEAT)
+        ok(f"【{T}】排序抽屜點「{tgt}月」→ 抽屜收起、熱力圖族群順序真的變了、鈕字「{s1['lab']}」", s1["on"] == tgt and s1["shut"] and f"{tgt}月" in s1["lab"] and r1 != r0, s1)
+        # 總覽「大盤走勢」：走勢圖／K 線＋週期收進摘要鈕 → 抽屜；換頁鈕、摘要鈕、「?」同一行
+        go("overview", 3500)
+        o0 = J("() => { const q = (s) => document.querySelector(s); const t = (e) => e ? Math.round(e.getBoundingClientRect().top) : null; return { sw: t(q('#mM3Sw')), set: t(q('#m4M3Set')), how: t(q('#m3Frame .m3-bar > .howbtn')), mode: q('#m3Mode') ? getComputedStyle(q('#m3Mode')).display : null, grid: t(q('#m3Grid')), vh: innerHeight }; }")
+        ok(f"【{T}】總覽大盤走勢：「加權｜櫃買｜台指期」、摘要鈕、「?」同一行、走勢圖／K 線收進抽屜", o0["set"] is not None and o0["sw"] is not None and abs(o0["sw"] - o0["set"]) <= 4 and abs(o0["how"] - o0["set"]) <= 4 and o0["mode"] == "none", o0)
+        m.locator("#m4M3Set").tap(); m.wait_for_timeout(500)
+        m.locator('#m4M3Segs button[data-m3m="k"]').tap(); m.wait_for_timeout(1500)
+        k1 = J("() => ({ mode: window.Market3 && window.Market3.state.mode, segs: document.querySelectorAll('#m4M3Segs > .seg').length, kids: document.querySelectorAll('#m4M3Segs > *').length, k: !!document.querySelector('#m3Grid .m3-card.mcur canvas') })")
+        ok(f"【{T}】大盤走勢抽屜：每組一排分段控制器；點「K 線」→ 圖真的換成 K 線、多出一排週期", k1["mode"] == "k" and k1["segs"] == 2 and k1["kids"] == 2, k1)
+        m.locator('#m4M3Segs button[data-m3t="W"]').tap(); m.wait_for_timeout(1500)
+        k2 = J("() => ({ tf: window.Market3 && window.Market3.state.tf, sel: document.getElementById('m3Tf').value })")
+        m.touchscreen.tap(201, 80); m.wait_for_timeout(500)
+        lab = J("() => document.getElementById('m4M3Set').textContent")
+        ok(f"【{T}】大盤走勢抽屜點「週 K」→ 週期真的換了、摘要鈕寫「{lab}」", k2["tf"] == "W" and k2["sel"] == "W" and "週" in lab and "K 線" in lab, {**k2, "lab": lab})
+        m.locator("#m4M3Set").tap(); m.wait_for_timeout(400)
+        m.locator('#m4M3Segs button[data-m3t="D"]').tap(); m.wait_for_timeout(800)
+        m.locator('#m4M3Segs button[data-m3m="line"]').tap(); m.wait_for_timeout(800)
+        m.touchscreen.tap(201, 80); m.wait_for_timeout(400)
+        ok(f"【{T}】大盤走勢切回「走勢圖」→ 摘要鈕寫「走勢圖」、圖真的換回走勢圖", J("() => document.getElementById('m4M3Set').textContent.includes('走勢圖') && window.Market3.state.mode === 'line'"))
+        m.set_viewport_size({"width": 390, "height": 844})
     finally:
         try:
             ctx.close()
@@ -51661,8 +51720,9 @@ def t_mobile_v4_2d(b, base, code):
                 return { lab: s && s.textContent, h: s ? Math.round(s.getBoundingClientRect().height) : 0, on: on ? +on.dataset.m : null,
                          headPe: on ? getComputedStyle(on).pointerEvents : null }; }""")
             r0 = m.evaluate(ROWS)
-            ok(f"{T} 週期統計有「排序：N 月 ›」鈕（高 ≥ 40、字跟表頭亮的那個月一致），表頭照樣可以點（次要入口，不准關成點不到）",
-               s0["h"] >= 40 and s0["on"] and s0["lab"] == f"排序：{s0['on']} 月 ›" and s0["headPe"] != "none", s0)
+            # 2026-10-09 鈕字縮成「排序 N月 ›」（Andy：「縮窄文字、精簡」；三顆同一行）
+            ok(f"{T} 週期統計有「排序 N月 ›」鈕（高 ≥ 40、字跟表頭亮的那個月一致），表頭照樣可以點（次要入口，不准關成點不到）",
+               s0["h"] >= 40 and s0["on"] and s0["lab"] == f"排序 {s0['on']}月›" and s0["headPe"] != "none", s0)
             tgt = 3 if s0["on"] != 3 else 5
             tap(m, "#mSeasonSort")
             sh = m.evaluate("""() => { const s = document.getElementById('mSheet'); return { open: !!s && !s.hidden, kind: s && s.dataset.kind,
@@ -51674,7 +51734,7 @@ def t_mobile_v4_2d(b, base, code):
                 return { lab: s && s.textContent, on: on ? +on.dataset.m : null, sheet: (document.getElementById('mSheet') || { hidden: true }).hidden }; }""")
             r1 = m.evaluate(ROWS)
             ok(f"{T} 抽屜點「{tgt} 月」→ 抽屜收起、表頭改亮 {tgt} 月、鈕字跟著換、熱力圖的族群順序真的變了",
-               s1["on"] == tgt and s1["lab"] == f"排序：{tgt} 月 ›" and s1["sheet"] and r1 and r1 != r0, {"前": s0, "後": s1, "列順序變了": r1 != r0})
+               s1["on"] == tgt and s1["lab"] == f"排序 {tgt}月›" and s1["sheet"] and r1 and r1 != r0, {"前": s0, "後": s1, "列順序變了": r1 != r0})
             # ---- 個股頁「基本資料」的族群／題材連結 ≥ 40 高
             au.load({"name": "個股", "hash": f"#stock/{code}"})
             bars = m.evaluate(A.SEG_JS)
