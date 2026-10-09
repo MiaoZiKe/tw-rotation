@@ -32892,6 +32892,8 @@ SECTIONS = {
     "訪客權限1008":        lambda pg, b, base, code: t_guest_perm_1008(b, base, code),
     # ★ 2026-10-09 Andy：「我明明訪客開 1000 次…是否在會員權限裡面有什麼沒設定到」—— 管理頁小卡列出更嚴的單項上限＋一鍵共用、本頁限制寫來源
     "訪客額度1009":        lambda pg, b, base, code: t_guest_quota_1009(b, base, code),
+    # ★ 2026-10-09 Andy：「確認網頁手機資訊同步，包含權限設定、圖表」—— 手機熱力圖抽屜「族群 ›」走 heat.link 權限、訂閱頁法遵聲明、個股比率線不用紅色
+    "手機桌機同步1009":    lambda pg, b, base, code: t_m4_sync_1009(b, base, code),
     # ★ 2026-10-09 Andy：手機帳號選單（site/acctm4.js）—— 六種身分各一次：徽章、無自選、每項導頁、額度頁項目數、刪除帳號二次確認、管理區、客服開關（⚠ --workers 1）
     "帳號選單1009":        lambda pg, b, base, code: t_acct_menu_1009(b, base, code),
     # ★ 2026-10-09 Andy：「部分付費功能…兩個方式開放給他們用，但是有期限且限制次數…重點是得要有曝光」—— 體驗額度（devserver 真的 worker.js；⚠ --workers 1）
@@ -57688,6 +57690,128 @@ def t_guest_perm_1008(b, base, code):
 #   ④ 頁首「本頁 N 項限制」每一項寫出限制來源；⑤ 範本 dq=1000、沒有單項上限 → 訪客連看 4 條產業鏈都不被擋（對照組：單項 3 時第 4 條被擋）。
 GQ_GUEST = {"id": "guest", "name": "訪客", "builtin": True, "members": 0, "price": 0, "period": "month", "dq": 1000,
             "feats": {"ind.3d": False}, "lims": {"ind.groups": 3, "ind.diagram": 3, "ind.3d": 0, "ind.rel": 0, "flow.sankey.drill": 3}}
+
+
+# ===================================================================== 手機桌機同步1009（site/mobile3.js tileSheet／skRev／skProfit／skDiv、site/mobile4.css 第 31 節）
+# Andy 10-09：「確認網頁手機資訊同步，包含權限設定、圖表」。比對後手機有三處跟桌機不一致，這一段每一處都真的操作：
+#   ① 產業熱力圖：手機點方塊先開抽屜，抽屜裡的「族群 ›」以前是普通連結 → 訪客照樣進族群頁（桌機會跳升級卡）。
+#      訪客：真的點方塊 → 抽屜 → 點「族群 ›」→ 網址沒變、跳 heat.link 升級卡（跟桌機同一張）；Plus：同一套操作真的跳到族群頁。
+#   ② 訂閱頁：頁底「不是證券投資顧問…」以前在手機整段藏掉 → 390 寬要看得到（≥12px）、整頁 ≤ 3 屏、年繳省多少放回卡片。
+#   ③ 個股營收圖：YoY 線以前是紅色（本站紅＝漲）→ 琥珀，跟桌機一樣；淨利率＝紫、殖利率＝青（桌機同類圖的顏色）。
+def t_m4_sync_1009(b, base, code):
+    T = "手機桌機同步1009"
+    errs: list[str] = []
+    sh = os.environ.get("TW_SYNC_SHOTS")
+    shot = (lambda pg, n, **k: pg.screenshot(path=str(pathlib.Path(sh) / n), **k)) if sh else (lambda pg, n, **k: None)
+
+    # ---- ① 熱力圖抽屜「族群 ›」的權限 ----
+    def tile_case(who, plan, allow, tag):
+        c, sent, st = _sub_ctx(b, who, width=390, plan=plan, feats={}, lims={}, touch=True)
+        pg = c.new_page(); pg.on("pageerror", lambda e: errs.append(str(e)))
+        pg.goto(base + "#heatmap", wait_until="domcontentloaded")
+        wait_until(pg, "() => window.TwPerm && TwPerm.state().src === 'server' && !!window.TwQuota && !!window.M3", 12000)
+        ok(f"{T}【{tag}】heat.link 權限＝{'開' if allow else '關'}", pg.evaluate("() => TwQuota.heatLinkOk()") == allow)
+        wait_until(pg, "() => { const c = document.getElementById('indTree'); return !!c && !!c.querySelector('canvas') && c.getClientRects().length > 0; }", 15000)
+        pg.evaluate("() => document.getElementById('indTree').scrollIntoView({ block: 'center' })")
+        wait_until(pg, HP_STABLE.replace("ID", "indTree"), 8000)
+        f = _hp_find(pg, "#indTree", "gid", cols=5, rows=6)
+        if not f:
+            ok(f"{T}【{tag}】產業熱力圖找得到族群方塊", False); c.close(); return
+        x, y, d = f
+        pg.touchscreen.tap(x, y)
+        sh0 = wait_until(pg, "() => { const s = document.getElementById('mSheet'); return s && !s.hidden && s.dataset.kind === 'tile' ? { name: s.dataset.name, hash: location.hash } : null; }", 4000)
+        ok(f"{T}【{tag}】390 觸控 點族群方塊（{d.get('gid')}）→ 開抽屜、還沒跳頁", bool(sh0) and sh0["hash"].startswith("#heatmap"), sh0)
+        h0 = pg.evaluate("() => location.hash")
+        pg.wait_for_timeout(500)   # 讓方塊那一下的捕獲記錄（quota.js HM.t）過期之外的時間差也走一遍
+        pg.locator("#mSheet .mchips a[data-hmgo]").tap(); pg.wait_for_timeout(900)
+        h1 = pg.evaluate("() => location.hash")
+        m = pg.evaluate(GP_MODAL)
+        sheet_open = pg.evaluate("() => { const s = document.getElementById('mSheet'); return !!s && !s.hidden; }")
+        if allow:
+            ok(f"{T}【{tag}】抽屜點「族群 ›」→ 真的跳到 #industry/group/{d.get('gid')}、沒跳升級卡",
+               h1 == "#industry/group/" + d.get("gid") and not m, (h0, h1, m))
+        else:
+            ok(f"{T}【{tag}】抽屜點「族群 ›」→ 網址沒變（{h0}）、跳桌機同一張 heat.link 升級卡、抽屜收起",
+               h1 == h0 and bool(m) and m["cq"] == "heat.link" and "付費會員功能" in m["t"] and not sheet_open, (h0, h1, m, sheet_open))
+            shot(pg, "sync_1_upgrade_card.png")
+            pg.locator("#qcModal .qc-go").tap(); pg.wait_for_timeout(700)
+            ok(f"{T}【{tag}】升級卡按「升級 Plus」→ 到訂閱頁（卡片按鈕照常可用）", pg.evaluate("() => location.hash").startswith("#pricing"), pg.evaluate("() => location.hash"))
+        c.close()
+    tile_case(None, None, False, "訪客")
+    tile_case("member", "plus", True, "Plus")
+
+    # ---- ② 訂閱頁 法遵聲明＋年繳省多少 ----
+    c, sent, st = _sub_ctx(b, None, width=390, touch=True)
+    pg = c.new_page(); pg.on("pageerror", lambda e: errs.append(str(e)))
+    pg.set_viewport_size({"width": 390, "height": 844})
+    pg.goto(base + "#pricing", wait_until="domcontentloaded")
+    wait_until(pg, "() => !!document.querySelector('#v-pricing .prlegal') && document.querySelectorAll('#v-pricing .prgo').length >= 2", 15000)
+    LG = """() => { const e = document.querySelector('#v-pricing .prlegal'); const r = e.getBoundingClientRect(), cs = getComputedStyle(e);
+        return { vis: e.getClientRects().length > 0 && r.height > 0 && cs.visibility !== 'hidden' && +cs.opacity > 0, fs: parseFloat(cs.fontSize), txt: e.innerText,
+                 sh: document.documentElement.scrollHeight, ih: innerHeight, lay: (document.querySelector('#prLayout .on') || {}).dataset.lay }; }"""
+    for lay in ("cards", "merged"):
+        pg.evaluate(f"() => {{ const b = document.querySelector('#prLayout button[data-lay={lay}]'); if (b && !b.classList.contains('on')) b.click(); }}"); pg.wait_for_timeout(400)
+        g = pg.evaluate(LG)
+        ok(f"{T}【訂閱頁·{lay}】390 寬看得到「不是證券投資顧問」聲明、字 ≥ 12px、整頁 ≤ 3 屏",
+           g["lay"] == lay and g["vis"] and "不是證券投資顧問" in g["txt"] and g["fs"] >= 12 and g["sh"] <= 3 * g["ih"], g)
+    pg.evaluate("() => { const b = document.querySelector('#prLayout button[data-lay=cards]'); if (b && !b.classList.contains('on')) b.click(); }"); pg.wait_for_timeout(300)
+    NOTE = """() => ({ per: (document.querySelector('#prPeriod .on') || {}).dataset ? document.querySelector('#prPeriod .on').dataset.per : null,
+        sale: [...document.querySelectorAll('#v-pricing .prcard .prsale')].filter(e => e.getClientRects().length > 0 && e.getBoundingClientRect().height > 0).map(e => [e.innerText, parseFloat(getComputedStyle(e).fontSize)]),
+        note: [...document.querySelectorAll('#v-pricing .prcard .prnote')].filter(e => e.getClientRects().length > 0 && e.getBoundingClientRect().height > 0).map(e => [e.innerText, parseFloat(getComputedStyle(e).fontSize)]),
+        sh: document.documentElement.scrollHeight, ih: innerHeight })"""
+    n0 = pg.evaluate(NOTE)
+    if pg.evaluate("() => !!document.querySelector('#prPeriod button[data-per=year]')"):
+        pg.evaluate("() => { const b = document.querySelector('#prPeriod button[data-per=month]'); if (b && !b.classList.contains('on')) b.click(); }"); pg.wait_for_timeout(300)
+        n0 = pg.evaluate(NOTE)
+        pg.locator("#prPeriod button[data-per=year]").tap(); pg.wait_for_timeout(500)
+        n1 = pg.evaluate(NOTE)
+        ok(f"{T}【訂閱頁·卡片】價格備註放回卡片（每張一則、≥12px）；月繳沒有「省」徽章 → 按年繳 → 付費卡出現「省 NT$…」徽章、整頁仍 ≤ 3 屏",
+           len(n0["note"]) >= 2 and all(f >= 12 for _, f in n0["note"]) and not n0["sale"] and n1["per"] == "year"
+           and len(n1["sale"]) >= 1 and all(t.startswith("省") and f >= 12 for t, f in n1["sale"]) and n1["sh"] <= 3 * n1["ih"], (n0, n1))
+    else:
+        ok(f"{T}【訂閱頁·卡片】價格備註放回卡片（每張一則、≥12px）", len(n0["note"]) >= 1 and all(f >= 12 for _, f in n0["note"]), n0)
+    pg.evaluate("() => document.querySelector('#v-pricing .prlegal').scrollIntoView({ block: 'end' })"); pg.wait_for_timeout(300)
+    shot(pg, "sync_2_pricing_legal.png")
+    c.close()
+
+    # ---- ③ 個股比率線顏色 ----
+    c = b.new_context(viewport={"width": 390, "height": 844}, is_mobile=True, has_touch=True, device_scale_factor=2)
+    c.route("**/fonts.googleapis.com/**", lambda r: r.abort())
+    pg = c.new_page(); pg.on("pageerror", lambda e: errs.append(str(e)))
+    pg.goto(base + "#stock/2330", wait_until="domcontentloaded")
+    wait_until(pg, "() => !!document.querySelector('#mbTabs button[data-t=rev]')", 20000)
+    SER = """(names) => { const c = document.getElementById('mbChart'), ch = c && window.echarts && echarts.getInstanceByDom(c); if (!ch) return null;
+        const CH = App.CH; return { up: CH.up, down: CH.down, amber: CH.amber, violet: CH.violet, cyan: CH.cyan,
+          s: (ch.getOption().series || []).filter(s => s.type === 'line' && names.includes(s.name)).map(s => ({ n: s.name, c: (s.lineStyle || {}).color, ic: (s.itemStyle || {}).color, len: (s.data || []).length })),
+          lg: [...document.querySelectorAll('#mbBody .mblg i, #mbBody .mblg span, #mbBody [class*=legend] *')].map(e => [e.textContent.trim(), getComputedStyle(e).color, getComputedStyle(e).backgroundColor]).filter(x => /YoY|淨利率|殖利率/.test(x[0])) }; }"""
+    def tab(t):
+        pg.evaluate("(t) => { const b = document.querySelector('#mbTabs button[data-t=\"' + t + '\"]'); if (b) b.click(); }", t); pg.wait_for_timeout(900)
+    def seg(t, s):
+        pg.evaluate("([t, s]) => { const b = document.querySelector('.mbseg[data-tab=\"' + t + '\"] button[data-s=\"' + s + '\"]'); if (b) b.click(); }", [t, s]); pg.wait_for_timeout(900)
+    def chk(label, names, want):
+        r = pg.evaluate(SER, names)
+        good = bool(r) and len(r["s"]) == len(names) and all(x["len"] > 0 and x["c"] == r[want] and x["ic"] == r[want] and x["c"] not in (r["up"], r["down"]) for x in r["s"])
+        ok(f"{T}【個股 2330】{label}：{'、'.join(names)} 線＝{want}（不是 CH.up 紅、也不是 CH.down 綠）", good, r)
+        return r
+    tab("rev"); seg("rev", "m")
+    pg.evaluate("() => document.getElementById('mbChart') && document.getElementById('mbChart').scrollIntoView({ block: 'center' })"); pg.wait_for_timeout(300)
+    chk("營收 月走勢", ["YoY(%)"], "amber")
+    shot(pg, "sync_3_revenue_chart.png")
+    seg("rev", "y"); chk("營收 年度走勢", ["YoY(%)"], "amber"); seg("rev", "m")
+    if pg.evaluate("() => !!document.querySelector('#mbTabs button[data-t=profit]')"):
+        tab("profit"); chk("獲利 季走勢", ["淨利率"], "violet")
+        if pg.evaluate("() => !!document.querySelector('.mbseg[data-tab=profit] button[data-s=y]')"):
+            seg("profit", "y"); chk("獲利 年度走勢", ["淨利率"], "violet"); seg("profit", "q")
+    if pg.evaluate("() => !!document.querySelector('#mbTabs button[data-t=div]')"):
+        tab("div")
+        r = pg.evaluate(SER, ["殖利率"])
+        if r and r["s"]:
+            chk("除權息", ["殖利率"], "cyan")
+        else:
+            ok(f"{T}【個股 2330】除權息：這檔沒有殖利率線（略過顏色檢查）", True, r)
+    c.close()
+    ok(f"{T}：沒有 JS 錯誤", not errs, errs[:3])
+
 
 
 def t_guest_quota_1009(b, base, code):

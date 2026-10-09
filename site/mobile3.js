@@ -989,8 +989,28 @@
       + `<i>漲跌幅 <b class="${ucls(d.chg)}">${pct(d.chg)}</b></i>`
       + `<i>成交值 ${d.to != null ? yi(d.to) + ' 億' : '—'}${d.share != null ? `（佔 ${(+d.share).toFixed(1)}%）` : ''}</i>`
       + `<i>成分股 ${d.n != null ? d.n : '—'} 檔　本益比中位 ${d.pe != null ? (+d.pe).toFixed(1) : '—'}</i></div>`
-      + `<div class="mchips"><a href="#industry/group/${encodeURIComponent(d.gid)}">族群 ›</a></div>`, { kind: 'tile' });
+      + `<div class="mchips"><a href="#industry/group/${encodeURIComponent(d.gid)}" data-hmgo="1">族群 ›</a></div>`, { kind: 'tile' });
     sh.dataset.name = d.name;
+    /* 2026-10-09 手機與桌機同步：「族群 ›」＝從熱力圖跳族群頁，權限跟桌機點方塊同一支（app.js hmGo → quota.js heatGo）：
+       Plus 以上照跳；訪客、免費會員不跳、跳同一張升級卡（heatLinkBlock）。以前是普通連結，訪客照樣進得去。
+       先關抽屜再判斷：放行時 hashchange 本來就會關；擋下時升級卡不要疊在抽屜上面。*/
+    const a = sh.querySelector('a[data-hmgo]');
+    if (a) a.addEventListener('click', (e) => {
+      e.preventDefault();
+      const to = a.getAttribute('href'), App = window.App;
+      closeSheet();
+      if (App && App.hmGo) App.hmGo(to); else location.hash = to;
+    });
+    /* 幽靈點擊：zrender 在 touchend 就發 click → 這裡開抽屜；瀏覽器接著在同一個座標補發原生 click，
+       落在剛蓋上來的背景（mSheetBack）→ 抽屜一開就被關掉（390 觸控實測：開了 0.1 秒就收）；落在抽屜裡則可能直接按到「族群 ›」。
+       跟 quota.js heatLinkBlock 同一套：開抽屜後 450ms 內落在抽屜／背景上的 click 一律吃掉，之後使用者自己按的照常。*/
+    const t0 = Date.now(), back = document.getElementById('mSheetBack');
+    const eat = (e) => {
+      if (Date.now() - t0 > 450) { document.removeEventListener('click', eat, true); return; }
+      if (e.target && (sh.contains(e.target) || (back && back.contains(e.target)))) { e.preventDefault(); e.stopImmediatePropagation(); }
+    };
+    document.addEventListener('click', eat, true);
+    setTimeout(() => document.removeEventListener('click', eat, true), 500);
     return sh;
   }
 
@@ -1678,6 +1698,8 @@
 
   /* ---- 營收：月走勢｜年度走勢（照截圖：當月＋去年同期並排柱，MoM、YoY 兩條線，左軸百萬、右軸 %）----
      revenue.monthly 每列＝[年月, 營收(元), YoY%, MoM%, 累計, 累計 YoY%, 去年同月營收（finance-quant 補的第 7 欄，有就直接用）]；revenue.yearly＝[{year, months, revenue, by_month}] */
+  /* 2026-10-09 手機與桌機同步：比率線一律不用紅／綠（本站紅＝漲、綠＝跌，紅色的 YoY 線會被讀成「在漲」）。
+     顏色照桌機同類圖：營收 YoY＝琥珀（industry.js 月營收圖 #ffb454）、淨利率＝紫（獲利圖 #8b7bff）、殖利率＝青（股利圖 CH.cyan）。*/
   function skRev(pg, body) {
     const rv = pg.revenue || {}, mo = rv.monthly || [];
     if (!mo.length) { body.innerHTML = empty('尚無月營收資料'); return; }
@@ -1694,13 +1716,13 @@
       const rows = mo.slice(-36).reverse();
       body.innerHTML = segBar('rev', SEG, seg)
         + chartBox(kpi([[`${last.ym.replace('-', '/')} 營收`, int(last.v) + ' 百萬'], ['YoY', sFix(last.yoy, 1) + '%', uc(last.yoy)], ['MoM', sFix(last.mom, 1) + '%', uc(last.mom)]])
-          + legend([['當月', lastY], ['去年同期', prevC], ['MoM(%)', CH.violet, 1], ['YoY(%)', CH.up, 1]]))
+          + legend([['當月', lastY], ['去年同期', prevC], ['MoM(%)', CH.violet, 1], ['YoY(%)', CH.amber, 1]]))
         + table([{ h: '年/月', f: r => [r[0].replace('-', '/')] }, { h: '月營收（百萬）', f: r => [r[1] == null ? '—' : (r[1] / 1e6).toLocaleString('en-US', { maximumFractionDigits: 1, minimumFractionDigits: 1 })] },
           { h: 'YoY（%）', f: r => [sFix(r[2], 2), uc(r[2])] }, { h: 'MoM（%）', f: r => [sFix(r[3], 2), uc(r[3])] }], rows, -1)
         + `<div class="mbfoot">圖：近 12 個月；表：近 ${rows.length} 個月。</div>`;
       const draw = () => barChart({ x: X.map(r => r.ym.slice(2).replace('-', '/')), full: X.map(r => r.ym),
         bars: [{ name: '當月', data: X.map(r => r.v == null ? null : Math.round(r.v)), color: lastY }, { name: '去年同期', data: X.map(r => r.ly == null ? null : Math.round(r.ly)), color: prevC }],
-        lines: [{ name: 'MoM(%)', data: X.map(r => r.mom), color: CH.violet }, { name: 'YoY(%)', data: X.map(r => r.yoy), color: CH.up }],
+        lines: [{ name: 'MoM(%)', data: X.map(r => r.mom), color: CH.violet }, { name: 'YoY(%)', data: X.map(r => r.yoy), color: CH.amber }],
         yfmt: (v) => { const a = Math.abs(v); return a >= 1e4 ? (v / 1e3).toFixed(0) + 'k' : String(Math.round(v)); }, ytip: (v) => int(v) + ' 百萬', y2fmt: (v) => Math.round(v) + '%', y2tip: (v) => sFix(v, 1) + '%' });
       wireSeg(body, 'rev'); wireFold(body, draw); draw();
     } else {
@@ -1715,11 +1737,11 @@
       const last = Y[Y.length - 1];
       body.innerHTML = segBar('rev', SEG, seg)
         + chartBox(kpi([[`${last.y}${last.m < 12 ? `（1–${last.m} 月）` : ''}`, int(last.v) + ' 百萬'], ['同期 YoY', sFix(last.yoy, 1) + '%', uc(last.yoy)]])
-          + legend([['年營收', lastY], ['YoY(%)，同月份比', CH.up, 1]]))
+          + legend([['年營收', lastY], ['YoY(%)，同月份比', CH.amber, 1]]))
         + table([{ h: '年', f: r => [r.y + (r.m < 12 ? `<small>（${r.m} 個月）</small>` : '')] }, { h: '營收（百萬）', f: r => [int(r.v)] }, { h: 'YoY（%）', f: r => [sFix(r.yoy, 2), uc(r.yoy)] }], Y.slice().reverse(), -1)
         + '<div class="mbfoot">未滿 12 個月的年度，YoY 跟前一年同月份比。</div>';
       const draw = () => barChart({ x: Y.map(r => String(r.y)), bars: [{ name: '年營收', data: Y.map(r => r.v == null ? null : Math.round(r.v)), color: lastY }],
-        lines: [{ name: 'YoY(%)', data: Y.map(r => r.yoy == null ? null : +r.yoy.toFixed(1)), color: CH.up }],
+        lines: [{ name: 'YoY(%)', data: Y.map(r => r.yoy == null ? null : +r.yoy.toFixed(1)), color: CH.amber }],
         yfmt: (v) => { const a = Math.abs(v); return a >= 1e4 ? (v / 1e3).toFixed(0) + 'k' : String(Math.round(v)); }, ytip: (v) => int(v) + ' 百萬', y2fmt: (v) => Math.round(v) + '%', y2tip: (v) => sFix(v, 1) + '%' });
       wireSeg(body, 'rev'); wireFold(body, draw); draw();
     }
@@ -1737,7 +1759,7 @@
     const SEG = [['q', '季走勢']].concat(yr.length ? [['y', '年度走勢']] : []);
     const seg = SEG.some(x => x[0] === skSeg('profit', 'q')) ? skSeg('profit', 'q') : 'q';
     const p2 = (v) => v == null ? '—' : (+v).toFixed(2);
-    const lg = legend([['EPS（元，左軸）', epsC], ['毛利率（%，右軸）', CH.cyan, 1], ['淨利率（%，右軸）', CH.up, 1]]);
+    const lg = legend([['EPS（元，左軸）', epsC], ['毛利率（%，右軸）', CH.cyan, 1], ['淨利率（%，右軸）', CH.violet, 1]]);
     const opt = { yfmt: (v) => (+v).toFixed(1), ytip: (v) => (+v).toFixed(2) + ' 元', y2fmt: (v) => Math.round(v) + '', y2tip: (v) => (+v).toFixed(2) + '%' };
     if (seg === 'q') {
       /* 缺季是整列 null（profit.gaps）：圖照樣留一格空位（看得出缺），關鍵數字取最後一個有 EPS 的季 */
@@ -1749,7 +1771,7 @@
           { h: 'EPS', f: r => [p2(r[5]), r[5] < 0 ? 'dn' : ''] }, { h: '累計 EPS', f: r => [p2(r[6]), r[6] < 0 ? 'dn' : ''] }], q.slice().reverse(), 3)
         + `<div class="mbfoot">圖：近 ${X.length} 季；累計 EPS＝當年度第 1 季起累加${(pg.profit.gaps || []).length ? `；缺季 ${(pg.profit.gaps || []).map(esc).join('、')}（財報沒有，圖上留空）` : ''}。</div>`;
       const draw = () => barChart({ x: X.map(r => r[0]), bars: [{ name: 'EPS', data: X.map(r => r[5]), color: epsC }],
-        lines: [{ name: '毛利率', data: X.map(r => r[2]), color: CH.cyan }, { name: '淨利率', data: X.map(r => r[4]), color: CH.up }], ...opt });
+        lines: [{ name: '毛利率', data: X.map(r => r[2]), color: CH.cyan }, { name: '淨利率', data: X.map(r => r[4]), color: CH.violet }], ...opt });
       wireSeg(body, 'profit'); wireFold(body, draw); draw();
     } else {
       const last = yr[yr.length - 1];
@@ -1760,7 +1782,7 @@
           { h: 'EPS', f: r => [p2(r.eps), r.eps < 0 ? 'dn' : ''] }], yr.slice().reverse(), 3)
         + '<div class="mbfoot">年度＝四季單季加總；今年還沒滿四季的標「前 n 季」。</div>';
       const draw = () => barChart({ x: yr.map(r => String(r.year)), bars: [{ name: 'EPS', data: yr.map(r => r.eps), color: epsC }],
-        lines: [{ name: '毛利率', data: yr.map(r => r.gm), color: CH.cyan }, { name: '淨利率', data: yr.map(r => r.nm), color: CH.up }], ...opt });
+        lines: [{ name: '毛利率', data: yr.map(r => r.gm), color: CH.cyan }, { name: '淨利率', data: yr.map(r => r.nm), color: CH.violet }], ...opt });
       wireSeg(body, 'profit'); wireFold(body, draw); draw();
     }
   }
@@ -1848,7 +1870,7 @@
     const upTxt = up.length ? up.slice(0, 2).map(u => `${esc(u.period || '')} ${u.kind === 'stock' ? '股票' : '現金'} ${(+u.amount || 0).toFixed(2)} 元（${u.ex_date ? esc(u.ex_date) + ' 除' + (u.kind === 'stock' ? '權' : '息') : '除權息日未定'}）`).join('；') : '';
     const k = [['近四次現金股利', dv.cash_ttm != null ? (+dv.cash_ttm).toFixed(2) + ' 元' : '—'], ['現價殖利率', dv.yield_ttm != null ? (+dv.yield_ttm).toFixed(2) + '%' : '—']];
     const lg = seg === 'all' ? [['現金股利', cashC], ['股票股利', stockC]] : seg === 'cash' ? [['現金股利', cashC]] : [['股票股利', stockC]];
-    if (hasYl && seg !== 'stock') lg.push(['殖利率（%，右軸）', CH.up, 1]);
+    if (hasYl && seg !== 'stock') lg.push(['殖利率（%，右軸）', CH.cyan, 1]);
     body.innerHTML = segBar('div', SEG, seg)
       + '<div class="mbwarn">＊除權息資訊以公開資訊觀測站公告為主＊</div>'
       + (upTxt ? `<div class="mbfoot" style="margin-top:0">已公告、尚未除權息：${upTxt}</div>` : '')
@@ -1865,7 +1887,7 @@
       tr.onclick = tg; tr.onkeydown = (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); tg(); } }; });
     const draw = () => barChart({ x: Y.map(r => String(r.y)),
       bars: (seg !== 'stock' ? [{ name: '現金股利', data: Y.map(r => r.cash), color: cashC }] : []).concat(seg !== 'cash' ? [{ name: '股票股利', data: Y.map(r => r.stock), color: stockC }] : []),
-      lines: hasYl && seg !== 'stock' ? [{ name: '殖利率', data: Y.map(r => r.yl == null ? 0 : +r.yl.toFixed(2)), color: CH.up }] : [],
+      lines: hasYl && seg !== 'stock' ? [{ name: '殖利率', data: Y.map(r => r.yl == null ? 0 : +r.yl.toFixed(2)), color: CH.cyan }] : [],
       yfmt: (v) => (+v).toFixed(1), ytip: (v) => (+v).toFixed(3) + ' 元', y2fmt: (v) => (+v).toFixed(0), y2tip: (v) => (+v).toFixed(2) + '%' });
     wireSeg(body, 'div'); wireFold(body, draw); draw();
   }
