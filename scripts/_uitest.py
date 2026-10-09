@@ -29856,6 +29856,60 @@ def t_mobile_m4_indpie_1009(b, base, code):
         finally:
             ctx.close()
 
+# ★ 2026-10-10 手機圓餅放大1010（Andy：「圓餅圖需要調整與螢幕寬度相符 幫我放大的意思」「且下方的長條圖補上」）
+#   手機（html.m4）產業地圖「成交值占比」甜甜圈：框＝卡片內寬（不再卡在 340 上限、左右大空白）；
+#   圖例每一列名稱下面一條同色細長條，長度依占比（以最大那塊為滿格，彼此成正比）。桌機圖例沒有長條（.m4bar 只在 m4 長出）。
+#   驗：360／390／430 寬（is_mobile、has_touch、DPR2）—— ① canvas 寬 ≥ 卡片內寬 85% ② 每列都有長條、長條在名稱正下方、
+#   顏色＝色塊顏色 ③ 長條填色寬／最大者 ≈ 占比／最大占比（差 ≤ 3px）④ 整頁不橫捲；1440 桌機圖例一條 .m4bar 都沒有。
+def t_mobile_m4_pie1010(b, base, code):
+    T = "手機圓餅放大1010"
+    MEAS = """() => { const card = document.querySelector('#v-industry .gppie'), pie = document.getElementById('gpPie');
+        if (!card || !pie) return null; const cv = pie.querySelector('canvas'); if (!cv) return null;
+        const cs = getComputedStyle(card), inner = card.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
+        const rows = [...document.querySelectorAll('#gpLegend .lg')].map(r => { const bar = r.querySelector('.m4bar'), f = bar && bar.querySelector('s'), t = r.querySelector('.m4t'), sw = r.querySelector('i');
+          return { n: r.dataset.n, pc: parseFloat(r.querySelector('.pc').textContent), has: !!(bar && f),
+            fw: f ? f.getBoundingClientRect().width : 0, tw: bar ? bar.getBoundingClientRect().width : 0, h: f ? f.getBoundingClientRect().height : 0,
+            below: !!(bar && t) && bar.getBoundingClientRect().top >= t.getBoundingClientRect().bottom - 1,
+            sameCol: !!(f && sw) && getComputedStyle(f).backgroundColor === getComputedStyle(sw).backgroundColor }; });
+        return { inner, cvw: cv.getBoundingClientRect().width, rows, sw: document.documentElement.scrollWidth, vw: innerWidth }; }"""
+    for W in (360, 390, 430):
+        ctx = b.new_context(viewport={"width": W, "height": 844}, device_scale_factor=2, is_mobile=True, has_touch=True)
+        try:
+            ctx.add_init_script("try{ localStorage.setItem('tw.live.on','0'); localStorage.setItem('tw.tourDone','1'); }catch(e){}")
+            m = ctx.new_page()
+            m.on("pageerror", lambda e, W=W: fails.append(f"{T} {W} pageerror: {e} @ {m.url}"))
+            m.route("**/fonts.googleapis.com/**", lambda r: r.abort())
+            m.goto(base + "#industry", wait_until="domcontentloaded")
+            wait_until(m, "(() => { const p = document.getElementById('gpPie'); return !!(p && p.querySelector('canvas') && document.querySelectorAll('#gpLegend .lg').length && document.documentElement.classList.contains('m4')); })()", 15000)
+            m.wait_for_timeout(1200)
+            d = m.evaluate(MEAS)
+            if not ok(f"【{T}】{W} 寬：找得到甜甜圈 canvas 與圖例", bool(d and d["rows"]), d):
+                continue
+            ok(f"【{T}】{W} 寬：甜甜圈 canvas 寬 {d['cvw']:.0f} ≥ 卡片內寬 {d['inner']:.0f} 的 85%", d["cvw"] >= d["inner"] * 0.85, d["cvw"] / max(d["inner"], 1))
+            rows = d["rows"]
+            ok(f"【{T}】{W} 寬：圖例 {len(rows)} 列每列都有長條、在名稱正下方、跟色塊同色、高 ≥ 3px",
+               all(r["has"] and r["below"] and r["sameCol"] and r["h"] >= 3 for r in rows), rows)
+            pmax = max(r["pc"] for r in rows) or 1
+            fmax = max(r["fw"] for r in rows) or 1
+            bad = [r for r in rows if abs(r["fw"] - r["pc"] / pmax * fmax) > 3 and r["fw"] > 2.5]
+            ok(f"【{T}】{W} 寬：長條長度與占比成正比（最大一列 {fmax:.0f}px＝{pmax}%，誤差 ≤ 3px）",
+               not bad and fmax >= 0.9 * rows[0]["tw"], {"不成比例": bad, "rows": [(r["n"], r["pc"], round(r["fw"], 1)) for r in rows]})
+            ok(f"【{T}】{W} 寬：整頁不橫捲（{d['sw']}／{d['vw']}）", d["sw"] <= d["vw"], d["sw"])
+        finally:
+            ctx.close()
+    # 桌機（1440，非 m4）：圖例一條 .m4bar 都沒有（桌機 DOM 不變）
+    ctx = b.new_context(viewport={"width": 1440, "height": 900})
+    try:
+        ctx.add_init_script("try{ localStorage.setItem('tw.live.on','0'); localStorage.setItem('tw.tourDone','1'); }catch(e){}")
+        m = ctx.new_page()
+        m.route("**/fonts.googleapis.com/**", lambda r: r.abort())
+        m.goto(base + "#industry", wait_until="domcontentloaded")
+        wait_until(m, "(() => document.querySelectorAll('#gpLegend .lg').length > 0)()", 15000)
+        dk = m.evaluate("() => ({ m4: document.documentElement.classList.contains('m4'), bars: document.querySelectorAll('#gpLegend .m4bar').length, n: document.querySelectorAll('#gpLegend .lg').length })")
+        ok(f"【{T}】桌機 1440：圖例沒有手機長條（.m4bar {dk['bars']} 條）", not dk["m4"] and dk["bars"] == 0 and dk["n"] > 0, dk)
+    finally:
+        ctx.close()
+
 # ★ 2026-10-09 手機拖曳邊界1009（Andy 04:1x：「所有圖扁長寬到了就好，不可以他長度原本是那樣，但還能一直滑過頭超出範圍」）
 #   手機（html.m4）每一種能拖、能平移、能縮放的圖：放大後往四個方向各用手指拖一大段（比內容還長）＋一次快速甩動（慣性），
 #   每次都量「內容外框仍蓋滿整個可視框、四邊沒有空白」；1× 時拖不動。K 線拖到兩端與縮到最小不能露出資料外的空白；
@@ -31075,6 +31129,107 @@ def t_m4_3dseg_1009(b, base):
         ok(f"【{T}】1440 段沒有例外", False, repr(e)[:300])
     finally:
         pg.close()
+
+
+# ★ 2026-10-10 手機3D編號1010（Andy 10-10：「3D圖的編號不見了，補上」「格式一律 方寬形式」
+#   「手機版本的下方不要有紅框處的資訊，因為他點擊標籤時就可以看到，並且編號都是需要拉一條線在圖旁邊，而不是標在圖上」）
+#   病因：舊「編號」膠囊開著時看起來像沒選中，按下去其實是關、寫進 tw.dgnum＝0 一直記著 → 之後進 3D 都沒編號。
+#   修法：手機改讀 tw.m4.dgnum（預設開）、工具列一律方框＋選中實心、3D 框裡的零件卡清單與畫在零件上的圓點手機一律藏。
+#   所以這段一開始故意把舊的 tw.dgnum 設成 0（模擬 Andy 手機上的狀態），要驗「照樣看得到編號」。
+M43DNUM_ST = r"""() => {
+  const h = document.querySelector('#prod3d'); if (!h || h.hidden) return null;
+  const base = h.getBoundingClientRect(), W = base.width;
+  const vis = e => !!(e && e.getClientRects().length && getComputedStyle(e).visibility !== 'hidden');
+  const nums = [...h.querySelectorAll('.mnumlayer .mnum')].filter(vis).map(e => { const r = e.getBoundingClientRect();
+    return { no: e.dataset.no, l: r.left - base.left, r: r.right - base.left, t: r.top - base.top, b: r.bottom - base.top, cx: (r.left + r.right) / 2 - base.left, fs: parseFloat(getComputedStyle(e).fontSize) }; });
+  const paths = [...h.querySelectorAll('.mnumlayer svg path')].filter(p => vis(p.closest('.mnumlayer'))).map(p => p.dataset.no);
+  let ov = 0; for (let i = 0; i < nums.length; i++) for (let j = i + 1; j < nums.length; j++) { const a = nums[i], c = nums[j];
+    if (Math.min(a.r, c.r) - Math.max(a.l, c.l) > 1 && Math.min(a.b, c.b) - Math.max(a.t, c.t) > 1) ov++; }
+  const list = [...h.querySelectorAll('.dgstage-b, .lbl3d, .ld-no')].filter(vis).length
+    + [...document.querySelectorAll('#dgSec .lbl3d, #partCard')].filter(e => vis(e) && e.innerText.trim()).length;
+  const b = document.getElementById('dgNum'), cbe = h.querySelector(':scope > .m4c3d'), cr = cbe && cbe.getClientRects().length ? cbe.getBoundingClientRect() : null;
+  const cbHit = cr ? nums.filter(q => Math.min(q.r, cr.right - base.left) - Math.max(q.l, cr.left - base.left) > 1 && Math.min(q.b, cr.bottom - base.top) - Math.max(q.t, cr.top - base.top) > 1).map(q => q.no) : [];
+  return { n: nums.length, nums, cbHit, noLine: nums.filter(q => !paths.includes(q.no)).map(q => q.no), ov, list, W: Math.round(W),
+    mid: nums.filter(q => q.cx > W * 0.25 && q.cx < W * 0.75).map(q => q.no), minFs: nums.length ? Math.min(...nums.map(q => q.fs)) : 0,
+    pressed: b && b.getAttribute('aria-pressed'), k4: localStorage.getItem('tw.m4.dgnum'), kd: localStorage.getItem('tw.dgnum') };
+}"""
+M43DNUM_BAR = r"""() => {
+  const q = s => document.querySelector(s);
+  const L = [['2D｜3D', '#dg3d'], ['編號', '#dgNum'], ['圖說', '#dgTools .mdginfo'], ['動畫', '#dgTools .m4animseg']];
+  const it = L.map(([k, s]) => { const e = q(s); if (!e || !e.getClientRects().length) return { k, miss: true }; const r = e.getBoundingClientRect(), cs = getComputedStyle(e);
+    return { k, h: Math.round(r.height), rad: cs.borderTopLeftRadius, bw: cs.borderTopWidth, top: Math.round(r.top), l: Math.round(r.left), rt: Math.round(r.right),
+      clip: e.scrollWidth > e.clientWidth + 1, bg: cs.backgroundImage + '|' + cs.backgroundColor }; });
+  const on3 = q('#dg3d button.on'), cs3 = on3 && getComputedStyle(on3);
+  return { it, sw: document.documentElement.scrollWidth, vw: innerWidth, onBg: cs3 ? cs3.backgroundImage + '|' + cs3.backgroundColor : '' };
+}"""
+
+
+def t_m4_3dnum_1010(b, base):
+    T = "手機3D編號1010"
+    SHOT = os.environ.get("TW_M43DNUM_SHOT")
+    for W, H, theme in ((390, 844, "light"), (360, 780, "dark")):
+        ctx = b.new_context(viewport={"width": W, "height": H}, device_scale_factor=2 if SHOT else 1, is_mobile=True, has_touch=True)
+        ctx.add_init_script("try{ if(!sessionStorage.getItem('m43n')){ localStorage.clear(); localStorage.setItem('tw.live.on','0'); localStorage.setItem('tw.tourDone','1');"
+                            " localStorage.setItem('tw.dgnum','0'); localStorage.setItem('tw.m4.3danim','0'); localStorage.setItem('tw.theme','" + theme + "'); sessionStorage.setItem('m43n','1'); } }catch(e){}")
+        m = ctx.new_page()
+        m.on("pageerror", lambda e, W=W: fails.append(f"{T} {W} pageerror: {e}"))
+        m.route("**/fonts.googleapis.com/**", lambda r: r.abort())
+        J = m.evaluate
+        tapc = lambda sel: (m.touchscreen.tap(*J("(s) => { const r = document.querySelector(s).getBoundingClientRect(); return [r.left + r.width / 2, r.top + r.height / 2]; }", sel)), m.wait_for_timeout(900))
+        try:
+            for route in ("#industry/ai_server", "#industry/semiconductor"):
+                m.goto(base + route, wait_until="domcontentloaded")
+                wait_until(m, "() => { const g = document.querySelector('#dg3d'); return !!(g && g.getClientRects().length && document.querySelector('#prodDiagram svg')); }", 30000, 300)
+                J("() => document.querySelector('#dgSec').scrollIntoView({ block: 'start', behavior: 'instant' })"); m.wait_for_timeout(700)
+                if J("() => document.querySelector('#prod3d').hidden"):
+                    tapc("#dg3d button[data-dm='3d']")
+                got = wait_until(m, "() => { const h = document.querySelector('#prod3d'); return !!(h && !h.hidden && window.Rack3D && Rack3D.current && h.querySelector('.mnumlayer .mnum')); }", 30000, 300)
+                J("() => document.querySelector('#dgSec').scrollIntoView({ block: 'start', behavior: 'instant' })"); m.wait_for_timeout(1500)
+                s = J(M43DNUM_ST) if got else None
+                tag = f"{W} {route}"
+                if not ok(f"【{T}】{tag} 切進 3D 有編號層", bool(s), s):
+                    continue
+                ok(f"【{T}】{tag} 舊鑰匙 tw.dgnum＝0 也照樣看得到編號（{s['n']} 顆）、「編號」鈕是選中（aria-pressed＝{s['pressed']}）", s["n"] > 0 and s["pressed"] == "true", s)
+                ok(f"【{T}】{tag} 3D 圖下方沒有零件卡清單、零件上沒有編號圓點（看得到的：{s['list']}）", s["list"] == 0, s["list"])
+                ok(f"【{T}】{tag} 每個編號都有一條引線（缺：{s['noLine']}）", not s["noLine"], s["noLine"])
+                ok(f"【{T}】{tag} 編號泡泡都在圖框左右 25% 內（框寬 {s['W']}，在中間的：{s['mid']}）", not s["mid"], s["mid"])
+                ok(f"【{T}】{tag} 編號泡泡互不重疊（{s['ov']} 對）、不被右上角收合鈕蓋到（{s['cbHit']}）、字 ≥ 12px（{s['minFs']}）", s["ov"] == 0 and not s["cbHit"] and s["minFs"] >= 12, s)
+                if route != "#industry/ai_server":
+                    continue
+                bar = J(M43DNUM_BAR)
+                it = bar["it"]
+                ok(f"【{T}】{W} 工具列四組都在（{[x['k'] for x in it if x.get('miss')]} 不見）", not any(x.get("miss") for x in it), it)
+                if not any(x.get("miss") for x in it):
+                    ok(f"【{T}】{W} 工具列方框一致：高 {[x['h'] for x in it]}、圓角 {[x['rad'] for x in it]}、框 {[x['bw'] for x in it]}",
+                       len({x["h"] for x in it}) == 1 and len({x["rad"] for x in it}) == 1 and len({x["bw"] for x in it}) == 1, it)
+                    rows = sorted({x["top"] for x in it})
+                    ok(f"【{T}】{W} 工具列不截字、不橫捲（{bar['sw']}／{bar['vw']}）、最多兩排（{rows}）、不超出右緣",
+                       not any(x["clip"] for x in it) and bar["sw"] <= bar["vw"] and len(rows) <= 2 and max(x["rt"] for x in it) <= bar["vw"], it)
+                    nb = [x for x in it if x["k"] == "編號"][0]
+                    ok(f"【{T}】{W} 「編號」開＝跟 3D 選中格同一套實心（{nb['bg'][:60]}｜{bar['onBg'][:60]}）", nb["bg"] == bar["onBg"], [nb["bg"], bar["onBg"]])
+                if SHOT and W == 390:
+                    m.screenshot(path=os.path.join(SHOT, f"m43dnum_{W}_{theme}.png"))
+                # 點「編號」→ 關、再點 → 開
+                tapc("#dgNum"); s1 = J(M43DNUM_ST)
+                ok(f"【{T}】{W} 點「編號」：編號全部不見（{s1['n']}）、鈕變未選中、記在 tw.m4.dgnum（{s1['k4']}）、桌機的 tw.dgnum 不動（{s1['kd']}）",
+                   s1["n"] == 0 and s1["pressed"] == "false" and s1["k4"] == "0" and s1["kd"] == "0", s1)
+                tapc("#dgNum"); m.wait_for_timeout(600); s2 = J(M43DNUM_ST)
+                ok(f"【{T}】{W} 再點一次：編號回來（{s2['n']}）、每顆都有引線", s2["n"] > 0 and s2["pressed"] == "true" and not s2["noLine"], s2)
+                # 點一個編號 → 開抽屜
+                tapc("#prod3d .mnumlayer .mnum")
+                sh = J("() => { const s = document.getElementById('mSheet'); return { open: !!(s && !s.hidden), no: s && s.dataset.no }; }")
+                ok(f"【{T}】{W} 點編號開底部抽屜（{sh}）", sh["open"] and bool(sh["no"]), sh)
+                J("() => { const s = document.getElementById('mSheetBack'); if (s && !s.hidden) s.click(); }"); m.wait_for_timeout(500)
+                # 轉動：引線跟著錨點走（錨點落在零件投影內、末端在泡泡上）
+                J("() => { const v = Rack3D.current, c = v.cam(); v.look([0, 0, 0], [c[2], c[1], -c[0]]); }")
+                wait_until(m, M43D_CENSUS.replace("return { nums: btn.length, lines: n, bad };", "return bad.length === 0 && n > 0;"), 8000, 400)
+                r = J(M43D_CENSUS); s3 = J(M43DNUM_ST)
+                ok(f"【{T}】{W} 轉 90° 之後引線兩端合格（{r.get('lines')} 條，不合 {len(r.get('bad', []))}）、泡泡不重疊（{s3['ov']}）、不被收合鈕蓋到（{s3['cbHit']}）、仍在左右 25%（{s3['mid']}）",
+                   not r.get("err") and not r.get("bad") and r.get("lines", 0) > 0 and s3["ov"] == 0 and not s3["cbHit"] and not s3["mid"], [r, s3])
+                if SHOT and W == 390:
+                    m.screenshot(path=os.path.join(SHOT, f"m43dnum_{W}_{theme}_rot.png"))
+        finally:
+            ctx.close()
 
 
 # ★ 2026-10-09 長條寬度1009（Andy 10-09：「下方調整長條圖適當寬度」—— 總覽漲跌家數 11 根在 1730 寬只畫 10px，又細又空）：
@@ -32599,7 +32754,9 @@ SECTIONS = {
     # ★ 2026-09-27 手機總覽最上方：指數三格（可左右滑）＋觀察清單（2026-09-27 起是自選清單目前那一頁：localStorage tw.watchlists，只存代號；site/mobile3.js G 段＋site/watchlists.js）
     "手機總覽指數觀察清單": lambda pg, b, base, code: t_mobile_home(b, base, code),
     # ★ 2026-10-08 手機 v2（docs/mobile_v2_plan.md；site/mobile4.js）：側欄抽屜、每頁第一屏、字級／觸控、主要切換真的點得動
-    "手機v2":              lambda pg, b, base, code: (t_mobile_m4_etf2_1009(b, base, code), t_mobile_m4_etfqa_1009(b, base, code), t_m4_xpetf_1009(b, base), t_mobile_m4(b, base, code), t_mobile_m4_1008(b, base, code), t_mobile_m4_charts_1009(b, base, code), t_mobile_m4_1009(b, base, code), t_mobile_m4_market(b, base, code), t_mobile_m4_misc1009(b, base, code), t_mobile_m4_mkset1009(b, base, code), t_mobile_m4_ov2(b, base, code), t_mobile_m4_foldread1009(b, base, code)),
+    "手機v2":              lambda pg, b, base, code: (t_mobile_m4_etf2_1009(b, base, code), t_mobile_m4_etfqa_1009(b, base, code), t_m4_xpetf_1009(b, base), t_mobile_m4(b, base, code), t_mobile_m4_1008(b, base, code), t_mobile_m4_charts_1009(b, base, code), t_mobile_m4_1009(b, base, code), t_mobile_m4_market(b, base, code), t_mobile_m4_misc1009(b, base, code), t_mobile_m4_mkset1009(b, base, code), t_mobile_m4_ov2(b, base, code), t_mobile_m4_foldread1009(b, base, code), t_mobile_m4_pie1010(b, base, code)),
+    # ★ 2026-10-10 手機圓餅放大＋圖例長條（Andy：「圓餅圖需要調整與螢幕寬度相符」「下方的長條圖補上」）單獨跑：手機v2 也包含這一段
+    "手機圓餅放大1010":    lambda pg, b, base, code: t_mobile_m4_pie1010(b, base, code),
     # ★ 2026-10-09 手機總覽 ov2（Andy 09:1x／09:3x／09:4x）單獨跑：手機v2 也包含這一段
     # ★ 2026-10-09 手機 v2 圖表跟網頁版同一套（claude/m4-charts）單獨跑：手機v2 也包含這一段
     "手機v2圖表1009":       lambda pg, b, base, code: t_mobile_m4_charts_1009(b, base, code),
@@ -32636,6 +32793,8 @@ SECTIONS = {
     "手機3D說明1009":      lambda pg, b, base, code: t_m4_3d_1009(b, base),
     # ★ 2026-10-09 帳本 83、84：手機 2D｜3D 分段控制器＋3D 預設自轉／動畫開關（402／360 觸控＋1440 守網頁版；⚠ --workers 1）
     "手機3D分段與自轉1009": lambda pg, b, base, code: t_m4_3dseg_1009(b, base),
+    # ★ 2026-10-10 Andy：「3D圖的編號不見了，補上」「格式一律 方寬形式」「下方不要有紅框處的資訊…編號拉線在圖旁邊」（390 淺／360 深；⚠ --workers 1）
+    "手機3D編號1010":      lambda pg, b, base, code: t_m4_3dnum_1010(b, base),
     # ★ 2026-09-25 手機版 v3（docs/mobile_v3_spec.md §7）：底部一列五顆、「?」氣泡、大盤合一張、新雷達＋焦點條、
     #   資金分流樹長條、法人對稱長條、篩選抽屜、剖析圖只留編號（2D／3D）。390 與 360 各一輪。⚠ 一律 --workers 1（有 3D）
     "手機v3":              lambda pg, b, base, code: t_mobile_v3(b, base, code),
@@ -32897,6 +33056,8 @@ SECTIONS = {
     "訪客額度1009":        lambda pg, b, base, code: t_guest_quota_1009(b, base, code),
     # ★ 2026-10-09 Andy：手機帳號選單（site/acctm4.js）—— 六種身分各一次：徽章、無自選、每項導頁、額度頁項目數、刪除帳號二次確認、管理區、客服開關（⚠ --workers 1）
     "帳號選單1009":        lambda pg, b, base, code: t_acct_menu_1009(b, base, code),
+    # ★ 2026-10-10 Andy：「額度上限使用收合功能將每個母分頁內所有有限制的功能標示出來，太長就用拉Bar。不要寫"不開放"…改成plus 會員」（手機 acctm4.js；⚠ --workers 1）
+    "額度上限1010":        lambda pg, b, base, code: t_m4_quota_1010(b, base, code),
     # ★ 2026-10-09 Andy：「部分付費功能…兩個方式開放給他們用，但是有期限且限制次數…重點是得要有曝光」—— 體驗額度（devserver 真的 worker.js；⚠ --workers 1）
     "體驗額度1009":        lambda pg, b, base, code: t_trial_grants_1009(b, base),
     # ★ 2026-10-09 帳本 78、79：手機抽屜站名字樣不被色塊蓋；頂欄 LOGO＝回總覽、抽屜 LOGO＝放大、抽屜站名＝回總覽關抽屜；桌機 LOGO 仍放大
@@ -66305,9 +66466,11 @@ ACCTM4_WHO = {
 }
 
 
-def _acctm4_ctx(b, who, del_status=200, bill=None, desk=False):
-    """bill：/v1/billing/me 要回什麼（None＝依身分給預設；"off"＝回 404，模擬 Worker 還沒部署這支）。desk＝桌機 1440（不觸控）。"""
-    me, perm = ACCTM4_WHO[who]
+def _acctm4_ctx(b, who, del_status=200, bill=None, desk=False, plans=None, perm=None, vp=None):
+    """bill：/v1/billing/me 要回什麼（None＝依身分給預設；"off"＝回 404，模擬 Worker 還沒部署這支）。desk＝桌機 1440（不觸控）。
+    plans／perm：換掉方案清單與 /v1/perm/me 回應（額度上限1010 用）；vp：手機視窗 (寬, 高)，預設 430×932。"""
+    me, perm0 = ACCTM4_WHO[who]
+    perm = perm or perm0
     now = int(time.time() * 1000)
     st = {"me": me, "del": 0, "chg": []}
     paid = who in ("plus", "pro")
@@ -66316,7 +66479,7 @@ def _acctm4_ctx(b, who, del_status=200, bill=None, desk=False):
                 "firstPaid": now - 2 * 86400000 if paid else 0, "refundDays": 7, "trialUsed": False, "refundUsed": False,
                 "canRefund": paid, "refundWhy": "" if paid else "not_paid", "cancel": None, "refund": None}
     st["bill"] = bill
-    plans = [{"id": "guest", "name": "訪客", "feats": {}, "lims": {}, "builtin": True, "price": 0, "period": "month"},
+    plans = plans or [{"id": "guest", "name": "訪客", "feats": {}, "lims": {}, "builtin": True, "price": 0, "period": "month"},
              {"id": "free", "name": "免費會員", "feats": {}, "lims": {}, "builtin": True, "price": 0, "period": "month", "dq": 10},
              {"id": "plus", "name": "Plus", "feats": {}, "lims": {}, "builtin": False, "price": 299, "period": "month", "dq": 50},
              {"id": "pro", "name": "Pro", "feats": {}, "lims": {}, "builtin": False, "price": 549, "period": "month"}]
@@ -66331,7 +66494,7 @@ def _acctm4_ctx(b, who, del_status=200, bill=None, desk=False):
         if path == "/v1/me":
             out, code = ({"user": m}, 200) if m else ({}, 401)
         elif path == "/v1/perm/me":
-            out = perm if m else ACCTM4_WHO["guest"][1]
+            out = perm if (m or not me) else ACCTM4_WHO["guest"][1]
         elif path == "/v1/plans/public":
             out = {"plans": plans}
         elif path == "/v1/notices":
@@ -66373,7 +66536,7 @@ def _acctm4_ctx(b, who, del_status=200, bill=None, desk=False):
         route.fulfill(status=code, body=json.dumps(out), headers={"access-control-allow-origin": "*", "content-type": "application/json"})
 
     c = (b.new_context(viewport={"width": 1440, "height": 900}) if desk
-         else b.new_context(viewport={"width": 430, "height": 932}, device_scale_factor=2, is_mobile=True, has_touch=True))
+         else b.new_context(viewport={"width": (vp or (430, 932))[0], "height": (vp or (430, 932))[1]}, device_scale_factor=2, is_mobile=True, has_touch=True))
     init = "window.TW_ACCOUNT_OVERRIDE = " + json.dumps({"api": ACCTM4_API}) + ";"
     init += "try { localStorage.setItem('tw.live.on', '0'); } catch (e) {}"
     if me:
@@ -66382,6 +66545,191 @@ def _acctm4_ctx(b, who, del_status=200, bill=None, desk=False):
     c.route("**/fonts.googleapis.com/**", lambda r: r.abort())
     c.route(ACCTM4_API + "/**", handle)
     return c, st
+
+
+# ===================================================================== 額度上限1010（site/acctm4.js 的 #m4Quota；Andy 2026-10-10）
+#   手機（360／390／430、觸控、DPR2）帳號選單 →「額度上限」：
+#   ① 全站每日額度在最上面；下面依母分頁（總覽、資金流向、產業地圖、個股、ETF…）各一個收合區塊，預設全部收起；標題寫分頁名＋項目數
+#   ② 點一組 → 真的展開（aria-expanded、內容列看得到、tw.m4quota.open 寫進去）；再點收起 → 鍵被刪掉；重開面板記得手動展開過的那組
+#   ③ 全部展開 → 中間 .sc 有垂直捲動（scrollHeight＞clientHeight、真的捲得動）、沒有任何橫向捲動、面板與底部「看方案」都在畫面內
+#   ④ 上限 0 的項目不寫「不開放」：寫最低有開的方案＋「會員」（訪客 → 註冊會員；註冊會員 → Plus 會員；Plus 也沒開 → Pro 會員）
+#   ⑤ 只有一組時直接展開
+#   截圖：TW_ACCTM4_SHOTS=<資料夾>（390 寬：收起／展開一組／全部展開捲到中段）
+Q1010_PLANS = [
+    {"id": "guest", "name": "訪客", "feats": {}, "lims": {}, "builtin": True, "price": 0, "period": "month"},
+    {"id": "free", "name": "免費會員", "feats": {}, "lims": {"ind.3d": 0, "stock.ai": 0}, "builtin": True, "price": 0, "period": "month", "dq": 40},
+    {"id": "plus", "name": "Plus", "feats": {}, "lims": {"stock.ai": 0}, "builtin": False, "price": 299, "period": "month", "dq": 300},
+    {"id": "pro", "name": "Pro", "feats": {}, "lims": {}, "builtin": False, "price": 549, "period": "month"},
+]
+# 訪客：照 site/plan_presets.js 的訪客範本（15 項每日次數＋自選／名單數量上限，含 0）
+Q1010_GUEST = {"who": "guest", "plan": "guest", "planName": "訪客", "dq": 15,
+               "feats": {"watch.tabs": 0, "watch.size": 0, "mkt.grp.pick": 5, "explore.list.n": 5, "mkt.cand.n": 3, "etf.returns.n": 0},
+               "lims": {"flow.sankey.drill": 3, "flow.inst.filter": 5, "earn.tab": 3, "explore.filter": 2, "etf.calendar.tab": 3, "etf.list.tab": 0,
+                        "etf.list.filter": 0, "season.pick": 3, "etf.top3": 3, "etf.returns": 0, "etf.list": 0, "ind.3d": 0, "ind.rel": 0, "stock.ai": 0, "events": 3,
+                        "grp.mlcc": 2}}   # 族群觀測：跟桌機頁首「本頁限制」同口徑，不列進面板
+Q1010_FREE = {"who": "member", "plan": "free", "planName": "免費會員", "dq": 40, "feats": {},
+              "lims": {"ind.3d": 0, "stock.ai": 0, "heat.detail": 10, "stock.page": 10}}
+Q1010_ONE = {"who": "member", "plan": "free", "planName": "免費會員", "dq": None,
+             "feats": {k: 9999 for k in ("watch.tabs", "watch.size", "mkt.grp.pick", "explore.list.n", "mkt.cand.n", "etf.returns.n")},   # 數量類一律不限 → 只剩產業地圖一組
+             "lims": {"ind.3d": 0, "ind.rel": 5}}
+
+Q1010_STATE = """() => { const d = document.getElementById('m4Quota'); if (!d || d.hidden) return null;
+    const V = (e) => !!e && e.getClientRects().length > 0, sc = d.querySelector('.sc'), bx = d.querySelector('.bx'), ft = d.querySelector('.ft');
+    const gs = [...d.querySelectorAll('.qg')].map(g => { const h = g.querySelector('.qgh'), b = g.querySelector('.qgb');
+      return { k: g.dataset.pg, t: h.querySelector('.t').textContent, n: h.querySelector('small').textContent, ex: h.getAttribute('aria-expanded') === 'true',
+               vis: V(b), rows: [...b.querySelectorAll('.qi')].filter(V).length, all: b.querySelectorAll('.qi').length, hh: Math.round(h.getBoundingClientRect().height) }; });
+    const plans = {}; d.querySelectorAll('.qi').forEach(q => { const c = q.querySelector('.qplan'); if (c) plans[q.dataset.id] = c.textContent.trim(); });
+    const first = d.querySelector('.sc .qi');
+    let lsv = null; try { lsv = localStorage.getItem('tw.m4quota.open'); } catch (e) {}
+    const R = bx.getBoundingClientRect(), F = ft.getBoundingClientRect();
+    return { gs, plans, firstAll: !!first && first.classList.contains('all'), txt: d.textContent, ls: lsv,
+      scH: sc.scrollHeight, scC: sc.clientHeight, scW: sc.scrollWidth, scCW: sc.clientWidth, oy: getComputedStyle(sc).overflowY, ox: getComputedStyle(sc).overflowX,
+      bxW: bx.scrollWidth - bx.clientWidth, pageW: document.documentElement.scrollWidth - innerWidth, bxBot: Math.round(R.bottom), bxTop: Math.round(R.top), ftBot: Math.round(F.bottom), H: innerHeight,
+      plColor: (d.querySelector('.qplan') ? getComputedStyle(d.querySelector('.qplan')).color : ''), plFs: (d.querySelector('.qplan') ? parseFloat(getComputedStyle(d.querySelector('.qplan')).fontSize) : 0) }; }"""
+
+
+def _q1010_open(pg):
+    if not _am4_open(pg):
+        pg.wait_for_timeout(800)
+        _am4_open(pg)
+    pg.wait_for_timeout(250)
+    pg.locator("#acctMenu [data-m=quota]").tap(timeout=8000)
+    return wait_until(pg, Q1010_STATE, 3000)
+
+
+def t_m4_quota_1010(b, base, code):
+    T = "額度上限1010"
+    shots = os.environ.get("TW_ACCTM4_SHOTS")
+    if shots:
+        pathlib.Path(shots).mkdir(parents=True, exist_ok=True)
+    for W, H in [(360, 780), (390, 844), (430, 932)]:
+        errs: list = []
+        c, _ = _acctm4_ctx(b, "guest", plans=Q1010_PLANS, perm=Q1010_GUEST, vp=(W, H))
+        pg = c.new_page()
+        pg.on("pageerror", lambda e: errs.append(str(e)))
+        pg.goto(base + "#overview", wait_until="domcontentloaded")
+        ready = wait_until(pg, "() => document.documentElement.classList.contains('m4') && !!document.querySelector('#m4Tools #acctBtn') && window.TwPerm && TwPerm.state().src === 'server' && TwPerm.lim('quota.all') === 15", 15000)
+        if not ok(f"【{T} {W}】訪客：手機版、權限到位", bool(ready)):
+            c.close()
+            continue
+        pg.wait_for_timeout(300)
+        s0 = _q1010_open(pg)
+        if not ok(f"【{T} {W}】點頭像 →「額度上限」打開面板", bool(s0)):
+            c.close()
+            continue
+        pg.wait_for_function("() => window.TwPricing && TwPricing.state().src === 'server'", timeout=5000)
+        s0 = pg.evaluate(Q1010_STATE)
+        names = [g["t"] for g in s0["gs"]]
+        ok(f"【{T} {W}】全站每日額度排在最上面（不在任何一組裡）", s0["firstAll"], s0["txt"][:120])
+        ok(f"【{T} {W}】依母分頁分組：{names}",
+           len(names) >= 6 and all(x in names for x in ("資金流向", "產業地圖", "個股", "ETF", "自選", "選股策略", "市場明細", "週期統計")), names)
+        ok(f"【{T} {W}】每組標題寫項目數（「N 項」）且加總＝全部有限制的項目 21 項",
+           all(re.fullmatch(r"\d+ 項", g["n"]) for g in s0["gs"]) and sum(int(g["n"].split()[0]) for g in s0["gs"]) == 21, [(g["t"], g["n"]) for g in s0["gs"]])
+        ok(f"【{T} {W}】預設全部收起（aria-expanded=false、組內一列都看不到）", all(not g["ex"] and not g["vis"] and g["rows"] == 0 for g in s0["gs"]), s0["gs"])
+        ok(f"【{T} {W}】分組標題高 ≥ 44（手指好點）", all(g["hh"] >= 44 for g in s0["gs"]), [g["hh"] for g in s0["gs"]])
+        grp = pg.evaluate("() => ({ known: !!(TwFeatures.byId('grp.mlcc')), rows: [...document.querySelectorAll('#m4Quota .qi')].filter(q => q.dataset.id.startsWith('grp.')).length })")
+        ok(f"【{T} {W}】族群觀測（grp.mlcc 有每日上限）不列進面板（跟桌機同口徑）", grp["rows"] == 0, grp)
+        ok(f"【{T} {W}】面板任何地方都沒有「不開放」三個字", "不開放" not in s0["txt"], s0["txt"][:200])
+        # 模擬方案：註冊會員把 3D、AI 關掉；Plus 開 3D、AI 仍關 → 訪客看到 3D「Plus 會員」、AI「Pro 會員」、其他「註冊會員」
+        want = {"ind.3d": "Plus 會員", "ind.rel": "註冊會員", "stock.ai": "Pro 會員", "etf.list": "註冊會員", "watch.tabs": "註冊會員", "etf.returns.n": "註冊會員"}
+        ok(f"【{T} {W}】上限 0 的項目寫最低有開的方案（往上找第一個有開的）：{ {k: s0['plans'].get(k) for k in want} }",
+           all(s0["plans"].get(k) == v for k, v in want.items()) and len(s0["plans"]) == 10, s0["plans"])
+        ok(f"【{T} {W}】方案膠囊不是紅色、字 ≥ 12px", s0["plColor"] and "255, 107, 122" not in s0["plColor"] and s0["plFs"] >= 12, (s0["plColor"], s0["plFs"]))
+        if shots and W == 390:
+            pg.screenshot(path=str(pathlib.Path(shots) / "q1010_390_collapsed.png"))
+        # ② 點「產業地圖」那組 → 展開、內容出現、localStorage 寫入
+        pg.locator("#m4Quota .qgh[data-qg=industry]").tap()
+        pg.wait_for_timeout(200)
+        s1 = pg.evaluate(Q1010_STATE)
+        g1 = next(g for g in s1["gs"] if g["k"] == "industry")
+        ok(f"【{T} {W}】點「產業地圖」→ 展開、看得到 {g1['all']} 列（3D 剖析圖、供應鏈關聯圖）", g1["ex"] and g1["vis"] and g1["rows"] == g1["all"] == 2, g1)
+        ok(f"【{T} {W}】其他組仍收起", all(not g["ex"] for g in s1["gs"] if g["k"] != "industry"), [g["k"] for g in s1["gs"] if g["ex"]])
+        ok(f"【{T} {W}】手動展開記進 tw.m4quota.open", s1["ls"] and "industry" in json.loads(s1["ls"]), s1["ls"])
+        if shots and W == 390:
+            pg.screenshot(path=str(pathlib.Path(shots) / "q1010_390_open_one.png"))
+        # 關掉再開：記得產業地圖展開
+        pg.locator("#m4Quota [data-x]").tap(); pg.wait_for_timeout(200)
+        s2 = _q1010_open(pg)
+        ok(f"【{T} {W}】關掉重開：產業地圖仍展開、其他收起",
+           bool(s2) and all(g["ex"] == (g["k"] == "industry") for g in s2["gs"]), s2 and [(g["k"], g["ex"]) for g in s2["gs"]])
+        # 再點一次收起 → 鍵刪掉
+        pg.locator("#m4Quota .qgh[data-qg=industry]").tap(); pg.wait_for_timeout(150)
+        s3 = pg.evaluate(Q1010_STATE)
+        ok(f"【{T} {W}】再點收起 → 內容藏起來、tw.m4quota.open 刪掉", not next(g for g in s3["gs"] if g["k"] == "industry")["vis"] and s3["ls"] is None, s3["ls"])
+        # ③ 全部展開 → 垂直捲動、沒有橫向捲動
+        for k in [g["k"] for g in s3["gs"]]:
+            pg.locator(f"#m4Quota .qgh[data-qg='{k}']").tap()
+        pg.wait_for_timeout(250)
+        s4 = pg.evaluate(Q1010_STATE)
+        ok(f"【{T} {W}】全部展開：每組都展開、21 列全看得到", all(g["ex"] for g in s4["gs"]) and sum(g["rows"] for g in s4["gs"]) == 21, [(g["k"], g["rows"]) for g in s4["gs"]])
+        ok(f"【{T} {W}】內容太長 → 面板中間有垂直捲軸（{s4['scH']}＞{s4['scC']}、overflow-y {s4['oy']}）",
+           s4["scH"] > s4["scC"] + 20 and s4["oy"] in ("auto", "scroll"), (s4["scH"], s4["scC"], s4["oy"]))
+        ok(f"【{T} {W}】沒有橫向捲動（面板 {s4['scW']}≤{s4['scCW']}、整頁 {s4['pageW']}≤0）",
+           s4["scW"] <= s4["scCW"] + 1 and s4["ox"] == "hidden" and s4["bxW"] <= 1 and s4["pageW"] <= 1, (s4["scW"], s4["scCW"], s4["ox"], s4["bxW"], s4["pageW"]))
+        ok(f"【{T} {W}】面板與底部「看方案」都在畫面內（底 {s4['ftBot']}≤{s4['H']}）", s4["bxTop"] >= 0 and s4["bxBot"] <= s4["H"] + 1 and s4["ftBot"] <= s4["H"], s4)
+        top0 = pg.evaluate("() => document.querySelector('#m4Quota .sc').scrollTop")
+        box = pg.evaluate("() => { const r = document.querySelector('#m4Quota .sc').getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2 }; }")
+        # 用手指往上滑（CDP 觸控事件）；不支援時退回 scrollBy
+        try:
+            cdp = c.new_cdp_session(pg)
+            x, y = box["x"], box["y"]
+            cdp.send("Input.dispatchTouchEvent", {"type": "touchStart", "touchPoints": [{"x": x, "y": y + 120}]})
+            for i in range(1, 9):
+                cdp.send("Input.dispatchTouchEvent", {"type": "touchMove", "touchPoints": [{"x": x, "y": y + 120 - i * 30}]})
+            cdp.send("Input.dispatchTouchEvent", {"type": "touchEnd", "touchPoints": []})
+        except Exception:  # noqa: BLE001
+            pg.evaluate("() => document.querySelector('#m4Quota .sc').scrollBy(0, 240)")
+        pg.wait_for_timeout(500)
+        top1 = pg.evaluate("() => document.querySelector('#m4Quota .sc').scrollTop")
+        ok(f"【{T} {W}】手指往上滑 → 面板內容真的捲動（scrollTop {top0}→{top1}）、頁面沒跟著捲", top1 > top0 + 50 and pg.evaluate("() => scrollY") == 0, (top0, top1))
+        if shots and W == 390:
+            pg.screenshot(path=str(pathlib.Path(shots) / "q1010_390_scroll.png"))
+        ok(f"【{T} {W}】沒有 JS 錯誤", not errs, errs[:3])
+        c.close()
+    # ④ 註冊會員：Plus 有開 → 「Plus 會員」；Plus 也是 0 → 「Pro 會員」
+    c, _ = _acctm4_ctx(b, "free", plans=Q1010_PLANS, perm=Q1010_FREE, vp=(390, 844))
+    pg = c.new_page()
+    pg.goto(base + "#overview", wait_until="domcontentloaded")
+    if ok(f"【{T} 390】註冊會員：權限到位", bool(wait_until(pg, "() => document.documentElement.classList.contains('m4') && !!document.querySelector('#m4Tools #acctBtn') && window.TwPerm && TwPerm.state().src === 'server' && !!TwAccount.user()", 15000))):
+        pg.wait_for_timeout(300)
+        _q1010_open(pg)
+        pg.wait_for_function("() => window.TwPricing && TwPricing.state().src === 'server'", timeout=5000)
+        pg.wait_for_timeout(200)
+        s = pg.evaluate(Q1010_STATE)
+        ok(f"【{T} 390】註冊會員：3D 剖析圖 Plus 有開 →「Plus 會員」；AI 分析 Plus 也沒開 →「Pro 會員」（{s['plans']}）",
+           s["plans"].get("ind.3d") == "Plus 會員" and s["plans"].get("stock.ai") == "Pro 會員", s["plans"])
+    c.close()
+    # ⑥ 「主題外觀」（features 'theme'）被方案關掉：手機帳號選單的版面風格三格跟桌機一樣上鎖 —— 標題列有鎖頭、三格被擋、點了外觀不變
+    pt = dict(Q1010_GUEST, feats=dict(Q1010_GUEST["feats"], theme=False))
+    c, _ = _acctm4_ctx(b, "guest", plans=Q1010_PLANS, perm=pt, vp=(390, 844))
+    pg = c.new_page()
+    pg.goto(base + "#overview", wait_until="domcontentloaded")
+    if ok(f"【{T} 390】主題外觀關掉：權限到位", bool(wait_until(pg, "() => document.documentElement.classList.contains('m4') && !!document.querySelector('#m4Tools #acctBtn') && window.TwPerm && TwPerm.state().src === 'server' && !TwPerm.can('theme')", 15000))):
+        pg.wait_for_timeout(300)
+        _am4_open(pg)
+        lk = wait_until(pg, """() => { const bs = [...document.querySelectorAll('#acctMenu [data-m=sty]')], lb = document.querySelector('#acctMenu .m4styrow > .t');
+            return bs.length === 2 && bs.every(e => e.dataset.plkb === 'block') && lb && lb.dataset.plkb === 'mark'
+              ? { lock: getComputedStyle(lb, '::after').content, op: getComputedStyle(bs[0]).opacity } : null; }""", 3000)
+        if shots:
+            pg.screenshot(path=str(pathlib.Path(shots) / "q1010_390_theme_locked.png"))
+        ok(f"【{T} 390】版面風格兩格被鎖（10-10 休閒拿掉）（data-plkb=block）、標題列有鎖頭 🔒", bool(lk) and "🔒" in (lk or {}).get("lock", ""), lk)
+        before = pg.evaluate("() => { let v = null; try { v = localStorage.getItem('tw.theme4'); } catch (e) {} return { a: document.documentElement.dataset.theme4 || '', ls: v, cur: [...document.querySelectorAll('#acctMenu [data-m=sty]')].find(e => e.getAttribute('aria-checked') === 'true').dataset.sty }; }")
+        other = pg.evaluate("(cur) => [...document.querySelectorAll('#acctMenu [data-m=sty]')].map(e => e.dataset.sty).find(k => k !== cur)", before["cur"])
+        pg.locator(f"#acctMenu [data-m=sty][data-sty='{other}']").tap(force=True)
+        pg.wait_for_timeout(300)
+        after = pg.evaluate("() => { let v = null; try { v = localStorage.getItem('tw.theme4'); } catch (e) {} const t = document.getElementById('subToast'); return { a: document.documentElement.dataset.theme4 || '', ls: v, toast: (t && !t.hidden ? t.textContent : '') + (/此功能需開通/.test(document.body.innerText) ? '（卡片：需開通）' : '') }; }")
+        ok(f"【{T} 390】點被鎖的風格「{other}」→ 外觀與 tw.theme4 都沒變、跳「此功能需開通」提示",
+           after["a"] == before["a"] and after["ls"] == before["ls"] and "需開通" in after["toast"], (before, after))
+    c.close()
+    # ⑤ 只有一組 → 直接展開
+    c, _ = _acctm4_ctx(b, "free", plans=Q1010_PLANS, perm=Q1010_ONE, vp=(390, 844))
+    pg = c.new_page()
+    pg.goto(base + "#overview", wait_until="domcontentloaded")
+    if ok(f"【{T} 390】只有一組：權限到位", bool(wait_until(pg, "() => document.documentElement.classList.contains('m4') && !!document.querySelector('#m4Tools #acctBtn') && window.TwPerm && TwPerm.state().src === 'server' && !!TwAccount.user()", 15000))):
+        pg.wait_for_timeout(300)
+        s = _q1010_open(pg)
+        ok(f"【{T} 390】只有「產業地圖」一組 → 預設就展開、2 列看得到", bool(s) and len(s["gs"]) == 1 and s["gs"][0]["ex"] and s["gs"][0]["rows"] == 2, s and s["gs"])
+    c.close()
 
 
 def _am4_open(pg):
@@ -66480,7 +66828,7 @@ def t_acct_menu_1009(b, base, code):
         # ④ 額度頁：項目數＝該身分有上限的功能數
         _am4_open(pg)
         exp = pg.evaluate("""() => { const p = TwPerm, F = TwFeatures, st = p.state();
-            const daily = Object.keys(st.lims || {}).filter(id => { const f = F.byId(id); return f && f.kind !== 'limit' && p.lim(id) !== Infinity; }).length;
+            const daily = Object.keys(st.lims || {}).filter(id => { const f = F.byId(id); return f && f.kind !== 'limit' && f.cat !== 'grp' && p.lim(id) !== Infinity; }).length;
             const all = p.lim('quota.all') !== Infinity ? 1 : 0;
             const cnt = F.list.filter(f => f.kind === 'limit' && p.limit(f.id, f.max) < f.max).length;
             return { daily, all, cnt, n: daily + all + cnt }; }""")
@@ -66531,12 +66879,12 @@ def t_acct_menu_1009(b, base, code):
                   sw: document.documentElement.scrollWidth <= innerWidth + 1 }; }"""
 
             def seg_ok(tag, q):
-                ok(f"【{T}】{who}{tag}：版面風格是三格分段（radiogroup，沒有收合列／直排子清單），三格都看得到", q["n"] == 3 and q["vis"] == 3 and not q["grp"], q)
+                ok(f"【{T}】{who}{tag}：版面風格是兩格分段（10-10 休閒拿掉；radiogroup，沒有收合列／直排子清單），兩格都看得到", q["n"] == 2 and q["vis"] == 2 and not q["grp"], q)
                 ok(f"【{T}】{who}{tag}：三格同一排（top 差 ≤ 2：{q['tops']}）、等寬（{q['ws']}）、每格高 ≥ 40（{q['hs']}）",
                    q["tops"] and max(q["tops"]) - min(q["tops"]) <= 2 and max(q["ws"]) - min(q["ws"]) <= 1 and min(q["hs"]) >= 40, q)
                 ok(f"【{T}】{who}{tag}：字 ≥ 12（{q['fs']}、標題 {q['lblFs']}）、不截字不換行（{q['txt']}）、分段不超出選單、沒有橫向捲軸",
                    min(q["fs"]) >= 12 and q["lblFs"] >= 12 and not q["clip"] and not q["lines"] and q["segR"] <= q["menuR"] and q["sw"]
-                   and q["txt"] == ["親和休閒", "科技 HUD", "專業有力"], q)
+                   and q["txt"] == ["科技 HUD", "專業有力"], q)
                 ok(f"【{T}】{who}{tag}：選中格實心高亮（跟沒選的底色不同）、只有一格選中＝目前風格",
                    q["on"] == [q["t4"]] and q["onBg"] and q["onBg"] != q["offBg"], q)
 
@@ -66945,7 +67293,7 @@ def _etfl_free_page(pg, T):
     ok(f"{T}【免費會員】參數控制反灰（透明度 ≤ .6）、游標 not-allowed", dim[0] <= 0.6 and dim[1] == "not-allowed", dim)
     codes0 = pg.evaluate(ETFL_CODES)
     tries = [("金額 200 萬", "#incAmtSeg button[data-v='2000000']"), ("月領", "#incMode button[data-v='m']"), ("範圍 債券型", "#incScope button[data-v='bond']"),
-             ("二代健保", "#incNhi"), ("自訂金額框", "#incAmt"), ("報酬期間", "#etfIncRng"), ("組合分頁", "#incTabs button[data-v='c']"),
+             ("二代健保", "#incNhi"), ("自訂金額框", "#incAmt"), ("報酬期間", "#etfIncRng"),
              ("右側清單取消勾選", "#incList .ilr.in > input[type=checkbox]"), ("回前 5", "#incReset")]
     for name, sel in tries:
         loc = pg.locator(sel).first
@@ -66961,6 +67309,11 @@ def _etfl_free_page(pg, T):
     pg.keyboard.type("3000000"); pg.keyboard.press("Enter"); pg.wait_for_timeout(300)
     ok(f"{T}【免費會員】勾選框還是勾著、金額框與二代健保停用（鍵盤打字也改不了）",
        pg.evaluate("() => document.querySelector('#incList .ilr.in > input').checked && document.getElementById('incAmt').disabled && document.getElementById('incNhi').disabled") and pg.evaluate(ETFL_K) == k0)
+    # 10-10 Andy：「這邊是可以看的」→ 單檔 ETF／組合 A～E 分頁免費會員也能切（看，不改計算條件）
+    pg.click("#incTabs button[data-v='c']"); pg.wait_for_timeout(1500)
+    cb = pg.evaluate("() => ({ on: (document.querySelector('#incTabs button.on') || {}).textContent || '', n: document.querySelectorAll('#incCombos .combo').length, pop: false })")
+    ok(f"{T}【免費會員】單檔／組合分頁可以切（點組合 A 真的出現組合）、沒有彈出層", cb["n"] >= 1 and not pg.evaluate(ETFL_POP), cb)
+    pg.click("#incTabs button[data-v='s']"); pg.wait_for_timeout(1200)
     # 排序不算參數：照樣能換
     pg.click("#incSort button[data-v='tr']"); pg.wait_for_timeout(500)
     k2 = pg.evaluate(ETFL_K)

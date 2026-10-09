@@ -64,7 +64,7 @@ window.TW_LEGAL = {
   PAY_ONLINE: false,         // 線上付款上線 → true：退款頁改寫「帳號選單自助取消」；⚠ 同時結帳頁必須有七日解除權例外的勾選同意
   PAY_PROVIDER: '',          // 金流服務商名稱（上線時填，例如公司全名）；空的＝寫「第三方金流服務商（上線時於本頁公告名稱）」
   APP_STORE_IAP: false,      // 有 App 且在 App Store／Google Play 內購時才開；目前沒有 App
-  SELF_DELETE: false,        // 帳號選單「刪除帳號」上線（claude/acct-menu）→ true：隱私權政策改寫「可於帳號選單自行刪除」
+  SELF_DELETE: true,         // 10-10 Andy 選 B「都能直接刪除」：帳號選單可自行刪除；隱私權政策改寫「可於帳號選單自行刪除」
 
   /* ---- 總開關 ---- */
   enabled: false,

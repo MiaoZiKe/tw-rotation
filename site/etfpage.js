@@ -279,8 +279,8 @@
 #v-etf .incctl input[type=number]{width:104px;height:30px;border-radius:8px;border:1px solid var(--line-2);background:var(--panel-3);color:var(--ink);padding:0 8px;font:13px var(--mono);box-sizing:border-box}
 #v-etf .incctl label.chk{display:flex;align-items:center;gap:6px;font-size:13px;color:var(--ink-2);cursor:pointer}
 /* 2026-10-10 參數鎖（etf.inc.params 關）：整組變灰、游標禁止；容器的子節點不吃滑鼠 → 點哪裡都落在容器上，由 document 捕獲階段跳升級卡 */
-#v-etf #etfInc[data-inclk] :is(#incPM .incctl>.grp,#incPM .incctl>label.chk,#incTabs,#incChips,#incPX .cxctl>.grp,#incPX .cmpw,#cxChips){opacity:.5;filter:grayscale(.4);cursor:not-allowed}
-#v-etf #etfInc[data-inclk] :is(#incPM .incctl>.grp,#incPM .incctl>label.chk,#incTabs,#incChips,#incPX .cxctl>.grp,#incPX .cmpw,#cxChips) *{pointer-events:none!important}
+#v-etf #etfInc[data-inclk] :is(#incPM .incctl>.grp,#incPM .incctl>label.chk,#incChips,#incPX .cxctl>.grp,#incPX .cmpw,#cxChips){opacity:.5;filter:grayscale(.4);cursor:not-allowed}
+#v-etf #etfInc[data-inclk] :is(#incPM .incctl>.grp,#incPM .incctl>label.chk,#incChips,#incPX .cxctl>.grp,#incPX .cmpw,#cxChips) *{pointer-events:none!important}
 #v-etf #etfInc[data-inclk] :is(#incList .ilr>input[type=checkbox],#incReset,#incDetCx,#incToCx,#m4EtfSet-inc){opacity:.5;cursor:not-allowed}
 #v-etf .inclknote{display:inline-flex;align-items:center;gap:4px;font-size:12px;font-weight:600;color:var(--amber,#f5b942);white-space:nowrap}
 #v-etf .inclknote.m4o{display:none}
@@ -1497,7 +1497,8 @@ html.m4 #v-etf #etfInc[data-inclk] .inclknote.m4o{display:flex;margin:-4px 0 8px
     return P.can(LK_KEY);
   }
   /* 鎖住的控制項（容器：整組連子節點一起停用；單顆：checkbox／按鈕本身）*/
-  const LK_BOX = ['#incPM .incctl > .grp', '#incPM .incctl > label.chk', '#incTabs', '#incChips', '#incPX .cxctl > .grp', '#incPX .cmpw', '#cxChips'];
+  /* 2026-10-10 Andy（截單檔 ETF／組合 A～E 那排）：「這邊是可以看的」→ #incTabs 不鎖，免費會員也能切單檔／組合（只是看，不改計算條件）*/
+  const LK_BOX = ['#incPM .incctl > .grp', '#incPM .incctl > label.chk', '#incChips', '#incPX .cxctl > .grp', '#incPX .cmpw', '#cxChips'];
   const LK_ONE = ['#incList .ilr > input[type=checkbox]', '#incReset', '#incDetCx', '#incToCx', '#m4EtfSet-inc', '#m4EtfSegs[data-p="inc"] button'];
   const LK_SEL = LK_BOX.concat(LK_ONE).join(',');
   const LK_NOTE = 'Plus 以上可自訂參數';

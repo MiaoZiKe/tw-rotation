@@ -615,5 +615,7 @@
      act() 同一個對象不重算，所以兩邊都呼叫不會多扣；被擋時這裡先把網址換回去，route() 讀到的就是上一層。*/
   window.addEventListener('hashchange', () => { routeOkAll(location.hash); });
   window.TwQuota = { act, pick, pickBlock, routeOk: routeOkAll, heatLinkOk, heatGo, actUnit, UNIT_KINDS, used: (id) => (load().k[id] || []).slice(),
-    state: () => load(), limit: limitOf, evaluate: () => evaluate(), day: tpeDay, pageKey, unitKey: (id, h) => unitKey(window.TwFeatures && window.TwFeatures.byId(id), h || location.hash || ''), unitKind: (id) => unitKind(window.TwFeatures && window.TwFeatures.byId(id)) };
+    state: () => load(), limit: limitOf, evaluate: () => evaluate(), day: tpeDay, pageKey, unitKey: (id, h) => unitKey(window.TwFeatures && window.TwFeatures.byId(id), h || location.hash || ''), unitKind: (id) => unitKind(window.TwFeatures && window.TwFeatures.byId(id)),
+    /* 2026-10-10 手機額度上限面板（acctm4.js）依母分頁分組：沿用這裡的 PAGE_OF／CAT_HEAD 判斷，不另寫一套（只多匯出，不改行為）*/
+    onPage };
 })();

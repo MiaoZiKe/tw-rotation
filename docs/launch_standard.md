@@ -25,3 +25,4 @@ B 類頁面頂端已經加上一行小字：「以下為依公開資料統計計
 6. 三個帳號開兩步驟驗證（Google、GitHub、Cloudflare）；異常通知寄到 kcq01010909（Gmail）。
 7. 全站備份跑過一次並確認還原可用（`docs/BACKUP_RUNBOOK.md`）。
 8. 客服信箱另開，填進條款與隱私權政策。
+9. 法律同意橫幅打開：`site/legal_config.js` 的 `enabled` 改成 true，`effective_date` 改成上架日（10-10 Andy：「上架再開」）。打開前先修兩個小瑕疵：手機橫幅下方多空 114px、法律頁時蓋住「重點一覽」。
