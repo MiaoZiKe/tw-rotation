@@ -601,6 +601,8 @@
     if (y && y !== x) { history.replaceState(history.state, '', flatHref(y)); paintTitle(); }
   }
 
+  const SUB_LOCK = { 'etf-cx': 'etf.inc.comp' };   // 子頁格 → 功能鍵（features.js）；沒列的格不掛鎖
+  ['tw:perm', 'tw:grants', 'tw:account'].forEach((ev) => window.addEventListener(ev, () => { if (isM()) paintTitle(); }));
   function paintTitle() {
     const N = nav(); if (!title || !N) return;
     const pg = curPage(), P = N.PAGES[pg];
@@ -617,7 +619,11 @@
     const onK = flat ? (fx && fx.k) : (s && s.k);
     if (subs.length) {
       /* 子頁頁籤（底線頁籤）：頁名縮成小字放上面，下面一排頁籤，選中的高亮；2026-10-09 起每格等寬填滿左右（mobile4.css 第 18 節），不橫捲 */
-      const want = `<small class="m4pgn">${esc(P.t)}</small><nav class="m4subtabs n${subs.length}" role="tablist">${subs.map((x) => `<button type="button" role="tab" data-h="${x.h}" data-sub="${x.k}" class="${onK === x.k ? 'on' : ''}" aria-selected="${onK === x.k}" title="${esc(x.t)}">${esc(x.t)}</button>`).join('')}</nav>`;
+      /* ★ 2026-10-10（網頁手機同步稽核第 8 條）：子頁格的方案鎖（目前只有 ETF「複利試算」＝ etf.inc.comp，10-10 改付費）。
+         同網頁版 #incMain 那顆分頁鈕（etfpage.js cmpLkPaint）：反灰＋格內小字「🔒 Plus 以上」；照樣點得進去（進去看到的是 perm.js 的反灰示意），不跳視窗。*/
+      const lkOf = (x) => { const k = SUB_LOCK[x.k], P = window.TwPerm; return !!(k && P && P.can && !P.can(k)); };
+      const want = `<small class="m4pgn">${esc(P.t)}</small><nav class="m4subtabs n${subs.length}" role="tablist">${subs.map((x) => { const lk = lkOf(x);
+        return `<button type="button" role="tab" data-h="${x.h}" data-sub="${x.k}" class="${onK === x.k ? 'on' : ''}${lk ? ' m4lk' : ''}" aria-selected="${onK === x.k}" title="${esc(x.t)}${lk ? '（Plus 以上可查看）' : ''}"${lk ? ' data-m4lk="1"' : ''}>${lk ? `<span>${esc(x.t)}</span><small>🔒 Plus 以上</small>` : esc(x.t)}</button>`; }).join('')}</nav>`;
       if (title.innerHTML !== want) {
         title.innerHTML = want;
         $$('.m4subtabs button', title).forEach((b) => { b.onclick = () => { if (location.hash !== b.dataset.h) location.hash = b.dataset.h; else syncFlat(); }; });
@@ -745,9 +751,14 @@
   const esc = (s) => String(s == null ? '' : s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   const isM = () => window.innerWidth <= MAX && root.classList.contains('m4');
   const kindNow = () => { const b = $('#mktSeg2 button.on'); return (b && b.dataset.k) || ((location.hash || '').split('/')[1]) || 'updown'; };
+  /* ★ 2026-10-10（網頁手機同步稽核第 5 條）：段名跟網頁版用同一份 —— app.js 的 chainLabel（industry_map.json 的鏈名，
+     「傳產與內需／基礎建設與能源／其他產業別」）。下面這張只是 App 還沒好時的備援，名稱照抄 app.js CHAIN_NAME，不另取短名。
+     分段鍵也照網頁 maSections：groups_today 的 chain，沒有 chain 的歸 industry；groups_today 查不到的 ind_ 開頭歸 industry、其餘 other。*/
   const CHAIN = { semiconductor: '半導體', ai_server: 'AI 伺服器', electronics: '一般電子', software: '軟體與資訊服務', financial: '金融',
-    traditional: '傳產', infrastructure: '基礎建設', industry: '法定產業別', _other: '其他族群' };
+    traditional: '傳產', infrastructure: '基礎建設', industry: '其他產業別', other: '其他族群' };
   const CHAIN_ORDER = Object.keys(CHAIN);
+  const chainName = (k) => { const A = window.App, t = A && A.chainLabel ? A.chainLabel(k) : null; return t && t !== k ? t : (CHAIN[k] || k); };
+  const maPct20 = (c) => { const m = /MA20\s*([\d.]+)%/.exec(($('.v', c) || {}).textContent || ''); return m ? +m[1] : NaN; };
   /* 收合段的開關只記在這一次開頁裡（Andy 10-04：市場明細的設定切分頁、離開再回來一律回預設，所以不寫 localStorage） */
   const OPEN = new Map();
   let chainOf = null;   // group_id → chain（groups_today）
@@ -806,7 +817,7 @@
       if (!window.App || !window.App.load || foldBusy) return;
       foldBusy = true;
       Promise.resolve(window.App.load('groups_today', { fallback: [] })).then((gt) => {
-        chainOf = {}; (gt || []).forEach((g) => { if (g && g.group_id) chainOf[g.group_id] = g.chain || '_other'; });
+        chainOf = {}; (gt || []).forEach((g) => { if (g && g.group_id) chainOf[g.group_id] = g.chain || 'industry'; });
       }).catch(() => { chainOf = {}; }).then(() => { foldBusy = false; if (isM()) wireMaFolds(); });
       return;
     }
@@ -814,7 +825,7 @@
     if (!wrap) {
       const cards = $$(':scope > .ma[data-gid]', grid); if (!cards.length) return;
       const by = {};
-      cards.forEach((c) => { const ch = chainOf[c.dataset.gid] || '_other'; (by[ch] = by[ch] || []).push(c); if (!c.title) c.title = cardName(c); wrapName(c); });
+      cards.forEach((c) => { const ch = chainOf[c.dataset.gid] || (String(c.dataset.gid).startsWith('ind_') ? 'industry' : 'other'); (by[ch] = by[ch] || []).push(c); if (!c.title) c.title = cardName(c); wrapName(c); });
       const rank = (k) => { const i = CHAIN_ORDER.indexOf(k); return i < 0 ? 99 : i; };
       const order = Object.keys(by).sort((a, b) => rank(a) - rank(b));
       wrap = document.createElement('div'); wrap.className = 'm4mafolds'; wrap._cards = cards;
@@ -835,9 +846,10 @@
     const hds = $$(':scope > .m4fold', wrap);
     let shown = 0;
     hds.forEach((hd) => {
-      const box = hd.nextElementSibling; let n = 0;
-      $$(':scope > .ma', box).forEach((c) => { const on = !pick.size || pick.has(cardName(c)); if (c.hidden === on) c.hidden = !on; if (on) n++; });
-      hd._n = n; if (n) shown++;
+      const box = hd.nextElementSibling; let n = 0, sum = 0, sn = 0, strong = 0;
+      $$(':scope > .ma', box).forEach((c) => { const on = !pick.size || pick.has(cardName(c)); if (c.hidden === on) c.hidden = !on;
+        if (on) { n++; const v = maPct20(c); if (isFinite(v)) { sum += v; sn++; if (v >= 60) strong++; } } });
+      hd._n = n; hd._avg = sn ? sum / sn : NaN; hd._strong = strong; if (n) shown++;
       if (hd.hidden !== !n) hd.hidden = !n;
     });
     hds.forEach((hd) => {
@@ -845,7 +857,10 @@
       const open = !!hd._n && (shown === 1 ? true : !!OPEN.get(hd.dataset.ch));
       if (box.hidden !== !open) box.hidden = !open;
       if (!hd._n) return;
-      const want = `<span>${esc(CHAIN[hd.dataset.ch] || hd.dataset.ch)}</span><small>${hd._n} 個族群${pick.size ? '（已篩選）' : ''}</small><i aria-hidden="true">${open ? '▾' : '▸'}</i>`;
+      /* 段標題補「平均站上 MA20 %」（同網頁版 maSections 的 .avg；顏色門檻 60／40 也一樣）；勾了篩選就只算勾到的族群 */
+      const av = hd._avg, avc = av >= 60 ? 'up' : av >= 40 ? '' : 'down';
+      const avg = isFinite(av) ? `<b class="m4avg ${avc}" title="平均站上 MA20；≥60%：${hd._strong} 個">平均站上 ${Math.round(av)}%</b>` : '';
+      const want = `<span>${esc(chainName(hd.dataset.ch))}</span><small>${hd._n} 個族群${pick.size ? '（已篩選）' : ''}</small>${avg}<i aria-hidden="true">${open ? '▾' : '▸'}</i>`;
       if (hd.innerHTML !== want) hd.innerHTML = want;
       hd.setAttribute('aria-expanded', open ? 'true' : 'false');
     });
