@@ -144,7 +144,8 @@
     { id: 'events', name: '今日事件中心', cat: 'global', def: true, kind: 'bool', desc: '新聞／法說／總經事件抽屜',
       veil: [['#side'], ['#ovEvents']], mark: [], block: ['#evToggle', '#mmEvents'] },
     { id: 'theme', name: '主題外觀', cat: 'global', def: true, kind: 'bool', desc: '切換深淺色與版面風格（關掉時維持目前外觀）',
-      veil: [], mark: [], block: ['#themeBtn', '#mmTheme', '#t4Btn', '#t4Pop button', '#mmT4 button'] },
+      /* 2026-10-10：手機帳號選單的「版面風格」三格（acctm4.js，只在 html.m4 畫）也照這個開關上鎖；那幾個節點桌機不存在，桌機不受影響 */
+      veil: [], mark: ['#acctMenu .m4styrow > .t'], block: ['#themeBtn', '#mmTheme', '#t4Btn', '#t4Pop button', '#mmT4 button', '#acctMenu [data-m="sty"]'] },
     // ---- 選股探索（2026-10-05）：預設全開；要收費時管理者在 #admin/perm 關「訪客／免費會員」範本
     box('explore.page', 'explore', '選股策略頁（Strategy Lab）', ['#v-explore'], '策略卡片牆與完整名單（整頁）'),
     box('explore.chart', 'explore', '策略卡片牆', ['#slGrid'], '每個策略一張卡、前 3 檔與入選原因'),

@@ -32894,6 +32894,8 @@ SECTIONS = {
     "訪客額度1009":        lambda pg, b, base, code: t_guest_quota_1009(b, base, code),
     # ★ 2026-10-09 Andy：手機帳號選單（site/acctm4.js）—— 六種身分各一次：徽章、無自選、每項導頁、額度頁項目數、刪除帳號二次確認、管理區、客服開關（⚠ --workers 1）
     "帳號選單1009":        lambda pg, b, base, code: t_acct_menu_1009(b, base, code),
+    # ★ 2026-10-10 Andy：「額度上限使用收合功能將每個母分頁內所有有限制的功能標示出來，太長就用拉Bar。不要寫"不開放"…改成plus 會員」（手機 acctm4.js；⚠ --workers 1）
+    "額度上限1010":        lambda pg, b, base, code: t_m4_quota_1010(b, base, code),
     # ★ 2026-10-09 Andy：「部分付費功能…兩個方式開放給他們用，但是有期限且限制次數…重點是得要有曝光」—— 體驗額度（devserver 真的 worker.js；⚠ --workers 1）
     "體驗額度1009":        lambda pg, b, base, code: t_trial_grants_1009(b, base),
     # ★ 2026-10-09 帳本 78、79：手機抽屜站名字樣不被色塊蓋；頂欄 LOGO＝回總覽、抽屜 LOGO＝放大、抽屜站名＝回總覽關抽屜；桌機 LOGO 仍放大
@@ -66300,9 +66302,11 @@ ACCTM4_WHO = {
 }
 
 
-def _acctm4_ctx(b, who, del_status=200, bill=None, desk=False):
-    """bill：/v1/billing/me 要回什麼（None＝依身分給預設；"off"＝回 404，模擬 Worker 還沒部署這支）。desk＝桌機 1440（不觸控）。"""
-    me, perm = ACCTM4_WHO[who]
+def _acctm4_ctx(b, who, del_status=200, bill=None, desk=False, plans=None, perm=None, vp=None):
+    """bill：/v1/billing/me 要回什麼（None＝依身分給預設；"off"＝回 404，模擬 Worker 還沒部署這支）。desk＝桌機 1440（不觸控）。
+    plans／perm：換掉方案清單與 /v1/perm/me 回應（額度上限1010 用）；vp：手機視窗 (寬, 高)，預設 430×932。"""
+    me, perm0 = ACCTM4_WHO[who]
+    perm = perm or perm0
     now = int(time.time() * 1000)
     st = {"me": me, "del": 0, "chg": []}
     paid = who in ("plus", "pro")
@@ -66311,7 +66315,7 @@ def _acctm4_ctx(b, who, del_status=200, bill=None, desk=False):
                 "firstPaid": now - 2 * 86400000 if paid else 0, "refundDays": 7, "trialUsed": False, "refundUsed": False,
                 "canRefund": paid, "refundWhy": "" if paid else "not_paid", "cancel": None, "refund": None}
     st["bill"] = bill
-    plans = [{"id": "guest", "name": "訪客", "feats": {}, "lims": {}, "builtin": True, "price": 0, "period": "month"},
+    plans = plans or [{"id": "guest", "name": "訪客", "feats": {}, "lims": {}, "builtin": True, "price": 0, "period": "month"},
              {"id": "free", "name": "免費會員", "feats": {}, "lims": {}, "builtin": True, "price": 0, "period": "month", "dq": 10},
              {"id": "plus", "name": "Plus", "feats": {}, "lims": {}, "builtin": False, "price": 299, "period": "month", "dq": 50},
              {"id": "pro", "name": "Pro", "feats": {}, "lims": {}, "builtin": False, "price": 549, "period": "month"}]
@@ -66326,7 +66330,7 @@ def _acctm4_ctx(b, who, del_status=200, bill=None, desk=False):
         if path == "/v1/me":
             out, code = ({"user": m}, 200) if m else ({}, 401)
         elif path == "/v1/perm/me":
-            out = perm if m else ACCTM4_WHO["guest"][1]
+            out = perm if (m or not me) else ACCTM4_WHO["guest"][1]
         elif path == "/v1/plans/public":
             out = {"plans": plans}
         elif path == "/v1/notices":
@@ -66368,7 +66372,7 @@ def _acctm4_ctx(b, who, del_status=200, bill=None, desk=False):
         route.fulfill(status=code, body=json.dumps(out), headers={"access-control-allow-origin": "*", "content-type": "application/json"})
 
     c = (b.new_context(viewport={"width": 1440, "height": 900}) if desk
-         else b.new_context(viewport={"width": 430, "height": 932}, device_scale_factor=2, is_mobile=True, has_touch=True))
+         else b.new_context(viewport={"width": (vp or (430, 932))[0], "height": (vp or (430, 932))[1]}, device_scale_factor=2, is_mobile=True, has_touch=True))
     init = "window.TW_ACCOUNT_OVERRIDE = " + json.dumps({"api": ACCTM4_API}) + ";"
     init += "try { localStorage.setItem('tw.live.on', '0'); } catch (e) {}"
     if me:
@@ -66377,6 +66381,191 @@ def _acctm4_ctx(b, who, del_status=200, bill=None, desk=False):
     c.route("**/fonts.googleapis.com/**", lambda r: r.abort())
     c.route(ACCTM4_API + "/**", handle)
     return c, st
+
+
+# ===================================================================== 額度上限1010（site/acctm4.js 的 #m4Quota；Andy 2026-10-10）
+#   手機（360／390／430、觸控、DPR2）帳號選單 →「額度上限」：
+#   ① 全站每日額度在最上面；下面依母分頁（總覽、資金流向、產業地圖、個股、ETF…）各一個收合區塊，預設全部收起；標題寫分頁名＋項目數
+#   ② 點一組 → 真的展開（aria-expanded、內容列看得到、tw.m4quota.open 寫進去）；再點收起 → 鍵被刪掉；重開面板記得手動展開過的那組
+#   ③ 全部展開 → 中間 .sc 有垂直捲動（scrollHeight＞clientHeight、真的捲得動）、沒有任何橫向捲動、面板與底部「看方案」都在畫面內
+#   ④ 上限 0 的項目不寫「不開放」：寫最低有開的方案＋「會員」（訪客 → 註冊會員；註冊會員 → Plus 會員；Plus 也沒開 → Pro 會員）
+#   ⑤ 只有一組時直接展開
+#   截圖：TW_ACCTM4_SHOTS=<資料夾>（390 寬：收起／展開一組／全部展開捲到中段）
+Q1010_PLANS = [
+    {"id": "guest", "name": "訪客", "feats": {}, "lims": {}, "builtin": True, "price": 0, "period": "month"},
+    {"id": "free", "name": "免費會員", "feats": {}, "lims": {"ind.3d": 0, "stock.ai": 0}, "builtin": True, "price": 0, "period": "month", "dq": 40},
+    {"id": "plus", "name": "Plus", "feats": {}, "lims": {"stock.ai": 0}, "builtin": False, "price": 299, "period": "month", "dq": 300},
+    {"id": "pro", "name": "Pro", "feats": {}, "lims": {}, "builtin": False, "price": 549, "period": "month"},
+]
+# 訪客：照 site/plan_presets.js 的訪客範本（15 項每日次數＋自選／名單數量上限，含 0）
+Q1010_GUEST = {"who": "guest", "plan": "guest", "planName": "訪客", "dq": 15,
+               "feats": {"watch.tabs": 0, "watch.size": 0, "mkt.grp.pick": 5, "explore.list.n": 5, "mkt.cand.n": 3, "etf.returns.n": 0},
+               "lims": {"flow.sankey.drill": 3, "flow.inst.filter": 5, "earn.tab": 3, "explore.filter": 2, "etf.calendar.tab": 3, "etf.list.tab": 0,
+                        "etf.list.filter": 0, "season.pick": 3, "etf.top3": 3, "etf.returns": 0, "etf.list": 0, "ind.3d": 0, "ind.rel": 0, "stock.ai": 0, "events": 3,
+                        "grp.mlcc": 2}}   # 族群觀測：跟桌機頁首「本頁限制」同口徑，不列進面板
+Q1010_FREE = {"who": "member", "plan": "free", "planName": "免費會員", "dq": 40, "feats": {},
+              "lims": {"ind.3d": 0, "stock.ai": 0, "heat.detail": 10, "stock.page": 10}}
+Q1010_ONE = {"who": "member", "plan": "free", "planName": "免費會員", "dq": None,
+             "feats": {k: 9999 for k in ("watch.tabs", "watch.size", "mkt.grp.pick", "explore.list.n", "mkt.cand.n", "etf.returns.n")},   # 數量類一律不限 → 只剩產業地圖一組
+             "lims": {"ind.3d": 0, "ind.rel": 5}}
+
+Q1010_STATE = """() => { const d = document.getElementById('m4Quota'); if (!d || d.hidden) return null;
+    const V = (e) => !!e && e.getClientRects().length > 0, sc = d.querySelector('.sc'), bx = d.querySelector('.bx'), ft = d.querySelector('.ft');
+    const gs = [...d.querySelectorAll('.qg')].map(g => { const h = g.querySelector('.qgh'), b = g.querySelector('.qgb');
+      return { k: g.dataset.pg, t: h.querySelector('.t').textContent, n: h.querySelector('small').textContent, ex: h.getAttribute('aria-expanded') === 'true',
+               vis: V(b), rows: [...b.querySelectorAll('.qi')].filter(V).length, all: b.querySelectorAll('.qi').length, hh: Math.round(h.getBoundingClientRect().height) }; });
+    const plans = {}; d.querySelectorAll('.qi').forEach(q => { const c = q.querySelector('.qplan'); if (c) plans[q.dataset.id] = c.textContent.trim(); });
+    const first = d.querySelector('.sc .qi');
+    let lsv = null; try { lsv = localStorage.getItem('tw.m4quota.open'); } catch (e) {}
+    const R = bx.getBoundingClientRect(), F = ft.getBoundingClientRect();
+    return { gs, plans, firstAll: !!first && first.classList.contains('all'), txt: d.textContent, ls: lsv,
+      scH: sc.scrollHeight, scC: sc.clientHeight, scW: sc.scrollWidth, scCW: sc.clientWidth, oy: getComputedStyle(sc).overflowY, ox: getComputedStyle(sc).overflowX,
+      bxW: bx.scrollWidth - bx.clientWidth, pageW: document.documentElement.scrollWidth - innerWidth, bxBot: Math.round(R.bottom), bxTop: Math.round(R.top), ftBot: Math.round(F.bottom), H: innerHeight,
+      plColor: (d.querySelector('.qplan') ? getComputedStyle(d.querySelector('.qplan')).color : ''), plFs: (d.querySelector('.qplan') ? parseFloat(getComputedStyle(d.querySelector('.qplan')).fontSize) : 0) }; }"""
+
+
+def _q1010_open(pg):
+    if not _am4_open(pg):
+        pg.wait_for_timeout(800)
+        _am4_open(pg)
+    pg.wait_for_timeout(250)
+    pg.locator("#acctMenu [data-m=quota]").tap(timeout=8000)
+    return wait_until(pg, Q1010_STATE, 3000)
+
+
+def t_m4_quota_1010(b, base, code):
+    T = "額度上限1010"
+    shots = os.environ.get("TW_ACCTM4_SHOTS")
+    if shots:
+        pathlib.Path(shots).mkdir(parents=True, exist_ok=True)
+    for W, H in [(360, 780), (390, 844), (430, 932)]:
+        errs: list = []
+        c, _ = _acctm4_ctx(b, "guest", plans=Q1010_PLANS, perm=Q1010_GUEST, vp=(W, H))
+        pg = c.new_page()
+        pg.on("pageerror", lambda e: errs.append(str(e)))
+        pg.goto(base + "#overview", wait_until="domcontentloaded")
+        ready = wait_until(pg, "() => document.documentElement.classList.contains('m4') && !!document.querySelector('#m4Tools #acctBtn') && window.TwPerm && TwPerm.state().src === 'server' && TwPerm.lim('quota.all') === 15", 15000)
+        if not ok(f"【{T} {W}】訪客：手機版、權限到位", bool(ready)):
+            c.close()
+            continue
+        pg.wait_for_timeout(300)
+        s0 = _q1010_open(pg)
+        if not ok(f"【{T} {W}】點頭像 →「額度上限」打開面板", bool(s0)):
+            c.close()
+            continue
+        pg.wait_for_function("() => window.TwPricing && TwPricing.state().src === 'server'", timeout=5000)
+        s0 = pg.evaluate(Q1010_STATE)
+        names = [g["t"] for g in s0["gs"]]
+        ok(f"【{T} {W}】全站每日額度排在最上面（不在任何一組裡）", s0["firstAll"], s0["txt"][:120])
+        ok(f"【{T} {W}】依母分頁分組：{names}",
+           len(names) >= 6 and all(x in names for x in ("資金流向", "產業地圖", "個股", "ETF", "自選", "選股策略", "市場明細", "週期統計")), names)
+        ok(f"【{T} {W}】每組標題寫項目數（「N 項」）且加總＝全部有限制的項目 21 項",
+           all(re.fullmatch(r"\d+ 項", g["n"]) for g in s0["gs"]) and sum(int(g["n"].split()[0]) for g in s0["gs"]) == 21, [(g["t"], g["n"]) for g in s0["gs"]])
+        ok(f"【{T} {W}】預設全部收起（aria-expanded=false、組內一列都看不到）", all(not g["ex"] and not g["vis"] and g["rows"] == 0 for g in s0["gs"]), s0["gs"])
+        ok(f"【{T} {W}】分組標題高 ≥ 44（手指好點）", all(g["hh"] >= 44 for g in s0["gs"]), [g["hh"] for g in s0["gs"]])
+        grp = pg.evaluate("() => ({ known: !!(TwFeatures.byId('grp.mlcc')), rows: [...document.querySelectorAll('#m4Quota .qi')].filter(q => q.dataset.id.startsWith('grp.')).length })")
+        ok(f"【{T} {W}】族群觀測（grp.mlcc 有每日上限）不列進面板（跟桌機同口徑）", grp["rows"] == 0, grp)
+        ok(f"【{T} {W}】面板任何地方都沒有「不開放」三個字", "不開放" not in s0["txt"], s0["txt"][:200])
+        # 模擬方案：註冊會員把 3D、AI 關掉；Plus 開 3D、AI 仍關 → 訪客看到 3D「Plus 會員」、AI「Pro 會員」、其他「註冊會員」
+        want = {"ind.3d": "Plus 會員", "ind.rel": "註冊會員", "stock.ai": "Pro 會員", "etf.list": "註冊會員", "watch.tabs": "註冊會員", "etf.returns.n": "註冊會員"}
+        ok(f"【{T} {W}】上限 0 的項目寫最低有開的方案（往上找第一個有開的）：{ {k: s0['plans'].get(k) for k in want} }",
+           all(s0["plans"].get(k) == v for k, v in want.items()) and len(s0["plans"]) == 10, s0["plans"])
+        ok(f"【{T} {W}】方案膠囊不是紅色、字 ≥ 12px", s0["plColor"] and "255, 107, 122" not in s0["plColor"] and s0["plFs"] >= 12, (s0["plColor"], s0["plFs"]))
+        if shots and W == 390:
+            pg.screenshot(path=str(pathlib.Path(shots) / "q1010_390_collapsed.png"))
+        # ② 點「產業地圖」那組 → 展開、內容出現、localStorage 寫入
+        pg.locator("#m4Quota .qgh[data-qg=industry]").tap()
+        pg.wait_for_timeout(200)
+        s1 = pg.evaluate(Q1010_STATE)
+        g1 = next(g for g in s1["gs"] if g["k"] == "industry")
+        ok(f"【{T} {W}】點「產業地圖」→ 展開、看得到 {g1['all']} 列（3D 剖析圖、供應鏈關聯圖）", g1["ex"] and g1["vis"] and g1["rows"] == g1["all"] == 2, g1)
+        ok(f"【{T} {W}】其他組仍收起", all(not g["ex"] for g in s1["gs"] if g["k"] != "industry"), [g["k"] for g in s1["gs"] if g["ex"]])
+        ok(f"【{T} {W}】手動展開記進 tw.m4quota.open", s1["ls"] and "industry" in json.loads(s1["ls"]), s1["ls"])
+        if shots and W == 390:
+            pg.screenshot(path=str(pathlib.Path(shots) / "q1010_390_open_one.png"))
+        # 關掉再開：記得產業地圖展開
+        pg.locator("#m4Quota [data-x]").tap(); pg.wait_for_timeout(200)
+        s2 = _q1010_open(pg)
+        ok(f"【{T} {W}】關掉重開：產業地圖仍展開、其他收起",
+           bool(s2) and all(g["ex"] == (g["k"] == "industry") for g in s2["gs"]), s2 and [(g["k"], g["ex"]) for g in s2["gs"]])
+        # 再點一次收起 → 鍵刪掉
+        pg.locator("#m4Quota .qgh[data-qg=industry]").tap(); pg.wait_for_timeout(150)
+        s3 = pg.evaluate(Q1010_STATE)
+        ok(f"【{T} {W}】再點收起 → 內容藏起來、tw.m4quota.open 刪掉", not next(g for g in s3["gs"] if g["k"] == "industry")["vis"] and s3["ls"] is None, s3["ls"])
+        # ③ 全部展開 → 垂直捲動、沒有橫向捲動
+        for k in [g["k"] for g in s3["gs"]]:
+            pg.locator(f"#m4Quota .qgh[data-qg='{k}']").tap()
+        pg.wait_for_timeout(250)
+        s4 = pg.evaluate(Q1010_STATE)
+        ok(f"【{T} {W}】全部展開：每組都展開、21 列全看得到", all(g["ex"] for g in s4["gs"]) and sum(g["rows"] for g in s4["gs"]) == 21, [(g["k"], g["rows"]) for g in s4["gs"]])
+        ok(f"【{T} {W}】內容太長 → 面板中間有垂直捲軸（{s4['scH']}＞{s4['scC']}、overflow-y {s4['oy']}）",
+           s4["scH"] > s4["scC"] + 20 and s4["oy"] in ("auto", "scroll"), (s4["scH"], s4["scC"], s4["oy"]))
+        ok(f"【{T} {W}】沒有橫向捲動（面板 {s4['scW']}≤{s4['scCW']}、整頁 {s4['pageW']}≤0）",
+           s4["scW"] <= s4["scCW"] + 1 and s4["ox"] == "hidden" and s4["bxW"] <= 1 and s4["pageW"] <= 1, (s4["scW"], s4["scCW"], s4["ox"], s4["bxW"], s4["pageW"]))
+        ok(f"【{T} {W}】面板與底部「看方案」都在畫面內（底 {s4['ftBot']}≤{s4['H']}）", s4["bxTop"] >= 0 and s4["bxBot"] <= s4["H"] + 1 and s4["ftBot"] <= s4["H"], s4)
+        top0 = pg.evaluate("() => document.querySelector('#m4Quota .sc').scrollTop")
+        box = pg.evaluate("() => { const r = document.querySelector('#m4Quota .sc').getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2 }; }")
+        # 用手指往上滑（CDP 觸控事件）；不支援時退回 scrollBy
+        try:
+            cdp = c.new_cdp_session(pg)
+            x, y = box["x"], box["y"]
+            cdp.send("Input.dispatchTouchEvent", {"type": "touchStart", "touchPoints": [{"x": x, "y": y + 120}]})
+            for i in range(1, 9):
+                cdp.send("Input.dispatchTouchEvent", {"type": "touchMove", "touchPoints": [{"x": x, "y": y + 120 - i * 30}]})
+            cdp.send("Input.dispatchTouchEvent", {"type": "touchEnd", "touchPoints": []})
+        except Exception:  # noqa: BLE001
+            pg.evaluate("() => document.querySelector('#m4Quota .sc').scrollBy(0, 240)")
+        pg.wait_for_timeout(500)
+        top1 = pg.evaluate("() => document.querySelector('#m4Quota .sc').scrollTop")
+        ok(f"【{T} {W}】手指往上滑 → 面板內容真的捲動（scrollTop {top0}→{top1}）、頁面沒跟著捲", top1 > top0 + 50 and pg.evaluate("() => scrollY") == 0, (top0, top1))
+        if shots and W == 390:
+            pg.screenshot(path=str(pathlib.Path(shots) / "q1010_390_scroll.png"))
+        ok(f"【{T} {W}】沒有 JS 錯誤", not errs, errs[:3])
+        c.close()
+    # ④ 註冊會員：Plus 有開 → 「Plus 會員」；Plus 也是 0 → 「Pro 會員」
+    c, _ = _acctm4_ctx(b, "free", plans=Q1010_PLANS, perm=Q1010_FREE, vp=(390, 844))
+    pg = c.new_page()
+    pg.goto(base + "#overview", wait_until="domcontentloaded")
+    if ok(f"【{T} 390】註冊會員：權限到位", bool(wait_until(pg, "() => document.documentElement.classList.contains('m4') && !!document.querySelector('#m4Tools #acctBtn') && window.TwPerm && TwPerm.state().src === 'server' && !!TwAccount.user()", 15000))):
+        pg.wait_for_timeout(300)
+        _q1010_open(pg)
+        pg.wait_for_function("() => window.TwPricing && TwPricing.state().src === 'server'", timeout=5000)
+        pg.wait_for_timeout(200)
+        s = pg.evaluate(Q1010_STATE)
+        ok(f"【{T} 390】註冊會員：3D 剖析圖 Plus 有開 →「Plus 會員」；AI 分析 Plus 也沒開 →「Pro 會員」（{s['plans']}）",
+           s["plans"].get("ind.3d") == "Plus 會員" and s["plans"].get("stock.ai") == "Pro 會員", s["plans"])
+    c.close()
+    # ⑥ 「主題外觀」（features 'theme'）被方案關掉：手機帳號選單的版面風格三格跟桌機一樣上鎖 —— 標題列有鎖頭、三格被擋、點了外觀不變
+    pt = dict(Q1010_GUEST, feats=dict(Q1010_GUEST["feats"], theme=False))
+    c, _ = _acctm4_ctx(b, "guest", plans=Q1010_PLANS, perm=pt, vp=(390, 844))
+    pg = c.new_page()
+    pg.goto(base + "#overview", wait_until="domcontentloaded")
+    if ok(f"【{T} 390】主題外觀關掉：權限到位", bool(wait_until(pg, "() => document.documentElement.classList.contains('m4') && !!document.querySelector('#m4Tools #acctBtn') && window.TwPerm && TwPerm.state().src === 'server' && !TwPerm.can('theme')", 15000))):
+        pg.wait_for_timeout(300)
+        _am4_open(pg)
+        lk = wait_until(pg, """() => { const bs = [...document.querySelectorAll('#acctMenu [data-m=sty]')], lb = document.querySelector('#acctMenu .m4styrow > .t');
+            return bs.length === 3 && bs.every(e => e.dataset.plkb === 'block') && lb && lb.dataset.plkb === 'mark'
+              ? { lock: getComputedStyle(lb, '::after').content, op: getComputedStyle(bs[0]).opacity } : null; }""", 3000)
+        if shots:
+            pg.screenshot(path=str(pathlib.Path(shots) / "q1010_390_theme_locked.png"))
+        ok(f"【{T} 390】版面風格三格被鎖（data-plkb=block）、標題列有鎖頭 🔒", bool(lk) and "🔒" in (lk or {}).get("lock", ""), lk)
+        before = pg.evaluate("() => { let v = null; try { v = localStorage.getItem('tw.theme4'); } catch (e) {} return { a: document.documentElement.dataset.theme4 || '', ls: v, cur: [...document.querySelectorAll('#acctMenu [data-m=sty]')].find(e => e.getAttribute('aria-checked') === 'true').dataset.sty }; }")
+        other = pg.evaluate("(cur) => [...document.querySelectorAll('#acctMenu [data-m=sty]')].map(e => e.dataset.sty).find(k => k !== cur)", before["cur"])
+        pg.locator(f"#acctMenu [data-m=sty][data-sty='{other}']").tap(force=True)
+        pg.wait_for_timeout(300)
+        after = pg.evaluate("() => { let v = null; try { v = localStorage.getItem('tw.theme4'); } catch (e) {} const t = document.getElementById('subToast'); return { a: document.documentElement.dataset.theme4 || '', ls: v, toast: (t && !t.hidden ? t.textContent : '') + (/此功能需開通/.test(document.body.innerText) ? '（卡片：需開通）' : '') }; }")
+        ok(f"【{T} 390】點被鎖的風格「{other}」→ 外觀與 tw.theme4 都沒變、跳「此功能需開通」提示",
+           after["a"] == before["a"] and after["ls"] == before["ls"] and "需開通" in after["toast"], (before, after))
+    c.close()
+    # ⑤ 只有一組 → 直接展開
+    c, _ = _acctm4_ctx(b, "free", plans=Q1010_PLANS, perm=Q1010_ONE, vp=(390, 844))
+    pg = c.new_page()
+    pg.goto(base + "#overview", wait_until="domcontentloaded")
+    if ok(f"【{T} 390】只有一組：權限到位", bool(wait_until(pg, "() => document.documentElement.classList.contains('m4') && !!document.querySelector('#m4Tools #acctBtn') && window.TwPerm && TwPerm.state().src === 'server' && !!TwAccount.user()", 15000))):
+        pg.wait_for_timeout(300)
+        s = _q1010_open(pg)
+        ok(f"【{T} 390】只有「產業地圖」一組 → 預設就展開、2 列看得到", bool(s) and len(s["gs"]) == 1 and s["gs"][0]["ex"] and s["gs"][0]["rows"] == 2, s and s["gs"])
+    c.close()
 
 
 def _am4_open(pg):
@@ -66475,7 +66664,7 @@ def t_acct_menu_1009(b, base, code):
         # ④ 額度頁：項目數＝該身分有上限的功能數
         _am4_open(pg)
         exp = pg.evaluate("""() => { const p = TwPerm, F = TwFeatures, st = p.state();
-            const daily = Object.keys(st.lims || {}).filter(id => { const f = F.byId(id); return f && f.kind !== 'limit' && p.lim(id) !== Infinity; }).length;
+            const daily = Object.keys(st.lims || {}).filter(id => { const f = F.byId(id); return f && f.kind !== 'limit' && f.cat !== 'grp' && p.lim(id) !== Infinity; }).length;
             const all = p.lim('quota.all') !== Infinity ? 1 : 0;
             const cnt = F.list.filter(f => f.kind === 'limit' && p.limit(f.id, f.max) < f.max).length;
             return { daily, all, cnt, n: daily + all + cnt }; }""")
