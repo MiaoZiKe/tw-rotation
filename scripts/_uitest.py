@@ -58875,7 +58875,7 @@ def t_member_perm(b, base, code):
         ad.press("#pmEmail", "Enter")
         wait_until(ad, "() => /尚未登入過/.test((document.getElementById('pmWho') || {}).textContent || '')", 6000)
         ok(f"{T}：輸入 email 讀取（大小寫不分）→ 顯示「尚未登入過」與目前方案", PERM_TEST_EMAIL in ad.inner_text("#pmWho") and "免費會員" in ad.inner_text("#pmWho"), ad.inner_text("#pmWho"))
-        ok(f"{T}：讀到人之後開關可以撥、全部預設開啟（熱力圖點擊跳頁例外：權限矩陣 1008 訪客／註冊會員預設關）", ad.evaluate("() => [...document.querySelectorAll('#pmCats input[role=switch]')].every(i => !i.disabled && (i.checked || i.dataset.f === 'heat.link'))"))
+        ok(f"{T}：讀到人之後開關可以撥、全部預設開啟（熱力圖點擊跳頁、10-10 的 ETF 試算自訂參數／報酬比較／複利試算表例外：訪客／註冊會員預設關）", ad.evaluate("() => [...document.querySelectorAll('#pmCats input[role=switch]')].every(i => !i.disabled && (i.checked || ['heat.link', 'etf.inc.params', 'etf.cmp', 'etf.inc.comp'].includes(i.dataset.f)))"))
 
         def save(pg=None):
             """2026-10-04 起撥開關只是草稿，按底部「儲存」才送 perm/put；回傳那一次的回應"""
