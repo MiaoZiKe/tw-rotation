@@ -27414,7 +27414,10 @@ def t_mobile_m4_1009(b, base, code):
         # ⑦ 「不需要返回功能」：全站沒有 #m4BackBtn；「← 左右滑看更多 →」提示字全站拿掉
         # ⑧ 「左右滑可以拓寬」：還要左右滑的列（分段控制器、工具列）左右貼齊螢幕邊（誤差 ≤ 1px）、整頁沒有橫向捲軸
         BL = """() => { const vw = document.documentElement.clientWidth, vis = (e) => e.getClientRects().length && getComputedStyle(e).display !== 'none';
-            const rows = [...document.querySelectorAll('.view.on .m4seg, .view.on #skTools, .view.on #dgTools')].filter(vis).filter(e => e.scrollWidth > e.clientWidth + 2);
+            // 例外（2026-10-09，兩條都是後來的拍板，跟「拓寬貼齊螢幕」衝突時以它們為準）：
+            //   #mM3Sw「加權｜櫃買｜台指期」跟摘要鈕、「?」同一行（週期統計範本，摘要鈕不准被截 → 擠的時候這排在框內左右滑），同一行不可能貼齊螢幕兩邊；
+            //   #etfCatSeg ETF 分類列：m4-etf 監督退件定案「寬度＝內容寬（不滿版拓寬），列內自己橫捲」（mobile4.css 31d）。
+            const rows = [...document.querySelectorAll('.view.on .m4seg, .view.on #skTools, .view.on #dgTools')].filter(vis).filter(e => !e.matches('#mM3Sw,#etfCatSeg')).filter(e => e.scrollWidth > e.clientWidth + 2);
             return { vw, docW: document.documentElement.scrollWidth, back: !!document.getElementById('m4BackBtn'),
                      tip: /左右滑看更多/.test(document.body.innerText), n: rows.length,
                      bad: rows.map(e => { const r = e.getBoundingClientRect(); return { el: e.id || e.className, l: Math.round(r.left * 10) / 10, r: Math.round(r.right * 10) / 10 }; })
@@ -29127,7 +29130,10 @@ def t_mobile_m4_market(b, base, code):
             return { cb: Math.round(c.bottom), lt: Math.round(l.top), vh: innerHeight }; }""")
         ok(f"【{T}】漲跌家數：長條圖在清單上方（圖底 {g['cb']} ≤ 清單頂 {g['lt']}），圖在第一屏（≤ {g['vh']}）", g["cb"] <= g["lt"] and g["cb"] <= g["vh"], g)
         n0 = J("() => document.getElementById('distSub').textContent.trim()")
-        m.locator("#distMkt button", has_text="上櫃").tap(); m.wait_for_timeout(700)
+        # 2026-10-09（帳本 38／claude/m4-misc）：全部／上市／上櫃收進「設定」抽屜 → 從摘要鈕打開抽屜再點（抽屜裡那顆＝按頁面上原本那顆）
+        m.locator("#m4MkSet").tap(); m.wait_for_timeout(500)
+        m.locator("#mSheet .seg[data-mk=mkt] button", has_text="上櫃").tap(); m.wait_for_timeout(900)
+        J("() => window.M3 && window.M3.closeSheet && window.M3.closeSheet()"); m.wait_for_timeout(300)
         n1 = J("() => document.getElementById('distSub').textContent.trim()")
         ok(f"【{T}】漲跌分佈切「上櫃」後檔數真的變（{n0[:12]} → {n1[:12]}）", n0 != n1 and n1, (n0, n1))
         seg = J("""() => { const s = document.getElementById('mktTabs'), bs = [...s.querySelectorAll('button')].map(b => b.getBoundingClientRect());
