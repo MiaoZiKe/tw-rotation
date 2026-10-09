@@ -225,6 +225,8 @@
       const plan = st.who === 'guest' ? 'guest' : (st.plan || 'free');
       return Object.assign(QC.quotaOpts({ used: w.used, limit: w.lim, plan }), { btnCls: 'qlkgo' });
     }
+    /* 2026-10-10 inline 備註模式：功能清單有寫 qnote（例 ETF 現金流試算「今日次數已用完・Plus 以上可增加」）→ 原位置一行字，不畫大卡 */
+    if (w.f && w.f.qnote) return { kind: 'quota', inline: true, note: w.f.qnote, used: w.used == null ? w.lim : w.used, limit: w.lim, btnCls: 'qlkgo', gk: w.f.id };
     const lk = QC ? QC.lockOpts(w.f, 'member') : null;
     const n = w.used == null ? w.lim : w.used;
     return { kind: 'quota', kick: '每日瀏覽次數', title: `今天的「${w.f.name}」次數用完了`,
