@@ -2015,7 +2015,9 @@
   const $$ = (s, r) => [].slice.call((r || document).querySelectorAll(s));
   const esc = (s) => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   const MIN = 30;                                    // 兩顆編號中心的最小距離（28px 鈕＋2px 縫）
-  const zoomOf = () => { try { return localStorage.getItem('tw.m3.dgzoom') === 'big' ? 'big' : 'fit'; } catch (e) { return 'fit'; } };
+  /* ★ 2026-10-09 手機 v2（Andy：「放大功能拿掉，沒屁用」「還有整張功能也是」）：html.m4 時「整張／放大」兩顆鈕拿掉（mobile4.css 第 31 節），
+     永遠是整張 —— 以前存過「放大」（tw.m3.dgzoom＝big）也一律忽略，不然鈕沒了卻卡在左右滑的大圖。*/
+  const zoomOf = () => { if (document.documentElement.classList.contains('m4')) return 'fit'; try { return localStorage.getItem('tw.m3.dgzoom') === 'big' ? 'big' : 'fit'; } catch (e) { return 'fit'; } };
   const stockName = (c) => (window.Link && window.Link.cname && window.Link.cname[c]) || c;
 
   /* 抽屜：cur＝{ items, host, layer }；k＝第幾個 */
@@ -2062,12 +2064,22 @@
       color: c.style.getPropertyValue('--dg-card-c') || c.style.getPropertyValue('--c') || c.dataset.dgcolor || '#3ee0ff',
     })).sort((a, b) => a.no.localeCompare(b.no));
   }
+  /* 控制列（整張／放大、圖說）在哪：預設就在圖的正上方（host.previousElementSibling）；
+     ★ 2026-10-09 手機 v2（Andy：「這邊都需要同一排」）：<html class="m4"> 時整條併進產業鏈剖析圖的設定列 #dgTools（跟 2D/3D、編號、收合同一排），
+     所以記在 host._mdgbar，不能只看前一個兄弟節點。桌機不會走到這裡（mobileNums 先擋 isM()）。*/
+  function barOf(host) {
+    const b = host._mdgbar;
+    if (b && b.isConnected) return b;
+    const p = host.previousElementSibling;
+    return p && p.classList.contains('mdgbar') ? p : null;
+  }
   function unmount2d(host) {
     if (!host) return;
     host.classList.remove('mnum2d', 'mbig');
     $$(':scope > .mnumlayer', host).forEach(e => e.remove());
-    const bar = host.previousElementSibling;
-    if (bar && bar.classList.contains('mdgbar')) bar.remove();
+    const bar = barOf(host);
+    if (bar) bar.remove();
+    host._mdgbar = null;
     unmountFolds(host);
   }
 
@@ -2113,9 +2125,17 @@
       const after = box3 || (host.nextElementSibling && host.nextElementSibling.classList.contains('swipetip') ? host.nextElementSibling : host);
       if (after.nextElementSibling !== L) after.after(L);
     }
-    L.innerHTML = gs.map((g) => {
+    /* ★ 2026-10-09 手機 v2（Andy：「手機版本需要說清楚下面編號在說明什麼，因為會被誤認是在說上方編號」）：
+       圖上的編號圈是 01～N（零件），這一列的章節原本也用 ①②③ —— 兩套數字長得像，會被當成在說同一件事。
+       m4 時：① 圖下方先一行小字講明「點圖上的編號看零件說明」；② 分隔線＋小標題「延伸閱讀（點開看細節）」；
+       ③ 章節序號改寫成「延伸 1、延伸 2…」（拿掉 ①～⑳ 圓圈數字）。圖裡的章節列與桌機一字不改。*/
+    const m4f = document.documentElement.classList.contains('m4');
+    const CIRC = /^[\s＋+－-]*[\u2460-\u2473\u2776-\u277F\u24F5-\u24FE]\s*/;
+    L.innerHTML = (m4f ? '<div class="mdgnumhint">點圖上的編號（01、02…）看各零件說明</div><div class="mdgfhd">延伸閱讀（點開看細節）</div>' : '') + gs.map((g, gi) => {
       const id = g.getAttribute('data-fold');
-      const hd = ((g.querySelector('.hd') || {}).textContent || '').trim();
+      let hd = ((g.querySelector('.hd') || {}).textContent || '').trim();
+      // 標題中間也可能夾圓圈數字（「④ 板邊金手指 ＋ ③ 內部線纜」）—— 一律拿掉，免得又被當成圖上的編號
+      if (m4f) hd = '延伸 ' + (gi + 1) + '｜' + hd.replace(CIRC, '').replace(/\s*[\u2460-\u2473\u2776-\u277F\u24F5-\u24FE]\s*/g, ' ').replace(/\s{2,}/g, ' ').trim();
       const hint = (g.getAttribute('data-hint') || '').trim();
       return `<button type="button" data-fold="${esc(id)}" aria-expanded="false" title="${esc(hd + (hint ? '：' + hint : ''))}">`
         + `<span class="sg">＋</span><b>${esc(hd)}</b>${hint ? `<i>${esc(hint)}</i>` : ''}</button>`;
@@ -2178,10 +2198,14 @@
     const small = !host.classList.contains('mbig') && sr.width < 500;
     const RAD = small ? 10 : 14, MINv = small ? 22 : MIN;
     layer.classList.toggle('msm', small);
-    const W = host.scrollWidth, H = host.scrollHeight;
+    /* ★ 2026-10-09 手機 v2（「整張」固定、不准橫捲）：編號層（含引線 svg）自己的寬度會被算進 host.scrollWidth ——
+       曾經在原寸（940px）排過一次，之後永遠量到 940，圖框多出一塊 570px 捲得動的隱形區。手機 v2 永遠是整張，畫布寬就是圖框可視寬。*/
+    const m4w = document.documentElement.classList.contains('m4');
+    const W = m4w ? host.clientWidth : host.scrollWidth, H = host.scrollHeight;
     const bx0 = Math.max(RAD + 1, sr.left - base.left + host.scrollLeft + RAD + 1), by0 = Math.max(RAD + 1, sr.top - base.top + host.scrollTop + RAD + 1);
     const bx1 = Math.min(W - RAD - 1, sr.right - base.left + host.scrollLeft - RAD - 1), by1 = Math.min(H - RAD - 1, sr.bottom - base.top + host.scrollTop - RAD - 1);
-    const B = { x0: bx0, y0: by0, x1: bx1, y1: by1 };
+    /* 手機 v2：圖框右上角有一顆 ↻ 重設鈕（mobile4.css 第 33 節，40px）—— 編號不排進最上面 44px，免得跟它疊在一起 */
+    const B = { x0: bx0, y0: m4w ? Math.max(by0, sr.top - base.top + host.scrollTop + 44 + RAD) : by0, x1: bx1, y1: by1 };
     /* 每顆鈕再夾進「錨點所在的那一格」（rect.frame／rect.bg 裡最小、包得住錨點的那一個）：
        晶圓代工 07 的錨點在平面格左緣，只夾畫布的話鈕會一半跑到格子外面。格子比鈕還窄就退回畫布邊界。*/
     const frames = svgEl ? [...svgEl.querySelectorAll('rect.frame, rect.bg')].map(e => e.getBoundingClientRect()).filter(r => r.width > 2 * RAD + 4 && r.height > 2 * RAD + 4)
@@ -2226,7 +2250,7 @@
     layer.style.width = W + 'px'; layer.style.height = H + 'px';
     layer.innerHTML = `<svg width="${W}" height="${H}" style="position:absolute;left:0;top:0;overflow:visible">${window.M3.leaders(P)}</svg>` + numBtns(P, cur.items, cur.sel);
     layer.dataset.overlap = ov; layer.dataset.n = P.length;
-    const cnt = host.previousElementSibling && host.previousElementSibling.querySelector('.mdgcnt');
+    const cb = barOf(host), cnt = cb && cb.querySelector('.mdgcnt');
     if (cnt) cnt.textContent = `${P.length} 個編號`;
   }
   function mobileNums(host) {
@@ -2240,12 +2264,18 @@
     let layer = host.querySelector(':scope > .mnumlayer');
     if (!layer) { layer = document.createElement('div'); layer.className = 'mnumlayer'; host.appendChild(layer); }
     /* 控制列：整張／放大、圖說與公式（圖頭長說明、公式卡、警語卡收在這裡 —— 收起來不是刪掉）*/
-    let bar = host.previousElementSibling;
-    if (!bar || !bar.classList.contains('mdgbar')) {
+    let bar = barOf(host);
+    if (!bar) {
       bar = document.createElement('div'); bar.className = 'mdgbar';
       bar.innerHTML = '<span class="mseg mdgzoom"><button type="button" data-z="fit">整張</button><button type="button" data-z="big">放大</button></span>'
         + '<button type="button" class="mdginfo">圖說 ›</button><span class="mdgcnt"></span>';
       host.before(bar);
+    }
+    host._mdgbar = bar;
+    /* 手機 v2：併進同一排設定列（樣式見 mobile4.css 第 31 節）；沒有 #dgTools 的圖（個股頁等）照舊留在圖上方 */
+    if (document.documentElement.classList.contains('m4')) {
+      const sec = host.closest('#dgSec'), tools = sec && sec.querySelector('#dgTools');
+      if (tools && bar.parentElement !== tools) tools.appendChild(bar);
     }
     const paintZ = () => $$('.mdgzoom button', bar).forEach(b => b.classList.toggle('on', b.dataset.z === zoomOf()));
     bar.querySelector('.mdgzoom').onclick = (e) => {

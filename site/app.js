@@ -2588,6 +2588,14 @@
       const grp = (n) => Object.keys(M4_OV_SEG).filter(k => M4_OV_SEG[k] === n).flatMap(by);
       groups = ['大盤', '資金流向', '熱度'].map(n => ({ s: 1, n, sel: grp(n) }));
     }
+    /* ★ 2026-10-09（Andy 手機截圖紅框：「熱力圖上面 下面題材」）：手機 v2 題材頁拿掉第二層「題材熱力｜題材細節」分段，
+       兩段併成一組上下排（上＝題材熱力圖、下＝該題材的剖析圖，中間一條分隔線，見 mobile4.css 第 30 節）。
+       併成一組之後只剩一段 → 下面 found.length < 2 就不出分段列。桌機不走這裡（上一行 mIsM() 已擋）。 */
+    if (document.documentElement.classList.contains('m4') && key === 'heatmap') {
+      const by = (n) => (groups.find(g => g.n === n) || { sel: [] }).sel;
+      groups = groups.filter(g => g.n !== '題材熱力' && g.n !== '題材細節')
+        .concat([{ s: (groups.find(g => g.n === '題材熱力') || {}).s || 0, n: '題材', sel: [...by('題材熱力'), ...by('題材細節')] }]);
+    }
     // 每一段實際抓得到的元素（抓不到的略過：例如簡版個股頁沒有 #aiCard）
     /* ★ 2026-10-08 手機 v2（html.m4）：
        ① 不再畫「錢往哪跑／貴不貴／別進的理由」那一排大步驟鈕（.mspine）—— 步驟拍平成一條分段列（s 一律當 0）；
@@ -12610,6 +12618,16 @@
     };
     let cur = null;
     nodes.forEach(n => { n.onclick = (e) => { e.stopPropagation(); cur = (cur === n.dataset.part) ? null : n.dataset.part; paint(cur); }; });
+    /* ★ 2026-10-09 手機 v2（Andy：「只需要給一個迴圈（reset 符號）就好，在圖片右上方」）：題材剖析圖框右上角一顆 ↻，
+       點了＝清掉選起來的環節（sel／dim）、收掉說明面板、捲動歸零。themes3d.js 依寬度重畫會換掉 root 的內容，重畫後會再叫這支，所以每次補插。
+       桌機（沒有 html.m4）不插。*/
+    if (document.documentElement.classList.contains('m4') && !root.querySelector(':scope > .m4rst')) {
+      const rb = document.createElement('button');
+      rb.type = 'button'; rb.className = 'm4rst'; rb.textContent = '↻';
+      rb.title = '重設：清掉選取'; rb.setAttribute('aria-label', '重設剖析圖：清掉選取');
+      rb.onclick = (e) => { e.stopPropagation(); cur = null; paint(null); root.scrollLeft = 0; if (window.M3 && window.M3.closeSheet) window.M3.closeSheet(); };
+      root.prepend(rb);
+    }
   }
   /* ★ 2026-09-23（Andy：「題材這頁 將中間這兩個表格拿掉」）：
      原本這裡有兩張卡片 —— 左邊「題材標題 ＋ 五個數字方塊 ＋ 熱度走勢折線」、
@@ -12633,6 +12651,14 @@
        舊的題材頁一打開就畫第一個題材的剖析圖 —— 那一頁只有題材，這樣合理；
        現在這一頁的主角是兩張熱力圖，一進來就在下面攤一張大剖析圖，等於替使用者選了一個他沒選的題材。
        Andy 描述的行為是「點題材格子會展開題材細節」，所以改成點了才展開，沒點就只留一句怎麼用。*/
+    /* ★ 2026-10-09（手機 v2 題材頁上下排）：手機題材頁不再分「熱力｜細節」兩段，細節就排在熱力圖正下方 ——
+       沒選題材時下方一整塊「尚未選擇題材」等於空著，所以手機預設展開熱度最高、而且有剖析圖的那一個（網址不變）。
+       桌機照舊「點了才展開」（上面 2026-09-24 那段）。*/
+    const m4v = document.documentElement.classList.contains('m4') && mIsM();
+    if (!id && m4v) {
+      const hot = th.themes.filter(x => (window.ThemeDiagrams || {})[x.id]).sort((a, b) => (+b.heat || 0) - (+a.heat || 0))[0];
+      if (hot) id = hot.id;
+    }
     if (!id) {
       el.innerHTML = `<div class="muted themehint" title="點上方「題材資金熱力」任一方塊，在這裡展開它的剖析圖">尚未選擇題材</div>`;
       fitThemeView(); return;
@@ -12675,7 +12701,8 @@
       // 剖析圖不加滾輪縮放（跟產業／個股剖析圖一致，DECISIONS #84；Andy 09-13 再確認）
       // 要看大圖按右上角「放大」，那是明確的按鈕，不會搶走頁面捲動
       wireThemeDiagram(el, t);
-      dismissable(el, () => { if (location.hash.startsWith('#heatmap/theme/')) location.hash = '#heatmap/theme'; }, {
+      /* 手機 v2：細節是這一頁固定的下半段（不是就地展開的面板），點外面不收（收了也只會換回預設題材）。*/
+      if (!m4v) dismissable(el, () => { if (location.hash.startsWith('#heatmap/theme/')) location.hash = '#heatmap/theme'; }, {
         ignore: ['#themeMapCard'],
         isOpen: () => !!$('#themeDiagram', el) && el.getClientRects().length > 0 && location.hash.startsWith('#heatmap/theme/'),
       });

@@ -1728,6 +1728,9 @@
       const relM4 = document.documentElement.classList.contains('m4');
       let relOpen = true;
       try { const v = localStorage.getItem('tw.relOpen'); if (v != null) relOpen = v === '1'; } catch (e) { /* 忽略 */ }
+      /* ★ 2026-10-09（Andy 手機 HBM 頁截圖：「這分頁收合功能都拿掉」）：手機產業鏈／族群頁的「收合圖」鈕拿掉（mobile4.css 第 31 節），
+         內容一律展開 —— 以前收起過（tw.relOpen＝0）也不准停在收起，不然鈕沒了就再也打不開。桌機照舊。*/
+      if (relM4) relOpen = true;
       const paintRelFold = () => {
         if (mapHost) mapHost.hidden = !relOpen;
         /* 清單平常與圖等高（它自己的高度不算進版面）；圖收起來之後沒有「圖的高度」可以對齊，
@@ -1795,6 +1798,8 @@
          「我就是要看這張」。手機的預設收合是給「順著鏈逛進來」的人省高度用的，
          不該蓋掉明確的意圖 —— 否則從圖別選單點一張圖進來，看到的是一顆收合鈕。*/
       if (dgExplicit) dgOpen = true;
+      // ★ 2026-10-09（Andy：「這分頁收合功能都拿掉」）：手機 v2 沒有收合鈕，一律展開（同上面關聯圖那段）
+      if (document.documentElement.classList.contains('m4')) dgOpen = true;
       /* ★ 手機 v3（≤640px，docs/mobile_v3_spec.md §9 第 1 條）：剖析圖預設**展開**。
          當初收合的理由是「字卡把圖撐到 1000px 以上」；手機 v3 字卡拿掉、只留編號之後圖只剩約 300px，
          收合反而讓這一頁的主角要多點一下才看得到。手機上「收合圖」那顆鈕也一起藏起來（index.html）。
@@ -1852,6 +1857,29 @@
       paintDiagram($('#prodDiagram', el));
       // 剖析圖不加縮放：Andy 明講「產業與個股 剖析圖不用新增縮放功能」（本來就可以左右滑）
       wireDiagram(el, pickPart, clearPart);
+      /* ★ 2026-10-09 手機 v2（Andy：「只需要給一個迴圈（reset 符號）就好，在圖片右上方」）：「整張／放大」拿掉之後，
+         剖析圖框右上角一顆 ↻（2D、3D 共用這一顆；3D 原本那組「拖曳／重設視角」在手機本來就藏著，mobile4.css 第 33 節）。
+         點了＝回到預設：圖框捲動歸零、3D 視角回初始（按 #dgReset 本人，同一支 resetView）、選起來的零件與編號高亮全部清掉。
+         桌機（沒有 html.m4）不插這顆鈕。*/
+      if (document.documentElement.classList.contains('m4')) {
+        const body = $('#dgBody', el);
+        if (body && !body.querySelector(':scope > .m4rst')) {
+          const rb = document.createElement('button');
+          rb.type = 'button'; rb.className = 'm4rst'; rb.textContent = '↻';
+          rb.title = '重設：回到預設視角、清掉選取'; rb.setAttribute('aria-label', '重設剖析圖：回到預設視角、清掉選取');
+          body.prepend(rb);
+        }
+        const rb = body && body.querySelector(':scope > .m4rst');
+        if (rb) rb.onclick = (ev) => {
+          ev.stopPropagation();
+          const h3 = $('#prod3d', el), h2 = $('#prodDiagram', el);
+          if (h3 && !h3.hidden) { const r = $('#dgReset', el); if (r) r.click(); }
+          if (h2) { h2.scrollLeft = 0; h2.scrollTop = 0; }
+          if (window.M3 && window.M3.closeSheet) window.M3.closeSheet();
+          $$('.mnum.on', el).forEach(b => b.classList.remove('on'));
+          clearPart();
+        };
+      }
       if (window.DG && window.DG.fillChips) window.DG.fillChips($('#prodDiagram', el), (seg) => { const tw = twOf(sc, seg);
         return { list: tw.slice(0, 4).map(c => ({ code: c.tw_code, name: c.name })), total: tw.length }; });
       /* 配色鈕：跟 3D 無關，只要這一頁上有剖析圖就該能按（2D 也要能換配色）。
@@ -2389,7 +2417,9 @@
     // 記住這張圖的 id：切 2D／3D 時要重套一次，那時候只拿得到 DOM
     if (id) host.dataset.dgid = id; else id = host.dataset.dgid || '';
     const w = (!on3d && DS && DS.native) ? DS.native(id) : 0;
-    const svg = host.querySelector('svg');
+    /* ★ 2026-10-09：跳過手機編號層（.mnumlayer，diagrams.js mobileNums 插的引線 svg）—— 圖本身不是 svg 的版型（HBM 那種卡片格）
+       以前會抓到引線 svg、把它釘成原寸 940px，手機圖框多出 570px 的隱形橫捲。桌機沒有 .mnumlayer，抓到的元素跟以前完全一樣。*/
+    const svg = host.querySelector('svg:not(.mnumlayer svg)');
     /* ★ 2026-09-23（W3-5）：v2 版面的 svg 已經被 `externalize()` 包進 `.dgcanvas`
        （diagrams.js:286 當場就把 host 的 overflow 清掉，捲動交給那一層）。
        這一支在切 2D／3D、換圖時會再跑一次 —— 如果照舊把 `overflow-x:auto` 設回 host，
@@ -2782,6 +2812,13 @@
         b.classList.toggle('on', cur); b.setAttribute('aria-pressed', cur ? 'true' : 'false');
       });
       btn.dataset.mode = is3d ? '3d' : '2d';
+      /* ★ 2026-10-09 手機 v2（Andy：「2D/3D 變成一個切換功能就好，一個圓圈，原本 2D 點一下變成 3D，來回可切換」）：
+         手機只露出「另一個模式」那一格、圓鈕上用 CSS 寫出**目前**模式（mobile4.css 第 31 節），點它＝切過去；
+         點的是真的那一格，所以 3D 的權限鎖頭（features.js ind.3d 的 block: button[data-dm="3d"]）照舊攔得到。
+         這裡只補讀屏標籤；桌機（沒有 m4）不寫。*/
+      if (document.documentElement.classList.contains('m4')) {
+        $$('button[data-dm]', btn).forEach(b => b.setAttribute('aria-label', is3d ? '目前 3D，點一下切到 2D' : '目前 2D，點一下切到 3D'));
+      }
     };
     const setMode = async (on) => {
       try { localStorage.setItem('tw.dg3d', on ? '1' : '0'); } catch (e) { /* 忽略 */ }
