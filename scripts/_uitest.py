@@ -28783,6 +28783,183 @@ def t_m4_ind_1009(b, base):
             ctx.close()
         except Exception:
             pass
+# ★ 2026-10-09 手機3D說明1009（Andy 10-09 09:5x 看手機預覽：「3D 圖為何還會出現下方欄位，已經有編號可以說明了，
+#   並且圖四可以看到他的線條指到未知地方，請修正」；10:0x 帳本 67：「當切到 3D 圖，需要在圖片右上角新增展開及收合 3D 圖片功能」）。
+#   402×874 手機（html.m4），每一張有 3D 的剖析圖都切 3D，真的用手指點 3 個零件，每一下驗三件事：
+#     ① 頁面沒有插零件卡（#partCard 藏著、整頁高度不變）② 出現 role=dialog 的底部抽屜（#mSheet，data-part＝點到的零件）③ scrollY 不變。
+#   引線普查：每一條引線（.mnumlayer path[data-part]）一端落在編號圈上（≤2px）、另一端落在零件的螢幕投影（view.rectOf）±12px 內而且在畫布內；
+#   再把相機拉近一次（零件跑出畫布 —— 修前引線會從編號拉到畫布外的空白處，這是 Andy 圖四的那條斜線）重驗。
+#   矽晶圓那張另外驗：2D 點零件也是開抽屜、抽屜「更多 ›」在抽屜內展開、收合鈕（⤡／⤢）真的讓圖框變矮再恢復、切回 2D 鈕消失。
+M43D_CENSUS = r"""() => {
+  const h = document.querySelector('#prod3d'); const v = window.Rack3D && Rack3D.current;
+  if (!h || h.hidden || !v || !v.rectOf) return { err: 'no3d' };
+  const lay = h.querySelector('.mnumlayer'); if (!lay) return { err: 'nolayer' };
+  const base = h.getBoundingClientRect();
+  const btn = [...lay.querySelectorAll('.mnum')].map(b => ({ no: b.dataset.no, x: parseFloat(b.style.left), y: parseFloat(b.style.top) }));
+  const bad = []; let n = 0;
+  btn.forEach(q => { if (q.y < 0 || q.y > base.height || q.x < 0 || q.x > base.width) bad.push({ why: '編號圈跑出圖框', no: q.no, at: [Math.round(q.x), Math.round(q.y)] }); });
+  [...lay.querySelectorAll('path')].forEach(p => {
+    n++;
+    const m = (p.getAttribute('d') || '').match(/M([-\d.]+),([-\d.]+)L([-\d.]+),([-\d.]+)/); if (!m) { bad.push({ why: '引線格式' }); return; }
+    const x0 = +m[1], y0 = +m[2], x1 = +m[3], y1 = +m[4], part = p.dataset.part, no = p.dataset.no;
+    const b = btn.find(q => q.no === no);
+    if (!b || Math.abs(b.x - x1) > 2 || Math.abs(b.y - y1) > 2) { bad.push({ why: '引線末端不在編號圈上', no, d: p.getAttribute('d') }); return; }
+    const r = v.rectOf(part);
+    if (!r) { bad.push({ why: '零件不可見卻畫了引線', no, part }); return; }
+    const L = r.l - base.left - 12, R = r.r - base.left + 12, T = r.t - base.top - 12, B = r.b - base.top + 12;
+    if (!(x0 >= L && x0 <= R && y0 >= T && y0 <= B)) bad.push({ why: '錨點不在零件投影內', no, part, a: [Math.round(x0), Math.round(y0)], rect: [L, T, R, B].map(Math.round) });
+    if (!(x0 >= -1 && x0 <= base.width + 1 && y0 >= -1 && y0 <= base.height + 1)) bad.push({ why: '錨點在畫布外', no, part, a: [Math.round(x0), Math.round(y0)], wh: [Math.round(base.width), Math.round(base.height)] });
+  });
+  return { nums: btn.length, lines: n, bad };
+}"""
+# 找 3 個點得到的零件：畫布上掃格子，打得到零件、而且那一點最上層真的是畫布（不是編號鈕、收合鈕）
+M43D_PICK = r"""() => {
+  const v = Rack3D.current, c = document.querySelector('#prod3d canvas'); if (!v || !c) return [];
+  const r = c.getBoundingClientRect(), got = {}, out = [];
+  for (let y = r.top + 20; y < r.bottom - 10 && out.length < 3; y += 7)
+    for (let x = r.left + 50; x < r.right - 50 && out.length < 3; x += 7) {
+      if (y < 0 || y > innerHeight) continue;
+      const p = v.hitAt(x, y); if (!p || got[p]) continue;
+      if (document.elementFromPoint(x, y) !== c) continue;
+      got[p] = 1; out.push([x, y, p]);
+    }
+  return out;
+}"""
+M43D_ST = r"""() => { const s = document.getElementById('mSheet'), pc = document.getElementById('partCard');
+  return { sy: Math.round(scrollY), dh: document.documentElement.scrollHeight, pc: !!(pc && !pc.hidden && pc.innerHTML.trim()),
+    sheet: !!(s && !s.hidden), role: s && s.getAttribute('role'), kind: s && s.dataset.kind, part: s && s.dataset.part || null, no: s && s.dataset.no || null }; }"""
+
+
+def t_m4_3d_1009(b, base):
+    T = "手機3D說明1009"
+    SHOT = os.environ.get("TW_M43D_SHOT")          # 交件截圖用（不設就不拍）
+    ctx = b.new_context(viewport={"width": 402, "height": 874}, device_scale_factor=1, is_mobile=True, has_touch=True)
+    ctx.add_init_script("try{ if(!sessionStorage.getItem('m43d')){ localStorage.clear(); localStorage.setItem('tw.live.on','0'); localStorage.setItem('tw.tourDone','1'); sessionStorage.setItem('m43d','1'); } localStorage.setItem('tw.dg3d','1'); }catch(e){}")
+    m = ctx.new_page()
+    m.on("pageerror", lambda e: fails.append(f"{T} pageerror: {e} @ {m.url}"))
+    m.route("**/fonts.googleapis.com/**", lambda r: r.abort())
+    J = m.evaluate
+    close = lambda: (J("() => { const s = document.getElementById('mSheetBack'); if (s && !s.hidden) s.click(); }"), m.wait_for_timeout(350))
+    try:
+        m.goto(base + "#industry", wait_until="domcontentloaded"); m.wait_for_timeout(4000)
+        slots = J("() => Object.keys(window.Diagrams || {}).filter(k => DiagramSlots.scene(k)).map(k => [k, DiagramSlots.chainOf(k), DiagramSlots.level(k)])")
+        ok(f"【{T}】找得到有 3D 的剖析圖（{len(slots)} 張）", len(slots) >= 15, slots)
+        tapped = bad_tap = 0
+        census_bad, zoom_bad, no3d = [], [], []
+        for sid, ch, lv in slots:
+            hsh = f"#industry/{ch}" if lv == "chain" else f"#industry/{ch}/dg/{sid}"
+            m.goto(base + hsh, wait_until="domcontentloaded")
+            if not wait_until(m, "() => { const h = document.querySelector('#prod3d'); return !!(h && !h.hidden && window.Rack3D && Rack3D.current && h.querySelector('.mnumlayer .mnum')); }", 30000, 400):
+                no3d.append(sid); continue
+            J("() => document.querySelector('#prod3d').scrollIntoView({ block: 'start', behavior: 'instant' })"); m.wait_for_timeout(900)
+            r = J(M43D_CENSUS)
+            if r.get("err") or r["bad"] or r["lines"] == 0:
+                census_bad.append((sid, r))
+            for x, y, part in J(M43D_PICK):
+                close()
+                s0 = J(M43D_ST)
+                m.touchscreen.tap(x, y); m.wait_for_timeout(700)
+                s1 = J(M43D_ST)
+                tapped += 1
+                good = (not s1["pc"]) and s1["sheet"] and s1["role"] == "dialog" and s1["part"] == part and s1["sy"] == s0["sy"] and s1["dh"] == s0["dh"]
+                if not good:
+                    bad_tap += 1
+                    ok(f"【{T}】{sid} 點零件 {part}：沒插零件卡、開了 role=dialog 抽屜（data-part＝{s1['part']}）、scrollY {s0['sy']}→{s1['sy']}、頁高 {s0['dh']}→{s1['dh']}", False, {"前": s0, "後": s1})
+            close()
+            # 相機拉近：零件跑出畫布時不准再有引線拉到畫布外
+            J("() => { const v = Rack3D.current, c = v.cam(); v.look([0, 0, 0], [c[0] * 0.4, c[1] * 0.4, c[2] * 0.4]); }"); m.wait_for_timeout(900)
+            r2 = J(M43D_CENSUS)
+            if r2.get("err") or r2["bad"]:
+                zoom_bad.append((sid, r2))
+        ok(f"【{T}】每一張都切得進 3D（切不進：{no3d}）", not no3d, no3d)
+        ok(f"【{T}】點了 {tapped} 個零件，每一下都沒插零件卡、開抽屜、scrollY 與頁高不變（不合：{bad_tap}）", tapped >= 3 * (len(slots) - len(no3d)) - 3 and bad_tap == 0, bad_tap)
+        ok(f"【{T}】引線普查：每條一端在編號圈、一端在零件投影 ±12px 內且在畫布內（不合：{[(s, len(r.get('bad', []))) for s, r in census_bad]}）", not census_bad, census_bad[:4])
+        ok(f"【{T}】相機拉近（零件跑出畫布）之後引線照樣合格 —— 修前錨點投到畫布外、引線拉進空白處（不合：{[(s, len(r.get('bad', []))) for s, r in zoom_bad]}）", not zoom_bad, zoom_bad[:4])
+
+        # ---- 矮視窗（Safari 工具列佔掉一截，可視高 560）：客服鈕蓋到圖框下半，右欄躲它 ——
+        #      修前右欄被「整欄往上推」推到圖框上緣之外（04 在 y=−27），只剩一條斜線從零件拉到框外的空白處（Andy 圖四）。
+        m.set_viewport_size({"width": 402, "height": 560})
+        m.goto(base + "#industry/semiconductor/dg/silicon_wafer", wait_until="domcontentloaded")
+        wait_until(m, "() => { const h = document.querySelector('#prod3d'); return !!(h && !h.hidden && Rack3D.current && h.querySelector('.mnumlayer .mnum')); }", 30000, 400)
+        short = []
+        for ft in (0, 330, 470):
+            J("(ft) => { const h = document.querySelector('#prod3d'); window.scrollTo(0, h.getBoundingClientRect().top + scrollY - ft); }", ft)
+            m.wait_for_timeout(900)
+            r = J(M43D_CENSUS)
+            if r.get("err") or r["bad"]:
+                short.append((ft, r))
+        ok(f"【{T}】矮視窗 402×560 圖框在三個捲動位置：編號都在框內、引線兩端合格（不合：{short[:2]}）", not short, short)
+        m.set_viewport_size({"width": 402, "height": 874})
+        # ---- 矽晶圓：2D 點零件、更多、編號翻頁、收合鈕 ----
+        m.goto(base + "#industry/semiconductor/dg/silicon_wafer", wait_until="domcontentloaded")
+        wait_until(m, "() => { const h = document.querySelector('#prod3d'); return !!(h && !h.hidden && Rack3D.current && h.querySelector('.mnumlayer .mnum')); }", 30000, 400)
+        J("() => document.querySelector('#dgSec').scrollIntoView({ block: 'start', behavior: 'instant' })"); m.wait_for_timeout(900)
+        info = lambda: J("() => { const h = document.querySelector('#prod3d'), b = h && h.querySelector('.m4c3d'), r = b && b.getBoundingClientRect();"
+                         " return { sy: Math.round(scrollY), h: h ? Math.round(h.getBoundingClientRect().height) : 0, vis: !!(b && b.getClientRects().length), t: b && b.textContent, lab: b && b.getAttribute('aria-label'),"
+                         " w: r ? Math.round(r.width) : 0, c: r ? [r.left + r.width / 2, r.top + r.height / 2] : null, nums: h ? [...h.querySelectorAll('.mnum')].filter(e => e.getClientRects().length).length : 0 }; }")
+        i0 = info()
+        ok(f"【{T}】3D 右上角有收合鈕（{i0['t']}／{i0['lab']}／{i0['w']}px）", i0["vis"] and i0["w"] >= 32 and i0["lab"] == "收合 3D 圖" and i0["t"] == "⤡", i0)
+        if i0["c"]:
+            m.touchscreen.tap(*i0["c"]); m.wait_for_timeout(1000)
+            i1 = info()
+            ls = J("() => { try { return localStorage.getItem('tw.m4.3dmin'); } catch (e) { return null; } }")
+            ok(f"【{T}】點收合：圖框 {i0['h']}→{i1['h']}px（≤240）、編號藏起來（{i1['nums']}）、鈕換成 ⤢「展開 3D 圖」、scrollY {i0['sy']}→{i1['sy']}（差 ≤4）、記進 localStorage（{ls}）",
+               i1["h"] <= 240 and i0["h"] - i1["h"] >= 80 and i1["nums"] == 0 and i1["lab"] == "展開 3D 圖" and i1["t"] == "⤢" and abs(i1["sy"] - i0["sy"]) <= 4 and ls == "1", {"前": i0, "後": i1})
+            if SHOT:
+                m.screenshot(path=os.path.join(SHOT, "3d_collapsed.jpg"), type="jpeg", quality=62)
+            mr = J("() => Rack3D.current.modelRect()")
+            ok(f"【{T}】收合後模型重新置中、整台在框內（{[round(mr[k]) for k in ('l', 't', 'r', 'b', 'w', 'h')]}）",
+               mr["l"] >= -2 and mr["t"] >= -2 and mr["r"] <= mr["w"] + 2 and mr["b"] <= mr["h"] + 2 and abs((mr["l"] + mr["r"]) / 2 - mr["w"] / 2) < mr["w"] * 0.2, mr)
+            m.touchscreen.tap(*info()["c"]); m.wait_for_timeout(1000)
+            i2 = info()
+            ok(f"【{T}】再點展開：圖框回到 {i2['h']}px（原 {i0['h']}）、編號回來（{i2['nums']}）、scrollY 差 ≤4（{i0['sy']}→{i2['sy']}）",
+               abs(i2["h"] - i0["h"]) <= 4 and i2["nums"] == i0["nums"] and i2["lab"] == "收合 3D 圖" and abs(i2["sy"] - i0["sy"]) <= 4, i2)
+        # 點加熱器 → 抽屜（交件截圖）＋「更多 ›」在抽屜內展開，頁面不長東西
+        pick = J("() => { const v = Rack3D.current, c = document.querySelector('#prod3d canvas').getBoundingClientRect();"
+                 " for (let y = c.top + 5; y < c.bottom; y += 4) for (let x = c.left + 40; x < c.right - 40; x += 4) { if (v.hitAt(x, y) === 'sw_heater' && document.elementFromPoint(x, y).tagName === 'CANVAS') return [x, y]; } return null; }")
+        if ok(f"【{T}】矽晶圓 3D 找得到加熱器", bool(pick), pick):
+            s0 = J(M43D_ST); m.touchscreen.tap(*pick); m.wait_for_timeout(800); s1 = J(M43D_ST)
+            ok(f"【{T}】點加熱器：抽屜開的是加熱器（{s1['part']}／編號 {s1['no']}），沒插零件卡，scrollY 不變（{s0['sy']}→{s1['sy']}）",
+               s1["sheet"] and s1["part"] == "sw_heater" and s1["no"] and not s1["pc"] and s1["sy"] == s0["sy"], s1)
+            if SHOT:
+                m.screenshot(path=os.path.join(SHOT, "heater_sheet.jpg"), type="jpeg", quality=62)
+            # Andy 圖四那條長斜線＝three3d.js 自己的桌機引線（.lead3d path.ld.sel，拉向手機上藏起來的字卡）。
+            # 收合→展開（重排）之後再選零件就會冒出來；再補一次真的 resize（Safari 工具列收放）也不准出現。
+            m.set_viewport_size({"width": 402, "height": 760}); m.wait_for_timeout(600)
+            m.set_viewport_size({"width": 402, "height": 874}); m.wait_for_timeout(600)
+            ld = J("() => [...document.querySelectorAll('#prod3d .lead3d > *')].filter(e => { const cs = getComputedStyle(e); return e.getClientRects().length && cs.display !== 'none' && cs.visibility !== 'hidden' && +cs.opacity > 0; }).map(e => (e.getAttribute('class') || '') + ' ' + (e.getAttribute('d') || '').slice(0, 40))")
+            ok(f"【{T}】選著加熱器、畫布重排過之後：3D 沒有桌機那一套引線冒出來（修前 path.ld.sel 從零件拉到框外左上角：{ld}）", not ld, ld)
+            s1 = J(M43D_ST)          # resize 過，下面「更多」那一條拿新的頁高當基準
+            mo = J("() => { const d = document.querySelector('#mSheet .mpcmore'); if (!d) return null; const h0 = document.getElementById('mSheet').scrollHeight; d.querySelector('summary').click();"
+                   " return { open: d.open, txt: d.innerText.replace(/\\s+/g, ' ').slice(0, 80) }; }")
+            m.wait_for_timeout(300)
+            s2 = J(M43D_ST)
+            ok(f"【{T}】抽屜「更多 ›」在抽屜內展開（{mo and mo['txt']}），頁高與 scrollY 不變", bool(mo and mo["open"] and "環節" in mo["txt"]) and s2["dh"] == s1["dh"] and s2["sy"] == s1["sy"], mo)
+            J("() => document.querySelector('#mSheet .mshnav button[data-d=\"1\"]').click()"); m.wait_for_timeout(400)
+            s3 = J(M43D_ST)
+            ok(f"【{T}】抽屜 › 翻到下一個編號（{s1['no']}→{s3['no']}），抽屜還開著", s3["sheet"] and s3["no"] and s3["no"] != s1["no"], s3)
+            close()
+            ok(f"【{T}】點背景關抽屜", not J(M43D_ST)["sheet"])
+        # 切回 2D：收合鈕不見；2D 點零件一樣開抽屜、不插卡
+        J("() => document.querySelector(\"#dg3d button[data-dm='2d']\").click()"); m.wait_for_timeout(1200)
+        ok(f"【{T}】切回 2D：收合鈕不見", not J("() => { const b = document.querySelector('.m4c3d'); return !!(b && b.getClientRects().length); }"))
+        p2 = J("() => { const g = document.querySelector('#prodDiagram g[data-dgkey=\"sw_heater\"]'); if (!g) return null; g.scrollIntoView({ block: 'center', behavior: 'instant' });"
+               " const k = [...g.querySelectorAll('rect,path,ellipse,polygon')].find(e => { const r = e.getBoundingClientRect(); const x = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2); return x && x.closest('[data-dgkey=\"sw_heater\"]'); });"
+               " if (!k) return null; const r = k.getBoundingClientRect(); return [r.left + r.width / 2, r.top + r.height / 2]; }")
+        if ok(f"【{T}】2D 找得到加熱器", bool(p2), p2):
+            m.wait_for_timeout(300)
+            s0 = J(M43D_ST); m.touchscreen.tap(*p2); m.wait_for_timeout(700); s1 = J(M43D_ST)
+            ok(f"【{T}】2D 點加熱器：開抽屜（{s1['part']}）、沒插零件卡、scrollY 與頁高不變", s1["sheet"] and s1["role"] == "dialog" and s1["part"] == "sw_heater" and not s1["pc"] and s1["sy"] == s0["sy"] and s1["dh"] == s0["dh"], {"前": s0, "後": s1})
+            close()
+    except Exception as e:
+        ok(f"【{T}】整段跑完沒有例外", False, repr(e)[:300])
+    finally:
+        try:
+            ctx.close()
+        except Exception:
+            pass
+
+
 # ★ 2026-10-09 長條寬度1009（Andy 10-09：「下方調整長條圖適當寬度」—— 總覽漲跌家數 11 根在 1730 寬只畫 10px，又細又空）：
 #   softenOption（site/app.js）的長條上限改成依類別數決定：≤ 20 個類別 → 每格 50%（上限直條 48、橫條 20）；多的照舊 ≤ 12／10。
 #   這段真的去量 ECharts 算出來的柱寬（getItemLayout）跟格寬（getBandWidth），而且點一根直條（清單打開、其他直條淡掉的局部 setOption）
@@ -29768,6 +29945,8 @@ SECTIONS = {
     "手機框預覽1008":      lambda pg, b, base, code: t_phone_1008(pg, b, base),
     # ★ 2026-10-09 Andy：「手機剛剛發現嚴重BUG，畫面在產業地圖點擊都會卡頓沒反應」（402×874／DPR 3／CPU 降速 4 倍；⚠ --workers 1）
     "手機產業地圖回應1009": lambda pg, b, base, code: t_m4_ind_1009(b, base),
+    # ★ 2026-10-09 Andy：「3D 圖為何還會出現下方欄位…圖四可以看到他的線條指到未知地方」＋帳本 67 3D 收合鈕（402 寬、全部 3D 圖；⚠ --workers 1）
+    "手機3D說明1009":      lambda pg, b, base, code: t_m4_3d_1009(b, base),
     # ★ 2026-09-25 手機版 v3（docs/mobile_v3_spec.md §7）：底部一列五顆、「?」氣泡、大盤合一張、新雷達＋焦點條、
     #   資金分流樹長條、法人對稱長條、篩選抽屜、剖析圖只留編號（2D／3D）。390 與 360 各一輪。⚠ 一律 --workers 1（有 3D）
     "手機v3":              lambda pg, b, base, code: t_mobile_v3(b, base, code),

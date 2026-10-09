@@ -2022,22 +2022,56 @@
 
   /* 抽屜：cur＝{ items, host, layer }；k＝第幾個 */
   let cur = null;
-  function openNo(k) {
+  /* ★ 2026-10-09 手機 v2（Andy：「3D 圖為何還會出現下方欄位，已經有編號可以說明了」）：
+     手機（html.m4）點零件不再在圖下面插那張大零件卡（industry.js 的 #partCard），一律開這個抽屜。
+     抽屜：編號＋名稱＋短說明＋台股膠囊＋‹ ›；進料／出貨／外商這些長清單收進「更多 ›」（抽屜內展開，不往頁面插東西）。
+     長清單的內容由 industry.js 掛在圖框上的 host._mInfo(part, seg) 給（它才拿得到供應鏈資料）；沒有就不出「更多」。
+     關抽屜＝取消零件選取（host._mClose，＝ industry.js 的 clearPart）；‹ › 換頁時不算關（swapping）。*/
+  const isM4 = () => document.documentElement.classList.contains('m4');
+  let swapping = false;
+  const chipsHtml = (codes) => (codes.length
+    ? codes.slice(0, 8).map(c => `<a href="#stock/${esc(c)}">${esc(stockName(c))} ${esc(c)}</a>`).join('')
+    : '<span class="none">台股無直接對應</span>');
+  const moreHtml = (info) => (info && info.more ? `<details class="mpcmore"><summary>更多 ›</summary><div class="mpcbody">${info.more}</div></details>` : '');
+  function sheetOpen(html, ctx, ghost) {
+    swapping = true;
+    let sh;
+    try {
+      sh = window.M3.openSheet(html, { kind: 'dgno', onClose: () => {
+        if (ctx) { ctx.sel = null; $$('.mnum.on', ctx.layer).forEach(b => b.classList.remove('on')); }
+        if (!swapping && ctx && ctx.host && typeof ctx.host._mClose === 'function') { try { ctx.host._mClose(); } catch (e) { /* 收尾壞掉不卡抽屜 */ } }
+      } });
+    } finally { swapping = false; }
+    /* 3D 是在 pointerup 選零件（three3d.js），手指放開之後瀏覽器才補發 click —— 那時候抽屜的背景（#mSheetBack）剛好鋪在手指底下，
+       補發的 click 落在背景上＝當場把剛開的抽屜關掉（看起來像點了沒反應）。點零件開的抽屜（ghost）才擋：開抽屜後 450ms 內落在背景上的 click 吃掉。*/
+    const back = ghost && document.getElementById('mSheetBack');
+    if (back) {
+      const t0 = performance.now();
+      const guard = (e) => { if (performance.now() - t0 < 450) { e.stopImmediatePropagation(); e.preventDefault(); } };
+      back.addEventListener('click', guard, { capture: true, once: true });
+      setTimeout(() => back.removeEventListener('click', guard, { capture: true }), 500);
+    }
+    return sh;
+  }
+  function openNo(k, ghost) {
     if (!cur || !cur.items[k] || !window.M3) return;
     const it = cur.items[k], n = cur.items.length;
-    const chips = it.codes.length
-      ? it.codes.slice(0, 8).map(c => `<a href="#stock/${esc(c)}">${esc(stockName(c))} ${esc(c)}</a>`).join('')
-      : '<span class="none">台股無直接對應</span>';
-    const sh = window.M3.openSheet(`<div class="mshhead" style="--c:${esc(it.color)}"><span class="no">${esc(it.no)}</span><b>${esc(it.title)}</b></div>`
-      + `<div class="mshbody">${it.lines.map(l => `<i>${esc(l)}</i>`).join('')}</div><div class="mchips">${chips}</div>`
-      + `<div class="mshnav"><button type="button" data-d="-1" aria-label="上一個編號">‹</button><span>${esc(it.no)} / ${String(n).padStart(2, '0')}</span><button type="button" data-d="1" aria-label="下一個編號">›</button></div>`,
-      { kind: 'dgno', onClose: () => { cur.sel = null; $$('.mnum.on', cur.layer).forEach(b => b.classList.remove('on')); } });
+    const info = (isM4() && cur.host && typeof cur.host._mInfo === 'function') ? cur.host._mInfo(it.part, it.seg) : null;
+    const codes = it.codes.length ? it.codes : ((info && info.codes) || []);
+    const lines = it.lines.length ? it.lines : (info && info.desc ? [info.desc] : []);
+    const sh = sheetOpen(`<div class="mshhead" style="--c:${esc(it.color)}"><span class="no">${esc(it.no)}</span><b>${esc(it.title)}</b></div>`
+      + `<div class="mshbody">${lines.map(l => `<i>${esc(l)}</i>`).join('')}</div><div class="mchips">${chipsHtml(codes)}</div>`
+      + moreHtml(info)
+      + `<div class="mshnav"><button type="button" data-d="-1" aria-label="上一個編號">‹</button><span>${esc(it.no)} / ${String(n).padStart(2, '0')}</span><button type="button" data-d="1" aria-label="下一個編號">›</button></div>`, cur, ghost);
     sh.dataset.no = it.no;
+    if (it.part) sh.dataset.part = it.part; else delete sh.dataset.part;
     cur.sel = it.no;
     $$('.mnum', cur.layer).forEach(b => b.classList.toggle('on', +b.dataset.i === k));
-    $$('.mshnav button', sh).forEach(b => b.onclick = (e) => { e.stopPropagation(); openNo((k + (+b.dataset.d) + n) % n); });
-    /* 抽屜會蓋住下半部：被選的編號如果落在抽屜底下，先把整頁捲上來讓它露出來 */
-    const btn = cur.layer.querySelector(`.mnum[data-i="${k}"]`);
+    const ctx0 = cur;
+    $$('.mshnav button', sh).forEach(b => b.onclick = (e) => { e.stopPropagation(); cur = ctx0; openNo((k + (+b.dataset.d) + n) % n); });
+    /* 抽屜會蓋住下半部：被選的編號如果落在抽屜底下，先把整頁捲上來讓它露出來。
+       ★ 手機 v2（html.m4）不捲：Andy 要的是「頁面本身不准跳動」（點之前與點之後 scrollY 一樣）。*/
+    const btn = isM4() ? null : cur.layer.querySelector(`.mnum[data-i="${k}"]`);
     if (btn) {
       const r = btn.getBoundingClientRect(), top = window.innerHeight - sh.offsetHeight - 16;
       if (r.bottom > top) window.scrollBy({ top: r.bottom - top + 8, behavior: 'instant' });
@@ -2058,6 +2092,7 @@
   function items2d(host) {
     return $$('.dgcards .dgc', host).filter(c => c.querySelector('.no') && c.dataset.anc).map(c => ({
       no: c.querySelector('.no').textContent.trim(), anc: c.dataset.anc,
+      part: c.dataset.dgkey || c.dataset.part || '', seg: c.dataset.seg || '',
       title: (c.querySelector('.bd b') || {}).textContent || '',
       lines: $$('.bd i', c).map(x => x.textContent),
       codes: (c.dataset.codes || '').split(/[,\s]+/).filter(Boolean),
@@ -2306,6 +2341,7 @@
     };
     paintZ();
     cur = { host, layer, items, scroller: host, sel: null };
+    host._mctx = cur;
     layer.onclick = (e) => { const b = e.target.closest('.mnum'); if (b) { e.stopPropagation(); openNo(+b.dataset.i); } };
     requestAnimationFrame(() => requestAnimationFrame(() => layout2d(host)));
     setTimeout(() => layout2d(host), 400);
@@ -2332,7 +2368,7 @@
     return $$('.lbl3d', h3).map(d => {
       const b = d.querySelector('b');
       const chips = $$('.chips3d a', d).map(a => (a.getAttribute('href') || '').replace('#stock/', '')).filter(Boolean);
-      return { no: d.dataset.dgno, part: d.dataset.dgpart, title: b && b.firstChild ? b.firstChild.textContent : '',
+      return { no: d.dataset.dgno, part: d.dataset.dgpart, seg: d.dataset.seg || '', title: b && b.firstChild ? b.firstChild.textContent : '',
         lines: [(d.querySelector('i') || {}).textContent || ''].filter(Boolean), codes: chips, color: d.dataset.dgcolor || '#3ee0ff' };
     }).filter(x => x.no).sort((a, b) => a.no.localeCompare(b.no));
   }
@@ -2351,11 +2387,20 @@
       for (let i = arr.length - 1; i >= 0; i--) { const lim = HH - pad - (arr.length - 1 - i) * gap; if (arr[i].y > lim) arr[i].y = lim; if (i < arr.length - 1 && arr[i + 1].y - arr[i].y < gap) arr[i].y = arr[i + 1].y - gap; }
     };
     /* 右下角是客服鈕（固定在視窗右下，約 72×72）：右欄最下面那顆要停在它上面；圖框底端若貼近視窗底，右欄可用高度扣掉 72 */
-    const fab = document.getElementById('supFab'), host = P.length && P[0].host;
+    const fab = document.getElementById('supFab');
     let rH = H;
     if (fab && fab.getClientRects().length && P._base) { const fr = fab.getBoundingClientRect(); const bottomInView = P._base.top + H; if (fr.top < bottomInView) rH = Math.max(pad * 2, fr.top - P._base.top - 8); }
+    /* ★ 2026-10-09（Andy：「線條指到未知地方」）：右欄扣掉客服鈕之後若放不下整欄（rH 小到 pad＋(n−1)×gap 都不夠），
+       「擠到底就整欄往上推回來」會把編號推到負的 y（畫布上緣之外），引線就從零件斜斜拉到畫布外的空白處。
+       放不下就不讓客服鈕（它是浮在上面的，被它蓋到一顆總比整欄飛出畫布好），而且最後一律夾回畫布內。*/
+    if (pad * 2 + (R.length - 1) * gap > rH) rH = H;
     col(L, pad, H); col(R, W - pad, rH);
+    P.forEach((p) => { p.y = Math.max(pad, Math.min(H - pad, p.y)); });
   }
+  /* 3D 的引線（樣子跟 M3.leaders 一樣）：只畫 lead 為真的；多帶 data-part／data-no，驗收才知道每一條是哪個零件的。*/
+  const leaders3d = (P) => P.filter(p => p.lead && Math.hypot(p.x - p.x0, p.y - p.y0) > 8)
+    .map(p => `<path data-part="${esc(p.part)}" data-no="${esc(p.no)}" d="M${p.x0.toFixed(1)},${p.y0.toFixed(1)}L${p.x.toFixed(1)},${p.y.toFixed(1)}" stroke="${p.c}" stroke-width="1.2" fill="none" opacity=".8"/>`
+      + `<circle cx="${p.x0.toFixed(1)}" cy="${p.y0.toFixed(1)}" r="2.5" fill="${p.c}"/>`).join('');
   function mobileNums3d(h3, view) {
     if (!h3) return;
     const old = h3.querySelector(':scope > .mnumlayer'); if (old) old.remove();
@@ -2363,20 +2408,42 @@
     h3.classList.add('mnum3d');
     const layer = document.createElement('div'); layer.className = 'mnumlayer m3d'; h3.appendChild(layer);
     const ctx = { host: h3, layer, items: [], scroller: null, sel: null };
+    h3._mctx = ctx;
     layer.onclick = (e) => { const b = e.target.closest('.mnum'); if (b) { e.stopPropagation(); cur = ctx; openNo(+b.dataset.i); } };
     let tries = 0;
     const tick = () => {
       if (!layer.isConnected || !isM()) return;
       if (!ctx.items.length) { ctx.items = items3d(h3); if (!ctx.items.length && tries++ < 40) { setTimeout(tick, 150); return; } }
       if (!h3.hidden && h3.offsetParent) {
-        const base = h3.getBoundingClientRect();
-        const P = ctx.items.map((it, i) => { const q = view.pointOf(it.part); if (!q) return null;
-          const x = q.x - base.left, y = q.y - base.top; return { i, x, y, x0: x, y0: y, c: it.color, back: !q.front }; }).filter(Boolean);
-        P._base = base; sideCols(P, base.width, base.height);
+        const base = h3.getBoundingClientRect(), W = base.width, H = base.height;
+        /* ★ 2026-10-09（Andy：「圖四可以看到他的線條指到未知地方」）：引線的零件端一律要落在「這個零件現在的螢幕投影」裡、而且在畫布內。
+           以前直接拿 pointOf 的錨點，不檢查：放大／轉到零件跑出畫布時（手機雙指縮放很容易），錨點投影到畫布外，
+           編號層又是 overflow:visible —— 引線就從編號斜斜拉到畫布外的空白處。現在：
+             · 零件整組被藏起來（rectOf 回 null）或錨點不在畫布內 → 編號照留（淡），**不畫引線**；
+             · 錨點偏出零件投影範圍 → 改用零件投影範圍（與畫布的交集）中心。
+           view.rectOf 是 three3d.js 新增的唯讀介面；舊版沒有就照舊用 pointOf。*/
+        // 錨點、圖框、客服鈕都沒動 → 上一輪的結果照用（rectOf 要走零件的外接盒，不必每 60ms 重算）
+        const Q = ctx.items.map(it => view.pointOf(it.part));
+        const fab = document.getElementById('supFab'), fr = fab && fab.getClientRects().length ? fab.getBoundingClientRect().top : -1;
+        const sig = [base.left, base.top, W, H, fr, ctx.sel].concat(Q.map(q => (q ? q.x.toFixed(1) + ',' + q.y.toFixed(1) + (q.front ? 'f' : 'b') : '-'))).join('|');
+        if (sig === ctx._sig) { setTimeout(() => requestAnimationFrame(tick), 60); return; }
+        ctx._sig = sig;
+        const P = ctx.items.map((it, i) => { const q = Q[i]; if (!q) return null;
+          let x = q.x - base.left, y = q.y - base.top, lead = true;
+          const r = view.rectOf ? view.rectOf(it.part) : undefined;
+          if (r === null) lead = false;
+          else if (r) {
+            const L = Math.max(0, r.l - base.left), R = Math.min(W, r.r - base.left), T = Math.max(0, r.t - base.top), B = Math.min(H, r.b - base.top);
+            if (L > R || T > B) lead = false;                                   // 零件整個在畫布外
+            else if (x < L - 6 || x > R + 6 || y < T - 6 || y > B + 6) { x = (L + R) / 2; y = (T + B) / 2; }
+          }
+          if (x < 0 || x > W || y < 0 || y > H) lead = false;
+          return { i, x, y, x0: x, y0: Math.max(0, Math.min(H, y)), c: it.color, back: !q.front || !lead, lead, part: it.part, no: it.no }; }).filter(Boolean);
+        P._base = base; sideCols(P, W, H);
         /* ★ 2026-10-09（Andy：「手機…產業地圖點擊都會卡頓沒反應」）：以前每 76ms 無條件整層 innerHTML 重寫一次 ——
            3D 停著不動也一秒重建 13 次編號鈕，每次都叫醒全站掛在 body 上的 MutationObserver（perm／icons／mobile4…）並重排版；
            而且手指按下去的那顆鈕 76ms 內就被換掉，click 落到外層 → 點編號沒反應。改成：算出來跟上一次一樣就不動 DOM。 */
-        const html = `<svg width="${base.width}" height="${base.height}" style="position:absolute;left:0;top:0;overflow:visible">${window.M3.leaders(P)}</svg>` + numBtns(P, ctx.items, ctx.sel);
+        const html = `<svg width="${W}" height="${H}" style="position:absolute;left:0;top:0;overflow:hidden">${leaders3d(P)}</svg>` + numBtns(P, ctx.items, ctx.sel);
         if (layer._html !== html) { layer._html = html; layer.innerHTML = html; }
         const sd = (el, k, v) => { v = String(v); if (el.dataset[k] !== v) el.dataset[k] = v; };   // 值沒變不寫（同值也會產生 MutationObserver 紀錄）
         sd(layer, 'overlap', window.M3.overlaps(P, MIN)); sd(layer, 'n', P.length); sd(h3, 'mn', ctx.items.length);
@@ -2385,6 +2452,26 @@
     };
     tick();
   }
+  /* 手機 v2（html.m4）點零件（2D 的 SVG 零件、3D 的 raycast）＝開同一個抽屜：
+     找得到這個零件的編號 → 跟點編號完全一樣（openNo，‹ › 照樣翻）；找不到（圖上沒有編號的零件）→ 開一個沒有編號的抽屜。
+     回傳 true＝抽屜開了。桌機（沒有 m4）一律 false，呼叫端照舊畫 #partCard。*/
+  function mobileOpenPart(host, key, seg) {
+    if (!host || !isM() || !isM4() || !window.M3) return false;
+    const ctx = host._mctx;
+    if (ctx && ctx.layer && ctx.layer.isConnected) {
+      if (!ctx.items.length && host.classList.contains('mnum3d')) ctx.items = items3d(host);
+      const k = key ? ctx.items.findIndex(it => it.part === key) : -1;
+      if (k >= 0) { cur = ctx; openNo(k, true); return true; }
+    }
+    const info = typeof host._mInfo === 'function' ? host._mInfo(key, seg) : null;
+    if (!info) return false;
+    const c2 = ctx || { host, layer: host, items: [], sel: null };
+    const sh = sheetOpen(`<div class="mshhead" style="--c:${esc(info.color || '')}"><b>${esc(info.name || '')}</b></div>`
+      + `<div class="mshbody">${info.desc ? `<i>${esc(info.desc)}</i>` : ''}</div><div class="mchips">${chipsHtml(info.codes || [])}</div>` + moreHtml(info), c2, true);
+    delete sh.dataset.no; if (key) sh.dataset.part = key;
+    return true;
+  }
   window.DG.mobileNums = mobileNums;
   window.DG.mobileNums3d = mobileNums3d;
+  window.DG.mobileOpenPart = mobileOpenPart;
 })();

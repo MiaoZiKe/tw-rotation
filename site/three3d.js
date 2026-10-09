@@ -8623,7 +8623,11 @@
     let tightCap = Infinity;     // 「收掉上下空白」之後的高度（tighten() 算的），只在有上限（桌機產業鏈頁）時才會 < Infinity
     const readCap = () => { let v = NaN; try { v = o.maxH ? +o.maxH() : NaN; } catch (e) { /* 量不到就不限 */ } capH = isFinite(v) && v > 0 ? v : Infinity; };
     readCap();
-    const H = () => { const base = Math.max(MIN_H, Math.round(Math.min(700, el.clientWidth * (spec.hk || 0.62))));
+    /* ★ 2026-10-09 手機 v2（Andy 帳本 67：「切到 3D 圖，需要在圖片右上角新增展開及收合 3D 圖片功能」）：
+       收合＝畫布固定一個較矮的高度（呼叫端給，手機約 220），不吃 MIN_H 下限；null＝照舊。只有 setCompact() 會設它。*/
+    let compactH = null;
+    const H = () => { if (compactH) return compactH;
+      const base = Math.max(MIN_H, Math.round(Math.min(700, el.clientWidth * (spec.hk || 0.62))));
       const cap = Math.min(capH, tightCap);
       return cap < base ? Math.max(MIN_H, Math.round(cap)) : base; };
     /* ★ 2026-09-22 響應式的卡片欄（Andy：「版面需要左右對齊，適當分配左右間隔，讓版面更滿…
@@ -10697,6 +10701,28 @@
       const r = renderer.domElement.getBoundingClientRect();
       return { x: r.left + (v.x + 1) / 2 * r.width, y: r.top + (-v.y + 1) / 2 * r.height, front: v.z < 1, part: p.part, color: p.elColor };
     };
+    /* ★ 2026-10-09（手機 3D 引線普查，Andy：「圖四可以看到他的線條指到未知地方」）：
+       零件現在在**視窗**上佔的範圍（看得見的 group 外接盒八個角的投影，client 座標）＋畫布範圍。
+       給手機編號層判斷「錨點真的落在零件上、而且在畫布裡」—— 不在就不畫那條引線；驗收拿同一支量。
+       零件整組被藏起來（自己或任一層父節點 visible=false）回 null。唯讀，不動場景。*/
+    const rectOf = (id) => {
+      const p = findP(id); if (!p || !p.groups.length) return null;
+      const box = new THREE.Box3(), tmp = new THREE.Box3();
+      p.groups.forEach(g => {
+        for (let u = g; u; u = u.parent) if (!u.visible) return;
+        g.updateWorldMatrix(true, true);
+        tmp.setFromObject(g); if (!tmp.isEmpty()) box.union(tmp);
+      });
+      if (box.isEmpty()) return null;
+      const r = renderer.domElement.getBoundingClientRect(), v = new THREE.Vector3();
+      let l = Infinity, t = Infinity, rr = -Infinity, b = -Infinity;
+      for (let i = 0; i < 8; i++) {
+        v.set(i & 1 ? box.max.x : box.min.x, i & 2 ? box.max.y : box.min.y, i & 4 ? box.max.z : box.min.z).project(camera);
+        const x = r.left + (v.x + 1) / 2 * r.width, y = r.top + (-v.y + 1) / 2 * r.height;
+        l = Math.min(l, x); rr = Math.max(rr, x); t = Math.min(t, y); b = Math.max(b, y);
+      }
+      return { l, t, r: rr, b, canvas: { l: r.left, t: r.top, r: r.right, b: r.bottom } };
+    };
     const colorOf = (id) => { const p = findP(id); return p ? p.elColor : null; };
     const partsOf = (seg) => byIdx.filter(x => x && x.seg === seg).map(x => x.part);
     /* 2026-10-03：給驗收量「初始大小＝改前 70%」用 —— 模型（整個 root）外接盒八個角投到畫布上的範圍（相對畫布左上角，px）。*/
@@ -10714,8 +10740,19 @@
     /* refit()：呼叫端覺得「畫布高度上限可能變了」（說明文字換行、上方分頁列折行、Fit 的卡高變了）時叫。
        重讀上限；高度真的變了才走 onResize（會重設畫布、還停在預設視角就重新取景），沒變什麼都不做（#317）。*/
     const refit = () => { if (!alive || !el.clientWidth) return; const c0 = capH; readCap(); if (capH !== c0) onResize(); };
+    /* setCompact(h)：手機 3D 收合／展開（帳本 67）。h＝像素高（收合）或 null（展開回原高）。
+       換畫布高、重算長寬比，然後**一律重新取景**（模型重新置中，不管使用者轉過沒有 —— 換了框的人要的是「整台看得到」）。*/
+    const setCompact = (h) => {
+      if (!alive) return;
+      compactH = h ? Math.max(120, Math.round(h)) : null;
+      if (!el.clientWidth) return;
+      camera.aspect = W() / H(); camera.updateProjectionMatrix();
+      renderer.setSize(W(), H());
+      layoutLabels(); fitCamera(); layoutLabels(); if (!compactH) tighten();
+      markDirty();
+    };
     const view = {
-      highlight, cam, screen, stats, setAnim, hitAt, mats, audit, pointOf, colorOf, partsOf, modelRect, fit, refit,
+      highlight, cam, screen, stats, setAnim, hitAt, mats, audit, pointOf, rectOf, colorOf, partsOf, modelRect, fit, refit, setCompact,
       /* 2026-09-26 細緻化第二批：給截圖／驗收用的「把相機擺到某個位置、看向某一點」（唯讀場景，不改任何零件）。
          拍局部特寫（捲邊、束腰、熱屏）要能指定視角，靠滾輪湊很不穩。*/
       look: (t, pos) => { controls.target.set(t[0], t[1], t[2]); camera.position.set(pos[0], pos[1], pos[2]); controls.update(); markDirty(); layoutLabels(); },

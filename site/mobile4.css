@@ -812,3 +812,38 @@
   /* 360 寬：摘要鈕的小圖示讓位給字 */
   @media (max-width:380px){ :root.m4 :is(.m4ctlrow,#m3Frame.m4set .m3-bar)>.mfilt .m4sico{display:none} :root.m4 :is(.m4ctlrow,#m3Frame.m4set .m3-bar)>.mfilt{padding:0 8px!important} }
 }
+
+/* ============================================================================
+   ★ 2026-10-09 手機 3D／零件說明（Andy 10-09：「3D 圖為何還會出現下方欄位，已經有編號可以說明了」）—— 繪圖專家這一節
+   點零件不再在圖下面插零件卡，改開底部抽屜（diagrams.js openNo／mobileOpenPart）。這一節只排抽屜裡「更多 ›」的長清單。
+   ============================================================================ */
+@media (max-width:640px){
+  :root.m4 .msheet .mpcmore{margin-top:10px;border-top:1px dashed var(--line-2)}
+  :root.m4 .msheet .mpcmore>summary{list-style:none;cursor:pointer;min-height:40px;display:flex;align-items:center;font-size:13px;color:var(--cyan)}
+  :root.m4 .msheet .mpcmore>summary::-webkit-details-marker{display:none}
+  :root.m4 .msheet .mpcmore[open]>summary{color:var(--ink-3)}
+  :root.m4 .msheet .mpcbody{font-size:13px;line-height:1.6;color:var(--ink-2);overflow-wrap:anywhere}
+  :root.m4 .msheet .mpcrow{display:flex;gap:8px;align-items:baseline;margin:6px 0}
+  :root.m4 .msheet .mpcrow>.k{flex:none;width:84px;font-size:12px;color:var(--ink-3)}
+  :root.m4 .msheet .mpcrow>.v{display:flex;flex-wrap:wrap;gap:4px 6px;min-width:0}
+  :root.m4 .msheet :is(.mpcco,.mpcit){display:inline-flex;flex-wrap:wrap;align-items:baseline;gap:0 4px;padding:1px 7px;border:1px solid var(--line-2);border-radius:7px;font-size:12.5px}
+  :root.m4 .msheet :is(.mpcco,.mpcit) small{font-size:12px;color:var(--ink-3)}
+  :root.m4 .msheet .mpcnone{color:var(--amber)}
+  :root.m4 .msheet :is(.mpcnote,.mpcft){font-size:12px;color:var(--ink-3);margin-top:6px}
+  /* ★ Andy 圖四那條「從上往下、指到空白處」的長斜線：是 three3d.js 自己的桌機引線（svg.lead3d 裡的 path.ld.sel），
+     從被選的零件拉到那張零件字卡 —— 手機的字卡（.lbl3d）早就藏起來了，字卡量到的位置是 (0,−143) 一帶，
+     畫布一重排（Safari 工具列收放觸發 resize、收合／展開）而且有零件被選著，那條線就從零件拉到框外左上角。
+     手機 3D 一律改用編號層（.mnumlayer）的引線，桌機那一套整層藏掉。*/
+  :root.m4 #prod3d.mnum3d .lead3d{display:none!important}
+}
+
+/* ★ 2026-10-09 手機 3D 收合／展開（帳本 67，Andy：「當切到 3D 圖，需要在圖片右上角新增展開及收合 3D 圖片功能」）
+   鈕住在 #prod3d 裡（切回 2D 跟著框藏）；↻（.m4rst，#dgBody 右上）還在的話往左讓一顆。收合時編號層與引線藏起來。*/
+@media (max-width:640px){
+  :root.m4 #prod3d>.m4c3d{position:absolute;top:8px;right:8px;z-index:8;width:36px;height:36px;min-width:36px!important;min-height:36px!important;padding:0!important;
+    border-radius:50%;border:1px solid var(--line-2);background:color-mix(in srgb,var(--panel,var(--bg)) 82%,transparent);color:var(--ink);
+    font-size:18px;line-height:1;display:grid;place-items:center;cursor:pointer}
+  :root.m4 #dgBody:has(>.m4rst) #prod3d>.m4c3d{right:52px}
+  :root.m4 #prod3d.m4c3dmin{min-height:0}
+  :root.m4 #prod3d.m4c3dmin>.mnumlayer{display:none!important}
+}
