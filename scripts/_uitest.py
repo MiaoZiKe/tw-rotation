@@ -65537,7 +65537,7 @@ def t_billing_1009(b, base, shots):
         pg.click("#acctMenu [data-b=cancel]")
         dv = wait_until(pg, "() => { const d = document.getElementById('billDlg'); return d && !d.hidden ? d.innerText : null; }", 3000)
         ok(f"【{T}】網頁版 Plus：點取消訂閱 → 確認框寫「可用到本期結束日 {end}」「次期不再扣款」、選單收起",
-           bool(dv) and end in dv and "不再扣款" in dv and "七天" in dv and pg.evaluate("() => document.getElementById('acctMenu').hidden"), dv)
+           bool(dv) and end in dv and "不再扣款" in dv and "不再享有退款保證" in dv and pg.evaluate("() => document.getElementById('acctMenu').hidden"), dv)
         if shots:
             pg.screenshot(path=str(pathlib.Path(shots) / "desk_cancel_confirm.jpg"), type="jpeg", quality=70)
         pg.click("#billYes")
