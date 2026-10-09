@@ -1856,30 +1856,21 @@
       applyDgNative($('#prodDiagram', el), dgId);
       paintDiagram($('#prodDiagram', el));
       // 剖析圖不加縮放：Andy 明講「產業與個股 剖析圖不用新增縮放功能」（本來就可以左右滑）
-      wireDiagram(el, pickPart, clearPart);
-      /* ★ 2026-10-09 手機 v2（Andy：「只需要給一個迴圈（reset 符號）就好，在圖片右上方」）：「整張／放大」拿掉之後，
-         剖析圖框右上角一顆 ↻（2D、3D 共用這一顆；3D 原本那組「拖曳／重設視角」在手機本來就藏著，mobile4.css 第 33 節）。
-         點了＝回到預設：圖框捲動歸零、3D 視角回初始（按 #dgReset 本人，同一支 resetView）、選起來的零件與編號高亮全部清掉。
-         桌機（沒有 html.m4）不插這顆鈕。*/
-      if (document.documentElement.classList.contains('m4')) {
-        const body = $('#dgBody', el);
-        if (body && !body.querySelector(':scope > .m4rst')) {
-          const rb = document.createElement('button');
-          rb.type = 'button'; rb.className = 'm4rst'; rb.textContent = '↻';
-          rb.title = '重設：回到預設視角、清掉選取'; rb.setAttribute('aria-label', '重設剖析圖：回到預設視角、清掉選取');
-          body.prepend(rb);
-        }
-        const rb = body && body.querySelector(':scope > .m4rst');
-        if (rb) rb.onclick = (ev) => {
-          ev.stopPropagation();
-          const h3 = $('#prod3d', el), h2 = $('#prodDiagram', el);
-          if (h3 && !h3.hidden) { const r = $('#dgReset', el); if (r) r.click(); }
-          if (h2) { h2.scrollLeft = 0; h2.scrollTop = 0; }
-          if (window.M3 && window.M3.closeSheet) window.M3.closeSheet();
-          $$('.mnum.on', el).forEach(b => b.classList.remove('on'));
-          clearPart();
-        };
-      }
+      /* ★ 2026-10-09 手機 v2（Andy 09:3x：「↻ 改點背景重設」「產業鏈剖析圖的 ↻ 也照同一規則處理：拿掉鈕，改成點背景重設。3D 只在輕點（不是拖曳）時才重設」）：
+         上一版右上角那顆 ↻ 拿掉；點圖的空白處（2D：沒點到零件／章節列；3D：three3d.js onUp 已擋掉拖超過 5px 的，走到 onBg 的一定是原地輕點而且沒打到零件）
+         ＝回到預設：3D 視角回初始（按 #dgReset 本人，同一支 resetView）、圖框捲動歸零、說明面板收掉、編號高亮與選取全部清掉。
+         桌機（沒有 html.m4）照舊只 clearPart，一行沒變。*/
+      const m4dg = document.documentElement.classList.contains('m4');
+      const bgReset = !m4dg ? clearPart : () => {
+        const h3 = $('#prod3d', el), h2 = $('#prodDiagram', el);
+        if (h3 && !h3.hidden) { const r = $('#dgReset', el); if (r) r.click(); }
+        if (h2) { h2.scrollLeft = 0; h2.scrollTop = 0; }
+        if (window.M3 && window.M3.closeSheet) window.M3.closeSheet();
+        $$('.mnum.on', el).forEach(b => b.classList.remove('on'));
+        clearPart();
+      };
+      wireDiagram(el, pickPart, bgReset);
+      if (m4dg) { const old = $('#dgBody > .m4rst', el); if (old) old.remove(); }
       if (window.DG && window.DG.fillChips) window.DG.fillChips($('#prodDiagram', el), (seg) => { const tw = twOf(sc, seg);
         return { list: tw.slice(0, 4).map(c => ({ code: c.tw_code, name: c.name })), total: tw.length }; });
       /* 配色鈕：跟 3D 無關，只要這一頁上有剖析圖就該能按（2D 也要能換配色）。
@@ -1929,8 +1920,8 @@
       if (skip3d) return;                 // 收合狀態下不掛 3D（展開時才補掛）
       wire3D(el, DS.scene(dgId), {
         onSeg: (seg, data) => pickPart(seg, data && data.part),
-        // 3D 場景點空白處＝跟 2D 一樣回到 Default（Andy 2026-09-22 明講「3D 也要」）
-        onBg: clearPart,
+        // 3D 場景點空白處＝跟 2D 一樣回到 Default（Andy 2026-09-22 明講「3D 也要」）；手機另外把視角也回初始（bgReset，2026-10-09）
+        onBg: bgReset,
         sync: () => syncHighlight({ quiet: true }),
         /* 圖九 2-3（規格書 docs/diagram_specs/dg3d_standard.md）：
            3D 的文字框以前只有「零件名＋一行說明」，是死的。

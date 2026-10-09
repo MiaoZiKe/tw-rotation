@@ -27490,14 +27490,17 @@ def t_mobile_m4_1008(b, base, code):
             go(h, 2600)
             # 2026-10-09：頁內切換改成網頁版 .seg 同一款分段控制器（外框包住選項；Andy「圖一需要全部改成切換開關 如圖二」）—— 那是控制項本身的框，不是內容方格（.m4seg、[role=tablist] 排除）
             r = J("""() => { const CTRL = '.ed,.cald,.hmbar,.snk,.st,.badge,button,input,select,textarea,label,a,[role=button],[role=tab],.seg,.mseg,.nbsw,.m4seg,[role=tablist],.pill,.chip,.ddbtn,.segdd,.etag,.fq,.fqtag,summary,.mnum';
-                const out = []; document.querySelectorAll('main .view.on *').forEach(e => { if (!e.getClientRects().length || e.matches(CTRL) || e.closest(CTRL) || e.ownerSVGElement || e.tagName === 'svg' || e.tagName === 'CANVAS') return;
+                const CHART = '.m4cbox,#lwc,.dgwrap,#hero.ovsum .osc';   // 2026-10-09 Andy：「圖表都不是透明的，需要有自己的底色方框」—— 圖表本身的框是規則，不算內容方格
+                const out = []; document.querySelectorAll('main .view.on *').forEach(e => { if (!e.getClientRects().length || e.matches(CTRL) || e.closest(CTRL) || e.matches(CHART) || e.closest(CHART) || e.ownerSVGElement || e.tagName === 'svg' || e.tagName === 'CANVAS') return;
                   const cs = getComputedStyle(e); const r = e.getBoundingClientRect(); if (r.width < 30 || r.height < 16) return;
                   const b4 = ['Top', 'Right', 'Bottom', 'Left'].every(k => parseFloat(cs['border' + k + 'Width']) > 0 && cs['border' + k + 'Style'] !== 'none');
                   const sh = cs.boxShadow !== 'none' && !/inset/.test(cs.boxShadow);
                   if (b4 || sh) out.push((e.id ? '#' + e.id : '') + '.' + String(e.className).split(' ')[0] + (b4 ? '[框]' : '') + (sh ? '[影]' : '')); }); return [...new Set(out)].slice(0, 8); }""")
             if r:
                 badb[h] = r
-        ok(f"【{T}】402 寬主內容區沒有方框與陰影（只用線條分區）", not badb, badb)
+        # ★ 2026-10-09 改寫（Andy 09:1x：「圖表都不是透明的，需要有自己的底色方框，所有圖表都是 需要有方框，並且大功能會用線條區分」）：
+        #   原本是「402 寬主內容區沒有方框」；改成「功能區沒有框（只用線條分區），圖表容器有框」—— 圖表框另外在 t_mobile_m4_ov2 驗。
+        ok(f"【{T}】402 寬功能區沒有方框與陰影（只用線條分區；圖表容器本身的框除外）", not badb, badb)
         m.set_viewport_size({"width": 390, "height": 844})
         # ⑮ 資金分流樹日期拉桿：手指拖把手 → 日期與樹真的換；▶ 播放中拉桿鎖住
         go("flow/sankey", 4500)

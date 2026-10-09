@@ -12618,15 +12618,21 @@
     };
     let cur = null;
     nodes.forEach(n => { n.onclick = (e) => { e.stopPropagation(); cur = (cur === n.dataset.part) ? null : n.dataset.part; paint(cur); }; });
-    /* ★ 2026-10-09 手機 v2（Andy：「只需要給一個迴圈（reset 符號）就好，在圖片右上方」）：題材剖析圖框右上角一顆 ↻，
-       點了＝清掉選起來的環節（sel／dim）、收掉說明面板、捲動歸零。themes3d.js 依寬度重畫會換掉 root 的內容，重畫後會再叫這支，所以每次補插。
-       桌機（沒有 html.m4）不插。*/
-    if (document.documentElement.classList.contains('m4') && !root.querySelector(':scope > .m4rst')) {
-      const rb = document.createElement('button');
-      rb.type = 'button'; rb.className = 'm4rst'; rb.textContent = '↻';
-      rb.title = '重設：清掉選取'; rb.setAttribute('aria-label', '重設剖析圖：清掉選取');
-      rb.onclick = (e) => { e.stopPropagation(); cur = null; paint(null); root.scrollLeft = 0; if (window.M3 && window.M3.closeSheet) window.M3.closeSheet(); };
-      root.prepend(rb);
+    /* ★ 2026-10-09 手機 v2（Andy 09:3x：「↻ 改點背景重設」）：題材剖析圖右上角的 ↻ 鈕拿掉，
+       改成點圖的空白處（沒點到任何環節、代號、說明鈕、按鈕）＝清掉選起來的環節（sel／dim）、收掉說明面板、捲動歸零。
+       themes3d.js 依寬度重畫只換 root 的內容、root 本身不換 → 監聽器掛一次（root._m4bg），重設動作每次換成最新的閉包。
+       桌機（沒有 html.m4）不掛。*/
+    if (document.documentElement.classList.contains('m4')) {
+      const old = root.querySelector(':scope > .m4rst'); if (old) old.remove();
+      root._m4reset = () => { cur = null; paint(null); root.scrollLeft = 0; if (window.M3 && window.M3.closeSheet) window.M3.closeSheet(); };
+      if (!root._m4bg) {
+        root._m4bg = 1;
+        root.addEventListener('click', (e) => {
+          if (!document.documentElement.classList.contains('m4')) return;
+          if (e.target.closest && e.target.closest('[data-part],[data-chain],.scode,.capbtn,.info,button,a,input,select,details')) return;
+          if (root._m4reset) root._m4reset();
+        });
+      }
     }
   }
   /* ★ 2026-09-23（Andy：「題材這頁 將中間這兩個表格拿掉」）：

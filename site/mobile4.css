@@ -234,8 +234,9 @@
 
   /* ---- 14. 手機一律不用方格（2026-10-08 Andy：「礙於手機空間有限，原本每個功能底下的大方格需要取消，直接用線條去做區分即可」）
      功能區塊、卡中卡、面板：拿掉邊框、底色塊、圓角、陰影、四角裝飾；區塊之間只留 1px 細線＋12px 間距。
-     例外：按鈕、輸入框、分段切換鈕本身的外框；月曆的日期格（格子本身就是資料的座標）；指數三格改成淡分隔線。 */
-  :root.m4 main .view :is(.nbbody,.epanel,.mfocus,.gpcard,.dgwrap,.mdgfolds,.chainmap,.sl-secn,.sl-card,.callist,.inclist,.wpbody,#lwc,.osc,.hpanel,.panel,.mpanel,.relsec,.dgsec,.nbcard,.segbox,.howtxt,.incsec,.cxl,.cxr,.simtw,.rellist,.mcard,.qcard){
+     例外：按鈕、輸入框、分段切換鈕本身的外框；月曆的日期格（格子本身就是資料的座標）；指數三格改成淡分隔線。
+     ★ 2026-10-09 起圖表本身另有規則（Andy：「圖表都不是透明的，需要有自己的底色方框」）：#lwc、.dgwrap、摘要卡 .osc 從這張清單移出，框在第 31 節。 */
+  :root.m4 main .view :is(.nbbody,.epanel,.mfocus,.gpcard,.mdgfolds,.chainmap,.sl-secn,.sl-card,.callist,.inclist,.wpbody,.hpanel,.panel,.mpanel,.relsec,.dgsec,.nbcard,.segbox,.howtxt,.incsec,.cxl,.cxr,.simtw,.rellist,.mcard,.qcard){
     border:0!important;border-radius:0!important;box-shadow:none!important;background:transparent!important}
   :root.m4 main .view :is(.nbbody,.epanel,.mfocus,.gpcard,.dgwrap,.sl-card,.callist,.inclist,.wpbody,.hpanel,.relsec,.incsec)::before,
   :root.m4 main .view :is(.nbbody,.epanel,.mfocus,.gpcard,.dgwrap,.sl-card,.callist,.inclist,.wpbody,.hpanel,.relsec,.incsec)::after{display:none!important}
@@ -671,12 +672,8 @@
   :root.m4 #indChain #relSec{margin:12px -4px 0!important;width:auto!important;max-width:none!important}
   :root.m4 #indChain #dgSec{width:auto!important;max-width:none!important}
   :root.m4 #v-heatmap #themeDetail>.card{margin:0 -4px!important}
-  /* ↻ 重設 */
+  /* ↻ 重設鈕 2026-10-09 09:3x 拿掉（Andy：改點背景重設；app.js wireThemeDiagram、industry.js wireDg） */
   :root.m4 #dgSec #dgBody,:root.m4 #themeDiagram{position:relative}
-  :root.m4 .m4rst{position:absolute;top:16px;right:4px;z-index:7;width:40px;height:40px;min-width:40px!important;min-height:40px!important;padding:0!important;
-    border-radius:50%!important;border:1px solid var(--m4-div,var(--line-2))!important;background:color-mix(in srgb,var(--panel,#fff) 72%,transparent)!important;
-    color:var(--ink-2)!important;font-size:18px!important;line-height:1;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;backdrop-filter:blur(2px)}
-  :root.m4 #themeDiagram>.m4rst{top:2px;right:2px}
   :root.m4 #dgSec #dg3dCtl{display:none!important}
 }
 
@@ -811,4 +808,43 @@
   :root.m4 #m3Frame.m4set .m3-bar>.howbtn{flex:none}
   /* 360 寬：摘要鈕的小圖示讓位給字 */
   @media (max-width:380px){ :root.m4 :is(.m4ctlrow,#m3Frame.m4set .m3-bar)>.mfilt .m4sico{display:none} :root.m4 :is(.m4ctlrow,#m3Frame.m4set .m3-bar)>.mfilt{padding:0 8px!important} }
+}
+
+/* ---- 31. 總覽上方瘦身＋摘要卡一張一屏＋圖表方框＋Y 軸完整（2026-10-09 Andy 09:1x，三張截圖；程式在 mobile4.js 第 31 節）
+   Andy：「上方拿掉／圖二需要每個方框都跟螢幕一樣寬，並且底下附上圓圈頁數／K線圖 走勢圖 Y軸都沒資訊了，需要你完整他，
+   並且 圖表都不是透明的，需要有自己的底色方框，所有圖表都是 需要有方框，並且大功能會用線條區分」。
+   ⚠ 全部在 @media (max-width:640px) 而且掛 :root.m4 —— 桌機一條都不吃（桌機守門1008）。 */
+@media (max-width:640px){
+  /* 31a. 總覽最上方指數三格（加權／上櫃／台指近全日盤＋1/3 點點）與「＋觀察」整列拿掉（圖一紅框） */
+  :root.m4 #mbHome{display:none!important}
+
+  /* 31b. 摘要卡：一張＝可用寬，一次一張，手指左右滑（scroll-snap），下方圓點頁數（mobile4.js 畫 .m4ovdots） */
+  :root.m4 #hero.ovsum .ovsum-track{grid-auto-columns:100%!important;gap:0!important;padding:0!important;scroll-snap-type:x mandatory;touch-action:pan-x pan-y}
+  :root.m4 #hero.ovsum .osc{scroll-snap-align:start;scroll-snap-stop:always;width:100%}
+  :root.m4 #hero.ovsum .ovsum-nav{display:none!important}
+  :root.m4 .m4ovdots{display:flex;justify-content:center;align-items:center;gap:0;margin:0;height:36px}
+  :root.m4 .m4ovdots button{width:36px;height:36px;padding:0;border:0;background:transparent;display:grid;place-items:center;cursor:pointer}
+  :root.m4 .m4ovdots button::before{content:'';width:8px;height:8px;border-radius:50%;background:var(--line-2);transition:background .15s,transform .15s}
+  :root.m4 .m4ovdots button.on::before{background:var(--t4-accent-solid,var(--cyan));transform:scale(1.25)}
+
+  /* 31c. 圖表方框：圖表本身（ECharts 容器、Lightweight Charts 容器、canvas 圖、剖析圖、摘要卡）一律有底色＋1px 外框＋圓角；
+     「大功能」不加框，照舊用第 29 節的分隔線分開（2026-10-08「大方格取消」不變：框只包圖，不包整個功能區）。
+     .m4cbox 由 mobile4.js chartBoxes() 掛（寬 ≥ 160、高 ≥ 100 才算圖，表格裡的小走勢線不加框）。 */
+  :root.m4 main .view :is(.m4cbox,#lwc,.dgwrap,#hero.ovsum .osc){background:var(--t4-card-bg,var(--panel))!important;border:1px solid var(--line)!important;border-radius:10px!important;box-sizing:border-box}
+  :root.m4 main .view .m4cbox.m4lwc,:root.m4 main .view #lwc{overflow:hidden}
+
+  /* 31d. 個股 K 線左上圖例不准蓋住右側價格軸（以前四行圖例壓在 2600／2650 那幾格上） */
+  :root.m4 #lwc .legend-ov{max-width:calc(100% - 84px);box-sizing:border-box}
+
+  /* 31e. 期間列（資金輪動 #rotBack、資金分流樹 #sankeyDays）播放中／暫停都維持一行（Andy 09:3x：按 ▶ 之後 ⏸ 掉到下一行）：
+     原因：播放中右邊文字變長（「20 天前 · 回放 9/7」「57 天前＋2026-07-15」），index.html 的 .rbar 是 flex-wrap:wrap。
+     手機改成不換行、拉桿吃剩下的寬度（最少 48px）、鈕固定 40px；分流樹播放中「57 天前」先藏（日期本身就說了是哪天）。 */
+  :root.m4 #v-flow .rbar:is(#rotBack,#sankeyDays){display:flex;flex-wrap:nowrap!important;width:100%;max-width:100%;gap:6px;min-width:0}
+  :root.m4 #v-flow .rbar:is(#rotBack,#sankeyDays)>.pb{flex:none}
+  :root.m4 #v-flow .rbar:is(#rotBack,#sankeyDays)>input[type=range]{flex:1 1 60px;width:auto!important;min-width:48px}
+  :root.m4 #v-flow .rbar:is(#rotBack,#sankeyDays)>:is(.val,.ago,.t){flex:none;white-space:nowrap;min-width:0}
+  :root.m4 #v-flow #sankeyDays.playing>.ago{display:none}
+  /* 31f. 熱力圖右上「放大 ⤢」拿掉（Andy 09:3x：題材頁和產業熱力圖兩處都拿；總覽「熱度」組的兩顆是同一款，一併拿掉）。
+     手機本來就是滿寬、可以兩指縮放，放大罩在手機只是多一層。節點留著（桌機照舊用）。 */
+  :root.m4 :is(#heatZoom,#ovThemeZoom,#themeZoom){display:none!important}
 }

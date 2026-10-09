@@ -656,7 +656,7 @@
     });
   }
   function bleedEnd(e) { const end = e.scrollLeft + e.clientWidth >= e.scrollWidth - 4; if (end !== e.classList.contains('m4end')) e.classList.toggle('m4end', end); }
-  const SEGSEL = '.view.on :is(.seg,.nbsw,.mpager,.mseg,[role=tablist]):not(.m4subtabs):not(#mbTabs):not(.hmbar)';
+  const SEGSEL = '.view.on :is(.seg,.nbsw,.mpager,.mseg,[role=tablist]):not(.m4subtabs):not(#mbTabs):not(.hmbar):not(.m4ovdots)';
   let sepT = 0, sepLast = 0;
   function sepSoon() { if (sepT) return; const wait = Math.max(0, 200 - (Date.now() - sepLast)); sepT = setTimeout(() => { sepT = 0; sepLast = Date.now(); if (flatDone) flatFollow(); else syncFlat(); markSeps(); }, wait); }
 
@@ -1173,4 +1173,71 @@
   function off() { tries.forEach(clearTimeout); tries = []; snUnwire(); m3Unwire(); }
   function boot() { if (window.M3 && window.M3.hook) window.M3.hook({ on, off }); }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot); else boot();
+})();
+
+/* ============================================================================
+   ★ 31. 總覽摘要卡一張一屏＋圓點頁數、圖表方框標記（2026-10-09 Andy 09:1x；樣式在 mobile4.css 第 31 節）
+   Andy：「圖二需要每個方框都跟螢幕一樣寬，並且底下附上圓圈頁數」「圖表都不是透明的，需要有自己的底色方框，所有圖表都是 需要有方框」。
+     · 摘要卡（#hero .ovsum-track）：CSS 讓每張＝可用寬、scroll-snap；這裡在卡列下方畫 .m4ovdots（每張一顆，可點，目前那張亮）。
+       app.js renderOvSummary 每次重畫都整個換掉 #hero 的內容 → 觀察者看到點點不見就重插。
+     · 圖表方框：掃 main 裡的 ECharts 容器（[_echarts_instance_]）、Lightweight Charts 容器（.tv-lightweight-charts 的父層）、
+       獨立 canvas 圖的父層，寬 ≥ 160、高 ≥ 100 的掛 .m4cbox（小走勢線不掛）。
+   ⚠ 只在 html.m4（≤640）動；觀察範圍只有 <main>（不掛 body）；桌機什麼都不插。
+   ============================================================================ */
+(function () {
+  'use strict';
+  const root = document.documentElement;
+  const isM4 = () => root.classList.contains('m4');
+  const $ = (s, r) => (r || document).querySelector(s);
+  const $$ = (s, r) => Array.from((r || document).querySelectorAll(s));
+
+  function curIdx(t) { const w = t.clientWidth || 1; return Math.max(0, Math.min(t.children.length - 1, Math.round(t.scrollLeft / w))); }
+  function paintDots() {
+    const h = $('#hero.ovsum'), t = h && $('#ovSumTrack', h), d = h && $('.m4ovdots', h);
+    if (!t || !d) return;
+    const i = curIdx(t);
+    $$('button', d).forEach((b, k) => { const on = k === i; if (b.classList.contains('on') !== on) b.classList.toggle('on', on); if (b.getAttribute('aria-current') !== String(on)) b.setAttribute('aria-current', String(on)); });
+  }
+  function wireDots() {
+    if (!isM4()) { $$('.m4ovdots').forEach((e) => e.remove()); return; }
+    const h = $('#hero.ovsum'), t = h && $('#ovSumTrack', h);
+    if (!t) return;
+    const n = t.children.length;
+    let d = $('.m4ovdots', h);
+    if (!d || d.children.length !== n || d.previousElementSibling !== t) {
+      if (d) d.remove();
+      d = document.createElement('div'); d.className = 'm4ovdots'; d.setAttribute('role', 'tablist'); d.setAttribute('aria-label', '摘要卡頁數');
+      for (let k = 0; k < n; k++) {
+        const b = document.createElement('button'); b.type = 'button'; b.setAttribute('role', 'tab');
+        const tt = t.children[k].querySelector('.osc-t');
+        b.setAttribute('aria-label', '第 ' + (k + 1) + ' 張／共 ' + n + ' 張' + (tt ? '：' + tt.textContent.trim() : ''));
+        b.onclick = (e) => { e.stopPropagation(); t.scrollTo({ left: k * t.clientWidth, behavior: 'smooth' }); setTimeout(paintDots, 450); };
+        d.appendChild(b);
+      }
+      t.after(d);
+    }
+    if (!t._m4dots) { t._m4dots = 1; t.addEventListener('scroll', () => { if (t._m4r) return; t._m4r = requestAnimationFrame(() => { t._m4r = 0; paintDots(); }); }, { passive: true }); }
+    paintDots();
+  }
+
+  function chartBoxes() {
+    if (!isM4()) return;
+    const mn = $('main'); if (!mn) return;
+    const big = (e) => { if (!e || e.classList.contains('m4cbox')) return false; const r = e.getBoundingClientRect(); return r.width >= 160 && r.height >= 100; };
+    $$('[_echarts_instance_]', mn).forEach((e) => { if (big(e)) e.classList.add('m4cbox'); });
+    $$('.tv-lightweight-charts', mn).forEach((c) => { const e = c.parentElement; if (e && e.id !== 'lwc' && big(e)) e.classList.add('m4cbox', 'm4lwc'); });
+    $$('canvas', mn).forEach((c) => { if (c.closest('[_echarts_instance_],.tv-lightweight-charts,.m4cbox,#lwc')) return; const e = c.parentElement; if (big(e)) e.classList.add('m4cbox'); });
+  }
+
+  let tm = 0;
+  function run() { tm = 0; wireDots(); chartBoxes(); }
+  function kick() { if (!tm) tm = setTimeout(run, 150); }
+  function init() {
+    const mn = $('main');
+    if (mn) new MutationObserver(() => { if (isM4()) kick(); }).observe(mn, { childList: true, subtree: true, attributes: true, attributeFilter: ['class', 'hidden'] });
+    window.addEventListener('hashchange', kick);
+    window.addEventListener('resize', kick);
+    kick();
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();
 })();

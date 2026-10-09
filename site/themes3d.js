@@ -193,11 +193,28 @@
     const ARTW = Math.round(W * .4), ARTH = 96, X1 = ARTW + 10, RW = W - X1 - PX;
     const ln = (y) => `<path class="m4ln" d="M0,${Math.round(y) + .5} H${W}"/>`;
     let y = 0, out = '';
-    // 標題右邊留 40px 給右上角的 ↻ 重設鈕（app.js wireThemeDiagram 在 m4 插）
-    wrapAt(o.title, W - 44, 16, 9).forEach(t => { y += 22; out += `<text class="ttl" x="${PX}" y="${y}">${esc(t)}</text>`; });
+    // 標題吃滿寬（2026-10-09 起右上角不再有 ↻ 重設鈕：改成點背景重設，見 app.js wireThemeDiagram）
+    wrapAt(o.title, W - 4, 16, 9).forEach(t => { y += 22; out += `<text class="ttl" x="${PX}" y="${y}">${esc(t)}</text>`; });
     y += 22;
     out += `<text class="cap capbtn" x="${PX}" y="${y}" data-cap="${esc([o.cap, o.unit].filter(Boolean).join('\n'))}">說明 ›</text>`;
     y += 14;
+    /* ★ 2026-10-09（Andy 09:3x：最下面「PCB 製作流程／組裝流程」那段，標題和第一格要移到剖析圖上方、「說明 ›」那一行的位置；所有題材都套用）：
+       流程段（標題＋一步一列）整段搬到「說明 ›」下面、環節卡清單上面；跟環節卡之間一條分隔線。只在這支手機直排版（m4）動。 */
+    const steps = o.steps || [];
+    if (steps.length) {
+      y += 22;
+      out += `<text class="cap vflow" x="${PX}" y="${y}">${esc(o.flowTitle || '產業鏈流程')}</text>`;
+      y += 10;
+      steps.forEach((s, i) => {
+        out += `<g class="p3 step" data-part="${s.p || ''}"><rect class="part f2" x="0" y="${y}" width="${W}" height="40" rx="8"/>
+          <circle class="num" cx="17" cy="${y + 20}" r="10"/><text class="nn" x="17" y="${y + 24.5}" text-anchor="middle">${i + 1}</text>
+          <text class="lbl" x="34" y="${y + 17}">${esc(s.t)}</text>
+          <text class="sub" x="34" y="${y + 33}">${esc(s.s || '')}</text></g>`;
+        y += 40;
+        if (i < steps.length - 1) { out += `<path class="flow fast" d="M17,${y} L17,${y + 8}" stroke="var(--dg-accent-2d)" stroke-width="2"/>`; y += 8; }
+      });
+      y += 10; out += ln(y); y += 6;
+    }
     let lastBand = -1, first = true;
     st.forEach((s) => {
       if (s.band !== lastBand) {                           // 段標題（上游／中游／下游）
@@ -226,21 +243,6 @@
            transform="translate(${ARTW / 2},${acy}) scale(${Math.min(1, s.k || 1) * .6})">${s.art()}</g>${txt}${ch.svg}</g>`;
       y = y0 + rowH;
     });
-    // 組裝流程：一步一列往下排
-    const steps = o.steps || [];
-    if (steps.length) {
-      y += 10; out += ln(y); y += 22;
-      out += `<text class="cap vflow" x="${PX}" y="${y}">${esc(o.flowTitle || '產業鏈流程')}</text>`;
-      y += 10;
-      steps.forEach((s, i) => {
-        out += `<g class="p3 step" data-part="${s.p || ''}"><rect class="part f2" x="0" y="${y}" width="${W}" height="40" rx="8"/>
-          <circle class="num" cx="17" cy="${y + 20}" r="10"/><text class="nn" x="17" y="${y + 24.5}" text-anchor="middle">${i + 1}</text>
-          <text class="lbl" x="34" y="${y + 17}">${esc(s.t)}</text>
-          <text class="sub" x="34" y="${y + 33}">${esc(s.s || '')}</text></g>`;
-        y += 40;
-        if (i < steps.length - 1) { out += `<path class="flow fast" d="M17,${y} L17,${y + 8}" stroke="var(--dg-accent-2d)" stroke-width="2"/>`; y += 8; }
-      });
-    }
     y += 10; out += ln(y);
     let foot = '';
     wrapAt('原創等角示意圖，非實物比例；每個環節的顏色＝族群色', W - PX * 2, 12, 6.7).forEach(t => { y += 18; foot += `<text class="cap" x="${PX}" y="${y}">${esc(t)}</text>`; });
