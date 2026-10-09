@@ -28435,6 +28435,27 @@ def t_mobile_m4_misc1009(b, base, code):
                and all(any(x["t"].startswith(w + " ") for x in g["grp"]) for w in want)
                and any(x["t"].startswith("收 ") and "%" in x["t"] for x in g["grp"])
                and all(x["lines"] == 1 and not x["hit"] for x in g["grp"]), g)
+            # (a3) 手機監督退件（拖十字線）：CDP 觸控長按＋拖曳 → 圖頭跟著換日期；圖頭右緣到價格軸左緣的距離跟靜態差 ≤ 8px、
+            #      行數跟靜態一樣、日期不拆行、十字線提示框（#ohlcBox）看不到（只留圖頭一份讀數）
+            XM = """() => { const lg = document.getElementById('legendOv'); if (!lg) return null; const lr = lg.getBoundingClientRect();
+                const tbl = [...lg.parentElement.querySelectorAll('table')].find(t => !t.closest('#ohlcBox')); if (!tbl) return null;
+                const ax = tbl.querySelector('tr td:last-child').getBoundingClientRect().left, pane = tbl.querySelector('tr td').getBoundingClientRect();
+                const lines = new Set([...lg.querySelectorAll('.kv, span[style]')].flatMap(e => [...e.getClientRects()].filter(r => r.width > 0).map(r => Math.round(r.top)))).size;
+                const ob = document.getElementById('ohlcBox'), obv = !!ob && !ob.hidden && getComputedStyle(ob).display !== 'none' && ob.getBoundingClientRect().width > 0;
+                const db = lg.querySelector('.kv b'), dl = db ? new Set([...db.getClientRects()].map(r => Math.round(r.top))).size : 0;
+                return { gap: Math.round(ax - lr.right), lines, obv, dl, date: db ? db.textContent : '', px: pane.left + pane.width * 0.6, py: pane.top + pane.height * 0.6 }; }"""
+            x0 = m.evaluate(XM)
+            cdp = ctx.new_cdp_session(m)
+            tp = lambda t, x, y: cdp.send("Input.dispatchTouchEvent", {"type": t, "touchPoints": [] if t == "touchEnd" else [{"x": x, "y": y}]})
+            tp("touchStart", x0["px"], x0["py"]); m.wait_for_timeout(700)
+            for kk in range(1, 8):
+                tp("touchMove", x0["px"] - kk * 12, x0["py"]); m.wait_for_timeout(60)
+            m.wait_for_timeout(300)
+            x1 = m.evaluate(XM)
+            tp("touchEnd", 0, 0)
+            ok(f"【{T}】{W} 寬拖十字線：圖頭跟著換日期（{x0 and x0['date']} → {x1 and x1['date']}）、離價格軸距離跟靜態差 ≤ 8px（{x0 and x0['gap']} → {x1 and x1['gap']}）、行數一樣（{x0 and x0['lines']} → {x1 and x1['lines']}）、日期不拆行、看不到十字線提示框",
+               x0 and x1 and x0["date"] != x1["date"] and abs(x1["gap"] - x0["gap"]) <= 8 and x1["gap"] >= 0 and x1["lines"] == x0["lines"]
+               and x1["dl"] == 1 and x0["dl"] == 1 and not x1["obv"], (x0, x1))
             # (b) 財經日曆月份列
             m.goto(base + "#earnings", wait_until="domcontentloaded"); m.wait_for_timeout(3000)
             e = m.evaluate(_M4MISC_HD, "#v-earnings .ehd")

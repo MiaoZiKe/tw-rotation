@@ -4397,7 +4397,11 @@
   function fitM4Legend(legend, again) {
     try {
       // 價格軸＝圖表表格第一列最後一格（lightweight-charts 的版面）；第一次畫時還沒排版好（寬 0）就等下一格再量一次
-      const host = legend.parentElement, td = host && host.querySelector('table tr td:last-child');
+      // ⚠ 同一個 #lwc 裡還有十字線提示框 #ohlcBox，它也是一張 <table>（開盤／最高…），而且排在圖表前面 ——
+      //   直接 querySelector('table …') 拖十字線時會量到提示框的那一格，圖頭被縮成一半（手機監督 10-09 退件）。只認圖表自己的表格。
+      const host = legend.parentElement;
+      const tbl = host && [...host.querySelectorAll('table')].find((t) => !t.closest('.ohlcbox, #ohlcBox, .legend-ov'));
+      const td = tbl && tbl.querySelector('tr td:last-child');
       const hr = host && host.getBoundingClientRect(), ar = td && td.getBoundingClientRect();
       if (ar && ar.width > 0) legend.style.right = Math.max(0, Math.round(hr.right - ar.left + 4)) + 'px';
       else if (!again) { requestAnimationFrame(() => fitM4Legend(legend, true)); return; }
@@ -5450,7 +5454,7 @@
         const m4 = document.documentElement.classList.contains('m4');
         const kv = (t) => `<span class="kv">${t}</span>`;
         let s = m4
-          ? [`<b>${KUtil.fmtTime(d.time, tf)}</b>`, kv(`開 ${A.fmt.n(d.open)}`), kv(`高 ${A.fmt.n(d.high)}`), kv(`低 ${A.fmt.n(d.low)}`),
+          ? [kv(`<b>${KUtil.fmtTime(d.time, tf)}</b>`), kv(`開 ${A.fmt.n(d.open)}`), kv(`高 ${A.fmt.n(d.high)}`), kv(`低 ${A.fmt.n(d.low)}`),
              kv(`收 <b style="color:${col}">${A.fmt.n(d.close)}</b>${chg != null ? ` <span style="color:${A.upDown(chg)}">${A.fmt.pct(chg, 2)}</span>` : ''}`),
              kv(`振幅 ${amp != null ? A.fmt.n(amp, 1) + '%' : '—'}`), kv(`量 ${A.fmt.lot(d.volume / 1000)}`)].join('　')
           : `<b>${KUtil.fmtTime(d.time, tf)}</b>　開 ${A.fmt.n(d.open)}　高 ${A.fmt.n(d.high)}　低 ${A.fmt.n(d.low)}　收 <b style="color:${col}">${A.fmt.n(d.close)}</b>${chg != null ? ` <span style="color:${A.upDown(chg)}">${A.fmt.pct(chg, 2)}</span>` : ''}　振幅 ${amp != null ? A.fmt.n(amp, 1) + '%' : '—'}　量 ${A.fmt.lot(d.volume / 1000)}`;
