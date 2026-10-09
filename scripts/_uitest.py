@@ -29636,6 +29636,19 @@ def t_mobile_m4_indpie_1009(b, base, code):
                     m.screenshot(path=f"/tmp/claude-0/-home-user-tw-rotation/961abebc-d4ed-566f-ba74-0ada1686b229/scratchpad/indpie_{W}.png")
                 except Exception:
                     pass
+            # 10-09 手機監督：360 寬族群總覽副標「成交值前／18 名」斷成兩行（Andy「上方備註不准斷句」）。
+            # 360、402 寬：全市場與半導體族群總覽（標題最長的一條鏈之一）的副標都只有一行 —— 放不下就整句換到下一列，不准從中間斷開。
+            if W in (360, 402):
+                for hs in ("industry", "industry/semiconductor/overview", "industry/traditional/overview"):
+                    if hs != "industry":
+                        m.goto(base + "#" + hs, wait_until="domcontentloaded")
+                        wait_until(m, "(() => [...document.querySelectorAll('[id=gpTitle]')].some(h => h.getClientRects().length && h.querySelector('small')))()", 15000)
+                        m.wait_for_timeout(600)
+                    sub = m.evaluate("""() => { const h = [...document.querySelectorAll('[id=gpTitle]')].find(x => x.getClientRects().length && x.querySelector('small'));
+                        if (!h) return null; const s = h.querySelector('small'), rg = document.createRange(); rg.selectNodeContents(s);
+                        const tops = new Set([...rg.getClientRects()].filter(r => r.width > 0).map(r => Math.round(r.top)));
+                        const sr = s.getBoundingClientRect(); return { t: s.textContent.trim(), lines: tops.size, right: Math.round(sr.right), vw: innerWidth }; }""")
+                    ok(f"【{T}】{W} 寬 #{hs}：族群總覽副標只有一行、沒超出畫面", bool(sub) and sub["lines"] == 1 and sub["right"] <= sub["vw"], sub)
         finally:
             ctx.close()
 

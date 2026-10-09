@@ -889,6 +889,9 @@
      圖例跟頁面內容同寬，名稱靠左、成交值與占比靠右（全站手機的甜甜圈圖例都是 .gplegend 這一款）。 */
   :root.m4 .gpdonut>.gplegend{align-self:stretch;width:100%!important;max-width:none!important;box-sizing:border-box}
   :root.m4 .gpdonut>.gplegend{display:flex!important;flex-direction:column}
+  /* 31g-3.（10-09 手機監督：360 寬族群總覽副標「成交值前／18 名」斷成兩行，違反 Andy「上方備註不准斷句」）
+     標題旁的短副標（標題裡的 <small>）整句當一個不換行的塊：放得下就跟在標題後面，放不下整句換到下一列，副標本身不斷開。 */
+  :root.m4 :is(h1,h2,h3,h4,h5,h6)>small{display:inline-block;white-space:nowrap;max-width:100%}
   /* 31g-2.（帳本 77，10-09 22:0x「產業地圖跑掉了」）圖例滿寬就一定要在圓餅下面：手機甜甜圈一律直排、圓餅置中，
      不靠 layoutDonut 的 .dnbelow（卡寬 ≥ 420 時它會判成圖例在右，圖例滿寬把圓餅擠出卡片）。 */
   :root.m4 .gpdonut{flex-direction:column!important;align-items:center!important;gap:var(--sp-2,8px)}
