@@ -33058,6 +33058,7 @@ SECTIONS = {
     "手機桌機同步1009":    lambda pg, b, base, code: t_m4_sync_1009(b, base, code),
     # ★ 2026-10-09 Andy：手機帳號選單（site/acctm4.js）—— 六種身分各一次：徽章、無自選、每項導頁、額度頁項目數、刪除帳號二次確認、管理區、客服開關（⚠ --workers 1）
     "帳號選單1009":        lambda pg, b, base, code: t_acct_menu_1009(b, base, code),
+    "登入回總覽1010":      lambda pg, b, base, code: t_login_home_1010(b, base, code),
     # ★ 2026-10-10 Andy：「額度上限使用收合功能將每個母分頁內所有有限制的功能標示出來，太長就用拉Bar。不要寫"不開放"…改成plus 會員」（手機 acctm4.js；⚠ --workers 1）
     "額度上限1010":        lambda pg, b, base, code: t_m4_quota_1010(b, base, code),
     # ★ 2026-10-09 Andy：「部分付費功能…兩個方式開放給他們用，但是有期限且限制次數…重點是得要有曝光」—— 體驗額度（devserver 真的 worker.js；⚠ --workers 1）
@@ -66638,6 +66639,9 @@ def _acctm4_ctx(b, who, del_status=200, bill=None, desk=False, plans=None, perm=
         m = st["me"]
         if path == "/v1/me":
             out, code = ({"user": m}, 200) if m else ({}, 401)
+        elif path == "/auth/redeem":   # 登入回總覽1010：整頁跳轉登入回來換權杖 → 變成 Plus 會員
+            st["me"] = ACCTM4_WHO["plus"][0]
+            out = {"tok": "tok-redeem", "user": st["me"]}
         elif path == "/v1/perm/me":
             out = perm if (m or not me) else ACCTM4_WHO["guest"][1]
         elif path == "/v1/plans/public":
@@ -66886,6 +66890,30 @@ def _am4_open(pg):
         pg.wait_for_timeout(600)
         pg.locator("#m4Tools #acctBtn").tap(timeout=6000, force=True)
     return bool(wait_until(pg, "() => { const m = document.getElementById('acctMenu'); return !!m && !m.hidden && m.classList.contains('m4am'); }", 3000))
+
+
+# ===================================================================== 登入回總覽1010（site/account.js goHome）
+#   Andy 10-10：「登入後 需要自動跳回去首頁總覽」。模擬整頁跳轉登入回來（sessionStorage tw.acct.n＋/auth/redeem），
+#   在 #flow 與 #stock/2330 兩頁、手機 390 與桌機 1440 各一次：登入完成後網址變成 #overview、總覽頁真的顯示。
+#   反面：已經登入的人重新整理（走 /v1/me，不是登入）不准被帶走。
+def t_login_home_1010(b, base, code):
+    T = "登入回總覽1010"
+    for desk in (False, True):
+        for start in ("#flow", "#stock/2330"):
+            c, st = _acctm4_ctx(b, "guest", desk=desk, vp=(390, 844))
+            c.add_init_script("try { if (!sessionStorage.getItem('lh1010')) { sessionStorage.setItem('lh1010', '1'); sessionStorage.setItem('tw.acct.n', 'n-test'); } } catch (e) {}")
+            pg = c.new_page()
+            pg.goto(base + start, wait_until="domcontentloaded")
+            tag = f"{'桌機 1440' if desk else '手機 390'}・{start}"
+            got = wait_until(pg, "() => location.hash === '#overview' && !!document.querySelector('#v-overview') && !document.querySelector('#v-overview').hidden ? location.hash : null", 12000)
+            ok(f"【{T}】{tag}：登入完成 → 自動回到總覽（{pg.evaluate('() => location.hash')}）", bool(got))
+            c.close()
+    c, st = _acctm4_ctx(b, "plus", vp=(390, 844))
+    pg = c.new_page()
+    pg.goto(base + "#flow", wait_until="domcontentloaded")
+    pg.wait_for_timeout(4000)
+    ok(f"【{T}】已登入的人重新整理停在原頁（不是登入動作，不准被帶回總覽）", pg.evaluate("() => location.hash").startswith("#flow"), pg.evaluate("() => location.hash"))
+    c.close()
 
 
 def t_acct_menu_1009(b, base, code):
