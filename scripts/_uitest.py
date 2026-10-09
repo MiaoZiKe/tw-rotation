@@ -31788,6 +31788,7 @@ def t_m4_subtab_first_1009(b, base):
         r = st(v)
         ok(f"【{T}】直接開 {h} → 照網址停在第 {want + 1} 格（{r and (r['hash'], r['on'])}）", bool(r) and r["hash"] == h and r["on"] == want, r)
     # 例外二：上一頁鍵 → 照網址（ETF 月配試算 → 抽屜去季節性 → 上一頁 → 回月配試算）
+    m.goto(base + "#etf/inc", wait_until="domcontentloaded"); m.wait_for_timeout(3200)
     drawer("season", 1800)
     m.go_back(); m.wait_for_timeout(2500)
     r = st("etf")
