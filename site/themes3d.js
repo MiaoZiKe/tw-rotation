@@ -175,7 +175,10 @@
      那批還沒合併前 fallback 到 --line-2，兩邊合併後自動統一。*/
   const V_STYLE = `<style>.dg3v .m4ln{stroke:var(--m4-div,var(--line-2));stroke-width:1;shape-rendering:crispEdges;vector-effect:non-scaling-stroke}
     .dg3v .stn .slot{fill:transparent;stroke:none} .dg3v .stn.sel .slot{fill:color-mix(in srgb,var(--c,var(--dg-accent-2d)) 10%,transparent);stroke:none}
-    .dg.dg3v .stn .vsub{font-size:13px;fill:var(--dg-text-2,var(--dg-ink-2))}</style>`;
+    .dg.dg3v .stn .vsub{font-size:13px;fill:var(--dg-text-2,var(--dg-ink-2))}
+    .dg3v .vstep{cursor:pointer;outline:none} .dg3v .vstep.nocard{cursor:default} .dg3v .vstep .part{fill-opacity:.55}
+    .dg3v .vstep.open .part{fill-opacity:.9} .dg.dg3v .vstep .lbl{font-size:15px} .dg.dg3v .vstep .sub{font-size:12px}
+    .dg3v .vstep .vchev{font-size:18px;fill:var(--dg-text-2,var(--dg-ink-2))} .dg3v .vstep:focus-visible .part{stroke:var(--dg-accent-2d);stroke-width:2}</style>`;
   // 通用斷行（標題 16px、站名 15px 用）：fw＝全形字寬、hw＝半形字寬
   function wrapAt(t, maxW, fw, hw) {
     const out = []; let line = '', w = 0;
@@ -204,6 +207,20 @@
     }
     return L;
   }
+  /* 帳本 81：手機直排版的流程步驟收合狀態。預設第一步展開、其餘收起（只有一步就直接展開）；
+     使用者點過才記（tw.m4.tflow.<題材 id>＝展開中的步驟序號，逗號分隔），沒點過的題材一律回到預設。 */
+  const FLOW_LS = 'tw.m4.tflow.';
+  function flowOpen(tid, n) {
+    if (n <= 1) return new Set([0]);
+    let v = null; try { v = localStorage.getItem(FLOW_LS + tid); } catch (e) { /* 私密視窗 */ }
+    if (v == null) return new Set([0]);
+    return new Set(v.split(',').filter(x => x !== '').map(Number).filter(k => k >= 0 && k < n));
+  }
+  function flowToggle(tid, i, n) {
+    const s = flowOpen(tid, n);
+    if (s.has(i)) s.delete(i); else s.add(i);
+    try { localStorage.setItem(FLOW_LS + tid, [...s].sort((a, b) => a - b).join(',')); } catch (e) { /* 私密視窗 */ }
+  }
   function chainSceneV(o) {
     const st = o.stations;
     const W = Math.max(280, Math.round(ctxW || V_W0)), PX = 2;
@@ -215,32 +232,8 @@
     y += 22;
     out += `<text class="cap capbtn" x="${PX}" y="${y}" data-cap="${esc([o.cap, o.unit].filter(Boolean).join('\n'))}">說明 ›</text>`;
     y += 14;
-    /* ★ 2026-10-09（Andy 09:3x：最下面「PCB 製作流程／組裝流程」那段，標題和第一格要移到剖析圖上方、「說明 ›」那一行的位置；所有題材都套用）：
-       流程段（標題＋一步一列）整段搬到「說明 ›」下面、環節卡清單上面；跟環節卡之間一條分隔線。只在這支手機直排版（m4）動。 */
-    const steps = o.steps || [];
-    if (steps.length) {
-      y += 22;
-      out += `<text class="cap vflow" x="${PX}" y="${y}">${esc(o.flowTitle || '產業鏈流程')}</text>`;
-      y += 10;
-      steps.forEach((s, i) => {
-        out += `<g class="p3 step" data-part="${s.p || ''}"><rect class="part f2" x="0" y="${y}" width="${W}" height="40" rx="8"/>
-          <circle class="num" cx="17" cy="${y + 20}" r="10"/><text class="nn" x="17" y="${y + 24.5}" text-anchor="middle">${i + 1}</text>
-          <text class="lbl" x="34" y="${y + 17}">${esc(s.t)}</text>
-          <text class="sub" x="34" y="${y + 33}">${esc(s.s || '')}</text></g>`;
-        y += 40;
-        if (i < steps.length - 1) { out += `<path class="flow fast" d="M17,${y} L17,${y + 8}" stroke="var(--dg-accent-2d)" stroke-width="2"/>`; y += 8; }
-      });
-      y += 10; out += ln(y); y += 6;
-    }
-    let lastBand = -1, first = true;
-    st.forEach((s) => {
-      if (s.band !== lastBand) {                           // 段標題（上游／中游／下游）
-        if (!first) { y += 8; out += ln(y); y += 12; } else y += 4;
-        out += `<g class="band b${s.band}"><rect x="0" y="${y}" width="${W}" height="26" rx="7"/><text x="12" y="${y + 18}">${BANDS[s.band] || ''}</text></g>`;
-        y += 26 + 6; lastBand = s.band;
-      } else { y += 6; out += ln(y); y += 6; }            // 同一段裡卡與卡之間
-      first = false;
-      const y0 = y;
+    /* 一張環節卡（左 40% 等角圖、右欄環節名＋重點＋個股膠囊），回傳 svg 與高度 */
+    const card = (s, y0) => {
       // 右欄：環節名（15px）→ 重點說明（13px；「圖上：…」那行是看圖說明，收進點一下的說明面板）→ 個股膠囊
       const lbl = wrapAt(s.label, RW - 20, 15, 8.4);
       let ty = y0 + 16, txt = '';
@@ -254,12 +247,60 @@
       const textB = ty + 9 + (s.codes && s.codes.length ? ch.rows * CHIP_ROW - 4 : 0);
       const rowH = Math.max(ARTH + 8, textB - y0 + 4);
       const acy = y0 + rowH / 2;
-      out += `<g class="p3 stn" data-part="${s.id}" data-codes="${(s.codes || []).join(',')}"${s.seg ? ` data-seg="${s.seg}"` : ''} data-lbl="${esc(s.label)}" data-desc="${esc((s.sub || []).join('\n'))}">
+      return { h: rowH, svg: `<g class="p3 stn" data-part="${s.id}" data-codes="${(s.codes || []).join(',')}"${s.seg ? ` data-seg="${s.seg}"` : ''} data-lbl="${esc(s.label)}" data-desc="${esc((s.sub || []).join('\n'))}">
         <rect class="slot" x="0" y="${y0 - 4}" width="${W}" height="${rowH + 8}" rx="8"/>
         <g class="art" data-cx="${ARTW / 2}" data-cy="${acy}" data-mw="${ARTW - 12}" data-mh="${ARTH}" data-k="${s.k || 1}"
-           transform="translate(${ARTW / 2},${acy}) scale(${Math.min(1, s.k || 1) * .6})">${s.art()}</g>${txt}${ch.svg}</g>`;
-      y = y0 + rowH;
+           transform="translate(${ARTW / 2},${acy}) scale(${Math.min(1, s.k || 1) * .6})">${s.art()}</g>${txt}${ch.svg}</g>` };
+    };
+    /* ★ 2026-10-09（帳本 81，Andy 22:0x：「不應該標題跟內容 方兩區，應該為穿差的，磊晶材料下方是對應圖片 下方標題以此類推」）：
+       流程步驟不再自成一區、環節卡也不再另成一區 —— 改成穿插：① 步驟標題 → 它的環節卡 → ② 步驟標題 → 它的環節卡 → …
+       · 卡歸哪一步：步驟的 p 指到哪個環節就歸那一步；同一個環節被好幾步指到（例如散熱的「快接管件」「CDU」都指 CDU），
+         卡只放在第一個指到它的步驟下面，後面那一步只留標題（不重複畫同一張卡）；沒有任何步驟指到的環節（例如散熱的風扇），
+         跟著環節順序排在前一個環節所屬的步驟下面（排在最前面的就歸第一步）—— 收起來可以，刪掉不行，每一張卡都進得去。
+       · 上游／中游／下游段標題併進步驟標題右邊的小字（卡的段別），不再另佔一列。
+       · 點步驟標題收合／展開那一步的卡（themes3d.js 下方 document 層的點擊處理）。預設第一步展開、其餘收起；只有一步時直接展開；
+         使用者點過之後記在 localStorage（tw.m4.tflow.<題材 id>），照全站「手動展開過的才記住」慣例。
+       只在這支手機直排版（m4，≤640）動；沒有 steps 的題材照舊走段標題＋卡清單。 */
+    const steps = o.steps || [];
+    if (steps.length) {
+      const idx = {}; st.forEach((s, i) => { idx[s.id] = i; });
+      const grp = steps.map(() => []), owner = {};
+      steps.forEach((p, i) => { if (p.p in idx && !(p.p in owner)) { owner[p.p] = i; grp[i].push(idx[p.p]); } });
+      let prevG = 0;
+      st.forEach((s, i) => { if (s.id in owner) prevG = owner[s.id]; else { owner[s.id] = prevG; grp[prevG].push(i); } });
+      grp.forEach(g => g.sort((a, b) => a - b));
+      const open = flowOpen(curTid, steps.length);
+      y += 22;
+      out += `<text class="cap vflow" x="${PX}" y="${y}">${esc(o.flowTitle || '產業鏈流程')}</text>`;
+      y += 8;
+      const BN = ['上游', '中游', '下游'];
+      steps.forEach((p, i) => {
+        const g = grp[i], has = g.length > 0, on = has && open.has(i);
+        const bands = [...new Set(g.map(k => BN[st[k].band] || ''))].filter(Boolean).join('／');
+        const HH = 46;
+        if (i) { y += 6; out += ln(y); y += 6; }
+        out += `<g class="step vstep${on ? ' open' : ''}${has ? '' : ' nocard'}" data-i="${i}" data-p="${esc(has ? st[g[0]].id : (p.p || ''))}"${(has ? st[g[0]] : st[idx[p.p]] || {}).seg ? ` data-seg="${(has ? st[g[0]] : st[idx[p.p]]).seg}"` : ''}${has ? ` role="button" tabindex="0" aria-expanded="${on}"` : ''} aria-label="${esc(`第 ${i + 1} 步 ${p.t}`)}">
+          <rect class="part f2" x="0" y="${y}" width="${W}" height="${HH}" rx="8"/>
+          <circle class="num" cx="18" cy="${y + HH / 2}" r="11"/><text class="nn" x="18" y="${y + HH / 2 + 4.5}" text-anchor="middle">${i + 1}</text>
+          <text class="lbl" x="37" y="${y + 20}">${esc(p.t)}</text>
+          <text class="sub" x="37" y="${y + 37}">${esc(p.s || '')}${has || !(p.p in owner) ? '' : `（卡在第 ${owner[p.p] + 1} 步）`}</text>
+          ${bands ? `<text class="sub vband" x="${W - (has ? 34 : 12)}" y="${y + 28}" text-anchor="end">${esc(bands)}</text>` : ''}
+          ${has ? `<text class="vchev" x="${W - 12}" y="${y + 29}" text-anchor="end" aria-hidden="true">${on ? '▾' : '›'}</text>` : ''}</g>`;
+        y += HH;
+        if (on) g.forEach((k, j) => { y += j ? 6 : 10; if (j) { out += ln(y); y += 6; } const c = card(st[k], y); out += c.svg; y += c.h; });
+      });
+    } else {
+    let lastBand = -1, first = true;
+    st.forEach((s) => {
+      if (s.band !== lastBand) {                           // 段標題（上游／中游／下游）
+        if (!first) { y += 8; out += ln(y); y += 12; } else y += 4;
+        out += `<g class="band b${s.band}"><rect x="0" y="${y}" width="${W}" height="26" rx="7"/><text x="12" y="${y + 18}">${BANDS[s.band] || ''}</text></g>`;
+        y += 26 + 6; lastBand = s.band;
+      } else { y += 6; out += ln(y); y += 6; }            // 同一段裡卡與卡之間
+      first = false;
+      const c = card(s, y); out += c.svg; y += c.h;
     });
+    }
     y += 10; out += ln(y);
     let foot = '';
     wrapAt('原創等角示意圖，非實物比例；每個環節的顏色＝族群色', W - PX * 2, 12, 6.7).forEach(t => { y += 18; foot += `<text class="cap" x="${PX}" y="${y}">${esc(t)}</text>`; });
@@ -351,6 +392,30 @@
     </svg>`;
   }
   const S = (id, band, label, sub, codes, seg, art, k) => ({ id, band, label, sub, codes, seg, art, k });
+  /* 帳本 81：點手機直排版的步驟標題 → 收合／展開那一步的卡，整張圖照新狀態重畫（同一個寬度、選起來的環節保留）。
+     capture 階段攔下來並停止傳遞：不然 app.js wireThemeDiagram 的「點背景重設」會把它當成點到空白處。 */
+  function flowTap(e) {
+    const t = e.target, h = t && t.closest && t.closest('svg.dg3v .vstep[role=button]');
+    if (!h) return;
+    if (e.type === 'keydown' && e.key !== 'Enter' && e.key !== ' ') return;
+    e.preventDefault(); e.stopPropagation();
+    const svg = h.closest('svg'), root = svg.parentElement, tid = svg.dataset.tid;
+    if (!tid || typeof T[tid] !== 'function') return;
+    const n = svg.querySelectorAll('.vstep').length, i = +h.dataset.i;
+    flowToggle(tid, i, n);
+    const selN = root.querySelector('.p3.stn.sel'), sel = selN && selN.dataset.part;
+    const top = h.getBoundingClientRect().top;
+    if (!rerender(root, +svg.dataset.cw || 0)) return;
+    layout(root);
+    if (typeof root._dg3Rewire === 'function') root._dg3Rewire();
+    if (sel) { const m = root.querySelector(`.p3.stn[data-part="${sel}"]`); if (m) { m.classList.add('sel'); } }
+    // 點的那個標題留在原本的螢幕位置（收起上面一步時不讓它跳走）
+    const h2 = root.querySelector(`svg.dg3v .vstep[data-i="${i}"]`);
+    if (h2) { const d = h2.getBoundingClientRect().top - top; if (Math.abs(d) > 1) window.scrollBy(0, d); if (e.type === 'keydown') { try { h2.focus({ preventScroll: true }); } catch (er) { /* 舊瀏覽器 */ } } }   // 只有鍵盤操作才把焦點移回標題（手指點完不要留焦點外框）
+  }
+  document.addEventListener('click', flowTap, true);
+  document.addEventListener('keydown', flowTap, true);
+
   /* 手機：點一格（或頁首「說明 ›」）從下方展開完整說明（data-desc／data-cap；只有手機版的圖才有這兩個屬性） */
   document.addEventListener('click', (e) => {
     const t = e.target; if (!t || !t.closest || !window.M3 || !window.M3.openSheet) return;

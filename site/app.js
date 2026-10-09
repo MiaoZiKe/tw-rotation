@@ -1498,7 +1498,10 @@
       box.hidden = false;
     };
     document.addEventListener('click', (e) => {
-      const t = e.target.closest && e.target.closest('.brand .logo, .m4brand picture');
+      /* 2026-10-09 帳本 79（Andy：「LOGO放大功能只有在側邊藍打開才有，上方的是回總攬功能」）：手機（html.m4）只有側欄抽屜裡的頭像放大，
+         頂欄頭像不攔 → 走 .brand 原本的 onclick 回總覽。桌機（非 m4）照舊：左上角 LOGO 放大。 */
+      const sel = document.documentElement.classList.contains('m4') ? '.m4brand picture' : '.brand .logo, .m4brand picture';
+      const t = e.target.closest && e.target.closest(sel);
       if (!t) return;
       e.preventDefault(); e.stopPropagation(); open();
     }, true);
@@ -12730,6 +12733,9 @@
       while (used.has(PALETTE[i % PALETTE.length]) && i < PALETTE.length * 2) i++;
       const c = PALETTE[i++ % PALETTE.length]; used.add(c); return c;
     };
+    /* 手機直排版的流程步驟標題（themes3d.js .vstep，帳本 81）跟它那張卡同色。收起來的步驟底下沒有卡，所以顏色先照步驟順序配，
+       收合／展開之後每一步的顏色都不變；桌機的圖沒有 .vstep，這一行不做任何事。 */
+    $$('.vstep[data-p]', root).forEach(n => { const id = n.dataset.p; if (!(id in color)) color[id] = pick(n.dataset.seg); n.style.setProperty('--c', color[id]); });
     nodes.forEach(n => {
       const id = n.dataset.part; if (!id) return;
       if (!(id in color)) color[id] = pick(n.dataset.seg);
