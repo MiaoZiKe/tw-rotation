@@ -813,7 +813,10 @@
      at＝開關插在誰旁邊（沒有 at＝只標歸屬、不放鈕：手機總覽那條橫向自選清單放不下，開關在 #watch 頁）。*/
   const MOUNTS = [
     { key: 'stock', card: '#skChartCard', at: '#skPx [data-live="chg"]', pos: 'after' },
-    { key: 'stock', card: '#mbHead', at: '#mbStar', pos: 'before', cls: 'mb' },
+    /* ★ 2026-10-10 手機個股頁照桌機版型：分頁列（連同 ☆）從報價列（#mbHead）搬到 K 線卡下面（#mbTabRow）。
+       報價列只標歸屬（現價、漲跌幅歸「個股」這顆開關管），開關跟著 ☆ 搬到分頁列。兩個節點都只在手機（≤640）存在，桌機不受影響。*/
+    { key: 'stock', card: '#mbHead' },
+    { key: 'stock', card: '#mbTabRow', at: '#mbStar', pos: 'before', cls: 'mb' },
     { key: 'watch', card: '.wpcard', at: '.wphd .sp', pos: 'before' },
     { key: 'watch', card: '#wlPanel', at: '.wlhd .wlx', pos: 'before' },
     { key: 'watch', card: '#mbWatch' },

@@ -23406,10 +23406,12 @@ def t_live5s_0929(b, base, code):
     ctx.close()
 
     # ------------------------------------------------------------------ C. 手機 390：個股（券商式）
+    # ★ 2026-10-10 改前→改後（Andy：「個股資訊幫我依據網頁版型式呈現……上方是K線」）：分頁列連同 ☆ 從報價列 #mbHead 搬到 K 線卡下面 #mbTabRow，
+    #   「即時」開關跟著 ☆ 搬家 → 選擇器 #mbHead .livetg → #mbTabRow .livetg；要驗的事（看得到、字級、開關真的停住 #mbPx）不變
     S["log"].clear()
     ctx, pg = open_page(LV5_INTRA, f"stock/{code}", vp={"width": 390, "height": 844}, mobile=True)
-    wait_until(pg, "() => !!document.querySelector('#mbHead .livetg.mb')", 10000)
-    mm = pg.evaluate("""() => { const w = document.querySelector('#mbHead .livetg.mb'); if (!w) return null;
+    wait_until(pg, "() => !!document.querySelector('#mbTabRow .livetg.mb')", 10000)
+    mm = pg.evaluate("""() => { const w = document.querySelector('#mbTabRow .livetg.mb'); if (!w) return null;
         const r = w.getBoundingClientRect(), fs = [...w.querySelectorAll('.livetg-t, .livetg-l')].map(e => parseFloat(getComputedStyle(e).fontSize));
         return { w: r.width, h: r.height, vis: r.width > 0 && r.height > 0, minFs: Math.min(...fs),
                  sw: document.scrollingElement.scrollWidth, qh: document.getElementById('mbQuote').getBoundingClientRect().height }; }""")
@@ -23418,10 +23420,10 @@ def t_live5s_0929(b, base, code):
     ok("[即時5秒 手機] 390 寬沒有橫向捲軸", mm is not None and mm["sw"] <= 390, mm)
     mp = changes_within(pg, "#mbPx")
     ok("★ [即時5秒 手機] 開著即時：6.5 秒內現價真的換了", mp[2] is not None, mp)
-    pg.tap("#mbHead .livetg.mb .livetg-b"); pg.wait_for_timeout(400)
+    pg.tap("#mbTabRow .livetg.mb .livetg-b"); pg.wait_for_timeout(400)
     ok("[即時5秒 手機] 點一下關掉（aria-pressed=false、機器讀數變「靜態」）",
-       pg.evaluate("() => document.querySelector('#mbHead .livetg-b').getAttribute('aria-pressed')") == "false"
-       and text(pg, "#mbHead .livetg-t") == "靜態", text(pg, "#mbHead .livetg-t"))
+       pg.evaluate("() => document.querySelector('#mbTabRow .livetg-b').getAttribute('aria-pressed')") == "false"
+       and text(pg, "#mbTabRow .livetg-t") == "靜態", text(pg, "#mbTabRow .livetg-t"))
     t_m = _time.time(); v_m = text(pg, "#mbPx"); pg.wait_for_timeout(6500)
     ok("[即時5秒 手機] 關掉後 6.5 秒數字不再換", text(pg, "#mbPx") == v_m, [v_m, text(pg, "#mbPx")])
     ctx.close()
@@ -32651,7 +32653,7 @@ def t_m4_subtab_first_1009(b, base):
     J("() => { location.hash = '#etf/list'; }"); m.wait_for_timeout(2200)
     r = st("etf")
     ok(f"【{T}】站內連到 #etf/list → 停在 ETF 總覽（{r and (r['hash'], r['on'])}）", bool(r) and r["hash"] == "#etf/list" and r["on"] == 1, r)
-    # 個股頁：K線起。切到「基本資料」→ 離開 → 從別頁點進同一檔 → K線
+    # 個股頁：總覽起（2026-10-10 前是 K線）。切到「基本資料」→ 離開 → 從別頁點進同一檔 → 總覽
     m.goto(base + "#stock/2330", wait_until="domcontentloaded")
     okk = wait_until(m, "() => !!document.querySelector('#mbTabs button[data-t]')", 10000)
     if okk:
@@ -32662,7 +32664,9 @@ def t_m4_subtab_first_1009(b, base):
         J("() => { location.hash = '#stock/2330'; }")
         wait_until(m, "() => !!document.querySelector('#mbTabs button.on')", 10000); m.wait_for_timeout(800)
         k2 = J("() => { const b = document.querySelector('#mbTabs button.on'); const l = [...document.querySelectorAll('#mbTabs button[data-t]')].sort((a, c) => a.getBoundingClientRect().left - c.getBoundingClientRect().left)[0]; return [b && b.dataset.t, l && l.dataset.t]; }")
-        ok(f"【{T}】個股：切到 {k1} → 離開 → 再點進來 → 最左邊 K線（{k0}→{k1}→{k2}）", k1 != "k" and k2[0] == "k" and k2[1] == "k", (k0, k1, k2))
+        # ★ 2026-10-10 改前→改後（Andy：「個股資訊幫我依據網頁版型式呈現……上方是K線 走勢圖……下方是總覽 基本資訊等等」）：
+        #   改前最左邊是「K線」分頁（data-t=k）；改後 K 線永遠在分頁列上面、不是分頁，最左邊是「總覽」（data-t=ov，同桌機）。要守的事不變：再點進來回到最左邊那一格。
+        ok(f"【{T}】個股：切到 {k1} → 離開 → 再點進來 → 最左邊「總覽」（{k0}→{k1}→{k2}）", k1 != "ov" and k2[0] == "ov" and k2[1] == "ov", (k0, k1, k2))
     else:
         ok(f"【{T}】個股：分頁列長出來", False)
     ok(f"【{T}】402 全程沒有 pageerror", not errs, errs[:3])
@@ -49249,15 +49253,19 @@ def t_block_registry(b, base, code):
         #   自己一排分頁 #mbTabs（K線／營收／獲利…／AI 分析／新聞），清單產生的 .mpager 整條藏起來（CSS display:none），
         #   改前照舊去點看不見的分段鈕、量 #aiCard／#stockTabs 必紅。modules.js 這一頁的分段仍是「券商式接不上時」
         #   （簡版個股頁）的備援，所以清單不動；這裡改驗使用者真的看得到的那一排：AI 分析與財報類分頁都在、按得到、真的換內容。
+        if page == "stock":
+            wait_until(m, "() => document.body.classList.contains('mbon')", 10000)
         if page == "stock" and m.evaluate("() => document.body.classList.contains('mbon')"):
             tabs = m.evaluate("() => [...document.querySelectorAll('#mbTabs button[data-t]')].map(b => b.textContent.trim())")
-            ok(f"【{tag}】手機個股頁（券商式）：分段列收起、自己的分頁列有「AI 分析」與財報類（營收／獲利）",
+            # ★ 2026-10-10 改前→改後（Andy：「若是像總覽內有基本面、籌碼快照、AI分析……就需要分段式開關切換分頁」）：
+            #   「AI 分析」不再是獨立分頁，併進「總覽」的分段 → 改驗分頁列有「總覽」與財報類，點「總覽」「營收」真的切過去
+            ok(f"【{tag}】手機個股頁（券商式）：分段列收起、自己的分頁列有「總覽」（含 AI 分析分段）與財報類（營收／獲利）",
                m.evaluate("() => { const p = document.querySelector('.view.on > .mpager'); return !p || getComputedStyle(p).display === 'none'; }")
-               and "AI 分析" in tabs and ("營收" in tabs or "獲利" in tabs), tabs)
-            for t in ("ai", "rev"):
+               and "總覽" in tabs and ("營收" in tabs or "獲利" in tabs), tabs)
+            for t in ("rev", "ov"):
                 if m.evaluate(f"() => !!document.querySelector('#mbTabs button[data-t=\"{t}\"]')"):
                     m.tap(f'#mbTabs button[data-t="{t}"]'); m.wait_for_timeout(700)
-                    st_ = m.evaluate("() => ({ t: document.body.dataset.mbt || '', h: Math.round(Math.max(...['mbBody', 'stockPage'].map(i => { const e = document.getElementById(i); return e ? e.getBoundingClientRect().height : 0; }))) })")
+                    st_ = m.evaluate("() => ({ t: document.body.dataset.mbt || '', h: Math.round(Math.max(...['mbBody', 'stockPage'].map(i => { const e = document.getElementById(i); return e ? e.getBoundingClientRect().height : 0; }))) })")   // 總覽的內容在 #stockPage 裡的 #stockTab，量 #stockPage 一樣量得到
                     ok(f"【{tag}】手機個股頁（券商式）：點「{t}」分頁 → 真的切過去、內容不是空白", st_["t"] == t and st_["h"] > 80, st_)
             continue
         steps = sorted({g.get("s", 0) for g in segs})
@@ -55666,7 +55674,7 @@ def t_mobile_broker(b, base, code):
         mbt: document.body.dataset.mbt || '', hash: location.hash,
         kVis: vis('#skChartCard'), lwcH: (() => { const e = document.getElementById('lwc'); return e ? Math.round(e.getBoundingClientRect().height) : 0; })(),
         lwcB: (() => { const e = document.getElementById('lwc'); return e ? Math.round(e.getBoundingClientRect().bottom) : 0; })(),
-        oldTabsVis: vis('#stockTab'), skPxVis: vis('#skPx'), bodyVis: vis('#mbBody'),
+        oldTabsVis: vis('#stockTab'), deskTabsVis: vis('#stockTabs'), skPxVis: vis('#skPx'), bodyVis: vis('#mbBody'),
         seg: [...document.querySelectorAll('#mbBody .mbseg button')].map(b => b.textContent.trim() + (b.classList.contains('on') ? '*' : '')),
         series: o ? o.series.map(s => ({ n: s.name, len: (s.data || []).length, d: (s.data || []).map(v => v && typeof v === 'object' ? v.value : v).slice(-5) })) : null,
         xFirst: o ? o.xAxis[0].data[0] : null,
@@ -55690,15 +55698,18 @@ def t_mobile_broker(b, base, code):
     # ★ 2026-10-02（Andy：「基本資料分頁移到總覽旁邊…手機版個股分頁的順序也一起改」，DECISIONS #294）：
     #   改前 K線→指標→法人→資券→大戶／散戶→營收→獲利→財務→基本資料→除權息→AI 分析→新聞
     #   → 改後照桌機新順序：K線→基本資料→指標→營收→獲利→財務→除權息→法人→資券→大戶／散戶→AI 分析→新聞（最後完整版）
-    need = ["K線", "基本資料", "指標", "營收", "獲利", "財務", "除權息", "法人", "資券", "大戶／散戶", "AI 分析", "新聞"]
-    ok(f"{T}分頁列有 {len(need)} 頁（{'／'.join(need)}）", all(n in s0["tabs"] for n in need), s0["tabs"])
-    ok(f"{T}分頁順序照清單（K線→基本資料→指標→營收→獲利→財務→除權息→法人→資券→大戶／散戶→AI 分析→新聞，最後完整版）",
-       [t for t in s0["tabs"] if t in need] == need and s0["tabs"][-1] == "完整版", s0["tabs"])
+    # ★ 2026-10-10 改前→改後（Andy：「為何還會一個完整版，個股資訊幫我依據網頁版型式呈現……下方是總覽 基本資訊等等」）：
+    #   改前 K線→基本資料→指標→營收→獲利→財務→除權息→法人→資券→大戶／散戶→AI 分析→新聞→完整版
+    #   → 改後＝桌機 STOCK_TABS：總覽→基本資料→指標→營收→獲利→除權息→法人→資券→大戶／散戶→公告／新聞（K 線永遠在上面、財務併進獲利、AI 分析併進總覽、完整版拿掉）
+    need = ["總覽", "基本資料", "指標", "營收", "獲利", "除權息", "法人", "資券", "大戶／散戶", "公告／新聞"]
+    ok(f"{T}分頁列＝桌機那一份（{'／'.join(need)}）、順序一樣、沒有完整版", s0["tabs"] == need, s0["tabs"])
     ok(f"{T}分頁列沒有舊的「籌碼」「大戶」兩頁", not any(t in ("籌碼", "大戶") for t in s0["tabs"]), s0["tabs"])
     ok(f"{T}沒有合規來源的分頁（相關 ETF、權證、董監持股）不放空殼", not any(x in s0["tabs"] for x in ("相關 ETF", "相關ETF", "權證", "董監持股")), s0["tabs"])
     ok(f"{T}分頁列沒有「主力」（券商分點禁爬，改叫「大戶」）", "主力" not in s0["tabs"], s0["tabs"])
-    ok(f"{T}預設在 K 線頁：K 線卡看得見、舊的現價列與舊分頁藏起來",
-       s0["mbt"] == "k" and s0["kVis"] and not s0["skPxVis"] and not s0["oldTabsVis"], s0)
+    # ★ 2026-10-10 改前→改後：改前預設在「K線」分頁、桌機分頁內容（#stockTab）藏起來；
+    #   改後預設在最左邊「總覽」、K 線卡一樣看得見（在分頁列上面），#stockTab 露出來當總覽內容，桌機那排分頁列（#stockTabs）藏起來
+    ok(f"{T}預設在「總覽」：K 線卡看得見、舊的現價列與桌機那排分頁列藏起來",
+       s0["mbt"] == "ov" and s0["kVis"] and not s0["skPxVis"] and not s0["deskTabsVis"] and s0["oldTabsVis"], s0)
     ok(f"{T}K 線圖＋報價列在同一屏（圖底 {s0['lwcB']} ≤ 可視 {s0['vh'] - 58}）", 300 <= s0["lwcH"] and s0["lwcB"] <= s0["vh"] - 58, s0)
     # ★ 2026-10-06 改前→改後（驗收過時：Andy 13:06「不要出現這樣廢話」，K 線上方那條說明列所有個股、所有週期、手機也一樣拿掉）：
     #   改前驗「分時一定有一行短註、手機只佔一行、點一下展開／收回」；改後驗：等分時那一趟有結果（data-note 寫進狀態句）之後，
@@ -55719,7 +55730,8 @@ def t_mobile_broker(b, base, code):
     a = m.evaluate(ST)
     iv = [r for r in (pgj.get("inst_v3") or {}).get("daily") or [] if r[1] is not None or r[2] is not None or r[3] is not None]
     n = min(63, len(iv))   # 一季＝63 個交易日（跟桌機籌碼預設、docs/stock_page_audit_0927.md 一致）
-    ok(f"{T}法人：切過去 → K 線卡藏起來、分頁內容出現", a["mbt"] == "inst" and not a["kVis"] and a["bodyVis"], a)
+    # ★ 2026-10-10 改前→改後：改前「K 線卡藏起來」；改後 K 線永遠在分頁列上面（Andy：「上方是K線 走勢圖」）
+    ok(f"{T}法人：切過去 → K 線卡還在上面、分頁內容出現", a["mbt"] == "inst" and a["kVis"] and a["bodyVis"], a)
     ok(f"{T}法人：分段是 外資｜投信｜自營商｜合計", [x.rstrip('*') for x in a["seg"]] == ["外資", "投信", "自營商", "合計"], a["seg"])
     ok(f"{T}法人：圖是 {n} 根（一季）、表也是 {n} 列（新到舊）",
        bool(a["series"]) and a["series"][0]["len"] == n and a["rows"] == n, (a["series"], a["rows"]))
@@ -55741,15 +55753,16 @@ def t_mobile_broker(b, base, code):
     fz = m.evaluate("() => { const c = document.getElementById('mbChart'); return { h: c.getBoundingClientRect().height, inst: !!echarts.getInstanceByDom(c) }; }")
     ok(f"{T}再按一次 → 圖回來、真的重畫", fz["h"] > 150 and fz["inst"], fz)
 
-    # ---- 頂部報價列捲動時固定；表頭釘在報價列下面 ----
+    # ---- 頂部報價列捲動時固定；表格在自己的框裡捲、表頭釘在框頂 ----
+    # ★ 2026-10-10 改前→改後（Andy：「下方資訊若太長，就使用拉Bar」）：改前表格跟整頁一起捲、表頭釘在報價列正下方；
+    #   改後表格放進固定高度的框（.mbtblwrap overflow-y:auto），框裡捲到底時表頭釘在框頂
     m.evaluate("() => window.scrollTo({ top: document.documentElement.scrollHeight })"); m.wait_for_timeout(500)
-    sk = m.evaluate("""() => { const h = document.getElementById('mbHead').getBoundingClientRect(), th = document.querySelector('#mbBody .mbtbl thead th');
+    m.evaluate("() => { const w = document.querySelector('#mbBody .mbtblwrap'); if (w) w.scrollTop = w.scrollHeight; }"); m.wait_for_timeout(300)
+    sk = m.evaluate("""() => { const h = document.getElementById('mbHead').getBoundingClientRect(), th = document.querySelector('#mbBody .mbtbl thead th'), w = document.querySelector('#mbBody .mbtblwrap');
         return { sy: Math.round(scrollY), ht: Math.round(h.top), hb: Math.round(h.bottom), tht: th ? Math.round(th.getBoundingClientRect().top) : null,
-                 bottom: document.documentElement.scrollHeight - innerHeight - scrollY <= 2 }; }""")
+                 wt: w ? Math.round(w.getBoundingClientRect().top) : null, wst: w ? w.scrollTop : 0 }; }""")
     ok(f"{T}捲到整頁最底下：報價列還釘在頂欄下面（top≈52）", sk["sy"] > 300 and 48 <= sk["ht"] <= 56, sk)
-    # ★ 2026-10-06 廢話普查：表格下方的長註腳縮短後頁面變矮，捲到底時表格可能還沒碰到報價列 ——
-    #   那時表頭在報價列下面、沒被蓋住，也算過；碰到了就要正好釘在報價列正下方。
-    ok(f"{T}捲到底：表頭釘在報價列正下方（不被蓋住）", sk["tht"] is not None and (abs(sk["tht"] - sk["hb"]) <= 3 or (sk["tht"] > sk["hb"] and sk["bottom"])), sk)
+    ok(f"{T}表格框裡捲到底：表頭釘在框頂（不跟著捲走）", sk["tht"] is not None and sk["wst"] > 50 and abs(sk["tht"] - sk["wt"]) <= 3, sk)
     m.evaluate("() => window.scrollTo({ top: 0 })")
 
     # ---- 大戶／散戶（2026-09-28）：三條持股週線（千張以上｜400～1000 張｜≤10 張），上方三顆色塊＝圖例兼開關 ----
@@ -55857,34 +55870,38 @@ def t_mobile_broker(b, base, code):
     ok(f"{T}指標：點「族群」那一列 → 真的換到族群頁，報價列跟著拆掉", h["hash"].startswith("#industry/group/") and not h["head"] and not h["mbon"], h)
     m.goto(f"{base}#stock/{sc}", wait_until="networkidle")
     wait_until(m, "() => !!document.getElementById('mbHead')", 9000)
-    ok(f"{T}回到個股頁：記得上次停在「指標」分頁", m.evaluate("() => document.body.dataset.mbt") == "tag", m.evaluate("() => document.body.dataset.mbt"))
+    # ★ 2026-10-10 改前→改後：改前「記得上次停在指標分頁」；帳本 85（Andy：「所有分頁打開來 Default 都是最左邊的子分頁」）之後
+    #   離開個股頁再進來回到最左邊那一格 —— 改版後最左邊是「總覽」
+    ok(f"{T}回到個股頁：回到最左邊「總覽」", m.evaluate("() => document.body.dataset.mbt") == "ov", m.evaluate("() => document.body.dataset.mbt"))
 
-    # ---- AI 分析：不另外 render —— 顯示 app.js miaStock 搬進 #aiCard 的同一個 #skAi 節點（四標籤版）----
-    m.evaluate(TAP, "ai"); m.wait_for_timeout(900)
-    AI = """() => { const c = document.getElementById('aiCard'), a = document.getElementById('skAi'); const r = c ? c.getBoundingClientRect() : null;
-        const on = document.querySelector('#skAi .aitab.on');
-        return { n: document.querySelectorAll('#skAi').length, inCard: !!(a && c && a.parentElement === c), h: r ? Math.round(r.height) : 0, t: r ? Math.round(r.top) : null,
-                 tabs: [...document.querySelectorAll('#skAi .aitab')].map(b => b.dataset.facet), on: on ? on.dataset.facet : null,
-                 txt: a ? a.innerText.slice(0, 60) : '', vh: innerHeight, kVis: (() => { const k = document.getElementById('skChartCard'); return !!k && k.getBoundingClientRect().height > 0; })() }; }"""
+    # ---- AI 分析 ----
+    # ★ 2026-10-10 改前→改後（Andy：「若是像總覽內有基本面、籌碼快照、AI分析，出現2個以上的功能表，就需要分段式開關切換分頁」）：
+    #   改前「AI 分析」是獨立分頁（K 線卡右上那份 #skAi 搬進 #aiCard）；改後是「總覽」的第三段，內容＝桌機總覽右欄那張 #ovAiCard
+    m.evaluate(TAP, "ov"); m.wait_for_timeout(900)
+    m.evaluate(SEG, "ai"); m.wait_for_timeout(700)
+    AI = """() => { const c = document.getElementById('ovAiCard'), f = document.getElementById('skFundCard'); const r = c ? c.getBoundingClientRect() : null;
+        return { n: document.querySelectorAll('#ovAiCard').length, h: r ? Math.round(r.height) : 0, fundH: f ? Math.round(f.getBoundingClientRect().height) : 0,
+                 tabs: [...document.querySelectorAll('#ovAiTags button')].map(b => b.dataset.facet), on: (document.querySelector('#ovAiTags button.on') || {dataset:{}}).dataset.facet,
+                 skAiN: document.querySelectorAll('#skAi').length }; }"""
     ai = m.evaluate(AI)
-    ok(f"{T}AI 分析：看到的是搬進 #aiCard 的同一個 #skAi（只有一份，不另外畫）", ai["n"] == 1 and ai["inCard"] and ai["h"] > 120 and not ai["kVis"], ai)
-    ok(f"{T}AI 分析：四個面向標籤都在、頂端在第一屏內", len(ai["tabs"]) >= 4 and ai["t"] is not None and ai["t"] < ai["vh"] - 200, ai)
+    ok(f"{T}總覽切「AI 分析」→ 桌機那張 AI 卡露出來（只有一份）、基本面卡收起來", ai["n"] == 1 and ai["h"] > 120 and ai["fundH"] == 0 and ai["skAiN"] <= 1, ai)
     if len(ai["tabs"]) >= 2:
         other = next(f for f in ai["tabs"] if f != ai["on"])
-        m.evaluate("(f) => { const b = document.querySelector('#skAi .aitab[data-facet=\"' + f + '\"]'); if (b) b.click(); }", other); m.wait_for_timeout(500)
+        m.evaluate("(f) => { const b = document.querySelector('#ovAiTags button[data-facet=\"' + f + '\"]'); if (b) b.click(); }", other); m.wait_for_timeout(500)
         ai1 = m.evaluate(AI)
         ok(f"{T}AI 分析：點另一個面向（{other}）→ 標籤真的換過去", ai1["on"] == other and ai1["on"] != ai["on"], (ai["on"], ai1["on"]))
     m.evaluate(TAP, "news"); m.wait_for_timeout(600)
     ai2 = m.evaluate(AI)
-    ok(f"{T}離開 AI 分析 → #aiCard 藏起來、#skAi 還是只有一份", ai2["h"] == 0 and ai2["n"] == 1, ai2)
+    ok(f"{T}離開總覽 → AI 卡藏起來、還是只有一份", ai2["h"] == 0 and ai2["n"] == 1, ai2)
     nn = len(pgj.get("news") or []) + len(pgj.get("material_news") or [])
     nr = m.evaluate("() => document.querySelectorAll('#mbBody .mbnews li').length")
     ok(f"{T}新聞：一列一則（新聞＋重大訊息共 {nn} 則）", nr == nn, nr)
 
-    # ---- 完整版：桌機那一組分頁看得見（收起來可以，刪掉不行）----
-    m.evaluate(TAP, "full"); m.wait_for_timeout(900)
-    fv = m.evaluate("() => { const e = document.getElementById('stockTabs'); const r = e && e.getBoundingClientRect(); return { h: r ? r.height : 0, mbt: document.body.dataset.mbt }; }")
-    ok(f"{T}完整版：桌機的個股分頁看得見", fv["h"] > 20 and fv["mbt"] == "full", fv)
+    # ---- 完整版 ----
+    # ★ 2026-10-10 改前→改後（Andy：「為何還會一個完整版」）：改前驗「完整版分頁看得到桌機那排分頁」；
+    #   改後完整版拿掉，驗「沒有完整版、桌機那排分頁列（第二排分頁）看不見」—— 它的內容已經分到總覽／獲利各段（手機個股1010 段驗）
+    fv = m.evaluate("() => { const e = document.getElementById('stockTabs'); const r = e && e.getBoundingClientRect(); return { h: r ? r.height : 0, full: !!document.querySelector('#mbTabs button[data-t=full]') }; }")
+    ok(f"{T}沒有完整版、畫面上只有一排分頁", fv["h"] == 0 and not fv["full"], fv)
 
     # ---- 自選清單 ☆（2026-09-27 起清單有五頁：☆ 跳出「加進哪幾頁」，存在 localStorage `tw.watchlists`，只存代號；DECISIONS #270）----
     STAR = """() => { const b = document.getElementById('mbStar'); return { t: b ? b.textContent : null, p: b ? b.getAttribute('aria-pressed') : null,
