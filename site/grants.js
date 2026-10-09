@@ -166,6 +166,11 @@
   #grantBar .gb-t{white-space:normal;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
   #grantBar .gb-r{display:none}
   .qcard .qc-gtag{margin-left:0}
+  :root.m4 #grantBar{align-items:center;margin:8px 0}
+  :root.m4 #grantBar .gb-t.gb-m{display:block;-webkit-line-clamp:unset;overflow:visible;line-height:1.45}
+  :root.m4 #grantBar .gb-free{font-style:normal;white-space:nowrap;color:var(--ink)}
+  :root.m4 #grantBar .gb-r.gb-rm{display:inline-flex;align-items:center;align-self:stretch;flex:none;padding:0 4px;min-height:36px;font-size:12.5px;font-weight:700;
+    color:var(--cyan,#22d3ee);text-decoration:none;white-space:nowrap}
 }`;
     document.head.appendChild(s);
   }
@@ -221,12 +226,23 @@
         rules();
       });
     }
-    if (el.parentNode !== v || v.firstElementChild !== el) v.insertBefore(el, v.firstChild);
+    /* ★ 2026-10-10（網頁手機同步稽核第 3 條）手機（html.m4 且 ≤640）另走一條：
+       ① 位置固定在摘要卡列（#hero）正下方、分段鈕上面 —— 以前插在 #v-overview 最前面，再被 mobile3.js 把指數列／摘要卡搬回前面，
+          結果有時在分段鈕上、有時在分段鈕下（看誰先跑），切分段就跳；mobile3.js hmSum 也會把它放回 #hero 後面。
+       ② 字不截斷：「免綁卡、不扣款」與活動名、剩幾天一定看得到（原本兩行 line-clamp 會吃掉句尾）；功能名單收成「N 項功能」（完整清單在辦法裡）。
+       ③ 露出「辦法 ›」短連結（法遵：辦法要易取得；原本手機把「活動辦法」字藏起來、只能整條點）。
+       桌機那條字串與位置一字未改。*/
+    const mob = document.documentElement.classList.contains('m4') && window.innerWidth <= 640;
+    const hero = mob ? document.getElementById('hero') : null;
+    if (hero && hero.parentNode === v) { if (hero.nextElementSibling !== el) hero.after(el); }
+    else if (el.parentNode !== v || (!mob && v.firstElementChild !== el)) v.insertBefore(el, v.firstChild);
     const ns = names(p.feats), ms = [...new Set(Object.values(p.feats || {}))];
     const left = Math.max(1, Math.ceil((p.t1 - Date.now()) / DAY));
     const what = ns.length > 2 ? `${ns.slice(0, 2).join('、')}等 ${ns.length} 項功能` : ns.join('、');
     const per = p.per === 'day' ? '每天每項' : '每項';
-    const t = `<span class="gb-ic" aria-hidden="true">🎁</span><span class="gb-t"><b>${esc(p.name)}</b>：${esc(what)}${per}可看 ${esc(ms.length === 1 ? ms[0] : Math.min(...ms) + '～' + Math.max(...ms))} 次，剩 ${left} 天（${logged() ? '' : '登入即可使用，'}免綁卡、不扣款）</span><span class="gb-r">活動辦法</span><button type="button" class="gb-x" aria-label="關閉體驗活動橫幅">×</button>`;
+    const mCnt = esc(ms.length === 1 ? ms[0] : Math.min(...ms) + '～' + Math.max(...ms));
+    const t = mob ? `<span class="gb-ic" aria-hidden="true">🎁</span><span class="gb-t gb-m"><b>${esc(p.name)}</b>・剩 ${left} 天<br>${ns.length > 2 ? `${ns.length} 項付費功能` : esc(ns.join('、'))}${per}可看 ${mCnt} 次${logged() ? '' : '，登入即可使用'}；<em class="gb-free">免綁卡、不扣款</em></span><span class="gb-r gb-rm" role="link">辦法 ›</span><button type="button" class="gb-x" aria-label="關閉體驗活動橫幅">×</button>`
+      : `<span class="gb-ic" aria-hidden="true">🎁</span><span class="gb-t"><b>${esc(p.name)}</b>：${esc(what)}${per}可看 ${esc(ms.length === 1 ? ms[0] : Math.min(...ms) + '～' + Math.max(...ms))} 次，剩 ${left} 天（${logged() ? '' : '登入即可使用，'}免綁卡、不扣款）</span><span class="gb-r">活動辦法</span><button type="button" class="gb-x" aria-label="關閉體驗活動橫幅">×</button>`;
     if (el.dataset.h !== t) { el.innerHTML = t; el.dataset.h = t; }
     el.dataset.gid = p.gid;
     el.title = '點一下看活動辦法';
@@ -259,6 +275,8 @@
   window.addEventListener('tw:account', () => { const a = A(); const w = a && a.user && a.user() ? a.user().email : ''; if (w !== G.who || !G.pub) { G.who = w; later(); } });
   window.addEventListener('tw:account-config', later);
   window.addEventListener('hashchange', () => banner());
+  /* 手機／桌機兩種字串：拉寬拉窄跨過 640 才換（banner 內有 dataset.h 比對，沒變就不重畫） */
+  { let rt = 0; window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(() => { if (document.getElementById('grantBar')) banner(); }, 250); }); }
   /* 到期：每分鐘看一次（過期的那一份從畫面拿掉、鎖頭蓋回來）*/
   setInterval(() => { if (G.me && (G.me.grants || []).some((g) => g.end <= Date.now() && !g._gone)) { G.me.grants.forEach((g) => { if (g.end <= Date.now()) g._gone = true; }); paint(); } }, 60000);
   window.TwGrants = { open, has, extra, use, cardHtml, pending, unitOf, refresh, rules, banner, state, left: leftOf };

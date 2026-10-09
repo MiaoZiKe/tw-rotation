@@ -2196,7 +2196,7 @@ html[data-theme="light"] #v-admin{--pm-blue:#1f4fd8;--pm-blue-2:#163fb4}
   }
   function presetDiff(m) {
     const F = FT(), t = m.t, c = m.cur || { feats: {}, lims: {}, name: '', price: 0, dq: null };
-    const val = (feats, id) => { const f = F.byId(id); const v = (feats || {})[id]; if (!f) return v; if (f.kind === 'limit') return Number.isInteger(v) ? v : F.defOf ? F.defOf(f, t.key) : f.def; return typeof v === 'boolean' ? v : F.defOf ? F.defOf(f, t.key) : f.def; };   // 2026-10-10：開關也認 defBy
+    const val = (feats, id) => { const f = F.byId(id); const v = (feats || {})[id]; if (!f) return v; if (f.kind === 'limit') return Number.isInteger(v) ? v : F.defOf ? F.defOf(f, t.key) : f.def; return typeof v === 'boolean' ? v : F.defOf ? F.defOf(f, t.key) : f.def; };
     const fn = (id) => (F.byId(id) ? F.byId(id).name : id);
     const show = (id, v) => { const f = F.byId(id); return f && f.kind === 'limit' ? (v >= f.max && f.opts ? '不限' : v + (f.unit || '')) : v ? '開' : '關'; };
     const feats = Object.keys(t.feats).filter((id) => val(c.feats, id) !== val(t.feats, id)).map((id) => `${fn(id)}：${show(id, val(c.feats, id))} → ${show(id, val(t.feats, id))}`);
@@ -2520,7 +2520,9 @@ html[data-theme="light"] #v-admin{--pm-blue:#1f4fd8;--pm-blue-2:#163fb4}
     } else {
       const p = planOf(PS.planSel); if (!p) return;
       const feats = Object.assign({}, (PS.draft && PS.draft.feats) || p.feats || {});
-      Object.entries(ch).forEach(([k, v2]) => { const f = FT().byId(k); if (f && f.def === v2) delete feats[k]; else feats[k] = v2; });
+      /* 2026-10-10：「跟預設一樣就不存」的預設要依範本（defOf：heat.link／etf.inc.params 對訪客、註冊會員預設關）——
+         以前比 f.def（一律 true），把註冊會員的這兩項撥成「開」會被當成預設刪掉，存完又回到關。*/
+      Object.entries(ch).forEach(([k, v2]) => { const f = FT().byId(k); const d = f && FT().defOf ? FT().defOf(f, PS.planSel) : f && f.def; if (f && d === v2) delete feats[k]; else feats[k] = v2; });
       planDraft(feats, Object.assign({}, curLims()));
       paintTarget(); paintCats();
     }

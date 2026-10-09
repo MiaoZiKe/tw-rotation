@@ -176,9 +176,9 @@
     const QN = new Map();     // 2026-10-10 備註模式：今天次數用完、這一下要反灰＋旁邊小字的功能
     if (!h.startsWith('#admin') && !h.startsWith('#pricing')) {
       for (const f of fs) {
-        /* ★ 2026-10-10（Andy：「功能反灰旁邊備註就好」）：features.js 有 qnote 的計次功能（3D 剖析圖）用完時**不蓋額度卡**：
+        /* ★ 2026-10-10（Andy：「功能反灰旁邊備註就好」）：features.js 有 qbtn 的計次功能（3D 剖析圖）用完時**不蓋額度卡**：
            按鈕反灰＋旁邊一行小字；畫面若正停在那個模式（例如記住了 3D）就退回 qoff（2D），不讓內容被一張卡蓋住。*/
-        if (f.qnote) {
+        if (f.qbtn) {
           const key = unitKey(f, h);
           if (key == null || (f.route && !f.route.test(h))) continue;
           const lim = limitOf(f.id), set = new Set(d.k[f.id] || []);
@@ -241,6 +241,8 @@
       const plan = st.who === 'guest' ? 'guest' : (st.plan || 'free');
       return Object.assign(QC.quotaOpts({ used: w.used, limit: w.lim, plan }), { btnCls: 'qlkgo' });
     }
+    /* 2026-10-10 inline 備註模式：功能清單有寫 qnote（例 ETF 現金流試算「今日次數已用完・Plus 以上可增加」）→ 原位置一行字，不畫大卡 */
+    if (w.f && w.f.qnote) return { kind: 'quota', inline: true, note: w.f.qnote, used: w.used == null ? w.lim : w.used, limit: w.lim, btnCls: 'qlkgo', gk: w.f.id };
     const lk = QC ? QC.lockOpts(w.f, 'member') : null;
     const n = w.used == null ? w.lim : w.used;
     return { kind: 'quota', kick: '每日瀏覽次數', title: `今天的「${w.f.name}」次數用完了`,
@@ -431,8 +433,8 @@
         if (set.has(key)) return;
         if (set.size < lim) { set.add(key); d.k[f.id] = [...set]; save(d); hit(f.id, key); return; }
         if (granted(f.id)) return;        // 體驗額度：今天這個單位已經打開
-        /* 2026-10-10 備註模式（qnote）：用完了＝這一下什麼都不發生（旁邊已經寫了）；手上還有體驗額度才跳體驗卡（「繼續看」才扣）*/
-        if (f.qnote) {
+        /* 2026-10-10 備註模式（qbtn）：用完了＝這一下什麼都不發生（旁邊已經寫了）；手上還有體驗額度才跳體驗卡（「繼續看」才扣）*/
+        if (f.qbtn) {
           e.preventDefault(); e.stopImmediatePropagation();
           const x = window.TwGrants && window.TwGrants.extra(f.id);
           if (x && x.left > 0 && window.TwQCard && window.TwQCard.modal) { window.TwGrants.pending(f.id, b); window.TwQCard.modal(opts({ f, lim, used: set.size })); }
@@ -723,16 +725,16 @@ html.ovnl #ovRotPop .rp-ms a:hover{outline:none!important}`);
     if (x && x.left > 0) { window.TwGrants.pending(NEWS, a); act(NEWS, 'obj', href); }
     newsMark(d);
   }, true);
-  /* 備註模式的反灰與小字（3D 剖析圖這類 qnote 功能；perm.js 的 .plknote 是「開關關掉」那種，這裡是「今天次數用完」）*/
+  /* 備註模式的反灰與小字（3D 剖析圖這類 qbtn 功能；perm.js 的 .plknote 是「開關關掉」那種，這裡是「今天次數用完」）*/
   function qnotePaint(QN) {
     const keep = new Set(), on = new Set();
     QN.forEach(({ f }) => {
       (f.block || []).forEach((sel) => q(sel).forEach((el) => {
         on.add(el);
-        if (!el.hasAttribute('data-qnote')) { el.setAttribute('data-qnote', ''); el.setAttribute('aria-disabled', 'true'); el.title = f.qnote; }
-        const at = (f.qnoteAt && el.closest(f.qnoteAt)) || el;
+        if (!el.hasAttribute('data-qnote')) { el.setAttribute('data-qnote', ''); el.setAttribute('aria-disabled', 'true'); el.title = f.qbtn; }
+        const at = (f.qbtnAt && el.closest(f.qbtnAt)) || el;
         let nt = at.nextElementSibling;
-        if (!nt || !nt.classList.contains('qnote') || nt.dataset.f !== f.id) { nt = document.createElement('span'); nt.className = 'qnote'; nt.dataset.f = f.id; nt.textContent = f.qnote; at.after(nt); }
+        if (!nt || !nt.classList.contains('qnote') || nt.dataset.f !== f.id) { nt = document.createElement('span'); nt.className = 'qnote'; nt.dataset.f = f.id; nt.textContent = f.qbtn; at.after(nt); }
         keep.add(nt);
       }));
     });
@@ -754,5 +756,7 @@ html.ovnl #ovRotPop .rp-ms a:hover{outline:none!important}`);
     return set.has(key) || set.size < n;
   }
   window.TwQuota = { act, allow, pick, pickBlock, routeOk: routeOkAll, heatLinkOk, heatGo, actUnit, UNIT_KINDS, used: (id) => (load().k[id] || []).slice(),
-    state: () => load(), limit: limitOf, evaluate: () => evaluate(), day: tpeDay, pageKey, unitKey: (id, h) => unitKey(window.TwFeatures && window.TwFeatures.byId(id), h || location.hash || ''), unitKind: (id) => unitKind(window.TwFeatures && window.TwFeatures.byId(id)) };
+    state: () => load(), limit: limitOf, evaluate: () => evaluate(), day: tpeDay, pageKey, unitKey: (id, h) => unitKey(window.TwFeatures && window.TwFeatures.byId(id), h || location.hash || ''), unitKind: (id) => unitKind(window.TwFeatures && window.TwFeatures.byId(id)),
+    /* 2026-10-10 手機額度上限面板（acctm4.js）依母分頁分組：沿用這裡的 PAGE_OF／CAT_HEAD 判斷，不另寫一套（只多匯出，不改行為）*/
+    onPage };
 })();

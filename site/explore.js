@@ -419,7 +419,7 @@
         <td class="sl-oth">${ot.length ? ot.map((x) => `<span>${esc(x)}</span>`).join('') : '—'}</td></tr>`;
     }).join('');
     root.innerHTML = `${LEGAL}
-      <div class="sl-fhead"><a href="#explore" class="sl-back">‹ 選股策略</a>
+      <div class="sl-fhead"><a href="#explore/${s.cat}" class="sl-back">‹ 選股策略</a>
         <h2><span class="sl-ici sl-c-${s.cat}">${icon(s.cat)}</span>${esc(s.name)} <small>${esc(s.zh)}・${esc(s.en)}</small></h2></div>
       <div class="card sl-finfo"><h3>篩選條件 ${srcI(srcOf(s))}</h3>${infoHTML(s)}</div>
       <div class="card sl-ftbl"><h3>${can ? `符合的公司 <em class="sl-n" id="slFullN">${m.length}</em> 家 <small>依近 20 日平均成交值排序（流動性），不是好壞名次</small>` : '尚無資料'}</h3>
@@ -470,11 +470,17 @@
     if (!built) return render(sub);
     const root = $('#v-explore'); if (!root) return;
     FULL.n = 100;
-    if (SBY[sub]) { paintFull(root, SBY[sub]); window.scrollTo(0, 0); return; }
+    if (SBY[sub]) { ST.cat = SBY[sub].cat; paintFull(root, SBY[sub]); window.scrollTo(0, 0); return; }
+    /* ★ 2026-10-10（Andy：「選股策略 分頁改成像 ETF 側邊欄位一樣 變成子分頁」）：#explore/<面向> 決定面向（電腦版側欄子項就是這四個網址）；
+       換面向時子標籤清空（跟點頁內分頁一樣）。#explore 不帶面向：電腦版＝基本面（側欄亮基本面，畫面要一致）；手機維持原本記在記憶體的面向。 */
+    const want = CBY[sub] ? sub : (document.documentElement.classList.contains('l4') ? 'fund' : ST.cat);
+    if (want !== ST.cat) { ST.cat = want; ST.tags = []; ST.dd = false; }
     closePop(); shellWall(root); paintChips(); paintGrid();
   }
   window.TwExplore = {
     render, show, S: S_, SRC,
+    /* 網址第二段 → 側欄要亮哪個面向（app.js route() 用）：面向本身、或完整名單頁的策略所屬面向；其餘＝基本面 */
+    catOf: (sub) => (CBY[sub] ? sub : SBY[sub] ? SBY[sub].cat : 'fund'),
     /* 給 _uitest.py 對帳用：每個策略的符合清單（依成交值排序）與可用與否 */
     debug: () => ({ n: R.length, have: Object.assign({}, HAVE), cat: ST.cat,
       hits: Object.fromEntries(S_.map((s) => [s.id, matches(s).map((r) => r.code)])),

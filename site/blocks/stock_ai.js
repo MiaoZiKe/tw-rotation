@@ -836,14 +836,267 @@ body.sksplitting,body.sksplitting *{cursor:col-resize!important;user-select:none
     const hd = (an && an.headline) || {};
     const stance = hd.stance || v.verdict || '—';
     return `<div id="ovAiBrief" data-ai><div class="ovline" id="ovAiLine" data-readout><span class="grade ${stanceCls(stance)}">${esc(stance)}</span>`
-      + `<span class="ovbrief">${esc(an ? briefText(pg) : '尚無資料')}</span></div></div>`;
+      + `<span class="ovbrief">${esc(an ? briefText(pg) : '尚無資料')}</span></div>${an ? ckCells(pg) : ''}</div>`;
   }
   /* ★ 2026-10-02 深夜（#297）總覽右欄那一張 AI 卡。sig＝StockSignal.view 的輸出（industry.js 給；擋掉 stock_signal.js 時是空字串，那一面就不出現）。*/
   /* ★ 2026-10-07（Andy 01:15：AI 分析上方加一行「依公開資料統計計算、不構成投資建議或參考」，一行小字、不另起欄位）：
      改前標題旁琥珀色「規則式自動判讀，非投資建議」→ 改後跟全站同一句（App.DISC_LINE）、灰色 12px、排在標題下一行（整句看得到）。*/
   function discLine() { return (window.App && window.App.DISC_LINE) || '以下為依公開資料統計計算之結果，不構成任何投資建議或參考'; }
+
+  /* ==========================================================================
+     ★ 2026-10-10（Andy：「AI 分析需要搭配圖示上去，幫我修正這邊」，附圖＝個股「總覽」分頁的 #ovAiCard）
+     改前：四顆籤只有字；每一面內容是純文字條列（「外資 20 日賣超 4,295 張、投信 20 日買超 3,828 張」），
+           要自己在腦中比大小、判方向。
+     改後（只在桌機 >640；手機 ≤640／html.m4 新元素一律 display:none，條列文字照舊，版面一個像素不變）：
+       · 四顆籤前面各一個線條圖示（TwIcons 同一套：技術＝K 棒、籌碼＝人群、基本＝財報、消息＝新聞），
+         判讀小標前加方向符號（▲偏多紅／▼偏空綠／—中性灰，CSS ::before，不動 .aitag 的文字）。
+       · 一行重點下面兩組小格子：回檔型態 6 格亮 4 格、突破型態 5 格亮 1 格 —— 「差幾條」一眼看到。
+       · 每一條指標＝左邊小圖示＋上面一張小圖＋下面原本那一行字：
+           技術面：九顆燈號的紅／灰／綠比例條；籌碼面：外資／投信／自營商 20 日正負橫條（紅買綠賣、長度依張數）、
+           法人 5／20 日與融資的箭頭數字徽章、千張大戶持股進度條＋週變化徽章；
+           基本面：同業分位進度條、月營收 YoY 三根小直條、近四季 EPS 四根小直條；消息面：7 天／30 天則數橫條。
+     數字一律從同一份 payload 取（法人橫條＝inst_v3.daily 最近 20 日加總，跟管線 chip_facet 同一個算法；
+     其餘從管線寫好的那一行字裡讀數字），圖跟字講的永遠是同一個數。
+     法遵：只畫事實數字，不加任何指示性字眼；免責那一行原封不動。
+     ========================================================================== */
+  /* ★ 2026-10-10 第二版（Andy 看了線上版：「圖標需要再優化，可以參考行事曆上面的格式，並且需要調整適當寬度」）
+     改前（第一版）：每條左邊一顆 24px 有底色的方塊圖示，小圖只有內容那麼寬 —— 營收 3 根、EPS 4 根直條擠在左半邊，右半邊空白。
+     改後：照「財經日曆／ETF 配息行事曆」那一家的格式：
+       · 圖示＝小線條圖示（13px、不加底塊），跟一個粗體小標題排在同一行（財經日曆右側清單、面板小節 .sec h4 那個樣子）；
+         顏色語彙同日曆：技術＝紫、籌碼＝青、基本＝琥珀、消息＝萊姆。
+       · 數字＝日曆面板上方那排「數字格」（1px 框、8px 圓角、上小標下大數字，ETF 配息面板的「最近一次配息／當次殖利率／平均填息」）
+         —— 幾格就等分整列，吃滿卡片寬度。
+       · 有升降的數字用日曆的外框膠囊徽章（1px currentColor、999px 圓角）：▲ 紅、▼ 綠。
+       · 直條＝日曆面板同一支小圖 CalGrid.mini（同色漸層、3px 圓角、滑過加亮、點了選取），寬度＝整張卡；
+         數字寫在柱上、期別寫在柱下（HTML 等分格，跟圖的類別格對齊）。
+       · 法人正負橫條、燈號比例條、則數橫條都拉滿可用寬度。
+     手機規則不變：這些全部只在 >640 且非 html.m4 顯示，手機看到的仍是原本的條列文字。 */
+  const DIRCH = (lb) => lb === '偏多' ? 'up' : lb === '偏空' ? 'down' : lb === '中性' ? 'flat' : '';
+  const FICON = { tech: ['candle', 'tech'], chip: ['users', 'chip'], fund: ['file', 'fund'], news: ['news', 'event'] };
+  const svgI = (k, s) => (window.TwIcons && window.TwIcons.svg ? window.TwIcons.svg(k, s || 15) : '');
+  const sgn = (v) => (v > 0 ? 'pos' : v < 0 ? 'neg' : '');
+  const numS = (v, d) => (v > 0 ? '+' : v < 0 ? '−' : '') + Math.abs(v).toLocaleString(undefined, { maximumFractionDigits: d || 0, minimumFractionDigits: d || 0 });
+  const toN = (s) => Number(String(s).replace(/,/g, ''));
+  const arrow = (v) => (v > 0 ? '▲' : v < 0 ? '▼' : '—');
+  /* 外框膠囊徽章（日曆 .badge 同款）：數字往上 ▲ 紅、往下 ▼ 綠、0 灰 —— 只講數字往哪邊動，不下結論 */
+  const badge = (v, txt, cap) => `<span class="vzbd ${sgn(v)}" data-v="${v}">${cap ? `<small>${esc(cap)}</small>` : ''}<i aria-hidden="true">${arrow(v)}</i>${esc(txt)}</span>`;
+  /* 數字格（日曆面板上方那排）：上＝小標、下＝數字（＋單位）；v 給了就依正負上紅綠色並加 ▲▼ */
+  const tile = (lab, num, unit, v) => `<span class="vzk${v != null ? ' ' + sgn(v) : ''}"${v != null ? ` data-v="${v}"` : ''}><small>${esc(lab)}</small><b>${v != null && v !== 0 ? `<i aria-hidden="true">${arrow(v)}</i>` : ''}${esc(num)}${unit ? `<em>${esc(unit)}</em>` : ''}</b></span>`;
+  const tiles = (arr) => `<div class="vzks" style="--n:${arr.length}">${arr.join('')}</div>`;
+  /* 一條指標：（標題列＝小線條圖示＋粗體小標＋右側徽章）＋整列寬的小圖 ＋ 原本那一行字。手機 .vzb 藏起來，剩 .vzt＝改前的 <li> 文字 */
+  const vzRow = (icon, tone, title, right, viz, text, extra) => `<li class="vzr"${extra || ''}><div class="vzc"><div class="vzb">`
+    + `<div class="vzh" data-tone="${tone}"><span class="vzi" aria-hidden="true">${svgI(icon, 13)}</span><b>${esc(title)}</b>${right ? `<span class="vzhr">${right}</span>` : ''}</div>`
+    + `${viz ? `<div class="vzviz">${viz}</div>` : ''}</div><span class="vzt">${esc(text)}</span></div></li>`;
+  /* 正負橫條（D 款的正負版）：中線在中間，買超往右（紅）、賣超往左（綠），長度＝|張數|／三條裡最大的那一條 */
+  function instBars(pg) {
+    const rows = (pg && pg.inst_v3 && pg.inst_v3.daily) || [];
+    if (!rows.length) return '';
+    const n = Math.min(20, rows.length), last = rows.slice(-n);
+    const sum = (i) => last.reduce((a, r) => a + (Number(r[i]) || 0), 0) / 1000;
+    const L = [['外資', sum(1)], ['投信', sum(2)], ['自營商', sum(3)]].map(([k, v]) => [k, Math.round(v)]);
+    const mx = Math.max(1, ...L.map(x => Math.abs(x[1])));
+    return `<div class="vzinst" id="ovInstBars" role="img" aria-label="${n} 日法人買賣超：${L.map(x => `${x[0]} ${numS(x[1])} 張`).join('、')}">`
+      + L.map(([k, v]) => {
+        const w = (Math.abs(v) / mx * 50).toFixed(1);
+        return `<div class="vzib" data-who="${k}" data-v="${v}"><span class="vzn">${k}</span><span class="vztrack"><i class="${sgn(v)}" style="--w:${w}%"></i></span><b class="${sgn(v)}">${numS(v)}</b></div>`;
+      }).join('') + `<div class="vzlg"><span><i class="pos"></i>買超（往右）</span><span><i class="neg"></i>賣超（往左）</span><span>單位：張</span></div></div>`;
+  }
+  function chipRows(pg, pts) {
+    return (pts || []).map(p => {
+      let m;
+      if ((m = p.match(/^三大法人近 5 日(買超|賣超) ([\d,]+) 張、近 (\d+) 日(買超|賣超) ([\d,]+) 張(?:（佔同期成交量 ([+-]?[\d.]+)%）)?/))) {
+        const v5 = toN(m[2]) * (m[1] === '賣超' ? -1 : 1), v20 = toN(m[5]) * (m[4] === '賣超' ? -1 : 1);
+        const k = [tile('近 5 日', numS(v5).replace(/^[+−]/, ''), '張', v5), tile(`近 ${m[3]} 日`, numS(v20).replace(/^[+−]/, ''), '張', v20)];
+        if (m[6] != null) k.push(tile('佔同期成交量', `${Math.abs(Number(m[6])).toFixed(1)}`, '%', Number(m[6])));
+        return vzRow('landmark', 'chip', '三大法人合計', '', tiles(k), p, ' data-vz="inst"');
+      }
+      if (/^外資 \d+ 日/.test(p)) return vzRow('users', 'chip', '外資／投信／自營商', '', instBars(pg), p, ' data-vz="inst3"');
+      if ((m = p.match(/^融資餘額 ([\d,]+) 張(?:，近 5 日(增加|減少) ([\d,]+) 張)?(?:、近 20 日(增加|減少) ([\d,]+) 張（([+-]?[\d.]+)%）)?/))) {
+        const d5 = m[3] != null ? toN(m[3]) * (m[2] === '減少' ? -1 : 1) : null;
+        const p20 = m[6] != null ? Number(m[6]) : null;
+        const k = [tile('融資餘額', m[1], '張')];
+        if (d5 != null) k.push(tile('近 5 日', numS(d5).replace(/^[+−]/, ''), '張', d5));
+        if (p20 != null) k.push(tile('近 20 日', Math.abs(p20).toFixed(1), '%', p20));
+        return vzRow('wallet', 'chip', '融資', '', tiles(k), p, ' data-vz="margin"');
+      }
+      if ((m = p.match(/^千張大戶持股 ([\d.]+)%(?:.*?較前一週 ([+-]?[\d.]+) 個百分點)?(?:、較 4 週前 ([+-]?[\d.]+))?/))) {
+        const h = Number(m[1]);
+        const right = (m[2] != null ? badge(Number(m[2]), `${Math.abs(Number(m[2])).toFixed(2)}pp`, '1 週') : '')
+          + (m[3] != null ? badge(Number(m[3]), `${Math.abs(Number(m[3])).toFixed(2)}pp`, '4 週') : '');
+        const viz = `<div class="vzbar"><span class="meter vzmeter" style="--p:${Math.max(0, Math.min(100, h)).toFixed(1)}%" role="img" aria-label="千張大戶持股 ${h}%"><i></i></span><b class="vzpct">${h.toFixed(2)}%</b></div>`;
+        return vzRow('pie', 'chip', '千張大戶持股', right, viz, p, ' data-vz="holder"');
+      }
+      return vzRow('bars', 'chip', '籌碼', '', '', p);
+    }).join('');
+  }
+  /* 小直條（月營收 YoY、近四季 EPS）：日曆面板那支 CalGrid.mini，整張卡寬；數字在柱上、期別在柱下（HTML 等分格對齊圖的類別格） */
+  function miniCols(list, kind) {
+    const vals = list.map(x => x[1]);
+    const fmtV = (v) => (kind === 'yoy' ? numS(v, 1) + '%' : v.toFixed(2));
+    const col = kind === 'yoy' ? ((v) => (v < 0 ? 'var(--fall)' : 'var(--rise)')) : ((v) => (v < 0 ? 'var(--fall)' : 'var(--amber)'));
+    const chart = window.CalGrid && window.CalGrid.mini ? window.CalGrid.mini({
+      labels: list.map(x => x[0]), bars: { vals, color: col, name: kind === 'yoy' ? '營收年增率' : 'EPS' },
+      tip: (i) => `${esc(list[i][0])}　<b>${esc(fmtV(list[i][1]))}</b>`,
+      aria: list.map(x => `${x[0]} ${fmtV(x[1])}`).join('、'),
+    }) : '';
+    const row = (cls, f) => `<div class="${cls}" style="--n:${list.length}">${list.map(f).join('')}</div>`;
+    return `<div class="vzcols" data-kind="${kind}">`
+      + row('vzcv', ([, v]) => `<b class="${v < 0 ? 'neg' : kind === 'eps' ? 'cat' : 'pos'}" data-v="${v}">${esc(fmtV(v))}</b>`)
+      + chart + row('vzcl', ([k]) => `<small>${esc(k)}</small>`) + `</div>`;
+  }
+  function fundRows(pts) {
+    return (pts || []).map(p => {
+      let m;
+      if ((m = p.match(/^(本益比|股價淨值比|股價營收比) ([\d.]+) 倍(?:.*?中位 ([\d.]+) 倍、分位 (\d+)%)?/))) {
+        const pct = m[4] != null ? Number(m[4]) : null;
+        const k = [tile(m[1], m[2], '倍')];
+        if (m[3] != null) k.push(tile('同族群中位', m[3], '倍'));
+        if (pct != null) k.push(tile('同業分位', String(pct), '%'));
+        const viz = tiles(k) + (pct != null ? `<div class="vzbar"><span class="meter vzmeter" style="--p:${pct}%;--c:var(--amber)" role="img" aria-label="同業分位 ${pct}%"><i></i><b class="tick" style="left:50%" title="中位"></b></span><small>分位 0～100（中線＝同族群中位）</small></div>` : '');
+        return vzRow('scale', 'fund', '估值', '', viz, p, ' data-vz="pe"');
+      }
+      if (/^月營收 YoY/.test(p)) {
+        const L = [...p.matchAll(/(\d\d-\d\d) ([+-][\d.]+)%/g)].map(x => [x[1], Number(x[2])]);
+        const st = p.match(/連續 (\d+) 個月年增/);
+        return vzRow('bars-up', 'fund', '月營收年增率（近 3 個月）', st ? `<span class="vztag">連續 ${esc(st[1])} 個月年增</span>` : '', L.length ? miniCols(L, 'yoy') : '', p, ' data-vz="yoy"');
+      }
+      if (/^近四季 EPS/.test(p)) {
+        const L = [...p.matchAll(/(\d{4}Q\d) (-?[\d.]+)/g)].map(x => [x[1].slice(2), Number(x[2])]);
+        const g = p.match(/，([+-]\d+)%）/);
+        return vzRow('coins', 'fund', '近四季 EPS（元）', g ? badge(Number(g[1]), `${Math.abs(Number(g[1]))}%`, '較前四季') : '', L.length ? miniCols(L, 'eps') : '', p, ' data-vz="eps"');
+      }
+      return vzRow('file', 'fund', '基本面', '', '', p);
+    }).join('');
+  }
+  function newsRows(x) {
+    const c = x.counts || {};
+    return (x.points || []).map(p => {
+      const ann = /^重大訊息/.test(p), nws = /^相關新聞/.test(p);
+      if ((ann || nws) && c.m30 != null) {
+        const a7 = ann ? c.m7 : c.n7, a30 = ann ? c.m30 : c.n30, mx = Math.max(1, c.m30 || 0, c.n30 || 0);
+        const viz = `<div class="vzcnt" data-n7="${a7}" data-n30="${a30}">`
+          + `<span class="vzcr"><small>近 7 天</small><span class="vztrack1"><em style="--w:${(a7 / mx * 100).toFixed(0)}%"></em></span><b>${a7}<em>則</em></b></span>`
+          + `<span class="vzcr"><small>近 30 天</small><span class="vztrack1"><i style="--w:${(a30 / mx * 100).toFixed(0)}%"></i></span><b>${a30}<em>則</em></b></span></div>`;
+        return vzRow(ann ? 'bell' : 'news', 'event', ann ? '重大訊息（公司公告）' : '相關新聞', '', viz, p, ` data-vz="${ann ? 'ann' : 'news'}"`);
+      }
+      return vzRow('news', 'event', '消息', '', '', p);
+    }).join('');
+  }
+  /* 九顆燈號的紅／灰／綠比例條（技術面最上面），整列寬 */
+  function sigBar(sig) {
+    if (!sig || !sig.L || !sig.L.length) return '';
+    const n = sig.L.length, mid = n - sig.pos - sig.neg;
+    const viz = `<div class="vzbar"><span class="vzratio" id="ovSigBar" data-pos="${sig.pos}" data-neg="${sig.neg}" role="img" aria-label="九顆技術燈號：偏多 ${sig.pos}、中性 ${mid}、偏空 ${sig.neg}">`
+      + `<i class="pos" style="flex:${sig.pos}"></i><i class="mid" style="flex:${mid}"></i><i class="neg" style="flex:${sig.neg}"></i></span></div>`
+      + `<div class="vzlg"><span><i class="pos"></i>偏多 ${sig.pos}</span><span><i class="mid"></i>中性或未出現 ${mid}</span><span><i class="neg"></i>偏空 ${sig.neg}</span></div>`;
+    return `<ul class="vz vzonly"><li class="vzr" data-vz="sig"><div class="vzc"><div class="vzb"><div class="vzh" data-tone="tech"><span class="vzi" aria-hidden="true">${svgI('pulse', 13)}</span><b>九顆技術燈號</b>`
+      + `<span class="vzhr"><span class="vztag">${sig.pos}多${sig.neg}空</span></span></div><div class="vzviz">${viz}</div></div></div></li></ul>`;
+  }
+  /* 一行重點下面的兩組小格子（回檔 6 格、突破 5 格，成立幾條亮幾格），兩組各占半列、格子等分撐滿 */
+  function ckCells(pg) {
+    const ck = pg && pg.analysis && pg.analysis.facets && pg.analysis.facets.tech && pg.analysis.facets.tech.checks;
+    if (!ck || !ck.n_a) return '';
+    const g = (nm, met, n, k) => `<span class="cg" data-ck="${k}" data-met="${met}" data-n="${n}" title="${nm} ${n} 條中 ${met} 條成立"><em>${nm}</em><span class="cells">${Array.from({ length: n }, (_, i) => `<i class="${i < met ? 'on' : ''}"></i>`).join('')}</span><b>${met}/${n}</b></span>`;
+    return `<div class="ovcells" id="ovCkCells" role="img" aria-label="回檔型態 ${ck.n_a} 條中 ${ck.met_a} 條成立、突破型態 ${ck.n_b} 條中 ${ck.met_b} 條成立">${g('回檔型態', ck.met_a, ck.n_a, 'a')}${g('突破型態', ck.met_b, ck.n_b, 'b')}</div>`;
+  }
+  function vzCss() {
+    if (document.getElementById('stockAiVzCss')) return;
+    const st = document.createElement('style');
+    st.id = 'stockAiVzCss';
+    /* 預設（含手機）全部藏起來；只有桌機（>640 且不是 html.m4）才打開 —— 手機那份版面一個像素都不動（HANDOFF 跨 session 分工）*/
+    const D = 'html:not(.m4) #ovAiCard';
+    st.textContent = `
+#ovAiCard .vzb,#ovAiCard .ovcells,#ovAiCard .aiico,#ovAiCard .vzonly{display:none}
+@media (min-width:641px){
+${D} .aiico{display:inline-flex;flex:none;width:15px;height:15px;color:var(--ink-3)}
+${D} .aiico svg{width:15px;height:15px}
+${D} .ovtag.on .aiico,${D} .ovtag:hover .aiico{color:inherit}
+/* 四顆籤多了圖示＋方向符號，一列放不下（1440 三欄的右欄只有約 430px）→ 卡片窄於 640px 時每顆排成兩行：
+   上＝圖示＋面向名、下＝▲偏多 判讀；寬卡片（≥640，例如 800 視窗單欄）照舊一行。任何寬度都不裁切、不重疊。*/
+@container ovai (max-width:640px){
+  ${D} .ovseg .ovtag{display:grid;grid-template-columns:auto auto;justify-content:center;align-content:center;column-gap:5px;row-gap:3px;padding:5px 4px}
+  ${D} .ovseg .ovtag .aitag{grid-column:1 / -1;justify-self:center}
+  ${D} .ovseg .ovtag .aicnt{display:none}
+  ${D} .ovseg .ovtag .nl{display:inline} ${D} .ovseg .ovtag .ns{display:none}
+}
+${D} .aitag[data-dir]::before{margin-right:3px;font-size:12px}
+${D} .aitag[data-dir="up"]::before{content:'▲'}
+${D} .aitag[data-dir="down"]::before{content:'▼'}
+${D} .aitag[data-dir="flat"]::before{content:'—'}
+/* 小格子：兩組各占半列，格子等分（像日曆的日期格：1px 框、3px 圓角）*/
+${D} .ovcells{display:grid;grid-template-columns:1fr 1fr;gap:4px 16px;margin-top:2px;font-size:12.5px;color:var(--ink-2);line-height:1.3}
+${D} .ovcells .cg{display:flex;align-items:center;gap:6px;min-width:0}
+${D} .ovcells em{font-style:normal;color:var(--ink-3);white-space:nowrap}
+${D} .ovcells .cells{display:flex;gap:3px;flex:1 1 auto;min-width:0}
+${D} .ovcells .cells i{flex:1 1 0;height:11px;border-radius:3px;border:1px solid var(--line);background:var(--panel-2)}
+${D} .ovcells .cells i.on{background:color-mix(in srgb,var(--cyan) 70%,var(--panel-2));border-color:var(--cyan)}
+${D} .ovcells b{font-family:var(--mono);font-weight:600;color:var(--ink)}
+/* 每一條：標題列（小線條圖示＋粗體小標＋右側徽章）→ 整列寬小圖 → 原文（灰）。像日曆面板的小節（.sec）：上面一條細線分隔 */
+${D} ul.vz{display:block;list-style:none;padding-left:0;margin:4px 0 0}
+${D} ul.vz>li.vzr{display:block;margin:0;padding:8px 0 7px;border-top:1px solid var(--line)}
+${D} ul.vz>li.vzr:first-child{border-top:0;padding-top:2px}
+${D} .vzc{display:flex;flex-direction:column;gap:5px;min-width:0}
+${D} .vzb{display:flex;flex-direction:column;gap:6px;min-width:0}
+${D} .vzh{display:flex;align-items:center;gap:6px;min-width:0;font-size:13.5px;--tc:var(--cyan)}
+${D} .vzh[data-tone="tech"]{--tc:var(--violet,#a78bfa)} ${D} .vzh[data-tone="fund"]{--tc:var(--amber)} ${D} .vzh[data-tone="event"]{--tc:var(--lime,var(--amber))}
+${D} .vzi{display:inline-flex;flex:none;color:var(--tc)} ${D} .vzi svg{width:13px;height:13px;display:block}
+${D} .vzh>b{font-weight:600;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+${D} .vzhr{margin-left:auto;display:flex;gap:6px;flex:none;align-items:center}
+${D} .vzviz{min-width:0;width:100%}
+${D} .vzt{font-size:12.5px;color:var(--ink-3);line-height:1.5}
+/* 外框膠囊（日曆 .badge）：▲ 紅、▼ 綠 */
+${D} .vzbd{display:inline-flex;align-items:baseline;gap:3px;padding:0 8px;border-radius:999px;border:1px solid currentColor;font-size:12px;line-height:18px;white-space:nowrap;color:var(--ink-3)}
+${D} .vzbd i{font-style:normal;font-size:12px} ${D} .vzbd small{font-size:12px;color:var(--ink-3);margin-right:2px}
+${D} .vzbd.pos{color:var(--rise)} ${D} .vzbd.neg{color:var(--fall)}
+${D} .vztag{font-size:12px;padding:0 8px;border-radius:999px;background:var(--panel-3);color:var(--ink-2);white-space:nowrap;line-height:18px}
+/* 數字格（ETF 配息面板上方那排）：等分整列 */
+${D} .vzks{display:grid;grid-template-columns:repeat(var(--n,3),minmax(0,1fr));gap:6px}
+${D} .vzk{display:flex;flex-direction:column;align-items:center;gap:1px;padding:4px 6px 5px;border:1px solid var(--line);border-radius:8px;background:var(--panel-2);min-width:0}
+${D} .vzk small{font-size:12px;color:var(--ink-3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+${D} .vzk b{font:600 15px var(--mono);color:var(--ink);white-space:nowrap}
+${D} .vzk b i{font-style:normal;font-size:12px;margin-right:2px} ${D} .vzk b em{font-size:12px;font-weight:400;font-style:normal;color:var(--ink-3);margin-left:2px}
+${D} .vzk.pos b{color:var(--rise)} ${D} .vzk.neg b{color:var(--fall)}
+/* 進度條／比例條：整列寬 */
+${D} .vzbar{display:flex;flex-wrap:wrap;align-items:center;gap:4px 8px;min-width:0}
+${D} .vzbar small{flex-basis:100%;font-size:12px;color:var(--ink-3)}
+${D} .vzmeter{flex:1 1 auto;max-width:none;height:10px}
+${D} .vzpct{font:600 13px var(--mono);color:var(--ink);flex:none}
+${D} .vzratio{display:flex;flex:1 1 auto;height:10px;border-radius:3px;overflow:hidden;background:var(--panel-3);gap:1px}
+${D} .vzratio i.pos,${D} .vzlg i.pos{background:var(--rise)} ${D} .vzratio i.neg,${D} .vzlg i.neg{background:var(--fall)}
+${D} .vzratio i.mid,${D} .vzlg i.mid{background:color-mix(in srgb,var(--ink-3) 35%,transparent)}
+${D} .vzlg{display:flex;flex-wrap:wrap;gap:4px 14px;margin-top:4px;font-size:12px;color:var(--ink-3)}
+${D} .vzlg span{display:inline-flex;align-items:center;gap:5px}
+${D} .vzlg i{display:inline-block;width:10px;height:10px;border-radius:3px}
+/* 法人正負橫條：D 款（3px 小圓角、極淡底軌、同色漸層 55%→實色；賣超往左，漸層方向相反），整列寬 */
+${D} .vzinst{display:flex;flex-direction:column;gap:5px}
+${D} .vzib{display:grid;grid-template-columns:48px minmax(0,1fr) 76px;align-items:center;gap:8px}
+${D} .vzib .vzn{font-size:12.5px;color:var(--ink-2)}
+${D} .vzib b{font:600 13px var(--mono);text-align:right;color:var(--ink-2)}
+${D} .vztrack{position:relative;height:12px;border-radius:3px;background:var(--panel-3)}
+${D} .vztrack::after{content:'';position:absolute;left:50%;top:-2px;bottom:-2px;width:1px;background:var(--ink-3);opacity:.6}
+${D} .vztrack>i{position:absolute;top:0;bottom:0;width:var(--w,0%)}
+${D} .vztrack>i.pos{left:50%;border-radius:0 3px 3px 0;background:linear-gradient(90deg,color-mix(in srgb,var(--rise) 55%,transparent),var(--rise))}
+${D} .vztrack>i.neg{right:50%;border-radius:3px 0 0 3px;background:linear-gradient(270deg,color-mix(in srgb,var(--fall) 55%,transparent),var(--fall))}
+${D} b.pos{color:var(--rise)} ${D} b.neg{color:var(--fall)}
+/* 直條（CalGrid.mini）：整列寬；數字列與期別列跟圖的類別格等分對齊（圖左右各留 2px）*/
+${D} .vzcols{display:flex;flex-direction:column;gap:2px;width:100%}
+${D} .vzcols .cgmini{height:64px}
+${D} .vzcv,${D} .vzcl{display:grid;grid-template-columns:repeat(var(--n,3),minmax(0,1fr));padding:0 2px;text-align:center}
+${D} .vzcv b{font:600 13px var(--mono);color:var(--ink-2)} ${D} .vzcv b.cat{color:var(--ink)}
+${D} .vzcl small{font:12px var(--mono);color:var(--ink-3)}
+/* 消息面：近 7 天／近 30 天兩列橫條，整列寬 */
+${D} .vzcnt{display:flex;flex-direction:column;gap:5px}
+${D} .vzcr{display:grid;grid-template-columns:56px minmax(0,1fr) 44px;align-items:center;gap:8px}
+${D} .vzcr small{font-size:12px;color:var(--ink-3)}
+${D} .vzcr b{font:600 13px var(--mono);color:var(--ink);text-align:right} ${D} .vzcr b em{font-size:12px;font-weight:400;font-style:normal;color:var(--ink-3);margin-left:2px}
+${D} .vztrack1{position:relative;height:12px;border-radius:3px;background:var(--panel-3)}
+${D} .vztrack1>i,${D} .vztrack1>em{position:absolute;left:0;top:0;bottom:0;width:var(--w,0%);border-radius:0 3px 3px 0;
+  background:linear-gradient(90deg,color-mix(in srgb,var(--amber) 55%,transparent),var(--amber))}
+}`;
+    document.head.appendChild(st);
+  }
   function ovCard(pg, fmt, sig) {
-    ovCss(); css();
+    ovCss(); css(); vzCss();
     const an = pg && pg.analysis;
     const fc = facetCards(pg, fmt) || {};
     /* 技術面訊號那張（StockSignal.view 的出口，一字不改）緊接在技術面後面，CSS 讓它跟技術面同時顯示（data-cur="tech"）。
@@ -863,7 +1116,8 @@ body.sksplitting,body.sksplitting *{cursor:col-resize!important;user-select:none
     const tabs = tg.length >= 2 ? `<div class="seg ovseg" id="ovAiTags" role="tablist" aria-label="AI 分析四個面向">${tg.map(t => {
       const on = t.k === cur;
       return `<button type="button" class="ovtag${on ? ' on' : ''}" role="tab" data-facet="${t.k}" id="ovT-${t.k}" aria-selected="${on}" tabindex="${on ? 0 : -1}" aria-controls="ovF-${t.k}" title="${esc(t.tip)}">`
-        + `${nmHTML(t.nm, t.sh)}<span class="aitag ${t.cls}">${esc(t.lb)}</span>${t.cnt}</button>`; }).join('')}</div>` : '';
+        + `<span class="aiico" aria-hidden="true">${svgI((FICON[t.k] || FICON.tech)[0], 15)}</span>`
+        + `${nmHTML(t.nm, t.sh)}<span class="aitag ${t.cls}"${DIRCH(t.lb) ? ` data-dir="${DIRCH(t.lb)}"` : ''}>${esc(t.lb)}</span>${t.cnt}</button>`; }).join('')}</div>` : '';
     return `<div class="card" id="ovAiCard"><h3>AI 分析 <small data-warn role="note" title="由固定規則與公開資料自動產生（技術評分、SMC 結構、九顆技術燈號、法人與融資、集保大戶、本益比分位、營收與 EPS、公告新聞），非投資建議">${esc(discLine())}</small>`
       + ` <button class="howbtn pop" data-how="ovai" type="button" aria-label="AI 分析怎麼看">?</button>`
       + `</h3><div class="howtxt" id="how-ovai" hidden>${how}</div>`
@@ -871,7 +1125,7 @@ body.sksplitting,body.sksplitting *{cursor:col-resize!important;user-select:none
       + (panes.length ? `<div class="ovpanes" id="ovFacets" data-cur="${cur}" data-n="${panes.length}">${panes.map(x => x[1]).join('')}</div>` : '')
       + `</div>`;
   }
-  function techCard(t, fmt) {
+  function techCard(t, fmt, sig) {
     if (!t) return '';
     const tag = `<span class="aitag ${toneCls(t.label)}">${esc(t.label || '資料缺')}</span>`;
     /* 1 小時、4 小時都沒資料而且原因一樣 → 併成一列，不重複兩次同一句話 */
@@ -908,20 +1162,20 @@ body.sksplitting,body.sksplitting *{cursor:col-resize!important;user-select:none
         ${t.ifs && t.ifs.length ? `<div class="ovsub">若…則…（狀態會在什麼情況下改變）</div><ul>${t.ifs.map(x => `<li>${esc(x)}</li>`).join('')}</ul>` : ''}
         ${t.plan ? `<div class="ovsub">${esc(t.plan)}</div>` : ''}</div>`;
     return `<div class="card ovfacet" id="ovF-tech" data-facet="tech" data-ai><h3>技術面 ${tag}</h3>${t.why ? `<p class="ovwhy">${esc(t.why)}</p>` : ''}
-      <div class="ovtfs" id="ovTfs">${rows}</div>${ckHTML}${lvHTML}
+      ${sigBar(sig)}<div class="ovtfs" id="ovTfs">${rows}</div>${ckHTML}${lvHTML}
       <button type="button" class="ovmore" id="ovTechMore" aria-expanded="false" aria-controls="ovTechDet">▸ 看細節：原因・逐條條件・若…則…</button>${det}</div>`;
   }
   function chipFacet(pg, x) {
     if (!x) return '';
     const ex = chipExtra(pg);
     return `<div class="card ovfacet" id="ovF-chip" data-facet="chip" data-ai><h3>籌碼面 <span class="aitag ${toneCls(x.label)}">${esc(x.label || '資料缺')}</span></h3>`
-      + `${x.why ? `<p class="ovwhy">${esc(x.why)}</p>` : ''}${ul(x.points) || '<div class="empty">籌碼面資料缺</div>'}`
+      + `${x.why ? `<p class="ovwhy">${esc(x.why)}</p>` : ''}${x.points && x.points.length ? `<ul class="vz">${chipRows(pg, x.points)}</ul>` : '<div class="empty">籌碼面資料缺</div>'}`
       + `${ex.length ? `<div class="ovsub">參考（不計入判讀）</div>${ul(ex)}` : ''}</div>`;
   }
   function fundFacet(x) {
     if (!x) return '';
     return `<div class="card ovfacet" id="ovF-fund" data-facet="fund" data-ai><h3>基本面 <span class="aitag ${toneCls(x.label)}">${esc(x.label || '資料缺')}</span></h3>`
-      + `${x.why ? `<p class="ovwhy">${esc(x.why)}</p>` : ''}${ul(x.points) || '<div class="empty">基本面資料缺</div>'}</div>`;
+      + `${x.why ? `<p class="ovwhy">${esc(x.why)}</p>` : ''}${x.points && x.points.length ? `<ul class="vz">${fundRows(x.points)}</ul>` : '<div class="empty">基本面資料缺</div>'}</div>`;
   }
   function newsFacet(x) {
     if (!x) return '';
@@ -932,17 +1186,19 @@ body.sksplitting,body.sksplitting *{cursor:col-resize!important;user-select:none
       return `<li><span class="kind">${esc(it.kind)}</span><span class="mono">${d}</span> <a href="#" data-ovtab="news">${ttl}</a></li>`;
     }).join('');
     return `<div class="card ovfacet" id="ovF-news" data-facet="news" data-ai><h3>消息面 <span class="aitag ${toneCls(x.label)}">${esc(x.label || '資料缺')}</span></h3>`
-      + `${x.why ? `<p class="ovwhy">${esc(x.why)}</p>` : ''}${ul(x.points)}${items ? `<div class="ovsub">最新 ${Math.min(4, (x.items || []).length)} 則</div><ul class="ovnews">${items}</ul>` : ''}</div>`;
+      + `${x.why ? `<p class="ovwhy">${esc(x.why)}</p>` : ''}${x.points && x.points.length ? `<ul class="vz">${newsRows(x)}</ul>` : ''}${items ? `<div class="ovsub">最新 ${Math.min(4, (x.items || []).length)} 則</div><ul class="ovnews">${items}</ul>` : ''}</div>`;
   }
   function facetCards(pg, fmt) {
     ovCss(); css();
     const an = pg && pg.analysis;
     if (!an) return null;
     const f = an.facets || {};
-    return { tech: techCard(f.tech, fmt), chip: chipFacet(pg, f.chip), fund: fundFacet(f.fund), news: newsFacet(f.news) };
+    return { tech: techCard(f.tech, fmt, sigCount(pg, fmt)), chip: chipFacet(pg, f.chip), fund: fundFacet(f.fund), news: newsFacet(f.news) };
   }
   function bindOverview(root) {
     if (!root) return;
+    // 10-10 第二版：營收 YoY／EPS 小直條是日曆面板那支 CalGrid.mini，innerHTML 之後要 mount 才畫得出來
+    if (window.CalGrid && window.CalGrid.mount) { try { window.CalGrid.mount(root.querySelector('#ovAiCard') || root); } catch (e) { /* 小圖畫不出來不影響其他 */ } }
     /* ★ #297：分頁籤＝在同一張卡內切換那一面（改前＝捲到下面那一張細節卡）。不捲動、不跳頁 */
     const tabs = [...root.querySelectorAll('#ovAiTags .ovtag')];
     tabs.forEach(b => b.onclick = () => setOvTab(root, b.dataset.facet, true));
