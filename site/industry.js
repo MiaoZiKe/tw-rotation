@@ -1926,11 +1926,15 @@
          關掉＝圖上的編號圈（手機的 .mnumlayer、桌機 2D 的 .anc、3D 的 .ld-no）全部藏起來，只看圖。
          預設：手機（≤640）關、桌機開；使用者切過就記在 tw.dgnum。 */
       const numBtn = $('#dgNum', el);
-      const numPref = () => { let v = null; try { v = localStorage.getItem('tw.dgnum'); } catch (e) { /* 私密視窗 */ } return v == null ? true : v === '1'; };   // 2026-10-08 Andy：「編號 Default 打開」（改成引線標註後不會蓋住零件）—— 推翻上一輪「手機預設關」
+      /* ★ 2026-10-10 手機（Andy：「3D圖的編號不見了，補上」）：手機另用一把鑰匙 tw.m4.dgnum，預設開。
+         病因：舊的「編號」鈕開著的時候是白底主色字的膠囊、看起來像沒選中，按下去其實是「關」，而且寫進 tw.dgnum＝0 一直記著 ——
+         之後每次進 3D 都沒有編號。工具列改成實心高亮（mobile4.css 第 31 節）之後，手機改讀新鑰匙，舊的那個 0 不再沿用。桌機照舊讀 tw.dgnum。*/
+      const NUMKEY = document.documentElement.classList.contains('m4') ? 'tw.m4.dgnum' : 'tw.dgnum';
+      const numPref = () => { let v = null; try { v = localStorage.getItem(NUMKEY); } catch (e) { /* 私密視窗 */ } return v == null ? true : v === '1'; };   // 2026-10-08 Andy：「編號 Default 打開」（改成引線標註後不會蓋住零件）—— 推翻上一輪「手機預設關」
       const setNum = (on, save) => {
         el.classList.toggle('dgnumoff', !on);
         if (numBtn) { numBtn.textContent = on ? '編號：開' : '編號：關'; numBtn.classList.toggle('cyan', on); numBtn.setAttribute('aria-pressed', on ? 'true' : 'false'); }
-        if (save) { try { localStorage.setItem('tw.dgnum', on ? '1' : '0'); } catch (e) { /* 私密視窗 */ } }
+        if (save) { try { localStorage.setItem(NUMKEY, on ? '1' : '0'); } catch (e) { /* 私密視窗 */ } }
         // 手機 2D 的編號層藏著的時候量不到位置（排出來是 0 個）：打開的當下重排一次
         if (on && save && window.DG && window.DG.mobileNums) { const h = $('#prodDiagram', el); if (h && h.classList.contains('mnum2d')) requestAnimationFrame(() => window.DG.mobileNums(h)); }
       };
@@ -2945,6 +2949,10 @@
       if (ctl) host.appendChild(ctl);   // 3D 掛好才搬進畫面框（原因見 clear3dHost 上面的說明）
       // 手機 v3（≤640px）：3D 的字卡欄與 .ld-no 收掉，改用會自己避讓的 HTML 編號層（桌機進去就 return）
       if (window.DG && window.DG.mobileNums3d) window.DG.mobileNums3d(host, v);
+      /* ★ 2026-10-10 手機（Andy：「3D圖的編號不見了，補上」）：編號層沒掛上（手機模組晚到、當下量到的寬度還不是手機）就再補掛，最多 3 次。桌機不跑。*/
+      if (document.documentElement.classList.contains('m4') && window.DG && window.DG.mobileNums3d) {
+        [600, 1600, 3500].forEach(ms => setTimeout(() => { if (view3d === v && host.isConnected && !host.hidden && !host.querySelector(':scope > .mnumlayer')) window.DG.mobileNums3d(host, v); }, ms));
+      }
       /* ★ 2026-10-09 手機 v2（Andy 帳本 67：「當切到 3D 圖，需要在圖片右上角新增展開及收合 3D 圖片功能」）：
          只在手機（html.m4）、只在 3D 時：圖框右上角一顆圓鈕（住在 #prod3d 裡，切回 2D 跟著框一起藏）。
          收合＝畫布 220px、只看模型縮圖，編號與引線藏起來；展開＝原高、編號回來。兩邊都重新取景（v.setCompact）。

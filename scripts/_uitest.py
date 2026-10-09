@@ -31076,6 +31076,107 @@ def t_m4_3dseg_1009(b, base):
         pg.close()
 
 
+# ★ 2026-10-10 手機3D編號1010（Andy 10-10：「3D圖的編號不見了，補上」「格式一律 方寬形式」
+#   「手機版本的下方不要有紅框處的資訊，因為他點擊標籤時就可以看到，並且編號都是需要拉一條線在圖旁邊，而不是標在圖上」）
+#   病因：舊「編號」膠囊開著時看起來像沒選中，按下去其實是關、寫進 tw.dgnum＝0 一直記著 → 之後進 3D 都沒編號。
+#   修法：手機改讀 tw.m4.dgnum（預設開）、工具列一律方框＋選中實心、3D 框裡的零件卡清單與畫在零件上的圓點手機一律藏。
+#   所以這段一開始故意把舊的 tw.dgnum 設成 0（模擬 Andy 手機上的狀態），要驗「照樣看得到編號」。
+M43DNUM_ST = r"""() => {
+  const h = document.querySelector('#prod3d'); if (!h || h.hidden) return null;
+  const base = h.getBoundingClientRect(), W = base.width;
+  const vis = e => !!(e && e.getClientRects().length && getComputedStyle(e).visibility !== 'hidden');
+  const nums = [...h.querySelectorAll('.mnumlayer .mnum')].filter(vis).map(e => { const r = e.getBoundingClientRect();
+    return { no: e.dataset.no, l: r.left - base.left, r: r.right - base.left, t: r.top - base.top, b: r.bottom - base.top, cx: (r.left + r.right) / 2 - base.left, fs: parseFloat(getComputedStyle(e).fontSize) }; });
+  const paths = [...h.querySelectorAll('.mnumlayer svg path')].filter(p => vis(p.closest('.mnumlayer'))).map(p => p.dataset.no);
+  let ov = 0; for (let i = 0; i < nums.length; i++) for (let j = i + 1; j < nums.length; j++) { const a = nums[i], c = nums[j];
+    if (Math.min(a.r, c.r) - Math.max(a.l, c.l) > 1 && Math.min(a.b, c.b) - Math.max(a.t, c.t) > 1) ov++; }
+  const list = [...h.querySelectorAll('.dgstage-b, .lbl3d, .ld-no')].filter(vis).length
+    + [...document.querySelectorAll('#dgSec .lbl3d, #partCard')].filter(e => vis(e) && e.innerText.trim()).length;
+  const b = document.getElementById('dgNum'), cbe = h.querySelector(':scope > .m4c3d'), cr = cbe && cbe.getClientRects().length ? cbe.getBoundingClientRect() : null;
+  const cbHit = cr ? nums.filter(q => Math.min(q.r, cr.right - base.left) - Math.max(q.l, cr.left - base.left) > 1 && Math.min(q.b, cr.bottom - base.top) - Math.max(q.t, cr.top - base.top) > 1).map(q => q.no) : [];
+  return { n: nums.length, nums, cbHit, noLine: nums.filter(q => !paths.includes(q.no)).map(q => q.no), ov, list, W: Math.round(W),
+    mid: nums.filter(q => q.cx > W * 0.25 && q.cx < W * 0.75).map(q => q.no), minFs: nums.length ? Math.min(...nums.map(q => q.fs)) : 0,
+    pressed: b && b.getAttribute('aria-pressed'), k4: localStorage.getItem('tw.m4.dgnum'), kd: localStorage.getItem('tw.dgnum') };
+}"""
+M43DNUM_BAR = r"""() => {
+  const q = s => document.querySelector(s);
+  const L = [['2D｜3D', '#dg3d'], ['編號', '#dgNum'], ['圖說', '#dgTools .mdginfo'], ['動畫', '#dgTools .m4animseg']];
+  const it = L.map(([k, s]) => { const e = q(s); if (!e || !e.getClientRects().length) return { k, miss: true }; const r = e.getBoundingClientRect(), cs = getComputedStyle(e);
+    return { k, h: Math.round(r.height), rad: cs.borderTopLeftRadius, bw: cs.borderTopWidth, top: Math.round(r.top), l: Math.round(r.left), rt: Math.round(r.right),
+      clip: e.scrollWidth > e.clientWidth + 1, bg: cs.backgroundImage + '|' + cs.backgroundColor }; });
+  const on3 = q('#dg3d button.on'), cs3 = on3 && getComputedStyle(on3);
+  return { it, sw: document.documentElement.scrollWidth, vw: innerWidth, onBg: cs3 ? cs3.backgroundImage + '|' + cs3.backgroundColor : '' };
+}"""
+
+
+def t_m4_3dnum_1010(b, base):
+    T = "手機3D編號1010"
+    SHOT = os.environ.get("TW_M43DNUM_SHOT")
+    for W, H, theme in ((390, 844, "light"), (360, 780, "dark")):
+        ctx = b.new_context(viewport={"width": W, "height": H}, device_scale_factor=2 if SHOT else 1, is_mobile=True, has_touch=True)
+        ctx.add_init_script("try{ if(!sessionStorage.getItem('m43n')){ localStorage.clear(); localStorage.setItem('tw.live.on','0'); localStorage.setItem('tw.tourDone','1');"
+                            " localStorage.setItem('tw.dgnum','0'); localStorage.setItem('tw.m4.3danim','0'); localStorage.setItem('tw.theme','" + theme + "'); sessionStorage.setItem('m43n','1'); } }catch(e){}")
+        m = ctx.new_page()
+        m.on("pageerror", lambda e, W=W: fails.append(f"{T} {W} pageerror: {e}"))
+        m.route("**/fonts.googleapis.com/**", lambda r: r.abort())
+        J = m.evaluate
+        tapc = lambda sel: (m.touchscreen.tap(*J("(s) => { const r = document.querySelector(s).getBoundingClientRect(); return [r.left + r.width / 2, r.top + r.height / 2]; }", sel)), m.wait_for_timeout(900))
+        try:
+            for route in ("#industry/ai_server", "#industry/semiconductor"):
+                m.goto(base + route, wait_until="domcontentloaded")
+                wait_until(m, "() => { const g = document.querySelector('#dg3d'); return !!(g && g.getClientRects().length && document.querySelector('#prodDiagram svg')); }", 30000, 300)
+                J("() => document.querySelector('#dgSec').scrollIntoView({ block: 'start', behavior: 'instant' })"); m.wait_for_timeout(700)
+                if J("() => document.querySelector('#prod3d').hidden"):
+                    tapc("#dg3d button[data-dm='3d']")
+                got = wait_until(m, "() => { const h = document.querySelector('#prod3d'); return !!(h && !h.hidden && window.Rack3D && Rack3D.current && h.querySelector('.mnumlayer .mnum')); }", 30000, 300)
+                J("() => document.querySelector('#dgSec').scrollIntoView({ block: 'start', behavior: 'instant' })"); m.wait_for_timeout(1500)
+                s = J(M43DNUM_ST) if got else None
+                tag = f"{W} {route}"
+                if not ok(f"【{T}】{tag} 切進 3D 有編號層", bool(s), s):
+                    continue
+                ok(f"【{T}】{tag} 舊鑰匙 tw.dgnum＝0 也照樣看得到編號（{s['n']} 顆）、「編號」鈕是選中（aria-pressed＝{s['pressed']}）", s["n"] > 0 and s["pressed"] == "true", s)
+                ok(f"【{T}】{tag} 3D 圖下方沒有零件卡清單、零件上沒有編號圓點（看得到的：{s['list']}）", s["list"] == 0, s["list"])
+                ok(f"【{T}】{tag} 每個編號都有一條引線（缺：{s['noLine']}）", not s["noLine"], s["noLine"])
+                ok(f"【{T}】{tag} 編號泡泡都在圖框左右 25% 內（框寬 {s['W']}，在中間的：{s['mid']}）", not s["mid"], s["mid"])
+                ok(f"【{T}】{tag} 編號泡泡互不重疊（{s['ov']} 對）、不被右上角收合鈕蓋到（{s['cbHit']}）、字 ≥ 12px（{s['minFs']}）", s["ov"] == 0 and not s["cbHit"] and s["minFs"] >= 12, s)
+                if route != "#industry/ai_server":
+                    continue
+                bar = J(M43DNUM_BAR)
+                it = bar["it"]
+                ok(f"【{T}】{W} 工具列四組都在（{[x['k'] for x in it if x.get('miss')]} 不見）", not any(x.get("miss") for x in it), it)
+                if not any(x.get("miss") for x in it):
+                    ok(f"【{T}】{W} 工具列方框一致：高 {[x['h'] for x in it]}、圓角 {[x['rad'] for x in it]}、框 {[x['bw'] for x in it]}",
+                       len({x["h"] for x in it}) == 1 and len({x["rad"] for x in it}) == 1 and len({x["bw"] for x in it}) == 1, it)
+                    rows = sorted({x["top"] for x in it})
+                    ok(f"【{T}】{W} 工具列不截字、不橫捲（{bar['sw']}／{bar['vw']}）、最多兩排（{rows}）、不超出右緣",
+                       not any(x["clip"] for x in it) and bar["sw"] <= bar["vw"] and len(rows) <= 2 and max(x["rt"] for x in it) <= bar["vw"], it)
+                    nb = [x for x in it if x["k"] == "編號"][0]
+                    ok(f"【{T}】{W} 「編號」開＝跟 3D 選中格同一套實心（{nb['bg'][:60]}｜{bar['onBg'][:60]}）", nb["bg"] == bar["onBg"], [nb["bg"], bar["onBg"]])
+                if SHOT and W == 390:
+                    m.screenshot(path=os.path.join(SHOT, f"m43dnum_{W}_{theme}.png"))
+                # 點「編號」→ 關、再點 → 開
+                tapc("#dgNum"); s1 = J(M43DNUM_ST)
+                ok(f"【{T}】{W} 點「編號」：編號全部不見（{s1['n']}）、鈕變未選中、記在 tw.m4.dgnum（{s1['k4']}）、桌機的 tw.dgnum 不動（{s1['kd']}）",
+                   s1["n"] == 0 and s1["pressed"] == "false" and s1["k4"] == "0" and s1["kd"] == "0", s1)
+                tapc("#dgNum"); m.wait_for_timeout(600); s2 = J(M43DNUM_ST)
+                ok(f"【{T}】{W} 再點一次：編號回來（{s2['n']}）、每顆都有引線", s2["n"] > 0 and s2["pressed"] == "true" and not s2["noLine"], s2)
+                # 點一個編號 → 開抽屜
+                tapc("#prod3d .mnumlayer .mnum")
+                sh = J("() => { const s = document.getElementById('mSheet'); return { open: !!(s && !s.hidden), no: s && s.dataset.no }; }")
+                ok(f"【{T}】{W} 點編號開底部抽屜（{sh}）", sh["open"] and bool(sh["no"]), sh)
+                J("() => { const s = document.getElementById('mSheetBack'); if (s && !s.hidden) s.click(); }"); m.wait_for_timeout(500)
+                # 轉動：引線跟著錨點走（錨點落在零件投影內、末端在泡泡上）
+                J("() => { const v = Rack3D.current, c = v.cam(); v.look([0, 0, 0], [c[2], c[1], -c[0]]); }")
+                wait_until(m, M43D_CENSUS.replace("return { nums: btn.length, lines: n, bad };", "return bad.length === 0 && n > 0;"), 8000, 400)
+                r = J(M43D_CENSUS); s3 = J(M43DNUM_ST)
+                ok(f"【{T}】{W} 轉 90° 之後引線兩端合格（{r.get('lines')} 條，不合 {len(r.get('bad', []))}）、泡泡不重疊（{s3['ov']}）、不被收合鈕蓋到（{s3['cbHit']}）、仍在左右 25%（{s3['mid']}）",
+                   not r.get("err") and not r.get("bad") and r.get("lines", 0) > 0 and s3["ov"] == 0 and not s3["cbHit"] and not s3["mid"], [r, s3])
+                if SHOT and W == 390:
+                    m.screenshot(path=os.path.join(SHOT, f"m43dnum_{W}_{theme}_rot.png"))
+        finally:
+            ctx.close()
+
+
 # ★ 2026-10-09 長條寬度1009（Andy 10-09：「下方調整長條圖適當寬度」—— 總覽漲跌家數 11 根在 1730 寬只畫 10px，又細又空）：
 #   softenOption（site/app.js）的長條上限改成依類別數決定：≤ 20 個類別 → 每格 50%（上限直條 48、橫條 20）；多的照舊 ≤ 12／10。
 #   這段真的去量 ECharts 算出來的柱寬（getItemLayout）跟格寬（getBandWidth），而且點一根直條（清單打開、其他直條淡掉的局部 setOption）
@@ -32633,6 +32734,8 @@ SECTIONS = {
     "手機3D說明1009":      lambda pg, b, base, code: t_m4_3d_1009(b, base),
     # ★ 2026-10-09 帳本 83、84：手機 2D｜3D 分段控制器＋3D 預設自轉／動畫開關（402／360 觸控＋1440 守網頁版；⚠ --workers 1）
     "手機3D分段與自轉1009": lambda pg, b, base, code: t_m4_3dseg_1009(b, base),
+    # ★ 2026-10-10 Andy：「3D圖的編號不見了，補上」「格式一律 方寬形式」「下方不要有紅框處的資訊…編號拉線在圖旁邊」（390 淺／360 深；⚠ --workers 1）
+    "手機3D編號1010":      lambda pg, b, base, code: t_m4_3dnum_1010(b, base),
     # ★ 2026-09-25 手機版 v3（docs/mobile_v3_spec.md §7）：底部一列五顆、「?」氣泡、大盤合一張、新雷達＋焦點條、
     #   資金分流樹長條、法人對稱長條、篩選抽屜、剖析圖只留編號（2D／3D）。390 與 360 各一輪。⚠ 一律 --workers 1（有 3D）
     "手機v3":              lambda pg, b, base, code: t_mobile_v3(b, base, code),
