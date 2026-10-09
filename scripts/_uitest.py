@@ -20638,8 +20638,7 @@ def t_design_v4(b, base, code):
     p.locator("#m4Tools #acctBtn, #m4Tools #m4Login").first.tap(timeout=6000); p.wait_for_timeout(500)
     has_menu = p.evaluate("() => { const m = document.getElementById('acctMenu'); return !!m && !m.hidden && !!m.querySelector('[data-m=style]'); }")
     if has_menu:
-        p.locator("#acctMenu [data-m=style]").tap(timeout=6000); p.wait_for_timeout(300)
-        ok("⑥ 390：帳號選單「風格」點開、裡面三套風格", p.evaluate("() => [...document.querySelectorAll('#acctMenu [data-m=sty]')].filter(e => e.getClientRects().length).length") == 3)
+        ok("⑥ 390：帳號選單「版面風格」分段裡三套風格都看得到（10-09 帳本 76 改成同一排分段，不用再點開）", p.evaluate("() => [...document.querySelectorAll('#acctMenu [data-m=sty]')].filter(e => e.getClientRects().length).length") == 3)
         p.locator('#acctMenu [data-m=sty][data-sty="pro"]').tap(timeout=6000); p.wait_for_timeout(1500)
     else:   # 會員功能沒設定（沒有頭像選單）：風格入口仍是 T4.set（同一支），這裡直接呼叫，並記一筆
         ok("⑥ 390：（會員功能沒設定，沒有帳號選單）改用 T4.set 驗風格", True)
@@ -65039,29 +65038,75 @@ def t_acct_menu_1009(b, base, code):
                bool(wait_until(pg, f"() => location.hash.startsWith({json.dumps(h)}) && document.getElementById('acctMenu').hidden", 3000)), pg.evaluate("() => location.hash"))
         pg.evaluate("() => { location.hash = '#overview'; }")
         pg.wait_for_timeout(400)
-        # 「風格」：預設收起；點開三套風格；選一套 → <html data-theme4> 換了、localStorage tw.theme4 寫進去、打勾移過去、列右邊的名稱跟著換、選單沒收
+        # 「版面風格」（10-09 18:1x Andy 帳本 76：「版面改成 同一排分段式開關」）：不再是收合列＋直排子清單，
+        #   改成標題＋同一排三格分段控制器（radiogroup／radio）。驗：三格同一排（top 差 ≤ 2）、等寬、每格高 ≥ 40、字 ≥ 12、不截字不換行；
+        #   點一格 → <html data-theme4> 真的換、tw.theme4 寫進去、選中格換、選單沒收；360／402 寬（深／淺）都量一次
         if who in ("guest", "owner"):
+            SEGM = """() => { const m = document.getElementById('acctMenu'), row = m.querySelector('.m4styrow'), g = m.querySelector('.m4seg4[role=radiogroup]');
+                const bs = g ? [...g.querySelectorAll('[role=radio][data-m=sty]')] : [], R = (e) => e.getBoundingClientRect();
+                const lb = row ? row.querySelector('.t') : null;
+                return { open: !m.hidden, grp: !!m.querySelector('[data-m=style][aria-expanded]') || !!m.querySelector('.m4sty'), n: bs.length,
+                  vis: bs.filter(e => e.getClientRects().length).length,
+                  tops: bs.map(e => Math.round(R(e).top)), ws: bs.map(e => Math.round(R(e).width * 10) / 10), hs: bs.map(e => Math.round(R(e).height)),
+                  fs: bs.map(e => parseFloat(getComputedStyle(e).fontSize)), clip: bs.filter(e => e.scrollWidth > e.clientWidth + 0.5 || /…/.test(e.textContent)).map(e => e.textContent),
+                  lines: bs.filter(e => { const r = document.createRange(); r.selectNodeContents(e); return r.getClientRects().length > 1; }).map(e => e.textContent),
+                  txt: bs.map(e => e.textContent.trim()), segR: g ? Math.round(R(g).right) : 0, menuR: Math.round(R(m).right),
+                  lblTop: lb ? Math.round((R(lb).top + R(lb).bottom) / 2) : -1, segTop: g ? Math.round((R(g).top + R(g).bottom) / 2) : -1, lblFs: lb ? parseFloat(getComputedStyle(lb).fontSize) : 0,
+                  t4: document.documentElement.getAttribute('data-theme4'), ls: localStorage.getItem('tw.theme4'),
+                  on: bs.filter(e => e.getAttribute('aria-checked') === 'true').map(e => e.dataset.sty),
+                  onBg: (bs.find(e => e.getAttribute('aria-checked') === 'true') ? getComputedStyle(bs.find(e => e.getAttribute('aria-checked') === 'true')).backgroundImage + getComputedStyle(bs.find(e => e.getAttribute('aria-checked') === 'true')).backgroundColor : ''),
+                  offBg: (bs.find(e => e.getAttribute('aria-checked') !== 'true') ? getComputedStyle(bs.find(e => e.getAttribute('aria-checked') !== 'true')).backgroundImage + getComputedStyle(bs.find(e => e.getAttribute('aria-checked') !== 'true')).backgroundColor : ''),
+                  sw: document.documentElement.scrollWidth <= innerWidth + 1 }; }"""
+
+            def seg_ok(tag, q):
+                ok(f"【{T}】{who}{tag}：版面風格是三格分段（radiogroup，沒有收合列／直排子清單），三格都看得到", q["n"] == 3 and q["vis"] == 3 and not q["grp"], q)
+                ok(f"【{T}】{who}{tag}：三格同一排（top 差 ≤ 2：{q['tops']}）、等寬（{q['ws']}）、每格高 ≥ 40（{q['hs']}）",
+                   q["tops"] and max(q["tops"]) - min(q["tops"]) <= 2 and max(q["ws"]) - min(q["ws"]) <= 1 and min(q["hs"]) >= 40, q)
+                ok(f"【{T}】{who}{tag}：字 ≥ 12（{q['fs']}、標題 {q['lblFs']}）、不截字不換行（{q['txt']}）、分段不超出選單、沒有橫向捲軸",
+                   min(q["fs"]) >= 12 and q["lblFs"] >= 12 and not q["clip"] and not q["lines"] and q["segR"] <= q["menuR"] and q["sw"]
+                   and q["txt"] == ["親和休閒", "科技 HUD", "專業有力"], q)
+                ok(f"【{T}】{who}{tag}：選中格實心高亮（跟沒選的底色不同）、只有一格選中＝目前風格",
+                   q["on"] == [q["t4"]] and q["onBg"] and q["onBg"] != q["offBg"], q)
+
             _am4_open(pg)
-            s0 = pg.evaluate("() => ({ t4: document.documentElement.getAttribute('data-theme4'), vis: [...document.querySelectorAll('#acctMenu [data-m=sty]')].filter(e => e.getClientRects().length).length })")
-            ok(f"【{T}】{who}：「風格」預設收起（三套風格看不到）", s0["vis"] == 0, s0)
-            pg.locator("#acctMenu [data-m=style]").tap()
-            pg.wait_for_timeout(200)
-            opts = pg.evaluate("() => [...document.querySelectorAll('#acctMenu [data-m=sty]')].filter(e => e.getClientRects().length && e.getBoundingClientRect().height >= 40).map(e => e.dataset.sty)")
-            ok(f"【{T}】{who}：點「風格」展開三套風格、每列高 ≥ 40（{opts}）", len(opts) == 3, opts)
-            pick = next((x for x in opts if x != s0["t4"]), None)
-            if pick:
-                pg.locator(f"#acctMenu [data-m=sty][data-sty={pick}]").tap()
-                pg.wait_for_timeout(700)
-                s1 = pg.evaluate("""() => { const m = document.getElementById('acctMenu');
-                    return { t4: document.documentElement.getAttribute('data-theme4'), ls: localStorage.getItem('tw.theme4'), open: !m.hidden,
-                      on: [...m.querySelectorAll('[data-m=sty][aria-checked=true]')].map(e => e.dataset.sty), cur: (m.querySelector('[data-sty-cur]') || {}).textContent || '' }; }""")
-                ok(f"【{T}】{who}：選「{pick}」→ 版面風格真的換了（{s0['t4']}→{s1['t4']}）、存進 tw.theme4、只有它打勾、選單沒收",
-                   s1["t4"] == pick and s1["ls"] == pick and s1["on"] == [pick] and s1["open"] and s1["cur"], s1)
-                pg.locator(f"#acctMenu [data-m=sty][data-sty={s0['t4']}]").tap()
-                pg.wait_for_timeout(500)
-                ok(f"【{T}】{who}：選回原本的風格（{s0['t4']}）", pg.evaluate("() => document.documentElement.getAttribute('data-theme4')") == s0["t4"], None)
-            if shots and who == "owner":
-                pg.screenshot(path=str(pathlib.Path(shots) / "menu_style_owner.jpg"), type="jpeg", quality=70)
+            s0 = pg.evaluate(SEGM)
+            seg_ok("（430）", s0)
+            ok(f"【{T}】{who}（430）：寬度夠時標題與分段在同一排（垂直中線：標題 {s0['lblTop']}、分段 {s0['segTop']}）", abs(s0["lblTop"] - s0["segTop"]) <= 3, s0)
+            pick = "pro" if s0["t4"] != "pro" else "casual"
+            pg.locator(f"#acctMenu [data-m=sty][data-sty={pick}]").tap()
+            pg.wait_for_timeout(700)
+            s1 = pg.evaluate(SEGM)
+            ok(f"【{T}】{who}：點「{pick}」→ data-theme4 真的換了（{s0['t4']}→{s1['t4']}）、存進 tw.theme4、選中格換成它、選單沒收",
+               s1["t4"] == pick and s1["ls"] == pick and s1["on"] == [pick] and s1["open"], s1)
+            # 360／402 × 深／淺：都要一排三格、不截字；選單開著截圖（TW_ACCTM4_SHOTS）
+            if who == "owner":
+                for wd in (402, 360):
+                    pg.set_viewport_size({"width": wd, "height": 860})
+                    for mode in ("dark", "light"):
+                        cur = pg.evaluate("() => document.documentElement.getAttribute('data-theme') || 'dark'")
+                        if cur != mode:
+                            pg.evaluate("() => { const m = document.getElementById('acctMenu'); if (m) m.hidden = true; }")
+                            pg.locator("#m4Tools #themeBtn").tap(timeout=6000)
+                            pg.wait_for_timeout(900)
+                        for th in (["hud", "pro"] if (wd, mode) == (402, "dark") else ["hud"]):
+                            pg.evaluate(f"() => window.T4.set('{th}')")
+                            pg.wait_for_timeout(500)
+                            ok(f"【{T}】{who}（{wd}／{mode}／{th}）：打開帳號選單", _am4_open(pg))
+                            q = pg.evaluate(SEGM)
+                            seg_ok(f"（{wd}／{mode}／{th}）", q)
+                            if shots:
+                                pg.locator("#acctMenu .m4styrow").scroll_into_view_if_needed()
+                                pg.screenshot(path=str(pathlib.Path(shots) / f"style_{wd}_{mode}_{th}.png"))
+                pg.set_viewport_size({"width": 430, "height": 932})
+                if pg.evaluate("() => document.documentElement.getAttribute('data-theme') || 'dark'") != "dark":
+                    pg.evaluate("() => { const m = document.getElementById('acctMenu'); if (m) m.hidden = true; }")
+                    pg.locator("#m4Tools #themeBtn").tap(timeout=6000)
+                    pg.wait_for_timeout(700)
+                _am4_open(pg)
+            pg.locator(f"#acctMenu [data-m=sty][data-sty={s0['t4']}]").tap()
+            pg.wait_for_timeout(500)
+            ok(f"【{T}】{who}：選回原本的風格（{s0['t4']}）、選中格跟著回來",
+               pg.evaluate("() => [document.documentElement.getAttribute('data-theme4'), [...document.querySelectorAll('#acctMenu [data-m=sty][aria-checked=true]')].map(e => e.dataset.sty).join()]") == [s0["t4"], s0["t4"]], None)
             pg.evaluate("() => { document.getElementById('acctMenu').hidden = true; }")
         _am4_open(pg)
         pg.locator("#acctMenu [data-m=feedback]").tap()

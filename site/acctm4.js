@@ -133,12 +133,17 @@ html.m4 .m4am .m4sub[hidden]{display:none}
 html.m4 .m4am .m4sub button{min-height:42px;font-size:14px}
 /* 頂欄：明暗直接由 ☀／🌙（#themeBtn）切；外觀調色盤（#t4Btn）在手機藏起來 —— 風格改從帳號選單的「風格」換（10-09 Andy 圖一＋圖二）*/
 html.m4 #m4Tools #t4Btn{display:none!important}
-html.m4 .m4am .m4sty:not([hidden]){display:flex!important;flex-direction:column;align-items:stretch}
-html.m4 .m4am .m4sty .sw4{width:18px;height:18px;border-radius:5px;border:1px solid var(--line-2);flex:none}
-html.m4 .m4am .m4sty .ck{width:18px;text-align:center;color:var(--cyan);font-weight:700;visibility:hidden}
-html.m4 .m4am .m4sty [aria-checked="true"] .ck{visibility:visible}
-html.m4 .m4am .m4sty button{display:flex!important;align-items:center;gap:10px;width:100%}
-html.m4 .m4am .m4sty small{color:var(--ink-2);font-size:12px;margin-left:auto;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+/* 版面風格：同一排分段控制器（10-09 18:1x Andy 帳本 76：「版面改成 同一排分段式開關」）。
+   外觀照 style_guide「分段控制器」：一個外框（控制項底＋1px --t4-ctl-edge、圓角 9、內距 3、間距 2）包三格等寬、選中＝ --t4-accent 實心＋ --on-accent 字。
+   標題與分段放不下同一排時（分段的最小寬度＝三格中最寬那格的內容 ×3）整組分段自動掉到下一行、撐滿；分段本身永遠單排三格、不截字 */
+html.m4 .m4am .m4styrow{display:flex;flex-wrap:wrap;align-items:center;column-gap:10px;row-gap:6px;padding:6px 10px;min-height:46px;box-sizing:border-box}
+html.m4 .m4am .m4styrow>.t{flex:1 0 auto;font-size:15px;white-space:nowrap}
+html.m4 .m4am .m4seg4{flex:1 0 auto;min-width:max-content;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:2px;padding:3px;box-sizing:border-box;
+  border:1px solid var(--t4-ctl-edge,var(--line-2));border-radius:9px;background:var(--t4-ctl,var(--panel-3))}
+html.m4 .m4am .m4seg4 button{display:flex!important;align-items:center;justify-content:center;width:auto;min-height:40px;padding:0 9px;border:0;border-radius:7px;
+  background:transparent;color:var(--ink-2);font-size:13px;line-height:1.2;white-space:nowrap;text-align:center}
+html.m4 .m4am .m4seg4 button:hover{background:transparent}
+html.m4 .m4am .m4seg4 button[aria-checked="true"]{background:var(--t4-accent,var(--cyan));color:var(--on-accent,#04121a);font-weight:700}
 html.m4 .m4am .m4del{color:#ff6b7a!important}
 html.m4 .m4am .m4del[aria-disabled="true"],html.m4 .m4am .m4off[aria-disabled="true"]{opacity:.55;cursor:not-allowed}
 html.m4 .m4am .m4del small{display:block;color:var(--ink-2);font-size:12px;line-height:1.4}
@@ -209,8 +214,8 @@ html.m4 .m4deldlg .msg{min-height:1.4em;font-size:13px;color:#ff6b7a;margin:4px 
       + `<button type="button" class="m4i" role="menuitem" data-m="quota"><span class="t">額度上限</span><span class="r">${esc(remText())}</span></button>`
       + `<button type="button" class="m4i" role="menuitem" data-m="feedback"><span class="t">意見回饋</span></button>`
       + sw('fab', !fabOff(), '客服功能')
-      + `<button type="button" class="m4i m4grp" role="menuitem" aria-expanded="false" data-m="style"><span class="t">版面風格</span><span class="r" data-sty-cur>${esc(styName(styCur()))}</span><span class="chev" aria-hidden="true">›</span></button>`
-      + '<div class="m4sub m4sty" role="group" aria-label="版面風格" hidden>' + styIds().map((k) => `<button type="button" class="m4i" role="menuitemradio" aria-checked="${k === styCur()}" data-m="sty" data-sty="${k}"><span class="ck" aria-hidden="true">✓</span><span class="sw4" style="background:${STY[k][1]}" aria-hidden="true"></span><span class="t">${esc(styName(k))}</span></button>`).join('') + '</div>';
+      + '<div class="m4styrow" data-m="style"><span class="t" id="m4StyLbl">版面風格</span>'
+      + '<div class="m4seg4" role="radiogroup" aria-labelledby="m4StyLbl">' + styIds().map((k) => `<button type="button" role="radio" aria-checked="${k === styCur()}" data-m="sty" data-sty="${k}">${esc(styName(k))}</button>`).join('') + '</div></div>';
     if (u && u.admin) {
       h += '<div class="hr"></div><button type="button" class="m4i m4grp" role="menuitem" aria-expanded="false" data-m="admgrp"><span class="t">管理區</span><span class="chev" aria-hidden="true">›</span></button>'
         + '<div class="m4sub" hidden>'
@@ -257,12 +262,11 @@ html.m4 .m4deldlg .msg{min-height:1.4em;font-size:13px;color:#ff6b7a;margin:4px 
     const b = e.target.closest('[data-m]'); if (!b) return;
     const k = b.dataset.m;
     if (k === 'fab') { const off = !fabOff(); setFab(off); b.setAttribute('aria-checked', String(!off)); return; }
-    if (k === 'style') { const sub = b.nextElementSibling; const open = b.getAttribute('aria-expanded') !== 'true'; b.setAttribute('aria-expanded', String(open)); if (sub) sub.hidden = !open; return; }
-    if (k === 'sty') {   // 選了就套用（T4.set 會存 tw.theme4、重畫圖表），選單留著讓人看到打勾換了
+    if (k === 'style') return;   // 版面風格那一列的空白處：不做事（只有三格分段可點）
+    if (k === 'sty') {   // 選了就套用（T4.set 會存 tw.theme4、重畫圖表），選單留著讓人看到選中格換了
       if (window.T4 && window.T4.set) window.T4.set(b.dataset.sty);
       const cur = styCur();
       m.querySelectorAll('[data-m=sty]').forEach((x) => x.setAttribute('aria-checked', String(x.dataset.sty === cur)));
-      const r = m.querySelector('[data-sty-cur]'); if (r) r.textContent = styName(cur);
       return;
     }
     if (k === 'admgrp') { const sub = b.nextElementSibling; const open = b.getAttribute('aria-expanded') !== 'true'; b.setAttribute('aria-expanded', String(open)); if (sub) sub.hidden = !open; return; }
@@ -354,7 +358,7 @@ html.m4 .m4deldlg .msg{min-height:1.4em;font-size:13px;color:#ff6b7a;margin:4px 
   }
 
   /* 選單開著時身分／權限／公告換了：重畫（徽章與額度常常比選單晚一步到） */
-  const repaint = () => { const m = document.getElementById('acctMenu'); if (m && !m.hidden && m.classList.contains('m4am') && document.documentElement.classList.contains('m4')) { const was = ['admgrp', 'style'].filter((k) => { const g = m.querySelector(`[data-m=${k}]`); return g && g.getAttribute('aria-expanded') === 'true'; }); paint(m, null); was.forEach((k) => { const g = m.querySelector(`[data-m=${k}]`); if (g) g.click(); }); } };
+  const repaint = () => { const m = document.getElementById('acctMenu'); if (m && !m.hidden && m.classList.contains('m4am') && document.documentElement.classList.contains('m4')) { const was = ['admgrp'].filter((k) => { const g = m.querySelector(`[data-m=${k}]`); return g && g.getAttribute('aria-expanded') === 'true'; }); paint(m, null); was.forEach((k) => { const g = m.querySelector(`[data-m=${k}]`); if (g) g.click(); }); } };
   ['tw:perm', 'tw:account', 'tw:plans'].forEach((ev) => window.addEventListener(ev, repaint));
 
   window.TwAcctM4 = { paint, openQuota, openDel, quotaItems, quotaCount, who, setFab, fabOff };
