@@ -572,3 +572,17 @@
      上下方向照舊（下拉重新整理、頁尾回彈不動）。 */
   :root.m4,:root.m4 body{overscroll-behavior-x:none}
 }
+
+/* ---- 29. 圖表跟網頁版同一套（2026-10-09 Andy：「所有的圖表 圓餅圖 長條圖 時中圖 樹狀圖 顏色風格 都要一樣」「資金輪動直接是完整版」）
+   index.html 在 ≤820 把輪盤的「掃描」勾選藏起來（舊手機長相沒有掃描）；手機 v2 的輪盤改用完整版（app.js rotM4），掃描開關跟網頁版一樣常駐。
+   ⚠ 這一節由 claude/m4-charts 新增，跟分段控制器／明暗鈕那幾節分開，避免撞檔。 */
+@media (max-width:640px){
+  :root.m4 .rottools .rot-scanlbl{display:inline-flex}
+  /* 手機準則 2「拉桿把手 ≥ 32px、手指拖得動」：資金流向頁改用網頁版的「看哪一天」拉桿（資金分流樹 playBar、資金輪盤 dayBar）——
+     長相照網頁版，只把整條拉桿的觸控高度撐到 32px（原生拉桿點／拖整條高度都算數）；族群×法人的雙把手區間桿本來就有 32px 觸控區。 */
+  :root.m4 #v-flow .rbar:not(.drange) input[type=range]{height:32px;min-height:32px;touch-action:none}
+  /* 輪盤容器的 inline min-height:440（桌機版面用）在手機會讓盤高 440 > 欄寬，390×844 時盤底超出第一屏 31px；手機盤是正方形（app.js rotFitH 的 rotM4 分支） */
+  :root.m4 #rotClock{min-height:0!important}
+  /* 播放鈕（▶）字級跟手機統一按鈕一致（13px）；其餘外觀照網頁版 */
+  :root.m4 #v-flow .rbar .pb.play{font-size:13px}
+}

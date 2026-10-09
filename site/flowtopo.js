@@ -511,9 +511,17 @@
     const r = Fit.room(S.host, { min: 340, mode: 'above' });
     return isFinite(r) ? r - barH(S) : Infinity;
   }
+  // 手機 v2 的經典光纖窄排法（見 layoutClassic）：只在 html.m4 且畫布 < 420px
+  const clNarrowOf = (S) => !S.mini && ((S.stage && S.stage.clientWidth) || S.W || 9999) < 420 && document.documentElement.classList.contains('m4');
   function slotPlan(S) {
     const chains = S.root.kids, n = chains.reduce((a, c) => a + c.kids.length, 0) || 1;
     const gaps = 0.5 * Math.max(0, chains.length - 1);
+    /* 手機 v2：一格 30px（族群膠囊 17px，代表股不在畫布上，不必留 36px 給三檔）、上緣多留 34px 給右上角「動態」鈕
+       —— 18 個族群約 650px，第一屏放得下大半棵樹。桌機不會進這一段。*/
+    if (clNarrowOf(S)) {
+      const slot = 30, padT = 34, padB = 12, body = slot * (n + gaps);
+      return { slot, body, H: Math.round(body + padT + padB), pad: padT };
+    }
     let extra = 0;
     /* ★ 2026-10-07 晚（Andy：「修正點擊前後導致樹狀圖移動的問題」）：點開的族群**不再把畫布長高**
        （以前 extra 會讓整張圖變高、槽位重算，所有族群上下位移）。展開的成分股改成在固定畫布內排開（見 layoutClassic）。*/
@@ -539,7 +547,21 @@
   function layoutClassic(S) {
     const W = S.W, H = S.H, root = S.root, chains = root.kids;
     let cols = [CFG.CL_LEFT + 8, W * 0.26, W * 0.54, W * 0.83];
-    if (S.leafHover) {
+    /* ★ 2026-10-09（Andy：「資金分流樹……光、子樹特效都要一模一樣跟網頁版本」）：手機 v2（html.m4）也交給這支畫，
+       同一套光纖、粒子、碰撞、漣漪、配色；只有「版面」跟著 370px 寬調：欄位改用緊湊版窄排法（layoutMini 同一條公式），
+       產業鏈膠囊放在節點正下方、根的膠囊在圓點正上方，族群膠囊才放得下全名＋%。
+       代表股欄放到畫布外（手機沒有滑過；點族群＝下方面板列全部成分股，和桌機點族群同一支 drillOpen）。
+       ⚠ 只在 html.m4 且畫布 < 420px 時生效 —— 桌機（> 820 才走這支）畫布不會窄到這裡，版面一個像素都不變。*/
+    S.clNarrow = clNarrowOf(S);
+    if (S.clNarrow) {
+      let maxG = 0, maxC = 0;
+      chains.forEach(c => { maxC = Math.max(maxC, elBadgeW(S, c)); c.kids.forEach(g => { maxG = Math.max(maxG, elBadgeW(S, g)); }); });
+      const gR = 6, rootX = 10, dodge = rootX + 6 + 4;
+      const gLab = Math.max(Math.min(104, maxG), Math.min(maxG, W - 26 - dodge - maxC));
+      const gX = W - 4 - gLab - 6 - gR;
+      cols = [rootX, rootX + Math.max(38, (gX - rootX) * 0.42), gX, W + 6];
+      S.miniCR = gX - gR - 4;
+    } else if (S.leafHover) {
       /* 代表股預設收起：右邊那欄的寬度讓給版面 —— 族群欄往右移（54% → 最多 66%），但要留得下
          「族群膠囊 ＋ 16px 空隙 ＋ 代表股（小點＋最長的「名稱 佔比%」）」，滑過顯示時才不會蓋到任何族群膠囊。
          代表股欄＝max(83%, 族群膠囊最右緣 ＋ 16)；產業鏈欄放在根與族群的 44% 處。*/
@@ -616,6 +638,7 @@
     let maxG = 0, maxC = 0;
     chains.forEach(c => { maxC = Math.max(maxC, elBadgeW(S, c)); c.kids.forEach(g => { maxG = Math.max(maxG, elBadgeW(S, g)); }); });
     const gR = 6, narrow = S.miniNarrow = W < 420;
+    S.clNarrow = false;
     /* ★ 2026-09-29 窄版根節點 12 → 8px：跟根節點同一高度的那條鏈（通常是 AI 伺服器）膠囊要「讓開根」，
        從 根.x ＋ 根半徑 6 ＋ 4 起算（measureLabelsClassic 的 xr）。根往左 4px，讓開的距離就少 4px。
        改前 1024 寬（v4 兩欄，這張 293px）「AI 伺服器 37.7%」101px ＋ 讓開 22px ＝ 123 > 右界 122 → 被截成「AI 伺…」。*/
@@ -1023,8 +1046,8 @@
       const x = leaf ? n.tx + 6 : n.tx + n.r + 6;
       const pad = leaf ? 0 : 12;                         // 膠囊左 5、右 7（參考稿 badgeW＝字寬＋12）
       const nextX = n.lv === 0 ? cols[1] - 10 : n.lv === 1 ? cols[2] - 12 : n.lv === 2 ? cols[3] - 10 : W - 4;
-      const maxW = S.mini && n.lv === 1 && S.miniNarrow ? Math.max(40, S.miniCR - 2)
-        : S.mini && n.lv === 0 ? Math.max(40, W * 0.45) : Math.max(40, nextX - x);   // 緊湊版的根標籤在圓點上方，不受產業鏈欄限制
+      const maxW = ((S.mini && S.miniNarrow) || S.clNarrow) && n.lv === 1 ? Math.max(40, S.miniCR - 2)
+        : (S.mini || S.clNarrow) && n.lv === 0 ? Math.max(40, W * 0.45) : Math.max(40, nextX - x);   // 緊湊版的根標籤在圓點上方，不受產業鏈欄限制
       let bw = 0;
       lines.forEach(line => {
         line.forEach(p => { S.font(g, p.fs, p.w); p.pw = mw(g, p.t); });
@@ -1041,7 +1064,7 @@
         line.w = lw; bw = Math.max(bw, lw);
       });
       const bh = leaf ? 12 : CFG.EL_BADGE_H + (lines.length - 1) * 15;
-      if (S.mini && n.lv === 1 && S.miniNarrow) {
+      if (((S.mini && S.miniNarrow) || S.clNarrow) && n.lv === 1) {
         /* 緊湊版・窄：產業鏈膠囊放在圓點正下方（或正上方），左右以圓點置中、夾在 [2, 族群圓點左邊]。
            一條一條放，每次都避開「根的圓點與膠囊、所有產業鏈圓點、已經放好的產業鏈膠囊」：
            依序試 下方置中 → 上方置中 → 下方靠右讓開根 → 上方靠右讓開根，第一個不撞的就用
@@ -1071,7 +1094,7 @@
         n.lab = { lines, x: box.x, y: box.y, w: bw, h: bh, fs: 12, badge: true };
         return;
       }
-      if (S.mini && n.lv === 0) {
+      if ((S.mini || S.clNarrow) && n.lv === 0) {
         /* 緊湊版：根的膠囊在圓點正上方、左緣對齊圓點左緣。順便建「產業鏈膠囊要避開的東西」清單：
            根的圓點與膠囊、每一顆產業鏈圓點（S.order 裡根一定排第一個，所以這裡先建好）。*/
         const box = { x: Math.max(2, n.tx - n.r), y: n.ty - n.r - 5 - bh, w: bw, h: bh };

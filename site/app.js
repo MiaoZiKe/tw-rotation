@@ -2872,6 +2872,13 @@
      ＝ 233px 的**控制項**排在兩張圖之前。手機上先看圖、要調才展開控制項，
      所以收成一顆「篩選與期間 ▾」。⚠ 一樣是收起來，不是拿掉。*/
   function miaFlow() {
+    /* ★ 2026-10-09 Andy：「這頁拿掉收展功能」—— 手機 v2（html.m4）的資金輪動頁不要「篩選與期間」收展鈕，
+       產業鏈／族群下拉、期間拉桿、軌跡／腳印／水波／掃描勾選直接常駐（跟網頁版同一排）。只限 m4；手機 v1 照舊收起。*/
+    if (document.documentElement.classList.contains('m4')) {
+      const b = document.getElementById('mfFlowCtl'); if (b) b.remove();
+      ['#flowRotFilter', '#flowRotTime'].forEach(q => { const e = document.querySelector(q); if (e) e.classList.remove('mf-off'); });
+      return;
+    }
     miaFold('#how-rot', '篩選與期間', ['#flowRotFilter', '#flowRotTime'], 'mfFlowCtl');
   }
 
@@ -6088,6 +6095,7 @@
   const ROT_CROWD_OP = 0.5;
   const ROT_REST_SZ = 0.78;
   const ROT_REST_GAP = 2;              // 非焦點腳印的間距倍數（每兩步畫一步）
+  const rotM4 = () => document.documentElement.classList.contains('m4');   // 手機 v2：輪盤用完整版（見 renderClock 的 numMode）
   const ROT_NUM_W = 560;               // 容器窄於這個寬度 → 編號模式
   /* 象限底色的徑向漸層（2026-09-24 取代第 5 批的三圈硬邊色塊）：[深色, 淺色] × [圓心, 半圈虛線, 外圈虛線, 盤緣]。
      中間兩個錨點取第 5 批三圈的中間值，讀起來的「深淺」跟三圈版一致，只是變成平順過渡。*/
@@ -6103,7 +6111,10 @@
      象限底色仍然保留「離圓心越遠越濃」的徑向漸層（Andy 同一天稍早要的「分層需要漸層」），
      只是整體拉到參考檔的濃度：圓心 .12 → 盤緣 .27（淺色主題 .07 → .18，淺底上同樣的 α 會顯得重很多）。*/
   const ROT_GRAD_V2 = [[.12, .17, .22, .27], [.07, .10, .14, .18]];
-  const rotDesk = () => { try { return !window.matchMedia('(max-width:820px)').matches; } catch (e) { return true; } };
+  /* ★ 2026-10-09（Andy：「資金輪動直接是完整版」「顏色風格都要一樣」）：手機 v2（html.m4）也算「桌機長相」——
+     發光核心＋白外圈、名字膠囊、掃描、桌機的盤高公式全部同一套，只有尺寸跟著寬度縮。
+     舊的 ≤820 手機長相（水滴點、無掃描）只剩「桌機視窗拉窄到 ≤820」這條路會用到，桌機行為不變。*/
+  const rotDesk = () => { if (rotM4()) return true; try { return !window.matchMedia('(max-width:820px)').matches; } catch (e) { return true; } };
   const rotNum = {};                   // 圖表 id → 這一輪是不是編號模式
   /* 白字／深字寫在點裡夠不夠清楚（≥ 4.5:1）。點的顏色是 mixHex 混出來的 #rrggbb；
      靠圓心的點被調淡過，白字常常不夠 —— 那種就換深字，兩種都不夠就寫在點外面。*/
@@ -6721,6 +6732,8 @@
     if (!rotDesk()) { if (el.style.height) el.style.height = ''; return; }
     const w = (el.parentNode && el.parentNode.clientWidth) || el.clientWidth || 0;
     if (!(w > 0)) return;
+    // 手機 v2：盤是正方形、寬＝欄寬（402 寬約 370px），整張一屏看得到；桌機不進這一行
+    if (rotM4()) { if (Math.abs((el.clientHeight || 0) - w) > 2) el.style.height = w + 'px'; return; }
     /* ★ 2026-09-28 設計 v4 第二批 2A：比例與上限改由 CSS 變數決定（theme4.css 依欄寬分段設 --rot-hk／--rot-hmax），
        沒設就是原本的 0.8／640。版面數字放在樣式表裡，跟兩欄／單欄的斷點寫在同一處，不會一邊改了一邊忘了。*/
     const cs = getComputedStyle(el);
@@ -7054,7 +7067,9 @@
     const crowded = (r) => crowdN >= ROT_CROWD_N && r.p[0] < CLOCK_MAXR / 2;
     const trailOp = (r) => (shownTrail(r) ? 1 : (restDim && !r.isStock ? ROT_REST_OP * (crowded(r) ? ROT_CROWD_OP : 1) : 0));
     // 編號模式（容器 < 560px）：圖上只寫編號，名字在圖下方清單
-    const numMode = !compact && (el.clientWidth || 0) > 0 && el.clientWidth < ROT_NUM_W;
+    /* ★ 2026-10-09（Andy：「資金輪動直接是完整版」）：手機 v2（html.m4）不走編號模式 —— 圖上直接寫族群名（同桌機），
+       編號模式是桌機窄視窗的退路，不是手機的精簡版。桌機（沒有 m4）判準一個字不變。*/
+    const numMode = !compact && !rotM4() && (el.clientWidth || 0) > 0 && el.clientWidth < ROT_NUM_W;
     rotNum[id] = numMode;
     top.forEach((r, i) => {
       r.sz = r.isStock ? stockSize(r) : groupSize(r);
@@ -7708,7 +7723,7 @@
         if (cur !== c) return;                       // 圖被換掉或 dispose 了就不要再動它
         /* 寬度跨過 560px（編號模式 ⇄ 左右兩欄）：formatter、標籤樣式、圖下清單全部要換，整張重畫最省事。
            重畫時 numMode 是用同一個 clientWidth 算的，所以不會來回觸發。*/
-        const wantNum = (el.clientWidth || 0) > 0 && el.clientWidth < ROT_NUM_W;
+        const wantNum = !rotM4() && (el.clientWidth || 0) > 0 && el.clientWidth < ROT_NUM_W;
         if (wantNum !== !!rotNum[id] && el._rotRedraw) { el._rotRedraw(); return; }
         applyLbl(c);
         // 盤的半徑是像素（rotGeo），容器變了要跟著換 —— 不然放大視窗／象限面板開合之後盤會凸出或縮在中間
@@ -7969,7 +7984,7 @@
         + (d.base ? `<br>佔上一層 <b>${pct(d.value, d.base)}%</b>` : '')
         + `<br>佔全場 ${pct(d.value, total)}%`;
     };
-    if (window.FlowTopo && window.innerWidth > 820) {
+    if (window.FlowTopo && (window.innerWidth > 820 || rotM4())) {   // 2026-10-09：手機 v2 也用同一支光纖引擎（緊湊版窄排法），跟網頁版同一套光、粒子、配色
       try { const ec = window.echarts && echarts.getInstanceByDom(el); if (ec) { ec.dispose(); delete charts[el.id]; } } catch (e) { /* 忽略 */ }
       el.classList.remove('isempty');
       const tree = { name: '加權指數', value: total, isRoot: true,
@@ -11252,7 +11267,7 @@
   const sankeyStyle = () => sankeyStyleForce || 'fx';
   const paintSankeySeg = () => {};      // 分段鈕已拿掉（留著空函式，舊的呼叫點不用一一拆）
   // 「由 flowtopo.js 的 Canvas 引擎畫」＝經典光纖或拓撲（兩者共用同一支引擎，只差版面）
-  const sankeyTopoOn = () => !!(window.FlowTopo && window.FlowTopo.render) && window.innerWidth > 820 && sankeyStyle() !== 'classic';
+  const sankeyTopoOn = () => !!(window.FlowTopo && window.FlowTopo.render) && (window.innerWidth > 820 || document.documentElement.classList.contains('m4')) && sankeyStyle() !== 'classic';
 
   /* ------------------------------------------------ 盤中即時資金分流樹（Andy 2026-09-21）
      「好那在幫我多新增一個『即時』項目可以點選觀看　在紅框那排」

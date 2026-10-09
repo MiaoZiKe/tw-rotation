@@ -951,15 +951,24 @@
   window.addEventListener('tw:theme', () => { $$('.m3keep').forEach(b => { if (b._redraw) setTimeout(b._redraw, 60); }); });
 
   let cWait = null;
+  /* ★ 2026-10-09（Andy：「資金分流樹……光、子樹特效都要一模一樣跟網頁版本」「所有的圖表……顏色風格都要一樣」
+     「資金輪動直接是完整版」「族群 × 法人……跟網頁版一樣直接上長條圖」）：
+     手機 v2（html.m4）不再用這一節的手機替身（SVG 輪盤、長條式分流樹、SVG 小樹、法人單色細條＋「完整版 ›」）——
+     桌機那幾張圖本身（app.js renderRotClock／renderSankey→flowtopo.js／renderOvFlow／族群×法人堆疊長條）直接在手機上畫，
+     只有尺寸跟著寬度縮（app.js 的 rotM4()／sankeyTopoOn()、flowtopo.js 的 clNarrow）。
+     舊的手機 v1（≤640 但沒有 m4）照舊走這一節。*/
+  const m4on = () => document.documentElement.classList.contains('m4');
   function cOn(v) {
     if (v === 'overview') {
-      ovRadar();
-      const ow = document.getElementById('ovFlowWrap');
-      if (ow) drill(host(ow, 'drill'));
+      if (!m4on()) {
+        ovRadar();
+        const ow = document.getElementById('ovFlowWrap');
+        if (ow) drill(host(ow, 'drill'));
+      }
       if (document.getElementById('m3Grid')) market1();
       else { clearTimeout(cWait); cWait = setTimeout(() => cOn(curView()), 800); }
     }
-    if (v === 'flow') {
+    if (v === 'flow' && !m4on()) {
       flowRot();
       const sc = document.getElementById('flowSankeyCard');
       if (sc) { const hd = sc.querySelector(':scope > .row'); if (hd) hd.classList.add('m3keep-h'); drill(host(sc, 'drill', null, { full: liveTxt('完整版（分流圖、回放、即時）'), after: hd })); }
