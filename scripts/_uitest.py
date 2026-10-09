@@ -28037,22 +28037,8 @@ def t_mobile_m4_1008(b, base, code):
         #   原本是「402 寬主內容區沒有方框」；改成「功能區沒有框（只用線條分區），圖表容器有框」—— 圖表框另外在 t_mobile_m4_ov2 驗。
         ok(f"【{T}】402 寬功能區沒有方框與陰影（只用線條分區；圖表容器本身的框除外）", not badb, badb)
         m.set_viewport_size({"width": 390, "height": 844})
-        # ⑮ 資金分流樹日期拉桿：手指拖把手 → 日期與樹真的換；▶ 播放中拉桿鎖住
-        go("flow/sankey", 4500)
-        d0 = J("() => { const r = document.querySelector('.mdaybar input'); if (!r) return null; const b = r.getBoundingClientRect(); return { v: +r.value, x: b.left + b.width - 16, y: b.top + b.height / 2, top: b.top, txt: document.querySelector('#flowSankeyCard .mroot').textContent }; }")
-        ok(f"【{T}】資金分流樹有日期拉桿、在第一屏（{d0 and round(d0['top'])}）", d0 and 0 < d0["top"] < 844, d0)
-        if d0:
-            tp = lambda t, x: cdp.send("Input.dispatchTouchEvent", {"type": t, "touchPoints": [] if t == "touchEnd" else [{"x": x, "y": d0["y"]}]})
-            tp("touchStart", d0["x"])
-            for k in range(1, 13):
-                tp("touchMove", d0["x"] - 10 * k); m.wait_for_timeout(16)
-            tp("touchEnd", 0); m.wait_for_timeout(600)
-            d1 = J("() => ({ v: +document.querySelector('.mdaybar input').value, txt: document.querySelector('#flowSankeyCard .mroot').textContent, th: (() => { const r = document.querySelector('.mdaybar input'); return parseFloat(getComputedStyle(r, '::-webkit-slider-thumb').width) || 32; })() })")
-            ok(f"【{T}】手指拖拉桿 → 日期真的往前（{d0['v']}→{d1['v']}）、樹的數字跟著換", d1["v"] < d0["v"] and d1["txt"] != d0["txt"], (d0, d1))
-            m.locator(".mdaybar .mplay").tap(); m.wait_for_timeout(1600)
-            pl = J("() => ({ dis: document.querySelector('.mdaybar input').disabled, v: +document.querySelector('.mdaybar input').value })")
-            ok(f"【{T}】按 ▶ 播放 → 拉桿鎖住、日期一天一天往後（{pl}）", pl["dis"], pl)
-            m.locator(".mdaybar .mplay").tap(); m.wait_for_timeout(300)
+        # ⑮ 資金分流樹日期拉桿（2026-10-09 改，照 claude/m4-charts）：改前是 mobile3 的 .mdaybar；改後是網頁版同一支 playBar（#sankeyDays），
+        #    手指拖、▶ 播放鎖住拉桿的驗收搬到 t_mobile_m4_charts_1009（同一段「手機v2」會跑到）；播放前後同一行在 t_mobile_m4_ov2 驗。
         # ⑯ 2D 剖析圖編號：整張模式排在兩側＋虛線引線
         go("industry/electronics", 3500)
         J("() => { try { localStorage.setItem('tw.dgOpen', '1'); localStorage.setItem('tw.dgnum', '1'); localStorage.setItem('tw.dg3d', '2d'); } catch (e) {} }")
@@ -28112,7 +28098,7 @@ def t_mobile_m4_1008(b, base, code):
             document.querySelectorAll('.view.on .howbtn').forEach(e => { if (vis(e)) out.push(['?', fp(e), '']); });
             document.querySelectorAll('.view.on button').forEach(e => { const c = getComputedStyle(e);
               if (!vis(e) || tabs.has(e) || e.classList.contains('howbtn') || parseFloat(c.borderTopWidth) === 0 || c.borderTopWidth !== c.borderBottomWidth
-                || e.matches('.rkrow,.cald,.sl-i,.mbwadd,.wpmore,.etfc,.skr-r') || e.closest('[role=tablist],.seg,.nbsw,.mpager,.mseg,.ddlist,.mnumlayer,.mdgfolds,table')) return;
+                || e.matches('.rkrow,.cald,.sl-i,.mbwadd,.wpmore,.etfc,.skr-r') || e.closest('[role=tablist],.seg,.nbsw,.mpager,.mseg,.ddlist,.mnumlayer,.mdgfolds,table,.rotquads,.ftbar')) return;   // .rotquads／.ftbar：網頁版原樣的圖表控制（m4-charts）
               out.push(['按鈕', fp(e), e.className]); });
             return out; }"""
         kinds = {}
@@ -28163,18 +28149,14 @@ def t_mobile_m4_1008(b, base, code):
         ok(f"【{T}】訂閱方案：精簡卡的升級鈕手指點得到、有反應（跳出申請／登入）",
            J("() => [...document.querySelectorAll('.subdlg:not([hidden]), dialog[open], .modal:not([hidden]), [role=dialog]:not([hidden]), #m4LoginTip:not([hidden]), .prdlg:not([hidden]), .acctdlg:not([hidden])')].some(e => e.getClientRects().length) || location.hash !== '#pricing'"), None)
         J("() => document.querySelectorAll('.subdlg [data-close]').forEach(b => b.getClientRects().length && b.click())"); m.keyboard.press("Escape")
-        # 市場明細「漲跌分佈」篩選列（修前「族群：不限 ▾」掉到第二行、主圖往下約 48px）：全部／上市／上櫃、含 ETF、族群下拉同一行、都在畫面內；族群下拉真的點得開
+        # 市場明細「漲跌分佈」篩選列（2026-10-09 改，帳本 38 退件／claude/m4-misc）：全部／上市／上櫃、含 ETF、族群三組收進一顆「設定」摘要鈕 → 底部抽屜，
+        #   頁面上原本那排藏起來（抽屜裡每組一排、改了真的生效在 t_mobile_m4_mkset1009 驗）。這裡留版面規矩：那排不佔版面、摘要鈕在、主圖整張在第一屏。
         go("market", 3500)
-        df = J("""() => { const f = document.getElementById('distFilter'); if (!f) return null;
-            const ks = [...f.querySelectorAll('#distMkt > button, label, .twms-btn')].filter(e => e.getClientRects().length).map(e => { const r = e.getBoundingClientRect(); return { t: e.textContent.trim().slice(0, 8), top: Math.round(r.top), l: Math.round(r.left), r: Math.round(r.right), h: Math.round(r.height), w: Math.round(r.width) }; });
-            const c = document.querySelector('#v-market canvas');
-            return { ks, dy: Math.max(...ks.map(k => k.top + k.h / 2)) - Math.min(...ks.map(k => k.top + k.h / 2)), out: ks.filter(k => k.l < 0 || k.r > innerWidth).length,
-              tiny: ks.filter(k => k.t !== '含 ETF' && (k.h < 39.5 || k.w < 39.5)).length, fh: Math.round(f.getBoundingClientRect().height), cb: c ? Math.round(c.getBoundingClientRect().bottom) : 9999, vh: innerHeight }; }""")
-        ok(f"【{T}】市場明細：族群下拉與全部／上市／上櫃／含 ETF 同一行（中心差 {df and df['dy']}px、列高 {df and df['fh']}px ≤ 48）、都在畫面內、鈕 ≥ 40、主圖底 {df and df['cb']} ≤ {df and df['vh']}",
-           df and len(df["ks"]) >= 5 and df["dy"] <= 4 and df["fh"] <= 48 and df["out"] == 0 and df["tiny"] == 0 and df["cb"] <= df["vh"], df)
-        m.locator("#distFilter .twms-btn").tap(); m.wait_for_timeout(500)
-        ok(f"【{T}】市場明細：族群下拉點了真的打開（aria-expanded＝true）", J("() => document.querySelector('#distFilter .twms-btn').getAttribute('aria-expanded') === 'true'"), None)
-        m.keyboard.press("Escape"); m.wait_for_timeout(200)
+        df = J("""() => { const f = document.getElementById('distFilter'), b = document.getElementById('m4MkSet'), c = document.querySelector('#v-market canvas');
+            return { row: !!f && f.getClientRects().length > 0, btn: !!b && b.getClientRects().length > 0, bh: b ? Math.round(b.getBoundingClientRect().height) : 0,
+                     cb: c ? Math.round(c.getBoundingClientRect().bottom) : 9999, vh: innerHeight }; }""")
+        ok(f"【{T}】市場明細：篩選三組收成一顆摘要鈕（高 {df['bh']} ≥ 40）、原本那排不佔版面、主圖底 {df['cb']} ≤ {df['vh']}",
+           not df["row"] and df["btn"] and df["bh"] >= 40 and df["cb"] <= df["vh"], df)
         m.set_viewport_size({"width": 390, "height": 844})
         # ㉓ 現金流試算條件區：展開後 ≤ 84px、裡面沒有看得到的分段鈕群組（全部是 select／checkbox）；改任何一個下拉，圖真的跟著變
         m.set_viewport_size({"width": 402, "height": 874})
@@ -28276,9 +28258,10 @@ def t_mobile_m4_1008(b, base, code):
                     loc.scroll_into_view_if_needed(timeout=3000); loc.tap(timeout=3000); m.wait_for_timeout(350)
                 except Exception as e:
                     dead.append(f"{ch}/{fid}：點不到（{str(e)[:40]}）"); continue
-                ae = J(f"""() => {{ const b = [...document.querySelectorAll('.mdgfolds button[data-fold="{fid}"]')].find(x => x.isConnected && x.getClientRects().length); return b ? b.getAttribute('aria-expanded') : null; }}""")
-                if ae != "true": dead.append(f"{ch}/{fid}：點了沒展開（{ae}）")
-        ok(f"【{T}】剖析圖章節收合列：7 條鏈 {nrow} 列，手指點了都會展開", nrow > 0 and not dead, dead)
+                ae = J("() => { const s = document.getElementById('mSheet'); return s && !s.hidden ? s.dataset.kind : null; }")   # 2026-10-09（Andy 09:4x）：延伸閱讀改開底部抽屜，不在頁內展開
+                J("() => { const b = document.getElementById('mSheetBack'); if (b) b.click(); }"); m.wait_for_timeout(250)
+                if ae != "dgfold": dead.append(f"{ch}/{fid}：點了沒開延伸閱讀抽屜（{ae}）")
+        ok(f"【{T}】剖析圖延伸閱讀列：7 條鏈 {nrow} 列，手指點了都會開底部抽屜", nrow > 0 and not dead, dead)
         # ⑨ 卡片標題的「?」不准自己佔一行：「?」與標題文字的垂直中心差 ≤ 8px（看得到的文字節點才算）
         QJS = """() => [...document.querySelectorAll('.view.on h3 > .howbtn, .view.on h2 > .howbtn')].filter(b => b.getClientRects().length).map(b => {
                 const hd = b.parentElement; const rg = document.createRange(); let best = null;
