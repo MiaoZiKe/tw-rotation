@@ -543,6 +543,11 @@
     background:transparent;color:var(--ink);font:inherit;font-size:15px;font-weight:600;text-align:left;cursor:pointer}
   :root.m4 #v-market .m4mafolds>.m4fold small{font-size:12px;font-weight:400;color:var(--ink-3)}
   :root.m4 #v-market .m4mafolds>.m4fold i{margin-left:auto;font-style:normal;color:var(--ink-3)}
+  /* 2026-10-10 段標題的「平均 N%」（同網頁版站上均線段標題的平均站上 MA20；紅高綠低＝台股慣例，40～60 琥珀）：靠右、箭頭前 */
+  :root.m4 #v-market .m4mafolds>.m4fold .m4avg{margin-left:auto;font-size:13px;font-weight:700;color:var(--amber);white-space:nowrap;font-variant-numeric:tabular-nums}
+  :root.m4 #v-market .m4mafolds>.m4fold .m4avg.up{color:var(--rise)}
+  :root.m4 #v-market .m4mafolds>.m4fold .m4avg.down{color:var(--fall)}
+  :root.m4 #v-market .m4mafolds>.m4fold .m4avg+i{margin-left:4px}
   :root.m4 #v-market .m4mafolds>.m4fbox{padding:10px 0 12px}
   /* 展開後兩欄（單欄 22 張要捲 2000px）：名字太長截斷、全名在卡片 title */
   :root.m4 #v-market .m4mafolds>.m4fbox.magrid{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:8px!important}
@@ -1206,4 +1211,23 @@
   :root.m4 body.m3on #mbHead .mbname{white-space:normal;overflow:visible;text-overflow:clip;overflow-wrap:anywhere;line-height:1.15}
   :root.m4 body.m3on #mbHead .mbpx{font-size:clamp(20px,6.8vw,30px)}
   :root.m4 #v-market :is(.fqbdg,.fqb,.fqtag){font-size:12px!important}
+}
+
+/* ============================================================================
+   2026-10-10 網頁手機同步（docs/web_mobile_sync_1010.md 第 5 節 4、8 條；手機 session m4-sync2）
+   ⚠ 只在 ≤640 而且 :root.m4；縮放提示那段再加 (hover:none)＝真的觸控手機才換（桌機拉窄視窗用滑鼠，滾輪照樣能用）。
+   ============================================================================ */
+@media (max-width:640px) and (hover:none){
+  /* 觸控手機沒有滾輪（wheelZoom 沒做雙指縮放）：法人四象限、總覽題材熱力的「滾輪放大」提示是一句做不到的話 → 收起來 */
+  :root.m4 #trustWrap>.zbadge,:root.m4 #ovThemeWrap>.zbadge{display:none!important}
+  /* 本益比河流圖：手機唯一的縮放方式是上方「看多長／截止」兩支拉Bar → 提示改寫成拉Bar（原字留在節點裡，只是不畫） */
+  :root.m4 #peWrap>.zbadge{font-size:0!important;opacity:1}
+  :root.m4 #peWrap>.zbadge::after{content:'拖上方「看多長／截止」拉Bar 調整區間';font-size:12px;font-family:var(--sans,inherit)}
+}
+@media (max-width:640px){
+  /* ETF 頁首「複利試算」格：目前方案不能看（etf.inc.comp）→ 反灰＋格內第二行小字「🔒 Plus 以上」（mobile4.js paintTitle；Andy 10-10：新限制一律反灰＋小字、不跳視窗） */
+  :root.m4 .m4subtabs button.m4lk{display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1.15;color:var(--ink-3)}
+  :root.m4 .m4subtabs button.m4lk.on{color:var(--ink-2)}
+  :root.m4 .m4subtabs button.m4lk>span{opacity:.5}
+  :root.m4 .m4subtabs button.m4lk>small{display:block;font-size:12px;font-weight:600;color:var(--amber);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
 }
