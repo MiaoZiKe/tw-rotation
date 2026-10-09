@@ -519,6 +519,8 @@
          兩個一起開也順便讓「縮小」最多縮到整段資料剛好填滿（＝1×），不會再縮出空白。
          只限手機：桌機的右側留白（rightOffset 4 根）與自由拖曳照舊（桌機守門1008）。 */
       if (document.documentElement.classList.contains('m4')) this.chart.applyOptions({ timeScale: { fixLeftEdge: true, fixRightEdge: true } });
+      // 手機：價格軸最上／最下那格刻度整個畫在面板裡（不被面板上緣或分隔線切一半；Andy 10-09「Y軸都沒資訊了，需要你完整他」）
+      if (isM4()) this.chart.applyOptions({ rightPriceScale: { ensureEdgeTickMarksVisible: true } });
       this.candle = this.chart.addSeries(LWC.CandlestickSeries, { upColor: C.up, downColor: C.down, borderUpColor: C.up, borderDownColor: C.down, wickUpColor: C.up, wickDownColor: C.down, priceLineVisible: true, lastValueVisible: true });
       m4Fmt(this.candle);   // 手機價格軸刻度精簡（見 m4Tick）
       this.zones = new ZonesPrimitive([]); this.candle.attachPrimitive(this.zones);
