@@ -30625,10 +30625,40 @@ DESK_ORPHAN_JS = r"""
 """
 
 
+# ★ 2026-10-10 效率稽核（docs/efficiency_1010.md 第二節 A）：守門以前每頁固定睡 1800＋500（個股分頁再 +900）毫秒，
+#   機器閒時白等、忙時不夠 → 39% 紅燈，其中約 25～28 次是「還沒畫完就量」的假紅（分頁沒切過去、找不到先進封裝 svg、關聯圖收合計時太短）。
+#   改成「等條件成立」：版面指紋（DESK_FP_JS）＋剖析圖 svg 的元素數，連量兩次一樣、而且頁面沒有進行中的 fetch，才算穩。上限照舊有（8 秒）。
+#   ⚠ 只改「等多久、怎麼等」；量什麼、跟基準怎麼比，一個字都沒動。
+DESK_PEND_INIT = ("(() => { try { if (window.__twPend !== undefined) return; window.__twPend = 0; const f = window.fetch;"
+                  " window.fetch = function () { window.__twPend++; const p = f.apply(this, arguments);"
+                  " const done = () => setTimeout(() => { window.__twPend--; }, 0); p.then(done, done); return p; }; } catch (e) {} })();")
+DESK_SETTLE_JS = "() => JSON.stringify([document.readyState, window.__twPend || 0, (" + DESK_FP_JS.strip() + ")(), " \
+                 "[...document.querySelectorAll('main .view.on svg')].map((s) => s.getElementsByTagName('*').length).join(',')])"
+
+
+DESK_SLOW: list[str] = []
+
+
+def desk_settle(pg, cap=8000, step=150):
+    """等版面穩下來：readyState complete、沒有進行中的 fetch、版面指紋＋svg 元素數連量兩次一樣。回傳等了幾毫秒。"""
+    t0 = time.time(); prev = None
+    while (time.time() - t0) * 1000 < cap:
+        try:
+            cur = pg.evaluate(DESK_SETTLE_JS)
+        except Exception:  # noqa: BLE001 —— 換頁途中 evaluate 會炸，再量一次
+            cur = None
+        if cur and cur == prev and cur.startswith('["complete",0,'):
+            return int((time.time() - t0) * 1000)
+        prev = cur
+        pg.wait_for_timeout(step)
+    DESK_SLOW.append(pg.url.split("#", 1)[-1])     # 等到上限還在變：記下來，段落結尾印出（這種頁本來就該查為什麼一直在變）
+    return int((time.time() - t0) * 1000)
+
+
 def desk_pages(pg, base):
     """守門要走的頁：路由不寫死，產業鏈、題材、個股分頁都從頁面或資料讀，新增的自動進來。"""
     pages = ["overview", "earnings", "flow/rotation", "flow/sankey", "flow/inst", "heatmap/industry", "heatmap/theme", "industry"]
-    pg.goto(f"{base}#industry", wait_until="domcontentloaded"); pg.wait_for_timeout(1500)
+    pg.goto(f"{base}#industry", wait_until="domcontentloaded")
     chains = pg.evaluate("async () => (await (await fetch('data/industry_map.json')).json()).chains.map(c => c.id)")
     tids = pg.evaluate("async () => (await (await fetch('data/themes.json')).json()).themes.map(t => t.id)")
     pages += [f"industry/{c}" for c in chains] + [f"themes/{t}" for t in tids]
@@ -30636,23 +30666,35 @@ def desk_pages(pg, base):
     pages += [f"market/{k}" for k in ("updown", "streak", "ma", "cand")]
     pages += ["explore", "etf/cal", "etf/list", "etf/inc", "season", "watch", "pricing", "terms", "privacy", "disclaimer", "admin"]
     for code in ("2330", "00919"):
-        pg.goto(f"{base}#stock/{code}", wait_until="domcontentloaded"); pg.wait_for_timeout(2200)
+        pg.goto(f"{base}#stock/{code}", wait_until="domcontentloaded")
+        pg.wait_for_selector("#stockTabs button[data-t]", state="attached", timeout=20000)
+        desk_settle(pg, 4000)
         for t in pg.evaluate("() => [...document.querySelectorAll('#stockTabs button')].map(b => b.dataset.t)"):
             pages.append(f"stock/{code}?tab={t}")
     return pages, chains, tids
 
 
-def desk_open(pg, base, route):
+def desk_open(pg, base, route, scroll=True):
     r, _, tab = route.partition("?tab=")
-    pg.goto("about:blank"); pg.goto(f"{base}#{r}", wait_until="domcontentloaded"); pg.wait_for_timeout(1800)
+    pg.goto("about:blank"); pg.goto(f"{base}#{r}", wait_until="domcontentloaded")
     if tab:
-        pg.evaluate("(t) => { const b = [...document.querySelectorAll('#stockTabs button')].find(x => x.dataset.t === t); if (b) b.click(); }", tab)
-        pg.wait_for_timeout(900)
+        # 10-10：以前固定等 1800 就點，分頁列還沒畫出來時 find() 找不到、靜靜地沒點 → 量到的是「總覽」分頁（假紅 10 次都是這型）。
+        sel = f'#stockTabs button[data-t="{tab}"]'
+        pg.wait_for_selector(sel, state="attached", timeout=20000)
+        desk_settle(pg)
+        for _ in range(3):        # 分頁列重畫會把 .on 洗回去：點到「真的帶 .on」為止
+            pg.evaluate("(s) => { const b = document.querySelector(s); if (b && !b.classList.contains('on')) b.click(); }", sel)
+            if wait_until(pg, f"() => !!document.querySelector('{sel}.on')", 4000):
+                break
+    desk_settle(pg)
+    if not scroll:            # 剖析圖頁只量 ②／②-b（原本那一輪就是開頁等穩直接量、不捲）
+        return
     # 捲到底再回頂：延後畫的卡（whenNear）都畫出來，版面才是使用者看到的那個
-    h = pg.evaluate("() => document.documentElement.scrollHeight")
-    for y in range(0, min(h, 8000), 900):
-        pg.evaluate(f"() => window.scrollTo(0, {y})"); pg.wait_for_timeout(60)
-    pg.evaluate("() => window.scrollTo(0, 0)"); pg.wait_for_timeout(500)
+    #   10-10：一樣是每 900px 停 60ms，只是整段在頁面裡跑一次，不再每一步來回一趟（忙時每趟 30～70ms）
+    pg.evaluate("""async () => { const h = document.documentElement.scrollHeight;
+        for (let y = 0; y < Math.min(h, 8000); y += 900) { window.scrollTo(0, y); await new Promise((r) => setTimeout(r, 60)); }
+        window.scrollTo(0, 0); }""")
+    desk_settle(pg)
 
 
 def t_m4_ind_1009(b, base):
@@ -31328,71 +31370,160 @@ def t_barw_1009(b, base):
         pg.close()
 
 
+def _desk_fp_diff(r, want, got, TOL=8):
+    """一頁的版面指紋跟基準比（10-10 從 t_desk_guard_1008 原樣抽出來，比對規則一個字沒改）。"""
+    diffs = []
+    if got is None:
+        return [f"{r}：這一頁沒走到"]
+    for k, w in want.items():
+        g = got.get(k)
+        if g is None:
+            if w[0]: diffs.append(f"{r} {k}：基準看得到，現在不見了")
+            continue
+        if g[0] != w[0]:
+            diffs.append(f"{r} {k}：{'基準看得到 → 現在藏起來' if w[0] else '基準藏著 → 現在攤開'}")
+        elif w[0] and (abs(g[1] - w[1]) > TOL or abs(g[2] - w[2]) > TOL):
+            diffs.append(f"{r} {k}：x {w[1]}→{g[1]}、寬 {w[2]}→{g[2]}")
+        elif w[0] and (g[3] != w[3] or g[4] != w[4]):
+            diffs.append(f"{r} {k}：排法 {w[3]} {w[4]!r} → {g[3]} {g[4]!r}")
+    for k, g in got.items():
+        if k not in want and g[0]:
+            diffs.append(f"{r} {k}：基準沒有、現在多出來（x {g[1]} 寬 {g[2]}）")
+    return diffs
+
+
+def _desk_reverify(T, b, base, kind, routes, measure):
+    """10-10 效率稽核 C：首跑紅的頁，開一個全新的 context 只重驗那幾頁一次。重驗綠＝判綠，但一定印一行「⚠ 首跑紅、重驗綠」留痕跡。
+    measure(pg, route) 回傳那一頁的問題清單（空＝綠）。回傳 {route: 重驗後的問題清單}。"""
+    out = {}
+    if not routes:
+        return out
+    c2 = b.new_context(viewport={"width": 1440, "height": 900})
+    c2.add_init_script("try{localStorage.setItem('tw.dg3d','0')}catch(e){}")
+    c2.add_init_script(DESK_PEND_INIT)
+    p2 = c2.new_page()
+    try:
+        for r in routes:
+            try:
+                out[r] = measure(p2, r)
+            except Exception as e:  # noqa: BLE001
+                out[r] = [f"{r}：重驗時爆掉 {type(e).__name__} {e}"]
+            if not out[r]:
+                msg = f"⚠ 首跑紅、重驗綠：{r}（{T} {kind}）"
+                print("  " + msg, flush=True); notes.append(msg)
+    finally:
+        c2.close()
+    return out
+
+
 def t_desk_guard_1008(b, base):
     T = "桌機守門1008"
+    _t0 = [time.time()]; _tl = []
+    def _tk(lab):
+        n = time.time(); _tl.append(f"{lab} {n - _t0[0]:.0f}s"); _t0[0] = n
     c = b.new_context(viewport={"width": 1440, "height": 900})
     c.add_init_script("try{localStorage.setItem('tw.dg3d','0')}catch(e){}")
+    c.add_init_script(DESK_PEND_INIT)
     pg = c.new_page()
     pages, chains, tids = desk_pages(pg, base)
+    _tk("收頁")
     ok(f"{T}：收得到要守的頁（{len(pages)} 頁，含 {len(chains)} 條產業鏈、{len(tids)} 個題材、個股分頁）",
        len(pages) >= 60 and len(chains) >= 5 and len(tids) >= 20, len(pages))
-    # ① 結構指紋
-    fp = {}
-    for r in pages:
-        desk_open(pg, base, r)
-        fp[r] = pg.evaluate(DESK_FP_JS)
+    # ①＋②＋②-b(1440) 同一輪（10-10 效率稽核 B）：每頁只開一次，結構指紋、說明卡左右、孤兒編號一起量。
+    #   產業鏈頁開著的時候順手收剖析圖清單（#dgPick），剖析圖頁排到這一輪的尾巴；剖析圖頁不在基準裡，只量 ②／②-b、不記指紋。
+    #   ②-b 原本是另一輪在 1440×1000 重新開頁量；這裡改成同一次造訪把視窗拉到 1000 高、等穩了再量，量完拉回 900。
+    page_set, chain_set, theme_set = set(pages), {f"industry/{ch}" for ch in chains}, {f"themes/{t}" for t in tids}
+    fp, side, orph1440, dg_routes = {}, {}, {}, []
+    orph_by = {}
+    # ②-b 的 1920：另一個 context（視窗 1920×1000、全新載入，跟原本那一輪條件一樣），跟 1440 那一頁同時開 ——
+    #   1440 那邊在等穩、量指紋的時候，1920 那頁在背景載入，量完 1440 再等它穩、量孤兒編號（重疊等待，不另開一輪）。
+    c19 = b.new_context(viewport={"width": 1920, "height": 1000})
+    c19.add_init_script("try{localStorage.setItem('tw.dg3d','0')}catch(e){}")
+    c19.add_init_script(DESK_PEND_INIT)
+    p19 = c19.new_page()
+    queue = list(pages)
+    i = 0
+    while i < len(queue):
+        r = queue[i]; i += 1
+        pre19 = r in theme_set or r in dg_routes
+        if pre19:
+            p19.goto("about:blank"); p19.goto(f"{base}#{r}", wait_until="commit")
+        desk_open(pg, base, r, scroll=r in page_set)
+        if pre19:
+            desk_settle(p19)
+            orph_by[(1920, r)] = p19.evaluate(DESK_ORPHAN_JS)
+        if r in page_set:
+            fp[r] = pg.evaluate(DESK_FP_JS)
+        if r in chain_set:
+            for d in pg.evaluate("() => [...document.querySelectorAll('#dgPick a[data-dgid]')].map(a => a.getAttribute('href').slice(1))"):
+                if d not in dg_routes:
+                    dg_routes.append(d)
+                    if d not in page_set: queue.append(d)
+        if r in theme_set or r in dg_routes:
+            side[r] = pg.evaluate(DESK_SIDE_JS)
+            pg.set_viewport_size({"width": 1440, "height": 1000}); desk_settle(pg)
+            orph1440[r] = pg.evaluate(DESK_ORPHAN_JS)
+            pg.set_viewport_size({"width": 1440, "height": 900})
+    for r in dg_routes + [f"themes/{t}" for t in tids]:          # 剖析圖清單裡若有「先走過、後來才收進清單」的頁，補量一次（不讓它少量）
+        if r not in side:
+            desk_open(pg, base, r, scroll=False)
+            side[r] = pg.evaluate(DESK_SIDE_JS)
+            pg.set_viewport_size({"width": 1440, "height": 1000}); desk_settle(pg)
+            orph1440[r] = pg.evaluate(DESK_ORPHAN_JS)
+            pg.set_viewport_size({"width": 1440, "height": 900})
+    _tk("①②一輪")
     if os.environ.get("TW_DESK_BASELINE") == "write":
         DESK_BASE_FILE.parent.mkdir(parents=True, exist_ok=True)
         DESK_BASE_FILE.write_text(json.dumps(fp, ensure_ascii=False, sort_keys=True, separators=(",", ":")), encoding="utf-8")
         notes.append(f"{T}：已寫入基準 {DESK_BASE_FILE}（{len(fp)} 頁）")
     base_fp = json.loads(DESK_BASE_FILE.read_text(encoding="utf-8")) if DESK_BASE_FILE.exists() else {}
     ok(f"{T}：基準檔存在（tests/desktop_baseline/desktop_1440.json）", bool(base_fp))
-    TOL = 8
-    diffs = []
-    for r, want in base_fp.items():
-        got = fp.get(r)
-        if got is None:
-            diffs.append(f"{r}：這一頁沒走到"); continue
-        for k, w in want.items():
-            g = got.get(k)
-            if g is None:
-                if w[0]: diffs.append(f"{r} {k}：基準看得到，現在不見了")
-                continue
-            if g[0] != w[0]:
-                diffs.append(f"{r} {k}：{'基準看得到 → 現在藏起來' if w[0] else '基準藏著 → 現在攤開'}")
-            elif w[0] and (abs(g[1] - w[1]) > TOL or abs(g[2] - w[2]) > TOL):
-                diffs.append(f"{r} {k}：x {w[1]}→{g[1]}、寬 {w[2]}→{g[2]}")
-            elif w[0] and (g[3] != w[3] or g[4] != w[4]):
-                diffs.append(f"{r} {k}：排法 {w[3]} {w[4]!r} → {g[3]} {g[4]!r}")
-        for k, g in got.items():
-            if k not in want and g[0]:
-                diffs.append(f"{r} {k}：基準沒有、現在多出來（x {g[1]} 寬 {g[2]}）")
+    fp_diff = {r: _desk_fp_diff(r, want, fp.get(r)) for r, want in base_fp.items()}
+    def re_fp(p2, r):
+        if r not in page_set:
+            return [f"{r}：這一頁沒走到"]
+        desk_open(p2, base, r)
+        return _desk_fp_diff(r, base_fp[r], p2.evaluate(DESK_FP_JS))
+    fp_diff.update(_desk_reverify(T, b, base, "版面指紋", [r for r, d in fp_diff.items() if d], re_fp))
+    diffs = [x for d in fp_diff.values() for x in d]
+    _tk("指紋重驗")
     ok(f"{T}：1440 寬 {len(base_fp)} 頁的版面指紋跟基準一樣（{len(diffs)} 處不同）", not diffs, diffs[:40])
-    # ② 每一張 2D 剖析圖的說明卡在圖的左右兩側
-    dg_routes = []
-    for ch in chains:
-        pg.goto("about:blank"); pg.goto(f"{base}#industry/{ch}", wait_until="domcontentloaded"); pg.wait_for_timeout(1500)
-        for r in pg.evaluate("() => [...document.querySelectorAll('#dgPick a[data-dgid]')].map(a => a.getAttribute('href').slice(1))"):
-            if r not in dg_routes: dg_routes.append(r)
+    # ② 每一張 2D 剖析圖的說明卡在圖的左右兩側（量測在上面那一輪）
+    s_routes = dg_routes + [f"themes/{t}" for t in tids]
+    def re_side(p2, r):
+        p2.set_viewport_size({"width": 1440, "height": 900})
+        p2.goto("about:blank"); p2.goto(f"{base}#{r}", wait_until="domcontentloaded"); desk_settle(p2)
+        side[r] = p2.evaluate(DESK_SIDE_JS)
+        return side[r]["bad"]
+    _desk_reverify(T, b, base, "剖析圖說明卡左右", [r for r in s_routes if r in side and side[r]["bad"]], re_side)
     side_bad, side_n, side_pages = [], 0, 0
-    for r in dg_routes + [f"themes/{t}" for t in tids]:
-        pg.goto("about:blank"); pg.goto(f"{base}#{r}", wait_until="domcontentloaded"); pg.wait_for_timeout(1600)
-        got = pg.evaluate(DESK_SIDE_JS)
+    for r in s_routes:
+        got = side.get(r, {"n": 0, "bad": []})
         if got["n"]: side_pages += 1
         side_n += got["n"]; side_bad += [f"{r}：{x}" for x in got["bad"]]
     ok(f"{T}：量到的剖析圖說明卡（{side_pages} 張圖、{side_n} 張卡）", side_pages >= max(5, len(dg_routes) // 2) and side_n > 0, (side_pages, len(dg_routes)))
     ok(f"{T}：剖析圖說明卡全部在圖的左右兩側、沒有掉到圖下面（{len(side_bad)} 張不對）", not side_bad, side_bad[:20])
-    # ②-b 孤兒編號／沒錨點的編號卡／漂浮引線：1440（兩欄）與 1920（三欄，卡片在圖左右兩側）各普查一次；先進封裝一定在清單裡
-    orph = []
+    # ②-b 孤兒編號／沒錨點的編號卡／漂浮引線：1440（兩欄，量測在上面那一輪）與 1920（三欄，卡片在圖左右兩側）各普查一次；先進封裝一定在清單裡
     adv = "industry/semiconductor/dg/ai_adv_packaging"
-    o_routes = dg_routes + [f"themes/{t}" for t in tids]
+    o_routes = s_routes
     ok(f"{T}：普查清單含先進封裝（Andy 314 那張）", adv in o_routes, len(o_routes))
+    orph_by.update({(1440, r): orph1440.get(r, []) for r in o_routes})
+    _tk("②重驗")
+    for r in o_routes:                       # 理論上上面那一輪都量過了；萬一有漏的（先走過、後來才進清單）在這裡補
+        if (1920, r) not in orph_by:
+            p19.goto("about:blank"); p19.goto(f"{base}#{r}", wait_until="domcontentloaded"); desk_settle(p19)
+            orph_by[(1920, r)] = p19.evaluate(DESK_ORPHAN_JS)
+    c19.close()
+    _tk("1920普查")
     for w in (1440, 1920):
-        pg.set_viewport_size({"width": w, "height": 1000})
-        for r in o_routes:
-            pg.goto("about:blank"); pg.goto(f"{base}#{r}", wait_until="domcontentloaded"); pg.wait_for_timeout(1500)
-            orph += [f"{w} {r}：{x}" for x in pg.evaluate(DESK_ORPHAN_JS)]
-    pg.set_viewport_size({"width": 1440, "height": 900})
+        def re_orph(p2, r, w=w):
+            p2.set_viewport_size({"width": w, "height": 1000})
+            p2.goto("about:blank"); p2.goto(f"{base}#{r}", wait_until="domcontentloaded"); desk_settle(p2)
+            orph_by[(w, r)] = p2.evaluate(DESK_ORPHAN_JS)
+            return orph_by[(w, r)]
+        _desk_reverify(T, b, base, f"孤兒編號 {w}", [r for r in o_routes if orph_by[(w, r)]], re_orph)
+    _tk("孤兒重驗")
+    orph = [f"{w} {r}：{x}" for w in (1440, 1920) for r in o_routes for x in orph_by[(w, r)]]
     ok(f"{T}：剖析圖沒有孤兒編號、每張編號卡都有錨點、引線都接到畫布與卡片（{len(orph)} 處不對）", not orph, orph[:20])
     # ②-c（10-09 Andy 第二次退回先進封裝：「這邊確實處理」）：動線卡 01～05 的編號圈要釘在主剖面上那條線本身，
     #   不准再浮在剖面外的空白（上一版是畫布左緣的樣本線圖例）。剖面外框＝上蓋、載板、BGA 三塊的聯集（上蓋頂 → BGA 底）；
@@ -31413,31 +31544,46 @@ def t_desk_guard_1008(b, base):
       return { n, bad };
     }"""
     adv_bad, adv_n = [], 0
+    def adv_one(p, w, th):
+        p.set_viewport_size({"width": w, "height": 1000})
+        p.goto("about:blank"); p.goto(f"{base}#{adv}", wait_until="domcontentloaded")
+        p.evaluate(f"() => {{ try {{ localStorage.setItem('tw.theme', '{th}'); }} catch (e) {{}} }}")
+        p.reload(wait_until="domcontentloaded")
+        # 10-10：以前固定等 1600，機器忙時 svg 還沒畫出來 →「找不到先進封裝的 svg」（假紅 5 次都是這型）。改成等 svg 出現（上限 15 秒）再等穩
+        wait_until(p, "() => !!document.querySelector('#prodDiagram svg.dg.icp g.anc')", 15000); desk_settle(p)
+        return p.evaluate(ADV_IN_JS)
     for w in (1440, 1920):
         for th in ("light", "dark"):
-            pg.set_viewport_size({"width": w, "height": 1000})
-            pg.goto("about:blank"); pg.goto(f"{base}#{adv}", wait_until="domcontentloaded")
-            pg.evaluate(f"() => {{ try {{ localStorage.setItem('tw.theme', '{th}'); }} catch (e) {{}} }}")
-            pg.reload(wait_until="domcontentloaded"); pg.wait_for_timeout(1600)
-            got = pg.evaluate(ADV_IN_JS); adv_n += got["n"]; adv_bad += [f"{w} {th}：{x}" for x in got["bad"]]
+            got = adv_one(pg, w, th)
+            if got["bad"] or got["n"] != 5:
+                g2 = _desk_reverify(T, b, base, f"先進封裝動線卡 {w} {th}", [adv], lambda p2, r: (lambda g: g["bad"] or ([] if g["n"] == 5 else [f"量到 {g['n']}／5"]))(adv_one(p2, w, th)))
+                if not g2.get(adv): got = {"n": 5, "bad": []}
+            adv_n += got["n"]; adv_bad += [f"{w} {th}：{x}" for x in got["bad"]]
+    _tk("先進封裝")
     pg.evaluate("() => { try { localStorage.removeItem('tw.theme'); } catch (e) {} }")
     pg.set_viewport_size({"width": 1440, "height": 900})
     ok(f"{T}：先進封裝動線卡 01～05 的編號圈都落在主剖面外框裡（量到 {adv_n}／20，{len(adv_bad)} 處不對）", adv_n == 20 and not adv_bad, adv_bad[:10])
     # ③ 收合 → 換鏈 → 換回來 → 展開（309 截圖的路徑）
-    pg.goto("about:blank"); pg.goto(f"{base}#industry/software", wait_until="domcontentloaded"); pg.wait_for_timeout(2200)
+    pg.goto("about:blank"); pg.goto(f"{base}#industry/software", wait_until="domcontentloaded")
+    wait_until(pg, "() => /收合/.test((document.getElementById('dgFold') || {}).textContent || '') && !!document.querySelector('#dgBody .dgwrap')", 10000); desk_settle(pg)
     ok(f"{T}：軟體鏈剖析圖桌機預設展開（鈕寫「收合圖」）", "收合" in (pg.text_content("#dgFold") or ""), pg.text_content("#dgFold"))
-    pg.click("#dgFold"); pg.wait_for_timeout(600)
+    pg.click("#dgFold"); wait_until(pg, "() => getComputedStyle(document.getElementById('dgBody')).display === 'none'", 5000)
     ok(f"{T}：按「收合圖」→ 剖析圖真的收起來", pg.evaluate("() => getComputedStyle(document.getElementById('dgBody')).display === 'none'"))
-    pg.evaluate("() => { location.hash = '#industry/financial'; }"); pg.wait_for_timeout(1800)
-    pg.evaluate("() => { location.hash = '#industry/software'; }"); pg.wait_for_timeout(2200)
-    pg.click("#dgFold"); pg.wait_for_timeout(1500)
+    pg.evaluate("() => { location.hash = '#industry/financial'; }")
+    desk_settle(pg)
+    pg.evaluate("() => { location.hash = '#industry/software'; }")
+    wait_until(pg, "() => !!document.querySelector('main .view.on #dgFold')", 10000); desk_settle(pg)
+    pg.click("#dgFold")
+    wait_until(pg, "() => getComputedStyle(document.getElementById('dgBody')).display !== 'none' && document.querySelectorAll('main .view.on .dgwrap .dgcards .dgc').length > 0", 8000); desk_settle(pg)
     got = pg.evaluate(DESK_SIDE_JS)
     ok(f"{T}：收合 → 換鏈 → 換回來 → 展開，說明卡仍在圖兩側（{got['n']} 張）", got["n"] > 0 and not got["bad"], got)
-    pg.click("#dgFold"); pg.wait_for_timeout(300); pg.click("#dgFold"); pg.wait_for_timeout(300)   # 復原成展開，不影響後面
+    pg.click("#dgFold"); wait_until(pg, "() => getComputedStyle(document.getElementById('dgBody')).display === 'none'", 3000)   # 復原成展開，不影響後面
+    pg.click("#dgFold"); wait_until(pg, "() => getComputedStyle(document.getElementById('dgBody')).display !== 'none'", 3000)
     # ④ 關聯圖：預設展開；收合＝標題以下全藏；再展開回來。產業鏈頁＋族群頁（族群頁一進來就選了自己的環節，右側清單有內容），
     #    預設狀態與「套用環節篩選後」各測一次。
     #    ⚠ 10-08 第一版的判定用 closest('[hidden]') 當「看不見」，但 .chainrow 的 display:flex 會蓋掉 [hidden] ——
     #      畫面上明明還攤著兩張環節卡，判定卻說看不見（Andy 312 截圖）。改成量「標題列以下實際佔的可見高度」。
+    _tk("③收合換鏈")
     REL = """() => { const v = document.querySelector('main .view.on'); const q = (s) => v && v.querySelector(s);
         const m = q('#chainMap'), sec = q('#relSec'), hd = q('#relHead');
         const shown = (e) => !!e && e.getClientRects().length > 0 && e.getBoundingClientRect().height > 0 && getComputedStyle(e).visibility !== 'hidden';
@@ -31448,38 +31594,46 @@ def t_desk_guard_1008(b, base):
         return { map: shown(m) && !!v.querySelector('#chainMap .co'), under, btn: (q('#relFold') || {}).textContent,
                  sel: [...v.querySelectorAll('#segChips .segchip.sel')].length }; }"""
     def rel_cycle(tag):
-        s0 = pg.evaluate(REL)
+        s0 = wait_until(pg, f"() => {{ const s = ({REL})(); return s.map && /收合/.test(s.btn || '') ? s : null; }}", 10000) or pg.evaluate(REL)
         ok(f"{T}：{tag} 關聯圖展開中（看得到關聯圖本體、鈕寫「收合圖」）", s0["map"] and "收合" in (s0["btn"] or ""), s0)
-        pg.click("main .view.on #relFold"); pg.wait_for_timeout(700)
-        s1 = pg.evaluate(REL)
+        pg.click("main .view.on #relFold")
+        # 10-10：以前固定等 700，收合動畫還沒走完就量 → under 還有幾百 px（假紅 ~12 次都是這型）。改成等「標題以下 = 0」（上限 5 秒）
+        s1 = wait_until(pg, f"() => {{ const s = ({REL})(); return !s.map && s.under === 0 && /展開/.test(s.btn || '') ? s : null; }}", 5000) or pg.evaluate(REL)
         ok(f"{T}：{tag} 按「收合圖」→ 標題列以下可見高度 = 0（圖、環節卡清單都不顯示）", not s1["map"] and s1["under"] == 0 and "展開" in (s1["btn"] or ""), s1)
-        pg.click("main .view.on #relFold"); pg.wait_for_timeout(1200)
-        s2 = pg.evaluate(REL)
+        pg.click("main .view.on #relFold")
+        s2 = wait_until(pg, f"() => {{ const s = ({REL})(); return s.map ? s : null; }}", 5000) or pg.evaluate(REL)
         ok(f"{T}：{tag} 再按「展開」→ 關聯圖回來", s2["map"], s2)
     for r in ("industry/semiconductor", "industry/group/foundry", "industry/group/hbm", "industry/group/ai_server_odm"):
-        pg.goto("about:blank"); pg.goto(f"{base}#{r}", wait_until="domcontentloaded"); pg.wait_for_timeout(2600)
+        pg.goto("about:blank"); pg.goto(f"{base}#{r}", wait_until="domcontentloaded")
+        wait_until(pg, "() => !!document.querySelector('main .view.on #relFold') && !!document.querySelector('main .view.on #chainMap .co')", 15000); desk_settle(pg)
         rel_cycle(f"{r}（預設）")
         # 套用環節篩選：打開「環節 ▾」下拉，點一格還沒選的環節
-        pg.click("main .view.on #segDDBtn"); pg.wait_for_timeout(300)
+        pg.click("main .view.on #segDDBtn")
+        wait_until(pg, "() => [...document.querySelectorAll('main .view.on #segChips .segchip:not(.sel):not(.nomem)')].some(e => e.getClientRects().length)", 3000)
         picked = pg.evaluate("""() => { const c = [...document.querySelectorAll('main .view.on #segChips .segchip:not(.sel):not(.nomem)')].find(e => e.getClientRects().length);
             if (!c) return null; c.click(); return c.dataset.seg; }""")
-        pg.wait_for_timeout(1200)   # 點了下拉自己會收（segDDOpen(false)）；不要按 Esc —— Esc 會把篩選一起清掉
+        # 點了下拉自己會收（segDDOpen(false)）；不要按 Esc —— Esc 會把篩選一起清掉
+        wait_until(pg, f"() => ({REL})().sel > 0", 5000); desk_settle(pg)
         ok(f"{T}：{r} 套用環節篩選（點了 {picked}）", bool(picked) and pg.evaluate(REL)["sel"] > 0, picked)
         rel_cycle(f"{r}（篩選後）")
+    _tk("④關聯圖")
     # ⑥ 明暗（10-08 晚 Andy：「網頁版 這明暗功能切換 獨立一個圖示」）：頂欄有獨立 ☀／🌙（在外觀調色盤左邊），點了真的換主題；外觀面板只剩版面風格
     pg.set_viewport_size({"width": 1440, "height": 900})
-    pg.goto("about:blank"); pg.goto(f"{base}#overview", wait_until="domcontentloaded"); pg.wait_for_timeout(1800)
+    pg.goto("about:blank"); pg.goto(f"{base}#overview", wait_until="domcontentloaded")
+    wait_until(pg, "() => !!document.getElementById('themeBtn') && !!document.getElementById('t4Btn')", 10000); desk_settle(pg)
     TB = """() => { const b = document.getElementById('themeBtn'), t = document.getElementById('t4Btn');
         const r = b && b.getBoundingClientRect(), r2 = t && t.getBoundingClientRect();
         return { vis: !!b && b.getClientRects().length > 0 && r.width > 20, left: !!(r && r2) && r.right <= r2.left + 1, txt: b ? b.textContent.trim() : '',
                  theme: document.documentElement.getAttribute('data-theme') || 'dark' }; }"""
     t0 = pg.evaluate(TB)
     ok(f"{T}：頂欄有獨立的明暗鈕、在外觀調色盤左邊", t0["vis"] and t0["left"], t0)
-    pg.click("#themeBtn"); pg.wait_for_timeout(700)
-    t1 = pg.evaluate(TB)
+    pg.click("#themeBtn")
+    t1 = wait_until(pg, f"() => {{ const s = ({TB})(); return s.theme !== {json.dumps(t0['theme'])} && s.txt !== {json.dumps(t0['txt'])} ? s : null; }}", 3000) or pg.evaluate(TB)
     ok(f"{T}：按明暗鈕 → 主題真的切換（{t0['theme']}→{t1['theme']}）、圖示跟著換", t1["theme"] != t0["theme"] and t1["txt"] != t0["txt"], (t0, t1))
-    pg.click("#themeBtn"); pg.wait_for_timeout(500)   # 切回來，不影響後面
-    pg.click("#t4Btn"); pg.wait_for_timeout(500)
+    pg.click("#themeBtn")   # 切回來，不影響後面
+    wait_until(pg, f"() => ({TB})().theme === {json.dumps(t0['theme'])}", 3000)
+    pg.click("#t4Btn")
+    wait_until(pg, "() => { const p = document.getElementById('t4Pop'); return !!p && !p.hidden && [...p.querySelectorAll('.t4o')].some((e) => e.getClientRects().length); }", 3000)
     pop = pg.evaluate("""() => { const p = document.getElementById('t4Pop'); return { open: !!p && !p.hidden,
         mode: !!p && [...p.querySelectorAll('.t4mode, .t4modeh')].some((e) => e.getClientRects().length),
         style: !!p && [...p.querySelectorAll('.t4o')].some((e) => e.getClientRects().length) }; }""")
@@ -31487,9 +31641,14 @@ def t_desk_guard_1008(b, base):
     pg.keyboard.press("Escape"); pg.wait_for_timeout(200)
     # ⑤ 桌機窄視窗（800）關聯圖照舊左右排
     pg.set_viewport_size({"width": 800, "height": 900})
-    pg.goto("about:blank"); pg.goto(f"{base}#industry/semiconductor", wait_until="domcontentloaded"); pg.wait_for_timeout(2500)
+    pg.goto("about:blank"); pg.goto(f"{base}#industry/semiconductor", wait_until="domcontentloaded")
+    wait_until(pg, "() => !!document.querySelector('#chainMap .co')", 15000); desk_settle(pg)
     lay = pg.evaluate("() => { const h = document.getElementById('chainMap'); return h ? h.dataset.layout || '' : null; }")
     ok(f"{T}：800 寬（桌機窄視窗）關聯圖照舊左右排，不是手機的上下排", lay != "vert", lay)
+    _tk("⑥⑤")
+    notes.append(f"{T} 各段耗時：" + "、".join(_tl))
+    if DESK_SLOW:
+        notes.append(f"{T}：{len(DESK_SLOW)} 次等版面穩定等到上限 8 秒（頁面一直在變）：{sorted(set(DESK_SLOW))[:12]}")
     c.close()
 # ★ 2026-10-08 站主身分的驗收工具（說明見 LIVE_ADMIN_PRESET 那段註解）
 OWNER_API = "https://acct-owner.example.test"
