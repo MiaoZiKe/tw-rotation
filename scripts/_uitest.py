@@ -62468,8 +62468,30 @@ def t_acct_menu_1009(b, base, code):
         ok(f"【{T}】{who}：通知顯示未讀數字 1（有一則公告沒讀）", g["num"] == "1", g["num"])
         ok(f"【{T}】{who}：管理區只有管理員與站主看得到，而且預設收起",
            (g["adm"] and g["sub"] >= 4 and not g["subVis"]) if who in ("admin", "owner") else (not g["adm"] and g["sub"] == 0), g)
-        ok(f"【{T}】{who}：訪客有「登入／註冊」、沒有刪除帳號與登出；登入者相反",
-           (g["login"] and g["del"] is None and not g["logout"]) if who == "guest" else (not g["login"] and g["del"] is not None and g["logout"]), g)
+        ok(f"【{T}】{who}：訪客有「登入／註冊」；登入者沒有、而且有可用的登出",
+           (g["login"] and not g["logout"]) if who == "guest" else (not g["login"] and g["del"] is not None and g["logout"]), g)
+        # 10-09 09:2x Andy（帳本 59）：「深色功能改版面風格，並且將版面風格圖示拿掉，留下深淺切換功能。客服按鈕改成『客服功能』，下方需要多出刪除功能以及登出功能」
+        tail = pg.evaluate("""() => { const m = document.getElementById('acctMenu'), V = (e) => !!e && e.getClientRects().length > 0;
+            const rows = [...m.querySelectorAll('[data-m],[data-a]')].filter(V);
+            const last2 = rows.slice(-2).map(e => ({ k: e.dataset.m || e.dataset.a, t: e.innerText.replace(/\\s+/g, ' ').trim(), dis: e.getAttribute('aria-disabled') === 'true' }));
+            const t4 = document.getElementById('t4Btn');
+            return { last2, txt: m.innerText, t4: !!t4 && t4.getClientRects().length > 0, theme: V(document.querySelector('#m4Tools #themeBtn')) }; }""")
+        ok(f"【{T}】{who}：選單最下方兩列是「刪除帳號」「登出」（{[x['t'][:12] for x in tail['last2']]}）",
+           len(tail["last2"]) == 2 and tail["last2"][0]["t"].startswith("刪除帳號") and tail["last2"][1]["t"].startswith("登出"), tail["last2"])
+        if who == "guest":
+            ok(f"【{T}】guest：刪除帳號與登出兩列都停用、寫「登入後可用」", all(x["dis"] and "登入後可用" in x["t"] for x in tail["last2"]), tail["last2"])
+        elif who == "owner":
+            ok(f"【{T}】owner：刪除帳號停用、登出可按", tail["last2"][0]["dis"] and not tail["last2"][1]["dis"], tail["last2"])
+        else:
+            ok(f"【{T}】{who}：刪除帳號與登出都可以按", not any(x["dis"] for x in tail["last2"]), tail["last2"])
+        ok(f"【{T}】{who}：有「客服功能」「版面風格」兩列、沒有「客服按鈕」「深色模式」",
+           "客服功能" in tail["txt"] and "版面風格" in tail["txt"] and "客服按鈕" not in tail["txt"] and "深色模式" not in tail["txt"], tail["txt"][:200])
+        ok(f"【{T}】{who}：頂欄沒有 🎨 版面風格鈕、有 ☀／🌙 明暗鈕", not tail["t4"] and tail["theme"], tail)
+        if who == "guest":
+            pg.locator("#acctMenu [data-m=del]").tap(force=True); pg.wait_for_timeout(250)
+            pg.locator("#acctMenu [data-m=logout]").tap(force=True); pg.wait_for_timeout(250)
+            ok(f"【{T}】guest：點停用的刪除帳號／登出沒有反應（選單還開著、沒有確認框）",
+               pg.evaluate("() => !document.getElementById('acctMenu').hidden && !(document.getElementById('m4Del') && !document.getElementById('m4Del').hidden)"))
         ok(f"【{T}】{who}：選單在畫面內、沒有撐出橫向捲軸", g["inView"] and g["sw"], g)
         if shots and who in ("guest", "plus", "owner"):
             pg.screenshot(path=str(pathlib.Path(shots) / f"menu_{who}.jpg"), type="jpeg", quality=70)

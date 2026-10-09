@@ -16,8 +16,8 @@
      額度上限 → 底部抽屜 #m4Quota：全站每日額度＋這個身分每一項有上限的功能「已用／上限・剩幾次」
                 （資料只讀 TwPerm.lim／TwPerm.limit／TwQuota.used —— 頁首那顆額度圓環是另一位同事在改，這裡不碰）
      意見回饋 → support.js 的客服面板（TwSupport.open()；客服浮動鈕關掉時照樣打得開）
-     客服按鈕 → 開關：關＝右下角客服浮動鈕藏起來（localStorage tw.fab.off＝'1'；<html class="fab-off">，index.html 開頭就先套用，不會先閃一下）
-     風格     → 收合群組（預設收起）：三套版面風格（親和休閒／科技 HUD／專業有力），點了就是 window.T4.set()，跟原本外觀面板同一支
+     客服功能 → 開關（10-09 09:2x Andy：「客服按鈕改成『客服功能』」，只改名、開關行為不變）：關＝右下角客服浮動鈕藏起來（localStorage tw.fab.off＝'1'；<html class="fab-off">，index.html 開頭就先套用，不會先閃一下）
+     版面風格 → 收合群組（預設收起）：三套版面風格（親和休閒／科技 HUD／專業有力），點了就是 window.T4.set()，跟原本外觀面板同一支
                 （10-09 08:4x Andy 圖一＋圖二：「將紅框改成這功能（明暗切換）／風格在圖二改」——明暗改由頂欄那顆 ☀／🌙 直接切，
                  原本「深色模式」開關這一列改成「風格」；頂欄的外觀調色盤鈕 #t4Btn 在手機藏起來，不留兩顆重複的入口）
      管理區 › → 只有管理員／站主看得到；收合群組（預設收起），裡面是原本的四～五項
@@ -140,7 +140,7 @@ html.m4 .m4am .m4sty [aria-checked="true"] .ck{visibility:visible}
 html.m4 .m4am .m4sty button{display:flex!important;align-items:center;gap:10px;width:100%}
 html.m4 .m4am .m4sty small{color:var(--ink-2);font-size:12px;margin-left:auto;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
 html.m4 .m4am .m4del{color:#ff6b7a!important}
-html.m4 .m4am .m4del[aria-disabled="true"]{opacity:.55}
+html.m4 .m4am .m4del[aria-disabled="true"],html.m4 .m4am .m4off[aria-disabled="true"]{opacity:.55;cursor:not-allowed}
 html.m4 .m4am .m4del small{display:block;color:var(--ink-2);font-size:12px;line-height:1.4}
 html.m4 .m4am .m4ver{padding:6px 10px 2px;font-size:12px;color:var(--ink-2)}
 html.m4 .m4sheet{position:fixed;inset:0;z-index:1450;background:rgba(3,6,14,.55);display:flex;align-items:flex-end}
@@ -208,8 +208,8 @@ html.m4 .m4deldlg .msg{min-height:1.4em;font-size:13px;color:#ff6b7a;margin:4px 
       + `<button type="button" class="m4i" role="menuitem" data-m="notify"><span class="t">通知</span><span class="num" ${n ? '' : 'hidden'} aria-label="${n} 則未讀">${n > 99 ? '99+' : n}</span></button>`
       + `<button type="button" class="m4i" role="menuitem" data-m="quota"><span class="t">額度上限</span><span class="r">${esc(remText())}</span></button>`
       + `<button type="button" class="m4i" role="menuitem" data-m="feedback"><span class="t">意見回饋</span></button>`
-      + sw('fab', !fabOff(), '客服按鈕')
-      + `<button type="button" class="m4i m4grp" role="menuitem" aria-expanded="false" data-m="style"><span class="t">風格</span><span class="r" data-sty-cur>${esc(styName(styCur()))}</span><span class="chev" aria-hidden="true">›</span></button>`
+      + sw('fab', !fabOff(), '客服功能')
+      + `<button type="button" class="m4i m4grp" role="menuitem" aria-expanded="false" data-m="style"><span class="t">版面風格</span><span class="r" data-sty-cur>${esc(styName(styCur()))}</span><span class="chev" aria-hidden="true">›</span></button>`
       + '<div class="m4sub m4sty" role="group" aria-label="版面風格" hidden>' + styIds().map((k) => `<button type="button" class="m4i" role="menuitemradio" aria-checked="${k === styCur()}" data-m="sty" data-sty="${k}"><span class="ck" aria-hidden="true">✓</span><span class="sw4" style="background:${STY[k][1]}" aria-hidden="true"></span><span class="t">${esc(styName(k))}</span></button>`).join('') + '</div>';
     if (u && u.admin) {
       h += '<div class="hr"></div><button type="button" class="m4i m4grp" role="menuitem" aria-expanded="false" data-m="admgrp"><span class="t">管理區</span><span class="chev" aria-hidden="true">›</span></button>'
@@ -219,11 +219,16 @@ html.m4 .m4deldlg .msg{min-height:1.4em;font-size:13px;color:#ff6b7a;margin:4px 
         + (window.TwGw && window.TwGw.on && window.TwGw.on() ? '<button type="button" role="menuitem" data-a="gw">付費資料異常</button>' : '')
         + '</div>';
     }
+    /* 選單最下方一律有「刪除帳號」（紅字）與「登出」兩列（10-09 09:2x Andy：「下方需要多出刪除功能以及登出功能」）：
+       訪客＝兩列都顯示但停用、寫「登入後可用」；站主＝刪除帳號停用並說明原因；其他登入會員照常可按 */
+    h += '<div class="hr"></div>';
     if (u) {
       const own = !!u.owner;
-      h += '<div class="hr"></div>'
-        + `<button type="button" class="m4i m4del" role="menuitem" data-m="del"${own ? ' aria-disabled="true"' : ''}><span class="t">刪除帳號${own ? '<small>站主帳號不可刪除：網站的最高管理權限綁在這個帳號上，刪了管理區就沒有擁有者</small>' : ''}</span></button>`
+      h += `<button type="button" class="m4i m4del" role="menuitem" data-m="del"${own ? ' aria-disabled="true"' : ''}><span class="t">刪除帳號${own ? '<small>站主帳號不可刪除：網站的最高管理權限綁在這個帳號上，刪了管理區就沒有擁有者</small>' : ''}</span></button>`
         + '<button type="button" class="m4i" role="menuitem" data-a="logout"><span class="t">登出</span></button>';
+    } else {
+      h += '<button type="button" class="m4i m4del" role="menuitem" data-m="del" aria-disabled="true"><span class="t">刪除帳號</span><span class="r">登入後可用</span></button>'
+        + '<button type="button" class="m4i m4off" role="menuitem" data-m="logout" aria-disabled="true"><span class="t">登出</span><span class="r">登入後可用</span></button>';
     }
     h += `<div class="m4ver">${esc(ver())}</div>`;
     return h;
@@ -261,7 +266,7 @@ html.m4 .m4deldlg .msg{min-height:1.4em;font-size:13px;color:#ff6b7a;margin:4px 
       return;
     }
     if (k === 'admgrp') { const sub = b.nextElementSibling; const open = b.getAttribute('aria-expanded') !== 'true'; b.setAttribute('aria-expanded', String(open)); if (sub) sub.hidden = !open; return; }
-    if (k === 'del' && b.getAttribute('aria-disabled') === 'true') return;   // 站主：停用（說明寫在按鈕下面）
+    if (b.getAttribute('aria-disabled') === 'true') return;   // 停用的列（站主的刪除帳號、訪客的刪除帳號與登出）：點了不做事
     close();
     if (k === 'login') { const a = A(); if (a && a.login) a.login(); }
     else if (k === 'pricing') location.hash = '#pricing';
