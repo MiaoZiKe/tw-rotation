@@ -20745,7 +20745,7 @@ def t_design_v4(b, base, code):
     click(pg, "#t4Btn", 400)
     ok("② 按「外觀」面板真的出現", pg.evaluate("""() => { const p = document.getElementById('t4Pop'); if (!p || p.hidden) return false;
         const r = p.getBoundingClientRect(); return r.width > 100 && r.bottom < innerHeight + 2 && r.right <= innerWidth + 1; }"""))
-    ok("② 面板裡三套風格", count(pg, "#t4Pop .t4o") == 3)
+    ok("② 面板裡兩套風格（10-10 休閒拿掉）", count(pg, "#t4Pop .t4o") == 2)
     # ★ 2026-10-03 去重：面板裡不准再有任何明暗控制（舊的 .t4m／data-t4m、標題「明暗」、寫著深色／淺色的按鈕），說明指向右上角 ☀／🌙
     # ★ 2026-10-09 審核：手機 v2（bcd2e633）把「明暗」段放進同一個 #t4Pop 的 DOM，桌機用 theme4.css
     #   `:root:not(.m4) .t4pop .t4mode, .t4modeh{display:none}` 藏起來 —— 所以這裡只數**看得見的**，
@@ -22211,7 +22211,7 @@ def t_title_icons(pg, b, base, code):
                 six[k]["n"] += m["n"]; six[k]["min"] = min(six[k]["min"], m["minCr"])
     print("  （標題圖示 v4 六組）" + "；".join(f"{k} 量 {v['n']} 個標題、最低 {v['min']}（--bg {v['bg']}）" for k, v in six.items()))
     ok("[標題圖示 v4] 兩套主題 × 深淺（4 組）都真的量過（反向：判斷式沒有把這段跳掉）", len(six) == 4 and all(v["n"] > 0 for v in six.values()), six)
-    ok("[標題圖示 v4] 六組的 --bg 各不相同（證明每一組真的換了底色，不是同一組量六次）", len({v["bg"] for v in six.values()}) == 6,
+    ok("[標題圖示 v4] 四組的 --bg 各不相同（證明每一組真的換了底色）", len({v["bg"] for v in six.values()}) == 4,
        {k: v["bg"] for k, v in six.items()})
     # 還原成預設風格（T4.set 會寫 localStorage，不能把 pro 留給後面的段落）
     pg.evaluate("() => { window.T4.set('hud'); try { localStorage.removeItem('tw.theme4'); } catch (e) {} }")
