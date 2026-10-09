@@ -1172,6 +1172,9 @@ body.miaon #skHead>.disc-line{display:none}
 .rotpop .rp-go{display:inline-block;margin-top:var(--sp-1);font-size:12.5px;color:var(--cyan);text-decoration:none}
 @media (max-width:640px){.rotpop .rp-go{margin-top:5px}}
 .rotpop .rp-go:hover{text-decoration:underline}
+/* 2026-10-10：沒權限（heat.link）時「進族群頁 →」反灰、旁邊一行小字（不跳視窗；app.js ovRotPop）*/
+.rotpop .rp-go.off{color:var(--ink-3);opacity:.6;cursor:not-allowed;text-decoration:none}
+.rotpop .rp-note{margin-left:6px;font-size:12px;color:var(--ink-3)}
 .hpanel .ms a.sub .c{flex:none}
 .hpanel .ms a.sub .g{flex:1 0 100%;margin-left:0;text-align:left;white-space:nowrap}
 .hpanel .ms a.sub.muted{color:var(--ink-3);grid-column:1/-1}

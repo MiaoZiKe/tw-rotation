@@ -104,6 +104,9 @@ test('方案有每日上限：先吃方案額度（不扣體驗），用完才�
   assert.equal((await pj(hub, '/v1/grants/hit', { t: bob, k: 'etf.cashflow', key: 'x' })).j.plan, 'open');
   /* 熱力圖跳頁：範本沒寫時註冊會員預設關（＝features.js defBy）→ 算鎖住、扣體驗（這份 welcome 沒放 heat.link → over）*/
   assert.equal((await pj(hub, '/v1/grants/hit', { t: bob, k: 'heat.link', key: 'd' })).j.over, true);
+  /* 2026-10-10：▶ 播放、週期統計族群篩選也是註冊會員預設關（GRANT_DEF_OFF ＝ features.js defBy）→ 算鎖住 */
+  assert.equal((await pj(hub, '/v1/grants/hit', { t: bob, k: 'flow.play', key: 'd' })).j.over, true);
+  assert.equal((await pj(hub, '/v1/grants/hit', { t: bob, k: 'season.groups', key: 'd' })).j.over, true);
 });
 
 test('付費會員：方案已開放 → 不扣；管理者不計', async () => {

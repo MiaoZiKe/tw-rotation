@@ -173,8 +173,22 @@
     const d = load(); let changed = false;
     let ringOn = false;
     const want = new Map();
+    const QN = new Map();     // 2026-10-10 備註模式：今天次數用完、這一下要反灰＋旁邊小字的功能
     if (!h.startsWith('#admin') && !h.startsWith('#pricing')) {
       for (const f of fs) {
+        /* ★ 2026-10-10（Andy：「功能反灰旁邊備註就好」）：features.js 有 qbtn 的計次功能（3D 剖析圖）用完時**不蓋額度卡**：
+           按鈕反灰＋旁邊一行小字；畫面若正停在那個模式（例如記住了 3D）就退回 qoff（2D），不讓內容被一張卡蓋住。*/
+        if (f.qbtn) {
+          const key = unitKey(f, h);
+          if (key == null || (f.route && !f.route.test(h))) continue;
+          const lim = limitOf(f.id), set = new Set(d.k[f.id] || []);
+          if (set.has(key) || granted(f.id)) continue;
+          const els = targets(f, h);
+          if (set.size < lim) { if (els.length) { set.add(key); d.k[f.id] = [...set]; changed = true; hit(f.id, key); } continue; }
+          QN.set(f.id, { f, lim, used: set.size });
+          if (els.length && f.qoff) { const b = document.querySelector(f.qoff); if (b && !b.classList.contains('on')) setTimeout(() => b.click(), 0); }
+          continue;
+        }
         const els = targets(f, h); if (!els.length) continue;
         const key = unitKey(f, h);
         if (key == null) continue;
@@ -209,6 +223,8 @@
       }
     }
     if (changed) save(d);
+    qnotePaint(QN, h);
+    newsMark(d);
     paint(want);
     ring(ringOn, (d.k[ALL] || []).length);
     pagePanel(ringOn);
@@ -282,7 +298,7 @@
      ★ 2026-10-08 本頁限制清單（Andy：「次數那邊若當前分頁有很多限制項目 在幫我標示出來」）
      額度圓環旁多一顆「本頁 N 項限制・最少剩 X 次」（收合）；點開逐項列出這一頁所有有每日上限的項目：
      名稱、計次單位（看／篩選／切分頁／下鑽）、已用／上限、還剩幾次、一條小進度條；剩 1 次琥珀色、用完紅色。
-     「這一頁」＝網址對得上那個功能（PAGE_OF 精確對到子分頁；其餘依分類對到頁名）；上限 0 的寫「不開放」。
+     「這一頁」＝網址對得上那個功能（PAGE_OF 精確對到子分頁；其餘依分類對到頁名）；上限 0 的寫最低有開的方案（2026-10-10 起，以前寫「不開放」）。
      ⚠ 2026-10-09 起不再點開清單（Andy：「不要出現訊息框」），逐項內容改放 title，見下面 pagePanel。
      不受限的身分（Pro、擁有者、預覽版）每一項都是不限 → 清單空的 → 整顆不顯示。換頁時 evaluate() 會重算，跟著換成那一頁的項目。
      ============================================================================ */
@@ -345,8 +361,13 @@
     b.dataset.lvl = lv; el.dataset.lvl = lv;
     el.dataset.n = String(items.length);
     el.dataset.ids = items.map((x) => x.id).join(',');
-    const line = (x) => `${x.name}：${x.lim === 0 ? '不開放' : `${x.unit} ${x.used}／${x.lim}・剩 ${x.rem} 次`}`;
-    el.dataset.items = JSON.stringify(items.map((x) => [x.id, x.lim === 0 ? '不開放' : `${x.unit} ${x.used}／${x.lim}・剩 ${x.rem} 次`]));
+    /* ★ 2026-10-10 Andy：「不要寫"不開放" 幫我改成plus 會員 這樣比較親切」→ 上限 0 的項目寫最低有開的方案（「Plus 會員」…），
+       跟帳號選單「額度上限」面板同一支 needPlan（acctm4.js）；那支沒載入時寫「升級可用」。 */
+    const need = (x) => { const M = window.TwAcctM4; return M && M.needPlan ? M.needPlan(x.id) : '升級可用'; };
+    if (!S.plansAsked && items.some((x) => x.lim === 0) && window.TwPricing && window.TwPricing.ensure) { S.plansAsked = true; window.TwPricing.ensure(); }   // 方案清單到了（tw:plans）再重算一次，方案名以後端範本為準
+    const desc = (x) => (x.lim === 0 ? need(x) : `${x.unit} ${x.used}／${x.lim}・剩 ${x.rem} 次`);
+    const line = (x) => `${x.name}：${desc(x)}`;
+    el.dataset.items = JSON.stringify(items.map((x) => [x.id, desc(x)]));
     const tip = `本頁的每日限制（台北 0 點重置）\n${items.map(line).join('\n')}\n點一下看方案`;
     if (el.title !== tip) { el.title = tip; el.setAttribute('aria-label', `本頁 ${items.length} 項每日限制${min ? `，最少剩 ${min.rem} 次` : ''}。點一下看方案`); }
   }
@@ -385,6 +406,11 @@
 .twqp-b[data-lvl="low"]{color:var(--amber,#f5b942)}
 .twqp-b[data-lvl="out"]{color:var(--down-r,#ef4b5f);font-weight:600}
 .twqp.mob{margin:0 4px 0 0}.twqp.mob .twqp-b{font-size:11px;padding:0 2px;max-width:30vw;overflow:hidden;text-overflow:ellipsis}
+[data-qnote]{opacity:.42!important;cursor:not-allowed!important;filter:grayscale(1)}
+#evList a[data-qnote],#ovEvents a[data-qnote]{text-decoration:none!important}
+.qnote{display:inline-flex;align-items:center;font-size:12px;line-height:1.4;color:var(--ink-3);white-space:nowrap;margin-left:6px;font-weight:400}
+.qnote.qnote-row{display:block;margin:6px 0;white-space:normal}
+#evQNote{margin:8px 16px 4px}
 .qlkov:not(.qcov) .qlkgo{margin-top:6px;display:inline-flex;align-items:center;height:36px;padding:0 18px;border-radius:999px;background:var(--amber,#f5b942);color:#1a1203;font-weight:700;font-size:14px;text-decoration:none}`);
   }
 
@@ -392,6 +418,7 @@
   window.addEventListener('tw:tour', () => evaluate());
   window.addEventListener('tw:perm', () => { syncedFor = ''; sync(); schedule(); });
   window.addEventListener('tw:account', () => { sync(); schedule(); });
+  window.addEventListener('tw:plans', schedule);   // 2026-10-10：方案清單晚到 → 頁首滑過說明裡「Plus 會員」這種方案名重算一次
   function boot() { schedule(); sync(); }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot); else boot();
   /* ★ 2026-10-07 覆蓋稽核：只有「工具鈕」沒有畫面區塊的功能（指標設定、畫線、四週期同看、主題外觀）以前完全不計 —— 漏洞。
@@ -412,6 +439,13 @@
         if (set.has(key)) return;
         if (set.size < lim) { set.add(key); d.k[f.id] = [...set]; save(d); hit(f.id, key); return; }
         if (granted(f.id)) return;        // 體驗額度：今天這個單位已經打開
+        /* 2026-10-10 備註模式（qbtn）：用完了＝這一下什麼都不發生（旁邊已經寫了）；手上還有體驗額度才跳體驗卡（「繼續看」才扣）*/
+        if (f.qbtn) {
+          e.preventDefault(); e.stopImmediatePropagation();
+          const x = window.TwGrants && window.TwGrants.extra(f.id);
+          if (x && x.left > 0 && window.TwQCard && window.TwQCard.modal) { window.TwGrants.pending(f.id, b); window.TwQCard.modal(opts({ f, lim, used: set.size })); }
+          return;
+        }
         if (window.TwGrants) window.TwGrants.pending(f.id, b);   // 卡片上按「繼續看」扣完後，幫他再按一次這顆鈕
         e.preventDefault(); e.stopImmediatePropagation();
         const QC = window.TwQCard;
@@ -597,24 +631,137 @@
      為什麼不只靠下面的「捕獲 click → 800ms 內換頁就退回」：手機上 zrender 在 touchend 就發出 click 事件、
      先改了 location.hash，瀏覽器補發的原生 click 晚到 → 捕獲記錄還沒寫，hashchange 已經過去，擋不到。
      點擊處理自己先問，就不必猜事件的先後。捕獲那一層留著當保險（漏接的跳頁路徑照樣擋）。*/
+  /* ★ 2026-10-10 Andy 00:5x：「總攬雖說不開放 但是不用刻意出現需要訂閱訊息，會很反感，就單純點擊無效」——
+     總覽（#overview）上被擋的跳頁一律**安靜**：不跳升級卡、不換頁、不出任何提示字；其他頁（熱力圖頁、題材頁…）照 10-08 跳升級卡。*/
+  const onOv = (h) => pageOf(h == null ? (location.hash || '#overview') : (h || '#overview')) === '#overview';
   function heatGo(to, fn) {
     HM.t = 0;      // 這一下已經判過了：不要讓捕獲那一層再判一次（擋下時也清，不然 800ms 內按升級卡的「升級 Plus」會被當成熱力圖跳頁）
     if (heatLinkOk()) { if (fn) fn(); else location.hash = to; return true; }
-    heatLinkBlock(to); return false;
+    if (!onOv()) heatLinkBlock(to);
+    return false;
   }
   function routeOkAll(hash) {
     if (HM.t && Date.now() - HM.t < 800) {
       const from = HM.from; HM.t = 0;
       if (pageOf(hash) !== pageOf(from) && !/^#pricing/.test(String(hash)) && !heatLinkOk()) {   // 去訂閱頁（升級卡的按鈕）永遠放行
-        location.replace(from); heatLinkBlock(hash); return false; }
+        location.replace(from); if (!onOv(from)) heatLinkBlock(hash); return false; }
     }
     return routeOk(hash);
+  }
+  /* ============================================================================
+     ★ 2026-10-10 總覽所有跳頁（Andy 00:4x：「總攬資金輪盤不開放跳要連結」「plus 之後會 總攬所有點擊都可以有連結功能」；
+       00:5x：「總攬雖說不開放 但是不用刻意出現需要訂閱訊息…就單純點擊無效」）。權限沿用 heat.link（Plus 以上；features.js 註解寫理由）。
+     以前只有樹狀熱力圖走 heatGo；總覽上還有一堆一般連結（資金輪盤說明框「進族群頁 →」、成分股名、「法人連續買賣超 → 市場明細」…）
+     與 canvas 點擊。不逐支改：
+       ① 捕獲階段：在總覽上（畫面本體 #v-overview、放大視窗 #zoomOv、掛在 body 上的 ECharts 提示框）點到 <a href="#別頁"> → 沒權限就吞掉這一下
+       ② 同一下若是 canvas／列的 JS 去改網址（不是 <a>）→ 記下 HM，800ms 內換到別頁由 routeOkAll 退回（安靜）
+       ③ html.ovnl：沒權限時「進族群頁 →」這種純跳頁的鈕直接不顯示（CEO：不顯示比點了沒反應更不困惑），其他連結游標不變手指
+     頁內展開（漲跌家數清單）由 app.js 自己問 heatLinkOk()（renderUpDown）。導覽進行中不擋（導覽自己會換頁）。
+     ============================================================================ */
+  const ovTip = (t) => { for (let el = t; el && el !== document.body; el = el.parentElement) { if (el.parentElement === document.body) return (el.getAttribute('style') || '').indexOf('9999999') >= 0; } return false; };
+  const ovCtx = (t) => !!t && !!t.closest && onOv() && (!!t.closest('#v-overview, #zoomOv') || ovTip(t));
+  const touring2 = () => { try { const s = window.TwTour && window.TwTour.state(); return !!(s && s.on); } catch (e) { return false; } };
+  document.addEventListener('click', (e) => {
+    const t = e.target;
+    if (!ovCtx(t)) { if (!hmHost(t)) HM.t = 0; return; }   // 點到總覽以外（側欄、頂欄）＝使用者自己要換頁：前一下總覽點擊留下的記號作廢
+    if (touring2() || heatLinkOk()) return;
+    const a = t.closest('a[href^="#"]');
+    const href = a ? a.getAttribute('href') || '' : '';
+    if (a && /^#[a-z]/i.test(href) && !onOv(href) && !/^#pricing/.test(href)) { e.preventDefault(); e.stopImmediatePropagation(); HM.t = 0; return; }
+    /* 只記「可能由程式換頁」的點擊：canvas（非樹狀熱力圖，樹狀圖由 heatGo 判）、表格列／帶代號的格子。
+       按鈕、關閉 ×、分段鈕不記 —— 不然關掉放大視窗後 800ms 內從側欄換頁會被誤擋（驗收實測）。*/
+    if (!hmHost(t) && (t.tagName === 'CANVAS' || t.closest('tr[data-code], [data-code], [data-gid]'))) { HM.t = Date.now(); HM.from = location.hash || '#overview'; }
+    else if (!hmHost(t)) HM.t = 0;
+  }, true);
+  function ovMark() {
+    const no = !heatLinkOk();
+    const r = document.documentElement;
+    if (r.classList.contains('ovnl') !== no) r.classList.toggle('ovnl', no);
+    /* 有字的跳頁鈕（「進族群頁 →」膠囊、「法人連續買賣超 → 市場明細」）：反灰＋旁邊小字「Plus 以上可跳轉」（CEO 10-10 更正：不藏、不跳卡）；
+       資金輪盤說明框那顆由 app.js ovRotPop 直接畫成反灰（不是連結）。其他連結（成分股名…）只是游標不變手指、點了沒反應。*/
+    if (no && T()) T().css('ovnlCss', `html.ovnl #v-overview a.pill[href^="#"]:not([href^="#pricing"]),html.ovnl #v-overview .ovmore a[href^="#"]{color:var(--ink-3)!important;background:transparent!important;border-color:var(--line-2)!important;box-shadow:none!important;cursor:not-allowed!important;text-decoration:none!important}
+html.ovnl #v-overview a.pill[href^="#"]:not([href^="#pricing"])::after,html.ovnl #v-overview .ovmore a[href^="#"]::after{content:"Plus 以上可跳轉";margin-left:6px;font-size:12px;font-weight:400;color:var(--ink-3)}
+html.ovnl #v-overview a[href^="#"]:not([href="#"]):not([href^="#overview"]):not([href^="#pricing"]),html.ovnl #zoomOv a[href^="#"]:not([href="#"]),html.ovnl #ovRotPop .rp-ms a{cursor:default!important}
+html.ovnl #ovRotPop .rp-ms a:hover{outline:none!important}`);
+  }
+  window.addEventListener('tw:perm', ovMark); window.addEventListener('tw:account', ovMark); window.addEventListener('hashchange', ovMark);
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', ovMark); else ovMark();
+
+  /* ============================================================================
+     ★ 2026-10-10 今日事件「點新聞連結」計次（features.js news.open；Andy：「新增 "事件" 觀看次數 10 次 點擊新聞連結」）
+     範圍：今日事件抽屜（#side #evList）與手機總覽的今日事件卡（#ovEvents）裡**開外部網站**的新聞標題；
+     抽屜裡的個股代號（站內 #stock/…）不算、瀏覽標題不算。單位＝這一則的網址（同一則同一天重點不重扣，act 的 obj 規則）。
+     用完 → act() 跳置中升級卡（有體驗額度時卡上多「繼續看」）、這一下不開連結。
+     ============================================================================ */
+  /* ★ 2026-10-10 更正（Andy：「這種訊息不要用跳出的方式表示，功能反灰旁邊備註就好」）：用完不跳卡 ——
+     今天還沒開過的新聞標題全部反灰（data-qnote），清單上方一行小字「今日新聞連結 N/N 次已用完・Plus 以上可增加」，點了不開。
+     手上還有體驗額度才跳體驗卡（act() 的卡片帶「繼續看」，按了才扣）。今天開過的那幾則照樣點得開（同一則不重扣）。*/
+  const NEWS = 'news.open', NEWS_A = '#evList a[href^="http"], #ovEvents a.ev[href^="http"]';
+  function newsMark(d) {
+    const n = limitOf(NEWS);
+    const set = new Set(((d || load()).k[NEWS]) || []);
+    const out = n !== Infinity && set.size >= n && !touringQ();
+    q(NEWS_A).forEach((a) => {
+      const k = actUnit('obj', a.getAttribute('href') || '');
+      const off = out && !set.has(k) && !(window.TwGrants && window.TwGrants.has(NEWS, k));
+      if (off !== a.hasAttribute('data-qnote')) { if (off) { a.setAttribute('data-qnote', ''); a.setAttribute('aria-disabled', 'true'); } else { a.removeAttribute('data-qnote'); a.removeAttribute('aria-disabled'); } }
+    });
+    const txt = `今日新聞連結 ${set.size}/${n} 次已用完・Plus 以上可增加`;
+    [['evList', 'evQNote', 'before'], ['ovEvents', 'ovEvQNote', 'after']].forEach(([host, id, where]) => {
+      const h = document.getElementById(host); let nt = document.getElementById(id);
+      if (!out || !h) { if (nt) nt.remove(); return; }
+      if (!nt) { nt = document.createElement('div'); nt.id = id; nt.className = 'qnote qnote-row'; nt.setAttribute('role', 'note'); h[where](nt); }
+      if (nt.textContent !== txt) nt.textContent = txt;
+    });
+  }
+  const touringQ = () => { try { const s = window.TwTour && window.TwTour.state(); return !!(s && s.on); } catch (e) { return false; } };
+  document.addEventListener('click', (e) => {
+    const a = e.target && e.target.closest && e.target.closest('#evList a[href], #ovEvents a.ev[href]');
+    if (!a) return;
+    const href = a.getAttribute('href') || '';
+    if (!/^https?:/i.test(href)) return;
+    const n = limitOf(NEWS); if (n === Infinity || touringQ()) return;
+    const key = actUnit('obj', href);
+    if (window.TwGrants && window.TwGrants.has(NEWS, key)) return;
+    const d = load(); const set = new Set(d.k[NEWS] || []);
+    if (set.has(key)) return;
+    if (n > 0 && set.size < n) { set.add(key); d.k[NEWS] = [...set]; save(d); hit(NEWS, key); newsMark(d); return; }
+    e.preventDefault(); e.stopImmediatePropagation();
+    const x = window.TwGrants && window.TwGrants.extra(NEWS);
+    if (x && x.left > 0) { window.TwGrants.pending(NEWS, a); act(NEWS, 'obj', href); }
+    newsMark(d);
+  }, true);
+  /* 備註模式的反灰與小字（3D 剖析圖這類 qbtn 功能；perm.js 的 .plknote 是「開關關掉」那種，這裡是「今天次數用完」）*/
+  function qnotePaint(QN) {
+    const keep = new Set(), on = new Set();
+    QN.forEach(({ f }) => {
+      (f.block || []).forEach((sel) => q(sel).forEach((el) => {
+        on.add(el);
+        if (!el.hasAttribute('data-qnote')) { el.setAttribute('data-qnote', ''); el.setAttribute('aria-disabled', 'true'); el.title = f.qbtn; }
+        const at = (f.qbtnAt && el.closest(f.qbtnAt)) || el;
+        let nt = at.nextElementSibling;
+        if (!nt || !nt.classList.contains('qnote') || nt.dataset.f !== f.id) { nt = document.createElement('span'); nt.className = 'qnote'; nt.dataset.f = f.id; nt.textContent = f.qbtn; at.after(nt); }
+        keep.add(nt);
+      }));
+    });
+    q('[data-qnote]').forEach((el) => { if (!on.has(el) && !el.matches(NEWS_A)) { el.removeAttribute('data-qnote'); el.removeAttribute('aria-disabled'); el.removeAttribute('title'); } });
+    q('span.qnote[data-f]').forEach((nt) => { if (!keep.has(nt)) nt.remove(); });
   }
   /* 也在自己的 hashchange 擋一次（quota.js 比 app.js 早載入，這支監聽先跑）：app.js 的 route() 是 async，
      上一次換頁還沒畫完就再換（例如產業地圖剛回來就點下一條鏈）時，實測有幾次換頁沒有走到 route() 開頭 → 漏算。
      act() 同一個對象不重算，所以兩邊都呼叫不會多扣；被擋時這裡先把網址換回去，route() 讀到的就是上一層。*/
   window.addEventListener('hashchange', () => { routeOkAll(location.hash); });
-  window.TwQuota = { act, pick, pickBlock, routeOk: routeOkAll, heatLinkOk, heatGo, actUnit, UNIT_KINDS, used: (id) => (load().k[id] || []).slice(),
+  /* ★ 2026-10-10 動作函式用的「現在可以用嗎」（不扣次）：方案開著、而且（不限次／今天這個單位已經算過／還有次數／體驗打開）。
+     給 industry.js 的 3D setMode 這種「多條路都會走到」的函式問 —— 桌機鈕、手機圓鈕、重新整理記住 3D 都經過它。*/
+  function allow(id) {
+    try { const ts = window.TwTour && window.TwTour.state(); if (ts && ts.on) return true; } catch (e) { /* 沒有導覽 */ }
+    const p = P(); if (p && !p.can(id)) return false;
+    const n = limitOf(id); if (n === Infinity || granted(id)) return true;
+    const key = unitKey(F() && F().byId(id), location.hash || ''); if (key == null) return true;
+    const set = new Set(load().k[id] || []);
+    return set.has(key) || set.size < n;
+  }
+  window.TwQuota = { act, allow, pick, pickBlock, routeOk: routeOkAll, heatLinkOk, heatGo, actUnit, UNIT_KINDS, used: (id) => (load().k[id] || []).slice(),
     state: () => load(), limit: limitOf, evaluate: () => evaluate(), day: tpeDay, pageKey, unitKey: (id, h) => unitKey(window.TwFeatures && window.TwFeatures.byId(id), h || location.hash || ''), unitKind: (id) => unitKind(window.TwFeatures && window.TwFeatures.byId(id)),
     /* 2026-10-10 手機額度上限面板（acctm4.js）依母分頁分組：沿用這裡的 PAGE_OF／CAT_HEAD 判斷，不另寫一套（只多匯出，不改行為）*/
     onPage };

@@ -1430,7 +1430,8 @@
     bar.onclick = (e) => { const b = e.target.closest('button[data-s]'); if (!b || b.classList.contains('on')) return; LS.set('sk.seg.' + t, b.dataset.s); skPaint(); };
   }
   const kpi = (items) => `<div class="mbkpi">${items.filter(Boolean).map(x => `<span>${x[0]} <b class="num ${x[2] || ''}">${x[1]}</b></span>`).join('')}</div>`;
-  const legend = (items) => `<div class="mblegend">${items.map(x => `<span><i style="background:${x[1]}${x[2] ? ';height:3px' : ''}"></i>${x[0]}</span>`).join('')}</div>`;
+  /* x[2]：1＝線（3px 高）、2＝虛線（畫成一段一段，對應 barChart 的 dash 線）*/
+  const legend = (items) => `<div class="mblegend">${items.map(x => `<span><i style="background:${x[2] === 2 ? `repeating-linear-gradient(90deg,${x[1]} 0 4px,transparent 4px 7px)` : x[1]}${x[2] ? ';height:3px' : ''}"></i>${x[0]}</span>`).join('')}</div>`;
   function chartBox(inner) {
     const fold = LS.get('sk.fold', '0') === '1';
     return `<div class="mbchartbox${fold ? ' fold' : ''}" id="mbChartBox">${inner}<div class="mbchart" id="mbChart"></div>
@@ -1456,7 +1457,7 @@
          數字在圖上方的關鍵數字列與下方的每日表，點一根看提示框 */
       label: { show: false } }))
       .concat((o.lines || []).map(L => ({ name: L.name, type: 'line', yAxisIndex: hasR && !L.left ? 1 : 0, data: L.data, showSymbol: n <= 16,
-        symbolSize: 5, connectNulls: true, smooth: false, lineStyle: { color: L.color, width: 2 }, itemStyle: { color: L.color },
+        symbolSize: L.dash ? 0 : 5, connectNulls: true, smooth: false, lineStyle: { color: L.color, width: L.dash ? 1.5 : 2, type: L.dash ? 'dashed' : 'solid' }, itemStyle: { color: L.color },
         areaStyle: L.area ? { color: L.color, opacity: 0.18 } : undefined, label: { show: false }, z: 5 })));
     A.chart(el, {
       animation: false,
@@ -1979,12 +1980,14 @@
       const last = pe[pe.length - 1];
       body.innerHTML = (segs.length > 1 ? segBar(sk, segs, seg) : '')
         + chartBox(kpi([['目前本益比', f.pe ? (+f.pe).toFixed(1) : '—'], ['同族群中位', f.group_median != null ? (+f.group_median).toFixed(1) : '—'], ['股價淨值比', f.pb != null ? (+f.pb).toFixed(2) : '—'], ['近四季 EPS', f.ttm_eps != null ? (+f.ttm_eps).toFixed(2) : '—']])
-          + legend([['本益比（期間平均）', CH.cyan, 1], ['期間最高', CH.up, 1], ['期間最低', CH.down, 1]]))
+          + legend([['本益比（期間平均）', CH.violet, 1], ['期間最高', CH.ink3, 2], ['期間最低', CH.ink3, 2]]))
         + table([{ h: '財報季', f: r => [r.period] }, { h: '近四季 EPS', f: r => [r.ttm_eps == null ? '—' : (+r.ttm_eps).toFixed(2), r.ttm_eps < 0 ? 'dn' : ''] },
           { h: '本益比', f: r => [(+r.pe).toFixed(1)] }, { h: '高', f: r => [r.pe_high == null ? '—' : (+r.pe_high).toFixed(1)] }, { h: '低', f: r => [r.pe_low == null ? '—' : (+r.pe_low).toFixed(1)] }], pe.slice().reverse(), 2)
         + `<div class="mbfoot">每一季＝該季財報公布後到下一季公布前這段期間的本益比（股價 ÷ 近四季 EPS）。</div>`;
       const draw = () => barChart({ x: pe.map(r => r.period), linesOnly: true, bars: [], scale: true,
-        lines: [{ name: '本益比', data: pe.map(r => r.pe), color: CH.cyan, left: true }, { name: '最高', data: pe.map(r => r.pe_high), color: CH.up, left: true }, { name: '最低', data: pe.map(r => r.pe_low), color: CH.down, left: true }],
+        /* 2026-10-09 手機與桌機同步：期間最高／最低以前是紅／綠線（本站紅＝漲、綠＝跌，會被讀成漲跌）。
+           桌機同一張圖（industry.js 本益比圖）是紫色本益比線＋淡紫高低區間帶、沒有紅綠 → 手機本益比線改紫，高低改兩條灰色虛線（區間的上下緣）。*/
+        lines: [{ name: '本益比', data: pe.map(r => r.pe), color: CH.violet, left: true }, { name: '最高', data: pe.map(r => r.pe_high), color: CH.ink3, dash: true, left: true }, { name: '最低', data: pe.map(r => r.pe_low), color: CH.ink3, dash: true, left: true }],
         yfmt: (v) => Math.round(v) + '', ytip: (v) => (+v).toFixed(1) + ' 倍' });
       wireSeg(body, sk); wireFold(body, draw); draw();
     } else {

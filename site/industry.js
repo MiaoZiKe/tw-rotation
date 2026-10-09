@@ -2916,7 +2916,12 @@
          上一版圓鈕補的「目前 3D，點一下切到 2D」讀屏標籤拿掉，讀屏照兩格各自的字與 aria-pressed。*/
     };
     const setMode = async (on) => {
-      try { localStorage.setItem('tw.dg3d', on ? '1' : '0'); } catch (e) { /* 忽略 */ }
+      /* ★ 2026-10-10（Andy：「3D 剖析開放 3 次」）：計次與權限掛在切 3D 這支函式本身 —— 桌機分段鈕、手機圓鈕、
+         「記住上次是 3D、重新整理直接進 3D」三條路都經過這裡。今天的次數用完（或方案沒開）就留在 2D，
+         但不把記憶改成 2D（明天、或回到今天看過 3D 的那張圖時照舊直接進 3D）。真正扣次在 quota.js（3D 真的顯示出來才算一次）。*/
+      const gated = on && window.TwQuota && window.TwQuota.allow && !window.TwQuota.allow('ind.3d');
+      if (gated) on = false;
+      else try { localStorage.setItem('tw.dg3d', on ? '1' : '0'); } catch (e) { /* 忽略 */ }
       paintMode(on);
       // 「拖曳：轉動」「重設視角」只對 3D 有意義 —— 2D 時整組藏起來，不留一顆按了沒反應的鈕。
       // ★ 2026-09-26 起藏的是外面那層 #dg3dCtl：兩顆是 .pill（display:inline-flex），單獨設 hidden 會被蓋掉。
