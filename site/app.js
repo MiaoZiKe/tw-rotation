@@ -639,6 +639,26 @@
     };
     let anyBar = false;
     const barState = { did: false };
+    /* 類別少的長條要多寬（見下面 #348 那段）。回傳：null＝照舊細條；'50%' 之類＝這個系列的 barWidth；''＝同一格並排好幾組，
+       不寫 barWidth（ECharts 預設：格與格之間留 20%、組內留 30%），只把上限放寬。
+       · 類別數＝類別軸（直條看 x、橫條看 y）的 data 長度，沒寫就用這個系列的筆數；時間軸／數值軸當底的一律算「多」
+       · 只有一組（一個系列、或同一個 stack）→ 每格 50%；圖自己寫了接近的百分比（40～60%）就照它的
+       · 堆疊又自己寫了 barWidth 的（組成長條、股利堆疊）不碰 */
+    const wideOf = {};
+    const barWide = (s, i, h) => {
+      const axs = h ? ys : xs, k = h ? 'yAxisIndex' : 'xAxisIndex';
+      if (!axs && meta[i] && 'wide' in meta[i]) return meta[i].wide;          // 局部更新（沒帶軸）：照第一次整張設定時決定的
+      if (s.stack != null && s.barWidth != null) return null;
+      const xi = s[k] || 0, ax = axs ? axs[xi] : null;
+      if (ax && ax.type && ax.type !== 'category') return null;
+      const n = ax && Array.isArray(ax.data) ? ax.data.length : s.data.length;
+      if (!n || n > BAR.FEW_N) return null;
+      const keys = new Set();
+      series.forEach((q, qi) => { if (isBar(q, qi) && isHoriz(q, qi) === h && (q[k] || 0) === xi && q.id !== 'tw-thick-bar') keys.add(q.stack != null ? 's:' + q.stack : 'i:' + qi); });
+      if (keys.size > 1) return '';
+      const own = typeof s.barWidth === 'string' && /%$/.test(s.barWidth) ? parseFloat(s.barWidth) : null;
+      return Math.round(own != null && own >= 40 && own <= 60 ? own : BAR.FEW_PCT) + '%';
+    };
     series.forEach((s, i) => {
       if (!s || typeof s !== 'object') return;
       const t = typeOf(s, i);
@@ -649,9 +669,23 @@
         // 厚度 14～18px（參考圖）：非堆疊的一律上限 18（barMaxWidth 的優先權高於 barWidth，寫成百分比的也壓得住）；
         // 堆疊的多半是一整根「組成」長條（漲跌家數），照它自己寫的
         const thick = s.id === 'tw-thick-bar';   // 10-08：明確宣告「粗直條」的系列（ETF 每月入帳，Andy 要加粗）不套細長條上限，寬度照它自己寫的 barWidth
-        if (!thick && s.barMaxWidth == null && (s.stack == null || s.barWidth == null)) s.barMaxWidth = 18;
-        /* ★ 長條共用風格（BAR，DECISIONS #338）：粗細 ≤ 10／12；非漲跌的色換成管理區青藍漸層（逐色判斷：紅／綠／灰不動）；單一系列、橫條且全為非負值補底軌 */
-        if (!thick && s.stack == null) s.barMaxWidth = Math.min(s.barMaxWidth == null ? 99 : s.barMaxWidth, h ? BAR.H : BAR.V_MAX);
+        /* ★ 2026-10-09（Andy：「下方調整長條圖適當寬度」，DECISIONS #348）：類別少的長條改「依格寬比例」。
+           12px 上限是給時間序列（K 線量、月營收 36 根、法人每日 63 根）用的；套在 11 根的漲跌家數上，1440 一格約 100px 只畫 12px，
+           整張圖又細又空。所以依「這根軸上有幾個類別」決定：≤ BAR.FEW_N（20）個類別 → 每格寬的 50%（並排好幾組就用 ECharts 預設分格），
+           上限直條 BAR.V_WIDE（48px）、橫條 BAR.H_WIDE（20px，排行橫條不要變成一塊磚）；多的照舊直條 ≤ 12、橫條 10。
+           手機格子窄，百分比自己跟著縮，不另外寫一套。
+           ⚠ 之後只帶 data 的局部 setOption（滑過高亮、清單亮暗）沒有軸、可能只帶一個系列 → 沿用第一次整張設定時記在 _softMeta 的決定，
+             不然局部更新一次就被壓回 12px。 */
+        const wide = thick ? null : barWide(s, i, h);
+        wideOf[i] = wide;
+        if (wide != null) {
+          if (wide) s.barWidth = wide;
+          s.barMaxWidth = h ? BAR.H_WIDE : BAR.V_WIDE;
+        } else {
+          if (!thick && s.barMaxWidth == null && (s.stack == null || s.barWidth == null)) s.barMaxWidth = 18;
+          /* ★ 長條共用風格（BAR，DECISIONS #338）：粗細 ≤ 10／12；非漲跌的色換成管理區青藍漸層（逐色判斷：紅／綠／灰不動）；單一系列、橫條且全為非負值補底軌 */
+          if (!thick && s.stack == null) s.barMaxWidth = Math.min(s.barMaxWidth == null ? 99 : s.barMaxWidth, h ? BAR.H : BAR.V_MAX);
+        }
         {
           const nBar = series.filter((q, qi) => isBar(q, qi)).length;
           let mine = false;
@@ -714,7 +748,8 @@
     if (inst) {
       // 記住每個 series 的種類與方向：之後只帶 data 的局部 setOption（沒寫 type、沒帶軸）也認得出來
       const m2 = meta.slice();
-      series.forEach((s, i) => { m2[i] = { type: typeOf(s, i), horiz: isHoriz(s, i) }; });
+      series.forEach((s, i) => { m2[i] = { type: typeOf(s, i), horiz: isHoriz(s, i) };
+        if (i in wideOf) m2[i].wide = wideOf[i]; else if (meta[i] && 'wide' in meta[i]) m2[i].wide = meta[i].wide; });
       inst._softMeta = m2;
       if (hasK) inst._softK = true;
     }
@@ -886,6 +921,7 @@
        真正的非漲跌長條（營收、成交量…）都寫了自己的青色 rgba，被當成「有自己的顏色」跳過。現在改成逐色判斷（紅／綠／灰留、其餘換）。 */
   const BAR = {
     H: 10, V_MAX: 12, R: 3,
+    FEW_N: 20, FEW_PCT: 50, V_WIDE: 48, H_WIDE: 20,   // 2026-10-09 #348：≤ 20 個類別的長條改每格 50%、上限直條 48／橫條 20px（多的照舊 12／10）
     cssVar(n, fb) { try { const v = getComputedStyle(document.documentElement).getPropertyValue(n).trim(); return v || fb; } catch (e) { return fb; } },
     cat() { return BAR.cssVar('--cat-1', CH.cyan); },
     track() { return BAR.cssVar('--panel-3', CH.card); },
@@ -8492,7 +8528,7 @@
         axisLabel: { color: CH.ink2, fontSize: 12, interval: 0, rotate: narrow ? 45 : 0 }, axisTick: { show: false } },
       // 縱軸不寫「家數」：直條頂端本來就標了家數，軸名在 1280～1920 都會戳出容器上緣 2px（_preview 抓到的）
       yAxis: { ...axisStyle, axisLabel: { color: CH.ink3, fontSize: 12 } },
-      series: [{ type: 'bar', barWidth: '66%', cursor: 'pointer',
+      series: [{ type: 'bar', barWidth: '50%', cursor: 'pointer',   // 10-09 Andy「下方調整長條圖適當寬度」：每格 50%（上限 48px，見 softenOption #348）
         data: barData(),
         label: { show: true, position: 'top', color: CH.ink2, fontSize: 12, formatter: (q) => (q.value ? String(q.value) : '') } }],
     }, { notMerge: true });
