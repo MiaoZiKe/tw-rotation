@@ -58,3 +58,9 @@ python scripts/anim/gif_pipeline.py check --in site/brand/sup-anim-128.gif     #
 ## 7. 可選工具
 這個環境另外接了 Adobe（Firefly／Express：去背、生成、動畫）與 Canva、Figma 的連線，Andy 想用 AI 生分鏡圖時可以走那邊，
 生出來的圖一樣放 `docs/anim/<名稱>/frames/` 再進第 4 節的流程（用之前先跟 Andy 確認帳號與授權）。
+
+## 8. 多格補間（12 關鍵＋12 中間）
+Andy 的總控 Prompt 套件在 `docs/anim/prompt_kit/`（01＝總控規格，02＝每次改的參數）。
+已有手繪姿勢（GIF／分鏡）時用 `scripts/anim/pose_tween.py`：原圖像素分層網格變形、統一場景座標、I12 接回 K01，
+輸出 keyframes／inbetweens／frames 的 PNG、12 與 24 格總覽、GIF、WebP、ZIP、verify.json。第一件成品：`docs/anim/jump/`。
+新動作要改 `jump_keys()` 那張關鍵幀表；原圖沒有的姿勢（新表情、新道具）這支畫不出來，要先有生圖或手繪的關鍵幀。

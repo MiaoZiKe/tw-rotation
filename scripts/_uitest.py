@@ -32916,6 +32916,8 @@ SECTIONS = {
     # ★ 2026-10-02 深夜 Andy「誤解了」：總覽三欄（基本面｜籌碼快照｜AI 卡）、AI 四面向併一張卡＋膠囊分頁籤、指標符合／未符合左右並排、
     #   拿掉資料不足區；1440／1100／800／390（DECISIONS #297，⚠ 一律 --workers 1）
     "個股總覽三欄1002":    lambda pg, b, base, code: t_stock_ov3_1002(b, base, code),
+    # ★ 2026-10-10 Andy：「AI 分析需要搭配圖示上去」—— 總覽 AI 卡四顆籤圖示、方向符號、小格子、法人正負橫條等（⚠ 一律 --workers 1）
+    "AI分析圖示1010":      lambda pg, b, base, code: t_ai_icons_1010(b, base, code),
     # ★ 2026-10-03 Andy 三件（DECISIONS #303，⚠ 一律 --workers 1）：總覽三欄等高、本益比（每季）修畫壞（虧損季／極端值）、獲利分頁並排
     "個股總覽等高1003":    lambda pg, b, base, code: t_stock_ov_eq_1003(b, base, code),
     "獲利並排本益比1003":  lambda pg, b, base, code: t_profit_pe_1003(b, base, code),
@@ -63469,6 +63471,128 @@ def _ov3_na_code():
             return f.stem
     notes.append("[個股總覽三欄1002] 找不到指標裡有「資料不足」的普通股，「整區拿掉」那一條只驗到 3189")
     return None
+
+
+# ★ 2026-10-10 AI分析圖示1010（Andy：「AI 分析需要搭配圖示上去，幫我修正這邊」，附圖＝個股「總覽」分頁的 AI 卡 #ovAiCard）
+AI1010_STATE = r"""() => {
+  const c = document.getElementById('ovAiCard'); if (!c) return null;
+  const vis = (e) => !!e && e.getClientRects().length > 0 && getComputedStyle(e).display !== 'none' && getComputedStyle(e).visibility !== 'hidden';
+  const fac = document.getElementById('ovFacets');
+  const tabs = [...c.querySelectorAll('#ovAiTags .ovtag')].map(b => { const ic = b.querySelector('.aiico svg'), g = b.querySelector('.aitag');
+    const pc = g ? getComputedStyle(g, '::before') : null;
+    return { k: b.dataset.facet, icon: !!ic && vis(b.querySelector('.aiico')) && ic.getBoundingClientRect().width >= 12, lb: g ? g.textContent : '', dir: g ? g.dataset.dir || '' : '',
+      before: pc ? pc.content : '', bcol: pc ? pc.color : '', clip: b.scrollWidth > b.clientWidth + 1, on: b.classList.contains('on') }; });
+  const shown = fac ? [...fac.children].filter(vis) : [];
+  const vz = shown.flatMap(p => [...p.querySelectorAll('[data-vz], #ovInstBars, #ovSigBar')].filter(vis).map(e => e.dataset.vz || e.id));
+  const rise = getComputedStyle(document.documentElement).getPropertyValue('--rise').trim();
+  const fall = getComputedStyle(document.documentElement).getPropertyValue('--fall').trim();
+  const probe = (col) => { const s = document.createElement('i'); s.style.color = col; document.body.appendChild(s); const v = getComputedStyle(s).color; s.remove(); return v; };
+  const bars = [...c.querySelectorAll('#ovInstBars .vzib')].filter(vis).map(r => { const i = r.querySelector('.vztrack > i'), tr = r.querySelector('.vztrack'), mid = tr.getBoundingClientRect();
+    const ib = i.getBoundingClientRect(), cs = getComputedStyle(i);
+    return { who: r.dataset.who, v: +r.dataset.v, cls: i.className, w: ib.width, half: mid.width / 2, right: ib.left >= mid.left + mid.width / 2 - 1, bg: cs.backgroundImage,
+      num: r.querySelector('b').textContent, numCol: getComputedStyle(r.querySelector('b')).color }; });
+  const chipTxt = (fac && fac.querySelector('[data-facet="chip"]') || {}).textContent || '';
+  const cells = [...c.querySelectorAll('#ovCkCells .cg')].filter(vis).map(g => ({ k: g.dataset.ck, met: +g.dataset.met, n: +g.dataset.n,
+    cells: g.querySelectorAll('.cells i').length, lit: g.querySelectorAll('.cells i.on').length }));
+  const sb = document.getElementById('ovSigBar'), cnt = c.querySelector('#ovAiTags [data-sigcnt]');
+  const fonts = [...c.querySelectorAll('.ovcells *, .vzb *, .vzt, .aiico ~ .nm, .aitag')].filter(e => vis(e) && [...e.childNodes].some(n => n.nodeType === 3 && n.textContent.trim()))
+    .map(e => parseFloat(getComputedStyle(e).fontSize)).filter(x => x < 12);
+  const newTxt = [...c.querySelectorAll('.ovcells, .vzb')].map(e => e.textContent).join(' ');
+  return { tabs, cur: fac ? fac.dataset.cur : '', vz, bars, rise: probe(rise), fall: probe(fall), chipTxt, cells, line: (document.getElementById('ovAiLine') || {}).textContent || '',
+    sig: sb && vis(sb) ? sb.dataset.pos + '-' + sb.dataset.neg : null, sigCnt: cnt ? cnt.dataset.sigcnt : null, small: fonts, newTxt,
+    anyNew: [...c.querySelectorAll('.vzi, .vzb, .ovcells, .aiico, .vzonly')].filter(vis).length,
+    liTxt: [...c.querySelectorAll('#ovFacets li')].map(l => l.textContent.trim()).filter(Boolean).length,
+    w: Math.round(c.getBoundingClientRect().width), sx: document.documentElement.scrollWidth > innerWidth + 1 };
+}"""
+
+
+def t_ai_icons_1010(b, base, code):
+    """個股總覽 AI 卡圖示化（Andy 10-10「AI 分析需要搭配圖示上去」）的真人操作驗收。
+
+      ① 1440 深色：四顆籤各有線條圖示；判讀前有方向符號（偏多▲紅／偏空▼綠／中性—灰）
+      ② 一行重點下有回檔／突破兩組小格子，亮幾格＝成立幾條，跟一行重點的數字一致
+      ③ 四顆籤逐一真的點：顯示的那一面換了，畫面上的小圖組也真的換（技術＝燈號比例條、籌碼＝法人橫條…）
+      ④ 法人正負橫條：買超紅、往右；賣超綠、往左；長度跟張數成比例；外資／投信的方向與張數跟條列文字一致
+      ⑤ 技術面比例條的多空顆數＝籤上的「N多M空」
+      ⑥ 新元素字級 ≥ 12px、籤不裁切、沒有橫向捲軸、新圖上沒有指示性交易字眼
+      ⑦ 淺色主題下照樣顯示、橫條顏色跟著換成淺色的紅綠
+      ⑧ 390 手機：新元素一個都不顯示（手機版面不動），條列文字照舊"""
+    T = "[AI分析圖示1010]"
+    errs: list[str] = []
+    for W, theme in ((1440, "dark"), (1440, "light"), (1100, "dark"), (390, "dark")):
+        ctx = b.new_context(viewport={"width": W, "height": 1000})
+        pg = ctx.new_page()
+        pg.on("pageerror", lambda e, W=W: errs.append(f"{W}: {e}"))
+        pg.route("**/fonts.googleapis.com/**", lambda r: r.abort())
+        tag = f"{T}{W}{'淺' if theme == 'light' else ''}"
+        try:
+            pg.goto(base + "#overview", wait_until="domcontentloaded")
+            pg.evaluate("(t) => { try { localStorage.removeItem('tw.ovAiTab'); localStorage.setItem('tw.theme', t); } catch (e) {} }", theme)
+            pg.goto("about:blank")
+            pg.goto(base + f"#stock/{code}", wait_until="networkidle")
+            if W <= 640:
+                wait_until(pg, "() => document.querySelectorAll('#mbTabs button[data-t]').length >= 5", 15000)
+                pg.click('#mbTabs button[data-t="full"]'); pg.wait_for_timeout(700)
+            if not ok(f"{tag} 打開 #stock/{code} 有 AI 卡", bool(wait_until(pg, "() => !!document.querySelector('#ovAiCard #ovAiTags .ovtag')", 15000))):
+                ctx.close(); continue
+            if theme == "light":
+                ok(f"{tag} 主題真的是淺色", pg.evaluate("() => document.documentElement.getAttribute('data-theme')") == "light")
+            s = pg.evaluate(AI1010_STATE)
+            if W <= 640:
+                ok(f"{tag} 手機：新圖示／小圖一個都不顯示（手機版面不動）", s["anyNew"] == 0, s["anyNew"])
+                ok(f"{tag} 手機：條列文字照舊在", s["liTxt"] >= 3, s["liTxt"])
+                ctx.close(); continue
+            want_dir = {"偏多": ("up", "▲"), "偏空": ("down", "▼"), "中性": ("flat", "—")}
+            ok(f"{tag} 四顆籤＝技術｜籌碼｜基本｜消息，每顆都有線條圖示", [t["k"] for t in s["tabs"]] == ["tech", "chip", "fund", "news"] and all(t["icon"] for t in s["tabs"]), s["tabs"])
+            ok(f"{tag} 判讀前的方向符號對（偏多▲／偏空▼／中性—）",
+               all((t["lb"] not in want_dir) or (t["dir"] == want_dir[t["lb"]][0] and want_dir[t["lb"]][1] in t["before"]) for t in s["tabs"]), [(t["lb"], t["dir"], t["before"]) for t in s["tabs"]])
+            ok(f"{tag} 方向符號顏色：偏多紅、偏空綠", all(t["bcol"] == (s["rise"] if t["lb"] == "偏多" else s["fall"]) for t in s["tabs"] if t["lb"] in ("偏多", "偏空")),
+               [(t["lb"], t["bcol"]) for t in s["tabs"]] + [s["rise"], s["fall"]])
+            ok(f"{tag} 四顆籤都不裁切", not any(t["clip"] for t in s["tabs"]), [t["k"] for t in s["tabs"] if t["clip"]])
+            import re as _re
+            m = _re.search(r"回檔型態 (\d+)/(\d+)、突破型態 (\d+)/(\d+)", s["line"])
+            cl = {c_["k"]: c_ for c_ in s["cells"]}
+            if m:
+                ok(f"{tag} 小格子：回檔 {m.group(1)}/{m.group(2)}、突破 {m.group(3)}/{m.group(4)} ＝ 格數與亮格數",
+                   "a" in cl and "b" in cl and (cl["a"]["lit"], cl["a"]["cells"], cl["b"]["lit"], cl["b"]["cells"]) == tuple(int(x) for x in m.groups()), (s["line"], s["cells"]))
+            else:
+                ok(f"{tag} 一行重點有回檔／突破數字（這檔沒有就不畫格子）", not s["cells"], s["line"])
+            seen = {}
+            for k in ("tech", "chip", "fund", "news"):
+                click(pg, f'#ovAiTags .ovtag[data-facet="{k}"]', 400)
+                st = pg.evaluate(AI1010_STATE)
+                seen[k] = st["vz"]
+                ok(f"{tag} 點「{k}」→ 卡內切到那一面", st["cur"] == k and [t["k"] for t in st["tabs"] if t["on"]] == [k], (st["cur"], k))
+                if k == "tech":
+                    ok(f"{tag} 技術面：九顆燈號比例條在、多空顆數＝籤上的計數", st["sig"] is not None and (st["sigCnt"] is None or st["sig"] == st["sigCnt"]), (st["sig"], st["sigCnt"]))
+                if k == "chip":
+                    bars = st["bars"]
+                    ok(f"{tag} 籌碼面：外資／投信／自營商三條法人橫條都在", [x["who"] for x in bars] == ["外資", "投信", "自營商"], bars)
+                    mx = max([abs(x["v"]) for x in bars] + [1])
+                    for x in bars:
+                        if x["v"] == 0:
+                            continue
+                        good_dir = (x["v"] > 0 and "pos" in x["cls"] and x["right"] and x["numCol"] == st["rise"] and x["num"].startswith("+")) or \
+                                   (x["v"] < 0 and "neg" in x["cls"] and not x["right"] and x["numCol"] == st["fall"] and x["num"].startswith("−"))
+                        ok(f"{tag} {x['who']} {x['num']} 張：{'買超紅、往右' if x['v'] > 0 else '賣超綠、往左'}", good_dir, x)
+                        ok(f"{tag} {x['who']} 橫條長度跟張數成比例（|v|/最大 × 半條）", abs(x["w"] - abs(x["v"]) / mx * x["half"]) <= 2, (x["w"], x["v"], mx, x["half"]))
+                    for who in ("外資", "投信"):
+                        mm = _re.search(who + r" \d+ 日(買超|賣超) ([\d,]+) 張", st["chipTxt"])
+                        bx = next((x for x in bars if x["who"] == who), None)
+                        if mm and bx:
+                            tv = int(mm.group(2).replace(",", "")) * (1 if mm.group(1) == "買超" else -1)
+                            ok(f"{tag} {who} 橫條數字跟條列文字一致（{mm.group(1)} {mm.group(2)} 張）", abs(bx["v"] - tv) <= 1, (bx["v"], tv))
+            ok(f"{tag} 四個面向的小圖組真的不一樣（切籤圖表真的換）", len({tuple(v) for v in seen.values()}) == 4 and all(seen.values()), seen)
+            ok(f"{tag} 技術＝燈號比例條、籌碼＝法人橫條、基本＝營收／EPS 小直條、消息＝則數橫條",
+               "ovSigBar" in seen["tech"] and "ovInstBars" in seen["chip"] and {"yoy", "eps"} <= set(seen["fund"]) and ("news" in seen["news"] or "ann" in seen["news"]), seen)
+            st = pg.evaluate(AI1010_STATE)
+            ok(f"{tag} 新元素字級都 ≥ 12px", not st["small"], st["small"])
+            ok(f"{tag} 沒有橫向捲軸", not st["sx"])
+            ok(f"{tag} 新圖上沒有指示性交易字眼（買進／賣出／推薦／目標價）", not _re.search(r"買進|賣出|推薦|目標價", st["newTxt"]), st["newTxt"][:200])
+        except Exception as e:  # noqa: BLE001
+            ok(f"{tag} 例外", False, str(e)[:300])
+        ctx.close()
+    ok(f"{T} 沒有 JS 錯誤", not errs, errs[:3])
 
 
 def t_stock_ov3_1002(b, base, code):
