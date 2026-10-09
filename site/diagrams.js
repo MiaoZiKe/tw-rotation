@@ -2145,6 +2145,10 @@
       const b = e.target.closest('button[data-fold]'); if (!b) return;
       const g = $$('g.dgfold[data-fold]', host).find(x => x.getAttribute('data-fold') === b.dataset.fold);
       if (!g) return;
+      /* ★ 2026-10-09 手機 v2（Andy 09:4x：「延伸 1｜尺度…點開時在頁面內往下展開一大塊，整頁會跳動」→ 改成跟點圖上編號一樣從底部滑出抽屜）：
+         m4 一律開底部抽屜（foldSheet）：抽屜裡是那一段的圖（從 2D 圖複製出那一段、裁成剛好包住它），左右箭頭切延伸 1～N；
+         頁面不展開、不捲動，關掉抽屜停在原處。3D 時 2D 圖藏著也照樣複製得到（不必先切回 2D）。桌機（沒有 m4）不走這裡。 */
+      if (m4f) { const k = gs.indexOf(g); if (k >= 0) foldSheet(host, k); return; }
       /* 2026-10-08（Andy：「這些點擊沒有用」）：這幾列展開的是 2D 圖裡的章節；手機停在 3D 時 2D 圖是藏著的，
          以前點了只在看不到的圖裡展開 → 畫面完全沒變。改成：在 3D 就先切回 2D（按站上那顆 2D 鈕本人），再展開。 */
       if (!host.getClientRects().length) {
@@ -2167,6 +2171,38 @@
       });
     };
     paintFolds(host, L);
+  }
+  /* 延伸閱讀抽屜（m4）：k＝第幾段。從 host 裡那張 2D 圖複製一份，只留 <defs>／<style> 與那一段的 g.dgbody，
+     量它的外框當 viewBox —— 抽屜裡看到的就是展開後的那一段，同一份圖、同一套樣式，不另畫。 */
+  function foldSheet(host, k) {
+    if (!window.M3 || !window.M3.openSheet) return;
+    const bars = $$('g.dgfold[data-fold]', host), n = bars.length;
+    if (!bars[k]) return;
+    const id = bars[k].getAttribute('data-fold');
+    let svg = bars[k].ownerSVGElement; while (svg && svg.ownerSVGElement) svg = svg.ownerSVGElement;
+    if (!svg) return;
+    const L0 = foldList(host), fb = L0 && $$('button[data-fold]', L0).find(b => b.dataset.fold === id);
+    const ttl = (fb && fb.querySelector('b') && fb.querySelector('b').textContent) || ('延伸 ' + (k + 1));
+    const sh = window.M3.openSheet(`<div class="mshhead"><b>${esc(ttl)}</b></div><div class="mshbody mdgfoldsvg"></div>`
+      + `<div class="mshnav"><button type="button" data-d="-1" aria-label="上一段延伸閱讀">‹</button><span>延伸 ${k + 1} / ${n}</span><button type="button" data-d="1" aria-label="下一段延伸閱讀">›</button></div>`,
+      { kind: 'dgfold' });
+    sh.dataset.no = String(k + 1);
+    const box = sh.querySelector('.mdgfoldsvg');
+    const c = svg.cloneNode(true);
+    const bodyC = c.querySelector(`g.dgbody[data-fold="${CSS.escape(id)}"]`);
+    if (bodyC) {
+      // 只留這一段：從那一段往上每一層，把不是 defs／style、也不包含它的兄弟節點拿掉
+      for (let p = bodyC; p && p !== c; p = p.parentNode) {
+        [...p.parentNode.children].forEach((x) => { if (x !== p && x.tagName !== 'defs' && x.tagName !== 'style') x.remove(); });
+      }
+      bodyC.removeAttribute('display'); bodyC.removeAttribute('transform');
+    }
+    c.removeAttribute('height'); c.setAttribute('width', '100%'); c.style.display = 'block'; c.style.width = '100%'; c.style.maxWidth = '100%'; c.style.minWidth = '0'; c.style.height = 'auto';
+    // 圖的配色變數掛在外層容器上（.dgwrap／host），抽屜在 body 底下吃不到 → 把 host 量到的 --dg-* 抄到抽屜的框上
+    try { const cs = getComputedStyle(svg); for (let i = 0; i < cs.length; i++) { const nm = cs[i]; if (nm.startsWith('--dg')) box.style.setProperty(nm, cs.getPropertyValue(nm)); } } catch (e) { /* 忽略 */ }
+    box.appendChild(c);
+    try { const b = c.getBBox(); if (b && b.width > 0 && b.height > 0) c.setAttribute('viewBox', `${(b.x - 8).toFixed(1)} ${(b.y - 8).toFixed(1)} ${(b.width + 16).toFixed(1)} ${(b.height + 16).toFixed(1)}`); } catch (e) { /* 量不到就用原本的 viewBox */ }
+    $$('.mshnav button', sh).forEach(b => b.onclick = (e) => { e.stopPropagation(); foldSheet(host, (k + (+b.dataset.d) + n) % n); });
   }
   window.DG.mobileFolds = mobileFolds;
   function layout2d(host) {

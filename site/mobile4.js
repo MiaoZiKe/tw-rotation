@@ -1206,9 +1206,9 @@
     let d = $('.m4ovdots', h);
     if (!d || d.children.length !== n || d.previousElementSibling !== t) {
       if (d) d.remove();
-      d = document.createElement('div'); d.className = 'm4ovdots'; d.setAttribute('role', 'tablist'); d.setAttribute('aria-label', '摘要卡頁數');
+      d = document.createElement('div'); d.className = 'm4ovdots'; d.setAttribute('role', 'group'); d.setAttribute('aria-label', '摘要卡頁數');   // 不用 tablist：那會被第 23 節套成分段控制器
       for (let k = 0; k < n; k++) {
-        const b = document.createElement('button'); b.type = 'button'; b.setAttribute('role', 'tab');
+        const b = document.createElement('button'); b.type = 'button';
         const tt = t.children[k].querySelector('.osc-t');
         b.setAttribute('aria-label', '第 ' + (k + 1) + ' 張／共 ' + n + ' 張' + (tt ? '：' + tt.textContent.trim() : ''));
         b.onclick = (e) => { e.stopPropagation(); t.scrollTo({ left: k * t.clientWidth, behavior: 'smooth' }); setTimeout(paintDots, 450); };

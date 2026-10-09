@@ -843,7 +843,7 @@
       const gpQ = '<button class="howbtn pop" data-how="gp" type="button" aria-label="這張圖怎麼看">?</button>';
       $('#gpTitle', host).innerHTML = drill
         ? `${A.fmt.esc(drill.name)}${gpQ}　<small class="muted">這個族群的個股漲幅（${b.asc.length}／${(drill.members || []).length} 檔）</small>`
-        : `${A.fmt.esc(ctx.scope)}族群漲幅與占比${gpQ}　<small class="muted">列出成交值前 ${b.asc.length} 個族群</small>`;
+        : `${A.fmt.esc(ctx.scope)}族群漲幅與占比${gpQ}　<small class="muted">${document.documentElement.classList.contains('m4') ? '成交值前 ' + b.asc.length + ' 名' : '列出成交值前 ' + b.asc.length + ' 個族群'}</small>`;   // 手機精簡成一句放得下的長度（2026-10-09 Andy：「上方備註不准斷句」）
       /* ★ 2026-09-24 說明精簡：同一份內容改成「一句問題 → 條列 → 最下面一行小字」，住在「怎麼看 ?」裡。*/
       const gpFine = '甜甜圈其餘併成「其他」，中心寫前五大合計；滑過任一邊，另一邊對應的那一塊同步標起來，下方那行寫出它的數字。'
         + '按「即時」＝盤中暫定值，每 5 秒更新：成交值是<b>估算</b>的（最新價 × 累積張數），'

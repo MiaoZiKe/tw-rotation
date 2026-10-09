@@ -27475,14 +27475,27 @@ def t_mobile_m4_1008(b, base, code):
             return { n: ns.length, side, lines: l.querySelectorAll('svg path').length }; }""")
         ok(f"【{T}】3D 編號改成引線標註：編號圈都排在左右兩側、每個圈有一條引線（{ld}）", ld and ld["n"] > 0 and ld["side"] == ld["n"] and ld["lines"] >= ld["n"] - 1, ld)
         rows = J("() => [...document.querySelectorAll('.mdgfolds button[data-fold]')].map(b => b.dataset.fold)")
+        # ★ 2026-10-09 改寫（Andy 09:4x：「延伸 1｜尺度…點開時在頁面內往下展開一大塊，整頁會跳動」→ 改成底部抽屜、左右箭頭切換、頁面不捲動）：
+        #   原本驗「點了圖在頁內真的展開（圖變高）」；改成驗「點了開出 role=dialog 抽屜（data-kind=dgfold）、抽屜裡有那一段的圖、window.scrollY 不變、圖高不變」。
         badf = []
-        for fid in rows:
-            h0 = J("() => document.getElementById('prodDiagram').getBoundingClientRect().height")
-            m.locator(f'.mdgfolds button[data-fold="{fid}"]').tap(); m.wait_for_timeout(900)
-            st = J(f"""() => {{ const b = document.querySelector('.mdgfolds button[data-fold="{fid}"]'); return {{ ae: b && b.getAttribute('aria-expanded'), h: document.getElementById('prodDiagram').getBoundingClientRect().height }}; }}""")
-            if st["ae"] != "true" or st["h"] <= h0 + 4:
-                badf.append((fid, h0, st))
-        ok(f"【{T}】剖析圖 ②③④ 展開列用觸控點了都真的展開（{len(rows)} 列；在 3D 時先切回 2D）", rows and not badf, badf)
+        for i, fid in enumerate(rows):
+            y0 = J("() => Math.round(scrollY)"); h0 = J("() => document.getElementById('prodDiagram').getBoundingClientRect().height")
+            m.locator(f'.mdgfolds button[data-fold="{fid}"]').tap(); m.wait_for_timeout(700)
+            st = J("""() => { const s = document.getElementById('mSheet'); const v = s && !s.hidden; const g = v && s.querySelector('.mdgfoldsvg svg');
+                return { open: !!v, role: s && s.getAttribute('role'), kind: s && s.dataset.kind, no: s && s.dataset.no, svgH: g ? Math.round(g.getBoundingClientRect().height) : 0,
+                  y: Math.round(scrollY), h: document.getElementById('prodDiagram').getBoundingClientRect().height,
+                  sh: s ? Math.round(s.getBoundingClientRect().height) : 0, vh: innerHeight }; }""")
+            if not (st["open"] and st["role"] == "dialog" and st["kind"] == "dgfold" and st["no"] == str(i + 1) and st["svgH"] > 20
+                    and abs(st["y"] - y0) <= 1 and abs(st["h"] - h0) <= 1 and st["sh"] <= st["vh"] * 0.72):
+                badf.append((fid, y0, st))
+            J("() => { const b = document.getElementById('mSheetBack'); if (b) b.click(); }"); m.wait_for_timeout(300)
+        ok(f"【{T}】剖析圖延伸閱讀（{len(rows)} 段）點了開底部抽屜（role=dialog、抽屜裡有那一段的圖、≤70% 螢幕高）、頁面不捲動不跳動", rows and not badf, badf)
+        if len(rows) >= 2:
+            m.locator(f'.mdgfolds button[data-fold="{rows[0]}"]').tap(); m.wait_for_timeout(600)
+            m.locator('#mSheet .mshnav button[data-d="1"]').tap(); m.wait_for_timeout(500)
+            nx = J("() => { const s = document.getElementById('mSheet'); return s && !s.hidden ? s.dataset.no : null; }")
+            ok(f"【{T}】延伸閱讀抽屜按 › 換到延伸 2", nx == "2", nx)
+            J("() => { const b = document.getElementById('mSheetBack'); if (b) b.click(); }"); m.wait_for_timeout(300)
         # ⑭ 手機一律不用方格：402 寬主內容區（按鈕、輸入框、切換鈕、月曆格除外）沒有四邊框、沒有陰影
         m.set_viewport_size({"width": 402, "height": 874})
         badb = {}
@@ -28561,6 +28574,232 @@ def t_tip_residue_1009(b, base, code):
         ok(f"【{T}】桌機 1440 不是手機版（提示框收法不介入）", not d.evaluate("() => document.documentElement.classList.contains('m4')"))
     finally:
         dctx.close()
+
+
+# ★ 2026-10-09 手機總覽 ov2（Andy 09:1x／09:3x／09:4x，三批截圖；site/mobile4.css 與 mobile4.js 第 31 節、chart.js m4Tick、market3.js、diagrams.js foldSheet、
+#   themes3d.js chainSceneV、app.js wireThemeDiagram、industry.js wireDg）。每一條都真的操作、量座標，不驗「元素存在」。
+_OV2_BRK = r"""() => {
+  const SEL = "main .view.on :is(h2,h3)>small, main .view.on .m4pghead span, main .view.on :is(.t4-lede,.skr-s,.skr-k,.incq,.incdisc,.etfdisc,.disc-line,p.muted,.card>.muted,.mdgnumhint)";
+  const OK = /[\s、，,；;：:。．.！!？?）)」』】／/|｜·・—–\-＝=÷+＋→]/;
+  const bad = [];
+  document.querySelectorAll(SEL).forEach((e) => {
+    if (!e.getClientRects().length) return;
+    const cs = getComputedStyle(e), lh = parseFloat(cs.lineHeight) || parseFloat(cs.fontSize) * 1.5;
+    if (e.getBoundingClientRect().height <= lh * 1.6) return;
+    const w = document.createTreeWalker(e, NodeFilter.SHOW_TEXT); const chars = [];
+    for (let n; (n = w.nextNode());) for (let i = 0; i < n.data.length; i++) chars.push([n, i]);
+    let lastTop = null, prev = '';
+    const r = document.createRange();
+    for (const [n, i] of chars) {
+      const ch = n.data[i]; if (/\s/.test(ch)) { prev = ch; continue; }
+      r.setStart(n, i); r.setEnd(n, i + 1); const q = r.getClientRects()[0]; if (!q) continue;
+      if (lastTop != null && q.top > lastTop + lh * 0.5 && !OK.test(prev) && !/[（(「『【]/.test(ch)) bad.push(e.textContent.trim().slice(0, 30) + ' 斷在「' + prev + '|' + ch + '」');
+      lastTop = q.top; prev = ch;
+    }
+  });
+  return bad;
+}"""
+
+
+def t_mobile_m4_ov2(b, base, code):
+    T = "手機v2"
+    vp = dict(MOBILE_VP); vp["viewport"] = {"width": 402, "height": 874}
+    ctx = b.new_context(**vp)
+    ctx.add_init_script("try{ if(!sessionStorage.getItem('m4ov2')){ localStorage.clear(); localStorage.setItem('tw.live.on','0'); localStorage.setItem('tw.tourDone','1'); sessionStorage.setItem('m4ov2','1'); } }catch(e){}")
+    m = ctx.new_page()
+    m.on("pageerror", lambda e: fails.append(f"{T} ov2 pageerror: {e} @ {m.url}"))
+    m.route("**/fonts.googleapis.com/**", lambda r: r.abort())
+    J = lambda js, *a: m.evaluate(js, *a)
+
+    def go(h, wait=3200):
+        m.goto(base + "#" + h, wait_until="domcontentloaded"); m.wait_for_timeout(wait)
+
+    try:
+        # ① 總覽最上方指數三格＋「＋觀察」整列拿掉（Andy：「上方拿掉」）
+        go("overview", 4000)
+        top = J("""() => { const vis = (s) => { const e = document.querySelector(s); return !!e && e.getClientRects().length > 0; };
+            const h = document.getElementById('hero'); return { idx: vis('#mbIdx'), add: vis('#mbWAdd'), home: vis('#mbHome'),
+              txt: /台指近全日盤|上櫃指數/.test(document.querySelector('main .view.on').innerText.split('\\n').slice(0, 12).join(' ')),
+              heroTop: h ? Math.round(h.getBoundingClientRect().top) : null }; }""")
+        ok(f"【{T}】總覽沒有指數三格（加權／上櫃／台指近全日盤）與「＋觀察」，摘要卡變成第一塊（頂 {top['heroTop']}px）",
+           not top["idx"] and not top["add"] and not top["home"] and not top["txt"] and top["heroTop"] is not None and top["heroTop"] < 140, top)
+
+        # ② 摘要卡：一張＝可用寬（±2）、一次一張、點點數＝卡數、滑動後亮點跟著換、點點可以點
+        S = """() => { const t = document.getElementById('ovSumTrack'), h = document.getElementById('hero'); if (!t) return null;
+            const tr = t.getBoundingClientRect(), cs = [...t.children], d = h.querySelector('.m4ovdots');
+            const vis = cs.filter(c => { const r = c.getBoundingClientRect(); return r.right > tr.left + 2 && r.left < tr.right - 2; }).length;
+            const main = document.querySelector('main .view.on').getBoundingClientRect();
+            return { n: cs.length, w: cs.map(c => Math.round(c.getBoundingClientRect().width)), avail: Math.round(main.width), vis,
+                     dots: d ? d.children.length : 0, on: d ? [...d.children].findIndex(x => x.classList.contains('on')) : -1,
+                     dotsBelow: d ? Math.round(d.getBoundingClientRect().top - tr.bottom) : null, sl: Math.round(t.scrollLeft) }; }"""
+        s0 = J(S)
+        ok(f"【{T}】摘要卡每張寬度＝可用寬（{s0 and s0['w']}／{s0 and s0['avail']}，誤差 ≤2）、一次只看得到一張",
+           s0 and s0["n"] >= 2 and all(abs(w - s0["avail"]) <= 2 for w in s0["w"]) and s0["vis"] == 1, s0)
+        ok(f"【{T}】摘要卡下方圓點數＝卡數（{s0 and s0['dots']}／{s0 and s0['n']}）、在卡片下方、第一顆亮",
+           s0 and s0["dots"] == s0["n"] and s0["on"] == 0 and s0["dotsBelow"] is not None and 0 <= s0["dotsBelow"] <= 12, s0)
+        # 手指往左滑一張
+        tr = J("() => { const r = document.getElementById('ovSumTrack').getBoundingClientRect(); return { x: r.left, y: r.top + r.height / 2, w: r.width }; }")
+        cdp = ctx.new_cdp_session(m)
+        def swipe(x0, x1, y):
+            cdp.send("Input.dispatchTouchEvent", {"type": "touchStart", "touchPoints": [{"x": x0, "y": y}]})
+            for k in range(1, 9):
+                cdp.send("Input.dispatchTouchEvent", {"type": "touchMove", "touchPoints": [{"x": x0 + (x1 - x0) * k / 8, "y": y}]}); m.wait_for_timeout(16)
+            cdp.send("Input.dispatchTouchEvent", {"type": "touchEnd", "touchPoints": []})
+        swipe(tr["x"] + tr["w"] * 0.85, tr["x"] + tr["w"] * 0.15, tr["y"]); m.wait_for_timeout(900)
+        s1 = J(S)
+        if s1 and s1["on"] == 0:   # 有些環境觸控甩不動 scroll-snap：退回用程式捲一張（亮點跟著換這件事仍然要成立）
+            J("() => { const t = document.getElementById('ovSumTrack'); t.scrollTo({ left: t.clientWidth, behavior: 'instant' }); }"); m.wait_for_timeout(500)
+            s1 = J(S)
+        ok(f"【{T}】摘要卡往左滑一張：亮的點跟著換到第 2 顆、仍一次一張", s1 and s1["on"] == 1 and s1["vis"] == 1 and s1["sl"] > 0, (s0, s1))
+        m.locator("#hero .m4ovdots button").nth(s0["n"] - 1).tap(); m.wait_for_timeout(900)
+        s2 = J(S)
+        ok(f"【{T}】點最後一顆圓點 → 跳到最後一張、那顆亮", s2 and s2["on"] == s0["n"] - 1 and s2["vis"] == 1, s2)
+        ok(f"【{T}】總覽整頁沒有橫向捲動", J("() => document.documentElement.scrollWidth <= innerWidth + 1"))
+
+        # ③ 每張圖表容器有底色＋可見邊框（不是透明）
+        FR = """() => [...document.querySelectorAll('main .view.on .m4cbox, main .view.on #lwc')].filter(e => e.getClientRects().length).map(e => {
+            const c = getComputedStyle(e); const bg = c.backgroundColor;
+            return { id: e.id || e.className.split(' ')[0], bg, bw: parseFloat(c.borderTopWidth), bs: c.borderTopStyle, bc: c.borderTopColor,
+                     clear: bg === 'transparent' || /rgba\\(.*,\\s*0\\)$/.test(bg) }; })"""
+        frames = {}
+        for h in ("overview", "flow/rotation", "flow/sankey", "heatmap/industry", "industry", "market", "season", "stock/" + code):
+            go(h, 3000)
+            J("() => window.scrollTo(0, document.body.scrollHeight)"); m.wait_for_timeout(900); J("() => window.scrollTo(0, 0)"); m.wait_for_timeout(400)
+            frames[h] = J(FR)
+        badfr = {h: [f for f in fs if f["clear"] or f["bw"] < 1 or f["bs"] == "none"] for h, fs in frames.items()}
+        badfr = {h: v for h, v in badfr.items() if v}
+        miss = [h for h, fs in frames.items() if not fs]
+        ok(f"【{T}】每張圖表容器的背景不是透明、1px 邊框看得見（{ {h: len(v) for h, v in frames.items()} }）", not badfr and not miss, {"bad": badfr, "沒找到圖": miss})
+
+        # ④ K 線／走勢圖 Y 軸刻度完整在圖框內、精簡寫法（總覽大盤＋個股頁）
+        go("overview", 4000)
+        def yaxis_ok(sel):
+            return J("""(sel) => { const c = document.querySelector(sel); if (!c) return null; const box = c.getBoundingClientRect();
+                const ec = window.echarts && echarts.getInstanceByDom(c);
+                if (ec) { const o = ec.getOption(); const g = o.grid[0]; const ya = o.yAxis[0];
+                  const ext = ec.getModel().getComponent('yAxis', 0).axis.scale.getExtent();
+                  const ticks = ec.getModel().getComponent('yAxis', 0).axis.getTicksCoords().map(t => t.tickValue);
+                  const f = ya.axisLabel.formatter; const labels = ticks.map(v => typeof f === 'function' ? f(v) : String(v));
+                  const ctx = document.createElement('canvas').getContext('2d'); ctx.font = (ya.axisLabel.fontSize || 12) + 'px sans-serif';
+                  const maxW = Math.max(...labels.map(l => ctx.measureText(l).width));
+                  return { lib: 'ec', labels, fs: ya.axisLabel.fontSize, room: g.right, maxW: Math.round(maxW), inside: maxW + (ya.axisLabel.margin || 8) <= g.right + 1 }; }
+                const tbl = c.querySelector('.tv-lightweight-charts table'); if (!tbl) return null;
+                const cvs = [...c.querySelectorAll('canvas')]; const right = cvs.reduce((m, x) => Math.max(m, x.getBoundingClientRect().right), 0);
+                return { lib: 'lwc', boxR: Math.round(box.right), canvasR: Math.round(right), inside: right <= box.right + 1 }; }""", sel)
+        l0 = yaxis_ok("#m3Grid .m3-card.mcur .m3-chart")
+        ok(f"【{T}】總覽走勢圖 Y 軸：刻度字 ≥12px、精簡（{l0 and l0.get('labels')}）、右側留的寬度放得下最長刻度（{l0 and l0.get('maxW')} ≤ {l0 and l0.get('room')}）",
+           l0 and l0["lib"] == "ec" and l0["fs"] >= 12 and l0["inside"] and all(len(x) <= 6 for x in l0["labels"]), l0)
+        J("() => { const b = document.querySelector('#m3Mode button[data-m=\"k\"]'); if (b) b.click(); }"); m.wait_for_timeout(3000)
+        kk = J("""() => { const c = document.querySelector('#m3Grid .m3-card.mcur .m3-chart'); if (!c) return null; const box = c.getBoundingClientRect();
+            const cv = [...c.querySelectorAll('canvas')]; const tds = [...c.querySelectorAll('.tv-lightweight-charts td')];
+            return { n: cv.length, boxR: Math.round(box.right), r: Math.round(Math.max(...cv.map(x => x.getBoundingClientRect().right))) }; }""")
+        ok(f"【{T}】總覽 K 線：價格軸整條在圖框內（{kk}）", kk and kk["n"] > 0 and kk["r"] <= kk["boxR"] + 1, kk)
+        J("() => { const b = document.querySelector('#m3Mode button[data-m=\"line\"]'); if (b) b.click(); }"); m.wait_for_timeout(1500)
+        go("stock/" + code, 4500)
+        lg = J("""() => { const l = document.querySelector('#lwc .legend-ov'), w = document.getElementById('lwc'); if (!l || !w) return null;
+            const cv = [...w.querySelectorAll('canvas')].map(c => c.getBoundingClientRect()); const ax = cv.filter(r => r.width < 120 && r.height > 100).map(r => r.left);
+            return { lgR: Math.round(l.getBoundingClientRect().right), axL: ax.length ? Math.round(Math.min(...ax)) : null, boxR: Math.round(w.getBoundingClientRect().right),
+                     maxR: Math.round(Math.max(...cv.map(r => r.right))) }; }""")
+        ok(f"【{T}】個股 K 線：左上圖例不蓋右側價格軸（圖例右緣 {lg and lg['lgR']} ≤ 價格軸左緣 {lg and lg['axL']}）、價格軸在圖框內",
+           lg and lg["axL"] and lg["lgR"] <= lg["axL"] + 1 and lg["maxR"] <= lg["boxR"] + 1, lg)
+
+        # ⑤ 期間列（資金輪動／資金分流樹）：按 ▶ 前後都在同一行（⏸ 的 top 差 ≤4）
+        for h, bar in (("flow/rotation", "#rotBack"), ("flow/sankey", "#sankeyDays")):
+            go(h, 3500)
+            P = f"""() => {{ const r = document.querySelector('{bar}'); if (!r || !r.getClientRects().length) return null; const p = r.querySelector('.pb.play');
+                const tops = [...r.children].filter(x => x.getClientRects().length).map(x => Math.round(x.getBoundingClientRect().top + x.getBoundingClientRect().height / 2));
+                return {{ play: p ? Math.round(p.getBoundingClientRect().top) : null, txt: p ? p.textContent.trim() : '', h: Math.round(r.getBoundingClientRect().height),
+                         spread: Math.max(...tops) - Math.min(...tops), sw: r.scrollWidth > r.clientWidth + 1 }}; }}"""
+            J(f"() => document.querySelector('{bar}') && document.querySelector('{bar}').scrollIntoView({{block: 'center'}})"); m.wait_for_timeout(300)
+            p0 = J(P)
+            m.locator(f"{bar} .pb.play").tap(); m.wait_for_timeout(1600)
+            p1 = J(P)
+            ok(f"【{T}】{h} 期間列按 ▶ 後變 ⏸ 仍是一行（⏸ top {p0 and p0['play']} → {p1 and p1['play']}，差 ≤4；列高 {p0 and p0['h']} → {p1 and p1['h']}）",
+               p0 and p1 and p1["txt"] != p0["txt"] and abs(p1["play"] - p0["play"]) <= 4 and p1["spread"] <= 6 and p1["h"] <= p0["h"] + 4 and not p1["sw"], (p0, p1))
+            m.locator(f"{bar} .pb.play").tap(); m.wait_for_timeout(600)
+            p2 = J(P)
+            ok(f"【{T}】{h} 期間列暫停後仍是一行", p2 and abs(p2["play"] - p0["play"]) <= 4 and p2["spread"] <= 6, p2)
+
+        # ⑥ 題材剖析圖：流程段（PCB 製作流程／組裝流程）在「說明 ›」下面、環節卡上面；沒有 ↻；點背景清掉選取；沒有「放大」
+        go("heatmap/theme", 4500)
+        fl = J("""() => { const r = document.getElementById('themeDiagram'); if (!r) return null; const s = r.querySelector('svg.dg3v'); if (!s) return { v: false };
+            const cap = s.querySelector('.capbtn'), vf = s.querySelector('.vflow'), st1 = s.querySelector('g.step'), stn = s.querySelector('g.stn');
+            const y = (e) => e ? Math.round(e.getBoundingClientRect().top) : null;
+            return { v: true, cap: y(cap), flow: y(vf), step1: y(st1), stn: y(stn), flowT: vf && vf.textContent, rst: document.querySelectorAll('main .view.on .m4rst').length }; }""")
+        ok(f"【{T}】題材剖析圖：流程標題與第 1 格在「說明 ›」正下方、環節卡清單上方（{fl}）",
+           fl and fl.get("v") and (fl["flow"] is None or (fl["cap"] < fl["flow"] < fl["step1"] < fl["stn"])), fl)
+        ok(f"【{T}】題材頁沒有 ↻ 重設鈕", fl and fl.get("rst") == 0 and J("() => ![...document.querySelectorAll('main .view.on button')].some(b => b.getClientRects().length && b.textContent.trim() === '↻')"), fl)
+        m.locator("#themeDiagram g.stn").first.tap(); m.wait_for_timeout(500)
+        J("() => window.M3 && window.M3.closeSheet && window.M3.closeSheet()"); m.wait_for_timeout(200)
+        sel1 = J("() => document.querySelectorAll('#themeDiagram .sel').length")
+        tt = J("() => { const t = document.querySelector('#themeDiagram svg .ttl'); const r = t.getBoundingClientRect(); return { x: r.left + 4, y: r.top + r.height / 2 }; }")
+        m.touchscreen.tap(tt["x"], tt["y"]); m.wait_for_timeout(500)
+        sel2 = J("() => document.querySelectorAll('#themeDiagram .sel').length")
+        ok(f"【{T}】題材剖析圖點一個環節（選取 {sel1}）→ 點圖的空白處（標題）→ 選取真的清掉（{sel2}）", sel1 > 0 and sel2 == 0, (sel1, sel2))
+        nz = J("() => [...document.querySelectorAll('main .view.on button, main .view.on a')].filter(b => b.getClientRects().length && /放大/.test(b.textContent)).map(b => b.id || b.textContent.trim())")
+        ok(f"【{T}】題材頁沒有「放大」鈕", not nz, nz)
+        go("heatmap/industry", 3500)
+        nz2 = J("() => [...document.querySelectorAll('main .view.on button, main .view.on a')].filter(b => b.getClientRects().length && /放大/.test(b.textContent)).map(b => b.id || b.textContent.trim())")
+        ok(f"【{T}】產業熱力圖沒有「放大」鈕", not nz2, nz2)
+        go("overview", 3500)
+        for b0 in ("熱度",):
+            J(f"() => {{ const b = [...document.querySelectorAll('main .view.on .mpager button')].find(x => x.textContent.trim() === '{b0}'); if (b) b.click(); }}"); m.wait_for_timeout(1500)
+        nz3 = J("() => [...document.querySelectorAll('main .view.on button')].filter(b => b.getClientRects().length && /放大/.test(b.textContent)).map(b => b.id)")
+        ok(f"【{T}】總覽「熱度」組也沒有「放大」鈕", not nz3, nz3)
+
+        # ⑦ 產業鏈剖析圖：沒有 ↻；點零件後點背景 → 選取清掉（2D）
+        go("industry/electronics", 4500)
+        J("() => { const b = document.querySelector('#dg3d button[data-dm=\"2d\"]'); if (b) b.click(); }"); m.wait_for_timeout(1200)
+        ok(f"【{T}】產業鏈剖析圖沒有 ↻ 重設鈕", J("() => document.querySelectorAll('main .view.on .m4rst').length === 0"))
+        pk = J("""() => { const p = [...document.querySelectorAll('#prodDiagram [data-seg]')].find(e => e.getClientRects().length); if (!p) return null; p.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+            return document.querySelectorAll('#prodDiagram .dgdim, #prodDiagram .dim, #prodDiagram .hl, #prodDiagram .sel, #indChain .segon').length; }""")
+        m.wait_for_timeout(400)
+        bgp = J("""() => { const h = document.getElementById('prodDiagram'); const r = h.getBoundingClientRect(); return { x: r.left + 6, y: r.top + 6 }; }""")
+        m.touchscreen.tap(bgp["x"], bgp["y"]); m.wait_for_timeout(500)
+        pk2 = J("() => document.querySelectorAll('#prodDiagram .dgdim, #prodDiagram .dim, #prodDiagram .hl, #prodDiagram .sel, #indChain .segon').length")
+        ok(f"【{T}】產業鏈剖析圖點零件（標記 {pk}）→ 點背景 → 選取清掉（{pk2}）", pk is not None and pk > 0 and pk2 == 0, (pk, pk2))
+
+        # ⑧ 甜甜圈圖例拉滿寬（≥ 容器 95%），名稱靠左、數字靠右
+        go("industry", 4000)
+        lgw = J("""() => { const l = document.getElementById('gpLegend'); if (!l || !l.getClientRects().length) return null; const c = l.closest('.gpdonut') || l.parentElement;
+            const it = l.querySelector('.lg'); const nm = it && it.querySelector('.nm'), pc = it && it.querySelector('.pc');
+            return { lw: Math.round(l.getBoundingClientRect().width), cw: Math.round(c.getBoundingClientRect().width),
+                     nmL: nm ? Math.round(nm.getBoundingClientRect().left - l.getBoundingClientRect().left) : null,
+                     pcR: pc ? Math.round(l.getBoundingClientRect().right - pc.getBoundingClientRect().right) : null }; }""")
+        ok(f"【{T}】產業地圖甜甜圈圖例寬 {lgw and lgw['lw']} ≥ 容器 {lgw and lgw['cw']} 的 95%、名稱靠左、數字靠右",
+           lgw and lgw["lw"] >= lgw["cw"] * 0.95 and lgw["nmL"] is not None and lgw["nmL"] <= 40 and lgw["pcR"] is not None and lgw["pcR"] <= 16, lgw)
+
+        # ⑨ 全站副標與備註不斷在句子中間（360／402 兩種寬）
+        badbrk = {}
+        for wid in (360, 402):
+            m.set_viewport_size({"width": wid, "height": 800})
+            for h in ("overview", "flow/rotation", "flow/sankey", "flow/inst", "heatmap/industry", "heatmap/theme", "industry", "industry/electronics", "market", "explore", "etf/list", "etf/inc", "season", "watch", "stock/" + code):
+                go(h, 2600)
+                r = J(_OV2_BRK)
+                if r:
+                    badbrk[f"{wid}:{h}"] = r
+        m.set_viewport_size({"width": 402, "height": 874})
+        ok(f"【{T}】全站副標與備註：換行只發生在空白或標點後，沒有詞被拆到下一行", not badbrk, badbrk)
+    finally:
+        ctx.close()
+
+    # ⑩ 桌機那條路徑（1440）：這批的互動一個都不准影響桌機 —— 點了才出現的狀態另外驗（桌機守門1008 只涵蓋初始畫面）
+    dk = b.new_context(viewport={"width": 1440, "height": 900})
+    d = dk.new_page()
+    d.route("**/fonts.googleapis.com/**", lambda r: r.abort())
+    try:
+        d.goto(base + "#overview", wait_until="domcontentloaded"); d.wait_for_timeout(4000)
+        st = d.evaluate("() => ({ dots: document.querySelectorAll('.m4ovdots').length, box: document.querySelectorAll('.m4cbox').length, m4: document.documentElement.classList.contains('m4') })")
+        ok(f"【{T}】桌機 1440：沒有摘要卡圓點、沒有手機圖表框標記（{st}）", not st["m4"] and st["dots"] == 0 and st["box"] == 0, st)
+        d.goto(base + "#industry/electronics", wait_until="domcontentloaded"); d.wait_for_timeout(4500)
+        fo = d.evaluate("""() => { const g = [...document.querySelectorAll('#prodDiagram g.dgfold[data-fold]')][0]; if (!g) return null; const s0 = document.getElementById('mSheet');
+            g.dispatchEvent(new MouseEvent('click', { bubbles: true })); return { open: g.classList.contains('open'), sheet: !!(s0 && !s0.hidden) || !!(document.getElementById('mSheet') && !document.getElementById('mSheet').hidden) }; }""")
+        ok(f"【{T}】桌機 1440：剖析圖章節列照舊在圖內展開、不開抽屜（{fo}）", fo is None or (fo["open"] and not fo["sheet"]), fo)
+        d.goto(base + "#heatmap/theme", wait_until="domcontentloaded"); d.wait_for_timeout(4000)
+        z = d.evaluate("() => { const b = document.getElementById('themeZoom'); return !!b && b.getClientRects().length > 0; }")
+        ok(f"【{T}】桌機 1440：題材熱力圖的「放大 ⤢」照舊在", z, z)
+    finally:
+        dk.close()
 
 
 # ★ 2026-10-08 桌機守門1008（Andy 17:13：「你改手機版本是否也動到網頁版本…這事情很嚴重，兩者不可侵犯」）：
@@ -29761,7 +30000,9 @@ SECTIONS = {
     # ★ 2026-09-27 手機總覽最上方：指數三格（可左右滑）＋觀察清單（2026-09-27 起是自選清單目前那一頁：localStorage tw.watchlists，只存代號；site/mobile3.js G 段＋site/watchlists.js）
     "手機總覽指數觀察清單": lambda pg, b, base, code: t_mobile_home(b, base, code),
     # ★ 2026-10-08 手機 v2（docs/mobile_v2_plan.md；site/mobile4.js）：側欄抽屜、每頁第一屏、字級／觸控、主要切換真的點得動
-    "手機v2":              lambda pg, b, base, code: (t_mobile_m4(b, base, code), t_mobile_m4_1008(b, base, code), t_mobile_m4_1009(b, base, code), t_mobile_m4_market(b, base, code)),
+    "手機v2":              lambda pg, b, base, code: (t_mobile_m4(b, base, code), t_mobile_m4_1008(b, base, code), t_mobile_m4_1009(b, base, code), t_mobile_m4_market(b, base, code), t_mobile_m4_ov2(b, base, code)),
+    # ★ 2026-10-09 手機總覽 ov2（Andy 09:1x／09:3x／09:4x）單獨跑：手機v2 也包含這一段
+    "手機v2總覽ov2":        lambda pg, b, base, code: t_mobile_m4_ov2(b, base, code),
     # ★ 2026-10-09 手機市場明細（Andy 06:1x）單獨跑：手機v2 也包含這一段
     "手機v2市場明細":      lambda pg, b, base, code: t_mobile_m4_market(b, base, code),
     # ★ 2026-10-09 Andy：「所有圖扁長寬到了就好，不可以…還能一直滑過頭超出範圍」（熱力圖放大後拖、K 線兩端、3D 平移、原生捲動不回彈）

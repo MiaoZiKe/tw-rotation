@@ -847,4 +847,28 @@
   /* 31f. 熱力圖右上「放大 ⤢」拿掉（Andy 09:3x：題材頁和產業熱力圖兩處都拿；總覽「熱度」組的兩顆是同一款，一併拿掉）。
      手機本來就是滿寬、可以兩指縮放，放大罩在手機只是多一層。節點留著（桌機照舊用）。 */
   :root.m4 :is(#heatZoom,#ovThemeZoom,#themeZoom){display:none!important}
+
+  /* 31g. 甜甜圈圖例拉滿寬（Andy 09:4x 圖一：產業地圖、半導體族群總覽圓餅下方的圖例左右留白很大）：
+     圖例跟頁面內容同寬，名稱靠左、成交值與占比靠右（全站手機的甜甜圈圖例都是 .gplegend 這一款）。 */
+  :root.m4 .gpdonut>.gplegend{align-self:stretch;width:100%!important;max-width:none!important;box-sizing:border-box}
+  :root.m4 .gpdonut>.gplegend{display:flex!important;flex-direction:column}
+  :root.m4 .gplegend .lg{display:flex!important;align-items:center;gap:12px;width:100%;box-sizing:border-box}
+  :root.m4 .gplegend .lg i{flex:none}
+  :root.m4 .gplegend .lg .vl{flex:none;min-width:5.2em}
+  :root.m4 .gplegend .lg .pc{flex:none;min-width:3.6em}
+  :root.m4 .gplegend .lg .nm{flex:1 1 auto;text-align:left}
+
+  /* 31h. 延伸閱讀抽屜（diagrams.js foldSheet；Andy 09:4x：「延伸 1｜尺度…」改成從底部滑出、左右箭頭切換、抽屜上限約 70% 螢幕，內容長就抽屜內捲） */
+  :root.m4 .msheet[data-kind=dgfold]{max-height:70vh}
+  :root.m4 .msheet .mdgfoldsvg{padding:4px 0 8px}
+  :root.m4 .msheet .mdgfoldsvg svg{display:block;width:100%;height:auto}
+
+  /* 31i. 頁面備註與副標不准斷在句子中間（Andy 09:4x：「列出成交值前 18 個族群」被拆成兩行，「族群」掉到下一行）：
+     · 標題旁的短副標（h2／h3 > small、頁首副標）：整句不換行 —— 放不下就整句移到下一行（inline 的 nowrap 自己會整塊折下去）；
+       真的比一整行還長才用「…」收尾（完整文字在 title，mobile4.js 第 31 節補）。
+     · 一兩行的說明句（.t4-lede、資金分流樹的 .skr-s／.skr-k、ETF 的 .incq／.incdisc 等）：中文不在字與字中間斷（keep-all），
+       只在空白與標點（、；：，）後面換行；一個片段長過一整行時才讓它斷（overflow-wrap:anywhere，不准撐破版面）。 */
+  :root.m4 main .view :is(h2,h3)>small,:root.m4 .m4pghead span{white-space:nowrap;max-width:100%;overflow:hidden;text-overflow:ellipsis;vertical-align:bottom}
+  :root.m4 main .view :is(h2,h3)>small{display:inline-block}
+  :root.m4 main .view :is(.t4-lede,.skr-s,.skr-k,.incq,.incdisc,.etfdisc,.disc-line,p.muted,.card>.muted,.mdgnumhint){word-break:keep-all;overflow-wrap:anywhere;line-break:strict}
 }
