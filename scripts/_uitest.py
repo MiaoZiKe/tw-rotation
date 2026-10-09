@@ -27850,6 +27850,8 @@ def t_mobile_m4_charts_1009(b, base, code):
             go(d, "flow/sankey", 4500)
             fm, fd = m.evaluate(M4C_FT_JS, "sankey"), d.evaluate(M4C_FT_JS, "sankey")
             same = fm and fd and all(fm[k] == fd[k] for k in ("layout", "motion", "dots", "stageBg", "dark"))
+            small = m.evaluate("() => [...document.querySelectorAll('#v-flow *')].filter(e => e.getClientRects().length && [...e.childNodes].some(n => n.nodeType === 3 && n.textContent.trim()) && parseFloat(getComputedStyle(e).fontSize) < 12).map(e => (e.className || e.tagName) + ' ' + getComputedStyle(e).fontSize + ' ' + e.textContent.trim().slice(0, 10)).slice(0, 6)")
+            ok(f"【{T}】{tl}：資金分流樹頁（含下方資金流向排名）字都 ≥ 12px", not small, small)
             ok(f"【{T}】{tl}：手機與網頁版的分流樹是同一支光纖引擎、同一份色盤、動態特效都開（手機 {fm and {k: fm[k] for k in ('layout', 'motion', 'maxBlur', 'particles')}}）",
                bool(same) and fm["maxBlur"] > 0 and fd["maxBlur"] > 0 and fm["n"] == fd["n"] and fm["l"] == fd["l"],
                {k: (fm and fm.get(k), fd and fd.get(k)) for k in ("layout", "motion", "dots", "stageBg", "maxBlur", "n", "l")})
@@ -27902,6 +27904,11 @@ def t_mobile_m4_charts_1009(b, base, code):
                   chk: [...document.querySelectorAll('#rotTools .rotchk input')].filter(e => e.getClientRects().length).map(e => e.className + ':' + e.checked) }; }""")
             ok(f"【{T}】{tl}：資金輪動頁沒有「篩選與期間」收展鈕，產業鏈／族群下拉、期間拉桿直接看得到（{ctl['dds']}）",
                not ctl["fold"] and ctl["filter"] and ctl["time"] and ctl["range"] and len(ctl["dds"]) >= 2, ctl)
+            # 手機 UI 監督退件（2026-10-09）：免責一行（法遵字句）完整顯示不准被截成「…」；一句話不斷在詞中間（keep-all：只在空白、標點換行）
+            dl = m.evaluate("""() => { const d = document.getElementById('flowRotDisc'), l = document.querySelector('#flowRotCard .t4-lede');
+                return { full: !!d && d.scrollWidth <= d.clientWidth + 1 && getComputedStyle(d).textOverflow !== 'ellipsis' && /不構成/.test(d.textContent), w: d && d.clientWidth,
+                  keep: !l || getComputedStyle(l).wordBreak === 'keep-all' }; }""")
+            ok(f"【{T}】{tl}：資金輪動免責字句完整顯示（寬 {dl['w']}px，沒有「…」）、一句話只在空白／標點換行", dl["full"] and dl["keep"], dl)
             chd = d.evaluate("() => [...document.querySelectorAll('#rotTools .rotchk input')].filter(e => e.getClientRects().length).map(e => e.className + ':' + e.checked)")
             ok(f"【{T}】{tl}：輪盤的軌跡／腳印／水波／掃描開關跟網頁版一樣（{ctl['chk']}）", ctl["chk"] == chd and len(chd) == 4, (ctl["chk"], chd))
             rg = m.evaluate("""() => { const e = document.getElementById('rotClock'); const c = e && echarts.getInstanceByDom(e); if (!c) return null; const r = e.getBoundingClientRect(); const o = c.getOption();
