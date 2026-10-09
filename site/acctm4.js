@@ -329,7 +329,7 @@ html.m4 .m4deldlg .msg{min-height:1.4em;font-size:13px;color:#ff6b7a;margin:4px 
         <li>意見反饋、訂閱申請、公告已讀紀錄</li>
         <li>方案與功能權限${paid ? `（你目前是 <b>${esc(w.label)}</b>：刪除後方案立即失效；已付的費用不會自動退款，有需要請先用「意見回饋」聯絡我們）` : ''}</li>
       </ul>
-      <p class="muted">不受影響：這台裝置上的本機設定與本機自選（要清除請用瀏覽器的「清除網站資料」）；不記名的全站使用次數統計。若你用過七天免費試用或七天退款保證，會另存一組無法還原成信箱的比對碼 365 天，防止重新註冊後重複使用。之後再用同一個 Google 帳號登入，會是一個全新的註冊會員。</p>
+      <p class="muted">不受影響：這台裝置上的本機設定與本機自選（要清除請用瀏覽器的「清除網站資料」）；不記名的全站使用次數統計。若你用過退款保證（目前不提供免費試用），會另存一組無法還原成信箱的比對碼 365 天，防止重新註冊後重複使用。之後再用同一個 Google 帳號登入，會是一個全新的註冊會員。</p>
       <label for="m4DelTxt">請輸入「刪除」兩個字確認</label>
       <input id="m4DelTxt" type="text" autocomplete="off" inputmode="text" placeholder="刪除">
       <p class="msg" id="m4DelMsg" role="status"></p>

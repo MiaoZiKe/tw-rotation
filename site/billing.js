@@ -116,7 +116,7 @@
     d.dataset.type = type;
     const until = d0.periodEnd ? day(d0.periodEnd) : '';
     const plan = esc(d0.planName || (P() && P().state().planName) || '付費方案');
-    const warn = `<p class="muted"><b>防呆提醒：</b>送出後，這個帳號<b>不再享有七天免費試用與七天退款保證</b>（刪除帳號後用同一個信箱重新註冊也一樣：我們只保存一組無法還原成信箱的比對碼 ${HASH_DAYS} 天，用來防止重複使用）。</p>`;
+    const warn = `<p class="muted"><b>防呆提醒：</b>送出後，這個帳號<b>不再享有退款保證（目前不提供免費試用；日後如提供，亦不適用）</b>（刪除帳號後用同一個信箱重新註冊也一樣：我們只保存一組無法還原成信箱的比對碼 ${HASH_DAYS} 天，用來防止重複使用）。</p>`;
     d.setAttribute('aria-label', type === 'cancel' ? '取消訂閱' : '申請退款');
     d.innerHTML = '<div class="box">' + (type === 'cancel'
       ? `<h3>取消訂閱</h3><p>你目前是 <b>${plan}</b>。取消後：</p><ul><li>${until ? `可以繼續使用到本期結束日 <b>${until}</b>` : '可以繼續使用到本期結束'}</li><li>次期<b>不再扣款</b>，到期後自動回到免費會員</li><li>自選清單與設定都會保留</li></ul>

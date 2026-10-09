@@ -47,6 +47,16 @@
 - 新段落 `_uitest`「導覽普查1009」（約 15 分鐘，⚠ --workers 1）；`平台導覽1007`、`手機v2` 跟著改手機入口（⋯ 已拿掉 → 🧭 小選單）。
 - ⚠ 另一位同事要把手機 🧭 收進 ☰：把 `#twPageTourBtn` 放進 `#m4Drawer`（或任何 `[data-twt-host]`）即可，tour.js 不會再搬它；也可以直接呼叫 `TwTour.menu(錨點)`／`TwTour.start('page')`。
 
+## 2026-10-09 午 網頁版：客服鈕 GIF、LOGO 換新、站名字樣、回報進度 SKILL
+- 客服鈕只剩天竺鼠 GIF（`brand/sup-anim-128.gif`，原檔 `brand/src/support_anim_1009.gif`，米色背景去成透明），一直動、沒有膠囊底與字（讀屏字保留）。
+- LOGO 換新圖（原檔 `brand/src/logo_1009.jpg`）：所有尺寸都用整張不裁切；桌機左上 40px；點 LOGO 跳出大圖（`app.js` logoLightbox，`brand/logo-1024.webp`），點站名照舊回總覽。圖片引用加 `?v=1009b` 避快取。
+- 站名改成 LOGO 字樣（`.brandtxt`：900 字重、深色描邊、「股」黃），手機抽屜同款。
+- `report-progress` SKILL 加 10-09 效率與回報格式規則。
+- 這批驗了：品牌哩股哩股 0（舊斷言三條改驗新行為）、客服鈕1009 0、桌機守門1008 0（站名字樣改動前跑的）。
+- ⚠ 手機v2 8 紅，全在「手機個股 K 線圖頭／十字線／成交量軸」（360、402 寬圖頭只抓到「收」一組、圖例右緣壓價格軸、量軸下限 None）。
+  這批只動 brand 圖檔、support.js、app.js（LOGO 大圖）、index.html、mobile4.css 一行（LOGO object-fit）、mobile4.js 兩行（抽屜站名），沒碰 K 線圖頭（chart.js／mobile4 圖頭那段）。
+  用推之前的 main（0dece90）重跑同段卡了 30 分鐘沒出結果、已停掉，所以「是否既有」還沒有機器證據 —— **待處理：手機 K 線那條線的負責人單跑「手機v2」確認**。
+
 ## 2026-10-09 網頁版（桌機）專責 session：市場明細四分頁＋個股河流圖／新聞
 - 這個聊天室之後專門處理網頁版問題（Andy 10-09：「這邊以後都負責處理網頁版的問題」）。
 - 漲跌分佈圖卡加寬（`.mktduo` 1：1.2 → 1.15：1；1440 時右邊五顆分頁鈕仍排成一行）。桌機基準跟著重寫（TW_DESK_BASELINE=write，只有 market/updown 兩格寬度變）。
