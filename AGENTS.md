@@ -57,6 +57,8 @@ Andy 提需求 → CEO（主 session）判斷屬於哪個領域 → 用 Task 工
 | 半導體鏈的事實：誰幫誰代工／封測客戶是誰／這家算設備商嗎 | 半導體鏈分析師 | `semi-chain-analyst` |
 | 載板還是 PCB／這塊板子的材料來自誰／CCL 廠客戶是誰 | 載板分析師 | `pcb-substrate-analyst` |
 | 散熱／電源／光通訊／交換器／機櫃的客戶與上下游 | AI 伺服器分析師 | `ai-server-analyst` |
+| 做新的 GIF／吉祥物動作、LOGO 要動、分鏡怎麼排、動畫審片 | 動畫導演（動畫設計單位） | `animation-director` |
+| 這張 GIF 去背、分鏡合成動畫、白邊／陰影／檔案太大 | 動態設計師（動畫設計單位） | `motion-designer` |
 
 **★ 判斷依據是證據，不是誰在問。**（Andy 2026-09-19：「不要把我的身份加進來，
 不因為我是誰而決定，需要依目前找到的資訊執行」）
@@ -389,3 +391,8 @@ CEO 彙整 → pytest + scripts/_preview.py → push → 更新 HANDOFF.md → �
 - **產出**：`結論／正確的寫法／信心度／來源（2 個以上＋各講了什麼）`，
   最後**一定**要加一段「你沒問到、但我撞到的錯誤或缺漏」——
   2026-09-19 那次，這一段抓到的東西比我問的還多。
+
+## 動畫設計單位（`animation-director` / `motion-designer`，2026-10-09 成立）
+- Andy 10-09：「幫我將 LOGO GIF 圖設計成立動畫設計單位…將從分鏡圖片到合成 GIF 以及去背整套流程寫個系統先儲存」。
+- 導演寫分鏡與規格、審片；設計師用 `scripts/anim/gif_pipeline.py` 做去背與合成、接上網站。整套流程與踩過的坑在 `docs/anim/README.md`。
+
