@@ -24,7 +24,7 @@
   const KEY = 'tw.theme4';
   const DEF = 'hud';
   const THEMES = [
-    { id: 'casual', name: '親和休閒', sub: '柔和漸層、圓角、暖白與夜紫', sw: 'linear-gradient(135deg,#FFE8DA,#6A55E6)' },
+    /* ★ 2026-10-10（Andy：「休閒風格拿掉 手機 網頁都是」）：親和休閒（casual）從選項拿掉；存過 casual 的人 valid() 不認，自動回預設 HUD。theme4.css 的 casual 樣式留著不刪（沒人能選到，等於死碼，下次大掃除再清）。*/
     { id: 'hud', name: '科技 HUD', sub: '透明玻璃、定位框、青色光（預設）', sw: 'linear-gradient(135deg,#050A13,#37E2FF)' },
     { id: 'pro', name: '專業有力', sub: '高對比、方角、粗標題', sw: 'linear-gradient(135deg,#0A0C10,#2E5BDB)' },
   ];

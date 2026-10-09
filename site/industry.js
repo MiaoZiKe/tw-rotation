@@ -694,10 +694,18 @@
     function paintLegend() {
       const el = $('#gpLegend', host); if (!el) return;
       const tot = pieData.reduce((s2, d) => s2 + (d.value || 0), 0) || 1;
+      /* ★ 2026-10-10 Andy（手機）：「下方的長條圖補上」—— 只在手機（html.m4）名稱下面多一條同色細長條，長度依占比
+         （以這份圖例裡最大的那一塊當滿格，彼此成正比）。桌機圖例沒有長條，DOM 完全不變（m4 才長出 .m4bar）。*/
+      const m4 = document.documentElement.classList.contains('m4');
+      const pmax = Math.max(...pieData.map(d => d.value || 0), 1);
       el.innerHTML = pieData.map(d => {
         const pc = A.fmt.n(d.value / tot * 100, 1) + '%', vl = A.fmt.yi(d.value);
+        const col = (d.itemStyle || {}).color || CH.ink3;
+        const nm = m4
+          ? `<span class="nm m4nm"><span class="m4t">${A.fmt.esc(d.name)}</span><b class="m4bar" aria-hidden="true"><s style="width:${((d.value || 0) / pmax * 100).toFixed(2)}%;background:${col}"></s></b></span>`
+          : `<span class="nm">${A.fmt.esc(d.name)}</span>`;
         return `<button type="button" class="lg${d.name === PIE_OTHER ? ' other' : ''}" data-n="${A.fmt.esc(d.name)}" title="${A.fmt.esc(d.name)}：成交值 ${vl}（${pc}）">`
-          + `<i style="background:${(d.itemStyle || {}).color || CH.ink3}"></i><span class="nm">${A.fmt.esc(d.name)}</span>`
+          + `<i style="background:${col}"></i>${nm}`
           + `<span class="vl">${vl}</span><span class="pc">${pc}</span></button>`;
       }).join('');
       $$('.lg', el).forEach(bn => {
@@ -736,6 +744,9 @@
       } else {
         S = Math.min(cw, Math.max(DN_MIN, Math.min(cw, twoCol ? barH - lr.height - DN_GAP_V : DN_CAP1)));
       }
+      /* ★ 2026-10-10 Andy（手機）：「圓餅圖需要調整與螢幕寬度相符 幫我放大」—— 手機（html.m4）甜甜圈的框＝卡片內寬，
+         不再被 340 的上限卡在中間一塊（430 寬左右各空 37px）。桌機沒有 m4，這行對桌機不變。*/
+      if (!side && document.documentElement.classList.contains('m4')) S = cw;
       S = Math.max(1, Math.floor(S));
       lg.style.maxWidth = lgMax;
       const changed = S !== dnS;

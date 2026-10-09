@@ -225,6 +225,8 @@
       const plan = st.who === 'guest' ? 'guest' : (st.plan || 'free');
       return Object.assign(QC.quotaOpts({ used: w.used, limit: w.lim, plan }), { btnCls: 'qlkgo' });
     }
+    /* 2026-10-10 inline 備註模式：功能清單有寫 qnote（例 ETF 現金流試算「今日次數已用完・Plus 以上可增加」）→ 原位置一行字，不畫大卡 */
+    if (w.f && w.f.qnote) return { kind: 'quota', inline: true, note: w.f.qnote, used: w.used == null ? w.lim : w.used, limit: w.lim, btnCls: 'qlkgo', gk: w.f.id };
     const lk = QC ? QC.lockOpts(w.f, 'member') : null;
     const n = w.used == null ? w.lim : w.used;
     return { kind: 'quota', kick: '每日瀏覽次數', title: `今天的「${w.f.name}」次數用完了`,
@@ -613,5 +615,7 @@
      act() 同一個對象不重算，所以兩邊都呼叫不會多扣；被擋時這裡先把網址換回去，route() 讀到的就是上一層。*/
   window.addEventListener('hashchange', () => { routeOkAll(location.hash); });
   window.TwQuota = { act, pick, pickBlock, routeOk: routeOkAll, heatLinkOk, heatGo, actUnit, UNIT_KINDS, used: (id) => (load().k[id] || []).slice(),
-    state: () => load(), limit: limitOf, evaluate: () => evaluate(), day: tpeDay, pageKey, unitKey: (id, h) => unitKey(window.TwFeatures && window.TwFeatures.byId(id), h || location.hash || ''), unitKind: (id) => unitKind(window.TwFeatures && window.TwFeatures.byId(id)) };
+    state: () => load(), limit: limitOf, evaluate: () => evaluate(), day: tpeDay, pageKey, unitKey: (id, h) => unitKey(window.TwFeatures && window.TwFeatures.byId(id), h || location.hash || ''), unitKind: (id) => unitKind(window.TwFeatures && window.TwFeatures.byId(id)),
+    /* 2026-10-10 手機額度上限面板（acctm4.js）依母分頁分組：沿用這裡的 PAGE_OF／CAT_HEAD 判斷，不另寫一套（只多匯出，不改行為）*/
+    onPage };
 })();

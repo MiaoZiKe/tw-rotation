@@ -17,7 +17,7 @@
                 （資料只讀 TwPerm.lim／TwPerm.limit／TwQuota.used —— 頁首那顆額度圓環是另一位同事在改，這裡不碰）
      意見回饋 → support.js 的客服面板（TwSupport.open()；客服浮動鈕關掉時照樣打得開）
      客服功能 → 開關（10-09 09:2x Andy：「客服按鈕改成『客服功能』」，只改名、開關行為不變）：關＝右下角客服浮動鈕藏起來（localStorage tw.fab.off＝'1'；<html class="fab-off">，index.html 開頭就先套用，不會先閃一下）
-     版面風格 → 收合群組（預設收起）：三套版面風格（親和休閒／科技 HUD／專業有力），點了就是 window.T4.set()，跟原本外觀面板同一支
+     版面風格 → 收合群組（預設收起）：兩套版面風格（科技 HUD／專業有力；10-10 Andy「休閒風格拿掉 手機 網頁都是」），點了就是 window.T4.set()，跟原本外觀面板同一支
                 （10-09 08:4x Andy 圖一＋圖二：「將紅框改成這功能（明暗切換）／風格在圖二改」——明暗改由頂欄那顆 ☀／🌙 直接切，
                  原本「深色模式」開關這一列改成「風格」；頂欄的外觀調色盤鈕 #t4Btn 在手機藏起來，不留兩顆重複的入口）
      管理區 › → 只有管理員／站主看得到；收合群組（預設收起），裡面是原本的四～五項
@@ -78,15 +78,17 @@
     if (n0 !== Infinity) { const u = Math.min(n0, used('quota.all')); out.all = { id: 'quota.all', name: '研究瀏覽（全站共用）', unit: '看', used: u, lim: n0, rem: Math.max(0, n0 - u) }; }
     const st = p.state();
     Object.keys(st.lims || {}).forEach((id) => {
-      const f = Ft.byId(id); if (!f || f.kind === 'limit') return;
+      /* 族群觀測（cat 'grp'）不列：跟桌機頁首「本頁限制」（quota.js pageItems）同一個口徑 —— 族群項目是每個族群一個鍵（上百個），
+         而且要等 groups_today.json 載入（addGroups）才查得到名字，列進來筆數會忽多忽少；族群的開關由族群頁與下拉的鎖頭負責。 */
+      const f = Ft.byId(id); if (!f || f.kind === 'limit' || f.cat === 'grp') return;
       const n = p.lim(id); if (n === Infinity) return;
       const u = Math.min(n, used(id));
-      out.daily.push({ id, name: f.name, unit: UNIT_TXT[f.act] || '看', used: u, lim: n, rem: Math.max(0, n - u) });
+      out.daily.push({ id, cat: f.cat, name: f.name, unit: UNIT_TXT[f.act] || '看', used: u, lim: n, rem: Math.max(0, n - u) });
     });
     Ft.list.forEach((f) => {
       if (f.kind !== 'limit') return;
       const v = p.limit(f.id, f.max);
-      if (typeof v === 'number' && v < f.max) out.count.push({ id: f.id, name: f.name, unit: f.unit || '', lim: v });
+      if (typeof v === 'number' && v < f.max) out.count.push({ id: f.id, cat: f.cat, name: f.name, unit: f.unit || '', lim: v, cnt: true });
     });
     return out;
   }
@@ -143,6 +145,8 @@ html.m4 .m4am .m4seg4{flex:1 0 auto;min-width:max-content;display:grid;grid-temp
 html.m4 .m4am .m4seg4 button{display:flex!important;align-items:center;justify-content:center;width:auto;min-height:40px;padding:0 9px;border:0;border-radius:7px;
   background:transparent;color:var(--ink-2);font-size:13px;line-height:1.2;white-space:nowrap;text-align:center}
 html.m4 .m4am .m4seg4 button:hover{background:transparent}
+html.m4 .m4am .m4seg4 button[data-plkb]{opacity:.45}
+html.m4 .m4am .m4seg4 button[data-plkb]::after{content:none!important}
 html.m4 .m4am .m4seg4 button[aria-checked="true"]{background:var(--t4-accent,var(--cyan));color:var(--on-accent,#04121a);font-weight:700}
 html.m4 .m4am .m4del{color:#ff6b7a!important}
 html.m4 .m4am .m4del[aria-disabled="true"],html.m4 .m4am .m4off[aria-disabled="true"]{opacity:.55;cursor:not-allowed}
@@ -171,6 +175,35 @@ html.m4 .m4sheet .qi[data-lvl="out"] .bar i{background:#ff6b7a}
 html.m4 .m4sheet .qi[data-lvl="low"] em{background:none}
 html.m4 .m4sheet .none{padding:18px 0;color:var(--ink-2)}
 html.m4 .m4sheet .ft{display:flex;gap:8px;align-items:center;margin-top:14px;flex-wrap:wrap}
+/* 額度上限：標題與底部固定、中間 .sc 自己捲（2026-10-10「太長就用拉Bar」）；只准垂直捲，橫向一律藏 */
+html.m4 #m4Quota .bx{display:flex;flex-direction:column;overflow:hidden;padding-bottom:calc(12px + env(safe-area-inset-bottom))}
+html.m4 #m4Quota .hd{flex:none}
+html.m4 #m4Quota .sc{flex:1 1 auto;min-height:0;overflow-y:auto;overflow-x:hidden;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;margin-right:-10px;padding-right:10px;
+  scrollbar-width:thin;scrollbar-color:color-mix(in srgb,var(--ink-2) 55%,transparent) transparent;
+  -webkit-mask-image:none;mask-image:none}
+html.m4 #m4Quota .sc::-webkit-scrollbar{width:5px}
+html.m4 #m4Quota .sc::-webkit-scrollbar-thumb{background:color-mix(in srgb,var(--ink-2) 55%,transparent);border-radius:999px}
+html.m4 #m4Quota .bx.more .sc{-webkit-mask-image:linear-gradient(#000 calc(100% - 36px),transparent);mask-image:linear-gradient(#000 calc(100% - 36px),transparent)}
+html.m4 #m4Quota .ft{flex:none;margin-top:10px;padding-top:10px;border-top:1px solid var(--line)}
+html.m4 #m4Quota .qh{display:flex;align-items:baseline;gap:8px}
+html.m4 #m4Quota .qh small{margin-left:auto;font-weight:400;font-size:12px}
+html.m4 #m4Quota .qg{border:1px solid var(--line);border-radius:12px;margin:0 0 8px;background:var(--panel-2);overflow:hidden}
+html.m4 #m4Quota .qgh{display:flex;align-items:center;gap:8px;width:100%;min-height:48px;padding:8px 12px;border:0;background:none;color:var(--ink);font:inherit;text-align:left;cursor:pointer}
+html.m4 #m4Quota .qgh .t{font-weight:700;font-size:15px;white-space:nowrap}
+html.m4 #m4Quota .qgh small{color:var(--ink-2);font-size:12px;white-space:nowrap}
+html.m4 #m4Quota .qgh .s{flex:1;min-width:0;display:flex;flex-wrap:wrap;justify-content:flex-end;gap:4px 8px}
+html.m4 #m4Quota .qgh .s em{font-style:normal;font-size:12px;color:var(--ink-2);white-space:nowrap}
+html.m4 #m4Quota .qgh .s em.low{color:var(--amber)}
+html.m4 #m4Quota .qgh .s em.out{color:#ff6b7a}
+html.m4 #m4Quota .qgh .s em.pl{color:var(--amber)}
+html.m4 #m4Quota .qgh i{font-style:normal;color:var(--ink-2);font-size:18px;line-height:1;transition:transform .15s}
+html.m4 #m4Quota .qgh[aria-expanded="true"] i{transform:rotate(90deg)}
+html.m4 #m4Quota .qgb{padding:0 12px 4px;border-top:1px solid var(--line)}
+html.m4 #m4Quota .qgb .qi:last-child{border-bottom:0}
+html.m4 #m4Quota .qi .r1{align-items:center}
+html.m4 #m4Quota .qplan{flex:none;display:inline-flex;align-items:center;height:24px;padding:0 10px;border-radius:999px;font-size:12px;font-weight:700;white-space:nowrap;
+  color:var(--amber);background:color-mix(in srgb,var(--amber) 14%,transparent);border:1px solid color-mix(in srgb,var(--amber) 45%,transparent)}
+html.m4 #m4Quota .qplan::before{content:'★';margin-right:4px;font-size:11px}
 html.m4 .m4sheet .ft small{flex:1;color:var(--ink-2);font-size:12.5px;min-width:10em}
 html.m4 .m4sheet .go{height:40px;padding:0 16px;border-radius:10px;border:0;background:var(--cyan);color:#04121a;font-weight:700;font-size:14px;text-decoration:none;display:inline-flex;align-items:center}
 html.m4 .m4deldlg .box{font-size:14px}
@@ -185,7 +218,7 @@ html.m4 .m4deldlg .msg{min-height:1.4em;font-size:13px;color:#ff6b7a;margin:4px 
   /* ---------------- 選單內容 ---------------- */
   const ver = () => { const b = document.getElementById('buildver'); const t = b && b.textContent.trim(); if (t) return t; const m = document.querySelector('meta[name="tw:build"]'); return 'v ' + (((m && m.content) || 'dev').split('|')[0] || 'dev'); };
   /* 版面風格：清單讀 theme4.js 的 T4.THEMES（只有 id），名稱照外觀面板的寫法 */
-  const STY = { casual: ['親和休閒', 'linear-gradient(135deg,#FFE8DA,#6A55E6)'], hud: ['科技 HUD', 'linear-gradient(135deg,#050A13,#37E2FF)'], pro: ['專業有力', 'linear-gradient(135deg,#0A0C10,#2E5BDB)'] };
+  const STY = { hud: ['科技 HUD', 'linear-gradient(135deg,#050A13,#37E2FF)'], pro: ['專業有力', 'linear-gradient(135deg,#0A0C10,#2E5BDB)'] };
   const styIds = () => ((window.T4 && window.T4.THEMES) || Object.keys(STY)).filter((k) => STY[k]);
   const styCur = () => (window.T4 && window.T4.get ? window.T4.get() : (document.documentElement.getAttribute('data-theme4') || 'hud'));
   const styName = (k) => (STY[k] || [k])[0];
@@ -263,6 +296,7 @@ html.m4 .m4deldlg .msg{min-height:1.4em;font-size:13px;color:#ff6b7a;margin:4px 
     const k = b.dataset.m;
     if (k === 'fab') { const off = !fabOff(); setFab(off); b.setAttribute('aria-checked', String(!off)); return; }
     if (k === 'style') return;   // 版面風格那一列的空白處：不做事（只有三格分段可點）
+    if (k === 'sty' && (b.dataset.plkb === 'block' || (P() && P().can && !P().can('theme')))) return;   // 「主題外觀」被方案關掉：perm.js 捕獲階段已經擋下並提示；這裡再保險一次
     if (k === 'sty') {   // 選了就套用（T4.set 會存 tw.theme4、重畫圖表），選單留著讓人看到選中格換了
       if (window.T4 && window.T4.set) window.T4.set(b.dataset.sty);
       const cur = styCur();
@@ -280,31 +314,113 @@ html.m4 .m4deldlg .msg{min-height:1.4em;font-size:13px;color:#ff6b7a;margin:4px 
     else if (k === 'del') openDel();
   }
 
-  /* ---------------- 額度上限（底部抽屜） ---------------- */
+  /* ---------------- 額度上限（底部抽屜） ----------------
+     ★ 2026-10-10 Andy：「額度上限使用收合功能將每個母分頁內所有有限制的功能標示出來，太長就用拉Bar。
+       不要寫"不開放" 幫我改成plus 會員 這樣比較親切」
+     · 全站每日額度維持在最上面（不收合）；下面依「母分頁」（側欄那一層：總覽、資金流向、熱力圖、產業地圖、個股、ETF…）一組一個收合區塊，
+       標題＝分頁名＋項目數＋一句狀態（最少剩幾次／幾項要升級）；組內列出每日次數、同時數量上限、上限 0 的項目。
+     · 功能歸哪一頁：沿用 quota.js 的 onPage()（PAGE_OF 精確對子分頁、其餘依分類對頁名），拿每一頁的代表網址去問，不另寫一套對照。
+       對不到任何一頁的（全站工具、族群觀測）依 features.js 的分類名自成一組，排最後。
+     · 收合預設收起（全站準則五）；只有一組時直接展開；使用者手動展開過的記在 localStorage tw.m4quota.open（關掉就刪）。
+     · 上限 0 不再寫紅字「不開放」，改成琥珀色小膠囊「<最低有開的方案> 會員」：
+       先問 TwPricing.unlockers()（後端方案範本，順序＝方案卡順序：註冊會員 → Plus → Pro）挑第一個；
+       方案清單還沒到或只有預設值時，退回 plan_presets.js 的建議方案。都查不到才寫「升級會員」。
+     · 面板內容太長：只有中間那段捲（.sc，細捲軸＋底部淡出），標題列與底部「看方案」固定；不准橫向捲動。 */
+  const K_QOPEN = 'tw.m4quota.open';
+  const QPAGES = [
+    ['overview', '總覽', ['#overview']], ['earnings', '財經日曆', ['#earnings']],
+    ['flow', '資金流向', ['#flow/rotation', '#flow/sankey', '#flow/inst']], ['heatmap', '熱力圖', ['#heatmap/industry', '#heatmap/theme']],
+    ['industry', '產業地圖', ['#industry']], ['stock', '個股', ['#stock/2330']], ['market', '市場明細', ['#market']],
+    ['explore', '選股策略', ['#explore']], ['season', '週期統計', ['#season']], ['etf', 'ETF', ['#etf', '#etf/list', '#etf/cal', '#etf/inc']],
+    ['watch', '自選', ['#watch']],
+  ];
+  function pageOf(x) {
+    const Qt = Q(), f = F() && F().byId(x.id);
+    if (Qt && Qt.onPage && f) { for (const [k, t, hs] of QPAGES) if (hs.some((h) => Qt.onPage(f, h))) return [k, t]; }
+    const c = F() && (F().cats || []).find((z) => z.id === x.cat);
+    return ['cat-' + (x.cat || 'other'), c ? c.name : '其他'];
+  }
+  /* 上限 0 的項目：最低哪個方案有開。回「Plus 會員」這種字；查不到回「升級會員」 */
+  function presetOff(t, id) { if (t.lims && t.lims[id] === 0) return true; const v = (t.feats || {})[id]; return v === false || v === 0; }
+  function needPlan(id) {
+    const Pr = window.TwPricing, st = Pr && Pr.state ? Pr.state() : null;
+    const lab = (p) => (p.id === 'free' ? '註冊會員' : String(p.name || p.id).replace(/\s*會員$/, '') + ' 會員');
+    if (st && (st.src === 'server' || st.src === 'demo') && Pr.unlockers) {
+      const cur = P() ? P().state().plan : '';
+      const u = (Pr.unlockers(id) || []).filter((p) => p.id !== cur);
+      if (u.length) return lab(u[0]);
+    }
+    const pr = window.TW_PLAN_PRESETS, tiers = pr && Array.isArray(pr.tiers) ? pr.tiers : [];
+    const t = tiers.find((z) => z.key !== 'guest' && !presetOff(z, id));
+    return t ? lab({ id: t.key, name: t.name }) : '升級會員';
+  }
+  const qOpen = () => { try { const v = JSON.parse(ls.get(K_QOPEN) || '[]'); return Array.isArray(v) ? v : []; } catch (e) { return []; } };
   function openQuota() {
     css();
     let d = document.getElementById('m4Quota');
     if (!d) {
       d = document.createElement('div'); d.id = 'm4Quota'; d.className = 'm4sheet'; d.setAttribute('role', 'dialog'); d.setAttribute('aria-modal', 'true'); d.setAttribute('aria-label', '額度上限');
       document.body.appendChild(d);
-      d.addEventListener('click', (e) => { if (e.target === d || e.target.closest('[data-x]') || e.target.closest('a[href]')) d.hidden = true; });
+      d.addEventListener('click', (e) => {
+        const g = e.target.closest('[data-qg]');
+        if (g) {   // 分組標題：展開／收起；記住使用者手動展開的那幾組
+          const open = g.getAttribute('aria-expanded') !== 'true', b = g.nextElementSibling;
+          g.setAttribute('aria-expanded', String(open)); if (b) b.hidden = !open;
+          const s = new Set(qOpen()); if (open) s.add(g.dataset.qg); else s.delete(g.dataset.qg);
+          if (s.size) ls.set(K_QOPEN, JSON.stringify([...s])); else ls.del(K_QOPEN);
+          qFade(d);
+          return;
+        }
+        if (e.target === d || e.target.closest('[data-x]') || e.target.closest('a[href]')) d.hidden = true;
+      });
       document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !d.hidden) d.hidden = true; });
       window.addEventListener('hashchange', () => { d.hidden = true; });
+      /* 方案清單晚到（第一次開面板才去抓）→ 膠囊上的方案名重畫一次；展開狀態照 DOM 保留 */
+      window.addEventListener('tw:plans', () => { if (!d.hidden) d.querySelectorAll('.qplan[data-need]').forEach((e) => { e.textContent = needPlan(e.dataset.need); }); });
     }
+    if (window.TwPricing && window.TwPricing.ensure) window.TwPricing.ensure();
     const w = who(), o = quotaItems();
-    const lvl = (x) => (x.lim === 0 ? 'off' : x.rem === 0 ? 'out' : x.rem === 1 ? 'low' : 'ok');
+    const lvl = (x) => (x.lim === 0 ? 'off' : x.cnt ? 'ok' : x.rem === 0 ? 'out' : x.rem === 1 ? 'low' : 'ok');
+    const plan = (x) => `<span class="qplan" data-need="${esc(x.id)}">${esc(needPlan(x.id))}</span>`;
     const row = (x, cls) => `<div class="qi${cls || ''}" data-id="${esc(x.id)}" data-lvl="${lvl(x)}"><div class="r1"><b>${esc(x.name)}</b>`
-      + (x.lim === 0 ? '<em>不開放</em>' : `<span>${esc(x.unit)}・已用 ${x.used}／${x.lim}</span><em>剩 ${x.rem} 次</em>`)
-      + `</div>${x.lim === 0 ? '' : `<div class="bar"><i style="width:${Math.round((x.used / Math.max(1, x.lim)) * 100)}%"></i></div>`}</div>`;
-    const any = o.all || o.daily.length || o.count.length;
+      + (x.lim === 0 ? plan(x) : x.cnt ? `<span>同時最多 ${x.lim} ${esc(x.unit)}</span>` : `<span>${esc(x.unit)}・已用 ${x.used}／${x.lim}</span><em>剩 ${x.rem} 次</em>`)
+      + `</div>${x.lim === 0 || x.cnt ? '' : `<div class="bar"><i style="width:${Math.round((x.used / Math.max(1, x.lim)) * 100)}%"></i></div>`}</div>`;
+    /* 分組：照 QPAGES 的順序，對不到頁的接在後面 */
+    const groups = new Map();
+    QPAGES.forEach(([k, t]) => groups.set(k, { k, t, xs: [] }));
+    o.daily.concat(o.count).forEach((x) => { const [k, t] = pageOf(x); if (!groups.has(k)) groups.set(k, { k, t, xs: [] }); groups.get(k).xs.push(x); });
+    const gs = [...groups.values()].filter((g) => g.xs.length);
+    const remembered = new Set(qOpen());
+    const gsum = (g) => {
+      const dl = g.xs.filter((x) => !x.cnt && x.lim > 0), off = g.xs.filter((x) => x.lim === 0).length;
+      const parts = [];
+      if (dl.length) { const m = Math.min(...dl.map((x) => x.rem)); parts.push(`<em class="${m === 0 ? 'out' : m === 1 ? 'low' : ''}">${m === 0 ? '有項目用完' : `最少剩 ${m} 次`}</em>`); }
+      if (off) parts.push(`<em class="pl">${off} 項升級可用</em>`);
+      if (!parts.length) parts.push(`<em>${g.xs.length} 項數量上限</em>`);   // 只有「同時最多 N 個」的組：不收合也看得出是哪一種限制
+      return parts.join('');
+    };
+    const grp = (g) => { const open = gs.length === 1 || remembered.has(g.k);
+      return `<section class="qg" data-pg="${esc(g.k)}"><button type="button" class="qgh" data-qg="${esc(g.k)}" aria-expanded="${open}">`
+        + `<span class="t">${esc(g.t)}</span><small>${g.xs.length} 項</small><span class="s">${gsum(g)}</span><i aria-hidden="true">›</i></button>`
+        + `<div class="qgb"${open ? '' : ' hidden'}>${g.xs.map((x) => row(x)).join('')}</div></section>`; };
+    const any = o.all || gs.length;
     d.innerHTML = '<div class="bx"><div class="hd"><h3>額度上限</h3><button type="button" class="x" data-x aria-label="關閉">✕</button></div>'
-      + `<p class="lead">目前身分：<b>${esc(w.label)}</b>。下面是你每一項有上限的功能還剩多少；同一個對象同一天重複看不重算。</p>`
+      + '<div class="sc">'
+      + `<p class="lead">目前身分：<b>${esc(w.label)}</b>。依分頁列出每一項有上限的功能；同一個對象同一天重複看不重算。</p>`
       + (!any ? '<p class="none">你的方案沒有任何次數或數量上限。</p>' : '')
       + (o.all ? '<div class="qh">全站每日額度</div>' + row(o.all, ' all') : '')
-      + (o.daily.length ? `<div class="qh">各功能每日次數（${o.daily.length} 項）</div>` + o.daily.map((x) => row(x)).join('') : '')
-      + (o.count.length ? `<div class="qh">同時數量上限（${o.count.length} 項）</div>` + o.count.map((x) => `<div class="qi" data-id="${esc(x.id)}" data-lvl="${x.lim === 0 ? 'off' : 'ok'}"><div class="r1"><b>${esc(x.name)}</b>${x.lim === 0 ? '<em>不開放</em>' : `<span>最多 ${x.lim} ${esc(x.unit)}</span>`}</div></div>`).join('') : '')
+      + (gs.length ? `<div class="qh">各分頁的限制（${o.daily.length + o.count.length} 項）<small>點分頁展開</small></div>` + gs.map(grp).join('') : '')
+      + '</div>'
       + `<div class="ft"><small>每天台北時間 00:00 重置</small>${w.tier === 'owner' ? '' : '<a class="go" href="#pricing">看方案</a>'}</div></div>`;
     d.hidden = false;
+    const sc = d.querySelector('.sc');
+    if (sc && !sc._m4) { sc._m4 = true; sc.addEventListener('scroll', () => qFade(d), { passive: true }); }
+    qFade(d);
+  }
+  /* 中間那段還有內容在下面 → 底部淡出＋「往下滑看更多」；捲到底就拿掉 */
+  function qFade(d) {
+    const sc = d.querySelector('.sc'); if (!sc) return;
+    d.querySelector('.bx').classList.toggle('more', sc.scrollHeight - sc.clientHeight - sc.scrollTop > 4);
   }
 
   /* ---------------- 刪除帳號（二次確認） ---------------- */
@@ -327,7 +443,7 @@ html.m4 .m4deldlg .msg{min-height:1.4em;font-size:13px;color:#ff6b7a;margin:4px 
         <li>雲端自選清單（所有分頁）</li>
         <li>線上狀態、個人使用明細、今日次數紀錄</li>
         <li>意見反饋、訂閱申請、公告已讀紀錄</li>
-        <li>方案與功能權限${paid ? `（你目前是 <b>${esc(w.label)}</b>：刪除後方案立即失效；已付的費用不會自動退款，有需要請先用「意見回饋」聯絡我們）` : ''}</li>
+        <li>方案與功能權限${paid ? `（你目前是 <b>${esc(w.label)}</b>：刪除後方案立即失效，<b>剩餘期間不會自動退費</b>；要退款請先關掉這個視窗，在帳號選單按「取消訂閱／申請退款」，或看<a href="#refund" data-close>退款與取消訂閱政策</a>）` : ''}</li>
       </ul>
       <p class="muted">不受影響：這台裝置上的本機設定與本機自選（要清除請用瀏覽器的「清除網站資料」）；不記名的全站使用次數統計。若你用過退款保證（目前不提供免費試用），會另存一組無法還原成信箱的比對碼 365 天，防止重新註冊後重複使用。之後再用同一個 Google 帳號登入，會是一個全新的註冊會員。</p>
       <label for="m4DelTxt">請輸入「刪除」兩個字確認</label>
