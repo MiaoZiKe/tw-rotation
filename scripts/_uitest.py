@@ -27978,11 +27978,15 @@ def t_mobile_m4_1008(b, base, code):
             const side = ns.filter(r => r.left - W.left < 40 || W.right - r.right < 40).length;
             return { n: ns.length, side, lines: l.querySelectorAll('svg path').length }; }""")
         ok(f"【{T}】3D 編號改成引線標註：編號圈都排在左右兩側、每個圈有一條引線（{ld}）", ld and ld["n"] > 0 and ld["side"] == ld["n"] and ld["lines"] >= ld["n"] - 1, ld)
-        rows = J("() => [...document.querySelectorAll('.mdgfolds button[data-fold]')].map(b => b.dataset.fold)")
+        # 2026-10-09（合併 claude/m4-3dfix）：3D 時圖下方的延伸閱讀列整列藏起來（Andy：「3D 圖為何還會出現下方欄位」）→ 先切回 2D 再點
+        J("() => { const b = document.querySelector('#dg3d button[data-dm=\"2d\"]'); if (b) b.click(); }"); m.wait_for_timeout(1500)
+        rows = J("() => [...document.querySelectorAll('.mdgfolds button[data-fold]')].filter(b => b.getClientRects().length).map(b => b.dataset.fold)")
         # ★ 2026-10-09 改寫（Andy 09:4x：「延伸 1｜尺度…點開時在頁面內往下展開一大塊，整頁會跳動」→ 改成底部抽屜、左右箭頭切換、頁面不捲動）：
         #   原本驗「點了圖在頁內真的展開（圖變高）」；改成驗「點了開出 role=dialog 抽屜（data-kind=dgfold）、抽屜裡有那一段的圖、window.scrollY 不變、圖高不變」。
         badf = []
         for i, fid in enumerate(rows):
+            # 先把那一列捲到畫面中間（不然 Playwright 的 tap 會自己捲過去，量到的是它的捲動、不是頁面跳動）
+            J(f"() => document.querySelector('.mdgfolds button[data-fold=\"{fid}\"]').scrollIntoView({{ block: 'center', behavior: 'instant' }})"); m.wait_for_timeout(400)
             y0 = J("() => Math.round(scrollY)"); h0 = J("() => document.getElementById('prodDiagram').getBoundingClientRect().height")
             m.locator(f'.mdgfolds button[data-fold="{fid}"]').tap(); m.wait_for_timeout(700)
             st = J("""() => { const s = document.getElementById('mSheet'); const v = s && !s.hidden; const g = v && s.querySelector('.mdgfoldsvg svg');
