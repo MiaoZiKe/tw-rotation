@@ -20629,33 +20629,34 @@ def t_design_v4(b, base, code):
     c.close()
     c = b.new_context(viewport={"width": 390, "height": 844}, is_mobile=True, has_touch=True)
     p = c.new_page(); p.goto(base + "#overview", wait_until="networkidle"); p.wait_for_timeout(2200)
-    # ★ 2026-10-09 審核：手機 v2（10-08，mobile4.css／mobile4.js）拿掉了「⋯」選單（#moreBtn 在 html.m4 一律藏起來），
-    #   版面風格與明暗都改從頂欄「外觀」鈕（#m4Tools #t4Btn）打開同一個 #t4Pop：上面明暗（深色｜淺色）、下面三套風格
-    #   （Andy 10-08：「將切換版面風格、明暗這部分統一一個功能按鍵在上方」）。這裡照新入口真的點一遍，驗的事情不變：
+    # ★ 2026-10-09 08:4x（Andy 圖一＋圖二）：手機頂欄 🔍 右邊那顆改成 ☀／🌙 直接切明暗；外觀調色盤 #t4Btn 在手機藏起來，
+    #   版面風格改從帳號選單（右上角頭像）的「風格」換。這裡照新入口真的點一遍，驗的事情不變：
     #   三套風格都在、點「專業有力」真的切過去並記住、沒有橫向捲軸、明暗按了真的換且記住、風格不受影響。
     ok("⑥ 390：手機 v2 拿掉「⋯」選單（#moreBtn 看不到）",
        p.evaluate("() => { const m = document.getElementById('moreBtn'); return !m || m.getClientRects().length === 0; }"))
-    p.locator("#m4Tools #t4Btn").tap(timeout=6000); p.wait_for_timeout(400)
-    ok("⑥ 390：頂欄「外觀」點了打開面板、裡面三套風格", p.evaluate("""() => { const q = document.getElementById('t4Pop');
-        return !!q && !q.hidden && [...q.querySelectorAll('.t4o[data-t4]')].filter(e => e.getClientRects().length).length === 3; }"""))
-    p.locator('#t4Pop .t4o[data-t4="pro"]').tap(timeout=6000); p.wait_for_timeout(1500)
-    ok("⑥ 390：點「專業有力」真的切過去並記住",
+    p.evaluate("() => { const m = document.getElementById('acctMenu'); if (m) m.hidden = true; }")
+    p.locator("#m4Tools #acctBtn, #m4Tools #m4Login").first.tap(timeout=6000); p.wait_for_timeout(500)
+    has_menu = p.evaluate("() => { const m = document.getElementById('acctMenu'); return !!m && !m.hidden && !!m.querySelector('[data-m=style]'); }")
+    if has_menu:
+        p.locator("#acctMenu [data-m=style]").tap(timeout=6000); p.wait_for_timeout(300)
+        ok("⑥ 390：帳號選單「風格」點開、裡面三套風格", p.evaluate("() => [...document.querySelectorAll('#acctMenu [data-m=sty]')].filter(e => e.getClientRects().length).length") == 3)
+        p.locator('#acctMenu [data-m=sty][data-sty="pro"]').tap(timeout=6000); p.wait_for_timeout(1500)
+    else:   # 會員功能沒設定（沒有頭像選單）：風格入口仍是 T4.set（同一支），這裡直接呼叫，並記一筆
+        ok("⑥ 390：（會員功能沒設定，沒有帳號選單）改用 T4.set 驗風格", True)
+        p.evaluate("() => window.T4.set('pro')"); p.wait_for_timeout(1500)
+    ok("⑥ 390：選「專業有力」真的切過去並記住",
        p.evaluate("() => [document.documentElement.getAttribute('data-theme4'), localStorage.getItem('tw.theme4')]") == ["pro", "pro"])
     ov = p.evaluate("() => document.documentElement.scrollWidth - document.documentElement.clientWidth")
     ok("⑥ 390：沒有橫向捲軸", ov <= 1, ov)
-    if p.evaluate("() => document.getElementById('t4Pop').hidden"):
-        p.locator("#m4Tools #t4Btn").tap(timeout=6000); p.wait_for_timeout(400)
-    mm = p.evaluate("""() => { const q = document.getElementById('t4Pop'), V = (e) => e.getClientRects().length > 0,
-        tb = document.getElementById('t4Btn').getBoundingClientRect(), top = document.querySelector('.topbar').getBoundingClientRect();
-        return { modeBtns: [...q.querySelectorAll('.t4mode button[data-mode]')].filter(V).length,
-                 btn: { right: Math.round(tb.right), vw: innerWidth, bot: Math.round(tb.bottom), tbB: Math.round(top.bottom), w: Math.round(tb.width) },
+    p.evaluate("() => { const m = document.getElementById('acctMenu'); if (m) m.hidden = true; }")
+    mm = p.evaluate("""() => { const tb = document.getElementById('themeBtn').getBoundingClientRect(), top = document.querySelector('.topbar').getBoundingClientRect();
+        return { btn: { right: Math.round(tb.right), vw: innerWidth, bot: Math.round(tb.bottom), tbB: Math.round(top.bottom), w: Math.round(tb.width) },
                  mode: document.documentElement.getAttribute('data-theme') || 'dark' }; }""")
-    ok("⑥ 390：明暗入口在頂欄右半的「外觀」面板裡（深色｜淺色兩顆看得到）",
-       mm["modeBtns"] == 2 and mm["btn"]["w"] > 0 and mm["btn"]["right"] > mm["btn"]["vw"] * 0.5
-       and mm["btn"]["right"] <= mm["btn"]["vw"] and mm["btn"]["bot"] <= mm["btn"]["tbB"] + 2, mm)
-    p.locator("#t4Pop .t4mode button:not(.on)").first.tap(timeout=6000); p.wait_for_timeout(1200)
+    ok("⑥ 390：明暗鈕 ☀／🌙 在頂欄右半看得到",
+       mm["btn"]["w"] > 0 and mm["btn"]["right"] > mm["btn"]["vw"] * 0.5 and mm["btn"]["right"] <= mm["btn"]["vw"] and mm["btn"]["bot"] <= mm["btn"]["tbB"] + 2, mm)
+    p.locator("#m4Tools #themeBtn").tap(timeout=6000); p.wait_for_timeout(1200)
     m2 = p.evaluate("() => [document.documentElement.getAttribute('data-theme') || 'dark', localStorage.getItem('tw.theme'), document.documentElement.getAttribute('data-theme4')]")
-    ok("⑥ 390：按面板裡的深色／淺色 → 明暗真的換、記住，風格不受影響（還是專業有力）",
+    ok("⑥ 390：按頂欄明暗鈕 → 明暗真的換、記住，風格不受影響（還是專業有力）",
        m2[0] != mm["mode"] and m2[1] == m2[0] and m2[2] == "pro", {"前": mm["mode"], "後": m2})
     c.close()
 
@@ -26930,6 +26931,8 @@ def t_tour_1007(pg, b, base):
     m.click("#mmTourSite")
     rows = _tour_walk(m, "全站 390")
     ok(f"{T} 390：全站導覽走了 8 步以上（底部導覽列四格＋更多＋搜尋＋⋯＋客服）", len(rows) >= 8, [r["title"] for r in rows])
+    li = m.evaluate("() => TwTour.last()") or {}
+    ok(f"{T} 390：全站導覽一步都沒被跳過（skipped 為空）", li.get("tour") == "site" and not li.get("skipped"), li)
     for r in rows:
         c_ok, h_ok = _tour_inview(r)
         ok(f"{T} 390 全站第 {r['i'] + 1} 步「{r['title']}」：框在畫面內、說明卡不出畫面且貼底或貼頂", c_ok and h_ok and r["place"] in ("sheet-bottom", "sheet-top"),
@@ -27328,18 +27331,15 @@ def t_mobile_m4_1009(b, base, code):
             return { vis: vis(t), left: vis(t) && vis(p) && t.getBoundingClientRect().right <= p.getBoundingClientRect().left, h: vis(t) ? Math.round(t.getBoundingClientRect().height) : 0,
                      rows: new Set(tools.map(e => Math.round(e.getBoundingClientRect().top))).size, bh: Math.round(bar.getBoundingClientRect().height), ovf: bar.scrollWidth > bar.clientWidth + 1,
                      theme: document.documentElement.dataset.theme || '', txt: vis(t) ? t.textContent.trim() : '' }; }""")
-        ok(f"【{T}】402 頂欄看得到獨立明暗鈕 #themeBtn（高 {tb['h']}）、在外觀調色盤左邊、整排一列不溢出",
-           tb["vis"] and tb["left"] and tb["h"] >= 40 and tb["rows"] == 1 and not tb["ovf"] and tb["bh"] <= 60, tb)
+        # 10-09 帳本 59（Andy：頂欄拿掉風格圖示只留深淺鈕）：手機頂欄的外觀調色盤 #t4Btn 藏起來，風格改從帳號選單換（帳號選單1009 驗）
+        t4v = J("() => { const p = document.getElementById('t4Btn'); return !!p && p.getClientRects().length > 0 && getComputedStyle(p).display !== 'none'; }")
+        ok(f"【{T}】402 頂欄看得到獨立明暗鈕 #themeBtn（高 {tb['h']}）、外觀調色盤不在頂欄、整排一列不溢出",
+           tb["vis"] and not t4v and tb["h"] >= 40 and tb["rows"] == 1 and not tb["ovf"] and tb["bh"] <= 60, (tb, t4v))
         m.locator("#m4Tools #themeBtn").tap(); m.wait_for_timeout(900)
         tb1 = J("() => ({ theme: document.documentElement.dataset.theme || '', txt: document.getElementById('themeBtn').textContent.trim() })")
         ok(f"【{T}】點明暗鈕 → 主題真的切換（{tb['theme']}→{tb1['theme']}）、圖示跟著換（{tb['txt']}→{tb1['txt']}）",
            tb1["theme"] != tb["theme"] and tb1["txt"] != tb["txt"], (tb, tb1))
         m.locator("#m4Tools #themeBtn").tap(); m.wait_for_timeout(700)
-        m.locator("#m4Tools #t4Btn").tap(); m.wait_for_timeout(400)
-        pp = J("""() => { const p = document.getElementById('t4Pop'); return { open: !!p && !p.hidden && p.getClientRects().length > 0,
-            mode: !!p && [...p.querySelectorAll('.t4mode, .t4modeh')].some(e => e.getClientRects().length), style: !!p && p.querySelectorAll('.t4o').length > 1 }; }""")
-        ok(f"【{T}】外觀面板裡沒有明暗段、只有版面風格", pp["open"] and not pp["mode"] and pp["style"], pp)
-        m.keyboard.press("Escape"); m.mouse.click(200, 700); m.wait_for_timeout(300)
         # ④ 抽屜寬度：360／390／402／430 都 ≤ 300px 且 ≤ 75% 視窗；項目文字不換行；點遮罩真的關、手指往左滑也關
         for w in (360, 390, 402, 430):
             m.set_viewport_size({"width": w, "height": 932 if w == 430 else 844}); m.wait_for_timeout(500)
@@ -28159,14 +28159,55 @@ def t_mobile_m4_1008(b, base, code):
         ok(f"【{T}】訂閱方案：精簡卡的升級鈕手指點得到、有反應（跳出申請／登入）",
            J("() => [...document.querySelectorAll('.subdlg:not([hidden]), dialog[open], .modal:not([hidden]), [role=dialog]:not([hidden]), #m4LoginTip:not([hidden]), .prdlg:not([hidden]), .acctdlg:not([hidden])')].some(e => e.getClientRects().length) || location.hash !== '#pricing'"), None)
         J("() => document.querySelectorAll('.subdlg [data-close]').forEach(b => b.getClientRects().length && b.click())"); m.keyboard.press("Escape")
-        # 市場明細「漲跌分佈」篩選列（2026-10-09 改，帳本 38 退件／claude/m4-misc）：全部／上市／上櫃、含 ETF、族群三組收進一顆「設定」摘要鈕 → 底部抽屜，
-        #   頁面上原本那排藏起來（抽屜裡每組一排、改了真的生效在 t_mobile_m4_mkset1009 驗）。這裡留版面規矩：那排不佔版面、摘要鈕在、主圖整張在第一屏。
+        # ㉒-b 2026-10-09 08:4x Andy 圖四「格式都跑掉了 請修復」（合併表在手機：名稱「註…／P…」、NT$ 249 被切、說明全成「…」、右緣超出；月繳／年繳膠囊被裁）
+        #   402×874 與 360×800 × 卡片＋表格／合併表 × 月繳／年繳：名稱、價格、說明、升級鈕都看得到而且不截字（scrollWidth ≤ clientWidth）、沒有元素超出視窗、整頁 ≤ 3 屏
+        PR_FIT = """() => { const v = document.getElementById('v-pricing'), V = (e) => !!e && e.getClientRects().length > 0 && getComputedStyle(e).visibility !== 'hidden';
+            const mg = !!document.getElementById('prMerged');
+            const cols = mg ? [...document.querySelectorAll('#prTable thead th[data-plan]')] : [...document.querySelectorAll('#prCards .prcard')];
+            const cut = (e) => !!e && e.scrollWidth > e.clientWidth + 1;
+            const per = cols.map(c => { const nm = c.querySelector(mg ? '.prhd b' : 'h2'), pr = c.querySelector('.prprice'), ft = c.querySelector('.mfit'), go = c.querySelector('.prgo');
+                return { p: c.dataset.plan, nm: V(nm) ? nm.textContent.trim() : '', pr: V(pr) ? pr.textContent.replace(/\\s+/g, ' ').trim() : '', cut: cut(nm) || cut(pr) || (mg && cut(ft)),
+                  ft: mg ? (V(ft) ? ft.textContent.trim() : '') : '-', go: V(go) && go.getBoundingClientRect().height >= 39.5 }; });
+            const trunc = [...v.querySelectorAll('*')].filter(e => V(e) && e.children.length === 0 && e.textContent.trim() && getComputedStyle(e).textOverflow === 'ellipsis' && cut(e)).map(e => e.textContent.trim().slice(0, 10));
+            const out = [...v.querySelectorAll('*')].filter(e => { if (!V(e)) return false; const r = e.getBoundingClientRect(); return r.width > 0 && (r.right > innerWidth + 1 || r.left < -1); }).map(e => e.className || e.tagName).slice(0, 6);
+            const sb = [...document.querySelectorAll('#prPeriod > button')].map(b => { const r = b.getBoundingClientRect(), s = b.parentNode.getBoundingClientRect(); return r.left >= s.left - 0.5 && r.right <= s.right + 0.5 && b.scrollWidth <= b.clientWidth + 1; });
+            return { mg, per, trunc, out, seg: sb, H: document.documentElement.scrollHeight, vh: innerHeight, sw: document.documentElement.scrollWidth, iw: innerWidth }; }"""
+        for (pw, ph) in ((402, 874), (360, 800)):
+            m.set_viewport_size({"width": pw, "height": ph})
+            for lay in ("", "&layout=merged"):
+                m.goto(base + ("&" if "?" in base else "?") + "demo=plans" + lay + "#pricing", wait_until="domcontentloaded")
+                wait_until(m, "() => !!document.querySelector('#prCards .prcard, #prMerged th[data-plan]') && document.documentElement.classList.contains('m4')", 8000)
+                m.wait_for_timeout(1200)
+                for per in ("month", "year"):
+                    if J(f"() => !!document.querySelector('#prPeriod [data-per={per}]:not(.on)')"):
+                        m.locator(f"#prPeriod [data-per={per}]").tap(); m.wait_for_timeout(600)
+                    f = J(PR_FIT)
+                    tag = f"{pw} {'合併表' if f['mg'] else '卡片＋表格'} {'年繳' if per == 'year' else '月繳'}"
+                    ok(f"【{T}】訂閱方案 {tag}：{len(f['per'])} 個方案都看得到名稱、價格、升級鈕" + ("、適合誰一句" if f["mg"] else "") + "，而且不截字",
+                       len(f["per"]) >= 3 and all(x["nm"] and x["pr"] and x["ft"] and x["go"] and not x["cut"] for x in f["per"]) and not f["trunc"], (f["per"], f["trunc"]))
+                    ok(f"【{T}】訂閱方案 {tag}：沒有元素超出視窗、整頁不橫捲（{f['sw']} ≤ {f['iw']}）、月繳／年繳兩顆都完整", not f["out"] and f["sw"] <= f["iw"] and all(f["seg"]) and len(f["seg"]) == 2, f)
+                    ok(f"【{T}】訂閱方案 {tag}：整頁 ≤ 3 屏（{f['H']} ≤ {3 * f['vh']}）", f["H"] <= 3 * f["vh"], f["H"])
+                if pw == 402 and lay:
+                    ok(f"【{T}】訂閱方案 402 合併表：三格升級鈕在同一條水平線（差 ≤ 2px）",
+                       J("() => { const t = [...document.querySelectorAll('#prMerged th[data-plan] .prgo')].map(b => b.getBoundingClientRect().bottom); return t.length >= 3 && Math.max(...t) - Math.min(...t) <= 2; }"), None)
+        m.set_viewport_size({"width": 402, "height": 874})
+        # 市場明細「漲跌分佈」篩選列（修前「族群：不限 ▾」掉到第二行、主圖往下約 48px）：全部／上市／上櫃、含 ETF、族群下拉同一行、都在畫面內；族群下拉真的點得開
         go("market", 3500)
-        df = J("""() => { const f = document.getElementById('distFilter'), b = document.getElementById('m4MkSet'), c = document.querySelector('#v-market canvas');
-            return { row: !!f && f.getClientRects().length > 0, btn: !!b && b.getClientRects().length > 0, bh: b ? Math.round(b.getBoundingClientRect().height) : 0,
+        df = J("""() => { const f = document.getElementById('distFilter'); if (!f) return null;
+            const ks = [...f.querySelectorAll('#distMkt > button, label, .twms-btn')].filter(e => e.getClientRects().length).map(e => { const r = e.getBoundingClientRect(); return { t: e.textContent.trim().slice(0, 8), top: Math.round(r.top), l: Math.round(r.left), r: Math.round(r.right), h: Math.round(r.height), w: Math.round(r.width) }; });
+            const c = document.querySelector('#v-market canvas');
+            return { ks, dy: Math.max(...ks.map(k => k.top + k.h / 2)) - Math.min(...ks.map(k => k.top + k.h / 2)), out: ks.filter(k => k.l < 0 || k.r > innerWidth).length,
+              tiny: ks.filter(k => k.t !== '含 ETF' && (k.h < 39.5 || k.w < 39.5)).length, fh: Math.round(f.getBoundingClientRect().height), cb: c ? Math.round(c.getBoundingClientRect().bottom) : 9999, vh: innerHeight }; }""")
+        # 2026-10-09 帳本 38（市場明細多組切換收進「摘要鈕＋底部抽屜」）：頁面上的篩選列改由摘要鈕 #m4MkSet 取代，
+        #   抽屜裡逐組切換、族群下拉在抽屜裡打得開，由「手機v2市場抽屜」段落驗；這裡只驗摘要鈕在第一屏、主圖在第一屏
+        mk = J("""() => { const b = document.getElementById('m4MkSet'), f = document.getElementById('distFilter');
+            const vis = e => !!e && e.getClientRects().length > 0 && getComputedStyle(e).visibility !== 'hidden';
+            const r = b && b.getBoundingClientRect(), c = document.querySelector('#v-market canvas');
+            return { btn: vis(b), h: r ? Math.round(r.height) : 0, in: !!r && r.left >= 0 && r.right <= innerWidth, filt: vis(f),
                      cb: c ? Math.round(c.getBoundingClientRect().bottom) : 9999, vh: innerHeight }; }""")
-        ok(f"【{T}】市場明細：篩選三組收成一顆摘要鈕（高 {df['bh']} ≥ 40）、原本那排不佔版面、主圖底 {df['cb']} ≤ {df['vh']}",
-           not df["row"] and df["btn"] and df["bh"] >= 40 and df["cb"] <= df["vh"], df)
+        ok(f"【{T}】市場明細：篩選收成摘要鈕 #m4MkSet（高 {mk['h']} ≥ 40、在畫面內）、頁面上不再攤開篩選列、主圖底 {mk['cb']} ≤ {mk['vh']}",
+           mk["btn"] and mk["h"] >= 40 and mk["in"] and not mk["filt"] and mk["cb"] <= mk["vh"], (df, mk))
+        m.keyboard.press("Escape"); m.wait_for_timeout(200)
         m.set_viewport_size({"width": 390, "height": 844})
         # ㉓ 現金流試算條件區：展開後 ≤ 84px、裡面沒有看得到的分段鈕群組（全部是 select／checkbox）；改任何一個下拉，圖真的跟著變
         m.set_viewport_size({"width": 402, "height": 874})
@@ -28664,11 +28705,10 @@ def t_mobile_m4(b, base, code):
                  sw: document.documentElement.scrollWidth, bw: bar.scrollWidth, bcw: bar.clientWidth, ovl, ev: evHidden,
                  more: vis(document.getElementById('moreBtn')), nth: [...document.querySelectorAll('#themeBtn, #mmTheme, [data-act=theme], #l4Mode')].filter(vis).length, head: (document.getElementById('m4Title') || {}).textContent || '' }; }""")
     ok(f"【{T}】頂欄只有頭像、沒有頁名文字", tb["logo"] and tb["txt"] == [], tb["txt"])
-    # 2026-10-08 改：明暗與版面風格合成一顆「外觀」（Andy：「統一一個功能按鍵在上方」）→ 依序：外觀、平台導覽、（在線）、登入
-    # 2026-10-09 改（Andy：「把明暗功能分出來」）：明暗又獨立一顆、在外觀調色盤左邊（同網頁版）→ 依序：搜尋、明暗、外觀、平台導覽、（在線）、登入
-    want_tools = ["m4Search", "themeBtn", "t4Btn", "twPageTourBtn"]
-    ok(f"【{T}】頂欄右邊依序有搜尋、明暗、外觀、平台導覽、（在線）、登入（{'／'.join(tb['tools'])}）",
-       tb["tools"][:4] == want_tools and tb["tools"][-1] in ("acctBtn", "m4Login") and all(x in ("acctOnline",) for x in tb["tools"][4:-1]), tb["tools"])
+    # 2026-10-09 08:4x 改（Andy 圖一：「將紅框改成這功能（明暗切換）」）：🔍 右邊那顆＝☀／🌙 直接切明暗；外觀調色盤 #t4Btn 在手機藏起來（風格改在帳號選單）
+    want_tools = ["m4Search", "themeBtn", "twPageTourBtn"]
+    ok(f"【{T}】頂欄右邊依序有搜尋、明暗、平台導覽、（在線）、登入，沒有調色盤（{'／'.join(tb['tools'])}）",
+       tb["tools"][:3] == want_tools and tb["tools"][-1] in ("acctBtn", "m4Login") and all(x in ("acctOnline",) for x in tb["tools"][3:-1]), tb["tools"])
     m.locator("#m4Search").tap(); m.wait_for_timeout(500)
     m.keyboard.type("2330"); m.wait_for_timeout(900)
     sr = m.evaluate("() => ({ focus: document.activeElement && document.activeElement.id, n: document.querySelectorAll('#sugg [role=option], #sugg .sg, #sugg > *').length })")
@@ -28679,18 +28719,18 @@ def t_mobile_m4(b, base, code):
     ok(f"【{T}】頂欄小圖示觸控高度 ≥ 40", tb["small"] == [], tb["small"])
     ok(f"【{T}】頂欄不溢出、元素不互相重疊", tb["bw"] <= tb["bcw"] + 1 and tb["sw"] <= 390 and tb["ovl"] == [], tb)
     ok(f"【{T}】「⋯」選單拿掉、頂欄沒有今日事件", not tb["more"] and tb["ev"] == 0, tb)
-    ok(f"【{T}】明暗鈕只有頂欄那一顆（10-09 起獨立在頂欄，同網頁版）", tb["nth"] == 1, tb["nth"])
+    ok(f"【{T}】頁面上只有一顆明暗鈕（頂欄 ☀／🌙）", tb["nth"] == 1, tb["nth"])
     ok(f"【{T}】頁名搬到內容區最上面（{tb['head']}）", tb["head"].strip() == "總覽", tb["head"])
-    m.locator("#m4Tools #t4Btn").tap(); m.wait_for_timeout(400)
-    pan = m.evaluate("""() => { const p = document.getElementById('t4Pop'); return !!p && !p.hidden && p.getClientRects().length > 0
-        && ![...p.querySelectorAll('.t4mode, .t4modeh')].some(e => e.getClientRects().length) && p.querySelectorAll('.t4o').length > 1; }""")
-    ok(f"【{T}】頂欄「外觀」點了打開面板（只有版面風格、沒有明暗段，同網頁版）", pan, pan)
-    s0 = m.evaluate("() => document.documentElement.getAttribute('data-theme4') || ''")
-    m.locator("#t4Pop .t4o[aria-pressed=false]").first.tap(); m.wait_for_timeout(400)
-    s1 = m.evaluate("() => document.documentElement.getAttribute('data-theme4') || ''")
-    ok(f"【{T}】外觀面板換版面風格真的生效（{s0}→{s1}）", s0 != s1, (s0, s1))
-    m.locator(f"#t4Pop .t4o[data-t4='{s0}']").first.tap() if s0 else None
-    m.wait_for_timeout(200)
+    # 頂欄明暗鈕：點一下主題真的切換、圖示 ☀／🌙 跟著換、不打開外觀面板；再點一下切回來
+    th0 = m.evaluate("() => ({ th: document.documentElement.dataset.theme || '', ic: document.getElementById('themeBtn').textContent.trim() })")
+    m.locator("#m4Tools #themeBtn").tap(); m.wait_for_timeout(500)
+    th1 = m.evaluate("""() => { const p = document.getElementById('t4Pop'); return { th: document.documentElement.dataset.theme || '', ic: document.getElementById('themeBtn').textContent.trim(),
+        pop: !!p && !p.hidden && p.getClientRects().length > 0, ls: localStorage.getItem('tw.theme') }; }""")
+    ok(f"【{T}】頂欄明暗鈕點一下：主題真的切換（{th0['th']}→{th1['th']}）、圖示換了（{th0['ic']}→{th1['ic']}）、存進 tw.theme、沒有打開外觀面板",
+       th0["th"] != th1["th"] and th0["ic"] != th1["ic"] and th1["ls"] == (th1["th"] or "dark") and not th1["pop"], (th0, th1))
+    m.locator("#m4Tools #themeBtn").tap(); m.wait_for_timeout(500)
+    ok(f"【{T}】頂欄明暗鈕再點一下切回原本的主題", m.evaluate("() => document.documentElement.dataset.theme || ''") == th0["th"], None)
+    ok(f"【{T}】頂欄沒有外觀調色盤鈕（避免兩顆重複）", not m.evaluate("() => { const t = document.getElementById('t4Btn'); return !!t && t.getClientRects().length > 0; }"), None)
     m.keyboard.press("Escape"); m.wait_for_timeout(200); m.mouse.click(200, 700); m.wait_for_timeout(300)
     lg = m.locator("#m4Tools #m4Login, #m4Tools #acctBtn").first; lg.tap(); m.wait_for_timeout(400)
     lgo = m.evaluate("""() => { const t = document.getElementById('m4LoginTip'); const d = document.querySelector('.acctdlg, .acctmenu, #acctDlg');
@@ -29129,13 +29169,8 @@ def t_mobile_m4_market(b, base, code):
         g = J("""() => { const c = document.getElementById('chgDist').getBoundingClientRect(), l = document.querySelector('.mktlist').getBoundingClientRect();
             return { cb: Math.round(c.bottom), lt: Math.round(l.top), vh: innerHeight }; }""")
         ok(f"【{T}】漲跌家數：長條圖在清單上方（圖底 {g['cb']} ≤ 清單頂 {g['lt']}），圖在第一屏（≤ {g['vh']}）", g["cb"] <= g["lt"] and g["cb"] <= g["vh"], g)
-        n0 = J("() => document.getElementById('distSub').textContent.trim()")
-        # 2026-10-09（帳本 38／claude/m4-misc）：全部／上市／上櫃收進「設定」抽屜 → 從摘要鈕打開抽屜再點（抽屜裡那顆＝按頁面上原本那顆）
-        m.locator("#m4MkSet").tap(); m.wait_for_timeout(500)
-        m.locator("#mSheet .seg[data-mk=mkt] button", has_text="上櫃").tap(); m.wait_for_timeout(900)
-        J("() => window.M3 && window.M3.closeSheet && window.M3.closeSheet()"); m.wait_for_timeout(300)
-        n1 = J("() => document.getElementById('distSub').textContent.trim()")
-        ok(f"【{T}】漲跌分佈切「上櫃」後檔數真的變（{n0[:12]} → {n1[:12]}）", n0 != n1 and n1, (n0, n1))
+        # 2026-10-09 帳本 38：市場明細的條件（市場／ETF／法人／天數／均線期間／族群）手機收進「摘要鈕 #m4MkSet＋底部抽屜」，頁面上原本那組藏起；
+        #   在抽屜裡切換、畫面真的變，改由「手機v2市場抽屜」段落驗（這裡不再點頁面上已藏起的控制項）
         seg = J("""() => { const s = document.getElementById('mktTabs'), bs = [...s.querySelectorAll('button')].map(b => b.getBoundingClientRect());
             return { w: bs.map(r => Math.round(r.width)), top: [...new Set(bs.map(r => Math.round(r.top)))].length, sw: s.scrollWidth, cw: s.clientWidth }; }""")
         ok(f"【{T}】漲停／跌停／漲幅／跌幅／成交值五段同一列等寬、不橫捲（{seg['w']}）", seg["top"] == 1 and max(seg["w"]) - min(seg["w"]) <= 1 and seg["sw"] <= seg["cw"] + 1, seg)
@@ -29146,38 +29181,12 @@ def t_mobile_m4_market(b, base, code):
         tw = J("() => { const t = document.querySelector('#mktInner .tw'); return t ? [t.scrollWidth, t.clientWidth] : null; }")
         ok(f"【{T}】漲跌家數清單不橫捲", tw is None or tw[0] <= tw[1] + 1, tw)
 
-        # ③ 法人連買賣：切「外資」散佈點真的變；下拉 ≥5 天後點數真的變
-        m.locator("#mktSeg2 button[data-k=streak]").tap(); m.wait_for_timeout(1800)
-        P = """() => { const c = echarts.getInstanceByDom(document.getElementById('trust')); if (!c) return null;
-            const ss = c.getOption().series || []; const pts = ss.reduce((a, s) => a + ((s.data || []).length), 0);
-            return { pts, sig: ss.map(s => (s.data || []).slice(0, 3).map(d => JSON.stringify(d.value || d)).join('|')).join('/') }; }"""
-        s0 = J(P)
-        # 2026-10-09（帳本 38／claude/m4-misc）：法人、天數、畫法收進「設定」摘要鈕的底部抽屜（每組一排分段；抽屜裡那顆＝按頁面上原本那顆／改原本那個下拉）
-        #   先在預設的「投信」換天數（外資／合計在 ≥8 天以內都是買 40／賣 40 的上限，點數不會變），再切外資
-        m.locator("#m4MkSet").tap(); m.wait_for_timeout(500)
-        m.locator('#mSheet .seg[data-mk=days] button[data-v="5"]').tap(); m.wait_for_timeout(1100)
-        s1 = J(P)
-        ok(f"【{T}】抽屜裡天數選 ≥5 天後點數真的變（{s0 and s0['pts']} → {s1 and s1['pts']}）", s0 and s1 and s1["pts"] != s0["pts"], (s0, s1))
-        m.locator('#mSheet .seg[data-mk=who] button[data-v="foreign"]').tap(); m.wait_for_timeout(1100)
-        s2 = J(P)
-        ok(f"【{T}】抽屜裡法人切「外資」後散佈點真的變", s1 and s2 and s1["sig"] != s2["sig"], (s1 and s1["pts"], s2 and s2["pts"]))
-        sb = J("""() => { const s = document.getElementById('mSheet'); const rows = [...s.querySelectorAll('.m4mkrow > .seg')];
-            return { keys: rows.map(g => g.dataset.mk), oneLine: rows.every(g => new Set([...g.children].map(x => Math.round(x.getBoundingClientRect().top))).size === 1) }; }""")
-        ok(f"【{T}】法人連買賣抽屜：法人、天數各一排分段（{sb['keys']}），每排不換行", "who" in sb["keys"] and "days" in sb["keys"] and sb["oneLine"], sb)
-        J("() => window.M3 && window.M3.closeSheet && window.M3.closeSheet()"); m.wait_for_timeout(300)
-
         # ④ 站上均線：圖例不畫；下拉多選勾一條 → 線多一條、取消 → 線真的少一條；方格收合段預設收起，點開才看得到
         m.locator("#mktSeg2 button[data-k=ma]").tap(); m.wait_for_timeout(2500)
         L = """() => { const c = echarts.getInstanceByDom(document.getElementById('maTrend')); if (!c) return null;
             const o = c.getOption(), lg = o.legend[0], sel = lg.selected || {};
             return { show: lg.show, drawn: (o.series || []).filter(s => sel[s.name] !== false).length }; }"""
         l0 = J(L)
-        # 2026-10-09（帳本 38）：均線期間與族群收進「設定」抽屜 → 在抽屜裡量那一排
-        m.locator("#m4MkSet").tap(); m.wait_for_timeout(500)
-        ms = J("""() => { const s = document.querySelector('#mSheet .seg[data-mk=ma]'); if (!s) return { n: 0, top: 0, sw: 1, cw: 0 }; return { sw: s.scrollWidth, cw: s.clientWidth, n: s.querySelectorAll('button').length,
-            top: new Set([...s.querySelectorAll('button')].map(b => Math.round(b.getBoundingClientRect().top))).size }; }""")
-        ok(f"【{T}】站上均線：抽屜裡均線期間分段同一列、不橫捲（{ms['n']} 顆）", ms["n"] >= 5 and ms["top"] == 1 and ms["sw"] <= ms["cw"] + 1, ms)
-        J("() => window.M3 && window.M3.closeSheet && window.M3.closeSheet()"); m.wait_for_timeout(300)
         ok(f"【{T}】站上均線：手機不畫 43 個族群的圖例（改用下拉清單）", l0 and l0["show"] is False, l0)
         f0 = J("""() => ({ folds: [...document.querySelectorAll('#mktBody .m4mafolds > .m4fold')].filter(e => !e.hidden).length,
             open: [...document.querySelectorAll('#mktBody .m4mafolds > .m4fbox')].filter(e => !e.hidden).length,
@@ -29187,19 +29196,7 @@ def t_mobile_m4_market(b, base, code):
         f1 = J("""() => { const h = document.querySelector('#mktBody .m4mafolds > .m4fold'); return { exp: h.getAttribute('aria-expanded'),
             vis: [...document.querySelectorAll('#mktBody .ma')].filter(e => e.getClientRects().length).length }; }""")
         ok(f"【{T}】點開第一段才看得到卡片（{f1['vis']} 張）", f1["exp"] == "true" and f1["vis"] > 0, f1)
-        m.locator("#m4MkSet").tap(); m.wait_for_timeout(500)   # 族群下拉在抽屜裡（同一個節點搬進去）
-        m.locator("#maGroupDD .ddbtn").tap(); m.wait_for_timeout(300)
-        nm = J("() => document.querySelector('#maGroupDD .ddlist input[type=checkbox]').dataset.n")
-        m.locator("#maGroupDD .ddlist input[type=checkbox]").first.check(); m.wait_for_timeout(600)
-        l1 = J(L)
-        f2 = J("""() => ({ vis: [...document.querySelectorAll('#mktBody .ma')].filter(e => e.getClientRects().length).map(e => e.querySelector('.n').firstChild.textContent.trim()),
-            folds: [...document.querySelectorAll('#mktBody .m4mafolds > .m4fold')].filter(e => !e.hidden).length })""")
-        ok(f"【{T}】下拉勾「{nm}」→ 圖上的線多一條（{l0 and l0['drawn']} → {l1 and l1['drawn']}）", l0 and l1 and l1["drawn"] == l0["drawn"] + 1, (l0, l1))
-        ok(f"【{T}】方格跟著同一份清單篩選：只剩「{nm}」一段一張、直接展開", f2["vis"] == [nm] and f2["folds"] == 1, f2)
-        m.locator("#maGroupDD .ddlist input[type=checkbox]").first.uncheck(); m.wait_for_timeout(600)
-        l2 = J(L)
-        ok(f"【{T}】下拉取消「{nm}」→ 圖上的線真的少一條（{l1 and l1['drawn']} → {l2 and l2['drawn']}）", l1 and l2 and l2["drawn"] == l1["drawn"] - 1, (l1, l2))
-        J("() => window.M3 && window.M3.closeSheet && window.M3.closeSheet()"); m.wait_for_timeout(300)
+        m.mouse.click(5, 300); m.wait_for_timeout(200)
 
         # ⑤ 今日關注：表格不橫捲；點一列展開細節（族群、綜合分、看個股頁）
         m.locator("#mktSeg2 button[data-k=cand]").tap(); m.wait_for_timeout(1500)
@@ -31260,6 +31257,161 @@ def t_wish_1009(b, base):
     ok(f"【{T}】390 寬管理頁願望清單沒有橫向捲軸（多出 {ow['sw']}px）", ow["sw"] <= 1, ow)
     c.close()
     ok(f"【{T}】整段沒有 JS 錯誤", not errs, errs[:3])
+# ★ 2026-10-09 Andy：「確實檢查所有導覽功能，我發現導覽功能不能使用」—— 導覽普查：每個入口 × 每一頁 × 兩種寬度（1440 滑鼠、402 觸控）。
+#   入口：桌機＝右上「平台導覽」(#twTourBtn) 與頁名旁「導覽」(#twPageTourBtn)；手機＝頂欄 🧭 (#twPageTourBtn) → 小選單「本頁導覽」(#twPickPage)／「平台導覽」(#twPickSite)。
+#   每一條都是真的點（手機用 tap）→ 等導覽定下來 → 驗遮罩在、說明卡看得見且在畫面內、聚光燈框住的目標存在且在畫面內 →
+#   一路按「下一步」走到最後一步（按鈕字是「完成」）→ 按下去導覽真的關掉。走過的步數不得少於 TOUR_FLOOR_1009（擋「選擇器改名 → 步驟被默默跳過」的退步）。
+#   修前的根因（同日普查）：① 手機 🧭 被 tour.js 與 mobile4.js 每 500ms 互搬，點了沒反應 ② 熱力圖／市場明細／選股／週期統計／自選／財經日曆沒有本頁導覽，
+#   桌機不出鈕、手機 🧭 整顆藏起來，手機也沒有任何全站導覽入口 ③ 手機總覽的分段名改成「大盤｜資金流向｜熱度」，導覽按不到舊段名，一半步驟被跳過
+#   ④ 換頁後說明卡的淡入等下一幀，新頁畫圖時卡片透明 0.5～2 秒 ⑤ 族群頁按導覽被帶離（先跳回 #industry 再到半導體）。
+TOUR_ROUTES_1009 = ["#overview", "#flow/rotation", "#flow/sankey", "#flow/inst", "#heatmap/industry", "#heatmap/theme", "#industry",
+                    "#industry/group/foundry", "#market", "#explore", "#etf/list", "#etf/cal", "#etf/inc", "#season", "#watch", "#earnings", "#stock/2330"]
+# 每套導覽在兩種寬度至少要走到幾步（照 2026-10-09 修好後的實測，留 1 步餘裕給資料暫缺的那一格）
+TOUR_FLOOR_1009 = {
+    # 2026-10-09 實測（1440／402）：全站 15／15、總覽 8／9、資金流向 7／4～5、產業地圖 13／13、產業鏈 11／11、個股 7／5，其餘 1～4 步全數走到
+    ("site", "desk"): 14, ("site", "mob"): 15, ("overview", "desk"): 7, ("overview", "mob"): 9, ("flow", "desk"): 6, ("flow", "mob"): 6,
+    ("industry", "desk"): 12, ("industry", "mob"): 12, ("chain", "desk"): 10, ("chain", "mob"): 10, ("stock", "desk"): 6, ("stock", "mob"): 4,
+    ("heatind", "desk"): 3, ("heatind", "mob"): 2, ("heattheme", "desk"): 2, ("heattheme", "mob"): 2, ("market", "desk"): 2, ("market", "mob"): 2,
+    ("explore", "desk"): 3, ("explore", "mob"): 3, ("etflist", "desk"): 4, ("etflist", "mob"): 4, ("etfcal", "desk"): 1, ("etfcal", "mob"): 1,
+    ("etfinc", "desk"): 3, ("etfinc", "mob"): 3, ("season", "desk"): 2, ("season", "mob"): 2, ("watch", "desk"): 3, ("watch", "mob"): 3,
+    ("earnings", "desk"): 3, ("earnings", "mob"): 3,
+}
+TOUR_CHK_1009 = """() => { const s = TwTour.state(); if (!s.active) return { active: false };
+  const root = document.getElementById('twTour'), card = document.getElementById('twTourCard'), vw = innerWidth, vh = innerHeight;
+  const cr = card.getBoundingClientRect(), op = parseFloat(getComputedStyle(card).opacity);
+  const t = s.target, tin = !!t && t.w > 3 && t.h > 3 && t.b > 0 && t.t < vh && t.r > 0 && t.l < vw;
+  const sel = s.sel || '', el = sel && sel !== '(說明卡)' ? sel.split(' + ').map((q) => { try { return document.querySelector(q); } catch (e) { return null; } }).find((x) => x && x.getClientRects().length) : null;
+  return { active: true, i: s.i, n: s.n, busy: s.busy, tour: s.tour, title: s.title, sel, hash: location.hash,
+    mask: !!root && root.isConnected && !root.hidden && getComputedStyle(root).display !== 'none',
+    card: op > 0.9 && cr.width > 120 && cr.height > 60 && cr.top >= -1 && cr.bottom <= vh + 1 && cr.left >= -1 && cr.right <= vw + 1,
+    tin, exists: !!el && el.isConnected, next: (document.getElementById('twTourNext') || {}).textContent || '' }; }"""
+
+
+def _tour_walk_1009(pg, name, want, mob):
+    """點開之後一路走到底；回傳 (步數, 問題清單)。"""
+    bad = []
+    try:
+        pg.wait_for_function("() => { const s = window.TwTour && TwTour.state(); return !!s && s.active && !s.busy && s.i >= 0; }", timeout=15000, polling=200)
+    except Exception:
+        return 0, [f"{name}：點了 15 秒導覽都沒開始（{pg.evaluate(TOUR_ST)}）"]
+    n, last = 0, None
+    for _ in range(30):
+        c = None
+        for _k in range(16):                         # 卡片淡入、聚光燈滑到位：最多等 4 秒
+            pg.wait_for_timeout(250)
+            c = pg.evaluate(TOUR_CHK_1009)
+            if not c["active"] or (c["card"] and c["tin"] and not c["busy"]):
+                break
+        if not c["active"]:
+            break
+        n += 1
+        if n == 1 and want and c["tour"] != want:
+            bad.append(f"{name}：開的是「{c['tour']}」，應該是「{want}」")
+        if not c["mask"]:
+            bad.append(f"{name} 第 {n} 步「{c['title']}」：遮罩不見了")
+        if not c["card"]:
+            bad.append(f"{name} 第 {n} 步「{c['title']}」：說明卡看不見或出了畫面")
+        if not (c["tin"] and c["exists"]):
+            bad.append(f"{name} 第 {n} 步「{c['title']}」：高亮目標不存在或不在畫面內（{c['sel']}）")
+        last = c
+        i0 = c["i"]
+        btn = pg.locator("#twTourNext")
+        try:
+            (btn.tap if mob else btn.click)(timeout=15000)
+        except Exception as e:
+            bad.append(f"{name} 第 {n} 步「{c['title']}」：「下一步」按不下去（{str(e)[-160:]}）")
+            pg.evaluate("() => TwTour.stop()")
+            break
+        try:
+            pg.wait_for_function("(i) => { const s = TwTour.state(); return !s.active || (!s.busy && s.i !== i); }", arg=i0, timeout=20000, polling=200)
+        except Exception:
+            bad.append(f"{name} 第 {n} 步「{c['title']}」：按「下一步」20 秒沒有反應（卡住）")
+            pg.evaluate("() => TwTour.stop()")
+            break
+    else:
+        bad.append(f"{name}：走了 30 步還沒結束")
+    if last and last["next"].strip() != "完成":
+        bad.append(f"{name}：最後一步的按鈕不是「完成」（{last['next']!r}）")
+    pg.wait_for_timeout(250)
+    if pg.evaluate("() => !!document.getElementById('twTour') || TwTour.state().active"):
+        bad.append(f"{name}：按「完成」之後遮罩還在")
+        pg.evaluate("() => TwTour.stop()")
+    # 2026-10-09 手機監督退件：步驟被默默跳過＝使用者看不到 → 每一套在兩種寬度扣掉 only 另一邊的步驟之後，一步都不准跳（TwTour.last().skipped 必須是空的）
+    li = pg.evaluate("() => TwTour.last && TwTour.last()") or {}
+    if li.get("skipped"):
+        bad.append(f"{name}：有步驟被跳過（使用者看不到）：{li.get('titles')}")
+    return n, bad
+
+
+def t_tour_census_1009(b, base):
+    T = "[導覽普查1009]"
+    for mode in ("desk", "mob"):
+        if mode == "desk":
+            ctx = b.new_context(viewport={"width": 1440, "height": 900})
+        else:
+            ctx = b.new_context(viewport={"width": 402, "height": 874}, is_mobile=True, has_touch=True, device_scale_factor=1)
+        ctx.add_init_script("try{localStorage.setItem('tw.live.on','0')}catch(e){}")
+        errs = []
+        pg = None
+        W = "1440" if mode == "desk" else "402"
+        steps = {}
+        for r in TOUR_ROUTES_1009:
+            if mode == "desk":
+                ents = [("右上「平台導覽」", "#twTourBtn", None, "site"), ("頁名旁「導覽」", "#twPageTourBtn", None, "page")]
+            else:
+                ents = [("🧭→本頁導覽", "#twPageTourBtn", "#twPickPage", "page"), ("🧭→平台導覽", "#twPageTourBtn", "#twPickSite", "site")]
+            for label, s1, s2, want in ents:
+                name = f"{W} {r} {label}"
+                # 每一條入口開一個新分頁、用完就關：一路開 68 次導覽（剖析圖 3D、K 線）記憶體會一直長，在滿載的機器上分頁會被砍（Target crashed）
+                if pg:
+                    pg.close()
+                pg = ctx.new_page()
+                pg.on("pageerror", lambda e: errs.append(f"pageerror: {e}"))
+                pg.goto(base + r, wait_until="domcontentloaded"); pg.wait_for_timeout(2200)
+                if want == "page":
+                    want = pg.evaluate("() => TwTour.pageTour()")
+                    ok(f"{T} {W} {r}：這一頁有本頁導覽（{want}）", bool(want), want)
+                errs.clear()
+                vis = pg.evaluate("(s) => { const e = document.querySelector(s); if (!e || e.hidden) return false; const q = e.getBoundingClientRect(); return q.width > 0 && q.height > 0 && q.right <= innerWidth && q.left >= 0; }", s1)
+                ok(f"{T} {name}：入口看得見", vis, s1)
+                if not vis:
+                    continue
+                try:
+                    if mode == "desk":
+                        pg.locator(s1).click(timeout=10000)
+                    else:
+                        pg.locator(s1).tap(timeout=10000)
+                        pk = wait_until(pg, "() => { const m = document.getElementById('twTourPick'); return !!m && !m.hidden && m.getClientRects().length > 0; }", 3000)
+                        ok(f"{T} {name}：點 🧭 跳出「本頁導覽／平台導覽」小選單", bool(pk))
+                        if not pk:
+                            continue
+                        pg.locator(s2).tap(timeout=5000)
+                    clicked = True
+                except Exception as e:
+                    clicked = False
+                    ok(f"{T} {name}：入口點得下去（不會被搬走、不會被蓋住）", False, str(e)[-300:])
+                if not clicked:
+                    continue
+                n, bad = _tour_walk_1009(pg, name, want, mode == "mob")
+                steps.setdefault(want, []).append(n)
+                floor = TOUR_FLOOR_1009.get((want, mode), 1)
+                ok(f"{T} {name}：導覽開始、每一步遮罩／說明卡／高亮目標都在、走完 {n} 步（至少 {floor}）、按「完成」關閉", not bad and n >= floor, bad[:4] or n)
+                ok(f"{T} {name}：過程沒有 JavaScript 錯誤", not errs, errs[:3])
+        # ✕ 中途關閉（每種寬度一次），順便留一張導覽進行中的截圖
+        if pg:
+            pg.close()
+        pg = ctx.new_page()
+        pg.goto(base + "#overview", wait_until="domcontentloaded"); pg.wait_for_timeout(2000)
+        pg.evaluate("() => TwTour.start('overview')")
+        pg.wait_for_function("() => { const s = TwTour.state(); return s.active && !s.busy && s.i >= 0; }", timeout=15000, polling=200)
+        pg.wait_for_timeout(600)
+        pg.screenshot(path=os.path.join(SHOT_TOUR, f"census1009_{mode}.jpg"), type="jpeg", quality=60)
+        x = pg.locator("#twTourX")
+        (x.tap if mode == "mob" else x.click)()
+        pg.wait_for_timeout(300)
+        ok(f"{T} {W}：導覽中按 ✕ 結束 → 遮罩消失", pg.locator("#twTour").count() == 0 and not pg.evaluate("() => TwTour.state().active"))
+        notes.append(f"{T} {W} 各導覽步數：{steps}")
+        ctx.close()
 
 
 SECTIONS = {
@@ -31482,6 +31634,8 @@ SECTIONS = {
     # ★ 2026-10-09 Andy：「手機剛剛發現嚴重BUG，畫面在產業地圖點擊都會卡頓沒反應」（402×874／DPR 3／CPU 降速 4 倍；⚠ --workers 1）
     "手機產業地圖回應1009": lambda pg, b, base, code: t_m4_ind_1009(b, base),
     # ★ 2026-10-09 Andy：「3D 圖為何還會出現下方欄位…圖四可以看到他的線條指到未知地方」＋帳本 67 3D 收合鈕（402 寬、全部 3D 圖；⚠ --workers 1）
+    # ★ 2026-10-09 導覽普查（main）
+    "導覽普查1009":        lambda pg, b, base, code: t_tour_census_1009(b, base),
     "手機3D說明1009":      lambda pg, b, base, code: t_m4_3d_1009(b, base),
     # ★ 2026-09-25 手機版 v3（docs/mobile_v3_spec.md §7）：底部一列五顆、「?」氣泡、大盤合一張、新雷達＋焦點條、
     #   資金分流樹長條、法人對稱長條、篩選抽屜、剖析圖只留編號（2D／3D）。390 與 360 各一輪。⚠ 一律 --workers 1（有 3D）
@@ -48150,6 +48304,24 @@ def t_refund_1009(b, base):
     if shots:
         pg.screenshot(path=os.path.join(shots, "refund_402.png"), full_page=True)
     ctx.close()
+    # 手機監督退件（2026-10-09）：方案卡那行連結不准把整頁撐寬（曾經 nowrap 長書名 → 402 變 408、360 變 380）；
+    #   手機改成卡片裡不放、三張卡下面整列放一次（.prpre-m），完整書名、兩個連結都在視窗內
+    for w, h in ((402, 874), (360, 780)):
+        ctx, pg = _lg_page(b, w, h, mobile=True)
+        pg.goto(base + q + "demo=plans#pricing", wait_until="networkidle"); pg.wait_for_timeout(3000)
+        m = pg.evaluate("""() => { const V = e => !!e && e.getClientRects().length > 0 && getComputedStyle(e).visibility !== 'hidden';
+            const inCard = [...document.querySelectorAll('#v-pricing .prcard .prpre')].filter(V).length, pm = document.querySelector('#v-pricing .prpre-m');
+            return { iw: innerWidth, sw: document.documentElement.scrollWidth, inCard, vis: V(pm), t: pm ? pm.textContent : '',
+                     links: pm ? [...pm.querySelectorAll('a')].map(a => [a.getAttribute('href'), Math.round(a.getBoundingClientRect().right)]) : [] }; }""")
+        ok(f"{T}：{w} 手機方案頁：卡片裡不放、三張卡下面整列放一次「付款前請先閱讀《退款與取消訂閱政策》《使用條款》」、連結在視窗內、整頁不被撐寬",
+           m["iw"] == w and m["sw"] <= w + 1 and m["inCard"] == 0 and m["vis"] and "付款前請先閱讀《退款與取消訂閱政策》《使用條款》" in m["t"]
+           and [x[0] for x in m["links"]] == ["#refund", "#terms"] and all(x[1] <= w for x in m["links"]), m)
+        ctx.close()
+    # 桌機看不到手機那一行
+    ctx, pg = _lg_page(b)
+    pg.goto(base + q + "demo=plans#pricing", wait_until="networkidle"); pg.wait_for_timeout(2500)
+    ok(f"{T}：1440 桌機不顯示手機版那一整列（.prpre-m）", pg.evaluate("() => { const e = document.querySelector('#v-pricing .prpre-m'); return !!e && e.getClientRects().length === 0; }"), "")
+    ctx.close()
 
 def t_legal(b, base):
     # ---------------------------------------------------------------- A. 開關關著（現況）
@@ -64757,13 +64929,39 @@ def t_acct_menu_1009(b, base, code):
         ok(f"【{T}】{who}：徽章＝「{want_label[who]}」（實際「{g['label']}」）", g["label"] == want_label[who], g["label"])
         ok(f"【{T}】{who}：管理員多一顆「管理」徽章、其他身分沒有", g["role"] == (["管理"] if who == "admin" else []), g["role"])
         ok(f"【{T}】{who}：選單裡沒有「自選清單」項目", "watch" not in g["items"] and "★ 自選清單" not in g["txt"], g["items"])
-        ok(f"【{T}】{who}：訂閱方案、通知、額度上限、意見回饋、客服按鈕、使用條款、隱私權政策都在",
-           all(k in g["items"] for k in ["pricing", "notify", "quota", "feedback", "fab", "terms", "privacy"]), g["items"])
+        ok(f"【{T}】{who}：訂閱方案、通知、額度上限、意見回饋、客服按鈕、風格都在",
+           all(k in g["items"] for k in ["pricing", "notify", "quota", "feedback", "fab", "style"]), g["items"])
+        # 10-09 08:4x Andy 圖二「風格在圖二改」＋圖三「拿掉」：沒有「深色模式」列（明暗在頂欄）、沒有使用條款／隱私權政策／免責聲明那一列（頁尾有）
+        ok(f"【{T}】{who}：沒有「深色模式」列、沒有條款三連結那一列",
+           "theme" not in g["items"] and "深色模式" not in g["txt"] and not any(k in g["items"] for k in ("terms", "privacy", "disc"))
+           and not any(x in g["txt"] for x in ("使用條款", "隱私權政策", "免責聲明")), g["items"])
         ok(f"【{T}】{who}：通知顯示未讀數字 1（有一則公告沒讀）", g["num"] == "1", g["num"])
         ok(f"【{T}】{who}：管理區只有管理員與站主看得到，而且預設收起",
            (g["adm"] and g["sub"] >= 4 and not g["subVis"]) if who in ("admin", "owner") else (not g["adm"] and g["sub"] == 0), g)
-        ok(f"【{T}】{who}：訪客有「登入／註冊」、沒有刪除帳號與登出；登入者相反",
-           (g["login"] and g["del"] is None and not g["logout"]) if who == "guest" else (not g["login"] and g["del"] is not None and g["logout"]), g)
+        ok(f"【{T}】{who}：訪客有「登入／註冊」；登入者沒有、而且有可用的登出",
+           (g["login"] and not g["logout"]) if who == "guest" else (not g["login"] and g["del"] is not None and g["logout"]), g)
+        # 10-09 09:2x Andy（帳本 59）：「深色功能改版面風格，並且將版面風格圖示拿掉，留下深淺切換功能。客服按鈕改成『客服功能』，下方需要多出刪除功能以及登出功能」
+        tail = pg.evaluate("""() => { const m = document.getElementById('acctMenu'), V = (e) => !!e && e.getClientRects().length > 0;
+            const rows = [...m.querySelectorAll('[data-m],[data-a]')].filter(V);
+            const last2 = rows.slice(-2).map(e => ({ k: e.dataset.m || e.dataset.a, t: e.innerText.replace(/\\s+/g, ' ').trim(), dis: e.getAttribute('aria-disabled') === 'true' }));
+            const t4 = document.getElementById('t4Btn');
+            return { last2, txt: m.innerText, t4: !!t4 && t4.getClientRects().length > 0, theme: V(document.querySelector('#m4Tools #themeBtn')) }; }""")
+        ok(f"【{T}】{who}：選單最下方兩列是「刪除帳號」「登出」（{[x['t'][:12] for x in tail['last2']]}）",
+           len(tail["last2"]) == 2 and tail["last2"][0]["t"].startswith("刪除帳號") and tail["last2"][1]["t"].startswith("登出"), tail["last2"])
+        if who == "guest":
+            ok(f"【{T}】guest：刪除帳號與登出兩列都停用、寫「登入後可用」", all(x["dis"] and "登入後可用" in x["t"] for x in tail["last2"]), tail["last2"])
+        elif who == "owner":
+            ok(f"【{T}】owner：刪除帳號停用、登出可按", tail["last2"][0]["dis"] and not tail["last2"][1]["dis"], tail["last2"])
+        else:
+            ok(f"【{T}】{who}：刪除帳號與登出都可以按", not any(x["dis"] for x in tail["last2"]), tail["last2"])
+        ok(f"【{T}】{who}：有「客服功能」「版面風格」兩列、沒有「客服按鈕」「深色模式」",
+           "客服功能" in tail["txt"] and "版面風格" in tail["txt"] and "客服按鈕" not in tail["txt"] and "深色模式" not in tail["txt"], tail["txt"][:200])
+        ok(f"【{T}】{who}：頂欄沒有 🎨 版面風格鈕、有 ☀／🌙 明暗鈕", not tail["t4"] and tail["theme"], tail)
+        if who == "guest":
+            pg.locator("#acctMenu [data-m=del]").tap(force=True); pg.wait_for_timeout(250)
+            pg.locator("#acctMenu [data-m=logout]").tap(force=True); pg.wait_for_timeout(250)
+            ok(f"【{T}】guest：點停用的刪除帳號／登出沒有反應（選單還開著、沒有確認框）",
+               pg.evaluate("() => !document.getElementById('acctMenu').hidden && !(document.getElementById('m4Del') && !document.getElementById('m4Del').hidden)"))
         ok(f"【{T}】{who}：選單在畫面內、沒有撐出橫向捲軸", g["inView"] and g["sw"], g)
         if shots and who in ("guest", "plus", "owner"):
             pg.screenshot(path=str(pathlib.Path(shots) / f"menu_{who}.jpg"), type="jpeg", quality=70)
@@ -64802,14 +65000,38 @@ def t_acct_menu_1009(b, base, code):
             pg.wait_for_timeout(200)
             ok(f"【{T}】{who}：額度頁按 ✕ 關掉", pg.evaluate("() => document.getElementById('m4Quota').hidden"))
         # ③ 各項點了真的到對應功能（訪客與註冊會員走全部；其他身分抽訂閱方案）
-        navs = [("pricing", "#pricing"), ("notify", "#notices"), ("terms", "#terms"), ("privacy", "#privacy")] if who in ("guest", "free") else [("pricing", "#pricing")]
+        navs = [("pricing", "#pricing"), ("notify", "#notices")] if who in ("guest", "free") else [("pricing", "#pricing")]
         for k, h in navs:
             _am4_open(pg)
-            pg.locator(f"#acctMenu [data-m={k}]" if k != "privacy" else "#acctMenu [data-a=privacy]").tap()
+            pg.locator(f"#acctMenu [data-m={k}]").tap()
             ok(f"【{T}】{who}：點「{k}」→ {h}、選單收起",
                bool(wait_until(pg, f"() => location.hash.startsWith({json.dumps(h)}) && document.getElementById('acctMenu').hidden", 3000)), pg.evaluate("() => location.hash"))
         pg.evaluate("() => { location.hash = '#overview'; }")
         pg.wait_for_timeout(400)
+        # 「風格」：預設收起；點開三套風格；選一套 → <html data-theme4> 換了、localStorage tw.theme4 寫進去、打勾移過去、列右邊的名稱跟著換、選單沒收
+        if who in ("guest", "owner"):
+            _am4_open(pg)
+            s0 = pg.evaluate("() => ({ t4: document.documentElement.getAttribute('data-theme4'), vis: [...document.querySelectorAll('#acctMenu [data-m=sty]')].filter(e => e.getClientRects().length).length })")
+            ok(f"【{T}】{who}：「風格」預設收起（三套風格看不到）", s0["vis"] == 0, s0)
+            pg.locator("#acctMenu [data-m=style]").tap()
+            pg.wait_for_timeout(200)
+            opts = pg.evaluate("() => [...document.querySelectorAll('#acctMenu [data-m=sty]')].filter(e => e.getClientRects().length && e.getBoundingClientRect().height >= 40).map(e => e.dataset.sty)")
+            ok(f"【{T}】{who}：點「風格」展開三套風格、每列高 ≥ 40（{opts}）", len(opts) == 3, opts)
+            pick = next((x for x in opts if x != s0["t4"]), None)
+            if pick:
+                pg.locator(f"#acctMenu [data-m=sty][data-sty={pick}]").tap()
+                pg.wait_for_timeout(700)
+                s1 = pg.evaluate("""() => { const m = document.getElementById('acctMenu');
+                    return { t4: document.documentElement.getAttribute('data-theme4'), ls: localStorage.getItem('tw.theme4'), open: !m.hidden,
+                      on: [...m.querySelectorAll('[data-m=sty][aria-checked=true]')].map(e => e.dataset.sty), cur: (m.querySelector('[data-sty-cur]') || {}).textContent || '' }; }""")
+                ok(f"【{T}】{who}：選「{pick}」→ 版面風格真的換了（{s0['t4']}→{s1['t4']}）、存進 tw.theme4、只有它打勾、選單沒收",
+                   s1["t4"] == pick and s1["ls"] == pick and s1["on"] == [pick] and s1["open"] and s1["cur"], s1)
+                pg.locator(f"#acctMenu [data-m=sty][data-sty={s0['t4']}]").tap()
+                pg.wait_for_timeout(500)
+                ok(f"【{T}】{who}：選回原本的風格（{s0['t4']}）", pg.evaluate("() => document.documentElement.getAttribute('data-theme4')") == s0["t4"], None)
+            if shots and who == "owner":
+                pg.screenshot(path=str(pathlib.Path(shots) / "menu_style_owner.jpg"), type="jpeg", quality=70)
+            pg.evaluate("() => { document.getElementById('acctMenu').hidden = true; }")
         _am4_open(pg)
         pg.locator("#acctMenu [data-m=feedback]").tap()
         ok(f"【{T}】{who}：點「意見回饋」→ 客服面板打開", bool(wait_until(pg, sup_open, 3000)))

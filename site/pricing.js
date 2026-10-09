@@ -410,6 +410,10 @@
 #v-pricing .prcard.mine .prgo[disabled]{font-weight:700}
 #v-pricing .prpre{margin:8px 0 0;font-size:12px;line-height:1.5;color:var(--ink-3);text-align:center}
 #v-pricing .prpre a{color:var(--cyan);text-decoration:none}
+#v-pricing .prpre-m{display:none}
+/* 2026-10-09 手機監督：卡片內放短名仍要 3 行，360 寬整頁超過 3 屏 → 手機把這句從卡片拿出來，接在卡片下方「申請制」那句後面（完整書名；桌機不變） */
+#v-pricing .prpre-m a{color:var(--cyan);text-decoration:none}
+@media (max-width:640px){#v-pricing .prcard .prpre{display:none}#v-pricing .prpre-m{display:inline}#v-pricing p.prapply{font-size:12px;line-height:1.5}}
 #v-pricing .prpre a:hover{text-decoration:underline}
 #v-pricing .prapply{text-align:center;font-size:13px;color:var(--ink-2);margin:20px 0 0}
 #v-pricing .prapply b{color:var(--ink)}
@@ -523,7 +527,7 @@
         <p>${fits.length >= 2 ? esc(fits.join('，') + '。') : '從資金流向、產業鏈到個股技術面，一個網站看完台股輪動。免費就能用大部分功能，付費方案開放更多分析與更高的每日瀏覽次數。'}</p></div>
       ${needF ? `<div class="prneed" id="prNeed" role="status">你剛剛點的 <b>「${esc(needF.name)}」</b>${needIds.length ? `在標成<b>「可解鎖」</b>的方案裡開放（或次數更多）` : '目前沒有方案開放更多，可以從右下角客服跟我們說'}<a href="#pricing" id="prNeedX">清除標示</a></div>` : ''}
       ${S.layout === 'merged' ? compare(plans, look, hot, needF, { me, needIds }) : `<div class="prcards" id="prCards" style="--n:${Math.min(4, Math.max(1, plans.length))}">${plans.map((p) => card(p, look.get(p.id), p === hot, me, needIds.includes(p.id))).join('')}</div>`}
-      <p class="prapply"><b>目前為申請制，專人開通；線上付款即將推出。</b>申請送出不會扣款。${S.src === 'fallback' ? '　（暫時讀不到付費方案）' : S.src === 'demo' ? '　（示範資料）' : ''}</p>
+      <p class="prapply"><b>目前為申請制，專人開通；線上付款即將推出。</b>申請送出不會扣款。<span class="prpre-m">付款前請先閱讀<a href="#refund">《退款與取消訂閱政策》</a><a href="#terms">《使用條款》</a></span>${S.src === 'fallback' ? '　（暫時讀不到付費方案）' : S.src === 'demo' ? '　（示範資料）' : ''}</p>
       ${S.layout === 'merged' ? '' : compare(plans, look, hot, needF)}
       <div class="prlegal">本網站提供的是資料整理與視覺化工具，<b>不是證券投資顧問</b>，不提供個股買賣建議，所有內容僅供參考，投資請自行判斷並承擔風險。
         方案內容與價格以專人開通時的確認為準；申請送出不會扣款。詳見 <a href="#disclaimer">免責聲明</a>、<a href="#terms">使用條款</a>、<a href="#privacy">隱私權政策</a>。</div>`;
@@ -575,7 +579,7 @@
      免費卡放同高的隱形佔位，三張卡的按鈕才會在同一條線上。*/
   function preRead(t) {
     const paid = t !== 'free' && t !== 'guest';
-    return `<p class="prpre"${paid ? '' : ' aria-hidden="true" style="visibility:hidden"'}>付款前請先閱讀${paid ? '<a href="#refund">《退款與取消訂閱政策》</a><a href="#terms">《使用條款》</a>' : '《退款與取消訂閱政策》《使用條款》'}</p>`;
+    return `<p class="prpre"${paid ? '' : ' aria-hidden="true" style="visibility:hidden"'}>付款前請先閱讀${paid ? '<a href="#refund" title="退款與取消訂閱政策">《退款與取消訂閱政策》</a><a href="#terms" title="使用條款">《使用條款》</a>' : '《退款與取消訂閱政策》《使用條款》'}</p>`;
   }
   /* 方案功能比較表：每格＝✓／—／每日 N 次／最多 N 頁。只列「至少一個方案不一樣」的功能；全部一樣的收成最後一行 */
   function compare(plans, look, hot, needF, mg) {
