@@ -1053,7 +1053,7 @@
       <td>${e.pay ? e.pay.slice(5) : '<span class="na">—</span>'}</td>
       <td class="fill${e.fill == null && e.fill_wait != null ? ' down' : ''}">${fillTxt(e.fill, e.fill_wait).replace(/（.*）$/, '<span class="nw">$&</span>')}</td></tr>`).join('');
   }
-  const THEAD = (first) => `<thead><tr><th>${first}</th><th title="每單位配息（元）">配息</th><th>當次殖利率</th><th>發放</th><th>填息天數</th></tr></thead>`;
+  const THEAD = (first) => `<thead><tr><th>${first}</th><th title="每單位配息（元）">配息</th><th>當次<wbr>殖利率</th><th>發放</th><th>填息天數</th></tr></thead>`;   // <wbr>：手機 360 寬表頭准換行時斷在「當次／殖利率」（桌機表頭不換行，看不出差別）
   /* 點某一檔：近幾次配息小長條＋當次殖利率走勢＋填息天數（資料＝行事曆近 400 天的除息紀錄） */
   function codeDetail(code) {
     const CGs = window.CalGrid, all = ((S.data && S.data.calendar) || []).filter((e) => e.code === code).sort((a, b) => (a.ex < b.ex ? -1 : 1));

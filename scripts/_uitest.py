@@ -27726,6 +27726,12 @@ def t_mobile_m4_etfqa_1009(b, base, code):
             fl = J("""() => [...document.querySelectorAll('#etfCalList td.fill')].filter(t => t.textContent.includes('尚未')).slice(0, 6).map(t => { const cs = getComputedStyle(t), lh = parseFloat(cs.lineHeight) || 16, nw = t.querySelector('.nw');
                 return { lines: Math.round((t.clientHeight - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom)) / lh), nw: nw ? nw.getClientRects().length : 0 }; })""")
             ok(f"【{T}】{W}：除息表「尚未填息（已 N 天）」括號那段不拆開、最多兩行（{fl[:3]}）", all(x["nw"] == 1 and x["lines"] <= 2 for x in fl), fl)
+            # 監督重驗（360）：表格右緣要停在拉 Bar 左緣之前（字不被蓋）、框內不准橫捲
+            rl = J("""() => { const l = document.getElementById('etfCalList'), t = l.querySelector('table.et'), r = document.querySelector('.calwrap > .m4rail');
+                const txt = [...l.querySelectorAll('th:last-child, td:last-child')].map(c => { const g = document.createRange(); g.selectNodeContents(c); return Math.max(0, ...[...g.getClientRects()].map(q => q.right)); });
+                return { textR: Math.round(Math.max(0, ...txt)), tableR: t ? Math.round(t.getBoundingClientRect().right) : 0, rail: r ? Math.round(r.getBoundingClientRect().left) : null, sw: l.scrollWidth, cw: l.clientWidth }; }""")
+            ok(f"【{T}】{W}：除息表最後一欄字右緣 {rl['textR']} ≤ 拉 Bar 左緣 {rl['rail']}、框內沒有橫捲（{rl['sw']}／{rl['cw']}）",
+               (rl["rail"] is None or rl["textR"] <= rl["rail"]) and rl["sw"] <= rl["cw"] + 1, rl)
             # 9-2 抽屜裡的分段控制器一排（放不下就框內橫拖）
             for h, pid in (("etf/list", "list"), ("etf/inc", "inc")):
                 go(h, 4500)
