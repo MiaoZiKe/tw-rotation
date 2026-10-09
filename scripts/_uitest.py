@@ -63290,14 +63290,19 @@ AI1010_STATE = r"""() => {
   const cells = [...c.querySelectorAll('#ovCkCells .cg')].filter(vis).map(g => ({ k: g.dataset.ck, met: +g.dataset.met, n: +g.dataset.n,
     cells: g.querySelectorAll('.cells i').length, lit: g.querySelectorAll('.cells i.on').length }));
   const sb = document.getElementById('ovSigBar'), cnt = c.querySelector('#ovAiTags [data-sigcnt]');
-  const fonts = [...c.querySelectorAll('.ovcells *, .vzb *, .vzt, .aiico ~ .nm, .aitag')].filter(e => vis(e) && [...e.childNodes].some(n => n.nodeType === 3 && n.textContent.trim()))
+  const fonts = [...c.querySelectorAll('.ovcells *, .vzb *, .vzt, .aiico ~ .nm, .aitag')].filter(e => !e.closest('.cgmini')).filter(e => vis(e) && [...e.childNodes].some(n => n.nodeType === 3 && n.textContent.trim()))
     .map(e => parseFloat(getComputedStyle(e).fontSize)).filter(x => x < 12);
   const newTxt = [...c.querySelectorAll('.ovcells, .vzb')].map(e => e.textContent).join(' ');
   return { tabs, cur: fac ? fac.dataset.cur : '', vz, bars, rise: probe(rise), fall: probe(fall), chipTxt, cells, line: (document.getElementById('ovAiLine') || {}).textContent || '',
     sig: sb && vis(sb) ? sb.dataset.pos + '-' + sb.dataset.neg : null, sigCnt: cnt ? cnt.dataset.sigcnt : null, small: fonts, newTxt,
-    anyNew: [...c.querySelectorAll('.vzi, .vzb, .ovcells, .aiico, .vzonly')].filter(vis).length,
+    anyNew: [...c.querySelectorAll('.vzb, .ovcells, .aiico, .vzonly')].filter(vis).length,
     liTxt: [...c.querySelectorAll('#ovFacets li')].map(l => l.textContent.trim()).filter(Boolean).length,
-    w: Math.round(c.getBoundingClientRect().width), sx: document.documentElement.scrollWidth > innerWidth + 1 };
+    w: Math.round(c.getBoundingClientRect().width), sx: document.documentElement.scrollWidth > innerWidth + 1,
+    // 10-10 第二版：每張小圖的寬度 ÷ 卡片內容寬（#ovFacets 寬）；直條小圖（CalGrid.mini）真的畫出 canvas
+    vizW: shown.flatMap(p => [...p.querySelectorAll('.vzviz')].filter(vis).map(e => ({ k: (e.closest('[data-vz]') || {}).dataset ? e.closest('[data-vz]').dataset.vz : '?',
+      r: +(e.getBoundingClientRect().width / fac.getBoundingClientRect().width).toFixed(3) }))),
+    minis: shown.flatMap(p => [...p.querySelectorAll('.vzcols .cgmini')].filter(vis).map(e => { const cv = e.querySelector('canvas'); return cv ? Math.round(cv.getBoundingClientRect().width) : 0; })),
+    oldBlock: [...c.querySelectorAll('.vzi')].filter(e => vis(e) && e.getBoundingClientRect().width > 16).length };
 }"""
 
 
@@ -63306,7 +63311,9 @@ def t_ai_icons_1010(b, base, code):
 
       ① 1440 深色：四顆籤各有線條圖示；判讀前有方向符號（偏多▲紅／偏空▼綠／中性—灰）
       ② 一行重點下有回檔／突破兩組小格子，亮幾格＝成立幾條，跟一行重點的數字一致
-      ③ 四顆籤逐一真的點：顯示的那一面換了，畫面上的小圖組也真的換（技術＝燈號比例條、籌碼＝法人橫條…）
+      ③ 四顆籤逐一真的點：顯示的那一面換了，畫面上的小圖組也真的換（技術＝燈號比例條、籌碼＝法人橫條…）；
+         10-10 第二版（Andy「參考行事曆上面的格式，並且需要調整適當寬度」）：每張小圖寬 ≥ 卡片內容寬 80%、圖示是小線條（無底塊）、
+         營收 YoY／EPS 直條是日曆面板同一支 CalGrid.mini 且真的畫出 canvas
       ④ 法人正負橫條：買超紅、往右；賣超綠、往左；長度跟張數成比例；外資／投信的方向與張數跟條列文字一致
       ⑤ 技術面比例條的多空顆數＝籤上的「N多M空」
       ⑥ 新元素字級 ≥ 12px、籤不裁切、沒有橫向捲軸、新圖上沒有指示性交易字眼
@@ -63357,6 +63364,10 @@ def t_ai_icons_1010(b, base, code):
                 click(pg, f'#ovAiTags .ovtag[data-facet="{k}"]', 400)
                 st = pg.evaluate(AI1010_STATE)
                 seen[k] = st["vz"]
+                ok(f"{tag} 「{k}」每張小圖寬 ≥ 卡片內容寬 80%（不擠在左半邊）", bool(st["vizW"]) and all(x["r"] >= 0.8 for x in st["vizW"]), st["vizW"])
+                ok(f"{tag} 「{k}」圖示是行事曆那種小線條圖示（不是 24px 底色方塊）", st["oldBlock"] == 0, st["oldBlock"])
+                if k == "fund":
+                    ok(f"{tag} 基本面：營收 YoY／EPS 直條是日曆同一支小圖、真的畫出來、寬 ≥ 80%", len(st["minis"]) >= 2 and all(w_ > 0 for w_ in st["minis"]), st["minis"])
                 ok(f"{tag} 點「{k}」→ 卡內切到那一面", st["cur"] == k and [t["k"] for t in st["tabs"] if t["on"]] == [k], (st["cur"], k))
                 if k == "tech":
                     ok(f"{tag} 技術面：九顆燈號比例條在、多空顆數＝籤上的計數", st["sig"] is not None and (st["sigCnt"] is None or st["sig"] == st["sigCnt"]), (st["sig"], st["sigCnt"]))
@@ -63379,7 +63390,7 @@ def t_ai_icons_1010(b, base, code):
                             ok(f"{tag} {who} 橫條數字跟條列文字一致（{mm.group(1)} {mm.group(2)} 張）", abs(bx["v"] - tv) <= 1, (bx["v"], tv))
             ok(f"{tag} 四個面向的小圖組真的不一樣（切籤圖表真的換）", len({tuple(v) for v in seen.values()}) == 4 and all(seen.values()), seen)
             ok(f"{tag} 技術＝燈號比例條、籌碼＝法人橫條、基本＝營收／EPS 小直條、消息＝則數橫條",
-               "ovSigBar" in seen["tech"] and "ovInstBars" in seen["chip"] and {"yoy", "eps"} <= set(seen["fund"]) and ("news" in seen["news"] or "ann" in seen["news"]), seen)
+               "sig" in seen["tech"] and "inst3" in seen["chip"] and {"yoy", "eps"} <= set(seen["fund"]) and ("news" in seen["news"] or "ann" in seen["news"]), seen)
             st = pg.evaluate(AI1010_STATE)
             ok(f"{tag} 新元素字級都 ≥ 12px", not st["small"], st["small"])
             ok(f"{tag} 沒有橫向捲軸", not st["sx"])
@@ -63627,11 +63638,13 @@ def t_stock_ov_eq_1003(b, base, code):
             elif W in (1100, 800):
                 # ★ 2026-10-06 改前→改後（ff621ee0，同上）：改前比「技術面 vs 技術面訊號」，技術面訊號籤不在了 → 改比「技術面 vs 基本面」
                 #   （實測 3189：1100＝659 vs 307、800＝602 vs 240；技術面最長、基本面最短，照內容長的話一定差很多）
-                click(pg, '#ovAiTags .ovtag[data-facet="tech"]', 350)
-                h_t = pg.evaluate(EQ1003_GEO)["ai"]["h"]
-                click(pg, '#ovAiTags .ovtag[data-facet="fund"]', 350)
-                h_s = pg.evaluate(EQ1003_GEO)["ai"]["h"]
-                ok(f"★ {tag} 不強制等高：AI 卡照內容長（技術面 {h_t}px ≠ 基本面 {h_s}px）", abs(h_t - h_s) > 20, (h_t, h_s))
+                # ★ 2026-10-10 改前→改後（Andy「AI 分析需要搭配圖示上去」＋「參考行事曆格式、調整寬度」）：基本面多了估值數字格與營收／EPS 兩張直條小圖，
+                #   跟技術面差不多長（1100 實測 745 vs 756）→ 改成四個面向逐一量，最長與最短差 > 20px 就證明卡片照內容長、沒有被強制等高。
+                hs = {}
+                for fk in ("tech", "chip", "fund", "news"):
+                    click(pg, f'#ovAiTags .ovtag[data-facet="{fk}"]', 350)
+                    hs[fk] = pg.evaluate(EQ1003_GEO)["ai"]["h"]
+                ok(f"★ {tag} 不強制等高：AI 卡照內容長（四個面向高度 {hs}）", max(hs.values()) - min(hs.values()) > 20, hs)
                 if W == 1100:
                     ok(f"{tag} 兩欄：AI 卡沒有被拉成左欄（基本面＋籌碼）那麼高", a_["h"] < (c_["b"] - f_["t"]) - 20, (a_["h"], c_["b"] - f_["t"]))
                 click(pg, '#ovAiTags .ovtag[data-facet="tech"]', 300)
