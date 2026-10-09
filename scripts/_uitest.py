@@ -31465,7 +31465,79 @@ def t_tour_census_1009(b, base):
         ctx.close()
 
 
+# ★ 2026-10-09（手機監督整包驗收記下的小問題）：手機資金分流樹按 ▶ 播放，節點換位的補間途中族群名稱標籤會短暫疊在一起。
+#   修法在 site/flowtopo.js 的 crossFade（只在 html.m4）：掃過範圍會交會的標籤對，依目前間距淡出、一碰到就是 0。
+#   這段量的是「每一幀實際畫出來的字框」（FlowTopo.probe 的 ln＝[x, y, 寬, 高, 透明度]），每 50ms 取一次樣，
+#   任兩塊看得見（透明度 > 0.05）的字框交疊面積 > 4px² 的次數必須是 0；播放要真的換了日、真的在補間，不然是假綠。
+SKLBL_SAMPLE_JS = """(dur) => new Promise(res => { const el = document.getElementById('sankey'); const out = []; const t0 = performance.now();
+  const tick = () => { const t = performance.now() - t0; let p = null; try { p = FlowTopo.probe(el); } catch (e) {}
+    if (p) { const L = p.nodes.filter(n => n.ln && n.ln[4] > 0.05).map(n => [n.ln[0], n.ln[1], n.ln[2], n.ln[3], n.text.slice(0, 10)]);
+      const ov = [];
+      for (let i = 0; i < L.length; i++) for (let j = i + 1; j < L.length; j++) { const a = L[i], c = L[j];
+        const ix = Math.min(a[0] + a[2], c[0] + c[2]) - Math.max(a[0], c[0]), iy = Math.min(a[1] + a[3], c[1] + c[3]) - Math.max(a[1], c[1]);
+        if (ix > 0 && iy > 0 && ix * iy > 4) ov.push([a[4], c[4], Math.round(ix * iy)]); }
+      out.push({ t: Math.round(t), tw: p.tweening, n: L.length, ov, day: ((document.getElementById('sankeySub') || {}).dataset || {}).day || '' }); }
+    if (t > dur) return res(out); setTimeout(tick, 50); };
+  tick(); })"""
+
+
+def t_m4_sankey_lbl_1009(b, base):
+    T = "手機分流樹標籤1009"
+    setday = "(v) => { const i = document.querySelector('#sankeyDays input[type=range]'); i.value = v; i.dispatchEvent(new Event('input', {bubbles: true})); i.dispatchEvent(new Event('change', {bubbles: true})); }"
+    play = "() => document.querySelector('#sankeyDays .pb.play').click()"
+    for w, mob in ((402, True), (360, True), (1440, False)):
+        vp = {"viewport": {"width": w, "height": 874 if mob else 900}}
+        if mob:
+            vp.update({"device_scale_factor": 2, "is_mobile": True, "has_touch": True})
+        ctx = b.new_context(**vp)
+        ctx.add_init_script("try{ localStorage.setItem('tw.theme','dark'); localStorage.setItem('tw.live.on','0'); localStorage.setItem('tw.tourDone','1'); localStorage.removeItem('tw.sankey.day'); }catch(e){}")
+        m = ctx.new_page()
+        m.route("**/fonts.googleapis.com/**", lambda r: r.abort())
+        m.on("pageerror", lambda e: fails.append(f"{T} pageerror: {e} @ {m.url}"))
+        tag = f"{w}" + ("（手機觸控）" if mob else "（桌機）")
+        try:
+            m.goto(base + "#flow/sankey", wait_until="domcontentloaded")
+            wait_until(m, "() => (window.FlowTopo && document.getElementById('sankey') && FlowTopo.has(document.getElementById('sankey')) && document.querySelector('#sankeyDays .pb.play')) ? 1 : 0", 15000)
+            m.wait_for_timeout(1500)
+            ok(f"{T} {tag}：版面是 {'html.m4' if mob else '桌機（沒有 m4）'}", m.evaluate("document.documentElement.classList.contains('m4')") == mob)
+            m.evaluate(setday, 0); m.wait_for_timeout(1500)
+            rest = m.evaluate(SKLBL_SAMPLE_JS, 200)
+            n_rest = rest[-1]["n"] if rest else 0
+            ok(f"{T} {tag}：停在第一天時看得見的標籤 {n_rest} 個、互不重疊", n_rest > 0 and not any(s["ov"] for s in rest), rest[-1:] )
+            m.evaluate(play); m.wait_for_timeout(80)
+            smp = m.evaluate(SKLBL_SAMPLE_JS, 4000)
+            days = {s["day"] for s in smp}
+            tw = sum(1 for s in smp if s["tw"])
+            bad = [s for s in smp if s["ov"]]
+            ok(f"{T} {tag}：播放中真的在換日、真的在補間（取樣 {len(smp)} 次、補間中 {tw} 次、經過 {len(days)} 天）",
+               len(smp) >= 10 and tw >= 5 and len(days) >= 2, (len(smp), tw, sorted(days)))
+            if mob:
+                ok(f"{T} {tag}：播放中取樣 {len(smp)} 次，任兩塊看得見的標籤字框重疊 > 4px² 的次數＝{len(bad)}（應為 0）",
+                   len(smp) >= 10 and not bad, [(s["t"], s["ov"][:3]) for s in bad[:4]])
+                # 名次大洗牌的那一天會有一半以上的標籤同時在交會（實測最少 10／24），所以下限放在三分之一、平均要 ≥ 六成
+                avg = sum(s["n"] for s in smp) / len(smp)
+                ok(f"{T} {tag}：播放中標籤不是整片消失（最少 {min(s['n'] for s in smp)}／{n_rest}、平均 {avg:.1f}）",
+                   min(s["n"] for s in smp) * 3 >= n_rest and avg >= 0.6 * n_rest, [s["n"] for s in smp][:24])
+            else:
+                # 桌機不准變：播放中每一幀畫出來的標籤數都跟靜止時一樣（沒有任何一塊被淡出）
+                ok(f"{T} {tag}：桌機播放中標籤一塊都沒被淡出（每次取樣都是 {n_rest} 塊）",
+                   all(s["n"] == n_rest for s in smp), sorted({s["n"] for s in smp}))
+            m.evaluate(play); m.wait_for_timeout(1500)
+            after = m.evaluate(SKLBL_SAMPLE_JS, 200)
+            ok(f"{T} {tag}：按 ⏸ 停下後標籤全部回來（{after[-1]['n'] if after else 0} 個）、不重疊",
+               bool(after) and after[-1]["n"] >= n_rest - 2 and not any(s["ov"] for s in after) and not after[-1]["tw"], after[-1:])
+            # 拖拉桿（單次換日，cubicInOut 補間）：同一條規則
+            m.evaluate(setday, 6)
+            dr = m.evaluate(SKLBL_SAMPLE_JS, 900)
+            if mob:
+                ok(f"{T} {tag}：拖拉桿換日的補間中（取樣 {len(dr)} 次、補間 {sum(1 for s in dr if s['tw'])} 次）標籤也不重疊",
+                   bool(dr) and not any(s["ov"] for s in dr), [(s["t"], s["ov"][:2]) for s in dr if s["ov"]][:3])
+        finally:
+            ctx.close()
+
 SECTIONS = {
+    # ★ 2026-10-09 手機監督：手機資金分流樹 ▶ 播放時換位補間中族群標籤短暫疊在一起 —— 402／360 播放每 50ms 取樣、標籤字框重疊次數＝0；1440 播放中標籤一塊都不准被淡出
+    "手機分流樹標籤1009":  lambda pg, b, base, code: t_m4_sankey_lbl_1009(b, base),
     # ★ 2026-10-09 Andy（網頁版）：法人連買賣改直觀（排行預設、四象限可切）、站上均線圖例→下拉＋族群卡依產業鏈收合、漲跌分佈加寬、個股新聞限高捲動
     "市場明細網頁1009":    lambda pg, b, base, code: t_mkt_web_1009(b, base),
     # ★ 2026-10-09 Andy：「出現格式跑掉 請確實修正每個圖片」—— 手機關聯圖每條鏈每個環節：節點不重疊、文字在框內、連線接在邊上（402／360 × 深／淺）
