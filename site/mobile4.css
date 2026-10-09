@@ -911,6 +911,12 @@
   :root.m4 .gplegend .lg .vl{flex:none;min-width:5.2em}
   :root.m4 .gplegend .lg .pc{flex:none;min-width:3.6em}
   :root.m4 .gplegend .lg .nm{flex:1 1 auto;text-align:left}
+  /* 31g-4.（10-10 Andy 手機：「下方的長條圖補上」）圖例每一列名稱下面一條同色細長條，長度依占比（industry.js paintLegend 只在 m4 長出 .m4bar）。
+     名稱一行（放不下省略）、長條在名稱正下方、跟名稱欄同寬當滿格；列高 40 不變，不擠數字欄。 */
+  :root.m4 .gplegend .lg .m4nm{display:flex;flex-direction:column;justify-content:center;gap:4px;min-width:0}
+  :root.m4 .gplegend .lg .m4t{display:block;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  :root.m4 .gplegend .lg .m4bar{display:block;height:4px;width:100%;border-radius:2px;background:color-mix(in srgb,var(--ink-3) 14%,transparent)}
+  :root.m4 .gplegend .lg .m4bar>s{display:block;height:100%;min-width:2px;border-radius:2px;text-decoration:none}
 
   /* 31h. 延伸閱讀抽屜（diagrams.js foldSheet；Andy 09:4x：「延伸 1｜尺度…」改成從底部滑出、左右箭頭切換、抽屜上限約 70% 螢幕，內容長就抽屜內捲） */
   :root.m4 .msheet[data-kind=dgfold]{max-height:70vh}

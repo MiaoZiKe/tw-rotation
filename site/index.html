@@ -35,7 +35,7 @@
 <!-- ★ 2026-09-28 設計 v4 正式套用（Andy「V4執行」）：版面風格 casual 親和休閒／hud 科技 HUD／pro 專業有力，存 tw.theme4。
      跟 data-theme 一樣要在畫面畫出來之前決定，不然會先閃一下。沒存過（或存了不認得的值）＝科技 HUD。
      例外處理也掛 hud：私密視窗讀不到 localStorage 時照樣是 v4 骨架，不會退回沒有間距尺度的舊版。 -->
-<script>(function(){var t4='hud';try{var v=localStorage.getItem('tw.theme4');if(v==='casual'||v==='hud'||v==='pro')t4=v;}catch(e){}document.documentElement.setAttribute('data-theme4',t4);})();</script>
+<script>(function(){var t4='hud';try{var v=localStorage.getItem('tw.theme4');if(v==='hud'||v==='pro')t4=v;}catch(e){}document.documentElement.setAttribute('data-theme4',t4);})();</script>
 <!-- ★ 2026-10-02 版面 v2 結構搬到 v4（DECISIONS #291，layout4.css／layout4.js）：桌機頂欄改成可收合的左側導覽。
      l4＝套用新版面（拿掉這個 class 就回到舊頂欄）；l4-mini＝收成圖示列。跟主題一樣要在畫面畫出來之前決定，
      不然收合過的人每次開頁都會先看到展開的左欄、再縮回去。沒按過收合時，視窗 ≤1180 預設收合（layout4.js 同一個門檻）。 -->

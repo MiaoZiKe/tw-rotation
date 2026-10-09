@@ -2362,7 +2362,8 @@ const GRANT_ID_RE = /^[a-z0-9_-]{1,24}$/;
 const GRANT_MAX_FEATS = 40, GRANT_M_MAX = 999, GRANT_DAYS_MAX = 60, GRANT_IP_DAY = 3;
 const GRANT_HIT_KEEP_DAYS = 30, GRANT_KEEP_MONTHS = 13;
 /* 範本沒寫這一項時的預設（＝site/features.js 的 defBy；改一邊要改另一邊）：熱力圖跳頁訪客／註冊會員預設關 */
-const GRANT_DEF_OFF = { 'heat.link': ['guest', 'free'] };
+/* 2026-10-10：ETF 試算參數鎖、報酬比較、複利試算表三個新鍵也是 defBy 訪客／註冊會員關（體驗額度才認得它們被鎖、會扣體驗）*/
+const GRANT_DEF_OFF = { 'heat.link': ['guest', 'free'], 'etf.inc.params': ['guest', 'free'], 'etf.cmp': ['guest', 'free'], 'etf.inc.comp': ['guest', 'free'] };
 const grantTxt = (s, n) => String(s == null ? '' : s).replace(/[\u0000-\u001f\u007f<>]/g, '').trim().slice(0, n);
 /* Gmail 別名正規化（a.b+x@gmail.com ＝ ab@gmail.com）：只用在 welcome 的比對碼 */
 export const grantMailNorm = (email) => {
