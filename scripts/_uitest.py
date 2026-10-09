@@ -28759,6 +28759,9 @@ def t_mobile_m4_ov2(b, base, code):
         pk = J("""() => { const p = [...document.querySelectorAll('#prodDiagram [data-seg]')].find(e => e.getClientRects().length); if (!p) return null; p.dispatchEvent(new MouseEvent('click', { bubbles: true }));
             return document.querySelectorAll('#prodDiagram .dgdim, #prodDiagram .dim, #prodDiagram .hl, #prodDiagram .sel, #indChain .segon').length; }""")
         m.wait_for_timeout(400)
+        # 點零件會開底部抽屜（claude/m4-3dfix）：先關抽屜（使用者點遮罩），捲動停住再點圖的空白角落
+        J("() => window.M3 && window.M3.closeSheet && window.M3.closeSheet()"); m.wait_for_timeout(300)
+        J("() => document.getElementById('prodDiagram').scrollIntoView({ block: 'center', behavior: 'instant' })"); m.wait_for_timeout(700)
         bgp = J("""() => { const h = document.getElementById('prodDiagram'); const r = h.getBoundingClientRect(); return { x: r.left + 6, y: r.top + 6 }; }""")
         m.touchscreen.tap(bgp["x"], bgp["y"]); m.wait_for_timeout(500)
         pk2 = J("() => document.querySelectorAll('#prodDiagram .dgdim, #prodDiagram .dim, #prodDiagram .hl, #prodDiagram .sel, #indChain .segon').length")
@@ -28769,6 +28772,7 @@ def t_mobile_m4_ov2(b, base, code):
             m.set_viewport_size({"width": wid, "height": 800})
             for h in ("industry/electronics", "industry/semiconductor/dg/hbm"):
                 go(h, 4000)
+                wait_until(m, "() => { const t = document.getElementById('dgTitle'); return !!t && t.getClientRects().length > 0 && t.textContent.length > 4; }", 12000)
                 dt = J("""() => { const t = document.getElementById('dgTitle'); if (!t || !t.getClientRects().length) return null; const s = t.querySelector('.dgtm');
                     return { has: !!s, lines: s ? s.getClientRects().length : 0, txt: t.textContent.trim().slice(-14),
                              fold: [...document.querySelectorAll('#indChain .m4fold')].filter(e => e.getClientRects().length && /環節卡清單/.test(e.textContent)).length,
