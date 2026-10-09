@@ -13895,10 +13895,15 @@ def t_brand(b, base):
     pg.evaluate("() => { location.hash = '#overview'; }")
     pg.wait_for_selector("#supFab .supmark", timeout=15000)
     # 改前（10-07）：頭像 <img>、不要對話泡泡。改後（10-08 Andy：「改成原本的 LOGO 樣式，但是表情是天竺鼠」）：對話泡泡（svg）裡放天竺鼠頭像（svg <image>）
-    pg.wait_for_function("() => !!document.querySelector('#supFab svg.supbub image')", timeout=15000)
-    fab = pg.evaluate("""() => new Promise((ok) => { const f = document.getElementById('supFab'); const href = f.querySelector('svg.supbub image').getAttribute('href');
+    # 改後（10-09 Andy：「客服圖示換成這個GIF圖動畫」）：天竺鼠 GIF 動畫（brand/sup-anim-96.gif）
+    pg.wait_for_function("() => !!document.querySelector('#supFab img.supgif')", timeout=15000)
+    fab = pg.evaluate("""() => new Promise((ok) => { const f = document.getElementById('supFab'); const href = f.querySelector('img.supgif').getAttribute('src');
         const im = new Image(); im.onload = () => ok({ nw: im.naturalWidth, txt: f.textContent.trim(), href }); im.onerror = () => ok({ nw: 0, txt: f.textContent.trim(), href }); im.src = href; })""")
-    ok("客服鈕：對話泡泡裡是天竺鼠頭像（圖真的載得到）、「客服」字還在", fab["nw"] > 0 and fab["txt"] == "客服" and "brand/mark" in fab["href"], fab)
+    ok("客服鈕：只有天竺鼠 GIF 動畫（圖真的載得到）、讀屏文字「客服」還在", fab["nw"] > 0 and fab["txt"] == "客服" and "brand/sup-anim" in fab["href"], fab)
+    gif_only = pg.evaluate("""() => { const f = document.getElementById('supFab'), cs = getComputedStyle(f), sr = f.querySelector('.supsr');
+        return { bg: cs.backgroundColor, bd: cs.borderTopWidth, sr: sr ? sr.getBoundingClientRect().width : -1, anim: getComputedStyle(f.querySelector('img.supgif')).animationName }; }""")
+    ok("客服鈕：沒有膠囊底色與框線、看不到「客服」字（10-09「客服圖案就直接只有GIF圖」）",
+       gif_only["bg"] in ("rgba(0, 0, 0, 0)", "transparent") and gif_only["bd"] == "0px" and gif_only["sr"] <= 1, gif_only)
     pg.click("#supFab")
     pg.wait_for_timeout(500)
     opened = pg.evaluate("() => { const p = document.getElementById('supPanel'); return !!p && !p.hidden && p.getBoundingClientRect().height > 0; }")
@@ -27977,7 +27982,7 @@ def t_mobile_m4_1008(b, base, code):
         m.locator("#sankeyRank .skr-tab button:not(.on)").first.tap(); m.wait_for_timeout(300)
         # ⑪ 客服鈕：泡泡裡有天竺鼠
         go("overview", 2000)
-        ok(f"【{T}】客服鈕是對話泡泡＋天竺鼠（泡泡 svg 裡有 brand/mark 圖）", J("() => !!document.querySelector('.supfab svg.supbub image[href*=\"brand/mark\"]')"))
+        ok(f"【{T}】客服鈕是天竺鼠 GIF 動畫（10-09 Andy 換圖）", J("() => !!document.querySelector('.supfab img.supgif[src*=\"brand/sup-anim\"]')"))
         # ⑫ 週期統計：打開「數字」→ 每格數字的方框都在格子裡（ECharts 畫在 canvas：用 app.js 寫在 #seasonHeat 的 nlab／nval 與「放不下不印」的規則驗）
         go("season", 3500)
         n0 = J("() => +document.getElementById('seasonHeat').dataset.nlab")

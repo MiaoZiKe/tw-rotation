@@ -76,6 +76,14 @@
    圓形裁切＋一圈白邊，深色（青底）與淺色主題下都跟按鈕底色分得開；滑過時頭像歪頭晃一下（減少動態偏好時不動）。 */
 .supfab .supmark{width:34px;height:34px;flex:none;display:block;overflow:visible;transition:transform .2s;color:var(--ontop,#04121a)}
 .supfab:hover .supmark{animation:supwig .5s ease-in-out;transform:scale(1.1)}
+/* 只有 GIF：蓋掉上面膠囊的底色、框線、陰影與毛玻璃（拖曳／吸邊／避讓那些照舊吃 .supfab） */
+.supfab.supgifonly,.supfab.supgifonly:hover{width:68px;height:68px;padding:0;gap:0;justify-content:center;background:none;border:0;box-shadow:none;-webkit-backdrop-filter:none;backdrop-filter:none;border-radius:50%}
+.supfab.supgifonly .supgif{width:64px;height:64px;flex:none;display:block;pointer-events:none;filter:drop-shadow(0 4px 8px rgba(0,0,0,.35));animation:none!important;transform:none}
+.supfab.supgifonly:hover .supgif{transform:scale(1.06)}
+.supfab.supgifonly.supdrag{box-shadow:none}
+.supfab.supgifonly:focus-visible{outline:2px solid var(--cyan);outline-offset:2px}
+@media (max-width:820px){.supfab.supgifonly,.supfab.supgifonly:hover{width:60px;height:60px}.supfab.supgifonly .supgif{width:56px;height:56px}}
+.supfab .supsr{position:absolute!important;width:1px;height:1px;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
 @keyframes supwig{0%,100%{transform:scale(1.1) rotate(0)}30%{transform:scale(1.1) rotate(-10deg)}65%{transform:scale(1.1) rotate(8deg)}}
 @media (prefers-reduced-motion:reduce){.supfab:hover .supmark{animation:none}}
 .supfab[hidden]{display:none}
@@ -218,10 +226,10 @@ html.fab-off .supfab{display:none!important}`);
   // 2026-10-07：浮動鈕改用品牌天竺鼠頭像（上面的 ICON 目前沒人用，留著當退路）
   /* 2026-10-08（Andy：「右下角的客服需要再優化，並且改成原本的 LOGO 樣式，但是表情是天竺鼠」）：
      外形回到原本 ICON 的對話泡泡（同一條路徑），泡泡裡面的笑臉換成天竺鼠頭像（brand/mark-128，裁進泡泡的圓角框裡）。 */
-  const BUB = 'M6.5 4.5h15a4 4 0 0 1 4 4v8.5a4 4 0 0 1-4 4h-7.2l-5.1 4.1c-.5.4-1.2 0-1.2-.6v-3.5H6.5a4 4 0 0 1-4-4V8.5a4 4 0 0 1 4-4z';
-  const MARK = '<svg class="supmark supbub" viewBox="0 0 28 28" aria-hidden="true" focusable="false"><defs><clipPath id="supBubClip"><rect x="3.4" y="5.4" width="21.2" height="14.8" rx="3.2"/></clipPath></defs>'
-    + `<path d="${BUB}" fill="#fff" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>`
-    + '<image href="brand/mark-128.png" x="3.4" y="5.4" width="21.2" height="14.8" preserveAspectRatio="xMidYMid slice" clip-path="url(#supBubClip)"/></svg>';
+  /* ★ 2026-10-09（Andy：「客服圖示換成這個GIF圖動畫」「客服圖案就直接只有GIF圖」「並且會持續動作」）：
+     按鈕只剩天竺鼠動畫本身 —— 沒有青色膠囊底、沒有「客服」字（字留給讀屏，.supsr 視覺隱藏）、不管減少動態偏好一律一直動。
+     原檔 site/brand/src/support_anim_1009.gif（512×512・8 格・每格 100ms）→ 裁到身體、米色背景去掉成透明、128px（2 倍螢幕）。*/
+  const MARK = '<img class="supmark supgif" src="brand/sup-anim-128.gif" width="64" height="64" alt="" aria-hidden="true" draggable="false">';
   let tab = 'faq', fbKind = 'fb';
   const WISH_TAG = '【願望清單】';
   const isWish = (r) => r.type === 'wish' || String(r.body || '').startsWith(WISH_TAG);
@@ -234,7 +242,7 @@ html.fab-off .supfab{display:none!important}`);
     if (fab) return;
     fab = document.createElement('button'); fab.type = 'button'; fab.id = 'supFab'; fab.className = 'supfab';
     fab.setAttribute('aria-haspopup', 'dialog'); fab.setAttribute('aria-expanded', 'false');
-    fab.innerHTML = MARK + '<span>客服</span>';
+    fab.innerHTML = MARK + '<span class="supsr">客服</span>'; fab.classList.add('supgifonly'); fab.setAttribute('aria-label', '客服'); fab.title = '客服';
     document.body.appendChild(fab);
     const p = document.createElement('div'); p.id = 'supPanel'; p.className = 'suppanel'; p.hidden = true; p.setAttribute('role', 'dialog'); p.setAttribute('aria-label', '客服與意見反饋');
     document.body.appendChild(p);
