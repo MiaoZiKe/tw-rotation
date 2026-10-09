@@ -22105,12 +22105,12 @@ def t_title_icons(pg, b, base, code):
                 #   以前這條路只有在前一段驗收剛好把 tw.m3.sk.tab 留在 full 時才會被量到（設計 v4 2B 看到的「390 卻看得到桌機分頁」
                 #   就是這個），單獨跑這一段永遠走不到，所以資券、大戶／散戶標題列在 390 被圖示擠成兩行一直沒被固定抓到。
                 #   改成真的按「完整版」再把桌機分頁逐頁量一遍（_ti_measure_all 看到桌機分頁可見就會逐頁切）。
+                # ★ 2026-10-10 改前→改後（Andy：「為何還會一個完整版」）：改前按「完整版」量桌機那組分頁；改後完整版拿掉、手機上桌機分頁列永遠藏，
+                #   桌機那幾張卡改從手機分頁露出來（總覽三段、獲利的河流圖段）—— 逐頁量由 _ti_measure_all 的手機分頁迴圈負責，
+                #   這裡改驗「沒有完整版、桌機那排分頁看不見」
                 if w == 390 and name == "個股":
-                    pg.evaluate("() => { const b = document.querySelector('#mbTabs button[data-t=\"full\"]'); b && b.click(); }")
-                    pg.wait_for_timeout(1200)
-                    ok(f"[標題圖示 {w} {mode}] 個股頁按「完整版」→ 桌機分頁真的出現（這條路才量得到）",
-                       pg.evaluate("() => { const t = document.getElementById('stockTabs'); return !!t && t.getClientRects().length > 0; }"))
-                    _ti_measure_all(pg, f"{w} {mode} {name}＋完整版", res)
+                    ok(f"[標題圖示 {w} {mode}] 個股頁沒有「完整版」、桌機那排分頁列看不見（只有一排分頁）",
+                       pg.evaluate("() => !document.querySelector('#mbTabs button[data-t=\"full\"]') && (() => { const t = document.getElementById('stockTabs'); return !t || t.getClientRects().length === 0; })()"))
             tot = sum(m["n"] for _, m in res)
             print(f"  （標題圖示 {w} {mode}）量了 {len(res)} 個畫面、{tot} 個卡片標題，最低對比 {min([m['minCr'] for _, m in res] or [0])}："
                   + "、".join(f"{l.split(' ', 2)[2]} {m['n']}" for l, m in res))
@@ -35085,7 +35085,9 @@ def t_tag_only_1006(b, base, code):
             for c in codes:
                 tg = f"[{T}] {W} {c}"
                 pg.goto("about:blank")
-                pg.goto(f"{base}#stock/{c}", wait_until="networkidle")
+                # ★ 2026-10-10：改前 networkidle —— 這個容器裡等不到（origin/main 同一段一樣 30 秒逾時），改等 DOM＋下面的 wait_until
+                pg.goto(f"{base}#stock/{c}", wait_until="domcontentloaded")
+                wait_until(pg, "() => !!document.getElementById('skChartCard')", 20000)
                 if W <= 640:
                     wait_until(pg, "() => document.querySelectorAll('#mbTabs button[data-t]').length >= 3", 15000)
                     # 手機券商式的「指標」分頁（有的話）也掃一次
@@ -35093,8 +35095,8 @@ def t_tag_only_1006(b, base, code):
                         pg.eval_on_selector('#mbTabs button[data-t="tag"]', "b => b.click()"); pg.wait_for_timeout(900)
                         mt = pg.evaluate("() => (document.getElementById('mbBody') || {}).innerText || ''")
                         ok(f"★ {tg} 手機「指標」分頁沒有技術分析長文", not [w for w in TAGONLY_BANNED if w in mt], [w for w in TAGONLY_BANNED if w in mt])
-                    if count(pg, '#mbTabs button[data-t="full"]'):
-                        pg.eval_on_selector('#mbTabs button[data-t="full"]', "b => b.click()"); pg.wait_for_timeout(900)
+                    # ★ 2026-10-10 改前→改後（Andy：「為何還會一個完整版」）：改前先按「完整版」叫出桌機那排分頁；改後完整版拿掉，
+                    #   桌機那排分頁列在手機一律藏起來（DOM 還在），下面直接按那顆藏起來的「指標」量桌機那張卡的內容（要守的事不變：沒有技術分析長文）
                 wait_until(pg, "() => document.querySelectorAll('#stockTabs button').length >= 3", 15000)
                 if not count(pg, '#stockTabs button[data-t="tags"]'):
                     notes.append(f"{tg} 這一檔沒有「指標」分頁（例如 ETF），只驗手機那一頁")
@@ -55660,7 +55662,7 @@ def t_mobile_broker(b, base, code):
     # 挑一檔資料齊的：優先 2344（Andy 截圖那檔），沒有就用預設代號
     sc = "2344" if (SITE / "data" / "stock" / "2344.json").exists() else code
     pgj = json.loads((SITE / "data" / "stock" / f"{sc}.json").read_text(encoding="utf-8"))
-    m.goto(f"{base}#stock/{sc}", wait_until="networkidle")
+    m.goto(f"{base}#stock/{sc}", wait_until="domcontentloaded")   # ★ 2026-10-10：改前 networkidle —— 同一頁只換 hash 的導覽在這個容器等不到 networkidle（origin/main 一樣 30 秒逾時），改等 DOM＋下一行的 wait_until
     wait_until(m, "() => !!document.getElementById('mbHead') && document.body.classList.contains('mbon')", 9000)
 
     ST = """() => { const h = document.getElementById('mbHead'), px = document.getElementById('mbPx');
@@ -55868,7 +55870,7 @@ def t_mobile_broker(b, base, code):
     m.wait_for_timeout(1200)
     h = m.evaluate("() => ({ hash: location.hash, head: !!document.getElementById('mbHead'), mbon: document.body.classList.contains('mbon') })")
     ok(f"{T}指標：點「族群」那一列 → 真的換到族群頁，報價列跟著拆掉", h["hash"].startswith("#industry/group/") and not h["head"] and not h["mbon"], h)
-    m.goto(f"{base}#stock/{sc}", wait_until="networkidle")
+    m.goto(f"{base}#stock/{sc}", wait_until="domcontentloaded")   # ★ 2026-10-10：改前 networkidle —— 同一頁只換 hash 的導覽在這個容器等不到 networkidle（origin/main 一樣 30 秒逾時），改等 DOM＋下一行的 wait_until
     wait_until(m, "() => !!document.getElementById('mbHead')", 9000)
     # ★ 2026-10-10 改前→改後：改前「記得上次停在指標分頁」；帳本 85（Andy：「所有分頁打開來 Default 都是最左邊的子分頁」）之後
     #   離開個股頁再進來回到最左邊那一格 —— 改版後最左邊是「總覽」
@@ -55981,7 +55983,7 @@ def t_mobile_broker(b, base, code):
     m2.route(f"**/data/stock/{sc}.json*", _inject)
     m2.goto(base, wait_until="domcontentloaded")
     m2.evaluate("() => { try { localStorage.clear(); localStorage.setItem('tw.live.on', '0'); } catch (e) {} }")
-    m2.goto(f"{base}#stock/{sc}", wait_until="networkidle")
+    m2.goto(f"{base}#stock/{sc}", wait_until="domcontentloaded")   # ★ 2026-10-10：同上，networkidle 在這個容器等不到
     wait_until(m2, "() => !!document.getElementById('mbHead')", 9000)
     m2.evaluate(TAP, "margin"); m2.wait_for_timeout(900)
     x1 = m2.evaluate(ST)
@@ -56010,7 +56012,9 @@ def t_mobile_broker(b, base, code):
        x4["th"][:1] == ["年度"] and "股利政策" not in " ".join(x4["seg"]) and [x.rstrip('*') for x in x4["seg"]][:1] == ["全部"], (x4["th"], x4["seg"]))
     m2.evaluate(TAP, "profit"); m2.wait_for_timeout(700)
     x5 = m2.evaluate(ST)
-    ok(f"{T}新欄位：獲利多出「季走勢｜年度走勢」分段", [x.rstrip('*') for x in x5["seg"]] == ["季走勢", "年度走勢"], x5["seg"])
+    # ★ 2026-10-10 改前→改後（Andy：「為何還會一個完整版」）：改前獲利只有「季走勢｜年度走勢」；改後「財務」分頁併進來、完整版裡的河流圖也搬進來 →
+    #   季走勢｜年度走勢｜本益比｜河流圖｜營收淨利（這一條要守的仍是「年度走勢」緊接在季走勢後面）
+    ok(f"{T}新欄位：獲利有「季走勢｜年度走勢」分段（後面接併進來的本益比｜河流圖｜營收淨利）", [x.rstrip('*') for x in x5["seg"]][:2] == ["季走勢", "年度走勢"], x5["seg"])
     m2.evaluate(SEG, "y"); m2.wait_for_timeout(700)
     x6 = m2.evaluate(ST)
     ok(f"{T}新欄位：切「年度走勢」→ X 軸是年份、EPS 柱換成年度 EPS、表第一欄是年",
