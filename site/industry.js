@@ -4371,6 +4371,11 @@
         legend.style.setProperty('--m4adjw', (hit ? Math.max(0, Math.ceil(lr.right - tr.left + 6)) : 0) + 'px');
         legend.style.setProperty('--m4adjh', Math.max(0, Math.ceil(tr.bottom - lr.top + 2)) + 'px');
       } else legend.style.setProperty('--m4adjw', '0px');
+      // 第二次量（下一格）時圖頭可能變高（收窄後多換一行）：主圖頂端的保留高度跟著重算，K 棒最高點不被圖頭蓋住
+      if (again && kchart && kchart.reserveTop && legend.offsetParent) {
+        const r0 = kchart.el.getBoundingClientRect(), r1 = legend.getBoundingClientRect();
+        kchart.reserveTop(Math.max(0, r1.bottom - r0.top));
+      }
     } catch (e) { /* 圖已銷毀 */ }
   }
 
