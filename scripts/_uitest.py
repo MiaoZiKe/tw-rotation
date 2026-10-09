@@ -66603,11 +66603,11 @@ def t_m4_quota_1010(b, base, code):
         pg.wait_for_timeout(300)
         _am4_open(pg)
         lk = wait_until(pg, """() => { const bs = [...document.querySelectorAll('#acctMenu [data-m=sty]')], lb = document.querySelector('#acctMenu .m4styrow > .t');
-            return bs.length === 3 && bs.every(e => e.dataset.plkb === 'block') && lb && lb.dataset.plkb === 'mark'
+            return bs.length === 2 && bs.every(e => e.dataset.plkb === 'block') && lb && lb.dataset.plkb === 'mark'
               ? { lock: getComputedStyle(lb, '::after').content, op: getComputedStyle(bs[0]).opacity } : null; }""", 3000)
         if shots:
             pg.screenshot(path=str(pathlib.Path(shots) / "q1010_390_theme_locked.png"))
-        ok(f"【{T} 390】版面風格三格被鎖（data-plkb=block）、標題列有鎖頭 🔒", bool(lk) and "🔒" in (lk or {}).get("lock", ""), lk)
+        ok(f"【{T} 390】版面風格兩格被鎖（10-10 休閒拿掉）（data-plkb=block）、標題列有鎖頭 🔒", bool(lk) and "🔒" in (lk or {}).get("lock", ""), lk)
         before = pg.evaluate("() => { let v = null; try { v = localStorage.getItem('tw.theme4'); } catch (e) {} return { a: document.documentElement.dataset.theme4 || '', ls: v, cur: [...document.querySelectorAll('#acctMenu [data-m=sty]')].find(e => e.getAttribute('aria-checked') === 'true').dataset.sty }; }")
         other = pg.evaluate("(cur) => [...document.querySelectorAll('#acctMenu [data-m=sty]')].map(e => e.dataset.sty).find(k => k !== cur)", before["cur"])
         pg.locator(f"#acctMenu [data-m=sty][data-sty='{other}']").tap(force=True)
