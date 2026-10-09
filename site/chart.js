@@ -520,7 +520,7 @@
          只限手機：桌機的右側留白（rightOffset 4 根）與自由拖曳照舊（桌機守門1008）。 */
       if (document.documentElement.classList.contains('m4')) this.chart.applyOptions({ timeScale: { fixLeftEdge: true, fixRightEdge: true } });
       // 手機：價格軸最上／最下那格刻度整個畫在面板裡（不被面板上緣或分隔線切一半；Andy 10-09「Y軸都沒資訊了，需要你完整他」）
-      if (isM4()) this.chart.applyOptions({ rightPriceScale: { ensureEdgeTickMarksVisible: true } });
+      if (isM4()) { this.chart.applyOptions({ rightPriceScale: { ensureEdgeTickMarksVisible: true } }); el._m4kc = this; }   // _m4kc：給手機驗收量價格軸用（只在手機掛）
       this.candle = this.chart.addSeries(LWC.CandlestickSeries, { upColor: C.up, downColor: C.down, borderUpColor: C.up, borderDownColor: C.down, wickUpColor: C.up, wickDownColor: C.down, priceLineVisible: true, lastValueVisible: true });
       m4Fmt(this.candle);   // 手機價格軸刻度精簡（見 m4Tick）
       this.zones = new ZonesPrimitive([]); this.candle.attachPrimitive(this.zones);
@@ -1072,6 +1072,14 @@
     }
     _hist(vals, colorFn, pane) {
       const s = this.chart.addSeries(LWC.HistogramSeries, { priceLineVisible: false, lastValueVisible: false, priceFormat: pane === 1 && this.cfg && this.cfg.vol ? { type: 'custom', minMove: 1, formatter: (v) => (Math.abs(v) >= 1e7 ? (v / 1e7).toFixed(1) + '萬張' : (v / 1000).toFixed(0) + '張') } : { type: 'price', precision: 2, minMove: 0.01 } }, pane);
+      /* ★ 2026-10-09 手機（CEO 退件：個股成交量軸出現「-2000張」）：手機把價格軸最上／最下那格刻度一定畫出來（ensureEdgeTickMarksVisible），
+         量面板底下原本留 8% 空白 → 最底那格落在負數。量不可能是負的：手機的量面板自動縮放下限夾在 0、底下不留空白，負數刻度一律不印。桌機不走這裡。 */
+      if (isM4() && pane === 1 && this.cfg && this.cfg.vol) {
+        const vf = (v) => (Math.abs(v) >= 1e7 ? (v / 1e7).toFixed(1) + '萬張' : (v / 1000).toFixed(0) + '張');
+        s.applyOptions({ priceFormat: { type: 'custom', minMove: 1, formatter: vf, tickmarksFormatter: (ps) => ps.map((v) => (v < 0 ? '' : v === 0 ? '0' : vf(v))) },
+          autoscaleInfoProvider: (orig) => { const r = orig(); if (r && r.priceRange) r.priceRange.minValue = 0; return r; } });
+        try { const cur = (s.priceScale().options() || {}).scaleMargins || {}; s.priceScale().applyOptions({ scaleMargins: { top: cur.top != null ? cur.top : 0.1, bottom: 0 } }); } catch (e) { /* 圖剛銷毀 */ }
+      }
       // 同 _line：缺值給 whitespace，NaN／Infinity 一起擋（以前這裡連 NaN 都沒擋）
       s.setData(this.data.map((d, i) => Number.isFinite(vals[i]) ? { time: d.time, value: vals[i], color: colorFn(i) } : { time: d.time }));
       this._tgAttach(s, pane);

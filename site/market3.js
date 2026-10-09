@@ -1508,9 +1508,11 @@
         const yi = (v) => { const a = Math.abs(v); return a >= 1e12 ? (v / 1e12).toFixed(1) + '兆' : a >= 1e8 ? Math.round(v / 1e8) + '億' : a >= 1e4 ? Math.round(v / 1e4) + '萬' : String(Math.round(v)); };
         const ko = (v) => { const a = Math.abs(v); return a >= 1e4 ? (a >= 1e5 ? Math.round(v / 1e4) : (v / 1e4).toFixed(1)) + '萬口' : Math.round(v) + '口'; };
         const fm = isMoney(x) ? yi : ko;
-        s.applyOptions({ priceFormat: { type: 'custom', minMove: 1, formatter: fm, tickmarksFormatter: (ps) => ps.map((v) => (v === 0 ? '0' : fm(v))) } });
+        // 量不可能是負的：下限夾在 0、負數刻度不印（chart.js 手機開了 ensureEdgeTickMarksVisible，量面板底下若留空白，最底那格會落在負數）
+        s.applyOptions({ priceFormat: { type: 'custom', minMove: 1, formatter: fm, tickmarksFormatter: (ps) => ps.map((v) => (v < 0 ? '' : v === 0 ? '0' : fm(v))) },
+          autoscaleInfoProvider: (orig) => { const r = orig(); if (r && r.priceRange) r.priceRange.minValue = 0; return r; } });
         const cur = (s.priceScale().options() || {}).scaleMargins || {};
-        s.priceScale().applyOptions({ scaleMargins: { top: Math.max(0.18, cur.top || 0), bottom: cur.bottom != null ? cur.bottom : 0 } });
+        s.priceScale().applyOptions({ scaleMargins: { top: Math.max(0.18, cur.top || 0), bottom: 0 } });
       } catch (e) { /* 圖表庫不支援就維持預設刻度 */ }
       return;
     }
@@ -2386,6 +2388,7 @@
     const L = lineData(x, d);
     if (L.cats.length !== H.cats.length) return false;
     if (H.dec != null && H.dec !== axisDec(L.hi - L.lo)) return false;   // 軸刻度小數位數要換 → 整張畫（2026-10-01）
+    if (H.noVol != null && H.noVol !== !(L.vmax > 1)) return false;   // 手機：量從無到有（或反過來）→ 量格高度要換，整張畫（2026-10-09）
     // tooltip 與量柱顏色的 callback 讀的是這個盒子（不是閉包裡那份陣列）——
     // 就地換掉，滑鼠移上去看到的才是最新的值，而不是上一輪的殘影。
     H.price = L.price; H.vol = L.vol; H.d = d;
@@ -2500,8 +2503,12 @@
       const kf = (v) => { const a = Math.abs(v); if (a >= 1e4) { const k = v / 1000; return (Math.abs(k - Math.round(k)) < 0.05 ? Math.round(k) : k.toFixed(1)) + 'k'; } return f.n(v, axisDec(hi - lo)); };
       const vf = (v) => { if (x.id === 'FUT') return v >= 1e4 ? Math.round(v / 1e4) + '萬口' : f.i(v) + '口';
         const y = v * 1e6; return y >= 1e12 ? (y / 1e12).toFixed(1) + '兆' : y >= 1e8 ? Math.round(y / 1e8) + '億' : Math.round(y / 1e4) + '萬'; };
-      opt.grid = [{ left: 2, right: 44, top: 10, bottom: 70, containLabel: false },
-        { left: 2, right: 44, height: 44, bottom: 22, containLabel: false }];
+      /* 沒有量（vmax ≤ 1：種子不帶量、或這一段沒有真實分鐘量）時，量那一格是一條 44px 的空白帶，夾在價格最低刻度與時間軸之間
+         （CEO 退件：402 總覽「47.5k 下面到底線還有約 150px 空白」）→ 手機把量格收成 1px，價格格直接接到時間軸上。 */
+      const noVol = !(vmax > 1);
+      H.noVol = noVol;
+      opt.grid = [{ left: 2, right: 44, top: 10, bottom: noVol ? 26 : 70, containLabel: false },
+        { left: 2, right: 44, height: noVol ? 1 : 44, bottom: 22, containLabel: false }];
       Object.assign(opt.yAxis[0].axisLabel, { fontSize: 12, margin: 4, formatter: kf });
       Object.assign(opt.yAxis[1].axisLabel, { fontSize: 12, margin: 4, formatter: vf });
       Object.assign(opt.xAxis[1].axisLabel, { fontSize: 12 });

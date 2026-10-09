@@ -27128,7 +27128,9 @@ def t_title_dup_1007(b, base):
 M4_FIRST = {   # 路由 → 第一屏（390×844 不捲動）必須整個看得到的元素：主圖或精簡圖＋它的摘要列（2026-10-08 實測量過才填）
     "#overview": ["#hero", "#m3"],                                              # 摘要卡＋大盤（2026-10-09 Andy「上方拿掉」：指數三格拿掉，摘要卡變第一塊）
     "#earnings": ["#earnFilt", "#earnMonth"],                                   # 三分類切換＋月份（月曆本身是例外格）
-    "#flow/rotation": ["#flowRotCard svg", "#mRank > :nth-child(5)"],         # 輪盤＋排行前 5
+    # 2026-10-09 改：手機 v2 資金輪動改用網頁版完整輪盤（m4-charts，rotM4）之後舊的 #mRank 精簡排行不存在了。
+    #   意圖不變（第一屏看得到主圖＋排行的重點）：輪盤整張（#rotClock）＋卡片頂端那一句排行結論（.t4-lede：資金佔比增加最多／減少最多，讀自排行圖）
+    "#flow/rotation": ["#rotClock", "#flowRotCard .t4-lede"],
     "#flow/sankey": ["#flowSankeyCard .mrank"],                                # 第一層五大類長條（金額＋占比）
     "#flow/inst": ["#flowInstCard"],                                           # 整張族群×法人（買超前 8＋賣超前 8）
     "#heatmap/industry": ["#v-heatmap canvas"],                                # 整張 treemap
@@ -27146,7 +27148,8 @@ M4_FIRST = {   # 路由 → 第一屏（390×844 不捲動）必須整個看得�
 M4_TOUCH_EXEMPT = ["#m4Drawer *", "aside *", "footer *", ".footer *", "#v-earnings .chip", "#v-earnings .dn", "#v-earnings .more",
                    "#v-season button[data-m]"]
 # 第一屏沒有分段鈕的頁：改點它自己的主要操作，驗畫面真的變了（路由 → [要點的選擇器, 選擇 select 的值]）
-M4_ACT = {"#season": "#mSeasonNum", "#flow/rotation": "#mRank li:nth-child(3), #mRank > *:nth-child(3)", "#etf/cal": "#etfCalNext",
+# #flow/rotation：舊的 #mRank 清單沒了 → 改點排行圖（#rankFlow，ECharts）第 3 列的長條，驗「下鑽名單（.stagepanel）真的打開、寫的是那一列的族群」（@rankFlowBar 走下面的特別分支）
+M4_ACT = {"#season": "#mSeasonNum", "#flow/rotation": "@rankFlowBar", "#etf/cal": "#etfCalNext",
           "#heatmap/industry": "select#indTreeGroup"}
 
 
@@ -28692,6 +28695,9 @@ def t_mobile_m4(b, base, code):
     # 導覽走完全部步驟：每一步 scrollY 的變化方向最多換一次（Andy：「導覽功能在確認 會一直上下上下移動」）
     m.evaluate("() => window.scrollTo({ top: 0, behavior: 'instant' })"); m.wait_for_timeout(200)
     m.locator("#m4Tools #twPageTourBtn").tap(); m.wait_for_timeout(300)
+    # 2026-10-09 改：頂欄 🧭 先跳「本頁導覽／平台導覽」選單（#twTourPick），要按「本頁導覽」才開始 —— 以前直接找 #twTourNext，只看得到 1 步（不是導覽壞了）
+    if m.evaluate("() => { const p = document.getElementById('twTourPick'); return !!p && p.getClientRects().length > 0; }"):
+        m.locator("#twTourPick button").first.tap(); m.wait_for_timeout(900)
     worst, steps_seen, jumps = 0, 0, []
     for _s in range(14):
         ys = []
@@ -28705,7 +28711,7 @@ def t_mobile_m4(b, base, code):
         if not nx or not nx.is_visible():
             break
         nx.tap()
-    ok(f"【{T}】總覽導覽走完 {steps_seen} 步，每一步捲動方向最多換一次（最多 {worst} 次）", worst <= 1 and steps_seen >= 5, jumps)
+    ok(f"【{T}】總覽導覽走完 {steps_seen} 步（≥ 9，導覽普查1009 的門檻），每一步捲動方向最多換一次（最多 {worst} 次）", worst <= 1 and steps_seen >= 9, jumps)
     if m.query_selector("#twTourX") and m.locator("#twTourX").is_visible():
         m.locator("#twTourX").tap(); m.wait_for_timeout(300)
     m.locator("#m4Burger").tap(); m.wait_for_timeout(400)
@@ -28757,6 +28763,16 @@ def t_mobile_m4(b, base, code):
             for (const b of cand) { if (isOn(b)) continue; const sib = [...b.parentElement.children].filter(x => x.tagName === 'BUTTON');
               if (sib.length >= 2 && sib.some(isOn)) { b.setAttribute('data-m4try', '1'); return { t: b.textContent.trim().slice(0, 12) }; } }
             return null; }""")
+        if ch is None and M4_ACT.get(h) == "@rankFlowBar":
+            m.evaluate("() => document.getElementById('rankFlow').scrollIntoView({ block: 'center', behavior: 'instant' })"); m.wait_for_timeout(800)
+            pt = m.evaluate("""() => { const el = document.getElementById('rankFlow'), ec = el && window.echarts && echarts.getInstanceByDom(el); if (!ec) return null; const o = ec.getOption();
+                const v = o.series[0].data[2], val = (v && typeof v === 'object') ? v.value : v; const px = ec.convertToPixel({ xAxisIndex: 0, yAxisIndex: 0 }, [val / 2, 2]);
+                const r = el.getBoundingClientRect(); return { x: r.left + px[0], y: r.top + px[1], cat: String(o.yAxis[0].data[2]).replace(/\\s*\\d+[↑↓]?$/, '') }; }""")
+            if pt:
+                m.touchscreen.tap(pt["x"], pt["y"]); m.wait_for_timeout(1200)
+            dr = m.evaluate("() => [...document.querySelectorAll('#rankFlowWrap > .stagepanel')].filter(e => !e.hidden && e.getClientRects().length).map(e => e.textContent.replace(/\\s+/g, ' ').trim().slice(0, 60))")
+            ok(f"【{T}】{h} 點排行圖第 3 列（{pt and pt['cat']}）→ 下鑽名單真的打開、寫的是那一族群", bool(pt) and len(dr) == 1 and pt["cat"].split(" ")[0] in dr[0], (pt, dr))
+            continue
         if ch is None and h in M4_ACT:
             sel = M4_ACT[h]
             before = m.evaluate("() => { const v = document.querySelector('.view.on'); return v.innerText + '|' + v.querySelectorAll('.on,[aria-selected=true]').length + '|' + [...v.querySelectorAll('canvas')].map(c => c.toDataURL().length).join(','); }")
@@ -29602,6 +29618,17 @@ def t_mobile_m4_ov2(b, base, code):
            l0 and ((l0["lib"] == "ec" and l0["fs"] >= 12 and l0["inside"] and all(len(x) <= 6 for x in l0["labels"]))
                    # 驗收環境偶爾停在 K 線（原因還沒查明，獨立重跑都是走勢圖）：那時改驗 K 線的價格軸整條在圖框內
                    or (l0["lib"] == "lwc" and l0["inside"])), l0)
+        # CEO 退件（ov_dark_after.jpg：47.5k 下面到底線還有約 150px 空白）：最低刻度到繪圖區底的距離 ≤ 一格刻度
+        #   繪圖區底＝有量時是價格格的底，沒有量時（量格收成 1px）是時間軸那條線
+        lowg = J("""() => { const c = document.querySelector('#m3Grid .m3-card.mcur .m3-chart'); const ec = c && window.echarts && echarts.getInstanceByDom(c); if (!ec) return null;
+            const ax = ec.getModel().getComponent('yAxis', 0).axis, ext = ax.scale.getExtent(); const ticks = ax.getTicksCoords().map(t => t.tickValue).filter(v => v > ext[0] + 1e-9).sort((a, b) => a - b);
+            if (ticks.length < 2) return null; const P = (v) => ec.convertToPixel({ yAxisIndex: 0 }, v);
+            const g0 = ec.getModel().getComponent('grid', 0).coordinateSystem.getRect(), g1 = ec.getModel().getComponent('grid', 1).coordinateSystem.getRect();
+            const noVol = !!(c._m3line && c._m3line.noVol); const bottom = noVol ? g1.y + g1.height : g0.y + g0.height;
+            return { low: ticks[0], gap: Math.round(bottom - P(ticks[0])), step: Math.round(Math.abs(P(ticks[0]) - P(ticks[1]))), noVol }; }""")
+        if l0 and l0.get("lib") == "ec":
+            ok(f"【{T}】總覽走勢圖最低刻度（{lowg and lowg['low']}）到繪圖區底 {lowg and lowg['gap']}px ≤ 一格刻度 {lowg and lowg['step']}px（沒有量時量格收掉：{lowg and lowg['noVol']}）",
+               lowg is not None and lowg["gap"] <= lowg["step"] + 1, lowg)
         J("() => { const b = document.querySelector('#m3Mode button[data-m=\"k\"]'); if (b) b.click(); }"); m.wait_for_timeout(3000)
         kk = J("""() => { const c = document.querySelector('#m3Grid .m3-card.mcur .m3-chart'); if (!c) return null; const box = c.getBoundingClientRect();
             const cv = [...c.querySelectorAll('canvas')]; const tds = [...c.querySelectorAll('.tv-lightweight-charts td')];
@@ -29615,6 +29642,12 @@ def t_mobile_m4_ov2(b, base, code):
                      maxR: Math.round(Math.max(...cv.map(r => r.right))) }; }""")
         ok(f"【{T}】個股 K 線：左上圖例不蓋右側價格軸（圖例右緣 {lg and lg['lgR']} ≤ 價格軸左緣 {lg and lg['axL']}）、價格軸在圖框內",
            lg and lg["axL"] and lg["lgR"] <= lg["axL"] + 1 and lg["maxR"] <= lg["boxR"] + 1, lg)
+        # CEO 退件（stock_k.jpg 量軸出現「-2000張」）：量面板的可視範圍下限是 0，負數刻度一律不印
+        vr = J("""() => { const el = [document.getElementById('lwc'), ...document.querySelectorAll('#lwc *')].find(e => e && e._m4kc); if (!el) return null;
+            const k = el._m4kc, s = k.panes && k.panes.vol && k.panes.vol[0]; if (!s) return null; const r = s.priceScale().getVisibleRange();
+            const tf = s.options().priceFormat.tickmarksFormatter; return { from: r && r.from, to: r && r.to, neg: tf ? tf([-2000, -1, 0]) : null }; }""")
+        ok(f"【{T}】個股成交量軸沒有負數：可視範圍下限 {vr and vr['from']} ≥ 0、負數刻度不印（{vr and vr['neg']}）",
+           vr and vr["from"] is not None and vr["from"] >= 0 and vr["neg"] and vr["neg"][0] == "" and vr["neg"][1] == "", vr)
 
         # ⑤ 期間列（資金輪動／資金分流樹）：按 ▶ 前後都在同一行（⏸ 的 top 差 ≤4）
         for h, bar in (("flow/rotation", "#rotBack"), ("flow/sankey", "#sankeyDays")):
@@ -54222,133 +54255,64 @@ def t_mobile_broker(b, base, code):
 
 # ===================================================================== 手機總覽：指數三格＋觀察清單（2026-09-27）
 def t_mobile_home(b, base, code):
-    """★ 2026-09-27 借券商 App 首頁截圖的兩塊，放在手機總覽最上方（site/mobile3.js G 段）：
-    · 指數：加權／上櫃／台指近全三格一屏，可左右滑（還有費半、那斯達克、標普、美元兌台幣），有「第幾頁／共幾頁」
-    · 觀察清單（＝自選清單目前那一頁，localStorage `tw.watchlists`）：只存代號；新增（抽屜搜尋）、刪除（編輯 → ✕）、重新整理後還在
-    每一條都驗「畫面真的因此改變了」與 localStorage 真的寫進去。"""
+    """★ 2026-10-09 改寫（Andy 09:1x 圖一紅框：「上方拿掉」—— 手機總覽最上方的指數三格＋「＋觀察」整列拿掉，CEO 轉派）。
+    舊版驗的是 2026-09-27 的「指數三格可左右滑＋觀察清單一列」（site/mobile3.js G 段），那一列在手機 v2 已經不顯示。新規則：
+    · 總覽沒有指數三格、沒有「＋觀察」，摘要卡是總覽第一塊；
+    · 觀察清單（＝自選清單，localStorage tw.watchlists）的入口在：側欄抽屜「自選」（#watch 整頁）＋個股頁頂端 ☆（#mbStar → #wlPick 選要放哪一頁）。
+      走一遍：☆ 加入 → 自選頁真的出現 → 重新整理還在 → ☆ 取消 → 自選頁真的不見；只存代號。每一條都驗畫面真的變了與 localStorage 真的寫進去。"""
     m = b.new_page(**MOBILE_VP)
     m.on("pageerror", lambda e: fails.append(f"手機總覽指數觀察清單 pageerror: {e}"))
     m.route("**/fonts.googleapis.com/**", lambda r: r.abort())
     m.goto(base, wait_until="domcontentloaded")
-    m.evaluate("() => { try { localStorage.clear(); localStorage.setItem('tw.live.on', '0'); } catch (e) {} }")
+    m.evaluate("() => { try { localStorage.clear(); localStorage.setItem('tw.live.on', '0'); localStorage.setItem('tw.tourDone', '1'); } catch (e) {} }")
     T = "【手機總覽】"
-    ix = json.loads((SITE / "data" / "index_ohlc.json").read_text(encoding="utf-8"))
-    m.goto(f"{base}#overview", wait_until="networkidle")
-    wait_until(m, "() => document.querySelectorAll('#mbIdx .mbit').length >= 3", 9000)
-    IDX = """() => { const box = document.getElementById('mbIdx'), pos = document.getElementById('mbIdxPos');
-        const t = [...document.querySelectorAll('#mbIdx .mbit')].map(e => { const r = e.getBoundingClientRect();
-          return { id: e.dataset.id, name: e.querySelector('.mbitn').firstChild.textContent.trim(), v: e.querySelector('[data-k=v]').textContent.trim(),
-                   c: e.querySelector('[data-k=c]').className, l: Math.round(r.left), r: Math.round(r.right), b: Math.round(r.bottom), h: Math.round(r.height) }; });
-        const home = document.getElementById('mbHome'), v = document.getElementById('v-overview');
-        return { t, sl: box ? Math.round(box.scrollLeft) : 0, sw: box ? box.scrollWidth : 0, cw: box ? box.clientWidth : 0,
-                 pos: pos ? pos.dataset.pos : null, of: pos ? pos.dataset.of : null, ptxt: pos ? pos.innerText : '',
-                 first: v && v.firstElementChild ? v.firstElementChild.id : '', vh: innerHeight,
-                 docW: document.documentElement.scrollWidth, winW: innerWidth }; }"""
-    a = m.evaluate(IDX)
-    ok(f"{T}#mbHome 是總覽最上面一塊", a["first"] == "mbHome", a["first"])
-    vis = [x for x in a["t"] if x["l"] >= -1 and x["r"] <= a["winW"] + 1]
-    ok(f"{T}一進來看得到三格：加權指數、上櫃指數、台指近全", [x["name"] for x in vis] == ["加權指數", "上櫃指數", "台指近全"], [x["name"] for x in a["t"]])
-    ok(f"{T}三格整格在第一屏（底 ≤ 可視高 {a['vh'] - 58}）", len(vis) == 3 and all(x["b"] <= a["vh"] - 58 for x in vis), vis)
-    tse = [r for r in ix.get("TSE") or [] if r[4] is not None]
-    if tse:
-        want = f"{tse[-1][4]:,.2f}"
-        got = next((x["v"] for x in a["t"] if x["id"] == "TSE"), "")
-        ok(f"{T}加權那一格是資料湖最後一天的收盤（{want}）", got == want, got)
-        d = tse[-1][4] - tse[-2][4]
-        cls = next((x["c"] for x in a["t"] if x["id"] == "TSE"), "")
-        ok(f"{T}加權的漲跌顏色：紅漲綠跌（這一天 {d:+.2f}）", ("up" in cls) if d > 0 else ("dn" in cls) if d < 0 else True, cls)
-    ok(f"{T}往右還有更多格（內容比框寬）、有位置指示「1 / N」", a["sw"] > a["cw"] + 4 and a["pos"] == "1" and a["of"] and f"1 / {a['of']}" in a["ptxt"], a)
-    m.evaluate("() => { const e = document.getElementById('mbIdx'); e.scrollLeft = e.scrollWidth; e.dispatchEvent(new Event('scroll')); }")
-    m.wait_for_timeout(500)
-    a2 = m.evaluate(IDX)
-    changed(f"{T}真的滑得動（scrollLeft 變了）", a["sl"], a2["sl"], str(a2["sl"]))
-    ok(f"{T}滑到底 → 位置指示變成最後一頁（{a['of']} / {a['of']}）", a2["pos"] == a2["of"] and a2["pos"] != "1", (a2["pos"], a2["of"]))
-    ok(f"{T}390 寬整頁沒有橫捲", a2["docW"] <= a2["winW"] + 1, a2)
-
-    # ---- 觀察清單：空的 → 抽屜搜尋加入 → 重新整理還在 → 編輯刪除 → 重新整理不見 ----
-    W = """() => ({ n: document.querySelectorAll('#mbWatch .mbw').length, codes: [...document.querySelectorAll('#mbWatch .mbw')].map(e => e.dataset.go),
-        names: [...document.querySelectorAll('#mbWatch .mbwn')].map(e => e.firstChild.textContent.trim()),
-        hidden: !!(document.getElementById('mbWatch') || {}).hidden, add: (() => { const e = document.getElementById('mbWAdd'); return e ? Math.round(e.getBoundingClientRect().height) : 0; })(),
-        addW: (() => { const e = document.getElementById('mbWAdd'); return e ? Math.round(e.getBoundingClientRect().width) : 0; })(),
-        homeH: (() => { const e = document.getElementById('mbHome'); return e ? Math.round(e.getBoundingClientRect().height) : 0; })(),
-        ls: (() => { try { const o = JSON.parse(localStorage.getItem('tw.watchlists')); const c = localStorage.getItem('tw.watchcur'); const t = o.tabs.find(x => x.id === c) || o.tabs[0]; return JSON.stringify(t.codes); } catch (e) { return null; } })(), edit: (document.getElementById('mbWEdit') || {}).textContent || '' }) """
-    w0 = m.evaluate(W)
-    ok(f"{T}觀察清單一開始是空的：清單列不佔位、只有指數列右邊一顆「＋ 觀察」（≥ 44×44）", w0["n"] == 0 and w0["hidden"] and w0["add"] >= 44 and w0["addW"] >= 44, w0)
-    ok(f"{T}清單空的時候整塊 ≤ 72px（第①步的輪盤要留在第一屏）", 0 < w0["homeH"] <= 72, w0["homeH"])
-    m.tap("#mbWAdd"); m.wait_for_timeout(500)
-    m.fill("#mbWQ", "2344"); m.wait_for_timeout(400)
-    res = m.evaluate("() => [...document.querySelectorAll('#mbWRes button[data-c]')].map(b => b.dataset.c)")
-    ok(f"{T}抽屜打「2344」→ 搜尋結果有 2344", "2344" in res, res)
-    m.tap("#mbWRes button[data-c='2344']"); m.wait_for_timeout(300)
-    m.fill("#mbWQ", "台積電"); m.wait_for_timeout(400)
-    m.tap("#mbWRes button[data-c='2330']"); m.wait_for_timeout(300)
-    dis = m.evaluate("() => { const b = document.querySelector('#mbWRes button[data-c=\"2330\"]'); return b ? b.disabled : null; }")
-    ok(f"{T}加過的那一檔在抽屜裡變成「已在清單」（不能重複加）", dis is True, dis)
-    m.keyboard.press("Escape"); m.wait_for_timeout(400)
-    w1 = m.evaluate(W)
-    ok(f"{T}加入兩檔 → 清單真的出現兩格（華邦電、台積電）", w1["codes"] == ["2344", "2330"] and "華邦電" in w1["names"] and not w1["hidden"], w1)
-    ok(f"{T}有清單時整塊 ≤ 124px（指數列＋一列清單）", 0 < w1["homeH"] <= 124, w1["homeH"])
-    # 2026-10-08 晚：手機 v2 總覽預設停在「大盤」組，輪盤在「資金流向」組 —— 先切過去再量
-    if m.evaluate("() => document.documentElement.classList.contains('m4')"):
-        b2 = m.locator('.view.on .mpager button:has-text("資金流向")')
-        if b2.count():
-            b2.first.tap(); m.wait_for_timeout(1500); m.evaluate("() => window.scrollTo({ top: 0, behavior: 'instant' })"); m.wait_for_timeout(300)
-    # 有清單時，第①步的輪盤仍在第一屏（跟「手機v3」#1 同一條量法）
-    # ★ 2026-09-29（mobile-onescreen-fix）：焦點條是 DECISIONS #274 刻意拿掉的（總覽輪盤只留點、點一顆出點旁說明框 #mOvPop），
-    #   所以改量「輪盤整張」＋「點盤上最下面那一顆之後，說明框整個在頂欄與底部導覽之間」。
-    RF = """() => { const r = document.querySelector('#mRadarOv .mradar'), p = document.getElementById('mOvPop');
-        const pr = p && !p.hidden ? p.getBoundingClientRect() : null;
-        return { r: r ? Math.round(r.getBoundingClientRect().bottom) : null, t: r ? Math.round(r.getBoundingClientRect().top) : null,
-                 pt: pr ? Math.round(pr.top) : null, pb: pr ? Math.round(pr.bottom) : null, vh: innerHeight, sy: Math.round(scrollY) }; }"""
-    rf = m.evaluate(RF)
-    # 2026-10-08 手機 v2（html.m4）：底部 58px 導覽已經拿掉，第一屏的下緣就是視窗底；舊版（沒有 m4）照舊扣 58
-    nav_h = 0 if m.evaluate("() => document.documentElement.classList.contains('m4')") else 58
-    ok(f"{T}有兩檔觀察時，輪盤整張還在第一屏（底 ≤ {rf['vh'] - nav_h}）", rf["r"] is not None and rf["t"] >= 52 and rf["r"] <= rf["vh"] - nav_h, rf)
-    low = m.evaluate("""() => { const d = [...document.querySelectorAll('#mRadarOv svg g[data-g]')].map(g => { const c = g.querySelectorAll('circle')[1].getBoundingClientRect();
-        return { x: c.left + c.width / 2, y: c.top + c.height / 2 }; }).sort((a, b) => b.y - a.y); return d[0] || null; }""")
-    if low:
-        m.touchscreen.tap(low["x"], low["y"]); m.wait_for_timeout(450)
-        rp = m.evaluate(RF)
-        ok(f"{T}有兩檔觀察時，點輪盤最下面那一顆 → 說明框整個在第一屏（{rp['pt']}～{rp['pb']}，可用 52～{rp['vh'] - 58}）",
-           rp["pb"] is not None and rp["pt"] >= 52 and rp["pb"] <= rp["vh"] - 58 and rp["sy"] == rf["sy"], rp)
-        m.touchscreen.tap(8, 70); m.wait_for_timeout(300)
-    else:
-        ok(f"{T}有兩檔觀察時，輪盤上有點（前提）", False, rf)
-    ok(f"{T}自選清單只存代號（每頁只有 id／名字／代號，沒有張數或成本）", json.loads(w1["ls"] or "null") == ["2344", "2330"]
-       and m.evaluate("() => JSON.parse(localStorage.getItem('tw.watchlists')).tabs.every(t => Object.keys(t).sort().join() === 'codes,id,name')"), w1["ls"])
-    m.reload(wait_until="networkidle")
-    wait_until(m, "() => document.querySelectorAll('#mbWatch .mbw').length >= 1", 9000)
-    w2 = m.evaluate(W)
-    ok(f"{T}重新整理之後清單還在", w2["codes"] == ["2344", "2330"], w2)
-    m.tap("#mbWatch .mbw[data-go='2330']")
-    wait_until(m, "() => location.hash === '#stock/2330'", 6000)
-    ok(f"{T}點一格 → 真的換到那一檔的個股頁", m.evaluate("() => location.hash") == "#stock/2330", m.evaluate("() => location.hash"))
-    wait_until(m, "() => !!document.getElementById('mbStar')", 9000)
-    ok(f"{T}個股頁的 ☆ 認得它已經在清單裡（★）", m.evaluate("() => document.getElementById('mbStar').textContent") == "★",
-       m.evaluate("() => document.getElementById('mbStar').textContent"))
-    m.goto(f"{base}#overview", wait_until="networkidle")
-    wait_until(m, "() => document.querySelectorAll('#mbWatch .mbw').length >= 1", 9000)
-    m.tap("#mbWEdit"); m.wait_for_timeout(300)
-    dh = m.evaluate("() => { const b = document.querySelector('#mbWatch .mbwdel'); return b ? Math.round(b.getBoundingClientRect().height) : 0; }")
-    ok(f"{T}按「編輯」→ 每格出現 ✕（≥ 40px）", dh >= 40 and m.evaluate("() => document.getElementById('mbWEdit').textContent") == "完成", dh)
-    m.tap("#mbWatch .mbwdel[data-del='2344']"); m.wait_for_timeout(300)
-    w3 = m.evaluate(W)
-    ok(f"{T}按 ✕ → 那一格真的不見、自選清單同步拿掉", w3["codes"] == ["2330"] and json.loads(w3["ls"] or "null") == ["2330"], w3)
-    m.reload(wait_until="networkidle")
-    wait_until(m, "() => document.querySelectorAll('#mbWatch .mbw').length >= 1", 9000)
-    w4 = m.evaluate(W)
-    ok(f"{T}重新整理之後刪掉的那一檔沒有回來", w4["codes"] == ["2330"], w4)
-    # 壞掉的 localStorage 不准把頁面弄掛（手動改壞、別的版本寫的格式）
-    m.evaluate("() => localStorage.setItem('tw.watchlists', '{壞掉')"); m.reload(wait_until="networkidle"); m.wait_for_timeout(1500)
-    w5 = m.evaluate(W)
-    ok(f"{T}自選清單內容壞掉 → 當成空清單，不會掛", w5["n"] == 0 and w5["hidden"], w5)
-    # 字級
-    fx = m.evaluate("""() => { const bad = []; document.querySelectorAll('#mbHome *').forEach(e => {
-        const t = [...e.childNodes].some(n => n.nodeType === 3 && n.textContent.trim()); if (!t) return;
-        const r = e.getBoundingClientRect(); if (!r.width) return; const s = parseFloat(getComputedStyle(e).fontSize); if (s < 12) bad.push(e.className + ':' + s); });
-        return bad.slice(0, 6); }""")
-    ok(f"{T}指數與觀察清單沒有小於 12px 的字", not fx, fx)
-    # 回桌機：拆乾淨
+    LSW = """() => { try { const o = JSON.parse(localStorage.getItem('tw.watchlists')); const c = localStorage.getItem('tw.watchcur'); const t = o.tabs.find(x => x.id === c) || o.tabs[0]; return t.codes; } catch (e) { return null; } }"""
+    m.goto(f"{base}#overview", wait_until="domcontentloaded"); m.wait_for_timeout(3500)
+    a0 = m.evaluate("""() => { const vis = (s) => { const e = document.querySelector(s); return !!e && e.getClientRects().length > 0; };
+        const v = document.getElementById('v-overview'); const first = [...v.children].find(e => e.getClientRects().length && e.getBoundingClientRect().height > 20);
+        return { idx: vis('#mbIdx'), home: vis('#mbHome'), add: vis('#mbWAdd'), first: first ? first.id : '', docW: document.documentElement.scrollWidth, winW: innerWidth }; }""")
+    ok(f"{T}總覽沒有指數三格與「＋觀察」（Andy：「上方拿掉」），摘要卡（#hero）是第一塊", not a0["idx"] and not a0["home"] and not a0["add"] and a0["first"] == "hero", a0)
+    ok(f"{T}390 寬整頁沒有橫捲", a0["docW"] <= a0["winW"] + 1, a0)
+    # 入口一：側欄抽屜「自選」→ #watch
+    m.locator("#m4Burger").tap(); m.wait_for_timeout(500)
+    m.locator("#m4Drawer button", has_text="自選").first.tap(); m.wait_for_timeout(1500)
+    ok(f"{T}側欄抽屜「自選」→ 真的到自選頁（#watch）", m.evaluate("() => location.hash") == "#watch" and m.evaluate("() => document.getElementById('v-watch').classList.contains('on')"), m.evaluate("() => location.hash"))
+    n0 = m.evaluate("() => document.querySelectorAll('#wpList tr[data-go]').length")
+    # 入口二：個股頁 ☆ → 選頁 → 加入
+    m.goto(f"{base}#stock/2330", wait_until="domcontentloaded")
+    wait_until(m, "() => !!document.getElementById('mbStar') && document.getElementById('mbStar').getClientRects().length > 0", 9000)
+    s0 = m.evaluate("() => document.getElementById('mbStar').textContent")
+    m.locator("#mbStar").tap(); m.wait_for_timeout(500)
+    pk = m.evaluate("() => { const k = document.getElementById('wlPick'); return !!k && !k.hidden && k.querySelectorAll('input[data-pk]').length; }")
+    ok(f"{T}個股頁 ☆ → 跳出「加入自選清單」選頁框（{pk} 頁可選）", bool(pk), pk)
+    m.locator("#wlPick input[data-pk]").first.check(); m.wait_for_timeout(400)
+    m.evaluate("() => { const c = document.getElementById('pkClose'); if (c) c.click(); }"); m.wait_for_timeout(300)
+    s1 = m.evaluate("() => document.getElementById('mbStar').textContent")
+    ls1 = m.evaluate(LSW)
+    ok(f"{T}勾第 1 頁 → ☆ 變 ★、自選清單真的寫進 2330（{ls1}）", s0 == "☆" and s1 == "★" and ls1 == ["2330"], (s0, s1, ls1))
+    ok(f"{T}自選清單只存代號（每頁只有 id／名字／代號，沒有張數或成本）",
+       m.evaluate("() => JSON.parse(localStorage.getItem('tw.watchlists')).tabs.every(t => Object.keys(t).sort().join() === 'codes,id,name')"))
+    m.goto(f"{base}#watch", wait_until="domcontentloaded")
+    wait_until(m, "() => document.querySelectorAll('#wpList tr[data-go]').length >= 1", 9000)
+    w1 = m.evaluate("() => [...document.querySelectorAll('#wpList tr[data-go]')].map(e => e.dataset.go)")
+    ok(f"{T}自選頁真的多了 2330（{n0} → {len(w1)} 列）", "2330" in w1 and len(w1) == n0 + 1, w1)
+    m.reload(wait_until="domcontentloaded")
+    wait_until(m, "() => document.querySelectorAll('#wpList tr[data-go]').length >= 1", 9000)
+    ok(f"{T}重新整理之後自選頁還在", "2330" in m.evaluate("() => [...document.querySelectorAll('#wpList tr[data-go]')].map(e => e.dataset.go)"))
+    # 取消：個股頁 ☆（★）→ 取消勾選 → 自選頁不見
+    m.goto(f"{base}#stock/2330", wait_until="domcontentloaded")
+    wait_until(m, "() => !!document.getElementById('mbStar') && document.getElementById('mbStar').textContent === '★'", 9000)
+    m.locator("#mbStar").tap(); m.wait_for_timeout(500)
+    m.locator("#wlPick input[data-pk]").first.uncheck(); m.wait_for_timeout(400)
+    m.evaluate("() => { const c = document.getElementById('pkClose'); if (c) c.click(); }"); m.wait_for_timeout(300)
+    ls2 = m.evaluate(LSW)
+    ok(f"{T}取消勾選 → ★ 變回 ☆、自選清單拿掉 2330（{ls2}）", m.evaluate("() => document.getElementById('mbStar').textContent") == "☆" and ls2 == [], ls2)
+    m.goto(f"{base}#watch", wait_until="domcontentloaded"); m.wait_for_timeout(2000)
+    ok(f"{T}自選頁的 2330 真的不見", "2330" not in m.evaluate("() => [...document.querySelectorAll('#wpList tr[data-go]')].map(e => e.dataset.go)"))
+    # 壞掉的 localStorage 不准把頁面弄掛
+    m.evaluate("() => localStorage.setItem('tw.watchlists', '{壞掉')"); m.goto(f"{base}#overview", wait_until="domcontentloaded"); m.wait_for_timeout(2500)
+    ok(f"{T}自選清單內容壞掉 → 總覽照樣畫得出來（摘要卡在）", m.evaluate("() => document.querySelectorAll('#hero .osc').length >= 2"))
+    # 回桌機：手機的東西拆乾淨
     m.set_viewport_size({"width": 1440, "height": 950}); m.wait_for_timeout(1200)
     ok(f"{T}視窗拉回 1440 → #mbHome 拆掉（桌機不動）", not m.evaluate("() => !!document.getElementById('mbHome')"))
     m.close()

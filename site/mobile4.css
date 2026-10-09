@@ -848,8 +848,8 @@
   :root.m4 main .view :is(.m4cbox,#lwc,.dgwrap,#hero.ovsum .osc){background:var(--t4-card-bg,var(--panel))!important;border:1px solid var(--line)!important;border-radius:10px!important;box-sizing:border-box}
   :root.m4 main .view .m4cbox.m4lwc,:root.m4 main .view #lwc{overflow:hidden}
 
-  /* 31d. 個股 K 線左上圖例不准蓋住右側價格軸（以前四行圖例壓在 2600／2650 那幾格上） */
-  :root.m4 #lwc .legend-ov{max-width:calc(100% - 84px);box-sizing:border-box}
+  /* 31d.（合併 claude/m4-misc 後拿掉）個股 K 線圖頭不蓋價格軸：改由 industry.js fitM4Legend() 依價格軸實際寬度量（帳本 73），
+     這裡原本寫死的 max-width:calc(100% - 84px) 會比實際價格軸（k 縮寫後約 70px）多讓 14px、讓圖頭多折一行，兩邊會打架 → 只留一套。 */
 
   /* 31e. 期間列（資金輪動 #rotBack、資金分流樹 #sankeyDays）播放中／暫停都維持一行（Andy 09:3x：按 ▶ 之後 ⏸ 掉到下一行）：
      原因：播放中右邊文字變長（「20 天前 · 回放 9/7」「57 天前＋2026-07-15」），index.html 的 .rbar 是 flex-wrap:wrap。
