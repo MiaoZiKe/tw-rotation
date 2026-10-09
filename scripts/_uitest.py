@@ -57969,8 +57969,8 @@ def t_m4_sync_1009(b, base, code):
     pg.goto(base + "#stock/2330", wait_until="domcontentloaded")
     wait_until(pg, "() => !!document.querySelector('#mbTabs button[data-t=rev]')", 20000)
     SER = """(names) => { const c = document.getElementById('mbChart'), ch = c && window.echarts && echarts.getInstanceByDom(c); if (!ch) return null;
-        const CH = App.CH; return { up: CH.up, down: CH.down, amber: CH.amber, violet: CH.violet, cyan: CH.cyan,
-          s: (ch.getOption().series || []).filter(s => s.type === 'line' && names.includes(s.name)).map(s => ({ n: s.name, c: (s.lineStyle || {}).color, ic: (s.itemStyle || {}).color, len: (s.data || []).length })),
+        const CH = App.CH; return { up: CH.up, down: CH.down, amber: CH.amber, violet: CH.violet, cyan: CH.cyan, ink3: CH.ink3,
+          s: (ch.getOption().series || []).filter(s => s.type === 'line' && names.includes(s.name)).map(s => ({ n: s.name, c: (s.lineStyle || {}).color, ic: (s.itemStyle || {}).color, ty: (s.lineStyle || {}).type, len: (s.data || []).length })),
           lg: [...document.querySelectorAll('#mbBody .mblg i, #mbBody .mblg span, #mbBody [class*=legend] *')].map(e => [e.textContent.trim(), getComputedStyle(e).color, getComputedStyle(e).backgroundColor]).filter(x => /YoY|淨利率|殖利率/.test(x[0])) }; }"""
     def tab(t):
         pg.evaluate("(t) => { const b = document.querySelector('#mbTabs button[data-t=\"' + t + '\"]'); if (b) b.click(); }", t); pg.wait_for_timeout(900)
@@ -57997,6 +57997,17 @@ def t_m4_sync_1009(b, base, code):
             chk("除權息", ["殖利率"], "cyan")
         else:
             ok(f"{T}【個股 2330】除權息：這檔沒有殖利率線（略過顏色檢查）", True, r)
+    # 2026-10-09（m4-pecolor）：財務 → 本益比：「期間最高／最低」以前是紅／綠線 → 灰色虛線；本益比線同桌機改紫
+    if pg.evaluate("() => !!document.querySelector('#mbTabs button[data-t=fin]')"):
+        tab("fin"); seg("fin", "pe")
+        pg.evaluate("() => document.getElementById('mbChart') && document.getElementById('mbChart').scrollIntoView({ block: 'center' })"); pg.wait_for_timeout(300)
+        chk("財務 本益比", ["本益比"], "violet")
+        r = chk("財務 本益比", ["最高", "最低"], "ink3")
+        ok(f"{T}【個股 2330】財務 本益比：期間最高／最低是虛線（區間上下緣，不是漲跌）",
+           bool(r) and len(r["s"]) == 2 and all(x["ty"] == "dashed" for x in r["s"]), r)
+        shot(pg, "pe_390_fin_pe.png")
+    else:
+        ok(f"{T}【個股 2330】找得到「財務」分頁", False)
     c.close()
     ok(f"{T}：沒有 JS 錯誤", not errs, errs[:3])
 
