@@ -543,6 +543,11 @@
     background:transparent;color:var(--ink);font:inherit;font-size:15px;font-weight:600;text-align:left;cursor:pointer}
   :root.m4 #v-market .m4mafolds>.m4fold small{font-size:12px;font-weight:400;color:var(--ink-3)}
   :root.m4 #v-market .m4mafolds>.m4fold i{margin-left:auto;font-style:normal;color:var(--ink-3)}
+  /* 2026-10-10 段標題的「平均 N%」（同網頁版站上均線段標題的平均站上 MA20；紅高綠低＝台股慣例，40～60 琥珀）：靠右、箭頭前 */
+  :root.m4 #v-market .m4mafolds>.m4fold .m4avg{margin-left:auto;font-size:13px;font-weight:700;color:var(--amber);white-space:nowrap;font-variant-numeric:tabular-nums}
+  :root.m4 #v-market .m4mafolds>.m4fold .m4avg.up{color:var(--rise)}
+  :root.m4 #v-market .m4mafolds>.m4fold .m4avg.down{color:var(--fall)}
+  :root.m4 #v-market .m4mafolds>.m4fold .m4avg+i{margin-left:4px}
   :root.m4 #v-market .m4mafolds>.m4fbox{padding:10px 0 12px}
   /* 展開後兩欄（單欄 22 張要捲 2000px）：名字太長截斷、全名在卡片 title */
   :root.m4 #v-market .m4mafolds>.m4fbox.magrid{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:8px!important}
@@ -911,6 +916,12 @@
   :root.m4 .gplegend .lg .vl{flex:none;min-width:5.2em}
   :root.m4 .gplegend .lg .pc{flex:none;min-width:3.6em}
   :root.m4 .gplegend .lg .nm{flex:1 1 auto;text-align:left}
+  /* 31g-4.（10-10 Andy 手機：「下方的長條圖補上」）圖例每一列名稱下面一條同色細長條，長度依占比（industry.js paintLegend 只在 m4 長出 .m4bar）。
+     名稱一行（放不下省略）、長條在名稱正下方、跟名稱欄同寬當滿格；列高 40 不變，不擠數字欄。 */
+  :root.m4 .gplegend .lg .m4nm{display:flex;flex-direction:column;justify-content:center;gap:4px;min-width:0}
+  :root.m4 .gplegend .lg .m4t{display:block;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  :root.m4 .gplegend .lg .m4bar{display:block;height:4px;width:100%;border-radius:2px;background:color-mix(in srgb,var(--ink-3) 14%,transparent)}
+  :root.m4 .gplegend .lg .m4bar>s{display:block;height:100%;min-width:2px;border-radius:2px;text-decoration:none}
 
   /* 31h. 延伸閱讀抽屜（diagrams.js foldSheet；Andy 09:4x：「延伸 1｜尺度…」改成從底部滑出、左右箭頭切換、抽屜上限約 70% 螢幕，內容長就抽屜內捲） */
   :root.m4 .msheet[data-kind=dgfold]{max-height:70vh}
@@ -1225,4 +1236,47 @@
   :root.m4 #v-pricing .prcard .prorig .prsale{min-width:0;max-width:100%;font-size:12px!important;line-height:1.35!important;padding:1px 6px!important;white-space:normal!important;text-align:center;height:auto!important}
   :root.m4 #v-pricing .prcard .prnote{display:block!important;height:auto!important;margin:2px 0 0!important;font-size:12px!important;line-height:1.4!important;white-space:normal!important;overflow:visible!important;text-overflow:clip!important}
   :root.m4 #v-pricing .prmg thead th .prnote{display:block!important;height:auto!important;margin:4px 0 0!important;font-size:12px!important;line-height:1.35!important;white-space:normal!important;overflow:visible!important;text-overflow:clip!important;word-break:keep-all}
+}
+
+/* ============================================================================
+   2026-10-10 網頁手機同步（docs/web_mobile_sync_1010.md 第 5 節 4、8 條；手機 session m4-sync2）
+   ⚠ 只在 ≤640 而且 :root.m4；縮放提示那段再加 (hover:none)＝真的觸控手機才換（桌機拉窄視窗用滑鼠，滾輪照樣能用）。
+   ============================================================================ */
+@media (max-width:640px) and (hover:none){
+  /* 觸控手機沒有滾輪（wheelZoom 沒做雙指縮放）：法人四象限、總覽題材熱力的「滾輪放大」提示是一句做不到的話 → 收起來 */
+  :root.m4 #trustWrap>.zbadge,:root.m4 #ovThemeWrap>.zbadge{display:none!important}
+  /* 本益比河流圖：手機唯一的縮放方式是上方「看多長／截止」兩支拉Bar → 提示改寫成拉Bar（原字留在節點裡，只是不畫） */
+  :root.m4 #peWrap>.zbadge{font-size:0!important;opacity:1}
+  :root.m4 #peWrap>.zbadge::after{content:'拖上方「看多長／截止」拉Bar 調整區間';font-size:12px;font-family:var(--sans,inherit)}
+}
+@media (max-width:640px){
+  /* ETF 頁首「複利試算」格：目前方案不能看（etf.inc.comp）→ 反灰＋格內第二行小字「🔒 Plus 以上」（mobile4.js paintTitle；Andy 10-10：新限制一律反灰＋小字、不跳視窗） */
+  :root.m4 .m4subtabs button.m4lk{display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1.15;color:var(--ink-3)}
+  :root.m4 .m4subtabs button.m4lk.on{color:var(--ink-2)}
+  :root.m4 .m4subtabs button.m4lk>span{opacity:.5}
+  :root.m4 .m4subtabs button.m4lk>small{display:block;font-size:12px;font-weight:600;color:var(--amber);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+}
+
+/* ============================================================================
+   ★ 2026-10-10 手機剖析圖：3D 編號、圖下零件卡、工具列方框（繪圖專家）
+   Andy 10-10：「3D圖的編號不見了，補上」「格式一律 方寬形式」
+              「手機版本的下方不要有紅框處的資訊，因為他點擊標籤時就可以看到，並且編號都是需要拉一條線在圖旁邊，而不是標在圖上」
+   只在 ≤640＋html.m4，桌機一條都不吃。
+   ---------------------------------------------------------------------------- */
+@media (max-width:640px){
+  /* (a) 3D 圖下面那串零件卡（.dgstage-b：three3d.js 在 <960 把字卡搬到畫布底下）、畫在零件上的編號圓點（.ld-no）、字卡本身（.lbl3d）：
+     手機一律不出現 —— 以前要等編號層（diagrams.js mobileNums3d）掛上 .mnum3d 才藏，掛上之前（手機慢、模組晚到）整串卡就攤在圖下面。
+     改成只要是手機 3D 框就藏；零件說明照舊在點編號開的底部抽屜裡。編號一律是圖左右兩側的泡泡＋引線（.mnumlayer）。*/
+  :root.m4 #prod3d :is(.dgstage-b,.lbl3d,.ld-no){display:none!important}
+  /* (b) 工具列一律方框（跟 2D｜3D、動畫 開｜關 分段同一款）：外框 1px --t4-ctl-edge、圓角 9、控制項底、高 46（＝分段的 40 格＋2 內距×2＋框 1×2）、字 13。
+     「編號」開＝實心主色（跟分段的選中格同一套），關＝透明底灰字；「圖說」是開抽屜的鈕（不是開關），樣子跟分段的未選中格一樣。
+     內距 2px 用 inset 陰影畫（實心底色跟外框中間留一圈控制項底），看起來跟分段的選中格一模一樣。*/
+  :root.m4 #dgSec #dgTools :is(#dgNum,.mdgbar .mdginfo){height:46px!important;min-height:46px!important;min-width:48px!important;padding:0 10px!important;margin:0!important;box-sizing:border-box;
+    display:inline-flex!important;align-items:center;justify-content:center;border:1px solid var(--t4-ctl-edge,var(--line-2))!important;border-radius:9px!important;
+    background:var(--t4-ctl,var(--panel-3))!important;color:var(--ink-2)!important;font-weight:600;box-shadow:none!important;opacity:1!important;line-height:1;white-space:nowrap}
+  :root.m4 #dgSec #dgTools #dgNum[aria-pressed="true"]{
+    background:var(--t4-accent,var(--cyan))!important;background-clip:padding-box!important;color:var(--on-accent,var(--ontop))!important;font-weight:700;box-shadow:inset 0 0 0 2px var(--t4-ctl,var(--panel-3))!important}
+  :root.m4 #dgSec #dgTools #dgNum::before,:root.m4 #dgSec #dgTools .mdgbar .mdginfo::before{font-size:13px;font-weight:inherit;color:inherit}
+  /* 「動畫」小字跟分段同一條中線 */
+  :root.m4 #dgSec #dgTools .m4anim{height:46px}
 }

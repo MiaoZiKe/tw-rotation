@@ -1256,6 +1256,7 @@
       <div class="mbtabwrap"><button type="button" class="mball" id="mbAll" aria-label="全部分頁">☰</button>
         <nav class="mbtabs" id="mbTabs" role="tablist">${skTabs(pg).map(x => `<button type="button" role="tab" data-t="${x.t}">${x.n}</button>`).join('')}</nav>
         <button type="button" class="mbstar" id="mbStar" aria-pressed="false">☆</button></div>`;
+    SK.prev0 = skPrev0(pg);
     skQuoteColor();
     skNeighbours(pg);
     const tabs = document.getElementById('mbTabs');
@@ -1280,10 +1281,32 @@
     const c = isFinite(r) ? uc(r) : 'fl';
     [px, dl].forEach(e => { e.classList.remove('up', 'dn', 'fl'); e.classList.add(c); });
     pc.classList.remove('up', 'dn', 'fl', 'down', 'flat'); pc.classList.add(c === 'dn' ? 'down' : c === 'up' ? 'up' : 'flat');
-    if (isFinite(p) && isFinite(r) && r > -100) {
-      const d = p - p / (1 + r / 100);
+    /* ★ 2026-10-10（網頁手機同步稽核第 6 條）：漲跌點數＝現價－昨收，直接相減。
+       以前用畫面上「四捨五入到 2 位的 %」反推（p − p/(1+r)），2,550 vs 昨收 2,585 會算成 ▼34.90（實際 −35.00），跟桌機十字線對不上。
+       昨收來源：即時層正在顯示的那筆報價（live.js 的 prevClose）＞日 K 倒數第二根收盤（skPrev0）；兩個都沒有才退回舊算法。*/
+    const prev = skPrevClose(px);
+    let d = null;
+    if (isFinite(p) && isFinite(prev) && prev > 0) d = Math.round((p - prev) * 100) / 100;
+    else if (isFinite(p) && isFinite(r) && r > -100) d = p - p / (1 + r / 100);
+    if (d != null && isFinite(d)) {
       dl.textContent = (d > 0.0049 ? '▲' : d < -0.0049 ? '▼' : '') + Math.abs(d).toFixed(2);
+      dl.dataset.prev = isFinite(prev) ? String(prev) : '';
     } else dl.textContent = '—';
+  }
+  /* 昨收：即時層正在顯示的報價（mbPx 的字＝那筆報價的現價）就用它的 prevClose；否則用頁面靜態資料的昨收 */
+  function skPrevClose(px) {
+    const L = window.Live, code = px && px.dataset.lc, q = L && code && L.quotes ? L.quotes[code] : null;
+    const A = skApp();
+    if (q && isFinite(+q.prevClose) && +q.prevClose > 0 && isFinite(+q.price) && A && A.fmt && px.textContent === A.fmt.n(q.price, 2)) return +q.prevClose;
+    return SK.prev0 != null ? SK.prev0 : NaN;
+  }
+  /* 頁面靜態資料的昨收：日 K 最後一根＝summary 的收盤時取倒數第二根；對不上（盤中暫定值等）就用未四捨五入的 chg_pct 反推 */
+  function skPrev0(pg) {
+    const s = pg.summary || {}, dk = Array.isArray(pg.daily) ? pg.daily : [];
+    const c = +s.close, last = dk[dk.length - 1], prev = dk[dk.length - 2];
+    if (last && prev && Math.abs(+last[4] - c) < 1e-6 && isFinite(+prev[4]) && +prev[4] > 0) return +prev[4];
+    if (isFinite(c) && isFinite(+s.chg_pct) && +s.chg_pct > -100) return Math.round(c / (1 + s.chg_pct / 100) * 100) / 100;
+    return null;
   }
   window.addEventListener('tw:quotes', () => { if (document.getElementById('mbHead')) skQuoteColor(); });
   /* 同族群的上一檔／下一檔：groups_detail 的成員順序（成交值大到小），頭尾相接；只算有個股頁的 */
@@ -1955,8 +1978,11 @@
     /* ★ 2026-09-28（Andy：總覽摘要卡列「在手機上放在指數列下面，可以橫向滑動，高度要小」）：
        摘要卡列（#hero，app.js renderOvSummary）緊貼在 #mbHome 後面 —— 在四步導覽列之前，不管切到第幾步都看得到。
        它不參與分段（modules.js 的 market.kpi 沒有 seg），高度由 index.html 的 @container ovsum (max-width:560px) 壓矮。*/
+    /* 2026-10-10：體驗活動橫幅（grants.js #grantBar）固定在摘要卡列正下方 —— 不跟著分段鈕或內容的插入順序跳（網頁手機同步稽核第 3 條） */
     const hmSum = () => { const h = document.getElementById('mbHome'), s = document.getElementById('hero');
-      if (h && s && h.parentElement === view && h.nextElementSibling !== s) h.after(s); };
+      if (h && s && h.parentElement === view && h.nextElementSibling !== s) h.after(s);
+      const gb = document.getElementById('grantBar');
+      if (gb && s && s.parentElement === view && gb.parentElement === view && s.nextElementSibling !== gb) s.after(gb); };
     hmSum();
     /* app.js 的分段導覽（.mspine／.mpager）是在路由畫完之後才插到 #v-overview 最前面，可能比這裡晚 ——
        盯著 #v-overview 的子節點，誰擠到前面就把 #mbHome 放回第一個（放回去那一次不會再觸發條件，不會迴圈）。

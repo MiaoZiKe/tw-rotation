@@ -2484,8 +2484,8 @@
     // 左右兩欄各分一半（依零件的左右位置，偏左的那一半放左欄），兩欄才不會一邊擠爆
     const byX = P.slice().sort((a, b) => a.x0 - b.x0), half = Math.ceil(byX.length / 2);
     const L = byX.slice(0, half).sort((a, b) => a.y0 - b.y0), R = byX.slice(half).sort((a, b) => a.y0 - b.y0);
-    const col = (arr, x, HH) => {
-      let y = pad;
+    const col = (arr, x, HH, top) => {
+      let y = top || pad;
       arr.forEach((p) => { p.x = x; p.y = Math.max(y, Math.min(HH - pad, p.y0)); y = p.y + gap; });
       // 擠到底就整欄往上推回來
       for (let i = arr.length - 1; i >= 0; i--) { const lim = HH - pad - (arr.length - 1 - i) * gap; if (arr[i].y > lim) arr[i].y = lim; if (i < arr.length - 1 && arr[i + 1].y - arr[i].y < gap) arr[i].y = arr[i + 1].y - gap; }
@@ -2498,8 +2498,13 @@
        「擠到底就整欄往上推回來」會把編號推到負的 y（畫布上緣之外），引線就從零件斜斜拉到畫布外的空白處。
        放不下就不讓客服鈕（它是浮在上面的，被它蓋到一顆總比整欄飛出畫布好），而且最後一律夾回畫布內。*/
     if (pad * 2 + (R.length - 1) * gap > rH) rH = H;
-    col(L, pad, H); col(R, W - pad, rH);
+    /* ★ 2026-10-10（手機 3D 轉動後 01／16 被右上角收合鈕蓋住）：右欄頂端讓開圖框右上角的鈕（P._rtop＝鈕底到框頂的距離＋半顆編號）；
+       讓了就放不下整欄時不讓（同上：被蓋到一顆總比整欄擠在一起好）。只有手機 3D 會給 P._rtop。*/
+    let rTop = P._rtop && P._rtop > pad ? P._rtop : pad;
+    if (rTop + pad + (R.length - 1) * gap > rH) rTop = pad;
+    col(L, pad, H); col(R, W - pad, rH, rTop);
     P.forEach((p) => { p.y = Math.max(pad, Math.min(H - pad, p.y)); });
+    if (rTop > pad) R.forEach((p) => { if (p.y < rTop) p.y = rTop; });
   }
   /* 3D 的引線（樣子跟 M3.leaders 一樣）：只畫 lead 為真的；多帶 data-part／data-no，驗收才知道每一條是哪個零件的。*/
   const leaders3d = (P) => P.filter(p => p.lead && Math.hypot(p.x - p.x0, p.y - p.y0) > 8)
@@ -2516,7 +2521,10 @@
     layer.onclick = (e) => { const b = e.target.closest('.mnum'); if (b) { e.stopPropagation(); cur = ctx; openNo(+b.dataset.i); } };
     let tries = 0;
     const tick = () => {
-      if (!layer.isConnected || !isM()) return;
+      if (!layer.isConnected) return;
+      /* ★ 2026-10-10（Andy：「3D圖的編號不見了」）：以前一跨出 640（手機轉橫、Safari 視窗重排）這圈就永遠停了，
+         轉回直的編號層停在舊位置或空著。改成：不在手機寬度時慢慢等（0.5 秒看一次），回來就整層重排。桌機從沒建過這層，不受影響。*/
+      if (!isM()) { ctx._sig = null; setTimeout(tick, 500); return; }
       if (!ctx.items.length) { ctx.items = items3d(h3); if (!ctx.items.length && tries++ < 40) { setTimeout(tick, 150); return; } }
       if (!h3.hidden && h3.offsetParent) {
         const base = h3.getBoundingClientRect(), W = base.width, H = base.height;
@@ -2543,7 +2551,10 @@
           }
           if (x < 0 || x > W || y < 0 || y > H) lead = false;
           return { i, x, y, x0: x, y0: Math.max(0, Math.min(H, y)), c: it.color, back: !q.front || !lead, lead, part: it.part, no: it.no }; }).filter(Boolean);
-        P._base = base; sideCols(P, W, H);
+        P._base = base;
+        const cb = h3.querySelector(':scope > .m4c3d');
+        if (cb && cb.getClientRects().length) { const r = cb.getBoundingClientRect(); if (r.left - base.left > W / 2) P._rtop = r.bottom - base.top + 4 + MIN / 2; }
+        sideCols(P, W, H);
         /* ★ 2026-10-09（Andy：「手機…產業地圖點擊都會卡頓沒反應」）：以前每 76ms 無條件整層 innerHTML 重寫一次 ——
            3D 停著不動也一秒重建 13 次編號鈕，每次都叫醒全站掛在 body 上的 MutationObserver（perm／icons／mobile4…）並重排版；
            而且手指按下去的那顆鈕 76ms 內就被換掉，click 落到外層 → 點編號沒反應。改成：算出來跟上一次一樣就不動 DOM。 */
