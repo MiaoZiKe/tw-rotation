@@ -67790,10 +67790,12 @@ def t_m4_sync2_1010(b, base):
         tb = pg.evaluate("() => { const w = document.getElementById('trustWrap'), b = w.querySelector(':scope > .zbadge'); return { wrap: !w.hidden && w.getClientRects().length > 0, disp: getComputedStyle(b).display, vis: b.getClientRects().length > 0 }; }")
         ok(f"{T}③：390 觸控 法人四象限：圖在、「滾輪放大」徽章不顯示", tb["wrap"] and tb["disp"] == "none" and not tb["vis"], tb)
         pg.goto(base + "#stock/2330", wait_until="domcontentloaded")
-        wait_until(pg, "() => !!document.querySelector('#mbTabs button[data-t=\"full\"]')", 20000)
-        pg.tap("#mbTabs button[data-t='full']")
-        wait_until(pg, "() => !!document.querySelector('#stockTabs button[data-t=\"profit\"]')", 10000)
-        pg.evaluate("() => document.querySelector('#stockTabs button[data-t=\"profit\"]').click()")
+        # ★ 2026-10-10 改前→改後（Andy：「為何還會一個完整版」）：改前按「完整版」→ 桌機那排分頁的「獲利」才看得到河流圖；
+        #   改後完整版拿掉，河流圖是手機「獲利」分頁的「河流圖」分段（同一張 #peRiverCard）—— 要驗的提示與拉Bar 不變
+        wait_until(pg, "() => !!document.querySelector('#mbTabs button[data-t=\"profit\"]')", 20000)
+        pg.tap("#mbTabs button[data-t='profit']")
+        wait_until(pg, "() => !!document.querySelector('#mbBody .mbseg button[data-s=\"river\"]')", 10000)
+        pg.tap("#mbBody .mbseg button[data-s='river']")
         wait_until(pg, "() => !!document.querySelector('#peWrap > .zbadge')", 15000)
         pg.evaluate("() => document.getElementById('peWrap').scrollIntoView({ block: 'center' })"); pg.wait_for_timeout(500)
         pb = pg.evaluate("""() => { const w = document.getElementById('peWrap'), b = w.querySelector(':scope > .zbadge'), r = b.getBoundingClientRect(), wr = w.getBoundingClientRect();

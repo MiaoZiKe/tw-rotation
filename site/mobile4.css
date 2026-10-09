@@ -1295,8 +1295,13 @@
   /* K 線卡永遠看得到（不再是分頁）；桌機那排分頁列永遠藏；#stockTab（桌機的分頁內容）只在「總覽」露 */
   :root.m4 body.m3on.mbon #stockPage>#skChartCard,:root.m4 body.m3on.mbon #stockPage>#skChartCard.mp-off{display:block!important;margin-top:8px!important}
   :root.m4 body.m3on.mbon #stockPage>#stockTabs{display:none!important}
-  :root.m4 body.m3on.mbon:not([data-mbt="ov"]) #stockPage>#stockTab{display:none!important}
-  :root.m4 body.m3on.mbon[data-mbt="ov"] #stockPage>#stockTab,:root.m4 body.m3on.mbon[data-mbt="ov"] #stockPage>#stockTab.mp-off{display:block!important;margin-top:0!important}
+  :root.m4 body.m3on.mbon #stockPage>#stockTab:not([data-mov]){display:none!important}
+  :root.m4 body.m3on.mbon #stockPage>#stockTab[data-mov],:root.m4 body.m3on.mbon #stockPage>#stockTab.mp-off[data-mov]{display:block!important;margin-top:0!important}
+  /* 獲利「河流圖」段：只露桌機那張本益比河流圖；控制列（畫法、透明度、線寬）同一排，放不下在框裡左右滑 */
+  :root.m4 body.mbon #stockTab[data-mov="river"]>.kvs,:root.m4 body.mbon #stockTab[data-mov="river"] #profGrid>.card:not(#peRiverCard){display:none!important}
+  :root.m4 body.mbon #stockTab[data-mov="river"] #profGrid{display:block!important}
+  :root.m4 body.mbon #stockTab[data-mov="river"] #peRiverCard>.row.spread>.row{flex-wrap:nowrap!important;overflow-x:auto;scrollbar-width:none;max-width:100%}
+  :root.m4 body.mbon #stockTab[data-mov="river"] #peRiverCard>.row.spread>.row>*{flex:none}
   :root.m4 body.m3on.mbon #stockPage>#aiCard{display:none!important}
   :root.m4 body.m3on.mbon[data-mbt="ov"] #stockPage>#mbBody:empty{display:none}
 
@@ -1312,6 +1317,8 @@
   :root.m4 body.mbon #stockTab[data-mov] #skOv3{display:block!important}
   :root.m4 body.mbon #stockTab[data-mov] :is(#skFundCard,#skChipCard,#ovAiCard){margin:0!important;height:auto!important;max-height:none!important;contain:none!important}
 
+  /* 總覽露出桌機那幾張卡之後，裡面的小方格（.k）照手機 v2 的規矩改用線條分區、不用方框與陰影（Andy 10-09：「大功能會用線條區分」；_uitest 手機v2 ⑭） */
+  :root.m4 body.mbon #stockTab .k{border-width:0 0 1px 0!important;border-radius:0!important;box-shadow:none!important}
   /* 拉 Bar：長的表格、新聞清單放進固定高度的框，在框裡上下捲（框高＝分頁列釘住時剩下的那一屏） */
   :root.m4 body.m3on.mbon{--mbbox:min(440px,calc(100svh - var(--mbtop,115px) - 120px));--mbfull:calc(100svh - var(--mbtop,115px) - 64px)}
   :root.m4 body.m3on #mbBody .mbtblwrap{margin:0 -8px;max-height:var(--mbbox);overflow-y:auto;overflow-x:hidden;overscroll-behavior-y:contain;border-top:1px solid var(--line-2);border-bottom:1px solid var(--line-2)}

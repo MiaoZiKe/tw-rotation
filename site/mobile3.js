@@ -1416,7 +1416,7 @@
     /* K 線卡與桌機的 #stockTab（總覽用）是 industry.js 畫好的節點；藏起來的第二版分段列（.mpager）會替它們掛 .mp-off ——
        手機 v2 的 CSS 在個股頁一律無視 .mp-off（mobile4.css 第 32 節），這裡順手拿掉，免得回到桌機寬度時還帶著。*/
     ['skChartCard', 'stockTab'].forEach(id => { const e = document.getElementById(id); if (e) e.classList.remove('mp-off'); });
-    const stb = document.getElementById('stockTab'); if (stb && t !== 'ov') delete stb.dataset.mov;
+    const stb = document.getElementById('stockTab'); if (stb) delete stb.dataset.mov;   // 總覽／獲利河流圖段畫的時候再掛回去
     const fn = { ov: skOv, hold: (p, b) => window.StockHold.render(p, b), tag: skTagTab, inst: skInst, big: skBig, margin: skMargin, rev: skRev, profit: skProfitAll, basic: skBasic, div: skDiv, news: skNews }[t];
     try { fn(pg, body); } catch (e) { console.warn('[m3 個股]', e); body.innerHTML = '<div class="mbempty">這一頁載入失敗</div>'; }
   }
@@ -1491,12 +1491,8 @@
   function skOv(pg, body) {
     const st = document.getElementById('stockTab');
     if (!st) { body.innerHTML = empty('總覽載入失敗'); return; }
-    if (!st.querySelector('#skOv')) {
-      /* 桌機寬度時切去別的分頁再縮回手機：叫桌機那排（藏起來的）分頁切回總覽；它會為了「分頁列不跳」捲一下，捲回原位 */
-      const b = document.querySelector('#stockTabs button[data-t="overview"]');
-      if (b) { const y = window.scrollY; b.click(); window.scrollTo({ top: y, behavior: 'instant' }); setTimeout(() => { st.style.minHeight = ''; }, 200); }
-    }
-    st.style.minHeight = '';
+    /* 桌機那份分頁內容可能停在別頁（獲利的河流圖段、或桌機寬度時切過別的分頁再縮回手機）：叫它畫回總覽 */
+    skDeskTab('overview', '#skOv');
     const SEG = OV_SEG.filter(x => st.querySelector('#' + x[2]));
     if (!SEG.length) { body.innerHTML = empty('總覽載入失敗'); delete st.dataset.mov; return; }
     const seg = SK.ovSeg && SEG.some(x => x[0] === SK.ovSeg) ? SK.ovSeg : SEG[0][0];
@@ -1505,6 +1501,27 @@
     const bar = $('.mbseg', body);
     if (bar) bar.onclick = (e) => { const b = e.target.closest('button[data-s]'); if (!b || b.classList.contains('on')) return; SK.ovSeg = b.dataset.s; skPaint(); };
     /* 剛從 display:none 露出來的那張卡如果有圖（ECharts），叫它量一次寬度 */
+    setTimeout(() => { const A = skApp(); Object.values((A && A.charts) || {}).forEach(c => { try { if (c && c.getDom && st.contains(c.getDom()) && c.resize) c.resize(); } catch (e) { /* 略 */ } }); }, 30);
+  }
+
+  /* ---- 叫桌機那份分頁內容（#stockTab）畫成某一頁：藏起來的桌機分頁鈕按一下，它為了「分頁列不跳」捲的那一下捲回來 ---- */
+  function skDeskTab(key, probe) {
+    const st = document.getElementById('stockTab'); if (!st) return null;
+    if (!st.querySelector(probe)) {
+      const b = document.querySelector(`#stockTabs button[data-t="${key}"]`);
+      if (b) { const y = window.scrollY; b.click(); window.scrollTo({ top: y, behavior: 'instant' }); setTimeout(() => { st.style.minHeight = ''; }, 200); }
+    }
+    st.style.minHeight = '';
+    return st.querySelector(probe) ? st : null;
+  }
+  /* ---- 獲利「河流圖」段：桌機獲利分頁那張本益比河流圖（#peRiverCard，含色帶／填滿／倍數線、看多長拉 Bar、播放）----
+     ★ 2026-10-10：改前只有「完整版」裡看得到；完整版拿掉之後，搬進獲利的分段（收起來可以，刪掉不行）。內容不另外寫，用桌機那一張。*/
+  function skRiver(pg, body, SEG) {
+    const st = skDeskTab('profit', '#peRiverCard');
+    body.innerHTML = segBar('profit', SEG, 'river') + (st ? '' : empty('本益比河流圖載入失敗'));
+    wireSeg(body, 'profit');
+    if (!st) return;
+    st.dataset.mov = 'river';
     setTimeout(() => { const A = skApp(); Object.values((A && A.charts) || {}).forEach(c => { try { if (c && c.getDom && st.contains(c.getDom()) && c.resize) c.resize(); } catch (e) { /* 略 */ } }); }, 30);
   }
 
@@ -1901,9 +1918,10 @@
     const pe = (pg.pe_history || []).filter(r => r.pe != null);
     const yr = ((pg.profit && pg.profit.yearly) || []).filter(y => y.eps != null);
     const SEG = [].concat(q.some(r => r[5] != null) ? [['q', '季走勢']] : []).concat(yr.length && q.some(r => r[5] != null) ? [['y', '年度走勢']] : [])
-      .concat(pe.length ? [['pe', '本益比']] : []).concat(q.length ? [['ni', '營收淨利']] : []);
+      .concat(pe.length ? [['pe', '本益比']] : []).concat(pe.length && q.length ? [['river', '河流圖']] : []).concat(q.length ? [['ni', '營收淨利']] : []);
     if (!SEG.length) { body.innerHTML = empty('尚無季報資料'); return; }
     const seg = SEG.some(x => x[0] === skSeg('profit', SEG[0][0])) ? skSeg('profit', SEG[0][0]) : SEG[0][0];
+    if (seg === 'river') { skRiver(pg, body, SEG); return; }
     if (seg === 'pe' || seg === 'ni') skFin(pg, body, seg, SEG); else skProfit(pg, body, seg, SEG);
   }
   function skProfit(pg, body, seg0, SEG0) {
