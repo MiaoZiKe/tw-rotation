@@ -20470,33 +20470,34 @@ def t_design_v4(b, base, code):
     c.close()
     c = b.new_context(viewport={"width": 390, "height": 844}, is_mobile=True, has_touch=True)
     p = c.new_page(); p.goto(base + "#overview", wait_until="networkidle"); p.wait_for_timeout(2200)
-    # ★ 2026-10-09 審核：手機 v2（10-08，mobile4.css／mobile4.js）拿掉了「⋯」選單（#moreBtn 在 html.m4 一律藏起來），
-    #   版面風格與明暗都改從頂欄「外觀」鈕（#m4Tools #t4Btn）打開同一個 #t4Pop：上面明暗（深色｜淺色）、下面三套風格
-    #   （Andy 10-08：「將切換版面風格、明暗這部分統一一個功能按鍵在上方」）。這裡照新入口真的點一遍，驗的事情不變：
+    # ★ 2026-10-09 08:4x（Andy 圖一＋圖二）：手機頂欄 🔍 右邊那顆改成 ☀／🌙 直接切明暗；外觀調色盤 #t4Btn 在手機藏起來，
+    #   版面風格改從帳號選單（右上角頭像）的「風格」換。這裡照新入口真的點一遍，驗的事情不變：
     #   三套風格都在、點「專業有力」真的切過去並記住、沒有橫向捲軸、明暗按了真的換且記住、風格不受影響。
     ok("⑥ 390：手機 v2 拿掉「⋯」選單（#moreBtn 看不到）",
        p.evaluate("() => { const m = document.getElementById('moreBtn'); return !m || m.getClientRects().length === 0; }"))
-    p.locator("#m4Tools #t4Btn").tap(timeout=6000); p.wait_for_timeout(400)
-    ok("⑥ 390：頂欄「外觀」點了打開面板、裡面三套風格", p.evaluate("""() => { const q = document.getElementById('t4Pop');
-        return !!q && !q.hidden && [...q.querySelectorAll('.t4o[data-t4]')].filter(e => e.getClientRects().length).length === 3; }"""))
-    p.locator('#t4Pop .t4o[data-t4="pro"]').tap(timeout=6000); p.wait_for_timeout(1500)
-    ok("⑥ 390：點「專業有力」真的切過去並記住",
+    p.evaluate("() => { const m = document.getElementById('acctMenu'); if (m) m.hidden = true; }")
+    p.locator("#m4Tools #acctBtn, #m4Tools #m4Login").first.tap(timeout=6000); p.wait_for_timeout(500)
+    has_menu = p.evaluate("() => { const m = document.getElementById('acctMenu'); return !!m && !m.hidden && !!m.querySelector('[data-m=style]'); }")
+    if has_menu:
+        p.locator("#acctMenu [data-m=style]").tap(timeout=6000); p.wait_for_timeout(300)
+        ok("⑥ 390：帳號選單「風格」點開、裡面三套風格", p.evaluate("() => [...document.querySelectorAll('#acctMenu [data-m=sty]')].filter(e => e.getClientRects().length).length") == 3)
+        p.locator('#acctMenu [data-m=sty][data-sty="pro"]').tap(timeout=6000); p.wait_for_timeout(1500)
+    else:   # 會員功能沒設定（沒有頭像選單）：風格入口仍是 T4.set（同一支），這裡直接呼叫，並記一筆
+        ok("⑥ 390：（會員功能沒設定，沒有帳號選單）改用 T4.set 驗風格", True)
+        p.evaluate("() => window.T4.set('pro')"); p.wait_for_timeout(1500)
+    ok("⑥ 390：選「專業有力」真的切過去並記住",
        p.evaluate("() => [document.documentElement.getAttribute('data-theme4'), localStorage.getItem('tw.theme4')]") == ["pro", "pro"])
     ov = p.evaluate("() => document.documentElement.scrollWidth - document.documentElement.clientWidth")
     ok("⑥ 390：沒有橫向捲軸", ov <= 1, ov)
-    if p.evaluate("() => document.getElementById('t4Pop').hidden"):
-        p.locator("#m4Tools #t4Btn").tap(timeout=6000); p.wait_for_timeout(400)
-    mm = p.evaluate("""() => { const q = document.getElementById('t4Pop'), V = (e) => e.getClientRects().length > 0,
-        tb = document.getElementById('t4Btn').getBoundingClientRect(), top = document.querySelector('.topbar').getBoundingClientRect();
-        return { modeBtns: [...q.querySelectorAll('.t4mode button[data-mode]')].filter(V).length,
-                 btn: { right: Math.round(tb.right), vw: innerWidth, bot: Math.round(tb.bottom), tbB: Math.round(top.bottom), w: Math.round(tb.width) },
+    p.evaluate("() => { const m = document.getElementById('acctMenu'); if (m) m.hidden = true; }")
+    mm = p.evaluate("""() => { const tb = document.getElementById('themeBtn').getBoundingClientRect(), top = document.querySelector('.topbar').getBoundingClientRect();
+        return { btn: { right: Math.round(tb.right), vw: innerWidth, bot: Math.round(tb.bottom), tbB: Math.round(top.bottom), w: Math.round(tb.width) },
                  mode: document.documentElement.getAttribute('data-theme') || 'dark' }; }""")
-    ok("⑥ 390：明暗入口在頂欄右半的「外觀」面板裡（深色｜淺色兩顆看得到）",
-       mm["modeBtns"] == 2 and mm["btn"]["w"] > 0 and mm["btn"]["right"] > mm["btn"]["vw"] * 0.5
-       and mm["btn"]["right"] <= mm["btn"]["vw"] and mm["btn"]["bot"] <= mm["btn"]["tbB"] + 2, mm)
-    p.locator("#t4Pop .t4mode button:not(.on)").first.tap(timeout=6000); p.wait_for_timeout(1200)
+    ok("⑥ 390：明暗鈕 ☀／🌙 在頂欄右半看得到",
+       mm["btn"]["w"] > 0 and mm["btn"]["right"] > mm["btn"]["vw"] * 0.5 and mm["btn"]["right"] <= mm["btn"]["vw"] and mm["btn"]["bot"] <= mm["btn"]["tbB"] + 2, mm)
+    p.locator("#m4Tools #themeBtn").tap(timeout=6000); p.wait_for_timeout(1200)
     m2 = p.evaluate("() => [document.documentElement.getAttribute('data-theme') || 'dark', localStorage.getItem('tw.theme'), document.documentElement.getAttribute('data-theme4')]")
-    ok("⑥ 390：按面板裡的深色／淺色 → 明暗真的換、記住，風格不受影響（還是專業有力）",
+    ok("⑥ 390：按頂欄明暗鈕 → 明暗真的換、記住，風格不受影響（還是專業有力）",
        m2[0] != mm["mode"] and m2[1] == m2[0] and m2[2] == "pro", {"前": mm["mode"], "後": m2})
     c.close()
 
@@ -27633,6 +27634,38 @@ def t_mobile_m4_1008(b, base, code):
         ok(f"【{T}】訂閱方案：精簡卡的升級鈕手指點得到、有反應（跳出申請／登入）",
            J("() => [...document.querySelectorAll('.subdlg:not([hidden]), dialog[open], .modal:not([hidden]), [role=dialog]:not([hidden]), #m4LoginTip:not([hidden]), .prdlg:not([hidden]), .acctdlg:not([hidden])')].some(e => e.getClientRects().length) || location.hash !== '#pricing'"), None)
         J("() => document.querySelectorAll('.subdlg [data-close]').forEach(b => b.getClientRects().length && b.click())"); m.keyboard.press("Escape")
+        # ㉒-b 2026-10-09 08:4x Andy 圖四「格式都跑掉了 請修復」（合併表在手機：名稱「註…／P…」、NT$ 249 被切、說明全成「…」、右緣超出；月繳／年繳膠囊被裁）
+        #   402×874 與 360×800 × 卡片＋表格／合併表 × 月繳／年繳：名稱、價格、說明、升級鈕都看得到而且不截字（scrollWidth ≤ clientWidth）、沒有元素超出視窗、整頁 ≤ 3 屏
+        PR_FIT = """() => { const v = document.getElementById('v-pricing'), V = (e) => !!e && e.getClientRects().length > 0 && getComputedStyle(e).visibility !== 'hidden';
+            const mg = !!document.getElementById('prMerged');
+            const cols = mg ? [...document.querySelectorAll('#prTable thead th[data-plan]')] : [...document.querySelectorAll('#prCards .prcard')];
+            const cut = (e) => !!e && e.scrollWidth > e.clientWidth + 1;
+            const per = cols.map(c => { const nm = c.querySelector(mg ? '.prhd b' : 'h2'), pr = c.querySelector('.prprice'), ft = c.querySelector('.mfit'), go = c.querySelector('.prgo');
+                return { p: c.dataset.plan, nm: V(nm) ? nm.textContent.trim() : '', pr: V(pr) ? pr.textContent.replace(/\\s+/g, ' ').trim() : '', cut: cut(nm) || cut(pr) || (mg && cut(ft)),
+                  ft: mg ? (V(ft) ? ft.textContent.trim() : '') : '-', go: V(go) && go.getBoundingClientRect().height >= 39.5 }; });
+            const trunc = [...v.querySelectorAll('*')].filter(e => V(e) && e.children.length === 0 && e.textContent.trim() && getComputedStyle(e).textOverflow === 'ellipsis' && cut(e)).map(e => e.textContent.trim().slice(0, 10));
+            const out = [...v.querySelectorAll('*')].filter(e => { if (!V(e)) return false; const r = e.getBoundingClientRect(); return r.width > 0 && (r.right > innerWidth + 1 || r.left < -1); }).map(e => e.className || e.tagName).slice(0, 6);
+            const sb = [...document.querySelectorAll('#prPeriod > button')].map(b => { const r = b.getBoundingClientRect(), s = b.parentNode.getBoundingClientRect(); return r.left >= s.left - 0.5 && r.right <= s.right + 0.5 && b.scrollWidth <= b.clientWidth + 1; });
+            return { mg, per, trunc, out, seg: sb, H: document.documentElement.scrollHeight, vh: innerHeight, sw: document.documentElement.scrollWidth, iw: innerWidth }; }"""
+        for (pw, ph) in ((402, 874), (360, 800)):
+            m.set_viewport_size({"width": pw, "height": ph})
+            for lay in ("", "&layout=merged"):
+                m.goto(base + ("&" if "?" in base else "?") + "demo=plans" + lay + "#pricing", wait_until="domcontentloaded")
+                wait_until(m, "() => !!document.querySelector('#prCards .prcard, #prMerged th[data-plan]') && document.documentElement.classList.contains('m4')", 8000)
+                m.wait_for_timeout(1200)
+                for per in ("month", "year"):
+                    if J(f"() => !!document.querySelector('#prPeriod [data-per={per}]:not(.on)')"):
+                        m.locator(f"#prPeriod [data-per={per}]").tap(); m.wait_for_timeout(600)
+                    f = J(PR_FIT)
+                    tag = f"{pw} {'合併表' if f['mg'] else '卡片＋表格'} {'年繳' if per == 'year' else '月繳'}"
+                    ok(f"【{T}】訂閱方案 {tag}：{len(f['per'])} 個方案都看得到名稱、價格、升級鈕" + ("、適合誰一句" if f["mg"] else "") + "，而且不截字",
+                       len(f["per"]) >= 3 and all(x["nm"] and x["pr"] and x["ft"] and x["go"] and not x["cut"] for x in f["per"]) and not f["trunc"], (f["per"], f["trunc"]))
+                    ok(f"【{T}】訂閱方案 {tag}：沒有元素超出視窗、整頁不橫捲（{f['sw']} ≤ {f['iw']}）、月繳／年繳兩顆都完整", not f["out"] and f["sw"] <= f["iw"] and all(f["seg"]) and len(f["seg"]) == 2, f)
+                    ok(f"【{T}】訂閱方案 {tag}：整頁 ≤ 3 屏（{f['H']} ≤ {3 * f['vh']}）", f["H"] <= 3 * f["vh"], f["H"])
+                if pw == 402 and lay:
+                    ok(f"【{T}】訂閱方案 402 合併表：三格升級鈕在同一條水平線（差 ≤ 2px）",
+                       J("() => { const t = [...document.querySelectorAll('#prMerged th[data-plan] .prgo')].map(b => b.getBoundingClientRect().bottom); return t.length >= 3 && Math.max(...t) - Math.min(...t) <= 2; }"), None)
+        m.set_viewport_size({"width": 402, "height": 874})
         # 市場明細「漲跌分佈」篩選列（修前「族群：不限 ▾」掉到第二行、主圖往下約 48px）：全部／上市／上櫃、含 ETF、族群下拉同一行、都在畫面內；族群下拉真的點得開
         go("market", 3500)
         df = J("""() => { const f = document.getElementById('distFilter'); if (!f) return null;
@@ -27858,11 +27891,10 @@ def t_mobile_m4(b, base, code):
                  sw: document.documentElement.scrollWidth, bw: bar.scrollWidth, bcw: bar.clientWidth, ovl, ev: evHidden,
                  more: vis(document.getElementById('moreBtn')), nth: [...document.querySelectorAll('#themeBtn, #mmTheme, [data-act=theme], #l4Mode')].filter(vis).length, head: (document.getElementById('m4Title') || {}).textContent || '' }; }""")
     ok(f"【{T}】頂欄只有頭像、沒有頁名文字", tb["logo"] and tb["txt"] == [], tb["txt"])
-    # 2026-10-08 改：明暗與版面風格合成一顆「外觀」（Andy：「統一一個功能按鍵在上方」）→ 依序：外觀、平台導覽、（在線）、登入
-    # 2026-10-09 改（Andy：「把明暗功能分出來」）：明暗又獨立一顆、在外觀調色盤左邊（同網頁版）→ 依序：搜尋、明暗、外觀、平台導覽、（在線）、登入
-    want_tools = ["m4Search", "themeBtn", "t4Btn", "twPageTourBtn"]
-    ok(f"【{T}】頂欄右邊依序有搜尋、明暗、外觀、平台導覽、（在線）、登入（{'／'.join(tb['tools'])}）",
-       tb["tools"][:4] == want_tools and tb["tools"][-1] in ("acctBtn", "m4Login") and all(x in ("acctOnline",) for x in tb["tools"][4:-1]), tb["tools"])
+    # 2026-10-09 08:4x 改（Andy 圖一：「將紅框改成這功能（明暗切換）」）：🔍 右邊那顆＝☀／🌙 直接切明暗；外觀調色盤 #t4Btn 在手機藏起來（風格改在帳號選單）
+    want_tools = ["m4Search", "themeBtn", "twPageTourBtn"]
+    ok(f"【{T}】頂欄右邊依序有搜尋、明暗、平台導覽、（在線）、登入，沒有調色盤（{'／'.join(tb['tools'])}）",
+       tb["tools"][:3] == want_tools and tb["tools"][-1] in ("acctBtn", "m4Login") and all(x in ("acctOnline",) for x in tb["tools"][3:-1]), tb["tools"])
     m.locator("#m4Search").tap(); m.wait_for_timeout(500)
     m.keyboard.type("2330"); m.wait_for_timeout(900)
     sr = m.evaluate("() => ({ focus: document.activeElement && document.activeElement.id, n: document.querySelectorAll('#sugg [role=option], #sugg .sg, #sugg > *').length })")
@@ -27873,18 +27905,18 @@ def t_mobile_m4(b, base, code):
     ok(f"【{T}】頂欄小圖示觸控高度 ≥ 40", tb["small"] == [], tb["small"])
     ok(f"【{T}】頂欄不溢出、元素不互相重疊", tb["bw"] <= tb["bcw"] + 1 and tb["sw"] <= 390 and tb["ovl"] == [], tb)
     ok(f"【{T}】「⋯」選單拿掉、頂欄沒有今日事件", not tb["more"] and tb["ev"] == 0, tb)
-    ok(f"【{T}】明暗鈕只有頂欄那一顆（10-09 起獨立在頂欄，同網頁版）", tb["nth"] == 1, tb["nth"])
+    ok(f"【{T}】頁面上只有一顆明暗鈕（頂欄 ☀／🌙）", tb["nth"] == 1, tb["nth"])
     ok(f"【{T}】頁名搬到內容區最上面（{tb['head']}）", tb["head"].strip() == "總覽", tb["head"])
-    m.locator("#m4Tools #t4Btn").tap(); m.wait_for_timeout(400)
-    pan = m.evaluate("""() => { const p = document.getElementById('t4Pop'); return !!p && !p.hidden && p.getClientRects().length > 0
-        && ![...p.querySelectorAll('.t4mode, .t4modeh')].some(e => e.getClientRects().length) && p.querySelectorAll('.t4o').length > 1; }""")
-    ok(f"【{T}】頂欄「外觀」點了打開面板（只有版面風格、沒有明暗段，同網頁版）", pan, pan)
-    s0 = m.evaluate("() => document.documentElement.getAttribute('data-theme4') || ''")
-    m.locator("#t4Pop .t4o[aria-pressed=false]").first.tap(); m.wait_for_timeout(400)
-    s1 = m.evaluate("() => document.documentElement.getAttribute('data-theme4') || ''")
-    ok(f"【{T}】外觀面板換版面風格真的生效（{s0}→{s1}）", s0 != s1, (s0, s1))
-    m.locator(f"#t4Pop .t4o[data-t4='{s0}']").first.tap() if s0 else None
-    m.wait_for_timeout(200)
+    # 頂欄明暗鈕：點一下主題真的切換、圖示 ☀／🌙 跟著換、不打開外觀面板；再點一下切回來
+    th0 = m.evaluate("() => ({ th: document.documentElement.dataset.theme || '', ic: document.getElementById('themeBtn').textContent.trim() })")
+    m.locator("#m4Tools #themeBtn").tap(); m.wait_for_timeout(500)
+    th1 = m.evaluate("""() => { const p = document.getElementById('t4Pop'); return { th: document.documentElement.dataset.theme || '', ic: document.getElementById('themeBtn').textContent.trim(),
+        pop: !!p && !p.hidden && p.getClientRects().length > 0, ls: localStorage.getItem('tw.theme') }; }""")
+    ok(f"【{T}】頂欄明暗鈕點一下：主題真的切換（{th0['th']}→{th1['th']}）、圖示換了（{th0['ic']}→{th1['ic']}）、存進 tw.theme、沒有打開外觀面板",
+       th0["th"] != th1["th"] and th0["ic"] != th1["ic"] and th1["ls"] == (th1["th"] or "dark") and not th1["pop"], (th0, th1))
+    m.locator("#m4Tools #themeBtn").tap(); m.wait_for_timeout(500)
+    ok(f"【{T}】頂欄明暗鈕再點一下切回原本的主題", m.evaluate("() => document.documentElement.dataset.theme || ''") == th0["th"], None)
+    ok(f"【{T}】頂欄沒有外觀調色盤鈕（避免兩顆重複）", not m.evaluate("() => { const t = document.getElementById('t4Btn'); return !!t && t.getClientRects().length > 0; }"), None)
     m.keyboard.press("Escape"); m.wait_for_timeout(200); m.mouse.click(200, 700); m.wait_for_timeout(300)
     lg = m.locator("#m4Tools #m4Login, #m4Tools #acctBtn").first; lg.tap(); m.wait_for_timeout(400)
     lgo = m.evaluate("""() => { const t = document.getElementById('m4LoginTip'); const d = document.querySelector('.acctdlg, .acctmenu, #acctDlg');
@@ -63222,13 +63254,39 @@ def t_acct_menu_1009(b, base, code):
         ok(f"【{T}】{who}：徽章＝「{want_label[who]}」（實際「{g['label']}」）", g["label"] == want_label[who], g["label"])
         ok(f"【{T}】{who}：管理員多一顆「管理」徽章、其他身分沒有", g["role"] == (["管理"] if who == "admin" else []), g["role"])
         ok(f"【{T}】{who}：選單裡沒有「自選清單」項目", "watch" not in g["items"] and "★ 自選清單" not in g["txt"], g["items"])
-        ok(f"【{T}】{who}：訂閱方案、通知、額度上限、意見回饋、客服按鈕、使用條款、隱私權政策都在",
-           all(k in g["items"] for k in ["pricing", "notify", "quota", "feedback", "fab", "terms", "privacy"]), g["items"])
+        ok(f"【{T}】{who}：訂閱方案、通知、額度上限、意見回饋、客服按鈕、風格都在",
+           all(k in g["items"] for k in ["pricing", "notify", "quota", "feedback", "fab", "style"]), g["items"])
+        # 10-09 08:4x Andy 圖二「風格在圖二改」＋圖三「拿掉」：沒有「深色模式」列（明暗在頂欄）、沒有使用條款／隱私權政策／免責聲明那一列（頁尾有）
+        ok(f"【{T}】{who}：沒有「深色模式」列、沒有條款三連結那一列",
+           "theme" not in g["items"] and "深色模式" not in g["txt"] and not any(k in g["items"] for k in ("terms", "privacy", "disc"))
+           and not any(x in g["txt"] for x in ("使用條款", "隱私權政策", "免責聲明")), g["items"])
         ok(f"【{T}】{who}：通知顯示未讀數字 1（有一則公告沒讀）", g["num"] == "1", g["num"])
         ok(f"【{T}】{who}：管理區只有管理員與站主看得到，而且預設收起",
            (g["adm"] and g["sub"] >= 4 and not g["subVis"]) if who in ("admin", "owner") else (not g["adm"] and g["sub"] == 0), g)
-        ok(f"【{T}】{who}：訪客有「登入／註冊」、沒有刪除帳號與登出；登入者相反",
-           (g["login"] and g["del"] is None and not g["logout"]) if who == "guest" else (not g["login"] and g["del"] is not None and g["logout"]), g)
+        ok(f"【{T}】{who}：訪客有「登入／註冊」；登入者沒有、而且有可用的登出",
+           (g["login"] and not g["logout"]) if who == "guest" else (not g["login"] and g["del"] is not None and g["logout"]), g)
+        # 10-09 09:2x Andy（帳本 59）：「深色功能改版面風格，並且將版面風格圖示拿掉，留下深淺切換功能。客服按鈕改成『客服功能』，下方需要多出刪除功能以及登出功能」
+        tail = pg.evaluate("""() => { const m = document.getElementById('acctMenu'), V = (e) => !!e && e.getClientRects().length > 0;
+            const rows = [...m.querySelectorAll('[data-m],[data-a]')].filter(V);
+            const last2 = rows.slice(-2).map(e => ({ k: e.dataset.m || e.dataset.a, t: e.innerText.replace(/\\s+/g, ' ').trim(), dis: e.getAttribute('aria-disabled') === 'true' }));
+            const t4 = document.getElementById('t4Btn');
+            return { last2, txt: m.innerText, t4: !!t4 && t4.getClientRects().length > 0, theme: V(document.querySelector('#m4Tools #themeBtn')) }; }""")
+        ok(f"【{T}】{who}：選單最下方兩列是「刪除帳號」「登出」（{[x['t'][:12] for x in tail['last2']]}）",
+           len(tail["last2"]) == 2 and tail["last2"][0]["t"].startswith("刪除帳號") and tail["last2"][1]["t"].startswith("登出"), tail["last2"])
+        if who == "guest":
+            ok(f"【{T}】guest：刪除帳號與登出兩列都停用、寫「登入後可用」", all(x["dis"] and "登入後可用" in x["t"] for x in tail["last2"]), tail["last2"])
+        elif who == "owner":
+            ok(f"【{T}】owner：刪除帳號停用、登出可按", tail["last2"][0]["dis"] and not tail["last2"][1]["dis"], tail["last2"])
+        else:
+            ok(f"【{T}】{who}：刪除帳號與登出都可以按", not any(x["dis"] for x in tail["last2"]), tail["last2"])
+        ok(f"【{T}】{who}：有「客服功能」「版面風格」兩列、沒有「客服按鈕」「深色模式」",
+           "客服功能" in tail["txt"] and "版面風格" in tail["txt"] and "客服按鈕" not in tail["txt"] and "深色模式" not in tail["txt"], tail["txt"][:200])
+        ok(f"【{T}】{who}：頂欄沒有 🎨 版面風格鈕、有 ☀／🌙 明暗鈕", not tail["t4"] and tail["theme"], tail)
+        if who == "guest":
+            pg.locator("#acctMenu [data-m=del]").tap(force=True); pg.wait_for_timeout(250)
+            pg.locator("#acctMenu [data-m=logout]").tap(force=True); pg.wait_for_timeout(250)
+            ok(f"【{T}】guest：點停用的刪除帳號／登出沒有反應（選單還開著、沒有確認框）",
+               pg.evaluate("() => !document.getElementById('acctMenu').hidden && !(document.getElementById('m4Del') && !document.getElementById('m4Del').hidden)"))
         ok(f"【{T}】{who}：選單在畫面內、沒有撐出橫向捲軸", g["inView"] and g["sw"], g)
         if shots and who in ("guest", "plus", "owner"):
             pg.screenshot(path=str(pathlib.Path(shots) / f"menu_{who}.jpg"), type="jpeg", quality=70)
@@ -63267,14 +63325,38 @@ def t_acct_menu_1009(b, base, code):
             pg.wait_for_timeout(200)
             ok(f"【{T}】{who}：額度頁按 ✕ 關掉", pg.evaluate("() => document.getElementById('m4Quota').hidden"))
         # ③ 各項點了真的到對應功能（訪客與註冊會員走全部；其他身分抽訂閱方案）
-        navs = [("pricing", "#pricing"), ("notify", "#notices"), ("terms", "#terms"), ("privacy", "#privacy")] if who in ("guest", "free") else [("pricing", "#pricing")]
+        navs = [("pricing", "#pricing"), ("notify", "#notices")] if who in ("guest", "free") else [("pricing", "#pricing")]
         for k, h in navs:
             _am4_open(pg)
-            pg.locator(f"#acctMenu [data-m={k}]" if k != "privacy" else "#acctMenu [data-a=privacy]").tap()
+            pg.locator(f"#acctMenu [data-m={k}]").tap()
             ok(f"【{T}】{who}：點「{k}」→ {h}、選單收起",
                bool(wait_until(pg, f"() => location.hash.startsWith({json.dumps(h)}) && document.getElementById('acctMenu').hidden", 3000)), pg.evaluate("() => location.hash"))
         pg.evaluate("() => { location.hash = '#overview'; }")
         pg.wait_for_timeout(400)
+        # 「風格」：預設收起；點開三套風格；選一套 → <html data-theme4> 換了、localStorage tw.theme4 寫進去、打勾移過去、列右邊的名稱跟著換、選單沒收
+        if who in ("guest", "owner"):
+            _am4_open(pg)
+            s0 = pg.evaluate("() => ({ t4: document.documentElement.getAttribute('data-theme4'), vis: [...document.querySelectorAll('#acctMenu [data-m=sty]')].filter(e => e.getClientRects().length).length })")
+            ok(f"【{T}】{who}：「風格」預設收起（三套風格看不到）", s0["vis"] == 0, s0)
+            pg.locator("#acctMenu [data-m=style]").tap()
+            pg.wait_for_timeout(200)
+            opts = pg.evaluate("() => [...document.querySelectorAll('#acctMenu [data-m=sty]')].filter(e => e.getClientRects().length && e.getBoundingClientRect().height >= 40).map(e => e.dataset.sty)")
+            ok(f"【{T}】{who}：點「風格」展開三套風格、每列高 ≥ 40（{opts}）", len(opts) == 3, opts)
+            pick = next((x for x in opts if x != s0["t4"]), None)
+            if pick:
+                pg.locator(f"#acctMenu [data-m=sty][data-sty={pick}]").tap()
+                pg.wait_for_timeout(700)
+                s1 = pg.evaluate("""() => { const m = document.getElementById('acctMenu');
+                    return { t4: document.documentElement.getAttribute('data-theme4'), ls: localStorage.getItem('tw.theme4'), open: !m.hidden,
+                      on: [...m.querySelectorAll('[data-m=sty][aria-checked=true]')].map(e => e.dataset.sty), cur: (m.querySelector('[data-sty-cur]') || {}).textContent || '' }; }""")
+                ok(f"【{T}】{who}：選「{pick}」→ 版面風格真的換了（{s0['t4']}→{s1['t4']}）、存進 tw.theme4、只有它打勾、選單沒收",
+                   s1["t4"] == pick and s1["ls"] == pick and s1["on"] == [pick] and s1["open"] and s1["cur"], s1)
+                pg.locator(f"#acctMenu [data-m=sty][data-sty={s0['t4']}]").tap()
+                pg.wait_for_timeout(500)
+                ok(f"【{T}】{who}：選回原本的風格（{s0['t4']}）", pg.evaluate("() => document.documentElement.getAttribute('data-theme4')") == s0["t4"], None)
+            if shots and who == "owner":
+                pg.screenshot(path=str(pathlib.Path(shots) / "menu_style_owner.jpg"), type="jpeg", quality=70)
+            pg.evaluate("() => { document.getElementById('acctMenu').hidden = true; }")
         _am4_open(pg)
         pg.locator("#acctMenu [data-m=feedback]").tap()
         ok(f"【{T}】{who}：點「意見回饋」→ 客服面板打開", bool(wait_until(pg, sup_open, 3000)))
