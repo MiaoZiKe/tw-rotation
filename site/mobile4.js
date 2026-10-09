@@ -1098,13 +1098,16 @@
   function m3Summary() {
     const k = $('#m3Mode button[data-m="k"]'), isK = !!k && k.classList.contains('on');
     const tf = $('#m3Tf'), tt = tf && tf.options[tf.selectedIndex] ? tf.options[tf.selectedIndex].text.trim() : '';
-    return isK ? `K 線・${tt}` : '走勢圖';
+    /* 短字（監督 10-09 退件：合併版同一行多了第 1 批的分段外框，「K 線・日 K」被截成「K 線・…」）：
+       「K・日」「走勢」，完整說法在 aria-label／title；不准出現「…」 */
+    return isK ? `K・${tt.replace(/\s*K$/i, '').trim()}` : '走勢';
   }
   function m3Paint() {
     const b = $('#m4M3Set'); if (!b) return;
     const t = m3Summary();
+    const tf = $('#m3Tf'), full = $('#m3Mode button[data-m="k"].on') ? 'K 線・' + (tf && tf.options[tf.selectedIndex] ? tf.options[tf.selectedIndex].text.trim() : '') : '走勢圖';
     setHTML(b, `${ICON}<span class="m4st">${t}</span><i aria-hidden="true">›</i>`);
-    setAttr(b, 'aria-label', '大盤走勢設定：' + t); setAttr(b, 'title', '大盤走勢設定：' + t);
+    setAttr(b, 'aria-label', '大盤走勢設定：' + full); setAttr(b, 'title', '大盤走勢設定：' + full);
   }
   function m3SheetBody(body) {
     const isK = !!$('#m3Mode button[data-m="k"].on'), tf = $('#m3Tf');
@@ -1225,8 +1228,55 @@
     $$('canvas', mn).forEach((c) => { if (c.closest('[_echarts_instance_],.tv-lightweight-charts,.m4cbox,#lwc')) return; const e = c.parentElement; if (big(e)) e.classList.add('m4cbox'); });
   }
 
+  /* ---- 資金輪動「顯示軌跡／腳印／水波／掃描」4 個勾選框 → 一顆「⚙ 顯示 ›」摘要鈕 → 底部抽屜，每組一排「開｜關」分段控制器
+     （CEO 轉派帳本 38；範本＝Andy 認可的週期統計那款：摘要鈕 → 底部抽屜 → 每組一排分段控制器，mobile4.js 第 29 節）。
+     勾選框本身不動（藏起來），抽屜裡按「開／關」＝按那顆勾選框本人（click()，app.js 原本的 change 監聽照走、記憶照存）。 */
+  const ROT_OPTS = [['rot-line', '顯示軌跡'], ['rot-trail', '顯示腳印'], ['rot-ripple', '水波'], ['rot-scan', '掃描']];
+  const GEAR = '<svg class="m4sico" viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>';
+  function rotCb(cls) { const t = document.getElementById('rotTools'); return t ? t.querySelector('input.' + cls) : null; }
+  function rotSummary() { const on = ROT_OPTS.filter(([c]) => { const x = rotCb(c); return x && x.checked; }); return { n: on.length, txt: on.map(([, t]) => t.replace('顯示', '')).join('・') || '全關' }; }
+  function rotPaint() {
+    const b = document.getElementById('m4RotSet'); if (!b) return;
+    const s = rotSummary(), html = `${GEAR}<span class="m4st">顯示 ${s.n}/${ROT_OPTS.length}</span><i aria-hidden="true">›</i>`;
+    if (b.innerHTML !== html) b.innerHTML = html;
+    const lab = '顯示設定：' + s.txt; if (b.getAttribute('aria-label') !== lab) { b.setAttribute('aria-label', lab); b.title = lab; }
+  }
+  function rotSheetBody(body) {
+    body.innerHTML = ROT_OPTS.map(([c, t]) => { const x = rotCb(c), on = !!(x && x.checked);
+      return `<div class="m4shrow"><span class="m4shlab">${t}</span><div class="seg" role="group" aria-label="${t}">`
+        + `<button type="button" data-rc="${c}" data-v="1" class="${on ? 'on' : ''}" aria-pressed="${on}">開</button>`
+        + `<button type="button" data-rc="${c}" data-v="0" class="${on ? '' : 'on'}" aria-pressed="${!on}">關</button></div></div>`; }).join('');
+  }
+  function rotOpen() {
+    if (!window.M3 || !window.M3.openSheet) return;
+    const wrap = document.createElement('div');
+    wrap.innerHTML = '<div class="mshhead"><b>顯示</b></div><div class="m4shsegs" id="m4RotSegs"></div>';
+    const body = wrap.querySelector('.m4shsegs');
+    rotSheetBody(body);
+    body.addEventListener('click', (e) => {
+      const bt = e.target.closest('button[data-rc]'); if (!bt) return;
+      const x = rotCb(bt.dataset.rc); if (x && x.checked !== (bt.dataset.v === '1')) x.click();
+      setTimeout(() => { rotSheetBody(body); rotPaint(); }, 30);
+    });
+    const sh = window.M3.openSheet(wrap, { kind: 'rotset', onClose: rotPaint });
+    if (sh) sh.dataset.kind = 'rotset';
+  }
+  function wireRot() {
+    const t = document.getElementById('rotTools');
+    if (!t) return;
+    if (!isM4()) { t.classList.remove('m4gone'); const b0 = document.getElementById('m4RotSet'); if (b0) b0.remove(); return; }
+    if (!t.classList.contains('m4gone')) t.classList.add('m4gone');
+    let b = document.getElementById('m4RotSet');
+    if (!b || b.previousElementSibling !== t) {
+      if (b) b.remove();
+      b = document.createElement('button'); b.type = 'button'; b.id = 'm4RotSet'; b.className = 'mfilt m4rotset'; b.setAttribute('aria-haspopup', 'dialog');
+      b.onclick = rotOpen; t.after(b);
+    }
+    rotPaint();
+  }
+
   let tm = 0;
-  function run() { tm = 0; wireDots(); chartBoxes(); }
+  function run() { tm = 0; wireDots(); chartBoxes(); wireRot(); }
   function kick() { if (!tm) tm = setTimeout(run, 150); }
   function init() {
     const mn = $('main');

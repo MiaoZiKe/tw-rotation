@@ -27828,12 +27828,14 @@ def t_mobile_m4_1008(b, base, code):
         k2 = J("() => ({ tf: window.Market3 && window.Market3.state.tf, sel: document.getElementById('m3Tf').value })")
         m.touchscreen.tap(201, 80); m.wait_for_timeout(500)
         lab = J("() => document.getElementById('m4M3Set').textContent")
-        ok(f"【{T}】大盤走勢抽屜點「週 K」→ 週期真的換了、摘要鈕寫「{lab}」", k2["tf"] == "W" and k2["sel"] == "W" and "週" in lab and "K 線" in lab, {**k2, "lab": lab})
+        # 2026-10-09 監督退件：合併版同一行較擠，「K 線・日 K」被截成「K 線・…」→ 改短字「K・週」，而且字不准被截（scrollWidth ≤ clientWidth）
+        cut = J("() => { const s = document.querySelector('#m4M3Set .m4st'); return s ? s.scrollWidth - s.clientWidth : 99; }")
+        ok(f"【{T}】大盤走勢抽屜點「週 K」→ 週期真的換了、摘要鈕寫「{lab}」、字沒被截（{cut}px）", k2["tf"] == "W" and k2["sel"] == "W" and "週" in lab and "K" in lab and cut <= 1, {**k2, "lab": lab, "cut": cut})
         m.locator("#m4M3Set").tap(); m.wait_for_timeout(400)
         m.locator('#m4M3Segs button[data-m3t="D"]').tap(); m.wait_for_timeout(800)
         m.locator('#m4M3Segs button[data-m3m="line"]').tap(); m.wait_for_timeout(800)
         m.touchscreen.tap(201, 80); m.wait_for_timeout(400)
-        ok(f"【{T}】大盤走勢切回「走勢圖」→ 摘要鈕寫「走勢圖」、圖真的換回走勢圖", J("() => document.getElementById('m4M3Set').textContent.includes('走勢圖') && window.Market3.state.mode === 'line'"))
+        ok(f"【{T}】大盤走勢切回「走勢圖」→ 摘要鈕寫「走勢」、圖真的換回走勢圖", J("() => document.getElementById('m4M3Set').textContent.includes('走勢') && window.Market3.state.mode === 'line'"))
         m.set_viewport_size({"width": 390, "height": 844})
     finally:
         try:
@@ -28799,6 +28801,35 @@ def t_mobile_m4_ov2(b, base, code):
         dl = J("""() => { const d = [...document.querySelectorAll('main .view.on .disc-line')].find(e => e.getClientRects().length); if (!d) return null;
             return { sw: d.scrollWidth, cw: d.clientWidth, sh: d.scrollHeight, ch: d.clientHeight, ov: getComputedStyle(d).textOverflow, txt: d.textContent.trim() }; }""")
         ok(f"【{T}】資金輪動免責聲明完整顯示（沒有被切、沒有「…」）", dl and dl["sw"] <= dl["cw"] + 1 and dl["sh"] <= dl["ch"] + 1 and dl["ov"] != "ellipsis" and dl["txt"].endswith("參考"), dl)
+
+        # ⑦-d CEO 轉派帳本 38：多組切換收進設定抽屜（範本＝週期統計：摘要鈕 → 底部抽屜 → 每組一排分段控制器）
+        go("flow/rotation", 4000)
+        r0 = J("""() => { const t = document.getElementById('rotTools'), b = document.getElementById('m4RotSet');
+            return { tools: t ? getComputedStyle(t).display : null, btn: !!b && b.getClientRects().length > 0, txt: b && b.textContent.trim(),
+                     cb: [...document.querySelectorAll('main .view.on input[type=checkbox]')].filter(x => x.getClientRects().length && /rot-(line|trail|ripple|scan)/.test(x.className)).length }; }""")
+        ok(f"【{T}】資金輪動：4 個顯示勾選框收起來、換成一顆「⚙ 顯示 ›」摘要鈕（{r0}）", r0["tools"] == "none" and r0["btn"] and r0["cb"] == 0, r0)
+        m.locator("#m4RotSet").tap(); m.wait_for_timeout(500)
+        sh = J("""() => { const s = document.getElementById('mSheet'); return s && !s.hidden ? { kind: s.dataset.kind, role: s.getAttribute('role'), rows: s.querySelectorAll('.m4shrow .seg').length } : null; }""")
+        rp0 = J("() => document.querySelector('#rotTools input.rot-ripple').checked")
+        m.locator('#mSheet button[data-rc="rot-ripple"][data-v="' + ('0' if rp0 else '1') + '"]').tap(); m.wait_for_timeout(500)
+        rp1 = J("() => document.querySelector('#rotTools input.rot-ripple').checked")
+        lab = J("() => document.getElementById('m4RotSet').textContent.trim()")
+        ok(f"【{T}】點「⚙ 顯示 ›」→ 底部抽屜（role=dialog）每組一排「開｜關」（{sh}）；切「水波」→ 勾選框真的跟著變（{rp0}→{rp1}）、摘要鈕跟著變（{lab}）",
+           sh and sh["role"] == "dialog" and sh["kind"] == "rotset" and sh["rows"] == 4 and rp1 != rp0 and lab != r0["txt"], (sh, rp0, rp1, lab))
+        m.locator('#mSheet button[data-rc="rot-ripple"][data-v="' + ('1' if rp0 else '0') + '"]').tap(); m.wait_for_timeout(300)
+        J("() => { const b = document.getElementById('mSheetBack'); if (b) b.click(); }"); m.wait_for_timeout(300)
+        go("flow/inst", 4000)
+        ins = J("""() => { const v = document.querySelector('main .view.on'); const segs = [...v.querySelectorAll('.seg,.m4seg,[role=tablist]')].filter(e => e.getClientRects().length && !e.closest('#m4Title'));
+            return { n: segs.length, over: segs.filter(e => e.scrollWidth > e.clientWidth + 1).length, page: document.documentElement.scrollWidth <= innerWidth + 1 }; }""")
+        ok(f"【{T}】族群×法人：頁內切換最多一組、沒有擠到溢出（{ins}；手機版沒有「外資｜投信｜自營｜合計」那排，不必收）", ins["n"] <= 1 and ins["over"] == 0 and ins["page"], ins)
+        for wid in (360, 402):
+            m.set_viewport_size({"width": wid, "height": 800}); go("overview", 3500)
+            J("() => { const b = document.querySelector('#m3Mode button[data-m=\"k\"]'); if (b) b.click(); }"); m.wait_for_timeout(1500)
+            ms = J("""() => { const b = document.getElementById('m4M3Set'), st = b && b.querySelector('.m4st'), bar = document.querySelector('#m3Frame .m3-bar');
+                return b ? { txt: b.textContent.trim(), cut: st.scrollWidth - st.clientWidth, bar: bar.scrollWidth - bar.clientWidth, aria: b.getAttribute('aria-label') } : null; }""")
+            ok(f"【{T}】{wid} 總覽大盤走勢摘要鈕在 K 線時完整顯示（「{ms and ms['txt']}」、沒有「…」、字沒被截）", ms and "…" not in ms["txt"] and "K" in ms["txt"] and ms["cut"] <= 1 and ms["bar"] <= 1, ms)
+            J("() => { const b = document.querySelector('#m3Mode button[data-m=\"line\"]'); if (b) b.click(); }"); m.wait_for_timeout(800)
+        m.set_viewport_size({"width": 402, "height": 874})
 
         # ⑧ 甜甜圈圖例拉滿寬（≥ 容器 95%），名稱靠左、數字靠右
         go("industry", 4000)

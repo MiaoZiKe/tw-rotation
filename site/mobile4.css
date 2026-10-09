@@ -783,7 +783,9 @@
   :root.m4 .m4ctlrow{display:flex;flex-wrap:nowrap;align-items:center;gap:6px;width:100%;margin:4px 0 6px}
   :root.m4 .m4ctlrow>.mfilt,:root.m4 #m3Frame.m4set .m3-bar>.mfilt{display:inline-flex!important;align-items:center;gap:4px;flex:none;width:auto;max-width:none;margin:0!important;
     min-height:40px!important;height:40px;padding:0 10px!important;white-space:nowrap}
-  :root.m4 .m4ctlrow>#mSeasonBtn,:root.m4 #m3Frame.m4set #m4M3Set{flex:1 1 auto;min-width:0}
+  :root.m4 .m4ctlrow>#mSeasonBtn{flex:1 1 auto;min-width:0}
+  /* 大盤走勢摘要鈕（10-09 監督退件：合併版被截成「K 線・…」）：字改短、而且鈕本身不縮；擠的時候改由「加權｜櫃買｜台指期」那排在框內左右滑 */
+  :root.m4 #m3Frame.m4set #m4M3Set{flex:none}
   :root.m4 :is(.m4ctlrow,#m3Frame.m4set .m3-bar)>.mfilt .m4st{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   :root.m4 :is(.m4ctlrow,#m3Frame.m4set .m3-bar)>.mfilt .m4sico{flex:none;opacity:.8}
   :root.m4 :is(.m4ctlrow,#m3Frame.m4set .m3-bar)>.mfilt>i{flex:none;font-style:normal;opacity:.7}
@@ -804,7 +806,9 @@
   /* 總覽大盤走勢：走勢圖／K 線、週期收進摘要鈕；「加權｜櫃買｜台指期」換頁鈕、摘要鈕、「?」同一行 */
   :root.m4 #m3Frame.m4set .m3-bar{flex-wrap:nowrap;gap:6px}
   :root.m4 #m3Frame.m4set .m3-bar>:is(#m3Mode,.m3-tfsel){display:none!important}
-  :root.m4 #m3Frame.m4set .m3-bar>#mM3Sw{flex:none;margin:0!important}
+  :root.m4 #m3Frame.m4set .m3-bar>#mM3Sw{flex:0 1 auto;min-width:0;margin:0!important}
+  /* 設定抽屜裡那組「顯示數字」只有一顆、跟外面的「數字 開／關」重複（10-09 監督建議）→ 抽屜裡藏起來；外面那顆按的就是它 */
+  :root.m4 .msheet #seasonCtl>#seasonNum{display:none!important}
   :root.m4 #m3Frame.m4set .m3-bar>.howbtn{flex:none}
   /* 360 寬：摘要鈕的小圖示讓位給字 */
   @media (max-width:380px){ :root.m4 :is(.m4ctlrow,#m3Frame.m4set .m3-bar)>.mfilt .m4sico{display:none} :root.m4 :is(.m4ctlrow,#m3Frame.m4set .m3-bar)>.mfilt{padding:0 8px!important} }
@@ -883,4 +887,12 @@
   :root.m4 main .view .skrank :is(.skr-k,small){font-size:12px!important}
   :root.m4 main .view .disc-line{white-space:normal!important;overflow:visible!important;text-overflow:clip!important;flex:1 1 100%;min-width:0;max-width:100%;
     word-break:keep-all;overflow-wrap:anywhere}
+
+  /* 31l. 資金輪動「⚙ 顯示 ›」摘要鈕＋底部抽屜（mobile4.js 第 31 節 wireRot；範本＝週期統計那款） */
+  :root.m4 #rotTools.m4gone{display:none!important}
+  :root.m4 #m4RotSet{display:inline-flex!important;align-items:center;gap:6px;min-height:40px;height:40px;margin:6px 0 0;padding:0 12px;white-space:nowrap}
+  :root.m4 #m4RotSet>i{font-style:normal;opacity:.7}
+  :root.m4 .msheet #m4RotSegs .m4shrow{display:flex;align-items:center;justify-content:space-between;gap:12px;width:100%}
+  :root.m4 .msheet #m4RotSegs .m4shlab{font-size:14px;color:var(--ink)}
+  :root.m4 .msheet #m4RotSegs .seg>button{min-width:56px}
 }
