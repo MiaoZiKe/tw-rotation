@@ -29073,6 +29073,86 @@ def t_mobile_m4_mkset1009(b, base, code):
         ctx.close()
 
 
+def t_mobile_m4_foldread1009(b, base, code):
+    """★ 2026-10-09 手機監督：剖析圖「延伸閱讀」底部抽屜（diagrams.js foldSheet → foldReadable）圖內小字讀不清楚。
+    改前實測：402 寬圖內字 6.8～8.9px、360 寬 6.0～8.1px，全部 < 12px（抽屜把整張圖縮到抽屜寬）。
+    改後：抽屜一打開，圖就放大到最小字 ≥ 12px，比抽屜寬的部分在框內手指左右拖；「看全圖／放大看字」可切。
+    驗：402×874 與 360×780、is_mobile、has_touch、DPR2 —— ① 預設狀態圖內每個字 ≥ 12px（getScreenCTM 換算成螢幕 px）
+    ② 手指在圖框裡左右拖，框的 scrollLeft 真的變了、頁面 scrollX 不動 ③ 整頁 scrollWidth ≤ 視窗寬 ④ 「看全圖」圖寬真的縮回抽屜寬、
+    再點「放大看字」又變寬 ⑤ ‹ › 切到下一段，新的那段也照樣 ≥ 12px ⑥ 點延伸列時頁面 scrollY 不跳。"""
+    T = "手機v2"
+    FS = """() => { const s = document.getElementById('mSheet'); if (!s || s.hidden || s.dataset.kind !== 'dgfold') return null;
+        const box = s.querySelector('.mdgfoldsvg'), svg = box && box.querySelector('svg'), wrap = box && box.querySelector('.mfzwrap'); if (!svg) return null;
+        const f = []; svg.querySelectorAll('text').forEach(t => { if (!t.textContent.trim() || !t.getClientRects().length) return; const m = t.getScreenCTM();
+          f.push(parseFloat(getComputedStyle(t).fontSize) * (m ? Math.hypot(m.a, m.b) : 1)); });
+        return { no: s.dataset.no, n: f.length, min: f.length ? +Math.min(...f).toFixed(2) : null, z: box.dataset.z || null,
+          svgW: Math.round(svg.getBoundingClientRect().width), boxW: Math.round(box.clientWidth), wrap: !!wrap, sl: wrap ? Math.round(wrap.scrollLeft) : null,
+          sw: document.documentElement.scrollWidth, vw: innerWidth, sx: scrollX, tog: !!box.querySelector('.mfztog'),
+          nav: (() => { const n = s.querySelector('.mshnav'); if (!n) return null; const q = n.getBoundingClientRect(); return [Math.round(q.top), Math.round(q.bottom), innerHeight]; })() }; }"""
+    ctxs = []
+    try:
+        for W, H in ((402, 874), (360, 780)):
+            ctx = b.new_context(viewport={"width": W, "height": H}, device_scale_factor=2, is_mobile=True, has_touch=True); ctxs.append(ctx)
+            ctx.add_init_script("try{ if(!sessionStorage.getItem('m4fr')){ localStorage.clear(); localStorage.setItem('tw.live.on','0'); localStorage.setItem('tw.tourDone','1'); sessionStorage.setItem('m4fr','1'); } }catch(e){}")
+            m = ctx.new_page(); J = m.evaluate
+            m.on("pageerror", lambda e, W=W: fails.append(f"{T} 延伸閱讀字級 {W} pageerror: {e} @ {m.url}"))
+            m.route("**/fonts.googleapis.com/**", lambda r: r.abort())
+            cdp = ctx.new_cdp_session(m)
+            bad, nsheet, drag, tog = [], 0, [], []
+            for h in ("industry/electronics", "industry/semiconductor", "industry/semiconductor/dg/hbm", "industry/ai_server/dg/liquid_cooling"):
+                m.goto(base + "#" + h, wait_until="domcontentloaded"); m.wait_for_timeout(3800)
+                fids = J("() => [...document.querySelectorAll('.mdgfolds button[data-fold]')].filter(b => b.getClientRects().length).map(b => b.dataset.fold)")
+                if not fids:
+                    bad.append(f"{h}：沒有延伸閱讀列"); continue
+                loc = m.locator(f'.mdgfolds button[data-fold="{fids[0]}"]').first
+                loc.scroll_into_view_if_needed(timeout=3000); m.wait_for_timeout(200)
+                y0 = J("() => scrollY"); loc.tap(timeout=3000); m.wait_for_timeout(700)
+                r = J(FS); y1 = J("() => scrollY")
+                for k in range(len(fids)):
+                    nsheet += 1
+                    if not r or r["min"] is None or r["min"] < 12 or r["sw"] > r["vw"]:
+                        bad.append(f"{h} 延伸{k + 1}：{r}")
+                    if r and not (r["nav"] and r["nav"][1] <= r["nav"][2] + 1):   # 圖放大後抽屜變高：‹ › 切換列要黏在抽屜底、不必先捲到底
+                        bad.append(f"{h} 延伸{k + 1}：‹ › 切換列不在畫面內 {r['nav']}")
+                    if k == 0:
+                        if abs(y1 - y0) > 1: bad.append(f"{h}：點延伸列頁面跳了 {y0}→{y1}")
+                        if r and r["wrap"] and r["svgW"] > r["boxW"] + 4:
+                            # ② 手指在圖框裡往左拖 160px → 框的 scrollLeft 要變大、頁面不准跟著橫移
+                            bx = J("() => { const w = document.querySelector('#mSheet .mfzwrap'); const q = w.getBoundingClientRect(); return [q.left + q.width - 30, q.top + Math.min(q.height / 2, 120)]; }")
+                            tp = lambda t, x: cdp.send("Input.dispatchTouchEvent", {"type": t, "touchPoints": [] if t == "touchEnd" else [{"x": x, "y": bx[1]}]})
+                            tp("touchStart", bx[0])
+                            for s in range(1, 11):
+                                tp("touchMove", bx[0] - 160 * s / 10); m.wait_for_timeout(16)
+                            tp("touchEnd", 0); m.wait_for_timeout(400)
+                            r2 = J(FS); drag.append((h, r["sl"], r2 and r2["sl"], r2 and r2["sx"], r2 and r2["sw"]))
+                            if not (r2 and r2["sl"] > r["sl"] + 20 and r2["sx"] == 0 and r2["sw"] <= r2["vw"]):
+                                bad.append(f"{h}：手指拖圖框沒有捲動（{r['sl']}→{r2 and r2['sl']}，頁面 scrollX {r2 and r2['sx']}）")
+                            # ④ 看全圖 → 圖寬縮回抽屜寬；再點放大看字 → 又變寬、字 ≥ 12
+                            m.locator("#mSheet .mfztog").tap(); m.wait_for_timeout(300); f1 = J(FS)
+                            m.locator("#mSheet .mfztog").tap(); m.wait_for_timeout(300); f2 = J(FS)
+                            tog.append((h, r["svgW"], f1 and f1["svgW"], f2 and f2["svgW"]))
+                            if not (f1 and f1["z"] == "fit" and abs(f1["svgW"] - f1["boxW"]) <= 2 and f2 and f2["z"] == "big" and f2["svgW"] == r["svgW"] and f2["min"] >= 12):
+                                bad.append(f"{h}：看全圖／放大看字切換無效（{r['svgW']}→{f1 and f1['svgW']}→{f2 and f2['svgW']}）")
+                        elif r and r["min"] is not None and r["min"] >= 12 and not r["wrap"]:
+                            pass   # 本來就夠大、整張放得下 → 不必拖
+                        else:
+                            bad.append(f"{h}：圖沒有比抽屜寬卻也沒到 12px（{r}）")
+                    if k + 1 < len(fids):
+                        # ⑤ › 切下一段：段號要真的換、新那段照樣 ≥ 12px
+                        m.locator("#mSheet .mshnav button[data-d='1']").tap(); m.wait_for_timeout(600)
+                        r = J(FS)
+                        if not r or r["no"] != str(k + 2): bad.append(f"{h}：› 沒切到延伸 {k + 2}（{r and r['no']}）")
+                J("() => { const b = document.getElementById('mSheetBack'); if (b) b.click(); }"); m.wait_for_timeout(300)
+            ok(f"【{T}】延伸閱讀抽屜 {W} 寬：{nsheet} 段圖內字全部 ≥ 12px、頁面不橫捲、點開頁面不跳、‹ › 切換列在畫面內", nsheet >= 8 and not bad, bad)
+            ok(f"【{T}】延伸閱讀抽屜 {W} 寬：手指左右拖圖框真的捲動、頁面不動（{drag}）", len(drag) >= 3 and not [x for x in bad if '拖' in x], drag)
+            ok(f"【{T}】延伸閱讀抽屜 {W} 寬：「看全圖／放大看字」圖寬真的切換（{tog}）", len(tog) >= 3 and not [x for x in bad if '切換' in x], tog)
+    except Exception as ex:
+        fails.append(f"{T} 延伸閱讀字級例外：{ex}")
+    finally:
+        for c in ctxs:
+            c.close()
+
+
 def t_mobile_m4_misc1009(b, base, code):
     """★ 2026-10-09 帳本 73：(a) 個股 K 線圖頭「還原」小標蓋住「高 2,590.0」；(b) 財經日曆 360 寬「2026 年 10 月」與「下月 ›」重疊；
     (c) ETF 配息行事曆 360 寬月份列最後一顆被裁成「2…」。360 與 402 兩個寬度都量（is_mobile、has_touch、DPR2）：
@@ -31660,7 +31740,7 @@ SECTIONS = {
     # ★ 2026-09-27 手機總覽最上方：指數三格（可左右滑）＋觀察清單（2026-09-27 起是自選清單目前那一頁：localStorage tw.watchlists，只存代號；site/mobile3.js G 段＋site/watchlists.js）
     "手機總覽指數觀察清單": lambda pg, b, base, code: t_mobile_home(b, base, code),
     # ★ 2026-10-08 手機 v2（docs/mobile_v2_plan.md；site/mobile4.js）：側欄抽屜、每頁第一屏、字級／觸控、主要切換真的點得動
-    "手機v2":              lambda pg, b, base, code: (t_mobile_m4_etf2_1009(b, base, code), t_mobile_m4_etfqa_1009(b, base, code), t_m4_xpetf_1009(b, base), t_mobile_m4(b, base, code), t_mobile_m4_1008(b, base, code), t_mobile_m4_charts_1009(b, base, code), t_mobile_m4_1009(b, base, code), t_mobile_m4_market(b, base, code), t_mobile_m4_misc1009(b, base, code), t_mobile_m4_mkset1009(b, base, code), t_mobile_m4_ov2(b, base, code)),
+    "手機v2":              lambda pg, b, base, code: (t_mobile_m4_etf2_1009(b, base, code), t_mobile_m4_etfqa_1009(b, base, code), t_m4_xpetf_1009(b, base), t_mobile_m4(b, base, code), t_mobile_m4_1008(b, base, code), t_mobile_m4_charts_1009(b, base, code), t_mobile_m4_1009(b, base, code), t_mobile_m4_market(b, base, code), t_mobile_m4_misc1009(b, base, code), t_mobile_m4_mkset1009(b, base, code), t_mobile_m4_ov2(b, base, code), t_mobile_m4_foldread1009(b, base, code)),
     # ★ 2026-10-09 手機總覽 ov2（Andy 09:1x／09:3x／09:4x）單獨跑：手機v2 也包含這一段
     # ★ 2026-10-09 手機 v2 圖表跟網頁版同一套（claude/m4-charts）單獨跑：手機v2 也包含這一段
     "手機v2圖表1009":       lambda pg, b, base, code: t_mobile_m4_charts_1009(b, base, code),
@@ -31668,6 +31748,8 @@ SECTIONS = {
     # ★ 2026-10-09 帳本 73（K 線圖頭還原小標／財經日曆月份列／ETF 配息行事曆月份列）單獨跑：手機v2 也包含這一段
     "手機v2帳本73":        lambda pg, b, base, code: t_mobile_m4_misc1009(b, base, code),
     # ★ 2026-10-09 帳本 38 退件（市場明細三頁多組切換 → 摘要鈕＋抽屜）單獨跑：手機v2 也包含這一段
+    # ★ 2026-10-09 手機監督：剖析圖延伸閱讀抽屜的圖內字 ≥ 12px、框內手指拖、看全圖切換（diagrams.js foldReadable）單獨跑：手機v2 也包含這一段
+    "手機v2延伸閱讀字級":  lambda pg, b, base, code: t_mobile_m4_foldread1009(b, base, code),
     "手機v2市場抽屜":      lambda pg, b, base, code: t_mobile_m4_mkset1009(b, base, code),
     # ★ 2026-10-09：選股／ETF 這兩段放最前面 —— 元組裡前一段丟例外（例：總覽導覽 tap 逾時，preview/m4-all 底就有）後面整串都不跑，放最後等於沒驗
     # ★ 2026-10-09 10:0x（選股頁籤／除息表拉 Bar／區間縮放拉桿／每月入帳／自選刪除免二次詢問）單獨跑：手機v2 也包含這一段

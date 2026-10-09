@@ -2237,7 +2237,55 @@
     try { const cs = getComputedStyle(svg); for (let i = 0; i < cs.length; i++) { const nm = cs[i]; if (nm.startsWith('--dg')) box.style.setProperty(nm, cs.getPropertyValue(nm)); } } catch (e) { /* 忽略 */ }
     box.appendChild(c);
     try { const b = c.getBBox(); if (b && b.width > 0 && b.height > 0) c.setAttribute('viewBox', `${(b.x - 8).toFixed(1)} ${(b.y - 8).toFixed(1)} ${(b.width + 16).toFixed(1)} ${(b.height + 16).toFixed(1)}`); } catch (e) { /* 量不到就用原本的 viewBox */ }
+    foldReadable(box, c);
     $$('.mshnav button', sh).forEach(b => b.onclick = (e) => { e.stopPropagation(); foldSheet(host, (k + (+b.dataset.d) + n) % n); });
+  }
+  /* ★ 2026-10-09 手機監督（延伸閱讀抽屜的圖內小字讀不清楚）：抽屜裡的圖原本整張縮到抽屜寬 ——
+     實測 402 寬圖內字 6.8～8.9px（中位數 7.1）、360 寬 6.0～8.1px，100% 都 < 12px。
+     改成「預設就放大到圖裡最小的字 ≥ 12px」，比抽屜寬的部分在框內用手指左右拖（原生捲動：不影響頁面、頁面不橫捲、抽屜不跳動）；
+     框邊淡出＋一行提示告訴人可以左右拖，另給一顆「看全圖／放大看字」切換（想先看全貌時用；預設是放大）。
+     只在 m4 的抽屜裡跑（foldSheet 只有 m4 會呼叫），桌機那條路徑不經過這裡。 */
+  const FOLD_MIN_PX = 12.3;   // 目標最小字級（留一點餘裕，免得換算後掉到 11.9）
+  function foldReadable(box, svg) {
+    const vb = svg.viewBox && svg.viewBox.baseVal;
+    const bw = box.clientWidth;
+    if (!vb || !vb.width || !bw) return;
+    let fmin = Infinity;
+    svg.querySelectorAll('text').forEach((t) => {
+      if (!t.textContent.trim() || !t.getClientRects().length) return;
+      const f = parseFloat(getComputedStyle(t).fontSize);
+      if (f > 0 && f < fmin) fmin = f;
+    });
+    if (!isFinite(fmin)) return;
+    const fit = bw / vb.width;                          // 整張塞進抽屜寬時，1 個圖內單位＝幾 px
+    const k = Math.min(4, FOLD_MIN_PX / (fmin * fit));  // 要放大幾倍字才夠 12px（上限 4 倍，免得極端情況變成一條長廊）
+    if (k <= 1.01) return;                              // 本來就讀得清楚 → 照原樣整張
+    box.classList.add('mfzoom');
+    const wrap = document.createElement('div'); wrap.className = 'mfzwrap';
+    box.insertBefore(wrap, svg); wrap.appendChild(svg);
+    const tip = document.createElement('div'); tip.className = 'mfztip';
+    tip.innerHTML = '<span></span><button type="button" class="mfztog"></button>';
+    box.insertBefore(tip, wrap);
+    const tg = tip.querySelector('.mfztog');
+    const edge = () => {   // 左右還有沒捲到的內容，那一邊才淡出
+      const L = wrap.scrollLeft > 2, R = wrap.scrollLeft + wrap.clientWidth < wrap.scrollWidth - 2;
+      wrap.dataset.fade = (L ? 'l' : '') + (R ? 'r' : '');
+    };
+    const setW = (z) => {
+      svg.style.width = Math.round(bw * z) + 'px'; svg.style.maxWidth = 'none';
+      box.dataset.z = z > 1 ? 'big' : 'fit';
+      tg.textContent = z > 1 ? '看全圖' : '放大看字'; tg.setAttribute('aria-pressed', z > 1 ? 'false' : 'true');
+      tip.firstChild.textContent = z > 1 ? '‹ 手指左右拖，看整張 ›' : '全圖：字較小，點「放大看字」';
+      edge();
+    };
+    wrap.addEventListener('scroll', edge, { passive: true });
+    tg.onclick = (e) => {
+      e.stopPropagation();
+      const big = box.dataset.z !== 'big';
+      setW(big ? k : 1);
+      if (big) wrap.scrollLeft = 0;
+    };
+    setW(k);
   }
   window.DG.mobileFolds = mobileFolds;
   function layout2d(host) {
