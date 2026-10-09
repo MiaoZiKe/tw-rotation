@@ -409,7 +409,10 @@
 #v-pricing .prgo[disabled]{background:transparent;color:var(--ink-2);border-color:color-mix(in srgb,var(--pc) 35%,var(--line-2));cursor:default}
 #v-pricing .prcard.mine .prgo[disabled]{font-weight:700}
 #v-pricing .prpre{margin:8px 0 0;font-size:12px;line-height:1.5;color:var(--ink-3);text-align:center}
-#v-pricing .prpre a{color:var(--cyan);text-decoration:none;white-space:nowrap} /* 手機監督（帳本 47）：書名號整段一起換行，不斷在《》裡面 */
+#v-pricing .prpre a{color:var(--cyan);text-decoration:none}
+#v-pricing .prpre .sh{display:none}
+/* 手機監督（帳本 47）：手機卡片只有約 124px 寬，長書名一定斷在《》裡；改顯示短名並整段不斷行（桌機不變） */
+@media (max-width:640px){#v-pricing .prpre .lg{display:none}#v-pricing .prpre .sh{display:inline;white-space:nowrap}}
 #v-pricing .prpre a:hover{text-decoration:underline}
 #v-pricing .prapply{text-align:center;font-size:13px;color:var(--ink-2);margin:20px 0 0}
 #v-pricing .prapply b{color:var(--ink)}
@@ -575,7 +578,7 @@
      免費卡放同高的隱形佔位，三張卡的按鈕才會在同一條線上。*/
   function preRead(t) {
     const paid = t !== 'free' && t !== 'guest';
-    return `<p class="prpre"${paid ? '' : ' aria-hidden="true" style="visibility:hidden"'}>付款前請先閱讀${paid ? '<a href="#refund">《退款與取消訂閱政策》</a><a href="#terms">《使用條款》</a>' : '《退款與取消訂閱政策》《使用條款》'}</p>`;
+    return `<p class="prpre"${paid ? '' : ' aria-hidden="true" style="visibility:hidden"'}>付款前請先閱讀${paid ? '<a href="#refund" title="退款與取消訂閱政策"><span class="lg">《退款與取消訂閱政策》</span><span class="sh">《退款政策》</span></a><a href="#terms" title="使用條款"><span class="lg">《使用條款》</span><span class="sh">《條款》</span></a>' : '<span class="lg">《退款與取消訂閱政策》《使用條款》</span><span class="sh">《退款政策》《條款》</span>'}</p>`;
   }
   /* 方案功能比較表：每格＝✓／—／每日 N 次／最多 N 頁。只列「至少一個方案不一樣」的功能；全部一樣的收成最後一行 */
   function compare(plans, look, hot, needF, mg) {

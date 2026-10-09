@@ -45034,6 +45034,17 @@ def t_refund_1009(b, base):
     if shots:
         pg.screenshot(path=os.path.join(shots, "refund_402.png"), full_page=True)
     ctx.close()
+    # 手機監督退件（2026-10-09）：方案卡那行連結不准把整頁撐寬（曾經 nowrap 長書名 → 402 變 408、360 變 380）
+    for w, h in ((402, 874), (360, 780)):
+        ctx, pg = _lg_page(b, w, h, mobile=True)
+        pg.goto(base + q + "demo=plans#pricing", wait_until="networkidle"); pg.wait_for_timeout(3000)
+        m = pg.evaluate("""() => { const ps = [...document.querySelectorAll('#v-pricing .prcard .prpre')].filter(p => getComputedStyle(p).visibility !== 'hidden');
+            return { iw: innerWidth, sw: document.documentElement.scrollWidth, over: ps.map(p => { const c = p.closest('.prcard').getBoundingClientRect();
+                return [...p.querySelectorAll('a')].some(a => a.getBoundingClientRect().right > c.right + 0.5); }),
+                t: ps.map(p => p.innerText.replace(/\\s+/g, '')), n: ps.length }; }""")
+        ok(f"{T}：{w} 手機方案頁：連結改短名《退款政策》《條款》、不超出卡片、整頁不被撐寬",
+           m["n"] > 0 and m["iw"] == w and m["sw"] <= w + 1 and not any(m["over"]) and all("《退款政策》《條款》" in t for t in m["t"]), m)
+        ctx.close()
 
 def t_legal(b, base):
     # ---------------------------------------------------------------- A. 開關關著（現況）
