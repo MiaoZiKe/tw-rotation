@@ -27167,18 +27167,15 @@ def t_mobile_m4_1009(b, base, code):
             return { vis: vis(t), left: vis(t) && vis(p) && t.getBoundingClientRect().right <= p.getBoundingClientRect().left, h: vis(t) ? Math.round(t.getBoundingClientRect().height) : 0,
                      rows: new Set(tools.map(e => Math.round(e.getBoundingClientRect().top))).size, bh: Math.round(bar.getBoundingClientRect().height), ovf: bar.scrollWidth > bar.clientWidth + 1,
                      theme: document.documentElement.dataset.theme || '', txt: vis(t) ? t.textContent.trim() : '' }; }""")
-        ok(f"【{T}】402 頂欄看得到獨立明暗鈕 #themeBtn（高 {tb['h']}）、在外觀調色盤左邊、整排一列不溢出",
-           tb["vis"] and tb["left"] and tb["h"] >= 40 and tb["rows"] == 1 and not tb["ovf"] and tb["bh"] <= 60, tb)
+        # 10-09 帳本 59（Andy：頂欄拿掉風格圖示只留深淺鈕）：手機頂欄的外觀調色盤 #t4Btn 藏起來，風格改從帳號選單換（帳號選單1009 驗）
+        t4v = J("() => { const p = document.getElementById('t4Btn'); return !!p && p.getClientRects().length > 0 && getComputedStyle(p).display !== 'none'; }")
+        ok(f"【{T}】402 頂欄看得到獨立明暗鈕 #themeBtn（高 {tb['h']}）、外觀調色盤不在頂欄、整排一列不溢出",
+           tb["vis"] and not t4v and tb["h"] >= 40 and tb["rows"] == 1 and not tb["ovf"] and tb["bh"] <= 60, (tb, t4v))
         m.locator("#m4Tools #themeBtn").tap(); m.wait_for_timeout(900)
         tb1 = J("() => ({ theme: document.documentElement.dataset.theme || '', txt: document.getElementById('themeBtn').textContent.trim() })")
         ok(f"【{T}】點明暗鈕 → 主題真的切換（{tb['theme']}→{tb1['theme']}）、圖示跟著換（{tb['txt']}→{tb1['txt']}）",
            tb1["theme"] != tb["theme"] and tb1["txt"] != tb["txt"], (tb, tb1))
         m.locator("#m4Tools #themeBtn").tap(); m.wait_for_timeout(700)
-        m.locator("#m4Tools #t4Btn").tap(); m.wait_for_timeout(400)
-        pp = J("""() => { const p = document.getElementById('t4Pop'); return { open: !!p && !p.hidden && p.getClientRects().length > 0,
-            mode: !!p && [...p.querySelectorAll('.t4mode, .t4modeh')].some(e => e.getClientRects().length), style: !!p && p.querySelectorAll('.t4o').length > 1 }; }""")
-        ok(f"【{T}】外觀面板裡沒有明暗段、只有版面風格", pp["open"] and not pp["mode"] and pp["style"], pp)
-        m.keyboard.press("Escape"); m.mouse.click(200, 700); m.wait_for_timeout(300)
         # ④ 抽屜寬度：360／390／402／430 都 ≤ 300px 且 ≤ 75% 視窗；項目文字不換行；點遮罩真的關、手指往左滑也關
         for w in (360, 390, 402, 430):
             m.set_viewport_size({"width": w, "height": 932 if w == 430 else 844}); m.wait_for_timeout(500)
