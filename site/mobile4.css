@@ -19,7 +19,7 @@
   :root.m4 .m4burger{display:inline-grid;place-items:center;flex:none;width:44px;height:44px;margin:0 2px 0 -4px;padding:0;
     border:1px solid var(--line-2);border-radius:12px;background:var(--panel);color:var(--ink);cursor:pointer}
   :root.m4 .topbar .brand .logo{flex:none;width:32px;height:32px}
-  :root.m4 .topbar .brand .logo img{width:32px;height:32px;display:block;object-fit:cover}
+  :root.m4 .topbar .brand .logo img{width:32px;height:32px;display:block;object-fit:contain}
   :root.m4 .topbar .brand b{display:none}
   :root.m4 .topbar .brand{min-width:0;flex:1 1 auto;margin-right:8px;overflow:hidden}
   :root.m4 .topbar .brand>div{min-width:0}

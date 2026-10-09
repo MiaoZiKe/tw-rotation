@@ -9,7 +9,7 @@
 <title>哩股哩股</title>
 <meta property="og:title" content="哩股哩股">
 <meta property="og:site_name" content="哩股哩股">
-<meta property="og:image" content="brand/logo-512.png">
+<meta property="og:image" content="brand/logo-512.png?v=1009">
 <meta name="theme-color" content="#070b16">
 <!-- 網頁版號（Andy 2026-09-16：「每次說有更新，但打開來跟原本一樣，網頁需要新增版號」）。
      部署前由 scripts/stamp_assets.py 換成「commit 前 7 碼|建置時間(台北)」；
@@ -75,9 +75,9 @@ html.tzl input:not([type=checkbox]):not([type=radio]):not([type=range]):not([typ
      定案之後整組要換掉，manifest 裡也有同樣的註記。 -->
 <!-- ★ 2026-10-07（Andy：「以後我的logo 叫 哩股哩股」）：圖示整組換成 site/brand/ 的天竺鼠頭像。
      小尺寸只用頭像不用整張 logo —— 下方「哩股哩股」大字縮到 32px 會糊成一團。舊的 icons/ 留著沒刪（退路）。 -->
-<link rel="apple-touch-icon" href="brand/apple-touch-icon-180.png">
-<link rel="icon" type="image/png" sizes="32x32" href="brand/favicon-32.png">
-<link rel="icon" type="image/png" sizes="192x192" href="brand/icon-192.png">
+<link rel="apple-touch-icon" href="brand/apple-touch-icon-180.png?v=1009">
+<link rel="icon" type="image/png" sizes="32x32" href="brand/favicon-32.png?v=1009b">
+<link rel="icon" type="image/png" sizes="192x192" href="brand/icon-192.png?v=1009">
 <!-- ★ 2026-09-19 拿掉 Google Fonts 的 <link>。
      下面那行註解自己就寫了「公司網路常擋 CDN」，字型卻還掛在 fonts.googleapis.com 上 ——
      在 Andy 公司的網路會等到連線逾時才 fallback，AGENTS 檢查清單第 7 條也明訂 site/ 內不得有 CDN 連結。
@@ -610,7 +610,22 @@ small{font-size:12.5px}
 .brand .logo{width:32px;height:32px;flex:none;border-radius:9px;overflow:hidden;background:none;
   box-shadow:0 0 0 1px var(--line);display:block}
 .brand .logo img{width:100%;height:100%;display:block;object-fit:cover}
+/* ★ 2026-10-09（Andy：「LOGO 不要被裁切到 請調整適當大小」「點擊LOGO 會顯示LOGO圖」）：整張新 LOGO（自帶圓角藍底）不裁切，
+   不再加框；桌機（>640）放大到 40px；點 LOGO 跳出大圖（app.js logoLightbox），點站名照舊回總覽。 */
+.brand .logo{cursor:zoom-in}
+.brand .logo,[data-theme4] .brand .logo{box-shadow:none!important;border-radius:0!important;overflow:visible;background:none!important}
+.brand .logo img{object-fit:contain}
+@media (min-width:641px){.brand .logo{width:40px;height:40px}}
+.logobox{position:fixed;inset:0;z-index:3000;display:flex;align-items:center;justify-content:center;background:rgba(4,10,24,.72);-webkit-backdrop-filter:blur(4px);backdrop-filter:blur(4px);cursor:zoom-out}
+.logobox[hidden]{display:none}
+.logobox img{width:min(78vmin,560px);height:auto;filter:drop-shadow(0 18px 40px rgba(0,0,0,.5))}
+.logobox button{position:absolute;top:16px;right:16px;width:40px;height:40px;border-radius:50%;border:1px solid rgba(255,255,255,.4);background:rgba(0,0,0,.35);color:#fff;font-size:18px;cursor:pointer}
 .brand b{font-size:16px;letter-spacing:.02em}
+/* ★ 2026-10-09（Andy：「LOGO 文字風格也要一樣」）：站名照 LOGO 上的字 —— 特粗圓胖字、深色粗描邊，「哩」白、「股」黃交錯。
+   不載網路字型（公司網路擋 CDN），用系統的 Noto Sans TC／微軟正黑體 900＋paint-order 描邊做出同一個味道；深淺主題同一組（描邊自帶對比）。 */
+.brandtxt{font-size:19px!important;font-weight:900;letter-spacing:.03em;line-height:1.15;font-family:"Noto Sans TC","Microsoft JhengHei","PingFang TC",sans-serif;
+  -webkit-text-stroke:3px #2b1a12;paint-order:stroke fill;color:#fff;text-shadow:0 1.5px 0 #2b1a12}
+.brandtxt .y{color:#ffd21f}
 .brand small{display:block;font-family:var(--mono);font-size:10.5px;letter-spacing:.12em;color:var(--ink-3);line-height:1;margin-top:3px}
 /* ★ 2026-09-23 UI 精修 #4：分頁列的包裝層。它唯一的工作是當左右箭頭的定位基準 ——
    `.tabs` 自己是捲動容器，絕對定位的東西掛在它裡面會跟著內容一起捲走。 */
@@ -5426,7 +5441,7 @@ h3 .howbtn.pop{font-family:inherit}
 </head>
 <body>
 <header class="topbar">
-  <div class="brand" onclick="location.hash='#overview'"><div class="logo"><picture><source srcset="brand/mark-64.webp 1x, brand/mark-128.webp 2x" type="image/webp"><img id="brandMark" src="brand/mark-64.png" srcset="brand/mark-64.png 1x, brand/mark-128.png 2x" width="32" height="32" alt="哩股哩股"></picture></div><div><b>哩股哩股</b><small id="asof"><span id="buildver" class="verline">—</span><button type="button" class="freshbtn" id="freshBtn" hidden title="有新版，點一下重新載入">有新資料 ↻</button></small></div></div>
+  <div class="brand" onclick="location.hash='#overview'"><div class="logo"><picture><source srcset="brand/mark-64.webp?v=1009b 1x, brand/mark-128.webp?v=1009b 2x" type="image/webp"><img id="brandMark" src="brand/mark-64.png?v=1009b" srcset="brand/mark-64.png?v=1009b 1x, brand/mark-128.png?v=1009b 2x" width="32" height="32" alt="哩股哩股"></picture></div><div><b class="brandtxt" aria-label="哩股哩股"><span>哩</span><span class="y">股</span><span>哩</span><span class="y">股</span></b><small id="asof"><span id="buildver" class="verline">—</span><button type="button" class="freshbtn" id="freshBtn" hidden title="有新版，點一下重新載入">有新資料 ↻</button></small></div></div>
   <!-- ★ 2026-09-23 UI 精修 #4：分頁列的溢出提示（遮罩 ＋ 左右箭頭）。
        這是**功能性缺陷**不是美化：實測 1440px 時 `#tabs` 的 scrollWidth 比 clientWidth
        多 163～358px，也就是「總覽」或「季節性」**整顆分頁被擠到看不見**，
