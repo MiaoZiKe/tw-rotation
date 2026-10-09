@@ -12624,7 +12624,9 @@
        桌機（沒有 html.m4）不掛。*/
     if (document.documentElement.classList.contains('m4')) {
       const old = root.querySelector(':scope > .m4rst'); if (old) old.remove();
-      root._m4reset = () => { cur = null; paint(null); root.scrollLeft = 0; if (window.M3 && window.M3.closeSheet) window.M3.closeSheet(); };
+      /* 手機直排版的「選起來」有一部分是 themes3d.js 自己掛的（點一格開說明時加 .sel），而且依寬度重畫後節點會換 —— paint() 手上那份 nodes 可能是舊的，
+         所以重設時直接把圖裡現有的 .sel／.dim 全部拿掉（實測只靠 paint(null) 會留下一格亮著）。 */
+      root._m4reset = () => { cur = null; paint(null); root.querySelectorAll('.sel, .dim').forEach((n) => n.classList.remove('sel', 'dim')); root.scrollLeft = 0; if (window.M3 && window.M3.closeSheet) window.M3.closeSheet(); };
       if (!root._m4bg) {
         root._m4bg = 1;
         root.addEventListener('click', (e) => {
