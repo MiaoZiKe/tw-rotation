@@ -185,7 +185,6 @@ html.m4 #m4Quota .sc::-webkit-scrollbar{width:5px}
 html.m4 #m4Quota .sc::-webkit-scrollbar-thumb{background:color-mix(in srgb,var(--ink-2) 55%,transparent);border-radius:999px}
 html.m4 #m4Quota .bx.more .sc{-webkit-mask-image:linear-gradient(#000 calc(100% - 36px),transparent);mask-image:linear-gradient(#000 calc(100% - 36px),transparent)}
 html.m4 #m4Quota .ft{flex:none;margin-top:10px;padding-top:10px;border-top:1px solid var(--line)}
-html.m4 #m4Quota .bx.more .ft small::before{content:'往下滑看更多 ↓・';color:var(--ink)}
 html.m4 #m4Quota .qh{display:flex;align-items:baseline;gap:8px}
 html.m4 #m4Quota .qh small{margin-left:auto;font-weight:400;font-size:12px}
 html.m4 #m4Quota .qg{border:1px solid var(--line);border-radius:12px;margin:0 0 8px;background:var(--panel-2);overflow:hidden}
