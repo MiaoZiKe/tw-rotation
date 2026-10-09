@@ -17,9 +17,11 @@
                 （資料只讀 TwPerm.lim／TwPerm.limit／TwQuota.used —— 頁首那顆額度圓環是另一位同事在改，這裡不碰）
      意見回饋 → support.js 的客服面板（TwSupport.open()；客服浮動鈕關掉時照樣打得開）
      客服按鈕 → 開關：關＝右下角客服浮動鈕藏起來（localStorage tw.fab.off＝'1'；<html class="fab-off">，index.html 開頭就先套用，不會先閃一下）
-     深色模式 → 開關：等於按頂欄的 ☀／🌙（#themeBtn 本人）
+     風格     → 收合群組（預設收起）：三套版面風格（親和休閒／科技 HUD／專業有力），點了就是 window.T4.set()，跟原本外觀面板同一支
+                （10-09 08:4x Andy 圖一＋圖二：「將紅框改成這功能（明暗切換）／風格在圖二改」——明暗改由頂欄那顆 ☀／🌙 直接切，
+                 原本「深色模式」開關這一列改成「風格」；頂欄的外觀調色盤鈕 #t4Btn 在手機藏起來，不留兩顆重複的入口）
      管理區 › → 只有管理員／站主看得到；收合群組（預設收起），裡面是原本的四～五項
-     使用條款／隱私權政策／免責聲明 → #terms／#privacy／#disclaimer（legal.js）
+     （使用條款／隱私權政策／免責聲明那一列 10-09 08:4x 拿掉：Andy 圖三「拿掉」，頁尾已經有這三個連結）
      刪除帳號 → 紅字；二次確認要輸入「刪除」才按得下去；呼叫 account-api 既有的 POST /v1/delete；站主帳號停用並說明原因
      登出     → 原本的登出
    ============================================================================ */
@@ -129,8 +131,14 @@ html.m4 .m4am .m4grp[aria-expanded="true"] .chev{transform:rotate(90deg)}
 html.m4 .m4am .m4sub{padding-left:14px}
 html.m4 .m4am .m4sub[hidden]{display:none}
 html.m4 .m4am .m4sub button{min-height:42px;font-size:14px}
-html.m4 .m4am .m4legal{display:flex;flex-wrap:wrap;gap:0 4px;padding:2px 2px}
-html.m4 .m4am .m4legal button{width:auto!important;display:inline-flex!important;min-height:40px;align-items:center;font-size:13px!important;color:var(--ink-2)!important;padding:0 8px!important}
+/* 頂欄：明暗直接由 ☀／🌙（#themeBtn）切；外觀調色盤（#t4Btn）在手機藏起來 —— 風格改從帳號選單的「風格」換（10-09 Andy 圖一＋圖二）*/
+html.m4 #m4Tools #t4Btn{display:none!important}
+html.m4 .m4am .m4sty:not([hidden]){display:flex!important;flex-direction:column;align-items:stretch}
+html.m4 .m4am .m4sty .sw4{width:18px;height:18px;border-radius:5px;border:1px solid var(--line-2);flex:none}
+html.m4 .m4am .m4sty .ck{width:18px;text-align:center;color:var(--cyan);font-weight:700;visibility:hidden}
+html.m4 .m4am .m4sty [aria-checked="true"] .ck{visibility:visible}
+html.m4 .m4am .m4sty button{display:flex!important;align-items:center;gap:10px;width:100%}
+html.m4 .m4am .m4sty small{color:var(--ink-2);font-size:12px;margin-left:auto;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
 html.m4 .m4am .m4del{color:#ff6b7a!important}
 html.m4 .m4am .m4del[aria-disabled="true"]{opacity:.55}
 html.m4 .m4am .m4del small{display:block;color:var(--ink-2);font-size:12px;line-height:1.4}
@@ -171,7 +179,11 @@ html.m4 .m4deldlg .msg{min-height:1.4em;font-size:13px;color:#ff6b7a;margin:4px 
 
   /* ---------------- 選單內容 ---------------- */
   const ver = () => { const b = document.getElementById('buildver'); const t = b && b.textContent.trim(); if (t) return t; const m = document.querySelector('meta[name="tw:build"]'); return 'v ' + (((m && m.content) || 'dev').split('|')[0] || 'dev'); };
-  const isDark = () => document.documentElement.getAttribute('data-theme') !== 'light';
+  /* 版面風格：清單讀 theme4.js 的 T4.THEMES（只有 id），名稱照外觀面板的寫法 */
+  const STY = { casual: ['親和休閒', 'linear-gradient(135deg,#FFE8DA,#6A55E6)'], hud: ['科技 HUD', 'linear-gradient(135deg,#050A13,#37E2FF)'], pro: ['專業有力', 'linear-gradient(135deg,#0A0C10,#2E5BDB)'] };
+  const styIds = () => ((window.T4 && window.T4.THEMES) || Object.keys(STY)).filter((k) => STY[k]);
+  const styCur = () => (window.T4 && window.T4.get ? window.T4.get() : (document.documentElement.getAttribute('data-theme4') || 'hud'));
+  const styName = (k) => (STY[k] || [k])[0];
   const unread = () => { try { return window.TwNotices && window.TwNotices.unread ? window.TwNotices.unread() : 0; } catch (e) { return 0; } };
   function remText() {
     const o = quotaItems();
@@ -197,7 +209,8 @@ html.m4 .m4deldlg .msg{min-height:1.4em;font-size:13px;color:#ff6b7a;margin:4px 
       + `<button type="button" class="m4i" role="menuitem" data-m="quota"><span class="t">額度上限</span><span class="r">${esc(remText())}</span></button>`
       + `<button type="button" class="m4i" role="menuitem" data-m="feedback"><span class="t">意見回饋</span></button>`
       + sw('fab', !fabOff(), '客服按鈕')
-      + sw('theme', isDark(), '深色模式');
+      + `<button type="button" class="m4i m4grp" role="menuitem" aria-expanded="false" data-m="style"><span class="t">風格</span><span class="r" data-sty-cur>${esc(styName(styCur()))}</span><span class="chev" aria-hidden="true">›</span></button>`
+      + '<div class="m4sub m4sty" role="group" aria-label="版面風格" hidden>' + styIds().map((k) => `<button type="button" class="m4i" role="menuitemradio" aria-checked="${k === styCur()}" data-m="sty" data-sty="${k}"><span class="ck" aria-hidden="true">✓</span><span class="sw4" style="background:${STY[k][1]}" aria-hidden="true"></span><span class="t">${esc(styName(k))}</span></button>`).join('') + '</div>';
     if (u && u.admin) {
       h += '<div class="hr"></div><button type="button" class="m4i m4grp" role="menuitem" aria-expanded="false" data-m="admgrp"><span class="t">管理區</span><span class="chev" aria-hidden="true">›</span></button>'
         + '<div class="m4sub" hidden>'
@@ -206,7 +219,6 @@ html.m4 .m4deldlg .msg{min-height:1.4em;font-size:13px;color:#ff6b7a;margin:4px 
         + (window.TwGw && window.TwGw.on && window.TwGw.on() ? '<button type="button" role="menuitem" data-a="gw">付費資料異常</button>' : '')
         + '</div>';
     }
-    h += '<div class="hr"></div><div class="m4legal"><button type="button" data-m="terms">使用條款</button><button type="button" data-a="privacy">隱私權政策</button><button type="button" data-m="disc">免責聲明</button></div>';
     if (u) {
       const own = !!u.owner;
       h += '<div class="hr"></div>'
@@ -240,7 +252,14 @@ html.m4 .m4deldlg .msg{min-height:1.4em;font-size:13px;color:#ff6b7a;margin:4px 
     const b = e.target.closest('[data-m]'); if (!b) return;
     const k = b.dataset.m;
     if (k === 'fab') { const off = !fabOff(); setFab(off); b.setAttribute('aria-checked', String(!off)); return; }
-    if (k === 'theme') { const t = document.getElementById('themeBtn'); if (t) t.click(); b.setAttribute('aria-checked', String(isDark())); return; }
+    if (k === 'style') { const sub = b.nextElementSibling; const open = b.getAttribute('aria-expanded') !== 'true'; b.setAttribute('aria-expanded', String(open)); if (sub) sub.hidden = !open; return; }
+    if (k === 'sty') {   // 選了就套用（T4.set 會存 tw.theme4、重畫圖表），選單留著讓人看到打勾換了
+      if (window.T4 && window.T4.set) window.T4.set(b.dataset.sty);
+      const cur = styCur();
+      m.querySelectorAll('[data-m=sty]').forEach((x) => x.setAttribute('aria-checked', String(x.dataset.sty === cur)));
+      const r = m.querySelector('[data-sty-cur]'); if (r) r.textContent = styName(cur);
+      return;
+    }
     if (k === 'admgrp') { const sub = b.nextElementSibling; const open = b.getAttribute('aria-expanded') !== 'true'; b.setAttribute('aria-expanded', String(open)); if (sub) sub.hidden = !open; return; }
     if (k === 'del' && b.getAttribute('aria-disabled') === 'true') return;   // 站主：停用（說明寫在按鈕下面）
     close();
@@ -249,8 +268,6 @@ html.m4 .m4deldlg .msg{min-height:1.4em;font-size:13px;color:#ff6b7a;margin:4px 
     else if (k === 'notify') location.hash = '#notices';
     else if (k === 'quota') openQuota();
     else if (k === 'feedback') { if (window.TwSupport && window.TwSupport.open) window.TwSupport.open(); }
-    else if (k === 'terms') location.hash = '#terms';
-    else if (k === 'disc') location.hash = '#disclaimer';
     else if (k === 'del') openDel();
   }
 
@@ -332,7 +349,7 @@ html.m4 .m4deldlg .msg{min-height:1.4em;font-size:13px;color:#ff6b7a;margin:4px 
   }
 
   /* 選單開著時身分／權限／公告換了：重畫（徽章與額度常常比選單晚一步到） */
-  const repaint = () => { const m = document.getElementById('acctMenu'); if (m && !m.hidden && m.classList.contains('m4am') && document.documentElement.classList.contains('m4')) { const sub = m.querySelector('.m4sub'); const open = sub && !sub.hidden; paint(m, null); if (open) { const g = m.querySelector('[data-m=admgrp]'); if (g) g.click(); } } };
+  const repaint = () => { const m = document.getElementById('acctMenu'); if (m && !m.hidden && m.classList.contains('m4am') && document.documentElement.classList.contains('m4')) { const was = ['admgrp', 'style'].filter((k) => { const g = m.querySelector(`[data-m=${k}]`); return g && g.getAttribute('aria-expanded') === 'true'; }); paint(m, null); was.forEach((k) => { const g = m.querySelector(`[data-m=${k}]`); if (g) g.click(); }); } };
   ['tw:perm', 'tw:account', 'tw:plans'].forEach((ev) => window.addEventListener(ev, repaint));
 
   window.TwAcctM4 = { paint, openQuota, openDel, quotaItems, quotaCount, who, setFab, fabOff };

@@ -489,3 +489,44 @@
   :root.m4 #v-market #mktBody>.tw tr.m4on>td{border-bottom:0}
   :root.m4 #v-market #mktBody>.tw td.l>.lk-stock{max-width:11em;display:inline-block;overflow:hidden;text-overflow:ellipsis;vertical-align:middle}
 }
+
+/* ---- 30. 訂閱方案頁修版（2026-10-09 Andy 圖四「格式都跑掉了 請修復」）
+   病因：頁上「合併表」版面在手機沒有專屬樣式 —— 方案欄頭用的是桌機那套（名稱／定位句／適合誰一律單行＋「…」、價格 28px 不換行），
+         被第 24 節的「比較表固定欄寬不橫捲」壓成三格約 80px，於是名稱變「註…／P…」、NT$ 249 被切、說明全成「…」、右緣超出視窗；
+         月繳／年繳那顆膠囊吃到第 27 節的通用分段樣式（拿掉外框與內距、overflow 捲動），選中的「年繳」右邊被裁掉。
+   修法（只在 html.m4 ≤640）：
+     · 合併表欄頭改成直排、每一行都准換行：名稱 → 價格（NT$ 數字／月可以折成兩行）→ 適合誰一句 → 升級鈕；
+       圖示、定位句（.who）、原價刪除線、價格備註、每天約多少收起（原價／年繳總價在卡片 title 與切換列上；跟「卡片＋表格」版第 28 節同一套取捨）
+     · 三格的升級鈕貼齊欄頭底部（同一條水平線），不因為上面字數不同而高低不齊
+     · 欄頭不黏頂（它有 200px 高，黏住會蓋掉半個畫面）；功能列照舊
+     · 月繳／年繳：自己畫一條置中的膠囊，兩顆都完整、不捲動
+     · 頁底那段「不是證券投資顧問…」跟頁首資訊列、頁尾免責聲明三處重複 → 手機收起（頁首與頁尾那兩處都還在） */
+@media (max-width:640px){
+  :root.m4 #v-pricing .prmg{margin-top:18px!important}
+  :root.m4 #v-pricing .prmg .prcmpw{padding-top:14px!important;overflow:visible!important}
+  :root.m4 #v-pricing .prmg table{min-width:0!important;border-radius:12px}
+  :root.m4 #v-pricing .prmg col.c0{width:28%!important}
+  :root.m4 #v-pricing .prmg #prTable thead th{position:relative!important;top:auto!important;vertical-align:top!important;text-align:center!important;padding:14px 3px 8px!important;white-space:normal!important}
+  :root.m4 #v-pricing .prmg #prTable thead th:first-child{vertical-align:bottom!important;text-align:left!important;font-size:13px!important;padding-left:6px!important}
+  :root.m4 #v-pricing .prmg #prTable thead th:first-child .who{font-size:12px!important;white-space:normal!important}
+  :root.m4 #v-pricing .prmg thead th:not(:first-child){display:table-cell}
+  :root.m4 #v-pricing .prmg thead th :is(.prico,.who,.prorig,.prnote,.prday){display:none!important}
+  :root.m4 #v-pricing .prmg .prhd{display:block!important;height:auto!important;margin:0!important;padding:0!important;min-height:0!important}
+  :root.m4 #v-pricing .prmg .prhd b{display:block;font-size:14px!important;line-height:1.25;white-space:normal!important;overflow:visible!important;text-overflow:clip!important;word-break:break-word}
+  :root.m4 #v-pricing .prmg .prprice{display:flex!important;flex-wrap:wrap;justify-content:center;align-items:baseline;gap:0 2px;height:auto!important;min-height:0!important;margin:4px 0 0!important;line-height:1.2!important;overflow:visible!important;white-space:normal!important}
+  :root.m4 #v-pricing .prmg .prprice .cur{font-size:12px!important}
+  :root.m4 #v-pricing .prmg .prprice b{font-size:18px!important}
+  :root.m4 #v-pricing .prmg .prprice small{font-size:12px!important}
+  :root.m4 #v-pricing .prmg .prprice.free{font-size:18px!important}
+  :root.m4 #v-pricing .prmg .prprice.ask{font-size:13px!important}
+  :root.m4 #v-pricing .prmg .mfit{height:auto!important;margin:4px 0 6px!important;font-size:12px!important;line-height:1.35!important;white-space:normal!important;overflow:visible!important;text-overflow:clip!important}
+  :root.m4 #v-pricing .prmg #prTable thead th[data-plan]{padding-bottom:56px!important}
+  :root.m4 #v-pricing .prmg .prgo{position:absolute;left:4px;right:4px;bottom:8px;width:auto;margin:0!important;min-height:40px;height:auto!important;padding:2px 2px!important;font-size:12px!important;line-height:1.2;white-space:normal}
+  :root.m4 #v-pricing .prmg .prtag{top:-10px!important;left:50%!important;right:auto!important;transform:translateX(-50%);font-size:12px!important;padding:1px 6px!important;white-space:nowrap;max-width:none}
+  :root.m4 #v-pricing #prPeriod#prPeriod{display:inline-flex!important;flex-wrap:nowrap;gap:4px!important;padding:3px!important;overflow:visible!important;border:1px solid var(--line-2)!important;border-radius:999px;background:var(--panel-3)!important}
+  :root.m4 #v-pricing #prPeriod#prPeriod>button{flex:none;height:36px!important;min-height:36px!important;padding:0 14px!important;border:0!important;border-radius:999px!important;gap:6px;white-space:nowrap}
+  :root.m4 #v-pricing #prPeriod#prPeriod>button:not(.on){background:transparent!important;color:var(--ink-2)!important}
+  :root.m4 #v-pricing #prPeriod#prPeriod>button.on{background:var(--pl-blue)!important;color:var(--pr-on)!important}
+  :root.m4 #v-pricing .prper{margin:12px 0 0!important}
+  :root.m4 #v-pricing .prlegal{display:none!important}
+}
