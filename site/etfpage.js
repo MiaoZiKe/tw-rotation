@@ -1838,6 +1838,9 @@
          最寬 3 個字放得進一格、相鄰還留 ≥ 4px；字級拉回 12px 下限；
          柱寬 56%；再加 hideOverlap 當最後一道保險。完整金額在提示框（點一下就出現）。桌機（m4=false）一個字都沒改。 */
     const m4 = document.documentElement.classList.contains('m4');
+    /* 2026-10-09 手機監督（360 寬）：每格只剩約 26px，「10月11月12月」（11px 每個約 24px）字跟字貼在一起 →
+       每格 < 34px（402 寬約 30、360 寬約 26）時月份只寫數字（第一格保留「1月」交代單位），每個數字約 7～14px，左右都留得出空隙 */
+    const elW = (document.getElementById(id) || {}).clientWidth || 0, tight = m4 && elW > 0 && elW / 12 < 34;
     const lab = m4 ? { show: true, position: 'top', fontSize: 12, fontFamily: 'system-ui, -apple-system, "Segoe UI", Roboto, sans-serif', color: CH.ink2, formatter: (p) => { const w = p.value / 1e4; return p.value > 0 ? (w < 10 ? w.toFixed(1) : String(Math.round(w))) : ''; } }
       : { show: true, position: 'top', fontSize: 11, color: CH.ink2, formatter: (p) => (p.value > 0 ? wan1(p.value) : '') };
     /* 2026-10-09 10:0x Andy（手機）：「長條圖需要調整頁面適當寬度，平均分散」—— 12 根擠在中間、左邊空一大塊。
@@ -1846,7 +1849,7 @@
     a.chart(id, {
       grid: m4 ? { left: 2, right: 2, top: 24, bottom: 4, containLabel: true } : { left: 4, right: 4, top: 24, bottom: 4, containLabel: true },
       tooltip: { ...a.tip, confine: true, trigger: 'item', formatter: (p) => tipOf(p.dataIndex) },
-      xAxis: { type: 'category', data: Array.from({ length: 12 }, (_, i) => `${i + 1}月`), ...a.axisStyle, axisLabel: { ...a.axisStyle.axisLabel, fontSize: 11, interval: 0 } },
+      xAxis: { type: 'category', data: Array.from({ length: 12 }, (_, i) => `${i + 1}月`), ...a.axisStyle, axisLabel: { ...a.axisStyle.axisLabel, fontSize: m4 ? 12 : 11, interval: 0, ...(tight ? { formatter: (v, i) => (i === 0 ? v : v.replace('月', '')) } : {}) } },
       yAxis: m4 ? { type: 'value', show: false, axisLabel: { show: false } } : { type: 'value', show: false },
       series: [{ type: 'bar', id: 'tw-thick-bar', barWidth: m4 ? '55%' : '50%',   /* 10-08 Andy：直條太細太空 → 每格寬的 50%（1440 約 45px，手機等比）*/  emphasis: { focus: 'self', blurScope: 'series', itemStyle: { borderColor: CH.ink, borderWidth: 2 } }, blur: { itemStyle: { opacity: document.documentElement.getAttribute('data-theme') === 'light' ? 0.32 : 0.55 } },   // 10-08：滑過那根加亮、其他變淡（跟行事曆小圖同一套）
         itemStyle: { borderRadius: [3, 3, 0, 0], color: colOf ? (p) => { const c = colOf(p.dataIndex); return { type: 'linear', x: 0, y: 0, x2: 0, y2: 1, colorStops: [{ offset: 0, color: c }, { offset: 1, color: a.hexA(c, 0.45) }] }; } : B.grad(false) },

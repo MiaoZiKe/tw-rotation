@@ -1314,3 +1314,108 @@
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot); else boot();
 })();
+
+/* ============================================================================
+   31j. 2026-10-09 帳本 38 退件（ETF 部分）：ETF 總覽 4 組切換、月配試算 4 組切換＋勾選框 → 一顆摘要鈕 → 底部抽屜 → 每組一排分段控制器
+   範本＝週期統計（第 29 節 snWire／m3Open：.m4ctlrow＋.mfilt 摘要鈕＋M3.openSheet＋.m4shsegs）。
+   · ETF 總覽：「最受歡迎依（受益人｜成交值）」「報酬期間」「報酬口徑（含息｜不含息）」「一覽排序」四組收進抽屜。
+     不收：分類列（已是上方分頁式頁籤）、「最受歡迎｜報酬率｜殖利率」（只有它一組在卡片上方切卡片，留在頁面上）、「加入比較」（是挑股票的清單，不是切換）。
+   · 月配試算：選「整個條件列改成摘要鈕＋抽屜」（不選「條件列維持一排、其他收抽屜」）：
+     402／360 寬時一排四個下拉，「範圍」「期間」只剩 2～3 個字加 …，看不出現在選了什麼；摘要鈕把五個值全部寫出來（例：年領・100 萬・配息型・扣健保・近 5 年），
+     抽屜裡每組一排、每個選項都完整看得到，資訊比較清楚。
+     例外：選了「自訂…」金額或「起始日期～至今」時，要填數字／日期的那一列照樣露出來（抽屜裡不放輸入框，填完直接在頁面上看結果）。
+   · 抽屜裡的分段鈕按下去＝去改原本那一個控制項（點原本的鈕、或改原本的 select 再發 change）—— 狀態、重畫、記憶都照 etfpage.js 原本的邏輯，不另存一份。
+   ⚠ 只在 html.m4（≤640）；桌機什麼都不插，回到桌機寬時拆掉。
+   ============================================================================ */
+(function () {
+  'use strict';
+  const root = document.documentElement;
+  const $ = (s, r) => (r || document).querySelector(s);
+  const $$ = (s, r) => Array.from((r || document).querySelectorAll(s));
+  const isM = () => root.classList.contains('m4') && window.innerWidth <= 640;
+  const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
+  const ICON = '<svg class="m4sico" viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 4h-7M10 4H3M21 12h-9M8 12H3M21 20h-5M12 20H3M14 2v4M8 10v4M16 18v4"/></svg>';
+  const vis = (e) => !!e && !!e.getClientRects().length;
+  // 頁面自己藏起來的切換（例：槓桿反向沒有「含息｜不含息」，etfpage.js 寫 style.display='none'）不放進抽屜、也不寫進摘要
+  const live = (q) => { const e = $(q); return e && e.style.display !== 'none' && !e.closest('[hidden]') ? e : null; };
+  const rpkCustom = (el) => { const r = el && el.closest('.rpk'); return !!r && r.dataset.v === (r.dataset.custom || 'custom'); };
+
+  /* 每一組：k＝驗收用代號、t＝抽屜裡的組名、取值／選項／套用 */
+  const segG = (k, t, q, short) => ({ k, t, el: () => live(q), opts: (e) => $$(':scope > button', e).map((b) => [b.dataset.v || b.textContent.trim(), b.textContent.trim(), b.classList.contains('on')]),
+    set: (e, v) => { const b = $$(':scope > button', e).find((x) => (x.dataset.v || x.textContent.trim()) === v); if (b && !b.classList.contains('on')) b.click(); }, short });
+  const selG = (k, t, q, short) => ({ k, t, el: () => live(q), opts: (e) => Array.from(e.options).map((o) => [o.value, o.text.replace(/\s+/g, ' ').trim(), o.value === e.value]),
+    set: (e, v) => { if (e.value === v) return; e.value = v; e.dispatchEvent(new Event('change', { bubbles: true })); }, short });
+  const chkG = (k, t, q) => ({ k, t, el: () => live(q), opts: (e) => [['1', '扣除', e.checked], ['0', '不扣', !e.checked]],
+    set: (e, v) => { if (e.checked !== (v === '1')) e.click(); }, short: (o) => (o[0] === '1' ? '扣健保' : '不扣健保') });
+  const PAGES = [
+    { id: 'list', title: 'ETF 總覽設定', on: () => vis($('#etfRetCard')) || vis($('#etfListCard')),
+      anchor: () => $('#v-etf .m4trisg') || $('#etfTri'),
+      groups: [segG('pop', '最受歡迎依', '#etfPopSeg'), selG('rng', '報酬期間', '#etfRngBox select.rpsel'), segG('basis', '報酬口徑', '#etfBasisSeg'), selG('sort', '一覽排序', '#etfSort')],
+      // 原本的位置藏起來（只藏切換本身，旁邊的說明字、「加入比較」照舊）；選了起始日期時日期列照樣露出來
+      hide: () => [['#etfPopSeg', true], ['#etfRngBox', !rpkCustom($('#etfRngBox select.rpsel'))], ['#etfBasisSeg', true], ['#etfSort', true], ['label[for="etfSort"]', true]] },
+    { id: 'inc', title: '月配試算條件', on: () => vis($('#incPM')),
+      // 插在 wireCond 的「條件 ▾」鈕前面（它認「緊鄰 .incctl 的前一個兄弟」，插在中間它會一直再生一顆新的）
+      anchor: () => $('#incPM > .m4cond') || $('#incPM > .incctl'),
+      groups: [selG('mode', '目標', '#incPM #incMode + select.m4segsel'), selG('amt', '金額', '#incPM #incAmtSeg + select.m4segsel'), selG('scope', '範圍', '#incPM #incScope + select.m4segsel'),
+        chkG('nhi', '二代健保（單筆 ≥ 2 萬扣 2.11%）', '#incNhi'), selG('rng', '報酬期間', '#etfIncRngBox select.rpsel')],
+      hide: () => { const amt = $('#incAmt'), need = (amt && amt.classList.contains('m4show')) || rpkCustom($('#etfIncRngBox select.rpsel'));
+        return [['#incPM > .incctl', !need], ['#incPM > .m4cond', true]]; } },
+  ];
+  const summary = (P) => P.groups.map((g) => { const e = g.el(); if (!e) return null; const o = g.opts(e).find((x) => x[2]); if (!o) return null;
+    return { t: g.short ? g.short(o) : o[1].replace(/\s+/g, ''), full: g.t + '：' + o[1] }; }).filter(Boolean);
+  function paint(P, b) {
+    const s = summary(P), txt = s.map((x) => x.t).join('・') || '設定', full = s.map((x) => x.full).join('；');
+    const h = `${ICON}<span class="m4st">${esc(txt)}</span><i aria-hidden="true">›</i>`;
+    if (b.__h !== h) { b.innerHTML = h; b.__h = h; }
+    if (b.getAttribute('aria-label') !== P.title + '：' + full) { b.setAttribute('aria-label', P.title + '：' + full); b.title = P.title + '：' + full; }
+  }
+  function sheetBody(P, body) {
+    body.innerHTML = P.groups.map((g) => { const e = g.el(); if (!e) return '';
+      return `<div class="m4dwg" data-g="${g.k}"><small>${esc(g.t)}</small><div class="seg">${g.opts(e).map(([v, t, on]) => `<button type="button" data-g="${g.k}" data-v="${esc(v)}" class="${on ? 'on' : ''}" aria-pressed="${on}">${esc(t)}</button>`).join('')}</div></div>`; }).join('');
+  }
+  function open(P) {
+    const api = window.M3; if (!api || !api.openSheet) return;
+    const wrap = document.createElement('div');
+    wrap.innerHTML = `<div class="mshhead"><b>${esc(P.title)}</b></div><div class="m4shsegs m4dw" id="m4EtfSegs" data-p="${P.id}"></div>`;
+    const body = $('.m4shsegs', wrap);
+    sheetBody(P, body);
+    body.addEventListener('click', (ev) => {
+      const bt = ev.target.closest('button[data-g]'); if (!bt) return;
+      const g = P.groups.find((x) => x.k === bt.dataset.g), e = g && g.el(); if (!e) return;
+      g.set(e, bt.dataset.v);
+      // 選了「自訂…」金額／起始日期：要在頁面上填數字或日期 → 收起抽屜，那一列會露出來
+      if (bt.dataset.v === 'custom' || rpkCustom(e)) { setTimeout(() => { if (api.closeSheet) api.closeSheet(); else { const x = $('#mSheet .mshx, #mScrim'); if (x) x.click(); } }, 60); return; }
+      setTimeout(() => { sheetBody(P, body); kick(); }, 80);
+    });
+    api.openSheet(wrap, { kind: 'etfset-' + P.id, onClose: kick });
+  }
+  function ensure() {
+    const v = $('#v-etf');
+    if (!isM()) { $$('.m4etfrow').forEach((r) => r.remove()); $$('.m4dwhide').forEach((e) => e.classList.remove('m4dwhide')); return; }
+    if (!v || !v.classList.contains('on')) return;
+    PAGES.forEach((P) => {
+      let row = $(`#m4EtfRow-${P.id}`);
+      const on = P.on(), anc = P.anchor();
+      if (!on || !anc) { if (row) row.hidden = true; return; }
+      if (!row) {
+        row = document.createElement('div'); row.id = `m4EtfRow-${P.id}`; row.className = 'm4ctlrow m4etfrow';
+        row.innerHTML = `<button type="button" class="mfilt m4etfset" id="m4EtfSet-${P.id}" aria-haspopup="dialog"></button>`;
+        $('button', row).onclick = () => open(P);
+      }
+      if (row.nextElementSibling !== anc) anc.before(row);
+      row.hidden = false;
+      P.hide().forEach(([q, h]) => $$(q).forEach((e) => { if (e.classList.contains('m4dwhide') !== h) e.classList.toggle('m4dwhide', h); }));
+      paint(P, $('button', row));
+    });
+  }
+  let raf = 0;
+  function kick() { if (raf) return; raf = requestAnimationFrame(() => { raf = 0; try { ensure(); } catch (e) { /* 不擋頁面 */ } }); }
+  function boot() {
+    const v = $('#v-etf');
+    if (v && typeof MutationObserver !== 'undefined') new MutationObserver((ms) => { if (ms.some((m) => !(m.target.closest && m.target.closest('.m4etfrow')))) kick(); }).observe(v, { childList: true, subtree: true, attributes: true, attributeFilter: ['class', 'hidden', 'data-v'] });
+    v && v.addEventListener('change', () => setTimeout(kick, 30));
+    addEventListener('resize', kick); addEventListener('hashchange', () => setTimeout(kick, 300));
+    kick();
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot); else boot();
+})();
