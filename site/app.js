@@ -2198,7 +2198,12 @@
     const paint = () => {
       inp.value = days;
       const d = o.dateOf && frame > 0 ? o.dateOf(frame) : '';
-      out.textContent = `${days} 天前` + (frame > 0 ? ` · 回放 ${d || frame + ' 天前'}` : '');
+      /* ★ 2026-10-09（手機監督：管理者 360 寬按 ▶，「20 天前 · 回放 9/10 ⏸ 即時」把整頁撐寬 26px）：
+         手機（html.m4）回放中只寫「回放 09-10」（跟資金分流樹的 MM-DD 一致；N 天前看拉桿位置），沒在回放才寫「N 天前」。桌機照舊。*/
+      const m4 = document.documentElement.classList.contains('m4');
+      const md = m4 && /^\d{1,2}\/\d{1,2}$/.test(d) ? d.split('/').map(x => x.padStart(2, '0')).join('-') : d;
+      out.textContent = m4 && frame > 0 ? `回放 ${md || frame + ' 天前'}`
+        : `${days} 天前` + (frame > 0 ? ` · 回放 ${d || frame + ' 天前'}` : '');
       playDim(box, !!timer, [inp, bMinus, bPlus]);
       bMinus.disabled = !!timer || days <= MIN; bPlus.disabled = !!timer || days >= MAX;
       bPlay.textContent = timer ? '⏸' : '▶';

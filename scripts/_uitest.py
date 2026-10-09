@@ -31636,7 +31636,8 @@ PB360_JS = """(id) => { const b = document.getElementById(id); if (!b) return nu
   const play = b.querySelector('.pb.play'); const pr = play ? play.getBoundingClientRect() : null;
   const tops = kids.map(e => { const q = e.getBoundingClientRect(); return q.top + q.height / 2; });
   const txt = kids.filter(e => e.matches('.val,.ago,.t'));
-  return { R: r.right, H: r.height, vw: innerWidth, pr: pr ? pr.right : null, pl: pr ? pr.left : null,
+  const lv = b.querySelector('.pb.livebtn'); const lr = lv && lv.getClientRects().length ? lv.getBoundingClientRect().right : null;
+  return { R: r.right, H: r.height, vw: innerWidth, pr: pr ? pr.right : null, pl: pr ? pr.left : null, lr, sw: document.documentElement.scrollWidth,
     spread: tops.length ? Math.max(...tops) - Math.min(...tops) : 0,
     cut: txt.filter(e => e.scrollWidth > e.clientWidth + 1).map(e => e.textContent),
     val: ((b.querySelector('.val') || {}).textContent || ''), tw: txt.reduce((a, e) => a + e.getBoundingClientRect().width, 0),
@@ -31645,18 +31646,19 @@ PB360_JS = """(id) => { const b = document.getElementById(id); if (!b) return nu
 
 def t_m4_playbar360_1009(b, base):
     T = "手機播放列360"
-    for w in (360, 402, 1440):
+    # admin＝管理者（TW_LIVE_OVERRIDE，同 t_live_gate 的掛法）：播放列多一顆「即時」鈕 —— Andy 自己用的就是管理者帳號
+    for w, admin in ((360, False), (402, False), (360, True), (402, True), (1440, True)):
         mob = w < 1000
         vp = {"viewport": {"width": w, "height": 844 if mob else 900}}
         if mob:
             vp.update({"device_scale_factor": 2, "is_mobile": True, "has_touch": True})
         ctx = b.new_context(**vp)
-        ctx.add_init_script("try{ localStorage.setItem('tw.theme','light'); localStorage.setItem('tw.live.on','0'); localStorage.setItem('tw.tourDone','1');"
+        ctx.add_init_script(f"window.TW_LIVE_OVERRIDE = {'true' if admin else 'false'};" + "try{ localStorage.setItem('tw.theme','light'); localStorage.setItem('tw.live.on','0'); localStorage.setItem('tw.tourDone','1');"
                             " localStorage.removeItem('tw.sankey.day'); localStorage.setItem('tw.rot.days','30'); }catch(e){}")
         m = ctx.new_page()
         m.route("**/fonts.googleapis.com/**", lambda r: r.abort())
         m.on("pageerror", lambda e: fails.append(f"{T} pageerror: {e} @ {m.url}"))
-        tag = f"{w}" + ("（手機觸控）" if mob else "（桌機）")
+        tag = f"{w}" + ("（手機觸控）" if mob else "（桌機）") + ("・管理者" if admin else "")
         try:
             for h, bid, name in (("flow/sankey", "sankeyDays", "資金分流樹"), ("flow/rotation", "rotBack", "資金輪動")):
                 m.goto(base + "#" + h, wait_until="domcontentloaded")
@@ -31670,6 +31672,11 @@ def t_m4_playbar360_1009(b, base):
                         r = m.evaluate(PB360_JS, bid)
                         ok(f"{T} {tag} 資金分流樹：桌機日期仍是完整 YYYY-MM-DD、「看哪一天」標籤還在（{r['val']}）",
                            bool(re.match(r"^\d{4}-\d{2}-\d{2}$", r["val"])) and r["t"], r)
+                    else:
+                        m.evaluate("() => document.querySelector('#rotBack .pb.play').click()"); m.wait_for_timeout(1500)
+                        r = m.evaluate(PB360_JS, bid)
+                        m.evaluate("() => { const b = document.querySelector('#rotBack .pb.play'); if (b.textContent.includes('⏸')) b.click(); }")
+                        ok(f"{T} {tag} 資金輪動：桌機回放讀數照舊「N 天前 · 回放 M/D」（{r['val']}）", bool(re.match(r"^\d+ 天前 · 回放 ", r["val"])), r)
                     continue
                 if bid == "sankeyDays":           # 從最舊那天播，日期一定在過去
                     m.evaluate("() => { const i = document.querySelector('#sankeyDays input[type=range]'); i.value = 0; i.dispatchEvent(new Event('input', {bubbles: true})); i.dispatchEvent(new Event('change', {bubbles: true})); }")
@@ -31689,8 +31696,13 @@ def t_m4_playbar360_1009(b, base):
                 paused = m.evaluate(PB360_JS, bid)
                 for lab, r in (("播放中日期字最長的那一刻", worst), ("按 ⏸ 停在過去某天", paused)):
                     good = bool(r) and r["pr"] is not None and r["pr"] <= r["R"] + 0.5 and r["pr"] <= r["vw"] and r["spread"] <= 2 and r["H"] <= 44 and not r["cut"]
-                    ok(f"{T} {tag} {name}：{lab}「{r and r['val']}」▶ 右緣 {r and round(r['pr'])} ≤ 列右緣 {r and round(r['R'])}、≤ 視窗 {w}；一行（列高 {r and round(r['H'])}）；日期沒被截",
+                    good = good and r["sw"] <= r["vw"] and (not admin or (r["lr"] is not None and r["lr"] <= r["R"] + 0.5 and r["lr"] <= r["vw"]))
+                    ok(f"{T} {tag} {name}：{lab}「{r and r['val']}」▶ 右緣 {r and round(r['pr'])}" + (f"、即時鈕右緣 {r and r['lr'] and round(r['lr'])}" if admin else "")
+                       + f" ≤ 列右緣 {r and round(r['R'])}、≤ 視窗 {w}；整頁不橫捲（{r and r['sw']}）；一行（列高 {r and round(r['H'])}）；日期沒被截",
                        good, r)
+                if bid == "rotBack":
+                    ok(f"{T} {tag} 資金輪動：手機回放中讀數是「回放 MM-DD」（跟分流樹一致）",
+                       all(re.match(r"^回放 \d{2}-\d{2}$", x["val"]) for x in pl), sorted({x["val"] for x in pl})[:6])
                 if bid == "sankeyDays":
                     ok(f"{T} {tag} 資金分流樹：手機日期是短格式（MM-DD 或「最新」），「看哪一天」標籤收起",
                        all(re.match(r"^(\d{2}-\d{2}|最新)$", x["val"]) for x in smp + [paused]) and not paused["t"], sorted(vals)[:6])
