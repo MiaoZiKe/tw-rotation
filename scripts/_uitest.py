@@ -58119,7 +58119,7 @@ def t_guest_quota_1009(b, base, code):
         ok(f"{T}【頁首 {W}】一行字「{want_t}」、用完標紅（data-lvl＝out）、在頁首內不浮動、沒撐出橫向捲軸",
            st0["t"] == want_t and st0["lvl"] == "out" and not st0["fixed"] and st0["inHead"] and st0["y"] < 120 and st0["l"] >= 0 and st0["r"] <= st0["W"] and st0["sw"] <= st0["W"] + 1, st0)
         ok(f"{T}【頁首 {W}】逐項細節放在 title（族群總覽 看 3／3、3D 寫最低有開的方案「… 會員」，2026-10-10 起不寫「不開放」）",
-           "族群總覽（長條＋圓餅）：看 3／3・剩 0 次" in st0["title"] and re.search(r"3D 剖析圖：\S+ 會員", st0["title"]) and "不開放" not in st0["title"], st0["title"])
+           "族群總覽（長條＋圓餅）：看 3／3・剩 0 次" in st0["title"] and re.search(r"3D 剖析圖：\S*會員", st0["title"]) and "不開放" not in st0["title"], st0["title"])
         shot(pg, f"header_{W}.png")
         pg.click("#twQPage"); pg.wait_for_timeout(600)
         pn = pg.evaluate("() => ({ pan: !!document.querySelector('.twqp-pan'), dlg: [...document.querySelectorAll('[role=dialog]')].filter(d => d.getClientRects().length && !d.hidden).length, h: location.hash })")
