@@ -28855,6 +28855,8 @@ def t_m4_3d_1009(b, base):
             r = J(M43D_CENSUS)
             if r.get("err") or r["bad"] or r["lines"] == 0:
                 census_bad.append((sid, r))
+            # 頁面還在捲（換頁後的捲動還原、字型晚到重排）時點下去，量到的 scrollY 差是頁面自己的，不是點零件造成的：先等它停
+            wait_until(m, "() => new Promise(r => { const y = scrollY, h = document.documentElement.scrollHeight; setTimeout(() => r(scrollY === y && document.documentElement.scrollHeight === h), 500); })", 8000, 100)
             for x, y, part in J(M43D_PICK):
                 close()
                 s0 = J(M43D_ST)
@@ -28868,6 +28870,8 @@ def t_m4_3d_1009(b, base):
             close()
             # 相機拉近：零件跑出畫布時不准再有引線拉到畫布外
             J("() => { const v = Rack3D.current, c = v.cam(); v.look([0, 0, 0], [c[0] * 0.4, c[1] * 0.4, c[2] * 0.4]); }"); m.wait_for_timeout(900)
+            # 編號層每 60ms＋一幀才重排一次；機器很忙時要多等幾輪（等到合格或 8 秒），量的是「排好之後」不是「排到一半」
+            wait_until(m, M43D_CENSUS.replace("return { nums: btn.length, lines: n, bad };", "return bad.length === 0;"), 8000, 400)
             r2 = J(M43D_CENSUS)
             if r2.get("err") or r2["bad"]:
                 zoom_bad.append((sid, r2))
