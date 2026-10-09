@@ -1240,6 +1240,9 @@
     const gb = typeof g.bottom === 'number' ? g.bottom : (g.containLabel ? 8 : 40);
     g.bottom = k < 0 ? gb + 34 : Math.max(gb, g.containLabel ? 42 : 62);
     const out = Object.assign({}, o, { grid: Array.isArray(o.grid) ? [g] : g, dataZoom: dz });
+    /* 監督退件 3：加了拉桿的圖（ETF 報酬比較的 time 軸）在 402 寬出現「20244月」「20254月」—— 年份跟月份標籤黏在一起。
+       一律 hideOverlap，標籤左右各加 3px 內距（ECharts 判斷重疊用的框含內距 → 留下來的標籤之間至少 6px） */
+    out.xAxis = Object.assign({}, xa[0], { axisLabel: Object.assign({}, xa[0].axisLabel || {}, { hideOverlap: true, padding: [0, 3] }) }, xa[0].type === 'time' ? { splitNumber: 4 } : {});   // time 軸刻度少一點（402 寬 11 個 → 約 5 個）
     /* 只挑「第一／中間／最後」那幾格標日期的圖（個股營收、獲利小圖：interval 是函式）：拉桿拉近之後那幾格不在範圍內，X 軸一個日期都不剩
        → 改回 ECharts 自動間隔＋hideOverlap，原本的 formatter 回空字串的格子改顯示原值（放得下才顯示，放不下自動藏） */
     const xl = xa[0].axisLabel;
@@ -1247,7 +1250,7 @@
       const f0 = xl.formatter;
       const nl = Object.assign({}, xl, { interval: 'auto', hideOverlap: true });
       if (typeof f0 === 'function') nl.formatter = (v, i) => { const r = f0(v, i); return r === '' || r == null ? String(v) : r; };
-      out.xAxis = Object.assign({}, xa[0], { axisLabel: nl });
+      out.xAxis = Object.assign({}, out.xAxis, { axisLabel: Object.assign(nl, { padding: [0, 3] }) });
     }
     const lg = o.legend && !Array.isArray(o.legend) ? o.legend : null;
     if (lg && typeof lg.bottom === 'number' && lg.top == null) out.legend = Object.assign({}, lg, { bottom: lg.bottom + 34 });
@@ -1372,6 +1375,13 @@
   function sheetBody(P, body) {
     body.innerHTML = P.groups.map((g) => { const e = g.el(); if (!e) return '';
       return `<div class="m4dwg" data-g="${g.k}"><small>${esc(g.t)}</small><div class="seg">${g.opts(e).map(([v, t, on]) => `<button type="button" data-g="${g.k}" data-v="${esc(v)}" class="${on ? 'on' : ''}" aria-pressed="${on}">${esc(t)}</button>`).join('')}</div></div>`; }).join('');
+    /* 一排放不下的組（金額 5 格、報酬期間 6 格）：不換行、框裡橫拖，右緣淡出；選中那格捲進看得到的範圍；拖到底淡出拿掉（監督退件 2） */
+    requestAnimationFrame(() => $$('.seg', body).forEach((sg) => {
+      const ovf = sg.scrollWidth > sg.clientWidth + 1; sg.classList.toggle('m4ovf', ovf); if (!ovf) return;
+      const on = $('button.on', sg); if (on) sg.scrollLeft = Math.max(0, on.offsetLeft - (sg.clientWidth - on.offsetWidth) / 2);
+      const end = () => sg.classList.toggle('m4end', sg.scrollLeft + sg.clientWidth >= sg.scrollWidth - 2);
+      end(); sg.addEventListener('scroll', end, { passive: true });
+    }));
   }
   function open(P) {
     const api = window.M3; if (!api || !api.openSheet) return;

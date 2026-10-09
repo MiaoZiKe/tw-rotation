@@ -27710,6 +27710,59 @@ def t_mobile_m4_etfqa_1009(b, base, code):
                         picked = m4_etf_pick(m, "inc", gk, None, wait=1800)
                     s1 = J(ISIG); t1 = J("() => document.getElementById('m4EtfSet-inc').textContent")
                     ok(f"【{T}】{W}：月配試算抽屜裡「{nm}」點「{picked}」→ 試算結果真的變、摘要鈕跟著改字", picked and s1 != s0 and t1 != t0, (picked, s0[:60], s1[:60], t0, t1))
+
+            # 9. 手機監督退件（e0472550）六處
+            LAB = """(id) => { const el = document.getElementById(id); if (!el) return null; const c = echarts.getInstanceByDom(el); if (!c) return null;
+  const ax = c.getModel().getComponent('xAxis', 0), cv = document.createElement('canvas').getContext('2d'), fs = ax.get(['axisLabel', 'fontSize']) || 12;
+  cv.font = fs + 'px ' + (ax.get(['axisLabel', 'fontFamily']) || 'sans-serif');
+  // 實際畫出來的標籤：取 zr 裡掛在 x 軸上的 text（hideOverlap 藏掉的 ignore=true）
+  const shown = []; c.getZr().storage.getDisplayList(true).forEach(e => { if ((e.type === 'text' || e.type === 'tspan') && !e.ignore && !e.invisible && !(e.parent && e.parent.ignore) && e.style && e.style.text != null) { const r = e.getBoundingRect().clone(); const tf = e.getComputedTransform ? e.getComputedTransform() : e.transform; if (tf) r.applyTransform(tf); shown.push({ t: String(e.style.text), x0: r.x, x1: r.x + r.width, y0: r.y, y1: r.y + r.height }); } });
+  const g = c.getModel().getComponent('grid', 0).coordinateSystem.getRect(), base = g.y + g.height;
+  const xl = shown.filter(r => r.y0 >= base - 2 && r.y0 <= base + 30).sort((a, b) => a.x0 - b.x0);
+  const gaps = xl.slice(1).map((r, i) => Math.round((r.x0 - xl[i].x1) * 10) / 10);
+  return { n: xl.length, txt: xl.map(r => r.t), minGap: gaps.length ? Math.min(...gaps) : 99, gridTop: g.y, yTop: shown.filter(r => r.x1 <= g.x + 2).map(r => r.y0).sort((a, b) => a - b)[0] }; }"""
+            # 9-1 除息表最後一欄「尚未填息（已 N 天）」：括號那段不拆開、最多兩行
+            go("etf/cal", 4500)
+            fl = J("""() => [...document.querySelectorAll('#etfCalList td.fill')].filter(t => t.textContent.includes('尚未')).slice(0, 6).map(t => { const cs = getComputedStyle(t), lh = parseFloat(cs.lineHeight) || 16, nw = t.querySelector('.nw');
+                return { lines: Math.round((t.clientHeight - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom)) / lh), nw: nw ? nw.getClientRects().length : 0 }; })""")
+            ok(f"【{T}】{W}：除息表「尚未填息（已 N 天）」括號那段不拆開、最多兩行（{fl[:3]}）", all(x["nw"] == 1 and x["lines"] <= 2 for x in fl), fl)
+            # 9-2 抽屜裡的分段控制器一排（放不下就框內橫拖）
+            for h, pid in (("etf/list", "list"), ("etf/inc", "inc")):
+                go(h, 4500)
+                m.locator(f"#m4EtfSet-{pid}").tap(); m.wait_for_timeout(500)
+                sg = J("""() => [...document.querySelectorAll('#m4EtfSegs .seg')].map(sg => ({ g: sg.parentElement.dataset.g, rows: new Set([...sg.children].map(b => Math.round(b.getBoundingClientRect().top))).size, sw: sg.scrollWidth, cw: sg.clientWidth, ox: getComputedStyle(sg).overflowX, sl: sg.scrollLeft }))""")
+                ok(f"【{T}】{W}：{pid} 設定抽屜每組都是一排（{[(x['g'], x['rows']) for x in sg]}）、放不下的那組可橫捲", all(x["rows"] == 1 and (x["sw"] <= x["cw"] + 1 or x["ox"] == "auto") for x in sg), sg)
+                wide = [x for x in sg if x["sw"] > x["cw"] + 20]
+                if wide:
+                    gk = wide[0]["g"]; box = J(f"() => {{ const e = document.querySelector('#m4EtfSegs .m4dwg[data-g=\"{gk}\"] .seg'); e.scrollIntoView({{block:'center', behavior:'instant'}}); const r = e.getBoundingClientRect(); return [r.left + r.width * 0.7, r.top + r.height / 2]; }}")
+                    s0 = J(f"() => document.querySelector('#m4EtfSegs .m4dwg[data-g=\"{gk}\"] .seg').scrollLeft")
+                    m.mouse.move(0, 0)
+                    cdp = ctx.new_cdp_session(m)
+                    tp = lambda t, x: cdp.send("Input.dispatchTouchEvent", {"type": t, "touchPoints": [] if t == "touchEnd" else [{"x": x, "y": box[1]}]})
+                    tp("touchStart", box[0])
+                    for k in range(1, 11):
+                        tp("touchMove", box[0] - 15 * k); m.wait_for_timeout(16)
+                    tp("touchEnd", 0); m.wait_for_timeout(400)
+                    s1 = J(f"() => document.querySelector('#m4EtfSegs .m4dwg[data-g=\"{gk}\"] .seg').scrollLeft")
+                    ok(f"【{T}】{W}：{pid} 抽屜「{gk}」那排手指往左拖 → 真的橫捲（scrollLeft {s0} → {s1}）", s1 != s0, (s0, s1))
+                m.keyboard.press("Escape"); m.wait_for_timeout(300)
+                # 9-5 表頭「價格年化（不含息）」：括號那段整段另起一行
+                if pid == "list":
+                    th = J("""() => { const th = [...document.querySelectorAll('#v-etf th')].find(x => x.textContent.startsWith('價格年化')); if (!th) return null; const sub = th.querySelector('.thsub'); return { rects: sub ? sub.getClientRects().length : 0, below: sub ? sub.getBoundingClientRect().top > th.getBoundingClientRect().top + 8 : false }; }""")
+                    ok(f"【{T}】{W}：ETF 總覽表頭「價格年化」＋下一行「（不含息）」，不在詞中間斷（{th}）", th is None or (th["rects"] == 1 and th["below"]), th)
+                    # 9-3 報酬比較走勢圖 X 軸：字跟字至少 4px
+                    J("() => document.getElementById('etfRetLine').scrollIntoView({block:'center', behavior:'instant'})"); m.wait_for_timeout(500)
+                    lx = J(LAB, "etfRetLine")
+                    ok(f"【{T}】{W}：報酬比較走勢圖 X 軸 {lx and lx['txt']} 字與字之間 ≥ 4px（最小 {lx and lx['minGap']}）", lx and lx["n"] >= 2 and lx["minGap"] >= 4, lx)
+                else:
+                    # 9-4 月配 5 檔每月入帳（incBar）：最上面的 Y 刻度完整、X 軸 1～12 不黏
+                    J("() => document.getElementById('incBar').scrollIntoView({block:'center', behavior:'instant'})"); m.wait_for_timeout(500)
+                    lb = J(LAB, "incBar")
+                    ok(f"【{T}】{W}：月配每月入帳（incBar）X 軸 {lb and lb['txt']} 只寫數字、字與字 ≥ 4px（最小 {lb and lb['minGap']}）、最上面的 Y 刻度沒被切（頂 {lb and lb['yTop']} ≥ 0）",
+                       lb and lb["n"] == 12 and lb["txt"][-1] == "12" and lb["minGap"] >= 4 and lb["yTop"] is not None and lb["yTop"] >= 0, lb)
+                    # 9-6 單檔清單：配息頻率徽章與代號 ≥ 12px
+                    sm = J(SMALL, "#incList *")
+                    ok(f"【{T}】{W}：月配單檔清單沒有小於 12px 的字（{len(sm)} 個）", not sm, sm[:6])
         finally:
             try:
                 ctx.close()

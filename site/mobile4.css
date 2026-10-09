@@ -895,3 +895,18 @@
   :root.m4 .msheet .m4dw .seg{display:flex;flex-wrap:wrap;gap:2px;max-width:100%}
   :root.m4 .msheet .m4dw .seg>button{min-height:40px;font-size:14px}
 }
+
+/* ---- 31k. 2026-10-09 手機監督退件（claude/m4-etf2 e0472550）六處 —— 全部限 html.m4／≤640 */
+@media (max-width:640px){
+  /* 1. 除息表最後一欄：「（已 N 天）」整段不斷行 → 最多兩行「尚未填息／（已 1 天）」，數字跟單位不拆開 */
+  :root.m4 #v-etf #etfCalList table.et td .nw{white-space:nowrap}
+  /* 2. 抽屜裡的分段控制器一排放不下（金額 5 格、報酬期間 6 格）：不換行，框裡手指橫拖，右緣淡出（style_guide 第十六節）；拖到底（.m4end）淡出拿掉 */
+  :root.m4 .msheet .m4dw .seg{flex-wrap:nowrap!important;overflow-x:auto;overflow-y:hidden;scrollbar-width:none;touch-action:pan-x;-webkit-overflow-scrolling:touch;max-width:100%;box-sizing:border-box}
+  :root.m4 .msheet .m4dw .seg::-webkit-scrollbar{display:none}
+  :root.m4 .msheet .m4dw .seg>button{flex:none!important;white-space:nowrap}
+  :root.m4 .msheet .m4dw .seg.m4ovf:not(.m4end){-webkit-mask-image:linear-gradient(90deg,#000 calc(100% - 32px),transparent);mask-image:linear-gradient(90deg,#000 calc(100% - 32px),transparent)}
+  /* 5. 表頭「價格年化（不含息）」：括號那段另起一行，不在詞中間斷 */
+  :root.m4 #v-etf th .thsub{display:block;white-space:nowrap}
+  /* 6. 月配試算單檔清單：配息頻率徽章與代號 11.5px → 12px */
+  :root.m4 #v-etf #incList .iln :is(.fqb,.cd){font-size:12px!important}
+}

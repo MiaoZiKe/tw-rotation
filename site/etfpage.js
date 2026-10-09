@@ -1051,7 +1051,7 @@
       <td><span class="cw">${withDate ? `<span class="note">${e.ex.slice(5)}</span> ` : ''}<span class="cn">${esc(e.name)}</span> <span class="note">${esc(e.code)}</span></span></td>
       <td>${A().fmt.n(e.amt, 3)}</td><td title="${esc(e.basis)}">${pctU(e.y)}${/估/.test(e.basis || '') ? '<span class="na">估</span>' : ''}</td>
       <td>${e.pay ? e.pay.slice(5) : '<span class="na">—</span>'}</td>
-      <td class="fill${e.fill == null && e.fill_wait != null ? ' down' : ''}">${fillTxt(e.fill, e.fill_wait)}</td></tr>`).join('');
+      <td class="fill${e.fill == null && e.fill_wait != null ? ' down' : ''}">${fillTxt(e.fill, e.fill_wait).replace(/（.*）$/, '<span class="nw">$&</span>')}</td></tr>`).join('');
   }
   const THEAD = (first) => `<thead><tr><th>${first}</th><th title="每單位配息（元）">配息</th><th>當次殖利率</th><th>發放</th><th>填息天數</th></tr></thead>`;
   /* 點某一檔：近幾次配息小長條＋當次殖利率走勢＋填息天數（資料＝行事曆近 400 天的除息紀錄） */
@@ -1251,7 +1251,7 @@
       <thead><tr><th class="nmc">ETF</th><th>期間</th><th>年化報酬率</th></tr></thead><tbody>
       ${rows.map(({ it, st }) => `<tr data-code="${esc(it.code)}">${nameCell(it)}${st.ok ? `<td>${perCell(st)}</td><td class="${cls(st.price_ann)}">${num(st.price_ann, (v) => pct(v, 2))}</td>` : `<td colspan="2"><span class="na">${esc(whyTxt(st.why))}</span></td>`}</tr>`).join('')}</tbody></table>`
       : `<table class="et fullw" id="etfRetTbl"><colgroup><col style="width:27%"><col style="width:21%"><col style="width:13%"><col style="width:13%"><col style="width:13%"><col style="width:13%"></colgroup>
-      <thead><tr><th class="nmc">ETF</th><th>期間</th><th>價格年化（不含息）</th><th>含息年化</th><th>殖利率（近 12 月）</th><th>配息年化</th></tr></thead><tbody>
+      <thead><tr><th class="nmc">ETF</th><th>期間</th><th>價格年化<span class="thsub">（不含息）</span></th><th>含息年化</th><th>殖利率（近 12 月）</th><th>配息年化</th></tr></thead><tbody>
       ${rows.map(({ it, st }) => { const dv = hasDiv(st); return `<tr data-code="${esc(it.code)}"${dv ? '' : ' data-nodiv="1"'}>${nameCell(it)}
         ${st.ok ? `<td>${perCell(st)}</td><td class="${cls(st.price_ann)}">${num(st.price_ann, (v) => pct(v, 2))}</td>
         <td class="${dv ? cls(st.tr_ann) : ''}">${dv ? pct(st.tr_ann, 2) : NODIV}</td>`
@@ -1757,8 +1757,9 @@
             + rest.map((q) => { const r = top[q.seriesIndex]; return `<br>${q.marker}${esc(q.seriesName)} <b>${q.value} 萬</b>（${r.lots.toLocaleString()} 張）<span style="color:${CH.ink3}">（${q.value >= av ? '高於' : '低於'}平均）</span>`; }).join('')
             + (rest.length < top.length ? `<br><span style="color:${CH.ink3}">其餘 ${top.length - rest.length} 檔這個月沒有配息</span>` : ''); } },
       legend: { show: false },
-      grid: { left: 52, right: mob ? 12 : 20, top: 16, bottom: 28 },
-      xAxis: { ...a.axisStyle, type: 'category', data: MONTHS, axisTick: { show: false }, axisLabel: { color: CH.ink2, fontSize: 12, interval: 0 },
+      /* 2026-10-09 手機監督：手機最上面的刻度「50 萬」上半被切、X 軸「9月10月11月12月」黏在一起 → 手機 grid 上方留 26px、X 軸只寫 1～12（同每月入帳 incCmb） */
+      grid: { left: 52, right: mob ? 12 : 20, top: mob ? 26 : 16, bottom: 28 },
+      xAxis: { ...a.axisStyle, type: 'category', data: MONTHS, axisTick: { show: false }, axisLabel: { color: CH.ink2, fontSize: 12, interval: 0, ...(mob ? { formatter: (v) => String(parseInt(v, 10)) } : {}) },
         splitLine: { show: true, keep: true, interval: 0, lineStyle: { color: CH.ink2, opacity: 0.18, width: 1, type: 'solid' } } },
       yAxis: { ...a.axisStyle, type: 'value', name: '萬', nameTextStyle: { color: CH.ink3, fontSize: 11 }, axisLabel: { color: CH.ink3, fontSize: 12, formatter: (v) => v + ' 萬' } },
       series,
