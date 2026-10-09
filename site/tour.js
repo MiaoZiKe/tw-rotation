@@ -69,8 +69,10 @@
       d: '每個族群在 1～12 月的歷史表現：上漲的年數比例、報酬與相對大盤的差距。過去的規律不代表今年會重演。' },
     { t: '自選：你自己的清單', sel: [tab('watch'), '#m4Title'], route: '#watch', view: 'watch', fast: true,
       d: '把想追蹤的股票加進來（最多五頁），看今天的漲跌與走勢。沒登入時，清單只存在這台裝置的瀏覽器。' },
-    { t: '更多頁面收在這裡', sel: '#mTabMore', fast: true, only: 'mob',
-      d: '市場明細、週期統計、ETF、財經日曆與自選都在「更多」裡，點開就看得到。' },
+    // 2026-10-09 手機監督退件：底部「更多」（#mTabMore）已被 ☰ 抽屜取代，這一步改框 ☰（手機 v2 每一頁都在抽屜裡）
+    { t: '所有頁面都在 ☰ 裡', sel: ['#mTabMore', '#m4Burger'], fast: true, only: 'mob',
+      d: '市場明細、週期統計、ETF、財經日曆與自選都在「更多」裡，點開就看得到。',
+      m: '剛剛走過的每一頁都在左上角 ☰ 裡，依分組排好；點一列就換到那一頁。' },
     { t: '搜尋與今日事件', sel: ['.topbar .search', '#evToggle', '#mSearchBtn', '#m4Search'], union: true, fast: true,
       d: '輸入股票代號或簡稱，直接跳到那一檔的個股頁；「事件」打開今日事件：新聞、公告與行事曆，數字是今天的則數。',
       m: '⌕ 輸入股票代號或簡稱，直接跳到那一檔的個股頁。' },
@@ -125,12 +127,14 @@
       d: '這一類每一檔一張卡，可依成交值、規模、殖利率排序；點卡片進個股頁。' },
   ];
   const ETFINC = [
-    { t: '目標與範圍', sel: '#incPM .incctl', route: '#etf/inc', routeRe: /^#etf\/inc/, view: 'etf', before: () => { const b = $('#incMain button[data-v="m"]'); if (b && !b.classList.contains('on')) b.click(); },
+    // 手機 v2：條件區收成一顆「條件：… ▾」（mobile4.js wireCond 的 .m4cond），框那一顆；月配／複利攤平成兩個網址（#etf/inc、#etf/inc/cx）
+    { t: '目標與範圍', sel: ['#incPM .incctl', '#incPM > .m4cond'], route: '#etf/inc', routeRe: /^#etf\/inc/, mrouteRe: /^#etf\/inc\/?$/, view: 'etf', before: () => { const b = $('#incMain button[data-v="m"]'); if (b && !b.classList.contains('on')) b.click(); },
       d: '先設每年或每月想領多少錢、算哪些 ETF、要不要扣二代健保；下面的張數與金額都跟著這裡算。' },
-    { t: '單檔與組合 A～E', sel: '.inctabrow', route: '#etf/inc', routeRe: /^#etf\/inc/, view: 'etf',
+    { t: '單檔與組合 A～E', sel: '.inctabrow', route: '#etf/inc', routeRe: /^#etf\/inc/, mrouteRe: /^#etf\/inc\/?$/, view: 'etf',
       d: '單檔＝每一檔要買幾張；組合 A～E＝幾檔搭在一起每個月都有入帳，組合內容右上角切排序方式。' },
-    { t: '複利試算表', sel: '#incMain', route: '#etf/inc', routeRe: /^#etf\/inc/, view: 'etf',
-      d: '切到「複利試算表」看配息拿去再投入、只領現金、只看價格三種情境的報酬差多少。' },
+    { t: '複利試算表', sel: ['#incMain', '#incPX'], route: '#etf/inc', routeRe: /^#etf\/inc/, mroute: '#etf/inc/cx', mrouteRe: /^#etf\/inc\/cx/, view: 'etf',
+      d: '切到「複利試算表」看配息拿去再投入、只領現金、只看價格三種情境的報酬差多少。',
+      m: '「複利試算」這一格：配息拿去再投入、只領現金、只看價格三種情境的報酬差多少。' },
   ];
   const OVERVIEW = [
     { t: '四張摘要卡', sel: ['#ovSumTrack', '#hero'], route: '#overview', routeRe: /^#?(overview)?$/, view: 'overview',
@@ -151,8 +155,10 @@
       d: '昨天收盤，錢從大盤分到哪幾條產業鏈、鏈裡又分到哪些族群；線越粗＝流過的成交值越大。' },
     { t: '漲跌家數分佈', sel: '#ovBreadthCard', before: mseg('貴不貴', '市場寬度'),
       d: '每根直條＝落在那一級漲跌幅的家數，紅漲綠跌。重心偏右＝多數上漲、偏左＝多數下跌，兩頭都高＝漲跌分歧。' },
-    { t: '今日事件', sel: '#ovEvents', only: 'mob', before: mseg('理由', '今日事件'),
-      d: '當天的新聞、公告與行事曆，依時間排列；點一則看內容。' },
+    // 手機 v2：總覽沒有「今日事件」分段了，入口是 ☰ 抽屜最上面的「事件」→ 框 ☰
+    { t: '今日事件', sel: ['#ovEvents', '#m4Burger'], only: 'mob', before: mseg('理由', '今日事件'),
+      d: '當天的新聞、公告與行事曆，依時間排列；點一則看內容。',
+      m: '當天的新聞、公告與行事曆在左上角 ☰ 最上面的「事件」，數字是今天的則數；點一則看內容。' },
     { t: '看不懂就按「?」', sel: ['#ovHeatCard .howbtn', '#ovRotCard .howbtn', '.view.on .howbtn'], before: mseg('錢往哪跑', '資金輪盤'),
       d: '每張卡標題旁都有一顆「?」，點開是這張圖完整的讀法與資料口徑。' },
   ];
@@ -160,8 +166,9 @@
   const FLOW = [
     { t: '資金流向的三個子頁', sel: [tab('flow'), '#tabs .l4subtab[data-parent="flow"]'], union: true, route: '#flow/rotation', routeRe: /^#flow(\/rotation)?$/, view: 'flow', only: 'desk',
       d: '資金輪動、資金分流樹、族群×法人＋集中度。接下來依序打開每一頁。' },
-    { t: '分段看', sel: '.view.on .mpager', only: 'mob', route: '#flow/rotation', routeRe: /^#flow/, view: 'flow', before: mseg(null, '輪動'),
-      d: '手機上的資金流向分四段：輪動、資金分流樹、法人、集中度，點一段只顯示那一張圖。接下來依序打開。' },
+    { t: '分段看', sel: ['.view.on .mpager', '#m4Title .m4subtabs'], only: 'mob', route: '#flow/rotation', routeRe: /^#flow/, mrouteRe: /^#flow(\/rotation)?\/?$/, view: 'flow', before: mseg(null, '輪動'),
+      d: '手機上的資金流向分四段：輪動、資金分流樹、法人、集中度，點一段只顯示那一張圖。接下來依序打開。',
+      m: '上面四格頁籤：資金輪動、資金分流樹、族群×法人、集中度，點一格只顯示那一張圖。接下來依序打開。' },
     { t: '資金輪盤', sel: ['#rotClockWrap', '#mRadarFlow'], route: '#flow/rotation', routeRe: /^#flow(\/rotation)?$/, mobRe: /^#flow/, view: 'flow', before: mseg(null, '輪動'),
       d: '每顆點是一個族群。右上「領先」＝相對強度與動能都高於大盤，左下「落後」＝兩者都低；順時針輪動：落後 → 改善 → 領先 → 轉弱。' },
     { t: '資金排行', sel: ['#rankFlowWrap', '#mRank'],
@@ -170,9 +177,9 @@
       d: '上面兩個下拉只看某條產業鏈或某個族群；時間列調整看幾天前到最新，按 ▶ 播放看族群一路怎麼移動，腳印就是走過的路。' },
     { t: '資金分流樹', sel: '#flowSankeyCard', route: '#flow/sankey', routeRe: /^#flow\/sankey/, mobRe: /^#flow/, view: 'flow', before: mseg(null, '資金分流樹'),
       d: '由左到右：台股 → 產業鏈 → 族群 → 代表股。線越粗、圓越大＝錢越多；每一層的 % 都是佔它上一層的比重。' },
-    { t: '族群 × 法人', sel: '#flowInstCard', route: '#flow/inst', routeRe: /^#flow\/inst/, mobRe: /^#flow/, view: 'flow', before: mseg(null, '法人'),
+    { t: '族群 × 法人', sel: '#flowInstCard', route: '#flow/inst', routeRe: /^#flow\/inst/, mrouteRe: /^#flow\/inst\/?$/, mobRe: /^#flow/, view: 'flow', before: mseg(null, '法人'),
       d: '外資、投信、自營商近 20 日的淨買超（張）落在哪些族群，看法人的錢集中在哪裡。' },
-    { t: '資金集中度', sel: '#flowConcCard', before: mseg(null, '集中度'),
+    { t: '資金集中度', sel: '#flowConcCard', mroute: '#flow/inst/conc', mrouteRe: /^#flow\/inst\/conc/, view: 'flow', before: mseg(null, '集中度'),
       d: '成交值前 5（或前 10）大族群佔全市場的比重：比重升高＝錢越來越集中在少數族群，下降＝分散到更多族群。' },
   ];
 
@@ -543,6 +550,7 @@
   /* ======================================================================== 畫面 */
   let ui = null;           // { root, hole, card }
   let run = null;          // { id, tour, i, seq, els, sel, skipped:[], place }
+  let lastInfo = null;   // 上一輪導覽的收尾資訊（TwTour.last()）
   const touched = { stockTab: false, dg3d: null, seg: null };
   const ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'
     + '<circle cx="12" cy="12" r="10"/><path d="m16.24 7.76-1.804 5.411a2 2 0 0 1-1.265 1.265L7.76 16.24l1.804-5.411a2 2 0 0 1 1.265-1.265z"/></svg>';
@@ -721,12 +729,16 @@
   /* ======================================================================== 走步
      go(i, dir)：從第 i 步開始往 dir 方向找第一個「做得出來」的步驟。做不出來（找不到、被鎖、這個寬度沒有）就記進 skipped、繼續找。
      seq 是防止快速連按：每次 go 都換號，舊的那輪等到一半發現號碼變了就收手。 */
+  /* 2026-10-09 手機監督退件：手機 v2（html.m4）把第二層切換攤平成網址（#flow/inst/conc、#etf/inc/cx），
+     那幾步在手機上要換到自己的網址（mroute／mrouteRe），電腦版照舊（不帶 mroute 的步驟兩邊一樣）。 */
+  const isM4 = () => document.documentElement.classList.contains('m4');
+  function routeOf(st) { const r = (isM4() && st.mroute) || st.route; return typeof r === 'function' ? r() : r; }
   function routeOk(st) {
-    const r = typeof st.route === 'function' ? st.route() : st.route;
+    const r = routeOf(st);
     if (!r) return true;
     const h = location.hash || '';
     // 手機分段不改網址：已經在那一頁就不重切。2026-10-08 手機 v2（html.m4）的子頁是真的網址（#flow/sankey…，同電腦版），照電腦版的規則切
-    const re = (isMob() && !document.documentElement.classList.contains('m4') && st.mobRe) || st.routeRe;
+    const re = (isM4() && st.mrouteRe) || (isMob() && !isM4() && st.mobRe) || st.routeRe;
     return re ? re.test(h) : h === r;
   }
   function viewOn(v) { const e = document.getElementById('v-' + v); return !v || (e && e.classList.contains('on')); }
@@ -773,7 +785,7 @@
       if (precheck(st) && !resolve(st)) { if (!run.skipped.includes(i)) run.skipped.push(i); i += dir; continue; }
       let moved = false;
       if (!routeOk(st)) {
-        const r = typeof st.route === 'function' ? st.route() : st.route;
+        const r = routeOf(st);
         if (r) { cardOut(); location.hash = r; moved = true; }
       }
       /* 2026-10-08（Andy：「導覽功能在確認 會一直上下上下移動」）：手機的前置動作（切分段）會讓 app.js 把整頁捲回最上面
@@ -878,6 +890,8 @@
   function stop(why) {
     if (!run) return;
     const r = run; run = null;
+    // 給驗收：上一輪導覽跳過了哪幾步（導覽普查1009 要求每一套在兩種寬度都 0 步被跳過）
+    lastInfo = { tour: r.id, why, skipped: r.skipped.slice().sort((a, b) => a - b), titles: r.skipped.map((k) => (r.tour.steps[k] || {}).t) };
     watch(false);
     delete document.documentElement.dataset.twtHold;
     window.removeEventListener('keydown', onKey, true);
@@ -1039,6 +1053,7 @@
     steps: (id) => (TOURS[id] ? TOURS[id].steps.map((s) => ({ t: s.t, d: s.d, m: s.m || '', only: s.only || '', view: s.view || '',
       route: typeof s.route === 'function' ? s.route() : (s.route || '') })) : null),
     pageTour,
+    last: () => lastInfo,
     /* 給驗收腳本：現在在哪一步、框的是誰、框在哪、卡片在哪 */
     state: () => {
       if (!run) return { active: false, on: false };
