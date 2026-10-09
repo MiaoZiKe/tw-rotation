@@ -637,14 +637,25 @@
   :root.m4 #dgSec #dgTools .mdgzoom{display:inline-flex;flex-wrap:nowrap}
   /* 「收合圖」鈕（剖析圖 #dgFold、關聯圖 #relFold）手機拿掉（2026-10-09 Andy HBM 頁：「這分頁收合功能都拿掉」），內容一律展開（industry.js 在 m4 強制 dgOpen／relOpen） */
   :root.m4 #dgSec #dgTools #dgFold,:root.m4 #indChain #relFold{display:none!important}
-  /* 2D/3D 圓鈕 */
-  :root.m4 #dgSec #dg3d{width:40px;height:40px;min-width:40px;padding:0!important;border-radius:50%!important;overflow:visible;display:inline-flex;position:relative;gap:0!important;border:0!important;background:transparent!important}
-  :root.m4 #dgSec #dg3d[data-mode="2d"] button[data-dm="2d"],:root.m4 #dgSec #dg3d[data-mode="3d"] button[data-dm="3d"]{display:none!important}
-  :root.m4 #dgSec #dg3d button{width:40px;height:40px;min-width:40px!important;min-height:40px!important;padding:0!important;margin:0!important;border-radius:50%!important;
-    font-size:0!important;border:1.5px solid var(--cyan,var(--accent))!important;background:color-mix(in srgb,var(--cyan,var(--accent)) 14%,var(--panel))!important;color:var(--cyan,var(--accent))!important;position:relative}
-  :root.m4 #dgSec #dg3d[data-mode="2d"] button::before{content:"2D";font-size:14px;font-weight:700}
-  :root.m4 #dgSec #dg3d[data-mode="3d"] button::before{content:"3D";font-size:14px;font-weight:700}
+  /* 2D｜3D 分段控制器（2026-10-09 帳本 83，Andy 22:2x：「2D /3D 功能改用分段控制開關」—— 取代上一版的單顆圓鈕）
+     style_guide 分段控制器：一個外框（控制項底＋1px --t4-ctl-edge、圓角 9、內距 2、間距 2）、兩格等寬、選中＝--t4-accent 實心＋--on-accent 字、高 40、13px。
+     兩格都是真的 button[data-dm]，3D 權限鎖頭（features.js ind.3d）照舊掛在 3D 那格。
+     「動畫 開｜關」（.m4anim，industry.js wireM4Anim，只在 3D 出現）同款。 */
+  :root.m4 #dgSec #dg3d:not([hidden]),:root.m4 #dgSec .m4anim>.m4animseg{display:inline-grid!important;grid-auto-flow:column;grid-auto-columns:minmax(0,1fr);gap:2px!important;
+    width:auto!important;min-width:0;padding:2px!important;margin:0!important;box-sizing:border-box;overflow:visible!important;position:relative;
+    border:1px solid var(--t4-ctl-edge,var(--line-2))!important;border-radius:9px!important;background:var(--t4-ctl,var(--panel-3))!important;box-shadow:none!important}
+  :root.m4 #dgSec #dg3d:not([hidden]){grid-template-columns:repeat(2,52px)}
+  :root.m4 #dgSec .m4anim>.m4animseg{grid-template-columns:repeat(2,44px)}
+  :root.m4 #dgSec :is(#dg3d,.m4animseg)>button{display:inline-flex!important;align-items:center;justify-content:center;width:auto!important;min-width:0!important;
+    height:40px!important;min-height:40px!important;padding:0!important;margin:0!important;border:0!important;border-radius:7px!important;position:relative;
+    background:transparent!important;color:var(--ink-2)!important;font-size:13px!important;font-weight:600;line-height:1;box-shadow:none!important;white-space:nowrap}
+  :root.m4 #dgSec :is(#dg3d,.m4animseg)>button.on{background:var(--t4-accent,var(--cyan))!important;color:var(--on-accent,var(--ontop))!important;font-weight:700}
   :root.m4 #dgSec #dg3d button[data-plkb]::after{position:absolute;right:-6px;top:-6px;font-size:12px!important;margin:0!important}
+  :root.m4 #dgSec #dgTools .m4anim{display:inline-flex;align-items:center;gap:4px}
+  :root.m4 #dgSec #dgTools .m4anim[hidden]{display:none!important}
+  :root.m4 #dgSec #dgTools .m4animlb{font-size:13px;color:var(--ink-2);white-space:nowrap}
+  /* 一排放不下（360）就讓編號／圖說／動畫換到第二列；分段本身不拆（flex:none） */
+  :root.m4 #dgSec #dgTools{flex-wrap:wrap!important;row-gap:6px!important}
   /* 精簡字：編號：開／關 → 「編號」（開＝主色、關＝灰，狀態看顏色與 aria-pressed）*/
   :root.m4 #dgSec #dgTools #dgNum.pill{font-size:0!important}
   :root.m4 #dgSec #dgTools #dgNum::before{content:"編號";font-size:13px}

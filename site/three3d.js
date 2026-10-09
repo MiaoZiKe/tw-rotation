@@ -9576,7 +9576,10 @@
     /* ★ C6：系統層級的「減少動態效果」（prefers-reduced-motion: reduce）一律**當成動畫關掉**。
        以前 reduced 只擋住爆炸補間，零件還是在轉、粒子還是在跑 —— 那不叫尊重。
        注意鈕上的字仍然照 `anim`（使用者自己的選擇），只是實際上一格都不動。*/
-    const motionOn = () => anim && !reduced;
+    /* ★ 2026-10-09 帳本 84（手機 html.m4 限定）：「減少動態效果」在手機只決定**預設**是關（industry.js anim3dPref），
+       使用者在 3D 圖的「動畫 開｜關」自己按了「開」＝明確要轉 → setAnim(on, true) 把 userMotion 打開，自轉照轉。桌機從來不帶第二個參數，行為不變。*/
+    let userMotion = false;
+    const motionOn = () => anim && (!reduced || userMotion);
     /* setAnim() 在色票區塊「之前」就會被呼叫一次，那時候 lastHi 還在 TDZ 裡 ——
        所以「關動畫要把顏色還原」這件事只在場景真的建好之後才做。*/
     let hiReady = false;
@@ -9586,8 +9589,9 @@
       if (holdT) clearTimeout(holdT);
       holdT = setTimeout(() => { userHold = false; applyAuto(); }, 2500);
     }
-    function setAnim(on) {
+    function setAnim(on, byUser) {
       anim = !!on;
+      if (byUser && isM4()) userMotion = anim;
       applyAuto();
       // 圖九 2-1：靜止＝電流不跑，粒子也不留在畫面上；走線本身一直都看得見
       flowAll.forEach(x => { x.visible = motionOn(); });
@@ -10293,6 +10297,7 @@
            ③ 靜止時每 400ms 補畫一次當安全網 —— 萬一有哪個狀態變更忘了標記 dirty，
               畫面最多晚 0.4 秒跟上，不會出現「改了卻不更新」的死畫面。 */
     let raf = null, alive = true, visible = true, relayout = 0, t0 = performance.now();
+    let drawN = 0, ioVis = true, docVis = true;     // drawN：真的畫了幾張（驗收「捲到畫面外就停畫」用，stats().draws）
     // （dirty／lastDraw／markDirty 宣告在 applyExplode 那一段：#246 的補間在建場景階段就會用到）
     controls.addEventListener('change', markDirty);
     /* ★ 2026-10-09 拖曳邊界1009（Andy：「不可以…還能一直滑過頭超出範圍」）：手機（html.m4）上兩指平移（或切到「平移」模式單指拖）可以把整台模型拖出畫布、
@@ -10347,16 +10352,17 @@
       /* ★ 2026-10-09（手機卡頓）：手機（html.m4）上「400ms 補一張」只在最近 3 秒有變動時才補 ——
          停著不動還每秒畫 2.5 張整個場景，主執行緒一直被佔，點別的東西就像沒反應。桌機照舊。 */
       if (!run && !dirty && isM4() && now0 - lastDirty > 3000) return;
-      renderer.render(scene, camera);
+      renderer.render(scene, camera); drawN++;
       if (firstDrawMs == null) firstDrawMs = Math.round(performance.now() - tMount0);
       lastDraw = now0; dirty = false;
       // 自轉時每 4 幀重排一次標籤（引線要跟得上零件）；靜止時畫一次就排一次，才不會晚半秒才對齊
       if (run) { if (++relayout % 4 === 0) layoutLabels(); } else layoutLabels();
     };
     const io = typeof IntersectionObserver !== 'undefined'
-      ? new IntersectionObserver(es => { visible = es.some(x => x.isIntersecting); }, { threshold: 0.02 }) : null;
+      ? new IntersectionObserver(es => { ioVis = es.some(x => x.isIntersecting); visible = isM4() ? ioVis && docVis : ioVis; }, { threshold: 0.02 }) : null;
     if (io) io.observe(el);
-    const onVis = () => { visible = document.visibilityState !== 'hidden'; };
+    /* ★ 2026-10-09 帳本 84：手機（html.m4）預設自轉 → 切回分頁時不能把「捲到畫面外」的停畫蓋掉（兩個條件都要成立才畫）。桌機照舊。*/
+    const onVis = () => { docVis = document.visibilityState !== 'hidden'; visible = isM4() ? ioVis && docVis : docVis; };
     document.addEventListener('visibilitychange', onVis);
     /* ★ 2026-09-24（Andy 回報：AI 伺服器 → 電源，3D 按「收合圖」再打開，模型縮成左上角一小塊、
          卡片堆在左下與右側互相重疊、說明字疊在圖上）。
@@ -10552,7 +10558,7 @@
       return { drawCalls: ri.calls, triangles: ri.triangles, programs: (renderer.info.programs || []).length, micro: microN, meshN, arrows: arrowN, firstDrawMs: firstDrawMs,
         parts: byIdx.filter(Boolean).length, meshes, maxEmissive: +maxEm.toFixed(3),
         idleEmissive: +idleEm.toFixed(3), maxMetal: +maxMetal.toFixed(2), leds: ledN,
-        spinners: spinners.length, spinAt: +spinAt.toFixed(3), anim, autoRotate: !!controls.autoRotate,
+        spinners: spinners.length, spinAt: +spinAt.toFixed(3), anim, autoRotate: !!controls.autoRotate, draws: drawN, visible,
         /* ★ C6 的量測介面。驗「這台機器在運作」一律比**這些數字有沒有變**，
            不是比「有沒有 pulses 這個陣列」——「元素存在」從來不算驗收。
              ispinAt  ＝ 陣列風扇（風扇牆）轉到哪（弧度和）
