@@ -27275,33 +27275,40 @@ def t_mobile_m4_1009(b, base, code):
                      bfp: [...new Set(bs.map(x => { const s = getComputedStyle(x); return [s.borderTopWidth, s.borderTopLeftRadius, s.fontSize, Math.round(x.getBoundingClientRect().height)].join(' '); }))],
                      rows: new Set(bs.map(x => Math.round(x.getBoundingClientRect().top))).size, h: Math.round(r.height), n: bs.length,
                      ow: c.overflowX, on: bs.map(x => x.classList.contains('on')), st: bs.map(sty) }; }"""
-        g3 = {q: J(SG, q) for q in ("#v-overview > .mpager", "#m3Mode", "#mM3Sw")}
-        ok(f"【{T}】總覽三組都是同一個分段控制器（class m4seg）", all(v and v["cls"] for v in g3.values()), g3)
+        # 2026-10-09 改（週期統計範本／帳本 38，Andy 認可「摘要鈕 → 底部抽屜」）：總覽大盤的「走勢圖｜K 線」（#m3Mode）收進摘要鈕 #m4M3Set 的抽屜，
+        #   頁面上看得到的分段控制器剩兩組（大盤｜資金流向｜熱度、加權｜櫃買｜台指期）；走勢圖｜K 線改到抽屜裡驗（同一款 .seg）
+        g3 = {q: J(SG, q) for q in ("#v-overview > .mpager", "#mM3Sw")}
+        ok(f"【{T}】總覽兩組頁面上的切換都是同一個分段控制器（class m4seg）", all(v and v["cls"] for v in g3.values()), g3)
         fps = {v["fp"] for v in g3.values() if v}
         bfps = {x for v in g3.values() if v for x in v["bfp"]}
-        ok(f"【{T}】三組外框樣式一致（{fps}）、選項樣式一致（{bfps}）：外框 1px＋圓角、選項無框",
+        ok(f"【{T}】兩組外框樣式一致（{fps}）、選項樣式一致（{bfps}）：外框 1px＋圓角、選項無框",
            len(fps) == 1 and len(bfps) == 1 and list(fps)[0].startswith("1px solid") and list(bfps)[0].startswith("0px"), (fps, bfps))
-        ok(f"【{T}】三組都不換行（同一列）、選項高 ≥ 40",
+        ok(f"【{T}】兩組都不換行（同一列）、選項高 ≥ 40",
            all(v and v["rows"] == 1 and v["h"] <= 50 for v in g3.values()) and all(int(x.split()[-1]) >= 40 for x in bfps),
            {k: (v and (v["rows"], v["h"])) for k, v in g3.items()})
         solid = lambda s: s["img"] != "none" or (s["bg"].startswith("rgb(") and not s["bg"].startswith("rgba"))
         clear = lambda s: s["img"] == "none" and s["bg"] in ("rgba(0, 0, 0, 0)", "transparent")
-        a0 = g3["#m3Mode"]
+        SEGS = """() => { const g = document.querySelector('#m4M3Segs .seg'); if (!g) return null; const bs = [...g.querySelectorAll('button[data-m3m]')];
+            const sty = (x) => { const s = getComputedStyle(x); return { bg: s.backgroundColor, img: s.backgroundImage }; };
+            return { on: bs.map(x => x.classList.contains('on')), st: bs.map(sty), mode: window.Market3 && window.Market3.state.mode }; }"""
+        m.locator("#m4M3Set").tap(); m.wait_for_timeout(500)
+        a0 = J(SEGS)
         i0 = a0["on"].index(True) if a0 and True in a0["on"] else 0
-        m.locator("#m3Mode > button").nth(1 - i0).tap(); m.wait_for_timeout(1500)
-        a1 = J(SG, "#m3Mode")
-        ok(f"【{T}】點「{('K 線', '走勢圖')[i0]}」→ 選中格換成實心填色、前一格變回透明",
-           bool(a0 and a1 and a1["on"][1 - i0] and solid(a1["st"][1 - i0]) and clear(a1["st"][i0]) and solid(a0["st"][i0])), (a0 and a0["st"], a1 and a1["st"]))
-        m.locator("#m3Mode > button").nth(i0).tap(); m.wait_for_timeout(1200)
+        m.locator("#m4M3Segs button[data-m3m]").nth(1 - i0).tap(); m.wait_for_timeout(1200)
+        a1 = J(SEGS)
+        ok(f"【{T}】大盤走勢抽屜點「{('K 線', '走勢圖')[i0]}」→ 選中格換成實心填色、前一格變回透明、圖真的換了（{a0 and a0['mode']}→{a1 and a1['mode']}）",
+           bool(a0 and a1 and a1["on"][1 - i0] and solid(a1["st"][1 - i0]) and clear(a1["st"][i0]) and solid(a0["st"][i0]) and a0["mode"] != a1["mode"]), (a0, a1))
+        m.locator("#m4M3Segs button[data-m3m]").nth(i0).tap(); m.wait_for_timeout(800)
+        J("() => window.M3 && window.M3.closeSheet && window.M3.closeSheet()"); m.wait_for_timeout(300)
         # ② 「?」與「● 即時」不是切換選項：在分段控制器外面、同一列；即時不存在（非管理者）時照樣一列
-        q = J("""() => { const s = document.getElementById('m3Mode'), h = document.querySelector('.m3-bar .howbtn[data-how="m3"]'), l = document.querySelector('.m3-bar .livetg');
+        q = J("""() => { const s = document.getElementById('mM3Sw'), h = document.querySelector('.m3-bar .howbtn[data-how="m3"]'), l = document.querySelector('.m3-bar .livetg');
             const mid = (e) => { const r = e.getBoundingClientRect(); return r.top + r.height / 2; };
             return { qIn: !!h && s.contains(h), lIn: !!l && s.contains(l), live: !!l && !!l.getClientRects().length, sameRow: !!h && Math.abs(mid(h) - mid(s)) < 6,
                      liveRow: !l || !l.getClientRects().length || Math.abs(mid(l) - mid(s)) < 6 }; }""")
         ok(f"【{T}】「?」「即時」在分段控制器外面、同一列（即時{'有' if q['live'] else '沒有'}出現）", not q["qIn"] and not q["lIn"] and q["sameRow"] and q["liveRow"], q)
         J("() => { const l = document.querySelector('.m3-bar .livetg'); if (l) l.remove(); }"); m.wait_for_timeout(200)
-        a2 = J(SG, "#m3Mode")
-        same = J("""() => { const s = document.getElementById('m3Mode').getBoundingClientRect(), h = document.querySelector('.m3-bar .howbtn[data-how="m3"]').getBoundingClientRect();
+        a2 = J(SG, "#mM3Sw")
+        same = J("""() => { const s = document.getElementById('mM3Sw').getBoundingClientRect(), h = document.querySelector('.m3-bar .howbtn[data-how="m3"]').getBoundingClientRect();
             return Math.abs((s.top + s.height / 2) - (h.top + h.height / 2)) < 6; }""")
         ok(f"【{T}】拿掉即時鈕（非管理者的樣子）→ 分段控制器照樣一列、「?」不掉行", bool(a2 and a2["rows"] == 1 and same), a2)
         # 一排放不下 → 外框裡橫向手指拖（產業地圖的產業鏈切換：9 格）
@@ -28237,15 +28244,8 @@ def t_mobile_m4_1008(b, base, code):
         hl = J("() => { const e = [...document.querySelectorAll('.chart')].find(x => x._hmLab); if (!e) return null; const v = Object.values(e._hmLab); return { n: v.length, lab: v.filter(x => x.text).length }; }")
         ok(f"【{T}】熱力圖 390 寬：≥ 40% 的方塊有字（{hl}）", hl and hl["n"] > 0 and hl["lab"] / hl["n"] >= 0.4, hl)
         go("flow/rotation", 4000)
-        if J("() => !!document.querySelector('#mRadarFlow .mqb[data-quad=lagging]')"):
-            m.locator("#mRadarFlow .mqb[data-quad=lagging]").tap(); m.wait_for_timeout(700)
-            q1 = J("() => document.getElementById('mRadarFlow').dataset.quad")
-            bx = J("() => { const r = document.querySelector('#mRadarFlow svg').getBoundingClientRect(); return { x: r.left + r.width * 0.7, y: r.top + r.height * 0.32 }; }")   # 只看「落後」時右上（領先區）盤面沒有點
-            m.touchscreen.tap(bx["x"], bx["y"]); m.wait_for_timeout(700)
-            q2 = J("() => document.getElementById('mRadarFlow').dataset.quad")
-            ok(f"【{T}】資金輪盤：點「落後」只看那一段（{q1}）→ 點盤上空白處恢復全部（{q2 or '全部'}）", q1 == "lagging" and q2 == "", (q1, q2))
-        else:
-            ok(f"【{T}】資金輪盤有四個角落鈕", False, "找不到 #mRadarFlow .mqb")
+        # 資金輪盤點角落只看一段（2026-10-09 改，照 claude/m4-charts）：改前點 mobile3 SVG 輪盤的 #mRadarFlow .mqb；改後手機是網頁版完整輪盤（Andy：「資金輪動直接是完整版」），
+        #    角落徽章是網頁版的 .rotquads .rq —— 驗收在 t_mobile_m4_charts_1009（點角落 → 盤上只剩那一段 → 再點恢復）。
         # ㉘ 剖析圖章節收合列觸控普查：7 條有剖析圖的產業鏈，各自預設那張圖的每一列「＋…」用手指點 → 真的展開（aria-expanded＝true）
         dead = []; nrow = 0
         for ch in ("semiconductor", "ai_server", "electronics", "software", "financial", "traditional", "infrastructure"):
