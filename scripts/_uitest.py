@@ -20762,7 +20762,7 @@ def t_design_v4(b, base, code):
     ok("② 去重：面板裡沒有操作教學句（.t4hint 拿掉）", dd["hint"] == "", dd)
     seen = {}
     KEY_SEL = ["main .card h3", "#ovHeatCard .t4-lede", ".topbar .tab:not(.on)", "#t4Btn", "#m3Kpis, #hero"]
-    for th in ["casual", "hud", "pro"]:
+    for th in ["hud", "pro"]:   # 2026-10-10 Andy「休閒風格拿掉」：casual 不再是選項
         for md in ["dark", "light"]:
             _v4_popclick(pg, f'#t4Pop .t4o[data-t4="{th}"]', 900)
             pg.keyboard.press("Escape"); pg.wait_for_timeout(200)
@@ -20787,26 +20787,27 @@ def t_design_v4(b, base, code):
             ok(f"② {tag}：關鍵文字對比都 ≥ 4.5", not bad, cr)
             ok(f"② {tag}：熱力圖切完還在（有重畫、不是空白）",
                canvas_hash(pg, "#heat") not in ("no-canvas", "0"), canvas_hash(pg, "#heat"))
-    ok("② 六組主題的頁底 --bg 互不相同（變數真的換了，不是同一組）", len(set(seen.values())) == 6, seen)
+    ok("② 四組主題的頁底 --bg 互不相同（變數真的換了，不是同一組）", len(set(seen.values())) == 4, seen)
+    ok("② 10-10 休閒風格拿掉：面板只剩兩套（沒有 casual）", pg.evaluate("() => { document.getElementById('t4Btn').click(); const n = document.querySelectorAll('#t4Pop .t4o').length, c = !!document.querySelector('#t4Pop .t4o[data-t4=casual]'); document.dispatchEvent(new KeyboardEvent('keydown', {key: 'Escape'})); return n === 2 && !c; }"))
 
     # ---- ③ 重新整理保留
-    _v4_popclick(pg, '#t4Pop .t4o[data-t4="casual"]', 900)
+    _v4_popclick(pg, '#t4Pop .t4o[data-t4="pro"]', 900)
     pg.keyboard.press("Escape"); pg.wait_for_timeout(200)
     if st()["mode"] != "dark":
         theme_flip(pg, 1200)
     pg.goto("about:blank"); pg.goto(base + "#overview", wait_until="networkidle"); pg.wait_for_timeout(1800)
     s = st()
-    ok("③ 重新整理後還是親和休閒・深", s["t4"] == "casual" and s["mode"] == "dark", s)
+    ok("③ 重新整理後還是專業有力・深", s["t4"] == "pro" and s["mode"] == "dark", s)
     click(pg, "#t4Btn", 400)
-    ok("③ 重整後面板標的是親和休閒", pg.evaluate("() => document.querySelector('#t4Pop .t4o[data-t4=\"casual\"]').getAttribute('aria-pressed') === 'true'"))
+    ok("③ 重整後面板標的是專業有力", pg.evaluate("() => document.querySelector('#t4Pop .t4o[data-t4=\"pro\"]').getAttribute('aria-pressed') === 'true'"))
     pg.mouse.click(700, 600); pg.wait_for_timeout(300)
     ok("③ 點面板外面會收起來", pg.evaluate("() => document.getElementById('t4Pop').hidden"))
     theme_flip(pg, 1400)
     ok("③ ☀ 鈕（電腦版在頁首右上角）照舊切得動明暗", st()["mode"] == "light")
     click(pg, "#t4Btn", 300)
-    ok("③ ☀ 切完明暗之後面板的風格不變（還是親和休閒）、「外觀」鈕提示字寫淺色",
-       pg.evaluate("""() => document.querySelector('#t4Pop .t4o[data-t4="casual"]').getAttribute('aria-pressed') === 'true'
-           && document.documentElement.getAttribute('data-theme4') === 'casual' && /淺色/.test(document.getElementById('t4Btn').title)"""))
+    ok("③ ☀ 切完明暗之後面板的風格不變（還是專業有力）、「外觀」鈕提示字寫淺色",
+       pg.evaluate("""() => document.querySelector('#t4Pop .t4o[data-t4="pro"]').getAttribute('aria-pressed') === 'true'
+           && document.documentElement.getAttribute('data-theme4') === 'pro' && /淺色/.test(document.getElementById('t4Btn').title)"""))
     pg.keyboard.press("Escape")
 
     # ---- ⑤ 圖表共用規格
@@ -20842,7 +20843,7 @@ def t_design_v4(b, base, code):
     # ---- ⑥ 窄畫面：800 三套都不溢出；390 用「⋯」清單切
     c = b.new_context(viewport={"width": 800, "height": 900})
     p = c.new_page(); p.goto(base + "#overview", wait_until="networkidle"); p.wait_for_timeout(2000)
-    for th in ["casual", "hud", "pro"]:
+    for th in ["hud", "pro"]:   # 10-10 casual 拿掉
         p.evaluate(f"() => window.T4.set('{th}')"); p.wait_for_timeout(1400)
         ov = p.evaluate("() => document.documentElement.scrollWidth - document.documentElement.clientWidth")
         ok(f"⑥ 800 寬 {th}：沒有橫向捲軸", ov <= 1, ov)
@@ -22189,7 +22190,7 @@ def t_title_icons(pg, b, base, code):
     if not ok("★ [標題圖示 v4] theme4.css 有載入（有規則）、window.T4 在、三主題的 --bg 互不相同（才量得到六組對比）", has4, t4):
         return
     six = {}
-    for th in ("casual", "hud", "pro"):
+    for th in ("hud", "pro"):
         for mode in ("dark", "light"):
             for name, route in (("總覽", "overview"), ("個股", f"stock/{code}")):
                 pg.goto("about:blank")
@@ -22209,7 +22210,7 @@ def t_title_icons(pg, b, base, code):
                 six.setdefault(k, {"n": 0, "min": 99, "bg": cur[2]})
                 six[k]["n"] += m["n"]; six[k]["min"] = min(six[k]["min"], m["minCr"])
     print("  （標題圖示 v4 六組）" + "；".join(f"{k} 量 {v['n']} 個標題、最低 {v['min']}（--bg {v['bg']}）" for k, v in six.items()))
-    ok("[標題圖示 v4] 六組主題 × 深淺都真的量過（反向：判斷式沒有把這段跳掉）", len(six) == 6 and all(v["n"] > 0 for v in six.values()), six)
+    ok("[標題圖示 v4] 兩套主題 × 深淺（4 組）都真的量過（反向：判斷式沒有把這段跳掉）", len(six) == 4 and all(v["n"] > 0 for v in six.values()), six)
     ok("[標題圖示 v4] 六組的 --bg 各不相同（證明每一組真的換了底色，不是同一組量六次）", len({v["bg"] for v in six.values()}) == 6,
        {k: v["bg"] for k, v in six.items()})
     # 還原成預設風格（T4.set 會寫 localStorage，不能把 pro 留給後面的段落）
@@ -61697,7 +61698,7 @@ def t_design_v4_2a(b, base, code):
     ctx.close()
 
     # ---- ⑦ 三主題 × 深淺
-    for th in ("casual", "hud", "pro"):
+    for th in ("hud", "pro"):
         for md in ("dark", "light"):
             c2 = b.new_context(viewport={"width": 1440, "height": 900})
             c2.add_init_script(f"try{{localStorage.setItem('tw.theme4','{th}');localStorage.setItem('tw.theme','{md}');}}catch(e){{}}")
@@ -62009,7 +62010,7 @@ def t_design_v4_2b(b, base, code):
     ctx.close()
 
     # ---- ⑨ 三主題 × 深淺
-    for th in ("casual", "hud", "pro"):
+    for th in ("hud", "pro"):
         for md in ("dark", "light"):
             c2 = b.new_context(viewport={"width": 1440, "height": 900})
             c2.add_init_script(f"try{{localStorage.setItem('tw.theme4','{th}');localStorage.setItem('tw.theme','{md}');}}catch(e){{}}")
@@ -62836,7 +62837,7 @@ def t_layout4_batch3(pg, base, code, T):
     ok(f"{T}第四批④ 去重：右上角外觀面板只剩「版面風格」三選一（沒有明暗二段式），說明寫「用右上角 ☀／🌙 切換」",
        pp["open"] and pp["t4m"] == 0 and pp["modeBtns"] == 0 and pp["h4"] == ["版面風格"] and pp["opts"] == 3 and "☀／🌙" in pp["hint"], pp)
     t0 = pg.evaluate("() => [document.documentElement.getAttribute('data-theme4') || 'hud', document.documentElement.getAttribute('data-theme') || 'dark', getComputedStyle(document.body).backgroundColor]")
-    want = "pro" if t0[0] != "pro" else "casual"
+    want = "pro" if t0[0] != "pro" else "hud"   # 10-10 casual 拿掉
     pg.locator(f"#t4Pop .t4o[data-t4='{want}']").click(timeout=6000); pg.wait_for_timeout(1600)
     t1 = pg.evaluate("() => [document.documentElement.getAttribute('data-theme4'), document.documentElement.getAttribute('data-theme') || 'dark', getComputedStyle(document.body).backgroundColor, localStorage.getItem('tw.theme4'), document.getElementById('themeBtn').textContent.trim()]")
     ok(f"{T}第四批④ 面板切風格照舊：data-theme4／localStorage／底色都換，明暗不動、☀ 圖示不變",
@@ -66539,7 +66540,7 @@ def t_acct_menu_1009(b, base, code):
             s0 = pg.evaluate(SEGM)
             seg_ok("（430）", s0)
             ok(f"【{T}】{who}（430）：寬度夠時標題與分段在同一排（垂直中線：標題 {s0['lblTop']}、分段 {s0['segTop']}）", abs(s0["lblTop"] - s0["segTop"]) <= 3, s0)
-            pick = "pro" if s0["t4"] != "pro" else "casual"
+            pick = "pro" if s0["t4"] != "pro" else "hud"   # 10-10 casual 拿掉
             pg.locator(f"#acctMenu [data-m=sty][data-sty={pick}]").tap()
             pg.wait_for_timeout(700)
             s1 = pg.evaluate(SEGM)
