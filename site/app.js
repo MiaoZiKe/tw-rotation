@@ -3381,6 +3381,44 @@
        不能跟全市場同等看待。*/
   const MAT = { ma: '20', on: null };
   const MAT_SMALL = 5;
+  /* ★ 2026-10-09（Andy：「下方依據不同分類做收合功能」）：族群卡依產業鏈分段（半導體／AI 伺服器／一般電子…），
+     每段一個可收合的標題列：段名、族群數、段內平均站上 MA20、站上 60% 以上的有幾個。
+     收展規矩照全站（手機五條準則第 5 條，網頁也適用）：預設收起、使用者手動展開過的才記住（tw.maSecOpen）；只有一段時直接展開。
+     段的順序照鏈的固定順序，段內照舊依 MA20 由高到低（by_group 本來的排序）。*/
+  const MA_SEC_KEY = 'tw.maSecOpen';
+  const MA_CHAIN_ORDER = ['semiconductor', 'ai_server', 'electronics', 'software', 'financial', 'traditional', 'infrastructure', 'industry'];
+  const maCard = (g) => `<div class="ma" data-gid="${g.group_id}">
+            <div class="n">${fmt.esc(g.group_name)}<em>${g.n} 檔</em></div>
+            <div class="bar"><i style="width:${g.pct20}%;--c:${g.pct20 >= 60 ? 'var(--rise)' : g.pct20 >= 40 ? 'var(--amber)' : 'var(--fall)'}"></i></div>
+            <div class="v">MA20 ${g.pct20}%<span>MA60 ${g.pct60}%</span></div></div>`;
+  const maGrid = (gs) => `<div class="magrid">${gs.map(maCard).join('')}</div>`;
+  function maSections(gs, gt) {
+    const chainOf = {}; (gt || []).forEach(g => { if (g && g.group_id) chainOf[g.group_id] = g.chain || 'industry'; });
+    const by = {};
+    gs.forEach(g => { const c = chainOf[g.group_id] || (String(g.group_id).startsWith('ind_') ? 'industry' : 'other'); (by[c] = by[c] || []).push(g); });
+    const keys = Object.keys(by).sort((a, b) => ((MA_CHAIN_ORDER.indexOf(a) + 1) || 99) - ((MA_CHAIN_ORDER.indexOf(b) + 1) || 99));
+    let open = {}; try { open = JSON.parse(localStorage.getItem(MA_SEC_KEY) || '{}') || {}; } catch (e) { open = {}; }
+    const card = maCard;
+    return `<div class="masecs" id="maSecs">${keys.map(k => {
+      const arr = by[k], avg = arr.reduce((t, g) => t + (+g.pct20 || 0), 0) / arr.length;
+      const strong = arr.filter(g => g.pct20 >= 60).length;
+      const isOpen = keys.length === 1 || open[k] === true;
+      return `<details class="masec" data-chain="${k}"${isOpen ? ' open' : ''}>
+        <summary><span class="ttl">${fmt.esc(chainLabel(k))}</span><em>${arr.length} 個族群</em>
+          <span class="avg">平均站上 MA20 <b class="${avg >= 60 ? 'up' : avg >= 40 ? '' : 'down'}">${fmt.n(avg, 0)}%</b></span>
+          <span class="mbar" aria-hidden="true"><i style="width:${Math.max(0, Math.min(100, avg)).toFixed(0)}%;--c:${avg >= 60 ? 'var(--rise)' : avg >= 40 ? 'var(--amber)' : 'var(--fall)'}"></i></span>
+          <span class="cnt">≥60%：${strong} 個</span><i class="chev" aria-hidden="true">▾</i></summary>
+        <div class="magrid">${arr.map(card).join('')}</div></details>`;
+    }).join('')}</div>`;
+  }
+  function wireMaSections() {
+    $$('#maSecs > details.masec').forEach(d => d.addEventListener('toggle', () => {
+      let open = {}; try { open = JSON.parse(localStorage.getItem(MA_SEC_KEY) || '{}') || {}; } catch (e) { open = {}; }
+      open[d.dataset.chain] = d.open;
+      try { localStorage.setItem(MA_SEC_KEY, JSON.stringify(open)); } catch (e) { /* 私密視窗 */ }
+    }));
+  }
+
   async function drawMaTrend() {
     const host = $('#maTrendBox'); if (!host) return;
     const [mb, gt] = await Promise.all([load('ma_breadth', { fallback: { dates: [], mas: [], series: {} } }),
@@ -3463,9 +3501,11 @@
         formatter: (ps) => `<b>${ps[0].axisValue}</b><br>`
           + ps.filter(q => q.value != null).sort((a, b) => b.value - a.value).slice(0, 12)
               .map(q => `${q.marker}${q.seriesName} ${fmt.n(q.value, 1)}%`).join('<br>') },
-      legend: { type: 'scroll', top: 0, data: [mk1, mk2, ...names.map(gname)], selected,
-        textStyle: { color: CH.ink2 }, pageTextStyle: { color: CH.ink3 }, inactiveColor: hexA(CH.ink3, .45) },
-      grid: { left: 52, right: 24, top: 34, bottom: 30 },
+      /* ★ 2026-10-09（Andy：「上方需要下拉式清單篩選」）：圖上那一長排可翻頁的圖例（1/6）不畫了，
+         族群一律從上面的「族群」下拉挑（msDD，可搜尋、可複選）、旁邊標籤點 × 拿掉。
+         legend 元件照留（show:false）—— 它管 selected，下拉勾選靠 legendSelect／legendUnSelect 開關每條線。*/
+      legend: { show: false, data: [mk1, mk2, ...names.map(gname)], selected },
+      grid: { left: 52, right: 24, top: 14, bottom: 30 },
       xAxis: { ...axisStyle, type: 'category', data: mb.dates, axisLabel: { color: CH.ink3, fontFamily: NUM_FONT, formatter: (v) => String(v).slice(5) } },
       yAxis: { ...axisStyle, min: 0, max: 100, axisLabel: { color: CH.ink3, fontFamily: NUM_FONT, formatter: '{value}%' } },
       series: [
@@ -3826,7 +3866,7 @@
   function mktReset() {
     mktTab = 0;
     Object.assign(DIST, { market: '', groups: null, etf: false, pick: null, sort: 'chg' });
-    Object.assign(streakState, { who: 'trust', days: 3 });
+    Object.assign(streakState, { who: 'trust', days: 3, view: streakViewDflt(), all: false });
     MAT.ma = '20'; MAT.on = null;
     candFacet = 'all'; candSort = { key: null, dir: 1 }; candOpen = null; candGroups = null;
   }
@@ -4026,6 +4066,8 @@
       body.innerHTML = `<div class="mktstreakbar">
           <span class="pill" id="streakSub" data-readout></span>
           <div class="row">
+            <div class="seg tiny" id="streakView" role="group" aria-label="畫法">${[['rank', '排行'], ['quad', '四象限']].map(([k, l]) =>
+              `<button type="button" data-v="${k}" class="${k === streakState.view ? 'on' : ''}">${l}</button>`).join('')}</div>
             <div class="seg tiny" id="streakWho">${[['trust', '投信'], ['foreign', '外資'], ['total', '合計']].map(([k, l]) =>
               `<button data-w="${k}" class="${k === who ? 'on' : ''}">${l}</button>`).join('')}</div>
             <select class="minisel" id="streakDays" title="連續天數門檻（買與賣都套用）">${[2, 3, 5, 8, 12].map(d =>
@@ -4033,7 +4075,8 @@
             <button class="howbtn pop" data-how="trust" data-ttl="法人連續買賣超" type="button" aria-label="法人連續買賣超怎麼看">?</button>
           </div></div>
         <div class="howtxt" id="how-trust" hidden></div>
-        <div id="trustWrap"><div id="trust" class="chart" style="min-height:360px"></div></div>`;
+        <div id="trustRank" class="strankbox"${streakState.view === 'quad' ? ' hidden' : ''}></div>
+        <div id="trustWrap"${streakState.view === 'quad' ? '' : ' hidden'}><div id="trust" class="chart" style="min-height:360px"></div></div>`;
       renderTrust(MKT_ST.trust, MKT_ST.cands, MKT_ST.streak);
       wireStreak(MKT_ST.trust, MKT_ST.cands, MKT_ST.streak);
       return;
@@ -4059,12 +4102,9 @@
             <div class="snkey" id="maGroupKey" aria-label="已選族群（點 × 拿掉）"></div>
           </div>
           <div id="maTrendBox"><div id="maTrend" class="chart" style="min-height:300px"></div></div></div>`
-        + (gs.length ? `<div class="magrid">${gs.map(g => `<div class="ma" data-gid="${g.group_id}">
-            <div class="n">${fmt.esc(g.group_name)}<em>${g.n} 檔</em></div>
-            <div class="bar"><i style="width:${g.pct20}%;--c:${g.pct20 >= 60 ? 'var(--rise)' : g.pct20 >= 40 ? 'var(--amber)' : 'var(--fall)'}"></i></div>
-            <div class="v">MA20 ${g.pct20}%<span>MA60 ${g.pct60}%</span></div></div>`).join('')}</div>`
-          : '<div class="empty">尚無均線統計</div>');
+        + (gs.length ? (document.documentElement.classList.contains('m4') ? maGrid(gs) : maSections(gs, gt)) : '<div class="empty">尚無均線統計</div>');   // 手機（html.m4）照舊一片方格，mobile4.js 自己摺成段
       $$('#mktBody .ma[data-gid]').forEach(e => e.onclick = () => { location.hash = '#industry/group/' + e.dataset.gid; });
+      wireMaSections();
       drawMaTrend();
       return;
     }
@@ -8592,7 +8632,11 @@
      還能切換買超週期 不限只有3天，還要加上外資買超，以及綜合」。
      三種法人的資料在 `inst_streak`（投信/外資/合計各一份，門檻放寬到 2 天由前端篩）；
      舊的 `trust_streak` 留著當退路，換版當下不會開天窗。 */
-  const streakState = { who: 'trust', days: 3 };
+  /* view：'rank' 排行（2026-10-09 桌機預設）／'quad' 四象限；all：排行是否展開全部。
+     跟投信／天數一樣換分頁就回預設（mktReset，10-04 規矩：選取不寫進 localStorage）。
+     手機（≤640）預設維持四象限 —— 這次只改網頁版（10-08「兩者不可侵犯」）。*/
+  const streakViewDflt = () => ((window.matchMedia && matchMedia('(max-width:640px)').matches) ? 'quad' : 'rank');
+  const streakState = { who: 'trust', days: 3, view: streakViewDflt(), all: false };
   const STREAK_NAME = { trust: '投信', foreign: '外資', total: '三大法人合計' };
 
   /* 積木 `market.streak` 的三份輸入全部從參數來（2026-09-24 #4b）：
@@ -8628,6 +8672,17 @@
     const rows = buys.concat(sells);
     const sub = $('#streakSub');
     if (sub) sub.innerHTML = `${STREAK_NAME[who]} ≥${streakState.days} 天 · <span class="up">買 ${buys.length}</span> / <span class="down">賣 ${sells.length}</span>`;
+    /* ★ 2026-10-09（Andy：「需要修改圖表呈現方式，需要變得更直觀 更好理解」）：預設改成「排行」——
+       左右兩欄（左＝連續買超、右＝連續賣超），每列一檔：長條＝連續天數、累計張數、最後一天是加碼還是減碼。
+       四象限散佈圖照舊留著，右上「排行｜四象限」切換（有選項就兩種都做、放進畫面讓使用者切）。
+       兩種畫法吃同一份 buys／sells（同一個門檻、同一支 pick），數字一定對得起來。*/
+    const rankBox = $('#trustRank'), wrapBox = $('#trustWrap');
+    if (rankBox && wrapBox) {
+      const isRank = streakState.view !== 'quad';
+      rankBox.hidden = !isRank; wrapBox.hidden = isRank;
+      $$('#streakView button').forEach(b => b.classList.toggle('on', b.dataset.v === streakState.view));
+      if (isRank) { renderStreakRank(rankBox, buys, sells, nm, who); return; }
+    }
     const el = $('#trust');
     if (!rows.length) {
       empty('trust', `${STREAK_NAME[who]}目前沒有連續買賣超 ${streakState.days} 天以上的股票`);
@@ -8692,7 +8747,41 @@
     wheelZoom($('#trustWrap'), { onZoom: () => { const i = echarts.getInstanceByDom($('#trust')); if (i) i.resize(); } });
   }
 
+  function renderStreakRank(box, buys, sells, nm, who) {
+    const LIM = 10;
+    const ord = (a, b) => (b.n - a.n) || (b.lots - a.lots);
+    const B = buys.slice().sort(ord), S = sells.slice().sort(ord);
+    const maxN = Math.max(1, ...B.map(r => r.n), ...S.map(r => r.n));
+    const row = (r) => {
+      const pw = r.ratio == null ? '<span class="pw muted">—</span>'
+        : `<span class="pw ${r.ratio >= 1 ? 'add' : 'cut'}" title="最後一天 ${fmt.lot(r.last)}，期間日均 ${fmt.lot(r.avg)}">${r.ratio >= 1 ? '▲ 加碼' : '▼ 減碼'} <em>${fmt.n(r.ratio, 1)}×</em></span>`;
+      return `<div class="srrow" data-code="${r.code}" role="link" tabindex="0" title="看 ${fmt.esc(nm(r.code))} 個股頁">
+        <span class="nm"><b>${fmt.esc(nm(r.code))}</b><em>${r.code}</em></span>
+        <span class="sbar"><span class="trk"><i style="width:${Math.max(4, r.n / maxN * 100).toFixed(1)}%"></i></span><b>${r.n} 天</b></span>
+        <span class="lots">${fmt.lot(r.lots)}</span>${pw}</div>`;
+    };
+    const col = (side, rows, ttl) => `<div class="srcol ${side}" data-side="${side}">
+        <div class="srh"><b>${ttl}</b><small>${rows.length} 檔 · 連越久排越前面</small></div>
+        ${rows.length ? `<div class="srrow srhead" aria-hidden="true"><span>股票</span><span>連續天數</span><span class="lots">期間累計</span><span class="pw">最後一天</span></div>
+        <div class="srlist">${rows.slice(0, streakState.all ? rows.length : LIM).map(row).join('')}</div>`
+          : `<div class="empty">${STREAK_NAME[who]}目前沒有${ttl} ${streakState.days} 天以上的股票</div>`}</div>`;
+    const more = Math.max(B.length, S.length) > LIM;
+    box.innerHTML = `<div class="strank">${col('buy', B, '連續買超')}${col('sell', S, '連續賣超')}</div>`
+      + (more ? `<div class="srmore"><button type="button" class="btn small" id="streakAll">${streakState.all ? '收起，只看前 10 檔' : `看全部（買 ${B.length}／賣 ${S.length} 檔）`}</button></div>` : '');
+    box.dataset.buys = String(B.length); box.dataset.sells = String(S.length);
+    $$('.srrow[data-code]', box).forEach(e => {
+      e.onclick = () => goStock(e.dataset.code);
+      e.onkeydown = (k) => { if (k.key === 'Enter' || k.key === ' ') { k.preventDefault(); goStock(e.dataset.code); } };
+    });
+    const all = $('#streakAll', box);
+    if (all) all.onclick = () => { streakState.all = !streakState.all; renderStreakRank(box, buys, sells, nm, who); };
+  }
+
   function wireStreak(trust, cands, streak) {
+    $$('#streakView button').forEach(b => b.onclick = () => {
+      streakState.view = b.dataset.v === 'quad' ? 'quad' : 'rank';
+      renderTrust(trust, cands, streak);
+    });
     $$('#streakWho button').forEach(b => b.onclick = () => {
       $$('#streakWho button').forEach(x => x.classList.toggle('on', x === b));
       streakState.who = b.dataset.w; renderTrust(trust, cands, streak);
@@ -8855,11 +8944,12 @@
         + (udStat.mkt === 'all' && udStat.heatN != null && udStat.heatN !== udStat.n ? `，上方 KPI「漲跌家數」是證交所當日收盤口徑（${udStat.heatN} 檔），今天沒成交的股票兩邊處理不同，所以會差幾十檔。` : '。') : '')
       + '站上 20 日均線的比例在市場明細的「站上均線」分頁。'),
     trust: howHTML('法人在誰身上連續下注、力道在加大還是收手。', [
-      '右半＝連買、左半＝連賣，越外側越久',
-      '上半＝最後一天比日均大（法人加碼）',
-      '下半＝最後一天縮手；點越大＝累計張數越多',
-      '預設看投信連續 ≥3 天',
-    ], '力道＝最後一天的買（賣）超張數 ÷ 這段連續期間的日均（對數軸，1× 是中線，超過 5× 或低於 0.2× 畫在邊上）。'
+      '排行：左＝連續買超、右＝連續賣超，長條越長＝連越久',
+      '▲ 加碼＝最後一天比期間日均大（還在加）；▼ 減碼＝最後一天縮手',
+      '四象限：右半連買、左半連賣；上半加碼、下半減碼',
+      '預設看投信連續 ≥3 天；點一列進個股頁',
+    ], '排行每邊先列前 10 檔，按「看全部」展開；期間累計＝這段連續期間合計張數。'
+      + '力道＝最後一天的買（賣）超張數 ÷ 這段連續期間的日均（對數軸，1× 是中線，超過 5× 或低於 0.2× 畫在邊上）。'
       + '紅＝買超、綠＝賣超。右上切投信／外資／合計與天數門檻（買賣都套用），每邊最多列累計最大的 40 檔。滾輪放大、放大後拖曳，雙擊或按「還原」回原尺寸。'
       + '舊資料沒有「最後一天」欄位時，縱軸改成累計張數。'),
     theme: howHTML('今天市場在炒哪些題材、哪一個最熱。', [

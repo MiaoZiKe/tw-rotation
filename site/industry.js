@@ -6918,17 +6918,110 @@
       peWin = { start: Math.max(0, end - span), end };
       redraw();
     };
+    let lenBar = null;
     if (lenBox) {
-      A.rangeBar(lenBox, { min: 20, max: N, value: Math.min(N, 120), key: 'tw.pe.len',
+      lenBar = A.rangeBar(lenBox, { min: 20, max: N, value: Math.min(N, 120), key: 'tw.pe.len',
         label: '看多長', fmt: (v) => v + ' 天',
         onChange: (v) => { len = v; apply(); } });
       len = Math.min(N, 120);
     }
-    A.playBar(box, { min: 10, max: 100, value: 100, key: 'tw.pe.end',
+    const endBar = A.playBar(box, { min: 10, max: 100, value: 100, key: 'tw.pe.end',
       label: '截止', fmt: (v) => (v >= 100 ? '最新' : (r.dates[Math.round((v / 100) * (N - 1))] || '')),
       onChange: (v) => { end = v; apply(); } });
     box._peWired = true;
+    /* ★ 2026-10-09（Andy：「本益比河流圖 縮放後 會影響版面，需要讓他固定 單純對裡面圖表縮放」）：
+       圖內滾輪／拖曳改成直接調這兩支拉Bar 的值（看多長＝視窗長度、截止＝視窗右端），等於「切資料」縮放：
+       外框、座標軸、卡片高度一律不動，只有圖裡的時間範圍變（改前用全站 wheelZoom 把整張圖放大 k 倍再捲，軸會捲出框外、出捲軸）。
+       仍然不用 ECharts dataZoom（DECISIONS #192）。拉Bar 上的數字跟著同步，兩邊永遠是同一個視窗。*/
+    const setWin = (nLen, nEndIdx) => {
+      nLen = Math.round(Math.max(20, Math.min(N, nLen)));
+      const endPct = Math.max(10, Math.min(100, Math.round(Math.max(nLen, Math.min(N, nEndIdx)) / N * 100)));
+      len = nLen; if (lenBar) lenBar.set(nLen);
+      try { if (lenBox) localStorage.setItem('tw.pe.len', String(nLen)); } catch (e) { /* 私密視窗 */ }
+      if (endBar && endBar.value !== endPct) { endBar.stop(); endBar.set(endPct); }   // set() 會派 input → onChange → apply
+      else apply();
+    };
+    el._peWinApi = {
+      get len() { return len; }, get N() { return N; }, get endIdx() { return end / 100 * N; },
+      dflt: Math.min(N, 120), set: setWin,
+    };
     apply();
+  }
+  /* 河流圖圖內縮放：滾輪＝以游標所在日期為中心縮放時間視窗；縮放後按住拖曳＝左右平移；雙擊或「還原」＝回到預設 120 天、截止最新。
+     已經是整段（看多長＝全部）還往下滾 → 不攔，交還給頁面捲動。*/
+  function wirePeInnerZoom(el) {
+    const wrap = $('#peWrap', el), dom = $('#peChart', el);
+    if (!wrap || !dom || wrap._peZ) return;
+    wrap._peZ = true;
+    wrap.classList.add('zwrap', 'pezoom');
+    const badge = document.createElement('div'); badge.className = 'zbadge'; wrap.appendChild(badge);
+    const reset = document.createElement('button');
+    reset.type = 'button'; reset.className = 'zreset'; reset.textContent = '還原 1×';
+    reset.title = '縮放還原（回到放大前的時間範圍）'; reset.setAttribute('aria-label', reset.title); reset.hidden = true;
+    wrap.appendChild(reset);
+    const api = () => el._peWinApi;
+    const G = { l: 56, r: 62 };                       // 跟 drawPeRiver 的 grid 同一組數字
+    /* base＝第一次滾輪放大前的「看多長」天數（＝1×）。往下滾最多回到 base，再往下就交還給頁面捲動
+       —— 跟全站 wheelZoom「縮小最多回原始畫面」同一個手感（Andy 09-15）；自己拉「看多長」拉Bar 就以新的長度當 1×。*/
+    let base = null, endBase = null;
+    const paint = () => {
+      const a = api(); const zoomed = !!a && base != null && a.len < base;
+      if (a && base != null && !zoomed) { base = null; endBase = null; }
+      wrap.classList.toggle('zoomed', zoomed);
+      reset.hidden = !zoomed;
+      badge.textContent = zoomed ? `${(base / a.len).toFixed(1)}×　拖曳移動　·　雙擊或按「還原」` : '滾輪放大　·　放大後可拖曳';
+    };
+    const frac = (clientX) => {
+      const rc = dom.getBoundingClientRect(), w = Math.max(1, rc.width - G.l - G.r);
+      return { f: Math.max(0, Math.min(1, (clientX - rc.left - G.l) / w)), w };
+    };
+    let calm = 0;
+    wrap.addEventListener('wheel', (e) => {
+      const a = api(); if (!a) return;
+      const zin = e.deltaY < 0;
+      if (!zin && (base == null || a.len >= base)) {  // 已經是 1× 還往下滾＝要捲頁面（剛還原的 450ms 內先吃掉，免得整頁被帶著衝）
+        if (Date.now() < calm) { e.preventDefault(); calm = Date.now() + 450; }
+        return;
+      }
+      e.preventDefault(); e.stopPropagation();
+      if (zin && base == null) { base = a.len; endBase = a.endIdx; }
+      const { f } = frac(e.clientX);
+      const s0 = a.endIdx - a.len, anchor = s0 + f * a.len;
+      let nLen = Math.round(a.len * (zin ? 1 / 1.18 : 1.18));
+      nLen = Math.max(20, Math.min(base, nLen));
+      if (nLen === a.len) { paint(); return; }
+      a.set(nLen, anchor - f * nLen + nLen);
+      if (nLen >= base) calm = Date.now() + 450;
+      paint();
+    }, { passive: false });
+    let drag = null;
+    wrap.addEventListener('pointerdown', (e) => {
+      const a = api(); if (!a || e.button !== 0 || !wrap.classList.contains('zoomed') || e.target === reset) return;
+      drag = { x: e.clientX, e0: a.endIdx, w: frac(e.clientX).w, id: e.pointerId, moved: false };
+    });
+    wrap.addEventListener('pointermove', (e) => {
+      const a = api(); if (!drag || !a) return;
+      const dx = e.clientX - drag.x;
+      if (!drag.moved && Math.abs(dx) < 4) return;   // 小抖動還算點擊
+      if (!drag.moved) { drag.moved = true; wrap.classList.add('grabbing'); try { wrap.setPointerCapture(drag.id); } catch (err) { /* 忽略 */ } }
+      e.preventDefault();
+      a.set(a.len, drag.e0 - dx / drag.w * a.len);
+    });
+    const endDrag = () => { if (!drag) return; try { wrap.releasePointerCapture(drag.id); } catch (err) { /* 忽略 */ } drag = null; wrap.classList.remove('grabbing'); };
+    wrap.addEventListener('pointerup', endDrag);
+    wrap.addEventListener('pointercancel', endDrag);
+    const toOne = () => { const a = api(); if (!a || base == null) return; const b = base, eb = endBase; base = null; endBase = null; a.set(b, eb); calm = Date.now() + 450; paint(); };
+    wrap.addEventListener('dblclick', (e) => { if (e.target.closest && e.target.closest('.peyaxis')) return; toOne(); });
+    reset.addEventListener('click', (e) => { e.stopPropagation(); toOne(); });
+    reset.addEventListener('dblclick', (e) => e.stopPropagation());
+    // 自己動「看多長」拉Bar ＝ 以新的長度當 1×；動「截止」只是平移，倍率不變
+    el.addEventListener('input', (e) => {
+      if (!e.isTrusted || !e.target.closest) return;
+      if (e.target.closest('#peLen')) { base = null; endBase = null; }
+      if (e.target.closest('#peLen') || e.target.closest('#peEnd')) paint();
+    });
+    wrap._pePaint = paint;
+    paint();
   }
 
   /* ★ 2026-10-02（Andy #stock/1709：「中間那條本益比線的粗細可以調整」，DECISIONS #295）：
@@ -7008,7 +7101,7 @@
     const tickAt = new Set(mStart.filter((_, k) => k % stepM === 0));
     const inst = A.chart(id, {
       grid: { left: 56, right: 62, top: 24, bottom: 34 },
-      tooltip: { ...A.tip, trigger: 'axis', formatter: (ps) => {
+      tooltip: { ...A.tip, trigger: 'axis', confine: true, formatter: (ps) => {
         const i = ps[0].dataIndex, c = r.close[i], e = r.eps[i], pe = e > 0 ? c / e : null;
         let z = 0; while (z < r.mult.length && pe >= r.mult[z]) z++;
         return `<b>${r.dates[i]}</b><br>收盤 ${A.fmt.n(c)}　近四季 EPS ${A.fmt.n(e)}<br>`
@@ -7269,6 +7362,7 @@
       if (opaV) opaV.textContent = mode === 'mult' ? '—' : cur + '%';
       drawPeRiver('peChart', river, mode, st);
       wirePeWin(el, river, () => drawPeRiver('peChart', river, mode, peStyle(state.cfg || loadCfg())));
+      { const pw = $('#peWrap', el); if (pw && pw._pePaint) pw._pePaint(); }   // 圖內縮放徽章（天數／還原鈕）跟著視窗
       const lw = $('#peLw', el), lwV = $('#peLwV', el), lwNow = peLineW(st);
       if (lw) lw.value = String(Math.round(lwNow * 2) / 2);
       if (lwV) lwV.textContent = (Math.round(lwNow * 10) / 10) + 'px';
@@ -7312,9 +7406,8 @@
     /* 縮放與拖曳（Andy 2026-09-16：「具備縮放功能，游標可以抓取移動」）。
        用全站那一套 wheelZoom，不用 ECharts 的 dataZoom —— dataZoom 會把 wheel 吃掉，
        頁面就捲不動了（DECISIONS #139 已經踩過一次）。*/
-    A.wheelZoom($('#peWrap', el), { onZoom: () => {
-      const i = window.echarts && echarts.getInstanceByDom($('#peChart', el)); if (i) i.resize();
-    } });
+    // ★ 2026-10-09 改成圖內縮放（wirePeInnerZoom）：外框固定，只縮放時間範圍；不再用全站 wheelZoom 把整張圖放大
+    wirePeInnerZoom(el);
     paint();
   }
   /* ★ 2026-09-26（Andy：「為什麼只有一筆，幫我找找其他筆數據，沒有配就顯示空值，但需要標示年份」）
