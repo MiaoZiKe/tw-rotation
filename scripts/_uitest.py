@@ -27628,8 +27628,8 @@ def t_mobile_m4_etfqa_1009(b, base, code):
             # 3. 「最受歡迎｜報酬率｜殖利率」等寬填滿
             ok(f"【{T}】{W}：「最受歡迎｜報酬率｜殖利率」三格等寬（{g['tw']}）、填滿整列（{round(g['span'])}／{round(g['pw'])}）",
                len(g["tw"]) == 3 and max(g["tw"]) - min(g["tw"]) <= 2 and g["span"] >= g["pw"] * 0.98, g)
-            # 5. 點「報酬率」「殖利率」：前 5 名每列字不疊、名稱不溢出列外
-            for i, nm, cid in [(1, "報酬率", "etfRetTopCard"), (2, "殖利率", "etfYldCard")]:
+            # 5. 點「報酬率」「殖利率」（再點回「最受歡迎」）：前 5 名每列字不疊、名稱不溢出列外、沒有被 … 截掉的字
+            for i, nm, cid in [(1, "報酬率", "etfRetTopCard"), (2, "殖利率", "etfYldCard"), (0, "最受歡迎", "etfPopCard")]:
                 m.locator(f"#v-etf .m4trisg button[data-i='{i}']").tap(); m.wait_for_timeout(700)
                 r = J("""(id) => { const c = document.getElementById(id); const rows = [...c.querySelectorAll('button.rkrow')].filter(e => e.getClientRects().length); const R = (e) => e.getBoundingClientRect();
                     const bad = []; rows.forEach((row, k) => { const rr = R(row); row.querySelectorAll('span').forEach(s => { const q = R(s); if (q.width && (q.top < rr.top - 0.5 || q.bottom > rr.bottom + 0.5 || q.right > rr.right + 0.5)) bad.push(k + ':' + s.className + '「' + s.textContent.trim().slice(0, 8) + '」'); });
@@ -27637,6 +27637,11 @@ def t_mobile_m4_etfqa_1009(b, base, code):
                     let ov = 0; for (let k = 1; k < rows.length; k++) if (R(rows[k]).top < R(rows[k - 1]).bottom - 0.5) ov++;
                     return { n: rows.length, bad, ov, vis: !!c.getClientRects().length }; }""", cid)
                 ok(f"【{T}】{W}：點「{nm}」→ 那張卡出現、前 {r['n']} 名每列字都在列內、列與列不疊", r["vis"] and r["n"] >= 3 and not r["bad"] and r["ov"] == 0, r)
+                # 帳本 32（m4-etf 77fef29c）：數字兩欄 70／54px（不准被別的樣式蓋回 84／92）；整張卡「text-overflow:ellipsis 而且真的被截（scrollWidth > clientWidth）」的元素 0 個
+                e = J("""(id) => { const c = document.getElementById(id), row = c.querySelector('button.rkrow'), cs = row ? getComputedStyle(row).gridTemplateColumns.split(' ').map(parseFloat) : [];
+                    const cut = [...c.querySelectorAll('*')].filter(x => x.getClientRects().length && getComputedStyle(x).textOverflow === 'ellipsis' && x.scrollWidth > x.clientWidth + 0.5).map(x => x.className + '「' + x.textContent.trim().slice(0, 12) + '」');
+                    return { cols: cs.slice(-2).map(Math.round), cut }; }""", cid)
+                ok(f"【{T}】{W}：「{nm}」前 5 名數字欄 {e['cols']}（要 70／54）、被 … 截掉的字 {len(e['cut'])} 個（要 0）", e["cols"] == [70, 54] and not e["cut"], e)
             sm = J(SMALL, "#v-etf.view.on *")
             ok(f"【{T}】{W}：ETF 總覽沒有小於 12px 的字（{len(sm)} 個）", not sm, sm[:6])
 
@@ -28413,29 +28418,27 @@ def t_m4_xpetf_1009(b, base):
         ok(f"【{T}】ETF 一覽：沒有全部展開鈕，點分組標題列照樣打開那一組（字卡 {n0} → {n1}）", n1 > n0, (n0, n1))
         # ── B5. 現金流試算 ──
         go("etf/inc", 4500)
-        mn = J("""() => { const s = document.getElementById('incMain'), cs = getComputedStyle(s), bs = [...s.children];
-            return { border: cs.borderTopWidth, ws: bs.map(b => Math.round(b.getBoundingClientRect().width)), hs: bs.map(b => Math.round(b.getBoundingClientRect().height)),
-              onImg: getComputedStyle(s.querySelector('.on')).backgroundImage !== 'none' || getComputedStyle(s.querySelector('.on')).backgroundColor !== 'rgba(0, 0, 0, 0)',
-              offBorder: bs.filter(b => !b.classList.contains('on')).map(b => getComputedStyle(b).borderTopWidth) }; }""")
-        ok(f"【{T}】現金流：「月配試算表／複利試算表」是分段控制器（外框 {mn['border']}、兩格等寬 {mn['ws']}）", mn["border"] == "1px" and abs(mn["ws"][0] - mn["ws"][1]) <= 1 and min(mn["hs"]) >= 40 and mn["onImg"] and mn["offBorder"] == ["0px"], mn)
-        ROW = """() => { const c = document.querySelector('#incPM > .incctl'); const vis = (e) => e.getClientRects().length > 0 && getComputedStyle(e).visibility !== 'hidden';
-            const ks = [...c.querySelectorAll('select, label.chk')].filter(vis).map(e => { const r = e.getBoundingClientRect(); return { t: e.tagName === 'SELECT' ? e.options[e.selectedIndex].text : e.textContent.trim(), y: r.top + r.height / 2, l: r.left, r: r.right, h: r.height }; });
-            const cond = document.querySelector('#incPM > .m4cond');
-            return { n: ks.length, txt: ks.map(k => k.t), dy: Math.round(Math.max(...ks.map(k => k.y)) - Math.min(...ks.map(k => k.y))), h: Math.round(c.getBoundingClientRect().height),
-              out: ks.filter(k => k.l < 0 || k.r > innerWidth).length, cond: cond ? cond.getClientRects().length : 0, bar: Math.round(document.getElementById('incBar').getBoundingClientRect().top) }; }"""
-        cr = J(ROW)
-        ok(f"【{T}】現金流：條件列只有一排（{cr['txt']}，中心差 {cr['dy']}px、列高 {cr['h']}px）、不必先點「條件 ▾」、圖表上緣 {cr['bar']} 在第一屏",
-           cr["n"] >= 5 and cr["dy"] <= 4 and cr["h"] <= 48 and cr["out"] == 0 and cr["cond"] == 0 and cr["bar"] < 874, cr)
+        # ★ 2026-10-09 改前→改後（手機監督退件 4＋帳本 38，claude/m4-etf2）：
+        #   改前：「月配試算表｜複利試算表」（#incMain）是頁內分段控制器、條件列一排下拉。
+        #   改後：#incMain 照 FLAT 設計藏起來（上方子頁已有「月配試算｜複利試算」）；條件列整列收成一顆摘要鈕 → 底部抽屜。
+        mn = J("""() => ({ main: !!document.getElementById('incMain').getClientRects().length,
+            sub: [...document.querySelectorAll('#m4Title .m4subtabs button')].filter(b => b.getClientRects().length).map(b => b.textContent.trim()) })""")
+        ok(f"【{T}】現金流：頁內不再重複「月配試算表／複利試算表」（#incMain 藏起來），上方子頁有「月配試算｜複利試算」（{mn['sub']}）",
+           not mn["main"] and "月配試算" in mn["sub"] and "複利試算" in mn["sub"], mn)
+        cr = J("""() => { const b = document.getElementById('m4EtfSet-inc'), c = document.querySelector('#incPM > .incctl');
+            return { btn: !!b && b.getClientRects().length > 0, h: b ? Math.round(b.getBoundingClientRect().height) : 0, txt: b ? b.textContent.trim() : '', row: !!c && c.getClientRects().length > 0,
+                     cond: [...document.querySelectorAll('#incPM > .m4cond')].filter(x => x.getClientRects().length).length, bar: Math.round(document.getElementById('incBar').getBoundingClientRect().top) }; }""")
+        ok(f"【{T}】現金流：條件收成一顆摘要鈕（「{cr['txt']}」、高 {cr['h']}）、不必先點「條件 ▾」、圖表上緣 {cr['bar']} 在第一屏",
+           cr["btn"] and cr["h"] <= 48 and not cr["row"] and cr["cond"] == 0 and cr["bar"] < 874, cr)
         sig = lambda: J("() => { const e = document.getElementById('incBar'); return (e.dataset.groups || '') + '|' + (document.getElementById('incYLab') || {}).textContent + '|' + (document.getElementById('incList') || {dataset: {}}).dataset.n; }")
         s0 = sig()
-        alt = J("""() => { const s = document.querySelector('#incPM select.m4segsel[aria-label="範圍"]'); return String((+s.value + 1) % s.options.length); }""")
-        m.locator('#incPM select.m4segsel[aria-label="範圍"]').select_option(alt); m.wait_for_timeout(1500)
+        m4_etf_pick(m, "inc", "scope", wait=1500)
         s1 = sig()
-        ok(f"【{T}】現金流：條件列改「範圍」→ 圖／清單真的跟著變、條件列仍是一排", s1 != s0 and J(ROW)["dy"] <= 4, (s0[:60], s1[:60]))
-        m.locator('#incPM select.m4segsel[aria-label="範圍"]').select_option(str((int(alt) + 1) % 2)); m.wait_for_timeout(1200)
-        m.locator("#incMain > button").nth(1).tap(); m.wait_for_timeout(1500)
-        ok(f"【{T}】現金流：點「複利試算表」→ 真的切過去", J("() => { const p = document.getElementById('incPX'); return !!p && p.getClientRects().length > 0 && !document.getElementById('incPM').getClientRects().length; }"), None)
-        m.locator("#incMain > button").nth(0).tap(); m.wait_for_timeout(1500)
+        ok(f"【{T}】現金流：設定抽屜改「範圍」→ 圖／清單真的跟著變", s1 != s0, (s0[:60], s1[:60]))
+        m4_etf_pick(m, "inc", "scope", wait=1200)
+        m.locator("#m4Title .m4subtabs button[data-sub='etf-cx']").tap(); m.wait_for_timeout(1500)
+        ok(f"【{T}】現金流：點上方「複利試算」→ 真的切過去", J("() => { const p = document.getElementById('incPX'); return !!p && p.getClientRects().length > 0 && !document.getElementById('incPM').getClientRects().length; }"), None)
+        m.locator("#m4Title .m4subtabs button[data-sub='etf-inc']").tap(); m.wait_for_timeout(1500)
         # 單檔清單：頻率分頁不被擠扁、每列勾選框與文字不重疊
         J("() => { const e = document.getElementById('incListBox'); e.scrollIntoView({ block: 'start', behavior: 'instant' }); window.scrollBy({ top: -60, behavior: 'instant' }); }"); m.wait_for_timeout(300)
         il = J("""() => { const fq = document.getElementById('incFq'), rows = [...document.querySelectorAll('#incList .ilr')].filter(r => r.getClientRects().length).slice(0, 12);
