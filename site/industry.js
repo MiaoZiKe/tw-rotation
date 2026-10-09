@@ -5418,7 +5418,10 @@
         // #2ee59d 印在淺色主題的圖例底（近白）對比只有 1.64，等於看不見。
         // 這是 D1（DECISIONS #152）漏掉的一行，2026-09-18 被淺色主題掃描抓到。
         const col = A.upDown(d.close >= d.open ? 1 : -1);
-        let s = `<b>${KUtil.fmtTime(d.time, tf)}</b>　開 ${A.fmt.n(d.open)}　高 ${A.fmt.n(d.high)}　低 ${A.fmt.n(d.low)}　收 <b style="color:${col}">${A.fmt.n(d.close)}</b>${chg != null ? ` <span style="color:${A.upDown(chg)}">${A.fmt.pct(chg, 2)}</span>` : ''}　振幅 ${amp != null ? A.fmt.n(amp, 1) + '%' : '—'}　量 ${A.fmt.lot(d.volume / 1000)}`;
+        /* ★ 2026-10-09（帳本 73，只限手機 html.m4）：手機圖頭會換行，「高」與數字中間是一般空白，常被拆成兩行
+           （「高」在第一行尾、2,590.00 在第二行頭）。手機改用不換行空白讓「標籤＋數字」黏在一起；桌機字串一個字都不變。*/
+        const NB = document.documentElement.classList.contains('m4') ? ' ' : ' ';
+        let s = `<b>${KUtil.fmtTime(d.time, tf)}</b>　開${NB}${A.fmt.n(d.open)}　高${NB}${A.fmt.n(d.high)}　低${NB}${A.fmt.n(d.low)}　收${NB}<b style="color:${col}">${A.fmt.n(d.close)}</b>${chg != null ? `${NB}<span style="color:${A.upDown(chg)}">${A.fmt.pct(chg, 2)}</span>` : ''}　振幅${NB}${amp != null ? A.fmt.n(amp, 1) + '%' : '—'}　量${NB}${A.fmt.lot(d.volume / 1000)}`;
         const parts = []; (cfg.ma || []).forEach((n, k) => { const m = at(vals['MA' + n], i); if (m != null) parts.push(`<span style="color:${KUtil.colors.ma[k % 6]}">MA${n} ${A.fmt.n(m)}</span>`); });
         if (vals.BOLL) { const u = at(vals.BOLL.up, i), lo = at(vals.BOLL.low, i); if (u != null) parts.push(`<span style="color:${KUtil.colors.boll}">BOLL ${A.fmt.n(lo)} – ${A.fmt.n(u)}</span>`); }
         // 本益比倍數線：直接把「幾倍＝股價多少」寫在圖例上，不然圖上五條虛線看不出誰是誰
