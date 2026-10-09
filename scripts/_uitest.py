@@ -633,6 +633,160 @@ def check_zoom(pg, wrap: str, inner: str, label: str):
     ok(f"「{label}」還原成原始大小時整頁不會被帶著往下", abs(y1 - y0) <= 2, f"scrollY {y0} → {y1}")
 
 
+def check_pe_inner_zoom(pg):
+    """★ 2026-10-09（Andy：「個股內的本益比河流圖 縮放後 會影響版面，需要讓他固定 單純對裡面圖表縮放」）
+    河流圖改成圖內縮放：滾輪＝縮短時間視窗（「看多長」拉Bar 跟著變）、拖曳＝平移（「截止」跟著變），
+    外框、卡片高度、座標軸位置全部不動；往下滾最多回到放大前，再往下交還頁面捲動。"""
+    S = """() => { const w = document.getElementById('peWrap'), c = document.getElementById('peChart');
+        const card = w.closest('.card'), cv = c.querySelector('canvas');
+        const len = (document.querySelector('#peLen .val') || {}).textContent || '', end = (document.querySelector('#peEnd input') || {}).value;
+        const ci = echarts.getInstanceByDom(c), xd = ci ? (ci.getOption().xAxis[0].data || []) : [];
+        return { zoomed: w.classList.contains('zoomed'), grab: w.classList.contains('grabbing'), pane: !!w.querySelector('.zpane'),
+                 badge: (w.querySelector(':scope > .zbadge') || {}).textContent || '', len, end, n: xd.length, first: xd[0], last: xd[xd.length - 1],
+                 cardH: Math.round(card.getBoundingClientRect().height), wrapW: Math.round(w.getBoundingClientRect().width),
+                 wrapH: Math.round(w.getBoundingClientRect().height), cvW: cv ? Math.round(cv.getBoundingClientRect().width) : 0,
+                 pageW: document.documentElement.scrollWidth, y: Math.round(scrollY), hash: location.hash }; }"""
+    scroll_to(pg, "peWrap")
+    a = pg.evaluate(S)
+    ok("河流圖不再用整張放大的捲動框（沒有 .zpane）", not a["pane"], a)
+    ok("河流圖預設是 1×", not a["zoomed"] and "滾輪放大" in a["badge"], a)
+    r = pg.evaluate("() => { const b = document.getElementById('peChart').getBoundingClientRect(); return {x:b.x,y:b.y,w:b.width,h:b.height}; }")
+    cx, cy = r["x"] + r["w"] * .5, r["y"] + r["h"] * .5
+    pg.mouse.move(cx, cy)
+    for _ in range(4):
+        pg.mouse.wheel(0, -160); pg.wait_for_timeout(150)
+    pg.wait_for_timeout(500)
+    b = pg.evaluate(S)
+    ok("★ 往上滾＝放大：圖上的天數變少", b["zoomed"] and 0 < b["n"] < a["n"], f"{a['n']} → {b['n']}")
+    ok("★ 放大後「看多長」拉Bar 跟著變", b["len"] != a["len"], f"{a['len']} → {b['len']}")
+    ok("★ 放大後外框寬高、畫布寬度、卡片高度都不變（版面固定）",
+       (b["wrapW"], b["wrapH"], b["cvW"], b["cardH"]) == (a["wrapW"], a["wrapH"], a["cvW"], a["cardH"]), f"{a} → {b}")
+    ok("放大不會讓整頁出現橫向捲軸", b["pageW"] <= a["pageW"], f"{a['pageW']} → {b['pageW']}")
+    ok("放大後徽章寫出倍率與拖曳提示", "×" in b["badge"] and "拖曳" in b["badge"], b["badge"])
+    pg.mouse.move(cx, cy); pg.mouse.down()
+    pg.mouse.move(cx + 60, cy, steps=6)
+    mid = pg.evaluate(S)
+    pg.mouse.move(cx + 200, cy, steps=10); pg.mouse.up(); pg.wait_for_timeout(500)
+    c = pg.evaluate(S)
+    ok("★ 抓著往右拖＝看更早：最後一天往前移", c["last"] != b["last"] and c["n"] == b["n"], f"{b['first']}~{b['last']} → {c['first']}~{c['last']}")
+    ok("拖曳時游標變成抓取狀態", mid["grab"], mid)
+    ok("拖曳不會把整頁捲走、不會跳頁", c["y"] == b["y"] and c["hash"] == b["hash"], f"{b['y']} → {c['y']}")
+    y0 = pg.evaluate("() => Math.round(scrollY)")
+    pg.mouse.move(cx, cy)
+    for _ in range(12):
+        pg.mouse.wheel(0, 160); pg.wait_for_timeout(90)
+    pg.wait_for_timeout(500)
+    d = pg.evaluate(S)
+    ok("★ 往下滾最多回到放大前的天數", not d["zoomed"] and d["n"] == a["n"] and d["len"] == a["len"], f"{a['len']}/{a['n']} → {d['len']}/{d['n']}")
+    ok("還原的那一下整頁不會被帶著往下", abs(d["y"] - y0) <= 2, f"{y0} → {d['y']}")
+    for _ in range(3):
+        pg.mouse.wheel(0, -160); pg.wait_for_timeout(120)
+    pg.wait_for_timeout(400)
+    pg.dblclick("#peChart"); pg.wait_for_timeout(600)
+    e = pg.evaluate(S)
+    ok("雙擊還原得回去", not e["zoomed"] and e["len"] == a["len"], e)
+
+
+def streak_quad(pg):
+    """2026-10-09 起桌機「法人連買賣」預設是排行；舊段落驗的是四象限散佈圖 → 先切過去（手機本來就是四象限，沒有切換鈕時略過）。"""
+    if pg.evaluate("() => !!document.querySelector(\"#streakView button[data-v='quad']\")"):
+        pg.click("#streakView button[data-v='quad']")
+        wait_until(pg, "() => { const e = document.getElementById('trust'); return e && (e.querySelector('canvas') || e.querySelector('.empty')); }", 8000)
+        pg.wait_for_timeout(300)
+
+
+def t_mkt_web_1009(b, base):
+    T = "市場明細網頁1009"
+    c = b.new_context(viewport={"width": 1440, "height": 900})
+    pg = c.new_page()
+    errs = []
+    pg.on("pageerror", lambda e: errs.append(str(e)))
+    pg.goto(f"{base}#overview", wait_until="domcontentloaded")
+    pg.evaluate("() => { try { localStorage.removeItem('tw.maSecOpen'); } catch (e) {} }")
+    # ① 法人連買賣：桌機預設「排行」
+    pg.goto(f"{base}#market/streak", wait_until="networkidle")
+    wait_until(pg, "() => document.querySelector('#trustRank .srcol')", 8000)
+    R = """() => { const r = document.getElementById('trustRank'), w = document.getElementById('trustWrap');
+        const col = (s) => [...document.querySelectorAll(`#trustRank .srcol.${s} .srrow[data-code]`)].map(e => ({ code: e.dataset.code,
+            d: +((e.querySelector('.sbar b') || {}).textContent || '0').replace(/\\D/g, ''), w: (e.querySelector('.sbar i') || {}).getBoundingClientRect ? Math.round(e.querySelector('.sbar i').getBoundingClientRect().width) : 0 }));
+        return { rank: !!r && !r.hidden, quad: !!w && !w.hidden, on: (document.querySelector('#streakView button.on') || {}).dataset?.v,
+                 buy: col('buy'), sell: col('sell'), sub: (document.getElementById('streakSub') || {}).textContent || '',
+                 more: (document.getElementById('streakAll') || {}).textContent || '' }; }"""
+    a = pg.evaluate(R)
+    ok(f"【{T}】桌機預設是「排行」（四象限藏起來）", a["rank"] and not a["quad"] and a["on"] == "rank", a)
+    ok(f"【{T}】左欄連續買超、右欄連續賣超都有列", len(a["buy"]) > 0 and len(a["sell"]) > 0, (len(a["buy"]), len(a["sell"])))
+    ok(f"【{T}】每欄先列 10 檔", len(a["buy"]) <= 10 and len(a["sell"]) <= 10, (len(a["buy"]), len(a["sell"])))
+    ds = [x["d"] for x in a["buy"]]
+    ok(f"【{T}】依連續天數由多到少排", ds == sorted(ds, reverse=True), ds)
+    allr = a["buy"] + a["sell"]
+    mx = max(allr, key=lambda x: x["d"]); mn = min(allr, key=lambda x: x["d"])
+    ok(f"【{T}】★ 長條長度跟天數成比例（最長的天數條最長、天數不同條長就不同）",
+       mx["w"] >= max(x["w"] for x in allr) - 1 and (mx["d"] == mn["d"] or mx["w"] > mn["w"]), (mx, mn))
+    if a["more"]:
+        n0 = len(a["buy"]) + len(a["sell"])
+        click(pg, "#streakAll", 500)
+        a2 = pg.evaluate(R)
+        ok(f"【{T}】按「看全部」列數真的變多", len(a2["buy"]) + len(a2["sell"]) > n0, (n0, len(a2["buy"]) + len(a2["sell"])))
+    click(pg, "#streakWho button[data-w='foreign']", 700)
+    a3 = pg.evaluate(R)
+    ok(f"【{T}】切外資：副標與名單跟著換", "外資" in a3["sub"] and [x["code"] for x in a3["buy"]] != [x["code"] for x in a["buy"]], a3["sub"])
+    click(pg, "#streakWho button[data-w='trust']", 700)
+    click(pg, "#streakView button[data-v='quad']", 1200)
+    q = pg.evaluate(R)
+    pts = pg.evaluate("() => { const c = echarts.getInstanceByDom(document.getElementById('trust')); return c ? c.getOption().series[0].data.length : 0; }")
+    ok(f"【{T}】切「四象限」：散佈圖出現、排行藏起來、點數＝買＋賣", q["quad"] and not q["rank"] and pts > 0, (q["quad"], q["rank"], pts))
+    pg.goto(f"{base}#market/ma", wait_until="networkidle"); pg.wait_for_timeout(600)
+    pg.goto(f"{base}#market/streak", wait_until="networkidle")
+    wait_until(pg, "() => document.querySelector('#trustRank .srcol')", 8000)
+    ok(f"【{T}】換分頁回來回到預設「排行」（10-04 規矩：選取不寫進 localStorage）", pg.evaluate(R)["on"] == "rank" and not pg.evaluate("() => Object.keys(localStorage).some(k => /streak/i.test(k))"))
+    code = pg.evaluate("() => (document.querySelector('#trustRank .srrow[data-code]') || {}).dataset?.code")
+    pg.click("#trustRank .srrow[data-code]"); pg.wait_for_timeout(800)
+    ok(f"【{T}】點一列進個股頁", pg.evaluate("location.hash") == f"#stock/{code}", pg.evaluate("location.hash"))
+    # ② 站上均線：圖例拿掉、下拉在；族群卡分段預設收起、展開記住
+    pg.goto(f"{base}#market/ma", wait_until="networkidle")
+    wait_until(pg, "() => document.querySelector('#maSecs details.masec') && echarts.getInstanceByDom(document.getElementById('maTrend'))", 8000)
+    pg.wait_for_timeout(600)
+    m = pg.evaluate("""() => { const c = echarts.getInstanceByDom(document.getElementById('maTrend')), o = c.getOption();
+        const d = [...document.querySelectorAll('#maSecs details.masec')];
+        return { legend: o.legend && o.legend[0] ? o.legend[0].show : null, dd: !!document.querySelector('#maGroupDD .ddbtn'),
+                 secs: d.length, open: d.filter(x => x.open).length, names: d.map(x => x.querySelector('.ttl').textContent),
+                 cards: document.querySelectorAll('#maSecs .ma[data-gid]').length, vis: [...document.querySelectorAll('#maSecs .ma[data-gid]')].filter(e => e.checkVisibility()).length }; }""")
+    ok(f"【{T}】站上均線：圖上那排翻頁圖例拿掉、改用族群下拉", m["legend"] is False and m["dd"], m)
+    ok(f"【{T}】族群卡依產業鏈分段（≥3 段，含半導體）", m["secs"] >= 3 and "半導體" in m["names"], m["names"])
+    ok(f"【{T}】★ 分段預設全部收起（卡片都看不到）", m["open"] == 0 and m["vis"] == 0 and m["cards"] > 0, m)
+    pg.click("#maSecs details.masec[data-chain='semiconductor'] > summary"); pg.wait_for_timeout(400)
+    v1 = pg.evaluate("() => [...document.querySelectorAll('#maSecs .ma[data-gid]')].filter(e => e.checkVisibility()).length")
+    ok(f"【{T}】點半導體 → 那一段的族群卡展開", v1 > 0, v1)
+    pg.goto(f"{base}#market/cand", wait_until="networkidle"); pg.wait_for_timeout(800)
+    pg.goto(f"{base}#market/ma", wait_until="networkidle")
+    wait_until(pg, "() => document.querySelector('#maSecs details.masec')", 8000)
+    op = pg.evaluate("() => [...document.querySelectorAll('#maSecs details.masec[open]')].map(d => d.dataset.chain)")
+    ok(f"【{T}】展開過的段換頁回來還開著（只記使用者動過的）", op == ["semiconductor"], op)
+    # 下拉勾一個族群 → 圖上多一條線
+    pg.click("#maGroupDD .ddbtn"); pg.wait_for_timeout(300)
+    pg.click("#maGroupDD .ddlist input[type=checkbox] >> nth=0"); pg.wait_for_timeout(500)
+    sel = pg.evaluate("() => { const o = echarts.getInstanceByDom(document.getElementById('maTrend')).getOption(); return Object.values(o.legend[0].selected).filter(Boolean).length; }")
+    ok(f"【{T}】下拉勾一個族群，圖上真的多一條線（全市場兩條＋1）", sel == 3, sel)
+    pg.keyboard.press("Escape")
+    # ③ 漲跌分佈：圖卡比表格卡寬
+    pg.goto(f"{base}#market/updown", wait_until="networkidle"); pg.wait_for_timeout(1200)
+    w = pg.evaluate("() => { const a = document.querySelector('.mktdist').getBoundingClientRect().width, t = document.getElementById('mktList').getBoundingClientRect().width;"
+                    " const tabs = document.getElementById('mktTabs').getBoundingClientRect().height; return { a: Math.round(a), t: Math.round(t), tabs: Math.round(tabs) }; }")
+    ok(f"【{T}】漲跌分佈圖卡比右邊表格卡寬", w["a"] > w["t"], w)
+    ok(f"【{T}】1440 時表格五顆分頁鈕排成一行", w["tabs"] < 50, w)
+    # ④ 個股新聞：清單限高、超過在框內捲
+    pg.goto(f"{base}#stock/2368", wait_until="networkidle"); pg.wait_for_timeout(1500)
+    click(pg, '#stockTabs button[data-t="news"]', 1200)
+    n = pg.evaluate("() => { const l = document.getElementById('newsList'); if (!l) return null; const cs = getComputedStyle(l);"
+                    " return { mh: cs.maxHeight, oy: cs.overflowY, sh: l.scrollHeight, ch: l.clientHeight, rows: l.querySelectorAll('.nrow').length }; }")
+    ok(f"【{T}】個股新聞清單限高 560px、超過出捲軸", bool(n) and n["mh"] == "560px" and n["oy"] == "auto" and n["ch"] <= 560, n)
+    if n and n["sh"] > n["ch"]:
+        pg.evaluate("() => document.getElementById('newsList').scrollTop = 200"); pg.wait_for_timeout(200)
+        ok(f"【{T}】新聞清單在框內捲得動", pg.evaluate("() => document.getElementById('newsList').scrollTop") > 0)
+    ok(f"【{T}】整段沒有 JS 錯誤", not errs, errs[:3])
+    c.close()
+
+
 def main_rect(pg):
     """`#lwc` 裡**主圖那一格**的矩形（不含成交量／KD／MACD）。
 
@@ -1408,6 +1562,7 @@ def t_streak(pg, base):
               " return s && s.data ? s.data.length : 0; }")
     # 2026-09-28：這張圖從總覽搬到市場明細的「法人連買賣」分頁（#market/streak）
     pg.goto(f"{base}#market/streak", wait_until="networkidle")
+    streak_quad(pg)   # 2026-10-09 桌機預設改「排行」，這段驗的是四象限
     wait_until(pg, "() => { const e = document.getElementById('trust'); return e && (e.querySelector('canvas') || e.querySelector('.empty')); }", 8000)
     scroll_to(pg, "trustWrap")
     ok("法人連續買超有三顆切換鈕（投信／外資／合計）", count(pg, "#streakWho button") == 3,
@@ -1442,7 +1597,8 @@ def t_streak(pg, base):
         const d = c.getOption().series[0].data[0]; const p = c.convertToPixel({seriesIndex: 0}, d.value); const r = e.getBoundingClientRect();
         return {x: r.left + p[0], y: r.top + p[1], code: d.code}; }""")
     pg.mouse.move(xy["x"] - 20, xy["y"] - 20); pg.mouse.move(xy["x"], xy["y"], steps=3); pg.wait_for_timeout(500)
-    tt = pg.evaluate("""() => { const t = [...document.querySelectorAll('#trust div')].filter(d => /連續/.test(d.innerText || '') && d.offsetParent !== null).pop();
+    # 全站提示框一律 appendToBody（app.js 790 行），不在 #trust 裡 —— 改找 body 底下看得到的那一個
+    tt = pg.evaluate("""() => { const t = [...document.querySelectorAll('#trust div, body > div')].filter(d => /連續/.test(d.innerText || '') && d.getClientRects().length && getComputedStyle(d).visibility !== 'hidden').pop();
         return t ? t.innerText : ''; }""")
     ok("★ 滑過點顯示個股（代號＋象限＋連續天數）", xy["code"] in tt and ("加碼" in tt or "減碼" in tt), tt[:80])
 
@@ -3529,6 +3685,7 @@ def t_market_drill_0928(pg, b, base):
     for w in (1440, 800):
         pg.set_viewport_size({"width": w, "height": 1000})
         pg.goto(f"{base}#market/streak", wait_until="networkidle")
+        streak_quad(pg)   # 2026-10-09 桌機預設改「排行」，這段驗的是四象限
         wait_until(pg, "() => { const e = document.getElementById('trust'); return e && e.querySelector('canvas'); }", 8000)
         st = pg.evaluate("""() => { const e = document.getElementById('trust'); const c = e && echarts.getInstanceByDom(e);
             return { n: c ? (c.getOption().series[0].data || []).length : 0, sub: (document.getElementById('streakSub') || {}).textContent || '',
@@ -3835,7 +3992,7 @@ def t_market(pg, base):
         seen[k] = pg.evaluate("""() => ({ on: (document.querySelector('#mktSeg2 button.on')||{dataset:{}}).dataset.k,
             title: (document.getElementById('mktTitle')||{}).innerText.split(String.fromCharCode(10))[0],
             rows: document.querySelectorAll('#mktBody tr[data-code]').length,
-            blocks: document.querySelectorAll('#mktBody .ma, #mktBody .t5, #mktBody #trust canvas, #mktBody #trust .empty').length })""")
+            blocks: document.querySelectorAll('#mktBody .ma, #mktBody .t5, #mktBody #trust canvas, #mktBody #trust .empty, #mktBody #trustRank .srrow[data-code]').length })""")
         segpos[k] = pg.evaluate("() => { const r = document.getElementById('mktSeg2').getBoundingClientRect(); return [Math.round(r.right), Math.round(r.top)]; }")
         ok(f"市場明細「{k}」按下去真的被選取", seen[k]["on"] == k, seen[k])
         ok(f"市場明細「{k}」有列出東西", seen[k]["rows"] > 0 or seen[k]["blocks"] > 0, seen[k])
@@ -10583,8 +10740,7 @@ def t_stock(pg, base, code):
 
         # B2 縮放與拖曳
         click(pg, '#peMode button[data-v="fill"]', 1200)
-        check_zoom(pg, "peWrap", "peChart", "本益比河流圖")
-        check_drag(pg, "peWrap", "本益比河流圖")
+        check_pe_inner_zoom(pg)
         click(pg, '#peMode button[data-v="band"]', 1400)
     click(pg, '#stockTabs button[data-t="overview"]', 1600)
 
@@ -29003,6 +29159,8 @@ def t_wish_1009(b, base):
 
 
 SECTIONS = {
+    # ★ 2026-10-09 Andy（網頁版）：法人連買賣改直觀（排行預設、四象限可切）、站上均線圖例→下拉＋族群卡依產業鏈收合、漲跌分佈加寬、個股新聞限高捲動
+    "市場明細網頁1009":    lambda pg, b, base, code: t_mkt_web_1009(b, base),
     # ★ 2026-10-09 Andy：「出現格式跑掉 請確實修正每個圖片」—— 手機關聯圖每條鏈每個環節：節點不重疊、文字在框內、連線接在邊上（402／360 × 深／淺）
     "手機關聯圖不重疊1009": lambda pg, b, base, code: t_m4rel_1009(b, base),
     # ★ 2026-10-09 Andy：「再新增一個願望清單」—— 面板分段「意見回饋｜願望清單」、type='wish' 送出、管理頁篩選與願望狀態（網頁＋手機觸控）
@@ -45583,6 +45741,7 @@ def t_block_implicit(b, base):
     pg.on("pageerror", lambda e: errs.append(str(e)))
     pg.route("**/fonts.googleapis.com/**", lambda r: r.abort())
     pg.goto(base + "#market/streak", wait_until="networkidle")     # 2026-09-28 從總覽搬到市場明細
+    streak_quad(pg)   # 2026-10-09 桌機預設改「排行」，這段讀四象限
     wait_until(pg, "window.App && document.querySelector('#streakSub') && /買/.test(document.querySelector('#streakSub').textContent)", 8000)
     read = """() => { const el = document.getElementById('trust'); const c = el && window.echarts && echarts.getInstanceByDom(el);
         const s = c && c.getOption().series[0];
