@@ -280,16 +280,12 @@
   }
 
   /* 產業鏈頁：環節卡清單（#chainList）與「全部展開」列（#segTools）收進一顆「環節卡清單 ▸」收合列，預設收起（Andy：「其餘的可以不用拿掉，但一定要收合」） */
+  /* ★ 2026-10-09（CEO 轉派帳本 62／65，依 Andy 10-09 05:1x「這分頁收合功能都拿掉」）：「環節卡清單 ▸」收合列拿掉，所有族群子頁都一樣。
+     手機上環節卡清單與「全部展開」那列整段不顯示（mobile4.css 第 6 節）—— 回到 10-08「下方只要出現關聯圖就好」：
+     同樣的環節與個股都在上面的關聯圖裡，展開整份清單會把族群子頁撐過 3 屏。舊版插過的收合鈕在這裡拆掉。 */
   function wireChainList() {
     if (!isM()) return;
-    const pane = $('#indChain .chainpane'); if (!pane || !$('#chainList', pane)) return;
-    let b = $(':scope > .m4fold', pane);
-    if (!b) {
-      b = document.createElement('button'); b.type = 'button'; b.className = 'm4fold'; b.setAttribute('aria-expanded', 'false');
-      b.innerHTML = '環節卡清單 <i aria-hidden="true">▸</i>';
-      b.onclick = () => { const on = !pane.classList.contains('m4listopen'); pane.classList.toggle('m4listopen', on); b.setAttribute('aria-expanded', on ? 'true' : 'false'); $('i', b).textContent = on ? '▾' : '▸'; };
-      const anchor = $('#segTools', pane) || $('#chainList', pane); pane.insertBefore(b, anchor);
-    }
+    $$('#indChain .chainpane > .m4fold').forEach((b) => b.remove());
   }
 
   /* ETF 總覽上方三張前 5 名卡：手機改成分頁（Andy：「把上方變成分頁式 不要用滑動」）—— 一排膠囊分段鈕，一次只顯示一張；卡片本身與裡面的切換一個都沒換 */

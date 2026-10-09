@@ -27461,11 +27461,9 @@ def t_mobile_m4_1008(b, base, code):
         # 2026-10-08 晚改（Andy：「圖二需要 Default 展開狀態」）：剖析圖是「收展預設收起」的例外，預設展開
         dg0 = J("() => { const b = document.getElementById('dgBody'); return !!b && getComputedStyle(b).display !== 'none'; }")
         ok(f"【{T}】產業鏈頁剖析圖預設展開（例外：Andy 指定）", dg0, dg0)
-        lst = J("() => ({ btn: !!document.querySelector('#indChain .chainpane > .m4fold'), list: getComputedStyle(document.getElementById('chainList')).display })")
-        ok(f"【{T}】環節卡清單收成「環節卡清單 ▸」、預設收起", lst["btn"] and lst["list"] == "none", lst)
-        m.locator("#indChain .chainpane > .m4fold").tap(); m.wait_for_timeout(400)
-        ok(f"【{T}】點「環節卡清單 ▸」→ 清單出現", J("() => getComputedStyle(document.getElementById('chainList')).display !== 'none'"))
-        m.locator("#indChain .chainpane > .m4fold").tap(); m.wait_for_timeout(300)
+        # ★ 2026-10-09 改寫（Andy 10-09 05:1x「這分頁收合功能都拿掉」，CEO 轉派帳本 62／65）：「環節卡清單 ▸」收合列拿掉，清單整段不顯示（只留關聯圖）
+        lst = J("() => ({ btn: [...document.querySelectorAll('#indChain .chainpane > .m4fold')].filter(e => e.getClientRects().length).length, list: getComputedStyle(document.getElementById('chainList')).display })")
+        ok(f"【{T}】產業鏈頁沒有「環節卡清單 ▸」收合列、清單整段不顯示", lst["btn"] == 0 and lst["list"] == "none", lst)
         m.locator('#dgPick a:has-text("面板")').first.click(); m.wait_for_timeout(2500)
         J("() => { const b = document.querySelector('#dg3d button[data-dm=\"3d\"]'); if (b) b.click(); }"); m.wait_for_timeout(2500)
         J("() => { const b = document.getElementById('dgNum'); if (b && b.textContent.includes('關')) b.click(); }"); m.wait_for_timeout(800)
@@ -28760,6 +28758,47 @@ def t_mobile_m4_ov2(b, base, code):
         m.touchscreen.tap(bgp["x"], bgp["y"]); m.wait_for_timeout(500)
         pk2 = J("() => document.querySelectorAll('#prodDiagram .dgdim, #prodDiagram .dim, #prodDiagram .hl, #prodDiagram .sel, #indChain .segon').length")
         ok(f"【{T}】產業鏈剖析圖點零件（標記 {pk}）→ 點背景 → 選取清掉（{pk2}）", pk is not None and pk > 0 and pk2 == 0, (pk, pk2))
+
+        # ⑦-b CEO 轉派（帳本 21／23／62／65）：剖析圖頂端誠實標示不斷字、題材卡標題不留落單字、族群子頁沒有「環節卡清單 ▸」
+        for wid in (360, 402):
+            m.set_viewport_size({"width": wid, "height": 800})
+            for h in ("industry/electronics", "industry/semiconductor/dg/hbm"):
+                go(h, 4000)
+                dt = J("""() => { const t = document.getElementById('dgTitle'); if (!t || !t.getClientRects().length) return null; const s = t.querySelector('.dgtm');
+                    return { has: !!s, lines: s ? s.getClientRects().length : 0, txt: t.textContent.trim().slice(-14),
+                             fold: [...document.querySelectorAll('#indChain .m4fold')].filter(e => e.getClientRects().length && /環節卡清單/.test(e.textContent)).length,
+                             list: (document.getElementById('chainList') && document.getElementById('chainList').getClientRects().length) || 0 }; }""")
+                ok(f"【{T}】{wid} {h}：「原創示意圖，非實物比例」整段在同一行（不斷成「非實物比｜例」）", dt and dt["has"] and dt["lines"] == 1, dt)
+                ok(f"【{T}】{wid} {h}：沒有「環節卡清單 ▸」收合列、清單整段不顯示", dt and dt["fold"] == 0 and dt["list"] == 0, dt)
+            go("heatmap/theme", 4000)
+            tl = J("""() => [...document.querySelectorAll('#themeDiagram svg .ttl')].map(t => t.textContent)""")
+            ok(f"【{T}】{wid} 題材卡標題每一行至少 4 個字、不留落單字（{tl}）", tl and all(len(x) >= 4 for x in tl), tl)
+            nz4 = J("() => [...document.querySelectorAll('main .view.on button')].filter(b => b.getClientRects().length && /放大/.test(b.textContent)).map(b => b.id)")
+            ok(f"【{T}】{wid} #heatmap/theme 熱力圖右上沒有「放大 ⤢」", not nz4, nz4)
+        m.set_viewport_size({"width": 402, "height": 874})
+
+        # ⑦-c CEO 轉派第 2 批 m4-charts 退件：分流樹排名字級 ≥12、輪動摘要不斷詞、免責完整顯示
+        go("flow/sankey", 4000)
+        fsm = J("""() => [...document.querySelectorAll('main .view.on .skrank *')].filter(e => e.getClientRects().length && [...e.childNodes].some(n => n.nodeType === 3 && n.textContent.trim())
+            && parseFloat(getComputedStyle(e).fontSize) < 12).map(e => e.tagName + '.' + e.className + '@' + getComputedStyle(e).fontSize)""")
+        ok(f"【{T}】資金分流樹排名清單（.skr-k、副標 small）字級全部 ≥ 12px（{len(fsm)} 處低於）", not fsm, fsm[:6])
+        go("flow/rotation", 4000)
+        lede = J("""() => { const e = document.querySelector('main .view.on .t4-lede'); if (!e) return null; const t = e.textContent; const k = t.indexOf('HBM');
+            if (k < 0) return { skip: true }; const w = document.createTreeWalker(e, NodeFilter.SHOW_TEXT); let n, acc = 0, node = null, off = 0;
+            while ((n = w.nextNode())) { if (acc + n.data.length > k) { node = n; off = k - acc; break; } acc += n.data.length; }
+            const word = 'HBM 高頻寬記憶體'; if (t.indexOf(word) < 0) return { skip: true, t: t.slice(0, 40) };
+            const r = document.createRange(); const tops = new Set();
+            for (let i = 0; i < word.length; i++) { if (word[i] === ' ') continue; r.setStart(node, off + i); r.setEnd(node, off + i + 1); const q = r.getClientRects()[0]; if (q) tops.add(Math.round(q.top)); }
+            const z = [...tops].sort((a, b) => a - b); return { lines: z.length, z }; }""")
+        ok(f"【{T}】資金輪動摘要「高頻寬記憶體」不斷在詞中間（{lede}）", lede is not None and (lede.get("skip") or lede["lines"] <= 2 and J("() => { const e = document.querySelector('main .view.on .t4-lede'); return !!e; }")), lede)
+        if lede and not lede.get("skip"):
+            hb = J("""() => { const e = document.querySelector('main .view.on .t4-lede'), t = e.textContent, k = t.indexOf('高頻寬記憶體'); const w = document.createTreeWalker(e, NodeFilter.SHOW_TEXT);
+                let n, acc = 0; while ((n = w.nextNode())) { if (acc + n.data.length > k) break; acc += n.data.length; }
+                const r = document.createRange(), tops = new Set(); for (let i = 0; i < 6; i++) { r.setStart(n, k - acc + i); r.setEnd(n, k - acc + i + 1); tops.add(Math.round(r.getClientRects()[0].top)); } return tops.size; }""")
+            ok(f"【{T}】「高頻寬記憶體」六個字在同一行", hb == 1, hb)
+        dl = J("""() => { const d = [...document.querySelectorAll('main .view.on .disc-line')].find(e => e.getClientRects().length); if (!d) return null;
+            return { sw: d.scrollWidth, cw: d.clientWidth, sh: d.scrollHeight, ch: d.clientHeight, ov: getComputedStyle(d).textOverflow, txt: d.textContent.trim() }; }""")
+        ok(f"【{T}】資金輪動免責聲明完整顯示（沒有被切、沒有「…」）", dl and dl["sw"] <= dl["cw"] + 1 and dl["sh"] <= dl["ch"] + 1 and dl["ov"] != "ellipsis" and dl["txt"].endswith("參考"), dl)
 
         # ⑧ 甜甜圈圖例拉滿寬（≥ 容器 95%），名稱靠左、數字靠右
         go("industry", 4000)

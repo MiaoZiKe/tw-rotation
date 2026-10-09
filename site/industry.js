@@ -1467,7 +1467,12 @@
       const t = $('#dgTitle', el), q = $('#dgQ', el) || document.getElementById('dgQ');   // 「?」開著時 #dgQ 在 #howPop 裡
       if (t) {
         /* 說明精簡：圖名＋誠實標示留在畫面；「點零件看供應商／原尺寸可左右滑」搬進「怎麼看 ?」 */
-        t.textContent = dgId
+        /* ★ 2026-10-09 手機 v2（CEO 轉派帳本 21／62：「原創示意圖，非實物比例」在手機被拆成「…非實物比｜例」）：
+           m4 時圖名與誠實標示各包一個 span（mobile4.css 第 31 節：標示整段不換行，放不下就整段折到下一行）；桌機照舊純文字。*/
+        if (dgId && document.documentElement.classList.contains('m4')) {
+          const e2 = (x) => String(x).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+          t.innerHTML = `<span class="dgtn">${e2(DS.name(dgId))}</span><span class="dgtm">　·　原創示意圖，非實物比例</span>`;
+        } else t.textContent = dgId
           ? `${DS.name(dgId)}　·　原創示意圖，非實物比例`
           /* 沒有選圖＝正在看族群總覽。以前這裡寫「在下面選一張」是指圖別選單，
              選單移除之後要改成指**上方的分頁列**，不然會叫使用者去看一個不存在的東西。*/

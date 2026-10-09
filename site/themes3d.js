@@ -187,6 +187,23 @@
     if (line) out.push(line);
     return out.length ? out : [''];
   }
+  /* ★ 2026-10-09（CEO 轉派帳本 23／65：題材卡標題在 402 寬斷成「…怎麼壓出來｜的」、360 寬「…怎麼壓｜出來的」）：
+     標題斷行規則 —— ① 有「：」而且冒號後那一段一行放得下：就斷在冒號後面（前後各自再照寬度折）；
+     ② 否則照寬度折，最後一行少於 4 個字就從上一行搬字過去，不准剩一兩個字落單。 */
+  function wrapTitle(t, maxW, fw, hw) {
+    const s = String(t == null ? '' : t), k = s.indexOf('：');
+    if (k > 0 && k < s.length - 1) {
+      const a = wrapAt(s.slice(0, k + 1), maxW, fw, hw), b = wrapAt(s.slice(k + 1), maxW, fw, hw);
+      if (b.length === 1 && a.length === 1) return a.concat(b);
+    }
+    const L = wrapAt(s, maxW, fw, hw);
+    if (L.length >= 2) {
+      const last = [...L[L.length - 1]], prev = [...L[L.length - 2]];
+      const need = Math.min(4 - last.length, prev.length - 4);
+      if (last.length < 4 && need > 0) { L[L.length - 1] = prev.slice(-need).join('') + last.join(''); L[L.length - 2] = prev.slice(0, -need).join(''); }
+    }
+    return L;
+  }
   function chainSceneV(o) {
     const st = o.stations;
     const W = Math.max(280, Math.round(ctxW || V_W0)), PX = 2;
@@ -194,7 +211,7 @@
     const ln = (y) => `<path class="m4ln" d="M0,${Math.round(y) + .5} H${W}"/>`;
     let y = 0, out = '';
     // 標題吃滿寬（2026-10-09 起右上角不再有 ↻ 重設鈕：改成點背景重設，見 app.js wireThemeDiagram）
-    wrapAt(o.title, W - 4, 16, 9).forEach(t => { y += 22; out += `<text class="ttl" x="${PX}" y="${y}">${esc(t)}</text>`; });
+    wrapTitle(o.title, W - 4, 16, 9).forEach(t => { y += 22; out += `<text class="ttl" x="${PX}" y="${y}">${esc(t)}</text>`; });
     y += 22;
     out += `<text class="cap capbtn" x="${PX}" y="${y}" data-cap="${esc([o.cap, o.unit].filter(Boolean).join('\n'))}">說明 ›</text>`;
     y += 14;
