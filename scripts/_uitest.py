@@ -48290,13 +48290,38 @@ def t_refund_1009(b, base):
     pg.locator("#lgDoc a[href='#refund']").first.click(); pg.wait_for_timeout(900)
     ok(f"{T}：點使用條款裡的連結 → 真的到退款頁", pg.evaluate("() => location.hash") == "#refund"
        and pg.evaluate("() => document.querySelector('#lgDoc h1').textContent") == "退款與取消訂閱政策", "")
+    # 2026-10-09 18:1x Andy 回覆五格與退款三題：管轄法院加但書、讀 legal_config.court；不提供試用、合計一次
+    pg.goto(base + "#terms", wait_until="networkidle"); pg.wait_for_timeout(800)
+    tt = pg.inner_text("#lgDoc")
+    ok(f"{T}：使用條款寫「臺灣臺北地方法院」＋但書（消費者保護法第 47 條、民事訴訟法第 436 條之 9、專屬管轄從其規定）",
+       "臺灣臺北地方法院為第一審管轄法院" in tt.replace(" ", "") and "消費者保護法第 47 條" in tt and "民事訴訟法第 436 條之 9" in tt
+       and "專屬管轄" in tt, "")
+    ok(f"{T}：使用條款寫「目前不提供免費試用」", "目前不提供免費試用" in tt, "")
+    cfg = pg.evaluate("() => ({ op: TW_LEGAL.operator, em: TW_LEGAL.email, ed: TW_LEGAL.effective_date, tax: TW_LEGAL.tax_id, court: TW_LEGAL.court, on: TW_LEGAL.enabled, st: TwLegal.state() })")
+    ok(f"{T}：legal_config 五格是 Andy 10-09 的值、enabled 仍是 false、判定未啟用",
+       cfg["op"] == "哩股哩股" and cfg["em"] == MAIL and cfg["ed"] == "2026-10-01" and cfg["tax"] == "尚未辦理" and cfg["court"] == "臺灣臺北地方法院"
+       and cfg["on"] is False and cfg["st"]["active"] is False, cfg)
+    bad_trial = re.compile(r"1\s*個月|30\s*天免費試用|七天免費試用|7\s*天免費試用|免費試用（目前規劃")
+    hits = {}
+    for hsh in ("#terms", "#refund", "#privacy", "#disclaimer"):
+        pg.goto(base + hsh, wait_until="networkidle"); pg.wait_for_timeout(700)
+        m_ = bad_trial.findall(pg.inner_text("#lgDoc"))
+        if m_: hits[hsh] = m_
+    pg.goto(base + q + "demo=plans#pricing", wait_until="networkidle"); pg.wait_for_timeout(2500)
+    m_ = bad_trial.findall(pg.inner_text("#v-pricing"))
+    if m_: hits["#pricing"] = m_
+    ok(f"{T}：四份法律頁與方案頁都不再出現「1 個月」「30 天免費試用」「七天免費試用」", not hits, hits)
+    pg.goto(base + "#refund", wait_until="networkidle"); pg.wait_for_timeout(800)
+    rt = pg.inner_text("#lgDoc")
+    ok(f"{T}：退款頁防濫用段保留合計一次（目前不提供免費試用；曾使用免費試用或退款保證者不再適用另一項）",
+       "目前不提供免費試用" in rt and "合計一次" in rt and "曾使用免費試用或退款保證者" in rt, "")
     pg.goto(base + "#privacy", wait_until="networkidle"); pg.wait_for_timeout(800)
     pt = pg.inner_text("#lgDoc")
     ok(f"{T}：隱私權政策寫明刪除帳號後保留信箱雜湊值的目的與保存期間、行銷聯繫的拒絕方式",
        "HMAC" in pt and "無法回推出原電子郵件地址" in pt and "刪除帳號後1年自動刪除" in pt.replace(" ", "") and "個人資料保護法第 20 條" in pt and "Deno Deploy" in pt, "")
     ctx.close()
     # 設定值改了 → 頁面真的跟著變（模擬 Andy 把天數改成 10、打開 App 內購、線上付款上線）
-    ctx, pg = _lg_page(b, init="window.TW_LEGAL_OVERRIDE={REFUND_DAYS:10,REFUND_PROCESS_DAYS:10,APP_STORE_IAP:true,PAY_ONLINE:true,PAY_PROVIDER:'測試金流股份有限公司'};")
+    ctx, pg = _lg_page(b, init="window.TW_LEGAL_OVERRIDE={REFUND_DAYS:10,REFUND_PROCESS_DAYS:10,APP_STORE_IAP:true,PAY_ONLINE:true,PAY_PROVIDER:'測試金流股份有限公司',court:'臺灣新北地方法院'};")
     pg.goto(base + "#refund", wait_until="networkidle"); pg.wait_for_timeout(1500)
     t2 = pg.inner_text("#lgDoc")
     d2 = pg.evaluate("() => [...document.querySelectorAll('[data-refund-days]')].map(e => e.textContent)")
@@ -48304,6 +48329,10 @@ def t_refund_1009(b, base):
        "10 天退款保證" in t2 and "7 天退款保證" not in t2 and d2 == ["10"] and pg.evaluate("() => window.TwLegal.refund().days") == 10, d2)
     ok(f"{T}：開關打開 → 出現「App 內購買」段、取消方式改寫帳號選單自助取消、金流名稱換成設定值",
        "App 內購買" in t2 and "帳號選單 →「取消訂閱」" in t2 and "測試金流股份有限公司" in t2 and "上線時於本頁公告名稱" not in t2, "")
+    pg.goto(base + "#terms", wait_until="networkidle"); pg.wait_for_timeout(900)
+    t3 = pg.inner_text("#lgDoc")
+    ok(f"{T}：管轄法院讀 legal_config.court（改成「臺灣新北地方法院」→ 使用條款跟著變，不再寫死臺北）",
+       "臺灣新北地方法院" in t3 and "臺灣臺北地方法院" not in t3, "")
     ctx.close()
     # 方案頁：付費卡升級鈕下面有「付款前請先閱讀」→ 點了真的進退款頁
     ctx, pg = _lg_page(b)
@@ -48359,8 +48388,10 @@ def t_legal(b, base):
     ctx, pg = _lg_page(b)
     pg.goto(base + "#overview", wait_until="networkidle"); pg.wait_for_timeout(2500)
     st = pg.evaluate("() => window.TwLegal && window.TwLegal.state()")
-    ok("[關] legal.js 載入、判定為未啟用，而且列得出還缺哪些欄位",
-       st and st["active"] is False and set(["operator", "email", "effective_date"]) <= set(st["missing"]["fields"]), st)
+    # 2026-10-09 改前→改後（Andy 10-09 18:1x 回覆五格：「哩股哩股」「沿用 kcq01010909@gmail.com 後面會更改」「先設定10/01 後面上架 會在改」「尚未辦理」＋臺北地院）：
+    #   改前驗「列得出還缺 operator／email／effective_date」；改後五格都填了、沒有缺欄位，但 enabled 仍是 false → 仍判定未啟用。
+    ok("[關] legal.js 載入、五格已填（Andy 10-09）但總開關關著 → 判定為未啟用、沒有缺欄位",
+       st and st["active"] is False and st["filled"] is True and not st["missing"]["fields"], st)
     ok("[關] 乾淨的瀏覽器（沒有 tw.consent）也不出現同意橫幅", pg.locator("#lgBanner").count() == 0,
        pg.locator("#lgBanner").count())
     ok("[關] 沒有同意紀錄時也不寫任何東西", _lg_ls(pg, "tw.consent") is None, _lg_ls(pg, "tw.consent"))
