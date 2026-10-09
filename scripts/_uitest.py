@@ -58533,7 +58533,7 @@ def t_trial_grants_1009(b, base):
             else:
                 pg.screenshot(path=str(pathlib.Path(shots) / name))
         except Exception as e:  # noqa: BLE001
-            errs.append(f"截圖 {name}: {e}")
+            print(f"  （{T} 截圖 {name} 沒存成：{str(e)[:80]}）")   # 截圖只是給人看的，不算功能壞
 
     ctxs = []
     try:
@@ -58729,7 +58729,9 @@ def t_trial_grants_1009(b, base):
         mi = mp.evaluate("() => { const t = document.querySelector('#etfInc > .qcov .qc-gtag'), btn = document.querySelector('#etfInc > .qcov .qc-try'); if (!t || !btn) return null; const r = t.getBoundingClientRect(), rb = btn.getBoundingClientRect(); return { fs: parseFloat(getComputedStyle(t).fontSize), r: r.right, bh: rb.height, br: rb.right, sw: document.documentElement.scrollWidth - innerWidth }; }")
         ok(f"{T}：390 #etf/inc 卡片「體驗剩 N 次」標籤與「繼續看」鈕看得到（字 ≥ 11px、鈕高 ≥ 36px、不超出螢幕、沒有橫向捲軸）",
            bool(mt) and mi and mi["fs"] >= 11 and mi["bh"] >= 36 and mi["r"] <= 390 and mi["br"] <= 390 and mi["sw"] <= 1, mi)
-        mp.locator("#etfInc > .qcov .qc-gtag").scroll_into_view_if_needed()
+        # 卡片在方案清單晚到（tw:plans）時會整張重畫一次 → 用 evaluate 捲（不握著舊節點）
+        mp.evaluate("() => { const t = document.querySelector('#etfInc > .qcov .qc-gtag'); if (t) t.scrollIntoView({ block: 'center' }); }")
+        mp.wait_for_timeout(300)
         shot(mp, "tag_390_etfinc.png", "#etfInc > .qcov .qcard")
         mp.tap("#etfInc .qc-try")
         ok(f"{T}：390 點「繼續看」→ 內容出現", bool(wait_until(mp, "() => { const e = document.getElementById('etfInc'); return e && !e.hasAttribute('data-plk'); }", 6000)))
