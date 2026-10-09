@@ -1220,6 +1220,25 @@
 }
 
 /* ============================================================================
+   第 31 節（2026-10-09，手機與桌機資訊同步）—— 只在 ≤640＋:root.m4，桌機一條都不吃
+   訂閱方案頁：第 24、29 節把三樣東西整段藏掉了，這裡用精簡一行的方式放回來（字級一律 12px，不破下限）
+   · 頁底法遵聲明 .prlegal（「不是證券投資顧問…」）：法遵文字手機一定要看得到 → 12px 小字、行距收緊
+   · 年繳省多少 .prorig：卡片版（三張並排、每張約 150px）＝只放琥珀「省 NT$ X／年・約 Y%」徽章（窄卡折成兩行，不截字）；刪除線原價放不下，收起；
+     月繳時那一行只是 &nbsp; 佔位 → 不顯示。合併表（每欄約 86px）徽章會折成三行、把價格擠下去 → 不放
+     （年繳「省 17%」已經在月繳／年繳切換鈕上，月繳時下面的價格備註也寫「改年繳一年省 NT$ X」）
+   · 價格備註 .prnote（「改年繳一年省…」「年繳 NT$ 3,990（一次付清）」）：不夾行、不截字（監督退件：夾兩行把年繳總價截成「…」）；
+     卡片版放全文，合併表換短字「年繳 7,990」「免信用卡」（mobile4.js PR_NOTE_SHORT，完整句子在 title）
+   ---------------------------------------------------------------------------- */
+@media (max-width:640px){
+  :root.m4 #v-pricing .prlegal.prlegal{display:block!important;margin-top:14px!important;padding-top:10px!important;font-size:12px!important;line-height:1.55!important;color:var(--ink-2)}
+  :root.m4 #v-pricing .prcard .prorig:has(.prsale){display:flex!important;justify-content:center;height:auto!important;margin:2px 0 0!important;font-size:12px!important;white-space:normal!important;overflow:visible!important}
+  :root.m4 #v-pricing .prcard .prorig .prstrike{display:none!important}
+  :root.m4 #v-pricing .prcard .prorig .prsale{min-width:0;max-width:100%;font-size:12px!important;line-height:1.35!important;padding:1px 6px!important;white-space:normal!important;text-align:center;height:auto!important}
+  :root.m4 #v-pricing .prcard .prnote{display:block!important;height:auto!important;margin:2px 0 0!important;font-size:12px!important;line-height:1.4!important;white-space:normal!important;overflow:visible!important;text-overflow:clip!important}
+  :root.m4 #v-pricing .prmg thead th .prnote{display:block!important;height:auto!important;margin:4px 0 0!important;font-size:12px!important;line-height:1.35!important;white-space:normal!important;overflow:visible!important;text-overflow:clip!important;word-break:keep-all}
+}
+
+/* ============================================================================
    2026-10-10 網頁手機同步（docs/web_mobile_sync_1010.md 第 5 節 4、8 條；手機 session m4-sync2）
    ⚠ 只在 ≤640 而且 :root.m4；縮放提示那段再加 (hover:none)＝真的觸控手機才換（桌機拉窄視窗用滑鼠，滾輪照樣能用）。
    ============================================================================ */

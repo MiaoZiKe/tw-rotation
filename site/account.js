@@ -462,7 +462,7 @@
     stopPoll();
     const tick = async () => {
       const j = await call('/auth/redeem', { n });
-      if (j && j.tok && j.user) { stopPoll(); closeDlg(); setUser(j.user, j.tok); track('login'); toast('已登入：' + (j.user.name || j.user.email)); return; }
+      if (j && j.tok && j.user) { stopPoll(); closeDlg(); setUser(j.user, j.tok); track('login'); toast('已登入：' + (j.user.name || j.user.email)); goHome(); return; }
       if (j && j._s === 404) { stopPoll(); openDlg('notice'); toast('登入沒有完成，請再試一次'); return; }
       if (Date.now() - t0 > 180 * 1000) { stopPoll(); closeDlg(); toast('等太久了，登入已取消'); return; }
       S.poll = setTimeout(tick, 1200);
@@ -470,13 +470,15 @@
     S.pollN = n;
     S.poll = setTimeout(tick, 1200);
   }
+  /* 10-10 Andy：「登入後 需要自動跳回去首頁總覽」——三個登入完成的入口（彈窗輪詢、postMessage、整頁跳轉回來）都走這支 */
+  function goHome() { if ((location.hash || '') !== '#overview') location.hash = '#overview'; }
   function stopPoll() { clearTimeout(S.poll); S.poll = 0; S.pollN = null; }
   window.addEventListener('message', (e) => {
     if (!S.api || e.origin !== new URL(S.api).origin) return;
     const d = e.data || {};
     if (d.type === 'tw-login' && d.n && d.n === S.pollN) { clearTimeout(S.poll); S.poll = setTimeout(async () => {
       const j = await call('/auth/redeem', { n: d.n });
-      if (j && j.tok && j.user) { stopPoll(); closeDlg(); setUser(j.user, j.tok); track('login'); toast('已登入：' + (j.user.name || j.user.email)); }
+      if (j && j.tok && j.user) { stopPoll(); closeDlg(); setUser(j.user, j.tok); track('login'); toast('已登入：' + (j.user.name || j.user.email)); goHome(); }
     }, 0); }
   });
   function logout() { track('logout'); setUser(null, null); toast('已登出。這台裝置上不會留下你的雲端清單。'); if ((location.hash || '').startsWith('#admin')) route('admin'); }
@@ -576,7 +578,7 @@
     if (n) {
       ss.del('tw.acct.n');
       const j = await call('/auth/redeem', { n });
-      if (j && j.tok && j.user) { setUser(j.user, j.tok); track('login'); toast('已登入：' + (j.user.name || j.user.email)); }
+      if (j && j.tok && j.user) { setUser(j.user, j.tok); track('login'); toast('已登入：' + (j.user.name || j.user.email)); goHome(); }
     } else if (S.tok) {
       const j = await call('/v1/me', {});
       if (j && j.user) setUser(j.user, j.tok || null);

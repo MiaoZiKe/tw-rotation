@@ -140,7 +140,7 @@ html.m4 #m4Tools #t4Btn{display:none!important}
    標題與分段放不下同一排時（分段的最小寬度＝三格中最寬那格的內容 ×3）整組分段自動掉到下一行、撐滿；分段本身永遠單排三格、不截字 */
 html.m4 .m4am .m4styrow{display:flex;flex-wrap:wrap;align-items:center;column-gap:10px;row-gap:6px;padding:6px 10px;min-height:46px;box-sizing:border-box}
 html.m4 .m4am .m4styrow>.t{flex:1 0 auto;font-size:15px;white-space:nowrap}
-html.m4 .m4am .m4seg4{flex:1 0 auto;min-width:max-content;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:2px;padding:3px;box-sizing:border-box;
+html.m4 .m4am .m4seg4{flex:1 0 auto;min-width:max-content;display:grid;grid-auto-flow:column;grid-auto-columns:minmax(0,1fr);gap:2px;padding:3px;box-sizing:border-box;
   border:1px solid var(--t4-ctl-edge,var(--line-2));border-radius:9px;background:var(--t4-ctl,var(--panel-3))}
 html.m4 .m4am .m4seg4 button{display:flex!important;align-items:center;justify-content:center;width:auto;min-height:40px;padding:0 9px;border:0;border-radius:7px;
   background:transparent;color:var(--ink-2);font-size:13px;line-height:1.2;white-space:nowrap;text-align:center}
@@ -310,7 +310,7 @@ html.m4 .m4deldlg .msg{min-height:1.4em;font-size:13px;color:#ff6b7a;margin:4px 
     else if (k === 'pricing') location.hash = '#pricing';
     else if (k === 'notify') location.hash = '#notices';
     else if (k === 'quota') openQuota();
-    else if (k === 'feedback') { if (window.TwSupport && window.TwSupport.open) window.TwSupport.open(); }
+    else if (k === 'feedback') { if (window.TwSupport && window.TwSupport.open) window.TwSupport.open('fb'); }   // 直接切到「意見反饋＞意見回饋」分頁（10-10 Andy）
     else if (k === 'del') openDel();
   }
 

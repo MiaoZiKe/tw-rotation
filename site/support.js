@@ -751,7 +751,8 @@ html.fab-off .supfab{display:none!important}`);
       };
     });
   }
-  window.TwSupport = { open: () => toggle(true), close: () => toggle(false), renderFeedbackAdmin, paintDot, refreshUnread, unread: () => unread, email: SUPPORT_EMAIL, faq: FAQ };
+  /* open(t)：10-10 Andy「意見回饋功能 點擊會切到對應分頁」→ open('fb') 直接開在意見反饋＞意見回饋；不帶參數＝照舊 */
+  window.TwSupport = { open: (t) => { if (t === 'fb' || t === 'wish' || t === 'faq' || t === 'mail') { tab = t === 'wish' ? 'fb' : t; if (t === 'fb' || t === 'wish') fbKind = t; } toggle(true); }, close: () => toggle(false), renderFeedbackAdmin, paintDot, refreshUnread, unread: () => unread, email: SUPPORT_EMAIL, faq: FAQ };
   /* 管理端路由：#admin/feedback（這支畫）。#admin/notices 給 notices.js。view 共用 #v-subadm */
   window.TwSubRoutes.push((head, rest) => {
     if (head !== 'admin' || rest[0] !== 'feedback') return null;
