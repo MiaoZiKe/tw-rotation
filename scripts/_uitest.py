@@ -28834,6 +28834,16 @@ def t_mobile_m4_ov2(b, base, code):
             J("() => { const b = document.querySelector('#m3Mode button[data-m=\"line\"]'); if (b) b.click(); }"); m.wait_for_timeout(800)
         m.set_viewport_size({"width": 402, "height": 874})
 
+        # ⑦-e 合併 claude/m4-3dfix：↻ 拿掉之後，3D 收合鈕（⤢／⤡）補到圖框右上角，不留空位（402 寬，右緣距畫布右緣 ≤ 12px）
+        go("industry/electronics", 4500)
+        J("() => { const b = document.querySelector('#dg3d button[data-dm=\"3d\"]'); if (b) b.click(); }"); m.wait_for_timeout(3500)
+        c3 = J("""() => { const b = document.querySelector('#prod3d > .m4c3d'), cv = document.querySelector('#prod3d canvas');
+            if (!b || !cv || !b.getClientRects().length) return { btn: !!b, cv: !!cv };
+            const r = b.getBoundingClientRect(), c = cv.getBoundingClientRect();
+            return { gap: Math.round(c.right - r.right), top: Math.round(r.top - c.top), rst: document.querySelectorAll('main .view.on .m4rst').length }; }""")
+        ok(f"【{T}】3D 收合鈕在圖框右上角：右緣距畫布右緣 {c3 and c3.get('gap')}px（≤ 12）、沒有 ↻ 佔位", c3 and c3.get("gap") is not None and 0 <= c3["gap"] <= 12 and c3["rst"] == 0, c3)
+        J("() => { const b = document.querySelector('#dg3d button[data-dm=\"2d\"]'); if (b) b.click(); }"); m.wait_for_timeout(800)
+
         # ⑧ 甜甜圈圖例拉滿寬（≥ 容器 95%），名稱靠左、數字靠右
         go("industry", 4000)
         lgw = J("""() => { const l = document.getElementById('gpLegend'); if (!l || !l.getClientRects().length) return null; const c = l.closest('.gpdonut') || l.parentElement;
