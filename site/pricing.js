@@ -409,7 +409,7 @@
 #v-pricing .prgo[disabled]{background:transparent;color:var(--ink-2);border-color:color-mix(in srgb,var(--pc) 35%,var(--line-2));cursor:default}
 #v-pricing .prcard.mine .prgo[disabled]{font-weight:700}
 #v-pricing .prpre{margin:8px 0 0;font-size:12px;line-height:1.5;color:var(--ink-3);text-align:center}
-#v-pricing .prpre a{color:var(--cyan);text-decoration:none}
+#v-pricing .prpre a{color:var(--cyan);text-decoration:none;white-space:nowrap} /* 手機監督（帳本 47）：書名號整段一起換行，不斷在《》裡面 */
 #v-pricing .prpre a:hover{text-decoration:underline}
 #v-pricing .prapply{text-align:center;font-size:13px;color:var(--ink-2);margin:20px 0 0}
 #v-pricing .prapply b{color:var(--ink)}
