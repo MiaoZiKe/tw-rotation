@@ -29962,6 +29962,8 @@ SECTIONS = {
     #   頁尾免責聲明（預設開）、三個法律頁、同意橫幅與平台導覽（預設關，條款空格填完＋enabled 才開）。
     #   開關打開的那半段用 add_init_script 注入 window.TW_LEGAL_OVERRIDE 模擬「Andy 填好了」。
     "同意條款與法律頁":    lambda pg, b, base, code: t_legal(b, base),
+    # ★ 2026-10-09 退款與取消訂閱政策（#refund；site/legal.js refundDoc、legal_config.js REFUND_*、pricing.js 付費卡下一行）
+    "退款政策1009":        lambda pg, b, base, code: t_refund_1009(b, base),
     # ★ 2026-10-07 Andy：「平台導覽太爛了，需要有真的導覽的感覺」—— 逐步導覽（site/tour.js）：真的按完全站導覽每一步、上一步、Esc、鎖住跳過、390（⚠ 一律 --workers 1）
     "平台導覽1007":        lambda pg, b, base, code: t_tour_1007(pg, b, base),
     # ★ 2026-10-09 Andy：「確實檢查所有導覽功能，我發現導覽功能不能使用」—— 每個導覽入口 × 17 頁 × 1440／402 觸控，真的點開、走完、按完成（⚠ --workers 1）
@@ -46444,6 +46446,105 @@ def _legal_spy(pg, base):
 
 
 
+
+# ===================================================================== 退款政策1009
+# Andy 10-09：「退款政策及取消訂閱幫我新增」。驗的是「畫面真的因此改變了」：
+#   頁尾有連結、點了真的進到退款頁；方案頁付費卡有「付款前請先閱讀」連結、點了真的進退款頁；
+#   頁面出現 CONTACT_EMAIL；legal_config 的天數改了，頁面上的天數真的跟著變；App 內購段預設不出現、開關打開才出現。
+#   設 TW_REFUND_SHOTS=<資料夾> 時順手存三張截圖（退款頁 1440、402、方案頁連結）。
+def t_refund_1009(b, base):
+    T = "退款政策1009"
+    shots = os.environ.get("TW_REFUND_SHOTS", "")
+    MAIL = "kcq01010909@gmail.com"
+    q = "&" if "?" in base else "?"
+    ctx, pg = _lg_page(b)
+    pg.goto(base + "#overview", wait_until="networkidle"); pg.wait_for_timeout(2000)
+    ft = pg.evaluate("() => { const a = document.getElementById('sfRefund'); return a ? { href: a.getAttribute('href'), t: a.textContent, vis: !!a.getClientRects().length } : null; }")
+    ok(f"{T}：頁尾有「退款與取消訂閱」連結（#refund）", bool(ft) and ft["href"] == "#refund" and "退款" in ft["t"] and ft["vis"], ft)
+    pg.evaluate("() => window.scrollTo(0, document.body.scrollHeight)"); pg.wait_for_timeout(300)
+    pg.click("#sfRefund"); pg.wait_for_timeout(1500)
+    r = pg.evaluate("""() => ({ hash: location.hash, legal: document.getElementById('v-legal').classList.contains('on'),
+        ov: document.getElementById('v-overview').classList.contains('on'), h1: (document.querySelector('#lgDoc h1') || {}).textContent || '',
+        doc: (document.getElementById('lgDoc') || {}).dataset ? document.getElementById('lgDoc').dataset.doc : '',
+        t: (document.getElementById('lgDoc') || {}).innerText || '', days: [...document.querySelectorAll('[data-refund-days]')].map(e => e.textContent),
+        tabs: [...document.querySelectorAll('.lgtabs a')].map(a => [a.textContent.trim(), a.classList.contains('on')]),
+        blanks: document.querySelectorAll('#lgDoc .lgblank').length, sw: document.documentElement.scrollWidth - innerWidth })""")
+    ok(f"{T}：點頁尾連結 → 真的進到退款頁（#refund、法律頁顯示、總覽收起、標題是「退款與取消訂閱政策」）",
+       r["hash"] == "#refund" and r["legal"] and not r["ov"] and r["h1"] == "退款與取消訂閱政策" and r["doc"] == "refund", {k: r[k] for k in ("hash", "legal", "ov", "h1")})
+    ok(f"{T}：頂端分頁第四顆「退款政策」是目前頁", r["tabs"] and r["tabs"][-1] == ["退款政策", True] and sum(1 for x in r["tabs"] if x[1]) == 1, r["tabs"])
+    ok(f"{T}：頁面出現客服信箱 {MAIL}", MAIL in r["t"], "")
+    ok(f"{T}：預設天數 7 反映在頁面上（標題「7 天退款保證」、條文 data-refund-days=7、重點一覽）",
+       "7 天退款保證" in r["t"] and r["days"] == ["7"] and "首次付款 7 天內" in r["t"], r["days"])
+    must = ["取消訂閱", "期末", "不再收費", "消費者保護法第 19 條", "第 2 條第 5 款", "事先同意", "年繳", "按未使用日數比例退款",
+            "每一帳號僅能享有一次", "同一電子郵件地址", "曾經取消訂閱或曾獲退款", "原路退回", "14 日內", "第三方金流服務商（上線時於本頁公告名稱）"]
+    miss = [x for x in must if x not in r["t"]]
+    ok(f"{T}：條文涵蓋取消、七日解除權與其前提、年繳、終止退款、防濫用（每帳號一次）、原路退回、處理時限、金流未定的寫法", not miss, miss)
+    ok(f"{T}：不寫任何一家金流的名字、沒有【】空格、App 內購段預設不出現", not re.search("藍新|綠界|NewebPay|ECPay", r["t"], re.I)
+       and r["blanks"] == 0 and "App 內購買" not in r["t"], "")
+    ok(f"{T}：1440 沒有橫向捲軸、沒有小於 12px 的字", r["sw"] <= 1 and not pg.evaluate(_LG_FONTS, "#v-legal"), pg.evaluate(_LG_FONTS, "#v-legal"))
+    st = pg.evaluate("() => window.TwLegal.refund()")
+    ok(f"{T}：window.TwLegal.refund() 給得出天數（給帳號選單讀）", st and st["days"] == 7 and st["url"] == "#refund", st)
+    if shots:
+        os.makedirs(shots, exist_ok=True)
+        pg.evaluate("() => window.scrollTo(0, 0)"); pg.wait_for_timeout(300)
+        pg.screenshot(path=os.path.join(shots, "refund_1440.png"), full_page=True)
+    # 「開啟客服表單」真的打開右下角客服
+    pg.locator("#lgDoc [data-lgsupport]").click(); pg.wait_for_timeout(600)
+    sup = pg.evaluate("() => { const p = document.getElementById('supPanel'); return !!p && !p.hidden && !!p.getClientRects().length; }")
+    ok(f"{T}：退款頁「開啟客服表單」→ 右下角客服面板真的打開", sup, sup)
+    # 使用條款付費段、隱私權政策都連得到／寫到
+    pg.goto(base + "#terms", wait_until="networkidle"); pg.wait_for_timeout(800)
+    tl = pg.evaluate("() => [...document.querySelectorAll('#lgDoc a[href=\"#refund\"]')].length")
+    ok(f"{T}：使用條款付費段連到退款政策（≥2 個連結：取消、退款）", tl >= 2, tl)
+    pg.locator("#lgDoc a[href='#refund']").first.click(); pg.wait_for_timeout(900)
+    ok(f"{T}：點使用條款裡的連結 → 真的到退款頁", pg.evaluate("() => location.hash") == "#refund"
+       and pg.evaluate("() => document.querySelector('#lgDoc h1').textContent") == "退款與取消訂閱政策", "")
+    pg.goto(base + "#privacy", wait_until="networkidle"); pg.wait_for_timeout(800)
+    pt = pg.inner_text("#lgDoc")
+    ok(f"{T}：隱私權政策寫明刪除帳號後保留信箱雜湊值的目的與保存期間、行銷聯繫的拒絕方式",
+       "HMAC" in pt and "無法回推出原電子郵件地址" in pt and "刪除帳號後1年自動刪除" in pt.replace(" ", "") and "個人資料保護法第 20 條" in pt and "Deno Deploy" in pt, "")
+    ctx.close()
+    # 設定值改了 → 頁面真的跟著變（模擬 Andy 把天數改成 10、打開 App 內購、線上付款上線）
+    ctx, pg = _lg_page(b, init="window.TW_LEGAL_OVERRIDE={REFUND_DAYS:10,REFUND_PROCESS_DAYS:10,APP_STORE_IAP:true,PAY_ONLINE:true,PAY_PROVIDER:'測試金流股份有限公司'};")
+    pg.goto(base + "#refund", wait_until="networkidle"); pg.wait_for_timeout(1500)
+    t2 = pg.inner_text("#lgDoc")
+    d2 = pg.evaluate("() => [...document.querySelectorAll('[data-refund-days]')].map(e => e.textContent)")
+    ok(f"{T}：legal_config 的天數改成 10 → 頁面寫「10 天退款保證」、不再出現「7 天退款保證」、TwLegal.refund().days=10",
+       "10 天退款保證" in t2 and "7 天退款保證" not in t2 and d2 == ["10"] and pg.evaluate("() => window.TwLegal.refund().days") == 10, d2)
+    ok(f"{T}：開關打開 → 出現「App 內購買」段、取消方式改寫帳號選單自助取消、金流名稱換成設定值",
+       "App 內購買" in t2 and "帳號選單 →「取消訂閱」" in t2 and "測試金流股份有限公司" in t2 and "上線時於本頁公告名稱" not in t2, "")
+    ctx.close()
+    # 方案頁：付費卡升級鈕下面有「付款前請先閱讀」→ 點了真的進退款頁
+    ctx, pg = _lg_page(b)
+    pg.goto(base + q + "demo=plans#pricing", wait_until="networkidle"); pg.wait_for_timeout(3500)
+    pr = pg.evaluate("""() => [...document.querySelectorAll('#v-pricing .prcard')].map(c => { const p = c.querySelector('.prpre');
+        return { tier: c.dataset.tier, has: !!p, vis: !!p && getComputedStyle(p).visibility !== 'hidden', refund: !!(p && p.querySelector('a[href="#refund"]')),
+                 terms: !!(p && p.querySelector('a[href="#terms"]')), t: p ? p.textContent : '' }; })""")
+    paid = [x for x in pr if x["tier"] not in ("free", "guest")]
+    ok(f"{T}：方案頁每張付費卡的升級鈕下面有「付款前請先閱讀《退款與取消訂閱政策》《使用條款》」", bool(paid) and all(x["vis"] and x["refund"] and x["terms"] and "付款前請先閱讀" in x["t"] for x in paid), pr)
+    btn = pg.evaluate("""() => [...document.querySelectorAll('#v-pricing .prcard')].map(c => Math.round(c.querySelector('.prgo').getBoundingClientRect().top))""")
+    ok(f"{T}：加了這一行之後，各張卡的按鈕仍在同一條線上（免費卡用隱形佔位）", len(set(btn)) == 1, btn)
+    if shots:
+        el = pg.locator("#v-pricing .prcard").nth(len(pr) - 1)
+        el.scroll_into_view_if_needed(); pg.wait_for_timeout(300)
+        pg.screenshot(path=os.path.join(shots, "pricing_link_1440.png"), clip=pg.evaluate("""() => { const r = document.getElementById('prCards').getBoundingClientRect();
+            return { x: Math.max(0, r.left - 10), y: Math.max(0, r.bottom - 300), width: Math.min(innerWidth, r.width + 20), height: 330 }; }"""))
+    pg.locator("#v-pricing .prpre a[href='#refund']").first.click(); pg.wait_for_timeout(1200)
+    ok(f"{T}：點方案頁的《退款與取消訂閱政策》→ 真的到退款頁", pg.evaluate("() => location.hash") == "#refund"
+       and pg.evaluate("() => (document.querySelector('#lgDoc h1') || {}).textContent") == "退款與取消訂閱政策", "")
+    ctx.close()
+    # 手機 402：沒有橫向捲軸、四顆分頁一列、字 ≥ 12
+    ctx, pg = _lg_page(b, 402, 874, mobile=True)
+    pg.goto(base + "#refund", wait_until="networkidle"); pg.wait_for_timeout(1800)
+    m = pg.evaluate("""() => { const a = [...document.querySelectorAll('.lgtabs a')].map(x => x.getBoundingClientRect());
+        return { sw: document.documentElement.scrollWidth - innerWidth, tops: a.map(x => Math.round(x.top)), r: Math.round(a[a.length - 1].right), w: innerWidth,
+                 h1: document.querySelector('#lgDoc h1').textContent }; }""")
+    ok(f"{T}：402 手機：退款頁沒有橫向捲軸、四顆分頁一列放得下、沒有小於 12px 的字",
+       m["sw"] <= 1 and len(m["tops"]) == 4 and len(set(m["tops"])) == 1 and m["r"] <= m["w"] and not pg.evaluate(_LG_FONTS, "#v-legal"), m)
+    if shots:
+        pg.screenshot(path=os.path.join(shots, "refund_402.png"), full_page=True)
+    ctx.close()
+
 def t_legal(b, base):
     # ---------------------------------------------------------------- A. 開關關著（現況）
     ctx, pg = _lg_page(b)
@@ -46560,11 +46661,12 @@ def t_legal(b, base):
                  top: Math.round(r.top), rad: parseFloat(cs.borderTopLeftRadius), bw: parseFloat(cs.borderTopWidth),
                  fw: +cs.fontWeight }; }); }"""
     tb = pg.evaluate(TABS)
-    ok("[分頁] 三顆膠囊（免責聲明｜使用條款｜隱私權政策）排一列、高 34～42、全圓角",
-       [x["t"] for x in tb] == ["免責聲明", "使用條款", "隱私權政策"] and len({x["top"] for x in tb}) == 1
+    # 2026-10-09 改前→改後（Andy：「退款政策及取消訂閱幫我新增」）：改前三顆；改後多第四顆「退款政策」（#refund）
+    ok("[分頁] 四顆膠囊（免責聲明｜使用條款｜隱私權政策｜退款政策）排一列、高 34～42、全圓角",
+       [x["t"] for x in tb] == ["免責聲明", "使用條款", "隱私權政策", "退款政策"] and len({x["top"] for x in tb}) == 1
        and all(34 <= x["h"] <= 42 and x["rad"] >= x["h"] / 2 - 1 for x in tb), tb)
     ok("[分頁] 目前頁（使用條款）那顆是實心主色＋粗體，其他兩顆不是實心、有細框",
-       tb[1]["solid"] and tb[1]["fw"] >= 700 and not tb[0]["solid"] and not tb[2]["solid"]
+       tb[1]["solid"] and tb[1]["fw"] >= 700 and not tb[0]["solid"] and not tb[2]["solid"] and not tb[3]["solid"]
        and tb[0]["bw"] >= 1 and tb[2]["bw"] >= 1, tb)
     pg.click(".lgtabs a[href='#privacy']"); pg.wait_for_timeout(600)
     tb2 = pg.evaluate(TABS)
@@ -46602,10 +46704,10 @@ def t_legal(b, base):
     ok("[390] 手機收起左側目錄、改用可展開的目錄", r["toc"] == "none" and r["tocm"] not in (False, "none"), r)
     ok("[390] 法律頁沒有小於 12px 的字", not pg.evaluate(_LG_FONTS, "#v-legal"), pg.evaluate(_LG_FONTS, "#v-legal"))
     r = pg.evaluate("""() => { const a = [...document.querySelectorAll('.lgtabs a')].map(x => x.getBoundingClientRect());
-        return { tops: a.map(x => Math.round(x.top)), l: Math.round(a[0].left), r: Math.round(a[2].right), winW: innerWidth,
+        return { tops: a.map(x => Math.round(x.top)), l: Math.round(a[0].left), r: Math.round(a[a.length - 1].right), winW: innerWidth,
                  fs: Math.min(...[...document.querySelectorAll('.lgtabs a')].map(x => parseFloat(getComputedStyle(x).fontSize))) }; }""")
-    ok("[390] 三顆膠囊分頁一列放得下（同一條上緣、不超出畫面、字 ≥ 13px）",
-       len(set(r["tops"])) == 1 and r["l"] >= 0 and r["r"] <= r["winW"] and r["fs"] >= 13, r)
+    ok("[390] 四顆膠囊分頁一列放得下（同一條上緣、不超出畫面、字 ≥ 13px；2026-10-09 多了「退款政策」）",
+       len(r["tops"]) == 4 and len(set(r["tops"])) == 1 and r["l"] >= 0 and r["r"] <= r["winW"] and r["fs"] >= 13, r)
     pg.evaluate("() => window.scrollTo({top: document.body.scrollHeight, behavior: 'instant'})"); pg.wait_for_timeout(400)
     r = pg.evaluate("""() => { const f = document.getElementById('siteFoot').getBoundingClientRect(),
         t = document.getElementById('tabs').getBoundingClientRect(); return { fb: f.bottom, ft: f.top, tt: t.top }; }""")
@@ -55226,7 +55328,8 @@ def t_sub_1005(b, base, code):
     # 卡片內容：頂端標籤、打勾清單項目數、行動鈕
     cd = pg.evaluate("""() => [...document.querySelectorAll('#prCards .prcard')].map(c => ({ id: c.dataset.plan, tag: (c.querySelector('.prtag') || {}).textContent || '',
         n: c.querySelectorAll('.prhl li').length, btn: c.querySelector('.prgo').textContent.trim(), dis: c.querySelector('.prgo').disabled, go: c.querySelector('.prgo').dataset.go || '',
-        last: c.lastElementChild === c.querySelector('.prgo') }))""")
+        /* 2026-10-09 改前→改後：改前按鈕是卡片最後一個元素；改後按鈕下面固定多一行「付款前請先閱讀…」（.prpre，免費卡是隱形佔位），按鈕是倒數第二個 */
+        last: c.lastElementChild === c.querySelector('.prgo') || (c.lastElementChild.classList.contains('prpre') && c.lastElementChild.previousElementSibling === c.querySelector('.prgo')) }))""")
     ok(f"{T}：頂端標籤：399＝★ 最受歡迎、799＝✦ 功能最齊、註冊會員沒有", [x["tag"] for x in cd] == ["", "★ 最受歡迎", "✦ 功能最齊"], cd)
     ok(f"{T}：打勾清單（範本沒填 → 依次數與開關自動產生）：註冊會員 5 項、399 3 項、799 2 項", [x["n"] for x in cd] == [5, 3, 2], cd)
     ok(f"{T}：行動鈕在卡片最底：註冊會員＝目前方案（不能按）、399＝升級 399 即時、799＝升級 799 全功能",
@@ -55273,9 +55376,13 @@ def t_sub_1005(b, base, code):
           links: [...b.querySelectorAll('.agree a')].map(a => a.getAttribute('href')).join(','), dis: document.getElementById('subSend').disabled, btn: document.getElementById('subSend').textContent,
           foot: (b.querySelector('.cofoot') || {}).textContent || '' }; }""")
     ok(f"{T}：訂閱彈窗：方案名、已含功能依類別分組（399 關掉的題材資金熱力不列、個股頁寫每日 20 次）、條款與隱私連結、按鈕「送出訂閱申請」、底部不寫做不到的承諾",
-       dl["co"] and dl["name"] == "399 即時" and dl["grp"] >= 3 and dl["li"] >= 10 and dl["noHeat"] and dl["lim"] and dl["links"] == "#terms,#privacy"
+       # 2026-10-09 改前→改後（Andy：「結帳頁一定要加『同意付款後立即開通、排除七日解除權』的勾選」）：改前連結 #terms,#privacy；改後 #terms,#refund,#privacy
+       dl["co"] and dl["name"] == "399 即時" and dl["grp"] >= 3 and dl["li"] >= 10 and dl["noHeat"] and dl["lim"] and dl["links"] == "#terms,#refund,#privacy"
        and dl["btn"] == "送出訂閱申請" and "申請後由客服聯絡開通" in dl["foot"] and "取消隨時生效" not in pg.inner_text("#subDlg"), dl)
     ok(f"{T}：沒勾「我已閱讀並同意」→ 送出鈕不能按", dl["dis"])
+    ok(f"{T}：勾選文字＝Andy 10-09 指定的那一句（使用條款＋退款政策、付款後立即開通、排除消保法第 19 條七日解除權）",
+       pg.evaluate("() => document.getElementById('subAgreeT').textContent") == "我已閱讀並同意《使用條款》《退款與取消訂閱政策》，並同意付款後立即開通服務、排除消費者保護法第 19 條之七日解除權。",
+       pg.evaluate("() => document.getElementById('subAgreeT').textContent"))
     shot(pg, "2_subscribe_dialog", "#subDlg .box")
     pg.fill("#subMail", "pay@example.com"); pg.fill("#subNote", "公司抬頭")
     pg.check("#subAgree")
@@ -55288,7 +55395,14 @@ def t_sub_1005(b, base, code):
     wait_until(pg, "() => /已收到你的申請/.test(document.getElementById('subDlg').textContent)", 4000)
     rq = [x[1] for x in sent if x[0] == "/v1/subscribe/request"]
     ok(f"{T}：送出申請 → 請求內容正確（方案 p399、月繳、聯絡 email、備註、帶權杖）",
-       len(rq) == 1 and rq[0].get("plan") == "p399" and rq[0].get("period") == "month" and rq[0].get("contact") == "pay@example.com" and rq[0].get("note") == "公司抬頭" and rq[0].get("t") == "tok-test", rq)
+       len(rq) == 1 and rq[0].get("plan") == "p399" and rq[0].get("period") == "month" and rq[0].get("contact") == "pay@example.com" and rq[0].get("user_note") == "公司抬頭"
+       and str(rq[0].get("note", "")).endswith(" 公司抬頭") and rq[0].get("t") == "tok-test", rq)
+    # 2026-10-09：同意證據＝同意時間＋條款版本，寫進 Worker 會存的 note 開頭，並另帶獨立欄位
+    _c = rq[0] if rq else {}
+    ok(f"{T}：送出的請求含同意時間（ISO）與條款版本，且同一份證據寫在 note 開頭（Worker 目前只存 note）",
+       bool(re.match(r"^\d{4}-\d\d-\d\dT", str(_c.get("consent_at", "")))) and bool(_c.get("consent_version"))
+       and str(_c.get("note", "")).startswith("[同意 " + str(_c.get("consent_at"))) and ("條款版本 " + str(_c.get("consent_version"))) in str(_c.get("note", ""))
+       and "七日解除權" in str(_c.get("note", "")) and len(str(_c.get("note", ""))) <= 300, _c)
     ok(f"{T}：送出後對話框寫「已收到你的申請」與 email", "pay@example.com" in pg.inner_text("#subDlg"))
     pg.keyboard.press("Escape")
     # ② 帳號選單徽章
