@@ -298,7 +298,7 @@
      ★ 2026-10-08 本頁限制清單（Andy：「次數那邊若當前分頁有很多限制項目 在幫我標示出來」）
      額度圓環旁多一顆「本頁 N 項限制・最少剩 X 次」（收合）；點開逐項列出這一頁所有有每日上限的項目：
      名稱、計次單位（看／篩選／切分頁／下鑽）、已用／上限、還剩幾次、一條小進度條；剩 1 次琥珀色、用完紅色。
-     「這一頁」＝網址對得上那個功能（PAGE_OF 精確對到子分頁；其餘依分類對到頁名）；上限 0 的寫「不開放」。
+     「這一頁」＝網址對得上那個功能（PAGE_OF 精確對到子分頁；其餘依分類對到頁名）；上限 0 的寫最低有開的方案（2026-10-10 起，以前寫「不開放」）。
      ⚠ 2026-10-09 起不再點開清單（Andy：「不要出現訊息框」），逐項內容改放 title，見下面 pagePanel。
      不受限的身分（Pro、擁有者、預覽版）每一項都是不限 → 清單空的 → 整顆不顯示。換頁時 evaluate() 會重算，跟著換成那一頁的項目。
      ============================================================================ */
@@ -361,8 +361,13 @@
     b.dataset.lvl = lv; el.dataset.lvl = lv;
     el.dataset.n = String(items.length);
     el.dataset.ids = items.map((x) => x.id).join(',');
-    const line = (x) => `${x.name}：${x.lim === 0 ? '不開放' : `${x.unit} ${x.used}／${x.lim}・剩 ${x.rem} 次`}`;
-    el.dataset.items = JSON.stringify(items.map((x) => [x.id, x.lim === 0 ? '不開放' : `${x.unit} ${x.used}／${x.lim}・剩 ${x.rem} 次`]));
+    /* ★ 2026-10-10 Andy：「不要寫"不開放" 幫我改成plus 會員 這樣比較親切」→ 上限 0 的項目寫最低有開的方案（「Plus 會員」…），
+       跟帳號選單「額度上限」面板同一支 needPlan（acctm4.js）；那支沒載入時寫「升級可用」。 */
+    const need = (x) => { const M = window.TwAcctM4; return M && M.needPlan ? M.needPlan(x.id) : '升級可用'; };
+    if (!S.plansAsked && items.some((x) => x.lim === 0) && window.TwPricing && window.TwPricing.ensure) { S.plansAsked = true; window.TwPricing.ensure(); }   // 方案清單到了（tw:plans）再重算一次，方案名以後端範本為準
+    const desc = (x) => (x.lim === 0 ? need(x) : `${x.unit} ${x.used}／${x.lim}・剩 ${x.rem} 次`);
+    const line = (x) => `${x.name}：${desc(x)}`;
+    el.dataset.items = JSON.stringify(items.map((x) => [x.id, desc(x)]));
     const tip = `本頁的每日限制（台北 0 點重置）\n${items.map(line).join('\n')}\n點一下看方案`;
     if (el.title !== tip) { el.title = tip; el.setAttribute('aria-label', `本頁 ${items.length} 項每日限制${min ? `，最少剩 ${min.rem} 次` : ''}。點一下看方案`); }
   }
@@ -413,6 +418,7 @@
   window.addEventListener('tw:tour', () => evaluate());
   window.addEventListener('tw:perm', () => { syncedFor = ''; sync(); schedule(); });
   window.addEventListener('tw:account', () => { sync(); schedule(); });
+  window.addEventListener('tw:plans', schedule);   // 2026-10-10：方案清單晚到 → 頁首滑過說明裡「Plus 會員」這種方案名重算一次
   function boot() { schedule(); sync(); }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot); else boot();
   /* ★ 2026-10-07 覆蓋稽核：只有「工具鈕」沒有畫面區塊的功能（指標設定、畫線、四週期同看、主題外觀）以前完全不計 —— 漏洞。

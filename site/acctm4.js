@@ -341,17 +341,21 @@ html.m4 .m4deldlg .msg{min-height:1.4em;font-size:13px;color:#ff6b7a;margin:4px 
     return ['cat-' + (x.cat || 'other'), c ? c.name : '其他'];
   }
   /* 上限 0 的項目：最低哪個方案有開。回「Plus 會員」這種字；查不到回「升級會員」 */
-  function presetOff(t, id) { if (t.lims && t.lims[id] === 0) return true; const v = (t.feats || {})[id]; return v === false || v === 0; }
-  function needPlan(id) {
+  /* 2026-10-10 網頁版共用（桌機額度面板、#pricing 方案卡、頁首「本頁 N 項限制」滑過說明）：quota.all（全站每日額度）不是功能鍵，存在範本的 dq —— dq 0＝沒開 */
+  function presetOff(t, id) { if (id === 'quota.all') return t.dq === 0; if (t.lims && t.lims[id] === 0) return true; const v = (t.feats || {})[id]; return v === false || v === 0; }
+  /* all＝true：不排除目前方案（#pricing 的方案卡是在講「那張卡的方案」，不是在講我）—— 2026-10-10 網頁版 pricing.js 用 */
+  function needPlan(id, all) {
     const Pr = window.TwPricing, st = Pr && Pr.state ? Pr.state() : null;
     const lab = (p) => (p.id === 'free' ? '註冊會員' : String(p.name || p.id).replace(/\s*會員$/, '') + ' 會員');
     if (st && (st.src === 'server' || st.src === 'demo') && Pr.unlockers) {
       const cur = P() ? P().state().plan : '';
-      const u = (Pr.unlockers(id) || []).filter((p) => p.id !== cur);
+      const u = (Pr.unlockers(id) || []).filter((p) => all || p.id !== cur);
       if (u.length) return lab(u[0]);
     }
     const pr = window.TW_PLAN_PRESETS, tiers = pr && Array.isArray(pr.tiers) ? pr.tiers : [];
-    const t = tiers.find((z) => z.key !== 'guest' && !presetOff(z, id));
+    /* 2026-10-10：建議方案裡「我這一級（含）以下」的不算 —— 範本 0 次的人看到「註冊會員」（他自己就是）會以為是錯字；從下一級開始找 */
+    const me = all ? -1 : tiers.findIndex((z) => z.key === (P() ? P().state().plan || 'guest' : 'guest'));
+    const t = tiers.find((z, i) => z.key !== 'guest' && i > me && !presetOff(z, id));
     return t ? lab({ id: t.key, name: t.name }) : '升級會員';
   }
   const qOpen = () => { try { const v = JSON.parse(ls.get(K_QOPEN) || '[]'); return Array.isArray(v) ? v : []; } catch (e) { return []; } };
@@ -477,5 +481,6 @@ html.m4 .m4deldlg .msg{min-height:1.4em;font-size:13px;color:#ff6b7a;margin:4px 
   const repaint = () => { const m = document.getElementById('acctMenu'); if (m && !m.hidden && m.classList.contains('m4am') && document.documentElement.classList.contains('m4')) { const was = ['admgrp'].filter((k) => { const g = m.querySelector(`[data-m=${k}]`); return g && g.getAttribute('aria-expanded') === 'true'; }); paint(m, null); was.forEach((k) => { const g = m.querySelector(`[data-m=${k}]`); if (g) g.click(); }); } };
   ['tw:perm', 'tw:account', 'tw:plans'].forEach((ev) => window.addEventListener(ev, repaint));
 
-  window.TwAcctM4 = { paint, openQuota, openDel, quotaItems, quotaCount, who, setFab, fabOff };
+  /* 2026-10-10：網頁版（桌機帳號選單的額度上限／刪除帳號／客服鈕開關、quota.js 頁首滑過說明、pricing.js 方案卡）共用這幾支 —— 同一套邏輯，不另寫一份 */
+  window.TwAcctM4 = { paint, openQuota, openDel, quotaItems, quotaCount, who, setFab, fabOff, needPlan, remText };
 })();

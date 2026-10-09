@@ -24,6 +24,7 @@
        註冊會員每日 10 次、訪客 3 次（跟訪客其他動作次數 3 同一級距、不比註冊會員寬）；Plus／Pro 明寫開、news.open 不設上限＝不限。
        flow.play／season.groups／mkt.cand 在 features.js 另有 defBy（訪客／註冊會員預設關），線上範本沒寫這幾項時已經生效；
        但範本若明寫 mkt.cand:true（套用過 10-08 版），3D 3 次與 news.open 次數也只在範本 lims —— 都要按「套用建議方案」（或在管理區手動改）才會寫進線上範本。
+   · ★ 2026-10-10（網頁手機同步稽核 7-3）：新鍵 stock.holdings（ETF 個股頁「成分股」分頁）四個方案都寫 true＝跟 features.js 的 def 一樣，只是把對應補齊，不改任何人看得到的東西。
    這支是**資料**，不是設定：改了不會自動生效，要管理者在 #admin/perm 按一次「套用建議方案」。
    ============================================================================ */
 window.TW_PLAN_PRESETS = {
@@ -71,6 +72,7 @@ window.TW_PLAN_PRESETS = {
     "stock.draw": false,
     "stock.ai": false,
     "stock.overview": true,
+    "stock.holdings": true,
     "stock.basics": true,
     "stock.tags": false,
     "stock.revenue": true,
@@ -183,6 +185,7 @@ window.TW_PLAN_PRESETS = {
     "stock.draw": false,
     "stock.ai": true,
     "stock.overview": true,
+    "stock.holdings": true,
     "stock.basics": true,
     "stock.tags": true,
     "stock.revenue": true,
@@ -300,6 +303,7 @@ window.TW_PLAN_PRESETS = {
     "stock.draw": true,
     "stock.ai": true,
     "stock.overview": true,
+    "stock.holdings": true,
     "stock.basics": true,
     "stock.tags": true,
     "stock.revenue": true,
@@ -407,6 +411,7 @@ window.TW_PLAN_PRESETS = {
     "stock.draw": true,
     "stock.ai": true,
     "stock.overview": true,
+    "stock.holdings": true,
     "stock.basics": true,
     "stock.tags": true,
     "stock.revenue": true,

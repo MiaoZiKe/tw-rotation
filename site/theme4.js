@@ -121,8 +121,18 @@
     /* 2026-10-08（Andy：「將切換版面風格、明暗這部分統一一個功能按鍵在上方」）：明暗併進「外觀」面板最上面（深色｜淺色），
        按下去就是去按原本那顆 #themeBtn（app.js 的 applyTheme 一行都沒重寫）；頁首的 ☀ 鈕本身藏起來（index.html／mobile4.css）。 */
     pop.innerHTML = `<h4 class="t4modeh">明暗</h4><div class="t4mode seg" role="group" aria-label="明暗"><button type="button" data-mode="dark" aria-pressed="false">深色</button><button type="button" data-mode="light" aria-pressed="false">淺色</button></div><h4>版面風格</h4><div class="t4opts">${THEMES.map(t =>
-      `<button type="button" class="t4o" data-t4="${t.id}" aria-pressed="false"><span class="sw" style="background:${t.sw}"></span><b>${t.name}</b><small>${t.sub}</small></button>`).join('')}</div>`;
+      `<button type="button" class="t4o" data-t4="${t.id}" aria-pressed="false"><span class="sw" style="background:${t.sw}"></span><b>${t.name}</b><small>${t.sub}</small></button>`).join('')}</div>`
+      /* ★ 2026-10-10（網頁手機同步稽核：客服鈕開關以前只有手機有入口，效果卻是全站 —— 手機關掉後桌機打不開）：
+         外觀面板加一列「右下角顯示客服鈕」，跟手機帳號選單的「客服功能」、桌機帳號選單的「客服鈕」同一個鍵（tw.fab.off，acctm4.js setFab）。
+         放這裡是因為訪客在桌機沒有帳號選單（點頭像直接是登入說明）；用 checkbox 而不是 button：perm.js「主題外觀」被關時擋的是 #t4Pop button，客服鈕不該跟著被鎖。 */
+      + `<h4 class="t4fabh">客服鈕</h4><label class="t4fab"><input type="checkbox" id="t4Fab"><span>右下角顯示客服鈕</span></label>`;
     document.body.appendChild(pop);
+    pop.addEventListener('change', (e) => {
+      if (e.target.id !== 't4Fab') return;
+      const off = !e.target.checked, M = window.TwAcctM4;
+      if (M && M.setFab) M.setFab(off);
+      else { try { if (off) localStorage.setItem('tw.fab.off', '1'); else localStorage.removeItem('tw.fab.off'); } catch (er) { /* 私密視窗 */ } document.documentElement.classList.toggle('fab-off', off); }
+    });
     pop.addEventListener('click', (e) => {
       const b = e.target.closest('.t4o'); if (b) set(b.dataset.t4);
       const md = e.target.closest('.t4mode button[data-mode]');
@@ -140,6 +150,7 @@
     const v = get(), m = mode();
     document.querySelectorAll('[data-t4]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.t4 === v)));
     document.querySelectorAll('.t4mode button[data-mode]').forEach(b => { const on = b.dataset.mode === m; b.setAttribute('aria-pressed', String(on)); b.classList.toggle('on', on); });
+    const fb = $('#t4Fab'); if (fb) fb.checked = !document.documentElement.classList.contains('fab-off');
     const btn = $('#t4Btn');
     if (btn) { const t = THEMES.find(x => x.id === v); btn.title = `外觀設定（目前：${t.name}・${m === 'light' ? '淺色' : '深色'}）`; }
   }

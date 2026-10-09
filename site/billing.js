@@ -119,9 +119,9 @@
     const warn = `<p class="muted"><b>防呆提醒：</b>送出後，這個帳號<b>不再享有退款保證（目前不提供免費試用；日後如提供，亦不適用）</b>（刪除帳號後用同一個信箱重新註冊也一樣：我們只保存一組無法還原成信箱的比對碼 ${HASH_DAYS} 天，用來防止重複使用）。</p>`;
     d.setAttribute('aria-label', type === 'cancel' ? '取消訂閱' : '申請退款');
     d.innerHTML = '<div class="box">' + (type === 'cancel'
-      ? `<h3>取消訂閱</h3><p>你目前是 <b>${plan}</b>。取消後：</p><ul><li>${until ? `可以繼續使用到本期結束日 <b>${until}</b>` : '可以繼續使用到本期結束'}</li><li>次期<b>不再扣款</b>，到期後自動回到免費會員</li><li>自選清單與設定都會保留</li></ul>
+      ? `<h3>取消訂閱</h3><p>你目前是 <b>${plan}</b>。取消後：</p><ul><li>${until ? `可以繼續使用到本期結束日 <b>${until}</b>` : '可以繼續使用到本期結束'}</li><li>次期<b>不再扣款</b>，到期後自動回到註冊會員</li><li>自選清單與設定都會保留</li></ul>
         <p class="muted">目前是申請制：送出後由專人處理，處理完成會寄信通知。想要退款請改按「申請退款」。</p>${warn}`
-      : `<h3>申請退款</h3><p>首次付款 <b>${d0.refundDays || REFUND_DAYS} 天內</b>可申請全額退款（每個帳號限一次）。核准後方案立即停止，回到免費會員。</p>
+      : `<h3>申請退款</h3><p>首次付款 <b>${d0.refundDays || REFUND_DAYS} 天內</b>可申請全額退款（每個帳號限一次）。核准後方案立即停止，回到註冊會員。</p>
         <p class="muted">目前是申請制：送出後由專人與你聯繫退款方式（不會在這裡要你輸入任何付款資料）。</p>${warn}`)
       + `<p class="msg" id="billMsg" role="status"></p><div class="row2"><button type="button" data-close>先不要</button><button type="button" class="danger" id="billYes">${type === 'cancel' ? '確定取消訂閱' : '送出退款申請'}</button></div></div>`;
     d.hidden = false;

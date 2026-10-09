@@ -3135,8 +3135,11 @@
       if (rest[0] !== 'theme' && rest[0] !== 'industry') { location.replace('#heatmap/industry'); return; }
       l4sub = 'heat-' + rest[0];
     } else if (l4on && head === 'etf') {
-      // v9：ETF 子項在側欄（配息行事曆／ETF 總覽／現金流試算）；沒帶子項＝ETF 總覽（舊連結 #etf 照舊進總覽）
-      if (!['cal', 'list', 'inc'].includes(rest[0])) { location.replace('#etf/list'); return; }
+      // v9：ETF 子項在側欄（配息行事曆／ETF 總覽／現金流試算）
+      /* ★ 2026-10-10（Andy 答「好」：子分頁預設最左邊）：沒帶子項＝側欄最上面那格「配息行事曆」（以前是 ETF 總覽），跟資金流向、熱力圖、
+         市場明細、選股策略同一條規矩 —— 從主選單／母項點進來一律落在第一格，不記上次停在哪；直接開帶子頁的網址（#etf/list、#etf/inc）照網址。
+         手機（mobile4.js 第 1 節）10-09 起本來就導到 #etf/cal，現在兩邊同一個落點。 */
+      if (!['cal', 'list', 'inc'].includes(rest[0])) { location.replace('#etf/cal'); return; }
       l4sub = 'etf-' + rest[0];
     } else if (head === 'market' && document.documentElement.classList.contains('l4')) {
       /* ★ 2026-10-10（Andy：「市場明細 與 選股策略 分頁都改成像 ETF 側邊欄位一樣 變成子分頁」）—— **只在電腦版（html.l4）**：

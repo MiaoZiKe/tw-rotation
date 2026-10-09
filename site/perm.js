@@ -137,6 +137,10 @@
     S.raf = 0;
     css();
     const want = new Map(), wantB = new Map(), wantF = new Map();
+    /* ★ 2026-10-10（同步稽核 7-1）：側欄子分頁（layout4.js 的 .l4subtab[data-l4sub]）掛同款 🔒 —— features.js 的 sub。
+       不看 route：側欄每一頁都看得到。只掛電腦版側欄；手機頁首子分頁（.m4subtabs）是 mobile4.js 每次整段 innerHTML 重畫的，
+       在那裡掛屬性會讓它以為內容變了又重畫（無限迴圈），手機自己讀 TwFeatures.bySub() 畫。 */
+    for (const f of lockedList()) (f.sub || []).forEach((k) => q(`.l4subtab[data-l4sub="${k}"]`).forEach((el) => wantB.set(el, 'mark')));
     for (const f of lockedList()) {
       if (!routeOk(f)) continue;
       for (const [sel, when] of f.veil || []) {
@@ -177,10 +181,17 @@
       if (el.getAttribute('data-plkb') !== k) {
         el.setAttribute('data-plkb', k);
         if (el.dataset.plkTitle == null) el.dataset.plkTitle = el.title || '';
-        el.title = k === 'note' ? ((lockedList().find((x) => (x.block || []).some((sl) => { try { return el.matches(sl); } catch (er) { return false; } })) || {}).note || '') : '此功能需開通';
+        el.title = k === 'note' ? ((lockedList().find((x) => (x.block || []).some((sl) => { try { return el.matches(sl); } catch (er) { return false; } })) || {}).note || '')
+          : el.classList.contains('l4subtab') ? subTip(el) : '此功能需開通';
       }
     });
     watch(want.size + wantB.size > 0 || lockedList().length > 0);
+  }
+  /* 側欄子分頁的滑過說明：原本的「頁名・子頁名」＋「🔒 需 Plus 會員」（方案名跟額度上限面板同一支 needPlan，acctm4.js；沒載入就寫「升級方案」）*/
+  function subTip(el) {
+    const ids = F.bySub ? F.bySub(el.dataset.l4sub || '') : [];
+    const M = window.TwAcctM4, need = ids.length && M && M.needPlan ? M.needPlan(ids[0]) : '升級方案';
+    return `${el.dataset.plkTitle || el.title || ''}（🔒 需${need}）`;
   }
   /* ★ admin-v3（Andy D③）：鎖頭上要有一顆能點的「升級查看」→ #pricing/need/<功能鍵>（訂閱頁把能解鎖它的方案標出來）。
      原本整塊 inert（連鈕都點不到）→ 改成「外框不 inert、裡面原本的子節點逐一 inert」，只有升級鈕可以點。
@@ -310,6 +321,7 @@
     grpOk: (gid) => { if (owner()) return true; const k = F.grpKey(gid); const f = F.byId(k); return f ? can(k) : S.feats[k] !== false; }, owner };
   window.addEventListener('hashchange', schedule);
   window.addEventListener('tw:plans', schedule);
+  window.addEventListener('tw:grants', schedule);   // 2026-10-10：體驗額度換了（can() 會看 TwGrants.open）→ 側欄子分頁 🔒 跟著更新
   window.addEventListener('tw:tour', () => { if (typeof apply === 'function') apply(); });
 
   /* 啟動：account.js 先跑（它決定會員功能開不開），開了會發 tw:account-config；沒開就照預設全開。

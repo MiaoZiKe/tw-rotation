@@ -139,7 +139,14 @@
       veil: [['#skAi'], ['#aiCard'], ['#mbBody[data-tab="ai"]'], ['#ovAiBrief'], ['#ovFacets [data-ai]']], mark: ['#mbTabs button[data-t="ai"]'], block: [] },
     // ---- 個股頁：分頁
     // 2026-10-02：排列順序跟著個股分頁的新順序（基本資料搬到總覽旁邊，#294）；id 一個都沒改（改了＝所有人的設定歸零）
-    stab('stock.overview', '總覽（技術訊號）', 'overview', [], '個股分頁「總覽」：基本面與籌碼小圖、技術面訊號卡、同業比較'),
+    /* ★ 2026-10-10（網頁手機同步稽核 7-3）：手機沒有「總覽」分頁 —— 桌機那一組分頁（含總覽）收在手機最後一格「完整版」（mobile3.js SK_TABS full）。
+       所以手機對應＝「完整版」那顆鈕掛 🔒 小標（mark，照樣點得進去）；不另外蓋 #mbBody[data-tab="full"] —— 完整版裡面還有營收、法人…其他分頁，
+       總覽那一頁本身的遮罩由桌機那條 veil（#stockTab，條件「總覽」鈕 .on）負責，在完整版裡一樣生效。 */
+    Object.assign(stab('stock.overview', '總覽（技術訊號）', 'overview', [], '個股分頁「總覽」：基本面與籌碼小圖、技術面訊號卡、同業比較（手機在「完整版」裡）'),
+      { mark: ['#stockTabs button[data-t="overview"]', '#mbTabs button[data-t="full"]'] }),
+    /* ★ 2026-10-10（同步稽核 7-3）：ETF 個股頁的「成分股」分頁（桌機 holdings、手機 hold）以前沒有任何權限鍵 —— 補一個對應。
+       def true（只加對應，不改任何方案的開關值；plan_presets 沒寫＝依 def 全開），要收費時管理者在 #admin/perm 關。 */
+    stab('stock.holdings', '成分股（ETF）', 'holdings', ['hold'], 'ETF 個股頁的成分股分頁（左清單、右權重甜甜圈）'),
     stab('stock.basics', '基本資料', 'basics', ['basic'], '公司基本資料'),
     stab('stock.tags', '指標', 'tags', ['tag'], '個股分頁「指標」'),
     stab('stock.revenue', '營收', 'revenue', ['rev'], '月營收、年增率'),
@@ -266,6 +273,20 @@
   var METERED = ["earn.cal", "earn.page", "etf.calendar", "etf.list", "etf.popular", "etf.rettop", "etf.yldtop", "explore.chart", "explore.combo", "explore.list", "explore.page", "flow.conc", "flow.inst", "flow.rot", "flow.sankey", "heat.detail", "heat.market", "heat.theme", "ind.diagram", "ind.groups", "ind.rel", "mkt.cand", "mkt.ma", "mkt.streak", "mkt.updown", "season.month", "stock.ai", "stock.basics", "stock.dividend", "stock.holders", "stock.inst", "stock.k_day", "stock.k_hour", "stock.margin", "stock.news", "stock.overview", "stock.page", "stock.profit", "stock.revenue", "stock.tags", "stock.tick"];
   METERED.forEach(function (id) { var f = LIST.filter(function (x) { return x.id === id; })[0]; if (f) f.metered = true; });
 
+  /* ★ 2026-10-10（網頁手機同步稽核 7-1、Andy 10-10 經手機 session 轉達）：側欄子分頁 → 功能鍵。
+     市場明細、ETF 改成側欄子分頁之後，mark 掛在頁內那排（#mktSeg2、#etfSub）—— 電腦版那排藏起來，🔒 就看不到了。
+     sub 列的是 layout4.js SUBS 的子項代號（.l4subtab[data-l4sub]）；perm.js 依它在側欄那格掛同款 🔒（mark：照樣點得進去，進去看到的是原本的鎖法）。
+     這一條**不看 route**：側欄在每一頁都看得到，鎖頭要一直掛著（mark／veil 的 route 只管「這一頁」的區塊）。
+     手機頁首子分頁（mobile4.js .m4subtabs button[data-sub]）的代號是同一套（另多 etf-cx＝複利試算），手機可以用 TwFeatures.bySub() 查，不必另寫對照表。 */
+  var SUB_OF = {
+    'flow.rot': ['flow-rotation'], 'flow.sankey': ['flow-sankey'], 'flow.inst': ['flow-inst'],
+    'heat.market': ['heat-industry'], 'heat.theme': ['heat-theme'],
+    'mkt.updown': ['mkt-updown'], 'mkt.streak': ['mkt-streak'], 'mkt.ma': ['mkt-ma'], 'mkt.cand': ['mkt-cand'],
+    'etf.calendar': ['etf-cal'], 'etf.list': ['etf-list'], 'etf.cashflow': ['etf-inc'], 'etf.inc.comp': ['etf-cx']
+  };
+  LIST.forEach(function (f) { if (SUB_OF[f.id]) f.sub = SUB_OF[f.id]; });
+  function bySub(k) { return LIST.filter(function (f) { return (f.sub || []).indexOf(k) >= 0; }).map(function (f) { return f.id; }); }
+
   var BY = {};
   LIST.forEach(function (f) { BY[f.id] = f; });
   /* 範本沒寫這一項時的值：有 defBy（同時選取上限）就依範本代號（guest／free；其他＝付費）挑，沒有就是 def */
@@ -311,5 +332,5 @@
     return n;
   }
 
-  window.TwFeatures = { list: LIST, cats: CATS, byId: function (id) { return BY[id] || null; }, defaults: defaults, defOf: defOf, inCat: inCat, grpKey: grpKey, addGroups: addGroups };
+  window.TwFeatures = { list: LIST, cats: CATS, byId: function (id) { return BY[id] || null; }, defaults: defaults, defOf: defOf, inCat: inCat, grpKey: grpKey, addGroups: addGroups, bySub: bySub };
 })();

@@ -81,14 +81,15 @@
   window.TwSub = { esc, ls, call, view, toast, css, dialog, A, F, P };
 
   // ------------------------------------------------------------------ 我是哪個方案（徽章）
-  /* 訪客／免費會員／方案名。來源：perm.js 的 state()（＝/v1/perm/me 的結果）*/
+  /* 訪客／註冊會員／方案名。來源：perm.js 的 state()（＝/v1/perm/me 的結果）*/
   function myPlan() {
     const a = A(), u = a && a.on() ? a.user() : null;
     const st = P() ? P().state() : { who: 'guest', plan: '', planName: '' };
     if (!u) return { id: 'guest', label: '訪客', tier: 'guest' };
     /* 站主（/v1/me 的 owner 旗標，perm.js 同一個判定）：所有功能不受限，徽章寫「站主」、方案頁每張卡都是「已包含」 */
     if (u.owner) return { id: 'owner', label: '站主', tier: 'owner' };
-    if (!st.plan || st.plan === 'free' || st.who === 'guest') return { id: 'free', label: '免費會員', tier: 'free' };
+    /* 2026-10-10（同步稽核 7-2）：「免費會員」→「註冊會員」，跟手機帳號選單、方案範本、方案卡、升級卡同一個叫法 */
+    if (!st.plan || st.plan === 'free' || st.who === 'guest') return { id: 'free', label: '註冊會員', tier: 'free' };
     return { id: st.plan, label: st.planName || st.plan, tier: 'paid' };
   }
   /* 付費方案的高低順序＋色系：跟方案頁 paint() 同一套（依折合每月價格由低到高，色系 藍→紫→琥珀→綠），
@@ -295,8 +296,11 @@
     Object.keys(p.lims || {}).map((k) => Ft.byId(k)).filter((f) => f && f.cat !== 'grp' && !f.adminOnly && val(p, f) !== false && limOf(p, f) > 0)
       .forEach((f) => out.push(`${f.name}・${ltxt(limOf(p, f))}`));
     const qa = qAll(p);
-    if (qa !== undefined) out.unshift(qa === Infinity ? '研究瀏覽・不限次數' : qa === 0 ? '研究瀏覽・不開放' : `研究瀏覽・每日 ${qa} 次`);
-    const wt = Ft.byId('watch.tabs'); if (wt) { const wc = watchCell(p); out.push(wc.c === 'n' ? '自選清單・不開放' : `自選清單・${wc.t}`); }
+    /* ★ 2026-10-10 Andy：「不要寫"不開放" 幫我改成plus 會員 這樣比較親切」→ 這個方案沒開的項目，後面掛一顆會員膠囊寫「最低哪個方案有開」
+       （{t, need}：卡片清單畫成「名稱＋★ Plus 會員」膠囊；方案名跟帳號選單「額度上限」面板同一支 needPlan，acctm4.js）。 */
+    const need = (id, t) => ({ t, need: window.TwAcctM4 && window.TwAcctM4.needPlan ? window.TwAcctM4.needPlan(id, true) : '升級可用' });
+    if (qa !== undefined) out.unshift(qa === Infinity ? '研究瀏覽・不限次數' : qa === 0 ? need('quota.all', '研究瀏覽') : `研究瀏覽・每日 ${qa} 次`);
+    const wt = Ft.byId('watch.tabs'); if (wt) { const wc = watchCell(p); out.push(wc.c === 'n' ? need('watch.tabs', '自選清單') : `自選清單・${wc.t}`); }
     const fs = boolFs(), n = fs.filter((f) => on(p, f)).length;
     out.push(!Object.keys(p.lims || {}).length && n === fs.length ? '所有功能・不限' : n === fs.length ? '其他功能・不限次數' : `開放功能・${n}／${fs.length} 項`);
     return out;
@@ -404,6 +408,12 @@
 #v-pricing .prhl li{display:flex;align-items:flex-start;gap:10px;font-size:14px;line-height:1.45;color:var(--ink)}
 #v-pricing .prhl li svg{flex:none;margin-top:1px;color:var(--pc)}
 #v-pricing .pc-neutral .prhl li svg{color:color-mix(in srgb,var(--ink-3) 70%,transparent)}
+/* 2026-10-10：這個方案沒開的項目（以前寫「・不開放」）→ 勾勾淡掉、名稱後面一顆琥珀色會員膠囊（同帳號選單額度上限面板的 .qplan） */
+#v-pricing .prhl li.prhlneed svg{opacity:.3;filter:grayscale(1)}
+#v-pricing .prhl li.prhlneed>span{color:var(--ink-2)}
+#v-pricing .prhl .qplan{display:inline-flex;align-items:center;height:20px;margin-left:6px;padding:0 8px;border-radius:999px;font-size:12px;font-weight:700;white-space:nowrap;vertical-align:1px;
+  color:var(--amber);background:color-mix(in srgb,var(--amber) 14%,transparent);border:1px solid color-mix(in srgb,var(--amber) 45%,transparent)}
+#v-pricing .prhl .qplan::before{content:'★';margin-right:3px;font-size:10.5px}
 #v-pricing .prgo{margin-top:auto;width:100%;height:46px;border-radius:12px;border:1px solid transparent;background:var(--pc);color:var(--pr-on);font:inherit;font-size:15px;font-weight:700;cursor:pointer}
 #v-pricing .pc-neutral .prgo{background:transparent;color:var(--ink);border-color:var(--line-2)}
 #v-pricing .prgo[disabled]{background:transparent;color:var(--ink-2);border-color:color-mix(in srgb,var(--pc) 35%,var(--line-2));cursor:default}
@@ -577,7 +587,9 @@
     return `<div class="prcard pc-${esc(lk.color)}${hot ? ' hot' : ''}${need ? ' need' : ''}${isMine ? ' mine' : ''}" data-plan="${esc(p.id)}" data-tier="${t}">
       ${tag}<div class="prhd"><span class="prico">${svgI(lk.icon)}</span><h2 title="${esc(showName(p))}">${esc(showName(p))}</h2><div class="who" title="${esc(who)}">${esc(who)}</div></div>
       ${priceHtml(p)}<div class="mfit" title="${esc(p.fit_title || '')}">${p.fit_title ? esc(p.fit_title) : '&nbsp;'}</div><hr>
-      ${fit}<ul class="prhl">${hl.map((x) => `<li>${CHECK}<span>${esc(x)}</span></li>`).join('')}</ul>${btn}${preRead(t)}</div>`;
+      ${fit}<ul class="prhl">${hl.map((x) => (x && typeof x === 'object'
+        ? `<li class="prhlneed">${CHECK}<span>${esc(x.t)}<span class="qplan" data-need="1">${esc(x.need)}</span></span></li>`
+        : `<li>${CHECK}<span>${esc(x)}</span></li>`)).join('')}</ul>${btn}${preRead(t)}</div>`;
   }
   /* 2026-10-09（Andy：「退款政策及取消訂閱幫我新增」）：付費卡的升級鈕下面一行「付款前請先閱讀…」。
      免費卡放同高的隱形佔位，三張卡的按鈕才會在同一條線上。*/

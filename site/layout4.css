@@ -257,6 +257,10 @@
   :root.l4.l4-mini .l4subtab .lbl{display:none}
   :root.l4.l4-mini .l4subtab .ic{width:17px;height:17px}
   :root.l4.l4-mini .l4subtab::before{display:none}
+  /* ★ 2026-10-10（同步稽核 7-1）：被方案鎖住的子分頁（perm.js 依 features.js sub 掛 data-plkb="mark"）—— 字右邊一顆小 🔒（靠右對齊，不擠字）；
+     收成圖示列時縮成圖示右上角的小鎖。照樣點得進去（mark 不攔點擊），進去看到的是那一頁原本的鎖法（反灰備註／需開通卡）。 */
+  :root.l4 .l4subtab[data-plkb]::after{content:"🔒"!important;flex:none;margin-left:auto!important;font-size:11px!important;opacity:.75!important;line-height:1}
+  :root.l4.l4-mini .l4subtab[data-plkb]::after{position:absolute;top:1px;right:6px;margin:0!important;font-size:9px!important}
 
   /* =============================== 4. 今日事件抽屜（v4 的浮層，只改上緣與遮罩範圍） ===============================
      v4 的抽屜從頂欄下緣（top:58px）滑出、遮罩也從那裡開始蓋 —— 理由是「頂欄的『事件』鈕照樣按得到」（DECISIONS #271）。
