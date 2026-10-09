@@ -1498,7 +1498,10 @@
       box.hidden = false;
     };
     document.addEventListener('click', (e) => {
-      const t = e.target.closest && e.target.closest('.brand .logo, .m4brand picture');
+      /* 2026-10-09 帳本 79（Andy：「LOGO放大功能只有在側邊藍打開才有，上方的是回總攬功能」）：手機（html.m4）只有側欄抽屜裡的頭像放大，
+         頂欄頭像不攔 → 走 .brand 原本的 onclick 回總覽。桌機（非 m4）照舊：左上角 LOGO 放大。 */
+      const sel = document.documentElement.classList.contains('m4') ? '.m4brand picture' : '.brand .logo, .m4brand picture';
+      const t = e.target.closest && e.target.closest(sel);
       if (!t) return;
       e.preventDefault(); e.stopPropagation(); open();
     }, true);
@@ -13964,11 +13967,11 @@
        （2026-09-23 推算成第 14 版、他畫面上是第 7 版），**建置時間是唯一能確認「網站換版了沒」的依據**
        —— 每次部署都是請他比對這個時間。所以它放在滑鼠一停上去第一眼就看得到的位置。*/
     /* ★ 2026-09-24 晚（Andy：「版號增加進版時間」）：畫面上改回「v 日期 第 N 版 · HH:MM」，建置時間放回來。 */
-    const hm = (b.at.match(/(\d{1,2}:\d{2})/) || [])[1] || '';
     // 畫面上用短寫「v MM-DD 第N版 · HH:MM」（年份省略，完整版號在提示裡）—— 長版在 1280 會把分頁列擠出去、手機會撐出橫向捲軸
     const vm = b.ver.match(/^\d{4}-(\d{2})-(\d{2})\s*(.*)$/);
     const short = vm ? `${vm[1]}-${vm[2]}${vm[3] ? ' ' + vm[3].replace(/\s+/g, '') : ''}` : b.ver;
-    el.textContent = `v ${short}${hm ? ' · ' + hm : ''}`;
+    // ★ 2026-10-09（Andy：「拿掉時間」）：畫面上又拿掉「· HH:MM」，只留「v MM-DD 第N版」；建置時間照舊在滑鼠提示第一行（確認換版的依據）
+    el.textContent = `v ${short}`;
     const isCommit = /^[0-9a-f]{7,40}$/.test(b.sha);
     el.title = (b.at ? `更新時間 ${b.at}（台北）\n` : '')
       + (b.ver === 'dev' ? '開發版'

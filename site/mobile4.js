@@ -145,6 +145,8 @@
         + '<button type="button" class="m4x" aria-label="關閉導覽">✕</button></div><div class="m4body"></div>';
       $('.m4x', drawer).onclick = close;
       drawer.addEventListener('click', (e) => {
+        // 2026-10-09 帳本 79：抽屜頂端的站名字樣＝回總覽並關抽屜（頭像＝放大，由 app.js logoLightbox 處理）
+        if (e.target.closest('.m4brand .brandtxt')) { close(); if (location.hash !== '#overview') location.hash = '#overview'; return; }
         const b = e.target.closest('button[data-h], button[data-act]'); if (!b) return;
         if (b.dataset.act) {
           close();
