@@ -1498,7 +1498,10 @@
       box.hidden = false;
     };
     document.addEventListener('click', (e) => {
-      const t = e.target.closest && e.target.closest('.brand .logo, .m4brand picture');
+      /* 2026-10-09 帳本 79（Andy：「LOGO放大功能只有在側邊藍打開才有，上方的是回總攬功能」）：手機（html.m4）只有側欄抽屜裡的頭像放大，
+         頂欄頭像不攔 → 走 .brand 原本的 onclick 回總覽。桌機（非 m4）照舊：左上角 LOGO 放大。 */
+      const sel = document.documentElement.classList.contains('m4') ? '.m4brand picture' : '.brand .logo, .m4brand picture';
+      const t = e.target.closest && e.target.closest(sel);
       if (!t) return;
       e.preventDefault(); e.stopPropagation(); open();
     }, true);

@@ -80,6 +80,10 @@
   :root.m4 .m4brand{display:flex;align-items:center;gap:10px}
   :root.m4 .m4brand img{width:32px;height:32px;border-radius:28%;display:block;object-fit:cover;padding:0;background:none}  /* 2026-10-08 Andy「頭像滿版、不要被切到」：圓形會切掉帽尖 → 圓角方形 */
   :root.m4 .m4head b{font-size:16px;color:var(--ink)}
+  /* 2026-10-09 帳本 78（Andy：「標題圖跑掉了」）：上一行把 .m4head 裡所有 <b> 染成 var(--ink)，淺色主題＝深藍字，
+     疊上站名 .brandtxt 的深棕描邊就糊成「▇股▇股」。站名照 LOGO 固定白字（「股」黃字由 .y 管），深淺主題同一組；可點（回總覽）。 */
+  :root.m4 .m4head b.brandtxt{color:#fff;white-space:nowrap;cursor:pointer}
+  :root.m4 .m4brand picture{cursor:zoom-in}
   :root.m4 .m4x{width:44px;height:44px;border:0;border-radius:10px;background:transparent;color:var(--ink-2);font-size:18px}
   :root.m4 .m4body{flex:1 1 auto;overflow-y:auto;overscroll-behavior:contain;padding:6px 8px calc(16px + env(safe-area-inset-bottom))}
   :root.m4 .m4grp{padding:6px 0;border-bottom:1px solid var(--line)}

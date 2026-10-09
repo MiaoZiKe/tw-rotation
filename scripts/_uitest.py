@@ -32197,6 +32197,8 @@ SECTIONS = {
     "訪客額度1009":        lambda pg, b, base, code: t_guest_quota_1009(b, base, code),
     # ★ 2026-10-09 Andy：手機帳號選單（site/acctm4.js）—— 六種身分各一次：徽章、無自選、每項導頁、額度頁項目數、刪除帳號二次確認、管理區、客服開關（⚠ --workers 1）
     "帳號選單1009":        lambda pg, b, base, code: t_acct_menu_1009(b, base, code),
+    # ★ 2026-10-09 帳本 78、79：手機抽屜站名字樣不被色塊蓋；頂欄 LOGO＝回總覽、抽屜 LOGO＝放大、抽屜站名＝回總覽關抽屜；桌機 LOGO 仍放大
+    "手機品牌1009":        lambda pg, b, base, code: t_m4_brand_1009(b, base),
     # ★ 2026-10-08 晚 Andy 313：「熱門題材、資金熱力圖，點擊會到該個股的功能需要權限設定，只有 Plus 以上才可以」（訪客／免費／Plus／Pro 走每條熱力圖跳頁路徑；桌機＋手機觸控）
     "熱力圖跳個股1008":    lambda pg, b, base, code: t_heat_plus_1008(b, base),
     # ★ 2026-09-28 Andy：「所有標題加上小圖示，顏色要搭配」—— 覆蓋、對比 ≥3:1（深淺）、1440／800／390 不擠（A/B）、動效（⚠ 一律 --workers 1）
@@ -65109,6 +65111,77 @@ def t_heat_plus_1008(b, base):
     ok(f"{T}：整段沒有 JS 錯誤", not errs, errs[:3])
 
 
+# ===================================================================== 手機品牌1009（帳本 78、79；Andy 2026-10-09 22:0x）
+#   原話：「標題圖跑掉了，並且點擊後不會跑到總攬頁面」「LOGO放大功能只有在側邊藍打開才有，上方的是回總攬功能」
+#   根因：mobile4.css `:root.m4 .m4head b{color:var(--ink)}` 把抽屜站名 .brandtxt 染成 --ink，淺色主題＝深藍字＋深棕描邊 → 「▇股▇股」。
+#   402／360 觸控 × 深淺：(a) 抽屜站名可見、沒被蓋（elementFromPoint）、「哩」字是白色  (b) 頂欄 LOGO → #overview、不跳 #logoBox
+#   (c) 抽屜 LOGO → #logoBox  (d) 抽屜站名 → #overview、抽屜關閉；1440 桌機：.brand .logo 仍跳 #logoBox
+def t_m4_brand_1009(b, base):
+    T = "手機品牌1009"
+    box_on = "() => { const x = document.getElementById('logoBox'); return !!x && !x.hidden; }"
+    for w in (402, 360):
+        for th in ("dark", "light"):
+            tag = f"{w} {th}"
+            c = b.new_context(viewport={"width": w, "height": 844}, device_scale_factor=2, is_mobile=True, has_touch=True)
+            c.add_init_script(f"try {{ localStorage.setItem('tw.theme', '{th}'); localStorage.setItem('tw.live.on', '0'); }} catch (e) {{}}")
+            c.route("**/fonts.googleapis.com/**", lambda r: r.abort())
+            pg = c.new_page()
+            pg.goto(base + "#flow", wait_until="domcontentloaded")
+            if not ok(f"【{T}】{tag}：手機版與 ☰ 就緒", bool(wait_until(pg, "() => document.documentElement.classList.contains('m4') && !!document.getElementById('m4Burger') && !!document.querySelector('.topbar .brand .logo img')", 20000))):
+                c.close(); continue
+            pg.wait_for_timeout(600)
+            # (b) 頂欄 LOGO → 回總覽、不放大
+            pg.locator(".topbar .brand .logo img").tap()
+            okb = wait_until(pg, "() => location.hash === '#overview'", 3000)
+            pg.wait_for_timeout(250)
+            ok(f"【{T}】{tag}：點頂欄 LOGO → #overview、沒有跳 LOGO 大圖", bool(okb) and not pg.evaluate(box_on),
+               pg.evaluate("() => ({ h: location.hash, box: !!document.getElementById('logoBox') && !document.getElementById('logoBox').hidden })"))
+            pg.evaluate("() => { location.hash = '#flow'; }"); pg.wait_for_timeout(500)
+            # (a) 抽屜站名
+            pg.locator("#m4Burger").tap()
+            wait_until(pg, "() => { const d = document.getElementById('m4Drawer'); return d && !d.hidden && d.getBoundingClientRect().left > -1; }", 3000)
+            pg.wait_for_timeout(400)
+            a = pg.evaluate("""() => { const t = document.querySelector('#m4Drawer .m4brand .brandtxt'); if (!t) return null;
+                const r = t.getBoundingClientRect(), sp = [...t.children];
+                const hits = sp.map(e => { const q = e.getBoundingClientRect(); const h = document.elementFromPoint(q.left + q.width / 2, q.top + q.height / 2); return !!h && (h === e || e.contains(h) || h === t); });
+                return { w: r.width, h: r.height, txt: t.textContent, clip: t.scrollWidth > t.clientWidth + 1,
+                         c0: getComputedStyle(sp[0]).color, c1: getComputedStyle(sp[1]).color, hits,
+                         inDrawer: r.right <= document.getElementById('m4Drawer').getBoundingClientRect().right }; }""")
+            ok(f"【{T}】{tag}：抽屜站名「哩股哩股」寬高 >0、不截字、在抽屜內", bool(a) and a["w"] > 40 and a["h"] > 10 and a["txt"] == "哩股哩股" and not a["clip"] and a["inDrawer"], a)
+            ok(f"【{T}】{tag}：抽屜站名四個字都沒被別的元素蓋（elementFromPoint）", bool(a) and all(a["hits"]), a and a["hits"])
+            ok(f"【{T}】{tag}：「哩」白字、「股」黃字（不再被染成主題字色糊成色塊）",
+               bool(a) and a["c0"] == "rgb(255, 255, 255)" and a["c1"] == "rgb(255, 210, 31)", a and (a["c0"], a["c1"]))
+            # (c) 抽屜 LOGO → 放大
+            pg.locator("#m4Drawer .m4brand picture img").tap()
+            ok(f"【{T}】{tag}：抽屜打開時點抽屜 LOGO → LOGO 大圖出現", bool(wait_until(pg, box_on, 3000)))
+            pg.locator("#logoBox").tap(); pg.wait_for_timeout(250)
+            ok(f"【{T}】{tag}：點大圖收起", not pg.evaluate(box_on))
+            # (d) 抽屜站名 → 回總覽、抽屜關
+            if pg.evaluate("() => document.getElementById('m4Drawer').hidden"):
+                pg.locator("#m4Burger").tap(); pg.wait_for_timeout(400)
+            pg.locator("#m4Drawer .m4brand .brandtxt").tap()
+            okd = wait_until(pg, "() => location.hash === '#overview' && document.getElementById('m4Drawer').hidden", 3000)
+            ok(f"【{T}】{tag}：點抽屜站名 → #overview、抽屜關閉、沒跳大圖", bool(okd) and not pg.evaluate(box_on),
+               pg.evaluate("() => ({ h: location.hash, drawerHidden: document.getElementById('m4Drawer').hidden })"))
+            c.close()
+    # 桌機 1440：網頁版行為守住
+    c = b.new_context(viewport={"width": 1440, "height": 900})
+    c.add_init_script("try { localStorage.setItem('tw.live.on', '0'); } catch (e) {}")
+    c.route("**/fonts.googleapis.com/**", lambda r: r.abort())
+    pg = c.new_page()
+    pg.goto(base + "#flow", wait_until="domcontentloaded")
+    wait_until(pg, "() => !!document.querySelector('.topbar .brand .logo img') && !document.documentElement.classList.contains('m4')", 20000)
+    pg.wait_for_timeout(600)
+    h0 = pg.evaluate("() => location.hash")
+    pg.locator(".topbar .brand .logo img").click()
+    ok(f"【{T}】1440 桌機：點 .brand .logo 仍跳 LOGO 大圖、網址不動", bool(wait_until(pg, box_on, 3000)) and pg.evaluate("() => location.hash") == h0,
+       (h0, pg.evaluate("() => location.hash")))
+    pg.keyboard.press("Escape"); pg.wait_for_timeout(200)
+    pg.locator(".topbar .brand b.brandtxt").click()
+    ok(f"【{T}】1440 桌機：點站名照舊回總覽", bool(wait_until(pg, "() => location.hash === '#overview'", 3000)) and not pg.evaluate(box_on))
+    c.close()
+
+
 # ===================================================================== 帳號選單1009（site/acctm4.js；Andy 2026-10-09 06:5x＋07:0x）
 #   手機（430 寬、觸控）右上角頭像打開的帳號選單：六種身分（訪客／註冊會員／Plus／Pro／管理員／站主）各跑一次，真的用手指點：
 #   ① 徽章文字對、四種方案顏色不同、管理員多一顆「管理」  ② 沒有「自選清單」  ③ 每一項點了真的到對應功能（hash 換了／面板開了）
@@ -65534,7 +65607,7 @@ def t_billing_1009(b, base, shots):
         pg.click("#acctMenu [data-b=cancel]")
         dv = wait_until(pg, "() => { const d = document.getElementById('billDlg'); return d && !d.hidden ? d.innerText : null; }", 3000)
         ok(f"【{T}】網頁版 Plus：點取消訂閱 → 確認框寫「可用到本期結束日 {end}」「次期不再扣款」、選單收起",
-           bool(dv) and end in dv and "不再扣款" in dv and "七天" in dv and pg.evaluate("() => document.getElementById('acctMenu').hidden"), dv)
+           bool(dv) and end in dv and "不再扣款" in dv and "不再享有退款保證" in dv and pg.evaluate("() => document.getElementById('acctMenu').hidden"), dv)
         if shots:
             pg.screenshot(path=str(pathlib.Path(shots) / "desk_cancel_confirm.jpg"), type="jpeg", quality=70)
         pg.click("#billYes")
