@@ -1832,14 +1832,22 @@
   }
   function monthBars(id, vals, colOf, tipOf) {
     const a = A(), CH = a.CH, B = a.barStyle;
+    /* 2026-10-09 Andy（手機 430）：「每月入帳長條圖在手機上，柱子寬度和數字標籤要調整適當，標籤不准互相重疊」。
+       只有手機（html.m4，≤640）走這一支：12 格擠在約 360px 裡，每格約 29px，「10.4萬」這種 11px 標籤約 38px 寬，相鄰一定疊。
+       → 標籤去掉「萬」（單位已寫在圖上方的小標「單位：萬」）、10 萬以上取整數、改用比例字（等寬字的「8.3」約 22px，比例字約 17px），
+         最寬 3 個字放得進一格、相鄰還留 ≥ 4px；字級拉回 12px 下限；
+         柱寬 56%；再加 hideOverlap 當最後一道保險。完整金額在提示框（點一下就出現）。桌機（m4=false）一個字都沒改。 */
+    const m4 = document.documentElement.classList.contains('m4');
+    const lab = m4 ? { show: true, position: 'top', fontSize: 12, fontFamily: 'system-ui, -apple-system, "Segoe UI", Roboto, sans-serif', color: CH.ink2, formatter: (p) => { const w = p.value / 1e4; return p.value > 0 ? (w < 10 ? w.toFixed(1) : String(Math.round(w))) : ''; } }
+      : { show: true, position: 'top', fontSize: 11, color: CH.ink2, formatter: (p) => (p.value > 0 ? wan1(p.value) : '') };
     a.chart(id, {
       grid: { left: 4, right: 4, top: 24, bottom: 4, containLabel: true },
       tooltip: { ...a.tip, confine: true, trigger: 'item', formatter: (p) => tipOf(p.dataIndex) },
       xAxis: { type: 'category', data: Array.from({ length: 12 }, (_, i) => `${i + 1}月`), ...a.axisStyle, axisLabel: { ...a.axisStyle.axisLabel, fontSize: 11, interval: 0 } },
       yAxis: { type: 'value', show: false },
-      series: [{ type: 'bar', id: 'tw-thick-bar', barWidth: '50%',   /* 10-08 Andy：直條太細太空 → 每格寬的 50%（1440 約 45px，手機等比）*/  emphasis: { focus: 'self', blurScope: 'series', itemStyle: { borderColor: CH.ink, borderWidth: 2 } }, blur: { itemStyle: { opacity: document.documentElement.getAttribute('data-theme') === 'light' ? 0.32 : 0.55 } },   // 10-08：滑過那根加亮、其他變淡（跟行事曆小圖同一套）
+      series: [{ type: 'bar', id: 'tw-thick-bar', barWidth: m4 ? '56%' : '50%',   /* 10-08 Andy：直條太細太空 → 每格寬的 50%（1440 約 45px，手機等比）*/  emphasis: { focus: 'self', blurScope: 'series', itemStyle: { borderColor: CH.ink, borderWidth: 2 } }, blur: { itemStyle: { opacity: document.documentElement.getAttribute('data-theme') === 'light' ? 0.32 : 0.55 } },   // 10-08：滑過那根加亮、其他變淡（跟行事曆小圖同一套）
         itemStyle: { borderRadius: [3, 3, 0, 0], color: colOf ? (p) => { const c = colOf(p.dataIndex); return { type: 'linear', x: 0, y: 0, x2: 0, y2: 1, colorStops: [{ offset: 0, color: c }, { offset: 1, color: a.hexA(c, 0.45) }] }; } : B.grad(false) },
-        label: { show: true, position: 'top', fontSize: 11, color: CH.ink2, formatter: (p) => (p.value > 0 ? wan1(p.value) : '') }, data: vals.map((v) => Math.round(v)) }],
+        label: lab, ...(m4 ? { labelLayout: { hideOverlap: true } } : {}), data: vals.map((v) => Math.round(v)) }],
     });
     $('#' + id).dataset.vals = vals.map((v) => Math.round(v)).join(',');
   }
