@@ -60,6 +60,10 @@
      標題列「今日事件｜全部（N）▾｜×」同一行；分類（全部／台股／科技／總經／券商）改成同一款分段控制器、一行、放不下就框裡橫捲。
      兩個抽屜 touch-action:pan-y：上下捲交給瀏覽器、左右滑收起交給 mobile4.js swipeClose */
   :root.m4 aside#side{width:min(300px,78vw)}
+  /* 2026-10-09 手機監督退件（帳本 40）：抽屜寬 300 後新聞標題會斷在詞中間（例「· 下｜修」）→ 手機標題一律單行＋…，完整標題放 title */
+  :root.m4 #side #evList .ev>a{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  /* 手機監督（帳本 40 附帶）：總覽「走勢圖｜K 線」那組（#m3Mode，父層 .m3-bar 左內距 14）左緣跟另外兩組對齊在 8 */
+  :root.m4 .m3-bar{padding-left:0!important}
   :root.m4 .m4drawer,:root.m4 aside#side{touch-action:pan-y}
   :root.m4 #side .side-h{gap:6px;padding:10px 8px 8px 12px;flex-wrap:nowrap}
   :root.m4 #side .side-h h3{flex:none;white-space:nowrap;margin:0}
