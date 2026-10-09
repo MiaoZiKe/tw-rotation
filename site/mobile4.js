@@ -1179,7 +1179,7 @@
    ★ 31. 市場明細三頁的多組切換 → 一顆摘要鈕＋底部抽屜（2026-10-09，帳本 38 退件）
    照週期統計範本（第 C 段 m3／週期統計）：一顆摘要鈕 → 底部抽屜 → 每組一排分段控制器。只有一組的頁不收。
      · 漲跌家數：市場（全部／上市／上櫃）＋ ETF（不含／含）＋ 族群
-     · 法人連買賣：法人（投信／外資／合計）＋ 天數（≥2～≥12 天；原本是下拉 → 抽屜裡改成分段）
+     · 法人連買賣：畫法（排行／四象限，main 79c69fd8 新增的 #streakView）＋ 法人（投信／外資／合計）＋ 天數（≥2～≥12 天；原本是下拉 → 抽屜裡改成分段）
      · 站上均線：均線期間（5～240 日）＋ 族群
    做法：抽屜裡的分段鈕是「代理」—— 點一顆＝去按頁面上原本那顆（或改原本那個下拉／勾選再發 change），
    邏輯只有 app.js 那一份；族群是 43 個選項的可搜尋多選，放不進一排分段 → 把頁面上**同一個節點**搬進抽屜，關抽屜搬回去。
@@ -1225,22 +1225,24 @@
     },
     streak: {
       title: '法人連續買賣超設定',
-      anchor: () => live('#streakWho'),
+      anchor: () => live('#streakView') || live('#streakWho'),
       rows: () => {
-        const w = live('#streakWho'), d = live('#streakDays');
+        const v = live('#streakView'), w = live('#streakWho'), d = live('#streakDays');
         return [
+          v && { k: 'view', lbl: '畫法', items: $$('button', v).map((b) => [b.dataset.v, b.textContent.trim(), b.classList.contains('on')]) },
           w && { k: 'who', lbl: '法人', items: $$('button', w).map((b) => [b.dataset.w, b.textContent.trim(), b.classList.contains('on')]) },
           d && { k: 'days', lbl: '連續天數', items: Array.from(d.options).map((o) => [o.value, o.text.trim(), o.value === d.value]) },
         ].filter(Boolean);
       },
       act: (k, v) => {
+        if (k === 'view') { const b = $$('button', live('#streakView')).find((x) => x.dataset.v === v); if (b && !b.classList.contains('on')) b.click(); }
         if (k === 'who') { const b = $$('button', live('#streakWho')).find((x) => x.dataset.w === v); if (b && !b.classList.contains('on')) b.click(); }
         if (k === 'days') { const d = live('#streakDays'); if (d && d.value !== v) { d.value = v; d.dispatchEvent(new Event('change', { bubbles: true })); } }
       },
       move: () => null,
       sum: () => {
-        const w = $('#streakWho button.on'), d = live('#streakDays');
-        return [w ? w.textContent.trim() : '投信', d && d.options[d.selectedIndex] ? d.options[d.selectedIndex].text.trim() : ''];
+        const vw = $('#streakView button.on'), w = $('#streakWho button.on'), d = live('#streakDays');
+        return [vw ? vw.textContent.trim() : '', w ? w.textContent.trim() : '投信', d && d.options[d.selectedIndex] ? d.options[d.selectedIndex].text.trim() : ''];
       },
     },
     ma: {

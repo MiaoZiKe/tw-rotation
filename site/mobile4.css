@@ -845,7 +845,7 @@
   :root.m4 #v-market #m4MkSet .m4sico{flex:none;opacity:.8}
   :root.m4 #v-market #m4MkSet>i{flex:none;font-style:normal;opacity:.7}
   :root.m4 #v-market #m4MkSet+#distFilter,
-  :root.m4 #v-market #m4MkSet~:is(#streakWho,#streakDays),
+  :root.m4 #v-market #m4MkSet~:is(#streakView,#streakWho,#streakDays),
   :root.m4 #v-market #m4MkSet+#maPick,
   :root.m4 #v-market #m4MkSet~#maGroupCtl{display:none!important}
 
