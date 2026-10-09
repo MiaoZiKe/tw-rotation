@@ -262,7 +262,7 @@
   function priceOf(p) { const r = priceAt(p, p.period === 'year' ? 'year' : 'month'); return r.free ? { amount: 0, unit: '', free: true } : { amount: r.amount || 0, unit: r.unit, free: false, tbd: !!r.tbd }; }
   const monthEq = (p) => { const x = prices(p); return x.free ? 0 : x.month || (x.year ? x.year / 12 : x.once || Infinity); };
   /* 這個方案在某個功能上的值（沒寫＝預設）；上限：Infinity＝不限 */
-  function val(p, f) { const v = (p.feats || {})[f.id]; if (f.kind === 'limit') return Number.isInteger(v) ? v : v === false ? 0 : F() && F().defOf ? F().defOf(f, p.id) : f.def; return typeof v === 'boolean' ? v : f.def; }
+  function val(p, f) { const v = (p.feats || {})[f.id]; if (f.kind === 'limit') return Number.isInteger(v) ? v : v === false ? 0 : F() && F().defOf ? F().defOf(f, p.id) : f.def; return typeof v === 'boolean' ? v : F() && F().defOf ? F().defOf(f, tierOf(p) === 'paid' ? p.id : tierOf(p)) : f.def; }
   const limOf = (p, f) => { const v = (p.lims || {})[f.id]; return Number.isInteger(v) && v >= 0 ? v : Infinity; };
   const on = (p, f) => { if (limOf(p, f) === 0) return false; const v = val(p, f); return typeof v === 'number' ? v > 0 : v !== false; };
   const ltxt = (n) => (n === Infinity ? '不限' : n === 0 ? '不能看' : `每日 ${n} 次`);
