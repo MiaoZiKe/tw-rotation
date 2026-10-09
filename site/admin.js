@@ -2196,7 +2196,7 @@ html[data-theme="light"] #v-admin{--pm-blue:#1f4fd8;--pm-blue-2:#163fb4}
   }
   function presetDiff(m) {
     const F = FT(), t = m.t, c = m.cur || { feats: {}, lims: {}, name: '', price: 0, dq: null };
-    const val = (feats, id) => { const f = F.byId(id); const v = (feats || {})[id]; if (!f) return v; if (f.kind === 'limit') return Number.isInteger(v) ? v : F.defOf ? F.defOf(f, t.key) : f.def; return typeof v === 'boolean' ? v : f.def; };
+    const val = (feats, id) => { const f = F.byId(id); const v = (feats || {})[id]; if (!f) return v; if (f.kind === 'limit') return Number.isInteger(v) ? v : F.defOf ? F.defOf(f, t.key) : f.def; return typeof v === 'boolean' ? v : F.defOf ? F.defOf(f, t.key) : f.def; };   // 2026-10-10：開關也認 defBy
     const fn = (id) => (F.byId(id) ? F.byId(id).name : id);
     const show = (id, v) => { const f = F.byId(id); return f && f.kind === 'limit' ? (v >= f.max && f.opts ? '不限' : v + (f.unit || '')) : v ? '開' : '關'; };
     const feats = Object.keys(t.feats).filter((id) => val(c.feats, id) !== val(t.feats, id)).map((id) => `${fn(id)}：${show(id, val(c.feats, id))} → ${show(id, val(t.feats, id))}`);

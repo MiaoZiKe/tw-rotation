@@ -15,6 +15,12 @@
        （拿掉 explore.page 5、heat.detail 3、ind.groups 3、ind.diagram 3、stock.page 3），研究頁只靠全站每日額度（dq）——
        管理頁改全站額度就是訪客實際能用的次數。0＝不開放（3D、關聯圖、ETF 一覽／報酬比較、AI）與動作次數（下鑽、篩選、切分頁）照留。
        註冊會員／Plus 的單項上限沒動（這次 Andy 只回報訪客）；管理頁全站每日額度小卡會把任何範本「比全站額度更嚴的單項上限」列出來，可一鍵改成共用。
+     · ★ 2026-10-10（Andy 00:4x：「註冊免費會員 今日關注限制不可以看／3D 剖析開放 3 次／新增 "事件" 觀看次數 10 次 點擊新聞連結／
+       資金輪動 跟分流樹 播放功能在此會員不開放」＋「週期統計 免費註冊會員不開放 族群篩選功能」）：
+       訪客、註冊會員 mkt.cand／flow.play／season.groups 關；註冊會員 3D（ind.3d）每日 1 → 3 次；新鍵 news.open（今日事件點新聞連結）
+       註冊會員每日 10 次、訪客 3 次（跟訪客其他動作次數 3 同一級距、不比註冊會員寬）；Plus／Pro 明寫開、news.open 不設上限＝不限。
+       flow.play／season.groups／mkt.cand 在 features.js 另有 defBy（訪客／註冊會員預設關），線上範本沒寫這幾項時已經生效；
+       但範本若明寫 mkt.cand:true（套用過 10-08 版），3D 3 次與 news.open 次數也只在範本 lims —— 都要按「套用建議方案」（或在管理區手動改）才會寫進線上範本。
    這支是**資料**，不是設定：改了不會自動生效，要管理者在 #admin/perm 按一次「套用建議方案」。
    ============================================================================ */
 window.TW_PLAN_PRESETS = {
@@ -27,6 +33,8 @@ window.TW_PLAN_PRESETS = {
    "price_year": 0,
    "dq": 15,
    "feats": {
+    "flow.play": false,
+    "season.groups": false,
     "ov.summary": true,
     "ov.index": true,
     "ov.heat": true,
@@ -49,7 +57,7 @@ window.TW_PLAN_PRESETS = {
     "mkt.updown": true,
     "mkt.streak": true,
     "mkt.ma": true,
-    "mkt.cand": true,
+    "mkt.cand": false,
     "season.month": true,
     "stock.k_day": true,
     "stock.tick": true,
@@ -96,6 +104,7 @@ window.TW_PLAN_PRESETS = {
     "heat.link": false
    },
    "lims": {
+    "news.open": 3,
     "flow.sankey.drill": 3,
     "flow.inst.filter": 5,
     "earn.tab": 3,
@@ -133,6 +142,8 @@ window.TW_PLAN_PRESETS = {
    "price_year": 0,
    "dq": 40,
    "feats": {
+    "flow.play": false,
+    "season.groups": false,
     "ov.summary": true,
     "ov.index": true,
     "ov.heat": true,
@@ -155,7 +166,7 @@ window.TW_PLAN_PRESETS = {
     "mkt.updown": true,
     "mkt.streak": true,
     "mkt.ma": true,
-    "mkt.cand": true,
+    "mkt.cand": false,
     "season.month": true,
     "stock.k_day": true,
     "stock.tick": true,
@@ -202,6 +213,7 @@ window.TW_PLAN_PRESETS = {
     "heat.link": false
    },
    "lims": {
+    "news.open": 10,
     "flow.sankey.drill": 15,
     "flow.inst.filter": 15,
     "earn.tab": 10,
@@ -216,7 +228,7 @@ window.TW_PLAN_PRESETS = {
     "heat.detail": 10,
     "ind.groups": 10,
     "ind.diagram": 10,
-    "ind.3d": 1,
+    "ind.3d": 3,
     "ind.rel": 5,
     "stock.page": 10,
     "stock.ai": 3
@@ -243,6 +255,8 @@ window.TW_PLAN_PRESETS = {
    "price_year": 2990,
    "dq": 300,
    "feats": {
+    "flow.play": true,
+    "season.groups": true,
     "ov.summary": true,
     "ov.index": true,
     "ov.heat": true,
@@ -345,6 +359,8 @@ window.TW_PLAN_PRESETS = {
    "price_year": 5268,
    "dq": null,
    "feats": {
+    "flow.play": true,
+    "season.groups": true,
     "ov.summary": true,
     "ov.index": true,
     "ov.heat": true,

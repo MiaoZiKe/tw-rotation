@@ -262,7 +262,7 @@
   function priceOf(p) { const r = priceAt(p, p.period === 'year' ? 'year' : 'month'); return r.free ? { amount: 0, unit: '', free: true } : { amount: r.amount || 0, unit: r.unit, free: false, tbd: !!r.tbd }; }
   const monthEq = (p) => { const x = prices(p); return x.free ? 0 : x.month || (x.year ? x.year / 12 : x.once || Infinity); };
   /* 這個方案在某個功能上的值（沒寫＝預設）；上限：Infinity＝不限 */
-  function val(p, f) { const v = (p.feats || {})[f.id]; if (f.kind === 'limit') return Number.isInteger(v) ? v : v === false ? 0 : F() && F().defOf ? F().defOf(f, p.id) : f.def; return typeof v === 'boolean' ? v : f.def; }
+  function val(p, f) { const v = (p.feats || {})[f.id]; if (f.kind === 'limit') return Number.isInteger(v) ? v : v === false ? 0 : F() && F().defOf ? F().defOf(f, p.id) : f.def; return typeof v === 'boolean' ? v : F() && F().defOf ? F().defOf(f, p.id === 'guest' || p.id === 'free' ? p.id : 'paid') : f.def; }   // 2026-10-10：開關也認 defBy（今日關注／▶ 播放／族群篩選、熱力圖跳頁：範本沒寫時訪客與註冊會員是關）
   const limOf = (p, f) => { const v = (p.lims || {})[f.id]; return Number.isInteger(v) && v >= 0 ? v : Infinity; };
   const on = (p, f) => { if (limOf(p, f) === 0) return false; const v = val(p, f); return typeof v === 'number' ? v > 0 : v !== false; };
   const ltxt = (n) => (n === Infinity ? '不限' : n === 0 ? '不能看' : `每日 ${n} 次`);
@@ -433,6 +433,10 @@
 #v-pricing .prcmpw td.v{font-family:var(--mono);font-variant-numeric:tabular-nums;font-size:13.5px;color:var(--ink)}
 #v-pricing .prcmpw tr.hl td{background:color-mix(in srgb,var(--amber) 16%,var(--panel))}
 #v-pricing .prcmpw tr.base td{color:var(--ink-2);border-bottom:0}
+#v-pricing .prcmpw tr.prmore{display:none}
+:root.m4 #v-pricing .prcmpw tr.prmore{display:table-row}
+:root.m4 #v-pricing #prTable:not(.prall) tr[data-more]{display:none}
+:root.m4 #v-pricing .prmorebtn{width:100%;min-height:36px;border:0;background:transparent;color:var(--cyan);font:inherit;font-size:13px;cursor:pointer}
 #v-pricing .prtop{display:flex;align-items:center;gap:12px;border-bottom:1px solid var(--line)}
 #v-pricing .prtop .prinfo{flex:1;min-width:0;border-bottom:0}
 #v-pricing .prlay{flex:none;display:inline-flex;gap:2px;padding:3px;border-radius:9px;border:1px solid var(--line-2);background:var(--panel-3)}
@@ -591,7 +595,10 @@
       const n = limOf(p, f); return n === Infinity ? { c: 'y', t: '✓' } : { c: 'v', t: `每日 ${n} 次` };
     };
     const hc = (p) => ` pc-${look.get(p.id).color}` + (p === hot ? ' hot' : '');
-    let rows = '', same = 0;
+    let rows = '', same = 0, fi = 0;
+    /* ★ 2026-10-10 手機（≤640，html.m4）：比較表只先列前 MORE_N 項差異，其餘收在「看全部 N 項比較」後面（手機準則 1／5：≤3 屏、收展預設收起）。
+       10-10 這批多了今日關注、▶ 播放、族群篩選、總覽／熱力圖跳頁四列，360 寬整頁超過 3 屏。桌機照舊全列（CSS 只在 :root.m4 生效）。*/
+    const MORE_N = 8, more = () => (++fi > MORE_N ? ' data-more=""' : '');
     /* 研究瀏覽（全站共用每日額度 quota.all，另一位同事在 quota.js 加）：範本的 lims 有這個鍵才列，放第一列；null／沒寫＝不限 */
     if (plans.some((p) => qAll(p) !== undefined)) {
       const qa = plans.map((p) => { const n = qAll(p); return n === undefined || n === Infinity ? { c: 'y', t: '不限' } : n === 0 ? { c: 'n', t: '—' } : { c: 'v', t: `每日 ${n} 次` }; });
@@ -603,12 +610,13 @@
       /* 同一列有方案寫「每日 N 次」時，不限的那格寫「不限」而不是 ✓（不然看起來像「有」但不知道幾次）*/
       const diff = fs.map((f) => { const cs = plans.map((p) => cell(p, f)); return [f, cs.some((x) => /^每日/.test(x.t)) ? cs.map((x) => (x.c === 'y' ? { c: 'y', t: '不限' } : x)) : cs]; }).filter(([, cs]) => { if (new Set(cs.map((x) => x.t)).size > 1) return true; same++; return false; });
       if (!diff.length) return;
-      rows += `<tr class="cat"><td colspan="${plans.length + 1}">${esc(c.name)}</td></tr>` + diff.map(([f, cs]) => `<tr data-f="${esc(f.id)}"${needF && needF.id === f.id ? ' class="hl"' : ''}><td title="${esc(f.desc || f.name)}">${esc(f.name)}</td>${cs.map((x, i) => `<td class="${x.c}${hc(plans[i])}">${esc(x.t)}</td>`).join('')}</tr>`).join('');
+      rows += `<tr class="cat"${fi + 1 > MORE_N ? ' data-more=""' : ''}><td colspan="${plans.length + 1}">${esc(c.name)}</td></tr>` + diff.map(([f, cs]) => `<tr data-f="${esc(f.id)}"${more()}${needF && needF.id === f.id ? ' class="hl"' : ''}><td title="${esc(f.desc || f.name)}">${esc(f.name)}</td>${cs.map((x, i) => `<td class="${x.c}${hc(plans[i])}">${esc(x.t)}</td>`).join('')}</tr>`).join('');
     });
     const g = Ft.inCat('grp');
     const gv = plans.map((p) => { const off = Object.keys(p.feats || {}).filter((k) => k.startsWith('grp.') && p.feats[k] === false).length + Object.keys(p.lims || {}).filter((k) => k.startsWith('grp.') && p.lims[k] === 0).length;
       return off === 0 ? '全部' : g.length ? (g.length - off) + '／' + g.length : '關閉 ' + off + ' 個'; });
     if (new Set(gv).size > 1) rows += `<tr class="cat"><td colspan="${plans.length + 1}">族群觀測</td></tr><tr data-f="grp"><td>可展開的族群</td>${gv.map((x, i) => `<td class="v${hc(plans[i])}">${esc(x)}</td>`).join('')}</tr>`;
+    if (fi > MORE_N) rows += `<tr class="prmore"><td colspan="${plans.length + 1}"><button type="button" class="prmorebtn" aria-expanded="false">看全部 ${fi} 項比較 ›</button></td></tr>`;
     if (same) rows += `<tr class="base"><td>其他基礎功能（${same} 項）</td><td colspan="${plans.length}">全部方案皆可用</td></tr>`;
     if (mg) {
       /* 合併表：欄頭＝圖示＋名稱＋定位句、價格、適合誰、行動鈕；頂端標籤浮在欄頭上緣；Plus（hot）整欄淡藍 */
@@ -710,4 +718,12 @@
   const unlockers = (fid) => { const f = F() && F().byId(fid); if (!S.plans || !f) return null; return S.plans.filter((p) => tierOf(p) !== 'guest' && on(p, f)).map((p) => ({ id: p.id, name: showName(p), dq: Number.isInteger(p.dq) ? p.dq : null })); };
   window.TwPricing = { reload: () => { S.plans = null; return show(); }, priceOf, priceAt, fromPreset, state: () => ({ src: S.src, plans: S.plans, need: S.need, pick: S.pick, per: S.per }),
     plans: () => S.plans, ensure, unlockers };
+  /* 手機比較表「看全部 N 項比較 ›」：按一下展開／再按收起（不記狀態：每次進訂閱頁都是收起，手機準則 5）*/
+  document.addEventListener('click', (e) => {
+    const b = e.target && e.target.closest && e.target.closest('#v-pricing .prmorebtn'); if (!b) return;
+    const t = b.closest('table'); if (!t) return;
+    const on = t.classList.toggle('prall');
+    b.setAttribute('aria-expanded', on ? 'true' : 'false');
+    b.textContent = on ? '收起 ‹' : `看全部 ${t.querySelectorAll('tr[data-f]').length} 項比較 ›`;
+  });
 })();
