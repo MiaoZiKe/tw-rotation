@@ -292,6 +292,13 @@
   :root.m4 .topbar.msearch .search{z-index:30}
   :root.m4 .m4tools #acctBtn{font-size:0!important;width:40px;padding:0!important}
   :root.m4 .m4tools #acctBtn .ini{font-size:15px}
+  /* 2026-10-09 合併 m4-seg 後：頂欄多了 #themeBtn，訪客有「限制：剩 X 次」那行字時 390 寬放不下（m4Tools 右緣 397、整頁橫捲 7px）。
+     只在那行字出現時收緊：圖示鈕 40→36 寬（高仍 40）、間距 4→2；那行字回到 12px 下限（quota.js 的 .twqp.mob 寫 11px） */
+  :root.m4 .m4tools:has(>.twqp:not([hidden])){gap:2px}
+  :root.m4 .m4tools:has(>.twqp:not([hidden])) :is(.m4srch,#themeBtn,#t4Btn,#twPageTourBtn,#acctBtn){width:36px!important;min-width:36px!important}
+  :root.m4 .m4tools:has(>.twqp:not([hidden])) .m4login{min-width:36px!important;padding:0 4px!important}
+  :root.m4 .m4tools .twqp.mob{margin:0 2px 0 0}
+  :root.m4 .m4tools .twqp.mob .twqp-b{font-size:12px;padding:0 1px;max-width:none}
   :root.m4 .m4tools #acctBtn .anm{display:none}
 
   /* ---- 20. 產業地圖：只留甜甜圈，橫條圖收進「族群漲跌幅 ▸」（mobile4.js wireIndMap） */
@@ -473,11 +480,14 @@
   :root.m4 #v-market .mkthead>h3{margin:0!important}
   :root.m4 #v-market .mkthead .mktpre{display:none}          /* 「市場明細：」跟頁首大標重複 */
   :root.m4 #v-market .mkthead>.mktright{width:100%;margin:0!important;flex-direction:column;align-items:stretch;gap:6px}
-  :root.m4 #v-market #mktSeg2#mktSeg2{display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr));gap:0!important;width:100%;
-    overflow:hidden!important;border-bottom:1px solid var(--line)!important;padding:0!important;margin:0!important}
-  :root.m4 #v-market #mktSeg2#mktSeg2>button{min-width:0!important;width:100%;height:42px!important;min-height:42px!important;padding:0 2px!important;
+  /* 2026-10-09 合併 m4-seg 後：#mktSeg2 是 .seg，會被第 23 節掛上 .m4seg（width:fit-content!important＋膠囊外框），容器縮成 296 —— 這裡用 !important 蓋回滿寬底線列 */
+  :root.m4 #v-market #mktSeg2#mktSeg2{display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr));gap:0!important;width:100%!important;max-width:none!important;
+    overflow:hidden!important;border:0!important;border-bottom:1px solid var(--line)!important;border-radius:0!important;background:transparent!important;padding:0!important;margin:0!important;
+    -webkit-mask-image:none!important;mask-image:none!important}
+  /* 高 40、15px：跟全站子頁底線頁籤（.m4subtabs，第 18 節）同一款（元件統一普查：頁籤指紋同一種） */
+  :root.m4 #v-market #mktSeg2#mktSeg2>button{min-width:0!important;width:100%;height:40px!important;min-height:40px!important;padding:0 2px!important;
     border:0!important;border-bottom:2px solid transparent!important;border-radius:0!important;background:transparent!important;
-    color:var(--ink-2)!important;font-size:14px!important;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    color:var(--ink-2)!important;font-size:15px!important;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   :root.m4 #v-market #mktSeg2#mktSeg2>button.on{color:var(--t4-accent-solid,var(--cyan))!important;border-bottom-color:var(--t4-accent-solid,var(--cyan))!important;
     background:transparent!important;font-weight:700}
   :root.m4 #v-market #mktDisc{order:2}                     /* 今日關注的免責小字排在分頁下面 */
@@ -492,14 +502,15 @@
   :root.m4 #v-market :is(#mktTabs,#streakWho,#maSeg)#maSeg{display:grid!important;grid-auto-flow:column;grid-auto-columns:minmax(0,1fr);gap:4px!important;overflow:hidden!important;width:100%}
   :root.m4 #v-market :is(#mktTabs,#streakWho,#maSeg)>button{min-width:0!important;padding:0 2px!important;width:100%}
   /* 漲跌家數清單五顆：短名＋檔數上下兩行 */
-  :root.m4 #v-market #mktTabs#mktTabs>button{flex-direction:column!important;gap:1px!important;line-height:1.15!important;height:44px!important;min-height:44px!important}
+  /* 高 40（跟其他分段控制器同一款；兩行字 13＋12px × 1.15 ≈ 30px 放得下） */
+  :root.m4 #v-market #mktTabs#mktTabs>button{flex-direction:column!important;gap:1px!important;line-height:1.15!important;height:40px!important;min-height:40px!important}
   :root.m4 #v-market #mktTabs>button em{margin:0!important}
   :root.m4 #v-market .mktlist>#mktTabs{align-self:stretch!important}
 
   /* 漲跌家數：圖在上、清單在下，中間一條分隔線；清單卡自己最多 460 再捲（不橫捲） */
   :root.m4 #v-market .mktduo{gap:0!important}
   :root.m4 #v-market .mktduo>.mktlist{border-top:1px solid var(--line-2)!important;margin-top:14px!important;padding-top:14px!important}
-  :root.m4 #v-market #mktInner .tw{overflow-x:hidden!important}
+  :root.m4 #v-market #mktInner .tw{overflow-x:hidden!important;border-left:0!important;border-right:0!important;border-radius:0!important}   /* 大方格取消、只留上下線（Andy 10-08「直接用線條區分」） */
   :root.m4 #v-market #mktInner table{width:100%;table-layout:auto}
   :root.m4 #v-market #mktBody table td{vertical-align:middle!important}
   :root.m4 #v-market #mktInner :is(th,td){padding-left:4px!important;padding-right:4px!important;white-space:nowrap}

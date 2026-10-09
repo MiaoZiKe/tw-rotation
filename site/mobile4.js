@@ -633,6 +633,7 @@
   function markBleed() {
     $$(BLEED).forEach((e) => {
       if (!e.closest('.view.on') || !e.getClientRects().length) return;
+      if (e.id === 'mktSeg2') return;   // 市場明細頂部四頁籤是等寬底線分頁（第 29 節），本來就填滿、不橫捲，不拓寬
       const kids = [...e.children].filter((k) => k.getClientRects().length && getComputedStyle(k).position !== 'absolute');
       if (kids.length < 2) return;
       const need = kids[kids.length - 1].offsetLeft + kids[kids.length - 1].offsetWidth - kids[0].offsetLeft;
