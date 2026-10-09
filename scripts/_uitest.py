@@ -28003,7 +28003,7 @@ def t_barw_1009(b, base):
             ok(f"★ [{T}] {W} 總覽漲跌家數：柱寬 ≤ 格寬 60%（不粗到黏在一起）", bool(s.get("band")) and s.get("w", 99) <= s["band"] * 0.6, s)
             ok(f"[{T}] {W} 總覽漲跌家數：數值標籤沒有互相重疊", s.get("ov", 1) == 0, s)
             # 真的點一根直條：清單打開、其他直條淡掉（局部 setOption 只帶 data）→ 柱寬不准被壓回 12
-            box = pg.evaluate("() => { const el = document.getElementById('breadth'); const inst = echarts.getInstanceByDom(el); const L = inst.getModel().getSeriesByIndex(0).getData().getItemLayout(4); const r = el.getBoundingClientRect(); return { x: r.left + L.x + L.width / 2, y: r.top + L.y + L.height - 4 }; }")
+            box = pg.evaluate("() => { const el = document.getElementById('breadth'); const inst = echarts.getInstanceByDom(el); const L = inst.getModel().getSeriesByIndex(0).getData().getItemLayout(4); const r = el.getBoundingClientRect(); return { x: r.left + L.x + L.width / 2, y: r.top + L.y + L.height / 2 }; }")
             pg.mouse.click(box["x"], box["y"])
             wait_until(pg, "() => { const p = document.getElementById('udPanel'); return p && !p.hidden; }", 4000)
             pg.wait_for_timeout(500)
