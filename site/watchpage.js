@@ -350,7 +350,9 @@
     if (sel) { P.confirm = false; P.menu = false; setHint(''); if (sel.dataset.sel !== T.cur()) T.setCur(sel.dataset.sel); return; }
     if (q('#wpMore')) { if (P.menu) closeMenu(); else openMenu(); return; }
     const ren = q('button[data-ren]'); if (ren) { P.menu = false; P.editing = ren.dataset.ren; paint(); return; }
-    const dt = q('button[data-del-tab]'); if (dt) { P.menu = false; P.confirm = true; paint(); const y = document.getElementById('wpDelNo'); if (y) y.focus({ preventScroll: true }); return; }
+    /* 2026-10-09 Andy：「自選刪除不必 2 次詢問」→「⋯」→ 刪除這一頁＝點一次就刪，底部 5 秒「已刪除『X』［復原］」（TwWatch.delWithUndo）。
+       只剩一頁時不准刪，講一句原因。確認列（wpConf）不再出現。 */
+    const dt = q('button[data-del-tab]'); if (dt) { P.menu = false; P.confirm = false; if (!T.delWithUndo(dt.dataset.delTab)) { paint(); setHint('至少要保留一頁清單'); } return; }
     if (q('#wpDelNo')) { P.confirm = false; paint(); return; }
     if (q('#wpDelYes')) { P.confirm = false; T.delTab(T.cur()); return; }
     if (q('#wpNew')) {

@@ -1,5 +1,15 @@
 # HANDOFF.md — 目前進度（接手先讀這份）
 
+## 2026-10-09 手機選股／ETF 第二批（UI 專家，分支 `claude/m4-etf2`，以 preview/m4-all 為底，已合 claude/m4-etf 77fef29c 與 origin/main；未推 main）
+- Andy 10:0x 四點：選股頁籤等寬（根因：第 23 節 `width:fit-content!important` 帶 `:not(#mbTabs)` 一個 id 權重，蓋掉第 29a 節沒 !important 的 width:100%）；
+  ETF 除息表高度上限＝上方月曆、框內捲、表頭黏頂、右側自畫拉 Bar（`.m4rail`）、名稱一行＋日期・代號一行；
+  手機時間序列折線圖統一補「區間縮放拉桿」（ECharts dataZoom slider，`mobile4.js` 第 31a 節 `window.M4DZ`，`app.js chart()` 一行掛勾，桌機原樣回傳）；每月入帳平均分散（y 軸隱藏但 containLabel 仍替刻度字留 55px）。
+- 帳本 72：自選刪除點一次就刪、底部 5 秒「已刪除『X』［復原］」（`watchlists.js` `delWithUndo`／`undoDel`，網頁與手機共用），只剩一頁不准刪。
+- 監督退件七點＋帳本 38（ETF 總覽 4 組、月配 4 組＋勾選框收進「摘要鈕 → 底部抽屜」，`mobile4.js` 第 31j 節）。
+- 驗收：`手機v2` 裡新增 `t_mobile_m4_etf2_1009`、`t_mobile_m4_etfqa_1009`（402／360），並移到元組最前面（後面總覽導覽那段在 preview 底就會丟例外，排後面等於沒跑）；新段落 `手機v2選股ETF`、`手機v2第三批`、`手機v2第四批`。
+- **這批驗了**：手機v2（剩 3 個與 preview/m4-all 底相同的紅：總覽導覽、#flow/rotation 摘要列、#mRank tap 逾時）、手機v2選股ETF 0、桌機守門1008 0（合併 main 之後重跑）。
+  ETF現金流v2／ETF專區1005 剩的紅（壓力測試 >500ms、單檔明細小圖柱寬 48、390 寬 .m4bleed 讓 #etfInc 多 8px）在 preview 底就紅，非本批。
+
 ## 2026-10-09 導覽普查與修復（UI 專家，分支 `claude/tour-fix`，未推 main；DECISIONS #348）
 - Andy 06:4x：「確實檢查所有導覽功能，我發現導覽功能不能使用」。普查：入口（桌機右上「平台導覽」、頁名旁「導覽」；手機 🧭）× 17 頁 × 1440／402 觸控。
 - 修前壞掉的：手機 🧭 被 tour.js／mobile4.js 互搬點不到（個股頁最明顯）；熱力圖／市場明細／選股／週期統計／自選／財經日曆沒有本頁導覽（桌機沒鈕、手機 🧭 整顆藏起來、手機沒有全站導覽入口）；

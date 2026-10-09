@@ -1048,10 +1048,10 @@
   const COLS = '<colgroup><col><col style="width:56px"><col style="width:80px"><col style="width:58px"><col style="width:162px"></colgroup>';
   function calRows(L, withDate, idxOf) {
     return L.map((e, k) => `<tr data-code="${esc(e.code)}"${idxOf ? ` data-i="${idxOf(k)}"` : ''} title="${esc(e.name)} ${esc(e.code)}：除息 ${e.ex}，配 ${e.amt} 元">
-      <td>${withDate ? `<span class="note">${e.ex.slice(5)}</span> ` : ''}${esc(e.name)} <span class="note">${esc(e.code)}</span></td>
+      <td><span class="cw">${withDate ? `<span class="note">${e.ex.slice(5)}</span> ` : ''}<span class="cn">${esc(e.name)}</span> <span class="note">${esc(e.code)}</span></span></td>
       <td>${A().fmt.n(e.amt, 3)}</td><td title="${esc(e.basis)}">${pctU(e.y)}${/估/.test(e.basis || '') ? '<span class="na">估</span>' : ''}</td>
       <td>${e.pay ? e.pay.slice(5) : '<span class="na">—</span>'}</td>
-      <td class="fill${e.fill == null && e.fill_wait != null ? ' down' : ''}">${fillTxt(e.fill, e.fill_wait)}</td></tr>`).join('');
+      <td class="fill${e.fill == null && e.fill_wait != null ? ' down' : ''}">${fillTxt(e.fill, e.fill_wait).replace(/（.*）$/, '<span class="nw">$&</span>')}</td></tr>`).join('');
   }
   const THEAD = (first) => `<thead><tr><th>${first}</th><th title="每單位配息（元）">配息</th><th>當次殖利率</th><th>發放</th><th>填息天數</th></tr></thead>`;
   /* 點某一檔：近幾次配息小長條＋當次殖利率走勢＋填息天數（資料＝行事曆近 400 天的除息紀錄） */
@@ -1251,7 +1251,7 @@
       <thead><tr><th class="nmc">ETF</th><th>期間</th><th>年化報酬率</th></tr></thead><tbody>
       ${rows.map(({ it, st }) => `<tr data-code="${esc(it.code)}">${nameCell(it)}${st.ok ? `<td>${perCell(st)}</td><td class="${cls(st.price_ann)}">${num(st.price_ann, (v) => pct(v, 2))}</td>` : `<td colspan="2"><span class="na">${esc(whyTxt(st.why))}</span></td>`}</tr>`).join('')}</tbody></table>`
       : `<table class="et fullw" id="etfRetTbl"><colgroup><col style="width:27%"><col style="width:21%"><col style="width:13%"><col style="width:13%"><col style="width:13%"><col style="width:13%"></colgroup>
-      <thead><tr><th class="nmc">ETF</th><th>期間</th><th>價格年化（不含息）</th><th>含息年化</th><th>殖利率（近 12 月）</th><th>配息年化</th></tr></thead><tbody>
+      <thead><tr><th class="nmc">ETF</th><th>期間</th><th>價格年化<span class="thsub">（不含息）</span></th><th>含息年化</th><th>殖利率（近 12 月）</th><th>配息年化</th></tr></thead><tbody>
       ${rows.map(({ it, st }) => { const dv = hasDiv(st); return `<tr data-code="${esc(it.code)}"${dv ? '' : ' data-nodiv="1"'}>${nameCell(it)}
         ${st.ok ? `<td>${perCell(st)}</td><td class="${cls(st.price_ann)}">${num(st.price_ann, (v) => pct(v, 2))}</td>
         <td class="${dv ? cls(st.tr_ann) : ''}">${dv ? pct(st.tr_ann, 2) : NODIV}</td>`
@@ -1757,8 +1757,9 @@
             + rest.map((q) => { const r = top[q.seriesIndex]; return `<br>${q.marker}${esc(q.seriesName)} <b>${q.value} 萬</b>（${r.lots.toLocaleString()} 張）<span style="color:${CH.ink3}">（${q.value >= av ? '高於' : '低於'}平均）</span>`; }).join('')
             + (rest.length < top.length ? `<br><span style="color:${CH.ink3}">其餘 ${top.length - rest.length} 檔這個月沒有配息</span>` : ''); } },
       legend: { show: false },
-      grid: { left: 52, right: mob ? 12 : 20, top: 16, bottom: 28 },
-      xAxis: { ...a.axisStyle, type: 'category', data: MONTHS, axisTick: { show: false }, axisLabel: { color: CH.ink2, fontSize: 12, interval: 0 },
+      /* 2026-10-09 手機監督：手機最上面的刻度「50 萬」上半被切、X 軸「9月10月11月12月」黏在一起 → 手機 grid 上方留 26px、X 軸只寫 1～12（同每月入帳 incCmb） */
+      grid: { left: 52, right: mob ? 12 : 20, top: mob ? 26 : 16, bottom: 28 },
+      xAxis: { ...a.axisStyle, type: 'category', data: MONTHS, axisTick: { show: false }, axisLabel: { color: CH.ink2, fontSize: 12, interval: 0, ...(mob ? { formatter: (v) => String(parseInt(v, 10)) } : {}) },
         splitLine: { show: true, keep: true, interval: 0, lineStyle: { color: CH.ink2, opacity: 0.18, width: 1, type: 'solid' } } },
       yAxis: { ...a.axisStyle, type: 'value', name: '萬', nameTextStyle: { color: CH.ink3, fontSize: 11 }, axisLabel: { color: CH.ink3, fontSize: 12, formatter: (v) => v + ' 萬' } },
       series,
@@ -1838,14 +1839,20 @@
          最寬 3 個字放得進一格、相鄰還留 ≥ 4px；字級拉回 12px 下限；
          柱寬 56%；再加 hideOverlap 當最後一道保險。完整金額在提示框（點一下就出現）。桌機（m4=false）一個字都沒改。 */
     const m4 = document.documentElement.classList.contains('m4');
-    const lab = m4 ? { show: true, position: 'top', fontSize: 12, fontFamily: 'system-ui, -apple-system, "Segoe UI", Roboto, sans-serif', color: CH.ink2, formatter: (p) => { const w = p.value / 1e4; return p.value > 0 ? (w < 10 ? w.toFixed(1) : String(Math.round(w))) : ''; } }
+    /* 360 寬（監督退件 36）：圖寬 340 時每格只剩約 21px，「8.3」約 19px，相鄰只差 2.5px（402 寬圖寬 382 時差 6px）
+       → 圖寬 < 370 一律取整數（「8」約 8px），完整金額在提示框。圖還沒排版（寬 0）時用視窗寬估 */
+    const cw = (document.getElementById(id) || {}).clientWidth || window.innerWidth - 20, intOnly = cw < 370;
+    const lab = m4 ? { show: true, position: 'top', fontSize: 12, fontFamily: 'system-ui, -apple-system, "Segoe UI", Roboto, sans-serif', color: CH.ink2, formatter: (p) => { const w = p.value / 1e4; return p.value > 0 ? (w < 10 && !intOnly ? w.toFixed(1) : String(Math.round(w))) : ''; } }
       : { show: true, position: 'top', fontSize: 11, color: CH.ink2, formatter: (p) => (p.value > 0 ? wan1(p.value) : '') };
+    /* 2026-10-09 10:0x Andy（手機）：「長條圖需要調整頁面適當寬度，平均分散」—— 12 根擠在中間、左邊空一大塊。
+       根因：yAxis 是 show:false，但 containLabel 照樣替它的刻度字（「250,000」約 50px）留位置，繪圖區左緣被推到 55px。
+       手機把 y 軸刻度字也關掉（本來就看不到）、左右各留 2px → 12 格平分整個圖寬；柱寬 55%。桌機（m4=false）不動。 */
     a.chart(id, {
-      grid: { left: 4, right: 4, top: 24, bottom: 4, containLabel: true },
+      grid: m4 ? { left: 2, right: 2, top: 24, bottom: 4, containLabel: true } : { left: 4, right: 4, top: 24, bottom: 4, containLabel: true },
       tooltip: { ...a.tip, confine: true, trigger: 'item', formatter: (p) => tipOf(p.dataIndex) },
-      xAxis: { type: 'category', data: Array.from({ length: 12 }, (_, i) => `${i + 1}月`), ...a.axisStyle, axisLabel: { ...a.axisStyle.axisLabel, fontSize: 11, interval: 0 } },
-      yAxis: { type: 'value', show: false },
-      series: [{ type: 'bar', id: 'tw-thick-bar', barWidth: m4 ? '56%' : '50%',   /* 10-08 Andy：直條太細太空 → 每格寬的 50%（1440 約 45px，手機等比）*/  emphasis: { focus: 'self', blurScope: 'series', itemStyle: { borderColor: CH.ink, borderWidth: 2 } }, blur: { itemStyle: { opacity: document.documentElement.getAttribute('data-theme') === 'light' ? 0.32 : 0.55 } },   // 10-08：滑過那根加亮、其他變淡（跟行事曆小圖同一套）
+      xAxis: { type: 'category', data: Array.from({ length: 12 }, (_, i) => `${i + 1}月`), ...a.axisStyle, axisLabel: m4 ? { ...a.axisStyle.axisLabel, fontSize: 12, interval: 0, formatter: (v) => String(parseInt(v, 10)) } : { ...a.axisStyle.axisLabel, fontSize: 11, interval: 0 } },   // 手機：X 軸只寫 1～12（「10月11月12月」在 360 寬會黏在一起；圖上方小標已寫「每月入帳」）
+      yAxis: m4 ? { type: 'value', show: false, axisLabel: { show: false } } : { type: 'value', show: false },
+      series: [{ type: 'bar', id: 'tw-thick-bar', barWidth: m4 ? '55%' : '50%',   /* 10-08 Andy：直條太細太空 → 每格寬的 50%（1440 約 45px，手機等比）*/  emphasis: { focus: 'self', blurScope: 'series', itemStyle: { borderColor: CH.ink, borderWidth: 2 } }, blur: { itemStyle: { opacity: document.documentElement.getAttribute('data-theme') === 'light' ? 0.32 : 0.55 } },   // 10-08：滑過那根加亮、其他變淡（跟行事曆小圖同一套）
         itemStyle: { borderRadius: [3, 3, 0, 0], color: colOf ? (p) => { const c = colOf(p.dataIndex); return { type: 'linear', x: 0, y: 0, x2: 0, y2: 1, colorStops: [{ offset: 0, color: c }, { offset: 1, color: a.hexA(c, 0.45) }] }; } : B.grad(false) },
         label: lab, ...(m4 ? { labelLayout: { hideOverlap: true } } : {}), data: vals.map((v) => Math.round(v)) }],
     });

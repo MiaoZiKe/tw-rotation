@@ -876,6 +876,9 @@
        橫軸是時間（time 軸、或類別是日期字串）的圖，統一補一組很淡的垂直分隔線（年線較明顯、月線極淡）。
        不逐張手改；細節與分層規則在 site/timegrid.js。圖自己不要的：option.timeGrid = false 或 xAxis.timeGrid = false。*/
     if (window.TimeGrid) { full = window.TimeGrid.applyToOption(full, el); delete full.timeGrid; }
+    /* ★ 2026-10-09 Andy（手機）：「所有曲線圖表新增下面縮放功能」→ 手機（html.m4）時間序列折線圖統一補「區間縮放拉桿」（ECharts dataZoom slider）。
+       規則與樣式只在 mobile4.js 最後一節（M4DZ）；桌機 M4DZ 一進來就原樣回傳，一個屬性都不動。圖自己不要的：option.m4dz = false。 */
+    if (window.M4DZ) full = window.M4DZ(full, el); else delete full.m4dz;
     c.setOption(full, opts && opts.notMerge !== false);
     // 容器在 display:none 或還沒排版時 init 出來會是 0×0，畫完就是一片空白而且不會自己好。
     // 盯著容器尺寸，一變就 resize，這樣切分頁、展開說明、視窗縮放都不會留下空白圖。
