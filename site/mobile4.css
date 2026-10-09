@@ -1379,3 +1379,16 @@
   :root.m4 body.m3on.mbon #lwc{height:clamp(320px,calc(100svh - var(--mbtop,115px) - 58px - 198px),560px)!important}
   :root.m4 body.m3on.mbon #skChartCard:has(#liveNote:not([hidden])) #lwc{height:clamp(320px,calc(100svh - var(--mbtop,115px) - 58px - 232px),560px)!important}
 }
+
+/* ============================================================================
+   ★ 2026-10-10 手機個股頁：監督退件兩點（Andy「確實調整大小符合手機寬度」）
+   ① 360 寬法人表合計欄數字被「…」切掉（內容 75px＞欄寬 69px）→ ≤380 縮右內距與字級，數字完整
+   ② 總覽「籌碼快照」卡的「外資／比重 xx%」11.5px → 12px（手機字級下限）
+   ---------------------------------------------------------------------------- */
+@media (max-width:380px){
+  :root.m4 #mbBody table.mbtbl td{padding-right:5px}
+  :root.m4 #mbBody table.mbtbl td.up,:root.m4 #mbBody table.mbtbl td.dn{font-size:12.5px;text-overflow:clip}
+}
+@media (max-width:640px){
+  :root.m4 #skChipCard .mixi small,:root.m4 #skChipCard .mixsub,:root.m4 #skChipCard .mixf{font-size:12px}
+}
