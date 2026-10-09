@@ -121,10 +121,12 @@ body.m3on .m3host:not(.mfull)>.qcov:not(.m3keep):not(.m3keep-h),body.m3on .m3hos
     const quota = o.kind === 'quota';
     const body = quota ? `${bar(o.used, o.limit)}<div class="qc-meta"><span>今日已使用 <b>${esc(o.used)} / ${esc(o.limit)}</b> 次</span><span class="qc-reset">${ICON.clock}<span class="qc-rt">${esc(resetText(o.reset))}</span></span></div>` : '';
     const lst = !o.compact && o.items && o.items.length ? `<hr><div class="qc-lh">${esc(o.lh || '')}</div>${list(o.items)}` : '';
-    return `<div class="qcard${o.compact ? ' compact' : ''}" data-kind="${quota ? 'quota' : 'lock'}" role="alert">
-      <div class="qc-kick">${ICON.lock}<span>${esc(o.kick || '')}</span></div>
-      <div class="qc-h" role="heading" aria-level="3">${esc(o.title || '')}</div>${o.sub ? `<p class="qc-sub">${esc(o.sub)}</p>` : ''}
-      ${o.compact ? '' : body}${lst}
+    /* 2026-10-09 體驗額度（site/grants.js）：o.gk＝這張卡擋的是哪個功能；有體驗就多「體驗剩 N 次」標籤＋「繼續看」鈕，用完多一句「體驗額度已用完」 */
+    const gx = o.gk && window.TwGrants && window.TwGrants.cardHtml ? window.TwGrants.cardHtml(o) : null;
+    return `<div class="qcard${o.compact ? ' compact' : ''}" data-kind="${quota ? 'quota' : 'lock'}"${o.gk ? ` data-gk="${esc(o.gk)}"` : ''} role="alert">
+      <div class="qc-kick">${ICON.lock}<span>${esc(o.kick || '')}</span>${gx ? gx.tag : ''}</div>
+      <div class="qc-h" role="heading" aria-level="3">${esc(o.title || '')}</div>${o.sub ? `<p class="qc-sub">${esc(o.sub)}</p>` : ''}${gx ? gx.sub : ''}
+      ${o.compact ? '' : body}${lst}${gx ? gx.btn : ''}
       <a class="qc-go${o.btnCls ? ' ' + o.btnCls : ''}" href="${esc(o.href || '#pricing')}">${esc(o.btn || '查看方案')} <span aria-hidden="true">→</span></a></div>`;
   }
 
@@ -251,7 +253,7 @@ body.m3on .m3host:not(.mfull)>.qcov:not(.m3keep):not(.m3keep-h),body.m3on .m3hos
     const items = rows.slice(0, 5).map((p) => ({ t: p.id === 'free' ? '註冊會員（免費）' : p.name, s: p.id === 'free' ? '登入即可' : dqTxt(p.dq) }));
     return { kind: 'lock', kick: '需要開通', title: f.cat === 'grp' ? '此族群需開通' : '此功能需開通',
       sub: `${f.name}・${guest ? '登入或升級方案即可使用' : '升級方案即可使用'}`, lh: items.length ? '這些方案可以使用' : '', items,
-      btn: first.id === 'free' ? (guest ? '免費註冊／登入' : '查看方案') : `升級 ${first.name}`, href: '#pricing/need/' + encodeURIComponent(f.id), btnCls: 'plkgo' };
+      btn: first.id === 'free' ? (guest ? '免費註冊／登入' : '查看方案') : `升級 ${first.name}`, href: '#pricing/need/' + encodeURIComponent(f.id), btnCls: 'plkgo', gk: f.cat === 'grp' ? '' : f.id };
   }
 
   // ------------------------------------------------------------------ 額度用完（data-gw 事件／示範）

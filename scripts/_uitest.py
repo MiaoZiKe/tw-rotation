@@ -24832,12 +24832,12 @@ def t_admin_only_1007(b, base):
         cx, _sent, _st = _adm3_ctx(b, who=who)
         px = cx.new_page(); px.on("pageerror", lambda e: errs.append(str(e)[:200]))
         px.goto(base + "#admin/perm", wait_until="domcontentloaded")
-        wait_until(px, "() => document.querySelectorAll('.l4subtab[data-parent=admin]').length === 4 && document.querySelectorAll('#ptTier .ptab').length > 0", 12000)
+        wait_until(px, "() => document.querySelectorAll('.l4subtab[data-parent=admin]').length >= 4 && document.querySelectorAll('#ptTier .ptab').length > 0", 12000)
         px.wait_for_timeout(500)
         side = px.evaluate("() => [...document.querySelectorAll('.l4subtab[data-parent=admin]')].map(x => x.textContent.trim())")
         nm = "擁有者" if who == "admin" else "一般管理者"
         if who == "admin":
-            ok(f"★ [{T}] 側欄管理區順序＝管理權限 → 會員權限 → 流量觀測 → 意見反饋", side == ["管理權限", "會員權限", "流量觀測", "意見反饋"], side)
+            ok(f"★ [{T}] 側欄管理區順序＝管理權限 → 會員權限 → 流量觀測 → 意見反饋（10-09 之後多一格體驗額度）", side[:4] == ["管理權限", "會員權限", "流量觀測", "意見反饋"] and side[4:] in ([], ["體驗額度"]), side)
             if shots:
                 px.locator(".l4subtab[data-parent=admin]").nth(3).scroll_into_view_if_needed(); px.wait_for_timeout(200)
                 bb = px.locator(".l4perm").bounding_box(); px.screenshot(path=str(pathlib.Path(shots) / "4_側欄管理區順序.png"), clip={"x": 0, "y": max(0, bb["y"] - 120), "width": 240, "height": 300})
@@ -32200,6 +32200,8 @@ SECTIONS = {
     "訪客額度1009":        lambda pg, b, base, code: t_guest_quota_1009(b, base, code),
     # ★ 2026-10-09 Andy：手機帳號選單（site/acctm4.js）—— 六種身分各一次：徽章、無自選、每項導頁、額度頁項目數、刪除帳號二次確認、管理區、客服開關（⚠ --workers 1）
     "帳號選單1009":        lambda pg, b, base, code: t_acct_menu_1009(b, base, code),
+    # ★ 2026-10-09 Andy：「部分付費功能…兩個方式開放給他們用，但是有期限且限制次數…重點是得要有曝光」—— 體驗額度（devserver 真的 worker.js；⚠ --workers 1）
+    "體驗額度1009":        lambda pg, b, base, code: t_trial_grants_1009(b, base),
     # ★ 2026-10-08 晚 Andy 313：「熱門題材、資金熱力圖，點擊會到該個股的功能需要權限設定，只有 Plus 以上才可以」（訪客／免費／Plus／Pro 走每條熱力圖跳頁路徑；桌機＋手機觸控）
     "熱力圖跳個股1008":    lambda pg, b, base, code: t_heat_plus_1008(b, base),
     # ★ 2026-09-28 Andy：「所有標題加上小圖示，顏色要搭配」—— 覆蓋、對比 ≥3:1（深淺）、1440／800／390 不擠（A/B）、動效（⚠ 一律 --workers 1）
@@ -58013,6 +58015,262 @@ def t_search_star_1007(b, base, code):
        pg.evaluate("() => [TwWatch.codes().length, TwWatch.MAX_CODES, window.TwPerm && TwPerm.state().src, (document.getElementById('qcModal') || {}).hidden, document.getElementById('sugg').style.display, document.querySelectorAll('#sugg .sgstar').length]"))
     c.close()
     ok(f"{T}：整段沒有 JS 錯誤", not errs, errs[:3])
+
+
+# ===================================================================== 體驗額度1009（2026-10-09，docs/launch_gap_payment_1009.md 第 3 節）
+# Andy 10-09：「我部分付費功能他們看不到，兩個方式開放給他們用，但是有期限且限制次數，好比說主促 1-2 個禮拜可以看幾次，重點是得要有曝光」。
+# 本機起**真的 worker.js**（devserver.mjs，假 Google），真的操作：
+#   ① 管理者 #admin/grants：預設兩筆範本（welcome、promo-launch）都是關；編輯上市體驗週 → 起訖改成今天起 14 天、每項 2 次、打開 → 清單寫「進行中」
+#   ② 免費會員（範本關掉 ETF 現金流試算、指標設定）：#etf/inc 卡片有「體驗剩 2 次」→ 按「繼續看」→ 真的 /v1/grants/hit、次數 −1、內容出現；
+#      重新整理同一天不重扣；指標設定在兩檔個股各用一次 → 第三檔變成升級卡＋「體驗額度已用完」
+#   ③ 訪客：總覽細橫幅（上市體驗週、剩 N 天）→ 點開活動辦法 7 點 → × 關閉後重新整理不再出現；被鎖功能寫「登入可體驗」
+#   ④ 管理者關掉活動 → 會員重新整理後內容又蓋回去、沒有體驗標籤；打開又回來；把起訖改到過去（＝到期）→ 回原狀
+#   ⑤ 390 手機：卡片標籤、橫幅看得到、沒有橫向捲軸；畫面上不出現「免費試用」字樣（法律頁除外）
+# 截圖：環境變數 TW_TRIAL_SHOTS＝資料夾時，存桌機 1440／手機 390 的標籤、橫幅、管理區畫面。
+TRIAL_TEST_EMAIL = "trial@example.com"
+
+
+def t_trial_grants_1009(b, base):
+    import urllib.request
+    errs: list[str] = []
+    origin = re.match(r"^(https?://[^/]+)", base).group(1)
+    port = _free_port()
+    dbg = bool(os.environ.get("TW_DEV_LOG"))
+    dev = subprocess.Popen(["node", "--no-warnings", str(ROOT / "workers" / "account-api" / "devserver.mjs"), "--port", str(port), "--origin", origin,
+                            "--person", f"trial={TRIAL_TEST_EMAIL}=體驗測試帳號"],
+                           stdout=None if dbg else subprocess.DEVNULL, stderr=None if dbg else subprocess.DEVNULL)
+    api = f"http://127.0.0.1:{port}"
+    T = "體驗額度1009"
+    shots = os.environ.get("TW_TRIAL_SHOTS")
+    if shots:
+        pathlib.Path(shots).mkdir(parents=True, exist_ok=True)
+
+    def shot(pg, name, sel=None):
+        if not shots:
+            return
+        try:
+            if sel and pg.locator(sel).count():
+                pg.locator(sel).first.screenshot(path=str(pathlib.Path(shots) / name))
+            else:
+                pg.screenshot(path=str(pathlib.Path(shots) / name))
+        except Exception as e:  # noqa: BLE001
+            errs.append(f"截圖 {name}: {e}")
+
+    ctxs = []
+    try:
+        up = False
+        for _ in range(40):
+            try:
+                up = json.loads(urllib.request.urlopen(api + "/health", timeout=1).read()).get("configured") is True
+                if up:
+                    break
+            except Exception:  # noqa: BLE001
+                time.sleep(0.15)
+        if not ok(f"{T}：本機 account-api（devserver）起得來", up):
+            return
+
+        def new_ctx(width=1440, tok=None):
+            c = b.new_context(viewport={"width": width, "height": 900 if width > 640 else 844}, has_touch=width <= 640, is_mobile=width <= 640)
+            c.add_init_script("window.TW_ACCOUNT_OVERRIDE = " + json.dumps({"api": api}) + ";")
+            if tok:
+                c.add_init_script("try{localStorage.setItem('tw.acct.tok'," + json.dumps(tok) + ")}catch(e){}")
+            c.route("**/fonts.googleapis.com/**", lambda r: r.abort())
+            ctxs.append(c)
+            return c
+
+        def login(pg, who):
+            pg.click("#acctBtn")
+            with pg.expect_popup() as pi:
+                pg.click("#acctGo")
+            pop = pi.value
+            pop.wait_for_selector("#as-" + who, timeout=8000)
+            pop.click("#as-" + who)
+            wait_until(pg, "() => !!(window.TwAccount && TwAccount.user())", 12000)
+
+        def call(pg, path, body):
+            return pg.evaluate("([p, b]) => TwAccount.call(p, b)", [path, body])
+
+        GR_READY = "() => window.TwGrants && TwGrants.state().pub !== null"
+
+        def to_day_k(pg):
+            """個股頁：切日 K，等「指標 ▾」鈕出現而且掛著 🔒（data-plkb=block；桌機畫線鈕 #drawTgl 是 display:none，畫線列常駐，所以用指標設定驗按鈕型的鎖）"""
+            wait_until(pg, "() => !!document.querySelector('#tfSeg button[data-tf=\"1d\"]')", 15000)
+            pg.click("#tfSeg button[data-tf='1d']")
+            wait_until(pg, "() => { const b = document.getElementById('indBtn'); return b && b.getClientRects().length > 0 && b.getAttribute('data-plkb') === 'block'; }", 10000)
+
+        # ================= ① 管理者
+        ca = new_ctx(); ad = ca.new_page(); ad.on("pageerror", lambda e: errs.append("admin: " + str(e)))
+        ad.goto(base + "#overview", wait_until="domcontentloaded")
+        wait_until(ad, "() => !!document.getElementById('acctBtn')", 8000)
+        login(ad, "andy")
+        # 免費會員／訪客範本：ETF 現金流試算、指標設定關掉（＝要付費）
+        r1 = call(ad, "/v1/admin/plans/put", {"id": "free", "name": "免費會員", "feats": {"etf.cashflow": False, "stock.ind": False}})
+        r2 = call(ad, "/v1/admin/plans/put", {"id": "guest", "name": "訪客", "feats": {"etf.cashflow": False, "stock.ind": False}})
+        ok(f"{T}：前置：免費會員／訪客範本關掉 ETF 現金流試算、指標設定", r1.get("_s") == 200 and r2.get("_s") == 200, (r1.get("_s"), r2.get("_s")))
+        ad.goto(base + "#admin/grants", wait_until="domcontentloaded")
+        ok(f"{T}：#admin/grants 列出預設兩筆範本（新會員體驗、上市體驗週），都是關",
+           bool(wait_until(ad, "() => document.querySelectorAll('#agrList tbody tr[data-id]').length === 2 && [...document.querySelectorAll('#agrList input[data-on]')].every(i => !i.checked)", 10000)),
+           ad.evaluate("() => (document.getElementById('agrList') || {}).innerText"))
+        side = ad.evaluate("() => [...document.querySelectorAll('.l4subtab[data-parent=admin]')].map(x => x.textContent.trim())")
+        ok(f"{T}：桌機側欄管理區多一格「體驗額度」而且是目前這格", "體驗額度" in side and ad.evaluate("() => !!document.querySelector('.l4subtab[data-adm=grants].on')"), side)
+        ban_ui = ad.evaluate("() => { document.querySelector('#agrList button[data-edit=\"promo-launch\"]').click(); return [...document.querySelectorAll('#agrFeats input[data-fk]')].map(i => i.dataset.fk); }")
+        ok(f"{T}：編輯表單的功能清單不列法遵禁止項（今日關注／選股完整名單、AI 分析、盤中即時、四週期同看）",
+           len(ban_ui) > 10 and not any(k in ban_ui for k in ("mkt.cand", "mkt.cand.n", "explore.list", "explore.list.n", "stock.ai", "live.tick", "stock.mtf", "stock.k_min", "watch.tabs")), ban_ui)
+        today = ad.evaluate("() => new Date(Date.now() + 8*3600000).toISOString().slice(0,10)")
+        end = ad.evaluate("() => new Date(Date.now() + 8*3600000 + 13*86400000).toISOString().slice(0,10)")
+        ad.fill("#agrT0", today); ad.fill("#agrT1", end)
+        ad.fill("#agrM", "2"); ad.click("#agrMAll")
+        ad.check("#agrOn")
+        shot(ad, "admin_1440_form.png", "#agrForm")
+        with ad.expect_response(lambda r: "/v1/admin/grants/defs/put" in r.url, timeout=6000) as ri:
+            ad.click("#agrSave")
+        body = json.loads(ri.value.request.post_data or "{}")
+        ok(f"{T}：儲存 → 真的送出 defs/put（每項 2 次、開著、起訖＝今天 00:00～+13 天 23:59 臺北）",
+           ri.value.status == 200 and body.get("on") is True and set(body.get("feats", {}).values()) == {2} and body.get("t1", 0) - body.get("t0", 0) == 14 * 86400000 - 1, (ri.value.status, body))
+        ok(f"{T}：清單那一列變成「開著・進行中」",
+           bool(wait_until(ad, "() => { const tr = document.querySelector('#agrList tr[data-id=\"promo-launch\"]'); return tr && tr.querySelector('input[data-on]').checked && /進行中/.test(tr.innerText); }", 5000)))
+        shot(ad, "admin_1440_list.png", "#agrList")
+
+        # ================= ② 免費會員
+        ct = new_ctx(); tp = ct.new_page(); tp.on("pageerror", lambda e: errs.append("trial: " + str(e)))
+        tp.goto(base + "#overview", wait_until="domcontentloaded")
+        wait_until(tp, "() => !!document.getElementById('acctBtn')", 8000)
+        login(tp, "trial")
+        tok = tp.evaluate("() => TwAccount.tok()")
+        wait_until(tp, GR_READY, 8000)
+        tp.goto(base + "#etf/inc", wait_until="domcontentloaded")
+        CARD = """(sel) => { const el = document.querySelector(sel); if (!el) return null; const c = el.querySelector(':scope > .qcov .qcard');
+            return { locked: el.hasAttribute('data-plk'), tag: c ? ((c.querySelector('.qc-gtag') || {}).textContent || '') : '', btn: !!(c && c.querySelector('.qc-try[data-gk]')),
+                     out: !!(c && c.querySelector('[data-gout]')), go: !!(c && c.querySelector('.qc-go')), text: c ? c.innerText : '' }; }"""
+        got = wait_until(tp, "() => { const c = document.querySelector('#etfInc > .qcov .qcard .qc-gtag'); return c && /體驗剩 2 次/.test(c.textContent); }", 12000)
+        c0 = tp.evaluate(CARD, "#etfInc")
+        ok(f"{T}：免費會員 #etf/inc：內容蓋住、卡片有「體驗剩 2 次」標籤＋「繼續看」鈕＋原本的升級鈕", bool(got) and c0 and c0["locked"] and c0["btn"] and c0["go"], c0)
+        ok(f"{T}：卡片與畫面不寫「免費試用」", "免費試用" not in tp.inner_text("body"), "")
+        shot(tp, "tag_1440_etfinc.png", "#etfInc")
+        with tp.expect_response(lambda r: "/v1/grants/hit" in r.url, timeout=6000) as ri:
+            tp.click("#etfInc .qc-try")
+        hj = ri.value.json()
+        ok(f"{T}：按「繼續看」→ 真的 /v1/grants/hit（ok、剩 1 次）", hj.get("ok") is True and hj.get("left") == 1, hj)
+        ok(f"{T}：扣完內容真的出現（鎖頭拿掉、卡片不見）",
+           bool(wait_until(tp, "() => { const e = document.getElementById('etfInc'); return e && !e.hasAttribute('data-plk') && !e.querySelector(':scope > .qcov') && e.getClientRects().length > 0; }", 5000)),
+           tp.evaluate(CARD, "#etfInc"))
+        ok(f"{T}：本機記到次數 −1（TwGrants.left＝1）", tp.evaluate("() => TwGrants.left('etf.cashflow')") == 1)
+        tp.reload(wait_until="domcontentloaded")
+        wait_until(tp, "() => window.TwGrants && (TwGrants.state().me || {}).today", 10000)
+        tp.wait_for_timeout(800)
+        me = call(tp, "/v1/grants/me", {})
+        ok(f"{T}：重新整理（同一天同一個）→ 內容照樣看得到、伺服器沒有重扣（還剩 1）",
+           tp.evaluate("() => { const e = document.getElementById('etfInc'); return !!e && !e.hasAttribute('data-plk'); }") and me.get("left", {}).get("etf.cashflow") == 1, me.get("left"))
+        # 指標設定（按鈕型的鎖）：兩檔各用一次 → 第三檔用完
+        used = []
+        for code in ("2330", "2317", "2454"):
+            tp.goto(base + f"#stock/{code}", wait_until="domcontentloaded")
+            to_day_k(tp)
+            tp.click("#indBtn")
+            wait_until(tp, "() => { const m = document.getElementById('qcModal'); return m && !m.hidden; }", 4000)
+            mc = tp.evaluate("() => { const m = document.getElementById('qcModal'); const c = m && m.querySelector('.qcard'); return c ? { tag: (c.querySelector('.qc-gtag') || {}).textContent || '', btn: !!c.querySelector('.qc-try[data-gk]'), out: !!c.querySelector('[data-gout]'), text: c.innerText } : null; }")
+            used.append(mc)
+            if code == "2330":
+                shot(tp, "tag_1440_draw_modal.png", "#qcModal .qcard")
+            if mc and mc["btn"]:
+                with tp.expect_response(lambda r: "/v1/grants/hit" in r.url, timeout=6000):
+                    tp.click("#qcModal .qc-try")
+                ok(f"{T}：#stock/{code} 指標設定：按「繼續看」→ 卡片關掉、指標下拉真的打開（扣完幫他再按一次）",
+                   bool(wait_until(tp, "() => { const m = document.getElementById('qcModal'); const b = document.getElementById('indBtn'); return (!m || m.hidden) && !b.hasAttribute('data-plkb') && b.getAttribute('aria-expanded') === 'true'; }", 5000)),
+                   tp.evaluate("() => ({ exp: document.getElementById('indBtn').getAttribute('aria-expanded'), plkb: document.getElementById('indBtn').getAttribute('data-plkb') })"))
+                tp.keyboard.press("Escape")
+        ok(f"{T}：指標設定第 1、2 檔卡片寫「體驗剩 2 次」「體驗剩 1 次」", bool(used[0] and "體驗剩 2 次" in used[0]["tag"] and used[1] and "體驗剩 1 次" in used[1]["tag"]), used[:2])
+        ok(f"{T}：第 3 檔（用完）→ 回到升級卡、沒有「繼續看」、多一句「體驗額度已用完」", bool(used[2] and not used[2]["btn"] and used[2]["out"] and "體驗額度已用完" in used[2]["text"]), used[2])
+        tp.keyboard.press("Escape")
+
+        # ================= ③ 訪客：總覽橫幅＋活動辦法＋登入可體驗
+        cg = new_ctx(); gp = cg.new_page(); gp.on("pageerror", lambda e: errs.append("guest: " + str(e)))
+        gp.goto(base + "#overview", wait_until="domcontentloaded")
+        bar = wait_until(gp, "() => { const b = document.getElementById('grantBar'); return b && !b.hidden && b.getClientRects().length > 0; }", 12000)
+        bt = gp.evaluate("() => (document.getElementById('grantBar') || {}).innerText || ''")
+        ok(f"{T}：訪客總覽有一條細橫幅「上市體驗週：…每項可看 2 次，剩 N 天」", bool(bar) and "上市體驗週" in bt and "每項可看 2 次" in bt and re.search(r"剩 \d+ 天", bt) is not None, bt)
+        bh = gp.evaluate("() => document.getElementById('grantBar').getBoundingClientRect().height")
+        ok(f"{T}：橫幅是細的（≤ 44px）", bh <= 44, bh)
+        shot(gp, "banner_1440.png", "#grantBar")
+        gp.click("#grantBar .gb-t")
+        ok(f"{T}：點橫幅 → 開活動辦法（7 點、寫活動期間與免付款、不影響退款保證）",
+           bool(wait_until(gp, "() => { const r = document.getElementById('grantRules'); return r && r.querySelectorAll('ol li').length === 7 && /活動期間/.test(r.innerText) && /無須提供付款資訊/.test(r.innerText); }", 4000)))
+        shot(gp, "rules_1440.png", "#subDlg .box")
+        gp.click("#subDlg [data-close].pri")
+        gp.click("#grantBar .gb-x")
+        ok(f"{T}：按 × 關掉橫幅 → 記在 localStorage", gp.evaluate("() => document.getElementById('grantBar').hidden && localStorage.getItem('tw.grantBar.off.promo-launch') === '1'"))
+        gp.reload(wait_until="domcontentloaded"); wait_until(gp, GR_READY, 8000); gp.wait_for_timeout(500)
+        ok(f"{T}：重新整理後橫幅不再出現", gp.evaluate("() => { const b = document.getElementById('grantBar'); return !b || b.hidden; }"))
+        gp.goto(base + "#stock/2330", wait_until="domcontentloaded")
+        to_day_k(gp)
+        gp.click("#indBtn")
+        wait_until(gp, "() => { const m = document.getElementById('qcModal'); return m && !m.hidden; }", 4000)
+        gm = gp.evaluate("() => { const c = document.querySelector('#qcModal .qcard'); return c ? { tag: (c.querySelector('.qc-gtag') || {}).textContent || '', login: !!c.querySelector('.qc-try[data-glogin]') } : null; }")
+        ok(f"{T}：訪客按被鎖的指標設定 → 卡片寫「登入可體驗 2 次」＋「登入領取體驗」鈕", bool(gm and "登入可體驗 2 次" in gm["tag"] and gm["login"]), gm)
+
+        # ================= ④ 管理者關掉／打開／到期
+        def put_promo(**kw):
+            d = next(x for x in call(ad, "/v1/admin/grants/defs/list", {})["defs"] if x["id"] == "promo-launch")
+            bd = {k: d[k] for k in ("id", "kind", "name", "feats", "per", "t0", "t1", "audience", "on")}
+            bd.update(kw)
+            return call(ad, "/v1/admin/grants/defs/put", bd)
+        ad.goto(base + "#admin/grants", wait_until="domcontentloaded")
+        wait_until(ad, "() => !!document.querySelector('#agrList input[data-on=\"promo-launch\"]')", 8000)
+        with ad.expect_response(lambda r: "/v1/admin/grants/defs/put" in r.url, timeout=6000):
+            ad.click("#agrList input[data-on='promo-launch']")
+        wait_until(ad, "() => !document.querySelector('#agrList input[data-on=\"promo-launch\"]').checked", 4000)
+        tp.goto(base + "#etf/inc", wait_until="domcontentloaded"); tp.reload(wait_until="domcontentloaded")
+        wait_until(tp, "() => window.TwGrants && TwGrants.state().pub !== null && TwPerm.state().src === 'server'", 10000)
+        off = wait_until(tp, "() => { const e = document.getElementById('etfInc'); return e && e.hasAttribute('data-plk') && !e.querySelector('.qc-gtag'); }", 8000)
+        ok(f"{T}：管理者在清單關掉活動 → 會員重新整理：ETF 現金流試算又蓋回去、沒有體驗標籤", bool(off), tp.evaluate(CARD, "#etfInc"))
+        with ad.expect_response(lambda r: "/v1/admin/grants/defs/put" in r.url, timeout=6000):
+            ad.click("#agrList input[data-on='promo-launch']")
+        tp.reload(wait_until="domcontentloaded")
+        on2 = wait_until(tp, "() => { const e = document.getElementById('etfInc'); return window.TwGrants && (TwGrants.state().me || {}).grants && e && !e.hasAttribute('data-plk'); }", 10000)
+        ok(f"{T}：再打開 → 今天已經用體驗看過的照樣看得到（不重扣）", bool(on2))
+        now_ms = int(time.time() * 1000)
+        rx = put_promo(t0=now_ms - 3 * 86400000, t1=now_ms - 86400000)
+        tp.reload(wait_until="domcontentloaded")
+        exp_ = wait_until(tp, "() => { const e = document.getElementById('etfInc'); return window.TwGrants && TwGrants.state().me && e && e.hasAttribute('data-plk') && !e.querySelector('.qc-gtag'); }", 10000)
+        ok(f"{T}：活動到期（起訖改到過去）→ 回原狀：內容蓋回去、沒有體驗標籤、總覽沒有橫幅",
+           rx.get("_s") == 200 and bool(exp_) and call(tp, "/v1/grants/me", {}).get("grants") == [], (rx.get("_s"), tp.evaluate(CARD, "#etfInc")))
+        rn = call(ad, "/v1/admin/grants/defs/put", {"id": "promo-m390", "kind": "promo", "name": "上市體驗週", "feats": {"etf.cashflow": 2, "stock.ind": 2},
+                                                    "per": "total", "t0": now_ms - 86400000, "t1": now_ms + 13 * 86400000, "audience": "free", "on": True})
+        ok(f"{T}：管理者新增第二檔活動（API）→ 200", rn.get("_s") == 200, rn.get("error"))
+
+        # ================= ⑤ 手機 390（已登入的免費會員；新的一檔活動 → 標籤回來）
+        cm = new_ctx(390, tok=tok); mp = cm.new_page(); mp.on("pageerror", lambda e: errs.append("m390: " + str(e)))
+        mp.goto(base + "#overview", wait_until="domcontentloaded")
+        mbar = wait_until(mp, "() => { const b = document.getElementById('grantBar'); return b && !b.hidden && b.getClientRects().length > 0; }", 15000)
+        mb = mp.evaluate("() => { const b = document.getElementById('grantBar'); if (!b) return null; const r = b.getBoundingClientRect(); return { w: r.width, h: r.height, l: r.left, fs: parseFloat(getComputedStyle(b).fontSize), sw: document.documentElement.scrollWidth - innerWidth }; }")
+        ok(f"{T}：390 總覽有橫幅、在螢幕內、字 ≥ 12px、沒有橫向捲軸", bool(mbar) and mb and mb["l"] >= 0 and mb["l"] + mb["w"] <= 391 and mb["fs"] >= 12 and mb["sw"] <= 1, mb)
+        shot(mp, "banner_390.png", "#grantBar")
+        mp.goto(base + "#etf/inc", wait_until="domcontentloaded")
+        mt = wait_until(mp, "() => { const t = document.querySelector('#etfInc > .qcov .qc-gtag'); return t && t.getClientRects().length > 0 && /體驗剩/.test(t.textContent); }", 15000)
+        mi = mp.evaluate("() => { const t = document.querySelector('#etfInc > .qcov .qc-gtag'), btn = document.querySelector('#etfInc > .qcov .qc-try'); if (!t || !btn) return null; const r = t.getBoundingClientRect(), rb = btn.getBoundingClientRect(); return { fs: parseFloat(getComputedStyle(t).fontSize), r: r.right, bh: rb.height, br: rb.right, sw: document.documentElement.scrollWidth - innerWidth }; }")
+        ok(f"{T}：390 #etf/inc 卡片「體驗剩 N 次」標籤與「繼續看」鈕看得到（字 ≥ 11px、鈕高 ≥ 36px、不超出螢幕、沒有橫向捲軸）",
+           bool(mt) and mi and mi["fs"] >= 11 and mi["bh"] >= 36 and mi["r"] <= 390 and mi["br"] <= 390 and mi["sw"] <= 1, mi)
+        mp.locator("#etfInc > .qcov .qc-gtag").scroll_into_view_if_needed()
+        shot(mp, "tag_390_etfinc.png", "#etfInc > .qcov .qcard")
+        mp.tap("#etfInc .qc-try")
+        ok(f"{T}：390 點「繼續看」→ 內容出現", bool(wait_until(mp, "() => { const e = document.getElementById('etfInc'); return e && !e.hasAttribute('data-plk'); }", 6000)))
+        ok(f"{T}：手機畫面不寫「免費試用」", "免費試用" not in mp.inner_text("body"))
+        # 管理區手機（管理者權杖）
+        atok = ad.evaluate("() => TwAccount.tok()")
+        cma = new_ctx(390, tok=atok); mpa = cma.new_page(); mpa.on("pageerror", lambda e: errs.append("m390 admin: " + str(e)))
+        mpa.goto(base + "#admin/grants", wait_until="domcontentloaded")
+        ma_ok = wait_until(mpa, "() => document.querySelectorAll('#agrList tbody tr[data-id]').length === 3", 12000)
+        msw = mpa.evaluate("() => document.documentElement.scrollWidth - innerWidth")
+        ok(f"{T}：390 管理區 #admin/grants 打得開、沒有整頁橫向捲軸（表格在框內捲）", bool(ma_ok) and msw <= 1, msw)
+        shot(mpa, "admin_390.png")
+        ok(f"{T}：整段沒有 JS 錯誤", not errs, errs[:3])
+    finally:
+        for c in ctxs:
+            try:
+                c.close()
+            except Exception:  # noqa: BLE001
+                pass
+        dev.terminate()
 
 
 # ===================================================================== 會員權限開關（2026-10-02，DECISIONS #288）

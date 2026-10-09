@@ -57,7 +57,9 @@
     return typeof v === 'boolean' ? v : F.defOf ? F.defOf(f, planKey()) : f.def;
   }
   /* ★ admin-v3：瀏覽次數上限 0＝「不能看」，跟關掉開關同一個效果（同一套鎖頭＋升級鈕）；N＞0 的計數在 quota.js */
-  function can(id) { if (owner()) return true; if (S.lims[id] === 0) return false; const v = value(id); return typeof v === 'number' ? v > 0 : v !== false; }
+  /* ★ 2026-10-09 體驗額度（site/grants.js）：今天在這個單位按過「繼續看」（伺服器扣過一次體驗）→ 照開放處理 */
+  const granted = (id) => { try { return !!(window.TwGrants && window.TwGrants.open(id)); } catch (e) { return false; } };
+  function can(id) { if (owner()) return true; if (granted(id)) return true; if (S.lims[id] === 0) return false; const v = value(id); return typeof v === 'number' ? v > 0 : v !== false; }
   /* 每日瀏覽次數上限：Infinity＝不限（沒設）、0＝不能看、N＝每日 N 次 */
   function lim(id) {
     if (owner()) return Infinity;
@@ -212,6 +214,10 @@
     const gf = gi ? F.byId(F.grpKey(gi.dataset.g)) : null;
     if (gf) { toast('🔒 此族群需開通：' + gf.name); return; }
     const f = lockedList().find((x) => (x.block || []).some((s) => { try { return b.matches(s); } catch (er) { return false; } }));
+    /* ★ 2026-10-09 體驗額度：這個功能還有體驗（或訪客可以登入領）→ 跳置中卡片（體驗剩 N 次＋繼續看），扣完幫他再按一次這顆鈕 */
+    const G = window.TwGrants, QC = window.TwQCard;
+    /* 用完（out）也跳同一張卡：升級卡＋一句「體驗額度已用完」 */
+    if (f && G && QC && QC.modal && G.extra(f.id)) { G.pending(f.id, b); QC.modal(QC.lockOpts(f, S.who)); return; }
     toast('🔒 此功能需開通' + (f ? '：' + f.name : ''));
   }, true);
 
