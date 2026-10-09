@@ -1,0 +1,449 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>哩股哩股宣傳片</title>
+<!--
+  哩股哩股功能宣傳影片（2026-10-09）—— 原生 Canvas 動畫頁。
+  · 網址參數：?fmt=v（1080×1920 直式，IG Reels／限動）或 ?fmt=h（1920×1080 橫式，YouTube／網站）。
+  · 開頁直接播放（循環）；點畫面重播。系統開了「減少動態效果」就只畫封面靜態格。
+  · 錄影時不即時錄：render_video.py 用 Playwright 呼叫 window.__render(t) 逐格畫，再 toDataURL 取圖，保證不掉格。
+  · 素材全部用相對路徑（assets/），截圖是本機網站的真實畫面（資料日 2026-10-08）。
+  · 發光克制：shadowBlur 最大 8；圈選框畫上去之後就靜止，不閃、不脈動。
+-->
+<style>
+  :root { --bg:#050A13; --accent:#37E2FF; }
+  html, body { margin:0; height:100%; background:var(--bg); }
+  body { display:flex; align-items:center; justify-content:center; overflow:hidden; }
+  canvas { display:block; max-width:100vw; max-height:100vh; }
+</style>
+</head>
+<body>
+<canvas id="cv"></canvas>
+<script>
+(() => {
+  'use strict';
+  const qs = new URLSearchParams(location.search);
+  const FMT = qs.get('fmt') === 'h' ? 'h' : 'v';
+  const W = FMT === 'h' ? 1920 : 1080, H = FMT === 'h' ? 1080 : 1920;
+  const cv = document.getElementById('cv');
+  cv.width = W; cv.height = H;
+  const ctx = cv.getContext('2d');
+  const FONT = '"Noto Sans CJK TC","Noto Sans TC","Microsoft JhengHei","WenQuanYi Zen Hei",sans-serif';
+  const C = {
+    bg0:'#050A13', bg1:'#0B1626', panel:'#0F1C2F', line:'rgba(55,226,255,0.10)',
+    accent:'#37E2FF', text:'#EAF6FF', sub:'#9FB4C8', cream:'#FBF3EA',
+    up:'#F0465A', down:'#21C08B', amber:'#FFBE5C'
+  };
+  const TOTAL = 42;
+  const DATA_DATE = '2026-10-08';
+
+  /* ---------- 素材 ---------- */
+  const SRC = {
+    mascot:'assets/mascot_sheet.png', logo:'assets/logo.png',
+  };
+  ['flow','heat','season','etf','chain'].forEach(k => { SRC['d_'+k] = 'assets/d_'+k+'.jpg'; SRC['m_'+k] = 'assets/m_'+k+'.jpg'; });
+  const IMG = {};
+  const loadAll = Promise.all(Object.entries(SRC).map(([k, u]) => new Promise((res, rej) => {
+    const im = new Image(); im.onload = () => { IMG[k] = im; res(); }; im.onerror = () => rej(new Error('載入失敗 ' + u)); im.src = u;
+  })));
+
+  /* ---------- 小工具 ---------- */
+  const clamp = (x, a, b) => Math.max(a, Math.min(b, x));
+  const lerp = (a, b, t) => a + (b - a) * t;
+  const easeIO = t => t < 0.5 ? 4*t*t*t : 1 - Math.pow(-2*t + 2, 3) / 2;
+  const easeOut = t => 1 - Math.pow(1 - t, 3);
+  const easeBack = t => { const c1 = 1.70158, c3 = c1 + 1; return 1 + c3*Math.pow(t-1,3) + c1*Math.pow(t-1,2); };
+  const prog = (t, a, b) => clamp((t - a) / (b - a), 0, 1);
+  // 阻尼彈簧：從 1 衰減到 0 的振盪（落地擠壓用）
+  const spring = (t, k = 18, z = 5) => Math.exp(-z * t) * Math.cos(k * t);
+  function rr(x, y, w, h, r, keep) {
+    if (!keep) ctx.beginPath();
+    ctx.moveTo(x + r, y); ctx.arcTo(x + w, y, x + w, y + h, r); ctx.arcTo(x + w, y + h, x, y + h, r);
+    ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r); ctx.closePath();
+  }
+  function font(px, w = 700) { return `${w} ${px}px ${FONT}`; }
+  // 中文逐字換行（英數連續字串不拆）
+  function wrap(text, maxW) {
+    const out = [];
+    for (const para of text.split('\n')) {
+      const toks = para.match(/[A-Za-z0-9.\-\/:%×]+|\s+|./g) || [''];
+      let line = '';
+      for (const tk of toks) {
+        const test = line + tk;
+        if (ctx.measureText(test).width > maxW && line.trim()) { out.push(line.trim()); line = tk.trimStart(); }
+        else line = test;
+      }
+      out.push(line.trim());
+    }
+    return out;
+  }
+  // 縮到放得下（最小 minPx）
+  function fitFont(text, maxW, px, minPx, w = 800) {
+    for (let p = px; p >= minPx; p -= 2) { ctx.font = font(p, w); if (ctx.measureText(text).width <= maxW) return p; }
+    return minPx;
+  }
+
+  /* ---------- 版面 ---------- */
+  const L = FMT === 'v' ? {
+    textX: W/2, align:'center', bigY: 330, bigPx: 96, subY: 430, subPx: 40, textW: 920, stepY: 220,
+    frame: { x: 110, y: 560, w: 860, h: 1200, r: 44 }, dateY: 1812,
+    mascotFeat: { x: 175, y: 1780, s: 210 }
+  } : {
+    textX: 110, align:'left', bigY: 450, bigPx: 80, subY: 550, subPx: 36, textW: 590, stepY: 350,
+    frame: { x: 750, y: 110, w: 1100, h: 814, r: 28 }, dateY: 968,
+    mascotFeat: { x: 230, y: 850, s: 220 }
+  };
+  const P = FMT === 'v' ? 'm_' : 'd_';
+
+  /* ---------- 腳本（跟 script_1009.md 同一份） ---------- */
+  // roi：[中心x, 中心y, 寬]（素材像素），hl：圈選框 [x0,y0,x1,y1]
+  const FEAT = [
+    { t0: 9.0, t1: 14.5, key:'flow', step:'01', big:'錢往哪個族群跑', sub:['資金輪動：看成交佔比','在各族群之間怎麼移動'],
+      d:{ a:[1216,900,2432], b:[900,1000,1900], hl:[1164,566,1330,628] },
+      m:{ a:[585,843,1170], b:[585,1850,1170], hl:[855,1470,1100,1594] } },
+    { t0:14.5, t1:20.0, key:'heat', step:'02', big:'一眼看出強弱', sub:['整個台股一張圖，紅漲綠跌','方塊越大＝成交值越大'],
+      d:{ a:[1216,900,2432], b:[800,700,1500], hl:[592,552,1012,820] },
+      m:{ a:[585,1100,1170], b:[450,1150,900], hl:[270,1044,481,1342] } },
+    { t0:20.0, t1:25.5, key:'season', step:'03', big:'每個月的歷史規律', sub:['族群 × 月份的歷史平均表現','（2000 年起；歷史不代表未來）'],
+      d:{ a:[1216,900,2432], b:[1600,900,1700], hl:[1850,300,2026,1474] },
+      m:{ a:[585,1100,1170], b:[700,1300,900], hl:[936,738,1003,2010] } },
+    { t0:25.5, t1:31.0, key:'etf', step:'04', big:'配息日一目了然', sub:['ETF 配息行事曆：','除息日、配息金額、填息天數'],
+      d:{ a:[1216,900,2432], b:[700,700,1500], hl:[240,538,410,738] },
+      m:{ a:[585,1000,1170], b:[420,1150,800], hl:[185,1007,336,1236] } },
+    { t0:31.0, t1:36.5, key:'chain', step:'05', big:'產業鏈一張看懂', sub:['產業地圖：從晶圓代工到封測','看懂上下游在做什麼'],
+      d:{ a:[1216,900,2432], b:[940,1050,1500], hl:[1150,738,1570,1338] },
+      m:{ a:[585,1100,1170], b:[585,1620,1060], hl:[36,1194,1129,2028] } },
+  ];
+
+  /* ---------- 背景 ---------- */
+  let bgCache = null;
+  function drawBg() {
+    if (!bgCache) {
+      bgCache = document.createElement('canvas'); bgCache.width = W; bgCache.height = H;
+      const b = bgCache.getContext('2d');
+      const g = b.createLinearGradient(0, 0, 0, H); g.addColorStop(0, '#07101E'); g.addColorStop(1, '#0B1828');
+      b.fillStyle = g; b.fillRect(0, 0, W, H);
+      // 霧面光暈（靜態、不動）
+      const blob = (x, y, r, c) => { const rg = b.createRadialGradient(x, y, 0, x, y, r); rg.addColorStop(0, c); rg.addColorStop(1, 'rgba(0,0,0,0)'); b.fillStyle = rg; b.fillRect(0, 0, W, H); };
+      blob(W * 0.15, H * 0.12, Math.max(W, H) * 0.45, 'rgba(55,226,255,0.10)');
+      blob(W * 0.9, H * 0.85, Math.max(W, H) * 0.5, 'rgba(156,140,255,0.08)');
+      // 網格（跟網站一樣的淡格線）
+      b.strokeStyle = C.line; b.lineWidth = 1;
+      const step = 60;
+      for (let x = 0; x <= W; x += step) { b.beginPath(); b.moveTo(x + .5, 0); b.lineTo(x + .5, H); b.stroke(); }
+      for (let y = 0; y <= H; y += step) { b.beginPath(); b.moveTo(0, y + .5); b.lineTo(W, y + .5); b.stroke(); }
+    }
+    ctx.drawImage(bgCache, 0, 0);
+  }
+
+  /* ---------- 吉祥物（8 格精靈圖，10fps） ---------- */
+  function mascot(t, cx, cy, size, alpha = 1, frameOverride) {
+    const im = IMG.mascot; if (!im) return;
+    const fs = im.height, n = Math.round(im.width / fs);
+    const f = frameOverride != null ? frameOverride : Math.floor(t * 10) % n;
+    ctx.save(); ctx.globalAlpha = alpha;
+    ctx.drawImage(im, f * fs, 0, fs, fs, cx - size / 2, cy - size / 2, size, size);
+    ctx.restore();
+  }
+
+  /* ---------- 文字卡 ---------- */
+  function textCard(lt, dur, big, sub, step) {
+    const inA = prog(lt, 0.05, 0.6), outA = 1 - prog(lt, dur - 0.4, dur);
+    const a = Math.min(easeOut(inA), outA);
+    const dy = (1 - easeOut(inA)) * 40;
+    ctx.save(); ctx.textAlign = L.align; ctx.textBaseline = 'alphabetic';
+    if (step) {
+      const sA = Math.min(easeOut(prog(lt, 0, 0.4)), outA);
+      ctx.globalAlpha = sA; ctx.font = font(FMT === 'v' ? 34 : 30, 700); ctx.fillStyle = C.accent;
+      ctx.fillText(`${step} ／ 05　免費會員可用`, L.textX, L.stepY + dy * 0.5);
+    }
+    ctx.globalAlpha = a;
+    const px = fitFont(big, L.textW, L.bigPx, 48);
+    ctx.font = font(px, 800); ctx.fillStyle = C.text;
+    ctx.shadowColor = 'rgba(55,226,255,0.35)'; ctx.shadowBlur = 6;
+    ctx.fillText(big, L.textX, L.bigY + dy);
+    ctx.shadowBlur = 0;
+    // 底線
+    const bw = Math.min(ctx.measureText(big).width, L.textW) * easeOut(prog(lt, 0.3, 0.9));
+    ctx.fillStyle = C.accent;
+    const ux = L.align === 'center' ? L.textX - bw / 2 : L.textX;
+    rr(ux, L.bigY + 26 + dy, bw, 6, 3); ctx.fill();
+    if (sub) {
+      const sa = Math.min(easeOut(prog(lt, 0.3, 0.9)), outA);
+      ctx.globalAlpha = sa; ctx.font = font(L.subPx, 500); ctx.fillStyle = C.sub;
+      const lines = Array.isArray(sub) ? sub.flatMap(x => wrap(x, L.textW)) : wrap(sub, L.textW);
+      lines.forEach((ln, i) => ctx.fillText(ln, L.textX, L.subY + i * L.subPx * 1.45 + dy * 0.6));
+    }
+    ctx.restore();
+  }
+
+  /* ---------- 截圖框（Ken Burns＋圈選） ---------- */
+  function shotFrame(lt, dur, f) {
+    const cfg = f[FMT === 'v' ? 'm' : 'd'];
+    const im = IMG[P + f.key]; if (!im) return;
+    const F = L.frame, asp = F.w / F.h;
+    const inA = easeOut(prog(lt, 0, 0.55)), outA = 1 - prog(lt, dur - 0.4, dur);
+    const alpha = Math.min(inA, outA);
+    const k = easeIO(prog(lt, 0.4, dur - 0.5));
+    const cx = lerp(cfg.a[0], cfg.b[0], k), cy = lerp(cfg.a[1], cfg.b[1], k);
+    let sw = lerp(cfg.a[2], cfg.b[2], k), sh = sw / asp;
+    if (sh > im.height) { sh = im.height; sw = sh * asp; }
+    if (sw > im.width) { sw = im.width; sh = sw / asp; }
+    const sx = clamp(cx - sw / 2, 0, im.width - sw), sy = clamp(cy - sh / 2, 0, im.height - sh);
+    const slide = (1 - inA) * 60;
+    const fx = F.x + (FMT === 'h' ? slide : 0), fy = F.y + (FMT === 'v' ? slide : 0);
+    ctx.save(); ctx.globalAlpha = alpha;
+    // 外框陰影（克制）
+    ctx.shadowColor = 'rgba(0,0,0,0.55)'; ctx.shadowBlur = 8; ctx.shadowOffsetY = 6;
+    rr(fx - 10, fy - 10, F.w + 20, F.h + 20, F.r + 8); ctx.fillStyle = '#0E1A2C'; ctx.fill();
+    ctx.shadowBlur = 0; ctx.shadowOffsetY = 0;
+    ctx.strokeStyle = 'rgba(55,226,255,0.35)'; ctx.lineWidth = 2; ctx.stroke();
+    ctx.save(); rr(fx, fy, F.w, F.h, F.r); ctx.clip();
+    ctx.drawImage(im, sx, sy, sw, sh, fx, fy, F.w, F.h);
+    // 圈選：暗化周圍＋線條描上去（之後靜止）
+    const hA = prog(lt, 1.6, 2.2) * outA;
+    if (hA > 0) {
+      const sc = F.w / sw;
+      const hx = fx + (cfg.hl[0] - sx) * sc, hy = fy + (cfg.hl[1] - sy) * sc;
+      const hw = (cfg.hl[2] - cfg.hl[0]) * sc, hh = (cfg.hl[3] - cfg.hl[1]) * sc;
+      ctx.save();
+      ctx.fillStyle = `rgba(3,8,16,${0.45 * hA})`;
+      ctx.beginPath(); ctx.rect(fx, fy, F.w, F.h); rr(hx - 8, hy - 8, hw + 16, hh + 16, 14, true); ctx.fill('evenodd');
+      const draw = easeOut(prog(lt, 1.7, 2.4));
+      rr(hx - 8, hy - 8, hw + 16, hh + 16, 14);
+      const per = 2 * (hw + hh + 32);
+      ctx.setLineDash([per * draw, per]);
+      ctx.strokeStyle = C.accent; ctx.lineWidth = 5; ctx.shadowColor = 'rgba(55,226,255,0.8)'; ctx.shadowBlur = 8;
+      ctx.globalAlpha = alpha; ctx.stroke();
+      ctx.restore();
+    }
+    ctx.restore();
+    // 資料日
+    ctx.font = font(FMT === 'v' ? 28 : 24, 500); ctx.fillStyle = C.sub; ctx.textAlign = FMT === 'v' ? 'center' : 'right';
+    ctx.fillText(`網站實際畫面・資料日 ${DATA_DATE}`, FMT === 'v' ? W / 2 : F.x + F.w, L.dateY);
+    ctx.restore();
+  }
+
+  /* ---------- 第 1 段：痛點 ---------- */
+  const CHIPS = (() => {
+    let s = 7; const r = () => (s = (s * 16807) % 2147483647) / 2147483647;
+    return Array.from({ length: 26 }, (_, i) => ({
+      x: r() * W, y: r() * H, w: 140 + r() * 160, h: 90 + r() * 70, vx: (r() - .5) * 60, vy: (r() - .5) * 60,
+      kind: i % 3, seed: r() * 100, rot: (r() - .5) * 0.3, up: r() > 0.5
+    }));
+  })();
+  function chip(c, a) {
+    ctx.save(); ctx.globalAlpha = a; ctx.translate(c.x, c.y); ctx.rotate(c.rot);
+    rr(-c.w / 2, -c.h / 2, c.w, c.h, 14); ctx.fillStyle = 'rgba(15,28,47,0.92)'; ctx.fill();
+    ctx.strokeStyle = 'rgba(159,180,200,0.25)'; ctx.lineWidth = 2; ctx.stroke();
+    const col = c.up ? C.up : C.down;
+    if (c.kind === 0) { // 折線
+      ctx.beginPath();
+      for (let i = 0; i <= 12; i++) { const px = -c.w / 2 + 14 + i * (c.w - 28) / 12; const py = Math.sin(i * 0.9 + c.seed) * c.h * 0.22 + (c.up ? -1 : 1) * (i - 6) * 2; i ? ctx.lineTo(px, py) : ctx.moveTo(px, py); }
+      ctx.strokeStyle = col; ctx.lineWidth = 3; ctx.stroke();
+    } else if (c.kind === 1) { // K 棒
+      for (let i = 0; i < 7; i++) { const px = -c.w / 2 + 18 + i * (c.w - 36) / 6; const hh = 14 + Math.abs(Math.sin(i + c.seed)) * c.h * 0.4; const up = Math.sin(i * 2 + c.seed) > 0;
+        ctx.fillStyle = up ? C.up : C.down; ctx.fillRect(px - 6, -hh / 2 + Math.cos(i + c.seed) * 8, 12, hh); }
+    } else { // 問號
+      ctx.fillStyle = C.sub; ctx.font = font(c.h * 0.7, 800); ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText('?', 0, 4);
+    }
+    ctx.restore();
+  }
+  function seg1(t) {
+    const dur = 4.5;
+    const collapse = easeIO(prog(t, 3.3, 4.4));
+    for (const c of CHIPS) {
+      const x = c.x + c.vx * t, y = c.y + c.vy * t;
+      const cc = { ...c, x: lerp(x, W / 2, collapse), y: lerp(y, H / 2, collapse) };
+      const a = Math.min(easeOut(prog(t, c.seed / 100 * 0.8, c.seed / 100 * 0.8 + 0.5)), 1 - collapse) * 0.85;
+      if (a > 0) chip(cc, a);
+    }
+    // 中央遮罩讓字讀得到
+    ctx.save(); const rg = ctx.createRadialGradient(W / 2, H / 2, 0, W / 2, H / 2, Math.min(W, H) * 0.6);
+    rg.addColorStop(0, 'rgba(5,10,19,0.88)'); rg.addColorStop(1, 'rgba(5,10,19,0)'); ctx.fillStyle = rg; ctx.fillRect(0, 0, W, H); ctx.restore();
+    const a = Math.min(easeOut(prog(t, 0.2, 0.8)), 1 - prog(t, 4.0, 4.5));
+    ctx.save(); ctx.globalAlpha = a; ctx.textAlign = 'center';
+    const px = FMT === 'v' ? 100 : 104;
+    ctx.font = font(px, 800); ctx.fillStyle = C.text;
+    const shake = Math.sin(t * 30) * 3 * (1 - prog(t, 0.3, 1.0));
+    ctx.fillText('看盤資訊太多？', W / 2 + shake, H / 2 - 10);
+    ctx.font = font(FMT === 'v' ? 40 : 38, 500); ctx.fillStyle = C.sub;
+    ctx.globalAlpha = Math.min(easeOut(prog(t, 0.7, 1.3)), 1 - prog(t, 4.0, 4.5));
+    ctx.fillText('線圖、數字、新聞滿天飛，不知道從哪看起', W / 2, H / 2 + 80);
+    ctx.restore();
+  }
+
+  /* ---------- 第 2 段：吉祥物登場 ---------- */
+  function seg2(t) {
+    const lt = t - 4.5, dur = 4.5;
+    const out = 1 - prog(lt, dur - 0.4, dur);
+    const size = FMT === 'v' ? 460 : 400;
+    const cx = W / 2, groundY = FMT === 'v' ? 860 : 450;
+    // 從上方掉下來 → 落地擠壓（阻尼）
+    const drop = easeOut(prog(lt, 0, 0.55));
+    const y = lerp(-size, groundY, drop * drop);
+    const land = prog(lt, 0.55, 2.0);
+    const sq = lt > 0.55 ? spring(land * 1.45, 16, 3.2) * 0.18 : 0;
+    ctx.save(); ctx.globalAlpha = out;
+    // 地面陰影
+    ctx.fillStyle = 'rgba(0,0,0,0.35)'; ctx.beginPath(); ctx.ellipse(cx, groundY + size * 0.42, size * 0.32 * (0.5 + 0.5 * drop), 18, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.translate(cx, y + size * 0.42); ctx.scale(1 + sq, 1 - sq); ctx.translate(-cx, -(y + size * 0.42));
+    mascot(lt, cx, y, size, 1, lt < 0.55 ? 4 : null);
+    ctx.restore();
+    // 落地震波（一次性外擴，不重複）
+    const wv = prog(lt, 0.55, 1.3);
+    if (wv > 0 && wv < 1) {
+      ctx.save(); ctx.strokeStyle = `rgba(55,226,255,${0.5 * (1 - wv)})`; ctx.lineWidth = 4;
+      ctx.beginPath(); ctx.ellipse(cx, groundY + size * 0.42, size * 0.3 + wv * size * 0.5, 18 + wv * 30, 0, 0, Math.PI * 2); ctx.stroke(); ctx.restore();
+    }
+    // 名稱與一句話
+    const a = Math.min(easeOut(prog(lt, 0.9, 1.5)), out);
+    const ty = FMT === 'v' ? 1260 : 830;
+    ctx.save(); ctx.globalAlpha = a; ctx.textAlign = 'center';
+    ctx.font = font(FMT === 'v' ? 120 : 104, 900); ctx.fillStyle = C.cream;
+    ctx.shadowColor = 'rgba(55,226,255,0.4)'; ctx.shadowBlur = 6;
+    ctx.fillText('哩股哩股', cx, ty + (1 - easeOut(prog(lt, 0.9, 1.5))) * 30);
+    ctx.shadowBlur = 0;
+    ctx.globalAlpha = Math.min(easeOut(prog(lt, 1.4, 2.0)), out);
+    ctx.font = font(FMT === 'v' ? 44 : 40, 500); ctx.fillStyle = C.sub;
+    ctx.fillText('把公開資料，整理成看得懂的圖', cx, ty + (FMT === 'v' ? 100 : 80));
+    ctx.restore();
+    // 對話泡泡
+    const ba = Math.min(easeBack(prog(lt, 1.9, 2.4)), out);
+    if (ba > 0) {
+      const bx = cx + size * 0.3, by = y - size * 0.55;
+      ctx.save(); ctx.globalAlpha = clamp(ba, 0, 1); ctx.translate(bx, by); ctx.scale(clamp(ba, 0, 1.2), clamp(ba, 0, 1.2));
+      ctx.font = font(FMT === 'v' ? 40 : 36, 700);
+      const msg = '我幫你看懂！'; const tw = ctx.measureText(msg).width;
+      rr(-24, -46, tw + 48, 80, 26); ctx.fillStyle = C.cream; ctx.fill();
+      ctx.beginPath(); ctx.moveTo(10, 30); ctx.lineTo(-14, 62); ctx.lineTo(44, 32); ctx.fill();
+      ctx.fillStyle = '#1A2436'; ctx.textAlign = 'left'; ctx.fillText(msg, 0, 8);
+      ctx.restore();
+    }
+  }
+
+  /* ---------- 功能段 ---------- */
+  function featSeg(t, f) {
+    const lt = t - f.t0, dur = f.t1 - f.t0;
+    shotFrame(lt, dur, f);
+    textCard(lt, dur, f.big, f.sub, f.step);
+    // 小吉祥物在角落陪看（只用原本 GIF 的彈跳，不額外閃）
+    const m = L.mascotFeat;
+    const a = Math.min(easeOut(prog(lt, 0.2, 0.7)), 1 - prog(lt, dur - 0.4, dur));
+    mascot(t, m.x, m.y + (1 - a) * 40, m.s, a);
+  }
+
+  /* ---------- 第 8 段：免費註冊 CTA＋免責 ---------- */
+  function seg8(t) {
+    const lt = t - 36.5;
+    const v = FMT === 'v';
+    const a = easeOut(prog(lt, 0, 0.6));
+    ctx.save(); ctx.textAlign = 'center';
+    // LOGO 卡
+    const ls = v ? 260 : 220, lx = W / 2, ly = v ? 470 : 230;
+    const pop = easeBack(prog(lt, 0, 0.6));
+    if (IMG.logo) {
+      ctx.save(); ctx.globalAlpha = a; ctx.translate(lx, ly); ctx.scale(pop, pop);
+      ctx.shadowColor = 'rgba(55,226,255,0.5)'; ctx.shadowBlur = 8;
+      rr(-ls / 2, -ls / 2, ls, ls, ls * 0.22); ctx.fillStyle = '#fff'; ctx.fill(); ctx.shadowBlur = 0;
+      ctx.save(); rr(-ls / 2, -ls / 2, ls, ls, ls * 0.22); ctx.clip(); ctx.drawImage(IMG.logo, -ls / 2, -ls / 2, ls, ls); ctx.restore();
+      ctx.restore();
+    }
+    ctx.globalAlpha = easeOut(prog(lt, 0.25, 0.85));
+    const by = v ? 790 : 470;
+    ctx.font = font(v ? 104 : 96, 900); ctx.fillStyle = C.text;
+    ctx.shadowColor = 'rgba(55,226,255,0.35)'; ctx.shadowBlur = 6;
+    ctx.fillText('註冊會員　免費用', W / 2, by); ctx.shadowBlur = 0;
+    ctx.globalAlpha = easeOut(prog(lt, 0.6, 1.2));
+    ctx.font = font(v ? 38 : 34, 500); ctx.fillStyle = C.sub;
+    const feats = v ? ['資金輪動・熱力圖・週期統計', 'ETF 配息行事曆・產業地圖'] : ['資金輪動・熱力圖・週期統計・ETF 配息行事曆・產業地圖'];
+    feats.forEach((s, i) => ctx.fillText(s, W / 2, by + (v ? 90 : 78) + i * 56));
+    // 網址膠囊
+    const ua = easeBack(prog(lt, 0.9, 1.5));
+    const url = 'miaozike.github.io/tw-rotation';
+    ctx.font = font(v ? 52 : 48, 800);
+    const uw = ctx.measureText(url).width + 80, uh = v ? 100 : 92;
+    const uy = v ? 1120 : 700;
+    ctx.save(); ctx.globalAlpha = clamp(ua, 0, 1); ctx.translate(W / 2, uy); ctx.scale(clamp(ua, 0, 1.1), clamp(ua, 0, 1.1));
+    rr(-uw / 2, -uh / 2, uw, uh, uh / 2); ctx.fillStyle = C.accent; ctx.shadowColor = 'rgba(55,226,255,0.6)'; ctx.shadowBlur = 8; ctx.fill(); ctx.shadowBlur = 0;
+    ctx.fillStyle = '#03121B'; ctx.textBaseline = 'middle'; ctx.fillText(url, 0, 3);
+    ctx.restore();
+    ctx.globalAlpha = easeOut(prog(lt, 1.3, 1.9));
+    ctx.font = font(v ? 32 : 28, 500); ctx.fillStyle = C.sub;
+    ctx.fillText('免費會員每日有使用次數上限，進階功能另有方案', W / 2, uy + (v ? 110 : 100));
+    // 吉祥物跳一下（一次）
+    const ms = v ? 300 : 230, mx = v ? W / 2 : W - 260, my0 = v ? 1470 : 560;
+    const hop = Math.max(0, Math.sin(prog(lt, 1.0, 1.7) * Math.PI)) * 60;
+    ctx.globalAlpha = easeOut(prog(lt, 0.4, 0.9));
+    mascot(t, mx, my0 - hop, ms, ctx.globalAlpha);
+    if (!v) mascot(t + 0.35, 260, my0 - hop, ms, ctx.globalAlpha);
+    ctx.restore();
+    // 免責（1.0 秒後出現並保持到片尾）
+    const da = easeOut(prog(lt, 1.0, 1.6));
+    ctx.save(); ctx.globalAlpha = da; ctx.textAlign = 'center';
+    const dy = v ? 1760 : 990;
+    ctx.fillStyle = 'rgba(11,22,38,0.92)'; rr(v ? 60 : 360, dy - 52, v ? W - 120 : W - 720, 84, 20); ctx.fill();
+    ctx.strokeStyle = 'rgba(159,180,200,0.35)'; ctx.lineWidth = 2; ctx.stroke();
+    ctx.font = font(v ? 34 : 32, 600); ctx.fillStyle = '#D7E3EE';
+    ctx.fillText('本站為公開資料整理與統計工具，不構成投資建議。', W / 2, dy + 2);
+    ctx.restore();
+  }
+
+  /* ---------- 轉場：段落交界處一道青色掃光（0.35 秒，一次性） ---------- */
+  const CUTS = [4.5, 9.0, 14.5, 20.0, 25.5, 31.0, 36.5];
+  function wipe(t) {
+    for (const c of CUTS) {
+      const p = (t - (c - 0.2)) / 0.4;
+      if (p <= 0 || p >= 1) continue;
+      const x = lerp(-W * 0.3, W * 1.3, easeIO(p));
+      ctx.save();
+      const g = ctx.createLinearGradient(x - 220, 0, x + 220, 0);
+      g.addColorStop(0, 'rgba(55,226,255,0)'); g.addColorStop(0.5, 'rgba(55,226,255,0.16)'); g.addColorStop(1, 'rgba(55,226,255,0)');
+      ctx.fillStyle = g; ctx.fillRect(0, 0, W, H); ctx.restore();
+    }
+  }
+
+  /* ---------- 進度條（片長提示，細） ---------- */
+  function progressBar(t) {
+    ctx.save(); ctx.fillStyle = 'rgba(55,226,255,0.55)';
+    ctx.fillRect(0, H - 6, W * clamp(t / TOTAL, 0, 1), 6); ctx.restore();
+  }
+
+  function render(t) {
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.globalAlpha = 1; ctx.shadowBlur = 0;
+    drawBg();
+    if (t < 4.5) seg1(t);
+    else if (t < 9.0) seg2(t);
+    else if (t < 36.5) { const f = FEAT.find(x => t >= x.t0 && t < x.t1); if (f) featSeg(t, f); }
+    else seg8(t);
+    wipe(t);
+    progressBar(t);
+  }
+
+  window.__TOTAL = TOTAL;
+  window.__render = (t) => { render(t); };
+  window.__frame = (t, q = 0.9) => { render(t); return cv.toDataURL('image/jpeg', q); };
+  window.__ready = (async () => {
+    await loadAll;
+    try { await document.fonts.load(font(80, 800) , '哩股'); } catch (e) { /* 系統字不必載 */ }
+    return true;
+  })();
+
+  // 一般瀏覽：自動播放（循環）；?capture=1 時不自動播
+  if (!qs.get('capture')) {
+    const reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    window.__ready.then(() => {
+      if (reduce) { render(39.5); return; }   // 只畫片尾靜態格（含網址與免責）
+      let start = performance.now();
+      cv.addEventListener('click', () => { start = performance.now(); });
+      const loop = (now) => { render(((now - start) / 1000) % TOTAL); requestAnimationFrame(loop); };
+      requestAnimationFrame(loop);
+    });
+  }
+})();
+</script>
+</body>
+</html>
