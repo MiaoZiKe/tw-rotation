@@ -1106,16 +1106,50 @@
       n.lab = { lines, x, y: n.ty - bh / 2, w: bw, h: bh, fs: 12, badge: !leaf };
     });
   }
+  /* ★ 2026-10-09（手機監督：▶ 播放時節點換位，族群名稱標籤在補間途中短暫疊在一起，停下來才正常）：
+       原因：回放是連續的等速補間（一格 650ms 接一格），兩個族群名次對調時，兩顆節點連同標籤沿直線「穿過」對方，
+       補間途中兩塊膠囊必然交疊（402 寬實測 4 秒播放 69 個樣本有 43 個疊到，最大疊 2400px²）。
+       修法（只在 html.m4）：每一幀找出「這段補間的掃過範圍會交會」的標籤對，依兩塊膠囊**目前的間距**決定透明度 ——
+       間距 ≥ 起點／終點間距較小者 → 全亮；越靠近越淡；一碰到（間距 ≤ 0）就是 0。所以：
+         · 不換位的標籤（掃過範圍不交會）一律全亮，不會整張閃；
+         · 換位的那兩塊在相遇前淡出、錯開後淡入，畫面上任何一幀都不會有兩塊看得見的標籤疊在一起；
+         · 停止（沒有補間）＝全部 1，拖拉桿（單次 cubicInOut 補間）走同一條。
+       桌機不走這裡（>640 沒有 html.m4），回傳 null，畫法一個像素都不變。*/
+  function crossFade(S) {
+    if (!S.tween || !document.documentElement.classList.contains('m4')) return null;
+    const L = [];
+    S.order.forEach(n => {
+      const B = n.lab; if (!B || visOf(S, n) < 0.01) return;
+      const box = (dx, dy) => [B.x + dx, B.y + dy, B.w, B.h];
+      const a = box(n.sx - n.tx, n.sy - n.ty), z = box(0, 0), c = box(n.x - n.tx, n.y - n.ty);
+      const sw = [Math.min(a[0], z[0]), Math.min(a[1], z[1])];
+      sw.push(Math.max(a[0] + a[2], z[0] + z[2]) - sw[0], Math.max(a[1] + a[3], z[1] + z[3]) - sw[1]);
+      L.push({ n, a, z, c, sw, k: 1 });
+    });
+    // 兩個矩形的間距：取 x、y 兩個方向較大的那個分離量（< 0 代表已經交疊）
+    const gap = (p, q) => Math.max(Math.max(p[0], q[0]) - Math.min(p[0] + p[2], q[0] + q[2]), Math.max(p[1], q[1]) - Math.min(p[1] + p[3], q[1] + q[3]));
+    for (let i = 0; i < L.length; i++) for (let j = i + 1; j < L.length; j++) {
+      const P = L[i], Q = L[j];
+      if (gap(P.sw, Q.sw) >= 0) continue;                       // 掃過範圍不交會：這一對整段補間都碰不到
+      const ref = Math.max(1, Math.min(10, gap(P.a, Q.a), gap(P.z, Q.z)));
+      const g = gap(P.c, Q.c), k = g <= 0 ? 0 : Math.min(1, g / ref);
+      if (k < P.k) P.k = k; if (k < Q.k) Q.k = k;
+    }
+    const m = new Map(); L.forEach(o => m.set(o.n, o.k));
+    return m;
+  }
   function drawLabelsClassic(S) {
     const g = S.gL, K = elInk(S);
     g.setTransform(S.DPR, 0, 0, S.DPR, 0, 0); g.clearRect(0, 0, S.W, S.H);
     g.textBaseline = 'middle';
+    const xf = crossFade(S);                             // 手機補間中：換位交會的標籤淡出（桌機＝null）
     S.order.forEach(n => {
       const B = n.lab; if (!B) return;
       const ox = n.x - n.tx, oy = n.y - n.ty;
       // 壓暗規則和經典版一樣：被篩掉的 0.35、滑過別條路徑時 0.25；代表股收起時跟著淡出
-      const lvs = visOf(S, n); if (lvs < 0.01) return;
+      const lvs = visOf(S, n) * (xf && xf.has(n) ? xf.get(n) : 1); n.labNow = null; if (lvs < 0.01) return;
       g.globalAlpha = (n.dim ? 0.35 : (related(S, n) ? (n.stale || n.nodata ? 0.6 : 1) : 0.25)) * lvs;
+      n.labNow = [B.x + ox, B.y + oy, B.w, B.h, g.globalAlpha];   // 驗收用：這一幀實際畫在哪、多不透明（probe 的 ln）
       if (B.badge) {
         g.beginPath();
         if (g.roundRect) g.roundRect(B.x + ox + 0.5, B.y + oy + 0.5, B.w - 1, B.h - 1, 3); else g.rect(B.x + ox + 0.5, B.y + oy + 0.5, B.w - 1, B.h - 1);
@@ -1134,6 +1168,7 @@
     if (S.classic) return drawLabelsClassic(S);
     const g = S.gL, P = S.pal;
     g.setTransform(S.DPR, 0, 0, S.DPR, 0, 0); g.clearRect(0, 0, S.W, S.H);
+    const xf = crossFade(S);                             // 手機補間中：換位交會的標籤淡出（桌機＝null）
     S.order.forEach(n => {
       const B = n.lab; if (!B) return;
       // 補間中標籤跟著節點走
@@ -1141,6 +1176,8 @@
       const f = fadeOf(S, n);
       g.globalAlpha = n.dim ? 0.38 : (related(S, n) ? 1 : 0.4);
       if (f < 0.3 && S.hover) g.globalAlpha = 0.35;
+      if (xf && xf.has(n)) { const k = xf.get(n); n.labNow = null; if (k < 0.01) return; g.globalAlpha *= k; }
+      n.labNow = [B.x + ox, B.y + oy, B.w, B.h, g.globalAlpha];
       g.beginPath();
       if (g.roundRect) g.roundRect(B.x + ox, B.y + oy, B.w, B.h, 4); else g.rect(B.x + ox, B.y + oy, B.w, B.h);
       g.fillStyle = rgba(P.panel, P.dark ? 0.84 : 0.9); g.fill();
@@ -1648,6 +1685,7 @@
         text: n.lab ? n.lab.lines.map(l => l.map(p => p.t).join('')).join(' / ') : '',
         chg: n.lab ? (n.lab.lines[0].find(p => p.chg) || {}).chg || null : null,
         chgColor: n.lab ? (n.lab.lines[0].find(p => p.chg) || {}).c || null : null,
+        ln: n.labNow ? n.labNow.map(v => +v.toFixed(1)) : null,
         lab: n.lab ? { x: Math.round(n.lab.x), y: Math.round(n.lab.y), w: Math.round(n.lab.w), h: Math.round(n.lab.h), badge: !!n.lab.badge } : null })),
       links: S.linkList.map(e => ({ key: e.key, lv: e.lv, w: +e.w.toFixed(2), dead: !!e.dead,
         n: S.parts.filter(p => p.e === e).length, rate: +e.rate.toFixed(2), v: +(e.v || 0).toFixed(1), pr: +e.pr.toFixed(2),
