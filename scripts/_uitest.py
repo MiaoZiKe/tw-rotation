@@ -29589,6 +29589,58 @@ def t_dgclip_1008(b, base):
 
 
 
+
+# ★ 2026-10-09 帳本 77（Andy 22:0x 截圖：「產業地圖跑掉了」）手機產業地圖「成交值占比」甜甜圈：
+#   約 420～640 寬時卡寬 ≥ 420，layoutDonut 判成「圖例在右」，但手機 CSS（31g）把圖例拉成 100% 寬 ——
+#   圖例把圓餅擠到最左、被裁掉一半，下面的字也被蓋到。改成手機（html.m4）一律圖例在下。
+#   驗：360／402／430／480／560／640 寬（is_mobile、has_touch、DPR2）各量一次 ——
+#   ① 圓餅 canvas 外框完全在卡片內 ② 圓心水平置中（≤ 8px）③ 圖例頂 ≥ 圓餅底 ④ 圖例左右緣 ≈ 卡片內緣（≤ 2px）
+#   ⑤ 卡片後面看得到的字（收合列、讀數列、連結列）頂 ≥ 圖例底與卡片底 ⑥ 卡片與整頁都不橫捲。
+def t_mobile_m4_indpie_1009(b, base, code):
+    T = "手機產業圓餅1009"
+    MEAS = """() => { const card = document.querySelector('#v-industry .gppie'), pie = document.getElementById('gpPie'), lg = document.getElementById('gpLegend');
+        if (!card || !pie || !lg) return null; const cv = pie.querySelector('canvas'); if (!cv) return null;
+        const R = (e) => { const r = e.getBoundingClientRect(); return { l: r.left, r: r.right, t: r.top, b: r.bottom, w: r.width, h: r.height }; };
+        const cs = getComputedStyle(card), c = R(card), il = c.l + parseFloat(cs.borderLeftWidth) + parseFloat(cs.paddingLeft), ir = c.r - parseFloat(cs.borderRightWidth) - parseFloat(cs.paddingRight);
+        const after = []; let n = card.nextElementSibling; const seen = new Set();
+        const pushAll = (e) => { for (; e; e = e.nextElementSibling) { if (seen.has(e)) continue; seen.add(e); const r = e.getBoundingClientRect(); if (r.height > 0 && r.width > 0 && e.textContent.trim()) after.push({ id: e.id || e.className, t: r.top }); } };
+        pushAll(n); const grid = card.closest('.gpgrid'); if (grid) pushAll(grid.nextElementSibling);
+        return { cv: R(cv), card: c, il, ir, lg: R(lg), nl: lg.querySelectorAll('.lg').length, after, cardSW: card.scrollWidth, cardCW: card.clientWidth,
+          sw: document.documentElement.scrollWidth, vw: innerWidth, dn: card.dataset.dn || '' }; }"""
+    for W in (360, 402, 430, 480, 560, 640):
+        ctx = b.new_context(viewport={"width": W, "height": 844}, device_scale_factor=2, is_mobile=True, has_touch=True)
+        try:
+            ctx.add_init_script("try{ localStorage.setItem('tw.live.on','0'); localStorage.setItem('tw.tourDone','1'); }catch(e){}")
+            m = ctx.new_page()
+            m.on("pageerror", lambda e, W=W: fails.append(f"{T} {W} pageerror: {e} @ {m.url}"))
+            m.route("**/fonts.googleapis.com/**", lambda r: r.abort())
+            m.goto(base + "#industry", wait_until="domcontentloaded")
+            wait_until(m, "(() => { const p = document.getElementById('gpPie'); return !!(p && p.querySelector('canvas') && document.querySelectorAll('#gpLegend .lg').length && document.documentElement.classList.contains('m4')); })()", 15000)
+            m.wait_for_timeout(1200)
+            d = m.evaluate(MEAS)
+            if not ok(f"【{T}】{W} 寬：找得到甜甜圈、canvas 與圖例", bool(d and d["nl"] > 0), d):
+                continue
+            cv, c, lg = d["cv"], d["card"], d["lg"]
+            ok(f"【{T}】{W} 寬：圓餅 canvas 完全在卡片內（不被裁）", cv["l"] >= c["l"] - 0.5 and cv["r"] <= c["r"] + 0.5 and cv["t"] >= c["t"] - 0.5 and cv["b"] <= c["b"] + 0.5 and cv["w"] >= 160,
+               {"canvas": cv, "card": c, "dn": d["dn"]})
+            cx, ic = (cv["l"] + cv["r"]) / 2, (d["il"] + d["ir"]) / 2
+            ok(f"【{T}】{W} 寬：圓心水平置中（差 {abs(cx - ic):.1f}px ≤ 8）", abs(cx - ic) <= 8, {"圓心": cx, "卡片中線": ic})
+            ok(f"【{T}】{W} 寬：圖例在圓餅下方（圖例頂 {lg['t']:.0f} ≥ 圓餅底 {cv['b']:.0f}）", lg["t"] >= cv["b"] - 0.5, d["dn"])
+            ok(f"【{T}】{W} 寬：圖例左右緣貼齊卡片內緣（左差 {abs(lg['l'] - d['il']):.1f}、右差 {abs(lg['r'] - d['ir']):.1f}）",
+               abs(lg["l"] - d["il"]) <= 2 and abs(lg["r"] - d["ir"]) <= 2, {"legend": lg, "il": d["il"], "ir": d["ir"]})
+            low = max(lg["b"], c["b"])
+            hit = [a for a in d["after"] if a["t"] < low - 0.5]
+            ok(f"【{T}】{W} 寬：卡片下面的字沒被圖例或圓餅蓋到", not hit and lg["b"] <= c["b"] + 0.5, {"被蓋": hit, "圖例底": lg["b"], "卡片底": c["b"]})
+            ok(f"【{T}】{W} 寬：卡片與整頁都不橫捲", d["cardSW"] <= d["cardCW"] + 1 and d["sw"] <= d["vw"], {"card": [d["cardSW"], d["cardCW"]], "page": [d["sw"], d["vw"]]})
+            if W in (402, 480):
+                try:
+                    m.locator("#v-industry .gppie").scroll_into_view_if_needed()
+                    m.screenshot(path=f"/tmp/claude-0/-home-user-tw-rotation/961abebc-d4ed-566f-ba74-0ada1686b229/scratchpad/indpie_{W}.png")
+                except Exception:
+                    pass
+        finally:
+            ctx.close()
+
 # ★ 2026-10-09 手機拖曳邊界1009（Andy 04:1x：「所有圖扁長寬到了就好，不可以他長度原本是那樣，但還能一直滑過頭超出範圍」）
 #   手機（html.m4）每一種能拖、能平移、能縮放的圖：放大後往四個方向各用手指拖一大段（比內容還長）＋一次快速甩動（慣性），
 #   每次都量「內容外框仍蓋滿整個可視框、四邊沒有空白」；1× 時拖不動。K 線拖到兩端與縮到最小不能露出資料外的空白；
@@ -31917,6 +31969,7 @@ SECTIONS = {
     "手機v2帳本73":        lambda pg, b, base, code: t_mobile_m4_misc1009(b, base, code),
     # ★ 2026-10-09 帳本 38 退件（市場明細三頁多組切換 → 摘要鈕＋抽屜）單獨跑：手機v2 也包含這一段
     # ★ 2026-10-09 手機監督：剖析圖延伸閱讀抽屜的圖內字 ≥ 12px、框內手指拖、看全圖切換（diagrams.js foldReadable）單獨跑：手機v2 也包含這一段
+    "手機產業圓餅1009":    lambda pg, b, base, code: t_mobile_m4_indpie_1009(b, base, code),
     "手機v2延伸閱讀字級":  lambda pg, b, base, code: t_mobile_m4_foldread1009(b, base, code),
     "手機v2市場抽屜":      lambda pg, b, base, code: t_mobile_m4_mkset1009(b, base, code),
     # ★ 2026-10-09：選股／ETF 這兩段放最前面 —— 元組裡前一段丟例外（例：總覽導覽 tap 逾時，preview/m4-all 底就有）後面整串都不跑，放最後等於沒驗
