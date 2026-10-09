@@ -77,8 +77,8 @@
 .supfab .supmark{width:34px;height:34px;flex:none;display:block;overflow:visible;transition:transform .2s;color:var(--ontop,#04121a)}
 .supfab:hover .supmark{animation:supwig .5s ease-in-out;transform:scale(1.1)}
 /* 只有 GIF：蓋掉上面膠囊的底色、框線、陰影與毛玻璃（拖曳／吸邊／避讓那些照舊吃 .supfab） */
-.supfab.supgifonly,.supfab.supgifonly:hover{width:68px;height:68px;padding:0;gap:0;justify-content:center;background:none;border:0;box-shadow:none;-webkit-backdrop-filter:none;backdrop-filter:none;border-radius:50%}
-.supfab.supgifonly .supgif{width:64px;height:64px;flex:none;display:block;pointer-events:none;filter:drop-shadow(0 4px 8px rgba(0,0,0,.35));animation:none!important;transform:none}
+.supfab.supgifonly,.supfab.supgifonly:hover{width:76px;height:76px;padding:0;gap:0;justify-content:center;background:none;border:0;box-shadow:none;-webkit-backdrop-filter:none;backdrop-filter:none;border-radius:50%}
+.supfab.supgifonly .supgif{width:72px;height:72px;flex:none;display:block;pointer-events:none;filter:drop-shadow(0 4px 8px rgba(0,0,0,.35));animation:none!important;transform:none}
 .supfab.supgifonly:hover .supgif{transform:scale(1.06)}
 .supfab.supgifonly.supdrag{box-shadow:none}
 .supfab.supgifonly:focus-visible{outline:2px solid var(--cyan);outline-offset:2px}
