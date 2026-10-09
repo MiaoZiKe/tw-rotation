@@ -57754,6 +57754,27 @@ def t_m4_sync_1009(b, base, code):
         g = pg.evaluate(LG)
         ok(f"{T}【訂閱頁·{lay}】390 寬看得到「不是證券投資顧問」聲明、字 ≥ 12px、整頁 ≤ 3 屏",
            g["lay"] == lay and g["vis"] and "不是證券投資顧問" in g["txt"] and g["fs"] >= 12 and g["sh"] <= 3 * g["ih"], g)
+    # 監督退件（2026-10-09）：合併表欄寬約 69px，價格備註夾兩行把「年繳 NT$ 7,990（…」的總價截掉 →
+    #   360／390／430 × 卡片／合併表 × 月繳／年繳，每一格看得到的 .prnote 都要完整（scrollHeight ≤ clientHeight、不橫向溢出、沒有「…」）、≥12px、整頁 ≤ 3 屏
+    NOTE_FIT = """() => { const ns = [...document.querySelectorAll('#v-pricing .prnote')].filter(e => e.getClientRects().length > 0 && e.getBoundingClientRect().height > 0);
+        return { n: ns.length, bad: ns.filter(e => e.scrollHeight > e.clientHeight || e.scrollWidth > e.clientWidth || /…/.test(e.textContent) || getComputedStyle(e).textOverflow === 'ellipsis' || parseFloat(getComputedStyle(e).fontSize) < 12)
+                   .map(e => [e.textContent, e.scrollHeight, e.clientHeight, e.scrollWidth, e.clientWidth, getComputedStyle(e).textOverflow]),
+                 txt: ns.map(e => e.textContent), sh: document.documentElement.scrollHeight, ih: innerHeight }; }"""
+    has_year = pg.evaluate("() => !!document.querySelector('#prPeriod button[data-per=year]')")
+    for w in (360, 390, 430):
+        pg.set_viewport_size({"width": w, "height": 844}); pg.wait_for_timeout(300)
+        for lay in ("cards", "merged"):
+            for per in (("month", "year") if has_year else ("",)):
+                pg.evaluate(f"() => {{ const b = document.querySelector('#prLayout button[data-lay={lay}]'); if (b && !b.classList.contains('on')) b.click(); }}"); pg.wait_for_timeout(350)
+                if per:
+                    pg.evaluate(f"() => {{ const b = document.querySelector('#prPeriod button[data-per={per}]'); if (b && !b.classList.contains('on')) b.click(); }}"); pg.wait_for_timeout(350)
+                nf = pg.evaluate(NOTE_FIT)
+                ok(f"{T}【訂閱頁·{w}·{lay}·{per or '—'}】價格備註每一格完整顯示（沒有截字、沒有「…」、≥12px）、整頁 ≤ 3 屏",
+                   nf["n"] >= 2 and not nf["bad"] and nf["sh"] <= 3 * nf["ih"], nf)
+        if w == 390:
+            pg.evaluate("() => { const b = document.querySelector('#prLayout button[data-lay=merged]'); if (b && !b.classList.contains('on')) b.click(); }"); pg.wait_for_timeout(350)
+            shot(pg, "sync_2b_pricing_merged.png")
+    pg.set_viewport_size({"width": 390, "height": 844}); pg.wait_for_timeout(300)
     pg.evaluate("() => { const b = document.querySelector('#prLayout button[data-lay=cards]'); if (b && !b.classList.contains('on')) b.click(); }"); pg.wait_for_timeout(300)
     NOTE = """() => ({ per: (document.querySelector('#prPeriod .on') || {}).dataset ? document.querySelector('#prPeriod .on').dataset.per : null,
         sale: [...document.querySelectorAll('#v-pricing .prcard .prsale')].filter(e => e.getClientRects().length > 0 && e.getBoundingClientRect().height > 0).map(e => [e.innerText, parseFloat(getComputedStyle(e).fontSize)]),

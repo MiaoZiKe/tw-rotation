@@ -439,8 +439,19 @@
      比較表的格子改短寫（每日 10 次 → 10/日、最多 3 檔 → 3 檔、1 頁・每頁 10 檔 → 1×10），原文留在 title；表格本身與方案卡的精簡在 mobile4.css 第 24 節 */
   const PR_SHORT = [[/^每日\s*(\d+)\s*次$/, '$1/日'], [/^每日\s*(\d+)\s*(\S+)$/, '$1$2/日'], [/^最多\s*(\d+)\s*(\S+)$/, '$1 $2'],
     [/^(\d+)\s*頁・每頁\s*(\d+)\s*檔$/, '$1×$2'], [/^不限頁・每頁\s*(\d+)\s*檔$/, '不限×$1'], [/^全部方案皆可用$/, '全部皆可']];
+  /* 2026-10-09 手機與桌機同步（監督退件）：合併表的方案欄只有約 69px，價格備註放全文會折成四行、夾成兩行又截掉年繳總價 →
+     手機合併表改短字（完整句子留在 title），不截字、不出現「…」。卡片版欄位夠寬，照放全文。 */
+  const PR_NOTE_SHORT = [[/^年繳 NT\$ ([\d,]+)（一次付清）$/, '年繳 $1'], [/^改年繳一年省 NT\$ ([\d,]+)$/, '年繳省 $1'], [/^永久保留基礎功能・不需信用卡$/, '免信用卡'],
+    [/^此方案僅提供月繳$/, '僅月繳'], [/^此方案僅提供年繳$/, '僅年繳'], [/^價格待定，專人跟你確認$/, '專人確認']];
   function wirePricing() {
     if (!isM()) return;
+    $$('#v-pricing .prmg thead th .prnote').forEach((el) => {
+      if (el.dataset.m4s === '1') return;
+      const x = el.textContent.trim(); let y = x;
+      for (const [re, to] of PR_NOTE_SHORT) if (re.test(y)) { y = y.replace(re, to); break; }
+      el.dataset.m4s = '1';
+      if (y !== x) { el.title = x; el.textContent = y; }
+    });
     const t = $('#prTable'); if (!t || t._m4short) return;
     t._m4short = true;
     $$('tbody td:not(:first-child), tbody tr.base td', t).forEach((td) => {
