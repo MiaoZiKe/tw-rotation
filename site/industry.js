@@ -4353,6 +4353,36 @@
      使用者會以為其中一個錯了（6669 除權後，原始價 2,115、還原後的舊 K 棒只剩三分之一）。
      所以 K 線圖右上角掛一個「還原」小標，滑過（或鍵盤 focus、手機點一下）說清楚哪個是哪個，
      有還原事件就列最近一次：日期、除權（配股比例）或除息、還原係數。沒有還原就不掛，不留一個空標。*/
+  /* ★ 2026-10-09（帳本 73，只限手機 html.m4）：圖頭三行不准伸進右側價格軸、第一行要讓開「還原」小標。
+     價格軸寬度跟著價位變（2,590.00 比 25.30 寬），所以每次重寫圖頭都量一次：
+     · 圖頭右緣 ＝ 價格軸左緣（legend.style.right ＝ 軸寬 ＋ 4）
+     · 第一行右側的空位（::before 浮動）＝ 圖頭右緣 − 小標左緣 ＋ 6，高度到小標底 —— 小標落在哪就讓多少，不寫死。*/
+  function fitM4Legend(legend, again) {
+    try {
+      // 價格軸＝圖表表格第一列最後一格（lightweight-charts 的版面）；第一次畫時還沒排版好（寬 0）就等下一格再量一次
+      // ⚠ 同一個 #lwc 裡還有十字線提示框 #ohlcBox，它也是一張 <table>（開盤／最高…），而且排在圖表前面 ——
+      //   直接 querySelector('table …') 拖十字線時會量到提示框的那一格，圖頭被縮成一半（手機監督 10-09 退件）。只認圖表自己的表格。
+      const host = legend.parentElement;
+      const tbl = host && [...host.querySelectorAll('table')].find((t) => !t.closest('.ohlcbox, #ohlcBox, .legend-ov'));
+      const td = tbl && tbl.querySelector('tr td:last-child');
+      const hr = host && host.getBoundingClientRect(), ar = td && td.getBoundingClientRect();
+      if (ar && ar.width > 0) legend.style.right = Math.max(0, Math.round(hr.right - ar.left + 4)) + 'px';
+      else if (!again) { requestAnimationFrame(() => fitM4Legend(legend, true)); return; }
+      const tag = document.getElementById('adjTag'), lr = legend.getBoundingClientRect();
+      if (tag && tag.offsetParent) {
+        const tr = tag.getBoundingClientRect();
+        const hit = tr.left < lr.right && tr.right > lr.left && tr.top < lr.bottom && tr.bottom > lr.top;
+        legend.style.setProperty('--m4adjw', (hit ? Math.max(0, Math.ceil(lr.right - tr.left + 6)) : 0) + 'px');
+        legend.style.setProperty('--m4adjh', Math.max(0, Math.ceil(tr.bottom - lr.top + 2)) + 'px');
+      } else legend.style.setProperty('--m4adjw', '0px');
+      // 第二次量（下一格）時圖頭可能變高（收窄後多換一行）：主圖頂端的保留高度跟著重算，K 棒最高點不被圖頭蓋住
+      if (again && kchart && kchart.reserveTop && legend.offsetParent) {
+        const r0 = kchart.el.getBoundingClientRect(), r1 = legend.getBoundingClientRect();
+        kchart.reserveTop(Math.max(0, r1.bottom - r0.top));
+      }
+    } catch (e) { /* 圖已銷毀 */ }
+  }
+
   function adjTag(pg) {
     const pa = pg && pg.price_adjust;
     if (!pa || !pa.daily_adjusted) return '';
@@ -5381,7 +5411,16 @@
         // #2ee59d 印在淺色主題的圖例底（近白）對比只有 1.64，等於看不見。
         // 這是 D1（DECISIONS #152）漏掉的一行，2026-09-18 被淺色主題掃描抓到。
         const col = A.upDown(d.close >= d.open ? 1 : -1);
-        let s = `<b>${KUtil.fmtTime(d.time, tf)}</b>　開 ${A.fmt.n(d.open)}　高 ${A.fmt.n(d.high)}　低 ${A.fmt.n(d.low)}　收 <b style="color:${col}">${A.fmt.n(d.close)}</b>${chg != null ? ` <span style="color:${A.upDown(chg)}">${A.fmt.pct(chg, 2)}</span>` : ''}　振幅 ${amp != null ? A.fmt.n(amp, 1) + '%' : '—'}　量 ${A.fmt.lot(d.volume / 1000)}`;
+        /* ★ 2026-10-09（帳本 73，只限手機 html.m4）：手機圖頭會換行 —— 每一組「標籤＋數值」包成一個不換行的 .kv，
+           整組一起換行（開／高／低／收＋漲跌%／振幅／量），不會出現「振｜幅」「收盤價和漲跌% 分在兩行」；
+           寬度與「還原」小標的讓位在 fitM4Legend() 量。桌機那條字串一個字都沒變（冒號後面那一行就是原本那行）。*/
+        const m4 = document.documentElement.classList.contains('m4');
+        const kv = (t) => `<span class="kv">${t}</span>`;
+        let s = m4
+          ? [kv(`<b>${KUtil.fmtTime(d.time, tf)}</b>`), kv(`開 ${A.fmt.n(d.open)}`), kv(`高 ${A.fmt.n(d.high)}`), kv(`低 ${A.fmt.n(d.low)}`),
+             kv(`收 <b style="color:${col}">${A.fmt.n(d.close)}</b>${chg != null ? ` <span style="color:${A.upDown(chg)}">${A.fmt.pct(chg, 2)}</span>` : ''}`),
+             kv(`振幅 ${amp != null ? A.fmt.n(amp, 1) + '%' : '—'}`), kv(`量 ${A.fmt.lot(d.volume / 1000)}`)].join('　')
+          : `<b>${KUtil.fmtTime(d.time, tf)}</b>　開 ${A.fmt.n(d.open)}　高 ${A.fmt.n(d.high)}　低 ${A.fmt.n(d.low)}　收 <b style="color:${col}">${A.fmt.n(d.close)}</b>${chg != null ? ` <span style="color:${A.upDown(chg)}">${A.fmt.pct(chg, 2)}</span>` : ''}　振幅 ${amp != null ? A.fmt.n(amp, 1) + '%' : '—'}　量 ${A.fmt.lot(d.volume / 1000)}`;
         const parts = []; (cfg.ma || []).forEach((n, k) => { const m = at(vals['MA' + n], i); if (m != null) parts.push(`<span style="color:${KUtil.colors.ma[k % 6]}">MA${n} ${A.fmt.n(m)}</span>`); });
         if (vals.BOLL) { const u = at(vals.BOLL.up, i), lo = at(vals.BOLL.low, i); if (u != null) parts.push(`<span style="color:${KUtil.colors.boll}">BOLL ${A.fmt.n(lo)} – ${A.fmt.n(u)}</span>`); }
         // 本益比倍數線：直接把「幾倍＝股價多少」寫在圖例上，不然圖上五條虛線看不出誰是誰
@@ -5390,6 +5429,7 @@
           if (bits.length) parts.push('本益比 ' + bits.join('　'));
         }
         legend.innerHTML = s + (parts.length ? '<br>' + parts.join('　') : '');
+        if (m4) fitM4Legend(legend);
         /* 資訊列佔多高，主圖頂端就留多少（kchart.reserveTop，見 chart.js）：K 棒最高點永遠在資訊列下面 */
         if (kchart.reserveTop && legend.offsetParent) {
           const r0 = kchart.el.getBoundingClientRect(), r1 = legend.getBoundingClientRect();

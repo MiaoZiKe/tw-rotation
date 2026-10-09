@@ -129,13 +129,14 @@
           '本服務以 <b>Google 帳號登入</b>建立會員帳號。本服務不取得、不保存您的 Google 密碼。',
           '您應妥善保管您的 Google 帳號與裝置；以您帳號進行之一切行為，推定為您本人所為。發現帳號遭冒用時，請立即來信通知。',
           '您得隨時停止使用並申請刪除帳號（見<a href="#privacy">隱私權政策</a>「您的權利」）。',
+          '未滿十八歲者，應經法定代理人同意後始得註冊與使用本服務；購買付費方案亦同。',
         ]) },
         { h: '會員方案、試用與付費', b: ol([
           '本服務得提供<b>免費試用（目前規劃為 1 個月）</b>；試用之資格、期間、次數與結束後之處理，<b>以購買頁所示為準</b>。',
           '付費方案之價格、計費週期、付款方式與包含之功能，<b>以購買頁所示為準</b>。付費取得者為<b>本服務工具與功能之使用權</b>，不是投資建議或個股推介之對價。',
           '<b>續訂</b>：若方案為自動續訂，將於每一計費週期屆滿時依原方案續扣；購買頁另有說明者，從其說明。',
-          '<b>取消</b>：您得隨時取消續訂；取消後，已付費之期間仍可使用至期滿。',
-          '<b>退款</b>：退款條件與計算方式<b>以購買頁所示為準</b>；購買頁未載明者，依消費者保護法及相關法令辦理。',
+          '<b>取消</b>：您得隨時取消續訂；取消後，已付費之期間仍可使用至期滿，次期起不再收費。取消方式見<a href="#refund">退款與取消訂閱政策</a>。',
+          '<b>退款</b>：退款保證、退款條件、計算方式與處理時限，依<a href="#refund">退款與取消訂閱政策</a>辦理，該政策構成本條款之一部分；未載明者，依消費者保護法及相關法令辦理。',
           '方案到期未續訂者，帳號自動回到免費會員，您的自選清單等資料不因此刪除。',
         ]) },
         { h: '禁止行為', b: '<p>使用本服務時，您不得有下列行為：</p>' + ol([
@@ -206,7 +207,9 @@
         { h: '資料之利用與分享對象', b: ul([
           '僅於上表所列目的範圍內利用。<b>不販售、不出租、不交換您的個人資料，也不用於廣告追蹤。</b>',
           '為提供服務所必要，資料由下列服務供應商代為處理或傳輸：<b>Google</b>（驗證登入身分；會員大頭貼由 Google 伺服器提供）、'
-            + '<b>Cloudflare</b>（會員資料、自選清單、使用統計與線上狀態之儲存與運算；盤中報價轉送）、<b>GitHub</b>（網站主機）。日後新增金流等服務商時，將於本頁更新。',
+            + '<b>Cloudflare</b>（會員資料、自選清單、使用統計與線上狀態之儲存與運算；盤中報價轉送）、<b>Deno Deploy</b>（期貨盤中報價轉送，僅經手連線，不保存您的資料）、<b>GitHub</b>（網站主機）。'
+            + '線上付款上線後，付款由' + esc(PAYER()) + '處理，<b>本網站不經手、不保存您的信用卡卡號</b>。日後新增服務商時，將於本頁更新。',
+          '<b>行銷聯繫</b>：本網站<b>目前不寄送任何行銷或廣告電子郵件</b>。日後如寄送，將事先取得您的同意，並於每一封信提供拒絕接收之方式；您表示拒絕後，即停止以您的個人資料進行行銷（個人資料保護法第 20 條）。服務通知（例如帳號、付款、條款變更）不屬於行銷。',
           '法令要求或司法、主管機關依法調取時，依法提供。',
           '利用地區：中華民國及上述服務供應商之伺服器所在地（可能位於境外）。',
         ]) },
@@ -218,8 +221,14 @@
           '您可隨時於瀏覽器清除上述資料；清除後需重新登入。',
         ]) },
         { h: '您的權利', b: '<p>依個人資料保護法第 3 條，您得就您的個人資料請求：<b>查詢或請求閱覽、製給複製本、補充或更正、停止蒐集處理或利用、刪除</b>。</p>'
-          + '<p>請以您登入所用之電子郵件來信 ' + MAIL + ' 提出，' + esc(OP) + '將於收到後<b>十五日內</b>處理並回覆；刪除範圍包含會員資料、雲端自選清單、使用紀錄、反饋與申請紀錄、線上狀態。'
+          + '<p>請以您登入所用之電子郵件來信 ' + MAIL + ' 提出' + (CFG.SELF_DELETE === true ? '（刪除帳號亦可於登入後之帳號選單自行操作）' : '') + '，' + esc(OP) + '將於收到後<b>十五日內</b>處理並回覆；刪除範圍包含會員資料、雲端自選清單、使用紀錄、反饋與申請紀錄、線上狀態。'
           + '不具名之彙總使用統計無從對應至個人，故無個人部分可刪除。</p>'
+          + '<p><b>刪除帳號後仍保留之資料</b>：<b>目的</b>是防止同一人重複領取' + R().days + ' 天退款保證或免費試用（<a href="#refund">退款與取消訂閱政策</a>「每一帳號僅適用一次」）。'
+          + '<b>內容</b>只有一組「信箱比對碼」——以伺服器端保密金鑰對您的電子郵件地址進行 HMAC 運算之結果，<b>無法回推出原電子郵件地址</b>——以及「是否曾使用退款保證或免費試用、是否曾取消訂閱或退款」之標記；'
+          + '不保留電子郵件地址本身、名稱或其他資料。比對碼<b>僅用於日後以同一電子郵件地址註冊時判斷上述資格</b>，不用於其他目的、不提供給第三方。'
+          + '<b>期限</b>：刪除帳號後 <b data-hash-keep>' + esc(hashKeep()) + '</b> 自動刪除。'
+          + '由於以同一電子郵件地址重新計算即可比對出此比對碼，本網站仍將其視為個人資料處理，您得依前段請求查詢或刪除；刪除後，以同一電子郵件地址重新註冊時將無法判斷資格，本網站得視為已使用過。</p>'
+          + '<p>如您曾付費，付款與發票相關紀錄將依稅務及會計相關法令所定之期間保存，不因刪除帳號而立即刪除。</p>'
           + '<p>您得自由選擇是否提供個人資料；不登入者仍可使用開放給訪客之功能，但無法使用自選清單同步等會員功能。</p>' },
         { h: '資料安全', b: '<p>' + esc(SN) + '採取合理之技術與管理措施保護您的資料，包括：HTTPS 加密傳輸、Google 登入採 OAuth 2.0 授權碼與 PKCE 機制、'
           + 'Google 帳號識別碼僅存雜湊值、登入權杖經簽章並設有效期限（刪除帳號後立即失效）、管理功能僅限經驗證之管理者存取、過期資料定時自動刪除。</p>'
@@ -231,13 +240,106 @@
     };
   }
 
-  const DOCS = { terms: termsDoc, privacy: privacyDoc, disclaimer: disclaimerDoc };
+
+  /* ★ 2026-10-09 退款與取消訂閱政策（#refund）。Andy 10-09：「退款政策及取消訂閱幫我新增，可以參考 tide-tw.app」。
+     · 只參考 Tide 涵蓋了哪些項目（取消、退款保證、七日解除權、年繳、終止退款、防濫用、App 內購、聯絡），**文字全部本站自寫**，事實換成本站的。
+     · 數字（退款保證天數、處理時限…）是商業承諾，讀 legal_config.js 的 REFUND_*；未經 Andy 確認前是參考預設值。
+     · 防濫用條款依 Andy 10-09 07:5x 的規則（每帳號一次、取消或退款過就不再適用），不採 Tide「3 個月內 2 次」的寫法。
+     · 金流服務商未定：一律寫「第三方金流服務商（上線時於本頁公告名稱）」，不寫任何一家的名字。
+     · 法律依據：消費者保護法第 19 條（通訊交易七日解除權）、《通訊交易解除權合理例外情事適用準則》第 2 條第 5 款
+       （非以有形媒介提供之數位內容或一經提供即為完成之線上服務，經消費者事先同意始提供）。docs/legal_refund_1009.md 有信心度與待確認清單。*/
+  const posInt = (v, d) => (Number.isInteger(+v) && +v > 0 ? +v : d);
+  function R() {
+    return {
+      days: posInt(CFG.REFUND_DAYS, 7), proc: posInt(CFG.REFUND_PROCESS_DAYS, 14), outage: posInt(CFG.REFUND_OUTAGE_DAYS, 7),
+      hashDays: posInt(CFG.HASH_RETENTION_DAYS, 365),
+      online: CFG.PAY_ONLINE === true, iap: CFG.APP_STORE_IAP === true,
+      provider: isBlank(CFG.PAY_PROVIDER) ? '' : String(CFG.PAY_PROVIDER).trim(),
+    };
+  }
+  /* 365 的倍數寫成「N 年」，其他寫「N 天」 */
+  const hashKeep = () => { const d = R().hashDays; return d % 365 === 0 ? (d / 365) + ' 年' : d + ' 天'; };
+  /* 條款版本（同意證據用）：有生效日就用生效日；還沒填就用本檔最後改條文的日期標「草稿」 */
+  const TERMS_REV = '2026-10-09';
+  const termsVersion = () => val('effective_date') || ('draft-' + TERMS_REV);
+  const PAYER = () => (R().provider ? R().provider + '（第三方金流服務商）' : '第三方金流服務商（上線時於本頁公告名稱）');
+  /* 「客服表單」按鈕：開右下角客服（support.js 的 TwSupport.open）；沒有客服模組時退回寄信。點擊由下面 document 委派接。*/
+  const SUPB = '<button type="button" class="lgsupb" data-lgsupport>開啟客服表單</button>';
+  function refundDoc() {
+    const r = R(), D = r.days;
+    const how = r.online
+      ? '登入後於右上角<b>帳號選單 →「取消訂閱」</b>自行取消；亦可來信 ' + MAIL + ' 或使用右下角<b>客服表單</b>（類別選「帳號與付費 → 退款與取消」）申請。'
+      : '本網站目前為<b>申請制、專人開通</b>，請來信 ' + MAIL + '，或使用右下角<b>客服表單</b>（類別選「帳號與付費 → 退款與取消」）申請取消，並註明您登入所用之電子郵件地址。';
+    return {
+      id: 'refund', title: '退款與取消訂閱政策', short: '退款政策', dated: true,
+      lead: '<p>本政策說明' + esc(SN) + '付費方案之<b>取消訂閱、退款保證、退款條件與處理方式</b>，是<a href="#terms">使用條款</a>之一部分。'
+        + '付款前請先閱讀本政策與<a href="#terms">使用條款</a>；方案內容與價格以<a href="#pricing">方案頁</a>所示為準。</p>',
+      secs: [
+        { h: '適用範圍', b: ol([
+          '本政策適用於' + esc(SN) + '之所有付費方案（包含月繳與年繳）。免費會員與訪客不涉及付款，不適用本政策。',
+          '<b>目前付費方案為申請制</b>：您於<a href="#pricing">方案頁</a>送出申請不會扣款，由專人與您確認方案與付款方式後開通。線上付款上線後，付款由' + esc(PAYER()) + '處理，<b>本網站不經手、不保存您的信用卡卡號</b>。',
+          '本政策所稱「付款日」，指款項實際完成支付、付費方案開通之日。',
+        ]) },
+        { h: '取消訂閱', b: ol([
+          '<b>如何取消</b>：' + how,
+          '<b>取消後</b>：已付費之當期仍可使用至<b>該期屆滿</b>；<b>次期起不再收費</b>，到期後帳號自動回到免費會員。',
+          '<b>取消不等於退款</b>：取消只停止續訂；要退回已付之費用，請依第三節或第六節申請退款。',
+          '取消或到期後，您的自選清單等資料不會因此刪除；如需刪除帳號，請見<a href="#privacy">隱私權政策</a>「您的權利」。',
+        ]) },
+        { h: D + ' 天退款保證', b: ol([
+          '<b>首次付款</b>後 <b data-refund-days>' + D + '</b> 天內（以付款日起算），您得申請<b>全額退款</b>，不需說明理由。',
+          '申請方式：來信 ' + MAIL + ' 或使用右下角<b>客服表單</b>，註明登入所用之電子郵件地址與付款日。',
+          '退款核准後，該筆付款對應之付費功能<b>立即終止</b>，帳號回到免費會員。',
+          '退款保證之適用限制，見第七節「防止濫用」。',
+        ]) },
+        { h: '法定七日解除權', b: '<p>依<b>消費者保護法第 19 條</b>，通訊交易之消費者原則上得於接受服務後七日內解除契約。'
+          + '但依<b>《通訊交易解除權合理例外情事適用準則》第 2 條第 5 款</b>，「非以有形媒介提供之數位內容或一經提供即為完成之線上服務」，'
+          + '<b>經消費者事先同意始提供者</b>，得排除該七日解除權。</p>'
+          + ol([
+            '本服務屬非以有形媒介提供之線上服務。<b>本網站僅於您在付款前明確勾選同意「於付款後立即開始提供服務，並瞭解因此不適用七日解除權」時</b>，始主張上述例外。',
+            '<b>您未勾選同意者，七日解除權不受排除</b>，您仍得依消費者保護法第 19 條於七日內解除契約。',
+            '目前為申請制：自 2026 年 10 月 9 日起，於<a href="#pricing">方案頁</a>送出訂閱申請前須勾選上述同意，未勾選者無法送出，本網站並記錄同意時間與條款版本；日後之線上結帳沿用同一勾選。<b>於此之前已付費、未曾勾選者，仍保有法定七日解除權。</b>',
+            '第三節之退款保證為本網站<b>自願提供、優於法定之承諾</b>；第七節之限制只適用於該退款保證，<b>不影響您依法律享有之任何權利</b>。',
+          ]) },
+        { h: '年繳方案', b: ol([
+          '年繳方案於首次付款後 ' + D + ' 天內，同樣適用第三節之全額退款保證。',
+          '超過退款保證期間後取消者，停止下一年度之續訂，已付之當年度可使用至期滿；<b>已開始之年度費用原則上不按月退還</b>，但有第六節情形者，依第六節按比例退款。',
+          '年繳方案之續訂與否、續訂價格，以續訂前於方案頁或通知中所示為準。',
+        ]) },
+        { h: '服務終止或異常時之退款', b: ol([
+          '<b>本網站終止服務</b>（全部或您所訂之付費方案）時，就您已付費而尚未使用之期間，<b>按未使用日數比例退款</b>。',
+          '因可歸責於本網站之事由，<b>連續 ' + r.outage + ' 日以上無法提供付費方案之核心功能</b>者，您得就受影響之期間按日數比例申請退款，或選擇延長等值之使用期間。',
+          '<b>重複扣款、扣款金額錯誤</b>：經查證後全額退還溢收之金額。',
+          '因交易所、資料來源等第三方調整或暫停公開資料所致之內容變動，本網站將盡力以替代資料或方式提供；致付費方案核心功能無法提供者，依本節第 2 點處理。',
+        ]) },
+        { h: '防止濫用', b: ol([
+          '<b>每一帳號僅能享有一次</b>「' + D + ' 天退款保證」或「免費試用」（兩者合計一次）。<b>刪除帳號後以同一電子郵件地址重新註冊者，視為同一帳號。</b>',
+          '<b>曾經取消訂閱或曾獲退款之帳號，不再適用</b>退款保證與免費試用。',
+          '為執行前兩點，本網站於刪除帳號時保留以保密金鑰 HMAC 處理、無法回推的「信箱比對碼」與資格標記，' + esc(hashKeep()) + '後自動刪除；詳見<a href="#privacy">隱私權政策</a>「您的權利」。',
+          '以冒用他人付款工具、虛偽資料或其他不正當方式取得退款或試用者，本網站得拒絕退款並依法處理。',
+        ]) },
+        { h: '退款方式與時限', b: ol([
+          '退款一律<b>原路退回</b>：以信用卡付款者退回原信用卡；以其他方式付款者，退回至原付款帳戶或經您指定、與付款人同名之帳戶。',
+          '本網站於收到完整申請後 <b>' + r.proc + ' 日內</b>完成審核，核准者即通知' + esc(PAYER()) + '或以原付款方式辦理退款。',
+          '實際入帳時間依發卡銀行或金融機構之作業而定，信用卡退刷通常顯示於下一期或次一期帳單。',
+          '已開立發票者，退款時將依法辦理發票作廢或折讓。',
+        ]) },
+        r.iap ? { h: 'App 內購買', b: ol([
+          '透過 Apple App Store 或 Google Play 購買之訂閱，付款、取消與退款依各該商店之規定辦理，本網站無法代為取消或退款。',
+          '取消方式：請至您裝置上該商店之訂閱管理頁面取消。退款請向 Apple 或 Google 提出申請。',
+        ]) } : null,
+        { h: '聯絡方式', b: '<p>取消訂閱、退款申請與相關疑問，請來信 ' + MAIL + '，或使用右下角客服表單（類別選「帳號與付費 → 退款與取消」）。</p><p>' + SUPB + '</p>' },
+      ].filter(Boolean),
+    };
+  }
+
+  const DOCS = { terms: termsDoc, privacy: privacyDoc, disclaimer: disclaimerDoc, refund: refundDoc };
 
   /* 草稿有沒有填完：必填全部有值，**而且**畫出來的兩份條款全文找不到任何【】。
      第二道是保險 —— 旗標打開（付費、電子報…）會帶出新的空格，那些不在 REQUIRED 裡。*/
   function missing() {
     const miss = REQUIRED.filter((k) => val(k) == null).map((k) => k);
-    const txt = [termsDoc(), privacyDoc()].map((d) => d.title + d.lead + d.secs.map((s) => s.b).join('')).join('');
+    const txt = [termsDoc(), privacyDoc(), refundDoc()].map((d) => d.title + d.lead + d.secs.map((s) => s.b).join('')).join('');
     const holes = (txt.match(/【[^】]*】/g) || []).filter((x, i, a) => a.indexOf(x) === i);
     return { fields: miss, holes };
   }
@@ -414,6 +516,10 @@
 .lgctab svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
 .lgctab:hover{filter:brightness(1.08)}
 .lgctab:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
+.lgdoc .lgsupb{display:inline-flex;align-items:center;height:36px;padding:0 16px;border-radius:999px;border:1px solid var(--line-2);
+  background:var(--panel);color:var(--ink);font:inherit;font-size:13px;font-weight:600;cursor:pointer}
+.lgdoc .lgsupb:hover{border-color:var(--cyan)}
+.lgdoc .lgsupb:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
 .lgblank{background:color-mix(in srgb,var(--amber) 22%,transparent);color:var(--ink);border-radius:4px;padding:0 3px}
 .lgdraft{border:1px solid var(--amber);background:color-mix(in srgb,var(--amber) 12%,var(--panel));color:var(--ink);
   border-radius:16px;padding:12px 16px;margin:0 0 20px;font-size:13px;line-height:1.7}
@@ -610,7 +716,8 @@
       + '<nav class="sf-links" aria-label="法律與說明">'
       + '<a href="#disclaimer" id="sfDis">免責聲明</a><em aria-hidden="true">｜</em>'
       + '<a href="#terms" id="sfTerms">使用條款</a><em aria-hidden="true">｜</em>'
-      + '<a href="#privacy" id="sfPriv">隱私權政策</a>'
+      + '<a href="#privacy" id="sfPriv">隱私權政策</a><em aria-hidden="true">｜</em>'
+      + '<a href="#refund" id="sfRefund">退款與取消訂閱</a>'
       /* 2026-10-07 Andy：頁尾「平台導覽」拿掉（頂欄已有平台導覽鈕）*/
       /* 2026-10-07：「交付清單」資料已不發佈，入口從頁尾拿掉（#delivery 路由照舊）。*/
       + '</nav></div>'   // ★ 2026-09-24 Andy：原始碼不能公開 ——「原始碼與演算法」連結已拿掉
@@ -684,6 +791,9 @@
     '服務變更與中斷': { i: 'refresh' }, '責任限制': { i: 'warn', k: 'warn' }, '條款修改': { i: 'pen' }, '準據法與管轄法院': { i: 'scale' },
     '蒐集之資料、目的與保存期間': { i: 'db', k: 'table' }, '資料之利用與分享對象': { i: 'share' }, 'Cookie 與本機儲存': { i: 'cookie' },
     '您的權利': { i: 'shield' }, '資料安全': { i: 'lock' }, '未成年人': { i: 'user' }, '政策修改': { i: 'pen' },
+    // 退款與取消訂閱政策（2026-10-09）；「N 天退款保證」的標題帶天數，由 secHtml 用前綴比對
+    '適用範圍': { i: 'layers' }, '取消訂閱': { i: 'ban' }, '法定七日解除權': { i: 'scale', k: 'warn' }, '年繳方案': { i: 'card' },
+    '服務終止或異常時之退款': { i: 'refresh' }, '防止濫用': { i: 'shield', k: 'warn' }, '退款方式與時限': { i: 'card' }, 'App 內購買': { i: 'device' },
   };
   /* 第四個元素 1＝警語色。*/
   const SUMMARY = {
@@ -695,9 +805,15 @@
     ],
     terms: [
       ['user', 'Google 登入', '以 Google 帳號登入；本服務不取得、不保存您的密碼。', 0, 1],
-      ['card', '費用以購買頁為準', '試用、價格、續訂與退款，以購買頁所示為準。', 0, 2],
+      ['card', '費用與退款', '價格以方案頁為準；取消與退款依《退款與取消訂閱政策》。', 0, 2],
       ['ban', '禁止共用與轉售', '不得共用帳號、大量擷取資料、轉售內容或繞過使用限制。', 1, 3],
       ['warn', '責任限制', '法律允許範圍內，因使用所生之損失不負賠償責任（故意或重大過失除外）。', 1, 7],
+    ],
+    refund: [   // 白話版摘要（2026-10-09）：天數讀 legal_config.js；每一句對得回條文（第二、三、四、七節）
+      ['ban', '隨時可以取消', '來信或客服表單申請；當期用到期末，次期起不再收費。', 0, 1],
+      ['shield', R().days + ' 天退款保證', '首次付款 ' + R().days + ' 天內可申請全額退款，原路退回，' + R().proc + ' 日內處理。', 0, 2],
+      ['scale', '法定權利不受影響', '結帳前沒有勾選同意的，仍保有消保法七日解除權。', 1, 3],
+      ['warn', '每個帳號限一次', '退款保證與免費試用合計一次；取消或退款過就不再適用。', 1, 6],
     ],
     privacy: [
       ['eye', '未登入不蒐集身分', '瀏覽不需登入；登入僅取得顯示名稱、電子郵件與大頭貼。', 0, 0],
@@ -707,7 +823,7 @@
     ],
   };
   function secHtml(id, s, i) {
-    const m = SECMETA[s.h] || { i: 'info' };
+    const m = SECMETA[s.h] || (/天退款保證$/.test(s.h) ? { i: 'shield' } : { i: 'info' });
     const head = '<div class="lgsh"><span class="lgic2">' + svg(m.i) + '</span>'
       + '<h2 id="lg-' + id + '-' + i + '">' + CN[i] + '、' + esc(s.h) + '</h2></div>';
     if (m.k === 'cta') {
@@ -804,7 +920,7 @@
     const ready = !m.fields.length && !m.holes.length;
     const on = active();
     const tabs = '<nav class="lgtabs" aria-label="法律文件">'
-      + ['disclaimer', 'terms', 'privacy'].map((k) => '<a href="#' + k + '"' + (k === id ? ' class="on" aria-current="page"' : '') + '>'
+      + ['disclaimer', 'terms', 'privacy', 'refund'].map((k) => '<a href="#' + k + '"' + (k === id ? ' class="on" aria-current="page"' : '') + '>'
         + DOCS[k]().short + '</a>').join('') + '</nav>';
     const toc = d.secs.map((s, i) => '<li><a href="#" data-sec="' + i + '">' + CN[i] + '、' + esc(s.h) + '</a></li>').join('');
     const draft = '';   // 2026-10-07：三份文件已是正式文字，不再掛草稿標示
@@ -815,7 +931,7 @@
     v.innerHTML = tabs + '<div class="lgwrap"><nav class="lgtoc" aria-label="目錄"><ol>' + toc + '</ol></nav>'
       + '<article class="lgdoc" id="lgDoc" data-doc="' + id + '">' + draft
       + '<details class="lgtocm"><summary>目錄</summary><ol>' + toc + '</ol></details>'
-      + '<header class="lghead"><div class="lghr"><span class="lgic2">' + svg(id === 'terms' ? 'doc' : id === 'privacy' ? 'lock' : 'info') + '</span>'
+      + '<header class="lghead"><div class="lghr"><span class="lgic2">' + svg(id === 'terms' ? 'doc' : id === 'privacy' ? 'lock' : id === 'refund' ? 'card' : 'info') + '</span>'
       + '<h1>' + d.title + '</h1></div><div class="lglead">' + (d.lead || '') + '</div></header>'
       + '<section class="lgsum" aria-label="重點一覽"><h2>' + svg('spark') + '重點一覽</h2><ul class="lgsumg">' + sum + '</ul></section>'
       + d.secs.map((s, i) => secHtml(id, s, i)).join('')
@@ -995,7 +1111,7 @@
        'legal'    → 這一頁由本檔接手（#terms／#privacy／#disclaimer／#leave），app.js 把其他 view 關掉就好
        'redirect' → 使用者剛按了「不同意」、又想去別頁：這一次瀏覽維持在 #leave（重新整理就解除）
        null       → 不關本檔的事，照舊 */
-  const ROUTES = ['terms', 'privacy', 'disclaimer', 'leave'];
+  const ROUTES = ['terms', 'privacy', 'disclaimer', 'refund', 'leave'];
   /* 會員功能的設定檔是非同步讀的（account.js），可能比第一次畫隱私權政策晚到：到了就重畫一次，才會出現那幾列 */
   window.addEventListener('tw:account-config', () => { if ((location.hash || '') === '#privacy') renderDoc('privacy'); });
   function route(head) {
@@ -1008,6 +1124,14 @@
     return null;
   }
 
+  /* 退款頁「開啟客服表單」：右下角客服（support.js）；沒有就退回開 Gmail 撰寫 */
+  document.addEventListener('click', (e) => {
+    const b = e.target.closest && e.target.closest('[data-lgsupport]'); if (!b) return;
+    e.preventDefault();
+    if (window.TwSupport && typeof window.TwSupport.open === 'function') window.TwSupport.open();
+    else window.open(gmail(CONTACT_EMAIL, '哩股哩股－退款與取消'), '_blank', 'noopener');
+  });
+
   // ------------------------------------------------------------------ 啟動
   injectCSS();
   buildFooter();
@@ -1017,6 +1141,12 @@
 
   window.TwLegal = {
     route, openTour, closeTour: () => closeTour(true),
+    /* 2026-10-09：退款政策的設定值（已套用驗收覆寫與預設值）。claude/acct-menu 的「申請退款」「取消訂閱」讀這裡：
+       window.TwLegal.refund().days → 7；聯絡信箱 window.TwLegal.contact */
+    refund: () => { const r = R(); return { days: r.days, processDays: r.proc, outageDays: r.outage, hashRetentionDays: r.hashDays, online: r.online, provider: r.provider, url: '#refund' }; },
+    /* 同意證據用的條款版本（pricing.js 訂閱申請送出時帶上）：effective_date，未填時為 'draft-2026-10-09' */
+    termsVersion,
+    contact: CONTACT_EMAIL,
     /* 給驗收腳本與除錯用：現在是什麼狀態、還缺哪些欄位。*/
     state: () => ({ active: active(), filled: filled(), missing: missing(), consented: readConsent(),
                     declined, storeOK, version: version(), tour: TOUR_V }),

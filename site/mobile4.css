@@ -576,3 +576,100 @@
      上下方向照舊（下拉重新整理、頁尾回彈不動）。 */
   :root.m4,:root.m4 body{overscroll-behavior-x:none}
 }
+
+/* ---- 30. 訂閱方案頁修版（2026-10-09 Andy 圖四「格式都跑掉了 請修復」）
+   病因：頁上「合併表」版面在手機沒有專屬樣式 —— 方案欄頭用的是桌機那套（名稱／定位句／適合誰一律單行＋「…」、價格 28px 不換行），
+         被第 24 節的「比較表固定欄寬不橫捲」壓成三格約 80px，於是名稱變「註…／P…」、NT$ 249 被切、說明全成「…」、右緣超出視窗；
+         月繳／年繳那顆膠囊吃到第 27 節的通用分段樣式（拿掉外框與內距、overflow 捲動），選中的「年繳」右邊被裁掉。
+   修法（只在 html.m4 ≤640）：
+     · 合併表欄頭改成直排、每一行都准換行：名稱 → 價格（NT$ 數字／月可以折成兩行）→ 適合誰一句 → 升級鈕；
+       圖示、定位句（.who）、原價刪除線、價格備註、每天約多少收起（原價／年繳總價在卡片 title 與切換列上；跟「卡片＋表格」版第 28 節同一套取捨）
+     · 三格的升級鈕貼齊欄頭底部（同一條水平線），不因為上面字數不同而高低不齊
+     · 欄頭不黏頂（它有 200px 高，黏住會蓋掉半個畫面）；功能列照舊
+     · 月繳／年繳：自己畫一條置中的膠囊，兩顆都完整、不捲動
+     · 頁底那段「不是證券投資顧問…」跟頁首資訊列、頁尾免責聲明三處重複 → 手機收起（頁首與頁尾那兩處都還在） */
+@media (max-width:640px){
+  :root.m4 #v-pricing .prmg{margin-top:18px!important}
+  :root.m4 #v-pricing .prmg .prcmpw{padding-top:14px!important;overflow:visible!important}
+  :root.m4 #v-pricing .prmg table{min-width:0!important;border-radius:12px}
+  :root.m4 #v-pricing .prmg col.c0{width:28%!important}
+  :root.m4 #v-pricing .prmg #prTable thead th{position:relative!important;top:auto!important;vertical-align:top!important;text-align:center!important;padding:14px 3px 8px!important;white-space:normal!important}
+  :root.m4 #v-pricing .prmg #prTable thead th:first-child{vertical-align:bottom!important;text-align:left!important;font-size:13px!important;padding-left:6px!important}
+  :root.m4 #v-pricing .prmg #prTable thead th:first-child .who{font-size:12px!important;white-space:normal!important}
+  :root.m4 #v-pricing .prmg thead th:not(:first-child){display:table-cell}
+  :root.m4 #v-pricing .prmg thead th :is(.prico,.who,.prorig,.prnote,.prday){display:none!important}
+  :root.m4 #v-pricing .prmg .prhd{display:block!important;height:auto!important;margin:0!important;padding:0!important;min-height:0!important}
+  :root.m4 #v-pricing .prmg .prhd b{display:block;font-size:14px!important;line-height:1.25;white-space:normal!important;overflow:visible!important;text-overflow:clip!important;word-break:break-word}
+  :root.m4 #v-pricing .prmg .prprice{display:flex!important;flex-wrap:wrap;justify-content:center;align-items:baseline;gap:0 2px;height:auto!important;min-height:0!important;margin:4px 0 0!important;line-height:1.2!important;overflow:visible!important;white-space:normal!important}
+  :root.m4 #v-pricing .prmg .prprice .cur{font-size:12px!important}
+  :root.m4 #v-pricing .prmg .prprice b{font-size:18px!important}
+  :root.m4 #v-pricing .prmg .prprice small{font-size:12px!important}
+  :root.m4 #v-pricing .prmg .prprice.free{font-size:18px!important}
+  :root.m4 #v-pricing .prmg .prprice.ask{font-size:13px!important}
+  :root.m4 #v-pricing .prmg .mfit{height:auto!important;margin:4px 0 6px!important;font-size:12px!important;line-height:1.35!important;white-space:normal!important;overflow:visible!important;text-overflow:clip!important}
+  :root.m4 #v-pricing .prmg #prTable thead th[data-plan]{padding-bottom:56px!important}
+  :root.m4 #v-pricing .prmg .prgo{position:absolute;left:4px;right:4px;bottom:8px;width:auto;margin:0!important;min-height:40px;height:auto!important;padding:2px 2px!important;font-size:12px!important;line-height:1.2;white-space:normal}
+  :root.m4 #v-pricing .prmg .prtag{top:-10px!important;left:50%!important;right:auto!important;transform:translateX(-50%);font-size:12px!important;padding:1px 6px!important;white-space:nowrap;max-width:none}
+  :root.m4 #v-pricing #prPeriod#prPeriod{display:inline-flex!important;flex-wrap:nowrap;gap:4px!important;padding:3px!important;overflow:visible!important;border:1px solid var(--line-2)!important;border-radius:999px;background:var(--panel-3)!important}
+  :root.m4 #v-pricing #prPeriod#prPeriod>button{flex:none;height:36px!important;min-height:36px!important;padding:0 14px!important;border:0!important;border-radius:999px!important;gap:6px;white-space:nowrap}
+  :root.m4 #v-pricing #prPeriod#prPeriod>button:not(.on){background:transparent!important;color:var(--ink-2)!important}
+  :root.m4 #v-pricing #prPeriod#prPeriod>button.on{background:var(--pl-blue)!important;color:var(--pr-on)!important}
+  :root.m4 #v-pricing .prper{margin:12px 0 0!important}
+  :root.m4 #v-pricing .prlegal{display:none!important}
+}
+
+/* ============================================================================
+   第 30 節（2026-10-09，帳本 73：手機監督在 main 抽到的三個舊問題）—— 只在 ≤640＋:root.m4，桌機一條都不吃
+   ---------------------------------------------------------------------------- */
+@media (max-width:640px){
+  /* (a) 個股 K 線圖頭：右上「還原」小標（.adjtag，絕對定位在 .chartwrap 右邊 72px）蓋住「高 2,590.00」。
+     圖頭文字（.legend-ov）每次十字線移動都會重寫 innerHTML，所以不能在文字裡塞東西 ——
+     改用 ::before 在第一行右側浮一塊空位，第一行的字自己繞開小標；第二行以後照舊滿寬。
+     空位寬高由 industry.js fitM4Legend() 依小標實際位置量（--m4adjw／--m4adjh），圖頭右緣也由它收在價格軸左緣。 */
+  :root.m4 #lwc .legend-ov::before{content:'';float:right;width:var(--m4adjw,120px);height:var(--m4adjh,18px)}
+  /* 每組「標籤＋數值」（industry.js 手機分支包成 .kv）與每條均線讀數整組不換行、整組一起換行 */
+  :root.m4 #lwc .legend-ov :is(.kv,span[style]){white-space:nowrap}
+  /* 拖十字線時的 OHLC 提示框（#ohlcBox）手機不顯示：圖頭本來就跟著十字線更新同一組讀數，留兩份只會互相蓋住（手機監督 10-09 退件） */
+  :root.m4 #lwc #ohlcBox{display:none!important}
+
+  /* (b) 財經日曆月份列：#earnMonth 在 ≤640 被寫死 96px，「2026 年 10 月」15px 字要 108px → 溢出蓋到「下月 ›」。改成照字寬 */
+  :root.m4 #v-earnings .ehd b{width:auto;flex:none}
+  /* 同一列固定 32px 高，可是手機按鈕是 40px（觸控下限）→ 上下各凸出 4px 蓋到隔壁；手機改成照內容高 */
+  :root.m4 #v-earnings .ehd{height:auto}
+
+  /* (c) ETF 配息行事曆月份列：最後一顆「2026 年 10 月共 14 筆除息」只剩 20px 被裁成「2…」。
+     這一列固定 32px 高、不換行；手機改成可換行，狀態字自己佔第二行（收起來可以、刪掉不行） */
+  :root.m4 #v-etf .calhd{flex-wrap:wrap;height:auto;row-gap:2px}
+  :root.m4 #v-etf .calhd .note1{flex:1 0 100%;text-align:left;font-size:12px}
+}
+
+/* ============================================================================
+   第 31 節（2026-10-09，帳本 38 退件）市場明細三頁的多組切換 → 一顆摘要鈕＋底部抽屜（程式在 mobile4.js 第 31 段）
+   頁面上原本那幾組只在「摘要鈕已經掛上」時才藏（用兄弟選擇器綁在 #m4MkSet 後面）—— JS 沒跑起來就照舊看得到，不會兩邊都沒有。
+   ---------------------------------------------------------------------------- */
+@media (max-width:640px){
+  :root.m4 #v-market #m4MkSet{display:inline-flex;align-items:center;gap:6px;width:100%;max-width:100%;min-height:40px;height:40px;padding:0 10px;margin:6px 0 4px;white-space:nowrap;box-sizing:border-box}
+  :root.m4 #v-market .mktstreakbar .row>#m4MkSet{flex:1 1 auto;width:auto;min-width:0;margin:0}
+  :root.m4 #v-market #m4MkSet .m4st{flex:1 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;text-align:left}
+  :root.m4 #v-market #m4MkSet .m4sico{flex:none;opacity:.8}
+  :root.m4 #v-market #m4MkSet>i{flex:none;font-style:normal;opacity:.7}
+  :root.m4 #v-market #m4MkSet+#distFilter,
+  :root.m4 #v-market #m4MkSet~:is(#streakView,#streakWho,#streakDays),
+  :root.m4 #v-market #m4MkSet+#maPick,
+  :root.m4 #v-market #m4MkSet~#maGroupCtl{display:none!important}
+
+  /* 抽屜：每組一排（小標在上、分段鈕在下）；分段鈕等寬填滿一排，40px 高 */
+  :root.m4 .msheet .m4mksegs{align-items:stretch!important}
+  :root.m4 .msheet .m4mkrow{display:flex;flex-direction:column;gap:4px;width:100%}
+  :root.m4 .msheet .m4mklbl{font-size:12px;color:var(--ink-3)}
+  :root.m4 .msheet .m4mkrow>.seg{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(0,1fr);gap:4px;width:100%;box-sizing:border-box}
+  :root.m4 .msheet .m4mkrow>.seg>button{min-width:0;min-height:40px;padding:0 2px;font-size:13px;white-space:nowrap}
+  :root.m4 .msheet .m4mkmv{margin-top:10px}
+  :root.m4 .msheet .m4mkslot #distGroupDD{display:block;--ms-w:100%}
+  :root.m4 .msheet .m4mkslot :is(#distGroupDD .twms-btn,#maGroupDD .ddbtn){width:100%!important;min-height:40px;box-sizing:border-box}
+  :root.m4 .msheet .m4mkslot #maGroupDD{width:100%;display:flex!important;flex-direction:column;align-items:stretch}
+  :root.m4 .msheet .m4mkslot #maGroupDD .ddbtn{height:40px;flex:none}
+  /* 族群面板在抽屜裡往下長：開著時抽屜拉高到 86vh，不用在 46vh 的小窗裡捲 */
+  :root.m4 .msheet[data-kind=m4mkset]:has(.m4mkslot .ddpanel:not([hidden])){max-height:86vh}
+  :root.m4 .msheet .m4mkslot .ddpanel{position:static!important;width:100%!important;max-width:none!important;box-sizing:border-box;margin-top:6px}
+}

@@ -927,3 +927,193 @@
   }, { passive: true });
   window.TwM4Tips = { hide: () => hideTips(null) };
 })();
+
+/* ============================================================================
+   ★ 31. 市場明細三頁的多組切換 → 一顆摘要鈕＋底部抽屜（2026-10-09，帳本 38 退件）
+   照週期統計範本（第 C 段 m3／週期統計）：一顆摘要鈕 → 底部抽屜 → 每組一排分段控制器。只有一組的頁不收。
+     · 漲跌家數：市場（全部／上市／上櫃）＋ ETF（不含／含）＋ 族群
+     · 法人連買賣：畫法（排行／四象限，main 79c69fd8 新增的 #streakView）＋ 法人（投信／外資／合計）＋ 天數（≥2～≥12 天；原本是下拉 → 抽屜裡改成分段）
+     · 站上均線：均線期間（5～240 日）＋ 族群
+   做法：抽屜裡的分段鈕是「代理」—— 點一顆＝去按頁面上原本那顆（或改原本那個下拉／勾選再發 change），
+   邏輯只有 app.js 那一份；族群是 43 個選項的可搜尋多選，放不進一排分段 → 把頁面上**同一個節點**搬進抽屜，關抽屜搬回去。
+   app.js 換條件時會整塊重畫（例：勾含 ETF → drawMarket 重建 #distFilter），所以每次點完都重新對一次「頁面上最新的那個節點」。
+   頁面上原本那幾組在手機藏起來（mobile4.css 第 31 節），桌機一行沒動；頂部四格頁籤（#mktSeg2）不碰。
+   ============================================================================ */
+(function () {
+  'use strict';
+  const root = document.documentElement;
+  const $ = (s, r) => (r || document).querySelector(s);
+  const $$ = (s, r) => Array.from((r || document).querySelectorAll(s));
+  const esc = (s) => String(s == null ? '' : s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  const isM = () => window.innerWidth <= 640 && root.classList.contains('m4');
+  const onMarket = () => /^#market(\/|$)/.test(location.hash || '');
+  const kindNow = () => { const b = $('#mktSeg2 button.on'); return (b && b.dataset.k) || ((location.hash || '').split('/')[1]) || 'updown'; };
+  const ICON = '<svg class="m4sico" viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 4h-7M10 4H3M21 12h-9M8 12H3M21 20h-5M12 20H3M14 2v4M8 10v4M16 18v4"/></svg>';
+  const sheetEl = () => $('#mSheet');
+  /* 頁面上（不在抽屜裡）的那一個：app.js 重畫後同一個 id 可能一個在抽屜（舊的）、一個在頁面（新的）*/
+  const live = (sel) => $$(sel).find((e) => !e.closest('.msheet')) || null;
+  const ddText = (host) => { const b = host && $('button', host); return b ? b.textContent.replace(/[▾▸]/g, '').replace(/^族群[:：]\s*/, '').trim() : ''; };
+
+  /* 每一頁：anchor＝摘要鈕插在誰前面；rows＝抽屜裡每一排；move＝要整個搬進抽屜的節點；sum＝摘要字 */
+  const CFG = {
+    updown: {
+      title: '漲跌分佈設定',
+      anchor: () => live('#distFilter'),
+      rows: () => {
+        const mk = live('#distMkt'), etf = live('#distEtf');
+        return [
+          mk && { k: 'mkt', lbl: '市場', items: $$('button', mk).map((b) => [b.dataset.m, b.textContent.trim(), b.classList.contains('on')]) },
+          etf && { k: 'etf', lbl: 'ETF', items: [['0', '不含 ETF', !etf.checked], ['1', '含 ETF', etf.checked]] },
+        ].filter(Boolean);
+      },
+      act: (k, v) => {
+        if (k === 'mkt') { const b = $$('button', live('#distMkt')).find((x) => x.dataset.m === v); if (b && !b.classList.contains('on')) b.click(); }
+        if (k === 'etf') { const c = live('#distEtf'); if (c && c.checked !== (v === '1')) c.click(); }
+      },
+      move: () => live('#distGroupDD'), moveLbl: '族群',
+      sum: () => {
+        const on = $('#distMkt button.on'), etf = live('#distEtf'), g = ddText(live('#distGroupDD'));
+        return [on ? on.textContent.trim() : '全部', etf && etf.checked ? '含 ETF' : '不含 ETF', '族群 ' + (g || '不限')];
+      },
+    },
+    streak: {
+      title: '法人連續買賣超設定',
+      anchor: () => live('#streakView') || live('#streakWho'),
+      rows: () => {
+        const v = live('#streakView'), w = live('#streakWho'), d = live('#streakDays');
+        return [
+          v && { k: 'view', lbl: '畫法', items: $$('button', v).map((b) => [b.dataset.v, b.textContent.trim(), b.classList.contains('on')]) },
+          w && { k: 'who', lbl: '法人', items: $$('button', w).map((b) => [b.dataset.w, b.textContent.trim(), b.classList.contains('on')]) },
+          d && { k: 'days', lbl: '連續天數', items: Array.from(d.options).map((o) => [o.value, o.text.trim(), o.value === d.value]) },
+        ].filter(Boolean);
+      },
+      act: (k, v) => {
+        if (k === 'view') { const b = $$('button', live('#streakView')).find((x) => x.dataset.v === v); if (b && !b.classList.contains('on')) b.click(); }
+        if (k === 'who') { const b = $$('button', live('#streakWho')).find((x) => x.dataset.w === v); if (b && !b.classList.contains('on')) b.click(); }
+        if (k === 'days') { const d = live('#streakDays'); if (d && d.value !== v) { d.value = v; d.dispatchEvent(new Event('change', { bubbles: true })); } }
+      },
+      move: () => null,
+      sum: () => {
+        const vw = $('#streakView button.on'), w = $('#streakWho button.on'), d = live('#streakDays');
+        return [vw ? vw.textContent.trim() : '', w ? w.textContent.trim() : '投信', d && d.options[d.selectedIndex] ? d.options[d.selectedIndex].text.trim() : ''];
+      },
+    },
+    ma: {
+      title: '站上均線設定',
+      anchor: () => live('#maPick'),
+      rows: () => {
+        const s = live('#maSeg');
+        return s ? [{ k: 'ma', lbl: '均線期間', items: $$('button', s).map((b) => [b.dataset.n, b.textContent.trim(), b.classList.contains('on')]) }] : [];
+      },
+      act: (k, v) => { const b = $$('button', live('#maSeg')).find((x) => x.dataset.n === v); if (b && !b.classList.contains('on')) b.click(); },
+      move: () => live('#maGroupCtl'), moveLbl: '族群（疊上去比）',
+      sum: () => {
+        const b = $('#maSeg button.on'), g = ddText(live('#maGroupDD'));
+        return [b ? 'MA' + b.dataset.n : 'MA20', '族群 ' + (g || '未選')];
+      },
+    },
+  };
+
+  /* ---- 摘要鈕 ---- */
+  function paintBtn(k) {
+    const b = $('#m4MkSet'); if (!b) return;
+    const parts = CFG[k].sum().filter(Boolean), s = parts.join('・'), l = parts.join(' · ');
+    const want = `${ICON}<span class="m4st">${esc(s)}</span><i aria-hidden="true">›</i>`;
+    if (b.innerHTML !== want) b.innerHTML = want;
+    if (b.getAttribute('aria-label') !== CFG[k].title + '：' + l) { b.setAttribute('aria-label', CFG[k].title + '：' + l); b.title = CFG[k].title + '：' + l; }
+  }
+  function wire() {
+    if (!isM() || !onMarket()) return;
+    const k = kindNow(), c = CFG[k];
+    if (!c) { const ob = $('#m4MkSet'); if (ob) ob.remove(); return; }
+    const a = c.anchor(); if (!a) return;
+    let b = $('#m4MkSet');
+    if (b && b.dataset.k !== k) { b.remove(); b = null; }
+    if (!b) {
+      b = document.createElement('button'); b.type = 'button'; b.id = 'm4MkSet'; b.className = 'mfilt m4mkset';
+      b.dataset.k = k; b.setAttribute('aria-haspopup', 'dialog');
+      b.addEventListener('click', () => openSet(k));
+    }
+    if (b.nextElementSibling !== a) a.before(b);
+    root.classList.add('m4mkset');
+    paintBtn(k);
+  }
+
+  /* ---- 抽屜 ---- */
+  let cur = null;   // { k, slot, node, home }
+  function segRows(c) {
+    return c.rows().map((r) => `<div class="m4mkrow"><span class="m4mklbl">${esc(r.lbl)}</span><div class="seg" data-mk="${r.k}">${r.items.map(([v, t, on]) =>
+      `<button type="button" data-v="${esc(v)}" class="${on ? 'on' : ''}" aria-pressed="${!!on}">${esc(t)}</button>`).join('')}</div></div>`).join('');
+  }
+  /* 搬：頁面上最新的那個節點 → 抽屜；原位留一個註解當家。抽屜裡舊的（app.js 已重畫掉的）直接丟 */
+  function syncMove() {
+    if (!cur) return;
+    const n = CFG[cur.k].move(); if (!n || n === cur.node) return;
+    if (cur.node && cur.node.parentNode === cur.slot) cur.node.remove();
+    if (cur.home && cur.home.parentNode) cur.home.remove();
+    cur.home = document.createComment('m4mkhome'); n.parentNode.insertBefore(cur.home, n);
+    cur.slot.appendChild(n); cur.node = n;
+  }
+  function repaint() {
+    if (!cur) return;
+    const c = CFG[cur.k];
+    cur.segs.innerHTML = segRows(c);
+    syncMove();
+    paintBtn(cur.k);
+  }
+  function restore() {
+    if (!cur) return;
+    const { node, home } = cur; cur = null;
+    if (node && home && home.parentNode) home.parentNode.insertBefore(node, home);   // 家還在 → 搬回去
+    else if (node && node.parentNode) node.remove();                                 // 家被 app.js 重畫掉了 → 頁面上已經有新的，抽屜這個丟掉
+    if (home && home.parentNode) home.remove();
+    setTimeout(wire, 0);
+  }
+  function openSet(k) {
+    const api = window.M3, c = CFG[k]; if (!api || !c) return;
+    const wrap = document.createElement('div');
+    wrap.innerHTML = `<div class="mshhead"><b>${esc(c.title)}</b></div><div class="m4shsegs m4mksegs"></div>`
+      + (c.move() ? `<div class="m4mkrow m4mkmv"><span class="m4mklbl">${esc(c.moveLbl || '')}</span><div class="m4mkslot"></div></div>` : '');
+    cur = { k, segs: $('.m4mksegs', wrap), slot: $('.m4mkslot', wrap), node: null, home: null };
+    cur.segs.innerHTML = segRows(c);
+    if (cur.slot) syncMove();
+    cur.segs.addEventListener('click', (e) => {
+      const b = e.target.closest('.seg[data-mk] > button'); if (!b) return;
+      c.act(b.parentNode.dataset.mk, b.dataset.v);
+      setTimeout(repaint, 60); setTimeout(repaint, 400);   // app.js 有的重畫是非同步的，兩次對齊
+    });
+    // 族群下拉勾選／全選／清除：摘要字跟著換（msDD／TwMS 都會發 change 或重寫按鈕字）
+    wrap.addEventListener('change', () => setTimeout(() => { if (cur) paintBtn(cur.k); }, 60));
+    wrap.addEventListener('click', (e) => {
+      if (e.target.closest('.seg[data-mk]')) return;
+      setTimeout(() => { if (cur) { syncMove(); paintBtn(cur.k); } }, 120);
+    });
+    // 站上均線的族群面板開在抽屜裡（往下長）：抽屜拉高（CSS :has）並把面板捲進畫面，不用自己找（msDD 會擋冒泡 → 用捕獲）
+    wrap.addEventListener('click', (e) => {
+      if (e.target.closest('.ddbtn')) [80, 300].forEach((t) => setTimeout(() => { const p = $('.m4mkslot .ddpanel', wrap); if (p && !p.hidden) p.scrollIntoView({ block: 'nearest' }); }, t));
+    }, true);
+    api.openSheet(wrap, { kind: 'm4mkset', onClose: restore });
+  }
+
+  let tm = 0;
+  function kick() { clearTimeout(tm); tm = setTimeout(wire, 120); }
+  function init() {
+    const v = $('#v-market'); if (!v) return;
+    new MutationObserver(() => { if (isM()) kick(); }).observe(v, { childList: true, subtree: true });
+    window.addEventListener('hashchange', kick);
+    // TwMS 的族群下拉勾完（面板掛在 body 上）：摘要字跟著換
+    document.addEventListener('change', (e) => {
+      if (!isM() || !e.target.closest || !e.target.closest('.twms-pan')) return;
+      [80, 350].forEach((t) => setTimeout(() => { if (onMarket() && CFG[kindNow()]) paintBtn(kindNow()); }, t));
+    });
+    let wasM = isM(), rt = 0;
+    window.addEventListener('resize', () => {
+      clearTimeout(rt); rt = setTimeout(() => {
+        const m = isM(); if (m === wasM) return; wasM = m;
+        if (!m) { const b = $('#m4MkSet'); if (b) b.remove(); root.classList.remove('m4mkset'); } else kick();
+      }, 200);
+    });
+    kick();
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();
+})();

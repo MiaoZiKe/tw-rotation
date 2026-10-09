@@ -347,6 +347,7 @@
 .subco .agree label{display:flex;gap:10px;align-items:flex-start;margin:0;font-size:13.5px;color:var(--ink);line-height:1.6;cursor:pointer}
 .subco .agree input{width:18px;height:18px;margin-top:2px;flex:none;accent-color:var(--pc)}
 .subco .agree a{color:var(--pc);font-weight:700}
+.subco .agree .agree2{margin:8px 0 0 28px;font-size:12.5px;line-height:1.6;color:var(--ink-2)}
 .subco #subSend{width:100%;height:48px;margin-top:12px;border:0;border-radius:12px;background:var(--pc);color:var(--pr-on,#fff);font:inherit;font-size:16px;font-weight:700;cursor:pointer}
 .subco #subSend[disabled]{opacity:.45;cursor:not-allowed}
 .subco .cofoot{text-align:center;font-size:12.5px;color:var(--ink-3);margin-top:8px}
@@ -407,6 +408,13 @@
 #v-pricing .pc-neutral .prgo{background:transparent;color:var(--ink);border-color:var(--line-2)}
 #v-pricing .prgo[disabled]{background:transparent;color:var(--ink-2);border-color:color-mix(in srgb,var(--pc) 35%,var(--line-2));cursor:default}
 #v-pricing .prcard.mine .prgo[disabled]{font-weight:700}
+#v-pricing .prpre{margin:8px 0 0;font-size:12px;line-height:1.5;color:var(--ink-3);text-align:center}
+#v-pricing .prpre a{color:var(--cyan);text-decoration:none}
+#v-pricing .prpre-m{display:none}
+/* 2026-10-09 手機監督：卡片內放短名仍要 3 行，360 寬整頁超過 3 屏 → 手機把這句從卡片拿出來，接在卡片下方「申請制」那句後面（完整書名；桌機不變） */
+#v-pricing .prpre-m a{color:var(--cyan);text-decoration:none}
+@media (max-width:640px){#v-pricing .prcard .prpre{display:none}#v-pricing .prpre-m{display:inline}#v-pricing p.prapply{font-size:12px;line-height:1.5}}
+#v-pricing .prpre a:hover{text-decoration:underline}
 #v-pricing .prapply{text-align:center;font-size:13px;color:var(--ink-2);margin:20px 0 0}
 #v-pricing .prapply b{color:var(--ink)}
 #v-pricing .prcmp{margin-top:44px}
@@ -519,7 +527,7 @@
         <p>${fits.length >= 2 ? esc(fits.join('，') + '。') : '從資金流向、產業鏈到個股技術面，一個網站看完台股輪動。免費就能用大部分功能，付費方案開放更多分析與更高的每日瀏覽次數。'}</p></div>
       ${needF ? `<div class="prneed" id="prNeed" role="status">你剛剛點的 <b>「${esc(needF.name)}」</b>${needIds.length ? `在標成<b>「可解鎖」</b>的方案裡開放（或次數更多）` : '目前沒有方案開放更多，可以從右下角客服跟我們說'}<a href="#pricing" id="prNeedX">清除標示</a></div>` : ''}
       ${S.layout === 'merged' ? compare(plans, look, hot, needF, { me, needIds }) : `<div class="prcards" id="prCards" style="--n:${Math.min(4, Math.max(1, plans.length))}">${plans.map((p) => card(p, look.get(p.id), p === hot, me, needIds.includes(p.id))).join('')}</div>`}
-      <p class="prapply"><b>目前為申請制，專人開通；線上付款即將推出。</b>申請送出不會扣款。${S.src === 'fallback' ? '　（暫時讀不到付費方案）' : S.src === 'demo' ? '　（示範資料）' : ''}</p>
+      <p class="prapply"><b>目前為申請制，專人開通；線上付款即將推出。</b>申請送出不會扣款。<span class="prpre-m">付款前請先閱讀<a href="#refund">《退款與取消訂閱政策》</a><a href="#terms">《使用條款》</a></span>${S.src === 'fallback' ? '　（暫時讀不到付費方案）' : S.src === 'demo' ? '　（示範資料）' : ''}</p>
       ${S.layout === 'merged' ? '' : compare(plans, look, hot, needF)}
       <div class="prlegal">本網站提供的是資料整理與視覺化工具，<b>不是證券投資顧問</b>，不提供個股買賣建議，所有內容僅供參考，投資請自行判斷並承擔風險。
         方案內容與價格以專人開通時的確認為準；申請送出不會扣款。詳見 <a href="#disclaimer">免責聲明</a>、<a href="#terms">使用條款</a>、<a href="#privacy">隱私權政策</a>。</div>`;
@@ -565,7 +573,13 @@
     return `<div class="prcard pc-${esc(lk.color)}${hot ? ' hot' : ''}${need ? ' need' : ''}${isMine ? ' mine' : ''}" data-plan="${esc(p.id)}" data-tier="${t}">
       ${tag}<div class="prhd"><span class="prico">${svgI(lk.icon)}</span><h2 title="${esc(showName(p))}">${esc(showName(p))}</h2><div class="who" title="${esc(who)}">${esc(who)}</div></div>
       ${priceHtml(p)}<div class="mfit" title="${esc(p.fit_title || '')}">${p.fit_title ? esc(p.fit_title) : '&nbsp;'}</div><hr>
-      ${fit}<ul class="prhl">${hl.map((x) => `<li>${CHECK}<span>${esc(x)}</span></li>`).join('')}</ul>${btn}</div>`;
+      ${fit}<ul class="prhl">${hl.map((x) => `<li>${CHECK}<span>${esc(x)}</span></li>`).join('')}</ul>${btn}${preRead(t)}</div>`;
+  }
+  /* 2026-10-09（Andy：「退款政策及取消訂閱幫我新增」）：付費卡的升級鈕下面一行「付款前請先閱讀…」。
+     免費卡放同高的隱形佔位，三張卡的按鈕才會在同一條線上。*/
+  function preRead(t) {
+    const paid = t !== 'free' && t !== 'guest';
+    return `<p class="prpre"${paid ? '' : ' aria-hidden="true" style="visibility:hidden"'}>付款前請先閱讀${paid ? '<a href="#refund" title="退款與取消訂閱政策">《退款與取消訂閱政策》</a><a href="#terms" title="使用條款">《使用條款》</a>' : '《退款與取消訂閱政策》《使用條款》'}</p>`;
   }
   /* 方案功能比較表：每格＝✓／—／每日 N 次／最多 N 頁。只列「至少一個方案不一樣」的功能；全部一樣的收成最後一行 */
   function compare(plans, look, hot, needF, mg) {
@@ -635,8 +649,9 @@
       <div class="cob"><div class="cop">${ptop}<div class="big">${pbig}</div>${pr.orig ? `<small>${esc(pr.note)}</small>` : ''}<small>${per === 'year' ? '年繳' : '月繳'}・目前為申請制，專人開通；線上付款即將推出</small></div>
         <div class="cog" id="subFeats">${gl}</div></div>
       <div class="cof"><div class="cof2"><div><label for="subMail">聯絡 email</label><input type="email" id="subMail" value="${esc(u.email || '')}" autocomplete="email" maxlength="200"></div>
-        <div><label for="subNote">備註（選填，例如發票抬頭）</label><input type="text" id="subNote" maxlength="300"></div></div>
-        <div class="agree"><b>訂閱前請確認</b><label><input type="checkbox" id="subAgree"><span>我已閱讀並同意 <a href="#terms" target="_blank" rel="noopener">使用條款</a> 與 <a href="#privacy" target="_blank" rel="noopener">隱私權政策</a>，並了解送出的是訂閱申請，方案內容與付款方式由客服確認後才開通。</span></label></div>
+        <div><label for="subNote">備註（選填，例如發票抬頭）</label><input type="text" id="subNote" maxlength="180"></div></div>
+        <div class="agree"><b>訂閱前請確認</b><label><input type="checkbox" id="subAgree"><span id="subAgreeT">我已閱讀並同意<a href="#terms" target="_blank" rel="noopener">《使用條款》</a><a href="#refund" target="_blank" rel="noopener">《退款與取消訂閱政策》</a>，並同意付款後立即開通服務、排除消費者保護法第 19 條之七日解除權。</span></label>
+          <p class="agree2">個人資料之處理見<a href="#privacy" target="_blank" rel="noopener">《隱私權政策》</a>。送出的是訂閱申請，方案內容與付款方式由客服確認後才開通；送出時會記錄同意時間與條款版本。</p></div>
         <div class="msg" id="subMsg" role="status"></div>
         <button type="button" id="subSend" disabled>送出訂閱申請</button>
         <div class="cofoot">申請後由客服聯絡開通・送出不會扣款</div></div>`, (d) => {
@@ -648,7 +663,15 @@
         const contact = d.querySelector('#subMail').value.trim();
         if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(contact)) { msg.className = 'msg bad'; msg.textContent = '請填正確的 email'; return; }
         btn.disabled = true; msg.className = 'msg'; msg.textContent = '送出中…';
-        const j = await call('/v1/subscribe/request', { plan: p.id, period: per, contact, note: d.querySelector('#subNote').value.trim() });
+        /* 2026-10-09 Andy：「結帳頁一定要加『同意付款後立即開通、排除七日解除權』的勾選」→ 同意證據＝同意時間＋條款版本。
+           Worker（sub_requests）目前只存 note，所以證據寫在 note 開頭一併存下；另外帶 consent_at／consent_version／consent 三個欄位，
+           Worker 加欄位後就能分開存（docs/legal_refund_1009.md 必做清單）。使用者備註限 180 字，加上證據仍在 Worker 的 300 字上限內。*/
+        const cAt = new Date().toISOString();
+        const cVer = window.TwLegal && window.TwLegal.termsVersion ? window.TwLegal.termsVersion() : 'unknown';
+        const userNote = d.querySelector('#subNote').value.trim().slice(0, 180);
+        const stamp = `[同意 ${cAt} 條款版本 ${cVer}：使用條款＋退款與取消訂閱政策，付款後立即開通、排除消保法§19七日解除權]`;
+        const j = await call('/v1/subscribe/request', { plan: p.id, period: per, contact, note: stamp + (userNote ? ' ' + userNote : ''),
+          user_note: userNote, consent_at: cAt, consent_version: cVer, consent: 'terms+refund;immediate_start;waive_cpa19' });
         btn.disabled = !ag.checked;
         if (j && j._s === 200 && j.ok) {
           box.className = 'box';
