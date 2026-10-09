@@ -1,0 +1,15 @@
+TARGET_ACTION=跳躍
+INPUT_TYPE=AUTO
+FRAME_COUNT=24
+KEYFRAME_COUNT=12
+FRAME_DURATION_MS=50
+OUTPUT_SIZE=512x512
+BACKGROUND=transparent
+LOOP=0
+STORYBOARD_COLUMNS=6
+ASSET_MODE=raster_first
+OUTPUT=keyframes,inbetweens,frames,storyboard,gif,zip
+
+# INPUT_TYPE 可選 AUTO / single_character / keyframes_12 / storyboard_24
+# FRAME_DURATION_MS=100 表示每格 0.1 秒；50 表示每格 0.05 秒。
+# BACKGROUND 可選 transparent 或 original。

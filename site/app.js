@@ -3130,6 +3130,15 @@
       // v9：ETF 子項在側欄（配息行事曆／ETF 總覽／現金流試算）；沒帶子項＝ETF 總覽（舊連結 #etf 照舊進總覽）
       if (!['cal', 'list', 'inc'].includes(rest[0])) { location.replace('#etf/list'); return; }
       l4sub = 'etf-' + rest[0];
+    } else if (head === 'market' && document.documentElement.classList.contains('l4')) {
+      /* ★ 2026-10-10（Andy：「市場明細 與 選股策略 分頁都改成像 ETF 側邊欄位一樣 變成子分頁」）—— **只在電腦版（html.l4）**：
+         側欄四個子項＝原本就有的 #market/<頁>；不帶頁（或舊書籤 #market/top5）＝漲跌家數，跟 drawMarket() 的落點同一套，所以不 replace 網址。
+         手機（html.m4）不掛：手機抽屜沒有這組子項、頁內 #mktSeg2 照舊。 */
+      l4sub = 'mkt-' + (MKT.some(m => m[0] === rest[0]) ? rest[0] : 'updown');
+    } else if (head === 'explore' && document.documentElement.classList.contains('l4')) {
+      /* 選股策略：#explore/<面向>（fund／tech／chip／news）；不帶＝基本面；#explore/<策略 id>（完整名單頁）亮那個策略所屬的面向。 */
+      const xc = window.TwExplore && window.TwExplore.catOf ? window.TwExplore.catOf(rest[0]) : (['fund', 'tech', 'chip', 'news'].includes(rest[0]) ? rest[0] : 'fund');
+      l4sub = 'xp-' + xc;
     }
     if (l4sub) document.documentElement.setAttribute('data-l4sub', l4sub);
     else document.documentElement.removeAttribute('data-l4sub');
