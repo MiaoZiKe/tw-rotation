@@ -1189,7 +1189,9 @@
     /* 合併（2026-09-24）：main 那批把「怎麼看 ?」鋪到全站每張卡片上 —— 按某張卡的說明鈕
        不該順手把別的面板（例如題材細節）當成「點外面」關掉；說明盒自己（.howtxt）照舊點外面就關。*/
     /* #twTour（site/tour.js 逐步導覽）：按「下一步」不算點在面板外面 —— 不然導覽正在框的零件小卡、抽屜會被自己的按鈕關掉 */
-    e.ignore = (o.ignore || []).concat(['#lgBanner', '#lgTour', '#twTour'],
+    /* 2026-10-09（導覽普查1009）：導覽的入口鈕（右上「平台導覽」、頁名旁「導覽」／手機 🧭、手機兩列小選單）也不算點外面 ——
+       族群頁的剖析圖就是這裡登記的面板，按「導覽」那一下把它收回「族群總覽」，導覽第二步就框不到圖、卡住 20 秒 */
+    e.ignore = (o.ignore || []).concat(['#lgBanner', '#lgTour', '#twTour', '#twTourBtn', '#twPageTourBtn', '#twTourPick'],
       el.classList && el.classList.contains('howtxt') ? [] : ['.howbtn', '.howtxt']);
     e.isOpen = o.isOpen || (() => el.isConnected && !el.hidden && el.getClientRects().length > 0);
     if (!e.mo && typeof MutationObserver !== 'undefined') {

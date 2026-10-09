@@ -26603,7 +26603,8 @@ def t_tour_1007(pg, b, base):
     pg.add_init_script(TOUR_LT_INIT)
     pg.goto(base + "#overview", wait_until="networkidle"); pg.wait_for_timeout(2500)
 
-    ok(f"{T} tour.js 載入、提供 TwTour.start 與各頁導覽（含 ETF 三個子分頁）", set((pg.evaluate("() => !!(window.TwTour && TwTour.start) && TwTour.ids().join(',')") or "").split(",")) == {"site", "overview", "flow", "industry", "stock", "etfcal", "etflist", "etfinc"},
+    ok(f"{T} tour.js 載入、提供 TwTour.start 與各頁導覽（含 ETF 三個子分頁）", set((pg.evaluate("() => !!(window.TwTour && TwTour.start) && TwTour.ids().join(',')") or "").split(",")) >= {"site", "overview", "flow", "industry", "stock", "etfcal", "etflist", "etfinc",
+        "heatind", "heattheme", "market", "explore", "season", "watch", "earnings", "chain"},   # 2026-10-09 補齊各頁本頁導覽（導覽普查1009）
        pg.evaluate("() => window.TwTour && TwTour.ids()"))
     ok(f"{T} 第一次來不自動彈出（沒有 #twTour）", pg.locator("#twTour").count() == 0)
     # ---- 說明文字：中性、2～3 行的量級
@@ -26633,9 +26634,14 @@ def t_tour_1007(pg, b, base):
         pg.click("#twPageTourBtn"); st = _tour_wait(pg)
         ok(f"{T} {route} 按頁名旁「導覽」→ 開的是這一頁的導覽（{want}）", st["active"] and st["tour"] == want, st.get("tour"))
         pg.keyboard.press("Escape"); pg.wait_for_timeout(300)
-    for route in ("#heatmap/industry", "#market", "#season", "#watch"):
+    # 2026-10-09（Andy：「確實檢查所有導覽功能，我發現導覽功能不能使用」）：這四頁補了自己的本頁導覽 → 頁名旁有鈕、開的是這一頁的；
+    # 沒有本頁導覽的頁（訂閱方案）照舊不放鈕、不拿全站導覽冒充
+    for route, want in (("#heatmap/industry", "heatind"), ("#market", "market"), ("#season", "season"), ("#watch", "watch")):
         pg.goto(base + route, wait_until="networkidle"); pg.wait_for_timeout(1500)
-        ok(f"{T} {route} 沒有專屬導覽 → 頁名旁不放「導覽」鈕（不拿全站導覽冒充）", pg.evaluate(PB) is None)
+        pb = pg.evaluate(PB)
+        ok(f"{T} {route} 有本頁導覽 → 頁名旁有「導覽」鈕、開的是「{want}」", bool(pb) and pg.evaluate("() => TwTour.pageTour()") == want, (pb, pg.evaluate("() => TwTour.pageTour()")))
+    pg.goto(base + "#pricing", wait_until="networkidle"); pg.wait_for_timeout(1500)
+    ok(f"{T} #pricing 沒有專屬導覽 → 頁名旁不放「導覽」鈕（不拿全站導覽冒充）", pg.evaluate(PB) is None)
     pg.click("#twTourBtn"); st = _tour_wait(pg)
     ok(f"{T} 右上角「平台導覽」→ 開全站導覽", st["active"] and st["tour"] == "site", st.get("tour"))
     pg.keyboard.press("Escape"); pg.wait_for_timeout(300)
@@ -26766,23 +26772,24 @@ def t_tour_1007(pg, b, base):
     m.add_init_script("try{localStorage.setItem('tw.live.on','0');localStorage.removeItem('tw.theme')}catch(e){}")
     m.add_init_script(TOUR_LT_INIT)
     m.goto(base + "#overview", wait_until="networkidle"); m.wait_for_timeout(2500)
-    m.click("#moreBtn"); m.wait_for_timeout(400)
-    ok(f"{T} 390：右上「⋯」清單裡有「本頁導覽」「全站導覽」", m.locator("#mmTourPage").is_visible() and m.locator("#mmTourSite").is_visible())
-    m.click("#mmTourSite")
+    # 2026-10-09：手機 v2 拿掉「⋯」清單，入口改成頂欄 🧭 → 小選單「本頁導覽／平台導覽」
+    m.locator("#twPageTourBtn").tap(); m.wait_for_timeout(400)
+    ok(f"{T} 390：頂欄 🧭 跳出「本頁導覽」「平台導覽」", m.locator("#twPickPage").is_visible() and m.locator("#twPickSite").is_visible())
+    m.locator("#twPickSite").tap()
     rows = _tour_walk(m, "全站 390")
     ok(f"{T} 390：全站導覽走了 8 步以上（底部導覽列四格＋更多＋搜尋＋⋯＋客服）", len(rows) >= 8, [r["title"] for r in rows])
     for r in rows:
         c_ok, h_ok = _tour_inview(r)
         ok(f"{T} 390 全站第 {r['i'] + 1} 步「{r['title']}」：框在畫面內、說明卡不出畫面且貼底或貼頂", c_ok and h_ok and r["place"] in ("sheet-bottom", "sheet-top"),
            (r["sel"], r["hole"], r["card"], r["place"]))
-    nav = [r for r in rows if r["sel"].startswith("#tabs .tab")]
-    ok(f"{T} 390：導覽列那幾步框的是底部導覽列的格子、說明卡改貼頂（不蓋住被框的格子）",
-       len(nav) >= 4 and all(r["place"] == "sheet-top" and r["target"]["t"] > 700 for r in nav), [(r["title"], r["place"]) for r in nav])
-    ok(f"{T} 390：手機才有的「更多」那一步有出現、桌機的財經日曆（手機藏起來）被跳過",
-       any(r["sel"] == "#mTabMore" for r in rows) and not any(r["title"].startswith("財經日曆") for r in rows), [r["title"] for r in rows])
+    # 2026-10-09（導覽普查1009）：手機 v2 沒有底部導覽列與「更多」（全站目錄收進 ☰ 抽屜）→ 每一頁那一步換到那一頁、框內容區最上面的頁名（#m4Title）
+    nav = [r for r in rows if "#m4Title" in r["sel"] or r["sel"] == "#chainSwitch"]   # 資金流向／熱力圖是聯集框、產業地圖手機沒有頁名改框鏈分頁
+    ok(f"{T} 390：全站導覽逐頁走過（框各頁頁名 #m4Title ≥ 8 頁，背後的頁面真的換了）",
+       len(nav) >= 8 and len({r["view"] for r in nav}) >= 8, [(r["title"], r["view"]) for r in nav])
+    ok(f"{T} 390：第一步框住左上角 ☰（全站目錄）", bool(rows) and rows[0]["sel"] == "#m4Burger", rows and rows[0]["sel"])
     # 總覽導覽：手機分段會自己切
     m.goto(base + "#overview", wait_until="networkidle"); m.wait_for_timeout(1500)
-    m.click("#moreBtn"); m.wait_for_timeout(300); m.click("#mmTourPage")
+    m.locator("#twPageTourBtn").tap(); m.wait_for_timeout(300); m.locator("#twPickPage").tap()
     rows = _tour_walk(m, "總覽 390")
     titles = [r["title"] for r in rows]
     ok(f"{T} 390：總覽導覽自己切分段，熱力圖、題材、資金分流樹、漲跌家數都框得到", all(k in titles for k in ("資金熱力圖", "熱門題材", "昨日資金分流樹", "漲跌家數分佈")), titles)
@@ -27890,6 +27897,9 @@ def t_mobile_m4(b, base, code):
     # 導覽走完全部步驟：每一步 scrollY 的變化方向最多換一次（Andy：「導覽功能在確認 會一直上下上下移動」）
     m.evaluate("() => window.scrollTo({ top: 0, behavior: 'instant' })"); m.wait_for_timeout(200)
     m.locator("#m4Tools #twPageTourBtn").tap(); m.wait_for_timeout(300)
+    # 2026-10-09（導覽普查1009）：手機 🧭 先跳「本頁導覽／平台導覽」小選單，選本頁導覽
+    if m.locator("#twTourPick #twPickPage").is_visible():
+        m.locator("#twPickPage").tap(); m.wait_for_timeout(300)
     worst, steps_seen, jumps = 0, 0, []
     for _s in range(14):
         ys = []
@@ -29504,6 +29514,157 @@ def t_wish_1009(b, base):
     ok(f"【{T}】390 寬管理頁願望清單沒有橫向捲軸（多出 {ow['sw']}px）", ow["sw"] <= 1, ow)
     c.close()
     ok(f"【{T}】整段沒有 JS 錯誤", not errs, errs[:3])
+# ★ 2026-10-09 Andy：「確實檢查所有導覽功能，我發現導覽功能不能使用」—— 導覽普查：每個入口 × 每一頁 × 兩種寬度（1440 滑鼠、402 觸控）。
+#   入口：桌機＝右上「平台導覽」(#twTourBtn) 與頁名旁「導覽」(#twPageTourBtn)；手機＝頂欄 🧭 (#twPageTourBtn) → 小選單「本頁導覽」(#twPickPage)／「平台導覽」(#twPickSite)。
+#   每一條都是真的點（手機用 tap）→ 等導覽定下來 → 驗遮罩在、說明卡看得見且在畫面內、聚光燈框住的目標存在且在畫面內 →
+#   一路按「下一步」走到最後一步（按鈕字是「完成」）→ 按下去導覽真的關掉。走過的步數不得少於 TOUR_FLOOR_1009（擋「選擇器改名 → 步驟被默默跳過」的退步）。
+#   修前的根因（同日普查）：① 手機 🧭 被 tour.js 與 mobile4.js 每 500ms 互搬，點了沒反應 ② 熱力圖／市場明細／選股／週期統計／自選／財經日曆沒有本頁導覽，
+#   桌機不出鈕、手機 🧭 整顆藏起來，手機也沒有任何全站導覽入口 ③ 手機總覽的分段名改成「大盤｜資金流向｜熱度」，導覽按不到舊段名，一半步驟被跳過
+#   ④ 換頁後說明卡的淡入等下一幀，新頁畫圖時卡片透明 0.5～2 秒 ⑤ 族群頁按導覽被帶離（先跳回 #industry 再到半導體）。
+TOUR_ROUTES_1009 = ["#overview", "#flow/rotation", "#flow/sankey", "#flow/inst", "#heatmap/industry", "#heatmap/theme", "#industry",
+                    "#industry/group/foundry", "#market", "#explore", "#etf/list", "#etf/cal", "#etf/inc", "#season", "#watch", "#earnings", "#stock/2330"]
+# 每套導覽在兩種寬度至少要走到幾步（照 2026-10-09 修好後的實測，留 1 步餘裕給資料暫缺的那一格）
+TOUR_FLOOR_1009 = {
+    # 2026-10-09 實測（1440／402）：全站 15／15、總覽 8／9、資金流向 7／4～5、產業地圖 13／13、產業鏈 11／11、個股 7／5，其餘 1～4 步全數走到
+    ("site", "desk"): 14, ("site", "mob"): 14, ("overview", "desk"): 7, ("overview", "mob"): 8, ("flow", "desk"): 6, ("flow", "mob"): 4,
+    ("industry", "desk"): 12, ("industry", "mob"): 12, ("chain", "desk"): 10, ("chain", "mob"): 10, ("stock", "desk"): 6, ("stock", "mob"): 4,
+    ("heatind", "desk"): 3, ("heatind", "mob"): 2, ("heattheme", "desk"): 2, ("heattheme", "mob"): 2, ("market", "desk"): 2, ("market", "mob"): 2,
+    ("explore", "desk"): 3, ("explore", "mob"): 3, ("etflist", "desk"): 4, ("etflist", "mob"): 4, ("etfcal", "desk"): 1, ("etfcal", "mob"): 1,
+    ("etfinc", "desk"): 3, ("etfinc", "mob"): 2, ("season", "desk"): 2, ("season", "mob"): 2, ("watch", "desk"): 3, ("watch", "mob"): 3,
+    ("earnings", "desk"): 3, ("earnings", "mob"): 3,
+}
+TOUR_CHK_1009 = """() => { const s = TwTour.state(); if (!s.active) return { active: false };
+  const root = document.getElementById('twTour'), card = document.getElementById('twTourCard'), vw = innerWidth, vh = innerHeight;
+  const cr = card.getBoundingClientRect(), op = parseFloat(getComputedStyle(card).opacity);
+  const t = s.target, tin = !!t && t.w > 3 && t.h > 3 && t.b > 0 && t.t < vh && t.r > 0 && t.l < vw;
+  const sel = s.sel || '', el = sel && sel !== '(說明卡)' ? sel.split(' + ').map((q) => { try { return document.querySelector(q); } catch (e) { return null; } }).find((x) => x && x.getClientRects().length) : null;
+  return { active: true, i: s.i, n: s.n, busy: s.busy, tour: s.tour, title: s.title, sel, hash: location.hash,
+    mask: !!root && root.isConnected && !root.hidden && getComputedStyle(root).display !== 'none',
+    card: op > 0.9 && cr.width > 120 && cr.height > 60 && cr.top >= -1 && cr.bottom <= vh + 1 && cr.left >= -1 && cr.right <= vw + 1,
+    tin, exists: !!el && el.isConnected, next: (document.getElementById('twTourNext') || {}).textContent || '' }; }"""
+
+
+def _tour_walk_1009(pg, name, want, mob):
+    """點開之後一路走到底；回傳 (步數, 問題清單)。"""
+    bad = []
+    try:
+        pg.wait_for_function("() => { const s = window.TwTour && TwTour.state(); return !!s && s.active && !s.busy && s.i >= 0; }", timeout=15000, polling=200)
+    except Exception:
+        return 0, [f"{name}：點了 15 秒導覽都沒開始（{pg.evaluate(TOUR_ST)}）"]
+    n, last = 0, None
+    for _ in range(30):
+        c = None
+        for _k in range(16):                         # 卡片淡入、聚光燈滑到位：最多等 4 秒
+            pg.wait_for_timeout(250)
+            c = pg.evaluate(TOUR_CHK_1009)
+            if not c["active"] or (c["card"] and c["tin"] and not c["busy"]):
+                break
+        if not c["active"]:
+            break
+        n += 1
+        if n == 1 and want and c["tour"] != want:
+            bad.append(f"{name}：開的是「{c['tour']}」，應該是「{want}」")
+        if not c["mask"]:
+            bad.append(f"{name} 第 {n} 步「{c['title']}」：遮罩不見了")
+        if not c["card"]:
+            bad.append(f"{name} 第 {n} 步「{c['title']}」：說明卡看不見或出了畫面")
+        if not (c["tin"] and c["exists"]):
+            bad.append(f"{name} 第 {n} 步「{c['title']}」：高亮目標不存在或不在畫面內（{c['sel']}）")
+        last = c
+        i0 = c["i"]
+        btn = pg.locator("#twTourNext")
+        try:
+            (btn.tap if mob else btn.click)(timeout=15000)
+        except Exception as e:
+            bad.append(f"{name} 第 {n} 步「{c['title']}」：「下一步」按不下去（{str(e)[-160:]}）")
+            pg.evaluate("() => TwTour.stop()")
+            break
+        try:
+            pg.wait_for_function("(i) => { const s = TwTour.state(); return !s.active || (!s.busy && s.i !== i); }", arg=i0, timeout=20000, polling=200)
+        except Exception:
+            bad.append(f"{name} 第 {n} 步「{c['title']}」：按「下一步」20 秒沒有反應（卡住）")
+            pg.evaluate("() => TwTour.stop()")
+            break
+    else:
+        bad.append(f"{name}：走了 30 步還沒結束")
+    if last and last["next"].strip() != "完成":
+        bad.append(f"{name}：最後一步的按鈕不是「完成」（{last['next']!r}）")
+    pg.wait_for_timeout(250)
+    if pg.evaluate("() => !!document.getElementById('twTour') || TwTour.state().active"):
+        bad.append(f"{name}：按「完成」之後遮罩還在")
+        pg.evaluate("() => TwTour.stop()")
+    return n, bad
+
+
+def t_tour_census_1009(b, base):
+    T = "[導覽普查1009]"
+    for mode in ("desk", "mob"):
+        if mode == "desk":
+            ctx = b.new_context(viewport={"width": 1440, "height": 900})
+        else:
+            ctx = b.new_context(viewport={"width": 402, "height": 874}, is_mobile=True, has_touch=True, device_scale_factor=1)
+        ctx.add_init_script("try{localStorage.setItem('tw.live.on','0')}catch(e){}")
+        errs = []
+        pg = None
+        W = "1440" if mode == "desk" else "402"
+        steps = {}
+        for r in TOUR_ROUTES_1009:
+            if mode == "desk":
+                ents = [("右上「平台導覽」", "#twTourBtn", None, "site"), ("頁名旁「導覽」", "#twPageTourBtn", None, "page")]
+            else:
+                ents = [("🧭→本頁導覽", "#twPageTourBtn", "#twPickPage", "page"), ("🧭→平台導覽", "#twPageTourBtn", "#twPickSite", "site")]
+            for label, s1, s2, want in ents:
+                name = f"{W} {r} {label}"
+                # 每一條入口開一個新分頁、用完就關：一路開 68 次導覽（剖析圖 3D、K 線）記憶體會一直長，在滿載的機器上分頁會被砍（Target crashed）
+                if pg:
+                    pg.close()
+                pg = ctx.new_page()
+                pg.on("pageerror", lambda e: errs.append(f"pageerror: {e}"))
+                pg.goto(base + r, wait_until="domcontentloaded"); pg.wait_for_timeout(2200)
+                if want == "page":
+                    want = pg.evaluate("() => TwTour.pageTour()")
+                    ok(f"{T} {W} {r}：這一頁有本頁導覽（{want}）", bool(want), want)
+                errs.clear()
+                vis = pg.evaluate("(s) => { const e = document.querySelector(s); if (!e || e.hidden) return false; const q = e.getBoundingClientRect(); return q.width > 0 && q.height > 0 && q.right <= innerWidth && q.left >= 0; }", s1)
+                ok(f"{T} {name}：入口看得見", vis, s1)
+                if not vis:
+                    continue
+                try:
+                    if mode == "desk":
+                        pg.locator(s1).click(timeout=10000)
+                    else:
+                        pg.locator(s1).tap(timeout=10000)
+                        pk = wait_until(pg, "() => { const m = document.getElementById('twTourPick'); return !!m && !m.hidden && m.getClientRects().length > 0; }", 3000)
+                        ok(f"{T} {name}：點 🧭 跳出「本頁導覽／平台導覽」小選單", bool(pk))
+                        if not pk:
+                            continue
+                        pg.locator(s2).tap(timeout=5000)
+                    clicked = True
+                except Exception as e:
+                    clicked = False
+                    ok(f"{T} {name}：入口點得下去（不會被搬走、不會被蓋住）", False, str(e)[-300:])
+                if not clicked:
+                    continue
+                n, bad = _tour_walk_1009(pg, name, want, mode == "mob")
+                steps.setdefault(want, []).append(n)
+                floor = TOUR_FLOOR_1009.get((want, mode), 1)
+                ok(f"{T} {name}：導覽開始、每一步遮罩／說明卡／高亮目標都在、走完 {n} 步（至少 {floor}）、按「完成」關閉", not bad and n >= floor, bad[:4] or n)
+                ok(f"{T} {name}：過程沒有 JavaScript 錯誤", not errs, errs[:3])
+        # ✕ 中途關閉（每種寬度一次），順便留一張導覽進行中的截圖
+        if pg:
+            pg.close()
+        pg = ctx.new_page()
+        pg.goto(base + "#overview", wait_until="domcontentloaded"); pg.wait_for_timeout(2000)
+        pg.evaluate("() => TwTour.start('overview')")
+        pg.wait_for_function("() => { const s = TwTour.state(); return s.active && !s.busy && s.i >= 0; }", timeout=15000, polling=200)
+        pg.wait_for_timeout(600)
+        pg.screenshot(path=os.path.join(SHOT_TOUR, f"census1009_{mode}.jpg"), type="jpeg", quality=60)
+        x = pg.locator("#twTourX")
+        (x.tap if mode == "mob" else x.click)()
+        pg.wait_for_timeout(300)
+        ok(f"{T} {W}：導覽中按 ✕ 結束 → 遮罩消失", pg.locator("#twTour").count() == 0 and not pg.evaluate("() => TwTour.state().active"))
+        notes.append(f"{T} {W} 各導覽步數：{steps}")
+        ctx.close()
 
 
 SECTIONS = {
@@ -29797,6 +29958,8 @@ SECTIONS = {
     "同意條款與法律頁":    lambda pg, b, base, code: t_legal(b, base),
     # ★ 2026-10-07 Andy：「平台導覽太爛了，需要有真的導覽的感覺」—— 逐步導覽（site/tour.js）：真的按完全站導覽每一步、上一步、Esc、鎖住跳過、390（⚠ 一律 --workers 1）
     "平台導覽1007":        lambda pg, b, base, code: t_tour_1007(pg, b, base),
+    # ★ 2026-10-09 Andy：「確實檢查所有導覽功能，我發現導覽功能不能使用」—— 每個導覽入口 × 17 頁 × 1440／402 觸控，真的點開、走完、按完成（⚠ --workers 1）
+    "導覽普查1009":        lambda pg, b, base, code: t_tour_census_1009(b, base),
 
     # ★ 2026-09-24 設計系統 v2 第 5 批（docs/design_system_v2.md §3.2／§3.3）：
     #   輪動時鐘（三圈底色、焦點族群、漸強軌跡＋箭頭、換段色環、手機編號模式）與兩張資金分流樹（鏈色線條、直條節點、字的層次、點不壓字）。

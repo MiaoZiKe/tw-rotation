@@ -49,48 +49,56 @@
       d: '左邊由上到下分五組：今日市場、資金流水、族群與個股、歷史規律、專案。接下來一格一格看，每一頁各自回答一個問題。',
       // 2026-10-08 手機 v2：底部那排換成左上角 ☰ 側欄抽屜（mobile4.js），分組跟電腦版一樣
       m: '左上角 ☰ 打開全站目錄，分組跟電腦版一樣：今日市場、資金流水、族群與個股、歷史規律、專案。' },
-    { t: '總覽：今天市場的全貌', sel: tab('overview'), route: '#overview', routeRe: /^#?(overview)?$/, view: 'overview', fast: true,
+    { t: '總覽：今天市場的全貌', sel: [tab('overview'), '#m4Title'], route: '#overview', routeRe: /^#?(overview)?$/, view: 'overview', fast: true,
       d: '大盤三張走勢圖、漲跌家數、資金熱力圖與資金輪盤放在同一頁。第一次來，從這一頁開始看。' },
-    { t: '財經日曆：接下來有哪些事', sel: tab('earnings'), route: '#earnings', view: 'earnings', fast: true,
+    { t: '財經日曆：接下來有哪些事', sel: [tab('earnings'), '#m4Title'], route: '#earnings', view: 'earnings', fast: true,
       d: '公司財報、法說會與美國聯準會（FED）的重要日子排在同一張月曆；點月曆上的項目看說明。' },
-    { t: '資金流向：錢往哪個族群跑', sel: [tab('flow'), '#tabs .l4subtab[data-parent="flow"]'], union: true, route: '#flow/rotation', routeRe: /^#flow/, view: 'flow', fast: true,
+    { t: '資金流向：錢往哪個族群跑', sel: [tab('flow'), '#tabs .l4subtab[data-parent="flow"]', '#m4Title'], union: true, route: '#flow/rotation', routeRe: /^#flow/, view: 'flow', fast: true,
       d: '分三個子頁：資金輪動（族群跑到強弱循環的哪一段）、資金分流樹（錢從大盤分到哪裡）、族群×法人與集中度。' },
-    { t: '熱力圖：哪裡熱、哪裡冷', sel: [tab('heatmap'), '#tabs .l4subtab[data-parent="heatmap"]'], union: true, route: '#heatmap', routeRe: /^#heatmap/, view: 'heatmap', fast: true,
-      d: '一個方塊是一個族群或題材：方塊越大＝成交值越多，越紅＝漲越多、越綠＝跌越多。分「產業」與「題材」兩頁：產業那張剛好一個畫面；題材那頁點方塊，剖析圖就在正下方同一個畫面展開，不用往下捲。' },
-    { t: '產業地圖：產業鏈的上下游', sel: tab('industry'), route: '#industry', routeRe: /^#industry$/, view: 'industry', fast: true,
+    { t: '熱力圖：哪裡熱、哪裡冷', sel: [tab('heatmap'), '#tabs .l4subtab[data-parent="heatmap"]', '#m4Title'], union: true, route: '#heatmap', routeRe: /^#heatmap/, view: 'heatmap', fast: true,
+      d: '一個方塊是一個族群或題材：越大＝成交值越多，越紅＝漲越多、越綠＝跌越多。分「產業」「題材」兩頁；題材那頁點方塊，剖析圖就在正下方展開。' },
+    { t: '產業地圖：產業鏈的上下游', sel: [tab('industry'), '#m4Title', '#chainSwitch'], route: '#industry', routeRe: /^#industry$/, view: 'industry', fast: true,
       d: '先挑一條產業鏈，再看裡面的族群、產品剖析圖與供應鏈關聯圖，最後點公司名稱進個股頁。' },
-    { t: '市場明細：完整名單', sel: tab('market'), route: '#market', routeRe: /^#market/, view: 'market', fast: true,
+    { t: '市場明細：完整名單', sel: [tab('market'), '#m4Title'], route: '#market', routeRe: /^#market/, view: 'market', fast: true,
       d: '漲跌分佈、站上均線、法人連續買賣與各項排行的完整表格，可以排序、篩選，每一列都點得進個股頁。' },
-    { t: '選股策略：用公開條件篩出個股', sel: tab('explore'), route: '#explore', routeRe: /^#explore/, view: 'explore', fast: true,
+    { t: '選股策略：用公開條件篩出個股', sel: [tab('explore'), '#m4Title'], route: '#explore', routeRe: /^#explore/, view: 'explore', fast: true,
       d: '每張卡是一組公開條件（獲利、估值、成長、技術、法人、股利、動能），列出符合的個股；點一列看它符合哪幾條。' },
-    { t: 'ETF 專區', sel: tab('etf'), route: '#etf', routeRe: /^#etf/, view: 'etf', fast: true,
+    { t: 'ETF 專區', sel: [tab('etf'), '#m4Title'], route: '#etf', routeRe: /^#etf/, view: 'etf', fast: true,
       d: 'ETF 的分類、殖利率、配息日程與長期報酬比較；只看價格的報酬與含息的報酬分開算。' },
-    { t: '週期統計：歷史上的月份規律', sel: tab('season'), route: '#season', view: 'season', fast: true,
+    { t: '週期統計：歷史上的月份規律', sel: [tab('season'), '#m4Title'], route: '#season', view: 'season', fast: true,
       d: '每個族群在 1～12 月的歷史表現：上漲的年數比例、報酬與相對大盤的差距。過去的規律不代表今年會重演。' },
-    { t: '自選：你自己的清單', sel: tab('watch'), route: '#watch', view: 'watch', fast: true,
+    { t: '自選：你自己的清單', sel: [tab('watch'), '#m4Title'], route: '#watch', view: 'watch', fast: true,
       d: '把想追蹤的股票加進來（最多五頁），看今天的漲跌與走勢。沒登入時，清單只存在這台裝置的瀏覽器。' },
     { t: '更多頁面收在這裡', sel: '#mTabMore', fast: true, only: 'mob',
       d: '市場明細、週期統計、ETF、財經日曆與自選都在「更多」裡，點開就看得到。' },
-    { t: '搜尋與今日事件', sel: ['.topbar .search', '#evToggle', '#mSearchBtn'], union: true, fast: true,
+    { t: '搜尋與今日事件', sel: ['.topbar .search', '#evToggle', '#mSearchBtn', '#m4Search'], union: true, fast: true,
       d: '輸入股票代號或簡稱，直接跳到那一檔的個股頁；「事件」打開今日事件：新聞、公告與行事曆，數字是今天的則數。',
       m: '⌕ 輸入股票代號或簡稱，直接跳到那一檔的個股頁。' },
-    { t: '右上角：通知、外觀、登入', sel: ['#ntBell', '#l4Tools', '#acctBar', '#moreBtn'], union: true, fast: true,
+    { t: '右上角：通知、外觀、登入', sel: ['#ntBell', '#l4Tools', '#acctBar', '#moreBtn', '#m4Tools'], union: true, fast: true,
       d: '鈴鐺是網站公告；☀ 切換明亮／深色；調色盤換版面風格；登入之後，自選清單可以在不同裝置同步。',
-      m: '「⋯」裡有今日事件、明亮／深色切換、版面風格，以及這套導覽（本頁導覽、全站導覽）。' },
+      // 2026-10-09：手機 v2 拿掉「⋯」，頂欄右邊一排小圖示：搜尋、外觀、導覽、登入
+      m: '頂欄右邊：⌕ 搜尋、調色盤＝外觀（明亮／深色、版面風格）、🧭＝導覽、登入之後自選清單跨裝置同步。' },
     { t: '客服', sel: '#supFab', fast: true,
       d: '使用上遇到問題、想回報錯誤或給建議，從右下角這顆留言給我們。' },
     { t: '平台導覽與本頁導覽', sel: ['#twTourBtn', '#twPageTourBtn'], union: true, fast: true,
-      d: '右上角「平台導覽」隨時重開這套全站導覽；每一頁頁名旁的「◎ 導覽」則一步步介紹那一頁的每張圖。' },
+      d: '右上角「平台導覽」隨時重開這套全站導覽；每一頁頁名旁的「◎ 導覽」則一步步介紹那一頁的每張圖。',
+      m: '頂欄的 🧭：選「本頁導覽」一步步看這一頁的每張圖，選「平台導覽」重開這套全站導覽。' },
   ];
 
   /* 手機（≤640）的總覽與資金流向是「分段」的：一次只顯示一張圖，要先按上面那排（.mspine 步驟、.mpager 分段）才看得到。
      mseg('錢往哪跑', '熱力圖')＝先按含「錢往哪跑」的步驟鈕、再按含「熱力圖」的分段鈕；桌機沒有這兩排，什麼都不做。
      比對時去掉空白：手機把步驟鈕寫成 <em>①</em><b>錢往哪跑</b>，textContent 中間沒有空白。 */
-  const mseg = (spine, pager) => async () => {
+  /* 2026-10-09：手機 v2（html.m4）總覽的分段只剩三段「大盤｜資金流向｜熱度」（app.js miaPager 把舊的六段併成三段），
+     舊字（資金輪盤、熱力圖…）在 m4 上一個都按不到 → 那幾步全被跳過（實測 402 總覽導覽只剩 5 步）。這裡把舊字對到 m4 的新段名。 */
+  const M4SEG = { '資金輪盤': '資金流向', '資金分流樹': '資金流向', '熱力圖': '熱度', '熱門題材': '熱度', '市場寬度': '大盤' };
+  const mseg = (spine, pager0) => async () => {
+    const pager = (document.documentElement.classList.contains('m4') && M4SEG[pager0]) || pager0;
     const pick = (box, word) => {
       if (!box || !word || !shown(box)) return false;
       const b = $$('button', box).find((x) => (x.textContent || '').replace(/\s+/g, '').indexOf(word) >= 0);
       if (!b) return false;
+      /* 2026-10-09：記下導覽開始前選的是哪一段，結束時按回去 —— 分段會記住（miaSave），不還原的話使用者下次進總覽停在導覽最後切到的那一段（手機v2「第一屏看得到主圖」因此紅） */
+      if (touched.seg == null) { const cur = $$('button', box).find((x) => x.classList.contains('on') || x.getAttribute('aria-selected') === 'true'); touched.seg = cur ? { box, txt: (cur.textContent || '').replace(/\s+/g, '') } : false; }
       if (!b.classList.contains('on') && b.getAttribute('aria-selected') !== 'true') { b.click(); return true; }
       return false;
     };
@@ -250,6 +258,65 @@
       d: '點 ☆ 把這檔加進自選清單，之後在「自選」頁一次看它今天的漲跌。' },
   ];
 
+  /* ======================================================================== 2026-10-09 補齊各頁的本頁導覽
+     Andy 10-09：「確實檢查所有導覽功能，我發現導覽功能不能使用」。普查結果：熱力圖、市場明細、選股、週期統計、自選、財經日曆
+     六頁沒有專屬導覽 —— 桌機頁名旁不出現「導覽」鈕、手機頂欄的 🧭 整顆藏起來，在那幾頁點不到任何導覽（v8 Andy：「每個分頁都有他獨自導覽，除了管理區」）。
+     每一步都是「這一頁現在就在畫面上的外框」，不換頁（route 只給「從別頁被叫起來」時用）；選擇器同時列桌機與手機的候選，挑第一個看得見的。 */
+  const HEATIND = [
+    { t: '熱力圖的兩個子頁', sel: [tab('heatmap'), '#tabs .l4subtab[data-parent="heatmap"]'], union: true, only: 'desk', route: '#heatmap/industry', routeRe: /^#heatmap(\/industry)?$/, view: 'heatmap',
+      d: '「產業」看整個台股、「題材」看各題材；點側欄這兩格切換。' },
+    { t: '整個台股一次看', sel: ['#indTreeWrap', '#indHeat'], route: '#heatmap/industry', routeRe: /^#heatmap(\/industry)?$/, view: 'heatmap',
+      d: '一格是一個族群：面積＝成交值，顏色＝今天的漲跌幅（紅漲綠跌）。點一格進族群頁看成分股。' },
+    { t: '顏色對照', sel: ['#indTreeLegend', '#indHeat'],
+      d: '圖下的色條是顏色對應的漲跌幅區間；越深的紅或綠，漲跌越大。' },
+  ];
+  const HEATTHEME = [
+    { t: '題材資金熱力', sel: ['#themeMapWrap', '#themeMapCard'], route: '#heatmap/theme', routeRe: /^#heatmap\/theme/, view: 'heatmap',
+      d: '一格是一個題材：面積＝成交值，顏色＝熱度 0～100（資金、法人、新聞合成）。點一格，下方展開那個題材的剖析圖。' },
+    { t: '切換與放大', sel: ['#themeCtl', '#themeZoom'], union: true,
+      d: '上方切換顏色依據；「放大」把整張圖開成全螢幕，方塊裡的字看得更清楚。' },
+  ];
+  const MARKET = [
+    { t: '四個分頁', sel: ['#mktSeg2', '#mMktSeg'], route: '#market', routeRe: /^#market/, view: 'market',
+      d: '漲跌分佈、站上均線、法人連續買賣、各項排行，各是一份完整名單；點一格換下面的內容。' },
+    { t: '完整名單', sel: ['#mktBody'],
+      d: '表頭可以點來排序；每一列都點得進個股頁。' },
+  ];
+  const EXPLORE = [
+    { t: '策略分類', sel: ['#slChips'], route: '#explore', routeRe: /^#explore/, view: 'explore',
+      d: '獲利、估值、成長、技術、法人、股利、動能，每一類底下有幾組公開條件。' },
+    { t: '條件標籤', sel: ['#slTags', '#slTagDd'],
+      d: '勾選標籤只看帶這些條件的策略卡；下拉看全部標籤。' },
+    { t: '策略卡', sel: ['#slGrid'],
+      d: '每張卡是一組條件與符合的個股；點一列看它符合哪幾條，點名稱進個股頁。' },
+  ];
+  const SEASON = [
+    { t: '期間、口徑與圖型', sel: ['#seasonCtl', '#mSeasonBtn'], route: '#season', routeRe: /^#season/, view: 'season',
+      d: '選統計的年數、看超額報酬／絕對報酬／勝率，以及熱力圖或長條圖。' },
+    { t: '族群 × 月份', sel: ['#seasonHeatBox', '#seasonHeatCard'],
+      d: '一列是一個族群、一欄是一個月份；格子越紅＝那個月歷年表現越好。過去的規律不代表今年會重演。' },
+  ];
+  const WATCH = [
+    { t: '清單分頁', sel: ['#wpTabW', '#wpTabs'], route: '#watch', routeRe: /^#watch/, view: 'watch',
+      d: '最多五頁清單，＋新增一頁；點一格換清單。沒登入時只存在這台裝置的瀏覽器。' },
+    { t: '加入個股', sel: ['#wpQ'],
+      d: '輸入代號或簡稱，從下拉挑一檔加進目前這一頁。' },
+    { t: '清單內容', sel: ['#wpList', '#wpBody'],
+      d: '每一檔今天的漲跌與走勢；點名稱進個股頁。' },
+  ];
+  const EARN = [
+    { t: '篩選', sel: ['#earnFilt'], route: '#earnings', routeRe: /^#earnings/, view: 'earnings',
+      d: '只看財報、法說會或聯準會（FED）其中幾類。' },
+    { t: '月曆', sel: ['#earnBody'],
+      d: '每一格列出那天的事件；點一格看說明。左右箭頭換月份。' },
+    { t: '本週重點', sel: ['#earnPanel'],
+      d: '這一週與接下來的重要日子依時間排好，點一則看內容。' },
+  ];
+  /* 產業鏈頁、族群頁（#industry/<鏈>…、#industry/group/<id>）：就是產業地圖導覽從「族群分頁」那一步開始，
+     但不換頁 —— 舊版從族群頁按導覽會先被帶回 #industry、再跳到半導體，離開使用者正在看的那一頁。 */
+  const CHAIN = INDUSTRY.slice(2).map((st, k) => Object.assign({}, st, { route: null, routeRe: null },
+    k === 0 ? { view: 'industry', d: '第二排是族群：「族群總覽」看整條鏈，其他每一格是一個族群的產品剖析圖。' } : {}));
+
   const TOURS = {
     site: { name: '全站導覽', steps: SITE },
     etfcal: { name: '配息行事曆導覽', steps: ETFCAL },
@@ -258,6 +325,14 @@
     overview: { name: '總覽導覽', steps: OVERVIEW },
     flow: { name: '資金流向導覽', steps: FLOW },
     industry: { name: '產業地圖導覽', steps: INDUSTRY, onEnd: () => { if (touched.dg3d && ($('#dg3d') || {}).dataset?.mode !== touched.dg3d) { const b = $(`#dg3d button[data-dm="${touched.dg3d}"]`); if (b) b.click(); } } },
+    heatind: { name: '產業熱力圖導覽', steps: HEATIND },
+    heattheme: { name: '題材熱力圖導覽', steps: HEATTHEME },
+    market: { name: '市場明細導覽', steps: MARKET },
+    explore: { name: '選股策略導覽', steps: EXPLORE },
+    season: { name: '週期統計導覽', steps: SEASON },
+    watch: { name: '自選導覽', steps: WATCH },
+    earnings: { name: '財經日曆導覽', steps: EARN },
+    chain: { name: '產業鏈導覽', steps: CHAIN, onEnd: () => TOURS.industry.onEnd() },
     stock: { name: '個股頁導覽', steps: STOCK, onEnd: () => { if (touched.stockTab) { const b = $('#stockTabs button[data-t="overview"]'); if (b && !b.classList.contains('on')) b.click(); } } },
   };
   /* 目前這一頁有沒有專屬導覽：沒有就回 null（頁首鈕改開全站導覽） */
@@ -265,8 +340,10 @@
     const head = String(h == null ? location.hash : h).replace(/^#/, '').split(/[/?]/)[0] || 'overview';
     if (head === 'stock') return 'stock';
     if (head === 'etf') { const sub = String(h == null ? location.hash : h).replace(/^#/, '').split(/[/?]/)[1] || 'list'; return sub === 'cal' ? 'etfcal' : sub === 'inc' ? 'etfinc' : 'etflist'; }
-    if (head === 'themes') return null;
-    return TOURS[head] && head !== 'site' ? head : null;
+    const sub = String(h == null ? location.hash : h).replace(/^#/, '').split(/[/?]/)[1] || '';
+    if (head === 'heatmap' || head === 'themes') return sub === 'theme' || head === 'themes' ? 'heattheme' : 'heatind';
+    if (head === 'industry' && sub) return 'chain';
+    return TOURS[head] && !['site', 'heatind', 'heattheme', 'chain'].includes(head) ? head : null;
   }
 
   /* ======================================================================== 量測工具 */
@@ -450,6 +527,15 @@
 #twPageTourBtn.mob{width:40px;height:40px;padding:0;justify-content:center;border-radius:12px}
 #twPageTourBtn.mob svg{width:18px;height:18px}
 #morePop .twt-mm .ic{color:var(--accent,var(--cyan))}
+#twTourPick{position:fixed;z-index:2300;min-width:220px;max-width:calc(100vw - 16px);padding:6px;box-sizing:border-box;background:var(--panel-2,var(--panel));
+  border:1px solid var(--line-2,#334);border-radius:12px;box-shadow:0 18px 40px -12px rgba(0,0,0,.55)}
+#twTourPick[hidden]{display:none}
+#twTourPick button{display:flex;align-items:center;gap:10px;width:100%;min-height:48px;padding:6px 10px;border:0;border-radius:9px;background:transparent;color:var(--ink);
+  font-family:inherit;text-align:left;cursor:pointer}
+#twTourPick button:hover,#twTourPick button:focus-visible{background:var(--panel-3,rgba(127,127,127,.15))}
+#twTourPick svg{width:18px;height:18px;flex:none;color:var(--t4-accent-solid,var(--accent,var(--cyan)))}
+#twTourPick b{display:block;font-size:var(--fs-body,14px);font-weight:600}
+#twTourPick small{display:block;font-size:var(--fs-min,12px);color:var(--ink-2)}
 `;
     document.head.appendChild(s);
   }
@@ -457,7 +543,7 @@
   /* ======================================================================== 畫面 */
   let ui = null;           // { root, hole, card }
   let run = null;          // { id, tour, i, seq, els, sel, skipped:[], place }
-  const touched = { stockTab: false, dg3d: null };
+  const touched = { stockTab: false, dg3d: null, seg: null };
   const ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'
     + '<circle cx="12" cy="12" r="10"/><path d="m16.24 7.76-1.804 5.411a2 2 0 0 1-1.265 1.265L7.76 16.24l1.804-5.411a2 2 0 0 1 1.265-1.265z"/></svg>';
 
@@ -505,7 +591,15 @@
   function possible(k) {
     const st = run.tour.steps[k];
     if (!st || !applicable(st) || run.skipped.includes(k)) return false;
-    return !(st.fast && !resolve(st));
+    return !(precheck(st) && !resolve(st));
+  }
+  /* 常駐元素（fast）先看在不在、不在就跳過、不換頁。
+     ⚠ 手機 v2（html.m4）例外：全站目錄收在 ☰ 抽屜裡，頁面那幾步框的是「換過去之後的頁名」（#m4Title），
+     在別頁量不準（例如熱力圖頁頁名藏起來，後面六頁全被跳過，實測 402 全站導覽只剩 9 步）→ 有 route 而且還沒到那一頁的，先換頁再量。 */
+  function precheck(st) {
+    if (!st.fast) return false;
+    if (st.route && document.documentElement.classList.contains('m4') && !routeOk(st)) return false;
+    return true;
   }
   function prevIndex(i) { for (let k = i - 1; k >= 0; k--) if (possible(k)) return k; return -1; }
   function isLast(i) { const n = run.tour.steps.length; for (let k = i + 1; k < n; k++) if (possible(k)) return false; return true; }
@@ -572,9 +666,13 @@
   const sigOf = (r) => (r ? [r.left, r.top, r.width, r.height].map(Math.round).join(',') : 'none') + '|' + window.innerWidth + 'x' + window.innerHeight;
   /* 說明卡淡出（換頁時）／淡入（定位好之後才淡入 —— 不會先在舊位置出現再跳過去） */
   function cardOut() { if (ui && !reduced()) ui.card.classList.add('out'); }
+  /* 2026-10-09 修（Andy：「導覽功能不能使用」）：舊版把「拿掉 out」放進 requestAnimationFrame —— 換頁後新頁在畫圖、主執行緒很忙，
+     下一幀遲遲不來，說明卡就一直是透明的（實測 1440 換到財經日曆／資金流向／熱力圖後 0.5～2 秒還看不到卡片，看起來像導覽沒反應）。
+     改成當場拿掉：先讀一次 offsetWidth 讓「snap 定位」生效，再拿掉 snap／out，淡入動畫照樣有。 */
   function cardIn() {
     if (!ui || !ui.card.classList.contains('out')) return;
-    requestAnimationFrame(() => { if (!ui) return; ui.card.classList.remove('snap'); ui.card.classList.remove('out'); });
+    void ui.card.offsetWidth;
+    ui.card.classList.remove('snap'); ui.card.classList.remove('out');
   }
   function topSafeMini() { const tb = $('.topbar'); return tb && shown(tb) ? Math.max(0, tb.getBoundingClientRect().bottom - 4) : 0; }
 
@@ -634,20 +732,28 @@
   function viewOn(v) { const e = document.getElementById('v-' + v); return !v || (e && e.classList.contains('on')); }
   /* 等元素真的畫好：每一幀量一次，頁面已切到 view、找得到看得見的元素、位置尺寸「連續至少 2 幀而且至少 120ms」沒變才算穩。
      （舊版每 110ms 輪詢，最快也要 330ms；圖表晚 0.1 秒才長高的那種會被框到半路，框好又被補丁拉一次。） */
-  async function waitFor(st, ms, my) {
-    let last = null, since = 0, frames = 0, got = null;
+  /* 目標整個不在（DOM 裡找不到、或藏在 display:none／hidden 的祖先裡）：沒換頁的步驟等 0.9 秒還是這樣就放棄，
+     不必等滿 3.5 秒 —— 一連幾步都量不到時，舊版每步各等滿，按「下一步」要 20 秒才有反應，看起來像當掉（導覽普查1009）。 */
+  function absent(st) {
+    return [].concat(st.sel || []).every((s) => { let e = null; try { e = $(s); } catch (er) { e = null; } return !e || !!e.closest('[hidden]') || !e.getClientRects().length; });
+  }
+  async function waitFor(st, ms, my, moved) {
+    let last = null, since = 0, frames = 0, got = null, t0 = performance.now();
     const ok = await until(() => {
       if (!run || run.seq !== my) return 'gone';
       if (!viewOn(st.view)) { last = null; return null; }
       got = resolve(st);
-      if (!got) { last = null; return null; }
+      if (!got) { last = null; if (!moved && performance.now() - t0 > 900 && absent(st)) return 'none'; return null; }
       const sig = sigOf(unionRect(got.els)), now = performance.now();
       if (sig !== last) { last = sig; since = now; frames = 0; return null; }
       frames += 1;
       return frames >= 2 && now - since >= 120 ? 'ok' : null;
     }, ms);
-    if (ok === 'gone') return null;
+    if (ok === 'gone' || ok === 'none') return null;
     if (ok === 'ok') return got;
+    /* 逾時：目標一直在動（圖還在長、動畫中）也照框 —— 最後一刻剛好量不到（重畫中被換掉）就再找一次；
+       2026-10-09 普查實測：主執行緒忙的時候剖析圖 2.2 秒內沒穩下來，舊版直接退成「沒有畫面可以框」的空卡 */
+    got = resolve(st) || got;
     return got && viewOn(st.view) && got.els.every(shown) ? got : null;
   }
   /* 換步：
@@ -664,7 +770,7 @@
     while (i >= 0 && i < steps.length) {
       const st = steps[i];
       if (!applicable(st)) { i += dir; continue; }
-      if (st.fast && !resolve(st)) { if (!run.skipped.includes(i)) run.skipped.push(i); i += dir; continue; }
+      if (precheck(st) && !resolve(st)) { if (!run.skipped.includes(i)) run.skipped.push(i); i += dir; continue; }
       let moved = false;
       if (!routeOk(st)) {
         const r = typeof st.route === 'function' ? st.route() : st.route;
@@ -684,7 +790,7 @@
         window.scrollTo({ top: Math.min(y0, maxY), behavior: 'instant' });
       }
       if (!run || run.seq !== my) return;
-      const got = await waitFor(st, moved ? 7000 : (st.fast ? 600 : 2200), my);
+      const got = await waitFor(st, moved ? 7000 : (st.fast ? 600 : 3500), my, moved);
       if (!run || run.seq !== my) return;
       if (got) {
         run.skipped = run.skipped.filter((k) => k !== i);
@@ -746,6 +852,9 @@
     const side = $('aside#side.open'), x = $('#evClose'); if (side && x) x.click();
     const mp = $('#morePop'); if (mp && !mp.hidden) { mp.hidden = true; const mb = $('#moreBtn'); if (mb) mb.setAttribute('aria-expanded', 'false'); }
     const back = $('#mSheetBack'); if (back && back.getClientRects().length) back.click();
+    // 手機 v2：☰ 抽屜（從抽屜裡叫起導覽時）與導覽小選單
+    try { if (window.TwM4 && window.TwM4.isOpen && window.TwM4.isOpen()) window.TwM4.close(); } catch (e) { /* 沒有手機 v2 */ }
+    const pk = $('#twTourPick'); if (pk) pk.hidden = true;
   }
 
   function start(id) {
@@ -755,7 +864,7 @@
     if (!ui) build(); else if (!ui.root.isConnected) document.body.appendChild(ui.root);
     ui.root.hidden = false;
     ui.root.dataset.tour = key;
-    touched.stockTab = false; touched.dg3d = null;
+    touched.stockTab = false; touched.dg3d = null; touched.seg = null;
     run = { id: key, tour: TOURS[key], i: -1, seq: 0, els: null, sel: '', skipped: [], busy: false, opener: document.activeElement };
     paintText({ t: '載入中…', d: '' }, 0, TOURS[key].steps.length);
     $('#twTourT').textContent = TOURS[key].name;
@@ -775,6 +884,16 @@
     if (ui) { ui.root.remove(); }
     locks();
     try { if (r.tour.onEnd) r.tour.onEnd(why); } catch (e) { /* 收尾失敗不影響關閉 */ }
+    try {   // 手機分段：按回導覽開始前那一段（見 mseg 的 pick）
+      const sg = touched.seg; touched.seg = null;
+      if (sg && sg.box && sg.box.isConnected) {
+        const b = $$('button', sg.box).find((x) => (x.textContent || '').replace(/\s+/g, '') === sg.txt);
+        if (b && !b.classList.contains('on') && b.getAttribute('aria-selected') !== 'true') {
+          document.documentElement.dataset.twtHold = '1';   // 還原時不要把整頁捲回頂端（使用者停在哪就留在哪）
+          try { b.click(); } finally { delete document.documentElement.dataset.twtHold; }
+        }
+      }
+    } catch (e) { /* 還原失敗不影響關閉 */ }
     if (why !== 'restart' && r.opener && r.opener.isConnected && r.opener.focus) { try { r.opener.focus({ preventScroll: true }); } catch (e) { /* 忽略 */ } }
   }
 
@@ -798,7 +917,7 @@
       b = document.createElement('button');
       b.type = 'button'; b.id = 'twTourBtn';
       b.innerHTML = ICON + '<span>平台導覽</span>';
-      b.onclick = () => start('site');
+      b.onclick = (e) => { if (e) e.stopPropagation(); start('site'); };   // 同頁名旁那顆：不讓「點背景恢復」吃到這一下
     }
     /* 別支檔（layout4／theme4／account）之後還會把 ☀、調色盤、登入搬進來或重排：盯著工具列，一動就把這顆放回調色盤右邊 */
     if (!tools._twtObs && typeof MutationObserver !== 'undefined') {
@@ -833,31 +952,78 @@
   /* ★ 2026-10-07 Andy：「導覽放到每個分頁標題旁 如圖一，原本的地方就改成平台導覽」（蓋掉 10-03「頁首只留頁名及日期時間」，DECISIONS 有記）：
      頁名（#l4Head h1）右邊一顆小鈕「◎ 導覽」＝這一頁的導覽；這一頁沒有專屬導覽就不顯示（不拿全站導覽冒充）。
      ≤820 沒有 #l4Head：放在頂欄搜尋鈕前面（只有圖示，跟頂欄其他圓鈕同一行）。 */
+  /* 2026-10-09 修（Andy：「導覽功能不能使用」），手機三個根因：
+     ① 搶位置：手機 v2（mobile4.js buildTools）把這顆搬進頂欄右邊的 #m4Tools；這支每 500ms（開站頭 10 秒）＋每次換頁／縮放
+        又把它搬回「搜尋鈕前面」，兩邊互搬（實測 402 個股頁 14 秒搬了 48 次）—— 手指按下去的那一刻按鈕剛好被拔掉，點了沒反應。
+        → 已經被別支收進手機容器（#m4Tools／☰ 抽屜／任何標了 data-twt-host 的地方）就不動它，只更新字與狀態。
+     ② 手機只有這一顆 🧭，舊版在「沒有本頁導覽」的頁面整顆藏起來，又沒有任何「全站導覽」入口（舊的「⋯」清單 #morePop 在 v2 已拿掉）。
+        → 手機一律顯示：這一頁有本頁導覽就跳出兩列小選單（本頁導覽／平台導覽），沒有就直接開平台導覽。
+     桌機（頁名旁）照舊：只在有本頁導覽時出現，一按就開本頁導覽。 */
+  const HOSTED = '#m4Tools, .m4tools, #m4Drawer, [data-twt-host]';
   function mountPageBtn() {
     const id = pageTour();
     const h1 = $('#l4Head h1');
     let b = $('#twPageTourBtn');
     if (!b) {
       b = document.createElement('button'); b.type = 'button'; b.id = 'twPageTourBtn';
-      b.onclick = () => { const t = pageTour(); if (t) start(t); };
+      /* 一律 stopPropagation：頁面上有「點背景恢復」的全站點擊監聽（產業鏈頁點空白處會把族群頁的剖析圖切回「族群總覽」），
+         按導覽鈕那一下傳上去，族群頁的剖析圖就被收掉、導覽第二步框不到圖（導覽普查1009 實測） */
+      b.onclick = (e) => {
+        if (e) e.stopPropagation();
+        const t = pageTour();
+        if (b.classList.contains('mob')) { if (t) menu(b); else start('site'); return; }
+        if (t) start(t);
+      };
     }
-    const desk = !!(h1 && h1.getClientRects().length);
+    const hasH1 = !!(h1 && h1.getClientRects().length);
+    /* 2026-10-09：桌機／手機改看版面（>820 而且不是 html.m4 就是桌機），不再看「頁名在不在」——
+       訂閱方案這種沒有頁名的頁，舊版把桌機的鈕當成手機鈕搬到左側欄搜尋框旁，回到總覽後還留在那裡（導覽普查1009 抓到） */
+    const desk = hasH1 || (window.innerWidth > 820 && !document.documentElement.classList.contains('m4'));
+    if (desk && !hasH1) { b.className = 'twpt'; b.hidden = true; return; }
     if (desk) { b.className = 'twpt'; b.innerHTML = ICON + '<span>導覽</span>'; if (b.previousElementSibling !== h1) h1.after(b); }
     else {
-      const bar = $('.topbar'), anchor = $('#mSearchBtn') || $('.topbar .search');
-      if (!bar || !anchor) { b.remove(); return; }
-      b.className = 'twpt mob'; b.innerHTML = ICON;
-      if (b.nextElementSibling !== anchor) anchor.before(b);
+      b.className = 'twpt mob'; if (!$('svg', b) || $('span', b)) b.innerHTML = ICON;
+      if (!(b.isConnected && b.closest(HOSTED))) {
+        const bar = $('.topbar'), anchor = $('#mSearchBtn') || $('.topbar .search');
+        if (!bar || !anchor) { b.remove(); return; }
+        if (b.nextElementSibling !== anchor) anchor.before(b);
+      }
     }
-    b.hidden = !id;
-    b.title = id ? TOURS[id].name + '：一步步看這一頁的每張圖在說什麼' : '';
-    b.setAttribute('aria-label', id ? TOURS[id].name : '本頁導覽');
+    b.hidden = desk ? !id : false;
+    b.title = desk ? (id ? TOURS[id].name + '：一步步看這一頁的每張圖在說什麼' : '') : (id ? '導覽：本頁導覽或平台導覽' : '平台導覽（全站導覽）');
+    b.setAttribute('aria-label', desk ? (id ? TOURS[id].name : '本頁導覽') : (id ? '導覽（本頁／平台）' : '平台導覽（全站導覽）'));
+    b.setAttribute('aria-haspopup', !desk && id ? 'menu' : 'false');
+  }
+  /* 手機的兩列小選單（本頁導覽／平台導覽）：貼在按鈕下方；點外面、Esc、換頁都收起來。
+     也給別支（例如把 🧭 收進 ☰ 抽屜的那支）呼叫：TwTour.menu(錨點元素)。 */
+  function menu(anchor) {
+    injectCSS();
+    let m = $('#twTourPick');
+    if (m && !m.hidden) { m.hidden = true; return; }
+    const t = pageTour();
+    if (!t) { start('site'); return; }
+    if (!m) {
+      m = document.createElement('div'); m.id = 'twTourPick'; m.setAttribute('role', 'menu'); m.hidden = true;
+      document.body.appendChild(m);
+      document.addEventListener('pointerdown', (e) => { if (!m.hidden && !m.contains(e.target) && !(e.target.closest && e.target.closest('#twPageTourBtn'))) m.hidden = true; }, true);
+      window.addEventListener('hashchange', () => { m.hidden = true; });
+      window.addEventListener('keydown', (e) => { if (e.key === 'Escape') m.hidden = true; });
+    }
+    const row = (id, txt, sub, fn) => { const b = document.createElement('button'); b.type = 'button'; b.id = id; b.setAttribute('role', 'menuitem');
+      b.innerHTML = ICON + '<span><b>' + esc(txt) + '</b><small>' + esc(sub) + '</small></span>';
+      b.onclick = (e) => { e.stopPropagation(); m.hidden = true; fn(); }; return b; };
+    m.replaceChildren(row('twPickPage', '本頁導覽', TOURS[t].name, () => start(t)), row('twPickSite', '平台導覽', '全站每一頁在哪裡、各自回答什麼', () => start('site')));
+    const r = (anchor && anchor.getClientRects().length) ? anchor.getBoundingClientRect() : { bottom: 56, right: window.innerWidth - 8 };
+    m.style.top = Math.round(Math.min(r.bottom + 6, window.innerHeight - 140)) + 'px';
+    m.style.right = Math.max(8, Math.round(window.innerWidth - r.right)) + 'px';
+    m.hidden = false;
   }
   function mountAll() { injectCSS(); mountHeadBtn(); mountPageBtn(); mountMore(); mountPreviewFoot(); }
 
   function boot() {
     mountAll();
-    window.addEventListener('hashchange', () => setTimeout(() => { mountHeadBtn(); mountPageBtn(); }, 0));
+    // 換頁後頁首可能晚一點才畫好（layout4.js 重畫頁名）：當下掛一次、300ms 後再補一次
+    window.addEventListener('hashchange', () => { setTimeout(() => { mountHeadBtn(); mountPageBtn(); }, 0); setTimeout(() => { mountHeadBtn(); mountPageBtn(); }, 300); });
     window.addEventListener('resize', () => { clearTimeout(boot.rt); boot.rt = setTimeout(mountAll, 200); });
     // layout4.js 在跨過 820 時會把頁首整個拆掉／重建：盯著 #layout 前面那一段，有變就補掛
     let n = 0; const iv = setInterval(() => { mountAll(); if (++n > 20) clearInterval(iv); }, 500);
@@ -868,7 +1034,7 @@
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot); else boot();
 
   window.TwTour = {
-    start, stop: () => stop('api'), next, prev,
+    start, stop: () => stop('api'), next, prev, menu,
     ids: () => Object.keys(TOURS),
     steps: (id) => (TOURS[id] ? TOURS[id].steps.map((s) => ({ t: s.t, d: s.d, m: s.m || '', only: s.only || '', view: s.view || '',
       route: typeof s.route === 'function' ? s.route() : (s.route || '') })) : null),
