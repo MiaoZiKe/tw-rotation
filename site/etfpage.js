@@ -278,6 +278,20 @@
 #v-etf .incctl .grp>b{font-size:13px;color:var(--ink-2);font-weight:600;white-space:nowrap}
 #v-etf .incctl input[type=number]{width:104px;height:30px;border-radius:8px;border:1px solid var(--line-2);background:var(--panel-3);color:var(--ink);padding:0 8px;font:13px var(--mono);box-sizing:border-box}
 #v-etf .incctl label.chk{display:flex;align-items:center;gap:6px;font-size:13px;color:var(--ink-2);cursor:pointer}
+/* 2026-10-10 參數鎖（etf.inc.params 關）：整組變灰、游標禁止；容器的子節點不吃滑鼠 → 點哪裡都落在容器上，由 document 捕獲階段跳升級卡 */
+#v-etf #etfInc[data-inclk] :is(#incPM .incctl>.grp,#incPM .incctl>label.chk,#incTabs,#incChips,#incPX .cxctl>.grp,#incPX .cmpw,#cxChips){opacity:.5;filter:grayscale(.4);cursor:not-allowed}
+#v-etf #etfInc[data-inclk] :is(#incPM .incctl>.grp,#incPM .incctl>label.chk,#incTabs,#incChips,#incPX .cxctl>.grp,#incPX .cmpw,#cxChips) *{pointer-events:none!important}
+#v-etf #etfInc[data-inclk] :is(#incList .ilr>input[type=checkbox],#incReset,#incDetCx,#incToCx,#m4EtfSet-inc){opacity:.5;cursor:not-allowed}
+#v-etf .inclknote{display:inline-flex;align-items:center;gap:4px;font-size:12px;font-weight:600;color:var(--amber,#f5b942);white-space:nowrap}
+#v-etf .inclknote.m4o{display:none}
+/* 報酬比較／複利試算表需開通：標題列控制反灰不動作；複利分頁鈕反灰＋小字 */
+#v-etf #etfRetCard[data-cmplk] #etfRetCtl{opacity:.45;filter:grayscale(.4);cursor:not-allowed}
+#v-etf #etfRetCard[data-cmplk] #etfRetCtl *{pointer-events:none!important}
+#v-etf #incMain button.lkc{color:var(--ink-3)}
+#v-etf #incMain .inctabnote{margin-left:6px;font-size:11px;font-weight:600;color:var(--amber,#f5b942)}
+/* 手機（≤640）條件列收進摘要鈕、參數列本身藏起來 → 鎖頭提示改掛在摘要鈕上（只限 html.m4，桌機不受影響）*/
+html.m4 #v-etf #etfInc[data-inclk] #m4EtfSet-inc::before{content:"🔒";margin-right:2px}
+html.m4 #v-etf #etfInc[data-inclk] .inclknote.m4o{display:flex;margin:-4px 0 8px}
 #v-etf .incsec{border-top:1px solid var(--line);padding-top:12px;margin-top:12px}
 #v-etf .incq{font-size:13px;color:var(--ink-2);margin:0 0 8px;line-height:1.55}
 #v-etf .incq b{color:var(--ink)}
@@ -1460,14 +1474,89 @@
      · 17:40 修過的「再投入標的沒作用」：個股一律走 App.load('stock/<代號>')、名稱代號都認、Enter／按鈕／選單都觸發（見 addCmp）。 */
   const LEV_RE = /正2|正二|槓桿|L$/;
   const CMB = ['A', 'B', 'C', 'D', 'E'];
+  /* ---------------- ★ 2026-10-10 參數鎖（Andy：「ETF 試算 註冊的免費會員 改成只能看 5 次，上面參數都不可以調整（包含複利表）」）
+     次數＝features.js etf.cashflow 的每日上限（plan_presets 註冊會員 5，site/quota.js 計數、用完蓋額度卡）；這裡只管「參數能不能調」，鍵 etf.inc.params。
+     鎖住時：
+       · 計算一律用預設值（年領 100 萬、配息型、不扣健保、近 5 年、單檔 ETF、清單前 5、複利對象＝第一個、起始日＝5 年前），不讀也不寫 localStorage 裡上次的參數 ——
+         不然付費過期的人會一直看到他以前調好的條件，等於還能用；
+       · 控制項整組反灰、游標禁止、點了（含鍵盤、手機摘要鈕）**什麼都不發生**（Andy 同日：「這種訊息不要用跳出的方式表示，功能反灰旁邊備註就好」——
+         不跳升級卡、不跳提示框）；
+       · 參數列最前面一行靜態小字「🔒 Plus 以上可自訂參數」（手機參數列收進摘要鈕，小字改放在摘要鈕下面）；
+         排序、看細節、圖例開關、清單分類／搜尋（只換顯示、不改計算）照常。
+     攔截用 document 捕獲階段＋選擇器（不改各個 onclick）：手機把條件收進摘要鈕＋抽屜（mobile4.js 31j）時按鈕被搬來搬去，選擇器照樣認得。
+     誰放行（跟 site/quota.js heatLinkOk 同一套）：預覽版、擁有者、管理員、會員系統沒開（本機驗收／公司網路 account 未設定）、
+     今天用體驗額度打開了 etf.cashflow（TwGrants.open ＝當作已開通）、範本 etf.inc.params 開（Plus／Pro）。 */
+  const LK_KEY = 'etf.inc.params';
+  function incParamsOk() {
+    if (window.TW_PREVIEW) return true;
+    const P = window.TwPerm; if (!P) return true;
+    if (P.owner && P.owner()) return true;
+    const Ac = window.TwAccount; if (!Ac || !Ac.on || !Ac.on()) return true;
+    const u = Ac.user && Ac.user(); if (u && u.admin) return true;
+    try { if (window.TwGrants && window.TwGrants.open('etf.cashflow')) return true; } catch (e) { /* 體驗模組沒載入 → 照範本 */ }
+    return P.can(LK_KEY);
+  }
+  /* 鎖住的控制項（容器：整組連子節點一起停用；單顆：checkbox／按鈕本身）*/
+  const LK_BOX = ['#incPM .incctl > .grp', '#incPM .incctl > label.chk', '#incTabs', '#incChips', '#incPX .cxctl > .grp', '#incPX .cmpw', '#cxChips'];
+  const LK_ONE = ['#incList .ilr > input[type=checkbox]', '#incReset', '#incDetCx', '#incToCx', '#m4EtfSet-inc', '#m4EtfSegs[data-p="inc"] button'];
+  const LK_SEL = LK_BOX.concat(LK_ONE).join(',');
+  const LK_NOTE = 'Plus 以上可自訂參數';
+  const lkHit = (t) => !!(t && t.closest && t.closest(LK_SEL) && S.inc && S.inc._lk && S.view === 'inc');
+  /* 點了不動作、也不跳任何東西（旁邊已經有一行備註）*/
+  document.addEventListener('click', (e) => { if (!lkHit(e.target)) return; e.preventDefault(); e.stopImmediatePropagation(); }, true);
+  /* 鍵盤或程式改值（disabled 之外的保險）：攔下 change，畫面重畫回預設值 */
+  document.addEventListener('change', (e) => { if (!lkHit(e.target)) return; e.stopImmediatePropagation(); setTimeout(drawInc, 0); }, true);
+  /* 把鎖的樣子套到目前畫面（每次 drawInc 結尾叫一次；清單／細節卡重畫時 CSS 選擇器自己跟上，不必逐一補屬性）*/
+  function lkPaint() {
+    const box = $('#etfInc'); if (!box || !S.inc) return;
+    const lk = !!S.inc._lk;
+    box.toggleAttribute('data-inclk', lk);
+    $$('#incPM .incctl input, #incPM .incctl select, #incPM .incctl button, #incPX .cxctl input, #incPX .cxctl select, #incPX .cxctl button, #incPX .cmpw input, #incPX .cmpw button', box)
+      .forEach((el) => { if (lk) { if (!el.disabled) { el.disabled = true; el.dataset.inclkd = '1'; } } else if (el.dataset.inclkd) { el.disabled = false; delete el.dataset.inclkd; } });
+    const note = `<span class="inclknote" title="目前方案只能看預設條件（年領 100 萬・配息型・不扣二代健保・近 5 年・單檔 ETF）的試算結果">🔒 ${LK_NOTE}</span>`;
+    $$('.incctl, .cxctl', box).forEach((row) => {
+      const n = $(':scope > .inclknote', row);
+      if (lk && !n) row.insertAdjacentHTML('afterbegin', note); else if (!lk && n) n.remove();
+    });
+    /* 手機（html.m4）：參數列收進摘要鈕、本身藏起來 → 另一份小字放在參數列後面（只在 html.m4 顯示，桌機 display:none）*/
+    const pm = $('#incPM > .incctl', box), mn = $('#incPM > .inclknote.m4o', box);
+    if (lk && pm && !mn) pm.insertAdjacentHTML('afterend', note.replace('class="inclknote"', 'class="inclknote m4o"'));
+    else if (!lk && mn) mn.remove();
+  }
+  /* 2026-10-10 Andy 00:4x：「ETF 報酬比較 與 複利試算表 不開放此會員等級」—— 內容的反灰示意＋一行字由 perm.js 的 veil（features.js note，qcard inline 備註）蓋；
+     這裡補兩件 perm.js 不管的：報酬比較標題列的「加入比較／含息不含息」反灰不動作、複利試算表分頁鈕反灰＋小字。不跳任何視窗。*/
+  const canK = (k) => { const P = window.TwPerm; return !P || P.can(k); };
+  function cmpLkPaint() {
+    const card = $('#etfRetCard'); if (card) card.toggleAttribute('data-cmplk', !canK('etf.cmp'));
+    const b = $('#incMain button[data-v="x"]'); if (!b) return;
+    const lk = !canK('etf.inc.comp'), n = $('.inctabnote', b);
+    b.classList.toggle('lkc', lk);
+    if (lk && !n) b.insertAdjacentHTML('beforeend', '<small class="inctabnote">🔒 Plus 以上可查看</small>'); else if (!lk && n) n.remove();
+  }
+  document.addEventListener('click', (e) => {
+    const t = e.target; if (!t || !t.closest) return;
+    if (t.closest('#etfRetCard[data-cmplk] #etfRetCtl')) { e.preventDefault(); e.stopImmediatePropagation(); }
+  }, true);
+  window.addEventListener('tw:perm', () => cmpLkPaint());
+  window.addEventListener('tw:grants', () => cmpLkPaint());
+  /* 權限晚一步到（/v1/perm/me）、登入登出、體驗打開 → 鎖的狀態可能換了：重載參數再畫一次 */
+  ['tw:perm', 'tw:grants', 'tw:account'].forEach((ev) => window.addEventListener(ev, () => {
+    if (!S.inc || S.view !== 'inc' || !$('#incPX')) return;
+    if (!!S.inc._lk === !incParamsOk()) return;
+    try { drawAll(); } catch (e) { /* 資料還沒載完：下次畫就會套新狀態 */ }
+  }));
     function incLoad() {
-    if (S.inc) return;
+    const lk = !incParamsOk();
+    if (S.inc && !!S.inc._lk === lk) return;
     const num = (k, d) => { const v = +LS.get(k, ''); return v > 0 ? v : d; };
-    S.inc = { fq: LS.get('tw.etf.inc.fq', 'all') || 'all', year: num('tw.etf.inc.year', 1000000), mon: num('tw.etf.inc.mon', 20000), mode: LS.get('tw.etf.inc.mode', 'y') === 'm' ? 'm' : 'y',
+    /* 鎖住時一律用預設值（get 回傳預設、不讀上次存的）；排序與組合的檢視方式不算參數，照讀 */
+    const G = lk ? (k, d) => d : LS.get;
+    const nm = lk ? (k, d) => d : num;
+    S.inc = { fq: LS.get('tw.etf.inc.fq', 'all') || 'all', year: nm('tw.etf.inc.year', 1000000), mon: nm('tw.etf.inc.mon', 20000), mode: G('tw.etf.inc.mode', 'y') === 'm' ? 'm' : 'y',
       main: LS.get('tw.etf.inc.main', 'm') === 'x' ? 'x' : 'm',
-      tab: LS.get('tw.etf.inc.tab', 's') === 'c' ? 'c' : 's', sort: LS.get('tw.etf.inc.sort', 'y'), csort: LS.get('tw.etf.inc.csort', 'cost'),
-      scope: LS.get('tw.etf.inc.scope', 'div'), nhi: LS.get('tw.etf.inc.nhi', '') === '1', cview: LS.get('tw.etf.inc.cview', 'clock'),
-      ci: 0, sel: null, det: null, q: '', cmp: [], scn: { cash: 1, self: 1, '0050': 1, '00631L': 1 }, obj: '', xfrom: '' };
+      tab: G('tw.etf.inc.tab', 's') === 'c' ? 'c' : 's', sort: LS.get('tw.etf.inc.sort', 'y'), csort: LS.get('tw.etf.inc.csort', 'cost'),
+      scope: G('tw.etf.inc.scope', 'div'), nhi: G('tw.etf.inc.nhi', '') === '1', cview: LS.get('tw.etf.inc.cview', 'clock'),
+      ci: 0, sel: null, det: null, q: '', cmp: [], scn: { cash: 1, self: 1, '0050': 1, '00631L': 1 }, obj: '', xfrom: '', _lk: lk };
     if (!/^(y|tr|pr)$/.test(S.inc.sort)) S.inc.sort = 'y';
   }
   const incYearT = () => (S.inc.mode === 'm' ? S.inc.mon * 12 : S.inc.year);
@@ -1680,6 +1769,8 @@
   }
   function drawInc() {
     incLoad();
+    /* 參數鎖：報酬期間 S.per 是整個 ETF 頁共用的（總覽的報酬比較也用）→ 只在試算這一頁暫時換成預設「近 5 年」，不寫 localStorage；離開試算時 drawAll 還原 */
+    if (S.inc._lk) { if (S.per !== '5y') { S._perLk = S._perLk || S.per; S.per = '5y'; } } else perUnlk();
     const box = $('#etfInc'); if (!box) return;
     if (!$('#incPX', box)) incSkeleton(box);
     const segOn = (id, v) => $$(`#${id} button`).forEach((b) => b.classList.toggle('on', String(b.dataset.v) === String(v)));
@@ -1691,6 +1782,7 @@
     $('#incNhi').checked = S.inc.nhi;
     $('#incPM').hidden = S.inc.main !== 'm'; $('#incPX').hidden = S.inc.main !== 'x';
     $('#incSingle').hidden = S.inc.tab !== 's'; $('#incCombo').hidden = S.inc.tab !== 'c';
+    lkPaint(); cmpLkPaint();
     if ($('#etfIncRng')) { const r = perRange(); window.RangePick.set($('#etfIncRng'), { value: S.per, from: r.from, to: r.to }); }
     if (S.fallback || !((S.data && S.data.calendar) || []).length) {
       $('#incSQ').textContent = '尚無配息資料'; $('#incList').innerHTML = ''; $('#incCombos').innerHTML = '<div class="etfprep">尚無配息資料</div>'; return;
@@ -2165,8 +2257,11 @@
   }
 
   /* ------------------------------------------------------------------ 入口 */
+  /* 參數鎖換掉的報酬期間還原（離開試算、或解鎖了）*/
+  function perUnlk() { if (S._perLk) { S.per = S._perLk; S._perLk = null; } }
   function drawAll() {
     drawCats();
+    if (S.view !== 'inc') perUnlk();
     const inc = S.view === 'inc', cal = S.view === 'cal', cat = S.view === 'cat';
     $('#etfCalCard').hidden = !cal; $('#etfCatBar').hidden = !cat; $('#etfBody').hidden = cal;
     $('#etfInc').hidden = !inc; $('#etfRetCard').hidden = !cat; $('#etfListCard').hidden = !cat;
@@ -2175,7 +2270,7 @@
     if (cal) return;
     if (inc) { drawInc(); return; }
     if (!tri.hidden) { drawPop(); drawRetTop(); drawYld(); }
-    drawRet(); drawList();
+    drawRet(); drawList(); cmpLkPaint();
     $('#v-etf').dataset.cat = S.cat;
   }
   /* 子分頁：hash 的第二段 → S.view。分類頁籤點下去會把 S.view 設成 'cat'，所以從試算點分類頁籤也會回到總覽。 */

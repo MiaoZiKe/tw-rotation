@@ -15,6 +15,9 @@
        （拿掉 explore.page 5、heat.detail 3、ind.groups 3、ind.diagram 3、stock.page 3），研究頁只靠全站每日額度（dq）——
        管理頁改全站額度就是訪客實際能用的次數。0＝不開放（3D、關聯圖、ETF 一覽／報酬比較、AI）與動作次數（下鑽、篩選、切分頁）照留。
        註冊會員／Plus 的單項上限沒動（這次 Andy 只回報訪客）；管理頁全站每日額度小卡會把任何範本「比全站額度更嚴的單項上限」列出來，可一鍵改成共用。
+     · ★ 2026-10-10（Andy：「ETF 試算 註冊的免費會員 改成只能看 5 次，上面參數都不可以調整（包含複利表）」）：
+       註冊會員 etf.cashflow 關 → 開、lims 加 etf.cashflow 5；四個範本都補 etf.inc.params（訪客／註冊會員 false、Plus／Pro true）。訪客照舊不能看（比 5 次更嚴）。
+       同日 00:4x：「ETF 報酬比較 與 複利試算表 不開放此會員等級」→ 四個範本補 etf.cmp、etf.inc.comp（訪客／註冊會員 false、Plus／Pro true）。
    這支是**資料**，不是設定：改了不會自動生效，要管理者在 #admin/perm 按一次「套用建議方案」。
    ============================================================================ */
 window.TW_PLAN_PRESETS = {
@@ -93,6 +96,9 @@ window.TW_PLAN_PRESETS = {
     "mkt.cand.n": 3,
     "etf.returns.n": 0,
     "etf.cashflow": false,
+    "etf.inc.params": false,
+    "etf.cmp": false,
+    "etf.inc.comp": false,
     "heat.link": false
    },
    "lims": {
@@ -198,7 +204,10 @@ window.TW_PLAN_PRESETS = {
     "explore.list.n": 20,
     "mkt.cand.n": 10,
     "etf.returns.n": 3,
-    "etf.cashflow": false,
+    "etf.cashflow": true,
+    "etf.inc.params": false,
+    "etf.cmp": false,
+    "etf.inc.comp": false,
     "heat.link": false
    },
    "lims": {
@@ -219,7 +228,8 @@ window.TW_PLAN_PRESETS = {
     "ind.3d": 1,
     "ind.rel": 5,
     "stock.page": 10,
-    "stock.ai": 3
+    "stock.ai": 3,
+    "etf.cashflow": 5
    },
    "meta": {
     "badge": null,
@@ -230,7 +240,7 @@ window.TW_PLAN_PRESETS = {
      "資金流向・熱力圖・產業地圖・全部看得到",
      "個股頁每日 10 檔（營收、法人、籌碼全分頁）",
      "剖析圖・題材剖析・產業鏈 每日各 10 個",
-     "ETF 配息行事曆・ETF 一覽（每日 3 次）",
+     "ETF 配息行事曆・ETF 一覽（每日 3 次）・現金流月配試算（每日 5 次）",
      "自選清單 1 頁 10 檔"
     ],
     "price_year": 0
@@ -309,6 +319,9 @@ window.TW_PLAN_PRESETS = {
     "mkt.cand.n": 999,
     "etf.returns.n": 8,
     "etf.cashflow": true,
+    "etf.inc.params": true,
+    "etf.cmp": true,
+    "etf.inc.comp": true,
     "heat.link": true
    },
    "lims": {
@@ -411,6 +424,9 @@ window.TW_PLAN_PRESETS = {
     "mkt.cand.n": 999,
     "etf.returns.n": 20,
     "etf.cashflow": true,
+    "etf.inc.params": true,
+    "etf.cmp": true,
+    "etf.inc.comp": true,
     "heat.link": true
    },
    "lims": {},

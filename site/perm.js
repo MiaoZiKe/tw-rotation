@@ -51,6 +51,10 @@
   function value(id) {
     const f = F.byId(id); if (!f) return true;
     if (owner()) return f.kind === 'limit' ? f.max : true;
+    /* 2026-10-10：會員系統根本沒開（本機驗收、account_config 沒設定）＝照 refresh() 註解說的「全部照預設＝全開」——
+       不套 defBy（訪客／註冊會員預設關）。以前有 defBy 的功能都沒有 veil（heat.link 另有 heatLinkOk 放行），現在 ETF 報酬比較／複利試算表有 veil，
+       不擋的話沒有會員系統的站會把它們蓋起來。會員系統有開時（含連不到伺服器的 default）照舊依身分。*/
+    if (S.src === 'default' && !(acct() && acct().on && acct().on())) return f.kind === 'limit' ? f.def : true;
     const v = S.feats[id];
     /* 範本沒寫 → 依身分的預設（features.js defBy；點擊次數上限：訪客、註冊會員各有預設，付費不限）*/
     if (f.kind === 'limit') return Number.isInteger(v) ? Math.max(0, Math.min(f.max, v)) : (v === false ? 0 : F.defOf ? F.defOf(f, planKey()) : f.def);

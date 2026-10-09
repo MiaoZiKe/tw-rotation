@@ -20745,7 +20745,7 @@ def t_design_v4(b, base, code):
     click(pg, "#t4Btn", 400)
     ok("② 按「外觀」面板真的出現", pg.evaluate("""() => { const p = document.getElementById('t4Pop'); if (!p || p.hidden) return false;
         const r = p.getBoundingClientRect(); return r.width > 100 && r.bottom < innerHeight + 2 && r.right <= innerWidth + 1; }"""))
-    ok("② 面板裡三套風格", count(pg, "#t4Pop .t4o") == 3)
+    ok("② 面板裡兩套風格（10-10 休閒拿掉）", count(pg, "#t4Pop .t4o") == 2)
     # ★ 2026-10-03 去重：面板裡不准再有任何明暗控制（舊的 .t4m／data-t4m、標題「明暗」、寫著深色／淺色的按鈕），說明指向右上角 ☀／🌙
     # ★ 2026-10-09 審核：手機 v2（bcd2e633）把「明暗」段放進同一個 #t4Pop 的 DOM，桌機用 theme4.css
     #   `:root:not(.m4) .t4pop .t4mode, .t4modeh{display:none}` 藏起來 —— 所以這裡只數**看得見的**，
@@ -20762,7 +20762,7 @@ def t_design_v4(b, base, code):
     ok("② 去重：面板裡沒有操作教學句（.t4hint 拿掉）", dd["hint"] == "", dd)
     seen = {}
     KEY_SEL = ["main .card h3", "#ovHeatCard .t4-lede", ".topbar .tab:not(.on)", "#t4Btn", "#m3Kpis, #hero"]
-    for th in ["casual", "hud", "pro"]:
+    for th in ["hud", "pro"]:   # 2026-10-10 Andy「休閒風格拿掉」：casual 不再是選項
         for md in ["dark", "light"]:
             _v4_popclick(pg, f'#t4Pop .t4o[data-t4="{th}"]', 900)
             pg.keyboard.press("Escape"); pg.wait_for_timeout(200)
@@ -20787,26 +20787,27 @@ def t_design_v4(b, base, code):
             ok(f"② {tag}：關鍵文字對比都 ≥ 4.5", not bad, cr)
             ok(f"② {tag}：熱力圖切完還在（有重畫、不是空白）",
                canvas_hash(pg, "#heat") not in ("no-canvas", "0"), canvas_hash(pg, "#heat"))
-    ok("② 六組主題的頁底 --bg 互不相同（變數真的換了，不是同一組）", len(set(seen.values())) == 6, seen)
+    ok("② 四組主題的頁底 --bg 互不相同（變數真的換了，不是同一組）", len(set(seen.values())) == 4, seen)
+    ok("② 10-10 休閒風格拿掉：面板只剩兩套（沒有 casual）", pg.evaluate("() => { document.getElementById('t4Btn').click(); const n = document.querySelectorAll('#t4Pop .t4o').length, c = !!document.querySelector('#t4Pop .t4o[data-t4=casual]'); document.dispatchEvent(new KeyboardEvent('keydown', {key: 'Escape'})); return n === 2 && !c; }"))
 
     # ---- ③ 重新整理保留
-    _v4_popclick(pg, '#t4Pop .t4o[data-t4="casual"]', 900)
+    _v4_popclick(pg, '#t4Pop .t4o[data-t4="pro"]', 900)
     pg.keyboard.press("Escape"); pg.wait_for_timeout(200)
     if st()["mode"] != "dark":
         theme_flip(pg, 1200)
     pg.goto("about:blank"); pg.goto(base + "#overview", wait_until="networkidle"); pg.wait_for_timeout(1800)
     s = st()
-    ok("③ 重新整理後還是親和休閒・深", s["t4"] == "casual" and s["mode"] == "dark", s)
+    ok("③ 重新整理後還是專業有力・深", s["t4"] == "pro" and s["mode"] == "dark", s)
     click(pg, "#t4Btn", 400)
-    ok("③ 重整後面板標的是親和休閒", pg.evaluate("() => document.querySelector('#t4Pop .t4o[data-t4=\"casual\"]').getAttribute('aria-pressed') === 'true'"))
+    ok("③ 重整後面板標的是專業有力", pg.evaluate("() => document.querySelector('#t4Pop .t4o[data-t4=\"pro\"]').getAttribute('aria-pressed') === 'true'"))
     pg.mouse.click(700, 600); pg.wait_for_timeout(300)
     ok("③ 點面板外面會收起來", pg.evaluate("() => document.getElementById('t4Pop').hidden"))
     theme_flip(pg, 1400)
     ok("③ ☀ 鈕（電腦版在頁首右上角）照舊切得動明暗", st()["mode"] == "light")
     click(pg, "#t4Btn", 300)
-    ok("③ ☀ 切完明暗之後面板的風格不變（還是親和休閒）、「外觀」鈕提示字寫淺色",
-       pg.evaluate("""() => document.querySelector('#t4Pop .t4o[data-t4="casual"]').getAttribute('aria-pressed') === 'true'
-           && document.documentElement.getAttribute('data-theme4') === 'casual' && /淺色/.test(document.getElementById('t4Btn').title)"""))
+    ok("③ ☀ 切完明暗之後面板的風格不變（還是專業有力）、「外觀」鈕提示字寫淺色",
+       pg.evaluate("""() => document.querySelector('#t4Pop .t4o[data-t4="pro"]').getAttribute('aria-pressed') === 'true'
+           && document.documentElement.getAttribute('data-theme4') === 'pro' && /淺色/.test(document.getElementById('t4Btn').title)"""))
     pg.keyboard.press("Escape")
 
     # ---- ⑤ 圖表共用規格
@@ -20842,7 +20843,7 @@ def t_design_v4(b, base, code):
     # ---- ⑥ 窄畫面：800 三套都不溢出；390 用「⋯」清單切
     c = b.new_context(viewport={"width": 800, "height": 900})
     p = c.new_page(); p.goto(base + "#overview", wait_until="networkidle"); p.wait_for_timeout(2000)
-    for th in ["casual", "hud", "pro"]:
+    for th in ["hud", "pro"]:   # 10-10 casual 拿掉
         p.evaluate(f"() => window.T4.set('{th}')"); p.wait_for_timeout(1400)
         ov = p.evaluate("() => document.documentElement.scrollWidth - document.documentElement.clientWidth")
         ok(f"⑥ 800 寬 {th}：沒有橫向捲軸", ov <= 1, ov)
@@ -22189,7 +22190,7 @@ def t_title_icons(pg, b, base, code):
     if not ok("★ [標題圖示 v4] theme4.css 有載入（有規則）、window.T4 在、三主題的 --bg 互不相同（才量得到六組對比）", has4, t4):
         return
     six = {}
-    for th in ("casual", "hud", "pro"):
+    for th in ("hud", "pro"):
         for mode in ("dark", "light"):
             for name, route in (("總覽", "overview"), ("個股", f"stock/{code}")):
                 pg.goto("about:blank")
@@ -22209,8 +22210,8 @@ def t_title_icons(pg, b, base, code):
                 six.setdefault(k, {"n": 0, "min": 99, "bg": cur[2]})
                 six[k]["n"] += m["n"]; six[k]["min"] = min(six[k]["min"], m["minCr"])
     print("  （標題圖示 v4 六組）" + "；".join(f"{k} 量 {v['n']} 個標題、最低 {v['min']}（--bg {v['bg']}）" for k, v in six.items()))
-    ok("[標題圖示 v4] 六組主題 × 深淺都真的量過（反向：判斷式沒有把這段跳掉）", len(six) == 6 and all(v["n"] > 0 for v in six.values()), six)
-    ok("[標題圖示 v4] 六組的 --bg 各不相同（證明每一組真的換了底色，不是同一組量六次）", len({v["bg"] for v in six.values()}) == 6,
+    ok("[標題圖示 v4] 兩套主題 × 深淺（4 組）都真的量過（反向：判斷式沒有把這段跳掉）", len(six) == 4 and all(v["n"] > 0 for v in six.values()), six)
+    ok("[標題圖示 v4] 四組的 --bg 各不相同（證明每一組真的換了底色）", len({v["bg"] for v in six.values()}) == 4,
        {k: v["bg"] for k, v in six.items()})
     # 還原成預設風格（T4.set 會寫 localStorage，不能把 pro 留給後面的段落）
     pg.evaluate("() => { window.T4.set('hud'); try { localStorage.removeItem('tw.theme4'); } catch (e) {} }")
@@ -29855,6 +29856,60 @@ def t_mobile_m4_indpie_1009(b, base, code):
         finally:
             ctx.close()
 
+# ★ 2026-10-10 手機圓餅放大1010（Andy：「圓餅圖需要調整與螢幕寬度相符 幫我放大的意思」「且下方的長條圖補上」）
+#   手機（html.m4）產業地圖「成交值占比」甜甜圈：框＝卡片內寬（不再卡在 340 上限、左右大空白）；
+#   圖例每一列名稱下面一條同色細長條，長度依占比（以最大那塊為滿格，彼此成正比）。桌機圖例沒有長條（.m4bar 只在 m4 長出）。
+#   驗：360／390／430 寬（is_mobile、has_touch、DPR2）—— ① canvas 寬 ≥ 卡片內寬 85% ② 每列都有長條、長條在名稱正下方、
+#   顏色＝色塊顏色 ③ 長條填色寬／最大者 ≈ 占比／最大占比（差 ≤ 3px）④ 整頁不橫捲；1440 桌機圖例一條 .m4bar 都沒有。
+def t_mobile_m4_pie1010(b, base, code):
+    T = "手機圓餅放大1010"
+    MEAS = """() => { const card = document.querySelector('#v-industry .gppie'), pie = document.getElementById('gpPie');
+        if (!card || !pie) return null; const cv = pie.querySelector('canvas'); if (!cv) return null;
+        const cs = getComputedStyle(card), inner = card.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
+        const rows = [...document.querySelectorAll('#gpLegend .lg')].map(r => { const bar = r.querySelector('.m4bar'), f = bar && bar.querySelector('s'), t = r.querySelector('.m4t'), sw = r.querySelector('i');
+          return { n: r.dataset.n, pc: parseFloat(r.querySelector('.pc').textContent), has: !!(bar && f),
+            fw: f ? f.getBoundingClientRect().width : 0, tw: bar ? bar.getBoundingClientRect().width : 0, h: f ? f.getBoundingClientRect().height : 0,
+            below: !!(bar && t) && bar.getBoundingClientRect().top >= t.getBoundingClientRect().bottom - 1,
+            sameCol: !!(f && sw) && getComputedStyle(f).backgroundColor === getComputedStyle(sw).backgroundColor }; });
+        return { inner, cvw: cv.getBoundingClientRect().width, rows, sw: document.documentElement.scrollWidth, vw: innerWidth }; }"""
+    for W in (360, 390, 430):
+        ctx = b.new_context(viewport={"width": W, "height": 844}, device_scale_factor=2, is_mobile=True, has_touch=True)
+        try:
+            ctx.add_init_script("try{ localStorage.setItem('tw.live.on','0'); localStorage.setItem('tw.tourDone','1'); }catch(e){}")
+            m = ctx.new_page()
+            m.on("pageerror", lambda e, W=W: fails.append(f"{T} {W} pageerror: {e} @ {m.url}"))
+            m.route("**/fonts.googleapis.com/**", lambda r: r.abort())
+            m.goto(base + "#industry", wait_until="domcontentloaded")
+            wait_until(m, "(() => { const p = document.getElementById('gpPie'); return !!(p && p.querySelector('canvas') && document.querySelectorAll('#gpLegend .lg').length && document.documentElement.classList.contains('m4')); })()", 15000)
+            m.wait_for_timeout(1200)
+            d = m.evaluate(MEAS)
+            if not ok(f"【{T}】{W} 寬：找得到甜甜圈 canvas 與圖例", bool(d and d["rows"]), d):
+                continue
+            ok(f"【{T}】{W} 寬：甜甜圈 canvas 寬 {d['cvw']:.0f} ≥ 卡片內寬 {d['inner']:.0f} 的 85%", d["cvw"] >= d["inner"] * 0.85, d["cvw"] / max(d["inner"], 1))
+            rows = d["rows"]
+            ok(f"【{T}】{W} 寬：圖例 {len(rows)} 列每列都有長條、在名稱正下方、跟色塊同色、高 ≥ 3px",
+               all(r["has"] and r["below"] and r["sameCol"] and r["h"] >= 3 for r in rows), rows)
+            pmax = max(r["pc"] for r in rows) or 1
+            fmax = max(r["fw"] for r in rows) or 1
+            bad = [r for r in rows if abs(r["fw"] - r["pc"] / pmax * fmax) > 3 and r["fw"] > 2.5]
+            ok(f"【{T}】{W} 寬：長條長度與占比成正比（最大一列 {fmax:.0f}px＝{pmax}%，誤差 ≤ 3px）",
+               not bad and fmax >= 0.9 * rows[0]["tw"], {"不成比例": bad, "rows": [(r["n"], r["pc"], round(r["fw"], 1)) for r in rows]})
+            ok(f"【{T}】{W} 寬：整頁不橫捲（{d['sw']}／{d['vw']}）", d["sw"] <= d["vw"], d["sw"])
+        finally:
+            ctx.close()
+    # 桌機（1440，非 m4）：圖例一條 .m4bar 都沒有（桌機 DOM 不變）
+    ctx = b.new_context(viewport={"width": 1440, "height": 900})
+    try:
+        ctx.add_init_script("try{ localStorage.setItem('tw.live.on','0'); localStorage.setItem('tw.tourDone','1'); }catch(e){}")
+        m = ctx.new_page()
+        m.route("**/fonts.googleapis.com/**", lambda r: r.abort())
+        m.goto(base + "#industry", wait_until="domcontentloaded")
+        wait_until(m, "(() => document.querySelectorAll('#gpLegend .lg').length > 0)()", 15000)
+        dk = m.evaluate("() => ({ m4: document.documentElement.classList.contains('m4'), bars: document.querySelectorAll('#gpLegend .m4bar').length, n: document.querySelectorAll('#gpLegend .lg').length })")
+        ok(f"【{T}】桌機 1440：圖例沒有手機長條（.m4bar {dk['bars']} 條）", not dk["m4"] and dk["bars"] == 0 and dk["n"] > 0, dk)
+    finally:
+        ctx.close()
+
 # ★ 2026-10-09 手機拖曳邊界1009（Andy 04:1x：「所有圖扁長寬到了就好，不可以他長度原本是那樣，但還能一直滑過頭超出範圍」）
 #   手機（html.m4）每一種能拖、能平移、能縮放的圖：放大後往四個方向各用手指拖一大段（比內容還長）＋一次快速甩動（慣性），
 #   每次都量「內容外框仍蓋滿整個可視框、四邊沒有空白」；1× 時拖不動。K 線拖到兩端與縮到最小不能露出資料外的空白；
@@ -32596,7 +32651,9 @@ SECTIONS = {
     # ★ 2026-09-27 手機總覽最上方：指數三格（可左右滑）＋觀察清單（2026-09-27 起是自選清單目前那一頁：localStorage tw.watchlists，只存代號；site/mobile3.js G 段＋site/watchlists.js）
     "手機總覽指數觀察清單": lambda pg, b, base, code: t_mobile_home(b, base, code),
     # ★ 2026-10-08 手機 v2（docs/mobile_v2_plan.md；site/mobile4.js）：側欄抽屜、每頁第一屏、字級／觸控、主要切換真的點得動
-    "手機v2":              lambda pg, b, base, code: (t_mobile_m4_etf2_1009(b, base, code), t_mobile_m4_etfqa_1009(b, base, code), t_m4_xpetf_1009(b, base), t_mobile_m4(b, base, code), t_mobile_m4_1008(b, base, code), t_mobile_m4_charts_1009(b, base, code), t_mobile_m4_1009(b, base, code), t_mobile_m4_market(b, base, code), t_mobile_m4_misc1009(b, base, code), t_mobile_m4_mkset1009(b, base, code), t_mobile_m4_ov2(b, base, code), t_mobile_m4_foldread1009(b, base, code)),
+    "手機v2":              lambda pg, b, base, code: (t_mobile_m4_etf2_1009(b, base, code), t_mobile_m4_etfqa_1009(b, base, code), t_m4_xpetf_1009(b, base), t_mobile_m4(b, base, code), t_mobile_m4_1008(b, base, code), t_mobile_m4_charts_1009(b, base, code), t_mobile_m4_1009(b, base, code), t_mobile_m4_market(b, base, code), t_mobile_m4_misc1009(b, base, code), t_mobile_m4_mkset1009(b, base, code), t_mobile_m4_ov2(b, base, code), t_mobile_m4_foldread1009(b, base, code), t_mobile_m4_pie1010(b, base, code)),
+    # ★ 2026-10-10 手機圓餅放大＋圖例長條（Andy：「圓餅圖需要調整與螢幕寬度相符」「下方的長條圖補上」）單獨跑：手機v2 也包含這一段
+    "手機圓餅放大1010":    lambda pg, b, base, code: t_mobile_m4_pie1010(b, base, code),
     # ★ 2026-10-09 手機總覽 ov2（Andy 09:1x／09:3x／09:4x）單獨跑：手機v2 也包含這一段
     # ★ 2026-10-09 手機 v2 圖表跟網頁版同一套（claude/m4-charts）單獨跑：手機v2 也包含這一段
     "手機v2圖表1009":       lambda pg, b, base, code: t_mobile_m4_charts_1009(b, base, code),
@@ -32900,6 +32957,8 @@ SECTIONS = {
     "手機品牌1009":        lambda pg, b, base, code: t_m4_brand_1009(b, base),
     # ★ 2026-10-08 晚 Andy 313：「熱門題材、資金熱力圖，點擊會到該個股的功能需要權限設定，只有 Plus 以上才可以」（訪客／免費／Plus／Pro 走每條熱力圖跳頁路徑；桌機＋手機觸控）
     "熱力圖跳個股1008":    lambda pg, b, base, code: t_heat_plus_1008(b, base),
+    # ★ 2026-10-10 Andy：「ETF 試算 註冊的免費會員 改成只能看 5 次，上面參數都不可以調整（包含複利表）」＋「ETF 報酬比較 與 複利試算表 不開放此會員等級」
+    "ETF試算免費限制1010": lambda pg, b, base, code: t_etf_inc_free_1010(b, base),
     # ★ 2026-09-28 Andy：「所有標題加上小圖示，顏色要搭配」—— 覆蓋、對比 ≥3:1（深淺）、1440／800／390 不擠（A/B）、動效（⚠ 一律 --workers 1）
     "標題圖示":            lambda pg, b, base, code: t_title_icons(pg, b, base, code),
     # ★ 2026-09-30 Andy：部分股票 1 小時／4 小時找不到資料 —— 60 分 K 擴到全市場、每檔獨立 m60 檔、沒有時寫一句話
@@ -59080,7 +59139,7 @@ def t_member_perm(b, base, code):
         ad.press("#pmEmail", "Enter")
         wait_until(ad, "() => /尚未登入過/.test((document.getElementById('pmWho') || {}).textContent || '')", 6000)
         ok(f"{T}：輸入 email 讀取（大小寫不分）→ 顯示「尚未登入過」與目前方案", PERM_TEST_EMAIL in ad.inner_text("#pmWho") and "免費會員" in ad.inner_text("#pmWho"), ad.inner_text("#pmWho"))
-        ok(f"{T}：讀到人之後開關可以撥、全部預設開啟（熱力圖點擊跳頁例外：權限矩陣 1008 訪客／註冊會員預設關）", ad.evaluate("() => [...document.querySelectorAll('#pmCats input[role=switch]')].every(i => !i.disabled && (i.checked || i.dataset.f === 'heat.link'))"))
+        ok(f"{T}：讀到人之後開關可以撥、全部預設開啟（熱力圖點擊跳頁、10-10 的 ETF 試算自訂參數／報酬比較／複利試算表例外：訪客／註冊會員預設關）", ad.evaluate("() => [...document.querySelectorAll('#pmCats input[role=switch]')].every(i => !i.disabled && (i.checked || ['heat.link', 'etf.inc.params', 'etf.cmp', 'etf.inc.comp'].includes(i.dataset.f)))"))
 
         def save(pg=None):
             """2026-10-04 起撥開關只是草稿，按底部「儲存」才送 perm/put；回傳那一次的回應"""
@@ -61697,7 +61756,7 @@ def t_design_v4_2a(b, base, code):
     ctx.close()
 
     # ---- ⑦ 三主題 × 深淺
-    for th in ("casual", "hud", "pro"):
+    for th in ("hud", "pro"):
         for md in ("dark", "light"):
             c2 = b.new_context(viewport={"width": 1440, "height": 900})
             c2.add_init_script(f"try{{localStorage.setItem('tw.theme4','{th}');localStorage.setItem('tw.theme','{md}');}}catch(e){{}}")
@@ -62009,7 +62068,7 @@ def t_design_v4_2b(b, base, code):
     ctx.close()
 
     # ---- ⑨ 三主題 × 深淺
-    for th in ("casual", "hud", "pro"):
+    for th in ("hud", "pro"):
         for md in ("dark", "light"):
             c2 = b.new_context(viewport={"width": 1440, "height": 900})
             c2.add_init_script(f"try{{localStorage.setItem('tw.theme4','{th}');localStorage.setItem('tw.theme','{md}');}}catch(e){{}}")
@@ -62836,7 +62895,7 @@ def t_layout4_batch3(pg, base, code, T):
     ok(f"{T}第四批④ 去重：右上角外觀面板只剩「版面風格」三選一（沒有明暗二段式），說明寫「用右上角 ☀／🌙 切換」",
        pp["open"] and pp["t4m"] == 0 and pp["modeBtns"] == 0 and pp["h4"] == ["版面風格"] and pp["opts"] == 3 and "☀／🌙" in pp["hint"], pp)
     t0 = pg.evaluate("() => [document.documentElement.getAttribute('data-theme4') || 'hud', document.documentElement.getAttribute('data-theme') || 'dark', getComputedStyle(document.body).backgroundColor]")
-    want = "pro" if t0[0] != "pro" else "casual"
+    want = "pro" if t0[0] != "pro" else "hud"   # 10-10 casual 拿掉
     pg.locator(f"#t4Pop .t4o[data-t4='{want}']").click(timeout=6000); pg.wait_for_timeout(1600)
     t1 = pg.evaluate("() => [document.documentElement.getAttribute('data-theme4'), document.documentElement.getAttribute('data-theme') || 'dark', getComputedStyle(document.body).backgroundColor, localStorage.getItem('tw.theme4'), document.getElementById('themeBtn').textContent.trim()]")
     ok(f"{T}第四批④ 面板切風格照舊：data-theme4／localStorage／底色都換，明暗不動、☀ 圖示不變",
@@ -66539,7 +66598,7 @@ def t_acct_menu_1009(b, base, code):
             s0 = pg.evaluate(SEGM)
             seg_ok("（430）", s0)
             ok(f"【{T}】{who}（430）：寬度夠時標題與分段在同一排（垂直中線：標題 {s0['lblTop']}、分段 {s0['segTop']}）", abs(s0["lblTop"] - s0["segTop"]) <= 3, s0)
-            pick = "pro" if s0["t4"] != "pro" else "hud"
+            pick = "pro" if s0["t4"] != "pro" else "hud"   # 10-10 casual 拿掉
             pg.locator(f"#acctMenu [data-m=sty][data-sty={pick}]").tap()
             pg.wait_for_timeout(700)
             s1 = pg.evaluate(SEGM)
@@ -66787,6 +66846,217 @@ def t_billing_1009(b, base, shots):
         ok(f"【{T}】Worker 未部署：不提供試用、兩項停用寫「尚未開放」",
            not pg.evaluate("() => document.documentElement.classList.contains('trial-ok')") and len(it) == 2 and all(x["dis"] and "尚未開放" in x["t"] for x in it), it)
     c.close()
+
+
+# ===================================================================== ETF試算免費限制1010（site/etfpage.js 參數鎖；features.js etf.inc.params／etf.cmp／etf.inc.comp）
+# Andy 10-10：「ETF 試算 註冊的免費會員 改成只能看 5 次，上面參數都不可以調整（包含複利表）」
+#   ＋ 00:4x：「ETF 報酬比較 與 複利試算表 不開放此會員等級」
+#   ＋ 同日：「這種訊息不要用跳出的方式表示，功能反灰旁邊備註就好」→ 全部改成「反灰＋旁邊一行字」，不跳任何視窗、升級卡、提示框。
+# 驗法（假 Worker，_sub_ctx）：免費會員範本只寫 etf.cashflow 開＋每日 5 次（＝套用新建議方案後的樣子），三個新鍵一律不寫 —— 驗「範本沒寫時依身分預設關」。
+#   ① 免費會員：同一個瀏覽器開 6 個分頁進 #etf/inc，前 5 個看得到試算、第 6 個原位置一行字「今日次數已用完・Plus 以上可增加」（不是大卡）
+#   ② 第 1 個分頁：參數全鎖 —— 真的用滑鼠點金額、年領／月領、範圍、二代健保、自訂金額框、報酬期間、組合分頁、右側取消勾選、回前 5，
+#      每一下：沒有任何彈出層、參數列旁有「Plus 以上可自訂參數」、試算的 dataset.k（目標｜金額｜範圍｜健保｜期間｜分頁）與主圖的代號完全不變；
+#      localStorage 先塞「月領 3 萬・債券型・扣健保・組合分頁」也不吃（一律預設值）；排序鈕照樣能換（dataset.k 的排序欄位變了）
+#   ③ 免費會員：複利試算表分頁鈕反灰＋「Plus 以上可查看」，點進去原位置反灰示意＋一行字；ETF 總覽「報酬比較」標題在、內容反灰＋一行字、「加入比較」反灰點了不展開，全程不彈出
+#   ④ Plus：沒有鎖、點金額 dataset.k 真的變、複利試算表看得到內容且起始日快捷鈕能改起始日、報酬比較內容沒蓋
+#   ⑤ 免費會員＋體驗額度今天打開 etf.cashflow（/v1/grants/me）→ 參數可調（點金額 dataset.k 變）
+#   ⑥ 手機 390 觸控：免費會員點條件摘要鈕 → 沒反應（不開抽屜、不彈出）、摘要鈕下方有備註字；沒有橫向捲軸
+#   ⑦ 管理者 #admin/perm 看得到三個新鍵的開關
+ETFL_K = "() => { const e = document.getElementById('etfInc'); return e ? e.dataset.k || '' : ''; }"
+ETFL_CODES = "() => { const e = document.getElementById('incBar'); return e ? e.dataset.codes || '' : ''; }"
+# 任何彈出層：置中卡（qcModal）、權限提示框（permToast）、手機底部抽屜、其他看得見的 role=dialog
+ETFL_POP = """() => { const v = (e) => !!e && !e.hidden && e.getClientRects().length > 0 && getComputedStyle(e).visibility !== 'hidden';
+  const out = [];
+  [['qcModal', document.getElementById('qcModal')], ['permToast', document.getElementById('permToast')], ['sheet', document.querySelector('#mSheet.on, #mSheet:not([hidden])')]].forEach(([k, e]) => { if (v(e)) out.push(k); });
+  document.querySelectorAll('[role=dialog], [aria-modal=true]').forEach((e) => { if (v(e) && !out.includes(e.id)) out.push(e.id || e.className || 'dialog'); });
+  return out.join(','); }"""
+
+
+def _etfl_ready(pg, timeout=25000):
+    return wait_until(pg, "() => { const e = document.getElementById('etfInc'); return !!e && !e.hidden && !!e.dataset.k && !!document.querySelector('#incBar canvas'); }", timeout)
+
+
+def t_etf_inc_free_1010(b, base):
+    T = "ETF試算免費限制1010"
+    errs: list[str] = []
+    free_feats = {"etf.cashflow": True}
+    free_lims = {"etf.cashflow": 5}
+    # ---------------- ① ② ③ 免費會員
+    c, sent, st = _sub_ctx(b, "member", plan="free", feats=free_feats, lims=free_lims)
+    c.add_init_script("""try { if (!sessionStorage.getItem('etflSeed')) { sessionStorage.setItem('etflSeed', '1');
+      localStorage.setItem('tw.etf.inc.mode', 'm'); localStorage.setItem('tw.etf.inc.mon', '30000'); localStorage.setItem('tw.etf.inc.scope', 'bond');
+      localStorage.setItem('tw.etf.inc.nhi', '1'); localStorage.setItem('tw.etf.inc.tab', 'c'); localStorage.setItem('tw.etf.inc.main', 'm'); } } catch (e) {}""")
+    try:
+        for i in range(6):
+            pg = c.new_page()
+            pg.on("pageerror", lambda e: errs.append(str(e)))
+            pg.goto(base + "#etf/inc", wait_until="domcontentloaded")
+            wait_until(pg, "() => window.TwPerm && TwPerm.state().src === 'server' && !!window.TwQuota", 15000)
+            if i < 5:
+                got = _etfl_ready(pg)
+                pg.wait_for_timeout(400)
+                card = pg.evaluate("() => !!document.querySelector('#etfInc[data-qlk]')")
+                ok(f"{T}【免費會員】第 {i + 1} 次進現金流試算：看得到試算、沒有次數用完", bool(got) and not card, (got, card))
+                if i == 0:
+                    _etfl_free_page(pg, T)
+            else:
+                cov = wait_until(pg, "() => { const e = document.getElementById('etfInc'); const n = e && e.hasAttribute('data-qlk') && e.querySelector(':scope > .qcov .qcnote'); return n ? n.innerText : ''; }", 12000)
+                big = pg.evaluate("() => !!document.querySelector('#etfInc > .qcov .qc-go, #etfInc > .qcov .qc-h')")
+                ok(f"{T}【免費會員】第 6 次：試算位置一行字「今日次數已用完・Plus 以上可增加」（不是大卡、沒有升級大按鈕）、沒有彈出層",
+                   "今日次數已用完" in (cov or "") and "Plus 以上可增加" in (cov or "") and not big and not pg.evaluate(ETFL_POP), (cov, big, pg.evaluate(ETFL_POP)))
+                if os.environ.get("TW_ETFL_SHOTS"):
+                    pathlib.Path(os.environ["TW_ETFL_SHOTS"]).mkdir(parents=True, exist_ok=True)
+                    pg.wait_for_timeout(600); pg.screenshot(path=str(pathlib.Path(os.environ["TW_ETFL_SHOTS"]) / "free_6th_used_up_1440.png"))
+                used = pg.evaluate("() => TwQuota.used('etf.cashflow').length")
+                ok(f"{T}【免費會員】本機記到今天看了 5 個單位（第 6 個沒有被記進去）", used == 5, used)
+        hits = [x for x in sent if x[0] == "/v1/quota/hit" and (x[1] or {}).get("k") == "etf.cashflow" and (x[1] or {}).get("key")]
+        ok(f"{T}【免費會員】每一次都有送 /v1/quota/hit（鍵 etf.cashflow），共 5 個不同單位", len({h[1]["key"] for h in hits}) == 5, len(hits))
+    finally:
+        c.close()
+    # ---------------- ④ Plus
+    c, sent, st = _sub_ctx(b, "member", plan="plus", feats={}, lims={})
+    try:
+        pg = c.new_page(); pg.on("pageerror", lambda e: errs.append(str(e)))
+        pg.goto(base + "#etf/inc", wait_until="domcontentloaded")
+        wait_until(pg, "() => window.TwPerm && TwPerm.state().src === 'server'", 15000)
+        _etfl_ready(pg); pg.wait_for_timeout(400)
+        ok(f"{T}【Plus】參數沒鎖（沒有 data-inclk、沒有備註字）、複利分頁鈕沒有反灰", pg.evaluate("() => !document.getElementById('etfInc').hasAttribute('data-inclk') && !document.querySelector('.inclknote, .inctabnote') && !document.querySelector('#incMain button.lkc')"))
+        k0 = pg.evaluate(ETFL_K)
+        tgt = "2000000" if "|2000000|" not in k0 else "500000"
+        pg.click(f"#incAmtSeg button[data-v='{tgt}']"); pg.wait_for_timeout(500)
+        k1 = pg.evaluate(ETFL_K)
+        ok(f"{T}【Plus】點金額 → 試算真的換（dataset.k 有 {tgt}）", f"|{tgt}|" in k1, (k0, k1))
+        pg.click("#incMain button[data-v='x']")
+        okx = wait_until(pg, "() => { const e = document.getElementById('cxChart'); return e && e.dataset.state === 'ok' ? e.dataset.from : ''; }", 25000)
+        ok(f"{T}【Plus】複利試算表看得到內容（沒蓋）", bool(okx) and not pg.evaluate("() => document.getElementById('incPX').hasAttribute('data-plk')"), okx)
+        pg.click("#cxQuick button[data-v='1']")
+        f1 = wait_until(pg, f"() => {{ const e = document.getElementById('cxChart'); return e && e.dataset.state === 'ok' && e.dataset.from !== '{okx}' ? e.dataset.from : ''; }}", 15000)
+        ok(f"{T}【Plus】複利：按「1 年」起始日真的換", bool(f1), (okx, f1))
+        pg.evaluate("() => { location.hash = '#etf/list'; }")
+        wait_until(pg, "() => document.querySelector('#v-etf') && document.querySelector('#v-etf').dataset.ready === 'full' && !document.getElementById('etfRetCard').hidden", 20000)
+        pg.wait_for_timeout(800)
+        ok(f"{T}【Plus】ETF 總覽「報酬比較」內容沒蓋、標題列沒反灰", pg.evaluate("() => !document.getElementById('etfRetBody').hasAttribute('data-plk') && !document.getElementById('etfRetCard').hasAttribute('data-cmplk')"))
+    finally:
+        c.close()
+    # ---------------- ⑤ 免費會員＋體驗額度今天打開 etf.cashflow
+    c, sent, st = _sub_ctx(b, "member", plan="free", feats=free_feats, lims=free_lims)
+    now = int(time.time() * 1000)
+    gme = {"grants": [{"gid": "promo-launch", "name": "上市體驗週", "kind": "promo", "start": now - 86400000, "end": now + 86400000 * 7, "per": "total",
+                       "feats": {"etf.cashflow": {"max": 5, "used": 1, "left": 4}}}], "today": {"etf.cashflow": ["d"]}}
+    c.route(SUB_API + "/v1/grants/me", lambda r: r.fulfill(status=200, body=json.dumps(gme), headers={"access-control-allow-origin": "*", "content-type": "application/json"}))
+    try:
+        pg = c.new_page(); pg.on("pageerror", lambda e: errs.append(str(e)))
+        pg.goto(base + "#etf/inc", wait_until="domcontentloaded")
+        wait_until(pg, "() => window.TwPerm && TwPerm.state().src === 'server' && window.TwGrants && TwGrants.open('etf.cashflow')", 15000)
+        _etfl_ready(pg)
+        unl = wait_until(pg, "() => !document.getElementById('etfInc').hasAttribute('data-inclk')", 6000)
+        k0 = pg.evaluate(ETFL_K)
+        pg.click("#incAmtSeg button[data-v='2000000']"); pg.wait_for_timeout(500)
+        k1 = pg.evaluate(ETFL_K)
+        ok(f"{T}【免費會員＋體驗打開】參數放開：點 200 萬 → 試算真的換", bool(unl) and "|2000000|" in k1, (unl, k0, k1))
+    finally:
+        c.close()
+    # ---------------- ⑥ 手機 390 觸控
+    c, sent, st = _sub_ctx(b, "member", plan="free", feats=free_feats, lims=free_lims, width=390, touch=True)
+    try:
+        pg = c.new_page(); pg.on("pageerror", lambda e: errs.append(str(e)))
+        pg.goto(base + "#etf/inc", wait_until="domcontentloaded")
+        wait_until(pg, "() => window.TwPerm && TwPerm.state().src === 'server'", 15000)
+        _etfl_ready(pg)
+        has = wait_until(pg, "() => { const b = document.getElementById('m4EtfSet-inc'); return !!b && b.getClientRects().length > 0; }", 8000)
+        if ok(f"{T}【手機 390】條件摘要鈕在", bool(has)):
+            note = pg.evaluate("() => { const n = document.querySelector('#incPM > .inclknote.m4o'); return n && n.getClientRects().length ? n.innerText : ''; }")
+            ok(f"{T}【手機 390】摘要鈕下方有備註字「Plus 以上可自訂參數」", "Plus 以上可自訂參數" in note, note)
+            k0 = pg.evaluate(ETFL_K)
+            pg.locator("#m4EtfSet-inc").tap(); pg.wait_for_timeout(500)
+            pop = pg.evaluate(ETFL_POP)
+            sheet = pg.evaluate("() => !!document.getElementById('m4EtfSegs')")
+            ok(f"{T}【手機 390】免費會員點條件摘要鈕 → 沒反應：不開抽屜、沒有彈出層、試算不變", not pop and not sheet and pg.evaluate(ETFL_K) == k0, (pop, sheet))
+        ok(f"{T}【手機 390】沒有橫向捲軸", pg.evaluate("() => document.documentElement.scrollWidth <= window.innerWidth + 1"),
+           pg.evaluate("() => [document.documentElement.scrollWidth, window.innerWidth]"))
+    finally:
+        c.close()
+    # ---------------- ⑦ 管理區看得到三個新鍵
+    c, sent, st = _sub_ctx(b, "admin")
+    try:
+        pg = c.new_page(); pg.on("pageerror", lambda e: errs.append(str(e)))
+        pg.goto(base + "#admin/perm", wait_until="domcontentloaded")
+        found = wait_until(pg, "() => ['etf.inc.params', 'etf.cmp', 'etf.inc.comp'].every(k => document.querySelector(`input[data-f=\"${k}\"]`))", 15000)
+        ok(f"{T}【管理區】#admin/perm 有三個新鍵的開關（ETF 試算自訂參數、報酬比較、複利試算表）", bool(found))
+    finally:
+        c.close()
+    ok(f"{T}：整段沒有 JS 錯誤", not errs, errs[:3])
+
+
+def _etfl_free_page(pg, T):
+    """免費會員第 1 個分頁：參數鎖、複利需開通、報酬比較需開通（都用滑鼠真的點；全程不准有彈出層）"""
+    lk = wait_until(pg, "() => { const e = document.getElementById('etfInc'), n = document.querySelector('#incPM .incctl > .inclknote'); return e.hasAttribute('data-inclk') && n && n.getClientRects().length ? n.innerText : ''; }", 8000)
+    k0 = pg.evaluate(ETFL_K)
+    ok(f"{T}【免費會員】參數鎖住＋參數列旁一行字「Plus 以上可自訂參數」", "Plus 以上可自訂參數" in (lk or ""), (lk, k0))
+    ok(f"{T}【免費會員】localStorage 裡上次的參數（月領 3 萬・債券型・扣健保・組合）不吃 → 一律預設：年領 100 萬・配息型・不扣・近 5 年・單檔",
+       k0.startswith("y|1000000|") and "|div|0|5y|s|m" in k0, k0)
+    dim = pg.evaluate("() => { const g = document.querySelector('#incMode').closest('.grp'); const cs = getComputedStyle(g); return [+cs.opacity, cs.cursor]; }")
+    ok(f"{T}【免費會員】參數控制反灰（透明度 ≤ .6）、游標 not-allowed", dim[0] <= 0.6 and dim[1] == "not-allowed", dim)
+    codes0 = pg.evaluate(ETFL_CODES)
+    tries = [("金額 200 萬", "#incAmtSeg button[data-v='2000000']"), ("月領", "#incMode button[data-v='m']"), ("範圍 債券型", "#incScope button[data-v='bond']"),
+             ("二代健保", "#incNhi"), ("自訂金額框", "#incAmt"), ("報酬期間", "#etfIncRng"), ("組合分頁", "#incTabs button[data-v='c']"),
+             ("右側清單取消勾選", "#incList .ilr.in > input[type=checkbox]"), ("回前 5", "#incReset")]
+    for name, sel in tries:
+        loc = pg.locator(sel).first
+        if not loc.count():
+            ok(f"{T}【免費會員】找得到「{name}」（{sel}）", False)
+            continue
+        loc.scroll_into_view_if_needed()
+        bx = loc.bounding_box()
+        pg.mouse.click(bx["x"] + bx["width"] / 2, bx["y"] + bx["height"] / 2); pg.wait_for_timeout(350)
+        pop = pg.evaluate(ETFL_POP)
+        k1, c1 = pg.evaluate(ETFL_K), pg.evaluate(ETFL_CODES)
+        ok(f"{T}【免費會員】點「{name}」→ 沒有彈出層、試算與主圖不變", not pop and k1 == k0 and c1 == codes0, (pop, k0, k1))
+    pg.keyboard.type("3000000"); pg.keyboard.press("Enter"); pg.wait_for_timeout(300)
+    ok(f"{T}【免費會員】勾選框還是勾著、金額框與二代健保停用（鍵盤打字也改不了）",
+       pg.evaluate("() => document.querySelector('#incList .ilr.in > input').checked && document.getElementById('incAmt').disabled && document.getElementById('incNhi').disabled") and pg.evaluate(ETFL_K) == k0)
+    # 排序不算參數：照樣能換
+    pg.click("#incSort button[data-v='tr']"); pg.wait_for_timeout(500)
+    k2 = pg.evaluate(ETFL_K)
+    ok(f"{T}【免費會員】排序鈕照樣能換（含息總報酬）", k2.split("|")[3] == "tr" and not pg.evaluate(ETFL_POP), (k0, k2))
+    pg.click("#incSort button[data-v='y']"); pg.wait_for_timeout(300)
+    # 複利試算表：分頁鈕反灰＋小字；點進去原位置反灰示意＋一行字
+    tab = pg.evaluate("() => { const b = document.querySelector('#incMain button[data-v=\"x\"]'); const n = b && b.querySelector('.inctabnote'); return { lkc: b.classList.contains('lkc'), note: n ? n.innerText : '' }; }")
+    ok(f"{T}【免費會員】複利試算表分頁鈕反灰＋小字「Plus 以上可查看」", tab["lkc"] and "Plus 以上可查看" in tab["note"], tab)
+    pg.click("#incMain button[data-v='x']"); pg.wait_for_timeout(600)
+    cov = wait_until(pg, "() => { const e = document.getElementById('incPX'); const n = e && !e.hidden && e.hasAttribute('data-plk') && e.querySelector(':scope > .qcov .qcnote'); return n ? n.innerText : ''; }", 6000)
+    big = pg.evaluate("() => !!document.querySelector('#incPX > .qcov .qc-go, #incPX > .qcov .qc-h')")
+    ok(f"{T}【免費會員】點複利試算表 → 原位置反灰示意＋一行字「Plus 以上可查看」（不是大卡）、沒有彈出層",
+       "Plus 以上可查看" in (cov or "") and not big and not pg.evaluate(ETFL_POP), (cov, big))
+    ok(f"{T}【免費會員】複利的起始日、對象點不到（內容 inert）", pg.evaluate("() => { const e = document.getElementById('cxFrom'); return !!e && !!e.closest('[inert]'); }"))
+    pg.click("#incMain button[data-v='m']"); pg.wait_for_timeout(400)
+    # ETF 總覽 報酬比較：標題留著、內容反灰＋一行字、標題列控制反灰不動作
+    pg.evaluate("() => { location.hash = '#etf/list'; }")
+    wait_until(pg, "() => !document.getElementById('etfRetCard').hidden", 10000)
+    cov = wait_until(pg, "() => { const e = document.getElementById('etfRetBody'); const n = e && e.hasAttribute('data-plk') && e.querySelector(':scope > .qcov .qcnote'); return n ? n.innerText : ''; }", 8000)
+    ttl = pg.evaluate("() => { const h = document.querySelector('#etfRetCard h3'); return h && h.getClientRects().length && !h.closest('[data-plk]') ? h.innerText : ''; }")
+    ok(f"{T}【免費會員】ETF 總覽「報酬比較」：標題看得到、內容反灰＋一行字「Plus 以上可查看」", "Plus 以上可查看" in (cov or "") and "報酬比較" in ttl, (cov, ttl))
+    pg.locator("#etfCmpDD .ddbtn").scroll_into_view_if_needed()
+    bx = pg.locator("#etfCmpDD .ddbtn").bounding_box()
+    pg.mouse.click(bx["x"] + bx["width"] / 2, bx["y"] + bx["height"] / 2); pg.wait_for_timeout(400)
+    ok(f"{T}【免費會員】報酬比較「加入比較」反灰、按了不展開、沒有彈出層",
+       pg.evaluate("() => document.querySelector('#etfCmpDD .ddpanel').hidden && +getComputedStyle(document.getElementById('etfRetCtl')).opacity <= 0.6") and not pg.evaluate(ETFL_POP), pg.evaluate(ETFL_POP))
+    pg.evaluate("() => { location.hash = '#etf/inc'; }")
+    _etfl_ready(pg)
+    # 截圖（TW_ETFL_SHOTS＝資料夾）
+    sh = os.environ.get("TW_ETFL_SHOTS")
+    if sh:
+        pathlib.Path(sh).mkdir(parents=True, exist_ok=True)
+        pg.wait_for_timeout(800)
+        pg.evaluate("() => window.scrollTo(0, 0)")
+        pg.screenshot(path=str(pathlib.Path(sh) / "free_locked_1440.png"))
+        pg.click("#incMain button[data-v='x']"); pg.wait_for_timeout(1200)
+        pg.screenshot(path=str(pathlib.Path(sh) / "free_compound_locked_1440.png"))
+        pg.click("#incMain button[data-v='m']"); pg.wait_for_timeout(300)
+        pg.evaluate("() => { location.hash = '#etf/list'; }"); pg.wait_for_timeout(1500)
+        pg.locator("#etfRetCard").scroll_into_view_if_needed(); pg.wait_for_timeout(500)
+        pg.screenshot(path=str(pathlib.Path(sh) / "free_returns_locked_1440.png"))
+        pg.evaluate("() => { location.hash = '#etf/inc'; }"); _etfl_ready(pg)
 
 
 if __name__ == "__main__":
