@@ -58333,8 +58333,9 @@ def t_m4_sync_1009(b, base, code):
         else:
             ok(f"{T}【個股 2330】除權息：這檔沒有殖利率線（略過顏色檢查）", True, r)
     # 2026-10-09（m4-pecolor）：財務 → 本益比：「期間最高／最低」以前是紅／綠線 → 灰色虛線；本益比線同桌機改紫
-    if pg.evaluate("() => !!document.querySelector('#mbTabs button[data-t=fin]')"):
-        tab("fin"); seg("fin", "pe")
+    # 10-10 手機個股照桌機版型：「財務」分頁併進「獲利」→ 本益比是獲利的一段（data-tab=profit, data-s=pe）
+    if pg.evaluate("() => !!document.querySelector('#mbTabs button[data-t=profit]')"):
+        tab("profit"); seg("profit", "pe")
         pg.evaluate("() => document.getElementById('mbChart') && document.getElementById('mbChart').scrollIntoView({ block: 'center' })"); pg.wait_for_timeout(300)
         chk("財務 本益比", ["本益比"], "violet")
         r = chk("財務 本益比", ["最高", "最低"], "ink3")
@@ -58342,7 +58343,7 @@ def t_m4_sync_1009(b, base, code):
            bool(r) and len(r["s"]) == 2 and all(x["ty"] == "dashed" for x in r["s"]), r)
         shot(pg, "pe_390_fin_pe.png")
     else:
-        ok(f"{T}【個股 2330】找得到「財務」分頁", False)
+        ok(f"{T}【個股 2330】找得到「獲利」分頁（本益比段）", False)
     c.close()
     ok(f"{T}：沒有 JS 錯誤", not errs, errs[:3])
 
