@@ -66,3 +66,6 @@ docs/_mobile_tap*/
 site_paid/
 etf_census_1008.tsv
 etf_cover_1008.tsv
+
+# 動畫設計單位 gif_pipeline.py 的檢查圖（只看不進版控）
+site/brand/_check/

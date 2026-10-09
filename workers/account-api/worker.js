@@ -2338,3 +2338,331 @@ const billOrigExpInit = Hub.prototype.expInit;
 Hub.prototype.expInit = function () { billOrigExpInit.call(this); this.billInit(); };
 for (const t of ['bill_flags', 'benefit_hash']) if (!EXPORT_TABLES.includes(t)) EXPORT_TABLES.push(t);
 /* ============================================================================ 取消訂閱／退款區塊結束 */
+
+/* ============================================================================ 體驗額度 grant 區塊（2026-10-09，docs/launch_gap_payment_1009.md 第 3 節）
+   Andy 10-09：「我部分付費功能他們看不到，兩個方式開放給他們用，但是有期限且限制次數，好比說主促 1-2 個禮拜可以看幾次，重點是得要有曝光」。
+   兩種「體驗額度」（★ 不是免費試用：不改方案、不寫 perm、不綁卡、到期不扣款、自動回原等級；法遵 docs/launch_gap_legal_1009.md 第 2 節）：
+     · welcome  新會員體驗：第一次 Google 登入（users 新建）自動發，註冊起 N 天內每功能 M 次
+     · promo    上市體驗週：活動期間 t0～t1 內登入的會員（含活動中才註冊的）每功能 M 次（per＝total 期間合計／day 每天）
+   四張表（同一個 Durable Object SQLite）：
+     grant_defs  活動／範本（管理區設定；on_=0 時已發的也一起失效）
+     grants      每人拿到的體驗（uid＋gid；welcome＝註冊時間＋N 天、promo＝活動 t0／t1）
+     grant_hits  用量（uid＋gid＋功能鍵＋台北日期＋單位；同一天同一單位只算一次，跟 quota_hits 同口徑）
+     grant_ip    同 IP 每天發 welcome 的份數（只存 IP 的 HMAC、保存 2 天）
+   剩餘次數不存欄位、讀取時算：left＝M − 用量（per='day' 只數今天）。
+   扣次規則（/v1/grants/hit，第 3-5 節）：站主／管理者放行不計 → 方案已開放而且不限次 → 放行不扣 →
+     方案有每日上限而且今天還有 → 放行不扣（先吃方案額度）→ 被鎖（或方案額度用完）→ 扣體驗（多份先扣最早到期）→ 都沒有 → {over:true}。
+   不能放進體驗的功能（法遵 2-3）：今日關注完整名單、選股完整名單、AI 分析、盤中即時、四週期同看（待查停損線）—— GRANT_BAN，後台存不進去。
+   防濫用（第 3-7 節）：grants 主鍵 (uid,gid)＋users.subh UNIQUE（一個 Google 帳號一份）；刪帳號寫 benefit_hash kind='welcome'
+     （比對碼前 Gmail 去點、去 + 後綴）；同 IP（CF-Connecting-IP 的 HMAC）每天最多發 3 份 welcome，超過照樣註冊但不送。
+   ★ 同前面幾個區塊：只在檔尾新增、包一層 prototype，既有函式一行不動。
+   ============================================================================ */
+export const GRANT_BAN = ['mkt.cand', 'mkt.cand.n', 'explore.list', 'explore.list.n', 'stock.ai', 'stock.mtf', 'live.tick', 'stock.k_min'];
+const GRANT_ID_RE = /^[a-z0-9_-]{1,24}$/;
+const GRANT_MAX_FEATS = 40, GRANT_M_MAX = 999, GRANT_DAYS_MAX = 60, GRANT_IP_DAY = 3;
+const GRANT_HIT_KEEP_DAYS = 30, GRANT_KEEP_MONTHS = 13;
+/* 範本沒寫這一項時的預設（＝site/features.js 的 defBy；改一邊要改另一邊）：熱力圖跳頁訪客／註冊會員預設關 */
+const GRANT_DEF_OFF = { 'heat.link': ['guest', 'free'] };
+const grantTxt = (s, n) => String(s == null ? '' : s).replace(/[\u0000-\u001f\u007f<>]/g, '').trim().slice(0, n);
+/* Gmail 別名正規化（a.b+x@gmail.com ＝ ab@gmail.com）：只用在 welcome 的比對碼 */
+export const grantMailNorm = (email) => {
+  const e = String(email || '').trim().toLowerCase(), i = e.lastIndexOf('@');
+  if (i < 1) return e;
+  let u = e.slice(0, i); const d = e.slice(i + 1);
+  if (d === 'gmail.com' || d === 'googlemail.com') { u = u.split('+')[0].replace(/\./g, ''); return u + '@gmail.com'; }
+  return e;
+};
+Hub.prototype.grantInit = function () {
+  if (this._grantOk) return;
+  this.billInit();
+  this.q("CREATE TABLE IF NOT EXISTS grant_defs (id TEXT PRIMARY KEY, kind TEXT, name TEXT, feats TEXT, per TEXT DEFAULT 'total', days INTEGER, t0 INTEGER, t1 INTEGER, audience TEXT DEFAULT 'free', on_ INTEGER DEFAULT 1, updated INTEGER)");
+  this.q('CREATE TABLE IF NOT EXISTS grants (uid TEXT, gid TEXT, start INTEGER, end_ INTEGER, created INTEGER, PRIMARY KEY (uid, gid))');
+  this.q('CREATE TABLE IF NOT EXISTS grant_hits (uid TEXT, gid TEXT, k TEXT, day TEXT, key TEXT, PRIMARY KEY (uid, gid, k, day, key))');
+  this.q('CREATE TABLE IF NOT EXISTS grant_ip (iph TEXT, day TEXT, n INTEGER, PRIMARY KEY (iph, day))');
+  /* 預設兩筆範本（都是「關」）：Andy 在管理區 #admin/grants 打開就生效。參數＝docs/launch_gap_payment_1009.md 3-2 的例子
+     （welcome 7 天每項 3 次、promo 10/13～10/26 每項 5 次）；功能只放法遵 2-3「可以」、而且 site/plan_presets.js 對註冊會員有鎖或有上限的那幾項。
+     只種一次，刪掉不會長回來。*/
+  if (!this.kv('grants_seeded')) {
+    const feats = (m) => JSON.stringify({ 'ind.3d': m, 'ind.rel': m, 'stock.draw': m, 'stock.ind': m, 'etf.cashflow': m, 'heat.link': m, 'explore.filter': m });
+    const now = this.now();
+    if (!this.q('SELECT 1 FROM grant_defs WHERE id = ?', 'welcome').length) {
+      this.q("INSERT INTO grant_defs (id, kind, name, feats, per, days, t0, t1, audience, on_, updated) VALUES ('welcome', 'welcome', '新會員體驗', ?, 'total', 7, NULL, NULL, 'free', 0, ?)", feats(3), now);
+    }
+    if (!this.q('SELECT 1 FROM grant_defs WHERE id = ?', 'promo-launch').length) {
+      this.q("INSERT INTO grant_defs (id, kind, name, feats, per, days, t0, t1, audience, on_, updated) VALUES ('promo-launch', 'promo', '上市體驗週', ?, 'total', NULL, ?, ?, 'free', 0, ?)",
+        feats(5), Date.parse('2026-10-13T00:00:00+08:00'), Date.parse('2026-10-27T00:00:00+08:00') - 1, now);
+    }
+    this.setKv('grants_seeded', '1');
+  }
+  this._grantOk = true;
+};
+const grantDefOut = (r) => {
+  let feats = {}; try { feats = JSON.parse(r.feats || '{}') || {}; } catch (e) { feats = {}; }
+  return { id: r.id, kind: r.kind, name: r.name, feats, per: r.per === 'day' ? 'day' : 'total', days: r.days || null, t0: r.t0 || null, t1: r.t1 || null,
+    audience: r.audience === 'member' ? 'member' : 'free', on: !!r.on_, updated: r.updated || 0 };
+};
+Hub.prototype.grantDefs = function () { this.grantInit(); return this.q('SELECT * FROM grant_defs ORDER BY kind DESC, id').map(grantDefOut); };
+/* 這個人目前是哪個方案（過期退回 free）—— 跟 /v1/perm/me 同一個口徑 */
+Hub.prototype.grantPlan = function (user) {
+  const e = this.effective(String(user.email || '').toLowerCase());
+  return { plan: e.expired ? 'free' : e.plan, feats: e.feats || {} };
+};
+/* 活動中的 promo 自動補發（活動中第一次打 /v1/grants/me 或 /v1/perm/me 就拿到）；welcome 不在這裡補（舊會員不該拿到） */
+Hub.prototype.grantIssuePromo = function (user) {
+  this.grantInit();
+  const now = this.now();
+  const { plan } = this.grantPlan(user);
+  for (const d of this.q("SELECT * FROM grant_defs WHERE kind = 'promo' AND on_ = 1 AND t0 <= ? AND t1 > ?", now, now)) {
+    if (d.audience !== 'member' && plan !== 'free') continue;
+    this.q('INSERT OR IGNORE INTO grants (uid, gid, start, end_, created) VALUES (?, ?, ?, ?, ?)', user.uid, d.id, d.t0, d.t1, now);
+  }
+};
+/* 這個人有效的體驗：[{ gid, name, kind, start, end, per, feats:{k:{max,used,left}} }]，依到期早到晚 */
+Hub.prototype.grantList = function (uid) {
+  this.grantInit();
+  const now = this.now(), day = tpeDay(now);
+  const rows = this.q('SELECT g.gid AS gid, g.start AS gstart, g.end_ AS gend, d.* FROM grants g JOIN grant_defs d ON d.id = g.gid WHERE g.uid = ? AND d.on_ = 1 AND g.start <= ? AND g.end_ > ? ORDER BY g.end_, g.gid', uid, now, now);
+  return rows.map((r) => {
+    const d = grantDefOut(r), per = d.per, feats = {};
+    for (const [k, m] of Object.entries(d.feats)) {
+      if (!Number.isInteger(m) || m < 1 || GRANT_BAN.includes(k)) continue;
+      const used = per === 'day'
+        ? this.q('SELECT COUNT(*) AS c FROM grant_hits WHERE uid = ? AND gid = ? AND k = ? AND day = ?', uid, d.id, k, day)[0].c
+        : this.q('SELECT COUNT(*) AS c FROM grant_hits WHERE uid = ? AND gid = ? AND k = ?', uid, d.id, k)[0].c;
+      feats[k] = { max: m, used, left: Math.max(0, m - used) };
+    }
+    return { gid: d.id, name: d.name, kind: d.kind, start: r.gstart, end: r.gend, per, feats };
+  });
+};
+/* 合併後每個功能的剩餘次數（/v1/perm/me 的 grants 欄）*/
+const grantLeftMap = (list) => { const o = {}; for (const g of list) for (const [k, x] of Object.entries(g.feats)) o[k] = (o[k] || 0) + x.left; return o; };
+/* 今天已經用體驗打開過的單位：{ k: [key…] }（前端重新整理後同一單位不必再按一次「繼續看」）*/
+Hub.prototype.grantToday = function (uid, list) {
+  const o = {}, gids = (list || this.grantList(uid)).map((g) => g.gid);
+  if (!gids.length) return o;
+  /* 只算目前還有效的那幾份（活動關掉、到期、換一檔新活動之後，舊活動的用量不再算「今天打開過」）*/
+  for (const r of this.q('SELECT DISTINCT k, key FROM grant_hits WHERE uid = ? AND day = ? AND gid IN (' + gids.map(() => '?').join(',') + ') LIMIT 500', uid, tpeDay(this.now()), ...gids)) (o[r.k] = o[r.k] || []).push(r.key);
+  return o;
+};
+/* 方案本身對這個功能：'open'（開放不限次）｜'quota'（有每日上限、今天還有）｜'locked'（關掉、上限 0 或今天用完）*/
+Hub.prototype.grantPlanState = function (user, k, key) {
+  const { plan, feats } = this.grantPlan(user);
+  const off = feats[k] === false || feats[k] === 0 || (feats[k] === undefined && (GRANT_DEF_OFF[k] || []).includes(plan));
+  if (off) return 'locked';
+  const lim = this.v3Lims(plan)[k];
+  if (!Number.isInteger(lim)) return 'open';
+  if (lim === 0) return 'locked';
+  const day = tpeDay(this.now());
+  if (this.q('SELECT 1 FROM quota_hits WHERE uid = ? AND day = ? AND k = ? AND key = ?', user.uid, day, k, key).length) return 'quota';
+  return this.q('SELECT COUNT(*) AS c FROM quota_hits WHERE uid = ? AND day = ? AND k = ?', user.uid, day, k)[0].c < lim ? 'quota' : 'locked';
+};
+/* 新會員發 welcome（登入回呼新建 users 之後）。回傳發了沒有與原因：'ok'｜'off'｜'used'｜'ip'（測試用）*/
+Hub.prototype.grantWelcome = async function (user, req) {
+  this.grantInit();
+  const now = this.now();
+  const defs = this.q("SELECT * FROM grant_defs WHERE kind = 'welcome' AND on_ = 1");
+  const ok = defs.filter((d) => (!d.t0 || d.t0 <= now) && (!d.t1 || d.t1 > now) && Number.isInteger(d.days) && d.days >= 1);
+  if (!ok.length) return 'off';
+  /* 刪過帳號、用同一個信箱（含 Gmail 別名）回來 → 不再發 */
+  const emh = await this.billHash(grantMailNorm(user.email));
+  if (this.q("SELECT 1 FROM benefit_hash WHERE emh = ? AND kind = 'welcome' AND at >= ?", emh, now - BILL_HASH_DAYS * 86400 * 1000).length) return 'used';
+  /* 同 IP 每天最多 3 份（只存 HMAC，不存原始 IP）*/
+  const ip = req && req.headers ? req.headers.get('CF-Connecting-IP') || '' : '';
+  const day = tpeDay(now);
+  let iph = null;
+  if (ip) {
+    iph = await this.hmac('gip:' + ip);
+    const r = this.q('SELECT n FROM grant_ip WHERE iph = ? AND day = ?', iph, day)[0];
+    if (r && r.n >= GRANT_IP_DAY) return 'ip';
+  }
+  for (const d of ok) this.q('INSERT OR IGNORE INTO grants (uid, gid, start, end_, created) VALUES (?, ?, ?, ?, ?)', user.uid, d.id, now, now + d.days * 86400 * 1000, now);
+  if (iph) this.q('INSERT INTO grant_ip (iph, day, n) VALUES (?, ?, 1) ON CONFLICT(iph, day) DO UPDATE SET n = n + 1', iph, day);
+  return 'ok';
+};
+/* 管理區驗證：壞一項整個 400（不存半套）*/
+Hub.prototype.grantClean = function (b) {
+  const id = String(b.id || '');
+  if (!GRANT_ID_RE.test(id)) return { error: 'bad_id' };
+  const kind = b.kind === 'welcome' || b.kind === 'promo' ? b.kind : null;
+  if (!kind) return { error: 'bad_kind' };
+  const name = grantTxt(b.name, 20);
+  if (!name) return { error: 'bad_name' };
+  if (!b.feats || typeof b.feats !== 'object' || Array.isArray(b.feats)) return { error: 'bad_feats' };
+  const ent = Object.entries(b.feats);
+  if (!ent.length || ent.length > GRANT_MAX_FEATS) return { error: 'bad_feats' };
+  const feats = {};
+  for (const [k, m] of ent) {
+    if (!V3_FEAT_K_RE.test(k) || k.startsWith('grp.')) return { error: 'bad_feats' };
+    if (GRANT_BAN.includes(k)) return { error: 'banned', k };
+    if (!Number.isInteger(m) || m < 1 || m > GRANT_M_MAX) return { error: 'bad_m', k };
+    feats[k] = m;
+  }
+  const per = b.per === 'day' ? 'day' : b.per === 'total' || b.per == null ? 'total' : null;
+  if (!per) return { error: 'bad_per' };
+  const audience = b.audience === 'member' ? 'member' : b.audience === 'free' || b.audience == null ? 'free' : null;
+  if (!audience) return { error: 'bad_audience' };
+  const isT = (x) => Number.isInteger(x) && x >= 1577836800000 && x <= 4102444800000;
+  let days = null, t0 = null, t1 = null;
+  if (kind === 'welcome') {
+    if (!Number.isInteger(b.days) || b.days < 1 || b.days > GRANT_DAYS_MAX) return { error: 'bad_days' };
+    days = b.days;
+    if (b.t0 != null || b.t1 != null) { if (!isT(b.t0) || !isT(b.t1) || !(b.t1 > b.t0)) return { error: 'bad_time' }; t0 = b.t0; t1 = b.t1; }
+  } else {
+    if (!isT(b.t0) || !isT(b.t1) || !(b.t1 > b.t0)) return { error: 'bad_time' };
+    t0 = b.t0; t1 = b.t1;
+  }
+  return { id, kind, name, feats, per, days, t0, t1, audience, on: b.on === true };
+};
+Object.assign(Hub.prototype.subRoutes, {
+  /* 公開：活動中的上市體驗與新會員體驗設定（總覽橫幅、訪客看到的「登入即可體驗」用；不回任何人的資料）*/
+  '/v1/grants/public': async function (req) {
+    const now = this.now();
+    const pub = (d) => ({ gid: d.id, kind: d.kind, name: d.name, feats: d.feats, per: d.per, days: d.days, t0: d.t0, t1: d.t1, audience: d.audience });
+    const defs = this.grantDefs().filter((d) => d.on);
+    return this.json(req, { now,
+      promo: defs.filter((d) => d.kind === 'promo' && d.t0 <= now && d.t1 > now).map(pub),
+      welcome: defs.filter((d) => d.kind === 'welcome' && (!d.t0 || d.t0 <= now) && (!d.t1 || d.t1 > now)).map(pub) });
+  },
+  '/v1/grants/me': async function (req, b) {
+    const v = await this.auth(req, b);
+    if (!v) return this.json(req, { error: 'auth' }, 401);
+    this.grantIssuePromo(v.user);
+    const list = this.grantList(v.user.uid);
+    return this.json(req, { grants: list, left: grantLeftMap(list), today: this.grantToday(v.user.uid, list), now: this.now() });
+  },
+  '/v1/grants/hit': async function (req, b) {
+    const v = await this.auth(req, b);
+    if (!v) return this.json(req, { error: 'auth' }, 401);
+    const k = String(b.k || ''), key = String(b.key || '');
+    if (!V3_FEAT_K_RE.test(k) || !QUOTA_KEY_RE.test(key)) return this.json(req, { error: 'bad_input' }, 400);
+    if (GRANT_BAN.includes(k)) return this.json(req, { error: 'banned' }, 400);
+    if (this.isAdmin(v.user)) return this.json(req, { ok: true, free: true });
+    this.grantIssuePromo(v.user);
+    const ps = this.grantPlanState(v.user, k, key);
+    if (ps !== 'locked') return this.json(req, { ok: true, plan: ps });
+    const uid = v.user.uid, day = tpeDay(this.now());
+    const list = this.grantList(uid).filter((g) => g.feats[k]);
+    const leftOf = (l) => l.reduce((s, g) => s + g.feats[k].left, 0);
+    /* 同一天、同一單位已經用體驗打開過（而且那份體驗還有效）→ 不再扣 */
+    if (list.length && this.q('SELECT 1 FROM grant_hits WHERE uid = ? AND k = ? AND day = ? AND key = ? AND gid IN (' + list.map(() => '?').join(',') + ')', uid, k, day, key, ...list.map((g) => g.gid)).length) {
+      return this.json(req, { ok: true, again: true, left: leftOf(list) });
+    }
+    const g = list.find((x) => x.feats[k].left > 0);           // grantList 已依到期早到晚排：先扣最早到期的那份
+    if (!g) return this.json(req, { over: true, left: 0 });
+    this.q('INSERT OR IGNORE INTO grant_hits (uid, gid, k, day, key) VALUES (?, ?, ?, ?, ?)', uid, g.gid, k, day, key);
+    return this.json(req, { ok: true, gid: g.gid, left: leftOf(this.grantList(uid).filter((x) => x.feats[k])) });
+  },
+  '/v1/admin/grants/defs/list': async function (req, b) {
+    if (!(await this.admin(req, b))) return this.json(req, { error: 'forbidden' }, 403);
+    const defs = this.grantDefs().map((d) => ({ ...d,
+      issued: this.q('SELECT COUNT(*) AS c FROM grants WHERE gid = ?', d.id)[0].c,
+      used: this.q('SELECT COUNT(*) AS c FROM grant_hits WHERE gid = ?', d.id)[0].c }));
+    return this.json(req, { defs, ban: GRANT_BAN, now: this.now() });
+  },
+  '/v1/admin/grants/defs/put': async function (req, b) {
+    if (!(await this.admin(req, b))) return this.json(req, { error: 'forbidden' }, 403);
+    this.grantInit();
+    const c = this.grantClean(b);
+    if (c.error) return this.json(req, c, 400);
+    const cur = this.q('SELECT kind FROM grant_defs WHERE id = ?', c.id)[0];
+    if (cur && cur.kind !== c.kind) return this.json(req, { error: 'kind_fixed' }, 400);
+    if (!cur && this.q('SELECT COUNT(*) AS c FROM grant_defs')[0].c >= 50) return this.json(req, { error: 'too_many' }, 400);
+    this.q('INSERT INTO grant_defs (id, kind, name, feats, per, days, t0, t1, audience, on_, updated) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) '
+      + 'ON CONFLICT(id) DO UPDATE SET name = excluded.name, feats = excluded.feats, per = excluded.per, days = excluded.days, t0 = excluded.t0, t1 = excluded.t1, audience = excluded.audience, on_ = excluded.on_, updated = excluded.updated',
+      c.id, c.kind, c.name, JSON.stringify(c.feats), c.per, c.days, c.t0, c.t1, c.audience, c.on ? 1 : 0, this.now());
+    /* promo 改了起訖：已發的跟著改（活動延長／提早結束對所有人一致）*/
+    if (c.kind === 'promo') this.q('UPDATE grants SET start = ?, end_ = ? WHERE gid = ?', c.t0, c.t1, c.id);
+    return await this.subRoutes['/v1/admin/grants/defs/list'].call(this, req, b);
+  },
+  '/v1/admin/grants/defs/del': async function (req, b) {
+    if (!(await this.admin(req, b))) return this.json(req, { error: 'forbidden' }, 403);
+    this.grantInit();
+    const id = String(b.id || '');
+    if (!GRANT_ID_RE.test(id)) return this.json(req, { error: 'bad_id' }, 400);
+    this.q('DELETE FROM grant_defs WHERE id = ?', id);         // 已發的 grants／grant_hits 保留給統計；範本不在了就一律失效（grantList 用 JOIN）
+    return await this.subRoutes['/v1/admin/grants/defs/list'].call(this, req, b);
+  },
+  /* 客服：查某人的體驗與用量；可帶 extend_days（1～60）手動延長（gid 不帶＝這個人所有的體驗）*/
+  '/v1/admin/grants/user': async function (req, b) {
+    if (!(await this.admin(req, b))) return this.json(req, { error: 'forbidden' }, 403);
+    this.grantInit();
+    const email = this.cleanEmail(b.email);
+    if (!email) return this.json(req, { error: 'bad_email' }, 400);
+    const u = this.q('SELECT * FROM users WHERE lower(email) = ?', email)[0];
+    if (!u) return this.json(req, { email, known: false, grants: [], hits: [] });
+    if (b.extend_days !== undefined) {
+      if (!Number.isInteger(b.extend_days) || b.extend_days < 1 || b.extend_days > GRANT_DAYS_MAX) return this.json(req, { error: 'bad_days' }, 400);
+      const gid = b.gid == null ? null : String(b.gid);
+      if (gid !== null && !GRANT_ID_RE.test(gid)) return this.json(req, { error: 'bad_id' }, 400);
+      this.q('UPDATE grants SET end_ = end_ + ? WHERE uid = ?' + (gid ? ' AND gid = ?' : ''), b.extend_days * 86400 * 1000, u.uid, ...(gid ? [gid] : []));
+    }
+    const now = this.now();
+    const all = this.q('SELECT g.*, d.name AS dname, d.kind AS dkind, d.on_ AS don FROM grants g LEFT JOIN grant_defs d ON d.id = g.gid WHERE g.uid = ? ORDER BY g.end_ DESC', u.uid)
+      .map((r) => ({ gid: r.gid, name: r.dname || r.gid, kind: r.dkind || '', start: r.start, end: r.end_, active: !!(r.don && r.start <= now && r.end_ > now) }));
+    const live = {}; this.grantList(u.uid).forEach((g) => { live[g.gid] = g.feats; });
+    all.forEach((g) => { g.feats = live[g.gid] || null; });
+    const hits = this.q('SELECT gid, k, day, key FROM grant_hits WHERE uid = ? ORDER BY day DESC LIMIT 200', u.uid);
+    return this.json(req, { email, known: true, name: u.name, created: u.created, grants: all, hits, now });
+  },
+});
+/* /v1/perm/me 多回 grants：{ 功能鍵: 剩餘次數 }（所有有效體驗合併）。前端與 data-gw 都讀這一份 */
+const grantOrigPermMe = Hub.prototype.permMe;
+Hub.prototype.permMe = async function (req, b) {
+  const res = await grantOrigPermMe.call(this, req, b);
+  if (res.status !== 200) return res;
+  const j = await res.json();
+  j.grants = {};
+  try {
+    const v = b && b.t ? await this.verify(b.t) : null;
+    if (v && j.who === 'member') { this.grantIssuePromo(v.user); j.grants = grantLeftMap(this.grantList(v.user.uid)); }
+  } catch (e) { /* 體驗表壞了不影響權限本身 */ }
+  return this.json(req, j);
+};
+/* 登入回呼：users 多一列＝新會員 → 試著發 welcome（防濫用不通過就不發，登入照常）*/
+const grantOrigCallback = Hub.prototype.authCallback;
+Hub.prototype.authCallback = async function (req, url) {
+  const before = this.q('SELECT COUNT(*) AS c FROM users')[0].c;
+  const res = await grantOrigCallback.call(this, req, url);
+  try {
+    if (this.q('SELECT COUNT(*) AS c FROM users')[0].c > before) {
+      const u = this.q('SELECT * FROM users ORDER BY rowid DESC LIMIT 1')[0];
+      if (u) this._lastWelcome = await this.grantWelcome(u, req);
+    }
+  } catch (e) { /* 發不出去不影響登入 */ }
+  return res;
+};
+/* 刪帳號：拿過 welcome 的人寫 benefit_hash（kind='welcome'，Gmail 正規化後的比對碼），體驗紀錄一起刪 */
+const grantOrigDelete = Hub.prototype.deleteMe;
+Hub.prototype.deleteMe = async function (req, b) {
+  const v = await this.auth(req, b || {});
+  let had = false;
+  if (v) {
+    this.grantInit();
+    had = this.q("SELECT 1 FROM grants g LEFT JOIN grant_defs d ON d.id = g.gid WHERE g.uid = ? AND (d.kind = 'welcome' OR g.gid = 'welcome')", v.user.uid).length > 0;
+  }
+  const res = await grantOrigDelete.call(this, req, b);
+  if (v && res.status === 200) {
+    if (had) {
+      const emh = await this.billHash(grantMailNorm(v.user.email));
+      this.q("INSERT INTO benefit_hash (emh, kind, at) VALUES (?, 'welcome', ?) ON CONFLICT(emh, kind) DO UPDATE SET at = excluded.at", emh, this.now());
+    }
+    this.q('DELETE FROM grants WHERE uid = ?', v.user.uid);
+    this.q('DELETE FROM grant_hits WHERE uid = ?', v.user.uid);
+  }
+  return res;
+};
+/* 保存期限：用量保留到體驗結束後 30 天；發放紀錄 13 個月；IP 計數 2 天 */
+const grantOrigCleanup = Hub.prototype.cleanup;
+Hub.prototype.cleanup = function () {
+  grantOrigCleanup.call(this);
+  this.grantInit();
+  const now = this.now();
+  this.q('DELETE FROM grant_hits WHERE EXISTS (SELECT 1 FROM grants g WHERE g.uid = grant_hits.uid AND g.gid = grant_hits.gid AND g.end_ < ?)', now - GRANT_HIT_KEEP_DAYS * 86400 * 1000);
+  const d = new Date(now); d.setUTCMonth(d.getUTCMonth() - GRANT_KEEP_MONTHS);
+  this.q('DELETE FROM grants WHERE end_ < ?', d.getTime());
+  this.q('DELETE FROM grant_ip WHERE day < ?', tpeDay(now - 2 * 86400 * 1000));
+};
+const grantOrigExpInit = Hub.prototype.expInit;
+Hub.prototype.expInit = function () { grantOrigExpInit.call(this); this.grantInit(); };
+for (const t of ['grant_defs', 'grants', 'grant_hits']) if (!EXPORT_TABLES.includes(t)) EXPORT_TABLES.push(t);
+/* ============================================================================ 體驗額度區塊結束 */

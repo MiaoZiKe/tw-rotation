@@ -29,6 +29,8 @@ Andy 提需求 → CEO（主 session）判斷屬於哪個領域 → 用 Task 工
 | `semi-chain-analyst` | 半導體鏈分析師 | 去外面查：誰幫誰代工、封測客戶是誰 |
 | `pcb-substrate-analyst` | 載板分析師 | 去外面查：載板 vs PCB、材料來自誰 |
 | `ai-server-analyst` | AI 伺服器分析師 | 去外面查：散熱／電源／光通訊／機櫃 |
+| `animation-director` | 動畫導演 | 分鏡、規格、審片（2026-10-09 動畫設計單位） |
+| `motion-designer` | 動態設計師 | 去背、合成 GIF／WebP、接上網站（`scripts/anim/gif_pipeline.py`） |
 
 規矩不變：**有人做完，一定要有另一個人去驗**。不要自己做自己驗就說完成。
 

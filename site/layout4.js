@@ -448,7 +448,7 @@
   // 2026-10-05（admin-v2c，Andy）：子項順序改成「會員管理」在上、「會員權限」在下，流量觀測維持最後
   // 2026-10-07（Andy：意見反饋要留在站上、只有我看得到）：管理區下加「意見反饋」（#admin/feedback，support.js 畫；未讀數紅點由 support.js 填 TwSupport.unread）
   // 10-07 15:25（Andy：意見反饋需要圖示）：原本寫 'mail'，但圖示表沒有這個鍵 → 畫出空 svg；改成對話泡泡 message（icons.js 新增）
-  const ADM_SUBS = [['admins', '管理權限', 'admTabAdmins', 'users'], ['perm', '會員權限', 'admTabPerm', 'scale'], ['traffic', '流量觀測', 'admTabTraffic', 'gauge'], ['feedback', '意見反饋', 'admTabFeedback', 'message']];   // 2026-10-07 15:45 Andy：管理權限移到會員權限上方
+  const ADM_SUBS = [['admins', '管理權限', 'admTabAdmins', 'users'], ['perm', '會員權限', 'admTabPerm', 'scale'], ['traffic', '流量觀測', 'admTabTraffic', 'gauge'], ['feedback', '意見反饋', 'admTabFeedback', 'message'], ['grants', '體驗額度', 'admTabGrants', 'sparkles']];   // 2026-10-09 體驗額度（site/admin_grants.js）；2026-10-07 15:45 Andy：管理權限移到會員權限上方
   /* 2026-10-07 15:45 Andy：「旁邊的分頁 有在權限內的帳號也可以進行拖曳 但不能刪除」→ 管理區子項可拖曳排序（只有管理者看得到這一區，所以也只有管理者能拖）；
      沒有刪除。順序存本機 tw.l4.admOrd；滑鼠移動超過 6px 才算拖曳，放開後吞掉那一次 click。*/
   const ADM_ORD = 'tw.l4.admOrd';
@@ -508,7 +508,7 @@
       });
     }
     const on = /^#admin\b/.test(location.hash || '');
-    const m = /^#admin\/(perm|members|traffic|feedback|admins)\b/.exec(location.hash || ''), cur = on ? (m ? (m[1] === 'members' ? 'perm' : m[1]) : 'traffic') : '';
+    const m = /^#admin\/(perm|members|traffic|feedback|admins|grants)\b/.exec(location.hash || ''), cur = on ? (m ? (m[1] === 'members' ? 'perm' : m[1]) : 'traffic') : '';
     // 子項亮著時「管理區」本身不實心反白（同一個位置不要亮兩格，同資金流向），但保留 .on 讓「在管理區裡」這件事查得到
     b.classList.toggle('on', on); b.classList.toggle('l4hassub', on);
     if (on) b.setAttribute('aria-current', 'page'); else b.removeAttribute('aria-current');

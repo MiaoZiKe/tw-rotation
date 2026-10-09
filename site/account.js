@@ -511,7 +511,7 @@
   /* app.js 的 route() 問這裡：'admin' → 由本檔接手（app.js 關掉其他 view）；null → 不關本檔的事 */
   /* 2026-10-05（sub-v1）：#admin/feedback、#admin/notices 由 support.js／notices.js 自己畫（app.js 的 TwSubRoutes 先攔），
      這裡不要再把 admin.js 載進來、在藏起來的 #v-admin 裡多畫一份流量觀測（還會多打一支 /v1/admin/stats）。*/
-  const subAdmin = () => /^#admin\/(feedback|notices)\b/.test(location.hash || '');
+  const subAdmin = () => /^#admin\/(feedback|notices|grants)\b/.test(location.hash || '');
   function route(head) {
     if (head !== 'admin' || subAdmin()) return null;
     admKey = '';

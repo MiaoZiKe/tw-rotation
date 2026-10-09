@@ -5996,11 +5996,13 @@ return {load:load,ready:ready,srcs:srcs};})();
      右下角客服與意見反饋（support.js）、通知中心（notices.js）。要在 perm.js 之後（讀 TwPerm）、app.js 之前（登記 TwSubRoutes）。 -->
 <script src="pricing.js"></script>
 <script src="quota.js"></script>
+<script src="grants.js"></script><!-- 2026-10-09 體驗額度（被鎖功能的「體驗剩 N 次／繼續看」、總覽活動橫幅、活動辦法；沒有活動時不插任何節點） -->
 <script src="support.js"></script>
 <script src="notices.js"></script>
 <script src="billing.js"></script><!-- 2026-10-09 取消訂閱／申請退款＋七天保證防呆（桌機與手機帳號選單共用；選單收著時不插任何節點）-->
 <script src="acctm4.js"></script><!-- 2026-10-09 手機（html.m4）帳號選單：身分徽章、通知、額度上限、客服開關、刪除帳號；桌機不插任何節點 -->
 <script src="admingw.js"></script><!-- 管理區：付費資料異常 #admin/gw（docs/datagw_plan.md 第三階段） -->
+<script src="admin_grants.js"></script><!-- 2026-10-09 管理區：體驗額度 #admin/grants（活動清單、新增／編輯、查會員用量） -->
 <!-- 資金分流樹拓撲版（桌機 > 820px）：app.js 的 renderSankey() 會呼叫 window.FlowTopo，所以要在它之前 -->
 <script src="fit.js"></script>
 <script src="flowtopo.js"></script>

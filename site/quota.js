@@ -96,6 +96,8 @@
   const P = () => window.TwPerm || null;
   const F = () => window.TwFeatures || null;
   function limitOf(id) { const p = P(); return p && p.lim ? p.lim(id) : Infinity; }
+  /* 2026-10-09 體驗額度（site/grants.js）：今天這個單位已經用體驗打開 */
+  const granted = (id) => { try { return !!(window.TwGrants && window.TwGrants.open(id)); } catch (e) { return false; } };
   /* 有設「每日 N 次（N≥1）」而且開關是開的功能（開關關了／上限 0 由 perm.js 鎖）*/
   /* ★ 2026-10-07 覆蓋稽核：族群觀測（grp.*）的功能清單要等 groups_today.json（features.addGroups）才有 ——
      perm.js 只有「真的有族群被關」才去抓，只設了族群「每日次數」的話清單永遠是空的、族群頁永遠不計（漏洞）。這裡自己補抓一次。*/
@@ -180,6 +182,8 @@
         const set = new Set(d.k[f.id] || []);
         if (set.has(key)) continue;
         if (set.size < lim) { set.add(key); d.k[f.id] = [...set]; changed = true; hit(f.id, key); continue; }
+        if (granted(f.id)) continue;      // 2026-10-09 體驗額度：今天這個單位已經用體驗打開（site/grants.js）
+
         els.forEach((el) => { if (!want.has(el)) want.set(el, { msg: `今日已用完 ${set.size}/${lim} 次`, f, lim, used: set.size }); });
       }
       /* ★ 2026-10-07 全站共用每日額度（quota.all＝範本 dq；Andy：「訪客只能預覽3次」＝全站共 3 次，不是每個功能各 3 次）：
@@ -189,7 +193,8 @@
       const all = allLim();
       if (all !== Infinity) {
         const Ft = F(), p = P();
-        const mf = Ft ? Ft.list.filter((f) => f.metered && p && p.can(f.id)) : [];
+        /* 體驗放行的那一次不算進全站共用額度（docs/launch_gap_payment_1009.md 3-5 第 6 點）*/
+        const mf = Ft ? Ft.list.filter((f) => f.metered && p && p.can(f.id) && !granted(f.id)) : [];
         const els = [];
         mf.forEach((f) => targets(f, h).forEach((el) => { if (!els.includes(el)) els.push(el); }));
         if (els.length) {
@@ -225,7 +230,7 @@
     return { kind: 'quota', kick: '每日瀏覽次數', title: `今天的「${w.f.name}」次數用完了`,
       sub: `今日已用完 ${n}/${w.lim} 次，升級方案可增加每日次數，明天（台北時間 0 點）自動恢復。`,
       used: n, limit: w.lim, lh: lk && lk.items.length ? '這些方案可以看更多次' : '', items: lk ? lk.items : [],
-      btn: lk ? lk.btn : '升級查看', href: '#pricing/need/' + encodeURIComponent(w.f.id), btnCls: 'qlkgo' };
+      btn: lk ? lk.btn : '升級查看', href: '#pricing/need/' + encodeURIComponent(w.f.id), btnCls: 'qlkgo', gk: w.f.id };
   }
   function paint(want) {
     css();
@@ -404,6 +409,8 @@
         const set = new Set(d.k[f.id] || []);
         if (set.has(key)) return;
         if (set.size < lim) { set.add(key); d.k[f.id] = [...set]; save(d); hit(f.id, key); return; }
+        if (granted(f.id)) return;        // 體驗額度：今天這個單位已經打開
+        if (window.TwGrants) window.TwGrants.pending(f.id, b);   // 卡片上按「繼續看」扣完後，幫他再按一次這顆鈕
         e.preventDefault(); e.stopImmediatePropagation();
         const QC = window.TwQCard;
         if (QC && QC.modal) QC.modal(opts({ f, lim, used: set.size }));
@@ -441,7 +448,7 @@
     return p || t ? Infinity : null;
   }
   function meTier() { const st = P() ? P().state() : {}; return st.who === 'guest' || !st.who ? 'guest' : (!st.plan || st.plan === 'free' ? 'free' : st.plan); }
-  function actOpts(id, n, used) {
+  function actOpts(id, n, used, gkey) {
     const f = F() && F().byId(id); const nm = f ? f.name : id;
     const tier = meTier();
     let up, btn, href;
@@ -450,14 +457,14 @@
     else { up = '升級 Pro 不限次數'; btn = '看方案'; href = '#pricing/need/' + encodeURIComponent(id); }
     if (n === 0) {
       const lo = f && window.TwQCard ? window.TwQCard.lockOpts(f, tier === 'guest' ? 'guest' : 'member') : null;
-      return Object.assign(lo || { kind: 'lock', kick: '需要開通', title: '此功能需開通', sub: nm, btn, href }, { title: `${nm}為${tier === 'guest' ? '會員' : '付費'}功能`, btnCls: 'qactgo' });
+      return Object.assign(lo || { kind: 'lock', kick: '需要開通', title: '此功能需開通', sub: nm, btn, href }, { title: `${nm}為${tier === 'guest' ? '會員' : '付費'}功能`, btnCls: 'qactgo', gk: id, gkey });
     }
     return { kind: 'quota', kick: '每日次數', title: `${nm}今日 ${used}/${n} 次已用完`, sub: `（每天台北時間 00:00 重置）。${up}`,
-      used, limit: n, lh: '', items: [], btn, href, btnCls: 'qactgo' };
+      used, limit: n, lh: '', items: [], btn, href, btnCls: 'qactgo', gk: id, gkey };
   }
-  function actBlock(id, n, used) {
+  function actBlock(id, n, used, gkey) {
     const QC = window.TwQCard;
-    const m = QC && QC.modal ? QC.modal(actOpts(id, n, used)) : null;
+    const m = QC && QC.modal ? QC.modal(actOpts(id, n, used, gkey)) : null;
     if (m) m.dataset.cq = id;
     return false;
   }
@@ -475,11 +482,14 @@
     try { const ts = window.TwTour && window.TwTour.state(); if (ts && ts.on) return true; } catch (e) { /* 沒有導覽 */ }
     const n = limitOf(id);
     if (n === Infinity) return true;
-    if (n === 0) return actBlock(id, 0, 0);
     const key = actUnit(kind, obj);
+    /* 2026-10-09 體驗額度：今天這個對象已經按過「繼續看」→ 放行（伺服器已記一次體驗；方案的次數不再算）*/
+    const GR = window.TwGrants;
+    if (GR && GR.has(id, key)) return true;
+    if (n === 0) return actBlock(id, 0, 0, key);
     const d = load(); const set = new Set(d.k[id] || []);
     if (set.has(key)) return true;
-    if (set.size >= n) return actBlock(id, n, set.size);
+    if (set.size >= n) return actBlock(id, n, set.size, key);
     set.add(key); d.k[id] = [...set]; save(d); hit(id, key);
     remainHint(id, n - set.size);
     schedule();   // 本頁限制清單的「已用」跟著 +1
