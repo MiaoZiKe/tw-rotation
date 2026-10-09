@@ -186,6 +186,8 @@
   :root.l4 .tabs>.l4subtab[data-parent="flow"]{order:2}
   :root.l4 .tabs>.l4subtab[data-parent="heatmap"]{order:3}
   :root.l4 .tabs>.l4subtab[data-parent="etf"]{order:5}   /* v9：ETF 三個子項（配息行事曆／ETF 總覽／現金流試算），跟在 ETF 下面 */
+  /* 2026-10-10（Andy：「市場明細 與 選股策略 分頁都改成像 ETF 側邊欄位一樣 變成子分頁」）：同 order 5，照 DOM 緊跟在各自父頁下面 */
+  :root.l4 .tabs>.l4subtab:is([data-parent="market"],[data-parent="explore"]){order:5}
   :root.l4 .tabs>.l4subtab[data-parent="admin"]{order:8}   /* 管理區三個子項（layout4.js syncPerm），跟在「管理區」下面 */
   :root.l4 .tabs:not([data-cs~="admin"])>.tab.l4perm.l4hassub.on{background:transparent;color:var(--ink);box-shadow:none;font-weight:700}
   :root.l4 .tab.l4perm{order:8;--l4-ic:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 3l7 3v5c0 4.5-3 8.3-7 10-4-1.7-7-5.5-7-10V6z'/%3E%3Cpath d='M9 12l2 2 4-4'/%3E%3C/svg%3E")}   /* 會員權限（只有管理者有這一格，layout4.js syncPerm）緊跟在「自選」下面 */
@@ -205,7 +207,8 @@
   /* 有子分頁亮著時，父頁不再實心反白（同一個位置不要亮兩格），改成粗體字表示「在這一頁裡」 */
   /* 2026-10-06：子項收著時目前那格看不到，母分頁恢復實心反白（只在 .tabs 沒有 data-cs 收合時才讓位給子項） */
   :root.l4[data-l4sub^="flow-"] .tabs:not([data-cs~="flow"])>.tab[data-view="flow"].on,:root.l4[data-l4sub^="heat-"] .tabs:not([data-cs~="heatmap"])>.tab[data-view="heatmap"].on,
-  :root.l4[data-l4sub^="etf-"] .tabs:not([data-cs~="etf"])>.tab[data-view="etf"].on{
+  :root.l4[data-l4sub^="etf-"] .tabs:not([data-cs~="etf"])>.tab[data-view="etf"].on,
+  :root.l4[data-l4sub^="mkt-"] .tabs:not([data-cs~="market"])>.tab[data-view="market"].on,:root.l4[data-l4sub^="xp-"] .tabs:not([data-cs~="explore"])>.tab[data-view="explore"].on{
     background:transparent;color:var(--ink);box-shadow:none;font-weight:700}
 
   /* 子分頁只顯示自己的卡（<html data-l4sub> 由 app.js route() 掛；藏起來的卡由 whenNear 等露出來才畫）。
@@ -216,6 +219,9 @@
   :root.l4[data-l4sub^="flow-"]:not([data-l4sub="flow-inst"]) #v-flow>:has(>#flowInstCard),
   :root.l4[data-l4sub="heat-industry"] #themeMapCard,:root.l4[data-l4sub="heat-industry"] #themeDetail,
   :root.l4[data-l4sub="heat-theme"] #indHeat{display:none!important}
+  /* 2026-10-10：市場明細／選股策略的頁內分頁改由側欄子項切換（同 ETF 的 :root.l4 #v-etf .etfsub）。只藏「有子項亮著」時那一排 ——
+     data-l4sub 由 app.js route() 只在電腦版（html.l4）掛，手機（html.m4）頁內分頁照舊。 */
+  :root.l4[data-l4sub^="mkt-"] #v-market #mktSeg2,:root.l4[data-l4sub^="xp-"] #v-explore #slChips{display:none!important}
 
   /* =============================== 2. 收合成圖示列（72px） =============================== */
   :root.l4.l4-mini .topbar{grid-template-columns:minmax(0,1fr);grid-template-rows:auto auto auto var(--l4-tabs-h,calc(100vh - 260px));
@@ -516,6 +522,9 @@
   :root.l4.l4g:not(.l4-mini) .tabs[data-cs~="flow"]>.l4subtab[data-parent="flow"],
   :root.l4.l4g:not(.l4-mini) .tabs[data-cs~="heatmap"]>.l4subtab[data-parent="heatmap"],
   :root.l4.l4g:not(.l4-mini) .tabs[data-cs~="etf"]>.l4subtab[data-parent="etf"],
+  :root.l4.l4g:not(.l4-mini) .tabs[data-cs~="market"]>.l4subtab[data-parent="market"],
+  :root.l4.l4g:not(.l4-mini) .tabs[data-cs~="explore"]>.l4subtab[data-parent="explore"],
+  :root.l4.l4g:not(.l4-mini) .tabs[data-cg~="stock"]>.l4subtab:is([data-parent="market"],[data-parent="explore"],[data-parent="etf"]),
   :root.l4.l4g:not(.l4-mini) .tabs[data-cs~="admin"]>.l4subtab[data-parent="admin"]{display:none}
 }
 
