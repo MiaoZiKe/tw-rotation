@@ -27729,8 +27729,22 @@ def t_mobile_m4_etfqa_1009(b, base, code):
             # 9-1 除息表最後一欄「尚未填息（已 N 天）」：括號那段不拆開、最多兩行
             go("etf/cal", 4500)
             fl = J("""() => [...document.querySelectorAll('#etfCalList td.fill')].filter(t => t.textContent.includes('尚未')).slice(0, 6).map(t => { const cs = getComputedStyle(t), lh = parseFloat(cs.lineHeight) || 16, nw = t.querySelector('.nw');
-                return { lines: Math.round((t.clientHeight - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom)) / lh), nw: nw ? nw.getClientRects().length : 0 }; })""")
+                // 行數＝格內文字實際排出的行（Range 的每一行頂端），不是格高 ÷ 行高：名稱換兩行之後整列變高，格高跟這一欄的字幾行無關
+                const g = document.createRange(); g.selectNodeContents(t); const tops = new Set([...g.getClientRects()].filter(q => q.width > 0).map(q => Math.round(q.top)));
+                return { lines: tops.size, nw: nw ? nw.getClientRects().length : 0 }; })""")
             ok(f"【{T}】{W}：除息表「尚未填息（已 N 天）」括號那段不拆開、最多兩行（{fl[:3]}）", all(x["nw"] == 1 and x["lines"] <= 2 for x in fl), fl)
+            # 監督重驗（360）：表格右緣要停在拉 Bar 左緣之前（字不被蓋）、框內不准橫捲
+            rl = J("""() => { const l = document.getElementById('etfCalList'), t = l.querySelector('table.et'), r = document.querySelector('.calwrap > .m4rail');
+                const txt = [...l.querySelectorAll('th:last-child, td:last-child')].map(c => { const g = document.createRange(); g.selectNodeContents(c); return Math.max(0, ...[...g.getClientRects()].map(q => q.right)); });
+                return { textR: Math.round(Math.max(0, ...txt)), tableR: t ? Math.round(t.getBoundingClientRect().right) : 0, rail: r ? Math.round(r.getBoundingClientRect().left) : null, sw: l.scrollWidth, cw: l.clientWidth }; }""")
+            ok(f"【{T}】{W}：除息表最後一欄字右緣 {rl['textR']} ≤ 拉 Bar 左緣 {rl['rail']}、框內沒有橫捲（{rl['sw']}／{rl['cw']}）",
+               (rl["rail"] is None or rl["textR"] <= rl["rail"]) and rl["sw"] <= rl["cw"] + 1, rl)
+            # 協調者（56fffb4d 退件）：全站不截字、不用「…」—— 除息表裡「text-overflow:ellipsis 而且真的被截」的元素 0 個；名稱放不下就換行，最多兩行
+            nm = J("""() => { const L = [...document.querySelectorAll('#etfCalList td:first-child .cn')].filter(e => e.getClientRects().length);
+                const lines = L.map(e => Math.round(e.getBoundingClientRect().height / (parseFloat(getComputedStyle(e).lineHeight) || 16)));
+                const cut = [...document.querySelectorAll('#etfCalList *')].filter(e => e.getClientRects().length && getComputedStyle(e).textOverflow === 'ellipsis' && e.scrollWidth > e.clientWidth + 0.5).map(e => e.textContent.trim().slice(0, 10));
+                return { n: L.length, maxLines: lines.length ? Math.max(...lines) : 0, cut }; }""")
+            ok(f"【{T}】{W}：除息表被 … 截掉的字 {len(nm['cut'])} 個（要 0）、名稱最多 {nm['maxLines']} 行（≤ 2）", nm["n"] > 0 and not nm["cut"] and nm["maxLines"] <= 2, nm)
             # 9-2 抽屜裡的分段控制器一排（放不下就框內橫拖）
             for h, pid in (("etf/list", "list"), ("etf/inc", "inc")):
                 go(h, 4500)
