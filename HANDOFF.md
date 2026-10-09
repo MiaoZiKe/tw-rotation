@@ -55,6 +55,11 @@
 - 新段落 `_uitest`「導覽普查1009」（約 15 分鐘，⚠ --workers 1）；`平台導覽1007`、`手機v2` 跟著改手機入口（⋯ 已拿掉 → 🧭 小選單）。
 - ⚠ 另一位同事要把手機 🧭 收進 ☰：把 `#twPageTourBtn` 放進 `#m4Drawer`（或任何 `[data-twt-host]`）即可，tour.js 不會再搬它；也可以直接呼叫 `TwTour.menu(錨點)`／`TwTour.start('page')`。
 
+## 2026-10-09 晚 網頁版：LOGO 置中、版號拿掉時間、客服 GIF 去背重做
+- 左上 LOGO 跟站名＋版號上下置中（`.brand .logo picture{display:block}`）；版號畫面只留「v MM-DD 第N版」，建置時間只在滑鼠提示第一行。
+- 客服 GIF 重做去背：改在 512 原圖上從四邊灌水（描邊補縫 2px）、8 格全部透明、影子拿掉，再依 8 格聯集框裁成 128px；跳起來那兩格不再整隻被吃掉。按鈕 76px（圖 72px）。
+- 這批驗了：網頁版號（斷言改成畫面不放時間）、品牌哩股哩股、客服鈕1009、桌機守門1008 皆 0。
+
 ## 2026-10-09 午 網頁版：客服鈕 GIF、LOGO 換新、站名字樣、回報進度 SKILL
 - 客服鈕只剩天竺鼠 GIF（`brand/sup-anim-128.gif`，原檔 `brand/src/support_anim_1009.gif`，米色背景去成透明），一直動、沒有膠囊底與字（讀屏字保留）。
 - LOGO 換新圖（原檔 `brand/src/logo_1009.jpg`）：所有尺寸都用整張不裁切；桌機左上 40px；點 LOGO 跳出大圖（`app.js` logoLightbox，`brand/logo-1024.webp`），點站名照舊回總覽。圖片引用加 `?v=1009b` 避快取。

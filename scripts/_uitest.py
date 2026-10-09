@@ -13989,10 +13989,11 @@ def t_buildver(b, base):
     #   建置時間是唯一能確認「網站換版了沒」的依據。所以這裡同時驗兩件事：
     #   畫面上真的沒有了、title 第一行真的有（而且跟著版號換，見下面第二組）。
     # ★ 2026-09-24 晚改口徑（Andy：「版號增加進版時間，並且版號在左上方標題下面」）：建置時間放回畫面上
-    ok("版號寫「v MM-DD 第N版 · 建置時間」（年份省略，完整版號在提示）", "09-18" in a["txt"] and "第3版" in a["txt"].replace(" ", "") and "11:16" in a["txt"], a["txt"])
+    # ★ 2026-10-09 再改口徑（Andy 截左上角：「拿掉時間」）：畫面上只留「v MM-DD 第N版」，建置時間只在提示裡
+    ok("版號寫「v MM-DD 第N版」（年份與建置時間都不在畫面上，完整版在提示）", "09-18" in a["txt"] and "第3版" in a["txt"].replace(" ", "") and "11:16" not in a["txt"], a["txt"])
     ok("版號在左上方標題下面（在品牌區塊裡）", a.get("inBrand"), a)
     # ★ 2026-09-24 晚：建置時間回到畫面上（見上一條）；提示第一行改成資料日期，建置時間仍寫在提示的「網頁版本 …（… 建置）」那一行
-    ok("★ 建置時間沒有刪：畫面上有、提示裡也有", "11:16" in a["txt"] and "11:16" in (a["title"] or ""), [a["txt"], a["title"][-120:]])
+    ok("★ 建置時間沒有刪：畫面上拿掉、提示裡還有", "11:16" not in a["txt"] and "11:16" in (a["title"] or ""), [a["txt"], a["title"][-120:]])
     # ★ 2026-09-24 Andy：原始碼不能公開 —— 徽章不准再是連到 GitHub 的連結
     ok("★ 徽章不連到 GitHub（原始碼不公開）", not a["href"] and "github" not in (a["title"] or "").lower(), [a["href"], a["title"]])
     # ★ 2026-09-23：橫幅拿掉之後，手機看版號的地方改成「盤後」那顆的提示（見 renderFreshness）。
@@ -14001,7 +14002,7 @@ def t_buildver(b, base):
 
     c = run("2026-09-19 第 1 版|08:02")
     changed("換一個版號，畫面上的字真的跟著換", a["txt"], c["txt"])
-    ok("第二組版號也對得上（短寫 MM-DD 第N版 · 時間）", "09-19" in c["txt"] and "第1版" in c["txt"].replace(" ", "") and "08:02" in c["txt"], c["txt"])
+    ok("第二組版號也對得上（短寫 MM-DD 第N版，10-09 起畫面不放時間）", "09-19" in c["txt"] and "第1版" in c["txt"].replace(" ", "") and "08:02" not in c["txt"], c["txt"])
     ok("★ 換一組版號，提示裡的建置時間也真的跟著換（08:02）",
        "08:02" in (c["title"] or "") and "11:16" not in (c["title"] or ""), c["title"][-120:])
     ok("日期不同就看得出誰比較新（不像 sha 沒有順序）", a["txt"] < c["txt"], [a["txt"], c["txt"]])
@@ -65609,7 +65610,7 @@ def t_billing_1009(b, base, shots):
         pg.click("#acctMenu [data-b=cancel]")
         dv = wait_until(pg, "() => { const d = document.getElementById('billDlg'); return d && !d.hidden ? d.innerText : null; }", 3000)
         ok(f"【{T}】網頁版 Plus：點取消訂閱 → 確認框寫「可用到本期結束日 {end}」「次期不再扣款」、選單收起",
-           bool(dv) and end in dv and "不再扣款" in dv and "七天" in dv and pg.evaluate("() => document.getElementById('acctMenu').hidden"), dv)
+           bool(dv) and end in dv and "不再扣款" in dv and "不再享有退款保證" in dv and pg.evaluate("() => document.getElementById('acctMenu').hidden"), dv)
         if shots:
             pg.screenshot(path=str(pathlib.Path(shots) / "desk_cancel_confirm.jpg"), type="jpeg", quality=70)
         pg.click("#billYes")
