@@ -1376,6 +1376,10 @@ body.miaon #skHead>.disc-line{display:none}
    「滾輪放大」徽章壓在上面會把它的名字整個蓋掉。這張圖右下角是空的，徽章挪過去。*/
 /* 本益比河流圖右側印著區間名稱（警示／昂貴…），徽章放右上會蓋住「警示」→ 移到左上、y 軸刻度右邊 */
 #peWrap>.zbadge{right:auto;left:62px;top:2px}
+/* 2026-10-09 河流圖改圖內縮放（industry.js wirePeInnerZoom）：外框固定，縮放後游標變抓手、拖曳平移 */
+#peWrap.pezoom.zoomed>#peChart{cursor:grab}
+#peWrap.pezoom.grabbing>#peChart{cursor:grabbing}
+#peWrap.pezoom.zoomed{user-select:none;-webkit-user-select:none}
 #trustWrap>.zbadge{top:auto;bottom:34px}   /* 34 而不是 8：8 會壓到橫軸的刻度數字 */
 /* 2026-09-24 四象限：右下角是「連買減碼」的象限名 → 徽章改放下緣正中（x＝0 那條虛線上，本來就沒有點） */
 #trustWrap>.zbadge{right:auto;left:50%;transform:translateX(-50%)}
@@ -1690,6 +1694,23 @@ canvas.rotripple{position:absolute;left:0;top:0;width:100%;height:100%;pointer-e
 .magrid .ma .bar i{display:block;height:100%;border-radius:3px;background:linear-gradient(90deg,color-mix(in srgb,var(--c) 55%,transparent),var(--c))}  /* 一律同色漸層（--c 由 JS 給；Andy 10-07） */
 .magrid .ma .v{font-family:var(--mono);font-size:11.5px;color:var(--ink-2);display:flex;justify-content:space-between}
 .magrid .ma .v span{color:var(--ink-3)}
+/* 2026-10-09 站上均線族群卡依產業鏈分段收合（app.js maSections）：預設收起，展開過的記住 */
+.masecs{display:flex;flex-direction:column;gap:var(--sp-2,10px)}
+.masec{border:1px solid var(--line-2);border-radius:10px;background:var(--panel-2,var(--panel))}
+.masec>summary{list-style:none;cursor:pointer;display:grid;grid-template-columns:10em 6.5em 11em minmax(80px,200px) 7em 1fr;align-items:center;gap:14px;padding:10px 14px;font-size:13px;color:var(--ink-2)}
+.masec>summary::-webkit-details-marker{display:none}
+.masec>summary:hover{color:var(--ink)}
+.masec>summary .ttl{font-size:14.5px;font-weight:700;color:var(--ink);white-space:nowrap}
+.masec>summary em{font-style:normal;color:var(--ink-3);font-size:12px}
+.masec>summary .avg b{font-family:var(--mono)}
+.masec>summary .mbar{height:8px;border-radius:3px;background:var(--panel-3);overflow:hidden}
+.masec>summary .mbar i{display:block;height:100%;background:linear-gradient(90deg,color-mix(in srgb,var(--c) 55%,transparent),var(--c))}
+.masec>summary .cnt{color:var(--ink-3);font-size:12px}
+.masec>summary .chev{justify-self:end;font-style:normal;transition:transform .15s;color:var(--ink-3)}
+.masec[open]>summary .chev{transform:rotate(180deg)}
+.masec[open]>summary{border-bottom:1px solid var(--line-2)}
+.masec>.magrid{padding:var(--sp-2,10px)}
+@media (max-width:640px){.masec>summary{display:flex;flex-wrap:wrap;gap:6px 10px}.masec>summary .mbar{display:none}.masec>summary .chev{margin-left:auto}}
 .top5grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:12px}
 .top5grid .t5{background:var(--panel-3);border:1px solid var(--line-2);border-radius:10px;padding:var(--sp-3) var(--sp-3)}
 @media (max-width:640px){.top5grid .t5{padding:11px 13px}}
@@ -2819,6 +2840,8 @@ tbody tr:last-child td{border-bottom:0}
 .ntag.mops{color:var(--amber)} .ntag.news{color:var(--cyan)} .ntag.broker{color:var(--violet)}
 #stockNews .nwarn{flex:none;font-size:12px;color:var(--ink-3);white-space:nowrap}
 #stockNews #newsEmpty[hidden]{display:none}
+/* 2026-10-09（Andy：「個股內新聞限制方框大小，太多的需要用拉Bar」）：桌機清單限高 560px、超過在框內捲（手機不動）。*/
+@media (min-width:641px){#stockNews #newsList{max-height:560px;overflow-y:auto;overscroll-behavior:contain;scrollbar-width:thin;padding-right:8px}}
 /* 重大訊息那一列是 <details>：瀏覽器預設的 ▶ 會自己佔一行（summary 裡是區塊元素），改成標題列尾端的 ▾／▴ */
 #stockNews details.nrow>summary{list-style:none}
 #stockNews details.nrow>summary::-webkit-details-marker{display:none}
@@ -4774,6 +4797,35 @@ h3 .howbtn.pop{font-family:inherit}
 /* 市場明細「法人連買賣」分頁的控制列（2026-09-28 從總覽搬過來）：窄畫面換行，不撐出橫向捲軸 */
 .mktstreakbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:space-between;margin:0 0 8px}
 .mktstreakbar .row{gap:var(--sp-2);flex-wrap:wrap}
+/* 2026-10-09 法人連買賣「排行」畫法（app.js renderStreakRank）：左連續買超、右連續賣超；長條＝連續天數 */
+.strankbox[hidden],#trustWrap[hidden]{display:none}
+.strank{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--gap-card,16px)}
+.srcol{background:var(--panel-3);border:1px solid var(--line-2);border-radius:10px;padding:10px 12px;min-width:0}
+.srcol .srh{display:flex;align-items:baseline;gap:10px;margin:0 0 6px}
+.srcol .srh b{font-size:15px}
+.srcol.buy .srh b{color:var(--rise)} .srcol.sell .srh b{color:var(--fall)}
+.srcol .srh small{color:var(--ink-3);font-size:12px}
+.srrow{display:grid;grid-template-columns:minmax(7.5em,1.1fr) minmax(0,2fr) 6.5em 7.5em;gap:10px;align-items:center;padding:5px 6px;border-radius:6px;font-size:13px}
+.srrow[data-code]{cursor:pointer}
+.srrow[data-code]:hover,.srrow[data-code]:focus-visible{background:color-mix(in srgb,var(--cyan) 10%,transparent);outline:none}
+.srrow.srhead{color:var(--ink-3);font-size:12px;padding-top:0;padding-bottom:2px;border-bottom:1px solid var(--line-2);border-radius:0}
+.srrow .nm{display:flex;align-items:baseline;gap:6px;min-width:0;white-space:nowrap;overflow:hidden}
+.srrow .nm b{overflow:hidden;text-overflow:ellipsis}
+.srrow .nm em{font-style:normal;font-family:var(--mono);font-size:12px;color:var(--ink-3)}
+.srrow .sbar{position:relative;display:flex;align-items:center;gap:8px;min-width:0}
+.srrow .sbar .trk{flex:1 1 auto;min-width:0}
+.srrow .sbar i{display:block;height:12px;border-radius:3px}
+.srrow .sbar b{flex:none;width:3.6em}
+.srcol.buy .sbar i{background:linear-gradient(90deg,color-mix(in srgb,var(--rise) 45%,transparent),var(--rise))}
+.srcol.sell .sbar i{background:linear-gradient(90deg,color-mix(in srgb,var(--fall) 45%,transparent),var(--fall))}
+.srrow .sbar b{font-family:var(--mono);font-size:12.5px;white-space:nowrap}
+.srrow .lots{text-align:right;font-family:var(--mono);font-size:12.5px;white-space:nowrap}
+.srrow .pw{text-align:right;white-space:nowrap;font-size:12.5px}
+.srrow .pw em{font-style:normal;font-family:var(--mono);color:var(--ink-3)}
+.srrow .pw.add{color:var(--amber)} .srrow .pw.cut{color:var(--ink-3)}
+.srmore{display:flex;justify-content:center;margin-top:10px}
+@media (max-width:1100px) and (min-width:641px){.strank{grid-template-columns:1fr}}
+@media (max-width:640px){.strank{grid-template-columns:1fr}.srrow{grid-template-columns:minmax(6em,1fr) minmax(0,1.4fr) 5.5em}.srrow .pw{display:none}}
 @media (max-width:640px){.mktstreakbar .row{gap:6px}}
 
 /* ---- 市場明細：漲跌分佈下鑽（2026-09-28，Andy「點擊長條圖後，會顯示個股在右邊可以看」）----
@@ -4822,7 +4874,8 @@ h3 .howbtn.pop{font-family:inherit}
    · ≤1100px 欄寬不夠（右欄的表 5 欄最窄約 480px，加上左欄至少 420px 的圖）→ 疊回上下排：圖卡在上、表格卡在下，
      表格卡拿掉 contain、照內容長但最多 460px 再捲；圖回到 260px、名單回到圖的右邊（卡片疊起來後寬度夠）。
      斷點 1100 是量出來的（見 DECISIONS #300）。*/
-.mktduo{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.2fr);gap:var(--gap-card,16px);align-items:stretch;margin:10px 0 0}
+/* 2026-10-09（Andy 截漲跌分佈圖：「需調整適當寬度」）：圖卡改寬、表格卡收窄（改前 1：1.2 → 改後 1.15：1，1440 時右邊五顆分頁鈕仍排得成一行）；表格五欄在 1440 仍放得下 */
+.mktduo{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);gap:var(--gap-card,16px);align-items:stretch;margin:10px 0 0}
 .mktduo>*{min-width:0}
 .mktdist{display:flex;flex-direction:column}
 /* ★ 2026-10-06 族群篩選改共用下拉（site/multiselect.js）：篩選列（全部／上市／上櫃｜含 ETF｜族群：不限 ▾）跟標題同一排還是換到下一排，

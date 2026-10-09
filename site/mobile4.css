@@ -934,3 +934,59 @@
   :root.m4 #prod3d.m4c3dmin{min-height:0}
   :root.m4 #prod3d.m4c3dmin>.mnumlayer{display:none!important}
 }
+
+/* ============================================================================
+   第 30 節（2026-10-09，帳本 73：手機監督在 main 抽到的三個舊問題）—— 只在 ≤640＋:root.m4，桌機一條都不吃
+   ---------------------------------------------------------------------------- */
+@media (max-width:640px){
+  /* (a) 個股 K 線圖頭：右上「還原」小標（.adjtag，絕對定位在 .chartwrap 右邊 72px）蓋住「高 2,590.00」。
+     圖頭文字（.legend-ov）每次十字線移動都會重寫 innerHTML，所以不能在文字裡塞東西 ——
+     改用 ::before 在第一行右側浮一塊空位，第一行的字自己繞開小標；第二行以後照舊滿寬。
+     空位寬高由 industry.js fitM4Legend() 依小標實際位置量（--m4adjw／--m4adjh），圖頭右緣也由它收在價格軸左緣。 */
+  :root.m4 #lwc .legend-ov::before{content:'';float:right;width:var(--m4adjw,120px);height:var(--m4adjh,18px)}
+  /* 每組「標籤＋數值」（industry.js 手機分支包成 .kv）與每條均線讀數整組不換行、整組一起換行 */
+  :root.m4 #lwc .legend-ov :is(.kv,span[style]){white-space:nowrap}
+  /* 拖十字線時的 OHLC 提示框（#ohlcBox）手機不顯示：圖頭本來就跟著十字線更新同一組讀數，留兩份只會互相蓋住（手機監督 10-09 退件） */
+  :root.m4 #lwc #ohlcBox{display:none!important}
+
+  /* (b) 財經日曆月份列：#earnMonth 在 ≤640 被寫死 96px，「2026 年 10 月」15px 字要 108px → 溢出蓋到「下月 ›」。改成照字寬 */
+  :root.m4 #v-earnings .ehd b{width:auto;flex:none}
+  /* 同一列固定 32px 高，可是手機按鈕是 40px（觸控下限）→ 上下各凸出 4px 蓋到隔壁；手機改成照內容高 */
+  :root.m4 #v-earnings .ehd{height:auto}
+
+  /* (c) ETF 配息行事曆月份列：最後一顆「2026 年 10 月共 14 筆除息」只剩 20px 被裁成「2…」。
+     這一列固定 32px 高、不換行；手機改成可換行，狀態字自己佔第二行（收起來可以、刪掉不行） */
+  :root.m4 #v-etf .calhd{flex-wrap:wrap;height:auto;row-gap:2px}
+  :root.m4 #v-etf .calhd .note1{flex:1 0 100%;text-align:left;font-size:12px}
+}
+
+/* ============================================================================
+   第 31 節（2026-10-09，帳本 38 退件）市場明細三頁的多組切換 → 一顆摘要鈕＋底部抽屜（程式在 mobile4.js 第 31 段）
+   頁面上原本那幾組只在「摘要鈕已經掛上」時才藏（用兄弟選擇器綁在 #m4MkSet 後面）—— JS 沒跑起來就照舊看得到，不會兩邊都沒有。
+   ---------------------------------------------------------------------------- */
+@media (max-width:640px){
+  :root.m4 #v-market #m4MkSet{display:inline-flex;align-items:center;gap:6px;width:100%;max-width:100%;min-height:40px;height:40px;padding:0 10px;margin:6px 0 4px;white-space:nowrap;box-sizing:border-box}
+  :root.m4 #v-market .mktstreakbar .row>#m4MkSet{flex:1 1 auto;width:auto;min-width:0;margin:0}
+  :root.m4 #v-market #m4MkSet .m4st{flex:1 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;text-align:left}
+  :root.m4 #v-market #m4MkSet .m4sico{flex:none;opacity:.8}
+  :root.m4 #v-market #m4MkSet>i{flex:none;font-style:normal;opacity:.7}
+  :root.m4 #v-market #m4MkSet+#distFilter,
+  :root.m4 #v-market #m4MkSet~:is(#streakView,#streakWho,#streakDays),
+  :root.m4 #v-market #m4MkSet+#maPick,
+  :root.m4 #v-market #m4MkSet~#maGroupCtl{display:none!important}
+
+  /* 抽屜：每組一排（小標在上、分段鈕在下）；分段鈕等寬填滿一排，40px 高 */
+  :root.m4 .msheet .m4mksegs{align-items:stretch!important}
+  :root.m4 .msheet .m4mkrow{display:flex;flex-direction:column;gap:4px;width:100%}
+  :root.m4 .msheet .m4mklbl{font-size:12px;color:var(--ink-3)}
+  :root.m4 .msheet .m4mkrow>.seg{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(0,1fr);gap:4px;width:100%;box-sizing:border-box}
+  :root.m4 .msheet .m4mkrow>.seg>button{min-width:0;min-height:40px;padding:0 2px;font-size:13px;white-space:nowrap}
+  :root.m4 .msheet .m4mkmv{margin-top:10px}
+  :root.m4 .msheet .m4mkslot #distGroupDD{display:block;--ms-w:100%}
+  :root.m4 .msheet .m4mkslot :is(#distGroupDD .twms-btn,#maGroupDD .ddbtn){width:100%!important;min-height:40px;box-sizing:border-box}
+  :root.m4 .msheet .m4mkslot #maGroupDD{width:100%;display:flex!important;flex-direction:column;align-items:stretch}
+  :root.m4 .msheet .m4mkslot #maGroupDD .ddbtn{height:40px;flex:none}
+  /* 族群面板在抽屜裡往下長：開著時抽屜拉高到 86vh，不用在 46vh 的小窗裡捲 */
+  :root.m4 .msheet[data-kind=m4mkset]:has(.m4mkslot .ddpanel:not([hidden])){max-height:86vh}
+  :root.m4 .msheet .m4mkslot .ddpanel{position:static!important;width:100%!important;max-width:none!important;box-sizing:border-box;margin-top:6px}
+}
