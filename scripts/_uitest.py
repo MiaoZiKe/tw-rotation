@@ -27581,7 +27581,9 @@ def t_mobile_m4_1008(b, base, code):
             go(h, 2500)
             for k, f, w in J(FP): kinds.setdefault(k, {}).setdefault(f, set()).add(f"{h} {w}")
         brief = {k: {f: sorted(w)[:3] for f, w in d.items()} for k, d in kinds.items()}
-        ok(f"【{T}】元件統一：頁籤指紋 ≤ 2 種（{len(kinds.get('頁籤', {}))}）", 0 < len(kinds.get("頁籤", {})) <= 2, brief.get("頁籤"))
+        # 2026-10-09 Andy：「圖一需要全部改成切換開關 如圖二」—— 認可的切換只有三款：底線頁籤（切子頁 .m4subtabs／#mktSeg2）、
+        # 分段控制器（頁內切換，總覽「走勢圖｜K 線」那款 .m4seg）、分段膠囊。上限 3 是款式數，量到超過要改元件，不是再放寬
+        ok(f"【{T}】元件統一：頁籤指紋 ≤ 3 種（{len(kinds.get('頁籤', {}))}）", 0 < len(kinds.get("頁籤", {})) <= 3, brief.get("頁籤"))
         ok(f"【{T}】元件統一：外框按鈕指紋 ≤ 2 種（{len(kinds.get('按鈕', {}))}）", 0 < len(kinds.get("按鈕", {})) <= 2, brief.get("按鈕"))
         ok(f"【{T}】元件統一：「?」說明鈕指紋 1 種（{len(kinds.get('?', {}))}）", len(kinds.get("?", {})) == 1, brief.get("?"))
         # ㉑ 自選頁籤：每顆高度差 ≤ 2px、「⋯」在選中頁籤裡面、說明列不跟其他元素重疊
