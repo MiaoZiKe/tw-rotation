@@ -31710,6 +31710,127 @@ def t_m4_playbar360_1009(b, base):
         finally:
             ctx.close()
 
+# ★ 2026-10-09 帳本 85（Andy 22:3x 附截圖：「所有分頁打開來 Default 都是最左邊的子分頁，不會跳到其他分頁」）：
+#   手機（402 觸控）從側欄抽屜點進任何有子分頁的頁 → 落在最左邊那個子分頁（hash 與選中格都要對），不記上次看的子分頁。
+#   例外照網址走：直接開帶子頁的網址、上一頁鍵；頁內自己點子分頁照常切。個股頁從別頁點進來一律 K線。
+#   1440 桌機：抽兩頁確認行為跟改前一樣（改前實測：側欄 ETF → #etf/list、資金流向 → #flow/rotation，桌機不記上次子頁）。
+SUBTAB_1009 = {   # 頁 → (子分頁列選擇器, 要點的按鈕選擇器, 切到第幾格（非最左）, 最左那格進來時的 hash)
+    "overview": ("#v-overview > .mpager", "button", 2, "#overview"),
+    "flow":     ("#m4Title .m4subtabs", "button", 1, "#flow/rotation"),
+    "heatmap":  ("#m4Title .m4subtabs", "button", 1, "#heatmap/industry"),
+    "industry": ("#chainSwitch", "button", 1, "#industry"),
+    "market":   ("#mktSeg2", "button", 1, "#market"),
+    "explore":  ("#slChips", "button", 2, "#explore"),
+    "etf":      ("#m4Title .m4subtabs", "button", 2, "#etf/cal"),
+    "earnings": ("#earnFilt", "button", 1, "#earnings"),
+    "watch":    ("#wpTabs", "button.wptab", 1, "#watch"),
+}
+_ST_SEL_JS = """([s, q]) => { const e = document.querySelector(s); if (!e) return null;
+  const bs = [...e.querySelectorAll(q)].filter(b => b.getClientRects().length && !b.disabled).sort((a, b) => a.getBoundingClientRect().left - b.getBoundingClientRect().left);
+  return { hash: location.hash, n: bs.length, on: bs.findIndex(b => b.classList.contains('on') || b.getAttribute('aria-selected') === 'true'),
+           names: bs.map(b => b.textContent.trim().slice(0, 8)) }; }"""
+
+
+def t_m4_subtab_first_1009(b, base):
+    T = "手機子分頁預設1009"
+    ctx = b.new_context(viewport={"width": 402, "height": 874}, is_mobile=True, has_touch=True, device_scale_factor=2)
+    ctx.add_init_script("try{localStorage.setItem('tw.live.on','0')}catch(e){}")
+    m = ctx.new_page()
+    errs = []
+    m.on("pageerror", lambda e: errs.append(str(e)))
+    J = m.evaluate
+
+    def drawer(v, wait=2600):
+        m.locator("#m4Burger").tap(); m.wait_for_timeout(450)
+        m.locator(f'#m4Drawer .m4item[data-v="{v}"]').tap(); m.wait_for_timeout(wait)
+
+    def st(v):
+        sel, q, _, _ = SUBTAB_1009[v]
+        r = None
+        for _ in range(20):
+            r = J(_ST_SEL_JS, [sel, q])
+            if r and r["n"]:
+                break
+            m.wait_for_timeout(250)
+        return r
+
+    m.goto(base + "#overview", wait_until="domcontentloaded"); m.wait_for_timeout(3000)
+    # 自選要有兩個清單才有「非最左」可切
+    J("() => { if (window.TwWatch && window.TwWatch.newTab && document.querySelectorAll('#wpTabs button.wptab').length < 2) window.TwWatch.newTab('第二頁'); }")
+    for v, (sel, q, idx, h0) in SUBTAB_1009.items():
+        drawer(v)
+        a = st(v)
+        ok(f"【{T}】{v}：從抽屜第一次進來 → 最左邊（{a and (a['hash'], a['on'], a['names'][:4])}）", bool(a) and a["on"] == 0 and a["hash"] == h0, a)
+        if not a or a["n"] <= idx:
+            ok(f"【{T}】{v}：子分頁至少 {idx + 1} 格才能驗「切走再回來」", False, a)
+            continue
+        # 頁內自己點：照常切（畫面真的換到那一格）
+        J("([s, q, i]) => { const bs = [...document.querySelector(s).querySelectorAll(q)].filter(b => b.getClientRects().length && !b.disabled).sort((a, b) => a.getBoundingClientRect().left - b.getBoundingClientRect().left); bs[i].click(); }", [sel, q, idx])
+        m.wait_for_timeout(1500)
+        c = st(v)
+        ok(f"【{T}】{v}：頁內點第 {idx + 1} 格 → 真的切過去（{c and (c['hash'], c['on'])}）", bool(c) and c["on"] == idx, c)
+        # 離開到別頁，再從抽屜點回來 → 回最左邊
+        drawer("season" if v != "season" else "overview", 1800)
+        drawer(v)
+        d = st(v)
+        ok(f"【{T}】{v}：切到第 {idx + 1} 格 → 離開 → 從抽屜點回來 → 最左邊（{d and (d['hash'], d['on'])}；改前會停在第 {idx + 1} 格）",
+           bool(d) and d["on"] == 0 and d["hash"] == h0, d)
+    # 同一頁再點一次主選單：總覽停在「熱度」時點抽屜「總覽」→ 回「大盤」（網址沒變也要回）
+    drawer("overview")
+    J("() => { const bs = [...document.querySelectorAll('#v-overview > .mpager button')]; bs[bs.length - 1].click(); }"); m.wait_for_timeout(1200)
+    s1 = st("overview")
+    drawer("overview")
+    s2 = st("overview")
+    ok(f"【{T}】總覽：停在第 {s1 and s1['on'] + 1} 格時再點抽屜「總覽」→ 回最左邊（{s2 and s2['on']}）", bool(s1) and s1["on"] > 0 and bool(s2) and s2["on"] == 0, (s1, s2))
+    # 例外一：直接開帶子頁的網址 → 照網址
+    for h, v, want in (("#etf/inc", "etf", 2), ("#flow/sankey", "flow", 1), ("#heatmap/theme", "heatmap", 1)):
+        m.goto(base + h, wait_until="domcontentloaded"); m.wait_for_timeout(3200)
+        r = st(v)
+        ok(f"【{T}】直接開 {h} → 照網址停在第 {want + 1} 格（{r and (r['hash'], r['on'])}）", bool(r) and r["hash"] == h and r["on"] == want, r)
+    # 例外二：上一頁鍵 → 照網址（ETF 月配試算 → 抽屜去季節性 → 上一頁 → 回月配試算）
+    drawer("season", 1800)
+    m.go_back(); m.wait_for_timeout(2500)
+    r = st("etf")
+    ok(f"【{T}】上一頁鍵回 ETF → 照網址停在月配試算（{r and (r['hash'], r['on'])}）", bool(r) and r["hash"] == "#etf/inc" and r["on"] == 2, r)
+    # 例外三：站內連結明確指到子頁 → 照網址
+    J("() => { location.hash = '#etf/list'; }"); m.wait_for_timeout(2200)
+    r = st("etf")
+    ok(f"【{T}】站內連到 #etf/list → 停在 ETF 總覽（{r and (r['hash'], r['on'])}）", bool(r) and r["hash"] == "#etf/list" and r["on"] == 1, r)
+    # 個股頁：K線起。切到「基本資料」→ 離開 → 從別頁點進同一檔 → K線
+    m.goto(base + "#stock/2330", wait_until="domcontentloaded")
+    okk = wait_until(m, "() => !!document.querySelector('#mbTabs button[data-t]')", 10000)
+    if okk:
+        k0 = J("() => document.querySelector('#mbTabs button.on') && document.querySelector('#mbTabs button.on').dataset.t")
+        m.locator("#mbTabs button[data-t]").nth(1).tap(); m.wait_for_timeout(1200)
+        k1 = J("() => document.querySelector('#mbTabs button.on').dataset.t")
+        drawer("market", 2000)
+        J("() => { location.hash = '#stock/2330'; }")
+        wait_until(m, "() => !!document.querySelector('#mbTabs button.on')", 10000); m.wait_for_timeout(800)
+        k2 = J("() => { const b = document.querySelector('#mbTabs button.on'); const l = [...document.querySelectorAll('#mbTabs button[data-t]')].sort((a, c) => a.getBoundingClientRect().left - c.getBoundingClientRect().left)[0]; return [b && b.dataset.t, l && l.dataset.t]; }")
+        ok(f"【{T}】個股：切到 {k1} → 離開 → 再點進來 → 最左邊 K線（{k0}→{k1}→{k2}）", k1 != "k" and k2[0] == "k" and k2[1] == "k", (k0, k1, k2))
+    else:
+        ok(f"【{T}】個股：分頁列長出來", False)
+    ok(f"【{T}】402 全程沒有 pageerror", not errs, errs[:3])
+    # 截圖：ETF 從側欄點進去落在配息行事曆
+    drawer("overview", 1500); drawer("etf", 3000)
+    try:
+        m.screenshot(path=str(Path(os.environ.get("TW_SHOT_DIR", "/tmp")) / "m4_subtab_etf_1009.png"))
+    except Exception:
+        pass
+    ctx.close()
+    # 1440 桌機：行為跟改前一樣（改前實測：側欄 ETF → #etf/list、資金流向 → #flow/rotation；桌機沒有抽屜，這批的程式碼一行都不會跑）
+    d = b.new_page(viewport={"width": 1440, "height": 900})
+    d.goto(base + "#overview", wait_until="domcontentloaded"); d.wait_for_timeout(2500)
+    for v, sub, want in (("etf", "#etf/inc", "#etf/list"), ("flow", "#flow/sankey", "#flow/rotation")):
+        d.evaluate("h => { location.hash = h; }", sub); d.wait_for_timeout(1500)
+        d.evaluate("() => { location.hash = '#overview'; }"); d.wait_for_timeout(1200)
+        d.locator(f'#tabs .tab[data-view="{v}"]').click(); d.wait_for_timeout(1500)
+        h = d.evaluate("() => location.hash")
+        ok(f"【{T}】1440 桌機：看過 {sub} 再點側欄「{v}」→ {h}（跟改前一樣 {want}）", h == want, h)
+    ok(f"【{T}】1440 桌機：沒有手機抽屜", d.evaluate("() => !document.getElementById('m4Drawer')"))
+    d.close()
+
+
 SECTIONS = {
     # ★ 2026-10-09 手機監督：360 寬播放列 ▶／⏸ 被長日期擠出畫面 —— 360／402 播放中最長那刻＋暫停在過去：▶ 在列內、一行、日期不截；1440 日期仍完整
     "手機播放列360":       lambda pg, b, base, code: t_m4_playbar360_1009(b, base),
@@ -31938,6 +32059,8 @@ SECTIONS = {
     # ★ 2026-10-09 Andy：「3D 圖為何還會出現下方欄位…圖四可以看到他的線條指到未知地方」＋帳本 67 3D 收合鈕（402 寬、全部 3D 圖；⚠ --workers 1）
     # ★ 2026-10-09 導覽普查（main）
     "導覽普查1009":        lambda pg, b, base, code: t_tour_census_1009(b, base),
+    # ★ 2026-10-09 帳本 85：手機從側欄進任何有子分頁的頁 → 最左邊子分頁（402 觸控＋1440 桌機抽查）
+    "手機子分頁預設1009":  lambda pg, b, base, code: t_m4_subtab_first_1009(b, base),
     "手機3D說明1009":      lambda pg, b, base, code: t_m4_3d_1009(b, base),
     # ★ 2026-09-25 手機版 v3（docs/mobile_v3_spec.md §7）：底部一列五顆、「?」氣泡、大盤合一張、新雷達＋焦點條、
     #   資金分流樹長條、法人對稱長條、篩選抽屜、剖析圖只留編號（2D／3D）。390 與 360 各一輪。⚠ 一律 --workers 1（有 3D）

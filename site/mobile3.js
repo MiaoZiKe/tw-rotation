@@ -1173,7 +1173,9 @@
      apply() 在換頁 60ms 後就跑，而 renderStock 要等 JSON 回來 —— 所以輪詢，最多 8 秒；
      簡版個股頁（沒有個股 JSON、沒有 #skChartCard）等不到就放手，維持原本的手機版。*/
   function skOn(v) {
-    if (v !== 'stock') { skOff(); return; }
+    /* ★ 2026-10-09 帳本 85（Andy：「所有分頁打開來 Default 都是最左邊的子分頁」）：手機 v2（html.m4）離開個股頁 → 下次從別頁點進任何一檔都從最左邊「K線」開始。
+       改前：記住上次看的分頁（tw.m3.sk.tab），從清單點進另一檔也停在上次那格；改後：只有在個股頁裡換檔（‹ ›、同頁連結）才保留分頁。 */
+    if (v !== 'stock') { if (SK.code && document.documentElement.classList.contains('m4')) LS.set('sk.tab', 'k'); skOff(); return; }
     const code = skCode();
     if (!code) { skOff(); return; }
     clearTimeout(SK.wait);
