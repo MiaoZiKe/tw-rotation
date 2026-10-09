@@ -29855,6 +29855,60 @@ def t_mobile_m4_indpie_1009(b, base, code):
         finally:
             ctx.close()
 
+# ★ 2026-10-10 手機圓餅放大1010（Andy：「圓餅圖需要調整與螢幕寬度相符 幫我放大的意思」「且下方的長條圖補上」）
+#   手機（html.m4）產業地圖「成交值占比」甜甜圈：框＝卡片內寬（不再卡在 340 上限、左右大空白）；
+#   圖例每一列名稱下面一條同色細長條，長度依占比（以最大那塊為滿格，彼此成正比）。桌機圖例沒有長條（.m4bar 只在 m4 長出）。
+#   驗：360／390／430 寬（is_mobile、has_touch、DPR2）—— ① canvas 寬 ≥ 卡片內寬 85% ② 每列都有長條、長條在名稱正下方、
+#   顏色＝色塊顏色 ③ 長條填色寬／最大者 ≈ 占比／最大占比（差 ≤ 3px）④ 整頁不橫捲；1440 桌機圖例一條 .m4bar 都沒有。
+def t_mobile_m4_pie1010(b, base, code):
+    T = "手機圓餅放大1010"
+    MEAS = """() => { const card = document.querySelector('#v-industry .gppie'), pie = document.getElementById('gpPie');
+        if (!card || !pie) return null; const cv = pie.querySelector('canvas'); if (!cv) return null;
+        const cs = getComputedStyle(card), inner = card.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
+        const rows = [...document.querySelectorAll('#gpLegend .lg')].map(r => { const bar = r.querySelector('.m4bar'), f = bar && bar.querySelector('s'), t = r.querySelector('.m4t'), sw = r.querySelector('i');
+          return { n: r.dataset.n, pc: parseFloat(r.querySelector('.pc').textContent), has: !!(bar && f),
+            fw: f ? f.getBoundingClientRect().width : 0, tw: bar ? bar.getBoundingClientRect().width : 0, h: f ? f.getBoundingClientRect().height : 0,
+            below: !!(bar && t) && bar.getBoundingClientRect().top >= t.getBoundingClientRect().bottom - 1,
+            sameCol: !!(f && sw) && getComputedStyle(f).backgroundColor === getComputedStyle(sw).backgroundColor }; });
+        return { inner, cvw: cv.getBoundingClientRect().width, rows, sw: document.documentElement.scrollWidth, vw: innerWidth }; }"""
+    for W in (360, 390, 430):
+        ctx = b.new_context(viewport={"width": W, "height": 844}, device_scale_factor=2, is_mobile=True, has_touch=True)
+        try:
+            ctx.add_init_script("try{ localStorage.setItem('tw.live.on','0'); localStorage.setItem('tw.tourDone','1'); }catch(e){}")
+            m = ctx.new_page()
+            m.on("pageerror", lambda e, W=W: fails.append(f"{T} {W} pageerror: {e} @ {m.url}"))
+            m.route("**/fonts.googleapis.com/**", lambda r: r.abort())
+            m.goto(base + "#industry", wait_until="domcontentloaded")
+            wait_until(m, "(() => { const p = document.getElementById('gpPie'); return !!(p && p.querySelector('canvas') && document.querySelectorAll('#gpLegend .lg').length && document.documentElement.classList.contains('m4')); })()", 15000)
+            m.wait_for_timeout(1200)
+            d = m.evaluate(MEAS)
+            if not ok(f"【{T}】{W} 寬：找得到甜甜圈 canvas 與圖例", bool(d and d["rows"]), d):
+                continue
+            ok(f"【{T}】{W} 寬：甜甜圈 canvas 寬 {d['cvw']:.0f} ≥ 卡片內寬 {d['inner']:.0f} 的 85%", d["cvw"] >= d["inner"] * 0.85, d["cvw"] / max(d["inner"], 1))
+            rows = d["rows"]
+            ok(f"【{T}】{W} 寬：圖例 {len(rows)} 列每列都有長條、在名稱正下方、跟色塊同色、高 ≥ 3px",
+               all(r["has"] and r["below"] and r["sameCol"] and r["h"] >= 3 for r in rows), rows)
+            pmax = max(r["pc"] for r in rows) or 1
+            fmax = max(r["fw"] for r in rows) or 1
+            bad = [r for r in rows if abs(r["fw"] - r["pc"] / pmax * fmax) > 3 and r["fw"] > 2.5]
+            ok(f"【{T}】{W} 寬：長條長度與占比成正比（最大一列 {fmax:.0f}px＝{pmax}%，誤差 ≤ 3px）",
+               not bad and fmax >= 0.9 * rows[0]["tw"], {"不成比例": bad, "rows": [(r["n"], r["pc"], round(r["fw"], 1)) for r in rows]})
+            ok(f"【{T}】{W} 寬：整頁不橫捲（{d['sw']}／{d['vw']}）", d["sw"] <= d["vw"], d["sw"])
+        finally:
+            ctx.close()
+    # 桌機（1440，非 m4）：圖例一條 .m4bar 都沒有（桌機 DOM 不變）
+    ctx = b.new_context(viewport={"width": 1440, "height": 900})
+    try:
+        ctx.add_init_script("try{ localStorage.setItem('tw.live.on','0'); localStorage.setItem('tw.tourDone','1'); }catch(e){}")
+        m = ctx.new_page()
+        m.route("**/fonts.googleapis.com/**", lambda r: r.abort())
+        m.goto(base + "#industry", wait_until="domcontentloaded")
+        wait_until(m, "(() => document.querySelectorAll('#gpLegend .lg').length > 0)()", 15000)
+        dk = m.evaluate("() => ({ m4: document.documentElement.classList.contains('m4'), bars: document.querySelectorAll('#gpLegend .m4bar').length, n: document.querySelectorAll('#gpLegend .lg').length })")
+        ok(f"【{T}】桌機 1440：圖例沒有手機長條（.m4bar {dk['bars']} 條）", not dk["m4"] and dk["bars"] == 0 and dk["n"] > 0, dk)
+    finally:
+        ctx.close()
+
 # ★ 2026-10-09 手機拖曳邊界1009（Andy 04:1x：「所有圖扁長寬到了就好，不可以他長度原本是那樣，但還能一直滑過頭超出範圍」）
 #   手機（html.m4）每一種能拖、能平移、能縮放的圖：放大後往四個方向各用手指拖一大段（比內容還長）＋一次快速甩動（慣性），
 #   每次都量「內容外框仍蓋滿整個可視框、四邊沒有空白」；1× 時拖不動。K 線拖到兩端與縮到最小不能露出資料外的空白；
@@ -32596,7 +32650,9 @@ SECTIONS = {
     # ★ 2026-09-27 手機總覽最上方：指數三格（可左右滑）＋觀察清單（2026-09-27 起是自選清單目前那一頁：localStorage tw.watchlists，只存代號；site/mobile3.js G 段＋site/watchlists.js）
     "手機總覽指數觀察清單": lambda pg, b, base, code: t_mobile_home(b, base, code),
     # ★ 2026-10-08 手機 v2（docs/mobile_v2_plan.md；site/mobile4.js）：側欄抽屜、每頁第一屏、字級／觸控、主要切換真的點得動
-    "手機v2":              lambda pg, b, base, code: (t_mobile_m4_etf2_1009(b, base, code), t_mobile_m4_etfqa_1009(b, base, code), t_m4_xpetf_1009(b, base), t_mobile_m4(b, base, code), t_mobile_m4_1008(b, base, code), t_mobile_m4_charts_1009(b, base, code), t_mobile_m4_1009(b, base, code), t_mobile_m4_market(b, base, code), t_mobile_m4_misc1009(b, base, code), t_mobile_m4_mkset1009(b, base, code), t_mobile_m4_ov2(b, base, code), t_mobile_m4_foldread1009(b, base, code)),
+    "手機v2":              lambda pg, b, base, code: (t_mobile_m4_etf2_1009(b, base, code), t_mobile_m4_etfqa_1009(b, base, code), t_m4_xpetf_1009(b, base), t_mobile_m4(b, base, code), t_mobile_m4_1008(b, base, code), t_mobile_m4_charts_1009(b, base, code), t_mobile_m4_1009(b, base, code), t_mobile_m4_market(b, base, code), t_mobile_m4_misc1009(b, base, code), t_mobile_m4_mkset1009(b, base, code), t_mobile_m4_ov2(b, base, code), t_mobile_m4_foldread1009(b, base, code), t_mobile_m4_pie1010(b, base, code)),
+    # ★ 2026-10-10 手機圓餅放大＋圖例長條（Andy：「圓餅圖需要調整與螢幕寬度相符」「下方的長條圖補上」）單獨跑：手機v2 也包含這一段
+    "手機圓餅放大1010":    lambda pg, b, base, code: t_mobile_m4_pie1010(b, base, code),
     # ★ 2026-10-09 手機總覽 ov2（Andy 09:1x／09:3x／09:4x）單獨跑：手機v2 也包含這一段
     # ★ 2026-10-09 手機 v2 圖表跟網頁版同一套（claude/m4-charts）單獨跑：手機v2 也包含這一段
     "手機v2圖表1009":       lambda pg, b, base, code: t_mobile_m4_charts_1009(b, base, code),
