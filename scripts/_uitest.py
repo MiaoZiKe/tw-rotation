@@ -66999,7 +66999,7 @@ def _etfl_free_page(pg, T):
     ok(f"{T}【免費會員】參數控制反灰（透明度 ≤ .6）、游標 not-allowed", dim[0] <= 0.6 and dim[1] == "not-allowed", dim)
     codes0 = pg.evaluate(ETFL_CODES)
     tries = [("金額 200 萬", "#incAmtSeg button[data-v='2000000']"), ("月領", "#incMode button[data-v='m']"), ("範圍 債券型", "#incScope button[data-v='bond']"),
-             ("二代健保", "#incNhi"), ("自訂金額框", "#incAmt"), ("報酬期間", "#etfIncRng"), ("組合分頁", "#incTabs button[data-v='c']"),
+             ("二代健保", "#incNhi"), ("自訂金額框", "#incAmt"), ("報酬期間", "#etfIncRng"),
              ("右側清單取消勾選", "#incList .ilr.in > input[type=checkbox]"), ("回前 5", "#incReset")]
     for name, sel in tries:
         loc = pg.locator(sel).first
@@ -67015,6 +67015,11 @@ def _etfl_free_page(pg, T):
     pg.keyboard.type("3000000"); pg.keyboard.press("Enter"); pg.wait_for_timeout(300)
     ok(f"{T}【免費會員】勾選框還是勾著、金額框與二代健保停用（鍵盤打字也改不了）",
        pg.evaluate("() => document.querySelector('#incList .ilr.in > input').checked && document.getElementById('incAmt').disabled && document.getElementById('incNhi').disabled") and pg.evaluate(ETFL_K) == k0)
+    # 10-10 Andy：「這邊是可以看的」→ 單檔 ETF／組合 A～E 分頁免費會員也能切（看，不改計算條件）
+    pg.click("#incTabs button[data-v='c']"); pg.wait_for_timeout(1500)
+    cb = pg.evaluate("() => ({ on: (document.querySelector('#incTabs button.on') || {}).textContent || '', n: document.querySelectorAll('#incCombos .combo').length, pop: false })")
+    ok(f"{T}【免費會員】單檔／組合分頁可以切（點組合 A 真的出現組合）、沒有彈出層", cb["n"] >= 1 and not pg.evaluate(ETFL_POP), cb)
+    pg.click("#incTabs button[data-v='s']"); pg.wait_for_timeout(1200)
     # 排序不算參數：照樣能換
     pg.click("#incSort button[data-v='tr']"); pg.wait_for_timeout(500)
     k2 = pg.evaluate(ETFL_K)
