@@ -128,7 +128,7 @@
   ];
   const ETFINC = [
     // 手機 v2：條件區收成一顆「條件：… ▾」（mobile4.js wireCond 的 .m4cond），框那一顆；月配／複利攤平成兩個網址（#etf/inc、#etf/inc/cx）
-    { t: '目標與範圍', sel: ['#incPM .incctl', '#incPM > .m4cond'], route: '#etf/inc', routeRe: /^#etf\/inc/, mrouteRe: /^#etf\/inc\/?$/, view: 'etf', before: () => { const b = $('#incMain button[data-v="m"]'); if (b && !b.classList.contains('on')) b.click(); },
+    { t: '目標與範圍', sel: ['#incPM .incctl', '#incPM > .m4cond', '#m4EtfSet-inc'], route: '#etf/inc', routeRe: /^#etf\/inc/, mrouteRe: /^#etf\/inc\/?$/, view: 'etf', before: () => { const b = $('#incMain button[data-v="m"]'); if (b && !b.classList.contains('on')) b.click(); },
       d: '先設每年或每月想領多少錢、算哪些 ETF、要不要扣二代健保；下面的張數與金額都跟著這裡算。' },
     { t: '單檔與組合 A～E', sel: '.inctabrow', route: '#etf/inc', routeRe: /^#etf\/inc/, mrouteRe: /^#etf\/inc\/?$/, view: 'etf',
       d: '單檔＝每一檔要買幾張；組合 A～E＝幾檔搭在一起每個月都有入帳，組合內容右上角切排序方式。' },
