@@ -115,7 +115,7 @@ html.m4 .m4am .mh small{font-size:12.5px;color:var(--ink-2);word-break:break-all
 html.m4 .m4am .mh .m4login{grid-column:2;justify-self:start;margin-top:6px;height:36px;padding:0 16px;border-radius:9px;border:0;background:var(--cyan);color:#04121a;font-weight:700;font-size:14px;width:auto;text-align:center}
 html.m4 .m4am .planbadge.t-guest{color:var(--ink-2);border:1px solid var(--line-2);background:transparent}
 html.m4 .m4am .planbadge.t-free{color:var(--cyan);border:1px solid color-mix(in srgb,var(--cyan) 45%,transparent);background:color-mix(in srgb,var(--cyan) 10%,transparent)}
-html.m4 .m4am .m4role{display:inline-flex;align-items:center;height:20px;padding:0 8px;border-radius:999px;font-size:11.5px;font-weight:700;color:#ff6b7a;border:1px solid color-mix(in srgb,#ff6b7a 55%,transparent);background:color-mix(in srgb,#ff6b7a 14%,transparent)}
+html.m4 .m4am .m4role{display:inline-flex;align-items:center;height:20px;padding:0 8px;border-radius:999px;font-size:12px;font-weight:700;color:#ff6b7a;border:1px solid color-mix(in srgb,#ff6b7a 55%,transparent);background:color-mix(in srgb,#ff6b7a 14%,transparent)}
 html.m4 .m4am .m4i{display:flex!important;align-items:center;gap:10px;min-height:46px;padding:0 10px!important;font-size:15px!important}
 html.m4 .m4am .m4i .t{flex:1;min-width:0}
 html.m4 .m4am .m4i .r{color:var(--ink-2);font-size:12.5px;white-space:nowrap}
