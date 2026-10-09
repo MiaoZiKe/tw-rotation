@@ -31328,6 +31328,141 @@ def t_barw_1009(b, base):
         pg.close()
 
 
+def t_mobile_stock_1010(b, base, code):
+    """★ 2026-10-10 手機個股頁照桌機版型（site/mobile3.js F 段、site/mobile4.css 第 32 節）。
+    Andy 原話：
+      「手機版個股下方資訊發現嚴重問題，為何還會一個完整版，個股資訊幫我依據網頁版型式呈現，唯一不同就是調整大小，上方是K線 走勢圖，
+        篩選方式可以參考市場明細那邊的方式，下方是總覽 基本資訊等等...若是像總覽內有基本面、籌碼快照、AI分析，出現2個以上的功能表，就需要分段式開關切換分頁」
+      「並且剛剛手機版右邊滑動還會出現一片空白，請確實調整整個大小是否符合手機寬度」
+      「功能切換一定都要同一排」「下方資訊若太長，就使用拉Bar」
+    每一項都是用手指（tap／觸控拖曳）操作、驗「畫面真的因此變了」；360／390／430 三個寬度都跑。"""
+    T = "手機個股1010"
+    VH = 844
+    STOCK_TABS = ["總覽", "基本資料", "指標", "營收", "獲利", "除權息", "法人", "資券", "大戶／散戶", "公告／新聞"]   # ＝桌機 industry.js STOCK_TABS
+    ETF_TABS = ["總覽", "成分股", "配息", "法人", "資券", "受益人分布", "公告／新聞"]                              # ＝桌機 ETF_TABS
+    # 一排的列：每顆可見、非絕對定位的子元素 top 差 ≤ 2px
+    ROWS = """() => { const sels = ['#mbTabs', '#mbBody .mbseg', '#mbBody .mbhotgls', '#mbBody .mblegend', '#skTools', '#tfSeg'];
+        const out = []; for (const s of sels) for (const e of document.querySelectorAll(s)) { if (!e.getClientRects().length) continue;
+          // K 線工具列量「按鈕」本身（週期分段鈕外面那一圈框比「設定」鈕高 6px，量框會多出置中的 3px）
+          const kids = s === '#skTools' ? [...e.querySelectorAll('button')] : [...e.children];
+          const k = kids.filter(x => x.getClientRects().length && getComputedStyle(x).position !== 'absolute' && x.getBoundingClientRect().height > 2);
+          if (k.length < 2) continue; const t = k.map(x => x.getBoundingClientRect().top);
+          out.push({ s, n: k.length, d: Math.round((Math.max(...t) - Math.min(...t)) * 10) / 10 }); }
+        return out; }"""
+    STATE = """() => { const b = document.getElementById('mbBody'), st = document.getElementById('stockTab'), on = document.querySelector('#mbTabs button.on');
+        const vis = (id) => { const e = document.getElementById(id); return !!(e && e.getClientRects().length && e.offsetHeight > 0); };
+        const txt = (b && b.getClientRects().length ? b.innerText : '') + '|' + (st && st.getClientRects().length ? st.innerText : '');
+        return { mbt: document.body.dataset.mbt, on: on && on.dataset.t, sig: txt.length + ':' + txt.slice(0, 60), mov: st && st.dataset.mov,
+          card: { fund: vis('skFundCard'), chip: vis('skChipCard'), ai: vis('ovAiCard') }, k: vis('skChartCard'),
+          sw: document.documentElement.scrollWidth, iw: innerWidth, h: document.documentElement.scrollHeight,
+          full: [...document.querySelectorAll('button,a,[role=tab]')].filter(x => x.getClientRects().length && x.textContent.trim() === '完整版').length }; }"""
+
+    def touch_drag(m, cdp, x0, y0, x1, y1, n=10):
+        cdp.send("Input.dispatchTouchEvent", {"type": "touchStart", "touchPoints": [{"x": x0, "y": y0}]})
+        for i in range(1, n + 1):
+            cdp.send("Input.dispatchTouchEvent", {"type": "touchMove", "touchPoints": [{"x": x0 + (x1 - x0) * i / n, "y": y0 + (y1 - y0) * i / n}]})
+            m.wait_for_timeout(16)
+        cdp.send("Input.dispatchTouchEvent", {"type": "touchEnd", "touchPoints": []})
+        m.wait_for_timeout(500)
+
+    def stick(m):   # 把分頁列捲到釘住的位置（使用者往下捲看內容的姿勢）
+        m.evaluate("""() => { const c = document.getElementById('skChartCard'), row = document.getElementById('mbTabRow');
+            const top = parseFloat(getComputedStyle(document.body).getPropertyValue('--mbtop')) || 0;
+            window.scrollTo({ top: scrollY + c.getBoundingClientRect().bottom + (parseFloat(getComputedStyle(row).marginTop) || 0) - top, behavior: 'instant' }); }""")
+        m.wait_for_timeout(300)
+
+    for W in (360, 390, 430):
+        ctx = b.new_context(viewport={"width": W, "height": VH}, device_scale_factor=2, is_mobile=True, has_touch=True)
+        try:
+            ctx.add_init_script("try{ localStorage.setItem('tw.live.on','0'); localStorage.setItem('tw.tourDone','1'); }catch(e){}")
+            m = ctx.new_page()
+            m.on("pageerror", lambda e, W=W: fails.append(f"{T} {W} pageerror: {e}"))
+            m.route("**/fonts.googleapis.com/**", lambda r: r.abort())
+            m.goto(base + "#stock/2330", wait_until="domcontentloaded")
+            if not ok(f"【{T}】{W}：個股頁分頁列出現（前提）", wait_until(m, "(() => document.querySelectorAll('#mbTabs button[data-t]').length >= 5 && !!document.getElementById('lwc'))()", 20000)):
+                continue
+            m.wait_for_timeout(1500)
+            cdp = ctx.new_cdp_session(m)
+            tabs = m.evaluate("() => [...document.querySelectorAll('#mbTabs button[data-t]')].map(b => b.textContent.trim())")
+            # 改前：K線、基本資料、指標、營收、獲利、財務、除權息、法人、資券、大戶／散戶、AI 分析、新聞、完整版 → 改後：跟桌機同一份清單、同一個順序
+            ok(f"★【{T}】{W}：分頁清單＝桌機（總覽…公告／新聞），沒有 K線／財務／AI 分析／完整版", tabs == STOCK_TABS, tabs)
+            s0 = m.evaluate(STATE)
+            ok(f"★【{T}】{W}：畫面上沒有「完整版」", s0["full"] == 0, s0["full"])
+            ok(f"【{T}】{W}：預設在最左邊「總覽」", s0["on"] == "ov" and s0["mbt"] == "ov", s0)
+            fs = m.evaluate("""() => { const c = document.getElementById('skChartCard').getBoundingClientRect(), r = document.getElementById('mbTabRow').getBoundingClientRect();
+                return { kTop: Math.round(c.top), kBot: Math.round(c.bottom), rowTop: Math.round(r.top), rowBot: Math.round(r.bottom) }; }""")
+            ok(f"★【{T}】{W}：K 線在上、分頁列在 K 線下面，而且兩個都在第一屏（分頁列底 {fs['rowBot']} ≤ {VH}）",
+               fs["kTop"] < fs["rowTop"] and fs["kBot"] <= fs["rowTop"] + 1 and fs["rowBot"] <= VH, fs)
+            # ---- 總覽：分段鈕一次一張，預設最左邊
+            segs = m.evaluate("() => [...document.querySelectorAll('#mbBody .mbseg button')].map(b => b.dataset.s)")
+            ok(f"★【{T}】{W}：總覽有分段鈕 基本面｜籌碼快照｜AI 分析", segs == ["fund", "chip", "ai"], segs)
+            ok(f"【{T}】{W}：總覽預設最左邊「基本面」、只露那一張", s0["mov"] == "fund" and s0["card"] == {"fund": True, "chip": False, "ai": False}, s0["card"])
+            stick(m)
+            for sg in segs:
+                m.locator(f'#mbBody .mbseg button[data-s="{sg}"]').tap(); m.wait_for_timeout(700)
+                st = m.evaluate(STATE)
+                want = {"fund": sg == "fund", "chip": sg == "chip", "ai": sg == "ai"}
+                ok(f"【{T}】{W}：總覽點「{sg}」→ 只露那一張卡", st["mov"] == sg and st["card"] == want, st["card"])
+            # ---- 每個分頁都點過：畫面真的換了、整頁不橫捲、頁高 ≤ 4 屏、每一排都只有一排
+            prev = None
+            for t in m.evaluate("() => [...document.querySelectorAll('#mbTabs button[data-t]')].map(b => b.dataset.t)"):
+                m.locator(f'#mbTabs button[data-t="{t}"]').tap(); m.wait_for_timeout(1100)
+                st = m.evaluate(STATE)
+                ok(f"【{T}】{W}：點「{t}」→ 分頁換過去、內容跟上一頁不同", st["mbt"] == t and st["on"] == t and st["sig"] != prev and st["k"], {"mbt": st["mbt"], "sig": st["sig"][:40]})
+                prev = st["sig"]
+                ok(f"【{T}】{W}「{t}」：整頁寬 {st['sw']} ＝ 視窗 {st['iw']}", st["sw"] == st["iw"], st["sw"])
+                ok(f"【{T}】{W}「{t}」：頁高 {st['h']} ≤ 4 屏（{4 * VH}）", st["h"] <= 4 * VH, st["h"])
+                rows = m.evaluate(ROWS)
+                bad = [r for r in rows if r["d"] > 2]
+                ok(f"★【{T}】{W}「{t}」：分頁列、分段鈕、圖例、色塊、K 線工具列都只有一排（top 差 ≤ 2）", not bad and rows, bad or rows)
+            # ---- 拉 Bar：法人每日表、新聞清單在框裡用手指捲，整頁不動
+            for t, sel in (("inst", "#mbBody .mbtblwrap"), ("news", "#mbBody .mbnews")):
+                m.locator(f'#mbTabs button[data-t="{t}"]').tap(); m.wait_for_timeout(1000)
+                stick(m)
+                bx = m.evaluate(f"""() => {{ const e = document.querySelector('{sel}'); if (!e) return null; const r = e.getBoundingClientRect();
+                    return {{ sh: e.scrollHeight, ch: e.clientHeight, oy: getComputedStyle(e).overflowY, x: r.left + r.width / 2, top: r.top, bot: Math.min(r.bottom, innerHeight - 10) }}; }}""")
+                if not ok(f"【{T}】{W}「{t}」：長內容放在固定高度的框（overflow-y:auto、內容比框高）", bool(bx) and bx["oy"] == "auto" and bx["sh"] > bx["ch"] + 20, bx):
+                    continue
+                y0 = m.evaluate("() => scrollY")
+                touch_drag(m, cdp, bx["x"], bx["bot"] - 20, bx["x"], max(bx["top"] + 20, bx["bot"] - 260))
+                after = m.evaluate(f"() => [document.querySelector('{sel}').scrollTop, scrollY]")
+                ok(f"★【{T}】{W}「{t}」：手指往上拖 → 框裡捲了（scrollTop {after[0]}），整頁沒跟著跑（{y0}→{after[1]}）", after[0] > 30 and abs(after[1] - y0) < 4, after)
+            # ---- 手指往左拖整頁：不能拖出右邊空白
+            m.evaluate("() => window.scrollTo(0, 0)"); m.wait_for_timeout(200)
+            for y in (150, 500):
+                touch_drag(m, cdp, W - 20, y, 20, y)
+                sx = m.evaluate("() => [scrollX, visualViewport.offsetLeft, document.documentElement.scrollWidth, innerWidth]")
+                ok(f"★【{T}】{W}：手指在 y={y} 往左拖整頁 → 沒有橫移（scrollX {sx[0]}、視窗位移 {sx[1]}、頁寬 {sx[2]}／{sx[3]}）", sx[0] == 0 and sx[1] == 0 and sx[2] == sx[3], sx)
+            # ---- K 線「設定」抽屜：點了開抽屜，切「四週期同看」真的切過去（原本那顆 #mtfBtn 的字跟著換），再切回來
+            m.evaluate("() => window.scrollTo(0, 0)"); m.wait_for_timeout(200)
+            m.locator("#mbKSet").tap(); m.wait_for_timeout(500)
+            kind = m.evaluate("() => { const s = document.getElementById('mSheet'); return s && !s.hidden ? s.dataset.kind : null; }")
+            if ok(f"【{T}】{W}：K 線工具列「設定」打開設定抽屜", kind == "mbkset", kind):
+                b0 = m.evaluate("() => document.getElementById('mtfBtn').textContent.trim()")
+                m.locator('#mSheet .seg[data-mk="mtf"] button[data-v="1"]').tap(); m.wait_for_timeout(1200)
+                b1 = m.evaluate("() => document.getElementById('mtfBtn').textContent.trim()")
+                ok(f"【{T}】{W}：抽屜裡點「四週期同看」→ K 線真的切成四週期（{b0}→{b1}）", b0 == "四週期同看" and b1 == "單一週期", [b0, b1])
+                m.locator('#mSheet .seg[data-mk="mtf"] button[data-v="0"]').tap(); m.wait_for_timeout(1000)
+                m.evaluate("() => document.getElementById('mSheetBack').click()"); m.wait_for_timeout(300)
+        finally:
+            ctx.close()
+    # ---- ETF：清單＝桌機 ETF_TABS；總覽只有一張（籌碼快照）→ 不放分段鈕
+    ctx = b.new_context(viewport={"width": 390, "height": VH}, device_scale_factor=2, is_mobile=True, has_touch=True)
+    try:
+        ctx.add_init_script("try{ localStorage.setItem('tw.live.on','0'); localStorage.setItem('tw.tourDone','1'); }catch(e){}")
+        m = ctx.new_page()
+        m.route("**/fonts.googleapis.com/**", lambda r: r.abort())
+        m.goto(base + "#stock/0050", wait_until="domcontentloaded")
+        if ok(f"【{T}】ETF 0050：分頁列出現（前提）", wait_until(m, "(() => document.querySelectorAll('#mbTabs button[data-t]').length >= 4)()", 20000)):
+            m.wait_for_timeout(1200)
+            tabs = m.evaluate("() => [...document.querySelectorAll('#mbTabs button[data-t]')].map(b => b.textContent.trim())")
+            ok(f"★【{T}】ETF 0050：分頁清單＝桌機 ETF（總覽、成分股、配息、法人、資券、受益人分布、公告／新聞）", tabs == ETF_TABS, tabs)
+            st = m.evaluate(STATE)
+            ok(f"【{T}】ETF 0050：總覽只有籌碼快照一張、沒有分段鈕", st["mov"] == "chip" and st["card"]["chip"] and m.evaluate("() => document.querySelectorAll('#mbBody .mbseg').length") == 0, st["card"])
+    finally:
+        ctx.close()
+
+
 def t_desk_guard_1008(b, base):
     T = "桌機守門1008"
     c = b.new_context(viewport={"width": 1440, "height": 900})
@@ -32760,6 +32895,8 @@ SECTIONS = {
     # ★ 2026-10-09 手機總覽 ov2（Andy 09:1x／09:3x／09:4x）單獨跑：手機v2 也包含這一段
     # ★ 2026-10-09 手機 v2 圖表跟網頁版同一套（claude/m4-charts）單獨跑：手機v2 也包含這一段
     "手機v2圖表1009":       lambda pg, b, base, code: t_mobile_m4_charts_1009(b, base, code),
+    # ★ 2026-10-10 手機個股頁照桌機版型（Andy：「個股資訊幫我依據網頁版型式呈現」「功能切換一定都要同一排」「下方資訊若太長，就使用拉Bar」）
+    "手機個股1010":        lambda pg, b, base, code: t_mobile_stock_1010(b, base, code),
     "手機v2總覽ov2":        lambda pg, b, base, code: t_mobile_m4_ov2(b, base, code),
     # ★ 2026-10-09 帳本 73（K 線圖頭還原小標／財經日曆月份列／ETF 配息行事曆月份列）單獨跑：手機v2 也包含這一段
     "手機v2帳本73":        lambda pg, b, base, code: t_mobile_m4_misc1009(b, base, code),

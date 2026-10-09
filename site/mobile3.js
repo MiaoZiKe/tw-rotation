@@ -1392,9 +1392,10 @@
   }
   /* 把分頁列放回「釘住」的位置（分頁內容的頂端貼著分頁列底下）*/
   function skStick() {
-    const row = document.getElementById('mbTabRow'), body = document.getElementById('mbBody'); if (!row || !body) return;
+    /* 量 K 線卡底（分頁列自己是 sticky，釘住時量到的是釘住的位置；分頁內容在總覽時可能是空的、量不到）*/
+    const row = document.getElementById('mbTabRow'), card = document.getElementById('skChartCard'); if (!row || !card) return;
     const top = parseFloat(getComputedStyle(document.body).getPropertyValue('--mbtop')) || 0;
-    const y = window.scrollY + body.getBoundingClientRect().top - top - row.offsetHeight;
+    const y = window.scrollY + card.getBoundingClientRect().bottom + (parseFloat(getComputedStyle(row).marginTop) || 0) - top;
     window.scrollTo({ top: Math.max(0, y), behavior: 'instant' });
   }
 
