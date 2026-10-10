@@ -812,9 +812,9 @@ def sample_shots(fmt):
 def sample_mobile_op():
     """手機版：比比依 raw_v3 shots.md 踩總覽的分頁鈕（驗證 Operator 對位）。"""
     L = Layout("mobile")
-    ev = parse_shots().get("V01_mobile", [])
-    r = Rec3("V01_mobile", [(0, 2.5), (6.5, 8.5)])
-    return [Shot3(6.5, [r], pill_text="總覽", head="大盤一頁看完", hl="一頁", sub="資金流向、熱度、大盤切換著看",
+    ev = parse_shots(B.RAW / "shots.md").get("S03_mobile", [])
+    r = Rec3("S03_mobile", [(0, 1.0), (6.5, 7.5)])
+    return [Shot3(6.5, [r], pill_text="財經日曆", head="FED 消息一張排好", hl="一張", sub="點一下事件，數據說明和下次公布日都在這",
                   host=Operator(r, ev, idle="talk_happy"))], L
 
 
