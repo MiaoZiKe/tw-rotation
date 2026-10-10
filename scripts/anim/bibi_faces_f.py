@@ -30,9 +30,9 @@ import bibi_actions as BA  # noqa: E402
 import bibi_faces_c as C  # noqa: E402
 import pose_tween  # noqa: E402
 
-from bibi_actions import (INK, FUR, SIZE, f, P, add, bez, brush, sparkle, motion_lines, arcs, paw_svg,  # noqa: E402
+from bibi_actions import (INK, FUR, SIZE, f, P, add, bez, brush, sparkle, motion_lines, arcs,  # noqa: E402
                           base_geom, sheet12, qmark, ease)
-from bibi_faces_c import (EYE_L, EYE_R, SW, F, FR, render, heart_svg, star_svg, drop_svg, dots_svg,  # noqa: E402
+from bibi_faces_c import (paw_svg, PAW2, PAW2_DK, PAW2_LT, EYE_L, EYE_R, SW, F, FR, render, heart_svg, star_svg, drop_svg, dots_svg,  # noqa: E402
                           body_rot, smooth_closed, jitter, rrect_pts, shape, STAR, STAR_DK)
 
 LENS, LENS_HL = "#2E2A36", "#8C88A0"
@@ -63,12 +63,12 @@ def thumb_svg(c, deg=0.0, r=19.0, seed=0):
     tc = (c[0] - r * 0.25, c[1] - r * 1.05)
     tb = smooth_closed(jitter([(tc[0] + 8.5 * math.cos(a), tc[1] + 15 * math.sin(a))
                                for a in np.linspace(0, 2 * math.pi, 10, endpoint=False)], 0.3, seed))
-    s = shape(tb, BA.PAW, lw=BA.OUT_W * 0.95)
-    s += f'<ellipse cx="{f(tc[0]-2.5)}" cy="{f(tc[1]-5)}" rx="2.4" ry="4.2" fill="{BA.PAW_LT}"/>'
+    s = shape(tb, PAW2, lw=BA.OUT_W * 0.95)
+    s += f'<ellipse cx="{f(tc[0]-2.5)}" cy="{f(tc[1]-5)}" rx="2.4" ry="4.2" fill="{PAW2_LT}"/>'
     body = smooth_closed(jitter([(c[0] + r * 1.08 * math.cos(a), c[1] + r * 0.9 * math.sin(a))
                                  for a in np.linspace(0, 2 * math.pi, 12, endpoint=False)], 0.5, seed + 1))
-    s += shape(body, BA.PAW, lw=BA.OUT_W * 0.95)
-    s += f'<ellipse cx="{f(c[0]-r*0.3)}" cy="{f(c[1]+r*0.25)}" rx="{f(r*0.32)}" ry="{f(r*0.22)}" fill="{BA.PAW_DK}" opacity="0.7"/>'
+    s += shape(body, PAW2, lw=BA.OUT_W * 0.95)
+    s += f'<ellipse cx="{f(c[0]-r*0.3)}" cy="{f(c[1]+r*0.25)}" rx="{f(r*0.32)}" ry="{f(r*0.22)}" fill="{PAW2_DK}" opacity="0.7"/>'
     for dy in (-0.25, 0.2):   # 捲起來的四指：右側兩道指節線
         y = c[1] + r * dy
         s += brush(bez((c[0] + r * 0.15, y), (c[0] + r * 0.45, y - 2), (c[0] + r * 0.75, y - 2), (c[0] + r * 1.02, y + 1), 8), 3.2, 2.6)
@@ -76,10 +76,17 @@ def thumb_svg(c, deg=0.0, r=19.0, seed=0):
 
 
 def fist_svg(c, deg=0.0, r=15.0, seed=0):
-    """握拳：肉掌＋兩道指節線。"""
-    s = paw_svg(c, 90, r=r, squash=0.95, seed=seed, open_side=270, spots=False)
-    for dx in (-5, 3):
-        s += brush(bez((c[0] + dx, c[1] - r * 0.7), (c[0] + dx + 1.5, c[1] - r * 0.35), (c[0] + dx + 1.5, c[1] - r * 0.1), (c[0] + dx, c[1] + r * 0.05), 6), 2.8, 2.4)
+    """握拳（總表配色）：圓圓的蜜桃粉拳頭＋兩道指節線＋根部深粉。"""
+    pts = jitter([(c[0] + r * 1.02 * math.cos(t), c[1] + r * 0.95 * math.sin(t)) for t in np.linspace(0, 2 * math.pi, 12, endpoint=False)], 0.4, seed)
+    d = smooth_closed(pts)
+    cid = f"fs{abs(int(c[0]*5+c[1]*11+seed))}"
+    s = (f'<clipPath id="{cid}"><path d="{d}"/></clipPath><path d="{d}" fill="{PAW2}"/>'
+         f'<g clip-path="url(#{cid})"><ellipse cx="{f(c[0])}" cy="{f(c[1]+r*0.95)}" rx="{f(r*1.1)}" ry="{f(r*0.55)}" fill="{PAW2_DK}" opacity="0.75"/></g>'
+         f'<path d="{d}" fill="none" stroke="{INK}" stroke-width="{f(BA.OUT_W)}" stroke-linejoin="round"/>')
+    for dx in (-0.32, 0.18):
+        x = c[0] + r * dx
+        s += brush(bez((x, c[1] - r * 0.78), (x + 1.5, c[1] - r * 0.45), (x + 1.5, c[1] - r * 0.2), (x, c[1] - r * 0.02), 6), 3.0, 2.4)
+    s += f'<circle cx="{f(c[0]-r*0.45)}" cy="{f(c[1]-r*0.45)}" r="{f(r*0.16)}" fill="{PAW2_LT}"/>'
     return f'<g transform="rotate({deg:.1f},{f(c[0])},{f(c[1])})">{s}</g>' if deg else s
 
 

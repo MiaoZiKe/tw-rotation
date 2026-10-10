@@ -193,15 +193,116 @@ def music(total, bpm):
     return buf
 
 
+# ───────────────────────── 專業版（--style pro） ─────────────────────────
+def piano(f, dur, vel):
+    n = int(dur * SR); t = np.arange(n) / SR
+    s = (np.sin(2 * np.pi * f * t) + 0.45 * np.sin(2 * np.pi * 2.003 * f * t) * np.exp(-t * 1.5)
+         + 0.2 * np.sin(2 * np.pi * 3.01 * f * t) * np.exp(-t * 3) + 0.08 * np.sin(2 * np.pi * 4.02 * f * t) * np.exp(-t * 5))
+    return s * _env(n, 0.004, 1.3, 0.12) * vel
+
+
+def pad(freqs, dur, vel):
+    """柔和弦樂鋪底：多個微失諧鋸齒波低通＋慢起音。"""
+    n = int(dur * SR); t = np.arange(n) / SR
+    s = np.zeros(n)
+    for f in freqs:
+        for dt in (-0.12, 0.0, 0.11):
+            ph = 2 * np.pi * f * (1 + dt / 100) * t
+            s += sum(np.sin(k * ph) / k for k in range(1, 6))
+    k = int(SR / 2500)
+    s = np.convolve(s, np.ones(k) / k, "same")
+    a = np.clip(t / 0.8, 0, 1)
+    r = np.clip((dur - t) / 0.6, 0, 1)
+    return s * a * r * vel / len(freqs)
+
+
+def pulse(f, dur, vel):
+    """輕合成器脈衝：短方波低通。"""
+    n = int(dur * SR); t = np.arange(n) / SR
+    s = np.sign(np.sin(2 * np.pi * f * t))
+    k = int(SR / 1800)
+    s = np.convolve(s, np.ones(k) / k, "same")
+    return s * _env(n, 0.003, 9.0) * vel
+
+
+def rim():
+    t = np.arange(int(0.06 * SR)) / SR
+    return (np.sin(2 * np.pi * 1700 * t) * 0.5 + np.diff(rng.standard_normal(t.size), prepend=0) * 0.3) * np.exp(-t * 90) * 0.18
+
+
+# C 大調：Am – F – C – G（vi IV I V），專業、穩、略帶推進感
+PRO_PROG = [(45, [57, 60, 64, 69]), (41, [57, 60, 65, 69]), (48, [55, 60, 64, 67]), (43, [55, 59, 62, 67])]
+PRO_MEL = [[(0, 76, 1.5), (1.5, 72, .5), (2, 74, 2)], [(0, 72, 1), (1, 69, 1), (2, 72, 2)],
+           [(0, 76, 1), (1, 79, 1), (2, 76, 1), (3, 74, 1)], [(0, 74, 2), (2, 71, 1), (3, 74, 1)]]
+
+
+def music_pro(total, bpm):
+    beat = 60 / bpm
+    bar = beat * 4
+    nbars = int((total - 2.0) // bar)
+    end_t = nbars * bar
+    buf = np.zeros((int((total + 0.5) * SR), 2))
+    K = softkick()
+    for b in range(nbars):
+        t0 = b * bar
+        intro = b < 2
+        outro = b >= nbars - 2
+        peak = (not intro) and ((b - 2) % 8 >= 4)
+        root, ch = PRO_PROG[b % 4]
+        add(buf, pad([hz(n) for n in ch], bar + 0.4, 0.10 if peak else 0.075), t0, 0.0)
+        # 鋼琴分解和弦（八分音符）
+        arp = [ch[0], ch[2], ch[1], ch[3], ch[2], ch[1], ch[3], ch[2]]
+        for e, nn in enumerate(arp):
+            add(buf, piano(hz(nn), beat * 1.4, 0.07), t0 + e * beat / 2, -0.25 + 0.06 * e)
+        if intro:
+            continue
+        add(buf, bass(hz(root), bar * 0.95, 0.26), t0)
+        for e in range(8):
+            add(buf, pulse(hz(root + 24), beat / 2 * 0.9, 0.035 * (1.2 if e % 2 else 1)), t0 + e * beat / 2, 0.3)
+        add(buf, K, t0, 0, 0.55); add(buf, K, t0 + 2 * beat, 0, 0.45)
+        if peak:
+            add(buf, K, t0 + 2.5 * beat, 0, 0.3)
+        add(buf, rim(), t0 + beat, 0.1); add(buf, rim(), t0 + 3 * beat, 0.1)
+        for bt, nn, d in PRO_MEL[b % 4]:
+            add(buf, piano(hz(nn), d * beat * 1.4, 0.15 if peak else 0.12 * (0.8 if outro else 1)), t0 + bt * beat, 0.1)
+    for k, nn in enumerate([48, 55, 60, 64, 67, 72]):
+        add(buf, piano(hz(nn), total - end_t + 0.4, 0.11), end_t + k * 0.02, -0.2 + 0.08 * k)
+    add(buf, pad([hz(60), hz(64), hz(67)], total - end_t + 0.3, 0.08), end_t)
+    buf = buf[: int(total * SR)]
+    fo = int(0.8 * SR)
+    buf[-fo:] *= np.linspace(1, 0, fo)[:, None] ** 1.5
+    return buf
+
+
+def sfx_pro(kind):
+    t = lambda d: np.arange(int(d * SR)) / SR
+    if kind in ("tap", "blip"):
+        x = t(0.05)
+        return np.sin(2 * np.pi * (2400 if kind == "tap" else 1900) * x) * np.exp(-x * 120) * 0.18
+    if kind == "draw":
+        x = t(0.35); f = 900 + 900 * x / 0.35
+        return np.sin(2 * np.pi * np.cumsum(f) / SR) * np.sin(np.pi * x / 0.35) ** 2 * 0.05
+    if kind in ("zoom", "whoosh", "swish"):
+        x = t(0.45); nz = np.convolve(rng.standard_normal(x.size), np.ones(60) / 60, "same")
+        return nz * np.sin(np.pi * x / 0.45) ** 2 * 0.9
+    if kind in ("ding", "chord", "chord_end", "chirp", "pop", "boop", "thud"):
+        x = t(0.6)
+        return (np.sin(2 * np.pi * 1318.5 * x) + 0.4 * np.sin(2 * np.pi * 1975.5 * x)) * np.exp(-x * 7) * 0.08
+    return None
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--length", type=float, required=True)
-    ap.add_argument("--bpm", type=float, default=100)
+    ap.add_argument("--bpm", type=float, default=0, help="預設 cute=100、pro=114")
+    ap.add_argument("--style", choices=["cute", "pro"], default="cute")
     ap.add_argument("--out", required=True)
     ap.add_argument("--cues", default="")
     ap.add_argument("--duck", default="", help="從這一秒起音量降到一半以下（警語段），例如 140.5")
     a = ap.parse_args()
-    m = music(a.length, a.bpm)
+    bpm = a.bpm or (114 if a.style == "pro" else 100)
+    a.bpm = bpm
+    m = music_pro(a.length, bpm) if a.style == "pro" else music(a.length, bpm)
     if a.duck:
         i0 = int(float(a.duck) * SR)
         g = np.ones(len(m)); g[i0:] = 0.45
@@ -214,11 +315,11 @@ def main():
     if a.cues:
         fx = np.zeros_like(m)
         for t, kind in json.load(open(a.cues))["cues"]:
-            s = sfx(kind)
+            s = sfx_pro(kind) if a.style == "pro" else sfx(kind)
             if s is not None:
                 add(fx, s, t)
         if np.max(np.abs(fx)) > 0:
-            fx = fx / np.max(np.abs(fx)) * 0.3          # 約比音樂峰值低 6dB
+            fx = fx / np.max(np.abs(fx)) * (0.18 if a.style == "pro" else 0.3)   # cute 約低 6dB、pro 約低 10dB
         m = m + fx
     m[: int(0.03 * SR)] *= np.linspace(0, 1, int(0.03 * SR))[:, None]
     pcm = (np.clip(m, -0.98, 0.98) * 32767).astype(np.int16)

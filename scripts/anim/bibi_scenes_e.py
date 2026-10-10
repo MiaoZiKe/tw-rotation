@@ -200,7 +200,7 @@ def scene_alarm(poses):
         ("鬆一口氣", 0, dict(h=0.97, w=1.03), ("relax", (0, 0), 1, False)),
         ("省下時間、開心", 0, dict(h=1.02, lag=-0.04), ("happy", (0, 0), 1, False)),
         ("站好", 0, dict(), ("dot", (0, 0), 1.0, False)),
-        ("…鬧鐘又要響了", 0, dict(), ("dot", (5, 0), 1.0, False)),
+        ("…鬧鐘又要響了", 3, dict(lag=-0.02), ("dot", (6, 0), 1.05, False)),
     ]
     out = []
     for i, (lab, ring, gk, (m, lk, sc, hl)) in enumerate(plan):
@@ -213,13 +213,15 @@ def scene_alarm(poses):
                 motion_lines((cc[0] - 40, cc[1] - 12), 165, spread=26, r0=6, length=11, n=2)
         if i == 0:
             svg += sweat(fwd(poses, g, 110, 210), 1.0)
-        if i == 5:
-            svg += mini_paw((C[0] - 2, C[1] - 52), 12, -90, 5)
+        sprites = []
+        if i == 5:   # 官方部件總表的小肉掌：從身體右側冒出一小截，往下按住鬧鐘
+            at = BA.shoulder(poses, g, (436, 318), depth=10)
+            sprites.append(BA.hand_layer(at, -18, 46, "R"))
         if i == 6:
             svg += sparkle((C[0] + 34, C[1] - 58), 11) + sparkle((C[0] - 40, C[1] - 54), 8)
         if i == 9:
             svg += sparkle((130, 200), 10) + sparkle((360, 190), 8)
-        out.append(fr_(poses, g, lab, face(poses, m, lk, sc, hl), front=svg))
+        out.append(fr_(poses, g, lab, face(poses, m, lk, sc, hl), front=svg, sprites=sprites))
     return out
 
 
@@ -910,10 +912,10 @@ def scene_magic_frame(poses):
             d = "M " + " L ".join(P(p) for p in pts) + (" Z" if prog[i] >= 1 else "")
             w = 7.0 if i not in (8, 10) else 8.5
             svg += g_op(glow_stroke(d, GOLD, "#FFF7D6", w), op)
-        # 小肉掌：貼在身體右側邊，揮的時候畫小弧（不長手臂），魔法粉從肉掌飛到筆尖
-        side = fwd(poses, g, 430, 300)
-        wav = 10 * math.sin(i * 1.9)
-        pc = (side[0] + 8, side[1] - 6 + wav)
+        # 小肉掌（官方部件總表原圖像素）：從身體右側冒出一小截，上下小幅揮動，魔法粉從掌尖飛到筆尖
+        at = BA.shoulder(poses, g, (432, 318), depth=10)
+        hdeg = 55 + 22 * math.sin(i * 1.9)
+        pc = BA.hand_tip(at, hdeg, 46)
         if i <= 7:
             dust = bez(pc, (pc[0] + 30, pc[1] - 80), (tip[0] - 20, tip[1] + 60), tip, 14)
             for k, p in enumerate(dust[2:-1]):
@@ -921,13 +923,12 @@ def scene_magic_frame(poses):
                     svg += f'<circle cx="{f(p[0])}" cy="{f(p[1])}" r="{2.2 + 0.15*k:.1f}" fill="{GOLD}" opacity="0.8"/>'
             if prog[i] > 0 and prog[i] < 1:
                 svg += sparkle(tip, 12)
-            svg += BA.arcs(pc, 60, r=20, n=1)
-        svg += paw_svg(pc, 60, r=13, squash=0.86, seed=i)
+            svg += BA.arcs(pc, hdeg - 70, r=16, n=1)
         fc = face(poses, "happy") if 7 <= i <= 9 else face(poses, "dot", (5, -6), 1.0, False)
         if i in (7, 9):
             for c in ((FRAME_BOX[0], FRAME_BOX[1]), (FRAME_BOX[2], FRAME_BOX[1]), (FRAME_BOX[2], FRAME_BOX[3]), (FRAME_BOX[0], FRAME_BOX[3])):
                 svg += sparkle(c, 12 if i == 7 else 9)
-        fr = fr_(poses, g, labs[i], fc, front=svg)
+        fr = fr_(poses, g, labs[i], fc, front=svg, sprites=[BA.hand_layer(at, hdeg - g.get("rot", 0) * 0, 46, "R")])
         x0, y0, x1, y1 = FRAME_BOX
         fr["frame_box"] = {"corners": [[x0, y0], [x1, y0], [x1, y1], [x0, y1]], "drawn": round(prog[i], 3),
                            "tip": [round(tip[0], 1), round(tip[1], 1)], "opacity": op}

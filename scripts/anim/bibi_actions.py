@@ -392,6 +392,8 @@ def compose(poses, fr):
         canvas = Image.alpha_composite(canvas, ol)
         if free:
             canvas = Image.alpha_composite(canvas, raster(free))
+    for sp in fr.get("sprites", []):   # 原圖像素部件（例如官方部件總表的小肉掌），疊在身體前面
+        canvas = Image.alpha_composite(canvas, sp)
     if fr.get("mid"):        # 身體前面、post 之前（例如報紙、眼鏡框底下的東西）
         canvas = Image.alpha_composite(canvas, raster(fr["mid"]))
     for t in fr.get("texts_mid", []):
@@ -453,72 +455,7 @@ SH_R_POINT = (438, 338)       # 指向：畫面右側腰側
 SH_SIGN_L, SH_SIGN_R = (90, 342), (424, 338)
 
 
-def act_wave(poses):
-    # (角度：0＝往右、90＝往上；手長；身體 rot／壓扁；有無弧線)
-    plan = [
-        ("待機（跟 jump K01 同一格身體）", None, 0, dict()),
-        ("右手從身側冒出", (-20, 52), 0, dict(rot=-1.0, h=0.99)),
-        ("手舉到肩上", (40, 70), 0, dict(rot=-2.0, h=1.01, lag=-0.03)),
-        ("手舉到最高、往外", (62, 80), 1, dict(rot=-3.0, h=1.02, lag=-0.04)),
-        ("揮向內", (90, 78), 0, dict(rot=-1.0, h=1.01)),
-        ("揮回外", (55, 80), 1, dict(rot=-3.5, h=1.02, lag=-0.05)),
-        ("再揮向內", (92, 78), 0, dict(rot=-0.5, h=1.01)),
-        ("再揮回外", (58, 80), 1, dict(rot=-3.0, h=1.02, lag=-0.04)),
-        ("揮到正上方", (80, 76), 0, dict(rot=-1.5, h=1.01)),
-        ("手往下收", (30, 72), 0, dict(rot=-1.0, h=1.0)),
-        ("手收回身側", (-30, 50), 0, dict(rot=0.0, h=0.985, w=1.01)),
-        ("回待機（微彈）", None, 0, dict(h=0.99, w=1.008)),
-    ]
-    frames = []
-    for i, (lab, arm, arc, gk) in enumerate(plan):
-        g = base_geom(poses, 0, **gk)
-        fr = {"g": g, "label": lab, "limbs": [], "front": ""}
-        if arm:
-            deg, L = arm
-            deg += -body_angle(g)
-            sh = shoulder(poses, g, SH_R_WAVE)
-            lb = limb(sh, deg, L, seed=i)
-            fr["limbs"].append(lb)
-            fr["front"] += paw_svg(add(lb["tip"], dirv(deg), 4), deg, r=16, seed=i)
-            if arc:
-                fr["front"] += arcs(add(lb["tip"], dirv(deg), 4), deg + 75, r=22) + \
-                    arcs(add(lb["tip"], dirv(deg), 4), deg - 75, r=22, n=1)
-        frames.append(fr)
-    return frames
-
-
-def act_point(poses, base_deg, tag):
-    plan = [
-        ("待機", None, dict()),
-        ("預備：身體往後縮、手收在腰側", (base_deg - 70, 38), dict(rot=-3, w=1.02, h=0.97, lag=0.03)),
-        ("手往前伸到一半", (base_deg - 15, 62), dict(rot=1, h=1.0)),
-        ("伸直指出去、身體前傾", (base_deg, 80), dict(rot=4, h=1.02, lag=-0.05, cx=3)),
-        ("過頭一點（慣性）", (base_deg + 3, 86), dict(rot=5, h=1.03, lag=-0.07, cx=5)),
-        ("定住指著", (base_deg, 80), dict(rot=3.5, h=1.02, lag=-0.03, cx=4)),
-        ("點一下：手縮回", (base_deg, 72), dict(rot=2.5, h=1.01, cx=3)),
-        ("點一下：戳出去", (base_deg, 84), dict(rot=4.5, h=1.025, lag=-0.05, cx=5)),
-        ("再縮回", (base_deg, 72), dict(rot=2.5, h=1.01, cx=3)),
-        ("再戳出去", (base_deg, 84), dict(rot=4.5, h=1.025, lag=-0.05, cx=5)),
-        ("手收回一半", (base_deg - 25, 60), dict(rot=1.5, h=1.0, cx=2)),
-        ("手收回腰側", (base_deg - 75, 37), dict(rot=0, h=0.985, w=1.01)),
-    ]
-    frames = []
-    for i, (lab, arm, gk) in enumerate(plan):
-        g = base_geom(poses, 0, **gk)
-        fr = {"g": g, "label": lab, "limbs": [], "front": ""}
-        if arm:
-            deg, L = arm
-            sh = shoulder(poses, g, SH_R_POINT)
-            lb = limb(sh, deg, L, seed=i + 40)
-            fr["limbs"].append(lb)
-            tip = add(lb["tip"], dirv(deg), 5)
-            fr["front"] += paw_svg(tip, deg, r=16.5, squash=0.8, seed=i + 40)
-            if L >= 80 and i in (3, 4, 7, 9):
-                fr["front"] += motion_lines(add(tip, dirv(deg), 8), deg, spread=40, r0=12, length=16, w=6)
-        frames.append(fr)
-    for fr in frames:
-        fr["dir"] = tag
-    return frames
+# act_wave／act_point：10-11 改用官方部件總表的小肉掌重做，定義在檔案後段（舊的長手臂版已移除）。
 
 
 def act_tilt(poses):
@@ -1045,6 +982,149 @@ def act_celebrate(poses):
         g = nat_geom(poses, src, **kw)
         frames.append({"g": g, "label": lab, "back": confetti(i, 0), "front": confetti(i, 1)})
     return frames
+
+
+
+
+# ================================================================== 官方部件總表的小肉掌（2026-10-11 Andy 退件長手臂後改用）
+# Andy 10-11：「打招呼的手不會長這樣，四肢都是短短的」→ 手一律用 site/brand/src/bibi_parts_sheet_1011.webp
+# 裡的手掌原圖像素（小圓團、從身體邊緣冒出一小截），不再用 Bézier 畫長手臂。
+PARTS_SHEET = "site/brand/src/bibi_parts_sheet_1011.webp"
+_HAND = {}
+
+
+def hand_part(side="R"):
+    """從部件總表裁出手掌（去背），回傳 (RGBA, 接身體那一端的點, 指尖那一端的點)；原圖手掌是開口朝上、指尖朝下。"""
+    if side in _HAND:
+        return _HAND[side]
+    from gif_pipeline import cutout
+    im = np.asarray(Image.open(PARTS_SHEET).convert("RGB"))
+    x0, y0, x1, y1 = (550, 135, 625, 215) if side == "L" else (640, 135, 715, 215)
+    pad = np.full((y1 - y0 + 20, x1 - x0 + 20, 3), 255, np.uint8)
+    pad[10:-10, 10:-10] = im[y0:y1, x0:x1]
+    a = cutout(pad)
+    ys, xs = np.nonzero(a)
+    rgba = Image.fromarray(np.dstack([pad, a]), "RGBA").crop((xs.min(), ys.min(), xs.max() + 1, ys.max() + 1))
+    w, h = rgba.size
+    _HAND[side] = (rgba, (w / 2, 2.0), (w / 2, h - 1.0))
+    return _HAND[side]
+
+
+def hand_layer(attach, deg, length=50.0, side="R", flip=False):
+    """把手掌貼到場景：attach＝接身體那端（場景座標），deg＝從接點指向指尖的畫面角度（0 右、90 上），
+    length＝接點到指尖的長度（場景 px）。回傳 2048 的 RGBA 圖層。"""
+    img, top, tip = hand_part(side)
+    if flip:
+        img = img.transpose(Image.FLIP_LEFT_RIGHT)
+        top = (img.width - top[0], top[1]); tip = (img.width - tip[0], tip[1])
+    native = math.hypot(tip[0] - top[0], tip[1] - top[1])
+    k = length / native * SS
+    big = img.resize((max(1, int(img.width * k)), max(1, int(img.height * k))), Image.LANCZOS)
+    theta = deg + 90.0                      # 原圖方向是往下（-90°）→ 逆時針轉 theta
+    rot = big.rotate(theta, resample=Image.BICUBIC, expand=True)
+    cx0, cy0 = big.width / 2, big.height / 2
+    vx, vy = top[0] * k - cx0, top[1] * k - cy0
+    t = math.radians(theta)
+    rx, ry = vx * math.cos(t) + vy * math.sin(t), -vx * math.sin(t) + vy * math.cos(t)
+    layer = Image.new("RGBA", (SIZE * SS, SIZE * SS), (0, 0, 0, 0))
+    px = attach[0] * SS - (rot.width / 2 + rx)
+    py = attach[1] * SS - (rot.height / 2 + ry)
+    layer.alpha_composite(rot, (int(round(px)), int(round(py))))
+    return layer
+
+
+def hand_tip(attach, deg, length=50.0):
+    return add(attach, dirv(deg), length)
+
+
+def chunky_arrow(c, deg, L=46, col=BLUE):
+    """小箭頭（指向用）：粗短、圓角、黑描邊。"""
+    d = dirv(deg); n = (-d[1], d[0])
+    tail = add(c, d, -L / 2); head = add(c, d, L / 2); neck = add(c, d, L / 2 - 20)
+    pts = [add(tail, n, 7), add(neck, n, 7), add(neck, n, 16), head, add(neck, n, -16), add(neck, n, -7), add(tail, n, -7)]
+    dd = "M " + " L ".join(P(p) for p in pts) + " Z"
+    return f'<path d="{dd}" fill="{col}" stroke="{INK}" stroke-width="{f(OUT_W*0.8)}" stroke-linejoin="round"/>'
+
+
+def _face(poses, mode="dot", look=(0, 0), scale=1.0, hl=False):
+    import bibi_scenes_e as E
+    return E.face(poses, mode, look, scale, hl)
+
+
+def act_wave(poses):
+    """揮手（10-11 重做）：短短的小肉掌從身體右側冒出，在身側上下小幅擺動＋身體搖（照官方部件總表下排揮手格）。"""
+    plan = [
+        ("待機", None, dict(), ("dot", 1.0, False)),
+        ("小肉掌從身側冒出", (5, 0.7), dict(rot=-1, h=0.99), ("dot", 1.0, False)),
+        ("舉起來", (55, 1.0), dict(rot=-2, h=1.01, lag=-0.03), ("dot", 1.05, True)),
+        ("揮向外", (30, 1.0), dict(rot=-3, h=1.02, lag=-0.04), ("happy", 1, False)),
+        ("揮向內", (80, 1.0), dict(rot=1, h=1.01), ("happy", 1, False)),
+        ("揮向外", (28, 1.0), dict(rot=-3.5, h=1.02, lag=-0.05), ("happy", 1, False)),
+        ("揮向內", (82, 1.0), dict(rot=1.5, h=1.01), ("happy", 1, False)),
+        ("揮向外", (32, 1.0), dict(rot=-3, h=1.02, lag=-0.04), ("happy", 1, False)),
+        ("揮向內", (72, 1.0), dict(rot=1, h=1.01), ("dot", 1.05, True)),
+        ("手往下收", (35, 0.9), dict(rot=-1, h=1.0), ("dot", 1.0, False)),
+        ("收回身側", (0, 0.65), dict(rot=0, h=0.985, w=1.01), ("dot", 1.0, False)),
+        ("回待機（微彈）", None, dict(h=0.99, w=1.008), ("dot", 1.0, False)),
+    ]
+    frames = []
+    for i, (lab, hand, gk, (m, sc, hl)) in enumerate(plan):
+        g = base_geom(poses, 0, **gk)
+        fr = {"g": g, "label": lab, "pose": _face(poses, m, (0, 0), sc, hl), "front": ""}
+        if hand:
+            deg, k = hand
+            at = shoulder(poses, g, (432, 322), depth=10)
+            fr["sprites"] = [hand_layer(at, deg - g.get("rot", 0), 54 * k, "R")]
+            if i in (3, 5, 7):
+                tip = hand_tip(at, deg, 50)
+                fr["front"] += arcs(add(tip, dirv(deg), 2), deg - 60, r=18, n=2)
+            if i in (4, 6):
+                tip = hand_tip(at, deg, 50)
+                fr["front"] += arcs(add(tip, dirv(deg), 2), deg + 70, r=18, n=2)
+        frames.append(fr)
+    return frames
+
+
+def act_point(poses, base_deg, tag):
+    """指向（10-11 重做）：身體往方向傾＋短短的小肉掌朝方向伸一點點＋旁邊一支小箭頭（不再伸長手臂）。"""
+    plan = [
+        ("待機", None, 0, dict(), 0),
+        ("預備：身體往後縮", None, 0, dict(rot=-3, w=1.02, h=0.97, lag=0.03), 0),
+        ("小肉掌冒出、身體前傾", 0.8, 0, dict(rot=3, h=1.0, cx=3), 0.5),
+        ("指出去！箭頭跳出", 1.0, 6, dict(rot=5, h=1.02, lag=-0.05, cx=5), 1.0),
+        ("過頭一點（慣性）", 1.05, 10, dict(rot=6, h=1.03, lag=-0.07, cx=7), 1.0),
+        ("定住指著", 1.0, 4, dict(rot=4.5, h=1.02, lag=-0.03, cx=5), 1.0),
+        ("點一下：縮回", 0.9, 0, dict(rot=3.5, h=1.01, cx=4), 1.0),
+        ("點一下：戳出去", 1.0, 10, dict(rot=5.5, h=1.025, lag=-0.05, cx=6), 1.0),
+        ("再縮回", 0.9, 0, dict(rot=3.5, h=1.01, cx=4), 1.0),
+        ("再戳出去", 1.0, 10, dict(rot=5.5, h=1.025, lag=-0.05, cx=6), 1.0),
+        ("箭頭收起、手收一半", 0.75, 0, dict(rot=2, h=1.0, cx=2), 0.4),
+        ("手收回", 0.55, 0, dict(rot=0, h=0.985, w=1.01), 0),
+    ]
+    frames = []
+    for i, (lab, k, nudge, gk, arr) in enumerate(plan):
+        g = base_geom(poses, 0, **gk)
+        lk = (5 * math.cos(math.radians(base_deg)), -5 * math.sin(math.radians(base_deg)))
+        fr = {"g": g, "label": lab, "pose": _face(poses, "dot", lk if k else (0, 0), 1.05 if nudge >= 10 else 1.0, nudge >= 10),
+              "front": "", "dir": tag}
+        if k:
+            at = shoulder(poses, g, (436, 330), depth=10)
+            fr["sprites"] = [hand_layer(at, base_deg, 48 * k, "R")]
+            tip = hand_tip(at, base_deg, 48 * k)
+            if arr:
+                c = add(tip, dirv(base_deg), 30 + nudge)
+                fr["front"] += g_op_(chunky_arrow(c, base_deg, 46 * (0.6 + 0.4 * arr)), min(1.0, arr * 1.5))
+            if nudge >= 10:
+                d = dirv(base_deg); n = (-d[1], d[0])
+                for s_ in (-1, 1):
+                    a0 = add(add(tip, d, 6), n, s_ * 26); a1 = add(a0, d, -22)
+                    fr["front"] += brush([a1, a0], 4.5, 4.0)
+        frames.append(fr)
+    return frames
+
+
+def g_op_(svg, op):
+    return f'<g opacity="{op:.3f}">{svg}</g>' if op < 0.999 else svg
 
 
 ACTIONS = {

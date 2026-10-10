@@ -47,6 +47,50 @@ from bibi_actions import (INK, FUR, SPARK, SIZE, SS, OUT_W, f, P, add, dirv, bez
                           exmark, ease)
 from bibi_scenes_b import smooth_closed, rrect_pts, jitter, shape  # noqa: E402
 
+# ---- 小肉掌：照 Andy 10-11 官方部件總表（docs/anim/bibi_library/reference/parts_sheet_1011.webp）的「手掌」重畫：
+# 蜜桃粉手套形（指尖那端略寬）、貼身體那端深一點的粉、C 形粗描邊在根部留缺口、指尖兩道短趾線；不畫手臂。
+PAW2, PAW2_DK, PAW2_LT = "#FFB4A0", "#F58C78", "#FFD3C4"
+
+
+def sheet_paw(c, deg, r=16.0, open_side=None, squash=0.86, seed=0, spots=True):
+    """deg＝指尖朝向（畫面角度，0 往右、90 往上）。其餘參數只為了跟 bibi_actions.paw_svg 同介面。"""
+    d = dirv(deg); n = (-d[1], d[0])
+    ry, rx = r * 1.2, r * 0.95
+    rng = np.random.default_rng(seed + 7)
+    pts = []
+    for j in range(16):
+        t = 2 * math.pi * j / 16
+        al = ry * math.cos(t)
+        ac = rx * math.sin(t) * (0.84 + 0.16 * math.cos(t)) * (1 + rng.uniform(-0.03, 0.03))
+        pts.append((c[0] + d[0] * al + n[0] * ac, c[1] + d[1] * al + n[1] * ac))
+    shp = smooth_closed(pts)
+    cid = f"pw{abs(int(c[0]*7+c[1]*13+deg*3+seed))}"
+    root = (c[0] - d[0] * ry * 0.85, c[1] - d[1] * ry * 0.85)
+    out = (f'<clipPath id="{cid}"><path d="{shp}"/></clipPath><path d="{shp}" fill="{PAW2}"/>'
+           f'<g clip-path="url(#{cid})"><ellipse cx="{f(root[0])}" cy="{f(root[1])}" rx="{f(r*0.9)}" ry="{f(r*0.7)}" '
+           f'fill="{PAW2_DK}" opacity="0.75" transform="rotate({-deg:.1f},{f(root[0])},{f(root[1])})"/></g>')
+    hl = (c[0] + d[0] * ry * 0.35 - n[0] * rx * 0.35, c[1] + d[1] * ry * 0.35 - n[1] * rx * 0.35)
+    out += f'<circle cx="{f(hl[0])}" cy="{f(hl[1])}" r="{f(r*0.18)}" fill="{PAW2_LT}" opacity="0.9"/>'
+    # 描邊：從根部一側繞過指尖到另一側，根部留缺口（像總表那樣接在身體上）
+    arc = []
+    for j in range(25):
+        t = -2.35 + 4.7 * j / 24
+        al = ry * math.cos(t)
+        ac = rx * math.sin(t) * (0.84 + 0.16 * math.cos(t))
+        arc.append((c[0] + d[0] * al + n[0] * ac, c[1] + d[1] * al + n[1] * ac))
+    out += brush(arc, OUT_W * 1.05, OUT_W * 0.95)
+    for sgn in (-1, 1):   # 指尖兩道短趾線
+        t = sgn * 0.42
+        e = (c[0] + d[0] * ry * math.cos(t) + n[0] * rx * math.sin(t) * 0.97,
+             c[1] + d[1] * ry * math.cos(t) + n[1] * rx * math.sin(t) * 0.97)
+        q = (e[0] - d[0] * r * 0.38, e[1] - d[1] * r * 0.38)
+        out += brush([e, q], 3.4, 2.4)
+    return out
+
+
+paw_svg = sheet_paw     # C／F 批所有小肉掌都用總表樣式
+
+
 # ---- 原圖第 0 張量到的五官（原圖座標，512 原圖）
 EYE_L, EYE_R = (192.5, 262.5), (310.0, 260.5)
 CHEEK_L, CHEEK_R = (151, 289), (350, 284)

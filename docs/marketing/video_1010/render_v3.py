@@ -52,6 +52,28 @@ B.SourceReader = _SR3
 FOOTNOTE = "畫面數據為過往歷史資料，僅供功能展示，不具投資參考價值"
 GLOW = (255, 196, 40)
 
+# ───────────────────────── 風格（cute 可愛版／pro 專業版） ─────────────────────────
+NAVY = (36, 52, 71)            # 深藍灰
+THEME = {"name": "cute"}
+
+
+def set_theme(name):
+    THEME.clear()
+    if name == "pro":
+        THEME.update(name="pro", head_font=B.F_BLACK, pill_font=F_BOLD, tag_font=F_BOLD, title_font=B.F_BLACK,
+                     pill_bg=DEEP, pill_fg=WHITE, pill_stroke=False, pill_radius=8, panel_r=10, panel_alpha=236,
+                     panel_outline=NAVY + (60,), panel_fill=(255, 255, 255), ink=NAVY, hl_h=(0.98, 1.06),
+                     glow=(66, 140, 255), line_w=3, glow_w=10, glow_a=110, tag_px=22, bounce=0.5, host_scale=0.82,
+                     bg=(244, 246, 249))
+    else:
+        THEME.update(name="cute", head_font=F_ROUND, pill_font=F_ROUND, tag_font=F_ROUND, title_font=F_ROUND,
+                     pill_bg=SKY, pill_fg=WHITE, pill_stroke=True, pill_radius=None, panel_r=26, panel_alpha=214,
+                     panel_outline=DEEP + (120,), panel_fill=(255, 252, 244), ink=INK, hl_h=(0.78, 1.08),
+                     glow=GLOW, line_w=7, glow_w=18, glow_a=150, tag_px=30, bounce=1.0, host_scale=1.0, bg=CREAM)
+
+
+set_theme("cute")
+
 
 # ───────────────────────── 版面 ─────────────────────────
 class Layout:
@@ -102,17 +124,24 @@ def _set_side(self, side):
 Layout.set_side = _set_side
 
 
-def float_panel(cv, box, alpha=214, r=26):
+def float_panel(cv, box, alpha=None, r=None):
+    alpha = THEME["panel_alpha"] if alpha is None else alpha
+    r = THEME["panel_r"] if r is None else min(r, THEME["panel_r"])
     x0, y0, x1, y1 = [int(v) for v in box]
     lay = Image.new("RGBA", (x1 - x0, y1 - y0), (0, 0, 0, 0))
-    ImageDraw.Draw(lay).rounded_rectangle([0, 0, x1 - x0 - 1, y1 - y0 - 1], r, fill=(255, 252, 244, alpha), outline=DEEP + (120,), width=2)
+    ImageDraw.Draw(lay).rounded_rectangle([0, 0, x1 - x0 - 1, y1 - y0 - 1], r, fill=THEME["panel_fill"] + (alpha,), outline=THEME["panel_outline"], width=2)
     cv.paste(lay, (x0, y0), lay)
 
 
-@lru_cache(maxsize=2)
+@lru_cache(maxsize=4)
 def background(fmt):
+    return _background(fmt, THEME["name"])
+
+
+@lru_cache(maxsize=4)
+def _background(fmt, theme):
     L = Layout(fmt)
-    bg = Image.new("RGB", (L.W, L.H), CREAM)
+    bg = Image.new("RGB", (L.W, L.H), THEME["bg"])
     ov = Image.new("RGBA", (L.W, L.H), (0, 0, 0, 0))
     d = ImageDraw.Draw(ov)
     for x in range(0, L.W, 60):
@@ -124,8 +153,13 @@ def background(fmt):
 
 
 # ───────────────────────── 文字 ─────────────────────────
-def pill(cv, text, x, y, bg=SKY, fg=WHITE, px=32, stroke=True, right=False, center=False, alpha=1.0):
-    f = font(F_ROUND, px)
+def pill(cv, text, x, y, bg=None, fg=None, px=32, stroke=None, right=False, center=False, alpha=1.0):
+    bg = THEME["pill_bg"] if bg is None else bg
+    fg = THEME["pill_fg"] if fg is None else fg
+    stroke = THEME["pill_stroke"] if stroke is None else (stroke and THEME["pill_stroke"])
+    if THEME["name"] == "pro":
+        px = int(px * 0.85)
+    f = font(THEME["pill_font"], px)
     tw = text_w(f, text)
     pw, ph = tw + 44, px + 28
     if right:
@@ -134,7 +168,8 @@ def pill(cv, text, x, y, bg=SKY, fg=WHITE, px=32, stroke=True, right=False, cent
         x -= pw / 2
     lay = Image.new("RGBA", (int(pw) + 8, int(ph) + 8), (0, 0, 0, 0))
     d = ImageDraw.Draw(lay)
-    d.rounded_rectangle([2, 2, pw + 2, ph + 2], ph / 2, fill=bg + (255,), outline=INK + (255,), width=3)
+    pr = THEME["pill_radius"] if THEME["pill_radius"] is not None else ph / 2
+    d.rounded_rectangle([2, 2, pw + 2, ph + 2], pr, fill=bg + (255,), outline=(INK if THEME["name"] == "cute" else NAVY) + (255,), width=3 if THEME["name"] == "cute" else 1)
     d.text((24, 13), text, font=f, fill=fg, stroke_width=3 if stroke else 0, stroke_fill=INK)
     if alpha < 1:
         lay.putalpha(lay.getchannel("A").point(lambda v: int(v * alpha)))
@@ -147,7 +182,7 @@ def headline(cv, L, text, t, hl=None):
     if not text:
         return
     px = L.head_px
-    f = font(F_ROUND, px)
+    f = font(THEME["head_font"], px)
     if text_w(f, text) <= L.head_w:
         lines = [text]
     else:
@@ -163,7 +198,7 @@ def headline(cv, L, text, t, hl=None):
         lines = best[1]
         while max(text_w(f, ln) for ln in lines) > L.head_w and px > 40:
             px -= 4
-            f = font(F_ROUND, px)
+            f = font(THEME["head_font"], px)
     x0, y0 = L.head_xy
     if getattr(L, "full_bleed", False):
         wmax = max(text_w(f, ln) for ln in lines)
@@ -183,11 +218,12 @@ def headline(cv, L, text, t, hl=None):
             if hl_span and hl_span[0] <= k < hl_span[1]:
                 u = ease_out((t - 0.35 - 0.04 * (k - hl_span[0])) / 0.2)
                 if u > 0:
-                    d.rounded_rectangle([x - 2, y + px * 0.78, x + w * u + 2, y + px * 1.08], 8, fill=LEMON)
+                    h0, h1 = THEME["hl_h"]
+                    d.rounded_rectangle([x - 2, y + px * h0, x + w * u + 2, y + px * h1], 8 if THEME["name"] == "cute" else 2, fill=LEMON)
             u = ease_out((t - 0.04 * k) / 0.22)
             if u > 0:
                 lay = Image.new("RGBA", (int(w) + 16, px + 40), (0, 0, 0, 0))
-                ImageDraw.Draw(lay).text((6, 10), ch, font=f, fill=INK + (int(255 * u),))
+                ImageDraw.Draw(lay).text((6, 10), ch, font=f, fill=THEME["ink"] + (int(255 * u),))
                 cv.paste(lay, (int(x) - 6, int(y + (1 - u) * 20) - 10), lay)
             x += w
             k += 1
@@ -211,9 +247,11 @@ def subtitle(cv, L, text, t):
             x = x - wmax
         nl = len(lines)
         y = y - (nl - 1) * L.sub_px * 1.32
-        d.rounded_rectangle([x - 36, 0, x + wmax + 24, nl * L.sub_px * 1.32 + 22], 24, fill=(255, 252, 244, 222), outline=DEEP + (120,), width=2)
+        d.rounded_rectangle([x - 36, 0, x + wmax + 24, nl * L.sub_px * 1.32 + 22], THEME["panel_r"], fill=THEME["panel_fill"] + (226,), outline=THEME["panel_outline"], width=2)
+        if THEME["name"] == "pro":
+            d.rectangle([x - 36, 6, x - 30, nl * L.sub_px * 1.32 + 16], fill=DEEP)
         for i, ln in enumerate(lines):
-            d.text((x, 8 + i * L.sub_px * 1.32), ln, font=f, fill=INK)
+            d.text((x, 8 + i * L.sub_px * 1.32), ln, font=f, fill=THEME["ink"])
     else:
         d.polygon([(x - 26, 18), (x - 2, 4), (x - 8, 36)], fill=INK + (255,))
         for i, ln in enumerate(lines[:2]):
@@ -223,17 +261,22 @@ def subtitle(cv, L, text, t):
     cv.paste(lay, (0, int(y)), lay)
 
 
-def footnote(cv, L):
+def footnote(cv, L, date=None):
     f = font(F_MED, 24 if L.fmt == "web" else 26)
-    tw = text_w(f, FOOTNOTE)
+    text = FOOTNOTE
+    if getattr(L, "full_bleed", False) and date:
+        text = f"網站實際畫面・資料日 {date}｜{FOOTNOTE}"
+    tw = text_w(f, text)
     d = ImageDraw.Draw(cv)
     x = L.W / 2 - tw / 2
     if getattr(L, "full_bleed", False):
         float_panel(cv, (x - 16, L.foot_y - 6, x + tw + 16, L.foot_y + 30), 200, 16)
-    d.text((x, L.foot_y), FOOTNOTE, font=f, fill=(80, 80, 80))
+    d.text((x, L.foot_y), text, font=f, fill=(80, 80, 80))
 
 
 def data_tag(cv, L, date):
+    if getattr(L, "full_bleed", False):
+        return                      # 滿版：資料日併入底部小字浮層
     f = font(F_MED, 24)
     s = f"網站實際畫面・資料日 {date}"
     tw = text_w(f, s)
@@ -359,35 +402,40 @@ class FocusBox:
             dk = Image.new("RGBA", (int(rw), int(rh)), (20, 30, 50, 255))
             dk.putalpha(m)
             cv.paste(dk, (int(rx), int(ry)), dk)
-        r = 6 if self.style == "square" else 22
+        r = 6 if self.style == "square" else (22 if THEME["name"] == "cute" else 8)
         path = _rect_path(x0, y0, x1, y1, r)
         lay = Image.new("RGBA", cv.size, (0, 0, 0, 0))
         d = ImageDraw.Draw(lay)
         pts = _partial(path, ease_io(u))
-        col = GLOW if self.style != "dashed" else SKY
+        col = THEME["glow"] if self.style != "dashed" else (SKY if THEME["name"] == "cute" else DEEP)
         if len(pts) > 1:
             if self.style == "dashed":
-                _dashed(d, pts, col + (255,), 7, 22, 12)
+                _dashed(d, pts, col + (255,), max(3, THEME["line_w"]), 22, 12)
             else:
-                d.line(pts, fill=col + (255,), width=7, joint="curve")
+                d.line(pts, fill=col + (255,), width=THEME["line_w"], joint="curve")
         # 輕微外光：描完之後淡入，固定不變（不脈動）
         g = ease_io((t - self.t_draw - self.d_draw * 0.7) / 0.35)
         if g > 0 and self.style != "dashed":
             glow = Image.new("RGBA", cv.size, (0, 0, 0, 0))
-            ImageDraw.Draw(glow).rounded_rectangle([x0, y0, x1, y1], r, outline=col + (int(150 * g),), width=18)
+            ImageDraw.Draw(glow).rounded_rectangle([x0, y0, x1, y1], r, outline=col + (int(THEME["glow_a"] * g),), width=THEME["glow_w"])
             glow = glow.filter(ImageFilter.GaussianBlur(10))
             cv.paste(glow, (0, 0), glow)
         cv.paste(lay, (0, 0), lay)
         if self.style == "round_tag" and self.tag:
             tu = back_out((t - self.t_draw - self.d_draw) / 0.3)
             if tu > 0:
-                f = font(F_ROUND, 30)
+                f = font(THEME["tag_font"], THEME["tag_px"])
                 pw = text_w(f, self.tag) + 36
                 tx, ty = x0 + 14, y0 - 24
                 tag = Image.new("RGBA", (int(pw) + 6, 54), (0, 0, 0, 0))
                 td = ImageDraw.Draw(tag)
-                td.rounded_rectangle([2, 2, pw, 50], 24, fill=GLOW + (255,), outline=INK + (255,), width=3)
-                td.text((18, 8), self.tag, font=f, fill=INK)
+                if THEME["name"] == "pro":
+                    td.rectangle([2, 8, pw, 44], fill=DEEP + (255,))
+                    td.text((18, 13), self.tag, font=f, fill=WHITE)
+                else:
+                    td.rounded_rectangle([2, 2, pw, 50], 24, fill=GLOW + (255,), outline=INK + (255,), width=3)
+                if THEME["name"] != "pro":
+                    td.text((18, 8), self.tag, font=f, fill=INK)
                 if tu < 1:
                     tag = tag.resize((max(1, int(tag.width * tu)), max(1, int(tag.height * tu))), Image.BILINEAR)
                 cv.paste(tag, (int(tx), int(ty)), tag)
@@ -448,7 +496,7 @@ class Host:
         L = shot.L
         for t0, t1, name, foot, size, mode in self.acts:
             if t0 <= t < t1:
-                put_sprite(cv, name, anim_frame(name, t - t0, mode), foot or L.host, size or L.host_size)
+                put_sprite(cv, name, anim_frame(name, t - t0, mode), foot or L.host, size or int(L.host_size * THEME["host_scale"]))
                 return
 
 
@@ -527,7 +575,7 @@ class Operator:
         self.drags = [d for d in self.drags if "t1" in d]
 
     def _home(self, L):
-        return L.host, L.host_size
+        return L.host, int(L.host_size * THEME["host_scale"])
 
     def draw(self, cv, t, shot):
         L = shot.L
@@ -549,7 +597,7 @@ class Operator:
                 dx = 1 if d["x1"] >= d["x0"] else -1
                 foot = (px - dx * ts * 0.28, py + ts * 0.32)
                 ent = clamp((t - d["t0"] + 0.35) / 0.35, 0, 1)
-                foot = (lerp(home[0], foot[0], ease_io(ent)), lerp(home[1], foot[1], ease_io(ent)) - 120 * math.sin(math.pi * ent) * (ent < 1))
+                foot = (lerp(home[0], foot[0], ease_io(ent)), lerp(home[1], foot[1], ease_io(ent)) - 120 * THEME["bounce"] * math.sin(math.pi * ent) * (ent < 1))
                 name = "hop_r" if dx > 0 else "hop_l"
                 put_sprite(cv, name, anim_frame(name, t), foot, ts)
                 return
@@ -567,7 +615,7 @@ class Operator:
                     foot, size = prev_pos
                 else:
                     uu = ease_io((tap_t - air0) / (self.TAP_CONTACT - air0))
-                    foot = (lerp(prev_pos[0][0], tgt[0], uu), lerp(prev_pos[0][1], tgt[1], uu) - 150 * math.sin(math.pi * uu))
+                    foot = (lerp(prev_pos[0][0], tgt[0], uu), lerp(prev_pos[0][1], tgt[1], uu) - 150 * THEME["bounce"] * math.sin(math.pi * uu))
                     size = lerp(prev_pos[1], ts, uu)
                 put_sprite(cv, "tap", anim_frame("tap", tap_t, "hold"), foot, size)
                 return
@@ -579,7 +627,7 @@ class Operator:
             if nxt - c >= 2.0 and stay_until <= t < stay_until + 0.4:
                 uu = ease_io((t - stay_until) / 0.4)
                 a = self.rec.map(tp["x"], tp["y"])
-                foot = (lerp(a[0], home[0], uu), lerp(a[1], home[1], uu) - 130 * math.sin(math.pi * uu))
+                foot = (lerp(a[0], home[0], uu), lerp(a[1], home[1], uu) - 130 * THEME["bounce"] * math.sin(math.pi * uu))
                 put_sprite(cv, "hop_l" if home[0] < a[0] else "hop_r", 2 + int(uu * 3.99), foot, lerp(ts, hs, uu))
                 return
         # 發光框前「畫框」
@@ -626,7 +674,7 @@ class Shot3:
             headline(cv, L, self.head, t, self.hl)
             subtitle(cv, L, self.sub, t)
         if self.foot:
-            footnote(cv, L)
+            footnote(cv, L, self.date if self.kind == "feature" else None)
         if self.host:
             self.host.draw(cv, t, self)
         return cv
@@ -675,7 +723,7 @@ def end_card(dur=3.0, bubble_text="我們網站見，掰掰～"):
         px = max(8, int(logo_px * (0.85 + 0.15 * clamp(u, 0, 1.2))))
         lg = logo_sized(px)
         cv.paste(lg, (W // 2 - px // 2, cy_logo - px // 2), lg)
-        f = font(F_ROUND, 96 if web else 120)
+        f = font(THEME["title_font"], 96 if web else 120)
         title = "哩股哩股"
         tw = text_w(f, title)
         ty = cy_logo + logo_px / 2 + (30 if web else 40)
@@ -688,7 +736,7 @@ def end_card(dur=3.0, bubble_text="我們網站見，掰掰～"):
         if b > 0:
             py = ty + f.size * 1.45
             px1 = 44 if web else 50
-            f2 = font(F_ROUND, px1)
+            f2 = font(THEME["pill_font"], int(px1 * (0.85 if THEME["name"] == "pro" else 1)))
             w1 = text_w(f2, "搜尋 哩股哩股") + 44
             w2 = text_w(f2, "免費註冊") + 44
             gap = 36
@@ -823,10 +871,12 @@ def main():
     ap.add_argument("--sample", default="")
     ap.add_argument("--fmt", choices=["web", "mobile", "mobile_op"], default="web")
     ap.add_argument("--audio", default="")
+    ap.add_argument("--theme", choices=["cute", "pro"], default="cute")
     ap.add_argument("--cues", default="")
     ap.add_argument("--stills", default="")
     ap.add_argument("--still-dir", default=".")
     a = ap.parse_args()
+    set_theme(a.theme)
     S, L = sample_mobile_op() if a.fmt == "mobile_op" else sample_shots(a.fmt)
     if a.cues:
         Path(a.cues).write_text(json.dumps(cues_of(S)))
@@ -838,7 +888,7 @@ def main():
         for T in [float(x) for x in a.stills.split(",")]:
             for t0, s in tl:
                 if t0 <= T < t0 + s.dur:
-                    p = Path(a.still_dir) / f"v3_{a.fmt}_{T:05.2f}.png"
+                    p = Path(a.still_dir) / f"v3_{a.theme}_{a.fmt}_{T:05.2f}.png"
                     for k in range(0, int((T - t0) * FPS), 5):
                         s.render(k / FPS, L)
                     s.render(T - t0, L).save(p); print(p)
