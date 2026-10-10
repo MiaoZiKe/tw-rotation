@@ -992,7 +992,7 @@ def shots_main():
             return
         idx = bibi_index()["phone"]
         fi = anim_frame("phone", t)
-        size, foot = 520, (300, 1440)
+        size, foot = 820, (540, 1330)
         s = size / 512
         corners = idx["interaction"][fi]["screen_corners"]
         q = [(foot[0] + (cx - 248) * s, foot[1] + (cy - 482) * s) for cx, cy in corners]
@@ -1024,7 +1024,7 @@ def shots_main():
     S.append(Shot("06", 2.0, [Still(phone06)], headline="① 每天先看這頁", hl="先看這頁", pill_text="① 總覽", pill_anim=True,
                   sub="大盤、漲跌家數、資金熱度，這頁一次看完", data=False,
                   bibi_hidden_default=True,
-                  bibi=Bibi([dict(t0=0.8, t1=1.3, kind="anim", name="hop_l", size=HOST_SIZE, move=[(0, 300, 1440, 520), (0.5, HOST[0], HOST[1], HOST_SIZE)], blend=0),
+                  bibi=Bibi([dict(t0=0.8, t1=1.3, kind="anim", name="hop_l", size=HOST_SIZE, move=[(0, 540, 1330, 820), (0.5, HOST[0], HOST[1], HOST_SIZE)], blend=0),
                              dict(t0=1.3, t1=2.0, kind="anim", name="face_nod", size=HOST_SIZE, foot=HOST)]),
                   cues=[(0.8, "whoosh")]))
 
