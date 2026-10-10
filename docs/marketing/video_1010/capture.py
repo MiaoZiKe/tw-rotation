@@ -954,7 +954,7 @@ SHOTS3: dict = {}
 GAP = 1200
 # Andy：影片不提會員層級與使用次數 → 錄影瀏覽器裡把頁首會員徽章、額度圓環「剩 N 次」、「本頁 N 項限制」、額度備註藏起來（不改 site/）
 HIDE_TIER_JS = r"""
-(() => { const css = '#acctBtn,.abtn.ame,#twQRing,.twqr,#twQPage,.twqp,.qnote,.qnote-row,.qlkov{display:none!important}';
+(() => { const css = 'html body #acctBtn,html.m4 body .m4tools #acctBtn,html body .abtn.ame,html body #twQRing,html body .twqr,html body #twQPage,html body .twqp,html body .qnote,html body .qnote-row,html body .qlkov{display:none!important}';
   const go = () => { const st = document.createElement('style'); st.id = '__vhide'; st.textContent = css; document.head.appendChild(st); };
   document.readyState === 'loading' ? document.addEventListener('DOMContentLoaded', go) : go(); })();
 """   # 動作之間的間隔（毫秒）
@@ -1104,7 +1104,7 @@ def v04(pg, a, start, base):
 
 @shot3("V05", "md", "資金分流樹：完整入框 → 滑過分支")
 def v05(pg, a, start, base):
-    goto3(pg, a, base, "#flow/sankey" if a.mob else "#flow")
+    goto3(pg, a, base, "#flow/sankey")
     start()
     frame(a, "#flowSankeyCard", 2000, label="資金分流樹卡")
     b = a.box("#sankey", scroll=False)
@@ -1116,7 +1116,7 @@ def v05(pg, a, start, base):
 
 @shot3("V06", "md", "資金流水：分流樹按 ▶ 逐日播放")
 def v06(pg, a, start, base):
-    goto3(pg, a, base, "#flow/sankey" if a.mob else "#flow")
+    goto3(pg, a, base, "#flow/sankey")
     start()
     frame(a, "#flowSankeyCard", 2000, label="資金分流樹卡")
     tap(a, "#sankeyDays .pb.play, #sankeyDays button:has-text('▶')", "▶ 播放", 300)
@@ -1127,7 +1127,7 @@ def v06(pg, a, start, base):
 
 @shot3("V07", "md", "族群×法人、資金集中度：完整入框 → 切天數")
 def v07(pg, a, start, base):
-    goto3(pg, a, base, "#flow/inst" if a.mob else "#flow")
+    goto3(pg, a, base, "#flow/inst")
     if a.mob and not pg.locator("#flowInstCard:visible").count():
         tab_txt(a, "族群×法人")
     start()
@@ -1135,6 +1135,9 @@ def v07(pg, a, start, base):
     bs = pg.locator("#instDays button:visible")
     if bs.count() > 1:
         tap(a, "#instDays button:visible >> nth=1", "切天數")
+    if a.mob and not pg.locator("#flowConcCard:visible").count():
+        if not tab_txt(a, "集中度"):
+            goto(pg, base, "#flow/inst/conc", 2500)
     frame(a, "#flowConcCard", 2200, label="資金集中度")
     bs = pg.locator("#concSeg button:visible")
     if bs.count() > 1:
@@ -1204,6 +1207,10 @@ def v11(pg, a, start, base):
     if not tap(a, "#v-industry :is(button,a,.tab,[role=tab]):visible:has-text('AI 伺服器')", "進 AI 伺服器產業鏈", 600):
         pg.evaluate("() => { location.hash = '#industry/ai_server'; }")
     a.wait(3000)
+    if not pg.locator("#prodDiagram:visible").count():   # 進鏈之後預設在「族群總覽」→ 點「AI 伺服器」那一格剖析圖
+        if not tap(a, 'a.segchip[href="#industry/ai_server/dg/ai_server"]', "AI 伺服器剖析圖", 2500):
+            pg.evaluate("() => { location.hash = '#industry/ai_server/dg/ai_server'; }")
+            a.wait(3000)
     sel = "#prodDiagram"
     host = pg.evaluate("() => { const e = document.querySelector('#prodDiagram'); const c = e && (e.closest('.dgsec') || e.parentElement); if (c) c.setAttribute('data-vcap', 'dg2d'); return !!c; }")
     frame(a, '[data-vcap="dg2d"]' if host else sel, 2200, label="2D 剖析圖")
@@ -1246,12 +1253,50 @@ def spin(a, secs=5.5, turns=1.0, hide=False):
         return
     cx, cy = b["x"] + b["width"] / 2, b["y"] + b["height"] * 0.55
     L = min(b["height"] * turns, b["width"] * 0.9)
+    if a.mob:   # 手機：左右兩排編號鈕會吃掉拖曳 → 只在中間 64% 拖，分兩段接成一圈
+        L1 = b["width"] * 0.64
+        x0 = b["x"] + b["width"] * 0.18
+        t0 = a.t
+        for _ in range(max(1, round(b["height"] * turns / L1))):
+            a.move(x0, cy, 400)
+            a.wait(150)
+            a.note(f"拖曳開始 ({x0:.0f},{cy:.0f})css → 影片({x0 * a.dsf:.0f},{cy * a.dsf:.0f})px")
+            a.pg.mouse.down()
+            n = round(secs / 2 * FPS)
+            for i in range(1, n + 1):
+                k = i / n
+                e = k if 0.08 < k < 0.92 else (0.5 - 0.5 * math.cos(math.pi * k))
+                a._put(x0 + L1 * e, cy)
+                a.frame()
+            a.pg.mouse.up()
+            a.x, a.y = x0 + L1, cy
+            a.note(f"拖曳放開 ({x0 + L1:.0f},{cy:.0f})css → 影片({(x0 + L1) * a.dsf:.0f},{cy * a.dsf:.0f})px")
+        a.note(f"手機分段拖曳旋轉 {t0:.1f}–{a.t:.1f}s")
+        a.wait(300)
+        return
     x0 = cx - L / 2
     a.move(x0, cy, 600)
     a.wait(250)
     if hide:
         a.cursor(False)
     a.note(f"拖曳開始 ({x0:.0f},{cy:.0f})css → 影片({x0 * a.dsf:.0f},{cy * a.dsf:.0f})px")
+    if False:   # （保留）CDP 觸控拖曳；實測手機頁滑鼠拖曳就轉得動，問題是起點落在左排編號鈕上：用 CDP 觸控事件拖（滑鼠拖在 has_touch 頁面上轉不動）
+        cdp = a.rec.cdp
+        tp = lambda t, x: cdp.send("Input.dispatchTouchEvent", {"type": t, "touchPoints": [] if t == "touchEnd" else [{"x": x, "y": cy}]})
+        tp("touchStart", x0)
+        a.frame()
+        n = round(secs * FPS)
+        t0 = a.t
+        for i in range(1, n + 1):
+            k = i / n
+            e = k if 0.08 < k < 0.92 else (0.5 - 0.5 * math.cos(math.pi * k))
+            tp("touchMove", x0 + L * e)
+            a.frame()
+        tp("touchEnd", 0)
+        a.x, a.y = x0 + L, cy
+        a.note(f"拖曳放開 ({x0 + L:.0f},{cy:.0f})css → 影片({(x0 + L) * a.dsf:.0f},{cy * a.dsf:.0f})px；手指左→右拖曳旋轉，{t0:.1f}–{a.t:.1f}s")
+        a.wait(300)
+        return
     a.pg.mouse.down()
     n = round(secs * FPS)
     t0 = a.t
@@ -1304,16 +1349,27 @@ def v12e(pg, a, start, base):
     start()
     frame(a, "#prod3d", 1500, label="AI 伺服器 3D")
     labels = pg.locator(".mnum:visible" if a.mob else ".lbl3d:visible")
-    picked = 0
-    for i in range(labels.count()):
+    # 挑一個「有台股公司」的零件（電源／PCB／CCL／散熱這類），避開「台股無直接對應」
+    want = pg.evaluate("""(mob) => { const ls = [...document.querySelectorAll(mob ? '.mnum' : '.lbl3d')].filter(e => e.offsetParent);
+      if (mob) return null;
+      const i = ls.findIndex(e => /電源|PSU|PCB|CCL|液冷|散熱/.test(e.textContent) && e.querySelector('.chip3d'));
+      return i; }""", a.mob)
+    order = [want] if want not in (None, -1) else list(range(labels.count()))
+    if a.mob:   # 手機：編號 07～09 一帶通常是電源／PCB；依序試，卡片沒寫「台股無直接對應」就停
+        nums = pg.evaluate("() => [...document.querySelectorAll('.mnum')].filter(e => e.offsetParent).map(e => e.textContent.trim())")
+        order = [nums.index(n) for n in ["10", "08", "07", "11", "12", "13", "09"] if n in nums]
+    for i in order:
         bb = labels.nth(i).bounding_box()
         if not bb or bb["y"] < 90 or bb["y"] > _vh(pg) - 60:
             continue
-        picked += 1
-        if picked < 4:      # 跳過最上面幾個（雲端業者／交換器），點中間的運算托盤附近
-            continue
         a.click_xy(bb["x"] + bb["width"] / 2, bb["y"] + bb["height"] / 2, 800, 500)
         a.note("點零件 → 零件亮起、列出負責公司")
+        a.wait(900)
+        if a.mob and "台股無直接對應" in (pg.evaluate("() => document.body.innerText.slice(-4000)") or ""):
+            a.note("這個零件沒有台股，換下一個")
+            pg.keyboard.press("Escape")
+            a.wait(600)
+            continue
         break
     a.wait(2500)
     if pg.locator("#partCard:visible").count():
@@ -1327,7 +1383,7 @@ def v12e(pg, a, start, base):
 @shot3("V13", "md", "供應鏈關聯圖：完整入框 → 滑過節點連線變亮")
 def v13(pg, a, start, base):
     goto3(pg, a, base, "#industry/ai_server", 4000)
-    pg.evaluate("() => { const h = document.querySelector('#relHead'); const c = h && (h.closest('.card') || h.parentElement); if (c) c.setAttribute('data-vcap', 'rel'); }")
+    pg.evaluate("() => { const h = document.querySelector('#relHead'); let c = h && h.parentElement; while (c && c.parentElement && c.getBoundingClientRect().height < 250) c = c.parentElement; if (c) c.setAttribute('data-vcap', 'rel'); }")
     start()
     frame(a, '[data-vcap="rel"]', 2200, label="供應鏈關聯圖")
     nodes = pg.locator('[data-vcap="rel"] [data-seg], [data-vcap="rel"] .rnode, [data-vcap="rel"] .relseg')
@@ -1336,10 +1392,14 @@ def v13(pg, a, start, base):
         bb = nodes.nth(i).bounding_box()
         if not bb or bb["y"] < 90 or bb["y"] > _vh(pg) - 40 or bb["width"] < 10:
             continue
-        a.move(bb["x"] + min(bb["width"] / 2, 60), bb["y"] + 10, 700)
-        a.wait(1400)
+        if a.mob:   # 手機沒有滑過 → 點節點（連線變亮）
+            a.click_xy(bb["x"] + min(bb["width"] / 2, 60), bb["y"] + 10, 700, 300)
+            a.wait(1600)
+        else:
+            a.move(bb["x"] + min(bb["width"] / 2, 60), bb["y"] + 10, 700)
+            a.wait(1400)
         seen += 1
-        if seen >= 6:
+        if seen >= (3 if a.mob else 6):
             break
 
 
