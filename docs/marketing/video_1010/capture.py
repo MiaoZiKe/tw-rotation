@@ -161,8 +161,9 @@ class Recorder:
             shutil.rmtree(tmpdir)
         tmpdir.mkdir(parents=True)
         self.dir, self.n, self.on, self.acc = tmpdir, 0, True, 0.0
+        import datetime as _dt
         now = self.pg.evaluate("() => Date.now()")
-        self.pg.clock.pause_at(now + 20)
+        self.pg.clock.pause_at(_dt.datetime.fromtimestamp(now / 1000 + 0.02, tz=_dt.timezone.utc))
         self.frame()
 
     def frame(self):
@@ -541,7 +542,10 @@ def s07(pg, a, start, base):
 def _to_3d(pg, a, base):
     _to_dg(pg, a, base)
     a.click('#dg3d button[data-dm="3d"]', label="切 3D")
-    pg.wait_for_function("() => document.querySelectorAll('#prod3d canvas').length > 0", timeout=20000)
+    for _ in range(40):   # 假時鐘下 wait_for_function（rAF 輪詢）會卡住，改由 Python 輪詢
+        if pg.evaluate("() => document.querySelectorAll('#prod3d canvas').length > 0"):
+            break
+        pg.wait_for_timeout(500)
     a.wait(2500)
     a.scroll_to_el("#prod3d", 60 if a.mob else 70, 600)
     a.wait(600)
@@ -699,7 +703,8 @@ def s11(pg, a, start, base):
         if not bb:
             continue
         if a.mob and (bb["x"] < 0 or bb["x"] + bb["width"] > 390):
-            tabs.nth(i).scroll_into_view_if_needed()
+            tabs.nth(i).evaluate("e => e.scrollIntoView({block: 'nearest', inline: 'center'})")
+            a.wait(300)
             bb = tabs.nth(i).bounding_box()
         a.click_xy(bb["x"] + bb["width"] / 2, bb["y"] + bb["height"] / 2, 380, 250)
         a.wait(900)
@@ -841,16 +846,17 @@ def main() -> int:
     ap.add_argument("--shots", default="")
     ap.add_argument("--dev", default="md")
     ap.add_argument("--out", default=str(DEF_OUT))
+    ap.add_argument("--port", type=int, default=PORT)
     args = ap.parse_args()
     _import_shots()
     out = Path(args.out)
     (out / "thumbs").mkdir(parents=True, exist_ok=True)
     want = [s.strip() for s in args.shots.split(",") if s.strip()] or list(SHOTS)
     meta = json.loads((SITE / "data" / "meta.json").read_text(encoding="utf-8")) if (SITE / "data" / "meta.json").exists() else {}
-    srv = ThreadingHTTPServer(("127.0.0.1", PORT), partial(_Quiet, directory=str(SITE)))
+    srv = ThreadingHTTPServer(("127.0.0.1", args.port), partial(_Quiet, directory=str(SITE)))
     threading.Thread(target=srv.serve_forever, daemon=True).start()
-    base = f"http://127.0.0.1:{PORT}/index.html"
-    logf = out / "capture_log.json"
+    base = f"http://127.0.0.1:{args.port}/index.html"
+    logf = out / f"capture_log_{args.port}.json"   # 平行跑多支時各寫各的
     log = json.loads(logf.read_text(encoding="utf-8")) if logf.exists() else {}
     from playwright.sync_api import sync_playwright
     try:
@@ -862,7 +868,8 @@ def main() -> int:
                 for dev in [d for d in args.dev if d in spec["devs"]]:
                     cfg = DEVS[dev]
                     ctx = b.new_context(**cfg, locale="zh-TW", timezone_id="Asia/Taipei")
-                    ctx.clock.install()
+                    import datetime as _dt
+                    ctx.clock.install(time=_dt.datetime.now(tz=_dt.timezone.utc))
                     ctx.add_init_script(PRESET)
                     fake_api(ctx)
                     ctx.add_init_script(HIDE_B_JS)
@@ -873,6 +880,7 @@ def main() -> int:
                     pg.goto(base + "#overview", wait_until="networkidle")
                     pg.wait_for_timeout(2500)
                     act = Act(pg, dev == "m")
+                    act.x, act.y = cfg["viewport"]["width"] - 4, cfg["viewport"]["height"] * 0.55   # 起始游標放右緣，不壓到圖表提示框
                     W = int(cfg["viewport"]["width"] * cfg["device_scale_factor"])
                     H = int(cfg["viewport"]["height"] * cfg["device_scale_factor"])
                     rec = Recorder(pg, W, H)
