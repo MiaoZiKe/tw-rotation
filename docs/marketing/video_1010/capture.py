@@ -58,6 +58,7 @@ def plus_tier() -> dict:
 def fake_api(ctx):
     tier = plus_tier()
     me = {"email": "demo@example.com", "name": "Plus 會員", "admin": False}
+    store: dict = {}   # 自選清單（/v1/lists/*）存在這個 context 的記憶體裡
 
     def handle(route):
         req = route.request
@@ -76,6 +77,15 @@ def fake_api(ctx):
             out = {"day": "x", "n": 0, "keys": []}
         elif path == "/v1/notices":
             out = {"notices": []}
+        elif path == "/v1/lists/get":
+            out = {"lists": store.get("lists", []), "rev": store.get("rev", 1)}
+        elif path == "/v1/lists/put":
+            try:
+                body = json.loads(req.post_data or "{}")
+            except Exception:  # noqa: BLE001
+                body = {}
+            store["lists"] = body.get("lists", []); store["rev"] = store.get("rev", 1) + 1
+            out = {"ok": True, "rev": store["rev"]}
         elif path.startswith("/v1/watch") or path.startswith("/v1/prefs"):
             out = {}
         route.fulfill(status=200, body=json.dumps(out), headers={"access-control-allow-origin": "*", "content-type": "application/json"})
@@ -931,19 +941,649 @@ def s16(pg, a, start, base):
     a.wait(1500)
 
 
+# ======================================================================== 第 3 版素材（--set v3）
+# Andy 10-11：全部資訊公開（不藏、不模糊）；每個功能先「完整入框」停 2 秒再操作；節奏放慢（動作間隔 1～1.5 秒）。
+# 桌機 1600×900 @2（輸出 3200×1800，剪 1920×1080 不必放大）；手機 390×844 @3。
+DEVS3 = {
+    "m": dict(viewport={"width": 390, "height": 844}, device_scale_factor=3, is_mobile=True, has_touch=True),
+    "d": dict(viewport={"width": 1600, "height": 900}, device_scale_factor=2),
+}
+SHOTS3: dict = {}
+GAP = 1200   # 動作之間的間隔（毫秒）
+
+
+def shot3(sid, devs="md", desc=""):
+    def deco(fn):
+        SHOTS3[sid] = dict(fn=fn, devs=devs, desc=desc)
+        return fn
+    return deco
+
+
+TOPPAD_JS = """() => { let pad = 0; for (const e of document.querySelectorAll('body *')) { const cs = getComputedStyle(e);
+  if (cs.position !== 'fixed' && cs.position !== 'sticky') continue; const r = e.getBoundingClientRect();
+  if (r.top <= 2 && r.height > 20 && r.height < 170 && r.width > innerWidth * 0.5 && r.bottom > pad) pad = r.bottom; } return Math.round(pad); }"""
+
+MARK_JS = """([txt, key, up]) => { const vis = e => e.offsetParent && e.getBoundingClientRect().width > 0;
+  const hs = [...document.querySelectorAll('h1,h2,h3,h4,b,strong,.ttl,.dgsectitle,summary,span')].filter(e => vis(e) && e.children.length < 4 && (e.textContent || '').trim().startsWith(txt));
+  for (const h of hs) { const c = h.closest(up || '.card'); if (c && vis(c)) { c.setAttribute('data-vcap', key); return true; } }
+  return false; }"""
+
+
+def mark(a, txt, key, up=".card"):
+    """把「標題文字是 txt」的那張卡片標成 [data-vcap=key]，回傳選擇器（找不到回 None）。"""
+    return f'[data-vcap="{key}"]' if a.pg.evaluate(MARK_JS, [txt, key, up]) else None
+
+
+def frame(a, sel, hold=2000, ms=1100, label=""):
+    """把 sel 捲到「整張都在畫面內」（扣掉頂欄），停 hold 毫秒，記下入框的時間區間。"""
+    pg = a.pg
+    if not sel or not pg.evaluate("(s) => { const e = document.querySelector(s); return !!(e && e.getBoundingClientRect().height); }", sel):
+        a.note(f"找不到要入框的 {label or sel}")
+        return False
+    pad = pg.evaluate(TOPPAD_JS)
+    vh = _vh(pg)
+    top, h = pg.evaluate("(s) => { const r = document.querySelector(s).getBoundingClientRect(); return [r.top + scrollY, r.height]; }", sel)
+    avail = vh - pad - 10
+    y = top - pad - max(4, (avail - h) / 2) if h <= avail else top - pad - 6
+    a.scroll(to_y=y, ms=ms)
+    r = pg.evaluate("(s) => { const r = document.querySelector(s).getBoundingClientRect(); return [r.top, r.bottom]; }", sel)
+    full = r[0] >= pad - 2 and r[1] <= vh + 2
+    t0 = a.t
+    a.wait(hold)
+    a.note(f"完整入框 {t0:.1f}–{a.t:.1f}s：{label or sel}" + ("" if full else f"（卡片高 {h:.0f}px 超過畫面，只入框上段）"))
+    return True
+
+
+def tap(a, sel, label="", gap=GAP, ms=700):
+    ok = a.click(sel, ms, 450, label=label)
+    if ok:
+        a.wait(gap)
+    return ok
+
+
+def tab_txt(a, txt, scope=""):
+    """點文字完全相同的按鈕（可見的第一個）；手機橫向捲動的分頁先 scrollIntoView。"""
+    sel = f"{scope} button:visible:text-is('{txt}')".strip()
+    loc = a.pg.locator(sel).first
+    if not loc.count():
+        sel = f"{scope} :is(button,a,[role=tab]):visible:has-text('{txt}')".strip()
+        loc = a.pg.locator(sel).first
+        if not loc.count():
+            a.note(f"找不到「{txt}」")
+            return False
+    loc.evaluate("e => e.scrollIntoView({block: 'nearest', inline: 'center'})")
+    return tap(a, sel, txt)
+
+
+def goto3(pg, a, base, h, wait=3500):
+    goto(pg, base, h, wait)
+    pg.context.on("page", lambda p: p.close())   # 新聞連結開新分頁 → 直接關掉，不影響錄影
+
+
+# ---------------------------------------------------------------- 總覽 / 今日事件 / 財經日曆
+@shot3("V01", "md", "總覽：四張摘要卡、大盤三圖、資金熱力圖、熱門題材、漲跌家數（逐張完整入框）")
+def v01(pg, a, start, base):
+    goto3(pg, a, base, "#overview")
+    start()
+    a.wait(2200)
+    a.note("頁首（摘要卡＋大盤）完整入框 0.0–2.2s")
+    if a.mob:
+        car = a.box(".ovcards, #ovCards, [class*=ovsum]", scroll=False)
+        tab_txt(a, "資金流向")
+        tab_txt(a, "熱度")
+        tab_txt(a, "大盤")
+        for t, k in [("漲跌家數", "o1")]:
+            frame(a, mark(a, t, k, ".card, section"), 2200, label=t)
+    else:
+        for t, k in [("資金熱力圖", "o1"), ("熱門題材", "o2"), ("漲跌家數", "o3")]:
+            frame(a, mark(a, t, k), 2200, label=t)
+            a.wait(400)
+    a.scroll(to_y=0, ms=1400)
+    a.wait(800)
+
+
+@shot3("V02", "md", "今日事件：打開事件清單 → 切分類 → 點一則")
+def v02(pg, a, start, base):
+    goto3(pg, a, base, "#overview")
+    start()
+    a.wait(800)
+    if a.mob:
+        tap(a, "#m4Burger", "☰")
+        tap(a, '.m4item[data-act="events"]', "事件")
+    else:
+        tap(a, "#evToggle", "事件")
+    t0 = a.t
+    a.wait(2000)
+    a.note(f"完整入框 {t0:.1f}–{a.t:.1f}s：今日事件清單")
+    for c in ["科技", "總經", "台股"]:
+        if pg.locator(f"#evList ~ *, .evchips, body").locator(f"button:visible:text-is('{c}')").count():
+            tap(a, f"button:visible:text-is('{c}')", f"分類 {c}")
+    a.hover("#evList .ev a >> nth=0", 700)
+    a.wait(900)
+    tap(a, "#evList .ev a >> nth=0", "點第一則新聞（另開新分頁）", 900)
+    a.wait(800)
+
+
+@shot3("V03", "md", "財經日曆：公司財報 → 點一家 → FED 消息 → 點一則看說明")
+def v03(pg, a, start, base):
+    goto3(pg, a, base, "#earnings")
+    start()
+    frame(a, "#v-earnings .card, #v-earnings > *", 2000, label="財經日曆月曆")
+    chip = "#v-earnings .chip:visible >> nth=0"
+    if pg.locator("#v-earnings .chip:visible").count():
+        tap(a, chip, "公司財報第一格")
+        a.wait(1500)
+    tap(a, '#earnFilt button[data-v="conf"]', "公司法說")
+    tap(a, '#earnFilt button[data-v="fed"]', "FED 消息")
+    if pg.locator("#v-earnings .chip:visible").count():
+        tap(a, chip, "FED 第一則", 1000)
+        frame(a, "#v-earnings .fcard", 2500, label="FED 事件說明卡")
+
+
+# ---------------------------------------------------------------- 資金流向
+@shot3("V04", "md", "資金輪動：完整入框 → ▶ 播放")
+def v04(pg, a, start, base):
+    goto3(pg, a, base, "#flow/rotation" if a.mob else "#flow")
+    start()
+    frame(a, "#flowRotCard", 2000, label="資金輪動卡")
+    tap(a, "#rotBack .pb.play, #rotBack button:has-text('▶')", "▶ 播放", 300)
+    a.move(3, 440, 700)
+    a.cursor(False)
+    a.wait(11000)
+
+
+@shot3("V05", "md", "資金分流樹：完整入框 → 滑過分支")
+def v05(pg, a, start, base):
+    goto3(pg, a, base, "#flow/sankey" if a.mob else "#flow")
+    start()
+    frame(a, "#flowSankeyCard", 2000, label="資金分流樹卡")
+    b = a.box("#sankey", scroll=False)
+    if b:
+        for fx, fy in [(0.5, 0.2), (0.5, 0.5), (0.5, 0.75), (0.85, 0.3)]:
+            a.move(b["x"] + b["width"] * fx, b["y"] + b["height"] * fy, 800)
+            a.wait(1300)
+
+
+@shot3("V06", "md", "資金流水：分流樹按 ▶ 逐日播放")
+def v06(pg, a, start, base):
+    goto3(pg, a, base, "#flow/sankey" if a.mob else "#flow")
+    start()
+    frame(a, "#flowSankeyCard", 2000, label="資金分流樹卡")
+    tap(a, "#sankeyDays .pb.play, #sankeyDays button:has-text('▶')", "▶ 播放", 300)
+    a.move(3, 440, 700)
+    a.cursor(False)
+    a.wait(10000)
+
+
+@shot3("V07", "md", "族群×法人、資金集中度：完整入框 → 切天數")
+def v07(pg, a, start, base):
+    goto3(pg, a, base, "#flow/inst" if a.mob else "#flow")
+    if a.mob and not pg.locator("#flowInstCard:visible").count():
+        tab_txt(a, "族群×法人")
+    start()
+    frame(a, "#flowInstCard", 2200, label="族群×法人")
+    bs = pg.locator("#instDays button:visible")
+    if bs.count() > 1:
+        tap(a, "#instDays button:visible >> nth=1", "切天數")
+    frame(a, "#flowConcCard", 2200, label="資金集中度")
+    bs = pg.locator("#concSeg button:visible")
+    if bs.count() > 1:
+        tap(a, "#concSeg button:visible >> nth=1", "切口徑")
+
+
+# ---------------------------------------------------------------- 熱力圖
+@shot3("V08", "md", "熱力圖（市場／產業）：完整入框 → 停在方塊看提示 → 點方塊進產業鏈")
+def v08(pg, a, start, base):
+    goto3(pg, a, base, "#heatmap/industry")
+    start()
+    frame(a, "#indHeat", 2000, label="整個台股一次看")
+    b = a.box("#indHeat", scroll=False)
+    for fx, fy in [(0.12, 0.2), (0.4, 0.2), (0.75, 0.25), (0.3, 0.75)]:
+        a.move(b["x"] + b["width"] * fx, b["y"] + b["height"] * fy, 800)
+        a.wait(1500)
+    a.note("點晶圓代工方塊")
+    a.click_xy(b["x"] + b["width"] * 0.12, b["y"] + b["height"] * 0.22, 600, 400)
+    a.wait(3500)
+
+
+@shot3("V09", "md", "題材資金熱力：完整入框 → 提示框 → 點題材看剖析 → 換配色")
+def v09(pg, a, start, base):
+    goto3(pg, a, base, "#heatmap/theme")
+    start()
+    frame(a, "#themeMapCard", 2000, label="題材資金熱力")
+    b = a.box("#themeMap", scroll=False)
+    for fx, fy in [(0.1, 0.4), (0.27, 0.2), (0.52, 0.2), (0.62, 0.55)]:
+        a.move(b["x"] + b["width"] * fx, b["y"] + b["height"] * fy, 800)
+        a.wait(1500)
+    a.note("點最大的題材方塊（AI 伺服器）")
+    a.click_xy(b["x"] + b["width"] * 0.1, b["y"] + b["height"] * 0.4, 600, 400)
+    a.wait(2500)
+    frame(a, "#themeDetail", 2500, label="題材細節／剖析圖")
+    a.scroll(by=400, ms=1500)
+    a.wait(1500)
+
+
+@shot3("V10", "md", "題材資金熱力（第二段）：點另一個題材、換顏色口徑")
+def v10(pg, a, start, base):
+    goto3(pg, a, base, "#heatmap/theme")
+    start()
+    frame(a, "#themeMapCard", 2000, label="題材資金熱力")
+    b = a.box("#themeMap", scroll=False)
+    a.click_xy(b["x"] + b["width"] * 0.27, b["y"] + b["height"] * 0.7, 700, 400)
+    a.note("點「高階 PCB／CCL」")
+    a.wait(2500)
+    frame(a, "#themeDetail", 2500, label="題材細節")
+    frame(a, "#themeMapCard", 1000, label="回到熱力圖")
+    if pg.locator("#themeCtl .rotdd, #themeCtl button:visible").count():
+        tap(a, "#themeCtl .rotdd >> nth=0, #themeCtl button:visible >> nth=0", "顏色口徑下拉")
+        opt = pg.locator("#themeCtl [role=option]:visible, #themeCtl .ddlist button:visible, #themeCtl li:visible")
+        if opt.count() > 1:
+            tap(a, "#themeCtl [role=option]:visible >> nth=1, #themeCtl .ddlist button:visible >> nth=1, #themeCtl li:visible >> nth=1", "換口徑")
+    a.wait(2000)
+
+
+# ---------------------------------------------------------------- 產業地圖：2D → 4 個 3D → 關聯圖
+@shot3("V11", "md", "產業地圖：全市場產業鏈 → 進 AI 伺服器 → 2D 剖析圖滑過環節")
+def v11(pg, a, start, base):
+    goto3(pg, a, base, "#industry", 4000)
+    start()
+    a.wait(2200)
+    a.note("產業地圖首頁完整入框 0.0–2.2s")
+    a.scroll(by=350, ms=1500)
+    a.wait(1500)
+    if not tap(a, "#v-industry :is(button,a,.tab,[role=tab]):visible:has-text('AI 伺服器')", "進 AI 伺服器產業鏈", 600):
+        pg.evaluate("() => { location.hash = '#industry/ai_server'; }")
+    a.wait(3000)
+    sel = "#prodDiagram"
+    host = pg.evaluate("() => { const e = document.querySelector('#prodDiagram'); const c = e && (e.closest('.dgsec') || e.parentElement); if (c) c.setAttribute('data-vcap', 'dg2d'); return !!c; }")
+    frame(a, '[data-vcap="dg2d"]' if host else sel, 2200, label="2D 剖析圖")
+    segs = pg.locator("#prodDiagram [data-seg]")
+    seen = 0
+    for i in range(segs.count()):
+        bb = segs.nth(i).bounding_box()
+        if not bb or bb["width"] < 8 or bb["y"] < 80 or bb["y"] > _vh(pg) - 40:
+            continue
+        if a.mob:
+            a.click_xy(bb["x"] + bb["width"] / 2, bb["y"] + bb["height"] / 2, 700, 300)
+            a.wait(1500)
+        else:
+            a.move(bb["x"] + bb["width"] / 2, bb["y"] + bb["height"] / 2, 700)
+            a.wait(1200)
+        seen += 1
+        if seen >= 5:
+            break
+
+
+def _3d_show(pg, a, start, base, route, name):
+    _to_dg(pg, a, base, route)
+    a.click('#dg3d button[data-dm="3d"]', label="切 3D")
+    for _ in range(40):
+        if pg.evaluate("() => document.querySelectorAll('#prod3d canvas').length > 0"):
+            break
+        pg.wait_for_timeout(500)
+    pg.wait_for_timeout(2500)
+    start()
+    frame(a, "#prod3d", 2000, label=f"{name} 3D 完整畫面")
+    b = a.box("#prod3d canvas", scroll=False)
+    cx, cy = b["x"] + b["width"] / 2, b["y"] + b["height"] / 2
+    a.note("較快旋轉一圈半")
+    a.drag(cx + b["width"] * 0.3, cy, cx - b["width"] * 0.3, cy + 10, 1500)
+    a.wait(500)
+    a.drag(cx - b["width"] * 0.3, cy, cx + b["width"] * 0.2, cy - 30, 1300)
+    a.wait(1000)
+    labels = pg.locator(".mnum:visible" if a.mob else ".lbl3d:visible")
+    for i in range(labels.count()):
+        bb = labels.nth(i).bounding_box()
+        if bb and 90 < bb["y"] < _vh(pg) - 60:
+            a.click_xy(bb["x"] + bb["width"] / 2, bb["y"] + bb["height"] / 2, 700, 450)
+            a.note("點零件 → 看負責公司")
+            break
+    a.wait(1500)
+    if pg.locator("#partCard:visible").count():
+        frame(a, "#partCard", 2800, label="零件說明卡（負責公司）")
+    else:
+        a.wait(1800)
+
+
+@shot3("V12a", "md", "3D：AI 伺服器機櫃")
+def v12a(pg, a, start, base):
+    _3d_show(pg, a, start, base, "#industry/ai_server", "AI 伺服器")
+
+
+@shot3("V12b", "md", "3D：HBM 高頻寬記憶體")
+def v12b(pg, a, start, base):
+    _3d_show(pg, a, start, base, "#industry/semiconductor/dg/hbm", "HBM")
+
+
+@shot3("V12c", "md", "3D：液冷散熱")
+def v12c(pg, a, start, base):
+    _3d_show(pg, a, start, base, "#industry/ai_server/dg/liquid_cooling", "液冷")
+
+
+@shot3("V12d", "md", "3D：IC 載板")
+def v12d(pg, a, start, base):
+    _3d_show(pg, a, start, base, "#industry/ai_server/dg/ic_substrate", "IC 載板")
+
+
+@shot3("V13", "md", "供應鏈關聯圖：完整入框 → 滑過節點連線變亮")
+def v13(pg, a, start, base):
+    goto3(pg, a, base, "#industry/ai_server", 4000)
+    pg.evaluate("() => { const h = document.querySelector('#relHead'); const c = h && (h.closest('.card') || h.parentElement); if (c) c.setAttribute('data-vcap', 'rel'); }")
+    start()
+    frame(a, '[data-vcap="rel"]', 2200, label="供應鏈關聯圖")
+    nodes = pg.locator('[data-vcap="rel"] [data-seg], [data-vcap="rel"] .rnode, [data-vcap="rel"] .relseg')
+    seen = 0
+    for i in range(nodes.count()):
+        bb = nodes.nth(i).bounding_box()
+        if not bb or bb["y"] < 90 or bb["y"] > _vh(pg) - 40 or bb["width"] < 10:
+            continue
+        a.move(bb["x"] + min(bb["width"] / 2, 60), bb["y"] + 10, 700)
+        a.wait(1400)
+        seen += 1
+        if seen >= 6:
+            break
+
+
+# ---------------------------------------------------------------- 個股
+def _stock(pg, a, base):
+    goto3(pg, a, base, "#stock/2330", 4500)
+
+
+@shot3("V14", "md", "個股（台積電 2330）：K 線 → 切日／週 → 四週期同看")
+def v14(pg, a, start, base):
+    _stock(pg, a, base)
+    start()
+    frame(a, "#skChartCard", 2000, label="個股走勢卡")
+    tab_txt(a, "日", "#skChartCard")
+    a.wait(800)
+    tab_txt(a, "週", "#skChartCard")
+    tab_txt(a, "日", "#skChartCard")
+    if pg.locator("#mtfBtn:visible").count():
+        tap(a, "#mtfBtn", "四週期同看", 2500)
+        frame(a, "#skChartCard", 1500, label="四週期同看")
+        tap(a, "#mtfBtn", "收回")
+
+
+@shot3("V15", "md", "個股：營收、法人、資券、大戶散戶分頁")
+def v15(pg, a, start, base):
+    _stock(pg, a, base)
+    tabbar = pg.evaluate("""() => { const b = [...document.querySelectorAll('button')].find(x => x.offsetParent && x.textContent.trim() === '營收');
+      const bar = b && b.parentElement; if (bar) bar.setAttribute('data-vcap', 'sktabs'); return !!bar; }""")
+    start()
+    a.wait(600)
+    for t in ["營收", "法人", "資券", "大戶／散戶"]:
+        if tab_txt(a, t):
+            if tabbar:
+                pg.evaluate("() => { const e = document.querySelector('[data-vcap=sktabs]'); }")
+                y = pg.evaluate("() => document.querySelector('[data-vcap=sktabs]').getBoundingClientRect().top + scrollY") - pg.evaluate(TOPPAD_JS) - 6
+                a.scroll(to_y=y, ms=900)
+            t0 = a.t
+            a.wait(2300)
+            a.note(f"完整入框 {t0:.1f}–{a.t:.1f}s：{t} 分頁（分頁列置頂，內容在下方）")
+
+
+# ---------------------------------------------------------------- 市場明細 / 選股策略 / 週期統計
+def _sub(a, parent, txt):
+    """桌機點側欄子分頁；手機點頁內分頁。"""
+    if a.mob:
+        return tab_txt(a, txt)
+    return tap(a, f'#tabs .l4subtab[data-parent="{parent}"]:has-text("{txt}")', txt)
+
+
+@shot3("V16", "md", "市場明細：漲跌家數 → 法人連買賣 → 站上均線 → 今日關注")
+def v16(pg, a, start, base):
+    goto3(pg, a, base, "#market")
+    start()
+    a.wait(2200)
+    a.note("市場明細首頁完整入框 0.0–2.2s")
+    for t in ["漲停", "成交值前段"]:
+        if pg.locator(f"#v-market button:visible:has-text('{t}')").count():
+            tap(a, f"#v-market button:visible:has-text('{t}')", t)
+    for t in ["法人連買賣", "站上均線", "今日關注"]:
+        if _sub(a, "market", t):
+            a.scroll(to_y=0, ms=600)
+            t0 = a.t
+            a.wait(2200)
+            a.note(f"完整入框 {t0:.1f}–{a.t:.1f}s：{t}")
+
+
+@shot3("V17", "md", "選股策略：基本面列表 → 技術面 → 籌碼面 → 子標籤篩選")
+def v17(pg, a, start, base):
+    goto3(pg, a, base, "#explore")
+    start()
+    a.wait(2200)
+    a.note("選股策略（基本面）完整入框 0.0–2.2s")
+    a.scroll(by=300, ms=1300)
+    a.wait(1000)
+    a.scroll(to_y=0, ms=900)
+    for t in ["技術面", "籌碼面"]:
+        if _sub(a, "explore", t):
+            t0 = a.t
+            a.wait(1800)
+            a.note(f"完整入框 {t0:.1f}–{a.t:.1f}s：{t}")
+    if tap(a, "#slTagDd", "子標籤下拉"):
+        opt = pg.locator("[role=option]:visible, .ddlist button:visible, .ddlist label:visible")
+        if opt.count() > 1:
+            bb = opt.nth(1).bounding_box()
+            a.click_xy(bb["x"] + 20, bb["y"] + bb["height"] / 2, 600, 300)
+            a.note("選一個子標籤")
+            a.wait(1800)
+            pg.keyboard.press("Escape")
+            a.wait(1200)
+
+
+@shot3("V18", "md", "週期統計：完整入框 → 切期間／勝率／長條圖")
+def v18(pg, a, start, base):
+    goto3(pg, a, base, "#season")
+    start()
+    frame(a, "#seasonHeatCard", 2200, label="週期統計熱力表")
+    if a.mob:
+        tap(a, "#mSeasonNum", "數字 開／關")
+        tap(a, "#mSeasonNum", "數字 開／關")
+        a.scroll(by=300, ms=1300)
+        a.wait(1500)
+    else:
+        for t in ["近 5 年", "勝率", "長條圖", "熱力圖", "超額報酬", "全部"]:
+            tab_txt(a, t, "#v-season")
+
+
+# ---------------------------------------------------------------- ETF
+@shot3("V19", "md", "ETF 配息行事曆：月曆 → 點一天 → 當日除息清單")
+def v19(pg, a, start, base):
+    goto3(pg, a, base, "#etf/cal")
+    start()
+    frame(a, "#etfCalCard", 2000, label="配息行事曆")
+    cells = pg.locator("#etfCalGrid .cald")
+    best = None
+    for i in range(cells.count()):
+        if cells.nth(i).evaluate("e => e.textContent.trim().length > 6"):
+            best = i
+            if i > 8:
+                break
+    if best is not None:
+        bb = cells.nth(best).bounding_box()
+        a.click_xy(bb["x"] + bb["width"] / 2, bb["y"] + bb["height"] / 2, 700, 450)
+        a.note("點有除息的那一天")
+        a.wait(1500)
+        frame(a, "#etfCalList", 2500, label="當日除息清單")
+
+
+@shot3("V20", "md", "ETF 總覽：各類型分頁切換，看前五名")
+def v20(pg, a, start, base):
+    goto3(pg, a, base, "#etf/list")
+    start()
+    a.wait(2200)
+    a.note("ETF 總覽（類型分頁＋三張前五名）完整入框 0.0–2.2s")
+    tabs = pg.locator("#etfCatSeg button:visible, #etfCatBar button:visible")
+    n = tabs.count()
+    for i in list(range(1, n)) + [0]:
+        tabs.nth(i).evaluate("e => e.scrollIntoView({block: 'nearest', inline: 'center'})")
+        bb = tabs.nth(i).bounding_box()
+        if not bb:
+            continue
+        a.click_xy(bb["x"] + bb["width"] / 2, bb["y"] + bb["height"] / 2, 600, 300)
+        a.note(f"類型分頁 {i + 1}")
+        a.wait(1500)
+
+
+@shot3("V21", "md", "ETF 報酬比較：完整入框 → 加入兩檔 → 切期間")
+def v21(pg, a, start, base):
+    goto3(pg, a, base, "#etf/list")
+    start()
+    frame(a, "#etfRetCard", 2000, label="報酬比較")
+    if tap(a, "#etfCmpDD .ddbtn", "加入比較下拉", 800):
+        boxes = pg.locator("#etfCmpDD input[type=checkbox]:visible")
+        k = 0
+        for i in range(boxes.count()):
+            if k >= 2:
+                break
+            if boxes.nth(i).is_checked():
+                continue
+            bb = boxes.nth(i).bounding_box()
+            if not bb or bb["y"] > _vh(pg) - 30:
+                continue
+            a.click_xy(bb["x"] + bb["width"] / 2, bb["y"] + bb["height"] / 2, 600, 300)
+            a.note(f"勾第 {i + 1} 檔")
+            a.wait(1200)
+            k += 1
+        pg.keyboard.press("Escape")
+        a.wait(300)
+        if pg.locator("#etfCmpDD input[type=checkbox]:visible").count():
+            tap(a, "#etfCmpDD .ddbtn", "收起下拉", 600)
+        frame(a, "#etfRetCard", 2000, label="比較結果")
+    sel = pg.locator("#etfRetCtl select:visible").first
+    if sel.count():
+        bb = sel.bounding_box()
+        vals = pg.evaluate("() => [...document.querySelector('#etfRetCtl select').options].map(o => o.value)")
+        a.move(bb["x"] + bb["width"] / 2, bb["y"] + bb["height"] / 2, 700)
+        for v in vals[:3]:
+            a.wait(500)
+            pg.evaluate("([x,y]) => window.__vcRipple(x,y)", [a.x, a.y])
+            sel.select_option(v)
+            a.note(f"期間切到 {v}")
+            a.wait(1500)
+
+
+@shot3("V22", "md", "ETF 現金流試算：調目標金額 → 換組合 A／B")
+def v22(pg, a, start, base):
+    goto3(pg, a, base, "#etf/inc", 4000)
+    start()
+    a.wait(2200)
+    a.note("現金流試算上半部完整入框 0.0–2.2s")
+    if a.mob:
+        if tap(a, "#m4EtfSet-inc", "參數列"):
+            for lab in ["月領", "年領"]:
+                tap(a, f"button:visible:text-is('{lab}')", lab)
+            pg.keyboard.press("Escape")
+            a.wait(800)
+    else:
+        for lab in ["50 萬", "200 萬", "100 萬"]:
+            tap(a, f"button:visible:text-is('{lab}')", f"金額 {lab}")
+    combos = pg.locator("#v-etf button:visible:has-text('組合')")
+    for i in range(min(2, combos.count())):
+        combos.nth(i).evaluate("e => e.scrollIntoView({block: 'nearest', inline: 'center'})")
+        bb = combos.nth(i).bounding_box()
+        if bb:
+            a.click_xy(bb["x"] + min(bb["width"] / 2, 50), bb["y"] + bb["height"] / 2, 600, 300)
+            a.note(f"組合 {'AB'[i]}")
+            a.wait(1600)
+    a.scroll(by=360 if a.mob else 260, ms=1400)
+    a.wait(2000)
+
+
+@shot3("V23", "md", "ETF 複利試算表：切到複利 → 完整入框 → 看曲線")
+def v23(pg, a, start, base):
+    goto3(pg, a, base, "#etf/inc", 4000)
+    start()
+    a.wait(800)
+    tap(a, "button:visible:has-text('複利試算')", "複利試算表", 2200)
+    a.scroll(by=200 if a.mob else 120, ms=1000)
+    t0 = a.t
+    a.wait(2200)
+    a.note(f"完整入框 {t0:.1f}–{a.t:.1f}s：複利試算表")
+    for lab in ["3 年", "1 年", "5 年"]:
+        if pg.locator(f"#v-etf button:visible:text-is('{lab}')").count():
+            tap(a, f"#v-etf button:visible:text-is('{lab}')", lab)
+    a.scroll(by=400, ms=1500)
+    a.wait(1800)
+
+
+# ---------------------------------------------------------------- 自選 / 比比
+@shot3("V24", "md", "自選清單：輸入代號加入三檔 → 清單存起來")
+def v24(pg, a, start, base):
+    goto3(pg, a, base, "#watch")
+    start()
+    frame(a, "#v-watch .card", 1800, label="自選清單（空）")
+    inp = "#v-watch input:visible"
+    for code in ["2330", "2454", "2317"]:
+        if not a.click(inp, 700, 300, label="加入股票輸入框"):
+            break
+        for ch in code:
+            pg.keyboard.type(ch)
+            a.wait(160)
+        a.wait(900)
+        pg.keyboard.press("Enter")
+        a.note(f"加入 {code}")
+        a.wait(1400)
+    frame(a, "#v-watch .card", 2500, label="自選清單（三檔）")
+
+
+@shot3("V25", "md", "比比導覽：開本頁導覽走四步")
+def v25(pg, a, start, base):
+    goto3(pg, a, base, "#overview")
+    start()
+    a.wait(800)
+    tap(a, "#twPageTourBtn", "導覽鈕")
+    if not pg.locator("#twTourNext:visible").count():
+        for sel in ["button:visible:has-text('本頁導覽')", "a:visible:has-text('本頁導覽')"]:
+            if pg.locator(sel).count():
+                tap(a, sel, "本頁導覽")
+                break
+    a.wait(1200)
+    for i in range(4):
+        if not pg.locator("#twTourNext:visible").count():
+            break
+        tap(a, "#twTourNext", f"下一步 {i + 1}", 2200)
+
+
+@shot3("V26", "md", "比比客服面板：常見問題 → 意見反饋 → 願望清單（輸入一則願望）")
+def v26(pg, a, start, base):
+    goto3(pg, a, base, "#overview")
+    start()
+    a.wait(800)
+    tap(a, "#supFab", "比比客服鈕", 1500)
+    tap(a, "#supPanel .faq button >> nth=0", "常見問題第一題", 1800)
+    tap(a, "#supPanel .faq button >> nth=4", "常見問題第五題", 1800)
+    tap(a, '#supPanel .sptabs button[data-t="fb"]', "意見反饋")
+    pg.evaluate("() => document.querySelectorAll('#supPanel input[type=email]').forEach(e => e.value = '')")
+    tap(a, '#supPanel #fbKind button[data-fk="wish"]', "願望清單")
+    pg.evaluate("() => document.querySelectorAll('#supPanel input[type=email]').forEach(e => e.value = '')")
+    if a.click("#wsWant", 600, 300, label="想要的功能"):
+        for ch in "希望自選股可以設價格提醒":
+            pg.keyboard.type(ch)
+            a.wait(120)
+    a.wait(2200)
+
+
+
 # ------------------------------------------------------------------ 主程式
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--shots", default="")
     ap.add_argument("--dev", default="md")
-    ap.add_argument("--out", default=str(DEF_OUT))
+    ap.add_argument("--out", default="")
+    ap.add_argument("--set", default="v2", choices=["v2", "v3"], help="v3＝第 3 版素材（桌機 1600×900@2、不藏 B 類、完整入框）")
     ap.add_argument("--port", type=int, default=PORT)
     ap.add_argument("--log-only", action="store_true", help="不截圖，只重跑一次操作記下點擊秒數與座標（已錄好的鏡頭補座標用）")
     args = ap.parse_args()
     _import_shots()
+    reg = SHOTS3 if args.set == "v3" else SHOTS
+    devs_cfg = DEVS3 if args.set == "v3" else DEVS
+    if not args.out:
+        args.out = str(DEF_OUT.parent / "raw_v3") if args.set == "v3" else str(DEF_OUT)
     out = Path(args.out)
     (out / "thumbs").mkdir(parents=True, exist_ok=True)
-    want = [s.strip() for s in args.shots.split(",") if s.strip()] or list(SHOTS)
+    want = [s.strip() for s in args.shots.split(",") if s.strip()] or list(reg)
     meta = json.loads((SITE / "data" / "meta.json").read_text(encoding="utf-8")) if (SITE / "data" / "meta.json").exists() else {}
     srv = ThreadingHTTPServer(("127.0.0.1", args.port), partial(_Quiet, directory=str(SITE)))
     threading.Thread(target=srv.serve_forever, daemon=True).start()
@@ -956,15 +1596,16 @@ def main() -> int:
             b = p.chromium.launch(executable_path="/opt/pw-browsers/chromium",
                                   args=["--disable-gpu", "--enable-unsafe-swiftshader"])  # CPU 點陣化：比 SwiftShader 合成快 10 倍以上；WebGL 仍走 SwiftShader
             for sid in want:
-                spec = SHOTS[sid]
+                spec = reg[sid]
                 for dev in [d for d in args.dev if d in spec["devs"]]:
-                    cfg = DEVS[dev]
+                    cfg = devs_cfg[dev]
                     ctx = b.new_context(**cfg, locale="zh-TW", timezone_id="Asia/Taipei")
                     import datetime as _dt
                     ctx.clock.install(time=_dt.datetime.now(tz=_dt.timezone.utc))
                     ctx.add_init_script(PRESET)
                     fake_api(ctx)
-                    ctx.add_init_script(HIDE_B_JS)
+                    if args.set != "v3":   # v3：Andy「全部資訊公開」→ 不藏 B 類
+                        ctx.add_init_script(HIDE_B_JS)
                     ctx.add_init_script(CURSOR_JS % ("true" if dev == "m" else "false"))
                     pg = ctx.new_page()
                     errs = []
