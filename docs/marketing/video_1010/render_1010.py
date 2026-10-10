@@ -301,6 +301,12 @@ class Rec:
             if s0 <= st <= s1:
                 frosted(src, (x0, y0, x1, y1), self.blur_r)
         x0, y0, x1, y1 = self.window(t)
+        # 視窗比來源大 → 等比縮回來源大小
+        k = min(1.0, src.width / (x1 - x0), src.height / (y1 - y0))
+        if k < 1:
+            cx, cy = (x0 + x1) / 2, (y0 + y1) / 2
+            hw, hh = (x1 - x0) * k / 2, (y1 - y0) * k / 2
+            x0, x1, y0, y1 = cx - hw, cx + hw, cy - hh, cy + hh
         # 視窗超出來源 → 平移回來（保持大小）
         if x0 < 0: x1 -= x0; x0 = 0
         if y0 < 0: y1 -= y0; y0 = 0
@@ -1243,7 +1249,7 @@ def shots_main():
                   cues=[(0.5, "blip"), (1.0, "blip"), (1.5, "blip")]))
 
     # 25 關聯圖（遠景＋整片模糊）
-    r25 = Rec("S09_desktop", [(0, 0.6), (2.5, 3.6)], [(0, 1200, 780, 1500), (2.5, 1380, 760, 1500)], blur=B_S09D, blur_r=9,
+    r25 = Rec("S09_desktop", [(0, 0.6), (2.5, 3.6)], [(0, 1250, 700, 1380), (2.5, 1400, 690, 1380)], blur=B_S09D, blur_r=9,
               enter=("wipe_down", 0.3))
     S.append(Shot("25", 2.5, [r25], headline="上下游一張連", hl="一張連", pill_text="④ 產業",
                   sub="連線是供貨關係，滑過去上下游就亮",
