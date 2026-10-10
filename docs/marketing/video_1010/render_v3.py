@@ -29,6 +29,26 @@ from render_1010 import (CREAM, DEEP, INK, LEMON, SKY, WHITE, F_BOLD, F_MED, F_R
                          clamp, ease_io, ease_out, font, hide_site_mascot, lerp, logo_sized, piecewise, put_sprite,
                          reader, rounded_mask, text_w, wrap_lines)
 
+# 第 3 版素材在 raw_v3/；同名找不到時才退回舊的 raw/
+_SR = B.SourceReader
+
+
+class _SR3(_SR):
+    def __init__(self, clip):
+        v3 = B.SCR / "video1010" / "raw_v3" / f"{clip}.mp4"
+        if v3.exists():
+            old = B.RAW
+            B.RAW = v3.parent
+            try:
+                super().__init__(clip)
+            finally:
+                B.RAW = old
+        else:
+            super().__init__(clip)
+
+
+B.SourceReader = _SR3
+
 FOOTNOTE = "畫面數據為過往歷史資料，僅供功能展示，不具投資參考價值"
 GLOW = (255, 196, 40)
 
@@ -70,11 +90,11 @@ def _set_side(self, side):
     """浮層與比比放在焦點的另一側。"""
     self.side = side
     if side == "L":
-        self.pill_xy = (44, 36); self.head_xy = (52, 104)
+        self.pill_xy = (44, 30); self.pill_right = False; self.head_xy = (52, 112)
         self.sub_xy = (78, 958); self.sub_align = "L"
         self.host = (1800, 1010); self.data_xy = (1904, 52)
     else:
-        self.pill_xy = (1920 - 44 - 760, 36); self.head_xy = (1920 - 52 - 720, 104)
+        self.pill_xy = (1876, 30); self.pill_right = True; self.head_xy = (1920 - 52 - 720, 112)
         self.sub_xy = (1842, 958); self.sub_align = "R"
         self.host = (130, 1010); self.data_xy = (420, 52)
 
@@ -602,7 +622,7 @@ class Shot3:
             if self.date:
                 data_tag(cv, L, self.date)
             if self.pill_text:
-                pill(cv, self.pill_text, *L.pill_xy)
+                pill(cv, self.pill_text, *L.pill_xy, right=getattr(L, "pill_right", False))
             headline(cv, L, self.head, t, self.hl)
             subtitle(cv, L, self.sub, t)
         if self.foot:
