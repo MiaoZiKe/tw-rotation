@@ -162,8 +162,14 @@ class Recorder:
         tmpdir.mkdir(parents=True)
         self.dir, self.n, self.on, self.acc = tmpdir, 0, True, 0.0
         import datetime as _dt
-        now = self.pg.evaluate("() => Date.now()")
-        self.pg.clock.pause_at(_dt.datetime.fromtimestamp(now / 1000 + 1.5, tz=_dt.timezone.utc))
+        for margin in (1.5, 5, 15, 40):   # 頁面很重（3D）時，量時間到暫停之間可能已經過好幾秒 → 加大餘裕重試
+            now = self.pg.evaluate("() => Date.now()")
+            try:
+                self.pg.clock.pause_at(_dt.datetime.fromtimestamp(now / 1000 + margin, tz=_dt.timezone.utc))
+                break
+            except Exception as exc:  # noqa: BLE001
+                if "past" not in str(exc) or margin == 40:
+                    raise
         self.frame()
 
     def frame(self):
