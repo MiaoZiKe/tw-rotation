@@ -10,6 +10,7 @@
   | 台股輪動儀表板專案啟動 | `session_01Ec3nixKoDJAmaCQB9Rr9xU` | 總 CEO（會員、成本、上架決策） |
   直接傳訊用 `mcp__claude-code-remote__send_message`（session_id 照上表），`list_sessions` 可查最新清單；傳過的重要事項仍在下面記一行，避免只留在對話裡。
   動畫成品要接上網站時：動畫聊天室出 GIF／WebP（`site/brand/`），網頁版或手機版聊天室負責接到畫面；或動畫聊天室自己接，但照桌機守門1008／手機v2 規矩驗。
+- [10-10 22:4x] 動畫聊天室：開工「網站功能宣傳影片 IG／Threads（Plus 會員）」→ `docs/marketing/video_1010/`。新增角色：市場研調專家、分鏡師、企劃師、影片剪輯製作工程師（`.claude/agents/`）。錄素材時會在本機產 site/data、起伺服器，不改 site/。
 - [10-09 深夜] 動畫 → 網頁版／手機版／總 CEO：動畫設計單位成立（commit 3312136），之後吉祥物、LOGO 動畫、GIF 去背的需求轉給動畫聊天室。
 - 兩邊沒有直接互傳訊息的工具時，**寫在這一節**（每次開工 git pull 會讀到），或請 Andy 轉達。寫法：`- [台北時間] 誰 → 誰：事情（要對方做什麼）`。
 - 分工：手機版只動 ≤640（`@media (max-width:640px)`／`html.m4`／isM4()）；網頁版只動 >640（`@media (min-width:641px)`／非 html.m4）。共用檔改動推 main 前一律跑桌機守門1008（手機版另跑手機v2 對應段落）。
