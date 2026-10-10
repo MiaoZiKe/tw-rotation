@@ -461,9 +461,13 @@ def globe_svg(c, R, rot, cid):
 CARDS = [("國際", BLUE), ("科技", PINK), ("總經", MINT)]
 
 
+def h_est(s):
+    return 46 * s
+
+
 def scene_globe(poses):
     C, R = (398, 214), 44
-    targets = [(110, 92), (250, 62), (402, 70)]
+    targets = [(104, 96), (252, 58), (404, 74)]
     out = []
     labs = ["地球轉著", "第一張新聞卡飛出", "飛到左上", "第二張飛出", "飛到上面", "第三張飛出", "飛到右上",
             "三張都到齊", "眼睛發亮", "卡片飄一下", "卡片飛走", "地球繼續轉"]
@@ -476,20 +480,18 @@ def scene_globe(poses):
         texts = []
         for k, (name, col) in enumerate(CARDS):
             u = (i - (1 + 2 * k)) / 2.0
-            if i >= 10:
-                u = 1 + (i - 9) * 0.5
             if u <= 0:
                 continue
             e = BA.ease(min(u, 1.0))
-            fly_out = max(0.0, u - 1.0)
+            fly_out = (i - 9) * 0.5 if i >= 10 else 0.0   # 第 11、12 格整批往上飛走（不淡出，避免留下鬼影）
             x = C[0] + (targets[k][0] - C[0]) * e
-            y = C[1] - 20 + (targets[k][1] - C[1] + 20) * e - 30 * math.sin(math.pi * e) - fly_out * 120
-            s = 0.35 + 0.65 * e
+            y = C[1] - 20 + (targets[k][1] - C[1] + 20) * e - 30 * math.sin(math.pi * e) - fly_out * 170
+            s = (0.35 + 0.65 * e) * 1.3
             bob = 3 * math.sin(i * 1.3 + k) if 7 <= i <= 9 else 0
             y += bob
             deg = (-8 + 8 * k) * e
-            op = max(0.0, 1 - fly_out * 1.6)
-            if op <= 0:
+            op = 1.0
+            if y + h_est(s) < -10:
                 continue
             w, h = 92 * s, 46 * s
             card = shape(rrect(x, y, w, h, 9 * s, deg, 0.6), WHITE, LW * 0.8)
@@ -580,11 +582,11 @@ def box_svg(c, lid):
     out += f'<path d="M {P((c[0], y0+2))} L {P((c[0], y0+h-2))}" stroke="{GOLD}" stroke-width="12"/>'
     out += f'<path d="M {P((c[0], y0+2))} L {P((c[0], y0+h-2))}" stroke="{INK}" stroke-width="2" opacity="0.3"/>'
     # 蓋子：以左後角為軸打開
-    pivot = (x0 - 4, y0)
-    lid_pts = [(0, 0), (w + 8, 0), (w + 8, -20), (0, -20)]
-    pts = [add(pivot, rot2(p, -lid * 70)) for p in lid_pts]
-    out += shape(smooth_closed(pts) if False else poly_d(pts), "#F8BDB8")
-    mid = add(pivot, rot2(((w + 8) / 2, -10), -lid * 70))
+    # 蓋子：往上掀開一點、微微傾斜（不要整片轉起來擋住臉）
+    lc = (c[0] + 10 * lid, y0 - 10 - 34 * lid)
+    deg = -14 * lid
+    out += shape(rrect(lc[0], lc[1], w + 10, 20, 6, deg, 0.5), "#F8BDB8")
+    mid = lc
     out += f'<circle cx="{f(mid[0])}" cy="{f(mid[1])}" r="8" fill="{GOLD}" stroke="{INK}" stroke-width="2.6"/>'
     return out
 
@@ -750,12 +752,12 @@ def scene_hourglass(poses):
         for k, (pc, pd, kind) in enumerate(photos):
             u = (i - (1 + k)) / 1.5
             if i >= 10:
-                u = 1 - (i - 9) * 0.45
-            if u <= 0:
+                u = 1 - (i - 9) * 0.45     # 翻沙漏時照片縮小收回（用縮小，不用淡出，避免鬼影）
+            if u <= 0.05:
                 continue
             e = BA.ease(min(u, 1))
             c = (pc[0], pc[1] + 30 * (1 - e) + 3 * math.sin(i + k))
-            svg += g_op(photo_svg(c, pd + 4 * math.sin(i * 0.8 + k), kind, 0.6 + 0.4 * e), min(1, e * 1.2))
+            svg += photo_svg(c, pd + 4 * math.sin(i * 0.8 + k), kind, 0.25 + 0.75 * e)
         if i == 7:
             svg += sparkle((150, 180), 10) + sparkle((250, 150), 8)
         out.append(fr_(poses, g, labs[i], fc, front=svg))
@@ -763,8 +765,8 @@ def scene_hourglass(poses):
 
 
 # ================================================================== 10. 火箭
-def rocket_svg(c, deg, flame_t):
-    Tf = lambda p: add(c, rot2(p, deg))  # noqa: E731
+def rocket_svg(c, deg, flame_t, s=1.4):
+    Tf = lambda p: add(c, rot2((p[0] * s, p[1] * s), deg))  # noqa: E731
     out = ""
     fl = 1 + 0.25 * math.sin(flame_t * 2.3)
     out += shape(f"M {P(Tf((-10,34)))} C {P(Tf((-12,52*fl)))} {P(Tf((0,70*fl)))} {P(Tf((0,74*fl)))} C {P(Tf((0,70*fl)))} {P(Tf((12,52*fl)))} {P(Tf((10,34)))} Z", "#F2774B", 3)
