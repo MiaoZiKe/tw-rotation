@@ -364,7 +364,7 @@ def burst_svg(body_big, g, poses, k):
     a = np.asarray(body_big.getchannel("A").resize((SIZE, SIZE), Image.BILINEAR))
     c = fwd(poses, g, 254, 320)
     pts = []
-    N = 52
+    N = 34
     for i in range(N):
         ang = 2 * math.pi * i / N
         dx, dy = math.cos(ang), math.sin(ang)
@@ -375,15 +375,15 @@ def burst_svg(body_big, g, poses, k):
                 break
             r += 1
         low = dy > 0.45
-        rr = r * (0.94 if (i % 2 or low) else 1 + 0.13 * k * (1 + 0.25 * math.sin(i * 1.7)))
+        rr = r * (0.95 if (i % 2 or low) else 1 + 0.11 * k * (1 + 0.25 * math.sin(i * 1.7)))
         pts.append((c[0] + dx * rr, c[1] + dy * rr))
     # 一撮一撮的毛：谷點 → 二次 Bézier 彎到尖端 → 再彎回下一個谷點（尖端都往順時針微微倒，像手繪炸毛）
     d = f"M {P(pts[1])} "
     for i in range(1, N + 1, 2):
         v0, tip, v1 = pts[i % N], pts[(i + 1) % N], pts[(i + 2) % N]
         t = (v1[0] - v0[0], v1[1] - v0[1]); L = math.hypot(*t) + 1e-6; t = (t[0] / L, t[1] / L)
-        m0 = ((v0[0] + tip[0]) / 2 + t[0] * 4, (v0[1] + tip[1]) / 2 + t[1] * 4)
-        m1 = ((tip[0] + v1[0]) / 2 + t[0] * 5, (tip[1] + v1[1]) / 2 + t[1] * 5)
+        m0 = ((v0[0] + tip[0]) / 2 + t[0] * 11, (v0[1] + tip[1]) / 2 + t[1] * 11)
+        m1 = ((tip[0] + v1[0]) / 2 + t[0] * 3, (tip[1] + v1[1]) / 2 + t[1] * 3)
         d += f"Q {P(m0)} {P(tip)} Q {P(m1)} {P(v1)} "
     d += "Z"
     return (f'<path d="{d}" fill="{FUR}"/>'
