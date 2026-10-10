@@ -949,7 +949,13 @@ DEVS3 = {
     "d": dict(viewport={"width": 1600, "height": 900}, device_scale_factor=2),
 }
 SHOTS3: dict = {}
-GAP = 1200   # 動作之間的間隔（毫秒）
+GAP = 1200
+# Andy：影片不提會員層級與使用次數 → 錄影瀏覽器裡把頁首會員徽章、額度圓環「剩 N 次」、「本頁 N 項限制」、額度備註藏起來（不改 site/）
+HIDE_TIER_JS = r"""
+(() => { const css = '#acctBtn,.abtn.ame,#twQRing,.twqr,#twQPage,.twqp,.qnote,.qnote-row,.qlkov{display:none!important}';
+  const go = () => { const st = document.createElement('style'); st.id = '__vhide'; st.textContent = css; document.head.appendChild(st); };
+  document.readyState === 'loading' ? document.addEventListener('DOMContentLoaded', go) : go(); })();
+"""   # 動作之間的間隔（毫秒）
 
 
 def shot3(sid, devs="md", desc=""):
@@ -1017,7 +1023,6 @@ def tab_txt(a, txt, scope=""):
 
 def goto3(pg, a, base, h, wait=3500):
     goto(pg, base, h, wait)
-    pg.context.on("page", lambda p: p.close())   # 新聞連結開新分頁 → 直接關掉，不影響錄影
 
 
 # ---------------------------------------------------------------- 總覽 / 今日事件 / 財經日曆
@@ -1058,10 +1063,13 @@ def v02(pg, a, start, base):
     for c in ["科技", "總經", "台股"]:
         if pg.locator(f"#evList ~ *, .evchips, body").locator(f"button:visible:text-is('{c}')").count():
             tap(a, f"button:visible:text-is('{c}')", f"分類 {c}")
-    a.hover("#evList .ev a >> nth=0", 700)
-    a.wait(900)
-    tap(a, "#evList .ev a >> nth=0", "點第一則新聞（另開新分頁）", 900)
-    a.wait(800)
+    a.hover("#evList .ev > a >> nth=0", 700)
+    a.wait(1200)
+    a.hover("#evList .ev > a >> nth=1", 700)
+    a.wait(1200)
+    chip = "#evList .ev .m a:visible >> nth=0"
+    if pg.locator("#evList .ev .m a:visible").count():
+        tap(a, chip, "點新聞裡提到的個股 → 跳個股頁", 2500)
 
 
 @shot3("V03", "md", "財經日曆：公司財報 → 點一家 → FED 消息 → 點一則看說明")
@@ -1214,7 +1222,7 @@ def v11(pg, a, start, base):
             break
 
 
-def _3d_show(pg, a, start, base, route, name):
+def _3d_open(pg, a, base, route):
     _to_dg(pg, a, base, route)
     a.click('#dg3d button[data-dm="3d"]', label="切 3D")
     for _ in range(40):
@@ -1222,47 +1230,86 @@ def _3d_show(pg, a, start, base, route, name):
             break
         pg.wait_for_timeout(500)
     pg.wait_for_timeout(2500)
-    start()
-    frame(a, "#prod3d", 2000, label=f"{name} 3D 完整畫面")
+
+
+def spin(a, secs=6.5, turns=1.0):
+    """「自轉」：游標藏起來，等速水平拖曳（OrbitControls：拖畫布高度那麼長＝轉一圈）。"""
     b = a.box("#prod3d canvas", scroll=False)
-    cx, cy = b["x"] + b["width"] / 2, b["y"] + b["height"] / 2
-    a.note("較快旋轉一圈半")
-    a.drag(cx + b["width"] * 0.3, cy, cx - b["width"] * 0.3, cy + 10, 1500)
-    a.wait(500)
-    a.drag(cx - b["width"] * 0.3, cy, cx + b["width"] * 0.2, cy - 30, 1300)
-    a.wait(1000)
-    labels = pg.locator(".mnum:visible" if a.mob else ".lbl3d:visible")
-    for i in range(labels.count()):
-        bb = labels.nth(i).bounding_box()
-        if bb and 90 < bb["y"] < _vh(pg) - 60:
-            a.click_xy(bb["x"] + bb["width"] / 2, bb["y"] + bb["height"] / 2, 700, 450)
-            a.note("點零件 → 看負責公司")
-            break
-    a.wait(1500)
-    if pg.locator("#partCard:visible").count():
-        frame(a, "#partCard", 2800, label="零件說明卡（負責公司）")
-    else:
-        a.wait(1800)
+    if not b:
+        a.note("找不到 3D 畫布")
+        a.wait(secs * 1000)
+        return
+    cx, cy = b["x"] + b["width"] / 2, b["y"] + b["height"] * 0.55
+    L = min(b["height"] * turns, b["width"] * 0.9)
+    a.cursor(False)
+    x0 = cx - L / 2
+    a.pg.mouse.move(x0, cy)
+    a.pg.mouse.down()
+    n = round(secs * FPS)
+    t0 = a.t
+    for i in range(1, n + 1):
+        a.pg.mouse.move(x0 + L * i / n, cy)
+        a.frame()
+    a.pg.mouse.up()
+    a.note(f"自轉（游標隱藏、等速拖曳 {L / b['height'] * 360:.0f}°）{t0:.1f}–{a.t:.1f}s")
+    a.wait(300)
+    a.cursor(True)
 
 
-@shot3("V12a", "md", "3D：AI 伺服器機櫃")
+def _3d_show(pg, a, start, base, route, name):
+    _3d_open(pg, a, base, route)
+    start()
+    frame(a, "#prod3d", 1500, label=f"{name} 3D 完整畫面")
+    spin(a, 6.5, 1.0)
+    t0 = a.t
+    a.wait(1200)
+    a.note(f"完整入框 {t0:.1f}–{a.t:.1f}s：{name} 3D 轉完停住")
+
+
+@shot3("V12a", "md", "3D ①：AI 伺服器機櫃（完整入框自轉）")
 def v12a(pg, a, start, base):
-    _3d_show(pg, a, start, base, "#industry/ai_server", "AI 伺服器")
+    _3d_show(pg, a, start, base, "#industry/ai_server", "AI 伺服器機櫃")
 
 
-@shot3("V12b", "md", "3D：HBM 高頻寬記憶體")
+@shot3("V12b", "md", "3D ②：CoWoS-L 先進封裝（完整入框自轉）")
 def v12b(pg, a, start, base):
+    _3d_show(pg, a, start, base, "#industry/semiconductor/dg/ai_adv_packaging", "CoWoS-L 先進封裝")
+
+
+@shot3("V12c", "md", "3D ③：HBM（完整入框自轉）")
+def v12c(pg, a, start, base):
     _3d_show(pg, a, start, base, "#industry/semiconductor/dg/hbm", "HBM")
 
 
-@shot3("V12c", "md", "3D：液冷散熱")
-def v12c(pg, a, start, base):
+@shot3("V12d", "md", "3D ④：液冷（完整入框自轉）")
+def v12d(pg, a, start, base):
     _3d_show(pg, a, start, base, "#industry/ai_server/dg/liquid_cooling", "液冷")
 
 
-@shot3("V12d", "md", "3D：IC 載板")
-def v12d(pg, a, start, base):
-    _3d_show(pg, a, start, base, "#industry/ai_server/dg/ic_substrate", "IC 載板")
+@shot3("V12e", "md", "3D：AI 伺服器點零件 → 看負責公司與環節")
+def v12e(pg, a, start, base):
+    _3d_open(pg, a, base, "#industry/ai_server")
+    start()
+    frame(a, "#prod3d", 1500, label="AI 伺服器 3D")
+    labels = pg.locator(".mnum:visible" if a.mob else ".lbl3d:visible")
+    picked = 0
+    for i in range(labels.count()):
+        bb = labels.nth(i).bounding_box()
+        if not bb or bb["y"] < 90 or bb["y"] > _vh(pg) - 60:
+            continue
+        picked += 1
+        if picked < 4:      # 跳過最上面幾個（雲端業者／交換器），點中間的運算托盤附近
+            continue
+        a.click_xy(bb["x"] + bb["width"] / 2, bb["y"] + bb["height"] / 2, 800, 500)
+        a.note("點零件 → 零件亮起、列出負責公司")
+        break
+    a.wait(2500)
+    if pg.locator("#partCard:visible").count():
+        frame(a, "#partCard", 3000, label="零件說明卡（負責公司與環節）")
+    else:
+        t0 = a.t
+        a.wait(2500)
+        a.note(f"完整入框 {t0:.1f}–{a.t:.1f}s：零件標籤展開（負責公司）")
 
 
 @shot3("V13", "md", "供應鏈關聯圖：完整入框 → 滑過節點連線變亮")
@@ -1528,6 +1575,37 @@ def v24(pg, a, start, base):
     frame(a, "#v-watch .card", 2500, label="自選清單（三檔）")
 
 
+@shot3("V27", "md", "頂部搜尋：打「散熱」→ 建議 → 進族群；再打「台積電」→ 進個股")
+def v27(pg, a, start, base):
+    goto3(pg, a, base, "#overview")
+    start()
+    a.wait(1200)
+    for word, label in [("散熱", "族群"), ("台積電", "個股")]:
+        if a.mob:
+            tap(a, "#m4Search", "搜尋鈕", 900)
+        else:
+            tap(a, "#q", "搜尋框", 700)
+        inp = pg.evaluate("() => { const e = document.activeElement; return e && e.tagName === 'INPUT'; }")
+        if not inp:
+            a.note("搜尋框沒拿到焦點")
+        t0 = a.t
+        for ch in word:
+            pg.keyboard.type(ch)
+            a.wait(450)
+        a.note(f"打字「{word}」{t0:.1f}–{a.t:.1f}s")
+        a.wait(1500)
+        a.note("下拉建議停 1.5 秒")
+        sug = pg.locator("#sugg > *:visible, .sugg > *:visible, [class*=sugg] li:visible, [class*=sugg] a:visible, [class*=sugg] button:visible")
+        if sug.count():
+            bb = sug.first.bounding_box()
+            a.click_xy(bb["x"] + min(bb["width"] / 2, 80), bb["y"] + bb["height"] / 2, 700, 400)
+            a.note(f"點第一筆建議 → 進{label}頁")
+        else:
+            pg.keyboard.press("Enter")
+            a.note("沒有下拉建議，按 Enter")
+        a.wait(2800)
+
+
 @shot3("V25", "md", "比比導覽：開本頁導覽走四步")
 def v25(pg, a, start, base):
     goto3(pg, a, base, "#overview")
@@ -1606,6 +1684,8 @@ def main() -> int:
                     fake_api(ctx)
                     if args.set != "v3":   # v3：Andy「全部資訊公開」→ 不藏 B 類
                         ctx.add_init_script(HIDE_B_JS)
+                    else:
+                        ctx.add_init_script(HIDE_TIER_JS)
                     ctx.add_init_script(CURSOR_JS % ("true" if dev == "m" else "false"))
                     pg = ctx.new_page()
                     errs = []
