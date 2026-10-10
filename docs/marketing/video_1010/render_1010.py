@@ -246,7 +246,7 @@ def sresize(src, size, box):
     return src.resize(size, Image.BICUBIC, box=(x0, y0, x0 + w, y0 + h))
 
 
-def frosted(img, box, r=24):
+def frosted(img, box, r=24, white=0.45):
     """毛玻璃膠囊：高斯模糊（來源像素半徑 r）＋白 45%，圓角。"""
     x0, y0, x1, y1 = [int(v) for v in box]
     x0, y0 = max(0, x0), max(0, y0)
@@ -258,7 +258,7 @@ def frosted(img, box, r=24):
     small = reg.resize((max(1, reg.width // k), max(1, reg.height // k)), Image.BILINEAR)
     small = small.filter(ImageFilter.GaussianBlur(r / k))
     reg2 = small.resize(reg.size, Image.BILINEAR)
-    reg2 = Image.blend(reg2, Image.new("RGB", reg.size, (246, 249, 252)), 0.45)
+    reg2 = Image.blend(reg2, Image.new("RGB", reg.size, (246, 249, 252)), white)
     m = rounded_mask(reg.width, reg.height, min(18, reg.height // 2))
     img.paste(reg2, (x0, y0), m)
 
@@ -273,12 +273,13 @@ class Rec:
     """
 
     def __init__(self, clip, srcmap, win, blur=(), rect=CARD, radius=36, border=True, enter=None, exit=None,
-                 blur_r=24, tint=None, fade_in=0.0):
+                 blur_r=24, tint=None, fade_in=0.0, blur_white=0.45):
         self.clip, self.srcmap, self.win, self.blur = clip, srcmap, win, list(blur)
         self.rect = rect
         self.radius, self.border = radius, border
         self.enter, self.exit = enter, exit
         self.blur_r = blur_r
+        self.blur_white = blur_white
         self.tint = tint
         self.fade_in = fade_in
         self.box = None
@@ -299,7 +300,7 @@ class Rec:
         for b in self.blur:
             x0, y0, x1, y1, s0, s1 = (list(b) + [-1e9, 1e9])[:6]
             if s0 <= st <= s1:
-                frosted(src, (x0, y0, x1, y1), self.blur_r)
+                frosted(src, (x0, y0, x1, y1), self.blur_r, self.blur_white)
         x0, y0, x1, y1 = self.window(t)
         # 視窗比來源大 → 等比縮回來源大小
         k = min(1.0, src.width / (x1 - x0), src.height / (y1 - y0))
@@ -881,7 +882,7 @@ def laptop_frame(t, size):
 
 # ───────────────────────── 模糊清單（來源座標） ─────────────────────────
 B_S03 = [(505, 2020, 665, 2105, -1, 2.4)]                      # 公司財報分頁 10/28 格內個股代號
-B_S08D = [(410, 346, 732, 1082), (1762, 252, 2088, 1092), (400, 1118, 2110, 1350)]   # 3D 零件標籤公司膠囊、下方說明卡
+B_S08D = [(410, 346, 732, 1082), (1762, 252, 2088, 1092), (400, 1060, 2110, 1350)]   # 3D 零件標籤公司膠囊、下方說明卡
 B_S06D_CHAIN = [(400, 355, 2100, 470, 5.8, 99)]               # 產業鏈頁說明文字內的個股代號
 B_S09D = [(400, 180, 2160, 1350)]                             # 關聯圖節點（公司名＋代號）整片
 B_S10 = [(182, 1072, 832, 1222)]                              # ETF 行事曆格內代號
@@ -1249,7 +1250,7 @@ def shots_main():
                   cues=[(0.5, "blip"), (1.0, "blip"), (1.5, "blip")]))
 
     # 25 關聯圖（遠景＋整片模糊）
-    r25 = Rec("S09_desktop", [(0, 0.6), (2.5, 3.6)], [(0, 1250, 700, 1380), (2.5, 1400, 690, 1380)], blur=B_S09D, blur_r=9,
+    r25 = Rec("S09_desktop", [(0, 0.6), (2.5, 3.6)], [(0, 1250, 700, 1380), (2.5, 1400, 690, 1380)], blur=B_S09D, blur_r=7, blur_white=0.15,
               enter=("wipe_down", 0.3))
     S.append(Shot("25", 2.5, [r25], headline="上下游一張連", hl="一張連", pill_text="④ 產業",
                   sub="連線是供貨關係，滑過去上下游就亮",
@@ -1696,10 +1697,11 @@ def main():
 
 
 def make_cover(path):
-    """封面：第 20 鏡 3D 拆開＋比比星星眼＋一句鉤子。"""
+    """封面：3D 剖析（桌機第二角度，零件為主）＋比比星星眼＋一句鉤子。"""
     s = [x for x in shots_main() if x.sid == "20"][0]
     cv = background().copy()
-    s.layers[0].draw(cv, 1.6, s)
+    rc = Rec("S08e_desktop", [(0, 4.0)], [(0, 1225, 680, 900)], blur=B_S08D)
+    rc.draw(cv, 0, s)
     data_pill(cv, CARD)
     f = font(F_ROUND, 104)
     d = ImageDraw.Draw(cv)
