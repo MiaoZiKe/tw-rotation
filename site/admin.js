@@ -642,6 +642,17 @@ html[data-theme="light"] #v-admin{--pm-blue:#1f4fd8;--pm-blue-2:#163fb4}
 #v-admin .pmdq .pmqx-c.off button[data-qgo]:hover{text-decoration:underline}
 #v-admin .pmdq .pmqx-c.off .pmqx-open{border-left:1px solid var(--line-2);color:var(--cyan,#4cc9f0);font-weight:600}
 #v-admin .pmdq .pmqx-go{height:28px;padding:0 12px;border-radius:8px;border:1px solid var(--amber,#f5b942);background:color-mix(in srgb,var(--amber,#f5b942) 14%,transparent);color:var(--ink);font:inherit;font-size:13px;font-weight:600;cursor:pointer}
+/* 2026-10-10：「單一功能」「不開放」標在分類卡那一列名稱右邊（從小卡搬下來，Andy：「納入下方對應選項內，並標註這屬單一功能」）*/
+#v-admin #pmCats .pmrow .pmtx small.pmtg{display:flex;align-items:center;gap:5px;min-width:0;white-space:nowrap}
+#v-admin #pmCats .pmrow .pmtx small.pmtg .pmds{min-width:0;overflow:hidden;text-overflow:ellipsis}
+#v-admin .pmone{flex:none;display:inline-flex;align-items:center;height:18px;padding:0 7px;border-radius:999px;font-size:11px;font-weight:700;white-space:nowrap;color:var(--amber,#f5b942);background:color-mix(in srgb,var(--amber,#f5b942) 14%,transparent);border:1px solid color-mix(in srgb,var(--amber,#f5b942) 45%,transparent)}
+#v-admin .pmoffx{flex:none;display:inline-flex;align-items:center;height:20px;border-radius:999px;font-size:11px;font-weight:700;white-space:nowrap;border:1px solid color-mix(in srgb,#ff6b7a 55%,transparent);background:color-mix(in srgb,#ff6b7a 12%,transparent);overflow:hidden}
+#v-admin .pmoffx .pmoffl{padding:0 7px;color:#ff6b7a}
+#v-admin .pmoffx .pmqx-open{appearance:none;height:100%;border:0;border-left:1px solid color-mix(in srgb,#ff6b7a 45%,transparent);background:none;color:var(--cyan,#4cc9f0);font:inherit;font-size:11px;font-weight:700;padding:0 8px;cursor:pointer}
+#v-admin .pmoffx .pmqx-open:hover{background:color-mix(in srgb,var(--cyan,#4cc9f0) 14%,transparent)}
+#v-admin .pmdq .pmqx-note{font-size:12.5px;color:var(--ink-2)}
+#v-admin .pmdq .pmqx-note b{font-weight:700;padding:0 6px;border-radius:999px;font-size:11.5px}
+#v-admin .pmdq .pmqx-note .pmoffx{color:#ff6b7a;height:auto}
 #v-admin .pmrow.qflash{animation:pmqflash 2.2s ease-out}
 @keyframes pmqflash{0%,35%{box-shadow:inset 0 0 0 2px var(--amber,#f5b942);background:color-mix(in srgb,var(--amber,#f5b942) 18%,transparent)}100%{box-shadow:none}}
 .subdlg .pmqs-l{margin:8px 0 0;padding-left:20px;font-size:13.5px;line-height:1.7;color:var(--ink-2)}
@@ -2089,11 +2100,10 @@ html[data-theme="light"] #v-admin{--pm-blue:#1f4fd8;--pm-blue-2:#163fb4}
       out += `<div class="pmqx pmqx-lim"><span class="pmqx-h">${dq == null ? '這個範本另外設了單項上限（全站不限，這幾項仍有次數）' : `這個範本另外還有比全站額度更嚴的單項上限（實際取較嚴的）`}：</span>${h.strict.map((x) => chip(x, 'data-qlim')).join('')}
         <button type="button" class="pmqx-go" id="pmDqShare" title="把這些單項上限拿掉，計次一律只看全站每日額度（存檔前會先列出會改哪些項）">單項上限全部改成跟全站共用</button></div>`;
     }
-    if (h.acts.length) {
-      out += `<div class="pmqx pmqx-act"><span class="pmqx-h">另外計次的動作（不吃全站額度，各自每日上限）：</span>${h.acts.map((x) => chip(x, 'data-qact', `<small>${esc(unitT[x.f.act] || '次')}</small>`)).join('')}</div>`;
-    }
-    if (h.off.length) {
-      out += `<div class="pmqx pmqx-off"><span class="pmqx-h">不開放（${h.off.length} 項，訪客看到鎖頭）：</span>${h.off.map((x) => `<span class="pmqx-c off" data-qoff="${esc(x.f.id)}"><button type="button" data-qgo="${esc(x.f.id)}" title="跳到「${esc(x.f.name)}」在分類卡的那一列">${esc(x.f.name)}<small>${x.sw ? '開關關閉' : '每日 0 次'}</small></button><button type="button" class="pmqx-open" data-qopen="${esc(x.f.id)}" aria-label="打開 ${esc(x.f.name)}">打開</button></span>`).join('')}</div>`;
+    /* ★ 2026-10-10 Andy：「幫我將這些 納入下方對應選項內，並標註這屬單一功能」——「另外計次的動作」與「不開放」兩排小膠囊
+       搬進下方分類卡的那一列（catRows 的 rowTags）：動作計次標「單一功能 N/日」、不開放標「不開放＋打開」。小卡只留一行說明指過去。 */
+    if (h.acts.length || h.off.length) {
+      out += `<div class="pmqx pmqx-note">${[h.acts.length ? `另外計次的動作 ${h.acts.length} 項標 <b class="pmone">單一功能</b>（不吃全站額度，各自每日上限）` : '', h.off.length ? `不開放 ${h.off.length} 項標 <b class="pmoffx">不開放</b>（可在那一列直接按「打開」）` : ''].filter(Boolean).join('；')}，都在下方各分類卡的那一列。</div>`;
     }
     return out;
   }
@@ -2361,7 +2371,25 @@ html[data-theme="light"] #v-admin{--pm-blue:#1f4fd8;--pm-blue-2:#163fb4}
     const r = GICON.find((x) => x[0].test(f.name || '')); const k = r ? r[1] : (CHICON[f.chain] || 'box');
     return `<span class="gico" data-ico="${k}">${I.svg(k, 16)}</span>`;
   }
+  /* 2026-10-10：小卡的「另外計次的動作」「不開放」搬到這裡，標在對應那一列名稱右邊（讀已存範本，跟小卡同一份 hiddenOf）*/
+  function rowTagsOf() {
+    if (PS.mode !== 'plan') return null;
+    const p = planOf(PS.planSel); if (!p) return null;
+    const h = hiddenOf(p), act = new Map(), off = new Map();
+    h.acts.forEach((x) => act.set(x.f.id, x.n)); h.off.forEach((x) => off.set(x.f.id, x));
+    return { act, off };
+  }
+  function rowTags(T, f) {
+    if (!T) return '';
+    const unitT = { tab: '切分頁', filter: '篩選', drill: '下鑽', obj: '看' };
+    let o = '';
+    if (T.act.has(f.id) || f.act) o += `<span class="pmone" data-qact="${esc(f.id)}" title="單一功能：不吃全站每日額度，這一項自己算次數${f.act ? '（' + (unitT[f.act] || '次') + '）' : ''}">單一功能${T.act.has(f.id) ? ' ' + T.act.get(f.id) + '/日' : ''}</span>`;
+    const x = T.off.get(f.id);
+    if (x) o += `<span class="pmoffx" data-qoff="${esc(f.id)}"><span class="pmoffl" title="${x.sw ? '開關關閉' : '每日 0 次'}">不開放</span><button type="button" class="pmqx-open" data-qopen="${esc(f.id)}" aria-label="打開 ${esc(f.name)}">打開</button></span>`;
+    return o;
+  }
   function catRows(fs, cur, base, saved, now, ready, compact) {
+    const TG = compact ? null : rowTagsOf();
     const lims = PS.mode === 'plan' ? curLims() : null, sl = PS.mode === 'plan' ? savedLims() : null;
     /* ★ 2026-10-07（Andy：「你忽略的 訪客需要怎麼限制幫我補上」）：範本有全站每日額度（dq）時，計次功能（features.js metered）沒設單項上限的
        徽章寫「共用 N」而不是 ∞ —— 以前訪客頁每格都是 ∞，看不出其實全站一天只有 3 次；不計次的功能寫「不計次」。 */
@@ -2385,7 +2413,7 @@ html[data-theme="light"] #v-admin{--pm-blue:#1f4fd8;--pm-blue-2:#163fb4}
          色條用 inset box-shadow 畫，不加 padding —— 撥開關前後版面一像素都不能動。 */
       const rev = PS.mode === 'member' ? `<span class="pmrevc">${diff ? `<button type="button" class="pmrev" data-rev="${esc(f.id)}" title="還原成範本（範本是${base[f.id] === false ? '關' : base[f.id] === true ? '開' : base[f.id]}）">還原</button>` : ''}</span>` : '';
       const limc = lims ? `<span class="pmlimc">${badge}</span>` : '';
-      return `<div class="pmrow${compact ? ' sm' : ''}${unsaved ? ' dirty' : ''}${diff ? ' tuned' : ''}${lims ? ' wl' : ''}${f.kind === 'limit' ? ' sel' : ''}${PS.mode === 'member' ? ' wr' : ''}" data-f="${esc(f.id)}">${ctl}<div class="pmtx" title="${esc(f.name)}${f.desc ? '：' + esc(f.desc) : ''}"><b>${compact ? grpIcon(f) : ''}<span class="pmnm nm">${esc(f.name)}</span></b>${compact ? '' : `<small>${esc(f.desc)}</small>`}</div>${limc}${rev}${pop}</div>`;
+      return `<div class="pmrow${compact ? ' sm' : ''}${unsaved ? ' dirty' : ''}${diff ? ' tuned' : ''}${lims ? ' wl' : ''}${f.kind === 'limit' ? ' sel' : ''}${PS.mode === 'member' ? ' wr' : ''}" data-f="${esc(f.id)}">${ctl}<div class="pmtx" title="${esc(f.name)}${f.desc ? '：' + esc(f.desc) : ''}"><b>${compact ? grpIcon(f) : ''}<span class="pmnm nm">${esc(f.name)}</span></b>${compact ? '' : (() => { const tg = rowTags(TG, f); return tg ? `<small class="pmtg">${tg}<span class="pmds">${esc(f.desc)}</span></small>` : `<small>${esc(f.desc)}</small>`; })()}</div>${limc}${rev}${pop}</div>`;
     }).join('');
   }
   function paintCats() {
@@ -2471,6 +2499,9 @@ html[data-theme="light"] #v-admin{--pm-blue:#1f4fd8;--pm-blue-2:#163fb4}
       if (PS.limOpen && !e.target.closest('.pmlimpop,button[data-limb]')) { PS.limOpen = null; paintCats(); } }, true); }
     box.onkeydown = (e) => { if (e.target.closest('input[data-lim]') && (e.key === 'Enter' || e.key === 'Escape')) { e.preventDefault(); PS.limOpen = null; paintCats(); } };
     box.onclick = (e) => {
+      /* 2026-10-10：列上的「不開放 → 打開」（從小卡搬下來的）——同一支 openAsk：確認框列出會改什麼才存 */
+      const qo = e.target.closest('button[data-qopen]');
+      if (qo && PS.mode === 'plan') { e.stopPropagation(); const p = planOf(PS.planSel); if (p) openAsk(p, qo.dataset.qopen); return; }
       const gb = e.target.closest('button[data-glim]');
       if (gb) { e.stopPropagation(); openGLim(gb); return; }
       const lb = e.target.closest('button[data-limb]');

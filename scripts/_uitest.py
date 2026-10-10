@@ -58367,13 +58367,17 @@ def t_guest_quota_1009(b, base, code):
     shot(pg.locator("#pmDqCard"), "admin_card.png")
     card = pg.evaluate("""() => { const c = document.getElementById('pmDqCard');
         return { t: c.innerText, lim: [...c.querySelectorAll('[data-qlim]')].map(e => e.dataset.qlim + '=' + e.textContent.trim()),
-                 act: [...c.querySelectorAll('[data-qact]')].map(e => e.dataset.qact), off: [...c.querySelectorAll('[data-qoff]')].map(e => e.dataset.qoff),
+                 act: [...document.querySelectorAll('#pmCats [data-qact]')].map(e => e.dataset.qact), off: [...document.querySelectorAll('#pmCats [data-qoff]')].map(e => e.dataset.qoff),
+                 cardChips: c.querySelectorAll('[data-qact],[data-qoff]').length,
+                 drillTag: ((document.querySelector("#pmCats .pmrow[data-f='flow.sankey.drill'] .pmone") || {}).textContent || ''),
                  btn: !!document.getElementById('pmDqShare') }; }""")
     ok(f"{T}【管理】訪客 dq=1000＋單項上限：小卡列出「比全站額度更嚴的單項上限」族群總覽 3/日、剖析圖 3/日",
        "比全站額度更嚴的單項上限" in card["t"] and any(x.startswith("ind.groups=") and "3/日" in x for x in card["lim"])
        and any(x.startswith("ind.diagram=") and "3/日" in x for x in card["lim"]) and card["btn"], card)
-    ok(f"{T}【管理】小卡列出「不開放」：3D 剖析圖、供應鏈關聯圖", "ind.3d" in card["off"] and "ind.rel" in card["off"] and "不開放" in card["t"], card)
-    ok(f"{T}【管理】動作次數（分流樹下鑽 3/日）另列，不算進「共用」那一顆會清的項目", "flow.sankey.drill" in card["act"] and not any(x.startswith("flow.sankey.drill=") for x in card["lim"]), card)
+    # 2026-10-10 Andy：「幫我將這些 納入下方對應選項內，並標註這屬單一功能」→ 不開放／動作計次從小卡搬到分類卡那一列
+    ok(f"{T}【管理】「不開放」標在分類卡那一列（3D 剖析圖、供應鏈關聯圖），小卡不再列膠囊、只留一行說明", "ind.3d" in card["off"] and "ind.rel" in card["off"] and card["cardChips"] == 0 and "不開放" in card["t"], card)
+    ok(f"{T}【管理】動作次數（分流樹下鑽 3/日）標在那一列「單一功能 3/日」，不算進「共用」那一顆會清的項目",
+       "flow.sankey.drill" in card["act"] and card["drillTag"] == "單一功能 3/日" and not any(x.startswith("flow.sankey.drill=") for x in card["lim"]), card)
 
     # ② 一鍵改成跟全站共用：先跳確認框列出會改的項，按取消不送；再按一次確定才送
     n0 = len([x for x in sent if x[0] == "/v1/admin/plans/put"])
@@ -58402,10 +58406,11 @@ def t_guest_quota_1009(b, base, code):
 
     # ③ 不開放：按名稱 → 捲到分類卡那一列並閃一下；按「打開」→ 確認 → 開關打開、0 次上限拿掉
     pg.evaluate("() => window.scrollTo(0, 0)")
-    pg.click("#pmDqCard [data-qoff='ind.rel'] button[data-qgo]"); pg.wait_for_timeout(700)
-    row = pg.evaluate("() => { const r = document.querySelector(\"#pmCats .pmrow[data-f='ind.rel']\"); const b = r.getBoundingClientRect(); return { fl: r.classList.contains('qflash'), top: b.top, bot: b.bottom, H: innerHeight }; }")
-    ok(f"{T}【管理】不開放「供應鏈關聯圖」按名稱 → 捲到產業地圖卡那一列（在畫面內、閃一下）", row["fl"] and row["top"] >= 0 and row["bot"] <= row["H"], row)
-    pg.click("#pmDqCard [data-qoff='ind.3d'] button[data-qopen]")
+    row = pg.evaluate("() => { const r = document.querySelector(\"#pmCats .pmrow[data-f='ind.rel']\"), t = r && r.querySelector('.pmoffx'), n = r && r.querySelector('.pmnm'); if (!t) return null; const a = t.getBoundingClientRect(), b = n.getBoundingClientRect(), rr = r.getBoundingClientRect(); return { t: t.innerText, right: n.scrollWidth <= n.clientWidth + 1 && a.top >= b.bottom - 2, inRow: a.top >= rr.top && a.bottom <= rr.bottom, h: Math.round(rr.height) }; }")
+    ok(f"{T}【管理】「供應鏈關聯圖」那一列說明行開頭標「不開放｜打開」、名稱完整沒被擠成省略號、沒撐高那一列", bool(row) and "不開放" in row["t"] and "打開" in row["t"] and row["right"] and row["inRow"] and row["h"] <= 52, row)
+    pg.locator("#pmCats .pmrow[data-f='ind.3d']").scroll_into_view_if_needed()
+    shot(pg.locator("#pmCats .pmrow[data-f='ind.3d']").locator("xpath=ancestor::*[contains(@class,'pmcat')][1]"), "admin_row_tags.png")
+    pg.click("#pmCats [data-qoff='ind.3d'] button[data-qopen]")
     dl = wait_until(pg, "() => { const g = document.getElementById('pmQsGo'); return g && g.offsetParent ? (g.closest('.box') || document.body).innerText : null; }", 3000)
     ok(f"{T}【管理】按 3D 剖析圖的「打開」→ 確認框列出 3D 剖析圖要改的內容", bool(dl) and "3D 剖析圖" in dl, dl)
     with pg.expect_response(lambda r: "/v1/admin/plans/put" in r.url, timeout=6000) as ri:
@@ -58414,8 +58419,8 @@ def t_guest_quota_1009(b, base, code):
     ok(f"{T}【管理】打開 3D → 存檔 feats.ind.3d＝true、lims 拿掉 ind.3d、關聯圖仍是 0",
        (b2.get("feats") or {}).get("ind.3d") is True and "ind.3d" not in (b2.get("lims") or {}) and (b2.get("lims") or {}).get("ind.rel") == 0, b2)
     pg.wait_for_timeout(400)
-    ok(f"{T}【管理】打開後小卡的「不開放」不再有 3D、分類卡 3D 開關是開的",
-       pg.evaluate("() => !document.querySelector(\"#pmDqCard [data-qoff='ind.3d']\") && document.querySelector(\"#pmCats input[data-f='ind.3d']\").checked"))
+    ok(f"{T}【管理】打開後 3D 那一列不再標「不開放」、分類卡 3D 開關是開的",
+       pg.evaluate("() => !document.querySelector(\"#pmCats [data-qoff='ind.3d']\") && document.querySelector(\"#pmCats input[data-f='ind.3d']\").checked"))
     c.close()
 
     # ④ 頁首本頁限制（Andy 05:1x：「只顯示在上方就好，不要出現訊息框」）：訪客 dq=1000＋單項 3（已看 3 條）→ 一行字「最少剩 0 次」紅字；
