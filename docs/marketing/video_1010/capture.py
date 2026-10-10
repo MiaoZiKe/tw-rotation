@@ -148,8 +148,8 @@ ANIM_JS = """(dt) => { for (const a of document.getAnimations()) { try {
 
 
 class Recorder:
-    def __init__(self, pg, w, h):
-        self.pg, self.w, self.h = pg, w, h
+    def __init__(self, pg, w, h, dry=False):
+        self.pg, self.w, self.h, self.dry = pg, w, h, dry
         self.cdp = pg.context.new_cdp_session(pg)
         self.dir: Path | None = None
         self.n = 0
@@ -174,6 +174,9 @@ class Recorder:
         self.acc -= ms
         self.pg.clock.run_for(ms)
         self.pg.evaluate(ANIM_JS, ms)
+        if self.dry:   # --log-only：只走時間、記座標，不截圖
+            self.n += 1
+            return
         r = self.cdp.send("Page.captureScreenshot", {"format": "png", "optimizeForSpeed": True,
                                                      "captureBeyondViewport": False})
         (self.dir / f"s{self.n:06d}.png").write_bytes(base64.b64decode(r["data"]))
@@ -187,6 +190,9 @@ class Recorder:
             pass
         if not self.n:
             return {"ok": False, "why": "沒有任何畫格"}
+        if self.dry:
+            shutil.rmtree(self.dir)
+            return {"ok": True, "dry": True, "dur": round(self.n / FPS, 2), "frames": self.n}
         cmd = ["ffmpeg", "-y", "-loglevel", "error", "-framerate", str(FPS), "-i", str(self.dir / "s%06d.png"),
                "-vf", f"scale={self.w}:{self.h}:flags=lanczos,format=yuv420p", "-c:v", "libx264", "-preset", "slow", "-crf", "18",
                "-r", str(FPS), "-movflags", "+faststart", str(out_mp4)]
@@ -207,6 +213,7 @@ class Act:
         self.x, self.y = (195, 600) if mob else (900, 500)
         self.log: list[str] = []
         self.rec: Recorder | None = None
+        self.dsf = 1.0
 
     @property
     def t(self):
@@ -267,6 +274,7 @@ class Act:
     def click_xy(self, x, y, ms=600, pause=400):
         self.move(x, y, ms)
         self.wait(pause)
+        self.note(f"踩下 ({x:.0f},{y:.0f})css → 影片({x * self.dsf:.0f},{y * self.dsf:.0f})px")
         self.pg.evaluate("([x,y]) => window.__vcRipple && window.__vcRipple(x,y)", [x, y])
         self.pg.mouse.down()
         self.frame()
@@ -286,6 +294,7 @@ class Act:
     def drag(self, x0, y0, x1, y1, ms=900, button="left"):
         self.move(x0, y0, 350)
         self.wait(150)
+        self.note(f"拖曳開始 ({x0:.0f},{y0:.0f})css → 影片({x0 * self.dsf:.0f},{y0 * self.dsf:.0f})px")
         self.pg.mouse.down(button=button)
         self.frame()
         n = max(1, round(ms * FPS / 1000))
@@ -294,6 +303,7 @@ class Act:
             self._put(x0 + (x1 - x0) * e, y0 + (y1 - y0) * e)
             self.frame()
         self.pg.mouse.up(button=button)
+        self.note(f"拖曳放開 ({x1:.0f},{y1:.0f})css → 影片({x1 * self.dsf:.0f},{y1 * self.dsf:.0f})px")
         self.frame()
         self.x, self.y = x1, y1
 
@@ -509,8 +519,8 @@ def s06(pg, a, start, base):
         a.wait(1500)
 
 
-def _to_dg(pg, a, base):
-    goto(pg, base, "#industry/ai_server", 4000)
+def _to_dg(pg, a, base, route="#industry/ai_server"):
+    goto(pg, base, route, 4000)
     a.scroll_to_el("#dgTools", 70 if a.mob else 90, 10)
     a.wait(900)
 
@@ -540,8 +550,8 @@ def s07(pg, a, start, base):
     a.wait(600)
 
 
-def _to_3d(pg, a, base):
-    _to_dg(pg, a, base)
+def _to_3d(pg, a, base, route="#industry/ai_server"):
+    _to_dg(pg, a, base, route)
     a.click('#dg3d button[data-dm="3d"]', label="切 3D")
     for _ in range(40):   # 假時鐘下 wait_for_function（rAF 輪詢）會卡住，改由 Python 輪詢
         if pg.evaluate("() => document.querySelectorAll('#prod3d canvas').length > 0"):
@@ -662,6 +672,39 @@ def s08f(pg, a, start, base):
     a.note("向右環繞回來")
     a.drag(cx - b["width"] * 0.25, cy, cx + b["width"] * 0.25, cy, 3000)
     a.wait(800)
+
+
+def _rot_and_pick(pg, a, start, base, route):
+    b = _to_3d(pg, a, base, route)
+    if not b:
+        raise RuntimeError(f"{route} 沒有 3D 畫布")
+    cx, cy = b["x"] + b["width"] / 2, b["y"] + b["height"] / 2
+    start()
+    a.wait(400)
+    a.note("拖曳旋轉")
+    a.drag(cx + b["width"] * 0.25, cy, cx - b["width"] * 0.25, cy + 20, 2600)
+    a.wait(300)
+    a.move(cx, cy, 300)
+    a.wheel(-500, 15, 900)
+    a.wait(300)
+    labels = pg.locator(".mnum:visible" if a.mob else ".lbl3d:visible")
+    for i in range(labels.count()):
+        bb = labels.nth(i).bounding_box()
+        if bb and 70 < bb["y"] < _vh(pg) - 40:
+            a.click_xy(bb["x"] + bb["width"] / 2, bb["y"] + bb["height"] / 2, 500, 400)
+            a.note("點一個零件")
+            break
+    a.wait(2200)
+
+
+@shot("S08g", "md", "3D：HBM 記憶體剖析（旋轉＋點零件）")
+def s08g(pg, a, start, base):
+    _rot_and_pick(pg, a, start, base, "#industry/semiconductor/dg/hbm")
+
+
+@shot("S08h", "md", "3D：液冷散熱剖析（旋轉＋點零件）")
+def s08h(pg, a, start, base):
+    _rot_and_pick(pg, a, start, base, "#industry/ai_server/dg/liquid_cooling")
 
 
 @shot("S09", "md", "供應鏈關聯圖：滑過節點、連線高亮")
@@ -889,6 +932,7 @@ def main() -> int:
     ap.add_argument("--dev", default="md")
     ap.add_argument("--out", default=str(DEF_OUT))
     ap.add_argument("--port", type=int, default=PORT)
+    ap.add_argument("--log-only", action="store_true", help="不截圖，只重跑一次操作記下點擊秒數與座標（已錄好的鏡頭補座標用）")
     args = ap.parse_args()
     _import_shots()
     out = Path(args.out)
@@ -898,7 +942,7 @@ def main() -> int:
     srv = ThreadingHTTPServer(("127.0.0.1", args.port), partial(_Quiet, directory=str(SITE)))
     threading.Thread(target=srv.serve_forever, daemon=True).start()
     base = f"http://127.0.0.1:{args.port}/index.html"
-    logf = out / f"capture_log_{args.port}.json"   # 平行跑多支時各寫各的
+    logf = out / (f"coords_{args.port}.json" if args.log_only else f"capture_log_{args.port}.json")   # 平行跑多支時各寫各的
     log = json.loads(logf.read_text(encoding="utf-8")) if logf.exists() else {}
     from playwright.sync_api import sync_playwright
     try:
@@ -925,7 +969,8 @@ def main() -> int:
                     act.x, act.y = cfg["viewport"]["width"] - 4, cfg["viewport"]["height"] * 0.55   # 起始游標放右緣，不壓到圖表提示框
                     W = int(cfg["viewport"]["width"] * cfg["device_scale_factor"])
                     H = int(cfg["viewport"]["height"] * cfg["device_scale_factor"])
-                    rec = Recorder(pg, W, H)
+                    rec = Recorder(pg, W, H, dry=args.log_only)
+                    act.dsf = cfg["device_scale_factor"]
                     name = f"{sid}_{'mobile' if dev == 'm' else 'desktop'}"
                     try:
                         # 每鏡自己決定何時開錄：fn(pg, act, rec_start) —— 先做準備（換頁、等圖畫完）再開錄
@@ -942,7 +987,7 @@ def main() -> int:
                             raise RuntimeError("這一鏡沒有開錄")
                         mp4 = out / f"{name}.mp4"
                         r = rec.stop(mp4)
-                        if r.get("ok"):
+                        if r.get("ok") and not r.get("dry"):
                             mid = r["dur"] / 2
                             subprocess.run(["ffmpeg", "-y", "-loglevel", "error", "-ss", f"{mid:.2f}", "-i", str(mp4),
                                             "-frames:v", "1", str(out / "thumbs" / f"{name}.png")], check=True)
