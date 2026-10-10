@@ -43,14 +43,16 @@ class Lay:
             self.set_side("L")
         else:
             self.W, self.H = 1080, 1920
-            self.box = (40, 420, 960, 960)               # 推近後的大卡（x, y, w, h）
-            self.small = (50, 420, 503, 1090)            # 第一拍：手機畫面完整
+            # CEO 10-11：手機錄影框放大（高 1480、寬依比例、水平置中），框下方留給泡泡＋比比＋小字
+            self.frame_y, self.frame_h, self.frame_wmax = 212, 1480, 1000
+            self.box = (40, 212, 1000, 1480)             # 推近後的大卡（x, y, w, h）
+            self.small = (50, 212, 693, 1480)            # 第一拍：手機畫面完整（實際寬依素材比例）
             self.head_px, self.head_w = 56, 1000
-            self.pill_xy, self.pill_right = (40, 214), False
-            self.head_xy = (40, 284)
-            self.host_size = 320
-            self.sub_px, self.sub_chars = 44, 14
-            self.foot_y = 1515
+            self.pill_xy, self.pill_right = (40, 56), False
+            self.head_xy = (40, 122)
+            self.host_size = 280
+            self.sub_px, self.sub_chars = 40, 17
+            self.foot_y = 1862
             self.side = "L"
             self.sub_xy, self.sub_align = (0, 0), "L"
 
@@ -64,7 +66,7 @@ class Lay:
 
     @property
     def host(self):
-        return self.host_xy if self.fmt == "web" else (770, 1290)
+        return self.host_xy if self.fmt == "web" else (175, 1862)
 
 
 # ───────────────────────── 錄影層 ─────────────────────────
@@ -132,8 +134,8 @@ class Rec4:
         sw, sh = src.size
         u = self.zoom_u(t)
         if L.fmt == "mobile" and self.mode == "card":
-            k = min(L.small[2] / sw, L.small[3] / sh)
-            small = (L.small[0], L.small[1], sw * k, sh * k)
+            k = min(L.frame_h / sh, L.frame_wmax / sw)
+            small = ((L.W - sw * k) / 2, L.frame_y, sw * k, sh * k)
             rect = tuple(lerp(a, b, u) for a, b in zip(small, L.box))
             w_full = (0, 0, sw, sh)
         else:
@@ -324,10 +326,7 @@ class Op:
         hs = L.host_size * THEME["host_scale"]
         if L.fmt == "web":
             return L.host, hs
-        u = self.rec.zoom_u(t)
-        bx, by, bw, bh = L.box
-        h1 = (bx + 120, by + bh - 6)
-        return (lerp(L.host[0], h1[0], u), lerp(L.host[1], h1[1], u)), lerp(hs, hs * 0.72, u)
+        return L.host, hs
 
     def idle_name(self, t):
         name = self.idle[0][1]
@@ -505,7 +504,7 @@ class Shot4:
 
 
 def footnote4(cv, L):
-    f = font(F_MED, 22 if L.fmt == "web" else 26)
+    f = font(F_MED, 22)
     FN = R.FOOTNOTE
     d = ImageDraw.Draw(cv)
     if L.fmt == "web":
@@ -517,64 +516,29 @@ def footnote4(cv, L):
     else:
         for i, text in enumerate([f"網站實際畫面・資料日 {FOOT_DATE}", FN]):
             tw = text_w(f, text)
-            d.text((L.W / 2 - tw / 2, L.foot_y + i * 34), text, font=f, fill=(90, 90, 90))
+            d.text((L.W / 2 - tw / 2 + 60, L.foot_y + i * 28), text, font=f, fill=(90, 90, 90))
 
 
 def bubble_mobile(cv, L, shot, text, t):
-    """手機版比比台詞泡泡：推近前在右欄、推近後在卡片下方。"""
+    """手機版比比台詞泡泡：固定在框下方、比比右邊（不留空白帶）。"""
     if not text:
         return
-    r = shot.rec
-    u = r.zoom_u(t) if r else 1.0
     a = clamp(t / 0.25, 0, 1)
-    px = 40
-    f = font(B.F_ROUND, px)
-    if u < 0.5:
-        box = (590, 600, 1040, 900)
-        lines = wrap_lines(text, 9)[:3]
-        hp, hs = shot.op.home(shot, t) if shot.op else (L.host, 300)
-        _bubble_col(cv, lines, box, (hp[0] + 10, hp[1] - hs * 0.52), a * (1 - u * 2), f)
-    else:
-        bx, by, bw, bh = L.box
-        box = (40, by + bh + 14, 1040, by + bh + 14 + 104)
-        lines = wrap_lines(text, 22)[:2]
-        hp, hs = shot.op.home(shot, t) if shot.op else (L.host, 300)
-        _bubble_band(cv, lines, box, (hp[0] + 40, by + bh - 6), a * (u * 2 - 1), f)
-
-
-def _bubble_col(cv, lines, box, tail, a, f):
-    if a <= 0.02:
-        return
-    x0, y0, x1, y1 = box
-    h = len(lines) * 62 + 44
-    y1 = tail[1] - 46
+    f = font(B.F_ROUND, 38)
+    lines = wrap_lines(text, 17)[:2]
+    x0, x1 = 330, 1050
+    h = len(lines) * 50 + 30
+    y1 = 1844
     y0 = y1 - h
     lay = Image.new("RGBA", cv.size, (0, 0, 0, 0))
     d = ImageDraw.Draw(lay)
-    cx = clamp(tail[0], x0 + 40, x1 - 40)
-    d.polygon([(cx - 24, y1 - 3), (cx + 24, y1 - 3), tail], fill=WHITE + (255,), outline=R.THEME["ink"] + (255,))
-    d.rounded_rectangle([x0, y0, x1, y1], R.THEME["panel_r"] + 8, fill=WHITE + (255,), outline=R.THEME["ink"] + (255,), width=4)
-    d.polygon([(cx - 21, y1 - 2), (cx + 21, y1 - 2), (lerp(cx, tail[0], 0.85), lerp(y1, tail[1], 0.85))], fill=WHITE + (255,))
+    ink = R.THEME["ink"]
+    d.polygon([(x0 + 4, y0 + h * 0.35), (x0 + 4, y0 + h * 0.75), (x0 - 70, y0 + h * 0.8)], fill=WHITE + (255,), outline=ink + (255,))
+    d.rounded_rectangle([x0, y0, x1, y1], R.THEME["panel_r"] + 4, fill=WHITE + (255,), outline=ink + (255,), width=4)
+    d.polygon([(x0 + 6, y0 + h * 0.38), (x0 + 6, y0 + h * 0.72), (x0 - 62, y0 + h * 0.79)], fill=WHITE + (255,))
     for i, ln in enumerate(lines):
         tw = text_w(f, ln)
-        d.text(((x0 + x1) / 2 - tw / 2, y0 + 20 + i * 62), ln, font=f, fill=R.THEME["ink"])
-    lay.putalpha(lay.getchannel("A").point(lambda v: int(v * clamp(a, 0, 1))))
-    cv.paste(lay, (0, 0), lay)
-
-
-def _bubble_band(cv, lines, box, tail, a, f):
-    if a <= 0.02:
-        return
-    x0, y0, x1, y1 = box
-    lay = Image.new("RGBA", cv.size, (0, 0, 0, 0))
-    d = ImageDraw.Draw(lay)
-    d.polygon([(tail[0] - 24, y0 + 3), (tail[0] + 24, y0 + 3), (tail[0] - 6, y0 - 22)], fill=WHITE + (255,), outline=R.THEME["ink"] + (255,))
-    d.rounded_rectangle([x0, y0, x1, y1], R.THEME["panel_r"] + 8, fill=WHITE + (255,), outline=R.THEME["ink"] + (255,), width=4)
-    d.polygon([(tail[0] - 21, y0 + 2), (tail[0] + 21, y0 + 2), (tail[0] - 6, y0 - 18)], fill=WHITE + (255,))
-    for i, ln in enumerate(lines):
-        tw = text_w(f, ln)
-        yy = y0 + (y1 - y0) / 2 - (len(lines) * 56) / 2 + i * 56 - 4
-        d.text(((x0 + x1) / 2 - tw / 2, yy), ln, font=f, fill=R.THEME["ink"])
+        d.text(((x0 + x1) / 2 - tw / 2, y0 + 14 + i * 50), ln, font=f, fill=ink)
     lay.putalpha(lay.getchannel("A").point(lambda v: int(v * clamp(a, 0, 1))))
     cv.paste(lay, (0, 0), lay)
 

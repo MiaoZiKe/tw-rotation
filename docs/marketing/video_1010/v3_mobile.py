@@ -58,7 +58,7 @@ def build():
     S.append(feat("09", 3.6, "V04_mobile_v3b", rt(3.5, 3.6), "按播放看輪動", "播放", "我踩播放，20 天怎麼輪一路播", "資金流向",
                   focus=F(wheel, 1.4, frame=False, t_zoom=1.4), idle=[(0, "face_shock"), (1.5, "coins")]))
     S.append(feat("10", 4.2, "V06_mobile_v3b", rt(1.3, 4.2), "大盤的錢分去哪", "分去哪", "從大盤分到產業鏈、族群、代表股", "資金流向",
-                  focus=F((40, 700, 1130, 2480), 1.0, t_zoom=1.7), idle="spotlight"))
+                  focus=F((40, 700, 1130, 2480), 1.6, t_zoom=2.4), idle="spotlight"))
     S.append(feat("11", 3.0, "V07_mobile", hold(3.3, 0.6, 3.7, 3.0), "法人資金在哪", "法人", "法人的錢集中在哪，也整理好了", "資金流向",
                   focus=F((40, 900, 1130, 2300), 1.7, zoom=False), idle="magnifier"))
     S.append(feat("12", 3.6, "V08_mobile", hold(3.1, 1.0, 11.9, 3.6), "④ 哪裡熱一眼看", "一眼看", "越大成交越多，紅漲綠跌；點下去進產業鏈", "熱力圖",
@@ -86,9 +86,9 @@ def build():
     S.append(feat("23", 3.0, "V19_mobile_v3b", hold(3.1, 0.6, 3.1, 3.0), "⑩ ETF 配息日曆", "配息日曆", "哪天除息、配多少，月曆寫好", "ETF",
                   focus=F((0, 560, 1170, 1500), 0.6, zoom=False), idle="piggy"))
     S.append(feat("24", 3.6, "V20_mobile", hold(2.2, 0.6, 2.2, 3.6), "各類前五名", "前五名", "每一類最熱門、報酬、殖利率前五", "ETF",
-                  focus=F((30, 640, 1140, 1900), 2.1, zoom=False), idle="trophy"))
+                  focus=F((30, 640, 1140, 1900), 1.4, t_zoom=2.2), idle="trophy"))
     S.append(feat("25", 3.0, "V21_mobile_v3b", hold(3.1, 0.5, 5.4, 3.0), "報酬放一起比", "一起比", "含息不含息，分開算給你看", "ETF",
-                  focus=F((20, 560, 1150, 1850), 0.3, zoom=False), idle="face_think"))
+                  focus=F((20, 560, 1150, 1850), 1.2, t_zoom=1.9), idle="face_think"))
     S.append(feat("26", 4.2, "V22_mobile", [(0, 0.8), (1.0, 2.2), (1.0001, 9.6), (4.2, 12.8)], "現金流＋複利", "複利", "每月配息排好，複利也算給你看", "ETF",
                   focus=F((20, 1250, 1150, 2500), 3.0, zoom=False), idle=[(0, "calc"), (2.8, "growth")]))
     S.append(feat("27", 3.0, "V24_mobile", [(0, 2.0), (0.9, 3.9), (1.8, 5.6), (3.0, 7.2)], "⑪ 存自己的股", "存自己", "想追蹤的股票存起來，打開就看到", "自選清單",

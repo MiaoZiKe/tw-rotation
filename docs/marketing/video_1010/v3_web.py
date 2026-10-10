@@ -145,9 +145,9 @@ def reveal_shot(sid, dur, clip, st, mobile=False):
         from v3_core import hide_mascot
         s2 = src.copy(); hide_mascot(s2)
         if mobile:
-            k = min(L.small[2] / s2.width, L.small[3] / s2.height)
+            k = min(L.frame_h / s2.height, L.frame_wmax / s2.width)
             w, h = int(s2.width * k), int(s2.height * k)
-            x, y = int((L.W - w) / 2), 330
+            x, y = int((L.W - w) / 2), L.frame_y
         else:
             w, h, x, y = L.W, L.H, 0, 0
         im = s2.resize((w, h), Image.LANCZOS).convert("RGBA")
