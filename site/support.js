@@ -243,7 +243,8 @@ html.fab-off .supfab{display:none!important}`);
     if (fab) return;
     fab = document.createElement('button'); fab.type = 'button'; fab.id = 'supFab'; fab.className = 'supfab';
     fab.setAttribute('aria-haspopup', 'dialog'); fab.setAttribute('aria-expanded', 'false');
-    fab.innerHTML = MARK + '<span class="supsr">客服</span>'; fab.classList.add('supgifonly'); fab.setAttribute('aria-label', '客服'); fab.title = '客服';
+    /* 2026-10-10 Andy（動畫聊天室）：吉祥物叫「比比」，問題解答小助手 —— 讀屏／滑鼠提示帶名字，宣傳影片同名 */
+    fab.innerHTML = MARK + '<span class="supsr">客服</span>'; fab.classList.add('supgifonly'); fab.setAttribute('aria-label', '客服：比比・問題小助手'); fab.title = '比比・問題小助手（客服）';
     document.body.appendChild(fab);
     const p = document.createElement('div'); p.id = 'supPanel'; p.className = 'suppanel'; p.hidden = true; p.setAttribute('role', 'dialog'); p.setAttribute('aria-label', '客服與意見反饋');
     document.body.appendChild(p);
@@ -454,7 +455,7 @@ html.fab-off .supfab{display:none!important}`);
   window.TwSupFab = { applyPos, checkAway, placePanel, observing: () => !!awayMo };
   function paint() {
     const p = document.getElementById('supPanel'); if (!p) return;
-    p.innerHTML = `<div class="sph"><b>需要幫忙嗎？</b><button type="button" id="supClose" aria-label="關閉">×</button></div>
+    p.innerHTML = `<div class="sph"><b>比比・問題小助手<small style="font-weight:400;color:var(--ink-2);font-size:12.5px;margin-left:8px">需要幫忙嗎？</small></b><button type="button" id="supClose" aria-label="關閉">×</button></div>
       <div class="spai"><b>AI 客服即將推出</b>　目前請先看常見問題，或留言給我們（真人回覆）。</div>
       <div class="sptabs" role="tablist">${[['faq', '常見問題'], ['fb', '意見反饋'], ['mail', '寄信']].map(([k, n]) => `<button type="button" role="tab" data-t="${k}" class="${tab === k ? 'on' : ''}" aria-selected="${tab === k}">${n}</button>`).join('')}</div>
       <div class="spbody" id="supBody">${body()}</div>`;
