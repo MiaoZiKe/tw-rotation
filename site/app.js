@@ -1492,7 +1492,7 @@
       if (!box) {
         box = document.createElement('div'); box.className = 'logobox'; box.id = 'logoBox'; box.hidden = true;
         box.setAttribute('role', 'dialog'); box.setAttribute('aria-label', '哩股哩股 LOGO');
-        box.innerHTML = '<img src="brand/logo-1024.webp?v=1009" alt="哩股哩股 LOGO"><button type="button" aria-label="關閉">✕</button>';
+        box.innerHTML = '<img src="brand/logo-1024.webp?v=1011b" alt="哩股哩股 LOGO"><button type="button" aria-label="關閉">✕</button>';
         box.addEventListener('click', close);
         document.body.appendChild(box);
       }
