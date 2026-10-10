@@ -202,11 +202,9 @@ def headline(cv, L, text, t, hl=None):
     x0, y0 = L.head_xy
     if getattr(L, "full_bleed", False):
         wmax = max(text_w(f, ln) for ln in lines)
-        if L.side == "R":
-            x0 = L.W - 52 - wmax
         a_ = clamp(t / 0.2, 0, 1)
         if a_ > 0:
-            float_panel(cv, (x0 - 26, y0 - 10, x0 + wmax + 26, y0 + len(lines) * px * 1.22 + 18), int(214 * a_))
+            float_panel(cv, (x0 - 16, y0 - 4, x0 + wmax + 16, y0 + px * 1.22 + 2), int(170 * a_), 14)
     d = ImageDraw.Draw(cv)
     k = 0
     hl_span = (text.index(hl), text.index(hl) + len(hl)) if hl and hl in text else None
@@ -247,11 +245,11 @@ def subtitle(cv, L, text, t):
             x = x - wmax
         nl = len(lines)
         y = y - (nl - 1) * L.sub_px * 1.32
-        d.rounded_rectangle([x - 36, 0, x + wmax + 24, nl * L.sub_px * 1.32 + 22], THEME["panel_r"], fill=THEME["panel_fill"] + (226,), outline=THEME["panel_outline"], width=2)
+        d.rounded_rectangle([x - 22, 0, x + wmax + 22, nl * L.sub_px * 1.3 + 12], min(14, THEME["panel_r"]), fill=THEME["panel_fill"] + (150,), outline=THEME["panel_outline"], width=1)
         if THEME["name"] == "pro":
-            d.rectangle([x - 36, 6, x - 30, nl * L.sub_px * 1.32 + 16], fill=DEEP)
+            d.rectangle([x - 22, 4, x - 18, nl * L.sub_px * 1.3 + 8], fill=DEEP)
         for i, ln in enumerate(lines):
-            d.text((x, 8 + i * L.sub_px * 1.32), ln, font=f, fill=THEME["ink"])
+            d.text((x, 4 + i * L.sub_px * 1.3), ln, font=f, fill=THEME["ink"])
     else:
         d.polygon([(x - 26, 18), (x - 2, 4), (x - 8, 36)], fill=INK + (255,))
         for i, ln in enumerate(lines[:2]):

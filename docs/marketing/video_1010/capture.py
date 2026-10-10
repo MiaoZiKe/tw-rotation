@@ -951,10 +951,12 @@ DEVS3 = {
     "d": dict(viewport={"width": 1600, "height": 900}, device_scale_factor=2),
 }
 SHOTS3: dict = {}
+# v3b：手機版這些鏡頭的卡片比 844 高 → 加高 viewport（寬仍 390、DPR 3，版面仍是手機版）讓整張卡片入框；值＝卡片高＋頂欄＋餘裕
+V3B_H = {"V01": 1250, "V03": 1420, "V04": 1300, "V05": 1650, "V06": 1650, "V10": 1000, "V13": 1150, "V19": 1320, "V21": 1250}
 GAP = 1200
 # Andy：影片不提會員層級與使用次數 → 錄影瀏覽器裡把頁首會員徽章、額度圓環「剩 N 次」、「本頁 N 項限制」、額度備註藏起來（不改 site/）
 HIDE_TIER_JS = r"""
-(() => { const css = 'html body #acctBtn,html.m4 body .m4tools #acctBtn,html body .abtn.ame,html body #twQRing,html body .twqr,html body #twQPage,html body .twqp,html body .qnote,html body .qnote-row,html body .qlkov{display:none!important}';
+(() => { const css = 'html body #acctBtn,html.m4 body .m4tools #acctBtn,html body .abtn.ame,html body #twQRing,html body .twqr,html body #twQPage,html body .twqp,html body .qnote,html body .qnote-row,html body .qlkov{display:none!important} #supPanel input[type=email],#supPanel #fbMail{color:transparent!important;-webkit-text-fill-color:transparent!important;caret-color:transparent!important}';
   const go = () => { const st = document.createElement('style'); st.id = '__vhide'; st.textContent = css; document.head.appendChild(st); };
   document.readyState === 'loading' ? document.addEventListener('DOMContentLoaded', go) : go(); })();
 """   # 動作之間的間隔（毫秒）
@@ -1253,16 +1255,18 @@ def spin(a, secs=5.5, turns=1.0, hide=False):
         return
     cx, cy = b["x"] + b["width"] / 2, b["y"] + b["height"] * 0.55
     L = min(b["height"] * turns, b["width"] * 0.9)
-    if a.mob:   # 手機：左右兩排編號鈕會吃掉拖曳 → 只在中間 64% 拖，分兩段接成一圈
+    if a.mob:   # 手機：左右兩排編號鈕會吃掉拖曳 → 只在中間 64% 拖；OrbitControls 一圈＝拖「畫布高度」那麼長，所以依高度算要拖幾次
         L1 = b["width"] * 0.64
         x0 = b["x"] + b["width"] * 0.18
+        k_drag = max(2, math.ceil(b["height"] * turns / L1 + 0.15))
+        deg = k_drag * L1 / b["height"] * 360
         t0 = a.t
-        for _ in range(max(1, round(b["height"] * turns / L1))):
-            a.move(x0, cy, 400)
-            a.wait(150)
+        for _ in range(k_drag):
+            a.move(x0, cy, 350)
+            a.wait(100)
             a.note(f"拖曳開始 ({x0:.0f},{cy:.0f})css → 影片({x0 * a.dsf:.0f},{cy * a.dsf:.0f})px")
             a.pg.mouse.down()
-            n = round(secs / 2 * FPS)
+            n = round(secs / k_drag * FPS)
             for i in range(1, n + 1):
                 k = i / n
                 e = k if 0.08 < k < 0.92 else (0.5 - 0.5 * math.cos(math.pi * k))
@@ -1271,15 +1275,9 @@ def spin(a, secs=5.5, turns=1.0, hide=False):
             a.pg.mouse.up()
             a.x, a.y = x0 + L1, cy
             a.note(f"拖曳放開 ({x0 + L1:.0f},{cy:.0f})css → 影片({(x0 + L1) * a.dsf:.0f},{cy * a.dsf:.0f})px")
-        a.note(f"手機分段拖曳旋轉 {t0:.1f}–{a.t:.1f}s")
+        a.note(f"手機分 {k_drag} 段拖曳，合計約轉 {deg:.0f}°，{t0:.1f}–{a.t:.1f}s")
         a.wait(300)
         return
-    x0 = cx - L / 2
-    a.move(x0, cy, 600)
-    a.wait(250)
-    if hide:
-        a.cursor(False)
-    a.note(f"拖曳開始 ({x0:.0f},{cy:.0f})css → 影片({x0 * a.dsf:.0f},{cy * a.dsf:.0f})px")
     if False:   # （保留）CDP 觸控拖曳；實測手機頁滑鼠拖曳就轉得動，問題是起點落在左排編號鈕上：用 CDP 觸控事件拖（滑鼠拖在 has_touch 頁面上轉不動）
         cdp = a.rec.cdp
         tp = lambda t, x: cdp.send("Input.dispatchTouchEvent", {"type": t, "touchPoints": [] if t == "touchEnd" else [{"x": x, "y": cy}]})
@@ -1372,6 +1370,20 @@ def v12e(pg, a, start, base):
             continue
         break
     a.wait(2500)
+    if not a.mob and 'i' in dir():   # 逐字抄下被點到的零件卡（剪輯要用）：標籤本體＋展開內容＋公司膠囊（含代號）＋說明卡
+        try:
+            txt = pg.evaluate("""(i) => { const L = [...document.querySelectorAll('.lbl3d')].filter(e => e.offsetParent)[i]; if (!L) return null;
+              const o = { 標籤全文: L.innerText.trim(), 公司膠囊: [...L.querySelectorAll('.chip3d')].map(c => c.textContent.trim() + '（' + (c.title || '') + '）'),
+                class: L.className };
+              const pc = document.querySelector('#partCard'); if (pc && pc.offsetParent) o.說明卡 = pc.innerText.trim();
+              const nt = document.querySelector('#dg3dNote'); if (nt && nt.offsetParent) o.圖下備註 = nt.innerText.trim();
+              return o; }""", i)
+            if txt:
+                one = " ⏎ ".join(f"{k}：{v if isinstance(v, str) else '、'.join(v)}".replace("\n", " ⏎ ") for k, v in txt.items())
+                a.note("零件卡逐字（點到的那一個）→ " + one.replace("\n", " ⏎ "))
+                (DEF_OUT.parent / "raw_v3" / "part_card_ai_server_desktop.json").write_text(json.dumps(txt, ensure_ascii=False, indent=1), encoding="utf-8")
+        except Exception as exc:  # noqa: BLE001
+            a.note(f"零件卡文字抓取失敗：{exc}")
     if pg.locator("#partCard:visible").count():
         frame(a, "#partCard", 3000, label="零件說明卡（負責公司與環節）")
     else:
@@ -1721,15 +1733,20 @@ def main() -> int:
     ap.add_argument("--shots", default="")
     ap.add_argument("--dev", default="md")
     ap.add_argument("--out", default="")
-    ap.add_argument("--set", default="v2", choices=["v2", "v3"], help="v3＝第 3 版素材（桌機 1600×900@2、不藏 B 類、完整入框）")
+    ap.add_argument("--set", default="v2", choices=["v2", "v3", "v3b"], help="v3＝第 3 版素材（桌機 1600×900@2、不藏 B 類、完整入框）")
     ap.add_argument("--port", type=int, default=PORT)
     ap.add_argument("--log-only", action="store_true", help="不截圖，只重跑一次操作記下點擊秒數與座標（已錄好的鏡頭補座標用）")
     args = ap.parse_args()
     _import_shots()
-    reg = SHOTS3 if args.set == "v3" else SHOTS
-    devs_cfg = DEVS3 if args.set == "v3" else DEVS
+    v3 = args.set.startswith("v3")
+    reg = SHOTS3 if v3 else SHOTS
+    devs_cfg = DEVS3 if v3 else DEVS
+    if args.set == "v3b":   # 手機版「卡片比畫面高」的鏡頭：用加高的 viewport 重錄，整張卡片完整入框
+        if args.shots.strip() == "":
+            args.shots = ",".join(V3B_H)
+        args.dev = "m"
     if not args.out:
-        args.out = str(DEF_OUT.parent / "raw_v3") if args.set == "v3" else str(DEF_OUT)
+        args.out = str(DEF_OUT.parent / "raw_v3") if v3 else str(DEF_OUT)
     out = Path(args.out)
     (out / "thumbs").mkdir(parents=True, exist_ok=True)
     want = [s.strip() for s in args.shots.split(",") if s.strip()] or list(reg)
@@ -1747,17 +1764,19 @@ def main() -> int:
             for sid in want:
                 spec = reg[sid]
                 for dev in [d for d in args.dev if d in spec["devs"]]:
-                    cfg = devs_cfg[dev]
+                    cfg = dict(devs_cfg[dev])
+                    if args.set == "v3b":
+                        cfg["viewport"] = {"width": 390, "height": V3B_H[sid]}
                     ctx = b.new_context(**cfg, locale="zh-TW", timezone_id="Asia/Taipei")
                     import datetime as _dt
                     ctx.clock.install(time=_dt.datetime.now(tz=_dt.timezone.utc))
                     ctx.add_init_script(PRESET)
                     fake_api(ctx)
-                    if args.set != "v3":   # v3：Andy「全部資訊公開」→ 不藏 B 類
+                    if not v3:   # v3：Andy「全部資訊公開」→ 不藏 B 類
                         ctx.add_init_script(HIDE_B_JS)
                     else:
                         ctx.add_init_script(HIDE_TIER_JS)
-                    if args.set != "v3":   # v3：剪輯在後製畫比比的游標與漣漪 → 錄影不畫游標、不畫漣漪（座標照記）
+                    if not v3:   # v3：剪輯在後製畫比比的游標與漣漪 → 錄影不畫游標、不畫漣漪（座標照記）
                         ctx.add_init_script(CURSOR_JS % ("true" if dev == "m" else "false"))
                     pg = ctx.new_page()
                     errs = []
@@ -1770,8 +1789,8 @@ def main() -> int:
                     H = int(cfg["viewport"]["height"] * cfg["device_scale_factor"])
                     rec = Recorder(pg, W, H, dry=args.log_only)
                     act.dsf = cfg["device_scale_factor"]
-                    act.log_moves = args.set == "v3"   # v3 沒有錄進游標 → 游標路徑寫進 shots.md 給後製畫比比
-                    name = f"{sid}_{'mobile' if dev == 'm' else 'desktop'}"
+                    act.log_moves = v3   # v3 沒有錄進游標 → 游標路徑寫進 shots.md 給後製畫比比
+                    name = f"{sid}_{'mobile' if dev == 'm' else 'desktop'}" + ("_v3b" if args.set == "v3b" else "")
                     try:
                         # 每鏡自己決定何時開錄：fn(pg, act, rec_start) —— 先做準備（換頁、等圖畫完）再開錄
                         state = {}

@@ -441,7 +441,7 @@ class Still:
 @lru_cache(maxsize=1)
 def bibi_index():
     idx = {}
-    for f in ["index.json", "index_b.json", "index_c.json", "index_d.json"]:
+    for f in ["index.json", "index_b.json", "index_c.json", "index_d.json", "index_e.json", "index_f.json"]:
         p = BIBI / f
         if p.exists():
             d = json.loads(p.read_text())
