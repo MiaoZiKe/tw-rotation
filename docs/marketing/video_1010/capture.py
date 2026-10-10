@@ -411,8 +411,9 @@ def s02(pg, a, start, base):
                     a.move(b["x"] + 80, b["y"] + b["height"] / 2, 160)
                     a.wait(90)
         a.wait(600)
-        a.click("#m4Burger", label="收起抽屜") if pg.locator("#m4Burger").is_visible() else None
-        a.wait(600)
+        a.note("Esc 收起抽屜")
+        pg.keyboard.press("Escape")
+        a.wait(700)
     else:
         start()
         a.wait(400)
@@ -469,11 +470,8 @@ def s04(pg, a, start, base):
     a.wait(600)
     btn = "#rotBack .pb.play, #rotBack button.play, #rotBack button:has-text('▶')"
     a.click(btn, label="▶ 播放")
-    if a.mob:
-        a.wait(300)
-        a.move(330, 760, 600)
-    else:
-        a.move(1180, 600, 900)
+    a.move(3, 440, 700)          # 游標移到左緣，不壓圖、不觸發提示框
+    a.cursor(False)
     a.wait(9500)
 
 
@@ -485,10 +483,8 @@ def s05(pg, a, start, base):
     start()
     a.wait(600)
     a.click("#sankeyDays .pb.play, #sankeyDays button:has-text('▶')", label="▶ 播放")
-    if a.mob:
-        a.move(330, 760, 600)
-    else:
-        a.move(1180, 640, 900)
+    a.move(3, 440, 700)
+    a.cursor(False)
     a.wait(8500)
 
 
@@ -508,7 +504,8 @@ def s06(pg, a, start, base):
         a.note("點左上第一大方塊（晶圓代工）")
         a.click_xy(b["x"] + b["width"] * 0.12, b["y"] + b["height"] * 0.22, 500)
         a.wait(3500)
-        a.scroll(by=320, ms=1600)
+        if not a.mob:
+            a.scroll(by=320, ms=1600)
         a.wait(1500)
 
 
@@ -531,10 +528,14 @@ def s07(pg, a, start, base):
         bb = segs.nth(i).bounding_box()
         if not bb or bb["width"] < 8 or bb["y"] < 60 or bb["y"] > _vh(pg) - 40:
             continue
-        a.move(bb["x"] + bb["width"] / 2, bb["y"] + bb["height"] / 2, 380)
-        a.wait(550)
+        if a.mob:   # 手機沒有滑過，改成點環節（會跳說明卡）
+            a.click_xy(bb["x"] + bb["width"] / 2, bb["y"] + bb["height"] / 2, 380, 200)
+            a.wait(1100)
+        else:
+            a.move(bb["x"] + bb["width"] / 2, bb["y"] + bb["height"] / 2, 380)
+            a.wait(550)
         seen += 1
-        if seen >= 8:
+        if seen >= (4 if a.mob else 8):
             break
     a.wait(600)
 
@@ -862,7 +863,7 @@ def main() -> int:
     try:
         with sync_playwright() as p:
             b = p.chromium.launch(executable_path="/opt/pw-browsers/chromium",
-                                  args=["--use-gl=angle", "--use-angle=swiftshader", "--enable-unsafe-swiftshader", "--ignore-gpu-blocklist"])
+                                  args=["--disable-gpu", "--enable-unsafe-swiftshader"])  # CPU 點陣化：比 SwiftShader 合成快 10 倍以上；WebGL 仍走 SwiftShader
             for sid in want:
                 spec = SHOTS[sid]
                 for dev in [d for d in args.dev if d in spec["devs"]]:
