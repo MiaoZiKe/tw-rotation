@@ -1232,8 +1232,9 @@ def _3d_open(pg, a, base, route):
     pg.wait_for_timeout(2500)
 
 
-def spin(a, secs=6.5, turns=1.0):
-    """「自轉」：游標藏起來，等速水平拖曳（OrbitControls：拖畫布高度那麼長＝轉一圈）。"""
+def spin(a, secs=5.5, turns=1.0, hide=False):
+    """滑鼠拖曳旋轉一圈：等速水平拖曳（OrbitControls：拖畫布高度那麼長＝轉一圈）。
+    分鏡定稿：比比跟著拖曳方向推 → 游標要看得到（hide=False）。"""
     b = a.box("#prod3d canvas", scroll=False)
     if not b:
         a.note("找不到 3D 畫布")
@@ -1241,17 +1242,24 @@ def spin(a, secs=6.5, turns=1.0):
         return
     cx, cy = b["x"] + b["width"] / 2, b["y"] + b["height"] * 0.55
     L = min(b["height"] * turns, b["width"] * 0.9)
-    a.cursor(False)
     x0 = cx - L / 2
-    a.pg.mouse.move(x0, cy)
+    a.move(x0, cy, 600)
+    a.wait(250)
+    if hide:
+        a.cursor(False)
+    a.note(f"拖曳開始 ({x0:.0f},{cy:.0f})css → 影片({x0 * a.dsf:.0f},{cy * a.dsf:.0f})px")
     a.pg.mouse.down()
     n = round(secs * FPS)
     t0 = a.t
     for i in range(1, n + 1):
-        a.pg.mouse.move(x0 + L * i / n, cy)
+        k = i / n
+        e = k if 0.08 < k < 0.92 else (0.5 - 0.5 * math.cos(math.pi * k))   # 頭尾稍微緩一下，中間等速
+        xx = x0 + L * e
+        a._put(xx, cy)
         a.frame()
     a.pg.mouse.up()
-    a.note(f"自轉（游標隱藏、等速拖曳 {L / b['height'] * 360:.0f}°）{t0:.1f}–{a.t:.1f}s")
+    a.x, a.y = x0 + L, cy
+    a.note(f"拖曳放開 ({x0 + L:.0f},{cy:.0f})css → 影片({(x0 + L) * a.dsf:.0f},{cy * a.dsf:.0f})px；左→右拖曳旋轉約 {L / b['height'] * 360:.0f}°，{t0:.1f}–{a.t:.1f}s")
     a.wait(300)
     a.cursor(True)
 
@@ -1260,7 +1268,7 @@ def _3d_show(pg, a, start, base, route, name):
     _3d_open(pg, a, base, route)
     start()
     frame(a, "#prod3d", 1500, label=f"{name} 3D 完整畫面")
-    spin(a, 6.5, 1.0)
+    spin(a, 5.5, 1.0)
     t0 = a.t
     a.wait(1200)
     a.note(f"完整入框 {t0:.1f}–{a.t:.1f}s：{name} 3D 轉完停住")
@@ -1575,35 +1583,34 @@ def v24(pg, a, start, base):
     frame(a, "#v-watch .card", 2500, label="自選清單（三檔）")
 
 
-@shot3("V27", "md", "頂部搜尋：打「散熱」→ 建議 → 進族群；再打「台積電」→ 進個股")
+@shot3("V27", "md", "頂部搜尋：點搜尋框（熱門清單）→ 慢打「台積電」→ 下拉建議 → 進個股；再打代號「2454」")
 def v27(pg, a, start, base):
     goto3(pg, a, base, "#overview")
     start()
     a.wait(1200)
-    for word, label in [("散熱", "族群"), ("台積電", "個股")]:
+    for word in ["台積電", "2454"]:
         if a.mob:
-            tap(a, "#m4Search", "搜尋鈕", 900)
-        else:
-            tap(a, "#q", "搜尋框", 700)
-        inp = pg.evaluate("() => { const e = document.activeElement; return e && e.tagName === 'INPUT'; }")
-        if not inp:
-            a.note("搜尋框沒拿到焦點")
+            tap(a, "#m4Search", "搜尋鈕", 300)
+        tap(a, "#q", "搜尋框", 300)
+        pg.evaluate("() => { const q = document.querySelector('#q'); if (q) { q.value = ''; q.dispatchEvent(new Event('input', {bubbles: true})); q.focus(); } }")
+        a.wait(1300)
+        a.note("搜尋框打開（熱門清單）")
         t0 = a.t
         for ch in word:
             pg.keyboard.type(ch)
-            a.wait(450)
+            a.wait(500)
         a.note(f"打字「{word}」{t0:.1f}–{a.t:.1f}s")
         a.wait(1500)
         a.note("下拉建議停 1.5 秒")
-        sug = pg.locator("#sugg > *:visible, .sugg > *:visible, [class*=sugg] li:visible, [class*=sugg] a:visible, [class*=sugg] button:visible")
+        sug = pg.locator("#sugg :is(a,button,li,[role=option]):visible")
         if sug.count():
             bb = sug.first.bounding_box()
-            a.click_xy(bb["x"] + min(bb["width"] / 2, 80), bb["y"] + bb["height"] / 2, 700, 400)
-            a.note(f"點第一筆建議 → 進{label}頁")
+            a.click_xy(bb["x"] + min(bb["width"] / 2, 90), bb["y"] + bb["height"] / 2, 700, 400)
+            a.note("點第一筆建議 → 進個股頁")
         else:
             pg.keyboard.press("Enter")
             a.note("沒有下拉建議，按 Enter")
-        a.wait(2800)
+        a.wait(3000)
 
 
 @shot3("V25", "md", "比比導覽：開本頁導覽走四步")
