@@ -658,6 +658,395 @@ def act_sign(poses, text=None, font=None):
     return frames
 
 
+# ================================================================== A 批情境（2026-10-10 Andy：「影片中新增多點 GIF 圖，越豐富、情境越多越好」）
+# 舉牌退件的教訓：道具一律懸空／放在身前／貼著身體前方，不畫從身體長出來的長手；手只用小肉掌點綴。
+GOLD, GOLD_DK, GOLD_LT = "#F9C23C", "#E09A1E", "#FFE08A"
+BLUE, PINK, MINT, RED, CYAN = "#2AA6F5", "#F6A5A0", "#7ED6A5", "#E8504A", "#3FC3E8"
+PAPER, PAPER_SH, GRID = "#FFFDF7", "#EFE4D4", "#CDBDA9"
+EYE_RX, EYE_RY = 12.0, 13.5
+_EYE_CACHE = {}
+
+
+def pose_eyes(poses, src=0, look=(0.0, 0.0), scale=1.0, hl=False):
+    """原圖第 0 張的眼睛是兩顆黑點：先用毛色蓋掉，再在 look（原圖 px）偏移處畫回同色黑點 →
+    眼睛可以左右掃、往上看、睜大加亮點。只改眼睛那 2 小塊，其餘像素不動。"""
+    key = (src, round(look[0], 1), round(look[1], 1), round(scale, 2), hl)
+    if key in _EYE_CACHE:
+        return _EYE_CACHE[key]
+    base = poses[src]
+    svg = ""
+    arr = np.asarray(base["body"]).astype(float)
+    yy, xx = np.mgrid[0:arr.shape[0], 0:arr.shape[1]]
+    for e in (EYE_L, EYE_R):
+        # 蓋眼睛用的毛色：取眼睛外圈 17～23px 的實際平均色（不是固定色，放大鏡底下才不會看出一圈）
+        ring = ((xx - e[0]) ** 2 + (yy - e[1]) ** 2 >= 17 ** 2) & ((xx - e[0]) ** 2 + (yy - e[1]) ** 2 <= 23 ** 2)
+        ring &= arr[..., :3].mean(2) > 200
+        col = "#%02X%02X%02X" % tuple(int(v) for v in np.median(arr[ring][:, :3], 0))
+        svg += f'<circle cx="{f(e[0])}" cy="{f(e[1])}" r="15.5" fill="{col}"/>'
+    for e in (EYE_L, EYE_R):
+        c = (e[0] + look[0], e[1] + look[1])
+        svg += f'<ellipse cx="{f(c[0])}" cy="{f(c[1])}" rx="{f(EYE_RX*scale)}" ry="{f(EYE_RY*scale)}" fill="{INK}"/>'
+        if hl:
+            svg += (f'<circle cx="{f(c[0]+4*scale)}" cy="{f(c[1]-5*scale)}" r="{f(4.2*scale)}" fill="#FFFFFF"/>'
+                    f'<circle cx="{f(c[0]-4*scale)}" cy="{f(c[1]+4.5*scale)}" r="{f(2.0*scale)}" fill="#FFFFFF"/>')
+    ov = raster(svg).resize((SIZE, SIZE), Image.LANCZOS)
+    body = base["body"].copy()
+    a = body.getchannel("A")
+    body = Image.alpha_composite(body, ov)
+    body.putalpha(a)
+    out = dict(base); out["body"] = body
+    _EYE_CACHE[key] = out
+    return out
+
+
+def nat_geom(poses, src, **kw):
+    """原圖某一張姿勢的「天然」幾何（跟原圖同一套相對位置），換算到比比的場景座標。"""
+    x0, y0, x1, y1 = poses[src]["box"]
+    g = {"src": src, "cx": CX + ((x0 + x1) / 2 - 254) * SCALE, "bottom": GROUND - (485 - y1) * SCALE,
+         "w": (x1 - x0) * SCALE, "h": (y1 - y0) * SCALE, "rot": 0.0, "lag": 0.0}
+    for k, v in kw.items():
+        if k in ("w", "h"):
+            g[k] *= v
+        elif k in ("cx", "bottom"):
+            g[k] += v
+        else:
+            g[k] = v
+    return g
+
+
+def rrect(cx, cy, w, h, r, deg=0.0, wob=1.2):
+    """手繪圓角矩形（四邊微彎的三次 Bézier），回傳 path d。"""
+    hw, hh = w / 2, h / 2
+    T = lambda p: add((cx, cy), rot2(p, deg))  # noqa: E731
+    k = 0.5523 * r
+    return (f"M {P(T((-hw+r,-hh)))} C {P(T((-hw*0.3,-hh-wob)))} {P(T((hw*0.3,-hh+wob*0.6)))} {P(T((hw-r,-hh)))} "
+            f"C {P(T((hw-r+k,-hh)))} {P(T((hw,-hh+r-k)))} {P(T((hw,-hh+r)))} "
+            f"C {P(T((hw+wob,-hh*0.3)))} {P(T((hw-wob*0.6,hh*0.3)))} {P(T((hw,hh-r)))} "
+            f"C {P(T((hw,hh-r+k)))} {P(T((hw-r+k,hh)))} {P(T((hw-r,hh)))} "
+            f"C {P(T((hw*0.3,hh+wob)))} {P(T((-hw*0.3,hh-wob*0.6)))} {P(T((-hw+r,hh)))} "
+            f"C {P(T((-hw+r-k,hh)))} {P(T((-hw,hh-r+k)))} {P(T((-hw,hh-r)))} "
+            f"C {P(T((-hw-wob,hh*0.3)))} {P(T((-hw+wob*0.6,-hh*0.3)))} {P(T((-hw,-hh+r)))} "
+            f"C {P(T((-hw,-hh+r-k)))} {P(T((-hw+r-k,-hh)))} {P(T((-hw+r,-hh)))} Z")
+
+
+def mini_paw(c, r=10.5, deg=90, seed=0):
+    return paw_svg(c, deg, r=r, squash=0.85, seed=seed, spots=True)
+
+
+# ---------------------------------------------------------------- 1. 看財經新聞（財經日曆紙）
+def calendar_svg(cx, cy, w, h, deg, mark=0.0):
+    """攤開的月曆紙：上緣淡藍標頭、5×3 小格、幾格有小點；mark>0 時其中一格畫上紅圈（重點）。"""
+    out = (f'<path d="{rrect(cx, cy + 4, w, h, 12, deg)}" fill="{PAPER_SH}"/>'
+           f'<path d="{rrect(cx, cy, w, h, 12, deg)}" fill="{PAPER}"/>')
+    T = lambda p: add((cx, cy), rot2(p, deg))  # noqa: E731
+    hw, hh = w / 2, h / 2
+    band = (f"M {P(T((-hw+12,-hh)))} L {P(T((hw-12,-hh)))} C {P(T((hw-4,-hh)))} {P(T((hw,-hh+4)))} {P(T((hw,-hh+12)))} "
+            f"L {P(T((hw,-hh+30)))} L {P(T((-hw,-hh+30)))} L {P(T((-hw,-hh+12)))} "
+            f"C {P(T((-hw,-hh+4)))} {P(T((-hw+4,-hh)))} {P(T((-hw+12,-hh)))} Z")
+    out += f'<path d="{band}" fill="#D6EEFD"/>'
+    gx0, gy0, cols, rows = -hw + 12, -hh + 40, 5, 3
+    cw, ch = (w - 24) / cols, (h - 52) / rows
+    for r_ in range(rows + 1):
+        a, b = T((gx0, gy0 + r_ * ch)), T((gx0 + cols * cw, gy0 + r_ * ch))
+        out += f'<path d="M {P(a)} L {P(b)}" stroke="{GRID}" stroke-width="1.6" stroke-linecap="round"/>'
+    for c_ in range(cols + 1):
+        a, b = T((gx0 + c_ * cw, gy0)), T((gx0 + c_ * cw, gy0 + rows * ch))
+        out += f'<path d="M {P(a)} L {P(b)}" stroke="{GRID}" stroke-width="1.6" stroke-linecap="round"/>'
+    for (c_, r_, col) in ((0, 0, BLUE), (2, 1, MINT), (4, 0, BLUE), (1, 2, GOLD), (3, 2, MINT)):
+        p = T((gx0 + (c_ + 0.5) * cw, gy0 + (r_ + 0.5) * ch))
+        out += f'<circle cx="{f(p[0])}" cy="{f(p[1])}" r="3.4" fill="{col}"/>'
+    if mark > 0:
+        p = T((gx0 + 3.5 * cw, gy0 + 1.5 * ch))
+        rr = (ch * 0.62) * mark
+        pts = [(p[0] + math.cos(t) * rr * 1.25, p[1] + math.sin(t) * rr) for t in np.linspace(-2.6, 3.9, 26)]
+        out += brush(pts, 4.6, 3.6, RED)
+    out += f'<path d="{rrect(cx, cy, w, h, 12, deg)}" fill="none" stroke="{INK}" stroke-width="{f(OUT_W)}" stroke-linejoin="round"/>'
+    return out
+
+
+def act_news(poses, font=None):
+    # look：眼睛偏移（原圖 px）；eye：(倍率, 亮點)；mark：紅圈；ex：「！」大小；gk：身體幾何
+    plan = [
+        ("低頭看月曆", (0, 4), (1.0, False), 0, 0, dict(lag=-0.03)),
+        ("眼睛掃到左邊", (-6, 4), (1.0, False), 0, 0, dict(lag=-0.03, rot=-1.0)),
+        ("左邊再看仔細", (-7, 5), (1.0, False), 0, 0, dict(lag=-0.04, rot=-2.0, h=0.99)),
+        ("掃回中間", (0, 4), (1.0, False), 0, 0, dict(lag=-0.03)),
+        ("掃到右邊", (6, 4), (1.0, False), 0, 0, dict(lag=-0.03, rot=1.0)),
+        ("右邊停住…", (7, 5), (1.0, False), 0.4, 0, dict(lag=-0.04, rot=2.0, h=0.99)),
+        ("看到重點！驚一下", (3, 1), (1.3, True), 1.0, 1.2, dict(h=1.05, w=0.96, bottom=-8, lag=-0.08)),
+        ("眼睛發亮", (3, 1), (1.25, True), 1.0, 1.0, dict(h=1.02, w=0.98, bottom=-3, lag=-0.04)),
+        ("落回、還盯著", (4, 3), (1.15, True), 1.0, 0.8, dict(h=0.98, w=1.02)),
+        ("點點頭", (2, 5), (1.0, False), 1.0, 0, dict(lag=-0.05, h=0.985)),
+        ("紅圈留著、回到中間", (0, 4), (1.0, False), 0.6, 0, dict(lag=-0.03)),
+        ("準備再看一次", (-2, 4), (1.0, False), 0.2, 0, dict(lag=-0.03, rot=-0.5)),
+    ]
+    frames = []
+    for i, (lab, look, (es, hl), mark, ex, gk) in enumerate(plan):
+        g = base_geom(poses, 0, **gk)
+        fr = {"g": g, "label": lab, "pose": pose_eyes(poses, 0, look, es, hl)}
+        lift = g["bottom"] - GROUND
+        deg = -1.5 + 0.6 * g.get("rot", 0)
+        cx, cy, w, h = CX + 2, 412 + lift * 0.6, 176, 112
+        fr["mid"] = calendar_svg(cx, cy, w, h, deg, mark)
+        # 小肉掌扶在紙的上緣兩角
+        pl = add((cx, cy), rot2((-w / 2 + 16, -h / 2 + 2), deg)); pr = add((cx, cy), rot2((w / 2 - 16, -h / 2 + 2), deg))
+        fr["front"] = mini_paw(pl, 11, 95, i) + mini_paw(pr, 11, 85, i + 7)
+        if ex:
+            top = fwd(poses, g, 256, 130)
+            fr["front"] += exmark((top[0] + 70, top[1] - 6), k=0.9 * ex, deg=12)
+            fr["front"] += motion_lines((top[0] - 70, top[1] + 20), 140, spread=30, r0=6, length=13, n=2)
+        fr["texts_mid"] = [("財經日曆", add((cx, cy), rot2((0, -h / 2 + 15), deg)), deg, 17, font, (31, 79, 120, 255), 0.3)]
+        frames.append(fr)
+    return frames
+
+
+# ---------------------------------------------------------------- 2. 錢幣飛過
+def coin_svg(c, r, phase):
+    """金幣：翻轉用寬度 |cos| 表現（真的在轉，不是放大縮小）；外框、內圈、亮面高光、「$」。"""
+    k = max(0.16, abs(math.cos(phase)))
+    rx, ry = r * k, r
+    edge = f'<ellipse cx="{f(c[0]+ (1-k)*r*0.18)}" cy="{f(c[1])}" rx="{f(rx)}" ry="{f(ry)}" fill="{GOLD_DK}"/>' if k < 0.95 else ""
+    out = edge + f'<ellipse cx="{f(c[0])}" cy="{f(c[1])}" rx="{f(rx)}" ry="{f(ry)}" fill="{GOLD}"/>'
+    if k > 0.35:
+        out += f'<ellipse cx="{f(c[0])}" cy="{f(c[1])}" rx="{f(rx*0.7)}" ry="{f(ry*0.7)}" fill="none" stroke="{GOLD_DK}" stroke-width="2.6"/>'
+        sx = rx * 0.32
+        pts = bez((c[0] + sx, c[1] - r * 0.30), (c[0] - sx * 1.6, c[1] - r * 0.42), (c[0] - sx * 1.4, c[1] - r * 0.02),
+                  (c[0], c[1]), 10) + bez((c[0], c[1]), (c[0] + sx * 1.4, c[1] + r * 0.02), (c[0] + sx * 1.6, c[1] + r * 0.42),
+                                         (c[0] - sx, c[1] + r * 0.30), 10)[1:]
+        out += brush(pts, 3.6, 3.2, GOLD_DK)
+        out += f'<path d="M {P((c[0], c[1]-r*0.46))} L {P((c[0], c[1]+r*0.46))}" stroke="{GOLD_DK}" stroke-width="2.4" stroke-linecap="round"/>'
+        out += brush(bez((c[0] - rx * 0.62, c[1] - r * 0.28), (c[0] - rx * 0.62, c[1] - r * 0.6), (c[0] - rx * 0.3, c[1] - r * 0.72),
+                         (c[0] - rx * 0.05, c[1] - r * 0.74), 8), 3.4, 2.4, GOLD_LT)
+    out += f'<ellipse cx="{f(c[0])}" cy="{f(c[1])}" rx="{f(rx)}" ry="{f(ry)}" fill="none" stroke="{INK}" stroke-width="{f(OUT_W*0.8)}"/>'
+    return out
+
+
+def act_coins(poses):
+    frames = []
+    NC = 3
+    for i in range(12):
+        coins, us = [], []
+        for k in range(NC):
+            u = (i / 12 + k / NC) % 1.0
+            x = -50 + u * 612
+            y = 168 - 52 * math.sin(math.pi * u) + (k - 1) * 10
+            coins.append(((x, y), 28 - k * 2, 2 * math.pi * (i / 12) * 3 + k * 1.3))
+            us.append(u)
+        # 眼睛追著「正在中段」那一枚（每 4 格換下一枚 → 轉頭追下一枚）
+        lead = min(range(NC), key=lambda k: abs(us[k] - 0.5))
+        dx = (us[lead] - 0.5) * 2 * 7.5
+        hop = {4: dict(h=0.95, w=1.04, lag=0.03), 5: dict(h=1.05, w=0.96, bottom=-14, lag=-0.06),
+               6: dict(h=1.03, w=0.98, bottom=-20, lag=-0.04), 7: dict(h=1.02, bottom=-8), 8: dict(h=0.96, w=1.035)}.get(i, {})
+        gk = dict(rot=dx * 0.35, lag=hop.pop("lag", -0.05))
+        gk.update(hop)
+        g = base_geom(poses, 0, **gk)
+        fr = {"g": g, "label": "", "pose": pose_eyes(poses, 0, (dx, -5), 1.1 if 5 <= i <= 7 else 1.0, 5 <= i <= 7)}
+        svg = ""
+        for (c, r, ph) in coins:
+            for j, dl in enumerate((26, 42)):
+                y = c[1] + (j - 0.5) * 9
+                svg += f'<path d="M {P((c[0]-r-6-dl*0.4, y))} L {P((c[0]-r-6-dl, y))}" stroke="#B9AFA5" stroke-width="3.4" stroke-linecap="round" opacity="0.7"/>'
+            svg += coin_svg(c, r, ph)
+        if 5 <= i <= 7:
+            top = fwd(poses, g, 256, 130)
+            svg += sparkle((top[0] - 92, top[1] + 30), 10) + sparkle((top[0] + 96, top[1] + 44), 8)
+        fr["front"] = svg
+        fr["label"] = ["金幣從左邊飛進來", "眼睛追第一枚", "追到中間", "追到右邊", "準備蹦（下蹲）", "蹦起來！眼睛發亮",
+                       "蹦到最高", "往下落", "落地壓扁", "轉頭追下一枚", "追到中間", "追到右邊"][i]
+        frames.append(fr)
+    return frames
+
+
+# ---------------------------------------------------------------- 3. 放大鏡
+def act_magnifier(poses):
+    frames = []
+    labs = ["放大鏡飄到臉中間", "往右眼飄", "停在右眼：眼睛被放大", "右眼上方晃", "往回飄", "飄過鼻子嘴巴",
+            "往左眼飄", "停在左眼：眼睛被放大", "左眼下方晃", "往回飄", "回到中間", "微微上浮"]
+    for i in range(12):
+        ph = 2 * math.pi * (i - 2) / 12 + math.pi / 2      # 第 3 格正對右眼、第 8 格正對左眼
+        g = base_geom(poses, 0, h=1.0 + 0.012 * math.sin(2 * ph), lag=-0.02)
+        el = fwd(poses, g, *EYE_L); er = fwd(poses, g, *EYE_R)
+        mx, hx = (el[0] + er[0]) / 2, (er[0] - el[0]) / 2
+        lx = mx + hx * math.sin(ph)
+        ly = (el[1] + er[1]) / 2 + 6 * math.cos(ph) ** 2 * (1 if math.sin(2 * ph) > 0 else -1)
+        R, Z = 44.0, 1.7
+        look = (5 * math.sin(ph), 0)
+        fr = {"g": g, "label": labs[i], "pose": pose_eyes(poses, 0, look, 1.0, False)}
+
+        def post(cv, lx=lx, ly=ly):
+            r_src = R / Z
+            box = (int((lx - r_src) * SS), int((ly - r_src) * SS), int((lx + r_src) * SS), int((ly + r_src) * SS))
+            crop = cv.crop(box).resize((int(2 * R * SS), int(2 * R * SS)), Image.LANCZOS)
+            m = Image.new("L", crop.size, 0)
+            ImageDraw.Draw(m).ellipse((0, 0, crop.size[0] - 1, crop.size[1] - 1), fill=255)
+            glass = Image.new("RGBA", crop.size, (232, 246, 255, 255))   # 鏡片底（看得到後面是空的）
+            glass.alpha_composite(crop)
+            glass.putalpha(m)
+            out = cv.copy()
+            out.alpha_composite(glass, (int((lx - R) * SS), int((ly - R) * SS)))
+            return out
+        fr["post"] = post
+        hdeg = 48 + 6 * math.sin(ph + 1.0)          # 手把朝右下
+        d = dirv(-hdeg)
+        h0 = add((lx, ly), d, R + 3); h1 = add((lx, ly), d, R + 64)
+        n = (-d[1], d[0])
+        hw = 8.5
+        handle = (f"M {P(add(h0, n, hw))} L {P(add(h1, n, hw))} C {P(add(add(h1, d, 11), n, hw))} {P(add(add(h1, d, 11), n, -hw))} "
+                  f"{P(add(h1, n, -hw))} L {P(add(h0, n, -hw))} Z")
+        svg = (f'<path d="{handle}" fill="#B7774F" stroke="{INK}" stroke-width="{f(OUT_W*0.9)}" stroke-linejoin="round"/>'
+               + brush([add(add(h0, d, 10), n, -3), add(add(h1, d, -4), n, -3)], 3.2, 3.0, "#D9A27A")
+               + f'<path d="M {P(add(add(h0, d, 6), n, hw))} L {P(add(add(h0, d, 6), n, -hw))}" stroke="{INK}" stroke-width="3"/>')
+        svg += (f'<circle cx="{f(lx)}" cy="{f(ly)}" r="{f(R)}" fill="#BFE6FF" opacity="0.16"/>'
+                f'<circle cx="{f(lx)}" cy="{f(ly)}" r="{f(R+4.5)}" fill="none" stroke="#6F5446" stroke-width="9"/>'
+                f'<circle cx="{f(lx)}" cy="{f(ly)}" r="{f(R+9)}" fill="none" stroke="{INK}" stroke-width="{f(OUT_W*0.8)}"/>'
+                f'<circle cx="{f(lx)}" cy="{f(ly)}" r="{f(R)}" fill="none" stroke="{INK}" stroke-width="2.6"/>')
+        hl = [(lx + math.cos(t) * R * 0.74, ly + math.sin(t) * R * 0.74) for t in np.linspace(3.5, 4.5, 10)]
+        svg += f'<g opacity="0.85">{brush(hl, 6.5, 4.5, "#FFFFFF")}</g>'
+        fr["front"] = svg
+        frames.append(fr)
+    return frames
+
+
+# ---------------------------------------------------------------- 4. 3D 眼鏡
+def cube_svg(c, s, ang, tilt=24, cols=(BLUE, PINK, GOLD)):
+    """真的 3D 方塊：繞 y 軸轉 ang、往前傾 tilt，正交投影，只畫朝向鏡頭的面（三色＋黑描邊）。"""
+    a, t = math.radians(ang), math.radians(tilt)
+    V = [(x, y, z) for x in (-1, 1) for y in (-1, 1) for z in (-1, 1)]
+
+    def tr(v):
+        x, y, z = v
+        x, z = x * math.cos(a) + z * math.sin(a), -x * math.sin(a) + z * math.cos(a)
+        y, z = y * math.cos(t) - z * math.sin(t), y * math.sin(t) + z * math.cos(t)
+        return x, y, z
+    TV = [tr(v) for v in V]
+    faces = [((0, 1, 3, 2), (-1, 0, 0)), ((4, 5, 7, 6), (1, 0, 0)), ((0, 1, 5, 4), (0, -1, 0)),
+             ((2, 3, 7, 6), (0, 1, 0)), ((0, 2, 6, 4), (0, 0, -1)), ((1, 3, 7, 5), (0, 0, 1))]
+    out = []
+    for idx, nrm in faces:
+        nz = tr(nrm)[2]
+        if nz <= 0.02:
+            continue
+        ny = tr(nrm)[1]
+        col = cols[2] if ny < -0.4 else (cols[0] if abs(nrm[0]) else cols[1])
+        pts = [(c[0] + TV[j][0] * s, c[1] + TV[j][1] * s) for j in idx]
+        mx = sum(p[0] for p in pts) / 4; my = sum(p[1] for p in pts) / 4
+        pts.sort(key=lambda p: math.atan2(p[1] - my, p[0] - mx))   # 四個角依角度排好，面才不會交叉成沙漏
+        d = "M " + " L ".join(P(p) for p in pts) + " Z"
+        out.append((nz, f'<path d="{d}" fill="{col}" stroke="{INK}" stroke-width="3.4" stroke-linejoin="round"/>'))
+    return "".join(x for _, x in sorted(out))
+
+
+def glasses_svg(lc, rc, deg):
+    """紅藍 3D 眼鏡：白色紙框＋黑描邊、左紅右藍半透明鏡片（看得到後面的眼睛）。"""
+    mid = ((lc[0] + rc[0]) / 2, (lc[1] + rc[1]) / 2)
+    span = math.hypot(rc[0] - lc[0], rc[1] - lc[1])
+    W, H = span + 74, 54
+    out = f'<path d="{rrect(mid[0], mid[1], W, H, 16, deg, 0.8)}" fill="#FFFFFF" stroke="{INK}" stroke-width="{f(OUT_W*0.9)}" stroke-linejoin="round"/>'
+    for c, col in ((lc, RED), (rc, CYAN)):
+        out += f'<path d="{rrect(c[0], c[1], 50, 38, 12, deg, 0.5)}" fill="{col}" opacity="0.58" stroke="{INK}" stroke-width="3.6"/>'
+        hl = add(c, rot2((-14, -9), deg))
+        out += f'<path d="M {P(hl)} l 8,-3" stroke="#FFFFFF" stroke-width="3.4" stroke-linecap="round" opacity="0.9"/>'
+    # 鏡腳往兩側（一小段，掛在頭上）
+    for sgn, c in ((-1, lc), (1, rc)):
+        a = add(c, rot2((sgn * 37, -6), deg)); b = add(c, rot2((sgn * 52, -12), deg))
+        out += f'<path d="M {P(a)} L {P(b)}" stroke="{INK}" stroke-width="4.4" stroke-linecap="round"/>'
+    return out
+
+
+def act_3dglasses(poses):
+    # (標籤, 眼鏡往上偏移, 眼鏡轉角, 身體幾何, 眼睛(倍率,亮點), 方塊大小)
+    plan = [
+        ("3D 眼鏡從上面掉下來", -190, -14, dict(lag=-0.06), (1.0, False), 0.0),
+        ("往下掉", -120, -7, dict(lag=-0.08), (1.0, False), 0.0),
+        ("快戴上", -46, 5, dict(lag=-0.08, h=1.01), (1.05, False), 0.0),
+        ("戴上！壓一下", 0, 0, dict(h=0.95, w=1.04, lag=0.04), (1.0, False), 0.0),
+        ("驚喜彈起、方塊冒出", 0, -2, dict(h=1.05, w=0.96, bottom=-10, lag=-0.06), (1.3, True), 0.55),
+        ("方塊轉起來", 0, 1, dict(h=1.02, bottom=-4), (1.25, True), 1.0),
+        ("左右看方塊（左）", 0, -2, dict(rot=-2.5), (1.2, True), 1.0),
+        ("左右看方塊（右）", 0, 2, dict(rot=2.5), (1.2, True), 1.0),
+        ("開心晃", 0, 0, dict(h=1.015, lag=-0.03), (1.2, True), 1.0),
+        ("方塊繼續轉", 0, -1, dict(h=0.99), (1.15, True), 1.0),
+        ("眼鏡往上彈開", -52, 8, dict(h=1.02, lag=-0.05), (1.05, False), 0.6),
+        ("飛出畫面、方塊收起", -140, 14, dict(lag=-0.05), (1.0, False), 0.2),
+    ]
+    frames = []
+    for i, (lab, gy, gdeg, gk, (es, hl), cs) in enumerate(plan):
+        g = base_geom(poses, 0, **gk)
+        lk = (0, -1) if not (6 <= i <= 7) else ((-4 if i == 6 else 4), -1)
+        fr = {"g": g, "label": lab, "pose": pose_eyes(poses, 0, lk, es, hl)}
+        lc = fwd(poses, g, EYE_L[0] - 2, EYE_L[1] + 2); rc = fwd(poses, g, EYE_R[0] + 2, EYE_R[1] + 2)
+        lc = (lc[0], lc[1] + gy); rc = (rc[0], rc[1] + gy)
+        svg = ""
+        if cs > 0:
+            ang = 90 * i / 12 * 2
+            for (c, s, a0, cols) in (((112, 190), 24, 0, (BLUE, PINK, GOLD)), ((392, 176), 20, 30, (PINK, MINT, GOLD)),
+                                     ((410, 300), 16, 60, (MINT, BLUE, GOLD))):
+                svg += cube_svg((c[0], c[1] + 4 * math.sin(2 * math.pi * i / 12 + a0)), s * cs, ang + a0, cols=cols)
+        svg += glasses_svg(lc, rc, gdeg + g.get("rot", 0))
+        if i == 4:
+            top = fwd(poses, g, 256, 130)
+            svg += motion_lines((top[0] - 60, top[1] + 10), 135, spread=30, r0=6, length=14, n=2) + \
+                motion_lines((top[0] + 66, top[1] + 8), 45, spread=30, r0=6, length=14, n=2)
+        if 5 <= i <= 9:
+            svg += sparkle((150, 120), 10 if i % 2 else 8) + sparkle((350, 112), 8 if i % 2 else 10)
+        fr["front"] = svg
+        frames.append(fr)
+    return frames
+
+
+# ---------------------------------------------------------------- 5. 慶祝
+_CONF_COLS = (PINK, GOLD, BLUE, MINT, "#F08A5D")
+
+
+def confetti(i, layer):
+    """紙花＋彩帶：每片固定的下落軌跡（12 格剛好落完一輪，循環無接縫），翻面用寬度 |cos|。"""
+    rng = np.random.default_rng(7 + layer)
+    out = ""
+    n = 14
+    for k in range(n):
+        x0 = rng.uniform(20, 492); ph = rng.uniform(0, 1); col = _CONF_COLS[k % 5]
+        u = (ph + i / 12) % 1.0
+        y = -24 + u * 560
+        x = x0 + 16 * math.sin(2 * math.pi * (u * 2 + ph))
+        if layer == 1 and 170 < x < 330 and y > 250:
+            continue
+        w0, h0 = rng.uniform(8, 12), rng.uniform(5, 7)
+        flip = abs(math.cos(2 * math.pi * (i / 12) * 2 + ph * 6))
+        rot = rng.uniform(0, 180) + 30 * (i * (1 + k % 2))
+        w = w0 * max(0.2, flip)
+        pts = [add((x, y), rot2(p, rot)) for p in ((-w / 2, -h0 / 2), (w / 2, -h0 / 2), (w / 2, h0 / 2), (-w / 2, h0 / 2))]
+        out += f'<path d="M {" L ".join(P(p) for p in pts)} Z" fill="{col}" stroke="{INK}" stroke-width="1.5" stroke-linejoin="round"/>'
+    if layer == 0:
+        for k, (x0, ph, col) in enumerate(((80, 0.1, PINK), (250, 0.45, BLUE), (430, 0.75, GOLD))):
+            u = (ph + i / 12) % 1.0
+            y = -60 + u * 600
+            pts = [(x0 + 9 * math.sin(2 * math.pi * (j / 12 * 1.5 + u * 2)), y + j * 6) for j in range(13)]
+            out += brush(pts, 9.5, 8.5, INK) + brush(pts, 6.5, 5.5, col)
+    return out
+
+
+def act_celebrate(poses):
+    plan = [
+        ("站著、彩帶開始落", 0, dict()),
+        ("下蹲", 1, dict()),
+        ("蓄力深蹲（瞇眼笑）", 2, dict()),
+        ("起跳拉長", 3, dict(bottom=18, w=0.95, h=1.06, lag=-0.08, rot=-3)),
+        ("往上衝", 3, dict()),
+        ("快到頂（張嘴笑）", 4, dict()),
+        ("最高點", 5, dict()),
+        ("滯空", 5, dict(bottom=4, rot=4, lag=0.04)),
+        ("往下落", 4, dict(bottom=30, rot=2, lag=0.10)),
+        ("落地壓扁（瞇眼笑）", 6, dict()),
+        ("回彈", 7, dict(h=1.03, lag=-0.05)),
+        ("站好", 0, dict(h=0.99, w=1.008)),
+    ]
+    frames = []
+    for i, (lab, src, kw) in enumerate(plan):
+        g = nat_geom(poses, src, **kw)
+        frames.append({"g": g, "label": lab, "back": confetti(i, 0), "front": confetti(i, 1)})
+    return frames
+
+
 ACTIONS = {
     "wave": ("揮手", lambda p: act_wave(p), [140, 80, 70, 70, 70, 70, 70, 70, 70, 70, 80, 140]),
     "point_r": ("指向・右", lambda p: act_point(p, 0, "右"), [140, 80, 60, 60, 70, 90, 60, 70, 60, 90, 70, 80]),
@@ -665,6 +1054,11 @@ ACTIONS = {
     "point_dr": ("指向・右下", lambda p: act_point(p, -35, "右下"), [140, 80, 60, 60, 70, 90, 60, 70, 60, 90, 70, 80]),
     "tilt": ("歪頭疑問", lambda p: act_tilt(p), [140, 70, 60, 70, 60, 60, 80, 80, 160, 70, 70, 120]),
     "wow": ("驚嘆", lambda p: act_wow(p), [140, 70, 50, 60, 70, 50, 50, 50, 140, 70, 80, 120]),
+    "news": ("看財經日曆", lambda p: act_news(p, HUNINN), [120, 80, 100, 80, 80, 110, 70, 90, 80, 90, 90, 80]),
+    "coins": ("金幣飛過", lambda p: act_coins(p), [70] * 12),
+    "magnifier": ("放大鏡", lambda p: act_magnifier(p), [90, 80, 120, 80, 80, 80, 80, 120, 80, 80, 80, 80]),
+    "3dglasses": ("戴 3D 眼鏡", lambda p: act_3dglasses(p), [80, 60, 60, 90, 70, 80, 90, 90, 90, 90, 70, 80]),
+    "celebrate": ("慶祝", lambda p: act_celebrate(p), [80, 70, 80, 60, 60, 70, 80, 80, 60, 80, 70, 90]),
     "sign": ("許願牌懸空（牌面留白）", lambda p: act_sign(p), [120, 90, 70, 60, 70, 60, 70, 80, 90, 100, 100, 100]),
     "sign_text": ("許願牌懸空（牌面「許願」）", lambda p: act_sign(p, "許願", HUNINN), [120, 90, 70, 60, 70, 60, 70, 80, 90, 100, 100, 100]),
 }
