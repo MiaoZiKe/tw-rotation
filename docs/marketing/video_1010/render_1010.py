@@ -51,10 +51,10 @@ INK = (26, 26, 26)
 BLUSH = (246, 165, 160)
 WHITE = (255, 255, 255)
 
-CARD = (60, 470, 960, 930)          # x, y, w, h（畫面卡）
-HOST = (190, 1418)                  # 比比主持位：腳底（x 中心, 地面 y）
-HOST_SIZE = 380                     # 比比精靈圖方框邊長（角色本體約佔一半）
-SUB_Y = 1428                        # 字幕第一行頂端
+CARD = (50, 384, 980, 1056)         # x, y, w, h（畫面卡；v2 放大：寬 980、高 55%）
+HOST = (150, 1446)                  # 比比主持位：腳底（x 中心, 地面 y）
+HOST_SIZE = 300                     # 比比精靈圖方框邊長（角色本體約佔一半）
+SUB_Y = 1456                        # 字幕第一行頂端
 
 DISCLAIMER = [
     "哩股哩股為公開市場資料之整理與視覺化工具，並非證券投資顧問事業。",
@@ -246,6 +246,26 @@ def sresize(src, size, box):
     return src.resize(size, Image.BICUBIC, box=(x0, y0, x0 + w, y0 + h))
 
 
+@lru_cache(maxsize=4)
+def _soft_disc(r):
+    m = Image.new("L", (r * 2, r * 2), 0)
+    ImageDraw.Draw(m).ellipse([r * 0.18, r * 0.18, r * 1.82, r * 1.82], fill=242)
+    return m.filter(ImageFilter.GaussianBlur(r * 0.16))
+
+
+def hide_site_mascot(img):
+    """網站右下角自己的客服鈕比比 → 柔和遮罩淡化（避免跟主持比比同框兩隻）。"""
+    if img.width < img.height:      # 手機 1170×2532
+        cx, cy, r = 1042, 2412, 140
+    else:                           # 桌機 2160×1350
+        cx, cy, r = 2068, 1278, 105
+    box = (cx - r, cy - r, cx + r, cy + r)
+    ring = np.array(img.crop((cx - r, cy - r - 30, cx + r, cy - r)))
+    col = tuple(int(v) for v in np.median(ring.reshape(-1, 3), axis=0))
+    fill = Image.new("RGB", (2 * r, 2 * r), col)
+    img.paste(fill, box[:2], _soft_disc(r))
+
+
 def frosted(img, box, r=24, white=0.45):
     """毛玻璃膠囊：高斯模糊（來源像素半徑 r）＋白 45%，圓角。"""
     x0, y0, x1, y1 = [int(v) for v in box]
@@ -273,13 +293,14 @@ class Rec:
     """
 
     def __init__(self, clip, srcmap, win, blur=(), rect=CARD, radius=36, border=True, enter=None, exit=None,
-                 blur_r=24, tint=None, fade_in=0.0, blur_white=0.45):
+                 blur_r=24, tint=None, fade_in=0.0, blur_white=0.45, hide_mascot=True):
         self.clip, self.srcmap, self.win, self.blur = clip, srcmap, win, list(blur)
         self.rect = rect
         self.radius, self.border = radius, border
         self.enter, self.exit = enter, exit
         self.blur_r = blur_r
         self.blur_white = blur_white
+        self.hide_mascot = hide_mascot
         self.tint = tint
         self.fade_in = fade_in
         self.box = None
@@ -301,6 +322,8 @@ class Rec:
             x0, y0, x1, y1, s0, s1 = (list(b) + [-1e9, 1e9])[:6]
             if s0 <= st <= s1:
                 frosted(src, (x0, y0, x1, y1), self.blur_r, self.blur_white)
+        if self.hide_mascot:
+            hide_site_mascot(src)
         x0, y0, x1, y1 = self.window(t)
         # 視窗比來源大 → 等比縮回來源大小
         k = min(1.0, src.width / (x1 - x0), src.height / (y1 - y0))
@@ -574,7 +597,7 @@ class Bibi:
         tc = act["contact"]
         quick = act.get("quick", False)
         tgt = self.resolve_target(act["target"], shot)
-        tsize = act.get("size", 280)
+        tsize = act.get("size", 240)
         home = act.get("home", HOST)
         hsize = act.get("home_size", HOST_SIZE)
         if "start_from" not in act:
@@ -628,9 +651,9 @@ def tap_span(contact, quick=False, hold=0.38, back=0.36):
 @lru_cache(maxsize=256)
 def headline_layout(text, hl):
     f = None
-    for px in range(96, 60, -4):
+    for px in range(88, 56, -4):
         f = font(F_ROUND, px)
-        if text_w(f, text) <= 900:
+        if text_w(f, text) <= 940:
             break
     x = 60
     chars = []
@@ -645,7 +668,7 @@ def headline_layout(text, hl):
     return f, chars, hl_range
 
 
-def draw_headline(canvas, text, t, hl=None, y=318, animate=True, color=INK, x0=None):
+def draw_headline(canvas, text, t, hl=None, y=284, animate=True, color=INK, x0=None):
     if not text:
         return
     f, chars, hl_range = headline_layout(text, hl)
@@ -788,7 +811,7 @@ def spot_overlay(canvas, rect, center, radius, a):
 class Shot:
     def __init__(self, sid, dur, layers=(), headline="", hl=None, sub="", pill_text=None, badge=None, bibi=None,
                  data=True, bubble_spec=None, spots=(), extra=None, post=None, cues=(), bibi_hidden_default=False,
-                 headline_y=318, headline_center=False, headline_anim=True, pill_anim=False):
+                 headline_y=284, headline_center=False, headline_anim=True, pill_anim=False):
         self.sid, self.dur = sid, dur
         self.layers = list(layers)
         self.headline, self.hl, self.sub = headline, hl, sub
@@ -810,10 +833,10 @@ class Shot:
         cv = background().copy()
         if self.pill_text:
             u = back_out(t / 0.3) if self.pill_anim else 1
-            pill(cv, self.pill_text, 60 - (1 - clamp(u, 0, 1)) * 300, 226)
+            pill(cv, self.pill_text, 52 - (1 - clamp(u, 0, 1)) * 300, 214)
         if self.badge:
             u = clamp(t / 0.25, 0, 1)
-            pill(cv, self.badge, 960, 226, bg=LEMON, fg=INK, stroke=False, right=True, scale=lerp(0.6, 1, back_out(u)), alpha=u)
+            pill(cv, self.badge, 960, 214, bg=LEMON, fg=INK, stroke=False, right=True, scale=lerp(0.6, 1, back_out(u)), alpha=u)
         draw_headline(cv, self.headline, t if self.headline_anim else 9, self.hl, y=self.headline_y,
                       x0="center" if self.headline_center else None)
         for L in self.layers:
@@ -882,7 +905,7 @@ def laptop_frame(t, size):
 
 # ───────────────────────── 模糊清單（來源座標） ─────────────────────────
 B_S03 = [(505, 2020, 665, 2105, -1, 2.4)]                      # 公司財報分頁 10/28 格內個股代號
-B_S08D = [(410, 346, 732, 1082), (1762, 252, 2088, 1092), (400, 1060, 2110, 1350)]   # 3D 零件標籤公司膠囊、下方說明卡
+B_S08D = [(410, 346, 732, 1082), (1762, 252, 2088, 1092), (400, 1060, 2110, 1350), (400, 0, 2160, 100)]   # 3D 零件標籤公司膠囊、下方說明卡
 B_S06D_CHAIN = [(400, 355, 2100, 470, 5.8, 99)]               # 產業鏈頁說明文字內的個股代號
 B_S09D = [(400, 180, 2160, 1350)]                             # 關聯圖節點（公司名＋代號）整片
 B_S10 = [(182, 1072, 832, 1222)]                              # ETF 行事曆格內代號
@@ -909,9 +932,9 @@ def shots_main():
 
     # 01 鉤子：3D 自轉
     S.append(Shot("01", 1.5,
-                  [Rec("S08f_mobile", [(0, 1.0), (1.5, 3.0)], [(0, 585, 760, WIN_M / 1.18), (1.5, 585, 740, WIN_M)])],
+                  [Rec("S08f_mobile", [(0, 1.0), (1.5, 3.0)], [(0, 600, 740, 760), (1.5, 590, 730, 900)])],
                   headline="AI 伺服器怎麼拆？", hl="怎麼拆", sub="",
-                  bibi=Bibi([dict(t0=0.8, t1=9, kind="peek", name="peek_l", size=460, y=1420, x=0)]),
+                  bibi=Bibi([dict(t0=0.8, t1=9, kind="peek", name="peek_l", size=400, y=1470, x=0)]),
                   bibi_hidden_default=True, cues=[(0, "pop"), (0.8, "boop")]))
 
     # 02 三格拉進來
@@ -921,11 +944,12 @@ def shots_main():
             u = ease_out((t - 0.125 * k) / 0.3)
             if u <= 0:
                 continue
-            tw, th = 300, 760
-            x = 60 + k * 330 + (1 - u) * 900
-            y = 520
+            tw, th = 310, 1000
+            x = 50 + k * 335 + (1 - u) * 900
+            y = 400
             out = 1 - ease_io((t - 1.25) / 0.25)
             src = reader(clip).get(s0 + t).copy()
+            hide_site_mascot(src)
             if clip == "S13_mobile":
                 for b in B_S13_M:
                     frosted(src, b[:4], 24)
@@ -941,11 +965,11 @@ def shots_main():
                 y = lerp(900 - th * sc / 2, y + th / 2 - th * sc / 2, out)
             cv.paste(im, (int(x), int(y)), im)
         if t < 1.25:
-            data_pill(cv, (60, 520, 960, 760))
+            data_pill(cv, (50, 400, 980, 1000))
     S.append(Shot("02", 1.5, [Still(tiles02)], headline="一個網站串著看", hl="串著看",
                   sub="錢往哪跑、哪裡熱、配息怎麼排，我都整理好了", data=False,
                   bibi=Bibi([dict(t0=0, t1=1.5, kind="anim", name="slide_l", size=380,
-                                  move=[(0, 1200, 1418, 380), (1.5, -200, 1418, 380)], blend=0)]),
+                                  move=[(0, 1200, HOST[1], 340), (1.5, -200, HOST[1], 340)], blend=0)]),
                   cues=[(0.0, "blip"), (0.125, "blip"), (0.25, "blip"), (1.25, "whoosh")]))
 
     # 03 布幕拉開 LOGO
@@ -955,8 +979,8 @@ def shots_main():
         sc = sc if t < 0.6 else lerp(1.05, 1.0, ease_io((t - 0.6) / 0.3))
         px = int(560 * sc)
         lg = logo_sized(px)
-        cv.paste(lg, (540 - px // 2, 935 - px // 2), lg)
-        curtain(cv, ease_io(t / 0.55), (60, 520, 1020, 1350))
+        cv.paste(lg, (540 - px // 2, 920 - px // 2), lg)
+        curtain(cv, ease_io(t / 0.55), (50, 420, 1030, 1400))
     S.append(Shot("03", 1.5, [Still(logo03)], headline="哩股哩股", hl="哩股哩股", headline_center=True,
                   sub="把公開資料，整理成看得懂的圖", data=False,
                   bibi=Bibi([dict(t0=0, t1=0.5, kind="anim", name="reveal", size=HOST_SIZE, mode="hold", speed=2.2, foot=HOST, blend=0.3),
@@ -967,7 +991,7 @@ def shots_main():
     def logo_top(cv, t, shot):
         u = ease_io(t / 0.3) if shot.sid == "04" else 1
         px = int(lerp(560, 190, u))
-        cy = lerp(935, 575, u)
+        cy = lerp(920, 520, u)
         lg = logo_sized(px)
         cv.paste(lg, (540 - px // 2, int(cy - px / 2)), lg)
     S.append(Shot("04", 2.0, [Still(logo_top)], headline="認識比比", hl="比比", headline_center=True, data=False,
@@ -1032,20 +1056,20 @@ def shots_main():
     r07 = Rec("S01_mobile", [(0, 0.9), (1.5, 2.6)], [(0, 585, 1250, WIN_M / 1.25), (1.5, 585, 1420, WIN_M / 1.4)])
     S.append(Shot("07", 1.5, [r07], headline="不用開好幾個 App", hl="好幾個", pill_text="① 總覽",
                   sub="以前要切好幾個 App，現在看這頁就好",
-                  bibi=Bibi([dict(t0=0, t1=1.5, kind="pointer", tip=(470, 1180), size=360)])))
+                  bibi=Bibi([dict(t0=0, t1=1.5, kind="pointer", tip=(500, 1150), size=320)])))
 
     # 08 不用熬夜：laptop 小卡 vs 畫面
-    r08 = Rec("S01_mobile", [(0, 2.6), (1.5, 2.9)], [(0, 585, 1180, 760)], rect=(420, 470, 600, 930))
+    r08 = Rec("S01_mobile", [(0, 2.6), (1.5, 2.9)], [(0, 585, 1180, 760)], rect=(430, 384, 600, 1056))
     def lap08(cv, t, shot):
         u = ease_out(t / 0.25)
-        im = laptop_frame(t, 320)
+        im = laptop_frame(t, 340)
         dim = Image.new("RGBA", im.size, (40, 50, 110, 70))
         im = Image.alpha_composite(im, dim)
-        m = rounded_mask(320, 320, 30)
+        m = rounded_mask(340, 340, 30)
         im.putalpha(Image.fromarray(np.minimum(np.array(im.getchannel("A")), np.array(m))))
-        cv.paste(im, (60 - int((1 - u) * 400), 600), im)
+        cv.paste(im, (50 - int((1 - u) * 400), 560), im)
         f = font(F_ROUND, 34)
-        ImageDraw.Draw(cv).text((80 - int((1 - u) * 400), 940), "熬夜翻資料…", font=f, fill=INK)
+        ImageDraw.Draw(cv).text((70 - int((1 - u) * 400), 900), "熬夜翻資料…", font=f, fill=INK)
     S.append(Shot("08", 1.5, [r08, Still(lap08)], headline="不用熬夜看盤", hl="熬夜", pill_text="① 總覽",
                   sub="下班看一頁就好，不用熬夜翻資料",
                   bibi=Bibi([dict(t0=0, t1=0.7, kind="anim", name="face_sleepy", size=HOST_SIZE, foot=HOST),
@@ -1059,7 +1083,7 @@ def shots_main():
               blur=B_S03, enter=("slide_r", 0.25))
     S.append(Shot("09", 2.0, [r09], headline="② 財報法說 FED", hl="FED", pill_text="② 財經日曆", pill_anim=True,
                   sub="財報、法說、FED 的日子，我排在同一張月曆",
-                  bibi=Bibi([dict(t0=-0.1, t1=0.0, kind="anim", name="hop_l", size=HOST_SIZE, move=[(0, 1250, 1418, 380), (0.3, HOST[0], HOST[1], HOST_SIZE)]),
+                  bibi=Bibi([dict(t0=-0.1, t1=0.0, kind="anim", name="hop_l", size=HOST_SIZE, move=[(0, 1250, HOST[1], HOST_SIZE), (0.3, HOST[0], HOST[1], HOST_SIZE)]),
                              dict(t0=tap_span(0.62)[0], t1=tap_span(0.62)[1], kind="tap", contact=0.62, target=src_tap(0, 661, 605)),
                              dict(t0=tap_span(0.62)[1], t1=2.0, kind="anim", name="calendar", size=HOST_SIZE, foot=HOST)],
                             default="talk_explain"),
@@ -1157,7 +1181,7 @@ def shots_main():
             self.__dict__.update({k: v for k, v in shot.__dict__.items() if k != "dur"})
 
     sw17 = Switch(r17a, r17b, 0.9)
-    r17a.exit = ("zoom_to", 0.25, (60 + (580 - 380) / 1160 * 960, 470 + (360 - 160) / 1124 * 930))
+    r17a.exit = ("zoom_to", 0.25, (CARD[0] + (580 - (960 - 580)) / 1160 * CARD[2], CARD[1] + (360 - (722 - 1160 * CARD[3] / CARD[2] / 2)) / (1160 * CARD[3] / CARD[2]) * CARD[3]))
     S.append(Shot("17", 1.5, [sw17], headline="點進產業鏈", hl="產業鏈", pill_text="④ 產業",
                   sub="熱的那一塊，踩下去就進產業鏈", data=True,
                   bibi=Bibi([dict(t0=tap_span(0.62)[0], t1=0.9, kind="tap", contact=0.62, stay=True, target=src_tap(0, 580, 360)),
@@ -1171,7 +1195,7 @@ def shots_main():
                   bibi=Bibi([dict(t0=0, t1=2.0, kind="pointer", tip=src_tap(0, 520, 760), size=360)])))
 
     # 19 踩「3D」鈕 → 戴眼鏡
-    r19 = Rec("S08a_mobile", [(0, 1.0), (0.62, 1.62), (1.5, 2.9)], [(0, 470, 560, 820), (0.75, 470, 560, 820), (1.4, 585, 740, WIN_M)])
+    r19 = Rec("S08a_mobile", [(0, 1.0), (0.62, 1.62), (1.5, 2.9)], [(0, 470, 560, 820), (0.75, 470, 560, 820), (1.4, 590, 740, 960)])
     S.append(Shot("19", 1.5, [r19], headline="切到 3D！", hl="3D", pill_text="④ 產業",
                   sub="戴上眼鏡，切到 3D！",
                   bibi=Bibi([dict(t0=tap_span(0.62)[0], t1=tap_span(0.62)[1], kind="tap", contact=0.62, target=src_tap(0, 288, 280)),
@@ -1179,7 +1203,7 @@ def shots_main():
                   cues=[(0.62, "tap"), (0.9, "pop")]))
 
     # 20 3D 自動轉（主力段開始）
-    r20 = Rec("S08f_mobile", [(0, 0.4), (3.0, 4.6)], [(0, 585, 740, WIN_M), (3.0, 585, 730, WIN_M / 1.08)])
+    r20 = Rec("S08f_mobile", [(0, 0.4), (3.0, 4.6)], [(0, 590, 740, 960), (3.0, 600, 720, 780)])
     S.append(Shot("20", 3.0, [r20], headline="整台拆開看", hl="拆開看", pill_text="④ 產業",
                   sub="哇！零件一層一層拆開了",
                   bibi=Bibi([dict(t0=0, t1=1.0, kind="anim", name="3dglasses", size=HOST_SIZE, foot=HOST, mode="hold", speed=1.0),
@@ -1187,7 +1211,7 @@ def shots_main():
                   cues=[(0, "chorus")]))
 
     # 21 拖曳旋轉
-    r21 = Rec("S08b_mobile", [(0, 0.7), (2.5, 3.3)], [(0, 585, 740, WIN_M)])
+    r21 = Rec("S08b_mobile", [(0, 0.7), (2.5, 3.3)], [(0, 590, 740, 940)])
     S.append(Shot("21", 2.5, [r21], headline="拖一下就轉", hl="拖一下", pill_text="④ 產業",
                   sub="拖曳就能轉，換個角度看看",
                   bibi=Bibi([dict(t0=0.3, t1=1.2, kind="anim", name="hop_r", size=HOST_SIZE, move=[(0, HOST[0], HOST[1], HOST_SIZE), (0.9, HOST[0] + 60, HOST[1], HOST_SIZE)], blend=0),
@@ -1195,7 +1219,7 @@ def shots_main():
                   cues=[(0.3, "swish")]))
 
     # 22 拉近
-    r22 = Rec("S08c_mobile", [(0, 0.7), (2.0, 3.2)], [(0, 585, 700, WIN_M), (2.0, 600, 640, WIN_M / 1.25)])
+    r22 = Rec("S08c_mobile", [(0, 0.7), (2.0, 3.2)], [(0, 590, 700, 940), (2.0, 600, 640, 700)])
     S.append(Shot("22", 2.0, [r22], headline="拉近看細節", hl="細節", pill_text="④ 產業",
                   sub="拉近看，每一層的名字都標好了",
                   bibi=Bibi([dict(t0=0, t1=0.5, kind="anim", name="face_shock", size=HOST_SIZE, foot=HOST),
@@ -1204,7 +1228,7 @@ def shots_main():
 
     # 23 踩零件標籤 → 說明卡標題（桌機；公司膠囊與說明卡模糊）
     r23 = Rec("S08d_desktop", [(0, 2.43), (0.62, 3.05), (2.5, 5.2)],
-              [(0, 980, 690, 1160), (0.8, 980, 690, 1160), (1.7, 900, 600, 1050)], blur=B_S08D)
+              [(0, 980, 690, 1160), (0.8, 980, 690, 1160), (1.7, 1040, 675, 1250)], blur=B_S08D)
     S.append(Shot("23", 2.5, [r23], headline="點零件看環節", hl="環節", pill_text="④ 產業",
                   sub="我踩一下零件，卡片告訴你是哪個環節",
                   bibi=Bibi([dict(t0=tap_span(0.62)[0], t1=tap_span(0.62)[1], kind="tap", contact=0.62, target=src_tap(0, 560, 300)),
@@ -1214,13 +1238,14 @@ def shots_main():
     # 24 不只 AI 伺服器：三格（AI 伺服器側面、HBM、液冷）
     def tiles24(cv, t, shot):
         specs = [("S08e_desktop", 3.0, (1225, 690, 520)), ("S08g_mobile", 3.6, (585, 700, 560)), ("S08h_mobile", 3.6, (585, 700, 600))]
-        tw, th = 300, 900
+        tw, th = 310, 1040
         for k, (clip, s0, (cx, cy, w)) in enumerate(specs):
             u = ease_out((t - 0.12 * k) / 0.3)
             if u <= 0:
                 continue
-            x, y = 60 + k * 330, 485
-            src = reader(clip).get(s0 + t * 0.8)
+            x, y = 50 + k * 335, 390
+            src = reader(clip).get(s0 + t * 0.8).copy()
+            hide_site_mascot(src)
             hh = w * th / tw
             im = sresize(src, (tw, th), (cx - w / 2, cy - hh / 2, cx + w / 2, cy + hh / 2)).convert("RGBA")
             m = rounded_mask(tw, th, 30).copy()
@@ -1243,29 +1268,74 @@ def shots_main():
                 pill(cv, lab, x + tw / 2 - (text_w(f, lab) + 44) / 2, y + 16, bg=WHITE, fg=INK, stroke=False, px=30)
             if cur == k:
                 ImageDraw.Draw(cv).rounded_rectangle([x - 4, y - 4, x + tw + 4, y + th + 4], 32, outline=LEMON, width=8)
-        data_pill(cv, (60, 485, 960, 900))
+        data_pill(cv, (50, 390, 980, 1040))
     S.append(Shot("24", 2.0, [Still(tiles24)], headline="不只 AI 伺服器", hl="不只", pill_text="④ 產業", data=False,
                   sub="半導體、HBM、液冷…19 種產品都能轉",
                   bibi=Bibi([dict(t0=0, t1=2.0, kind="anim", name="spotlight", size=HOST_SIZE, foot=HOST, mode="loop")], default="face_star"),
                   cues=[(0.5, "blip"), (1.0, "blip"), (1.5, "blip")]))
 
-    # 25 關聯圖（遠景＋整片模糊）
-    r25 = Rec("S09_desktop", [(0, 0.6), (2.5, 3.6)], [(0, 1250, 700, 1380), (2.5, 1400, 690, 1380)], blur=B_S09D, blur_r=7, blur_white=0.15,
-              enter=("wipe_down", 0.3))
+    # 25 關聯圖（手機版：只有環節群組與家數，沒有公司名）＋推近＋聚光燈，把三條供貨連線依序亮起來
+    REL_PATHS = [
+        [(782, 497), (810, 500), (820, 560), (830, 680), (840, 745), (850, 750)],     # 散熱 → 系統組裝
+        [(782, 600), (805, 605), (818, 650), (832, 720), (850, 750)],                 # 電源 → 系統組裝
+        [(782, 805), (800, 805), (818, 785), (835, 760), (850, 752)],                 # 交換器 → 系統組裝
+    ]
+    REL_BOXES = [(388, 462, 780, 535), (388, 565, 780, 637), (388, 770, 780, 840)]
+    REL_SINK = (850, 717, 1132, 790)
+
+    def rel_glow(L, starts, dur=0.45, sink_t=None):
+        def fn(cv, t, shot):
+            lay = Image.new("RGBA", (W, H), (0, 0, 0, 0))
+            d = ImageDraw.Draw(lay)
+            for k, (pts, t0) in enumerate(zip(REL_PATHS, starts)):
+                u = clamp((t - t0) / dur, 0, 1)
+                if u <= 0:
+                    continue
+                bx = REL_BOXES[k]
+                p0, p1 = L.map(bx[0], bx[1]), L.map(bx[2], bx[3])
+                d.rounded_rectangle([p0[0] - 4, p0[1] - 4, p1[0] + 4, p1[1] + 4], 22, outline=LEMON + (255,), width=7)
+                seg = [L.map(*q) for q in pts]
+                lens = [math.hypot(b[0] - a[0], b[1] - a[1]) for a, b in zip(seg, seg[1:])]
+                tot, acc, out = sum(lens), 0, [seg[0]]
+                goal = tot * ease_io(u)
+                for (a, b), ln in zip(zip(seg, seg[1:]), lens):
+                    if acc + ln <= goal:
+                        out.append(b); acc += ln
+                    else:
+                        r = (goal - acc) / ln if ln else 0
+                        out.append((lerp(a[0], b[0], r), lerp(a[1], b[1], r))); break
+                d.line(out, fill=LEMON + (255,), width=16, joint="curve")
+                d.line(out, fill=(255, 140, 40, 255), width=6, joint="curve")
+                hx, hy = out[-1]
+                if u < 1:
+                    d.ellipse([hx - 14, hy - 14, hx + 14, hy + 14], fill=WHITE + (255,), outline=(255, 140, 40, 255), width=5)
+            if sink_t is not None and t >= sink_t:
+                p0, p1 = L.map(REL_SINK[0], REL_SINK[1]), L.map(REL_SINK[2], REL_SINK[3])
+                d.rounded_rectangle([p0[0] - 5, p0[1] - 5, p1[0] + 5, p1[1] + 5], 24, outline=LEMON + (255,), width=9)
+            rx, ry, rw, rh = [int(v) for v in L.out_rect]
+            clip = Image.new("L", (W, H), 0)
+            clip.paste(rounded_mask(rw, rh, 36), (rx, ry))
+            lay.putalpha(Image.fromarray(np.minimum(np.array(lay.getchannel("A")), np.array(clip))))
+            cv.paste(lay, (0, 0), lay)
+        return fn
+
+    r25 = Rec("S09_mobile", [(0, 0.5), (2.5, 3.0)], [(0, 585, 640, WIN_M), (0.6, 720, 660, 860)], enter=("wipe_down", 0.3))
     S.append(Shot("25", 2.5, [r25], headline="上下游一張連", hl="一張連", pill_text="④ 產業",
                   sub="連線是供貨關係，滑過去上下游就亮",
-                  bibi=Bibi([dict(t0=0, t1=1.0, kind="anim", name="face_think", size=HOST_SIZE, foot=HOST),
-                             dict(t0=1.0, t1=2.5, kind="pointer", tip=(560, 960), size=360)], default="face_nod"),
-                  cues=[(0, "swish")]))
+                  spots=[dict(t0=0.6, t1=2.5, src=(790, 650), r=330)],
+                  extra=rel_glow(r25, [0.7, 1.2, 1.7], sink_t=2.1),
+                  bibi=Bibi([dict(t0=0, t1=0.7, kind="anim", name="face_think", size=HOST_SIZE, foot=HOST),
+                             dict(t0=0.7, t1=2.5, kind="anim", name="face_nod", size=HOST_SIZE, foot=HOST)], default="face_nod"),
+                  cues=[(0, "swish"), (0.7, "blip"), (1.2, "blip"), (1.7, "blip"), (2.1, "ding")]))
 
-    # 26 手機關聯圖（環節群組層，無公司）推近
-    r26 = Rec("S09_mobile", [(0, 0.5), (2.0, 2.5)], [(0, 585, 700, WIN_M), (1.6, 640, 640, WIN_M / 1.3)])
+    # 26 推近到被點亮的那一段（三條線都亮著）
+    r26 = Rec("S09_mobile", [(0, 3.0), (2.0, 4.5)], [(0, 720, 660, 860), (1.4, 880, 690, 600)])
     def curtain26(cv, t, shot):
         u = ease_io((t - 1.6) / 0.4)
         if u > 0:
-            curtain(cv, 1 - u, (60, 470, 1020, 1400))
+            curtain(cv, 1 - u, (50, 384, 1030, 1440))
     S.append(Shot("26", 2.0, [r26], headline="產業關係串起來", hl="串起來", pill_text="④ 產業",
-                  sub="原來是這樣接的！一張就看懂", post=curtain26,
+                  sub="原來是這樣接的！一張就看懂", post=curtain26, extra=rel_glow(r26, [-9, -9, -9], sink_t=0),
                   bibi=Bibi([dict(t0=0, t1=1.0, kind="anim", name="hop_r", size=HOST_SIZE, foot=HOST),
                              dict(t0=1.0, t1=2.0, kind="anim", name="face_love", size=HOST_SIZE, foot=HOST)]),
                   cues=[(1.6, "swish"), (1.9, "chord")]))
@@ -1276,10 +1346,10 @@ def shots_main():
     def card27(cv, t, shot):
         r27.draw(cv, t, shot)
         data_pill(cv, CARD)
-        curtain(cv, ease_io(t / 0.45), (60, 470, 1020, 1400))
+        curtain(cv, ease_io(t / 0.45), (50, 384, 1030, 1440))
     S.append(Shot("27", 1.5, [Still(card27)], headline="存 ETF 的人看這頁", hl="ETF", pill_text="⑤ ETF", pill_anim=True, data=False,
-                  headline_y=318, sub="存 ETF 的人，這幾頁整理給你",
-                  bibi=Bibi([dict(t0=0, t1=1.5, kind="anim", name="piggy", size=520, foot=(770, 1300), blend=0.0)]),
+                  sub="存 ETF 的人，這幾頁整理給你",
+                  bibi=Bibi([dict(t0=0, t1=1.5, kind="anim", name="piggy", size=460, foot=(800, 1420), blend=0.0)]),
                   cues=[(0, "swish"), (0.6, "ding")]))
 
     # 28 ⑤ ETF 行事曆：踩有事件的那天
@@ -1345,14 +1415,15 @@ def shots_main():
     # 34 四步串著看（動態圖形）
     mini = [("S03_mobile", 3.4, (585, 1250, 1170), "看消息"), ("S04_mobile", 4.0, (585, 1080, 1100), "錢往哪跑"),
             ("S08f_mobile", 1.5, (585, 740, 1170), "誰在做"), ("S10_mobile", 3.6, (585, 1150, 1170), "自己怎麼排")]
-    pos = [(80, 520), (560, 520), (560, 960), (80, 960)]
-    MW, MH = 440, 380
+    pos = [(55, 400), (575, 400), (575, 950), (55, 950)]
+    MW, MH = 450, 480
     _mini_cache = {}
 
     def mini_img(k):
         if k not in _mini_cache:
             clip, st, (cx, cy, w), lab = mini[k]
             src = reader(clip).get(st).copy()
+            hide_site_mascot(src)
             if clip == "S10_mobile":
                 for b in B_S10:
                     frosted(src, b[:4], 24)
@@ -1384,7 +1455,7 @@ def shots_main():
             lab = f"{k + 1} {mini[k][3]}"
             pill(cv, lab, x + 14, y + MH - 70, bg=WHITE, fg=INK, stroke=False, px=30)
         # 虛線箭頭：每 0.5 秒畫一段
-        segs = [((520, 710), (560, 710)), ((780, 900), (780, 960)), ((560, 1150), (520, 1150))]
+        segs = [((515, 640), (565, 640)), ((800, 890), (800, 940)), ((565, 1190), (515, 1190))]
         for i, (a, b) in enumerate(segs):
             u = clamp((t - 0.5 * (i + 1) + 0.3) / 0.3, 0, 1)
             if u <= 0:
@@ -1398,10 +1469,10 @@ def shots_main():
                 r = (tip[0] - 30 * math.cos(ang + 0.5), tip[1] - 30 * math.sin(ang + 0.5))
                 d.polygon([tip, l, r], fill=SKY, outline=INK)
     hops34 = []
-    feet = [(300, 880), (780, 880), (780, 1320), (300, 1320)]
+    feet = [(280, 890), (800, 890), (800, 1440), (280, 1440)]
     for k in range(4):
         t0 = 0.5 * k - 0.35 if k else 0
-        src_foot = feet[k - 1] if k else (230, 880)
+        src_foot = feet[k - 1] if k else (230, 890)
         hops34.append(dict(t0=max(0, t0), t1=0.5 * k + 0.15 if k < 3 else 2.5, kind="anim", name="hop_r" if k in (1,) else "hop_l" if k == 3 else "hop_r",
                            size=260, move=[(0, src_foot[0], src_foot[1], 260), (0.35 if k else 0.01, feet[k][0], feet[k][1], 260)], blend=0))
     S.append(Shot("34", 2.5, [Still(flow34)], headline="四步串著看", hl="串著看", data=False,
@@ -1421,23 +1492,23 @@ def shots_main():
 
     # 36 客服面板（比比・問題小助手）
     r36 = Rec("S16_mobile", [(0, 1.0), (0.6, 1.6), (1.2, 2.6), (2.0, 4.6)],
-              [(0, 585, 1966, WIN_M), (0.7, 585, 1966, WIN_M), (1.2, 585, 930, WIN_M)], blur=B_S16)
+              [(0, 585, 1966, WIN_M), (0.7, 585, 1966, WIN_M), (1.2, 585, 930, WIN_M)], blur=B_S16, hide_mascot=False)
     S.append(Shot("36", 2.0, [r36], headline="右下角就是我", hl="就是我", pill_text="客服",
                   sub="右下角點我，常見問題馬上看",
                   bibi=Bibi([dict(t0=0, t1=0.6, kind="pointer", tip=src_tap(0, 1000, 2380), size=340),
-                             dict(t0=1.2, t1=2.0, kind="peek", name="peek_l", size=360, y=1330, x=0)], default="face_wink"),
+                             dict(t0=1.2, t1=2.0, kind="peek", name="peek_l", size=340, y=1470, x=0)], default="face_wink"),
                   cues=[(0.6, "tap")]))
 
     # 37 功能總覽卡（10-11 Andy：不分會員層級，只說每日次數有限）
     rows37 = ["資金輪動・分流樹播放", "熱力圖點擊跳產業鏈", "3D 剖析圖", "ETF 報酬比較", "自訂配息試算", "複利試算表"]
 
     def plus37(cv, t, shot):
-        x0, y0, x1, y1 = 60, 490, 700, 1380
+        x0, y0, x1, y1 = 50, 400, 740, 1440
         lay = Image.new("RGBA", (x1 - x0, y1 - y0), (0, 0, 0, 0))
         d = ImageDraw.Draw(lay)
         d.rounded_rectangle([0, 0, x1 - x0 - 1, y1 - y0 - 1], 36, fill=WHITE + (245,), outline=DEEP, width=3)
         for i in range(1, 6):
-            yy = 40 + i * 140
+            yy = 40 + i * 166
             d.line([(30, yy - 22), (x1 - x0 - 30, yy - 22)], fill=(220, 228, 238), width=2)
         cv.paste(lay, (x0, y0), lay)
         f = font(F_BOLD, 42)
@@ -1447,7 +1518,7 @@ def shots_main():
             u = clamp((t - land) / 0.22, 0, 1)
             if u <= 0:
                 continue
-            yy = y0 + 40 + i * 140 + 28
+            yy = y0 + 40 + i * 166 + 30
             dx = (1 - back_out(u)) * 160
             # 勾勾徽章
             cx, cy = x0 + 62 - dx, yy + 26
@@ -1458,16 +1529,16 @@ def shots_main():
             cv.paste(lay2, (int(x0 + 110 - dx), int(yy)), lay2)
     S.append(Shot("37", 2.0, [Still(plus37)], headline="這些功能都能用", hl="都能用", data=False,
                   sub="功能都開放體驗，每日使用次數有限，依網站公告",
-                  bibi=Bibi([dict(t0=0, t1=1.37, kind="anim", name="face_wink", size=440, foot=(860, 1360)),
-                             dict(t0=1.37, t1=2.0, kind="anim", name="celebrate", size=440, foot=(860, 1360), mode="hold")], default="celebrate"),
+                  bibi=Bibi([dict(t0=0, t1=1.37, kind="anim", name="face_wink", size=400, foot=(890, 1440)),
+                             dict(t0=1.37, t1=2.0, kind="anim", name="celebrate", size=400, foot=(890, 1440), mode="hold")], default="celebrate"),
                   cues=[(0.12 + 0.25 * i, "blip") for i in range(6)]))
 
     # 38 願望清單 ＋ 許願牌
     r38 = Rec("S16_mobile", [(0, 8.5), (2.0, 10.7)], [(0, 585, 1150, WIN_M), (2.0, 585, 1230, WIN_M / 1.12)], blur=B_S16,
-              rect=(60, 470, 960, 640))
+              rect=(50, 384, 980, 700))
     S.append(Shot("38", 2.0, [r38], headline="歡迎許願", hl="許願", headline_center=True,
                   bibi=Bibi([dict(t0=0, t1=2.0, kind="anim", name="sign_text", size=540, foot=(700, 1480))]),
-                  bubble_spec=dict(text="功能持續新增，想要什麼跟我說！", box=(60, 1150, 450, 1370), tail=(470, 1300), t0=0.2, max_chars=8, px=42),
+                  bubble_spec=dict(text="功能持續新增，想要什麼跟我說！", box=(50, 1150, 450, 1370), tail=(480, 1300), t0=0.2, max_chars=8, px=42),
                   bibi_hidden_default=True, cues=[(0.3, "ding")]))
 
     # 39 片尾：LOGO＋搜尋 哩股哩股＋免費註冊（不放網址、信箱）
@@ -1486,13 +1557,23 @@ def shots_main():
                   bibi_hidden_default=True, cues=[(0, "chord_end")]))
 
     # 40 法遵警語（≥5 秒；警語不壓動畫）
-    S.append(disclaimer_shot("40", 5.5))
+    S.append(disclaimer_shot("40", 5.5, prev=S[-1]))
     return S
 
 
-def disclaimer_shot(sid, dur):
+def disclaimer_shot(sid, dur, prev=None):
+    cache = {}
+
     def disc(cv, t, shot):
-        a = clamp(t / 0.2, 0, 1)
+        a = clamp(t / 0.3, 0, 1)
+        if prev is not None and a < 1:
+            if "img" not in cache:
+                for k in range(0, int(prev.dur * FPS), 6):
+                    prev.render(k / FPS)          # 讓比比的平滑轉場狀態走到鏡尾
+                cache["img"] = prev.render(prev.dur - 1 / FPS)
+            cv.paste(cache["img"], (0, 0))
+            bg = background().copy()
+            cv.paste(Image.blend(cache["img"], bg, ease_io(a)), (0, 0))
         lay = Image.new("RGBA", (W, H), (0, 0, 0, 0))
         lg = logo_sized(150)
         lay.paste(lg, (540 - 75, 250), lg)
@@ -1543,12 +1624,12 @@ def shots_short():
     S = []
     WIN_M = 1170
     S.append(Shot("s1", 1.5,
-                  [Rec("S08f_mobile", [(0, 1.0), (1.5, 3.0)], [(0, 585, 760, WIN_M / 1.18), (1.5, 585, 740, WIN_M)])],
+                  [Rec("S08f_mobile", [(0, 1.0), (1.5, 3.0)], [(0, 600, 740, 760), (1.5, 590, 730, 900)])],
                   headline="AI 伺服器怎麼拆？", hl="怎麼拆", sub="我是比比，帶你拆開看！",
-                  bibi=Bibi([dict(t0=0, t1=0.6, kind="peek", name="peek_l", size=460, y=1420, x=0),
+                  bibi=Bibi([dict(t0=0, t1=0.6, kind="peek", name="peek_l", size=400, y=1470, x=0),
                              dict(t0=0.6, t1=1.5, kind="anim", name="talk_excited", size=HOST_SIZE, foot=HOST)]),
                   cues=[(0, "pop")]))
-    r = Rec("S08d_desktop", [(0, 2.43), (0.62, 3.05), (2.0, 4.6)], [(0, 980, 690, 1160), (0.8, 980, 690, 1160), (1.6, 900, 600, 1050)], blur=B_S08D)
+    r = Rec("S08d_desktop", [(0, 2.43), (0.62, 3.05), (2.0, 4.6)], [(0, 980, 690, 1160), (0.8, 980, 690, 1160), (1.6, 1040, 675, 1250)], blur=B_S08D)
     S.append(Shot("s2", 2.0, [r], headline="點零件看環節", hl="環節", pill_text="④ 產業",
                   sub="踩一下零件，馬上知道是哪個環節",
                   bibi=Bibi([dict(t0=tap_span(0.62)[0], t1=tap_span(0.62)[1], kind="tap", contact=0.62, target=src_tap(0, 560, 300)),
@@ -1582,7 +1663,7 @@ def shots_short():
                   bibi=Bibi([dict(t0=0, t1=2.0, kind="anim", name="wave", size=440, foot=(800, 1470))]),
                   bubble_spec=dict(text="搜尋「哩股哩股」，網站見！", box=(70, 1240, 580, 1390), tail=(640, 1330), t0=0.2, max_chars=9, px=40),
                   bibi_hidden_default=True, cues=[(0, "chord_end")]))
-    S.append(disclaimer_shot("s9", 3.5))
+    S.append(disclaimer_shot("s9", 3.5, prev=S[-1]))
     return S
 
 
