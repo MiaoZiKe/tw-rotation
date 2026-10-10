@@ -750,7 +750,7 @@ def scene_hourglass(poses):
             hg = hourglass_svg((86, 410), 0, 1.0, False)
         svg = hg
         for k, (pc, pd, kind) in enumerate(photos):
-            u = (i - (1 + k)) / 1.5
+            u = (i - k) / 1.5
             if i >= 10:
                 u = 1 - (i - 9) * 0.45     # 翻沙漏時照片縮小收回（用縮小，不用淡出，避免鬼影）
             if u <= 0.05:
