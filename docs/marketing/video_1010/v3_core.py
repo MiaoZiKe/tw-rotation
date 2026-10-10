@@ -89,7 +89,7 @@ def fit_aspect(win, ar, sw, sh, min_w=0.0):
 def hide_mascot(img):
     """網站右下角自己的客服比比：柔和遮罩淡化（避免跟主持比比同框兩隻）。"""
     if img.width < img.height:
-        cx, cy, r = 1012, 2418, 125
+        cx, cy, r = 1012, img.height - 114, 125
     else:
         cx, cy, r = 3090, 1688, 110
     ring = np.array(img.crop((cx - r, cy - r - 24, cx + r, cy - r)))
@@ -365,12 +365,12 @@ class Op:
                 return
         # 拖曳：比比站在游標後方、往拖曳方向推
         for d in self.drags:
-            if L.full_bleed and d["t0"] - 0.1 <= t <= d["t1"] + 0.1:
+            if d["t0"] - 0.1 <= t <= d["t1"] + 0.1:
                 dx = 1 if d["x1"] >= d["x0"] else -1
                 name = "hop_r" if dx > 0 else "hop_l"
                 put_sprite(cv, name, anim_frame(name, t - d["t0"]), home, hs)
                 return
-            if (not L.full_bleed) and d["t0"] - 0.4 <= t <= d["t1"] + 0.25 and rec.win:
+            if False and d["t0"] - 0.4 <= t <= d["t1"] + 0.25 and rec.win:
                 st_now = piecewise(rec.srcmap, t)
                 u = clamp((st_now - d["s0"]) / max(0.01, d["s1"] - d["s0"]), 0, 1)
                 sx, sy = lerp(d["x0"], d["x1"], ease_io(u)), lerp(d["y0"], d["y1"], ease_io(u))

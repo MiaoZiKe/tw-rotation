@@ -348,7 +348,7 @@ def build():
     S.append(feat("34", 4.2, "V25", rt(1.2, 4.2), "看不懂？問比比", "問比比", "每一頁都有導覽，常見問題右下角點我", "導覽",
                   focus=F((1400, 1100, 2250, 1620), 1.8, zoom=False), idle="face_wink"))
     S.append(feat("35", 3.6, "V26", rt(12.3, 3.6), "一直在進步", "進步", "功能持續新增，想要什麼跟我說！", "願望清單",
-                  focus=F((2300, 150, 3200, 1750), 1.6, zoom=False), idle="heart_wish", scrub=[EMAIL_SCRUB]))
+                  focus=F((2300, 150, 3200, 1750), 1.6, zoom=False), idle="heart_wish"))
     # 36 總結
     S.append(Shot4("36", 3.0, [], kind="card", foot=False, custom=benefits_shot(3.0), cues=[(0.3, "pop"), (0.9, "pop"), (1.5, "pop"), (2.1, "pop")]))
     # 37 片尾、38 警語
