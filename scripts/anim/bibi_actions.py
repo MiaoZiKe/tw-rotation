@@ -355,7 +355,7 @@ def interior_mask(body_rgba):
 
 def compose(poses, fr):
     """fr：{"g": 身體幾何, "limbs": [...], "front": svg 字串（肉掌、符號、牌子）, "top": 最上層 svg}"""
-    body = pose_tween.warp_body(poses[fr["g"]["src"]], fr["g"], SIZE).convert("RGBA")
+    body = pose_tween.warp_body(fr.get("pose") or poses[fr["g"]["src"]], fr["g"], SIZE).convert("RGBA")
     canvas = Image.new("RGBA", body.size, (0, 0, 0, 0))
     if fr.get("back"):
         canvas = Image.alpha_composite(canvas, raster(fr["back"]))
@@ -392,8 +392,16 @@ def compose(poses, fr):
         canvas = Image.alpha_composite(canvas, ol)
         if free:
             canvas = Image.alpha_composite(canvas, raster(free))
+    if fr.get("mid"):        # 身體前面、post 之前（例如報紙、眼鏡框底下的東西）
+        canvas = Image.alpha_composite(canvas, raster(fr["mid"]))
+    for t in fr.get("texts_mid", []):
+        canvas = Image.alpha_composite(canvas, text_layer(*t))
+    if fr.get("post"):       # 對 2048 畫布做處理（例如放大鏡把鏡片裡的畫面放大）
+        canvas = fr["post"](canvas)
     if fr.get("front"):
         canvas = Image.alpha_composite(canvas, raster(fr["front"]))
+    for t in fr.get("texts", []):
+        canvas = Image.alpha_composite(canvas, text_layer(*t))
     if fr.get("text"):
         canvas = Image.alpha_composite(canvas, text_layer(*fr["text"]))
     return canvas.resize((SIZE, SIZE), Image.LANCZOS)
@@ -420,13 +428,13 @@ import os  # noqa: E402
 HUNINN = os.environ.get("BIBI_SIGN_FONT") if os.path.exists(os.environ.get("BIBI_SIGN_FONT", "")) else None
 
 
-def text_layer(txt, c, deg, px, font_path=None):
+def text_layer(txt, c, deg, px, font_path=None, color=(42, 22, 16, 255), stroke=0.6):
     big = Image.new("RGBA", (SIZE * SS, SIZE * SS), (0, 0, 0, 0))
     font = ImageFont.truetype(font_path or _FONT, int(px * SS))
     tmp = Image.new("RGBA", (int(px * SS * (len(txt) + 1)), int(px * SS * 1.6)), (0, 0, 0, 0))
     dr = ImageDraw.Draw(tmp)
-    dr.text((tmp.width / 2, tmp.height / 2), txt, font=font, fill=(42, 22, 16, 255), anchor="mm",
-            stroke_width=int(0.6 * SS), stroke_fill=(42, 22, 16, 255))
+    dr.text((tmp.width / 2, tmp.height / 2), txt, font=font, fill=color, anchor="mm",
+            stroke_width=int(stroke * SS), stroke_fill=color)
     tmp = tmp.rotate(-deg, resample=Image.BICUBIC, expand=True)
     big.alpha_composite(tmp, (int(c[0] * SS - tmp.width / 2), int(c[1] * SS - tmp.height / 2)))
     return big
@@ -711,7 +719,7 @@ def main():
         group = key.split("_")[0]
         rd = Path(a.repo_out) / f"bibi_{group}"
         rd.mkdir(parents=True, exist_ok=True)
-        suffix = "" if key in ("wave", "tilt", "wow", "sign") else "_" + key.split("_", 1)[1]
+        suffix = "" if "_" not in key else "_" + key.split("_", 1)[1]
         labels = [f"{j+1:02d} {fr['label']}" for j, fr in enumerate(frs)]
         sheet12(imgs, labels, rd / f"sheet_12{suffix}.png")
         imgs[0].save(rd / f"anim{suffix}.webp", save_all=True, append_images=imgs[1:], duration=durs, loop=0,
