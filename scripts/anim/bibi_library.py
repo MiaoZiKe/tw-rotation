@@ -153,7 +153,7 @@ def main():
         k = Image.open(out / r["key"] / "key.png").convert("RGBA").resize((cell - 16, cell - 16), Image.LANCZOS)
         cat.paste(k, (x + 8, y + 8), k)
         dr.text((x + 8, y + 8), r["cat"], fill=(120, 90, 80), font=fs)
-        nm = r["name"].split("（")[0]
+        nm = r["name"].split("（")[0].replace("表情・", "")
         dr.text((x + cell / 2, y + cell + lab / 2 - 4), nm[:12], fill=(42, 22, 16), font=ft, anchor="mm")
     quant(cat.convert("RGBA")).save(out / "catalog.png", optimize=True)
 
@@ -163,6 +163,8 @@ def main():
          "", "每組一個資料夾：`key.png`（512×512 透明代表格）、`sheet.png`（橫排 sprite，每格 256×256、透明）、`anim.webp`（動態、透明、無限循環）。",
          "全部同一隻、同一個場景座標（身體縮 0.75、中心 x=248、腳底 y=482），疊到影片時位置可以直接對齊。",
          f"重建：`python scripts/anim/bibi_library.py --bibi <scratchpad>/bibi --out docs/anim/bibi_library`（逐格 PNG 在 scratchpad，各批產生腳本見 `scripts/anim/`）。",
+         "", "**造型規格以 `reference/parts_sheet_1011.webp`（Andy 10-11 官方部件總表）為準**，規格說明在 `reference/README.md`；"
+         "總表逐件切出的透明部件（本體、耳、手掌、腳、五官、效果符號、道具、姿勢、動作參考）在 `parts/`（`parts/index.md`）。",
          "", f"總目錄：![總目錄](catalog.png)", "",
          "| 名稱 | 中文 | 類別 | 適合用途 | 格數 | 長度 | 預覽 |", "|---|---|---|---|---|---|---|"]
     for r in rows:

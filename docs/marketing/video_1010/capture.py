@@ -264,6 +264,8 @@ class Act:
             self._put(x0 + (x - x0) * e, y0 + (y - y0) * e)
             self.frame()
         self.x, self.y = x, y
+        if getattr(self, "log_moves", False) and ms >= 500 and self.rec and self.rec.on:
+            self.note(f"游標移到 ({x:.0f},{y:.0f})css → 影片({x * self.dsf:.0f},{y * self.dsf:.0f})px")
 
     def box(self, sel, scroll=True):
         loc = self.pg.locator(sel).first
@@ -1225,10 +1227,12 @@ def v11(pg, a, start, base):
 def _3d_open(pg, a, base, route):
     _to_dg(pg, a, base, route)
     a.click('#dg3d button[data-dm="3d"]', label="切 3D")
-    for _ in range(40):
-        if pg.evaluate("() => document.querySelectorAll('#prod3d canvas').length > 0"):
+    for _ in range(120):   # 機器忙時 3D 場景要很久才掛起來；最多等 60 秒，等不到就判這鏡失敗（不交假素材）
+        if pg.evaluate("() => { const c = document.querySelector('#prod3d canvas'); return !!(c && c.getBoundingClientRect().height > 50); }"):
             break
         pg.wait_for_timeout(500)
+    else:
+        raise RuntimeError("3D 場景 60 秒內沒有掛起來")
     pg.wait_for_timeout(2500)
 
 
@@ -1513,9 +1517,9 @@ def v21(pg, a, start, base):
         a.move(bb["x"] + bb["width"] / 2, bb["y"] + bb["height"] / 2, 700)
         for v in vals[:3]:
             a.wait(500)
-            pg.evaluate("([x,y]) => window.__vcRipple(x,y)", [a.x, a.y])
+            pg.evaluate("([x,y]) => window.__vcRipple && window.__vcRipple(x,y)", [a.x, a.y])
             sel.select_option(v)
-            a.note(f"期間切到 {v}")
+            a.note(f"期間切到 {v}（下拉選單 ({a.x:.0f},{a.y:.0f})css → 影片({a.x * a.dsf:.0f},{a.y * a.dsf:.0f})px）")
             a.wait(1500)
 
 
@@ -1693,7 +1697,8 @@ def main() -> int:
                         ctx.add_init_script(HIDE_B_JS)
                     else:
                         ctx.add_init_script(HIDE_TIER_JS)
-                    ctx.add_init_script(CURSOR_JS % ("true" if dev == "m" else "false"))
+                    if args.set != "v3":   # v3：剪輯在後製畫比比的游標與漣漪 → 錄影不畫游標、不畫漣漪（座標照記）
+                        ctx.add_init_script(CURSOR_JS % ("true" if dev == "m" else "false"))
                     pg = ctx.new_page()
                     errs = []
                     pg.on("pageerror", lambda e: errs.append(str(e)[:160]))
@@ -1705,6 +1710,7 @@ def main() -> int:
                     H = int(cfg["viewport"]["height"] * cfg["device_scale_factor"])
                     rec = Recorder(pg, W, H, dry=args.log_only)
                     act.dsf = cfg["device_scale_factor"]
+                    act.log_moves = args.set == "v3"   # v3 沒有錄進游標 → 游標路徑寫進 shots.md 給後製畫比比
                     name = f"{sid}_{'mobile' if dev == 'm' else 'desktop'}"
                     try:
                         # 每鏡自己決定何時開錄：fn(pg, act, rec_start) —— 先做準備（換頁、等圖畫完）再開錄
