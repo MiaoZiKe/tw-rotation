@@ -414,15 +414,19 @@ def limb(anchor, deg, length, seed=0, merge=True, **kw):
 
 
 _FONT = "/usr/share/fonts/truetype/wqy/wqy-zenhei.ttc"
+# 牌面字：jf open 粉圓（justfont，SIL OFL 1.1，跟影片泡泡同一套）。字型檔不進 repo，
+# 用環境變數 BIBI_SIGN_FONT 指到 jf-openhuninn-2.1.ttf；找不到就退回文泉驛正黑。
+import os  # noqa: E402
+HUNINN = os.environ.get("BIBI_SIGN_FONT") if os.path.exists(os.environ.get("BIBI_SIGN_FONT", "")) else None
 
 
-def text_layer(txt, c, deg, px):
+def text_layer(txt, c, deg, px, font_path=None):
     big = Image.new("RGBA", (SIZE * SS, SIZE * SS), (0, 0, 0, 0))
-    font = ImageFont.truetype(_FONT, int(px * SS))
+    font = ImageFont.truetype(font_path or _FONT, int(px * SS))
     tmp = Image.new("RGBA", (int(px * SS * (len(txt) + 1)), int(px * SS * 1.6)), (0, 0, 0, 0))
     dr = ImageDraw.Draw(tmp)
     dr.text((tmp.width / 2, tmp.height / 2), txt, font=font, fill=(42, 22, 16, 255), anchor="mm",
-            stroke_width=int(1.2 * SS), stroke_fill=(42, 22, 16, 255))
+            stroke_width=int(0.6 * SS), stroke_fill=(42, 22, 16, 255))
     tmp = tmp.rotate(-deg, resample=Image.BICUBIC, expand=True)
     big.alpha_composite(tmp, (int(c[0] * SS - tmp.width / 2), int(c[1] * SS - tmp.height / 2)))
     return big
@@ -592,49 +596,56 @@ def act_wow(poses):
     return frames
 
 
-SIGN_BOX = (72, 70, 424, 236)
+SIGN_BOX = (98, 50, 398, 198)   # 牌底離頭頂毛 23～29px（站著的格；蹲下兩格更遠）
 
 
-def act_sign(poses, text=None):
-    # 兩拍上下晃：牌子隨身體壓扁／拉長上下，左右微傾
+def float_marks(c, w, phase):
+    """牌子下方的「浮著」記號：3 顆小閃光（大小固定、不閃爍）＋2 道淡淡的弧形飄浮線，跟著牌子走。"""
+    out = ""
+    for dx, dy, r in ((-0.40, 13, 6.0), (0.41, 11, 5.0), (-0.02, 9, 3.6)):
+        out += sparkle((c[0] + dx * w, c[1] + dy), r)
+    for dx in (-0.22, 0.20):
+        x = c[0] + dx * w; y = c[1] + 8
+        out += (f'<g opacity="0.35">' + brush(bez((x - 16, y), (x - 6, y + 6), (x + 6, y + 6), (x + 16, y), 10), 3.6, 3.0, INK)
+                + '</g>')
+    return out
+
+
+def act_sign(poses, text=None, font=None):
+    """2026-10-10 Andy 退件「許願的手太奇怪了，改成用懸空的方式呈現」：拿掉手臂與肉掌，
+    牌子懸空飄在頭頂上方（上下輕飄、左右擺 ±4°），比比抬頭看牌子（lag>0 臉往上推）＋開心彈一下
+    （蹲下與落地兩格用原圖第 2 張瞇眼笑的像素）。"""
     plan = [
-        ("舉著（低點）", dict(h=0.96, w=1.03, lag=0.03), 6, -1.5),
-        ("往上撐", dict(h=1.0, w=1.0), 0, -0.5),
-        ("撐到最高", dict(h=1.04, w=0.975, lag=-0.05, bottom=-3), -8, 1.0),
-        ("最高點晃右", dict(h=1.03, w=0.98, lag=-0.03, bottom=-2, rot=1.5), -7, 3.0),
-        ("往下", dict(h=1.0, w=1.0, rot=1.0), -1, 2.0),
-        ("落到低點", dict(h=0.955, w=1.035, lag=0.04, rot=0.5), 7, 0.5),
-        ("低點回彈", dict(h=0.975, w=1.02, lag=0.02), 4, -0.5),
-        ("再往上撐", dict(h=1.01, w=0.995), -2, -1.5),
-        ("撐到最高晃左", dict(h=1.04, w=0.975, lag=-0.05, bottom=-3, rot=-1.5), -8, -3.0),
-        ("最高點", dict(h=1.03, w=0.98, lag=-0.03, bottom=-2, rot=-1.0), -6, -2.5),
-        ("往下", dict(h=1.0, w=1.0, rot=-0.5), 0, -2.0),
-        ("快到低點", dict(h=0.97, w=1.02, lag=0.02), 4, -1.8),
+        # 標籤, 像素來源, 身體幾何
+        ("抬頭看牌子", 0, dict(lag=0.12)),
+        ("抬頭更高", 0, dict(lag=0.16, h=1.01)),
+        ("開心蹲（瞇眼笑）", 2, dict()),
+        ("彈起拉長", 0, dict(bottom=-6, h=1.03, w=0.97, lag=0.14)),
+        ("最高點", 0, dict(bottom=-9, h=1.02, w=0.98, lag=0.13)),
+        ("往下落", 0, dict(bottom=-4, h=1.02, w=0.98, lag=0.10)),
+        ("落地壓扁（瞇眼笑）", 2, dict(w=1.02)),
+        ("回彈", 0, dict(h=1.02, w=0.985, lag=0.10)),
+        ("站穩抬頭", 0, dict(lag=0.13)),
+        ("看著牌子微晃右", 0, dict(lag=0.14, rot=2.0)),
+        ("看著牌子微晃左", 0, dict(lag=0.13, rot=-1.5)),
+        ("回到抬頭", 0, dict(lag=0.12, h=0.995)),
     ]
     frames = []
     x0, y0, x1, y1 = SIGN_BOX
-    for i, (lab, gk, dy, sdeg) in enumerate(plan):
-        g = base_geom(poses, 0, **gk)
+    for i, (lab, src, gk) in enumerate(plan):
+        g = base_geom(poses, src, **gk)
+        if src == 2:   # 原圖第 2 張的天然高度（蹲），腳底同一條地面線
+            pass
         fr = {"g": g, "label": lab, "limbs": [], "front": ""}
-        sx0, sy0, sx1, sy1 = x0, y0 + dy, x1, y1 + dy
-        scx, scy = (sx0 + sx1) / 2, (sy0 + sy1) / 2
-        # 兩隻手抓在牌子下緣靠兩角（跟著牌子的傾斜）
-        grips = [add((scx, scy), rot2((-(sx1 - sx0) / 2 + 30, (sy1 - sy0) / 2 - 2), sdeg)),
-                 add((scx, scy), rot2(((sx1 - sx0) / 2 - 30, (sy1 - sy0) / 2 - 2), sdeg))]
-        paws = ""
-        for sh_src, gp, s in ((SH_SIGN_L, grips[0], 0), (SH_SIGN_R, grips[1], 1)):
-            sh = shoulder(poses, g, sh_src, depth=14)
-            v = (gp[0] - sh[0], gp[1] - sh[1])
-            L = math.hypot(*v)
-            deg = math.degrees(math.atan2(-v[1], v[0]))
-            lb = limb(sh, deg, L - 6, seed=i * 2 + s + 200, hw_root=23, hw_tip=19)
-            fr["limbs"].append(lb)
-            paws += paw_svg(gp, deg, r=16, squash=0.86, seed=i * 2 + s + 200,
-                            open_side=deg + 180)
-        fr["front"] += sign_svg(sx0, sy0, sx1, sy1, sdeg) + paws
-        fr["sign"] = {"center": [round(scx, 1), round(scy, 1)], "size": [sx1 - sx0, sy1 - sy0], "deg": sdeg}
+        ph = 2 * math.pi * i / 12
+        dy = -6.0 * math.sin(ph - 0.52)         # 上下輕飄 ±6px：身體彈到最高（第 5 格）時牌子也在最高點
+        sdeg = 4.0 * math.sin(ph + math.pi / 2)  # 左右擺 ±4°，跟上下錯開相位
+        sy0, sy1 = y0 + dy, y1 + dy
+        scx, scy = (x0 + x1) / 2, (sy0 + sy1) / 2
+        fr["front"] += float_marks((scx, sy1), x1 - x0, ph) + sign_svg(x0, sy0, x1, sy1, sdeg)
+        fr["sign"] = {"center": [round(scx, 1), round(scy, 1)], "size": [x1 - x0, y1 - y0], "deg": round(sdeg, 2)}
         if text:
-            fr["text"] = (text, (scx, scy - 4), sdeg, 84)
+            fr["text"] = (text, (scx, scy - 2), sdeg, 86, font)
         frames.append(fr)
     return frames
 
@@ -646,8 +657,8 @@ ACTIONS = {
     "point_dr": ("指向・右下", lambda p: act_point(p, -35, "右下"), [140, 80, 60, 60, 70, 90, 60, 70, 60, 90, 70, 80]),
     "tilt": ("歪頭疑問", lambda p: act_tilt(p), [140, 70, 60, 70, 60, 60, 80, 80, 160, 70, 70, 120]),
     "wow": ("驚嘆", lambda p: act_wow(p), [140, 70, 50, 60, 70, 50, 50, 50, 140, 70, 80, 120]),
-    "sign": ("舉牌（牌面留白）", lambda p: act_sign(p), [80] * 12),
-    "sign_text": ("舉牌（牌面「許願」）", lambda p: act_sign(p, "許願"), [80] * 12),
+    "sign": ("許願牌懸空（牌面留白）", lambda p: act_sign(p), [120, 90, 70, 60, 70, 60, 70, 80, 90, 100, 100, 100]),
+    "sign_text": ("許願牌懸空（牌面「許願」）", lambda p: act_sign(p, "許願", HUNINN), [120, 90, 70, 60, 70, 60, 70, 80, 90, 100, 100, 100]),
 }
 
 
