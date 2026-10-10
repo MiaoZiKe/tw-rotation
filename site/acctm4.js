@@ -83,7 +83,7 @@
       const f = Ft.byId(id); if (!f || f.kind === 'limit' || f.cat === 'grp') return;
       const n = p.lim(id); if (n === Infinity) return;
       const u = Math.min(n, used(id));
-      out.daily.push({ id, cat: f.cat, name: f.name, unit: UNIT_TXT[f.act] || '看', used: u, lim: n, rem: Math.max(0, n - u) });
+      out.daily.push({ id, cat: f.cat, name: f.name, unit: f.qunit || UNIT_TXT[f.act] || '看', used: u, lim: n, rem: Math.max(0, n - u) });
     });
     Ft.list.forEach((f) => {
       if (f.kind !== 'limit') return;

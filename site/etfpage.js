@@ -1148,8 +1148,18 @@ html.m4 #v-etf #etfInc[data-inclk] .inclknote.m4o{display:flex;margin:-4px 0 8px
   }
   const PALC = () => SOFT().pal;
   const M4 = () => document.documentElement.classList.contains('m4');   // 手機 v2 版面（≤640）
+  /* ★ 2026-10-11（DECISIONS #354）：註冊會員報酬比較開＋每日 3 次。一次＝「加入比較」下拉打開一次之內有改選（勾幾檔都算同一次）；
+     用完：「加入比較」反灰＋旁邊小字、點了不開（quota.js qbtn），比較內容照樣看得到。萬一下拉開著時剛好用完，這一下改選不生效。*/
+  const cmpUse = () => {
+    const dd = $('#etfCmpDD'); if (dd && dd._qs) return true;
+    const Q = window.TwQuota, ok = !Q || !Q.use || Q.use('etf.cmp');
+    if (ok && dd) dd._qs = 1;
+    return ok;
+  };
   function cmpDD() {
     const dd = $('#etfCmpDD'); if (!dd || !A().msDD) return null;
+    const bt = dd.querySelector('.ddbtn');
+    if (bt && !bt._qsw) { bt._qsw = 1; bt.addEventListener('click', () => { dd._qs = 0; }, true); }   // 每打開一次＝新的一次
     const codeOf = (n) => String(n).split(' ')[0];
     return A().msDD(dd, {
       menu: { rf: 'etf', kind: 'etfcmp' },
@@ -1157,16 +1167,19 @@ html.m4 #v-etf #etfInc[data-inclk] .inclknote.m4o{display:flex;margin:-4px 0 8px
         const code = codeOf(c.dataset.n); let cur = getCmp();
         if (c.checked) {
           if (cur.length >= cmpMax()) { c.checked = false; flash(`最多比較 ${cmpMax()} 檔`); cmpBlock(); return; }
+          if (!cmpUse()) { c.checked = false; return; }
           if (!cur.includes(code)) cur = cur.concat(code);
-        } else cur = cur.filter((x) => x !== code);
+        } else { if (!cmpUse()) { c.checked = true; return; } cur = cur.filter((x) => x !== code); }
         setCmp(cur); drawRet();
       },
       onAll: (vis) => {
         let cur = getCmp(); const add = vis.map(codeOf).filter((c) => !cur.includes(c));
+        if (add.length && cur.length < cmpMax() && !cmpUse()) return;
         if (cur.length + add.length > cmpMax()) { flash(`最多比較 ${cmpMax()} 檔，只加到滿`); cmpBlock(); }
         cur = cur.concat(add).slice(0, cmpMax()); setCmp(cur); drawRet();
       },
       onNone: (vis) => {
+        if (!cmpUse()) return;
         const rm = new Set((vis || getCmp()).map(codeOf));
         setCmp(getCmp().filter((c) => !rm.has(c))); drawRet();
       },
@@ -1502,44 +1515,91 @@ html.m4 #v-etf #etfInc[data-inclk] .inclknote.m4o{display:flex;margin:-4px 0 8px
   const LK_ONE = ['#incList .ilr > input[type=checkbox]', '#incReset', '#incDetCx', '#incToCx', '#m4EtfSet-inc', '#m4EtfSegs[data-p="inc"] button'];
   const LK_SEL = LK_BOX.concat(LK_ONE).join(',');
   const LK_NOTE = 'Plus 以上可自訂參數';
-  const lkHit = (t) => !!(t && t.closest && t.closest(LK_SEL) && S.inc && S.inc._lk && S.view === 'inc');
+  /* ★ 2026-10-11（DECISIONS #354，Andy：「功能要曝光度…我們可以開放…但就是限制功能」→「限制次數才對」）：
+     註冊會員的參數改成開＋每日 3 次（features.js etf.inc.params limBy）。一次＝改一次參數；連續拖拉／打字／連點 1.5 秒內算同一次（P_BURST）。
+     用完：跟「沒權限」同一個反灰（data-inclk），旁邊字換成「今日 3 次已用完・Plus 以上可增加」，**停在目前的條件**（不退回預設 ——
+     他今天自己調好的三次結果要還看得到）；點了不動作、不跳視窗。 */
+  const PQ = 'etf.inc.params', P_BURST = 1500;
+  let pLast = 0;
+  const canP = () => { const P = window.TwPerm; return !P || P.can(PQ); };
+  const pOut = () => { const Q = window.TwQuota; return !!(S.inc && !S.inc._lk && canP() && Q && Q.out && Q.out(PQ) && Date.now() - pLast >= P_BURST); };
+  const lkHit = (t) => !!(t && t.closest && t.closest(LK_SEL) && S.inc && (S.inc._lk || pOut()) && S.view === 'inc');
   /* 點了不動作、也不跳任何東西（旁邊已經有一行備註）*/
   document.addEventListener('click', (e) => { if (!lkHit(e.target)) return; e.preventDefault(); e.stopImmediatePropagation(); }, true);
   /* 鍵盤或程式改值（disabled 之外的保險）：攔下 change，畫面重畫回預設值 */
   document.addEventListener('change', (e) => { if (!lkHit(e.target)) return; e.stopImmediatePropagation(); setTimeout(drawInc, 0); }, true);
+  /* 計次（上面兩支沒擋下來的＝可以改）：按鈕用 click 算、勾選框／下拉／輸入框用 change／input 算（同一下的 click＋change 落在同一個 1.5 秒內，只算一次）。
+     條件摘要鈕（手機打開抽屜）只是打開、不算。 */
+  ['click', 'input', 'change'].forEach((type) => document.addEventListener(type, (e) => {
+    const t = e.target; if (!t || !t.closest || S.view !== 'inc' || !S.inc || S.inc._lk) return;
+    if (!t.closest(LK_SEL) || t.closest('#m4EtfSet-inc')) return;
+    if (type === 'click' && !t.closest('button')) return;
+    const Q = window.TwQuota; if (!Q || !Q.use || !canP() || Q.limit(PQ) === Infinity) return;   // 範本關掉、靠體驗額度打開的那天：不另外計參數次數
+    const now = Date.now();
+    if (now - pLast < P_BURST) { pLast = now; return; }
+    if (Q.use(PQ)) { pLast = now; return; }
+    e.preventDefault(); e.stopImmediatePropagation();
+    if (type !== 'click') setTimeout(drawInc, 0);
+    lkPaint();
+  }, true));
   /* 把鎖的樣子套到目前畫面（每次 drawInc 結尾叫一次；清單／細節卡重畫時 CSS 選擇器自己跟上，不必逐一補屬性）*/
   function lkPaint() {
     const box = $('#etfInc'); if (!box || !S.inc) return;
-    const lk = !!S.inc._lk;
+    const used = !S.inc._lk && (() => { const Q = window.TwQuota; return !!(canP() && Q && Q.out && Q.out(PQ)); })();
+    const lk = !!S.inc._lk || used;
     box.toggleAttribute('data-inclk', lk);
+    box.toggleAttribute('data-incout', used);
     $$('#incPM .incctl input, #incPM .incctl select, #incPM .incctl button, #incPX .cxctl input, #incPX .cxctl select, #incPX .cxctl button, #incPX .cmpw input, #incPX .cmpw button', box)
       .forEach((el) => { if (lk) { if (!el.disabled) { el.disabled = true; el.dataset.inclkd = '1'; } } else if (el.dataset.inclkd) { el.disabled = false; delete el.dataset.inclkd; } });
-    const note = `<span class="inclknote" title="目前方案只能看預設條件（年領 100 萬・配息型・不扣二代健保・近 5 年・單檔 ETF）的試算結果">🔒 ${LK_NOTE}</span>`;
+    const nt = used ? `今日 ${window.TwQuota.limit(PQ)} 次已用完・Plus 以上可增加` : `🔒 ${LK_NOTE}`;
+    const tip = used ? '今天自訂參數的次數用完了：停在目前的條件，明天（台北時間 0 點）自動恢復' : '目前方案只能看預設條件（年領 100 萬・配息型・不扣二代健保・近 5 年・單檔 ETF）的試算結果';
+    const note = `<span class="inclknote" title="${tip}">${nt}</span>`;
     $$('.incctl, .cxctl', box).forEach((row) => {
       const n = $(':scope > .inclknote', row);
-      if (lk && !n) row.insertAdjacentHTML('afterbegin', note); else if (!lk && n) n.remove();
+      if (n && (!lk || n.textContent !== nt)) n.remove();
+      if (lk && !$(':scope > .inclknote', row)) row.insertAdjacentHTML('afterbegin', note);
     });
     /* 手機（html.m4）：參數列收進摘要鈕、本身藏起來 → 另一份小字放在參數列後面（只在 html.m4 顯示，桌機 display:none）*/
     const pm = $('#incPM > .incctl', box), mn = $('#incPM > .inclknote.m4o', box);
-    if (lk && pm && !mn) pm.insertAdjacentHTML('afterend', note.replace('class="inclknote"', 'class="inclknote m4o"'));
-    else if (!lk && mn) mn.remove();
+    if (mn && (!lk || mn.textContent !== nt)) mn.remove();
+    if (lk && pm && !$('#incPM > .inclknote.m4o', box)) pm.insertAdjacentHTML('afterend', note.replace('class="inclknote"', 'class="inclknote m4o"'));
   }
   /* 2026-10-10 Andy 00:4x：「ETF 報酬比較 與 複利試算表 不開放此會員等級」—— 內容的反灰示意＋一行字由 perm.js 的 veil（features.js note，qcard inline 備註）蓋；
      這裡補兩件 perm.js 不管的：報酬比較標題列的「加入比較／含息不含息」反灰不動作、複利試算表分頁鈕反灰＋小字。不跳任何視窗。*/
   const canK = (k) => { const P = window.TwPerm; return !P || P.can(k); };
+  /* ★ 2026-10-11（DECISIONS #354）：報酬比較、複利試算表註冊會員開＋每日 3 次（features.js limBy）。今天用完了沒（不扣次）：*/
+  const outK = (k) => { const Q = window.TwQuota; return !!(Q && Q.out && canK(k) && Q.out(k)); };
   function cmpLkPaint() {
     const card = $('#etfRetCard'); if (card) card.toggleAttribute('data-cmplk', !canK('etf.cmp'));
     const b = $('#incMain button[data-v="x"]'); if (!b) return;
-    const lk = !canK('etf.inc.comp'), n = $('.inctabnote', b);
+    /* 複利分頁鈕：沒權限＝「🔒 Plus 以上可查看」；今天打開次數用完＝「今日 3 次已用完」（反灰、點了不動作、不跳視窗）*/
+    const used = outK('etf.inc.comp'), lk = !canK('etf.inc.comp') || used, n = $('.inctabnote', b);
+    const txt = used ? `今日 ${window.TwQuota.limit('etf.inc.comp')} 次已用完` : '🔒 Plus 以上可查看';
     b.classList.toggle('lkc', lk);
-    if (lk && !n) b.insertAdjacentHTML('beforeend', '<small class="inctabnote">🔒 Plus 以上可查看</small>'); else if (!lk && n) n.remove();
+    b.toggleAttribute('data-qnote', used);
+    if (n && (!lk || n.textContent !== txt)) n.remove();
+    if (lk && !$('.inctabnote', b)) b.insertAdjacentHTML('beforeend', `<small class="inctabnote">${txt}</small>`);
   }
   document.addEventListener('click', (e) => {
     const t = e.target; if (!t || !t.closest) return;
-    if (t.closest('#etfRetCard[data-cmplk] #etfRetCtl')) { e.preventDefault(); e.stopImmediatePropagation(); }
+    if (t.closest('#etfRetCard[data-cmplk] #etfRetCtl')) { e.preventDefault(); e.stopImmediatePropagation(); return; }
+    /* 複利試算表今天用完：分頁鈕／「看複利」鈕按了不動作（旁邊已經寫了） */
+    if (t.closest('#incMain button[data-v="x"], #incDetCx, #incToCx') && S.inc && S.inc.main !== 'x' && outK('etf.inc.comp')) { e.preventDefault(); e.stopImmediatePropagation(); }
   }, true);
+  /* 複利試算表每「打開一次」算一次：從月配切過來、按「看複利」、手機子分頁、或重新整理時記住停在複利 —— 都經過 drawInc，在那裡判。
+     同一次停在複利裡的重畫（改起始日、權限晚到）不重算；切回月配或離開試算頁再回來＝下一次。用完 → 退回月配試算表。
+     權限還沒到（不限次）時先放行、不記，等權限到了重畫時才記。*/
+  function cxGate() {
+    if (!S.inc || S.inc.main !== 'x') { S._cxIn = false; return; }
+    if (S._cxIn || !canK('etf.inc.comp')) return;
+    const Q = window.TwQuota; if (!Q || !Q.use || Q.limit('etf.inc.comp') === Infinity) return;
+    if (Q.use('etf.inc.comp')) S._cxIn = true;
+    else { S.inc.main = 'm'; LS.set('tw.etf.inc.main', 'm'); }
+  }
+  window.addEventListener('hashchange', () => { if (!/^#etf\/inc/.test(location.hash || '')) S._cxIn = false; });
   window.addEventListener('tw:perm', () => cmpLkPaint());
   window.addEventListener('tw:grants', () => cmpLkPaint());
+  window.addEventListener('tw:quse', () => cmpLkPaint());
   /* 權限晚一步到（/v1/perm/me）、登入登出、體驗打開 → 鎖的狀態可能換了：重載參數再畫一次 */
   ['tw:perm', 'tw:grants', 'tw:account'].forEach((ev) => window.addEventListener(ev, () => {
     if (!S.inc || S.view !== 'inc' || !$('#incPX')) return;
@@ -1770,6 +1830,7 @@ html.m4 #v-etf #etfInc[data-inclk] .inclknote.m4o{display:flex;margin:-4px 0 8px
   }
   function drawInc() {
     incLoad();
+    cxGate();
     /* 參數鎖：報酬期間 S.per 是整個 ETF 頁共用的（總覽的報酬比較也用）→ 只在試算這一頁暫時換成預設「近 5 年」，不寫 localStorage；離開試算時 drawAll 還原 */
     if (S.inc._lk) { if (S.per !== '5y') { S._perLk = S._perLk || S.per; S.per = '5y'; } } else perUnlk();
     const box = $('#etfInc'); if (!box) return;

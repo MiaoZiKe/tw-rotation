@@ -1797,7 +1797,11 @@
      這裡是第二道：所有播放器（playBar／spanBar／dayBar）的 start() 先問一次，不管是哪顆鈕、哪個抽屜、還是程式直接呼叫，都播不起來。
      只管資金輪動（#rotBack）與資金分流樹（#sankeyDays）；本益比河流圖等其他播放器不受影響。*/
   const PLAY_GATED = ['rotBack', 'sankeyDays'];
-  const playOk = (box) => !(box && PLAY_GATED.includes(box.id)) || !window.TwPerm || window.TwPerm.can('flow.play');
+  /* ★ 2026-10-11（DECISIONS #354，Andy：「功能要曝光度…我們可以開放…但就是限制功能」→「限制次數才對」）：註冊會員開＋每日 3 次。
+     真的開始播的那一下才扣一次（TwQuota.use：每按一次 ▶ 算一次；按 ⏸ 停不算、播完自己停不算）；用完 → 播不起來，
+     ▶ 反灰＋旁邊「今日 3 次已用完・Plus 以上可增加」由 quota.js 畫（不跳視窗）。*/
+  const playOk = (box) => !(box && PLAY_GATED.includes(box.id)) || !window.TwPerm
+    || (window.TwPerm.can('flow.play') && (!window.TwQuota || !window.TwQuota.use || window.TwQuota.use('flow.play', box.querySelector('.pb.play'))));
   function playBar(box, o) {
     box = typeof box === 'string' ? document.getElementById(box) : box;
     if (!box) return null;
@@ -3971,7 +3975,7 @@
   function drawMarket(kind) {
     // 舊書籤 #market/top5 進來時落回漲跌家數（那一頁 2026-09-18 拿掉了）
     if (!MKT.some(m => m[0] === kind)) kind = 'updown';
-    if (kind !== mktKind || mktLeft) mktReset();                 // 換分頁或離開再回來：這頁所有設定回預設（見 mktReset）
+    if (kind !== mktKind || mktLeft) { mktReset(); MKT_ST.candOk = undefined; }   // 換分頁或離開再回來：這頁所有設定回預設（見 mktReset）；今日關注的「這次進來算過了沒」也歸零
     mktLeft = false;
     mktKind = kind;
     // 法人連買賣的讀法在那張卡自己的 trust「?」；頁級 mkt 那顆在這一頁藏起來，不讓同一張卡標題出現兩顆內容重疊的「?」
@@ -4178,13 +4182,24 @@
     /* ★ 2026-10-10 Andy：「註冊免費會員 今日關注限制不可以看」＋「這種訊息不要用跳出的方式表示，功能反灰旁邊備註就好」：
        沒權限（features.js mkt.cand；訪客／註冊會員預設關）→ 名單**根本不畫進畫面**（不是畫了再模糊），原位置放一塊反灰示意列＋一行字。
        不跳視窗、不蓋升級卡。權限晚到（tw:perm）時下面的監聽會重畫這一頁。*/
-    if (window.TwPerm && !window.TwPerm.can('mkt.cand')) {
+    /* ★ 2026-10-11（DECISIONS #354，Andy：「功能要曝光度…我們可以開放…但就是限制功能」→「限制次數才對」）：註冊會員開＋每日 3 次。
+       每「進一次今日關注分頁」算一次（同一次停在這頁的重畫 —— 權限晚到、換主題 —— 不重算；離開再進來算下一次）。
+       用完＝跟沒權限同一塊反灰示意列，字換成「今日關注今日 3 次已用完・Plus 以上可增加」，名單一樣不畫進畫面。
+       權限還沒到（不限次）時先放行、不記，等 tw:perm 重畫時才記（不然權限晚到的那一次會白看）。*/
+    const candGate = () => {
+      const Q = window.TwQuota; if (!Q || !Q.use || MKT_ST.candOk === true) return true;
+      if (Q.limit('mkt.cand') === Infinity) return true;
+      MKT_ST.candOk = Q.use('mkt.cand');
+      return MKT_ST.candOk;
+    };
+    const candNo = window.TwPerm && !window.TwPerm.can('mkt.cand') ? 'Plus 以上可查看今日關注' : !candGate() ? `今日關注今日 ${window.TwQuota.limit('mkt.cand')} 次已用完・Plus 以上可增加` : '';
+    if (candNo) {
       title.innerHTML = '今日關注';
       const bar = (w) => `<span style="display:block;height:10px;border-radius:5px;width:${w}%;background:var(--line-2)"></span>`;
-      body.innerHTML = `<div class="candlock" id="candLock" aria-label="今日關注：Plus 以上可查看" style="position:relative;padding:4px 0 8px">
+      body.innerHTML = `<div class="candlock" id="candLock" aria-label="今日關注：${candNo}" style="position:relative;padding:4px 0 8px">
         <table class="tbl" aria-hidden="true" style="opacity:.45;filter:grayscale(1);width:100%;pointer-events:none"><thead><tr><th class="l">股票</th><th>判定</th><th>綜合分</th><th>漲跌</th><th>收盤</th></tr></thead>
         <tbody>${[62, 48, 70, 55, 40, 66].map(w => `<tr><td class="l">${bar(w)}</td><td>${bar(40)}</td><td>${bar(50)}</td><td>${bar(60)}</td><td>${bar(55)}</td></tr>`).join('')}</tbody></table>
-        <p class="candlock-t" style="margin:12px 0 0;font-size:14px;color:var(--ink-2);text-align:center">Plus 以上可查看今日關注</p></div>`;
+        <p class="candlock-t" style="margin:12px 0 0;font-size:14px;color:var(--ink-2);text-align:center">${candNo}</p></div>`;
       return;
     }
     const ab = cands.filter(c => c.grade === 'A' || c.grade === 'B');
@@ -5093,7 +5108,8 @@
       /* ★ 2026-10-10 Andy：「資金輪盤提示框的『進族群頁 →』…這種訊息不要用跳出的方式表示，功能反灰旁邊備註就好」→
          沒權限（heat.link，Plus 以上）時照樣顯示但反灰、不是連結，旁邊小字「Plus 以上可跳轉」；點了沒反應。*/
       + (ovLinkOk() ? `<a class="rp-go" href="#industry/group/${encodeURIComponent(r.gid)}">進族群頁 →</a>`
-        : `<span class="rp-go off" aria-disabled="true" title="Plus 以上可跳轉">進族群頁 →</span><span class="rp-note">Plus 以上可跳轉</span>`);
+        : (() => { const nt = fmt.esc(window.TwQuota && window.TwQuota.heatLinkNote ? window.TwQuota.heatLinkNote() : 'Plus 以上可跳轉');   // 2026-10-11：註冊會員今天跳轉次數用完時寫「今日跳轉 3 次已用完」
+          return `<span class="rp-go off" aria-disabled="true" title="${nt}">進族群頁 →</span><span class="rp-note">${nt}</span>`; })());
     box.dataset.gid = r.gid;
     box.hidden = false;
     box._vw = window.innerWidth; box._vh = window.innerHeight;     // 下面 resize 監聽用：視窗真的變了才收
@@ -13218,17 +13234,30 @@
     const SN_BAR_MIN = 4;                   // 一根長條最窄幾 px（再窄就只是一條線，看不出高低）
     const snColor = (i) => PALETTE[SEASON_LINE_IDX[i % SEASON_LINE_IDX.length]];
     /* 多選下拉：外觀與行為全在共用的 msDD()（站上均線走勢也用同一支），這裡只交代「勾了要改什麼狀態」。*/
+    /* ★ 2026-10-11（DECISIONS #354，Andy：「限制次數才對」）：註冊會員族群篩選開＋每日 3 次。
+       一次＝「下拉打開一次之內有改選」（一次打開勾幾個都算同一次；打開沒改不算）；圖下色票點掉一個＝一次。
+       用完：下拉反灰＋旁邊小字、點了不開（quota.js qbtn）；萬一下拉開著時剛好用完，這一下改選不生效（勾選退回）。*/
+    const snUse = (sess) => {
+      const dd = $('#seasonGroupDD');
+      if (sess && dd && dd._qs) return true;
+      const ok = !window.TwQuota || !window.TwQuota.use || window.TwQuota.use('season.groups');
+      if (ok && sess && dd) dd._qs = 1;
+      return ok;
+    };
     const snDD = () => { const dd = $('#seasonGroupDD'); if (!dd) return null;
+      const bt = dd.querySelector('.ddbtn');
+      if (bt && !bt._qsw) { bt._qsw = 1; bt.addEventListener('click', () => { dd._qs = 0; }, true); }   // 每打開一次＝新的一次
       return msDD(dd, {
         menu: { rf: 'season', kind: 'sngroup' },
         headMatch: (q) => AVG.includes(q),
-        onAll: (add) => { const cur = [...lineSel];
+        onAll: (add) => { if (!snUse(true)) return; const cur = [...lineSel];
           lineSel = new Set([...cur, ...add.filter(n => !cur.includes(n))]);
           pick = 'custom'; paintPick(); drawLine(); writeNote(); },
-        onNone: (vis) => { const rm = new Set(vis || [...lineSel]);
+        onNone: (vis) => { if (!snUse(true)) return; const rm = new Set(vis || [...lineSel]);
           lineSel = new Set([...lineSel].filter(n => !rm.has(n)));
           pick = 'custom'; paintPick(); drawLine(); writeNote(); },
         onToggle: (c) => {
+          if (!snUse(true)) { c.checked = !c.checked; return; }
           if (c.dataset.avg) avgOn = c.checked;
           else { const n = c.dataset.n;
             // 保留原本的順序（顏色才不會整組換），新勾的接在最後
@@ -13318,6 +13347,7 @@
       // 圖下的色票：哪個顏色是誰（取代原本那排要翻頁的圖例）；點一個＝把它從比較裡拿掉
       const key = $('#seasonKey');
       if (key) msTags(key, drawn.map(n => ({ name: n, color: colorOf[n] })), (n) => {
+        if (!snUse(false)) return;
         lineSel = new Set([...lineSel].filter(x => x !== n)); pick = 'custom'; paintPick(); drawLine(); writeNote(); },
         avgOn ? `<span class="snk avg" title="全部族群平均（細灰線）"><i></i>平均</span>` : '');
       const warn = $('#seasonBarWarn');

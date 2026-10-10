@@ -82,8 +82,13 @@
     /* 2026-10-10 Andy：「資金輪動 跟分流樹 播放功能在此會員不開放」→ 只鎖 ▶ 播放（拉桿、− ＋ 手動照用）。
        note＝備註模式（perm.js）：▶ 反灰、旁邊一行小字，點了沒反應、不跳視窗（Andy 10-10：「功能反灰旁邊備註就好」）；
        defBy 訪客／註冊會員關，範本沒寫也生效（account-api GRANT_DEF_OFF 同步）。*/
-    { id: 'flow.play', name: '資金輪動／分流樹 ▶ 播放', cat: 'flow', def: true, defBy: { guest: false, free: false }, kind: 'bool', note: 'Plus 以上可播放',
-      desc: '資金輪動「N 天前」回放與資金分流樹「看哪一天」的 ▶ 播放（關掉：▶ 反灰、旁邊註明 Plus 以上可播放；拉桿與 − ＋ 照常）', veil: [], mark: [], block: ['#rotBack .pb.play', '#sankeyDays .pb.play'] },
+    /* ★ 2026-10-11 Andy（宣傳影片討論，動畫聊天室轉述）：「功能要曝光度，我們可以開放…但就是限制功能」→ 更正「限制次數才對」（DECISIONS #354）：
+       註冊會員改成「開＋每日 3 次」（limBy＝範本 lims 沒寫這一項時的每日次數；範本寫了以範本為準）；訪客照舊關（defBy guest）。
+       qbtn＝次數用完的備註字（{n}＝每日次數）；qper:'each'＝每用一次算一次（app.js 播放器 start() 自己呼叫 TwQuota.use，quota.js 只在用完時反灰＋擋）；
+       qfree＝正在播放時那顆 ⏸ 不擋（第 3 次播到一半要能停）。*/
+    { id: 'flow.play', name: '資金輪動／分流樹 ▶ 播放', cat: 'flow', def: true, defBy: { guest: false }, limBy: { free: 3 }, kind: 'bool', note: 'Plus 以上可播放',
+      qbtn: '今日 {n} 次已用完', qper: 'each', qfree: '.playing', qunit: '播放',
+      desc: '資金輪動「N 天前」回放與資金分流樹「看哪一天」的 ▶ 播放（關掉：▶ 反灰、旁邊註明 Plus 以上可播放；拉桿與 − ＋ 照常；每日次數＝每按一次 ▶ 算一次）', veil: [], mark: [], block: ['#rotBack .pb.play', '#sankeyDays .pb.play'] },
     // ---- 產業
     box('ind.map', 'industry', '產業地圖', ['#indMap'], '產業鏈列表與強弱（產業地圖首頁）'),
     box('ind.groups', 'industry', '族群總覽（長條＋圓餅）', ['#gpSec'], '單一產業鏈裡各族群的漲跌與成交值占比'),
@@ -110,12 +115,17 @@
     /* 2026-10-10 Andy：「註冊免費會員 今日關注限制不可以看」→ defBy 訪客／註冊會員關（範本沒寫這一項時的預設；範本寫了以範本為準），
        plan_presets.js 訪客／註冊會員也寫 false。今日關注依法遵不能放進體驗額度（grants GRANT_BAN）。*/
     /* 關掉時不再蓋需開通卡（veil 拿掉）：app.js 在原位置畫一塊反灰示意＋「Plus 以上可查看今日關注」（Andy 10-10：不要跳出視窗），名單根本不畫進畫面 */
-    { id: 'mkt.cand', name: '市場明細：今日關注', cat: 'market', def: true, defBy: { guest: false, free: false }, kind: 'bool', desc: '回檔型態／突破型態條件名單（關掉：分頁照常點得進去，內容換成「Plus 以上可查看今日關注」說明區）',
+    /* 2026-10-11（DECISIONS #354）：註冊會員改成開＋每日 3 次（limBy）；每「進一次今日關注分頁」算一次（app.js drawMarket 自己呼叫 TwQuota.use），
+       用完＝原位置同一塊反灰示意列，字改成「今日關注今日 3 次已用完・Plus 以上可增加」。*/
+    { id: 'mkt.cand', name: '市場明細：今日關注', cat: 'market', def: true, defBy: { guest: false }, limBy: { free: 3 }, qper: 'each', qunit: '看', kind: 'bool', desc: '回檔型態／突破型態條件名單（關掉：分頁照常點得進去，內容換成「Plus 以上可查看今日關注」說明區）',
       veil: [], mark: ['#mktSeg2 button[data-k="cand"]'], block: [] },
     box('season.month', 'market', '週期統計', ['#v-season'], '族群在各月份的歷史表現（整頁）'),
     /* 2026-10-10 Andy：「週期統計 免費註冊會員不開放 族群篩選功能」→ 長條圖上方「族群：已選 N 個」多選下拉與下方色票（點一下拿掉）鎖住，
        反灰＋旁邊小字（note，Andy 10-10：「功能反灰旁邊備註就好」，不跳視窗），畫面維持預設族群；期間、超額／絕對／勝率、熱力圖／長條圖、最強／最弱照舊（那些是 season.pick 計次）。*/
-    { id: 'season.groups', name: '週期統計：族群篩選', cat: 'market', def: true, defBy: { guest: false, free: false }, kind: 'bool',
+    /* 2026-10-11（DECISIONS #354）：註冊會員改成開＋每日 3 次（limBy）。一次＝下拉打開一次之內有改選（不管勾幾個）、或點掉一個色票（app.js snUse）；
+       用完：下拉反灰＋旁邊「今日 3 次已用完・Plus 以上可增加」，點了不開（quota.js qbtn 備註模式）；剛好在下拉開著時用完 → 那顆鈕先不反灰、按得收起來（qfree）。*/
+    { id: 'season.groups', name: '週期統計：族群篩選', cat: 'market', def: true, defBy: { guest: false }, limBy: { free: 3 }, kind: 'bool',
+      qbtn: '今日 {n} 次已用完・Plus 以上可增加', qbtnOn: ['#seasonGroupDD .ddbtn'], qbtnAt: '.rotdd', qper: 'each', qunit: '篩選', qfree: '.rotdd.open',
       note: 'Plus 以上可篩選族群', noteOn: ['#seasonGroupDD .ddbtn'], noteAt: '.rotdd',
       desc: '長條圖「族群：已選 N 個」多選下拉（關掉：下拉反灰、旁邊註明 Plus 以上可用，維持預設族群）', veil: [], mark: [], block: ['#seasonGroupDD .ddbtn', '#seasonKey > *'] },
     // ---- 個股頁：K 線與工具
@@ -123,13 +133,23 @@
     /* 2026-10-06（DECISIONS #326）：即時只給管理者 —— 非管理者的「分時」是最近交易日的盤後分時（資料湖 60 分 K），名稱拿掉「即時」（id 不改）；
        1／5／15 分 K 只有即時來源，非管理者整排不列，標 adminOnly（訂閱頁的權益對照表不列，免得寫成付費就有）。*/
     ktf('stock.tick', '分時走勢', ['tick'], '分時走勢（管理者盤中即時；其他人看最近交易日的盤後分時）'),
-    Object.assign(ktf('stock.k_min', '分 K（1／5／15 分）', ['1m', '5m', '15m'], '短週期分 K（即時來源，2026-10-08 起僅站主與管理員看得到）'), { adminOnly: true }),
+    Object.assign(ktf('stock.k_min', '分 K（1／5／15 分）', ['1m', '5m', '15m'], '短週期分 K（即時來源，2026-10-08 起僅站主與管理員看得到）'), { adminOnly: true,
+      /* 2026-10-11（DECISIONS #354）：範本跟著開＋每日 3 次（同一檔同一天只算一次）；這排鈕目前只有站主／管理員畫得出來，一般註冊會員畫面上看不到 */
+      limBy: { free: 3 }, qbtn: '分 K 今日 {n} 次已用完', qnoteAfter: '#skTools > .sp', qoff: '#tfSeg button[data-tf="1d"]' }),
     ktf('stock.k_hour', '1H／4H K 線', ['60m', '240m'], '60 分與 240 分 K'),
-    { id: 'stock.mtf', name: '四週期同看', cat: 'stockk', def: true, kind: 'bool', desc: '一次看四個週期的小圖',
+    /* ★ 2026-10-11（DECISIONS #354）個股 K 線工具三項：註冊會員開＋每日 3 次（limBy）。單位＝個股代號（quota.js unitKey 'stock'）：
+       同一檔同一天重複打開不重算，比照 stock.page。計數走 quota.js 的捕獲點擊（qblock／block）＋畫面上真的開著（四週期的格子）；
+       用完：鈕反灰＋工具列中段一行小字（qnoteAfter），點了不動作、不跳卡；停在四週期就退回單一週期（qoff）。
+       畫線的計次鈕是 qblock（桌機左側工具列常駐、點了某個畫線工具才算；選取／橡皮擦不算），鎖頭仍用 block（#drawTgl＋整塊 veil）。*/
+    { id: 'stock.mtf', name: '四週期同看', cat: 'stockk', def: true, kind: 'bool', desc: '一次看四個週期的小圖', limBy: { free: 3 },
+      qbtn: '四週期今日 {n} 次已用完', qnoteAfter: '#skTools > .sp', qoff: '#mtfBtn',
       veil: [['#chartWrap', '#mtfGrid']], mark: [], block: ['#mtfBtn'] },
-    { id: 'stock.ind', name: '指標設定', cat: 'stockk', def: true, kind: 'bool', desc: 'K 線上的指標開關、參數、顏色（關掉時沿用預設指標）',
+    { id: 'stock.ind', name: '指標設定', cat: 'stockk', def: true, kind: 'bool', desc: 'K 線上的指標開關、參數、顏色（關掉時沿用預設指標）', limBy: { free: 3 },
+      qbtn: '指標設定今日 {n} 次已用完', qnoteAfter: '#skTools > .sp',
       veil: [], mark: [], block: ['#indBtn'] },
-    { id: 'stock.draw', name: '畫線工具', cat: 'stockk', def: true, kind: 'bool', desc: 'K 線上畫趨勢線、水平線',
+    { id: 'stock.draw', name: '畫線工具', cat: 'stockk', def: true, kind: 'bool', desc: 'K 線上畫趨勢線、水平線', limBy: { free: 3 },
+      qbtn: '畫線今日 {n} 次已用完', qnoteAfter: '#skTools > .sp', qveil: [],
+      qblock: ['#drawTgl', '#drawBar .dtool[data-t]:not([data-t="cursor"]):not([data-t="erase"])'],
       veil: [['#drawBar']], mark: [], block: ['#drawTgl'] },
     { id: 'stock.ai', name: 'AI 分析', cat: 'stockk', def: true, kind: 'bool', desc: '技術／籌碼／基本／消息四面向的規則式分析',
       /* 2026-10-02（#294）：個股「總覽」分頁也有一份 AI 分析（重點卡 #ovAiBrief ＋ 技術面／基本面／消息面三張細節卡 [data-ai]），一起上鎖；
@@ -233,7 +253,10 @@
        停用、只顯示預設值算出來的結果，旁邊一顆「🔒 升級可自訂參數」→ 升級卡。排序、圖表互動、看細節照常。實作在 site/etfpage.js（incParamsOk）。
        defBy：範本沒寫時訪客關、註冊會員關，付費範本沒寫＝開（跟 heat.link 同一套，不必先按「套用建議方案」也照身分生效）。
        體驗額度打開 etf.cashflow 的那天（TwGrants.open）＝當作已開通，參數也一起放開。*/
-    { id: 'etf.inc.params', name: 'ETF 試算自訂參數', cat: 'etf', def: true, kind: 'bool', defBy: { guest: false, free: false }, route: /^#etf\/inc/,
+    /* 2026-10-11（DECISIONS #354）：三個 ETF 新鍵註冊會員改成開＋每日 3 次（limBy），訪客照舊關。計數都在 site/etfpage.js（qper:'each'）：
+       參數＝改一次算一次（連續拖拉／打字 1.5 秒內算同一次）；報酬比較＝下拉打開一次之內改選算一次；複利試算表＝每打開一次算一次。
+       用完：參數整組反灰＋「今日 3 次已用完・Plus 以上可增加」（停在目前的條件，不退回預設）、加入比較反灰＋小字、複利分頁鈕反灰＋小字。*/
+    { id: 'etf.inc.params', name: 'ETF 試算自訂參數', cat: 'etf', def: true, kind: 'bool', defBy: { guest: false }, limBy: { free: 3 }, qper: 'each', qunit: '調參數', route: /^#etf\/inc/,
       desc: '現金流試算（月配＋複利）上方參數可以調整（關掉：參數鎖住、只看預設條件的結果，點了跳升級卡；排序照常）', veil: [], mark: [], block: [] },
     /* 2026-10-10 Andy 00:4x：「ETF 報酬比較 與 複利試算表 不開放此會員等級」（＝註冊會員；訪客本來就更嚴）。
        用新鍵＋defBy（訪客、註冊會員預設關，付費範本沒寫＝開），不改舊的 etf.returns —— 正式站範本裡 etf.returns 已經明寫 true，
@@ -241,9 +264,10 @@
        報酬比較：只蓋內容（#etfRetBody），卡片標題留著讓人知道有這功能；標題列的「加入比較」「含息／不含息」反灰、點了沒反應（etfpage.js）。
        複利試算表：月配試算表照舊（每日 5 次＋參數鎖），「複利試算表」分頁鈕反灰＋小字，點進去原位置反灰示意＋一行字。
        ★ 同日 Andy：「這種訊息不要用跳出的方式表示，功能反灰旁邊備註就好」→ note／qnote＝qcard 的 inline 備註模式（note 跟 perm.js 備註模式同一個欄位名）（一行字，不是大卡、不彈出）。*/
-    { id: 'etf.cmp', name: 'ETF 報酬比較（付費）', cat: 'etf', def: true, kind: 'bool', defBy: { guest: false, free: false },
+    { id: 'etf.cmp', name: 'ETF 報酬比較（付費）', cat: 'etf', def: true, kind: 'bool', defBy: { guest: false }, limBy: { free: 3 }, qper: 'each', qunit: '改選',
+      qbtn: '今日 {n} 次已用完・Plus 以上可增加', qblock: ['#etfCmpDD .ddbtn'], qbtnAt: '#etfCmpDD', qfree: '.rotdd.open',
       desc: 'ETF 總覽下方「報酬比較」卡的內容（累積報酬走勢、年化報酬率橫條、明細表）；關掉：標題留著、內容蓋需開通卡', veil: [['#etfRetBody']], mark: [], block: [], note: 'Plus 以上可查看' },
-    { id: 'etf.inc.comp', name: 'ETF 複利試算表', cat: 'etf', def: true, kind: 'bool', defBy: { guest: false, free: false }, route: /^#etf\/inc/,
+    { id: 'etf.inc.comp', name: 'ETF 複利試算表', cat: 'etf', def: true, kind: 'bool', defBy: { guest: false }, limBy: { free: 3 }, qper: 'each', qunit: '打開', route: /^#etf\/inc/,
       desc: '現金流試算的「複利試算表」分頁（配息再投入回測）；關掉：分頁鈕掛 🔒，點進去整塊蓋需開通卡', veil: [['#incPX']], mark: [], block: [], note: 'Plus 以上可查看' },
     /* 2026-10-08 Andy：「熱力圖如果不是付費會員 都不能有點擊連結功能，但如果是才可以點擊連結到其他分頁」。
        全站樹狀熱力圖（總覽資金熱力圖／熱門題材、熱力圖產業頁／題材頁、各自的放大視窗）點方塊「跳到其他分頁」只有開著才行；
@@ -252,7 +276,9 @@
     /* 2026-10-10 Andy：「總攬資金輪盤不開放跳要連結」「plus 之後會 總攬所有點擊都可以有連結功能」→ 同一個鍵擴大成「總覽上所有跳到其他分頁的點擊」
        （資金輪盤說明框「進族群頁 →」、分流樹節點、法人連結、提示框裡的個股…），不另開 ov.link：
        Andy 10-08 的熱力圖跳頁本來就是 Plus 以上，同一個身分界線用同一個開關，管理區只需撥一個。id 不改（改了範本存的值歸零）。*/
-    { id: 'heat.link', name: '總覽／熱力圖點擊跳頁', cat: 'heatmap', def: true, kind: 'bool', defBy: { guest: false, free: false },
+    /* 2026-10-11（DECISIONS #354）：註冊會員改成開＋每日 3 次（limBy），每「真的跳過去一次」算一次（quota.js heatLinkUse）；
+       用完＝跟沒權限同一個樣子：總覽單純點擊無效、有字的跳頁鈕反灰＋「今日跳轉 3 次已用完」；其他頁的熱力圖照 10-08 跳卡（標題寫次數用完）。*/
+    { id: 'heat.link', name: '總覽／熱力圖點擊跳頁', cat: 'heatmap', def: true, kind: 'bool', defBy: { guest: false }, limBy: { free: 3 }, qper: 'each', qunit: '跳轉',
       desc: '總覽上任何點擊跳到其他分頁（族群、題材、個股、市場明細…）與全站熱力圖點方塊跳頁（關掉：頁內展開、提示框、縮放照常，點了跳升級卡、網址不動）', veil: [], mark: [], block: [] },
     { id: 'etf.top3', name: 'ETF 總覽上方三張卡（共用次數）', cat: 'etf', def: true, kind: 'bool', desc: '最受歡迎／報酬率／殖利率前 5 三張卡共用一個每日次數（看一次＝這個分頁打開一次）', veil: [['#etfTri']], mark: [], block: [] }
   );
@@ -292,6 +318,10 @@
   /* 範本沒寫這一項時的值：有 defBy（同時選取上限）就依範本代號（guest／free；其他＝付費）挑，沒有就是 def */
   function defOf(f, plan) { return f && f.defBy && Object.prototype.hasOwnProperty.call(f.defBy, plan) ? f.defBy[plan] : f ? f.def : undefined; }
   function defaults(plan) { var o = {}; LIST.forEach(function (f) { o[f.id] = defOf(f, plan); }); return o; }
+  /* ★ 2026-10-11（DECISIONS #354）每日次數的預設：範本的 lims 沒寫這一項時，依範本代號（目前只有 free）給每日 N 次。
+     為什麼要有：Andy 把註冊會員的 ▶ 播放、今日關注…從「關」改成「開＋每日 3 次」，線上範本在管理者按「套用建議方案」之前沒有這幾項的 lims ——
+     只改 defBy 的話，那段時間註冊會員會變成「開而且不限次」。perm.js 讀 lims 時把這份補進去（範本寫了以範本為準）。*/
+  function limDefaults(plan) { var o = {}; LIST.forEach(function (f) { if (f.limBy && Object.prototype.hasOwnProperty.call(f.limBy, plan)) o[f.id] = f.limBy[plan]; }); return o; }
   function inCat(c) { return LIST.filter(function (f) { return f.cat === c; }); }
 
   /* ---- 族群鍵（grp.<鍵>）—— Worker 的 FEAT_RE 是 /^[a-z][a-z0-9_.]{1,39}$/，group_id 不一定符合：
@@ -332,5 +362,5 @@
     return n;
   }
 
-  window.TwFeatures = { list: LIST, cats: CATS, byId: function (id) { return BY[id] || null; }, defaults: defaults, defOf: defOf, inCat: inCat, grpKey: grpKey, addGroups: addGroups, bySub: bySub };
+  window.TwFeatures = { list: LIST, cats: CATS, byId: function (id) { return BY[id] || null; }, defaults: defaults, defOf: defOf, limDefaults: limDefaults, inCat: inCat, grpKey: grpKey, addGroups: addGroups, bySub: bySub };
 })();
