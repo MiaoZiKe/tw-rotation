@@ -28,6 +28,11 @@
    · ★ 2026-10-10（Andy：「選股策略」和「AI 分析」「開放 但需要限制次數」——回答 docs/launch_checklist_1009.md 第 30 行 B 類分級二選一）：
      註冊會員選股策略完整名單 explore.list.n 20 → 999（不再截前 20 檔，B 類內容不靠付費解鎖）；次數照舊限制：選股策略頁每日 5 次、篩選 5 次、AI 分析每日 3 次。
      Plus／Pro 文案拿掉「完整名單」當賣點，改寫「不限次數」（付費差在次數，不差在內容）。訪客照舊：AI 不開放、名單前 5 檔。
+   · ★ 2026-10-11（DECISIONS #354；Andy 10-11 02:2x 在動畫聊天室討論宣傳影片：「都先寫上去，但不特別說哪個會員層級，記得這就是單純宣傳，功能要曝光度，
+     我們可以開放，畢竟他們也要知道我們有什麼，但就是限制功能」→ 更正「限制次數才對」）：
+     註冊會員原本關掉的 11 項（▶ 播放、週期統計族群篩選、今日關注、分 K、四週期同看、指標設定、畫線、ETF 試算自訂參數、ETF 報酬比較、複利試算表、總覽／熱力圖點擊跳頁）
+     一律改成開＋每日 3 次（跟 3D 剖析圖同一級距）。訪客、Plus、Pro 不動；盤中即時 live.tick 是站主專用，不動。
+     features.js 另有 limBy（範本 lims 沒寫時註冊會員每日 3 次），線上範本按「套用建議方案」之前也照這個跑，不會變成「開而且不限」。
    這支是**資料**，不是設定：改了不會自動生效，要管理者在 #admin/perm 按一次「套用建議方案」。
    ============================================================================ */
 window.TW_PLAN_PRESETS = {
@@ -153,8 +158,8 @@ window.TW_PLAN_PRESETS = {
    "price_year": 0,
    "dq": 40,
    "feats": {
-    "flow.play": false,
-    "season.groups": false,
+    "flow.play": true,
+    "season.groups": true,
     "ov.summary": true,
     "ov.index": true,
     "ov.heat": true,
@@ -177,15 +182,15 @@ window.TW_PLAN_PRESETS = {
     "mkt.updown": true,
     "mkt.streak": true,
     "mkt.ma": true,
-    "mkt.cand": false,
+    "mkt.cand": true,
     "season.month": true,
     "stock.k_day": true,
     "stock.tick": true,
-    "stock.k_min": false,
+    "stock.k_min": true,
     "stock.k_hour": true,
-    "stock.mtf": false,
-    "stock.ind": false,
-    "stock.draw": false,
+    "stock.mtf": true,
+    "stock.ind": true,
+    "stock.draw": true,
     "stock.ai": true,
     "stock.overview": true,
     "stock.holdings": true,
@@ -222,10 +227,10 @@ window.TW_PLAN_PRESETS = {
     "mkt.cand.n": 10,
     "etf.returns.n": 3,
     "etf.cashflow": true,
-    "etf.inc.params": false,
-    "etf.cmp": false,
-    "etf.inc.comp": false,
-    "heat.link": false
+    "etf.inc.params": true,
+    "etf.cmp": true,
+    "etf.inc.comp": true,
+    "heat.link": true
    },
    "lims": {
     "news.open": 10,
@@ -247,7 +252,18 @@ window.TW_PLAN_PRESETS = {
     "ind.rel": 5,
     "stock.page": 10,
     "stock.ai": 3,
-    "etf.cashflow": 5
+    "etf.cashflow": 5,
+    "flow.play": 3,
+    "season.groups": 3,
+    "mkt.cand": 3,
+    "stock.k_min": 3,
+    "stock.mtf": 3,
+    "stock.ind": 3,
+    "stock.draw": 3,
+    "etf.inc.params": 3,
+    "etf.cmp": 3,
+    "etf.inc.comp": 3,
+    "heat.link": 3
    },
    "meta": {
     "badge": null,

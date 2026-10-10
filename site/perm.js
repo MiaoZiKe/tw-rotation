@@ -283,6 +283,15 @@
     S.who = d.who || 'guest'; S.plan = d.plan || ''; S.planName = d.planName || '';
     S.feats = d.feats && typeof d.feats === 'object' ? d.feats : {};
     S.lims = d.lims && typeof d.lims === 'object' && !Array.isArray(d.lims) ? d.lims : {};
+    /* ★ 2026-10-11（DECISIONS #354）：範本 lims 沒寫的項目補上 features.js 的 limBy（註冊會員 ▶ 播放、今日關注…每日 3 次）——
+       線上範本在管理者按「套用建議方案」之前沒有這幾項，不補的話「開＋限次」會變成「開＋不限」。範本寫了（含 0）以範本為準。
+       會員系統根本沒開（本機驗收、account_config 空白）不補：那種站一律全開（value() 同一個原則）。*/
+    /* 範本把那一項關掉（feats false）時不補：關掉的功能不該在額度面板多一列「已用 0／3」。 */
+    { const A0 = acct(); if (A0 && A0.on && A0.on() && F.limDefaults) {
+      const dl = F.limDefaults(planKey()), add = {};
+      Object.keys(dl).forEach((k) => { if (!Object.prototype.hasOwnProperty.call(S.lims, k) && S.feats[k] !== false) add[k] = dl[k]; });
+      if (Object.keys(add).length) S.lims = Object.assign({}, add, S.lims);
+    } }
     S.dq = Number.isInteger(d.dq) ? d.dq : null;
     S.src = src;
     apply();

@@ -613,7 +613,7 @@
   }
 
   const SUB_LOCK = { 'etf-cx': 'etf.inc.comp' };   // 子頁格 → 功能鍵（features.js）；沒列的格不掛鎖
-  ['tw:perm', 'tw:grants', 'tw:account'].forEach((ev) => window.addEventListener(ev, () => { if (isM()) paintTitle(); }));
+  ['tw:perm', 'tw:grants', 'tw:account', 'tw:quse'].forEach((ev) => window.addEventListener(ev, () => { if (isM()) paintTitle(); }));
   function paintTitle() {
     const N = nav(); if (!title || !N) return;
     const pg = curPage(), P = N.PAGES[pg];
@@ -633,8 +633,10 @@
       /* ★ 2026-10-10（網頁手機同步稽核第 8 條）：子頁格的方案鎖（目前只有 ETF「複利試算」＝ etf.inc.comp，10-10 改付費）。
          同網頁版 #incMain 那顆分頁鈕（etfpage.js cmpLkPaint）：反灰＋格內小字「🔒 Plus 以上」；照樣點得進去（進去看到的是 perm.js 的反灰示意），不跳視窗。*/
       const lkOf = (x) => { const k = SUB_LOCK[x.k], P = window.TwPerm; return !!(k && P && P.can && !P.can(k)); };
-      const want = `<small class="m4pgn">${esc(P.t)}</small><nav class="m4subtabs n${subs.length}" role="tablist">${subs.map((x) => { const lk = lkOf(x);
-        return `<button type="button" role="tab" data-h="${x.h}" data-sub="${x.k}" class="${onK === x.k ? 'on' : ''}${lk ? ' m4lk' : ''}" aria-selected="${onK === x.k}" title="${esc(x.t)}${lk ? '（Plus 以上可查看）' : ''}"${lk ? ' data-m4lk="1"' : ''}>${lk ? `<span>${esc(x.t)}</span><small>🔒 Plus 以上</small>` : esc(x.t)}</button>`; }).join('')}</nav>`;
+      /* ★ 2026-10-11（DECISIONS #354）：註冊會員複利試算改成開＋每日 3 次 —— 今天打開次數用完時同一格反灰、小字「今日已用完」（不跳視窗）*/
+      const outOf = (x) => { const k = SUB_LOCK[x.k], Q = window.TwQuota; return !!(k && Q && Q.out && !lkOf(x) && Q.out(k)); };
+      const want = `<small class="m4pgn">${esc(P.t)}</small><nav class="m4subtabs n${subs.length}" role="tablist">${subs.map((x) => { const lk = lkOf(x), ot = outOf(x), dim = lk || ot;
+        return `<button type="button" role="tab" data-h="${x.h}" data-sub="${x.k}" class="${onK === x.k ? 'on' : ''}${dim ? ' m4lk' : ''}" aria-selected="${onK === x.k}" title="${esc(x.t)}${lk ? '（Plus 以上可查看）' : ot ? '（今日次數已用完）' : ''}"${dim ? ' data-m4lk="1"' : ''}>${dim ? `<span>${esc(x.t)}</span><small>${lk ? '🔒 Plus 以上' : '今日已用完'}</small>` : esc(x.t)}</button>`; }).join('')}</nav>`;
       if (title.innerHTML !== want) {
         title.innerHTML = want;
         $$('.m4subtabs button', title).forEach((b) => { b.onclick = () => { if (location.hash !== b.dataset.h) location.hash = b.dataset.h; else syncFlat(); }; });
