@@ -57975,10 +57975,12 @@ def _gp_suite(b, base, T, who, feats, lims, errs, shot, tag):
     # 2026-10-09 Andy：「本頁限制只顯示在上方就好，不要出現訊息框」→ 逐項細節不再是下拉清單，改讀頁首那行字的 data-items（同 title 的內容）
     QP_USED = "(id) => { const e = document.getElementById('twQPage'); if (!e || !e.dataset.items) return null; const r = JSON.parse(e.dataset.items).find(x => x[0] === id); return r ? r[1] : null; }"
     if who is None:
-        wait_until(pg, "() => { const e = document.getElementById('twQPage'); return !!e && !e.hidden; }", 6000)
+        # 等頁首那行字換成這一頁的項目（從財經日曆切過來，換頁後才重畫）；2026-10-09 起訪客 explore.page 不設單項上限（只吃全站額度），所以只要求篩選那一項
+        wait_until(pg, "() => { const e = document.getElementById('twQPage'); return !!e && !e.hidden && /explore\\./.test(e.dataset.ids || ''); }", 8000)
         qp = pg.evaluate("() => ({ n: +document.getElementById('twQPage').dataset.n, b: document.querySelector('#twQPage .twqp-b').textContent, ids: document.getElementById('twQPage').dataset.ids.split(',') })")
-        ok(f"{T}【訪客】選股策略 本頁限制 2 項（看頁面 5、篩選 2）、收合寫「本頁 2 項限制・最少剩 X 次」",
-           qp["n"] == 2 and sorted(qp["ids"]) == sorted(["explore.page", "explore.filter"]) and qp["b"].startswith("本頁 2 項限制・最少剩"), qp)
+        want = [x for x in ["explore.page", "explore.filter"] if x in lims]
+        ok(f"{T}【訪客】選股策略 本頁限制＝這一頁有設上限的項目（{'、'.join(want)}），不殘留上一頁（財經日曆）的項目",
+           qp["n"] == len(want) and sorted(qp["ids"]) == sorted(want) and "earn.tab" not in qp["ids"] and qp["b"].startswith(f"本頁 {len(want)} 項限制") if len(want) > 1 else (qp["n"] == len(want) and sorted(qp["ids"]) == sorted(want)), qp)
         shot(pg, "13_qpage_explore_collapsed.png")
     wait_until(pg, "() => (" + QP_USED + ")('explore.filter') !== null", 6000)   # 2026-10-10：頁首那行字是 setTimeout 200ms 後才寫，滿載時晚一拍
     before = pg.evaluate(QP_USED, "explore.filter")
@@ -58023,7 +58025,7 @@ def _gp_suite(b, base, T, who, feats, lims, errs, shot, tag):
         shot(pg, "15_qpage_etf_collapsed.png")
         # 2026-10-10 Andy：「不要寫"不開放" 幫我改成plus 會員」→ 上限 0 的項目寫最低有開的方案（「… 會員」）
         ok(f"{T}【訪客】ETF 總覽 頁首那行字的 title 逐項寫單位與次數（看 N／3、上限 0 寫「… 會員」不寫「不開放」）",
-           pg.evaluate("() => { const t = document.getElementById('twQPage').title; return /看 \\d／3/.test(t) && /：\\S+ 會員/.test(t) && !/不開放/.test(t); }"),
+           pg.evaluate("() => { const t = document.getElementById('twQPage').title; return /看 \\d／3/.test(t) && /：\\S*會員/.test(t) && !/不開放/.test(t); }"),
            pg.evaluate("() => document.getElementById('twQPage').title"))
     cats = pg.evaluate("() => [...document.querySelectorAll('#etfCatSeg button[data-v]')].filter(b => !b.classList.contains('on')).map(b => b.dataset.v)")
     n = L("etf.list.tab")
@@ -58058,6 +58060,9 @@ def _gp_suite(b, base, T, who, feats, lims, errs, shot, tag):
            not ps[-2].evaluate("() => !!document.querySelector('#etfTri[data-qlk]')") and bool(wait_until(ps[-1], "() => !!document.querySelector('#etfTri[data-qlk]')", 5000)), already)
         shot(ps[-1], "7_etf_top3_blocked.png")
         for p2 in ps: p2.close()
+    elif feats.get("etf.cmp") is False:
+        # 2026-10-10 Andy：「ETF 報酬比較 與 複利試算表 不開放此會員等級」→ 註冊會員的報酬比較整張鎖頭（不再驗勾選上限）
+        ok(f"{T}【{tag}】ETF 報酬比較 → 鎖頭（etf.cmp 關，Andy 10-10）", bool(wait_until(pg, "() => !!document.querySelector('#etfRetCard[data-plk], #etfRetCard [data-plk]')", 5000)))
     else:
         n = feats["etf.returns.n"]
         pg.click("#etfCmpDD .ddbtn"); wait_until(pg, "() => document.querySelectorAll('#etfCmpDD .ddlist input[type=checkbox]').length > 6", 4000)
@@ -58069,8 +58074,11 @@ def _gp_suite(b, base, T, who, feats, lims, errs, shot, tag):
         m = _gp_blocked(pg, "etf.returns.n")
         ok(f"{T}【{tag}】報酬比較 最多 {n} 檔、第 {n + 1} 檔勾不起來＋升級卡",
            bool(m) and pg.evaluate("() => document.querySelectorAll('#etfCmpDD .ddlist input[type=checkbox]:checked').length") == n, (m, cur))
-    _gp_go(pg, "#etf/inc", "() => !!document.querySelector('#etfInc[data-plk]')", 8000)
-    ok(f"{T}【{tag}】ETF 現金流試算 → 「此功能需開通」卡（只給付費會員）", pg.evaluate("() => !!document.querySelector('#etfInc[data-plk] .qcard')"))
+    if who is not None and feats.get("etf.cashflow") is not False:
+        pass   # 2026-10-10 Andy：「ETF 試算 註冊的免費會員 改成只能看 5 次」→ 註冊會員打得開（次數由「ETF試算免費限制1010」段驗）
+    else:
+        _gp_go(pg, "#etf/inc", "() => !!document.querySelector('#etfInc[data-plk]')", 8000)
+        ok(f"{T}【{tag}】ETF 現金流試算 → 「此功能需開通」卡（只給付費會員）", pg.evaluate("() => !!document.querySelector('#etfInc[data-plk] .qcard')"))
     if who is None: shot(pg, "8_etf_cashflow_locked.png")
 
     # ⑩ 熱力圖點擊跳頁（heat.link）：總覽「熱門題材」選一個題材 → 點成分股方塊，不跳頁、跳升級卡、游標不是手指
@@ -58167,7 +58175,8 @@ def t_guest_perm_1008(b, base, code):
        body.get("id") == "guest" and (body.get("lims") or {}).get("heat.detail") == 1, body)
     pg.click("#ptTier button[data-tier='free']"); pg.wait_for_timeout(500)
     fv = pg.evaluate("(p) => p.map(k => (document.querySelector(`#pmCats select[data-f='${k}']`) || {}).value)", picks)
-    ok(f"{T}【管理】註冊會員範本 同時選取上限預設 10／20／10／3", fv == ["10", "20", "10", "3"], fv)
+    # 2026-10-10 Andy：選股策略「開放 但需要限制次數」→ 註冊會員完整名單不再截 20 檔（999＝不限）
+    ok(f"{T}【管理】註冊會員範本 同時選取上限預設 10／999／10／3", fv == ["10", "999", "10", "3"], fv)
     c.close()
     c, sent, st = _sub_ctx(b, None, feats={}, lims={"heat.detail": body.get("lims", {}).get("heat.detail", 1)})
     pg = c.new_page(); pg.on("pageerror", lambda e: errs.append(str(e)))
