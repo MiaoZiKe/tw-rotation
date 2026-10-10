@@ -155,8 +155,8 @@ def face_relief(poses):
         if 2 <= st <= 5:
             m = F(poses, g, 262, 296)
             t = (st - 2) / 3
-            front += puff_cloud((m[0] + 62 + 45 * t, m[1] - 14 - 14 * t), 0.8 + 0.6 * t, op=1.0 if t < 0.9 else 0.6)
-            front += motion_lines((m[0] + 22, m[1]), 0, spread=22, r0=4, length=10, n=2, w=3.6)
+            front += puff_cloud((m[0] + 158 + 30 * t, m[1] - 30 - 22 * t), 1.3 + 0.5 * t, op=1.0 if t < 0.9 else 0.6)
+            front += motion_lines((m[0] + 112, m[1] - 18), -10, spread=22, r0=4, length=16, n=3, w=4.2)
         if st == 2:   # 汗滴被甩開
             front += drop_svg(F(poses, g, 450, 160), 8, deg=30)
         if st in (5, 6):
@@ -322,7 +322,7 @@ def face_curious(poses):
             if sniff == 1:
                 front += sparkle(F(poses, g, 440, 200), 10)
             else:
-                front += arcs((m[0], m[1] + 4), 200 if i == 5 else -20, r=60, n=2, w=4.2)
+                front += motion_lines((m[0], m[1] - 6), 160 if i == 5 else 20, spread=30, r0=17, length=9, n=2, w=3.6)  # 嗅嗅的小鼻息線
         frames.append(FR(poses, lab, gk, face, front))
     return frames
 

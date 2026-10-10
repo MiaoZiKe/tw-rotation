@@ -37,21 +37,19 @@ GLOW = (255, 196, 40)
 class Layout:
     def __init__(self, fmt):
         self.fmt = fmt
+        self.full_bleed = fmt == "web"
         if fmt == "web":
+            # 10-11 Andy「網頁版就直接整個滿版」：錄影鋪滿 1920×1080，文字改半透明圓角浮層
             self.W, self.H = 1920, 1080
-            self.box = (24, 24, 1480, 925)          # 展示框（桌機 16:10 → 1480×925，不放大 2160 寬素材）
-            self.side_x = 1528                      # 右側窄欄：段落膠囊、大字、比比
-            self.pill_xy = (1528, 40)
-            self.head_xy = (1528, 112)
-            self.head_w = 368
-            self.head_px = 64
-            self.host = (1712, 860)                 # 比比腳底
-            self.host_size = 330
-            self.sub_xy = (40, 966)                 # 字幕：展示框下方一行
-            self.sub_px = 42
+            self.box = (0, 0, 1920, 1080)
+            self.head_px = 68
+            self.head_w = 720
+            self.host_size = 270
+            self.sub_px = 40
             self.sub_chars = 30
-            self.foot_y = 1040
-            self.data_xy = (24 + 1480 - 16, 24 + 925 - 14)
+            self.foot_y = 1046
+            self.side = "L"              # 浮層放哪一側（依焦點自動換邊）
+            self.set_side("L")
         else:
             self.W, self.H = 1080, 1920
             self.box = (24, 384, 1032, 1000)
@@ -66,6 +64,29 @@ class Layout:
             self.sub_chars = 14
             self.foot_y = 1556
             self.data_xy = (24 + 1032 - 16, 384 + 1000 - 14)
+
+
+def _set_side(self, side):
+    """浮層與比比放在焦點的另一側。"""
+    self.side = side
+    if side == "L":
+        self.pill_xy = (44, 36); self.head_xy = (52, 104)
+        self.sub_xy = (78, 958); self.sub_align = "L"
+        self.host = (1800, 1010); self.data_xy = (1904, 52)
+    else:
+        self.pill_xy = (1920 - 44 - 760, 36); self.head_xy = (1920 - 52 - 720, 104)
+        self.sub_xy = (1842, 958); self.sub_align = "R"
+        self.host = (130, 1010); self.data_xy = (420, 52)
+
+
+Layout.set_side = _set_side
+
+
+def float_panel(cv, box, alpha=214, r=26):
+    x0, y0, x1, y1 = [int(v) for v in box]
+    lay = Image.new("RGBA", (x1 - x0, y1 - y0), (0, 0, 0, 0))
+    ImageDraw.Draw(lay).rounded_rectangle([0, 0, x1 - x0 - 1, y1 - y0 - 1], r, fill=(255, 252, 244, alpha), outline=DEEP + (120,), width=2)
+    cv.paste(lay, (x0, y0), lay)
 
 
 @lru_cache(maxsize=2)
@@ -124,6 +145,13 @@ def headline(cv, L, text, t, hl=None):
             px -= 4
             f = font(F_ROUND, px)
     x0, y0 = L.head_xy
+    if getattr(L, "full_bleed", False):
+        wmax = max(text_w(f, ln) for ln in lines)
+        if L.side == "R":
+            x0 = L.W - 52 - wmax
+        a_ = clamp(t / 0.2, 0, 1)
+        if a_ > 0:
+            float_panel(cv, (x0 - 26, y0 - 10, x0 + wmax + 26, y0 + len(lines) * px * 1.22 + 18), int(214 * a_))
     d = ImageDraw.Draw(cv)
     k = 0
     hl_span = (text.index(hl), text.index(hl) + len(hl)) if hl and hl in text else None
@@ -154,23 +182,35 @@ def subtitle(cv, L, text, t):
     lay = Image.new("RGBA", (L.W, L.sub_px * 3 + 20), (0, 0, 0, 0))
     d = ImageDraw.Draw(lay)
     x, y = L.sub_xy
-    d.polygon([(x - 26, 18), (x - 2, 4), (x - 8, 36)], fill=INK + (255,))
-    for i, ln in enumerate(lines[:2]):
-        d.text((x, i * L.sub_px * 1.32), ln, font=f, fill=INK, stroke_width=5, stroke_fill=CREAM)
+    if getattr(L, "full_bleed", False):
+        lines = lines[:1] if len(text) <= 34 else lines[:2]
+        if len(lines) == 1:
+            pass
+        wmax = max(text_w(f, ln) for ln in lines)
+        if L.sub_align == "R":
+            x = x - wmax
+        nl = len(lines)
+        y = y - (nl - 1) * L.sub_px * 1.32
+        d.rounded_rectangle([x - 36, 0, x + wmax + 24, nl * L.sub_px * 1.32 + 22], 24, fill=(255, 252, 244, 222), outline=DEEP + (120,), width=2)
+        for i, ln in enumerate(lines):
+            d.text((x, 8 + i * L.sub_px * 1.32), ln, font=f, fill=INK)
+    else:
+        d.polygon([(x - 26, 18), (x - 2, 4), (x - 8, 36)], fill=INK + (255,))
+        for i, ln in enumerate(lines[:2]):
+            d.text((x, i * L.sub_px * 1.32), ln, font=f, fill=INK, stroke_width=5, stroke_fill=CREAM)
     if a < 1:
         lay.putalpha(lay.getchannel("A").point(lambda v: int(v * a)))
-    cv.paste(lay, (0, y), lay)
+    cv.paste(lay, (0, int(y)), lay)
 
 
 def footnote(cv, L):
     f = font(F_MED, 24 if L.fmt == "web" else 26)
     tw = text_w(f, FOOTNOTE)
     d = ImageDraw.Draw(cv)
-    if L.fmt == "web":
-        x = L.W / 2 - tw / 2
-    else:
-        x = L.W / 2 - tw / 2
-    d.text((x, L.foot_y), FOOTNOTE, font=f, fill=(96, 96, 96))
+    x = L.W / 2 - tw / 2
+    if getattr(L, "full_bleed", False):
+        float_panel(cv, (x - 16, L.foot_y - 6, x + tw + 16, L.foot_y + 30), 200, 16)
+    d.text((x, L.foot_y), FOOTNOTE, font=f, fill=(80, 80, 80))
 
 
 def data_tag(cv, L, date):
@@ -179,6 +219,8 @@ def data_tag(cv, L, date):
     tw = text_w(f, s)
     x1, y1 = L.data_xy
     x0, y0 = x1 - tw - 28, y1 - 40
+    if getattr(L, "full_bleed", False) and L.side == "R":
+        x0, y0 = 16, y1 - 40
     lay = Image.new("RGBA", (int(tw) + 32, 44), (0, 0, 0, 0))
     d = ImageDraw.Draw(lay)
     d.rounded_rectangle([0, 0, tw + 28, 40], 20, fill=(255, 255, 255, 228), outline=DEEP + (200,), width=2)
@@ -252,8 +294,9 @@ class Rec3:
         rx, ry, rw, rh = [int(round(v)) for v in self.rect]
         im = src.resize((rw, rh), Image.LANCZOS if rw <= (self.win[2] - self.win[0]) else Image.BICUBIC, box=self.win)
         tile = im.convert("RGBA")
-        tile.putalpha(rounded_mask(rw, rh, 28))
-        ImageDraw.Draw(tile).rounded_rectangle([1, 1, rw - 2, rh - 2], 28, outline=DEEP + (255,), width=3)
+        if not getattr(L, "full_bleed", False) or (rw, rh) != (L.W, L.H):
+            tile.putalpha(rounded_mask(rw, rh, 28))
+            ImageDraw.Draw(tile).rounded_rectangle([1, 1, rw - 2, rh - 2], 28, outline=DEEP + (255,), width=3)
         cv.paste(tile, (rx, ry), tile)
         if self.focus:
             self.focus.draw(cv, t, self)
@@ -389,6 +432,148 @@ class Host:
                 return
 
 
+# ───────────────────────── 比比操作（Andy 10-11：錄影裡每個點擊都由比比執行） ─────────────────────────
+import re as _re
+
+RAW_V3 = B.SCR / "video1010" / "raw_v3"
+
+
+def parse_shots(md=None):
+    """讀 raw_v3/shots.md → {clip: [{"t", "kind": tap|drag_start|drag_end, "x", "y"}...]}（影片像素）。"""
+    md = Path(md or RAW_V3 / "shots.md")
+    out, cur = {}, None
+    for ln in md.read_text().splitlines():
+        m = _re.match(r"^## (\S+)", ln)
+        if m:
+            cur = m.group(1); out[cur] = []; continue
+        m = _re.search(r"([\d.]+)s (踩下|拖曳開始|拖曳放開) \([\d.]+,[\d.]+\)css → 影片\((\d+),(\d+)\)px", ln)
+        if m and cur:
+            kind = {"踩下": "tap", "拖曳開始": "drag_start", "拖曳放開": "drag_end"}[m.group(2)]
+            out[cur].append({"t": float(m.group(1)), "kind": kind, "x": int(m.group(3)), "y": int(m.group(4))})
+    return out
+
+
+def _inv_srcmap(srcmap, st):
+    """來源秒 → 本鏡秒（srcmap 單調遞增）。不在本鏡範圍回 None。"""
+    for (t0, s0), (t1, s1) in zip(srcmap, srcmap[1:]):
+        if s0 <= st <= s1 and s1 > s0:
+            return t0 + (st - s0) / (s1 - s0) * (t1 - t0)
+    return None
+
+
+def ripple(cv, xy, age, small=False):
+    """點擊漣漪：一圈擴散一次就淡掉（不重複、不閃）。"""
+    if age < 0 or age > 0.55:
+        return
+    u = ease_out(age / 0.55)
+    r = (26 if small else 46) + (34 if small else 70) * u
+    a = int(220 * (1 - u))
+    lay = Image.new("RGBA", (int(r * 2 + 12), int(r * 2 + 12)), (0, 0, 0, 0))
+    d = ImageDraw.Draw(lay)
+    c = r + 6
+    d.ellipse([c - r, c - r, c + r, c + r], outline=SKY + (a,), width=6 if not small else 4, fill=SKY + (a // 5,))
+    cv.paste(lay, (int(xy[0] - c), int(xy[1] - c)), lay)
+
+
+class Operator:
+    """比比操作員：依 shots.md 的點擊／拖曳，比比跳過去踩下（bibi_tap）、或跟著拖曳方向推；點擊太密（<0.8 秒）就停在附近只出小漣漪。
+
+    rec：要操作的錄影層（Rec3）；idle：沒在操作時的主持動畫；extra：額外主持動作 [(t0,t1,name,foot,size,mode)]
+    magic：發光框出現前比比「畫框」（有 bibi_magic_frame 素材才用，否則用指示棒）。
+    """
+
+    TAP_CONTACT = 0.62     # tap 第 9 格（腳碰到按鈕）
+    LEAD = 0.62
+
+    def __init__(self, rec, events, idle="talk_happy", extra=(), tap_size=None, magic=True):
+        self.rec, self.idle, self.extra, self.magic = rec, idle, list(extra), magic
+        self.tap_size = tap_size
+        self.taps, self.drags = [], []
+        evs = sorted(events, key=lambda e: e["t"])
+        last_full = -9
+        for e in evs:
+            lt = _inv_srcmap(rec.srcmap, e["t"])
+            if lt is None:
+                continue
+            if e["kind"] == "tap":
+                dense = lt - last_full < 0.8
+                self.taps.append({"t": lt, "x": e["x"], "y": e["y"], "dense": dense})
+                if not dense:
+                    last_full = lt
+            elif e["kind"] == "drag_start":
+                self.drags.append({"t0": lt, "x0": e["x"], "y0": e["y"]})
+            elif e["kind"] == "drag_end" and self.drags and "t1" not in self.drags[-1]:
+                self.drags[-1].update({"t1": lt, "x1": e["x"], "y1": e["y"]})
+        self.drags = [d for d in self.drags if "t1" in d]
+
+    def _home(self, L):
+        return L.host, L.host_size
+
+    def draw(self, cv, t, shot):
+        L = shot.L
+        home, hs = self._home(L)
+        ts = self.tap_size or int(hs * 0.8)
+        for tp in self.taps:                         # 漣漪（踩下那一格起）
+            if self.rec.win:
+                ripple(cv, self.rec.map(tp["x"], tp["y"]), t - tp["t"], tp["dense"])
+        for t0, t1, name, foot, size, mode in self.extra:
+            if t0 <= t < t1:
+                put_sprite(cv, name, anim_frame(name, t - t0, mode), foot or home, size or hs)
+                return
+        # 拖曳：比比站在游標後方，跟著方向推
+        for d in self.drags:
+            if d["t0"] - 0.35 <= t <= d["t1"] + 0.2:
+                u = clamp((t - d["t0"]) / max(0.01, d["t1"] - d["t0"]), 0, 1)
+                sx, sy = lerp(d["x0"], d["x1"], ease_io(u)), lerp(d["y0"], d["y1"], ease_io(u))
+                px, py = self.rec.map(sx, sy)
+                dx = 1 if d["x1"] >= d["x0"] else -1
+                foot = (px - dx * ts * 0.28, py + ts * 0.32)
+                ent = clamp((t - d["t0"] + 0.35) / 0.35, 0, 1)
+                foot = (lerp(home[0], foot[0], ease_io(ent)), lerp(home[1], foot[1], ease_io(ent)) - 120 * math.sin(math.pi * ent) * (ent < 1))
+                name = "hop_r" if dx > 0 else "hop_l"
+                put_sprite(cv, name, anim_frame(name, t), foot, ts)
+                return
+        # 踩按鈕
+        full = [tp for tp in self.taps if not tp["dense"]]
+        for i, tp in enumerate(full):
+            c = tp["t"]
+            nxt = full[i + 1]["t"] if i + 1 < len(full) else 1e9
+            prev_pos = self._pos(full[i - 1], L, ts) if i > 0 and c - full[i - 1]["t"] < 2.0 else (home, hs)
+            if c - self.LEAD <= t < c:
+                tap_t = t - (c - self.LEAD)
+                tgt = self.rec.map(tp["x"], tp["y"])
+                air0 = 0.29
+                if tap_t < air0:
+                    foot, size = prev_pos
+                else:
+                    uu = ease_io((tap_t - air0) / (self.TAP_CONTACT - air0))
+                    foot = (lerp(prev_pos[0][0], tgt[0], uu), lerp(prev_pos[0][1], tgt[1], uu) - 150 * math.sin(math.pi * uu))
+                    size = lerp(prev_pos[1], ts, uu)
+                put_sprite(cv, "tap", anim_frame("tap", tap_t, "hold"), foot, size)
+                return
+            stay_until = min(nxt - self.LEAD, c + 0.9) if nxt - c < 2.0 else c + 0.45
+            if c <= t < stay_until:
+                fi = anim_frame("tap", self.TAP_CONTACT + (t - c), "hold")
+                put_sprite(cv, "tap", fi, self.rec.map(tp["x"], tp["y"]), ts)
+                return
+            if nxt - c >= 2.0 and stay_until <= t < stay_until + 0.4:
+                uu = ease_io((t - stay_until) / 0.4)
+                a = self.rec.map(tp["x"], tp["y"])
+                foot = (lerp(a[0], home[0], uu), lerp(a[1], home[1], uu) - 130 * math.sin(math.pi * uu))
+                put_sprite(cv, "hop_l" if home[0] < a[0] else "hop_r", 2 + int(uu * 3.99), foot, lerp(ts, hs, uu))
+                return
+        # 發光框前「畫框」
+        f = getattr(self.rec, "focus", None)
+        if f and self.magic and f.t_draw - 0.3 <= t < f.t_draw + f.d_draw:
+            name = "magic_frame" if "magic_frame" in B.bibi_index() else "pointer_l" if L.fmt == "web" else "pointer_r"
+            put_sprite(cv, name, anim_frame(name, t - f.t_draw + 0.3, "hold"), home, hs)
+            return
+        put_sprite(cv, self.idle, anim_frame(self.idle, t), home, hs)
+
+    def _pos(self, tp, L, ts):
+        return self.rec.map(tp["x"], tp["y"]), ts
+
+
 # ───────────────────────── 鏡頭 ─────────────────────────
 class Shot3:
     def __init__(self, dur, layers=(), pill_text=None, head="", hl=None, sub="", host=None, date="2026-10-08",
@@ -402,6 +587,14 @@ class Shot3:
 
     def render(self, t, L):
         self.L = L
+        if getattr(L, "full_bleed", False):
+            side = "L"
+            for ly in self.layers:
+                f = getattr(ly, "focus", None)
+                if f:
+                    cxn = (f.rect[0] + f.rect[2]) / 2 / reader(ly.clip).w
+                    side = "R" if cxn < 0.5 else "L"
+            L.set_side(getattr(self, "side", None) or side)
         cv = background(L.fmt).copy()
         for ly in self.layers:
             ly.draw(cv, t, self)
@@ -584,26 +777,37 @@ def sample_shots(fmt):
     S.append(Shot3(3.4, [Rec3("S05_desktop", [(0, 3.0), (3.4, 3.6)], focus=f2)], pill_text="資金流向", head="錢流去哪看排名", hl="排名",
                    sub="哪個族群資金流入最多、流出最多，排名一次看",
                    host=Host([(0, 3.4, "pointer_l", None, None, "loop")]), cues=[(0.9, "draw"), (1.9, "zoom")]))
-    # 3) 資金輪動：虛線描邊框住輪盤
-    f3 = FocusBox((410, 250, 1370, 1200), t_draw=0.9, d_draw=0.8, t_zoom=1.9, d_zoom=0.9, style="dashed")
-    S.append(Shot3(3.4, [Rec3("S04_desktop", [(0, 2.0), (3.4, 5.4)], focus=f3)], pill_text="資金輪動", head="族群輪到哪裡", hl="輪到哪裡",
+    # 3) 資金輪動：比比先踩 ▶ 播放（對準錄影點擊座標），再用虛線描邊框住輪盤
+    ev = parse_shots(B.RAW / "shots.md").get("S04_desktop", [])
+    f3 = FocusBox((410, 250, 1370, 1200), t_draw=1.3, d_draw=0.8, t_zoom=2.3, d_zoom=0.9, style="dashed")
+    r3 = Rec3("S04_desktop", [(0, 1.0), (3.4, 4.4)], focus=f3)
+    S.append(Shot3(3.4, [r3], pill_text="資金輪動", head="族群輪到哪裡", hl="輪到哪裡",
                    sub="領先、轉弱、落後、改善四個象限，族群位置一眼看",
-                   host=Host([(0, 3.4, "face_think", None, None, "loop")]), cues=[(0.9, "draw"), (1.9, "zoom")]))
+                   host=Operator(r3, ev, idle="face_think"), cues=[(0.6, "tap"), (1.3, "draw"), (2.3, "zoom")]))
     S.append(end_card(2.6))
     S.append(disclaimer_card(2.4, prev=S[-1]))
     return S, L
 
 
+def sample_mobile_op():
+    """手機版：比比依 raw_v3 shots.md 踩總覽的分頁鈕（驗證 Operator 對位）。"""
+    L = Layout("mobile")
+    ev = parse_shots().get("V01_mobile", [])
+    r = Rec3("V01_mobile", [(0, 2.5), (6.5, 8.5)])
+    return [Shot3(6.5, [r], pill_text="總覽", head="大盤一頁看完", hl="一頁", sub="資金流向、熱度、大盤切換著看",
+                  host=Operator(r, ev, idle="talk_happy"))], L
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--sample", default="")
-    ap.add_argument("--fmt", choices=["web", "mobile"], default="web")
+    ap.add_argument("--fmt", choices=["web", "mobile", "mobile_op"], default="web")
     ap.add_argument("--audio", default="")
     ap.add_argument("--cues", default="")
     ap.add_argument("--stills", default="")
     ap.add_argument("--still-dir", default=".")
     a = ap.parse_args()
-    S, L = sample_shots(a.fmt)
+    S, L = sample_mobile_op() if a.fmt == "mobile_op" else sample_shots(a.fmt)
     if a.cues:
         Path(a.cues).write_text(json.dumps(cues_of(S)))
         return
@@ -615,6 +819,8 @@ def main():
             for t0, s in tl:
                 if t0 <= T < t0 + s.dur:
                     p = Path(a.still_dir) / f"v3_{a.fmt}_{T:05.2f}.png"
+                    for k in range(0, int((T - t0) * FPS), 5):
+                        s.render(k / FPS, L)
                     s.render(T - t0, L).save(p); print(p)
                     break
         return
