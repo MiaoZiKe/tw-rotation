@@ -6,6 +6,8 @@ Andy 第 3 版（`docs/marketing/video_1010/v3_brief.md` 第 12 條）：「表�
 全部同一隻、同一個場景座標（身體縮 0.75、中心 x=248、腳底 y=482），疊到影片時位置可以直接對齊。
 重建：`python scripts/anim/bibi_library.py --bibi <scratchpad>/bibi --out docs/anim/bibi_library`（逐格 PNG 在 scratchpad，各批產生腳本見 `scripts/anim/`）。
 
+**造型規格以 `reference/parts_sheet_1011.webp`（Andy 10-11 官方部件總表）為準**，規格說明在 `reference/README.md`；總表逐件切出的透明部件（本體、耳、手掌、腳、五官、效果符號、道具、姿勢、動作參考）在 `parts/`（`parts/index.md`）。
+
 總目錄：![總目錄](catalog.png)
 
 | 名稱 | 中文 | 類別 | 適合用途 | 格數 | 長度 | 預覽 |
