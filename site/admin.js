@@ -2412,7 +2412,11 @@ html[data-theme="light"] #v-admin{--pm-blue:#1f4fd8;--pm-blue-2:#163fb4}
       /* 改動用顏色表示、不用文字標籤（Andy 10-05 追加）：未存＝淡琥珀底＋左色條（.dirty）、已存的微調／改過＝淡藍左色條（.tuned）。
          色條用 inset box-shadow 畫，不加 padding —— 撥開關前後版面一像素都不能動。 */
       const rev = PS.mode === 'member' ? `<span class="pmrevc">${diff ? `<button type="button" class="pmrev" data-rev="${esc(f.id)}" title="還原成範本（範本是${base[f.id] === false ? '關' : base[f.id] === true ? '開' : base[f.id]}）">還原</button>` : ''}</span>` : '';
-      const limc = lims ? `<span class="pmlimc">${badge}</span>` : '';
+      /* ★ 2026-10-11（DECISIONS #354）：範本沒寫、但 features.js 有 limBy 的項目（註冊會員 ▶ 播放、今日關注…每日 3 次）—— 徽章寫預設次數，
+         不寫「∞」（前台實際就是每日 3 次，寫 ∞ 會讓管理者以為不限）。要改照樣點徽章輸入數字。*/
+      const dl = !has && lims && f.limBy && Object.prototype.hasOwnProperty.call(f.limBy, PS.planSel) ? f.limBy[PS.planSel] : null;
+      const badgeD = dl != null && badge ? badge.replace(/>[^<>]*<\/button>$/, `>${dl}/日</button>`).replace(/title="[^"]*"/, `title="範本沒寫時的預設：每日 ${dl} 次（要改請點這裡輸入數字）"`) : badge;
+      const limc = lims ? `<span class="pmlimc">${badgeD}</span>` : '';
       return `<div class="pmrow${compact ? ' sm' : ''}${unsaved ? ' dirty' : ''}${diff ? ' tuned' : ''}${lims ? ' wl' : ''}${f.kind === 'limit' ? ' sel' : ''}${PS.mode === 'member' ? ' wr' : ''}" data-f="${esc(f.id)}">${ctl}<div class="pmtx" title="${esc(f.name)}${f.desc ? '：' + esc(f.desc) : ''}"><b>${compact ? grpIcon(f) : ''}<span class="pmnm nm">${esc(f.name)}</span></b>${compact ? '' : (() => { const tg = rowTags(TG, f); return tg ? `<small class="pmtg">${tg}<span class="pmds">${esc(f.desc)}</span></small>` : `<small>${esc(f.desc)}</small>`; })()}</div>${limc}${rev}${pop}</div>`;
     }).join('');
   }

@@ -179,16 +179,29 @@
         /* ★ 2026-10-10（Andy：「功能反灰旁邊備註就好」）：features.js 有 qbtn 的計次功能（3D 剖析圖）用完時**不蓋額度卡**：
            按鈕反灰＋旁邊一行小字；畫面若正停在那個模式（例如記住了 3D）就退回 qoff（2D），不讓內容被一張卡蓋住。*/
         if (f.qbtn) {
+          /* ★ 2026-10-11（DECISIONS #354）qper:'each'＝每用一次算一次（▶ 播放、族群篩選、ETF 報酬比較…）：計數在各功能自己的動作函式（TwQuota.use），
+             這裡只判「今天用完了沒」→ 用完就反灰＋小字。沒有「這個單位今天看過」這回事（每一次都是新的一次）。*/
+          if (f.qper === 'each') {
+            if (f.route && !f.route.test(h)) continue;
+            const lim = limitOf(f.id);
+            if (!granted(f.id) && (d.k[f.id] || []).length >= lim) QN.set(f.id, { f, lim, used: (d.k[f.id] || []).length });
+            continue;
+          }
           const key = unitKey(f, h);
           if (key == null || (f.route && !f.route.test(h))) continue;
           const lim = limitOf(f.id), set = new Set(d.k[f.id] || []);
           if (set.has(key) || granted(f.id)) continue;
-          const els = targets(f, h);
+          /* qveil：「畫面上開著＝用了一次」要看的區塊（沒寫＝veil）。畫線工具列在桌機常駐 → qveil 空（點了畫線工具才算）*/
+          const els = f.qveil ? targets(Object.assign({}, f, { veil: f.qveil }), h) : targets(f, h);
           if (set.size < lim) { if (els.length) { set.add(key); d.k[f.id] = [...set]; changed = true; hit(f.id, key); } continue; }
           QN.set(f.id, { f, lim, used: set.size });
-          if (els.length && f.qoff) { const b = document.querySelector(f.qoff); if (b && !b.classList.contains('on')) setTimeout(() => b.click(), 0); }
+          /* qoff 那顆鈕可能本身就在 qblock／block 裡（四週期同看：退回單一週期＝再按一次 #mtfBtn）→ 自己按的這一下不要被下面的捕獲攔掉 */
+          if (els.length && f.qoff) { const b = document.querySelector(f.qoff); if (b && !b.classList.contains('on')) setTimeout(() => { S.bypass = true; try { b.click(); } finally { S.bypass = false; } }, 0); }
           continue;
         }
+        /* 每用一次算一次（qper:'each'）的功能由自己的動作函式計數、自己畫用完的樣子 —— 不能再照「區塊出現在畫面上＝看一次」數
+           （複利試算表的 veil #incPX 一打開就會被這裡多記一次、用完還會蓋額度卡）*/
+        if (f.qper === 'each') continue;
         const els = targets(f, h); if (!els.length) continue;
         const key = unitKey(f, h);
         if (key == null) continue;
@@ -306,6 +319,8 @@
     'flow.sankey.drill': /^#flow\/sankey/, 'flow.sankey': /^#flow\/sankey/, 'flow.inst.filter': /^#flow\/inst/, 'flow.inst': /^#flow\/inst/, 'flow.conc': /^#flow\/inst/,
     'flow.rot': /^#flow(\/rotation)?([/?]|$)/, 'etf.calendar': /^#etf\/cal/, 'etf.calendar.tab': /^#etf\/cal/, 'etf.cashflow': /^#etf\/inc/,
     'heat.detail': /^#heatmap\/theme/, 'heat.theme': /^#heatmap\/theme/, 'heat.market': /^#heatmap(\/industry)?([/?]|$)/,
+    /* 2026-10-11（DECISIONS #354）註冊會員開＋限次的新項目：跳轉主要發生在總覽、ETF 試算兩項在 #etf/inc、今日關注只在那個子分頁 */
+    'heat.link': /^#(overview)?([/?]|$)|^#heatmap/, 'mkt.cand': /^#market\/cand/, 'etf.inc.params': /^#etf\/inc/, 'etf.inc.comp': /^#etf\/inc/,
   };
   const CAT_HEAD = { overview: /^#(overview)?([/?]|$)/, flow: /^#flow/, industry: /^#industry/, heatmap: /^#heatmap/, market: /^#market/, stockk: /^#stock\//, stocktab: /^#stock\//,
     etf: /^#etf(\/list)?([/?]|$)/, explore: /^#explore/, earnings: /^#earnings/, watch: /^#watch/ };
@@ -324,7 +339,7 @@
       const f = Ft.byId(id); if (!f || f.kind === 'limit' || f.cat === 'grp') return;
       const n = limitOf(id); if (n === Infinity || !onPage(f, h)) return;
       const used = Math.min(n, (d.k[id] || []).length);
-      out.push({ id, name: f.name, unit: UNIT_TXT[f.act] || '看', used, lim: n, rem: Math.max(0, n - used) });
+      out.push({ id, name: f.name, unit: f.qunit || UNIT_TXT[f.act] || '看', used, lim: n, rem: Math.max(0, n - used) });
     });
     if (ringOn && allLim() !== Infinity) { const n = allLim(), used = Math.min(n, (d.k[ALL] || []).length); out.push({ id: ALL, name: '研究瀏覽（全站共用）', unit: '看', used, lim: n, rem: Math.max(0, n - used) }); }
     return out;
@@ -411,6 +426,8 @@
 .qnote{display:inline-flex;align-items:center;font-size:12px;line-height:1.4;color:var(--ink-3);white-space:nowrap;margin-left:6px;font-weight:400}
 .qnote.qnote-row{display:block;margin:6px 0;white-space:normal}
 #evQNote{margin:8px 16px 4px}
+:root.m4 #v-flow .rbar:is(#rotBack,#sankeyDays)>.qnote{flex:none;font-size:0!important;margin-left:2px}
+:root.m4 #v-flow .rbar:is(#rotBack,#sankeyDays)>.qnote::before{content:"今日已用完";font-size:12px;color:var(--ink-3)}
 .qlkov:not(.qcov) .qlkgo{margin-top:6px;display:inline-flex;align-items:center;height:36px;padding:0 18px;border-radius:999px;background:var(--amber,#f5b942);color:#1a1203;font-weight:700;font-size:14px;text-decoration:none}`);
   }
 
@@ -425,14 +442,25 @@
      改成：按工具鈕＝用一次（單位同上：個股頁＝那一檔、其他＝這次造訪）；今天的次數用完 → 攔下這一下、跳出同款卡片（TwQCard.modal）。
      捕獲階段攔（比各工具自己的 onclick 早），不必改 industry.js／theme4.js。*/
   document.addEventListener('click', (e) => {
+    if (S.bypass) return;      // evaluate() 自己按的 qoff（退回單一週期／2D）
     const fs = limited(); if (!fs.length) return;
     const h = location.hash || '';
     if (h.startsWith('#admin') || h.startsWith('#pricing')) return;
     for (const f of fs) {
-      for (const sel of f.block || []) {
+      /* 2026-10-11：qblock＝「計次／用完要擋」的鈕（沒寫＝block）。分開寫是因為有些功能鎖頭要掛的鈕跟計次的鈕不一樣
+         （畫線：鎖頭掛 #drawTgl＋整塊工具列 veil；計次是點了某個畫線工具才算）。*/
+      for (const sel of f.qblock || f.block || []) {
         let b = null; try { b = e.target && e.target.closest && e.target.closest(sel); } catch (er) { b = null; }
         if (!b) continue;
         if (f.route && !f.route.test(h)) continue;
+        if (f.qfree && b.closest(f.qfree)) return;     // 例：正在播放時的 ⏸（第 3 次播到一半要能停）
+        if (f.qper === 'each') {
+          /* 每用一次算一次的功能：計數在功能自己的動作函式（TwQuota.use）；這裡只在「今天用完了」時把這一下吞掉（旁邊已經寫了，不跳卡）*/
+          if (granted(f.id) || (load().k[f.id] || []).length < limitOf(f.id)) return;
+          e.preventDefault(); e.stopImmediatePropagation();
+          useOut(f.id, b);
+          return;
+        }
         const d = load(), lim = limitOf(f.id), key = unitKey(f, h);
         if (key == null) continue;
         const set = new Set(d.k[f.id] || []);
@@ -583,8 +611,21 @@
     const A = window.TwAccount, u = A && A.on && A.on() && A.user && A.user();
     if (!A || !A.on || !A.on()) return true;
     if (u && u.admin) return true;
-    return p.can('heat.link');
+    /* 2026-10-11（DECISIONS #354）：註冊會員開＋每日 N 次 —— 今天用完＝跟沒權限同一個樣子（總覽單純無效、游標不變手指）*/
+    return p.can('heat.link') && !out('heat.link');
   }
+  /* 真的要跳過去的那一下才扣一次（heatLinkOk 只是問）。不限次／站主／預覽版／管理員直接放行不記 */
+  function heatLinkUse() {
+    if (!heatLinkOk()) return false;
+    const p = P(); if (!p || window.TW_PREVIEW || (p.owner && p.owner())) return true;
+    const A = window.TwAccount, u = A && A.on && A.on() && A.user && A.user();
+    if (!A || !A.on || !A.on() || (u && u.admin)) return true;
+    return use('heat.link');
+  }
+  /* 有權限、只是今天的次數用完了：一律安靜（不跳升級卡；Andy 10-10「這種訊息不要用跳出的方式表示」），頁首「本頁 N 項限制」會寫剩 0 次 */
+  const hlSpent = () => { const p = P(); return !!(p && p.can('heat.link') && out('heat.link')); };
+  /* 總覽上「有字的跳頁鈕」旁邊那行字：沒權限寫方案、今天用完寫次數 */
+  function heatLinkNote() { const p = P(); return p && p.can('heat.link') && out('heat.link') ? `今日跳轉 ${limitOf('heat.link')} 次已用完` : 'Plus 以上可跳轉'; }
   /* 只認「點在圖的 canvas 上」：ECharts 的結構是 初始化容器 > zrender 外框 > canvas。
      不往上一路找祖先 —— 有些容器（例如產業地圖整個 view）曾經被拿來初始化過 treemap、實例還掛著，
      一路往上找會把點分頁鈕也當成點熱力圖（2026-10-08 驗收實測：產業地圖點產業鏈分頁被誤擋）。*/
@@ -636,15 +677,15 @@
   const onOv = (h) => pageOf(h == null ? (location.hash || '#overview') : (h || '#overview')) === '#overview';
   function heatGo(to, fn) {
     HM.t = 0;      // 這一下已經判過了：不要讓捕獲那一層再判一次（擋下時也清，不然 800ms 內按升級卡的「升級 Plus」會被當成熱力圖跳頁）
-    if (heatLinkOk()) { if (fn) fn(); else location.hash = to; return true; }
-    if (!onOv()) heatLinkBlock(to);
+    if (heatLinkUse()) { if (fn) fn(); else location.hash = to; return true; }
+    if (!onOv() && !hlSpent()) heatLinkBlock(to);
     return false;
   }
   function routeOkAll(hash) {
     if (HM.t && Date.now() - HM.t < 800) {
       const from = HM.from; HM.t = 0;
-      if (pageOf(hash) !== pageOf(from) && !/^#pricing/.test(String(hash)) && !heatLinkOk()) {   // 去訂閱頁（升級卡的按鈕）永遠放行
-        location.replace(from); if (!onOv(from)) heatLinkBlock(hash); return false; }
+      if (pageOf(hash) !== pageOf(from) && !/^#pricing/.test(String(hash)) && !heatLinkUse()) {   // 去訂閱頁（升級卡的按鈕）永遠放行；可以跳＝這一下扣一次（2026-10-11）
+        location.replace(from); if (!onOv(from) && !hlSpent()) heatLinkBlock(hash); return false; }
     }
     return routeOk(hash);
   }
@@ -664,10 +705,14 @@
   document.addEventListener('click', (e) => {
     const t = e.target;
     if (!ovCtx(t)) { if (!hmHost(t)) HM.t = 0; return; }   // 點到總覽以外（側欄、頂欄）＝使用者自己要換頁：前一下總覽點擊留下的記號作廢
-    if (touring2() || heatLinkOk()) return;
+    if (touring2()) return;
     const a = t.closest('a[href^="#"]');
     const href = a ? a.getAttribute('href') || '' : '';
-    if (a && /^#[a-z]/i.test(href) && !onOv(href) && !/^#pricing/.test(href)) { e.preventDefault(); e.stopImmediatePropagation(); HM.t = 0; return; }
+    const jump = a && /^#[a-z]/i.test(href) && !onOv(href) && !/^#pricing/.test(href);
+    /* 2026-10-11：有權限時，總覽上的 <a> 跳頁＝這一下扣一次（heatLinkUse）；用完／沒權限＝吞掉這一下（單純無效）。
+       canvas／列的程式跳頁照舊記 HM，換頁時由 routeOkAll 判（也是那時才扣）。*/
+    if (jump) { if (!heatLinkUse()) { e.preventDefault(); e.stopImmediatePropagation(); } HM.t = 0; return; }
+    if (heatLinkOk() && limitOf('heat.link') === Infinity) return;   // 不限次：不必記（有次數上限時要記，換頁那一下才扣得到）
     /* 只記「可能由程式換頁」的點擊：canvas（非樹狀熱力圖，樹狀圖由 heatGo 判）、表格列／帶代號的格子。
        按鈕、關閉 ×、分段鈕不記 —— 不然關掉放大視窗後 800ms 內從側欄換頁會被誤擋（驗收實測）。*/
     if (!hmHost(t) && (t.tagName === 'CANVAS' || t.closest('tr[data-code], [data-code], [data-gid]'))) { HM.t = Date.now(); HM.from = location.hash || '#overview'; }
@@ -677,14 +722,17 @@
     const no = !heatLinkOk();
     const r = document.documentElement;
     if (r.classList.contains('ovnl') !== no) r.classList.toggle('ovnl', no);
+    /* 2026-10-11：小字要分「沒權限」與「今天次數用完」兩種 —— 樣式表只插一次（TwSub.css），字放在 CSS 變數裡隨時換 */
+    { const t = JSON.stringify(heatLinkNote()); if (r.style.getPropertyValue('--ovnl-t') !== t) r.style.setProperty('--ovnl-t', t); }
     /* 有字的跳頁鈕（「進族群頁 →」膠囊、「法人連續買賣超 → 市場明細」）：反灰＋旁邊小字「Plus 以上可跳轉」（CEO 10-10 更正：不藏、不跳卡）；
        資金輪盤說明框那顆由 app.js ovRotPop 直接畫成反灰（不是連結）。其他連結（成分股名…）只是游標不變手指、點了沒反應。*/
     if (no && T()) T().css('ovnlCss', `html.ovnl #v-overview a.pill[href^="#"]:not([href^="#pricing"]),html.ovnl #v-overview .ovmore a[href^="#"]{color:var(--ink-3)!important;background:transparent!important;border-color:var(--line-2)!important;box-shadow:none!important;cursor:not-allowed!important;text-decoration:none!important}
-html.ovnl #v-overview a.pill[href^="#"]:not([href^="#pricing"])::after,html.ovnl #v-overview .ovmore a[href^="#"]::after{content:"Plus 以上可跳轉";margin-left:6px;font-size:12px;font-weight:400;color:var(--ink-3)}
+html.ovnl #v-overview a.pill[href^="#"]:not([href^="#pricing"])::after,html.ovnl #v-overview .ovmore a[href^="#"]::after{content:var(--ovnl-t,"Plus 以上可跳轉");margin-left:6px;font-size:12px;font-weight:400;color:var(--ink-3)}
 html.ovnl #v-overview a[href^="#"]:not([href="#"]):not([href^="#overview"]):not([href^="#pricing"]),html.ovnl #zoomOv a[href^="#"]:not([href="#"]),html.ovnl #ovRotPop .rp-ms a{cursor:default!important}
 html.ovnl #ovRotPop .rp-ms a:hover{outline:none!important}`);
   }
   window.addEventListener('tw:perm', ovMark); window.addEventListener('tw:account', ovMark); window.addEventListener('hashchange', ovMark);
+  window.addEventListener('tw:quse', ovMark);   // 2026-10-11：跳轉次數剛好用完 → 總覽立刻換成反灰（use() 每記一次發一次）
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', ovMark); else ovMark();
 
   /* ============================================================================
@@ -732,17 +780,31 @@ html.ovnl #ovRotPop .rp-ms a:hover{outline:none!important}`);
     newsMark(d);
   }, true);
   /* 備註模式的反灰與小字（3D 剖析圖這類 qbtn 功能；perm.js 的 .plknote 是「開關關掉」那種，這裡是「今天次數用完」）*/
+  /* 2026-10-11：qbtn 可以寫 {n}（每日次數），例「今日 {n} 次已用完・Plus 以上可增加」*/
+  const qtxt = (f, lim) => String(f.qbtn || '').replace('{n}', lim == null || lim === Infinity ? '' : lim);
   function qnotePaint(QN) {
     const keep = new Set(), on = new Set();
-    QN.forEach(({ f }) => {
-      (f.block || []).forEach((sel) => q(sel).forEach((el) => {
+    const put = (at, f, txt) => {
+      let nt = at.nextElementSibling;
+      /* 同一個插入點可能排了好幾個功能的小字（個股工具列：四週期、指標、畫線）—— 往後找同一串 .qnote 裡有沒有自己的 */
+      while (nt && nt.classList.contains('qnote') && nt.dataset.f !== f.id) nt = nt.nextElementSibling;
+      if (!nt || !nt.classList.contains('qnote') || nt.dataset.f !== f.id) { nt = document.createElement('span'); nt.className = 'qnote'; nt.dataset.f = f.id; at.after(nt); }
+      if (nt.textContent !== txt) nt.textContent = txt;
+      keep.add(nt);
+    };
+    QN.forEach(({ f, lim }) => {
+      const txt = qtxt(f, lim);
+      (f.qblock || f.block || []).forEach((sel) => q(sel).forEach((el) => {
+        if (f.qfree && el.closest(f.qfree)) return;   // 正在播放的那顆 ⏸ 不反灰（按得停）
         on.add(el);
-        if (!el.hasAttribute('data-qnote')) { el.setAttribute('data-qnote', ''); el.setAttribute('aria-disabled', 'true'); el.title = f.qbtn; }
-        const at = (f.qbtnAt && el.closest(f.qbtnAt)) || el;
-        let nt = at.nextElementSibling;
-        if (!nt || !nt.classList.contains('qnote') || nt.dataset.f !== f.id) { nt = document.createElement('span'); nt.className = 'qnote'; nt.dataset.f = f.id; nt.textContent = f.qbtn; at.after(nt); }
-        keep.add(nt);
+        if (!el.hasAttribute('data-qnote')) { el.setAttribute('data-qnote', ''); el.setAttribute('aria-disabled', 'true'); }
+        if (el.title !== txt) el.title = txt;
+        if (f.qnoteAfter) return;
+        if (f.qbtnOn && !f.qbtnOn.some((s2) => { try { return el.matches(s2); } catch (er) { return false; } })) return;
+        put((f.qbtnAt && el.closest(f.qbtnAt)) || el, f, txt);
       }));
+      /* qnoteAfter：整個功能只寫一行，插在固定位置（個股工具列中段的空白後面），不是每顆鈕各一行 */
+      if (f.qnoteAfter) { const at = document.querySelector(f.qnoteAfter); if (at && (f.qblock || f.block || []).some((sel) => q(sel).length)) put(at, f, txt); }
     });
     q('[data-qnote]').forEach((el) => { if (!on.has(el) && !el.matches(NEWS_A)) { el.removeAttribute('data-qnote'); el.removeAttribute('aria-disabled'); el.removeAttribute('title'); } });
     q('span.qnote[data-f]').forEach((nt) => { if (!keep.has(nt)) nt.remove(); });
@@ -753,6 +815,41 @@ html.ovnl #ovRotPop .rp-ms a:hover{outline:none!important}`);
   window.addEventListener('hashchange', () => { routeOkAll(location.hash); });
   /* ★ 2026-10-10 動作函式用的「現在可以用嗎」（不扣次）：方案開著、而且（不限次／今天這個單位已經算過／還有次數／體驗打開）。
      給 industry.js 的 3D setMode 這種「多條路都會走到」的函式問 —— 桌機鈕、手機圓鈕、重新整理記住 3D 都經過它。*/
+  /* ============================================================================
+     ★ 2026-10-11 每用一次算一次（DECISIONS #354；Andy：「功能要曝光度…我們可以開放…但就是限制功能」→「限制次數才對」）
+     註冊會員的 ▶ 播放、今日關注、週期統計族群篩選、總覽跳頁、ETF 報酬比較／複利試算表／參數：從「關」改成「開＋每日 3 次」。
+     這幾項沒有「同一個對象同一天看過就不重算」可言（按一次 ▶ 就是播一次），所以單位＝每一次都是新的（n<時間><亂數>），
+     由功能自己的動作函式呼叫 use()：可以用回 true（已記一次）、用完回 false（不跳卡，旁邊的備註字由 evaluate→qnotePaint 畫；
+     手上真的還有體驗額度才跳體驗卡，「繼續看」才扣）。跟 act() 的差別只在用完時不跳升級卡（Andy 10-10：「這種訊息不要用跳出的方式表示」）。
+     ============================================================================ */
+  function out(id) {
+    const n = limitOf(id); if (n === Infinity || granted(id)) return false;
+    try { const ts = window.TwTour && window.TwTour.state(); if (ts && ts.on) return false; } catch (e) { /* 沒有導覽 */ }
+    return (load().k[id] || []).length >= n;
+  }
+  function useOut(id, el) {
+    const x = window.TwGrants && window.TwGrants.extra && window.TwGrants.extra(id);
+    if (x && x.left > 0 && window.TwQCard && window.TwQCard.modal) {
+      const f = F() && F().byId(id), n = limitOf(id);
+      if (el && window.TwGrants.pending) window.TwGrants.pending(id, el);
+      window.TwQCard.modal(opts({ f: f || { id, name: id }, lim: n, used: (load().k[id] || []).length }));
+    }
+    schedule();
+    return false;
+  }
+  function use(id, el) {
+    try { const ts = window.TwTour && window.TwTour.state(); if (ts && ts.on) return true; } catch (e) { /* 沒有導覽 */ }
+    const p = P(); if (p && !p.can(id)) return false;
+    const n = limitOf(id); if (n === Infinity || granted(id)) return true;
+    const d = load(); const ks = d.k[id] || [];
+    if (ks.length >= n) return useOut(id, el);
+    const key = safeKey('n' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5));
+    d.k[id] = ks.concat(key); save(d); hit(id, key);
+    schedule();
+    try { window.dispatchEvent(new CustomEvent('tw:quse', { detail: { id } })); } catch (e) { /* 舊瀏覽器 */ }   // 事件名不能用 tw:quota —— 那是 datagw.js「伺服器說額度用完」的事件，qcard.js 會蓋整頁額度卡
+    return true;
+  }
+  const left = (id) => { const n = limitOf(id); return n === Infinity ? Infinity : Math.max(0, n - (load().k[id] || []).length); };
   function allow(id) {
     try { const ts = window.TwTour && window.TwTour.state(); if (ts && ts.on) return true; } catch (e) { /* 沒有導覽 */ }
     const p = P(); if (p && !p.can(id)) return false;
@@ -761,7 +858,7 @@ html.ovnl #ovRotPop .rp-ms a:hover{outline:none!important}`);
     const set = new Set(load().k[id] || []);
     return set.has(key) || set.size < n;
   }
-  window.TwQuota = { act, allow, pick, pickBlock, routeOk: routeOkAll, heatLinkOk, heatGo, actUnit, UNIT_KINDS, used: (id) => (load().k[id] || []).slice(),
+  window.TwQuota = { act, allow, use, out, left, pick, pickBlock, routeOk: routeOkAll, heatLinkOk, heatLinkUse, heatLinkNote, heatGo, actUnit, UNIT_KINDS, used: (id) => (load().k[id] || []).slice(),
     state: () => load(), limit: limitOf, evaluate: () => evaluate(), day: tpeDay, pageKey, unitKey: (id, h) => unitKey(window.TwFeatures && window.TwFeatures.byId(id), h || location.hash || ''), unitKind: (id) => unitKind(window.TwFeatures && window.TwFeatures.byId(id)),
     /* 2026-10-10 手機額度上限面板（acctm4.js）依母分頁分組：沿用這裡的 PAGE_OF／CAT_HEAD 判斷，不另寫一套（只多匯出，不改行為）*/
     onPage };

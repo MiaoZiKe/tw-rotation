@@ -264,7 +264,9 @@
   const monthEq = (p) => { const x = prices(p); return x.free ? 0 : x.month || (x.year ? x.year / 12 : x.once || Infinity); };
   /* 這個方案在某個功能上的值（沒寫＝預設）；上限：Infinity＝不限 */
   function val(p, f) { const v = (p.feats || {})[f.id]; if (f.kind === 'limit') return Number.isInteger(v) ? v : v === false ? 0 : F() && F().defOf ? F().defOf(f, p.id) : f.def; return typeof v === 'boolean' ? v : F() && F().defOf ? F().defOf(f, tierOf(p) === 'paid' ? p.id : tierOf(p)) : f.def; }
-  const limOf = (p, f) => { const v = (p.lims || {})[f.id]; return Number.isInteger(v) && v >= 0 ? v : Infinity; };
+  /* 2026-10-11（DECISIONS #354）：範本沒寫次數時照 features.js limBy（註冊會員 ▶ 播放、今日關注…每日 3 次）——跟前台 perm.js 實際套用的一致 */
+  const limOf = (p, f) => { const v = (p.lims || {})[f.id]; if (Number.isInteger(v) && v >= 0) return v;
+    const t = tierOf(p); return f.limBy && Object.prototype.hasOwnProperty.call(f.limBy, t) ? f.limBy[t] : Infinity; };
   const on = (p, f) => { if (limOf(p, f) === 0) return false; const v = val(p, f); return typeof v === 'number' ? v > 0 : v !== false; };
   const ltxt = (n) => (n === Infinity ? '不限' : n === 0 ? '不能看' : `每日 ${n} 次`);
   /* 研究額度（全站共用每日次數，鍵 quota.all）：兩種來源 —— 範本 lims['quota.all']（plan_presets 格式／?demo=plans）與後端欄位 plans.dq（quota 分支，null＝不限）。

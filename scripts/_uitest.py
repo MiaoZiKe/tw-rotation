@@ -33373,6 +33373,8 @@ SECTIONS = {
     "免費會員權限1010":    lambda pg, b, base, code: t_free_perm_1010(b, base, code),
     # ★ 2026-10-10 Andy：「ETF 試算 註冊的免費會員 改成只能看 5 次，上面參數都不可以調整（包含複利表）」＋「ETF 報酬比較 與 複利試算表 不開放此會員等級」
     "ETF試算免費限制1010": lambda pg, b, base, code: t_etf_inc_free_1010(b, base),
+    # ★ 2026-10-11 Andy（宣傳影片討論）：「功能要曝光度…我們可以開放…但就是限制功能」→「限制次數才對」：註冊會員原本關掉的功能改成開＋每日 3 次，用完反灰＋小字（DECISIONS #354）
+    "註冊會員限次開放1011": lambda pg, b, base, code: t_free_open_1011(b, base, code),
     # ★ 2026-09-28 Andy：「所有標題加上小圖示，顏色要搭配」—— 覆蓋、對比 ≥3:1（深淺）、1440／800／390 不擠（A/B）、動效（⚠ 一律 --workers 1）
     "標題圖示":            lambda pg, b, base, code: t_title_icons(pg, b, base, code),
     # ★ 2026-09-30 Andy：部分股票 1 小時／4 小時找不到資料 —— 60 分 K 擴到全市場、每檔獨立 m60 檔、沒有時寫一句話
@@ -57422,7 +57424,8 @@ def _qscan_specs(code):
 # 工具鈕（block）：按下去要開的東西 → 用「按了之後這個有沒有出現」判斷有沒有被擋
 QSCAN_TOOL = {"theme": ("#themeBtn, #t4Btn, #mmTheme, .mrow[data-m=theme]", "() => (document.documentElement.dataset.theme || '') + '|' + (document.documentElement.dataset.theme4 || '') + '|' + !!(document.getElementById('t4Pop') && document.getElementById('t4Pop').getClientRects().length)"),
               "stock.ind": ("#indBtn", "() => document.getElementById('indBtn').getAttribute('aria-expanded') === 'true'"),
-              "stock.draw": ("#drawTgl", "() => { const p = document.getElementById('drawBar'); return !!p && p.getClientRects().length > 0; }"),
+              # 2026-10-11（DECISIONS #354）：畫線改成「點了某個畫線工具才算」（桌機左側工具列常駐、看到不算）→ 桌機按水平線工具、看它有沒有選起來
+              "stock.draw": ("#drawTgl, #drawBar .dtool[data-t=\"hline\"]", "() => { const t = document.getElementById('drawTgl'); if (t && t.getClientRects().length) { const p = document.getElementById('drawBar'); return !!p && p.getClientRects().length > 0; } return !!document.querySelector('#drawBar .dtool[data-t=\"hline\"].on'); }"),
               "stock.mtf": ("#mtfBtn", "() => !!document.getElementById('mtfGrid')")}
 QSCAN_SKIP = {"stock.k_min": "只有管理者看得到（DECISIONS #326）", "live.tick": "只有管理者看得到（DECISIONS #326）"}
 
@@ -57477,6 +57480,8 @@ def _qscan_one(b, base, fid, kind, ra, rb, prep, how, W, errs):
                     pg.keyboard.press("Escape"); pg.wait_for_timeout(200)
                 if fid in ("stock.draw", "stock.mtf", "stock.ind") and pg.evaluate(opened):
                     pg.evaluate(CLICK, sel); pg.wait_for_timeout(300)
+                if fid == "stock.draw":   # 桌機：選回「選取」工具（畫線工具選了會跟著換股留著）
+                    pg.evaluate("() => { const c = document.querySelector('#drawBar .dtool[data-t=\"cursor\"]'); if (c && c.getClientRects().length) c.click(); }"); pg.wait_for_timeout(200)
             elif pg.evaluate(VIS, fid):
                 how = "veil"; res["how"] = "veil"   # 這個寬度工具列本來就開著（例如桌機的畫線列）→ 改驗區塊遮罩
             else:
@@ -57521,7 +57526,14 @@ def _qscan_one(b, base, fid, kind, ra, rb, prep, how, W, errs):
             else:
                 res["b_open"] = None; res["b_card"] = None
             res["a_cnt"] = cnt(pg)
-            res["ok"] = bool(res.get("a_open")) and res["a_cnt"] == 1 and res["b_open"] is False and res["b_card"] is True
+            # ★ 2026-10-11（DECISIONS #354；Andy 10-10「這種訊息不要用跳出的方式表示，功能反灰旁邊備註就好」）：
+            #   有 qbtn 的工具（四週期、指標設定、畫線）用完不跳卡：鈕反灰（data-qnote）、點了不開
+            qb = p2.evaluate(f"() => !!(TwFeatures.byId('{fid}') || {{}}).qbtn")
+            if qb:
+                res["b_qnote"] = p2.evaluate("(sel) => sel.split(',').map(s => document.querySelector(s.trim())).some(e => e && e.hasAttribute('data-qnote'))", sel)
+                res["ok"] = bool(res.get("a_open")) and res["a_cnt"] == 1 and res["b_open"] is False and not res["b_card"] and res["b_qnote"]
+            else:
+                res["ok"] = bool(res.get("a_open")) and res["a_cnt"] == 1 and res["b_open"] is False and res["b_card"] is True
         elif fid == "ind.3d":
             # ★ 2026-10-10（Andy：「功能反灰旁邊備註就好」）：3D 次數用完不蓋額度卡 —— 3D 鈕反灰＋旁邊小字、畫面退回 2D（features.js qnote）
             wait_until(p2, "() => { const b = document.querySelector('#dg3d button[data-dm=\"3d\"]'); return !!b && b.hasAttribute('data-qnote'); }", 5000)
@@ -58082,7 +58094,9 @@ def _gp_suite(b, base, T, who, feats, lims, errs, shot, tag):
     if who is None: shot(pg, "8_etf_cashflow_locked.png")
 
     # ⑩ 熱力圖點擊跳頁（heat.link）：總覽「熱門題材」選一個題材 → 點成分股方塊，不跳頁、跳升級卡、游標不是手指
-    _hm_overview_click(pg, T, tag, expect_nav=False, shot=shot if who is None else None)
+    # ★ 2026-10-11（DECISIONS #354）Andy：「功能要曝光度…我們可以開放…但就是限制功能」→「限制次數才對」：
+    #   註冊會員的總覽跳頁改成開＋每日 3 次 → 第一次點方塊真的跳；用完的樣子由「註冊會員限次開放1011」驗。訪客照舊不跳。
+    _hm_overview_click(pg, T, tag, expect_nav=who is not None and feats.get("heat.link") is not False, shot=shot if who is None else None)
     c.close()
 
 
@@ -59834,7 +59848,7 @@ def t_member_perm(b, base, code):
         ad.select_option("#pmPlan", tp_plan.get("id", ""))
         save()
         wait_until(ad, "() => /付費測試/.test(document.getElementById('pmWho').textContent)", 5000)
-        ok(f"{T}：會員管理把測試帳號指定到「付費測試」→ 已儲存、個別微調保留（11 項：權限矩陣 1008 資金流向多了 2 個次數項，整組撥動時一起算）", "付費測試" in ad.inner_text("#pmWho") and "個別微調 11 項" in ad.inner_text("#pmWho")
+        ok(f"{T}：會員管理把測試帳號指定到「付費測試」→ 已儲存、個別微調保留（12 項：權限矩陣 1008 資金流向多了 2 個次數項；2026-10-11 DECISIONS #354 註冊會員 ▶ 播放預設改開，資金流向全關時多算這一項）", "付費測試" in ad.inner_text("#pmWho") and "個別微調 12 項" in ad.inner_text("#pmWho")
            and ad.evaluate("() => !document.querySelector(\"#pmCats input[data-f='ov.heat']\").checked"), ad.inner_text("#pmWho"))
         to_perm(ad)
         wait_until(ad, "() => location.hash === '#admin/perm' && !!document.getElementById('ptTier') && document.querySelectorAll('#pmCats .pmcat').length > 0", 10000)
@@ -66649,8 +66663,15 @@ def _hp_ov_pick(pg, dd="#ovThemeDD"):
     pg.locator(dd + " .ddopt[data-t]:not([data-t=''])").first.click(); pg.wait_for_timeout(700)
 
 
+# ★ 2026-10-11（DECISIONS #354）Andy：「功能要曝光度…我們可以開放…但就是限制功能」→「限制次數才對」：
+#   註冊會員的 heat.link 預設改成開＋每日 3 次（用完的樣子由「註冊會員限次開放1011」驗）。這段的「免費會員」改成**範本明寫關**，
+#   驗管理者關掉時那條路（訪客同一條）照舊擋得住。
+def _hp_feats(who, plan):
+    return {"heat.link": False} if who == "member" and plan == "free" else {}
+
+
 def _hp_desktop(b, base, T, tag, who, plan, allow, errs, **kw):
-    c, sent, st = _sub_ctx(b, who, plan=plan, feats={}, lims={}, **kw)
+    c, sent, st = _sub_ctx(b, who, plan=plan, feats=_hp_feats(who, plan), lims={}, **kw)
     pg = c.new_page(); pg.on("pageerror", lambda e: errs.append(str(e)))
     pg.goto(base + "#overview", wait_until="domcontentloaded")
     src = "default" if kw.get("perm_fail") else "server"
@@ -66785,7 +66806,7 @@ def _hp_desktop(b, base, T, tag, who, plan, allow, errs, **kw):
 
 
 def _hp_mobile(b, base, T, tag, who, plan, allow, errs):
-    c, sent, st = _sub_ctx(b, who, width=390, plan=plan, feats={}, lims={}, touch=True)
+    c, sent, st = _sub_ctx(b, who, width=390, plan=plan, feats=_hp_feats(who, plan), lims={}, touch=True)
     pg = c.new_page(); pg.on("pageerror", lambda e: errs.append(str(e)))
     pg.goto(base + "#overview", wait_until="domcontentloaded")
     wait_until(pg, "() => window.TwPerm && TwPerm.state().src === 'server' && !!window.TwQuota", 12000)
@@ -66897,7 +66918,11 @@ FP_POP = "() => { const m = document.getElementById('qcModal'); const t = docume
 
 def _fp_ctx(b, plan, width=1440, touch=False):
     lims = {"ind.3d": 3, "news.open": 10} if plan == "free" else {}
-    c, sent, st = _sub_ctx(b, "member", width=width, plan=plan, feats={}, lims=lims, touch=touch)
+    # ★ 2026-10-11（DECISIONS #354）Andy：「功能要曝光度，我們可以開放…但就是限制功能」→「限制次數才對」：
+    #   註冊會員的今日關注／▶ 播放／族群篩選／總覽跳頁改成「開＋每日 3 次」（新段「註冊會員限次開放1011」驗）。
+    #   這段改成**範本明寫關**（管理者仍可以在 #admin/perm 把它們關掉，那條路＝反灰＋「Plus 以上…」照舊要對），斷言不變。
+    feats = {"mkt.cand": False, "flow.play": False, "season.groups": False, "heat.link": False} if plan == "free" else {}
+    c, sent, st = _sub_ctx(b, "member", width=width, plan=plan, feats=feats, lims=lims, touch=touch)
     # 只在這個分頁第一次載入時設（重新整理不重設 —— 3D「記住上次是 3D」那條要驗重新整理）
     c.add_init_script("try { if (!sessionStorage.getItem('fp.init')) { sessionStorage.setItem('fp.init', '1'); localStorage.setItem('tw.dg3d', '0'); localStorage.setItem('tw.live.on', '0'); } } catch (e) {}")
     return c, sent
@@ -67185,6 +67210,319 @@ def t_free_perm_1010(b, base, code):
     ok(f"{T}：整段沒有 JS 錯誤", not errs, errs[:3])
 
 
+# ===================================================================== 註冊會員限次開放1011（DECISIONS #354）
+#   Andy 10-11 02:2x（動畫聊天室轉述，宣傳影片討論）：「都先寫上去，但不特別說哪個會員層級，記得這就是單純宣傳，功能要曝光度，
+#   我們可以開放，畢竟他們也要知道我們有什麼，但就是限制功能」→ 更正「限制次數才對」。
+#   註冊會員原本關掉的功能改成「開＋每日 3 次」；用完照 10-10 的規則：反灰＋旁邊小字、不跳視窗；總覽點擊單純無效。
+#   用註冊會員（假 Worker，範本 feats／lims 都**不寫**＝線上還沒按「套用建議方案」的樣子，吃 features.js 的 defBy／limBy）真的操作：
+#   前 3 次真的有作用、第 4 次反灰＋小字、沒有任何彈出層。訪客照舊關。截圖：TW_OPEN1011_SHOTS＝資料夾。
+OP_POP = """() => { const v = (e) => !!e && !e.hidden && e.getClientRects().length > 0;
+  return v(document.getElementById('qcModal')) || v(document.getElementById('permToast')); }"""
+
+
+def _op_ctx(b, plan="free", width=1440, touch=False, seed=None):
+    c, sent, st = _sub_ctx(b, "member" if plan != "guest" else None, width=width, plan=plan, feats={}, lims={}, touch=touch)
+    # seed：先塞今天已經用掉的次數（{功能鍵: 次數}），手機那段直接從第 4 次開始驗
+    js = "try { if (!sessionStorage.getItem('op.init')) { sessionStorage.setItem('op.init', '1'); localStorage.setItem('tw.live.on', '0'); localStorage.setItem('tw.dg3d', '0');"
+    if seed:
+        js += ("const day = new Date(Date.now() + 8 * 3600 * 1000).toISOString().slice(0, 10); const k = {};"
+               f"Object.entries({json.dumps(seed)}).forEach(([id, n]) => {{ k[id] = Array.from({{length: n}}, (_, i) => 'seed' + i); }});"
+               "localStorage.setItem('tw.quota', JSON.stringify({ day, k }));")
+    js += " } } catch (e) {}"
+    c.add_init_script(js)
+    return c, sent
+
+
+def _op_ready(pg, base, h):
+    pg.goto(base + h, wait_until="domcontentloaded")
+    return wait_until(pg, "() => window.TwPerm && TwPerm.state().src === 'server' && !!window.TwQuota", 15000)
+
+
+def t_free_open_1011(b, base, code):
+    T = "註冊會員限次開放1011"
+    errs: list[str] = []
+    sh = os.environ.get("TW_OPEN1011_SHOTS")
+    if sh:
+        pathlib.Path(sh).mkdir(parents=True, exist_ok=True)
+
+    def shot(pg, name, sel=None):
+        if not sh:
+            return
+        try:
+            if sel:
+                pg.locator(sel).first.screenshot(path=str(pathlib.Path(sh) / name))
+            else:
+                pg.screenshot(path=str(pathlib.Path(sh) / name))
+        except Exception as ex:  # noqa: BLE001
+            print("  截圖失敗", name, ex)
+
+    used = lambda pg, k: pg.evaluate(f"() => (TwQuota.used('{k}') || []).length")  # noqa: E731
+
+    c, sent = _op_ctx(b)
+    pg = c.new_page(); pg.on("pageerror", lambda e: errs.append(str(e)))
+    # ---------------------------------------------------------------- 0. 範本沒寫也照身分：開＋每日 3 次
+    _op_ready(pg, base, "#overview")
+    st = pg.evaluate("() => { const ks = ['flow.play','season.groups','mkt.cand','stock.k_min','stock.mtf','stock.ind','stock.draw','etf.inc.params','etf.cmp','etf.inc.comp','heat.link'];"
+                     " return ks.map(k => [k, TwPerm.can(k), TwPerm.lim(k)]); }")
+    ok(f"{T} 範本沒寫：11 項全部開、每日 3 次（limBy）", all(x[1] and x[2] == 3 for x in st), st)
+
+    # ---------------------------------------------------------------- ① ▶ 播放（資金輪動、分流樹共用 3 次）
+    pg.evaluate("() => { location.hash = '#flow/rotation'; }")
+    wait_until(pg, "() => !!document.querySelector('#rotBack .pb.play')", 15000)
+    pg.evaluate("() => document.getElementById('rotBack').scrollIntoView({ block: 'center' })")
+    pg.wait_for_timeout(500)
+    plays = []
+    for i in range(3):
+        v0 = pg.evaluate("() => document.querySelector('#rotBack input').value")
+        pg.click("#rotBack .pb.play"); pg.wait_for_timeout(700)
+        r = pg.evaluate("() => ({ p: document.getElementById('rotBack').classList.contains('playing'), v: document.querySelector('#rotBack input').value })")
+        plays.append(r["p"] or r["v"] != v0)
+        if r["p"]:
+            pg.click("#rotBack .pb.play"); pg.wait_for_timeout(400)   # ⏸ 停（第 3 次播到一半也要停得下來，不算次數）
+        pg.evaluate("() => { const i = document.querySelector('#rotBack input'); }")
+    stopped = pg.evaluate("() => !document.getElementById('rotBack').classList.contains('playing')")
+    ok(f"{T} ▶ 前 3 次都真的播了（日期在動）、⏸ 停得下來、計數 3", plays == [True, True, True] and stopped and used(pg, "flow.play") == 3, (plays, stopped, used(pg, "flow.play")))
+    wait_until(pg, "() => document.querySelector('#rotBack .pb.play').hasAttribute('data-qnote')", 4000)
+    pg.wait_for_timeout(300)
+    q4 = pg.evaluate("""() => { const b = document.querySelector('#rotBack .pb.play'), n = b.nextElementSibling;
+        return { q: b.hasAttribute('data-qnote'), note: n && n.classList.contains('qnote') ? n.textContent : '', fs: n ? parseFloat(getComputedStyle(n).fontSize) : 0,
+                 cur: getComputedStyle(b).cursor, op: +getComputedStyle(b).opacity, v: document.querySelector('#rotBack input').value }; }""")
+    ok(f"{T} ▶ 第 4 次：反灰（not-allowed）＋旁邊「今日 3 次已用完」（≥12px）",
+       q4["q"] and q4["note"] == "今日 3 次已用完" and q4["fs"] >= 12 and q4["cur"] == "not-allowed" and q4["op"] < 0.6, q4)
+    pg.click("#rotBack .pb.play", force=True); pg.wait_for_timeout(1200)
+    r4 = pg.evaluate("() => ({ p: document.getElementById('rotBack').classList.contains('playing'), v: document.querySelector('#rotBack input').value })")
+    ok(f"{T} ▶ 第 4 次點了：沒播、日期不動、沒有彈出層、計數還是 3", not r4["p"] and r4["v"] == q4["v"] and not pg.evaluate(OP_POP) and used(pg, "flow.play") == 3, (r4, q4["v"]))
+    pg.evaluate("() => { const b = document.querySelector('#rotBack .pb.play'); if (b && b.onclick) b.onclick(); }"); pg.wait_for_timeout(900)
+    ok(f"{T} ▶ 繞過鈕直接叫處理函式：start() 本身也不播", not pg.evaluate("() => document.getElementById('rotBack').classList.contains('playing')"))
+    shot(pg, "play_4th_1440.png", "#flowRotCard")
+    pg.evaluate("() => { location.hash = '#flow/sankey'; }")
+    wait_until(pg, "() => !!document.querySelector('#sankeyDays .pb.play') && document.querySelector('#sankeyDays .pb.play').hasAttribute('data-qnote')", 15000)
+    sk = pg.evaluate("() => { const b = document.querySelector('#sankeyDays .pb.play'), n = b.nextElementSibling; return n && n.classList.contains('qnote') ? n.textContent : ''; }")
+    ok(f"{T} ▶ 分流樹跟資金輪動共用 3 次：分流樹 ▶ 也反灰＋同一行字", sk == "今日 3 次已用完", sk)
+
+    # ---------------------------------------------------------------- ② 今日關注：每進一次分頁算一次
+    seen = []
+    for i in range(4):
+        pg.evaluate("() => { location.hash = '#market/updown'; }"); pg.wait_for_timeout(500)
+        pg.evaluate("() => { location.hash = '#market/cand'; }")
+        wait_until(pg, "() => !!document.querySelector('#mktBody #candLock, #mktBody tr[data-code]')", 15000)
+        pg.wait_for_timeout(500)
+        seen.append(pg.evaluate("() => ({ rows: document.querySelectorAll('#mktBody tr[data-code]').length, lock: (document.getElementById('candLock') || {}).innerText || '' })"))
+        if i == 0:   # 同一次停在這頁的重畫（權限事件）不重算
+            pg.evaluate("() => window.dispatchEvent(new CustomEvent('tw:perm'))"); pg.wait_for_timeout(300)
+            ok(f"{T} 今日關注：停在這頁重畫不重算（還是 1）", used(pg, "mkt.cand") == 1, used(pg, "mkt.cand"))
+    ok(f"{T} 今日關注前 3 次進來：名單照常（有個股列）", all(x["rows"] > 0 and not x["lock"] for x in seen[:3]), seen[:3])
+    ok(f"{T} 今日關注第 4 次：原位置反灰示意＋「今日關注今日 3 次已用完・Plus 以上可增加」、名單 0 檔、沒有彈出層",
+       seen[3]["rows"] == 0 and "今日 3 次已用完" in seen[3]["lock"] and "Plus 以上可增加" in seen[3]["lock"] and not pg.evaluate(OP_POP) and used(pg, "mkt.cand") == 3, seen[3])
+    shot(pg, "cand_4th_1440.png", "#v-market .card")
+
+    # ---------------------------------------------------------------- ③ 週期統計族群篩選：下拉打開一次之內改選＝一次
+    pg.evaluate("() => { location.hash = '#season'; }")
+    wait_until(pg, "() => !!document.querySelector('#seasonView button[data-v=\"line\"]')", 15000)
+    pg.click("#seasonView button[data-v=\"line\"]"); pg.wait_for_timeout(1200)
+    labs = []
+    for i in range(3):
+        pg.click("#seasonGroupDD .ddbtn"); pg.wait_for_timeout(300)
+        boxes = pg.locator("#seasonGroupDD .ddpanel input[data-n]")
+        boxes.nth(6 + i * 2).check(); pg.wait_for_timeout(250)
+        boxes.nth(7 + i * 2).check(); pg.wait_for_timeout(250)   # 同一次打開勾兩個＝一次
+        labs.append(pg.evaluate("() => document.querySelector('#seasonGroupDD .ddbtn').innerText"))
+        pg.click("#seasonGroupDD .ddbtn"); pg.wait_for_timeout(300)
+    ok(f"{T} 族群篩選 3 次打開各勾 2 個：每次選取真的變、計數 3（一次打開勾兩個只算一次）", len(set(labs)) == 3 and used(pg, "season.groups") == 3, (labs, used(pg, "season.groups")))
+    wait_until(pg, "() => document.querySelector('#seasonGroupDD .ddbtn').hasAttribute('data-qnote')", 4000)
+    s4 = pg.evaluate("""() => { const b = document.querySelector('#seasonGroupDD .ddbtn'), n = document.getElementById('seasonGroupDD').nextElementSibling;
+        return { q: b.hasAttribute('data-qnote'), note: n && n.classList.contains('qnote') ? n.textContent : '', fs: n ? parseFloat(getComputedStyle(n).fontSize) : 0, lab: b.innerText }; }""")
+    pg.click("#seasonGroupDD .ddbtn", force=True); pg.wait_for_timeout(400)
+    s4o = pg.evaluate("() => !document.querySelector('#seasonGroupDD .ddpanel').hidden")
+    ok(f"{T} 族群篩選第 4 次：下拉反灰＋旁邊「今日 3 次已用完・Plus 以上可增加」、點了不開、沒有彈出層",
+       s4["q"] and s4["note"] == "今日 3 次已用完・Plus 以上可增加" and s4["fs"] >= 12 and not s4o and not pg.evaluate(OP_POP), (s4, s4o))
+    shot(pg, "season_4th_1440.png", "#seasonLineCtl")
+
+    # ---------------------------------------------------------------- ④ 個股 K 線工具：同一檔同一天只算一次；第 4 檔反灰
+    codes = [code] + [x for x in ("2317", "2454", "2303", "2308", "2330") if x != code][:3]
+    for i, cd in enumerate(codes):
+        pg.evaluate(f"() => {{ location.hash = '#stock/{cd}'; }}")
+        wait_until(pg, f"() => !!document.querySelector('#indBtn') && !!document.querySelector('#mtfBtn') && location.hash === '#stock/{cd}' && document.querySelectorAll('#drawBar .dtool[data-t]').length > 3", 20000)
+        pg.wait_for_timeout(1200)
+        # 分時不能畫線（工具列藏起來）：先切日 K
+        pg.click('#tfSeg button[data-tf="1d"]')
+        wait_until(pg, "() => { const b = document.querySelector('#drawBar .dtool[data-t=\"hline\"]'); return !!b && b.getClientRects().length > 0; }", 8000)
+        pg.wait_for_timeout(500)
+        if i < 3:
+            pg.click("#indBtn"); pg.wait_for_timeout(300)
+            ind = pg.evaluate("() => document.getElementById('indBtn').getAttribute('aria-expanded') === 'true'")
+            pg.keyboard.press("Escape"); pg.mouse.click(5, 600); pg.wait_for_timeout(200)
+            pg.click("#mtfBtn"); mt = bool(wait_until(pg, "() => !!document.getElementById('mtfGrid')", 6000))
+            pg.click("#mtfBtn"); wait_until(pg, "() => !document.getElementById('mtfGrid')", 6000)
+            pg.click('#drawBar .dtool[data-t="hline"]'); pg.wait_for_timeout(200)
+            dr = pg.evaluate("() => !!document.querySelector('#drawBar .dtool[data-t=\"hline\"].on')")
+            pg.click('#drawBar .dtool[data-t="cursor"]'); pg.wait_for_timeout(200)
+            pg.click("#indBtn"); pg.wait_for_timeout(300); pg.keyboard.press("Escape"); pg.mouse.click(5, 600)   # 同一檔再開一次：不重算
+            ok(f"{T} 個股 {cd}（第 {i + 1} 檔）：指標設定、四週期、畫線都真的打開；三項各算 1 次（同一檔再開不重算）",
+               ind and mt and dr and [used(pg, k) for k in ("stock.ind", "stock.mtf", "stock.draw")] == [i + 1] * 3,
+               (ind, mt, dr, [used(pg, k) for k in ("stock.ind", "stock.mtf", "stock.draw")]))
+        else:
+            wait_until(pg, "() => document.getElementById('indBtn').hasAttribute('data-qnote') && document.getElementById('mtfBtn').hasAttribute('data-qnote')", 5000)
+            z = pg.evaluate("""() => { const ns = [...document.querySelectorAll('#skTools > .qnote')].map(n => [n.dataset.f, n.textContent, parseFloat(getComputedStyle(n).fontSize), n.getClientRects().length > 0]);
+                return { ind: document.getElementById('indBtn').hasAttribute('data-qnote'), mtf: document.getElementById('mtfBtn').hasAttribute('data-qnote'),
+                         draw: !!document.querySelector('#drawBar .dtool[data-t="hline"][data-qnote]'), ns }; }""")
+            nm = {x[0]: x for x in z["ns"]}
+            ok(f"{T} 第 4 檔：指標設定／四週期／畫線三顆反灰＋工具列一行小字（≥12px、看得到）",
+               z["ind"] and z["mtf"] and z["draw"] and nm.get("stock.ind", [0, ""])[1] == "指標設定今日 3 次已用完" and nm.get("stock.mtf", [0, ""])[1] == "四週期今日 3 次已用完"
+               and nm.get("stock.draw", [0, ""])[1] == "畫線今日 3 次已用完" and all(x[2] >= 12 and x[3] for x in z["ns"]), z)
+            shot(pg, "stock_4th_1440.png", "#skTools")
+            pg.click("#indBtn", force=True); pg.wait_for_timeout(300)
+            pg.click("#mtfBtn", force=True); pg.wait_for_timeout(500)
+            pg.click('#drawBar .dtool[data-t="hline"]', force=True); pg.wait_for_timeout(300)
+            r = pg.evaluate("() => ({ ind: document.getElementById('indBtn').getAttribute('aria-expanded') === 'true', mtf: !!document.getElementById('mtfGrid'), dr: !!document.querySelector('#drawBar .dtool[data-t=\"hline\"].on') })")
+            ok(f"{T} 第 4 檔點三顆：都沒打開、沒有彈出層", not r["ind"] and not r["mtf"] and not r["dr"] and not pg.evaluate(OP_POP), r)
+            ow = pg.evaluate("() => document.documentElement.scrollWidth <= innerWidth + 1")
+            ok(f"{T} 第 4 檔工具列多了小字也沒有橫向捲軸", ow)
+    pg.evaluate(f"() => {{ location.hash = '#stock/{codes[0]}'; }}")
+    wait_until(pg, f"() => location.hash === '#stock/{codes[0]}' && !!document.querySelector('#indBtn')", 15000); pg.wait_for_timeout(1500)
+    back = pg.evaluate("() => document.getElementById('indBtn').hasAttribute('data-qnote')")
+    pg.click("#indBtn"); pg.wait_for_timeout(300)
+    ok(f"{T} 回到今天看過的第 1 檔：指標設定沒反灰、點得開", not back and pg.evaluate("() => document.getElementById('indBtn').getAttribute('aria-expanded') === 'true'"))
+    pg.keyboard.press("Escape"); pg.mouse.click(5, 600)
+
+    # ---------------------------------------------------------------- ⑤ 總覽跳頁（heat.link）：每跳一次算一次，用完單純無效
+    pg.evaluate("() => { location.hash = '#overview'; scrollTo(0, 0); }")
+    wait_until(pg, "() => !!document.getElementById('ovTrustLink')", 15000)
+    jumps = []
+    for i in range(4):
+        pg.evaluate("() => { location.hash = '#overview'; }"); pg.wait_for_timeout(700)
+        tl = pg.locator("#ovTrustLink")
+        tl.scroll_into_view_if_needed(); pg.wait_for_timeout(200)
+        tl.click(); pg.wait_for_timeout(700)
+        jumps.append(pg.evaluate("() => location.hash"))
+    ok(f"{T} 總覽「法人連續買賣超 → 市場明細」前 3 次真的換頁", all(h.startswith("#market/streak") for h in jumps[:3]), jumps)
+    aft = pg.evaluate("() => getComputedStyle(document.getElementById('ovTrustLink'), '::after').content")
+    ok(f"{T} 總覽跳頁第 4 次：網址不變（單純無效）、旁邊「今日跳轉 3 次已用完」、沒有彈出層、計數 3",
+       jumps[3] == "#overview" and "今日跳轉 3 次已用完" in (aft or "") and not pg.evaluate(OP_POP) and used(pg, "heat.link") == 3, (jumps, aft))
+    shot(pg, "ovlink_4th_1440.png", "#ovTrustLink")
+
+    # ---------------------------------------------------------------- ⑥ ETF：報酬比較改選、複利試算表、參數
+    pg.evaluate("() => { location.hash = '#etf/list'; }")
+    wait_until(pg, "() => document.querySelector('#v-etf') && document.querySelector('#v-etf').dataset.ready === 'full' && !document.getElementById('etfRetCard').hidden", 25000)
+    pg.evaluate("() => document.getElementById('etfRetCard').scrollIntoView({ block: 'center' })"); pg.wait_for_timeout(600)
+    cs = []
+    for i in range(3):
+        c0 = pg.evaluate("() => document.getElementById('etfRetBody').dataset.codes || ''")
+        pg.click("#etfCmpDD .ddbtn"); pg.wait_for_timeout(300)
+        bx = pg.locator("#etfCmpDD .ddpanel input[data-n]")
+        # 註冊會員同時最多比 3 檔（etf.returns.n）：換一檔＝同一次打開裡拿掉一檔、再勾另一檔（算 1 次）
+        on = [j for j in range(min(bx.count(), 40)) if bx.nth(j).is_checked()]
+        off = [j for j in range(min(bx.count(), 40)) if not bx.nth(j).is_checked()]
+        bx.nth(on[0]).uncheck(); pg.wait_for_timeout(250)
+        bx.nth(off[i]).check()
+        pg.wait_for_timeout(600)
+        cs.append(c0 != pg.evaluate("() => document.getElementById('etfRetBody').dataset.codes || ''"))
+        pg.click("#etfCmpDD .ddbtn"); pg.wait_for_timeout(300)
+    ok(f"{T} ETF 報酬比較 3 次改選：比較的檔真的換、計數 3", cs == [True, True, True] and used(pg, "etf.cmp") == 3, (cs, used(pg, "etf.cmp")))
+    wait_until(pg, "() => document.querySelector('#etfCmpDD .ddbtn').hasAttribute('data-qnote')", 4000)
+    e4 = pg.evaluate("""() => { const n = document.getElementById('etfCmpDD').nextElementSibling;
+        return { q: document.querySelector('#etfCmpDD .ddbtn').hasAttribute('data-qnote'), note: n && n.classList.contains('qnote') ? n.textContent : '', fs: n ? parseFloat(getComputedStyle(n).fontSize) : 0,
+                 body: !document.getElementById('etfRetBody').hasAttribute('data-plk') && !!document.querySelector('#etfRetBody canvas') }; }""")
+    pg.click("#etfCmpDD .ddbtn", force=True); pg.wait_for_timeout(400)
+    eo = pg.evaluate("() => !document.querySelector('#etfCmpDD .ddpanel').hidden")
+    ok(f"{T} ETF 報酬比較第 4 次：加入比較反灰＋「今日 3 次已用完・Plus 以上可增加」、點了不開、比較內容照樣看得到、沒有彈出層",
+       e4["q"] and e4["note"] == "今日 3 次已用完・Plus 以上可增加" and e4["fs"] >= 12 and e4["body"] and not eo and not pg.evaluate(OP_POP), (e4, eo))
+    shot(pg, "etfcmp_used_1440.png", "#etfRetCard")
+    # 複利試算表：每打開一次算一次
+    pg.evaluate("() => { location.hash = '#etf/inc'; }")
+    _etfl_ready(pg); pg.wait_for_timeout(500)
+    if pg.evaluate("() => !document.getElementById('incPX').hidden"):
+        pg.click("#incMain button[data-v='m']"); pg.wait_for_timeout(400)
+    cx = []
+    for i in range(4):
+        pg.click("#incMain button[data-v='x']", force=True); pg.wait_for_timeout(700)
+        cx.append(pg.evaluate("() => !document.getElementById('incPX').hidden"))
+        if cx[-1]:
+            pg.click("#incMain button[data-v='m']"); pg.wait_for_timeout(400)
+    xn = pg.evaluate("() => { const n = document.querySelector('#incMain button[data-v=\"x\"] .inctabnote'); return n ? n.textContent : ''; }")
+    ok(f"{T} 複利試算表：前 3 次打得開、第 4 次打不開（分頁鈕小字「今日 3 次已用完」）、沒有彈出層、計數 3",
+       cx == [True, True, True, False] and xn == "今日 3 次已用完" and not pg.evaluate(OP_POP) and used(pg, "etf.inc.comp") == 3, (cx, xn))
+    shot(pg, "etfcx_used_1440.png", "#incMain")
+    # 參數：改一次算一次；連點 1.5 秒內算同一次；用完停在目前條件
+    k0 = pg.evaluate(ETFL_K)
+    amts = pg.evaluate("() => [...document.querySelectorAll('#incAmtSeg button')].map(b => b.dataset.v)")
+    pg.click(f"#incAmtSeg button[data-v='{amts[0]}']"); pg.wait_for_timeout(200)
+    pg.click(f"#incAmtSeg button[data-v='{amts[1]}']"); pg.wait_for_timeout(1800)   # 連點兩下＝同一次
+    one = used(pg, "etf.inc.params")
+    pg.click(f"#incAmtSeg button[data-v='{amts[2]}']"); pg.wait_for_timeout(1800)
+    pg.click(f"#incAmtSeg button[data-v='{amts[3] if len(amts) > 3 else amts[0]}']"); pg.wait_for_timeout(1800)
+    k3 = pg.evaluate(ETFL_K)
+    lk = wait_until(pg, "() => document.getElementById('etfInc').hasAttribute('data-inclk') ? (document.querySelector('#incPM .incctl > .inclknote') || {}).innerText || '' : ''", 4000)
+    pg.click(f"#incAmtSeg button[data-v='{amts[1]}']", force=True); pg.wait_for_timeout(800)
+    k4 = pg.evaluate(ETFL_K)
+    ok(f"{T} ETF 參數：連點兩下（1.5 秒內）只算 1 次、再改兩次＝3 次，試算真的換",
+       one == 1 and used(pg, "etf.inc.params") == 3 and k3 != k0, (one, used(pg, "etf.inc.params"), k0, k3))
+    ok(f"{T} ETF 參數第 4 次：整組反灰＋「今日 3 次已用完・Plus 以上可增加」、點了試算不變（停在第 3 次的條件）、沒有彈出層",
+       "今日 3 次已用完・Plus 以上可增加" in (lk or "") and k4 == k3 and not pg.evaluate(ETFL_POP), (lk, k3, k4))
+    shot(pg, "etfparams_used_1440.png", "#incPM .incctl")
+
+    # ---------------------------------------------------------------- ⑦ 額度上限面板列得出這些新項目
+    pg.evaluate("() => { location.hash = '#overview'; }"); pg.wait_for_timeout(800)
+    _bill_open_desk(pg)
+    pg.click("#acctMenu [data-d=quota]")
+    wait_until(pg, "() => { const d = document.getElementById('m4Quota'); return !!d && !d.hidden; }", 4000)
+    pg.evaluate("() => document.querySelectorAll('#m4Quota .qgh[aria-expanded=\"false\"]').forEach(b => b.click())"); pg.wait_for_timeout(300)
+    rows = pg.evaluate("() => Object.fromEntries([...document.querySelectorAll('#m4Quota .qi[data-id]')].map(e => [e.dataset.id, e.innerText.replace(/\\s+/g, ' ')]))")
+    want = {"flow.play": "播放・已用 3／3", "mkt.cand": "已用 3／3", "season.groups": "篩選・已用 3／3", "heat.link": "跳轉・已用 3／3", "stock.ind": "已用 3／3",
+            "etf.cmp": "改選・已用 3／3", "etf.inc.comp": "打開・已用 3／3", "etf.inc.params": "調參數・已用 3／3"}
+    ok(f"{T} 額度上限面板列出新的計次項目（播放、今日關注、族群篩選、跳轉、指標設定、ETF 三項，都是已用 3／3）",
+       all(k in rows and v in rows[k] for k, v in want.items()), {k: rows.get(k) for k in want})
+    pg.mouse.click(40, 860)
+    c.close()
+
+    # ---------------------------------------------------------------- ⑧ 手機 390 觸控（直接從第 4 次開始）
+    seed = {"flow.play": 3, "mkt.cand": 3, "etf.cmp": 3}
+    c, sent = _op_ctx(b, width=390, touch=True, seed=seed)
+    pg = c.new_page(); pg.on("pageerror", lambda e: errs.append(str(e)))
+    _op_ready(pg, base, "#flow/rotation")
+    wait_until(pg, "() => { const b = document.querySelector('#rotBack .pb.play'); return !!b && b.hasAttribute('data-qnote'); }", 15000)
+    pg.wait_for_timeout(600)
+    m = pg.evaluate("""() => { const b = document.querySelector('#rotBack .pb.play'), n = b.nextElementSibling, r = n ? n.getBoundingClientRect() : null;
+        const bf = n ? getComputedStyle(n, '::before') : null, fs0 = n ? parseFloat(getComputedStyle(n).fontSize) : 0;
+        return { show: fs0 > 0 ? n.textContent : (bf ? bf.content : ''), fs: fs0 > 0 ? fs0 : (bf ? parseFloat(bf.fontSize) : 0),
+                 inView: !!r && r.left >= 0 && r.right <= innerWidth + 1, sw: document.documentElement.scrollWidth, v: document.querySelector('#rotBack input').value, shown: b.getClientRects().length > 0 }; }""")
+    if m["shown"]:
+        pg.locator("#rotBack .pb.play").tap(force=True); pg.wait_for_timeout(1200)
+    pl = pg.evaluate("() => ({ p: document.getElementById('rotBack').classList.contains('playing'), v: document.querySelector('#rotBack input').value })")
+    ok(f"{T}【手機 390】▶ 第 4 次：旁邊「今日已用完」≥12px、在螢幕內、沒有橫向捲軸；點了不播、沒有彈出層",
+       "今日已用完" in (m["show"] or "") and m["fs"] >= 12 and m["inView"] and m["sw"] <= 391 and not pl["p"] and pl["v"] == m["v"] and not pg.evaluate(OP_POP), (m, pl))
+    shot(pg, "play_4th_390.png")
+    pg.evaluate("() => { location.hash = '#market/cand'; }")
+    wait_until(pg, "() => !!document.getElementById('candLock')", 15000); pg.wait_for_timeout(500)
+    lk = pg.evaluate("() => ({ txt: (document.getElementById('candLock') || {}).innerText || '', sw: document.documentElement.scrollWidth, rows: document.querySelectorAll('#mktBody tr[data-code]').length })")
+    ok(f"{T}【手機 390】今日關注第 4 次：說明區「今日 3 次已用完」、名單 0 檔、沒有橫向捲軸", "今日 3 次已用完" in lk["txt"] and lk["rows"] == 0 and lk["sw"] <= 391, lk)
+    shot(pg, "cand_4th_390.png")
+    pg.evaluate("() => { location.hash = '#etf/list'; }")
+    wait_until(pg, "() => document.querySelector('#v-etf') && document.querySelector('#v-etf').dataset.ready === 'full' && !document.getElementById('etfRetCard').hidden", 25000)
+    wait_until(pg, "() => document.querySelector('#etfCmpDD .ddbtn').hasAttribute('data-qnote')", 5000)
+    pg.evaluate("() => document.getElementById('etfRetCard').scrollIntoView({ block: 'start' })"); pg.wait_for_timeout(600)
+    em = pg.evaluate("""() => { const n = document.getElementById('etfCmpDD').nextElementSibling, r = n ? n.getBoundingClientRect() : null;
+        return { note: n && n.classList.contains('qnote') ? n.textContent : '', fs: n ? parseFloat(getComputedStyle(n).fontSize) : 0, inView: !!r && r.left >= 0 && r.right <= innerWidth + 1,
+                 sw: document.documentElement.scrollWidth }; }""")
+    pg.locator("#etfCmpDD .ddbtn").tap(force=True); pg.wait_for_timeout(400)
+    eo = pg.evaluate("() => !document.querySelector('#etfCmpDD .ddpanel').hidden")
+    ok(f"{T}【手機 390】ETF 報酬比較用完：加入比較旁邊小字在螢幕內 ≥12px、點了不開、沒有橫向捲軸、沒有彈出層",
+       "今日 3 次已用完" in em["note"] and em["fs"] >= 12 and em["inView"] and em["sw"] <= 391 and not eo and not pg.evaluate(OP_POP), (em, eo))
+    shot(pg, "etfcmp_used_390.png")
+    c.close()
+
+    # ---------------------------------------------------------------- ⑨ 訪客照舊關（這次只放寬註冊會員）
+    c, sent = _op_ctx(b, plan="guest")
+    pg = c.new_page(); pg.on("pageerror", lambda e: errs.append(str(e)))
+    pg.goto(base + "#flow/rotation", wait_until="domcontentloaded")
+    wait_until(pg, "() => window.TwPerm && TwPerm.state().src === 'server' && !!document.querySelector('#rotBack .pb.play')", 15000)
+    g = wait_until(pg, "() => { const b = document.querySelector('#rotBack .pb.play'), n = b && b.nextElementSibling; return b && b.getAttribute('data-plkb') === 'note' && n ? n.textContent : ''; }", 6000)
+    gc = pg.evaluate("() => ['flow.play','mkt.cand','season.groups','heat.link','etf.cmp','etf.inc.comp','etf.inc.params'].filter(k => TwPerm.can(k))")
+    ok(f"{T}【訪客】照舊關：▶ 反灰＋「Plus 以上可播放」、7 個鍵都不能用", g == "Plus 以上可播放" and not gc, (g, gc))
+    c.close()
+    ok(f"{T}：整段沒有 JS 錯誤", not errs, errs[:3])
+
+
 # ===================================================================== 手機品牌1009（帳本 78、79；Andy 2026-10-09 22:0x）
 #   原話：「標題圖跑掉了，並且點擊後不會跑到總攬頁面」「LOGO放大功能只有在側邊藍打開才有，上方的是回總攬功能」
 #   根因：mobile4.css `:root.m4 .m4head b{color:var(--ink)}` 把抽屜站名 .brandtxt 染成 --ink，淺色主題＝深藍字＋深棕描邊 → 「▇股▇股」。
@@ -67386,8 +67724,11 @@ Q1010_GUEST = {"who": "guest", "plan": "guest", "planName": "訪客", "dq": 15,
                         "grp.mlcc": 2}}   # 族群觀測：跟桌機頁首「本頁限制」同口徑，不列進面板
 Q1010_FREE = {"who": "member", "plan": "free", "planName": "免費會員", "dq": 40, "feats": {},
               "lims": {"ind.3d": 0, "stock.ai": 0, "heat.detail": 10, "stock.page": 10}}
+# ★ 2026-10-11（DECISIONS #354，Andy：「限制次數才對」）：註冊會員 11 項改成「開＋每日 3 次」（features.js limBy，範本沒寫也套用）——
+#   「只剩一組」的情境要把那 11 項在範本裡關掉（關掉的功能不補預設次數），不然額度面板會多出好幾組
+OPEN11_OFF = {k: False for k in ("flow.play", "season.groups", "mkt.cand", "stock.k_min", "stock.mtf", "stock.ind", "stock.draw", "etf.inc.params", "etf.cmp", "etf.inc.comp", "heat.link")}
 Q1010_ONE = {"who": "member", "plan": "free", "planName": "免費會員", "dq": None,
-             "feats": {k: 9999 for k in ("watch.tabs", "watch.size", "mkt.grp.pick", "explore.list.n", "mkt.cand.n", "etf.returns.n")},   # 數量類一律不限 → 只剩產業地圖一組
+             "feats": {**{k: 9999 for k in ("watch.tabs", "watch.size", "mkt.grp.pick", "explore.list.n", "mkt.cand.n", "etf.returns.n")}, **OPEN11_OFF},   # 數量類一律不限 → 只剩產業地圖一組
              "lims": {"ind.3d": 0, "ind.rel": 5}}
 
 Q1010_STATE = """() => { const d = document.getElementById('m4Quota'); if (!d || d.hidden) return null;
@@ -68021,7 +68362,9 @@ def _etfl_ready(pg, timeout=25000):
 def t_etf_inc_free_1010(b, base):
     T = "ETF試算免費限制1010"
     errs: list[str] = []
-    free_feats = {"etf.cashflow": True}
+    # ★ 2026-10-11（DECISIONS #354）Andy：「限制次數才對」→ 註冊會員三個新鍵預設改成「開＋每日 3 次」（新段「註冊會員限次開放1011」驗）。
+    #   這段改成範本明寫關（管理者關掉的那條路：參數鎖／報酬比較／複利需開通照舊要對），其餘斷言不變。
+    free_feats = {"etf.cashflow": True, "etf.inc.params": False, "etf.cmp": False, "etf.inc.comp": False}
     free_lims = {"etf.cashflow": 5}
     # ---------------- ① ② ③ 免費會員
     c, sent, st = _sub_ctx(b, "member", plan="free", feats=free_feats, lims=free_lims)
@@ -68489,11 +68832,12 @@ WS_PLANS = [
     {"id": "pro", "name": "Pro", "feats": {"watch.tabs": 50}, "lims": {}, "builtin": False, "price": 549, "period": "month"},
 ]
 WS_FREE = {"who": "member", "plan": "free", "planName": "免費會員", "dq": 40,
-           "feats": {"watch.tabs": 0, "watch.size": 10, "mkt.grp.pick": 5, "explore.list.n": 5, "mkt.cand.n": 3, "etf.returns.n": 0},
+           # 2026-10-11（DECISIONS #354）：今日關注對註冊會員預設改成開＋每日 3 次 → 這段驗「範本關掉時側欄掛 🔒」要明寫關
+           "feats": {"watch.tabs": 0, "watch.size": 10, "mkt.grp.pick": 5, "explore.list.n": 5, "mkt.cand.n": 3, "etf.returns.n": 0, "mkt.cand": False},
            "lims": {"ind.3d": 0, "stock.ai": 0, "ind.rel": 5, "heat.detail": 10, "stock.page": 10, "flow.sankey.drill": 3, "flow.inst.filter": 5, "earn.tab": 3,
                     "explore.filter": 2, "etf.calendar.tab": 3, "etf.list.tab": 5, "season.pick": 3, "events": 3, "etf.list": 0}}
 WS_ONE = {"who": "member", "plan": "free", "planName": "免費會員", "dq": None,
-          "feats": {k: 9999 for k in ("watch.tabs", "watch.size", "mkt.grp.pick", "explore.list.n", "mkt.cand.n", "etf.returns.n")},
+          "feats": {**{k: 9999 for k in ("watch.tabs", "watch.size", "mkt.grp.pick", "explore.list.n", "mkt.cand.n", "etf.returns.n")}, **OPEN11_OFF},   # 2026-10-11：11 項限次開放的關掉（見 OPEN11_OFF）
           "lims": {"ind.3d": 0, "ind.rel": 5}}
 WS_DEL_EMAIL = "delme@example.com"
 
@@ -68572,7 +68916,7 @@ def t_web_sync_1010(b, base, code):
         WS_FREE["feats"]["mkt.cand"] = True
         pg.evaluate("() => TwPerm.refresh()")
         ok(f"【{T} C】權限換了（今日關注打開）→ 側欄鎖頭即時拿掉", bool(wait_until(pg, "() => !document.querySelector('.l4subtab[data-l4sub=\"mkt-cand\"]').hasAttribute('data-plkb')", 4000)))
-        WS_FREE["feats"].pop("mkt.cand", None)
+        WS_FREE["feats"]["mkt.cand"] = False   # 2026-10-11：拿掉＝預設開＋限次，「關回來」要明寫 False
         pg.evaluate("() => TwPerm.refresh()")
         ok(f"【{T} C】再關回來 → 鎖頭又掛上", bool(wait_until(pg, "() => document.querySelector('.l4subtab[data-l4sub=\"mkt-cand\"]').getAttribute('data-plkb') === 'mark'", 4000)))
         pg.locator('.l4subtab[data-l4sub="mkt-cand"]').click()
