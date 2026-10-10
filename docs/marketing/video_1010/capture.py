@@ -608,13 +608,13 @@ def s08d(pg, a, start, base):
     b = _to_3d(pg, a, base)
     start()
     a.wait(500)
-    labels = pg.locator(".lbl3d:visible")
+    labels = pg.locator(".mnum:visible" if a.mob else ".lbl3d:visible")   # 手機版 3D 用左右兩排編號圓鈕
     n = labels.count()
     a.note(f"零件標籤 {n} 個")
     picked = 0
     for i in range(n):
         bb = labels.nth(i).bounding_box()
-        if not bb or bb["y"] < b["y"] + 20 or bb["y"] > b["y"] + b["height"] - 20:
+        if not bb or bb["y"] < 70 or bb["y"] > _vh(pg) - 40:
             continue
         a.move(bb["x"] + bb["width"] / 2, bb["y"] + bb["height"] / 2, 450)
         a.wait(500)
@@ -641,6 +641,27 @@ def s08e(pg, a, start, base):
     a.wait(600)
     a.drag(cx - 80, cy + 60, cx + 120, cy - 40, 2000)
     a.wait(1500)
+
+
+@shot("S08f", "md", "3D：拉近到機櫃內部、慢速環繞（零件結構特寫，公司名不入焦）")
+def s08f(pg, a, start, base):
+    b = _to_3d(pg, a, base)
+    cx, cy = b["x"] + b["width"] / 2, b["y"] + b["height"] / 2
+    a.move(cx, cy, 10)
+    a.wheel(-1400, 30, 300)        # 錄影前先拉近
+    a.wait(800)
+    start()
+    a.wait(400)
+    a.note("慢速向左環繞")
+    a.drag(cx + b["width"] * 0.3, cy, cx - b["width"] * 0.3, cy - 20, 3500)
+    a.wait(300)
+    a.note("再拉近一點、向上俯視")
+    a.wheel(-400, 15, 1000)
+    a.drag(cx, cy - 40, cx + 40, cy + 70, 2200)
+    a.wait(300)
+    a.note("向右環繞回來")
+    a.drag(cx - b["width"] * 0.25, cy, cx + b["width"] * 0.25, cy, 3000)
+    a.wait(800)
 
 
 @shot("S09", "md", "供應鏈關聯圖：滑過節點、連線高亮")
@@ -720,25 +741,27 @@ def s12(pg, a, start, base):
     a.wait(600)
     if a.click("#etfCmpDD .ddbtn, #etfCmpDD button", label="加入比較下拉"):
         a.wait(800)
-        opts = pg.locator("#etfCmpDD input[type=checkbox]:visible, #etfCmpDD .ddlist label:visible, #etfCmpDD li:visible")
-        n = opts.count()
+        boxes = pg.locator("#etfCmpDD input[type=checkbox]:visible")
+        n = boxes.count()
         a.note(f"下拉選項 {n}")
         k = 0
         for i in range(n):
-            bb = opts.nth(i).bounding_box()
+            if k >= 3:
+                break
+            if boxes.nth(i).is_checked():
+                continue
+            bb = boxes.nth(i).bounding_box()
             if not bb or bb["y"] > _vh(pg) - 30:
                 continue
-            chk = pg.evaluate("(i) => { const e = [...document.querySelectorAll('#etfCmpDD input[type=checkbox]')].filter(x => x.offsetParent)[i]; return e ? e.checked : null; }", i)
-            if chk:
-                continue
-            a.click_xy(bb["x"] + 14, bb["y"] + bb["height"] / 2, 300, 200)
-            a.wait(700)
+            a.click_xy(bb["x"] + bb["width"] / 2, bb["y"] + bb["height"] / 2, 350, 200)
+            a.note(f"勾第 {i + 1} 檔")
+            a.wait(900)
             k += 1
-            if k >= 2:
-                break
         pg.keyboard.press("Escape")
-        a.click_xy(a.x, max(80, a.y - 200), 300, 100) if False else None
-        a.wait(900)
+        a.wait(300)
+        if pg.locator("#etfCmpDD input[type=checkbox]:visible").count():
+            a.click("#etfCmpDD .ddbtn", 400, 200, label="收起下拉")
+        a.wait(1200)
     sel = pg.locator("#etfRetCtl select:visible").first
     if sel.count():
         bb = sel.bounding_box()
@@ -746,10 +769,17 @@ def s12(pg, a, start, base):
         a.move(bb["x"] + bb["width"] / 2, bb["y"] + bb["height"] / 2, 600)
         a.wait(400)
         for v in vals[:3]:
-            a.pg.evaluate("([x,y]) => window.__vcRipple(x,y)", [a.x, a.y])
+            pg.evaluate("([x,y]) => window.__vcRipple(x,y)", [a.x, a.y])
             sel.select_option(v)
             a.note(f"期間切到 {v}")
             a.wait(1600)
+    elif a.mob:
+        a.note("手機沒有期間下拉，改拖圖下方的區間拉桿")
+        sl = pg.locator("#etfRetCard canvas:visible").first
+        bb = sl.bounding_box() if sl.count() else None
+        if bb:
+            a.drag(bb["x"] + 30, bb["y"] + bb["height"] - 14, bb["x"] + bb["width"] * 0.55, bb["y"] + bb["height"] - 14, 1400)
+            a.wait(1500)
     a.wait(800)
 
 
@@ -758,21 +788,31 @@ def s13(pg, a, start, base):
     goto(pg, base, "#etf/inc", 4000)
     start()
     a.wait(700)
+    if a.mob and a.click("#m4EtfSet-inc", 450, 250, label="手機參數列（年領・100萬…）"):
+        a.wait(1000)
     for lab in ["50 萬", "200 萬", "20 萬", "100 萬"]:
-        if a.click(f"#v-etf button:visible:text-is('{lab}')", 450, 250, label=f"金額 {lab}"):
+        if a.click(f"button:visible:text-is('{lab}')", 450, 250, label=f"金額 {lab}"):
             a.wait(1100)
     for lab in ["月領", "年領"]:
-        if a.click(f"#v-etf button:visible:text-is('{lab}')", 450, 250, label=lab):
+        if a.click(f"button:visible:text-is('{lab}')", 450, 250, label=lab):
             a.wait(1000)
+    if a.mob:
+        pg.keyboard.press("Escape")
+        a.wait(400)
+        for sel in ["button:visible:text-is('完成')", "button:visible:text-is('確定')", "[aria-label='關閉']:visible"]:
+            if pg.locator(sel).count():
+                a.click(sel, 400, 200, label="收起參數")
+                break
+        a.wait(600)
     combos = pg.locator("#v-etf button:visible:has-text('組合')")
     for i in range(min(3, combos.count())):
         bb = combos.nth(i).bounding_box()
-        if bb:
-            a.click_xy(bb["x"] + bb["width"] / 2, bb["y"] + bb["height"] / 2, 400, 250)
+        if bb and 0 <= bb["x"] < pg.viewport_size["width"] - 20:
+            a.click_xy(bb["x"] + min(bb["width"] / 2, 50), bb["y"] + bb["height"] / 2, 400, 250)
             a.note(f"組合第 {i + 1} 個")
             a.wait(1300)
     a.scroll(to_y=0, ms=600)
-    if a.click("#v-etf button:visible:has-text('複利試算表')", 500, 300, label="複利試算表"):
+    if a.click("button:visible:has-text('複利試算'), a:visible:has-text('複利試算'), .l4subtab:visible:has-text('複利')", 500, 300, label="複利試算表"):
         a.wait(2500)
         a.scroll(by=300 if a.mob else 200, ms=1400)
         a.wait(2000)
@@ -806,21 +846,19 @@ def s15(pg, a, start, base):
     goto(pg, base, "#overview", 3000)
     start()
     a.wait(600)
-    if a.mob:
-        a.click("#moreBtn", label="⋯")
-        a.wait(700)
-        a.click("#mmTourPage, #mmTourSite", label="本頁導覽")
-    else:
-        a.click("#twTourBtn", label="導覽")
+    a.click("#twPageTourBtn", label="導覽鈕")
+    a.wait(1200)
+    if not pg.locator("#twTourNext:visible").count():
+        for sel in ["button:visible:has-text('本頁導覽')", "a:visible:has-text('本頁導覽')", "#mmTourPage"]:
+            if pg.locator(sel).count():
+                a.click(sel, 400, 200, label="本頁導覽")
+                break
     a.wait(2000)
-    for i in range(4):
-        nx = pg.locator(".twtour button:visible:has-text('下一步'), [class*=tour] button:visible:has-text('下一步')").first
-        if not nx.count():
+    for i in range(5):
+        if not pg.locator("#twTourNext:visible").count():
             break
-        bb = nx.bounding_box()
-        a.click_xy(bb["x"] + bb["width"] / 2, bb["y"] + bb["height"] / 2, 500, 300)
-        a.note(f"下一步 {i + 1}")
-        a.wait(2000)
+        a.click("#twTourNext", 500, 300, label=f"下一步 {i + 1}")
+        a.wait(2200)
     a.wait(500)
 
 
@@ -834,10 +872,13 @@ def s16(pg, a, start, base):
     a.click("#supPanel .faq button >> nth=0", label="第一題常見問題")
     a.wait(1600)
     a.click('#supPanel .sptabs button[data-t="fb"]', label="意見反饋")
+    pg.evaluate("() => document.querySelectorAll('#supPanel input[type=email]').forEach(e => e.value = '')")  # 不露 email
     a.wait(1300)
     a.click('#supPanel #fbKind button[data-fk="wish"]', label="願望清單")
+    pg.evaluate("() => document.querySelectorAll('#supPanel input[type=email]').forEach(e => e.value = '')")
     a.wait(1600)
     a.click('#supPanel #fbKind button[data-fk="fb"]', label="意見回饋")
+    pg.evaluate("() => document.querySelectorAll('#supPanel input[type=email]').forEach(e => e.value = '')")
     a.wait(1500)
 
 
