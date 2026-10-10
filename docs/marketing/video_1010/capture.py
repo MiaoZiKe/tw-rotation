@@ -163,7 +163,7 @@ class Recorder:
         self.dir, self.n, self.on, self.acc = tmpdir, 0, True, 0.0
         import datetime as _dt
         now = self.pg.evaluate("() => Date.now()")
-        self.pg.clock.pause_at(_dt.datetime.fromtimestamp(now / 1000 + 0.02, tz=_dt.timezone.utc))
+        self.pg.clock.pause_at(_dt.datetime.fromtimestamp(now / 1000 + 1.5, tz=_dt.timezone.utc))
         self.frame()
 
     def frame(self):
