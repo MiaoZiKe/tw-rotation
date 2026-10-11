@@ -1006,6 +1006,12 @@ def _def_local_inv(p):
                 w = _smooth((52 - d) / 26) * _smooth((Y - (fc[1] - 40)) / 20 + 0.0 * d)
             sx_ -= fdx * w
             sy_ -= fdy * w
+        # 臉頰鼓起（嚼東西）：腮紅那一圈高度的兩側輪廓往外鼓
+        ck = p.get("cheek", 0.0)
+        if ck > 0.01:
+            band = _smooth(1 - np.abs(Y - 300) / 70)
+            side = _smooth((np.abs(X - bx) - 90) / 90)
+            sx_ += -np.sign(X - bx) * ck * 16 * band * side
         # 毛邊飄（正面）：頭頂的毛往下壓（amp>0）或往上蓬（amp<0）、兩側毛往外抖
         if abs(amp) > 0.01:
             r = np.hypot(X - bx, Y - by)
@@ -1127,6 +1133,8 @@ def def_mouth_svg(kind, x, y, s=1.0) -> str:
                 f'stroke="{DEF_INK}" stroke-width="{sw:.1f}" stroke-linejoin="round"/>'
                 f'<path d="M {x-7*k:.1f} {y+10*k:.1f} Q {x:.1f} {y+3*k:.1f} {x+7*k:.1f} {y+10*k:.1f} Q {x:.1f} {y+14*k:.1f} '
                 f'{x-7*k:.1f} {y+10*k:.1f} Z" fill="#F08A72"/>')
+    if kind.startswith("chew"):
+        return mouth_svg(kind, x, y, s * 2.9).replace('stroke-width="10.4"', 'stroke-width="6.5"')
     return mouth_svg(kind, x, y, k)
 
 
@@ -1226,11 +1234,14 @@ def compose_default(p: dict, props_back=None, props_mid=None, props_front=None, 
     can.alpha_composite(face)
 
     # 小肉掌（原版平常看不到手；要舉手、捧東西時才從身體邊緣冒出來）
-    if p["paws"]:
+    if p.get("paws_world"):          # 直接給世界座標（例如捧草：跟著草走）
+        sv = "".join(def_paw_svg(x_, y_, r_, 1.3) for x_, y_, r_ in p["paws_world"])
+        can.alpha_composite(svg_layer(sv))
+    elif p["paws"]:
         sv = ""
         for (u, v, dx, dy, r) in p["paws"]:
             X, Y = def_pt(p, u, v)
-            sv += def_paw_svg(X + dx, Y + dy, r + p["rot"])
+            sv += def_paw_svg(X + dx, Y + dy, r + p["rot"], 1.3)
         can.alpha_composite(svg_layer(sv))
     put(props_front, "propF")
     for i, piece in enumerate([fx] if isinstance(fx, str) else (fx or [])):

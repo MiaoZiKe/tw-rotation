@@ -772,6 +772,62 @@ def clip_receive_d(item: str = "") -> list[dict]:
     return fr
 
 
+
+def clip_eat_grass_d() -> list[dict]:
+    """吃草（原版造型）：雙小肉掌捧牧草、穗那頭在嘴邊；啃一口短一截、臉頰越嚼越鼓、耳朵隨咀嚼抖、腳輕拍、
+    頭一點一點；吃完咕嚕吞下→打嗝冒小愛心→回 Default 表情滿足。第 1 格直接把草送到嘴邊（接 receive_grass）。"""
+    fr = []
+
+    def add(ms, label, L, bites, fx=None, props=None, paw_dy=0.0, **kw):
+        pose = dict(kw)
+        full = {**R.DEFAULT, **pose}
+        mx, my = R.def_pt(full, R.DEF_MOUTH[0], R.DEF_MOUTH[1] + 18)   # 嘴下緣
+        mid = []
+        if L > 0:
+            mid = [R.svg_layer(R.grass_svg(mx + 4 + L * 0.2, my + L, L, 79, 22, bites=bites))]
+            py = my + max(L * 0.6, 26) + paw_dy
+            px = mx + 4 + L * 0.2 * 0.4
+            pose["paws"] = [(0, 0, 0, 0, 0)]   # 佔位，下面換成世界座標
+            pose["paws_world"] = [(px - 24, py, -24), (px + 24, py + 4, 24)]
+        fr.append(dict(pose=pose, ms=ms, label=label, fx=fx or [], props_front=props or [], props_mid=mid,
+                       allow_touch=["propM0"]))
+
+    chew = lambda i: R.text_svg("嚼嚼", 384 + (i % 2) * 8, 150 - (i % 3) * 6, 34, 12 - (i % 2) * 8)  # noqa: E731
+    cr = lambda i, a=1.0: [R.crumbs_svg(158, 352, 3, 26, i, a), R.crumbs_svg(346, 350, 3, 26, i + 5, a)]  # noqa: E731
+
+    add(120, "把草送到嘴邊（圓眼期待）", 150, 0, eye="wide", mouth="o", ear=-10, ear2=-10, y=R.FOOT_Y - 8, sy=1.04)
+    add(90, "第一口！（張嘴露門牙）", 150, 0, eye="default", mouth="chew_a", sy=0.97, sx=1.02, ear=4, ear2=4)
+    add(90, "咬下來、臉頰鼓（草屑噴）", 128, 1, eye="closed", mouth="chew_c", cheek=0.6, ear=-8, ear2=8, fx=cr(0) + [chew(0)])
+    add(80, "嚼（半開）、耳朵抖", 128, 1, eye="default", mouth="chew_b", cheek=0.7, ear=8, ear2=-8, bf_near=(0, -8, 0))
+    add(80, "嚼（閉）", 128, 1, eye="closed", mouth="chew_c", cheek=0.85, ear=-6, ear2=6, fx=[chew(1)])
+    add(90, "第二口", 128, 1, eye="default", mouth="chew_a", cheek=0.5, ear=2, ear2=2, sy=0.97)
+    add(90, "咬下來（草短一截）", 104, 1, eye="default", eye_open=0.2, mouth="chew_c", cheek=0.9, ear=-8, ear2=8,
+        fx=cr(1)[:1] + [chew(2)])
+    add(80, "嚼、左腳輕拍（彎月眼）", 104, 1, eye="arc", mouth="chew_b", cheek=1.0, ear=9, ear2=-6, bf_far=(0, -10, 0))
+    add(90, "第三口", 104, 1, eye="arc", mouth="chew_a", cheek=0.8, sy=0.97)
+    add(90, "咬下來（越來越短）", 74, 1, eye="arc", mouth="chew_c", cheek=1.1, ear=-8, ear2=8, fx=cr(2) + [chew(3)])
+    add(80, "嚼、右腳輕拍", 74, 1, eye="arc", mouth="chew_b", cheek=1.15, ear=8, ear2=-8, bf_near=(0, -10, 0))
+    add(100, "最後一口（只剩一小截）", 36, 1, eye="default", mouth="chew_a", cheek=1.0, sy=0.97, paw_dy=4)
+    add(170, "臉頰塞滿（閉眼笑）", 0, 0, eye="smile", mouth="chew_c", cheek=1.3, ear=12, ear2=12, sy=0.96, sx=1.03,
+        fx=cr(3, 0.7)[1:] + [chew(4)])
+    add(120, "咕嚕吞下去（拉長、圓眼）", 0, 0, eye="wide", mouth="o", y=R.FOOT_Y - 8, sy=1.07, sx=0.96, ear=-14, ear2=-14,
+        fx=[R.text_svg("咕嚕", 392, 150, 34, 10)])
+    add(220, "打嗝冒小愛心", 0, 0, eye="arc", mouth="o", sy=0.94, sx=1.05, blush=1.7, ear=16, ear2=16, flutter=-3,
+        props=[fx_part("fx_hearts_small", 420, 168, 0.65, 6)], fx=[R.text_svg("嗝", 82, 170, 36, -10)])
+    add(520, "滿足拍拍肚子（回 Default 表情）", 0, 0, blush=1.4,
+        props=[fx_part("fx_heart", 430, 140, 0.5, 14)])
+    # 咀嚼時頭一點一點（上下彈＋左右輕晃）
+    for i in range(1, 12):
+        f = fr[i]["pose"]
+        f.setdefault("rot", (-3.5 if i % 2 else 3.5))
+        f["y"] = f.get("y", R.FOOT_Y) - (6 if i % 3 == 1 else 0)
+        f["sy"] = f.get("sy", 1.0) * (0.97 if i % 2 else 1.02)
+    # 沒有草之後，肉掌放肚子上（拍肚子）
+    for k, f in enumerate(fr[-4:]):
+        f["pose"]["paws"] = [(204, 380, 0, 6 * (k % 2), -14), (302, 380, 0, -6 * (k % 2), 14)]
+    return fr
+
+
 # ================================================================== 渲染
 CLIPS = {
     "highfive": dict(make=clip_highfive, facing="left", loop=False, note="播一次；網頁的手在右上（約 x 400, y 190）迎上來擊掌（第 3 格）。"),
@@ -785,7 +841,7 @@ CLIPS = {
     "spin_v2": dict(make=clip_spin, facing="left", loop=False, note="播一次；最後一格＝正面站好，可接 happy_hop。"),
     "popcorn": dict(make=clip_popcorn, facing="left", loop=False,
                     note="播一次（點爆米花圖示）；第 1 格直接起跳預備，最後一格＝正面開心定格，可接 happy_hop。"),
-    "eat_grass_v2": dict(make=clip_eat_grass, facing="left", loop=False,
+    "eat_grass_v2": dict(make=clip_eat_grass_d, facing="left", loop=False, rig="default",
                          note="播一次；接在 receive_grass 後面（第 1 格直接把草送到嘴邊）；最後一格＝正面滿足，可接 happy_hop。"),
     "happy_hop": dict(make=clip_happy_hop_d, facing="left", loop=True, rig="default",
                       note="全部 10 格循環＝大部分情境的預設待機（正面，不分左右）。"),
@@ -893,14 +949,15 @@ def contact_sheet(imgs, frs, path, pick=None, cols=4, title=""):
 def save_webps(imgs, durs, p160, p512, loop, target_kb=60):
     lp = 0 if loop else 1
     sm = [im.convert("RGBa").resize((160, 160), Image.LANCZOS).convert("RGBA") for im in imgs]
-    q = 86
-    while True:
+    # 先降色彩品質到 62，還超過再降透明度通道品質（原版毛邊細節多，16 格容易超過 60KB）
+    tries = [(q_, 100) for q_ in (86, 80, 74, 68, 62)] + [(q_, aq) for aq in (80, 65, 50) for q_ in (70, 62, 54, 46)]
+    for q, aq in tries:
         sm[0].save(p160, save_all=True, append_images=sm[1:], duration=durs, loop=lp, lossless=False,
-                   quality=q, method=6)
+                   quality=q, alpha_quality=aq, method=6)
         kb = Path(p160).stat().st_size / 1024
-        if kb <= target_kb or q <= 40:
+        if kb <= target_kb:
             break
-        q -= 6
+    q = f"{q}/a{aq}"
     imgs[0].save(p512, save_all=True, append_images=imgs[1:], duration=durs, loop=lp, lossless=False,
                  quality=88, method=6)
     return kb, q
