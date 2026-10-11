@@ -86,45 +86,92 @@
        註冊會員改成「開＋每日 3 次」（limBy＝範本 lims 沒寫這一項時的每日次數；範本寫了以範本為準）；訪客照舊關（defBy guest）。
        qbtn＝次數用完的備註字（{n}＝每日次數）；qper:'each'＝每用一次算一次（app.js 播放器 start() 自己呼叫 TwQuota.use，quota.js 只在用完時反灰＋擋）；
        qfree＝正在播放時那顆 ⏸ 不擋（第 3 次播到一半要能停）。*/
-    { id: 'flow.play', name: '資金輪動／分流樹 ▶ 播放', cat: 'flow', def: true, defBy: { guest: false }, limBy: { free: 3 }, kind: 'bool', note: 'Plus 以上可播放',
-      qbtn: '今日 {n} 次已用完', qper: 'each', qfree: '.playing', qunit: '播放',
-      desc: '資金輪動「N 天前」回放與資金分流樹「看哪一天」的 ▶ 播放（關掉：▶ 反灰、旁邊註明 Plus 以上可播放；拉桿與 − ＋ 照常；每日次數＝每按一次 ▶ 算一次）', veil: [], mark: [], block: ['#rotBack .pb.play', '#sankeyDays .pb.play'] },
+    /* ★★ 2026-10-12 Andy（註冊會員逐頁權限表第 3 點）：「資金輪動 & 資金樹狀圖 上方的紅框處反灰色」——紅框＝資金輪盤標題列整條
+       （− 拉桿 ＋ 天數 ▶ 顯示軌跡 顯示腳印 水波 掃描）與分流樹「看哪一天」整條。蓋掉 10-11「▶ 開＋每日 3 次」：註冊會員改回關（defBy free:false、拿掉 limBy），
+       而且反灰範圍從 ▶ 一顆擴大成整條（gray：perm.js 反灰整塊、點不動、旁邊一行小字，不跳視窗）。名稱跟著改，id 不改（改了範本存的值歸零）。*/
+    { id: 'flow.play', name: '資金輪動／分流樹 時間列（回放、拉桿、軌跡…）', cat: 'flow', def: true, defBy: { guest: false, free: false }, kind: 'bool', note: 'Plus 以上可調整',
+      qunit: '播放', gray: ['#flowRotTime', '#sankeyDays', '#rotZoomBack'],
+      desc: '資金輪動「N 天前」拉桿、▶ 回放、顯示軌跡／腳印／水波／掃描，與資金分流樹「看哪一天」整條（關掉：整條反灰、點不動，旁邊註明 Plus 以上可調整）', veil: [], mark: [], block: [] },
+    /* ↑ block 拿掉：▶ 在反灰的整條裡面（gray 已經擋住點擊），留著會在 ▶ 旁邊多插一行重複的小字；app.js playOk 另外再擋一次 start() */
+    /* ★ 2026-10-12 Andy 第 3 點：「右手邊長條圖 以及 上方篩選 限制點擊5次」。
+       flow.rank.click：資金輪動右邊「族群資金排行」點長條（原地展開成分股）每點一次算一次（app.js 排行 click 呼叫 TwQuota.use；再點同一根收起不算）。
+       flow.filter：資金輪動／資金分流樹上方的產業鏈、族群下拉 —— 下拉打開一次之內改選＝一次（qsess＝開下拉那顆鈕；比照週期統計族群篩選 #354），
+       計數在 quota.js 捕獲點擊（qcount），不改 app.js。用完一律反灰＋旁邊小字、點了沒反應（qspent），不跳視窗。*/
+    { id: 'flow.rank.click', name: '資金輪動：族群資金排行點長條', cat: 'flow', def: true, kind: 'bool', limBy: { guest: 3, free: 5 }, qper: 'each', qunit: '點擊', qspent: true,
+      qbtn: '今日 {n} 次已用完・Plus 以上可增加', qblock: ['#rankFlow'], qnoteAfter: '#rankFlow', route: /^#flow(\/rotation)?([/?]|$)/,
+      desc: '右邊族群資金排行點長條展開成分股（每點一次算一次；再點同一根收起不算）', veil: [], mark: [], block: [] },
+    { id: 'flow.filter', name: '資金流向：上方產業鏈／族群篩選', cat: 'flow', def: true, kind: 'bool', limBy: { guest: 3, free: 5 }, qper: 'each', qunit: '篩選', qspent: true,
+      qbtn: '今日 {n} 次已用完・Plus 以上可增加', qfree: '.rotdd.open',
+      /* 資金分流樹的「族群」下拉選一個＝在樹上展開那個族群（下鑽），已經由 flow.sankey.drill 計次 —— 這裡只算分流樹的「產業鏈」，不重複扣 */
+      qblock: ['#flowRotFilter .ddbtn', '#flowRotFilter .rot-top10', '#flowRotFilter .rot-clear', '#flowSankeyCard .rotfilter[data-for="sankey"] .rotdd[data-dd="chain"] .ddbtn'],
+      qcount: ['#flowRotFilter .ddopt[data-c]', '#flowRotFilter .ddlist input[type="checkbox"]', '#flowRotFilter .dd-all', '#flowRotFilter .dd-none', '#flowRotFilter .rot-top10',
+        '#flowSankeyCard .rotfilter[data-for="sankey"] .rotdd[data-dd="chain"] .ddopt[data-c]'],
+      qsess: '#flowRotFilter .ddbtn, #flowSankeyCard .rotfilter[data-for="sankey"] .rotdd[data-dd="chain"] .ddbtn', qsessIn: '.rotdd', qbtnAt: '.rotdd',
+      qbtnOn: ['#flowRotFilter .rotdd[data-dd="group"] .ddbtn', '#flowSankeyCard .rotfilter[data-for="sankey"] .rotdd[data-dd="chain"] .ddbtn'],
+      desc: '資金輪動上方的產業鏈／族群下拉與資金分流樹上方的產業鏈下拉（下拉打開一次之內改選＝一次；只看前 10 大＝一次；分流樹選族群算下鑽）', veil: [], mark: [], block: [] },
     // ---- 產業
     box('ind.map', 'industry', '產業地圖', ['#indMap'], '產業鏈列表與強弱（產業地圖首頁）'),
-    box('ind.groups', 'industry', '族群總覽（長條＋圓餅）', ['#gpSec'], '單一產業鏈裡各族群的漲跌與成交值占比'),
-    box('ind.diagram', 'industry', '產業鏈剖析圖（2D）', ['#dgSec'], '產品／製程剖析圖、點零件看供應商'),
+    /* ★ 2026-10-12 Andy 第 7 點：「產業地圖限制上方分頁至多3個，且子分頁最多3個」——算的是**不同分頁**的數量（同一天重看不重算，比照 3D 剖析圖）。
+       ind.groups＝上方產業鏈分頁（#chainSwitch，單位 c.<鏈>，計數在 quota.js routeOk 的 act）；ind.diagram＝子分頁剖析圖（#dgPick，單位 d.<鏈>.<圖>，畫面出現就算）。
+       用完（qspent）：今天還沒看過的分頁反灰、點了沒反應，旁邊一行小字；看過的照樣點得進去（qkey＝這顆分頁的單位，算過的不反灰）。
+       萬一停在一張沒看過的圖（例如新開一條鏈預設的第一張）→ 圖蓋 inline 一行字（qnote），不蓋大卡、不跳視窗。*/
+    Object.assign(box('ind.groups', 'industry', '族群總覽（長條＋圓餅）', ['#gpSec'], '單一產業鏈裡各族群的漲跌與成交值占比'), {
+      limBy: { free: 3 }, qspent: true, qunit: '分頁', qbtn: '今日 {n} 個產業分頁已用完・Plus 以上可增加',
+      qblock: ['#chainSwitch button[data-c]'], qkey: (el) => (el.dataset.c && el.dataset.c !== '_all' && !el.classList.contains('on') ? 'c.' + el.dataset.c : null), qnoteAfter: '#chainSwitch' }),
+    Object.assign(box('ind.diagram', 'industry', '產業鏈剖析圖（2D）', ['#dgSec'], '產品／製程剖析圖、點零件看供應商'), {
+      limBy: { free: 3 }, qspent: true, qunit: '子分頁', qbtn: '今日 {n} 個子分頁已用完・Plus 以上可增加', qnote: '今日 {n} 個子分頁已用完・Plus 以上可增加',
+      qblock: ['#dgPick a[data-dgid]'], qnoteAfter: '#dgPick',
+      qkey: (el) => { const m = /^#industry\/([^/?]+)/.exec(location.hash || ''); return m && el.dataset.dgid && !el.classList.contains('sel') ? 'd.' + decodeURIComponent(m[1]) + '.' + el.dataset.dgid : null; } }),
     /* 2026-10-10（Andy：「3D 剖析開放 3 次」＋「功能反灰旁邊備註就好」）：
        · veil 加條件 #prod3d:not([hidden])＝**真的在看 3D** 才算一次（以前 .dg3dbox 在 2D 也有外框，看 2D 也被扣 3D 次數）
        · qbtn：每日次數用完時不蓋額度卡 —— 3D 鈕反灰、2D｜3D 旁邊一行小字；停在 3D 的話退回 2D（qoff）。實作在 site/quota.js。
          （不用 qnote：qnote 是同日 ETF 試算用的「蓋區塊、卡片改一行字」模式，兩種行為不同。）*/
-    { id: 'ind.3d', name: '3D 剖析圖', cat: 'industry', def: true, kind: 'bool', desc: '剖析圖的 3D 模式（2D 不受影響；每日次數用完：3D 鈕反灰、旁邊註明）',
+    { id: 'ind.3d', name: '3D 剖析圖', cat: 'industry', def: true, kind: 'bool', limBy: { free: 3 }, desc: '剖析圖的 3D 模式（2D 不受影響；每日次數用完：3D 鈕反灰、旁邊註明）',
       qbtn: '今日次數已用完・Plus 以上可增加', qbtnAt: '.dgmode', qoff: '#dg3d button[data-dm="2d"]',
       veil: [['.dg3dbox', '#prod3d:not([hidden])']], mark: [], block: ['button[data-dm="3d"]'] },
-    box('ind.rel', 'industry', '供應鏈關聯圖', ['#relSec'], '環節詳情與分層關聯圖'),
+    /* ★ 2026-10-12 Andy 第 7 點：「供應鏈關聯圖 功能反灰色」→ 註冊會員關（defBy free:false），note＝整塊反灰＋一行小字（qcard inline 備註），不蓋大卡、不跳視窗 */
+    Object.assign(box('ind.rel', 'industry', '供應鏈關聯圖', ['#relSec'], '環節詳情與分層關聯圖'), { defBy: { guest: false, free: false }, note: 'Plus 以上可使用供應鏈關聯圖' }),
     // ---- 熱力圖
     box('heat.market', 'heatmap', '全市場熱力圖', ['#indHeat'], '整個台股一次看的產業熱力方塊'),
     box('heat.theme', 'heatmap', '題材資金熱力', ['#themeMapCard'], '題材熱度熱力圖'),
-    box('heat.detail', 'heatmap', '題材剖析圖', ['#themeDetail'], '點題材後展開的上中下游剖析'),
+    /* ★ 2026-10-12 Andy 第 6 點：「題材限制點擊後的下方的資訊 限制5次 上方題材熱力圖不限制」→ 註冊會員每日 5 個題材（同一題材同一天不重算，routeOk 的 act）。
+       用完（qspent）：點熱力圖上沒看過的題材＝沒反應（app.js 點擊先問 TwQuota.actOk），顏色下拉旁邊一行小字；不跳視窗。*/
+    Object.assign(box('heat.detail', 'heatmap', '題材剖析圖', ['#themeDetail'], '點題材後展開的上中下游剖析'), {
+      limBy: { free: 5 }, qspent: true, qunit: '題材', qbtn: '今日 {n} 個題材已用完・Plus 以上可增加', qnote: '今日 {n} 個題材已用完・Plus 以上可增加',
+      qblock: [], qnoteAfter: '#themeCtl', qnoteAlways: true, route: /^#heatmap\/theme/ }),
     // ---- 市場明細／週期統計
-    { id: 'mkt.updown', name: '市場明細：漲跌家數', cat: 'market', def: true, kind: 'bool', desc: '漲跌家數名單',
+    /* ★ 2026-10-12 Andy 第 8～10 點：「市場明細漲跌家數…此分頁觀看限制5次」「法人連續買賣超 此分頁觀看限制5次」「市場明細站上均線 此分頁觀看限制5次」→ 註冊會員每日各 5 次。
+       一次＝這個瀏覽器分頁進來一次（同一個分頁來回切不重算，quota.js visit 單位）。用完：內容反灰＋一行字（qnote，qcard inline），不蓋大卡、不跳視窗。*/
+    { id: 'mkt.updown', name: '市場明細：漲跌家數', cat: 'market', def: true, kind: 'bool', desc: '漲跌家數名單', limBy: { free: 5 }, qnote: '漲跌家數今日 {n} 次已用完・Plus 以上可增加',
       veil: [['#mktBody', '#mktSeg2 button[data-k="updown"].on']], mark: ['#mktSeg2 button[data-k="updown"]'], block: [] },
-    { id: 'mkt.streak', name: '市場明細：法人連買賣', cat: 'market', def: true, kind: 'bool', desc: '法人連續買賣超四象限',
+    /* 第 8 點：「市場明細漲跌家數 限制篩選 最多5次」→ 左邊「全部／上市／上櫃」「含 ETF」「族群」三個篩選，每改一次算一次（族群下拉打開一次之內改選＝一次）。 */
+    { id: 'mkt.updown.filter', name: '市場明細：漲跌家數篩選', cat: 'market', def: true, kind: 'bool', limBy: { guest: 3, free: 5 }, qper: 'each', qunit: '篩選', qspent: true,
+      qbtn: '今日 {n} 次已用完・Plus 以上可增加', route: /^#market(\/updown)?([/?]|$)/,
+      /* 手機（html.m4）：篩選收在「全部・不含 ETF・族群 不限」摘要鈕打開的抽屜裡（mobile4.js .m4mksegs 的分段鈕），一樣要算、一樣要擋 */
+      qblock: ['#distMkt button', '#distEtf', '#distGroupDD .twms-btn', '.m4mksegs .seg[data-mk] > button'],
+      qcount: ['#distMkt button:not(.on)', '#distEtf', '.m4mksegs .seg[data-mk] > button:not(.on)', '.twms-pan[data-ms="distGroups"] input[type="checkbox"]', '.twms-pan[data-ms="distGroups"] .twms-all', '.twms-pan[data-ms="distGroups"] .twms-clr', '.twms-pan[data-ms="distGroups"] .twms-gh'],
+      qsess: '#distGroupDD .twms-btn', qsessIn: '.twms-pan', qnoteAfter: '#distGroupDD, #m4MkSet', qfree: '.twms.open',
+      desc: '漲跌分佈左上角「全部／上市／上櫃」「含 ETF」「族群」篩選（每改一次算一次；族群下拉打開一次之內改選＝一次）', veil: [], mark: [], block: [] },
+    { id: 'mkt.streak', name: '市場明細：法人連買賣', cat: 'market', def: true, kind: 'bool', desc: '法人連續買賣超四象限', limBy: { free: 5 }, qnote: '法人連續買賣超今日 {n} 次已用完・Plus 以上可增加',
       veil: [['#mktBody', '#mktSeg2 button[data-k="streak"].on']], mark: ['#mktSeg2 button[data-k="streak"]'], block: [] },
-    { id: 'mkt.ma', name: '市場明細：站上均線', cat: 'market', def: true, kind: 'bool', desc: '站上均線名單',
+    { id: 'mkt.ma', name: '市場明細：站上均線', cat: 'market', def: true, kind: 'bool', desc: '站上均線名單', limBy: { free: 5 }, qnote: '站上均線今日 {n} 次已用完・Plus 以上可增加',
       veil: [['#mktBody', '#mktSeg2 button[data-k="ma"].on']], mark: ['#mktSeg2 button[data-k="ma"]'], block: [] },
     /* 2026-10-10 Andy：「註冊免費會員 今日關注限制不可以看」→ defBy 訪客／註冊會員關（範本沒寫這一項時的預設；範本寫了以範本為準），
        plan_presets.js 訪客／註冊會員也寫 false。今日關注依法遵不能放進體驗額度（grants GRANT_BAN）。*/
     /* 關掉時不再蓋需開通卡（veil 拿掉）：app.js 在原位置畫一塊反灰示意＋「Plus 以上可查看今日關注」（Andy 10-10：不要跳出視窗），名單根本不畫進畫面 */
     /* 2026-10-11（DECISIONS #354）：註冊會員改成開＋每日 3 次（limBy）；每「進一次今日關注分頁」算一次（app.js drawMarket 自己呼叫 TwQuota.use），
        用完＝原位置同一塊反灰示意列，字改成「今日關注今日 3 次已用完・Plus 以上可增加」。*/
-    { id: 'mkt.cand', name: '市場明細：今日關注', cat: 'market', def: true, defBy: { guest: false }, limBy: { free: 3 }, qper: 'each', qunit: '看', kind: 'bool', desc: '回檔型態／突破型態條件名單（關掉：分頁照常點得進去，內容換成「Plus 以上可查看今日關注」說明區）',
+    /* ★★ 2026-10-12 Andy 第 11 點：「今日關注，不開放」→ 蓋掉 10-11 的「開＋每日 3 次」：註冊會員改回關（defBy free:false、拿掉 limBy）。
+       樣子沿用 10-10：原位置反灰示意列＋「Plus 以上可查看今日關注」，名單不畫、不跳視窗。*/
+    { id: 'mkt.cand', name: '市場明細：今日關注', cat: 'market', def: true, defBy: { guest: false, free: false }, qper: 'each', qunit: '看', kind: 'bool', desc: '回檔型態／突破型態條件名單（關掉：分頁照常點得進去，內容換成「Plus 以上可查看今日關注」說明區）',
       veil: [], mark: ['#mktSeg2 button[data-k="cand"]'], block: [] },
-    box('season.month', 'market', '週期統計', ['#v-season'], '族群在各月份的歷史表現（整頁）'),
+    /* ★ 2026-10-12 Andy 第 15 點：「週期統計限制觀看+篩選功能10次」→ 觀看每日 10 次（visit 單位，用完整頁反灰＋一行字）、族群篩選 10 次、切換對象 10 次 */
+    Object.assign(box('season.month', 'market', '週期統計', ['#v-season'], '族群在各月份的歷史表現（整頁）'), { limBy: { free: 10 }, qnote: '週期統計今日 {n} 次已用完・Plus 以上可增加' }),
     /* 2026-10-10 Andy：「週期統計 免費註冊會員不開放 族群篩選功能」→ 長條圖上方「族群：已選 N 個」多選下拉與下方色票（點一下拿掉）鎖住，
        反灰＋旁邊小字（note，Andy 10-10：「功能反灰旁邊備註就好」，不跳視窗），畫面維持預設族群；期間、超額／絕對／勝率、熱力圖／長條圖、最強／最弱照舊（那些是 season.pick 計次）。*/
     /* 2026-10-11（DECISIONS #354）：註冊會員改成開＋每日 3 次（limBy）。一次＝下拉打開一次之內有改選（不管勾幾個）、或點掉一個色票（app.js snUse）；
        用完：下拉反灰＋旁邊「今日 3 次已用完・Plus 以上可增加」，點了不開（quota.js qbtn 備註模式）；剛好在下拉開著時用完 → 那顆鈕先不反灰、按得收起來（qfree）。*/
-    { id: 'season.groups', name: '週期統計：族群篩選', cat: 'market', def: true, defBy: { guest: false }, limBy: { free: 3 }, kind: 'bool',
+    { id: 'season.groups', name: '週期統計：族群篩選', cat: 'market', def: true, defBy: { guest: false }, limBy: { free: 10 }, kind: 'bool',
       qbtn: '今日 {n} 次已用完・Plus 以上可增加', qbtnOn: ['#seasonGroupDD .ddbtn'], qbtnAt: '.rotdd', qper: 'each', qunit: '篩選', qfree: '.rotdd.open',
       note: 'Plus 以上可篩選族群', noteOn: ['#seasonGroupDD .ddbtn'], noteAt: '.rotdd',
       desc: '長條圖「族群：已選 N 個」多選下拉（關掉：下拉反灰、旁邊註明 Plus 以上可用，維持預設族群）', veil: [], mark: [], block: ['#seasonGroupDD .ddbtn', '#seasonKey > *'] },
@@ -192,20 +239,34 @@
       /* 2026-10-10：手機帳號選單的「版面風格」三格（acctm4.js，只在 html.m4 畫）也照這個開關上鎖；那幾個節點桌機不存在，桌機不受影響 */
       veil: [], mark: ['#acctMenu .m4styrow > .t'], block: ['#themeBtn', '#mmTheme', '#t4Btn', '#t4Pop button', '#mmT4 button', '#acctMenu [data-m="sty"]'] },
     // ---- 選股探索（2026-10-05）：預設全開；要收費時管理者在 #admin/perm 關「訪客／免費會員」範本
-    box('explore.page', 'explore', '選股策略頁（Strategy Lab）', ['#v-explore'], '策略卡片牆與完整名單（整頁）'),
+    /* ★ 2026-10-12 Andy 第 12 點：「選股策略分頁限制觀看5次 篩選功能也是」→ 觀看每日 5 次（用完整頁反灰＋一行字）、篩選 5 次（explore.filter，用完反灰＋小字） */
+    Object.assign(box('explore.page', 'explore', '選股策略頁（Strategy Lab）', ['#v-explore'], '策略卡片牆與完整名單（整頁）'), { limBy: { free: 5 }, qnote: '選股策略今日 {n} 次已用完・Plus 以上可增加' }),
     box('explore.chart', 'explore', '策略卡片牆', ['#slGrid'], '每個策略一張卡、前 3 檔與入選原因'),
     box('explore.combo', 'explore', '篩選條件與資料出處', ['.sl-info'], '每張卡的條件、計算方式、資料日期與出處'),
     box('explore.list', 'explore', '完整名單', ['.sl-ftbl'], '#explore/<策略> 全部符合的公司與原因欄'),
     // ---- ETF 專區（2026-10-05，site/etfpage.js）
-    box('etf.list', 'etf', 'ETF 一覽', ['#etfListCard'], 'ETF 卡片清單、分類切換、殖利率與規模'),
+    /* ★ 2026-10-12 Andy 第 13 點：「ETF總攬內子分頁限制3次觀看」→ ETF 總覽觀看每日 3 次（用完反灰＋一行字）＋分類分頁（etf.list.tab）3 個 */
+    Object.assign(box('etf.list', 'etf', 'ETF 一覽', ['#etfListCard'], 'ETF 卡片清單、分類切換、殖利率與規模'), { limBy: { free: 3 }, qnote: 'ETF 總覽今日 {n} 次已用完・Plus 以上可增加' }),
     box('etf.popular', 'etf', '最受歡迎前 5 名', ['#etfPopCard'], '各分類內：受益人數週增加／近 20 日成交值前 5 名'),
     box('etf.rettop', 'etf', '報酬率前 5 名', ['#etfRetTopCard'], '各分類內：含息年化報酬前 5 名（跟著期間選擇）'),
     box('etf.yldtop', 'etf', '殖利率前 5 名', ['#etfYldCard'], '各分類內：近 12 個月殖利率前 5 名與平均填息天數'),
     box('etf.calendar', 'etf', '配息行事曆', ['#etfCalCard'], '7 欄月曆：除息日、配息金額、當次殖利率與填息天數'),
+    /* ★ 2026-10-12 Andy 第 2 點：「今日財經 & 配息行事曆旁邊的資訊至多點擊 5次」→ 配息行事曆右邊那欄（除息一覽的列、明細裡的個股連結）每點一次算一次 */
+    { id: 'etf.cal.click', name: '配息行事曆：點右側清單', cat: 'etf', def: true, kind: 'bool', limBy: { guest: 3, free: 5 }, qper: 'each', qunit: '點擊', qspent: true,
+      qbtn: '今日 {n} 次已用完・Plus 以上可增加', qblock: ['#etfCalList tr[data-code]', '#etfCalList .plink'], qcount: ['#etfCalList tr[data-code]', '#etfCalList .plink'],
+      qnoteAfter: '#etfCalToday', route: /^#etf\/cal/, desc: '配息行事曆右側清單點一列（看那一檔的配息明細）或點個股連結，每點一次算一次', veil: [], mark: [], block: [] },
     box('etf.returns', 'etf', '報酬比較（自選）', ['#etfRetCard'], '各分類內自選最多 8 檔，比較累積報酬、年化與殖利率'),
+    /* ★ 2026-10-12 Andy 第 13 點：「報酬比較紅框處反灰色(圖三)」＝報酬比較標題列的「期間」下拉＋起訖日期 → 註冊會員關、整塊反灰（gray）＋旁邊小字 */
+    { id: 'etf.ret.period', name: 'ETF 報酬比較：期間與起訖日期', cat: 'etf', def: true, defBy: { guest: false, free: false }, kind: 'bool', note: 'Plus 以上可調整期間',
+      gray: ['#etfRngBox'], desc: '報酬比較標題列的期間下拉與起訖日期（關掉：反灰、點不動，停在預設期間）', veil: [], mark: [], block: [] },
     // ---- 財報日曆（2026-10-05，site/earnings.js）：預設全開；要收費時管理者在 #admin/perm 關範本
     box('earn.page', 'earnings', '財經日曆頁（整頁）', ['#v-earnings'], '月曆與右側分析面板（整頁）'),
     box('earn.cal', 'earnings', '行事曆月曆', ['#earnCalCard'], '月曆（公司財報／公司法說／FED 消息）與右側分析面板'),
+    /* ★ 2026-10-12 Andy 第 2 點：「今日財經 & 配息行事曆旁邊的資訊至多點擊 5次」＋稍早「像是日曆點擊一個標題就會消耗一次」→
+       月曆格子裡的事件標題、右側「本週重點」「之後的公司法說」等清單，每點一列算一次（qcount，quota.js 捕獲點擊）。用完：標題與清單反灰、點了沒反應，月份列旁邊一行小字。*/
+    { id: 'earn.click', name: '財經日曆：點事件標題／右側清單', cat: 'earnings', def: true, kind: 'bool', limBy: { guest: 3, free: 5 }, qper: 'each', qunit: '點擊', qspent: true,
+      qbtn: '今日 {n} 次已用完・Plus 以上可增加', qblock: ['#earnGrid .chip', '#earnPanel .erow'], qcount: ['#earnGrid .chip', '#earnPanel .erow'],
+      qnoteAfter: '#earnToday', route: /^#earnings/, desc: '月曆上的事件標題、右側清單的每一列，點一次算一次（回本週重點、切分類不算）', veil: [], mark: [], block: [] },
     // ---- 自選
     box('watch.page', 'watch', '自選清單頁', ['#v-watch'], '自選分頁（整頁）'),
     /* ★ 2026-10-07（Andy：「註冊可以自選一個分頁且10檔股票…plus 可以新增5個分頁、pro 可以不限分頁」，docs/quota_plan.md）：
@@ -229,26 +290,49 @@
      Worker（account-api）只驗鍵的格式與整數範圍，所以新增鍵**不必重新部署 Worker**。*/
   function act(id, cat, name, unit, desc) { return { id: id, name: name, cat: cat, def: true, kind: 'bool', act: unit, desc: desc, veil: [], mark: [], block: [] }; }
   function pickF(id, cat, name, unit, max, opts, g, fr, desc) { return { id: id, name: name, cat: cat, kind: 'limit', unit: unit, max: max, def: max, opts: opts, defBy: { guest: g, free: fr }, desc: desc, veil: [], mark: [], block: [] }; }
+  /* ★ 2026-10-12（Andy 註冊會員逐頁權限表；docs/perm_free_1012.md）：下面幾項加 quiet()＝用完不跳卡片，改成「反灰＋旁邊一行小字、點了沒反應」
+     （Andy 10-10：「這種訊息不要用跳出的方式表示，功能反灰旁邊備註就好」）。qspent＝今天用完就反灰 qblock 的鈕（qkey 有寫的話，今天算過的對象不反灰）；
+     act() 碰到 qspent 的功能用完時回 false 但不跳卡（quota.js）。limBy＝範本 lims 沒寫時的每日次數（跟 plan_presets.js 註冊會員一致）。*/
+  const quiet = (f, o) => Object.assign(f, { qspent: true, qbtn: '今日 {n} 次已用完・Plus 以上可增加' }, o);
   LIST.push(
-    act('flow.sankey.drill', 'flow', '分流樹下鑽個股', 'drill', '資金分流樹點族群展開成個股（右欄變族群內個股排行）；每日次數用完只能看全部族群那一層（資金流向排名）。同一族群同一天重點不重算'),
-    act('flow.inst.filter', 'flow', '族群×法人族群篩選', 'filter', '族群×法人左上「族群」下拉每選一個族群算一次（同一族群同一天不重算；選「全部族群」不算）'),
+    /* 第 3 點「右手邊長條圖…限制點擊5次」：資金分流樹右欄排名（點一列＝下鑽那個族群）與圖上點族群，每日 5 個族群 */
+    quiet(act('flow.sankey.drill', 'flow', '分流樹下鑽個股', 'drill', '資金分流樹點族群展開成個股（右欄變族群內個股排行）；每日次數用完只能看全部族群那一層（資金流向排名）。同一族群同一天重點不重算'),
+      { limBy: { free: 5 }, qblock: ['#sankeyRank .skr-r[data-gid]', '#flowSankeyCard .rotfilter[data-for="sankey"] .ddopt [data-g]'], qnoteAfter: '#sankeyRank .skr-tab, #sankeyPanel > .hh', route: /^#flow\/sankey/,
+        qkey: (el) => { const g = el.dataset.g || el.dataset.gid; return g ? 'drill.' + g : null; } }),
+    /* 第 4 點「族群 × 法人 篩選 限制點擊5次」 */
+    quiet(act('flow.inst.filter', 'flow', '族群×法人族群篩選', 'filter', '族群×法人左上「族群」下拉每選一個族群算一次（同一族群同一天不重算；選「全部族群」不算）'),
+      { limBy: { free: 5 }, qblock: ['#flowInstCard .ddrow[data-for="instGroups"] .rotdd[data-dd="group"] .ddbtn'], qbtnAt: '.rotdd', qfree: '.rotdd.open', route: /^#flow\/inst/ }),
     act('earn.tab', 'earnings', '財經日曆切分頁', 'tab', '月曆切到其他月份（回本月不算）'),
-    act('explore.filter', 'explore', '選股策略篩選', 'filter', '子標籤勾選的每一組不同條件算一次（清除不算）'),
+    /* 第 12 點「選股策略…篩選功能也是」5 次 */
+    quiet(act('explore.filter', 'explore', '選股策略篩選', 'filter', '子標籤勾選的每一組不同條件算一次（清除不算）'), { limBy: { free: 5 }, qblock: ['#slTagDd', '#v-explore input[data-tag]'], qnoteAfter: '#slTagDd', route: /^#explore/ }),
     act('etf.calendar.tab', 'etf', '配息行事曆切分頁', 'tab', '配息行事曆切到其他月份（本月不算）'),
-    act('etf.list.tab', 'etf', 'ETF 一覽分類分頁', 'tab', 'ETF 總覽的分類分頁（股票型／債券型…）點一個不同的算一次'),
+    /* 第 13 點「ETF總攬內子分頁限制3次觀看」：分類分頁（配息型／市值型…）每日 3 個（同一分類同一天不重算；進來預設那一個不算） */
+    quiet(act('etf.list.tab', 'etf', 'ETF 一覽分類分頁', 'tab', 'ETF 總覽的分類分頁（股票型／債券型…）點一個不同的算一次'),
+      { limBy: { free: 3 }, qbtn: '今日 {n} 個分頁已用完・Plus 以上可增加', qblock: ['#etfCatSeg button[data-v]'], qnoteAfter: '#etfCatSeg', route: /^#etf(\/list)?([/?]|$)/,
+        qkey: (el) => (el.classList.contains('on') ? null : 'tab.' + el.dataset.v) }),
     act('etf.list.filter', 'etf', 'ETF 一覽篩選', 'filter', 'ETF 一覽的排序條件（成交值／規模／殖利率／漲跌）換一個不同的算一次'),
-    act('season.pick', 'market', '週期統計切換對象', 'obj', '週期統計換排序月份或換看哪幾個族群（最強／最弱／平均線）'),
+    /* 第 15 點「週期統計…篩選功能10次」：換排序月份、最強／最弱／平均線 */
+    quiet(act('season.pick', 'market', '週期統計切換對象', 'obj', '週期統計換排序月份或換看哪幾個族群（最強／最弱／平均線）'), { limBy: { free: 10 }, route: /^#season/,
+      qblock: ['#seasonPick button', '#seasonHeatHead button[data-m]'], qnoteAfter: '#seasonPick, #seasonNum, #seasonRows, #seasonView',
+      qkey: (el) => (el.classList.contains('on') ? null : el.dataset.m ? 'obj.m.' + el.dataset.m : 'obj.p.' + el.dataset.v) }),
+    /* 第 16 點「搜尋功能限制10次」：左上搜尋框每「從搜尋結果進一檔個股」算一次（app.js 搜尋的 go() 呼叫 TwQuota.use）；
+       用完：搜尋框反灰、打不了字（readOnly），旁邊一行小字；其他地方點個股照常。 */
+    { id: 'search', name: '搜尋股票', cat: 'global', def: true, kind: 'bool', limBy: { guest: 5, free: 10 }, qper: 'each', qunit: '搜尋', qspent: true,
+      qbtn: '今日搜尋 {n} 次已用完・Plus 以上可增加', qblock: ['#q'],
+      desc: '左上搜尋框（輸入代號／簡稱）從結果進個股頁，每進一檔算一次', veil: [], mark: [], block: [] },
     /* 2026-10-10 Andy：「新增 "事件" 觀看次數 10 次 點擊新聞連結」→ 今日事件面板（側欄「事件」打開的右側抽屜；手機總覽的今日事件卡）
        點新聞標題開外部連結才算一次；同一則同一天重點不重扣（單位＝obj.<網址雜湊>）；瀏覽標題不扣。實作在 site/quota.js 檔尾。*/
-    act('news.open', 'global', '今日事件：點新聞連結', 'obj', '今日事件面板點新聞標題開原文（外部網站）算一次；同一則同一天重點不重算，只看標題不算'),
+    /* 2026-10-12 Andy 第 1 點：「今日事件限制點擊連結次數至多5次」→ 註冊會員 10 → 5（limBy＝範本沒寫時也照 5）；用完的樣子沿用 10-10（反灰＋清單上方一行小字） */
+    Object.assign(act('news.open', 'global', '今日事件：點新聞連結', 'obj', '今日事件面板點新聞標題開原文（外部網站）算一次；同一則同一天重點不重算，只看標題不算'), { limBy: { guest: 3, free: 5 } }),
     pickF('mkt.grp.pick', 'market', '市場明細族群篩選上限', '個', 999, [0, 3, 5, 10, 20, 30, 50, 999], 5, 10, '漲跌分佈「族群」篩選同時最多勾幾個（右邊清單不限制）'),
     pickF('explore.list.n', 'explore', '選股完整名單顯示檔數', '檔', 999, [0, 3, 5, 10, 20, 50, 100, 999], 5, 999, '完整名單最多顯示前幾檔'),
     pickF('mkt.cand.n', 'market', '今日關注顯示檔數', '檔', 999, [0, 3, 5, 10, 20, 50, 999], 3, 10, '今日關注名單最多顯示前幾檔'),
     pickF('etf.returns.n', 'etf', '報酬比較自選檔數', '檔', 20, [0, 3, 5, 8, 10, 20], 0, 3, '報酬比較同時最多比幾檔（20＝硬上限）'),
     /* 2026-10-10 Andy：「ETF 試算 註冊的免費會員 改成只能看 5 次，上面參數都不可以調整（包含複利表）」→ 註冊會員改成開＋每日 5 次（plan_presets lims），
        參數鎖另外一個鍵 etf.inc.params（下一行）。*/
-    { id: 'etf.cashflow', name: 'ETF 現金流試算', cat: 'etf', def: true, kind: 'bool', route: /^#etf\/inc/, desc: '月配／複利現金流試算（註冊會員每日 5 次、只看預設參數；Plus 以上可自訂參數）', veil: [['#etfInc']], mark: ['#etfSub button[data-v="inc"]'], block: [],
-      qnote: '今日次數已用完・Plus 以上可增加' },
+    /* ★ 2026-10-12 Andy 第 14 點：「現金流試算 子分頁只能看3次」→ 註冊會員每日 5 → 3 次（limBy 跟範本一致） */
+    { id: 'etf.cashflow', name: 'ETF 現金流試算', cat: 'etf', def: true, kind: 'bool', route: /^#etf\/inc/, desc: '月配／複利現金流試算（註冊會員每日 3 次、只看預設參數；Plus 以上可自訂參數）', veil: [['#etfInc']], mark: ['#etfSub button[data-v="inc"]'], block: [],
+      limBy: { free: 3 }, qnote: '現金流試算今日 {n} 次已用完・Plus 以上可增加' },
     /* 參數鎖：關掉 → 月配與複利試算表上方所有參數（目標、金額、範圍、二代健保、報酬期間、單檔／組合分頁、右側勾選清單、複利的對象／起始日／自訂標的）
        停用、只顯示預設值算出來的結果，旁邊一顆「🔒 升級可自訂參數」→ 升級卡。排序、圖表互動、看細節照常。實作在 site/etfpage.js（incParamsOk）。
        defBy：範本沒寫時訪客關、註冊會員關，付費範本沒寫＝開（跟 heat.link 同一套，不必先按「套用建議方案」也照身分生效）。
@@ -256,7 +340,9 @@
     /* 2026-10-11（DECISIONS #354）：三個 ETF 新鍵註冊會員改成開＋每日 3 次（limBy），訪客照舊關。計數都在 site/etfpage.js（qper:'each'）：
        參數＝改一次算一次（連續拖拉／打字 1.5 秒內算同一次）；報酬比較＝下拉打開一次之內改選算一次；複利試算表＝每打開一次算一次。
        用完：參數整組反灰＋「今日 3 次已用完・Plus 以上可增加」（停在目前的條件，不退回預設）、加入比較反灰＋小字、複利分頁鈕反灰＋小字。*/
-    { id: 'etf.inc.params', name: 'ETF 試算自訂參數', cat: 'etf', def: true, kind: 'bool', defBy: { guest: false }, limBy: { free: 3 }, qper: 'each', qunit: '調參數', route: /^#etf\/inc/,
+    /* ★★ 2026-10-12 Andy 第 14 點：「子分頁內紅框處反灰色(圖4) 單檔ETF 右側篩選不開放使用」→ 蓋掉 10-11 的「開＋每日 3 次」：註冊會員改回關
+       （defBy free:false、拿掉 limBy）。紅框＝整條參數列（目標年領／月領、金額、範圍、二代健保、報酬期間）；右側篩選＝搜尋框、配息頻率標籤、勾選清單 —— 都在 etfpage.js 的參數鎖範圍內。*/
+    { id: 'etf.inc.params', name: 'ETF 試算自訂參數', cat: 'etf', def: true, kind: 'bool', defBy: { guest: false, free: false }, qper: 'each', qunit: '調參數', route: /^#etf\/inc/,
       desc: '現金流試算（月配＋複利）上方參數可以調整（關掉：參數鎖住、只看預設條件的結果，點了跳升級卡；排序照常）', veil: [], mark: [], block: [] },
     /* 2026-10-10 Andy 00:4x：「ETF 報酬比較 與 複利試算表 不開放此會員等級」（＝註冊會員；訪客本來就更嚴）。
        用新鍵＋defBy（訪客、註冊會員預設關，付費範本沒寫＝開），不改舊的 etf.returns —— 正式站範本裡 etf.returns 已經明寫 true，
@@ -278,7 +364,9 @@
        Andy 10-08 的熱力圖跳頁本來就是 Plus 以上，同一個身分界線用同一個開關，管理區只需撥一個。id 不改（改了範本存的值歸零）。*/
     /* 2026-10-11（DECISIONS #354）：註冊會員改成開＋每日 3 次（limBy），每「真的跳過去一次」算一次（quota.js heatLinkUse）；
        用完＝跟沒權限同一個樣子：總覽單純點擊無效、有字的跳頁鈕反灰＋「今日跳轉 3 次已用完」；其他頁的熱力圖照 10-08 跳卡（標題寫次數用完）。*/
-    { id: 'heat.link', name: '總覽／熱力圖點擊跳頁', cat: 'heatmap', def: true, kind: 'bool', defBy: { guest: false }, limBy: { free: 3 }, qper: 'each', qunit: '跳轉',
+    /* ★★ 2026-10-12 Andy 第 5 點：「熱力圖都限制跳連結功能，但切記不要跳需要升級會員資訊，頂多沒反應 這不限次數觀看」→ 蓋掉 10-11 的「開＋每日 3 次」：
+       註冊會員改回關（defBy free:false、拿掉 limBy）。沒權限＝點了沒反應（quota.js heatGo 2026-10-12 起全站安靜）；熱力圖本身看不限次數。*/
+    { id: 'heat.link', name: '總覽／熱力圖點擊跳頁', cat: 'heatmap', def: true, kind: 'bool', defBy: { guest: false, free: false }, qper: 'each', qunit: '跳轉',
       desc: '總覽上任何點擊跳到其他分頁（族群、題材、個股、市場明細…）與全站熱力圖點方塊跳頁（關掉：頁內展開、提示框、縮放照常，點了跳升級卡、網址不動）', veil: [], mark: [], block: [] },
     { id: 'etf.top3', name: 'ETF 總覽上方三張卡（共用次數）', cat: 'etf', def: true, kind: 'bool', desc: '最受歡迎／報酬率／殖利率前 5 三張卡共用一個每日次數（看一次＝這個分頁打開一次）', veil: [['#etfTri']], mark: [], block: [] }
   );
@@ -321,6 +409,7 @@
   /* ★ 2026-10-11（DECISIONS #354）每日次數的預設：範本的 lims 沒寫這一項時，依範本代號（目前只有 free）給每日 N 次。
      為什麼要有：Andy 把註冊會員的 ▶ 播放、今日關注…從「關」改成「開＋每日 3 次」，線上範本在管理者按「套用建議方案」之前沒有這幾項的 lims ——
      只改 defBy 的話，那段時間註冊會員會變成「開而且不限次」。perm.js 讀 lims 時把這份補進去（範本寫了以範本為準）。*/
+  /* 2026-10-12：limBy 也可以寫 guest（新鍵的訪客每日次數，一律 ≤ 註冊會員），規則同上 */
   function limDefaults(plan) { var o = {}; LIST.forEach(function (f) { if (f.limBy && Object.prototype.hasOwnProperty.call(f.limBy, plan)) o[f.id] = f.limBy[plan]; }); return o; }
   function inCat(c) { return LIST.filter(function (f) { return f.cat === c; }); }
 

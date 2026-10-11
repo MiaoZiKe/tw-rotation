@@ -27,13 +27,14 @@
   const MS = {   // 每組一輪的毫秒數；bibi_site.py 最後一行印的就是這張表
     // 待機（唯一一款，循環）：第一版客服鈕的 8 格跳躍 GIF（bibi_site.py idle_hop）
     idle_hop: 800,
-    sleep_loop: 1440,                     // 點「睡覺」之後一直睡（互動，不是待機）
+    sleep_loop: 1360,                     // 點「睡覺」之後一直睡（互動，不是待機；10-12 四腳版：趴著蓋被子，8 格循環）
     // 互動（動畫單位 G1／G2 專屬素材；播一輪＝這個毫秒數就回情境待機）
     // 互動（動畫單位 10-11 深夜照原版造型重畫；bibi_site.py 最後一行印的毫秒數）
-    highfive: 1230, dance: 1690, hug: 1470, wake_once: 1350, selfie: 1250,
+    highfive: 1230, dance: 1690, hug: 1470, wake_once: 1630, selfie: 1200,   // wake_once／selfie：10-12 四腳版
     eat_grass_v2: 2110, ball_catch: 2170, ball_catch_l: 2170, popcorn: 1530, pet_v2: 1730, spin_v2: 1580, dizzy: 1420,
     run_r: 600, run_l: 600, run_start_r: 460, run_stop_r: 1060,
-    hit: 1030, cry: 1040,                 // 打他（播一次）／哭哭（循環一輪）
+    hit: 650, cry: 1000,                  // 打他（播一次，最後一格＝cry 第 1 格）／哭哭（循環一輪）：10-12 四腳版
+    eat_q: 1900, spin_q: 1290,            // 10-12 四腳版：側面低頭吃地上的草（16 格）／四腳小跑繞一圈＋暈眩（13 格），播完都回 Default
     face_star: 1370,
     receive: 1370, receive_grass: 1370, receive_ball: 1370,   // 互動「接東西」（動畫單位照原版造型重做的骨架版）
   };
@@ -52,15 +53,22 @@
     [['watch'], 'watch', '你的自選股比比幫你收好了'],
     [['news', 'event', 'events', 'delivery'], 'news', '比比在看今天的財經消息'],
   ];
-  /* 環狀選單的 12 個小圈（「問比比」最內層，由內往外排）。fx＝點了冒什麼小特效；say＝回應（隨機一句）；cnt＝第 N 次的回應 */
+  /* 環狀選單的 18 個小圈（「問比比」最內層，由內往外排；10-12 加玩具六件組）。fx＝點了冒什麼小特效；say＝回應（隨機一句）；cnt＝第 N 次的回應 */
   /* once：素材是播一次的專屬動作（播一輪＝MS 毫秒就回待機）；沒有 once 的是現有素材代替（循環素材，播兩輪） */
   const ACTS = [
     { id: 'ask', name: '問比比', ask: true },
     { id: 'popcorn', name: '爆米花', file: 'popcorn', once: true, fx: 'star', say: ['爆米花跳！啵啵啵～', '開心到跳起來了！'], cnt: (n) => `今天爆米花跳了 ${n} 次！` },
     { id: 'pet', name: '摸摸頭', file: 'pet_v2', once: true, fx: 'heart', say: ['好舒服～', '再摸一下嘛', '嘿嘿，癢癢的'], cnt: (n) => `今天第 ${n} 次摸我了～` },
-    { id: 'grass', name: '餵牧草', file: 'eat_grass_v2', once: true, fx: 'grass', say: ['嚼嚼嚼…牧草好香！', '謝謝你餵我～'], cnt: (n) => `今天吃了 ${n} 口牧草，好飽～` },
+    { id: 'grass', name: '餵牧草', file: 'eat_q', once: true, fx: 'grass', say: ['嚼嚼嚼…牧草好香！', '謝謝你餵我～'], cnt: (n) => `今天吃了 ${n} 口牧草，好飽～` },
     { id: 'ball', name: '玩球', file: 'ball_catch', once: true, fx: 'ball', say: ['接到了！', '再丟一次！'], cnt: (n) => `今天陪我玩了 ${n} 次球！` },
-    { id: 'spin', name: '轉圈圈', file: 'spin_v2', once: true, fx: 'star', say: ['轉轉轉～頭好暈', '咕嚕咕嚕…眼睛在轉圈'], cnt: (n) => `今天轉了 ${n} 圈，頭好暈～` },
+    /* 玩具六件組（Andy 10-12：「我很喜歡丟球的互動效果，希望能多點這樣的」）：腳本在下面「玩具六件組」；file＝減少動態偏好時只換的那張圖 */
+    { id: 'snack', name: '撒零食', file: 'popcorn', once: true, fx: 'star', say: ['吃光光了！', '每一顆都好香～'], cnt: (n) => `今天撒了 ${n} 次零食，比比圓滾滾` },
+    { id: 'bubble', name: '吹泡泡', file: 'popcorn', once: true, fx: 'star', say: ['泡泡全部戳破了！', '啵啵啵～好好玩'], cnt: (n) => `今天吹了 ${n} 次泡泡！` },
+    { id: 'feather', name: '羽毛棒', file: 'popcorn', once: true, fx: 'star', say: ['抓到羽毛了！', '再晃一次嘛～'], cnt: (n) => `今天玩了 ${n} 次羽毛棒！` },
+    { id: 'yarn', name: '毛線球', file: 'ball_catch', once: true, fx: 'star', say: ['掙脫了！比比最強', '毛線好難纏…'], cnt: (n) => `今天被毛線纏了 ${n} 次…` },
+    { id: 'plane', name: '紙飛機', file: 'face_star', once: true, fx: 'star', say: ['飛機飛好遠！', '再射一架嘛～'], cnt: (n) => `今天看了 ${n} 架紙飛機！` },
+    { id: 'leaf', name: '落葉', file: 'popcorn', once: true, fx: 'star', say: ['撲到葉子了！', '秋天好好玩～'], cnt: (n) => `今天撲了 ${n} 次落葉！` },
+    { id: 'spin', name: '轉圈圈', file: 'spin_q', once: true, fx: 'star', say: ['轉轉轉～頭好暈', '咕嚕咕嚕…眼睛在轉圈'], cnt: (n) => `今天轉了 ${n} 圈，頭好暈～` },
     { id: 'hit', name: '打他', file: 'hit', once: true, fx: 'star', say: ['嗚嗚…好痛', '哇——比比哭哭了'], cnt: (n) => `今天被打了 ${n} 次…嗚嗚` },
     { id: 'five', name: '擊掌', file: 'highfive', once: true, fx: 'star', say: ['耶！擊掌！', '啪！今天也一起加油'], cnt: (n) => `今天第 ${n} 次擊掌，默契 100！` },
     { id: 'dance', name: '跳舞', file: 'dance', once: true, fx: 'note', say: ['跳起來～', '比比的舞步帥嗎？'], cnt: (n) => `今天跳了 ${n} 支舞！` },
@@ -84,6 +92,12 @@
     sleep: '<path d="M15.5 18.6A7.6 7.6 0 0 1 9.2 5.1a7.6 7.6 0 1 0 9.6 10.7 7.6 7.6 0 0 1-3.3 2.8z" fill="#ffe08a" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><path d="M14.6 4.2h3.6l-3.6 4h3.6" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>',
     popcorn: '<g fill="#fff3c4" stroke="currentColor" stroke-width="1.2"><circle cx="7.6" cy="9.4" r="2.5"/><circle cx="16.4" cy="9.4" r="2.5"/><circle cx="12" cy="7.6" r="2.9"/><circle cx="9.6" cy="5.2" r="2.1"/><circle cx="14.5" cy="5.3" r="2.1"/></g><path d="M5.6 10.8h12.8l-1.7 10a1.5 1.5 0 0 1-1.5 1.3H8.8a1.5 1.5 0 0 1-1.5-1.3z" fill="#fff"/><path d="M9.3 10.8l.8 11.3M14.7 10.8l-.8 11.3" stroke="#ec5a4c" stroke-width="2.3"/><path d="M5.6 10.8h12.8l-1.7 10a1.5 1.5 0 0 1-1.5 1.3H8.8a1.5 1.5 0 0 1-1.5-1.3z" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/>',
     wake: '<circle cx="12" cy="12" r="4.4" fill="#ffc94d" stroke="currentColor" stroke-width="1.5"/><path d="M12 2.8v2.4M12 18.8v2.4M2.8 12h2.4M18.8 12h2.4M5.5 5.5l1.7 1.7M16.8 16.8l1.7 1.7M5.5 18.5l1.7-1.7M16.8 7.2l1.7-1.7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>',
+    snack: '<g stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"><rect x="2.6" y="13.4" width="8.4" height="5.2" rx="2.6" fill="#e9a65a" transform="rotate(-20 6.8 16)"/><rect x="12.6" y="14.2" width="8.4" height="5.2" rx="2.6" fill="#8fcf6a" transform="rotate(16 16.8 16.8)"/><rect x="7.6" y="7.6" width="8.4" height="5.2" rx="2.6" fill="#f2c45a"/></g><path d="M19 3.4v3.4M17.3 5.1h3.4" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>',
+    bubble: '<circle cx="10" cy="13" r="6.5" fill="#bfe6ff" fill-opacity=".7" stroke="currentColor" stroke-width="1.5"/><circle cx="17.6" cy="6.6" r="3.6" fill="#bfe6ff" fill-opacity=".7" stroke="currentColor" stroke-width="1.4"/><circle cx="18.2" cy="17.6" r="2.1" fill="#bfe6ff" stroke="currentColor" stroke-width="1.2"/><path d="M6.6 11.2a3.8 3.8 0 0 1 2.7-2.6" stroke="#fff" stroke-width="1.5" fill="none" stroke-linecap="round"/>',
+    feather: '<path d="M3 21.5L13.5 4" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/><path d="M13.5 4c3 .8 4.6 2.8 4.6 5.6" stroke="currentColor" stroke-width="1.1" fill="none"/><path d="M18.1 9.4c-3.2 2.2-3.8 6.6-1.1 11.4 3.1-3 3.8-7.6 1.1-11.4z" fill="#ff8fd1" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/>',
+    yarn: '<circle cx="11" cy="11.6" r="7.6" fill="#ff9db8" stroke="currentColor" stroke-width="1.6"/><path d="M4.4 9.2c4 1 9 5 11 9.6M5.4 15.8c3-4 7-7.6 12.2-7.6M9 4.4c2 4 2.6 9.2 1 14.8" fill="none" stroke="currentColor" stroke-width="1.1"/><path d="M17.6 15.6c2.2 1 3.4 3.2 2.8 6" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>',
+    plane: '<path d="M22 3L2 10.6l7.2 2.6L22 3z" fill="#fff" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><path d="M22 3L9.2 13.2l2.2 7.4 3.4-4.6z" fill="#cfe6ff" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><path d="M2.6 19.6c2-1.1 3.6-1.1 5.2 0" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" fill="none" stroke-dasharray="1.4 2"/>',
+    leaf: '<path d="M4 20C4 10 10 4 20 4c0 10-6 16-16 16z" fill="#ffb067" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="M4.6 19.4L15 9" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/><path d="M15.4 21.4c.4-1.6 1.6-2.6 3.4-2.8-.2 1.8-1.4 2.8-3.4 2.8z" fill="#ffb3c9" stroke="currentColor" stroke-width="1.1" stroke-linejoin="round"/>',
     selfie: '<rect x="3" y="7" width="18" height="12.5" rx="2.6" fill="#8fd3ff" fill-opacity=".45" stroke="currentColor" stroke-width="1.6"/><path d="M8.4 7l1.4-2.4h4.4L15.6 7" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><circle cx="12" cy="13.2" r="3.4" fill="#fff" fill-opacity=".6" stroke="currentColor" stroke-width="1.6"/><circle cx="17.6" cy="9.8" r=".9" fill="currentColor"/>',
   };
   /* 小特效粒子（不用表情符號：深淺主題都用同一組有底色的 SVG） */
@@ -94,6 +108,8 @@
     star: '<svg viewBox="0 0 24 24"><path d="M12 2.5l2.7 6.2 6.8.6-5.1 4.5 1.5 6.6L12 17l-5.9 3.4 1.5-6.6-5.1-4.5 6.8-.6z" fill="#ffd23f" stroke="#a87700" stroke-width=".8"/></svg>',
     note: '<svg viewBox="0 0 24 24"><path d="M10 17V5l9-2v11" fill="none" stroke="#c15fd6" stroke-width="2.2"/><circle cx="7.5" cy="17.5" r="3" fill="#c15fd6"/><circle cx="16.5" cy="15" r="3" fill="#c15fd6"/></svg>',
     z: '<svg viewBox="0 0 24 24"><path d="M6 6h11L7 18h11" fill="none" stroke="#7aa7ff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+    bub: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="6" fill="#bfe6ff" fill-opacity=".5" stroke="#3d9bd6" stroke-width="2"/></svg>',
+    crumb: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="5" fill="#e9a65a" stroke="#7a4a1a" stroke-width="1.4"/></svg>',
     flash: '<svg viewBox="0 0 24 24"><path d="M12 1l2.2 8.8L23 12l-8.8 2.2L12 23l-2.2-8.8L1 12l8.8-2.2z" fill="#fff6b0" stroke="#e0b400" stroke-width=".8"/></svg>',
   };
 
@@ -107,7 +123,7 @@
   const fabOff = () => html.classList.contains('fab-off');
   const $ = (id) => document.getElementById(id);
   /* 素材版本戳：換了 brand/bibi/ 裡的圖（同檔名）就改這個字串，使用者不用清快取就拿到新圖（10-11 週末款換圖後 Andy 仍看到舊圖） */
-  const AV = '1012a';
+  const AV = '1012b';
   const src = (f) => 'brand/bibi/' + f + '.webp?v=' + AV;
   const T = { now: null, pct: undefined, hol: null };   // 驗收注入（Bibi.test）：假時間、假漲跌、假休市表
 
@@ -376,7 +392,7 @@ html.fab-off .bibiring,html.fab-off .bibitip,html.fab-off .bibifx,html.fab-off #
       回傳 { pts:[{x,y}]（相對圓心，順序＝ACTS 順序）, arcs（每層虛線軌道）, maxR } */
   function layout(cx, cy) {
     const mob = isMob(), S = OPT(), gap = mob ? 6 : 8, step = S + gap;
-    const radii = mob ? [76, 124, 172, 220, 268] : [84, 136, 188, 240, 292];
+    const radii = mob ? [76, 124, 172, 220, 268, 316, 364] : [84, 136, 188, 240, 292, 344, 396];   // 18 顆（10-12 玩具六件組）放不下就再往外一層
     const vw = document.documentElement.clientWidth || window.innerWidth, vh = window.innerHeight, pad = 6;
     const L = pad, Rr = vw - pad, Tt = Math.max(pad, topLim()), B = vh - pad;
     const fits = (r, d) => { const t = d * Math.PI / 180, x = cx + r * Math.cos(t), y = cy + r * Math.sin(t); return x - S / 2 >= L && x + S / 2 <= Rr && y - S / 2 >= Tt && y + S / 2 <= B; };
@@ -499,7 +515,7 @@ html.fab-off .bibiring,html.fab-off .bibitip,html.fab-off .bibifx,html.fab-off #
       let line0 = a.say[Math.floor(Math.random() * a.say.length)];
       if (a.cnt && (n === 3 || n % 5 === 0)) line0 = a.cnt(n);
       playChoreo(a, line0);
-      setTimeout(() => { if (run && run.act && run.id === a.id && !run.said && ['ball', 'grass', 'hit'].indexOf(run.id) < 0) cue(); }, 60);   // 摸摸／轉圈開頭就說；球、草等到接住／開吃、打他等到哭才說
+      setTimeout(() => { if (run && run.act && run.id === a.id && !run.said && ['ball', 'grass', 'hit', 'snack', 'bubble', 'feather', 'yarn', 'plane', 'leaf'].indexOf(run.id) < 0) cue(); }, 60);   // 摸摸／轉圈開頭就說；球、草等到接住／開吃、打他等到哭才說
       return;
     }
     if (ring) ring.classList.add('cool');
@@ -553,9 +569,11 @@ html.fab-off .bibiring,html.fab-off .bibitip,html.fab-off .bibifx,html.fab-off #
      receive_*：動畫單位照原版 Default 造型重做的骨架版（第一版 Andy 退件「已經跟原來的不同了」，重做版 CEO 對照過 → 互動可以接）。
      清空就退回替代（face_star＋SVG 手）。⚠ 待機只用 idle_hop（Andy 10-12），不用骨架的 happy_hop、也不用 jump／default_idle。 */
   const PART = { run_l: 'run_l', run_r: 'run_r', run_start_r: 'run_start_r', run_stop_r: 'run_stop_r',
-    ball_catch: 'ball_catch', ball_catch_l: 'ball_catch_l', eat: 'eat_grass_v2', pet: 'pet_v2', spin: 'spin_v2', dizzy: 'dizzy', popcorn: 'popcorn',
+    ball_catch: 'ball_catch', ball_catch_l: 'ball_catch_l', eat: 'eat_q', pet: 'pet_v2', spin: 'spin_q', popcorn: 'popcorn',   // eat／spin：10-12 四腳版（spin 素材本身有暈眩，不再另接 dizzy）
     receive: 'receive', receive_grass: 'receive_grass', receive_ball: 'receive_ball',
     hit: 'hit', cry: 'cry',                         // 打他（播一次）／哭哭（循環）：動畫單位 10-11 深夜交件
+    // 玩具六件組（10-12）：動畫單位的專屬素材還沒到，先用現有動作代替（跳撲＝popcorn、蹲低＝idle_hop_still）
+    snack_eat: 'idle_hop_still', leap: 'popcorn', crouch: 'idle_hop_still',   // 低頭吃零食：四腳版 eat_q 畫了地上的草、跟零食對不上 → 先用蹲低靜態格＋網頁的低頭啃動作，bibi_snack 到了換掉
   };
   /* 替代素材太長時只播這麼久（key＝零件、值＝[替代檔名, 毫秒]；換成真零件後檔名對不上就自動照 MS 播完整段） */
   /* 道具圖：動畫單位的 PNG 到了填檔名（放 site/brand/bibi/props/<名>.png）；空字串＝用下面畫的 inline SVG */
@@ -806,18 +824,28 @@ html.fab-off .bibiring,html.fab-off .bibitip,html.fab-off .bibifx,html.fab-off #
     }
   }
 
-  /* ---------- 腳本：餵牧草 ----------
-     牧草從小圈飛過來、比比接住（receive_grass）→ 吃草（eat_grass_v2：第 1 格直接把草送到嘴邊、素材裡自己有「嚼嚼」字）；每口身體縮一下、冒草屑。 */
+  /* ---------- 腳本：餵牧草（10-12 四腳版） ----------
+     動畫單位四腳版 eat_q（bibi_eat_grass，16 格）：素材裡已經畫了地上的牧草，比比側面低頭吃、最後回 Default。
+     → 網頁只負責「草從小圈飛過去、落在比比面前的地上」那一段（飛的那把用 props/grass.webp），落地那一刻收掉、播 eat_q；
+       不再播 receive_grass（站起來用手接），吃的時候也不疊網頁的草（素材裡有）。
+     落點＝素材裡那把草的位置：160px 素材的 x≈38（比比臉朝左）、貼地 → 螢幕上 比比中心往左 0.26 個圖寬、腳底。 */
   async function grassScript(g) {
-    await receive(g, 'grass');
-    cue();
+    const S = srcPoint(g), P = { x: g.cx - g.s * 0.26, y: g.foot - g.s * 0.03 };
+    const w = g.s * 0.12, h = w * 128 / 60, el = propPic('grass', w, h);
+    at(el, S.x, S.y, '', 0);
+    const lift = Math.max(50, Math.abs(S.x - P.x) * 0.35);
+    await tween(520, (u) => {                                  // 弧線飛過來，邊飛邊轉成橫躺
+      const e = E.inOut(u);
+      at(el, S.x + (P.x - S.x) * e, S.y + (P.y - S.y) * e - lift * Math.sin(Math.PI * u), ` rotate(${(84 * e).toFixed(1)}deg)`, Math.min(1, u * 5));
+      pose(0, 0, { sk: 4 * u, sy: 1 - 0.03 * u });             // 看到草、往前（左）湊，四腳不離地
+    });
+    await tween(110, (u) => { at(el, P.x, P.y - 6 * Math.sin(Math.PI * u), ' rotate(84deg)', 1); pose(0, 0, { sk: 4 * (1 - u), sy: 0.97 + 0.03 * u }); });
+    el.remove();                                               // 素材裡的草接手
     show(PART.eat, true);
-    const Te = MS[PART.eat] || 2110, bites = 4, per = Te / (bites + 1);
-    for (let i = 0; i < bites; i++) {
-      await tween(per, (k) => { const c = Math.sin(Math.PI * Math.min(1, k * 2.2)); pose(0, 0, { sy: 1 - 0.04 * c, sx: 1 + 0.03 * c }); });
-      burstAt('grass', g.cx + g.dir * g.s * 0.1, g.top + g.s * 0.62, 2, 1.6);
-    }
-    await wait(per);
+    cue();
+    await tween(MS[PART.eat] || 1900, (k, t) => {
+      if (t > 200 && t < 1250 && Math.floor(t / 260) !== Math.floor((t - 17) / 260)) burstAt('grass', P.x + g.s * 0.08, P.y - g.s * 0.12, 1, 1.4);
+    });
   }
   function floatText(text, x, y) {
     const c = document.createElement('div'); c.className = 'bchew'; c.textContent = text;
@@ -846,17 +874,12 @@ html.fab-off .bibiring,html.fab-off .bibitip,html.fab-off .bibifx,html.fab-off #
     });
   }
 
-  /* ---------- 腳本：轉圈圈 → 頭暈（Andy 10-11 深夜：「頭暈應該要表情暈眩」） ----------
-     spin_v2（12 格、1580ms）轉一圈；第 11 格（960ms 起）跟 dizzy 第 1 格一模一樣 → 在那格中間切到 dizzy（漩渦眼＋星星繞頭、左右晃，
-     8 格循環），播約 1.5 秒再回待機。晃是素材自己畫的，網頁只在轉的那段讓整顆微微離地。 */
-  const SPIN_TO_DIZZY = 1070, DIZZY_MS = 1500;
+  /* ---------- 腳本：轉圈圈（10-12 四腳版） ----------
+     spin_q（bibi_spin，13 格、1290ms）：四腳小跑繞一圈 → 急停歪一邊 → 暈眩臉 → 回 Default，暈眩畫在素材裡，不再另外接 dizzy 循環。
+     網頁只在跑的那段讓整顆微微離地。 */
   async function spinScript(g) {
     show(PART.spin, true);
-    await tween(SPIN_TO_DIZZY, (k, t) => { const u = Math.min(1, t / 380); pose(0, -4 * Math.sin(Math.PI * u), { sy: 1 + 0.03 * Math.sin(Math.PI * u) }); });
-    if (run) run.phase = 'dizzy';
-    show(PART.dizzy);                                          // 循環素材：不用 #片段 重播
-    await wait(DIZZY_MS);
-    if (run) run.phase = '';
+    await tween(MS[PART.spin] || 1290, (k, t) => { const u = Math.min(1, t / 600); pose(0, -3 * Math.sin(Math.PI * u), {}); });
   }
 
   /* ---------- 腳本：天竺鼠爆米花跳（popcorn 素材：彈三下越來越小） ----------
@@ -894,7 +917,7 @@ html.fab-off .bibiring,html.fab-off .bibitip,html.fab-off .bibifx,html.fab-off #
     await tween(100, (u) => at(hm, top.x, top.y + 10 * E.in(u), ` rotate(${(-30 + 60 * E.in(u)).toFixed(1)}deg)`));   // 咚！
     show(PART.hit, true);                                      // 被敲：素材第 1 格就是壓扁＋衝擊線
     burstAt('star', head.x, head.y - 8, 3, 2.2);
-    const HIT_MS = 630;                                        // hit 第 1～5 格（60＋70＋90＋110＋300）；第 6 格是 Default，不播
+    const HIT_MS = MS[PART.hit] || 650;                        // 10-12 四腳版 hit 6 格整段播完（最後一格＝cry 第 1 格，直接接哭）
     await tween(HIT_MS, (u) => {                               // 槌子彈開淡出
       at(hm, top.x + 24 * u, top.y + 10 - 34 * Math.sin(Math.PI * Math.min(1, u * 1.6)), ` rotate(${(30 - 70 * u).toFixed(1)}deg)`, Math.max(0, 1 - u * 2.2).toFixed(2));
       pose(0, 0, { sy: 1 - 0.03 * (1 - u) });
@@ -908,7 +931,377 @@ html.fab-off .bibiring,html.fab-off .bibitip,html.fab-off .bibifx,html.fab-off #
       if (said === 1 && t > 1700) { said = 2; floatText('嗚嗚', g.cx, g.top); }
     });
   }
-  const CHOREO = { ball: ballScript, grass: grassScript, pet: petScript, spin: spinScript, popcorn: popcornScript, hit: hitScript };
+  /* ======================================================================================
+     玩具六件組（Andy 10-12：「我很喜歡丟球的互動效果，希望能多點這樣的」）
+     照「玩球」的做法：道具從被點的小圈飛出、有物理（落地、反彈、滾動、飄、晃），比比真的在畫面上移動去追，最後回原位。
+     撒零食／吹泡泡／羽毛棒／毛線球／紙飛機／落葉。動畫單位的專屬素材（docs/anim/bibi_<名>/）還沒到：
+     道具先用下面畫的 SVG、比比用現有的動作（run_l／run_r／run_stop_r 跑、popcorn 跳撲、idle_hop_still 蹲低＋網頁身體前傾當低頭啃）代替；
+     到了只改 PART 的 snack_eat／leap／crouch 那幾格＋bibi_site.py 轉檔，腳本不用動。
+     ⚠ 比比是四隻腳的天竺鼠：全程不准做縱向拉長（站起來）的變形，跳只用位移（pose 的 y），身體只准壓扁／微傾。
+     ⚠ 位置一律夾在視窗內（bx()）；道具都在 #bibiStage（fixed、overflow:hidden）→ 不撐捲軸，手機留在 390 內。
+     ====================================================================================== */
+  const TOY = {
+    pellet: (c) => `<svg viewBox="0 0 20 14" aria-hidden="true"><rect x="1.5" y="2" width="17" height="10" rx="5" fill="${c}" stroke="#2b1611" stroke-width="1.7"/><path d="M7 5.2v3.6M10 5.2v3.6M13 5.2v3.6" stroke="#2b1611" stroke-opacity=".35" stroke-width="1.2" stroke-linecap="round"/></svg>`,
+    bubble: () => '<svg viewBox="0 0 40 40" aria-hidden="true"><circle cx="20" cy="20" r="17" fill="#bfe6ff" fill-opacity=".28" stroke="#3d9bd6" stroke-width="2"/><path d="M9.5 15.5a11.5 11.5 0 0 1 8.5-7.5" stroke="#fff" stroke-width="2.8" fill="none" stroke-linecap="round"/><circle cx="27.5" cy="27" r="2.2" fill="#fff" opacity=".8"/></svg>',
+    feather: () => '<svg viewBox="0 0 30 52" aria-hidden="true"><path d="M15 3C5 14 5 32 15 50C25 32 25 14 15 3z" fill="#ff8fd1" stroke="#2b1611" stroke-width="1.9" stroke-linejoin="round"/><path d="M15 7v41" stroke="#2b1611" stroke-width="1.4"/><path d="M15 17l-6-4M15 25l-7-4M15 33l-6-4M15 17l6-4M15 25l7-4M15 33l6-4" stroke="#c94f9e" stroke-width="1.3" stroke-linecap="round"/></svg>',
+    yarn: () => '<svg viewBox="0 0 40 40" aria-hidden="true"><circle cx="20" cy="20" r="17" fill="#ff9db8" stroke="#2b1611" stroke-width="2.4"/><path d="M5 14c8 2 20 10 26 21M7 27c6-8 16-16 28-16M13 5c4 8 6 21 2 32M26 4c-2 10 0 22 9 28" fill="none" stroke="#c9577a" stroke-width="1.7"/></svg>',
+    tangle: () => '<svg viewBox="0 0 100 70" aria-hidden="true"><g fill="none" stroke="#2b1611" stroke-width="4.6" stroke-linecap="round" opacity=".55"><ellipse cx="50" cy="38" rx="44" ry="17" transform="rotate(-12 50 38)"/><ellipse cx="50" cy="33" rx="40" ry="13" transform="rotate(14 50 33)"/><path d="M8 47c20 14 64 12 84-7"/></g>'
+      + '<g fill="none" stroke="#ff7fa6" stroke-width="3" stroke-linecap="round"><ellipse cx="50" cy="38" rx="44" ry="17" transform="rotate(-12 50 38)"/><ellipse cx="50" cy="33" rx="40" ry="13" transform="rotate(14 50 33)"/><path d="M8 47c20 14 64 12 84-7"/></g></svg>',
+    plane: () => '<svg viewBox="0 0 48 32" aria-hidden="true"><path d="M46 16L2 3l10 13L2 29z" fill="#fdf5e9" stroke="#2b1611" stroke-width="2" stroke-linejoin="round"/><path d="M46 16L12 16l-4 8z" fill="#cfe6ff" stroke="#2b1611" stroke-width="1.7" stroke-linejoin="round"/></svg>',
+    leaf: (c) => `<svg viewBox="0 0 30 30" aria-hidden="true"><path d="M4 26C4 12 12 4 26 4c0 14-8 22-22 22z" fill="${c}" stroke="#2b1611" stroke-width="1.8" stroke-linejoin="round"/><path d="M5 25L19 11" stroke="#2b1611" stroke-width="1.3" stroke-linecap="round"/></svg>`,
+  };
+  /** 道具（SVG）：kind＝class 名（bp-<kind>，驗收用它找）、w×h 螢幕尺寸 */
+  function toy(kind, w, h, html) {
+    const el = document.createElement('div'); el.className = 'bp bp-' + kind;
+    el.style.width = Math.round(w) + 'px'; el.style.height = Math.round(h) + 'px'; el._w = w; el._h = h; el.style.opacity = '0';
+    el.innerHTML = html; ensureStage().appendChild(el); return el;
+  }
+  /** 一條線（毛線、羽毛棒的繩子）：蓋整個視窗的 SVG，path 由腳本每格改 d */
+  function threadLayer(kind, color, width) {
+    const el = document.createElement('div'); el.className = 'bp bp-' + kind;
+    el.style.width = '100%'; el.style.height = '100%';
+    el.innerHTML = `<svg width="100%" height="100%" aria-hidden="true"><path d="" fill="none" stroke="${color}" stroke-width="${width}" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+    ensureStage().appendChild(el); el._p = el.querySelector('path'); return el;
+  }
+  /** 背景動畫（泡泡飄、葉子落、羽毛晃）：跟比比的動作同時跑；回傳停止函式。被打斷時照樣丟 ABORT 收掉。 */
+  function loopBg(fn) {
+    const st = { on: true }, STOP = { stop: true };
+    par(tween(60000, (k, t) => { if (!st.on) throw STOP; fn(t); }));
+    return () => { st.on = false; };
+  }
+  /** 比比位移夾在視窗內（整顆圖都在畫面裡） */
+  const bx = (g, x) => clamp(x, g.s / 2 + 4 - g.cx, g.vw - g.s / 2 - 4 - g.cx);
+  const bobY = (g, t) => -Math.abs(Math.sin(t / 150 * Math.PI)) * (g.mob ? 4 : 5);   // run 素材一步 150ms
+  /** 跑到位移 x1（從 x0），回傳實際到的位置。跑步上下彈、往前傾，身體只微微拉長（≤1.03） */
+  async function runTo(g, x0, x1, speed) {
+    x1 = bx(g, x1);
+    const d = x1 - x0;
+    if (Math.abs(d) < 3) { pose(x1, 0); return x1; }
+    show(d < 0 ? PART.run_l : PART.run_r);
+    const sg = Math.sign(d), T = clamp(Math.abs(d) / (speed || (g.mob ? 260 : 340)) * 1000, 260, 1600);
+    await tween(T, (k, t) => { const sp = Math.sin(Math.PI * k); pose(x0 + d * E.inOut(k), bobY(g, t), { sk: -sg * 7 * sp, sx: 1 - 0.02 * sp, sy: 1 + 0.025 * sp }); });
+    return x1;
+  }
+  /** 跑回原位：往右跑回家有煞車素材（run_stop_r），往左就急停回彈 */
+  async function goHome(g, x) {
+    if (Math.abs(x) >= 3) {
+      await runTo(g, x, 0);
+      if (x < 0 && PART.run_stop_r) {
+        show(PART.run_stop_r, true);
+        await tween(Math.min(700, MS[PART.run_stop_r] || 700), (k) => { const d = E.damp(k, 3); pose(0, 0, { sk: -9 * d, sx: 1 + 0.05 * d, sy: 1 - 0.06 * d }); });
+      }
+    }
+    show(idleFile());
+    await tween(300, (k) => { const d = E.damp(k, 3); pose(0, 0, { sx: 1 + 0.05 * d, sy: 1 - 0.06 * d }); });
+  }
+  /** 跳撲（四腳離地：只有位移往上，身體不拉長）：從 x0 跳到 x1、高 H；onPeak 在最高點叫一次；落地壓扁回彈 */
+  async function leap(g, x0, x1, H, ms, onPeak) {
+    x1 = bx(g, x1);
+    show(PART.leap, true);
+    const dx = x1 - x0; let peaked = false;
+    await tween(ms, (k) => {
+      const e = E.inOut(k), up = Math.sin(Math.PI * k);
+      pose(x0 + dx * e, -H * up, { r: -Math.sign(dx) * 7 * up, sx: 1 - 0.02 * up, sy: 1 + 0.02 * up });
+      if (!peaked && k >= 0.5) { peaked = true; if (onPeak) onPeak(); }
+    });
+    await tween(170, (k) => { const d = E.damp(k, 3); pose(x1, 0, { sx: 1 + 0.06 * d, sy: 1 - 0.08 * d }); });
+    return x1;
+  }
+
+  /* ---------- 撒零食：一次撒 4～6 顆、落在比比附近不同位置；比比跑過去一顆一顆低頭吃，吃完才回原位 ---------- */
+  async function snackScript(g) {
+    const dir = g.dir, S = srcPoint(g), ground = g.foot - 4, n = 4 + Math.floor(Math.random() * 3);
+    const span = g.mob ? 190 : 320, w = g.mob ? 16 : 19, h = w * 0.7;
+    const cols = ['#e9a65a', '#8fcf6a', '#f2c45a', '#ff9f80'];
+    const P = [];
+    for (let i = 0; i < n; i++) {
+      const x = clamp(g.cx + dir * (g.s * 0.5 + span * (i + 0.5) / n) + (Math.random() - 0.5) * 18, 14, g.vw - 14);
+      const el = toy('snack', w, h, TOY.pellet(cols[i % cols.length]));
+      at(el, S.x, S.y, '', 0);
+      P.push({ el, x, y: ground - h / 2, rot: (Math.random() - 0.5) * 80, d: i * 80 });
+    }
+    const FLY = 480, T = FLY + 80 * (n - 1) + 160;
+    await tween(T, (k, t) => {                                   // 一顆一顆撒出去：弧線、落地小彈一下
+      P.forEach((p) => {
+        const u = clamp((t - p.d) / FLY, 0, 1), v = clamp((t - p.d - FLY) / 160, 0, 1);
+        if (t < p.d) return;
+        const x = S.x + (p.x - S.x) * E.out(u), lift = 60 + Math.abs(S.x - p.x) * 0.25;
+        const y = u < 1 ? S.y + (p.y - S.y) * E.in(u) - lift * Math.sin(Math.PI * u) : p.y - 8 * Math.sin(Math.PI * v);
+        at(p.el, x, y, ` rotate(${(p.rot * u).toFixed(1)}deg)`, Math.min(1, u * 6));
+      });
+      pose(0, 0, { sk: -dir * 3 * Math.min(1, t / 300) });     // 0.2 秒內就在動：看過去
+    });
+    cue('哇！好多零食～');
+    let x = 0;
+    P.sort((a, b) => Math.abs(a.x - g.cx) - Math.abs(b.x - g.cx));
+    for (const p of P) {
+      const face = p.x < g.cx + x ? -1 : 1;                      // 往哪邊跑＝臉朝哪邊，嘴巴對準零食
+      x = await runTo(g, x, p.x - g.cx - face * g.s * 0.3);
+      show(PART.snack_eat, true);
+      await tween(620, (k, t) => {
+        const c = Math.sin(Math.PI * Math.min(1, k * 2.4));
+        pose(x + face * 3 * c, 0, { sk: -face * 9 * c, sy: 1 - 0.08 * c, sx: 1 + 0.04 * c });   // 低頭啃一口（往零食那邊探、壓低，四腳不離地）
+        at(p.el, p.x, p.y, ` rotate(${p.rot.toFixed(1)}deg) scale(${(1 - 0.85 * E.in(k)).toFixed(2)})`, (1 - k * 0.9).toFixed(2));
+      });
+      burstAt('crumb', p.x, p.y - 6, 3, 1.6);
+      p.el.remove();
+    }
+    floatText('好飽～', g.cx + x, g.top);
+    await goHome(g, x);
+  }
+
+  /* ---------- 吹泡泡：3～5 顆從小圈吹出來、慢慢往上飄、左右晃；比比追到底下跳起來戳破，破掉噴粒子 ---------- */
+  async function bubbleScript(g) {
+    const dir = g.dir, S = srcPoint(g), n = 3 + Math.floor(Math.random() * 3), R = g.mob ? 13 : 16;
+    const span = g.mob ? 200 : 330, rise = g.mob ? 14 : 18, t0 = performance.now(), lo = topLim() + R + 4;
+    const B = [];
+    for (let i = 0; i < n; i++) {
+      B.push({ el: toy('bubble', R * 2, R * 2, TOY.bubble()), x0: clamp(g.cx + dir * (g.s * 0.35 + span * (i + 0.5) / n), R + 8, g.vw - R - 8),
+        y0: g.top + 6 - Math.random() * 18, born: i * 260, ph: Math.random() * 6, popped: false });
+    }
+    const pos = (b, t) => {                                      // 先從小圈飄到起點（500ms），之後慢慢上升、左右晃
+      const a = t - b.born;
+      if (a < 500) { const u = E.out(clamp(a / 500, 0, 1)); return { x: S.x + (b.x0 - S.x) * u, y: S.y + (b.y0 - S.y) * u, op: clamp(a / 120, 0, 1) }; }
+      const s = (a - 500) / 1000;
+      return { x: b.x0 + 14 * Math.sin(s * 2.4 + b.ph), y: Math.max(lo, b.y0 - rise * s), op: 1 };
+    };
+    B.forEach((b) => at(b.el, S.x, S.y, '', 0));
+    const stop = loopBg(() => {
+      const t = performance.now() - t0;
+      B.forEach((b) => { if (b.popped || t < b.born) return; const p = pos(b, t); at(b.el, p.x, p.y, ` scale(${(0.6 + 0.4 * Math.min(1, (t - b.born) / 500)).toFixed(2)})`, p.op); });
+    });
+    pose(0, 0, { sk: -dir * 3 });
+    await wait(260);
+    cue('泡泡！比比要抓到它～');
+    let x = 0;
+    const order = B.slice().sort((a, b) => Math.abs(a.x0 - g.cx) - Math.abs(b.x0 - g.cx));
+    for (const b of order) {
+      const now = performance.now() - t0;
+      if (now < b.born + 500) await wait(b.born + 500 - now);
+      x = await runTo(g, x, pos(b, performance.now() - t0).x - g.cx);
+      const LEAP = 520, tp = performance.now() - t0 + LEAP / 2, tgt = pos(b, tp);
+      const H = clamp(g.top - (tgt.y + R * 0.6), 18, g.mob ? 80 : 100);
+      x = await leap(g, x, tgt.x - g.cx, H, LEAP, () => {
+        b.popped = true;
+        const p = pos(b, performance.now() - t0);
+        b.el.style.opacity = '0';
+        burstAt('bub', p.x, p.y, 6, 2);
+        floatText('啵！', p.x, p.y - 4);
+      });
+    }
+    stop();
+    await goHome(g, x);
+  }
+
+  /* ---------- 羽毛棒：羽毛（繩子連著被點的小圈）在比比前上方左右晃；比比蹲低扭屁股，然後往前撲 2～3 次，最後一下抓到 ---------- */
+  async function featherScript(g) {
+    const dir = g.dir, S = srcPoint(g), fw = g.mob ? 16 : 20, fh = fw * 52 / 30;
+    const string = threadLayer('string', '#2b1611', 1.6), fe = toy('feather', fw, fh, TOY.feather());
+    const fy0 = g.top - (g.mob ? 8 : 12);
+    const F = { x: clamp(g.cx + dir * g.s * 0.85, 24, g.vw - 24), y: fy0, sw: 1 }, t0 = performance.now();
+    let held = null;                                             // 抓到之後羽毛跟著比比的嘴
+    const drawF = (x, y, rot, op) => {
+      at(fe, x, y + fh / 2, ` rotate(${rot.toFixed(1)}deg)`, op);
+      string._p.setAttribute('d', `M ${S.x.toFixed(1)} ${S.y.toFixed(1)} Q ${((S.x + x) / 2).toFixed(1)} ${(Math.max(S.y, y) + 30).toFixed(1)} ${x.toFixed(1)} ${y.toFixed(1)}`);
+      string.style.opacity = String(op);
+    };
+    at(fe, S.x, S.y, '', 0); drawF(S.x, S.y, 0, 0);
+    await tween(420, (k) => { const e = E.out(k); drawF(S.x + (F.x - S.x) * e, S.y + (F.y - S.y) * e, 0, Math.min(1, k * 5)); pose(0, 0, { sk: -dir * 3 * k }); });
+    const stop = loopBg(() => {                                  // 左右晃（鐘擺）
+      if (held) { drawF(held().x, held().y, -dir * 70, 1); return; }
+      const t = (performance.now() - t0) / 1000, a = Math.sin(t * 6.2) * F.sw;
+      drawF(F.x + 22 * a, F.y + 5 * Math.abs(a), -a * 28, 1);
+    });
+    cue('羽毛！比比盯上了…');
+    let x = 0;
+    const crouch = async (ms) => {                               // 蹲低、扭屁股（身體壓扁、左右扭，四腳不離地）
+      show(PART.crouch);
+      await tween(ms, (k, t) => { const w = Math.sin(t / 65 * Math.PI); pose(x - dir * 2 * w, 0, { sx: 1.07, sy: 0.9 + 0.01 * w, sk: 5 * w }); });
+    };
+    await crouch(1000);
+    const N = 3, step = g.mob ? 38 : 56;
+    for (let i = 0; i < N; i++) {
+      if (i < N - 1) {                                           // 羽毛被抽走：往前（畫面內側）挪一段
+        const fx0 = F.x, fx1 = clamp(F.x + dir * step, 24, g.vw - 24);
+        par(tween(260, (k) => { F.x = fx0 + (fx1 - fx0) * E.out(k); F.sw = 1.5; }));
+      }
+      const tx = (i < N - 1 ? F.x + dir * step : F.x) - g.cx - dir * g.s * 0.25;
+      x = await leap(g, x, tx, g.mob ? 22 : 30, 440, () => { if (i === N - 1) { held = () => ({ x: g.cx + OFF.x + dir * g.s * 0.3, y: g.top + OFF.y + g.s * 0.45 }); burstAt('star', F.x, F.y + fh / 2, 4, 1.8); } });
+      F.sw = 1;
+      if (i < N - 1) await crouch(420);
+    }
+    cue('抓到了！');
+    await tween(400, (k, t) => { const w = Math.sin(t / 60 * Math.PI); pose(x, 0, { r: 4 * w, sy: 0.98, sx: 1.02 }); });
+    held = null; stop();
+    const hx = g.cx + x + dir * g.s * 0.3, hy = g.top + g.s * 0.45;
+    par(tween(500, (k) => drawF(hx + (S.x - hx) * E.in(k), hy + (S.y - hy) * E.in(k), -dir * 70 * (1 - k), 1 - k)));   // 收回小圈那邊
+    await goHome(g, x);
+  }
+
+  /* ---------- 毛線球：線球從小圈飛來、被比比一頂滾出去，後面拖一條線；比比追到撲上去 → 被線纏成一團、扭一扭掙脫 → 跑回家 ---------- */
+  async function yarnScript(g) {
+    const dir = g.dir, R = g.mob ? 10 : 12, ground = g.foot, S = srcPoint(g);
+    const D = clamp(dir < 0 ? g.cx - 40 - R : g.vw - 40 - R - g.cx, 110, g.mob ? 220 : 480);
+    const ball = toy('yarn', R * 2, R * 2, TOY.yarn()), line = threadLayer('thread', '#ff7fa6', 2.4);
+    const trail = [];
+    const drawLine = () => line._p.setAttribute('d', trail.length ? 'M ' + trail.map((p) => p.x.toFixed(1) + ' ' + p.y.toFixed(1)).join(' L ') : '');
+    const L0 = g.cx + dir * g.s * 0.55;
+    at(ball, S.x, S.y, '', 0);
+    await tween(440, (u) => {                                    // 弧線飛到比比腳邊
+      const x = S.x + (L0 - S.x) * u, y = S.y + (ground - R - S.y) * E.in(u) - 50 * Math.sin(Math.PI * u) * (1 - u);
+      at(ball, x, y, ` rotate(${(-dir * 300 * u).toFixed(1)}deg)`, Math.min(1, u * 5));
+      pose(0, 0, { sk: -dir * 3 * u });
+    });
+    cue('毛線球！');
+    trail.push({ x: L0, y: ground - 1 });                        // 線頭留在落地的地方
+    await tween(220, (k) => pose(-dir * 4 * E.out(k), 0, { sx: 1 + 0.07 * E.out(k), sy: 1 - 0.09 * E.out(k) }));   // 蓄力
+    await tween(110, (k) => pose(-dir * 4 + dir * 12 * E.out(k), 0, { sk: -dir * 7 * k }));                        // 頂！
+    const bx0 = L0, bx1 = g.cx + dir * D, Tb = g.mob ? 1300 : 1700, lag = 300;
+    const ballAt = (t) => {                                      // 滾出去：越滾越慢、前段小彈兩下、線越拖越長
+      const u = clamp(t / Tb, 0, 1), x = bx0 + (bx1 - bx0) * E.out(u), hb = u < 0.35 ? 12 * Math.abs(Math.sin(u / 0.35 * 2 * Math.PI)) * (1 - u * 2) : 0;
+      return { x, y: ground - R - Math.max(0, hb), rot: (x - bx0) / R * 180 / Math.PI };
+    };
+    let x = dir * 8, ran = false;
+    const Db = bx(g, bx1 - g.cx - dir * g.s * 0.45);
+    await tween(Tb + 200, (k, t) => {
+      const b = ballAt(t);
+      at(ball, b.x, b.y, ` rotate(${b.rot.toFixed(1)}deg)`, 1);
+      const last = trail[trail.length - 1];
+      if (Math.abs(b.x - last.x) > 6) { trail.push({ x: b.x - dir * R * 0.6, y: ground - 1 - (trail.length % 2) * 1.5 }); drawLine(); }
+      if (t < lag) { pose(x, 0, { sk: -dir * 5 * (1 - t / lag) }); return; }
+      if (!ran) { ran = true; show(dir < 0 ? PART.run_l : PART.run_r); }
+      const u = clamp((t - lag) / (Tb + 200 - lag), 0, 1), sp = Math.sin(Math.PI * u);
+      pose(dir * 8 + (Db - dir * 8) * E.inOut(u), bobY(g, t), { sk: -dir * 7 * sp, sx: 1 - 0.02 * sp, sy: 1 + 0.025 * sp });
+    });
+    x = Db;
+    const bEnd = ballAt(Tb);
+    x = await leap(g, x, bEnd.x - g.cx, g.mob ? 18 : 24, 380, () => { ball.style.opacity = '0'; });   // 撲上去
+    // 被纏住：線從線頭一路繞到比比身上，身上一團線；扭一扭
+    const tg = toy('tangle', g.s * 0.95, g.s * 0.66, TOY.tangle());
+    const where = () => ({ x: g.cx + OFF.x, y: g.top + OFF.y + g.s * 0.6 });
+    trail.push({ x: g.cx + x, y: ground - g.s * 0.3 }); drawLine();
+    cue('哎呀～被毛線纏住了！');
+    show(PART.crouch);
+    await tween(1400, (k, t) => {
+      const w = Math.sin(t / 85 * Math.PI), q = where();
+      pose(x + 3 * w, 0, { r: 8 * w, sx: 1.04, sy: 0.95 });
+      at(tg, q.x, q.y, ` rotate(${(-6 * w).toFixed(1)}deg) scale(${Math.min(1, 0.5 + k * 4).toFixed(2)})`, Math.min(1, k * 6));
+      trail[trail.length - 1] = { x: q.x, y: q.y }; drawLine();
+    });
+    // 掙脫：線團彈開、線淡掉
+    burstAt('star', g.cx + x, g.top + g.s * 0.3, 5, 2);
+    floatText('掙脫！', g.cx + x, g.top);
+    await tween(320, (k) => {
+      const q = where(), d = E.damp(k, 3);
+      at(tg, q.x, q.y - 14 * k, ` scale(${(1 + 0.6 * k).toFixed(2)})`, (1 - k).toFixed(2));
+      line.style.opacity = (1 - k).toFixed(2); ball.style.opacity = '0';
+      pose(x, 0, { sx: 1 + 0.06 * d, sy: 1 - 0.08 * d });
+    });
+    tg.remove(); line.remove(); ball.remove();
+    await goHome(g, x);
+  }
+
+  /* ---------- 紙飛機：飛機沿曲線在畫面上繞一圈（整條路線都在視窗內）、比比抬頭跟著轉，最後飛機落地滑一下，比比跑過去聞聞 ---------- */
+  async function planeScript(g) {
+    const dir = g.dir, S = srcPoint(g), pw = g.mob ? 30 : 38, ph = pw * 32 / 48, ground = g.foot - ph / 2;
+    const R1 = g.mob ? 120 : 180, R2 = g.mob ? 64 : 90, tl = topLim();
+    const C = { x: clamp(g.cx + dir * R1 * 0.95, R1 + pw, g.vw - R1 - pw), y: clamp(g.top - R2 - 24, tl + R2 + ph, g.vh - R2 - ph - 10) };
+    const pl = toy('plane', pw, ph, TOY.plane());
+    const Lx = clamp(g.cx + dir * (g.mob ? 170 : 280), pw, g.vw - pw);
+    const a0 = Math.atan2((S.y - C.y) / R2, (S.x - C.x) / R1);   // 小圈在橢圓上對應的角度＝從最靠近小圈的那一點切進去
+    const ell = (a) => ({ x: C.x + R1 * Math.cos(a), y: C.y + R2 * Math.sin(a) });
+    const E0 = ell(a0), spinDir = dir < 0 ? -1 : 1;
+    let prev = { x: S.x, y: S.y };
+    const place = (p) => {                                      // 機頭朝飛行方向
+      const ang = Math.atan2(p.y - prev.y, p.x - prev.x) * 180 / Math.PI;
+      if (Math.hypot(p.x - prev.x, p.y - prev.y) > 0.3) pl._ang = ang;
+      at(pl, p.x, p.y, ` rotate(${(pl._ang || 0).toFixed(1)}deg)`, 1); prev = p;
+    };
+    let x = 0;
+    const look = (p, extra) => {                                 // 抬頭跟著轉：身體往飛機那邊歪、腳步小挪
+      const rel = clamp((p.x - (g.cx + x)) / (g.mob ? 160 : 260), -1, 1);
+      pose(x + (extra || 0), 0, { r: 8 * rel, sk: -6 * rel, sy: 0.97, sx: 1.02 });
+    };
+    at(pl, S.x, S.y, '', 0);
+    show(PART.crouch);
+    await tween(420, (k) => { const e = E.inOut(k); place({ x: S.x + (E0.x - S.x) * e, y: S.y + (E0.y - S.y) * e - 30 * Math.sin(Math.PI * k) }); look(prev); });
+    cue('紙飛機！飛好高～');
+    const LOOP = g.mob ? 2000 : 2400;
+    await tween(LOOP, (k, t) => {                                // 繞一整圈
+      const a = a0 + spinDir * 2 * Math.PI * E.inOut(k);
+      place(ell(a));
+      x = 6 * Math.sin(t / 260);                                 // 跟著小步原地轉
+      look(prev);
+    });
+    const Ls = { x: prev.x, y: prev.y };
+    await tween(900, (k) => {                                    // 往下滑翔、落地
+      const e = E.in(k), px = Ls.x + (Lx - Ls.x) * E.out(k), py = Ls.y + (ground - Ls.y) * e - 24 * Math.sin(Math.PI * k);
+      place({ x: px, y: py }); look(prev);
+    });
+    await tween(220, (k) => { at(pl, Lx + dir * 14 * E.out(k), ground, ` rotate(${(dir < 0 ? 180 : 0)}deg) scale(1,${(1 - 0.12 * Math.sin(Math.PI * k)).toFixed(2)})`, 1); });   // 落地滑一下
+    pl._x = Lx + dir * 14;
+    const face = pl._x < g.cx + x ? -1 : 1;
+    x = await runTo(g, x, pl._x - g.cx - face * g.s * 0.42);
+    show(PART.crouch);
+    cue('嗅嗅…是紙做的！');
+    for (let i = 0; i < 3; i++) {                                // 聞三下：往前探、縮回
+      await tween(300, (k) => { const c = Math.sin(Math.PI * k); pose(x + face * 4 * c, 0, { sk: -face * 6 * c, sy: 1 - 0.05 * c, sx: 1 + 0.03 * c }); });
+      if (i === 0) floatText('嗅嗅', pl._x, ground - 20);
+    }
+    await tween(260, (k) => { pl.style.opacity = (1 - k).toFixed(2); });
+    await goHome(g, x);
+  }
+
+  /* ---------- 落葉／花瓣：5～8 片從上面飄下來（左右晃、翻轉），比比原地彈跳去撲，撲到的閃一下收掉，沒撲到的落地淡掉 ---------- */
+  async function leafScript(g) {
+    const dir = g.dir, n = 5 + Math.floor(Math.random() * 4), lw = g.mob ? 16 : 20, t0 = performance.now();
+    const cols = ['#ffb067', '#f7d154', '#ffb3c9', '#ff8a65'];
+    const top = Math.max(topLim() + 14, g.top - (g.mob ? 150 : 210)), ground = g.foot - 4, v = g.mob ? 62 : 72;
+    const reach = g.mob ? 34 : 50, LH = g.mob ? 30 : 40, catchY = g.top - LH * 0.55;   // 撲到最高點時頭頂的高度
+    const Lf = [];
+    for (let i = 0; i < n; i++) {
+      const x0 = clamp(g.cx + dir * (-12 + Math.random() * (g.mob ? 110 : 160)), lw + 6, g.vw - lw - 6);
+      Lf.push({ el: toy('leaf', lw, lw, TOY.leaf(cols[i % cols.length])), x0, y0: top - Math.random() * 30, born: 200 + i * 430, ph: Math.random() * 6, st: 'fall', tEnd: 0 });
+    }
+    const pos = (L, t) => {
+      const a = (t - L.born) / 1000, y = Math.min(ground, L.y0 + v * a);
+      return { x: L.x0 + 16 * Math.sin(a * 3.1 + L.ph), y, rot: 40 * Math.sin(a * 2.3 + L.ph) + a * 90, landed: y >= ground };
+    };
+    Lf.forEach((L) => at(L.el, L.x0, L.y0, '', 0));
+    const stop = loopBg(() => {
+      const t = performance.now() - t0;
+      Lf.forEach((L) => {
+        if (L.st === 'caught' || t < L.born) return;
+        const p = pos(L, t);
+        if (p.landed && L.st === 'fall') { L.st = 'ground'; L.tEnd = t; }
+        const op = L.st === 'ground' ? clamp(1 - (t - L.tEnd - 500) / 500, 0, 1) : clamp((t - L.born) / 200, 0, 1);
+        at(L.el, p.x, p.y, ` rotate(${p.rot.toFixed(1)}deg) scaleX(${Math.cos((t - L.born) / 330 + L.ph).toFixed(2)})`, op);
+      });
+    });
+    pose(0, -4, { sy: 0.98 });                                   // 0.2 秒內就在動：抬頭準備
+    cue('葉子飄下來了～');
+    let x = 0, busyTill = 0;
+    const tc = (L) => L.born + (catchY - L.y0) / v * 1000;      // 葉子落到頭頂高度的時間
+    const order = Lf.slice().sort((a, b) => tc(a) - tc(b));
+    const LEAP = 480;
+    for (const L of order) {
+      const at_ = tc(L), startAt = at_ - LEAP / 2, now = performance.now() - t0;
+      if (startAt < now || startAt < busyTill) continue;         // 來不及／前一下還沒落地：讓它落地
+      await tween(startAt - now, (k, t) => { const c = Math.max(0, Math.sin((now + t) / 120)); pose(x, 0, { sx: 1 + 0.04 * c, sy: 1 - 0.05 * c }); });   // 等的時候原地小蹦
+      const p = pos(L, at_), tx = clamp(p.x - g.cx, -reach * 1.6, reach * 1.6);   // 原地彈跳：最多往旁邊挪一小步（bx 再夾在視窗內）
+      x = await leap(g, x, tx, LH, LEAP, () => {
+        L.st = 'caught'; L.el.style.opacity = '0';
+        const q = pos(L, performance.now() - t0);
+        burstAt('star', q.x, q.y, 3, 2);
+      });
+      busyTill = performance.now() - t0;
+    }
+    const last = Math.max(...Lf.map((L) => L.born + (ground - L.y0) / v * 1000)) + 1000, now = performance.now() - t0;
+    if (last > now) await tween(last - now, (k, t) => { const c = Math.max(0, Math.sin(t / 140)); pose(x, 0, { sx: 1 + 0.03 * c, sy: 1 - 0.04 * c }); });
+    stop();
+    await goHome(g, x);
+  }
+  const CHOREO = { snack: snackScript, bubble: bubbleScript, feather: featherScript, yarn: yarnScript, plane: planeScript, leaf: leafScript, ball: ballScript, grass: grassScript, pet: petScript, spin: spinScript, popcorn: popcornScript, hit: hitScript };
 
   /* ---------- 待機小動作：眨眼／伸懶腰／跳一下（只動 transform）----------
      10-12 起預設不自動跑：待機本身就是一直跳的 GIF，再疊小動作會亂；「東張西望」會換圖（tilt），違反「待機一律 idle_hop」，拿掉。
@@ -964,7 +1357,7 @@ html.fab-off .bibiring,html.fab-off .bibitip,html.fab-off .bibifx,html.fab-off #
   function playChoreo(a, line) {
     clearTimeout(fidgetT); stopFidget(); preload();
     const g = geo();                      // 量原位（鈕本身不會動，只有裡面的圖層在動）
-    startRun(a.id, true); tipFollow = true; run.line = line; watchOn(); run.tipSide = ['pet', 'popcorn', 'hit', 'spin'].indexOf(a.id) >= 0;   // 摸摸頭（手在頭上）、爆米花跳（跳很高）：泡泡放旁邊，不擋到
+    startRun(a.id, true); tipFollow = true; run.line = line; watchOn(); run.tipSide = ['pet', 'popcorn', 'hit', 'spin', 'leaf'].indexOf(a.id) >= 0;   // 摸摸頭（手在頭上）、爆米花跳（跳很高）：泡泡放旁邊，不擋到
     const tok = runTok;
     CHOREO[a.id](g).then(() => { if (tok === runTok) { if (!run.said) cue(); endRun(); finishAct(); } },
       (e) => { if (e !== ABORT && tok === runTok) { endRun(); finishAct(); if (window.console) console.warn('bibi', e); } });

@@ -21,6 +21,24 @@
 - [10-09 22:1x] 手機版 → 網頁版：Andy 回報手機抽屜站名圖跑掉、頂欄 LOGO 點了變放大（他要：頂欄 LOGO＝回總覽；只有側欄抽屜裡的 LOGO 才放大）。手機版開 claude/m4-brand 處理，**只改 html.m4／≤640**，不動桌機 .brand .logo→#logoBox 行為。
 
 
+## 2026-10-12 註冊會員（免費）逐頁權限表 16 點（UI 專家；DECISIONS #358；對照表 docs/perm_free_1012.md）
+- Andy 原話：「CEO我這邊一頁一頁跟你說明並請你改動，以下是註冊後的免費會員」16 點＋「註冊會員次數還是太多，需要降至5次……並且像是日曆點擊一個標題就會消耗一次」。**蓋掉 10-10、10-11 註冊會員設定**。
+- 改回關（反灰＋小字、不跳視窗）：資金輪動／分流樹時間列整條、今日關注、熱力圖跳頁、ETF 試算參數（含單檔右側搜尋／配息頻率／勾選）、供應鏈關聯圖、ETF 報酬比較期間＋起訖日期（新鍵 `etf.ret.period`）。
+- 新鍵：`earn.click`、`etf.cal.click`、`flow.rank.click`、`flow.filter`、`mkt.updown.filter`、`search`；次數照 16 點改；註冊會員全站共用額度 dq 40 → 不設。
+- 新機制（quota.js／perm.js）：features.js `gray`（整塊反灰＋inert）、`qspent`（用完就反灰，`qkey`＝看過的對象不反灰）、`qcount`／`qsess`／`qsessIn`（捕獲點擊計數、下拉打開一次算一次）、`TwQuota.actOk`。額度上限面板多列「關掉的功能」。
+- **Andy 要做**：管理區 #admin/perm 按「套用建議方案」（線上範本明寫了 10-11 的「開＋3 次」與 dq 40，不套用的話那幾項照舊；沒寫到的新鍵靠 features.js 立即生效）。
+- 驗收（這批只驗了這幾段）：註冊會員權限1012（新）、註冊會員限次開放1011、免費會員權限1010、額度上限1010、ETF試算免費限制1010、套用建議方案1007、訪客權限1008、熱力圖跳個股1008、會員權限、網頁同步1010、帳號選單1009、會員權限開關、桌機守門1008（--workers 1）、`_preview.py`。剩下的紅都在 origin/main 同樣紅（既有）：網頁同步1010 E「手機 390 個股頁首子分頁」、會員權限開關「全部預設開啟（live.tick 停用）」＋#moreBtn 逾時、_preview 800px #industry/ai_server 卡片交疊。純前端（site／scripts 測試檔／docs）→ 依規則跳過 pytest。
+- **已知、不是這批造成**：資金輪動上方篩選一換，ECharts 丟「Cannot read properties of undefined (reading 'width')」（origin/main 同樣重現）→ 待處理。
+
+## 2026-10-12 比比：玩具六件組（分支 claude/bibi-play6，待 CEO 看截圖才推 main）
+- 撒零食／吹泡泡／羽毛棒／毛線球／紙飛機／落葉，小圈 18 顆；驗收段 `比比玩具1012`（桌機＋手機 390，每個互動驗道具出現且移動、比比離開原位、四腳、不撐捲軸、回原位；毛線球中途 Esc／點空白打斷）。截圖 scratchpad/bibi1012/toys/act_<名>_mid(_m).png。
+- 動畫單位專屬素材（docs/anim/bibi_<名>/）還沒到；到了改 bibi.js `PART.snack_eat／leap／crouch`。
+
+## 2026-10-12 比比：四腳版第 1～5 組換上（吃草／轉圈／睡覺＋叫醒／被敲＋哭／自拍）（UI 專家；DECISIONS #357）
+- 動畫單位 8f5c472（CEO 已審）→ `python scripts/anim/bibi_site.py eat_q spin_q sleep_loop wake_once hit cry selfie`；bibi.js：PART.eat＝eat_q、PART.spin＝spin_q、給草改「草飛到比比面前地上 → 播 eat_q」、轉圈不接 dizzy、hit 整段播完接 cry；AV＝1012b。
+- 驗收：比比互動1011（改寫餵牧草／轉圈兩條）、客服鈕1009、桌機守門1008（--workers 1）。截圖：scratchpad/bibi1012/quad/quad_sheet.png。
+- 球、摸摸、擊掌、跳舞、抱抱、接東西還在用舊版，下一批四腳版到了再換。
+
 ## 2026-10-12 比比：待機一律「第一版跳躍 GIF」、拿掉「跳跳」小圈（UI 專家；DECISIONS #357 第 ⑥ 點，蓋掉下面那條）
 - Andy：「比比改成一直跳，但是是在主畫面狀態，我說的狀態就是第一版做出來的樣式，一直處於跳的狀態如圖一我提供的GIF、『跳跳』小圓 拿掉」＋「是這張喔」（9 格跳躍分格圖＝`site/brand/src/support_anim_1009.gif`）。
 - 素材：`python scripts/anim/bibi_site.py idle_hop`（走 gif_pipeline 的 load_frames＋cutout，在 512 原圖去背，再用 `_fit_original` 對到素材庫座標）→ `site/brand/bibi/idle_hop.webp`（160px、8 格、800ms、無限循環、38KB）＋ `idle_hop_still.webp`（第 1 格，減少動態用）。第 1 格跟 default_idle 外框、腳底逐像素一致；洋紅／深／淺三種底檢查 0 白邊。

@@ -279,9 +279,10 @@
 #v-etf .incctl input[type=number]{width:104px;height:30px;border-radius:8px;border:1px solid var(--line-2);background:var(--panel-3);color:var(--ink);padding:0 8px;font:13px var(--mono);box-sizing:border-box}
 #v-etf .incctl label.chk{display:flex;align-items:center;gap:6px;font-size:13px;color:var(--ink-2);cursor:pointer}
 /* 2026-10-10 參數鎖（etf.inc.params 關）：整組變灰、游標禁止；容器的子節點不吃滑鼠 → 點哪裡都落在容器上，由 document 捕獲階段跳升級卡 */
-#v-etf #etfInc[data-inclk] :is(#incPM .incctl>.grp,#incPM .incctl>label.chk,#incChips,#incPX .cxctl>.grp,#incPX .cmpw,#cxChips){opacity:.5;filter:grayscale(.4);cursor:not-allowed}
-#v-etf #etfInc[data-inclk] :is(#incPM .incctl>.grp,#incPM .incctl>label.chk,#incChips,#incPX .cxctl>.grp,#incPX .cmpw,#cxChips) *{pointer-events:none!important}
-#v-etf #etfInc[data-inclk] :is(#incList .ilr>input[type=checkbox],#incReset,#incDetCx,#incToCx,#m4EtfSet-inc){opacity:.5;cursor:not-allowed}
+#v-etf #etfInc[data-inclk] :is(#incPM .incctl>.grp,#incPM .incctl>label.chk,#incChips,#incPX .cxctl>.grp,#incPX .cmpw,#cxChips,#incFq){opacity:.5;filter:grayscale(.4);cursor:not-allowed}
+#v-etf #etfInc[data-inclk] :is(#incPM .incctl>.grp,#incPM .incctl>label.chk,#incChips,#incPX .cxctl>.grp,#incPX .cmpw,#cxChips,#incFq) *{pointer-events:none!important}
+#v-etf #etfInc[data-inclk] :is(#incList .ilr>input[type=checkbox],#incReset,#incDetCx,#incToCx,#m4EtfSet-inc,#incSearch){opacity:.5;cursor:not-allowed}
+#v-etf #etfInc[data-inclk] #incListBox>.inclknote{display:flex;margin:0 0 6px}
 #v-etf .inclknote{display:inline-flex;align-items:center;gap:4px;font-size:12px;font-weight:600;color:var(--amber,#f5b942);white-space:nowrap}
 #v-etf .inclknote.m4o{display:none}
 /* 報酬比較／複利試算表需開通：標題列控制反灰不動作；複利分頁鈕反灰＋小字 */
@@ -1511,8 +1512,10 @@ html.m4 #v-etf #etfInc[data-inclk] .inclknote.m4o{display:flex;margin:-4px 0 8px
   }
   /* 鎖住的控制項（容器：整組連子節點一起停用；單顆：checkbox／按鈕本身）*/
   /* 2026-10-10 Andy（截單檔 ETF／組合 A～E 那排）：「這邊是可以看的」→ #incTabs 不鎖，免費會員也能切單檔／組合（只是看，不改計算條件）*/
-  const LK_BOX = ['#incPM .incctl > .grp', '#incPM .incctl > label.chk', '#incChips', '#incPX .cxctl > .grp', '#incPX .cmpw', '#cxChips'];
-  const LK_ONE = ['#incList .ilr > input[type=checkbox]', '#incReset', '#incDetCx', '#incToCx', '#m4EtfSet-inc', '#m4EtfSegs[data-p="inc"] button'];
+  /* ★ 2026-10-12 Andy 註冊會員權限表第 14 點：「單檔ETF 右側篩選不開放使用」→ 右側清單上方的搜尋框（#incSearch）、配息頻率標籤（#incFq）也一起鎖
+     （勾選清單、回前 5 本來就在裡面），右側清單上方多一行同樣的小字。 */
+  const LK_BOX = ['#incPM .incctl > .grp', '#incPM .incctl > label.chk', '#incChips', '#incPX .cxctl > .grp', '#incPX .cmpw', '#cxChips', '#incFq'];
+  const LK_ONE = ['#incList .ilr > input[type=checkbox]', '#incReset', '#incDetCx', '#incToCx', '#m4EtfSet-inc', '#m4EtfSegs[data-p="inc"] button', '#incSearch'];
   const LK_SEL = LK_BOX.concat(LK_ONE).join(',');
   const LK_NOTE = 'Plus 以上可自訂參數';
   /* ★ 2026-10-11（DECISIONS #354，Andy：「功能要曝光度…我們可以開放…但就是限制功能」→「限制次數才對」）：
@@ -1549,7 +1552,7 @@ html.m4 #v-etf #etfInc[data-inclk] .inclknote.m4o{display:flex;margin:-4px 0 8px
     const lk = !!S.inc._lk || used;
     box.toggleAttribute('data-inclk', lk);
     box.toggleAttribute('data-incout', used);
-    $$('#incPM .incctl input, #incPM .incctl select, #incPM .incctl button, #incPX .cxctl input, #incPX .cxctl select, #incPX .cxctl button, #incPX .cmpw input, #incPX .cmpw button', box)
+    $$('#incPM .incctl input, #incPM .incctl select, #incPM .incctl button, #incPX .cxctl input, #incPX .cxctl select, #incPX .cxctl button, #incPX .cmpw input, #incPX .cmpw button, #incSearch, #incFq button, #incList .ilr > input[type=checkbox]', box)
       .forEach((el) => { if (lk) { if (!el.disabled) { el.disabled = true; el.dataset.inclkd = '1'; } } else if (el.dataset.inclkd) { el.disabled = false; delete el.dataset.inclkd; } });
     const nt = used ? `今日 ${window.TwQuota.limit(PQ)} 次已用完・Plus 以上可增加` : `🔒 ${LK_NOTE}`;
     const tip = used ? '今天自訂參數的次數用完了：停在目前的條件，明天（台北時間 0 點）自動恢復' : '目前方案只能看預設條件（年領 100 萬・配息型・不扣二代健保・近 5 年・單檔 ETF）的試算結果';
@@ -1563,6 +1566,10 @@ html.m4 #v-etf #etfInc[data-inclk] .inclknote.m4o{display:flex;margin:-4px 0 8px
     const pm = $('#incPM > .incctl', box), mn = $('#incPM > .inclknote.m4o', box);
     if (mn && (!lk || mn.textContent !== nt)) mn.remove();
     if (lk && pm && !$('#incPM > .inclknote.m4o', box)) pm.insertAdjacentHTML('afterend', note.replace('class="inclknote"', 'class="inclknote m4o"'));
+    /* 右側清單（單檔 ETF）：搜尋框上方一行同樣的小字（2026-10-12 第 14 點） */
+    const lh = $('#incListBox > .ilhd', box), ln = $('#incListBox > .inclknote', box);
+    if (ln && (!lk || ln.textContent !== nt)) ln.remove();
+    if (lk && lh && !$('#incListBox > .inclknote', box)) lh.insertAdjacentHTML('beforebegin', note);
   }
   /* 2026-10-10 Andy 00:4x：「ETF 報酬比較 與 複利試算表 不開放此會員等級」—— 內容的反灰示意＋一行字由 perm.js 的 veil（features.js note，qcard inline 備註）蓋；
      這裡補兩件 perm.js 不管的：報酬比較標題列的「加入比較／含息不含息」反灰不動作、複利試算表分頁鈕反灰＋小字。不跳任何視窗。*/

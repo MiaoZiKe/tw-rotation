@@ -32870,6 +32870,10 @@ BIBI_RING = """() => { const r = document.getElementById('bibiRing'), f = docume
            panel: !document.getElementById('supPanel').hidden, sw: document.scrollingElement.scrollWidth }; }"""
 
 
+# 環裡全部的小圈（10-12：拿掉「跳跳」＝12 顆；再加玩具六件組＝18 顆）
+BIBI_IDS = ["ask", "popcorn", "pet", "grass", "ball", "snack", "bubble", "feather", "yarn", "plane", "leaf", "spin", "hit", "five", "dance", "hug", "sleep", "selfie"]
+
+
 def _bibi_no_overlap(R):
     """小圈是圓的：圓心距離 ≥ 直徑才算不重疊；也不准蓋到比比本體（圓心 30px 內）。"""
     bs = [((x["l"] + x["r"]) / 2, (x["t"] + x["b"]) / 2, x["w"]) for x in R["bs"]]
@@ -33009,14 +33013,14 @@ def t_bibi_1011(b, base):
     tip = pg.evaluate(BIBI_ST)["tip"]
     ok(f"【{T}】桌機 停在比比上有提示泡泡說他在幹嘛（{tip}）", "比比" in tip, tip)
     ids1 = [x["id"] for x in R1["bs"]]
-    ALL_IDS = ["ask", "popcorn", "pet", "grass", "ball", "spin", "hit", "five", "dance", "hug", "sleep", "selfie"]   # 10-12 拿掉「跳跳」
-    ok(f"【{T}】桌機 沒有「跳跳」小圈（Andy 10-12：「『跳跳』小圓 拿掉」）、正好 12 顆", "hop" not in ids1 and "跳跳" not in names and len(ids1) == 12, names)
+    ALL_IDS = BIBI_IDS
+    ok(f"【{T}】桌機 沒有「跳跳」小圈（Andy 10-12：「『跳跳』小圓 拿掉」）、正好 {len(BIBI_IDS)} 顆（12＋玩具六件組 6）", "hop" not in ids1 and "跳跳" not in names and len(ids1) == len(BIBI_IDS), names)
     ok(f"【{T}】桌機 滑鼠移到比比上 → 全部 {len(ids1)} 個小圈一次攤開（沒有「下一頁」）：{names}",
        R1["on"] and sorted(ids1) == sorted(ALL_IDS) and "next" not in ids1, R1)
     rads = {x["id"]: (((x["l"] + x["r"]) / 2 - R1["rx"]) ** 2 + ((x["t"] + x["b"]) / 2 - R1["ry"]) ** 2) ** .5 for x in R1["bs"]}
     ok(f"【{T}】桌機 「問比比」在離比比最近的那一層（{rads.get('ask', 0):.0f}px，最近 {min(rads.values()):.0f}px）", rads.get("ask", 999) <= min(rads.values()) + 3, rads)
     layers = sorted(set(round(v / 10) for v in rads.values()))
-    ok(f"【{T}】桌機 分層扇形（{len(layers)} 層：{sorted(set(round(v) for v in rads.values()))}px）", 2 <= len(layers) <= 4, rads)
+    ok(f"【{T}】桌機 分層扇形（{len(layers)} 層：{sorted(set(round(v) for v in rads.values()))}px）", 2 <= len(layers) <= 6, rads)
     ok(f"【{T}】桌機 每個小圈都有物件圖示、44px", all(x["svg"] and 42 <= x["w"] <= 46 for x in R1["bs"]), R1["bs"])
     icons = pg.evaluate("() => Promise.all([...document.querySelectorAll('#bibiRing .bopt img')].map(i => i.decode().then(() => i.naturalWidth, () => 0)))")
     ok(f"【{T}】桌機 動畫單位的小圈圖示（brand/bibi/icons，含爆米花）真的載得到（{len(icons)} 張、寬 {sorted(set(icons))}）", len(icons) >= 11 and all(w > 0 for w in icons), icons)
@@ -33115,9 +33119,10 @@ def t_bibi_1011(b, base):
     rec, og = play_from("grass", 4800)
     gr = [r["grass"] for r in rec if r["grass"]]
     ok(f"【{T}】桌機 點「餵牧草」→ 300ms 內比比就在動", started(rec), rec[:6])
-    ok(f"【{T}】桌機 餵牧草：沒有手；牧草從被點的小圈（{og['x']:.0f},{og['y']:.0f}）沿弧線飛、落在比比面前的地上（最後 y {gr and round(gr[-1]['y'])} ≥ 鈕中心 {R0['fy']:.0f}）（{gr and round(gr[0]['x'])}→{gr and round(gr[-1]['x'])}）、比比播 {PRT['receive_grass']} 接住",
-       nohand(rec) and len(gr) >= 3 and gr[-1]["y"] >= R0["fy"] and abs(gr[0]["x"] - og["x"]) < 60 and abs(gr[-1]["x"] - (R0["fx"] + 10)) < 50 and min(g["y"] for g in gr) < min(gr[0]["y"], gr[-1]["y"]) - 5
-       and any(r["src"] == PRT["receive_grass"] + ".webp" for r in rec), [(round(g["x"]), round(g["y"])) for g in gr])
+    # 10-12 四腳版 eat_q：草從小圈飛過去、落在比比面前（臉朝左＝比比中心往左 0.26 個圖寬）的地上 → 直接播 eat_q（素材裡畫了地上的草），不再播 receive_grass
+    ok(f"【{T}】桌機 餵牧草：沒有手；牧草從被點的小圈（{og['x']:.0f},{og['y']:.0f}）沿弧線飛、落在比比面前的地上（最後 {gr and round(gr[-1]['x'])},{gr and round(gr[-1]['y'])}／比比中心 {R0['fx']:.0f}）、不播 receive_grass",
+       nohand(rec) and len(gr) >= 3 and gr[-1]["y"] >= R0["fy"] and abs(gr[0]["x"] - og["x"]) < 60 and abs(gr[-1]["x"] - (R0["fx"] - 27)) < 30 and min(g["y"] for g in gr) < min(gr[0]["y"], gr[-1]["y"]) - 5
+       and not any(r["src"] == "receive_grass.webp" for r in rec), [(round(g["x"]), round(g["y"])) for g in gr])
     ok(f"【{T}】桌機 餵牧草：接著播吃草（{PRT['eat']}）、吃完道具清光（最後 {rec[-1]['props']}）",
        any(r["src"] == PRT["eat"] + ".webp" for r in rec) and not rec[-1]["grass"], [r["src"] for r in rec[::10]])
     if BIBI_SHOT_DIR:
@@ -33130,11 +33135,10 @@ def t_bibi_1011(b, base):
     ok(f"【{T}】桌機 摸摸頭：比比享受地一縮一縮（身體 transform 有 scale）", any("scale(" in (r["body"] or "") for r in rec), [r["body"] for r in rec[::8]])
     home("pet")
 
-    rec = play("spin", 2900)
-    dz = [r for r in rec if r["src"] == PRT["dizzy"] + ".webp"]
-    ok(f"【{T}】桌機 點「轉圈圈」→ 300ms 內在動、先播 {PRT['spin']} 轉一圈、接著暈眩臉 {PRT['dizzy']}（漩渦眼＋星星繞頭，循環 {len(dz) * 50} ms）",
-       started(rec) and any(r["src"] == PRT["spin"] + ".webp" for r in rec) and len(dz) * 50 >= 1200
-       and rec.index(next(r for r in rec if r["src"] == PRT["spin"] + ".webp")) < rec.index(dz[0]) and all(r["phase"] == "dizzy" for r in dz[:-1]), [r["src"] for r in rec[::6]])
+    rec = play("spin", 2000)
+    sp = [r for r in rec if r["src"] == PRT["spin"] + ".webp"]
+    ok(f"【{T}】桌機 點「轉圈圈」→ 300ms 內在動、播四腳版 {PRT['spin']}（小跑繞一圈＋暈眩都在素材裡，{len(sp) * 50} ms）、不再另接 dizzy",
+       started(rec) and PRT["spin"] == "spin_q" and len(sp) * 50 >= 1000 and not any(r["src"] == "dizzy.webp" for r in rec), [r["src"] for r in rec[::6]])
     home("spin")
 
     rec = play("popcorn", 2200)
@@ -33279,7 +33283,7 @@ def t_bibi_1011(b, base):
     pg.tap("#supFab"); pg.wait_for_timeout(900)
     M1 = pg.evaluate(BIBI_RING)
     mids = [x["id"] for x in M1["bs"]]
-    ok(f"【{T}】手機 點比比一下 → 全部 {len(mids)} 個小圈一次攤開、不直接開客服", M1["on"] and sorted(mids) == sorted(["ask", "popcorn", "pet", "grass", "ball", "spin", "hit", "five", "dance", "hug", "sleep", "selfie"]) and not M1["panel"], M1)
+    ok(f"【{T}】手機 點比比一下 → 全部 {len(mids)} 個小圈一次攤開、不直接開客服", M1["on"] and sorted(mids) == sorted(BIBI_IDS) and not M1["panel"], M1)
     out = [x["id"] for x in M1["bs"] if not (x["l"] >= 0 and x["t"] >= 0 and x["r"] <= M1["vw"] and x["b"] <= M1["vh"])]
     ok(f"【{T}】手機 全部小圈在 390 視窗內（超出：{out}）、沒有橫向捲軸（{M1['sw']}）", not out and M1["sw"] <= 390, M1)
     ok(f"【{T}】手機 以比比當下位置為圓心、小圈 ≥ 40px、兩兩不重疊", abs(M1["fx"] - M1["rx"]) <= 3 and abs(M1["fx"] - M0["fx"]) <= 2
@@ -33315,6 +33319,200 @@ def t_bibi_1011(b, base):
     ok(f"【{T}】手機 再點比比 → 點「問比比」→ 客服面板打開", M2["panel"] and not M2["on"], M2)
     ok(f"【{T}】手機 沒有 JS 錯誤", not merrs, merrs[:3])
     c.close()
+
+
+# ★ 2026-10-12 比比玩具1012（Andy：「我很喜歡丟球的互動效果，希望能多點這樣的」）
+#   site/bibi.js 玩具六件組：撒零食／吹泡泡／羽毛棒／毛線球／紙飛機／落葉。每一個都真的點小圈，在頁面裡每 50ms 取樣：
+#   道具真的出現而且在動、比比真的離開原位（位移有變）、身體不准縱向拉長（四腳）、全程沒有橫向捲軸、最後回原位＋道具清光＋回 idle_hop。
+#   TW_BIBI_SHOTS 有設：每個互動中途截一張 act_<名>_mid.png（桌機）／act_<名>_mid_m.png（手機 390）。
+TOY_REC = """(o) => { window.__toyrec = null; const out = [], t0 = performance.now();
+  const tick = () => { const s = Bibi.state();
+    const ps = [...document.querySelectorAll('#bibiStage .bp-' + o.kind)].map(e => { const r = e.getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2, l: r.left, r: r.right, op: +getComputedStyle(e).opacity }; });
+    const extra = o.extra ? [...document.querySelectorAll('#bibiStage .bp-' + o.extra)].map(e => { const p = e.querySelector('path'); const r = e.getBoundingClientRect(); return { d: p ? (p.getAttribute('d') || '').length : 0, op: +getComputedStyle(e).opacity, x: r.left + r.width / 2, y: r.top + r.height / 2 }; }) : [];
+    const all = [...document.querySelectorAll('#bibiStage > *')].filter(e => +getComputedStyle(e).opacity > 0.05 && !/bp-(thread|string)/.test(e.className)).map(e => { const r = e.getBoundingClientRect(); return [Math.round(r.left), Math.round(r.right)]; });
+    out.push({ t: Math.round(performance.now() - t0), run: s.run, mode: s.mode, ox: s.off.x, oy: s.off.y, body: s.body, src: s.src.split('/').pop(), props: s.props, ps, extra, all,
+               sw: document.scrollingElement.scrollWidth, vw: document.documentElement.clientWidth, vh: innerHeight });
+    if (performance.now() - t0 < o.ms) setTimeout(tick, 50); else window.__toyrec = out; };
+  tick(); return true; }"""
+
+TOYS = [  # id, 名稱, 道具 class, 另一層（線／纏住）, 錄多久 ms, 中途截圖時間 ms
+    ("snack", "撒零食", "snack", None, 9500, 2300),
+    ("bubble", "吹泡泡", "bubble", None, 9000, 1900),
+    ("feather", "羽毛棒", "feather", "string", 7000, 1500),
+    ("yarn", "毛線球", "yarn", "tangle", 8500, 1700),
+    ("plane", "紙飛機", "plane", None, 8500, 1500),
+    ("leaf", "落葉", "leaf", None, 8500, 2300),
+]
+
+
+def _air_hops(oys, thr=-8):
+    """離地次數：連續一段 oy < thr（往上為負）算一次跳"""
+    n, up = 0, False
+    for v in oys:
+        if v < thr and not up:
+            n += 1
+        up = v < thr
+    return n
+
+
+def _toy_ratio(rec):
+    rs = [float(m.group(2)) / float(m.group(1)) for r in rec for m in [re.search(r"scale\(([\d.]+), ([\d.]+)\)", r["body"] or "")] if m]
+    return max(rs or [1])
+
+
+def _toy_check(pg, T, tag, aid, name, kind, extra, rec, vw, home_fx):
+    """共同的驗收：300ms 內在動、道具出現且移動、比比位置有變、四腳不拉長、沒有橫向捲軸、道具都在視窗內"""
+    first = [r for r in rec if r["t"] <= 300]
+    ok(f"【{T}】{tag} 點「{name}」→ 300ms 內比比就在動（{[(r['t'], r['src'], round(r['ox']), r['body'][:24]) for r in first[:3]]}）",
+       any(r["run"] == aid and (abs(r["ox"]) > 0.5 or abs(r["oy"]) > 0.5 or r["body"] or r["src"] != "idle_hop.webp") for r in first), first[:4])
+    pts = [p for r in rec for p in r["ps"] if p["op"] > 0.3]
+    span = max((max(p["x"] for p in pts) - min(p["x"] for p in pts)) if pts else 0, (max(p["y"] for p in pts) - min(p["y"] for p in pts)) if pts else 0)
+    ok(f"【{T}】{tag} {name}：道具（bp-{kind}）真的出現（{len(pts)} 筆）而且有移動（最大位移 {span:.0f}px）", len(pts) >= 5 and span >= 30, pts[:4])
+    mv = max([abs(r["ox"]) for r in rec if r["run"] == aid] + [abs(r["oy"]) for r in rec if r["run"] == aid] + [0])
+    ok(f"【{T}】{tag} {name}：比比真的離開原位（最大位移 {mv:.0f}px）", mv >= 15, [(round(r["ox"]), round(r["oy"])) for r in rec[::10]])
+    ok(f"【{T}】{tag} {name}：全程四腳（縱向／橫向比最大 {_toy_ratio(rec):.3f} ≤ 1.06）", _toy_ratio(rec) <= 1.06, _toy_ratio(rec))
+    bad = [r["t"] for r in rec if r["sw"] > r["vw"] or any(a[0] < -40 or a[1] > r["vw"] + 40 for a in r["all"])]
+    ok(f"【{T}】{tag} {name}：全程沒有橫向捲軸、道具都在視窗內（超出 {bad[:5]}）", not bad, bad[:5])
+    back = wait_until(pg, "() => { const s = Bibi.state(); return s.mode === 'idle' && !s.run; }", 12000)
+    st = pg.evaluate(BIBI_ST)
+    fx = pg.evaluate("() => { const r = document.getElementById('supFab').getBoundingClientRect(); return r.left + r.width / 2; }")
+    ok(f"【{T}】{tag} {name}：播完回原位（位移 {st['off']}、鈕中心 {fx:.0f}／原本 {home_fx:.0f}）、道具清光（{st['props']}）、回 idle_hop",
+       bool(back) and st["off"]["x"] == 0 and st["off"]["y"] == 0 and st["props"] == 0 and abs(fx - home_fx) <= 2 and bool(_bibi_src(pg, "idle_hop", 3000)), st)
+    return pts
+
+
+def _toy_specific(T, tag, aid, rec, extra_kind):
+    srcs = [r["src"] for r in rec if r["run"] == aid]
+    if aid == "snack":
+        n0 = max(len(r["ps"]) for r in rec)
+        eaten = next((r["t"] for r in rec if r["t"] > 800 and len(r["ps"]) == 0), None)
+        xs = sorted(set(round(p["x"] / 20) for r in rec for p in r["ps"] if p["op"] > 0.9 and r["t"] > 900))
+        nib = any(abs(float(m.group(1))) >= 5 for r in rec if r["src"] == "idle_hop_still.webp" for m in [re.search(r"skewX\((-?[\d.]+)deg\)", r["body"] or "")] if m)
+        ok(f"【{T}】{tag} 撒零食：一次撒 {n0} 顆（4～6）、落在不同位置（{len(xs)} 處）、比比跑過去低頭啃（{nib}）、吃完才回原位（{eaten} ms 全部吃光）",
+           4 <= n0 <= 6 and len(xs) >= 3 and nib and eaten is not None
+           and all(abs(r["ox"]) > 3 for r in rec if r["t"] == eaten), {"n": n0, "xs": xs, "srcs": sorted(set(srcs))})
+    elif aid == "bubble":
+        n0 = max(len(r["ps"]) for r in rec)
+        ys = {}
+        for r in rec:
+            for i, p in enumerate(r["ps"]):
+                if p["op"] > 0.9 and r["t"] > 900:
+                    ys.setdefault(i, []).append(p["y"])
+        rising = sum(1 for v in ys.values() if len(v) >= 3 and v[-1] < v[0] - 2)
+        popped = max(sum(1 for p in r["ps"] if p["op"] < 0.05) for r in rec if r["t"] > 600) if rec else 0
+        jumps = min((r["oy"] for r in rec), default=0)
+        ok(f"【{T}】{tag} 吹泡泡：{n0} 顆（3～5）、{rising} 顆真的往上飄、比比跳起來（最高 {-jumps:.0f}px、跳撲 popcorn）全部戳破（{popped} 顆）",
+           3 <= n0 <= 5 and rising >= 1 and jumps < -15 and "popcorn.webp" in srcs and popped == n0, {"n": n0, "rising": rising, "popped": popped})
+    elif aid == "feather":
+        sw = [p["x"] for r in rec if 600 < r["t"] < 1500 for p in r["ps"]]
+        oys = [r["oy"] for r in rec if r["run"] == aid]
+        leaps = _air_hops(oys)
+        crouch = any(float(m.group(1)) >= 1.06 and float(m.group(2)) <= 0.92 for r in rec for m in [re.search(r"scale\(([\d.]+), ([\d.]+)\)", r["body"] or "")] if m)
+        ok(f"【{T}】{tag} 羽毛棒：羽毛左右晃（{(max(sw) - min(sw)) if sw else 0:.0f}px）、有繩子、比比蹲低扭屁股、往前撲 {leaps} 次（2～3）",
+           bool(sw) and max(sw) - min(sw) >= 15 and any(e["d"] > 10 for r in rec for e in r["extra"]) and crouch and 2 <= leaps <= 3,
+           {"leaps": leaps, "crouch": crouch, "oys": [round(v) for v in oys[::4]]})
+    elif aid == "yarn":
+        tg = [e for r in rec for e in r["extra"] if e["op"] > 0.5]
+        ok(f"【{T}】{tag} 毛線球：線球滾出去、比比追（run_l／run_r）、追到被線纏成一團（纏住圖層出現 {len(tg)} 筆）、扭一扭（身體 rotate）",
+           any(s in ("run_l.webp", "run_r.webp") for s in srcs) and len(tg) >= 10 and any("rotate(" in (r["body"] or "") for r in rec), {"srcs": sorted(set(srcs)), "tg": len(tg)})
+    elif aid == "plane":
+        pts = [p for r in rec for p in r["ps"] if p["op"] > 0.5]
+        xr = (max(p["x"] for p in pts) - min(p["x"] for p in pts)) if pts else 0
+        yr = (max(p["y"] for p in pts) - min(p["y"] for p in pts)) if pts else 0
+        tilt = any(abs(float(m.group(1))) >= 2 for r in rec for m in [re.search(r"rotate\((-?[\d.]+)deg\)", r["body"] or "")] if m)
+        inside = all(0 <= p["l"] and p["r"] <= r["vw"] for r in rec for p in r["ps"] if p["op"] > 0.5)
+        ok(f"【{T}】{tag} 紙飛機：繞一圈（橫跨 {xr:.0f}px、上下 {yr:.0f}px）、整條路線在視窗內（{inside}）、比比抬頭跟著轉、最後跑過去聞",
+           xr >= 150 and yr >= 80 and inside and tilt and max(abs(r["ox"]) for r in rec) >= 60, {"xr": xr, "yr": yr, "tilt": tilt})
+    elif aid == "leaf":
+        n0 = max(len(r["ps"]) for r in rec)
+        caught = max(sum(1 for p in r["ps"] if p["op"] < 0.05) for r in rec if r["t"] > 1500) if rec else 0
+        oys = [r["oy"] for r in rec if r["run"] == aid]
+        leaps = _air_hops(oys, -10)
+        ok(f"【{T}】{tag} 落葉：飄下來 {n0} 片（5～8）、比比原地彈跳 {leaps} 次去撲、撲到的收掉（最多同時 {caught} 片不見）、左右只挪一小步（{max(abs(r['ox']) for r in rec):.0f}px）",
+           5 <= n0 <= 8 and leaps >= 1 and max(abs(r["ox"]) for r in rec) <= 140, {"n": n0, "leaps": leaps})
+
+
+def t_bibi_toys_1012(b, base):
+    T = "比比玩具1012"
+    for tag, ctx in (("桌機", {"viewport": {"width": 1440, "height": 900}}), ("手機", MOBILE_VP)):
+        c = b.new_context(**ctx)
+        c.add_init_script(CONSENT_PRESET + "try{localStorage.setItem('tw.live.on','0');localStorage.removeItem('tw.bibi.n');localStorage.removeItem('tw.fab.off')}catch(e){}")
+        pg = c.new_page()
+        errs = []
+        pg.on("pageerror", lambda e: errs.append(str(e)))
+        pg.route("**/fonts.googleapis.com/**", lambda r: r.abort())
+        pg.goto(base + "#overview", wait_until="domcontentloaded")
+        ok(f"【{T}】{tag} 比比接上客服鈕", bool(wait_until(pg, "() => !!window.Bibi && document.querySelectorAll('#supFab img.bibiimg').length === 2", 10000)))
+        pg.evaluate("() => Bibi.test({ fidget: false })")
+        pg.wait_for_timeout(1200)
+        mob = tag == "手機"
+        R0 = pg.evaluate(BIBI_RING)
+
+        def open_ring():
+            if pg.evaluate(BIBI_RING)["on"]:
+                return pg.evaluate(BIBI_RING)
+            if mob:
+                pg.tap("#supFab")
+            else:
+                pg.mouse.move(R0["fx"] - 200, R0["fy"] - 200, steps=2); pg.wait_for_timeout(400)
+                pg.mouse.move(R0["fx"], R0["fy"], steps=3)
+            wait_until(pg, "() => Bibi.state().ring", 3000); pg.wait_for_timeout(800)
+            return pg.evaluate(BIBI_RING)
+
+        R = open_ring()
+        ids = [x["id"] for x in R["bs"]]
+        out = [x["id"] for x in R["bs"] if not (x["l"] >= 0 and x["t"] >= 0 and x["r"] <= R["vw"] and x["b"] <= R["vh"])]
+        ok(f"【{T}】{tag} 小圈 {len(ids)} 顆（12＋玩具 6）一次攤開、全部在視窗內（超出 {out}）、兩兩不重疊、" + ("≥ 40px" if mob else "44px"),
+           R["on"] and sorted(ids) == sorted(BIBI_IDS) and not out and _bibi_no_overlap(R) and all(x["w"] >= (40 if mob else 42) for x in R["bs"]) and R["sw"] <= R["vw"], R)
+        names = {x["id"]: x["n"] for x in R["bs"]}
+        ok(f"【{T}】{tag} 玩具六件組的小圈都有圖示、名稱對（{[names.get(t[0]) for t in TOYS]}）",
+           [names.get(t[0]) for t in TOYS] == [t[1] for t in TOYS] and all(x["svg"] for x in R["bs"] if x["id"] in [t[0] for t in TOYS]), names)
+        if BIBI_SHOT_DIR:
+            pg.screenshot(path=str(pathlib.Path(BIBI_SHOT_DIR) / ("ring18_mob.png" if mob else "ring18_desk.png")),
+                          **({} if mob else {"clip": {"x": 1440 - 560, "y": 900 - 560, "width": 560, "height": 560}}))
+        for aid, name, kind, extra, ms, mid in TOYS:
+            R = open_ring()
+            o = next((x for x in R["bs"] if x["id"] == aid), None)
+            if not o:
+                ok(f"【{T}】{tag} 找得到「{name}」小圈", False, R)
+                continue
+            cx, cy = (o["l"] + o["r"]) / 2, (o["t"] + o["b"]) / 2
+            if mob:
+                pg.touchscreen.tap(cx, cy)
+            else:
+                pg.mouse.move(cx, cy, steps=4); pg.mouse.click(cx, cy)
+            pg.evaluate(TOY_REC, {"kind": kind, "extra": extra, "ms": ms})
+            pg.wait_for_timeout(mid)
+            if BIBI_SHOT_DIR:
+                pg.screenshot(path=str(pathlib.Path(BIBI_SHOT_DIR) / f"act_{aid}_mid{'_m' if mob else ''}.png"))
+            if aid == "yarn" and BIBI_SHOT_DIR:   # 被纏住的那一刻多截一張
+                wait_until(pg, "() => [...document.querySelectorAll('#bibiStage .bp-tangle')].some(e => +getComputedStyle(e).opacity > 0.8)", 6000)
+                pg.screenshot(path=str(pathlib.Path(BIBI_SHOT_DIR) / f"act_yarn_tangle{'_m' if mob else ''}.png"))
+            wait_until(pg, "() => !!window.__toyrec", ms + 4000)
+            rec = pg.evaluate("() => window.__toyrec")
+            if not mob:
+                pg.mouse.move(300, 300, steps=3)
+            _toy_check(pg, T, tag, aid, name, kind, extra, rec, R["vw"], R0["fx"])
+            _toy_specific(T, tag, aid, rec, extra)
+            pg.wait_for_timeout(300)
+        # 中途打斷：毛線球追到一半按 Esc（手機：點空白）→ 立刻回原位、道具與線清光
+        R = open_ring()
+        o = next(x for x in R["bs"] if x["id"] == "yarn")
+        if mob:
+            pg.touchscreen.tap((o["l"] + o["r"]) / 2, (o["t"] + o["b"]) / 2)
+        else:
+            pg.mouse.click((o["l"] + o["r"]) / 2, (o["t"] + o["b"]) / 2)
+        away = wait_until(pg, "() => Math.abs(Bibi.state().off.x) > 40", 5000)
+        if mob:
+            pg.touchscreen.tap(200, 300)
+        else:
+            pg.keyboard.press("Escape")
+        pg.wait_for_timeout(150)
+        st = pg.evaluate(BIBI_ST)
+        ok(f"【{T}】{tag} 毛線球追到一半" + ("點空白" if mob else "按 Esc") + f" → 立刻回原位（{st['off']}）、道具與線清光（{st['props']}）、停止原因 {st['stop']}",
+           bool(away) and st["off"]["x"] == 0 and st["off"]["y"] == 0 and not st["run"] and st["props"] == 0 and st["mode"] == "idle", st)
+        ok(f"【{T}】{tag} 沒有 JS 錯誤", not errs, errs[:3])
+        c.close()
 
 
 SECTIONS = {
@@ -33834,6 +34032,8 @@ SECTIONS = {
     "網頁同步1010":        lambda pg, b, base, code: t_web_sync_1010(b, base, code),
     # ★ 2026-10-11 Andy：比比（右下角客服鈕）情境待機＋環狀互動選單（site/bibi.js）—— 假時間／假漲跌注入、hover 出環、點每個小圈、手機點一下（⚠ --workers 1）
     "比比互動1011":        lambda pg, b, base, code: t_bibi_1011(b, base),
+    # ★ 2026-10-12 Andy：「我很喜歡丟球的互動效果，希望能多點這樣的」—— 玩具六件組（撒零食／吹泡泡／羽毛棒／毛線球／紙飛機／落葉）桌機＋手機 390：道具出現且移動、比比離開原位、四腳、不撐捲軸、回原位、中途打斷（⚠ --workers 1）
+    "比比玩具1012":        lambda pg, b, base, code: t_bibi_toys_1012(b, base),
     "登入回總覽1010":      lambda pg, b, base, code: t_login_home_1010(b, base, code),
     # ★ 2026-10-10 Andy：「額度上限使用收合功能將每個母分頁內所有有限制的功能標示出來，太長就用拉Bar。不要寫"不開放"…改成plus 會員」（手機 acctm4.js；⚠ --workers 1）
     "額度上限1010":        lambda pg, b, base, code: t_m4_quota_1010(b, base, code),
@@ -33849,6 +34049,8 @@ SECTIONS = {
     "ETF試算免費限制1010": lambda pg, b, base, code: t_etf_inc_free_1010(b, base),
     # ★ 2026-10-11 Andy（宣傳影片討論）：「功能要曝光度…我們可以開放…但就是限制功能」→「限制次數才對」：註冊會員原本關掉的功能改成開＋每日 3 次，用完反灰＋小字（DECISIONS #354）
     "註冊會員限次開放1011": lambda pg, b, base, code: t_free_open_1011(b, base, code),
+    # ★ 2026-10-12 Andy：「CEO我這邊一頁一頁跟你說明並請你改動，以下是註冊後的免費會員」16 點（docs/perm_free_1012.md；⚠ --workers 1）
+    "註冊會員權限1012":    lambda pg, b, base, code: t_free_perm_1012(b, base, code),
     # ★ 2026-09-28 Andy：「所有標題加上小圖示，顏色要搭配」—— 覆蓋、對比 ≥3:1（深淺）、1440／800／390 不擠（A/B）、動效（⚠ 一律 --workers 1）
     "標題圖示":            lambda pg, b, base, code: t_title_icons(pg, b, base, code),
     # ★ 2026-09-30 Andy：部分股票 1 小時／4 小時找不到資料 —— 60 分 K 擴到全市場、每檔獨立 m60 檔、沒有時寫一句話
@@ -58246,9 +58448,10 @@ def t_plan_preset_1007(b, base, code):
        [x[1].get("id") for x in sent if x[0] == "/v1/admin/plans/put"])
     bodies = {x[1]["id"]: x[1] for x in sent if x[0] == "/v1/admin/plans/put" and not x[1].get("del")}
     g, f, pl, pr = bodies.get("guest", {}), bodies.get("free", {}), bodies.get("plus", {}), bodies.get("pro", {})
-    ok(f"{T}：寫入內容（權限矩陣 1008）：訪客 dq 15＋分流樹下鑽 3＋熱力圖跳頁關＋名稱「訪客」；註冊會員 dq 40、自選 1×10；Plus 改名、299、dq 300、自選 5×50、badge；Pro 改名、549、dq 空白、自選 50×200",
+    # ★ 2026-10-12（DECISIONS #358）：註冊會員全站共用額度 dq 40 → 不設（逐項上限控制，Andy 要的 10 次不會先被共用額度吃掉）
+    ok(f"{T}：寫入內容（權限矩陣 1008）：訪客 dq 15＋分流樹下鑽 3＋熱力圖跳頁關＋名稱「訪客」；註冊會員 dq 不設、自選 1×10；Plus 改名、299、dq 300、自選 5×50、badge；Pro 改名、549、dq 空白、自選 50×200",
        g.get("dq") == 15 and (g.get("lims") or {}).get("flow.sankey.drill") == 3 and (g.get("feats") or {}).get("heat.link") is False and g.get("name") == "訪客" and g.get("feats", {}).get("ind.3d") is False
-       and f.get("dq") == 40 and f.get("feats", {}).get("watch.tabs") == 1 and f.get("feats", {}).get("watch.size") == 10 and f.get("name") == "註冊會員"
+       and f.get("dq") is None and f.get("feats", {}).get("watch.tabs") == 1 and f.get("feats", {}).get("watch.size") == 10 and f.get("name") == "註冊會員"
        and pl.get("name") == "Plus" and pl.get("price") == 299 and pl.get("dq") == 300 and pl.get("feats", {}).get("watch.tabs") == 5 and pl.get("feats", {}).get("watch.size") == 50
        and (pl.get("pres") or {}).get("badge") == "最受歡迎" and (pl.get("pres") or {}).get("tagline") and pl.get("price_year") == 2990 and "meta" not in pl and len((pl.get("pres") or {}).get("highlights") or []) >= 3
        and pr.get("name") == "Pro" and pr.get("price") == 549 and pr.get("dq") is None and pr.get("feats", {}).get("watch.tabs") == 50 and pr.get("feats", {}).get("watch.size") == 200,
@@ -58288,6 +58491,10 @@ def t_plan_preset_1007(b, base, code):
 GP_MODAL = "() => { const m = document.getElementById('qcModal'); return !!m && !m.hidden ? { cq: m.dataset.cq || '', t: m.innerText } : null; }"
 GP_CLOSE = "() => { const m = document.getElementById('qcModal'); if (m) m.hidden = true; }"
 GP_ACT = ["flow.sankey.drill", "flow.inst.filter", "earn.tab", "explore.filter", "etf.calendar.tab", "etf.list.tab", "etf.list.filter", "season.pick"]
+# ★ 2026-10-12（DECISIONS #358；Andy 註冊會員逐頁權限表）：註冊會員這幾項用完改成「安靜反灰」（反灰＋旁邊小字、不跳卡片）；訪客照舊跳「免費註冊」卡。
+#   _gp_blocked 對註冊會員＋這幾項改驗：沒有卡片、旁邊小字在、今天的計數停在上限 —— 細節（第 N 次能用、第 N+1 次點不動）在「註冊會員權限1012」驗。
+GP_QUIET = {"flow.sankey.drill", "flow.inst.filter", "explore.filter", "etf.list.tab", "season.pick", "heat.detail", "ind.groups"}
+_GP_WHO = [None]
 
 
 def _gp_presets():
@@ -58306,11 +58513,14 @@ def _gp_pick_dd(pg, row, gid):
 
 
 def _gp_next(pg, row, used):
-    """打開族群下拉，點一個還沒點過的族群（選了之後第一層會跳到它的產業鏈，所以每次重新看清單）。回 (gid, 名稱)"""
-    pg.click(f".rotfilter[data-for='{row}'] .rotdd[data-dd='group'] .ddbtn")
+    """打開族群下拉，點一個還沒點過的族群（選了之後第一層會跳到它的產業鏈，所以每次重新看清單）。回 (gid, 名稱)
+    2026-10-12：註冊會員用完時下拉鈕／選項是反灰的（aria-disabled）—— 一律 force 點（真人照樣點得到，只是被吞掉）；下拉根本沒打開就回 ('', '(沒打開)')"""
+    pg.click(f".rotfilter[data-for='{row}'] .rotdd[data-dd='group'] .ddbtn", force=True)
     pg.wait_for_timeout(150)
+    if pg.evaluate("(r) => { const p = document.querySelector(`.rotfilter[data-for='${r}'] .rotdd[data-dd='group'] .ddpanel`); return !p || p.hidden; }", row):
+        return ("", "(沒打開)")
     g = pg.evaluate("([r, u]) => { const b = [...document.querySelectorAll(`.rotfilter[data-for='${r}'] .rotdd[data-dd='group'] button.nm[data-g]`)].find(x => !u.includes(x.dataset.g)); return b ? [b.dataset.g, b.textContent.trim()] : null; }", [row, used])
-    pg.click(f".rotfilter[data-for='{row}'] .rotdd[data-dd='group'] button.nm[data-g='{g[0]}']")
+    pg.click(f".rotfilter[data-for='{row}'] .rotdd[data-dd='group'] button.nm[data-g='{g[0]}']", force=True)
     pg.wait_for_timeout(350)
     used.append(g[0])
     return g
@@ -58322,6 +58532,12 @@ def _gp_go(pg, h, ready, t=15000):
 
 
 def _gp_blocked(pg, key, closing=True):
+    if _GP_WHO[0] == "member" and key in GP_QUIET:
+        pg.wait_for_timeout(700)
+        st = pg.evaluate("""(k) => { const m = document.getElementById('qcModal'), n = document.querySelector('span.qnote[data-f="' + k + '"]');
+            return { modal: !!m && !m.hidden, note: n ? n.textContent : '', used: (TwQuota.used(k) || []).length, lim: TwPerm.lim(k) }; }""", key)
+        return (f"今日 {st['used']}/{st['lim']} 次已用完（每天台北時間 00:00 重置）〔安靜反灰：{st['note']}〕"
+                if not st["modal"] and "已用完" in st["note"] and st["used"] >= st["lim"] else None)
     m = wait_until(pg, f"() => {{ const m = document.getElementById('qcModal'); return !!m && !m.hidden && m.dataset.cq === '{key}' ? m.innerText : null; }}", 3000)
     if closing:
         pg.evaluate(GP_CLOSE)
@@ -58330,6 +58546,7 @@ def _gp_blocked(pg, key, closing=True):
 
 def _gp_suite(b, base, T, who, feats, lims, errs, shot, tag):
     """who: None＝訪客、'member'＝註冊會員。逐一操作矩陣的新功能鍵到被擋。"""
+    _GP_WHO[0] = who
     c, sent, st = _sub_ctx(b, who, feats=feats, lims=lims, dq=None)
     pg = c.new_page(); pg.on("pageerror", lambda e: errs.append(str(e) + " @ " + str(getattr(e, "stack", ""))[:400]))
     pg.goto(base + "#flow/sankey", wait_until="domcontentloaded")
@@ -58393,7 +58610,7 @@ def _gp_suite(b, base, T, who, feats, lims, errs, shot, tag):
         got.append(pg.evaluate("() => location.hash.split('/')[1]"))
     _gp_go(pg, "#industry", "() => location.hash === '#industry' && !!document.querySelector(\"#chainSwitch button[data-c='_all'].on\")", 8000)
     pg.wait_for_timeout(600)
-    pg.click(f"#chainSwitch button[data-c='{chs[n]}']"); pg.wait_for_timeout(800)
+    pg.click(f"#chainSwitch button[data-c='{chs[n]}']", force=True); pg.wait_for_timeout(800)   # 2026-10-12：註冊會員用完是反灰鈕 → force
     m = _gp_blocked(pg, "ind.groups", closing=False)
     ok(f"{T}【{tag}】產業地圖 前 {n} 條進得去、第 {n + 1} 條擋下（留在 #industry）", got == chs[:n] and bool(m) and pg.evaluate("() => location.hash") == "#industry",
        (got, chs[n], m, pg.evaluate("() => [location.hash, TwQuota.used('ind.groups'), TwPerm.lim('ind.groups'), (document.getElementById('qcModal') || {}).hidden]")))
@@ -58438,7 +58655,7 @@ def _gp_suite(b, base, T, who, feats, lims, errs, shot, tag):
     for mm in ms[:n]:
         pg.click(f"#seasonHeatHead button[data-m='{mm}']"); pg.wait_for_timeout(250)
     on1 = pg.evaluate("() => (document.querySelector('#seasonHeatHead button.on') || {}).dataset.m")
-    pg.click(f"#seasonHeatHead button[data-m='{ms[n]}']"); pg.wait_for_timeout(300)
+    pg.click(f"#seasonHeatHead button[data-m='{ms[n]}']", force=True); pg.wait_for_timeout(300)
     m = _gp_blocked(pg, "season.pick")
     ok(f"{T}【{tag}】週期統計 換 {n} 次月份排序都生效、第 {n + 1} 次擋下（排序停在第 {n} 個）",
        on1 == ms[n - 1] and bool(m) and pg.evaluate("() => (document.querySelector('#seasonHeatHead button.on') || {}).dataset.m") == ms[n - 1], (on1, m))
@@ -58478,7 +58695,7 @@ def _gp_suite(b, base, T, who, feats, lims, errs, shot, tag):
        bool(before) and bool(after) and before.startswith("篩選 0／") and after.startswith("篩選 1／"), (before, after))
     for t in tags[1:n]:
         pg.click(f"#slTagMenu input[data-tag='{t}']"); pg.wait_for_timeout(200)
-    pg.click(f"#slTagMenu input[data-tag='{tags[n]}']"); pg.wait_for_timeout(300)
+    pg.click(f"#slTagMenu input[data-tag='{tags[n]}']", force=True); pg.wait_for_timeout(300)
     m = _gp_blocked(pg, "explore.filter")
     ok(f"{T}【{tag}】選股策略 套 {n} 組條件都生效、第 {n + 1} 組擋下（那一格沒勾）",
        bool(m) and not pg.evaluate(f"() => {{ const i = document.querySelector(\"#slTagMenu input[data-tag='{tags[n]}']\"); return !!i && i.checked; }}"), m)
@@ -58505,7 +58722,7 @@ def _gp_suite(b, base, T, who, feats, lims, errs, shot, tag):
     if who is None:
         wait_until(pg, "() => { const e = document.getElementById('twQPage'); return !!e && !e.hidden && /本頁/.test(e.textContent); }", 6000); pg.wait_for_timeout(500)
         qp = pg.evaluate("() => ({ n: +document.getElementById('twQPage').dataset.n, ids: document.getElementById('twQPage').dataset.ids.split(','), t: document.getElementById('twQPage').innerText })")
-        want = ["etf.top3", "etf.returns", "etf.list", "etf.list.tab", "etf.list.filter"]
+        want = ["etf.top3", "etf.returns", "etf.list", "etf.list.tab", "etf.list.filter"]   # 2026-10-12：配息行事曆右側清單（etf.cal.click）只在 #etf/cal，不算這一頁
         ok(f"{T}【訪客】ETF 總覽 本頁限制 {len(want)} 項＝矩陣這一頁的項目（上方三卡、報酬比較、一覽、一覽分頁、一覽篩選）",
            qp["n"] == len(want) and sorted(qp["ids"]) == sorted(want), qp)
         shot(pg, "15_qpage_etf_collapsed.png")
@@ -58518,7 +58735,7 @@ def _gp_suite(b, base, T, who, feats, lims, errs, shot, tag):
     for cv in cats[:n]:
         pg.click(f"#etfCatSeg button[data-v='{cv}']"); pg.wait_for_timeout(250)
     on0 = pg.evaluate("() => (document.querySelector('#etfCatSeg button.on') || {}).dataset ? document.querySelector('#etfCatSeg button.on').dataset.v : ''")
-    pg.click(f"#etfCatSeg button[data-v='{cats[n]}']"); pg.wait_for_timeout(300)
+    pg.click(f"#etfCatSeg button[data-v='{cats[n]}']", force=True); pg.wait_for_timeout(300)
     m = _gp_blocked(pg, "etf.list.tab")
     ok(f"{T}【{tag}】ETF 一覽分類分頁 {n} 次內可切、第 {n + 1} 次擋下（分類不動）",
        bool(m) and pg.evaluate("() => (document.querySelector('#etfCatSeg button.on') || {dataset:{}}).dataset.v || ''") == on0, (on0, m))
@@ -58613,6 +58830,7 @@ def t_guest_perm_1008(b, base, code):
         fl[k] = 1
     _gp_suite(b, base, T, "member", dict(PR["free"]["feats"]), fl, errs, shot, "註冊會員")
 
+    _GP_WHO[0] = None   # 2026-10-12：下面「管理改成 1」那段是訪客（_gp_blocked 依身分分安靜／跳卡）
     # ③ Plus：熱力圖點了會跳頁；站主：同一套操作不受限
     c, sent, st = _sub_ctx(b, "member", feats=dict(PR["plus"]["feats"]), lims=dict(PR["plus"]["lims"]))
     pg = c.new_page(); pg.on("pageerror", lambda e: errs.append(str(e)))
@@ -60242,7 +60460,8 @@ def t_member_perm(b, base, code):
         ad.press("#pmEmail", "Enter")
         wait_until(ad, "() => /尚未登入過/.test((document.getElementById('pmWho') || {}).textContent || '')", 6000)
         ok(f"{T}：輸入 email 讀取（大小寫不分）→ 顯示「尚未登入過」與目前方案", PERM_TEST_EMAIL in ad.inner_text("#pmWho") and "免費會員" in ad.inner_text("#pmWho"), ad.inner_text("#pmWho"))
-        ok(f"{T}：讀到人之後開關可以撥、全部預設開啟（熱力圖點擊跳頁、10-10 的 ETF 試算自訂參數／報酬比較／複利試算表、今日關注／▶ 播放／族群篩選例外：訪客／註冊會員預設關）", ad.evaluate("() => [...document.querySelectorAll('#pmCats input[role=switch]')].every(i => !i.disabled && (i.checked || ['heat.link', 'etf.inc.params', 'etf.cmp', 'etf.inc.comp', 'mkt.cand', 'flow.play', 'season.groups'].includes(i.dataset.f)))"))
+        ok(f"{T}：讀到人之後開關可以撥、全部預設開啟（熱力圖點擊跳頁、10-10 的 ETF 試算自訂參數／報酬比較／複利試算表、今日關注／▶ 播放／族群篩選例外：訪客／註冊會員預設關）", ad.evaluate("() => [...document.querySelectorAll('#pmCats input[role=switch]')].every(i => !i.disabled && (i.checked || ['heat.link', 'etf.inc.params', 'etf.cmp', 'etf.inc.comp', 'mkt.cand', 'flow.play', 'season.groups', 'ind.rel', 'etf.ret.period'].includes(i.dataset.f)))"),
+           ad.evaluate("() => [...document.querySelectorAll('#pmCats input[role=switch]')].filter(i => i.disabled || !i.checked).map(i => i.dataset.f + (i.disabled ? '(停用)' : ''))"))   # 2026-10-12：關聯圖、ETF 報酬比較期間也是註冊會員預設關（DECISIONS #358）
 
         def save(pg=None):
             """2026-10-04 起撥開關只是草稿，按底部「儲存」才送 perm/put；回傳那一次的回應"""
@@ -60322,7 +60541,8 @@ def t_member_perm(b, base, code):
         ad.select_option("#pmPlan", tp_plan.get("id", ""))
         save()
         wait_until(ad, "() => /付費測試/.test(document.getElementById('pmWho').textContent)", 5000)
-        ok(f"{T}：會員管理把測試帳號指定到「付費測試」→ 已儲存、個別微調保留（12 項：權限矩陣 1008 資金流向多了 2 個次數項；2026-10-11 DECISIONS #354 註冊會員 ▶ 播放預設改開，資金流向全關時多算這一項）", "付費測試" in ad.inner_text("#pmWho") and "個別微調 12 項" in ad.inner_text("#pmWho")
+        # ★ 2026-10-12（DECISIONS #358）：資金流向多了 2 個新鍵（族群資金排行點長條、上方篩選），▶ 時間列改回註冊會員預設關（全關時不再多算）→ 12 → 13 項
+        ok(f"{T}：會員管理把測試帳號指定到「付費測試」→ 已儲存、個別微調保留（13 項：權限矩陣 1008 資金流向多了 2 個次數項；2026-10-12 資金流向再多 2 個新鍵、▶ 時間列改回預設關）", "付費測試" in ad.inner_text("#pmWho") and "個別微調 13 項" in ad.inner_text("#pmWho")
            and ad.evaluate("() => !document.querySelector(\"#pmCats input[data-f='ov.heat']\").checked"), ad.inner_text("#pmWho"))
         to_perm(ad)
         wait_until(ad, "() => location.hash === '#admin/perm' && !!document.getElementById('ptTier') && document.querySelectorAll('#pmCats .pmcat').length > 0", 10000)
@@ -67387,6 +67607,10 @@ FP_POP = "() => { const m = document.getElementById('qcModal'); const t = docume
 
 def _fp_ctx(b, plan, width=1440, touch=False):
     lims = {"ind.3d": 3, "news.open": 10} if plan == "free" else {}
+    # ★ 2026-10-12（DECISIONS #358）：註冊會員剖析子分頁每日 3 個、產業鏈分頁 3 個（features.js limBy）—— 這段的 3D 要切到第 4 張圖驗「3D 用完」，
+    #   所以範本明寫 null（＝不限，不補 limBy），子分頁上限由「註冊會員權限1012」⑦驗
+    if plan == "free":
+        lims.update({"ind.diagram": None, "ind.groups": None})
     # ★ 2026-10-11（DECISIONS #354）Andy：「功能要曝光度，我們可以開放…但就是限制功能」→「限制次數才對」：
     #   註冊會員的今日關注／▶ 播放／族群篩選／總覽跳頁改成「開＋每日 3 次」（新段「註冊會員限次開放1011」驗）。
     #   這段改成**範本明寫關**（管理者仍可以在 #admin/perm 把它們關掉，那條路＝反灰＋「Plus 以上…」照舊要對），斷言不變。
@@ -67437,35 +67661,33 @@ def t_free_perm_1010(b, base, code):
         else:
             ok(f"{T}【{tag}】今日關注：名單照常（有個股列、沒有說明區）", not r["lock"] and r["rows"] > 0, r)
         # ---------------------------------------------------------------- ② ▶ 播放（資金輪動、分流樹）
-        for h, box in (("#flow/rotation", "rotBack"), ("#flow/sankey", "sankeyDays")):
+        # ★ 2026-10-12（DECISIONS #358）Andy 註冊會員權限表第 3 點：「資金輪動 & 資金樹狀圖 上方的紅框處反灰色」→ 反灰從 ▶ 一顆擴大成整條時間列
+        #   （資金輪動＝#flowRotTime：− 拉桿 ＋ 天數 ▶ 軌跡／腳印／水波／掃描；分流樹＝#sankeyDays），字改「Plus 以上可調整」；以前「手動 − 照常」那條改成「− 也不動」。
+        for h, box, gray in (("#flow/rotation", "rotBack", "flowRotTime"), ("#flow/sankey", "sankeyDays", "sankeyDays")):
             pg.evaluate(f"() => {{ location.hash = '{h}'; }}")
             wait_until(pg, f"() => !!document.querySelector('#{box} .pb.play')", 15000)
             pg.evaluate(f"() => document.getElementById('{box}').scrollIntoView({{ block: 'center' }})")
             if free:
-                wait_until(pg, f"() => document.querySelector('#{box} .pb.play').getAttribute('data-plkb') === 'note' && +getComputedStyle(document.querySelector('#{box} .pb.play')).opacity < 0.6", 5000)   # 反灰有淡出過渡：等它停下來再量
+                wait_until(pg, f"() => document.getElementById('{gray}').hasAttribute('data-plgray') && +getComputedStyle(document.getElementById('{gray}')).opacity < 0.6", 5000)
             pg.wait_for_timeout(300)
-            st0 = pg.evaluate(f"""() => {{ const b = document.querySelector('#{box} .pb.play'), n = b.nextElementSibling, i = document.querySelector('#{box} input');
-                return {{ lk: b.getAttribute('data-plkb'), note: n && n.classList.contains('plknote') ? n.textContent : '', fs: n ? parseFloat(getComputedStyle(n).fontSize) : 0,
-                         cur: getComputedStyle(b).cursor, op: +getComputedStyle(b).opacity, v: i ? i.value : null, h: location.hash }}; }}""")
+            st0 = pg.evaluate(f"""() => {{ const g = document.getElementById('{gray}'), n = g.nextElementSibling, i = document.querySelector('#{box} input');
+                return {{ gray: g.hasAttribute('data-plgray'), inert: !!g.inert, note: n && n.classList.contains('plknote') ? n.textContent : '', fs: n ? parseFloat(getComputedStyle(n).fontSize) : 0,
+                         op: +getComputedStyle(g).opacity, v: i ? i.value : null, h: location.hash }}; }}""")
             pg.click(f"#{box} .pb.play", force=True); pg.wait_for_timeout(1500)
             st1 = pg.evaluate(f"() => {{ const i = document.querySelector('#{box} input'); return {{ playing: document.getElementById('{box}').classList.contains('playing'), v: i ? i.value : null, h: location.hash }}; }}")
             if free:
-                ok(f"{T}【{tag}】{h} ▶：反灰（not-allowed）＋旁邊小字「Plus 以上可播放」（≥12px）",
-                   st0["lk"] == "note" and st0["note"] == "Plus 以上可播放" and st0["fs"] >= 12 and st0["cur"] == "not-allowed" and st0["op"] < 0.6, st0)
+                ok(f"{T}【{tag}】{h} 時間列整條反灰（inert）＋旁邊小字「Plus 以上可調整」（≥12px）",
+                   st0["gray"] and st0["inert"] and st0["note"] == "Plus 以上可調整" and st0["fs"] >= 12 and st0["op"] < 0.6, st0)
                 ok(f"{T}【{tag}】{h} 點 ▶：沒有播放、日期不動、沒有任何彈出層、網址不變",
                    not st1["playing"] and st1["v"] == st0["v"] and st1["h"] == st0["h"] and not pg.evaluate(FP_POP), (st0, st1))
-                # 動作函式本身也擋（CEO 10-10：手機抽屜／程式直接呼叫 start 也要擋）：繞過捕獲層，直接叫 ▶ 的 onclick
                 pg.evaluate(f"() => {{ const b = document.querySelector('#{box} .pb.play'); if (b && b.onclick) b.onclick(); }}"); pg.wait_for_timeout(1200)
                 st2 = pg.evaluate(f"() => {{ const i = document.querySelector('#{box} input'); return {{ playing: document.getElementById('{box}').classList.contains('playing'), v: i ? i.value : null }}; }}")
-                ok(f"{T}【{tag}】{h} 直接呼叫 ▶ 的處理函式（繞過鈕的攔截）：start() 本身也不播", not st2["playing"] and st2["v"] == st0["v"], st2)
-                # 拉桿手動拖照常（Andy 只說播放）：按 − 一格日期會變
-                mi = pg.locator(f"#{box} .pb.step").first
-                if mi.is_enabled():
-                    mi.click(); pg.wait_for_timeout(500)
-                    ok(f"{T}【{tag}】{h} 手動 − 照常（日期真的變）", pg.evaluate(f"() => (document.querySelector('#{box} input') || {{}}).value") != st0["v"])
-                shot(pg, f"free_play_{box}_1440.png", f"#{box}")
+                ok(f"{T}【{tag}】{h} 直接呼叫 ▶ 的處理函式（繞過畫面）：start() 本身也不播", not st2["playing"] and st2["v"] == st0["v"], st2)
+                pg.click(f"#{box} .pb.step >> nth=0", force=True); pg.wait_for_timeout(500)
+                ok(f"{T}【{tag}】{h} 按 −：也不動（10-12 起整條反灰）", pg.evaluate(f"() => (document.querySelector('#{box} input') || {{}}).value") == st0["v"])
+                shot(pg, f"free_play_{box}_1440.png", f"#{gray}")
             else:
-                ok(f"{T}【{tag}】{h} ▶ 沒有反灰、點了真的在播（playing／日期在動）", st0["lk"] is None and (st1["playing"] or st1["v"] != st0["v"]), (st0, st1))
+                ok(f"{T}【{tag}】{h} 時間列沒有反灰、▶ 點了真的在播（playing／日期在動）", not st0["gray"] and (st1["playing"] or st1["v"] != st0["v"]), (st0, st1))
                 pg.click(f"#{box} .pb.play", force=True); pg.wait_for_timeout(300)
         # ---------------------------------------------------------------- ③ 週期統計族群篩選
         pg.evaluate("() => { location.hash = '#season'; }")
@@ -67637,25 +67859,25 @@ def t_free_perm_1010(b, base, code):
     ok(f"{T}【免費會員】回到今天看過 3D 的第 1 張：3D 鈕沒反灰、點了照樣打開 3D", not q1 and bool(wait_until(pg, "() => !document.getElementById('prod3d').hidden", 8000)))
     c.close()
 
-    # ---------------------------------------------------------------- ⑥b 手機 390 觸控（權限兩邊共用）：▶ 反灰＋小字放得下、點了不播、沒有橫向捲軸；今日關注說明區
+    # ---------------------------------------------------------------- ⑥b 手機 390 觸控（權限兩邊共用）：時間列反灰＋小字放得下、點了不播、沒有橫向捲軸；今日關注說明區
+    # ★ 2026-10-12：整條時間列反灰（字「Plus 以上可調整」，插在時間列後面），見 ② 的註解
     c, sent = _fp_ctx(b, "free", width=390, touch=True)
     pg = c.new_page(); pg.on("pageerror", lambda e: errs.append(str(e)))
-    for h, box in (("#flow/rotation", "rotBack"), ("#flow/sankey", "sankeyDays")):
+    for h, box, gray in (("#flow/rotation", "rotBack", "flowRotTime"), ("#flow/sankey", "sankeyDays", "sankeyDays")):
         _fp_ready(pg, base, h)
-        wait_until(pg, f"() => {{ const b = document.querySelector('#{box} .pb.play'); return !!b && b.getAttribute('data-plkb') === 'note'; }}", 15000)
+        wait_until(pg, f"() => {{ const g = document.getElementById('{gray}'); return !!g && g.hasAttribute('data-plgray') && !!document.querySelector('#{box} .pb.play'); }}", 15000)
         pg.wait_for_timeout(600)
-        m = pg.evaluate(f"""() => {{ const b = document.querySelector('#{box} .pb.play'), n = b.nextElementSibling, i = document.querySelector('#{box} input');
+        m = pg.evaluate(f"""() => {{ const b = document.querySelector('#{box} .pb.play'), n = document.getElementById('{gray}').nextElementSibling, i = document.querySelector('#{box} input');
             const r = n ? n.getBoundingClientRect() : null;
-            const fs0 = n ? parseFloat(getComputedStyle(n).fontSize) : 0, bf = n ? getComputedStyle(n, '::before') : null;
-            return {{ note: n && n.classList.contains('plknote') ? n.textContent : '', show: fs0 > 0 ? n.textContent : (bf ? bf.content : ''), fs: fs0 > 0 ? fs0 : (bf ? parseFloat(bf.fontSize) : 0), vis: !!(r && r.width > 0),
+            return {{ note: n && n.classList.contains('plknote') ? n.textContent : '', fs: n ? parseFloat(getComputedStyle(n).fontSize) : 0, vis: !!(r && r.width > 0),
                      inView: !r || r.width === 0 || (r.left >= 0 && r.right <= innerWidth + 1), sw: document.documentElement.scrollWidth, v: i ? i.value : null, shown: b.getClientRects().length > 0 }}; }}""")
         if m["shown"]:
             pg.locator(f"#{box} .pb.play").tap(force=True); pg.wait_for_timeout(1200)
         pl = pg.evaluate(f"() => {{ const i = document.querySelector('#{box} input'); return {{ playing: document.getElementById('{box}').classList.contains('playing'), v: i ? i.value : null }}; }}")
-        ok(f"{T}【手機 390】{h} ▶：旁邊「Plus 以上可播放」≥12px、在螢幕內、沒有橫向捲軸；點了不播",
-           m["note"] == "Plus 以上可播放" and "Plus" in (m["show"] or "") and m["fs"] >= 12 and m["inView"] and m["sw"] <= 391 and not pl["playing"] and pl["v"] == m["v"], (m, pl))
+        ok(f"{T}【手機 390】{h} 時間列：旁邊「Plus 以上可調整」≥12px、在螢幕內、沒有橫向捲軸；點 ▶ 不播",
+           m["note"] == "Plus 以上可調整" and m["fs"] >= 12 and m["inView"] and m["sw"] <= 391 and not pl["playing"] and pl["v"] == m["v"], (m, pl))
         if m["shown"] and m["vis"]:
-            shot(pg, f"m390_play_{box}.png", f"#{box}")
+            shot(pg, f"m390_play_{box}.png", f"#{gray}")
     pg.evaluate("() => { location.hash = '#market/cand'; }")
     wait_until(pg, "() => !!document.getElementById('candLock')", 15000)
     lk = pg.evaluate("() => ({ txt: (document.getElementById('candLock') || {}).innerText || '', sw: document.documentElement.scrollWidth, rows: document.querySelectorAll('#mktBody tr[data-code]').length })")
@@ -67729,66 +67951,42 @@ def t_free_open_1011(b, base, code):
 
     c, sent = _op_ctx(b)
     pg = c.new_page(); pg.on("pageerror", lambda e: errs.append(str(e)))
-    # ---------------------------------------------------------------- 0. 範本沒寫也照身分：開＋每日 3 次
+    # ---------------------------------------------------------------- 0. 範本沒寫也照身分
+    # ★ 2026-10-12（DECISIONS #358）Andy 註冊會員逐頁權限表（docs/perm_free_1012.md）蓋掉這段當初的「11 項全部開＋每日 3 次」：
+    #   時間列 ▶（第 3 點「紅框處反灰色」）、今日關注（第 11 點「不開放」）、熱力圖跳頁（第 5 點）、ETF 試算參數（第 14 點）改回關；
+    #   週期統計族群篩選 3 → 10（第 15 點）；其他 6 項（個股 K 線工具、ETF 報酬比較改選、複利試算表）維持開＋每日 3 次。
     _op_ready(pg, base, "#overview")
     st = pg.evaluate("() => { const ks = ['flow.play','season.groups','mkt.cand','stock.k_min','stock.mtf','stock.ind','stock.draw','etf.inc.params','etf.cmp','etf.inc.comp','heat.link'];"
-                     " return ks.map(k => [k, TwPerm.can(k), TwPerm.lim(k)]); }")
-    ok(f"{T} 範本沒寫：11 項全部開、每日 3 次（limBy）", all(x[1] and x[2] == 3 for x in st), st)
+                     " return Object.fromEntries(ks.map(k => [k, [TwPerm.can(k), TwPerm.lim(k)]])); }")
+    exp = {"flow.play": False, "mkt.cand": False, "heat.link": False, "etf.inc.params": False, "season.groups": 10,
+           "stock.k_min": 3, "stock.mtf": 3, "stock.ind": 3, "stock.draw": 3, "etf.cmp": 3, "etf.inc.comp": 3}
+    ok(f"{T} 範本沒寫（10-12 版）：4 項改回關、族群篩選 10 次、其他 6 項開＋每日 3 次",
+       all((not st[k][0]) if v is False else (st[k][0] and st[k][1] == v) for k, v in exp.items()), st)
 
-    # ---------------------------------------------------------------- ① ▶ 播放（資金輪動、分流樹共用 3 次）
+    # ---------------------------------------------------------------- ① ▶ 播放：10-12 起改回關（整條時間列反灰，細節在「註冊會員權限1012」③）
     pg.evaluate("() => { location.hash = '#flow/rotation'; }")
-    wait_until(pg, "() => !!document.querySelector('#rotBack .pb.play')", 15000)
-    pg.evaluate("() => document.getElementById('rotBack').scrollIntoView({ block: 'center' })")
-    pg.wait_for_timeout(500)
-    plays = []
-    for i in range(3):
-        v0 = pg.evaluate("() => document.querySelector('#rotBack input').value")
-        pg.click("#rotBack .pb.play"); pg.wait_for_timeout(700)
-        r = pg.evaluate("() => ({ p: document.getElementById('rotBack').classList.contains('playing'), v: document.querySelector('#rotBack input').value })")
-        plays.append(r["p"] or r["v"] != v0)
-        if r["p"]:
-            pg.click("#rotBack .pb.play"); pg.wait_for_timeout(400)   # ⏸ 停（第 3 次播到一半也要停得下來，不算次數）
-        pg.evaluate("() => { const i = document.querySelector('#rotBack input'); }")
-    stopped = pg.evaluate("() => !document.getElementById('rotBack').classList.contains('playing')")
-    ok(f"{T} ▶ 前 3 次都真的播了（日期在動）、⏸ 停得下來、計數 3", plays == [True, True, True] and stopped and used(pg, "flow.play") == 3, (plays, stopped, used(pg, "flow.play")))
-    wait_until(pg, "() => document.querySelector('#rotBack .pb.play').hasAttribute('data-qnote')", 4000)
-    pg.wait_for_timeout(300)
-    q4 = pg.evaluate("""() => { const b = document.querySelector('#rotBack .pb.play'), n = b.nextElementSibling;
-        return { q: b.hasAttribute('data-qnote'), note: n && n.classList.contains('qnote') ? n.textContent : '', fs: n ? parseFloat(getComputedStyle(n).fontSize) : 0,
-                 cur: getComputedStyle(b).cursor, op: +getComputedStyle(b).opacity, v: document.querySelector('#rotBack input').value }; }""")
-    ok(f"{T} ▶ 第 4 次：反灰（not-allowed）＋旁邊「今日 3 次已用完」（≥12px）",
-       q4["q"] and q4["note"] == "今日 3 次已用完" and q4["fs"] >= 12 and q4["cur"] == "not-allowed" and q4["op"] < 0.6, q4)
-    pg.click("#rotBack .pb.play", force=True); pg.wait_for_timeout(1200)
-    r4 = pg.evaluate("() => ({ p: document.getElementById('rotBack').classList.contains('playing'), v: document.querySelector('#rotBack input').value })")
-    ok(f"{T} ▶ 第 4 次點了：沒播、日期不動、沒有彈出層、計數還是 3", not r4["p"] and r4["v"] == q4["v"] and not pg.evaluate(OP_POP) and used(pg, "flow.play") == 3, (r4, q4["v"]))
-    pg.evaluate("() => { const b = document.querySelector('#rotBack .pb.play'); if (b && b.onclick) b.onclick(); }"); pg.wait_for_timeout(900)
-    ok(f"{T} ▶ 繞過鈕直接叫處理函式：start() 本身也不播", not pg.evaluate("() => document.getElementById('rotBack').classList.contains('playing')"))
-    shot(pg, "play_4th_1440.png", "#flowRotCard")
-    pg.evaluate("() => { location.hash = '#flow/sankey'; }")
-    wait_until(pg, "() => !!document.querySelector('#sankeyDays .pb.play') && document.querySelector('#sankeyDays .pb.play').hasAttribute('data-qnote')", 15000)
-    sk = pg.evaluate("() => { const b = document.querySelector('#sankeyDays .pb.play'), n = b.nextElementSibling; return n && n.classList.contains('qnote') ? n.textContent : ''; }")
-    ok(f"{T} ▶ 分流樹跟資金輪動共用 3 次：分流樹 ▶ 也反灰＋同一行字", sk == "今日 3 次已用完", sk)
+    wait_until(pg, "() => !!document.querySelector('#rotBack .pb.play') && document.getElementById('flowRotTime').hasAttribute('data-plgray')", 15000)
+    v0 = pg.evaluate("() => document.querySelector('#rotBack input').value")
+    pg.click("#rotBack .pb.play", force=True); pg.wait_for_timeout(900)
+    ok(f"{T} ▶（10-12 改回關）：整條時間列反灰、點 ▶ 不播、日期不動、沒有彈出層、不計次",
+       not pg.evaluate("() => document.getElementById('rotBack').classList.contains('playing')") and pg.evaluate("() => document.querySelector('#rotBack input').value") == v0
+       and not pg.evaluate(OP_POP) and used(pg, "flow.play") == 0)
 
-    # ---------------------------------------------------------------- ② 今日關注：每進一次分頁算一次
-    seen = []
-    for i in range(4):
-        pg.evaluate("() => { location.hash = '#market/updown'; }"); pg.wait_for_timeout(500)
-        pg.evaluate("() => { location.hash = '#market/cand'; }")
-        wait_until(pg, "() => !!document.querySelector('#mktBody #candLock, #mktBody tr[data-code]')", 15000)
-        pg.wait_for_timeout(500)
-        seen.append(pg.evaluate("() => ({ rows: document.querySelectorAll('#mktBody tr[data-code]').length, lock: (document.getElementById('candLock') || {}).innerText || '' })"))
-        if i == 0:   # 同一次停在這頁的重畫（權限事件）不重算
-            pg.evaluate("() => window.dispatchEvent(new CustomEvent('tw:perm'))"); pg.wait_for_timeout(300)
-            ok(f"{T} 今日關注：停在這頁重畫不重算（還是 1）", used(pg, "mkt.cand") == 1, used(pg, "mkt.cand"))
-    ok(f"{T} 今日關注前 3 次進來：名單照常（有個股列）", all(x["rows"] > 0 and not x["lock"] for x in seen[:3]), seen[:3])
-    ok(f"{T} 今日關注第 4 次：原位置反灰示意＋「今日關注今日 3 次已用完・Plus 以上可增加」、名單 0 檔、沒有彈出層",
-       seen[3]["rows"] == 0 and "今日 3 次已用完" in seen[3]["lock"] and "Plus 以上可增加" in seen[3]["lock"] and not pg.evaluate(OP_POP) and used(pg, "mkt.cand") == 3, seen[3])
+    # ---------------------------------------------------------------- ② 今日關注：10-12 起不開放
+    pg.evaluate("() => { location.hash = '#market/cand'; }")
+    wait_until(pg, "() => !!document.querySelector('#mktBody #candLock, #mktBody tr[data-code]')", 15000)
+    pg.wait_for_timeout(500)
+    cl = pg.evaluate("() => ({ rows: document.querySelectorAll('#mktBody tr[data-code]').length, lock: (document.getElementById('candLock') || {}).innerText || '' })")
+    ok(f"{T} 今日關注（10-12 不開放）：原位置反灰示意＋「Plus 以上可查看今日關注」、名單 0 檔、沒有彈出層",
+       cl["rows"] == 0 and "Plus 以上可查看今日關注" in cl["lock"] and not pg.evaluate(OP_POP), cl)
     shot(pg, "cand_4th_1440.png", "#v-market .card")
 
     # ---------------------------------------------------------------- ③ 週期統計族群篩選：下拉打開一次之內改選＝一次
     pg.evaluate("() => { location.hash = '#season'; }")
     wait_until(pg, "() => !!document.querySelector('#seasonView button[data-v=\"line\"]')", 15000)
     pg.click("#seasonView button[data-v=\"line\"]"); pg.wait_for_timeout(1200)
+    # ★ 2026-10-12：族群篩選每日 3 → 10 次（Andy 第 15 點「週期統計限制觀看+篩選功能10次」）—— 先塞今天已用 7 次，再真的操作 3 次＝10 次
+    pg.evaluate("() => { const d = JSON.parse(localStorage.getItem('tw.quota') || 'null') || { day: TwQuota.day(), k: {} }; d.day = TwQuota.day(); d.k['season.groups'] = Array.from({ length: 7 }, (_, i) => 'pre' + i); localStorage.setItem('tw.quota', JSON.stringify(d)); }")
     labs = []
     for i in range(3):
         pg.click("#seasonGroupDD .ddbtn"); pg.wait_for_timeout(300)
@@ -67797,14 +67995,14 @@ def t_free_open_1011(b, base, code):
         boxes.nth(7 + i * 2).check(); pg.wait_for_timeout(250)   # 同一次打開勾兩個＝一次
         labs.append(pg.evaluate("() => document.querySelector('#seasonGroupDD .ddbtn').innerText"))
         pg.click("#seasonGroupDD .ddbtn"); pg.wait_for_timeout(300)
-    ok(f"{T} 族群篩選 3 次打開各勾 2 個：每次選取真的變、計數 3（一次打開勾兩個只算一次）", len(set(labs)) == 3 and used(pg, "season.groups") == 3, (labs, used(pg, "season.groups")))
+    ok(f"{T} 族群篩選 3 次打開各勾 2 個：每次選取真的變、計數 10（之前 7＋這 3 次；一次打開勾兩個只算一次）", len(set(labs)) == 3 and used(pg, "season.groups") == 10, (labs, used(pg, "season.groups")))
     wait_until(pg, "() => document.querySelector('#seasonGroupDD .ddbtn').hasAttribute('data-qnote')", 4000)
     s4 = pg.evaluate("""() => { const b = document.querySelector('#seasonGroupDD .ddbtn'), n = document.getElementById('seasonGroupDD').nextElementSibling;
         return { q: b.hasAttribute('data-qnote'), note: n && n.classList.contains('qnote') ? n.textContent : '', fs: n ? parseFloat(getComputedStyle(n).fontSize) : 0, lab: b.innerText }; }""")
     pg.click("#seasonGroupDD .ddbtn", force=True); pg.wait_for_timeout(400)
     s4o = pg.evaluate("() => !document.querySelector('#seasonGroupDD .ddpanel').hidden")
-    ok(f"{T} 族群篩選第 4 次：下拉反灰＋旁邊「今日 3 次已用完・Plus 以上可增加」、點了不開、沒有彈出層",
-       s4["q"] and s4["note"] == "今日 3 次已用完・Plus 以上可增加" and s4["fs"] >= 12 and not s4o and not pg.evaluate(OP_POP), (s4, s4o))
+    ok(f"{T} 族群篩選第 11 次：下拉反灰＋旁邊「今日 10 次已用完・Plus 以上可增加」、點了不開、沒有彈出層",
+       s4["q"] and s4["note"] == "今日 10 次已用完・Plus 以上可增加" and s4["fs"] >= 12 and not s4o and not pg.evaluate(OP_POP), (s4, s4o))
     shot(pg, "season_4th_1440.png", "#seasonLineCtl")
 
     # ---------------------------------------------------------------- ④ 個股 K 線工具：同一檔同一天只算一次；第 4 檔反灰
@@ -67854,20 +68052,19 @@ def t_free_open_1011(b, base, code):
     ok(f"{T} 回到今天看過的第 1 檔：指標設定沒反灰、點得開", not back and pg.evaluate("() => document.getElementById('indBtn').getAttribute('aria-expanded') === 'true'"))
     pg.keyboard.press("Escape"); pg.mouse.click(5, 600)
 
-    # ---------------------------------------------------------------- ⑤ 總覽跳頁（heat.link）：每跳一次算一次，用完單純無效
+    # ---------------------------------------------------------------- ⑤ 總覽跳頁（heat.link）：10-12 起改回關（Andy 第 5 點「熱力圖都限制跳連結功能…頂多沒反應」）
     pg.evaluate("() => { location.hash = '#overview'; scrollTo(0, 0); }")
     wait_until(pg, "() => !!document.getElementById('ovTrustLink')", 15000)
     jumps = []
-    for i in range(4):
+    for i in range(2):
         pg.evaluate("() => { location.hash = '#overview'; }"); pg.wait_for_timeout(700)
         tl = pg.locator("#ovTrustLink")
         tl.scroll_into_view_if_needed(); pg.wait_for_timeout(200)
         tl.click(); pg.wait_for_timeout(700)
         jumps.append(pg.evaluate("() => location.hash"))
-    ok(f"{T} 總覽「法人連續買賣超 → 市場明細」前 3 次真的換頁", all(h.startswith("#market/streak") for h in jumps[:3]), jumps)
     aft = pg.evaluate("() => getComputedStyle(document.getElementById('ovTrustLink'), '::after').content")
-    ok(f"{T} 總覽跳頁第 4 次：網址不變（單純無效）、旁邊「今日跳轉 3 次已用完」、沒有彈出層、計數 3",
-       jumps[3] == "#overview" and "今日跳轉 3 次已用完" in (aft or "") and not pg.evaluate(OP_POP) and used(pg, "heat.link") == 3, (jumps, aft))
+    ok(f"{T} 總覽跳頁（10-12 改回關）：網址不變（單純無效）、旁邊「Plus 以上可跳轉」、沒有彈出層、不計次",
+       jumps == ["#overview", "#overview"] and "Plus 以上可跳轉" in (aft or "") and not pg.evaluate(OP_POP) and used(pg, "heat.link") == 0, (jumps, aft))
     shot(pg, "ovlink_4th_1440.png", "#ovTrustLink")
 
     # ---------------------------------------------------------------- ⑥ ETF：報酬比較改選、複利試算表、參數
@@ -67912,59 +68109,49 @@ def t_free_open_1011(b, base, code):
     ok(f"{T} 複利試算表：前 3 次打得開、第 4 次打不開（分頁鈕小字「今日 3 次已用完」）、沒有彈出層、計數 3",
        cx == [True, True, True, False] and xn == "今日 3 次已用完" and not pg.evaluate(OP_POP) and used(pg, "etf.inc.comp") == 3, (cx, xn))
     shot(pg, "etfcx_used_1440.png", "#incMain")
-    # 參數：改一次算一次；連點 1.5 秒內算同一次；用完停在目前條件
+    # 參數：★ 2026-10-12 改回關（Andy 第 14 點「子分頁內紅框處反灰色」）—— 整組反灰＋「🔒 Plus 以上可自訂參數」、點了試算不變、不計次
     k0 = pg.evaluate(ETFL_K)
     amts = pg.evaluate("() => [...document.querySelectorAll('#incAmtSeg button')].map(b => b.dataset.v)")
-    pg.click(f"#incAmtSeg button[data-v='{amts[0]}']"); pg.wait_for_timeout(200)
-    pg.click(f"#incAmtSeg button[data-v='{amts[1]}']"); pg.wait_for_timeout(1800)   # 連點兩下＝同一次
-    one = used(pg, "etf.inc.params")
-    pg.click(f"#incAmtSeg button[data-v='{amts[2]}']"); pg.wait_for_timeout(1800)
-    pg.click(f"#incAmtSeg button[data-v='{amts[3] if len(amts) > 3 else amts[0]}']"); pg.wait_for_timeout(1800)
-    k3 = pg.evaluate(ETFL_K)
     lk = wait_until(pg, "() => document.getElementById('etfInc').hasAttribute('data-inclk') ? (document.querySelector('#incPM .incctl > .inclknote') || {}).innerText || '' : ''", 4000)
-    pg.click(f"#incAmtSeg button[data-v='{amts[1]}']", force=True); pg.wait_for_timeout(800)
-    k4 = pg.evaluate(ETFL_K)
-    ok(f"{T} ETF 參數：連點兩下（1.5 秒內）只算 1 次、再改兩次＝3 次，試算真的換",
-       one == 1 and used(pg, "etf.inc.params") == 3 and k3 != k0, (one, used(pg, "etf.inc.params"), k0, k3))
-    ok(f"{T} ETF 參數第 4 次：整組反灰＋「今日 3 次已用完・Plus 以上可增加」、點了試算不變（停在第 3 次的條件）、沒有彈出層",
-       "今日 3 次已用完・Plus 以上可增加" in (lk or "") and k4 == k3 and not pg.evaluate(ETFL_POP), (lk, k3, k4))
+    pg.click(f"#incAmtSeg button[data-v='{amts[0]}']", force=True); pg.wait_for_timeout(800)
+    ok(f"{T} ETF 參數（10-12 改回關）：整組反灰＋「Plus 以上可自訂參數」、點了試算不變、沒有彈出層、不計次",
+       "Plus 以上可自訂參數" in (lk or "") and pg.evaluate(ETFL_K) == k0 and not pg.evaluate(ETFL_POP) and used(pg, "etf.inc.params") == 0, (lk, k0))
     shot(pg, "etfparams_used_1440.png", "#incPM .incctl")
 
-    # ---------------------------------------------------------------- ⑦ 額度上限面板列得出這些新項目
+    # ---------------------------------------------------------------- ⑦ 額度上限面板列得出這些項目（10-12：關掉的寫「… 會員」膠囊）
     pg.evaluate("() => { location.hash = '#overview'; }"); pg.wait_for_timeout(800)
     _bill_open_desk(pg)
     pg.click("#acctMenu [data-d=quota]")
     wait_until(pg, "() => { const d = document.getElementById('m4Quota'); return !!d && !d.hidden; }", 4000)
     pg.evaluate("() => document.querySelectorAll('#m4Quota .qgh[aria-expanded=\"false\"]').forEach(b => b.click())"); pg.wait_for_timeout(300)
     rows = pg.evaluate("() => Object.fromEntries([...document.querySelectorAll('#m4Quota .qi[data-id]')].map(e => [e.dataset.id, e.innerText.replace(/\\s+/g, ' ')]))")
-    want = {"flow.play": "播放・已用 3／3", "mkt.cand": "已用 3／3", "season.groups": "篩選・已用 3／3", "heat.link": "跳轉・已用 3／3", "stock.ind": "已用 3／3",
-            "etf.cmp": "改選・已用 3／3", "etf.inc.comp": "打開・已用 3／3", "etf.inc.params": "調參數・已用 3／3"}
-    ok(f"{T} 額度上限面板列出新的計次項目（播放、今日關注、族群篩選、跳轉、指標設定、ETF 三項，都是已用 3／3）",
+    want = {"season.groups": "篩選・已用 10／10", "stock.ind": "已用 3／3", "etf.cmp": "改選・已用 3／3", "etf.inc.comp": "打開・已用 3／3",
+            "flow.play": "會員", "mkt.cand": "會員", "heat.link": "會員", "etf.inc.params": "會員"}
+    ok(f"{T} 額度上限面板：計次項目（族群篩選 10、指標設定、ETF 兩項）與 10-12 改回關的 4 項（寫「… 會員」）都列出來",
        all(k in rows and v in rows[k] for k, v in want.items()), {k: rows.get(k) for k in want})
     pg.mouse.click(40, 860)
     c.close()
 
-    # ---------------------------------------------------------------- ⑧ 手機 390 觸控（直接從第 4 次開始）
-    seed = {"flow.play": 3, "mkt.cand": 3, "etf.cmp": 3}
+    # ---------------------------------------------------------------- ⑧ 手機 390 觸控（10-12：時間列反灰、今日關注不開放；ETF 報酬比較仍是用完的樣子）
+    seed = {"etf.cmp": 3}
     c, sent = _op_ctx(b, width=390, touch=True, seed=seed)
     pg = c.new_page(); pg.on("pageerror", lambda e: errs.append(str(e)))
     _op_ready(pg, base, "#flow/rotation")
-    wait_until(pg, "() => { const b = document.querySelector('#rotBack .pb.play'); return !!b && b.hasAttribute('data-qnote'); }", 15000)
+    wait_until(pg, "() => { const t = document.getElementById('flowRotTime'); return !!t && t.hasAttribute('data-plgray'); }", 15000)
     pg.wait_for_timeout(600)
-    m = pg.evaluate("""() => { const b = document.querySelector('#rotBack .pb.play'), n = b.nextElementSibling, r = n ? n.getBoundingClientRect() : null;
-        const bf = n ? getComputedStyle(n, '::before') : null, fs0 = n ? parseFloat(getComputedStyle(n).fontSize) : 0;
-        return { show: fs0 > 0 ? n.textContent : (bf ? bf.content : ''), fs: fs0 > 0 ? fs0 : (bf ? parseFloat(bf.fontSize) : 0),
-                 inView: !!r && r.left >= 0 && r.right <= innerWidth + 1, sw: document.documentElement.scrollWidth, v: document.querySelector('#rotBack input').value, shown: b.getClientRects().length > 0 }; }""")
+    m = pg.evaluate("""() => { const n = document.querySelector('#flowRotTime + .plknote'), r = n ? n.getBoundingClientRect() : null;
+        return { show: n ? n.textContent : '', fs: n ? parseFloat(getComputedStyle(n).fontSize) : 0, inView: !!r && r.left >= 0 && r.right <= innerWidth + 1,
+                 sw: document.documentElement.scrollWidth, v: document.querySelector('#rotBack input').value, shown: document.querySelector('#rotBack .pb.play').getClientRects().length > 0 }; }""")
     if m["shown"]:
         pg.locator("#rotBack .pb.play").tap(force=True); pg.wait_for_timeout(1200)
     pl = pg.evaluate("() => ({ p: document.getElementById('rotBack').classList.contains('playing'), v: document.querySelector('#rotBack input').value })")
-    ok(f"{T}【手機 390】▶ 第 4 次：旁邊「今日已用完」≥12px、在螢幕內、沒有橫向捲軸；點了不播、沒有彈出層",
-       "今日已用完" in (m["show"] or "") and m["fs"] >= 12 and m["inView"] and m["sw"] <= 391 and not pl["p"] and pl["v"] == m["v"] and not pg.evaluate(OP_POP), (m, pl))
+    ok(f"{T}【手機 390】時間列反灰：旁邊「Plus 以上可調整」≥12px、在螢幕內、沒有橫向捲軸；點 ▶ 不播、沒有彈出層",
+       m["show"] == "Plus 以上可調整" and m["fs"] >= 12 and m["inView"] and m["sw"] <= 391 and not pl["p"] and pl["v"] == m["v"] and not pg.evaluate(OP_POP), (m, pl))
     shot(pg, "play_4th_390.png")
     pg.evaluate("() => { location.hash = '#market/cand'; }")
     wait_until(pg, "() => !!document.getElementById('candLock')", 15000); pg.wait_for_timeout(500)
     lk = pg.evaluate("() => ({ txt: (document.getElementById('candLock') || {}).innerText || '', sw: document.documentElement.scrollWidth, rows: document.querySelectorAll('#mktBody tr[data-code]').length })")
-    ok(f"{T}【手機 390】今日關注第 4 次：說明區「今日 3 次已用完」、名單 0 檔、沒有橫向捲軸", "今日 3 次已用完" in lk["txt"] and lk["rows"] == 0 and lk["sw"] <= 391, lk)
+    ok(f"{T}【手機 390】今日關注（10-12 不開放）：說明區「Plus 以上可查看今日關注」、名單 0 檔、沒有橫向捲軸", "Plus 以上可查看今日關注" in lk["txt"] and lk["rows"] == 0 and lk["sw"] <= 391, lk)
     shot(pg, "cand_4th_390.png")
     pg.evaluate("() => { location.hash = '#etf/list'; }")
     wait_until(pg, "() => document.querySelector('#v-etf') && document.querySelector('#v-etf').dataset.ready === 'full' && !document.getElementById('etfRetCard').hidden", 25000)
@@ -67980,16 +68167,688 @@ def t_free_open_1011(b, base, code):
     shot(pg, "etfcmp_used_390.png")
     c.close()
 
-    # ---------------------------------------------------------------- ⑨ 訪客照舊關（這次只放寬註冊會員）
+
+    # ---------------------------------------------------------------- ⑨ 訪客照舊關（10-12 起時間列是整條反灰，字改「Plus 以上可調整」）
     c, sent = _op_ctx(b, plan="guest")
     pg = c.new_page(); pg.on("pageerror", lambda e: errs.append(str(e)))
     pg.goto(base + "#flow/rotation", wait_until="domcontentloaded")
     wait_until(pg, "() => window.TwPerm && TwPerm.state().src === 'server' && !!document.querySelector('#rotBack .pb.play')", 15000)
-    g = wait_until(pg, "() => { const b = document.querySelector('#rotBack .pb.play'), n = b && b.nextElementSibling; return b && b.getAttribute('data-plkb') === 'note' && n ? n.textContent : ''; }", 6000)
+    g = wait_until(pg, "() => { const t = document.getElementById('flowRotTime'), n = t && t.nextElementSibling; return t && t.hasAttribute('data-plgray') && n ? n.textContent : ''; }", 6000)
     gc = pg.evaluate("() => ['flow.play','mkt.cand','season.groups','heat.link','etf.cmp','etf.inc.comp','etf.inc.params'].filter(k => TwPerm.can(k))")
-    ok(f"{T}【訪客】照舊關：▶ 反灰＋「Plus 以上可播放」、7 個鍵都不能用", g == "Plus 以上可播放" and not gc, (g, gc))
+    ok(f"{T}【訪客】照舊關：時間列整條反灰＋「Plus 以上可調整」、7 個鍵都不能用", g == "Plus 以上可調整" and not gc, (g, gc))
     c.close()
     ok(f"{T}：整段沒有 JS 錯誤", not errs, errs[:3])
+
+
+# ===================================================================== 註冊會員權限1012（DECISIONS #358；docs/perm_free_1012.md）
+#   Andy 10-12：「CEO我這邊一頁一頁跟你說明並請你改動，以下是註冊後的免費會員」16 點（原話逐條在 docs/perm_free_1012.md），
+#   稍早：「註冊會員次數還是太多，需要降至5次……並且像是日曆點擊一個標題就會消耗一次」。蓋掉 10-10、10-11 註冊會員的設定。
+#   用註冊會員（假 Worker，範本 feats／lims 都**不寫**＝線上還沒按「套用建議方案」的樣子，吃 features.js 的 defBy／limBy）16 點逐條真的操作：
+#     限次：第 N 次真的有作用（畫面換了）、第 N+1 次反灰＋旁邊小字、點了畫面不變、沒有任何彈出層；
+#     反灰：點了／拖了畫面沒有任何改變（拉桿不動、▶ 不播、勾選不變、日期不變）。
+#   Plus 抽 5 點驗都能用；手機 390 抽 3 點。為了不讓一段跑太久，「第 N 次」多半先塞 N−1 次（seed），從第 N 次開始驗。
+#   截圖：TW_FREE1012_SHOTS＝資料夾（p01.png～p16.png，桌機淺色，拍反灰或「已用完」的狀態）。⚠ 一律 --workers 1。
+def _p12_ctx(b, plan="free", width=1440, seed=None, touch=False, theme="light"):
+    c, sent, st = _sub_ctx(b, "member" if plan != "guest" else None, width=width, plan=plan, feats={}, lims={}, touch=touch)
+    # seed 只塞一次（用 localStorage 記，開新分頁也不會再塞一次 —— 「觀看次數」要開新分頁才算下一次）
+    js = (f"try {{ localStorage.setItem('tw.theme', '{theme}'); if (!localStorage.getItem('p12.init')) {{ localStorage.setItem('p12.init', '1');"
+          " localStorage.setItem('tw.live.on', '0'); localStorage.setItem('tw.dg3d', '0');")
+    if seed:
+        js += ("const day = new Date(Date.now() + 8 * 3600 * 1000).toISOString().slice(0, 10); const k = {};"
+               f"Object.entries({json.dumps(seed)}).forEach(([id, n]) => {{ k[id] = Array.from({{length: n}}, (_, i) => 'seed' + i); }});"
+               "localStorage.setItem('tw.quota', JSON.stringify({ day, k }));")
+    js += " } } catch (e) {}"
+    c.add_init_script(js)
+    # 外部網站一律不連（今日事件的新聞連結只數有沒有開新視窗）
+    c.route(re.compile(r"^https?://(?!127\.0\.0\.1|localhost|sub\.example\.test|fonts\.).*"), lambda r: r.fulfill(status=200, body="news", headers={"content-type": "text/html"}))
+    return c
+
+
+P12_GRAY = """(sel) => { const e = document.querySelector(sel); if (!e) return null; const n = e.nextElementSibling;
+  return { gray: e.hasAttribute('data-plgray'), inert: !!e.inert, op: +getComputedStyle(e).opacity,
+           note: n && n.classList.contains('plknote') ? n.textContent : '', fs: n ? parseFloat(getComputedStyle(n).fontSize) : 0, nv: !!n && n.getClientRects().length > 0 }; }"""
+P12_QN = """([sel, f]) => { const e = document.querySelector(sel); const n = [...document.querySelectorAll('span.qnote[data-f="' + f + '"]')].find(x => x.getClientRects().length > 0);
+  return { q: !!e && e.hasAttribute('data-qnote'), op: e ? +getComputedStyle(e).opacity : 1, note: n ? n.textContent : '', fs: n ? parseFloat(getComputedStyle(n).fontSize) : 0 }; }"""
+P12_INL = """(sel) => { const e = document.querySelector(sel); const c = e && e.querySelector(':scope > .qcov .qcard.qcnote');
+  return { on: !!c, txt: c ? c.innerText : '', big: !!(e && e.querySelector(':scope > .qcov .qcard:not(.qcnote)')) }; }"""
+
+
+def t_free_perm_1012(b, base, code):
+    T = "註冊會員權限1012"
+    errs: list[str] = []
+    sh = os.environ.get("TW_FREE1012_SHOTS")
+    only = set((os.environ.get("TW_P12_ONLY") or "").split(",")) - {""}
+    if sh:
+        pathlib.Path(sh).mkdir(parents=True, exist_ok=True)
+
+    def want(n):
+        return not only or str(n) in only
+
+    def shot(pg, n, sel=None, name=None):
+        if not sh:
+            return
+        try:
+            p = str(pathlib.Path(sh) / (name or f"p{n:02d}.png"))
+            if sel:
+                pg.locator(sel).first.screenshot(path=p)
+            else:
+                pg.screenshot(path=p)
+        except Exception as ex:  # noqa: BLE001
+            print("  截圖失敗", n, ex)
+
+    def new(seed=None, width=1440, plan="free", touch=False):
+        c = _p12_ctx(b, plan=plan, width=width, seed=seed, touch=touch)
+        pg = c.new_page(); pg.on("pageerror", lambda e: errs.append(str(e)))
+        return c, pg
+
+    def go(pg, h, wait=None, t=20000):
+        if pg.url == "about:blank":
+            pg.goto(base + h, wait_until="domcontentloaded")
+            wait_until(pg, "() => window.TwPerm && TwPerm.state().src === 'server' && !!window.TwQuota", 15000)
+        else:
+            pg.evaluate(f"() => {{ location.hash = '{h}'; }}")
+        if wait:
+            wait_until(pg, wait, t)
+        pg.wait_for_timeout(600)
+
+    used = lambda pg, k: pg.evaluate(f"() => (TwQuota.used('{k}') || []).length")  # noqa: E731
+    pop = lambda pg: pg.evaluate(OP_POP)  # noqa: E731
+
+    # ---------------------------------------------------------------- 0. 範本沒寫也照身分（features.js defBy／limBy）
+    c, pg = new()
+    go(pg, "#overview")
+    lim = pg.evaluate("""() => Object.fromEntries(['news.open','earn.click','etf.cal.click','flow.rank.click','flow.filter','flow.sankey.drill','flow.inst.filter','heat.detail',
+        'ind.groups','ind.diagram','ind.3d','mkt.updown','mkt.updown.filter','mkt.streak','mkt.ma','explore.page','explore.filter','etf.list','etf.list.tab','etf.cashflow',
+        'season.month','season.groups','season.pick','search'].map(k => [k, TwPerm.lim(k)]))""")
+    exp = {"news.open": 5, "earn.click": 5, "etf.cal.click": 5, "flow.rank.click": 5, "flow.filter": 5, "flow.sankey.drill": 5, "flow.inst.filter": 5, "heat.detail": 5,
+           "ind.groups": 3, "ind.diagram": 3, "ind.3d": 3, "mkt.updown": 5, "mkt.updown.filter": 5, "mkt.streak": 5, "mkt.ma": 5, "explore.page": 5, "explore.filter": 5,
+           "etf.list": 3, "etf.list.tab": 3, "etf.cashflow": 3, "season.month": 10, "season.groups": 10, "season.pick": 10, "search": 10}
+    ok(f"{T} 範本沒寫：16 點的每日次數都照 Andy 10-12（5／3／10 次）", lim == exp, {k: (lim.get(k), v) for k, v in exp.items() if lim.get(k) != v})
+    offs = pg.evaluate("() => ['flow.play','heat.link','ind.rel','mkt.cand','etf.ret.period','etf.inc.params'].filter(k => TwPerm.can(k))")
+    ok(f"{T} 範本沒寫：反灰／不開放的 6 項（時間列、熱力圖跳頁、關聯圖、今日關注、報酬比較期間、試算參數）都關", not offs, offs)
+    ok(f"{T} 全站共用額度：註冊會員不設（逐項上限控制，不會先把 10 次吃掉）", pg.evaluate("() => TwPerm.lim('quota.all')") is None or pg.evaluate("() => TwPerm.lim('quota.all') === Infinity"))
+    ps = pg.evaluate("""() => { const t = TW_PLAN_PRESETS.tiers.find(x => x.key === 'free'), F = TwFeatures;
+        const bad = []; Object.entries(F.limDefaults('free')).forEach(([k, v]) => { if (t.lims[k] !== v) bad.push([k, v, t.lims[k]]); });
+        ['flow.play','heat.link','ind.rel','mkt.cand','etf.ret.period','etf.inc.params'].forEach(k => { if (t.feats[k] !== false || F.defOf(F.byId(k), 'free') !== false) bad.push([k, 'feats']); });
+        return { bad, dq: t.dq }; }""")
+    ok(f"{T} plan_presets.js 註冊會員範本跟 features.js 的 limBy／defBy 一致（套用建議方案後同一個樣子）、dq 不設", not ps["bad"] and ps["dq"] is None, ps)
+
+    # ---------------------------------------------------------------- ① 今日事件：點新聞連結 5 次
+    if want(1):
+        go(pg, "#overview", "() => document.querySelectorAll('#evList a[href^=\"http\"]').length >= 8")
+        pg.click("#evToggle"); wait_until(pg, "() => document.getElementById('side').classList.contains('open')", 3000); pg.wait_for_timeout(400)
+        urls = pg.evaluate("() => [...new Set([...document.querySelectorAll('#evList a[href^=\"http\"]')].map(a => a.getAttribute('href')))].slice(0, 6)")
+        opened: list = []
+        c.on("page", lambda p: opened.append(p))
+        res = []
+        for u in urls:
+            n0 = len(opened)
+            loc = pg.locator(f'#evList a[href="{u}"]').first
+            loc.scroll_into_view_if_needed(); loc.click(force=True); pg.wait_for_timeout(450)
+            res.append(len(opened) - n0)
+            for p in opened[n0:]:
+                try:
+                    p.close()
+                except Exception:  # noqa: BLE001
+                    pass
+        q = pg.evaluate("() => ({ note: (document.getElementById('evQNote') || {}).textContent || '', grey: document.querySelectorAll('#evList a[data-qnote]').length })")
+        ok(f"{T} ①今日事件：前 5 則真的開新視窗、第 6 則沒開、沒有彈出層、計數 5",
+           len(res) == 6 and all(x >= 1 for x in res[:5]) and res[5] == 0 and not pop(pg) and used(pg, "news.open") == 5, (res, used(pg, "news.open")))
+        ok(f"{T} ①今日事件用完：沒開過的標題反灰＋「今日新聞連結 5/5 次已用完・Plus 以上可增加」", q["grey"] > 0 and "5/5" in q["note"] and "Plus 以上可增加" in q["note"], q)
+        shot(pg, 1)
+        pg.keyboard.press("Escape"); pg.wait_for_timeout(300)
+
+    # ---------------------------------------------------------------- ② 財經日曆：點事件標題／右側清單 5 次；配息行事曆右側清單 5 次
+    if want(2):
+        go(pg, "#earnings", "() => document.querySelectorAll('#earnGrid .chip').length >= 1")
+        pg.click("#earnFilt button[data-v='conf']"); pg.wait_for_timeout(600)   # 公司法說：這個月標題最多（切分類不算次數）
+        wait_until(pg, "() => document.querySelectorAll('#earnGrid .chip').length >= 6 && document.querySelectorAll('#earnPanel .erow').length >= 1", 8000)
+        keys = []
+        for i in range(5):
+            k0 = pg.evaluate("() => document.getElementById('earnPanel').dataset.mode + ':' + document.getElementById('earnPanel').dataset.key")
+            if i % 2 == 0:   # 月曆格子裡的標題
+                pg.locator("#earnGrid .chip").nth(i).click()
+            else:            # 右側清單：先回本週重點再點一列
+                if pg.locator("#earnBack").count():
+                    pg.click("#earnBack"); pg.wait_for_timeout(300)
+                pg.locator("#earnPanel .erow").first.click()
+            pg.wait_for_timeout(500)
+            keys.append(pg.evaluate("() => document.getElementById('earnPanel').dataset.mode + ':' + document.getElementById('earnPanel').dataset.key") != k0)
+        ok(f"{T} ②財經日曆：前 5 次點標題／右側清單，右側面板真的換、計數 5", keys == [True] * 5 and used(pg, "earn.click") == 5, (keys, used(pg, "earn.click")))
+        if pg.locator("#earnBack").count():
+            pg.click("#earnBack"); pg.wait_for_timeout(300)
+        ok(f"{T} ②財經日曆：「← 回本週重點」不算次數", used(pg, "earn.click") == 5)
+        wait_until(pg, "() => document.querySelector('#earnGrid .chip').hasAttribute('data-qnote')", 4000)
+        s0 = pg.evaluate("() => document.getElementById('earnPanel').innerText")
+        qn = pg.evaluate(P12_QN, ["#earnGrid .chip", "earn.click"])
+        pg.locator("#earnGrid .chip").nth(1).click(force=True); pg.wait_for_timeout(500)
+        pg.locator("#earnPanel .erow").first.click(force=True); pg.wait_for_timeout(500)
+        ok(f"{T} ②財經日曆第 6 次：標題與清單反灰（≤0.6）＋月份列旁「今日 5 次已用完・Plus 以上可增加」（≥12px）",
+           qn["q"] and qn["op"] < 0.6 and qn["note"] == "今日 5 次已用完・Plus 以上可增加" and qn["fs"] >= 12, qn)
+        ok(f"{T} ②財經日曆第 6、7 次點：面板不變、沒有彈出層、計數還是 5",
+           pg.evaluate("() => document.getElementById('earnPanel').innerText") == s0 and not pop(pg) and used(pg, "earn.click") == 5)
+        shot(pg, 2)
+        # 配息行事曆右側清單
+        go(pg, "#etf/cal", "() => document.querySelectorAll('#etfCalList tr[data-code]').length >= 3", 25000)
+        ch = []
+        for i in range(5):
+            t0 = pg.evaluate("() => document.getElementById('etfCalList').innerText.slice(0, 80)")
+            pg.locator("#etfCalList tr[data-code]").nth(i % 3).click(); pg.wait_for_timeout(500)
+            ch.append(pg.evaluate("() => document.getElementById('etfCalList').innerText.slice(0, 80)") != t0)
+            if pg.locator("#etfCodeBack").count():
+                pg.click("#etfCodeBack"); pg.wait_for_timeout(400)
+        ok(f"{T} ②配息行事曆：右側清單前 5 次點，右欄真的換成那一檔的明細、計數 5", ch == [True] * 5 and used(pg, "etf.cal.click") == 5, (ch, used(pg, "etf.cal.click")))
+        wait_until(pg, "() => document.querySelector('#etfCalList tr[data-code]').hasAttribute('data-qnote')", 4000)
+        t0 = pg.evaluate("() => document.getElementById('etfCalList').innerText.slice(0, 80)")
+        qn = pg.evaluate(P12_QN, ["#etfCalList tr[data-code]", "etf.cal.click"])
+        pg.locator("#etfCalList tr[data-code]").first.click(force=True); pg.wait_for_timeout(500)
+        ok(f"{T} ②配息行事曆第 6 次：右欄列反灰＋「今日 5 次已用完・Plus 以上可增加」、點了不換、沒有彈出層",
+           qn["q"] and qn["note"] == "今日 5 次已用完・Plus 以上可增加" and pg.evaluate("() => document.getElementById('etfCalList').innerText.slice(0, 80)") == t0 and not pop(pg), qn)
+        shot(pg, 2, name="p02b.png")
+    c.close()
+
+    # ---------------------------------------------------------------- ③ 資金輪動／分流樹：時間列反灰；右側排行點擊 5 次；上方篩選 5 次
+    if want(3):
+        c, pg = new()
+        go(pg, "#flow/rotation", "() => !!document.querySelector('#rankFlow canvas') && document.getElementById('flowRotTime').hasAttribute('data-plgray')")
+        g = pg.evaluate(P12_GRAY, "#flowRotTime")
+        ok(f"{T} ③資金輪盤標題列整條反灰（inert、≤0.6）＋旁邊「Plus 以上可調整」（≥12px、看得到）",
+           g and g["gray"] and g["inert"] and g["op"] < 0.6 and g["note"] == "Plus 以上可調整" and g["fs"] >= 12 and g["nv"], g)
+        v0 = pg.evaluate("() => ({ v: document.querySelector('#rotBack input').value, ck: [...document.querySelectorAll('#rotTools input')].map(i => i.checked) })")
+        bx = pg.locator("#rotBack input").bounding_box()
+        pg.mouse.move(bx["x"] + bx["width"] * 0.6, bx["y"] + bx["height"] / 2); pg.mouse.down(); pg.mouse.move(bx["x"] + 4, bx["y"] + bx["height"] / 2, steps=6); pg.mouse.up()
+        pg.click("#rotBack .pb.play", force=True); pg.wait_for_timeout(900)
+        pg.click("#rotBack .pb.step >> nth=0", force=True)
+        pg.click("#rotTools .rot-line", force=True); pg.click("#rotTools .rot-scan", force=True); pg.wait_for_timeout(400)
+        v1 = pg.evaluate("() => ({ v: document.querySelector('#rotBack input').value, ck: [...document.querySelectorAll('#rotTools input')].map(i => i.checked), p: document.getElementById('rotBack').classList.contains('playing') })")
+        ok(f"{T} ③資金輪盤：拖拉桿、按 ▶、按 −、勾軌跡／掃描 → 天數不動、沒播放、勾選不變、沒有彈出層",
+           v1["v"] == v0["v"] and v1["ck"] == v0["ck"] and not v1["p"] and not pop(pg), (v0, v1))
+        pg.evaluate("() => { const b = document.querySelector('#rotBack .pb.play'); if (b && b.onclick) b.onclick(); }"); pg.wait_for_timeout(900)
+        ok(f"{T} ③繞過畫面直接叫 ▶ 的處理函式：start() 本身也不播", not pg.evaluate("() => document.getElementById('rotBack').classList.contains('playing')"))
+        # 右側排行：前 5 次點開成分股、第 6 次反灰不展開
+        PT = """(i) => { const c = echarts.getInstanceByDom(document.getElementById('rankFlow')); const d = c.getOption().series[0].data;
+          const r = document.getElementById('rankFlow').getBoundingClientRect(); const p = c.convertToPixel({ seriesIndex: 0 }, [d[i].value / 2, i]); return [r.left + p[0], r.top + p[1]]; }"""
+        PNL = "() => { const p = document.getElementById('rankPanel'); return !!p && !p.hidden && p.getClientRects().length > 0; }"
+        opens = []
+        for i in range(5):
+            x, y = pg.evaluate(PT, i)
+            pg.mouse.click(x, y); pg.wait_for_timeout(700)
+            opens.append(pg.evaluate(PNL))
+            if opens[-1]:
+                pg.click("#rankPanel [data-all]"); pg.wait_for_timeout(600)
+        ok(f"{T} ③族群資金排行：前 5 次點長條真的在原地展開成分股、計數 5", opens == [True] * 5 and used(pg, "flow.rank.click") == 5, (opens, used(pg, "flow.rank.click")))
+        wait_until(pg, "() => document.getElementById('rankFlow').hasAttribute('data-qnote')", 4000)
+        qn = pg.evaluate(P12_QN, ["#rankFlow", "flow.rank.click"])
+        x, y = pg.evaluate(PT, 5)
+        pg.mouse.click(x, y); pg.wait_for_timeout(700)
+        ok(f"{T} ③族群資金排行第 6 次：長條圖反灰＋「今日 5 次已用完・Plus 以上可增加」、點了不展開、沒有彈出層",
+           qn["q"] and qn["note"] == "今日 5 次已用完・Plus 以上可增加" and qn["fs"] >= 12 and not pg.evaluate(PNL) and not pop(pg) and used(pg, "flow.rank.click") == 5, qn)
+        # 上方篩選：下拉打開一次之內改選＝一次
+        labs = []
+        for i in range(5):
+            pg.click("#flowRotFilter .rotdd[data-dd='chain'] .ddbtn"); pg.wait_for_timeout(300)
+            pg.locator("#flowRotFilter .rotdd[data-dd='chain'] .ddopt").nth(1 + i % 3).click(); pg.wait_for_timeout(400)
+            pg.locator("#flowRotFilter .ddlist input[type=checkbox]").first.click(); pg.wait_for_timeout(400)   # 同一次打開再勾一個族群：不重算
+            labs.append(pg.evaluate("() => document.querySelector('#flowRotFilter .rotdd[data-dd=\"chain\"] .ddbtn b').textContent"))
+            pg.mouse.click(700, 880); pg.wait_for_timeout(300)
+        ok(f"{T} ③上方篩選：5 次打開都真的換產業鏈（同一次打開再勾族群不重算）、計數 5", len(labs) == 5 and labs[0] != labs[1] and used(pg, "flow.filter") == 5, (labs, used(pg, "flow.filter")))
+        wait_until(pg, "() => document.querySelector('#flowRotFilter .rotdd[data-dd=\"chain\"] .ddbtn').hasAttribute('data-qnote')", 4000)
+        qn = pg.evaluate(P12_QN, ["#flowRotFilter .rotdd[data-dd='chain'] .ddbtn", "flow.filter"])
+        pg.click("#flowRotFilter .rotdd[data-dd='chain'] .ddbtn", force=True); pg.wait_for_timeout(400)
+        pg.click("#flowRotFilter .rot-top10", force=True); pg.wait_for_timeout(300)
+        r6 = pg.evaluate("() => ({ open: !document.querySelector('#flowRotFilter .rotdd[data-dd=\"chain\"] .ddpanel').hidden, t10: document.querySelector('#flowRotFilter .rot-top10').checked })")
+        ok(f"{T} ③上方篩選第 6 次：下拉反灰＋「今日 5 次已用完・Plus 以上可增加」、點了不開、只看前 10 大勾不下去、沒有彈出層",
+           qn["q"] and qn["note"] == "今日 5 次已用完・Plus 以上可增加" and not r6["open"] and not r6["t10"] and not pop(pg), (qn, r6))
+        pg.evaluate("() => scrollTo(0, 0)"); pg.wait_for_timeout(300)
+        shot(pg, 3)
+        # 資金分流樹「看哪一天」整條
+        go(pg, "#flow/sankey", "() => !!document.querySelector('#sankeyDays input') && document.getElementById('sankeyDays').hasAttribute('data-plgray')")
+        g = pg.evaluate(P12_GRAY, "#sankeyDays")
+        s0 = pg.evaluate("() => document.querySelector('#sankeyDays input').value")
+        bx = pg.locator("#sankeyDays input").bounding_box()
+        pg.mouse.move(bx["x"] + bx["width"] - 3, bx["y"] + bx["height"] / 2); pg.mouse.down(); pg.mouse.move(bx["x"] + 5, bx["y"] + bx["height"] / 2, steps=6); pg.mouse.up()
+        pg.click("#sankeyDays .pb.play", force=True); pg.wait_for_timeout(900)
+        ok(f"{T} ③資金分流樹「看哪一天」整條反灰＋「Plus 以上可調整」；拖拉桿、按 ▶ 日期都不動",
+           g and g["gray"] and g["inert"] and g["note"] == "Plus 以上可調整" and g["nv"] and pg.evaluate("() => document.querySelector('#sankeyDays input').value") == s0
+           and not pg.evaluate("() => document.getElementById('sankeyDays').classList.contains('playing')"), g)
+        shot(pg, 3, name="p03b.png")
+        # 資金分流樹右欄排名（下鑽）：同一族群不重算，第 6 個新族群反灰
+        rows = pg.evaluate("() => [...document.querySelectorAll('#sankeyRank .skr-r[data-gid]')].slice(0, 6).map(e => e.dataset.gid)")
+        dr = []
+        for gid in rows[:5]:
+            pg.click(f"#sankeyRank .skr-r[data-gid='{gid}']"); pg.wait_for_timeout(700)
+            dr.append(pg.evaluate("() => { const p = document.getElementById('sankeyPanel'); return !!p && !p.hidden; }"))
+            back = pg.locator("#sankeyPanel [data-all]")
+            if back.count():
+                back.first.click(); pg.wait_for_timeout(500)
+        ok(f"{T} ③資金分流樹右欄：前 5 個族群點了真的展開、計數 5", dr == [True] * 5 and used(pg, "flow.sankey.drill") == 5, (dr, used(pg, "flow.sankey.drill")))
+        if len(rows) > 5:
+            wait_until(pg, f"() => !!document.querySelector(\"#sankeyRank .skr-r[data-gid='{rows[5]}'][data-qnote]\")", 4000)
+            pg.click(f"#sankeyRank .skr-r[data-gid='{rows[5]}']", force=True); pg.wait_for_timeout(600)
+            ok(f"{T} ③資金分流樹右欄第 6 個族群：反灰、點了不展開、沒有彈出層",
+               not pg.evaluate("() => { const p = document.getElementById('sankeyPanel'); return !!p && !p.hidden; }") and not pop(pg) and used(pg, "flow.sankey.drill") == 5)
+        c.close()
+
+    # ---------------------------------------------------------------- ④ 族群 × 法人 篩選 5 次
+    if want(4):
+        c, pg = new()
+        go(pg, "#flow/inst", "() => !!document.querySelector('#flowInstCard .ddrow[data-for=\"instGroups\"] .rotdd[data-dd=\"group\"] .ddbtn')")
+        DD = "#flowInstCard .ddrow[data-for='instGroups'] .rotdd[data-dd='group']"
+        picks, done = [], set()
+        for i in range(5):
+            pg.click(f"{DD} .ddbtn"); pg.wait_for_timeout(300)
+            # 選了族群之後清單會縮到那條鏈底下：每次從目前清單挑一個還沒選過的
+            gid = pg.evaluate(f"(done) => [...document.querySelectorAll(\"{DD} [data-g]\")].map(e => e.dataset.g).find(g => g && !done.includes(g))", list(done))
+            done.add(gid)
+            pg.locator(f"{DD} [data-g='{gid}']").first.click(); pg.wait_for_timeout(500)
+            picks.append(pg.evaluate(f"() => document.querySelector(\"{DD} .ddbtn\").innerText"))
+            if not pg.evaluate(f"() => document.querySelector(\"{DD} .ddpanel\").hidden"):
+                pg.keyboard.press("Escape"); pg.wait_for_timeout(200)
+        ok(f"{T} ④族群×法人：選 5 個不同族群，每次標籤真的換、計數 5", len(set(picks)) == 5 and used(pg, "flow.inst.filter") == 5, (picks, used(pg, "flow.inst.filter")))
+        wait_until(pg, f"() => document.querySelector(\"{DD} .ddbtn\").hasAttribute('data-qnote')", 4000)
+        qn = pg.evaluate(P12_QN, [f"{DD} .ddbtn", "flow.inst.filter"])
+        lab = pg.evaluate(f"() => document.querySelector(\"{DD} .ddbtn\").innerText")
+        pg.click(f"{DD} .ddbtn", force=True); pg.wait_for_timeout(400)
+        ok(f"{T} ④族群×法人第 6 次：族群下拉反灰＋「今日 5 次已用完・Plus 以上可增加」、點了不開、選取不變、沒有彈出層",
+           qn["q"] and qn["note"] == "今日 5 次已用完・Plus 以上可增加" and pg.evaluate(f"() => document.querySelector(\"{DD} .ddpanel\").hidden")
+           and pg.evaluate(f"() => document.querySelector(\"{DD} .ddbtn\").innerText") == lab and not pop(pg), qn)
+        shot(pg, 4)
+        c.close()
+
+    # ---------------------------------------------------------------- ⑤ 熱力圖跳頁：不開放、點了沒反應（不跳升級卡）、觀看不限
+    if want(5):
+        c, pg = new()
+        for i in range(3):
+            go(pg, "#heatmap/industry" if i % 2 == 0 else "#overview", "() => !!document.querySelector('#indHeat canvas, #ovHeat canvas, #ovHeatCard canvas')")
+        go(pg, "#heatmap/industry", "() => !!document.querySelector('#indHeat canvas')")
+        pg.wait_for_timeout(1200)
+        hit = _hp_find(pg, "#indTree", "gid")
+        h0 = pg.evaluate("() => location.hash")
+        if hit:
+            pg.mouse.click(hit[0], hit[1]); pg.wait_for_timeout(900)
+        h1 = pg.evaluate("() => location.hash")
+        ok(f"{T} ⑤熱力圖（產業頁）點方塊：網址不變、沒有升級卡、沒有任何彈出層（頂多沒反應）", bool(hit) and h1 == h0 and not pop(pg), (hit and hit[2], h0, h1))
+        ok(f"{T} ⑤熱力圖觀看不限次數：來回 3 次都沒有額度卡、全站額度不設", not pg.evaluate("() => !!document.querySelector('#indHeat [data-qlk], #indHeat .qcov')")
+           and pg.evaluate("() => TwPerm.lim('heat.market') === Infinity && TwPerm.lim('quota.all') === Infinity"))
+        shot(pg, 5)
+        c.close()
+
+    # ---------------------------------------------------------------- ⑥ 題材：點熱力圖後下方剖析 5 個題材；上方熱力圖不限
+    if want(6):
+        c, pg = new()
+        go(pg, "#heatmap/theme", "() => !!document.querySelector('#themeMap canvas')")
+        pg.wait_for_timeout(1200)
+        def tile(skip, want_id=None):
+            # 每次重掃（打開下方剖析後熱力圖會縮高、方塊位置會變）：滑鼠真的移過去，拿到第一個還沒點過的題材
+            pg.evaluate("() => scrollTo(0, 0)"); pg.wait_for_timeout(300)
+            pg.evaluate(HP_HOOK, "#themeMap")
+            bxx = pg.locator("#themeMap canvas").first.bounding_box()
+            for j in range(5):
+                for i in range(8):
+                    x = bxx["x"] + bxx["width"] * (i + 0.5) / 8; y = bxx["y"] + bxx["height"] * (j + 0.5) / 5
+                    pg.evaluate("() => { window.__hpOver = null; }"); pg.mouse.move(x, y); pg.wait_for_timeout(60)
+                    o = pg.evaluate("() => window.__hpOver")
+                    tid = o and (o.get("data") or {}).get("id")
+                    if tid and tid not in skip and (want_id is None or tid == want_id):
+                        return x, y, tid
+            return None
+        tiles, hs = [], []
+        for i in range(5):
+            t = tile({x[2] for x in tiles})
+            if not t:
+                break
+            tiles.append(t); pg.mouse.click(t[0], t[1]); pg.wait_for_timeout(900)
+            hs.append(pg.evaluate("() => decodeURIComponent(location.hash)"))
+        ok(f"{T} ⑥題材：前 5 個題材點了真的開下方剖析（網址換成那個題材）、計數 5",
+           len(tiles) == 5 and [h.split("/")[-1] for h in hs] == [t[2] for t in tiles] and used(pg, "heat.detail") == 5, (hs, [t[2] for t in tiles], used(pg, "heat.detail")))
+        t6 = tile({x[2] for x in tiles})
+        if t6:
+            tiles.append(t6)
+        pg.evaluate("() => scrollTo(0, 0)"); pg.wait_for_timeout(300)
+        wait_until(pg, "() => !!document.querySelector('span.qnote[data-f=\"heat.detail\"]')", 4000)
+        h5 = pg.evaluate("() => location.hash")
+        if len(tiles) > 5:
+            pg.mouse.click(tiles[5][0], tiles[5][1]); pg.wait_for_timeout(900)
+        nt0 = len(tiles) > 5
+        nt = pg.evaluate("() => { const n = document.querySelector('span.qnote[data-f=\"heat.detail\"]'); return n ? [n.textContent, parseFloat(getComputedStyle(n).fontSize), n.getClientRects().length > 0] : null; }")
+        ok(f"{T} ⑥題材第 6 個：點了沒反應（網址不變）、沒有彈出層、顏色下拉旁「今日 5 個題材已用完・Plus 以上可增加」",
+           pg.evaluate("() => location.hash") == h5 and not pop(pg) and nt and nt[0] == "今日 5 個題材已用完・Plus 以上可增加" and nt[1] >= 12 and nt[2], (h5, nt))
+        t1 = tile(set(), tiles[0][2])
+        if t1:
+            pg.mouse.click(t1[0], t1[1]); pg.wait_for_timeout(900)
+        ok(f"{T} ⑥題材：今天看過的第 1 個題材照樣點得開；上方熱力圖照常（不限次數、不反灰）",
+           pg.evaluate("() => decodeURIComponent(location.hash)").endswith(tiles[0][2]) and not pg.evaluate("() => document.getElementById('themeMap').hasAttribute('data-qnote')"))
+        pg.evaluate("() => scrollTo(0, 0)"); pg.wait_for_timeout(300)
+        shot(pg, 6)
+        c.close()
+
+    # ---------------------------------------------------------------- ⑦ 產業地圖：上方分頁 3 個、子分頁 3 個、3D 3 次、關聯圖反灰
+    if want(7):
+        c, pg = new()
+        go(pg, "#industry/semiconductor", "() => document.querySelectorAll('#dgPick a[data-dgid]').length >= 4 && !!document.querySelector('#dgPick a.sel')")
+        pg.wait_for_timeout(1200)
+        dgs = pg.evaluate("() => [...document.querySelectorAll('#dgPick a[data-dgid]')].map(a => a.dataset.dgid)")
+        sels = []
+        for dg in dgs[1:3]:
+            pg.click(f"#dgPick a[data-dgid='{dg}']"); pg.wait_for_timeout(1200)
+            sels.append(pg.evaluate("() => (document.querySelector('#dgPick a.sel') || {}).dataset.dgid"))
+        ok(f"{T} ⑦子分頁：第 1～3 張剖析圖都真的切過去、計數 3", sels == dgs[1:3] and used(pg, "ind.diagram") == 3, (sels, used(pg, "ind.diagram")))
+        wait_until(pg, f"() => !!document.querySelector(\"#dgPick a[data-dgid='{dgs[3]}'][data-qnote]\")", 4000)
+        qn = pg.evaluate(P12_QN, [f"#dgPick a[data-dgid='{dgs[3]}']", "ind.diagram"])
+        pg.click(f"#dgPick a[data-dgid='{dgs[3]}']", force=True); pg.wait_for_timeout(900)
+        s4 = pg.evaluate("() => (document.querySelector('#dgPick a.sel') || {}).dataset.dgid")
+        ok(f"{T} ⑦子分頁第 4 張：反灰＋「今日 3 個子分頁已用完・Plus 以上可增加」、點了不切、沒有彈出層",
+           qn["q"] and qn["note"] == "今日 3 個子分頁已用完・Plus 以上可增加" and s4 == dgs[2] and not pop(pg), (qn, s4))
+        seen0 = pg.evaluate(f"() => !document.querySelector(\"#dgPick a[data-dgid='{dgs[0]}']\").hasAttribute('data-qnote')")
+        pg.click(f"#dgPick a[data-dgid='{dgs[0]}']"); pg.wait_for_timeout(1000)
+        ok(f"{T} ⑦子分頁：今天看過的第 1 張沒反灰、點得回去", seen0 and pg.evaluate("() => (document.querySelector('#dgPick a.sel') || {}).dataset.dgid") == dgs[0])
+        ok(f"{T} ⑦2D／3D：3D 每日 3 次（跟子分頁同一級距）", pg.evaluate("() => TwPerm.lim('ind.3d')") == 3)
+        # 供應鏈關聯圖：反灰（inline 一行字、不蓋大卡）、點不動
+        pg.evaluate("() => { const r = document.getElementById('relSec'); if (r) r.scrollIntoView({ block: 'center' }); }"); pg.wait_for_timeout(800)
+        wait_until(pg, "() => { const r = document.getElementById('relSec'); return !!r && r.hasAttribute('data-plk'); }", 5000)
+        rl = pg.evaluate(P12_INL, "#relSec")
+        kid = pg.evaluate("() => { const k = [...document.getElementById('relSec').children].find(x => !x.classList.contains('qcov')); return k ? { inert: !!k.inert, op: +getComputedStyle(k).opacity } : null; }")
+        ok(f"{T} ⑦供應鏈關聯圖：整塊反灰（點不到）＋一行「Plus 以上可使用供應鏈關聯圖」、沒有大卡",
+           rl["on"] and "Plus 以上可使用供應鏈關聯圖" in rl["txt"] and not rl["big"] and kid and kid["inert"] and kid["op"] < 0.6, (rl, kid))
+        shot(pg, 7, name="p07b.png")
+        # 上方分頁（產業鏈）：已經算了半導體＝1，再進 2 條＝3，第 4 條反灰
+        pg.evaluate("() => scrollTo(0, 0)"); pg.wait_for_timeout(300)
+        chains = pg.evaluate("() => [...document.querySelectorAll('#chainSwitch button[data-c]')].map(b => b.dataset.c).filter(c => c !== '_all' && c !== 'semiconductor')")
+        hs = []
+        for cid in chains[:2]:
+            pg.click(f"#chainSwitch button[data-c='{cid}']"); pg.wait_for_timeout(1500)
+            hs.append(pg.evaluate("() => location.hash"))
+        ok(f"{T} ⑦上方分頁：第 2、3 條產業鏈真的換過去、計數 3", [h.split("/")[1] for h in hs] == chains[:2] and used(pg, "ind.groups") == 3, (hs, used(pg, "ind.groups")))
+        wait_until(pg, f"() => !!document.querySelector(\"#chainSwitch button[data-c='{chains[2]}'][data-qnote]\")", 4000)
+        qn = pg.evaluate(P12_QN, [f"#chainSwitch button[data-c='{chains[2]}']", "ind.groups"])
+        h3 = pg.evaluate("() => location.hash")
+        pg.click(f"#chainSwitch button[data-c='{chains[2]}']", force=True); pg.wait_for_timeout(900)
+        ok(f"{T} ⑦上方分頁第 4 條：反灰＋「今日 3 個產業分頁已用完・Plus 以上可增加」、點了網址不變、沒有彈出層",
+           qn["q"] and qn["note"] == "今日 3 個產業分頁已用完・Plus 以上可增加" and pg.evaluate("() => location.hash") == h3 and not pop(pg), qn)
+        ok(f"{T} ⑦上方分頁：「全市場」與看過的半導體不反灰", pg.evaluate("() => !document.querySelector(\"#chainSwitch button[data-c='_all']\").hasAttribute('data-qnote') && !document.querySelector(\"#chainSwitch button[data-c='semiconductor']\").hasAttribute('data-qnote')"))
+        il = pg.evaluate(P12_INL, "#dgSec")
+        ok(f"{T} ⑦新進的產業鏈預設那張圖今天沒看過（子分頁已用完）：剖析圖反灰＋一行字、不蓋大卡",
+           il["on"] and "今日 3 個子分頁已用完" in il["txt"] and not il["big"], il)
+        shot(pg, 7)
+        c.close()
+
+    # ---------------------------------------------------------------- ⑧⑨⑩ 市場明細：三個分頁觀看各 5 次、漲跌家數篩選 5 次
+    for n, k, h, nm in ((8, "mkt.updown", "#market/updown", "漲跌家數"), (9, "mkt.streak", "#market/streak", "法人連續買賣超"), (10, "mkt.ma", "#market/ma", "站上均線")):
+        if not want(n):
+            continue
+        c, pg = new(seed={k: 4})
+        go(pg, h, "() => !!document.getElementById('mktBody') && document.getElementById('mktBody').innerText.length > 20")
+        pg.wait_for_timeout(800)
+        a = pg.evaluate(P12_INL, "#mktBody")
+        ok(f"{T} {'⑧⑨⑩'[n - 8]}{nm}第 5 次進來：內容照常、計數 5", not a["on"] and not a["big"] and used(pg, k) == 5, (a, used(pg, k)))
+        if n == 8:
+            # 篩選：全部／上市／上櫃、含 ETF、族群 —— 每改一次算一次
+            st = []
+            for sel in ("#distMkt button[data-m='TWSE']", "#distMkt button[data-m='TPEX']", "#distMkt button[data-m='']", "#distEtf", "#distEtf"):
+                t0 = pg.evaluate("() => document.getElementById('mktDuo').innerText.slice(0, 120)")
+                pg.click(sel); pg.wait_for_timeout(500)
+                st.append(pg.evaluate("() => document.getElementById('mktDuo').innerText.slice(0, 120)") != t0)
+            ok(f"{T} ⑧漲跌家數篩選：前 5 次（上市、上櫃、全部、含 ETF 開、關）圖真的換、計數 5", st == [True] * 5 and used(pg, "mkt.updown.filter") == 5, (st, used(pg, "mkt.updown.filter")))
+            wait_until(pg, "() => document.querySelector('#distMkt button[data-m=\"TWSE\"]').hasAttribute('data-qnote')", 4000)
+            qn = pg.evaluate(P12_QN, ["#distMkt button[data-m='TWSE']", "mkt.updown.filter"])
+            t0 = pg.evaluate("() => document.getElementById('mktDuo').innerText.slice(0, 120)")
+            pg.click("#distMkt button[data-m='TWSE']", force=True); pg.click("#distEtf", force=True); pg.click("#distGroupDD .twms-btn", force=True); pg.wait_for_timeout(500)
+            ok(f"{T} ⑧漲跌家數篩選第 6 次：篩選列反灰＋「今日 5 次已用完・Plus 以上可增加」、點了圖不變、族群下拉不開、含 ETF 不勾、沒有彈出層",
+               qn["q"] and qn["note"] == "今日 5 次已用完・Plus 以上可增加" and pg.evaluate("() => document.getElementById('mktDuo').innerText.slice(0, 120)") == t0
+               and not pg.evaluate("() => document.getElementById('distEtf').checked") and not pg.evaluate("() => document.getElementById('distGroupDD').classList.contains('open')") and not pop(pg), qn)
+            shot(pg, 8, name="p08b.png")
+        # 開新分頁＝第 6 次
+        pg2 = c.new_page(); pg2.on("pageerror", lambda e: errs.append(str(e)))
+        go(pg2, h, "() => !!document.getElementById('mktBody') && document.getElementById('mktBody').hasAttribute('data-qlk')")
+        pg2.wait_for_timeout(600)
+        a2 = pg2.evaluate(P12_INL, "#mktBody")
+        ok(f"{T} {'⑧⑨⑩'[n - 8]}{nm}第 6 次（新分頁）：內容反灰＋一行「{nm}今日 5 次已用完・Plus 以上可增加」、不蓋大卡、沒有彈出層、點不動",
+           a2["on"] and f"{nm}今日 5 次已用完・Plus 以上可增加" in a2["txt"] and not a2["big"] and not pop(pg2)
+           and pg2.evaluate("() => { const k = [...document.getElementById('mktBody').children].find(x => !x.classList.contains('qcov')); return !!k && getComputedStyle(k).pointerEvents === 'none'; }"), a2)
+        shot(pg2, n)
+        c.close()
+
+    # ---------------------------------------------------------------- ⑪ 今日關注：不開放
+    if want(11):
+        c, pg = new()
+        go(pg, "#market/cand", "() => !!document.querySelector('#mktBody #candLock, #mktBody tr[data-code]')")
+        r = pg.evaluate("() => ({ txt: (document.getElementById('candLock') || {}).innerText || '', rows: document.querySelectorAll('#mktBody tr[data-code]').length })")
+        ok(f"{T} ⑪今日關注：原位置反灰示意＋「Plus 以上可查看今日關注」、名單 0 檔、沒有彈出層", "Plus 以上可查看今日關注" in r["txt"] and r["rows"] == 0 and not pop(pg), r)
+        shot(pg, 11)
+        c.close()
+
+    # ---------------------------------------------------------------- ⑫ 選股策略：觀看 5 次、篩選 5 次
+    if want(12):
+        c, pg = new(seed={"explore.page": 4})
+        go(pg, "#explore", "() => !!document.getElementById('slTagDd')", 25000)
+        a = pg.evaluate(P12_INL, "#v-explore")
+        ok(f"{T} ⑫選股策略第 5 次進來：照常、計數 5", not a["on"] and used(pg, "explore.page") == 5, (a, used(pg, "explore.page")))
+        ns = []
+        for i in range(5):
+            if not pg.evaluate("() => !!document.querySelector('#v-explore input[data-tag]') && document.querySelector('#v-explore input[data-tag]').getClientRects().length > 0"):
+                pg.click("#slTagDd"); pg.wait_for_timeout(300)
+            n0 = pg.evaluate("() => document.getElementById('slGrid') ? document.getElementById('slGrid').innerText.length : 0")
+            pg.locator("#v-explore input[data-tag]").nth(i).click(); pg.wait_for_timeout(500)
+            ns.append(pg.evaluate("() => document.querySelectorAll('#v-explore input[data-tag]:checked').length"))
+        ok(f"{T} ⑫選股策略篩選：前 5 次勾子標籤真的勾上、計數 5", ns == [1, 2, 3, 4, 5] and used(pg, "explore.filter") == 5, (ns, used(pg, "explore.filter")))
+        wait_until(pg, "() => document.getElementById('slTagDd').hasAttribute('data-qnote')", 4000)
+        qn = pg.evaluate(P12_QN, ["#slTagDd", "explore.filter"])
+        if pg.evaluate("() => !!document.querySelector('#v-explore input[data-tag]') && document.querySelector('#v-explore input[data-tag]').getClientRects().length > 0"):
+            pg.locator("#v-explore input[data-tag]").nth(5).click(force=True); pg.wait_for_timeout(400)
+        ok(f"{T} ⑫選股策略篩選第 6 次：篩選鈕反灰＋「今日 5 次已用完・Plus 以上可增加」、勾不下去、沒有彈出層",
+           qn["q"] and qn["note"] == "今日 5 次已用完・Plus 以上可增加" and pg.evaluate("() => document.querySelectorAll('#v-explore input[data-tag]:checked').length") == 5 and not pop(pg), qn)
+        shot(pg, 12, name="p12b.png")
+        pg2 = c.new_page(); pg2.on("pageerror", lambda e: errs.append(str(e)))
+        go(pg2, "#explore", "() => document.getElementById('v-explore').hasAttribute('data-qlk')", 25000)
+        a2 = pg2.evaluate(P12_INL, "#v-explore")
+        ok(f"{T} ⑫選股策略第 6 次（新分頁）：整頁反灰＋一行「選股策略今日 5 次已用完・Plus 以上可增加」、不蓋大卡",
+           a2["on"] and "選股策略今日 5 次已用完・Plus 以上可增加" in a2["txt"] and not a2["big"] and not pop(pg2), a2)
+        shot(pg2, 12)
+        c.close()
+
+    # ---------------------------------------------------------------- ⑬ ETF 總覽：觀看 3 次、分類分頁 3 個、報酬比較期間反灰
+    if want(13):
+        c, pg = new(seed={"etf.list": 2})
+        go(pg, "#etf/list", "() => document.querySelector('#v-etf') && document.querySelector('#v-etf').dataset.ready === 'full' && document.querySelectorAll('#etfCatSeg button[data-v]').length >= 4", 25000)
+        ok(f"{T} ⑬ETF 總覽第 3 次進來：照常、計數 3", not pg.evaluate(P12_INL, "#etfListCard")["on"] and used(pg, "etf.list") == 3, used(pg, "etf.list"))
+        cats = pg.evaluate("() => [...document.querySelectorAll('#etfCatSeg button[data-v]')].filter(b => !b.classList.contains('on')).map(b => b.dataset.v)")
+        ons = []
+        for v in cats[:3]:
+            pg.click(f"#etfCatSeg button[data-v='{v}']"); pg.wait_for_timeout(600)
+            ons.append(pg.evaluate("() => (document.querySelector('#etfCatSeg button.on') || {}).dataset.v"))
+        ok(f"{T} ⑬ETF 分類分頁：前 3 個真的切過去、計數 3", ons == cats[:3] and used(pg, "etf.list.tab") == 3, (ons, used(pg, "etf.list.tab")))
+        if len(cats) > 3:
+            wait_until(pg, f"() => !!document.querySelector(\"#etfCatSeg button[data-v='{cats[3]}'][data-qnote]\")", 4000)
+            qn = pg.evaluate(P12_QN, [f"#etfCatSeg button[data-v='{cats[3]}']", "etf.list.tab"])
+            pg.click(f"#etfCatSeg button[data-v='{cats[3]}']", force=True); pg.wait_for_timeout(500)
+            ok(f"{T} ⑬ETF 分類第 4 個：反灰＋「今日 3 個分頁已用完・Plus 以上可增加」、點了不切、沒有彈出層",
+               qn["q"] and qn["note"] == "今日 3 個分頁已用完・Plus 以上可增加" and pg.evaluate("() => (document.querySelector('#etfCatSeg button.on') || {}).dataset.v") == cats[2] and not pop(pg), qn)
+            pg.click(f"#etfCatSeg button[data-v='{cats[0]}']"); pg.wait_for_timeout(500)
+            ok(f"{T} ⑬ETF 分類：今天看過的分類照樣點得回去", pg.evaluate("() => (document.querySelector('#etfCatSeg button.on') || {}).dataset.v") == cats[0])
+        pg.evaluate("() => document.getElementById('etfRetCard').scrollIntoView({ block: 'center' })"); pg.wait_for_timeout(600)
+        wait_until(pg, "() => document.getElementById('etfRngBox').hasAttribute('data-plgray')", 4000)
+        g = pg.evaluate(P12_GRAY, "#etfRngBox")
+        r0 = pg.evaluate("() => document.getElementById('etfRngBox').innerText + '|' + [...document.querySelectorAll('#etfRngBox input, #etfRngBox select')].map(i => i.value).join(',')")
+        sel = pg.locator("#etfRngBox select").first
+        if sel.count():
+            sel.click(force=True); pg.wait_for_timeout(300); pg.keyboard.press("ArrowDown"); pg.keyboard.press("Enter"); pg.wait_for_timeout(500)
+        pg.locator("#etfRngBox input").first.click(force=True); pg.keyboard.type("2020"); pg.wait_for_timeout(500)
+        r1 = pg.evaluate("() => document.getElementById('etfRngBox').innerText + '|' + [...document.querySelectorAll('#etfRngBox input, #etfRngBox select')].map(i => i.value).join(',')")
+        ok(f"{T} ⑬報酬比較「期間＋起訖日期」整塊反灰＋「Plus 以上可調整期間」；點下拉、打日期都不變、沒有彈出層",
+           g and g["gray"] and g["inert"] and g["note"] == "Plus 以上可調整期間" and g["nv"] and r1 == r0 and not pop(pg), (g, r0, r1))
+        shot(pg, 13, "#etfRetCard", name="p13b.png")
+        pg2 = c.new_page(); pg2.on("pageerror", lambda e: errs.append(str(e)))
+        go(pg2, "#etf/list", "() => document.getElementById('etfListCard') && document.getElementById('etfListCard').hasAttribute('data-qlk')", 25000)
+        a2 = pg2.evaluate(P12_INL, "#etfListCard")
+        ok(f"{T} ⑬ETF 總覽第 4 次（新分頁）：清單反灰＋一行「ETF 總覽今日 3 次已用完・Plus 以上可增加」、不蓋大卡",
+           a2["on"] and "ETF 總覽今日 3 次已用完・Plus 以上可增加" in a2["txt"] and not a2["big"] and not pop(pg2), a2)
+        shot(pg2, 13)
+        c.close()
+
+    # ---------------------------------------------------------------- ⑭ 現金流試算：觀看 3 次、參數列反灰、單檔右側篩選不開放
+    if want(14):
+        c, pg = new(seed={"etf.cashflow": 2})
+        go(pg, "#etf/inc", "() => document.getElementById('etfInc') && document.getElementById('etfInc').hasAttribute('data-inclk') && !!document.getElementById('incSearch')", 25000)
+        ok(f"{T} ⑭現金流試算第 3 次進來：照常、計數 3", not pg.evaluate(P12_INL, "#etfInc")["on"] and used(pg, "etf.cashflow") == 3, used(pg, "etf.cashflow"))
+        k0 = pg.evaluate(ETFL_K)
+        lk = pg.evaluate("() => ({ note: (document.querySelector('#incPM .incctl > .inclknote') || {}).innerText || '', rnote: (document.querySelector('#incListBox > .inclknote') || {}).innerText || '' })")
+        amts = pg.evaluate("() => [...document.querySelectorAll('#incAmtSeg button')].map(b => b.dataset.v)")
+        if amts:
+            pg.click(f"#incAmtSeg button[data-v='{amts[0]}']", force=True); pg.wait_for_timeout(500)
+        q0 = pg.evaluate("() => ({ q: document.getElementById('incSearch').value, fq: (document.querySelector('#incFq button.on') || {}).dataset.v, ck: [...document.querySelectorAll('#incList .ilr > input')].slice(0, 8).map(i => i.checked) })")
+        pg.locator("#incSearch").click(force=True); pg.keyboard.type("0056"); pg.wait_for_timeout(400)
+        pg.click("#incFq button[data-v='月配']", force=True); pg.wait_for_timeout(400)
+        pg.locator("#incList .ilr > input").nth(6).click(force=True); pg.wait_for_timeout(500)
+        q1 = pg.evaluate("() => ({ q: document.getElementById('incSearch').value, fq: (document.querySelector('#incFq button.on') || {}).dataset.v, ck: [...document.querySelectorAll('#incList .ilr > input')].slice(0, 8).map(i => i.checked) })")
+        ok(f"{T} ⑭參數列整條反灰＋「🔒 Plus 以上可自訂參數」；點金額 → 試算不變",
+           "Plus 以上可自訂參數" in lk["note"] and pg.evaluate(ETFL_K) == k0 and not pg.evaluate(ETFL_POP), (lk, k0))
+        ok(f"{T} ⑭單檔 ETF 右側篩選：搜尋框打不了字、配息頻率點不動、勾選清單勾不下去、上方同樣一行小字", q1 == q0 and "Plus 以上可自訂參數" in lk["rnote"], (q0, q1, lk))
+        shot(pg, 14, name="p14b.png")
+        pg2 = c.new_page(); pg2.on("pageerror", lambda e: errs.append(str(e)))
+        go(pg2, "#etf/inc", "() => document.getElementById('etfInc') && document.getElementById('etfInc').hasAttribute('data-qlk')", 25000)
+        a2 = pg2.evaluate(P12_INL, "#etfInc")
+        ok(f"{T} ⑭現金流試算第 4 次（新分頁）：反灰＋一行「現金流試算今日 3 次已用完・Plus 以上可增加」、不蓋大卡",
+           a2["on"] and "現金流試算今日 3 次已用完・Plus 以上可增加" in a2["txt"] and not a2["big"] and not pop(pg2), a2)
+        shot(pg2, 14)
+        c.close()
+
+    # ---------------------------------------------------------------- ⑮ 週期統計：觀看 10 次、篩選 10 次
+    if want(15):
+        c, pg = new(seed={"season.month": 9, "season.pick": 9, "season.groups": 9})
+        go(pg, "#season", "() => !!document.querySelector('#seasonView button[data-v=\"line\"]')")
+        ok(f"{T} ⑮週期統計第 10 次進來：照常、計數 10", not pg.evaluate(P12_INL, "#v-season")["on"] and used(pg, "season.month") == 10, used(pg, "season.month"))
+        pg.click("#seasonView button[data-v=\"line\"]"); pg.wait_for_timeout(1200)
+        pg.click("#seasonGroupDD .ddbtn"); pg.wait_for_timeout(300)
+        lab0 = pg.evaluate("() => document.querySelector('#seasonGroupDD .ddbtn').innerText")
+        pg.locator("#seasonGroupDD .ddpanel input[data-n]").nth(6).check(); pg.wait_for_timeout(300)
+        pg.click("#seasonGroupDD .ddbtn"); pg.wait_for_timeout(300)
+        ok(f"{T} ⑮族群篩選第 10 次：選取真的變、計數 10", pg.evaluate("() => document.querySelector('#seasonGroupDD .ddbtn').innerText") != lab0 and used(pg, "season.groups") == 10)
+        wait_until(pg, "() => document.querySelector('#seasonGroupDD .ddbtn').hasAttribute('data-qnote')", 4000)
+        pg.click("#seasonGroupDD .ddbtn", force=True); pg.wait_for_timeout(400)
+        ok(f"{T} ⑮族群篩選第 11 次：下拉反灰、點了不開、沒有彈出層",
+           pg.evaluate("() => document.querySelector('#seasonGroupDD .ddpanel').hidden") and not pop(pg) and used(pg, "season.groups") == 10)
+        # 切換對象（本月最強／最弱／只留平均線）：第 10 次真的換、第 11 次（另一個沒看過的）反灰點不動
+        vs = pg.evaluate("() => [...document.querySelectorAll('#seasonPick button')].filter(b => !b.classList.contains('on')).map(b => b.dataset.v)")
+        pg.click(f"#seasonPick button[data-v='{vs[0]}']"); pg.wait_for_timeout(600)
+        on1 = pg.evaluate("() => (document.querySelector('#seasonPick button.on') || {}).dataset.v")
+        ok(f"{T} ⑮切換對象第 10 次：真的換（{vs[0]}）、計數 10", on1 == vs[0] and used(pg, "season.pick") == 10, (on1, used(pg, "season.pick")))
+        wait_until(pg, f"() => !!document.querySelector(\"#seasonPick button[data-v='{vs[1]}'][data-qnote]\")", 4000)
+        qn = pg.evaluate(P12_QN, [f"#seasonPick button[data-v='{vs[1]}']", "season.pick"])
+        pg.click(f"#seasonPick button[data-v='{vs[1]}']", force=True); pg.wait_for_timeout(500)
+        ok(f"{T} ⑮切換對象第 11 次：沒看過的那顆反灰＋「今日 10 次已用完・Plus 以上可增加」、點了不換、沒有彈出層",
+           qn["q"] and qn["note"] == "今日 10 次已用完・Plus 以上可增加" and pg.evaluate("() => (document.querySelector('#seasonPick button.on') || {}).dataset.v") == vs[0] and not pop(pg), qn)
+        shot(pg, 15, name="p15b.png")
+        pg2 = c.new_page(); pg2.on("pageerror", lambda e: errs.append(str(e)))
+        go(pg2, "#season", "() => document.getElementById('v-season').hasAttribute('data-qlk')")
+        a2 = pg2.evaluate(P12_INL, "#v-season")
+        ok(f"{T} ⑮週期統計第 11 次（新分頁）：整頁反灰＋一行「週期統計今日 10 次已用完・Plus 以上可增加」、不蓋大卡",
+           a2["on"] and "週期統計今日 10 次已用完・Plus 以上可增加" in a2["txt"] and not a2["big"] and not pop(pg2), a2)
+        shot(pg2, 15)
+        c.close()
+
+    # ---------------------------------------------------------------- ⑯ 搜尋 10 次
+    if want(16):
+        c, pg = new(seed={"search": 9})
+        go(pg, "#overview")
+        pg.click("#q"); pg.keyboard.type("2317"); pg.wait_for_timeout(500); pg.keyboard.press("Enter")
+        okj = wait_until(pg, "() => location.hash === '#stock/2317'", 8000)
+        ok(f"{T} ⑯搜尋第 10 次：打 2317 按 Enter 真的進個股頁、計數 10", bool(okj) and used(pg, "search") == 10, (pg.evaluate("() => location.hash"), used(pg, "search")))
+        go(pg, "#overview")
+        wait_until(pg, "() => document.getElementById('q').hasAttribute('data-qnote')", 4000)
+        qn = pg.evaluate(P12_QN, ["#q", "search"])
+        pg.click("#q", force=True); pg.keyboard.type("2330"); pg.wait_for_timeout(400); pg.keyboard.press("Enter"); pg.wait_for_timeout(800)
+        r = pg.evaluate("() => ({ h: location.hash, v: document.getElementById('q').value, ro: document.getElementById('q').readOnly })")
+        ok(f"{T} ⑯搜尋第 11 次：搜尋框反灰、打不了字（readOnly）、旁邊「今日搜尋 10 次已用完・Plus 以上可增加」、按 Enter 網址不變、沒有彈出層",
+           qn["q"] and qn["note"] == "今日搜尋 10 次已用完・Plus 以上可增加" and r["ro"] and r["v"] == "" and r["h"] == "#overview" and not pop(pg), (qn, r))
+        shot(pg, 16)
+        c.close()
+
+    # ---------------------------------------------------------------- ⑰ 額度上限面板列得出新項目，依母分頁分組
+    if want(17):
+        c, pg = new(seed={"earn.click": 5, "flow.filter": 2})
+        go(pg, "#overview")
+        _bill_open_desk(pg)
+        pg.click("#acctMenu [data-d=quota]")
+        wait_until(pg, "() => { const d = document.getElementById('m4Quota'); return !!d && !d.hidden; }", 4000)
+        pg.evaluate("() => document.querySelectorAll('#m4Quota .qgh[aria-expanded=\"false\"]').forEach(b => b.click())"); pg.wait_for_timeout(300)
+        rows = pg.evaluate("() => Object.fromEntries([...document.querySelectorAll('#m4Quota .qi[data-id]')].map(e => [e.dataset.id, [e.closest('.qg').dataset.pg, e.innerText.replace(/\\s+/g, ' ')]]))")
+        wantg = {"earn.click": "earnings", "etf.cal.click": "etf", "flow.rank.click": "flow", "flow.filter": "flow", "mkt.updown.filter": "market", "mkt.updown": "market",
+                 "mkt.streak": "market", "mkt.ma": "market", "season.month": "season", "season.pick": "season", "search": None, "ind.groups": "industry", "ind.diagram": "industry",
+                 "heat.detail": "heatmap", "explore.page": "explore", "etf.list.tab": "etf"}
+        bad = {k: rows.get(k) for k, g in wantg.items() if k not in rows or (g and rows[k][0] != g)}
+        ok(f"{T} 額度上限面板：16 點的新項目都列出來、依母分頁分組（財經日曆／資金流向／市場明細／週期統計／產業地圖／ETF…）", not bad, bad)
+        offs = ["flow.play", "mkt.cand", "heat.link", "ind.rel", "etf.ret.period", "etf.inc.params"]
+        # 方案名讀假 Worker 的方案清單（這裡是「399 即時」），寫成「<最低有開的方案> 會員」膠囊、不寫已用幾次
+        ok(f"{T} 額度上限面板：反灰（不開放）的 6 項也列出來、寫「… 會員」膠囊", all(k in rows and "會員" in rows[k][1] and "已用" not in rows[k][1] for k in offs), {k: rows.get(k) for k in offs})
+        ok(f"{T} 額度上限面板：財經日曆點擊「已用 5／5」、上方篩選「已用 2／5」", "已用 5／5" in rows.get("earn.click", ["", ""])[1] and "已用 2／5" in rows.get("flow.filter", ["", ""])[1],
+           (rows.get("earn.click"), rows.get("flow.filter")))
+        shot(pg, 17, name="p17_quota.png")
+        c.close()
+
+    # ---------------------------------------------------------------- Plus 抽 5 點：都能用
+    if want(18):
+        c, pg = new(plan="plus")
+        go(pg, "#flow/rotation", "() => !!document.querySelector('#rotBack input')")
+        v0 = pg.evaluate("() => document.querySelector('#rotBack input').value")
+        pg.click("#rotBack .pb.step >> nth=0"); pg.wait_for_timeout(500)
+        ok(f"{T}【Plus】③時間列沒反灰、按 − 天數真的變", not pg.evaluate("() => document.getElementById('flowRotTime').hasAttribute('data-plgray')")
+           and pg.evaluate("() => document.querySelector('#rotBack input').value") != v0)
+        go(pg, "#market/cand", "() => !!document.querySelector('#mktBody #candLock, #mktBody tr[data-code]')")
+        ok(f"{T}【Plus】⑪今日關注名單照常", pg.evaluate("() => document.querySelectorAll('#mktBody tr[data-code]').length") > 0 and not pg.evaluate("() => !!document.getElementById('candLock')"))
+        go(pg, "#industry/semiconductor", "() => !!document.getElementById('relSec')")
+        pg.evaluate("() => document.getElementById('relSec').scrollIntoView({ block: 'center' })"); pg.wait_for_timeout(800)
+        ok(f"{T}【Plus】⑦供應鏈關聯圖沒反灰", not pg.evaluate("() => document.getElementById('relSec').hasAttribute('data-plk')"))
+        go(pg, "#etf/inc", "() => !!document.getElementById('incSearch') && !!document.querySelector('#incAmtSeg button')", 25000)
+        k0 = pg.evaluate(ETFL_K)
+        amts = pg.evaluate("() => [...document.querySelectorAll('#incAmtSeg button')].map(b => b.dataset.v)")
+        on = pg.evaluate("() => (document.querySelector('#incAmtSeg button.on') || {}).dataset.v")
+        pg.click(f"#incAmtSeg button[data-v='{[a for a in amts if a != on][0]}']"); pg.wait_for_timeout(800)
+        ok(f"{T}【Plus】⑭試算參數沒鎖、改金額試算真的換", not pg.evaluate("() => document.getElementById('etfInc').hasAttribute('data-inclk')") and pg.evaluate(ETFL_K) != k0)
+        go(pg, "#overview")
+        pg.click("#q"); pg.keyboard.type("2330"); pg.wait_for_timeout(500); pg.keyboard.press("Enter")
+        ok(f"{T}【Plus】⑯搜尋不限次數、真的進個股頁", bool(wait_until(pg, "() => location.hash === '#stock/2330'", 8000)) and pg.evaluate("() => TwPerm.lim('search') === Infinity"))
+        c.close()
+
+    # ---------------------------------------------------------------- 手機 390 抽 3 點
+    if want(19):
+        c, pg = new(width=390, touch=True, seed={"mkt.updown.filter": 5, "ind.groups": 3})
+        go(pg, "#flow/rotation", "() => document.getElementById('flowRotTime') && document.getElementById('flowRotTime').hasAttribute('data-plgray')")
+        g = pg.evaluate(P12_GRAY, "#flowRotTime")
+        v0 = pg.evaluate("() => document.querySelector('#rotBack input').value")
+        if pg.evaluate("() => document.querySelector('#rotBack .pb.play').getClientRects().length > 0"):
+            pg.locator("#rotBack .pb.play").tap(force=True); pg.wait_for_timeout(900)
+        sw = pg.evaluate("() => document.documentElement.scrollWidth")
+        nb = pg.evaluate("() => { const n = document.querySelector('#flowRotTime + .plknote'); if (!n) return null; const r = n.getBoundingClientRect(); return [r.left, r.right, parseFloat(getComputedStyle(n).fontSize)]; }")
+        ok(f"{T}【手機 390】③時間列反灰＋「Plus 以上可調整」（≥12px、在螢幕內）、點 ▶ 不播、沒有橫向捲軸",
+           g and g["gray"] and g["note"] == "Plus 以上可調整" and nb and nb[0] >= 0 and nb[1] <= 391 and nb[2] >= 12 and sw <= 391
+           and pg.evaluate("() => document.querySelector('#rotBack input').value") == v0, (g, nb, sw))
+        shot(pg, 19, name="m390_flow.png")
+        # 手機的篩選收在摘要鈕打開的抽屜裡：真的點開抽屜、點「上櫃」
+        go(pg, "#market/updown", "() => !!document.getElementById('m4MkSet')")
+        wait_until(pg, "() => !!document.querySelector('span.qnote[data-f=\"mkt.updown.filter\"]')", 4000)
+        nt = pg.evaluate("() => { const n = [...document.querySelectorAll('span.qnote[data-f=\"mkt.updown.filter\"]')].find(x => x.getClientRects().length); if (!n) return null; const r = n.getBoundingClientRect(); return [n.textContent, r.left, r.right, parseFloat(getComputedStyle(n).fontSize)]; }")
+        pg.locator("#m4MkSet").tap(); pg.wait_for_timeout(600)
+        SEG = ".m4mksegs .seg[data-mk] > button"
+        t0 = pg.evaluate(f"() => [...document.querySelectorAll('{SEG}.on')].map(b => b.dataset.v).join(',')")
+        gq = pg.evaluate(f"() => [...document.querySelectorAll('{SEG}')].every(b => b.hasAttribute('data-qnote'))")
+        pg.locator(f"{SEG}[data-v='TPEX']").tap(force=True); pg.wait_for_timeout(600)
+        ok(f"{T}【手機 390】⑧漲跌家數篩選用完：頁面上小字在螢幕內（≥12px）、抽屜裡的分段鈕全反灰、點「上櫃」不換、沒有橫向捲軸、沒有彈出層",
+           gq and pg.evaluate(f"() => [...document.querySelectorAll('{SEG}.on')].map(b => b.dataset.v).join(',')") == t0 and nt and nt[1] >= 0 and nt[2] <= 391 and nt[3] >= 12
+           and pg.evaluate("() => document.documentElement.scrollWidth") <= 391 and not pop(pg), (nt, gq, t0))
+        shot(pg, 19, name="m390_mkt_sheet.png")
+        pg.keyboard.press("Escape"); pg.wait_for_timeout(400)
+        shot(pg, 19, name="m390_mkt.png")
+        go(pg, "#industry", "() => document.querySelectorAll('#chainSwitch button[data-c]').length > 3")
+        wait_until(pg, "() => !!document.querySelector('#chainSwitch button[data-c=\"semiconductor\"][data-qnote]')", 4000)
+        pg.locator("#chainSwitch button[data-c='semiconductor']").tap(force=True); pg.wait_for_timeout(800)
+        ok(f"{T}【手機 390】⑦產業分頁用完：沒看過的產業鏈反灰、點了網址不變、沒有橫向捲軸",
+           pg.evaluate("() => location.hash") == "#industry" and pg.evaluate("() => document.documentElement.scrollWidth") <= 391 and not pop(pg))
+        shot(pg, 19, name="m390_ind.png")
+        c.close()
+    # ⚠ 2026-10-12 已知、不是這批造成：資金輪動上方產業鏈／族群篩選一換，ECharts 長條圖重畫丟「Cannot read properties of undefined (reading 'width')」——
+    #   用 origin/main（這批之前）的 site/ 跑同一串操作（Plus 身分、不經過任何權限鎖）一樣會丟，已另開工作追；這裡只排除這一則，其他錯誤照抓。
+    errs2 = [e for e in errs if "reading 'width'" not in e]
+    ok(f"{T}：整段沒有 JS 錯誤（排除既有的資金輪動篩選 ECharts 錯誤）", not errs2, errs2[:3])
 
 
 # ===================================================================== 手機品牌1009（帳本 78、79；Andy 2026-10-09 22:0x）
@@ -68196,9 +69055,16 @@ Q1010_FREE = {"who": "member", "plan": "free", "planName": "免費會員", "dq":
 # ★ 2026-10-11（DECISIONS #354，Andy：「限制次數才對」）：註冊會員 11 項改成「開＋每日 3 次」（features.js limBy，範本沒寫也套用）——
 #   「只剩一組」的情境要把那 11 項在範本裡關掉（關掉的功能不補預設次數），不然額度面板會多出好幾組
 OPEN11_OFF = {k: False for k in ("flow.play", "season.groups", "mkt.cand", "stock.k_min", "stock.mtf", "stock.ind", "stock.draw", "etf.inc.params", "etf.cmp", "etf.inc.comp", "heat.link")}
+# ★ 2026-10-12（DECISIONS #358；Andy 註冊會員逐頁權限表）：額度上限面板也列「範本關掉／依身分預設關」的功能（寫「… 會員」膠囊），
+#   而且註冊會員多了一批 limBy（每日次數）—— 「只剩一組」的情境改成**中和**：預設關的功能範本明寫開（不列）、有 limBy 的範本 lims 寫 null（＝不限、不補預設次數）。
+#   以前那招「範本關掉」現在反而會多列一堆「Plus 會員」。
+FREE_NEUTRAL_FEATS = {k: True for k in ("flow.play", "mkt.cand", "heat.link", "etf.inc.params", "etf.ret.period", "ind.rel")}
+FREE_NEUTRAL_LIMS = {k: None for k in ("flow.rank.click", "flow.filter", "ind.groups", "ind.diagram", "heat.detail", "mkt.updown", "mkt.updown.filter", "mkt.streak", "mkt.ma",
+                                       "season.month", "season.groups", "season.pick", "stock.k_min", "stock.mtf", "stock.ind", "stock.draw", "explore.page", "explore.filter", "etf.list",
+                                       "etf.list.tab", "etf.cal.click", "earn.click", "flow.sankey.drill", "flow.inst.filter", "search", "news.open", "etf.cashflow", "etf.cmp", "etf.inc.comp")}
 Q1010_ONE = {"who": "member", "plan": "free", "planName": "免費會員", "dq": None,
-             "feats": {**{k: 9999 for k in ("watch.tabs", "watch.size", "mkt.grp.pick", "explore.list.n", "mkt.cand.n", "etf.returns.n")}, **OPEN11_OFF},   # 數量類一律不限 → 只剩產業地圖一組
-             "lims": {"ind.3d": 0, "ind.rel": 5}}
+             "feats": {**{k: 9999 for k in ("watch.tabs", "watch.size", "mkt.grp.pick", "explore.list.n", "mkt.cand.n", "etf.returns.n")}, **FREE_NEUTRAL_FEATS},   # 數量類一律不限 → 只剩產業地圖一組
+             "lims": {**FREE_NEUTRAL_LIMS, "ind.3d": 0, "ind.rel": 5}}
 
 Q1010_STATE = """() => { const d = document.getElementById('m4Quota'); if (!d || d.hidden) return null;
     const V = (e) => !!e && e.getClientRects().length > 0, sc = d.querySelector('.sc'), bx = d.querySelector('.bx'), ft = d.querySelector('.ft');
@@ -68250,17 +69116,21 @@ def t_m4_quota_1010(b, base, code):
         ok(f"【{T} {W}】全站每日額度排在最上面（不在任何一組裡）", s0["firstAll"], s0["txt"][:120])
         ok(f"【{T} {W}】依母分頁分組：{names}",
            len(names) >= 6 and all(x in names for x in ("資金流向", "產業地圖", "個股", "ETF", "自選", "選股策略", "市場明細", "週期統計")), names)
-        ok(f"【{T} {W}】每組標題寫項目數（「N 項」）且加總＝全部有限制的項目 21 項",
-           all(re.fullmatch(r"\d+ 項", g["n"]) for g in s0["gs"]) and sum(int(g["n"].split()[0]) for g in s0["gs"]) == 21, [(g["t"], g["n"]) for g in s0["gs"]])
+        # ★ 2026-10-12：面板多列「依身分預設關」的功能＋新鍵的訪客每日次數（limBy guest）→ 總數不寫死，跟 TwAcctM4.quotaItems() 對（扣掉最上面那一列全站額度）
+        n_all = pg.evaluate("() => { const o = TwAcctM4.quotaItems(); return o.daily.length + o.count.length; }")
+        ok(f"【{T} {W}】每組標題寫項目數（「N 項」）且加總＝全部有限制的項目 {n_all} 項",
+           n_all >= 21 and all(re.fullmatch(r"\d+ 項", g["n"]) for g in s0["gs"]) and sum(int(g["n"].split()[0]) for g in s0["gs"]) == n_all, [(g["t"], g["n"]) for g in s0["gs"]])
         ok(f"【{T} {W}】預設全部收起（aria-expanded=false、組內一列都看不到）", all(not g["ex"] and not g["vis"] and g["rows"] == 0 for g in s0["gs"]), s0["gs"])
         ok(f"【{T} {W}】分組標題高 ≥ 44（手指好點）", all(g["hh"] >= 44 for g in s0["gs"]), [g["hh"] for g in s0["gs"]])
         grp = pg.evaluate("() => ({ known: !!(TwFeatures.byId('grp.mlcc')), rows: [...document.querySelectorAll('#m4Quota .qi')].filter(q => q.dataset.id.startsWith('grp.')).length })")
         ok(f"【{T} {W}】族群觀測（grp.mlcc 有每日上限）不列進面板（跟桌機同口徑）", grp["rows"] == 0, grp)
         ok(f"【{T} {W}】面板任何地方都沒有「不開放」三個字", "不開放" not in s0["txt"], s0["txt"][:200])
         # 模擬方案：註冊會員把 3D、AI 關掉；Plus 開 3D、AI 仍關 → 訪客看到 3D「Plus 會員」、AI「Pro 會員」、其他「註冊會員」
-        want = {"ind.3d": "Plus 會員", "ind.rel": "註冊會員", "stock.ai": "Pro 會員", "etf.list": "註冊會員", "watch.tabs": "註冊會員", "etf.returns.n": "註冊會員"}
+        # ★ 2026-10-12：供應鏈關聯圖註冊會員也關了（Andy 第 7 點）→ 訪客看到「Plus 會員」；時間列、今日關注、ETF 報酬比較期間同理
+        want = {"ind.3d": "Plus 會員", "ind.rel": "Plus 會員", "stock.ai": "Pro 會員", "etf.list": "註冊會員", "watch.tabs": "註冊會員", "etf.returns.n": "註冊會員",
+                "flow.play": "Plus 會員", "mkt.cand": "Plus 會員", "etf.ret.period": "Plus 會員"}
         ok(f"【{T} {W}】上限 0 的項目寫最低有開的方案（往上找第一個有開的）：{ {k: s0['plans'].get(k) for k in want} }",
-           all(s0["plans"].get(k) == v for k, v in want.items()) and len(s0["plans"]) == 10, s0["plans"])
+           all(s0["plans"].get(k) == v for k, v in want.items()) and all(v.endswith("會員") for v in s0["plans"].values()), s0["plans"])
         ok(f"【{T} {W}】方案膠囊不是紅色、字 ≥ 12px", s0["plColor"] and "255, 107, 122" not in s0["plColor"] and s0["plFs"] >= 12, (s0["plColor"], s0["plFs"]))
         if shots and W == 390:
             pg.screenshot(path=str(pathlib.Path(shots) / "q1010_390_collapsed.png"))
@@ -68288,7 +69158,7 @@ def t_m4_quota_1010(b, base, code):
             pg.locator(f"#m4Quota .qgh[data-qg='{k}']").tap()
         pg.wait_for_timeout(250)
         s4 = pg.evaluate(Q1010_STATE)
-        ok(f"【{T} {W}】全部展開：每組都展開、21 列全看得到", all(g["ex"] for g in s4["gs"]) and sum(g["rows"] for g in s4["gs"]) == 21, [(g["k"], g["rows"]) for g in s4["gs"]])
+        ok(f"【{T} {W}】全部展開：每組都展開、{n_all} 列全看得到", all(g["ex"] for g in s4["gs"]) and sum(g["rows"] for g in s4["gs"]) == n_all, [(g["k"], g["rows"]) for g in s4["gs"]])
         ok(f"【{T} {W}】內容太長 → 面板中間有垂直捲軸（{s4['scH']}＞{s4['scC']}、overflow-y {s4['oy']}）",
            s4["scH"] > s4["scC"] + 20 and s4["oy"] in ("auto", "scroll"), (s4["scH"], s4["scC"], s4["oy"]))
         ok(f"【{T} {W}】沒有橫向捲動（面板 {s4['scW']}≤{s4['scCW']}、整頁 {s4['pageW']}≤0）",
@@ -68482,7 +69352,10 @@ def t_acct_menu_1009(b, base, code):
             const daily = Object.keys(st.lims || {}).filter(id => { const f = F.byId(id); return f && f.kind !== 'limit' && f.cat !== 'grp' && p.lim(id) !== Infinity; }).length;
             const all = p.lim('quota.all') !== Infinity ? 1 : 0;
             const cnt = F.list.filter(f => f.kind === 'limit' && p.limit(f.id, f.max) < f.max).length;
-            return { daily, all, cnt, n: daily + all + cnt }; }""")
+            /* 2026-10-12（DECISIONS #358）：面板也列「範本關掉／依身分預設關」的功能（寫「… 會員」膠囊）—— 站主專用、族群觀測、已經在每日次數裡的不重複算 */
+            const inDaily = new Set(Object.keys(st.lims || {}).filter(id => { const f = F.byId(id); return f && f.kind !== 'limit' && f.cat !== 'grp' && p.lim(id) !== Infinity; }));
+            const off = F.list.filter(f => f.kind !== 'limit' && !f.adminOnly && f.cat !== 'grp' && !inDaily.has(f.id) && !p.can(f.id)).length;
+            return { daily, all, cnt, off, n: daily + all + cnt + off }; }""")
         perm = ACCTM4_WHO[who][1]
         want_daily = 0 if who == "owner" else len(perm["lims"])
         want_all = 0 if who == "owner" or perm.get("dq") is None else 1
@@ -68859,8 +69732,9 @@ def t_etf_inc_free_1010(b, base):
             else:
                 cov = wait_until(pg, "() => { const e = document.getElementById('etfInc'); const n = e && e.hasAttribute('data-qlk') && e.querySelector(':scope > .qcov .qcnote'); return n ? n.innerText : ''; }", 12000)
                 big = pg.evaluate("() => !!document.querySelector('#etfInc > .qcov .qc-go, #etfInc > .qcov .qc-h')")
-                ok(f"{T}【免費會員】第 6 次：試算位置一行字「今日次數已用完・Plus 以上可增加」（不是大卡、沒有升級大按鈕）、沒有彈出層",
-                   "今日次數已用完" in (cov or "") and "Plus 以上可增加" in (cov or "") and not big and not pg.evaluate(ETFL_POP), (cov, big, pg.evaluate(ETFL_POP)))
+                # ★ 2026-10-12（DECISIONS #358）：字改成「現金流試算今日 N 次已用完・Plus 以上可增加」（每個分頁觀看限制都寫自己的名字與次數）
+                ok(f"{T}【免費會員】第 6 次：試算位置一行字「現金流試算今日 5 次已用完・Plus 以上可增加」（不是大卡、沒有升級大按鈕）、沒有彈出層",
+                   "今日 5 次已用完" in (cov or "") and "Plus 以上可增加" in (cov or "") and not big and not pg.evaluate(ETFL_POP), (cov, big, pg.evaluate(ETFL_POP)))
                 if os.environ.get("TW_ETFL_SHOTS"):
                     pathlib.Path(os.environ["TW_ETFL_SHOTS"]).mkdir(parents=True, exist_ok=True)
                     pg.wait_for_timeout(600); pg.screenshot(path=str(pathlib.Path(os.environ["TW_ETFL_SHOTS"]) / "free_6th_used_up_1440.png"))
@@ -69309,8 +70183,8 @@ WS_FREE = {"who": "member", "plan": "free", "planName": "免費會員", "dq": 40
            "lims": {"ind.3d": 0, "stock.ai": 0, "ind.rel": 5, "heat.detail": 10, "stock.page": 10, "flow.sankey.drill": 3, "flow.inst.filter": 5, "earn.tab": 3,
                     "explore.filter": 2, "etf.calendar.tab": 3, "etf.list.tab": 5, "season.pick": 3, "events": 3, "etf.list": 0}}
 WS_ONE = {"who": "member", "plan": "free", "planName": "免費會員", "dq": None,
-          "feats": {**{k: 9999 for k in ("watch.tabs", "watch.size", "mkt.grp.pick", "explore.list.n", "mkt.cand.n", "etf.returns.n")}, **OPEN11_OFF},   # 2026-10-11：11 項限次開放的關掉（見 OPEN11_OFF）
-          "lims": {"ind.3d": 0, "ind.rel": 5}}
+          "feats": {**{k: 9999 for k in ("watch.tabs", "watch.size", "mkt.grp.pick", "explore.list.n", "mkt.cand.n", "etf.returns.n")}, **FREE_NEUTRAL_FEATS},   # 2026-10-12：中和成只剩產業地圖一組（見 FREE_NEUTRAL_*）
+          "lims": {**FREE_NEUTRAL_LIMS, "ind.3d": 0, "ind.rel": 5}}
 WS_DEL_EMAIL = "delme@example.com"
 
 

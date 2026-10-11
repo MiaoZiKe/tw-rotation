@@ -33,6 +33,13 @@
      註冊會員原本關掉的 11 項（▶ 播放、週期統計族群篩選、今日關注、分 K、四週期同看、指標設定、畫線、ETF 試算自訂參數、ETF 報酬比較、複利試算表、總覽／熱力圖點擊跳頁）
      一律改成開＋每日 3 次（跟 3D 剖析圖同一級距）。訪客、Plus、Pro 不動；盤中即時 live.tick 是站主專用，不動。
      features.js 另有 limBy（範本 lims 沒寫時註冊會員每日 3 次），線上範本按「套用建議方案」之前也照這個跑，不會變成「開而且不限」。
+   · ★★ 2026-10-12（DECISIONS #358；docs/perm_free_1012.md；Andy：「CEO我這邊一頁一頁跟你說明並請你改動，以下是註冊後的免費會員」16 點＋
+     「註冊會員次數還是太多，需要降至5次……並且像是日曆點擊一個標題就會消耗一次」）。**蓋掉 10-10、10-11 註冊會員的設定**：
+     時間列（▶ 播放）、今日關注、熱力圖跳頁、ETF 試算參數、供應鏈關聯圖、ETF 報酬比較期間 → 註冊會員關（反灰＋小字）；
+     今日事件連結 10→5、族群×法人篩選 15→5、分流樹下鑽 15→5、題材剖析 10→5、產業鏈分頁 10→3、剖析子分頁 10→3、現金流試算 5→3、週期統計族群篩選 3→10；
+     新增：資金輪動排行點擊 5、資金流向上方篩選 5、市場明細三個分頁觀看各 5、漲跌家數篩選 5、週期統計觀看 10、財經日曆點標題 5、配息行事曆右側清單 5、搜尋 10。
+     全站共用額度 dq：註冊會員 40 → 不設（null）—— 逐項上限已經比它細，留著反而可能比逐項更早用完、把 Andy 要的 10 次吃掉。
+     訪客：新鍵給比註冊會員少的次數（多半 3 次、搜尋 5 次），其餘不動；Plus／Pro 不動。
    這支是**資料**，不是設定：改了不會自動生效，要管理者在 #admin/perm 按一次「套用建議方案」。
    ============================================================================ */
 window.TW_PLAN_PRESETS = {
@@ -117,7 +124,8 @@ window.TW_PLAN_PRESETS = {
     "etf.inc.params": false,
     "etf.cmp": false,
     "etf.inc.comp": false,
-    "heat.link": false
+    "heat.link": false,
+    "etf.ret.period": false
    },
    "lims": {
     "news.open": 3,
@@ -135,7 +143,13 @@ window.TW_PLAN_PRESETS = {
     "ind.3d": 0,
     "ind.rel": 0,
     "stock.ai": 0,
-    "events": 3
+    "events": 3,
+    "flow.rank.click": 3,
+    "flow.filter": 3,
+    "mkt.updown.filter": 3,
+    "etf.cal.click": 3,
+    "earn.click": 3,
+    "search": 5
    },
    "meta": {
     "badge": null,
@@ -156,9 +170,9 @@ window.TW_PLAN_PRESETS = {
    "name": "註冊會員",
    "price": 0,
    "price_year": 0,
-   "dq": 40,
+   "dq": null,
    "feats": {
-    "flow.play": true,
+    "flow.play": false,
     "season.groups": true,
     "ov.summary": true,
     "ov.index": true,
@@ -175,14 +189,14 @@ window.TW_PLAN_PRESETS = {
     "ind.groups": true,
     "ind.diagram": true,
     "ind.3d": true,
-    "ind.rel": true,
+    "ind.rel": false,
     "heat.market": true,
     "heat.theme": true,
     "heat.detail": true,
     "mkt.updown": true,
     "mkt.streak": true,
     "mkt.ma": true,
-    "mkt.cand": true,
+    "mkt.cand": false,
     "season.month": true,
     "stock.k_day": true,
     "stock.tick": true,
@@ -227,15 +241,16 @@ window.TW_PLAN_PRESETS = {
     "mkt.cand.n": 10,
     "etf.returns.n": 3,
     "etf.cashflow": true,
-    "etf.inc.params": true,
+    "etf.inc.params": false,
     "etf.cmp": true,
     "etf.inc.comp": true,
-    "heat.link": true
+    "heat.link": false,
+    "etf.ret.period": false
    },
    "lims": {
-    "news.open": 10,
-    "flow.sankey.drill": 15,
-    "flow.inst.filter": 15,
+    "news.open": 5,
+    "flow.sankey.drill": 5,
+    "flow.inst.filter": 5,
     "earn.tab": 10,
     "explore.filter": 5,
     "etf.calendar.tab": 10,
@@ -245,25 +260,30 @@ window.TW_PLAN_PRESETS = {
     "explore.page": 5,
     "etf.returns": 3,
     "etf.list": 3,
-    "heat.detail": 10,
-    "ind.groups": 10,
-    "ind.diagram": 10,
+    "heat.detail": 5,
+    "ind.groups": 3,
+    "ind.diagram": 3,
     "ind.3d": 3,
-    "ind.rel": 5,
     "stock.page": 10,
     "stock.ai": 3,
-    "etf.cashflow": 5,
-    "flow.play": 3,
-    "season.groups": 3,
-    "mkt.cand": 3,
+    "etf.cashflow": 3,
+    "season.groups": 10,
     "stock.k_min": 3,
     "stock.mtf": 3,
     "stock.ind": 3,
     "stock.draw": 3,
-    "etf.inc.params": 3,
     "etf.cmp": 3,
     "etf.inc.comp": 3,
-    "heat.link": 3
+    "mkt.updown": 5,
+    "mkt.streak": 5,
+    "mkt.ma": 5,
+    "season.month": 10,
+    "flow.rank.click": 5,
+    "flow.filter": 5,
+    "mkt.updown.filter": 5,
+    "etf.cal.click": 5,
+    "earn.click": 5,
+    "search": 10
    },
    "meta": {
     "badge": null,
@@ -273,8 +293,8 @@ window.TW_PLAN_PRESETS = {
     "highlights": [
      "資金流向・熱力圖・產業地圖・全部看得到",
      "個股頁每日 10 檔（營收、法人、籌碼全分頁）",
-     "剖析圖・題材剖析・產業鏈 每日各 10 個",
-     "ETF 配息行事曆・ETF 一覽（每日 3 次）・現金流月配試算（每日 5 次）",
+     "產業地圖每日 3 個分頁・剖析子分頁 3 個・題材剖析 5 個",
+     "ETF 配息行事曆・ETF 總覽（每日 3 次）・現金流試算（每日 3 次）",
      "選股策略完整名單（每日 5 次）・AI 分析（每日 3 次）",
      "自選清單 1 頁 10 檔"
     ],

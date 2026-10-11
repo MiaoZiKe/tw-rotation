@@ -9724,6 +9724,9 @@
          以前是 heatPanel，點下去只能連到個股頁；現在同一份清單還可以把個股畫到圖上。
          面板就在圖正下方，所以一樣不自己捲動（heatPanel 的 scroll:false 是同一個理由）。*/
       if (rankSel === gid) { rankSel = null; drillClose(); highlightClock(null); return; }
+      /* ★ 2026-10-12 Andy 註冊會員權限表第 3 點：「右手邊長條圖…限制點擊5次」→ 點開一根算一次（再點同一根收起不算，上一行已經 return）；
+         用完：不展開、不跳視窗，長條圖反灰＋旁邊小字由 quota.js 畫（features.js flow.rank.click）。*/
+      if (window.TwQuota && window.TwQuota.use && !window.TwQuota.use('flow.rank.click', $('#rankFlow'))) return;
       rankSel = gid;
       /* ★ 2026-09-21：時鐘只畫前 16 個族群（成交值佔比），而這張排行是依**佔比變化**排的 ——
          變化最大的那一個未必在時鐘上。以前碰到這種情形會把 16 個全部壓暗（整張圖灰掉），
@@ -12707,6 +12710,8 @@
     //   這裡只補 route() 不會跑的兩種：hash 沒變（點的是同一塊），以及手機（分段導覽由這裡捲）。
     if (c) c.off('click').on('click', p => zoomClick($('#themeMapWrap'), () => {
       if (!p.data || !p.data.id) return;
+      /* ★ 2026-10-12 Andy 第 6 點：「題材限制點擊後的下方的資訊 限制5次」→ 今天 5 個題材用完，點沒看過的題材＝沒反應（不換網址、不跳視窗；旁邊小字由 quota.js 畫） */
+      if (window.TwQuota && window.TwQuota.actOk && !window.TwQuota.actOk('heat.detail', 'obj', 't.' + p.data.id)) return;
       const h = themeHash(p.data.id);
       const same = location.hash === h;
       if (same) renderThemeDetail(th, p.data.id); else location.hash = h;
@@ -12719,6 +12724,7 @@
       hmRelabel(bc, valOf);
       if (bc) bc.off('click').on('click', p => {
         if (!p.data || !p.data.id) return;
+        if (window.TwQuota && window.TwQuota.actOk && !window.TwQuota.actOk('heat.detail', 'obj', 't.' + p.data.id)) return;   // 2026-10-12 同上：用完安靜
         close(); location.hash = themeHash(p.data.id);
       });
     });
@@ -13958,10 +13964,14 @@
       q.setAttribute('aria-activedescendant', r[act].id);
       r[act].scrollIntoView({ block: 'nearest' });
     };
-    const go = (code) => { close(); q.value = ''; q.blur(); goStock(code); };
+    /* ★ 2026-10-12 Andy 註冊會員權限表第 16 點：「搜尋功能限制10次」→ 從搜尋結果進一檔個股＝用一次（TwQuota.use('search')）；
+       用完：不進、不跳視窗，搜尋框反灰＋旁邊小字由 quota.js 畫（features.js search）。*/
+    const go = (code) => { if (window.TwQuota && window.TwQuota.use && !window.TwQuota.use('search', q)) { close(); q.blur(); return; } close(); q.value = ''; q.blur(); goStock(code); };
+    /* 2026-10-12：今天搜尋次數用完 → 框是反灰 readOnly 的，點進去也不展開建議清單（不然清單照樣跳出來、點了卻不進，像壞掉） */
+    const spent = () => !!(window.TwQuota && window.TwQuota.out && window.TwQuota.out('search'));
     q.addEventListener('input', search);
-    q.addEventListener('focus', () => { if (!isOpen()) search(); });
-    q.addEventListener('click', () => { if (!isOpen()) search(); });   // Esc 關掉之後再點一下框（焦點沒離開，focus 不會再觸發）
+    q.addEventListener('focus', () => { if (spent()) { q.blur(); return; } if (!isOpen()) search(); });
+    q.addEventListener('click', () => { if (spent()) return; if (!isOpen()) search(); });   // Esc 關掉之後再點一下框（焦點沒離開，focus 不會再觸發）
     q.addEventListener('keydown', e => {
       if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
         e.preventDefault();
