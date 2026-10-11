@@ -322,6 +322,50 @@ def paw_svg(x, y, s=1.0, rot=0.0) -> str:
 </g>'''
 
 
+def text_svg(txt, x, y, size=34, rot=0.0, fill=INK) -> str:
+    """擬聲字（嚼嚼、咕嚕…）：白色粗外框＋深色字，畫兩次（cairosvg 不支援 paint-order）。"""
+    base = (f'x="{x:.1f}" y="{y:.1f}" font-family="WenQuanYi Zen Hei" font-size="{size}" font-weight="bold" '
+            f'transform="rotate({rot:.1f} {x:.1f} {y:.1f})"')
+    return (f'<text {base} fill="#fff" stroke="#fff" stroke-width="{size*0.22:.1f}" stroke-linejoin="round">{txt}</text>'
+            f'<text {base} fill="{fill}">{txt}</text>')
+
+
+def crumbs_svg(x, y, n=4, spread=26, seed=0, alpha=1.0) -> str:
+    """草屑：幾截小綠段往外噴。"""
+    out = []
+    for i in range(n):
+        a = math.radians((seed * 47 + i * 360 / n + 20) % 360)
+        d = spread * (0.6 + 0.4 * ((i + seed) % 3) / 2)
+        cx, cy = x + d * math.cos(a), y + d * math.sin(a) * 0.7
+        rot = (seed * 31 + i * 57) % 180
+        out.append(f'<rect x="{cx-5:.1f}" y="{cy-2.5:.1f}" width="10" height="5" rx="2" fill="#8CCB5E" stroke="{INK}" '
+                   f'stroke-width="2" transform="rotate({rot} {cx:.1f} {cy:.1f})" opacity="{alpha:.2f}"/>')
+    return "".join(out)
+
+
+def popcorn_svg(x, y, s=1.0, rot=0.0) -> str:
+    """一顆爆米花：四團奶油白蓬蓬＋底下一點黃色殼，粗描邊。"""
+    blobs = [(0, 0, 11), (-10, -6, 9), (9, -8, 9), (1, -15, 8), (-4, 7, 7)]
+    circ = "".join(f'<circle cx="{bx:.1f}" cy="{by:.1f}" r="{r:.1f}"/>' for bx, by, r in blobs)
+    return (f'<g transform="translate({x:.1f},{y:.1f}) rotate({rot:.1f}) scale({s:.3f})">'
+            f'<g fill="none" stroke="{INK}" stroke-width="6">{circ}</g><g fill="#FFF6DC">{circ}</g>'
+            f'<path d="M -7 8 Q 0 14 8 6 Q 3 3 -7 8 Z" fill="#F6C453" stroke="{INK}" stroke-width="2.4" stroke-linejoin="round"/>'
+            f'<path d="M -6 -9 q 3 -3 6 -1" fill="none" stroke="#E9D9B5" stroke-width="2.4" stroke-linecap="round"/></g>')
+
+
+def popcorn_icon_svg() -> str:
+    """互動小圈圖示：紅白直條紋爆米花桶＋桶口冒出四顆蓬蓬的爆米花（512 畫布座標）。"""
+    shape = "M 132 240 L 380 240 L 346 462 L 166 462 Z"
+    top = (popcorn_svg(176, 216, 4.6, -14) + popcorn_svg(338, 214, 4.6, 16) + popcorn_svg(258, 150, 5.2, 4)
+           + popcorn_svg(250, 228, 4.4, -4))
+    stripes = "".join(f'<rect x="{150 + i*46:.0f}" y="230" width="23" height="250" fill="#E8564A"/>' for i in range(5))
+    bucket = (f'<clipPath id="bk"><path d="{shape}"/></clipPath><path d="{shape}" fill="#FFF8EE"/>'
+              f'<g clip-path="url(#bk)">{stripes}</g>'
+              f'<path d="{shape}" fill="none" stroke="{INK}" stroke-width="18" stroke-linejoin="round"/>'
+              f'<path d="M 124 240 L 388 240" stroke="{INK}" stroke-width="20" stroke-linecap="round"/>')
+    return top + bucket
+
+
 def speed_lines_svg(x, y, n=3, length=60, gap=16, alpha=0.9, seed=0) -> str:
     out = []
     for i in range(n):
@@ -370,6 +414,9 @@ def mouth_svg(kind: str, x, y, s=1.0, facing_left=True) -> str:
         return (f'<path d="M {x-11*k:.1f} {y-3*k:.1f} Q {x:.1f} {y+10*k:.1f} {x+11*k:.1f} {y-3*k:.1f} Z" fill="#8A2B22" '
                 f'stroke="{INK}" stroke-width="{3.6*k:.1f}" stroke-linejoin="round"/>'
                 f'<path d="M {x-5*k:.1f} {y+3*k:.1f} Q {x:.1f} {y+7*k:.1f} {x+5*k:.1f} {y+3*k:.1f} Z" fill="#F08C7C"/>')
+    if kind == "wavy":   # 波浪嘴（暈、尷尬）
+        return (f'<path d="M {x-14*k:.1f} {y:.1f} q {3.5*k:.1f} {-5*k:.1f} {7*k:.1f} 0 t {7*k:.1f} 0 t {7*k:.1f} 0 t {7*k:.1f} 0" '
+                f'fill="none" stroke="{INK}" stroke-width="{3.6*k:.1f}" stroke-linecap="round" stroke-linejoin="round"/>')
     if kind == "flat":
         return (f'<path d="M {x-7*k:.1f} {y:.1f} Q {x:.1f} {y+3*k:.1f} {x+7*k:.1f} {y:.1f}" fill="none" stroke="{INK}" '
                 f'stroke-width="{3.6*k:.1f}" stroke-linecap="round"/>')
@@ -417,6 +464,14 @@ def eye_svg(kind: str, x, y, s=1.0) -> str:
                 f'stroke="{INK}" stroke-width="{4.6*k:.1f}" stroke-linecap="round" stroke-linejoin="round"/>')
     if kind == "star":
         return star_svg(x, y, 14.5 * k, 0, "#FFD25A")
+    if kind == "spiral":   # 暈眩螺旋眼
+        pts = []
+        for i in range(36):
+            t = i / 35 * 4.2 * math.pi
+            r = 1.0 + 9.5 * k * i / 35
+            pts.append(f"{x + r*math.cos(t):.1f},{y + r*math.sin(t):.1f}")
+        return (f'<polyline points="{" ".join(pts)}" fill="none" stroke="{INK}" stroke-width="{3.4*k:.1f}" '
+                f'stroke-linecap="round" stroke-linejoin="round"/>')
     if kind == "x":
         return (f'<path d="M {x-7*k:.1f} {y-7*k:.1f} L {x+7*k:.1f} {y+7*k:.1f} M {x+7*k:.1f} {y-7*k:.1f} L {x-7*k:.1f} {y+7*k:.1f}" '
                 f'stroke="{INK}" stroke-width="{4.4*k:.1f}" stroke-linecap="round"/>')
@@ -475,6 +530,7 @@ DEFAULT = dict(
     tail=(0.0, 0.0, 0.0),
     hands_front=False,    # 正面時手是否舉到身前（捧東西）
     look=(0.0, 0.0),      # 五官整體偏移（u, v）
+    cheek=0.0,            # 臉頰鼓起（0～1.3，嚼東西）
     gx=0.0, gy=0.0, grot=0.0, gpx=CX, gpy=330.0,  # 整組旋轉（翻滾用）
     facing="left",
 )
@@ -597,6 +653,19 @@ def compose(p: dict, extra_back: str = "", extra_front: str = "", props_back=Non
         can.alpha_composite(flay)
     elif p["view"] == "front":
         flay = Image.new("RGBA", can.size)   # 臉（眼＋嘴）外框給重疊檢查；腮紅另畫不算
+        if p.get("cheek", 0) > 0.01:          # 鼓起的臉頰：嘴兩側往外鼓的弧線（嚼東西）
+            ck = p["cheek"]
+            arcs = ""
+            for sgn in (-1, 1):
+                cx_, cy_ = body_pt(p, 0.5 + lu + sgn * 0.2, 0.545 + lv)
+                r = 24 + 10 * ck
+                a0, a1 = (math.radians(-25), math.radians(75)) if sgn > 0 else (math.radians(205), math.radians(105))
+                x0_, y0_ = cx_ + r * math.cos(a0), cy_ + r * math.sin(a0)
+                x1_, y1_ = cx_ + r * math.cos(a1), cy_ + r * math.sin(a1)
+                sweep = 1 if sgn > 0 else 0
+                arcs += (f'<path d="M {x0_:.1f} {y0_:.1f} A {r:.1f} {r:.1f} 0 0 {sweep} {x1_:.1f} {y1_:.1f}" fill="none" '
+                         f'stroke="{INK}" stroke-width="5" stroke-linecap="round" stroke-opacity="{min(1, 0.6 + 0.4*ck):.2f}"/>')
+            can.alpha_composite(svg_layer(arcs))
         for sgn, sub in ((-1, "L"), (1, "R")):
             ex, ey = body_pt(p, 0.5 + lu + sgn * 0.13, 0.42 + lv)
             bx, by = body_pt(p, 0.5 + lu + sgn * 0.27, 0.53 + lv)
