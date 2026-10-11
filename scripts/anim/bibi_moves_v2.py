@@ -102,7 +102,6 @@ def clip_run_start() -> list[dict]:
                 eye="wide", mouth="open", fp_near=(-30, -14, -24), fp_far=(-24, -10, -20),
                 bf_near=(30, -2, 40), bf_far=(26, -4, 36), tail=(6, -4, 22))
     return [
-        dict(pose=idle, ms=260, label="站好（看前方）"),
         dict(pose=R.lerp_pose(idle, crouch, R.ease(0.55)), ms=90, label="往下縮（預備）", fx=[]),
         dict(pose=crouch, ms=200, label="蹲低蓄力、耳朵往前甩", fx=[]),
         dict(pose=push, ms=90, label="蹬出去（拉長）", fx=[R.dust_svg(388, 466, 1.0, 1.0), R.speed_lines_svg(410, 330, 2, 40, 22, 0.6)]),
@@ -276,17 +275,17 @@ def clip_receive(item: str = "") -> list[dict]:
         fr.append(dict(pose=dict(F, **kw), ms=ms, label=label, fx=fx or [], props_front=props or [],
                        props_mid=mid or []))
 
-    add(300, "站好", eye="dot", mouth="w")
-    add(130, "咦？看到東西（圓眼、耳朵豎）", eye="wide", mouth="o", y=R.FOOT_Y - 10, sy=1.05, sx=0.97,
-        ear=-16, ear2=-16, flutter=3, look=(0.02, 0.0), props=[fx_part("fx_exclaim", 388, 196, 0.6, 12)])
+    # Andy 10-11：「互動圖不需要前面特效，直接進入互動動作」→ 第 1 格就是動作（看到東西彈一下），不放待機格、不先冒符號
+    add(150, "看到東西彈一下（圓眼、耳朵豎）", eye="wide", mouth="o", y=R.FOOT_Y - 10, sy=1.05, sx=0.97,
+        ear=-16, ear2=-16, flutter=3, look=(0.02, 0.0))
     add(220, "眼睛發亮（星星眼、往右傾）", eye="star", mouth="smile", rot=6, look=(0.035, 0.0), ear=6, ear2=-4,
         blush=1.5, hands_front=True, fp_far=(6, -6, 10), fp_near=(-6, -6, -10),
         fx=[R.star_svg(130, 250, 10, 10), R.star_svg(110, 300, 7, 30, "#FFE58A")])
     add(110, "雙肉掌往右前伸（拉長）", eye="wide", mouth="open", rot=11, sx=0.95, sy=1.06, look=(0.04, -0.01),
         ear=-8, ear2=14, flutter=4, fp_far=(150, 22, 30), fp_near=(36, -56, 34),
         mid=item_layer("reach", 14, -8) if item else [])
-    add(130, "接住！（瞇眼笑）", eye="arc", mouth="open", rot=9, sx=0.97, sy=1.03, look=(0.035, 0.0),
-        ear=-2, ear2=18, fp_far=(144, 26, 24), fp_near=(30, -46, 26), mid=item_layer("reach"),
+    add(130, "接住！往回收（瞇眼笑）", eye="arc", mouth="open", rot=4, sx=1.03, sy=0.97, look=(0.03, 0.01),
+        ear=-2, ear2=20, fp_far=(124, 30, 14), fp_near=(10, -30, 16), mid=item_layer("reach", -24, 10),
         fx=[R.star_svg(420, 238, 11, 15)] if item else [])
     add(140, "抱回胸前（壓扁、臉紅）", eye="smile", mouth="w", rot=0, sy=0.9, sx=1.07, blush=1.7, ear=16, ear2=16,
         flutter=-4, hands_front=True, mid=item_layer("chest", 0, 6))
@@ -301,22 +300,21 @@ def make_hand_prop(path, item):
     """給東西的那隻手：從右上角伸進來的短肉掌（粉色肉掌＋奶油色毛袖口），拿著草或球。512 透明。"""
     can = Image.new("RGBA", (R.SIZE * R.S, R.SIZE * R.S))
     if item == "ball":
-        can.alpha_composite(R.svg_layer(R.ball_svg(250, 262, 92, 15, stroke=10)))
+        can.alpha_composite(R.svg_layer(R.ball_svg(296, 262, 88, 15, stroke=10)))
     else:
-        can.alpha_composite(R.svg_layer(R.grass_svg(366, 196, 330, -48, 30)))
-    # 袖口：一團毛（畫到畫布右上角外面，網頁從畫面外滑進來）
+        can.alpha_composite(R.svg_layer(R.grass_svg(404, 160, 360, -38, 26)))
+    # 袖口：一圈短短的毛（從右上角外面伸進來；只露袖口＋肉掌，不畫長手臂）
     can.alpha_composite(R.svg_layer(
-        f'<path d="M 560 -40 L 400 120 C 372 148 380 196 420 214 C 446 226 470 214 488 196 L 600 90 Z" '
-        f'fill="{R.FUR}" stroke="{R.INK}" stroke-width="12" stroke-linejoin="round"/>'
-        f'<path d="M 420 150 q 10 8 22 2 M 448 186 q 10 6 20 -2" fill="none" stroke="#EAD9C2" stroke-width="7" '
+        R.paw_svg(390 if item == "ball" else 396, 180 if item == "ball" else 176, 1.45, 50)
+        + f'<path d="M 470 40 C 430 52 404 92 412 128 C 420 160 456 176 490 168 L 560 140 L 540 0 Z" '
+        f'fill="{R.FUR}" stroke="{R.INK}" stroke-width="11" stroke-linejoin="round"/>'
+        f'<path d="M 432 104 q 9 7 19 0 M 444 140 q 9 6 18 -1" fill="none" stroke="#E2CDB0" stroke-width="6" '
         f'stroke-linecap="round"/>'))
-    R.place(can, R.part("hand_l", 2.4), 340 if item == "ball" else 352, 196 if item == "ball" else 206,
-            rot=-135 if item == "ball" else -128, anchor=(0.5, 0.45))
     R.finish(can).save(path)
 
 
 def make_grass_prop(path):
-    can = R.svg_layer(R.grass_svg(330, 470, 520, -62, 34))
+    can = R.svg_layer(R.grass_svg(336, 486, 470, 68, 32))
     R.finish(can).save(path)
 
 
@@ -362,7 +360,12 @@ def render_clip(name: str):
             can.alpha_composite(post)
         im = R.finish(can)
         imgs.append(im)
-        checks.append({k: R.bbox512(v) for k, v in boxes.items() if v})
+        masks = boxes.pop("__masks", {})
+        if fr.get("post") is not None:
+            masks["fx_arc"] = np.asarray(post.getchannel("A").reduce(4)) > 40
+        c = {k: R.bbox512(v) for k, v in boxes.items() if v}
+        c["__masks"] = masks
+        checks.append(c)
     return frs, imgs, checks
 
 
@@ -372,11 +375,19 @@ def verify(name, frs, imgs, checks):
     for i, (im, bx) in enumerate(zip(imgs, checks)):
         if not R.inside_canvas(im, 2):
             bad.append(f"第 {i+1} 格碰到畫布邊（裁切）")
-        face = bx.get("face")
-        for k, b in bx.items():
-            if k.startswith("fx") or k.startswith("propF") or k.startswith("propM"):
-                if R.overlap(face, b) > 0:
-                    bad.append(f"第 {i+1} 格 {k} 壓到臉 {tuple(round(v) for v in b)}")
+        ms_ = bx.get("__masks", {})
+        face = ms_.get("face")
+        if face is None:
+            continue
+        # 臉（眼＋嘴）往外擴 2px（512 單位）當安全邊
+        fpad = face.copy()
+        for sh in ((1, 0), (-1, 0), (0, 1), (0, -1)):
+            fpad |= np.roll(face, sh, axis=(0, 1))
+        for k, m in ms_.items():
+            if k.startswith(("fx", "propF", "propM")):
+                n = int((fpad & m).sum())
+                if n:
+                    bad.append(f"第 {i+1} 格 {k} 壓到臉 {n} 格點")
     diffs = []
     for a, b in zip(imgs, imgs[1:] + ([imgs[0]] if CLIPS[name]["loop"] else [])):
         A = np.asarray(a.getchannel("A")) > 128

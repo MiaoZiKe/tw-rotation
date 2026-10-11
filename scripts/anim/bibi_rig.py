@@ -284,8 +284,42 @@ def grass_svg(x, y, length, ang=0.0, w=13.0, bites=0) -> str:
     d = (f"M {a1[0]:.2f} {a1[1]:.2f} Q {ctrl[0]+nx*hw:.2f} {ctrl[1]+ny*hw:.2f} {t1[0]:.2f} {t1[1]:.2f} {top} "
          f"Q {ctrl[0]-nx*hw:.2f} {ctrl[1]-ny*hw:.2f} {a2[0]:.2f} {a2[1]:.2f} Z")
     vein = f"M {x:.2f} {y:.2f} Q {ctrl[0]:.2f} {ctrl[1]:.2f} {tip[0]-dx*6:.2f} {tip[1]-dy*6:.2f}"
-    return (f'<path d="{d}" fill="#8CCB5E" stroke="{INK}" stroke-width="4" stroke-linejoin="round"/>'
-            f'<path d="{vein}" fill="none" stroke="#5E9E3A" stroke-width="2.4" stroke-linecap="round"/>{head}')
+    sw = max(3.0, w * 0.3)
+    if not bites:
+        # 牧草穗（提摩西草的圓柱穗）：沿莖方向的長橢圓＋短刻痕
+        sl = min(L * 0.36, w * 3.6)
+        cxp, cyp = tip[0] - dx * sl * 0.45, tip[1] - dy * sl * 0.45
+        angd = math.degrees(math.atan2(dy, dx))
+        ticks = "".join(
+            f'<path d="M {-sl*0.5 + sl*f:.1f} {-w*0.85:.1f} l {w*0.25:.1f} {w*0.45:.1f} M {-sl*0.5 + sl*f:.1f} {w*0.85:.1f} '
+            f'l {w*0.25:.1f} {-w*0.45:.1f}" stroke="#7D8F2E" stroke-width="{sw*0.5:.1f}" stroke-linecap="round"/>'
+            for f in (0.2, 0.4, 0.6, 0.8))
+        head = (f'<g transform="translate({cxp:.1f},{cyp:.1f}) rotate({angd:.1f})">'
+                f'<ellipse rx="{sl*0.62:.1f}" ry="{w*0.8:.1f}" fill="#D9D77A" stroke="{INK}" stroke-width="{sw:.1f}"/>{ticks}</g>')
+        # 一片葉子從莖中段岔出
+        bx_, by_ = x + dx * L * 0.35, y + dy * L * 0.35
+        lx, ly = bx_ + dx * L * 0.28 + nx * w * 2.6, by_ + dy * L * 0.28 + ny * w * 2.6
+        head = (f'<path d="M {bx_:.1f} {by_:.1f} Q {bx_ + nx*w*2.4:.1f} {by_ + ny*w*2.4:.1f} {lx:.1f} {ly:.1f} '
+                f'Q {bx_ + dx*L*0.18 + nx*w*0.6:.1f} {by_ + dy*L*0.18 + ny*w*0.6:.1f} {bx_:.1f} {by_:.1f} Z" '
+                f'fill="#9AD46A" stroke="{INK}" stroke-width="{sw*0.8:.1f}" stroke-linejoin="round"/>') + head
+    return (f'<path d="{d}" fill="#8CCB5E" stroke="{INK}" stroke-width="{sw:.1f}" stroke-linejoin="round"/>'
+            f'<path d="{vein}" fill="none" stroke="#5E9E3A" stroke-width="{sw*0.6:.1f}" stroke-linecap="round"/>{head}')
+
+
+def paw_svg(x, y, s=1.0, rot=0.0) -> str:
+    """補畫的大肉掌（給東西的那隻手，向量才不糊）：手套形小圓團、蜜桃粉、根部深一點、
+    C 形粗描邊在根部留缺口、指尖兩道短趾線 —— 照總表 hand_l 的樣子。(x,y)＝掌心；手指朝 rot 方向（0＝朝下）。"""
+    k = s
+    return f'''
+<g transform="translate({x:.1f},{y:.1f}) rotate({rot:.1f}) scale({k:.3f})">
+  <defs><linearGradient id="pg{int(x)}{int(y)}" x1="0" y1="-1" x2="0" y2="1">
+    <stop offset="0" stop-color="{PAW_D}"/><stop offset="0.45" stop-color="{PAW}"/><stop offset="1" stop-color="{PAW_L}"/></linearGradient></defs>
+  <path d="M -34 -30 C -50 0 -46 34 -22 46 C -6 56 10 56 24 46 C 48 34 50 0 34 -30 Z" fill="url(#pg{int(x)}{int(y)})"/>
+  <path d="M -34 -30 C -50 0 -46 34 -22 46 C -6 56 10 56 24 46 C 48 34 50 0 34 -30" fill="none"
+        stroke="{INK}" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M -8 50 L -8 36 M 9 50 L 9 36" stroke="{INK}" stroke-width="6.5" stroke-linecap="round"/>
+  <ellipse cx="-12" cy="-6" rx="9" ry="6" fill="#fff" fill-opacity="0.35"/>
+</g>'''
 
 
 def speed_lines_svg(x, y, n=3, length=60, gap=16, alpha=0.9, seed=0) -> str:
@@ -387,6 +421,7 @@ def eye_svg(kind: str, x, y, s=1.0) -> str:
         return (f'<path d="M {x-7*k:.1f} {y-7*k:.1f} L {x+7*k:.1f} {y+7*k:.1f} M {x+7*k:.1f} {y-7*k:.1f} L {x-7*k:.1f} {y+7*k:.1f}" '
                 f'stroke="{INK}" stroke-width="{4.4*k:.1f}" stroke-linecap="round"/>')
     if kind == "wide":
+        k *= 1.3
         return (f'<ellipse cx="{x:.1f}" cy="{y:.1f}" rx="{8.5*k:.1f}" ry="{10*k:.1f}" fill="{INK}"/>'
                 f'<circle cx="{x-3*k:.1f}" cy="{y-4*k:.1f}" r="{3.2*k:.1f}" fill="#fff"/>'
                 f'<circle cx="{x+3*k:.1f}" cy="{y+3.5*k:.1f}" r="{1.6*k:.1f}" fill="#fff"/>')
@@ -472,6 +507,7 @@ def compose(p: dict, extra_back: str = "", extra_front: str = "", props_back=Non
     W = SIZE * S
     can = Image.new("RGBA", (W, W))
     boxes: dict[str, tuple] = {}
+    masks: dict[str, Image.Image] = {}   # 逐件 alpha（重疊檢查用像素比對，不只外框）
     side = p["view"] == "side"
     lu, lv = p["look"]
 
@@ -479,6 +515,7 @@ def compose(p: dict, extra_back: str = "", extra_front: str = "", props_back=Non
         for i, it in enumerate(lst or []):
             if isinstance(it, Image.Image):      # 已經畫好的整張畫布圖層（例如 SVG 球）
                 boxes[f"{tag}{i}"] = it.getchannel("A").getbbox()
+                masks[f"{tag}{i}"] = it.getchannel("A")
                 can.alpha_composite(it)
                 continue
             if callable(it):
@@ -488,6 +525,7 @@ def compose(p: dict, extra_back: str = "", extra_front: str = "", props_back=Non
             lay = Image.new("RGBA", (W, W))
             place(lay, im, x, y, r, anchor=anc)
             boxes[f"{tag}{i}"] = lay.getchannel("A").getbbox()
+            masks[f"{tag}{i}"] = lay.getchannel("A")
             can.alpha_composite(lay)
 
     if extra_back:
@@ -555,6 +593,7 @@ def compose(p: dict, extra_back: str = "", extra_front: str = "", props_back=Non
         _draw_eye(flay, p["eye"], ex, ey, p["eye_open"], left=True)
         flay.alpha_composite(svg_layer(mouth_svg(p["mouth"], mx, my, 1.2)))
         boxes["face"] = flay.getchannel("A").getbbox()
+        masks["face"] = flay.getchannel("A")
         can.alpha_composite(flay)
     elif p["view"] == "front":
         flay = Image.new("RGBA", can.size)   # 臉（眼＋嘴）外框給重疊檢查；腮紅另畫不算
@@ -566,6 +605,7 @@ def compose(p: dict, extra_back: str = "", extra_front: str = "", props_back=Non
         mx, my = body_pt(p, 0.5 + lu, 0.50 + lv)
         flay.alpha_composite(svg_layer(mouth_svg(p["mouth"], mx, my, 1.5)))
         boxes["face"] = flay.getchannel("A").getbbox()
+        masks["face"] = flay.getchannel("A")
         can.alpha_composite(flay)
         # 正面的手：貼在身體兩側或身前
         for key, u, nm, sgn in (("fp_far", 0.10, "hand_l", -1), ("fp_near", 0.90, "hand_r", 1)):
@@ -593,6 +633,7 @@ def compose(p: dict, extra_back: str = "", extra_front: str = "", props_back=Non
             bb = fl.getchannel("A").getbbox()
             if bb:
                 boxes[f"fx{i}"] = bb
+                masks[f"fx{i}"] = fl.getchannel("A")
             can.alpha_composite(fl)
 
     # --- 整組旋轉（翻滾）與面向
@@ -605,6 +646,10 @@ def compose(p: dict, extra_back: str = "", extra_front: str = "", props_back=Non
     if not np.allclose(M, np.eye(3)):
         can = warp_affine(can, M, can.size)
         boxes = {k: _tf_box(v, M) for k, v in boxes.items() if v}
+        inv = np.linalg.inv(M)
+        data = (inv[0, 0], inv[0, 1], inv[0, 2], inv[1, 0], inv[1, 1], inv[1, 2])
+        masks = {k: m.transform(can.size, Image.AFFINE, data, resample=Image.BILINEAR) for k, m in masks.items()}
+    boxes["__masks"] = {k: np.asarray(m.reduce(4)) > 40 for k, m in masks.items()}
     return can, boxes
 
 
