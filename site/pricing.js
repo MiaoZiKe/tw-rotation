@@ -655,9 +655,12 @@
       dialog(`<h3>訂閱申請</h3><p>線上申請暫時無法使用（會員功能尚未開放）。請從右下角「客服」寄信給我們，註明想要的方案「${esc(showName(p))}」。</p><div class="row2"><button type="button" class="pri" data-close>知道了</button></div>`);
       return;
     }
-    if (!u) { toast('申請訂閱要先登入 —— 登入完成後再按一次「升級」'); a.login(); return; }
     /* 週期跟著頁上的月／年切換；範本只有一種週期就用它自己的（後端 /v1/subscribe/request 只收 month／year，一次付清當「月」送，專人開通時再確認）*/
     const pr = priceAt(p, S.per);
+    /* 2026-10-11 Andy：「點擊訂閱後需要跳出金流服務…兩種方式」→ 有價格的方案一律開結帳面板（site/checkout.js：綠界／銀行轉帳；沒登入它會先走登入、回來自動重開）。
+       價格待定（tbd）或一次付清的方案沒有線上價格 → 維持下面原本的「訂閱申請」（專人開通）。 */
+    if (window.TwCheckout && pr.amount != null && !pr.tbd && !pr.once) { window.TwCheckout.open({ plan: p.id, per: pr.period === 'year' ? 'year' : 'month' }); return; }
+    if (!u) { toast('申請訂閱要先登入 —— 登入完成後再按一次「升級」'); a.login(); return; }
     const per = pr.period === 'year' ? 'year' : 'month';
     const lk = S.look.get(p.id) || { color: 'blue', icon: 'bolt' };
     const ptop = pr.orig ? origLine(pr) : '';
@@ -708,7 +711,11 @@
 
   async function show() {
     const v = view('v-pricing'); if (!v) return;
+    /* 2026-10-11：別的模組（額度卡 ensure()）可能在會員系統開機前就先抓過一次 → 拿到的是備用清單（沒有 Plus／Pro 的價格，結帳鈕出不來）。
+       訂閱頁打開時若手上是備用清單、而會員系統已經開了，就重抓一次（沒設定會員系統時照舊用備用清單）。 */
+    if (S.plans && S.src === 'fallback' && A() && A().on && A().on()) S.plans = null;
     if (!S.plans) { v.innerHTML = '<div class="card" style="margin-top:16px"><p class="muted">載入方案…</p></div>'; await load(); }
+    if (S.src === 'fallback' && A() && A().on && A().on()) { S.plans = null; await load(); }   // 剛好接到開機前那次的結果 → 再抓一次（只重試這一次）
     if ((location.hash || '').startsWith('#pricing')) paint();
   }
   /* #pricing／#pricing/need/<功能鍵>：後者把「能解鎖這個功能」的方案標出來（鎖頭與「今日已用完」上的「升級查看」帶過來的）*/
