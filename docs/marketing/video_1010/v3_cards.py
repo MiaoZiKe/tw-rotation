@@ -129,15 +129,8 @@ def chaos_fn():
                 im = im.resize((max(1, int(size[0] * sc)), max(1, int(size[1] * sc))), Image.BILINEAR)
             cv.paste(im, (int(cx + size[0] / 2 - im.width / 2), int(cy + size[1] / 2 - im.height / 2)), im)
             C.reg(f"frag{k}", (cx, cy, cx + size[0], cy + size[1]))
-        # 比比 + 字幕列（窄帶）
-        nm = "face_sweat"
-        if web:
-            hs = 300
-            put_sprite(cv, nm, anim_frame(nm, t), (330, 1056), hs)
-            line_panel(cv, L, "新聞、財報、資金、ETF…每天看到眼花", t, 560, 930)
-        else:
-            put_sprite(cv, nm, anim_frame(nm, t), (540, 1640), 330)
-            line_panel(cv, L, "新聞、財報、資金、ETF…看到眼花", t, 90, 1680, px=36)
+        from v3_core import card_host
+        card_host(cv, L, "alarm", "新聞、財報、資金、ETF…看到眼花，我陪你整理", t)
     return fn
 
 
@@ -150,7 +143,7 @@ def tidy_fn(clip):
         rx, ry, rw, rh = L.box
         u = ease_io(t / 0.7)
         if web:
-            win = (0, 0, src.width, src.height)
+            win = (0, 0, src.width, src.width * rh / rw)
         else:
             win = (0, 0, src.width, rh * src.width / rw)
         im = src.resize((int(rw), int(rh)), Image.LANCZOS, box=win).convert("RGBA")
@@ -159,21 +152,12 @@ def tidy_fn(clip):
         im.putalpha(m)
         cv.paste(im, (rx, ry), im)
         C.reg("site", (rx, ry, rx + rw, ry + rh), role="site")
-        if web:
-            pw = R.pill(cv, "整理好了", L.pill_xy[0], L.pill_xy[1], px=L.pill_px)
-            L.head_xy = (L.pill_xy[0] + pw + 36, L.head_y)
-            R.headline(cv, L, "這些我們整理好了", t, "整理好了")
-            from v3_core import subtitle_web
-            subtitle_web(cv, L, "別擔心，這些我們都幫你整理成圖了", t)
-            put_sprite(cv, "talk_happy", anim_frame("talk_happy", t), L.host, fit_size("talk_happy", L.host_w))
-        else:
-            hx = L.pill_xy[0]
-            pw = R.pill(cv, "整理好了", L.pill_xy[0], L.pill_xy[1], px=L.pill_px)
-            L.head_xy = (hx + pw + 30, L.head_y)
-            R.headline(cv, L, "這些我們整理好了", t, "整理好了")
-            from v3_core import bubble_mobile
-            put_sprite(cv, "talk_happy", anim_frame("talk_happy", t), L.host, L.host_size)
-            bubble_mobile(cv, L, shot, "別擔心，都幫你整理成圖了", t)
+        hx = L.pill_xy[0]
+        pw = R.pill(cv, "整理好了", L.pill_xy[0], L.pill_xy[1], px=L.pill_px)
+        L.head_xy = (hx + pw + (36 if web else 30), L.head_y)
+        R.headline(cv, L, "這些我們整理好了", t, "整理好了")
+        from v3_core import card_host
+        card_host(cv, L, "face_relief", "別擔心，這些我幫你整理成圖了", t)
         from v3_core import footnote4
         footnote4(cv, L)
     return fn
@@ -237,11 +221,11 @@ def grid_fn(dur, speed=1.8):
         web = L.fmt == "web"
         srcs = GRID_SRC_W if web else GRID_SRC_M
         if web:
-            cw, ch, gap, lab = 726, 390, 12, 46
+            cw, ch, gap, lab = 646, 347, 12, 46
             x0 = (L.W - (2 * cw + gap)) // 2
-            y0 = 82
+            y0 = 72
         else:
-            cw, ch, gap, lab = 490, 690, 12, 46
+            cw, ch, gap, lab = 476, 680, 12, 46
             x0 = 40 + (1000 - (2 * cw + gap)) // 2
             y0 = 146
         for k, (clip, name, win) in enumerate(srcs):
@@ -271,14 +255,12 @@ def grid_fn(dur, speed=1.8):
             L.head_xy = (L.pill_xy[0] + pw + 36, L.head_y)
             R.headline(cv, L, TITLE, t, "更多")
             sw_ = text_w(sf, SMALL)
-            sx = L.box[0] + 1616 - sw_ - 4
+            sx = L.box[0] + L.box[2] - sw_ - 4
             ImageDraw.Draw(cv).text((sx, 14), SMALL, font=sf, fill=THEME["ink"])
             C.reg("small", (sx - 4, 12, sx + sw_ + 4, 44))
-            from v3_core import subtitle_web, footnote4
-            subtitle_web(cv, L, "點選產品，每一個都能自己轉著看", t)
+            from v3_core import card_host, footnote4
+            card_host(cv, L, "face_curious", "點選產品，每一個我都讓你自己轉著看", t)
             footnote4(cv, L)
-            nm = "face_star" if THEME["name"] == "cute" else "talk_happy"
-            put_sprite(cv, nm, anim_frame(nm, t), (1856, 1070), min(fit_size(nm, 100), 150))
         else:
             hx = L.pill_xy[0]
             L.head_y = 18
@@ -287,10 +269,8 @@ def grid_fn(dur, speed=1.8):
             R.headline(cv, L, TITLE, t, "更多")
             ImageDraw.Draw(cv).text((L.box[0], 100), "AI 伺服器、先進封裝、HBM、液冷…只是其中幾個", font=sf, fill=THEME["ink"])
             C.reg("small", (L.box[0] - 2, 98, L.box[0] + text_w(sf, "AI 伺服器、先進封裝、HBM、液冷…只是其中幾個") + 2, 130))
-            from v3_core import bubble_mobile, footnote4
-            nm = "face_star" if THEME["name"] == "cute" else "talk_happy"
-            put_sprite(cv, nm, anim_frame(nm, t), L.host, L.host_size)
-            bubble_mobile(cv, L, shot, "點選產品，每一個都能自己轉著看", t)
+            from v3_core import card_host, footnote4
+            card_host(cv, L, "face_curious", "點選產品，每一個我都讓你自己轉著看", t)
             footnote4(cv, L)
     return fn
 

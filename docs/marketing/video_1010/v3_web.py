@@ -6,7 +6,9 @@ from __future__ import annotations
 
 import render_v3 as R
 import v3_cards as K
-from v3_core import Focus4, Op, Rec4, Shot4, Fn
+from v3_core import Focus4, Lay, Op, Rec4, Shot4, Fn, solve_pan
+
+_LW = Lay('web')
 
 C = "_desktop"
 
@@ -27,6 +29,7 @@ def F(rect, label, clip, t_draw=0.5, **kw):
 def feat(sid, D, clip, srcmap, head, hl, sub, pill, focus=None, idle="talk_happy", extra=(), soft_hover=False, use_events=True):
     rec = Rec4(clip + C, srcmap, focus=focus)
     op = Op(rec, idle=idle, extra=extra, soft_hover=soft_hover, use_events=use_events)
+    rec.pan = solve_pan(rec, op, D, None, _LW)
     return Shot4(sid, D, [rec], pill=pill, head=head, hl=hl, sub=sub, op=op)
 
 
@@ -37,6 +40,7 @@ def FV(rect, label, clip_full, t_draw=0.5, **kw):
 def featv(sid, D, clip_full, srcmap, head, hl, sub, pill, focus=None, idle="talk_happy", extra=(), soft_hover=False, use_events=True):
     rec = Rec4(clip_full, srcmap, focus=focus)
     op = Op(rec, idle=idle, extra=extra, soft_hover=soft_hover, use_events=use_events)
+    rec.pan = solve_pan(rec, op, D, None, _LW)
     return Shot4(sid, D, [rec], pill=pill, head=head, hl=hl, sub=sub, op=op)
 
 
@@ -50,24 +54,24 @@ def build():
     S.append(card("02", 2.0, K.tidy_fn("V01_desktop"), [(0, "swish"), (0.7, "ding")]))
     S.append(card("03", 3.5, K.intro_fn(), [(0, "pop"), (1.4, "ding")]))
 
-    S.append(feat("04", 2.5, "V01", stat(0.5, 2.5), "① 一頁看完今天", "一頁看完", "早上不用開 5 個 App，這頁十秒看完今天", "總覽",
-                  focus=F((440, 100, 3140, 410), "四張摘要卡", "V01", 0.5, t_zoom=1.0), idle=[(0, "talk_happy"), (1.5, "face_nod")]))
-    S.append(feat("05", 3.0, "V02", act(2.0, 3.0, 1.0, 0.8), "今日事件不漏看", "不漏看", "國際、科技、總經消息，按時間排好", "總覽",
-                  focus=F((2360, 60, 3186, 1500), "今日事件清單", "V02", 1.7, t_zoom=2.2), idle="news"))
-    S.append(feat("06", 3.0, "V27", act(2.4, 3.0, 1.4, 0.8), "想看什麼，打幾個字就到", "打幾個字", "點搜尋，熱門股票和最近看過的先列給你", "搜尋",
-                  focus=F((20, 150, 800, 1300), "搜尋下拉", "V27", 2.1, t_zoom=2.6), idle="face_wink"))
-    S.append(feat("07", 3.0, "V27", [(0, 5.0), (3.0, 9.0)], "打代號或名稱", "代號", "打代號或名稱，點一下直接到那一頁", "搜尋",
-                  focus=F((20, 150, 900, 440), "搜尋框與建議", "V27", 1.0, zoom=False), idle=[(0, "face_wink"), (2.0, "talk_excited")]))
+    S.append(feat("04", 2.5, "V01", stat(0.5, 2.5), "① 一頁看完今天", "一頁看完", '我把今天的行情排在同一頁，你一眼就看完', "總覽",
+                  focus=F((440, 100, 3140, 410), "四張摘要卡", "V01", 0.5, t_zoom=1.0), idle=[(0, 'talk_explain'), (1.5, 'face_nod')]))
+    S.append(feat("05", 3.0, "V02", act(2.0, 3.0, 1.0, 0.8), "今日事件不漏看", "不漏看", '重要消息我幫你按時間排好，你不怕漏看', "總覽",
+                  focus=F((2360, 60, 3186, 1500), "今日事件清單", "V02", 1.7, t_zoom=2.2), idle=[(0, 'news'), (1.6, 'face_shock')]))
+    S.append(feat("06", 3.0, "V27", act(2.4, 3.0, 1.4, 0.8), "想看什麼，打幾個字就到", "打幾個字", '想看哪一檔？打幾個字，我幫你找出來', "搜尋",
+                  focus=F((20, 150, 800, 1300), "搜尋下拉", "V27", 2.1, t_zoom=2.6), idle=[(0, 'magnifier'), (1.6, 'face_wink')]))
+    S.append(feat("07", 3.0, "V27", [(0, 5.0), (3.0, 9.0)], "打代號或名稱", "代號", '代號或名稱都行，點一下我就帶你過去', "搜尋",
+                  focus=F((20, 150, 900, 440), "搜尋框與建議", "V27", 1.0, zoom=False), idle=[(0, 'talk_excited'), (1.8, 'face_nod')]))
     S.append(feat("08", 3.0, "V03", [(0, 3.1), (0.7, 3.1), (0.7001, 9.9), (3.0, 13.35)], "② 大日子排一起", "大日子", "財報、法說、FED 公布日，一張月曆排好", "財經日曆",
                   focus=F((2300, 300, 3150, 1720), "FED 事件說明卡", "V03", 1.8, zoom=False), idle="calendar"))
-    S.append(feat("09", 2.5, "V04", stat(2.0, 2.5), "③ 錢往哪裡跑", "錢", "每個族群在領先還是落後，一看就知道", "資金流向",
-                  focus=F((600, 480, 1960, 1640), "資金輪動", "V04", 0.5, t_zoom=1.0), idle=[(0, "face_think"), (1.4, "talk_explain")]))
-    S.append(featv("09b", 3.8, "V04_desktop_v3c", [(0, 5.0), (3.8, 8.8)], "按 ▶，輪盤就動起來", "▶", "逐日播放，看族群怎麼從落後轉到領先", "資金流向",
-                   idle=[(0, "face_think"), (1.6, "face_star")]))
-    S.append(feat("10", 2.5, "V05", [(0, 3.0), (2.5, 5.5)], "大盤的錢分去哪", "分去哪", "從大盤分到產業鏈、族群，再到代表股", "資金流向",
-                  focus=F((440, 520, 2150, 1250), "分流樹", "V05", 0.5, t_zoom=1.0), idle="spotlight"))
-    S.append(feat("11", 2.0, "V07", stat(3.3, 2.0), "法人資金在哪", "法人", "法人的錢集中在哪幾個族群，也整理好了", "資金流向",
-                  focus=F((480, 100, 1820, 1290), "族群×法人", "V07", 0.4, zoom=False), idle="magnifier"))
+    S.append(feat("09", 2.5, "V04", stat(2.0, 2.5), "③ 錢往哪裡跑", "錢", '錢往哪裡跑？我幫你標出誰領先、誰落後', "資金流向",
+                  focus=F((600, 480, 1960, 1640), "資金輪動", "V04", 0.5, t_zoom=1.0), idle=[(0, 'face_curious'), (1.3, 'face_love')]))
+    S.append(featv("09b", 3.8, "V04_desktop_v3c", [(0, 5.0), (3.8, 8.8)], "按播放，輪盤就動起來", "播放", '按下播放鍵，我幫你播，看族群怎麼輪動', "資金流向",
+                   idle=[(0, 'coins'), (1.6, 'face_star')]))
+    S.append(feat("10", 2.5, "V05", [(0, 3.0), (2.5, 5.5)], "大盤的錢分去哪", "分去哪", '大盤的錢分到哪？我一路追到代表股', "資金流向",
+                  focus=F((440, 520, 2150, 1250), "分流樹", "V05", 0.5, t_zoom=1.0), idle=[(0, 'spotlight'), (1.4, 'face_think')]))
+    S.append(feat("11", 2.0, "V07", stat(3.3, 2.0), "法人資金在哪", "法人", '法人的錢集中在哪，我也幫你整理好了', "資金流向",
+                  focus=F((480, 100, 1820, 1290), "族群×法人", "V07", 0.4, zoom=False), idle=[(0, 'magnifier'), (1.1, 'face_nod')]))
     S.append(feat("12", 2.5, "V08", stat(3.1, 2.5), "④ 哪裡熱一眼看", "一眼看", "整個台股一張圖：越大成交越多，紅漲綠跌", "熱力圖",
                   focus=F((480, 200, 2260, 1120), "半導體", "V08", 0.5, t_zoom=1.0), idle=[(0, "magnifier"), (1.5, "face_star")]))
     S.append(feat("13", 3.0, "V09", [(0, 3.1), (0.6, 3.1), (0.6001, 12.4), (3.0, 15.5)], "題材資金熱力", "題材", "題材有多熱？資金、法人、新聞合成 0～100 分", "熱力圖",

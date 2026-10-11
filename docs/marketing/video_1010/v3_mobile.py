@@ -15,58 +15,13 @@ def pan(ya, yb, D, t0=0.3):
     return (ya, yb, t0, t0 + 0.6 * D)
 
 
-PAN_LOG = []
-_SZ = {}
+from v3_core import solve_pan as _solve_core, PAN_LOG, Lay  # noqa: E402
 
-
-def clip_size(clip):
-    """用 ffprobe 取素材尺寸（不開解碼器，避免每個 worker 都開一堆 ffmpeg）。"""
-    if clip not in _SZ:
-        import subprocess
-        from v3_core import RAW3
-        o = subprocess.check_output(["ffprobe", "-v", "error", "-select_streams", "v:0", "-show_entries", "stream=width,height",
-                                     "-of", "csv=p=0", str(RAW3 / f"{clip}.mp4")], text=True).strip().split(",")
-        _SZ[clip] = (int(o[0]), int(o[1]))
-    return _SZ[clip]
+_LM = Lay('mobile')
 
 
 def solve_pan(rec, op, D, pan_):
-    """點擊目標必須在點下那一刻落在畫面框內：不在就調整捲動（先固定到含所有點擊的視窗，點完才慢慢滑）。"""
-    sw, sh = clip_size(rec.clip)
-    wh = 1480 * sw / 1000
-    maxy = max(0, sh - wh)
-    taps = [(tp["t"], tp["y"]) for tp in op.taps if not tp["hover"]]
-    ya, yb, t0, t1 = pan_ or (0, 0, 0.3, 0.3)
-    ya, yb = min(max(ya, 0), maxy), min(max(yb, 0), maxy)
-    if not taps:
-        return (ya, yb, t0, t1)
-
-    def ok(tt, y):
-        import math
-        u = 0 if t1 <= t0 else min(1, max(0, (tt - t0) / (t1 - t0)))
-        u = u * u * (3 - 2 * u)
-        w0 = ya + (yb - ya) * u
-        return w0 + 40 <= y <= w0 + wh - 40
-    if all(ok(tt, y) for tt, y in taps):
-        return (ya, yb, t0, t1)
-    lo, hi = min(y for _, y in taps) - 70, max(y for _, y in taps) + 70
-    if hi - lo > wh:
-        lo = hi = taps[0][1]
-        lo -= 70
-        hi += 70
-    w0 = min(max(lo - max(0, (wh - (hi - lo)) / 2) , 0), maxy)
-    last = max(tt for tt, _ in taps)
-    ya2 = w0
-    yb2 = min(max(yb, 0), maxy)
-    if yb2 > ya2 and all(w0 + 40 <= y <= yb2 + wh - 40 or True for _, y in taps):
-        t0n = last + 0.55
-        if t0n + 0.9 > D:
-            yb2 = ya2
-            t0n = D
-        PAN_LOG.append((rec.clip, "調整", (ya, yb, t0, t1), (ya2, yb2, t0n, D - 0.15)))
-        return (ya2, yb2, t0n, max(t0n + 0.9, D - 0.15))
-    PAN_LOG.append((rec.clip, "靜止", (ya, yb, t0, t1), (ya2, ya2, 0.3, 0.9)))
-    return (ya2, ya2, 0.3, 0.9)
+    return _solve_core(rec, op, D, pan_, _LM)
 
 
 def feat(sid, D, clip, srcmap, head, hl, sub, pill, focus=None, idle="talk_happy", extra=(), pan_=None, use_events=True):
@@ -96,34 +51,34 @@ def build():
     S.append(card("03", 3.5, K.intro_fn(), [(0, "pop"), (1.4, "ding")]))
 
     V1 = "V01_mobile_v3b"
-    S.append(feat("04a", 3.0, V1, [(0, 2.4), (3.0, 5.4)], "① 一頁看完今天", "一頁", "四張摘要卡左右滑，漲跌、資金、題材一次看", "總覽",
-                  idle="face_nod", pan_=pan(0, 0, 3.0)))
-    S.append(feat("04b", 2.6, V1, [(0, 5.2), (2.6, 7.8)], "資金流向、熱度分頁", "分頁", "點分頁就切換，不用再開別的 App", "總覽",
-                  idle="face_think", pan_=pan(0, 0, 2.6)))
-    S.append(feat("04c", 2.4, V1, [(0, 7.4), (2.4, 9.8)], "加權、櫃買、台指期", "三條走勢", "三條走勢點一下切換，大盤一個畫面看完", "總覽",
-                  idle="face_nod", pan_=pan(0, 0, 2.4)))
-    S.append(feat("04d", 3.0, V1, stat(11.0, 3.0), "走勢圖慢慢看", "走勢", "加權指數整天走勢，昨收線一眼對照", "總覽",
-                  focus=F((24, 900, 1146, 2100), "走勢圖", V1, 1.6), idle="magnifier", pan_=pan(0, 700, 3.0)))
-    S.append(feat("04e", 3.0, V1, stat(12.0, 3.0), "漲跌家數分佈", "漲跌家數", "上漲、下跌幾家，各漲跌幅區間一目了然", "總覽",
-                  focus=F((24, 2330, 1146, 3590), "漲跌家數長條圖", V1, 2.3), idle="face_star", pan_=pan(700, 2018, 3.0)))
-    S.append(feat("05", 2.5, "V02_mobile", act(2.0, 2.5, 1.0, 0.8), "今日事件不漏看", "不漏看", "國際、科技、總經消息排好了", "總覽",
-                  idle="news", pan_=pan(0, 0, 2.5)))
-    S.append(feat("06", 3.0, "V27_mobile", act(2.4, 3.0, 1.3, 0.8), "想看什麼，打幾個字就到", "打幾個字", "點搜尋，熱門股票和最近看過的先列給你", "搜尋",
-                  focus=F((0, 0, 1170, 760), "搜尋框與下拉", "V27_mobile", 2.0), idle="face_wink"))
-    S.append(feat("07", 3.0, "V27_mobile", [(0, 5.5), (3.0, 9.9)], "打代號或名稱", "代號", "打代號或名稱，點一下直接到那一頁", "搜尋",
-                  idle=[(0, "face_wink"), (1.8, "talk_excited")]))
+    S.append(feat("04a", 3.0, V1, [(0, 2.4), (3.0, 5.4)], "① 一頁看完今天", "一頁", '我帶你逛總覽：四張卡左右滑，一眼看完', "總覽",
+                  idle=[(0, 'talk_explain'), (1.6, 'face_nod')], pan_=pan(0, 0, 3.0)))
+    S.append(feat("04b", 2.6, V1, [(0, 5.2), (2.6, 7.8)], "資金流向、熱度分頁", "分頁", '點分頁，資金和熱度我幫你切好', "總覽",
+                  idle=[(0, 'face_think'), (1.5, 'face_relief')], pan_=pan(0, 0, 2.6)))
+    S.append(feat("04c", 2.4, V1, [(0, 7.4), (2.4, 9.8)], "加權、櫃買、台指期", "三條走勢", '加權、櫃買、台指期，點一下就切換', "總覽",
+                  idle=[(0, 'talk_happy'), (1.3, 'face_nod')], pan_=pan(0, 0, 2.4)))
+    S.append(feat("04d", 3.0, V1, stat(11.0, 3.0), "走勢圖慢慢看", "走勢", '走勢圖我慢慢給你看，昨收線也標好了', "總覽",
+                  focus=F((24, 900, 1146, 2100), "走勢圖", V1, 1.6), idle=[(0, 'magnifier'), (1.5, 'face_star')], pan_=pan(0, 700, 3.0)))
+    S.append(feat("04e", 3.0, V1, stat(12.0, 3.0), "漲跌家數分佈", "漲跌家數", '漲跌幾家？分佈圖讓你一眼看懂', "總覽",
+                  focus=F((24, 2330, 1146, 3590), "漲跌家數長條圖", V1, 2.3), idle=[(0, 'face_surprise_happy'), (1.5, 'face_nod')], pan_=pan(700, 2018, 3.0)))
+    S.append(feat("05", 2.5, "V02_mobile", act(2.0, 2.5, 1.0, 0.8), "今日事件不漏看", "不漏看", '國際、科技消息，我幫你按時間排好', "總覽",
+                  idle=[(0, 'news'), (1.3, 'face_relief')], pan_=pan(0, 0, 2.5)))
+    S.append(feat("06", 3.0, "V27_mobile", act(2.4, 3.0, 1.3, 0.8), "想看什麼，打幾個字就到", "打幾個字", '想找哪一檔？熱門和最近看過的我先列給你', "搜尋",
+                  focus=F((0, 0, 1170, 760), "搜尋框與下拉", "V27_mobile", 2.0), idle=[(0, 'magnifier'), (1.6, 'face_wink')]))
+    S.append(feat("07", 3.0, "V27_mobile", [(0, 5.5), (3.0, 9.9)], "打代號或名稱", "代號", '打代號或名稱，點一下我就帶你去', "搜尋",
+                  idle=[(0, 'talk_excited'), (1.7, 'face_nod')]))
     S.append(feat("08", 3.0, "V03_mobile_v3b", [(0, 3.1), (0.7, 3.1), (0.7001, 9.9), (3.0, 12.2)], "② 大日子排一起", "大日子", "財報、法說、FED，一張月曆排好", "財經日曆",
                   idle="calendar", pan_=pan(0, 900, 3.0)))
-    S.append(feat("09", 2.5, "V04_mobile_v3b", stat(2.5, 2.5), "③ 錢往哪裡跑", "錢", "族群在領先還是落後，一看就知道", "資金流向",
-                  focus=F((110, 1400, 1060, 2280), "資金輪盤", "V04_mobile_v3b", 1.0), idle=[(0, "face_think"), (1.5, "talk_explain")], pan_=pan(600, 1000, 2.5)))
-    S.append(featp("09b", 3.6, "V04_mobile_v3c", "V04_mobile", [(0, 3.6), (3.6, 7.2)], "按 ▶，輪盤就動起來", "▶", "逐日播放，看族群怎麼從落後轉到領先", "資金流向",
-                   idle=[(0, "face_think"), (1.6, "face_star")]))
-    S.append(feat("10", 2.5, "V05_mobile_v3b", [(0, 3.0), (2.5, 5.5)], "大盤的錢分去哪", "分去哪", "從大盤分到產業鏈、族群、代表股", "資金流向",
-                  idle="spotlight", pan_=pan(300, 1500, 2.5)))
-    S.append(featp("10b", 3.6, "V06_mobile_v3c", "V06_mobile", [(0, 3.6), (3.6, 7.2)], "分流樹也能播放", "▶", "按 ▶，資金逐日流動，一路看到代表股", "資金流向",
-                   idle="spotlight"))
-    S.append(feat("11", 2.0, "V07_mobile", stat(3.3, 2.0), "法人資金在哪", "法人", "法人的錢集中在哪，也整理好了", "資金流向",
-                  idle="magnifier", pan_=pan(0, 700, 2.0)))
+    S.append(feat("09", 2.5, "V04_mobile_v3b", stat(2.5, 2.5), "③ 錢往哪裡跑", "錢", '我幫你看資金往哪裡跑', "資金流向",
+                  focus=F((110, 1400, 1060, 2280), "資金輪盤", "V04_mobile_v3b", 1.0), idle=[(0, 'face_curious'), (1.3, 'face_love')], pan_=pan(600, 1000, 2.5)))
+    S.append(featp("09b", 3.6, "V04_mobile_v3c", "V04_mobile", [(0, 3.6), (3.6, 7.2)], "按播放，輪盤就動起來", "播放", '按下播放鍵，我播給你看', "資金流向",
+                   idle=[(0, 'coins'), (1.5, 'face_star')]))
+    S.append(feat("10", 2.5, "V05_mobile_v3b", [(0, 3.0), (2.5, 5.5)], "大盤的錢分去哪", "分去哪", '大盤的錢分到哪？我一路追到代表股', "資金流向",
+                  idle=[(0, 'spotlight'), (1.3, 'face_think')], pan_=pan(300, 1500, 2.5)))
+    S.append(featp("10b", 3.6, "V06_mobile_v3c", "V06_mobile", [(0, 3.6), (3.6, 7.2)], "分流樹也能播放", "▶", '分流樹也能播，一路看到代表股', "資金流向",
+                   idle=[(0, 'talk_explain'), (1.6, 'face_proud')]))
+    S.append(feat("11", 2.0, "V07_mobile", stat(3.3, 2.0), "法人資金在哪", "法人", '法人的錢集中在哪，我也整理好了', "資金流向",
+                  idle=[(0, 'magnifier'), (1.0, 'face_nod')], pan_=pan(0, 700, 2.0)))
     S.append(feat("12", 2.5, "V08_mobile", stat(3.1, 2.5), "④ 哪裡熱一眼看", "一眼看", "越大成交越多，紅漲綠跌", "熱力圖",
                   idle=[(0, "magnifier"), (1.5, "face_star")], pan_=pan(0, 400, 2.5)))
     S.append(feat("13", 3.0, "V09_mobile", [(0, 3.1), (0.6, 3.1), (0.6001, 12.4), (3.0, 15.5)], "題材資金熱力", "題材", "題材熱度 0～100，資金、法人、新聞一起算", "熱力圖",

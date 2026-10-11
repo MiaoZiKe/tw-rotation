@@ -381,7 +381,14 @@ class Act:
                            "css_rect": [round(v, 1) for v in rect], "video_rect": self._vrect(rect)})
 
     def focus_sel(self, label, sel, t0, t1):
-        self.add_focus(label, self.pg.evaluate(RECT_JS, sel), t0, t1, sel)
+        try:
+            r = self.pg.evaluate(RECT_JS, sel) if ">>" not in sel and ":has-text" not in sel else None
+            if r is None:
+                bb = self.pg.locator(sel).first.bounding_box(timeout=1500)
+                r = [bb["x"], bb["y"], bb["width"], bb["height"]] if bb else None
+        except Exception:  # noqa: BLE001
+            r = None
+        self.add_focus(label, r, t0, t1, sel)
 
     @property
     def t(self):
@@ -2135,13 +2142,148 @@ def d07(pg, a, start, base):
 
 
 
+# ======================================================================== v3e／v3f／v3g：Andy 追加（組合點選連動、財經日曆三分頁含圖表、題材 1～5 依序展開）
+V3E_H = {"V13b": 1950}     # 手機 ETF 組合頁：甜甜圈／時鐘／明細／長條 垂直排列，要四塊同時入框 → 加高 viewport
+
+
+def rect_of(a, sel):
+    return a.pg.evaluate(RECT_JS, sel)
+
+
+def link_focus(a, t0, t1, tag=""):
+    """組合頁四塊（甜甜圈、12 個月時鐘、每月入帳長條、各檔明細）同時當焦點。"""
+    for sel, nm in [("#incCdn", "甜甜圈（總投入各檔張數・金額）"), ("#incClk", "12 個月入帳時鐘"), ("#incCmb", "每月入帳長條"), ("#incCTbl", "各檔明細卡")]:
+        a.focus_sel(f"{tag}{nm}", sel, t0, t1)
+
+
+@shot3("V13b", "md", "ETF 現金流試算：切組合 B → 依序點三檔明細（三張圖同步高亮）→ 甜甜圈 hover／點一塊 → 組合 C → 含息報酬最高")
+def v13b(pg, a, start, base):
+    goto3(pg, a, base, "#etf/inc", 4500)
+    start()
+    a.wait(500)
+    pg.evaluate("() => { const b = [...document.querySelectorAll('button')].find(x => x.offsetParent && /^組合 B/.test(x.textContent.trim())); if (b) b.setAttribute('data-vcap-b', '1'); }")
+    tap(a, "[data-vcap-b]", "組合 B", 700)
+    a.wait(900)
+    frame(a, "#incCombos", 2200, label="組合 B 完整畫面（甜甜圈／時鐘／長條／明細）") if not a.mob else a.wait(2200)
+    t0 = a.t - 2.2
+    link_focus(a, t0, a.t, "組合 B 初始：")
+    a.note(f"完整入框 {t0:.1f}–{a.t:.1f}s：組合 B 四塊（甜甜圈／時鐘／長條／明細）")
+    n = pg.locator("#incCTbl .cmr .cmn").count()
+    for i in range(min(3, n)):
+        row = f"#incCTbl .cmr:nth-child({i + 1}) .cmn"
+        if a.mob:
+            a.scroll(to_y=pg.evaluate("() => document.querySelector('#incCTbl').getBoundingClientRect().top + scrollY") - 90, ms=700) if _vh(pg) < 1200 else None
+        tap(a, row, f"點第 {i + 1} 檔明細", 400)
+        t1 = a.t
+        a.wait(1800)
+        link_focus(a, t1, a.t, f"選第 {i + 1} 檔：")
+        a.focus_sel(f"選第 {i + 1} 檔：被點的明細列", f"#incCTbl .cmr:nth-child({i + 1})", t1, a.t)
+        a.note(f"完整入框 {t1:.1f}–{a.t:.1f}s：第 {i + 1} 檔高亮（三張圖同步）")
+    # 甜甜圈：hover 出提示、再點一塊
+    b = a.box("#incCdn canvas", scroll=False)
+    if b:
+        cx, cy = b["x"] + b["width"] / 2, b["y"] + b["height"] / 2
+        R = min(b["width"], b["height"]) * 0.36
+        px, py_ = cx + R * math.sin(math.radians(60)), cy - R * math.cos(math.radians(60))
+        a.move(px, py_, 800)
+        t1 = a.t
+        a.wait(1600)
+        a.focus_sel("甜甜圈 hover 提示（該檔投入金額）", "#incCdn", t1, a.t)
+        a.note(f"甜甜圈 hover 出現該檔投入金額提示 {t1:.1f}–{a.t:.1f}s，游標在 ({px:.0f},{py_:.0f})css")
+        a.click_xy(px, py_, 200, 200)
+        a.wait(1600)
+        link_focus(a, a.t - 1.6, a.t, "點甜甜圈一塊：")
+    for nm, lab in [("組合 C", "組合 C"), ("含息報酬最高", "含息報酬最高"), ("投入最少", "投入最少")]:
+        loc = f"button:visible:has-text('{nm}')"
+        if pg.locator(loc).count():
+            tap(a, loc, f"切到 {lab}", 400)
+            t1 = a.t
+            a.wait(1800)
+            link_focus(a, t1, a.t, f"{lab}：")
+            a.note(f"完整入框 {t1:.1f}–{a.t:.1f}s：{lab}")
+
+
+def _fed_cards(a, tag):
+    for sel, nm in [("#earnPanel", "說明卡"), ("#earnGrid", "月曆／清單")]:
+        a.focus_sel(f"{tag}{nm}", sel, a.t - 2.5, a.t)
+
+
+@shot3("V03b", "md", "財經日曆：公司財報 → 點一格 → 說明卡（含圖表）；公司法說 → 同；FED 消息 → CPI／FOMC 說明卡；手機往下滑清單與本週重點")
+def v03b(pg, a, start, base):
+    goto3(pg, a, base, "#earnings", 3500)
+    start()
+    frame(a, "#earnCalCard", 2000, label="財經日曆（公司財報分頁）")
+    a.focus_sel("分類分頁列（公司財報／公司法說／FED 消息）", "#earnFilt", *a.last_hold)
+    for fv, nm, k in [("rep", "公司財報", 1), ("conf", "公司法說", 1), ("fed", "FED 消息", 2)]:
+        if fv != "rep":
+            tap(a, f'#earnFilt button[data-v="{fv}"]', nm, 1000)
+            frame(a, "#earnCalCard", 1500, label=f"{nm}分頁完整")
+        chips = pg.locator("#v-earnings .chip:visible")
+        for j in range(min(k, chips.count())):
+            tap(a, f"#v-earnings .chip:visible >> nth={j}", f"{nm}：點第 {j + 1} 個事件", 600)
+            a.wait(1200)
+            frame(a, "#earnPanel", 2500, label=f"{nm}：說明卡（頂端）")
+            _fed_cards(a, f"{nm}：")
+            slow_through(a, "#earnPanel", f"{nm}：說明卡（圖表／數值區，捲到底）", 800, 1200, 2600)
+            a.scroll(to_y=0, ms=900)
+    if a.mob:
+        a.scroll(to_y=0, ms=600)
+        mx = pg.evaluate("() => document.scrollingElement.scrollHeight - innerHeight")
+        t1 = a.t
+        a.scroll(to_y=mx, ms=int(min(9000, max(3500, mx * 4))))
+        a.focus_sel("頁面下半：清單與本週重點", "#earnBody, #earnPanel", t1, a.t)
+        a.wait(1200)
+        a.note(f"手機慢慢往下滑看完整頁（{mx:.0f}px）{t1:.1f}–{a.t:.1f}s")
+
+
+def _theme_open(pg, a, fx, fy, label):
+    b = a.box("#themeMap", scroll=False)
+    a.click_xy(b["x"] + b["width"] * fx, b["y"] + b["height"] * fy, 800, 500)
+    a.note(f"點題材方塊：{label}")
+    a.wait(2800)
+
+
+@shot3("V07b", "md", "題材資金熱力：點進題材 → 環節 1～5 依序點開（手機）／逐欄點（桌機）→ 再換一個題材點 1～3")
+def v07b(pg, a, start, base):
+    goto3(pg, a, base, "#heatmap/theme", 4000)
+    start()
+    frame(a, "#themeMapCard", 2000, label="題材資金熱力（完整）")
+    for (fx, fy, lab, nmax) in [(0.1, 0.4, "AI 伺服器", 5), (0.27, 0.72, "高階 PCB／CCL", 3)]:
+        a.scroll(to_y=pg.evaluate("() => document.querySelector('#themeMapCard').getBoundingClientRect().top + scrollY") - 60, ms=900)
+        a.wait(500)
+        _theme_open(pg, a, fx, fy, lab)
+        frame(a, "#themeDetail", 2000, label=f"{lab}：題材細節（產品剖析圖，環節 1～{nmax}）")
+        a.focus_sel(f"{lab}：環節清單／五欄", "#themeDetail", *a.last_hold)
+        if a.mob:
+            steps = pg.locator("#themeDetail g.step")
+            n = min(nmax, steps.count())
+            for i in range(n):
+                tap(a, f"#themeDetail g.step >> nth={i}", f"{lab}：點環節 {i + 1}", 500)
+                t1 = a.t
+                a.wait(500)
+                slow_through(a, "#themeDetail", f"{lab}：環節 {i + 1} 展開（說明與公司膠囊）", 1500, 600, 2200)
+                a.focus_sel(f"{lab}：環節 {i + 1}", f"#themeDetail g.step >> nth={i}", t1, a.t)
+            frame(a, "#themeDetail", 2000, label=f"{lab}：整張清單結尾入框")
+        else:
+            cards = pg.locator("#themeDetail g.p3.stn")
+            n = min(nmax, cards.count())
+            for i in range(n):
+                tap(a, f"#themeDetail g.p3.stn >> nth={i}", f"{lab}：點環節 {i + 1}", 400)
+                t1 = a.t
+                a.wait(2000)
+                a.focus_sel(f"{lab}：環節 {i + 1} 卡片", f"#themeDetail g.p3.stn >> nth={i}", t1, a.t)
+                a.focus_sel(f"{lab}：題材細節整區", "#themeDetail", t1, a.t)
+            frame(a, "#themeDetail", 2000, label=f"{lab}：五欄整區結尾入框")
+
+
+
 # ------------------------------------------------------------------ 主程式
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--shots", default="")
     ap.add_argument("--dev", default="md")
     ap.add_argument("--out", default="")
-    ap.add_argument("--set", default="v2", choices=["v2", "v3", "v3b", "v3c", "v3d"], help="v3＝第 3 版素材（桌機 1600×900@2、不藏 B 類、完整入框）")
+    ap.add_argument("--set", default="v2", choices=["v2", "v3", "v3b", "v3c", "v3d", "v3e", "v3f", "v3g"], help="v3＝第 3 版素材（桌機 1600×900@2、不藏 B 類、完整入框）")
     ap.add_argument("--port", type=int, default=PORT)
     ap.add_argument("--fps", type=int, default=0, help="輸出幀率（預設 30；v3c 預設 60：逐格算圖每一個 rAF 刻度都收進來）")
     ap.add_argument("--realtime", action="store_true", help="真實時間錄影（CDP screencast，依時間戳重採樣）；本機 CPU 繪圖只有 ~13fps 來源，實測比逐格算圖差，預設不用")
@@ -2153,6 +2295,8 @@ def main() -> int:
     v3 = args.set.startswith("v3")
     reg = SHOTS3 if v3 else SHOTS
     devs_cfg = DEVS3 if v3 else DEVS
+    if args.set in ("v3e", "v3f", "v3g") and not args.shots.strip():
+        args.shots = {"v3e": "V13b", "v3f": "V03b", "v3g": "V07b"}[args.set]
     if args.set == "v3d" and not args.shots.strip():
         args.shots = "D02,D01,D03,D04,D05,D06,D07"
     if args.set == "v3c" and not args.shots.strip():
@@ -2183,6 +2327,8 @@ def main() -> int:
                     cfg = dict(devs_cfg[dev])
                     if args.set == "v3c" and dev == "d":
                         cfg["device_scale_factor"] = 1.5     # 真實時間錄影：桌機 DPR 1.5（2400×1350）換流暢
+                    if args.set == "v3e" and dev == "m":
+                        cfg["viewport"] = {"width": 390, "height": V3E_H.get(sid, 844)}
                     if args.set == "v3b":
                         cfg["viewport"] = {"width": 390, "height": V3B_H[sid]}
                     ctx = b.new_context(**cfg, locale="zh-TW", timezone_id="Asia/Taipei")
@@ -2209,7 +2355,7 @@ def main() -> int:
                     rec = Recorder(pg, W, H, dry=args.log_only, realtime=args.realtime)
                     act.dsf = cfg["device_scale_factor"]
                     act.log_moves = v3   # v3 沒有錄進游標 → 游標路徑寫進 shots.md 給後製畫比比
-                    name = f"{sid}_{'mobile' if dev == 'm' else 'desktop'}" + ("_v3b" if args.set == "v3b" else "_v3c" if args.set == "v3c" else "_v3d" if args.set == "v3d" else "")
+                    name = f"{sid}_{'mobile' if dev == 'm' else 'desktop'}" + ("_v3b" if args.set == "v3b" else "_v3c" if args.set == "v3c" else "_v3d" if args.set == "v3d" else "_" + args.set if args.set in ("v3e", "v3f", "v3g") else "")
                     try:
                         # 每鏡自己決定何時開錄：fn(pg, act, rec_start) —— 先做準備（換頁、等圖畫完）再開錄
                         state = {}

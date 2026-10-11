@@ -99,20 +99,22 @@ class Lay:
         self.full_bleed = False
         if fmt == "web":
             self.W, self.H = 1920, 1080
-            self.box = (152, 66, 1616, 909)              # 錄影框（16:9 ，上下左右留帶）
+            self.box = (77, 66, 1766, 770)               # 網站畫面框：寬 92%（1766）×高 770，下方 244px 留給比比與泡泡
             self.frame_y = self.box[1]
             self.head_px = 36
             self.head_w = 900
             self.sub_px = 28
             self.sub_chars = 52
             self.pill_px = 18
-            self.pill_xy = (152, 4)
+            self.pill_xy = (77, 4)
             self.head_y = 6
             self.sub_y = 988
-            self.foot_y = 1045
-            self.host_x = 1850 if theme == "cute" else 70
-            self.host_foot = 1048
-            self.host_w = 130
+            self.foot_y = 1048
+            self.host_x = 150
+            self.host_foot = 1076
+            self.host_w = 260
+            self.host_h = 214
+            self.host_size = 300
         else:
             self.W, self.H = 1080, 1920
             self.box = (40, 146, 1000, 1480)             # 網站畫面框（寬 1000×高 1480）
@@ -122,11 +124,12 @@ class Lay:
             self.pill_px = 22
             self.pill_xy = (40, 34)
             self.head_y = 30
-            self.foot_y = 1840
-            self.host_size = 200
-            self.host_x = 125 if theme == "cute" else 955
-            self.host_foot = 1796
-            self.host_w = 120
+            self.foot_y = 1874
+            self.host_size = 300
+            self.host_x = 136
+            self.host_foot = 1862
+            self.host_w = 236
+            self.host_h = 222
 
     @property
     def host(self):
@@ -252,15 +255,22 @@ class Rec4:
                 pass
         else:
             u = self.zoom_u(t)
-            full = (0, 0, sw, sh)
+            wh0 = sw * rh / rw
+            if self.pan:
+                ya, yb, t0, t1 = self.pan
+                py = lerp(ya, yb, ease_io((t - t0) / max(0.01, t1 - t0)))
+            else:
+                py = 0
+            py = clamp(py, 0, max(0, sh - wh0))
+            full = (0, py, sw, min(sh, py + wh0))
             if self.focus and u > 0:
                 x0, y0, x1, y1 = self.focus.rect
                 mx, my = (x1 - x0) * 0.06, (y1 - y0) * 0.06
                 tgt = fit_aspect((x0 - mx, y0 - my, x1 + mx, y1 + my), rw / rh, sw, sh, rw * self.focus.max_up_inv)
             else:
                 tgt = full
-            cx = lerp(sw / 2, (tgt[0] + tgt[2]) / 2, u)
-            cy = lerp(sh / 2, (tgt[1] + tgt[3]) / 2, u)
+            cx = lerp((full[0] + full[2]) / 2, (tgt[0] + tgt[2]) / 2, u)
+            cy = lerp((full[1] + full[3]) / 2, (tgt[1] + tgt[3]) / 2, u)
             ww = lerp(sw, tgt[2] - tgt[0], u)
             wh = ww * rh / rw
             cx = clamp(cx, ww / 2, sw - ww / 2)
@@ -455,6 +465,86 @@ def sparkle_trail(cv, p0, p1, u):
                    (x - r * 0.6, y + r * 0.6), (x - r * 1.8, y), (x - r * 0.6, y - r * 0.6)], fill=col + (255,))
 
 
+PAN_LOG: list = []
+_SZ: dict = {}
+
+
+def clip_size(clip):
+    """用 ffprobe 取素材尺寸（不開解碼器，避免每個 worker 都開一堆 ffmpeg）。"""
+    if clip not in _SZ:
+        import subprocess
+        o = subprocess.check_output(["ffprobe", "-v", "error", "-select_streams", "v:0", "-show_entries", "stream=width,height",
+                                     "-of", "csv=p=0", str(RAW3 / f"{clip}.mp4")], text=True).strip().split(",")
+        _SZ[clip] = (int(o[0]), int(o[1]))
+    return _SZ[clip]
+
+
+def solve_pan(rec, op, D, pan_, L):
+    """垂直視窗規劃（網頁、手機共用）：① 點擊目標在點下那一刻必須落在畫面框內；② 非推近的焦點框要完整在視窗內
+    （框比視窗高就取可見上段並標註）；點完才慢慢滑。回傳 (ya, yb, t0, t1)。"""
+    sw, sh = clip_size(rec.clip)
+    rx, ry, rw, rh = L.box
+    wh = rh * sw / rw
+    maxy = max(0.0, sh - wh)
+    ya, yb, t0, t1 = pan_ or (0, 0, 0.3, 0.3)
+    ya, yb = min(max(ya, 0), maxy), min(max(yb, 0), maxy)
+    taps = [(tp["t"], tp["y"]) for tp in op.taps if not tp["hover"]] if op else []
+
+    def win(tt, p):
+        a_, b_, s0, s1 = p
+        u = 0 if s1 <= s0 else min(1, max(0, (tt - s0) / (s1 - s0)))
+        u = u * u * (3 - 2 * u)
+        return a_ + (b_ - a_) * u
+
+    def ok_taps(p):
+        return all(win(tt, p) + 40 <= y <= win(tt, p) + wh - 40 for tt, y in taps)
+    cur = (ya, yb, t0, t1)
+    if not ok_taps(cur):
+        lo, hi = min(y for _, y in taps) - 70, max(y for _, y in taps) + 70
+        if hi - lo > wh:
+            lo, hi = taps[0][1] - 70, taps[0][1] + 70
+        w0 = min(max(lo - max(0, (wh - (hi - lo)) / 2), 0), maxy)
+        last = max(tt for tt, _ in taps)
+        t0n = last + 0.55
+        if t0n + 0.9 > D or yb <= w0:
+            cur = (w0, w0, 0.3, 0.9)
+            PAN_LOG.append((rec.clip, "靜止", (ya, yb, t0, t1), cur))
+        else:
+            cur = (w0, min(max(yb, 0), maxy), t0n, max(t0n + 0.9, D - 0.15))
+            PAN_LOG.append((rec.clip, "調整", (ya, yb, t0, t1), cur))
+    f = rec.focus
+    if f and f.frame and f.zoom and (f.rect[3] - f.rect[1]) * 1.12 > wh:
+        f.zoom = False     # 框比視窗高：改成平移視窗＋取可見上段，不推近
+    if f and f.frame and not f.zoom:
+        fy0, fy1 = f.rect[1], f.rect[3]
+        mg = 16 * sw / rw
+        need = (fy1 - fy0) + 2 * mg
+        end_w = win(D, cur)
+
+        def fits(w):
+            return w + mg * 0.5 <= fy0 and fy1 <= w + wh - mg * 0.5
+        if not (fits(win(f.t_draw + f.d_draw, cur)) and fits(end_w)):
+            if need <= wh:
+                w1 = min(max(fy0 - (wh - (fy1 - fy0)) / 2, 0), maxy)
+            else:
+                w1 = min(max(fy0 - mg, 0), maxy)
+                f.rect = (f.rect[0], fy0, f.rect[2], min(fy1, w1 + wh - mg))
+                f.rect_src += "（框高於畫面框，取可見上段）"
+            last = max([tt for tt, _ in taps] + [0.0])
+            ws = win(last + 0.5, cur) if taps else win(0, cur)
+            ts0 = last + 0.5 if taps else 0.2
+            if taps and ws + 40 <= (max(y for _, y in taps)) and False:
+                pass
+            # 先在點擊前的視窗不動，點完（或一開始）滑到 w1，滑完才畫框
+            t_end = ts0 + 0.9
+            f.t_draw = max(f.t_draw, t_end + 0.1)
+            f.t_zoom = f.t_draw + f.d_draw + 0.15
+            start = win(0, cur) if not taps else min(win(last, cur), maxy)
+            cur = (start, w1, ts0, t_end)
+            PAN_LOG.append((rec.clip, "焦點", pan_, cur))
+    return cur
+
+
 class Op:
     """比比操作員：待在側帶／窄帶；點擊只在「跳進去踩下」那段（≤0.9 秒）進入框內；框內操作用漣漪表示。"""
 
@@ -495,11 +585,29 @@ class Op:
         self.drags = [d for d in self.drags if "t1" in d and d["t1"] > d["t0"]]
 
     def home(self, L, name):
-        if L.fmt == "web":
-            sz = fit_size(name, L.host_w, 240)
-            return side_foot(name, sz, L.host_x, 1074), sz
-        sz = fit_box(name, 190, 170, L.host_size)
-        return side_foot(name, sz, L.host_x, 1812), sz
+        sz = fit_box(name, L.host_w, L.host_h, L.host_size)
+        return side_foot(name, sz, L.host_x, L.host_foot), sz
+
+    def home_rect(self, L, t):
+        """這一鏡所有待機／魔法棒／拖曳姿勢在 home 的外框聯集（整鏡固定，泡泡尾巴不跳動）。"""
+        names = {n for _, n in self.idle}
+        f = getattr(self.rec, "focus", None)
+        if f and f.frame and self.magic:
+            names.add("magic_frame")
+        if self.drags:
+            names |= {"hop_l", "hop_r"}
+        if THEME["name"] == "pro":
+            names = {pro_idle(n) for n in names}
+        x0 = y0 = 1e9
+        x1 = y1 = -1e9
+        for nm in names:
+            foot, sz = self.home(L, nm)
+            u = union512(nm)
+            sc = sz / 512
+            w, h = (u[2] - u[0]) * sc, (u[3] - u[1]) * sc
+            x0, y0 = min(x0, L.host_x - w / 2), min(y0, L.host_foot - h)
+            x1, y1 = max(x1, L.host_x + w / 2), max(y1, L.host_foot)
+        return None, (x0, y0, x1, y1)
 
     @staticmethod
     def land(L, p, ts):
@@ -510,6 +618,15 @@ class Op:
             y = p[1] + ts + 16
         y = min(y, bot)
         return (clamp(p[0], 30, L.W - 30), y)
+
+    def away(self, t):
+        """比比此刻是否離開 home（踩按鈕飛出去／彈回來）；此時泡泡先淡出，避免比比飛過泡泡。"""
+        for tp in self.taps:
+            if tp["hover"] or tp["dense"]:
+                continue
+            if tp["t"] - self.FLY - 0.08 <= t <= tp["t"] + self.STAY + self.BACK + 0.08:
+                return True
+        return False
 
     def idle_name(self, t):
         name = self.idle[0][1]
@@ -526,7 +643,7 @@ class Op:
         if pro:
             iname = pro_idle(iname)
         home, hs = self.home(L, iname)
-        ts = int(max(hs, 170) * self.tap_scale) if L.fmt == "web" else 170
+        ts = int(max(hs, 190) * self.tap_scale) if L.fmt == "web" else 190
         # 漣漪（點下那一幀起）＋ 點擊驗證
         for tp in self.taps:
             if rec.win and not tp["hover"]:
@@ -655,8 +772,8 @@ class Shot4:
             self._overlays(cv, t, L)
         if self.op:
             self.op.draw(cv, t, self)
-        if self.kind == "feature" and L.fmt == "mobile":
-            bubble_mobile(cv, L, self, self.sub, t)
+        if self.kind == "feature":
+            host_bubble(cv, L, self, self.sub, t)
         return cv
 
     def _overlays(self, cv, t, L):
@@ -681,7 +798,6 @@ class Shot4:
                 hx = px + pw + 36
             L.head_xy = (hx, L.head_y)
             R.headline(cv, L, self.head, t, self.hl)
-            subtitle_web(cv, L, self.sub, t)
             footnote4(cv, L)
         else:
             hx = L.pill_xy[0]
@@ -730,36 +846,61 @@ def footnote4(cv, L):
         C.reg("footnote", (x, y, x + tw, y + 28))
 
 
-def bubble_mobile(cv, L, shot, text, t):
-    """框下方窄帶：cute＝台詞泡泡（尾巴只指向比比）；pro＝細邊台詞條（不用泡泡）。"""
-    if not text:
+def host_bubble(cv, L, shot, text, t):
+    """比比的台詞泡泡（網頁、手機共用）：單一路徑，尾巴尖端離比比 14px、只指向比比，文字離尾巴 ≥10px。"""
+    if not text or not shot.op:
         return
+    nm, br = shot.op.home_rect(L, t)
+    _bubble_at(cv, L, text, t, br, hide=shot.op.away(t))
+
+
+def card_host(cv, L, nm, text, t, mode=None):
+    """卡片鏡頭的比比（在下方帶，與一般鏡頭同位置同大小）＋泡泡。"""
+    sz = fit_box(nm, L.host_w, L.host_h, L.host_size)
+    foot = side_foot(nm, sz, L.host_x, L.host_foot)
+    ROLE[0] = "bibi"
+    put_sprite(cv, nm, anim_frame(nm, t) if mode is None else anim_frame(nm, t, mode), foot, sz)
+    u = union512(nm)
+    sc = sz / 512
+    w, h = (u[2] - u[0]) * sc, (u[3] - u[1]) * sc
+    _bubble_at(cv, L, text, t, (L.host_x - w / 2, L.host_foot - h, L.host_x + w / 2, L.host_foot))
+
+
+def _bubble_at(cv, L, text, t, br, hide=False):
     a = clamp(t / 0.2, 0, 1)
-    f = font(R.THEME["pill_font"] if THEME["name"] == "pro" else B.F_ROUND, 36 if THEME["name"] == "cute" else 34)
-    lines = wrap_lines(text, 15)[:2]
-    h = len(lines) * 46 + 24
-    y1 = 1768
-    y0 = y1 - h
-    ink = THEME["ink"]
+    if hide:
+        return
+    web = L.fmt == "web"
+    px = 32 if web else 38
+    f = font(B.F_ROUND, px)
+    cy = (br[1] + br[3]) / 2
+    tip = (br[2] + 14, cy)
+    x0 = tip[0] + 30
+    x_max = (L.W - 40) if web else 1040
+    maxw = x_max - x0 - 56
+    lines, cur = [], ""
+    for ch in text:
+        if text_w(f, cur + ch) > maxw and cur:
+            lines.append(cur)
+            cur = ch
+        else:
+            cur += ch
+    lines.append(cur)
+    lines = lines[:2]
+    tw = max(text_w(f, ln) for ln in lines)
+    lh = px * 1.3
+    h = len(lines) * lh + 26
+    x1 = x0 + tw + 56
+    rect = (x0, cy - h / 2, x1, cy + h / 2)
+    cx = (x0 + x1) / 2
+    ty = rect[1] + 13
+    tr = (cx - tw / 2, ty, cx + tw / 2, ty + len(lines) * lh)
+    draw_bubble(cv, rect, tip, alpha=a, ink=THEME["ink"], width=4, r=min(THEME["panel_r"], 22), text_rect=tr)
     lay = Image.new("RGBA", cv.size, (0, 0, 0, 0))
     d = ImageDraw.Draw(lay)
-    if THEME["name"] == "cute":
-        x0, x1 = 268, 1040
-        tip = (L.host_x + 95 + 14, (y0 + y1) / 2)
-        lines_n = len(lines)
-        tx = (x0 + x1) / 2
-        tr = (tx - max(text_w(f, ln) for ln in lines) / 2, y0 + 11, tx + max(text_w(f, ln) for ln in lines) / 2, y0 + 11 + lines_n * 46)
-        draw_bubble(cv, (x0, y0, x1, y1), tip, alpha=clamp(a, 0, 1), ink=ink, width=4, r=THEME["panel_r"], text_rect=tr)
-    else:
-        x0, x1 = 40, 830
-        d.rectangle([x0, y0, x1, y1], fill=(255, 255, 255, 235), outline=ink + (110,), width=2)
-        d.rectangle([x0, y0, x0 + 5, y1], fill=DEEP + (255,))
-        C.reg("subtitle", (x0, y0, x1, y1))
-        tx = (x0 + x1) / 2 + 3
     for i, ln in enumerate(lines):
-        tw = text_w(f, ln)
-        d.text((tx - tw / 2, y0 + 11 + i * 46), ln, font=f, fill=ink)
-    lay.putalpha(lay.getchannel("A").point(lambda v: int(v * clamp(a, 0, 1))))
+        d.text((cx - text_w(f, ln) / 2, ty + i * lh), ln, font=f, fill=THEME["ink"])
+    lay.putalpha(lay.getchannel("A").point(lambda v: int(v * a)))
     cv.paste(lay, (0, 0), lay)
 
 
