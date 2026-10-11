@@ -36,6 +36,9 @@ LIMIT = 60 * 1024
 OVERRIDE = {
     "weekend": {"box": (19, 74, 459, 514), "erase": [(0, 0, 205, 235)]},
 }
+# 互動素材開頭的「待機」格剪掉（Andy 10-11 晚：「互動圖不需要前面特效，直接進入互動動作」——
+# 點了小圈 0.2 秒內就要看到比比在動；G1 的 ball／eat_grass／pet 第 1 格是 700～900ms 的待機，網站版直接從第 2 格開始）
+TRIM_HEAD = {"ball": 1, "eat_grass": 1, "pet": 1}
 
 # 網站用到的才轉（情境待機＋互動動作；對照表在 site/bibi.js 的 MAP）
 NAMES = [
@@ -46,6 +49,11 @@ NAMES = [
     # 動畫單位 G2（10-11）：擊掌、跳舞、抱抱、睡覺循環、叫醒、拍照＋情境待機（大跌安慰、大漲、週末、四款節日帽）
     "highfive", "dance", "hug", "sleep_loop", "wake_once", "selfie",
     "idle_down", "idle_bigup", "weekend", "festival_newyear", "festival_dragon", "festival_moon", "festival_xmas",
+    # 10-11 晚 動作編排（bibi.js CHOREO）：跑步替代（素材庫 hop_l／hop_r）＋待機小動作；動畫單位的專屬零件到了就加進來（沒到會印「略過」）
+    "hop_l", "hop_r", "face_curious", "tilt",
+    "run_l", "run_r", "ball_catch", "eat_grass_v2", "pet_v2", "spin_v2",
+    # 10-11 晚 Andy 追加：開心的跳（待機預設）、接過來（給草／給球）、爆米花跳；替代用 face_star
+    "face_star", "happy_hop", "receive", "popcorn",
 ]
 
 
@@ -79,6 +87,9 @@ def convert(name: str) -> tuple[int, int] | None:
         box = tuple(round(v * k) for v in ov.get("box", BOX))
         frames.append(fr.crop(box).resize((SIZE, SIZE), Image.LANCZOS))
         durs.append(int(f.info.get("duration", im.info.get("duration", 100)) or 100))
+    cut = TRIM_HEAD.get(name, 0)
+    if cut:
+        frames, durs = frames[cut:], durs[cut:]
     total = sum(durs)
     loop = int(im.info.get("loop", 0) or 0)   # 互動素材「播一次不循環」（loop=1）要保留：播完停在最後一格＝待機姿勢
     data = None
