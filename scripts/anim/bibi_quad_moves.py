@@ -449,7 +449,7 @@ def clip_selfie():
     c = head_top(p4)
     fr.append(F(p4, 220, "空中最高點：YA！（星星眼大笑、閃光）",
                 fx_back=[flash_svg(c[0], c[1] + 130, 140, 14, 18, 0.75)],
-                fx=[ya_svg(424, 96, 1.0, 10), sparkle_svg(62, 120, 18), R.star_svg(84, 260, 14, 15), R.star_svg(452, 240, 12, -10)]))
+                fx=[ya_svg(424, 96, 1.0, 10), sparkle_svg(62, 120, 18), R.star_svg(30, 300, 14, 15), R.star_svg(478, 280, 12, -10)]))
     p5 = dict(view="front", y=GROUND - 36, sy=1.07, sx=0.95, eye="arc", mouth="smile", ear=-8, ear2=-8, blush=1.2,
               legs={"fl": (4, 2, 6, 0.5), "fr": (-4, 2, -6, 0.5), "bl": (6, 0, 0, 0.5), "br": (-6, 0, 0, 0.5)})
     fr.append(F(p5, 70, "往下掉", fx=[R.star_svg(452, 200, 11, 0)]))
@@ -625,9 +625,9 @@ def clip_boop():
             if k == "sniff":
                 fx = [sniff_svg(mx - 64, my - 14, 1.0, -1)]
             elif k == "boop":
-                fx = [sparkle_svg(mx - 92, my - 54, 16)]
+                fx = [sparkle_svg(42, 250, 16)]
             elif k == "heart":
-                fx = [heart_svg(mx - 30, my - 110, 1.0, -10)]
+                fx = [heart_svg(60, 130, 1.0, -10)]
             else:
                 fx = [heart_svg(110, 120, 1.1, -12)]
         fr.append(F(p, ms, lab, fx=fx))
@@ -712,7 +712,7 @@ def clip_receive():
         if isinstance(k, float):
             fx = [sniff_svg(mx - 26, my + 2, k, -1)]
         elif k == "h":
-            fx = [heart_svg(mx + 20, my - 140, 1.0, -8)]
+            fx = [heart_svg(150, 100, 1.0, -8)]
         fr.append(F(p, ms, lab, fx=fx))
     fr.append(F(DEFAULT_END, 400, "回 Default"))
     return fr
@@ -738,7 +738,7 @@ def clip_popcorn():
     for p, ms, lab, fx in seq:
         f = []
         if fx == ["pc"]:
-            f = [R.popcorn_svg(70, 190, 2.0, -20), R.popcorn_svg(440, 160, 2.0, 15), R.popcorn_svg(96, 330, 1.6, 30)]
+            f = [R.popcorn_svg(40, 70, 1.4, -20), R.popcorn_svg(472, 64, 1.4, 15), R.popcorn_svg(38, 384, 1.3, 30)]
         fr.append(F(p, ms, lab, fx=f, fx_back=[R.dust_svg(70, 468, 0.8), R.dust_svg(430, 468, 0.8)] if "落地" in lab else None))
     fr.append(F(DEFAULT_END, 400, "回 Default"))
     return fr
@@ -882,7 +882,7 @@ def clip_sniff_eat():
             fx = [R.crumbs_svg(mx - 30, my + 20, 3, 14, seed=2)]
         if k == "heart":
             fx = [heart_svg(R.CX + 150, 140, 1.0, 10)]
-        mid = [seed_svg(mx - 6, GROUND - 14 if lab.startswith("低頭") else my + 6, 1.0, 70)] if seed else None
+        mid = [seed_svg(mx - 8, GROUND - 18 if lab.startswith("低頭") else my + 8, 1.5, 70)] if seed else None
         fr.append(F(p, ms, lab, fx=fx, props_mid=mid))
     fr.append(F(DEFAULT_END, 400, "回 Default"))
     return fr
@@ -936,7 +936,7 @@ def clip_pounce():
         if "m" in k:
             fx = [R.motion_marks_svg(p["x"] + 196, 300, 1, 1.0, 2)]
         if "speed" in k:
-            fx = [R.speed_lines_svg(440, 300, 3, 36, 22, 0.8, 1)]
+            fx = [R.speed_lines_svg(446, 186, 3, 30, 20, 0.8, 1)]
         if "dust" in k:
             fxb = [R.dust_svg(60, 468, 0.9), R.dust_svg(430, 468, 0.7)]
         fr.append(F(p, ms, lab, fx=fx, fx_back=fxb))
