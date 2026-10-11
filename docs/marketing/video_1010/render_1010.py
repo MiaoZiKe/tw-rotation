@@ -496,8 +496,13 @@ def anim_len(name):
     return sum(bibi_index()[name]["durations_ms"]) / 1000
 
 
+SPRITE_HOOK = None
+
+
 def put_sprite(canvas, name, i, foot, size, flip=False):
     size = int(round(size / 4) * 4)
+    if SPRITE_HOOK:
+        SPRITE_HOOK(name, i, foot, size)
     sp = sprite(name, i, size, flip)
     s = size / 512
     x = foot[0] - 248 * s

@@ -158,15 +158,75 @@ ANIM_JS = """(dt) => { for (const a of document.getAnimations()) { try {
 
 
 class Recorder:
-    def __init__(self, pg, w, h, dry=False):
-        self.pg, self.w, self.h, self.dry = pg, w, h, dry
+    def __init__(self, pg, w, h, dry=False, realtime=False):
+        self.pg, self.w, self.h, self.dry, self.realtime = pg, w, h, dry, realtime
         self.cdp = pg.context.new_cdp_session(pg)
+        self.sc: list = []
+        self.start_wall = 0.0
+        if realtime:
+            self.cdp.on("Page.screencastFrame", self._sc_frame)
         self.dir: Path | None = None
         self.n = 0
         self.on = False
         self.acc = 0.0
 
+    def _sc_frame(self, f):
+        if self.on and self.dir is not None:
+            ts = f["metadata"].get("timestamp") or time.time()
+            fn = self.dir / f"c{len(self.sc):06d}.jpg"
+            fn.write_bytes(base64.b64decode(f["data"]))
+            self.sc.append((ts, fn))
+        try:
+            self.cdp.send("Page.screencastFrameAck", {"sessionId": f["sessionId"]})
+        except Exception:  # noqa: BLE001
+            pass
+
+    def start_rt(self, tmpdir: Path):
+        """真實時間錄影：不暫停時鐘、不逐格推進；CDP screencast（JPEG 95）收頁面實際畫出來的每一格，停止時依時間戳重採樣成 30fps。"""
+        if tmpdir.exists():
+            shutil.rmtree(tmpdir)
+        tmpdir.mkdir(parents=True)
+        self.dir, self.n, self.on, self.sc = tmpdir, 0, True, []
+        self.start_wall = time.time()
+        self.cdp.send("Page.startScreencast", {"format": "jpeg", "quality": 95, "everyNthFrame": 1,
+                                               "maxWidth": self.w, "maxHeight": self.h})
+        self.pg.evaluate("() => { document.body.style.outline = '0 solid transparent'; requestAnimationFrame(() => document.body.style.outline = ''); }")
+        self.pg.wait_for_timeout(150)
+
+    def stop_rt(self, out_mp4: Path) -> dict:
+        t_end = time.time()
+        self.pg.wait_for_timeout(120)
+        self.on = False
+        try:
+            self.cdp.send("Page.stopScreencast")
+        except Exception:  # noqa: BLE001
+            pass
+        fr = sorted(self.sc)
+        if not fr:
+            return {"ok": False, "why": "沒有任何畫格"}
+        base = self.start_wall
+        dur = t_end - base
+        n = int(dur * FPS)
+        seq = self.dir / "seq"
+        seq.mkdir()
+        j = 0
+        gaps = [b[0] - a[0] for a, b in zip(fr, fr[1:])]
+        for i in range(n):
+            t = base + i / FPS
+            while j + 1 < len(fr) and fr[j + 1][0] <= t:
+                j += 1
+            os.link(fr[j][1], seq / f"s{i:06d}.jpg")
+        cmd = ["ffmpeg", "-y", "-loglevel", "error", "-framerate", str(FPS), "-i", str(seq / "s%06d.jpg"),
+               "-vf", f"scale={self.w}:{self.h}:flags=lanczos,format=yuv420p", "-c:v", "libx264", "-preset", "slow", "-crf", "18",
+               "-r", str(FPS), "-movflags", "+faststart", str(out_mp4)]
+        subprocess.run(cmd, check=True)
+        shutil.rmtree(self.dir)
+        return {"ok": True, "dur": round(n / FPS, 2), "frames": n, "src_frames": len(fr),
+                "src_fps": round(len(fr) / max(dur, 0.01), 1), "src_max_gap_ms": round(max(gaps) * 1000) if gaps else 0}
+
     def start(self, tmpdir: Path):
+        if self.realtime:
+            return self.start_rt(tmpdir)
         if tmpdir.exists():
             shutil.rmtree(tmpdir)
         tmpdir.mkdir(parents=True)
@@ -183,6 +243,12 @@ class Recorder:
         self.frame()
 
     def frame(self):
+        if self.realtime:
+            if self.on:   # 真實時間：睡到下一個 1/30 秒的刻度（期間讓 playwright 事件迴圈處理 screencast 事件）
+                el = time.time() - self.start_wall
+                nxt = (int(el * FPS) + 1) / FPS
+                self.pg.wait_for_timeout(max(1, int((nxt - el) * 1000)))
+            return
         if not self.on:
             return
         self.acc += 1000 / FPS
@@ -199,6 +265,8 @@ class Recorder:
         self.n += 1
 
     def stop(self, out_mp4: Path) -> dict:
+        if self.realtime:
+            return self.stop_rt(out_mp4)
         self.on = False
         try:
             self.pg.clock.resume()
@@ -233,6 +301,8 @@ class Act:
 
     @property
     def t(self):
+        if self.rec and self.rec.on and self.rec.realtime:
+            return time.time() - self.rec.start_wall
         return (self.rec.n / FPS) if (self.rec and self.rec.on) else 0.0
 
     def note(self, s: str):
@@ -243,7 +313,9 @@ class Act:
             self.rec.frame()
 
     def wait(self, ms):
-        if self.rec and self.rec.on:
+        if self.rec and self.rec.on and self.rec.realtime:
+            self.pg.wait_for_timeout(ms)
+        elif self.rec and self.rec.on:
             for _ in range(max(1, round(ms * FPS / 1000))):
                 self.rec.frame()
         else:
@@ -952,6 +1024,7 @@ DEVS3 = {
 }
 SHOTS3: dict = {}
 # v3b：手機版這些鏡頭的卡片比 844 高 → 加高 viewport（寬仍 390、DPR 3，版面仍是手機版）讓整張卡片入框；值＝卡片高＋頂欄＋餘裕
+V3C = ["V04", "V06"]   # v3c＝真實時間錄影（播放類鏡頭：資金輪動 ▶、資金分流樹 ▶）
 V3B_H = {"V01": 1250, "V03": 1420, "V04": 1300, "V05": 1650, "V06": 1650, "V10": 1000, "V13": 1150, "V19": 1320, "V21": 1250}
 GAP = 1200
 # Andy：影片不提會員層級與使用次數 → 錄影瀏覽器裡把頁首會員徽章、額度圓環「剩 N 次」、「本頁 N 項限制」、額度備註藏起來（不改 site/）
@@ -1733,7 +1806,7 @@ def main() -> int:
     ap.add_argument("--shots", default="")
     ap.add_argument("--dev", default="md")
     ap.add_argument("--out", default="")
-    ap.add_argument("--set", default="v2", choices=["v2", "v3", "v3b"], help="v3＝第 3 版素材（桌機 1600×900@2、不藏 B 類、完整入框）")
+    ap.add_argument("--set", default="v2", choices=["v2", "v3", "v3b", "v3c"], help="v3＝第 3 版素材（桌機 1600×900@2、不藏 B 類、完整入框）")
     ap.add_argument("--port", type=int, default=PORT)
     ap.add_argument("--log-only", action="store_true", help="不截圖，只重跑一次操作記下點擊秒數與座標（已錄好的鏡頭補座標用）")
     args = ap.parse_args()
@@ -1741,6 +1814,8 @@ def main() -> int:
     v3 = args.set.startswith("v3")
     reg = SHOTS3 if v3 else SHOTS
     devs_cfg = DEVS3 if v3 else DEVS
+    if args.set == "v3c" and not args.shots.strip():
+        args.shots = ",".join(V3C)
     if args.set == "v3b":   # 手機版「卡片比畫面高」的鏡頭：用加高的 viewport 重錄，整張卡片完整入框
         if args.shots.strip() == "":
             args.shots = ",".join(V3B_H)
@@ -1765,11 +1840,14 @@ def main() -> int:
                 spec = reg[sid]
                 for dev in [d for d in args.dev if d in spec["devs"]]:
                     cfg = dict(devs_cfg[dev])
+                    if args.set == "v3c" and dev == "d":
+                        cfg["device_scale_factor"] = 1.5     # 真實時間錄影：桌機 DPR 1.5（2400×1350）換流暢
                     if args.set == "v3b":
                         cfg["viewport"] = {"width": 390, "height": V3B_H[sid]}
                     ctx = b.new_context(**cfg, locale="zh-TW", timezone_id="Asia/Taipei")
                     import datetime as _dt
-                    ctx.clock.install(time=_dt.datetime.now(tz=_dt.timezone.utc))
+                    if args.set != "v3c":
+                        ctx.clock.install(time=_dt.datetime.now(tz=_dt.timezone.utc))
                     ctx.add_init_script(PRESET)
                     fake_api(ctx)
                     if not v3:   # v3：Andy「全部資訊公開」→ 不藏 B 類
@@ -1787,10 +1865,10 @@ def main() -> int:
                     act.x, act.y = cfg["viewport"]["width"] - 4, cfg["viewport"]["height"] * 0.55   # 起始游標放右緣，不壓到圖表提示框
                     W = int(cfg["viewport"]["width"] * cfg["device_scale_factor"])
                     H = int(cfg["viewport"]["height"] * cfg["device_scale_factor"])
-                    rec = Recorder(pg, W, H, dry=args.log_only)
+                    rec = Recorder(pg, W, H, dry=args.log_only, realtime=(args.set == "v3c"))
                     act.dsf = cfg["device_scale_factor"]
                     act.log_moves = v3   # v3 沒有錄進游標 → 游標路徑寫進 shots.md 給後製畫比比
-                    name = f"{sid}_{'mobile' if dev == 'm' else 'desktop'}" + ("_v3b" if args.set == "v3b" else "")
+                    name = f"{sid}_{'mobile' if dev == 'm' else 'desktop'}" + ("_v3b" if args.set == "v3b" else "_v3c" if args.set == "v3c" else "")
                     try:
                         # 每鏡自己決定何時開錄：fn(pg, act, rec_start) —— 先做準備（換頁、等圖畫完）再開錄
                         state = {}
