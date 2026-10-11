@@ -264,10 +264,10 @@ def grid4_fn(srcs_w, srcs_m):
         else:
             # 每格＝整張 3D 畫布（1142×1076 → 寬高比 1.06），左右編號圓點與整個模型都入格；四格整組水平置中、垂直置中於安全區
             gap, lab = 12, 46
-            cw = 470
-            ch = 442
+            cw = 394
+            ch = 371
             x0 = MCX - (2 * cw + gap) // 2
-            y0 = 440
+            y0 = 330
         for k, (clip, name, win, st0) in enumerate(srcs):
             col, row = k % 2, k // 2
             cx = x0 + col * (cw + gap)
@@ -311,9 +311,9 @@ def end4_fn():
         L = shot.L
         web = L.fmt == "web"
         W = L.W
-        cx = W / 2 if web else 470
+        cx = W / 2 if web else MCX
         lg_px = 260 if web else 380
-        cy = 200 if web else 640
+        cy = 200 if web else 560
         s = 1.0 + 0.03 * ease_io(t / 3.0)
         px = int(lg_px * s)
         lg = logo_sized(px)
@@ -335,36 +335,27 @@ def end4_fn():
         w1 = text_w(f2, "搜尋 哩股哩股") + 44
         if b > 0:
             R.pill(cv, "搜尋 哩股哩股", cx - w1 / 2, y + 10, bg=WHITE, fg=THEME["ink"], px=pxp, stroke=False, alpha=b)
-        card_host(cv, L, "wave" if t > 1.2 else "celebrate", "我們網站見！", t)
-    return fn
+        _host(cv, L, "celebrate", "我們網站見！", t)
+    return _push(fn)
 
 
 def disclaimer4_fn():
-    """15-1 警語：網頁沿用第 3 版；手機面板收窄到安全區（x 40～900），原文一字不改。"""
-    v3 = _disc_v3()
-
+    """15-1 警語：網頁、手機都改成「整塊內容垂直置中」；手機面板寬 800（x 140～940，水平置中且不進右側 Reels 介面區），原文一字不改。"""
     def fn(cv, t, shot):
         L = shot.L
-        if L.fmt == "web":
-            return v3(cv, t, shot)
-        cx = 470
+        web = L.fmt == "web"
+        W, H = L.W, L.H
+        cx = W / 2 if web else MCX
         a = ease_io(t / 0.3)
-        lay = Image.new("RGBA", (L.W, L.H), (0, 0, 0, 0))
+        lay = Image.new("RGBA", (W, H), (0, 0, 0, 0))
         d = ImageDraw.Draw(lay)
-        lg_px, top = 150, 200
-        lg = logo_sized(lg_px)
-        lay.paste(lg, (int(cx - lg_px / 2), top), lg)
-        C.reg("logo", (cx - lg_px / 2, top, cx + lg_px / 2, top + lg_px))
-        fs = font(B.F_MED, 26)
+        lg_px = 130 if web else 150
+        fs = font(B.F_MED, 28 if web else 26)
         note = B.SPONSOR_NOTE
-        nl = [note] if text_w(fs, note) <= 840 else [note[:len(note) // 2 + 1], note[len(note) // 2 + 1:]]
-        ny = top + lg_px + 24
-        for i, ln in enumerate(nl):
-            tw = text_w(fs, ln)
-            d.text((cx - tw / 2, ny + i * 36), ln, font=fs, fill=(80, 80, 80))
-        C.reg("note", (cx - 430, ny, cx + 430, ny + 36 * len(nl)))
-        pw = 860
-        f = font(B.F_MED, 44)
+        maxw = 1500 if web else 800
+        nl = [note] if text_w(fs, note) <= maxw else [note[:len(note) // 2 + 1], note[len(note) // 2 + 1:]]
+        pw = 1400 if web else 800
+        f = font(B.F_MED, 44 if web else 42)
         lines = []
         for para in B.DISCLAIMER:
             cur = ""
@@ -378,7 +369,19 @@ def disclaimer4_fn():
         lines = lines[:-1]
         lh = f.size * 1.5
         ph = len(lines) * lh + 90
-        py0 = ny + 36 * len(nl) + 40
+        nh = 36 * len(nl)
+        total = lg_px + 24 + nh + 40 + ph
+        zone_h = H if web else 1600          # 手機底部 320px 是 Reels 介面區，垂直置中算到 y=1600
+        top = max(24, (zone_h - total) / 2)
+        lg = logo_sized(lg_px)
+        lay.paste(lg, (int(cx - lg_px / 2), int(top)), lg)
+        C.reg("logo", (cx - lg_px / 2, top, cx + lg_px / 2, top + lg_px))
+        ny = top + lg_px + 24
+        for i, ln in enumerate(nl):
+            tw = text_w(fs, ln)
+            d.text((cx - tw / 2, ny + i * 36), ln, font=fs, fill=(80, 80, 80))
+        C.reg("note", (cx - maxw / 2, ny, cx + maxw / 2, ny + nh))
+        py0 = ny + nh + 40
         d.rounded_rectangle([cx - pw / 2, py0, cx + pw / 2, py0 + ph], 30, fill=WHITE, outline=R.DEEP, width=3)
         C.reg("panel", (cx - pw / 2, py0, cx + pw / 2, py0 + ph))
         y = py0 + 45
@@ -389,4 +392,4 @@ def disclaimer4_fn():
         if a < 1:
             lay.putalpha(lay.getchannel("A").point(lambda v: int(v * a)))
         cv.paste(lay, (0, 0), lay)
-    return fn
+    return _push(fn, 0.02)
