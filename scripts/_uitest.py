@@ -32864,9 +32864,9 @@ BIBI_SHOT_DIR = os.environ.get("TW_BIBI_SHOTS")
 BIBI_ST = "() => window.Bibi ? Bibi.state() : null"
 BIBI_RING = """() => { const r = document.getElementById('bibiRing'), f = document.getElementById('supFab');
   const on = !!r && !r.hidden && r.classList.contains('on');
-  const bs = on ? [...r.querySelectorAll('.bopt')].map(b => { const q = b.getBoundingClientRect(); return { id: b.dataset.act, n: b.getAttribute('aria-label'), l: q.left, t: q.top, r: q.right, b: q.bottom, w: q.width, svg: !!b.querySelector('svg, img') }; }) : [];
+  const bs = on ? [...r.querySelectorAll('.bopt:not(.pg-off)')].map(b => { const q = b.getBoundingClientRect(); return { id: b.dataset.act, n: b.getAttribute('aria-label'), l: q.left, t: q.top, r: q.right, b: q.bottom, w: q.width, svg: !!b.querySelector('svg, img') }; }) : [];
   const fr = f.getBoundingClientRect(), rl = r ? parseFloat(r.style.left) : 0, rt = r ? parseFloat(r.style.top) : 0;
-  return { on, bs, vw: document.documentElement.clientWidth, vh: innerHeight, fx: fr.left + fr.width / 2, fy: fr.top + fr.height / 2, rx: rl, ry: rt,
+  return { on, bs, page: r ? +(r.dataset.page || 0) : 0, pages: r ? +(r.dataset.pages || 0) : 0, vw: document.documentElement.clientWidth, vh: innerHeight, fx: fr.left + fr.width / 2, fy: fr.top + fr.height / 2, rx: rl, ry: rt,
            panel: !document.getElementById('supPanel').hidden, sw: document.scrollingElement.scrollWidth }; }"""
 
 
@@ -32942,20 +32942,42 @@ def t_bibi_1011(b, base):
     pg.wait_for_timeout(900)   # 小圈依序彈出（最後一顆延遲 252ms＋過場 320ms）
     R1 = pg.evaluate(BIBI_RING)
     names = [x["n"] for x in R1["bs"]]
-    ok(f"【{T}】桌機 滑鼠移到比比上 → 環展開、10 個小圈（{names}）", R1["on"] and len(R1["bs"]) == 10
-       and {"問比比", "摸摸頭", "餵牧草", "玩球", "轉圈圈", "擊掌", "跳舞", "抱抱", "睡覺", "拍照比耶"} == set(names), R1)
-    ok(f"【{T}】桌機 每個小圈都有物件圖示、約 42px", all(x["svg"] and 38 <= x["w"] <= 46 for x in R1["bs"]), R1["bs"])
+    tip = pg.evaluate(BIBI_ST)["tip"]
+    ok(f"【{T}】桌機 停在比比上有提示泡泡說他在幹嘛（{tip}）", "比比" in tip, tip)
+    ids1 = [x["id"] for x in R1["bs"]]
+    ok(f"【{T}】桌機 滑鼠移到比比上 → 只排一層 5 格（{names}）：第 1 頁、第一個是「問比比」、最後一格是「下一頁」",
+       R1["on"] and len(R1["bs"]) == 5 and ids1[0] == "ask" and ids1[-1] == "next" and R1["page"] == 1 and R1["pages"] >= 2, R1)
+    rads = [(((x["l"] + x["r"]) / 2 - R1["rx"]) ** 2 + ((x["t"] + x["b"]) / 2 - R1["ry"]) ** 2) ** .5 for x in R1["bs"]]
+    ok(f"【{T}】桌機 小圈都在同一圈上（離比比距離 {min(rads):.0f}～{max(rads):.0f}px，差 ≤ 3）", max(rads) - min(rads) <= 3, rads)
+    ok(f"【{T}】桌機 每個小圈都有物件圖示、44px", all(x["svg"] and 42 <= x["w"] <= 46 for x in R1["bs"]), R1["bs"])
     icons = pg.evaluate("() => Promise.all([...document.querySelectorAll('#bibiRing .bopt img')].map(i => i.decode().then(() => i.naturalWidth, () => 0)))")
     ok(f"【{T}】桌機 動畫單位的小圈圖示（brand/bibi/icons）真的載得到（{len(icons)} 張、寬 {sorted(set(icons))}）", len(icons) >= 9 and all(w > 0 for w in icons), icons)
     inside = [x["id"] for x in R1["bs"] if not (x["l"] >= 0 and x["t"] >= 0 and x["r"] <= R1["vw"] and x["b"] <= R1["vh"])]
-    ok(f"【{T}】桌機 10 個小圈整個在視窗內（超出：{inside}）", not inside, R1)
+    ok(f"【{T}】桌機 這一頁的小圈整個在視窗內（超出：{inside}）", not inside, R1)
+    # 翻頁：每一頁都在同一圈、在視窗內、不重疊；10 個動作都翻得到；最後一頁的「下一頁」回第一頁
+    seen, pages_seen = list(ids1[:-1]), [R1["page"]]
+    for _ in range(R1["pages"]):
+        nb = next(x for x in pg.evaluate(BIBI_RING)["bs"] if x["id"] == "next")
+        pg.mouse.move((nb["l"] + nb["r"]) / 2, (nb["t"] + nb["b"]) / 2, steps=3); pg.mouse.click((nb["l"] + nb["r"]) / 2, (nb["t"] + nb["b"]) / 2)
+        pg.wait_for_timeout(700)
+        Rp = pg.evaluate(BIBI_RING)
+        pages_seen.append(Rp["page"])
+        outp = [x["id"] for x in Rp["bs"] if not (x["l"] >= 0 and x["t"] >= 0 and x["r"] <= Rp["vw"] and x["b"] <= Rp["vh"])]
+        ok(f"【{T}】桌機 點「下一頁」→ 第 {Rp['page']}/{Rp['pages']} 頁：{[x['n'] for x in Rp['bs']]}、在視窗內、不重疊、最後一格仍是下一頁",
+           Rp["on"] and not outp and _bibi_no_overlap(Rp) and Rp["bs"][-1]["id"] == "next", Rp)
+        if Rp["page"] == 1:
+            break
+        if BIBI_SHOT_DIR and Rp["page"] == 2:
+            pg.mouse.move(Rp["rx"], Rp["ry"]); pg.wait_for_timeout(300)
+            pg.screenshot(path=str(pathlib.Path(BIBI_SHOT_DIR) / "uitest_desk_ring_p2.png"), clip={"x": 1440 - 420, "y": 900 - 420, "width": 420, "height": 420})
+        seen += [x["id"] for x in Rp["bs"] if x["id"] != "next"]
+    ok(f"【{T}】桌機 翻頁翻得到全部 10 個（{seen}）、翻完回到第 1 頁（頁序 {pages_seen}）",
+       sorted(seen) == sorted(["ask", "pet", "grass", "ball", "spin", "five", "dance", "hug", "sleep", "selfie"]) and pages_seen[-1] == 1 and pages_seen[:2] == [1, 2], pages_seen)
     ok(f"【{T}】桌機 以比比「當下位置」為圓心展開、比比沒有被移走（比比中心 {R1['fx']:.0f},{R1['fy']:.0f}／環心 {R1['rx']:.0f},{R1['ry']:.0f}／原位 {R0['fx']:.0f},{R0['fy']:.0f}）",
        abs(R1["fx"] - R1["rx"]) <= 3 and abs(R1["fy"] - R1["ry"]) <= 3 and abs(R1["fx"] - R0["fx"]) <= 2 and abs(R1["fy"] - R0["fy"]) <= 2, R1)
     ok(f"【{T}】桌機 小圈兩兩不重疊、也不壓到比比本體", _bibi_no_overlap(R1), R1["bs"])
-    ok(f"【{T}】桌機 比比在右下角 → 小圈往左上方的扇形排（全部在比比的左側或上方）",
-       all((x["l"] + x["r"]) / 2 <= R1["rx"] + 25 and (x["t"] + x["b"]) / 2 <= R1["ry"] + 25 for x in R1["bs"]), R1["bs"])
-    tip = pg.evaluate(BIBI_ST)["tip"]
-    ok(f"【{T}】桌機 停在比比上有提示泡泡說他在幹嘛（{tip}）", "比比" in tip, tip)
+    ok(f"【{T}】桌機 比比在右下角 → 小圈往左上方排成一段弧（沒有一顆在比比的右下方）",
+       not any((x["l"] + x["r"]) / 2 > R1["rx"] + 25 and (x["t"] + x["b"]) / 2 > R1["ry"] + 25 for x in R1["bs"]), R1["bs"])
     if BIBI_SHOT_DIR:
         pg.mouse.move(R1["rx"], R1["ry"]); pg.wait_for_timeout(400)
         pg.screenshot(path=str(pathlib.Path(BIBI_SHOT_DIR) / "uitest_desk_ring.png"), clip={"x": 1440 - 420, "y": 900 - 420, "width": 420, "height": 420})
@@ -32965,8 +32987,15 @@ def t_bibi_1011(b, base):
     MAP.update(pg.evaluate("() => Object.fromEntries(Bibi.MAP.ACTS.filter(a => a.file).map(a => [a.id, a.file]).concat(Bibi.MAP.ACTS.filter(a => a.wake).map(a => ['wake', a.wake.file])))"))   # 新素材到了改的是 MAP：以 MAP 為準
 
     def click_opt(aid):
-        bx = pg.evaluate(BIBI_RING)
-        o = next((x for x in bx["bs"] if x["id"] == aid), None)
+        o = None
+        for _ in range(4):   # 不在這一頁就按「下一頁」翻過去（真的點）
+            bx = pg.evaluate(BIBI_RING)
+            o = next((x for x in bx["bs"] if x["id"] == aid), None)
+            nb = next((x for x in bx["bs"] if x["id"] == "next"), None)
+            if o or not nb:
+                break
+            pg.mouse.move((nb["l"] + nb["r"]) / 2, (nb["t"] + nb["b"]) / 2, steps=2); pg.mouse.click((nb["l"] + nb["r"]) / 2, (nb["t"] + nb["b"]) / 2)
+            pg.wait_for_timeout(650)
         if not o:
             return False
         pg.mouse.move((o["l"] + o["r"]) / 2, (o["t"] + o["b"]) / 2, steps=4)
@@ -33037,7 +33066,7 @@ def t_bibi_1011(b, base):
     RL = pg.evaluate(BIBI_RING)
     outL = [x["id"] for x in RL["bs"] if not (x["l"] >= 0 and x["t"] >= 0 and x["r"] <= RL["vw"] and x["b"] <= RL["vh"])]
     ok(f"【{T}】桌機 比比拖到左上 → 環以新位置為圓心、小圈翻到右下方、全部在視窗內（超出 {outL}）",
-       RL["on"] and len(RL["bs"]) == 10 and not outL and abs(RL["fx"] - RL["rx"]) <= 3 and sum((x["l"] + x["r"]) / 2 > RL["rx"] for x in RL["bs"]) >= 6 and _bibi_no_overlap(RL), RL)
+       RL["on"] and len(RL["bs"]) >= 5 and not outL and abs(RL["fx"] - RL["rx"]) <= 3 and sum((x["l"] + x["r"]) / 2 > RL["rx"] for x in RL["bs"]) > len(RL["bs"]) / 2 and _bibi_no_overlap(RL), RL)
     pg.mouse.move(700, 600, steps=4); pg.wait_for_timeout(600)
     pg.evaluate("() => { localStorage.removeItem('tw.layout4.supfab.d'); TwSupFab.applyPos(); }"); pg.wait_for_timeout(300)
     ok(f"【{T}】桌機 沒有 JS 錯誤", not errs, errs[:3])
@@ -33067,16 +33096,28 @@ def t_bibi_1011(b, base):
     M0 = pg.evaluate(BIBI_RING)
     pg.tap("#supFab"); pg.wait_for_timeout(900)
     M1 = pg.evaluate(BIBI_RING)
-    ok(f"【{T}】手機 點比比一下 → 環展開（10 個小圈）、不直接開客服", M1["on"] and len(M1["bs"]) == 10 and not M1["panel"], M1)
+    mids = [x["id"] for x in M1["bs"]]
+    ok(f"【{T}】手機 點比比一下 → 只排一層（{len(mids)} 格）、第一個問比比、最後一格下一頁、不直接開客服",
+       M1["on"] and 3 <= len(mids) <= 6 and mids[0] == "ask" and mids[-1] == "next" and not M1["panel"], M1)
     out = [x["id"] for x in M1["bs"] if not (x["l"] >= 0 and x["t"] >= 0 and x["r"] <= M1["vw"] and x["b"] <= M1["vh"])]
     ok(f"【{T}】手機 10 個小圈全部在 390 視窗內（超出：{out}）、沒有橫向捲軸（{M1['sw']}）", not out and M1["sw"] <= 390, M1)
     ok(f"【{T}】手機 以比比當下位置為圓心、小圈 ≥ 32px、兩兩不重疊", abs(M1["fx"] - M1["rx"]) <= 3 and abs(M1["fx"] - M0["fx"]) <= 2
-       and all(x["w"] >= 32 for x in M1["bs"]) and _bibi_no_overlap(M1), M1)
+       and all(x["w"] >= 44 for x in M1["bs"]) and _bibi_no_overlap(M1), M1)
     tipfs = pg.evaluate("() => { const t = document.getElementById('bibiTip'); return t && !t.hidden ? parseFloat(getComputedStyle(t).fontSize) : 0; }")
     ok(f"【{T}】手機 展開時提示泡泡出現、字 ≥ 11px（{tipfs}px）", tipfs >= 11, tipfs)
     if BIBI_SHOT_DIR:
         pg.screenshot(path=str(pathlib.Path(BIBI_SHOT_DIR) / "uitest_mob_ring.png"))
-    o = next(x for x in M1["bs"] if x["id"] == "ball")
+    pg.tap("#bibiRing .bopt[data-act=next]"); pg.wait_for_timeout(600)
+    M2p = pg.evaluate(BIBI_RING)
+    ok(f"【{T}】手機 點「下一頁」換一批小圈（{[x['n'] for x in M2p['bs']]}）、全在視窗內、≥ 44px（第 {M2p['page']}/{M2p['pages']} 頁）",
+       M2p["page"] == 2 and set(x["id"] for x in M2p["bs"]) - {"next"} and not (set(x["id"] for x in M2p["bs"]) - {"next"}) & set(mids)
+       and all(x["l"] >= 0 and x["t"] >= 0 and x["r"] <= M2p["vw"] and x["b"] <= M2p["vh"] and x["w"] >= 44 for x in M2p["bs"]), M2p)
+    if BIBI_SHOT_DIR:
+        pg.screenshot(path=str(pathlib.Path(BIBI_SHOT_DIR) / "uitest_mob_ring_p2.png"))
+    for _ in range(4):   # 翻到玩球那一頁（真的點下一頁）
+        if pg.evaluate("() => !document.querySelector('#bibiRing .bopt[data-act=ball]').classList.contains('pg-off')"):
+            break
+        pg.tap("#bibiRing .bopt[data-act=next]"); pg.wait_for_timeout(600)
     pg.tap(f"#bibiRing .bopt[data-act=ball]")
     ok(f"【{T}】手機 點「玩球」→ 比比換成 {MAP['ball']}", bool(_bibi_src(pg, MAP["ball"], 3000)), pg.evaluate(BIBI_ST))
     pg.touchscreen.tap(250, 88); pg.wait_for_timeout(500)

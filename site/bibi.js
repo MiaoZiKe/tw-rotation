@@ -123,7 +123,9 @@
   const reduce = () => !!(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches);
   const fabOff = () => html.classList.contains('fab-off');
   const $ = (id) => document.getElementById(id);
-  const src = (f) => 'brand/bibi/' + f + '.webp';
+  /* 素材版本戳：換了 brand/bibi/ 裡的圖（同檔名）就改這個字串，使用者不用清快取就拿到新圖（10-11 週末款換圖後 Andy 仍看到舊圖） */
+  const AV = '1011b';
+  const src = (f) => 'brand/bibi/' + f + '.webp?v=' + AV;
   const T = { now: null, pct: undefined, hol: null };   // 驗收注入（Bibi.test）：假時間、假漲跌、假休市表
 
   /* ---------- 樣式 ---------- */
@@ -158,8 +160,11 @@
 .bibiring .bopt.bsvg2{background:#fdf5e9;border:2.5px solid #1a0907;color:#1a0907}
 .bibiring .bopt:hover,.bibiring .bopt:focus-visible{border-color:var(--cyan);background:color-mix(in srgb,var(--cyan) 16%,var(--panel-2));transform:translate(var(--x),var(--y)) scale(1.13);outline:none}
 .bibiring .bopt.bask{border-color:var(--cyan)}
-.bibiring.cool .bopt:not(.bask){opacity:.45;cursor:default}
-.bibiring.cool .bopt:not(.bask):hover{transform:translate(var(--x),var(--y)) scale(1)}
+.bibiring .bopt.pg-off,.bibiring.on .bopt.pg-off{transform:translate(0,0) scale(.3);opacity:0;pointer-events:none}
+.bibiring .bopt.bnext{position:absolute}
+.bibiring .bopt.bnext .bpg{position:absolute;left:50%;bottom:-15px;transform:translateX(-50%);font-style:normal;font-size:11px;line-height:1;color:var(--ink-2);white-space:nowrap;pointer-events:none}
+.bibiring.cool .bopt:not(.bask):not(.bnext){opacity:.45;cursor:default}
+.bibiring.cool .bopt:not(.bask):not(.bnext):hover{transform:translate(var(--x),var(--y)) scale(1)}
 .bibitip{position:fixed;z-index:1202;max-width:220px;padding:7px 11px;border-radius:12px;background:var(--panel-2);color:var(--ink);border:1px solid var(--line-2);
   font-size:13px;line-height:1.45;box-shadow:0 10px 24px -10px rgba(0,0,0,.55);pointer-events:none;opacity:0;transform:translateY(4px);transition:opacity .18s,transform .18s;white-space:normal}
 .bibitip.on{opacity:1;transform:none}
@@ -301,8 +306,13 @@ html.fab-off .bibiring,html.fab-off .bibitip,html.fab-off .bibifx{display:none!i
   }
 
   /* ---------- 環 ---------- */
+  /* 10-11 晚 Andy 看了線上版：「這樣有點多，至多外圍一圈，其他的就用點選下一格的方式」
+     → 只排一層：比比在角落＝一段扇形弧、在畫面中間＝一整圈；一層放不下全部時，最後一格固定是「下一頁 ›」，
+       點了換下一批（最後一頁的下一頁回第一頁）；「問比比」固定在第一頁第一個。 */
   let openWH = '', ring = null, hoverFab = false, openT = 0, closeT = 0, openedAt = 0, ringMaxR = 0;
-  const OPT = () => (isMob() ? 40 : 42);
+  let page = 0, perPage = ACTS.length, slots = [], pageBusy = 0;
+  const OPT = () => 44;                 // 小圈 44px（手機觸控建議值；桌機同尺寸，兩邊一致）
+  const PER = 5;                        // 角落扇形每頁 5 格（含「下一頁」）
   function center() {
     const r = fab.getBoundingClientRect();
     return { x: r.left + r.width / 2, y: r.top + r.height / 2 };
@@ -312,26 +322,32 @@ html.fab-off .bibiring,html.fab-off .bibitip,html.fab-off .bibifx{display:none!i
     if (tb && tb.getClientRects().length) { const cs = getComputedStyle(tb), r = tb.getBoundingClientRect(); if ((cs.position === 'fixed' || cs.position === 'sticky') && r.bottom > 0) return r.bottom + 6; }
     return 8;
   }
+  const NEXT_SVG = '<path d="M9 5.5l6.5 6.5L9 18.5" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>';
   function buildRing() {
     ring = document.createElement('div'); ring.id = 'bibiRing'; ring.className = 'bibiring'; ring.hidden = true;
     ring.setAttribute('role', 'menu'); ring.setAttribute('aria-label', '跟比比玩');
-    ring.innerHTML = '<div class="bzone"></div><svg class="btrack" aria-hidden="true"></svg>' + ACTS.map((a, i) => `<button type="button" class="bopt${a.ask ? ' bask' : ''}${ICON_IMG[a.id] ? ' bpic' : ''}" role="menuitem" data-act="${a.id}" style="transition-delay:${i * 28}ms">${iconOf(a.id)}</button>`).join('');
+    ring.innerHTML = '<div class="bzone"></div><svg class="btrack" aria-hidden="true"></svg>'
+      + ACTS.map((a) => `<button type="button" class="bopt pg-off${a.ask ? ' bask' : ''}${ICON_IMG[a.id] ? ' bpic' : ''}" role="menuitem" data-act="${a.id}" tabindex="-1">${iconOf(a.id)}</button>`).join('')
+      + `<button type="button" class="bopt bnext bsvg2 pg-off" role="menuitem" data-act="next" tabindex="-1" title="下一頁" aria-label="下一頁"><svg viewBox="0 0 24 24" aria-hidden="true">${NEXT_SVG}</svg><i class="bpg"></i></button>`;
     document.body.appendChild(ring);
-    ring.querySelectorAll('.bopt').forEach((b) => { const a = ACTS.find((x) => x.id === b.dataset.act); b.title = a.name; b.setAttribute('aria-label', a.name); });
+    ring.querySelectorAll('.bopt[data-act]:not(.bnext)').forEach((b) => { const a = ACTS.find((x) => x.id === b.dataset.act); b.title = a.name; b.setAttribute('aria-label', a.name); });
     ring.addEventListener('click', (e) => {
       const b = e.target.closest('.bopt');
       if (!b) { if (tapMode()) closeRing(); return; }    // 手機：點圈內空白＝收起
-      e.stopPropagation(); act(b.dataset.act);
+      e.stopPropagation();
+      if (b.classList.contains('pg-off')) return;
+      if (b.dataset.act === 'next') { turnPage(); return; }
+      act(b.dataset.act);
     });
     ring.addEventListener('pointerover', (e) => {
       if (e.pointerType === 'touch') return;
-      const b = e.target.closest('.bopt'); if (!b) return;
-      if (Date.now() - openedAt < 450) return;   // 比比剛走出來、小圈滑到游標底下的那一下不算「指到」，泡泡先講心情
-      if (mode === 'idle' || b.classList.contains('bask')) say(b.getAttribute('aria-label'));
+      const b = e.target.closest('.bopt'); if (!b || b.classList.contains('pg-off')) return;
+      if (Date.now() - openedAt < 450) return;   // 小圈剛彈到游標底下的那一下不算「指到」，泡泡先講心情
+      if (mode === 'idle' || b.classList.contains('bask') || b.classList.contains('bnext')) say(b.getAttribute('aria-label'));
     });
   }
   function iconOf(id) {
-    if (ICON_IMG[id]) return `<img src="brand/bibi/icons/${ICON_IMG[id]}.webp" alt="" draggable="false">`;
+    if (ICON_IMG[id]) return `<img src="brand/bibi/icons/${ICON_IMG[id]}.webp?v=${AV}" alt="" draggable="false">`;
     return `<svg viewBox="0 0 24 24" aria-hidden="true">${SVG[id] || ''}</svg>`;
   }
   function syncSleepBtn() {
@@ -344,49 +360,74 @@ html.fab-off .bibiring,html.fab-off .bibitip,html.fab-off .bibifx{display:none!i
   function canRing() {
     return fab && !fab.hidden && !fabOff() && !fab.classList.contains('supaway') && !fab.classList.contains('supdrag') && ($('supPanel') || {}).hidden !== false;
   }
-  /** 以比比當下的位置為圓心排小圈：每一層半徑算出「整顆小圈都在視窗內」的角度範圍（比比在右下角＝往左上的扇形；
-      被拖到左邊／上方就自動往右／往下翻；在畫面中間＝一整圈），由內往外一層一層放，放滿 10 個為止。
-      回傳 [{x, y}]（相對圓心）、每層的弧線（畫虛線軌道）、最外層半徑。 */
+  /** 只排一層：以比比當下位置為圓心，找「整顆小圈都在視窗內」的角度範圍。
+      四周都放得下（比比被拖到畫面中間）＝一整圈、10 個一次放完；否則從小半徑往外找，第一個放得下 PER 格的半徑就用它。
+      回傳 { pts:[{x,y}]（每頁的格位，相對圓心）, arc, r } */
   function layout(cx, cy) {
-    const mob = isMob(), S = OPT(), gap = mob ? 6 : 8, step = S + gap;
-    const radii = mob ? [78, 126, 174, 222] : [84, 136, 188, 240];
+    const S = OPT(), step = S + 8, N = ACTS.length;
     const vw = document.documentElement.clientWidth || window.innerWidth, vh = window.innerHeight, pad = 6;
     const L = pad, Rr = vw - pad, Tt = Math.max(pad, topLim()), B = vh - pad;
     const fits = (r, d) => { const t = d * Math.PI / 180, x = cx + r * Math.cos(t), y = cy + r * Math.sin(t); return x - S / 2 >= L && x + S / 2 <= Rr && y - S / 2 >= Tt && y + S / 2 <= B; };
-    const out = [], arcs = []; let left = ACTS.length, maxR = 0;
-    for (const r of radii) {
-      if (!left) break;
+    const r0 = isMob() ? 80 : 86;
+    let best = null;
+    for (let r = r0; r <= r0 + 120; r += 4) {
       const ok = []; for (let d = 0; d < 360; d++) ok.push(fits(r, d));
-      let n, angs = [];
       if (ok.every(Boolean)) {
-        n = Math.min(left, Math.floor(2 * Math.PI * r / step));
-        for (let i = 0; i < n; i++) angs.push(-90 + i * 360 / n);
-        arcs.push({ r, full: true });
-      } else {
-        /* 最長的一段連續可放角度（可能跨過 0°） */
-        let best = { len: 0, st: 0 };
-        for (let st = 0; st < 360; st++) {
-          if (!ok[st] || ok[(st + 359) % 360]) continue;
-          let len = 0; while (len < 360 && ok[(st + len) % 360]) len++;
-          if (len > best.len) best = { len, st };
-        }
-        if (best.len < 2) continue;
-        const span = (best.len - 1), stepDeg = step / r * 180 / Math.PI;
-        const cap = Math.floor(span / stepDeg) + 1;
-        n = Math.min(left, cap); if (n < 1) continue;
-        const tot = (n - 1) * stepDeg, mid = best.st + span / 2;
-        for (let i = 0; i < n; i++) angs.push(mid - tot / 2 + i * stepDeg);
-        arcs.push({ r, a0: mid - tot / 2 - stepDeg * 0.45, a1: mid + tot / 2 + stepDeg * 0.45 });
+        const cap = Math.floor(2 * Math.PI * r / step);
+        if (cap >= N) { const angs = []; for (let i = 0; i < N; i++) angs.push(-90 + i * 360 / N); return mk(r, angs, { r, full: true }); }
+        continue;   // 整圈放不下 10 個：再大一點
       }
-      angs.forEach((d) => { const t = d * Math.PI / 180; out.push({ x: Math.round(Math.cos(t) * r), y: Math.round(Math.sin(t) * r) }); });
-      left -= n; maxR = r;
+      let run = { len: 0, st: 0 };
+      for (let st = 0; st < 360; st++) {
+        if (!ok[st] || ok[(st + 359) % 360]) continue;
+        let len = 0; while (len < 360 && ok[(st + len) % 360]) len++;
+        if (len > run.len) run = { len, st };
+      }
+      if (run.len < 2) continue;
+      const span = run.len - 1, stepDeg = step / r * 180 / Math.PI, cap = Math.floor(span / stepDeg) + 1;
+      const c = { r, cap, span, stepDeg, mid: run.st + span / 2 };
+      if (!best || c.cap > best.cap) best = c;
+      if (cap >= PER) break;
     }
-    return { pts: out, arcs, maxR };
+    if (!best) best = { r: r0, cap: 1, span: 0, stepDeg: 0, mid: 225 };
+    const n = Math.max(2, Math.min(PER, best.cap)), tot = (n - 1) * best.stepDeg;
+    const angs = []; for (let i = 0; i < n; i++) angs.push(best.mid - tot / 2 + i * best.stepDeg);
+    return mk(best.r, angs, { r: best.r, a0: best.mid - tot / 2 - best.stepDeg * 0.45, a1: best.mid + tot / 2 + best.stepDeg * 0.45 });
+    function mk(r, angs, arc) { return { r, arc, pts: angs.map((d) => { const t = d * Math.PI / 180; return { x: Math.round(Math.cos(t) * r), y: Math.round(Math.sin(t) * r) }; }) }; }
   }
   function arcPath(a) {
     if (a.full) return `M ${a.r} 0 A ${a.r} ${a.r} 0 1 1 ${-a.r} 0 A ${a.r} ${a.r} 0 1 1 ${a.r} 0`;
     const p = (d) => { const t = d * Math.PI / 180; return `${(Math.cos(t) * a.r).toFixed(1)} ${(Math.sin(t) * a.r).toFixed(1)}`; };
     return `M ${p(a.a0)} A ${a.r} ${a.r} 0 ${a.a1 - a.a0 > 180 ? 1 : 0} 1 ${p(a.a1)}`;
+  }
+  const pageCount = () => (perPage >= ACTS.length ? 1 : Math.ceil(ACTS.length / (perPage - 1)));
+  /** 把第 p 頁的小圈放到格位上（其他收回圓心、不可點）；一頁放不下全部時最後一格是「下一頁」 */
+  function paintPage(p) {
+    const all = [...ring.querySelectorAll('.bopt')], nextB = ring.querySelector('.bnext');
+    const pages = pageCount(), per = pages > 1 ? perPage - 1 : ACTS.length;
+    page = ((p % pages) + pages) % pages;
+    const ids = ACTS.slice(page * per, page * per + per).map((a) => a.id);
+    const show = ids.map((id) => ring.querySelector(`.bopt[data-act="${id}"]`));
+    if (pages > 1) show.push(nextB);
+    all.forEach((b) => { if (show.indexOf(b) < 0) { b.classList.add('pg-off'); b.tabIndex = -1; b.style.transitionDelay = '0ms'; } });
+    show.forEach((b, i) => {
+      const q = slots[i] || slots[slots.length - 1];
+      b.style.setProperty('--x', q.x + 'px'); b.style.setProperty('--y', q.y + 'px');
+      b.style.width = b.style.height = OPT() + 'px'; b.style.margin = `${-OPT() / 2}px 0 0 ${-OPT() / 2}px`;
+      b.style.transitionDelay = reduce() ? '0ms' : (i * 30) + 'ms';
+      b.classList.remove('pg-off'); b.removeAttribute('tabindex');
+    });
+    nextB.querySelector('.bpg').textContent = pages > 1 ? `${page + 1}/${pages}` : '';
+    nextB.setAttribute('aria-label', pages > 1 && page === pages - 1 ? '回第一頁' : '下一頁'); nextB.title = nextB.getAttribute('aria-label');
+    ring.dataset.page = String(page + 1); ring.dataset.pages = String(pages);
+  }
+  /** 翻頁：目前這批先縮回圓心，再彈出下一批（減少動態偏好＝直接換） */
+  function turnPage() {
+    if (pageBusy) return;
+    const cur = [...ring.querySelectorAll('.bopt:not(.pg-off)')];
+    if (reduce()) { paintPage(page + 1); return; }
+    cur.forEach((b) => { b.style.transitionDelay = '0ms'; b.classList.add('pg-off'); });
+    pageBusy = setTimeout(() => { pageBusy = 0; paintPage(page + 1); }, 170);
   }
   function openRing() {
     clearTimeout(closeT); clearTimeout(openT);
@@ -394,23 +435,21 @@ html.fab-off .bibiring,html.fab-off .bibitip,html.fab-off .bibifx{display:none!i
     if (!ring) buildRing();
     const r = fab.getBoundingClientRect(), X = r.left + r.width / 2, Y = r.top + r.height / 2;
     const L = layout(X, Y);
+    slots = L.pts; perPage = L.pts.length;
     fab.classList.add('bibiopen');
     ring.style.left = Math.round(X) + 'px'; ring.style.top = Math.round(Y) + 'px';
-    const zone = L.maxR + OPT() / 2 + 14;
+    const zone = L.r + OPT() / 2 + 14;
     ring.querySelector('.bzone').style.cssText = `left:${-zone}px;top:${-zone}px;width:${zone * 2}px;height:${zone * 2}px`;
-    ring.querySelector('.btrack').innerHTML = L.arcs.map((a) => `<path d="${arcPath(a)}"/>`).join('');
-    ringMaxR = L.maxR;
+    ring.querySelector('.btrack').innerHTML = `<path d="${arcPath(L.arc)}"/>`;
+    ringMaxR = L.r;
     openedAt = Date.now(); openWH = innerWidth + 'x' + innerHeight;
-    ring.querySelectorAll('.bopt').forEach((b, i) => {
-      const q = L.pts[i] || { x: 0, y: -L.maxR };
-      b.style.setProperty('--x', q.x + 'px'); b.style.setProperty('--y', q.y + 'px');
-      b.style.transitionDelay = reduce() ? '0ms' : (i * 28) + 'ms';
-      b.style.width = b.style.height = OPT() + 'px'; b.style.margin = `${-OPT() / 2}px 0 0 ${-OPT() / 2}px`;
-    });
+    clearTimeout(pageBusy); pageBusy = 0;
     syncSleepBtn();
+    ring.querySelectorAll('.bopt').forEach((b) => b.classList.add('pg-off'));
     ring.hidden = false; fab.dataset.ring = '1';
     void ring.offsetWidth;
     ring.classList.add('on');
+    paintPage(0);                       // 每次打開都從第一頁開始（「問比比」在第一個）
     ring.classList.toggle('cool', mode === 'act');
     setTimeout(() => say(tapMode() ? (tipText() + '（點小圈跟比比玩）') : tipText()), reduce() ? 0 : 200);
   }
@@ -480,7 +519,7 @@ html.fab-off .bibiring,html.fab-off .bibitip,html.fab-off .bibifx{display:none!i
     const b = a.cloneNode(false); b.classList.add('bibiback'); b.removeAttribute('src');
     a.after(b);
     imgs = [a, b]; front = 0;
-    shown = (a.getAttribute('src') || '').replace(/^.*\/([^/]+)\.webp$/, '$1');
+    shown = '';   // 開場那張（support.js 的 wave.webp，沒有版本戳）一律換成帶版本戳的待機圖
     fab.title = '';   // 改用自己的提示泡泡（說比比現在在幹嘛）；讀屏仍讀 aria-label「客服：比比・問題小助手」
     tip = document.createElement('div'); tip.id = 'bibiTip'; tip.className = 'bibitip'; tip.hidden = true; tip.setAttribute('aria-hidden', 'true');
     document.body.appendChild(tip);
@@ -548,7 +587,8 @@ html.fab-off .bibiring,html.fab-off .bibitip,html.fab-off .bibifx{display:none!i
   window.Bibi = {
     MAP: { IDLE, ACTS, MS },
     state: () => ({ file: fab && fab.dataset.bibi || shown, shown, want, mode, idle: idleNow && idleNow.key, say: idleNow && idleNow.say, sleeping, ring: ringOpen(),
-      src: imgs[front] ? (imgs[front].getAttribute('src') || '').replace(/#.*$/, '') : '', tip: tip && !tip.hidden && tip.classList.contains('on') ? tip.textContent : '' }),
+      src: imgs[front] ? (imgs[front].getAttribute('src') || '').replace(/[?#].*$/, '') : '',
+      page: ring ? +(ring.dataset.page || 0) : 0, pages: ring ? +(ring.dataset.pages || 0) : 0, tip: tip && !tip.hidden && tip.classList.contains('on') ? tip.textContent : '' }),
     test: (o) => { o = o || {}; if ('now' in o) T.now = o.now; if ('pct' in o) T.pct = o.pct; if ('hol' in o) T.hol = o.hol; applyIdle(); return idleNow; },
     reset: () => { T.now = null; T.pct = undefined; T.hol = null; applyIdle(); },
     idle: () => idle(), open: openRing, close: closeRing, act,
