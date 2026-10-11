@@ -21,6 +21,45 @@
 - [10-09 22:1x] 手機版 → 網頁版：Andy 回報手機抽屜站名圖跑掉、頂欄 LOGO 點了變放大（他要：頂欄 LOGO＝回總覽；只有側欄抽屜裡的 LOGO 才放大）。手機版開 claude/m4-brand 處理，**只改 html.m4／≤640**，不動桌機 .brand .logo→#logoBox 行為。
 
 
+## 2026-10-11 比比（右下角客服鈕）情境待機＋環狀互動選單（UI 專家；DECISIONS #355）
+- Andy 10-11：「右下方的GIF圖多點變化…不同分頁，不同功能，漲跌，白天晚上，假日平日國定假日…可以摸摸他 餵它吃草 跟他玩球 讓他轉圈圈…互動紐的形式像圖一…」
+- 新檔 `site/bibi.js`（index.html 緊接 support.js 之後載入）、`site/brand/bibi/*.webp`（30 組 160px 動態 WebP，每組 ≤ 60KB，用到才載）、`site/brand/bibi/icons/*.webp`（10 個小圈圖示）、`scripts/anim/bibi_site.py`（轉檔）。
+- 驗收段：`比比互動1011`（⚠ --workers 1）。這批另外跑過：桌機守門1008、客服鈕1009、網頁同步1010、願望清單1009、品牌哩股哩股、客服與反饋1007、訂閱與客服1005、帳號選單1009、重新整理回預設1003、預設狀態1006、手機按鈕普查、平台導覽1007、_preview.py。
+- 既有段落跟著改：客服鈕1009（手機點一下＝出環，再點「問比比」才開面板）、願望清單1009 手機同上、品牌哩股哩股（圖改 brand/bibi/）。
+
+### 情境規則（優先序由上而下）
+| 情境 | 條件（台北時間） | 素材 | 泡泡說明 |
+|---|---|---|---|
+| 國定假日 | tw_holidays.json 有今天 | 依節日：春節／元旦→festival_newyear、端午→festival_dragon、中秋→festival_moon、行憲紀念日(12/25)→festival_xmas、和平紀念日／清明／颱風停市→weekend、其他→idle_bigup | 今天○○，台股休市，比比也放假一天～ |
+| 週末 | 週六日 | weekend | 週末不開盤，比比喝杯珍奶放鬆一下～ |
+| 深夜 | 23:00～06:00 | sleep_loop | 深夜了，比比想睡覺… |
+| 盤中大漲 | 平日 09:00～13:30、加權 ≥ +1% | idle_bigup | 今天大盤漲 1.2%，比比好開心！ |
+| 盤中小漲 | > 0 | face_proud | 大盤小漲…比比偷偷得意～ |
+| 盤中小跌／大跌 | < 0／≤ −1% | idle_down（安慰） | 沒關係，比比陪你／先深呼吸，比比陪著你 |
+| 聖誕 | 12/24～25（非休市） | festival_xmas | 聖誕快樂！ |
+| 分頁 | 其餘 | overview→wave、flow→coins、flow/rotation→growth、heatmap/industry→magnifier、heatmap/theme→fire、stock→calc、etf→piggy、etf/cal→calendar、etf/inc→calc、season／earnings→calendar、explore→bulb、explore/news→news、market→clock、watch→star_save、news→news、其他→wave | 每頁一句 |
+- 盤中沒有即時報價（即時關掉／沒抓到加權 t00）時不判斷漲跌，直接用分頁款。
+
+### 互動（10 個小圈；圖示＝動畫單位 bibi_icons）
+| 小圈 | 圖示 | 動作素材 | 特效 |
+|---|---|---|---|
+| 問比比 | chat | 開客服面板 | — |
+| 摸摸頭 | hand | pet（G1） | 愛心 |
+| 餵牧草 | grass | eat_grass（G1） | 草屑 |
+| 玩球 | ball | ball（G1） | 球 |
+| 轉圈圈 | spin | spin（G1） | 星星 |
+| 擊掌 | highfive | highfive（G2） | 星星 |
+| 跳舞 | music | dance（G2） | 音符 |
+| 抱抱 | heart | hug（G2） | 愛心 |
+| 睡覺／叫醒 | moon（叫醒＝線條太陽） | sleep_loop 一直睡 → wake_once（G2） | Zzz／星星 |
+| 拍照比耶 | camera | selfie（G2） | 閃光 |
+
+### 新素材到了改哪裡
+1. 素材放 `docs/anim/bibi_<名稱>/anim.webp` → 把名稱加進 `scripts/anim/bibi_site.py` 的 NAMES → `python scripts/anim/bibi_site.py <名稱>`（最後一行印每組毫秒數）。
+2. 改 `site/bibi.js` 最上面的 MAP：`MS`（毫秒）、`IDLE`（情境→檔名）、`HOLIDAY`（節日名→檔名）、`ACTS`（小圈→file，播一次的加 `once: true`）、`ICON_IMG`（小圈圖示）。
+3. 小圈圖示：`python scripts/anim/bibi_site.py icons`。
+4. 跑 `python scripts/_uitest.py --sections 比比互動1011 --workers 1`。
+
 ## 2026-10-11 註冊會員「關掉的功能」改成「開＋每日 3 次」（UI 專家；DECISIONS #354）
 - Andy 10-11 02:2x（動畫聊天室轉述）：「…功能要曝光度，我們可以開放，畢竟他們也要知道我們有什麼，但就是限制功能」→ 更正「限制次數才對」。**蓋掉 10-10 的註冊會員關閉清單**（今日關注、▶ 播放、族群篩選、ETF 報酬比較／複利試算表／參數、總覽跳頁）。
 - 11 鍵（flow.play、season.groups、mkt.cand、stock.k_min／mtf／ind／draw、etf.inc.params、etf.cmp、etf.inc.comp、heat.link）：註冊會員開＋每日 3 次；訪客照舊關；Plus／Pro 不動。

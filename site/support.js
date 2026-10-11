@@ -230,7 +230,9 @@ html.fab-off .supfab{display:none!important}`);
   /* ★ 2026-10-09（Andy：「客服圖示換成這個GIF圖動畫」「客服圖案就直接只有GIF圖」「並且會持續動作」）：
      按鈕只剩天竺鼠動畫本身 —— 沒有青色膠囊底、沒有「客服」字（字留給讀屏，.supsr 視覺隱藏）、不管減少動態偏好一律一直動。
      原檔 site/brand/src/support_anim_1009.gif（512×512・8 格・每格 100ms）→ 裁到身體、米色背景去掉成透明、128px（2 倍螢幕）。*/
-  const MARK = '<img class="supmark supgif" src="brand/sup-anim-128.gif" width="64" height="64" alt="" aria-hidden="true" draggable="false">';
+  /* ★ 2026-10-11（Andy：「右下方的GIF圖多點變化…讓比比看起來更像真的在陪伴你」）：圖改成比比素材庫的 160px 動態 WebP，
+     情境待機與環狀互動由 bibi.js 接手（換圖、交叉淡入淡出、互動選單）；這裡只放開場那一張（總覽揮手）。 */
+  const MARK = '<img class="supmark supgif" src="brand/bibi/wave.webp" width="64" height="64" alt="" aria-hidden="true" draggable="false">';
   let tab = 'faq', fbKind = 'fb';
   const WISH_TAG = '【願望清單】';
   const isWish = (r) => r.type === 'wish' || String(r.body || '').startsWith(WISH_TAG);
@@ -423,7 +425,8 @@ html.fab-off .supfab{display:none!important}`);
   function blockers(fab) {
     const p = document.getElementById('supPanel');
     /* 新手導覽（#twTour）有一步就是指著客服鈕介紹它：導覽的遮罩與卡片不算障礙 */
-    const mine = (el) => el === fab || fab.contains(el) || (p && (el === p || p.contains(el))) || !!(el.closest && el.closest('#twTour'));
+    /* 比比的環狀選單（bibi.js 的 #bibiRing／提示泡泡／小特效）就是鈕自己的一部分，不算障礙（不排除的話一展開就被判成「被蓋到」而藏起來、環又收掉，來回閃） */
+    const mine = (el) => el === fab || fab.contains(el) || (p && (el === p || p.contains(el))) || !!(el.closest && el.closest('#twTour, #bibiRing, #bibiTip, .bibifx, .bibiflash'));
     const fr = fab.getBoundingClientRect(), out = [];
     document.querySelectorAll('[role="dialog"], [aria-modal="true"], .msheet').forEach((d) => { if (!mine(d) && out.indexOf(d) < 0 && shown(d) && overlap(d.getBoundingClientRect(), fr, 2)) out.push(d); });
     if (out.length || !fr.width) return out;

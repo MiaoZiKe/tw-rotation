@@ -14113,7 +14113,7 @@ def t_brand(b, base):
     pg.wait_for_function("() => !!document.querySelector('#supFab img.supgif')", timeout=15000)
     fab = pg.evaluate("""() => new Promise((ok) => { const f = document.getElementById('supFab'); const href = f.querySelector('img.supgif').getAttribute('src');
         const im = new Image(); im.onload = () => ok({ nw: im.naturalWidth, txt: f.textContent.trim(), href }); im.onerror = () => ok({ nw: 0, txt: f.textContent.trim(), href }); im.src = href; })""")
-    ok("客服鈕：只有天竺鼠 GIF 動畫（圖真的載得到）、讀屏文字「客服」還在", fab["nw"] > 0 and fab["txt"] == "客服" and "brand/sup-anim" in fab["href"], fab)
+    ok("客服鈕：只有天竺鼠 GIF 動畫（圖真的載得到）、讀屏文字「客服」還在", fab["nw"] > 0 and fab["txt"] == "客服" and ("brand/sup-anim" in fab["href"] or "brand/bibi/" in fab["href"]), fab)   # 10-11 起比比素材庫 brand/bibi/*.webp
     gif_only = pg.evaluate("""() => { const f = document.getElementById('supFab'), cs = getComputedStyle(f), sr = f.querySelector('.supsr');
         return { bg: cs.backgroundColor, bd: cs.borderTopWidth, sr: sr ? sr.getBoundingClientRect().width : -1, anim: getComputedStyle(f.querySelector('img.supgif')).animationName }; }""")
     ok("客服鈕：沒有膠囊底色與框線、看不到「客服」字（10-09「客服圖案就直接只有GIF圖」）",
@@ -32145,6 +32145,11 @@ def t_supfab_1009(b, base):
         # ③ 小位移（3px）點一下 → 打開客服；再拖 40px → 不打開
         cx, cy = (f2["l"] + f2["r"]) / 2, (f2["t"] + f2["b"]) / 2
         _fab_drag(pg, cdp, cx, cy, cx + 3, cy + 2, steps=2)
+        if mob:
+            # 10-11 起手機點比比第一下＝展開互動環（比比互動1011），環裡「問比比」才開客服；點的判定（< 6px 才算點）照舊在這裡驗
+            ring = pg.evaluate("() => !!window.Bibi && Bibi.state().ring")
+            ok(f"【{T}】{mode}：位移 3px 的點擊 → 比比互動環展開（算點擊、不是拖曳）", ring)
+            pg.tap("#bibiRing .bopt[data-act=ask]"); pg.wait_for_timeout(500)
         f3 = F()
         ok(f"【{T}】{mode}：位移 3px 的點擊 → 客服面板真的打開", f3["panel"], f3)
         pa = pg.evaluate("() => { const p = document.getElementById('supPanel').getBoundingClientRect(); return { l: Math.round(p.left), r: Math.round(p.right), t: Math.round(p.top), b: Math.round(p.bottom) }; }")
@@ -32234,6 +32239,8 @@ def t_wish_1009(b, base):
         pg.goto(base + "#overview", wait_until="domcontentloaded")
         wait_until(pg, "() => !!document.getElementById('supFab') && !!window.TwAccount && !!TwAccount.user()", 10000)
         (pg.tap if mob else pg.click)("#supFab")
+        if mob:   # 10-11 起手機點比比第一下是展開互動環，環裡的「問比比」才開客服（比比互動1011）
+            pg.tap("#bibiRing .bopt[data-act=ask]")
         (pg.tap if mob else pg.click)("#supPanel .sptabs button[data-t='fb']")
         k0 = pg.evaluate("() => ({ on: (document.querySelector('#fbKind button.on') || {}).dataset?.fk, cat: !!document.getElementById('fbCat'), want: !!document.getElementById('wsWant') })")
         ok(f"【{T}】{mode}：意見反饋分頁有「意見回饋｜願望清單」分段、預設意見回饋（類別選單在、願望表單不在）", k0["on"] == "fb" and k0["cat"] and not k0["want"], k0)
@@ -32848,6 +32855,240 @@ def t_m4_subtab_first_1009(b, base):
     d.close()
 
 
+
+# ★ 2026-10-11 比比互動1011（Andy：「右下方的GIF圖多點變化，會依據不同分頁，不同功能，漲跌，白天晚上，假日平日國定假日等情境下去變化…
+#   可以摸摸他 餵它吃草 跟他玩球 讓他轉圈圈…互動紐的形式像圖一這樣游標移動過去，會出現其他互動小圈(上方都會有簡單的物件圖)，點擊後出現對應動作」）
+#   site/bibi.js：情境待機（Bibi.test 注入假時間／假漲跌／假休市表）＋環狀選單（桌機 hover、手機點一下）＋ 9 個動作＋問比比。
+#   每一項都驗「畫面真的變了」：前景那張 <img> 的 src 換成對應動作、播完換回待機、小圈全部在視窗內、開關關掉後不出現。
+BIBI_SHOT_DIR = os.environ.get("TW_BIBI_SHOTS")
+BIBI_ST = "() => window.Bibi ? Bibi.state() : null"
+BIBI_RING = """() => { const r = document.getElementById('bibiRing'), f = document.getElementById('supFab');
+  const on = !!r && !r.hidden && r.classList.contains('on');
+  const bs = on ? [...r.querySelectorAll('.bopt')].map(b => { const q = b.getBoundingClientRect(); return { id: b.dataset.act, n: b.getAttribute('aria-label'), l: q.left, t: q.top, r: q.right, b: q.bottom, w: q.width, svg: !!b.querySelector('svg, img') }; }) : [];
+  const fr = f.getBoundingClientRect(), rl = r ? parseFloat(r.style.left) : 0, rt = r ? parseFloat(r.style.top) : 0;
+  return { on, bs, vw: document.documentElement.clientWidth, vh: innerHeight, fx: fr.left + fr.width / 2, fy: fr.top + fr.height / 2, rx: rl, ry: rt,
+           panel: !document.getElementById('supPanel').hidden, sw: document.scrollingElement.scrollWidth }; }"""
+
+
+def _bibi_no_overlap(R):
+    """小圈是圓的：圓心距離 ≥ 直徑才算不重疊；也不准蓋到比比本體（圓心 30px 內）。"""
+    bs = [((x["l"] + x["r"]) / 2, (x["t"] + x["b"]) / 2, x["w"]) for x in R["bs"]]
+    for i, (x, y, w) in enumerate(bs):
+        if ((x - R["fx"]) ** 2 + (y - R["fy"]) ** 2) ** .5 < w / 2 + 30:
+            return False
+        for (x2, y2, w2) in bs[i + 1:]:
+            if ((x - x2) ** 2 + (y - y2) ** 2) ** .5 < (w + w2) / 2 - 1:
+                return False
+    return True
+
+
+def _bibi_src(pg, name, timeout=5000):
+    return wait_until(pg, f"() => {{ const s = window.Bibi && Bibi.state(); return !!s && s.src.endsWith('/{name}.webp') && s.shown === '{name}'; }}", timeout)
+
+
+def t_bibi_1011(b, base):
+    T = "比比互動1011"
+    # ---------- 桌機 1440：情境待機 ----------
+    c = b.new_context(viewport={"width": 1440, "height": 900})
+    c.add_init_script(CONSENT_PRESET + "try{localStorage.setItem('tw.live.on','0');localStorage.removeItem('tw.bibi.n');localStorage.removeItem('tw.fab.off')}catch(e){}")
+    pg = c.new_page()
+    errs = []
+    pg.on("pageerror", lambda e: errs.append(str(e)))
+    pg.route("**/fonts.googleapis.com/**", lambda r: r.abort())
+    pg.goto(base + "#overview", wait_until="domcontentloaded")
+    ok(f"【{T}】比比接上客服鈕（window.Bibi 與 #supFab 的兩張圖層都在）",
+       bool(wait_until(pg, "() => !!window.Bibi && !!document.getElementById('supFab') && document.querySelectorAll('#supFab img.bibiimg').length === 2", 10000)))
+    s0 = pg.evaluate(BIBI_ST)
+    ok(f"【{T}】比比圖用 brand/bibi/ 的動態 WebP（{s0 and s0['src']}）", bool(s0) and s0["src"].startswith("brand/bibi/"), s0)
+    cases = [
+        ("平日盤後・總覽", {"now": "2026-10-14T15:00:00+08:00", "pct": None, "hol": {}}, "overview", "wave", "overview", None),
+        ("週末", {"now": "2026-10-17T15:00:00+08:00"}, "overview", "weekend", "weekend", "週末"),
+        ("深夜", {"now": "2026-10-14T23:40:00+08:00"}, "overview", "sleep_loop", "night", "深夜"),
+        ("清晨 05:30 也算深夜", {"now": "2026-10-15T05:30:00+08:00"}, "overview", "sleep_loop", "night", "想睡覺"),
+        ("盤中大漲 +1.5%", {"now": "2026-10-14T10:00:00+08:00", "pct": 1.5}, "overview", "idle_bigup", "up2", "1.5%"),
+        ("盤中小漲 +0.4%", {"pct": 0.4}, "overview", "face_proud", "up", "0.4%"),
+        ("盤中小跌 −0.3%（安慰）", {"pct": -0.3}, "overview", "idle_down", "down", "陪你"),
+        ("盤中大跌 −1.6%（安慰）", {"pct": -1.6}, "overview", "idle_down", "down2", "1.6%"),
+        ("國定假日（比週末、深夜、漲跌都優先；表外節日＝大漲款）", {"now": "2026-10-17T23:50:00+08:00", "pct": 2, "hol": {"2026-10-17": "測試節"}}, "overview", "idle_bigup", "holiday", "測試節"),
+        ("春節 → 新年帽", {"now": "2026-02-16T10:00:00+08:00", "hol": {"2026-02-16": "春節"}}, "overview", "festival_newyear", "holiday", "春節"),
+        ("端午節 → 龍舟款", {"now": "2026-06-19T10:00:00+08:00", "hol": {"2026-06-19": "端午節"}}, "overview", "festival_dragon", "holiday", "端午"),
+        ("中秋節 → 月亮款", {"now": "2026-09-25T10:00:00+08:00", "hol": {"2026-09-25": "中秋節"}}, "overview", "festival_moon", "holiday", "中秋"),
+        ("和平紀念日 → 不戴慶祝帽、用週末放鬆款", {"now": "2026-02-28T10:00:00+08:00", "hol": {"2026-02-28": "和平紀念日"}}, "overview", "weekend", "holiday", "和平紀念日"),
+        ("12/24 平日盤後 → 聖誕帽", {"now": "2026-12-24T15:00:00+08:00", "pct": None, "hol": {}}, "overview", "festival_xmas", "xmas", "聖誕"),
+    ]
+    for name, inj, route, want, key, say in cases:
+        got = pg.evaluate("(o) => Bibi.test(o)", inj)
+        shown = _bibi_src(pg, want)
+        st = pg.evaluate(BIBI_ST)
+        ok(f"【{T}】桌機 情境「{name}」→ 待機換成 {want}（{st['src']}）、情境鍵 {key}、說明句含「{say or '—'}」",
+           bool(shown) and got and got.get("key") == key and (say is None or say in (got.get("say") or "")), {"got": got, "st": st})
+    # 盤後依分頁：真的換頁（hashchange 重算）
+    pg.evaluate("() => Bibi.test({ now: '2026-10-14T16:00:00+08:00', pct: null, hol: {} })")
+    for route, want in (("flow/sankey", "coins"), ("flow/rotation", "growth"), ("industry", "magnifier"), ("themes", "fire"), ("stock/2330", "calc"),
+                        ("etf/list", "piggy"), ("season", "calendar"), ("explore", "bulb"), ("market", "clock"), ("overview", "wave")):
+        pg.evaluate(f"() => {{ location.hash = '#{route}'; }}")
+        shown = _bibi_src(pg, want, 8000)
+        ok(f"【{T}】桌機 盤後換到 #{route} → 比比待機換成 {want}", bool(shown), pg.evaluate(BIBI_ST))
+    # 交叉淡入淡出：前景 opacity 1、背景那張 opacity 0（不閃＝兩張不會同時都 0）
+    pg.wait_for_timeout(600)
+    fade = pg.evaluate("() => [...document.querySelectorAll('#supFab img.bibiimg')].map(i => getComputedStyle(i).opacity + '|' + getComputedStyle(i).transitionDuration)")
+    ok(f"【{T}】換圖用兩張圖層交叉淡入淡出（{fade}）", sorted(x.split("|")[0] for x in fade) == ["0", "1"] and all("0.35s" in x for x in fade), fade)
+
+    # ---------- 桌機：滑鼠移過去 → 環 ----------
+    R0 = pg.evaluate(BIBI_RING)
+    ok(f"【{T}】桌機 還沒移過去 → 環不存在／收著", not R0["on"], R0)
+    pg.mouse.move(R0["fx"], R0["fy"])
+    wait_until(pg, "() => { const r = document.getElementById('bibiRing'); return !!r && r.classList.contains('on'); }", 3000)
+    pg.wait_for_timeout(900)   # 小圈依序彈出（最後一顆延遲 252ms＋過場 320ms）
+    R1 = pg.evaluate(BIBI_RING)
+    names = [x["n"] for x in R1["bs"]]
+    ok(f"【{T}】桌機 滑鼠移到比比上 → 環展開、10 個小圈（{names}）", R1["on"] and len(R1["bs"]) == 10
+       and {"問比比", "摸摸頭", "餵牧草", "玩球", "轉圈圈", "擊掌", "跳舞", "抱抱", "睡覺", "拍照比耶"} == set(names), R1)
+    ok(f"【{T}】桌機 每個小圈都有物件圖示、約 42px", all(x["svg"] and 38 <= x["w"] <= 46 for x in R1["bs"]), R1["bs"])
+    icons = pg.evaluate("() => Promise.all([...document.querySelectorAll('#bibiRing .bopt img')].map(i => i.decode().then(() => i.naturalWidth, () => 0)))")
+    ok(f"【{T}】桌機 動畫單位的小圈圖示（brand/bibi/icons）真的載得到（{len(icons)} 張、寬 {sorted(set(icons))}）", len(icons) >= 9 and all(w > 0 for w in icons), icons)
+    inside = [x["id"] for x in R1["bs"] if not (x["l"] >= 0 and x["t"] >= 0 and x["r"] <= R1["vw"] and x["b"] <= R1["vh"])]
+    ok(f"【{T}】桌機 10 個小圈整個在視窗內（超出：{inside}）", not inside, R1)
+    ok(f"【{T}】桌機 以比比「當下位置」為圓心展開、比比沒有被移走（比比中心 {R1['fx']:.0f},{R1['fy']:.0f}／環心 {R1['rx']:.0f},{R1['ry']:.0f}／原位 {R0['fx']:.0f},{R0['fy']:.0f}）",
+       abs(R1["fx"] - R1["rx"]) <= 3 and abs(R1["fy"] - R1["ry"]) <= 3 and abs(R1["fx"] - R0["fx"]) <= 2 and abs(R1["fy"] - R0["fy"]) <= 2, R1)
+    ok(f"【{T}】桌機 小圈兩兩不重疊、也不壓到比比本體", _bibi_no_overlap(R1), R1["bs"])
+    ok(f"【{T}】桌機 比比在右下角 → 小圈往左上方的扇形排（全部在比比的左側或上方）",
+       all((x["l"] + x["r"]) / 2 <= R1["rx"] + 25 and (x["t"] + x["b"]) / 2 <= R1["ry"] + 25 for x in R1["bs"]), R1["bs"])
+    tip = pg.evaluate(BIBI_ST)["tip"]
+    ok(f"【{T}】桌機 停在比比上有提示泡泡說他在幹嘛（{tip}）", "比比" in tip, tip)
+    if BIBI_SHOT_DIR:
+        pg.mouse.move(R1["rx"], R1["ry"]); pg.wait_for_timeout(400)
+        pg.screenshot(path=str(pathlib.Path(BIBI_SHOT_DIR) / "uitest_desk_ring.png"), clip={"x": 1440 - 420, "y": 900 - 420, "width": 420, "height": 420})
+
+    # ---------- 桌機：點每一個小圈 ----------
+    MAP = {"pet": "face_love", "grass": "boba", "ball": "hop_l", "spin": "tilt", "five": "face_clap", "dance": "celebrate", "hug": "heart_wish", "sleep": "face_sleepy", "selfie": "face_wink"}
+    MAP.update(pg.evaluate("() => Object.fromEntries(Bibi.MAP.ACTS.filter(a => a.file).map(a => [a.id, a.file]).concat(Bibi.MAP.ACTS.filter(a => a.wake).map(a => ['wake', a.wake.file])))"))   # 新素材到了改的是 MAP：以 MAP 為準
+
+    def click_opt(aid):
+        bx = pg.evaluate(BIBI_RING)
+        o = next((x for x in bx["bs"] if x["id"] == aid), None)
+        if not o:
+            return False
+        pg.mouse.move((o["l"] + o["r"]) / 2, (o["t"] + o["b"]) / 2, steps=4)
+        pg.mouse.click((o["l"] + o["r"]) / 2, (o["t"] + o["b"]) / 2)
+        return True
+
+    for aid in ("pet", "grass", "ball", "spin", "five", "dance", "hug", "selfie"):
+        click_opt(aid)
+        pg.wait_for_timeout(120)
+        st = pg.evaluate(BIBI_ST)
+        fx = pg.evaluate("() => document.querySelectorAll('.bibifx, .bibiflash').length")
+        spin = pg.evaluate("() => document.getElementById('supFab').classList.contains('bibispin')")
+        shown = _bibi_src(pg, MAP[aid], 3000)
+        ok(f"【{T}】桌機 點「{aid}」→ 比比換成 {MAP[aid]}、播動作中、有小特效（{fx} 顆）" + ("、整隻轉 360°" if aid == "spin" else ""),
+           bool(shown) and st["mode"] == "act" and fx > 0 and (aid != "spin" or spin or MAP["spin"] != "tilt"), st)
+        back = wait_until(pg, "() => Bibi.state().mode === 'idle'", 5000)
+        ok(f"【{T}】桌機 「{aid}」播完 → 回到情境待機 wave", bool(back) and bool(_bibi_src(pg, "wave", 3000)), pg.evaluate(BIBI_ST))
+    # 冷卻：連點兩個 → 第二個不搶播
+    click_opt("pet"); pg.wait_for_timeout(100); click_opt("grass"); pg.wait_for_timeout(300)
+    st = pg.evaluate(BIBI_ST)
+    n = pg.evaluate("() => JSON.parse(localStorage.getItem('tw.bibi.n'))")
+    ok(f"【{T}】桌機 播動作中連點別的小圈 → 冷卻不搶播（還是 {MAP['pet']}、牧草次數沒多算）", st["src"].endswith(MAP["pet"] + ".webp") and n["c"].get("grass") == 1, {"st": st, "n": n})
+    wait_until(pg, "() => Bibi.state().mode === 'idle'", 5000)
+    click_opt("pet"); pg.wait_for_timeout(200)
+    tip = pg.evaluate(BIBI_ST)["tip"]
+    n = pg.evaluate("() => JSON.parse(localStorage.getItem('tw.bibi.n'))")
+    ok(f"【{T}】桌機 第 3 次摸摸頭 → 比比說「{tip}」、localStorage tw.bibi.n 記 3 次", "第 3 次" in tip and n["c"].get("pet") == 3, {"tip": tip, "n": n})
+    wait_until(pg, "() => Bibi.state().mode === 'idle'", 5000)
+    # 睡覺 → 一直睡、小圈變「叫醒」→ 叫醒
+    click_opt("sleep"); _bibi_src(pg, MAP["sleep"], 3000)
+    wait_until(pg, "() => Bibi.state().mode === 'idle'", 6000)
+    st = pg.evaluate(BIBI_ST)
+    lab = pg.evaluate("() => document.querySelector('#bibiRing .bopt[data-act=sleep]').getAttribute('aria-label')")
+    ok(f"【{T}】桌機 點「睡覺」播完 → 比比繼續睡（{st['src']}）、小圈變「{lab}」", st["sleeping"] and st["src"].endswith("sleep_loop.webp") and lab == "叫醒", st)
+    click_opt("sleep"); pg.wait_for_timeout(150)
+    st1 = pg.evaluate(BIBI_ST)
+    wait_until(pg, "() => Bibi.state().mode === 'idle'", 6000)
+    st2 = pg.evaluate(BIBI_ST)
+    ok(f"【{T}】桌機 點「叫醒」→ 播醒來（{st1['src']}）→ 回 wave、小圈變回「睡覺」",
+       st1["mode"] == "act" and st1["src"].endswith(MAP.get("wake", "wake_once") + ".webp") and not st2["sleeping"] and bool(_bibi_src(pg, "wave", 3000))
+       and pg.evaluate("() => document.querySelector('#bibiRing .bopt[data-act=sleep]').getAttribute('aria-label')") == "睡覺", [st1, st2])
+    # 問比比 → 打開客服面板、環收起
+    click_opt("ask"); pg.wait_for_timeout(500)
+    R2 = pg.evaluate(BIBI_RING)
+    ok(f"【{T}】桌機 點「問比比」→ 客服面板打開、環收起", R2["panel"] and not R2["on"], R2)
+    pg.keyboard.press("Escape"); pg.wait_for_timeout(300)
+    # 滑鼠離開 → 收起
+    pg.mouse.move(R1["fx"], R1["fy"]); wait_until(pg, "() => Bibi.state().ring", 3000)
+    pg.mouse.move(300, 300, steps=5); pg.wait_for_timeout(700)
+    ok(f"【{T}】桌機 滑鼠離開比比與環 → 環收起、比比走回原位", not pg.evaluate(BIBI_RING)["on"]
+       and abs(pg.evaluate(BIBI_RING)["fx"] - R0["fx"]) <= 2, pg.evaluate(BIBI_RING))
+    # 點比比本體 → 照舊開客服（既有行為）
+    pg.mouse.move(R0["fx"], R0["fy"]); pg.wait_for_timeout(80)
+    pg.mouse.click(R0["fx"], R0["fy"]); pg.wait_for_timeout(500)
+    ok(f"【{T}】桌機 點比比本體 → 照舊打開客服面板", pg.evaluate(BIBI_RING)["panel"], pg.evaluate(BIBI_RING))
+    pg.keyboard.press("Escape"); pg.mouse.move(300, 300); pg.wait_for_timeout(600)
+    # 客服開關關掉 → 比比與環都不出現
+    pg.evaluate("() => document.documentElement.classList.add('fab-off')"); pg.wait_for_timeout(200)
+    pg.mouse.move(R0["fx"], R0["fy"]); pg.wait_for_timeout(700)
+    off = pg.evaluate("() => { const r = document.getElementById('bibiRing'), f = document.getElementById('supFab'); return { fab: getComputedStyle(f).display, ring: !!r && r.getClientRects().length > 0 && r.classList.contains('on') }; }")
+    ok(f"【{T}】桌機 客服開關關掉（fab-off）→ 比比不見、滑到原位也不出環（{off}）", off["fab"] == "none" and not off["ring"], off)
+    pg.evaluate("() => document.documentElement.classList.remove('fab-off')"); pg.mouse.move(300, 300); pg.wait_for_timeout(500)
+    # 比比被拖到左上方 → 小圈往右下（畫面內側）翻、全部在視窗內
+    pg.mouse.move(700, 600, steps=3); pg.evaluate("() => Bibi.close(true)"); pg.wait_for_timeout(400)
+    pg.evaluate("() => { localStorage.setItem('tw.layout4.supfab.d', JSON.stringify({ s: 'L', t: 140 })); TwSupFab.applyPos(); }"); pg.wait_for_timeout(300)
+    RL0 = pg.evaluate(BIBI_RING)
+    pg.mouse.move(RL0["fx"], RL0["fy"]); wait_until(pg, "() => Bibi.state().ring", 3000); pg.wait_for_timeout(900)
+    RL = pg.evaluate(BIBI_RING)
+    outL = [x["id"] for x in RL["bs"] if not (x["l"] >= 0 and x["t"] >= 0 and x["r"] <= RL["vw"] and x["b"] <= RL["vh"])]
+    ok(f"【{T}】桌機 比比拖到左上 → 環以新位置為圓心、小圈翻到右下方、全部在視窗內（超出 {outL}）",
+       RL["on"] and len(RL["bs"]) == 10 and not outL and abs(RL["fx"] - RL["rx"]) <= 3 and sum((x["l"] + x["r"]) / 2 > RL["rx"] for x in RL["bs"]) >= 6 and _bibi_no_overlap(RL), RL)
+    pg.mouse.move(700, 600, steps=4); pg.wait_for_timeout(600)
+    pg.evaluate("() => { localStorage.removeItem('tw.layout4.supfab.d'); TwSupFab.applyPos(); }"); pg.wait_for_timeout(300)
+    ok(f"【{T}】桌機 沒有 JS 錯誤", not errs, errs[:3])
+    c.close()
+
+    # ---------- 減少動態偏好：環不彈跳，但動畫圖照放 ----------
+    c = b.new_context(viewport={"width": 1440, "height": 900}, reduced_motion="reduce")
+    c.add_init_script(CONSENT_PRESET + "try{localStorage.setItem('tw.live.on','0')}catch(e){}")
+    pg = c.new_page()
+    pg.goto(base + "#overview", wait_until="domcontentloaded")
+    wait_until(pg, "() => !!window.Bibi && !!document.querySelector('#supFab img.bibiimg')", 10000)
+    pg.evaluate("() => Bibi.open()"); pg.wait_for_timeout(200)
+    rm = pg.evaluate("() => [...document.querySelectorAll('#bibiRing .bopt')].map(b => getComputedStyle(b).transitionDelay + '|' + getComputedStyle(b).transitionProperty)")
+    ok(f"【{T}】減少動態偏好 → 小圈沒有依序彈出（delay 全 0、不動 transform）、比比圖仍是動態 WebP",
+       all(x.startswith("0s|") and "transform" not in x for x in rm) and pg.evaluate(BIBI_ST)["src"].endswith(".webp"), rm[:3])
+    c.close()
+
+    # ---------- 手機 390：點一下展開 ----------
+    c = b.new_context(**MOBILE_VP)
+    c.add_init_script(CONSENT_PRESET + "try{localStorage.setItem('tw.live.on','0');localStorage.removeItem('tw.fab.off')}catch(e){}")
+    pg = c.new_page()
+    merrs = []
+    pg.on("pageerror", lambda e: merrs.append(str(e)))
+    pg.goto(base + "#overview", wait_until="domcontentloaded")
+    wait_until(pg, "() => !!window.Bibi && !!document.querySelector('#supFab img.bibiimg')", 10000)
+    pg.wait_for_timeout(1500)
+    M0 = pg.evaluate(BIBI_RING)
+    pg.tap("#supFab"); pg.wait_for_timeout(900)
+    M1 = pg.evaluate(BIBI_RING)
+    ok(f"【{T}】手機 點比比一下 → 環展開（10 個小圈）、不直接開客服", M1["on"] and len(M1["bs"]) == 10 and not M1["panel"], M1)
+    out = [x["id"] for x in M1["bs"] if not (x["l"] >= 0 and x["t"] >= 0 and x["r"] <= M1["vw"] and x["b"] <= M1["vh"])]
+    ok(f"【{T}】手機 10 個小圈全部在 390 視窗內（超出：{out}）、沒有橫向捲軸（{M1['sw']}）", not out and M1["sw"] <= 390, M1)
+    ok(f"【{T}】手機 以比比當下位置為圓心、小圈 ≥ 32px、兩兩不重疊", abs(M1["fx"] - M1["rx"]) <= 3 and abs(M1["fx"] - M0["fx"]) <= 2
+       and all(x["w"] >= 32 for x in M1["bs"]) and _bibi_no_overlap(M1), M1)
+    tipfs = pg.evaluate("() => { const t = document.getElementById('bibiTip'); return t && !t.hidden ? parseFloat(getComputedStyle(t).fontSize) : 0; }")
+    ok(f"【{T}】手機 展開時提示泡泡出現、字 ≥ 11px（{tipfs}px）", tipfs >= 11, tipfs)
+    if BIBI_SHOT_DIR:
+        pg.screenshot(path=str(pathlib.Path(BIBI_SHOT_DIR) / "uitest_mob_ring.png"))
+    o = next(x for x in M1["bs"] if x["id"] == "ball")
+    pg.tap(f"#bibiRing .bopt[data-act=ball]")
+    ok(f"【{T}】手機 點「玩球」→ 比比換成 {MAP['ball']}", bool(_bibi_src(pg, MAP["ball"], 3000)), pg.evaluate(BIBI_ST))
+    pg.touchscreen.tap(250, 88); pg.wait_for_timeout(500)
+    ok(f"【{T}】手機 點空白 → 環收起、比比回原位", not pg.evaluate(BIBI_RING)["on"] and abs(pg.evaluate(BIBI_RING)["fx"] - M0["fx"]) <= 2, pg.evaluate(BIBI_RING))
+    pg.tap("#supFab"); pg.wait_for_timeout(600)
+    pg.tap("#bibiRing .bopt[data-act=ask]"); pg.wait_for_timeout(600)
+    M2 = pg.evaluate(BIBI_RING)
+    ok(f"【{T}】手機 再點比比 → 點「問比比」→ 客服面板打開", M2["panel"] and not M2["on"], M2)
+    ok(f"【{T}】手機 沒有 JS 錯誤", not merrs, merrs[:3])
+    c.close()
+
+
 SECTIONS = {
     # ★ 2026-10-09 手機監督：360 寬播放列 ▶／⏸ 被長日期擠出畫面 —— 360／402 播放中最長那刻＋暫停在過去：▶ 在列內、一行、日期不截；1440 日期仍完整
     "手機播放列360":       lambda pg, b, base, code: t_m4_playbar360_1009(b, base),
@@ -33360,6 +33601,8 @@ SECTIONS = {
     # ★ 2026-10-10 Andy（經手機 session 轉達）＋網頁手機同步稽核：子分頁預設最左邊、桌機額度上限面板（不寫「不開放」）、側欄子分頁 🔒、
     #   「免費會員」→「註冊會員」、手機個股分頁權限對應、桌機客服鈕開關、桌機刪除帳號（devserver 真的刪）。⚠ --workers 1
     "網頁同步1010":        lambda pg, b, base, code: t_web_sync_1010(b, base, code),
+    # ★ 2026-10-11 Andy：比比（右下角客服鈕）情境待機＋環狀互動選單（site/bibi.js）—— 假時間／假漲跌注入、hover 出環、點每個小圈、手機點一下（⚠ --workers 1）
+    "比比互動1011":        lambda pg, b, base, code: t_bibi_1011(b, base),
     "登入回總覽1010":      lambda pg, b, base, code: t_login_home_1010(b, base, code),
     # ★ 2026-10-10 Andy：「額度上限使用收合功能將每個母分頁內所有有限制的功能標示出來，太長就用拉Bar。不要寫"不開放"…改成plus 會員」（手機 acctm4.js；⚠ --workers 1）
     "額度上限1010":        lambda pg, b, base, code: t_m4_quota_1010(b, base, code),

@@ -1,0 +1,120 @@
+"""把比比動畫素材縮成網站右下角用的 160px 動態 WebP（site/brand/bibi/<名稱>.webp）。
+
+為什麼要這支（2026-10-11，Andy：「右下方的GIF圖多點變化…可以摸摸他 餵它吃草 跟他玩球 讓他轉圈圈」）：
+  docs/anim 的素材是 512px、每組約 200KB，整包 62MB，不能直接搬進 site。
+  網站只需要右下角約 104px 顯示（2x 螢幕 ≈ 160px 就夠），而且每組都要能「用到才載」。
+
+裁切一律用同一個框（不是每組各自裁到最小）：素材庫全部同一個場景座標（身體縮 0.75、中心 x=248、腳底 y=482，
+見 docs/anim/bibi_library/index.md），用同一個框切，比比在每一組動畫裡的大小與腳底位置都一樣，
+換動作時不會忽大忽小、上下跳。框外的道具（彩帶、金幣）會被切掉一部分，可接受。
+
+素材來源順序：docs/anim/bibi_library/<名稱>/anim.webp（現有 67 組）→ docs/anim/bibi_<名稱>/anim.webp（動畫單位新交件）。
+新素材到了：把名稱加進 NAMES、跑這支、再改 site/bibi.js 的 MAP（那張表寫「哪個動作用哪個檔」）。
+
+用法：python scripts/anim/bibi_site.py            # 全部重做
+      python scripts/anim/bibi_site.py pet ball    # 只做這幾組
+輸出最後一行印出每組的總長毫秒（site/bibi.js 的 MS 表要抄這個數字，動作播完才回待機）。
+"""
+from __future__ import annotations
+
+import io
+import json
+import sys
+from pathlib import Path
+
+from PIL import Image, ImageSequence
+
+ROOT = Path(__file__).resolve().parents[2]
+LIB = ROOT / "docs" / "anim" / "bibi_library"
+NEW = ROOT / "docs" / "anim"
+OUT = ROOT / "site" / "brand" / "bibi"
+SIZE = 160
+BOX = (28, 52, 468, 492)      # 440×440，中心 x=248、腳底 482 往下留 10px
+LIMIT = 60 * 1024
+
+# 網站用到的才轉（情境待機＋互動動作；對照表在 site/bibi.js 的 MAP）
+NAMES = [
+    # 情境待機（現有素材庫）
+    "wave", "coins", "growth", "magnifier", "fire", "calc", "news", "piggy", "calendar", "bulb", "clock", "star_save", "face_proud",
+    # 動畫單位 G1（10-11）：摸摸頭、吃草、玩球、轉圈
+    "pet", "eat_grass", "ball", "spin",
+    # 動畫單位 G2（10-11）：擊掌、跳舞、抱抱、睡覺循環、叫醒、拍照＋情境待機（大跌安慰、大漲、週末、四款節日帽）
+    "highfive", "dance", "hug", "sleep_loop", "wake_once", "selfie",
+    "idle_down", "idle_bigup", "weekend", "festival_newyear", "festival_dragon", "festival_moon", "festival_xmas",
+]
+
+
+def src_of(name: str) -> Path | None:
+    for p in (LIB / name / "anim.webp", NEW / f"bibi_{name}" / "anim.webp"):   # 現有素材庫優先；新交件的專屬素材在 docs/anim/bibi_<名稱>/
+        if p.exists():
+            return p
+    return None
+
+
+def encode(frames, durs, q, loop=0):
+    buf = io.BytesIO()
+    frames[0].save(buf, "WEBP", save_all=True, append_images=frames[1:], duration=durs, loop=loop,
+                   quality=q, method=6, lossless=False, allow_mixed=False)
+    return buf.getvalue()
+
+
+def convert(name: str) -> tuple[int, int] | None:
+    src = src_of(name)
+    if not src:
+        return None
+    im = Image.open(src)
+    frames, durs = [], []
+    for f in ImageSequence.Iterator(im):
+        fr = f.convert("RGBA")
+        # 動畫單位 G1 起的互動素材直接交 160px 全幅（同一個 512 場景座標縮小）：裁切框照比例換算，比比大小才跟其他組一致
+        k = fr.size[0] / 512
+        box = tuple(round(v * k) for v in BOX)
+        frames.append(fr.crop(box).resize((SIZE, SIZE), Image.LANCZOS))
+        durs.append(int(f.info.get("duration", im.info.get("duration", 100)) or 100))
+    total = sum(durs)
+    loop = int(im.info.get("loop", 0) or 0)   # 互動素材「播一次不循環」（loop=1）要保留：播完停在最後一格＝待機姿勢
+    data = None
+    for q in (82, 72, 62, 52):
+        data = encode(frames, durs, q, loop)
+        if len(data) <= LIMIT:
+            break
+    if len(data) > LIMIT and len(frames) > 6:   # 還是太大：隔格抽掉，總長不變
+        frames2 = frames[::2]
+        durs2 = [durs[i] + (durs[i + 1] if i + 1 < len(durs) else 0) for i in range(0, len(durs), 2)]
+        data = encode(frames2, durs2, 62, loop)
+    OUT.mkdir(parents=True, exist_ok=True)
+    (OUT / f"{name}.webp").write_bytes(data)
+    return len(data), total
+
+
+def icons():
+    """互動小圈圖示（docs/anim/bibi_icons/*.png，96px）→ site/brand/bibi/icons/*.webp（同尺寸＝42px 小圈的 2 倍螢幕，檔案小一半以上）。"""
+    src = NEW / "bibi_icons"
+    if not src.exists():
+        return
+    (OUT / "icons").mkdir(parents=True, exist_ok=True)
+    for f in sorted(src.glob("*.png")):
+        im = Image.open(f).convert("RGBA")
+        im.save(OUT / "icons" / (f.stem + ".webp"), "WEBP", quality=90, method=6)
+        print(f"  圖示 {f.stem:10s} {(OUT / 'icons' / (f.stem + '.webp')).stat().st_size / 1024:4.1f} KB")
+
+
+def main(argv):
+    if argv == ["icons"]:
+        icons()
+        return
+    names = argv or NAMES
+    ms = {}
+    for n in names:
+        r = convert(n)
+        if r is None:
+            print(f"  略過 {n}（素材還沒到）")
+            continue
+        size, total = r
+        ms[n] = total
+        print(f"  {n:14s} {size / 1024:5.1f} KB  {total} ms" + ("  ⚠ 超過 60KB" if size > LIMIT else ""))
+    print(json.dumps(ms, ensure_ascii=False))
+
+
+if __name__ == "__main__":
+    main(sys.argv[1:])
