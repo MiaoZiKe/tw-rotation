@@ -13,7 +13,8 @@
 
 用法：python scripts/anim/bibi_site.py            # 全部重做
       python scripts/anim/bibi_site.py default_idle   # Andy 指定的 Default 待機（圖三，單張）
-      python scripts/anim/bibi_site.py jump           # Default 待機穿插的跳一下（圖二 docs/anim/jump）
+      python scripts/anim/bibi_site.py idle_hop       # ★ 待機（唯一一款）：第一版客服鈕的 8 格跳躍 GIF，一直循環（Andy 10-12）
+      python scripts/anim/bibi_site.py jump           # （10-12 起不再用在待機）圖二 docs/anim/jump
       python scripts/anim/bibi_site.py props      # 給草／給球的手與道具（site/brand/bibi/props/；含拆出來的「空手」）
       python scripts/anim/bibi_site.py pet ball    # 只做這幾組
 輸出最後一行印出每組的總長毫秒（site/bibi.js 的 MS 表要抄這個數字，動作播完才回待機）。
@@ -49,7 +50,14 @@ RIG_NAMES = {"happy_hop", "receive", "receive_grass", "receive_ball",
              # 10-11 深夜動畫單位全部照原版造型重畫的互動（舊 G1／G2 改名 *_old 保留）：同一套骨架尺寸，一樣要縮
              "eat_grass_v2", "ball_catch", "ball_catch_l", "popcorn", "pet_v2", "spin_v2",
              "highfive", "dance", "hug", "wake_once", "selfie", "sleep_loop",
-             "run_r", "run_l", "run_start_r", "run_stop_r", "hit", "cry", "dizzy"}
+             "run_r", "run_l", "run_start_r", "run_stop_r", "hit", "cry", "dizzy",
+             # 10-12 動畫單位四腳重畫第 1～5 組（docs/anim/bibi_<名>/.quad1012；同一套原版 Default 尺寸，一樣要縮）
+             "eat_q", "spin_q"}
+# 10-12 四腳版：網站檔名 → 來源（素材庫 bibi_library 裡也有同名的舊 eat_grass／spin，所以這兩組改名 eat_q／spin_q、指定來源，免得撿到舊版）
+# sleep_loop／wake_once／hit／cry／selfie 動畫單位直接覆蓋同名資料夾，src_of 照舊找得到新版
+# 檔案上限的例外：eat_q 16 格、草畫在地上細節多，60KB 會被隔格抽成 8 格（動作變跳格）→ 放寬到 100KB 保留 16 格（10-12 量過）
+LIMIT_OVR = {"eat_q": 100 * 1024}
+QUAD_SRC = {"eat_q": NEW / "bibi_eat_grass" / "anim.webp", "spin_q": NEW / "bibi_spin" / "anim.webp"}
 
 # 網站用到的才轉（情境待機＋互動動作；對照表在 site/bibi.js 的 MAP）
 NAMES = [
@@ -68,10 +76,14 @@ NAMES = [
     # 骨架第 1 組（10-11 第一版造型偏離原版被 Andy 退件；照原版 Default 重做後 CEO 對照過）：互動「接東西」可以接。
     # ⚠ happy_hop 不轉：Andy「使用圖2 圖3 GIF圖片就好」→ 待機用 default_idle＋jump（各自的子指令），骨架版只在互動用
     "face_star", "receive", "receive_grass", "receive_ball",
+    # 10-12 四腳版第 1～5 組（吃草、轉圈＝新檔名；睡覺／叫醒／被敲／哭／自拍＝同名覆蓋，上面已列）
+    "eat_q", "spin_q",
 ]
 
 
 def src_of(name: str) -> Path | None:
+    if name in QUAD_SRC:
+        return QUAD_SRC[name] if QUAD_SRC[name].exists() else None
     for p in (LIB / name / "anim.webp", NEW / f"bibi_{name}" / "anim.webp"):   # 現有素材庫優先；新交件的專屬素材在 docs/anim/bibi_<名稱>/
         if p.exists():
             return p
@@ -113,11 +125,12 @@ def convert(name: str) -> tuple[int, int] | None:
     total = sum(durs)
     loop = int(im.info.get("loop", 0) or 0)   # 互動素材「播一次不循環」（loop=1）要保留：播完停在最後一格＝待機姿勢
     data = None
+    lim = LIMIT_OVR.get(name, LIMIT)
     for q in (82, 72, 62, 52):
         data = encode(frames, durs, q, loop)
-        if len(data) <= LIMIT:
+        if len(data) <= lim:
             break
-    if len(data) > LIMIT and len(frames) > 6:   # 還是太大：隔格抽掉，總長不變
+    if len(data) > lim and len(frames) > 6:   # 還是太大：隔格抽掉，總長不變
         frames2 = frames[::2]
         durs2 = [durs[i] + (durs[i + 1] if i + 1 < len(durs) else 0) for i in range(0, len(durs), 2)]
         data = encode(frames2, durs2, 62, loop)
@@ -193,32 +206,35 @@ def default_idle():
     print(f"  default_idle  {(OUT / 'default_idle.webp').stat().st_size / 1024:5.1f} KB（單張）")
 
 
-def hop_icon():
-    """「跳跳」小圈圖示（Andy 10-11 深夜：「需要把圖二也新增在互動紐裡面」）：原版 Default（default_idle_1011）的頭像，
-    奶油白圓底＋深咖啡粗描邊（跟動畫單位其他 96px 圖示同款）→ site/brand/bibi/icons/hop.webp。"""
+def idle_hop(sheet_dir: str | None = None):
+    """比比的待機（唯一一款）：Andy 最早給的 8 格跳躍 GIF（site/brand/src/support_anim_1009.gif，第一版客服鈕 sup-anim-128.gif 的來源）
+    → site/brand/bibi/idle_hop.webp（160px 透明動態 WebP、無限循環）＋ idle_hop_still.webp（第 1 格靜態，減少動態偏好用）。
+
+    Andy 10-12：「比比改成一直跳，但是是在主畫面狀態，我說的狀態就是第一版做出來的樣式，一直處於跳的狀態…『跳跳』小圓 拿掉」＋「是這張喔」
+    （附的 9 格分格圖＝站好 → 微蹲 → 壓扁 ^^ → 壓扁 >< → 起跳左傾 → 最高點右傾 → 往下掉 → 落地壓扁 → 站好，就是這支 GIF 的 8 格再回第 1 格）。
+    去背走動畫單位的 gif_pipeline（load_frames＋cutout：在沒裁切的 512 原圖上補縫灌水、吃掉地上淡影子、不加陰影）。
+    這支 GIF 第 1 格跟原版 Default（default_idle_1011）同一個座標（描邊 x 61～446、腳底 484，10-12 量過），
+    所以直接用 _fit_original 對到素材庫場景座標 → 大小、腳底跟所有互動素材一致，互動播完切回待機不會忽大忽小。"""
     import numpy as np
-    from PIL import ImageDraw
     sys.path.insert(0, str(Path(__file__).resolve().parent))
-    from gif_pipeline import cutout
-    src = LIB / "reference" / "default_idle_1011.webp"
-    if not src.exists():
-        print("  略過 hop 圖示（參考圖還沒到）")
-        return
-    rgb = np.asarray(Image.open(src).convert("RGB"))
-    body = Image.fromarray(np.dstack([rgb, cutout(rgb)]), "RGBA").crop((70, 140, 440, 470))   # 頭＋身體上半（原版描邊框 61～446、148～483）
-    S = 384
-    can = Image.new("RGBA", (S, S), (0, 0, 0, 0))
-    d = ImageDraw.Draw(can)
-    d.ellipse((6, 6, S - 6, S - 6), fill=(253, 245, 233, 255))
-    k = (S - 60) / body.size[0]
-    b2 = body.resize((round(body.size[0] * k), round(body.size[1] * k)), Image.LANCZOS)
-    can.alpha_composite(b2, ((S - b2.size[0]) // 2, 48))
-    mask = Image.new("L", (S, S), 0); ImageDraw.Draw(mask).ellipse((6, 6, S - 6, S - 6), fill=255)
-    out = Image.new("RGBA", (S, S), (0, 0, 0, 0)); out.paste(can, (0, 0), mask)
-    ImageDraw.Draw(out).ellipse((8, 8, S - 8, S - 8), outline=(26, 9, 7, 255), width=12)
-    (OUT / "icons").mkdir(parents=True, exist_ok=True)
-    out.resize((96, 96), Image.LANCZOS).save(OUT / "icons" / "hop.webp", "WEBP", quality=90, method=6)
-    print(f"  圖示 hop        {(OUT / 'icons' / 'hop.webp').stat().st_size / 1024:4.1f} KB（原版 Default 頭像）")
+    from gif_pipeline import load_frames, cutout, sheet
+    src = ROOT / "site" / "brand" / "src" / "support_anim_1009.gif"
+    frames, durs = [], []
+    for rgb, d in load_frames(str(src)):
+        frames.append(_fit_original(Image.fromarray(np.dstack([rgb, cutout(rgb)]), "RGBA")))
+        durs.append(int(d))
+    data = None
+    for q in (86, 80, 72, 62):
+        data = encode(frames, durs, q, 0)   # loop=0＝無限循環
+        if len(data) <= LIMIT:
+            break
+    OUT.mkdir(parents=True, exist_ok=True)
+    (OUT / "idle_hop.webp").write_bytes(data)
+    frames[0].save(OUT / "idle_hop_still.webp", "WEBP", quality=88, method=6)
+    if sheet_dir:
+        Path(sheet_dir).mkdir(parents=True, exist_ok=True)
+        sheet(frames, Path(sheet_dir) / "sheet_idle_hop.png")
+    print(f"  idle_hop      {len(data) / 1024:5.1f} KB  {len(frames)} 格  {sum(durs)} ms（＋ idle_hop_still 第 1 格）")
 
 
 def jump():
@@ -261,8 +277,8 @@ def main(argv):
     if argv == ["jump"]:
         jump()
         return
-    if argv == ["hop_icon"]:
-        hop_icon()
+    if argv == ["idle_hop"]:
+        idle_hop()
         return
     names = argv or NAMES
     ms = {}
@@ -273,7 +289,7 @@ def main(argv):
             continue
         size, total = r
         ms[n] = total
-        print(f"  {n:14s} {size / 1024:5.1f} KB  {total} ms" + ("  ⚠ 超過 60KB" if size > LIMIT else ""))
+        print(f"  {n:14s} {size / 1024:5.1f} KB  {total} ms" + ("  ⚠ 超過上限" if size > LIMIT_OVR.get(n, LIMIT) else ""))
     print(json.dumps(ms, ensure_ascii=False))
 
 

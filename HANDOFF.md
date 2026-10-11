@@ -27,8 +27,23 @@
 - 新鍵：`earn.click`、`etf.cal.click`、`flow.rank.click`、`flow.filter`、`mkt.updown.filter`、`search`；次數照 16 點改；註冊會員全站共用額度 dq 40 → 不設。
 - 新機制（quota.js／perm.js）：features.js `gray`（整塊反灰＋inert）、`qspent`（用完就反灰，`qkey`＝看過的對象不反灰）、`qcount`／`qsess`／`qsessIn`（捕獲點擊計數、下拉打開一次算一次）、`TwQuota.actOk`。額度上限面板多列「關掉的功能」。
 - **Andy 要做**：管理區 #admin/perm 按「套用建議方案」（線上範本明寫了 10-11 的「開＋3 次」與 dq 40，不套用的話那幾項照舊；沒寫到的新鍵靠 features.js 立即生效）。
-- 驗收（這批只驗了這幾段）：註冊會員權限1012（新）、註冊會員限次開放1011、免費會員權限1010、額度上限1010、ETF試算免費限制1010、套用建議方案1007、訪客權限1008、熱力圖跳個股1008、會員權限、網頁同步1010、帳號選單1009、桌機守門1008（--workers 1）、`_preview.py`。純前端（site／scripts 測試檔／docs）→ 依規則跳過 pytest。
+- 驗收（這批只驗了這幾段）：註冊會員權限1012（新）、註冊會員限次開放1011、免費會員權限1010、額度上限1010、ETF試算免費限制1010、套用建議方案1007、訪客權限1008、熱力圖跳個股1008、會員權限、網頁同步1010、帳號選單1009、會員權限開關、桌機守門1008（--workers 1）、`_preview.py`。剩下的紅都在 origin/main 同樣紅（既有）：網頁同步1010 E「手機 390 個股頁首子分頁」、會員權限開關「全部預設開啟（live.tick 停用）」＋#moreBtn 逾時、_preview 800px #industry/ai_server 卡片交疊。純前端（site／scripts 測試檔／docs）→ 依規則跳過 pytest。
 - **已知、不是這批造成**：資金輪動上方篩選一換，ECharts 丟「Cannot read properties of undefined (reading 'width')」（origin/main 同樣重現）→ 待處理。
+
+## 2026-10-12 比比：玩具六件組（分支 claude/bibi-play6，待 CEO 看截圖才推 main）
+- 撒零食／吹泡泡／羽毛棒／毛線球／紙飛機／落葉，小圈 18 顆；驗收段 `比比玩具1012`（桌機＋手機 390，每個互動驗道具出現且移動、比比離開原位、四腳、不撐捲軸、回原位；毛線球中途 Esc／點空白打斷）。截圖 scratchpad/bibi1012/toys/act_<名>_mid(_m).png。
+- 動畫單位專屬素材（docs/anim/bibi_<名>/）還沒到；到了改 bibi.js `PART.snack_eat／leap／crouch`。
+
+## 2026-10-12 比比：四腳版第 1～5 組換上（吃草／轉圈／睡覺＋叫醒／被敲＋哭／自拍）（UI 專家；DECISIONS #357）
+- 動畫單位 8f5c472（CEO 已審）→ `python scripts/anim/bibi_site.py eat_q spin_q sleep_loop wake_once hit cry selfie`；bibi.js：PART.eat＝eat_q、PART.spin＝spin_q、給草改「草飛到比比面前地上 → 播 eat_q」、轉圈不接 dizzy、hit 整段播完接 cry；AV＝1012b。
+- 驗收：比比互動1011（改寫餵牧草／轉圈兩條）、客服鈕1009、桌機守門1008（--workers 1）。截圖：scratchpad/bibi1012/quad/quad_sheet.png。
+- 球、摸摸、擊掌、跳舞、抱抱、接東西還在用舊版，下一批四腳版到了再換。
+
+## 2026-10-12 比比：待機一律「第一版跳躍 GIF」、拿掉「跳跳」小圈（UI 專家；DECISIONS #357 第 ⑥ 點，蓋掉下面那條）
+- Andy：「比比改成一直跳，但是是在主畫面狀態，我說的狀態就是第一版做出來的樣式，一直處於跳的狀態如圖一我提供的GIF、『跳跳』小圓 拿掉」＋「是這張喔」（9 格跳躍分格圖＝`site/brand/src/support_anim_1009.gif`）。
+- 素材：`python scripts/anim/bibi_site.py idle_hop`（走 gif_pipeline 的 load_frames＋cutout，在 512 原圖去背，再用 `_fit_original` 對到素材庫座標）→ `site/brand/bibi/idle_hop.webp`（160px、8 格、800ms、無限循環、38KB）＋ `idle_hop_still.webp`（第 1 格，減少動態用）。第 1 格跟 default_idle 外框、腳底逐像素一致；洋紅／深／淺三種底檢查 0 白邊。
+- `site/bibi.js`：待機一律 idle_hop（深夜／假日／大跌／週末／聖誕／各分頁都不換圖，只換泡泡句）；IDLE／HOLIDAY 情境款表整段拿掉；「跳跳」小圈與 hopScript、icons/hop.webp 拿掉（12 顆）；待機小動作預設不自動跑、東張西望（會換圖）拿掉；AV＝1012a。`site/support.js` 開場圖換成 idle_hop.webp?v=1012a。
+- 驗收：比比互動1011（改寫：7 種情境錄 2.4 秒全是 idle_hop、素材 160px／8 格／loop=0、沒有跳跳、12 顆在視窗內不重疊、點互動後回 idle_hop、減少動態＝idle_hop_still）＋桌機守門1008（--workers 1）＋客服鈕1009。純前端（site/**＋scripts/_uitest.py、scripts/anim）→ 跳過 pytest。
 
 ## 2026-10-12 凌晨 比比：待機只剩一直跳（取消情境待機款）＋新增「跳跳」小圈（UI 專家；DECISIONS #357 第 ⑤ 點）
 - Andy：「右下GIF 需要改成圖二一直跳的狀態，除非他點選其他互動紐，需要把圖二也新增在互動紐裡面」→ 深夜／假日／大跌／週末／聖誕都是 jump 一直跳（只換泡泡句）；新增第 13 個小圈「跳跳」（原版比比頭像，連跳 3 次）。

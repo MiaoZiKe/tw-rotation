@@ -157,6 +157,33 @@ ANIM_JS = """(dt) => { for (const a of document.getAnimations()) { try {
 } catch (err) {} } }"""
 
 
+# 錄影中逐段偵測「不該入鏡」的畫面：付費／升級／上限彈窗、登入要求、錯誤、載入中、空資料、鎖頭遮罩（Andy 退件：報酬比較跳出「目前方案最多 8 檔，升級 Pro」）
+BAD_JS = r"""() => {
+  const vw = innerWidth, vh = innerHeight;
+  const inView = (e) => { if (!e || !e.getClientRects().length) return false; const r = e.getBoundingClientRect(); const cs = getComputedStyle(e);
+    if (cs.visibility === 'hidden' || cs.display === 'none' || +cs.opacity === 0) return false;
+    return r.width > 2 && r.height > 2 && r.bottom > 0 && r.right > 0 && r.top < vh && r.left < vw; };
+  const out = [];
+  const RE0 = /看方案|升級|上限|Pro 不限|方案最多|已選\s*\d+\s*[／\/]\s*\d+|請登入|請先登入|載入中|讀取中|查無|沒有符合|尚無資料|沒有資料|發生錯誤|錯誤|Error|此功能需開通|今日已用完|需開通/;
+  document.querySelectorAll('[role=dialog], [role=alertdialog], .modal, .toast, .qcov, .qcard, .qlkov, [data-plk], [data-qlk], .upsell').forEach(e => {
+    if (e.closest('#supPanel') || e.id === 'logoBox') return;
+    // 內容型底部面板（手機 #mSheet 顯示零件／族群說明）是正常畫面：只有付費／上限／鎖頭類，或文字含上述字樣才算
+    const cls = String(e.className) + ' ' + (e.id || '');
+    if (!/qc|upsell|qlk|plk|toast/i.test(cls) && !e.hasAttribute('data-plk') && !e.hasAttribute('data-qlk') && !RE0.test(e.innerText || '')) return;
+    if (inView(e)) out.push('彈窗／遮罩：' + (e.id ? '#' + e.id : '') + '.' + String(e.className).split(' ').slice(0, 2).join('.') + '「' + (e.innerText || '').trim().replace(/\s+/g, ' ').slice(0, 30) + '」'); });
+  const RE = RE0;
+  const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+  let n, k = 0;
+  while ((n = walker.nextNode()) && k < 4000) { k++;
+    const t = n.nodeValue; if (!t || !RE.test(t)) continue;
+    const e = n.parentElement; if (!e || e.closest('#supPanel, script, style, noscript, .faq, footer, .sitefoot, [aria-hidden=true]')) continue;
+    if (!inView(e)) continue;
+    out.push('字樣：「' + t.trim().replace(/\s+/g, ' ').slice(0, 40) + '」');
+    if (out.length > 6) break; }
+  return out.length ? out : null;
+}"""
+
+
 class Recorder:
     def __init__(self, pg, w, h, dry=False, realtime=False):
         self.pg, self.w, self.h, self.dry, self.realtime = pg, w, h, dry, realtime
@@ -224,7 +251,20 @@ class Recorder:
         return {"ok": True, "dur": round(n / FPS, 2), "frames": n, "src_frames": len(fr),
                 "src_fps": round(len(fr) / max(dur, 0.01), 1), "src_max_gap_ms": round(max(gaps) * 1000) if gaps else 0}
 
+    def _watch(self):
+        t = self.n / FPS
+        try:
+            r = self.pg.evaluate(BAD_JS)
+        except Exception:  # noqa: BLE001
+            r = None
+        key = "；".join(r) if r else None
+        if key and self.bad and self.bad[-1][2] == key and self.bad[-1][1] >= t - 0.35:
+            self.bad[-1][1] = round(t + 0.2, 2)
+        elif key:
+            self.bad.append([round(t, 2), round(t + 0.2, 2), key])
+
     def start(self, tmpdir: Path):
+        self.bad = []
         if self.realtime:
             return self.start_rt(tmpdir)
         if tmpdir.exists():
@@ -256,6 +296,8 @@ class Recorder:
         self.acc -= ms
         self.pg.clock.run_for(ms)
         self.pg.evaluate(ANIM_JS, ms)
+        if self.n % 6 == 0:
+            self._watch()
         if self.dry:   # --log-only：只走時間、記座標，不截圖
             self.n += 1
             return
@@ -276,14 +318,14 @@ class Recorder:
             return {"ok": False, "why": "沒有任何畫格"}
         if self.dry:
             shutil.rmtree(self.dir)
-            return {"ok": True, "dry": True, "dur": round(self.n / FPS, 2), "frames": self.n}
+            return {"ok": True, "dry": True, "dur": round(self.n / FPS, 2), "frames": self.n, "bad": self.bad}
         cmd = ["ffmpeg", "-y", "-loglevel", "error", "-framerate", str(FPS), "-i", str(self.dir / "s%06d.png"),
                "-vf", f"scale={self.w}:{self.h}:flags=lanczos,format=yuv420p", "-c:v", "libx264", "-preset", "medium", "-threads", "2", "-crf", "18",
                "-r", str(FPS), "-movflags", "+faststart", str(out_mp4)]
         subprocess.run(cmd, check=True)
         n = self.n
         shutil.rmtree(self.dir)
-        return {"ok": True, "dur": round(n / FPS, 2), "frames": n}
+        return {"ok": True, "dur": round(n / FPS, 2), "frames": n, "bad": self.bad}
 
 
 # ------------------------------------------------------------------ 點擊目標／焦點框量測（Andy 退件：漣漪必須落在被點的元素上、發光框要框完整語意區塊）
@@ -2596,10 +2638,14 @@ def i03(pg, a, start, base):
     a.wait(1500)
     a.scroll(to_y=pg.evaluate("() => (document.querySelector('#etfRetCard') || document.body).getBoundingClientRect().top + scrollY") - 120, ms=800)
     if a.fast_click("#etfCmpDD .ddbtn", "加入比較下拉", gap=500):
+        # 上限策略：方案上限 8 檔、預設已選 5 檔 → 先按「全不選」清空，再勾 4 檔（總數 4，遠低於上限，不會觸發升級提示）
+        if pg.locator("#etfCmpDD button:visible:text-is('全不選')").count():
+            a.fast_click("#etfCmpDD button:visible:text-is('全不選')", "全不選", gap=400)
+            a.wait(400)
         k = 0
         boxes = pg.locator("#etfCmpDD input[type=checkbox]:visible")
         for i in range(boxes.count()):
-            if k >= 4:
+            if k >= 4 or pg.locator("#etfCmpDD input[type=checkbox]:checked").count() >= 4:
                 break
             if boxes.nth(i).is_checked():
                 continue

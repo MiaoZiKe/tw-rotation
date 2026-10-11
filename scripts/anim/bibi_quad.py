@@ -109,11 +109,13 @@ FEET_Q3 = {"fl": (150.0, 468.0, 1.0), "fr": (226.0, 462.0, 0.9),
 # 側面面向左：近側前後腳在前、遠側前後腳往後一點、高一點、暗一點
 FEET_SIDE = {"fl": (128.0, 468.0, 1.0), "fr": (168.0, 460.0, 0.9),
              "bl": (348.0, 468.0, 1.0), "br": (388.0, 460.0, 0.9)}
-FAR_FEET = {"front": ("bl", "br"), "q3": ("fr", "br"), "side": ("fr", "br")}
+FEET_BACK = {"bl": (181.0, 466.0, 1.0), "br": (327.0, 466.0, 1.0),
+             "fl": (128.0, 458.0, 0.86), "fr": (380.0, 458.0, 0.86)}
+FAR_FEET = {"front": ("bl", "br"), "q3": ("fr", "br"), "side": ("fr", "br"), "back": ("fl", "fr")}
 
 
 def feet_rest(view):
-    return {"front": FEET_FRONT, "q3": FEET_Q3, "side": FEET_SIDE}[view]
+    return {"front": FEET_FRONT, "q3": FEET_Q3, "side": FEET_SIDE, "back": FEET_BACK}[view]
 
 
 # ---------------------------------------------------------------- 五官擺位
@@ -128,8 +130,11 @@ EARS = {"front": {}, "q3": dict(ear_tx=-16, ear_sc_r=0.86),
         "side": dict(ear_tx_l=10, ear_sc_r=0.72, ear2=18)}
 
 
+FACE_BACK = {k: (0, 0, 1, 0) for k in FACE_FRONT}
+
+
 def face_layout(view):
-    return {"front": FACE_FRONT, "q3": FACE_Q3, "side": FACE_SIDE}[view]
+    return {"front": FACE_FRONT, "q3": FACE_Q3, "side": FACE_SIDE, "back": FACE_BACK}[view]
 
 
 _CENT = {"eye_l": R.DEF_EYE_L, "eye_r": R.DEF_EYE_R, "mouth": R.DEF_MOUTH,
@@ -254,6 +259,9 @@ def compose(p: dict, props_back=None, props_mid=None, props_front=None, fx=None,
     masks["body"] = body.getchannel("A")
     can.alpha_composite(body)
     put(props_mid, "propM")
+    if p["view"] == "back":          # 背面：沒有五官，中下方一小團圓尾巴毛
+        tx_, ty_ = R.def_pt(p, R.DEF_FOOT[0], 404)
+        R.place(can, R.tail_img(1.25), tx_ + p["tail"][0], ty_ + p["tail"][1], p["tail"][2] + p["rot"], anchor=(0.5, 0.5))
 
     lay = p["face"] or face_layout(p["view"])
     look = p["look"]
@@ -431,16 +439,19 @@ def tears_svg(p, lay) -> str:
                     f'stroke="#F06A5A" stroke-opacity="{0.55*p["rim"]:.2f}" stroke-width="5" stroke-linecap="round"/>')
         t = p["tear"]
         if t > 0.01:
-            # 淚痕：從眼睛外下角沿臉頰往下（外側），寬 9 漸細
-            x0, y0 = X + sg * rx * 0.55, Y + ry * 0.9
-            L = 70 * t
-            x1, y1 = x0 + sg * 8, y0 + L
-            out += (f'<path d="M {x0-5:.1f} {y0:.1f} Q {x0+sg*6-4:.1f} {y0+L*0.5:.1f} {x1-2:.1f} {y1:.1f} L {x1+2:.1f} {y1:.1f} '
-                    f'Q {x0+sg*6+4:.1f} {y0+L*0.5:.1f} {x0+5:.1f} {y0:.1f} Z" fill="#9FD6F6" fill-opacity="0.9" '
-                    f'stroke="{TEAR_INK}" stroke-width="2.4" stroke-linejoin="round"/>')
-            ph = p.get("tear_ph", 1.0)
-            ty = y0 + L * min(1.0, ph) + 6
-            out += R.tear_bead_svg(x0 + sg * 8 * min(1.0, ph), ty, 7.5)
+            # 淚痕（cry_ref：一條寬寬的淡藍淚流從眼睛下緣沿臉頰流下來）
+            x0, y0 = X + sg * rx * 0.35, Y + ry * 0.85
+            L = 62 * t
+            x1, y1 = x0 + sg * 6, y0 + L
+            out += (f'<path d="M {x0-12:.1f} {y0:.1f} C {x0-12:.1f} {y0+L*0.4:.1f} {x1-9:.1f} {y1-L*0.3:.1f} {x1-8:.1f} {y1:.1f} '
+                    f'Q {x1:.1f} {y1+9:.1f} {x1+8:.1f} {y1:.1f} C {x1+9:.1f} {y1-L*0.3:.1f} {x0+12:.1f} {y0+L*0.4:.1f} {x0+12:.1f} {y0:.1f} Z" '
+                    f'fill="#A9DDF8" fill-opacity="0.95" stroke="{TEAR_INK}" stroke-width="3" stroke-linejoin="round"/>'
+                    f'<path d="M {x0-3:.1f} {y0+6:.1f} C {x0-3:.1f} {y0+L*0.4:.1f} {x1-2:.1f} {y1-L*0.4:.1f} {x1-2:.1f} {y1-8:.1f}" '
+                    f'fill="none" stroke="#fff" stroke-opacity="0.8" stroke-width="3" stroke-linecap="round"/>')
+            ph = p.get("tear_ph", -1.0)
+            if ph >= 0:     # 一顆淚珠沿淚痕滑下、滑到底掉出去
+                ty = y0 + 10 + (L + 18) * ph
+                out += R.tear_bead_svg(x0 + sg * 6 * min(1.0, ph), ty, 9.0)
     return out
 
 
@@ -494,7 +505,7 @@ def blanket_overlay(front=0.34, lean=0.16, pad=9.0, wave=0.0, lift=0.0, alpha=1.
         R_ &= (xx > xc) & (yy < (GROUND - 1) * Sx)
         sm = Image.fromarray((R_ * 255).astype(np.uint8)).filter(ImageFilter.GaussianBlur(3 * Sx))
         R_ = np.asarray(sm) > 128
-        ink = np.asarray(Image.fromarray((R_ * 255).astype(np.uint8)).filter(ImageFilter.MaxFilter(11))) > 128
+        ink = np.asarray(Image.fromarray((R_ * 255).astype(np.uint8)).filter(ImageFilter.MaxFilter(19))) > 128
         rgb = np.zeros((H, H, 4), np.uint8)
         rgb[ink] = (0x1A, 0x14, 0x30, 255)
         base = np.array([0x5C, 0x8C, 0xE6], np.float32)

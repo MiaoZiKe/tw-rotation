@@ -93,6 +93,10 @@ def pro_idle(name):
 
 
 # ───────────────────────── 版面 ─────────────────────────
+import os as _os
+V4 = _os.environ.get("VIDEO_V") == "4"
+
+
 class Lay:
     def __init__(self, fmt, theme="cute"):
         self.fmt, self.theme = fmt, theme
@@ -130,6 +134,18 @@ class Lay:
             self.host_foot = 1862
             self.host_w = 236
             self.host_h = 222
+            if V4:
+                # 第 4 版（CEO 10-12）：Reels 底部約 320px、右側約 140px 是 App 介面區，泡泡與小字一律放上方安全區；
+                # 版面由上而下＝標題（y 20～100）→ 小字（y 104～132）→ 比比＋泡泡（y 146～368）→ 網站框 1000×1480（y 424～1904）
+                self.box = (40, 424, 1000, 1480)
+                self.frame_y, self.frame_h = 424, 1480
+                self.head_w = 700
+                self.pill_xy = (40, 24)
+                self.head_y = 18
+                self.foot_y = 104
+                self.host_x = 140
+                self.host_foot = 368
+                self.safe_x1 = 940
 
     @property
     def host(self):
@@ -219,6 +235,7 @@ def click_info(clip, t_src, x, y):
     return {"rect": (x - 45, y - 45, x + 45, y + 45), "center": (x, y), "label": "", "src": "座標估值±45px", "hit": None}
 
 
+ZOOMCHK: list = []      # (鏡, 素材, 輸出像素／來源像素；>1 ＝放大超過原解析度)
 CONTENTCHK: list = []   # (鏡, 點擊目標, 內容區標籤, 入框%(點擊後 1.5 秒), 停留秒, 來源, 備註)
 
 
@@ -295,7 +312,7 @@ def plan_mobile(rec, op, D, L):
     h = last["rect"][3] - last["rect"][1]
     dmin = last["arr"] + 1.5
     reached = True
-    if h > wh - 200:
+    if h > wh - 200 and not getattr(rec, "top_only", False):
         y_end = cl(last["rect"][3] - wh + 40)
         dist = max(0.0, y_end - last["w_c"])
         tscroll = max(0.8, dist / SPEED)
@@ -326,7 +343,7 @@ def plan_mobile(rec, op, D, L):
             t_chk = min(t_chk, max(c + 0.5, items[k_ + 1]["c"] - 0.75))
         w15 = win_at(t_chk)
         inc = _area(_inter_rect(top, (0, w15, sw, w15 + wh))) / max(1.0, _area(top))
-        note = "內容高於視窗：取上段並慢滑到底" if r[3] - r[1] > wh - 200 else ""
+        note = ("內容高於視窗：只看上段重點圖表（Andy 退件：每分頁一個重點，不再滑到底）" if getattr(rec, "top_only", False) else "內容高於視窗：取上段並慢滑到底") if r[3] - r[1] > wh - 200 else ""
         chk.append((it["lab"], round(inc * 100, 1), it["src"], note, it["tp"], r))
     return out, chk, dmin
 
@@ -466,7 +483,7 @@ def clip_dur(clip):
     return _CD[clip]
 
 
-def plan_dwell(rec, op, D, sub, L, pan_, chain=None, no_solve=False):
+def plan_dwell(rec, op, D, sub, L, pan_, chain=None, no_solve=False, cont=False):
     """依內容量決定每鏡長度：最短停留＝2.0＋0.35×區塊數（≤7 秒）、字卡讀完（每秒 6.5 字）；長頁面必須滑到內容底部並停 1.2 秒；
     點擊後被點出的內容區要完整入窗並停 ≥1.5 秒。快節奏序列（Andy 指定）與播放鏡頭例外，並在檢查表標註。回傳 (D, dwell 資訊)。"""
     mobile = L.fmt == "mobile"
@@ -487,7 +504,8 @@ def plan_dwell(rec, op, D, sub, L, pan_, chain=None, no_solve=False):
             keys, chk, dmin = plan_mobile(rec, op, D, L)
             rec.pan, rec.pan_keys = None, keys
             rec._chk_raw = chk
-            need = max(need, dmin)
+            if not cont:
+                need = max(need, dmin)
             units = max(units, 1 + sum(1 for c_ in chk if "高於" in c_[3]) * 2)
             min_req = min(7.0, 2.0 + 0.35 * units)
             need = max(need, min_req, reading)
@@ -517,7 +535,7 @@ def plan_dwell(rec, op, D, sub, L, pan_, chain=None, no_solve=False):
                     p3 = (w_, w_, 0.3, 0.9)
             rec.pan = p3
     else:
-        if taps and not chain:
+        if taps and not chain and not cont:
             need = max(need, taps[-1]["t"] + 0.95 + 1.5)
     D2 = D if exempt else max(D, math.ceil(need * 10) / 10.0)
     if D2 > D:
@@ -534,6 +552,9 @@ def plan_dwell(rec, op, D, sub, L, pan_, chain=None, no_solve=False):
     if mobile and rec.pan_keys:
         hold = D2 - rec.pan_keys[-1][0]
     reached = exempt or hold >= 1.2 - 1e-6 or (not mobile) or (mobile and not rec.pan and not rec.pan_keys)
+    if cont and not chain:
+        note = (note + "；" if note else "") + "下一鏡同素材接續，點擊後內容在下一鏡停留"
+        reached = True
     dw = {"units": units, "min_req": round(min_req, 2), "reading": round(reading, 2), "D": round(D2, 2), "reached": bool(reached), "hold": round(hold, 2), "note": note,
           "ok": bool(exempt or (D2 >= min(min_req, need) - 1e-6 and reached))}
     return D2, dw
@@ -674,6 +695,7 @@ class Rec4:
             ax, ay, aw, ah = AVAIL_W
             sc = min(aw / ww, ah / wh)
             fw, fh = ww * sc, wh * sc
+            ZOOMCHK.append((shot.sid, self.clip, round(sc, 3)))
             rect = (ax + (aw - fw) / 2, ay + (ah - fh) / 2, fw, fh)
             self._wl = (win, rect)
             # 主圖入鏡檢查
@@ -713,6 +735,9 @@ class Rec4:
                 y0 = 0
             y0 = clamp(y0, 0, max(0, sh - wh))
             self.win = (0, y0, ww, min(sh, y0 + wh))
+            if not getattr(self, "_zdone", False):
+                self._zdone = True
+                ZOOMCHK.append((shot.sid, self.clip, round(rw / sw, 3)))
             if not getattr(self, "_cdone", False):
                 self._cdone = True
                 for (cl_, tlab, clab, inc, hold, csrc, note, tpx) in self._cchk:
@@ -1411,6 +1436,8 @@ def footnote4(cv, L):
         d.text((x, y + 1), text, font=f, fill=(80, 80, 80))
         C.reg("footnote", (x - 12, y, x + tw + 12, y + 28))
     else:
+        if V4:
+            x = 40 + (900 - tw) / 2
         d.text((x, y), text, font=f, fill=(90, 90, 90))
         C.reg("footnote", (x, y, x + tw, y + 28))
 
@@ -1445,7 +1472,7 @@ def _bubble_at(cv, L, text, t, br, mode="tail"):
     cy = (br[1] + br[3]) / 2
     tip = (br[2] + 14, cy)
     x0 = tip[0] + 30
-    x_max = (L.W - 40) if web else 1040
+    x_max = (L.W - 40) if web else (940 if V4 else 1040)
     maxw = x_max - x0 - 56
     lines, cur = [], ""
     for ch in text:

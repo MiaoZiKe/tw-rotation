@@ -24,6 +24,13 @@ from render_1010 import FPS  # noqa: E402
 
 
 def shots_for(fmt):
+    import os
+    if os.environ.get("VIDEO_V") == "4":
+        if fmt == "web":
+            import v4_web
+            return v4_web.build()
+        import v4_mobile
+        return v4_mobile.build()
     if fmt == "web":
         import v3_web
         return v3_web.build()
@@ -41,7 +48,7 @@ def timeline(S):
 
 def run_seg(args):
     fmt, theme, sid, path, step, only_check = args
-    C.LOG.clear(); C.EXC.clear(); K.CLICKS.clear(); K.FOCUSES.clear(); K.CROPS.clear(); K.MAINCHK.clear(); K.DWELLCHK.clear(); K.CONTENTCHK.clear()
+    C.LOG.clear(); C.EXC.clear(); K.CLICKS.clear(); K.FOCUSES.clear(); K.CROPS.clear(); K.MAINCHK.clear(); K.DWELLCHK.clear(); K.CONTENTCHK.clear(); K.ZOOMCHK.clear()
     R.set_theme(theme)
     S = shots_for(fmt)
     L = K.Lay(fmt, theme)
@@ -68,13 +75,13 @@ def run_seg(args):
     for r in list(B._READERS.values()):
         r.close()
     B._READERS.clear()
-    chk = {"frames": frames, "LOG": C.LOG, "EXC": C.EXC, "CLICKS": K.CLICKS, "FOCUSES": K.FOCUSES, "CROPS": K.CROPS, "MAIN": K.MAINCHK, "DWELL": K.DWELLCHK, "CONTENT": K.CONTENTCHK}
+    chk = {"frames": frames, "LOG": C.LOG, "EXC": C.EXC, "CLICKS": K.CLICKS, "FOCUSES": K.FOCUSES, "CROPS": K.CROPS, "MAIN": K.MAINCHK, "DWELL": K.DWELLCHK, "CONTENT": K.CONTENTCHK, "ZOOM": K.ZOOMCHK}
     Path(str(path) + ".chk.json").write_text(json.dumps(chk, ensure_ascii=False))
     return sid
 
 
 def write_reports(work, S, label):
-    tot = {"frames": 0, "LOG": [], "EXC": [], "CLICKS": [], "FOCUSES": [], "CROPS": [], "MAIN": [], "DWELL": [], "CONTENT": []}
+    tot = {"frames": 0, "LOG": [], "EXC": [], "CLICKS": [], "FOCUSES": [], "CROPS": [], "MAIN": [], "DWELL": [], "CONTENT": [], "ZOOM": []}
     for s in S:
         f = Path(work) / f"seg_{s.sid}.mp4.chk.json"
         if not f.exists():
@@ -130,7 +137,12 @@ def write_reports(work, S, label):
           "| 鏡 | 點擊目標 | 內容區標籤 | 入框% | 停留秒 | 內容區來源 | 備註 |", "|---|---|---|---|---|---|---|"]
     L7 += [f"| {c[0]} | {c[1]} | {c[2]} | {c[3]} | {c[4]} | {c[5]} | {c[6]} |" for c in ct]
     (work / "content_check.md").write_text("\n".join(L7))
-    bad = len(dbad) + len(cbad) + len(log) + (len(cl) - ok) + (len(fo) - fok) + (len(cr) - cok) + len(mbad)
+    zm = tot["ZOOM"]
+    zbad = [z for z in zm if z[2] > 1.001]
+    L8 = [f"# 畫質／推近倍率檢查（{label}）", "", f"{len(zm)} 筆；輸出像素／來源像素 >1（放大超過素材原解析度）：{len(zbad)} 筆。成片＝原生解析度、H.264 CRF 17、30fps（見 v3_sections --final）。", "", "| 鏡 | 素材 | 倍率 | 通過 |", "|---|---|---|---|"]
+    L8 += [f"| {z[0]} | {z[1]} | {z[2]} | {'✓' if z[2] <= 1.001 else '✗'} |" for z in zm]
+    (work / "zoom_check.md").write_text("\n".join(L8))
+    bad = len(zbad) + len(dbad) + len(cbad) + len(log) + (len(cl) - ok) + (len(fo) - fok) + (len(cr) - cok) + len(mbad)
     print(f"重疊 {len(log)} 筆（檢查 {tot['frames']} 幀）；點擊 {len(cl)} 次通過 {ok}；焦點框 {len(fo)} 個通過 {fok}；裁切 {len(cr)} 鏡通過 {cok}；例外 {len(tot['EXC'])} 幀")
     return bad, tot
 
@@ -150,6 +162,7 @@ def main():
     ap.add_argument("--check", action="store_true")
     ap.add_argument("--step", type=int, default=3)
     ap.add_argument("--allow", action="store_true")
+    ap.add_argument("--final", action="store_true", help="成片：bad_spans.json 必須存在、守門不可放行")
     a = ap.parse_args()
     R.set_theme(a.theme)
     S = shots_for(a.fmt)
@@ -184,6 +197,11 @@ def main():
 
     work = Path(a.work or (B.SCR / "v10" / "work4" / f"{a.fmt}_{a.theme}"))
     work.mkdir(parents=True, exist_ok=True)
+    import v3_guard as G
+    gbad = G.guard(S, work, label, strict=a.final)
+    if gbad and (a.final or not a.allow):
+        print(f"★ 來回切換／錯誤畫面檢查未通過（{gbad} 筆），不出片。報告：{work}/flow_check.md、bad_span_check.md")
+        sys.exit(3)
     only = set(a.only.split(",")) if a.only else None
     jobs = [(a.fmt, a.theme, s.sid, work / f"seg_{s.sid}.mp4", a.step, a.check) for s in S if (only is None or s.sid in only)]
     jobs.sort(key=lambda j: -next(x.dur for x in S if x.sid == j[2]))
@@ -203,7 +221,7 @@ def main():
         cmd = ["ffmpeg", "-y", "-v", "error", "-f", "concat", "-safe", "0", "-i", str(lst)]
         if a.audio:
             cmd += ["-i", a.audio]
-        cmd += ["-c:v", "libx264", "-preset", "slow", "-crf", "19", "-pix_fmt", "yuv420p", "-r", str(FPS), "-profile:v", "high", "-movflags", "+faststart"]
+        cmd += ["-c:v", "libx264", "-preset", "slow", "-crf", "17", "-pix_fmt", "yuv420p", "-r", str(FPS), "-profile:v", "high", "-movflags", "+faststart"]
         if a.audio:
             cmd += ["-c:a", "aac", "-b:a", "192k", "-ar", "44100", "-shortest"]
         cmd += [a.out]
