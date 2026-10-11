@@ -33119,9 +33119,10 @@ def t_bibi_1011(b, base):
     rec, og = play_from("grass", 4800)
     gr = [r["grass"] for r in rec if r["grass"]]
     ok(f"【{T}】桌機 點「餵牧草」→ 300ms 內比比就在動", started(rec), rec[:6])
-    ok(f"【{T}】桌機 餵牧草：沒有手；牧草從被點的小圈（{og['x']:.0f},{og['y']:.0f}）沿弧線飛、落在比比面前的地上（最後 y {gr and round(gr[-1]['y'])} ≥ 鈕中心 {R0['fy']:.0f}）（{gr and round(gr[0]['x'])}→{gr and round(gr[-1]['x'])}）、比比播 {PRT['receive_grass']} 接住",
-       nohand(rec) and len(gr) >= 3 and gr[-1]["y"] >= R0["fy"] and abs(gr[0]["x"] - og["x"]) < 60 and abs(gr[-1]["x"] - (R0["fx"] + 10)) < 50 and min(g["y"] for g in gr) < min(gr[0]["y"], gr[-1]["y"]) - 5
-       and any(r["src"] == PRT["receive_grass"] + ".webp" for r in rec), [(round(g["x"]), round(g["y"])) for g in gr])
+    # 10-12 四腳版 eat_q：草從小圈飛過去、落在比比面前（臉朝左＝比比中心往左 0.26 個圖寬）的地上 → 直接播 eat_q（素材裡畫了地上的草），不再播 receive_grass
+    ok(f"【{T}】桌機 餵牧草：沒有手；牧草從被點的小圈（{og['x']:.0f},{og['y']:.0f}）沿弧線飛、落在比比面前的地上（最後 {gr and round(gr[-1]['x'])},{gr and round(gr[-1]['y'])}／比比中心 {R0['fx']:.0f}）、不播 receive_grass",
+       nohand(rec) and len(gr) >= 3 and gr[-1]["y"] >= R0["fy"] and abs(gr[0]["x"] - og["x"]) < 60 and abs(gr[-1]["x"] - (R0["fx"] - 27)) < 30 and min(g["y"] for g in gr) < min(gr[0]["y"], gr[-1]["y"]) - 5
+       and not any(r["src"] == "receive_grass.webp" for r in rec), [(round(g["x"]), round(g["y"])) for g in gr])
     ok(f"【{T}】桌機 餵牧草：接著播吃草（{PRT['eat']}）、吃完道具清光（最後 {rec[-1]['props']}）",
        any(r["src"] == PRT["eat"] + ".webp" for r in rec) and not rec[-1]["grass"], [r["src"] for r in rec[::10]])
     if BIBI_SHOT_DIR:
@@ -33134,11 +33135,10 @@ def t_bibi_1011(b, base):
     ok(f"【{T}】桌機 摸摸頭：比比享受地一縮一縮（身體 transform 有 scale）", any("scale(" in (r["body"] or "") for r in rec), [r["body"] for r in rec[::8]])
     home("pet")
 
-    rec = play("spin", 2900)
-    dz = [r for r in rec if r["src"] == PRT["dizzy"] + ".webp"]
-    ok(f"【{T}】桌機 點「轉圈圈」→ 300ms 內在動、先播 {PRT['spin']} 轉一圈、接著暈眩臉 {PRT['dizzy']}（漩渦眼＋星星繞頭，循環 {len(dz) * 50} ms）",
-       started(rec) and any(r["src"] == PRT["spin"] + ".webp" for r in rec) and len(dz) * 50 >= 1200
-       and rec.index(next(r for r in rec if r["src"] == PRT["spin"] + ".webp")) < rec.index(dz[0]) and all(r["phase"] == "dizzy" for r in dz[:-1]), [r["src"] for r in rec[::6]])
+    rec = play("spin", 2000)
+    sp = [r for r in rec if r["src"] == PRT["spin"] + ".webp"]
+    ok(f"【{T}】桌機 點「轉圈圈」→ 300ms 內在動、播四腳版 {PRT['spin']}（小跑繞一圈＋暈眩都在素材裡，{len(sp) * 50} ms）、不再另接 dizzy",
+       started(rec) and PRT["spin"] == "spin_q" and len(sp) * 50 >= 1000 and not any(r["src"] == "dizzy.webp" for r in rec), [r["src"] for r in rec[::6]])
     home("spin")
 
     rec = play("popcorn", 2200)
@@ -33345,6 +33345,16 @@ TOYS = [  # id, 名稱, 道具 class, 另一層（線／纏住）, 錄多久 ms,
 ]
 
 
+def _air_hops(oys, thr=-8):
+    """離地次數：連續一段 oy < thr（往上為負）算一次跳"""
+    n, up = 0, False
+    for v in oys:
+        if v < thr and not up:
+            n += 1
+        up = v < thr
+    return n
+
+
 def _toy_ratio(rec):
     rs = [float(m.group(2)) / float(m.group(1)) for r in rec for m in [re.search(r"scale\(([\d.]+), ([\d.]+)\)", r["body"] or "")] if m]
     return max(rs or [1])
@@ -33377,8 +33387,9 @@ def _toy_specific(T, tag, aid, rec, extra_kind):
         n0 = max(len(r["ps"]) for r in rec)
         eaten = next((r["t"] for r in rec if r["t"] > 800 and len(r["ps"]) == 0), None)
         xs = sorted(set(round(p["x"] / 20) for r in rec for p in r["ps"] if p["op"] > 0.9 and r["t"] > 900))
-        ok(f"【{T}】{tag} 撒零食：一次撒 {n0} 顆（4～6）、落在不同位置（{len(xs)} 處）、比比低頭吃（eat_grass_v2）、吃完才回原位（{eaten} ms 全部吃光）",
-           4 <= n0 <= 6 and len(xs) >= 3 and "eat_grass_v2.webp" in srcs and eaten is not None
+        nib = any(abs(float(m.group(1))) >= 5 for r in rec if r["src"] == "idle_hop_still.webp" for m in [re.search(r"skewX\((-?[\d.]+)deg\)", r["body"] or "")] if m)
+        ok(f"【{T}】{tag} 撒零食：一次撒 {n0} 顆（4～6）、落在不同位置（{len(xs)} 處）、比比跑過去低頭啃（{nib}）、吃完才回原位（{eaten} ms 全部吃光）",
+           4 <= n0 <= 6 and len(xs) >= 3 and nib and eaten is not None
            and all(abs(r["ox"]) > 3 for r in rec if r["t"] == eaten), {"n": n0, "xs": xs, "srcs": sorted(set(srcs))})
     elif aid == "bubble":
         n0 = max(len(r["ps"]) for r in rec)
@@ -33395,7 +33406,7 @@ def _toy_specific(T, tag, aid, rec, extra_kind):
     elif aid == "feather":
         sw = [p["x"] for r in rec if 600 < r["t"] < 1500 for p in r["ps"]]
         oys = [r["oy"] for r in rec if r["run"] == aid]
-        leaps = sum(1 for i in range(1, len(oys) - 1) if oys[i] < -8 and oys[i] <= oys[i - 1] and oys[i] < oys[i + 1])
+        leaps = _air_hops(oys)
         crouch = any(float(m.group(1)) >= 1.06 and float(m.group(2)) <= 0.92 for r in rec for m in [re.search(r"scale\(([\d.]+), ([\d.]+)\)", r["body"] or "")] if m)
         ok(f"【{T}】{tag} 羽毛棒：羽毛左右晃（{(max(sw) - min(sw)) if sw else 0:.0f}px）、有繩子、比比蹲低扭屁股、往前撲 {leaps} 次（2～3）",
            bool(sw) and max(sw) - min(sw) >= 15 and any(e["d"] > 10 for r in rec for e in r["extra"]) and crouch and 2 <= leaps <= 3,
@@ -33416,7 +33427,7 @@ def _toy_specific(T, tag, aid, rec, extra_kind):
         n0 = max(len(r["ps"]) for r in rec)
         caught = max(sum(1 for p in r["ps"] if p["op"] < 0.05) for r in rec if r["t"] > 1500) if rec else 0
         oys = [r["oy"] for r in rec if r["run"] == aid]
-        leaps = sum(1 for i in range(1, len(oys) - 1) if oys[i] < -10 and oys[i] <= oys[i - 1] and oys[i] < oys[i + 1])
+        leaps = _air_hops(oys, -10)
         ok(f"【{T}】{tag} 落葉：飄下來 {n0} 片（5～8）、比比原地彈跳 {leaps} 次去撲、撲到的收掉（最多同時 {caught} 片不見）、左右只挪一小步（{max(abs(r['ox']) for r in rec):.0f}px）",
            5 <= n0 <= 8 and leaps >= 1 and max(abs(r["ox"]) for r in rec) <= 140, {"n": n0, "leaps": leaps})
 

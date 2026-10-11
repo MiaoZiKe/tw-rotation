@@ -21,6 +21,11 @@
 - [10-09 22:1x] 手機版 → 網頁版：Andy 回報手機抽屜站名圖跑掉、頂欄 LOGO 點了變放大（他要：頂欄 LOGO＝回總覽；只有側欄抽屜裡的 LOGO 才放大）。手機版開 claude/m4-brand 處理，**只改 html.m4／≤640**，不動桌機 .brand .logo→#logoBox 行為。
 
 
+## 2026-10-12 比比：四腳版第 1～5 組換上（吃草／轉圈／睡覺＋叫醒／被敲＋哭／自拍）（UI 專家；DECISIONS #357）
+- 動畫單位 8f5c472（CEO 已審）→ `python scripts/anim/bibi_site.py eat_q spin_q sleep_loop wake_once hit cry selfie`；bibi.js：PART.eat＝eat_q、PART.spin＝spin_q、給草改「草飛到比比面前地上 → 播 eat_q」、轉圈不接 dizzy、hit 整段播完接 cry；AV＝1012b。
+- 驗收：比比互動1011（改寫餵牧草／轉圈兩條）、客服鈕1009、桌機守門1008（--workers 1）。截圖：scratchpad/bibi1012/quad/quad_sheet.png。
+- 球、摸摸、擊掌、跳舞、抱抱、接東西還在用舊版，下一批四腳版到了再換。
+
 ## 2026-10-12 比比：待機一律「第一版跳躍 GIF」、拿掉「跳跳」小圈（UI 專家；DECISIONS #357 第 ⑥ 點，蓋掉下面那條）
 - Andy：「比比改成一直跳，但是是在主畫面狀態，我說的狀態就是第一版做出來的樣式，一直處於跳的狀態如圖一我提供的GIF、『跳跳』小圓 拿掉」＋「是這張喔」（9 格跳躍分格圖＝`site/brand/src/support_anim_1009.gif`）。
 - 素材：`python scripts/anim/bibi_site.py idle_hop`（走 gif_pipeline 的 load_frames＋cutout，在 512 原圖去背，再用 `_fit_original` 對到素材庫座標）→ `site/brand/bibi/idle_hop.webp`（160px、8 格、800ms、無限循環、38KB）＋ `idle_hop_still.webp`（第 1 格，減少動態用）。第 1 格跟 default_idle 外框、腳底逐像素一致；洋紅／深／淺三種底檢查 0 白邊。

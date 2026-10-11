@@ -26,22 +26,46 @@ BAD_KNOWN = {
 
 BAD_SPANS_PATH = K.RAW3 / "bad_spans.json"
 
+# 分鏡師抽格確認的避開時段（storyboard_v4_*.md 第 7 節）：跟 bad_spans.json 一樣，碰到就報錯
+_E = 9999.0
+STORY_AVOID = {
+    "V02_desktop": [(16.4, _E, "點新聞個股跳頁")], "V08_desktop": [(3.1, _E, "點方塊跳產業鏈")], "V11_desktop": [(2.2, 14.2, "點錯目標、點不到")],
+    "V16_desktop": [(17.6, _E, "今日關注")], "V21_desktop": [(3.1, 10.9, "下拉選單「已選 7／8」上限暗示")], "V24_desktop": [(0.0, 5.6, "空清單")],
+    "V26_desktop": [(0.0, 12.1, "常見問題含付費方案")], "V27_desktop": [(8.2, _E, "進個股頁（個股頁提前出現）")],
+    "V02_mobile": [(18.8, _E, "點新聞個股跳頁")], "V08_mobile": [(3.1, _E, "點方塊跳產業鏈")], "V11_mobile": [(2.2, 14.9, "點到深色模式鈕、點不到"), (18.1, _E, "開說明抽屜")],
+    "V13_mobile_v3b": [(4.2, _E, "滑過點座標在畫面外")], "V16_mobile": [(17.9, _E, "今日關注")], "V21_mobile_v3b": [(3.1, 10.9, "下拉選單「已選 7／8」上限暗示")],
+    "V21_mobile": [(3.1, 10.9, "下拉選單「已選 7／8」上限暗示")], "V24_mobile": [(0.0, 5.6, "空清單")], "V26_mobile": [(0.0, 12.1, "常見問題含付費方案")],
+    "V27_mobile": [(8.6, _E, "進個股頁（個股頁提前出現）")],
+}
+
 
 def _norm(clip):
     return clip.replace(".mp4", "")
 
 
 def load_bad_spans():
-    """回傳 (spans: {素材: [(t0, t1, 原因)]}, 檔案是否存在)。容忍 list／dict 兩種寫法。"""
+    """回傳 (spans: {素材: [(t0, t1, 原因)]}, unchecked: set, 檔案是否存在)。
+    錄影端格式：{"spans": {檔名(.mp4): [[t0, t1, 原因], ...]}, "unchecked": [素材, ...]}；也容忍 {"clips": ...} 或直接 {素材: [...]}。
+    spans 裡有列（即使是空清單）＝量過；沒列或在 unchecked＝還沒量。"""
     if not BAD_SPANS_PATH.exists():
-        return {}, False
+        return {}, set(), False
     d = json.loads(BAD_SPANS_PATH.read_text())
+    unchecked = set()
+    if isinstance(d, dict):
+        unchecked = {_norm(x) for x in (d.get("unchecked") or [])}
+        if isinstance(d.get("spans"), dict):
+            d = d["spans"]
+        elif isinstance(d.get("clips"), dict):
+            d = d["clips"]
     out = {}
-    if isinstance(d, dict) and "clips" in d and isinstance(d["clips"], dict):
-        d = d["clips"]
     for clip, v in (d.items() if isinstance(d, dict) else []):
+        if clip in ("unchecked",):
+            continue
         items = v.get("spans", v.get("bad", [])) if isinstance(v, dict) else v
-        for it in items or []:
+        if not isinstance(items, list):
+            continue
+        lst = out.setdefault(_norm(clip), [])
+        for it in items:
             if isinstance(it, dict):
                 t0 = it.get("t_start", it.get("t0", it.get("start")))
                 t1 = it.get("t_end", it.get("t1", it.get("end")))
@@ -51,9 +75,8 @@ def load_bad_spans():
                 why = it[2] if len(it) > 2 else ""
             if t0 is None or t1 is None:
                 continue
-            out.setdefault(_norm(clip), []).append((float(t0), float(t1), str(why)))
-        out.setdefault(_norm(clip), [])
-    return out, True
+            lst.append((float(t0), float(t1), str(why)))
+    return out, unchecked, True
 
 
 def used_ranges(rec, D):
@@ -114,46 +137,55 @@ def flow_check(S):
                         bad.append((s.sid, f"分頁順序倒退：「{pill}」排在前一頁之前（依網站導覽順序）"))
                     last_rank = max(last_rank, rk)
                 last_pill = pill
-        if not recs:
-            continue
-        for r in recs:
-            rg = used_ranges(r, s.dur)
-            lo = min(a for a, _ in rg)
-            hi = max(b for _, b in rg)
-            c = _norm(r.clip)
-            if c in clip_closed and c != clip_last:
+        use = {}
+        for (c, a, b) in _uses(s):
+            lo, hi = use.get(c, (a, b))
+            use[c] = (min(lo, a), max(hi, b))
+        multi = len(use) > 1          # 四宮格這種一鏡多素材：各自檢查單調，不算 A→B→A
+        for c, (lo, hi) in use.items():
+            if not multi and c in clip_closed and c != clip_last:
                 bad.append((s.sid, f"素材 {c} 中途換走又換回來（A→B→A，來回切換）"))
             if c in clip_max and lo < clip_max[c] - 0.05:
                 bad.append((s.sid, f"素材 {c} 從 {lo:.2f}s 開始，但前面的鏡已經播到 {clip_max[c]:.2f}s（回頭重播）"))
             clip_max[c] = max(clip_max.get(c, 0.0), hi)
+        if use and not multi:
+            c = next(iter(use))
             if clip_last and clip_last != c:
                 clip_closed.add(clip_last)
             clip_last = c
     return bad, warn
 
 
+def _uses(s):
+    """這一鏡用到的 (素材, 來源區段)：網站畫面圖層＋卡片自行宣告的素材（例：3D 四宮格）。"""
+    out = []
+    for r in _recs(s):
+        out += [(_norm(r.clip), a, b) for a, b in used_ranges(r, s.dur)]
+    for (c, a, b) in getattr(s, "uses", []) or []:
+        out.append((_norm(c), a, b))
+    return out
+
+
 def span_check(S, strict=False):
-    """錯誤畫面排除：回傳 (違規列, 警告列, 檔案存在)。"""
-    spans, exists = load_bad_spans()
+    """錯誤畫面排除：回傳 (違規列, 警告列, 檔案存在)。
+    strict（成片）：bad_spans.json 必須存在；素材還沒量（unchecked 或沒列）一律當壞素材擋下。"""
+    spans, unchecked, exists = load_bad_spans()
     bad, warn = [], []
     if not exists:
-        (bad if strict else warn).append(("全部", f"尚未提供 {BAD_SPANS_PATH.name}（錄影端的壞畫面時段表）" + ("，成片模式不可出片" if strict else "，目前只用 BAD_KNOWN 擋已知壞素材")))
+        (bad if strict else warn).append(("全部", f"尚未提供 {BAD_SPANS_PATH.name}（錄影端的壞畫面時段表）" + ("，成片模式不可出片" if strict else "，目前只用 BAD_KNOWN 與分鏡避開時段擋")))
+    seen_unc = set()
     for s in S:
-        for r in _recs(s):
-            c = _norm(r.clip)
-            keys = {c, c.replace("_v3b", "").replace("_v3c", "")}
+        for (c, a, b) in _uses(s):
             for pre, why in BAD_KNOWN.items():
-                if c.startswith(pre) and not any(k in spans for k in keys):
+                if c.startswith(pre) and c not in spans:
                     bad.append((s.sid, f"素材 {c} 禁用：{why}（待 bad_spans.json 給出可用時段）"))
-            sp = []
-            for k in keys:
-                sp += spans.get(k, [])
-            if not sp:
-                continue
-            for (a, b) in used_ranges(r, s.dur):
-                for (t0, t1, why) in sp:
-                    if a <= t1 and b >= t0:
-                        bad.append((s.sid, f"素材 {c} 使用 {a:.2f}–{b:.2f}s，落在壞畫面時段 {t0:.2f}–{t1:.2f}s（{why}）"))
+            if exists and (c in unchecked or c not in spans) and c not in seen_unc:
+                seen_unc.add(c)
+                (bad if strict else warn).append((s.sid, f"素材 {c} 錄影端還沒量壞畫面時段（unchecked）" + ("，成片不可用" if strict else "，預覽先用")))
+            sp = list(spans.get(c, [])) + [(a_, b_, "分鏡避開：" + w_) for a_, b_, w_ in STORY_AVOID.get(c, [])]
+            for (t0, t1, why) in sp:
+                if a < t1 and b > t0:
+                    bad.append((s.sid, f"素材 {c} 使用 {a:.2f}–{b:.2f}s，落在壞畫面時段 {t0:.2f}–{t1:.2f}s（{why}）"))
     return bad, warn, exists
 
 
