@@ -1255,7 +1255,8 @@ class Op:
             win, rect = rec.win, rec.rect
             cv = R.background(L.fmt).copy()
             rec.draw(cv, t, shot)
-            cache[key] = busy_mask(cv, rec.rect)
+            b = busy_mask(cv, rec.rect)
+            cache[key] = (b, main_mask(shot, b, color_mask(cv, rec.rect)))
             rec.win, rec.rect = win, rect
             C.CUR[:] = saved
         return cache[key]
@@ -1272,7 +1273,9 @@ class Op:
         if "_pose" in tp:
             return tp["_pose"]
         rec = self.rec
-        busy = self._busy_at(shot, L, max(0.0, tp["t"] - self.TAP_IN)) | self._busy_at(shot, L, tp["t"]) | self._busy_at(shot, L, min(shot.dur - 1 / FPS, tp["t"] + self.TAP_OUT))
+        bs = [self._busy_at(shot, L, tt_) for tt_ in (max(0.0, tp["t"] - self.TAP_IN), tp["t"], min(shot.dur - 1 / FPS, tp["t"] + self.TAP_OUT))]
+        busy = bs[0][0] | bs[1][0] | bs[2][0]
+        mainm = bs[0][1] | bs[1][1] | bs[2][1]
         (bx0, by0, bx1, by1), _ = self._btn(rec, tp)
         H, W = busy.shape
         bm = np.zeros_like(busy)
@@ -1306,16 +1309,20 @@ class Op:
                 if sx < fr[0] or sy < fr[1] - 2 or sx + m.shape[1] > fr[0] + fr[2] or sy + m.shape[0] > fr[1] + fr[3] + 2:
                     continue
                 hit_out, _ = _mask_hits(busy & ~bm, sx, sy, m)
+                hit_main, _ = _mask_hits(mainm & ~bm, sx, sy, m)
                 cov, _ = _mask_hits(bm, sx, sy, m)
-                bad = hit_out / tot + max(0.0, cov / barea - 0.2) * 3
+                # CEO 10-12（例外 1）：主角圖表資料區 0%、其他文字 ≤15%、按鈕露出 ≥80%；越乾淨越好、越大越好
+                ok = hit_main == 0 and hit_out <= 0.15 * tot and cov <= 0.2 * barea
+                bad = hit_main / tot * 10 + hit_out / tot + max(0.0, cov / barea - 0.2) * 3
                 pref = {"top": 0, "left": 1, "right": 1, "bottom": 2}[side]
-                score = (bad > 0.01, pref if bad <= 0.01 else 0, bad, -size)
+                clean = hit_out <= 0.01 * tot
+                score = (not ok, not clean, -size if ok else 0, pref, bad)
                 if best is None or score < best[0]:
-                    best = (score, (side, q, size))
-            if best and best[0][2] <= 0.01:
+                    best = (score, (side, q, size), bad, ok)
+            if best and best[3] and not best[0][1]:
                 break
         tp["_pose"] = best[1] if best else ("top", 0.5, 96)
-        tp["_pose_bad"] = best[0][2] if best else 1.0
+        tp["_pose_bad"] = (best[2], best[3]) if best else (1.0, False)
         return tp["_pose"]
 
     def _pose_foot(self, rec, tp, pose):
@@ -1333,7 +1340,7 @@ class Op:
     def _drag_pose(self, shot, L, p, t):
         """3D 推轉：比比跟著拖曳點走，站在模型旁邊的空白處（不壓模型與其他內容）。"""
         tq = round(t * 2) / 2
-        busy = self._busy_at(shot, L, tq) | self._busy_at(shot, L, min(shot.dur - 1 / FPS, tq + 0.5))
+        busy = self._busy_at(shot, L, tq)[0] | self._busy_at(shot, L, min(shot.dur - 1 / FPS, tq + 0.5))[0]
         fr = self.rec.rect
         best = None
         for size in (150, 130, 110, 96):
@@ -1617,6 +1624,46 @@ def busy_mask(cv, rect):
     return out
 
 
+def color_mask(cv, rect):
+    """有顏色的資料像素（K 線紅綠、熱力圖色塊、漲跌紅綠數字）：飽和度 >0.35、亮度 >60，外擴 4px。"""
+    W, H = cv.size
+    x0, y0 = max(0, int(rect[0])), max(0, int(rect[1]))
+    x1, y1 = min(W, int(rect[0] + rect[2])), min(H, int(rect[1] + rect[3]))
+    out = np.zeros((H, W), dtype=bool)
+    if x1 - x0 < 4 or y1 - y0 < 4:
+        return out
+    a = np.asarray(cv.crop((x0, y0, x1, y1)).convert("RGB"), dtype=np.int16)
+    mx, mn = a.max(axis=2), a.min(axis=2)
+    m = ((mx - mn) > 0.35 * np.maximum(mx, 1)) & (mx > 60)
+    m[:3, :] = m[-3:, :] = False
+    m[:, :3] = m[:, -3:] = False
+    d = m.copy()
+    for k in range(1, 5):
+        d[k:, :] |= m[:-k, :]
+        d[:-k, :] |= m[k:, :]
+    m = d.copy()
+    for k in range(1, 5):
+        d[:, k:] |= m[:, :-k]
+        d[:, :-k] |= m[:, k:]
+    out[y0:y1, x0:x1] = d
+    return out
+
+
+def main_mask(shot, busy, colored):
+    """主角圖表的資料區（CEO 10-12：踩按鈕那一下一律 0%）：有顏色的資料像素，加上錄影端重點框／內容框裡的受保護像素（不含點擊目標本身）。"""
+    rec = shot.rec
+    m = colored & busy
+    for (lab, r, tt) in forbidden_src(shot):
+        if tt is not None or lab.startswith("內容區（錄影端無重點框"):
+            continue
+        x0, y0, x1, y1 = _map_rect(rec, r)
+        if x1 > x0 and y1 > y0:
+            sub = np.zeros_like(busy)
+            sub[int(y0):int(y1), int(x0):int(x1)] = True
+            m |= sub & busy
+    return m
+
+
 def _sprite_alpha(name, i, foot, size):
     """(x, y, bool 遮罩)：這個比比素材在畫布上實際不透明的像素。"""
     size = int(round(size / 4) * 4)
@@ -1642,7 +1689,7 @@ def site_rect_canvas(shot):
     return rec.rect if rec is not None and rec.rect is not None else None
 
 
-def busy_check(shot, t, busy):
+def busy_check(shot, t, busy, mainb=None):
     """逐幀：疊加元素和受保護像素的相交 ≤ 該元素面積 1%。比比踩按鈕那一下（落下到彈回 ≤0.6 秒）只准碰被點的按鈕、按鈕露出 ≥80%。"""
     if busy is None:
         return
@@ -1667,10 +1714,13 @@ def busy_check(shot, t, busy):
                 H, W = busy.shape
                 bm[max(0, int(by0)):min(H, int(by1) + 1), max(0, int(bx0)):min(W, int(bx1) + 1)] = True
                 hit_out, _ = _mask_hits(busy & ~bm, x, y, m)
+                hit_main, _ = _mask_hits(mainb & ~bm, x, y, m) if mainb is not None else (0, 0)
                 cov, _ = _mask_hits(bm, x, y, m)
                 barea = max(1, int(bm.sum()))
-                if hit_out > 0.01 * tot:
-                    BUSYCHK.append((shot.sid, round(t, 3), "bibi:" + name + "（踩按鈕）", round(hit_out * 100 / tot, 2), "踩按鈕時壓到按鈕以外的內容"))
+                if hit_main > 0:
+                    BUSYCHK.append((shot.sid, round(t, 3), "bibi:" + name + "（踩按鈕）", round(hit_main * 100 / tot, 2), "踩按鈕時壓到主角圖表資料區（必須 0%）"))
+                if hit_out > 0.15 * tot:
+                    BUSYCHK.append((shot.sid, round(t, 3), "bibi:" + name + "（踩按鈕）", round(hit_out * 100 / tot, 2), "踩按鈕時壓到按鈕以外的文字 >15%"))
                 if cov > 0.2 * barea:
                     BUSYCHK.append((shot.sid, round(t, 3), "bibi:" + name + "（踩按鈕）", round(cov * 100 / barea, 2), f"按鈕「{lab}」被蓋超過 20%（文字要露出 ≥80%）"))
                 continue
@@ -1977,6 +2027,7 @@ class Shot4:
         for ly in self.layers:
             ly.draw(cv, t, self)
         busy = busy_mask(cv, self.rec.rect) if (V4 and self.kind == "feature" and self.rec is not None and self.rec.rect is not None) else None
+        mainb = main_mask(self, busy, color_mask(cv, self.rec.rect)) if busy is not None else None
         if self.custom:
             self.custom(cv, t, self)
         if self.kind == "feature":
@@ -1987,7 +2038,7 @@ class Shot4:
             host_bubble(cv, L, self, self.sub, t, t + (1.0 if self.cont else 0.0))
         if V4 and self.kind == "feature":
             site_overlay_check(self, t)
-            busy_check(self, t, busy)
+            busy_check(self, t, busy, mainb)
         return cv
 
     def _overlays(self, cv, t, L):

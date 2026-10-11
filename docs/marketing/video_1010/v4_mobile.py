@@ -11,7 +11,7 @@ _LM = Lay("mobile")
 _CUR = {}
 
 
-def shot(sid, page, clip, segs, head, sub, idle, pan=None, chain=None, cont=False, fixed=None, hl=None, limit=None, keys=None, min_cap=None, noev=False):
+def shot(sid, page, clip, segs, head, sub, idle, pan=None, chain=None, cont=False, fixed=None, hl=None, limit=None, keys=None, min_cap=None, noev=False, wk=None):
     """pan＝(ya, yb)：沒有點擊的鏡頭慢慢平移；有點擊的鏡頭由 plan_mobile 依點擊與內容區自動排（只看上段重點，不滑到底）。
     fixed＝y：整鏡視窗固定在這個高度（例：自選清單避開「1／5 頁」字樣）。"""
     clip = nofab(clip)
@@ -33,6 +33,8 @@ def shot(sid, page, clip, segs, head, sub, idle, pan=None, chain=None, cont=Fals
         pan_ = (pan[0], pan[1], 0.3, 0.3 + 0.6 * D) if abs(pan[1] - pan[0]) > 1 else (pan[0], pan[0], 0.3, 0.3)
     rec = Rec4(clip, pts, pan=pan_)
     rec.meta = {}
+    if wk:
+        rec.win_keys = wk      # 手機推近（來源座標，寬 ≥1000 → 倍率 ≤1.0）；只用在沒有點擊的鏡頭
     rec.top_only = True
     op = Op(rec, idle=idle_sub(idle), chain=chain, use_events=not noev)
     D, dw = plan_dwell(rec, op, D, sub, _LM, pan_, chain, no_solve=fixed is not None, cont=cont, min_cap=min_cap)
@@ -77,7 +79,7 @@ def build():
     S.append(shot("e01", "熱力圖", "V08_mobile", [(0.05, 3.05)], "④ 哪裡熱一眼看", "方塊越大，錢越多", [(0, "magnifier"), (1.5, "face_shock")], pan=(300, 700), min_cap=3.0))
     S.append(shot("e02", "熱力圖", "I01_mobile_v3i", [(2.7, 5.5)], "題材熱度", "熱門題材，我拆開給你看", [(0, "talk_excited"), (1.4, "fire")], cont=True, min_cap=3.2))
     S.append(shot("e03", "熱力圖", "I01_mobile_v3i", [(6.4, 9.4)], "一步一步看懂", "從晶片到整櫃，照順序看", [(0, "bulb"), (1.6, "face_thinking_bulb")], chain="solo"))
-    S.append(shot("f01", "產業地圖", "V11_mobile", [(14.9, 17.9)], "⑤ 產業鏈 2D", "上下游怎麼排，一張看懂", [(0, "talk_explain"), (1.4, "pointer_r")], pan=(600, 900)))
+    S.append(shot("f01", "產業地圖", "V11_mobile", [(14.9, 17.9)], "⑤ 產業鏈 2D", "上下游怎麼排，一張看懂", [(0, "talk_explain"), (1.4, "pointer_r")], wk=[(0.0, (90, 880, 1090, 2360))]))
     S.append(shot("f02", "產業地圖", "V12a_mobile", [(2.0, 6.0)], "3D 拆開看", "戴上眼鏡，推一下就轉！", [(0, "3dglasses"), (2.0, "face_star")], pan=(700, 700)))
     S.append(grid_card("f03", GRID_M))
     # 手機錄影沒有「滑過」動作（hover 落在畫面外、連線不亮），台詞改成畫面實際有的：上下游供貨關係一張連起來；視窗固定在關聯圖本體
