@@ -30,6 +30,16 @@ def feat(sid, D, clip, srcmap, head, hl, sub, pill, focus=None, idle="talk_happy
     return Shot4(sid, D, [rec], pill=pill, head=head, hl=hl, sub=sub, op=op)
 
 
+def FV(rect, label, clip_full, t_draw=0.5, **kw):
+    return Focus4(rect, label=label, clip=clip_full, t_draw=t_draw, **kw)
+
+
+def featv(sid, D, clip_full, srcmap, head, hl, sub, pill, focus=None, idle="talk_happy", extra=(), soft_hover=False, use_events=True):
+    rec = Rec4(clip_full, srcmap, focus=focus)
+    op = Op(rec, idle=idle, extra=extra, soft_hover=soft_hover, use_events=use_events)
+    return Shot4(sid, D, [rec], pill=pill, head=head, hl=hl, sub=sub, op=op)
+
+
 def card(sid, D, fn, cues=()):
     return Shot4(sid, D, [], kind="card", foot=False, custom=fn, cues=cues)
 
@@ -49,17 +59,19 @@ def build():
     S.append(feat("07", 3.0, "V27", [(0, 5.0), (3.0, 9.0)], "打代號或名稱", "代號", "打代號或名稱，點一下直接到那一頁", "搜尋",
                   focus=F((20, 150, 900, 440), "搜尋框與建議", "V27", 1.0, zoom=False), idle=[(0, "face_wink"), (2.0, "talk_excited")]))
     S.append(feat("08", 3.0, "V03", [(0, 3.1), (0.7, 3.1), (0.7001, 9.9), (3.0, 13.35)], "② 大日子排一起", "大日子", "財報、法說、FED 公布日，一張月曆排好", "財經日曆",
-                  focus=F((2300, 300, 3150, 1720), "本週重點與說明", "V03", 1.8, zoom=False), idle="calendar"))
+                  focus=F((2300, 300, 3150, 1720), "FED 事件說明卡", "V03", 1.8, zoom=False), idle="calendar"))
     S.append(feat("09", 2.5, "V04", stat(2.0, 2.5), "③ 錢往哪裡跑", "錢", "每個族群在領先還是落後，一看就知道", "資金流向",
-                  focus=F((600, 480, 1960, 1640), "資金輪盤", "V04", 0.5, t_zoom=1.0), idle=[(0, "face_think"), (1.4, "talk_explain")]))
+                  focus=F((600, 480, 1960, 1640), "資金輪動", "V04", 0.5, t_zoom=1.0), idle=[(0, "face_think"), (1.4, "talk_explain")]))
+    S.append(featv("09b", 3.8, "V04_desktop_v3c", [(0, 5.0), (3.8, 8.8)], "按 ▶，輪盤就動起來", "▶", "逐日播放，看族群怎麼從落後轉到領先", "資金流向",
+                   idle=[(0, "face_think"), (1.6, "face_star")]))
     S.append(feat("10", 2.5, "V05", [(0, 3.0), (2.5, 5.5)], "大盤的錢分去哪", "分去哪", "從大盤分到產業鏈、族群，再到代表股", "資金流向",
                   focus=F((440, 520, 2150, 1250), "分流樹", "V05", 0.5, t_zoom=1.0), idle="spotlight"))
     S.append(feat("11", 2.0, "V07", stat(3.3, 2.0), "法人資金在哪", "法人", "法人的錢集中在哪幾個族群，也整理好了", "資金流向",
                   focus=F((480, 100, 1820, 1290), "族群×法人", "V07", 0.4, zoom=False), idle="magnifier"))
     S.append(feat("12", 2.5, "V08", stat(3.1, 2.5), "④ 哪裡熱一眼看", "一眼看", "整個台股一張圖：越大成交越多，紅漲綠跌", "熱力圖",
-                  focus=F((480, 200, 2260, 1120), "半導體區塊", "V08", 0.5, t_zoom=1.0), idle=[(0, "magnifier"), (1.5, "face_star")]))
+                  focus=F((480, 200, 2260, 1120), "半導體", "V08", 0.5, t_zoom=1.0), idle=[(0, "magnifier"), (1.5, "face_star")]))
     S.append(feat("13", 3.0, "V09", [(0, 3.1), (0.6, 3.1), (0.6001, 12.4), (3.0, 15.5)], "題材資金熱力", "題材", "題材有多熱？資金、法人、新聞合成 0～100 分", "熱力圖",
-                  focus=F((440, 110, 3140, 1480), "題材熱力圖", "V09", 0.3, zoom=False), idle=[(0, "fire"), (2.0, "face_love")]))
+                  focus=F((440, 110, 3140, 1480), "題材資金熱力", "V09", 0.3, zoom=False), idle=[(0, "fire"), (2.0, "face_love")]))
     S.append(feat("14", 2.0, "V08", act(13.3, 2.0, 1.0, 0.8), "點進產業鏈", "產業鏈", "看到熱的，點下去就進產業鏈", "熱力圖",
                   idle=[(0, "face_star")]))
     S.append(feat("15", 2.0, "V11", stat(0.5, 2.0), "⑤ 產業鏈地圖", "產業鏈", "半導體、AI 伺服器…每條產業鏈都拆好了", "產業地圖",
@@ -74,13 +86,32 @@ def build():
                   focus=F((520, 740, 3120, 1130), "CCL 銅箔基板說明卡", "V12e", 2.0, zoom=False), idle="face_proud"))
     S.append(card("20", 3.0, K.grid_fn(3.0, 1.9), [(0, "swish")]))
     S.append(card("21", 2.0, K.more_fn(), [(0.5, "pop")]))
-    # TODO（個股頁 v3d 素材到齊後補）：總覽 4、AI 分析 8～10（多鏡逐區塊框出）、營收 3、獲利 3、法人 3、其餘合 3
-    S.append(feat("22", 3.0, "V14", act(4.3, 3.0, 1.6, 0.8), "⑥ 個股一頁全有", "一頁全有", "K 線、多週期、營收、獲利、籌碼，一頁全看得到", "個股",
-                  focus=F((480, 380, 3150, 1000), "K 線", "V14", 1.5, zoom=False), idle="face_nod"))
-    S.append(feat("23", 2.5, "V15", act(1.8, 2.5, 1.0, 0.8), "營收一眼看", "營收", "月營收、年增率，每個月都有", "個股",
-                  idle="face_nod"))
-    S.append(feat("24", 2.5, "V15", act(7.4, 2.5, 1.0, 0.8), "法人動向", "法人", "三大法人買賣，資券、大戶散戶也在", "個股",
-                  idle="face_think"))
+    # 個股頁（v3d 素材：D01 總覽、D02 AI 分析、D05 資券、D06 K 線、D07 除權息；營收／獲利素材尚未到）
+    D1, D2 = "D01_desktop_v3d", "D02_desktop_v3d"
+    S.append(featv("22a", 3.0, D1, [(0, 0.9), (0.7, 1.9), (0.7001, 3.0), (1.6, 4.4), (2.3, 5.1), (2.3001, 6.5), (3.0, 7.2)], "⑥ 個股一頁全有", "一頁全有", "打幾個字，點建議就進個股頁", "個股",
+                   focus=FV((24, 252, 904, 344), "搜尋下拉建議清單", D1, 1.7, zoom=False, t_end=2.3), idle="face_wink"))
+    S.append(featv("22b", 1.8, D1, stat(12.8, 1.8), "報價、K 線一眼看", "K 線", "報價、K 線、指標標籤，都在這張卡", "個股",
+                   focus=FV((0, 0, 1, 1), "個股報價與 K 線卡", D1, 0.5, zoom=False), idle="face_nod"))
+    S.append(featv("22c", 1.4, D1, stat(16.0, 1.4), "基本面一張卡", "基本面", "EPS、ROE、本益比、毛利率", "個股",
+                   focus=FV((0, 0, 1, 1), "基本面卡", D1, 0.45, zoom=False), idle="face_think"))
+    S.append(featv("22d", 1.4, D1, stat(19.3, 1.4), "籌碼快照", "籌碼", "法人、集保、信用、當沖一次看", "個股",
+                   focus=FV((0, 0, 1, 1), "籌碼快照卡", D1, 0.45, zoom=False), idle="magnifier"))
+    S.append(featv("23a", 2.0, D2, stat(2.4, 2.0), "AI 分析：先看結論", "AI 分析", "一行講完目前條件，燈號、型態都列出", "個股",
+                   focus=FV((0, 0, 1, 1), "AI 分析：結論一行", D2, 0.5, zoom=False), idle="face_star"))
+    S.append(featv("23b", 2.6, D2, [(0, 3.6), (2.6, 6.2)], "AI 分析：看細節", "看細節", "點開看原因、逐條條件、若…則…", "個股",
+                   idle="talk_explain"))
+    S.append(featv("23c", 2.0, D2, [(0, 8.6), (2.0, 10.6)], "切到籌碼面", "籌碼面", "技術、籌碼、基本、消息四個面向，點一下切換", "個股",
+                   focus=FV((0, 0, 1, 1), "AI 分析卡（籌碼面）", D2, 1.4, zoom=False), idle="face_nod"))
+    S.append(featv("23d", 1.8, D2, [(0, 13.6), (1.8, 15.4)], "切到基本面", "基本面", "營運、估值、財務，看它偏多還是偏空", "個股",
+                   idle="face_think"))
+    S.append(featv("23e", 1.8, D2, [(0, 18.2), (1.8, 20.0)], "切到消息面", "消息面", "新聞與事件整理成一面", "個股",
+                   idle="news"))
+    S.append(featv("24a", 2.4, "D06_desktop_v3d", [(0, 8.0), (2.4, 10.4)], "K 線、指標、畫線", "K 線", "切週期、加指標、畫線，都在同一張圖", "個股",
+                   idle="face_star", use_events=False))
+    S.append(featv("24b", 2.2, "D05_desktop_v3d", [(0, 10.0), (2.2, 12.2)], "資券一頁看", "資券", "融資融券、每日明細，變化有多少", "個股",
+                   idle="magnifier", use_events=False))
+    S.append(featv("24c", 2.2, "D07_desktop_v3d", [(0, 10.0), (2.2, 12.2)], "除權息紀錄", "除權息", "歷年股利、除息日、填息天數", "個股",
+                   idle="piggy", use_events=False))
     S.append(feat("25", 2.5, "V16", act(3.4, 2.5, 1.3, 0.8), "⑦ 完整名單", "完整名單", "漲跌分佈、法人連買賣、排行，完整名單都能排序", "市場明細",
                   focus=F((1880, 230, 3140, 340), "分頁列", "V16", 1.4, zoom=False), idle="face_nod"))
     S.append(feat("26", 2.5, "V17", act(6.6, 2.5, 1.0, 0.8), "⑧ 公開條件篩", "條件篩", "用公開條件篩一遍，省下自己翻的時間", "選股策略",

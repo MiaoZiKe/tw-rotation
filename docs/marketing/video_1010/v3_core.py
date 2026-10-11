@@ -163,6 +163,8 @@ def load_all():
                 for clip, v in d.items():
                     if isinstance(v, dict) and key in v:
                         out.setdefault(clip, {"targets": [], "focus": []})[key] += v[key]
+                    elif isinstance(v, list):
+                        out.setdefault(clip, {"targets": [], "focus": []})[key] += v
     return out
 
 
@@ -288,7 +290,8 @@ class Rec4:
 class Focus4:
     """焦點框：框＝目標 rect 外擴 10px、圓角 10、線寬 4；外光與壓暗只在框外，框內不動。"""
 
-    def __init__(self, rect, label="", t_draw=0.7, d_draw=0.4, t_zoom=None, d_zoom=0.6, frame=True, zoom=True, max_up=1.0, dim=0.12, clip=""):
+    def __init__(self, rect, label="", t_draw=0.7, d_draw=0.4, t_zoom=None, d_zoom=0.6, frame=True, zoom=True, max_up=1.0, dim=0.12, clip="", t_end=None):
+        self.t_end = t_end
         self.src_rect = rect
         self.label = label
         self.rect, self.rect_src = focus_target(clip, label, rect) if clip else (rect, "分鏡手估")
@@ -317,7 +320,7 @@ class Focus4:
         return (x0 - e, y0 - e, x1 + e, y1 + e), (x0, y0, x1, y1)
 
     def draw(self, cv, t, rec, shot):
-        if not self.frame or t < self.t_draw:
+        if not self.frame or t < self.t_draw or (self.t_end is not None and t >= self.t_end):
             return
         u = clamp((t - self.t_draw) / self.d_draw, 0, 1)
         fr, tg = self.frame_rect(rec)

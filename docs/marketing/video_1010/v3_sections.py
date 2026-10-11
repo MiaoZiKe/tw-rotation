@@ -22,10 +22,10 @@ SECTIONS = {
         ("01", "開場與比比自我介紹", ["01", "02", "03"]),
         ("02", "總覽_今日事件_搜尋", ["04", "05", "06", "07"]),
         ("03", "財經日曆", ["08"]),
-        ("04", "資金流向", ["09", "10", "11"]),
+        ("04", "資金流向", ["09", "09b", "10", "11"]),
         ("05", "熱力圖", ["12", "13", "14"]),
         ("06", "產業地圖_2D到3D到四宮格", ["15", "16", "17", "18", "19", "20", "21"]),
-        ("07", "個股", ["22", "23", "24"]),
+        ("07", "個股", ["22a", "22b", "22c", "22d", "23a", "23b", "23c", "23d", "23e", "24a", "24b", "24c"]),
         ("08", "市場明細_選股策略_週期統計", ["25", "26", "27"]),
         ("09", "ETF", ["28", "29", "30", "31", "32"]),
         ("10", "自選_導覽_許願_片尾_警語", ["33", "34", "35", "36", "37", "38"]),
@@ -34,10 +34,10 @@ SECTIONS = {
         ("01", "開場與比比自我介紹", ["01", "02", "03"]),
         ("02", "總覽_今日事件_搜尋", ["04", "05", "06", "07"]),
         ("03", "財經日曆", ["08"]),
-        ("04", "資金流向", ["09", "10", "11"]),
+        ("04", "資金流向", ["09", "09b", "10", "10b", "11"]),
         ("05", "熱力圖", ["12", "13"]),
         ("06", "產業地圖_2D到3D到四宮格", ["14", "15", "16", "17", "18"]),
-        ("07", "個股", ["19", "20", "21"]),
+        ("07", "個股", ["19a", "19b", "19c", "19d", "19e", "19f", "19g", "19h"]),
         ("08", "市場明細_選股策略_週期統計", ["22", "23", "24"]),
         ("09", "ETF", ["25", "26", "27", "28", "29"]),
         ("10", "自選_導覽_許願_片尾_警語", ["30", "31", "32", "33", "34", "35"]),
@@ -52,6 +52,7 @@ def main():
     ap.add_argument("--sections", default="")
     ap.add_argument("--jobs", type=int, default=4)
     ap.add_argument("--step", type=int, default=1)
+    ap.add_argument("--reuse", action="store_true")
     a = ap.parse_args()
     theme = "cute"
     R.set_theme(theme)
@@ -70,12 +71,16 @@ def main():
             print("段", no, "鏡不存在", miss)
             continue
         jobs = [(a.fmt, theme, sid, work / f"seg_{sid}.mp4", 1, False) for sid in ids]
-        for j in jobs:
-            for f in (j[3], Path(str(j[3]) + ".chk.json")):
-                if f.exists():
-                    f.unlink()
-        with Pool(a.jobs) as pool:
-            list(pool.imap_unordered(VB.run_seg, jobs))
+        if a.reuse:
+            jobs = [j for j in jobs if not (j[3].exists() and Path(str(j[3]) + ".chk.json").exists())]
+        else:
+            for j in jobs:
+                for f in (j[3], Path(str(j[3]) + ".chk.json")):
+                    if f.exists():
+                        f.unlink()
+        if jobs:
+            with Pool(a.jobs) as pool:
+                list(pool.imap_unordered(VB.run_seg, jobs))
         sub = [s for s in S if s.sid in ids]
         stage = out / f"{no}_{name}_checks"
         stage.mkdir(exist_ok=True)

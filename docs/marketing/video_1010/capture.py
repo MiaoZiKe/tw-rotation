@@ -1482,6 +1482,11 @@ def spin(a, secs=5.5, turns=1.0, hide=False):
         a.note(f"拖曳放開 ({x0 + L:.0f},{cy:.0f})css → 影片({(x0 + L) * a.dsf:.0f},{cy * a.dsf:.0f})px；手指左→右拖曳旋轉，{t0:.1f}–{a.t:.1f}s")
         a.wait(300)
         return
+    x0 = cx - L / 2   # 桌機：一次等速拖曳一整圈（起點在畫布中線偏左）
+    a.move(x0, cy, 600)
+    a.wait(250)
+    if hide:
+        a.cursor(False)
     a.note(f"拖曳開始 ({x0:.0f},{cy:.0f})css → 影片({x0 * a.dsf:.0f},{cy * a.dsf:.0f})px")
     a.record_target(x0, cy, "dragstart", "3D 畫布（旋轉）")
     a.pg.mouse.down()

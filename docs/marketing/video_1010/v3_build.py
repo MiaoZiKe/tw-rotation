@@ -41,6 +41,7 @@ def timeline(S):
 
 def run_seg(args):
     fmt, theme, sid, path, step, only_check = args
+    C.LOG.clear(); C.EXC.clear(); K.CLICKS.clear(); K.FOCUSES.clear(); K.CROPS.clear()
     R.set_theme(theme)
     S = shots_for(fmt)
     L = K.Lay(fmt, theme)
