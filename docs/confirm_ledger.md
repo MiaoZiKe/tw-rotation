@@ -431,7 +431,7 @@
 
 ## 10-06 19:10 Andy 拍板
 - 付費內容保護（data-gw）：**要排，上架收費前完成**。第一階段（盤點＋data-gw Worker＋測試，分支 claude/data-gw，不上 main）已派 security-privacy；全案 4～6 工作天。
-- 客服信箱：**另開**。等 Andy 開好新信箱告訴 CEO 地址 → 換掉 account.js／legal.js／support.js 與文件裡的 kcq01010909@gmail.com。
+- 客服信箱：**另開**。等 Andy 開好新信箱告訴 CEO 地址 → 換掉 account.js／legal.js／support.js 與文件裡的 kcq01010909@gmail.com。 ✅ 10-11 Andy 開好 liguligu0818@gmail.com，已全部換掉（Cloudflare 子網域與站主帳號不是信箱，不換）。
 - 資安 D4（Google／GitHub／Cloudflare 開兩步驟驗證）：最急，待 Andy 自己做。
 
 ## 10-06 19:20 金流（藍新）規格出爐 `docs/payment_newebpay_plan.md` —— 待 Andy
