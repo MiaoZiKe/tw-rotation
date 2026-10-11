@@ -142,24 +142,24 @@ def build():
     # 1 總覽（含今日事件、搜尋）
     S.append(shot("b01", "總覽", "V01_desktop", [(0.0, 2.2)], "① 每天先看這頁", "我先帶你看今天大盤", [(0, "talk_happy"), (1.2, "folder")]))
     S.append(shot("b02", "總覽", "V02_desktop", [(1.4, 4.8)], "今日事件不漏看", "重要消息我幫你列好", [(0, "news"), (1.8, "face_surprise_happy")]))
-    S.append(shot("b03", "總覽", "V27_desktop", [(4.6, 7.4)], "打幾個字就到", "想查哪檔，打簡稱就找到", [(0, "magnifier"), (2.4, "face_relief")], min_cap=3.2))
+    S.append(shot("b03", "總覽", "V27_desktop", [(4.4, 6.8)], "打幾個字就到", "想查哪檔，打簡稱就找到", [(0, "magnifier"), (2.4, "face_relief")], min_cap=3.2))
     # 2 財經日曆（一段連續錄影）
     S.append(shot("c01", "財經日曆", "V03_desktop", [(9.4, 11.8)], "② 財經日曆", "財報、法說、FED 我排好了", [(0, "calendar"), (1.2, "tilt")], cont=True))
-    S.append(shot("c02", "財經日曆", "V03_desktop", [(12.4, 16.6)], "重要日子不漏看", "點一下，說明馬上出來", [(0, "face_shock"), (1.6, "globe"), (3.2, "face_nod")]))
+    S.append(shot("c02", "財經日曆", "V03_desktop", [(12.4, 15.4)], "重要日子不漏看", "點一下，說明馬上出來", [(0, "face_shock"), (1.6, "globe"), (3.2, "face_nod")]))
     # 3 資金流向（播放鏡用 60fps 素材）
     S.append(shot("d01", "資金流向", "V04_desktop_v3c", [(1.4, 3.6)], "③ 錢往哪裡跑", "錢跑去哪？我帶你看", [(0, "talk_happy"), (1.2, "face_curious")]))
     S.append(shot("d02", "資金流向", "V04_desktop_v3c", [(4.5, 8.1)], "輪動一路播放", "族群怎麼輪，播給你看", [(0, "coins"), (2.2, "face_surprise_happy")]))
     S.append(shot("d03", "資金流向", "V06_desktop_v3c", [(2.4, 4.28)], "資金分流樹", "大盤的錢分去哪？", [(0, "talk_happy"), (1.0, "tilt")], cont=True))
     S.append(shot("d04", "資金流向", "V06_desktop_v3c", [(5.1, 8.1)], "每天分流一路播", "錢從哪流到哪，一看就懂", [(0, "spotlight"), (2.0, "face_love")]))
     # 4 熱力圖
-    S.append(shot("e01", "熱力圖", "V08_desktop", [(0.05, 3.05)], "④ 哪裡熱一眼看", "方塊越大，錢越多", [(0, "magnifier"), (1.5, "face_shock")], min_cap=3.0))
+    S.append(shot("e01", "熱力圖", "V08_desktop", [(0.05, 2.55)], "④ 哪裡熱一眼看", "方塊越大，錢越多", [(0, "magnifier"), (1.5, "face_shock")], min_cap=2.5))
     S.append(shot("e02", "熱力圖", "I01_desktop_v3i", [(4.0, 6.4)], "題材熱度", "熱門題材，我拆開給你看", [(0, "talk_excited"), (1.4, "fire")], cont=True, min_cap=3.2))
     S.append(shot("e03", "熱力圖", "I01_desktop_v3i", [(6.4, 9.4)], "一步一步看懂", "從晶片到整櫃，照順序看", [(0, "bulb"), (1.6, "face_thinking_bulb")], chain="solo"))
     # 5 產業地圖（2D → 3D → 四宮格 → 關聯圖）
     S.append(shot("f01", "產業地圖", "V11_desktop", [(14.2, 17.2)], "⑤ 產業鏈 2D", "上下游怎麼排，一張看懂", [(0, "talk_happy"), (1.4, "spotlight")]))
     S.append(shot("f02", "產業地圖", "V12a_desktop", [(2.0, 6.0)], "3D 拆開看", "戴上眼鏡，推一下就轉！", [(0, "3dglasses"), (2.0, "face_star")]))
     S.append(grid_card("f03", GRID_W))
-    S.append(shot("f04", "產業地圖", "V13_desktop", [(3.6, 7.0)], "上下游一張連", "滑過去，供貨關係就亮", [(0, "point_r"), (2.2, "face_love")]))
+    S.append(shot("f04", "產業地圖", "V13_desktop", [(3.6, 6.5)], "上下游一張連", "滑過去，供貨關係就亮", [(0, "point_r"), (2.2, "face_love")]))
     # 6 個股（K 線＋切一次週期 → 下方總覽 → 旁邊點營收、獲利）
     # 個股：錄影端補錄的 D10（一開場就是日 K，沒有分時圖、沒有「非即時」浮水印）一段連續操作：日 K → 點週 → 往下看總覽 → 點營收 → 點獲利
     D10 = "D10_desktop_v3j"
@@ -177,8 +177,9 @@ def build():
     S[-1].note = "過去表現不代表未來"   # 報酬比較在畫面上：附註小字（卡片層，不疊在圖表上）
     S.append(shot("i03", "ETF", "V20_desktop", [(5.75, 7.95)], "報酬一起比", "含息不含息分開算", [(0, "tilt"), (1.2, "face_nod")], limit=8.0, min_cap=3.2))
     S[-1].note = "過去表現不代表未來"   # 報酬比較在畫面上：附註小字（卡片層，不疊在圖表上）
-    S.append(shot("i04", "ETF", "V13b_desktop_v3e", [(7.1, 10.3)], "三張圖一起亮", "點一檔，現金流三圖連動", [(0, "calc"), (2.0, "face_surprise_happy")], min_cap=3.4))
-    S.append(shot("i05", "ETF", "V23_desktop", [(2.5, 5.6)], "複利怎麼長大", "再投入和領現金，並排看", [(0, "face_proud"), (1.0, "growth")], hl="長大"))
+    S.append(shot("i04", "ETF", "V13b_desktop_v3e", [(7.1, 9.9)], "三張圖一起亮", "點一檔，現金流三圖連動", [(0, "calc"), (2.0, "face_surprise_happy")], min_cap=2.8))
+    S.append(shot("i05", "ETF", "V23_desktop", [(2.5, 5.6)], "複利怎麼長大", "再投入和領現金，並排看", [(0, "face_proud"), (1.0, "growth")], hl="長大",
+                  win_keys=[(0.0, (0, 0, 3200, 1700))]))   # 裁掉頁尾（退款與取消訂閱）
     # 11～13 自選清單／導覽／願望清單
     S.append(shot("j01", "自選清單", "V24_desktop", [(6.6, 10.4)], "⑪ 自選清單", "常看的收進來，一開就有", [(0, "star_save"), (2.2, "face_love")],
                   win_keys=[(0.0, (0, 0, 2990, 1682))]))
@@ -188,7 +189,7 @@ def build():
         S.append(shot("j03", "願望清單", "V26w_desktop", [(5.4, 8.9)], "歡迎許願", "想要什麼功能，跟我說！", [(0, "heart_wish"), (1.6, "face_love")], chain="solo",
                       win_keys=[(0.0, (1290, 716, 3170, 1726))]))
     else:
-        S.append(shot("j03", "願望清單", "V26_desktop", [(13.3, 16.9)], "歡迎許願", "想要什麼功能，跟我說！", [(0, "heart_wish"), (1.6, "face_love")], chain="solo",
+        S.append(shot("j03", "願望清單", "V26_desktop", [(14.2, 17.1)], "歡迎許願", "想要什麼功能，跟我說！", [(0, "heart_wish"), (1.6, "face_love")], chain="solo",
                       win_keys=[(0.0, (1290, 716, 3170, 1726))]))   # 裁到面板表單區：不露出「AI 客服即將推出」橫幅與上方分頁
     # 14～15 片尾與警語
     S.append(card("k01", 3.0, K4.end4_fn(), [(0, "pop"), (1.0, "ding")]))
