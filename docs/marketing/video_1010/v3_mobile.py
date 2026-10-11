@@ -24,9 +24,9 @@ def solve_pan(rec, op, D, pan_):
     return _solve_core(rec, op, D, pan_, _LM)
 
 
-def feat(sid, D, clip, srcmap, head, hl, sub, pill, focus=None, idle="talk_happy", extra=(), pan_=None, use_events=True, no_solve=False):
+def feat(sid, D, clip, srcmap, head, hl, sub, pill, focus=None, idle="talk_happy", extra=(), pan_=None, use_events=True, no_solve=False, chain=None):
     rec = Rec4(clip, srcmap, focus=focus, pan=pan_)
-    op = Op(rec, idle=idle, extra=extra, use_events=use_events)
+    op = Op(rec, idle=idle, extra=extra, use_events=use_events, chain=chain)
     if not no_solve:
         rec.pan = solve_pan(rec, op, D, pan_)
     return Shot4(sid, D, [rec], pill=pill, head=head, hl=hl, sub=sub, op=op)
@@ -101,15 +101,15 @@ def build():
     S.append(feat("13a", 2.0, M7, [(0, 4.3), (2.0, 6.3)], "上中下游，一路看到底", "一路", "上中下游，一路看到底", "熱力圖",
                   idle=[(0, "fire"), (1.0, "face_shock")], pan_=pan(0, 0, 2.0)))
     S.append(feat("13b", 1.2, M7, [(0, 12.55), (1.2, 13.75)], "上中下游，一路看到底", "一路", "上中下游，一路看到底", "熱力圖",
-                  idle="pointer_r", pan_=pan(0, 700, 1.2)))
-    S.append(feat("13c", 1.2, M7, [(0, 17.15), (1.2, 18.35)], "上中下游，一路看到底", "一路", "上中下游，一路看到底", "熱力圖",
-                  idle="face_curious", pan_=pan(0, 700, 1.2)))
-    S.append(feat("13d", 1.2, M7, [(0, 21.75), (1.2, 22.95)], "上中下游，一路看到底", "一路", "上中下游，一路看到底", "熱力圖",
-                  idle="magnifier", pan_=pan(0, 700, 1.2)))
-    S.append(feat("13e", 1.2, M7, [(0, 28.85), (1.2, 30.05)], "上中下游，一路看到底", "一路", "上中下游，一路看到底", "熱力圖",
-                  idle="face_think", pan_=pan(0, 700, 1.2)))
-    S.append(feat("13f", 1.2, M7, [(0, 35.85), (1.2, 37.05)], "上中下游，一路看到底", "一路", "上中下游，一路看到底", "熱力圖",
-                  idle="face_proud", pan_=pan(0, 700, 1.2)))
+                  idle="pointer_r", pan_=pan(0, 700, 1.2), chain="start"))
+    S.append(feat("13c", 1.2, M7, [(0, 17.3), (1.2, 18.5)], "上中下游，一路看到底", "一路", "上中下游，一路看到底", "熱力圖",
+                  idle="face_curious", pan_=pan(0, 700, 1.2), chain="mid"))
+    S.append(feat("13d", 1.2, M7, [(0, 21.9), (1.2, 23.1)], "上中下游，一路看到底", "一路", "上中下游，一路看到底", "熱力圖",
+                  idle="magnifier", pan_=pan(0, 700, 1.2), chain="mid"))
+    S.append(feat("13e", 1.2, M7, [(0, 29.0), (1.2, 30.2)], "上中下游，一路看到底", "一路", "上中下游，一路看到底", "熱力圖",
+                  idle="face_think", pan_=pan(0, 700, 1.2), chain="mid"))
+    S.append(feat("13f", 1.2, M7, [(0, 36.0), (1.2, 37.2)], "上中下游，一路看到底", "一路", "上中下游，一路看到底", "熱力圖",
+                  idle="face_proud", pan_=pan(0, 700, 1.2), chain="end"))
     S.append(feat("14", 2.5, "V11_mobile", [(0, 14.8), (2.5, 17.6)], "⑤ 2D 看產業鏈", "2D", '圓圈編號對到說明卡，我一段一段講給你', "產業地圖",
                   idle=[(0, 'face_nod'), (1.5, 'talk_happy')], pan_=pan(600, 1000, 2.5)))
     S.append(feat("15", 3.0, "V12a_mobile", [(0, 2.0), (3.0, 9.0)], "3D：AI 伺服器", "3D", '拖一下就能轉，整台機櫃我幫你拆開給你看', "產業地圖",
@@ -164,11 +164,11 @@ def build():
     S.append(feat("28a", 1.6, ME, stat(4.6, 1.6), "點一檔，三張圖一起亮", "一起亮", "點一檔，三張圖一起亮", "ETF",
                   idle=[(0, "calc"), (0.9, "boba")], pan_=pan(1600, 3400, 1.6), no_solve=True))
     S.append(feat("28b", 1.3, ME, [(0, 6.2), (1.3, 7.5)], "點一檔，三張圖一起亮", "一起亮", "點一檔，三張圖一起亮", "ETF",
-                  idle="face_love", pan_=(3500, 1550, 0.55, 1.25), no_solve=True))
+                  idle="face_love", pan_=(3500, 1550, 0.55, 1.25), no_solve=True, chain="start"))
     S.append(feat("28c", 1.3, ME, [(0, 9.7), (1.3, 11.0)], "點一檔，三張圖一起亮", "一起亮", "點一檔，三張圖一起亮", "ETF",
-                  idle="face_nod", pan_=(3500, 1550, 0.55, 1.25), no_solve=True))
+                  idle="face_nod", pan_=(3500, 1550, 0.55, 1.25), no_solve=True, chain="mid"))
     S.append(feat("28d", 1.8, ME, [(0, 13.1), (1.8, 14.9)], "點一檔，三張圖一起亮", "一起亮", "點一檔，三張圖一起亮", "ETF",
-                  idle="face_proud", pan_=(3500, 1550, 0.55, 1.35), no_solve=True))
+                  idle="face_proud", pan_=(3500, 1550, 0.55, 1.35), no_solve=True, chain="end"))
     S.append(feat("29", 2.5, "V23_mobile", [(0, 1.0), (1.5, 2.5), (2.5, 5.5)], "複利看得到", "複利", '配息再投入，複利我畫給你看', "ETF",
                   idle=[(0, 'growth'), (1.5, 'face_proud')], pan_=pan(0, 600, 2.5)))
     S.append(feat("30", 3.0, "V24_mobile", act(3.9, 3.0, 1.6, 0.8), "⑪ 存自己的股", "存自己", '喜歡的股票存起來，每天打開就看到', "自選清單",
@@ -182,4 +182,9 @@ def build():
     for _s in S:
         if _s.sid in ('13c', '13d', '13e', '13f', '28b', '28c', '28d'):
             _s.cont = True
+    for _i, _s in enumerate(S):
+        if _s.op and _s.op.chain in ("mid", "end"):
+            _sq = S[_i - 1].op._seq() if S[_i - 1].op else []
+            if _sq:
+                _s.op.prev_xy = (_sq[-1]["cx"], _sq[-1]["cy"])
     return S

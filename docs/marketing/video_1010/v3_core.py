@@ -198,6 +198,27 @@ def click_target(clip, t_src, x, y):
     return (x - 45, y - 45, x + 45, y + 45), "", "座標估值±45px（錄影端尚未提供該素材）"
 
 
+def click_info(clip, t_src, x, y):
+    """點擊目標資訊：hit 矩形（有方塊就用方塊，否則元素外框）、中心（錄影端量到的點擊中心，沒有就用事件座標）、標籤、來源、hit_expected。"""
+    allj = load_all()
+    for key in _clip_keys(clip):
+        best = None
+        for it in (allj.get(key) or {}).get("targets", []):
+            if it.get("kind", "click") != "click" or "video_rect" not in it:
+                continue
+            dt = abs(float(it["t"]) - t_src)
+            if dt < 0.5 and (best is None or dt < best[0]):
+                best = (dt, it)
+        if best:
+            it = best[1]
+            rect = _xywh(it["block_video_rect"]) if it.get("block_video_rect") else _xywh(it["video_rect"])
+            ctr = tuple(it["center"]) if it.get("center") else (x, y)
+            h = it.get("hit_expected", None)
+            tag = "hit_expected=True" if h is True else ("hit_expected=False" if h is False else "舊錄影（DOM rect 驗證）")
+            return {"rect": rect, "center": ctr, "label": it.get("label", "") + (("・" + it["block"]) if it.get("block") else ""), "src": tag, "hit": h}
+    return {"rect": (x - 45, y - 45, x + 45, y + 45), "center": (x, y), "label": "", "src": "座標估值±45px", "hit": None}
+
+
 def focus_target(clip, label, rect):
     allj = load_all()
     for key in _clip_keys(clip):
@@ -648,9 +669,11 @@ class Op:
     FLY = 0.4        # 起跳到落地
     STAY = 0.25      # 踩著
     BACK = 0.3       # 彈回
+    FLYC = 0.2       # 連續點擊：目標之間直接跳過去
 
-    def __init__(self, rec, idle="talk_happy", extra=(), events=None, use_events=True, magic=True, soft_hover=False, tap_scale=0.8):
+    def __init__(self, rec, idle="talk_happy", extra=(), events=None, use_events=True, magic=True, soft_hover=False, tap_scale=0.8, chain=None):
         self.rec, self.magic = rec, magic
+        self.chain, self.prev_op = chain, None
         self.idle = [(0, idle)] if isinstance(idle, str) else list(idle)
         self.extra = list(extra)
         self.tap_scale = tap_scale
@@ -667,13 +690,15 @@ class Op:
             if lt is None:
                 continue
             if e["kind"] in ("tap", "hover"):
-                if lt < self.FLY + 0.02:
+                if lt < (self.FLYC if chain in ('mid', 'end') else self.FLY) + 0.02:
                     continue
                 near = last_xy and abs(e["x"] - last_xy[0]) < 70 and abs(e["y"] - last_xy[1]) < 70 and lt - last_t < 3.5
                 if near:
                     continue
                 dense = (lt - last_t) < 0.9
-                self.taps.append({"t": lt, "x": e["x"], "y": e["y"], "dense": dense, "hover": e["kind"] == "hover", "src_t": e["t"]})
+                inf = click_info(rec.clip, e["t"], e["x"], e["y"])
+                self.taps.append({"t": lt, "x": e["x"], "y": e["y"], "cx": inf["center"][0], "cy": inf["center"][1], "dense": dense and not chain,
+                                  "hover": e["kind"] == "hover", "src_t": e["t"]})
                 last_xy, last_t = (e["x"], e["y"]), lt
             elif e["kind"] == "drag_start":
                 self.drags.append({"s0": e["t"], "t0": lt, "x0": e["x"], "y0": e["y"]})
@@ -717,14 +742,37 @@ class Op:
         y = min(y, bot)
         return (clamp(p[0], 30, L.W - 30), y)
 
-    def away(self, t):
-        """比比此刻是否離開 home（踩按鈕飛出去／彈回來）；此時泡泡先淡出，避免比比飛過泡泡。"""
-        for tp in self.taps:
-            if tp["hover"] or tp["dense"]:
-                continue
+    def _seq(self):
+        return [tp for tp in self.taps if not tp["hover"] and not tp["dense"]]
+
+    def bubble_mode(self, t):
+        """'tail'＝比比在 home（泡泡帶尾巴）；'hide'＝比比飛行中（泡泡淡出）；'plain'＝連續點擊期間比比在框內（只留字卡，不帶尾巴）。"""
+        taps = self._seq()
+        if not taps:
+            return "tail"
+        if self.chain:
+            c0, cl = taps[0]["t"], taps[-1]["t"]
+            if self.chain == "start":
+                if t < c0 - self.FLY - 0.08:
+                    return "tail"
+                if t < c0 + 0.05:
+                    return "hide"
+                return "plain"
+            if self.chain == "mid":
+                return "plain"
+            # end
+            if t < cl + self.STAY - 0.05:
+                return "plain"
+            if t < cl + self.STAY + self.BACK + 0.1:
+                return "hide"
+            return "tail"
+        for tp in taps:
             if tp["t"] - self.FLY - 0.08 <= t <= tp["t"] + self.STAY + self.BACK + 0.08:
-                return True
-        return False
+                return "hide"
+        return "tail"
+
+    def away(self, t):
+        return self.bubble_mode(t) == "hide"
 
     def idle_name(self, t):
         name = self.idle[0][1]
@@ -742,21 +790,26 @@ class Op:
             iname = pro_idle(iname)
         home, hs = self.home(L, iname)
         ts = int(max(hs, 190) * self.tap_scale) if L.fmt == "web" else 190
-        # 漣漪（點下那一幀起）＋ 點擊驗證
+        # 漣漪（點下那一幀起）＋ 點擊驗證（漣漪中心＝錄影端量到的點擊中心；落點須在目標 rect 內、離邊緣 ≥6px）
         for tp in self.taps:
             if rec.win and not tp["hover"]:
-                cxy = rec.map(tp["x"], tp["y"])
+                cxy = rec.map(tp["cx"], tp["cy"])
                 ripple(cv, cxy, t - tp["t"], tp["dense"])
                 if abs(t - tp["t"]) < 0.5 / FPS and not tp.get("_chk"):
                     tp["_chk"] = True
-                    r, label, srcname = click_target(rec.clip, tp["src_t"], tp["x"], tp["y"])
+                    inf = click_info(rec.clip, tp["src_t"], tp["x"], tp["y"])
+                    r = inf["rect"]
                     a = rec.map(r[0], r[1])
                     b = rec.map(r[2], r[3])
-                    inside_t = (a[0] - 1 <= cxy[0] <= b[0] + 1) and (a[1] - 1 <= cxy[1] <= b[1] + 1)
+                    mg = min(cxy[0] - a[0], b[0] - cxy[0], cxy[1] - a[1], b[1] - cxy[1])
+                    need = min(6.0, max(0.5, min(b[0] - a[0], b[1] - a[1]) / 2 - 1))
+                    inside_t = mg >= need
                     sx0, sy0, sw_, sh_ = rec.rect
                     inside_v = sx0 <= cxy[0] <= sx0 + sw_ and sy0 <= cxy[1] <= sy0 + sh_
-                    CLICKS.append((shot.sid, round(t, 2), rec.clip, label or "(座標)", (round(cxy[0]), round(cxy[1])),
-                                   (round(a[0]), round(a[1]), round(b[0]), round(b[1])), inside_t and inside_v and "hit_expected=False" not in srcname, srcname))
+                    okc = inside_t and inside_v and inf["hit"] is not False
+                    CLICKS.append((shot.sid, round(t, 2), rec.clip, inf["label"] or "(座標)", (round(cxy[0]), round(cxy[1])),
+                                   (round(a[0]), round(a[1]), round(b[0]), round(b[1])), okc, inf["src"],
+                                   (round(inf["center"][0]), round(inf["center"][1])), round(mg, 1)))
         if not pro:
             for t0, t1, name, foot, size, mode in self.extra:
                 if t0 <= t < t1:
@@ -775,16 +828,65 @@ class Op:
                 ROLE[0] = "bibi"
                 put_sprite(cv, nm, anim_frame(nm, t - d["t0"]), h2, s2)
                 return
-        # 踩按鈕
-        taps = [tp for tp in self.taps if not tp["dense"]]
+        # 連續點擊序列：比比從上一個目標直接跳到下一個（0.2 秒），只在序列開頭進場、結尾退場一次
+        if self.chain and rec.win:
+            tl = [(tp["t"], self.land(L, rec.map(tp["cx"], tp["cy"]), 150, rec.rect)) for tp in self._seq()]
+            if tl:
+                pos_in = home
+                if self.chain in ("mid", "end"):
+                    pxy = getattr(self, "prev_xy", None)
+                    if pxy:
+                        pos_in = self.land(L, rec.map(pxy[0], pxy[1]), 150, rec.rect)
+                tsz = 150
+                for i, (c, tgt) in enumerate(tl):
+                    first = i == 0
+                    start = (home if self.chain == "start" else pos_in) if first else tl[i - 1][1]
+                    fly = self.FLY if (first and self.chain == "start") else self.FLYC
+                    nxt_f0 = tl[i + 1][0] - self.FLYC if i + 1 < len(tl) else None
+                    if first and self.chain in ("mid", "end") and t < c - fly:
+                        ROLE[0] = "bibi_tap"
+                        put_sprite(cv, "tap", 8 + int(t * 4) % 2, pos_in, tsz)
+                        ROLE[0] = "bibi"
+                        return
+                    if c - fly <= t < c:
+                        u = ease_io((t - (c - fly)) / fly)
+                        arc = (110 if fly > 0.3 else 40) * THEME["bounce"] * math.sin(math.pi * u)
+                        foot = (lerp(start[0], tgt[0], u), max(rec.rect[1] + tsz + 4, lerp(start[1], tgt[1], u) - arc))
+                        ROLE[0] = "bibi_tap"
+                        put_sprite(cv, "tap", 3 + int(clamp(u, 0, 0.999) * 5), foot, lerp(hs, tsz, u) if (first and self.chain == "start") else tsz)
+                        ROLE[0] = "bibi"
+                        return
+                    if t >= c and (nxt_f0 is None or t < nxt_f0):
+                        if nxt_f0 is None and self.chain == "end":
+                            if t < c + self.STAY:
+                                ROLE[0] = "bibi_tap"
+                                put_sprite(cv, "tap", 8 + (1 if t - c > 0.1 else 0), tgt, tsz)
+                                ROLE[0] = "bibi"
+                                return
+                            if t < c + self.STAY + self.BACK:
+                                u = ease_io((t - c - self.STAY) / self.BACK)
+                                foot = (lerp(tgt[0], home[0], u), max(rec.rect[1] + tsz + 4, lerp(tgt[1], home[1], u) - 70 * THEME["bounce"] * math.sin(math.pi * u)))
+                                ROLE[0] = "bibi_tap"
+                                put_sprite(cv, "hop_l" if home[0] < tgt[0] else "hop_r", 2 + int(u * 3.99), foot, lerp(tsz, hs, u))
+                                ROLE[0] = "bibi"
+                                return
+                        else:
+                            ROLE[0] = "bibi_tap"
+                            put_sprite(cv, "tap", 8 + int((t - c) * 4) % 2, tgt, tsz)
+                            ROLE[0] = "bibi"
+                            return
+        else:
+            pass
+        # 踩按鈕（單點）
+        taps = [tp for tp in self.taps if not tp["dense"]] if not self.chain else []
         for i, tp in enumerate(taps):
             c = tp["t"]
             nxt = taps[i + 1]["t"] if i + 1 < len(taps) else 1e9
-            tgt = rec.map(tp["x"], tp["y"])
+            tgt = rec.map(tp["cx"], tp["cy"])
             tgt = self.land(L, tgt, ts, rec.rect)
             chained = i > 0 and c - taps[i - 1]["t"] < self.FLY + self.STAY + self.BACK + 0.2
             if chained:
-                p = rec.map(taps[i - 1]["x"], taps[i - 1]["y"])
+                p = rec.map(taps[i - 1]["cx"], taps[i - 1]["cy"])
                 start = self.land(L, p, ts, rec.rect)
                 ssize = ts
             else:
@@ -951,7 +1053,7 @@ def host_bubble(cv, L, shot, text, t, t_alpha=None):
     if not text or not shot.op:
         return
     nm, br = shot.op.home_rect(L, t)
-    _bubble_at(cv, L, text, t if t_alpha is None else t_alpha, br, hide=shot.op.away(t))
+    _bubble_at(cv, L, text, t if t_alpha is None else t_alpha, br, mode=shot.op.bubble_mode(t))
 
 
 def card_host(cv, L, nm, text, t, mode=None):
@@ -966,9 +1068,9 @@ def card_host(cv, L, nm, text, t, mode=None):
     _bubble_at(cv, L, text, t, (L.host_x - w / 2, L.host_foot - h, L.host_x + w / 2, L.host_foot))
 
 
-def _bubble_at(cv, L, text, t, br, hide=False):
+def _bubble_at(cv, L, text, t, br, mode="tail"):
     a = clamp(t / 0.2, 0, 1)
-    if hide:
+    if mode == "hide":
         return
     web = L.fmt == "web"
     px = 32 if web else 38
@@ -995,7 +1097,7 @@ def _bubble_at(cv, L, text, t, br, hide=False):
     cx = (x0 + x1) / 2
     ty = rect[1] + 13
     tr = (cx - tw / 2, ty, cx + tw / 2, ty + len(lines) * lh)
-    draw_bubble(cv, rect, tip, alpha=a, ink=THEME["ink"], width=4, r=min(THEME["panel_r"], 22), text_rect=tr)
+    draw_bubble(cv, rect, None if mode == "plain" else tip, alpha=a, ink=THEME["ink"], width=4, r=min(THEME["panel_r"], 22), text_rect=tr)
     lay = Image.new("RGBA", cv.size, (0, 0, 0, 0))
     d = ImageDraw.Draw(lay)
     for i, ln in enumerate(lines):
@@ -1014,7 +1116,9 @@ def bubble_polygon(rect, tip, r=24, base=None):
     h = y1 - y0
     base = base or max(26.0, 0.24 * h)
     r = min(r, h / 2 - 1, (x1 - x0) / 2 - 1)
-    if tip[0] < x0:
+    if tip is None:
+        side = "N"
+    elif tip[0] < x0:
         side = "L"
     elif tip[0] > x1:
         side = "R"
@@ -1022,8 +1126,8 @@ def bubble_polygon(rect, tip, r=24, base=None):
         side = "T"
     else:
         side = "B"
-    yc = clamp(tip[1], y0 + r + base / 2, y1 - r - base / 2)
-    xc = clamp(tip[0], x0 + r + base / 2, x1 - r - base / 2)
+    yc = clamp(tip[1], y0 + r + base / 2, y1 - r - base / 2) if tip else y0
+    xc = clamp(tip[0], x0 + r + base / 2, x1 - r - base / 2) if tip else x0
     pts = [(x0 + r, y0)]
     if side == "T":
         pts += [(xc - base / 2, y0), tip, (xc + base / 2, y0)]
@@ -1037,6 +1141,8 @@ def bubble_polygon(rect, tip, r=24, base=None):
     if side == "L":
         pts += [(x0, yc + base / 2), tip, (x0, yc - base / 2)]
     pts += [(x0, y0 + r)] + _arc(x0 + r, y0 + r, r, 180, 270)
+    if tip is None:
+        return pts, None
     tb = {"L": (tip[0], yc - base / 2, x0, yc + base / 2), "R": (x1, yc - base / 2, tip[0], yc + base / 2),
           "T": (xc - base / 2, tip[1], xc + base / 2, y0), "B": (xc - base / 2, y1, xc + base / 2, tip[1])}[side]
     return pts, tb
@@ -1061,10 +1167,12 @@ def draw_bubble(cv, rect, tip, alpha=1.0, ink=(30, 30, 30), fill=(255, 255, 255)
         lay.putalpha(lay.getchannel("A").point(lambda v: int(v * alpha)))
     cv.paste(lay, (bx0, by0), lay)
     C.reg("bubble", rect, group="bubble")
-    C.reg("bubble_tail", tb, group="bubble")
+    if tb is not None:
+        C.reg("bubble_tail", tb, group="bubble")
     if text_rect is not None:
         C.reg("bubble_text", text_rect, group="bubble")
-        C.BUBBLE_CHK.append((True, tb, text_rect))
+        if tb is not None:
+            C.BUBBLE_CHK.append((True, tb, text_rect))
     return tb
 
 

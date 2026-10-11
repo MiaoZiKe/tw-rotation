@@ -27,9 +27,9 @@ def F(rect, label, clip, t_draw=0.5, **kw):
     return Focus4(rect, label=label, clip=clip + C, t_draw=t_draw, **kw)
 
 
-def feat(sid, D, clip, srcmap, head, hl, sub, pill, focus=None, idle="talk_happy", extra=(), soft_hover=False, use_events=True, main=None):
+def feat(sid, D, clip, srcmap, head, hl, sub, pill, focus=None, idle="talk_happy", extra=(), soft_hover=False, use_events=True, main=None, chain=None):
     rec = Rec4(clip + C, srcmap, focus=focus, main=main)
-    op = Op(rec, idle=idle, extra=extra, soft_hover=soft_hover, use_events=use_events)
+    op = Op(rec, idle=idle, extra=extra, soft_hover=soft_hover, use_events=use_events, chain=chain)
     return Shot4(sid, D, [rec], pill=pill, head=head, hl=hl, sub=sub, op=op)
 
 
@@ -38,9 +38,9 @@ def FV(rect, label, clip_full, t_draw=0.5, **kw):
     return Focus4(rect, label=label, clip=clip_full, t_draw=t_draw, **kw)
 
 
-def featv(sid, D, clip_full, srcmap, head, hl, sub, pill, focus=None, idle="talk_happy", extra=(), soft_hover=False, use_events=True, main=None):
+def featv(sid, D, clip_full, srcmap, head, hl, sub, pill, focus=None, idle="talk_happy", extra=(), soft_hover=False, use_events=True, main=None, chain=None):
     rec = Rec4(clip_full, srcmap, focus=focus, main=main)
-    op = Op(rec, idle=idle, extra=extra, soft_hover=soft_hover, use_events=use_events)
+    op = Op(rec, idle=idle, extra=extra, soft_hover=soft_hover, use_events=use_events, chain=chain)
     return Shot4(sid, D, [rec], pill=pill, head=head, hl=hl, sub=sub, op=op)
 
 
@@ -93,15 +93,15 @@ def build():
     S.append(featv("13a", 2.0, V7, [(0, 4.3), (2.0, 6.3)], "上中下游，一路看到底", "一路", "上中下游，一路看到底", "熱力圖",
                    idle=[(0, "fire"), (1.0, "face_shock")], main=[(480, 130, 3168, 1000)]))
     S.append(featv("13b", 1.2, V7, [(0, 12.55), (1.2, 13.75)], "上中下游，一路看到底", "一路", "上中下游，一路看到底", "熱力圖",
-                   focus=FV((0, 0, 1, 1), "AI 伺服器：環節 1 卡片", V7, 0.6, d_draw=0.3), idle="pointer_r", main=[(480, 396, 3168, 1482)]))
-    S.append(featv("13c", 1.2, V7, [(0, 16.150000000000002), (1.2, 17.35)], "上中下游，一路看到底", "一路", "上中下游，一路看到底", "熱力圖",
-                   focus=FV((0, 0, 1, 1), "AI 伺服器：環節 2 卡片", V7, 0.6, d_draw=0.3), idle="face_curious", main=[(480, 396, 3168, 1482)]))
-    S.append(featv("13d", 1.2, V7, [(0, 19.75), (1.2, 20.95)], "上中下游，一路看到底", "一路", "上中下游，一路看到底", "熱力圖",
-                   focus=FV((0, 0, 1, 1), "AI 伺服器：環節 3 卡片", V7, 0.6, d_draw=0.3), idle="magnifier", main=[(480, 396, 3168, 1482)]))
-    S.append(featv("13e", 1.2, V7, [(0, 23.45), (1.2, 24.65)], "上中下游，一路看到底", "一路", "上中下游，一路看到底", "熱力圖",
-                   focus=FV((0, 0, 1, 1), "AI 伺服器：環節 4 卡片", V7, 0.6, d_draw=0.3), idle="face_think", main=[(480, 396, 3168, 1482)]))
-    S.append(featv("13f", 1.2, V7, [(0, 27.05), (1.2, 28.25)], "上中下游，一路看到底", "一路", "上中下游，一路看到底", "熱力圖",
-                   focus=FV((0, 0, 1, 1), "AI 伺服器：環節 5 卡片", V7, 0.6, d_draw=0.3), idle="face_proud", main=[(480, 396, 3168, 1482)]))
+                   focus=FV((0, 0, 1, 1), "AI 伺服器：環節 1 卡片", V7, 0.6, d_draw=0.3), idle="pointer_r", main=[(480, 396, 3168, 1482)], chain="start"))
+    S.append(featv("13c", 1.2, V7, [(0, 16.3), (1.2, 17.5)], "上中下游，一路看到底", "一路", "上中下游，一路看到底", "熱力圖",
+                   focus=FV((0, 0, 1, 1), "AI 伺服器：環節 2 卡片", V7, 0.6, d_draw=0.3), idle="face_curious", main=[(480, 396, 3168, 1482)], chain="mid"))
+    S.append(featv("13d", 1.2, V7, [(0, 19.9), (1.2, 21.1)], "上中下游，一路看到底", "一路", "上中下游，一路看到底", "熱力圖",
+                   focus=FV((0, 0, 1, 1), "AI 伺服器：環節 3 卡片", V7, 0.6, d_draw=0.3), idle="magnifier", main=[(480, 396, 3168, 1482)], chain="mid"))
+    S.append(featv("13e", 1.2, V7, [(0, 23.6), (1.2, 24.8)], "上中下游，一路看到底", "一路", "上中下游，一路看到底", "熱力圖",
+                   focus=FV((0, 0, 1, 1), "AI 伺服器：環節 4 卡片", V7, 0.6, d_draw=0.3), idle="face_think", main=[(480, 396, 3168, 1482)], chain="mid"))
+    S.append(featv("13f", 1.2, V7, [(0, 27.2), (1.2, 28.4)], "上中下游，一路看到底", "一路", "上中下游，一路看到底", "熱力圖",
+                   focus=FV((0, 0, 1, 1), "AI 伺服器：環節 5 卡片", V7, 0.6, d_draw=0.3), idle="face_proud", main=[(480, 396, 3168, 1482)], chain="end"))
     S.append(feat("14", 2.0, "V08", act(4.5, 2.0, 1.0, 0.8), "點進產業鏈", "產業鏈", "看到熱的，點下去我就帶你進產業鏈", "熱力圖",
                   idle=[(0, "face_wink")]))
     S.append(feat("15", 2.0, "V11", stat(0.5, 2.0), "⑤ 產業鏈地圖", "產業鏈", '產業鏈我都拆好了，一條一條選', "產業地圖",
@@ -165,11 +165,11 @@ def build():
     S.append(featv("31a", 1.6, V3E, stat(5.6, 1.6), "點一檔，三張圖一起亮", "一起亮", "點一檔，三張圖一起亮", "ETF",
                    focus=FV((506, 178, 3142, 1701), "組合 B 完整畫面", V3E, 0.3, d_draw=0.3), idle=[(0, "calc"), (0.9, "boba")], main=MAIN_E))
     S.append(featv("31b", 1.3, V3E, [(0, 7.3), (1.3, 8.6)], "點一檔，三張圖一起亮", "一起亮", "點一檔，三張圖一起亮", "ETF",
-                   focus=FV((532, 313, 3116, 1679), "選第 1 檔：三張圖＋明細", V3E, 0.8, d_draw=0.3), idle="face_love", main=MAIN_E))
-    S.append(featv("31c", 1.3, V3E, [(0, 10.8), (1.3, 12.1)], "點一檔，三張圖一起亮", "一起亮", "點一檔，三張圖一起亮", "ETF",
-                   focus=FV((532, 313, 3116, 1679), "選第 2 檔：三張圖＋明細", V3E, 0.8, d_draw=0.3), idle="face_nod", main=MAIN_E))
-    S.append(featv("31d", 1.8, V3E, [(0, 14.2), (1.8, 16.0)], "點一檔，三張圖一起亮", "一起亮", "點一檔，三張圖一起亮", "ETF",
-                   focus=FV((532, 313, 3116, 1679), "選第 3 檔：三張圖＋明細", V3E, 0.8, d_draw=0.3), idle="face_proud", main=MAIN_E))
+                   focus=FV((532, 313, 3116, 1679), "選第 1 檔：三張圖＋明細", V3E, 0.8, d_draw=0.3), idle="face_love", main=MAIN_E, chain="start"))
+    S.append(featv("31c", 1.3, V3E, [(0, 11.0), (1.3, 12.3)], "點一檔，三張圖一起亮", "一起亮", "點一檔，三張圖一起亮", "ETF",
+                   focus=FV((532, 313, 3116, 1679), "選第 2 檔：三張圖＋明細", V3E, 0.8, d_draw=0.3), idle="face_nod", main=MAIN_E, chain="mid"))
+    S.append(featv("31d", 1.8, V3E, [(0, 14.4), (1.8, 16.2)], "點一檔，三張圖一起亮", "一起亮", "點一檔，三張圖一起亮", "ETF",
+                   focus=FV((532, 313, 3116, 1679), "選第 3 檔：三張圖＋明細", V3E, 0.8, d_draw=0.3), idle="face_proud", main=MAIN_E, chain="end"))
     S.append(feat("32", 2.5, "V23", [(0, 1.0), (1.5, 2.5), (2.5, 5.5)], "複利看得到", "複利", '配息再投入，複利我畫給你看', "ETF",
                   focus=F((460, 400, 2150, 1330), "三條線", "V23", 1.8, zoom=False), idle=[(0, 'growth'), (1.5, 'face_proud')]))
     S.append(feat("33", 3.0, "V24", act(3.9, 3.0, 1.6, 0.8), "⑪ 存自己的股", "存自己", '喜歡的股票存起來，每天打開就看到', "自選清單",
@@ -184,4 +184,9 @@ def build():
     for _s in S:
         if _s.sid in ('13c', '13d', '13e', '13f', '31b', '31c', '31d'):
             _s.cont = True
+    for _i, _s in enumerate(S):
+        if _s.op and _s.op.chain in ("mid", "end"):
+            _sq = S[_i - 1].op._seq() if S[_i - 1].op else []
+            if _sq:
+                _s.op.prev_xy = (_sq[-1]["cx"], _sq[-1]["cy"])
     return S
