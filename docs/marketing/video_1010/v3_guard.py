@@ -253,10 +253,10 @@ def guard(S, work, label, strict=False):
     work = Path(work)
     fb, fw = flow_check(S)
     import os as _os
-    fz = freeze_check(S) + source_freeze_check(S, limit=float(_os.environ.get("SRC_FREEZE_LIMIT", "1.0")))
+    fz = freeze_check(S) + source_freeze_check(S, limit=float(_os.environ.get("SRC_FREEZE_LIMIT", "2.5")))
     fb = fb + fz
     sb, sw, ex = span_check(S, strict)
-    L1 = [f"# 來回切換檢查（{label}）", "", f"違規 {len(fb)} 筆（其中停格 {len(fz)} 筆）；警告 {len(fw)} 筆。規則：鏡內來源時間不倒退、同素材不回頭重播、不 A→B→A、分頁講完不回來、分頁順序依 PAGE_ORDER 單調；停格（來源時間停住或播過素材尾端）不得超過 0.5 秒；來源畫面像素不動不得超過 1.0 秒（硬性，視窗內縮不算動作）。", "",
+    L1 = [f"# 來回切換檢查（{label}）", "", f"違規 {len(fb)} 筆（其中停格 {len(fz)} 筆）；警告 {len(fw)} 筆。規則：鏡內來源時間不倒退、同素材不回頭重播、不 A→B→A、分頁講完不回來、分頁順序依 PAGE_ORDER 單調；停格（來源時間停住或播過素材尾端）不得超過 0.5 秒；來源畫面像素不動不得超過 2.5 秒（硬性，CEO 10-12 定；視窗內縮不算動作）。", "",
           "| 鏡 | 說明 |", "|---|---|"]
     L1 += [f"| {a} | {b} |" for a, b in fb] or ["| — | 全部通過 |"]
     if fw:
