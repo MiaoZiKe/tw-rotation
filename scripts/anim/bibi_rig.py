@@ -1,0 +1,653 @@
+"""比比可擺姿勢的骨架（rig）：用官方部件總表的部件重新組出每一格，不再變形原 GIF。
+
+為什麼有這支
+------------
+Andy 2026-10-11 退件：「動畫效果太差了，需要是點擊互動按鈕，他會有對應動作，不是基於原本的 GIF 加點東西上去。
+例如我點球，他會跟著球跑，我點草，他會有吃草畫面等等」。
+舊做法（bibi_interact_g1/g2）＝原圖第 0 張像素網格變形＋補五官＋貼道具 → 看起來就是原圖加東西。
+新做法：本體、耳朵、肉掌、腳、眼、嘴、腮紅都是**獨立部件**（docs/anim/bibi_library/parts/），
+每一格重新算位置／旋轉／本體擠壓拉伸，肢體真的動。
+
+座標
+----
+- 場景座標用 512×512（中心 x=248、腳底 y=482），內部用 S=2 倍（1024）合成，最後 LANCZOS 縮回 512。
+- 本體＝`body_blank`（無五官毛球），內容寬 BODY_W 單位。本體局部座標 (u, v)：u=0 左緣、u=1 右緣、v=0 頂、v=1 底。
+- 所有部件預設「面向左」（跟總表 `pose_side`、`foot_*`、`hand_side` 一致）；面向右＝整張鏡像。
+- 層序 z：數字小的先畫（在後面）。
+
+造型鐵則（docs/anim/bibi_library/reference/README.md）
+----------------------------------------------------
+四肢只有貼身小肉掌與兩顆小圓腳，不畫手臂；部件比例以 0.6×總表單件大小為準（跟 pose_front 對過）。
+沒有的角度用 SVG 三次 Bézier 補畫（描邊 #1A0907、毛 #FDF5E9、肉掌 #E07E5E／#C55E44）。
+"""
+from __future__ import annotations
+
+import io
+import math
+from functools import lru_cache
+from pathlib import Path
+
+import cairosvg
+import numpy as np
+from PIL import Image
+
+ROOT = Path(__file__).resolve().parents[2]
+PARTS = ROOT / "docs/anim/bibi_library/parts"
+
+S = 2                      # 內部倍率
+SIZE = 512
+CX, FOOT_Y = 248.0, 482.0  # 場景中心與腳底
+BODY_W = 290.0             # 本體內容寬（512 單位）
+PART_K = 0.6               # 單件部件相對總表大小的比例（手、腳）
+EAR_K = 0.8                # 耳朵
+EYE_K = 0.85               # 眼睛（對過 pose_front：眼寬約身寬 6%）
+
+INK = "#1A0907"
+FUR = "#FDF5E9"
+PAW = "#E07E5E"
+PAW_D = "#C55E44"
+PAW_L = "#FFB4A0"
+
+
+# ---------------------------------------------------------------- 部件載入
+def _trim(im: Image.Image) -> Image.Image:
+    bb = im.getchannel("A").point(lambda a: 255 if a > 8 else 0).getbbox()
+    return im.crop(bb)
+
+
+@lru_cache(None)
+def raw(name: str) -> Image.Image:
+    return _trim(Image.open(PARTS / f"{name}.png").convert("RGBA"))
+
+
+def split_pair(im: Image.Image) -> tuple[Image.Image, Image.Image]:
+    """一對眼睛／腮紅 → 左、右兩件（找中間最寬的透明縫）。"""
+    a = np.asarray(im.getchannel("A")) > 20
+    cols = a.any(axis=0)
+    w = len(cols)
+    best, bx = -1, w // 2
+    x = w // 4
+    while x < 3 * w // 4:
+        if not cols[x]:
+            s = x
+            while x < w and not cols[x]:
+                x += 1
+            if x - s > best:
+                best, bx = x - s, (s + x) // 2
+        x += 1
+    return _trim(im.crop((0, 0, bx, im.height))), _trim(im.crop((bx, 0, w, im.height)))
+
+
+@lru_cache(None)
+def sheet_scale() -> float:
+    """總表像素 → 512 單位。"""
+    return BODY_W / raw("body_blank").width
+
+
+@lru_cache(None)
+def part(name: str, k: float = PART_K, sub: str = "") -> Image.Image:
+    """回傳已縮放到 S 倍世界的部件（RGBA）。sub='L'/'R' 取一對中的左／右。"""
+    im = raw(name)
+    if sub:
+        im = split_pair(im)[0 if sub == "L" else 1]
+    f = sheet_scale() * k * S
+    w, h = max(1, round(im.width * f)), max(1, round(im.height * f))
+    return im.convert("RGBa").resize((w, h), Image.LANCZOS).convert("RGBA")
+
+
+# ---------------------------------------------------------------- 仿射放置
+def mat(tx=0.0, ty=0.0, rot=0.0, sx=1.0, sy=1.0, shear=0.0, px=0.0, py=0.0):
+    """把局部點 p 映到世界：T(tx,ty)·R(rot)·Shear·Scale·(p - pivot)。rot 為度、順時針為正（螢幕座標）。"""
+    r = math.radians(rot)
+    c, s = math.cos(r), math.sin(r)
+    R = np.array([[c, -s, 0], [s, c, 0], [0, 0, 1.0]])
+    Sh = np.array([[1, shear, 0], [0, 1, 0], [0, 0, 1.0]])
+    Sc = np.array([[sx, 0, 0], [0, sy, 0], [0, 0, 1.0]])
+    P = np.array([[1, 0, -px], [0, 1, -py], [0, 0, 1.0]])
+    T = np.array([[1, 0, tx], [0, 1, ty], [0, 0, 1.0]])
+    return T @ R @ Sh @ Sc @ P
+
+
+def apply(M, x, y):
+    v = M @ np.array([x, y, 1.0])
+    return float(v[0]), float(v[1])
+
+
+def warp_affine(im: Image.Image, M, size=(SIZE * S, SIZE * S)) -> Image.Image:
+    """M：影像像素 → 畫布像素（皆為 S 倍）。"""
+    inv = np.linalg.inv(M)
+    data = (inv[0, 0], inv[0, 1], inv[0, 2], inv[1, 0], inv[1, 1], inv[1, 2])
+    out = im.convert("RGBa").transform(size, Image.AFFINE, data, resample=Image.BICUBIC)
+    return out.convert("RGBA")
+
+
+def place(canvas: Image.Image, im: Image.Image, x, y, rot=0.0, sx=1.0, sy=1.0,
+          anchor=(0.5, 0.5), alpha=1.0, flip=False):
+    """把部件的錨點（相對寬高的比例）放到世界座標 (x,y)（512 單位）。"""
+    if flip:
+        im = im.transpose(Image.FLIP_LEFT_RIGHT)
+        anchor = (1 - anchor[0], anchor[1])
+    if alpha < 1:
+        a = im.getchannel("A").point(lambda v: int(v * alpha))
+        im = im.copy()
+        im.putalpha(a)
+    M = mat(x * S, y * S, rot, sx, sy, 0, anchor[0] * im.width, anchor[1] * im.height)
+    canvas.alpha_composite(warp_affine(im, M, canvas.size))
+
+
+# ---------------------------------------------------------------- 網格變形（毛飄）
+def mesh_warp(im: Image.Image, inv_fn, grid=24) -> Image.Image:
+    """inv_fn(x, y) -> (sx, sy)：輸出像素對應的來源像素。"""
+    w, h = im.size
+    data = []
+    xs = np.linspace(0, w, grid + 1)
+    ys = np.linspace(0, h, grid + 1)
+    for j in range(grid):
+        for i in range(grid):
+            x0, x1, y0, y1 = xs[i], xs[i + 1], ys[j], ys[j + 1]
+            q = []
+            for (x, y) in ((x0, y0), (x0, y1), (x1, y1), (x1, y0)):
+                q += list(inv_fn(x, y))
+            data.append(((int(x0), int(y0), int(math.ceil(x1)), int(math.ceil(y1))), q))
+    return im.convert("RGBa").transform((w, h), Image.MESH, data, resample=Image.BICUBIC).convert("RGBA")
+
+
+@lru_cache(None)
+def body_img(margin=24) -> Image.Image:
+    """本體（S 倍）加透明邊，讓毛飄不被裁掉。"""
+    im = raw("body_blank")
+    f = sheet_scale() * S
+    b = im.convert("RGBa").resize((round(im.width * f), round(im.height * f)), Image.LANCZOS).convert("RGBA")
+    m = margin * S
+    c = Image.new("RGBA", (b.width + 2 * m, b.height + 2 * m))
+    c.alpha_composite(b, (m, m))
+    return c
+
+
+def body_box():
+    im = body_img()
+    m = 24 * S
+    return m, m, im.width - m, im.height - m  # 內容框（S 倍像素）
+
+
+def fluttered_body(amp=0.0, phase=0.0, back=1.0, top=0.6) -> Image.Image:
+    """毛飄：背後（u 大的一側）與頭頂的毛跟著正弦波擺，振幅 amp（512 單位）。面向左時背後在右。"""
+    im = body_img()
+    if abs(amp) <= 0.01:   # 負值＝往前甩（急停時的跟隨動作）
+        return im
+    x0, y0, x1, y1 = body_box()
+    w, h = x1 - x0, y1 - y0
+    A = amp * S
+
+    def inv(x, y):
+        u = (x - x0) / w
+        v = (y - y0) / h
+        eb = max(0.0, min(1.0, (u - 0.45) / 0.55)) ** 1.5 * back
+        et = max(0.0, min(1.0, (0.45 - v) / 0.45)) ** 1.5 * top
+        dx = -A * eb * (0.6 + 0.4 * math.sin(phase + v * 9.0)) - A * 0.5 * et * math.sin(phase + u * 7)
+        dy = A * 0.5 * et * (0.5 + 0.5 * math.sin(phase * 1.3 + u * 8.0))
+        return x + dx, y + dy
+
+    return mesh_warp(im, inv)
+
+
+# ---------------------------------------------------------------- SVG 補畫
+def svg_layer(body: str) -> Image.Image:
+    doc = (f'<svg xmlns="http://www.w3.org/2000/svg" width="{SIZE*S}" height="{SIZE*S}" '
+           f'viewBox="0 0 {SIZE} {SIZE}">{body}</svg>')
+    png = cairosvg.svg2png(bytestring=doc.encode("utf-8"))
+    return Image.open(io.BytesIO(png)).convert("RGBA")
+
+
+def ball_svg(cx, cy, r, ang=0.0, stroke=None) -> str:
+    """紅白海灘球：兩條弧形紅瓣＋黃色中瓣＋亮點；ang 度旋轉。"""
+    sw = stroke if stroke is not None else max(3.0, r * 0.11)
+    k = r
+    return f'''
+<g transform="translate({cx:.2f},{cy:.2f}) rotate({ang:.2f})">
+  <circle r="{k:.2f}" fill="#FFF8EE"/>
+  <clipPath id="bc"><circle r="{k:.2f}"/></clipPath>
+  <g clip-path="url(#bc)">
+    <path d="M {-k*0.18:.2f} {-k*1.1:.2f} C {-k*0.75:.2f} {-k*0.4:.2f} {-k*0.75:.2f} {k*0.4:.2f} {-k*0.18:.2f} {k*1.1:.2f}
+             L {-k*1.2:.2f} {k*1.1:.2f} L {-k*1.2:.2f} {-k*1.1:.2f} Z" fill="#E8564A"/>
+    <path d="M {k*0.18:.2f} {-k*1.1:.2f} C {k*0.75:.2f} {-k*0.4:.2f} {k*0.75:.2f} {k*0.4:.2f} {k*0.18:.2f} {k*1.1:.2f}
+             L {k*1.2:.2f} {k*1.1:.2f} L {k*1.2:.2f} {-k*1.1:.2f} Z" fill="#E8564A"/>
+    <path d="M {-k*0.18:.2f} {-k*1.1:.2f} C {-k*0.75:.2f} {-k*0.4:.2f} {-k*0.75:.2f} {k*0.4:.2f} {-k*0.18:.2f} {k*1.1:.2f}"
+          fill="none" stroke="{INK}" stroke-width="{sw*0.55:.2f}" stroke-linecap="round"/>
+    <path d="M {k*0.18:.2f} {-k*1.1:.2f} C {k*0.75:.2f} {-k*0.4:.2f} {k*0.75:.2f} {k*0.4:.2f} {k*0.18:.2f} {k*1.1:.2f}"
+          fill="none" stroke="{INK}" stroke-width="{sw*0.55:.2f}" stroke-linecap="round"/>
+    <ellipse cx="0" cy="0" rx="{k*0.16:.2f}" ry="{k*0.16:.2f}" fill="#FFD25A" stroke="{INK}" stroke-width="{sw*0.45:.2f}"/>
+    <path d="M {-k*1.2:.2f} {k*0.55:.2f} C {-k*0.5:.2f} {k*1.05:.2f} {k*0.5:.2f} {k*1.05:.2f} {k*1.2:.2f} {k*0.55:.2f} L {k*1.2:.2f} {k*1.3:.2f} L {-k*1.2:.2f} {k*1.3:.2f} Z"
+          fill="#000" fill-opacity="0.10"/>
+  </g>
+  <circle r="{k - sw/2:.2f}" fill="none" stroke="{INK}" stroke-width="{sw:.2f}"/>
+</g>
+<ellipse cx="{cx - r*0.38 :.2f}" cy="{cy - r*0.45:.2f}" rx="{r*0.17:.2f}" ry="{r*0.10:.2f}" fill="#fff" fill-opacity="0.85"
+  transform="rotate(-35 {cx - r*0.38:.2f} {cy - r*0.45:.2f})"/>
+'''
+
+
+def grass_svg(x, y, length, ang=0.0, w=13.0, bites=0) -> str:
+    """一根牧草：從 (x,y) 往 ang 方向（度，0＝往左、順時針為正）長 length；頂端有穗；bites>0 時頂端是咬過的鋸齒。"""
+    r = math.radians(ang)
+    dx, dy = -math.cos(r), -math.sin(r)  # 往左上
+    nx, ny = -dy, dx
+    L = length
+    pts = []
+    # 兩側邊線（略彎）
+    bend = L * 0.08
+    tip = (x + dx * L, y + dy * L)
+    ctrl = (x + dx * L * 0.5 + nx * bend, y + dy * L * 0.5 + ny * bend)
+    hw = w / 2
+    a1 = (x + nx * hw, y + ny * hw)
+    a2 = (x - nx * hw, y - ny * hw)
+    t1 = (tip[0] + nx * hw * 0.8, tip[1] + ny * hw * 0.8)
+    t2 = (tip[0] - nx * hw * 0.8, tip[1] - ny * hw * 0.8)
+    if bites:
+        # 咬痕：三個小凹口
+        mid = [(tip[0] + nx * hw * f + dx * (3 if i % 2 else -2), tip[1] + ny * hw * f + dy * (3 if i % 2 else -2))
+               for i, f in enumerate((0.8, 0.3, -0.3, -0.8))]
+        top = " ".join(f"L {p[0]:.2f} {p[1]:.2f}" for p in mid)
+        head = ""
+    else:
+        top = f"Q {tip[0] + dx*w*0.9:.2f} {tip[1] + dy*w*0.9:.2f} {t2[0]:.2f} {t2[1]:.2f}"
+        head = ""
+    d = (f"M {a1[0]:.2f} {a1[1]:.2f} Q {ctrl[0]+nx*hw:.2f} {ctrl[1]+ny*hw:.2f} {t1[0]:.2f} {t1[1]:.2f} {top} "
+         f"Q {ctrl[0]-nx*hw:.2f} {ctrl[1]-ny*hw:.2f} {a2[0]:.2f} {a2[1]:.2f} Z")
+    vein = f"M {x:.2f} {y:.2f} Q {ctrl[0]:.2f} {ctrl[1]:.2f} {tip[0]-dx*6:.2f} {tip[1]-dy*6:.2f}"
+    return (f'<path d="{d}" fill="#8CCB5E" stroke="{INK}" stroke-width="4" stroke-linejoin="round"/>'
+            f'<path d="{vein}" fill="none" stroke="#5E9E3A" stroke-width="2.4" stroke-linecap="round"/>{head}')
+
+
+def speed_lines_svg(x, y, n=3, length=60, gap=16, alpha=0.9, seed=0) -> str:
+    out = []
+    for i in range(n):
+        L = length * (0.6 + 0.4 * ((i * 7 + seed) % 3) / 2)
+        yy = y + (i - (n - 1) / 2) * gap
+        xx = x + ((i * 13 + seed * 5) % 3) * 8
+        out.append(f'<path d="M {xx:.1f} {yy:.1f} L {xx+L:.1f} {yy:.1f}" stroke="{INK}" stroke-opacity="{alpha:.2f}" '
+                   f'stroke-width="4.5" stroke-linecap="round"/>')
+    return "".join(out)
+
+
+def dust_svg(x, y, s=1.0, alpha=1.0) -> str:
+    """塵土雲：三顆圓疊起來＋描邊。"""
+    c = [(0, 0, 13), (15, -5, 11), (-13, -3, 9), (6, -14, 9)]
+    circ = "".join(f'<circle cx="{x+dx*s:.1f}" cy="{y+dy*s:.1f}" r="{r*s:.1f}"/>' for dx, dy, r in c)
+    return (f'<g opacity="{alpha:.2f}"><g fill="none" stroke="{INK}" stroke-width="{5}">{circ}</g>'
+            f'<g fill="#EFE3CF">{circ}</g></g>')
+
+
+def star_svg(x, y, r=14.0, rot=0.0, fill="#FFD25A") -> str:
+    pts = []
+    for i in range(10):
+        a = math.radians(rot - 90 + i * 36)
+        rr = r if i % 2 == 0 else r * 0.45
+        pts.append(f"{x + rr*math.cos(a):.2f},{y + rr*math.sin(a):.2f}")
+    return (f'<polygon points="{" ".join(pts)}" fill="{fill}" stroke="{INK}" stroke-width="3.5" '
+            f'stroke-linejoin="round"/>')
+
+
+def mouth_svg(kind: str, x, y, s=1.0, facing_left=True) -> str:
+    """側面／正面的小嘴（512 單位）。kind：open／o／w／chew_a／chew_b／chew_c／smile／flat／none。"""
+    k = s
+    if kind == "none":
+        return ""
+    if kind == "open":   # 小開口吐舌（側面三角）
+        return (f'<path d="M {x-9*k:.1f} {y-4*k:.1f} C {x-8*k:.1f} {y+9*k:.1f} {x+8*k:.1f} {y+9*k:.1f} {x+9*k:.1f} {y-4*k:.1f} Z" '
+                f'fill="#8A2B22" stroke="{INK}" stroke-width="{3.6*k:.1f}" stroke-linejoin="round"/>'
+                f'<path d="M {x-5*k:.1f} {y+4*k:.1f} C {x-3*k:.1f} {y+8*k:.1f} {x+4*k:.1f} {y+8*k:.1f} {x+6*k:.1f} {y+3*k:.1f} Z" fill="#F08C7C"/>')
+    if kind == "o":
+        return (f'<ellipse cx="{x:.1f}" cy="{y+2*k:.1f}" rx="{6*k:.1f}" ry="{8*k:.1f}" fill="#8A2B22" stroke="{INK}" stroke-width="{3.6*k:.1f}"/>'
+                f'<ellipse cx="{x:.1f}" cy="{y+6*k:.1f}" rx="{3.6*k:.1f}" ry="{2.6*k:.1f}" fill="#F08C7C"/>')
+    if kind == "w":
+        return (f'<path d="M {x-12*k:.1f} {y-2*k:.1f} Q {x-6*k:.1f} {y+7*k:.1f} {x:.1f} {y-1*k:.1f} Q {x+6*k:.1f} {y+7*k:.1f} {x+12*k:.1f} {y-2*k:.1f}" '
+                f'fill="none" stroke="{INK}" stroke-width="{3.6*k:.1f}" stroke-linecap="round" stroke-linejoin="round"/>')
+    if kind == "smile":
+        return (f'<path d="M {x-11*k:.1f} {y-3*k:.1f} Q {x:.1f} {y+10*k:.1f} {x+11*k:.1f} {y-3*k:.1f} Z" fill="#8A2B22" '
+                f'stroke="{INK}" stroke-width="{3.6*k:.1f}" stroke-linejoin="round"/>'
+                f'<path d="M {x-5*k:.1f} {y+3*k:.1f} Q {x:.1f} {y+7*k:.1f} {x+5*k:.1f} {y+3*k:.1f} Z" fill="#F08C7C"/>')
+    if kind == "flat":
+        return (f'<path d="M {x-7*k:.1f} {y:.1f} Q {x:.1f} {y+3*k:.1f} {x+7*k:.1f} {y:.1f}" fill="none" stroke="{INK}" '
+                f'stroke-width="{3.6*k:.1f}" stroke-linecap="round"/>')
+    if kind.startswith("chew"):
+        # 啃咬：a＝張大（露門牙）、b＝半開、c＝閉嘴鼓起
+        if kind == "chew_a":
+            return (f'<path d="M {x-9*k:.1f} {y-3*k:.1f} C {x-9*k:.1f} {y+12*k:.1f} {x+9*k:.1f} {y+12*k:.1f} {x+9*k:.1f} {y-3*k:.1f} Z" '
+                    f'fill="#8A2B22" stroke="{INK}" stroke-width="{3.6*k:.1f}" stroke-linejoin="round"/>'
+                    f'<rect x="{x-5*k:.1f}" y="{y-3*k:.1f}" width="{10*k:.1f}" height="{6*k:.1f}" rx="{1.5*k:.1f}" fill="#fff" stroke="{INK}" stroke-width="{2*k:.1f}"/>')
+        if kind == "chew_b":
+            return (f'<path d="M {x-9*k:.1f} {y-1*k:.1f} C {x-6*k:.1f} {y+6*k:.1f} {x+6*k:.1f} {y+6*k:.1f} {x+9*k:.1f} {y-1*k:.1f} Z" '
+                    f'fill="#8A2B22" stroke="{INK}" stroke-width="{3.6*k:.1f}" stroke-linejoin="round"/>'
+                    f'<rect x="{x-4*k:.1f}" y="{y-1.5*k:.1f}" width="{8*k:.1f}" height="{4*k:.1f}" rx="{1.2*k:.1f}" fill="#fff" stroke="{INK}" stroke-width="{1.8*k:.1f}"/>')
+        return (f'<path d="M {x-10*k:.1f} {y:.1f} Q {x-5*k:.1f} {y+5*k:.1f} {x:.1f} {y+1*k:.1f} Q {x+5*k:.1f} {y+5*k:.1f} {x+10*k:.1f} {y:.1f}" '
+                f'fill="none" stroke="{INK}" stroke-width="{3.6*k:.1f}" stroke-linecap="round"/>')
+    raise ValueError(kind)
+
+
+def blush_svg(x, y, a=1.0, s=1.0, lines=False) -> str:
+    """腮紅：蜜桃粉橢圓（總表 pose_front 的樣子）；a＝濃度（臉紅時 >1 會更大更紅）。"""
+    if a <= 0.01:
+        return ""
+    rx, ry = 27 * s * (0.9 + 0.1 * a), 18 * s * (0.9 + 0.1 * a)
+    op = min(1.0, 0.55 * a)
+    out = f'<ellipse cx="{x:.1f}" cy="{y:.1f}" rx="{rx:.1f}" ry="{ry:.1f}" fill="#F7948A" fill-opacity="{op:.2f}"/>'
+    if lines:
+        for i in (-1, 0, 1):
+            xx = x + i * rx * 0.42
+            out += (f'<path d="M {xx-4:.1f} {y+6:.1f} L {xx+4:.1f} {y-6:.1f}" stroke="#fff" stroke-width="3" '
+                    f'stroke-linecap="round" stroke-opacity="0.9"/>')
+    return out
+
+
+def eye_svg(kind: str, x, y, s=1.0) -> str:
+    """補畫的眼型：arc（彎月 ︶ 開心）、squint（> 用力）、star（星星眼）、x（暈）、wide（大圓＋兩亮點）。"""
+    k = s
+    if kind == "arc":
+        return (f'<path d="M {x-10*k:.1f} {y+2*k:.1f} Q {x:.1f} {y-9*k:.1f} {x+10*k:.1f} {y+2*k:.1f}" fill="none" '
+                f'stroke="{INK}" stroke-width="{4.6*k:.1f}" stroke-linecap="round"/>')
+    if kind == "smile":
+        return (f'<path d="M {x-10*k:.1f} {y-3*k:.1f} Q {x:.1f} {y+8*k:.1f} {x+10*k:.1f} {y-3*k:.1f}" fill="none" '
+                f'stroke="{INK}" stroke-width="{4.6*k:.1f}" stroke-linecap="round"/>')
+    if kind == "squint":  # 面向左的 >（用力）
+        return (f'<path d="M {x+8*k:.1f} {y-8*k:.1f} L {x-6*k:.1f} {y:.1f} L {x+8*k:.1f} {y+8*k:.1f}" fill="none" '
+                f'stroke="{INK}" stroke-width="{4.6*k:.1f}" stroke-linecap="round" stroke-linejoin="round"/>')
+    if kind == "star":
+        return star_svg(x, y, 11 * k, 0, "#FFD25A")
+    if kind == "x":
+        return (f'<path d="M {x-7*k:.1f} {y-7*k:.1f} L {x+7*k:.1f} {y+7*k:.1f} M {x+7*k:.1f} {y-7*k:.1f} L {x-7*k:.1f} {y+7*k:.1f}" '
+                f'stroke="{INK}" stroke-width="{4.4*k:.1f}" stroke-linecap="round"/>')
+    if kind == "wide":
+        return (f'<ellipse cx="{x:.1f}" cy="{y:.1f}" rx="{8.5*k:.1f}" ry="{10*k:.1f}" fill="{INK}"/>'
+                f'<circle cx="{x-3*k:.1f}" cy="{y-4*k:.1f}" r="{3.2*k:.1f}" fill="#fff"/>'
+                f'<circle cx="{x+3*k:.1f}" cy="{y+3.5*k:.1f}" r="{1.6*k:.1f}" fill="#fff"/>')
+    raise ValueError(kind)
+
+
+# ---------------------------------------------------------------- 內插
+def ease(t: float, kind: str = "inout") -> float:
+    t = max(0.0, min(1.0, t))
+    if kind == "in":
+        return t * t
+    if kind == "out":
+        return 1 - (1 - t) ** 2
+    if kind == "back":   # 稍微衝過頭再回來
+        c = 1.70158
+        return 1 + (c + 1) * (t - 1) ** 3 + c * (t - 1) ** 2
+    if kind == "linear":
+        return t
+    return t * t * (3 - 2 * t)
+
+
+def lerp_pose(a: dict, b: dict, t: float) -> dict:
+    """數值鍵 ease 內插；字串／布林鍵取 t<0.5 的那邊；巢狀 dict 遞迴。"""
+    out = {}
+    for k in set(a) | set(b):
+        va, vb = a.get(k, b.get(k)), b.get(k, a.get(k))
+        if isinstance(va, (int, float)) and isinstance(vb, (int, float)) and not isinstance(va, bool):
+            out[k] = va + (vb - va) * t
+        elif isinstance(va, dict) and isinstance(vb, dict):
+            out[k] = lerp_pose(va, vb, t)
+        elif isinstance(va, (tuple, list)) and isinstance(vb, (tuple, list)) and len(va) == len(vb) \
+                and all(isinstance(x, (int, float)) for x in va + vb):
+            out[k] = type(va)(x + (y - x) * t for x, y in zip(va, vb))
+        else:
+            out[k] = va if t < 0.5 else vb
+    return out
+
+
+# ---------------------------------------------------------------- 角色合成
+DEFAULT = dict(
+    view="side",          # side（面向左）/ front
+    x=CX, y=FOOT_Y,       # 本體底部中心（512 單位）
+    sx=1.0, sy=1.0,       # 擠壓伸展（以底部中心為錨）
+    rot=0.0, shear=0.0,   # 本體傾斜（度）、剪切
+    flutter=0.0, fphase=0.0,
+    ear=0.0, ear2=0.0,    # 耳朵旋轉（度，正＝往後倒）
+    eye="dot", mouth="w", blush=1.0, eye_open=1.0,
+    # 四肢偏移（512 單位，相對預設錨點）與旋轉
+    fp_near=(0.0, 0.0, 0.0), fp_far=(0.0, 0.0, 0.0),  # 前掌（側面）／左右手（正面）
+    bf_near=(0.0, 0.0, 0.0), bf_far=(0.0, 0.0, 0.0),  # 後腳（側面）／左右腳（正面）
+    tail=(0.0, 0.0, 0.0),
+    hands_front=False,    # 正面時手是否舉到身前（捧東西）
+    look=(0.0, 0.0),      # 五官整體偏移（u, v）
+    gx=0.0, gy=0.0, grot=0.0, gpx=CX, gpy=330.0,  # 整組旋轉（翻滾用）
+    facing="left",
+)
+
+
+def body_matrix(p):
+    """本體圖（S 倍像素）→ 畫布（S 倍像素）。"""
+    x0, y0, x1, y1 = body_box()
+    px, py = (x0 + x1) / 2, y1 - 6 * S   # 錨點：底部中心（毛的最下緣再往上一點，讓腳貼地）
+    return mat(p["x"] * S, p["y"] * S, p["rot"], p["sx"], p["sy"], p["shear"], px, py)
+
+
+def body_pt(p, u, v):
+    """本體局部 (u,v) → 世界（512 單位），跟本體一起擠壓／傾斜。"""
+    x0, y0, x1, y1 = body_box()
+    M = body_matrix(p)
+    X, Y = apply(M, x0 + u * (x1 - x0), y0 + v * (y1 - y0))
+    return X / S, Y / S
+
+
+def compose(p: dict, extra_back: str = "", extra_front: str = "", props_back=None, props_mid=None,
+            props_front=None, fx=None) -> tuple[Image.Image, dict]:
+    """依姿勢參數合成一格（S 倍畫布）。回傳 (畫布, 各元素外框 dict) —— 外框給重疊檢查用。
+
+    props_*：list of (image_S倍, x, y, rot, anchor) 或 callable(canvas)。
+    extra_*：SVG 片段（在身體後／在最前）。fx：效果 SVG（最上層；字串或字串清單，清單逐件記外框）。
+    """
+    p = {**DEFAULT, **p}
+    W = SIZE * S
+    can = Image.new("RGBA", (W, W))
+    boxes: dict[str, tuple] = {}
+    side = p["view"] == "side"
+    lu, lv = p["look"]
+
+    def put_props(lst, tag):
+        for i, it in enumerate(lst or []):
+            if isinstance(it, Image.Image):      # 已經畫好的整張畫布圖層（例如 SVG 球）
+                boxes[f"{tag}{i}"] = it.getchannel("A").getbbox()
+                can.alpha_composite(it)
+                continue
+            if callable(it):
+                it(can)
+                continue
+            im, x, y, r, anc = it
+            lay = Image.new("RGBA", (W, W))
+            place(lay, im, x, y, r, anchor=anc)
+            boxes[f"{tag}{i}"] = lay.getchannel("A").getbbox()
+            can.alpha_composite(lay)
+
+    if extra_back:
+        can.alpha_composite(svg_layer(extra_back))
+    put_props(props_back, "propB")
+
+    # --- 身體後面的肢體（遠側）
+    if side:
+        # 後腳遠側、前掌遠側
+        fx_, fy_, fr = p["bf_far"]
+        X, Y = body_pt(p, 0.66, 0.97)
+        place(can, _shade(part("foot_r")), X + fx_, Y + fy_, fr, anchor=(0.45, 0.35))
+        fx_, fy_, fr = p["fp_far"]
+        X, Y = body_pt(p, 0.30, 0.95)
+        place(can, _shade(part("foot_l", PART_K * 0.85)), X + fx_, Y + fy_, fr, anchor=(0.5, 0.35))
+        # 尾巴（背後毛團）
+        tx, ty, tr = p["tail"]
+        X, Y = body_pt(p, 0.95, 0.66)
+        place(can, tail_img(0.75), X + tx, Y + ty, tr, anchor=(0.25, 0.5))
+    else:
+        for key, u, nm in (("bf_far", 0.30, "foot_l"), ("bf_near", 0.70, "foot_r")):
+            fx_, fy_, fr = p[key]
+            X, Y = body_pt(p, u, 0.965)
+            place(can, part(nm, PART_K * 0.9), X + fx_, Y + fy_, fr, anchor=(0.5, 0.35))
+
+    # --- 耳朵（在身體後面，插進毛裡）
+    if p["view"] == "front":
+        X, Y = body_pt(p, 0.21 + lu, 0.15)
+        place(can, part("ear_l", EAR_K), X, Y, -14 - p["ear"], anchor=(0.6, 0.9))
+        X, Y = body_pt(p, 0.79 + lu, 0.15)
+        place(can, part("ear_r", EAR_K), X, Y, 14 + p["ear2"], anchor=(0.4, 0.9))
+    elif p["view"] == "back":
+        X, Y = body_pt(p, 0.21, 0.15)
+        place(can, part("ear_l", EAR_K), X, Y, -14 - p["ear"], anchor=(0.6, 0.9))
+        X, Y = body_pt(p, 0.79, 0.15)
+        place(can, part("ear_r", EAR_K), X, Y, 14 + p["ear2"], anchor=(0.4, 0.9))
+
+    # --- 本體
+    b = fluttered_body(p["flutter"], p["fphase"])
+    blay = warp_affine(b, body_matrix(p), can.size)
+    boxes["body"] = blay.getchannel("A").getbbox()
+    can.alpha_composite(blay)
+    put_props(props_mid, "propM")
+
+    # --- 前面的肢體（近側）
+    if side:
+        fx_, fy_, fr = p["bf_near"]
+        X, Y = body_pt(p, 0.60, 0.985)
+        place(can, part("foot_r"), X + fx_, Y + fy_, fr, anchor=(0.45, 0.30))
+        fx_, fy_, fr = p["fp_near"]
+        X, Y = body_pt(p, 0.24, 0.93)
+        place(can, part("hand_side", PART_K * 0.85), X + fx_, Y + fy_, fr, anchor=(0.55, 0.4))
+
+    # --- 五官
+    face = []
+    if side:
+        # 側面耳朵：長在頭頂後方、畫在毛上面（同 pose_side）
+        X, Y = body_pt(p, 0.40 + lu * 0.5, 0.19)
+        place(can, part("ear_r", EAR_K), X, Y, 10 + p["ear"], anchor=(0.45, 0.92))
+        ex, ey = body_pt(p, 0.15 + lu, 0.43 + lv)
+        bx, by = body_pt(p, 0.18 + lu, 0.555 + lv)
+        mx, my = body_pt(p, 0.055 + lu, 0.545 + lv)
+        flay = Image.new("RGBA", can.size)
+        flay.alpha_composite(svg_layer(blush_svg(bx, by, p["blush"], 0.8)))
+        _draw_eye(flay, p["eye"], ex, ey, p["eye_open"], left=True)
+        flay.alpha_composite(svg_layer(mouth_svg(p["mouth"], mx, my, 1.2)))
+        boxes["face"] = flay.getchannel("A").getbbox()
+        can.alpha_composite(flay)
+    elif p["view"] == "front":
+        flay = Image.new("RGBA", can.size)
+        for sgn, sub in ((-1, "L"), (1, "R")):
+            ex, ey = body_pt(p, 0.5 + lu + sgn * 0.13, 0.42 + lv)
+            bx, by = body_pt(p, 0.5 + lu + sgn * 0.27, 0.53 + lv)
+            flay.alpha_composite(svg_layer(blush_svg(bx, by, p["blush"])))
+            _draw_eye(flay, p["eye"], ex, ey, p["eye_open"], left=(sgn < 0))
+        mx, my = body_pt(p, 0.5 + lu, 0.50 + lv)
+        flay.alpha_composite(svg_layer(mouth_svg(p["mouth"], mx, my, 1.3)))
+        boxes["face"] = flay.getchannel("A").getbbox()
+        can.alpha_composite(flay)
+        # 正面的手：貼在身體兩側或身前
+        for key, u, nm, sgn in (("fp_far", 0.10, "hand_l", -1), ("fp_near", 0.90, "hand_r", 1)):
+            fx_, fy_, fr = p[key]
+            if p["hands_front"]:
+                u = 0.5 + sgn * 0.17
+                X, Y = body_pt(p, u, 0.80)
+            else:
+                X, Y = body_pt(p, u, 0.70)
+            place(can, part(nm, PART_K * 0.85), X + fx_, Y + fy_, fr, anchor=(0.5, 0.6))
+    elif p["view"] == "back":
+        tx, ty, tr = p["tail"]
+        X, Y = body_pt(p, 0.5, 0.72)
+        place(can, tail_img(1.0), X + tx, Y + ty, tr, anchor=(0.5, 0.5))
+
+    put_props(props_front, "propF")
+    if extra_front:
+        can.alpha_composite(svg_layer(extra_front))
+    if fx:
+        # 效果符號逐件畫，每件各自記外框（重疊檢查要逐件比，不是整片聯集）
+        for i, piece in enumerate([fx] if isinstance(fx, str) else fx):
+            if not piece:
+                continue
+            fl = svg_layer(piece)
+            bb = fl.getchannel("A").getbbox()
+            if bb:
+                boxes[f"fx{i}"] = bb
+            can.alpha_composite(fl)
+
+    # --- 整組旋轉（翻滾）與面向
+    M = np.eye(3)
+    if abs(p["grot"]) > 0.01 or abs(p["gx"]) > 0.01 or abs(p["gy"]) > 0.01:
+        M = mat((p["gpx"] + p["gx"]) * S, (p["gpy"] + p["gy"]) * S, p["grot"], 1, 1, 0, p["gpx"] * S, p["gpy"] * S)
+    if p["facing"] == "right":
+        F = np.array([[-1, 0, 2 * CX * S], [0, 1, 0], [0, 0, 1.0]])
+        M = F @ M
+    if not np.allclose(M, np.eye(3)):
+        can = warp_affine(can, M, can.size)
+        boxes = {k: _tf_box(v, M) for k, v in boxes.items() if v}
+    return can, boxes
+
+
+def _tf_box(bb, M):
+    x0, y0, x1, y1 = bb
+    pts = [apply(M, x, y) for x, y in ((x0, y0), (x1, y0), (x0, y1), (x1, y1))]
+    xs, ys = [q[0] for q in pts], [q[1] for q in pts]
+    return (min(xs), min(ys), max(xs), max(ys))
+
+
+def _shade(im: Image.Image, f=0.86) -> Image.Image:
+    """遠側肢體壓暗一點，讀得出前後。"""
+    a = np.asarray(im).astype(np.float32)
+    a[..., :3] *= f
+    return Image.fromarray(a.clip(0, 255).astype(np.uint8), "RGBA")
+
+
+@lru_cache(None)
+def tail_img(k: float = 0.9) -> Image.Image:
+    """背面小尾巴毛團：從 pose_back_tail 切出（中下方那團），保留原毛邊像素。"""
+    im = raw("pose_back_tail")
+    w, h = im.size
+    box = (int(w * 0.36), int(h * 0.60), int(w * 0.64), int(h * 0.93))
+    t = im.crop(box)
+    # 只留跟中心連通、亮的那團（尾巴有自己的描邊圈）：用橢圓遮罩
+    m = Image.new("L", t.size, 0)
+    from PIL import ImageDraw
+    ImageDraw.Draw(m).ellipse((1, 1, t.width - 2, t.height - 2), fill=255)
+    a = np.minimum(np.asarray(t.getchannel("A")), np.asarray(m))
+    t.putalpha(Image.fromarray(a))
+    t = _trim(t)
+    f = sheet_scale() * k * S   # pose_back_tail 跟 body_blank 在總表上大小相近，直接用同一比例
+    return t.convert("RGBa").resize((max(1, round(t.width * f)), max(1, round(t.height * f))), Image.LANCZOS).convert("RGBA")
+
+
+def _draw_eye(lay, kind, x, y, open_=1.0, left=True):
+    if kind == "dot":
+        if open_ < 0.35:   # 眨眼中段：閉成一條線
+            lay.alpha_composite(svg_layer(
+                f'<path d="M {x-8:.1f} {y+1:.1f} Q {x:.1f} {y+4:.1f} {x+8:.1f} {y+1:.1f}" fill="none" stroke="{INK}" '
+                f'stroke-width="4.4" stroke-linecap="round"/>'))
+        else:
+            im = part("eyes_dot", EYE_K, "L" if left else "R")
+            place(lay, im, x, y, 0, 1.0, open_)
+    elif kind == "closed":
+        lay.alpha_composite(svg_layer(
+            f'<path d="M {x-9:.1f} {y:.1f} Q {x:.1f} {y+5:.1f} {x+9:.1f} {y:.1f}" fill="none" stroke="{INK}" '
+            f'stroke-width="4.4" stroke-linecap="round"/>'))
+    else:
+        lay.alpha_composite(svg_layer(eye_svg(kind, x, y, 1.0)))
+
+
+def finish(can: Image.Image) -> Image.Image:
+    """S 倍畫布 → 512（LANCZOS，預乘 alpha 避免黑邊）。"""
+    return can.convert("RGBa").resize((SIZE, SIZE), Image.LANCZOS).convert("RGBA")
+
+
+# ---------------------------------------------------------------- 檢查工具
+def bbox512(bb):
+    if not bb:
+        return None
+    return tuple(v / S for v in bb)
+
+
+def overlap(a, b, pad=0.0):
+    if not a or not b:
+        return 0.0
+    x0, y0 = max(a[0], b[0]) - pad, max(a[1], b[1]) - pad
+    x1, y1 = min(a[2], b[2]) + pad, min(a[3], b[3]) + pad
+    return max(0.0, x1 - x0) * max(0.0, y1 - y0)
+
+
+def inside_canvas(im: Image.Image, margin=1) -> bool:
+    """全身入鏡：四邊 margin 像素內沒有不透明像素。"""
+    a = np.asarray(im.getchannel("A"))
+    return not (a[:margin].any() or a[-margin:].any() or a[:, :margin].any() or a[:, -margin:].any())
