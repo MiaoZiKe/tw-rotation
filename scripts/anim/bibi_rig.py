@@ -930,7 +930,7 @@ def default_assets() -> dict:
     peach = (r_ - b_ > 45) & fg
     blush = (_disk(dark.shape, DEF_BLUSH_L, 40) | _disk(dark.shape, DEF_BLUSH_R, 40)) & peach
     blush = _dilate(blush, 2) & fg & ~_dilate(parts["mouth"], 1)
-    face = _dilate(parts["eye_l"] | parts["eye_r"] | parts["mouth"], 5) | _dilate(blush, 3)
+    face = _dilate(parts["eye_l"] | parts["eye_r"] | parts["mouth"], 7) | _dilate(blush, 4)
     face &= fg & ~_dilate(~fg, 6)
     blank = _inpaint(col, face)
 
@@ -977,8 +977,8 @@ def _def_local_inv(p):
     # 兩耳都往傾斜方向（頭頂移動方向）挪一點；背向那一耳縮小、收進毛裡一點。
     rot = p["rot"]
     tilt = max(0.0, abs(rot) - 8) * (1 if rot > 0 else -1)
-    ear_tx = [0.55 * tilt, 0.55 * tilt]
-    ear_sc = [1 - max(0.0, tilt) / 70, 1 - max(0.0, -tilt) / 70]
+    ear_tx = [0.55 * tilt + p.get("ear_tx", 0.0), 0.55 * tilt + p.get("ear_tx", 0.0)]
+    ear_sc = [(1 - max(0.0, tilt) / 70) * p.get("ear_sc_l", 1.0), (1 - max(0.0, -tilt) / 70) * p.get("ear_sc_r", 1.0)]
     feet = [(DEF_FOOT_L, p["bf_far"]), (DEF_FOOT_R, p["bf_near"])]
     amp, ph = p["flutter"], p["fphase"]
     bx, by = DEF_BODY_C
@@ -1178,17 +1178,50 @@ def compose_default(p: dict, props_back=None, props_mid=None, props_front=None, 
     lu, lv = p["look"]
     off = (lu * 380, lv * 330)    # look 以身寬比例平移五官
 
-    def shifted(im):
-        if abs(off[0]) + abs(off[1]) < 0.01:
+    back = p["view"] == "back"
+    q3 = p["view"] == "q3"     # 3/4 側（面向左）：五官往左偏、右邊（遠側）的眼和腮紅變窄
+    if q3 and abs(lu) < 0.01:
+        lu = -0.13
+        off = (lu * 380, lv * 330)
+
+    def shifted(im, far=None, fac=1.0):
+        if abs(off[0]) + abs(off[1]) < 0.01 and far is None:
             return im
+        if far is None and fac != 1.0:
+            return im.transform(im.size, Image.AFFINE, (1, 0, -off[0] * fac * S, 0, 1, -off[1] * S), resample=Image.BICUBIC)
+        if far is not None and q3:      # 遠側：以那個部件中心水平壓窄到 0.7
+            cx_ = far[0] * S
+            k_ = 0.7
+            return im.transform(im.size, Image.AFFINE,
+                                (1 / k_, 0, cx_ - cx_ / k_ - off[0] * S / k_ * 0 - (off[0] * 1.15) * S / k_, 0, 1, -off[1] * S),
+                                resample=Image.BICUBIC)
         return im.transform(im.size, Image.AFFINE, (1, 0, -off[0] * S, 0, 1, -off[1] * S), resample=Image.BICUBIC)
 
-    if p["blush"] > 0.01:
-        bl = shifted(A["blush"])
+    if back:     # 背面：無五官本體＝背影，加一小團尾巴毛
+        tx_, ty_, tr_ = p["tail"]
+        X, Y = def_pt(p, DEF_FOOT[0], 400)
+        place(can, tail_img(1.25), X + tx_, Y + ty_, tr_, anchor=(0.5, 0.5))
+    if p["blush"] > 0.01 and not back:
+        if q3:
+            half = Image.new("L", A["blush"].size, 0)
+            from PIL import ImageDraw as _D
+            _D.Draw(half).rectangle((0, 0, int(DEF_FOOT[0] * S), SIZE * S), fill=255)
+            a0 = A["blush"].getchannel("A")
+            left = A["blush"].copy(); left.putalpha(Image.fromarray(np.minimum(np.asarray(a0), np.asarray(half))))
+            right = A["blush"].copy(); right.putalpha(Image.fromarray(np.minimum(np.asarray(a0), 255 - np.asarray(half))))
+            bl = shifted(left, fac=0.5)    # 近側腮紅貼著臉的輪廓，挪少一點
+            bl.alpha_composite(shifted(right, DEF_BLUSH_R))
+        else:
+            bl = shifted(A["blush"])
         if p["blush"] < 0.99:
             a_ = bl.getchannel("A").point(lambda v: int(v * p["blush"]))
             bl = bl.copy(); bl.putalpha(a_)
-        can.alpha_composite(def_layer_affine(bl, p))
+        bl = def_layer_affine(bl, p)
+        # 腮紅只畫在身體裡面（扣掉描邊）：不會凸出輪廓
+        ba = np.asarray(body.getchannel("A")).astype(np.float32)
+        inner = np.asarray(Image.fromarray(ba.astype(np.uint8)).filter(__import__("PIL.ImageFilter", fromlist=["x"]).MinFilter(31))).astype(np.float32) / 255
+        bl.putalpha(Image.fromarray((np.asarray(bl.getchannel("A")) * inner).astype(np.uint8)))
+        can.alpha_composite(bl)
         if p["blush"] > 1.05:   # 臉更紅：再疊一層半透明桃紅
             extra = ""
             for c in (DEF_BLUSH_L, DEF_BLUSH_R):
@@ -1198,14 +1231,17 @@ def compose_default(p: dict, props_back=None, props_mid=None, props_front=None, 
                           f'fill="#F4735A" fill-opacity="{min(0.4, 0.35 * (p["blush"] - 1)):.2f}"/>')
             can.alpha_composite(svg_layer(extra))
     face = Image.new("RGBA", (W, W))
-    if p["eye"] == "default" and p["eye_open"] > 0.5:
+    if back:
+        pass
+    elif p["eye"] == "default" and p["eye_open"] > 0.5:
         face.alpha_composite(def_layer_affine(shifted(A["eye_l"]), p))
-        face.alpha_composite(def_layer_affine(shifted(A["eye_r"]), p))
+        face.alpha_composite(def_layer_affine(shifted(A["eye_r"], DEF_EYE_R if q3 else None), p))
     else:
         kind = "closed" if (p["eye"] == "default" or p["eye_open"] <= 0.5) else p["eye"]
         sv = ""
         for c, side in ((DEF_EYE_L, "l"), (DEF_EYE_R, "r")):
-            X, Y = def_pt(p, c[0] + off[0], c[1] + off[1])
+            fo = off[0] * (1.15 if (q3 and side == "r") else 1.0)
+            X, Y = def_pt(p, c[0] + fo, c[1] + off[1])
             kk = kind
             if kind == "squeeze":
                 kk = "squeeze_l" if side == "l" else "squeeze_r"
@@ -1218,7 +1254,9 @@ def compose_default(p: dict, props_back=None, props_mid=None, props_front=None, 
         if kind == "wink":
             face.alpha_composite(def_layer_affine(shifted(A["eye_l"]), p))
     # 張嘴笑一律用原版小舌頭嘴的原像素（CEO 10-11：不要大一號）；big＝同一張嘴往下拉長一點（驚喜、歡呼）
-    if p["mouth"] in ("default", "smile", "open"):
+    if back:
+        pass
+    elif p["mouth"] in ("default", "smile", "open"):
         face.alpha_composite(def_layer_affine(shifted(A["mouth"]), p))
     elif p["mouth"] == "big":
         mx_, my_ = DEF_MOUTH[0] * S, (DEF_MOUTH[1] - 26) * S
@@ -1227,6 +1265,10 @@ def compose_default(p: dict, props_back=None, props_mid=None, props_front=None, 
     elif p["mouth"] != "none":
         X, Y = def_pt(p, DEF_MOUTH[0] + off[0], DEF_MOUTH[1] - 6 + off[1])
         face.alpha_composite(svg_layer(def_mouth_svg(p["mouth"], X, Y)))
+    # 五官只畫在身體裡面（轉身、3/4 時靠邊的眼不會壓到描邊外）
+    ba_ = Image.fromarray(np.asarray(body.getchannel("A"))).filter(
+        __import__("PIL.ImageFilter", fromlist=["x"]).MinFilter(17))
+    face.putalpha(Image.fromarray(np.minimum(np.asarray(face.getchannel("A")), np.asarray(ba_))))
     bb = face.getchannel("A").getbbox()
     if bb:
         boxes["face"] = bb
@@ -1253,9 +1295,59 @@ def compose_default(p: dict, props_back=None, props_mid=None, props_front=None, 
             boxes[f"fx{i}"] = bb
             masks[f"fx{i}"] = fl.getchannel("A")
         can.alpha_composite(fl)
+    # 整組旋轉（抱球翻滾）與面向右（鏡像）
+    M = np.eye(3)
+    if abs(p["grot"]) > 0.01 or abs(p["gx"]) > 0.01 or abs(p["gy"]) > 0.01:
+        M = mat((p["gpx"] + p["gx"]) * S, (p["gpy"] + p["gy"]) * S, p["grot"], 1, 1, 0, p["gpx"] * S, p["gpy"] * S)
+    if p["facing"] == "right":
+        M = np.array([[-1, 0, 2 * CX * S], [0, 1, 0], [0, 0, 1.0]]) @ M
+    if not np.allclose(M, np.eye(3)):
+        can = warp_affine(can, M, can.size)
+        boxes = {k: _tf_box(v, M) for k, v in boxes.items() if v}
+        inv = np.linalg.inv(M)
+        data = (inv[0, 0], inv[0, 1], inv[0, 2], inv[1, 0], inv[1, 1], inv[1, 2])
+        masks = {k: m.transform(can.size, Image.AFFINE, data, resample=Image.BILINEAR) for k, m in masks.items()}
     boxes["__masks"] = {k: np.asarray(m.reduce(4)) > 40 for k, m in masks.items()}
     return can, boxes
 
 
 def R_FOOT():
     return FOOT_Y
+
+
+# ---------------------------------------------------------------- v1 姿勢 → 原版骨架
+_EYE_MAP = {"dot": "default", "squint": "squeeze"}
+_MOUTH_MAP = {"w": "w", "o": "o", "smile": "default", "open": "default", "flat": "w"}
+DEF_SCALE = 385 / BODY_W          # 原版身寬 ÷ v1 身寬：肢體位移等比放大
+
+
+def to_default_pose(p: dict) -> dict:
+    """把 v1（總表骨架）的姿勢參數換成原版骨架：side→3/4 側、dot→原圖眼、張嘴→原圖小舌頭嘴；
+    手（fp_far/fp_near）只有真的動了或捧在胸前才畫成貼身小肉掌（原版平常看不到手）。"""
+    q = dict(p)
+    v = q.get("view", "front")
+    if v == "side":
+        q.update(view="q3", ear_tx=22, ear_sc_r=0.8)
+    q["eye"] = _EYE_MAP.get(q.get("eye", "dot"), q.get("eye", "dot"))
+    q["mouth"] = _MOUTH_MAP.get(q.get("mouth", "w"), q.get("mouth", "w"))
+    if "shear" in q:
+        q["shear"] = q["shear"] * 0.5      # 原版身體大一號，剪切減半免得出框
+    paws = []
+    hf = q.pop("hands_front", False)
+    for key, side in (("fp_far", -1), ("fp_near", 1)):
+        dx, dy, r = q.pop(key, (0.0, 0.0, 0.0))
+        if hf:
+            paws.append((DEF_FOOT[0] + side * 44, 404, dx * DEF_SCALE * 0.6, dy * DEF_SCALE * 0.8, r))
+        elif abs(dx) + abs(dy) > 3 and v != "side":    # 側跑／撲球不畫前掌：小腳＋身體就夠（原版質感）
+            u = 70 if side < 0 else 438
+            if v == "side":   # 3/4 側：前掌在前下方
+                u = 120 if side < 0 else 200
+            # 身體是圓的：肉掌往上舉時沿著輪廓往內收（不會飄到身體外面）
+            ddx = dx * 1.05 - side * 0.32 * max(0.0, -dy * DEF_SCALE)
+            paws.append((u, 352 if v != "side" else 430, ddx, dy * DEF_SCALE, r + (-50 if side < 0 else 50)))
+    q["paws"] = paws or None
+    for key in ("bf_far", "bf_near"):
+        if key in q:
+            dx, dy, r = q[key]
+            q[key] = (dx * DEF_SCALE * 0.8, dy * DEF_SCALE * 0.8, r)
+    return q
