@@ -43,7 +43,7 @@ def _host(cv, L, nm, text, t, mode=None):
     if L.fmt == "web":
         return card_host(cv, L, nm, text, t, mode)
     old = (L.host_x, L.host_foot, L.host_w, L.host_h, L.host_size)
-    L.host_x, L.host_foot, L.host_w, L.host_h, L.host_size = 330, 1570, 300, 280, 380
+    L.host_x, L.host_foot, L.host_w, L.host_h, L.host_size = 320, 1570, 360, 340, 440
     try:
         card_host(cv, L, nm, text, t, mode)
     finally:
@@ -267,7 +267,7 @@ def grid4_fn(srcs_w, srcs_m):
             cw = 394
             ch = 371
             x0 = MCX - (2 * cw + gap) // 2
-            y0 = 330
+            y0 = 290
         for k, (clip, name, win, st0) in enumerate(srcs):
             col, row = k % 2, k // 2
             cx = x0 + col * (cw + gap)
