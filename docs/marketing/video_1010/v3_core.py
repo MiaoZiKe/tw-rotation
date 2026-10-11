@@ -311,11 +311,14 @@ def plan_mobile(rec, op, D, L):
                 return y0 + (y1 - y0) * ease_io((tt - t0) / max(1e-3, t1 - t0))
         return out[-1][1]
     chk = []
-    for it in items:
+    for k_, it in enumerate(items):
         c = it["c"]
         r = it["rect"]
         top = (r[0], r[1], r[2], min(r[3], r[1] + wh - 120))
-        w15 = win_at(c + 1.5)
+        t_chk = c + 1.5
+        if k_ + 1 < len(items):
+            t_chk = min(t_chk, max(c + 0.95, items[k_ + 1]["c"] - 0.75))
+        w15 = win_at(t_chk)
         inc = _area(_inter_rect(top, (0, w15, sw, w15 + wh))) / max(1.0, _area(top))
         note = "內容高於視窗：取上段並慢滑到底" if r[3] - r[1] > wh - 200 else ""
         chk.append((it["lab"], round(inc * 100, 1), it["src"], note, it["tp"], r))
@@ -398,7 +401,20 @@ def plan_dwell(rec, op, D, sub, L, pan_, chain=None, no_solve=False):
             rec.pan = p2
             hold = D - p2[3]
         else:
-            rec.pan = pan_ if no_solve or chain else rec.pan
+            p3 = tuple(pan_ or (0, 0, 0.3, 0.3))
+            if taps:
+                ya_, yb_, a0, a1 = p3
+                maxy_ = max(0.0, sh - wh)
+
+                def y_at(tt):
+                    ya2, yb2, q0, q1 = p3
+                    u = 0 if q1 <= q0 else min(1, max(0, (tt - q0) / (q1 - q0)))
+                    u = u * u * (3 - 2 * u)
+                    return min(max(ya2 + (yb2 - ya2) * u, 0), maxy_)
+                if not all(y_at(tp["t"]) + 40 <= tp["cy"] <= y_at(tp["t"]) + wh - 40 for tp in taps):
+                    w_ = min(max(taps[0]["cy"] - wh * 0.55, 0), maxy_)
+                    p3 = (w_, w_, 0.3, 0.9)
+            rec.pan = p3
     else:
         if taps and not chain:
             need = max(need, taps[-1]["t"] + 0.95 + 1.5)
