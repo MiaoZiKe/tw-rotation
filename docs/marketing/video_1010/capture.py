@@ -442,13 +442,24 @@ class Act:
             if not vis:
                 y = loc.evaluate("e => e.getBoundingClientRect().top + scrollY - innerHeight * 0.35")
                 self.scroll(to_y=y, ms=700)
-        b = loc.bounding_box()
-        for _ in range(3):   # 中心點被頂欄／浮層蓋住（hit-test 不是這個元素）→ 捲到畫面正中再量一次
+
+        def stable():
+            """站上有 scroll-behavior:smooth／動畫：連續兩次量到同一個位置才算穩（最多等 ~1.5 秒），避免用量到一半的座標去點。"""
+            prev = None
+            for _ in range(30):
+                cur = loc.bounding_box()
+                if cur and prev and all(abs(cur[k] - prev[k]) < 0.6 for k in ("x", "y", "width", "height")):
+                    return cur
+                prev = cur
+                self.wait(50)
+            return prev
+        b = stable()
+        for _ in range(4):   # 中心點被頂欄／浮層蓋住（hit-test 不是這個元素）→ 捲到畫面正中再量一次
             if not b or self.hit_ok(sel, b["x"] + b["width"] / 2, b["y"] + b["height"] / 2) is not False:
                 break
             y = loc.evaluate("e => { const r = e.getBoundingClientRect(); return r.top + scrollY - innerHeight * 0.5 + r.height / 2; }")
             self.scroll(to_y=y, ms=500)
-            b = loc.bounding_box()
+            b = stable()
         return b
 
     def hover(self, sel, ms=600, dx=0.5, dy=0.5):
@@ -1179,6 +1190,24 @@ def frame(a, sel, hold=2000, ms=1100, label=""):
     return True
 
 
+TM_FIND_JS = """([sel, kw]) => { const root = document.querySelector(sel); if (!root || !window.echarts) return null;
+  const h = root.hasAttribute('_echarts_instance_') ? root : root.querySelector('[_echarts_instance_]'); if (!h) return null;
+  const ch = echarts.getInstanceByDom(h); if (!ch) return null; const hr = h.getBoundingClientRect();
+  const d = ch.getModel().getSeriesByIndex(0).getData(); let best = null;
+  d.each(i => { const L = d.getItemLayout(i); const n = d.getName(i); if (!L || !L.width || !n || n.indexOf(kw) < 0) return;
+    const a = L.width * L.height; if (!best || a > best.a) best = { a, n, x: hr.left + L.x, y: hr.top + L.y, w: L.width, h: L.height }; });
+  return best; }"""
+
+
+def tm_center(a, sel, kw):
+    """用 ECharts 版面算出「名稱含 kw 的方塊」在 viewport 的外框，回傳 (中心x, 中心y, 方塊名)；找不到回 None。"""
+    r = a.pg.evaluate(TM_FIND_JS, [sel, kw])
+    if not r:
+        a.note(f"（熱力圖找不到方塊：{kw}）")
+        return None
+    return r["x"] + r["w"] / 2, r["y"] + r["h"] / 2, r["n"]
+
+
 def grp_focus(a, sel, hold=None):
     """熱力圖：把每個「群組」（含標題與全部子方塊）當一個發光框焦點，用 ECharts 的版面算出外框。"""
     t0, t1 = hold or a.last_hold or (a.t, a.t)
@@ -1208,7 +1237,7 @@ def tab_txt(a, txt, scope=""):
         if not loc.count():
             a.note(f"找不到「{txt}」")
             return False
-    loc.evaluate("e => e.scrollIntoView({block: 'center', inline: 'center'})")
+    loc.evaluate("e => e.scrollIntoView({block: 'center', inline: 'center', behavior: 'instant'})")
     return tap(a, sel, txt)
 
 
@@ -1343,12 +1372,10 @@ def v08(pg, a, start, base):
     frame(a, "#indHeat", 2000, label="整個台股一次看")
     grp_focus(a, "#indHeat")
     legend_focus(a, "-3", 1)
-    b = a.box("#indHeat", scroll=False)
-    for fx, fy in [(0.12, 0.2), (0.4, 0.2), (0.75, 0.25), (0.3, 0.75)]:
-        a.move(b["x"] + b["width"] * fx, b["y"] + b["height"] * fy, 800)
-        a.wait(1500)
-    a.note("點晶圓代工方塊")
-    a.click_xy(b["x"] + b["width"] * 0.12, b["y"] + b["height"] * 0.22, 600, 400)
+    pt = tm_center(a, "#indHeat", "晶圓代工")   # 依 ECharts 版面算出「晶圓代工」方塊中心（不再用比例猜）；錄影中不 hover 其他方塊，避免提示框蓋住焦點區
+    if pt:
+        a.note(f"點「{pt[2]}」方塊（版面算出的中心）")
+        a.click_xy(pt[0], pt[1], 900, 500)
     a.wait(3500)
 
 
@@ -1358,12 +1385,15 @@ def v09(pg, a, start, base):
     start()
     frame(a, "#themeMapCard", 2000, label="題材資金熱力")
     legend_focus(a, "<30", 1)
-    b = a.box("#themeMap", scroll=False)
-    for fx, fy in [(0.1, 0.4), (0.27, 0.2), (0.52, 0.2), (0.62, 0.55)]:
-        a.move(b["x"] + b["width"] * fx, b["y"] + b["height"] * fy, 800)
-        a.wait(1500)
+    for kw in ["蘋果供應鏈", "矽光子", "CoWoS"]:   # 這鏡就是示範 hover 提示框：依版面算出方塊中心再停上去
+        pt = tm_center(a, "#themeMap", kw)
+        if pt:
+            a.move(pt[0], pt[1], 800)
+            a.note(f"hover「{pt[2]}」方塊，顯示題材提示框")
+            a.wait(1500)
+    pt = tm_center(a, "#themeMap", "AI 伺服器")
     a.note("點最大的題材方塊（AI 伺服器）")
-    a.click_xy(b["x"] + b["width"] * 0.1, b["y"] + b["height"] * 0.4, 600, 400)
+    a.click_xy(pt[0], pt[1], 600, 400)
     a.wait(2500)
     frame(a, "#themeDetail", 2500, label="題材細節／剖析圖")
     a.scroll(by=400, ms=1500)
@@ -1377,7 +1407,8 @@ def v10(pg, a, start, base):
     frame(a, "#themeMapCard", 2000, label="題材資金熱力")
     legend_focus(a, "<30", 1)
     b = a.box("#themeMap", scroll=False)
-    a.click_xy(b["x"] + b["width"] * 0.27, b["y"] + b["height"] * 0.7, 700, 400)
+    pt = tm_center(a, "#themeMap", "高階 PCB")
+    a.click_xy(pt[0], pt[1], 700, 400)
     a.note("點「高階 PCB／CCL」")
     a.wait(2500)
     frame(a, "#themeDetail", 2500, label="題材細節")
@@ -2236,9 +2267,9 @@ def v03b(pg, a, start, base):
         a.note(f"手機慢慢往下滑看完整頁（{mx:.0f}px）{t1:.1f}–{a.t:.1f}s")
 
 
-def _theme_open(pg, a, fx, fy, label):
-    b = a.box("#themeMap", scroll=False)
-    a.click_xy(b["x"] + b["width"] * fx, b["y"] + b["height"] * fy, 800, 500)
+def _theme_open(pg, a, kw, label):
+    pt = tm_center(a, "#themeMap", kw)
+    a.click_xy(pt[0], pt[1], 800, 500)
     a.note(f"點題材方塊：{label}")
     a.wait(2800)
 
@@ -2248,10 +2279,10 @@ def v07b(pg, a, start, base):
     goto3(pg, a, base, "#heatmap/theme", 4000)
     start()
     frame(a, "#themeMapCard", 2000, label="題材資金熱力（完整）")
-    for (fx, fy, lab, nmax) in [(0.1, 0.4, "AI 伺服器", 5), (0.27, 0.72, "高階 PCB／CCL", 3)]:
+    for (kw, lab, nmax) in [("AI 伺服器", "AI 伺服器", 5), ("高階 PCB", "高階 PCB／CCL", 3)]:
         a.scroll(to_y=pg.evaluate("() => document.querySelector('#themeMapCard').getBoundingClientRect().top + scrollY") - 60, ms=900)
         a.wait(500)
-        _theme_open(pg, a, fx, fy, lab)
+        _theme_open(pg, a, kw, lab)
         frame(a, "#themeDetail", 2000, label=f"{lab}：題材細節（產品剖析圖，環節 1～{nmax}）")
         a.focus_sel(f"{lab}：環節清單／五欄", "#themeDetail", *a.last_hold)
         if a.mob:

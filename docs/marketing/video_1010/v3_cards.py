@@ -275,7 +275,7 @@ def grid_fn(dur, speed=1.8):
             cv.paste(lay, (cx, cy + 1), lay)
             C.reg("label:" + name, (cx, cy + 1, cx + lw, cy + 29))
         TITLE = "還有更多 3D 圖可以看"
-        SMALL = "AI 伺服器、先進封裝、HBM、液冷…只是其中幾個；站上共 20 種 3D 產品"
+        SMALL = "AI 伺服器、先進封裝、HBM、液冷…只是其中幾個"
         sf = font(B.F_MED, 22 if web else 24)
         if web:
             pw = R.pill(cv, "3D", L.pill_xy[0], L.pill_xy[1], px=L.pill_px)
