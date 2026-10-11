@@ -198,6 +198,23 @@ def load_all():
                         out.setdefault(clip, {"targets": [], "focus": []})[key] += v[key]
                     elif isinstance(v, list):
                         out.setdefault(clip, {"targets": [], "focus": []})[key] += v
+    # 高解析重錄（deviceScaleFactor 4，檔名含 _dsf4）：錄影端沒另外寫資料時，由原檔（@3）的點擊／焦點座標 ×4/3 換算
+    import copy as _copy
+    for p in RAW3.glob("*_dsf4*.mp4"):
+        name = p.stem
+        for nm in (name, name.replace("_nofab", "")):
+            if nm in out and (out[nm]["targets"] or out[nm]["focus"]):
+                continue
+            base = nm.replace("_dsf4", "").replace("_nofab", "")
+            if base not in out:
+                continue
+            k = 4.0 / 3.0
+            e = _copy.deepcopy(out[base])
+            for it in e["targets"] + e["focus"]:
+                for f_ in ("video_rect", "block_video_rect", "center", "content_rect"):
+                    if it.get(f_):
+                        it[f_] = [v * k for v in it[f_]]
+            out[nm] = e
     return out
 
 
@@ -992,15 +1009,20 @@ def parse_events():
 
 
 def events_for(clip):
-    ev = parse_events().get(clip, [])
-    if any(e["kind"] == "tap" for e in ev):
-        return ev
+    """點擊／拖曳事件。重錄版（_nofab、_dsf4）錄影端沒另寫就沿用原檔（_dsf4 座標 ×4/3）。"""
     allj = load_all()
-    syn = []
-    for it in (allj.get(clip) or {}).get("targets", []):
-        if it.get("kind", "click") == "click" and it.get("center"):
-            syn.append({"t": float(it["t"]), "kind": "tap", "x": int(round(it["center"][0])), "y": int(round(it["center"][1]))})
-    return ev + sorted(syn, key=lambda e: e["t"]) if syn else ev
+    for key in _clip_keys(clip):
+        k = (4.0 / 3.0) if ("_dsf4" in clip and "_dsf4" not in key) else 1.0
+        ev = [dict(e, x=e["x"] * k, y=e["y"] * k) if "x" in e else dict(e) for e in parse_events().get(key, [])]
+        if any(e["kind"] == "tap" for e in ev):
+            return ev
+        syn = []
+        for it in (allj.get(key) or {}).get("targets", []):
+            if it.get("kind", "click") == "click" and it.get("center"):
+                syn.append({"t": float(it["t"]), "kind": "tap", "x": int(round(it["center"][0] * k)), "y": int(round(it["center"][1] * k))})
+        if syn or ev:
+            return ev + sorted(syn, key=lambda e: e["t"]) if syn else ev
+    return []
 
 
 def inv_srcmap(srcmap, st, tol=1e-6):
