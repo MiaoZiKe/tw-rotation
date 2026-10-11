@@ -31,6 +31,11 @@ OUT = ROOT / "site" / "brand" / "bibi"
 SIZE = 160
 BOX = (28, 52, 468, 492)      # 440×440，中心 x=248、腳底 482 往下留 10px
 LIMIT = 60 * 1024
+# 個別素材的例外（512 場景座標）：weekend 是比比趴在墊子上＋珍奶，墊子貼著畫面底，統一框會切掉珍奶底與墊子 → 框往下移 18px；
+# 左上角那顆裝飾小太陽在網站右下角會漂在互動小圈之間（10-11 監督抓到），擦掉。
+OVERRIDE = {
+    "weekend": {"box": (19, 74, 459, 514), "erase": [(0, 0, 205, 235)]},
+}
 
 # 網站用到的才轉（情境待機＋互動動作；對照表在 site/bibi.js 的 MAP）
 NAMES = [
@@ -68,7 +73,10 @@ def convert(name: str) -> tuple[int, int] | None:
         fr = f.convert("RGBA")
         # 動畫單位 G1 起的互動素材直接交 160px 全幅（同一個 512 場景座標縮小）：裁切框照比例換算，比比大小才跟其他組一致
         k = fr.size[0] / 512
-        box = tuple(round(v * k) for v in BOX)
+        ov = OVERRIDE.get(name, {})
+        for ex in ov.get("erase", []):
+            fr.paste((0, 0, 0, 0), tuple(round(v * k) for v in ex))
+        box = tuple(round(v * k) for v in ov.get("box", BOX))
         frames.append(fr.crop(box).resize((SIZE, SIZE), Image.LANCZOS))
         durs.append(int(f.info.get("duration", im.info.get("duration", 100)) or 100))
     total = sum(durs)
