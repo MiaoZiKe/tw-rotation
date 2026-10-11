@@ -75,3 +75,22 @@ def replace_stmt(path, sid, newcode):
                 open(path, "w", encoding="utf8").write(b.decode("utf8"))
                 return True
     raise KeyError(sid)
+
+
+def insert_after(path, sid, newcode):
+    src = open(path, encoding="utf8").read()
+    tree = ast.parse(src)
+    lines = src.split("\n")
+    offs = [0]
+    for ln in lines:
+        offs.append(offs[-1] + len(ln.encode("utf8")) + 1)
+    b = src.encode("utf8")
+    for n in ast.walk(tree):
+        if isinstance(n, ast.Expr) and isinstance(n.value, ast.Call) and getattr(n.value.func, "attr", "") == "append":
+            c = n.value.args[0] if n.value.args else None
+            if isinstance(c, ast.Call) and c.args and isinstance(c.args[0], ast.Constant) and c.args[0].value == sid:
+                e_ = offs[n.end_lineno - 1] + n.end_col_offset
+                b = b[:e_] + ("\n" + newcode).encode("utf8") + b[e_:]
+                open(path, "w", encoding="utf8").write(b.decode("utf8"))
+                return True
+    raise KeyError(sid)
