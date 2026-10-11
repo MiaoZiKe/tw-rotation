@@ -744,13 +744,12 @@ def bubble_mobile(cv, L, shot, text, t):
     lay = Image.new("RGBA", cv.size, (0, 0, 0, 0))
     d = ImageDraw.Draw(lay)
     if THEME["name"] == "cute":
-        x0, x1 = 300, 1040
-        hx = L.host_x
-        d.polygon([(x0 + 4, y0 + h * 0.34), (x0 + 4, y0 + h * 0.74), (x0 - 40, y0 + h * 0.62)], fill=WHITE + (255,), outline=ink + (255,))
-        d.rounded_rectangle([x0, y0, x1, y1], THEME["panel_r"], fill=WHITE + (255,), outline=ink + (255,), width=4)
-        d.polygon([(x0 + 6, y0 + h * 0.37), (x0 + 6, y0 + h * 0.71), (x0 - 32, y0 + h * 0.62)], fill=WHITE + (255,))
-        C.reg("bubble", (x0 - 40, y0, x1, y1))
+        x0, x1 = 268, 1040
+        tip = (L.host_x + 95 + 14, (y0 + y1) / 2)
+        lines_n = len(lines)
         tx = (x0 + x1) / 2
+        tr = (tx - max(text_w(f, ln) for ln in lines) / 2, y0 + 11, tx + max(text_w(f, ln) for ln in lines) / 2, y0 + 11 + lines_n * 46)
+        draw_bubble(cv, (x0, y0, x1, y1), tip, alpha=clamp(a, 0, 1), ink=ink, width=4, r=THEME["panel_r"], text_rect=tr)
     else:
         x0, x1 = 40, 830
         d.rectangle([x0, y0, x1, y1], fill=(255, 255, 255, 235), outline=ink + (110,), width=2)
@@ -762,6 +761,70 @@ def bubble_mobile(cv, L, shot, text, t):
         d.text((tx - tw / 2, y0 + 11 + i * 46), ln, font=f, fill=ink)
     lay.putalpha(lay.getchannel("A").point(lambda v: int(v * clamp(a, 0, 1))))
     cv.paste(lay, (0, 0), lay)
+
+
+def _arc(cx, cy, r, a0, a1, n=8):
+    return [(cx + r * math.cos(math.radians(a0 + (a1 - a0) * i / n)), cy + r * math.sin(math.radians(a0 + (a1 - a0) * i / n))) for i in range(n + 1)]
+
+
+def bubble_polygon(rect, tip, r=24, base=None):
+    """圓角矩形＋尾巴 ＝ 單一封閉路徑（尾巴根部直接嵌在邊上，無縫、無雙線）。回傳 (點列, 尾巴 bbox)。"""
+    x0, y0, x1, y1 = rect
+    h = y1 - y0
+    base = base or max(26.0, 0.24 * h)
+    r = min(r, h / 2 - 1, (x1 - x0) / 2 - 1)
+    if tip[0] < x0:
+        side = "L"
+    elif tip[0] > x1:
+        side = "R"
+    elif tip[1] < y0:
+        side = "T"
+    else:
+        side = "B"
+    yc = clamp(tip[1], y0 + r + base / 2, y1 - r - base / 2)
+    xc = clamp(tip[0], x0 + r + base / 2, x1 - r - base / 2)
+    pts = [(x0 + r, y0)]
+    if side == "T":
+        pts += [(xc - base / 2, y0), tip, (xc + base / 2, y0)]
+    pts += [(x1 - r, y0)] + _arc(x1 - r, y0 + r, r, -90, 0)
+    if side == "R":
+        pts += [(x1, yc - base / 2), tip, (x1, yc + base / 2)]
+    pts += [(x1, y1 - r)] + _arc(x1 - r, y1 - r, r, 0, 90)
+    if side == "B":
+        pts += [(xc + base / 2, y1), tip, (xc - base / 2, y1)]
+    pts += [(x0 + r, y1)] + _arc(x0 + r, y1 - r, r, 90, 180)
+    if side == "L":
+        pts += [(x0, yc + base / 2), tip, (x0, yc - base / 2)]
+    pts += [(x0, y0 + r)] + _arc(x0 + r, y0 + r, r, 180, 270)
+    tb = {"L": (tip[0], yc - base / 2, x0, yc + base / 2), "R": (x1, yc - base / 2, tip[0], yc + base / 2),
+          "T": (xc - base / 2, tip[1], xc + base / 2, y0), "B": (xc - base / 2, y1, xc + base / 2, tip[1])}[side]
+    return pts, tb
+
+
+def draw_bubble(cv, rect, tip, alpha=1.0, ink=(30, 30, 30), fill=(255, 255, 255), width=4, r=24, text_rect=None):
+    """單一路徑台詞泡泡（同一填色、同一條連續描邊）；同時登記外框與檢查項。"""
+    pts, tb = bubble_polygon(rect, tip, r)
+    SS = 3
+    xs = [p[0] for p in pts]
+    ys = [p[1] for p in pts]
+    bx0, by0 = int(min(xs)) - 8, int(min(ys)) - 8
+    bx1, by1 = int(max(xs)) + 8, int(max(ys)) + 8
+    w, h = bx1 - bx0, by1 - by0
+    lay = Image.new("RGBA", (w * SS, h * SS), (0, 0, 0, 0))
+    d = ImageDraw.Draw(lay)
+    sp = [((px - bx0) * SS, (py - by0) * SS) for px, py in pts]
+    d.polygon(sp, fill=tuple(fill) + (255,))
+    d.line(sp + [sp[0], sp[1]], fill=tuple(ink) + (255,), width=width * SS, joint="curve")
+    lay = lay.resize((w, h), Image.LANCZOS)
+    if alpha < 1:
+        lay.putalpha(lay.getchannel("A").point(lambda v: int(v * alpha)))
+    cv.paste(lay, (bx0, by0), lay)
+    C.reg("bubble", rect, group="bubble")
+    C.reg("bubble_tail", tb, group="bubble")
+    if text_rect is not None:
+        C.reg("bubble_text", text_rect, group="bubble")
+        C.BUBBLE_CHK.append((True, tb, text_rect))
+    return tb
 
 
 class Fn:

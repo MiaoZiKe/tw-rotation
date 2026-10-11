@@ -17,10 +17,12 @@ CUR: list = []
 LOG: list = []      # 違規：(seg, t, a, b, area)
 EXC: list = []      # 例外：(seg, t, kind)
 EXPAND = 6
+BUBBLE_CHK: list = []   # (path 條數, 尾巴 bbox, 文字 box, 其他元素)
 
 
 def begin():
     CUR.clear()
+    BUBBLE_CHK.clear()
 
 
 def reg(name, rect, role="ui", group=None):
@@ -57,6 +59,12 @@ def _inter(a, b):
 
 def end(seg, t, W=None, H=None):
     items = list(CUR)
+    for single, tail, text in BUBBLE_CHK:
+        if not single:
+            LOG.append((seg, round(t, 3), 'bubble', '泡泡非單一路徑', 0))
+        if _inter((tail[0] - 10, tail[1] - 10, tail[2] + 10, tail[3] + 10), text) > 0:
+            LOG.append((seg, round(t, 3), 'bubble_tail', '尾巴離文字<10px', 0))
+    BUBBLE_CHK.clear()
     n = len(items)
     for i in range(n):
         na, ra, roa, ga = items[i]
