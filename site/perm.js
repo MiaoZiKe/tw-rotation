@@ -95,6 +95,12 @@
    鈕反灰、游標 not-allowed、不加 🔒；旁邊一行小字（.plknote）。點了什麼都不發生（不跳卡、不 toast）。*/
 [data-plkb="note"]{opacity:.42!important;cursor:not-allowed!important;filter:grayscale(1)}
 [data-plkb="note"]::after{content:none!important}
+/* ★ 2026-10-12 整塊反灰（features.js gray；Andy 註冊會員權限表：「紅框處反灰色」）：整條控制列淡掉、點不動（inert），旁邊一行小字（.plknote）*/
+[data-plgray]{opacity:.42!important;filter:grayscale(1)!important;cursor:not-allowed!important;user-select:none!important}
+/* 資金輪動左欄是 flex＋order 排版（theme4.css：小標 order 1、時間列 order 2）—— 小字要跟在時間列後面同一個 order，不然會跑到最上面 */
+#flowRotCard .rotleft>.plgnote{order:2;flex:0 0 100%!important;margin:-2px 0 4px!important}
+/* 資金分流樹：「看哪一天」靠右（fit.css margin-left:auto）→ 小字也靠右，排在它正下方 */
+#flowSankeyCard>.plgnote{flex:0 0 100%;justify-content:flex-end;margin:0 0 4px!important}
 /* 手機（html.m4）資金輪動／分流樹的期間列規定一行不換行（mobile4.css 31e），「Plus 以上可播放」塞不下 → 畫面上縮成「Plus 限定」（讀屏仍是原文）*/
 :root.m4 #v-flow .rbar:is(#rotBack,#sankeyDays)>.plknote{flex:none;font-size:0!important;margin-left:2px}
 :root.m4 #v-flow .rbar:is(#rotBack,#sankeyDays)>.plknote::before{content:"Plus 限定";font-size:12px;color:var(--ink-3)}
@@ -136,7 +142,7 @@
   function apply() {
     S.raf = 0;
     css();
-    const want = new Map(), wantB = new Map(), wantF = new Map();
+    const want = new Map(), wantB = new Map(), wantF = new Map(), wantG = new Map();
     /* ★ 2026-10-10（同步稽核 7-1）：側欄子分頁（layout4.js 的 .l4subtab[data-l4sub]）掛同款 🔒 —— features.js 的 sub。
        不看 route：側欄每一頁都看得到。只掛電腦版側欄；手機頁首子分頁（.m4subtabs）是 mobile4.js 每次整段 innerHTML 重畫的，
        在那裡掛屬性會讓它以為內容變了又重畫（無限迴圈），手機自己讀 TwFeatures.bySub() 畫。 */
@@ -149,6 +155,7 @@
       }
       (f.mark || []).forEach((sel) => q(sel).forEach((el) => { if (!wantB.has(el)) wantB.set(el, 'mark'); }));
       (f.block || []).forEach((sel) => q(sel).forEach((el) => wantB.set(el, f.note ? 'note' : 'block')));
+      (f.gray || []).forEach((sel) => q(sel).forEach((el) => { if (!wantG.has(el)) wantG.set(el, f.id); }));
     }
     /* 族群觀測：族群頁＋族群下拉（canvas 圖走 grpBlock）*/
     const lg = lockedGrp();
@@ -164,7 +171,7 @@
     needGroups();
     /* ★ 2026-10-07（Andy：「導覽即使是訪客 也需要看得到畫面」）：逐步導覽（site/tour.js）進行中暫停所有鎖頭遮罩，
        導覽一結束（tw:tour 事件）就照原規則蓋回來。只是畫面層，沒有打開任何資料。 */
-    if (touring()) { want.clear(); wantB.clear(); }
+    if (touring()) { want.clear(); wantB.clear(); wantG.clear(); }
     /* 只動「該變」的：屬性沒變就不寫（寫屬性會觸發樣式重算；live.js 每 5 秒改一堆格子，這裡每次都會被叫到）*/
     q('[data-plk]').forEach((el) => { if (!want.has(el)) unveil(el); });
     want.forEach((m, el) => {
@@ -176,7 +183,13 @@
       veilKids(el, wantF.get(el));
     });
     q('[data-plkb]').forEach((el) => { if (!wantB.has(el)) { el.removeAttribute('data-plkb'); if (el.dataset.plkTitle != null) { el.title = el.dataset.plkTitle; delete el.dataset.plkTitle; } } });
-    notes(wantB);
+    /* 整塊反灰：inert＝點、拖、Tab 都進不去（拉桿拖不動、▶ 不播、勾選不變）；只動我們自己掛的（data-plgray-in），不碰別人設的 inert */
+    q('[data-plgray]').forEach((el) => { if (!wantG.has(el)) { el.removeAttribute('data-plgray'); if (el.hasAttribute('data-plgray-in')) { el.inert = false; el.removeAttribute('data-plgray-in'); } } });
+    wantG.forEach((id, el) => {
+      if (el.getAttribute('data-plgray') !== id) el.setAttribute('data-plgray', id);
+      if (!el.inert) { el.inert = true; el.setAttribute('data-plgray-in', ''); }
+    });
+    notes(wantB, wantG);
     wantB.forEach((k, el) => {
       if (el.getAttribute('data-plkb') !== k) {
         el.setAttribute('data-plkb', k);
@@ -255,10 +268,17 @@
 
   /* 備註小字：每個被鎖的「備註模式」鈕旁邊一行（features.js noteAt＝插在哪個外框後面，例如下拉整組 .rotdd；沒寫＝鈕本身後面）。
      只有 noteOn 列出的選擇器才插字（週期統計的色票一顆顆都鎖，但只在下拉旁邊寫一次）。外框被整個重畫時 MutationObserver 再補。*/
-  function notes(wantB) {
+  function notes(wantB, wantG) {
     const keep = new Set();
+    /* 整塊反灰（gray）：小字插在那一塊後面（同一行 flex 的話就並排） */
+    if (wantG) wantG.forEach((id, el) => {
+      const f = F.byId(id); if (!f || !f.note) return;
+      let n = el.nextElementSibling;
+      if (!n || !n.classList.contains('plknote') || n.dataset.f !== f.id) { n = document.createElement('span'); n.className = 'plknote plgnote'; n.dataset.f = f.id; n.textContent = f.note; el.after(n); }
+      keep.add(n);
+    });
     lockedList().forEach((f) => {
-      if (!f.note || !routeOk(f)) return;
+      if (!f.note || !routeOk(f) || (f.gray && !(f.block || []).length && !f.noteOn)) return;
       (f.noteOn || f.block || []).forEach((sel) => q(sel).forEach((el) => {
         if (wantB.get(el) !== 'note') return;
         const at = (f.noteAt && el.closest(f.noteAt)) || el;

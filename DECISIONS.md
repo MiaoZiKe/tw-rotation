@@ -6941,3 +6941,24 @@ Andy 10-11：「訂閱畫面，點擊訂閱後需要跳出金流服務，我已�
 - 金鑰、收款帳號一律不寫進 repo；測試環境那組是綠界官方公開的，可以寫。
 - 綠界測試環境不提供退刷 API：測試模式下的信用卡退款一律改「登記人工退款」，不要改成假裝成功。
 - 表格列不要用 `class="row"`：全站有 `.row{display:flex}`，會把表格折成好幾行（10-11 踩過）。
+
+## #358 註冊會員（免費）逐頁權限表 10-12：16 點一頁一頁定，蓋掉 #352、#354 的註冊會員設定（UI 專家，2026-10-12；合併時若撞號請改號）
+Andy 10-12 原話：「CEO我這邊一頁一頁跟你說明並請你改動，以下是註冊後的免費會員」16 點（逐條照抄在 `docs/perm_free_1012.md`），稍早：「註冊會員次數還是太多，需要降至5次……並且像是日曆點擊一個標題就會消耗一次」。
+**這條蓋掉**：
+- #354（10-11「關掉的功能改成開＋每日 3 次」）裡的 ▶ 播放（`flow.play`）、今日關注（`mkt.cand`）、總覽／熱力圖跳頁（`heat.link`）、ETF 試算參數（`etf.inc.params`）→ 註冊會員**改回關**（`defBy.free:false`、拿掉 `limBy`）。週期統計族群篩選 3 → 10。個股 K 線工具、ETF 報酬比較改選、複利試算表維持開＋每日 3 次（Andy 這次沒提）。
+- #352 的 ▶ 反灰範圍：從 ▶ 一顆擴大成**整條時間列**（資金輪動 `#flowRotTime`：− 拉桿 ＋ 天數 ▶ 軌跡 腳印 水波 掃描；分流樹 `#sankeyDays`），字改「Plus 以上可調整」。
+- `plan_presets.js` 註冊會員：次數照 16 點改（今日事件 10→5、族群×法人 15→5、分流樹下鑽 15→5、題材剖析 10→5、產業鏈分頁 10→3、剖析子分頁 10→3、現金流試算 5→3…），**全站共用額度 dq 40 → 不設**（逐項上限比它細，留著會先把 Andy 要的 10 次吃掉）；關聯圖 `ind.rel` 從 5 次改關。
+做法（新機制都在 quota.js／perm.js，不改各頁程式能做的就不改）：
+- **反灰整塊（features.js `gray`）**：perm.js 把整塊掛 `data-plgray`＋`inert`（點、拖、Tab 都進不去），後面插一行 `.plknote`。用在時間列、ETF 報酬比較期間（新鍵 `etf.ret.period`）。
+- **qspent（今天用完就反灰）**：features.js 寫 `qspent:true`＋`qblock`（要反灰的鈕）＋`qbtn`（小字）＋`qnoteAfter`（小字插哪）＋`qkey`（這顆鈕代表哪個對象；今天算過的不反灰、照樣點得進去）。quota.js 的 evaluate 用完就反灰、捕獲點擊用完就吞掉這一下；`act()` 碰到 qspent 的功能用完不跳卡片、不跳「剩 1 次」角落小字。
+- **qcount／qsess（不改頁面程式的計數）**：qcount＝點了就算一次的元素（財經日曆標題、配息行事曆右側清單、篩選選項），qsess＝「打開下拉」那顆鈕（下拉打開一次之內改選只算一次），qsessIn＝哪些元素屬於下拉裡面。
+- 程式碼裡多三個呼叫：app.js 排行長條點擊 `TwQuota.use('flow.rank.click')`、搜尋 `go()` 呼叫 `TwQuota.use('search')`、題材熱力圖點擊先問 `TwQuota.actOk('heat.detail', …)`（用完安靜不動，不換網址再退回）。
+- 分頁觀看次數（市場明細三分頁、選股策略、週期統計、ETF 總覽、現金流試算）用既有的 `qnote`（qcard inline：內容反灰＋中間一行字），不蓋大卡。
+- 額度上限面板（acctm4.js `quotaItems`）多列「範本關掉／依身分預設關」的功能（寫「… 會員」膠囊），市場明細組加 `#market/cand`。
+- ETF 試算參數鎖（etfpage.js）範圍加右側搜尋框 `#incSearch`、配息頻率 `#incFq`（Andy 第 14 點「單檔ETF 右側篩選不開放使用」）。
+
+### 別順手改回去
+- 不要把 `flow.play`／`mkt.cand`／`heat.link`／`etf.inc.params` 的註冊會員改回「開＋3 次」（那是 10-11 的版本，10-12 Andy 一頁一頁重定）。
+- 不要把用完的樣子改回升級卡或 toast（Andy 10-10、10-12 第 5 點「切記不要跳需要升級會員資訊，頂多沒反應」）。
+- features.js 的 `limBy`／`defBy` 要跟 plan_presets.js 註冊會員範本一致（驗收段 0 會比對）—— 線上範本沒按「套用建議方案」之前吃的是 limBy／defBy。
+- 已知、不是這批造成：資金輪動上方篩選一換，ECharts 丟「Cannot read properties of undefined (reading 'width')」（origin/main 同樣重現），另開工作追。

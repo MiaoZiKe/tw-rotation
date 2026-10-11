@@ -85,6 +85,14 @@
       const u = Math.min(n, used(id));
       out.daily.push({ id, cat: f.cat, name: f.name, unit: f.qunit || UNIT_TXT[f.act] || '看', used: u, lim: n, rem: Math.max(0, n - u) });
     });
+    /* ★ 2026-10-12（Andy 註冊會員權限表；docs/perm_free_1012.md）：「反灰」的功能（範本關掉、或依身分預設關：資金輪動時間列、今日關注、熱力圖跳頁、
+       供應鏈關聯圖、ETF 報酬比較期間、試算參數…）也要列得出來 —— 以前只列每日次數與數量上限，關掉的功能在這張表上看不到。
+       上限 0＝寫最低有開的方案（「Plus 會員」膠囊，跟 lims 0 同一個樣子）。站主專用（adminOnly）、族群觀測不列。 */
+    const have = new Set(out.daily.map((x) => x.id));
+    Ft.list.forEach((f) => {
+      if (f.kind === 'limit' || f.adminOnly || f.cat === 'grp' || have.has(f.id) || p.can(f.id)) return;
+      out.daily.push({ id: f.id, cat: f.cat, name: f.name, unit: f.qunit || UNIT_TXT[f.act] || '看', used: 0, lim: 0, rem: 0, off: true });
+    });
     Ft.list.forEach((f) => {
       if (f.kind !== 'limit') return;
       const v = p.limit(f.id, f.max);
@@ -330,7 +338,7 @@ html.m4 .m4deldlg .msg{min-height:1.4em;font-size:13px;color:#ff6b7a;margin:4px 
   const QPAGES = [
     ['overview', '總覽', ['#overview']], ['earnings', '財經日曆', ['#earnings']],
     ['flow', '資金流向', ['#flow/rotation', '#flow/sankey', '#flow/inst']], ['heatmap', '熱力圖', ['#heatmap/industry', '#heatmap/theme']],
-    ['industry', '產業地圖', ['#industry']], ['stock', '個股', ['#stock/2330']], ['market', '市場明細', ['#market']],
+    ['industry', '產業地圖', ['#industry']], ['stock', '個股', ['#stock/2330']], ['market', '市場明細', ['#market', '#market/cand']],
     ['explore', '選股策略', ['#explore']], ['season', '週期統計', ['#season']], ['etf', 'ETF', ['#etf', '#etf/list', '#etf/cal', '#etf/inc']],
     ['watch', '自選', ['#watch']],
   ];
