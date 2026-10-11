@@ -1347,7 +1347,7 @@ class Op:
                 hit_main, _ = _mask_hits(mainm & ~bm & ~rowb, sx, sy, m)
                 cov, _ = _mask_hits(bm, sx, sy, m)
                 # CEO 10-12（例外 1）：主角圖表資料區 0%、其他文字 ≤15%、按鈕露出 ≥80%；越乾淨越好、越大越好
-                ok = hit_main == 0 and hit_out <= 0.10 * tot and cov <= 0.18 * barea      # 留安全邊（檢查上限 15％／20％）
+                ok = hit_main == 0 and hit_out <= 0.08 * tot and cov <= 0.18 * barea      # 留安全邊（檢查上限 15％／20％）
                 bad = hit_main / tot * 10 + hit_out / tot + max(0.0, cov / barea - 0.2) * 3
                 pref = {"top": 0, "left": 1, "right": 1, "bottom": 2}[side]
                 clean = hit_out <= 0.01 * tot
@@ -1375,9 +1375,10 @@ class Op:
         best = None
         for peak in (0, 60, 160, 280, 400, 520, -120, -240, -360):
             score, okk = 0.0, True
-            for u in (0.05, 0.15, 0.25, 0.35, 0.45, 0.55, 0.65, 0.75, 0.85, 0.95):
+            for u in [k / 20 for k in range(1, 20)]:
                 tt = min(shot.dur - 1 / FPS, max(0.0, t0 + u * self.HOP))
                 busy, mainm = self._busy_at(shot, L, tt)
+                mainm = _dilate(mainm, 6)
                 p = (lerp(a[0], b[0], u), lerp(a[1], b[1], u) - peak * math.sin(math.pi * u))
                 nm = "hop_r" if b[0] >= a[0] else "hop_l"
                 sz = lerp(s0, s1, u)
@@ -1393,9 +1394,9 @@ class Op:
                 tot = max(1, int(m.sum()))
                 hm, _ = _mask_hits(mainm, sx, sy, m)
                 ho, _ = _mask_hits(busy, sx, sy, m)
-                if hm > 0 or ho > 0.12 * tot:
+                if hm > 0 or ho > 0.08 * tot:
                     okk = False
-                score += hm / tot * 10 + max(0.0, ho / tot - 0.12)
+                score += hm / tot * 10 + max(0.0, ho / tot - 0.08)
             if best is None or (okk, -score) > (best[0], -best[1]):
                 best = (okk, score, peak)
         tp[key] = best[2] if best[0] else None
@@ -1750,6 +1751,18 @@ def _row_band(busy, b):
     H = busy.shape[0]
     m[max(0, int(by0 - 0.5 * h)):min(H, int(by1 + 0.5 * h) + 1), :] = True
     return m
+
+
+def _dilate(m, r):
+    d = m.copy()
+    for k in range(1, r + 1):
+        d[k:, :] |= m[:-k, :]
+        d[:-k, :] |= m[k:, :]
+    e = d.copy()
+    for k in range(1, r + 1):
+        e[:, k:] |= d[:, :-k]
+        e[:, :-k] |= d[:, k:]
+    return e
 
 
 def _sprite_alpha(name, i, foot, size):

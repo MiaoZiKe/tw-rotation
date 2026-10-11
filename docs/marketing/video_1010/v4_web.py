@@ -149,7 +149,7 @@ def build():
     # 3 資金流向（播放鏡用 60fps 素材）
     S.append(shot("d01", "資金流向", "V04_desktop_v3c", [(1.4, 3.6)], "③ 錢往哪裡跑", "錢跑去哪？我帶你看", [(0, "talk_happy"), (1.2, "face_curious")]))
     S.append(shot("d02", "資金流向", "V04_desktop_v3c", [(4.5, 8.1)], "輪動一路播放", "族群怎麼輪，播給你看", [(0, "coins"), (2.2, "face_surprise_happy")]))
-    S.append(shot("d03", "資金流向", "V06_desktop_v3c", [(2.4, 4.2)], "資金分流樹", "大盤的錢分去哪？", [(0, "talk_happy"), (1.0, "tilt")], cont=True, limit=4.25))
+    S.append(shot("d03", "資金流向", "V06_desktop_v3c", [(2.0, 4.2)], "資金分流樹", "大盤的錢分去哪？", [(0, "talk_happy"), (1.0, "tilt")], cont=True, limit=4.25))
     S.append(shot("d04", "資金流向", "V06_desktop_v3c", [(5.1, 8.1)], "每天分流一路播", "錢從哪流到哪，一看就懂", [(0, "spotlight"), (2.0, "face_love")]))
     # 4 熱力圖
     S.append(shot("e01", "熱力圖", "V08_desktop", [(0.05, 2.55)], "④ 哪裡熱一眼看", "方塊越大，錢越多", [(0, "magnifier"), (1.5, "face_shock")], min_cap=2.5))
