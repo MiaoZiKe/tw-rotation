@@ -223,11 +223,11 @@ def spike_back(poses, g, pose, amp, seed=0):
 
 
 # ================================================================== 幀規格與輸出
-def fr(poses, g, label, face=None, fx=None, sprites=None, front="", back="", hands=None, flash=0.0):
+def fr(poses, g, label, face=None, fx=None, sprites=None, front="", back="", hands=None, flash=0.0, texts=None):
     """fx：[(名稱, 圖層)] 效果符號（不得跟身體或彼此重疊，輸出時檢查）；
     sprites：貼身的帽子、道具等圖層（不檢查）；hands：貼身小肉掌（允許碰身體，但不得碰 fx）。"""
     return {"g": g, "label": label, "pose": face or poses[0], "fx": fx or [], "sprites": sprites or [],
-            "front": front, "back": back, "flash": flash, "hands": hands or []}
+            "front": front, "back": back, "flash": flash, "hands": hands or [], "texts": texts or []}
 
 
 def render(poses, d):
@@ -564,7 +564,7 @@ def scene_idle_down(poses):
     return out
 
 
-def _confetti_fx(t):
+def _confetti_fx(t, avoid=()):
     rng = np.random.default_rng(11)
     out = ""
     cols = (PINK, GOLD, BLUE, MINT, "#F08A5D")
@@ -576,6 +576,8 @@ def _confetti_fx(t):
         x = x0 + 9 * math.sin(2 * math.pi * (u * 2 + ph))
         w = 10 * max(0.25, abs(math.cos(2 * math.pi * (t / 12 * 2 + ph * 6))))
         rot = rng.uniform(0, 180) + 40 * t
+        if any(math.hypot(x - ax, y - ay) < 34 for ax, ay in avoid):
+            continue
         pts = [add((x, y), rot2(p, rot)) for p in ((-w / 2, -3), (w / 2, -3), (w / 2, 3), (-w / 2, 3))]
         out += f'<path d="M {" L ".join(P(p) for p in pts)} Z" fill="{cols[k % 5]}" stroke="{INK}" stroke-width="1.3" stroke-linejoin="round"/>'
     return out
@@ -598,17 +600,18 @@ def scene_idle_bigup(poses):
             hands.append(("handR", lay))
             lay, _ = hand(poses, g, "L", 160 - 45 * hop, 0.5 + 0.35 * hop)
             hands.append(("handL", lay))
-        fx = [("confetti", svg_layer(_confetti_fx(t)))]
+        sp = [(96 + (g["cx"] - CX), 212), (402 + (g["cx"] - CX), 202)] if up else []
+        fx = [("confetti", svg_layer(_confetti_fx(t, sp)))]
         if up:
-            fx.append(("sp1", part("fx_sparkle", (96 + (g["cx"] - CX), 212), 30)))
-            fx.append(("sp2", part("fx_sparkle", (402 + (g["cx"] - CX), 202), 26, deg=8)))
+            fx.append(("sp1", part("fx_sparkle", sp[0], 30)))
+            fx.append(("sp2", part("fx_sparkle", sp[1], 26, deg=8)))
         out.append(fr(poses, g, labs[t], face, fx=fx, hands=hands))
     return out
 
 
 # ---- 節日帽與道具（本地座標：原點＝帽底中心，y 向上為負）
-def at(svg, c, deg=0.0):
-    return f'<g transform="translate({f(c[0])},{f(c[1])}) rotate({deg:.2f})">{svg}</g>'
+def at(svg, c, deg=0.0, k=1.0):
+    return f'<g transform="translate({f(c[0])},{f(c[1])}) rotate({deg:.2f}) scale({k:.3f})">{svg}</g>'
 
 
 def _st(w=None):
@@ -645,13 +648,13 @@ def bunny_ear(deg):
             f'<path d="M -1,10 C -11,-8 -9,-44 -2,-56 C 5,-52 9,-20 6,10 Z" fill="{BLUSH}"/></g>')
 
 
-def mooncake(c, deg=0.0):
+def mooncake_svg():
     out = f'<circle r="27" fill="#D9A25B" {_st()}/><circle r="19" fill="none" stroke="#B97A3A" stroke-width="3"/>'
     for k in range(4):
         a = k * 90 + 45
         out += f'<ellipse cx="{f(math.cos(math.radians(a))*9)}" cy="{f(math.sin(math.radians(a))*9)}" rx="6.5" ry="3.8" transform="rotate({a} {f(math.cos(math.radians(a))*9)} {f(math.sin(math.radians(a))*9)})" fill="#F0CC8F"/>'
     out += '<circle r="3.6" fill="#B97A3A"/>'
-    return at(out, c, deg)
+    return out
 
 
 def red_packet(c, deg=0.0):
@@ -671,7 +674,7 @@ def _festival(poses, kind):
         happy = t in (4, 5)
         eyes = ("relax", "relax") if blink else (("happy", "happy") if happy else ("dot", "dot"))
         face = face2(poses, eyes, "grin" if happy else "keep", hl=(eyes[0] == "dot" and t % 3 == 0))
-        back, front, sprites, fx, hands = "", "", [], [], []
+        back, front, sprites, fx, hands, texts = "", "", [], [], [], []
         bob = 3 * math.sin(ang)
         if kind == "xmas":
             front += at(hat_xmas(), add(head, (4, 10)), wob + 4)
@@ -686,30 +689,30 @@ def _festival(poses, kind):
                 fx.append((f"snow{k}", svg_layer(fl)))
         elif kind == "newyear":
             front += at(hat_newyear(), add(head, (0, 12)), wob)
-            sprites.append(BA.text_layer("福", add(head, rot2((0, -16), wob)), wob, 17, BA._FONT, (249, 194, 60, 255), 0.3))
-            hands.append(("hold", BA.hand_layer((356, 468), 118, 38, "R")))
-            front += red_packet((334, 432 + bob), 8 + 3 * math.sin(ang))
+            texts.append(("福", add(add(head, (0, 12)), rot2((0, -27), wob)), wob, 18, BA._FONT, (249, 194, 60, 255), 0.3))
+            hands.append(("hold", BA.hand_layer((364, 476), 112, 44, "R")))
+            front += red_packet((338, 430 + bob), 8 + 3 * math.sin(ang)).replace("scale(1.000)", "scale(1.25)")
             for k, (x0, y0) in enumerate(((166, 186), (330, 178))):
                 r = 7 + 5 * max(0, math.sin(ang * 2 + k * 2))
                 fx.append((f"sp{k}", svg_layer(sparkle((x0, y0), r, GOLD))))
         elif kind == "dragon":
-            front += at(zongzi_svg(), add(head, (0, 12)), wob + 3)
+            front += at(zongzi_svg(), add(head, (0, 12)), wob + 3, 0.92)
             u = (t / 12) % 1.0
             fx.append(("steam", part("fx_smoke", (lerp(244, 262, u), lerp(128, 88, u)), 30, op=0.8 * fade(u))))
             fx = [x for x in fx if x[1].getbbox()]
-            hands.append(("hold", BA.hand_layer((356, 468), 118, 38, "R")))
-            front += at(zongzi_svg(), (334, 440 + bob), 6 + 3 * math.sin(ang)).replace("<g ", '<g transform-origin="0 0" ', 0)
+            hands.append(("hold", BA.hand_layer((364, 476), 112, 44, "R")))
+            front += at(zongzi_svg(), (338, 454 + bob), 6 + 3 * math.sin(ang), 0.62)
         elif kind == "moon":
             for sgn, ph in ((-1, 0.0), (1, 1.6)):
                 c = fwd(poses, g, 254 + sgn * 26, 190)
                 back += at(bunny_ear(sgn * 11 + 6 * math.sin(ang + ph) + wob), c, 0)
-            hands.append(("hold", BA.hand_layer((356, 468), 118, 38, "R")))
-            front += mooncake((334, 436 + bob), 10 * math.sin(ang) )
+            hands.append(("hold", BA.hand_layer((364, 476), 112, 44, "R")))
+            front += at(mooncake_svg(), (338, 436 + bob), 10 * math.sin(ang), 1.3)
             for k, (x0, y0) in enumerate(((150, 176), (352, 170))):
                 r = 6 + 5 * max(0, math.sin(ang * 2 + k * 2))
                 fx.append((f"sp{k}", svg_layer(sparkle((x0, y0), r, GOLD))))
         labs = ["輕輕呼吸", "帽子晃", "晃回", "帽子晃", "笑一下", "笑", "回正", "帽子晃", "眨眼", "睜眼", "帽子晃", "接回第 1 格"]
-        out.append(fr(poses, g, labs[t], face, fx=fx, sprites=sprites, front=front, back=back, hands=hands))
+        out.append(fr(poses, g, labs[t], face, fx=fx, sprites=sprites, front=front, back=back, hands=hands, texts=texts))
     return out
 
 
