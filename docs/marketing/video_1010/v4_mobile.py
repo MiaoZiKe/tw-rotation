@@ -5,7 +5,7 @@ from __future__ import annotations
 
 import v4_cards as K4
 from v3_core import Lay, Op, Rec4, Shot4, plan_dwell
-from v4_web import GRID_M, GRID_W, _hl, card, grid_card, idle_sub, nofab
+from v4_web import GRID_M, GRID_W, _hl, card, fresh_nofab, grid_card, idle_sub, nofab
 
 _LM = Lay("mobile")
 _CUR = {}
@@ -103,7 +103,10 @@ def build():
     S.append(shot("i05", "ETF", "V23_mobile", [(2.6, 5.7)], "複利怎麼長大", "再投入和領現金，並排看", [(0, "face_determined"), (1.0, "growth")], hl="長大"))
     S.append(shot("j01", "自選清單", "V24_mobile", [(8.2, 10.95)], "⑪ 自選清單", "常看的收進來，一開就有", [(0, "star_save"), (2.2, "face_love")], fixed=540))
     S.append(shot("j02", "導覽", "V25_mobile", [(1.4, 4.8)], "看不懂有導覽", "每一頁我都一步步帶你", [(0, "talk_happy"), (1.8, "face_wink")], chain="solo", min_cap=3.0))
-    S.append(shot("j03", "願望清單", "V26_mobile", [(15.5, 18.1)], "歡迎許願", "想要什麼功能，跟我說！", [(0, "heart_wish"), (1.6, "face_love")], chain="solo", fixed=800))
+    if fresh_nofab("V26w_mobile"):
+        S.append(shot("j03", "願望清單", "V26w_mobile", [(5.4, 8.9)], "歡迎許願", "想要什麼功能，跟我說！", [(0, "heart_wish"), (1.6, "face_love")], chain="solo", fixed=800))
+    else:
+        S.append(shot("j03", "願望清單", "V26_mobile", [(15.5, 18.1)], "歡迎許願", "想要什麼功能，跟我說！", [(0, "heart_wish"), (1.6, "face_love")], chain="solo", fixed=800))
     S.append(card("k01", 3.0, K4.end4_fn(), [(0, "pop"), (1.0, "ding")]))
     S.append(card("k02", 5.0, K4.disclaimer4_fn()))
     return S

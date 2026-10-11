@@ -24,6 +24,7 @@ def idle_sub(idle):
 
 
 _NF_OK = {}
+NOFAB_FOOTER_HIDDEN_AFTER = 1791755940.0     # 2026-10-12 05:59 台北時間（錄影端開始重錄「藏頁尾」版的時間）
 
 
 def _dur(path):
@@ -43,6 +44,13 @@ def _playable(path, orig):
     return _NF_OK[k]
 
 
+def fresh_nofab(clip):
+    """clip 的 _nofab 版存在、已收尾、而且是「頁尾也隱藏」之後（05:59 起）重錄的。"""
+    from v3_core import RAW3
+    p = RAW3 / f"{clip}_nofab.mp4"
+    return p.exists() and p.stat().st_mtime >= NOFAB_FOOTER_HIDDEN_AFTER and _dur(p) > 1.0
+
+
 def nofab(clip):
     """錄影端的藏客服鈕重錄版（原檔名加 _nofab）到了且能播就自動換上。"""
     import os
@@ -50,7 +58,10 @@ def nofab(clip):
     if os.environ.get("NOFAB", "1") == "0":
         return clip
     p = RAW3 / f"{clip}_nofab.mp4"
-    return clip + "_nofab" if (p.exists() and _playable(p, RAW3 / f"{clip}.mp4")) else clip
+    # 錄影端 10-12 05:59（台北）起的重錄版才有「頁尾也隱藏」；更早的 _nofab 檔頁尾還在，不用
+    if p.exists() and p.stat().st_mtime >= NOFAB_FOOTER_HIDDEN_AFTER and _playable(p, RAW3 / f"{clip}.mp4"):
+        return clip + "_nofab"
+    return clip
 
 
 def _hl(head):
@@ -142,7 +153,7 @@ def build():
     S.append(shot("d04", "資金流向", "V06_desktop_v3c", [(5.1, 8.1)], "每天分流一路播", "錢從哪流到哪，一看就懂", [(0, "spotlight"), (2.0, "face_love")]))
     # 4 熱力圖
     S.append(shot("e01", "熱力圖", "V08_desktop", [(0.05, 3.05)], "④ 哪裡熱一眼看", "方塊越大，錢越多", [(0, "magnifier"), (1.5, "face_shock")], min_cap=3.0))
-    S.append(shot("e02", "熱力圖", "I01_desktop_v3i", [(3.5, 6.4)], "題材熱度", "熱門題材，我拆開給你看", [(0, "talk_excited"), (1.4, "fire")], cont=True, min_cap=3.2))
+    S.append(shot("e02", "熱力圖", "I01_desktop_v3i", [(4.0, 6.4)], "題材熱度", "熱門題材，我拆開給你看", [(0, "talk_excited"), (1.4, "fire")], cont=True, min_cap=3.2))
     S.append(shot("e03", "熱力圖", "I01_desktop_v3i", [(6.4, 9.4)], "一步一步看懂", "從晶片到整櫃，照順序看", [(0, "bulb"), (1.6, "face_thinking_bulb")], chain="solo"))
     # 5 產業地圖（2D → 3D → 四宮格 → 關聯圖）
     S.append(shot("f01", "產業地圖", "V11_desktop", [(14.2, 17.2)], "⑤ 產業鏈 2D", "上下游怎麼排，一張看懂", [(0, "talk_happy"), (1.4, "spotlight")]))
@@ -172,8 +183,13 @@ def build():
     S.append(shot("j01", "自選清單", "V24_desktop", [(6.6, 10.4)], "⑪ 自選清單", "常看的收進來，一開就有", [(0, "star_save"), (2.2, "face_love")],
                   win_keys=[(0.0, (0, 0, 2990, 1682))]))
     S.append(shot("j02", "導覽", "V25_desktop", [(3.8, 6.9)], "看不懂有導覽", "每一頁我都一步步帶你", [(0, "talk_happy"), (1.8, "face_wink")], min_cap=3.0))
-    S.append(shot("j03", "願望清單", "V26_desktop", [(13.3, 16.9)], "歡迎許願", "想要什麼功能，跟我說！", [(0, "heart_wish"), (1.6, "face_love")], chain="solo",
-                  win_keys=[(0.0, (1290, 716, 3170, 1726))]))   # 裁到面板表單區：不露出「AI 客服即將推出」橫幅與上方分頁
+    # 願望清單：錄影端補錄的 V26w（打開就是願望清單分頁、沒有「錯誤回報」類別）到了就用；沒到退回 V26 的願望清單分頁段
+    if fresh_nofab("V26w_desktop"):
+        S.append(shot("j03", "願望清單", "V26w_desktop", [(5.4, 8.9)], "歡迎許願", "想要什麼功能，跟我說！", [(0, "heart_wish"), (1.6, "face_love")], chain="solo",
+                      win_keys=[(0.0, (1290, 716, 3170, 1726))]))
+    else:
+        S.append(shot("j03", "願望清單", "V26_desktop", [(13.3, 16.9)], "歡迎許願", "想要什麼功能，跟我說！", [(0, "heart_wish"), (1.6, "face_love")], chain="solo",
+                      win_keys=[(0.0, (1290, 716, 3170, 1726))]))   # 裁到面板表單區：不露出「AI 客服即將推出」橫幅與上方分頁
     # 14～15 片尾與警語
     S.append(card("k01", 3.0, K4.end4_fn(), [(0, "pop"), (1.0, "ding")]))
     S.append(card("k02", 5.0, K4.disclaimer4_fn()))
