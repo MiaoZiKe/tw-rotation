@@ -26,6 +26,11 @@ BAD_KNOWN = {
 
 BAD_SPANS_PATH = K.RAW3 / "bad_spans.json"
 
+# 錄影端 bad_spans 的誤判例外（人工目視確認過）：{素材: [(t0, t1, 原因)]}，與壞時段完全相同的那一筆就不擋
+SPAN_EXEMPT = {
+    "D10_desktop_v3j_nofab": [(8.6, 12.6, "AI 分析卡 1 小時／4 小時 狀態標籤，非錯誤畫面，CEO 目視確認（10-12）")],
+}
+
 # 分鏡師抽格確認的避開時段（storyboard_v4_*.md 第 7 節）：跟 bad_spans.json 一樣，碰到就報錯
 _E = 9999.0
 STORY_AVOID = {
@@ -245,7 +250,8 @@ def span_check(S, strict=False):
             if exists and (c in unchecked or c not in spans) and c not in seen_unc:
                 seen_unc.add(c)
                 (bad if strict else warn).append((s.sid, f"素材 {c} 錄影端還沒量壞畫面時段（unchecked）" + ("，成片不可用" if strict else "，預覽先用")))
-            sp = list(spans.get(c, [])) + [(a_, b_, "分鏡避開：" + w_) for a_, b_, w_ in STORY_AVOID.get(c, STORY_AVOID.get(c.replace("_nofab", ""), []))]
+            ex = SPAN_EXEMPT.get(c, [])
+            sp = [x for x in spans.get(c, []) if not any(abs(x[0] - e0) < 0.05 and abs(x[1] - e1) < 0.05 for e0, e1, _ in ex)] + [(a_, b_, "分鏡避開：" + w_) for a_, b_, w_ in STORY_AVOID.get(c, STORY_AVOID.get(c.replace("_nofab", ""), []))]
             for (t0, t1, why) in sp:
                 if a < t1 and b > t0:
                     bad.append((s.sid, f"素材 {c} 使用 {a:.2f}–{b:.2f}s，落在壞畫面時段 {t0:.2f}–{t1:.2f}s（{why}）"))

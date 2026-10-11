@@ -149,7 +149,7 @@ def build():
     # 3 資金流向（播放鏡用 60fps 素材）
     S.append(shot("d01", "資金流向", "V04_desktop_v3c", [(1.4, 3.6)], "③ 錢往哪裡跑", "錢跑去哪？我帶你看", [(0, "talk_happy"), (1.2, "face_curious")]))
     S.append(shot("d02", "資金流向", "V04_desktop_v3c", [(4.5, 8.1)], "輪動一路播放", "族群怎麼輪，播給你看", [(0, "coins"), (2.2, "face_surprise_happy")]))
-    S.append(shot("d03", "資金流向", "V06_desktop_v3c", [(2.4, 4.28)], "資金分流樹", "大盤的錢分去哪？", [(0, "talk_happy"), (1.0, "tilt")], cont=True))
+    S.append(shot("d03", "資金流向", "V06_desktop_v3c", [(2.4, 4.2)], "資金分流樹", "大盤的錢分去哪？", [(0, "talk_happy"), (1.0, "tilt")], cont=True, limit=4.25))
     S.append(shot("d04", "資金流向", "V06_desktop_v3c", [(5.1, 8.1)], "每天分流一路播", "錢從哪流到哪，一看就懂", [(0, "spotlight"), (2.0, "face_love")]))
     # 4 熱力圖
     S.append(shot("e01", "熱力圖", "V08_desktop", [(0.05, 2.55)], "④ 哪裡熱一眼看", "方塊越大，錢越多", [(0, "magnifier"), (1.5, "face_shock")], min_cap=2.5))
@@ -165,7 +165,8 @@ def build():
     D10 = "D10_desktop_v3j"
     S.append(shot("g01", "個股", D10, [(1.1, 3.4)], "⑥ 個股一頁看", "這檔的走勢，我幫你打開", [(0, "talk_happy"), (1.0, "face_curious")]))
     S.append(shot("g02", "個股", D10, [(4.8, 7.0)], "週期一鍵切", "切到週線，趨勢更清楚", [(0, "face_nod")]))
-    S.append(shot("g03", "個股", D10, [(9.1, 11.3)], "下方看總覽", "基本面、籌碼，重點整理好", [(0, "bulb"), (1.0, "face_thinking_bulb")]))
+    # 「無資料」＝AI 分析卡 1 小時／4 小時 狀態標籤，非錯誤畫面（CEO 10-12 07:4x 目視確認），g03 恢復
+    S.append(shot("g03", "個股", D10, [(9.1, 11.5)], "下方看總覽", "基本面、籌碼，重點整理好", [(0, "bulb"), (1.0, "face_thinking_bulb")]))
     S.append(shot("g04", "個股", D10, [(11.9, 13.0), (15.5, 17.2)], "旁邊看營收獲利", "營收、獲利，旁邊點就有", [(0, "face_proud"), (0.9, "magnifier")], hl="營收獲利"))
     S.append(shot("g05", "個股", D10, [(18.3, 19.4), (21.9, 23.6)], "旁邊看營收獲利", "營收、獲利，旁邊點就有", [(0, "face_proud"), (1.0, "face_nod")], hl="營收獲利"))
     S.append(shot("h01", "市場明細", "V16_desktop", [(7.6, 10.0)], "⑦ 市場明細", "法人連買賣，名單直接看", [(0, "coins"), (1.4, "face_curious")], min_cap=3.0))
