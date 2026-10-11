@@ -2835,6 +2835,7 @@ def main() -> int:
     ap.add_argument("--port", type=int, default=PORT)
     ap.add_argument("--nofab", action="store_true", help="錄影時藏起右下角客服鈕與比比（.supfab、.bibiring 等），檔名加 _nofab；V25／V26 例外不藏")
     ap.add_argument("--stable-noframes", action="store_true", help="點擊前的版面穩定等待不推進影片時間（重錄 10-11 20:19 以前錄的素材時用，時間軸才會跟原檔一致）")
+    ap.add_argument("--dsf", type=float, default=0, help="覆寫 deviceScaleFactor（例如 4：手機小字更清楚）；檔名加 _dsf4")
     ap.add_argument("--fps", type=int, default=0, help="輸出幀率（預設 30；v3c 預設 60：逐格算圖每一個 rAF 刻度都收進來）")
     ap.add_argument("--realtime", action="store_true", help="真實時間錄影（CDP screencast，依時間戳重採樣）；本機 CPU 繪圖只有 ~13fps 來源，實測比逐格算圖差，預設不用")
     ap.add_argument("--log-only", action="store_true", help="不截圖，只重跑一次操作記下點擊秒數與座標（已錄好的鏡頭補座標用）")
@@ -2882,6 +2883,8 @@ def main() -> int:
                         cfg["viewport"] = {"width": 390, "height": V3E_H.get(sid, 844)}
                     if args.set == "v3b":
                         cfg["viewport"] = {"width": 390, "height": V3B_H[sid]}
+                    if args.dsf:
+                        cfg["device_scale_factor"] = args.dsf
                     ctx = b.new_context(**cfg, locale="zh-TW", timezone_id="Asia/Taipei")
                     import datetime as _dt
                     if not args.realtime:
@@ -2909,7 +2912,7 @@ def main() -> int:
                     act.dsf = cfg["device_scale_factor"]
                     act.stable_noframes = args.stable_noframes
                     act.log_moves = v3   # v3 沒有錄進游標 → 游標路徑寫進 shots.md 給後製畫比比
-                    name = f"{sid}_{'mobile' if dev == 'm' else 'desktop'}" + ("_v3b" if args.set == "v3b" else "_v3c" if args.set == "v3c" else "_v3d" if args.set == "v3d" else "_" + args.set if args.set in ("v3e", "v3f", "v3g", "v3h", "v3i", "v3j") else "") + ("_nofab" if args.nofab else "")
+                    name = f"{sid}_{'mobile' if dev == 'm' else 'desktop'}" + ("_v3b" if args.set == "v3b" else "_v3c" if args.set == "v3c" else "_v3d" if args.set == "v3d" else "_" + args.set if args.set in ("v3e", "v3f", "v3g", "v3h", "v3i", "v3j") else "") + (f"_dsf{args.dsf:g}" if args.dsf else "") + ("_nofab" if args.nofab else "")
                     try:
                         # 每鏡自己決定何時開錄：fn(pg, act, rec_start) —— 先做準備（換頁、等圖畫完）再開錄
                         state = {}
