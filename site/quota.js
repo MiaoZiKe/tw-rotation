@@ -678,14 +678,14 @@
   function heatGo(to, fn) {
     HM.t = 0;      // 這一下已經判過了：不要讓捕獲那一層再判一次（擋下時也清，不然 800ms 內按升級卡的「升級 Plus」會被當成熱力圖跳頁）
     if (heatLinkUse()) { if (fn) fn(); else location.hash = to; return true; }
-    if (!onOv() && !hlSpent()) heatLinkBlock(to);
+    /* ★ 2026-10-12 Andy（熱力圖頁截圖）：「不應該出現這訊息，頂多就是點了沒反應」→ 全站一律安靜（不只總覽），不再跳升級卡 */
     return false;
   }
   function routeOkAll(hash) {
     if (HM.t && Date.now() - HM.t < 800) {
       const from = HM.from; HM.t = 0;
       if (pageOf(hash) !== pageOf(from) && !/^#pricing/.test(String(hash)) && !heatLinkUse()) {   // 去訂閱頁（升級卡的按鈕）永遠放行；可以跳＝這一下扣一次（2026-10-11）
-        location.replace(from); if (!onOv(from) && !hlSpent()) heatLinkBlock(hash); return false; }
+        location.replace(from); return false; }   // 2026-10-12：全站安靜，不跳升級卡
     }
     return routeOk(hash);
   }

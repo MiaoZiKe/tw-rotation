@@ -67096,18 +67096,13 @@ def _hp_judge(pg, T, tag, path, before, allow, want, stock, cur=None, tip=None):
     m = wait_until(pg, "() => { const m = document.getElementById('qcModal'); return !!m && !m.hidden && m.dataset.cq === 'heat.link' ? m.innerText : null; }", 300 if allow else 1500)
     if allow:
         ok(f"{T}【{tag}】{path} → 跳到 {want}（{h}）", h.startswith(want) and not m, (h, m))
-    elif before == "#overview":
+    else:
         # ★ 2026-10-10 Andy：「總攬雖說不開放 但是不用刻意出現需要訂閱訊息，會很反感，就單純點擊無效」→ 總覽上被擋＝網址不變、沒有任何升級卡
+        # ★ 2026-10-12 Andy（熱力圖頁截圖）：「不應該出現這訊息，頂多就是點了沒反應」→ 全站（熱力圖頁、題材頁…）一律同樣安靜
         mm = pg.evaluate("() => { const m = document.getElementById('qcModal'); return !!m && !m.hidden; }")
         extra = "" if cur is None else "、提示框照常、游標不是手指"
         ok(f"{T}【{tag}】{path} → 網址不變（{before}）、單純點擊無效（沒有升級卡）{extra}",
            h == before and not mm and (cur is None or (cur != "pointer" and tip)), (h, mm, cur, tip))
-        pg.evaluate(GP_CLOSE)
-    else:
-        need = "點熱力圖看個股是 Plus 以上功能" if stock else "付費會員功能"
-        extra = "" if cur is None else "、提示框照常、游標不是手指"
-        ok(f"{T}【{tag}】{path} → 網址不變（{before}）、跳升級卡（{need}＋升級 Plus）{extra}",
-           h == before and bool(m) and need in m and "升級 Plus" in m and (cur is None or (cur != "pointer" and tip)), (h, m, cur, tip))
         pg.evaluate(GP_CLOSE)
     return h
 
