@@ -108,8 +108,8 @@ class Lay:
             self.pill_px = 18
             self.pill_xy = (152, 4)
             self.head_y = 6
-            self.sub_y = 989
-            self.foot_y = 1047
+            self.sub_y = 988
+            self.foot_y = 1045
             self.host_x = 1850 if theme == "cute" else 70
             self.host_foot = 1048
             self.host_w = 130
@@ -292,6 +292,14 @@ class Focus4:
         self.src_rect = rect
         self.label = label
         self.rect, self.rect_src = focus_target(clip, label, rect) if clip else (rect, "分鏡手估")
+        mob = "mobile" in (clip or "")
+        mg = 16 if mob else 26
+        SW, SH = (1170, None) if mob else (3200, 1800)
+        x0, y0, x1, y1 = self.rect
+        n = [max(x0, mg), max(y0, mg), min(x1, SW - mg), min(y1, SH - mg) if SH else y1]
+        if [round(v) for v in n] != [round(v) for v in self.rect]:
+            self.rect = tuple(n)
+            self.rect_src += "（貼邊處內縮，框不超出畫面）"
         self.t_draw, self.d_draw, self.d_zoom = t_draw, d_draw, d_zoom
         self.t_zoom = t_draw + d_draw + 0.15 if t_zoom is None else t_zoom
         self.frame, self.zoom = frame, zoom
@@ -689,13 +697,13 @@ def subtitle_web(cv, L, text, t):
     wmax = text_w(f, text)
     a = clamp(t / 0.2, 0, 1)
     x, y = L.box[0] + 22, L.sub_y
-    h = L.sub_px * 1.3 + 12
+    h = L.sub_px * 1.25 + 8
     lay = Image.new("RGBA", (int(wmax) + 60, int(h) + 4), (0, 0, 0, 0))
     d = ImageDraw.Draw(lay)
     d.rounded_rectangle([0, 0, wmax + 44, h], 12, fill=THEME["panel_fill"] + (235,), outline=THEME["panel_outline"], width=1)
     if THEME["name"] == "pro":
         d.rectangle([0, 3, 4, h - 3], fill=DEEP)
-    d.text((22, 4), text, font=f, fill=THEME["ink"])
+    d.text((22, 2), text, font=f, fill=THEME["ink"])
     if a < 1:
         lay.putalpha(lay.getchannel("A").point(lambda v: int(v * a)))
     cv.paste(lay, (int(x - 22), int(y)), lay)
@@ -707,9 +715,10 @@ def footnote4(cv, L):
     text = R.FOOTNOTE
     tw = text_w(f, text)
     d = ImageDraw.Draw(cv)
-    x = L.W / 2 - tw / 2 + (0 if L.fmt == "web" else 60)
+    x = L.W / 2 - tw / 2 + 60
     y = L.foot_y
     if L.fmt == "web":
+        x = L.W / 2 - tw / 2
         R.float_panel(cv, (x - 12, y, x + tw + 12, y + 28), 215, 10)
         d.text((x, y + 1), text, font=f, fill=(80, 80, 80))
         C.reg("footnote", (x - 12, y, x + tw + 12, y + 28))

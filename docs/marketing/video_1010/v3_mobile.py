@@ -16,13 +16,23 @@ def pan(ya, yb, D, t0=0.3):
 
 
 PAN_LOG = []
+_SZ = {}
+
+
+def clip_size(clip):
+    """用 ffprobe 取素材尺寸（不開解碼器，避免每個 worker 都開一堆 ffmpeg）。"""
+    if clip not in _SZ:
+        import subprocess
+        from v3_core import RAW3
+        o = subprocess.check_output(["ffprobe", "-v", "error", "-select_streams", "v:0", "-show_entries", "stream=width,height",
+                                     "-of", "csv=p=0", str(RAW3 / f"{clip}.mp4")], text=True).strip().split(",")
+        _SZ[clip] = (int(o[0]), int(o[1]))
+    return _SZ[clip]
 
 
 def solve_pan(rec, op, D, pan_):
     """點擊目標必須在點下那一刻落在畫面框內：不在就調整捲動（先固定到含所有點擊的視窗，點完才慢慢滑）。"""
-    from render_1010 import reader
-    src = reader(rec.clip).get(0)
-    sw, sh = src.size
+    sw, sh = clip_size(rec.clip)
     wh = 1480 * sw / 1000
     maxy = max(0, sh - wh)
     taps = [(tp["t"], tp["y"]) for tp in op.taps if not tp["hover"]]
@@ -89,7 +99,7 @@ def build():
     S.append(feat("09", 2.5, "V04_mobile_v3b", stat(2.5, 2.5), "③ 錢往哪裡跑", "錢", "族群在領先還是落後，一看就知道", "資金流向",
                   focus=F((110, 1400, 1060, 2280), "資金輪盤", "V04_mobile_v3b", 1.0), idle=[(0, "face_think"), (1.5, "talk_explain")], pan_=pan(600, 1000, 2.5)))
     S.append(feat("10", 2.5, "V05_mobile_v3b", [(0, 3.0), (2.5, 5.5)], "大盤的錢分去哪", "分去哪", "從大盤分到產業鏈、族群、代表股", "資金流向",
-                  focus=F((40, 700, 1130, 2200), "分流樹", "V05_mobile_v3b", 1.2), idle="spotlight", pan_=pan(0, 800, 2.5)))
+                  focus=F((40, 700, 1130, 2200), "分流樹", "V05_mobile_v3b", 1.2), idle="spotlight", pan_=pan(500, 800, 2.5)))
     S.append(feat("11", 2.0, "V07_mobile", stat(3.3, 2.0), "法人資金在哪", "法人", "法人的錢集中在哪，也整理好了", "資金流向",
                   idle="magnifier", pan_=pan(0, 700, 2.0)))
     S.append(feat("12", 2.5, "V08_mobile", stat(3.1, 2.5), "④ 哪裡熱一眼看", "一眼看", "越大成交越多，紅漲綠跌", "熱力圖",
