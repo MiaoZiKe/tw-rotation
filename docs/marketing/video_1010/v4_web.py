@@ -14,7 +14,10 @@ _CUR = {}      # 素材 -> 已播到的來源秒（給下一鏡接續用）
 
 def nofab(clip):
     """錄影端的藏客服鈕重錄版（原檔名加 _nofab）到了就自動換上。"""
+    import os
     from v3_core import RAW3
+    if os.environ.get("NOFAB", "1") == "0":
+        return clip
     return clip + "_nofab" if (RAW3 / f"{clip}_nofab.mp4").exists() else clip
 
 

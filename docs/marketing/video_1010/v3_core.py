@@ -1483,8 +1483,6 @@ def site_overlay_check(shot, t):
     if rec is None or rec.win is None:
         return
     forb = forbidden_src(shot)
-    if not forb:
-        return
     mapped = []
     for (lab, r, tt) in forb:
         mr = _map_rect(rec, r)
@@ -1497,10 +1495,18 @@ def site_overlay_check(shot, t):
         fr = _map_rect(rec, fab_rect_src(clip, sw, sh))
         if _area(fr) > 0:
             items.append(("網站客服鈕（錄影內建，需 _nofab 重錄）", fr, "fab", None))
+            if not any(tt is None for _, _, tt in forb):   # 手機素材沒標重點框：客服鈕對整個內容區檢查（保守）
+                mr = _map_rect(rec, (24, 174, 1146, sh))
+                if _area(mr) > 0:
+                    mapped.append(("內容區（錄影端無重點框，客服鈕檢查用）", mr, "fab_only"))
     for (name, r, role, grp) in items:
         if role == "site" or name.startswith("ripple"):
             continue
         for (lab, mr, tt) in mapped:
+            if tt == "fab_only":
+                if role != "fab":
+                    continue
+                tt = None
             ir = _inter_rect(r, mr)
             a = _area(ir)
             if a <= 0:

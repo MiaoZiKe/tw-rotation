@@ -1263,10 +1263,11 @@ DEVS3 = {
 SHOTS3: dict = {}
 # 第 4 版：右下角客服鈕與比比壓在圖表上（Andy：「圖表一定要都被看到」）→ 錄影時藏起來（不改 site/）
 NOFAB_ACTIVE = {"on": False}
-NOFAB_CSS = 'html body .supfab, html body #supFab, html body .bibiring, html body #bibiRing, html body #bibiStage, html body .bibiwrap, html body .bibitip, html body #bibiTip, html body .bibifx, html body .bibiflash, html body .bibihop{display:none!important}'
+NOFAB_CSS = 'html body #supFab, html body .supfab, html body #bibiRing, html body .bibiring, html body #bibiStage, html body .bibiwrap, html body #bibiTip, html body .bibitip, html body .bibifx, html body .bibiflash, html body .bibihop, html body .supmark{display:none!important;visibility:hidden!important;opacity:0!important}'
 NOFAB_JS = r"""
-(() => { const css = 'html body .supfab, html body #supFab, html body .bibiring, html body #bibiRing, html body #bibiStage, html body .bibiwrap, html body .bibitip, html body #bibiTip, html body .bibifx, html body .bibiflash, html body .bibihop{display:none!important}';
-  const go = () => { const st = document.createElement('style'); st.id = '__vnofab'; st.textContent = css; document.head.appendChild(st); };
+(() => { try { localStorage.setItem('tw.fab.off', '1'); } catch (e) {}
+  const css = 'html body #supFab, html body #supFab.supfab, html body .supfab, html.fab-off body .supfab, html body #bibiRing, html body .bibiring, html body #bibiStage, html body .bibiwrap, html body #bibiTip, html body .bibitip, html body .bibifx, html body .bibiflash, html body .bibihop, html body .supmark{display:none!important;visibility:hidden!important;opacity:0!important}';
+  const go = () => { document.documentElement.classList.add('fab-off'); const st = document.createElement('style'); st.id = '__vnofab'; st.textContent = css; (document.head || document.documentElement).appendChild(st); };
   document.readyState === 'loading' ? document.addEventListener('DOMContentLoaded', go) : go(); })();
 """
 # v3b：手機版這些鏡頭的卡片比 844 高 → 加高 viewport（寬仍 390、DPR 3，版面仍是手機版）讓整張卡片入框；值＝卡片高＋頂欄＋餘裕
