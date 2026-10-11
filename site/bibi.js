@@ -35,8 +35,8 @@
     spin: 2080, highfive: 1480, dance: 1560, hug: 1640, wake_once: 1440, selfie: 1480,
     // 動作編排的零件（10-11 晚；PART 那張表）：跑步替代 hop_l／hop_r（循環）、抬頭看 face_curious、東張西望 tilt
     hop_l: 840, hop_r: 840, face_curious: 1470, tilt: 1040, face_star: 1370,
-    // 動畫單位 10-11 晚骨架重做第 1 組：開心的跳（待機預設，循環）、接東西（播一次；第 3 格 370ms 接到）
-    happy_hop: 1230, receive: 1380, receive_grass: 1380, receive_ball: 1380,
+    // Andy 10-11 指定的原版 Default 待機造型
+    default_idle: 1000,   // 單張（開心的跳由 CSS 做）
   };
   const IDLE = {
     holiday: { file: 'idle_bigup' },      // 國定假日：實際用哪一款看 HOLIDAY（依節日名稱挑帽子）；表外的節日用這個
@@ -245,7 +245,7 @@ html.fab-off .bibiring,html.fab-off .bibitip,html.fab-off .bibifx,html.fab-off #
   function idle() {
     const r = idle0();
     r.happy = NOT_HAPPY.indexOf(r.key) < 0;
-    if (r.happy && PART.happy) r.file = PART.happy;
+    if (r.happy) r.file = PART.happy || BASE_IDLE;
     return r;
   }
   function idle0() {
@@ -311,7 +311,7 @@ html.fab-off .bibiring,html.fab-off .bibitip,html.fab-off .bibifx,html.fab-off #
     const f = idleFile();
     /* 開心的跳（Andy 10-11 晚：「大部分情況盡量維持開心的跳」）：素材 happy_hop 還沒到 → 圖照情境款、整顆用 CSS 小跳；
        躺著／睡著／安慰的那幾款圖跳起來很怪，不跳（weekend 躺墊子、sleep_loop、idle_down）。 */
-    fab.classList.toggle('bibihappy', !!(idleNow.happy && !sleeping && !PART.happy && NOHOP.indexOf(f) < 0));
+    fab.classList.toggle('bibihappy', !!(idleNow.happy && !sleeping && !PART.happy && NOHOP.indexOf(f) < 0 && !reduce()));
     show(f);
   }
   /* 不跳「開心的跳」的情境：深夜睡覺、國定假日（節日帽／肅穆紀念日）、聖誕帽、大跌安慰（Andy 10-11 晚點名的例外） */
@@ -601,13 +601,16 @@ html.fab-off .bibiring,html.fab-off .bibitip,html.fab-off .bibifx,html.fab-off #
   /* 零件對照（MAP）：動畫單位的專屬零件到了，把右邊換成新檔名就好（先 bibi_site.py 轉 160px、MS 補總長），機制不用改。
      現在的替代：跑步＝素材庫 hop_l／hop_r（run_l／run_r 還沒到）；撲球／吃草／摸摸／轉圈＝G1 的 ball／eat_grass／pet／spin（_v2 還沒到）。 */
   /* receive＝手把草／球遞過來時往前接（receive 未到先用 face_star）；popcorn＝天竺鼠爆米花跳（未到先用 face_star＋編排位移）；
-     happy＝待機「開心的跳」（happy_hop 未到＝空字串：沿用情境款的圖、由 CSS 讓整顆小跳＋落地擠壓回彈；填了檔名就改播素材、CSS 小跳自動停） */
+     happy＝待機「開心的跳」素材（空字串＝用 BASE_IDLE 這張原版造型、由 CSS 讓整顆小跳＋落地擠壓回彈；填了檔名就改播素材、CSS 小跳自動停）。
+     ⚠ 骨架第 1 組（happy_hop／receive／receive_grass／receive_ball）Andy 10-11 退件「已經跟原來的不同了」→ 先不接，照原版造型重做後再填。 */
   const PART = { run_l: 'hop_l', run_r: 'hop_r', ball_catch: 'ball', eat: 'eat_grass', pet: 'pet', spin: 'spin', look: 'face_curious', peek: 'tilt',
-    receive: 'receive', receive_grass: 'receive_grass', receive_ball: 'receive_ball', popcorn: 'face_star', happy: 'happy_hop' };
+    receive: 'face_star', receive_grass: '', receive_ball: '', popcorn: 'face_star', happy: '' };
+  /* 預設待機（開心的跳的底圖）：Andy 10-11 指定的原版 Default 造型（docs/anim/bibi_library/reference/default_idle_1011.webp → bibi_site.py default_idle）。
+     「大部分時間都是那樣子」→ 一般情境一律用這張＋CSS 小跳；深夜、國定假日、聖誕帽、大跌安慰保留原情境款。 */
+  const BASE_IDLE = 'default_idle';
   /* 替代素材太長時只播這麼久（key＝零件、值＝[替代檔名, 毫秒]；換成真零件後檔名對不上就自動照 MS 播完整段） */
   const PART_MS = { ball_catch: ['ball', 1500] };
   /* 道具圖：動畫單位的 PNG 到了填檔名（放 site/brand/bibi/props/<名>.png）；空字串＝用下面畫的 inline SVG */
-  /* 給草／給球的手是動畫單位的 PNG（site/brand/bibi/props/，bibi_site.py props 產生）；球滾出去之後用下面畫的 SVG 球（照素材那顆的樣子） */
   const PROP_IMG = { ball: '', grass: '', hand: '' };
   let svgN = 0;
   const PROP_SVG = {
@@ -667,6 +670,8 @@ html.fab-off .bibiring,html.fab-off .bibitip,html.fab-off .bibifx,html.fab-off #
     });
   }
   const wait = (ms) => tween(ms, () => {});
+  /** 同時跑的那一段（不馬上 await）：被打斷時它也會丟 ABORT，先掛一個空的 catch，免得變成「沒人接的 Promise 錯誤」 */
+  const par = (p) => { p.catch(() => {}); return p; };
   function ensureStage() {
     if (stage && stage.isConnected) return stage;
     stage = document.createElement('div'); stage.id = 'bibiStage'; stage.setAttribute('aria-hidden', 'true');
@@ -710,39 +715,44 @@ html.fab-off .bibiring,html.fab-off .bibitip,html.fab-off .bibifx,html.fab-off #
   function preload() {
     if (preloaded) return; preloaded = true;
     Object.keys(PART).forEach((k) => { if (PART[k]) { const i = new Image(); i.src = src(PART[k]); } });
-    ['hand', 'hand_grass', 'hand_ball'].forEach((f) => { const i = new Image(); i.src = `brand/bibi/props/${f}.webp?v=${AV}`; });   // 空手要先載好：接到的那一刻換圖不能閃
+    { const i = new Image(); i.src = src(BASE_IDLE); }
   }
   function idleFile() { return sleeping ? SLEEP_FILE : ((idleNow && idleNow.file) || (IDLE[idleNow && idleNow.key] || IDLE.other).file); }
 
-  /* ---------- 給的動作（Andy 10-11 晚：「給草 給球，要有給的動作」；動畫單位交件 docs/anim/bibi_receive） ----------
-     道具是 512 畫布、跟比比素材同一個場景座標（比比中心 x=248、腳底 y=482；網站圖的裁切框左上 (28,52)、寬 440），
-     手從畫面右邊伸進來；比比播 receive_grass／receive_ball：第 3 格（370ms）肉掌在右前方接到東西、之後抱在胸前。
-     sc()＝場景座標 → 螢幕座標；道具用同一個比例 k 縮放，大小就跟比比對得上。
+  /* ---------- 給的動作（Andy 10-11 晚：「給草 給球，要有給的動作」） ----------
+     一隻手拿著草／球從右上伸進來，停在比比右前方（接東西的點），比比往前接（receive），東西交到比比手上、手縮回去。
+     ⚠ 動畫單位的骨架第 1 組（receive_* 與手拿草／手拿球的 PNG）Andy 10-11 退件（造型跟原版不同）→ 先用：
+       接的動作＝face_star（星星眼）＋編排位移；手、草、球＝下面畫的 SVG。照原版造型重做的素材到了，改 PART.receive_* 與道具即可。
+     sc()＝素材場景座標（512 畫布；比比中心 x=248、網站圖的裁切框左上 (28,52)、寬 440）→ 螢幕座標。
      比比在右下角時右邊沒有空間給手 → 先往畫面內側小跳一步讓出位置（toward），接完東西再從那裡開始吃／追。 */
   const sc = (g, X, Y) => ({ x: g.cx + (X - 248) * g.s / 440, y: g.top + (Y - 52) * g.s / 440 });
-  const GRAB = 370;                          // receive 第 3 格開始＝接到的那一刻（storyboard：150＋220）
-  function propImg(kind, file, g) {
-    const w = Math.round(512 * g.s / 440);
-    const el = document.createElement('div'); el.className = 'bp bp-' + kind; el.style.width = el.style.height = w + 'px'; el._w = el._h = w;
-    el.innerHTML = `<img src="brand/bibi/props/${file}.webp?v=${AV}" alt="" draggable="false" style="width:100%;height:100%;display:block">`;
-    ensureStage().appendChild(el); return el;
-  }
-  /** 手（拿著東西）：讓道具畫布上的點 (u,v) 停在螢幕 (tx,ty)；從右上方畫面外伸進來 */
-  function giveHand(g, file, u, v, tx, ty) {
-    const k = g.s / 440, el = propImg('hand', file, g);
-    const ex = tx + (256 - u) * k, ey = ty + (256 - v) * k;    // 畫布中心的終點
-    const H = { el, ex, ey, sx: ex + (g.mob ? 110 : 160), sy: ey - (g.mob ? 60 : 90), x: 0, y: 0,
-      at(x, y, rot, op) { H.x = x; H.y = y; at(el, x, y, ` rotate(${(rot || 0).toFixed(1)}deg)`, op); } };
+  const GRAB = 370;                          // 接到的那一刻（手伸進來 350ms 後）
+  /** 手（SVG，手指朝左）拿著東西：讓東西的中心停在螢幕 (tx,ty)；從右上方伸進來 */
+  function giveHand(g, kind, tx, ty) {
+    const W = g.mob ? 56 : 68, Hh = Math.round(W * 0.75), hand = prop('hand', W, Hh);
+    const iw = kind === 'grass' ? (g.mob ? 26 : 32) : (g.mob ? 20 : 24), ih = kind === 'grass' ? Math.round(iw * 1.3) : iw;
+    const item = prop(kind, iw, ih);
+    if (kind === 'grass') item.style.transformOrigin = '50% 100%';
+    const fx = (10 / 64 - 0.5) * W, fy = (24 / 48 - 0.5) * Hh;   // 指尖（手圖 (10,24)／(64,48)）相對手中心
+    const ex = tx - fx, ey = ty - fy - ih * 0.42;               // 手中心的終點（東西掛在指尖下面）
+    const H = { hand, item, iw, ih, ex, ey, sx: ex + (g.mob ? 110 : 160), sy: ey - (g.mob ? 60 : 90), x: 0, y: 0, held: true,
+      at(x, y, rot, op, irot) {
+        H.x = x; H.y = y;
+        at(hand, x, y, ` rotate(${(rot || 0).toFixed(1)}deg)`, op);
+        if (H.held) at(item, x + fx, y + fy + ih * 0.42, ` rotate(${(irot || 0).toFixed(1)}deg)`, op);
+      } };
     H.at(H.sx, H.sy, 12, 0);
     return H;
   }
-  const handEnter = (H, ms) => tween(ms, (k) => { const e = E.out(k); H.at(H.sx + (H.ex - H.sx) * e, H.sy + (H.ey - H.sy) * e, 12 * (1 - e), Math.min(1, k * 4)); });
-  /** 東西交出去了：手換成空手（不換的話手縮回去時會帶著第二根草／第二顆球） */
-  function handEmpty(H) { const i = H.el.querySelector('img'); if (i) i.src = `brand/bibi/props/hand.webp?v=${AV}`; H.el.className = 'bp bp-hand'; }
+  /** 手伸進來：減速、手上的東西跟著晃（越接近越小） */
+  const handEnter = (H, ms) => tween(ms, (k) => {
+    const e = E.out(k), sw = Math.sin(k * Math.PI * 2.5) * (1 - k);
+    H.at(H.sx + (H.ex - H.sx) * e, H.sy + (H.ey - H.sy) * e, 12 * (1 - e), Math.min(1, k * 4), 18 * sw);
+  });
   const handOut = (H, ms) => { const x0 = H.x, y0 = H.y; return tween(ms, (k) => { const e = E.in(k); H.at(x0 + (H.sx - x0) * e, y0 + (H.sy - y0) * e, 10 * e, (1 - k).toFixed(2)); }); };
-  /** 比比要往畫面內側讓多少，右邊才放得下手（肉掌＋一點袖子） */
-  function toward(g) {
-    const k = g.s / 440, need = (g.cx + 178 * k) + 215 * k + 8;   // 接東西的點在比比中心右邊 147k；手的肉掌再往右 ~215k
+  /** 比比要往畫面內側讓多少，右邊才放得下手 */
+  function toward(g, P) {
+    const need = P.x + (g.mob ? 56 : 68) * 0.95 + 6;
     return need > g.vw ? -(need - g.vw) - 6 : 0;
   }
   /** 比比小跳一步到 x（相對原位），落地擠壓回彈 */
@@ -750,30 +760,38 @@ html.fab-off .bibiring,html.fab-off .bibitip,html.fab-off .bibifx,html.fab-off #
     const e = E.inOut(k), up = Math.sin(Math.PI * k);
     pose(x0 + (x1 - x0) * e, -hgt * up, { sx: 1 - 0.05 * up + (k > 0.85 ? 0.08 * (k - 0.85) / 0.15 : 0), sy: 1 + 0.07 * up - (k > 0.85 ? 0.1 * (k - 0.85) / 0.15 : 0), sk: x1 < x0 ? 5 * up : -5 * up });
   });
-  /** 給東西的共同前段：手伸進來、比比同時往內側跳一步並播 receive；接到那一刻手變空手、縮回去。回傳比比站的位置（相對原位） */
+  /** 給東西的共同前段：手伸進來、比比同時往內側跳一步並播「接」；接到那一刻東西交到比比胸前（hold），手縮回去。
+      回傳 { off：比比站的位置（相對原位）, item：比比抱著的那個道具（草／球）, hold：胸前的螢幕座標 } */
   async function receive(g, kind) {
-    const off = toward(g), file = kind === 'grass' ? 'hand_grass' : 'hand_ball';
-    const P = sc(g, kind === 'grass' ? 392 : 426, kind === 'grass' ? 262 : 352);   // 接的點（receive 第 3 格肉掌；球比較大，球心再往右一點才不會蓋到臉）
-    const H = giveHand(g, file, kind === 'grass' ? 236 : 296, kind === 'grass' ? 278 : 262, P.x + off, P.y);
+    const P0 = sc(g, kind === 'grass' ? 392 : 418, kind === 'grass' ? 262 : 330);   // 接的點：比比右前方
+    const off = toward(g, P0), P = { x: P0.x + off, y: P0.y };
+    const H = giveHand(g, kind, P.x, P.y);
     show(PART['receive_' + kind] || PART.receive, true);       // 0.2 秒內就在動（Andy：「直接進入互動動作」）
-    const step = off ? hopTo(0, off, 300, g.mob ? 9 : 12) : tween(300, (k) => pose(0, -6 * Math.sin(Math.PI * k), { sy: 1 + 0.05 * Math.sin(Math.PI * k) }));
+    const step = par(off ? hopTo(0, off, 300, g.mob ? 9 : 12) : tween(300, (k) => pose(0, -6 * Math.sin(Math.PI * k), { sy: 1 + 0.05 * Math.sin(Math.PI * k) })));
     await handEnter(H, GRAB - 20); await step;
-    await wait(20);
-    handEmpty(H);
-    burstAt('star', P.x + off, P.y - 8, 3, 1.4);
-    await handOut(H, 380);
-    H.el.remove();
-    await wait(Math.max(0, (MS[PART['receive_' + kind]] || 1380) - GRAB - 400));
-    return off;
+    // 接到：東西交到比比胸前、比比抱緊縮一下（往前探再收回）
+    H.held = false; cue(kind === 'grass' ? '哇！牧草～給我的嗎？' : '哇！是球～');
+    burstAt('star', P.x, P.y - 10, 3, 1.4);
+    const hold = sc(g, 248, kind === 'grass' ? 372 : 392); hold.x += off;
+    const out = par(handOut(H, 380));
+    await tween(320, (k) => {
+      const e = E.out(k), d = E.damp(k, 2.5);
+      at(H.item, P.x + (hold.x - P.x) * e, P.y + (hold.y - P.y) * e, kind === 'grass' ? ` rotate(${(-10 * e).toFixed(1)}deg)` : ` rotate(${(-200 * e).toFixed(1)}deg)`, 1);
+      pose(off, 0, { sk: -4 * Math.sin(Math.PI * k), sx: 1 + 0.07 * d, sy: 1 - 0.09 * d });
+    });
+    await out; H.hand.remove();
+    await wait(260);
+    return { off, item: H.item, hold };
   }
 
   /* ---------- 腳本：玩球 ----------
-     ★ 10-11 晚 Andy：「給球要有給的動作」→ 一隻手拿著球從右邊伸進來，比比往前接（receive_ball）、抱在胸前；
+     ★ 10-11 晚 Andy：「給球要有給的動作」→ 一隻手拿著球從右邊伸進來，比比往前接、抱在胸前；
      接著球從懷裡掉到腳邊，比比一踢：球往空間大的那一側滾（右下角＝往左）——拋物線、每次落地反彈越來越低（落地瞬間壓扁）、
      邊滾邊轉、越滾越慢、影子跟著縮放；比比先往後縮一下再衝（擠壓→伸展），跑步時整顆上下彈、身體往前傾，速度跟球一起慢下來；
      追上時急停前傾回彈＋冒星星、球滾進懷裡、播撲球；再跑回原位、到位時回彈站穩。 */
   async function ballScript(g) {
-    const off = await receive(g, 'ball');
+    const rc = await receive(g, 'ball'), off = rc.off;
+    rc.item.remove();
     const P = (x, y, o) => pose(x + off, y, o);              // 下面的位移都以「接球的位置」為起點
     const dir = g.dir, R = g.mob ? 10 : 12, gap = g.s * 0.36, cx = g.cx + off;
     const D = clamp(dir < 0 ? cx - 34 - R : g.vw - 34 - R - cx, 110, g.mob ? 240 : 560);
@@ -793,7 +811,7 @@ html.fab-off .bibiring,html.fab-off .bibitip,html.fab-off .bibifx,html.fab-off #
     };
     // 1. 球從懷裡掉到腳邊（彈一下），身體縮起來蓄力 → 一踢
     show(PART.look);
-    const chest = sc(g, 248, 400); chest.x += off;
+    const chest = rc.hold;
     await tween(300, (k) => {
       const x = chest.x + (bx0 - chest.x) * k, y = chest.y + (ground - R - chest.y) * (k * k) - (k > 0.7 ? 10 * Math.sin(Math.PI * (k - 0.7) / 0.3) : 0);
       at(ball, x, y, '', 1); sh.style.opacity = (0.6 * k).toFixed(2); at(sh, x, ground + 1, ` scale(${(0.5 + 0.5 * k).toFixed(2)})`);
@@ -843,13 +861,15 @@ html.fab-off .bibiring,html.fab-off .bibitip,html.fab-off .bibifx,html.fab-off #
   }
 
   /* ---------- 腳本：餵牧草 ----------
-     ★ 10-11 晚 Andy：「給草要有給的動作」→ 一隻手拿著牧草從右上伸進來，比比往前接（receive_grass）、抱在胸前；
+     ★ 10-11 晚 Andy：「給草要有給的動作」→ 一隻手拿著牧草從右上伸進來，比比往前接、抱在胸前；
      接著播吃草（eat_grass，已剪掉開頭的待機格）：一口一口、每口冒草屑、跳出「嚼嚼」、身體跟著縮；吃完小跳回原位。 */
   async function grassScript(g) {
-    const off = await receive(g, 'grass');
+    const rc = await receive(g, 'grass'), off = rc.off, gr = rc.item;
     const cx = g.cx + off;
     cue();
     show(PART.eat, true);
+    // 吃草素材第一格就是捧著草：抱著的那根 SVG 草收進去（縮小淡出），換成素材裡的草，一口一口吃到沒有
+    tween(220, (k) => at(gr, rc.hold.x, rc.hold.y, ` rotate(-10deg) scale(${(1 - 0.5 * k).toFixed(2)})`, (1 - k).toFixed(2))).then(() => gr.remove(), () => {});
     const Te = partMs('eat'), bites = 5, per = Te / (bites + 1);
     for (let i = 0; i < bites; i++) {
       await tween(per, (k) => { const c = Math.sin(Math.PI * Math.min(1, k * 2.2)); pose(off, 0, { sy: 1 - 0.045 * c, sx: 1 + 0.03 * c }); });   // 嚼一口身體縮一下
@@ -867,11 +887,10 @@ html.fab-off .bibiring,html.fab-off .bibitip,html.fab-off .bibifx,html.fab-off #
   }
 
   /* ---------- 腳本：摸摸頭 ----------
-     手（動畫單位的手）從右上伸進來（減速停在頭上）、來回摸 3 下（每一趟加減速、往下壓），每摸一下比比縮一下、冒愛心；摸完手縮回去。 */
+     手從右上伸進來（減速停在頭上）、來回摸 3 下（每一趟加減速、往下壓），每摸一下比比縮一下、冒愛心；摸完手縮回去。 */
   async function petScript(g) {
-    /* 手用動畫單位給草／給球那隻（空手版，bibi_site.py props 拆出來的），畫風跟比比一致；肉掌中心在畫布 (370,185) → 對準頭頂 */
-    const k = g.s / 440, hand = propImg('hand', 'hand', g), dx = (256 - 370) * k, dy = (256 - 185) * k, W = 60, Hh = 40;
-    const AT = (x, y, extra, op) => at(hand, x + dx, y + dy, extra, op);
+    const W = g.mob ? 48 : 58, Hh = Math.round(W * 0.75), hand = prop('hand', W, Hh);
+    const AT = (x, y, extra, op) => at(hand, x, y, extra, op);
     const hx = g.cx, hy = g.top + g.s * 0.22 - Hh * 0.3;
     const sx0 = Math.min(g.vw - W / 2 - 4, g.cx + g.s * 0.95), sy0 = Math.max(Hh / 2 + 4, g.top - g.s * 0.75);
     show(PART.pet, true);
@@ -1108,7 +1127,7 @@ html.fab-off .bibiring,html.fab-off .bibitip,html.fab-off .bibifx,html.fab-off #
       page: ring ? +(ring.dataset.page || 0) : 0, pages: ring ? +(ring.dataset.pages || 0) : 0, tip: tip && !tip.hidden && tip.classList.contains('on') ? tip.textContent : '' }),
     test: (o) => { o = o || {}; if ('now' in o) T.now = o.now; if ('pct' in o) T.pct = o.pct; if ('hol' in o) T.hol = o.hol;
       if ('fidget' in o) { noFidget = !o.fidget; if (noFidget) { clearTimeout(fidgetT); stopFidget(); } else schedFidget(); } applyIdle(); return idleNow; },
-    fidget: (k) => doFidget(k), stop: (why) => stopRun(why || 'api'), PART,
+    fidget: (k) => doFidget(k), stop: (why) => stopRun(why || 'api'), PART, BASE: BASE_IDLE,
     reset: () => { T.now = null; T.pct = undefined; T.hol = null; applyIdle(); },
     idle: () => idle(), open: openRing, close: closeRing, act,
   };

@@ -12,7 +12,8 @@
 新素材到了：把名稱加進 NAMES、跑這支、再改 site/bibi.js 的 MAP（那張表寫「哪個動作用哪個檔」）。
 
 用法：python scripts/anim/bibi_site.py            # 全部重做
-      python scripts/anim/bibi_site.py props      # 給草／給球的手與道具（site/brand/bibi/props/）
+      python scripts/anim/bibi_site.py default_idle   # Andy 指定的 Default 待機（單張；開心的跳由網頁 CSS 做）
+      python scripts/anim/bibi_site.py props      # 給草／給球的手與道具（⚠ 10-11 隨骨架第 1 組退件，網站暫不用）
       python scripts/anim/bibi_site.py pet ball    # 只做這幾組
 輸出最後一行印出每組的總長毫秒（site/bibi.js 的 MS 表要抄這個數字，動作播完才回待機）。
 """
@@ -54,7 +55,8 @@ NAMES = [
     "hop_l", "hop_r", "face_curious", "tilt",
     "run_l", "run_r", "ball_catch", "eat_grass_v2", "pet_v2", "spin_v2",
     # 10-11 晚 Andy 追加：開心的跳（待機預設）、接過來（給草／給球）、爆米花跳；替代用 face_star
-    "face_star", "happy_hop", "receive", "popcorn", "receive_grass", "receive_ball",
+    # ⚠ happy_hop／receive／receive_grass／receive_ball（骨架第 1 組）Andy 10-11 退件（造型跟原版不同），先不轉進網站；照原版造型重做後再加回來
+    "face_star",
 ]
 
 
@@ -155,12 +157,64 @@ def props():
         print(f"  道具 {f.stem:12s} {f.stat().st_size / 1024:4.1f} KB")
 
 
+def default_idle():
+    """Andy 10-11 指定的 Default 待機造型（docs/anim/bibi_library/reference/default_idle_1011.webp，單張、米色底）→ site/brand/bibi/default_idle.webp。
+
+    Andy：「請參考原本的圖三作為 Default，大部分時間都是那樣子」。網站的「開心的跳」就是在這張上面用 CSS 位移做（造型不變）。
+    ① 米色底去掉：從四個角落往內填（深色描邊圍起來的身體不會被填到）；地上那圈淡影子改成半透明深咖啡（深淺主題都看得到、不會變成一塊米色）。
+    ② 對齊素材庫的場景座標：描邊外框量起來寬 385、腳底 y=483；素材庫（wave 第 1 格）寬 287、中心 x=247.5、腳底 481 → 縮 0.745 再平移，
+       這樣跟其他情境款大小、腳底一致，換圖不會忽大忽小。
+    """
+    import numpy as np
+    from collections import deque
+    src = LIB / "reference" / "default_idle_1011.webp"
+    if not src.exists():
+        print("  略過 default_idle（參考圖還沒到）")
+        return
+    a = np.array(Image.open(src).convert("RGB")).astype(int)
+    H, W = a.shape[:2]
+    lum = a.sum(2) / 3
+    bg = a[2:8, 2:8].reshape(-1, 3).mean(0)
+    near = np.abs(a - bg).max(2) < 70          # 可以被填到的：跟底色差不多（含淡影子）、不是深色描邊
+    near &= lum > 120
+    seen = np.zeros((H, W), bool)
+    dq = deque([(0, 0), (0, W - 1), (H - 1, 0), (H - 1, W - 1)])
+    for y, x in dq:
+        seen[y, x] = True
+    while dq:
+        y, x = dq.popleft()
+        for dy, dx in ((1, 0), (-1, 0), (0, 1), (0, -1)):
+            ny, nx = y + dy, x + dx
+            if 0 <= ny < H and 0 <= nx < W and not seen[ny, nx] and near[ny, nx]:
+                seen[ny, nx] = True
+                dq.append((ny, nx))
+    out = np.zeros((H, W, 4), np.uint8)
+    out[..., :3] = a
+    out[..., 3] = 255
+    dark = np.clip((bg.mean() - lum) / bg.mean() * 2.4, 0, 0.42)   # 底色上的影子／描邊外的抗鋸齒 → 半透明深咖啡
+    dark[dark < 0.07] = 0                                          # 壓縮雜訊（底色上看不見的小斑點）一律透明
+    out[seen, 0], out[seen, 1], out[seen, 2] = 58, 38, 30
+    out[seen, 3] = (dark[seen] * 255).astype(np.uint8)
+    im = Image.fromarray(out, "RGBA")
+    s = 0.745
+    big = im.resize((round(W * s), round(H * s)), Image.LANCZOS)
+    scene = Image.new("RGBA", (512, 512), (0, 0, 0, 0))
+    scene.alpha_composite(big, (round(247.5 - 253.5 * s), round(481 - 483 * s)))
+    fr = scene.crop(BOX).resize((SIZE, SIZE), Image.LANCZOS)
+    OUT.mkdir(parents=True, exist_ok=True)
+    fr.save(OUT / "default_idle.webp", "WEBP", quality=88, method=6)
+    print(f"  default_idle  {(OUT / 'default_idle.webp').stat().st_size / 1024:5.1f} KB（單張）")
+
+
 def main(argv):
     if argv == ["icons"]:
         icons()
         return
     if argv == ["props"]:
         props()
+        return
+    if argv == ["default_idle"]:
+        default_idle()
         return
     names = argv or NAMES
     ms = {}

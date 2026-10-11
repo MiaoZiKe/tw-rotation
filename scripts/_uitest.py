@@ -32936,9 +32936,10 @@ def t_bibi_1011(b, base):
         ("和平紀念日 → 不戴慶祝帽、用週末放鬆款", {"now": "2026-02-28T10:00:00+08:00", "hol": {"2026-02-28": "和平紀念日"}}, "overview", "weekend", "holiday", "和平紀念日"),
         ("12/24 平日盤後 → 聖誕帽", {"now": "2026-12-24T15:00:00+08:00", "pct": None, "hol": {}}, "overview", "festival_xmas", "xmas", "聖誕"),
     ]
-    HAPPY = pg.evaluate("() => Bibi.PART.happy")   # 動畫單位的「開心的跳」素材（有就是大部分情境的待機）
+    HAPPY = pg.evaluate("() => Bibi.PART.happy || Bibi.BASE")   # 大部分情境的待機圖：「開心的跳」素材，沒有就是 Andy 指定的原版 Default（＋CSS 小跳）
+    HOP_ASSET = pg.evaluate("() => !!Bibi.PART.happy")
     NOT_HAPPY = ("night", "holiday", "xmas", "down2")
-    IDLE_F = HAPPY or "wave"                       # 盤後總覽的待機圖（下面回待機都比這張）
+    IDLE_F = HAPPY                                 # 盤後總覽的待機圖（下面回待機都比這張）
     for name, inj, route, want, key, say in cases:
         if HAPPY and key not in NOT_HAPPY:
             want = HAPPY
@@ -32952,19 +32953,19 @@ def t_bibi_1011(b, base):
                               ("盤中小跌", {"now": "2026-10-14T10:00:00+08:00", "pct": -0.3}, True),
                               ("盤中大跌", {"pct": -1.6}, False), ("深夜", {"now": "2026-10-14T23:40:00+08:00", "pct": None}, False),
                               ("國定假日", {"now": "2026-02-16T10:00:00+08:00", "hol": {"2026-02-16": "春節"}}, False)):
-        pg.evaluate("(o) => Bibi.test(o)", inj); pg.wait_for_timeout(250)
+        pg.evaluate("(o) => Bibi.test(o)", inj); pg.wait_for_timeout(700)
         hp = pg.evaluate("""() => { const h = document.querySelector('#supFab .bibihop'), s = Bibi.state(); return { happy: s.happy, anim: h ? getComputedStyle(h).animationName : '', src: s.src.split('/').pop() }; }""")
         ys = pg.evaluate("""() => new Promise((res) => { const h = document.querySelector('#supFab .bibihop'), o = []; const t0 = performance.now();
           const k = () => { o.push(h.getBoundingClientRect().top); if (performance.now() - t0 < 2600) setTimeout(k, 60); else res(o); }; k(); })""")
         moved = max(ys) - min(ys)
-        if HAPPY:   # 有素材：圖就是 happy_hop（素材自己在跳），CSS 小跳關掉
+        if HOP_ASSET:   # 有素材：圖就是 happy_hop（素材自己在跳），CSS 小跳關掉
             _bibi_src(pg, HAPPY if want_h else "__none__", 3000 if want_h else 300)
             hp = pg.evaluate("""() => { const s = Bibi.state(); return { happy: s.happy, src: s.src.split('/').pop() }; }""")
             ok(f"【{T}】桌機 待機「{name}」→ " + (f"開心的跳 {HAPPY}（{hp['src']}）" if want_h else f"不跳、保留原情境款（{hp['src']}）"),
                (hp["src"] == HAPPY + ".webp") == want_h and not hp["happy"] and moved < 1, {"hp": hp, "moved": moved})
         else:
-            ok(f"【{T}】桌機 待機「{name}」→ " + ("開心的跳（整顆真的上下跳 {:.0f}px）".format(moved) if want_h else "不跳（原情境款，跳動 {:.0f}px）".format(moved)),
-               (hp["happy"] and hp["anim"] == "bibihappy" and moved >= 8) if want_h else (not hp["happy"] and moved < 1), {"hp": hp, "moved": moved})
+            ok(f"【{T}】桌機 待機「{name}」→ " + ("原版 Default 造型（{}）＋開心的跳（整顆真的上下跳 {:.0f}px）".format(hp["src"], moved) if want_h else "不跳（原情境款 {}，跳動 {:.0f}px）".format(hp["src"], moved)),
+               (hp["happy"] and hp["anim"] == "bibihappy" and moved >= 8 and hp["src"] == HAPPY + ".webp") if want_h else (not hp["happy"] and moved < 1 and hp["src"] != HAPPY + ".webp"), {"hp": hp, "moved": moved})
         pg.evaluate("() => Bibi.test({ hol: {} })")
     pg.evaluate("() => Bibi.test({ hol: {} })")
     # 盤後依分頁：真的換頁（hashchange 重算）
@@ -33100,7 +33101,7 @@ def t_bibi_1011(b, base):
 
     rec = play("grass", 5200)
     hys = [r["hand"]["y"] for r in rec if r["hand"]]
-    RG, EAT = pg.evaluate("() => [Bibi.PART.receive_grass, Bibi.PART.eat]")
+    RG, EAT = pg.evaluate("() => [Bibi.PART.receive_grass || Bibi.PART.receive, Bibi.PART.eat]")
     ok(f"【{T}】桌機 點「餵牧草」→ 300ms 內比比就在動", started(rec), rec[:6])
     ok(f"【{T}】桌機 餵牧草：一隻手拿著草從右上伸下來遞給比比（手 y {hys[0] if hys else 0:.0f}→{max(hys or [0]):.0f}）、比比播接過來 {RG}",
        bool(hys) and max(hys) - hys[0] > 40 and any(r["src"] == RG + ".webp" for r in rec), hys[::3])
@@ -33263,8 +33264,9 @@ def t_bibi_1011(b, base):
     rec = pg.evaluate(BIBI_REC, 3200)
     ok(f"【{T}】手機 點「玩球」→ 300ms 內在動、比比跑出去（最遠 {min(r['ox'] for r in rec):.0f}px）",
        any(r["t"] <= 300 and r["run"] and (r["ox"] or r["oy"] or r["body"] or r["src"] != "wave.webp") for r in rec) and min(r["ox"] for r in rec) < -60, rec[:5])
-    outm = [r["t"] for r in rec if r["sw"] > 390 or (r["ball"] and (r["ball"]["l"] < -1 or r["ball"]["r"] > 391))]
-    ok(f"【{T}】手機 玩球全程球在 390 內、沒有橫向捲軸（超出 {outm[:5]}）", not outm, outm[:5])
+    # 手遞球進來那一段手和球是從畫面外伸進來的（#bibiStage overflow:hidden 裁掉、不會撐出捲軸）；手縮回去之後滾的球一定要在 390 內
+    outm = [r["t"] for r in rec if r["sw"] > 390 or (r["ball"] and not r["hand"] and (r["ball"]["l"] < -1 or r["ball"]["r"] > 391))]
+    ok(f"【{T}】手機 玩球全程沒有橫向捲軸、滾出去的球都在 390 內（超出 {outm[:5]}）", not outm and any(r["ball"] and not r["hand"] for r in rec), outm[:5])
     pg.touchscreen.tap(250, 88); pg.wait_for_timeout(200)
     st = pg.evaluate(BIBI_ST)
     ok(f"【{T}】手機 玩到一半點空白 → 環收起、比比立刻回原位（{st['off']}）、道具清光",
