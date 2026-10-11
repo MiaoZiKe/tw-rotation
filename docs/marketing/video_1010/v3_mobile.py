@@ -99,7 +99,7 @@ def build():
     S.append(feat("09", 2.5, "V04_mobile_v3b", stat(2.5, 2.5), "③ 錢往哪裡跑", "錢", "族群在領先還是落後，一看就知道", "資金流向",
                   focus=F((110, 1400, 1060, 2280), "資金輪盤", "V04_mobile_v3b", 1.0), idle=[(0, "face_think"), (1.5, "talk_explain")], pan_=pan(600, 1000, 2.5)))
     S.append(feat("10", 2.5, "V05_mobile_v3b", [(0, 3.0), (2.5, 5.5)], "大盤的錢分去哪", "分去哪", "從大盤分到產業鏈、族群、代表股", "資金流向",
-                  focus=F((40, 700, 1130, 2200), "分流樹", "V05_mobile_v3b", 1.2), idle="spotlight", pan_=pan(500, 800, 2.5)))
+                  idle="spotlight", pan_=pan(300, 1500, 2.5)))
     S.append(feat("11", 2.0, "V07_mobile", stat(3.3, 2.0), "法人資金在哪", "法人", "法人的錢集中在哪，也整理好了", "資金流向",
                   idle="magnifier", pan_=pan(0, 700, 2.0)))
     S.append(feat("12", 2.5, "V08_mobile", stat(3.1, 2.5), "④ 哪裡熱一眼看", "一眼看", "越大成交越多，紅漲綠跌", "熱力圖",
