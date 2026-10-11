@@ -146,11 +146,12 @@ QDEF = dict(R.DEFAULT, view="front", eye="default", mouth="default", feet=None, 
 
 
 def _feat(layer, p, c, spec, extra=(0.0, 0.0)):
-    """把一層原圖座標的五官（S 倍）以中心 c 水平壓 kx、平移，再跟著本體仿射。"""
+    """把一層原圖座標的五官（S 倍）以中心 c 水平壓 kx、平移，再跟著本體仿射。face_k＝五官整體放大（側面頭部太小時用）。"""
     dx, dy, kx, al = spec
     dx += extra[0]
     dy += extra[1]
-    M = R.mat((c[0] + dx) * S, (c[1] + dy) * S, 0, kx, 1.0, 0, c[0] * S, c[1] * S)
+    fk = p.get("face_k", 1.0)
+    M = R.mat((c[0] + dx) * S, (c[1] + dy) * S, 0, kx * fk, fk, 0, c[0] * S, c[1] * S)
     im = R.warp_affine(layer, M)
     if al < 0.99:
         im.putalpha(im.getchannel("A").point(lambda v: int(v * al)))
@@ -306,7 +307,11 @@ def compose(p: dict, props_back=None, props_mid=None, props_front=None, fx=None,
             kk = kind
             if kind == "squeeze":
                 kk = "squeeze_l" if side == "l" else "squeeze_r"
-            sv += eye_kind_svg(kk, X, Y, side, p, lay[key][2])
+            fk = p.get("face_k", 1.0)
+            e_ = eye_kind_svg(kk, X, Y, side, p, lay[key][2])
+            if abs(fk - 1) > 0.01:
+                e_ = f'<g transform="translate({X:.1f},{Y:.1f}) scale({fk:.3f}) translate({-X:.1f},{-Y:.1f})">{e_}</g>'
+            sv += e_
         face.alpha_composite(R.svg_layer(sv))
     m = p["mouth"]
     if lay["mouth"][3] > 0.01 and m != "none":
@@ -314,7 +319,7 @@ def compose(p: dict, props_back=None, props_mid=None, props_front=None, fx=None,
             face.alpha_composite(_feat(A["mouth"], p, _CENT["mouth"], lay["mouth"], look))
         else:
             X, Y = feat_world(p, "mouth", (0, -6))
-            face.alpha_composite(R.svg_layer(mouth_kind_svg(m, X, Y, p["mouth_s"])))
+            face.alpha_composite(R.svg_layer(mouth_kind_svg(m, X, Y, p["mouth_s"] * p.get("face_k", 1.0))))
     fa = Image.fromarray(np.asarray(body.getchannel("A"))).filter(ImageFilter.MinFilter(17))
     face.putalpha(Image.fromarray(np.minimum(np.asarray(face.getchannel("A")), np.asarray(fa))))
     bb = face.getchannel("A").getbbox()

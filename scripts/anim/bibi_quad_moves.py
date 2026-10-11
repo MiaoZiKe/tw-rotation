@@ -163,7 +163,7 @@ def grass_bunch_svg(bx, by, L, lifted=True, bite=False, shadow=True) -> str:
 def eat_pose(h=0.0, bite=0.0, chew="", eye="default", cheek=0.0, ear=0.0, sq=0.0):
     """側面面向左吃草：h＝低頭深度 0～1（越大臉越低、越往前湊）；bite＝咬下去那一下的往前探。"""
     look = (-6 - 12 * h - 4 * bite, 40 + 52 * h + 6 * bite)
-    return dict(view="side", x=R.CX + 62, shear=0.1 + 0.12 * h + 0.04 * bite, sy=0.9 - 0.06 * h - sq, sx=1.06 + sq * 0.5,
+    return dict(view="side", x=R.CX + 62, face_k=1.14, shear=0.1 + 0.12 * h + 0.04 * bite, sy=0.9 - 0.06 * h - sq, sx=1.06 + sq * 0.5,
                 look=look, mouth=chew or "nibble_c", eye=eye, cheek=cheek, ear=ear, ear2=ear * 0.7,
                 legs={"bl": (6 * h, 0, 0, 0), "br": (6 * h, 0, 0, 0)})
 
