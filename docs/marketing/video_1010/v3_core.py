@@ -136,13 +136,13 @@ class Lay:
             self.host_h = 222
             if V4:
                 # 第 4 版（CEO 10-12）：Reels 底部約 320px、右側約 140px 是 App 介面區，泡泡與小字一律放上方安全區；
-                # 版面由上而下＝標題（y 20～100）→ 比比＋泡泡（y 120～370）→ 小字（y 382～408）→ 網站框 1000×1480（y 424～1904）
+                # 版面由上而下＝標題（y 20～100）→ 小字（y 104～132）→ 比比＋泡泡（y 146～368）→ 網站框 1000×1480（y 424～1904）
                 self.box = (40, 424, 1000, 1480)
                 self.frame_y, self.frame_h = 424, 1480
                 self.head_w = 700
                 self.pill_xy = (40, 24)
                 self.head_y = 18
-                self.foot_y = 380
+                self.foot_y = 104
                 self.host_x = 140
                 self.host_foot = 368
                 self.safe_x1 = 940

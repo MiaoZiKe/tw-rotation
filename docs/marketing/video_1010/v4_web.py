@@ -59,6 +59,13 @@ def card(sid, D, fn, cues=()):
     return Shot4(sid, D, [], kind="card", foot=False, custom=fn, cues=cues)
 
 
+def grid_card(sid, grid, D=3.0):
+    """3D 四宮格卡片：宣告用到的素材與來源區段，讓守門也檢查到（來回切換、壞畫面）。"""
+    sh = card(sid, D, K4.grid4_fn(GRID_W, GRID_M), [(0, "pop"), (0.4, "pop"), (0.8, "pop")])
+    sh.uses = [(c, st, st + D) for c, _, _, st in grid]
+    return sh
+
+
 GRID_W = [("V12a_desktop", "AI 伺服器", (900, 523, 2600, 1437), 6.0), ("V12b_desktop", "CoWoS-L 先進封裝", (1030, 663, 2730, 1577), 3.5),
           ("V12c_desktop", "HBM 記憶體", (1030, 643, 2730, 1557), 3.5), ("V12d_desktop", "液冷散熱", (1050, 443, 2750, 1357), 3.5)]
 GRID_M = [("V12a_mobile", "AI 伺服器", (235, 900, 935, 1900), 6.2), ("V12b_mobile", "CoWoS-L 先進封裝", (235, 900, 935, 1900), 3.1),
@@ -93,7 +100,7 @@ def build():
     # 5 產業地圖（2D → 3D → 四宮格 → 關聯圖）
     S.append(shot("f01", "產業地圖", "V11_desktop", [(14.2, 17.2)], "⑤ 產業鏈 2D", "上下游怎麼排，一張看懂", [(0, "talk_explain"), (1.4, "pointer_r")]))
     S.append(shot("f02", "產業地圖", "V12a_desktop", [(2.0, 6.0)], "3D 拆開看", "戴上眼鏡，推一下就轉！", [(0, "3dglasses"), (2.0, "face_star")]))
-    S.append(card("f03", 3.0, K4.grid4_fn(GRID_W, GRID_M), [(0, "pop"), (0.4, "pop"), (0.8, "pop")]))
+    S.append(grid_card("f03", GRID_W))
     S.append(shot("f04", "產業地圖", "V13_desktop", [(1.1, 4.3)], "上下游一張連", "滑過去，供貨關係就亮", [(0, "point_r"), (2.2, "face_love")]))
     # 6 個股（K 線＋切一次週期 → 下方總覽 → 旁邊點營收、獲利）
     S.append(shot("g01", "個股", "D06_desktop_v3d", [(1.1, 3.3)], "⑥ 個股一頁看", "這檔的走勢，我幫你打開", [(0, "talk_explain"), (1.0, "face_curious")]))

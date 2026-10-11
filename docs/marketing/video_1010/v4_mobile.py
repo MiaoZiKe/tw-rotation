@@ -5,7 +5,7 @@ from __future__ import annotations
 
 import v4_cards as K4
 from v3_core import Lay, Op, Rec4, Shot4, plan_dwell
-from v4_web import GRID_M, GRID_W, _hl, card
+from v4_web import GRID_M, GRID_W, _hl, card, grid_card
 
 _LM = Lay("mobile")
 _CUR = {}
@@ -78,7 +78,7 @@ def build():
     S.append(shot("e03", "熱力圖", "I01_mobile_v3i", [(6.4, 9.4)], "一步一步看懂", "從晶片到整櫃，照順序看", [(0, "bulb"), (1.6, "face_thinking_bulb")], chain="solo"))
     S.append(shot("f01", "產業地圖", "V11_mobile", [(14.9, 17.9)], "⑤ 產業鏈 2D", "上下游怎麼排，一張看懂", [(0, "talk_explain"), (1.4, "pointer_r")], pan=(600, 900)))
     S.append(shot("f02", "產業地圖", "V12a_mobile", [(2.0, 6.0)], "3D 拆開看", "戴上眼鏡，推一下就轉！", [(0, "3dglasses"), (2.0, "face_star")], pan=(700, 700)))
-    S.append(card("f03", 3.0, K4.grid4_fn(GRID_W, GRID_M), [(0, "pop"), (0.4, "pop"), (0.8, "pop")]))
+    S.append(grid_card("f03", GRID_M))
     S.append(shot("f04", "產業地圖", "V13_mobile_v3b", [(1.0, 4.2)], "上下游一張連", "滑過去，供貨關係就亮", [(0, "point_r"), (2.0, "face_love")], pan=(0, 600)))
     S.append(shot("g01", "個股", "D06_mobile_v3d", [(1.1, 3.3)], "⑥ 個股一頁看", "這檔的走勢，我幫你打開", [(0, "talk_explain"), (1.0, "face_curious")], pan=(300, 300)))
     S.append(shot("g02", "個股", "D06_mobile_v3d", [(7.3, 9.9)], "週期一鍵切", "日、週、月，點一下切換", [(0, "face_nod")]))

@@ -193,7 +193,6 @@ def intro4_fn():
                 tip = ((ur[0] + ur[2]) / 2, ur[1] - 13)
                 rect = (470 - bw / 2, tip[1] - 34 - bh, 470 + bw / 2, tip[1] - 34)
                 bubble_box(cv, lines, rect, tip, t, 42, t0=0.6)
-            C.reg("bubble", rect)
     return fn
 
 
@@ -239,8 +238,8 @@ def grid4_fn(srcs_w, srcs_m):
             ld = ImageDraw.Draw(lay)
             ld.rounded_rectangle([0, 0, lw, 28], THEME["pill_radius"] or 14, fill=THEME["pill_bg"] + (255,))
             ld.text((16, 1), name, font=f, fill=THEME["pill_fg"])
-            cv.paste(lay, (cx, cy + 9), lay)
-            C.reg("label:" + name, (cx, cy + 9, cx + lw, cy + 37))
+            cv.paste(lay, (cx, cy + 2), lay)
+            C.reg("label:" + name, (cx, cy + 2, cx + lw, cy + 30))
         from v3_core import footnote4
         pw = R.pill(cv, "產業地圖", L.pill_xy[0], L.pill_xy[1], px=L.pill_px)
         L.head_xy = (L.pill_xy[0] + pw + (36 if web else 30), L.head_y)
@@ -280,7 +279,6 @@ def end4_fn():
         w1 = text_w(f2, "搜尋 哩股哩股") + 44
         if b > 0:
             R.pill(cv, "搜尋 哩股哩股", cx - w1 / 2, y + 10, bg=WHITE, fg=THEME["ink"], px=pxp, stroke=False, alpha=b)
-        C.reg("pill_search", (cx - w1 / 2, y + 10, cx + w1 / 2, y + 10 + pxp * 1.6))
         card_host(cv, L, "wave" if t > 1.2 else "celebrate", "我們網站見！", t)
     return fn
 
