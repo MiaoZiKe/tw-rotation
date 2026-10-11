@@ -261,18 +261,16 @@ def clip_receive(item: str = "") -> list[dict]:
     fr = []
     held_reach = (352, 330)
 
-    def item_layer(where):
+    def item_layer(where, dx=0.0, dy=0.0):
         if not item:
             return []
-        if where == "reach":
-            x, y = held_reach
+        if where == "reach":   # 兩隻肉掌之間（身體右前方，不擋臉）
             if item == "ball":
-                return [ball_layer(x + 6, y - 22, 20)]
-            return [R.svg_layer(R.grass_svg(x + 64, y - 70, 150, -55, 15))]
-        x, y = 248, 418
-        if item == "ball":
-            return [ball_layer(x, y, 0)]
-        return [R.svg_layer(R.grass_svg(x + 40, y + 34, 170, -70, 15))]
+                return [ball_layer(384 + dx, 366 + dy, 20)]
+            return [R.svg_layer(R.grass_svg(338 + dx, 418 + dy, 150, 128, 15))]
+        if item == "ball":     # 胸前（嘴巴以下）
+            return [ball_layer(248 + dx, 420 + dy, 0)]
+        return [R.svg_layer(R.grass_svg(334 + dx, 432 + dy, 172, 8, 15))]
 
     def add(ms, label, fx=None, props=None, mid=None, **kw):
         fr.append(dict(pose=dict(F, **kw), ms=ms, label=label, fx=fx or [], props_front=props or [],
@@ -285,15 +283,15 @@ def clip_receive(item: str = "") -> list[dict]:
         blush=1.5, hands_front=True, fp_far=(6, -6, 10), fp_near=(-6, -6, -10),
         fx=[R.star_svg(130, 250, 10, 10), R.star_svg(110, 300, 7, 30, "#FFE58A")])
     add(110, "雙肉掌往右前伸（拉長）", eye="wide", mouth="open", rot=11, sx=0.95, sy=1.06, look=(0.04, -0.01),
-        ear=-8, ear2=14, flutter=4, fp_far=(118, -78, 40), fp_near=(44, -58, 30),
-        mid=item_layer("reach") if item else [])
+        ear=-8, ear2=14, flutter=4, fp_far=(150, 22, 30), fp_near=(36, -56, 34),
+        mid=item_layer("reach", 14, -8) if item else [])
     add(130, "接住！（瞇眼笑）", eye="arc", mouth="open", rot=9, sx=0.97, sy=1.03, look=(0.035, 0.0),
-        ear=-2, ear2=18, fp_far=(112, -70, 34), fp_near=(50, -52, 26), mid=item_layer("reach"),
+        ear=-2, ear2=18, fp_far=(144, 26, 24), fp_near=(30, -46, 26), mid=item_layer("reach"),
         fx=[R.star_svg(420, 238, 11, 15)] if item else [])
     add(140, "抱回胸前（壓扁、臉紅）", eye="smile", mouth="w", rot=0, sy=0.9, sx=1.07, blush=1.7, ear=16, ear2=16,
-        flutter=-4, hands_front=True, mid=item_layer("chest"))
+        flutter=-4, hands_front=True, mid=item_layer("chest", 0, 6))
     add(110, "開心彈一下", eye="arc", mouth="smile", y=R.FOOT_Y - 16, sy=1.07, sx=0.96, ear=-8, ear2=-8, flutter=4,
-        blush=1.5, hands_front=True, mid=item_layer("chest"), props=[fx_part("fx_hearts_small", 402, 206, 0.6, 8)])
+        blush=1.5, hands_front=True, mid=item_layer("chest", 0, -2), props=[fx_part("fx_hearts_small", 402, 206, 0.6, 8)])
     add(520, "抱著滿足（圓眼）", eye="dot", mouth="smile", ear=2, ear2=2, blush=1.3, hands_front=True,
         mid=item_layer("chest"), props=[fx_part("fx_heart", 412, 176, 0.45, 18)])
     return fr
