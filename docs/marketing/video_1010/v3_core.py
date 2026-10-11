@@ -49,14 +49,34 @@ B.SPRITE_HOOK = _sprite_hook
 
 
 @lru_cache(maxsize=256)
-def max_bbox_w(name):
+def union512(name):
+    """整段動畫所有格外框的聯集（512 座標）。"""
     info = B.bibi_index()[name]
-    return max((lambda b: b[2] - b[0])(C._bbox512(p)) for p in info["frames"])
+    bs = [C._bbox512(p) for p in info["frames"]]
+    return (min(b[0] for b in bs), min(b[1] for b in bs), max(b[2] for b in bs), max(b[3] for b in bs))
+
+
+def max_bbox_w(name):
+    u = union512(name)
+    return u[2] - u[0]
 
 
 def fit_size(name, max_w, cap=240):
-    """讓動畫所有格的外框寬度 ≤ max_w 的最大 size（≤cap）。"""
+    """讓動畫所有格外框聯集寬度 ≤ max_w 的最大 size（≤cap）。"""
     return int(min(cap, max_w * 512 / max_bbox_w(name)) // 4 * 4)
+
+
+def fit_box(name, max_w, max_h, cap=300):
+    """動畫所有格外框聯集同時 ≤ max_w × max_h 的最大 size。"""
+    u = union512(name)
+    return int(min(cap, max_w * 512 / max(1, u[2] - u[0]), max_h * 512 / max(1, u[3] - u[1])) // 4 * 4)
+
+
+def side_foot(name, size, cx, bottom):
+    """把動畫外框聯集的水平中心放在 cx、底邊放在 bottom 的腳底座標。"""
+    u = union512(name)
+    s = size / 512
+    return (cx - ((u[0] + u[2]) / 2 - 248) * s, bottom - (u[3] - 482) * s)
 
 
 PRO_THINK = {"face_think", "talk_explain", "magnifier", "calc", "hourglass", "spotlight", "pointer_r", "pointer_l", "face_thinking_bulb", "bulb"}
@@ -82,13 +102,14 @@ class Lay:
             self.box = (152, 66, 1616, 909)              # 錄影框（16:9 ，上下左右留帶）
             self.frame_y = self.box[1]
             self.head_px = 36
+            self.head_w = 900
             self.sub_px = 28
             self.sub_chars = 52
             self.pill_px = 18
-            self.pill_xy = (152, 8)
+            self.pill_xy = (152, 4)
             self.head_y = 6
             self.sub_y = 989
-            self.foot_y = 1048
+            self.foot_y = 1047
             self.host_x = 1850 if theme == "cute" else 70
             self.host_foot = 1048
             self.host_w = 130
@@ -97,6 +118,7 @@ class Lay:
             self.box = (40, 146, 1000, 1480)             # 網站畫面框（寬 1000×高 1480）
             self.frame_y, self.frame_h = 146, 1480
             self.head_px = 50
+            self.head_w = 820
             self.pill_px = 22
             self.pill_xy = (40, 34)
             self.head_y = 30
@@ -117,65 +139,65 @@ class Lay:
 
 # ───────────────────────── 目標載入（錄影端 JSON；沒有就用分鏡估值並標註） ─────────────────────────
 @lru_cache(maxsize=1)
-def load_json(name):
-    p = RAW3 / name
-    if not p.exists():
-        return None
-    try:
-        return json.loads(p.read_text())
-    except Exception:
-        return None
+def load_all():
+    """合併錄影端產出：coords_*.json（逐素材 targets／focus）、click_targets.json、focus_targets.json。"""
+    out = {}
+    for p in sorted(RAW3.glob("coords_*.json")):
+        try:
+            d = json.loads(p.read_text())
+        except Exception:
+            continue
+        for clip, v in d.items():
+            if isinstance(v, dict):
+                e = out.setdefault(clip, {"targets": [], "focus": []})
+                e["targets"] += v.get("targets") or []
+                e["focus"] += v.get("focus") or []
+    for nm, key in (("click_targets.json", "targets"), ("focus_targets.json", "focus")):
+        p = RAW3 / nm
+        if p.exists():
+            try:
+                d = json.loads(p.read_text())
+            except Exception:
+                continue
+            if isinstance(d, dict):
+                for clip, v in d.items():
+                    if isinstance(v, dict) and key in v:
+                        out.setdefault(clip, {"targets": [], "focus": []})[key] += v[key]
+    return out
 
 
-def _rect_of(d):
-    for k in ("rect", "bbox", "box"):
-        if k in d:
-            r = d[k]
-            if isinstance(r, dict):
-                return (r["x"], r["y"], r["x"] + r["w"], r["y"] + r["h"])
-            if len(r) == 4:
-                x, y, a, b = r
-                return (x, y, a, b) if (a > x and b > y and (a > 80 or b > 80) and a > x + 1 and b > y + 1 and a > x) else (x, y, x + a, y + b)
-    return None
+def _xywh(r):
+    return (r[0], r[1], r[0] + r[2], r[1] + r[3])
+
+
+def _clip_keys(clip):
+    base = clip.replace("_v3b", "").replace("_v3c", "")
+    return [clip, base]
 
 
 def click_target(clip, t_src, x, y):
-    """回傳 (rect, label, 來源)；JSON 有就用（clip＋時間 ±0.4s 最近），沒有就以點擊座標 ±45px 當作估值。"""
-    d = load_json("click_targets.json")
-    best = None
-    if d:
-        items = d if isinstance(d, list) else d.get("clicks") or d.get("items") or []
-        for it in items:
-            if not isinstance(it, dict):
+    """(rect, label, 來源)：錄影端 DOM 量出的目標元素外框；沒有就以點擊座標 ±45px 當估值（並在報告標註）。"""
+    allj = load_all()
+    for key in _clip_keys(clip):
+        best = None
+        for it in (allj.get(key) or {}).get("targets", []):
+            if it.get("kind", "click") != "click" or "video_rect" not in it:
                 continue
-            if str(it.get("clip") or it.get("shot") or "").replace(".mp4", "") != clip:
-                continue
-            ts = it.get("t") or it.get("time") or it.get("sec")
-            r = _rect_of(it)
-            if r is None or ts is None:
-                continue
-            dt = abs(float(ts) - t_src)
+            dt = abs(float(it["t"]) - t_src)
             if dt < 0.5 and (best is None or dt < best[0]):
-                best = (dt, r, it.get("label") or it.get("name") or "", "click_targets.json")
-    if best:
-        return best[1], best[2], best[3]
-    return (x - 45, y - 45, x + 45, y + 45), "", "座標估值±45px（click_targets.json 尚未提供）"
+                best = (dt, _xywh(it["video_rect"]), it.get("label", ""))
+        if best:
+            return best[1], best[2], "錄影端 DOM（coords／click_targets）"
+    return (x - 45, y - 45, x + 45, y + 45), "", "座標估值±45px（錄影端尚未提供該素材）"
 
 
 def focus_target(clip, label, rect):
-    d = load_json("focus_targets.json")
-    if d and label:
-        items = d if isinstance(d, list) else d.get("targets") or d.get("items") or []
-        for it in items:
-            if not isinstance(it, dict):
-                continue
-            if str(it.get("clip") or it.get("shot") or "").replace(".mp4", "") != clip:
-                continue
-            if label in str(it.get("label") or it.get("name") or ""):
-                r = _rect_of(it)
-                if r:
-                    return r, "focus_targets.json"
-    return rect, "分鏡手估（focus_targets.json 尚未提供）"
+    allj = load_all()
+    for key in _clip_keys(clip):
+        for it in (allj.get(key) or {}).get("focus", []):
+            if label and label in str(it.get("label", "")) and "video_rect" in it:
+                return _xywh(it["video_rect"]), "錄影端 DOM（focus_targets）"
+    return rect, "分鏡手估（錄影端尚未提供該區塊）"
 
 
 # ───────────────────────── 錄影層 ─────────────────────────
@@ -463,8 +485,20 @@ class Op:
 
     def home(self, L, name):
         if L.fmt == "web":
-            return L.host, fit_size(name, L.host_w, 240)
-        return L.host, L.host_size
+            sz = fit_size(name, L.host_w, 240)
+            return side_foot(name, sz, L.host_x, 1074), sz
+        sz = fit_box(name, 190, 170, L.host_size)
+        return side_foot(name, sz, L.host_x, 1812), sz
+
+    @staticmethod
+    def land(L, p, ts):
+        """比比落地點：漣漪維持在元素正中；比比本人只踩在畫面框內（上緣太近就站在目標下方，下緣太近就站在框內底）。"""
+        top, bot = L.box[1] + 4, L.box[1] + L.box[3] - 6
+        y = p[1]
+        if y - ts < top:
+            y = p[1] + ts + 16
+        y = min(y, bot)
+        return (clamp(p[0], 30, L.W - 30), y)
 
     def idle_name(self, t):
         name = self.idle[0][1]
@@ -521,17 +555,17 @@ class Op:
             c = tp["t"]
             nxt = taps[i + 1]["t"] if i + 1 < len(taps) else 1e9
             tgt = rec.map(tp["x"], tp["y"])
-            tgt = (clamp(tgt[0], 30, L.W - 30), clamp(tgt[1], 60, L.H - 20))
+            tgt = self.land(L, tgt, ts)
             chained = i > 0 and c - taps[i - 1]["t"] < self.FLY + self.STAY + self.BACK + 0.2
             if chained:
                 p = rec.map(taps[i - 1]["x"], taps[i - 1]["y"])
-                start = (clamp(p[0], 30, L.W - 30), clamp(p[1], 60, L.H - 20))
+                start = self.land(L, p, ts)
                 ssize = ts
             else:
                 start, ssize = home, hs
             if c - self.FLY <= t < c:
                 u = ease_io((t - (c - self.FLY)) / self.FLY)
-                foot = (lerp(start[0], tgt[0], u), lerp(start[1], tgt[1], u) - 120 * THEME["bounce"] * math.sin(math.pi * u))
+                foot = (lerp(start[0], tgt[0], u), max(L.box[1] + ts + 4, lerp(start[1], tgt[1], u) - 120 * THEME["bounce"] * math.sin(math.pi * u)))
                 size = lerp(ssize, ts, u)
                 ROLE[0] = "bibi_tap"
                 put_sprite(cv, "tap", 3 + int(clamp(u, 0, 0.999) * 5), foot, size)
@@ -544,7 +578,7 @@ class Op:
                 return
             if not (nxt - c < self.FLY + self.STAY + self.BACK + 0.2) and c + self.STAY <= t < c + self.STAY + self.BACK:
                 u = ease_io((t - c - self.STAY) / self.BACK)
-                foot = (lerp(tgt[0], home[0], u), lerp(tgt[1], home[1], u) - 90 * THEME["bounce"] * math.sin(math.pi * u))
+                foot = (lerp(tgt[0], home[0], u), max(L.box[1] + ts + 4, lerp(tgt[1], home[1], u) - 90 * THEME["bounce"] * math.sin(math.pi * u)))
                 ROLE[0] = "bibi_tap"
                 put_sprite(cv, "hop_l" if home[0] < tgt[0] else "hop_r", 2 + int(u * 3.99), foot, lerp(ts, hs, u))
                 ROLE[0] = "bibi"
@@ -616,10 +650,23 @@ class Shot4:
 
     def _overlays(self, cv, t, L):
         if L.fmt == "web":
+            ppx = L.pill_px * (0.85 if THEME["name"] == "pro" else 1)
+            pw = (text_w(font(THEME["pill_font"], int(ppx)), self.pill) + 44) if self.pill else 0
+            hw = text_w(font(THEME["head_font"], L.head_px), self.head)
             px = L.pill_xy[0]
+            total = (pw + 36 if self.pill else 0) + hw
+            # 頁首附近要踩的按鈕會讓比比頭部伸進上帶 → 標題改靠右，避開
+            if self.op and self.rec and self.rec.rect and self.rec.win:
+                for tp in self.op.taps:
+                    if tp["hover"]:
+                        continue
+                    mx, my = self.rec.map(tp["x"], tp["y"])
+                    if my < L.box[1] + 130 and px - 70 <= mx <= px + total + 70:
+                        px = L.box[0] + L.box[2] - total
+                        break
             hx = px
             if self.pill:
-                pw = R.pill(cv, self.pill, L.pill_xy[0], L.pill_xy[1], px=L.pill_px)
+                R.pill(cv, self.pill, px, L.pill_xy[1], px=L.pill_px)
                 hx = px + pw + 36
             L.head_xy = (hx, L.head_y)
             R.headline(cv, L, self.head, t, self.hl)
@@ -663,9 +710,9 @@ def footnote4(cv, L):
     x = L.W / 2 - tw / 2 + (0 if L.fmt == "web" else 60)
     y = L.foot_y
     if L.fmt == "web":
-        R.float_panel(cv, (x - 12, y, x + tw + 12, y + 26), 215, 10)
-        d.text((x, y + 2), text, font=f, fill=(80, 80, 80))
-        C.reg("footnote", (x - 12, y, x + tw + 12, y + 26))
+        R.float_panel(cv, (x - 12, y, x + tw + 12, y + 28), 215, 10)
+        d.text((x, y + 1), text, font=f, fill=(80, 80, 80))
+        C.reg("footnote", (x - 12, y, x + tw + 12, y + 28))
     else:
         d.text((x, y), text, font=f, fill=(90, 90, 90))
         C.reg("footnote", (x, y, x + tw, y + 28))
@@ -685,12 +732,12 @@ def bubble_mobile(cv, L, shot, text, t):
     lay = Image.new("RGBA", cv.size, (0, 0, 0, 0))
     d = ImageDraw.Draw(lay)
     if THEME["name"] == "cute":
-        x0, x1 = 262, 1040
+        x0, x1 = 300, 1040
         hx = L.host_x
-        d.polygon([(x0 + 4, y0 + h * 0.34), (x0 + 4, y0 + h * 0.74), (x0 - 44, y0 + h * 0.62)], fill=WHITE + (255,), outline=ink + (255,))
+        d.polygon([(x0 + 4, y0 + h * 0.34), (x0 + 4, y0 + h * 0.74), (x0 - 40, y0 + h * 0.62)], fill=WHITE + (255,), outline=ink + (255,))
         d.rounded_rectangle([x0, y0, x1, y1], THEME["panel_r"], fill=WHITE + (255,), outline=ink + (255,), width=4)
-        d.polygon([(x0 + 6, y0 + h * 0.37), (x0 + 6, y0 + h * 0.71), (x0 - 36, y0 + h * 0.62)], fill=WHITE + (255,))
-        C.reg("bubble", (x0 - 44, y0, x1, y1))
+        d.polygon([(x0 + 6, y0 + h * 0.37), (x0 + 6, y0 + h * 0.71), (x0 - 32, y0 + h * 0.62)], fill=WHITE + (255,))
+        C.reg("bubble", (x0 - 40, y0, x1, y1))
         tx = (x0 + x1) / 2
     else:
         x0, x1 = 40, 830

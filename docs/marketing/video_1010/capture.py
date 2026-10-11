@@ -345,7 +345,17 @@ class Act:
     def _vrect(self, r):
         return [round(v * self.dsf, 1) for v in r] if r else None
 
-    def record_target(self, x, y, kind="click", label=""):
+    def hit_ok(self, expect, x, y):
+        """(x,y) 這一點最上層的元素，是不是 expect（Playwright 選擇器）那個元素或它的內外層？—— 被頂欄／浮層蓋住時會是 False。"""
+        if not expect:
+            return None
+        try:
+            return bool(self.pg.locator(expect).first.evaluate(
+                "(e, p) => { const h = document.elementFromPoint(p[0], p[1]); return !!h && (e === h || e.contains(h) || h.contains(e)); }", [x, y]))
+        except Exception:  # noqa: BLE001
+            return None
+
+    def record_target(self, x, y, kind="click", label="", expect=None):
         try:
             info = self.pg.evaluate(TARGET_JS, [x, y]) or {}
         except Exception as exc:  # noqa: BLE001
@@ -357,10 +367,11 @@ class Act:
              "block_css_rect": [round(v, 1) for v in info["block_rect"]] if info.get("block_rect") else None,
              "block_video_rect": self._vrect(info.get("block_rect")),
              "css_point": [round(x, 1), round(y, 1)], "center": [round(x * self.dsf, 1), round(y * self.dsf, 1)],
-             "scrollY": info.get("scrollY")}
+             "scrollY": info.get("scrollY"), "expect": expect, "hit_expected": self.hit_ok(expect, x, y)}
         self.targets.append(e)
         what = info.get("block") or info.get("text") or info.get("selector")
-        self.note(f"  ↳ {kind} 目標：{what}｜{info.get('selector')}｜外框 css {e['css_rect']}｜影片 {e['video_rect']}｜中心 影片{e['center']}")
+        warn = "｜⚠ 這一點最上層不是預期的元素（被浮層／頂欄蓋住？）" if e["hit_expected"] is False else ""
+        self.note(f"  ↳ {kind} 目標：{what}｜{info.get('selector')}｜外框 css {e['css_rect']}｜影片 {e['video_rect']}｜中心 影片{e['center']}{warn}")
 
     def add_focus(self, label, rect, t0, t1, selector=""):
         if not rect:
@@ -424,7 +435,14 @@ class Act:
             if not vis:
                 y = loc.evaluate("e => e.getBoundingClientRect().top + scrollY - innerHeight * 0.35")
                 self.scroll(to_y=y, ms=700)
-        return loc.bounding_box()
+        b = loc.bounding_box()
+        for _ in range(3):   # 中心點被頂欄／浮層蓋住（hit-test 不是這個元素）→ 捲到畫面正中再量一次
+            if not b or self.hit_ok(sel, b["x"] + b["width"] / 2, b["y"] + b["height"] / 2) is not False:
+                break
+            y = loc.evaluate("e => { const r = e.getBoundingClientRect(); return r.top + scrollY - innerHeight * 0.5 + r.height / 2; }")
+            self.scroll(to_y=y, ms=500)
+            b = loc.bounding_box()
+        return b
 
     def hover(self, sel, ms=600, dx=0.5, dy=0.5):
         b = self.box(sel)
@@ -434,12 +452,12 @@ class Act:
         self.move(b["x"] + b["width"] * dx, b["y"] + b["height"] * dy, ms)
         return True
 
-    def click_xy(self, x, y, ms=600, pause=400):
+    def click_xy(self, x, y, ms=600, pause=400, expect=None):
         self.move(x, y, ms)
         self.wait(pause)
         self.note(f"踩下 ({x:.0f},{y:.0f})css → 影片({x * self.dsf:.0f},{y * self.dsf:.0f})px")
         self.pg.evaluate("([x,y]) => window.__vcRipple && window.__vcRipple(x,y)", [x, y])
-        self.record_target(x, y, "click")
+        self.record_target(x, y, "click", expect=expect)
         self.pg.mouse.down()
         self.frame()
         self.pg.mouse.up()
@@ -452,7 +470,7 @@ class Act:
             return False
         x, y = b["x"] + b["width"] * dx, b["y"] + b["height"] * dy
         self.note(f"點 {label or sel}")
-        self.click_xy(x, y, ms, pause)
+        self.click_xy(x, y, ms, pause, expect=sel)
         return True
 
     def drag(self, x0, y0, x1, y1, ms=900, button="left"):
@@ -1154,6 +1172,18 @@ def frame(a, sel, hold=2000, ms=1100, label=""):
     return True
 
 
+def grp_focus(a, sel, hold=None):
+    """熱力圖：把每個「群組」（含標題與全部子方塊）當一個發光框焦點，用 ECharts 的版面算出外框。"""
+    t0, t1 = hold or a.last_hold or (a.t, a.t)
+    for g in a.pg.evaluate(TREEMAP_GROUPS_JS, sel) or []:
+        a.add_focus(f"熱力圖群組「{g['name']}」（含標題與全部子方塊）", g["rect"], t0, t1, sel + " treemap root.children")
+
+
+def legend_focus(a, txt, up=1, label="圖例（整條色條含文字）", hold=None):
+    t0, t1 = hold or a.last_hold or (a.t, a.t)
+    a.add_focus(label, a.pg.evaluate(TEXT_RECT_JS, [txt, up]), t0, t1, f"text:{txt}")
+
+
 def tap(a, sel, label="", gap=GAP, ms=700):
     ok = a.click(sel, ms, 450, label=label)
     if ok:
@@ -1171,7 +1201,7 @@ def tab_txt(a, txt, scope=""):
         if not loc.count():
             a.note(f"找不到「{txt}」")
             return False
-    loc.evaluate("e => e.scrollIntoView({block: 'nearest', inline: 'center'})")
+    loc.evaluate("e => e.scrollIntoView({block: 'center', inline: 'center'})")
     return tap(a, sel, txt)
 
 
@@ -1213,6 +1243,7 @@ def v02(pg, a, start, base):
         tap(a, "#evToggle", "事件")
     t0 = a.t
     a.wait(2000)
+    a.focus_sel("今日事件清單（整個側欄）", "#evList", t0, a.t)
     a.note(f"完整入框 {t0:.1f}–{a.t:.1f}s：今日事件清單")
     for c in ["科技", "總經", "台股"]:
         if pg.locator(f"#evList ~ *, .evchips, body").locator(f"button:visible:text-is('{c}')").count():
@@ -1231,6 +1262,7 @@ def v03(pg, a, start, base):
     goto3(pg, a, base, "#earnings")
     start()
     frame(a, "#v-earnings .card, #v-earnings > *", 2000, label="財經日曆月曆")
+    a.focus_sel("財經日曆分類分頁列（公司財報／公司法說／FED 消息）", "#earnFilt", *a.last_hold)
     chip = "#v-earnings .chip:visible >> nth=0"
     if pg.locator("#v-earnings .chip:visible").count():
         tap(a, chip, "公司財報第一格")
@@ -1302,6 +1334,8 @@ def v08(pg, a, start, base):
     goto3(pg, a, base, "#heatmap/industry")
     start()
     frame(a, "#indHeat", 2000, label="整個台股一次看")
+    grp_focus(a, "#indHeat")
+    legend_focus(a, "-3", 1)
     b = a.box("#indHeat", scroll=False)
     for fx, fy in [(0.12, 0.2), (0.4, 0.2), (0.75, 0.25), (0.3, 0.75)]:
         a.move(b["x"] + b["width"] * fx, b["y"] + b["height"] * fy, 800)
@@ -1316,6 +1350,7 @@ def v09(pg, a, start, base):
     goto3(pg, a, base, "#heatmap/theme")
     start()
     frame(a, "#themeMapCard", 2000, label="題材資金熱力")
+    legend_focus(a, "<30", 1)
     b = a.box("#themeMap", scroll=False)
     for fx, fy in [(0.1, 0.4), (0.27, 0.2), (0.52, 0.2), (0.62, 0.55)]:
         a.move(b["x"] + b["width"] * fx, b["y"] + b["height"] * fy, 800)
@@ -1333,6 +1368,7 @@ def v10(pg, a, start, base):
     goto3(pg, a, base, "#heatmap/theme")
     start()
     frame(a, "#themeMapCard", 2000, label="題材資金熱力")
+    legend_focus(a, "<30", 1)
     b = a.box("#themeMap", scroll=False)
     a.click_xy(b["x"] + b["width"] * 0.27, b["y"] + b["height"] * 0.7, 700, 400)
     a.note("點「高階 PCB／CCL」")
@@ -1603,6 +1639,7 @@ def v15(pg, a, start, base):
                 a.scroll(to_y=y, ms=900)
             t0 = a.t
             a.wait(2300)
+            a.focus_sel("個股分頁列", "[data-vcap=sktabs]", t0, a.t)
             a.note(f"完整入框 {t0:.1f}–{a.t:.1f}s：{t} 分頁（分頁列置頂，內容在下方）")
 
 
@@ -1698,6 +1735,7 @@ def v20(pg, a, start, base):
     start()
     a.wait(2200)
     a.note("ETF 總覽（類型分頁＋三張前五名）完整入框 0.0–2.2s")
+    a.focus_sel("ETF 類型分頁列", "#etfCatSeg, #etfCatBar", 0.0, a.t)
     tabs = pg.locator("#etfCatSeg button:visible, #etfCatBar button:visible")
     n = tabs.count()
     for i in list(range(1, n)) + [0]:
@@ -1830,6 +1868,8 @@ def v27(pg, a, start, base):
             a.wait(500)
         a.note(f"打字「{word}」{t0:.1f}–{a.t:.1f}s")
         a.wait(1500)
+        a.focus_sel("搜尋框", "#q", a.t - 1.5, a.t)
+        a.focus_sel("搜尋下拉建議清單", "#sugg", a.t - 1.5, a.t)
         a.note("下拉建議停 1.5 秒")
         sug = pg.locator("#sugg :is(a,button,li,[role=option]):visible")
         if sug.count():
@@ -1880,20 +1920,236 @@ def v26(pg, a, start, base):
 
 
 
+# ======================================================================== v3d：個股頁（Andy 10-11：個股頁介紹太少 → 總覽、AI 分析、營收、獲利、法人／籌碼、K 線多週期、基本資料／除權息／公告）
+def _stk_enter(pg, a, base, via_search=False):
+    if via_search:
+        goto3(pg, a, base, "#overview")
+        start_search(pg, a)
+    else:
+        goto3(pg, a, base, "#stock/2330", 4500)
+
+
+def start_search(pg, a, word="台積電"):
+    """從頂部搜尋進入個股：點搜尋（手機先點放大鏡）→ 逐字慢打簡稱 → 下拉建議停 1.5 秒 → 點第一筆。"""
+    if a.mob:
+        tap(a, "#m4Search", "搜尋鈕", 300)
+    tap(a, "#q", "搜尋框", 300)
+    pg.evaluate("() => { const q = document.querySelector('#q'); if (q) { q.value = ''; q.dispatchEvent(new Event('input', {bubbles: true})); q.focus(); } }")
+    a.wait(900)
+    t0 = a.t
+    for ch in word:
+        pg.keyboard.type(ch)
+        a.wait(450)
+    a.note(f"打字「{word}」{t0:.1f}–{a.t:.1f}s")
+    a.wait(1500)
+    a.focus_sel("搜尋框", "#q", a.t - 1.5, a.t)
+    a.focus_sel("搜尋下拉建議清單", "#sugg", a.t - 1.5, a.t)
+    sug = pg.locator("#sugg :is(a,button,li,[role=option]):visible")
+    if sug.count():
+        bb = sug.first.bounding_box()
+        a.click_xy(bb["x"] + min(bb["width"] / 2, 90), bb["y"] + bb["height"] / 2, 700, 400)
+        a.note("點第一筆建議 → 進個股頁（台積電 2330）")
+    else:
+        pg.keyboard.press("Enter")
+    a.wait(3500)
+
+
+def slow_through(a, sel, label, first_hold=1800, last_hold=1200, ms_per_screen=2800):
+    """元素比畫面高：先把頂端入框停一下，再慢慢往下捲到元素底部入框；每一段都記焦點（整個元素的外框）。"""
+    pg = a.pg
+    if not pg.evaluate("(s) => { const e = document.querySelector(s); return !!(e && e.getBoundingClientRect().height); }", sel):
+        a.note(f"找不到要捲過的 {label}")
+        return
+    pad = pg.evaluate(TOPPAD_JS)
+    vh = _vh(pg)
+    top, h = pg.evaluate("(s) => { const r = document.querySelector(s).getBoundingClientRect(); return [r.top + scrollY, r.height]; }", sel)
+    y0 = top - pad - 6
+    y1 = top + h - vh + 14
+    a.scroll(to_y=y0, ms=900)
+    t0 = a.t
+    a.wait(first_hold)
+    a.focus_sel(f"{label}（頂端入框）", sel, t0, a.t)
+    a.note(f"完整入框 {t0:.1f}–{a.t:.1f}s：{label} 頂端")
+    if y1 > y0 + 20:
+        a.scroll(to_y=y1, ms=max(1800, min(7000, int((y1 - y0) / max(vh - pad, 1) * ms_per_screen))))
+        t1 = a.t
+        a.wait(last_hold)
+        a.focus_sel(f"{label}（底端入框）", sel, t1, a.t)
+        a.note(f"完整入框 {t1:.1f}–{a.t:.1f}s：{label} 捲到底端（{h:.0f}px 高，共慢慢捲了 {y1 - y0:.0f}px）")
+
+
+def _stk_tab(a, name):
+    ok = tab_txt(a, name)
+    a.wait(1200)
+    return ok
+
+
+@shot3("D01", "md", "個股總覽（從搜尋進入 台積電 2330）：報價、K 線、基本面／籌碼快照／AI 分析")
+def d01(pg, a, start, base):
+    goto3(pg, a, base, "#overview")
+    start()
+    a.wait(500)
+    start_search(pg, a)
+    frame(a, "#skChartCard", 2200, label="個股報價與 K 線卡（代號、報價、K 線、指標標籤）")
+    if a.mob:
+        a.scroll(to_y=pg.evaluate("() => document.querySelector('#skFundCard').getBoundingClientRect().top + scrollY") - 130, ms=1300)
+        for nm in ["基本面", "籌碼快照", "AI 分析"]:
+            if tab_txt(a, nm):
+                t0 = a.t
+                a.wait(1500)
+                a.focus_sel(f"個股總覽：{nm}", "#skOv3, #skOv", t0, a.t)
+                a.note(f"完整入框 {t0:.1f}–{a.t:.1f}s：{nm}")
+    else:
+        for sel, nm in [("#skFundCard", "基本面卡（EPS、ROE、本益比、毛利率、營運動能）"), ("#skChipCard", "籌碼快照卡（法人、集保、信用、當沖）"), ("#ovAiCard", "AI 分析卡（結論、燈號、型態條件）")]:
+            frame(a, sel, 2200, label=nm)
+
+
+def inner_scroll(a, sel, label, first_hold=1200, last_hold=1000, ms=3500):
+    """內容在卡片「裡面」捲（overflow:auto 的容器）：先停一下 → 慢慢捲到底 → 停一下；焦點＝那個容器的外框。"""
+    pg = a.pg
+    m = pg.evaluate("(s) => { const e = document.querySelector(s); return e ? [e.scrollTop, e.scrollHeight - e.clientHeight] : null; }", sel)
+    if m is None:
+        a.note(f"找不到 {label}")
+        return
+    pg.evaluate("(s) => { document.querySelector(s).scrollTop = 0; }", sel)
+    t0 = a.t
+    a.wait(first_hold)
+    a.focus_sel(f"{label}（頂端）", sel, t0, a.t)
+    a.note(f"完整入框 {t0:.1f}–{a.t:.1f}s：{label} 頂端")
+    if m[1] > 20:
+        a.scroll(to_y=m[1], ms=max(1800, min(ms, int(m[1] * 4))), el=sel)
+        t1 = a.t
+        a.wait(last_hold)
+        a.focus_sel(f"{label}（捲到底）", sel, t1, a.t)
+        a.note(f"完整入框 {t1:.1f}–{a.t:.1f}s：{label} 捲到底（內容 {m[1] + 599:.0f}px，視窗內慢慢捲了 {m[1]:.0f}px）")
+
+
+@shot3("D02", "md", "個股 AI 分析：結論、評分、九顆燈號、型態條件、關鍵價位、看細節（逐條條件／若…則…）、四個面向")
+def d02(pg, a, start, base):
+    _stk_enter(pg, a, base)
+    if a.mob:
+        tab_txt(a, "AI 分析")
+        a.wait(800)
+    start()
+    a.wait(300)
+    frame(a, "#skOv3" if a.mob else "#ovAiCard", 2000, label="AI 分析卡（完整）")
+    a.focus_sel("AI 分析：四面向切換列（技術／籌碼／基本／消息）", "#ovAiTags", *a.last_hold)
+    a.focus_sel("AI 分析：結論一行（條件未齊／回檔型態／突破型態／停損距離）", "#ovAiBrief", *a.last_hold)
+    if pg.locator("#ovTechMore:visible").count():
+        tap(a, "#ovTechMore", "看細節：原因・逐條條件・若…則…", 900)
+    if a.mob:
+        slow_through(a, "#skOv3", "AI 分析卡（技術面，含看細節）", 1000, 900, 2600)
+    else:
+        inner_scroll(a, "#ovFacets", "AI 分析內容（技術面，含看細節）", 1000, 900, 3800)
+    for tg, nm in [("#ovT-chip", "籌碼面"), ("#ovT-fund", "基本面"), ("#ovT-news", "消息面")]:
+        if pg.locator(tg).count() and pg.locator(tg).first.is_visible():
+            if a.mob:
+                a.scroll(to_y=pg.evaluate("() => document.querySelector('#ovAiTags').getBoundingClientRect().top + scrollY") - 150, ms=800)
+            tap(a, tg, f"切到{nm}", 500)
+            if a.mob:
+                slow_through(a, "#skOv3", f"AI 分析卡（{nm}）", 1200, 800, 2400)
+            else:
+                inner_scroll(a, "#ovFacets", f"AI 分析內容（{nm}）", 1200, 800, 2500)
+
+
+@shot3("D03", "md", "個股營收：月營收、年增、年同期比較、河流圖（月營收表）")
+def d03(pg, a, start, base):
+    _stk_enter(pg, a, base)
+    start()
+    a.wait(300)
+    _stk_tab(a, "營收")
+    if a.mob:
+        slow_through(a, "#stockTab", "營收分頁", 1800, 1200)
+    else:
+        frame(a, "#stockTab", 2200, label="營收分頁（月營收＋年同期比較＋月營收表）")
+        for sel, nm in [("#revBar", "月營收圖"), ("#revYear", "年同期比較圖"), ("#revTblCard", "月營收明細表")]:
+            a.focus_sel(nm, sel, *a.last_hold)
+        b = a.box("#revBar", scroll=False)
+        if b:
+            for fx in (0.3, 0.6, 0.85):
+                a.move(b["x"] + b["width"] * fx, b["y"] + b["height"] * 0.5, 700)
+                a.wait(1100)
+
+
+@shot3("D04", "md", "個股獲利：本益比河流圖、EPS／毛利率、財報表")
+def d04(pg, a, start, base):
+    _stk_enter(pg, a, base)
+    start()
+    a.wait(300)
+    _stk_tab(a, "獲利")
+    if a.mob:
+        slow_through(a, "#stockTab", "獲利分頁", 1800, 1200)
+    else:
+        for sel, nm in [("#peRiverCard", "本益比河流圖"), ("#peQCard", "本益比近四季"), ("#profitCard", "EPS／毛利率圖"), ("#profitTblCard", "財報表")]:
+            frame(a, sel, 2200, label=nm)
+
+
+@shot3("D05", "md", "個股法人／籌碼：三大法人、資券、大戶散戶")
+def d05(pg, a, start, base):
+    _stk_enter(pg, a, base)
+    start()
+    a.wait(300)
+    for nm in ["法人", "資券", "大戶／散戶"]:
+        if _stk_tab(a, nm):
+            if a.mob:
+                slow_through(a, "#stockTab", f"{nm}分頁", 1800, 1000)
+            else:
+                frame(a, "#stockTab", 2200, label=f"{nm}分頁")
+
+
+@shot3("D06", "md", "個股 K 線：切日／週／月、四週期同看、指標選單")
+def d06(pg, a, start, base):
+    _stk_enter(pg, a, base)
+    start()
+    frame(a, "#skChartCard", 2000, label="個股走勢卡")
+    for t in ["日", "週", "月", "日"]:
+        tab_txt(a, t, "#skChartCard")
+        a.wait(700)
+    if pg.locator("#mtfBtn:visible").count():
+        tap(a, "#mtfBtn", "四週期同看", 600)
+        frame(a, "#skChartCard", 2200, label="四週期同看（日／週／月／季 SMC）")
+        tap(a, "#mtfBtn", "收回", 600)
+    if pg.locator("#indBtn:visible").count():
+        tap(a, "#indBtn", "指標選單", 1200)
+        a.focus_sel("指標選單", "#indBtn", a.t - 1.2, a.t)
+        pg.keyboard.press("Escape")
+        a.wait(800)
+
+
+@shot3("D07", "md", "個股基本資料、除權息、公告／新聞")
+def d07(pg, a, start, base):
+    _stk_enter(pg, a, base)
+    start()
+    a.wait(300)
+    for nm in ["基本資料", "除權息", "公告"]:
+        if _stk_tab(a, nm):
+            if a.mob:
+                slow_through(a, "#stockTab", f"{nm}分頁", 1800, 1000)
+            else:
+                frame(a, "#stockTab", 2200, label=f"{nm}分頁")
+
+
+
 # ------------------------------------------------------------------ 主程式
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--shots", default="")
     ap.add_argument("--dev", default="md")
     ap.add_argument("--out", default="")
-    ap.add_argument("--set", default="v2", choices=["v2", "v3", "v3b", "v3c"], help="v3＝第 3 版素材（桌機 1600×900@2、不藏 B 類、完整入框）")
+    ap.add_argument("--set", default="v2", choices=["v2", "v3", "v3b", "v3c", "v3d"], help="v3＝第 3 版素材（桌機 1600×900@2、不藏 B 類、完整入框）")
     ap.add_argument("--port", type=int, default=PORT)
+    ap.add_argument("--fps", type=int, default=0, help="輸出幀率（預設 30；v3c 預設 60：逐格算圖每一個 rAF 刻度都收進來）")
+    ap.add_argument("--realtime", action="store_true", help="真實時間錄影（CDP screencast，依時間戳重採樣）；本機 CPU 繪圖只有 ~13fps 來源，實測比逐格算圖差，預設不用")
     ap.add_argument("--log-only", action="store_true", help="不截圖，只重跑一次操作記下點擊秒數與座標（已錄好的鏡頭補座標用）")
     args = ap.parse_args()
     _import_shots()
+    global FPS
+    FPS = args.fps or (60 if args.set == "v3c" else 30)
     v3 = args.set.startswith("v3")
     reg = SHOTS3 if v3 else SHOTS
     devs_cfg = DEVS3 if v3 else DEVS
+    if args.set == "v3d" and not args.shots.strip():
+        args.shots = "D02,D01,D03,D04,D05,D06,D07"
     if args.set == "v3c" and not args.shots.strip():
         args.shots = ",".join(V3C)
     if args.set == "v3b":   # 手機版「卡片比畫面高」的鏡頭：用加高的 viewport 重錄，整張卡片完整入框
@@ -1926,7 +2182,7 @@ def main() -> int:
                         cfg["viewport"] = {"width": 390, "height": V3B_H[sid]}
                     ctx = b.new_context(**cfg, locale="zh-TW", timezone_id="Asia/Taipei")
                     import datetime as _dt
-                    if args.set != "v3c":
+                    if not args.realtime:
                         ctx.clock.install(time=_dt.datetime.now(tz=_dt.timezone.utc))
                     ctx.add_init_script(PRESET)
                     fake_api(ctx)
@@ -1945,10 +2201,10 @@ def main() -> int:
                     act.x, act.y = (4, 450) if dev == "d" else (cfg["viewport"]["width"] - 4, cfg["viewport"]["height"] * 0.55)   # 桌機起始游標放左緣空白處：不會停在圖表上跳出 hover 提示框
                     W = int(cfg["viewport"]["width"] * cfg["device_scale_factor"])
                     H = int(cfg["viewport"]["height"] * cfg["device_scale_factor"])
-                    rec = Recorder(pg, W, H, dry=args.log_only, realtime=(args.set == "v3c"))
+                    rec = Recorder(pg, W, H, dry=args.log_only, realtime=args.realtime)
                     act.dsf = cfg["device_scale_factor"]
                     act.log_moves = v3   # v3 沒有錄進游標 → 游標路徑寫進 shots.md 給後製畫比比
-                    name = f"{sid}_{'mobile' if dev == 'm' else 'desktop'}" + ("_v3b" if args.set == "v3b" else "_v3c" if args.set == "v3c" else "")
+                    name = f"{sid}_{'mobile' if dev == 'm' else 'desktop'}" + ("_v3b" if args.set == "v3b" else "_v3c" if args.set == "v3c" else "_v3d" if args.set == "v3d" else "")
                     try:
                         # 每鏡自己決定何時開錄：fn(pg, act, rec_start) —— 先做準備（換頁、等圖畫完）再開錄
                         state = {}
