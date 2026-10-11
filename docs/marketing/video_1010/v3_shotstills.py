@@ -30,4 +30,8 @@ for s in S:
     im = s.render(t, L)
     C.end(s.sid, t, L.W, L.H)
     im.save(out / f"{a.fmt}_{s.sid}.png")
+    import render_1010 as B
+    for r in list(B._READERS.values()):
+        r.close()
+    B._READERS.clear()
     print(s.sid, "ok", flush=True)
