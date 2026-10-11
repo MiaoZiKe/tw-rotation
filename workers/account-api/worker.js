@@ -169,7 +169,7 @@ export class Hub {
   kv(k) { const r = this.q('SELECT v FROM kv WHERE k = ?', k); return r.length ? r[0].v : null; }
   setKv(k, v) { this.q('INSERT INTO kv (k, v) VALUES (?, ?) ON CONFLICT(k) DO UPDATE SET v = excluded.v', k, String(v)); }
 
-  origins() { return String(this.env.ALLOWED_ORIGINS || 'https://liguligu.com https://www.liguligu.com https://miaozike.github.io https://tw-rotation.pages.dev').split(/[\s,]+/).filter(Boolean); }
+  origins() { return String(this.env.ALLOWED_ORIGINS || 'https://liguligu-puipui.com https://www.liguligu-puipui.com https://miaozike.github.io https://tw-rotation.pages.dev').split(/[\s,]+/).filter(Boolean); }
   originOk(o) { return !!o && this.origins().includes(o); }
   admins() { return String(this.env.ADMIN_EMAILS || '').toLowerCase().split(/[\s,;]+/).filter(Boolean); }
   isAdmin(u) { return !!u && !!u.email && this.admins().includes(String(u.email).toLowerCase()); }
