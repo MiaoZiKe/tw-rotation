@@ -54,7 +54,7 @@ def _zone(L):
     """內容區（避開標題、比比帶與手機 Reels 介面區）。"""
     if L.fmt == "web":
         return (360, 150, 1680, 800)
-    return (140, 500, 940, 1230)
+    return (140, 460, 940, 1190)
 
 
 def _icon(d, kind, r):

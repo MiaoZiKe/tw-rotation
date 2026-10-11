@@ -819,7 +819,7 @@ class Rec4:
         if t < 1.5 / FPS and not getattr(shot, "_cropped", False):
             shot._cropped = True
             if L.fmt == "mobile":
-                full_w = abs((self.win[2] - self.win[0]) - sw) < 1.0
+                full_w = abs((self.win[2] - self.win[0]) - sw) < 1.0 or (V4 and bool(getattr(self, "win_keys", None)) and (self.win[2] - self.win[0]) >= L.box[2] * 0.97)   # 刻意推近（倍率 ≤1.0）也算完整
             else:
                 full_w = MAINCHK[-1][2] >= 99.9 if MAINCHK else True
             left, right = ix, L.W - (ix + iw)
@@ -1347,17 +1347,17 @@ class Op:
             return (bx0 - r0[2] + 4, by0 + q * (by1 - by0)), size
         return (bx1 - r0[0] - 4, by0 + q * (by1 - by0)), size
 
-    def _drag_pose(self, shot, L, p, t):
+    def _drag_pose(self, shot, L, p, t, nm="hop_r", fi=2):
         """3D 推轉：比比跟著拖曳點走，站在模型旁邊的空白處（不壓模型與其他內容）。"""
-        tq = round(t * 2) / 2
-        busy = self._busy_at(shot, L, tq)[0] | self._busy_at(shot, L, min(shot.dur - 1 / FPS, tq + 0.5))[0]
+        tq = math.floor(t * 4) / 4
+        busy = self._busy_at(shot, L, tq)[0] | self._busy_at(shot, L, min(shot.dur - 1 / FPS, tq + 0.25))[0]
         fr = self.rec.rect
         best = None
         for size in (150, 130, 110, 96):
             for dy in (0.0, 0.5, 1.0, -0.5, 1.5, -1.0, 2.0, -1.5, 2.5):
                 for dx in (0.0, -0.6, 0.6, -1.2, 1.2):
                     foot = (p[0] + dx * size, p[1] + dy * size)
-                    sx, sy, m = _sprite_alpha("hop_r", 2, foot, size)
+                    sx, sy, m = _sprite_alpha(nm, fi, foot, size)
                     tot = int(m.sum())
                     if not tot or sx < fr[0] or sy < fr[1] or sx + m.shape[1] > fr[0] + fr[2] or sy + m.shape[0] > fr[1] + fr[3]:
                         continue
@@ -1385,10 +1385,11 @@ class Op:
             if d["t0"] - 0.1 <= t <= d["t1"] + 0.1:
                 u = clamp((t - d["t0"]) / max(0.01, d["t1"] - d["t0"]), 0, 1)
                 p = rec.map(lerp(d["x0"], d["x1"], u), lerp(d["y0"], d["y1"], u))
-                foot, size = self._drag_pose(shot, L, p, t)
                 nm = "hop_r" if d["x1"] >= d["x0"] else "hop_l"
+                fi = anim_frame(nm, t - d["t0"])
+                foot, size = self._drag_pose(shot, L, p, t, nm, fi)
                 ROLE[0] = "bibi"
-                put_sprite(cv, nm, anim_frame(nm, t - d["t0"]), foot, size)
+                put_sprite(cv, nm, fi, foot, size)
                 return
         ROLE[0] = "bibi"
         put_sprite(cv, iname, anim_frame(iname, t), home, hs)
@@ -2022,7 +2023,7 @@ class Shot4:
             d_ = self.dwell
             DWELLCHK.append((self.sid, d_["units"], d_["min_req"], d_["D"], d_["reached"], d_["hold"], d_["note"]))
         C.begin()
-        C.SITE_OK = bool(V4 and L.fmt == "web" and self.kind == "feature")
+        C.SITE_OK = bool(V4 and self.kind == "feature")      # 第 4 版：疊加元素與網站畫面的關係改由 busy_check 逐像素檢查
         if V4 and L.fmt == "web" and self.kind == "feature":
             v4_place(self, L)
         ROLE[0] = "bibi"
@@ -2098,7 +2099,7 @@ def _shot_note(cv, L, shot, t):
                 x = cand
                 break
     else:
-        x, y = 40 + (900 - tw) / 2, 386
+        x, y = 40 + (900 - tw) / 2, 374
     R.float_panel(cv, (x - 10, y - 4, x + tw + 10, y + 30), 225, 10)
     ImageDraw.Draw(cv).text((x, y), text, font=f, fill=(60, 60, 60))
     C.reg("note", (x - 10, y - 4, x + tw + 10, y + 30))
