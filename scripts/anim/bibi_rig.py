@@ -977,7 +977,8 @@ def _def_local_inv(p):
     # 兩耳都往傾斜方向（頭頂移動方向）挪一點；背向那一耳縮小、收進毛裡一點。
     rot = p["rot"]
     tilt = max(0.0, abs(rot) - 8) * (1 if rot > 0 else -1)
-    ear_tx = [0.55 * tilt + p.get("ear_tx", 0.0), 0.55 * tilt + p.get("ear_tx", 0.0)]
+    ear_tx = [0.55 * tilt + p.get("ear_tx", 0.0) + p.get("ear_tx_l", 0.0),
+              0.55 * tilt + p.get("ear_tx", 0.0) + p.get("ear_tx_r", 0.0)]   # ear_tx_l/r：四腳版側面各耳自己挪
     ear_sc = [(1 - max(0.0, tilt) / 70) * p.get("ear_sc_l", 1.0), (1 - max(0.0, -tilt) / 70) * p.get("ear_sc_r", 1.0)]
     feet = [(DEF_FOOT_L, p["bf_far"]), (DEF_FOOT_R, p["bf_near"])]
     amp, ph = p["flutter"], p["fphase"]
