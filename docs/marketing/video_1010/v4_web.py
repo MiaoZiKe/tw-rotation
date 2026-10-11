@@ -156,7 +156,7 @@ def build():
     S.append(shot("e02", "熱力圖", "I01_desktop_v3i", [(4.0, 6.4)], "題材熱度", "熱門題材，我拆開給你看", [(0, "talk_excited"), (1.4, "fire")], cont=True, min_cap=3.2))
     S.append(shot("e03", "熱力圖", "I01_desktop_v3i", [(6.4, 9.4)], "一步一步看懂", "從晶片到整櫃，照順序看", [(0, "bulb"), (1.6, "face_thinking_bulb")], chain="solo"))
     # 5 產業地圖（2D → 3D → 四宮格 → 關聯圖）
-    S.append(shot("f01", "產業地圖", "V11_desktop", [(14.2, 17.2)], "⑤ 產業鏈 2D", "上下游怎麼排，一張看懂", [(0, "talk_happy"), (1.4, "spotlight")]))
+    S.append(shot("f01", "產業地圖", "V11_desktop_nofab", [(11.7, 14.7)], "⑤ 產業鏈 2D", "上下游怎麼排，一張看懂", [(0, "talk_happy"), (1.4, "spotlight")]))
     S.append(shot("f02", "產業地圖", "V12a_desktop", [(2.0, 6.0)], "3D 拆開看", "戴上眼鏡，推一下就轉！", [(0, "3dglasses"), (2.0, "face_star")]))
     S.append(grid_card("f03", GRID_W))
     S.append(shot("f04", "產業地圖", "V13_desktop", [(3.6, 6.5)], "上下游一張連", "滑過去，供貨關係就亮", [(0, "point_r"), (2.2, "face_love")]))

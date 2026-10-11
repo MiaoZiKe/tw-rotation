@@ -1375,7 +1375,7 @@ class Op:
         best = None
         for peak in (0, 60, 160, 280, 400, 520, -120, -240, -360):
             score, okk = 0.0, True
-            for u in (0.1, 0.3, 0.5, 0.7, 0.9):
+            for u in (0.05, 0.15, 0.25, 0.35, 0.45, 0.55, 0.65, 0.75, 0.85, 0.95):
                 tt = min(shot.dur - 1 / FPS, max(0.0, t0 + u * self.HOP))
                 busy, mainm = self._busy_at(shot, L, tt)
                 p = (lerp(a[0], b[0], u), lerp(a[1], b[1], u) - peak * math.sin(math.pi * u))
@@ -1809,7 +1809,8 @@ def busy_check(shot, t, busy, mainb=None):
                     BUSYCHK.append((shot.sid, round(t, 3), "bibi:" + name + "（踩按鈕）", round(hit_main * 100 / tot, 2), "踩按鈕時壓到主角圖表資料區（必須 0%）"))
                 if hit_out > 0.15 * tot:
                     BUSYCHK.append((shot.sid, round(t, 3), "bibi:" + name + "（踩按鈕）", round(hit_out * 100 / tot, 2), "踩按鈕時壓到按鈕以外的文字 >15%"))
-                if cov > 0.2 * barea:
+                standing = tp["t"] - 0.06 <= t <= tp["t"] + 0.21     # 站在按鈕上那段才檢查按鈕露出；跳躍途中掠過不算
+                if standing and cov > 0.2 * barea:
                     BUSYCHK.append((shot.sid, round(t, 3), "bibi:" + name + "（踩按鈕）", round(cov * 100 / barea, 2), f"按鈕「{lab}」被蓋超過 20%（文字要露出 ≥80%）"))
                 continue
         if hit > 0.01 * tot:
