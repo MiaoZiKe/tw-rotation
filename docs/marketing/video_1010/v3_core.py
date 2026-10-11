@@ -1276,6 +1276,15 @@ class Op:
         bs = [self._busy_at(shot, L, tt_) for tt_ in (max(0.0, tp["t"] - self.TAP_IN), tp["t"], min(shot.dur - 1 / FPS, tp["t"] + self.TAP_OUT))]
         busy = bs[0][0] | bs[1][0] | bs[2][0]
         mainm = bs[0][1] | bs[1][1] | bs[2][1]
+        mm = mainm.copy()                 # 主角資料區再外擴 6px 當安全邊（逐幀檢查時畫面有 1.5% 慢推）
+        for k in range(1, 7):
+            mm[k:, :] |= mainm[:-k, :]
+            mm[:-k, :] |= mainm[k:, :]
+        mainm = mm.copy()
+        for k in range(1, 7):
+            mm[:, k:] |= mainm[:, :-k]
+            mm[:, :-k] |= mainm[:, k:]
+        mainm = mm
         (bx0, by0, bx1, by1), _ = self._btn(rec, tp)
         H, W = busy.shape
         bm = np.zeros_like(busy)
@@ -1313,7 +1322,7 @@ class Op:
                 hit_main, _ = _mask_hits(mainm & ~bm & ~rowb, sx, sy, m)
                 cov, _ = _mask_hits(bm, sx, sy, m)
                 # CEO 10-12（例外 1）：主角圖表資料區 0%、其他文字 ≤15%、按鈕露出 ≥80%；越乾淨越好、越大越好
-                ok = hit_main == 0 and hit_out <= 0.15 * tot and cov <= 0.2 * barea
+                ok = hit_main == 0 and hit_out <= 0.12 * tot and cov <= 0.18 * barea      # 留安全邊（檢查上限 15％／20％）
                 bad = hit_main / tot * 10 + hit_out / tot + max(0.0, cov / barea - 0.2) * 3
                 pref = {"top": 0, "left": 1, "right": 1, "bottom": 2}[side]
                 clean = hit_out <= 0.01 * tot
@@ -1367,15 +1376,9 @@ class Op:
             if c - self.TAP_IN <= t < c + self.TAP_OUT:
                 pose = self._tap_pose(shot, L, tp)
                 foot, size = self._pose_foot(rec, tp, pose)
-                if t < c - 0.12:
-                    k = lerp(0.35, 1.0, ease_io((t - (c - self.TAP_IN)) / (self.TAP_IN - 0.12)))
-                elif t > c + self.TAP_OUT - 0.12:
-                    k = lerp(1.0, 0.35, ease_io((t - (c + self.TAP_OUT - 0.12)) / 0.12))
-                else:
-                    k = 1.0
-                fr_i = 8 + (1 if c <= t < c + 0.12 else 0) if t >= c else 7
+                # 整段用同一個站姿（第 8 格），大小不變：找站位時算過的就是畫出來的（縮放進出場會改變壓到的範圍）
                 ROLE[0] = "bibi_tap"
-                put_sprite(cv, "tap", fr_i, foot, size * k)
+                put_sprite(cv, "tap", 8, foot, size)
                 ROLE[0] = "bibi"
                 return
         for d in self.drags:
@@ -1973,7 +1976,7 @@ def v4_place(shot, L):
     # 縮框讓出右側邊條（87% 寬），比比 130px＋泡泡在邊條內
     bw4 = 1660
     rec.box4 = (24, 58 + (993 - bw4 * 993 / 1766) / 2, bw4, bw4 * 993 / 1766)
-    op.hx, op.hfoot, op.hh, op.bside, op.bmaxw = 1802, 1040, 130, "T", 176
+    op.hx, op.hfoot, op.hh, op.bside, op.bmaxw = 1802, 1040, 130, "T", 150
     op.place_note = "整鏡找不到夠大的空白：網站框縮到 86.5% 寬（1660px），比比在右側邊條"
     _BUSY_CACHE.clear()
 
