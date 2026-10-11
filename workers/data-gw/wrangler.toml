@@ -7,7 +7,7 @@ workers_dev = true
 
 [vars]
 # 公開的網域白名單（不是金鑰）
-ALLOWED_ORIGINS = "https://miaozike.github.io"
+ALLOWED_ORIGINS = "https://liguligu.com https://www.liguligu.com https://miaozike.github.io https://tw-rotation.pages.dev"
 ACCOUNT_ORIGIN = "https://miaozike.github.io"
 # 門檻（等 Andy 拍板；見 docs/datagw_plan.md「要 Andy 決定」）
 RATE_PER_MIN = "60"

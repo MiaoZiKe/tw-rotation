@@ -13,7 +13,7 @@
 (function () {
   'use strict';
   /* ⚠ 客服信箱：Andy 2026-10-05 指定暫用此信箱*/
-  const SUPPORT_EMAIL = 'kcq01010909@gmail.com';
+  const SUPPORT_EMAIL = 'liguligu0818@gmail.com';   // 2026-10-11 Andy：新的商用信箱（舊：個人信箱）
   const T = () => window.TwSub;
   if (!T()) return;
   const { esc, css, call, view, toast } = T();

@@ -49698,7 +49698,7 @@ def _legal_spy(pg, base):
 def t_refund_1009(b, base):
     T = "退款政策1009"
     shots = os.environ.get("TW_REFUND_SHOTS", "")
-    MAIL = "kcq01010909@gmail.com"
+    MAIL = "liguligu0818@gmail.com"
     q = "&" if "?" in base else "?"
     ctx, pg = _lg_page(b)
     pg.goto(base + "#overview", wait_until="networkidle"); pg.wait_for_timeout(2000)
@@ -49932,7 +49932,7 @@ def t_legal(b, base):
     ok("[關] 使用條款不掛草稿、沒有【】空格、頂端不再顯示最後更新日期（2026-10-07 Andy）",
        not r["draft"] and r["blanks"] == 0 and not re.search(r"最後更新日期[：:]\s*\d{4}", pg.inner_text("#lgDoc"))
        and pg.locator("#lgDoc .lgmeta").count() == 0
-       and "臺灣臺北地方法院" in pg.inner_text("#lgDoc") and "kcq01010909@gmail.com" in pg.inner_text("#lgDoc"), r)
+       and "臺灣臺北地方法院" in pg.inner_text("#lgDoc") and "liguligu0818@gmail.com" in pg.inner_text("#lgDoc"), r)
     ok("[關] 進法律頁捲回頁首", r["sy"] == 0, r)
     ok("[關] 法律頁沒有小於 12px 的字", not pg.evaluate(_LG_FONTS, "#v-legal"), pg.evaluate(_LG_FONTS, "#v-legal"))
     # 目錄：點第五條 → 捲下去，但網址不變（目錄不能改 hash，不然會被當成未知路由導回總覽）
