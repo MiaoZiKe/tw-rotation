@@ -219,6 +219,105 @@ def click_info(clip, t_src, x, y):
     return {"rect": (x - 45, y - 45, x + 45, y + 45), "center": (x, y), "label": "", "src": "座標估值±45px", "hit": None}
 
 
+CONTENTCHK: list = []   # (鏡, 點擊目標, 內容區標籤, 入框%(點擊後 1.5 秒), 停留秒, 來源, 備註)
+
+
+def post_click_content(clip, src_t, cy_src=None, desktop=False):
+    """點擊後「被點出的內容區」：取錄影端 focus_targets 中、點擊之後 4.6 秒內最早出現的內容區（排除控制列）；沒標就推定為點擊目標下方（手機）。"""
+    allj = load_all()
+    best = None
+    for key in _clip_keys(clip):
+        for it in (allj.get(key) or {}).get("focus", []):
+            if "video_rect" not in it or "t_start" not in it:
+                continue
+            ts = float(it["t_start"])
+            lab = str(it.get("label", ""))
+            if not (src_t - 0.05 <= ts <= src_t + 4.6):
+                continue
+            if any(k in lab for k in ("搜尋", "分頁列", "切換列", "結論一行", "指標選單")):
+                continue
+            r = _xywh(it["video_rect"])
+            if r[1] < 0 or r[3] - r[1] < 60:
+                continue
+            if best is None or ts < best[0]:
+                best = (ts, r, lab)
+    if best:
+        return best[1], best[2], "錄影端 focus_targets"
+    if desktop or cy_src is None:
+        return None, "", ""
+    return (24, cy_src + 60, 1146, cy_src + 60 + 1500), "點擊目標下方內容", "推定（錄影端未標內容區）"
+
+
+def plan_mobile(rec, op, D, L):
+    """手機：點擊後把「被點出的內容區」放進視窗（點下→內容出現並入框→停留），回傳 (pan_keys, 檢查列)。"""
+    sw, sh = clip_size(rec.clip)
+    rx, ry, rw, rh = L.box
+    wh = rh * sw / rw
+    maxy = max(0.0, sh - wh)
+
+    def cl(y):
+        return min(max(y, 0.0), maxy)
+    taps = [tp for tp in op.taps if not tp["hover"]]
+    if not taps:
+        return None, []
+    items = []
+    for tp in taps:
+        rect, lab, src = post_click_content(rec.clip, tp["src_t"], tp["cy"])
+        rect = _clip_rect(rect, sw, sh)
+        h = rect[3] - rect[1]
+        w_c = cl(rect[1] - (160 if h <= wh - 200 else 100))
+        cy = tp["cy"]
+        w_t = None if (w_c + 40 <= cy <= w_c + wh - 40) else cl(cy - wh * 0.3)
+        items.append({"c": tp["t"], "rect": rect, "lab": lab, "src": src, "w_c": w_c, "w_t": w_t, "tp": tp})
+    keys = []
+    first = items[0]
+    keys.append((0.0, first["w_t"] if first["w_t"] is not None else first["w_c"]))
+    for k, it in enumerate(items):
+        c = it["c"]
+        if it["w_t"] is not None:
+            keys.append((c + 0.25, it["w_t"]))
+        keys.append((c + 0.95, it["w_c"]))
+        nxt = items[k + 1] if k + 1 < len(items) else None
+        if nxt:
+            tgt = nxt["w_t"] if nxt["w_t"] is not None else nxt["w_c"]
+            if abs(tgt - it["w_c"]) > 1:
+                keys.append((max(c + 1.0, nxt["c"] - 0.7), it["w_c"]))
+                keys.append((nxt["c"] - 0.1, tgt))
+    last = items[-1]
+    h = last["rect"][3] - last["rect"][1]
+    if h > wh - 200 and D - (last["c"] + 0.95) > 1.8:
+        keys.append((last["c"] + 1.9, last["w_c"]))
+        keys.append((D, cl(last["rect"][3] - wh + 40)))
+    # 單調化
+    out = []
+    for t_, y_ in sorted(keys, key=lambda x: x[0]):
+        if out and t_ <= out[-1][0] + 1e-3:
+            out[-1] = (out[-1][0], y_)
+        else:
+            out.append((t_, y_))
+
+    def win_at(tt):
+        if tt <= out[0][0]:
+            return out[0][1]
+        for (t0, y0), (t1, y1) in zip(out, out[1:]):
+            if t0 <= tt <= t1:
+                return y0 + (y1 - y0) * ease_io((tt - t0) / max(1e-3, t1 - t0))
+        return out[-1][1]
+    chk = []
+    for it in items:
+        c = it["c"]
+        r = it["rect"]
+        top = (r[0], r[1], r[2], min(r[3], r[1] + wh - 120))
+        w15 = win_at(c + 1.5)
+        inc = _area(_inter_rect(top, (0, w15, sw, w15 + wh))) / max(1.0, _area(top))
+        note = "內容高於視窗：取上段並往下慢滑" if r[3] - r[1] > wh - 200 else ""
+        chk.append((rec.clip, it["tp"]["label_txt"] if "label_txt" in it["tp"] else "", it["lab"], round(inc * 100, 1), round(D - (c + 0.95), 2), it["src"], note, it["tp"]))
+    return out, chk
+
+
+PAN_LOG_DUMMY = None
+
+
 def focus_target(clip, label, rect):
     allj = load_all()
     for key in _clip_keys(clip):
@@ -308,6 +407,8 @@ class Rec4:
         self.main = list(main or [])      # 額外指定的主圖 rect（src px：x0,y0,x1,y1）
         self.win = self.rect = None
         self._wl = None
+        self.pan_keys = None
+        self._cchk = []
 
     def zoom_u(self, t):
         return 0.0 if self.focus is None or not self.focus.zoom else self.focus.zoom_u(t)
@@ -327,6 +428,14 @@ class Rec4:
                 base_main = [(480 * f_, 100 * f_, 3168 * f_, 1760 * f_)]      # 內容區（側欄與頁首以外）
             rs0 = base_main + ([tuple(self.focus.rect)] if self.focus and self.focus.frame else [])
             rs = [_clip_rect(r, sw, sh) for r in rs0]
+            cont_rs = []
+            if shot.op:
+                for tp in shot.op.taps:
+                    if tp["hover"]:
+                        continue
+                    cr, clab, csrc = post_click_content(self.clip, tp["src_t"], None, desktop=True)
+                    if cr is not None:
+                        cont_rs.append((_clip_rect(cr, sw, sh), clab, csrc, tp))
             tap_rs = []
             if shot.op:
                 for tp in shot.op.taps:
@@ -334,7 +443,10 @@ class Rec4:
                         continue
                     r, _, _ = click_target(self.clip, tp["src_t"], tp["x"], tp["y"])
                     tap_rs.append(_clip_rect(r, sw, sh))
-            win = web_window(rs + tap_rs, sw, sh)
+            win = web_window(rs + tap_rs + [c_[0] for c_ in cont_rs], sw, sh)
+            for (cr_, clab, csrc, tpx) in cont_rs:
+                inc_ = _area(_inter_rect(cr_, win)) / max(1.0, _area(cr_))
+                CONTENTCHK.append((shot.sid, tpx.get("_lab", ""), clab, round(inc_ * 100, 1), round(shot.dur - (tpx["t"] + 0.95), 2), csrc, ""))
             ww, wh = win[2] - win[0], win[3] - win[1]
             ax, ay, aw, ah = AVAIL_W
             sc = min(aw / ww, ah / wh)
@@ -364,13 +476,24 @@ class Rec4:
         if L.fmt == "mobile":
             ww = sw
             wh = rh * sw / rw
-            if self.pan:
+            if self.pan_keys:
+                ks = self.pan_keys
+                y0 = ks[0][1] if t <= ks[0][0] else ks[-1][1]
+                for (k0, v0), (k1, v1) in zip(ks, ks[1:]):
+                    if k0 <= t <= k1:
+                        y0 = lerp(v0, v1, ease_io((t - k0) / max(1e-3, k1 - k0)))
+                        break
+            elif self.pan:
                 ya, yb, t0, t1 = self.pan
                 y0 = lerp(ya, yb, ease_io((t - t0) / max(0.01, t1 - t0)))
             else:
                 y0 = 0
             y0 = clamp(y0, 0, max(0, sh - wh))
             self.win = (0, y0, ww, min(sh, y0 + wh))
+            if not getattr(self, "_cdone", False):
+                self._cdone = True
+                for (cl_, tlab, clab, inc, hold, csrc, note, tpx) in self._cchk:
+                    CONTENTCHK.append((shot.sid, tpx.get("_lab", ""), clab, inc, hold, csrc, note))
             if not getattr(self, "_mchk", False):
                 self._mchk = True
                 f = self.focus

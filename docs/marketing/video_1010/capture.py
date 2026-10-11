@@ -377,6 +377,28 @@ class Act:
         warn = "｜⚠ 這一點最上層不是預期的元素（被浮層／頂欄蓋住？）" if e["hit_expected"] is False else ""
         self.note(f"  ↳ {kind} 目標：{what}｜{info.get('selector')}｜外框 css {e['css_rect']}｜影片 {e['video_rect']}｜中心 影片{e['center']}{warn}")
 
+    def attach_content(self, sel, t0, t1, label=""):
+        """最近一次點擊（6 秒內、還沒掛內容區）→ 掛上點擊後出現的內容區外框（影片座標）與完整入框的時間區間。"""
+        if not self.targets:
+            return
+        tg = self.targets[-1]
+        if tg.get("content_rect") is not None or tg["t"] < t0 - 12:
+            return
+        try:
+            r = self.pg.evaluate(RECT_JS, sel) if ">>" not in sel and ":has-text" not in sel else None
+            if r is None:
+                bb = self.pg.locator(sel).first.bounding_box(timeout=1500)
+                r = [bb["x"], bb["y"], bb["width"], bb["height"]] if bb else None
+        except Exception:  # noqa: BLE001
+            r = None
+        if r:
+            tg["content_sel"] = sel
+            tg["content_label"] = label
+            tg["content_rect"] = self._vrect(r)
+            tg["content_css_rect"] = [round(v, 1) for v in r]
+            tg["content_visible_t"] = [round(t0, 2), round(t1, 2)]
+            tg["content_fully_in_viewport"] = bool(r[1] >= -1 and r[1] + r[3] <= self.pg.evaluate("() => innerHeight") + 1)
+
     def add_focus(self, label, rect, t0, t1, selector=""):
         if not rect:
             self.note(f"（焦點量不到：{label}）")
@@ -493,6 +515,46 @@ class Act:
         x, y = b["x"] + b["width"] * dx, b["y"] + b["height"] * dy
         self.note(f"點 {label or sel}")
         self.click_xy(x, y, ms, pause, expect=sel)
+        return True
+
+    def fast_click(self, sel, label="", ms=420, pause=220, gap=140, margin=6):
+        """連續快點用：滑鼠直接從上一個目標移到這個目標（不回原位）、驗證落點在目標外框內且離邊 ≥ margin px、點下去。
+        每次約 0.8～1.0 秒。必要時先瞬間捲到可見。回傳是否點成。"""
+        loc = self.pg.locator(sel).first
+        try:
+            if not loc.count():
+                self.note(f"快點：找不到 {sel}")
+                return False
+            loc.evaluate("e => { const r = e.getBoundingClientRect(); if (r.top < 70 || r.bottom > innerHeight - 8 || r.left < 0 || r.right > innerWidth) e.scrollIntoView({block: 'center', inline: 'center', behavior: 'instant'}); }")
+            self.wait(80)
+            bb = loc.bounding_box()
+        except Exception:  # noqa: BLE001
+            return False
+        if not bb:
+            return False
+        x, y = bb["x"] + bb["width"] / 2, bb["y"] + bb["height"] / 2
+        self.move(x, y, ms)
+        self.wait(pause)
+        info = {}
+        try:
+            info = self.pg.evaluate("""([s, p, m]) => { const e = document.querySelector(s) ; return null; }""", [sel, [x, y], margin]) or {}
+        except Exception:  # noqa: BLE001
+            info = {}
+        inside = x - bb["x"] >= min(margin, bb["width"] / 2) and bb["x"] + bb["width"] - x >= min(margin, bb["width"] / 2) \
+            and y - bb["y"] >= min(margin, bb["height"] / 2) and bb["y"] + bb["height"] - y >= min(margin, bb["height"] / 2)
+        top = self.hit_ok(sel, x, y)
+        self.record_target(x, y, "click", label, expect=sel)
+        tg = self.targets[-1]
+        tg["target_rect_css"] = [round(bb["x"], 1), round(bb["y"], 1), round(bb["width"], 1), round(bb["height"], 1)]
+        tg["margin_px"] = round(min(x - bb["x"], bb["x"] + bb["width"] - x, y - bb["y"], bb["y"] + bb["height"] - y), 1)
+        tg["inside_rect"] = bool(inside)
+        tg["hit_expected"] = bool(top) and bool(inside)
+        self.note(f"快點「{label or sel}」落點離邊 {tg['margin_px']}px，最上層元素{'＝' if top else '≠'}目標")
+        self.pg.evaluate("([x,y]) => window.__vcRipple && window.__vcRipple(x,y)", [x, y])
+        self.pg.mouse.down()
+        self.frame()
+        self.pg.mouse.up()
+        self.wait(gap)
         return True
 
     def drag(self, x0, y0, x1, y1, ms=900, button="left"):
@@ -1190,6 +1252,7 @@ def frame(a, sel, hold=2000, ms=1100, label=""):
     a.wait(hold)
     a.last_hold = (t0, a.t)
     a.focus_sel(label or sel, sel, t0, a.t)
+    a.attach_content(sel, t0, a.t, label or sel)
     a.note(f"完整入框 {t0:.1f}–{a.t:.1f}s：{label or sel}" + ("" if full else f"（卡片高 {h:.0f}px 超過畫面，只入框上段）"))
     return True
 
@@ -2019,6 +2082,7 @@ def slow_through(a, sel, label, first_hold=1800, last_hold=1200, ms_per_screen=2
     t0 = a.t
     a.wait(first_hold)
     a.focus_sel(f"{label}（頂端入框）", sel, t0, a.t)
+    a.attach_content(sel, t0, a.t, label)
     a.note(f"完整入框 {t0:.1f}–{a.t:.1f}s：{label} 頂端")
     if y1 > y0 + 20:
         a.scroll(to_y=y1, ms=max(1800, min(7000, int((y1 - y0) / max(vh - pad, 1) * ms_per_screen))))
