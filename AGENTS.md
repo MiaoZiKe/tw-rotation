@@ -59,6 +59,8 @@ Andy 提需求 → CEO（主 session）判斷屬於哪個領域 → 用 Task 工
 | 散熱／電源／光通訊／交換器／機櫃的客戶與上下游 | AI 伺服器分析師 | `ai-server-analyst` |
 | 做新的 GIF／吉祥物動作、LOGO 要動、分鏡怎麼排、動畫審片 | 動畫導演（動畫設計單位） | `animation-director` |
 | 這張 GIF 去背、分鏡合成動畫、白邊／陰影／檔案太大 | 動態設計師（動畫設計單位） | `motion-designer` |
+| IG／Threads 開帳號、貼文影片上架排程、留言互動、成效 | 社群營運主管（社群媒體部） | `social-media-manager` |
+| 科技快訊／總經一分鐘／產業拆解的選題、查證、腳本 | 財經內容編輯（社群媒體部） | `finance-content-editor` |
 
 **★ 判斷依據是證據，不是誰在問。**（Andy 2026-09-19：「不要把我的身份加進來，
 不因為我是誰而決定，需要依目前找到的資訊執行」）
@@ -396,3 +398,7 @@ CEO 彙整 → pytest + scripts/_preview.py → push → 更新 HANDOFF.md → �
 - Andy 10-09：「幫我將 LOGO GIF 圖設計成立動畫設計單位…將從分鏡圖片到合成 GIF 以及去背整套流程寫個系統先儲存」。
 - 導演寫分鏡與規格、審片；設計師用 `scripts/anim/gif_pipeline.py` 做去背與合成、接上網站。整套流程與踩過的坑在 `docs/anim/README.md`。
 
+## 社群媒體部（`social-media-manager` / `finance-content-editor`，2026-10-11 成立）
+- Andy 10-11：成立 IG／Threads 自媒體單位，以吉祥物比比為主角；欄目含科技新聞、全球總經、產業分析；首要任務是建帳號並上傳網站介紹影片與貼文；可與各單位合作、不受權限管。
+- 章程、編制、跨單位合作界線（法遵／金鑰／程式碼不放寬）與首批任務表：`docs/marketing/social_unit/charter.md`；內容日曆：`docs/marketing/social_unit/content_calendar.md`。
+- 容器打不開 IG／Threads，無法代註冊或按發佈；成品備齊交 Andy，狀態如實回報。

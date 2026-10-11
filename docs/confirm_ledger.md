@@ -517,3 +517,8 @@
 ## 10-07 16:06 Andy：修正版「套用建議方案」已按，OK。
 
 ## 10-07 18:32 Andy：套用建議方案（Plus 299／2990、Pro 549／5268）已按，OK。
+
+## 10-11 Andy：成立社群媒體部（IG／Threads・比比）
+- 已建：`social-media-manager`、`finance-content-editor` 兩位專家＋章程 `docs/marketing/social_unit/charter.md`。🛠️ 首批帳號開通 SOP、上架包、法遵審閱製作中。
+- 需 Andy 本人：用手機註冊 IG 專業帳號並開兩步驟驗證（容器無法代辦）；成品備好後上傳或按發佈。
+
