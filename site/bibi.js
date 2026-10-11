@@ -244,15 +244,18 @@ html.fab-off .bibiring,html.fab-off .bibitip,html.fab-off .bibifx{display:none!i
 
   /* ---------- 圖層：兩張 img 交叉淡入淡出 ---------- */
   let fab = null, imgs = [], front = 0, shown = '', want = '', mode = 'idle', idleNow = null, actTimer = 0, sleeping = false, sayTimer = 0;
-  let replay = 0;
+  let replay = 0, showTok = 0;
   /** once＝播一次的專屬動作：網址加 #n 讓瀏覽器從第一格重播（同一個檔、同一份快取；10-11 實測換 #片段 會重播、換新 <img> 不會） */
   function show(file, once) {
     if (!fab) return;
     want = file;
     if (file === shown && !once) return;
-    const back = imgs[1 - front], url = src(file) + (once ? '#r' + (++replay) : '');
+    const back = imgs[1 - front], url = src(file) + (once ? '#r' + (++replay) : ''), tok = ++showTok;
+    let done = false;
     const swap = () => {
-      if (want !== file) return;        // 載入中又換了別的：以最後一個為準
+      /* 只認最後一次 show()，而且只換一次（load 與保險計時器都可能叫到；換兩次 front 會翻回舊圖） */
+      if (done || tok !== showTok || want !== file || imgs[1 - front] !== back) return;
+      done = true;
       back.classList.remove('bibiback'); imgs[front].classList.add('bibiback');
       front = 1 - front; shown = file; fab.dataset.bibi = file;
     };

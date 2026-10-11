@@ -32927,7 +32927,7 @@ def t_bibi_1011(b, base):
     for route, want in (("flow/sankey", "coins"), ("flow/rotation", "growth"), ("industry", "magnifier"), ("themes", "fire"), ("stock/2330", "calc"),
                         ("etf/list", "piggy"), ("season", "calendar"), ("explore", "bulb"), ("market", "clock"), ("overview", "wave")):
         pg.evaluate(f"() => {{ location.hash = '#{route}'; }}")
-        shown = _bibi_src(pg, want, 8000)
+        shown = _bibi_src(pg, want, 15000)   # 熱力圖等重頁面換頁時主執行緒忙，換圖會晚一點
         ok(f"【{T}】桌機 盤後換到 #{route} → 比比待機換成 {want}", bool(shown), pg.evaluate(BIBI_ST))
     # 交叉淡入淡出：前景 opacity 1、背景那張 opacity 0（不閃＝兩張不會同時都 0）
     pg.wait_for_timeout(600)
