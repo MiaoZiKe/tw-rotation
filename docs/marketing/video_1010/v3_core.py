@@ -1244,7 +1244,8 @@ class Op:
         return [tp for tp in self.taps if not tp["hover"] and not tp["dense"]]
 
     # ───── 第 4 版（CEO 10-12）：比比瞬移踩按鈕（不從內容上飛過）、腳只碰按鈕上緣、身體落在空白處 ─────
-    TAP_IN, TAP_OUT = 0.25, 0.45          # 點下前 0.25 秒出現在按鈕上、點下後 0.45 秒消失（落下到彈回 ≤0.7 秒；踩著的時間 ≤0.6 秒）
+    TAP_IN, TAP_OUT = 0.25, 0.40          # 點下前 0.25 秒起跳（四腳跳 0.2 秒）→ 踩著 → 點下後 0.2 秒起跳回去、0.4 秒回到待機位（整段 0.65 秒 ≤0.7）
+    HOP = 0.2
 
     def _busy_at(self, shot, L, t):
         key = round(t, 2)
@@ -1335,6 +1336,25 @@ class Op:
         tp["_pose_bad"] = (best[2], best[3]) if best else (1.0, False)
         return tp["_pose"]
 
+    def _hop_peak(self, shot, L, tp, home, foot, hs, size):
+        """跳躍弧線高度：取幾個高度試算，挑跳躍途中壓到主角資料區最少的（快取）。"""
+        if "_peak" in tp:
+            return tp["_peak"]
+        _, mainm = self._busy_at(shot, L, tp["t"])
+        best = None
+        for peak in (60, 160, 280, 0, 400):
+            hit = 0
+            for u in (0.25, 0.5, 0.75):
+                p = (lerp(home[0], foot[0], u), lerp(home[1], foot[1], u) - peak * math.sin(math.pi * u))
+                nm = "hop_r" if foot[0] >= home[0] else "hop_l"
+                sx, sy, m = _sprite_alpha(nm, 2 + int(u * 3.99), p, lerp(hs, size, u))
+                h, _ = _mask_hits(mainm, sx, sy, m)
+                hit += h
+            if best is None or hit < best[0]:
+                best = (hit, peak)
+        tp["_peak"] = best[1]
+        return best[1]
+
     def _pose_foot(self, rec, tp, pose):
         side, q, size = pose
         (bx0, by0, bx1, by1), _ = self._btn(rec, tp)
@@ -1376,9 +1396,21 @@ class Op:
             if c - self.TAP_IN <= t < c + self.TAP_OUT:
                 pose = self._tap_pose(shot, L, tp)
                 foot, size = self._pose_foot(rec, tp, pose)
-                # 整段用同一個站姿（第 8 格），大小不變：找站位時算過的就是畫出來的（縮放進出場會改變壓到的範圍）
+                t_land = c - self.TAP_IN + self.HOP
+                t_back = c + self.TAP_OUT - self.HOP
                 ROLE[0] = "bibi_tap"
-                put_sprite(cv, "tap", 8, foot, size)
+                if t < t_land or t >= t_back:
+                    # 四腳跳躍（CEO 10-12）：用 hop 的騰空格，0.2 秒從待機位跳到按鈕（回程反向），弧線高度挑最不壓主角資料區的
+                    go = t < t_land
+                    u = ease_io((t - (c - self.TAP_IN)) / self.HOP) if go else ease_io((t - t_back) / self.HOP)
+                    a, b = (home, foot) if go else (foot, home)
+                    s0, s1 = (hs, size) if go else (size, hs)
+                    peak = self._hop_peak(shot, L, tp, home, foot, hs, size)
+                    p = (lerp(a[0], b[0], u), lerp(a[1], b[1], u) - peak * math.sin(math.pi * u))
+                    nm = "hop_r" if b[0] >= a[0] else "hop_l"
+                    put_sprite(cv, nm, 2 + int(clamp(u, 0, 0.999) * 3.99), p, lerp(s0, s1, u))
+                else:
+                    put_sprite(cv, "tap", 8, foot, size)
                 ROLE[0] = "bibi"
                 return
         for d in self.drags:

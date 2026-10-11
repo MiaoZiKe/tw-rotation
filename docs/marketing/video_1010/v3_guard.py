@@ -189,6 +189,42 @@ def freeze_check(S, limit=0.5):
     return bad
 
 
+def source_freeze_check(S, limit=1.0, fps=10, n=0.003):
+    """來源畫面停格（CEO 10-12，硬性）：每一鏡實際播出的來源幀，以 1/10 秒取樣、縮到 320 寬灰階，
+    跟停格起點那一幀比（同 ffmpeg freezedetect 的做法），平均差 < 0.3% 連續超過 1.0 秒就失敗。視窗內縮不算動作。"""
+    import numpy as np
+    import render_1010 as B
+    from render_1010 import piecewise
+    bad = []
+    for s in S:
+        for r in _recs(s):
+            rd = B.reader(r.clip)
+            ref, t0, flagged = None, 0.0, False
+            k_max = int(s.dur * fps)
+            for k in range(k_max + 1):
+                t = min(k / fps, s.dur - 1e-3)
+                st = piecewise(r.srcmap, t)
+                im = rd.get(st)
+                w = 320
+                g = np.asarray(im.convert("L").resize((w, max(1, int(im.height * w / im.width)))), dtype=np.float32)
+                if ref is None:
+                    ref, t0 = g, t
+                    continue
+                if float(np.abs(g - ref).mean()) / 255.0 >= n:
+                    ref, t0, flagged = g, t, False
+                    continue
+                if not flagged and t - t0 > limit:
+                    flagged = True
+                    bad.append((s.sid, f"來源畫面停格超過 {limit:.1f} 秒（{r.clip} 鏡內 {t0:.1f}s 起，來源 {piecewise(r.srcmap, t0):.2f}s 起畫面不動）"))
+        for rr in list(B._READERS.values()):          # 每鏡關掉解碼器（不然記憶體會爆）
+            try:
+                rr.close()
+            except Exception:
+                pass
+        B._READERS.clear()
+    return bad
+
+
 def span_check(S, strict=False):
     """錯誤畫面排除：回傳 (違規列, 警告列, 檔案存在)。
     strict（成片）：bad_spans.json 必須存在；素材還沒量（unchecked 或沒列）一律當壞素材擋下。"""
@@ -216,10 +252,11 @@ def guard(S, work, label, strict=False):
     """寫 flow_check.md、bad_span_check.md；回傳違規數。"""
     work = Path(work)
     fb, fw = flow_check(S)
-    fz = freeze_check(S)
+    import os as _os
+    fz = freeze_check(S) + source_freeze_check(S, limit=float(_os.environ.get("SRC_FREEZE_LIMIT", "1.0")))
     fb = fb + fz
     sb, sw, ex = span_check(S, strict)
-    L1 = [f"# 來回切換檢查（{label}）", "", f"違規 {len(fb)} 筆（其中停格 {len(fz)} 筆）；警告 {len(fw)} 筆。規則：鏡內來源時間不倒退、同素材不回頭重播、不 A→B→A、分頁講完不回來、分頁順序依 PAGE_ORDER 單調；停格（來源時間停住或播過素材尾端）不得超過 0.5 秒。", "",
+    L1 = [f"# 來回切換檢查（{label}）", "", f"違規 {len(fb)} 筆（其中停格 {len(fz)} 筆）；警告 {len(fw)} 筆。規則：鏡內來源時間不倒退、同素材不回頭重播、不 A→B→A、分頁講完不回來、分頁順序依 PAGE_ORDER 單調；停格（來源時間停住或播過素材尾端）不得超過 0.5 秒；來源畫面像素不動不得超過 1.0 秒（硬性，視窗內縮不算動作）。", "",
           "| 鏡 | 說明 |", "|---|---|"]
     L1 += [f"| {a} | {b} |" for a, b in fb] or ["| — | 全部通過 |"]
     if fw:
