@@ -35,7 +35,7 @@ TAU = 2 * math.pi
 
 
 # ================================================================== 共用小工具
-def ball_layer(x, y, ang, r=42.0):
+def ball_layer(x, y, ang, r=48.0):
     return R.svg_layer(R.ball_svg(x, y, r, ang))
 
 
@@ -139,30 +139,30 @@ def clip_ball_catch() -> list[dict]:
                            props_front=props or [], props_back=props_back or []))
 
     # 1 跑過來（盯著球）
-    p1 = dict(run_pose(2), x=330, eye="wide", mouth="open")
-    F(p1, 110, "追球跑來（圓眼盯球）", ball=(118, 440, -20), fx=run_fx(2, x0=480 - 70))
+    p1 = dict(run_pose(2), x=312, eye="wide", mouth="open")
+    F(p1, 110, "追球跑來（圓眼盯球）", ball=(112, 434, -20), fx=run_fx(2, x0=480 - 70))
     # 2 急煞＋預備
-    F(dict(view="side", x=318, sy=0.87, sx=1.09, rot=9, ear=-22, flutter=-6, fphase=0.4, eye="squint",
+    F(dict(view="side", x=300, sy=0.87, sx=1.09, rot=9, ear=-22, flutter=-6, fphase=0.4, eye="squint",
            mouth="flat", fp_near=(-30, 0, -14), fp_far=(-24, 0, -12), bf_near=(8, 0, 6), tail=(-4, 2, -22)),
-      130, "急煞、瞇眼瞄準（專注）", ball=(124, 440, -45),
-      fx=[R.dust_svg(186, 468, 0.9), R.dust_svg(160, 472, 0.6, 0.8)])
+      130, "急煞、瞇眼瞄準（專注）", ball=(118, 434, -45),
+      fx=[R.dust_svg(178, 468, 0.9), R.dust_svg(196, 474, 0.6, 0.8)])
     # 3 蹲到最低蓄力（屁股翹、後腳踩緊）
-    F(dict(view="side", x=318, sy=0.79, sx=1.14, rot=3, ear=14, flutter=2, fphase=1.2, eye="squint", mouth="flat",
+    F(dict(view="side", x=298, sy=0.79, sx=1.14, rot=3, ear=14, flutter=2, fphase=1.2, eye="squint", mouth="flat",
            fp_near=(-10, 2, -6), fp_far=(-8, 2, -6), bf_near=(18, 2, 22), bf_far=(14, 2, 22), tail=(2, 6, 16),
            look=(0.0, 0.03)),
-      230, "蹲到最低蓄力（停頓）", ball=(128, 440, -60),
-      props=[fx_part("fx_exclaim", 300, 230, 0.75, 8)])
+      230, "蹲到最低蓄力（停頓）", ball=(124, 434, -60),
+      props=[fx_part("fx_exclaim", 286, 226, 0.75, 8)])
     # 4 飛撲（拉長、前掌伸、後腳拖、耳朵往後）
-    F(dict(view="side", x=262, y=438, sy=1.15, sx=0.9, rot=-22, ear=38, flutter=10, fphase=2.0, eye="wide",
+    F(dict(view="side", x=252, y=438, sy=1.15, sx=0.9, rot=-22, ear=38, flutter=10, fphase=2.0, eye="wide",
            mouth="open", fp_near=(-34, -16, -38), fp_far=(-28, -12, -32), bf_near=(30, -6, 46),
            bf_far=(26, -8, 42), tail=(8, -6, 26)),
-      80, "飛撲！（拉長）", ball=(134, 440, -80),
+      80, "飛撲！（拉長）", ball=(132, 434, -80),
       fx=[R.speed_lines_svg(410, 300, 3, 56, 20, 0.8, 1)])
     # 5 下墜接近球（前掌往下抓）
     F(dict(view="side", x=222, y=448, sy=1.06, sx=0.96, rot=-14, ear=30, flutter=8, fphase=2.8, eye="wide",
            mouth="o", fp_near=(-16, 10, -24), fp_far=(-12, 8, -20), bf_near=(24, -10, 36), bf_far=(20, -10, 32),
            tail=(6, -6, 20)),
-      80, "撲下去（O 嘴）", ball=(140, 442, -95),
+      80, "撲下去（O 嘴）", ball=(140, 436, -95),
       fx=[R.speed_lines_svg(372, 290, 2, 44, 22, 0.55, 2)])
     # 6 抱住球（壓扁、星星迸出）
     hug = dict(view="side", x=228, sy=0.84, sx=1.12, rot=-5, ear=-16, flutter=-6, fphase=3.4, eye="squint",
@@ -577,6 +577,10 @@ def clip_highfive():
     ])
 
 
+EYE_NAME = {"arc": "彎月眼", "dot": "圓眼", "star": "星星眼", "smile": "閉眼笑", "wide": "大圓眼", "spiral": "螺旋眼",
+            "closed": "閉眼", "wink": "眨眼"}
+
+
 def clip_dance():
     """左右扭＋踏腳＋肉掌輪流舉，頭上飄音符；表情輪換。第 1 格直接扭。"""
     rows = []
@@ -586,10 +590,9 @@ def clip_dance():
         side = 1 if i % 2 == 0 else -1
         up = i % 4 in (0, 1)
         lift = -10 if i % 2 == 0 else 0
-        notes = [R.svg_layer("")] and []
         props = [fx_part("fx_music", 118 + 10 * ((i + 1) % 3) if side > 0 else 382 - 10 * (i % 3), 214 - 12 * (i % 3), 0.55,
                          -10 * side)]
-        rows.append((110 if i % 4 != 3 else 150, ["扭右", "扭左", "扭右舉掌", "扭左停一拍"][i % 4] + f"（{['彎月眼', '圓眼', '星星眼', '閉眼笑'][i % 4]}）",
+        rows.append((110 if i % 4 != 3 else 150, ["扭右", "扭左", "跳一下舉掌", "扭左停一拍"][i % 4] + f"（{EYE_NAME[eyes[i]]}）",
                      dict(eye=eyes[i], mouth=mouths[i], rot=9 * side, x=R.CX + 12 * side, shear=0.05 * side,
                           y=R.FOOT_Y - (14 if i % 4 == 2 else 0), sy=0.93 if i % 2 else 1.04, sx=1.04 if i % 2 else 0.97,
                           ear=14 * side + 6, ear2=-14 * side + 6, flutter=5 * side, fphase=i * 0.8, blush=1.3,
@@ -633,11 +636,11 @@ def clip_sleep_loop():
         z = []
         for j in range(3):
             t = ((i / 8) + j / 3) % 1.0
-            zx, zy = 330 + 50 * t + 8 * math.sin(t * 9), 230 - 130 * t
+            zx, zy = 378 + 46 * t + 8 * math.sin(t * 9), 196 - 120 * t   # 從右耳外側往右上飄，不壓耳朵
             z.append(fx_part("fx_zzz", zx, zy, 0.35 + 0.35 * t, -10 + 20 * t))
         rows.append((180, ["吸氣", "吸飽（鼓起）", "停", "吐氣", "吐氣（頭往下點）", "扁扁", "頭抬一點", "準備吸氣"][i] + "（閉眼）",
-                     dict(eye="closed", mouth="o" if br < -0.3 else "w", sy=1 + 0.035 * br, sx=1 - 0.03 * br,
-                          rot=2.5 * math.sin(a - 1.0), look=(0, 0.02 * nod), ear=22 + 6 * nod, ear2=22 + 6 * nod,
+                     dict(eye="closed", mouth="o" if br < -0.3 else "w", sy=1 + 0.05 * br, sx=1 - 0.04 * br,
+                          rot=4 * math.sin(a - 1.0), look=(0, 0.02 * nod), ear=22 + 6 * nod, ear2=22 + 6 * nod,
                           blush=1.0, flutter=-2 * br, fphase=a, hands_front=True, fp_far=(10, 4, 14), fp_near=(-10, 4, -14),
                           props=z)))
     return _front_clip(rows)
@@ -649,7 +652,7 @@ def clip_wake_once():
         (70, "嚇！彈起來（圓眼、毛炸開）", dict(eye="wide", mouth="o", y=R.FOOT_Y - 46, sy=1.14, sx=0.92, ear=-26, ear2=-26,
                                         flutter=-9, fp_far=(-10, -50, -40), fp_near=(10, -50, 40),
                                         props=[fx_part("fx_exclaim", 404, 160, 0.7, 12)],
-                                        fx=[R.burst_svg(248, 120, 60, 7, -90, 5)])),
+                                        fx=[R.burst_svg(248, 84, 46, 7, -90, 5)])),
         (90, "最高點（還在驚）", dict(eye="wide", mouth="o", y=R.FOOT_Y - 56, sy=1.06, ear=-20, ear2=-20, flutter=-6, fphase=1,
                                   fp_far=(-8, -44, -30), fp_near=(8, -44, 30),
                                   props=[fx_part("fx_exclaim", 410, 150, 0.7, 16)])),
