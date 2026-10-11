@@ -28,7 +28,7 @@ jobs:
       - name: 綁定網域並回報狀態
         run: |
           set -u
-          sum() { echo "$1" >> "$GITHUB_STEP_SUMMARY"; }
+          sum() { echo "$1" | tee -a "$GITHUB_STEP_SUMMARY"; }   # 同時印到 log（Claude 讀得到 log、讀不到 Summary）
           if [ -z "${CF_TOKEN:-}" ] || [ -z "${CF_ACC:-}" ]; then sum "### 缺 CLOUDFLARE_API_TOKEN／CLOUDFLARE_ACCOUNT_ID"; exit 1; fi
           API=https://api.cloudflare.com/client/v4
           H=(-H "Authorization: Bearer $CF_TOKEN" -H "Content-Type: application/json")
@@ -65,6 +65,6 @@ jobs:
           fi
           # ③ 最新狀態
           sleep 5
-          curl -s "${H[@]}" "$API/accounts/$CF_ACC/pages/projects/$PROJECT/domains" | jq -r '.result[]? | "- \(.name)：\(.status)\(if .verification_data.error_message then "（" + .verification_data.error_message + "）" else "" end)"' >> "$GITHUB_STEP_SUMMARY"
+          curl -s "${H[@]}" "$API/accounts/$CF_ACC/pages/projects/$PROJECT/domains" | jq -r '.result[]? | "- \(.name)：\(.status)\(if .verification_data.error_message then "（" + .verification_data.error_message + "）" else "" end)"' | tee -a "$GITHUB_STEP_SUMMARY"
           sum ""
           sum "狀態 active＝網址可以開了；pending＝等 DNS／憑證（通常 5～15 分鐘）。"
