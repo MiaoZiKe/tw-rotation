@@ -625,7 +625,7 @@ html.fab-off .bibiring,html.fab-off .bibitip,html.fab-off .bibifx,html.fab-off #
     inOut: (k) => (k < 0.5 ? 4 * k * k * k : 1 - Math.pow(-2 * k + 2, 3) / 2),
     out: (k) => 1 - Math.pow(1 - k, 3),
     in: (k) => k * k * k,
-    damp: (k, f) => Math.exp(-5 * k) * Math.cos(f * Math.PI * k),   // 回彈：越來越小的來回
+    damp: (k, f) => Math.max(-0.12, Math.exp(-5 * k) * Math.cos(f * Math.PI * k)),   // 回彈：越來越小的來回（反向最多 0.12：回彈時身體只微微拉高，天竺鼠不會「站起來」）
   };
   const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
   const ABORT = { abort: true };
@@ -723,7 +723,10 @@ html.fab-off .bibiring,html.fab-off .bibitip,html.fab-off .bibifx,html.fab-off #
   }
   /** 給東西：道具從小圈沿弧線飛到 P、落點輕彈一下，比比同時播「接」；接到那一刻道具收掉。回傳 { hold：比比抱東西的位置 } */
   async function receive(g, kind) {
-    const k = g.s / 440, P = sc(g, kind === 'grass' ? 378 : 372, kind === 'grass' ? 300 : 360);   // 接的點：比比右前方肉掌（素材庫座標）
+    /* Andy 10-12：「比比是天竺鼠，他是4隻腳的…不可以因為配合互動就改變身體原有設定」→ 草落在比比面前的地上（躺著），
+       不是停在半空讓比比用手接；比比低頭去拿（往前探、壓低） */
+    const k = g.s / 440, grassLie = kind === 'grass';
+    const P = grassLie ? { x: sc(g, 372, 0).x, y: g.foot - g.s * 0.045 } : sc(g, 372, 360);
     const S = srcPoint(g);
     const w = kind === 'grass' ? g.s * 0.2 : (g.mob ? 20 : 24), h = kind === 'grass' ? w * 128 / 60 : w;
     const el = propPic(kind, w, h);
@@ -734,14 +737,15 @@ html.fab-off .bibiring,html.fab-off .bibitip,html.fab-off .bibifx,html.fab-off #
     let recv = false;
     await tween(T1, (u, t) => {                                // 弧線飛過來（邊飛邊轉）
       if (!recv && t >= recvAt) { recv = true; show(PART['receive_' + kind] || PART.receive, true); }
-      const e = E.inOut(u), x = S.x + (P.x - S.x) * e, y = S.y + (P.y + 8 - S.y) * e - lift * Math.sin(Math.PI * u);
-      at(el, x, y, ` rotate(${((kind === 'ball' ? 540 : 50) * e).toFixed(1)}deg)`, Math.min(1, u * 5));
-      pose(0, -4 * Math.sin(Math.PI * u), { sk: -4 * u, sy: 1 + 0.04 * Math.sin(Math.PI * u) });   // 看到東西彈一下、往前探
+      const e = E.inOut(u), x = S.x + (P.x - S.x) * e, y = S.y + (P.y + (grassLie ? 0 : 8) - S.y) * e - lift * Math.sin(Math.PI * u);
+      at(el, x, y, ` rotate(${((kind === 'ball' ? 540 : 84) * e).toFixed(1)}deg)`, Math.min(1, u * 5));   // 草邊飛邊轉成橫躺
+      pose(0, -3 * Math.sin(Math.PI * u), { sk: -4 * u, sy: 1 - 0.03 * u });   // 看到東西、往前探（身體壓低，不站起來）
     });
-    await tween(110, (u) => {                                  // 輕輕彈一下落進肉掌
-      at(el, P.x, P.y + 8 - 10 * Math.sin(Math.PI * u), kind === 'ball' ? ' rotate(540deg)' : ' rotate(50deg)' + ` scale(${(1 + 0.08 * Math.sin(Math.PI * u)).toFixed(2)})`, 1);
-      pose(0, 0, { sk: -4 * (1 - u) });
+    await tween(110, (u) => {                                  // 落地輕彈一下（草：躺在地上彈一下）
+      at(el, P.x, P.y + (grassLie ? 0 : 8) - (grassLie ? 6 : 10) * Math.sin(Math.PI * u), kind === 'ball' ? ' rotate(540deg)' : ' rotate(84deg)' + ` scale(${(1 + 0.06 * Math.sin(Math.PI * u)).toFixed(2)})`, 1);
+      pose(0, 0, { sk: -4 * (1 - u), sy: 0.97 + 0.03 * u });
     });
+    if (grassLie) await tween(160, (u) => pose(0, 0, { sk: -6 * u, sy: 1 - 0.05 * u, sx: 1 + 0.03 * u }));   // 低頭湊過去
     el.remove();                                               // 素材裡的肉掌接住了
     cue(kind === 'grass' ? '哇！牧草～給我的嗎？' : '哇！是球～');
     burstAt('star', P.x, P.y - 12, 3, 1.4);
@@ -754,7 +758,6 @@ html.fab-off .bibiring,html.fab-off .bibitip,html.fab-off .bibifx,html.fab-off #
      （落地瞬間壓扁）、邊滾邊轉、越滾越慢、影子跟著縮放；比比先往後縮再衝（run_l／run_r），跑步時整顆上下彈、身體前傾，
      速度跟球一起慢下來；追上時急停回彈＋星星、播撲球（ball_catch／ball_catch_l，素材裡自己抱著球）；再跑回原位（run_r＋run_stop_r）。 */
   async function ballScript(g) {
-    const rc = await receive(g, 'ball');
     const dir = g.dir, R = g.mob ? 10 : 12, gap = g.s * 0.36, cx = g.cx;
     const D = clamp(dir < 0 ? cx - 34 - R : g.vw - 34 - R - cx, 110, g.mob ? 240 : 560);
     const bx0 = cx + dir * g.s * 0.28, bx1 = cx + dir * D, ground = g.foot;
@@ -762,6 +765,24 @@ html.fab-off .bibiring,html.fab-off .bibitip,html.fab-off .bibifx,html.fab-off #
     const segs = H.map(Math.sqrt), sum = segs.reduce((a, b) => a + b, 0), TB = Tb * 0.8;
     const sh = prop('shadow', R * 2.2, 7), ball = propPic('ball', R * 2, R * 2);
     sh.style.opacity = '0';
+    /* 0.（Andy 10-12：天竺鼠是四隻腳的，不用手接）球從被點的小圈飛出、落在比比面前的地上彈兩下，滾到比比腳邊；
+       比比看著它、身體往前湊 → 下一步用身體一頂把球推出去 */
+    const S = srcPoint(g), L = cx + dir * Math.min(g.s * 1.5, Math.abs(S.x - cx) * 0.8 + g.s * 0.4);
+    at(ball, S.x, S.y, '', 0);
+    await tween(420, (u) => {                                  // 弧線飛到地上
+      const e = E.in(u), x = S.x + (L - S.x) * u, y = S.y + (ground - R - S.y) * e - 50 * Math.sin(Math.PI * u) * (1 - u);
+      at(ball, x, y, ` rotate(${(-dir * 360 * u).toFixed(1)}deg)`, Math.min(1, u * 5));
+      const q = clamp(1 - (ground - R - y) / 120, 0, 1); at(sh, x, ground + 1, ` scale(${(0.4 + 0.6 * q).toFixed(2)})`, (0.5 * q).toFixed(2));
+      pose(0, 0, { sk: -3 * u });                              // 0.2 秒內就在動：看過去、往前湊
+    });
+    cue('哇！是球～');
+    const rollT = 700;
+    await tween(rollT, (u) => {                                // 落地彈兩下、一路滾到腳邊、越滾越慢
+      const x = L + (bx0 - L) * E.out(u), hb = u < 0.5 ? 14 * Math.abs(Math.sin(u * 2 * Math.PI)) * (1 - u * 1.6) : 0;
+      at(ball, x, ground - R - hb, ` rotate(${((x - L) / R * 180 / Math.PI).toFixed(1)}deg)` + (hb < 1 && u < 0.5 ? ' scale(1.1,.88)' : ''), 1);
+      at(sh, x, ground + 1, ` scale(${(1 - 0.03 * hb).toFixed(2)})`, 0.55);
+      pose(-dir * 2 * u, 0, { sk: -4, sy: 1 - 0.04 * u, sx: 1 + 0.03 * u });   // 壓低身體等球過來
+    });
     const ballAt = (t) => {
       const tt = clamp(t, 0, Tb); let acc = 0, h = 0, land = false;
       for (let i = 0; i < H.length; i++) { const d = segs[i] / sum * TB; if (tt < acc + d) { const u = (tt - acc) / d; h = H[i] * 4 * u * (1 - u); land = (u < 0.07 || u > 0.93) && i > 0; break; } acc += d; }
@@ -772,28 +793,24 @@ html.fab-off .bibiring,html.fab-off .bibitip,html.fab-off .bibifx,html.fab-off #
       at(ball, b.x, ground - R - b.h, ` rotate(${b.rot.toFixed(1)}deg)` + (b.land ? ' scale(1.12,.86)' : ''), 1);
       const q = clamp(b.h / H[0], 0, 1); at(sh, b.x, ground + 1, ` scale(${(1 - 0.55 * q).toFixed(3)})`, (1 - 0.6 * q).toFixed(2));
     };
-    // 1. 球從懷裡掉到腳邊（彈一下），身體縮起來蓄力 → 一踢
-    const chest = rc.hold;
-    await tween(300, (k) => {
-      const x = chest.x + (bx0 - chest.x) * k, y = chest.y + (ground - R - chest.y) * (k * k) - (k > 0.7 ? 10 * Math.sin(Math.PI * (k - 0.7) / 0.3) : 0);
-      at(ball, x, y, '', 1); sh.style.opacity = (0.6 * k).toFixed(2); at(sh, x, ground + 1, ` scale(${(0.5 + 0.5 * k).toFixed(2)})`);
-      pose(-dir * 3 * E.out(k), 0, { sx: 1 + 0.08 * E.out(k), sy: 1 - 0.1 * E.out(k) });
-    });
+    // 1. 身體縮起來蓄力（往後收、壓扁）→ 用整個身體往前一頂
+    await tween(240, (k) => pose(-dir * (2 + 4 * E.out(k)), 0, { sx: 1 + 0.08 * E.out(k), sy: 1 - 0.1 * E.out(k), sk: dir * 4 * k }));
+    await tween(120, (k) => pose(-dir * 6 + dir * 16 * E.out(k), 0, { sx: 1.08 - 0.06 * k, sy: 0.9 + 0.08 * k, sk: -dir * 8 * k }));   // 頂！
     // 2. 球飛出去；比比先往後縮一下（反向仰）再衝；跑步一路上下彈、往前傾；速度照球一起減
     const Db = (bx1 - cx) - dir * gap;
     let ran = false;
     await tween(T, (k, t) => {
       drawBall(ballAt(t));
-      if (t < lag) {
-        const u = t / lag;
-        pose(-dir * (3 + 7 * E.out(u)), 0, { sx: 1.08 - 0.12 * u, sy: 0.9 + 0.14 * u, sk: dir * 8 * E.out(u) });
+      if (t < lag) {                                           // 頂完回彈一下，看球滾走
+        const u = t / lag, d = E.damp(u, 2);
+        pose(dir * 10, 0, { sx: 1 + 0.04 * d, sy: 1 - 0.05 * d, sk: -dir * 6 * (1 - u) });
         return;
       }
       if (!ran) { ran = true; show(dir < 0 ? PART.run_l : PART.run_r); }
-      const u = (t - lag) / (T - lag), p = Db * E.inOut(u), back = -dir * 10 * (1 - E.out(Math.min(1, u * 5)));
+      const u = (t - lag) / (T - lag), p = Db * E.inOut(u), back = dir * 10 * (1 - E.out(Math.min(1, u * 5)));   // 從頂出去的位置接著追
       const bob = -Math.abs(Math.sin((t - lag) / 150 * Math.PI)) * (g.mob ? 4 : 5);   // run 素材 600ms／8 格＝一步 150ms：上下彈跟腳步對上
       const sp = Math.sin(Math.PI * u);
-      pose(p + back, bob, { sk: -dir * 7 * sp, sx: 1 - 0.03 * sp, sy: 1 + 0.04 * sp });
+      pose(p + back, bob, { sk: -dir * 7 * sp, sx: 1 - 0.02 * sp, sy: 1 + 0.025 * sp });
     });
     // 3. 撲到：急停前傾回彈、冒星星；撲球素材自己抱著球 → 網頁的球收掉
     const bxEnd = ballAt(Tb).x;
@@ -814,7 +831,7 @@ html.fab-off .bibiring,html.fab-off .bibitip,html.fab-off .bibifx,html.fab-off #
     const Tr = clamp(Math.abs(Db) / (g.mob ? 260 : 340) * 1000, 650, 1900), x0 = Db + (back && PART.run_start_r ? 6 : 0);
     await tween(Tr, (k, t) => {
       const sp = Math.sin(Math.PI * k);
-      pose(x0 * (1 - E.inOut(k)), -Math.abs(Math.sin(t / 150 * Math.PI)) * (g.mob ? 4 : 5), { sk: dir * 7 * sp, sx: 1 - 0.03 * sp, sy: 1 + 0.04 * sp });
+      pose(x0 * (1 - E.inOut(k)), -Math.abs(Math.sin(t / 150 * Math.PI)) * (g.mob ? 4 : 5), { sk: dir * 7 * sp, sx: 1 - 0.02 * sp, sy: 1 + 0.025 * sp });
     });
     if (back && PART.run_stop_r) {
       show(PART.run_stop_r, true);
@@ -935,7 +952,7 @@ html.fab-off .bibiring,html.fab-off .bibitip,html.fab-off .bibifx,html.fab-off #
     let landed = 0;
     await tween(CYC * N, (k, t) => {
       const c = t % CYC, u = (c - 450) / 350, up = u > 0 && u < 1 ? Math.sin(Math.PI * u) : 0;
-      pose(0, -H * up, { sx: 1.08, sy: 1.08 + 0.04 * up });
+      pose(0, -H * up, { sx: 1.08, sy: 1.08 + 0.02 * up });
       const n = Math.floor((t - 820) / CYC) + 1;
       if (t >= 820 && n > landed) { landed = n; burstAt('star', g.cx + (Math.random() - 0.5) * g.s * 0.4, g.foot - 6, 2, 1.8); }
     });
@@ -946,11 +963,11 @@ html.fab-off .bibiring,html.fab-off .bibitip,html.fab-off .bibifx,html.fab-off #
   /* ---------- 待機小動作（每 20～40 秒隨機一次）：眨眼／伸懶腰／東張西望／跳一下（現有素材＋位移） ---------- */
   const FIDGET = {
     blink: async () => { for (let i = 0; i < 2; i++) await tween(240, (k) => { const c = Math.sin(Math.PI * k); pose(0, 0, { sy: 1 - 0.07 * c, sx: 1 + 0.03 * c }); }); },
-    stretch: async () => {
-      await tween(260, (k) => pose(0, 0, { sx: 1 + 0.06 * E.out(k), sy: 1 - 0.08 * E.out(k) }));
-      await tween(520, (k) => { const e = E.out(k); pose(0, -3 * e, { sx: 1.06 - 0.14 * e, sy: 0.92 + 0.22 * e }); });
+    stretch: async () => {                       // 天竺鼠伸懶腰＝身體往前後拉長、壓低（四隻腳著地，不站起來）
+      await tween(320, (k) => pose(0, 0, { sx: 1 + 0.03 * E.out(k), sy: 1 - 0.03 * E.out(k) }));
+      await tween(520, (k) => { const e = E.out(k); pose(0, 0, { sx: 1.03 + 0.09 * e, sy: 0.97 - 0.05 * e, sk: -3 * e }); });
       await wait(320);
-      await tween(420, (k) => { const d = E.damp(k, 2.5); pose(0, -3 * (1 - k), { sx: 1 - 0.08 * d, sy: 1 + 0.14 * d }); });
+      await tween(420, (k) => { const d = E.damp(k, 2.5); pose(0, 0, { sx: 1 + 0.12 * d, sy: 1 - 0.08 * d, sk: -3 * (1 - k) }); });
     },
     look: async () => {
       show(PART.peek);
@@ -963,8 +980,8 @@ html.fab-off .bibiring,html.fab-off .bibitip,html.fab-off .bibifx,html.fab-off #
     hop: async (g) => {
       const J = g.mob ? 14 : 18;
       await tween(150, (k) => pose(0, 0, { sx: 1 + 0.08 * k, sy: 1 - 0.12 * k }));
-      await tween(230, (k) => pose(0, -J * E.out(k), { sx: 1.08 - 0.13 * k, sy: 0.88 + 0.2 * k }));
-      await tween(210, (k) => pose(0, -J * (1 - E.in(k)), { sx: 0.95 + 0.03 * k, sy: 1.08 - 0.06 * k }));
+      await tween(230, (k) => pose(0, -J * E.out(k), { sx: 1.08 - 0.1 * k, sy: 0.88 + 0.14 * k }));   // 彈跳時只微微拉長（≤1.02），不站起來
+      await tween(210, (k) => pose(0, -J * (1 - E.in(k)), { sx: 0.98 + 0.02 * k, sy: 1.02 }));
       await tween(300, (k) => { const d = E.damp(k, 2.5); pose(0, 0, { sx: 1 + 0.1 * d, sy: 1 - 0.14 * d }); });
     },
   };

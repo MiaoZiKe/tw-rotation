@@ -33056,10 +33056,13 @@ def t_bibi_1011(b, base):
         ok(f"【{T}】桌機 「{aid}」播完 → 回到情境待機 {IDLE_F}", bool(back) and bool(_bibi_src(pg, IDLE_F, 3000)), pg.evaluate(BIBI_ST))
 
     # ---------- 動作編排（10-11 晚）：點了 0.3 秒內就在動、比比真的離開原位、道具照物理走、播完回原位 ----------
+    ALLREC = []
     def play(aid, ms):
         """真的點小圈，同時在頁面裡錄 ms 毫秒（每 50ms 一筆）"""
         click_opt(aid)
-        return pg.evaluate(BIBI_REC, ms)
+        rec = pg.evaluate(BIBI_REC, ms)
+        ALLREC.extend(rec)
+        return rec
 
     def started(rec):
         """點下去 300ms 內，比比的圖、位置或身體 transform 已經改了（Andy：「直接進入互動動作」）"""
@@ -33080,6 +33083,7 @@ def t_bibi_1011(b, base):
         """真的點小圈（記下那顆小圈的中心：道具要從那裡飛出來），同時錄 ms 毫秒"""
         o = click_opt(aid)
         rec = pg.evaluate(BIBI_REC, ms)
+        ALLREC.extend(rec)
         return rec, ({"x": (o["l"] + o["r"]) / 2, "y": (o["t"] + o["b"]) / 2} if o else {"x": 0, "y": 0})
 
     rec, ob = play_from("ball", 9500)
@@ -33088,8 +33092,11 @@ def t_bibi_1011(b, base):
     first_ball = next((r["ball"] for r in rec if r["ball"] and r["ball"]["op"] > 0.3), None)
     PRT = pg.evaluate("() => Bibi.PART")
     ok(f"【{T}】桌機 點「玩球」→ 300ms 內比比就在動（{[(r['t'], r['src'], round(r['ox'])) for r in rec[:6]]}）", started(rec), rec[:6])
-    ok(f"【{T}】桌機 玩球：沒有手；球從被點的那顆小圈飛出來（小圈 {ob['x']:.0f},{ob['y']:.0f}／球第一次出現 {first_ball and round(first_ball['x'])},{first_ball and round(first_ball['y'])}）、比比播接球 {PRT['receive_ball']}",
-       nohand(rec) and bool(first_ball) and abs(first_ball["x"] - ob["x"]) < 60 and abs(first_ball["y"] - ob["y"]) < 60 and any(r["src"] == PRT["receive_ball"] + ".webp" for r in rec), first_ball)
+    gy = R0["fy"] + 20   # 比比腳底附近（鈕中心往下 20px）
+    pre = [r for r in rec[:30] if r["ball"] and abs(r["ox"]) < 12]   # 比比還沒追出去之前
+    ok(f"【{T}】桌機 玩球：沒有手；球從被點的那顆小圈飛出來（小圈 {ob['x']:.0f},{ob['y']:.0f}／球第一次出現 {first_ball and round(first_ball['x'])},{first_ball and round(first_ball['y'])}）、落到地上滾到比比腳邊（不用手接）",
+       nohand(rec) and bool(first_ball) and abs(first_ball["x"] - ob["x"]) < 60 and abs(first_ball["y"] - ob["y"]) < 60
+       and any(r["ball"]["y"] >= gy - 4 for r in pre) and not any(r["src"] == PRT["receive_ball"] + ".webp" for r in rec), [(round(r["ball"]["x"]), round(r["ball"]["y"])) for r in pre[::3]])
     ok(f"【{T}】桌機 玩球：比比整顆離開原位跟著球跑（最遠位移 {min(xs or [0]):.0f}px）、跑步圖 {PRT['run_l']}",
        min(xs or [0]) < -150 and any(r["src"] == PRT["run_l"] + ".webp" for r in rec), xs[::10])
     ok(f"【{T}】桌機 玩球：球有落地反彈（{nb} 次）、彈跳越來越低", nb >= 2, bys[::3])
@@ -33102,8 +33109,8 @@ def t_bibi_1011(b, base):
     rec, og = play_from("grass", 4800)
     gr = [r["grass"] for r in rec if r["grass"]]
     ok(f"【{T}】桌機 點「餵牧草」→ 300ms 內比比就在動", started(rec), rec[:6])
-    ok(f"【{T}】桌機 餵牧草：沒有手；牧草從被點的小圈（{og['x']:.0f},{og['y']:.0f}）沿弧線飛到比比面前（{gr and round(gr[0]['x'])}→{gr and round(gr[-1]['x'])}）、比比播 {PRT['receive_grass']} 接住",
-       nohand(rec) and len(gr) >= 3 and abs(gr[0]["x"] - og["x"]) < 60 and abs(gr[-1]["x"] - (R0["fx"] + 10)) < 50 and min(g["y"] for g in gr) < min(gr[0]["y"], gr[-1]["y"]) - 5
+    ok(f"【{T}】桌機 餵牧草：沒有手；牧草從被點的小圈（{og['x']:.0f},{og['y']:.0f}）沿弧線飛、落在比比面前的地上（最後 y {gr and round(gr[-1]['y'])} ≥ 鈕中心 {R0['fy']:.0f}）（{gr and round(gr[0]['x'])}→{gr and round(gr[-1]['x'])}）、比比播 {PRT['receive_grass']} 接住",
+       nohand(rec) and len(gr) >= 3 and gr[-1]["y"] >= R0["fy"] and abs(gr[0]["x"] - og["x"]) < 60 and abs(gr[-1]["x"] - (R0["fx"] + 10)) < 50 and min(g["y"] for g in gr) < min(gr[0]["y"], gr[-1]["y"]) - 5
        and any(r["src"] == PRT["receive_grass"] + ".webp" for r in rec), [(round(g["x"]), round(g["y"])) for g in gr])
     ok(f"【{T}】桌機 餵牧草：接著播吃草（{PRT['eat']}）、吃完道具清光（最後 {rec[-1]['props']}）",
        any(r["src"] == PRT["eat"] + ".webp" for r in rec) and not rec[-1]["grass"], [r["src"] for r in rec[::10]])
@@ -33152,6 +33159,10 @@ def t_bibi_1011(b, base):
     st = pg.evaluate(BIBI_ST)
     ok(f"【{T}】桌機 打完馬上再打 → 冷卻、不再播（{st['mode']}／泡泡「{st['tip']}」）", st["mode"] == "idle" and not st["run"] and "痛" in st["tip"], st)
     pg.mouse.move(300, 300, steps=3); pg.wait_for_timeout(500)
+
+    # Andy 10-12：「比比是天竺鼠，他是4隻腳的…不可以因為配合互動就改變身體原有設定」→ 編排裡不准縱向拉長（站起來）
+    ratios = [float(m.group(2)) / float(m.group(1)) for r in ALLREC for m in [re.search(r"scale\(([\d.]+), ([\d.]+)\)", r["body"] or "")] if m]
+    ok(f"【{T}】桌機 所有互動身體一律貼地：縱向／橫向比最大 {max(ratios or [1]):.3f}（≤ 1.06，沒有「站起來」的拉長）", bool(ratios) and max(ratios) <= 1.06, max(ratios or [1]))
 
     # 中途換頁 → 立刻回原位
     click_opt("ball")
