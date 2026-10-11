@@ -210,7 +210,9 @@ def source_freeze_check(S, limit=1.0, fps=10, n=0.003):
                 if ref is None:
                     ref, t0 = g, t
                     continue
-                if float(np.abs(g - ref).mean()) / 255.0 >= n:
+                dd = np.abs(g - ref)
+                # 「完全不動」：整體平均差 <0.3%，而且明顯變化（>25 灰階）的像素 <0.05%（打字、游標、數字跳動都算有動作）
+                if float(dd.mean()) / 255.0 >= n or float((dd > 25).mean()) >= 0.0005:
                     ref, t0, flagged = g, t, False
                     continue
                 if not flagged and t - t0 > limit:
