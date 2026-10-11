@@ -50,7 +50,14 @@ RIG_NAMES = {"happy_hop", "receive", "receive_grass", "receive_ball",
              # 10-11 深夜動畫單位全部照原版造型重畫的互動（舊 G1／G2 改名 *_old 保留）：同一套骨架尺寸，一樣要縮
              "eat_grass_v2", "ball_catch", "ball_catch_l", "popcorn", "pet_v2", "spin_v2",
              "highfive", "dance", "hug", "wake_once", "selfie", "sleep_loop",
-             "run_r", "run_l", "run_start_r", "run_stop_r", "hit", "cry", "dizzy"}
+             "run_r", "run_l", "run_start_r", "run_stop_r", "hit", "cry", "dizzy",
+             # 10-12 動畫單位四腳重畫第 1～5 組（docs/anim/bibi_<名>/.quad1012；同一套原版 Default 尺寸，一樣要縮）
+             "eat_q", "spin_q"}
+# 10-12 四腳版：網站檔名 → 來源（素材庫 bibi_library 裡也有同名的舊 eat_grass／spin，所以這兩組改名 eat_q／spin_q、指定來源，免得撿到舊版）
+# sleep_loop／wake_once／hit／cry／selfie 動畫單位直接覆蓋同名資料夾，src_of 照舊找得到新版
+# 檔案上限的例外：eat_q 16 格、草畫在地上細節多，60KB 會被隔格抽成 8 格（動作變跳格）→ 放寬到 100KB 保留 16 格（10-12 量過）
+LIMIT_OVR = {"eat_q": 100 * 1024}
+QUAD_SRC = {"eat_q": NEW / "bibi_eat_grass" / "anim.webp", "spin_q": NEW / "bibi_spin" / "anim.webp"}
 
 # 網站用到的才轉（情境待機＋互動動作；對照表在 site/bibi.js 的 MAP）
 NAMES = [
@@ -69,10 +76,14 @@ NAMES = [
     # 骨架第 1 組（10-11 第一版造型偏離原版被 Andy 退件；照原版 Default 重做後 CEO 對照過）：互動「接東西」可以接。
     # ⚠ happy_hop 不轉：Andy「使用圖2 圖3 GIF圖片就好」→ 待機用 default_idle＋jump（各自的子指令），骨架版只在互動用
     "face_star", "receive", "receive_grass", "receive_ball",
+    # 10-12 四腳版第 1～5 組（吃草、轉圈＝新檔名；睡覺／叫醒／被敲／哭／自拍＝同名覆蓋，上面已列）
+    "eat_q", "spin_q",
 ]
 
 
 def src_of(name: str) -> Path | None:
+    if name in QUAD_SRC:
+        return QUAD_SRC[name] if QUAD_SRC[name].exists() else None
     for p in (LIB / name / "anim.webp", NEW / f"bibi_{name}" / "anim.webp"):   # 現有素材庫優先；新交件的專屬素材在 docs/anim/bibi_<名稱>/
         if p.exists():
             return p
@@ -114,11 +125,12 @@ def convert(name: str) -> tuple[int, int] | None:
     total = sum(durs)
     loop = int(im.info.get("loop", 0) or 0)   # 互動素材「播一次不循環」（loop=1）要保留：播完停在最後一格＝待機姿勢
     data = None
+    lim = LIMIT_OVR.get(name, LIMIT)
     for q in (82, 72, 62, 52):
         data = encode(frames, durs, q, loop)
-        if len(data) <= LIMIT:
+        if len(data) <= lim:
             break
-    if len(data) > LIMIT and len(frames) > 6:   # 還是太大：隔格抽掉，總長不變
+    if len(data) > lim and len(frames) > 6:   # 還是太大：隔格抽掉，總長不變
         frames2 = frames[::2]
         durs2 = [durs[i] + (durs[i + 1] if i + 1 < len(durs) else 0) for i in range(0, len(durs), 2)]
         data = encode(frames2, durs2, 62, loop)
@@ -277,7 +289,7 @@ def main(argv):
             continue
         size, total = r
         ms[n] = total
-        print(f"  {n:14s} {size / 1024:5.1f} KB  {total} ms" + ("  ⚠ 超過 60KB" if size > LIMIT else ""))
+        print(f"  {n:14s} {size / 1024:5.1f} KB  {total} ms" + ("  ⚠ 超過上限" if size > LIMIT_OVR.get(n, LIMIT) else ""))
     print(json.dumps(ms, ensure_ascii=False))
 
 

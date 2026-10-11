@@ -33115,9 +33115,10 @@ def t_bibi_1011(b, base):
     rec, og = play_from("grass", 4800)
     gr = [r["grass"] for r in rec if r["grass"]]
     ok(f"【{T}】桌機 點「餵牧草」→ 300ms 內比比就在動", started(rec), rec[:6])
-    ok(f"【{T}】桌機 餵牧草：沒有手；牧草從被點的小圈（{og['x']:.0f},{og['y']:.0f}）沿弧線飛、落在比比面前的地上（最後 y {gr and round(gr[-1]['y'])} ≥ 鈕中心 {R0['fy']:.0f}）（{gr and round(gr[0]['x'])}→{gr and round(gr[-1]['x'])}）、比比播 {PRT['receive_grass']} 接住",
-       nohand(rec) and len(gr) >= 3 and gr[-1]["y"] >= R0["fy"] and abs(gr[0]["x"] - og["x"]) < 60 and abs(gr[-1]["x"] - (R0["fx"] + 10)) < 50 and min(g["y"] for g in gr) < min(gr[0]["y"], gr[-1]["y"]) - 5
-       and any(r["src"] == PRT["receive_grass"] + ".webp" for r in rec), [(round(g["x"]), round(g["y"])) for g in gr])
+    # 10-12 四腳版 eat_q：草從小圈飛過去、落在比比面前（臉朝左＝比比中心往左 0.26 個圖寬）的地上 → 直接播 eat_q（素材裡畫了地上的草），不再播 receive_grass
+    ok(f"【{T}】桌機 餵牧草：沒有手；牧草從被點的小圈（{og['x']:.0f},{og['y']:.0f}）沿弧線飛、落在比比面前的地上（最後 {gr and round(gr[-1]['x'])},{gr and round(gr[-1]['y'])}／比比中心 {R0['fx']:.0f}）、不播 receive_grass",
+       nohand(rec) and len(gr) >= 3 and gr[-1]["y"] >= R0["fy"] and abs(gr[0]["x"] - og["x"]) < 60 and abs(gr[-1]["x"] - (R0["fx"] - 27)) < 30 and min(g["y"] for g in gr) < min(gr[0]["y"], gr[-1]["y"]) - 5
+       and not any(r["src"] == "receive_grass.webp" for r in rec), [(round(g["x"]), round(g["y"])) for g in gr])
     ok(f"【{T}】桌機 餵牧草：接著播吃草（{PRT['eat']}）、吃完道具清光（最後 {rec[-1]['props']}）",
        any(r["src"] == PRT["eat"] + ".webp" for r in rec) and not rec[-1]["grass"], [r["src"] for r in rec[::10]])
     if BIBI_SHOT_DIR:
@@ -33130,11 +33131,10 @@ def t_bibi_1011(b, base):
     ok(f"【{T}】桌機 摸摸頭：比比享受地一縮一縮（身體 transform 有 scale）", any("scale(" in (r["body"] or "") for r in rec), [r["body"] for r in rec[::8]])
     home("pet")
 
-    rec = play("spin", 2900)
-    dz = [r for r in rec if r["src"] == PRT["dizzy"] + ".webp"]
-    ok(f"【{T}】桌機 點「轉圈圈」→ 300ms 內在動、先播 {PRT['spin']} 轉一圈、接著暈眩臉 {PRT['dizzy']}（漩渦眼＋星星繞頭，循環 {len(dz) * 50} ms）",
-       started(rec) and any(r["src"] == PRT["spin"] + ".webp" for r in rec) and len(dz) * 50 >= 1200
-       and rec.index(next(r for r in rec if r["src"] == PRT["spin"] + ".webp")) < rec.index(dz[0]) and all(r["phase"] == "dizzy" for r in dz[:-1]), [r["src"] for r in rec[::6]])
+    rec = play("spin", 2000)
+    sp = [r for r in rec if r["src"] == PRT["spin"] + ".webp"]
+    ok(f"【{T}】桌機 點「轉圈圈」→ 300ms 內在動、播四腳版 {PRT['spin']}（小跑繞一圈＋暈眩都在素材裡，{len(sp) * 50} ms）、不再另接 dizzy",
+       started(rec) and PRT["spin"] == "spin_q" and len(sp) * 50 >= 1000 and not any(r["src"] == "dizzy.webp" for r in rec), [r["src"] for r in rec[::6]])
     home("spin")
 
     rec = play("popcorn", 2200)

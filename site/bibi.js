@@ -27,13 +27,14 @@
   const MS = {   // 每組一輪的毫秒數；bibi_site.py 最後一行印的就是這張表
     // 待機（唯一一款，循環）：第一版客服鈕的 8 格跳躍 GIF（bibi_site.py idle_hop）
     idle_hop: 800,
-    sleep_loop: 1440,                     // 點「睡覺」之後一直睡（互動，不是待機）
+    sleep_loop: 1360,                     // 點「睡覺」之後一直睡（互動，不是待機；10-12 四腳版：趴著蓋被子，8 格循環）
     // 互動（動畫單位 G1／G2 專屬素材；播一輪＝這個毫秒數就回情境待機）
     // 互動（動畫單位 10-11 深夜照原版造型重畫；bibi_site.py 最後一行印的毫秒數）
-    highfive: 1230, dance: 1690, hug: 1470, wake_once: 1350, selfie: 1250,
+    highfive: 1230, dance: 1690, hug: 1470, wake_once: 1630, selfie: 1200,   // wake_once／selfie：10-12 四腳版
     eat_grass_v2: 2110, ball_catch: 2170, ball_catch_l: 2170, popcorn: 1530, pet_v2: 1730, spin_v2: 1580, dizzy: 1420,
     run_r: 600, run_l: 600, run_start_r: 460, run_stop_r: 1060,
-    hit: 1030, cry: 1040,                 // 打他（播一次）／哭哭（循環一輪）
+    hit: 650, cry: 1000,                  // 打他（播一次，最後一格＝cry 第 1 格）／哭哭（循環一輪）：10-12 四腳版
+    eat_q: 1900, spin_q: 1290,            // 10-12 四腳版：側面低頭吃地上的草（16 格）／四腳小跑繞一圈＋暈眩（13 格），播完都回 Default
     face_star: 1370,
     receive: 1370, receive_grass: 1370, receive_ball: 1370,   // 互動「接東西」（動畫單位照原版造型重做的骨架版）
   };
@@ -58,9 +59,9 @@
     { id: 'ask', name: '問比比', ask: true },
     { id: 'popcorn', name: '爆米花', file: 'popcorn', once: true, fx: 'star', say: ['爆米花跳！啵啵啵～', '開心到跳起來了！'], cnt: (n) => `今天爆米花跳了 ${n} 次！` },
     { id: 'pet', name: '摸摸頭', file: 'pet_v2', once: true, fx: 'heart', say: ['好舒服～', '再摸一下嘛', '嘿嘿，癢癢的'], cnt: (n) => `今天第 ${n} 次摸我了～` },
-    { id: 'grass', name: '餵牧草', file: 'eat_grass_v2', once: true, fx: 'grass', say: ['嚼嚼嚼…牧草好香！', '謝謝你餵我～'], cnt: (n) => `今天吃了 ${n} 口牧草，好飽～` },
+    { id: 'grass', name: '餵牧草', file: 'eat_q', once: true, fx: 'grass', say: ['嚼嚼嚼…牧草好香！', '謝謝你餵我～'], cnt: (n) => `今天吃了 ${n} 口牧草，好飽～` },
     { id: 'ball', name: '玩球', file: 'ball_catch', once: true, fx: 'ball', say: ['接到了！', '再丟一次！'], cnt: (n) => `今天陪我玩了 ${n} 次球！` },
-    { id: 'spin', name: '轉圈圈', file: 'spin_v2', once: true, fx: 'star', say: ['轉轉轉～頭好暈', '咕嚕咕嚕…眼睛在轉圈'], cnt: (n) => `今天轉了 ${n} 圈，頭好暈～` },
+    { id: 'spin', name: '轉圈圈', file: 'spin_q', once: true, fx: 'star', say: ['轉轉轉～頭好暈', '咕嚕咕嚕…眼睛在轉圈'], cnt: (n) => `今天轉了 ${n} 圈，頭好暈～` },
     { id: 'hit', name: '打他', file: 'hit', once: true, fx: 'star', say: ['嗚嗚…好痛', '哇——比比哭哭了'], cnt: (n) => `今天被打了 ${n} 次…嗚嗚` },
     { id: 'five', name: '擊掌', file: 'highfive', once: true, fx: 'star', say: ['耶！擊掌！', '啪！今天也一起加油'], cnt: (n) => `今天第 ${n} 次擊掌，默契 100！` },
     { id: 'dance', name: '跳舞', file: 'dance', once: true, fx: 'note', say: ['跳起來～', '比比的舞步帥嗎？'], cnt: (n) => `今天跳了 ${n} 支舞！` },
@@ -107,7 +108,7 @@
   const fabOff = () => html.classList.contains('fab-off');
   const $ = (id) => document.getElementById(id);
   /* 素材版本戳：換了 brand/bibi/ 裡的圖（同檔名）就改這個字串，使用者不用清快取就拿到新圖（10-11 週末款換圖後 Andy 仍看到舊圖） */
-  const AV = '1012a';
+  const AV = '1012b';
   const src = (f) => 'brand/bibi/' + f + '.webp?v=' + AV;
   const T = { now: null, pct: undefined, hol: null };   // 驗收注入（Bibi.test）：假時間、假漲跌、假休市表
 
@@ -553,7 +554,7 @@ html.fab-off .bibiring,html.fab-off .bibitip,html.fab-off .bibifx,html.fab-off #
      receive_*：動畫單位照原版 Default 造型重做的骨架版（第一版 Andy 退件「已經跟原來的不同了」，重做版 CEO 對照過 → 互動可以接）。
      清空就退回替代（face_star＋SVG 手）。⚠ 待機只用 idle_hop（Andy 10-12），不用骨架的 happy_hop、也不用 jump／default_idle。 */
   const PART = { run_l: 'run_l', run_r: 'run_r', run_start_r: 'run_start_r', run_stop_r: 'run_stop_r',
-    ball_catch: 'ball_catch', ball_catch_l: 'ball_catch_l', eat: 'eat_grass_v2', pet: 'pet_v2', spin: 'spin_v2', dizzy: 'dizzy', popcorn: 'popcorn',
+    ball_catch: 'ball_catch', ball_catch_l: 'ball_catch_l', eat: 'eat_q', pet: 'pet_v2', spin: 'spin_q', popcorn: 'popcorn',   // eat／spin：10-12 四腳版（spin 素材本身有暈眩，不再另接 dizzy）
     receive: 'receive', receive_grass: 'receive_grass', receive_ball: 'receive_ball',
     hit: 'hit', cry: 'cry',                         // 打他（播一次）／哭哭（循環）：動畫單位 10-11 深夜交件
   };
@@ -806,18 +807,28 @@ html.fab-off .bibiring,html.fab-off .bibitip,html.fab-off .bibifx,html.fab-off #
     }
   }
 
-  /* ---------- 腳本：餵牧草 ----------
-     牧草從小圈飛過來、比比接住（receive_grass）→ 吃草（eat_grass_v2：第 1 格直接把草送到嘴邊、素材裡自己有「嚼嚼」字）；每口身體縮一下、冒草屑。 */
+  /* ---------- 腳本：餵牧草（10-12 四腳版） ----------
+     動畫單位四腳版 eat_q（bibi_eat_grass，16 格）：素材裡已經畫了地上的牧草，比比側面低頭吃、最後回 Default。
+     → 網頁只負責「草從小圈飛過去、落在比比面前的地上」那一段（飛的那把用 props/grass.webp），落地那一刻收掉、播 eat_q；
+       不再播 receive_grass（站起來用手接），吃的時候也不疊網頁的草（素材裡有）。
+     落點＝素材裡那把草的位置：160px 素材的 x≈38（比比臉朝左）、貼地 → 螢幕上 比比中心往左 0.26 個圖寬、腳底。 */
   async function grassScript(g) {
-    await receive(g, 'grass');
-    cue();
+    const S = srcPoint(g), P = { x: g.cx - g.s * 0.26, y: g.foot - g.s * 0.03 };
+    const w = g.s * 0.12, h = w * 128 / 60, el = propPic('grass', w, h);
+    at(el, S.x, S.y, '', 0);
+    const lift = Math.max(50, Math.abs(S.x - P.x) * 0.35);
+    await tween(520, (u) => {                                  // 弧線飛過來，邊飛邊轉成橫躺
+      const e = E.inOut(u);
+      at(el, S.x + (P.x - S.x) * e, S.y + (P.y - S.y) * e - lift * Math.sin(Math.PI * u), ` rotate(${(84 * e).toFixed(1)}deg)`, Math.min(1, u * 5));
+      pose(0, 0, { sk: 4 * u, sy: 1 - 0.03 * u });             // 看到草、往前（左）湊，四腳不離地
+    });
+    await tween(110, (u) => { at(el, P.x, P.y - 6 * Math.sin(Math.PI * u), ' rotate(84deg)', 1); pose(0, 0, { sk: 4 * (1 - u), sy: 0.97 + 0.03 * u }); });
+    el.remove();                                               // 素材裡的草接手
     show(PART.eat, true);
-    const Te = MS[PART.eat] || 2110, bites = 4, per = Te / (bites + 1);
-    for (let i = 0; i < bites; i++) {
-      await tween(per, (k) => { const c = Math.sin(Math.PI * Math.min(1, k * 2.2)); pose(0, 0, { sy: 1 - 0.04 * c, sx: 1 + 0.03 * c }); });
-      burstAt('grass', g.cx + g.dir * g.s * 0.1, g.top + g.s * 0.62, 2, 1.6);
-    }
-    await wait(per);
+    cue();
+    await tween(MS[PART.eat] || 1900, (k, t) => {
+      if (t > 200 && t < 1250 && Math.floor(t / 260) !== Math.floor((t - 17) / 260)) burstAt('grass', P.x + g.s * 0.08, P.y - g.s * 0.12, 1, 1.4);
+    });
   }
   function floatText(text, x, y) {
     const c = document.createElement('div'); c.className = 'bchew'; c.textContent = text;
@@ -846,17 +857,12 @@ html.fab-off .bibiring,html.fab-off .bibitip,html.fab-off .bibifx,html.fab-off #
     });
   }
 
-  /* ---------- 腳本：轉圈圈 → 頭暈（Andy 10-11 深夜：「頭暈應該要表情暈眩」） ----------
-     spin_v2（12 格、1580ms）轉一圈；第 11 格（960ms 起）跟 dizzy 第 1 格一模一樣 → 在那格中間切到 dizzy（漩渦眼＋星星繞頭、左右晃，
-     8 格循環），播約 1.5 秒再回待機。晃是素材自己畫的，網頁只在轉的那段讓整顆微微離地。 */
-  const SPIN_TO_DIZZY = 1070, DIZZY_MS = 1500;
+  /* ---------- 腳本：轉圈圈（10-12 四腳版） ----------
+     spin_q（bibi_spin，13 格、1290ms）：四腳小跑繞一圈 → 急停歪一邊 → 暈眩臉 → 回 Default，暈眩畫在素材裡，不再另外接 dizzy 循環。
+     網頁只在跑的那段讓整顆微微離地。 */
   async function spinScript(g) {
     show(PART.spin, true);
-    await tween(SPIN_TO_DIZZY, (k, t) => { const u = Math.min(1, t / 380); pose(0, -4 * Math.sin(Math.PI * u), { sy: 1 + 0.03 * Math.sin(Math.PI * u) }); });
-    if (run) run.phase = 'dizzy';
-    show(PART.dizzy);                                          // 循環素材：不用 #片段 重播
-    await wait(DIZZY_MS);
-    if (run) run.phase = '';
+    await tween(MS[PART.spin] || 1290, (k, t) => { const u = Math.min(1, t / 600); pose(0, -3 * Math.sin(Math.PI * u), {}); });
   }
 
   /* ---------- 腳本：天竺鼠爆米花跳（popcorn 素材：彈三下越來越小） ----------
@@ -894,7 +900,7 @@ html.fab-off .bibiring,html.fab-off .bibitip,html.fab-off .bibifx,html.fab-off #
     await tween(100, (u) => at(hm, top.x, top.y + 10 * E.in(u), ` rotate(${(-30 + 60 * E.in(u)).toFixed(1)}deg)`));   // 咚！
     show(PART.hit, true);                                      // 被敲：素材第 1 格就是壓扁＋衝擊線
     burstAt('star', head.x, head.y - 8, 3, 2.2);
-    const HIT_MS = 630;                                        // hit 第 1～5 格（60＋70＋90＋110＋300）；第 6 格是 Default，不播
+    const HIT_MS = MS[PART.hit] || 650;                        // 10-12 四腳版 hit 6 格整段播完（最後一格＝cry 第 1 格，直接接哭）
     await tween(HIT_MS, (u) => {                               // 槌子彈開淡出
       at(hm, top.x + 24 * u, top.y + 10 - 34 * Math.sin(Math.PI * Math.min(1, u * 1.6)), ` rotate(${(30 - 70 * u).toFixed(1)}deg)`, Math.max(0, 1 - u * 2.2).toFixed(2));
       pose(0, 0, { sy: 1 - 0.03 * (1 - u) });
