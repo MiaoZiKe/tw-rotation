@@ -19,10 +19,10 @@
   const ymd = (ms) => (ms ? new Date(ms + 8 * 3600 * 1000).toISOString().slice(0, 10) : '');
   const ymdhm = (ms) => (ms ? new Date(ms + 8 * 3600 * 1000).toISOString().slice(0, 16).replace('T', ' ') : '');
   const fromYmd = (s) => Date.parse(s + 'T00:00:00+08:00');
-  const ST = { pending: '待付款', review: '待確認', paid: '已入帳', active: '已開通', failed: '失敗', rejected: '已退回', expired: '已逾期', refunded: '已退款', cancelled: '已取消' };
+  const ST = { pending: '待付款', review: '待確認', paid: '已入帳', active: '已開通', failed: '失敗', rejected: '已退回', expired: '已逾期', refunded: '已退款', cancelled: '已取消（未付款）' };
   const ST_CLS = { pending: 'wait', review: 'wait', paid: 'wait', active: 'ok', failed: 'bad', rejected: 'bad', expired: 'mute', refunded: 'mute', cancelled: 'mute' };
   const EV = { activate: '開通', extend: '延長', expire: '到期降級', refund_downgrade: '退款降級', refund_keep: '退款（到期才停）', auto_renew_off: '取消自動續訂' };
-  const S = { d: null, tab: 'orders', f: { method: '', status: '', from: '', to: '', q: '', expiring: false }, open: {} };
+  const S = { d: null, tab: 'orders', f: { method: '', status: '', from: '', to: '', q: '', expiring: false, all: false }, open: {} };
   const methodName = (o) => o.method === 'bank' ? '銀行轉帳' : o.recur ? (o.parent ? `綠界自動扣款 第${o.periodN}期` : '綠界定期定額') : /^ATM/.test(o.payType) ? '綠界 ATM' : /^CVS|^BARCODE/.test(o.payType) ? '綠界超商' : '綠界單次';
   const stName = (o) => (o.refunded && o.status !== 'refunded' ? '部分退款' : ST[o.status] || o.status);
 
@@ -124,11 +124,14 @@
   const st = (v, m, bad) => { const e = v.querySelector('#paySt'); if (e) { e.textContent = m; e.className = 'st ' + (bad ? 'bad' : 'ok'); } };
 
   /* ---------------------------------------------------------------- ① 訂單 */
+  /* 2026-10-11 Andy：未付款的不算訂單 → 預設不顯示「待付款」「已取消（未付款）」；對帳時打開「顯示未完成付款」 */
+  const UNPAID = ['pending', 'cancelled'];
+  const isUnpaid = (o) => UNPAID.includes(o.status) && !o.applied;
   function filtered() {
     const f = S.f, d = S.d, exp = new Set(d.expiring);
     const t0 = f.from ? fromYmd(f.from) : 0, t1 = f.to ? fromYmd(f.to) + 86400000 : Infinity;
     const q = f.q.trim().toLowerCase();
-    return d.orders.filter((o) => (!f.method || o.method === f.method) && (!f.status || o.status === f.status)
+    return d.orders.filter((o) => (f.all || f.status || !isUnpaid(o)) && (!f.method || o.method === f.method) && (!f.status || o.status === f.status)
       && o.created >= t0 && o.created < t1 && (!q || o.email.includes(q) || o.id.toLowerCase().includes(q)) && (!f.expiring || exp.has(o.email)));
   }
   function orderRow(o, actions) {
@@ -137,6 +140,7 @@
       if (o.method === 'bank' && ['pending', 'review', 'expired'].includes(o.status)) acts.push(`<button type="button" class="sm pri" data-pa="confirm" data-id="${esc(o.id)}">確認入帳並開通</button><button type="button" class="sm danger" data-pa="reject" data-id="${esc(o.id)}">退回</button>`);
       if (o.applied && o.status !== 'refunded') acts.push(`<button type="button" class="sm" data-pa="refund" data-id="${esc(o.id)}">退款</button>`);
       if (!o.applied && (o.anomaly || o.actErr || o.status === 'paid')) acts.push(`<button type="button" class="sm pri" data-pa="fix" data-id="${esc(o.id)}">補開通</button>`);
+      if (o.applied && (o.anomaly || o.actErr)) acts.push(`<button type="button" class="sm" data-pa="ack" data-id="${esc(o.id)}">標記已處理</button>`);
       if (o.method === 'ecpay' && !o.parent && (!o.applied || o.recur)) acts.push(`<button type="button" class="sm" data-pa="sync" data-id="${esc(o.id)}">${o.recur && o.applied ? '對帳' : '查單'}</button>`);
       acts.push(`<button type="button" class="sm" data-pa="note" data-id="${esc(o.id)}">備註</button>`);
     }
@@ -170,6 +174,7 @@
         <select id="pfS" aria-label="狀態"><option value="">全部狀態</option>${Object.entries(ST).map(([k, n]) => `<option value="${k}"${f.status === k ? ' selected' : ''}>${n}</option>`).join('')}</select>
         <label>從 <input type="date" id="pfFrom" value="${esc(f.from)}"></label><label>到 <input type="date" id="pfTo" value="${esc(f.to)}"></label>
         <input type="search" id="pfQ" placeholder="搜尋 email／訂單號" value="${esc(f.q)}" aria-label="搜尋 email 或訂單號">
+        <label title="待付款、已取消（未付款）：會員還沒付錢的單，預設不顯示"><input type="checkbox" id="pfAll"${f.all ? ' checked' : ''}> 顯示未完成付款（${d.orders.filter(isUnpaid).length}）</label>
         <label title="最近一筆是轉帳、7 天內到期的會員"><input type="checkbox" id="pfExp"${f.expiring ? ' checked' : ''}> 即將到期的轉帳會員（${d.expiring.length}）</label>
         <span style="flex:1"></span><button type="button" id="pfCsv">匯出 CSV（${list.length} 筆）</button></div>
       <div class="tw"><table id="payTbl">${TH}<tbody>${list.map((o) => orderRow(o, true)).join('') || '<tr><td colspan="11" class="muted">沒有符合的訂單</td></tr>'}</tbody></table></div>`;
@@ -179,6 +184,7 @@
     box.querySelector('#pfFrom').onchange = (e) => { f.from = e.target.value; re(); };
     box.querySelector('#pfTo').onchange = (e) => { f.to = e.target.value; re(); };
     box.querySelector('#pfExp').onchange = (e) => { f.expiring = e.target.checked; re(); };
+    box.querySelector('#pfAll').onchange = (e) => { f.all = e.target.checked; re(); };
     const q = box.querySelector('#pfQ'); q.oninput = () => { clearTimeout(q._t); q._t = setTimeout(() => { f.q = q.value; re(); const n = box.querySelector('#pfQ'); n.focus(); n.setSelectionRange(n.value.length, n.value.length); }, 250); };
     box.querySelector('#pfCsv').onclick = () => csvOrders(list);
     bindRows(v, box, re);
@@ -218,6 +224,10 @@
         <div class="msg" role="status"></div><div class="row2"><button type="button" data-close>取消</button>${ec ? '<button type="button" id="pdForce">強制開通</button>' : ''}<button type="button" class="pri" id="pdGo">${ec ? '查單並開通' : '補開通'}</button></div></div>`);
       dl.querySelector('#pdGo').onclick = async () => { const r = await call('/v1/admin/pay/reactivate', { id: o.id, force: !ec }); if (await done(v, r, '已補開通')) dl.hidden = true; else err(dl, r); };
       const fz = dl.querySelector('#pdForce'); if (fz) fz.onclick = async () => { const r = await call('/v1/admin/pay/reactivate', { id: o.id, force: true }); if (await done(v, r, '已強制開通')) dl.hidden = true; else err(dl, r); };
+    } else if (k === 'ack') {
+      const dl = D(`<div class="payd"><h3>標記已處理？</h3>${who}<p class="warn">${esc(o.anomaly || o.actErr)}</p><p>這筆已經開通了。確認你看過、處理完（例如跟會員聯絡過）後按下去，就會從異常清單拿掉；訂單本身不變。</p>
+        <div class="msg" role="status"></div><div class="row2"><button type="button" data-close>取消</button><button type="button" class="pri" id="pdGo">標記已處理</button></div></div>`);
+      dl.querySelector('#pdGo').onclick = async () => { const r = await call('/v1/admin/pay/ack', { id: o.id }); if (await done(v, r, '已標記處理')) dl.hidden = true; else err(dl, r); };
     } else if (k === 'sync') {
       (async () => { st(v, '向綠界查單中…'); const r = await call('/v1/admin/pay/sync', { id: o.id }); await load(); paint(v); st(v, r && r.ok ? (r.added != null ? `對帳完成，補了 ${r.added} 期` : r.dup ? '已經開通過' : '查單完成') : '查單結果：' + ((r && (r.error === 'unpaid' ? '還沒付款' : r.error)) || '連不到'), !(r && r.ok)); })();
     } else if (k === 'refund') refundDlg(v, o);

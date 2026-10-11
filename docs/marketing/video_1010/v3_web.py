@@ -27,6 +27,42 @@ def F(rect, label, clip, t_draw=0.5, **kw):
     return Focus4(rect, label=label, clip=clip + C, t_draw=t_draw, **kw)
 
 
+
+def tabmap(c, v, lead=0.5, tail=0.35, ff=5.0, hold=1.5):
+    """分頁鏡：點下前 lead 秒原速 → 點後 tail 秒原速 → 快轉到內容入框（v）→ 原速停 hold 秒。回傳 (srcmap, 鏡長)。"""
+    pts = [(0.0, max(0.0, c - lead))]
+    loc = lead + tail
+    pts.append((loc, c + tail))
+    if v > c + tail:
+        loc += (v - c - tail) / ff
+        pts.append((loc, v))
+    loc += hold
+    pts.append((loc, v + hold))
+    return pts, round(loc, 2)
+
+
+def tabvis(c, v, lead=0.5, tail=0.35, ff=5.0):
+    """內容入框的鏡內秒（焦點框開始畫的時間）。"""
+    return round(lead + tail + max(0.0, (v - c - tail)) / ff, 2)
+
+
+def tabmap_profit(c, v, v2, lead=0.5, tail=0.3, ff=6.0, hold1=1.5, sc=8.0, hold2=1.1):
+    """獲利分頁：點下 → 河流圖入框停 hold1 → 快速捲到 EPS／毛利率圖（v2）停 hold2。"""
+    pts = [(0.0, max(0.0, c - lead))]
+    loc = lead + tail
+    pts.append((loc, c + tail))
+    loc += (v - c - tail) / ff
+    pts.append((loc, v))
+    loc += hold1
+    pts.append((loc, v + hold1))
+    loc += (v2 - v - hold1) / sc
+    pts.append((loc, v2))
+    tv = round(loc, 2)
+    loc += hold2
+    pts.append((loc, v2 + hold2))
+    return pts, round(loc, 2), tv
+
+
 def feat(sid, D, clip, srcmap, head, hl, sub, pill, focus=None, idle="talk_happy", extra=(), soft_hover=False, use_events=True, main=None, chain=None):
     rec = Rec4(clip + C, srcmap, focus=focus, main=main)
     op = Op(rec, idle=idle, extra=extra, soft_hover=soft_hover, use_events=use_events, chain=chain)
@@ -135,49 +171,46 @@ def build():
                   focus=F((520, 740, 3120, 1130), "CCL 銅箔基板說明卡", "V12e", 2.0, zoom=False), idle=[(0, 'face_proud'), (1.8, 'face_nod')]))
     S.append(card("20", 3.0, K.grid_fn(3.0, 1.9), [(0, "swish")]))
     S.append(card("21", 2.5, K.more_fn(), [(0.5, "pop")]))
-    # 個股頁（v3d 素材：D01 總覽、D02 AI 分析、D05 資券、D06 K 線、D07 除權息；營收／獲利素材尚未到）
-    D1, D2 = "D01_desktop_v3d", "D02_desktop_v3d"
-    S.append(featv("22a", 3.0, D1, [(0, 0.9), (0.7, 1.9), (0.7001, 3.0), (1.6, 4.4), (2.3, 5.1), (2.3001, 6.5), (3.0, 7.2)], "⑥ 個股一頁全有", "一頁全有", '打幾個字，點建議，我帶你進個股頁', "個股",
+    # 個股頁（Andy 退件重排：K 線區 → 分頁列由左到右，每個分頁只留一個重點圖表鏡）
+    D1, D2, D5, D6, D7, D8, D9 = ("D01_desktop_v3d", "D02_desktop_v3d", "D05_desktop_v3d", "D06_desktop_v3d", "D07_desktop_v3d", "D08_desktop_v3h", "D09_desktop_v3h")
+    S.append(featv("g01", 3.0, D1, [(0, 1.2), (0.6, 1.9), (0.6001, 3.0), (1.2, 4.2), (1.2001, 6.5), (1.9, 7.2)], "⑥ 個股一頁全有", "一頁全有", '打幾個字，點建議，我帶你進個股頁', "個股",
                    focus=FV((24, 252, 904, 344), "搜尋下拉建議清單", D1, 1.7, zoom=False, t_end=2.3), idle=[(0, 'face_wink'), (1.6, 'talk_happy')]))
-    S.append(featv("22b", 1.8, D1, stat(12.8, 1.8), "報價、K 線一眼看", "K 線", '報價、K 線、指標，我放在同一張卡', "個股",
-                   focus=FV((0, 0, 1, 1), "個股報價與 K 線卡", D1, 0.5, zoom=False), idle=[(0, 'face_nod')]))
-    S.append(featv("22c", 1.4, D1, stat(16.0, 1.4), "基本面一張卡", "基本面", 'EPS、ROE、本益比，基本面我幫你抓重點', "個股",
-                   focus=FV((0, 0, 1, 1), "基本面卡", D1, 0.45, zoom=False), idle=[(0, 'face_think')]))
-    S.append(featv("22d", 1.4, D1, stat(19.3, 1.4), "籌碼快照", "籌碼", '法人、集保、信用、當沖，一次給你看', "個股",
-                   focus=FV((0, 0, 1, 1), "籌碼快照卡", D1, 0.45, zoom=False), idle=[(0, 'magnifier')]))
-    S.append(featv("23a", 2.0, D2, stat(2.4, 2.0), "AI 分析：先看結論", "AI 分析", 'AI 分析先給你結論，條件到哪我也列出來', "個股",
+    S.append(featv("g02", 2.2, D6, stat(16.3, 2.2), "先看報價和 K 線", "K 線", '先看報價和 K 線', "個股",
+                   focus=FV((0, 0, 1, 1), "個股走勢卡", D6, 0.4, zoom=False), idle=[(0, 'face_nod')]))
+    S.append(autov("g03", D6, (7.0, 8.3), "切週期，K 線立刻換", "切週期", "切週期，K 線我立刻幫你換", "個股", idle=[(0, "face_star"), (1.2, "face_proud")]))
+    S.append(featv("g04", 2.6, D6, [(0, 25.5), (2.6, 28.1)], "指標一鍵加上去", "指標", "要看哪個指標，打勾就加上去", "個股",
+                   idle=[(0, "magnifier"), (1.4, "face_think")]))
+    S.append(featv("g05", 2.4, D1, stat(16.0, 2.4), "總覽：基本面、籌碼、AI 一排看", "總覽", "基本面、籌碼、AI 一排看", "個股",
+                   idle=[(0, 'face_think'), (1.4, 'face_nod')]))
+    sm, d = tabmap(1.57, 5.13)
+    S.append(featv("g06", d, D7, sm, "基本資料", "基本資料", "公司基本資料，我幫你整理好", "個股",
+                   focus=FV((0, 0, 1, 1), "基本資料分頁", D7, tabvis(1.57, 5.13), zoom=False), idle="folder"))
+    sm, d = tabmap(11.83, 15.7)
+    S.append(featv("g07", d, D8, sm, "營收：月營收長條與年增率", "營收", "月營收長條加年增率，每個月我幫你畫好", "個股",
+                   focus=FV((0, 0, 1, 1), "月營收圖", D8, tabvis(11.83, 15.7), zoom=False), idle=[(0, "piggy"), (2.4, "face_proud")]))
+    # 獲利：點下→本益比河流圖（錄影端內容區）→ 快速捲到 EPS／毛利率圖並停留
+    sm, d, tv = tabmap_profit(11.83, 15.7, 21.9)
+    S.append(featv("g08", d, D9, sm, "獲利：EPS 與毛利率", "獲利", "EPS 和毛利率的變化，我整理在同一張圖", "個股",
+                   focus=FV((0, 0, 1, 1), "EPS／毛利率圖", D9, tv, zoom=False), idle=[(0, "calc"), (2.4, "face_think")]))
+    S.append(featv("g09", 2.4, D2, stat(2.4, 2.4), "AI 分析：先看結論", "AI 分析", 'AI 分析先給你結論', "個股",
                    focus=FV((0, 0, 1, 1), "AI 分析：結論一行", D2, 0.5, zoom=False), idle=[(0, 'bulb')]))
-    S.append(featv("23b", 2.6, D2, [(0, 3.6), (2.6, 6.2)], "AI 分析：看細節", "看細節", '想知道原因？點開，我逐條講給你聽', "個股",
+    S.append(featv("g10", 2.6, D2, [(0, 4.1), (2.6, 6.7)], "AI 分析：看條件細節", "看細節", '想知道原因？點開，我逐條講給你聽', "個股",
                    idle=[(0, 'talk_explain'), (1.5, 'face_nod')]))
-    S.append(featv("23c", 2.2, D2, [(0, 10.9), (2.2, 13.1)], "切到籌碼面", "籌碼面", "切到籌碼面，法人買賣我幫你看", "個股",
-                   focus=FV((0, 0, 1, 1), "AI 分析內容（籌碼面）", D2, 1.6), idle="face_curious"))
-    S.append(featv("23d", 1.8, D2, [(0, 14.0), (1.8, 15.8)], "切到基本面", "基本面", "基本面也一鍵切換，營運估值一次看", "個股",
-                   idle="face_think"))
-    S.append(featv("23e", 1.8, D2, [(0, 17.0), (1.8, 18.8)], "切到消息面", "消息面", "消息面，我把新聞整理成一面給你", "個股",
-                   idle="news"))
-    D8, D9 = "D08_desktop_v3h", "D09_desktop_v3h"
-    S.append(featv("24r1", 4.2, D8, [(0, 11.0), (1.4, 12.4), (2.6, 15.8), (4.2, 17.4)], "營收：月營收圖", "營收", "月營收和年增率，每個月我幫你畫好", "個股",
-                   focus=FV((514, 825, 1354, 1345), "月營收圖", D8, 2.8), idle=[(0, "piggy"), (2.4, "face_proud")]))
-    S.append(featv("24r2", 2.6, D8, [(0, 18.9), (2.6, 20.5)], "營收：年同期比較", "年同期", "跟去年同期比，一眼看出成長", "個股",
-                   focus=FV((1446, 689, 2286, 1345), "年同期比較圖", D8, 0.4), idle="growth"))
-    S.append(featv("24p1", 4.2, D9, [(0, 11.0), (1.4, 12.4), (2.6, 15.8), (4.2, 17.4)], "獲利：本益比河流圖", "獲利", "本益比河流圖，現在貴還是便宜我幫你標出來", "個股",
-                   focus=FV((480, 405, 2264, 1471), "本益比河流圖", D9, 2.8), idle=[(0, "calc"), (2.4, "face_think")]))
-    S.append(featv("24p2", 2.6, D9, [(0, 21.9), (2.6, 23.5)], "獲利：EPS 與毛利率", "EPS", "EPS、毛利率的變化，我整理在同一張圖", "個股",
-                   focus=FV((480, 731, 2038, 1371), "EPS／毛利率圖", D9, 0.4), idle="bulb"))
-    S.append(featv("24p3", 2.6, D9, [(0, 25.1), (2.6, 26.9)], "獲利：財報表", "財報表", "財報表也列好，數字我幫你排整齊", "個股",
-                   focus=FV((2062, 731, 3168, 1371), "財報表", D9, 0.4), idle="folder"))
-    S.append(featv("24a", 2.4, "D06_desktop_v3d", [(0, 7.1), (2.4, 9.5)], "切週期，K 線立刻換", "切週期", "切週期，K 線我立刻幫你換", "個股",
-                   idle=[(0, "face_star"), (1.2, "face_proud")]))
-    S.append(featv("24a3", 2.4, "D06_desktop_v3d", stat(19.9, 2.4), "四個週期並排看", "並排", "日、週、月、季四個週期，我幫你並排看", "個股",
-                   focus=FV((480, 100, 3168, 1760), "四週期同看", "D06_desktop_v3d", 0.4), idle="face_cool"))
-    S.append(featv("24b1", 2.6, "D05_desktop_v3d", [(0, 0.6), (2.6, 5.8)], "法人買賣一頁看", "法人", "三大法人買賣超，我幫你排成一張", "個股",
-                   idle="magnifier"))
-    S.append(featv("24b2", 2.4, "D05_desktop_v3d", [(0, 7.6), (2.4, 12.4)], "資券一頁看", "資券", "融資融券的變化，我幫你一頁排好", "個股",
-                   idle="face_think"))
-    S.append(featv("24c1", 2.2, "D07_desktop_v3d", [(0, 0.6), (2.2, 3.8)], "基本資料", "基本資料", "公司基本資料，我幫你整理好", "個股",
-                   idle="folder"))
-    S.append(featv("24c2", 2.4, "D07_desktop_v3d", [(0, 7.6), (2.4, 12.4)], "除權息紀錄", "除權息", "歷年股利、除息日，我幫你列出來", "個股",
-                   idle="piggy"))
+    sm, d = tabmap(8.57, 12.13)
+    S.append(featv("g11", d, D7, sm, "除權息紀錄", "除權息", "歷年股利、除息日，我幫你列出來", "個股",
+                   focus=FV((0, 0, 1, 1), "除權息分頁", D7, tabvis(8.57, 12.13), zoom=False), idle="piggy"))
+    sm, d = tabmap(1.57, 5.13)
+    S.append(featv("g12", d, D5, sm, "法人買賣一頁看", "法人", "三大法人買賣超，我幫你排成一張", "個股",
+                   focus=FV((0, 0, 1, 1), "法人分頁", D5, tabvis(1.57, 5.13), zoom=False), idle="magnifier"))
+    sm, d = tabmap(8.57, 12.13)
+    S.append(featv("g13", d, D5, sm, "資券一頁看", "資券", "融資融券的變化，我幫你一頁排好", "個股",
+                   focus=FV((0, 0, 1, 1), "資券分頁", D5, tabvis(8.57, 12.13), zoom=False), idle="face_think"))
+    sm, d = tabmap(15.57, 19.13)
+    S.append(featv("g14", d, D5, sm, "大戶與散戶", "大戶散戶", "大戶、散戶持股比例的變化，我畫給你看", "個股",
+                   focus=FV((0, 0, 1, 1), "大戶／散戶分頁", D5, tabvis(15.57, 19.13), zoom=False), idle="face_curious"))
+    sm, d = tabmap(15.57, 19.13)
+    S.append(featv("g15", d, D7, sm, "公告與新聞", "公告新聞", "重大公告和新聞，我幫你整理在最後一頁", "個股",
+                   focus=FV((0, 0, 1, 1), "公告分頁", D7, tabvis(15.57, 19.13), zoom=False), idle="news"))
     S.append(feat("25", 2.5, "V16", act(3.4, 2.5, 1.3, 0.8), "⑦ 完整名單", "完整名單", "完整名單我排給你，點欄位就能排序", "市場明細",
                   focus=F((1880, 230, 3140, 340), "分頁列", "V16", 1.4, zoom=False), idle=[(0, 'hourglass'), (1.5, 'face_nod')]))
     S.append(seqv("25s", "I05_desktop_v3i", [(0.7, 10.0, 1.6)], "名單連著篩", "連著篩", "漲停、跌停、漲幅前段…一個鍵一份名單，我連著點給你看", "市場明細",

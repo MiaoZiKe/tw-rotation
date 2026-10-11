@@ -38,6 +38,8 @@
 - 改：pricing.js（有價格的方案按升級改開結帳面板；訂閱頁拿到「開機前的備用方案清單」時重抓一次）、billing.js（選單多「我的訂單／付款紀錄」）、account.js／acctm4.js／layout4.js（管理區入口「付款與訂單」）、wrangler.toml（cron 每 10 分鐘）、deploy-account-worker.yml（跑金流測試、寫綠界 Secret）、devserver.mjs（假綠界）。
 - **Andy 要做**（逐步在 docs 第 8 節）：①確認綠界合約有開「信用卡定期定額」②後台抄 MerchantID／HashKey／HashIV → GitHub Secrets `ECPAY_MERCHANT_ID`／`ECPAY_HASH_KEY`／`ECPAY_HASH_IV` → 手動跑「部署 Worker」③#admin/pay「收款帳號設定」填帳號 ④1 元實測付款＋退款。沒設金鑰前一律是綠界測試模式。
 - **這批驗了**：`node --test workers/account-api/tests/*.test.mjs`（130 條，含 pay 19 條）、結帳與付款1011（新，0）、桌機守門1008（0）、退款政策1009（0）、帳號選單1009（0）、網頁同步1010（1，既有的「E 手機 390 個股頁首子分頁」，origin/main 同樣紅）、`_preview.py`（1，既有的 800px #industry/ai_server 卡片交疊）、pytest。
+- [10-12 01:3x] 追加（Andy：「只要還沒付費 就不能出現這樣 只有真的付費了 才能變更當前會員狀態」）：我的訂單只列付過錢的、綠界待付款 3 天自動取消（未付款）、重新結帳作廢舊單、取消後才付款照樣開通＋異常「標記已處理」、管理區「顯示未完成付款」切換。
+  驗了：Worker 測試 133 條、結帳與付款1011（0）、桌機守門1008（0）、帳號選單1009（0）、退款政策1009（0）、_preview；只動 site／workers／_uitest／docs → 依規則跳過 pytest。
 - **待處理**：電子發票（綠界，有統編後）；寄信（收據／續扣通知）；隱私權政策補「訂單紀錄刪帳號不刪」（法遵）；綠界 DoAction form 版欄位與 TradeStatus 代碼是中信心 → 正式上線前 1 元實測。
 
 ## 2026-10-11 比比（右下角客服鈕）情境待機＋環狀互動選單（UI 專家；DECISIONS #355）

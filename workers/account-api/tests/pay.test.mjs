@@ -427,3 +427,47 @@ test('刪除帳號：交易紀錄保留（uid 斷開）；備份匯出含 orders
   assert.equal(ord(db, c.id).uid, '');
   assert.equal(ord(db, c.id).email, 'bob@example.com');
 });
+
+/* 2026-10-11 Andy：「只要還沒付費 就不能出現這樣 只有真的付費了 才能變更當前會員狀態」 */
+test('未付款：建立綠界訂單沒付 → 我的訂單看不到、會員狀態不變；付款通知進來 → 出現在我的訂單、狀態變更', async () => {
+  const { hub, bob } = await setup();
+  const c = await ecCreate(hub, bob);
+  let my = (await pj(hub, '/v1/pay/my', { t: bob })).j;
+  assert.deepEqual([my.orders.length, my.plan, my.expires, my.renew], [0, 'free', 0, null], '待付款不列、方案不變、沒有到期日');
+  assert.equal((await permOf(hub, bob)).plan, 'free');
+  assert.equal((await pj(hub, '/v1/billing/me', { t: bob })).j.paid, false, '帳務狀態也不變');
+  await notify(hub, c.id, 299);
+  my = (await pj(hub, '/v1/pay/my', { t: bob })).j;
+  assert.deepEqual([my.orders.length, my.orders[0].id, my.orders[0].statusName, my.plan], [1, c.id, '已開通', 'plus']);
+});
+
+test('待付款超過 3 天 → 排程自動「已取消（未付款）」；之後綠界才通知付款成功 → 照樣開通＋列異常；管理者標記已處理', async () => {
+  const { hub, db, bob, andy } = await setup();
+  const c = await ecCreate(hub, bob);
+  clock += 3 * DAY + 60000;
+  await hub.fetch(new Request('https://internal.cron/cron/pay-sweep', { method: 'POST' }));
+  assert.deepEqual([ord(db, c.id).status, ord(db, c.id).applied], ['cancelled', 0]);
+  assert.equal((await pj(hub, '/v1/admin/pay/list', { t: andy })).j.status.cancelled, '已取消（未付款）');
+  assert.equal((await permOf(hub, bob)).plan, 'free');
+  await notify(hub, c.id, 299);
+  assert.deepEqual([ord(db, c.id).status, ord(db, c.id).applied], ['active', 1], '錢收了就開通');
+  assert.ok(/已取消（未付款）之後才收到付款/.test(ord(db, c.id).anomaly));
+  assert.ok((await pj(hub, '/v1/admin/pay/list', { t: andy })).j.anomalies.includes(c.id), '列進異常清單');
+  assert.equal((await pj(hub, '/v1/admin/pay/ack', { t: andy, id: c.id })).s, 200);
+  assert.equal((await pj(hub, '/v1/admin/pay/list', { t: andy })).j.anomalies.length, 0, '標記已處理後拿掉');
+  assert.equal((await post(hub, '/v1/admin/pay/ack', { t: bob, id: c.id })).status, 403);
+});
+
+test('重新點結帳：舊的未付款綠界單作廢、不累積；舊單其實付了（通知漏掉）→ 排程照樣查單開通', async () => {
+  const { hub, db, bob } = await setup();
+  const a = await ecCreate(hub, bob);
+  const b2 = await ecCreate(hub, bob);
+  assert.equal(ord(db, a.id).status, 'cancelled');
+  assert.equal(ord(db, b2.id).status, 'pending');
+  assert.equal(db.prepare("SELECT COUNT(*) AS c FROM orders WHERE uid = (SELECT uid FROM orders WHERE id = ?) AND status = 'pending'").get(a.id).c, 1, '同時只留一筆待付款');
+  FAKE.trades[a.id] = { status: '1', amt: 299 };
+  clock += 10 * 60 * 1000;
+  await hub.fetch(new Request('https://internal.cron/cron/pay-sweep', { method: 'POST' }));
+  assert.deepEqual([ord(db, a.id).applied, ord(db, a.id).act_src], [1, 'sweep']);
+  assert.equal((await permOf(hub, bob)).plan, 'plus');
+});

@@ -52,11 +52,11 @@ export async function ecpayMac(params, key, iv) {
 export const PAY_BANK_DAYS = 3;          // 轉帳訂單：開單後 3 天內匯款（畫面寫「請於 3 天內轉帳」），過了標「已逾期」
 export const PAY_MAX_NEW_DAY = 5;        // 同一會員 24 小時內最多開幾筆新訂單（Andy 規格：轉帳 5 筆；綠界同一個上限另外算）
 export const PAY_MAX_ECPAY_DAY = 10;
-const PAY_ECPAY_EXPIRE_DAYS = 8;         // 綠界單次訂單（超商代碼最長 7 天）超過 8 天還沒付 → 已逾期
+const PAY_ECPAY_EXPIRE_DAYS = 3;         // 2026-10-11 Andy：綠界待付款超過 3 天沒付 → 排程標「已取消（未付款）」（之後綠界才通知付款成功照樣開通＋列異常）
 const PAY_SWEEP_DAYS = 3;                // 排程：3 天內還沒開通的綠界訂單逐筆查單
 const PAY_PERIOD_SYNC_MS = 6 * 3600 * 1000;   // 定期定額對帳：每筆最多 6 小時查一次
 const PAY_RENEW_DAYS = 7;                // 轉帳會員：到期前 7 天與 1 天提醒
-export const PAY_STATUS = { pending: '待付款', review: '待確認', paid: '已入帳', active: '已開通', failed: '失敗', rejected: '已退回', expired: '已逾期', refunded: '已退款', cancelled: '已取消' };
+export const PAY_STATUS = { pending: '待付款', review: '待確認', paid: '已入帳', active: '已開通', failed: '失敗', rejected: '已退回', expired: '已逾期', refunded: '已退款', cancelled: '已取消（未付款）' };
 const ID_RE = /^LG[0-9A-Z]{10,18}(P\d{1,3})?$/;
 const DAY = 86400 * 1000;
 
@@ -200,6 +200,8 @@ export function installPay(Hub, H) {
     const amt = parseInt(info.amount, 10);
     const set = { trade_no: info.trade_no || o.trade_no, pay_type: info.pay_type || o.pay_type, paid_at: o.paid_at || info.paid_at || this.now(), rtn_msg: info.msg || o.rtn_msg };
     if (info.gwsr) set.gwsr = info.gwsr;
+    /* 2026-10-11 Andy：已取消（未付款）或逾期的單，之後綠界才通知付款成功 → 照樣開通（錢收了），但列進異常清單讓管理者看 */
+    if (['cancelled', 'expired', 'failed'].includes(o.status)) set.anomaly = `${PAY_STATUS[o.status] || o.status}之後才收到付款，已照樣開通，請確認`;
     if (o.recur) { set.period_state = o.period_state === 'cancelled' ? 'cancelled' : 'active'; set.period_n = Math.max(1, o.period_n || 0); }
     if (amt !== o.amount) {
       set.status = 'paid'; set.anomaly = `金額不符：綠界 ${info.amount}、訂單 ${o.amount}`;
@@ -300,13 +302,13 @@ export function installPay(Hub, H) {
       this.planEv(r.email, 'expire', r.plan, String(r.expires), `到期日 ${tpeDay(r.expires)} 已過，自動回到註冊會員`);
     }
     this.q("UPDATE orders SET status = 'expired', updated = ? WHERE method = 'bank' AND status = 'pending' AND created < ?", now, now - PAY_BANK_DAYS * DAY);
-    this.q("UPDATE orders SET status = 'expired', updated = ? WHERE method = 'ecpay' AND status = 'pending' AND applied = 0 AND parent IS NULL AND created < ?", now, now - PAY_ECPAY_EXPIRE_DAYS * DAY);
+    this.q("UPDATE orders SET status = 'cancelled', rtn_msg = '超過 3 天未付款，自動取消', updated = ? WHERE method = 'ecpay' AND status = 'pending' AND applied = 0 AND parent IS NULL AND created < ?", now, now - PAY_ECPAY_EXPIRE_DAYS * DAY);
   };
   /* 排程（每 10 分鐘，wrangler.toml）：補開通 → 對帳 → 到期紀錄 */
   Hub.prototype.paySweep = async function () {
     this.payInit();
     const now = this.now(), out = { query: 0, fixed: 0, period: 0 };
-    for (const o of this.q("SELECT id FROM orders WHERE method = 'ecpay' AND parent IS NULL AND applied = 0 AND status IN ('pending', 'paid') AND created > ? ORDER BY created LIMIT 30", now - PAY_SWEEP_DAYS * DAY)) {
+    for (const o of this.q("SELECT id FROM orders WHERE method = 'ecpay' AND parent IS NULL AND applied = 0 AND status IN ('pending', 'paid', 'cancelled') AND created > ? ORDER BY created LIMIT 30", now - (PAY_SWEEP_DAYS + 1) * DAY)) {
       out.query++;
       const r = await this.payQuery(o.id, 'sweep');
       if (r.ok && !r.dup) out.fixed++;
@@ -335,7 +337,11 @@ export function installPay(Hub, H) {
 
   Hub.prototype.payMine = function (v) {
     const email = norm(v.user.email), now = this.now();
-    const rows = this.q('SELECT * FROM orders WHERE uid = ? OR email = ? ORDER BY created DESC LIMIT 200', v.user.uid, email);
+    const all = this.q('SELECT * FROM orders WHERE uid = ? OR email = ? ORDER BY created DESC LIMIT 300', v.user.uid, email);
+    /* 2026-10-11 Andy：「只要還沒付費 就不能出現這樣 只有真的付費了 才能變更當前會員狀態」→ 會員端只列真的付過錢的：
+       已付款／已開通／已退款／部分退款，以及銀行轉帳「已送出匯款資料」的（待確認、被退回看得到原因）。綠界待付款、未完成付款一律不列。 */
+    const rows = all.filter((o) => o.applied || ['paid', 'active', 'refunded'].includes(o.status) || o.refunded > 0
+      || (o.method === 'bank' && o.from_last5 && ['review', 'rejected'].includes(o.status)));
     const refunds = this.q('SELECT * FROM refunds WHERE email = ?', email);
     const e = this.effective(email);
     const plan = e.expired ? 'free' : e.plan;
@@ -452,6 +458,9 @@ export function installPay(Hub, H) {
       if (!back) return this.json(req, { error: 'bad_back' }, 400);
       const recur = b.recur === true;
       const c = this.ecCfg(), id = this.payNewId(), now = this.now();
+      /* 同一個會員重新點結帳：舊的未付款綠界單作廢，不讓它一直累積（綠界的 MerchantTradeNo 送出過就不能重用，所以是建新單）。
+         已經取號（ATM 帳號／超商代碼）的留著，等 3 天排程；作廢的單如果之後綠界才通知付款成功，照樣開通＋列異常。 */
+      this.q("UPDATE orders SET status = 'cancelled', rtn_msg = '重新結帳，舊的未付款訂單作廢', updated = ? WHERE uid = ? AND method = 'ecpay' AND status = 'pending' AND applied = 0 AND parent IS NULL AND (pay_info IS NULL OR pay_info = '')", now, v.user.uid);
       const api = new URL(req.url).origin;
       this.q(`INSERT INTO orders (id, uid, email, plan, plan_name, period, amount, method, recur, status, test, back, consent, note, created, updated, period_state)
         VALUES (?, ?, ?, ?, ?, ?, ?, 'ecpay', ?, 'pending', ?, ?, ?, ?, ?, ?, ?)`, id, v.user.uid, norm(v.user.email), pr.plan, pr.planName, period, pr.amount,
@@ -566,6 +575,16 @@ export function installPay(Hub, H) {
       this.paySet(o.id, { status: 'rejected', reject_reason: reason });
       this.payEv(o.id, 'reject', { by: v.user.email, reason });
       return this.json(req, { ok: true, order: admOrder(this.payOrder(o.id)) });
+    },
+    /* 已開通但帶異常註記（例如取消後才付款）→ 管理者看過後「標記已處理」，從異常清單拿掉 */
+    '/v1/admin/pay/ack': async function (req, b) {
+      const v = await this.admin(req, b); if (!v) return this.json(req, { error: 'forbidden' }, 403);
+      this.payInit();
+      const o = this.payOrder(b.id); if (!o) return this.json(req, { error: 'not_found' }, 404);
+      if (!o.applied) return this.json(req, { error: 'not_applied' }, 409);
+      this.paySet(o.id, { anomaly: null, act_err: null });
+      this.payEv(o.id, 'ack', v.user.email);
+      return this.json(req, { ok: true });
     },
     '/v1/admin/pay/note': async function (req, b) {
       if (!(await this.admin(req, b))) return this.json(req, { error: 'forbidden' }, 403);

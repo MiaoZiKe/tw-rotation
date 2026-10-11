@@ -24,9 +24,10 @@ def solve_pan(rec, op, D, pan_):
     return _solve_core(rec, op, D, pan_, _LM)
 
 
-def feat(sid, D, clip, srcmap, head, hl, sub, pill, focus=None, idle="talk_happy", extra=(), pan_=None, use_events=True, no_solve=False, chain=None, meta=None):
+def feat(sid, D, clip, srcmap, head, hl, sub, pill, focus=None, idle="talk_happy", extra=(), pan_=None, use_events=True, no_solve=False, chain=None, meta=None, top_only=False):
     rec = Rec4(clip, srcmap, focus=focus, pan=pan_)
     rec.meta = meta or {}
+    rec.top_only = top_only
     op = Op(rec, idle=idle, extra=extra, use_events=use_events, chain=chain)
     D, dw = plan_dwell(rec, op, D, sub, _LM, pan_, chain, no_solve)
     _sh = Shot4(sid, D, [rec], pill=pill, head=head, hl=hl, sub=sub, op=op)
@@ -56,10 +57,12 @@ def seqm(sid, clip, segs, head, hl, sub, pill, idle="talk_happy", focus=None):
     return sh
 
 
-def autom(sid, clip, win, head, hl, sub, pill, idle="talk_happy", focus=None, hold=1.6):
+def autom(sid, clip, win, head, hl, sub, pill, idle="talk_happy", focus=None, hold=1.6, top_only=False, ff=3.0):
     """依錄影端「點擊後內容區」自動排時間軸（手機）：點下→內容出現並入框→停留；內容高就慢滑到底。"""
-    sm, D, meta = auto_map(clip, win, hold=hold)
-    return feat(sid, D, clip, sm, head, hl, sub, pill, focus=focus, idle=idle, meta=meta)
+    sm, D, meta = auto_map(clip, win, hold=hold, ff=ff)
+    if not sm:
+        raise ValueError(f'autom {sid} {clip} {win} 沒有點擊事件')
+    return feat(sid, D, clip, sm, head, hl, sub, pill, focus=focus, idle=idle, meta=meta, top_only=top_only)
 
 
 def card(sid, D, fn, cues=()):
@@ -140,57 +143,50 @@ def build():
                   idle=[(0, 'face_proud'), (1.8, 'face_nod')], pan_=pan(700, 800, 3.0)))
     S.append(card("17", 3.0, K.grid_fn(3.0, 1.9), [(0, "swish")]))
     S.append(card("18", 2.5, K.more_fn(), [(0.5, "pop")]))
-    D1 = "D01_mobile_v3d"
-    S.append(autom("19a", D1, (1.0, 9.4), "⑥ 個股一頁全有", "一頁全有", "打幾個字，點建議，我帶你進個股頁", "個股",
-                   idle=[(0, "face_wink"), (1.6, "talk_happy")]))
-    pass
-    S.append(autom("19c", D1, (17.3, 18.8), "基本面一張卡", "基本面", "EPS、ROE、本益比，基本面我幫你抓重點", "個股",
-                   idle="face_think"))
-    S.append(autom("19d", D1, (23.2, 24.7), "籌碼快照", "籌碼", "法人、集保、信用、當沖，一次給你看", "個股",
-                   idle="magnifier"))
-    S.append(autom("19e", D1, (29.1, 30.6), "AI 分析", "AI 分析", "AI 分析先給你結論，條件到哪我也列出來", "個股",
-                   idle="bulb"))
-    D2M = "D02_mobile_v3d"
-    S.append(autom("19e2", D2M, (4.0, 5.4), "AI 分析：看細節", "看細節", "想知道原因？點開，我逐條講給你聽", "個股",
-                   idle=[(0, "talk_explain"), (1.4, "face_nod")]))
-    S.append(autom("19e3", D2M, (13.6, 15.0), "切到籌碼面", "籌碼面", "切到籌碼面，法人買賣我幫你看", "個股",
-                   idle="face_curious"))
-    S.append(autom("19e4", D2M, (18.3, 19.7), "切到基本面", "基本面", "基本面也一鍵切換，營運估值一次看", "個股",
-                   idle="face_think"))
-    S.append(autom("19e5", D2M, (23.0, 24.4), "切到消息面", "消息面", "消息面，我把新聞整理成一面給你", "個股",
-                   idle="news"))
-    D2M = "D02_mobile_v3d"
-    pass
-    pass
-    pass
-    pass
-    S.append(autom("19f", "D06_mobile_v3d", (7.0, 8.4), "切週期，K 線立刻換", "切週期", "切週期，K 線我立刻幫你換", "個股",
-                   idle=[(0, "face_star"), (1.2, "face_proud")]))
-    S.append(autom("19g1", "D05_mobile_v3d", (0.9, 2.4), "法人買賣一頁看", "法人", "三大法人買賣超，我幫你排成一張", "個股",
-                   idle="magnifier", hold=2.0))
-    S.append(autom("19g2", "D05_mobile_v3d", (4.6, 6.1), "資券一頁看", "資券", "融資融券的變化，我幫你一頁排好", "個股",
-                   idle="face_think", hold=2.0))
-    S.append(autom("19h1", "D07_mobile_v3d", (0.9, 2.4), "基本資料", "基本資料", "公司基本資料，我幫你整理好", "個股",
-                   idle="folder", hold=2.0))
-    S.append(autom("19h2", "D07_mobile_v3d", (4.6, 6.1), "除權息紀錄", "除權息", "歷年股利、除息日，我幫你列出來", "個股",
-                   idle="piggy", hold=2.0))
-    _r = autom("19r", "D08_mobile_v3h", (12.8, 14.4), "營收：月營收圖", "營收", "月營收和年增率，每個月我幫你畫好", "個股",
-               idle=[(0, "piggy"), (2.0, "face_proud")], hold=4.8)
-    _r.rec.pan_keys = [(0.0, 0.0), (1.0, 0.0)]      # 錄影本身會往下捲到底，視窗固定，不再疊一層平移
-    _r.dwell["note"] = "錄影端自帶捲動，視窗固定"
-    S.append(_r)
-    _p = autom("19p", "D09_mobile_v3h", (12.8, 14.4), "獲利：EPS 與毛利率", "獲利", "EPS、毛利率的變化，我整理在同一張圖", "個股",
-               idle=[(0, "calc"), (2.0, "face_think")], hold=4.8)
-    _p.rec.pan_keys = [(0.0, 0.0), (1.0, 0.0)]
-    _p.dwell["note"] = "錄影端自帶捲動，視窗固定"
-    S.append(_p)
+    D1, D2M, D5M, D6M, D7M, D8M, D9M = ("D01_mobile_v3d", "D02_mobile_v3d", "D05_mobile_v3d", "D06_mobile_v3d", "D07_mobile_v3d", "D08_mobile_v3h", "D09_mobile_v3h")
+    # 個股頁（Andy 退件重排）：K 線區 → 分頁列由左到右；每個分頁只留一個重點圖表鏡（內容高就只看上段，不再滑到底）
+    S.append(autom("h01", D1, (1.0, 9.4), "⑥ 個股一頁全有", "一頁全有", "打幾個字，點建議，我帶你進個股頁", "個股",
+                   idle=[(0, "face_wink"), (1.6, "talk_happy")], top_only=True, ff=5.0, hold=1.5))
+    S.append(feat("h02", 2.2, D6M, stat(16.2, 2.2), "先看報價和 K 線", "K 線", "最上面是報價和 K 線，先看這張", "個股",
+                  focus=F((0, 0, 1, 1), "個股走勢卡", D6M, 0.4), idle="face_nod", pan_=(250, 250, 0.3, 0.3)))
+    S.append(autom("h03", D6M, (7.0, 8.4), "切週期，K 線立刻換", "切週期", "切週期，K 線我立刻幫你換", "個股",
+                   idle=[(0, "face_star"), (1.2, "face_proud")], top_only=True, hold=1.5))
+    _i = feat("h04", 2.8, D6M, [(0, 18.07), (2.8, 20.87)], "指標一鍵加上去", "指標", "指標設定點進去，要看哪個就打勾", "個股",
+              idle=[(0, "magnifier"), (1.4, "face_think")], pan_=(200, 200, 0.3, 0.3), no_solve=True)
+    _i.rec.pan_keys = [(0.0, 200), (1.1, 200), (1.9, 800), (2.8, 800)]
+    _i.dwell["note"] = "點下設定後視窗下移看底部面板"
+    S.append(_i)
+    S.append(autom("h05", D7M, (0.9, 2.4), "基本資料", "基本資料", "公司基本資料，我幫你整理好", "個股",
+                   idle="folder", top_only=True, hold=1.5))
+    S.append(autom("h06", D8M, (12.8, 14.4), "營收：月營收長條與年增率", "營收", "月營收長條加年增率，每個月我幫你畫好", "個股",
+                   idle=[(0, "piggy"), (2.0, "face_proud")], top_only=True, hold=1.5, ff=5.0))
+    S.append(autom("h07", D9M, (12.8, 14.4), "獲利：EPS 與毛利率", "獲利", "EPS 和毛利率的變化，我整理在同一張圖", "個股",
+                   idle=[(0, "calc"), (2.0, "face_think")], top_only=True, hold=1.5, ff=5.0))
+    S.append(autom("h08", D1, (17.3, 18.8), "總覽：基本面", "基本面", "EPS、ROE、本益比，基本面我幫你抓重點", "個股",
+                   idle="face_think", top_only=True, hold=1.5))
+    S.append(autom("h09", D1, (23.2, 24.7), "總覽：籌碼快照", "籌碼快照", "法人、集保、信用、當沖，一次給你看", "個股",
+                   idle="magnifier", top_only=True, hold=1.5))
+    S.append(autom("h10", D1, (29.1, 30.6), "AI 分析：先看結論", "AI 分析", "AI 分析先給你結論，條件到哪我也列出來", "個股",
+                   idle="bulb", top_only=True, hold=1.5))
+    S.append(autom("h11", D2M, (4.0, 5.4), "AI 分析：看條件細節", "看細節", "想知道原因？點開，我逐條講給你聽", "個股",
+                   idle=[(0, "talk_explain"), (1.4, "face_nod")], top_only=True, hold=1.5))
+    S.append(autom("h12", D7M, (7.3, 8.8), "除權息紀錄", "除權息", "歷年股利、除息日，我幫你列出來", "個股",
+                   idle="piggy", top_only=True, hold=1.5))
+    S.append(autom("h13", D5M, (0.9, 2.4), "法人買賣一頁看", "法人", "三大法人買賣超，我幫你排成一張", "個股",
+                   idle="magnifier", top_only=True, hold=1.5))
+    S.append(autom("h14", D5M, (10.1, 11.6), "資券一頁看", "資券", "融資融券的變化，我幫你一頁排好", "個股",
+                   idle="face_think", top_only=True, hold=1.5))
+    S.append(autom("h15", D5M, (19.3, 20.8), "大戶與散戶", "大戶散戶", "大戶、散戶持股比例的變化，我畫給你看", "個股",
+                   idle="face_curious", top_only=True, hold=1.5))
+    S.append(autom("h16", D7M, (16.5, 18.0), "公告與新聞", "公告新聞", "重大公告和新聞，我幫你整理在最後一頁", "個股",
+                   idle="news", top_only=True, hold=1.5))
     S.append(feat("22", 2.5, "V16_mobile", act(3.4, 2.5, 1.3, 0.8), "⑦ 完整名單", "完整名單", '完整名單我排給你，點欄位就能排序', "市場明細",
                   idle=[(0, 'hourglass'), (1.5, 'face_nod')], pan_=pan(0, 400, 2.5)))
     S.append(seqm("22s", "I05_mobile_v3i", [(0.7, 10.0, 1.6)], "名單連著篩", "連著篩", "漲停、跌停、漲幅前段…一個鍵一份名單，我連著點給你看", "市場明細",
                   idle=[(0, "face_curious"), (1.5, "magnifier"), (3.0, "face_nod"), (4.5, "face_shock")]))
     S.append(feat("23", 2.5, "V17_mobile", act(6.6, 2.5, 1.0, 0.8), "⑧ 公開條件篩", "條件篩", '用公開條件篩一遍，省下你自己翻的時間', "選股策略",
                   idle=[(0, 'face_think'), (1.6, 'pointer_r')]))
-    S.append(seqm("23s", "I05_mobile_v3i", [(11.0, 23.5, 1.7)], "四個面向連著切", "連著切", "技術、籌碼、消息、基本，四個面向我連著切給你看", "選股策略",
+    S.append(seqm("23s", "I05_mobile_v3i", [(11.0, 23.4, 1.7)], "四個面向連著切", "連著切", "技術、籌碼、消息、基本，四個面向我連著切給你看", "選股策略",
                   idle=[(0, "face_think"), (1.4, "magnifier"), (2.8, "face_nod"), (4.2, "face_proud")]))
     S.append(feat("24", 2.0, "V18_mobile", stat(3.3, 2.0), "⑨ 週期統計", "週期", '各族群每個月份的表現，我排成一張表', "週期統計",
                   idle=[(0, 'face_curious')], pan_=pan(0, 400, 2.0)))
