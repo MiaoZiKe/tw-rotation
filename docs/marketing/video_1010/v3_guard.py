@@ -1,0 +1,178 @@
+"""第 4 版出片前守門：來回切換檢查、錯誤畫面排除（bad_spans）、畫質（推近倍率／成片規格）。
+違反就報錯、不出片（v3_build／v3_sections 會呼叫 guard()；--allow 才能放行，成片模式不可放行）。
+
+  來回切換：① 同一鏡內來源時間不可倒退（只能前進或往前跳）；② 同一素材跨鏡，後一鏡不可從比前面更早的畫面開始；
+            ③ 同一素材中途換去別的素材又換回來（A→B→A）＝來回；④ 分頁（pill）離開後不可再出現；⑤ 分頁順序依 PAGE_ORDER 單調。
+  錯誤畫面：raw_v3/bad_spans.json（錄影端提供：每支素材含付費彈窗／升級／上限／登入／載入中的時段）。
+            渲染使用的來源時段只要碰到就報錯。檔案不存在：預覽模式只警告，成片模式（strict）直接報錯。
+            已知壞素材 BAD_KNOWN（例：ETF 報酬比較 I03 勾選超過 8 檔會跳「目前方案最多 8 檔，升級 Pro 不限」）
+            在 bad_spans.json 對該素材給出明確可用時段之前，整支禁用。
+"""
+from __future__ import annotations
+
+import json
+from pathlib import Path
+
+import v3_core as K
+
+# 網站導覽順序（左側欄由上到下）；別名＝同一頁。分鏡改版時改這裡。
+PAGE_ORDER = ["總覽", "財經日曆", "資金流向", "熱力圖", "產業地圖", "個股", "市場明細", "選股策略", "週期統計", "ETF", "自選清單", "導覽", "願望清單"]
+PAGE_ALIAS = {"搜尋": "總覽", "今日事件": "總覽"}
+
+# 已知會出現付費／上限視窗的素材（前綴比對）：在 bad_spans.json 給出該素材的明確時段之前整支禁用
+BAD_KNOWN = {
+    "I03": "ETF 報酬比較：勾選超過 8 檔會跳出「目前方案最多 8 檔，升級 Pro 不限」付費視窗（Andy 10-12）",
+}
+
+BAD_SPANS_PATH = K.RAW3 / "bad_spans.json"
+
+
+def _norm(clip):
+    return clip.replace(".mp4", "")
+
+
+def load_bad_spans():
+    """回傳 (spans: {素材: [(t0, t1, 原因)]}, 檔案是否存在)。容忍 list／dict 兩種寫法。"""
+    if not BAD_SPANS_PATH.exists():
+        return {}, False
+    d = json.loads(BAD_SPANS_PATH.read_text())
+    out = {}
+    if isinstance(d, dict) and "clips" in d and isinstance(d["clips"], dict):
+        d = d["clips"]
+    for clip, v in (d.items() if isinstance(d, dict) else []):
+        items = v.get("spans", v.get("bad", [])) if isinstance(v, dict) else v
+        for it in items or []:
+            if isinstance(it, dict):
+                t0 = it.get("t_start", it.get("t0", it.get("start")))
+                t1 = it.get("t_end", it.get("t1", it.get("end")))
+                why = it.get("reason", it.get("why", it.get("kind", "")))
+            else:
+                t0, t1 = it[0], it[1]
+                why = it[2] if len(it) > 2 else ""
+            if t0 is None or t1 is None:
+                continue
+            out.setdefault(_norm(clip), []).append((float(t0), float(t1), str(why)))
+        out.setdefault(_norm(clip), [])
+    return out, True
+
+
+def used_ranges(rec, D):
+    """這一鏡實際會播出的來源時間區段 [(a, b)]（跳點不算播出；尾端凍結算一個點）。"""
+    pts = list(rec.srcmap)
+    out = []
+    for (l0, s0), (l1, s1) in zip(pts, pts[1:]):
+        if l0 >= D - 1e-9:
+            break
+        if l1 - l0 < 2e-3:
+            continue                                  # 跳點
+        if l1 > D:
+            s1 = s0 + (s1 - s0) * (D - l0) / (l1 - l0)
+            l1 = D
+        out.append((min(s0, s1), max(s0, s1)))
+    if pts:
+        if pts[-1][0] < D - 1e-9:
+            out.append((pts[-1][1], pts[-1][1]))      # 尾端凍結
+        if not out:
+            out.append((pts[0][1], pts[0][1]))
+    return out
+
+
+def _recs(shot):
+    return [ly for ly in shot.layers if isinstance(ly, K.Rec4)]
+
+
+def rank(pill):
+    p = PAGE_ALIAS.get(pill, pill)
+    return PAGE_ORDER.index(p) if p in PAGE_ORDER else None
+
+
+def flow_check(S):
+    """回傳 (違規列, 警告列)；每列 (鏡, 說明)。"""
+    bad, warn = [], []
+    seen_pills, last_pill, last_rank = [], None, -1
+    clip_max = {}          # 素材 -> 前面鏡用到的最大來源秒
+    clip_last = None
+    clip_closed = set()    # 已離開的素材
+    for s in S:
+        recs = _recs(s)
+        for r in recs:
+            ps = [p for p in r.srcmap]
+            for (l0, a), (l1, b) in zip(ps, ps[1:]):
+                if b < a - 1e-6 and l1 > l0 - 1e-9:
+                    bad.append((s.sid, f"鏡內來源時間倒退：{r.clip} {a:.2f}s → {b:.2f}s（來回切換）"))
+        pill = s.pill
+        if pill:
+            if pill != last_pill:
+                if pill in seen_pills:
+                    bad.append((s.sid, f"分頁「{pill}」講完又回來（頁序必須單調）"))
+                seen_pills.append(pill)
+                rk = rank(pill)
+                if rk is None:
+                    warn.append((s.sid, f"分頁「{pill}」不在 PAGE_ORDER，未檢查順序"))
+                else:
+                    if rk < last_rank:
+                        bad.append((s.sid, f"分頁順序倒退：「{pill}」排在前一頁之前（依網站導覽順序）"))
+                    last_rank = max(last_rank, rk)
+                last_pill = pill
+        if not recs:
+            continue
+        for r in recs:
+            rg = used_ranges(r, s.dur)
+            lo = min(a for a, _ in rg)
+            hi = max(b for _, b in rg)
+            c = _norm(r.clip)
+            if c in clip_closed and c != clip_last:
+                bad.append((s.sid, f"素材 {c} 中途換走又換回來（A→B→A，來回切換）"))
+            if c in clip_max and lo < clip_max[c] - 0.05:
+                bad.append((s.sid, f"素材 {c} 從 {lo:.2f}s 開始，但前面的鏡已經播到 {clip_max[c]:.2f}s（回頭重播）"))
+            clip_max[c] = max(clip_max.get(c, 0.0), hi)
+            if clip_last and clip_last != c:
+                clip_closed.add(clip_last)
+            clip_last = c
+    return bad, warn
+
+
+def span_check(S, strict=False):
+    """錯誤畫面排除：回傳 (違規列, 警告列, 檔案存在)。"""
+    spans, exists = load_bad_spans()
+    bad, warn = [], []
+    if not exists:
+        (bad if strict else warn).append(("全部", f"尚未提供 {BAD_SPANS_PATH.name}（錄影端的壞畫面時段表）" + ("，成片模式不可出片" if strict else "，目前只用 BAD_KNOWN 擋已知壞素材")))
+    for s in S:
+        for r in _recs(s):
+            c = _norm(r.clip)
+            keys = {c, c.replace("_v3b", "").replace("_v3c", "")}
+            for pre, why in BAD_KNOWN.items():
+                if c.startswith(pre) and not any(k in spans for k in keys):
+                    bad.append((s.sid, f"素材 {c} 禁用：{why}（待 bad_spans.json 給出可用時段）"))
+            sp = []
+            for k in keys:
+                sp += spans.get(k, [])
+            if not sp:
+                continue
+            for (a, b) in used_ranges(r, s.dur):
+                for (t0, t1, why) in sp:
+                    if a <= t1 and b >= t0:
+                        bad.append((s.sid, f"素材 {c} 使用 {a:.2f}–{b:.2f}s，落在壞畫面時段 {t0:.2f}–{t1:.2f}s（{why}）"))
+    return bad, warn, exists
+
+
+def guard(S, work, label, strict=False):
+    """寫 flow_check.md、bad_span_check.md；回傳違規數。"""
+    work = Path(work)
+    fb, fw = flow_check(S)
+    sb, sw, ex = span_check(S, strict)
+    L1 = [f"# 來回切換檢查（{label}）", "", f"違規 {len(fb)} 筆；警告 {len(fw)} 筆。規則：鏡內來源時間不倒退、同素材不回頭重播、不 A→B→A、分頁講完不回來、分頁順序依 PAGE_ORDER 單調。", "",
+          "| 鏡 | 說明 |", "|---|---|"]
+    L1 += [f"| {a} | {b} |" for a, b in fb] or ["| — | 全部通過 |"]
+    if fw:
+        L1 += ["", "警告：", *[f"- {a}：{b}" for a, b in fw]]
+    (work / "flow_check.md").write_text("\n".join(L1))
+    L2 = [f"# 錯誤畫面排除檢查（{label}）", "", f"bad_spans.json：{'已提供' if ex else '尚未提供'}；違規 {len(sb)} 筆。", "", "| 鏡 | 說明 |", "|---|---|"]
+    L2 += [f"| {a} | {b} |" for a, b in sb] or ["| — | 全部通過 |"]
+    if sw:
+        L2 += ["", "警告：", *[f"- {a}：{b}" for a, b in sw]]
+    (work / "bad_span_check.md").write_text("\n".join(L2))
+    for a, b in fb + sb:
+        print(f"  ✗ {a}：{b}")
+    return len(fb) + len(sb)

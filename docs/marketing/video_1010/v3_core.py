@@ -219,6 +219,7 @@ def click_info(clip, t_src, x, y):
     return {"rect": (x - 45, y - 45, x + 45, y + 45), "center": (x, y), "label": "", "src": "座標估值±45px", "hit": None}
 
 
+ZOOMCHK: list = []      # (鏡, 素材, 輸出像素／來源像素；>1 ＝放大超過原解析度)
 CONTENTCHK: list = []   # (鏡, 點擊目標, 內容區標籤, 入框%(點擊後 1.5 秒), 停留秒, 來源, 備註)
 
 
@@ -674,6 +675,7 @@ class Rec4:
             ax, ay, aw, ah = AVAIL_W
             sc = min(aw / ww, ah / wh)
             fw, fh = ww * sc, wh * sc
+            ZOOMCHK.append((shot.sid, self.clip, round(sc, 3)))
             rect = (ax + (aw - fw) / 2, ay + (ah - fh) / 2, fw, fh)
             self._wl = (win, rect)
             # 主圖入鏡檢查
@@ -713,6 +715,9 @@ class Rec4:
                 y0 = 0
             y0 = clamp(y0, 0, max(0, sh - wh))
             self.win = (0, y0, ww, min(sh, y0 + wh))
+            if not getattr(self, "_zdone", False):
+                self._zdone = True
+                ZOOMCHK.append((shot.sid, self.clip, round(rw / sw, 3)))
             if not getattr(self, "_cdone", False):
                 self._cdone = True
                 for (cl_, tlab, clab, inc, hold, csrc, note, tpx) in self._cchk:
