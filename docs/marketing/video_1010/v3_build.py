@@ -48,7 +48,7 @@ def timeline(S):
 
 def run_seg(args):
     fmt, theme, sid, path, step, only_check = args
-    C.LOG.clear(); C.EXC.clear(); K.CLICKS.clear(); K.FOCUSES.clear(); K.CROPS.clear(); K.MAINCHK.clear(); K.DWELLCHK.clear(); K.CONTENTCHK.clear(); K.ZOOMCHK.clear()
+    C.LOG.clear(); C.EXC.clear(); K.CLICKS.clear(); K.FOCUSES.clear(); K.CROPS.clear(); K.MAINCHK.clear(); K.DWELLCHK.clear(); K.CONTENTCHK.clear(); K.ZOOMCHK.clear(); K.SITEOV.clear()
     R.set_theme(theme)
     S = shots_for(fmt)
     L = K.Lay(fmt, theme)
@@ -75,13 +75,13 @@ def run_seg(args):
     for r in list(B._READERS.values()):
         r.close()
     B._READERS.clear()
-    chk = {"frames": frames, "LOG": C.LOG, "EXC": C.EXC, "CLICKS": K.CLICKS, "FOCUSES": K.FOCUSES, "CROPS": K.CROPS, "MAIN": K.MAINCHK, "DWELL": K.DWELLCHK, "CONTENT": K.CONTENTCHK, "ZOOM": K.ZOOMCHK}
+    chk = {"frames": frames, "LOG": C.LOG, "EXC": C.EXC, "CLICKS": K.CLICKS, "FOCUSES": K.FOCUSES, "CROPS": K.CROPS, "MAIN": K.MAINCHK, "DWELL": K.DWELLCHK, "CONTENT": K.CONTENTCHK, "ZOOM": K.ZOOMCHK, "SITEOV": K.SITEOV}
     Path(str(path) + ".chk.json").write_text(json.dumps(chk, ensure_ascii=False))
     return sid
 
 
 def write_reports(work, S, label):
-    tot = {"frames": 0, "LOG": [], "EXC": [], "CLICKS": [], "FOCUSES": [], "CROPS": [], "MAIN": [], "DWELL": [], "CONTENT": [], "ZOOM": []}
+    tot = {"frames": 0, "LOG": [], "EXC": [], "CLICKS": [], "FOCUSES": [], "CROPS": [], "MAIN": [], "DWELL": [], "CONTENT": [], "ZOOM": [], "SITEOV": []}
     for s in S:
         f = Path(work) / f"seg_{s.sid}.mp4.chk.json"
         if not f.exists():
@@ -142,8 +142,16 @@ def write_reports(work, S, label):
     L8 = [f"# 畫質／推近倍率檢查（{label}）", "", f"{len(zm)} 筆；輸出像素／來源像素 >1（放大超過素材原解析度）：{len(zbad)} 筆。成片＝原生解析度、H.264 CRF 17、30fps（見 v3_sections --final）。", "", "| 鏡 | 素材 | 倍率 | 通過 |", "|---|---|---|---|"]
     L8 += [f"| {z[0]} | {z[1]} | {z[2]} | {'✓' if z[2] <= 1.001 else '✗'} |" for z in zm]
     (work / "zoom_check.md").write_text("\n".join(L8))
-    bad = len(zbad) + len(dbad) + len(cbad) + len(log) + (len(cl) - ok) + (len(fo) - fok) + (len(cr) - cok) + len(mbad)
-    print(f"重疊 {len(log)} 筆（檢查 {tot['frames']} 幀）；點擊 {len(cl)} 次通過 {ok}；焦點框 {len(fo)} 個通過 {fok}；裁切 {len(cr)} 鏡通過 {cok}；例外 {len(tot['EXC'])} 幀")
+    so = tot["SITEOV"]
+    L9 = [f"# site_overlay_check（{label}）", "", "規則（CEO 10-12，layout_rules 例外 5）：比比、泡泡、字卡、小字、道具可以疊在網站框上，但與該鏡的重點框（focus_targets）、點擊後內容框（content_rect）、點擊目標相交面積必須是 0；踩按鈕時只准腳碰到按鈕邊緣（重疊高度 ≤8px），按鈕文字要露出。",
+          "", f"檢查幀數：{tot['frames']}　違規：{len(so)} 筆", ""]
+    if so:
+        L9 += ["| 鏡 | 秒 | 疊加元素 | 被壓到的重點 | 相交面積 px² |", "|---|---|---|---|---|"] + [f"| {a} | {b_} | {c} | {d} | {e} |" for a, b_, c, d, e in so[:400]]
+    else:
+        L9.append("全部通過，0 筆。")
+    (work / "site_overlay_check.md").write_text("\n".join(L9))
+    bad = len(so) + len(zbad) + len(dbad) + len(cbad) + len(log) + (len(cl) - ok) + (len(fo) - fok) + (len(cr) - cok) + len(mbad)
+    print(f"重疊 {len(log)} 筆（檢查 {tot['frames']} 幀）；site_overlay_check {len(tot['SITEOV'])} 筆；點擊 {len(cl)} 次通過 {ok}；焦點框 {len(fo)} 個通過 {fok}；裁切 {len(cr)} 鏡通過 {cok}；例外 {len(tot['EXC'])} 幀")
     return bad, tot
 
 

@@ -548,7 +548,7 @@ def clip_ball_catch():
     p = dict(run_pose4(2), x=X0)
     fx, fxb = run_fx4(2, p)
     fr.append(F(p, 70, "追", fx=fx, fx_back=fxb, props_back=ball(46, -70)))
-    p = dict(view="side", x=X0 + 6, sy=0.82, sx=1.08, shear=-0.05, eye="wide", mouth="w", ear=-10, ear2=-10,
+    p = dict(view="side", x=X0 - 8, sy=0.82, sx=1.08, shear=-0.05, eye="wide", mouth="w", ear=-10, ear2=-10,
              legs={"bl": (8, 0, 6, 0), "br": (8, 0, 6, 0)})
     fr.append(F(p, 110, "壓低盯著球（屁股往後）", props_back=ball(46, -80)))
     p = dict(p, rot=3, shear=-0.07)
@@ -916,7 +916,7 @@ def clip_hop_reach():
 def clip_pounce():
     """羽毛棒：蹲低屁股扭 → 往前撲（clip 面向右，羽毛在右前方）。"""
     fr = []
-    low = dict(view="side", x=R.CX + 24, sy=0.8, sx=1.12, shear=-0.05, eye="wide", mouth="w", ear=-14, ear2=-14,
+    low = dict(view="side", x=R.CX + 8, sy=0.8, sx=1.12, shear=-0.05, eye="wide", mouth="w", ear=-14, ear2=-14,
                legs={"bl": (8, 0, 6, 0), "br": (8, 0, 6, 0)})
     seq = [
         (dict(low, sy=0.84), 100, "盯著羽毛、蹲低", []),
@@ -1081,6 +1081,48 @@ CLIPS = {
 }
 
 
+def nudge_fx(fxl, boxes, p, fr):
+    """版面鐵則：特效不准疊到身體或臉。疊到的特效沿「身體中心→特效中心」方向往外推，直到不碰（最多 90px），
+    推完不准出畫布。回傳有沒有推過（有就重畫一次）。"""
+    if fr.get("fx_on_body"):
+        return False
+    ms = boxes.get("__masks", {})
+    body = ms.get("body")
+    if body is None:
+        return False
+    occ = body | ms.get("face", np.zeros_like(body))
+    H = body.shape[0]
+    k512 = R.SIZE / H
+    by, bx = np.nonzero(body)
+    cx, cy = bx.mean(), by.mean()
+    moved = False
+    for j in range(len(fxl)):
+        m = ms.get(f"fx{j}")
+        if m is None or int((m & occ).sum()) <= 1:
+            continue
+        ys, xs = np.nonzero(m)
+        vx, vy = xs.mean() - cx, ys.mean() - cy
+        n = math.hypot(vx, vy) or 1
+        vx, vy = vx / n, vy / n
+        best = None
+        for step in range(1, 24):
+            dx, dy = int(round(vx * step)), int(round(vy * step))
+            sh = np.roll(np.roll(m, dy, 0), dx, 1)
+            if (xs.min() + dx) < 1 or (xs.max() + dx) > H - 2 or (ys.min() + dy) < 1 or (ys.max() + dy) > H - 2:
+                break
+            if int((sh & occ).sum()) <= 1:
+                best = (dx, dy)
+                break
+        if best is None:
+            continue
+        wx, wy = best[0] * k512, best[1] * k512
+        if p.get("facing") == "right":
+            wx = -wx
+        fxl[j] = f'<g transform="translate({wx:.1f},{wy:.1f})">{fxl[j]}</g>'
+        moved = True
+    return moved
+
+
 def render(name):
     cfg = CLIPS[name]
     frs = cfg["make"]()
@@ -1089,9 +1131,16 @@ def render(name):
         p = dict(fr["pose"])
         if cfg.get("facing") == "right":
             p["facing"] = "right" if p.get("facing", "left") == "left" else "left"
-        can, boxes = Q.compose(p, props_back=fr.get("props_back"), props_mid=fr.get("props_mid"),
-                               props_front=fr.get("props_front"), fx=fr.get("fx"), fx_back=fr.get("fx_back"),
-                               overlay_fn=fr.get("overlay"))
+        fxl = fr.get("fx")
+        fxl = [fxl] if isinstance(fxl, str) else list(fxl or [])
+        for _round in range(3):
+            can, boxes = Q.compose(p, props_back=fr.get("props_back"), props_mid=fr.get("props_mid"),
+                                   props_front=fr.get("props_front"), fx=fxl, fx_back=fr.get("fx_back"),
+                                   overlay_fn=fr.get("overlay"))
+            moved = nudge_fx(fxl, boxes, p, fr)
+            if not moved:
+                break
+        fr["fx"] = fxl
         imgs.append(R.finish(can))
         selfc.append(Q.quad_selfcheck(fr["pose"], boxes))
         checks.append(boxes)

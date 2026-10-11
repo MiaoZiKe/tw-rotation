@@ -166,6 +166,29 @@ def _uses(s):
     return out
 
 
+def freeze_check(S, limit=0.5):
+    """停格檢查（CEO 10-12：全片任何停格不准超過 0.5 秒）：鏡內來源時間停住不動的連續時間、播超過素材尾端（停在最後一格）都算。"""
+    bad = []
+    for s in S:
+        for r in _recs(s):
+            pts = list(r.srcmap)
+            for (l0, a), (l1, b) in zip(pts, pts[1:]):
+                l1c = min(l1, s.dur)
+                if l1c - l0 > limit and abs(b - a) < 1e-3:
+                    bad.append((s.sid, f"停格 {l1c - l0:.2f} 秒（{r.clip} 停在 {a:.2f}s）"))
+            if pts and s.dur - pts[-1][0] > limit:
+                bad.append((s.sid, f"停格 {s.dur - pts[-1][0]:.2f} 秒（時間軸結束後停在 {pts[-1][1]:.2f}s）"))
+            try:
+                cd = K.clip_dur(r.clip)
+            except Exception:
+                cd = None
+            if cd:
+                hi = max(b for _, b in used_ranges(r, s.dur))
+                if hi > cd - 0.02:
+                    bad.append((s.sid, f"播到素材尾端 {cd:.2f}s 之後（停在最後一格）"))
+    return bad
+
+
 def span_check(S, strict=False):
     """錯誤畫面排除：回傳 (違規列, 警告列, 檔案存在)。
     strict（成片）：bad_spans.json 必須存在；素材還沒量（unchecked 或沒列）一律當壞素材擋下。"""
@@ -193,8 +216,10 @@ def guard(S, work, label, strict=False):
     """寫 flow_check.md、bad_span_check.md；回傳違規數。"""
     work = Path(work)
     fb, fw = flow_check(S)
+    fz = freeze_check(S)
+    fb = fb + fz
     sb, sw, ex = span_check(S, strict)
-    L1 = [f"# 來回切換檢查（{label}）", "", f"違規 {len(fb)} 筆；警告 {len(fw)} 筆。規則：鏡內來源時間不倒退、同素材不回頭重播、不 A→B→A、分頁講完不回來、分頁順序依 PAGE_ORDER 單調。", "",
+    L1 = [f"# 來回切換檢查（{label}）", "", f"違規 {len(fb)} 筆（其中停格 {len(fz)} 筆）；警告 {len(fw)} 筆。規則：鏡內來源時間不倒退、同素材不回頭重播、不 A→B→A、分頁講完不回來、分頁順序依 PAGE_ORDER 單調；停格（來源時間停住或播過素材尾端）不得超過 0.5 秒。", "",
           "| 鏡 | 說明 |", "|---|---|"]
     L1 += [f"| {a} | {b} |" for a, b in fb] or ["| — | 全部通過 |"]
     if fw:

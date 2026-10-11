@@ -119,6 +119,15 @@ class Lay:
             self.host_w = 260
             self.host_h = 214
             self.host_size = 300
+            if V4:
+                # 第 4 版（Andy：「網站畫面約佔 92% 寬，比比放大…重點是圖表一定要都被看到」）：網站框 1766 寬滿高；
+                # 比比與泡泡疊在網站左側導覽欄（不是重點內容），位置逐鏡避開重點框／內容框／點擊目標（site_overlay_check）
+                self.box = (77, 58, 1766, 993)
+                self.frame_y = 58
+                self.host_x = 210
+                self.host_foot = 1040
+                self.host_w = 236
+                self.host_h = 214
         else:
             self.W, self.H = 1080, 1920
             self.box = (40, 146, 1000, 1480)             # 網站畫面框（寬 1000×高 1480）
@@ -235,6 +244,7 @@ def click_info(clip, t_src, x, y):
     return {"rect": (x - 45, y - 45, x + 45, y + 45), "center": (x, y), "label": "", "src": "座標估值±45px", "hit": None}
 
 
+SITEOV: list = []       # site_overlay_check：(鏡, 秒, 疊加元素, 被壓到的重點, 相交面積)
 ZOOMCHK: list = []      # (鏡, 素材, 輸出像素／來源像素；>1 ＝放大超過原解析度)
 CONTENTCHK: list = []   # (鏡, 點擊目標, 內容區標籤, 入框%(點擊後 1.5 秒), 停留秒, 來源, 備註)
 
@@ -483,7 +493,7 @@ def clip_dur(clip):
     return _CD[clip]
 
 
-def plan_dwell(rec, op, D, sub, L, pan_, chain=None, no_solve=False, cont=False):
+def plan_dwell(rec, op, D, sub, L, pan_, chain=None, no_solve=False, cont=False, min_cap=None):
     """依內容量決定每鏡長度：最短停留＝2.0＋0.35×區塊數（≤7 秒）、字卡讀完（每秒 6.5 字）；長頁面必須滑到內容底部並停 1.2 秒；
     點擊後被點出的內容區要完整入窗並停 ≥1.5 秒。快節奏序列（Andy 指定）與播放鏡頭例外，並在檢查表標註。回傳 (D, dwell 資訊)。"""
     mobile = L.fmt == "mobile"
@@ -494,7 +504,7 @@ def plan_dwell(rec, op, D, sub, L, pan_, chain=None, no_solve=False, cont=False)
     sw, sh = clip_size(rec.clip)
     wh = L.box[3] * sw / L.box[2] if mobile else 0
     units = content_units(rec.clip, s0, s1)
-    min_req = min(7.0, 2.0 + 0.35 * units)
+    min_req = min(7.0, 2.0 + 0.35 * units, min_cap or 99)
     reading = len(sub or "") / 6.5 + 0.3
     need = max(min_req, reading)
     reached, hold = True, 0.0
@@ -507,7 +517,7 @@ def plan_dwell(rec, op, D, sub, L, pan_, chain=None, no_solve=False, cont=False)
             if not cont:
                 need = max(need, dmin)
             units = max(units, 1 + sum(1 for c_ in chk if "高於" in c_[3]) * 2)
-            min_req = min(7.0, 2.0 + 0.35 * units)
+            min_req = min(7.0, 2.0 + 0.35 * units, min_cap or 99)
             need = max(need, min_req, reading)
             hold = D - (taps[-1]["t"] + 0.95)
         elif not chain:
@@ -762,6 +772,9 @@ class Rec4:
                     MAINCHK.append((shot.sid, f.label, round(inc * 100, 1), round(_area(_inter_rect(r, win)) / max(1.0, _area(win)) * 100, 1), tuple(round(v) for v in win), "mobile"))
                 else:
                     MAINCHK.append((shot.sid, "（無單一主圖：分段下滑，逐區塊入鏡）", -1, -1, (0, round(y0), sw, round(y0 + wh)), "mobile"))
+        elif V4:
+            win, rect = self._v4_web(L, shot, sw, sh, t)
+            self.win, self.rect = win, rect
         else:
             win, rect = self._web_layout(L, shot, sw, sh)
             self.win, self.rect = win, rect
@@ -782,6 +795,56 @@ class Rec4:
             CROPS.append((shot.sid, self.clip, left, right, full_w, abs(left - right) < 20 and full_w))
         if self.focus:
             self.focus.draw(cv, t, self, shot)
+
+    def _v4_win(self, t, sw, sh):
+        keys = getattr(self, "win_keys", None)
+        if keys:
+            w = keys[0][1]
+            for (k, wk) in keys:
+                if t >= k - 1e-6:
+                    w = wk
+            return tuple(w)
+        return (0.0, 0.0, float(sw), float(sh))
+
+    def _v4_web(self, L, shot, sw, sh, t):
+        """第 4 版網頁：網站框固定 1766 寬（92%）、整頁入鏡（必要時依 win_keys 換裁切範圍），框貼上緣。"""
+        win = self._v4_win(t, sw, sh)
+        bx, by, bw, bh = L.box
+        ww, wh = win[2] - win[0], win[3] - win[1]
+        sc = bw / ww
+        fh = min(bh, wh * sc)
+        if wh * sc > bh + 0.5:           # 太高：改以高度為準（寬度變窄、置中）
+            sc = bh / wh
+            fw = ww * sc
+            rect = (bx + (bw - fw) / 2, by, fw, bh)
+        else:
+            rect = (bx, by, bw, fh)
+        if not getattr(self, "_v4done", False):
+            self._v4done = True
+            ZOOMCHK.append((shot.sid, self.clip, round(sc, 3)))
+            # 主圖入鏡：預設內容區 or 指定主圖（以最後一個裁切範圍為準）
+            f_ = sw / 3200.0
+            base = list(self.main) or [(480 * f_, 100 * f_, 3168 * f_, 1760 * f_)]
+            wl = self._v4_win(1e9, sw, sh)
+            mrs = [_clip_rect(r, sw, sh) for r in base]
+            mb = (min(r[0] for r in mrs), min(r[1] for r in mrs), max(r[2] for r in mrs), max(r[3] for r in mrs))
+            if getattr(self, "win_keys", None):
+                mb = _clip_rect(_inter_rect(mb, wl) if _area(_inter_rect(mb, wl)) > 0 else mb, sw, sh)
+            inc = _area(_inter_rect(mb, wl)) / max(1.0, _area(mb))
+            MAINCHK.append((shot.sid, "內容區（主圖整區）" if not self.main else "指定主圖", round(inc * 100, 1), round(_area(_inter_rect(mb, wl)) / max(1.0, _area(wl)) * 100, 1), tuple(round(v) for v in wl), "web"))
+            if shot.op:
+                for tp in shot.op.taps:
+                    if tp["hover"]:
+                        continue
+                    cr, clab, csrc = post_click_content(self.clip, tp["src_t"], None, desktop=True)
+                    if cr is None:
+                        continue
+                    wt = self._v4_win(tp["t"] + 1.0, sw, sh)
+                    cr = _clip_rect(cr, sw, sh)
+                    inc_ = _area(_inter_rect(cr, wt)) / max(1.0, _area(cr))
+                    lab = click_info(self.clip, tp["src_t"], tp["x"], tp["y"])["label"]
+                    CONTENTCHK.append((shot.sid, lab, clab, round(inc_ * 100, 1), round(shot.dur - (tp["t"] + 0.95), 2), csrc, ""))
+        return win, rect
 
     def map(self, sx, sy):
         x0, y0, x1, y1 = self.win
@@ -1089,8 +1152,9 @@ class Op:
         self.drags = [d for d in self.drags if "t1" in d and d["t1"] > d["t0"]]
 
     def home(self, L, name):
-        sz = fit_box(name, L.host_w, L.host_h, L.host_size)
-        return side_foot(name, sz, L.host_x, L.host_foot), sz
+        hx, hf = getattr(self, "hx", None) or L.host_x, getattr(self, "hfoot", None) or L.host_foot
+        sz = fit_box(name, L.host_w, getattr(self, "hh", None) or L.host_h, L.host_size)
+        return side_foot(name, sz, hx, hf), sz
 
     def home_rect(self, L, t):
         """這一鏡所有待機／魔法棒／拖曳姿勢在 home 的外框聯集（整鏡固定，泡泡尾巴不跳動）。"""
@@ -1109,8 +1173,9 @@ class Op:
             u = union512(nm)
             sc = sz / 512
             w, h = (u[2] - u[0]) * sc, (u[3] - u[1]) * sc
-            x0, y0 = min(x0, L.host_x - w / 2), min(y0, L.host_foot - h)
-            x1, y1 = max(x1, L.host_x + w / 2), max(y1, L.host_foot)
+            hx, hf = getattr(self, "hx", None) or L.host_x, getattr(self, "hfoot", None) or L.host_foot
+            x0, y0 = min(x0, hx - w / 2), min(y0, hf - h)
+            x1, y1 = max(x1, hx + w / 2), max(y1, hf)
         return None, (x0, y0, x1, y1)
 
     @staticmethod
@@ -1123,6 +1188,25 @@ class Op:
             y = p[1] + ts + 16
         y = min(y, bot)
         return (clamp(p[0], 30, L.W - 30), y)
+
+    def tland(self, L, rec, tp, ts):
+        """踩按鈕落點（第 4 版，CEO 10-12）：比比只讓腳碰到按鈕上緣，身體在按鈕上方，按鈕文字露出；上方放不下就站在按鈕正下方。"""
+        try:
+            r, _, _ = click_target(rec.clip, tp["src_t"], tp["x"], tp["y"])
+        except Exception:
+            r = None
+        cx, cy = rec.map(tp["cx"], tp["cy"])
+        if not r:
+            return self.land(L, (cx, cy), ts, rec.rect)
+        x0, y0 = rec.map(r[0], r[1])
+        x1, y1 = rec.map(r[2], r[3])
+        bx = rec.rect
+        top, bot = bx[1] + 4, bx[1] + bx[3] - 6
+        y = y0 + 3
+        if y - ts * 0.9 < top:
+            y = y1 + ts * 0.95 + 2
+        y = min(y, bot)
+        return (clamp(cx, 30, L.W - 30), y)
 
     def _seq(self):
         return [tp for tp in self.taps if not tp["hover"] and not tp["dense"]]
@@ -1216,7 +1300,7 @@ class Op:
                 return
         # 連續點擊序列：比比從上一個目標直接跳到下一個（0.2 秒），只在序列開頭進場、結尾退場一次
         if self.chain and rec.win:
-            tl = [(tp["t"], self.land(L, rec.map(tp["cx"], tp["cy"]), 150, rec.rect)) for tp in self._seq()]
+            tl = [(tp["t"], self.tland(L, rec, tp, 150)) for tp in self._seq()]
             if tl:
                 pos_in = home
                 if self.chain in ("mid", "end"):
@@ -1272,12 +1356,10 @@ class Op:
         for i, tp in enumerate(taps):
             c = tp["t"]
             nxt = taps[i + 1]["t"] if i + 1 < len(taps) else 1e9
-            tgt = rec.map(tp["cx"], tp["cy"])
-            tgt = self.land(L, tgt, ts, rec.rect)
+            tgt = self.tland(L, rec, tp, ts)
             chained = i > 0 and c - taps[i - 1]["t"] < self.FLY + self.STAY + self.BACK + 0.2
             if chained:
-                p = rec.map(taps[i - 1]["cx"], taps[i - 1]["cy"])
-                start = self.land(L, p, ts, rec.rect)
+                start = self.tland(L, rec, taps[i - 1], ts)
                 ssize = ts
             else:
                 start, ssize = home, hs
@@ -1318,6 +1400,151 @@ class Op:
 
 
 # ───────────────────────── 鏡頭 ─────────────────────────
+def forbidden_src(shot):
+    """這一鏡不准被疊加元素壓到的區域（來源像素）：錄影端的重點框（focus_targets）、點擊後內容框（content_rect）、點擊目標。
+    錄影端沒有重點框的鏡頭，整個內容區都當重點（保守：圖表一定要都被看到）。"""
+    if getattr(shot, "_forb", None) is not None:
+        return shot._forb
+    rec = shot.rec
+    out = []
+    if rec is None:
+        shot._forb = out
+        return out
+    pts = rec.srcmap
+    lo, hi = min(p[1] for p in pts), max(p[1] for p in pts)
+    allj = load_all()
+    sw, sh = clip_size(rec.clip)
+    for key in _clip_keys(rec.clip):
+        e = allj.get(key) or {}
+        for f in e.get("focus", []):
+            vr = f.get("video_rect")
+            ts_, te_ = f.get("t_start"), f.get("t_end")
+            if not vr or ts_ is None:
+                continue
+            if ts_ <= hi + 0.5 and (te_ if te_ is not None else 1e9) >= lo - 0.5:
+                out.append(("重點框：" + str(f.get("label", ""))[:16], _clip_rect((vr[0], vr[1], vr[0] + vr[2], vr[1] + vr[3]), sw, sh), None))
+        for it in e.get("targets", []):
+            cr, cv_ = it.get("content_rect"), it.get("content_visible_t")
+            if cr and cv_ and cv_[0] <= hi + 0.5 and cv_[1] >= lo - 0.5:
+                out.append(("內容框：" + str(it.get("label", ""))[:16], _clip_rect((cr[0], cr[1], cr[0] + cr[2], cr[1] + cr[3]), sw, sh), None))
+        if out:
+            break
+    if not out:
+        f_ = sw / 3200.0 if sw > 1500 else 1.0
+        if sw > 1500:
+            out.append(("內容區（錄影端無重點框，整區保護）", (480 * f_, 100 * f_, 3168 * f_, 1760 * f_), None))
+    if shot.op:
+        for tp in shot.op.taps:
+            if tp["hover"]:
+                continue
+            r, lab, _ = click_target(rec.clip, tp["src_t"], tp["x"], tp["y"])
+            out.append(("點擊目標：" + str(lab or "")[:16], tuple(r), tp["t"]))
+    shot._forb = out
+    return out
+
+
+def _map_rect(rec, r):
+    x0, y0 = rec.map(r[0], r[1])
+    x1, y1 = rec.map(r[2], r[3])
+    fr = (rec.rect[0], rec.rect[1], rec.rect[0] + rec.rect[2], rec.rect[1] + rec.rect[3])
+    return _inter_rect((x0, y0, x1, y1), fr)
+
+
+def site_overlay_check(shot, t):
+    """逐幀：疊加元素（比比、泡泡、字卡、小字、道具）與重點框／內容框／點擊目標相交面積必須是 0。
+    踩按鈕那一下（bibi_tap）只准腳碰到按鈕邊緣：與被踩按鈕的重疊高度 ≤8px，按鈕文字要露出。"""
+    rec = shot.rec
+    if rec is None or rec.win is None:
+        return
+    forb = forbidden_src(shot)
+    if not forb:
+        return
+    mapped = []
+    for (lab, r, tt) in forb:
+        mr = _map_rect(rec, r)
+        if _area(mr) > 0:
+            mapped.append((lab, mr, tt))
+    for (name, r, role, grp) in list(C.CUR):
+        if role == "site" or name.startswith("ripple"):
+            continue
+        for (lab, mr, tt) in mapped:
+            ir = _inter_rect(r, mr)
+            a = _area(ir)
+            if a <= 0:
+                continue
+            if role == "bibi_tap":
+                if tt is None or abs(t - tt) > 0.6:
+                    continue          # 踩按鈕的飛行／停留 ≤0.8 秒例外（只檢查被踩的那顆按鈕文字有沒有露出）
+                if ir[3] - ir[1] <= 8:
+                    continue
+                SITEOV.append((shot.sid, round(t, 3), name, lab + "（按鈕文字被蓋）", round(a)))
+                continue
+            SITEOV.append((shot.sid, round(t, 3), name, lab, round(a)))
+
+
+def v4_place(shot, L):
+    """第 4 版網頁：逐鏡挑比比與泡泡的位置——先找網站框下方的空帶，否則放在左側導覽欄（由下往上試），全程避開 forbidden_src。"""
+    op, rec = shot.op, shot.rec
+    if op is None or rec is None or getattr(op, "_placed", False):
+        return
+    op._placed = True
+    sw, sh = clip_size(rec.clip)
+    forb = forbidden_src(shot)
+    # 用每個裁切範圍各算一次畫面座標
+    keys = [k for k, _ in (getattr(rec, "win_keys", None) or [(0.0, None)])]
+    rects = []
+    for k in keys:
+        rec.win, rec.rect = rec._v4_win(k, sw, sh), None
+        win = rec.win
+        bx, by, bw, bh = L.box
+        ww, wh = win[2] - win[0], win[3] - win[1]
+        sc = min(bw / ww, bh / wh)
+        rec.rect = (bx + (bw - ww * sc) / 2, by, ww * sc, wh * sc)
+        fr_bottom = by + wh * sc
+        for (lab, r, tt) in forb:
+            mr = _map_rect(rec, r)
+            if _area(mr) > 0:
+                rects.append((mr[0] - 10, mr[1] - 10, mr[2] + 10, mr[3] + 10))
+    rec.win = None
+    f = font(B.F_ROUND, 28)
+    text = shot.sub or ""
+    lines, cur = [], ""
+    for ch in text:
+        if text_w(f, cur + ch) > 215 and cur:
+            lines.append(cur)
+            cur = ch
+        else:
+            cur += ch
+    lines.append(cur)
+    bw_ = max(text_w(f, ln) for ln in lines) + 44
+    bh_ = len(lines) * 36 + 26
+    cands = []
+    band_top = max(fr_bottom for _ in [0]) if keys else 1051
+    for hh in (214, 180, 150):
+        if 1040 - band_top >= hh + 12:
+            cands.append(("R", 210, 1040, hh))
+        for foot in (1040, 930, 820, 710, 600, 490):
+            cands.append(("T", 210, foot, hh))
+    best = None
+    for side, hx, foot, hh in cands:
+        bib = (hx - hh * 0.6, foot - hh, hx + hh * 0.6, foot)
+        if side == "T":
+            bub = (max(82, hx - bw_ / 2), bib[1] - 26 - bh_, max(82, hx - bw_ / 2) + bw_, bib[1] - 26)
+        else:
+            bub = (bib[2] + 44, (bib[1] + bib[3]) / 2 - bh_, bib[2] + 44 + 640, (bib[1] + bib[3]) / 2 + bh_)
+        grp = (min(bib[0], bub[0]), min(bib[1], bub[1]), max(bib[2], bub[2]), max(bib[3], bub[3]))
+        if grp[1] < 60:
+            continue
+        ov = sum(_area(_inter_rect(grp, r)) for r in rects)
+        if ov <= 0:
+            best = (side, hx, foot, hh)
+            break
+        if best is None or ov < best[4]:
+            best = (side, hx, foot, hh, ov)
+    side, hx, foot, hh = best[:4]
+    op.hx, op.hfoot, op.hh, op.bside = hx, foot, hh, side
+
+
 class Shot4:
     def __init__(self, sid, dur, layers=(), pill=None, head="", hl="", sub="", op=None, cues=(), kind="feature", foot=True, custom=None):
         self.sid, self.dur = sid, dur
@@ -1359,6 +1586,9 @@ class Shot4:
             d_ = self.dwell
             DWELLCHK.append((self.sid, d_["units"], d_["min_req"], d_["D"], d_["reached"], d_["hold"], d_["note"]))
         C.begin()
+        C.SITE_OK = bool(V4 and L.fmt == "web")
+        if V4 and L.fmt == "web" and self.kind == "feature":
+            v4_place(self, L)
         ROLE[0] = "bibi"
         cv = R.background(L.fmt).copy()
         for ly in self.layers:
@@ -1371,6 +1601,8 @@ class Shot4:
             self.op.draw(cv, t, self)
         if self.kind == "feature":
             host_bubble(cv, L, self, self.sub, t, t + (1.0 if self.cont else 0.0))
+        if V4 and self.kind == "feature":
+            site_overlay_check(self, t)
         return cv
 
     def _overlays(self, cv, t, L):
@@ -1450,7 +1682,41 @@ def host_bubble(cv, L, shot, text, t, t_alpha=None):
     if not text or not shot.op:
         return
     nm, br = shot.op.home_rect(L, t)
+    if getattr(shot.op, "bside", "R") == "T":
+        _bubble_top(cv, L, text, t if t_alpha is None else t_alpha, br, mode=shot.op.bubble_mode(t))
+        return
     _bubble_at(cv, L, text, t if t_alpha is None else t_alpha, br, mode=shot.op.bubble_mode(t))
+
+
+def _bubble_top(cv, L, text, t, br, mode="tail"):
+    """泡泡在比比正上方（第 4 版網頁：比比在左側導覽欄時），尾巴朝下指向比比；寬度不超出導覽欄。"""
+    a = clamp(t / 0.2, 0, 1)
+    if mode == "hide":
+        return
+    f = font(B.F_ROUND, 28)
+    lines, cur = [], ""
+    for ch in text:
+        if text_w(f, cur + ch) > 215 and cur:
+            lines.append(cur)
+            cur = ch
+        else:
+            cur += ch
+    lines.append(cur)
+    tw = max(text_w(f, ln) for ln in lines)
+    lh = 36
+    w, h = tw + 44, len(lines) * lh + 26
+    cx = clamp((br[0] + br[2]) / 2, 82 + w / 2, 340 - w / 2) if w < 258 else 82 + w / 2
+    tip = ((br[0] + br[2]) / 2, br[1] - 12)
+    rect = (cx - w / 2, tip[1] - 14 - h, cx + w / 2, tip[1] - 14)
+    ty = rect[1] + 13
+    tr = (cx - tw / 2, ty, cx + tw / 2, ty + len(lines) * lh)
+    draw_bubble(cv, rect, None if mode == "plain" else tip, alpha=a, ink=THEME["ink"], width=4, r=min(THEME["panel_r"], 20), text_rect=tr)
+    lay = Image.new("RGBA", cv.size, (0, 0, 0, 0))
+    d = ImageDraw.Draw(lay)
+    for i, ln in enumerate(lines):
+        d.text((cx - text_w(f, ln) / 2, ty + i * lh), ln, font=f, fill=THEME["ink"])
+    lay.putalpha(lay.getchannel("A").point(lambda v: int(v * a)))
+    cv.paste(lay, (0, 0), lay)
 
 
 def card_host(cv, L, nm, text, t, mode=None):

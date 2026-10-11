@@ -17,6 +17,7 @@ CUR: list = []
 LOG: list = []      # 違規：(seg, t, a, b, area)
 EXC: list = []      # 例外：(seg, t, kind)
 EXPAND = 6
+SITE_OK = False     # 第 4 版網頁：疊加元素可以在網站框上（是否壓到重點改由 v3_core 的 site_overlay_check 檢查）
 BUBBLE_CHK: list = []   # (path 條數, 尾巴 bbox, 文字 box, 其他元素)
 
 
@@ -78,6 +79,8 @@ def end(seg, t, W=None, H=None):
             if ar <= 0:
                 continue
             roles = {roa, rob}
+            if SITE_OK and "site" in roles:
+                continue
             if roles == {"bibi_tap", "site"} or roles == {"bibi_tap"} or roles == {"bibi_tap", "bibi"}:
                 EXC.append((seg, round(t, 3), f"{na}×{nb}"))
                 continue
