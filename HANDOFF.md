@@ -21,6 +21,32 @@
 - [10-09 22:1x] 手機版 → 網頁版：Andy 回報手機抽屜站名圖跑掉、頂欄 LOGO 點了變放大（他要：頂欄 LOGO＝回總覽；只有側欄抽屜裡的 LOGO 才放大）。手機版開 claude/m4-brand 處理，**只改 html.m4／≤640**，不動桌機 .brand .logo→#logoBox 行為。
 
 
+## 2026-10-11 晚 比比：環一層＋下一頁、動作編排（跑出去追球／給草給球／爆米花跳）、原版 Default＋開心的跳（UI 專家；DECISIONS #357）
+- Andy 原話：「至多外圍一圈，其他的就用點選下一格」「我點球，他會跟著球跑，我點草，他會有吃草畫面」「動作要在豐富生動一點」「給草 給球，要有給的動作…大部分情況盡量維持開心的跳…新增一個爆米花圖案」「互動圖不需要前面特效，直接進入互動動作」；骨架第 1 組退件「已經跟原來的不同了」。
+- 檔案：`site/bibi.js`（環分頁、編排引擎、5 段腳本、Default 待機穿插跳、待機小動作、抽屜收環）、`site/support.js`（開場圖版本戳、避讓把 `#bibiStage` 當自己）、`site/brand/bibi/`（新：default_idle、jump、receive／receive_grass／receive_ball、hop_l／hop_r、face_curious、tilt、face_star、props/；ball／eat_grass／pet 剪掉開頭待機格）、`scripts/anim/bibi_site.py`（TRIM_HEAD、`default_idle`、`props` 子指令）、`scripts/_uitest.py`（比比互動1011 擴充）。
+- **零件現況**（`bibi.js` 的 `PART`，素材到了只改這張表＋跑 bibi_site.py）：
+  | 零件 | 現在用 | 等的真零件 |
+  |---|---|---|
+  | 跑步 run_l／run_r | 素材庫 hop_l／hop_r | 動畫單位 run_l／run_r |
+  | 撲球 ball_catch | G1 ball（剪頭、只播 1.5 秒） | ball_catch |
+  | 吃草 eat | G1 eat_grass（剪頭） | eat_grass_v2 |
+  | 摸摸 pet | G1 pet（剪頭）＋動畫單位的空手 PNG | pet_v2＋hand_prop |
+  | 轉圈 spin | G1 spin＋暈眩螺旋（SVG） | spin_v2 |
+  | 接東西 receive_grass／receive_ball | ✅ 骨架素材（原版造型重做版，RIG_FIT 縮 0.745）＋動畫單位的手 PNG | — |
+  | 爆米花 popcorn | face_star＋編排（彈高、扭 15°、連彈） | popcorn＋popcorn_icon |
+  | Default 待機 | ✅ 圖三 default_idle（原版站姿）靜止 3～5.5 秒 → 圖二 jump 跳一次 → 回 Default（Andy：「使用圖2 圖3 GIF圖片就好」；骨架 happy_hop 不當待機） | — |
+  | 道具 | 手拿草／手拿球／空手＝動畫單位 PNG（brand/bibi/props/）；滾出去的球、暈眩螺旋＝SVG | hand_prop（摸摸頭專用） |
+- 驗收段：`比比互動1011`（⚠ --workers 1；101 條）：只一層 5 格、翻頁 3 頁每格點得到、翻回第一頁、爆米花在第一頁；點球／草／爆米花 300ms 內在動；球：手遞球、比比位移 >150px、球落地反彈 ≥2 次、撲到、跑回原位 0,0；草：手拿草伸下來、接過來、吃草、吃完道具清光；摸摸頭手來回、身體縮；轉圈有暈眩螺旋＋晃；爆米花彈高 72px、連彈 3 下；換頁／關客服中途立刻回原位；待機小動作跳一下回原位；Default 待機（一般情境 default→jump→default、深夜／國定假日／大跌保留原情境款不跳）；減少動態偏好不跑出去；手機 390 全程無橫向捲軸、點空白回原位、環開著點漢堡環收起。
+- 這批另外跑過：桌機守門1008（--workers 1）、客服鈕1009、願望清單1009、`_preview.py`。
+
+## 2026-10-11 結帳與付款：綠界＋銀行轉帳（金流；DECISIONS #356；docs/payment_checkout_1011.md）
+- Andy 10-11：「點擊訂閱後需要跳出金流服務…還需要新增帳戶匯款…需要一個完整介面」＋「千萬不要發生付款後還沒開放…退款機制我是否能快速退款」＋查證「手動匯款能否每月扣款」（不行 → 轉帳預付制＋到期提醒）。
+- 新檔：`workers/account-api/pay.js`（worker.js 檔尾 installPay 接上）、`workers/account-api/tests/pay.test.mjs`（部署前必跑）、`site/checkout.js`（結帳面板、#orders 我的訂單、到期提醒、帳號選單一列）、`site/admin_pay.js`（#admin/pay：訂單／會員訂閱／退款紀錄／收款帳號設定、三份 CSV）。
+- 改：pricing.js（有價格的方案按升級改開結帳面板；訂閱頁拿到「開機前的備用方案清單」時重抓一次）、billing.js（選單多「我的訂單／付款紀錄」）、account.js／acctm4.js／layout4.js（管理區入口「付款與訂單」）、wrangler.toml（cron 每 10 分鐘）、deploy-account-worker.yml（跑金流測試、寫綠界 Secret）、devserver.mjs（假綠界）。
+- **Andy 要做**（逐步在 docs 第 8 節）：①確認綠界合約有開「信用卡定期定額」②後台抄 MerchantID／HashKey／HashIV → GitHub Secrets `ECPAY_MERCHANT_ID`／`ECPAY_HASH_KEY`／`ECPAY_HASH_IV` → 手動跑「部署 Worker」③#admin/pay「收款帳號設定」填帳號 ④1 元實測付款＋退款。沒設金鑰前一律是綠界測試模式。
+- **這批驗了**：`node --test workers/account-api/tests/*.test.mjs`（130 條，含 pay 19 條）、結帳與付款1011（新，0）、桌機守門1008（0）、退款政策1009（0）、帳號選單1009（0）、網頁同步1010（1，既有的「E 手機 390 個股頁首子分頁」，origin/main 同樣紅）、`_preview.py`（1，既有的 800px #industry/ai_server 卡片交疊）、pytest。
+- **待處理**：電子發票（綠界，有統編後）；寄信（收據／續扣通知）；隱私權政策補「訂單紀錄刪帳號不刪」（法遵）；綠界 DoAction form 版欄位與 TradeStatus 代碼是中信心 → 正式上線前 1 元實測。
+
 ## 2026-10-11 比比（右下角客服鈕）情境待機＋環狀互動選單（UI 專家；DECISIONS #355）
 - Andy 10-11：「右下方的GIF圖多點變化…不同分頁，不同功能，漲跌，白天晚上，假日平日國定假日…可以摸摸他 餵它吃草 跟他玩球 讓他轉圈圈…互動紐的形式像圖一…」
 - 新檔 `site/bibi.js`（index.html 緊接 support.js 之後載入）、`site/brand/bibi/*.webp`（30 組 160px 動態 WebP，每組 ≤ 60KB，用到才載）、`site/brand/bibi/icons/*.webp`（10 個小圈圖示）、`scripts/anim/bibi_site.py`（轉檔）。

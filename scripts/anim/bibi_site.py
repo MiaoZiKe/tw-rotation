@@ -12,6 +12,9 @@
 新素材到了：把名稱加進 NAMES、跑這支、再改 site/bibi.js 的 MAP（那張表寫「哪個動作用哪個檔」）。
 
 用法：python scripts/anim/bibi_site.py            # 全部重做
+      python scripts/anim/bibi_site.py default_idle   # Andy 指定的 Default 待機（圖三，單張）
+      python scripts/anim/bibi_site.py jump           # Default 待機穿插的跳一下（圖二 docs/anim/jump）
+      python scripts/anim/bibi_site.py props      # 給草／給球的手與道具（site/brand/bibi/props/；含拆出來的「空手」）
       python scripts/anim/bibi_site.py pet ball    # 只做這幾組
 輸出最後一行印出每組的總長毫秒（site/bibi.js 的 MS 表要抄這個數字，動作播完才回待機）。
 """
@@ -36,6 +39,13 @@ LIMIT = 60 * 1024
 OVERRIDE = {
     "weekend": {"box": (19, 74, 459, 514), "erase": [(0, 0, 205, 235)]},
 }
+# 互動素材開頭的「待機」格剪掉（Andy 10-11 晚：「互動圖不需要前面特效，直接進入互動動作」——
+# 點了小圈 0.2 秒內就要看到比比在動；G1 的 ball／eat_grass／pet 第 1 格是 700～900ms 的待機，網站版直接從第 2 格開始）
+TRIM_HEAD = {"ball": 1, "eat_grass": 1, "pet": 1}
+# 骨架版（bibi_rig.py）素材的比比是「原版 Default 參考圖」的原尺寸（描邊寬 384、腳底 y=488），比素材庫大 1.34 倍 →
+# 以腳底為準縮 0.745、對到素材庫的位置（中心 x=247.5、腳底 481），換圖時才不會忽大忽小（10-11 晚量的：happy_hop 第 1 格 vs wave 第 1 格）
+RIG_FIT = (0.745, 248, 488, 247.5, 481)
+RIG_NAMES = {"happy_hop", "receive", "receive_grass", "receive_ball"}
 
 # 網站用到的才轉（情境待機＋互動動作；對照表在 site/bibi.js 的 MAP）
 NAMES = [
@@ -46,6 +56,13 @@ NAMES = [
     # 動畫單位 G2（10-11）：擊掌、跳舞、抱抱、睡覺循環、叫醒、拍照＋情境待機（大跌安慰、大漲、週末、四款節日帽）
     "highfive", "dance", "hug", "sleep_loop", "wake_once", "selfie",
     "idle_down", "idle_bigup", "weekend", "festival_newyear", "festival_dragon", "festival_moon", "festival_xmas",
+    # 10-11 晚 動作編排（bibi.js CHOREO）：跑步替代（素材庫 hop_l／hop_r）＋待機小動作；動畫單位的專屬零件到了就加進來（沒到會印「略過」）
+    "hop_l", "hop_r", "face_curious", "tilt",
+    "run_l", "run_r", "ball_catch", "eat_grass_v2", "pet_v2", "spin_v2",
+    # 10-11 晚 Andy 追加：開心的跳（待機預設）、接過來（給草／給球）、爆米花跳；替代用 face_star
+    # 骨架第 1 組（10-11 第一版造型偏離原版被 Andy 退件；照原版 Default 重做後 CEO 對照過）：互動「接東西」可以接。
+    # ⚠ happy_hop 不轉：Andy「使用圖2 圖3 GIF圖片就好」→ 待機用 default_idle＋jump（各自的子指令），骨架版只在互動用
+    "face_star", "receive", "receive_grass", "receive_ball",
 ]
 
 
@@ -76,9 +93,18 @@ def convert(name: str) -> tuple[int, int] | None:
         ov = OVERRIDE.get(name, {})
         for ex in ov.get("erase", []):
             fr.paste((0, 0, 0, 0), tuple(round(v * k) for v in ex))
+        if name in RIG_NAMES:
+            sc_, x0, y0, x1, y1 = RIG_FIT
+            big = fr.resize((round(fr.size[0] * sc_), round(fr.size[1] * sc_)), Image.LANCZOS)
+            canvas = Image.new("RGBA", fr.size, (0, 0, 0, 0))
+            canvas.alpha_composite(big, (round((x1 - x0 * sc_) * k), round((y1 - y0 * sc_) * k)))
+            fr = canvas
         box = tuple(round(v * k) for v in ov.get("box", BOX))
         frames.append(fr.crop(box).resize((SIZE, SIZE), Image.LANCZOS))
         durs.append(int(f.info.get("duration", im.info.get("duration", 100)) or 100))
+    cut = TRIM_HEAD.get(name, 0)
+    if cut:
+        frames, durs = frames[cut:], durs[cut:]
     total = sum(durs)
     loop = int(im.info.get("loop", 0) or 0)   # 互動素材「播一次不循環」（loop=1）要保留：播完停在最後一格＝待機姿勢
     data = None
@@ -107,9 +133,112 @@ def icons():
         print(f"  圖示 {f.stem:10s} {(OUT / 'icons' / (f.stem + '.webp')).stat().st_size / 1024:4.1f} KB")
 
 
+def props():
+    """給草／給球的道具（docs/anim/bibi_receive/*.png，512 場景座標、手從右邊伸進來）→ site/brand/bibi/props/*.webp（256px）。
+
+    除了原樣的「手拿草」「手拿球」，另外拆一張「只有手」：遞到比比肉掌那一格，網頁把手換成空手、東西改由比比的 receive 素材抱著，
+    不然手縮回去時會帶著第二根草／第二顆球。拆法：手拿草那張裡，綠／黃（草）＋草旁邊的黑描邊（只取肉掌左緣 x<318 以左）去掉，
+    再做一次「開運算」把抗鋸齒殘點清掉（細於 5px 的碎點）。動畫單位交 hand_prop.png 之後可以改用那張。
+    """
+    import numpy as np
+    from PIL import ImageFilter
+    src = NEW / "bibi_receive"
+    if not (src / "hand_grass_prop.png").exists():
+        print("  略過道具（docs/anim/bibi_receive 還沒到）")
+        return
+    dst = OUT / "props"
+    dst.mkdir(parents=True, exist_ok=True)
+
+    def mf(m, r, f):
+        return np.array(Image.fromarray((m * 255).astype(np.uint8)).filter(f(r * 2 + 1))) > 127
+
+    for nm in ("hand_grass_prop", "hand_ball_prop", "grass_prop"):
+        Image.open(src / f"{nm}.png").convert("RGBA").resize((256, 256), Image.LANCZOS).save(dst / (nm.replace("_prop", "") + ".webp"), "WEBP", quality=90, method=6)
+    a = np.array(Image.open(src / "hand_grass_prop.png").convert("RGBA")).astype(int)
+    R, G, B, A = a[..., 0], a[..., 1], a[..., 2], a[..., 3]
+    op = A > 10
+    dark = op & (R + G + B < 200)
+    xx = np.mgrid[0:A.shape[0], 0:A.shape[1]][1]
+    grass = op & ~dark & (G > R - 12) & (G > B + 35)
+    grass = grass | (dark & mf(grass, 9, ImageFilter.MaxFilter) & (xx < 318))
+    hand = op & ~grass
+    hand = hand & mf(mf(mf(hand, 2, ImageFilter.MinFilter), 2, ImageFilter.MaxFilter), 1, ImageFilter.MaxFilter)
+    a[..., 3] = np.where(hand, A, 0)
+    Image.fromarray(a.astype(np.uint8)).resize((256, 256), Image.LANCZOS).save(dst / "hand.webp", "WEBP", quality=90, method=6)
+    for f in sorted(dst.glob("*.webp")):
+        print(f"  道具 {f.stem:12s} {f.stat().st_size / 1024:4.1f} KB")
+
+
+def _fit_original(fr):
+    """原版造型（default_idle_1011／jump 都是同一個座標：描邊寬 385、中心 x=253.5、腳底 y=483）→ 素材庫場景座標
+    （寬 287、中心 247.5、腳底 481；縮 0.745）→ 同一個裁切框縮成 160px。跟其他情境款大小、腳底一致，換圖不會忽大忽小。"""
+    s = 0.745
+    big = fr.resize((round(fr.size[0] * s), round(fr.size[1] * s)), Image.LANCZOS)
+    scene = Image.new("RGBA", (512, 512), (0, 0, 0, 0))
+    scene.alpha_composite(big, (round(247.5 - 253.5 * s), round(481 - 483 * s)))
+    return scene.crop(BOX).resize((SIZE, SIZE), Image.LANCZOS)
+
+
+def default_idle():
+    """Andy 10-11 指定的 Default 待機（圖三：docs/anim/bibi_library/reference/default_idle_1011.webp，單張、米色底 RGB）→ site/brand/bibi/default_idle.webp。
+
+    Andy：「請參考原本的圖三作為 Default，大部分時間都是那樣子」「不對，使用圖2 圖3 GIF圖片就好」。
+    去背用動畫單位的 gif_pipeline.cutout（深色描邊補縫後從四邊灌水、連地上淡影子一起吃掉、不加陰影），再對齊素材庫座標。
+    """
+    import numpy as np
+    sys.path.insert(0, str(Path(__file__).resolve().parent))
+    from gif_pipeline import cutout
+    src = LIB / "reference" / "default_idle_1011.webp"
+    if not src.exists():
+        print("  略過 default_idle（參考圖還沒到）")
+        return
+    rgb = np.asarray(Image.open(src).convert("RGB"))
+    al = cutout(rgb)
+    fr = _fit_original(Image.fromarray(np.dstack([rgb, al]), "RGBA"))
+    OUT.mkdir(parents=True, exist_ok=True)
+    fr.save(OUT / "default_idle.webp", "WEBP", quality=88, method=6)
+    print(f"  default_idle  {(OUT / 'default_idle.webp').stat().st_size / 1024:5.1f} KB（單張）")
+
+
+def jump():
+    """Andy 10-11 圖二：docs/anim/jump/animation.gif（24 格跳躍、每格 50ms、每格本身就帶透明）→ site/brand/bibi/jump.webp（播一次）。
+    網站的 Default 待機＝default_idle 靜止幾秒 → 播一次 jump → 回 default（bibi.js 的 hopLoop）。超過 60KB 就隔格抽掉（總長不變）。"""
+    src = NEW / "jump" / "animation.gif"
+    if not src.exists():
+        print("  略過 jump（docs/anim/jump 還沒到）")
+        return
+    im = Image.open(src)
+    frames, durs = [], []
+    for f in ImageSequence.Iterator(im):
+        frames.append(_fit_original(f.convert("RGBA")))
+        durs.append(int(f.info.get("duration", 50) or 50))
+    data = None
+    for step in (1, 2, 3):
+        fs = frames[::step]
+        ds = [sum(durs[i:i + step]) for i in range(0, len(durs), step)]
+        for q in (82, 72, 62):
+            data = encode(fs, ds, q, 1)
+            if len(data) <= LIMIT:
+                break
+        if len(data) <= LIMIT:
+            break
+    OUT.mkdir(parents=True, exist_ok=True)
+    (OUT / "jump.webp").write_bytes(data)
+    print(f"  jump          {len(data) / 1024:5.1f} KB  {len(fs)} 格  {sum(ds)} ms")
+
+
 def main(argv):
     if argv == ["icons"]:
         icons()
+        return
+    if argv == ["props"]:
+        props()
+        return
+    if argv == ["default_idle"]:
+        default_idle()
+        return
+    if argv == ["jump"]:
+        jump()
         return
     names = argv or NAMES
     ms = {}

@@ -440,6 +440,7 @@ html:not(.m4) .m4deldlg .msg{min-height:1.4em;font-size:13px;color:#ff6b7a;margi
         if (a.dataset.a === 'pricing') location.hash = '#pricing';            // 2026-10-05 sub-v1
         if (a.dataset.a === 'feedback') location.hash = '#admin/feedback';
         if (a.dataset.a === 'notices') location.hash = '#admin/notices';
+        if (a.dataset.a === 'pay') location.hash = '#admin/pay';            // 2026-10-11 付款與訂單（site/admin_pay.js）
         if (a.dataset.a === 'delete') openDlg('delete');
         if (a.dataset.a === 'logout') logout();
       });
@@ -456,7 +457,7 @@ html:not(.m4) .m4deldlg .msg{min-height:1.4em;font-size:13px;color:#ff6b7a;margi
       + `<button type="button" role="menuitem" data-a="pricing">訂閱方案</button>`
       /* 2026-10-09（帳本 48，Andy 明確要網頁版也加）：取消訂閱／申請退款 —— 只有付費方案顯示、站主停用；內容與規則在 site/billing.js */
       + (window.TwBilling ? window.TwBilling.menuHTML('desk') : '')
-      + (u.admin ? `<button type="button" role="menuitem" data-a="feedback">管理區：意見反饋與訂閱申請</button><button type="button" role="menuitem" data-a="notices">管理區：公告</button>` : '')
+      + (u.admin ? `<button type="button" role="menuitem" data-a="feedback">管理區：意見反饋與訂閱申請</button><button type="button" role="menuitem" data-a="pay">管理區：付款與訂單</button><button type="button" role="menuitem" data-a="notices">管理區：公告</button>` : '')
       + (u.admin ? `<button type="button" role="menuitem" data-a="admin">管理區：流量觀測與線上名單</button><button type="button" role="menuitem" data-a="perm">管理區：會員功能權限</button>` : '')
       + (u.admin && window.TwGw && window.TwGw.on() ? `<button type="button" role="menuitem" data-a="gw">管理區：付費資料異常</button>` : '')   // 2026-10-06 data-gw 第三階段（site/admingw.js）
       + deskRows(u)
@@ -627,7 +628,7 @@ html:not(.m4) .m4deldlg .msg{min-height:1.4em;font-size:13px;color:#ff6b7a;margi
   /* app.js 的 route() 問這裡：'admin' → 由本檔接手（app.js 關掉其他 view）；null → 不關本檔的事 */
   /* 2026-10-05（sub-v1）：#admin/feedback、#admin/notices 由 support.js／notices.js 自己畫（app.js 的 TwSubRoutes 先攔），
      這裡不要再把 admin.js 載進來、在藏起來的 #v-admin 裡多畫一份流量觀測（還會多打一支 /v1/admin/stats）。*/
-  const subAdmin = () => /^#admin\/(feedback|notices|grants)\b/.test(location.hash || '');
+  const subAdmin = () => /^#admin\/(feedback|notices|grants|pay)\b/.test(location.hash || '');
   function route(head) {
     if (head !== 'admin' || subAdmin()) return null;
     admKey = '';

@@ -105,6 +105,8 @@ const tpeDay = (ms) => new Date(ms + 8 * 3600 * 1000).toISOString().slice(0, 10)
 const cleanName = (s) => String(s == null ? '' : s).replace(/[\u0000-\u001f\u007f<>]/g, '').trim().slice(0, MAX_NAME);
 const CODE_RE = /^[0-9A-Z]{4,6}$/;
 
+import { installPay } from './pay.js';
+
 export default {
   async fetch(req, env) {
     /* 全部轉給同一個 Durable Object —— 單一實例＝強一致，也讓「權杖簽章金鑰」只存在一個地方。*/
@@ -115,6 +117,8 @@ export default {
      用一個外面打不到的主機名（internal.cron）把請求丟進同一個 Durable Object，那邊只做刪除過期資料這一件事。*/
   async scheduled(ev, env) {
     const id = env.HUB.idFromName('hub');
+    /* 2026-10-11 金流：每 10 分鐘一次的 cron（wrangler.toml）→ 補開通／定期定額對帳／到期紀錄（pay.js paySweep）；每天那一次照舊清比對碼 */
+    if (ev && ev.cron && ev.cron !== '17 19 * * *') { await env.HUB.get(id).fetch(new Request('https://internal.cron/cron/pay-sweep', { method: 'POST' })); return; }
     await env.HUB.get(id).fetch(new Request('https://internal.cron/cron/bill-clean', { method: 'POST' }));
   },
 };
@@ -2669,3 +2673,9 @@ const grantOrigExpInit = Hub.prototype.expInit;
 Hub.prototype.expInit = function () { grantOrigExpInit.call(this); this.grantInit(); };
 for (const t of ['grant_defs', 'grants', 'grant_hits']) if (!EXPORT_TABLES.includes(t)) EXPORT_TABLES.push(t);
 /* ============================================================================ 體驗額度區塊結束 */
+
+/* ============================================================================ 金流訂單 pay-1011（2026-10-11，docs/payment_checkout_1011.md）
+   綠界（單次／信用卡定期定額）＋銀行轉帳（預付制）、付款後多重保險開通、退款、會員訂閱清單。程式在 pay.js（wrangler 一起打包）。
+   ★ 同前面幾個區塊：包一層 prototype，既有函式一行不動；一定要在檔尾（要包住前面所有的 fetch／cleanup／deleteMe／expInit）。
+   ============================================================================ */
+installPay(Hub, { rand, safeEq, tpeDay, subClean, EXPORT_TABLES });

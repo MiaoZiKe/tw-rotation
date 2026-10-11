@@ -32864,9 +32864,9 @@ BIBI_SHOT_DIR = os.environ.get("TW_BIBI_SHOTS")
 BIBI_ST = "() => window.Bibi ? Bibi.state() : null"
 BIBI_RING = """() => { const r = document.getElementById('bibiRing'), f = document.getElementById('supFab');
   const on = !!r && !r.hidden && r.classList.contains('on');
-  const bs = on ? [...r.querySelectorAll('.bopt')].map(b => { const q = b.getBoundingClientRect(); return { id: b.dataset.act, n: b.getAttribute('aria-label'), l: q.left, t: q.top, r: q.right, b: q.bottom, w: q.width, svg: !!b.querySelector('svg, img') }; }) : [];
+  const bs = on ? [...r.querySelectorAll('.bopt:not(.pg-off)')].map(b => { const q = b.getBoundingClientRect(); return { id: b.dataset.act, n: b.getAttribute('aria-label'), l: q.left, t: q.top, r: q.right, b: q.bottom, w: q.width, svg: !!b.querySelector('svg, img') }; }) : [];
   const fr = f.getBoundingClientRect(), rl = r ? parseFloat(r.style.left) : 0, rt = r ? parseFloat(r.style.top) : 0;
-  return { on, bs, vw: document.documentElement.clientWidth, vh: innerHeight, fx: fr.left + fr.width / 2, fy: fr.top + fr.height / 2, rx: rl, ry: rt,
+  return { on, bs, page: r ? +(r.dataset.page || 0) : 0, pages: r ? +(r.dataset.pages || 0) : 0, vw: document.documentElement.clientWidth, vh: innerHeight, fx: fr.left + fr.width / 2, fy: fr.top + fr.height / 2, rx: rl, ry: rt,
            panel: !document.getElementById('supPanel').hidden, sw: document.scrollingElement.scrollWidth }; }"""
 
 
@@ -32880,6 +32880,25 @@ def _bibi_no_overlap(R):
             if ((x - x2) ** 2 + (y - y2) ** 2) ** .5 < (w + w2) / 2 - 1:
                 return False
     return True
+
+
+# 10-11 晚 動作編排：在頁面裡每 50ms 取樣一次（比比位移、身體 transform、目前的圖、道具的位置），回傳整段時間序列
+BIBI_REC = """(ms) => new Promise((res) => { const out = [], t0 = performance.now();
+  const q = (sel) => { const e = document.querySelector('#bibiStage ' + sel); if (!e) return null; const r = e.getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2, b: r.bottom, l: r.left, r: r.right, op: +getComputedStyle(e).opacity }; };
+  const tick = () => { const s = Bibi.state(); out.push({ t: Math.round(performance.now() - t0), run: s.run, mode: s.mode, ox: s.off.x, oy: s.off.y, body: s.body, src: s.src.split('/').pop(), props: s.props,
+      ball: q('.bp-ball'), grass: q('.bp-grass'), hand: q('[class*=bp-hand]'), dizzy: q('.bp-dizzy'), sw: document.scrollingElement.scrollWidth, vw: document.documentElement.clientWidth });
+    if (performance.now() - t0 < ms) setTimeout(tick, 50); else res(out); };
+  tick(); })"""
+
+
+def _bibi_bounces(rec):
+    """球的落地次數：球心 y 由下往上折返（局部最低→往上）＝一次落地反彈。y 越大越低。"""
+    ys = [r["ball"]["y"] for r in rec if r.get("ball") and r["ball"]["op"] > 0.5]
+    n = 0
+    for i in range(1, len(ys) - 1):
+        if ys[i] >= ys[i - 1] and ys[i] > ys[i + 1] + 1:
+            n += 1
+    return n, ys
 
 
 def _bibi_src(pg, name, timeout=5000):
@@ -32898,6 +32917,7 @@ def t_bibi_1011(b, base):
     pg.goto(base + "#overview", wait_until="domcontentloaded")
     ok(f"【{T}】比比接上客服鈕（window.Bibi 與 #supFab 的兩張圖層都在）",
        bool(wait_until(pg, "() => !!window.Bibi && !!document.getElementById('supFab') && document.querySelectorAll('#supFab img.bibiimg').length === 2", 10000)))
+    pg.evaluate("() => Bibi.test({ fidget: false, hop: false })")   # 待機小動作與 Default 穿插跳先關（會跟換圖斷言搶），下面另外驗
     s0 = pg.evaluate(BIBI_ST)
     ok(f"【{T}】比比圖用 brand/bibi/ 的動態 WebP（{s0 and s0['src']}）", bool(s0) and s0["src"].startswith("brand/bibi/"), s0)
     cases = [
@@ -32907,7 +32927,7 @@ def t_bibi_1011(b, base):
         ("清晨 05:30 也算深夜", {"now": "2026-10-15T05:30:00+08:00"}, "overview", "sleep_loop", "night", "想睡覺"),
         ("盤中大漲 +1.5%", {"now": "2026-10-14T10:00:00+08:00", "pct": 1.5}, "overview", "idle_bigup", "up2", "1.5%"),
         ("盤中小漲 +0.4%", {"pct": 0.4}, "overview", "face_proud", "up", "0.4%"),
-        ("盤中小跌 −0.3%（安慰）", {"pct": -0.3}, "overview", "idle_down", "down", "陪你"),
+        ("盤中小跌 −0.3%（10-11 晚 Andy：大部分開心的跳，只留大跌安慰 → 分頁款＋開心的跳）", {"pct": -0.3}, "overview", "wave", "down", "陪你"),
         ("盤中大跌 −1.6%（安慰）", {"pct": -1.6}, "overview", "idle_down", "down2", "1.6%"),
         ("國定假日（比週末、深夜、漲跌都優先；表外節日＝大漲款）", {"now": "2026-10-17T23:50:00+08:00", "pct": 2, "hol": {"2026-10-17": "測試節"}}, "overview", "idle_bigup", "holiday", "測試節"),
         ("春節 → 新年帽", {"now": "2026-02-16T10:00:00+08:00", "hol": {"2026-02-16": "春節"}}, "overview", "festival_newyear", "holiday", "春節"),
@@ -32916,19 +32936,57 @@ def t_bibi_1011(b, base):
         ("和平紀念日 → 不戴慶祝帽、用週末放鬆款", {"now": "2026-02-28T10:00:00+08:00", "hol": {"2026-02-28": "和平紀念日"}}, "overview", "weekend", "holiday", "和平紀念日"),
         ("12/24 平日盤後 → 聖誕帽", {"now": "2026-12-24T15:00:00+08:00", "pct": None, "hol": {}}, "overview", "festival_xmas", "xmas", "聖誕"),
     ]
+    HAPPY = pg.evaluate("() => Bibi.BASE")   # 大部分情境的待機圖：Andy 指定的原版 Default（圖三；穿插跳一次＝圖二 jump，下面另驗）
+    NOT_HAPPY = ("night", "holiday", "xmas", "down2")
+    IDLE_F = HAPPY                                 # 盤後總覽的待機圖（下面回待機都比這張）
     for name, inj, route, want, key, say in cases:
+        if HAPPY and key not in NOT_HAPPY:
+            want = HAPPY
         got = pg.evaluate("(o) => Bibi.test(o)", inj)
         shown = _bibi_src(pg, want)
         st = pg.evaluate(BIBI_ST)
         ok(f"【{T}】桌機 情境「{name}」→ 待機換成 {want}（{st['src']}）、情境鍵 {key}、說明句含「{say or '—'}」",
            bool(shown) and got and got.get("key") == key and (say is None or say in (got.get("say") or "")), {"got": got, "st": st})
+    # Default 待機（Andy 10-11：「使用圖2 圖3 GIF圖片就好」）：一般情境＝原版 Default（圖三）靜止幾秒 → 跳一次（圖二 jump）→ 回 Default；
+    # 深夜、國定假日、大跌安慰保留原情境款、不跳。驗收把間隔縮成 500ms（Bibi.test hopMs），真的錄到「default → jump → default」
+    JUMP_REC = """(ms) => new Promise((res) => { const o = [], t0 = performance.now();
+      const k = () => { o.push(Bibi.state().src.split('/').pop()); if (performance.now() - t0 < ms) setTimeout(k, 40); else res(o); }; k(); })"""
+    pg.evaluate("() => Bibi.test({ hop: true, hopMs: 500 })")
+    for name, inj, want_h in (("盤後總覽", {"now": "2026-10-14T16:00:00+08:00", "pct": None, "hol": {}}, True),
+                              ("盤中小跌", {"now": "2026-10-14T10:00:00+08:00", "pct": -0.3}, True),
+                              ("週末", {"now": "2026-10-17T15:00:00+08:00", "pct": None}, True),
+                              ("盤中大跌", {"now": "2026-10-14T10:00:00+08:00", "pct": -1.6}, False), ("深夜", {"now": "2026-10-14T23:40:00+08:00", "pct": None}, False),
+                              ("國定假日", {"now": "2026-02-16T10:00:00+08:00", "hol": {"2026-02-16": "春節"}}, False)):
+        pg.evaluate("(o) => Bibi.test(o)", inj); pg.wait_for_timeout(500)
+        seq = pg.evaluate(JUMP_REC, 3200)
+        uniq = [x for i, x in enumerate(seq) if i == 0 or x != seq[i - 1]]
+        if want_h:
+            ok(f"【{T}】桌機 Default 待機「{name}」→ 原版 Default 靜止 → 跳一次 → 回 Default（順序 {uniq[:6]}）",
+               "default_idle.webp" in uniq and "jump.webp" in uniq[uniq.index("default_idle.webp"):]   # 錄的時候上一個情境的跳可能還沒播完：從第一次看到 Default 起算
+               and "default_idle.webp" in uniq[uniq.index("jump.webp", uniq.index("default_idle.webp")) + 1:], uniq)
+        else:
+            ok(f"【{T}】桌機 待機「{name}」→ 保留原情境款、不跳（{uniq}）", "jump.webp" not in uniq and "default_idle.webp" not in uniq, uniq)
+        pg.evaluate("() => Bibi.test({ hol: {} })")
+    pg.evaluate("() => Bibi.test({ hop: false, hopMs: 0, hol: {} })")
+    if BIBI_SHOT_DIR:   # Default 待機截圖（idle_default.png）＋跳一次連拍（hop_seq_*.png）
+        pg.evaluate("() => Bibi.test({ now: '2026-10-14T16:00:00+08:00', pct: null, hol: {} })"); _bibi_src(pg, "default_idle", 3000); pg.wait_for_timeout(500)
+        clipd = {"x": 1440 - 200, "y": 900 - 200, "width": 200, "height": 200}
+        pg.screenshot(path=str(pathlib.Path(BIBI_SHOT_DIR) / "idle_default.png"), clip=clipd)
+        pg.evaluate("() => { Bibi.test({ hop: true, hopMs: 30 }); }")
+        wait_until(pg, "() => Bibi.state().src.endsWith('jump.webp')", 3000, 10)
+        for i in range(6):
+            pg.screenshot(path=str(pathlib.Path(BIBI_SHOT_DIR) / f"hop_seq_{i}.png"), clip=clipd); pg.wait_for_timeout(150)
+        pg.evaluate("() => Bibi.test({ hop: false, hopMs: 0 })"); pg.wait_for_timeout(1300)
     # 盤後依分頁：真的換頁（hashchange 重算）
     pg.evaluate("() => Bibi.test({ now: '2026-10-14T16:00:00+08:00', pct: null, hol: {} })")
-    for route, want in (("flow/sankey", "coins"), ("flow/rotation", "growth"), ("industry", "magnifier"), ("themes", "fire"), ("stock/2330", "calc"),
-                        ("etf/list", "piggy"), ("season", "calendar"), ("explore", "bulb"), ("market", "clock"), ("overview", "wave")):
+    for route, want, key in (("flow/sankey", "coins", "flow"), ("flow/rotation", "growth", "rotation"), ("industry", "magnifier", "industry"), ("themes", "fire", "themes"),
+                             ("stock/2330", "calc", "stock"), ("etf/list", "piggy", "etf"), ("season", "calendar", "season"), ("explore", "bulb", "explore"),
+                             ("market", "clock", "market"), ("overview", "wave", "overview")):
         pg.evaluate(f"() => {{ location.hash = '#{route}'; }}")
+        want = HAPPY or want
         shown = _bibi_src(pg, want, 15000)   # 熱力圖等重頁面換頁時主執行緒忙，換圖會晚一點
-        ok(f"【{T}】桌機 盤後換到 #{route} → 比比待機換成 {want}", bool(shown), pg.evaluate(BIBI_ST))
+        st = pg.evaluate(BIBI_ST)
+        ok(f"【{T}】桌機 盤後換到 #{route} → 比比待機 {want}、情境 {key}、說明句「{st['say']}」", bool(shown) and st["idle"] == key, st)
     # 交叉淡入淡出：前景 opacity 1、背景那張 opacity 0（不閃＝兩張不會同時都 0）
     pg.wait_for_timeout(600)
     fade = pg.evaluate("() => [...document.querySelectorAll('#supFab img.bibiimg')].map(i => getComputedStyle(i).opacity + '|' + getComputedStyle(i).transitionDuration)")
@@ -32942,20 +33000,43 @@ def t_bibi_1011(b, base):
     pg.wait_for_timeout(900)   # 小圈依序彈出（最後一顆延遲 252ms＋過場 320ms）
     R1 = pg.evaluate(BIBI_RING)
     names = [x["n"] for x in R1["bs"]]
-    ok(f"【{T}】桌機 滑鼠移到比比上 → 環展開、10 個小圈（{names}）", R1["on"] and len(R1["bs"]) == 10
-       and {"問比比", "摸摸頭", "餵牧草", "玩球", "轉圈圈", "擊掌", "跳舞", "抱抱", "睡覺", "拍照比耶"} == set(names), R1)
-    ok(f"【{T}】桌機 每個小圈都有物件圖示、約 42px", all(x["svg"] and 38 <= x["w"] <= 46 for x in R1["bs"]), R1["bs"])
+    tip = pg.evaluate(BIBI_ST)["tip"]
+    ok(f"【{T}】桌機 停在比比上有提示泡泡說他在幹嘛（{tip}）", "比比" in tip, tip)
+    ids1 = [x["id"] for x in R1["bs"]]
+    ok(f"【{T}】桌機 滑鼠移到比比上 → 只排一層 5 格（{names}）：第 1 頁、第一個是「問比比」、最後一格是「下一頁」",
+       R1["on"] and len(R1["bs"]) == 5 and ids1[0] == "ask" and ids1[-1] == "next" and R1["page"] == 1 and R1["pages"] >= 2, R1)
+    rads = [(((x["l"] + x["r"]) / 2 - R1["rx"]) ** 2 + ((x["t"] + x["b"]) / 2 - R1["ry"]) ** 2) ** .5 for x in R1["bs"]]
+    ok(f"【{T}】桌機 小圈都在同一圈上（離比比距離 {min(rads):.0f}～{max(rads):.0f}px，差 ≤ 3）", max(rads) - min(rads) <= 3, rads)
+    ok(f"【{T}】桌機 每個小圈都有物件圖示、44px", all(x["svg"] and 42 <= x["w"] <= 46 for x in R1["bs"]), R1["bs"])
     icons = pg.evaluate("() => Promise.all([...document.querySelectorAll('#bibiRing .bopt img')].map(i => i.decode().then(() => i.naturalWidth, () => 0)))")
     ok(f"【{T}】桌機 動畫單位的小圈圖示（brand/bibi/icons）真的載得到（{len(icons)} 張、寬 {sorted(set(icons))}）", len(icons) >= 9 and all(w > 0 for w in icons), icons)
     inside = [x["id"] for x in R1["bs"] if not (x["l"] >= 0 and x["t"] >= 0 and x["r"] <= R1["vw"] and x["b"] <= R1["vh"])]
-    ok(f"【{T}】桌機 10 個小圈整個在視窗內（超出：{inside}）", not inside, R1)
+    ok(f"【{T}】桌機 這一頁的小圈整個在視窗內（超出：{inside}）", not inside, R1)
+    # 翻頁：每一頁都在同一圈、在視窗內、不重疊；10 個動作都翻得到；最後一頁的「下一頁」回第一頁
+    seen, pages_seen = list(ids1[:-1]), [R1["page"]]
+    for _ in range(R1["pages"]):
+        nb = next(x for x in pg.evaluate(BIBI_RING)["bs"] if x["id"] == "next")
+        pg.mouse.move((nb["l"] + nb["r"]) / 2, (nb["t"] + nb["b"]) / 2, steps=3); pg.mouse.click((nb["l"] + nb["r"]) / 2, (nb["t"] + nb["b"]) / 2)
+        pg.wait_for_timeout(700)
+        Rp = pg.evaluate(BIBI_RING)
+        pages_seen.append(Rp["page"])
+        outp = [x["id"] for x in Rp["bs"] if not (x["l"] >= 0 and x["t"] >= 0 and x["r"] <= Rp["vw"] and x["b"] <= Rp["vh"])]
+        ok(f"【{T}】桌機 點「下一頁」→ 第 {Rp['page']}/{Rp['pages']} 頁：{[x['n'] for x in Rp['bs']]}、在視窗內、不重疊、最後一格仍是下一頁",
+           Rp["on"] and not outp and _bibi_no_overlap(Rp) and Rp["bs"][-1]["id"] == "next", Rp)
+        if Rp["page"] == 1:
+            break
+        if BIBI_SHOT_DIR and Rp["page"] == 2:
+            pg.mouse.move(Rp["rx"], Rp["ry"]); pg.wait_for_timeout(300)
+            pg.screenshot(path=str(pathlib.Path(BIBI_SHOT_DIR) / "uitest_desk_ring_p2.png"), clip={"x": 1440 - 420, "y": 900 - 420, "width": 420, "height": 420})
+        seen += [x["id"] for x in Rp["bs"] if x["id"] != "next"]
+    ok(f"【{T}】桌機 翻頁翻得到全部 11 個（{seen}）、翻完回到第 1 頁（頁序 {pages_seen}）",
+       sorted(seen) == sorted(["ask", "popcorn", "pet", "grass", "ball", "spin", "five", "dance", "hug", "sleep", "selfie"]) and pages_seen[-1] == 1 and pages_seen[:2] == [1, 2], pages_seen)
+    ok(f"【{T}】桌機 「爆米花」在第一頁（{ids1}）", "popcorn" in ids1, ids1)
     ok(f"【{T}】桌機 以比比「當下位置」為圓心展開、比比沒有被移走（比比中心 {R1['fx']:.0f},{R1['fy']:.0f}／環心 {R1['rx']:.0f},{R1['ry']:.0f}／原位 {R0['fx']:.0f},{R0['fy']:.0f}）",
        abs(R1["fx"] - R1["rx"]) <= 3 and abs(R1["fy"] - R1["ry"]) <= 3 and abs(R1["fx"] - R0["fx"]) <= 2 and abs(R1["fy"] - R0["fy"]) <= 2, R1)
     ok(f"【{T}】桌機 小圈兩兩不重疊、也不壓到比比本體", _bibi_no_overlap(R1), R1["bs"])
-    ok(f"【{T}】桌機 比比在右下角 → 小圈往左上方的扇形排（全部在比比的左側或上方）",
-       all((x["l"] + x["r"]) / 2 <= R1["rx"] + 25 and (x["t"] + x["b"]) / 2 <= R1["ry"] + 25 for x in R1["bs"]), R1["bs"])
-    tip = pg.evaluate(BIBI_ST)["tip"]
-    ok(f"【{T}】桌機 停在比比上有提示泡泡說他在幹嘛（{tip}）", "比比" in tip, tip)
+    ok(f"【{T}】桌機 比比在右下角 → 小圈往左上方排成一段弧（沒有一顆在比比的右下方）",
+       not any((x["l"] + x["r"]) / 2 > R1["rx"] + 25 and (x["t"] + x["b"]) / 2 > R1["ry"] + 25 for x in R1["bs"]), R1["bs"])
     if BIBI_SHOT_DIR:
         pg.mouse.move(R1["rx"], R1["ry"]); pg.wait_for_timeout(400)
         pg.screenshot(path=str(pathlib.Path(BIBI_SHOT_DIR) / "uitest_desk_ring.png"), clip={"x": 1440 - 420, "y": 900 - 420, "width": 420, "height": 420})
@@ -32965,15 +33046,26 @@ def t_bibi_1011(b, base):
     MAP.update(pg.evaluate("() => Object.fromEntries(Bibi.MAP.ACTS.filter(a => a.file).map(a => [a.id, a.file]).concat(Bibi.MAP.ACTS.filter(a => a.wake).map(a => ['wake', a.wake.file])))"))   # 新素材到了改的是 MAP：以 MAP 為準
 
     def click_opt(aid):
-        bx = pg.evaluate(BIBI_RING)
-        o = next((x for x in bx["bs"] if x["id"] == aid), None)
+        o = None
+        if not pg.evaluate(BIBI_RING)["on"]:
+            pg.mouse.move(R0["fx"] - 200, R0["fy"] - 200, steps=2); pg.wait_for_timeout(450)
+            pg.mouse.move(R0["fx"], R0["fy"], steps=3)
+            wait_until(pg, "() => Bibi.state().ring", 3000); pg.wait_for_timeout(750)
+        for _ in range(4):   # 不在這一頁就按「下一頁」翻過去（真的點）
+            bx = pg.evaluate(BIBI_RING)
+            o = next((x for x in bx["bs"] if x["id"] == aid), None)
+            nb = next((x for x in bx["bs"] if x["id"] == "next"), None)
+            if o or not nb:
+                break
+            pg.mouse.move((nb["l"] + nb["r"]) / 2, (nb["t"] + nb["b"]) / 2, steps=2); pg.mouse.click((nb["l"] + nb["r"]) / 2, (nb["t"] + nb["b"]) / 2)
+            pg.wait_for_timeout(650)
         if not o:
             return False
         pg.mouse.move((o["l"] + o["r"]) / 2, (o["t"] + o["b"]) / 2, steps=4)
         pg.mouse.click((o["l"] + o["r"]) / 2, (o["t"] + o["b"]) / 2)
         return True
 
-    for aid in ("pet", "grass", "ball", "spin", "five", "dance", "hug", "selfie"):
+    for aid in ("five", "dance", "hug", "selfie"):
         click_opt(aid)
         pg.wait_for_timeout(120)
         st = pg.evaluate(BIBI_ST)
@@ -32983,17 +33075,101 @@ def t_bibi_1011(b, base):
         ok(f"【{T}】桌機 點「{aid}」→ 比比換成 {MAP[aid]}、播動作中、有小特效（{fx} 顆）" + ("、整隻轉 360°" if aid == "spin" else ""),
            bool(shown) and st["mode"] == "act" and fx > 0 and (aid != "spin" or spin or MAP["spin"] != "tilt"), st)
         back = wait_until(pg, "() => Bibi.state().mode === 'idle'", 5000)
-        ok(f"【{T}】桌機 「{aid}」播完 → 回到情境待機 wave", bool(back) and bool(_bibi_src(pg, "wave", 3000)), pg.evaluate(BIBI_ST))
+        ok(f"【{T}】桌機 「{aid}」播完 → 回到情境待機 {IDLE_F}", bool(back) and bool(_bibi_src(pg, IDLE_F, 3000)), pg.evaluate(BIBI_ST))
+
+    # ---------- 動作編排（10-11 晚）：點了 0.3 秒內就在動、比比真的離開原位、道具照物理走、播完回原位 ----------
+    def play(aid, ms):
+        """真的點小圈，同時在頁面裡錄 ms 毫秒（每 50ms 一筆）"""
+        click_opt(aid)
+        return pg.evaluate(BIBI_REC, ms)
+
+    def started(rec):
+        """點下去 300ms 內，比比的圖、位置或身體 transform 已經改了（Andy：「直接進入互動動作」）"""
+        first = [r for r in rec if r["t"] <= 300]
+        return any(r["run"] and (abs(r["ox"]) > 0.5 or abs(r["oy"]) > 0.5 or r["body"] or r["src"] != IDLE_F + ".webp") for r in first)
+
+    def home(aid):
+        back = wait_until(pg, "() => { const s = Bibi.state(); return s.mode === 'idle' && !s.run; }", 9000)
+        st = pg.evaluate(BIBI_ST)
+        ok(f"【{T}】桌機 「{aid}」播完 → 比比回原位（位移 {st['off']}）、道具清光（{st['props']}）、回待機 {IDLE_F}",
+           bool(back) and st["off"]["x"] == 0 and st["off"]["y"] == 0 and st["props"] == 0 and bool(_bibi_src(pg, IDLE_F, 3000)), st)
+
+    rec = play("ball", 9000)
+    xs = [r["ox"] for r in rec if r["run"] == "ball"]
+    nb, bys = _bibi_bounces(rec)
+    hands = [r for r in rec if r["hand"]]
+    ok(f"【{T}】桌機 點「玩球」→ 300ms 內比比就在動（{[(r['t'], r['src'], round(r['ox'])) for r in rec[:6]]}）", started(rec), rec[:6])
+    ok(f"【{T}】桌機 玩球：先有一隻手把球遞過來（{len(hands)} 筆看得到手）", len(hands) >= 3, len(hands))
+    ok(f"【{T}】桌機 玩球：比比整顆離開原位跟著球跑（最遠位移 {min(xs or [0]):.0f}px）、跑步圖 {MAP.get('run', 'hop_l')}",
+       min(xs or [0]) < -150 and any(r["src"].startswith(pg.evaluate("() => Bibi.PART.run_l")) for r in rec), xs[::10])
+    ok(f"【{T}】桌機 玩球：球有落地反彈（{nb} 次）、彈跳越來越低", nb >= 2, bys[::3])
+    ok(f"【{T}】桌機 玩球：撲到球（播 {pg.evaluate('() => Bibi.PART.ball_catch')}）、全程沒有橫向捲軸",
+       any(r["src"] == pg.evaluate("() => Bibi.PART.ball_catch") + ".webp" for r in rec) and all(r["sw"] <= r["vw"] for r in rec), [r["sw"] for r in rec[::20]])
+    ok(f"【{T}】桌機 玩球：最後跑回原位（最後一筆位移 {rec[-1]['ox']:.0f},{rec[-1]['oy']:.0f}）", any(r["run"] == "ball" for r in rec) and abs(rec[-1]["ox"]) < 1, rec[-3:])
+    home("ball")
+
+    rec = play("grass", 5200)
+    hys = [r["hand"]["y"] for r in rec if r["hand"]]
+    RG, EAT = pg.evaluate("() => [Bibi.PART.receive_grass || Bibi.PART.receive, Bibi.PART.eat]")
+    ok(f"【{T}】桌機 點「餵牧草」→ 300ms 內比比就在動", started(rec), rec[:6])
+    ok(f"【{T}】桌機 餵牧草：一隻手拿著草從右上伸下來遞給比比（手 y {hys[0] if hys else 0:.0f}→{max(hys or [0]):.0f}）、比比播接過來 {RG}",
+       bool(hys) and max(hys) - hys[0] > 40 and any(r["src"] == RG + ".webp" for r in rec), hys[::3])
+    ok(f"【{T}】桌機 餵牧草：接著播吃草（{EAT}）、吃完草與手都不見（最後道具 {rec[-1]['props']}）",
+       any(r["src"] == EAT + ".webp" for r in rec) and not rec[-1]["hand"] and not rec[-1]["grass"], [r["src"] for r in rec[::10]])
+    home("grass")
+
+    rec = play("pet", 4500)
+    ok(f"【{T}】桌機 點「摸摸頭」→ 300ms 內在動、一隻手在頭上來回摸（手 x 範圍 {max([r['hand']['x'] for r in rec if r['hand']] or [0]) - min([r['hand']['x'] for r in rec if r['hand']] or [0]):.0f}px）",
+       started(rec) and (max([r["hand"]["x"] for r in rec if r["hand"]] or [0]) - min([r["hand"]["x"] for r in rec if r["hand"]] or [0])) > 40, rec[:5])
+    ok(f"【{T}】桌機 摸摸頭：比比被摸到會縮（身體 transform 有 scale）", any("scale(" in (r["body"] or "") for r in rec), [r["body"] for r in rec[::8]])
+    home("pet")
+
+    rec = play("spin", 4500)
+    ok(f"【{T}】桌機 點「轉圈圈」→ 300ms 內在動、播 {pg.evaluate('() => Bibi.PART.spin')}、轉完頭上冒暈眩螺旋、左右晃（rotate）",
+       started(rec) and any(r["dizzy"] for r in rec) and any("rotate(" in (r["body"] or "") and "rotate(0.00" not in r["body"] for r in rec if r["dizzy"]), rec[:4])
+    home("spin")
+
+    rec = play("popcorn", 2600)
+    oys = [r["oy"] for r in rec if r["run"] == "popcorn"]
+    lands = sum(1 for i in range(1, len(oys) - 1) if oys[i] <= oys[i - 1] and oys[i] < oys[i + 1] - 0.5)   # 往上彈的頂點次數
+    ok(f"【{T}】桌機 點「爆米花」→ 300ms 內在動、垂直彈高 {-min(oys or [0]):.0f}px、連彈 {lands} 下、空中有轉（rotate）",
+       started(rec) and min(oys or [0]) < -40 and lands >= 3 and any("rotate(" in (r["body"] or "") and "rotate(0.00" not in r["body"] for r in rec), oys[::3])
+    home("popcorn")
+
+    # 中途換頁 → 立刻回原位
+    click_opt("ball")
+    away = wait_until(pg, "() => Bibi.state().off.x < -60", 5000)
+    pg.evaluate("() => { location.hash = '#flow/sankey'; }"); pg.wait_for_timeout(120)
+    st = pg.evaluate(BIBI_ST)
+    ok(f"【{T}】桌機 玩球跑到一半換頁 → 比比立刻回原位（{st['off']}）、道具清光、停止原因 {st['stop']}",
+       bool(away) and st["off"]["x"] == 0 and st["off"]["y"] == 0 and not st["run"] and st["props"] == 0 and st["mode"] == "idle" and st["stop"] == "page", st)
+    pg.evaluate("() => { location.hash = '#overview'; }"); _bibi_src(pg, IDLE_F, 8000)
+    # 中途關客服開關 → 回原位
+    click_opt("grass"); pg.wait_for_timeout(400)
+    pg.evaluate("() => document.documentElement.classList.add('fab-off')"); pg.wait_for_timeout(120)
+    st = pg.evaluate(BIBI_ST)
+    ok(f"【{T}】桌機 餵草中途關掉客服 → 停下、道具清光（{st['props']}）", not st["run"] and st["props"] == 0 and st["off"]["x"] == 0, st)
+    pg.evaluate("() => document.documentElement.classList.remove('fab-off')"); pg.wait_for_timeout(300)
+    pg.mouse.move(300, 300, steps=3); pg.wait_for_timeout(500)
+
+    # 待機小動作：跳一下（真的離地）→ 回原位
+    pg.evaluate("() => Bibi.test({ fidget: true })")
+    k = pg.evaluate("() => Bibi.fidget('hop')")
+    rec = pg.evaluate(BIBI_REC, 1300)
+    ok(f"【{T}】桌機 待機小動作「跳一下」（{k}）→ 真的離地 {-min(r['oy'] for r in rec):.0f}px、做完回原位",
+       k == "hop" and min(r["oy"] for r in rec) < -8 and rec[-1]["oy"] == 0 and not rec[-1]["run"], [r["oy"] for r in rec[::3]])
+    pg.evaluate("() => Bibi.test({ fidget: false })")
+
     # 冷卻：連點兩個 → 第二個不搶播
-    click_opt("pet"); pg.wait_for_timeout(100); click_opt("grass"); pg.wait_for_timeout(300)
+    click_opt("five"); pg.wait_for_timeout(100); click_opt("dance"); pg.wait_for_timeout(300)
     st = pg.evaluate(BIBI_ST)
     n = pg.evaluate("() => JSON.parse(localStorage.getItem('tw.bibi.n'))")
-    ok(f"【{T}】桌機 播動作中連點別的小圈 → 冷卻不搶播（還是 {MAP['pet']}、牧草次數沒多算）", st["src"].endswith(MAP["pet"] + ".webp") and n["c"].get("grass") == 1, {"st": st, "n": n})
+    ok(f"【{T}】桌機 播動作中連點別的小圈 → 冷卻不搶播（還是 {MAP['five']}、跳舞次數沒多算）", st["src"].endswith(MAP["five"] + ".webp") and n["c"].get("dance") == 1, {"st": st, "n": n})
     wait_until(pg, "() => Bibi.state().mode === 'idle'", 5000)
-    click_opt("pet"); pg.wait_for_timeout(200)
+    click_opt("five"); pg.wait_for_timeout(200)
     tip = pg.evaluate(BIBI_ST)["tip"]
     n = pg.evaluate("() => JSON.parse(localStorage.getItem('tw.bibi.n'))")
-    ok(f"【{T}】桌機 第 3 次摸摸頭 → 比比說「{tip}」、localStorage tw.bibi.n 記 3 次", "第 3 次" in tip and n["c"].get("pet") == 3, {"tip": tip, "n": n})
+    ok(f"【{T}】桌機 第 3 次擊掌 → 比比說「{tip}」、localStorage tw.bibi.n 記 3 次", "第 3 次" in tip and n["c"].get("five") == 3, {"tip": tip, "n": n})
     wait_until(pg, "() => Bibi.state().mode === 'idle'", 5000)
     # 睡覺 → 一直睡、小圈變「叫醒」→ 叫醒
     click_opt("sleep"); _bibi_src(pg, MAP["sleep"], 3000)
@@ -33005,8 +33181,8 @@ def t_bibi_1011(b, base):
     st1 = pg.evaluate(BIBI_ST)
     wait_until(pg, "() => Bibi.state().mode === 'idle'", 6000)
     st2 = pg.evaluate(BIBI_ST)
-    ok(f"【{T}】桌機 點「叫醒」→ 播醒來（{st1['src']}）→ 回 wave、小圈變回「睡覺」",
-       st1["mode"] == "act" and st1["src"].endswith(MAP.get("wake", "wake_once") + ".webp") and not st2["sleeping"] and bool(_bibi_src(pg, "wave", 3000))
+    ok(f"【{T}】桌機 點「叫醒」→ 播醒來（{st1['src']}）→ 回 {IDLE_F}、小圈變回「睡覺」",
+       st1["mode"] == "act" and st1["src"].endswith(MAP.get("wake", "wake_once") + ".webp") and not st2["sleeping"] and bool(_bibi_src(pg, IDLE_F, 3000))
        and pg.evaluate("() => document.querySelector('#bibiRing .bopt[data-act=sleep]').getAttribute('aria-label')") == "睡覺", [st1, st2])
     # 問比比 → 打開客服面板、環收起
     click_opt("ask"); pg.wait_for_timeout(500)
@@ -33037,7 +33213,7 @@ def t_bibi_1011(b, base):
     RL = pg.evaluate(BIBI_RING)
     outL = [x["id"] for x in RL["bs"] if not (x["l"] >= 0 and x["t"] >= 0 and x["r"] <= RL["vw"] and x["b"] <= RL["vh"])]
     ok(f"【{T}】桌機 比比拖到左上 → 環以新位置為圓心、小圈翻到右下方、全部在視窗內（超出 {outL}）",
-       RL["on"] and len(RL["bs"]) == 10 and not outL and abs(RL["fx"] - RL["rx"]) <= 3 and sum((x["l"] + x["r"]) / 2 > RL["rx"] for x in RL["bs"]) >= 6 and _bibi_no_overlap(RL), RL)
+       RL["on"] and len(RL["bs"]) >= 5 and not outL and abs(RL["fx"] - RL["rx"]) <= 3 and sum((x["l"] + x["r"]) / 2 > RL["rx"] for x in RL["bs"]) > len(RL["bs"]) / 2 and _bibi_no_overlap(RL), RL)
     pg.mouse.move(700, 600, steps=4); pg.wait_for_timeout(600)
     pg.evaluate("() => { localStorage.removeItem('tw.layout4.supfab.d'); TwSupFab.applyPos(); }"); pg.wait_for_timeout(300)
     ok(f"【{T}】桌機 沒有 JS 錯誤", not errs, errs[:3])
@@ -33053,6 +33229,9 @@ def t_bibi_1011(b, base):
     rm = pg.evaluate("() => [...document.querySelectorAll('#bibiRing .bopt')].map(b => getComputedStyle(b).transitionDelay + '|' + getComputedStyle(b).transitionProperty)")
     ok(f"【{T}】減少動態偏好 → 小圈沒有依序彈出（delay 全 0、不動 transform）、比比圖仍是動態 WebP",
        all(x.startswith("0s|") and "transform" not in x for x in rm) and pg.evaluate(BIBI_ST)["src"].endswith(".webp"), rm[:3])
+    pg.evaluate("() => Bibi.act('ball')"); pg.wait_for_timeout(400)
+    st = pg.evaluate(BIBI_ST)
+    ok(f"【{T}】減少動態偏好 → 玩球不跑出去（只換圖 {st['src']}、位移 {st['off']}）、待機不跳", not st["run"] and st["off"]["x"] == 0 and not st["happy"] and st["mode"] == "act", st)
     c.close()
 
     # ---------- 手機 390：點一下展開 ----------
@@ -33067,21 +33246,51 @@ def t_bibi_1011(b, base):
     M0 = pg.evaluate(BIBI_RING)
     pg.tap("#supFab"); pg.wait_for_timeout(900)
     M1 = pg.evaluate(BIBI_RING)
-    ok(f"【{T}】手機 點比比一下 → 環展開（10 個小圈）、不直接開客服", M1["on"] and len(M1["bs"]) == 10 and not M1["panel"], M1)
+    mids = [x["id"] for x in M1["bs"]]
+    ok(f"【{T}】手機 點比比一下 → 只排一層（{len(mids)} 格）、第一個問比比、最後一格下一頁、不直接開客服",
+       M1["on"] and 3 <= len(mids) <= 6 and mids[0] == "ask" and mids[-1] == "next" and not M1["panel"], M1)
     out = [x["id"] for x in M1["bs"] if not (x["l"] >= 0 and x["t"] >= 0 and x["r"] <= M1["vw"] and x["b"] <= M1["vh"])]
-    ok(f"【{T}】手機 10 個小圈全部在 390 視窗內（超出：{out}）、沒有橫向捲軸（{M1['sw']}）", not out and M1["sw"] <= 390, M1)
+    ok(f"【{T}】手機 這一頁的小圈全部在 390 視窗內（超出：{out}）、沒有橫向捲軸（{M1['sw']}）", not out and M1["sw"] <= 390, M1)
     ok(f"【{T}】手機 以比比當下位置為圓心、小圈 ≥ 32px、兩兩不重疊", abs(M1["fx"] - M1["rx"]) <= 3 and abs(M1["fx"] - M0["fx"]) <= 2
-       and all(x["w"] >= 32 for x in M1["bs"]) and _bibi_no_overlap(M1), M1)
+       and all(x["w"] >= 44 for x in M1["bs"]) and _bibi_no_overlap(M1), M1)
     tipfs = pg.evaluate("() => { const t = document.getElementById('bibiTip'); return t && !t.hidden ? parseFloat(getComputedStyle(t).fontSize) : 0; }")
     ok(f"【{T}】手機 展開時提示泡泡出現、字 ≥ 11px（{tipfs}px）", tipfs >= 11, tipfs)
     if BIBI_SHOT_DIR:
         pg.screenshot(path=str(pathlib.Path(BIBI_SHOT_DIR) / "uitest_mob_ring.png"))
-    o = next(x for x in M1["bs"] if x["id"] == "ball")
+    pg.tap("#bibiRing .bopt[data-act=next]"); pg.wait_for_timeout(600)
+    M2p = pg.evaluate(BIBI_RING)
+    ok(f"【{T}】手機 點「下一頁」換一批小圈（{[x['n'] for x in M2p['bs']]}）、全在視窗內、≥ 44px（第 {M2p['page']}/{M2p['pages']} 頁）",
+       M2p["page"] == 2 and set(x["id"] for x in M2p["bs"]) - {"next"} and not (set(x["id"] for x in M2p["bs"]) - {"next"}) & set(mids)
+       and all(x["l"] >= 0 and x["t"] >= 0 and x["r"] <= M2p["vw"] and x["b"] <= M2p["vh"] and x["w"] >= 44 for x in M2p["bs"]), M2p)
+    if BIBI_SHOT_DIR:
+        pg.screenshot(path=str(pathlib.Path(BIBI_SHOT_DIR) / "uitest_mob_ring_p2.png"))
+    for _ in range(4):   # 翻到玩球那一頁（真的點下一頁）
+        if pg.evaluate("() => !document.querySelector('#bibiRing .bopt[data-act=ball]').classList.contains('pg-off')"):
+            break
+        pg.tap("#bibiRing .bopt[data-act=next]"); pg.wait_for_timeout(600)
+    pg.evaluate("() => Bibi.test({ fidget: false, hop: false })")
     pg.tap(f"#bibiRing .bopt[data-act=ball]")
-    ok(f"【{T}】手機 點「玩球」→ 比比換成 {MAP['ball']}", bool(_bibi_src(pg, MAP["ball"], 3000)), pg.evaluate(BIBI_ST))
-    pg.touchscreen.tap(250, 88); pg.wait_for_timeout(500)
-    ok(f"【{T}】手機 點空白 → 環收起、比比回原位", not pg.evaluate(BIBI_RING)["on"] and abs(pg.evaluate(BIBI_RING)["fx"] - M0["fx"]) <= 2, pg.evaluate(BIBI_RING))
+    rec = pg.evaluate(BIBI_REC, 3200)
+    ok(f"【{T}】手機 點「玩球」→ 300ms 內在動、比比跑出去（最遠 {min(r['ox'] for r in rec):.0f}px）",
+       any(r["t"] <= 300 and r["run"] and (r["ox"] or r["oy"] or r["body"] or r["src"] != "wave.webp") for r in rec) and min(r["ox"] for r in rec) < -60, rec[:5])
+    # 手遞球進來那一段手和球是從畫面外伸進來的（#bibiStage overflow:hidden 裁掉、不會撐出捲軸）；手縮回去之後滾的球一定要在 390 內
+    outm = [r["t"] for r in rec if r["sw"] > 390 or (r["ball"] and not r["hand"] and (r["ball"]["l"] < -1 or r["ball"]["r"] > 391))]
+    ok(f"【{T}】手機 玩球全程沒有橫向捲軸、滾出去的球都在 390 內（超出 {outm[:5]}）", not outm and any(r["ball"] and not r["hand"] for r in rec), outm[:5])
+    pg.touchscreen.tap(250, 88); pg.wait_for_timeout(200)
+    st = pg.evaluate(BIBI_ST)
+    ok(f"【{T}】手機 玩到一半點空白 → 環收起、比比立刻回原位（{st['off']}）、道具清光",
+       not pg.evaluate(BIBI_RING)["on"] and st["off"]["x"] == 0 and not st["run"] and st["props"] == 0 and abs(pg.evaluate(BIBI_RING)["fx"] - M0["fx"]) <= 2, st)
     pg.tap("#supFab"); pg.wait_for_timeout(600)
+    if pg.evaluate("() => !!document.getElementById('m4Burger')"):
+        on0 = pg.evaluate(BIBI_RING)["on"]
+        pg.tap("#m4Burger"); pg.wait_for_timeout(400)
+        dr = pg.evaluate("() => { const d = document.getElementById('m4Drawer'); return !!d && !d.hidden; }")
+        ok(f"【{T}】手機 環開著點頂欄漢堡 → 左側抽屜打開（{dr}）、環收起來（手機單位 10-11 實測）", on0 and dr and not pg.evaluate(BIBI_RING)["on"], pg.evaluate(BIBI_RING))
+        pg.evaluate("() => Bibi.open()"); pg.wait_for_timeout(400)   # 抽屜開著時叫環也不出（比比鈕可能被抽屜蓋住藏起來，用 API 叫）
+        ok(f"【{T}】手機 抽屜開著叫環 → 不出環", not pg.evaluate(BIBI_RING)["on"], pg.evaluate(BIBI_RING))
+        pg.keyboard.press("Escape"); pg.wait_for_timeout(300)
+        pg.evaluate("() => { const d = document.getElementById('m4Drawer'); if (d && !d.hidden) { const b = document.getElementById('m4Burger'); b && b.click(); } }"); pg.wait_for_timeout(400)
+        pg.tap("#supFab"); pg.wait_for_timeout(600)
     pg.tap("#bibiRing .bopt[data-act=ask]"); pg.wait_for_timeout(600)
     M2 = pg.evaluate(BIBI_RING)
     ok(f"【{T}】手機 再點比比 → 點「問比比」→ 客服面板打開", M2["panel"] and not M2["on"], M2)
@@ -33598,6 +33807,9 @@ SECTIONS = {
     "手機桌機同步1009":    lambda pg, b, base, code: t_m4_sync_1009(b, base, code),
     # ★ 2026-10-09 Andy：手機帳號選單（site/acctm4.js）—— 六種身分各一次：徽章、無自選、每項導頁、額度頁項目數、刪除帳號二次確認、管理區、客服開關（⚠ --workers 1）
     "帳號選單1009":        lambda pg, b, base, code: t_acct_menu_1009(b, base, code),
+    # ★ 2026-10-11 Andy：「點擊訂閱後需要跳出金流服務…還需要新增帳戶匯款…需要一個完整介面」＋「千萬不要發生付款後還沒開放」——
+    #   綠界（單次／定期定額）＋銀行轉帳、付款後補開通、退款、異常、到期提醒與降級（devserver 真的 worker.js＋假綠界；⚠ --workers 1）
+    "結帳與付款1011":      lambda pg, b, base, code: t_pay_1011(b, base),
     # ★ 2026-10-10 Andy（經手機 session 轉達）＋網頁手機同步稽核：子分頁預設最左邊、桌機額度上限面板（不寫「不開放」）、側欄子分頁 🔒、
     #   「免費會員」→「註冊會員」、手機個股分頁權限對應、桌機客服鈕開關、桌機刪除帳號（devserver 真的刪）。⚠ --workers 1
     "網頁同步1010":        lambda pg, b, base, code: t_web_sync_1010(b, base, code),
@@ -69404,6 +69616,415 @@ def t_web_sync_1010(b, base, code):
     finally:
         dev.terminate()
     ok(f"【{T}】沒有 JS 錯誤", not errs, errs[:4])
+
+
+# ===================================================================== 結帳與付款1011（2026-10-11，docs/payment_checkout_1011.md）
+# Andy 10-11：「點擊訂閱後需要跳出金流服務…還需要新增帳戶匯款，並且是需要有紀錄清單的…需要一個完整介面」
+#   ＋「千萬不要發生付款後還沒開放…一定要仔細確認，並且退款機制我是否能快速退款」。
+# 本機起**真的 worker.js**（devserver.mjs：假 Google＋假綠界，綠界的表單／查單／定期定額／退刷都驗章、回應都簽章），真的操作：
+#   ① 管理者 #admin/pay「收款帳號設定」存一組（測試用假帳號）→ 確認框 → 存進伺服器
+#   ② bob 沒登入按 Plus「升級」→ 先登入 → 登入回來自動重開結帳；結帳面板有方案／週期／金額（伺服器價）／測試模式
+#   ③ 綠界單次：表單 action 指向綠界（devserver 換成本機假綠界）、有 CheckMacValue；在假綠界按「付款成功（ReturnURL 漏送）」→
+#      回到 #orders/<單號> → 前端輪詢觸發伺服器查單 → 已開通 → TwPerm.refresh() → 功能真的解鎖、畫面寫「已開通 Plus，到期日 X」
+#   ④ 綠界定期定額：正常付款（ReturnURL＋OrderResultURL）→ 我的訂單「自動續訂：開」→ 取消自動續訂 → 已取消、到期日不變
+#   ⑤ carol 銀行轉帳：看得到收款帳號 → 填末 5 碼送出 → 我的訂單「待確認」；管理者「待確認的轉帳」看得到 → 確認入帳並開通 → carol 變 Plus
+#   ⑥ 退回流程（寫原因）；退款（轉帳＝登記人工退款、立即降級）→ carol 回到註冊會員；退款紀錄、CSV（含 BOM）三份
+#   ⑦ 異常：dave 的綠界通知金額不符 → 管理區頁首紅色「異常 1」→ 一鍵補開通（強制）→ 異常 0、dave 開通
+#   ⑧ 手機 390：erin 用轉帳完成送出（沒有橫向捲軸）；管理者確認後把時鐘撥到到期前 6 天 → 頁首提醒＋帳號鈕紅點 →「再匯一期」開出轉帳單
+#   ⑨ 時鐘再往後撥 → 到期自動降級（權限回註冊會員）＋管理區記「到期降級」
+# 截圖：TW_PAY_SHOTS＝資料夾。
+PAY_PEOPLE = {"carol": "carol@example.com", "dave": "dave@example.com", "erin": "erin@example.com"}
+PAY_BANK = {"bank_name": "測試銀行", "bank_code": "999", "account": "000011112222", "holder": "測試戶名"}   # 驗收用假帳號；真的收款帳號只存在 Worker 設定，不進 repo
+
+
+def _ec_mac(p: dict) -> str:
+    """綠界 CheckMacValue（官方公開測試金鑰；同 workers/account-api/pay.js）"""
+    import hashlib
+    import urllib.parse
+    ks = sorted([k for k in p if k != "CheckMacValue"], key=str.lower)
+    raw = "HashKey=pwFHCqoQZGmho4w6&" + "&".join(f"{k}={p[k]}" for k in ks) + "&HashIV=EkRm7iFT261dpevs"
+    return hashlib.sha256(urllib.parse.quote_plus(raw, safe="-_.!*()").lower().encode()).hexdigest().upper()
+
+
+def t_pay_1011(b, base):
+    import urllib.request
+    import urllib.parse
+    errs: list[str] = []
+    origin = re.match(r"^(https?://[^/]+)", base).group(1)
+    port = _free_port()
+    dbg = bool(os.environ.get("TW_DEV_LOG"))
+    args = ["node", "--no-warnings", str(ROOT / "workers" / "account-api" / "devserver.mjs"), "--port", str(port), "--origin", origin]
+    for k, e in PAY_PEOPLE.items():
+        args += ["--person", f"{k}={e}={k.capitalize()} 測試"]
+    dev = subprocess.Popen(args, stdout=None if dbg else subprocess.DEVNULL, stderr=None if dbg else subprocess.DEVNULL)
+    api = f"http://127.0.0.1:{port}"
+    T = "結帳與付款1011"
+    shots = os.environ.get("TW_PAY_SHOTS")
+    if shots:
+        pathlib.Path(shots).mkdir(parents=True, exist_ok=True)
+
+    def shot(pg, name, sel=None):
+        if not shots:
+            return
+        try:
+            if sel and pg.locator(sel).count():
+                pg.locator(sel).first.screenshot(path=str(pathlib.Path(shots) / name))
+            else:
+                pg.screenshot(path=str(pathlib.Path(shots) / name))
+        except Exception as e:  # noqa: BLE001
+            print(f"  （{T} 截圖 {name} 沒存成：{str(e)[:80]}）")
+
+    def dev_get(path):
+        return json.loads(urllib.request.urlopen(api + path, timeout=5).read())
+
+    def dev_post(path, body):
+        req = urllib.request.Request(api + path, data=json.dumps(body).encode(), headers={"Origin": origin, "content-type": "text/plain"}, method="POST")
+        try:
+            return json.loads(urllib.request.urlopen(req, timeout=8).read())
+        except urllib.error.HTTPError as e:
+            return {"_s": e.code, **json.loads(e.read() or b"{}")}
+
+    ctxs = []
+    try:
+        up = False
+        for _ in range(40):
+            try:
+                up = dev_get("/health").get("configured") is True
+                if up:
+                    break
+            except Exception:  # noqa: BLE001
+                time.sleep(0.15)
+        if not ok(f"{T}：本機 account-api（devserver＋假綠界）起得來", up):
+            return
+
+        def new_ctx(width=1440, tok=None):
+            c = b.new_context(viewport={"width": width, "height": 900 if width > 640 else 844}, has_touch=width <= 640, is_mobile=width <= 640)
+            c.add_init_script("window.TW_ACCOUNT_OVERRIDE = " + json.dumps({"api": api}) + ";")
+            if tok:
+                c.add_init_script("try{if(!sessionStorage.getItem('__tokset')){localStorage.setItem('tw.acct.tok'," + json.dumps(tok) + ");sessionStorage.setItem('__tokset','1')}}catch(e){}")
+            c.route("**/fonts.googleapis.com/**", lambda r: r.abort())
+            ctxs.append(c)
+            return c
+
+        def popup_login(pg, who, opener):
+            with pg.expect_popup() as pi:
+                opener()
+            pop = pi.value
+            pop.wait_for_selector("#as-" + who, timeout=8000)
+            pop.click("#as-" + who)
+            return wait_until(pg, "() => !!(window.TwAccount && TwAccount.user())", 12000)
+
+        def login(pg, who):
+            pg.click("#acctBtn")
+            return popup_login(pg, who, lambda: pg.click("#acctGo"))
+
+        def call(pg, path, body):
+            return pg.evaluate("([p, b]) => TwAccount.call(p, b)", [path, body])
+
+        def plan_of(pg):
+            return pg.evaluate("async () => { await TwPerm.refresh(); const s = TwPerm.state(); return [s.plan, TwPerm.can('stock.ind')]; }")
+
+        # ================= ① 管理者：方案價格（Plus 月 299／年 2990，註冊會員關掉「指標設定」＝付費才有）＋收款帳號設定
+        ca = new_ctx(); ad = ca.new_page(); ad.on("pageerror", lambda e: errs.append("admin: " + str(e)))
+        ad.goto(base + "#overview", wait_until="domcontentloaded")
+        wait_until(ad, "() => !!document.getElementById('acctBtn')", 8000)
+        login(ad, "andy")
+        r1 = call(ad, "/v1/admin/plans/put", {"id": "plus", "name": "Plus", "feats": {}, "price": 299, "period": "month", "price_year": 2990})
+        r2 = call(ad, "/v1/admin/plans/put", {"id": "free", "name": "註冊會員", "feats": {"stock.ind": False}})
+        ok(f"{T}：前置：Plus 定價（月 299／年 2990）、註冊會員關掉指標設定", r1.get("_s") == 200 and r2.get("_s") == 200, (r1.get("_s"), r2.get("_s"), r1.get("error")))
+        ad.goto(base + "#admin/pay", wait_until="domcontentloaded")
+        ok(f"{T}：#admin/pay 打得開，四個分頁（訂單／會員訂閱／退款紀錄／收款帳號設定）",
+           bool(wait_until(ad, "() => document.querySelectorAll('#payTabs [data-ptab]').length === 4", 10000)))
+        side = ad.evaluate("() => [...document.querySelectorAll('.l4subtab[data-parent=admin]')].map(x => x.textContent.trim())")
+        ok(f"{T}：桌機側欄管理區多一格「付款與訂單」而且是目前這格", "付款與訂單" in side and ad.evaluate("() => !!document.querySelector('.l4subtab[data-adm=pay].on')"), side)
+        ad.click("[data-ptab=bank]")
+        wait_until(ad, "() => !!document.getElementById('pbName')", 4000)
+        ad.fill("#pbName", PAY_BANK["bank_name"]); ad.fill("#pbCode", PAY_BANK["bank_code"]); ad.fill("#pbAcct", PAY_BANK["account"]); ad.fill("#pbHolder", PAY_BANK["holder"])
+        ad.click("#pbSave")
+        ok(f"{T}：收款帳號儲存前先跳確認框（寫會員會立刻看到）", bool(wait_until(ad, "() => { const d = document.getElementById('subDlg'); return d && !d.hidden && /立刻看到/.test(d.innerText); }", 4000)))
+        with ad.expect_response(lambda r: "/v1/admin/pay/bank/put" in r.url, timeout=6000) as ri:
+            ad.click("#pdGo")
+        ok(f"{T}：確定 → 真的存進伺服器", ri.value.status == 200 and dev_post("/v1/admin/pay/bank/get", {"t": ad.evaluate("() => TwAccount.tok()")}).get("bank", {}).get("account") == PAY_BANK["account"])
+        wait_until(ad, "() => !!document.getElementById('pbName')", 4000)
+        shot(ad, "admin_settings.png", "#payAdm")
+        atok = ad.evaluate("() => TwAccount.tok()")
+
+        # ================= ② bob：沒登入按升級 → 先登入 → 自動回到結帳
+        cb = new_ctx(); pb = cb.new_page(); pb.on("pageerror", lambda e: errs.append("bob: " + str(e)))
+        _net = []
+        pb.on("response", lambda r: _net.append((r.url.split("/")[-1][:30], r.status)) if "/v1/" in r.url else None)
+        pb.on("requestfailed", lambda r: _net.append((r.url.split("/")[-1][:30], "FAIL " + str(r.failure))) if "/v1/" in r.url else None)
+        pb.on("console", lambda m: _net.append(("console", m.text[:150])) if m.type in ("error", "warning") else None)
+        pb.goto(base + "#pricing", wait_until="domcontentloaded")
+        ok(f"{T}：#pricing 有 Plus 卡與「升級」鈕", bool(wait_until(pb, "() => !!document.querySelector('.prcard[data-plan=plus] .prgo[data-go=plus]')", 12000)), [pb.evaluate("() => ({ src: window.TwPricing && TwPricing.state().src, on: TwAccount.on(), hash: location.hash, cards: [...document.querySelectorAll('.prcard')].map(c => c.dataset.plan + ':' + ((c.querySelector('.prgo') || {}).outerHTML || '')), })"), _net])
+        popup_login(pb, "bob", lambda: (pb.click(".prcard[data-plan=plus] .prgo[data-go=plus]"), pb.wait_for_selector("#acctGo", timeout=5000), pb.click("#acctGo")))
+        ok(f"{T}：未登入按訂閱 → 先登入 → 登入完自動回到結帳面板",
+           bool(wait_until(pb, "() => { const d = document.getElementById('subDlg'); return d && !d.hidden && !!d.querySelector('#coTabE'); }", 10000)))
+        pb.click("#coPer button[data-per=month]")
+        info = pb.evaluate("() => ({ amt: document.getElementById('coAmt').innerText, test: !!document.querySelector('#subDlg .cotest'), name: document.getElementById('coName').innerText, per: [...document.querySelectorAll('#coPer button')].map(b => b.innerText), oid: document.getElementById('coOid').innerText, refund: !!document.querySelector('#subDlg .colegal a[href=\"#refund\"]'), agreeT: document.querySelector('#subDlg .colegal').innerText })")
+        ok(f"{T}：結帳面板：方案 Plus、月繳／年繳、金額 NT$ 299（伺服器價）、測試模式、訂單編號欄、退款政策連結、「付款即表示同意使用條款」",
+           info["name"] == "Plus" and "299" in info["amt"] and info["test"] and info["per"] == ["月繳", "年繳"] and info["oid"] == "選擇付款方式後產生" and info["refund"] and "付款即表示同意使用條款" in info["agreeT"], info)
+        pb.click("#coPer button[data-per=year]")
+        ok(f"{T}：切年繳 → 金額變 NT$ 2,990", bool(wait_until(pb, "() => /2,990/.test(document.getElementById('coAmt').innerText)", 3000)))
+        pb.click("#coPer button[data-per=month]")
+        shot(pb, "co_ecpay.png", "#subDlg .box")
+        # ================= ③ 綠界單次，ReturnURL 漏送 → 前端輪詢＋伺服器查單補開通 → 功能真的解鎖
+        pb.check("#subDlg input[name=coKind][value=once]")
+        ok(f"{T}：沒勾同意條款時「前往綠界付款」按不下去", pb.evaluate("() => document.getElementById('coGoE').disabled"))
+        pb.check("#coAgree")
+        pb.evaluate("() => { window.TW_CO_NOSUBMIT = true; }")
+        with pb.expect_response(lambda r: "/v1/pay/ecpay/create" in r.url, timeout=6000) as ri:
+            pb.click("#coGoE")
+        body = json.loads(ri.value.request.post_data or "{}")
+        fm = pb.evaluate("() => { const f = document.getElementById('coEcForm'); if (!f) return null; const o = {}; f.querySelectorAll('input').forEach(i => { o[i.name] = i.value; }); return { action: f.action, method: f.method, f: o }; }")
+        ok(f"{T}：選綠界 → 產生的表單 POST 到綠界 AioCheckOut/V5（測試環境；本機換成假綠界）、有 CheckMacValue、金額是伺服器的 299、前端沒送金額",
+           bool(fm) and fm["action"] == api + "/Cashier/AioCheckOut/V5" and fm["method"] == "post" and len(fm["f"].get("CheckMacValue", "")) == 64
+           and fm["f"].get("CheckMacValue") == _ec_mac(fm["f"]) and fm["f"].get("TotalAmount") == "299" and fm["f"].get("ChoosePayment") == "ALL" and "amount" not in body, (fm, body))
+        oid1 = fm["f"]["MerchantTradeNo"] if fm else ""
+        ok(f"{T}：面板的訂單編號換成這筆（{oid1}）", pb.evaluate("() => document.getElementById('coOid').innerText") == oid1)
+        pb.evaluate("() => document.getElementById('coEcForm').submit()")
+        pb.wait_for_selector("#ecPaySkip", timeout=8000)
+        ok(f"{T}：送出後到綠界付款頁（假綠界收到的表單驗章通過）", oid1 in pb.inner_text("#ecInfo"))
+        pb.click("#ecPaySkip")   # 付款成功，但 ReturnURL 漏送、也不走 OrderResultURL
+        pb.wait_for_url(re.compile(r"#orders/" + oid1), timeout=10000)
+        st0 = dev_get("/__ecpay/state?id=" + oid1)
+        ok(f"{T}：模擬「ReturnURL 漏送」：假綠界已付款但沒通知（notify 空）", st0 and st0["status"] == "1" and st0["notify"] == "", st0)
+        done = wait_until(pb, "() => { const e = document.getElementById('ordDone'); return e ? e.innerText : ''; }", 15000)
+        ok(f"{T}：付款完成頁輪詢 → 伺服器查單補開通 → 畫面寫「已開通 Plus，到期日 X」", bool(done) and "已開通 Plus" in done and re.search(r"到期日 \d{4}-\d{2}-\d{2}", done), done)
+        pl = plan_of(pb)
+        ok(f"{T}：開通後 TwPerm 已刷新：方案 plus、原本鎖住的「指標設定」解鎖（不用重新登入）", pl == ["plus", True], pl)
+        shot(pb, "pay_done_unlocked.png")
+        menu = pb.evaluate("() => { document.getElementById('acctBtn').click(); const t = document.getElementById('acctMenu').innerText; document.getElementById('acctMenu').hidden = true; return t; }")
+        ok(f"{T}：桌機帳號選單有「我的訂單／付款紀錄」", "我的訂單／付款紀錄" in menu, menu[:200])
+
+        # ================= ④ 綠界定期定額（正常流程：ReturnURL＋OrderResultURL）→ 取消自動續訂
+        pb.evaluate("() => TwCheckout.open({ plan: 'plus', per: 'month' })")
+        wait_until(pb, "() => !!document.getElementById('coGoE')", 6000)
+        pb.check("#subDlg input[name=coKind][value=recur]"); pb.check("#coAgree")
+        ok(f"{T}：定期定額要另外勾「同意每月自動續扣」才按得下去", pb.evaluate("() => document.getElementById('coGoE').disabled"))
+        pb.check("#coRenew")
+        pb.evaluate("() => { window.TW_CO_NOSUBMIT = true; }")
+        pb.click("#coGoE")
+        wait_until(pb, "() => !!document.getElementById('coEcForm')", 6000)
+        fm2 = pb.evaluate("() => { const o = {}; document.querySelectorAll('#coEcForm input').forEach(i => { o[i.name] = i.value; }); return o; }")
+        ok(f"{T}：定期定額表單：ChoosePayment=Credit、PeriodType=M、Frequency=1、ExecTimes=99、PeriodAmount=299、有 PeriodReturnURL",
+           fm2.get("ChoosePayment") == "Credit" and fm2.get("PeriodType") == "M" and fm2.get("Frequency") == "1" and fm2.get("ExecTimes") == "99" and fm2.get("PeriodAmount") == "299" and fm2.get("PeriodReturnURL", "").endswith("/v1/pay/ecpay/period"), fm2)
+        oid2 = fm2.get("MerchantTradeNo", "")
+        pb.evaluate("() => document.getElementById('coEcForm').submit()")
+        pb.wait_for_selector("#ecPay", timeout=8000)
+        pb.click("#ecPay")
+        pb.wait_for_url(re.compile(r"#orders/" + oid2), timeout=10000)
+        st2 = dev_get("/__ecpay/state?id=" + oid2)
+        ok(f"{T}：正常流程：綠界 ReturnURL 送達、Worker 回 1|OK", st2 and st2["notify"] == "1|OK", st2)
+        row = wait_until(pb, f"() => {{ const r = document.querySelector('#ordList .ordr[data-oid=\"{oid2}\"]'); return r ? r.innerText : ''; }}", 8000)
+        ok(f"{T}：我的訂單：這筆「綠界・信用卡自動扣款」「已開通」「自動續訂：開」，有「取消自動續訂」鈕",
+           bool(row) and "信用卡自動扣款" in row and "已開通" in row and "自動續訂：開" in row and pb.locator(f"#ordList [data-cxl='{oid2}']").count() == 1, row)
+        exp_before = call(pb, "/v1/pay/my", {}).get("expires")
+        shot(pb, "my_orders_ecpay.png", "#v-orders .ordp")
+        pb.click(f"#ordList [data-cxl='{oid2}']")
+        ok(f"{T}：取消自動續訂先跳確認框（說明已付期間照用到期滿）", bool(wait_until(pb, "() => { const d = document.getElementById('subDlg'); return d && !d.hidden && /照常用到/.test(d.innerText); }", 4000)))
+        pb.click("#cxGo")
+        row2 = wait_until(pb, f"() => {{ const r = document.querySelector('#ordList .ordr[data-oid=\"{oid2}\"]'); return r && /已取消/.test(r.innerText) ? r.innerText : ''; }}", 8000)
+        my = call(pb, "/v1/pay/my", {})
+        ok(f"{T}：取消後：自動續訂已取消、綠界那邊也終止、到期日不變", bool(row2) and my.get("autoRenew") is False and my.get("expires") == exp_before and dev_get("/__ecpay/state?id=" + oid2) is not None, (row2, my.get("autoRenew"), my.get("expires"), exp_before))
+
+        # 淺色主題：結帳面板與我的訂單文字要看得清楚（字色與底色對比 ≥ 4.5）
+        pb.evaluate("() => document.documentElement.setAttribute('data-theme', 'light')")
+        pb.evaluate("() => TwCheckout.open({ plan: 'plus', per: 'month' })")
+        wait_until(pb, "() => !!document.getElementById('coAmt') && /299/.test(document.getElementById('coAmt').innerText)", 6000)
+        CR = """(sel) => { const e = document.querySelector(sel); if (!e) return 0; const rgb = (c) => { const v = (c.match(/[\\d.]+/g) || []).slice(0, 3).map(Number); return /^color\\(/.test(c) ? v.map((x) => x * 255) : v; };
+          const L = (c) => { const [r, g, b] = rgb(c).map((v) => { v /= 255; return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); }); return 0.2126 * r + 0.7152 * g + 0.0722 * b; };
+          const al = (c) => { const v = c.match(/[\\d.]+/g) || []; return v.length >= 4 ? +v[3] : 1; };
+          let n = e, bg = ''; while (n) { const c = getComputedStyle(n).backgroundColor; if (al(c) >= 0.5) { bg = c; break; } n = n.parentElement; } if (!bg) bg = 'rgb(255, 255, 255)';
+          const a = L(getComputedStyle(e).color), b = L(bg); return Math.round((Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05) * 10) / 10; }"""
+        lc = {k: pb.evaluate(CR, k) for k in ("#coAmt", "#subDlg .coopt b", "#subDlg .colegal label span", "#coTabE")}
+        ok(f"{T}：淺色主題：結帳面板金額、選項、條款、分頁字的對比都 ≥ 4.5", all(v >= 4.5 for v in lc.values()), lc)
+        shot(pb, "co_light.png", "#subDlg .box")
+        pb.evaluate("() => { document.getElementById('subDlg').hidden = true; location.hash = '#orders'; }")
+        wait_until(pb, "() => !!document.querySelector('#ordList .ordr:not(.hd)')", 6000)
+        lo = {k: pb.evaluate(CR, k) for k in ("#v-orders .ordp h2", "#ordList .ordr:not(.hd) .n", "#ordList .ordr:not(.hd) .sub")}
+        ok(f"{T}：淺色主題：我的訂單標題、金額、明細字的對比 ≥ 4.5", all(v >= 4.5 for v in lo.values()), lo)
+        shot(pb, "orders_light.png", "#v-orders .ordp")
+        pb.evaluate("() => document.documentElement.setAttribute('data-theme', 'dark')")
+
+        # ================= ⑤ carol：銀行轉帳 → 待確認 → 管理者確認 → 開通
+        cc = new_ctx(); pc = cc.new_page(); pc.on("pageerror", lambda e: errs.append("carol: " + str(e)))
+        pc.goto(base + "#pricing", wait_until="domcontentloaded")
+        wait_until(pc, "() => !!document.getElementById('acctBtn')", 8000)
+        login(pc, "carol")
+        pc.goto(base + "#overview", wait_until="domcontentloaded"); pc.goto(base + "#pricing", wait_until="domcontentloaded")
+        ok(f"{T}：carol 登入後 #pricing 的 Plus 卡有「升級」鈕", bool(wait_until(pc, "() => !!document.querySelector('.prcard[data-plan=plus] .prgo[data-go=plus]')", 10000)),
+           pc.evaluate("() => [...document.querySelectorAll('.prcard')].map(c => c.dataset.plan + ':' + (c.querySelector('.prgo') || {}).outerHTML)"))
+        pc.click(".prcard[data-plan=plus] .prgo[data-go=plus]")
+        wait_until(pc, "() => !!document.getElementById('coTabB')", 6000)
+        pc.click("#coPer button[data-per=month]")
+        pc.click("#coTabB")
+        bank_ok = wait_until(pc, "() => { const e = document.getElementById('coBank'); return e && /3 天內/.test(e.textContent) ? e.textContent : ''; }", 8000)
+        ok(f"{T}：選轉帳 → 顯示收款資訊（銀行＋代碼、帳號、戶名、應付金額、訂單編號、「請於 3 天內轉帳」）",
+           bool(bank_ok) and f"{PAY_BANK['bank_name']}（{PAY_BANK['bank_code']}）" in bank_ok and PAY_BANK["account"] in bank_ok and PAY_BANK["holder"] in bank_ok and "NT$ 299" in bank_ok and "3 天內轉帳" in bank_ok, bank_ok)
+        boid = pc.evaluate("() => document.getElementById('coOid').innerText")
+        ok(f"{T}：轉帳訂單編號出現在面板上（{boid}）", bool(re.match(r"^LG[0-9A-Z]{16}$", boid or "")), boid)
+        pc.fill("#coL5", "12345")
+        pc.check("#coAgree")
+        shot(pc, "co_bank.png", "#subDlg .box")
+        with pc.expect_response(lambda r: "/v1/pay/bank/report" in r.url, timeout=6000) as ri:
+            pc.click("#coSendB")
+        ok(f"{T}：填末 5 碼送出 → 真的送出 bank/report、面板寫「待確認」", ri.value.status == 200 and bool(wait_until(pc, "() => { const d = document.getElementById('subDlg'); return d && /待確認/.test(d.innerText); }", 4000)))
+        pc.click("#coSeeOrders")
+        row = wait_until(pc, f"() => {{ const r = document.querySelector('#ordList .ordr[data-oid=\"{boid}\"]'); return r ? r.innerText : ''; }}", 8000)
+        ok(f"{T}：我的訂單出現這筆「銀行轉帳」「待確認」、轉出末 5 碼 12345", bool(row) and "銀行轉帳" in row and "待確認" in row and "12345" in row, row)
+        shot(pc, "my_orders.png", "#v-orders .ordp")
+        ad.click("[data-ptab=orders]")
+        ad.click("#payReload")
+        rev = wait_until(ad, f"() => {{ const s = document.getElementById('payRevSec'); return s && s.querySelector('tr[data-oid=\"{boid}\"]') ? s.innerText : ''; }}", 8000)
+        ok(f"{T}：管理區「待確認的轉帳」放最上面、標數量、看得到這筆（carol、末 5 碼 12345）", bool(rev) and "carol@example.com" in rev and "12345" in rev and ad.evaluate("() => document.querySelector('#payRevSec .cnt').innerText") == "1", rev)
+        shot(ad, "admin_orders.png", "#payAdm")
+        ad.click(f"#payRevSec [data-pa=confirm][data-id='{boid}']")
+        ok(f"{T}：「確認入帳並開通」先跳確認框（寫會發生什麼）", bool(wait_until(ad, "() => { const d = document.getElementById('subDlg'); return d && !d.hidden && /會員立刻變成/.test(d.innerText); }", 4000)))
+        ad.click("#pdGo")
+        ok(f"{T}：確認後狀態變成「已開通」", bool(wait_until(ad, f"() => {{ const r = document.querySelector('#payTbl tr[data-oid=\"{boid}\"]'); return r && /已開通/.test(r.innerText); }}", 8000)))
+        ok(f"{T}：carol 變 Plus（伺服器到期日為準）", plan_of(pc) == ["plus", True], plan_of(pc))
+
+        # ================= ⑥ 退回流程＋退款（轉帳＝登記人工退款、立即降級）
+        r_new = call(pc, "/v1/pay/bank/create", {"plan": "plus", "period": "year"})
+        call(pc, "/v1/pay/bank/report", {"id": r_new.get("id"), "last5": "99999", "date": time.strftime("%Y-%m-%d", time.gmtime(time.time() + 8 * 3600)), "amount": 2990})
+        ad.click("#payReload")
+        wait_until(ad, f"() => !!document.querySelector('#payRevSec [data-pa=reject][data-id=\"{r_new.get('id')}\"]')", 8000)
+        ad.click(f"#payRevSec [data-pa=reject][data-id='{r_new.get('id')}']")
+        wait_until(ad, "() => !!document.getElementById('pdWhy')", 4000)
+        ad.click("#pdGo")
+        ok(f"{T}：退回沒寫原因 → 擋下", bool(wait_until(ad, "() => /請寫退回原因/.test(document.querySelector('#subDlg .msg').innerText)", 3000)))
+        ad.fill("#pdWhy", "查無這筆入帳")
+        ad.click("#pdGo")
+        ok(f"{T}：退回後狀態「已退回」", bool(wait_until(ad, f"() => {{ const r = document.querySelector('#payTbl tr[data-oid=\"{r_new.get('id')}\"]'); return r && /已退回/.test(r.innerText); }}", 8000)))
+        mo = [o for o in call(pc, "/v1/pay/my", {}).get("orders", []) if o["id"] == r_new.get("id")]
+        ok(f"{T}：carol 的我的訂單看得到「已退回」與原因、權限沒有被這筆影響", bool(mo) and mo[0]["statusName"] == "已退回" and mo[0]["rejectReason"] == "查無這筆入帳" and plan_of(pc)[0] == "plus", mo)
+        ad.click(f"#payTbl [data-pa=refund][data-id='{boid}']")
+        dlg = wait_until(ad, "() => { const d = document.getElementById('payRefundDlg'); return d ? d.innerText : ''; }", 6000)
+        ok(f"{T}：退款確認框：可退金額、試算（7 天內全額）、權限二選一（預設立即降級）、轉帳要人工＋提醒「請到網銀把錢匯回」",
+           bool(dlg) and "可退金額" in dlg and "NT$ 299" in dlg and "全額" in dlg and ad.evaluate("() => document.querySelector('input[name=rfPerm]:checked').value") == "now" and "請到網銀把錢匯回" in dlg, dlg)
+        shot(ad, "admin_refund_dialog.png", "#subDlg .box")
+        ad.click("#rfGo")
+        ok(f"{T}：沒填退款帳號末 5 碼 → 擋下", bool(wait_until(ad, "() => /末 5 碼/.test(document.querySelector('#subDlg .msg').innerText)", 3000)))
+        ad.fill("#rfL5", "54321")
+        with ad.expect_response(lambda r: "/v1/admin/pay/refund" in r.url and "quote" not in r.url, timeout=8000) as ri:
+            ad.click("#rfGo")
+        rid = json.loads(ri.value.request.post_data or "{}").get("rid")
+        ok(f"{T}：退款完成 → 訂單「已退款」", ri.value.status == 200 and bool(wait_until(ad, f"() => {{ const r = document.querySelector('#payTbl tr[data-oid=\"{boid}\"]'); return r && /已退款/.test(r.innerText); }}", 8000)))
+        dup = dev_post("/v1/admin/pay/refund", {"t": atok, "id": boid, "rid": rid, "amount": 299, "last5": "54321", "date": "2026-10-11"})
+        ok(f"{T}：同一個退款重送（同一個 rid）不會再退一次", dup.get("dup") is True and len([r for r in dev_post("/v1/admin/pay/list", {"t": atok}).get("refunds", []) if r["oid"] == boid and r["status"] == "done"]) == 1, dup)
+        ok(f"{T}：退款後 carol 立即回到註冊會員（指標設定又鎖住）", plan_of(pc) == ["free", False], plan_of(pc))
+        mo = [o for o in call(pc, "/v1/pay/my", {}).get("orders", []) if o["id"] == boid]
+        ok(f"{T}：carol 的我的訂單顯示「已退款 NT$ 299」", bool(mo) and mo[0]["statusName"] == "已退款" and mo[0]["refunded"] == 299, mo)
+        csvs = {}
+        for tab, btn, key in (("orders", "#pfCsv", "訂單"), ("refunds", "#prCsv", "退款"), ("subs", "#psCsv", "會員訂閱")):
+            ad.click(f"[data-ptab={tab}]")
+            wait_until(ad, f"() => !!document.querySelector('{btn}')", 4000)
+            with ad.expect_download(timeout=6000) as di:
+                ad.click(btn)
+            csvs[key] = (di.value.suggested_filename, ad.evaluate("() => window.__payCsv || ''"))
+        ok(f"{T}：三份 CSV 都下載得到、開頭有 BOM、訂單 CSV 有退款明細（54321）、退款 CSV 有這筆、會員訂閱 CSV 有 bob 與 carol",
+           all(v[1].startswith("﻿") and v[0].endswith(".csv") for v in csvs.values()) and "54321" in csvs["訂單"][1] and boid in csvs["退款"][1]
+           and "bob@example.com" in csvs["會員訂閱"][1] and "carol@example.com" in csvs["會員訂閱"][1], {k: (v[0], v[1][:80]) for k, v in csvs.items()})
+        wait_until(ad, "() => !!document.getElementById('paySubs')", 4000)
+        shot(ad, "admin_subs.png", "#payAdm")
+        sub_txt = ad.inner_text("#paySubs")
+        ok(f"{T}：會員訂閱：bob 一列（付款方式、第一次／最近付款、到期日、自動續訂關、到期降回日、累計 598）", "bob@example.com" in sub_txt and "598" in sub_txt, sub_txt[:300])
+        ad.click("#paySubs tr.prow[data-em='carol@example.com']")
+        det = wait_until(ad, "() => { const d = document.querySelector('#paySubs tr.det'); return d ? d.textContent : ''; }", 4000)
+        ok(f"{T}：點一列展開他所有訂單、退款與方案異動（退款降級）", bool(det) and ad.locator(f"#paySubs tr.det tr[data-oid='{boid}']").count() == 1 and "退款降級" in det and "到期降級" not in det, (boid, det[-700:] if det else det))
+
+        # ================= ⑦ 異常：dave 綠界通知金額不符 → 紅色異常數字 → 一鍵補開通
+        cd = new_ctx(); pdv = cd.new_page(); pdv.on("pageerror", lambda e: errs.append("dave: " + str(e)))
+        pdv.goto(base + "#overview", wait_until="domcontentloaded")
+        wait_until(pdv, "() => !!document.getElementById('acctBtn')", 8000)
+        login(pdv, "dave")
+        c3 = call(pdv, "/v1/pay/ecpay/create", {"plan": "plus", "period": "month", "back": base.split("#")[0]})
+        n = {"MerchantID": "3002607", "MerchantTradeNo": c3.get("id"), "RtnCode": "1", "RtnMsg": "交易成功", "TradeNo": "TX1", "TradeAmt": "1", "PaymentDate": "2026/10/11 12:00:00", "PaymentType": "Credit_CreditCard", "SimulatePaid": "0"}
+        n["CheckMacValue"] = _ec_mac(n)
+        rq = urllib.request.Request(api + "/v1/pay/ecpay/notify", data=urllib.parse.urlencode(n).encode(), headers={"content-type": "application/x-www-form-urlencoded"}, method="POST")
+        ok(f"{T}：前置：dave 的綠界通知（驗章正確、金額 1 元≠299）→ Worker 回 1|OK 但不開通", urllib.request.urlopen(rq, timeout=5).read().decode() == "1|OK" and plan_of(pdv)[0] == "free")
+        ad.click("[data-ptab=orders]")
+        ad.click("#payReload")
+        an = wait_until(ad, "() => { const a = document.getElementById('payAnom'); return a && !a.classList.contains('zero') ? a.innerText : ''; }", 8000)
+        red = ad.evaluate("() => getComputedStyle(document.getElementById('payAnom')).backgroundColor")
+        ok(f"{T}：管理區頁首亮紅色「異常 1」、異常清單有這筆", an == "異常 1" and red not in ("rgba(0, 0, 0, 0)", "transparent") and ad.locator(f"#payAnomSec tr[data-oid='{c3.get('id')}']").count() == 1, (an, red))
+        shot(ad, "admin_anomaly.png", "#payAdm")
+        ad.click(f"#payAnomSec [data-pa=fix][data-id='{c3.get('id')}']")
+        wait_until(ad, "() => !!document.getElementById('pdForce')", 4000)
+        ad.click("#pdGo")
+        ok(f"{T}：「查單並開通」→ 綠界查單沒過（沒付款）→ 不開通、寫原因", bool(wait_until(ad, "() => /還沒付款|不符/.test(document.querySelector('#subDlg .msg').innerText)", 6000)))
+        ad.click("#pdForce")
+        ok(f"{T}：「強制開通」→ 異常歸零、dave 變 Plus", bool(wait_until(ad, "() => document.getElementById('payAnom').innerText === '異常 0'", 8000)) and plan_of(pdv) == ["plus", True])
+
+        # ================= ⑧ 手機 390：erin 轉帳送出；確認後到期前提醒＋再匯一期
+        ce = new_ctx(390); pe = ce.new_page(); pe.on("pageerror", lambda e: errs.append("erin390: " + str(e)))
+        pe.goto(base + "#pricing", wait_until="domcontentloaded")
+        wait_until(pe, "() => !!(window.TwAccount && TwAccount.on())", 8000)
+        popup_login(pe, "erin", lambda: (pe.evaluate("() => TwAccount.login()"), pe.wait_for_selector("#acctGo", timeout=5000), pe.click("#acctGo")))
+        pe.evaluate("() => TwCheckout.open({ plan: 'plus', per: 'month' })")
+        wait_until(pe, "() => !!document.getElementById('coTabB')", 6000)
+        pe.tap("#coTabB")
+        wait_until(pe, "() => !!document.getElementById('coL5')", 6000)
+        eoid = pe.evaluate("() => document.getElementById('coOid').innerText")
+        pe.fill("#coL5", "67890")
+        pe.tap("#coAgree")
+        m = pe.evaluate("() => { const b = document.querySelector('#subDlg .box').getBoundingClientRect(), s = document.getElementById('coSendB').getBoundingClientRect(); return { l: b.left, r: b.right, sw: document.documentElement.scrollWidth - innerWidth, bh: s.height, bw: s.width }; }")
+        ok(f"{T}：390 結帳面板在螢幕內、沒有橫向捲軸、送出鈕高 ≥ 40", m["l"] >= 0 and m["r"] <= 390 and m["sw"] <= 1 and m["bh"] >= 40, m)
+        shot(pe, "m_bank.png")
+        pe.locator("#coSendB").scroll_into_view_if_needed()
+        pe.tap("#coSendB")
+        ok(f"{T}：390 能完成轉帳送出（待確認）", bool(wait_until(pe, "() => { const d = document.getElementById('subDlg'); return d && /待確認/.test(d.innerText); }", 6000)))
+        pe.tap("#coSeeOrders")
+        mrow = wait_until(pe, f"() => {{ const r = document.querySelector('#ordList .ordr[data-oid=\"{eoid}\"]'); return r ? r.innerText : ''; }}", 8000)
+        msw = pe.evaluate("() => document.documentElement.scrollWidth - innerWidth")
+        ok(f"{T}：390 我的訂單：這筆待確認、沒有橫向捲軸", bool(mrow) and "待確認" in mrow and msw <= 1, (mrow, msw))
+        shot(pe, "m_orders.png")
+        mm = pe.evaluate("() => { document.getElementById('acctBtn').click(); const m = document.getElementById('acctMenu'); const t = m ? m.innerText : ''; if (m) m.hidden = true; return t; }")
+        ok(f"{T}：手機帳號選單（acctm4）有「我的訂單／付款紀錄」", "我的訂單／付款紀錄" in mm, mm[:200])
+        dev_post("/v1/admin/pay/confirm", {"t": atok, "id": eoid})
+        dev_get("/__clock?days=25")   # erin 月繳 → 剩約 6 天
+        pe.goto(base + "#overview", wait_until="domcontentloaded")
+        pe.reload(wait_until="domcontentloaded")
+        rb = wait_until(pe, "() => { const e = document.getElementById('payRenew'); return e ? e.innerText : ''; }", 10000)
+        ok(f"{T}：到期前 7 天內：頁首一行提醒（剩 N 天、轉帳不會自動續扣、再匯一期）＋帳號鈕紅點", bool(rb) and "再匯一期" in rb and "剩" in rb and pe.evaluate("() => document.documentElement.classList.contains('pay-renew')"), rb)
+        shot(pe, "m_renew.png")
+        pe.tap("#payRenewGo")
+        ro = wait_until(pe, "() => { const e = document.getElementById('coBank'); return e ? document.getElementById('coOid').innerText : ''; }", 8000)
+        ok(f"{T}：按「再匯一期」→ 直接開轉帳分頁、產生新的待付款訂單", bool(ro) and ro != eoid, (ro, eoid))
+        pe.evaluate("() => { document.getElementById('subDlg').hidden = true; }")
+        ad.click("#payReload")
+        wait_until(ad, "() => !!document.getElementById('pfExp')", 6000)
+        ad.check("#pfExp")
+        exp_rows = ad.evaluate("() => [...document.querySelectorAll('#payTbl tr.prow')].map(r => r.querySelector('td.l').innerText)")
+        ok(f"{T}：管理區篩選「即將到期的轉帳會員」只剩 erin", bool(exp_rows) and set(exp_rows) == {"erin@example.com"}, exp_rows)
+        ad.uncheck("#pfExp")
+
+        # ================= ⑨ 到期自動降級
+        dev_get("/__clock?days=20")   # 再 +20 天：bob／dave／erin 的一個月都過了
+        ok(f"{T}：到期日一過，dave 自動回到註冊會員（伺服器到期日為準）", plan_of(pdv) == ["free", False], plan_of(pdv))
+        sw = json.loads(urllib.request.urlopen(urllib.request.Request(api + "/__cron", data=b"", method="POST"), timeout=8).read())
+        lst = dev_post("/v1/admin/pay/list", {"t": atok})
+        ev = [e for e in lst.get("events", []) if e["kind"] == "expire"]
+        ok(f"{T}：排程寫「到期降級」紀錄（dave、erin）", {"dave@example.com", "erin@example.com"} <= {e["email"] for e in ev}, (sw, ev[:3]))
+        ad.click("[data-ptab=subs]")
+        ad.click("#payReload")
+        wait_until(ad, "() => !!document.getElementById('paySubs')", 6000)
+        ok(f"{T}：會員訂閱清單顯示 dave「註冊會員（已到期）」", "註冊會員（已到期）" in ad.inner_text("#paySubs"))
+        ad.evaluate("() => document.documentElement.setAttribute('data-theme', 'light')")
+        ad.click("[data-ptab=orders]")
+        wait_until(ad, "() => !!document.querySelector('#payTbl tr.prow')", 6000)
+        la = {k: ad.evaluate(CR, k) for k in ("#payAdm h3", "#payTbl tr.prow td", "#payTbl th")}
+        ok(f"{T}：淺色主題：管理區標題、表格字、表頭的對比 ≥ 4.5", all(v >= 4.5 for v in la.values()), la)
+        shot(ad, "admin_light.png", "#payAdm")
+        ok(f"{T}：整段沒有 JS 錯誤", not errs, errs[:3])
+    finally:
+        for c in ctxs:
+            try:
+                c.close()
+            except Exception:  # noqa: BLE001
+                pass
+        dev.terminate()
 
 
 if __name__ == "__main__":

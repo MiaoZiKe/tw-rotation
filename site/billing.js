@@ -98,9 +98,11 @@
     return c + r;
   }
   function menuHTML(kind) {
-    const t = tier(); if (t !== 'paid' && t !== 'owner') return '';
+    /* 2026-10-11：「我的訂單／付款紀錄」（site/checkout.js）—— 所有登入會員都有，排在取消／退款前面；到期提醒時帶紅點 */
+    const ord = window.TwCheckout ? window.TwCheckout.menuItem(kind) : '';
+    const t = tier(); if (t !== 'paid' && t !== 'owner') return ord;
     if (S.st === 'none' || (S.who && S.who !== String((me() || {}).email || ''))) refresh();
-    return `<div data-billwrap="${kind}">${inner(kind)}</div>`;
+    return ord + `<div data-billwrap="${kind}">${inner(kind)}</div>`;
   }
 
   /* ---------------- 確認框 ---------------- */
