@@ -41,24 +41,28 @@ OVERRIDE = {
 }
 # 互動素材開頭的「待機」格剪掉（Andy 10-11 晚：「互動圖不需要前面特效，直接進入互動動作」——
 # 點了小圈 0.2 秒內就要看到比比在動；G1 的 ball／eat_grass／pet 第 1 格是 700～900ms 的待機，網站版直接從第 2 格開始）
-TRIM_HEAD = {"ball": 1, "eat_grass": 1, "pet": 1}
+TRIM_HEAD = {"ball": 1, "eat_grass": 1, "pet": 1}   # （G1 舊素材用；新素材第 1 格就是動作，不用剪）
 # 骨架版（bibi_rig.py）素材的比比是「原版 Default 參考圖」的原尺寸（描邊寬 384、腳底 y=488），比素材庫大 1.34 倍 →
 # 以腳底為準縮 0.745、對到素材庫的位置（中心 x=247.5、腳底 481），換圖時才不會忽大忽小（10-11 晚量的：happy_hop 第 1 格 vs wave 第 1 格）
 RIG_FIT = (0.745, 248, 488, 247.5, 481)
-RIG_NAMES = {"happy_hop", "receive", "receive_grass", "receive_ball"}
+RIG_NAMES = {"happy_hop", "receive", "receive_grass", "receive_ball",
+             # 10-11 深夜動畫單位全部照原版造型重畫的互動（舊 G1／G2 改名 *_old 保留）：同一套骨架尺寸，一樣要縮
+             "eat_grass_v2", "ball_catch", "ball_catch_l", "popcorn", "pet_v2", "spin_v2",
+             "highfive", "dance", "hug", "wake_once", "selfie", "sleep_loop",
+             "run_r", "run_l", "run_start_r", "run_stop_r"}
 
 # 網站用到的才轉（情境待機＋互動動作；對照表在 site/bibi.js 的 MAP）
 NAMES = [
     # 情境待機（現有素材庫）
     "wave", "coins", "growth", "magnifier", "fire", "calc", "news", "piggy", "calendar", "bulb", "clock", "star_save", "face_proud",
-    # 動畫單位 G1（10-11）：摸摸頭、吃草、玩球、轉圈
-    "pet", "eat_grass", "ball", "spin",
+    # （G1 的 pet／eat_grass／ball／spin 與跑步替代 hop_l／hop_r 已由 10-11 深夜的原版造型新素材取代，不再轉）
     # 動畫單位 G2（10-11）：擊掌、跳舞、抱抱、睡覺循環、叫醒、拍照＋情境待機（大跌安慰、大漲、週末、四款節日帽）
     "highfive", "dance", "hug", "sleep_loop", "wake_once", "selfie",
     "idle_down", "idle_bigup", "weekend", "festival_newyear", "festival_dragon", "festival_moon", "festival_xmas",
     # 10-11 晚 動作編排（bibi.js CHOREO）：跑步替代（素材庫 hop_l／hop_r）＋待機小動作；動畫單位的專屬零件到了就加進來（沒到會印「略過」）
-    "hop_l", "hop_r", "face_curious", "tilt",
-    "run_l", "run_r", "ball_catch", "eat_grass_v2", "pet_v2", "spin_v2",
+    "face_curious", "tilt", "face_sweat", "face_shock",   # face_sweat／face_shock：打他／哭哭的替代臉（bibi_hit／bibi_cry 到了換掉）
+    # 10-11 深夜：動畫單位照原版造型重畫的互動全到（擊掌／跳舞／抱抱／睡覺／叫醒／拍照也換成新版，同名覆蓋）
+    "run_l", "run_r", "run_start_r", "run_stop_r", "ball_catch", "ball_catch_l", "eat_grass_v2", "pet_v2", "spin_v2", "popcorn",
     # 10-11 晚 Andy 追加：開心的跳（待機預設）、接過來（給草／給球）、爆米花跳；替代用 face_star
     # 骨架第 1 組（10-11 第一版造型偏離原版被 Andy 退件；照原版 Default 重做後 CEO 對照過）：互動「接東西」可以接。
     # ⚠ happy_hop 不轉：Andy「使用圖2 圖3 GIF圖片就好」→ 待機用 default_idle＋jump（各自的子指令），骨架版只在互動用
@@ -127,47 +131,34 @@ def icons():
     if not src.exists():
         return
     (OUT / "icons").mkdir(parents=True, exist_ok=True)
-    for f in sorted(src.glob("*.png")):
+    extra = [NEW / "bibi_popcorn" / "popcorn_icon.png"]   # 爆米花小圈圖示跟著 popcorn 素材交（10-11 深夜）
+    for f in sorted(src.glob("*.png")) + [e for e in extra if e.exists()]:
         im = Image.open(f).convert("RGBA")
-        im.save(OUT / "icons" / (f.stem + ".webp"), "WEBP", quality=90, method=6)
-        print(f"  圖示 {f.stem:10s} {(OUT / 'icons' / (f.stem + '.webp')).stat().st_size / 1024:4.1f} KB")
+        stem = f.stem.replace("_icon", "")
+        im.save(OUT / "icons" / (stem + ".webp"), "WEBP", quality=90, method=6)
+        print(f"  圖示 {stem:10s} {(OUT / 'icons' / (stem + '.webp')).stat().st_size / 1024:4.1f} KB")
 
 
 def props():
-    """給草／給球的道具（docs/anim/bibi_receive/*.png，512 場景座標、手從右邊伸進來）→ site/brand/bibi/props/*.webp（256px）。
+    """道具（從被點的小圈飛到比比面前）→ site/brand/bibi/props/ball.webp、grass.webp（裁到東西本身、長邊 128px）。
 
-    除了原樣的「手拿草」「手拿球」，另外拆一張「只有手」：遞到比比肉掌那一格，網頁把手換成空手、東西改由比比的 receive 素材抱著，
-    不然手縮回去時會帶著第二根草／第二顆球。拆法：手拿草那張裡，綠／黃（草）＋草旁邊的黑描邊（只取肉掌左緣 x<318 以左）去掉，
-    再做一次「開運算」把抗鋸齒殘點清掉（細於 5px 的碎點）。動畫單位交 hand_prop.png 之後可以改用那張。
+    Andy 10-11：「伸出去的手太奇怪了，需要修正」→ hand_*_prop.png 一律不用，改成道具自己飛過去。
+    來源：docs/anim/bibi_ball_catch/ball_prop.png、docs/anim/bibi_eat_grass_v2/grass_prop.png（512 畫布、透明）。
     """
-    import numpy as np
-    from PIL import ImageFilter
-    src = NEW / "bibi_receive"
-    if not (src / "hand_grass_prop.png").exists():
-        print("  略過道具（docs/anim/bibi_receive 還沒到）")
-        return
     dst = OUT / "props"
     dst.mkdir(parents=True, exist_ok=True)
-
-    def mf(m, r, f):
-        return np.array(Image.fromarray((m * 255).astype(np.uint8)).filter(f(r * 2 + 1))) > 127
-
-    for nm in ("hand_grass_prop", "hand_ball_prop", "grass_prop"):
-        Image.open(src / f"{nm}.png").convert("RGBA").resize((256, 256), Image.LANCZOS).save(dst / (nm.replace("_prop", "") + ".webp"), "WEBP", quality=90, method=6)
-    a = np.array(Image.open(src / "hand_grass_prop.png").convert("RGBA")).astype(int)
-    R, G, B, A = a[..., 0], a[..., 1], a[..., 2], a[..., 3]
-    op = A > 10
-    dark = op & (R + G + B < 200)
-    xx = np.mgrid[0:A.shape[0], 0:A.shape[1]][1]
-    grass = op & ~dark & (G > R - 12) & (G > B + 35)
-    grass = grass | (dark & mf(grass, 9, ImageFilter.MaxFilter) & (xx < 318))
-    hand = op & ~grass
-    hand = hand & mf(mf(mf(hand, 2, ImageFilter.MinFilter), 2, ImageFilter.MaxFilter), 1, ImageFilter.MaxFilter)
-    a[..., 3] = np.where(hand, A, 0)
-    Image.fromarray(a.astype(np.uint8)).resize((256, 256), Image.LANCZOS).save(dst / "hand.webp", "WEBP", quality=90, method=6)
-    for f in sorted(dst.glob("*.webp")):
-        print(f"  道具 {f.stem:12s} {f.stat().st_size / 1024:4.1f} KB")
-
+    for f in dst.glob("hand*.webp"):          # 舊版的手（10-11 晚用過）一律清掉
+        f.unlink()
+    for name, src in (("ball", NEW / "bibi_ball_catch" / "ball_prop.png"), ("grass", NEW / "bibi_eat_grass_v2" / "grass_prop.png")):
+        if not src.exists():
+            print(f"  略過道具 {name}（{src} 還沒到）")
+            continue
+        im = Image.open(src).convert("RGBA")
+        im = im.crop(im.getbbox())
+        k = 128 / max(im.size)
+        im = im.resize((max(1, round(im.size[0] * k)), max(1, round(im.size[1] * k))), Image.LANCZOS)
+        im.save(dst / f"{name}.webp", "WEBP", quality=90, method=6)
+        print(f"  道具 {name:6s} {im.size[0]}×{im.size[1]}  {(dst / f'{name}.webp').stat().st_size / 1024:4.1f} KB")
 
 def _fit_original(fr):
     """原版造型（default_idle_1011／jump 都是同一個座標：描邊寬 385、中心 x=253.5、腳底 y=483）→ 素材庫場景座標
@@ -217,7 +208,7 @@ def jump():
         fs = frames[::step]
         ds = [sum(durs[i:i + step]) for i in range(0, len(durs), step)]
         for q in (82, 72, 62):
-            data = encode(fs, ds, q, 1)
+            data = encode(fs, ds, q, 0)   # 循環：Andy 10-11「Default 改成一直跳」
             if len(data) <= LIMIT:
                 break
         if len(data) <= LIMIT:
