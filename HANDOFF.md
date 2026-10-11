@@ -21,6 +21,10 @@
 - [10-09 22:1x] 手機版 → 網頁版：Andy 回報手機抽屜站名圖跑掉、頂欄 LOGO 點了變放大（他要：頂欄 LOGO＝回總覽；只有側欄抽屜裡的 LOGO 才放大）。手機版開 claude/m4-brand 處理，**只改 html.m4／≤640**，不動桌機 .brand .logo→#logoBox 行為。
 
 
+## 2026-10-12 比比：玩具六件組（分支 claude/bibi-play6，待 CEO 看截圖才推 main）
+- 撒零食／吹泡泡／羽毛棒／毛線球／紙飛機／落葉，小圈 18 顆；驗收段 `比比玩具1012`（桌機＋手機 390，每個互動驗道具出現且移動、比比離開原位、四腳、不撐捲軸、回原位；毛線球中途 Esc／點空白打斷）。截圖 scratchpad/bibi1012/toys/act_<名>_mid(_m).png。
+- 動畫單位專屬素材（docs/anim/bibi_<名>/）還沒到；到了改 bibi.js `PART.snack_eat／leap／crouch`。
+
 ## 2026-10-12 比比：四腳版第 1～5 組換上（吃草／轉圈／睡覺＋叫醒／被敲＋哭／自拍）（UI 專家；DECISIONS #357）
 - 動畫單位 8f5c472（CEO 已審）→ `python scripts/anim/bibi_site.py eat_q spin_q sleep_loop wake_once hit cry selfie`；bibi.js：PART.eat＝eat_q、PART.spin＝spin_q、給草改「草飛到比比面前地上 → 播 eat_q」、轉圈不接 dizzy、hit 整段播完接 cry；AV＝1012b。
 - 驗收：比比互動1011（改寫餵牧草／轉圈兩條）、客服鈕1009、桌機守門1008（--workers 1）。截圖：scratchpad/bibi1012/quad/quad_sheet.png。
