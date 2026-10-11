@@ -21,23 +21,12 @@
 - [10-09 22:1x] 手機版 → 網頁版：Andy 回報手機抽屜站名圖跑掉、頂欄 LOGO 點了變放大（他要：頂欄 LOGO＝回總覽；只有側欄抽屜裡的 LOGO 才放大）。手機版開 claude/m4-brand 處理，**只改 html.m4／≤640**，不動桌機 .brand .logo→#logoBox 行為。
 
 
-## 2026-10-11 晚 比比：環一層＋下一頁、動作編排（跑出去追球／給草給球／爆米花跳）、原版 Default＋開心的跳（UI 專家；DECISIONS #357）
-- Andy 原話：「至多外圍一圈，其他的就用點選下一格」「我點球，他會跟著球跑，我點草，他會有吃草畫面」「動作要在豐富生動一點」「給草 給球，要有給的動作…大部分情況盡量維持開心的跳…新增一個爆米花圖案」「互動圖不需要前面特效，直接進入互動動作」；骨架第 1 組退件「已經跟原來的不同了」。
-- 檔案：`site/bibi.js`（環分頁、編排引擎、5 段腳本、Default 待機穿插跳、待機小動作、抽屜收環）、`site/support.js`（開場圖版本戳、避讓把 `#bibiStage` 當自己）、`site/brand/bibi/`（新：default_idle、jump、receive／receive_grass／receive_ball、hop_l／hop_r、face_curious、tilt、face_star、props/；ball／eat_grass／pet 剪掉開頭待機格）、`scripts/anim/bibi_site.py`（TRIM_HEAD、`default_idle`、`props` 子指令）、`scripts/_uitest.py`（比比互動1011 擴充）。
-- **零件現況**（`bibi.js` 的 `PART`，素材到了只改這張表＋跑 bibi_site.py）：
-  | 零件 | 現在用 | 等的真零件 |
-  |---|---|---|
-  | 跑步 run_l／run_r | 素材庫 hop_l／hop_r | 動畫單位 run_l／run_r |
-  | 撲球 ball_catch | G1 ball（剪頭、只播 1.5 秒） | ball_catch |
-  | 吃草 eat | G1 eat_grass（剪頭） | eat_grass_v2 |
-  | 摸摸 pet | G1 pet（剪頭）＋動畫單位的空手 PNG | pet_v2＋hand_prop |
-  | 轉圈 spin | G1 spin＋暈眩螺旋（SVG） | spin_v2 |
-  | 接東西 receive_grass／receive_ball | ✅ 骨架素材（原版造型重做版，RIG_FIT 縮 0.745）＋動畫單位的手 PNG | — |
-  | 爆米花 popcorn | face_star＋編排（彈高、扭 15°、連彈） | popcorn＋popcorn_icon |
-  | Default 待機 | ✅ 圖三 default_idle（原版站姿）靜止 3～5.5 秒 → 圖二 jump 跳一次 → 回 Default（Andy：「使用圖2 圖3 GIF圖片就好」；骨架 happy_hop 不當待機） | — |
-  | 道具 | 手拿草／手拿球／空手＝動畫單位 PNG（brand/bibi/props/）；滾出去的球、暈眩螺旋＝SVG | hand_prop（摸摸頭專用） |
-- 驗收段：`比比互動1011`（⚠ --workers 1；101 條）：只一層 5 格、翻頁 3 頁每格點得到、翻回第一頁、爆米花在第一頁；點球／草／爆米花 300ms 內在動；球：手遞球、比比位移 >150px、球落地反彈 ≥2 次、撲到、跑回原位 0,0；草：手拿草伸下來、接過來、吃草、吃完道具清光；摸摸頭手來回、身體縮；轉圈有暈眩螺旋＋晃；爆米花彈高 72px、連彈 3 下；換頁／關客服中途立刻回原位；待機小動作跳一下回原位；Default 待機（一般情境 default→jump→default、深夜／國定假日／大跌保留原情境款不跳）；減少動態偏好不跑出去；手機 390 全程無橫向捲軸、點空白回原位、環開著點漢堡環收起。
-- 這批另外跑過：桌機守門1008（--workers 1）、客服鈕1009、願望清單1009、`_preview.py`。
+## 2026-10-11 晚～深夜 比比：小圈一次攤開、動作編排（跑出去追球／道具從小圈飛出／打他哭哭／爆米花）、Default 一直跳（UI 專家；DECISIONS #357）
+- Andy 原話（最後一輪）：「伸出去的手太奇怪了，需要修正，並且 Default 改成一直跳；頭暈應該要表情暈眩；互動按鈕改成原本那樣；需要新增打他互動，並且他會哭哭」。
+- 檔案：`site/bibi.js`、`site/support.js`（開場圖版本戳、避讓把 `#bibiStage` 當自己）、`site/brand/bibi/`（動畫單位全部原版造型的互動素材＋jump／default_idle、`props/ball|grass|hammer.webp`、`icons/popcorn|hammer.webp`）、`scripts/anim/bibi_site.py`（`RIG_FIT`、`default_idle`／`jump`／`props` 子指令）、`scripts/_uitest.py`（比比互動1011）。
+- **素材現況**（`bibi.js` 的 `PART`；新零件到了只改這張表＋跑 bibi_site.py）：全部是動畫單位的真素材 —— receive／receive_grass／receive_ball、eat_grass_v2、ball_catch／ball_catch_l、run_l／run_r／run_start_r／run_stop_r、popcorn、pet_v2、spin_v2（含暈眩臉）、hit、cry、highfive、dance、hug、sleep_loop、wake_once、selfie；待機＝jump（循環）／default_idle（減少動態偏好）。道具＝ball_prop、grass_prop、hammer_prop。只剩滾出去以外的小特效（星星、愛心、草屑）是 SVG。
+- 驗收段：`比比互動1011`（⚠ --workers 1；102 條）：12 個小圈一次攤開、全在視窗內、不重疊、問比比在最內層；一直跳（2.8 秒全是 jump、jump 檔本身 loop=0）；點球／草／摸摸／轉圈／爆米花／打他 300ms 內在動、全程沒有手；球、草從被點的小圈飛出；玩球 run_l→ball_catch_l→run_r→run_stop_r、反彈 ≥2、回原位；轉圈有暈眩那段且左右晃；打他：槌子從小圈飛出 → hit → cry ≥2.5 秒；打完再打被冷卻；換頁／關客服中途回原位；手機 390 無橫向捲軸、點空白回原位、環開著點漢堡收環。
+- 這批另外跑過：桌機守門1008（--workers 1）、客服鈕1009、願望清單1009、`_preview.py`（唯一一項 `#industry/ai_server` 800px 文字交疊是既有問題，基準 log 也有）。
 
 ## 2026-10-11 結帳與付款：綠界＋銀行轉帳（金流；DECISIONS #356；docs/payment_checkout_1011.md）
 - Andy 10-11：「點擊訂閱後需要跳出金流服務…還需要新增帳戶匯款…需要一個完整介面」＋「千萬不要發生付款後還沒開放…退款機制我是否能快速退款」＋查證「手動匯款能否每月扣款」（不行 → 轉帳預付制＋到期提醒）。

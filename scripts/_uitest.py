@@ -33131,16 +33131,14 @@ def t_bibi_1011(b, base):
     home("popcorn")
 
     # 打他 → 哭哭（新）
-    rec, oh = play_from("hit", 3800)
+    rec, oh = play_from("hit", 4600)
     hm = [r["hammer"] for r in rec if r["hammer"]]
     ok(f"【{T}】桌機 點「打他」→ 300ms 內在動、玩具槌從小圈（{oh['x']:.0f},{oh['y']:.0f}）飛過去敲頭（槌子出現 {len(hm)} 筆）",
        started(rec) and len(hm) >= 3 and abs(hm[0]["x"] - oh["x"]) < 70, hm[:2])
-    ok(f"【{T}】桌機 打他：頭上鼓一個包、比比被壓扁（{PRT['hit']}）",
-       any(r["bump"] for r in rec) and any(r["src"] == PRT["hit"] + ".webp" for r in rec)
-       and any(float(m.group(1)) > 1.03 and float(m.group(2)) < 0.97 for r in rec for m in [re.search(r"scale\(([\d.]+), ([\d.]+)\)", r["body"] or "")] if m), [r["body"] for r in rec[5:14]])
-    ok(f"【{T}】桌機 打他：接著哭哭（{PRT['cry']}）、眼淚噴出（最多 {max(r['tears'] for r in rec)} 顆）、身體一抖一抖",
-       any(r["src"] == PRT["cry"] + ".webp" for r in rec) and max(r["tears"] for r in rec) >= 4
-       and len(set(round(r["ox"], 1) for r in rec if r["src"] == PRT["cry"] + ".webp")) >= 4, [round(r["ox"], 1) for r in rec[-20::3]])
+    cry = [r for r in rec if r["src"] == PRT["cry"] + ".webp"]
+    ok(f"【{T}】桌機 打他：敲下去播 {PRT['hit']}（素材裡被壓扁、頭上冒包＋星星）→ 接著哭哭 {PRT['cry']}（循環，錄到 {len(cry) * 50} ms 以上）",
+       any(r["src"] == PRT["hit"] + ".webp" for r in rec) and len(cry) * 50 >= 2500
+       and rec.index(next(r for r in rec if r["src"] == PRT["hit"] + ".webp")) < rec.index(cry[0]), [r["src"] for r in rec[::8]])
     home("hit")
     click_opt("hit"); pg.wait_for_timeout(250)
     st = pg.evaluate(BIBI_ST)

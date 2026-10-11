@@ -35,7 +35,7 @@
     highfive: 1230, dance: 1690, hug: 1470, wake_once: 1350, selfie: 1250,
     eat_grass_v2: 2110, ball_catch: 2170, ball_catch_l: 2170, popcorn: 1530, pet_v2: 1730, spin_v2: 1650,
     run_r: 600, run_l: 600, run_start_r: 460, run_stop_r: 1060,
-    face_sweat: 1510, face_shock: 1240,   // 打他／哭哭的替代臉（bibi_hit／bibi_cry 到了換掉）
+    hit: 1030, cry: 1040,                 // 打他（播一次）／哭哭（循環一輪）
     // 動作編排的零件（10-11 晚；PART 那張表）：跑步替代 hop_l／hop_r（循環）、抬頭看 face_curious、東張西望 tilt
     face_curious: 1470, tilt: 1040, face_star: 1370,
     // Andy 10-11 指定的原版 Default 待機造型
@@ -90,7 +90,7 @@
     { id: 'grass', name: '餵牧草', file: 'eat_grass_v2', once: true, fx: 'grass', say: ['嚼嚼嚼…牧草好香！', '謝謝你餵我～'], cnt: (n) => `今天吃了 ${n} 口牧草，好飽～` },
     { id: 'ball', name: '玩球', file: 'ball_catch', once: true, fx: 'ball', say: ['接到了！', '再丟一次！'], cnt: (n) => `今天陪我玩了 ${n} 次球！` },
     { id: 'spin', name: '轉圈圈', file: 'spin_v2', once: true, fx: 'star', say: ['轉轉轉～頭好暈', '咕嚕咕嚕…眼睛在轉圈'], cnt: (n) => `今天轉了 ${n} 圈，頭好暈～` },
-    { id: 'hit', name: '打他', file: 'face_sweat', once: true, fx: 'star', say: ['嗚嗚…好痛', '哇——比比哭哭了'], cnt: (n) => `今天被打了 ${n} 次…嗚嗚` },
+    { id: 'hit', name: '打他', file: 'hit', once: true, fx: 'star', say: ['嗚嗚…好痛', '哇——比比哭哭了'], cnt: (n) => `今天被打了 ${n} 次…嗚嗚` },
     { id: 'five', name: '擊掌', file: 'highfive', once: true, fx: 'star', say: ['耶！擊掌！', '啪！今天也一起加油'], cnt: (n) => `今天第 ${n} 次擊掌，默契 100！` },
     { id: 'dance', name: '跳舞', file: 'dance', once: true, fx: 'note', say: ['跳起來～', '比比的舞步帥嗎？'], cnt: (n) => `今天跳了 ${n} 支舞！` },
     { id: 'hug', name: '抱抱', file: 'hug', once: true, fx: 'heart', say: ['抱抱～比比陪著你', '暖暖的'], cnt: (n) => `今天第 ${n} 個抱抱，好幸福` },
@@ -100,8 +100,7 @@
   /* 素材對照（was＝10-11 G1／G2 交件前用的替代素材，留著是為了萬一新素材要退回時知道原本是哪一組） */
   /* 小圈上的物件圖：動畫單位 10-11 交的 10 個圖示（docs/anim/bibi_icons → brand/bibi/icons/*.webp，奶油白圓底＋粗描邊，深淺主題都清楚）。
      沒列在這裡的（叫醒）用下面的線條圖示，外框照圖示同款畫。 */
-  const ICON_IMG = { ask: 'chat', popcorn: 'popcorn', pet: 'hand', grass: 'grass', ball: 'ball', spin: 'spin', five: 'highfive', dance: 'music', hug: 'heart', sleep: 'moon', selfie: 'camera' };
-  /* 「打他」的圖示（hammer_icon）還沒到：先用下面 SVG 的玩具槌 */
+  const ICON_IMG = { ask: 'chat', popcorn: 'popcorn', hit: 'hammer', pet: 'hand', grass: 'grass', ball: 'ball', spin: 'spin', five: 'highfive', dance: 'music', hug: 'heart', sleep: 'moon', selfie: 'camera' };
   const SVG = {
     ask: '<path d="M5 5.5h14a2.5 2.5 0 0 1 2.5 2.5v7A2.5 2.5 0 0 1 19 17.5h-6l-4.2 3.3v-3.3H5A2.5 2.5 0 0 1 2.5 15V8A2.5 2.5 0 0 1 5 5.5z" fill="#7cc4ff" fill-opacity=".35" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="M10 9.6a2 2 0 1 1 2.6 1.9c-.5.2-.6.5-.6 1v.4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><circle cx="12" cy="14.9" r=".95" fill="currentColor"/>',
     pet: '<ellipse cx="12" cy="15" rx="5" ry="4.2" fill="#ffb3c4" stroke="currentColor" stroke-width="1.5"/><circle cx="6.4" cy="9.6" r="1.9" fill="#ffb3c4" stroke="currentColor" stroke-width="1.4"/><circle cx="10" cy="7" r="1.9" fill="#ffb3c4" stroke="currentColor" stroke-width="1.4"/><circle cx="14" cy="7" r="1.9" fill="#ffb3c4" stroke="currentColor" stroke-width="1.4"/><circle cx="17.6" cy="9.6" r="1.9" fill="#ffb3c4" stroke="currentColor" stroke-width="1.4"/>',
@@ -113,7 +112,6 @@
     hug: '<path d="M12 20s-7.5-4.6-7.5-10.2A4.3 4.3 0 0 1 12 7.2a4.3 4.3 0 0 1 7.5 2.6C19.5 15.4 12 20 12 20z" fill="#ff7a93" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="M8.6 10.2c.3-.9 1-1.4 1.9-1.4" fill="none" stroke="#fff" stroke-width="1.3" stroke-linecap="round"/>',
     sleep: '<path d="M15.5 18.6A7.6 7.6 0 0 1 9.2 5.1a7.6 7.6 0 1 0 9.6 10.7 7.6 7.6 0 0 1-3.3 2.8z" fill="#ffe08a" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><path d="M14.6 4.2h3.6l-3.6 4h3.6" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>',
     popcorn: '<g fill="#fff3c4" stroke="currentColor" stroke-width="1.2"><circle cx="7.6" cy="9.4" r="2.5"/><circle cx="16.4" cy="9.4" r="2.5"/><circle cx="12" cy="7.6" r="2.9"/><circle cx="9.6" cy="5.2" r="2.1"/><circle cx="14.5" cy="5.3" r="2.1"/></g><path d="M5.6 10.8h12.8l-1.7 10a1.5 1.5 0 0 1-1.5 1.3H8.8a1.5 1.5 0 0 1-1.5-1.3z" fill="#fff"/><path d="M9.3 10.8l.8 11.3M14.7 10.8l-.8 11.3" stroke="#ec5a4c" stroke-width="2.3"/><path d="M5.6 10.8h12.8l-1.7 10a1.5 1.5 0 0 1-1.5 1.3H8.8a1.5 1.5 0 0 1-1.5-1.3z" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/>',
-    hit: '<g transform="rotate(-35 12 12)"><rect x="10.6" y="10" width="2.8" height="11.5" rx="1.4" fill="#e8b98a" stroke="currentColor" stroke-width="1.4"/><rect x="4" y="3.2" width="16" height="8.2" rx="3.6" fill="#ff8fb1" stroke="currentColor" stroke-width="1.5"/><path d="M8 3.6v7.4M16 3.6v7.4" stroke="#ffd36b" stroke-width="1.8"/><path d="M6.2 5.6c.8-.8 1.6-1 2.4-1" stroke="#fff" stroke-width="1.1" stroke-linecap="round" fill="none"/></g>',
     wake: '<circle cx="12" cy="12" r="4.4" fill="#ffc94d" stroke="currentColor" stroke-width="1.5"/><path d="M12 2.8v2.4M12 18.8v2.4M2.8 12h2.4M18.8 12h2.4M5.5 5.5l1.7 1.7M16.8 16.8l1.7 1.7M5.5 18.5l1.7-1.7M16.8 7.2l1.7-1.7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>',
     selfie: '<rect x="3" y="7" width="18" height="12.5" rx="2.6" fill="#8fd3ff" fill-opacity=".45" stroke="currentColor" stroke-width="1.6"/><path d="M8.4 7l1.4-2.4h4.4L15.6 7" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><circle cx="12" cy="13.2" r="3.4" fill="#fff" fill-opacity=".6" stroke="currentColor" stroke-width="1.6"/><circle cx="17.6" cy="9.8" r=".9" fill="currentColor"/>',
   };
@@ -516,7 +514,7 @@ html.fab-off .bibiring,html.fab-off .bibitip,html.fab-off .bibifx,html.fab-off #
     if (a0.id === 'hit' && Date.now() < hitUntil) { say('比比還在痛…等一下再玩嘛', 1800); return; }
     if (a0.id === 'hit') {
       const now = Date.now(); hitLog = hitLog.filter((t) => now - t < 60000); hitLog.push(now);
-      hitUntil = now + (MS[PART.cry] ? 0 : 0) + 3200 + (hitLog.length >= 3 ? 15000 : 4000);
+      hitUntil = now + 4500 + (hitLog.length >= 3 ? 15000 : 4000);   // 4.5 秒＝整段（飛＋敲＋哭）的長度
     }
     const br = btn && btn.getBoundingClientRect ? btn.getBoundingClientRect() : null;
     actFrom = br && br.width ? { x: br.left + br.width / 2, y: br.top + br.height / 2, w: br.width } : null;   // 道具從被點的那顆小圈飛出來
@@ -587,7 +585,7 @@ html.fab-off .bibiring,html.fab-off .bibitip,html.fab-off .bibifx,html.fab-off #
   const PART = { run_l: 'run_l', run_r: 'run_r', run_start_r: 'run_start_r', run_stop_r: 'run_stop_r',
     ball_catch: 'ball_catch', ball_catch_l: 'ball_catch_l', eat: 'eat_grass_v2', pet: 'pet_v2', spin: 'spin_v2', popcorn: 'popcorn',
     receive: 'receive', receive_grass: 'receive_grass', receive_ball: 'receive_ball',
-    hit: 'face_shock', cry: 'face_sweat',          // 替代：bibi_hit／bibi_cry 到了改成 'hit'／'cry'
+    hit: 'hit', cry: 'cry',                         // 打他（播一次）／哭哭（循環）：動畫單位 10-11 深夜交件
     look: 'face_curious', peek: 'tilt' };
   /* 預設待機：Andy 10-11 指定的原版 Default 造型（圖三 docs/anim/bibi_library/reference/default_idle_1011.webp → bibi_site.py default_idle）。
      「大部分時間都是那樣子」→ 一般情境一律用這張、每 3～5.5 秒穿插跳一次（JUMP）；深夜、國定假日、聖誕帽、大跌安慰保留原情境款。 */
@@ -619,15 +617,6 @@ html.fab-off .bibiring,html.fab-off .bibitip,html.fab-off .bibifx,html.fab-off #
     dizzy: () => '<svg viewBox="0 0 60 30" aria-hidden="true"><path d="M30 15m-2.5 0a2.5 2.5 0 1 1 5 0a5.5 5.5 0 1 1-11 0a8.5 8.5 0 1 1 17 0a11.5 11.5 0 1 1-23 0" fill="none" stroke="#9a7ae0" stroke-width="2.4" stroke-linecap="round"/></svg>',
     star: () => FX.star,
     heart: () => FX.heart,
-    /* 玩具槌（粉紅槌頭＋黃色條紋＋木頭握把；跟小圈圖示同款） */
-    hammer: () => '<svg viewBox="0 0 40 40" aria-hidden="true"><rect x="18" y="16" width="4.6" height="21" rx="2.3" fill="#e8b98a" stroke="#2b1611" stroke-width="2" transform="rotate(-35 20 20)"/>'
-      + '<g transform="rotate(-35 20 20)"><rect x="6" y="4" width="28" height="14" rx="6" fill="#ff8fb1" stroke="#2b1611" stroke-width="2.4"/><path d="M13 4.6v12.8M27 4.6v12.8" stroke="#ffd36b" stroke-width="3"/>'
-      + '<path d="M9.5 7.6c1.2-1.2 2.6-1.6 4-1.6" stroke="#fff" stroke-width="1.8" stroke-linecap="round" fill="none"/></g></svg>',
-    /* 頭上的包：粉紅鼓包＋高光＋兩條「痛」線 */
-    bump: () => '<svg viewBox="0 0 40 28" aria-hidden="true"><path d="M4 26c0-12 7-20 16-20s16 8 16 20z" fill="#ffb3c4" stroke="#2b1611" stroke-width="2.4" stroke-linejoin="round"/>'
-      + '<ellipse cx="15" cy="13" rx="4" ry="2.4" fill="#fff" opacity=".85" transform="rotate(-25 15 13)"/><path d="M2 8l4 3M38 8l-4 3M20 0v3.5" stroke="#2b1611" stroke-width="2" stroke-linecap="round"/></svg>',
-    /* 眼淚 */
-    tear: () => '<svg viewBox="0 0 14 20" aria-hidden="true"><path d="M7 1C7 1 1.5 9 1.5 13a5.5 5.5 0 0 0 11 0C12.5 9 7 1 7 1z" fill="#7cc8ff" stroke="#2b6aa0" stroke-width="1.2"/><ellipse cx="5" cy="12.5" rx="1.4" ry="2.2" fill="#fff" opacity=".8"/></svg>',
   };
   const E = {
     inOut: (k) => (k < 0.5 ? 4 * k * k * k : 1 - Math.pow(-2 * k + 2, 3) / 2),
@@ -909,62 +898,36 @@ html.fab-off .bibiring,html.fab-off .bibitip,html.fab-off .bibifx,html.fab-off #
   }
 
   /* ---------- 腳本：打他 → 哭哭（Andy 10-11 深夜：「需要新增打他互動，並且他會哭哭」） ----------
-     玩具槌從小圈飛過去、在頭上輕敲一下：冒星星＋頭上鼓一個包、比比被壓扁再彈回 → 哭哭：眼淚從兩眼噴出、抽泣、身體一抖一抖，約 2.5 秒回待機。
-     素材 bibi_hit（被敲）／bibi_cry（哭）還沒到：先用 face_shock／face_sweat＋SVG 淚滴、包。 */
+     玩具槌（動畫單位 hammer_prop）從被點的小圈飛過去、在頭上輕敲一下 → 播 hit（被敲：壓扁、頭上冒包＋星星、含淚；
+     最後一格是 Default，所以只播前 5 格 630ms）→ 循環播 cry 約 3.5 秒（素材自己抽泣、噴淚）→ 回待機。
+     包、星星、眼淚都畫在素材裡，網頁只負責槌子飛過去、敲下去那一下和「嗚嗚」字。 */
   async function hitScript(g) {
-    const S = srcPoint(g), head = sc(g, 248, 236), k = g.s / 440;
-    const hm = prop('hammer', g.mob ? 34 : 40, g.mob ? 34 : 40);
-    hm.style.transformOrigin = '78% 82%';                      // 繞著握把尾端揮
-    at(hm, S.x, S.y, ' rotate(-240deg)', 0);
-    show(PART.look);
-    const top = { x: head.x + g.s * 0.2, y: head.y - g.s * 0.28 };
+    const S = srcPoint(g), head = sc(g, 248, 236);
+    const w = g.mob ? 34 : 42, hm = propPic('hammer', w, w * 128 / 120);
+    hm.style.transformOrigin = '82% 88%';                      // 繞著握把尾端揮
+    at(hm, S.x, S.y, ' rotate(-200deg)', 0);
+    const top = { x: head.x + g.s * 0.2, y: head.y - g.s * 0.3 };
     await tween(300, (u) => {                                  // 從小圈飛過去（邊飛邊轉、舉高）
       const e = E.inOut(u);
-      at(hm, S.x + (top.x - S.x) * e, S.y + (top.y - S.y) * e - 40 * Math.sin(Math.PI * u), ` rotate(${(-200 * (1 - e) - 40).toFixed(1)}deg)`, Math.min(1, u * 5));
+      at(hm, S.x + (top.x - S.x) * e, S.y + (top.y - S.y) * e - 40 * Math.sin(Math.PI * u), ` rotate(${(-200 * (1 - e) - 30).toFixed(1)}deg)`, Math.min(1, u * 5));
       pose(0, 0, { sy: 1 - 0.03 * u });                        // 比比縮一下（知道要被敲了）
     });
-    await tween(110, (u) => at(hm, top.x, top.y + 10 * E.in(u), ` rotate(${(-40 + 70 * E.in(u)).toFixed(1)}deg)`));   // 咚！
-    show(PART.hit, true);
-    burstAt('star', head.x, head.y - 8, 6, 2.2);
-    const bump = prop('bump', g.s * 0.2, g.s * 0.14);
-    await tween(340, (u) => {                                  // 被壓扁（壓住 0.1 秒）再彈回、槌子彈開
-      const d = u < 0.3 ? 1 : E.damp((u - 0.3) / 0.7, 2.5);
-      pose(0, 0, { sx: 1 + 0.16 * d, sy: 1 - 0.22 * d });
-      at(hm, top.x + 20 * u, top.y + 10 - 30 * Math.sin(Math.PI * u), ` rotate(${(30 - 60 * u).toFixed(1)}deg)`, (1 - u).toFixed(2));
-      at(bump, head.x + g.s * 0.06, head.y - g.s * 0.02 - 6 * Math.min(1, u * 2), ` scale(${(0.3 + 0.8 * E.out(Math.min(1, u * 1.6))).toFixed(2)})`, 1);
+    await tween(100, (u) => at(hm, top.x, top.y + 10 * E.in(u), ` rotate(${(-30 + 60 * E.in(u)).toFixed(1)}deg)`));   // 咚！
+    show(PART.hit, true);                                      // 被敲：素材第 1 格就是壓扁＋衝擊線
+    burstAt('star', head.x, head.y - 8, 3, 2.2);
+    const HIT_MS = 630;                                        // hit 第 1～5 格（60＋70＋90＋110＋300）；第 6 格是 Default，不播
+    await tween(HIT_MS, (u) => {                               // 槌子彈開淡出
+      at(hm, top.x + 24 * u, top.y + 10 - 34 * Math.sin(Math.PI * Math.min(1, u * 1.6)), ` rotate(${(30 - 70 * u).toFixed(1)}deg)`, Math.max(0, 1 - u * 2.2).toFixed(2));
+      pose(0, 0, { sy: 1 - 0.03 * (1 - u) });
     });
     hm.remove();
     cue();
-    // 哭哭：兩眼噴淚、抽泣、一抖一抖
-    show(PART.cry, true);
-    const eyes = [sc(g, 202, 318), sc(g, 294, 318)];
-    let next = 0, said = 0;
-    await tween(2500, (u, t) => {
-      const sob = Math.sin(t / 95 * Math.PI) * (t % 700 < 420 ? 1 : 0.25);   // 抽泣：一陣一陣
-      pose(sob * 1.6, Math.abs(sob) * -1.5, { sy: 1 - 0.035 * Math.abs(sob), sx: 1 + 0.025 * Math.abs(sob) });
-      at(bump, head.x + g.s * 0.06, head.y - g.s * 0.02 - 6, '', u > 0.85 ? ((1 - u) / 0.15).toFixed(2) : 1);
-      if (t >= next) {
-        next = t + 150;
-        eyes.forEach((e, i) => tear(e.x, e.y, i === 0 ? -1 : 1, k));
-      }
-      if (!said && t > 300) { said = 1; floatText('嗚嗚', g.cx, g.top + g.s * 0.02); }          // 頭頂上方（說明泡泡在旁邊，不會疊到）
-      if (said === 1 && t > 1400) { said = 2; floatText('嗚嗚', g.cx, g.top); }
+    show(PART.cry);                                            // 哭哭：循環素材（抽噎、噴淚）
+    let said = 0;
+    await tween(3500, (u, t) => {
+      if (!said && t > 200) { said = 1; floatText('嗚嗚', g.cx, g.top + g.s * 0.02); }          // 頭頂上方（說明泡泡在旁邊，不會疊到）
+      if (said === 1 && t > 1700) { said = 2; floatText('嗚嗚', g.cx, g.top); }
     });
-    bump.remove();
-  }
-  /** 一顆眼淚：從眼角往外噴（拋物線）、落下淡出 */
-  function tear(x, y, side, k) {
-    const el = prop('tear', 7, 10);
-    const vx = side * (40 + Math.random() * 40), vy = -(50 + Math.random() * 40), T0 = performance.now();
-    const tok = runTok;
-    const step = (now) => {
-      if (tok !== runTok || !el.isConnected) { el.remove(); return; }
-      const t = (now - T0) / 1000;
-      if (t > 0.65) { el.remove(); return; }
-      at(el, x + side * 4 + vx * t, y + vy * t + 420 * t * t, ` rotate(${(side * 30 * t * 3).toFixed(1)}deg)`, (1 - t / 0.65).toFixed(2));
-      requestAnimationFrame(step);
-    };
-    requestAnimationFrame(step);
   }
   const CHOREO = { ball: ballScript, grass: grassScript, pet: petScript, spin: spinScript, popcorn: popcornScript, hit: hitScript };
 
