@@ -81,7 +81,7 @@ def build():
     S.append(shot("f02", "產業地圖", "V12a_mobile", [(2.0, 6.0)], "3D 拆開看", "戴上眼鏡，推一下就轉！", [(0, "3dglasses"), (2.0, "face_star")], pan=(700, 700)))
     S.append(grid_card("f03", GRID_M))
     # 手機錄影沒有「滑過」動作（hover 落在畫面外、連線不亮），台詞改成畫面實際有的：上下游供貨關係一張連起來；視窗固定在關聯圖本體
-    S.append(shot("f04", "產業地圖", "V13_mobile_v3b", [(3.4, 6.6)], "上下游一張連", "上下游供貨關係，連成一張圖", [(0, "point_r"), (2.0, "face_love")], fixed=1250, noev=True))
+    S.append(shot("f04", "產業地圖", "V13_mobile_v3b", [(1.2, 3.3)], "上下游一張連", "上下游供貨關係，連成一張圖", [(0, "point_r"), (2.0, "face_love")], fixed=1250, noev=True, limit=4.1))
     D10 = "D10_mobile_v3j"
     S.append(shot("g01", "個股", D10, [(1.1, 3.4)], "⑥ 個股一頁看", "這檔的走勢，我幫你打開", [(0, "talk_explain"), (1.0, "face_curious")], pan=(300, 300)))
     S.append(shot("g02", "個股", D10, [(3.9, 7.0)], "週期一鍵切", "日、週、月，點一下切換", [(0, "face_nod")]))
