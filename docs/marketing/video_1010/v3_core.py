@@ -263,39 +263,45 @@ def plan_mobile(rec, op, D, L):
     if not taps:
         return None, [], 0.0
     items = []
+    meta_all = getattr(rec, "meta", {}) or {}
     for tp in taps:
-        rect, lab, src = post_click_content(rec.clip, tp["src_t"], tp["cy"])
+        mt = meta_all.get(round(tp["src_t"], 2))
+        if mt:
+            rect, lab, src, arr = mt["rect"], mt["label"], "錄影端 click_targets.content_rect", mt["vis_local"]
+        else:
+            rect, lab, src = post_click_content(rec.clip, tp["src_t"], tp["cy"])
+            arr = tp["t"] + 0.95
         rect = _clip_rect(rect, sw, sh)
         h = rect[3] - rect[1]
         w_c = cl(rect[1] - (160 if h <= wh - 200 else 100))
         cy = tp["cy"]
         w_t = None if (w_c + 40 <= cy <= w_c + wh - 40) else cl(cy - wh * 0.3)
-        items.append({"c": tp["t"], "rect": rect, "lab": lab, "src": src, "w_c": w_c, "w_t": w_t, "tp": tp})
+        items.append({"c": tp["t"], "arr": arr, "rect": rect, "lab": lab, "src": src, "w_c": w_c, "w_t": w_t, "tp": tp})
     keys = []
     first = items[0]
     keys.append((0.0, first["w_t"] if first["w_t"] is not None else first["w_c"]))
     for k, it in enumerate(items):
-        c = it["c"]
+        c, arr = it["c"], it["arr"]
         if it["w_t"] is not None:
             keys.append((c + 0.25, it["w_t"]))
-        keys.append((c + 0.95, it["w_c"]))
+        keys.append((arr, it["w_c"]))
         nxt = items[k + 1] if k + 1 < len(items) else None
         if nxt:
             tgt = nxt["w_t"] if nxt["w_t"] is not None else nxt["w_c"]
             if abs(tgt - it["w_c"]) > 1:
-                keys.append((max(c + 1.0, nxt["c"] - 0.7), it["w_c"]))
+                keys.append((max(arr + 0.1, nxt["c"] - 0.7), it["w_c"]))
                 keys.append((nxt["c"] - 0.1, tgt))
     last = items[-1]
     h = last["rect"][3] - last["rect"][1]
-    dmin = last["c"] + 0.95 + 1.5
+    dmin = last["arr"] + 1.5
     reached = True
     if h > wh - 200:
         y_end = cl(last["rect"][3] - wh + 40)
         dist = max(0.0, y_end - last["w_c"])
         tscroll = max(0.8, dist / SPEED)
-        keys.append((last["c"] + 1.7, last["w_c"]))
-        keys.append((last["c"] + 1.7 + tscroll, y_end))
-        dmin = last["c"] + 1.7 + tscroll + 1.2
+        keys.append((last["arr"] + 0.8, last["w_c"]))
+        keys.append((last["arr"] + 0.8 + tscroll, y_end))
+        dmin = last["arr"] + 0.8 + tscroll + 1.2
     out = []
     for t_, y_ in sorted(keys, key=lambda x: x[0]):
         if out and t_ <= out[-1][0] + 1e-3:
@@ -315,14 +321,109 @@ def plan_mobile(rec, op, D, L):
         c = it["c"]
         r = it["rect"]
         top = (r[0], r[1], r[2], min(r[3], r[1] + wh - 120))
-        t_chk = c + 1.5
+        t_chk = it["arr"] + 0.1
         if k_ + 1 < len(items):
-            t_chk = min(t_chk, max(c + 0.95, items[k_ + 1]["c"] - 0.75))
+            t_chk = min(t_chk, max(c + 0.5, items[k_ + 1]["c"] - 0.75))
         w15 = win_at(t_chk)
         inc = _area(_inter_rect(top, (0, w15, sw, w15 + wh))) / max(1.0, _area(top))
         note = "內容高於視窗：取上段並慢滑到底" if r[3] - r[1] > wh - 200 else ""
         chk.append((it["lab"], round(inc * 100, 1), it["src"], note, it["tp"], r))
     return out, chk, dmin
+
+
+def content_info(clip, t_src):
+    """click_targets 裡錄影端量到的「點擊後內容區」：回傳 dict(rect, label, vis=(t0,t1)) 或 None。"""
+    allj = load_all()
+    for key in _clip_keys(clip):
+        best = None
+        for it in (allj.get(key) or {}).get("targets", []):
+            if it.get("kind", "click") != "click" or not it.get("content_rect") or not it.get("content_visible_t"):
+                continue
+            dt = abs(float(it["t"]) - t_src)
+            if dt < 0.6 and (best is None or dt < best[0]):
+                best = (dt, it)
+        if best:
+            it = best[1]
+            return {"rect": _xywh(it["content_rect"]), "label": it.get("content_label", ""), "vis": tuple(it["content_visible_t"])}
+    return None
+
+
+def auto_map(clip, win, hold=1.6, ff=3.0, lead=0.6, tail=0.6):
+    """依錄影端的點擊內容資訊自動排素材時間軸：點下前 lead 秒原速 → 點下後 tail 秒原速 → 快轉（ff 倍）到內容完整入框 → 原速停 hold 秒。
+    回傳 (srcmap, D, meta)；meta[src_t] = {"vis_local": 內容入框的鏡內秒, "rect", "label"}。"""
+    evs = [e for e in events_for(clip) if e["kind"] == "tap" and win[0] <= e["t"] <= win[1]]
+    pts = []
+    state = {"loc": 0.0, "src": None}
+    meta = {}
+
+    def add(src_to, speed):
+        if state["src"] is None:
+            state["src"] = src_to
+            pts.append((0.0, src_to))
+            return
+        dur = max(0.05, (src_to - state["src"]) / speed)
+        state["loc"] += dur
+        state["src"] = src_to
+        pts.append((state["loc"], src_to))
+    first = True
+    for e in evs:
+        a = e["t"] - (lead if first else 0.5)
+        if first:
+            add(max(0.0, a), 1.0)
+            first = False
+        elif a > state["src"] + 0.05:
+            add(a, ff)
+        add(e["t"] + tail, 1.0)
+        info = content_info(clip, e["t"])
+        if info:
+            v0, v1 = info["vis"]
+            if v0 > state["src"] + 0.1:
+                add(v0, ff)
+            meta[round(e["t"], 2)] = {"vis_local": state["loc"], "rect": info["rect"], "label": info["label"]}
+            add(min(v0 + hold, clip_dur(clip) - 0.05), 1.0)
+        else:
+            add(min(e["t"] + tail + 1.0, clip_dur(clip) - 0.05), 1.0)
+    return pts, state["loc"], meta
+
+
+def seq_map(segs):
+    """連續點擊序列的時間軸：segs＝[(src_a, src_b, speed), ...]；回傳 (srcmap, D)。"""
+    pts = []
+    loc = 0.0
+    for (a, b, sp) in segs:
+        if not pts:
+            pts.append((0.0, a))
+        elif abs(pts[-1][1] - a) > 1e-6:
+            pts.append((loc + 1e-4, a))
+        loc += (b - a) / sp
+        pts.append((loc, b))
+    return pts, loc
+
+
+def plan_follow(rec, op, L):
+    """手機連續點擊序列：視窗固定在能同時看到所有點擊目標（含其下方內容）的位置；目標分散太遠就跟著走。回傳 pan_keys。"""
+    sw, sh = clip_size(rec.clip)
+    wh = L.box[3] * sw / L.box[2]
+    maxy = max(0.0, sh - wh)
+    taps = [tp for tp in op.taps if not tp["hover"]]
+    if not taps:
+        return None
+    ys = [tp["cy"] for tp in taps]
+    lo, hi = min(ys), max(ys)
+    if hi - lo <= wh - 500:
+        y = min(max(lo - 260, 0), maxy)
+        return [(0.0, y), (1.0, y)]
+    keys = []
+    for tp in taps:
+        y = min(max(tp["cy"] - wh * 0.35, 0), maxy)
+        keys.append((max(0.0, tp["t"] - 0.5), y))
+    out = []
+    for t_, y_ in keys:
+        if out and t_ <= out[-1][0] + 1e-3:
+            out[-1] = (out[-1][0], y_)
+        else:
+            out.append((t_, y_))
+    return out
 
 
 DWELLCHK: list = []   # (鏡, 內容量, 規定最短秒, 實際秒, 是否看完(底部入窗停≥1.2s), 備註)
@@ -768,7 +869,15 @@ def parse_events():
 
 
 def events_for(clip):
-    return parse_events().get(clip, [])
+    ev = parse_events().get(clip, [])
+    if any(e["kind"] == "tap" for e in ev):
+        return ev
+    allj = load_all()
+    syn = []
+    for it in (allj.get(clip) or {}).get("targets", []):
+        if it.get("kind", "click") == "click" and it.get("center"):
+            syn.append({"t": float(it["t"]), "kind": "tap", "x": int(round(it["center"][0])), "y": int(round(it["center"][1]))})
+    return ev + sorted(syn, key=lambda e: e["t"]) if syn else ev
 
 
 def inv_srcmap(srcmap, st, tol=1e-6):
@@ -937,7 +1046,7 @@ class Op:
             if e["kind"] in ("tap", "hover"):
                 if lt < (self.FLYC if chain in ('mid', 'end') else self.FLY) + 0.02:
                     continue
-                near = last_xy and abs(e["x"] - last_xy[0]) < 70 and abs(e["y"] - last_xy[1]) < 70 and lt - last_t < 3.5
+                near = (not chain) and last_xy and abs(e["x"] - last_xy[0]) < 70 and abs(e["y"] - last_xy[1]) < 70 and lt - last_t < 3.5
                 if near:
                     continue
                 dense = (lt - last_t) < 0.9
@@ -997,7 +1106,11 @@ class Op:
             return "tail"
         if self.chain:
             c0, cl = taps[0]["t"], taps[-1]["t"]
-            if self.chain == "start":
+            if self.chain in ("start", "solo"):
+                if self.chain == "solo" and t >= cl + self.STAY - 0.05:
+                    if t < cl + self.STAY + self.BACK + 0.1:
+                        return "hide"
+                    return "tail"
                 if t < c0 - self.FLY - 0.08:
                     return "tail"
                 if t < c0 + 0.05:
@@ -1085,8 +1198,8 @@ class Op:
                 tsz = 150
                 for i, (c, tgt) in enumerate(tl):
                     first = i == 0
-                    start = (home if self.chain == "start" else pos_in) if first else tl[i - 1][1]
-                    fly = self.FLY if (first and self.chain == "start") else self.FLYC
+                    start = (home if self.chain in ("start", "solo") else pos_in) if first else tl[i - 1][1]
+                    fly = self.FLY if (first and self.chain in ("start", "solo")) else self.FLYC
                     nxt_f0 = tl[i + 1][0] - self.FLYC if i + 1 < len(tl) else None
                     if first and self.chain in ("mid", "end") and t < c - fly:
                         ROLE[0] = "bibi_tap"
@@ -1098,11 +1211,11 @@ class Op:
                         arc = (110 if fly > 0.3 else 40) * THEME["bounce"] * math.sin(math.pi * u)
                         foot = (lerp(start[0], tgt[0], u), max(rec.rect[1] + tsz + 4, lerp(start[1], tgt[1], u) - arc))
                         ROLE[0] = "bibi_tap"
-                        put_sprite(cv, "tap", 3 + int(clamp(u, 0, 0.999) * 5), foot, lerp(hs, tsz, u) if (first and self.chain == "start") else tsz)
+                        put_sprite(cv, "tap", 3 + int(clamp(u, 0, 0.999) * 5), foot, lerp(hs, tsz, u) if (first and self.chain in ("start", "solo")) else tsz)
                         ROLE[0] = "bibi"
                         return
                     if t >= c and (nxt_f0 is None or t < nxt_f0):
-                        if nxt_f0 is None and self.chain == "end":
+                        if nxt_f0 is None and self.chain in ("end", "solo"):
                             if t < c + self.STAY:
                                 ROLE[0] = "bibi_tap"
                                 put_sprite(cv, "tap", 8 + (1 if t - c > 0.1 else 0), tgt, tsz)
@@ -1117,7 +1230,11 @@ class Op:
                                 return
                         else:
                             ROLE[0] = "bibi_tap"
-                            put_sprite(cv, "tap", 8 + int((t - c) * 4) % 2, tgt, tsz)
+                            if t - c < 0.25:
+                                put_sprite(cv, "tap", 8 + (1 if t - c > 0.1 else 0), tgt, tsz)
+                            else:
+                                nm_ = self.idle_name(t)
+                                put_sprite(cv, nm_, anim_frame(nm_, t), tgt, tsz)
                             ROLE[0] = "bibi"
                             return
         else:

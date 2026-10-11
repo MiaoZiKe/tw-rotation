@@ -6,7 +6,7 @@ from __future__ import annotations
 
 import render_v3 as R
 import v3_cards as K
-from v3_core import Focus4, Lay, Op, Rec4, Shot4, Fn, solve_pan, plan_dwell
+from v3_core import Focus4, Lay, Op, Rec4, Shot4, Fn, solve_pan, plan_dwell, seq_map, auto_map
 
 _LW = Lay('web')
 
@@ -48,6 +48,22 @@ def featv(sid, D, clip_full, srcmap, head, hl, sub, pill, focus=None, idle="talk
     _sh = Shot4(sid, D, [rec], pill=pill, head=head, hl=hl, sub=sub, op=op)
     _sh.dwell = dw
     return _sh
+
+
+def seqv(sid, clip_full, segs, head, hl, sub, pill, idle="talk_happy", main=None, focus=None):
+    """連續點擊序列（快節奏）：比比從上一個目標直接跳到下一個，開頭進場、結尾退場各一次。"""
+    sm, D = seq_map(segs)
+    rec = Rec4(clip_full, sm, focus=focus, main=main)
+    op = Op(rec, idle=idle, chain="solo")
+    sh = Shot4(sid, round(D, 2), [rec], pill=pill, head=head, hl=hl, sub=sub, op=op)
+    sh.dwell = {"units": 1, "min_req": 0, "reading": 0, "D": round(D, 2), "reached": True, "hold": 0.0, "note": "快節奏序列（Andy 指定）", "ok": True}
+    return sh
+
+
+def autov(sid, clip_full, win, head, hl, sub, pill, idle="talk_happy", focus=None, main=None, hold=1.6):
+    """依錄影端「點擊後內容區」自動排時間軸：點下→內容出現並入框→停留。"""
+    sm, D, meta = auto_map(clip_full, win, hold=hold)
+    return featv(sid, D, clip_full, sm, head, hl, sub, pill, focus=focus, idle=idle, main=main)
 
 
 def card(sid, D, fn, cues=()):
@@ -96,22 +112,19 @@ def build():
     S.append(feat("12", 2.5, "V08", stat(3.1, 2.5), "④ 哪裡熱一眼看", "一眼看", '哪裡熱？整個台股我幫你畫成一張圖', "熱力圖",
                   focus=F((480, 200, 2260, 1120), "半導體", "V08", 0.5, t_zoom=1.0), idle=[(0, 'magnifier'), (1.4, 'face_star')]))
     V7 = "V07b_desktop_v3g"
-    S.append(featv("13a", 2.0, V7, [(0, 4.3), (2.0, 6.3)], "上中下游，一路看到底", "一路", "上中下游，一路看到底", "熱力圖",
-                   idle=[(0, "fire"), (1.0, "face_shock")], main=[(480, 130, 3168, 1000)]))
-    S.append(featv("13b", 1.2, V7, [(0, 12.55), (1.2, 13.75)], "上中下游，一路看到底", "一路", "上中下游，一路看到底", "熱力圖",
-                   focus=FV((0, 0, 1, 1), "AI 伺服器：環節 1 卡片", V7, 0.6, d_draw=0.3), idle="pointer_r", main=[(480, 396, 3168, 1482)], chain="start"))
-    S.append(featv("13c", 1.2, V7, [(0, 16.3), (1.2, 17.5)], "上中下游，一路看到底", "一路", "上中下游，一路看到底", "熱力圖",
-                   focus=FV((0, 0, 1, 1), "AI 伺服器：環節 2 卡片", V7, 0.6, d_draw=0.3), idle="face_curious", main=[(480, 396, 3168, 1482)], chain="mid"))
-    S.append(featv("13d", 1.2, V7, [(0, 19.9), (1.2, 21.1)], "上中下游，一路看到底", "一路", "上中下游，一路看到底", "熱力圖",
-                   focus=FV((0, 0, 1, 1), "AI 伺服器：環節 3 卡片", V7, 0.6, d_draw=0.3), idle="magnifier", main=[(480, 396, 3168, 1482)], chain="mid"))
-    S.append(featv("13e", 1.2, V7, [(0, 23.6), (1.2, 24.8)], "上中下游，一路看到底", "一路", "上中下游，一路看到底", "熱力圖",
-                   focus=FV((0, 0, 1, 1), "AI 伺服器：環節 4 卡片", V7, 0.6, d_draw=0.3), idle="face_think", main=[(480, 396, 3168, 1482)], chain="mid"))
-    S.append(featv("13f", 1.2, V7, [(0, 27.2), (1.2, 28.4)], "上中下游，一路看到底", "一路", "上中下游，一路看到底", "熱力圖",
-                   focus=FV((0, 0, 1, 1), "AI 伺服器：環節 5 卡片", V7, 0.6, d_draw=0.3), idle="face_proud", main=[(480, 396, 3168, 1482)], chain="end"))
+    S.append(seqv("13s", "I01_desktop_v3i", [(3.2, 4.9, 1.0), (4.9, 6.5, 2.5), (6.5, 14.4, 1.35)], "上中下游，一路看到底", "一路", "上中下游，一路看到底", "熱力圖",
+                  idle=[(0, "fire"), (1.5, "pointer_r"), (2.6, "face_curious"), (3.7, "magnifier"), (4.8, "face_think"), (5.9, "face_proud")], main=[(480, 130, 3168, 1500)]))
+    pass
+    pass
+    pass
+    pass
+    pass
     S.append(feat("14", 2.0, "V08", act(4.5, 2.0, 1.0, 0.8), "點進產業鏈", "產業鏈", "看到熱的，點下去我就帶你進產業鏈", "熱力圖",
                   idle=[(0, "face_wink")]))
-    S.append(feat("15", 2.0, "V11", stat(0.5, 2.0), "⑤ 產業鏈地圖", "產業鏈", '產業鏈我都拆好了，一條一條選', "產業地圖",
-                  focus=F((440, 70, 3130, 250), "產業鏈分頁", "V11", 0.4, zoom=False), idle=[(0, 'talk_explain')]))
+    S.append(feat("15", 2.0, "V11", stat(0.5, 2.0), "⑤ 產業鏈地圖", "產業鏈", "半導體、AI 伺服器…每條產業鏈我都拆好了", "產業地圖",
+                  focus=F((440, 70, 3130, 250), "產業鏈分頁", "V11", 0.4, zoom=False), idle='talk_explain'))
+    S.append(seqv("15s", "I04_desktop_v3i", [(0.8, 1.6, 1.0), (1.6, 7.6, 1.5)], "產業鏈連著選", "連著選", "半導體、AI 伺服器、一般電子、金融，一個一個切給你看", "產業地圖",
+                  idle=[(0, "face_wink"), (1.2, "pointer_r"), (2.4, "face_curious"), (3.6, "face_star")]))
     S.append(feat("16", 2.5, "V11", stat(15.0, 2.5), "2D 看懂產業鏈", "2D", '圓圈編號對到說明卡，我一段一段講給你', "產業地圖",
                   focus=F((440, 360, 3150, 1500), "2D 剖析圖", "V11", 0.5, t_zoom=1.0), idle=[(0, 'face_nod'), (1.5, 'talk_happy')]))
     S.append(feat("17", 2.0, "V12a", [(0, 1.2), (2.0, 2.9)], "切到 3D！", "3D", '點「3D」，整台機櫃我幫你立體拆開', "產業地圖",
@@ -142,6 +155,17 @@ def build():
                    idle="face_think"))
     S.append(featv("23e", 1.8, D2, [(0, 17.0), (1.8, 18.8)], "切到消息面", "消息面", "消息面，我把新聞整理成一面給你", "個股",
                    idle="news"))
+    D8, D9 = "D08_desktop_v3h", "D09_desktop_v3h"
+    S.append(featv("24r1", 4.2, D8, [(0, 11.0), (1.4, 12.4), (2.6, 15.8), (4.2, 17.4)], "營收：月營收圖", "營收", "月營收和年增率，每個月我幫你畫好", "個股",
+                   focus=FV((514, 825, 1354, 1345), "月營收圖", D8, 2.8), idle=[(0, "piggy"), (2.4, "face_proud")]))
+    S.append(featv("24r2", 2.6, D8, [(0, 18.9), (2.6, 20.5)], "營收：年同期比較", "年同期", "跟去年同期比，一眼看出成長", "個股",
+                   focus=FV((1446, 689, 2286, 1345), "年同期比較圖", D8, 0.4), idle="growth"))
+    S.append(featv("24p1", 4.2, D9, [(0, 11.0), (1.4, 12.4), (2.6, 15.8), (4.2, 17.4)], "獲利：本益比河流圖", "獲利", "本益比河流圖，現在貴還是便宜我幫你標出來", "個股",
+                   focus=FV((480, 405, 2264, 1471), "本益比河流圖", D9, 2.8), idle=[(0, "calc"), (2.4, "face_think")]))
+    S.append(featv("24p2", 2.6, D9, [(0, 21.9), (2.6, 23.5)], "獲利：EPS 與毛利率", "EPS", "EPS、毛利率的變化，我整理在同一張圖", "個股",
+                   focus=FV((480, 731, 2038, 1371), "EPS／毛利率圖", D9, 0.4), idle="bulb"))
+    S.append(featv("24p3", 2.6, D9, [(0, 25.1), (2.6, 26.9)], "獲利：財報表", "財報表", "財報表也列好，數字我幫你排整齊", "個股",
+                   focus=FV((2062, 731, 3168, 1371), "財報表", D9, 0.4), idle="folder"))
     S.append(featv("24a", 2.4, "D06_desktop_v3d", [(0, 7.1), (2.4, 9.5)], "切週期，K 線立刻換", "切週期", "切週期，K 線我立刻幫你換", "個股",
                    idle=[(0, "face_star"), (1.2, "face_proud")]))
     S.append(featv("24a3", 2.4, "D06_desktop_v3d", stat(19.9, 2.4), "四個週期並排看", "並排", "日、週、月、季四個週期，我幫你並排看", "個股",
@@ -154,28 +178,38 @@ def build():
                    idle="folder"))
     S.append(featv("24c2", 2.4, "D07_desktop_v3d", [(0, 7.6), (2.4, 12.4)], "除權息紀錄", "除權息", "歷年股利、除息日，我幫你列出來", "個股",
                    idle="piggy"))
-    S.append(feat("25", 2.5, "V16", act(3.4, 2.5, 1.3, 0.8), "⑦ 完整名單", "完整名單", '完整名單我排給你，點欄位就能排序', "市場明細",
+    S.append(feat("25", 2.5, "V16", act(3.4, 2.5, 1.3, 0.8), "⑦ 完整名單", "完整名單", "完整名單我排給你，點欄位就能排序", "市場明細",
                   focus=F((1880, 230, 3140, 340), "分頁列", "V16", 1.4, zoom=False), idle=[(0, 'hourglass'), (1.5, 'face_nod')]))
-    S.append(feat("26", 2.5, "V17", act(6.6, 2.5, 1.0, 0.8), "⑧ 公開條件篩", "條件篩", '用公開條件篩一遍，省下你自己翻的時間', "選股策略",
+    S.append(seqv("25s", "I05_desktop_v3i", [(0.7, 10.0, 1.6)], "名單連著篩", "連著篩", "漲停、跌停、漲幅前段…一個鍵一份名單，我連著點給你看", "市場明細",
+                  idle=[(0, "face_curious"), (1.5, "magnifier"), (3.0, "face_nod"), (4.5, "face_shock")]))
+    S.append(feat("26", 2.5, "V17", act(6.6, 2.5, 1.0, 0.8), "⑧ 公開條件篩", "條件篩", "用公開條件篩一遍，省下你自己翻的時間", "選股策略",
                   focus=F((440, 330, 3150, 1500), "條件卡", "V17", 1.4, zoom=False), idle=[(0, 'face_think'), (1.6, 'pointer_r')]))
-    S.append(feat("27", 2.0, "V18", stat(3.3, 2.0), "⑨ 週期統計", "週期", '各族群每個月份的表現，我排成一張表', "週期統計",
-                  focus=F((2500, 230, 2790, 1320), "本月欄", "V18", 0.4, t_zoom=0.95), idle=[(0, 'face_curious')]))
+    S.append(seqv("26s", "I05_desktop_v3i", [(16.4, 24.2, 1.7)], "四個面向連著切", "連著切", "技術、籌碼、消息、基本，四個面向我連著切給你看", "選股策略",
+                  idle=[(0, "face_think"), (1.4, "magnifier"), (2.8, "face_nod")]))
+    S.append(feat("27", 2.0, "V18", stat(3.3, 2.0), "⑨ 週期統計", "週期", "各族群每個月份的表現，我排成一張表", "週期統計",
+                  focus=F((2500, 230, 2790, 1320), "本月欄", "V18", 0.4, t_zoom=0.95), idle='face_curious'))
+    S.append(seqv("27s", "I04_desktop_v3i", [(13.2, 19.2, 1.0), (19.2, 19.6, 3.0), (19.6, 23.8, 1.3)], "條件連著換", "連著換", "期間、報酬、月份，一個條件一個條件換給你看", "週期統計",
+                  idle=[(0, "hourglass"), (1.6, "face_nod"), (3.2, "face_think"), (4.8, "face_star"), (6.4, "face_proud")]))
     S.append(feat("28", 2.5, "V19", act(4.3, 2.5, 1.3, 0.8), "⑩ ETF 配息日曆", "配息日曆", '哪天除息、配多少，月曆我全寫好了', "ETF",
                   focus=F((1150, 540, 3150, 1300), "當日除息清單", "V19", 1.5, zoom=False), idle=[(0, 'piggy'), (1.6, 'face_love')]))
-    S.append(feat("29", 2.5, "V20", act(3.1, 2.5, 1.5, 0.8), "各類前五名", "前五名", '每一類前五名，我幫你挑出來', "ETF",
+    S.append(feat("29", 2.5, "V20", act(3.1, 2.5, 1.5, 0.8), "各類前五名", "前五名", "每一類最受歡迎、報酬、殖利率前五名，我幫你挑出來", "ETF",
                   focus=F((440, 180, 3150, 900), "前五名三張卡", "V20", 1.5, zoom=False), idle=[(0, 'trophy'), (1.7, 'face_proud')]))
-    S.append(feat("30", 3.0, "V21", act(4.3, 3.0, 1.6, 0.8), "報酬放一起比", "一起比", '幾檔一起比，含息不含息我分開算', "ETF",
+    S.append(seqv("29s", "I03_desktop_v3i", [(14.3, 15.0, 1.0), (15.0, 28.0, 1.7)], "ETF 類型一頁一頁看", "一頁一頁", "七種 ETF 類型，每類前五名我連著點給你看", "ETF",
+                  idle=[(0, "face_curious"), (1.5, "trophy"), (3.0, "face_nod"), (4.5, "face_star"), (6.0, "face_think")]))
+    S.append(feat("30", 3.0, "V21", act(4.3, 3.0, 1.6, 0.8), "報酬放一起比", "一起比", "幾檔一起比，含息不含息我分開算", "ETF",
                   focus=F((460, 540, 2050, 1230), "報酬走勢圖", "V21", 2.0, zoom=False), idle=[(0, 'calc'), (1.8, 'face_think')]))
+    S.append(seqv("30s", "I03_desktop_v3i", [(2.6, 3.3, 1.0), (3.3, 13.4, 1.7)], "勾幾檔，一起比", "一起比", "勾幾檔、換期間，報酬曲線馬上重畫給你", "ETF",
+                  idle=[(0, "face_wink"), (1.6, "calc"), (3.2, "face_nod"), (4.8, "growth")]))
     V3E = "V13b_desktop_v3e"
     MAIN_E = [(506, 178, 3142, 1701)]
-    S.append(featv("31a", 1.6, V3E, stat(5.6, 1.6), "點一檔，三張圖一起亮", "一起亮", "點一檔，三張圖一起亮", "ETF",
-                   focus=FV((506, 178, 3142, 1701), "組合 B 完整畫面", V3E, 0.3, d_draw=0.3), idle=[(0, "calc"), (0.9, "boba")], main=MAIN_E))
-    S.append(featv("31b", 1.3, V3E, [(0, 7.3), (1.3, 8.6)], "點一檔，三張圖一起亮", "一起亮", "點一檔，三張圖一起亮", "ETF",
-                   focus=FV((532, 313, 3116, 1679), "選第 1 檔：三張圖＋明細", V3E, 0.8, d_draw=0.3), idle="face_love", main=MAIN_E, chain="start"))
-    S.append(featv("31c", 1.3, V3E, [(0, 11.0), (1.3, 12.3)], "點一檔，三張圖一起亮", "一起亮", "點一檔，三張圖一起亮", "ETF",
-                   focus=FV((532, 313, 3116, 1679), "選第 2 檔：三張圖＋明細", V3E, 0.8, d_draw=0.3), idle="face_nod", main=MAIN_E, chain="mid"))
-    S.append(featv("31d", 1.8, V3E, [(0, 14.4), (1.8, 16.2)], "點一檔，三張圖一起亮", "一起亮", "點一檔，三張圖一起亮", "ETF",
-                   focus=FV((532, 313, 3116, 1679), "選第 3 檔：三張圖＋明細", V3E, 0.8, d_draw=0.3), idle="face_proud", main=MAIN_E, chain="end"))
+    S.append(seqv("31s", V3E, [(5.0, 6.7, 1.0), (6.7, 15.9, 3.0), (15.9, 17.0, 1.0)], "點一檔，三張圖一起亮", "一起亮", "點一檔，三張圖一起亮", "ETF",
+                  idle=[(0, "calc"), (1.6, "face_love"), (2.8, "face_nod"), (4.0, "face_proud")], main=MAIN_E,
+                  focus=FV((532, 313, 3116, 1679), "三張圖＋被點明細（同步高亮）", V3E, 0.4, d_draw=0.3)))
+    S.append(seqv("31t", "I02_desktop_v3i", [(8.0, 8.8, 1.0), (8.8, 19.4, 1.5)], "組合 A～E 連著切", "連著切", "組合 A 到 E，每月入帳一組一組換給你看", "ETF",
+                  idle=[(0, "piggy"), (1.7, "face_curious"), (3.4, "face_star"), (5.1, "boba"), (6.5, "face_proud")]))
+    pass
+    pass
+    pass
     S.append(feat("32", 2.5, "V23", [(0, 1.0), (1.5, 2.5), (2.5, 5.5)], "複利看得到", "複利", '配息再投入，複利我畫給你看', "ETF",
                   focus=F((460, 400, 2150, 1330), "三條線", "V23", 1.8, zoom=False), idle=[(0, 'growth'), (1.5, 'face_proud')]))
     S.append(feat("33", 3.0, "V24", act(3.9, 3.0, 1.6, 0.8), "⑪ 存自己的股", "存自己", '喜歡的股票存起來，每天打開就看到', "自選清單",

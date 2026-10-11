@@ -2207,13 +2207,13 @@ def _rev_prof(pg, a, base, start, tab, sels, names):
         return
     a.wait(1500)
     if a.mob:
-        slow_through(a, "#stockTab", f"{tab}分頁（完整內容）", 2000, 1200, 2600)
+        slow_through(a, ("#mbBody" if a.mob else "#stockTab"), f"{tab}分頁（完整內容）", 2000, 1200, 2600)
         a.scroll(to_y=pg.evaluate("() => document.querySelector('#stockTab').getBoundingClientRect().top + scrollY") - 110, ms=900)
     else:
         for sel, nm in zip(sels, names):
             frame(a, sel, 2000, label=nm)
     # 切期間／指標：在內容區挑兩個「還沒選中」的切換鈕各點一次
-    btns = pg.locator("#stockTab button:visible:not(.on):not(.howbtn)")
+    btns = pg.locator(("#mbBody" if a.mob else "#stockTab") + " button:visible:not(.on):not(.howbtn)")
     n = btns.count()
     done = 0
     for i in range(n):
@@ -2226,8 +2226,9 @@ def _rev_prof(pg, a, base, start, tab, sels, names):
             continue
         if not txt or len(txt) > 8 or txt in ("?", "▸", "⤢"):
             continue
-        if tap(a, f"#stockTab button:visible:not(.howbtn):text-is('{txt}')", f"切換「{txt}」", 1600):
-            a.focus_sel(f"切換「{txt}」後的圖表區", "#stockTab", a.t - 1.6, a.t)
+        if tap(a, f"{('#mbBody' if a.mob else '#stockTab')} button:visible:not(.howbtn):text-is('{txt}')", f"切換「{txt}」", 1600):
+            a.focus_sel(f"切換「{txt}」後的圖表區", ("#mbBody" if a.mob else "#stockTab"), a.t - 1.6, a.t)
+            a.attach_content(("#mbBody" if a.mob else "#stockTab"), a.t - 1.6, a.t, f"切換「{txt}」後")
             done += 1
     a.wait(800)
 
@@ -2239,7 +2240,7 @@ def d03(pg, a, start, base):
     a.wait(300)
     _stk_tab(a, "營收")
     if a.mob:
-        slow_through(a, "#stockTab", "營收分頁", 1800, 1200)
+        slow_through(a, ("#mbBody" if a.mob else "#stockTab"), "營收分頁", 1800, 1200)
     else:
         frame(a, "#stockTab", 2200, label="營收分頁（月營收＋年同期比較＋月營收表）")
         for sel, nm in [("#revBar", "月營收圖"), ("#revYear", "年同期比較圖"), ("#revTblCard", "月營收明細表")]:
@@ -2258,7 +2259,7 @@ def d04(pg, a, start, base):
     a.wait(300)
     _stk_tab(a, "獲利")
     if a.mob:
-        slow_through(a, "#stockTab", "獲利分頁", 1800, 1200)
+        slow_through(a, ("#mbBody" if a.mob else "#stockTab"), "獲利分頁", 1800, 1200)
     else:
         for sel, nm in [("#peRiverCard", "本益比河流圖"), ("#peQCard", "本益比近四季"), ("#profitCard", "EPS／毛利率圖"), ("#profitTblCard", "財報表")]:
             frame(a, sel, 2200, label=nm)
@@ -2272,7 +2273,7 @@ def d05(pg, a, start, base):
     for nm in ["法人", "資券", "大戶／散戶"]:
         if _stk_tab(a, nm):
             if a.mob:
-                slow_through(a, "#stockTab", f"{nm}分頁", 1800, 1000)
+                slow_through(a, ("#mbBody" if a.mob else "#stockTab"), f"{nm}分頁", 1800, 1000)
             else:
                 frame(a, "#stockTab", 2200, label=f"{nm}分頁")
 
@@ -2284,7 +2285,9 @@ def d06(pg, a, start, base):
     frame(a, "#skChartCard", 2000, label="個股走勢卡")
     for t in ["日", "週", "月", "日"]:
         tab_txt(a, t, "#skChartCard")
-        a.wait(700)
+        t0_ = a.t
+        a.wait(900)
+        a.attach_content("#skChartCard", t0_, a.t, f"K 線切到「{t}」")
     if pg.locator("#mtfBtn:visible").count():
         tap(a, "#mtfBtn", "四週期同看", 600)
         frame(a, "#skChartCard", 2200, label="四週期同看（日／週／月／季 SMC）")
@@ -2314,7 +2317,7 @@ def d07(pg, a, start, base):
     for nm in ["基本資料", "除權息", "公告"]:
         if _stk_tab(a, nm):
             if a.mob:
-                slow_through(a, "#stockTab", f"{nm}分頁", 1800, 1000)
+                slow_through(a, ("#mbBody" if a.mob else "#stockTab"), f"{nm}分頁", 1800, 1000)
             else:
                 frame(a, "#stockTab", 2200, label=f"{nm}分頁")
 
