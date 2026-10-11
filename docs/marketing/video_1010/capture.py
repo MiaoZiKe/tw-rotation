@@ -2102,6 +2102,51 @@ def d02(pg, a, start, base):
                 inner_scroll(a, "#ovFacets", f"AI 分析內容（{nm}）", 1200, 800, 2500)
 
 
+@shot3("D08", "md", "個股營收（從搜尋進入 台積電 2330）：月營收長條、年增率、年同期比較；切期間／指標；手機慢慢往下滑")
+def d08(pg, a, start, base):
+    _rev_prof(pg, a, base, start, "營收", ["#revBar", "#revYear", "#revTblCard"], ["月營收圖", "年同期比較圖", "月營收明細表"])
+
+
+@shot3("D09", "md", "個股獲利（從搜尋進入 台積電 2330）：本益比河流圖、EPS／毛利率／營益率、財報表；切指標；手機慢慢往下滑")
+def d09(pg, a, start, base):
+    _rev_prof(pg, a, base, start, "獲利", ["#peRiverCard", "#peQCard", "#profitCard", "#profitTblCard"], ["本益比河流圖", "本益比近四季", "EPS／毛利率圖", "財報表"])
+
+
+def _rev_prof(pg, a, base, start, tab, sels, names):
+    goto3(pg, a, base, "#overview")
+    start()
+    a.wait(500)
+    start_search(pg, a)
+    if not tab_txt(a, tab):
+        a.note(f"找不到「{tab}」分頁")
+        return
+    a.wait(1500)
+    if a.mob:
+        slow_through(a, "#stockTab", f"{tab}分頁（完整內容）", 2000, 1200, 2600)
+        a.scroll(to_y=pg.evaluate("() => document.querySelector('#stockTab').getBoundingClientRect().top + scrollY") - 110, ms=900)
+    else:
+        for sel, nm in zip(sels, names):
+            frame(a, sel, 2000, label=nm)
+    # 切期間／指標：在內容區挑兩個「還沒選中」的切換鈕各點一次
+    btns = pg.locator("#stockTab button:visible:not(.on):not(.howbtn)")
+    n = btns.count()
+    done = 0
+    for i in range(n):
+        if done >= 2:
+            break
+        el = btns.nth(i)
+        try:
+            txt = (el.inner_text(timeout=800) or "").strip()
+        except Exception:  # noqa: BLE001
+            continue
+        if not txt or len(txt) > 8 or txt in ("?", "▸", "⤢"):
+            continue
+        if tap(a, f"#stockTab button:visible:not(.howbtn):text-is('{txt}')", f"切換「{txt}」", 1600):
+            a.focus_sel(f"切換「{txt}」後的圖表區", "#stockTab", a.t - 1.6, a.t)
+            done += 1
+    a.wait(800)
+
+
 @shot3("D03", "md", "個股營收：月營收、年增、年同期比較、河流圖（月營收表）")
 def d03(pg, a, start, base):
     _stk_enter(pg, a, base)
@@ -2321,7 +2366,7 @@ def main() -> int:
     ap.add_argument("--shots", default="")
     ap.add_argument("--dev", default="md")
     ap.add_argument("--out", default="")
-    ap.add_argument("--set", default="v2", choices=["v2", "v3", "v3b", "v3c", "v3d", "v3e", "v3f", "v3g"], help="v3＝第 3 版素材（桌機 1600×900@2、不藏 B 類、完整入框）")
+    ap.add_argument("--set", default="v2", choices=["v2", "v3", "v3b", "v3c", "v3d", "v3e", "v3f", "v3g", "v3h"], help="v3＝第 3 版素材（桌機 1600×900@2、不藏 B 類、完整入框）")
     ap.add_argument("--port", type=int, default=PORT)
     ap.add_argument("--fps", type=int, default=0, help="輸出幀率（預設 30；v3c 預設 60：逐格算圖每一個 rAF 刻度都收進來）")
     ap.add_argument("--realtime", action="store_true", help="真實時間錄影（CDP screencast，依時間戳重採樣）；本機 CPU 繪圖只有 ~13fps 來源，實測比逐格算圖差，預設不用")
@@ -2333,8 +2378,8 @@ def main() -> int:
     v3 = args.set.startswith("v3")
     reg = SHOTS3 if v3 else SHOTS
     devs_cfg = DEVS3 if v3 else DEVS
-    if args.set in ("v3e", "v3f", "v3g") and not args.shots.strip():
-        args.shots = {"v3e": "V13b", "v3f": "V03b", "v3g": "V07b"}[args.set]
+    if args.set in ("v3e", "v3f", "v3g", "v3h") and not args.shots.strip():
+        args.shots = {"v3e": "V13b", "v3f": "V03b", "v3g": "V07b", "v3h": "D08,D09"}[args.set]
     if args.set == "v3d" and not args.shots.strip():
         args.shots = "D02,D01,D03,D04,D05,D06,D07"
     if args.set == "v3c" and not args.shots.strip():
@@ -2393,7 +2438,7 @@ def main() -> int:
                     rec = Recorder(pg, W, H, dry=args.log_only, realtime=args.realtime)
                     act.dsf = cfg["device_scale_factor"]
                     act.log_moves = v3   # v3 沒有錄進游標 → 游標路徑寫進 shots.md 給後製畫比比
-                    name = f"{sid}_{'mobile' if dev == 'm' else 'desktop'}" + ("_v3b" if args.set == "v3b" else "_v3c" if args.set == "v3c" else "_v3d" if args.set == "v3d" else "_" + args.set if args.set in ("v3e", "v3f", "v3g") else "")
+                    name = f"{sid}_{'mobile' if dev == 'm' else 'desktop'}" + ("_v3b" if args.set == "v3b" else "_v3c" if args.set == "v3c" else "_v3d" if args.set == "v3d" else "_" + args.set if args.set in ("v3e", "v3f", "v3g", "v3h") else "")
                     try:
                         # 每鏡自己決定何時開錄：fn(pg, act, rec_start) —— 先做準備（換頁、等圖畫完）再開錄
                         state = {}
