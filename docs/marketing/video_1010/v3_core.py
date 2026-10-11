@@ -873,7 +873,7 @@ class Shot4:
         if self.op:
             self.op.draw(cv, t, self)
         if self.kind == "feature":
-            host_bubble(cv, L, self, self.sub, t + (1.0 if self.cont else 0.0))
+            host_bubble(cv, L, self, self.sub, t, t + (1.0 if self.cont else 0.0))
         return cv
 
     def _overlays(self, cv, t, L):
@@ -946,12 +946,12 @@ def footnote4(cv, L):
         C.reg("footnote", (x, y, x + tw, y + 28))
 
 
-def host_bubble(cv, L, shot, text, t):
+def host_bubble(cv, L, shot, text, t, t_alpha=None):
     """比比的台詞泡泡（網頁、手機共用）：單一路徑，尾巴尖端離比比 14px、只指向比比，文字離尾巴 ≥10px。"""
     if not text or not shot.op:
         return
     nm, br = shot.op.home_rect(L, t)
-    _bubble_at(cv, L, text, t, br, hide=shot.op.away(t))
+    _bubble_at(cv, L, text, t if t_alpha is None else t_alpha, br, hide=shot.op.away(t))
 
 
 def card_host(cv, L, nm, text, t, mode=None):
