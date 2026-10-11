@@ -190,9 +190,11 @@ def click_target(clip, t_src, x, y):
                 continue
             dt = abs(float(it["t"]) - t_src)
             if dt < 0.5 and (best is None or dt < best[0]):
-                best = (dt, _xywh(it["video_rect"]), it.get("label", ""))
+                best = (dt, _xywh(it["video_rect"]), it.get("label", ""), it.get("hit_expected", None))
         if best:
-            return best[1], best[2], "錄影端 DOM（coords／click_targets）"
+            h = best[3]
+            tag = "；hit_expected=True（最上層元素驗證過）" if h is True else ("；hit_expected=False（最上層不是目標）" if h is False else "；未驗 hit_expected（舊錄影，以 DOM rect 驗落點）")
+            return best[1], best[2], "錄影端 DOM（click_targets）" + tag
     return (x - 45, y - 45, x + 45, y + 45), "", "座標估值±45px（錄影端尚未提供該素材）"
 
 
@@ -754,7 +756,7 @@ class Op:
                     sx0, sy0, sw_, sh_ = rec.rect
                     inside_v = sx0 <= cxy[0] <= sx0 + sw_ and sy0 <= cxy[1] <= sy0 + sh_
                     CLICKS.append((shot.sid, round(t, 2), rec.clip, label or "(座標)", (round(cxy[0]), round(cxy[1])),
-                                   (round(a[0]), round(a[1]), round(b[0]), round(b[1])), inside_t and inside_v, srcname))
+                                   (round(a[0]), round(a[1]), round(b[0]), round(b[1])), inside_t and inside_v and "hit_expected=False" not in srcname, srcname))
         if not pro:
             for t0, t1, name, foot, size, mode in self.extra:
                 if t0 <= t < t1:
