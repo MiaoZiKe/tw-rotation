@@ -1,8 +1,8 @@
 # 2026-10-11 Andy（急件）：「先幫我更改網域名稱，因為我使用cloudfare 自己架伺服器」「LIGULIGU.com 就好」
-# 把 liguligu.com／www.liguligu.com 綁到 Cloudflare Pages 專案 tw-rotation（網站每次推 main 都已經部署到這裡，見 pages.yml 雙部署）。
+# 把 liguligu-puipui.com／www 綁到（10-11 Andy 實際買到的是 liguligu-puipui.com） Cloudflare Pages 專案 tw-rotation（網站每次推 main 都已經部署到這裡，見 pages.yml 雙部署）。
 # 用既有的 CLOUDFLARE_API_TOKEN／CLOUDFLARE_ACCOUNT_ID；不印出任何金鑰。可以重複跑（已綁的會略過）。
 # 步驟：① Pages 專案加自訂網域 ② 網域的 DNS 若在同一個 Cloudflare 帳號，補 CNAME → tw-rotation.pages.dev（已有就略過）③ 列出每個網域的狀態到 Step Summary。
-name: 綁定正式網域（liguligu.com）
+name: 綁定正式網域（liguligu-puipui.com）
 on:
   workflow_dispatch:
   push:
@@ -23,7 +23,7 @@ jobs:
       CF_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
       CF_ACC: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
       PROJECT: tw-rotation
-      APEX: liguligu.com
+      APEX: liguligu-puipui.com
     steps:
       - name: 綁定網域並回報狀態
         run: |
@@ -38,6 +38,12 @@ jobs:
           echo "$cur" | jq -r '.result[]? | "\(.name)  \(.status)"' || true
           act=$(echo "$cur" | jq -r --arg a "$APEX" '[.result[]? | select((.name==$a or .name==("www."+$a)) and .status=="active")] | length')
           if [ "$act" = "2" ]; then sum "✅ 兩個網域都已 active：https://$APEX 、https://www.$APEX"; exit 0; fi
+          # ⓪ 拿掉先前誤綁的 liguligu.com／www.liguligu.com（沒買到那個名稱；留著會一直顯示 Inactive）
+          for d in liguligu.com www.liguligu.com; do
+            if echo "$cur" | jq -e --arg d "$d" '[.result[]? | select(.name==$d)] | length > 0' >/dev/null; then
+              r=$(curl -s -X DELETE "${H[@]}" "$API/accounts/$CF_ACC/pages/projects/$PROJECT/domains/$d"); sum "- 移除舊的 $d：$(echo "$r" | jq -r '.success')"
+            fi
+          done
           # ① 加自訂網域
           for d in "$APEX" "www.$APEX"; do
             has=$(echo "$cur" | jq -r --arg d "$d" '[.result[]? | select(.name==$d)] | length')
