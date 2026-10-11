@@ -128,6 +128,7 @@ class Lay:
                 self.host_foot = 1040
                 self.host_w = 236
                 self.host_h = 214
+                self.foot_y = 1052
         else:
             self.W, self.H = 1080, 1920
             self.box = (40, 146, 1000, 1480)             # 網站畫面框（寬 1000×高 1480）
@@ -1202,7 +1203,7 @@ class Op:
         x1, y1 = rec.map(r[2], r[3])
         bx = rec.rect
         top, bot = bx[1] + 4, bx[1] + bx[3] - 6
-        y = y0 + 3
+        y = y0 - 6               # 比比的腳（素材底部含約 10px 陰影／壓扁）剛好碰到按鈕上緣
         if y - ts * 0.9 < top:
             y = y1 + ts * 0.95 + 2
         y = min(y, bot)
@@ -1472,13 +1473,16 @@ def site_overlay_check(shot, t):
             a = _area(ir)
             if a <= 0:
                 continue
-            if role == "bibi_tap":
-                if tt is None or abs(t - tt) > 0.6:
-                    continue          # 踩按鈕的飛行／停留 ≤0.8 秒例外（只檢查被踩的那顆按鈕文字有沒有露出）
+            if tt is not None and role in ("bibi", "bibi_tap"):
+                # 點擊目標：比比站在按鈕上那段（踩下前後）只准腳碰到上緣，按鈕文字要露出；飛行途中掠過不算（例外①，≤0.8 秒）
+                if not (tt - 0.05 <= t <= tt + 0.27):       # 站在按鈕上那 0.25 秒
+                    continue
                 if ir[3] - ir[1] <= 8:
                     continue
                 SITEOV.append((shot.sid, round(t, 3), name, lab + "（按鈕文字被蓋）", round(a)))
                 continue
+            if role == "bibi_tap":
+                continue              # 踩按鈕的飛行／停留 ≤0.8 秒例外（重點框、內容框）
             SITEOV.append((shot.sid, round(t, 3), name, lab, round(a)))
 
 
@@ -1586,7 +1590,7 @@ class Shot4:
             d_ = self.dwell
             DWELLCHK.append((self.sid, d_["units"], d_["min_req"], d_["D"], d_["reached"], d_["hold"], d_["note"]))
         C.begin()
-        C.SITE_OK = bool(V4 and L.fmt == "web")
+        C.SITE_OK = bool(V4 and L.fmt == "web" and self.kind == "feature")
         if V4 and L.fmt == "web" and self.kind == "feature":
             v4_place(self, L)
         ROLE[0] = "bibi"

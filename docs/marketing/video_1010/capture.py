@@ -2275,6 +2275,38 @@ def _rev_prof(pg, a, base, start, tab, sels, names):
     a.wait(800)
 
 
+@shot3("D10", "md", "個股連續操作（第 4 版）：2330 日 K 開場 → 點「週」→ 往下到總覽 → 點營收 → 點獲利（上方一律 K 線，不用分時）")
+def d10(pg, a, start, base):
+    goto3(pg, a, base, "#stock/2330", 4500)
+    # 開錄前先切到「日」K：畫面一開始就是 K 線，不出現分時圖與「非即時」浮水印
+    btn = "#skChartCard button:visible:text-is('日')"
+    if pg.locator(btn).count():
+        pg.locator(btn).first.click()
+        pg.wait_for_timeout(2500)
+    pg.evaluate("() => scrollTo(0, 0)")
+    pg.wait_for_timeout(500)
+    start()
+    frame(a, "#skChartCard", 2200, label="個股 2330 日 K 線（完整）")
+    tab_txt(a, "週", "#skChartCard")
+    t0 = a.t
+    a.wait(2200)
+    a.focus_sel("週 K 線", "#skChartCard", t0, a.t)
+    a.attach_content("#skChartCard", t0, a.t, "週 K 線")
+    a.note(f"完整入框 {t0:.1f}–{a.t:.1f}s：週 K 線")
+    body = "#mbBody" if a.mob else "#stockTab"
+    if a.mob:
+        slow_through(a, "#mbBody, #skOv3", "總覽（基本面）", 2000, 1000, 2600)
+    else:
+        frame(a, "#skOv3", 2200, label="總覽（基本面／籌碼快照／AI 分析）")
+    for nm in ["營收", "獲利"]:
+        if tab_txt(a, nm):
+            a.wait(600)
+            if a.mob:
+                slow_through(a, body, f"{nm}分頁", 2000, 1000, 2600)
+            else:
+                frame(a, body, 2200, label=f"{nm}分頁")
+
+
 @shot3("D03", "md", "個股營收：月營收、年增、年同期比較、河流圖（月營收表）")
 def d03(pg, a, start, base):
     _stk_enter(pg, a, base)
@@ -2754,7 +2786,7 @@ def main() -> int:
     ap.add_argument("--shots", default="")
     ap.add_argument("--dev", default="md")
     ap.add_argument("--out", default="")
-    ap.add_argument("--set", default="v2", choices=["v2", "v3", "v3b", "v3c", "v3d", "v3e", "v3f", "v3g", "v3h", "v3i"], help="v3＝第 3 版素材（桌機 1600×900@2、不藏 B 類、完整入框）")
+    ap.add_argument("--set", default="v2", choices=["v2", "v3", "v3b", "v3c", "v3d", "v3e", "v3f", "v3g", "v3h", "v3i", "v3j"], help="v3＝第 3 版素材（桌機 1600×900@2、不藏 B 類、完整入框）")
     ap.add_argument("--port", type=int, default=PORT)
     ap.add_argument("--fps", type=int, default=0, help="輸出幀率（預設 30；v3c 預設 60：逐格算圖每一個 rAF 刻度都收進來）")
     ap.add_argument("--realtime", action="store_true", help="真實時間錄影（CDP screencast，依時間戳重採樣）；本機 CPU 繪圖只有 ~13fps 來源，實測比逐格算圖差，預設不用")
@@ -2766,8 +2798,8 @@ def main() -> int:
     v3 = args.set.startswith("v3")
     reg = SHOTS3 if v3 else SHOTS
     devs_cfg = DEVS3 if v3 else DEVS
-    if args.set in ("v3e", "v3f", "v3g", "v3h", "v3i") and not args.shots.strip():
-        args.shots = {"v3e": "V13b", "v3f": "V03b", "v3g": "V07b", "v3h": "D08,D09", "v3i": "I01,I02,I03,I04,I05"}[args.set]
+    if args.set in ("v3e", "v3f", "v3g", "v3h", "v3i", "v3j") and not args.shots.strip():
+        args.shots = {"v3e": "V13b", "v3f": "V03b", "v3g": "V07b", "v3h": "D08,D09", "v3i": "I01,I02,I03,I04,I05", "v3j": "D10"}[args.set]
     if args.set == "v3d" and not args.shots.strip():
         args.shots = "D02,D01,D03,D04,D05,D06,D07"
     if args.set == "v3c" and not args.shots.strip():
@@ -2826,7 +2858,7 @@ def main() -> int:
                     rec = Recorder(pg, W, H, dry=args.log_only, realtime=args.realtime)
                     act.dsf = cfg["device_scale_factor"]
                     act.log_moves = v3   # v3 沒有錄進游標 → 游標路徑寫進 shots.md 給後製畫比比
-                    name = f"{sid}_{'mobile' if dev == 'm' else 'desktop'}" + ("_v3b" if args.set == "v3b" else "_v3c" if args.set == "v3c" else "_v3d" if args.set == "v3d" else "_" + args.set if args.set in ("v3e", "v3f", "v3g", "v3h", "v3i") else "")
+                    name = f"{sid}_{'mobile' if dev == 'm' else 'desktop'}" + ("_v3b" if args.set == "v3b" else "_v3c" if args.set == "v3c" else "_v3d" if args.set == "v3d" else "_" + args.set if args.set in ("v3e", "v3f", "v3g", "v3h", "v3i", "v3j") else "")
                     try:
                         # 每鏡自己決定何時開錄：fn(pg, act, rec_start) —— 先做準備（換頁、等圖畫完）再開錄
                         state = {}

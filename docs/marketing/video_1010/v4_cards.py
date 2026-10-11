@@ -25,7 +25,7 @@ INK = (60, 70, 90)
 def _zone(L):
     """內容區（避開標題、比比帶與手機 Reels 介面區）。"""
     if L.fmt == "web":
-        return (240, 150, 1680, 840)
+        return (360, 150, 1680, 800)
     return (60, 450, 920, 1560)
 
 
@@ -204,7 +204,7 @@ def grid4_fn(srcs_w, srcs_m):
         srcs = srcs_w if web else srcs_m
         if web:
             cw, ch, gap, lab = 646, 347, 12, 46
-            x0 = (L.W - (2 * cw + gap)) // 2
+            x0 = 380
             y0 = 66
         else:
             gap, lab = 12, 46
