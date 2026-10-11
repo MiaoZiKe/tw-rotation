@@ -227,9 +227,9 @@ def intro4_fn():
             size, foot = 640, (760, 1040)
         else:
             size = 700
-            ur0 = sprite_union_rect("intro", range(nfr), (0, 1420), size)
+            ur0 = sprite_union_rect("intro", range(nfr), (0, 1280), size)
             gw = (ur0[2] - ur0[0]) + 13 + 34 + 330
-            foot = (MCX - gw / 2 - ur0[0], 1420)
+            foot = (MCX - gw / 2 - ur0[0], 1280)
         ROLE[0] = "bibi"
         put_sprite(cv, "intro", fi, foot, size)
         if t >= 0.6:
