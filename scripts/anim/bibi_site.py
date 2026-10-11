@@ -12,6 +12,7 @@
 新素材到了：把名稱加進 NAMES、跑這支、再改 site/bibi.js 的 MAP（那張表寫「哪個動作用哪個檔」）。
 
 用法：python scripts/anim/bibi_site.py            # 全部重做
+      python scripts/anim/bibi_site.py props      # 給草／給球的手與道具（site/brand/bibi/props/）
       python scripts/anim/bibi_site.py pet ball    # 只做這幾組
 輸出最後一行印出每組的總長毫秒（site/bibi.js 的 MS 表要抄這個數字，動作播完才回待機）。
 """
@@ -53,7 +54,7 @@ NAMES = [
     "hop_l", "hop_r", "face_curious", "tilt",
     "run_l", "run_r", "ball_catch", "eat_grass_v2", "pet_v2", "spin_v2",
     # 10-11 晚 Andy 追加：開心的跳（待機預設）、接過來（給草／給球）、爆米花跳；替代用 face_star
-    "face_star", "happy_hop", "receive", "popcorn",
+    "face_star", "happy_hop", "receive", "popcorn", "receive_grass", "receive_ball",
 ]
 
 
@@ -118,9 +119,48 @@ def icons():
         print(f"  圖示 {f.stem:10s} {(OUT / 'icons' / (f.stem + '.webp')).stat().st_size / 1024:4.1f} KB")
 
 
+def props():
+    """給草／給球的道具（docs/anim/bibi_receive/*.png，512 場景座標、手從右邊伸進來）→ site/brand/bibi/props/*.webp（256px）。
+
+    除了原樣的「手拿草」「手拿球」，另外拆一張「只有手」：遞到比比肉掌那一格，網頁把手換成空手、東西改由比比的 receive 素材抱著，
+    不然手縮回去時會帶著第二根草／第二顆球。拆法：手拿草那張裡，綠／黃（草）＋草旁邊的黑描邊（只取肉掌左緣 x<318 以左）去掉，
+    再做一次「開運算」把抗鋸齒殘點清掉（細於 5px 的碎點）。動畫單位交 hand_prop.png 之後可以改用那張。
+    """
+    import numpy as np
+    from PIL import ImageFilter
+    src = NEW / "bibi_receive"
+    if not (src / "hand_grass_prop.png").exists():
+        print("  略過道具（docs/anim/bibi_receive 還沒到）")
+        return
+    dst = OUT / "props"
+    dst.mkdir(parents=True, exist_ok=True)
+
+    def mf(m, r, f):
+        return np.array(Image.fromarray((m * 255).astype(np.uint8)).filter(f(r * 2 + 1))) > 127
+
+    for nm in ("hand_grass_prop", "hand_ball_prop", "grass_prop"):
+        Image.open(src / f"{nm}.png").convert("RGBA").resize((256, 256), Image.LANCZOS).save(dst / (nm.replace("_prop", "") + ".webp"), "WEBP", quality=90, method=6)
+    a = np.array(Image.open(src / "hand_grass_prop.png").convert("RGBA")).astype(int)
+    R, G, B, A = a[..., 0], a[..., 1], a[..., 2], a[..., 3]
+    op = A > 10
+    dark = op & (R + G + B < 200)
+    xx = np.mgrid[0:A.shape[0], 0:A.shape[1]][1]
+    grass = op & ~dark & (G > R - 12) & (G > B + 35)
+    grass = grass | (dark & mf(grass, 9, ImageFilter.MaxFilter) & (xx < 318))
+    hand = op & ~grass
+    hand = hand & mf(mf(mf(hand, 2, ImageFilter.MinFilter), 2, ImageFilter.MaxFilter), 1, ImageFilter.MaxFilter)
+    a[..., 3] = np.where(hand, A, 0)
+    Image.fromarray(a.astype(np.uint8)).resize((256, 256), Image.LANCZOS).save(dst / "hand.webp", "WEBP", quality=90, method=6)
+    for f in sorted(dst.glob("*.webp")):
+        print(f"  道具 {f.stem:12s} {f.stat().st_size / 1024:4.1f} KB")
+
+
 def main(argv):
     if argv == ["icons"]:
         icons()
+        return
+    if argv == ["props"]:
+        props()
         return
     names = argv or NAMES
     ms = {}
