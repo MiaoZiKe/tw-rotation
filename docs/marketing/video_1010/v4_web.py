@@ -141,7 +141,7 @@ def build():
     S.append(card("a05", 3.0, K4.intro4_fn(), [(0.2, "pop")]))
     # 1 總覽（含今日事件、搜尋）
     S.append(shot("b01", "總覽", "V01_desktop", [(0.0, 2.2)], "① 每天先看這頁", "我先帶你看今天大盤", [(0, "talk_happy"), (1.2, "folder")]))
-    S.append(shot("b02", "總覽", "V02_desktop", [(1.4, 4.8)], "今日事件不漏看", "重要消息我幫你列好", [(0, "news"), (1.8, "face_surprise_happy")]))
+    S.append(shot("b02", "總覽", "V02_desktop", [(1.4, 4.5)], "今日事件不漏看", "重要消息我幫你列好", [(0, "news"), (1.8, "face_surprise_happy")]))
     S.append(shot("b03", "總覽", "V27_desktop", [(4.4, 6.8)], "打幾個字就到", "想查哪檔，打簡稱就找到", [(0, "magnifier"), (2.4, "face_relief")], min_cap=3.2))
     # 2 財經日曆（一段連續錄影）
     S.append(shot("c01", "財經日曆", "V03_desktop", [(9.4, 11.8)], "② 財經日曆", "財報、法說、FED 我排好了", [(0, "calendar"), (1.2, "tilt")], cont=True))
@@ -189,7 +189,7 @@ def build():
         S.append(shot("j03", "願望清單", "V26w_desktop", [(5.4, 8.9)], "歡迎許願", "想要什麼功能，跟我說！", [(0, "heart_wish"), (1.6, "face_love")], chain="solo",
                       win_keys=[(0.0, (1290, 716, 3170, 1726))]))
     else:
-        S.append(shot("j03", "願望清單", "V26_desktop", [(14.2, 17.1)], "歡迎許願", "想要什麼功能，跟我說！", [(0, "heart_wish"), (1.6, "face_love")], chain="solo",
+        S.append(shot("j03", "願望清單", "V26_desktop", [(15.0, 17.9)], "歡迎許願", "想要什麼功能，跟我說！", [(0, "heart_wish"), (1.6, "face_love")], chain="solo",
                       win_keys=[(0.0, (1290, 716, 3170, 1726))]))   # 裁到面板表單區：不露出「AI 客服即將推出」橫幅與上方分頁
     # 14～15 片尾與警語
     S.append(card("k01", 3.0, K4.end4_fn(), [(0, "pop"), (1.0, "ding")]))
