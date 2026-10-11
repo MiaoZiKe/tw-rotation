@@ -24,8 +24,8 @@
 ## 2026-10-11 晚～深夜 比比：小圈一次攤開、動作編排（跑出去追球／道具從小圈飛出／打他哭哭／爆米花）、Default 一直跳（UI 專家；DECISIONS #357）
 - Andy 原話（最後一輪）：「伸出去的手太奇怪了，需要修正，並且 Default 改成一直跳；頭暈應該要表情暈眩；互動按鈕改成原本那樣；需要新增打他互動，並且他會哭哭」。
 - 檔案：`site/bibi.js`、`site/support.js`（開場圖版本戳、避讓把 `#bibiStage` 當自己）、`site/brand/bibi/`（動畫單位全部原版造型的互動素材＋jump／default_idle、`props/ball|grass|hammer.webp`、`icons/popcorn|hammer.webp`）、`scripts/anim/bibi_site.py`（`RIG_FIT`、`default_idle`／`jump`／`props` 子指令）、`scripts/_uitest.py`（比比互動1011）。
-- **素材現況**（`bibi.js` 的 `PART`；新零件到了只改這張表＋跑 bibi_site.py）：全部是動畫單位的真素材 —— receive／receive_grass／receive_ball、eat_grass_v2、ball_catch／ball_catch_l、run_l／run_r／run_start_r／run_stop_r、popcorn、pet_v2、spin_v2（含暈眩臉）、hit、cry、highfive、dance、hug、sleep_loop、wake_once、selfie；待機＝jump（循環）／default_idle（減少動態偏好）。道具＝ball_prop、grass_prop、hammer_prop。只剩滾出去以外的小特效（星星、愛心、草屑）是 SVG。
-- 驗收段：`比比互動1011`（⚠ --workers 1；102 條）：12 個小圈一次攤開、全在視窗內、不重疊、問比比在最內層；一直跳（2.8 秒全是 jump、jump 檔本身 loop=0）；點球／草／摸摸／轉圈／爆米花／打他 300ms 內在動、全程沒有手；球、草從被點的小圈飛出；玩球 run_l→ball_catch_l→run_r→run_stop_r、反彈 ≥2、回原位；轉圈有暈眩那段且左右晃；打他：槌子從小圈飛出 → hit → cry ≥2.5 秒；打完再打被冷卻；換頁／關客服中途回原位；手機 390 無橫向捲軸、點空白回原位、環開著點漢堡收環。
+- **素材現況**（`bibi.js` 的 `PART`；新零件到了只改這張表＋跑 bibi_site.py）：全部是動畫單位的真素材 —— receive／receive_grass／receive_ball、eat_grass_v2、ball_catch／ball_catch_l、run_l／run_r／run_start_r／run_stop_r、popcorn、pet_v2、spin_v2＋dizzy（頭暈循環）、hit、cry、highfive、dance、hug、sleep_loop、wake_once、selfie；待機＝jump（循環）／default_idle（減少動態偏好）。道具＝ball_prop、grass_prop、hammer_prop。只剩滾出去以外的小特效（星星、愛心、草屑）是 SVG。
+- 驗收段：`比比互動1011`（⚠ --workers 1；102 條）：12 個小圈一次攤開、全在視窗內、不重疊、問比比在最內層；一直跳（2.8 秒全是 jump、jump 檔本身 loop=0）；點球／草／摸摸／轉圈／爆米花／打他 300ms 內在動、全程沒有手；球、草從被點的小圈飛出；玩球 run_l→ball_catch_l→run_r→run_stop_r、反彈 ≥2、回原位；轉圈先 spin_v2 再切 dizzy 循環 ≥1.2 秒；打他：槌子從小圈飛出 → hit → cry ≥2.5 秒；打完再打被冷卻；換頁／關客服中途回原位；手機 390 無橫向捲軸、點空白回原位、環開著點漢堡收環。
 - 這批另外跑過：桌機守門1008（--workers 1）、客服鈕1009、願望清單1009、`_preview.py`（唯一一項 `#industry/ai_server` 800px 文字交疊是既有問題，基準 log 也有）。
 
 ## 2026-10-11 結帳與付款：綠界＋銀行轉帳（金流；DECISIONS #356；docs/payment_checkout_1011.md）

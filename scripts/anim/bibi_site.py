@@ -49,7 +49,7 @@ RIG_NAMES = {"happy_hop", "receive", "receive_grass", "receive_ball",
              # 10-11 深夜動畫單位全部照原版造型重畫的互動（舊 G1／G2 改名 *_old 保留）：同一套骨架尺寸，一樣要縮
              "eat_grass_v2", "ball_catch", "ball_catch_l", "popcorn", "pet_v2", "spin_v2",
              "highfive", "dance", "hug", "wake_once", "selfie", "sleep_loop",
-             "run_r", "run_l", "run_start_r", "run_stop_r", "hit", "cry"}
+             "run_r", "run_l", "run_start_r", "run_stop_r", "hit", "cry", "dizzy"}
 
 # 網站用到的才轉（情境待機＋互動動作；對照表在 site/bibi.js 的 MAP）
 NAMES = [
@@ -61,7 +61,7 @@ NAMES = [
     "idle_down", "idle_bigup", "weekend", "festival_newyear", "festival_dragon", "festival_moon", "festival_xmas",
     # 10-11 晚 動作編排（bibi.js CHOREO）：跑步替代（素材庫 hop_l／hop_r）＋待機小動作；動畫單位的專屬零件到了就加進來（沒到會印「略過」）
     "face_curious", "tilt",
-    "hit", "cry",   # 打他（被敲，播一次）／哭哭（循環）：10-11 深夜到貨
+    "hit", "cry", "dizzy",   # 打他（被敲，播一次）／哭哭（循環）／暈眩（循環，轉圈播完接）：10-11 深夜到貨
     # 10-11 深夜：動畫單位照原版造型重畫的互動全到（擊掌／跳舞／抱抱／睡覺／叫醒／拍照也換成新版，同名覆蓋）
     "run_l", "run_r", "run_start_r", "run_stop_r", "ball_catch", "ball_catch_l", "eat_grass_v2", "pet_v2", "spin_v2", "popcorn",
     # 10-11 晚 Andy 追加：開心的跳（待機預設）、接過來（給草／給球）、爆米花跳；替代用 face_star

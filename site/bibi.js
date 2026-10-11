@@ -33,7 +33,7 @@
     // 互動（動畫單位 G1／G2 專屬素材；播一輪＝這個毫秒數就回情境待機）
     // 互動（動畫單位 10-11 深夜照原版造型重畫；bibi_site.py 最後一行印的毫秒數）
     highfive: 1230, dance: 1690, hug: 1470, wake_once: 1350, selfie: 1250,
-    eat_grass_v2: 2110, ball_catch: 2170, ball_catch_l: 2170, popcorn: 1530, pet_v2: 1730, spin_v2: 1650,
+    eat_grass_v2: 2110, ball_catch: 2170, ball_catch_l: 2170, popcorn: 1530, pet_v2: 1730, spin_v2: 1580, dizzy: 1420,
     run_r: 600, run_l: 600, run_start_r: 460, run_stop_r: 1060,
     hit: 1030, cry: 1040,                 // 打他（播一次）／哭哭（循環一輪）
     // 動作編排的零件（10-11 晚；PART 那張表）：跑步替代 hop_l／hop_r（循環）、抬頭看 face_curious、東張西望 tilt
@@ -583,7 +583,7 @@ html.fab-off .bibiring,html.fab-off .bibitip,html.fab-off .bibifx,html.fab-off #
      receive_*：動畫單位照原版 Default 造型重做的骨架版（第一版 Andy 退件「已經跟原來的不同了」，重做版 CEO 對照過 → 互動可以接）。
      清空就退回替代（face_star＋SVG 手）。⚠ 待機不用骨架的 happy_hop：Andy「使用圖2 圖3 GIF圖片就好」（見 BASE_IDLE／JUMP）。 */
   const PART = { run_l: 'run_l', run_r: 'run_r', run_start_r: 'run_start_r', run_stop_r: 'run_stop_r',
-    ball_catch: 'ball_catch', ball_catch_l: 'ball_catch_l', eat: 'eat_grass_v2', pet: 'pet_v2', spin: 'spin_v2', popcorn: 'popcorn',
+    ball_catch: 'ball_catch', ball_catch_l: 'ball_catch_l', eat: 'eat_grass_v2', pet: 'pet_v2', spin: 'spin_v2', dizzy: 'dizzy', popcorn: 'popcorn',
     receive: 'receive', receive_grass: 'receive_grass', receive_ball: 'receive_ball',
     hit: 'hit', cry: 'cry',                         // 打他（播一次）／哭哭（循環）：動畫單位 10-11 深夜交件
     look: 'face_curious', peek: 'tilt' };
@@ -862,22 +862,17 @@ html.fab-off .bibiring,html.fab-off .bibitip,html.fab-off .bibifx,html.fab-off #
     });
   }
 
-  /* ---------- 腳本：轉圈圈 ----------
-     spin_v2：轉一圈（380ms）→ 螺旋眼＋星星繞頭的暈眩臉（380～990ms，素材自己畫的）→ 甩甩頭回神。暈眩那段整顆左右晃 2 下才站穩。 */
-  const DIZZY = [380, 990];
+  /* ---------- 腳本：轉圈圈 → 頭暈（Andy 10-11 深夜：「頭暈應該要表情暈眩」） ----------
+     spin_v2（12 格、1580ms）轉一圈；第 11 格（960ms 起）跟 dizzy 第 1 格一模一樣 → 在那格中間切到 dizzy（漩渦眼＋星星繞頭、左右晃，
+     8 格循環），播約 1.5 秒再回待機。晃是素材自己畫的，網頁只在轉的那段讓整顆微微離地。 */
+  const SPIN_TO_DIZZY = 1070, DIZZY_MS = 1500;
   async function spinScript(g) {
     show(PART.spin, true);
-    await tween(MS[PART.spin] || 1650, (k, t) => {
-      if (t < DIZZY[0]) { pose(0, -4 * Math.sin(Math.PI * t / DIZZY[0]), { sy: 1 + 0.03 * Math.sin(Math.PI * t / DIZZY[0]) }); return; }
-      if (t < DIZZY[1] + 200) {
-        if (run) run.phase = 'dizzy';
-        const u = (t - DIZZY[0]) / (DIZZY[1] + 200 - DIZZY[0]), w = Math.sin(u * Math.PI * 4) * (1 - u);   // 左右晃 2 下、越晃越小
-        pose(4 * w, 0, { r: 7 * w, sk: -3 * w });
-        return;
-      }
-      if (run) run.phase = '';
-      pose(0, 0);
-    });
+    await tween(SPIN_TO_DIZZY, (k, t) => { const u = Math.min(1, t / 380); pose(0, -4 * Math.sin(Math.PI * u), { sy: 1 + 0.03 * Math.sin(Math.PI * u) }); });
+    if (run) run.phase = 'dizzy';
+    show(PART.dizzy);                                          // 循環素材：不用 #片段 重播
+    await wait(DIZZY_MS);
+    if (run) run.phase = '';
   }
 
   /* ---------- 腳本：天竺鼠爆米花跳（popcorn 素材：彈三下越來越小） ----------

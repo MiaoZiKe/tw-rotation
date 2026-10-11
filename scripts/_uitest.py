@@ -33117,11 +33117,11 @@ def t_bibi_1011(b, base):
     ok(f"【{T}】桌機 摸摸頭：比比享受地一縮一縮（身體 transform 有 scale）", any("scale(" in (r["body"] or "") for r in rec), [r["body"] for r in rec[::8]])
     home("pet")
 
-    rec = play("spin", 2600)
-    dz = [r for r in rec if r["phase"] == "dizzy"]
-    ok(f"【{T}】桌機 點「轉圈圈」→ 300ms 內在動、播 {PRT['spin']}（素材裡轉完就是螺旋眼＋星星繞頭的暈眩臉）、暈眩那段整顆左右晃（{len(dz)} 筆）",
-       started(rec) and any(r["src"] == PRT["spin"] + ".webp" for r in rec) and len(dz) >= 6
-       and any("rotate(" in (r["body"] or "") and "rotate(0.00" not in r["body"] for r in dz), rec[:4])
+    rec = play("spin", 2900)
+    dz = [r for r in rec if r["src"] == PRT["dizzy"] + ".webp"]
+    ok(f"【{T}】桌機 點「轉圈圈」→ 300ms 內在動、先播 {PRT['spin']} 轉一圈、接著暈眩臉 {PRT['dizzy']}（漩渦眼＋星星繞頭，循環 {len(dz) * 50} ms）",
+       started(rec) and any(r["src"] == PRT["spin"] + ".webp" for r in rec) and len(dz) * 50 >= 1200
+       and rec.index(next(r for r in rec if r["src"] == PRT["spin"] + ".webp")) < rec.index(dz[0]) and all(r["phase"] == "dizzy" for r in dz[:-1]), [r["src"] for r in rec[::6]])
     home("spin")
 
     rec = play("popcorn", 2200)
