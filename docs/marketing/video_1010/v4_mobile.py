@@ -78,12 +78,12 @@ def build():
     S.append(shot("d04", "資金流向", "V06_mobile_v3c", [(7.0, 10.0)], "每天分流一路播", "錢從哪流到哪，一看就懂", [(0, "spotlight"), (2.0, "face_love")], pan=(200, 700)))
     S.append(shot("e01", "熱力圖", "V08_mobile", [(0.05, 3.05)], "④ 哪裡熱一眼看", "方塊越大，錢越多", [(0, "magnifier"), (1.5, "face_shock")], pan=(300, 700), min_cap=3.0))
     S.append(shot("e02", "熱力圖", "I01_mobile_v3i", [(2.7, 5.5)], "題材熱度", "熱門題材，我拆開給你看", [(0, "talk_excited"), (1.4, "fire")], cont=True, min_cap=3.2))
-    S.append(shot("e03", "熱力圖", "I01_mobile_v3i", [(6.4, 9.4)], "一步一步看懂", "從晶片到整櫃，照順序看", [(0, "bulb"), (1.6, "face_thinking_bulb")], chain="solo"))
+    S.append(shot("e03", "熱力圖", "I01_mobile_v3i", [(6.3, 8.35)], "一步一步看懂", "從晶片到整櫃，照順序看", [(0, "bulb"), (1.6, "face_thinking_bulb")], chain="solo"))
     S.append(shot("f01", "產業地圖", "V11_mobile", [(14.9, 17.9)], "⑤ 產業鏈 2D", "上下游怎麼排，一張看懂", [(0, "talk_explain"), (1.4, "pointer_r")], wk=[(0.0, (70, 880, 1070, 2360))]))
     S.append(shot("f02", "產業地圖", "V12a_mobile", [(2.0, 6.0)], "3D 拆開看", "戴上眼鏡，推一下就轉！", [(0, "3dglasses"), (2.0, "face_star")], pan=(700, 700)))
     S.append(grid_card("f03", GRID_M))
     # 手機錄影沒有「滑過」動作（hover 落在畫面外、連線不亮），台詞改成畫面實際有的：上下游供貨關係一張連起來；視窗固定在關聯圖本體
-    S.append(shot("f04", "產業地圖", "V13_mobile_v3b", [(1.2, 3.3)], "上下游一張連", "上下游供貨關係，連成一張圖", [(0, "point_r"), (2.0, "face_love")], fixed=1250, noev=True, limit=4.1))
+    S.append(shot("f04", "產業地圖", "V13_mobile_v3b", [(1.2, 3.3)], "上下游一張連", "上下游供貨關係，連成一張圖", [(0, "point_r"), (2.0, "face_love")], fixed=1000, noev=True, limit=4.1))
     D10 = "D10_mobile_v3j"
     S.append(shot("g01", "個股", D10, [(1.1, 3.4)], "⑥ 個股一頁看", "這檔的走勢，我幫你打開", [(0, "talk_explain"), (1.0, "face_curious")], pan=(300, 300)))
     S.append(shot("g02", "個股", D10, [(3.9, 7.0)], "週期一鍵切", "日、週、月，點一下切換", [(0, "face_nod")]))
@@ -101,9 +101,9 @@ def build():
     S[-1].note = "過去表現不代表未來"
     S.append(shot("i04", "ETF", "V13b_mobile_v3e", [(5.6, 9.0)], "三張圖一起亮", "點一檔，現金流三圖連動", [(0, "calc"), (2.0, "face_surprise_happy")], min_cap=3.4))
     S.append(shot("i05", "ETF", "V23_mobile", [(2.6, 5.7)], "複利怎麼長大", "再投入和領現金，並排看", [(0, "face_determined"), (1.0, "growth")], hl="長大"))
-    S.append(shot("j01", "自選清單", "V24_mobile", [(6.6, 10.4)], "⑪ 自選清單", "常看的收進來，一開就有", [(0, "star_save"), (2.2, "face_love")], fixed=540))
+    S.append(shot("j01", "自選清單", "V24_mobile", [(8.2, 10.95)], "⑪ 自選清單", "常看的收進來，一開就有", [(0, "star_save"), (2.2, "face_love")], fixed=540))
     S.append(shot("j02", "導覽", "V25_mobile", [(1.4, 4.8)], "看不懂有導覽", "每一頁我都一步步帶你", [(0, "talk_happy"), (1.8, "face_wink")], chain="solo", min_cap=3.0))
-    S.append(shot("j03", "願望清單", "V26_mobile", [(13.3, 16.9)], "歡迎許願", "想要什麼功能，跟我說！", [(0, "heart_wish"), (1.6, "face_love")], chain="solo", fixed=800))
+    S.append(shot("j03", "願望清單", "V26_mobile", [(15.5, 18.1)], "歡迎許願", "想要什麼功能，跟我說！", [(0, "heart_wish"), (1.6, "face_love")], chain="solo", fixed=800))
     S.append(card("k01", 3.0, K4.end4_fn(), [(0, "pop"), (1.0, "ding")]))
     S.append(card("k02", 5.0, K4.disclaimer4_fn()))
     return S
