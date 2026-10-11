@@ -68017,7 +68017,10 @@ def t_acct_menu_1009(b, base, code):
         perm = ACCTM4_WHO[who][1]
         want_daily = 0 if who == "owner" else len(perm["lims"])
         want_all = 0 if who == "owner" or perm.get("dq") is None else 1
-        ok(f"【{T}】{who}：權限 API 讀到的每日次數＝模擬範本的 {want_daily} 項、全站額度 {want_all}", exp["daily"] == want_daily and exp["all"] == want_all, exp)
+        # 10-11 DECISIONS #354：註冊會員範本沒寫的「關掉的功能」由 features.js limBy 補成每日 3 次（perm.js 補進 lims），
+        #   所以讀到的每日項目 ≥ 模擬範本那幾項（多出來的就是 limBy 補的）；站主照舊 0。
+        ok(f"【{T}】{who}：權限 API 讀到的每日次數 ≥ 模擬範本的 {want_daily} 項（另含 limBy 預設）、全站額度 {want_all}",
+           (exp["daily"] == 0 if who == "owner" else exp["daily"] >= want_daily) and exp["all"] == want_all, exp)
         pg.locator("#acctMenu [data-m=quota]").tap()
         q = wait_until(pg, "() => { const d = document.getElementById('m4Quota'); return d && !d.hidden && d.getClientRects().length ? { n: d.querySelectorAll('.qi').length, all: d.querySelectorAll('.qi.all').length, none: !!d.querySelector('.none'), txt: d.innerText } : null; }", 3000)
         ok(f"【{T}】{who}：額度上限頁打開、列出 {exp['n']} 項（＝有上限的功能數）",
