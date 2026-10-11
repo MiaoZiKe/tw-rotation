@@ -250,9 +250,9 @@ def grid_fn(dur, speed=1.8):
         web = L.fmt == "web"
         srcs = GRID_SRC_W if web else GRID_SRC_M
         if web:
-            cw, ch, gap, lab = 745, 400, 12, 46
+            cw, ch, gap, lab = 726, 390, 12, 46
             x0 = (L.W - (2 * cw + gap)) // 2
-            y0 = 66
+            y0 = 82
         else:
             cw, ch, gap, lab = 490, 690, 12, 46
             x0 = 40 + (1000 - (2 * cw + gap)) // 2
@@ -276,24 +276,34 @@ def grid_fn(dur, speed=1.8):
             ld.text((16, 1), name, font=f, fill=THEME["pill_fg"])
             cv.paste(lay, (cx, cy + 1), lay)
             C.reg("label:" + name, (cx, cy + 1, cx + lw, cy + 29))
+        TITLE = "還有更多 3D 圖可以看"
+        SMALL = "AI 伺服器、先進封裝、HBM、液冷…只是其中幾個；站上共 20 種 3D 產品"
+        sf = font(B.F_MED, 22 if web else 24)
         if web:
             pw = R.pill(cv, "3D", L.pill_xy[0], L.pill_xy[1], px=L.pill_px)
             L.head_xy = (L.pill_xy[0] + pw + 36, L.head_y)
-            R.headline(cv, L, "四個 3D 同時看", t, "同時看")
+            R.headline(cv, L, TITLE, t, "更多")
+            sw_ = text_w(sf, SMALL)
+            sx = L.box[0] + 1616 - sw_ - 4
+            ImageDraw.Draw(cv).text((sx, 14), SMALL, font=sf, fill=THEME["ink"])
+            C.reg("small", (sx - 4, 12, sx + sw_ + 4, 44))
             from v3_core import subtitle_web, footnote4
-            subtitle_web(cv, L, "AI 伺服器、先進封裝、HBM、液冷，各自轉給你看", t)
+            subtitle_web(cv, L, "點選產品，每一個都能自己轉著看", t)
             footnote4(cv, L)
             nm = "face_star" if THEME["name"] == "cute" else "talk_happy"
             put_sprite(cv, nm, anim_frame(nm, t), (1856, 1070), min(fit_size(nm, 100), 150))
         else:
             hx = L.pill_xy[0]
-            pw = R.pill(cv, "3D", L.pill_xy[0], L.pill_xy[1], px=L.pill_px)
-            L.head_xy = (hx + pw + 30, L.head_y)
-            R.headline(cv, L, "四個 3D 同時看", t, "同時看")
+            L.head_y = 18
+            pw = R.pill(cv, "3D", L.pill_xy[0], 18, px=L.pill_px)
+            L.head_xy = (hx + pw + 30, 18)
+            R.headline(cv, L, TITLE, t, "更多")
+            ImageDraw.Draw(cv).text((L.box[0], 100), "AI 伺服器、先進封裝、HBM、液冷…只是其中幾個", font=sf, fill=THEME["ink"])
+            C.reg("small", (L.box[0] - 2, 98, L.box[0] + text_w(sf, "AI 伺服器、先進封裝、HBM、液冷…只是其中幾個") + 2, 130))
             from v3_core import bubble_mobile, footnote4
             nm = "face_star" if THEME["name"] == "cute" else "talk_happy"
             put_sprite(cv, nm, anim_frame(nm, t), L.host, L.host_size)
-            bubble_mobile(cv, L, shot, "AI 伺服器、先進封裝、HBM、液冷一起轉", t)
+            bubble_mobile(cv, L, shot, "點選產品，每一個都能自己轉著看", t)
             footnote4(cv, L)
     return fn
 
@@ -302,36 +312,36 @@ def more_fn():
     def fn(cv, t, shot):
         L = shot.L
         web = L.fmt == "web"
-        cy = 330 if web else 560
-        f = font(THEME["head_font"], 96 if web else 80)
-        for i, ln in enumerate(["還有更多 3D 圖", "等你自己來探索"]):
-            tw = text_w(f, ln)
-            u = ease_out((t - 0.15 * i) / 0.3)
-            if u <= 0:
-                continue
-            x0 = L.W / 2 - tw / 2
-            y = cy + i * f.size * 1.65
-            R.float_panel(cv, (x0 - 30, y - 8, x0 + tw + 30, y + f.size * 1.25 + 8), int(235 * u), 24)
-            ImageDraw.Draw(cv).text((x0, y), ln, font=f, fill=THEME["ink"])
-            C.reg(f"text{i}", (x0 - 30, y - 8, x0 + tw + 30, y + f.size * 1.25 + 8))
-        # 「更多」角標＋箭頭
+        cy = 360 if web else 600
+        f = font(THEME["head_font"], 110 if web else 84)
+        ln = "換一個產品看看"
+        tw = text_w(f, ln)
+        u = ease_out(t / 0.3)
+        x0 = L.W / 2 - tw / 2
+        if u > 0:
+            R.float_panel(cv, (x0 - 30, cy - 8, x0 + tw + 30, cy + f.size * 1.25 + 8), int(235 * u), 24)
+            ImageDraw.Draw(cv).text((x0, cy), ln, font=f, fill=THEME["ink"])
+            C.reg("text", (x0 - 30, cy - 8, x0 + tw + 30, cy + f.size * 1.25 + 8))
         g = font(THEME["pill_font"], 40)
-        label = "更多 3D ▶"
-        gw = text_w(g, label) + 50
-        gx, gy = L.W / 2 - gw / 2, cy + 2 * 140 + (60 if web else 40)
-        u = back_out((t - 0.5) / 0.3)
-        if u > 0.05:
+        label = "點選產品"
+        gw = text_w(g, label) + 90
+        gx, gy = L.W / 2 - (10 if web else 0), cy + f.size * 1.25 + (70 if web else 60)
+        u2 = back_out((t - 0.5) / 0.3)
+        if u2 > 0.05:
             lay = Image.new("RGBA", (int(gw) + 6, 70), (0, 0, 0, 0))
             ld = ImageDraw.Draw(lay)
             ld.rounded_rectangle([0, 0, gw, 62], THEME["pill_radius"] or 31, fill=LEMON + (255,), outline=THEME["ink"] + (255,), width=3)
             ld.text((25, 8), label, font=g, fill=THEME["ink"])
+            tx = gw - 52
+            ld.polygon([(tx, 18), (tx, 44), (tx + 24, 31)], fill=THEME["ink"] + (255,))
             cv.paste(lay, (int(gx), int(gy)), lay)
             C.reg("badge", (gx, gy, gx + gw, gy + 62))
-        nm = "face_wink" if THEME["name"] == "cute" else "talk_happy"
+        # 比比在左邊，用手指向「點選產品」
+        nm = "point_r" if THEME["name"] == "cute" else "talk_happy"
         if web:
-            put_sprite(cv, nm, anim_frame(nm, t), (L.W / 2, 1040), min(fit_size(nm, 300), 300))
+            put_sprite(cv, nm, anim_frame(nm, t), (L.W / 2 - 200, gy + 150), 330)
         else:
-            put_sprite(cv, nm, anim_frame(nm, t), (L.W / 2, 1500), 360)
+            put_sprite(cv, nm, anim_frame(nm, t), (L.W / 2 - 180, gy + 190), 330)
     return fn
 
 
