@@ -24,6 +24,13 @@ from render_1010 import FPS  # noqa: E402
 
 
 def shots_for(fmt):
+    import os
+    if os.environ.get("VIDEO_V") == "4":
+        if fmt == "web":
+            import v4_web
+            return v4_web.build()
+        import v4_mobile
+        return v4_mobile.build()
     if fmt == "web":
         import v3_web
         return v3_web.build()
@@ -155,6 +162,7 @@ def main():
     ap.add_argument("--check", action="store_true")
     ap.add_argument("--step", type=int, default=3)
     ap.add_argument("--allow", action="store_true")
+    ap.add_argument("--final", action="store_true", help="成片：bad_spans.json 必須存在、守門不可放行")
     a = ap.parse_args()
     R.set_theme(a.theme)
     S = shots_for(a.fmt)
@@ -190,8 +198,8 @@ def main():
     work = Path(a.work or (B.SCR / "v10" / "work4" / f"{a.fmt}_{a.theme}"))
     work.mkdir(parents=True, exist_ok=True)
     import v3_guard as G
-    gbad = G.guard(S, work, label, strict=bool(a.out))
-    if gbad and not (a.allow and not a.out):
+    gbad = G.guard(S, work, label, strict=a.final)
+    if gbad and (a.final or not a.allow):
         print(f"★ 來回切換／錯誤畫面檢查未通過（{gbad} 筆），不出片。報告：{work}/flow_check.md、bad_span_check.md")
         sys.exit(3)
     only = set(a.only.split(",")) if a.only else None

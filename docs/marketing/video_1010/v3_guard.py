@@ -26,6 +26,18 @@ BAD_KNOWN = {
 
 BAD_SPANS_PATH = K.RAW3 / "bad_spans.json"
 
+# 分鏡師抽格確認的避開時段（storyboard_v4_*.md 第 7 節）：跟 bad_spans.json 一樣，碰到就報錯
+_E = 9999.0
+STORY_AVOID = {
+    "V02_desktop": [(16.4, _E, "點新聞個股跳頁")], "V08_desktop": [(3.1, _E, "點方塊跳產業鏈")], "V11_desktop": [(2.2, 14.2, "點錯目標、點不到")],
+    "V16_desktop": [(17.6, _E, "今日關注")], "V21_desktop": [(3.1, 10.9, "下拉選單「已選 7／8」上限暗示")], "V24_desktop": [(0.0, 5.6, "空清單")],
+    "V26_desktop": [(0.0, 12.1, "常見問題含付費方案")], "V27_desktop": [(8.2, _E, "進個股頁（個股頁提前出現）")],
+    "V02_mobile": [(18.8, _E, "點新聞個股跳頁")], "V08_mobile": [(3.1, _E, "點方塊跳產業鏈")], "V11_mobile": [(2.2, 14.9, "點到深色模式鈕、點不到"), (18.1, _E, "開說明抽屜")],
+    "V13_mobile_v3b": [(4.2, _E, "滑過點座標在畫面外")], "V16_mobile": [(17.9, _E, "今日關注")], "V21_mobile_v3b": [(3.1, 10.9, "下拉選單「已選 7／8」上限暗示")],
+    "V21_mobile": [(3.1, 10.9, "下拉選單「已選 7／8」上限暗示")], "V24_mobile": [(0.0, 5.6, "空清單")], "V26_mobile": [(0.0, 12.1, "常見問題含付費方案")],
+    "V27_mobile": [(8.6, _E, "進個股頁（個股頁提前出現）")],
+}
+
 
 def _norm(clip):
     return clip.replace(".mp4", "")
@@ -148,11 +160,12 @@ def span_check(S, strict=False):
             sp = []
             for k in keys:
                 sp += spans.get(k, [])
+                sp += [(a_, b_, "分鏡避開：" + w_) for a_, b_, w_ in STORY_AVOID.get(k, [])]
             if not sp:
                 continue
             for (a, b) in used_ranges(r, s.dur):
                 for (t0, t1, why) in sp:
-                    if a <= t1 and b >= t0:
+                    if a < t1 and b > t0:
                         bad.append((s.sid, f"素材 {c} 使用 {a:.2f}–{b:.2f}s，落在壞畫面時段 {t0:.2f}–{t1:.2f}s（{why}）"))
     return bad, warn, exists
 

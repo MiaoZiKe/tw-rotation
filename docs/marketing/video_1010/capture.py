@@ -164,10 +164,14 @@ BAD_JS = r"""() => {
     if (cs.visibility === 'hidden' || cs.display === 'none' || +cs.opacity === 0) return false;
     return r.width > 2 && r.height > 2 && r.bottom > 0 && r.right > 0 && r.top < vh && r.left < vw; };
   const out = [];
-  document.querySelectorAll('[role=dialog], [role=alertdialog], .modal, .toast, .qcov, .qcard, .qlkov, [data-plk], [data-qlk], .upsell, .logobox').forEach(e => {
+  const RE0 = /看方案|升級|上限|Pro 不限|方案最多|已選\s*\d+\s*[／\/]\s*\d+|請登入|請先登入|載入中|讀取中|查無|沒有符合|尚無資料|沒有資料|發生錯誤|錯誤|Error|此功能需開通|今日已用完|需開通/;
+  document.querySelectorAll('[role=dialog], [role=alertdialog], .modal, .toast, .qcov, .qcard, .qlkov, [data-plk], [data-qlk], .upsell').forEach(e => {
     if (e.closest('#supPanel') || e.id === 'logoBox') return;
+    // 內容型底部面板（手機 #mSheet 顯示零件／族群說明）是正常畫面：只有付費／上限／鎖頭類，或文字含上述字樣才算
+    const cls = String(e.className) + ' ' + (e.id || '');
+    if (!/qc|upsell|qlk|plk|toast/i.test(cls) && !e.hasAttribute('data-plk') && !e.hasAttribute('data-qlk') && !RE0.test(e.innerText || '')) return;
     if (inView(e)) out.push('彈窗／遮罩：' + (e.id ? '#' + e.id : '') + '.' + String(e.className).split(' ').slice(0, 2).join('.') + '「' + (e.innerText || '').trim().replace(/\s+/g, ' ').slice(0, 30) + '」'); });
-  const RE = /看方案|升級|上限|Pro 不限|方案最多|請登入|請先登入|載入中|讀取中|查無資料|沒有資料|尚無資料|發生錯誤|錯誤|Error|此功能需開通|今日已用完|需開通/;
+  const RE = RE0;
   const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
   let n, k = 0;
   while ((n = walker.nextNode()) && k < 4000) { k++;
