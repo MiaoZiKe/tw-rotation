@@ -2109,10 +2109,9 @@ def d01(pg, a, start, base):
         a.scroll(to_y=pg.evaluate("() => document.querySelector('#skFundCard').getBoundingClientRect().top + scrollY") - 130, ms=1300)
         for nm in ["基本面", "籌碼快照", "AI 分析"]:
             if tab_txt(a, nm):
-                t0 = a.t
-                a.wait(1500)
-                a.focus_sel(f"個股總覽：{nm}", "#skOv3, #skOv", t0, a.t)
-                a.note(f"完整入框 {t0:.1f}–{a.t:.1f}s：{nm}")
+                a.wait(500)
+                # 點完分頁 → 自動捲到被點出的內容區、完整入框停 2 秒；內容比視窗高就慢慢往下滑看完
+                slow_through(a, "#skOv3", f"個股總覽：{nm}", 2000, 1000, 2600)
     else:
         for sel, nm in [("#skFundCard", "基本面卡（EPS、ROE、本益比、毛利率、營運動能）"), ("#skChipCard", "籌碼快照卡（法人、集保、信用、當沖）"), ("#ovAiCard", "AI 分析卡（結論、燈號、型態條件）")]:
             frame(a, sel, 2200, label=nm)
@@ -2268,9 +2267,19 @@ def d06(pg, a, start, base):
         tap(a, "#mtfBtn", "四週期同看", 600)
         frame(a, "#skChartCard", 2200, label="四週期同看（日／週／月／季 SMC）")
         tap(a, "#mtfBtn", "收回", 600)
-    if pg.locator("#indBtn:visible").count():
-        tap(a, "#indBtn", "指標選單", 1200)
-        a.focus_sel("指標選單", "#indBtn", a.t - 1.2, a.t)
+    ind = "#mbKSet" if a.mob else "#indBtn"
+    if pg.locator(f"{ind}:visible").count():
+        a.scroll(to_y=pg.evaluate("() => document.querySelector('#skChartCard').getBoundingClientRect().top + scrollY") - 90, ms=700)
+        tap(a, ind, "指標選單／K 線設定", 500)
+        pan = "[role=dialog]:visible, .m4sheet:visible, .indpop:visible, #indPop:visible, #indMenu:visible"
+        t0 = a.t
+        a.wait(2000)
+        if pg.locator(pan).count():
+            a.focus_sel("指標選單內容區", pan, t0, a.t)
+            a.attach_content(pan, t0, a.t, "指標選單")
+        else:
+            a.focus_sel("指標選單（整張走勢卡）", "#skChartCard", t0, a.t)
+            a.attach_content("#skChartCard", t0, a.t, "指標選單")
         pg.keyboard.press("Escape")
         a.wait(800)
 

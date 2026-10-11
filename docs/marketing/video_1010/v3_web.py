@@ -6,7 +6,7 @@ from __future__ import annotations
 
 import render_v3 as R
 import v3_cards as K
-from v3_core import Focus4, Lay, Op, Rec4, Shot4, Fn, solve_pan
+from v3_core import Focus4, Lay, Op, Rec4, Shot4, Fn, solve_pan, plan_dwell
 
 _LW = Lay('web')
 
@@ -30,7 +30,10 @@ def F(rect, label, clip, t_draw=0.5, **kw):
 def feat(sid, D, clip, srcmap, head, hl, sub, pill, focus=None, idle="talk_happy", extra=(), soft_hover=False, use_events=True, main=None, chain=None):
     rec = Rec4(clip + C, srcmap, focus=focus, main=main)
     op = Op(rec, idle=idle, extra=extra, soft_hover=soft_hover, use_events=use_events, chain=chain)
-    return Shot4(sid, D, [rec], pill=pill, head=head, hl=hl, sub=sub, op=op)
+    D, dw = plan_dwell(rec, op, D, sub, _LW, None, chain)
+    _sh = Shot4(sid, D, [rec], pill=pill, head=head, hl=hl, sub=sub, op=op)
+    _sh.dwell = dw
+    return _sh
 
 
 def FV(rect, label, clip_full, t_draw=0.5, **kw):
@@ -41,7 +44,10 @@ def FV(rect, label, clip_full, t_draw=0.5, **kw):
 def featv(sid, D, clip_full, srcmap, head, hl, sub, pill, focus=None, idle="talk_happy", extra=(), soft_hover=False, use_events=True, main=None, chain=None):
     rec = Rec4(clip_full, srcmap, focus=focus, main=main)
     op = Op(rec, idle=idle, extra=extra, soft_hover=soft_hover, use_events=use_events, chain=chain)
-    return Shot4(sid, D, [rec], pill=pill, head=head, hl=hl, sub=sub, op=op)
+    D, dw = plan_dwell(rec, op, D, sub, _LW, None, chain)
+    _sh = Shot4(sid, D, [rec], pill=pill, head=head, hl=hl, sub=sub, op=op)
+    _sh.dwell = dw
+    return _sh
 
 
 def card(sid, D, fn, cues=()):

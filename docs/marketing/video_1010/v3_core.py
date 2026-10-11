@@ -249,17 +249,19 @@ def post_click_content(clip, src_t, cy_src=None, desktop=False):
 
 
 def plan_mobile(rec, op, D, L):
-    """手機：點擊後把「被點出的內容區」放進視窗（點下→內容出現並入框→停留），回傳 (pan_keys, 檢查列)。"""
+    """手機：點擊後把「被點出的內容區」放進視窗（點下→內容出現並入框→停留≥1.5 秒；內容比視窗高就慢慢滑到底並停 1.2 秒）。
+    回傳 (pan_keys, 檢查列, 最短鏡長)。"""
     sw, sh = clip_size(rec.clip)
     rx, ry, rw, rh = L.box
     wh = rh * sw / rw
     maxy = max(0.0, sh - wh)
+    SPEED = 700.0       # 手機可讀捲動速度（src px／秒）
 
     def cl(y):
         return min(max(y, 0.0), maxy)
     taps = [tp for tp in op.taps if not tp["hover"]]
     if not taps:
-        return None, []
+        return None, [], 0.0
     items = []
     for tp in taps:
         rect, lab, src = post_click_content(rec.clip, tp["src_t"], tp["cy"])
@@ -285,10 +287,15 @@ def plan_mobile(rec, op, D, L):
                 keys.append((nxt["c"] - 0.1, tgt))
     last = items[-1]
     h = last["rect"][3] - last["rect"][1]
-    if h > wh - 200 and D - (last["c"] + 0.95) > 1.8:
-        keys.append((last["c"] + 1.9, last["w_c"]))
-        keys.append((D, cl(last["rect"][3] - wh + 40)))
-    # 單調化
+    dmin = last["c"] + 0.95 + 1.5
+    reached = True
+    if h > wh - 200:
+        y_end = cl(last["rect"][3] - wh + 40)
+        dist = max(0.0, y_end - last["w_c"])
+        tscroll = max(0.8, dist / SPEED)
+        keys.append((last["c"] + 1.7, last["w_c"]))
+        keys.append((last["c"] + 1.7 + tscroll, y_end))
+        dmin = last["c"] + 1.7 + tscroll + 1.2
     out = []
     for t_, y_ in sorted(keys, key=lambda x: x[0]):
         if out and t_ <= out[-1][0] + 1e-3:
@@ -310,12 +317,109 @@ def plan_mobile(rec, op, D, L):
         top = (r[0], r[1], r[2], min(r[3], r[1] + wh - 120))
         w15 = win_at(c + 1.5)
         inc = _area(_inter_rect(top, (0, w15, sw, w15 + wh))) / max(1.0, _area(top))
-        note = "內容高於視窗：取上段並往下慢滑" if r[3] - r[1] > wh - 200 else ""
-        chk.append((rec.clip, it["tp"]["label_txt"] if "label_txt" in it["tp"] else "", it["lab"], round(inc * 100, 1), round(D - (c + 0.95), 2), it["src"], note, it["tp"]))
-    return out, chk
+        note = "內容高於視窗：取上段並慢滑到底" if r[3] - r[1] > wh - 200 else ""
+        chk.append((it["lab"], round(inc * 100, 1), it["src"], note, it["tp"], r))
+    return out, chk, dmin
 
 
-PAN_LOG_DUMMY = None
+DWELLCHK: list = []   # (鏡, 內容量, 規定最短秒, 實際秒, 是否看完(底部入窗停≥1.2s), 備註)
+
+
+def content_units(clip, s0, s1, tall_px=0):
+    """內容量＝這一鏡看的區塊數：該時段錄影端標出的內容區（排除控制列與重複的「整區／頂端」）＋ 高內容每 900px 加 1。"""
+    allj = load_all()
+    labs = set()
+    for key in _clip_keys(clip):
+        for it in (allj.get(key) or {}).get("focus", []):
+            ts = float(it.get("t_start", -1))
+            if s0 - 0.2 <= ts <= s1 + 0.2:
+                lab = str(it.get("label", ""))
+                if any(k in lab for k in ("整區", "完整", "頂端", "底端", "捲到底", "搜尋", "分頁列", "切換列", "指標選單")):
+                    continue
+                labs.add(lab.split("（")[0])
+    n = len(labs) + (int(math.ceil(tall_px / 900.0)) if tall_px else 0)
+    return max(1, n)
+
+
+def _extend_srcmap(srcmap, D_old, D_new, clip):
+    if D_new <= D_old + 1e-6:
+        return srcmap
+    sm = list(srcmap)
+    (t0, a0), (t1, a1) = sm[-2], sm[-1]
+    slope = (a1 - a0) / (t1 - t0) if t1 - t0 > 1e-6 else 0.0
+    cap = clip_dur(clip) - 0.05
+    sm[-1] = (D_new, min(cap, a1 + slope * (D_new - D_old)))
+    return sm
+
+
+_CD: dict = {}
+
+
+def clip_dur(clip):
+    if clip not in _CD:
+        import subprocess
+        _CD[clip] = float(subprocess.check_output(["ffprobe", "-v", "error", "-show_entries", "format=duration", "-of", "csv=p=0", str(RAW3 / f"{clip}.mp4")], text=True))
+    return _CD[clip]
+
+
+def plan_dwell(rec, op, D, sub, L, pan_, chain=None, no_solve=False):
+    """依內容量決定每鏡長度：最短停留＝2.0＋0.35×區塊數（≤7 秒）、字卡讀完（每秒 6.5 字）；長頁面必須滑到內容底部並停 1.2 秒；
+    點擊後被點出的內容區要完整入窗並停 ≥1.5 秒。快節奏序列（Andy 指定）與播放鏡頭例外，並在檢查表標註。回傳 (D, dwell 資訊)。"""
+    mobile = L.fmt == "mobile"
+    s0 = rec.srcmap[0][1]
+    s1 = max(a[1] for a in rec.srcmap)
+    exempt = bool(chain)
+    note = "快節奏序列（Andy 指定）" if chain else ""
+    sw, sh = clip_size(rec.clip)
+    wh = L.box[3] * sw / L.box[2] if mobile else 0
+    units = content_units(rec.clip, s0, s1)
+    min_req = min(7.0, 2.0 + 0.35 * units)
+    reading = len(sub or "") / 6.5 + 0.55
+    need = max(min_req, reading)
+    reached, hold = True, 0.0
+    taps = [tp for tp in op.taps if not tp["hover"]]
+    if mobile:
+        if taps and not no_solve and not chain:
+            keys, chk, dmin = plan_mobile(rec, op, D, L)
+            rec.pan, rec.pan_keys = None, keys
+            rec._chk_raw = chk
+            need = max(need, dmin)
+            units = max(units, 1 + sum(1 for c_ in chk if "高於" in c_[3]) * 2)
+            min_req = min(7.0, 2.0 + 0.35 * units)
+            need = max(need, min_req, reading)
+            hold = D - (taps[-1]["t"] + 0.95)
+        elif not no_solve and not chain:
+            p2 = solve_pan(rec, op, D, pan_, L)
+            ya, yb, t0, t1 = p2
+            if abs(yb - ya) > 1:
+                ts_ = max(0.6, abs(yb - ya) / 700.0)
+                p2 = (ya, yb, t0, t0 + ts_)
+                need = max(need, t0 + ts_ + 1.2)
+            rec.pan = p2
+            hold = D - p2[3]
+        else:
+            rec.pan = pan_ if no_solve or chain else rec.pan
+    else:
+        if taps and not chain:
+            need = max(need, taps[-1]["t"] + 0.95 + 1.5)
+    D2 = D if exempt else max(D, math.ceil(need * 10) / 10.0)
+    if D2 > D:
+        rec.srcmap = _extend_srcmap(rec.srcmap, D, D2, rec.clip)
+    if getattr(rec, "_chk_raw", None):
+        rec._cchk = []
+        for (lab, inc, src, nt, tp, r) in rec._chk_raw:
+            tl = click_info(rec.clip, tp["src_t"], tp["x"], tp["y"])["label"]
+            rec._cchk.append((0, tl, lab, inc, round(D2 - (tp["t"] + 0.95), 2), src, nt, {"_lab": tl}))
+    if mobile and rec.pan and not rec.pan_keys and not chain:
+        hold = D2 - rec.pan[3]
+    if not mobile or not (rec.pan_keys):
+        hold = hold if hold else max(0.0, D2 - (taps[-1]["t"] + 0.95 if taps else 0.0))
+    if mobile and rec.pan_keys:
+        hold = D2 - rec.pan_keys[-1][0]
+    reached = exempt or hold >= 1.2 - 1e-6 or (not mobile) or (mobile and not rec.pan and not rec.pan_keys)
+    dw = {"units": units, "min_req": round(min_req, 2), "reading": round(reading, 2), "D": round(D2, 2), "reached": bool(reached), "hold": round(hold, 2), "note": note,
+          "ok": bool(exempt or (D2 >= min(min_req, need) - 1e-6 and reached))}
+    return D2, dw
 
 
 def focus_target(clip, label, rect):
@@ -435,6 +539,8 @@ class Rec4:
                         continue
                     cr, clab, csrc = post_click_content(self.clip, tp["src_t"], None, desktop=True)
                     if cr is not None:
+                        tp = dict(tp)
+                        tp["_lab"] = click_info(self.clip, tp["src_t"], tp["x"], tp["y"])["label"]
                         cont_rs.append((_clip_rect(cr, sw, sh), clab, csrc, tp))
             tap_rs = []
             if shot.op:
@@ -1058,6 +1164,7 @@ class Shot4:
         self.pill, self.head, self.hl, self.sub = pill, head, hl, sub
         self.op, self.cues, self.kind, self.foot, self.custom = op, list(cues), kind, foot, custom
         self.L = None
+        self.dwell = None
 
     @property
     def rec(self):
@@ -1086,6 +1193,10 @@ class Shot4:
 
     def render(self, t, L):
         self.L = L
+        if self.dwell and t < 1.5 / FPS and not getattr(self, "_dw_done", False):
+            self._dw_done = True
+            d_ = self.dwell
+            DWELLCHK.append((self.sid, d_["units"], d_["min_req"], d_["D"], d_["reached"], d_["hold"], d_["note"]))
         C.begin()
         ROLE[0] = "bibi"
         cv = R.background(L.fmt).copy()

@@ -15,7 +15,7 @@ def pan(ya, yb, D, t0=0.3):
     return (ya, yb, t0, t0 + 0.6 * D)
 
 
-from v3_core import solve_pan as _solve_core, PAN_LOG, Lay  # noqa: E402
+from v3_core import solve_pan as _solve_core, PAN_LOG, Lay, plan_dwell  # noqa: E402
 
 _LM = Lay('mobile')
 
@@ -27,9 +27,10 @@ def solve_pan(rec, op, D, pan_):
 def feat(sid, D, clip, srcmap, head, hl, sub, pill, focus=None, idle="talk_happy", extra=(), pan_=None, use_events=True, no_solve=False, chain=None):
     rec = Rec4(clip, srcmap, focus=focus, pan=pan_)
     op = Op(rec, idle=idle, extra=extra, use_events=use_events, chain=chain)
-    if not no_solve:
-        rec.pan = solve_pan(rec, op, D, pan_)
-    return Shot4(sid, D, [rec], pill=pill, head=head, hl=hl, sub=sub, op=op)
+    D, dw = plan_dwell(rec, op, D, sub, _LM, pan_, chain, no_solve)
+    _sh = Shot4(sid, D, [rec], pill=pill, head=head, hl=hl, sub=sub, op=op)
+    _sh.dwell = dw
+    return _sh
 
 
 def featp(sid, D, clip, ev_clip, srcmap, head, hl, sub, pill, focus=None, idle="talk_happy", pan_=None):
@@ -38,7 +39,9 @@ def featp(sid, D, clip, ev_clip, srcmap, head, hl, sub, pill, focus=None, idle="
     rec = Rec4(clip, srcmap, focus=focus, pan=pan_)
     op = Op(rec, idle=idle, events=(events_for(clip) or events_for(ev_clip)))
     rec.pan = solve_pan(rec, op, D, pan_)
-    return Shot4(sid, D, [rec], pill=pill, head=head, hl=hl, sub=sub, op=op)
+    _sh = Shot4(sid, D, [rec], pill=pill, head=head, hl=hl, sub=sub, op=op)
+    _sh.dwell = {"units": 1, "min_req": 2.35, "reading": 0, "D": D, "reached": True, "hold": 0.0, "note": "播放鏡頭（原速）", "ok": True}
+    return _sh
 
 
 def card(sid, D, fn, cues=()):
