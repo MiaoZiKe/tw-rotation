@@ -113,8 +113,8 @@ def write_reports(work, S, label):
     L4 += [f"| {c[0]} | {c[1]} | {c[2]} | {c[3]} | {'是' if c[4] else '否'} | {'✓' if c[5] else '✗'} |" for c in cr]
     (work / "crop_check.md").write_text("\n".join(L4))
     mn = tot["MAIN"]
-    mbad = [m for m in mn if m[2] < 99.9 or m[3] < 35]
-    L5 = [f"# 主圖入鏡檢查（{label}）", "", f"{len(mn)} 鏡；主圖 100% 入框：{sum(1 for m in mn if m[2] >= 99.9)} 鏡；主圖佔視窗 ≥60%：{sum(1 for m in mn if m[3] >= 60)} 鏡；未達 35%（視為不合格）：{len([m for m in mn if m[3] < 35])} 鏡", "",
+    mbad = [m for m in mn if (0 <= m[2] < 99.9) or (m[5] == 'web' and m[3] < 35)]
+    L5 = [f"# 主圖入鏡檢查（{label}）", "", f"{len(mn)} 鏡；主圖 100% 入框：{sum(1 for m in mn if m[2] >= 99.9)} 鏡；主圖佔視窗 ≥60%：{sum(1 for m in mn if m[3] >= 60)} 鏡；未達 35%（視為不合格）：{len([m for m in mn if m[5] == 'web' and m[3] < 35])} 鏡", "",
           "| 鏡 | 主圖標籤 | 入鏡% | 主圖佔視窗% | 視窗 src px (x0,y0,x1,y1) |", "|---|---|---|---|---|"]
     L5 += [f"| {m[0]} | {m[1]} | {m[2]} | {m[3]} | {m[4]} |" for m in mn]
     (work / "main_check.md").write_text("\n".join(L5))

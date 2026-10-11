@@ -328,7 +328,7 @@ class Rec4:
             else:
                 inc, ratio, label = 1.0, 1.0, "整頁（無單一主圖，整頁入鏡）"
                 mb = win
-            MAINCHK.append((shot.sid, label, round(inc * 100, 1), round(ratio * 100, 1), tuple(round(v) for v in win), ""))
+            MAINCHK.append((shot.sid, label, round(inc * 100, 1), round(ratio * 100, 1), tuple(round(v) for v in win), "web"))
         return self._wl
 
     def draw(self, cv, t, shot):
@@ -348,6 +348,23 @@ class Rec4:
                 y0 = 0
             y0 = clamp(y0, 0, max(0, sh - wh))
             self.win = (0, y0, ww, min(sh, y0 + wh))
+            if not getattr(self, "_mchk", False):
+                self._mchk = True
+                f = self.focus
+                if f and f.frame:
+                    ts = f.t_draw + f.d_draw
+                    if self.pan:
+                        ya, yb, p0, p1 = self.pan
+                        yy = lerp(ya, yb, ease_io((ts - p0) / max(0.01, p1 - p0)))
+                    else:
+                        yy = 0
+                    yy = clamp(yy, 0, max(0, sh - wh))
+                    win = (0, yy, sw, min(sh, yy + wh))
+                    r = _clip_rect(tuple(f.rect), sw, sh)
+                    inc = _area(_inter_rect(r, win)) / max(1.0, _area(r))
+                    MAINCHK.append((shot.sid, f.label, round(inc * 100, 1), round(_area(_inter_rect(r, win)) / max(1.0, _area(win)) * 100, 1), tuple(round(v) for v in win), "mobile"))
+                else:
+                    MAINCHK.append((shot.sid, "（無單一主圖：分段下滑，逐區塊入鏡）", -1, -1, (0, round(y0), sw, round(y0 + wh)), "mobile"))
         else:
             win, rect = self._web_layout(L, shot, sw, sh)
             self.win, self.rect = win, rect
