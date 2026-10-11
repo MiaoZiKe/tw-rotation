@@ -33598,6 +33598,9 @@ SECTIONS = {
     "手機桌機同步1009":    lambda pg, b, base, code: t_m4_sync_1009(b, base, code),
     # ★ 2026-10-09 Andy：手機帳號選單（site/acctm4.js）—— 六種身分各一次：徽章、無自選、每項導頁、額度頁項目數、刪除帳號二次確認、管理區、客服開關（⚠ --workers 1）
     "帳號選單1009":        lambda pg, b, base, code: t_acct_menu_1009(b, base, code),
+    # ★ 2026-10-11 Andy：「點擊訂閱後需要跳出金流服務…還需要新增帳戶匯款…需要一個完整介面」＋「千萬不要發生付款後還沒開放」——
+    #   綠界（單次／定期定額）＋銀行轉帳、付款後補開通、退款、異常、到期提醒與降級（devserver 真的 worker.js＋假綠界；⚠ --workers 1）
+    "結帳與付款1011":      lambda pg, b, base, code: t_pay_1011(b, base),
     # ★ 2026-10-10 Andy（經手機 session 轉達）＋網頁手機同步稽核：子分頁預設最左邊、桌機額度上限面板（不寫「不開放」）、側欄子分頁 🔒、
     #   「免費會員」→「註冊會員」、手機個股分頁權限對應、桌機客服鈕開關、桌機刪除帳號（devserver 真的刪）。⚠ --workers 1
     "網頁同步1010":        lambda pg, b, base, code: t_web_sync_1010(b, base, code),
@@ -69404,6 +69407,415 @@ def t_web_sync_1010(b, base, code):
     finally:
         dev.terminate()
     ok(f"【{T}】沒有 JS 錯誤", not errs, errs[:4])
+
+
+# ===================================================================== 結帳與付款1011（2026-10-11，docs/payment_checkout_1011.md）
+# Andy 10-11：「點擊訂閱後需要跳出金流服務…還需要新增帳戶匯款，並且是需要有紀錄清單的…需要一個完整介面」
+#   ＋「千萬不要發生付款後還沒開放…一定要仔細確認，並且退款機制我是否能快速退款」。
+# 本機起**真的 worker.js**（devserver.mjs：假 Google＋假綠界，綠界的表單／查單／定期定額／退刷都驗章、回應都簽章），真的操作：
+#   ① 管理者 #admin/pay「收款帳號設定」存一組（測試用假帳號）→ 確認框 → 存進伺服器
+#   ② bob 沒登入按 Plus「升級」→ 先登入 → 登入回來自動重開結帳；結帳面板有方案／週期／金額（伺服器價）／測試模式
+#   ③ 綠界單次：表單 action 指向綠界（devserver 換成本機假綠界）、有 CheckMacValue；在假綠界按「付款成功（ReturnURL 漏送）」→
+#      回到 #orders/<單號> → 前端輪詢觸發伺服器查單 → 已開通 → TwPerm.refresh() → 功能真的解鎖、畫面寫「已開通 Plus，到期日 X」
+#   ④ 綠界定期定額：正常付款（ReturnURL＋OrderResultURL）→ 我的訂單「自動續訂：開」→ 取消自動續訂 → 已取消、到期日不變
+#   ⑤ carol 銀行轉帳：看得到收款帳號 → 填末 5 碼送出 → 我的訂單「待確認」；管理者「待確認的轉帳」看得到 → 確認入帳並開通 → carol 變 Plus
+#   ⑥ 退回流程（寫原因）；退款（轉帳＝登記人工退款、立即降級）→ carol 回到註冊會員；退款紀錄、CSV（含 BOM）三份
+#   ⑦ 異常：dave 的綠界通知金額不符 → 管理區頁首紅色「異常 1」→ 一鍵補開通（強制）→ 異常 0、dave 開通
+#   ⑧ 手機 390：erin 用轉帳完成送出（沒有橫向捲軸）；管理者確認後把時鐘撥到到期前 6 天 → 頁首提醒＋帳號鈕紅點 →「再匯一期」開出轉帳單
+#   ⑨ 時鐘再往後撥 → 到期自動降級（權限回註冊會員）＋管理區記「到期降級」
+# 截圖：TW_PAY_SHOTS＝資料夾。
+PAY_PEOPLE = {"carol": "carol@example.com", "dave": "dave@example.com", "erin": "erin@example.com"}
+PAY_BANK = {"bank_name": "測試銀行", "bank_code": "999", "account": "000011112222", "holder": "測試戶名"}   # 驗收用假帳號；真的收款帳號只存在 Worker 設定，不進 repo
+
+
+def _ec_mac(p: dict) -> str:
+    """綠界 CheckMacValue（官方公開測試金鑰；同 workers/account-api/pay.js）"""
+    import hashlib
+    import urllib.parse
+    ks = sorted([k for k in p if k != "CheckMacValue"], key=str.lower)
+    raw = "HashKey=pwFHCqoQZGmho4w6&" + "&".join(f"{k}={p[k]}" for k in ks) + "&HashIV=EkRm7iFT261dpevs"
+    return hashlib.sha256(urllib.parse.quote_plus(raw, safe="-_.!*()").lower().encode()).hexdigest().upper()
+
+
+def t_pay_1011(b, base):
+    import urllib.request
+    import urllib.parse
+    errs: list[str] = []
+    origin = re.match(r"^(https?://[^/]+)", base).group(1)
+    port = _free_port()
+    dbg = bool(os.environ.get("TW_DEV_LOG"))
+    args = ["node", "--no-warnings", str(ROOT / "workers" / "account-api" / "devserver.mjs"), "--port", str(port), "--origin", origin]
+    for k, e in PAY_PEOPLE.items():
+        args += ["--person", f"{k}={e}={k.capitalize()} 測試"]
+    dev = subprocess.Popen(args, stdout=None if dbg else subprocess.DEVNULL, stderr=None if dbg else subprocess.DEVNULL)
+    api = f"http://127.0.0.1:{port}"
+    T = "結帳與付款1011"
+    shots = os.environ.get("TW_PAY_SHOTS")
+    if shots:
+        pathlib.Path(shots).mkdir(parents=True, exist_ok=True)
+
+    def shot(pg, name, sel=None):
+        if not shots:
+            return
+        try:
+            if sel and pg.locator(sel).count():
+                pg.locator(sel).first.screenshot(path=str(pathlib.Path(shots) / name))
+            else:
+                pg.screenshot(path=str(pathlib.Path(shots) / name))
+        except Exception as e:  # noqa: BLE001
+            print(f"  （{T} 截圖 {name} 沒存成：{str(e)[:80]}）")
+
+    def dev_get(path):
+        return json.loads(urllib.request.urlopen(api + path, timeout=5).read())
+
+    def dev_post(path, body):
+        req = urllib.request.Request(api + path, data=json.dumps(body).encode(), headers={"Origin": origin, "content-type": "text/plain"}, method="POST")
+        try:
+            return json.loads(urllib.request.urlopen(req, timeout=8).read())
+        except urllib.error.HTTPError as e:
+            return {"_s": e.code, **json.loads(e.read() or b"{}")}
+
+    ctxs = []
+    try:
+        up = False
+        for _ in range(40):
+            try:
+                up = dev_get("/health").get("configured") is True
+                if up:
+                    break
+            except Exception:  # noqa: BLE001
+                time.sleep(0.15)
+        if not ok(f"{T}：本機 account-api（devserver＋假綠界）起得來", up):
+            return
+
+        def new_ctx(width=1440, tok=None):
+            c = b.new_context(viewport={"width": width, "height": 900 if width > 640 else 844}, has_touch=width <= 640, is_mobile=width <= 640)
+            c.add_init_script("window.TW_ACCOUNT_OVERRIDE = " + json.dumps({"api": api}) + ";")
+            if tok:
+                c.add_init_script("try{if(!sessionStorage.getItem('__tokset')){localStorage.setItem('tw.acct.tok'," + json.dumps(tok) + ");sessionStorage.setItem('__tokset','1')}}catch(e){}")
+            c.route("**/fonts.googleapis.com/**", lambda r: r.abort())
+            ctxs.append(c)
+            return c
+
+        def popup_login(pg, who, opener):
+            with pg.expect_popup() as pi:
+                opener()
+            pop = pi.value
+            pop.wait_for_selector("#as-" + who, timeout=8000)
+            pop.click("#as-" + who)
+            return wait_until(pg, "() => !!(window.TwAccount && TwAccount.user())", 12000)
+
+        def login(pg, who):
+            pg.click("#acctBtn")
+            return popup_login(pg, who, lambda: pg.click("#acctGo"))
+
+        def call(pg, path, body):
+            return pg.evaluate("([p, b]) => TwAccount.call(p, b)", [path, body])
+
+        def plan_of(pg):
+            return pg.evaluate("async () => { await TwPerm.refresh(); const s = TwPerm.state(); return [s.plan, TwPerm.can('stock.ind')]; }")
+
+        # ================= ① 管理者：方案價格（Plus 月 299／年 2990，註冊會員關掉「指標設定」＝付費才有）＋收款帳號設定
+        ca = new_ctx(); ad = ca.new_page(); ad.on("pageerror", lambda e: errs.append("admin: " + str(e)))
+        ad.goto(base + "#overview", wait_until="domcontentloaded")
+        wait_until(ad, "() => !!document.getElementById('acctBtn')", 8000)
+        login(ad, "andy")
+        r1 = call(ad, "/v1/admin/plans/put", {"id": "plus", "name": "Plus", "feats": {}, "price": 299, "period": "month", "price_year": 2990})
+        r2 = call(ad, "/v1/admin/plans/put", {"id": "free", "name": "註冊會員", "feats": {"stock.ind": False}})
+        ok(f"{T}：前置：Plus 定價（月 299／年 2990）、註冊會員關掉指標設定", r1.get("_s") == 200 and r2.get("_s") == 200, (r1.get("_s"), r2.get("_s"), r1.get("error")))
+        ad.goto(base + "#admin/pay", wait_until="domcontentloaded")
+        ok(f"{T}：#admin/pay 打得開，四個分頁（訂單／會員訂閱／退款紀錄／收款帳號設定）",
+           bool(wait_until(ad, "() => document.querySelectorAll('#payTabs [data-ptab]').length === 4", 10000)))
+        side = ad.evaluate("() => [...document.querySelectorAll('.l4subtab[data-parent=admin]')].map(x => x.textContent.trim())")
+        ok(f"{T}：桌機側欄管理區多一格「付款與訂單」而且是目前這格", "付款與訂單" in side and ad.evaluate("() => !!document.querySelector('.l4subtab[data-adm=pay].on')"), side)
+        ad.click("[data-ptab=bank]")
+        wait_until(ad, "() => !!document.getElementById('pbName')", 4000)
+        ad.fill("#pbName", PAY_BANK["bank_name"]); ad.fill("#pbCode", PAY_BANK["bank_code"]); ad.fill("#pbAcct", PAY_BANK["account"]); ad.fill("#pbHolder", PAY_BANK["holder"])
+        ad.click("#pbSave")
+        ok(f"{T}：收款帳號儲存前先跳確認框（寫會員會立刻看到）", bool(wait_until(ad, "() => { const d = document.getElementById('subDlg'); return d && !d.hidden && /立刻看到/.test(d.innerText); }", 4000)))
+        with ad.expect_response(lambda r: "/v1/admin/pay/bank/put" in r.url, timeout=6000) as ri:
+            ad.click("#pdGo")
+        ok(f"{T}：確定 → 真的存進伺服器", ri.value.status == 200 and dev_post("/v1/admin/pay/bank/get", {"t": ad.evaluate("() => TwAccount.tok()")}).get("bank", {}).get("account") == PAY_BANK["account"])
+        wait_until(ad, "() => !!document.getElementById('pbName')", 4000)
+        shot(ad, "admin_settings.png", "#payAdm")
+        atok = ad.evaluate("() => TwAccount.tok()")
+
+        # ================= ② bob：沒登入按升級 → 先登入 → 自動回到結帳
+        cb = new_ctx(); pb = cb.new_page(); pb.on("pageerror", lambda e: errs.append("bob: " + str(e)))
+        _net = []
+        pb.on("response", lambda r: _net.append((r.url.split("/")[-1][:30], r.status)) if "/v1/" in r.url else None)
+        pb.on("requestfailed", lambda r: _net.append((r.url.split("/")[-1][:30], "FAIL " + str(r.failure))) if "/v1/" in r.url else None)
+        pb.on("console", lambda m: _net.append(("console", m.text[:150])) if m.type in ("error", "warning") else None)
+        pb.goto(base + "#pricing", wait_until="domcontentloaded")
+        ok(f"{T}：#pricing 有 Plus 卡與「升級」鈕", bool(wait_until(pb, "() => !!document.querySelector('.prcard[data-plan=plus] .prgo[data-go=plus]')", 12000)), [pb.evaluate("() => ({ src: window.TwPricing && TwPricing.state().src, on: TwAccount.on(), hash: location.hash, cards: [...document.querySelectorAll('.prcard')].map(c => c.dataset.plan + ':' + ((c.querySelector('.prgo') || {}).outerHTML || '')), })"), _net])
+        popup_login(pb, "bob", lambda: (pb.click(".prcard[data-plan=plus] .prgo[data-go=plus]"), pb.wait_for_selector("#acctGo", timeout=5000), pb.click("#acctGo")))
+        ok(f"{T}：未登入按訂閱 → 先登入 → 登入完自動回到結帳面板",
+           bool(wait_until(pb, "() => { const d = document.getElementById('subDlg'); return d && !d.hidden && !!d.querySelector('#coTabE'); }", 10000)))
+        pb.click("#coPer button[data-per=month]")
+        info = pb.evaluate("() => ({ amt: document.getElementById('coAmt').innerText, test: !!document.querySelector('#subDlg .cotest'), name: document.getElementById('coName').innerText, per: [...document.querySelectorAll('#coPer button')].map(b => b.innerText), oid: document.getElementById('coOid').innerText, refund: !!document.querySelector('#subDlg .colegal a[href=\"#refund\"]'), agreeT: document.querySelector('#subDlg .colegal').innerText })")
+        ok(f"{T}：結帳面板：方案 Plus、月繳／年繳、金額 NT$ 299（伺服器價）、測試模式、訂單編號欄、退款政策連結、「付款即表示同意使用條款」",
+           info["name"] == "Plus" and "299" in info["amt"] and info["test"] and info["per"] == ["月繳", "年繳"] and info["oid"] == "選擇付款方式後產生" and info["refund"] and "付款即表示同意使用條款" in info["agreeT"], info)
+        pb.click("#coPer button[data-per=year]")
+        ok(f"{T}：切年繳 → 金額變 NT$ 2,990", bool(wait_until(pb, "() => /2,990/.test(document.getElementById('coAmt').innerText)", 3000)))
+        pb.click("#coPer button[data-per=month]")
+        shot(pb, "co_ecpay.png", "#subDlg .box")
+        # ================= ③ 綠界單次，ReturnURL 漏送 → 前端輪詢＋伺服器查單補開通 → 功能真的解鎖
+        pb.check("#subDlg input[name=coKind][value=once]")
+        ok(f"{T}：沒勾同意條款時「前往綠界付款」按不下去", pb.evaluate("() => document.getElementById('coGoE').disabled"))
+        pb.check("#coAgree")
+        pb.evaluate("() => { window.TW_CO_NOSUBMIT = true; }")
+        with pb.expect_response(lambda r: "/v1/pay/ecpay/create" in r.url, timeout=6000) as ri:
+            pb.click("#coGoE")
+        body = json.loads(ri.value.request.post_data or "{}")
+        fm = pb.evaluate("() => { const f = document.getElementById('coEcForm'); if (!f) return null; const o = {}; f.querySelectorAll('input').forEach(i => { o[i.name] = i.value; }); return { action: f.action, method: f.method, f: o }; }")
+        ok(f"{T}：選綠界 → 產生的表單 POST 到綠界 AioCheckOut/V5（測試環境；本機換成假綠界）、有 CheckMacValue、金額是伺服器的 299、前端沒送金額",
+           bool(fm) and fm["action"] == api + "/Cashier/AioCheckOut/V5" and fm["method"] == "post" and len(fm["f"].get("CheckMacValue", "")) == 64
+           and fm["f"].get("CheckMacValue") == _ec_mac(fm["f"]) and fm["f"].get("TotalAmount") == "299" and fm["f"].get("ChoosePayment") == "ALL" and "amount" not in body, (fm, body))
+        oid1 = fm["f"]["MerchantTradeNo"] if fm else ""
+        ok(f"{T}：面板的訂單編號換成這筆（{oid1}）", pb.evaluate("() => document.getElementById('coOid').innerText") == oid1)
+        pb.evaluate("() => document.getElementById('coEcForm').submit()")
+        pb.wait_for_selector("#ecPaySkip", timeout=8000)
+        ok(f"{T}：送出後到綠界付款頁（假綠界收到的表單驗章通過）", oid1 in pb.inner_text("#ecInfo"))
+        pb.click("#ecPaySkip")   # 付款成功，但 ReturnURL 漏送、也不走 OrderResultURL
+        pb.wait_for_url(re.compile(r"#orders/" + oid1), timeout=10000)
+        st0 = dev_get("/__ecpay/state?id=" + oid1)
+        ok(f"{T}：模擬「ReturnURL 漏送」：假綠界已付款但沒通知（notify 空）", st0 and st0["status"] == "1" and st0["notify"] == "", st0)
+        done = wait_until(pb, "() => { const e = document.getElementById('ordDone'); return e ? e.innerText : ''; }", 15000)
+        ok(f"{T}：付款完成頁輪詢 → 伺服器查單補開通 → 畫面寫「已開通 Plus，到期日 X」", bool(done) and "已開通 Plus" in done and re.search(r"到期日 \d{4}-\d{2}-\d{2}", done), done)
+        pl = plan_of(pb)
+        ok(f"{T}：開通後 TwPerm 已刷新：方案 plus、原本鎖住的「指標設定」解鎖（不用重新登入）", pl == ["plus", True], pl)
+        shot(pb, "pay_done_unlocked.png")
+        menu = pb.evaluate("() => { document.getElementById('acctBtn').click(); const t = document.getElementById('acctMenu').innerText; document.getElementById('acctMenu').hidden = true; return t; }")
+        ok(f"{T}：桌機帳號選單有「我的訂單／付款紀錄」", "我的訂單／付款紀錄" in menu, menu[:200])
+
+        # ================= ④ 綠界定期定額（正常流程：ReturnURL＋OrderResultURL）→ 取消自動續訂
+        pb.evaluate("() => TwCheckout.open({ plan: 'plus', per: 'month' })")
+        wait_until(pb, "() => !!document.getElementById('coGoE')", 6000)
+        pb.check("#subDlg input[name=coKind][value=recur]"); pb.check("#coAgree")
+        ok(f"{T}：定期定額要另外勾「同意每月自動續扣」才按得下去", pb.evaluate("() => document.getElementById('coGoE').disabled"))
+        pb.check("#coRenew")
+        pb.evaluate("() => { window.TW_CO_NOSUBMIT = true; }")
+        pb.click("#coGoE")
+        wait_until(pb, "() => !!document.getElementById('coEcForm')", 6000)
+        fm2 = pb.evaluate("() => { const o = {}; document.querySelectorAll('#coEcForm input').forEach(i => { o[i.name] = i.value; }); return o; }")
+        ok(f"{T}：定期定額表單：ChoosePayment=Credit、PeriodType=M、Frequency=1、ExecTimes=99、PeriodAmount=299、有 PeriodReturnURL",
+           fm2.get("ChoosePayment") == "Credit" and fm2.get("PeriodType") == "M" and fm2.get("Frequency") == "1" and fm2.get("ExecTimes") == "99" and fm2.get("PeriodAmount") == "299" and fm2.get("PeriodReturnURL", "").endswith("/v1/pay/ecpay/period"), fm2)
+        oid2 = fm2.get("MerchantTradeNo", "")
+        pb.evaluate("() => document.getElementById('coEcForm').submit()")
+        pb.wait_for_selector("#ecPay", timeout=8000)
+        pb.click("#ecPay")
+        pb.wait_for_url(re.compile(r"#orders/" + oid2), timeout=10000)
+        st2 = dev_get("/__ecpay/state?id=" + oid2)
+        ok(f"{T}：正常流程：綠界 ReturnURL 送達、Worker 回 1|OK", st2 and st2["notify"] == "1|OK", st2)
+        row = wait_until(pb, f"() => {{ const r = document.querySelector('#ordList .ordr[data-oid=\"{oid2}\"]'); return r ? r.innerText : ''; }}", 8000)
+        ok(f"{T}：我的訂單：這筆「綠界・信用卡自動扣款」「已開通」「自動續訂：開」，有「取消自動續訂」鈕",
+           bool(row) and "信用卡自動扣款" in row and "已開通" in row and "自動續訂：開" in row and pb.locator(f"#ordList [data-cxl='{oid2}']").count() == 1, row)
+        exp_before = call(pb, "/v1/pay/my", {}).get("expires")
+        shot(pb, "my_orders_ecpay.png", "#v-orders .ordp")
+        pb.click(f"#ordList [data-cxl='{oid2}']")
+        ok(f"{T}：取消自動續訂先跳確認框（說明已付期間照用到期滿）", bool(wait_until(pb, "() => { const d = document.getElementById('subDlg'); return d && !d.hidden && /照常用到/.test(d.innerText); }", 4000)))
+        pb.click("#cxGo")
+        row2 = wait_until(pb, f"() => {{ const r = document.querySelector('#ordList .ordr[data-oid=\"{oid2}\"]'); return r && /已取消/.test(r.innerText) ? r.innerText : ''; }}", 8000)
+        my = call(pb, "/v1/pay/my", {})
+        ok(f"{T}：取消後：自動續訂已取消、綠界那邊也終止、到期日不變", bool(row2) and my.get("autoRenew") is False and my.get("expires") == exp_before and dev_get("/__ecpay/state?id=" + oid2) is not None, (row2, my.get("autoRenew"), my.get("expires"), exp_before))
+
+        # 淺色主題：結帳面板與我的訂單文字要看得清楚（字色與底色對比 ≥ 4.5）
+        pb.evaluate("() => document.documentElement.setAttribute('data-theme', 'light')")
+        pb.evaluate("() => TwCheckout.open({ plan: 'plus', per: 'month' })")
+        wait_until(pb, "() => !!document.getElementById('coAmt') && /299/.test(document.getElementById('coAmt').innerText)", 6000)
+        CR = """(sel) => { const e = document.querySelector(sel); if (!e) return 0; const rgb = (c) => { const v = (c.match(/[\\d.]+/g) || []).slice(0, 3).map(Number); return /^color\\(/.test(c) ? v.map((x) => x * 255) : v; };
+          const L = (c) => { const [r, g, b] = rgb(c).map((v) => { v /= 255; return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); }); return 0.2126 * r + 0.7152 * g + 0.0722 * b; };
+          const al = (c) => { const v = c.match(/[\\d.]+/g) || []; return v.length >= 4 ? +v[3] : 1; };
+          let n = e, bg = ''; while (n) { const c = getComputedStyle(n).backgroundColor; if (al(c) >= 0.5) { bg = c; break; } n = n.parentElement; } if (!bg) bg = 'rgb(255, 255, 255)';
+          const a = L(getComputedStyle(e).color), b = L(bg); return Math.round((Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05) * 10) / 10; }"""
+        lc = {k: pb.evaluate(CR, k) for k in ("#coAmt", "#subDlg .coopt b", "#subDlg .colegal label span", "#coTabE")}
+        ok(f"{T}：淺色主題：結帳面板金額、選項、條款、分頁字的對比都 ≥ 4.5", all(v >= 4.5 for v in lc.values()), lc)
+        shot(pb, "co_light.png", "#subDlg .box")
+        pb.evaluate("() => { document.getElementById('subDlg').hidden = true; location.hash = '#orders'; }")
+        wait_until(pb, "() => !!document.querySelector('#ordList .ordr:not(.hd)')", 6000)
+        lo = {k: pb.evaluate(CR, k) for k in ("#v-orders .ordp h2", "#ordList .ordr:not(.hd) .n", "#ordList .ordr:not(.hd) .sub")}
+        ok(f"{T}：淺色主題：我的訂單標題、金額、明細字的對比 ≥ 4.5", all(v >= 4.5 for v in lo.values()), lo)
+        shot(pb, "orders_light.png", "#v-orders .ordp")
+        pb.evaluate("() => document.documentElement.setAttribute('data-theme', 'dark')")
+
+        # ================= ⑤ carol：銀行轉帳 → 待確認 → 管理者確認 → 開通
+        cc = new_ctx(); pc = cc.new_page(); pc.on("pageerror", lambda e: errs.append("carol: " + str(e)))
+        pc.goto(base + "#pricing", wait_until="domcontentloaded")
+        wait_until(pc, "() => !!document.getElementById('acctBtn')", 8000)
+        login(pc, "carol")
+        pc.goto(base + "#overview", wait_until="domcontentloaded"); pc.goto(base + "#pricing", wait_until="domcontentloaded")
+        ok(f"{T}：carol 登入後 #pricing 的 Plus 卡有「升級」鈕", bool(wait_until(pc, "() => !!document.querySelector('.prcard[data-plan=plus] .prgo[data-go=plus]')", 10000)),
+           pc.evaluate("() => [...document.querySelectorAll('.prcard')].map(c => c.dataset.plan + ':' + (c.querySelector('.prgo') || {}).outerHTML)"))
+        pc.click(".prcard[data-plan=plus] .prgo[data-go=plus]")
+        wait_until(pc, "() => !!document.getElementById('coTabB')", 6000)
+        pc.click("#coPer button[data-per=month]")
+        pc.click("#coTabB")
+        bank_ok = wait_until(pc, "() => { const e = document.getElementById('coBank'); return e && /3 天內/.test(e.textContent) ? e.textContent : ''; }", 8000)
+        ok(f"{T}：選轉帳 → 顯示收款資訊（銀行＋代碼、帳號、戶名、應付金額、訂單編號、「請於 3 天內轉帳」）",
+           bool(bank_ok) and f"{PAY_BANK['bank_name']}（{PAY_BANK['bank_code']}）" in bank_ok and PAY_BANK["account"] in bank_ok and PAY_BANK["holder"] in bank_ok and "NT$ 299" in bank_ok and "3 天內轉帳" in bank_ok, bank_ok)
+        boid = pc.evaluate("() => document.getElementById('coOid').innerText")
+        ok(f"{T}：轉帳訂單編號出現在面板上（{boid}）", bool(re.match(r"^LG[0-9A-Z]{16}$", boid or "")), boid)
+        pc.fill("#coL5", "12345")
+        pc.check("#coAgree")
+        shot(pc, "co_bank.png", "#subDlg .box")
+        with pc.expect_response(lambda r: "/v1/pay/bank/report" in r.url, timeout=6000) as ri:
+            pc.click("#coSendB")
+        ok(f"{T}：填末 5 碼送出 → 真的送出 bank/report、面板寫「待確認」", ri.value.status == 200 and bool(wait_until(pc, "() => { const d = document.getElementById('subDlg'); return d && /待確認/.test(d.innerText); }", 4000)))
+        pc.click("#coSeeOrders")
+        row = wait_until(pc, f"() => {{ const r = document.querySelector('#ordList .ordr[data-oid=\"{boid}\"]'); return r ? r.innerText : ''; }}", 8000)
+        ok(f"{T}：我的訂單出現這筆「銀行轉帳」「待確認」、轉出末 5 碼 12345", bool(row) and "銀行轉帳" in row and "待確認" in row and "12345" in row, row)
+        shot(pc, "my_orders.png", "#v-orders .ordp")
+        ad.click("[data-ptab=orders]")
+        ad.click("#payReload")
+        rev = wait_until(ad, f"() => {{ const s = document.getElementById('payRevSec'); return s && s.querySelector('tr[data-oid=\"{boid}\"]') ? s.innerText : ''; }}", 8000)
+        ok(f"{T}：管理區「待確認的轉帳」放最上面、標數量、看得到這筆（carol、末 5 碼 12345）", bool(rev) and "carol@example.com" in rev and "12345" in rev and ad.evaluate("() => document.querySelector('#payRevSec .cnt').innerText") == "1", rev)
+        shot(ad, "admin_orders.png", "#payAdm")
+        ad.click(f"#payRevSec [data-pa=confirm][data-id='{boid}']")
+        ok(f"{T}：「確認入帳並開通」先跳確認框（寫會發生什麼）", bool(wait_until(ad, "() => { const d = document.getElementById('subDlg'); return d && !d.hidden && /會員立刻變成/.test(d.innerText); }", 4000)))
+        ad.click("#pdGo")
+        ok(f"{T}：確認後狀態變成「已開通」", bool(wait_until(ad, f"() => {{ const r = document.querySelector('#payTbl tr[data-oid=\"{boid}\"]'); return r && /已開通/.test(r.innerText); }}", 8000)))
+        ok(f"{T}：carol 變 Plus（伺服器到期日為準）", plan_of(pc) == ["plus", True], plan_of(pc))
+
+        # ================= ⑥ 退回流程＋退款（轉帳＝登記人工退款、立即降級）
+        r_new = call(pc, "/v1/pay/bank/create", {"plan": "plus", "period": "year"})
+        call(pc, "/v1/pay/bank/report", {"id": r_new.get("id"), "last5": "99999", "date": time.strftime("%Y-%m-%d", time.gmtime(time.time() + 8 * 3600)), "amount": 2990})
+        ad.click("#payReload")
+        wait_until(ad, f"() => !!document.querySelector('#payRevSec [data-pa=reject][data-id=\"{r_new.get('id')}\"]')", 8000)
+        ad.click(f"#payRevSec [data-pa=reject][data-id='{r_new.get('id')}']")
+        wait_until(ad, "() => !!document.getElementById('pdWhy')", 4000)
+        ad.click("#pdGo")
+        ok(f"{T}：退回沒寫原因 → 擋下", bool(wait_until(ad, "() => /請寫退回原因/.test(document.querySelector('#subDlg .msg').innerText)", 3000)))
+        ad.fill("#pdWhy", "查無這筆入帳")
+        ad.click("#pdGo")
+        ok(f"{T}：退回後狀態「已退回」", bool(wait_until(ad, f"() => {{ const r = document.querySelector('#payTbl tr[data-oid=\"{r_new.get('id')}\"]'); return r && /已退回/.test(r.innerText); }}", 8000)))
+        mo = [o for o in call(pc, "/v1/pay/my", {}).get("orders", []) if o["id"] == r_new.get("id")]
+        ok(f"{T}：carol 的我的訂單看得到「已退回」與原因、權限沒有被這筆影響", bool(mo) and mo[0]["statusName"] == "已退回" and mo[0]["rejectReason"] == "查無這筆入帳" and plan_of(pc)[0] == "plus", mo)
+        ad.click(f"#payTbl [data-pa=refund][data-id='{boid}']")
+        dlg = wait_until(ad, "() => { const d = document.getElementById('payRefundDlg'); return d ? d.innerText : ''; }", 6000)
+        ok(f"{T}：退款確認框：可退金額、試算（7 天內全額）、權限二選一（預設立即降級）、轉帳要人工＋提醒「請到網銀把錢匯回」",
+           bool(dlg) and "可退金額" in dlg and "NT$ 299" in dlg and "全額" in dlg and ad.evaluate("() => document.querySelector('input[name=rfPerm]:checked').value") == "now" and "請到網銀把錢匯回" in dlg, dlg)
+        shot(ad, "admin_refund_dialog.png", "#subDlg .box")
+        ad.click("#rfGo")
+        ok(f"{T}：沒填退款帳號末 5 碼 → 擋下", bool(wait_until(ad, "() => /末 5 碼/.test(document.querySelector('#subDlg .msg').innerText)", 3000)))
+        ad.fill("#rfL5", "54321")
+        with ad.expect_response(lambda r: "/v1/admin/pay/refund" in r.url and "quote" not in r.url, timeout=8000) as ri:
+            ad.click("#rfGo")
+        rid = json.loads(ri.value.request.post_data or "{}").get("rid")
+        ok(f"{T}：退款完成 → 訂單「已退款」", ri.value.status == 200 and bool(wait_until(ad, f"() => {{ const r = document.querySelector('#payTbl tr[data-oid=\"{boid}\"]'); return r && /已退款/.test(r.innerText); }}", 8000)))
+        dup = dev_post("/v1/admin/pay/refund", {"t": atok, "id": boid, "rid": rid, "amount": 299, "last5": "54321", "date": "2026-10-11"})
+        ok(f"{T}：同一個退款重送（同一個 rid）不會再退一次", dup.get("dup") is True and len([r for r in dev_post("/v1/admin/pay/list", {"t": atok}).get("refunds", []) if r["oid"] == boid and r["status"] == "done"]) == 1, dup)
+        ok(f"{T}：退款後 carol 立即回到註冊會員（指標設定又鎖住）", plan_of(pc) == ["free", False], plan_of(pc))
+        mo = [o for o in call(pc, "/v1/pay/my", {}).get("orders", []) if o["id"] == boid]
+        ok(f"{T}：carol 的我的訂單顯示「已退款 NT$ 299」", bool(mo) and mo[0]["statusName"] == "已退款" and mo[0]["refunded"] == 299, mo)
+        csvs = {}
+        for tab, btn, key in (("orders", "#pfCsv", "訂單"), ("refunds", "#prCsv", "退款"), ("subs", "#psCsv", "會員訂閱")):
+            ad.click(f"[data-ptab={tab}]")
+            wait_until(ad, f"() => !!document.querySelector('{btn}')", 4000)
+            with ad.expect_download(timeout=6000) as di:
+                ad.click(btn)
+            csvs[key] = (di.value.suggested_filename, ad.evaluate("() => window.__payCsv || ''"))
+        ok(f"{T}：三份 CSV 都下載得到、開頭有 BOM、訂單 CSV 有退款明細（54321）、退款 CSV 有這筆、會員訂閱 CSV 有 bob 與 carol",
+           all(v[1].startswith("﻿") and v[0].endswith(".csv") for v in csvs.values()) and "54321" in csvs["訂單"][1] and boid in csvs["退款"][1]
+           and "bob@example.com" in csvs["會員訂閱"][1] and "carol@example.com" in csvs["會員訂閱"][1], {k: (v[0], v[1][:80]) for k, v in csvs.items()})
+        wait_until(ad, "() => !!document.getElementById('paySubs')", 4000)
+        shot(ad, "admin_subs.png", "#payAdm")
+        sub_txt = ad.inner_text("#paySubs")
+        ok(f"{T}：會員訂閱：bob 一列（付款方式、第一次／最近付款、到期日、自動續訂關、到期降回日、累計 598）", "bob@example.com" in sub_txt and "598" in sub_txt, sub_txt[:300])
+        ad.click("#paySubs tr.prow[data-em='carol@example.com']")
+        det = wait_until(ad, "() => { const d = document.querySelector('#paySubs tr.det'); return d ? d.textContent : ''; }", 4000)
+        ok(f"{T}：點一列展開他所有訂單、退款與方案異動（退款降級）", bool(det) and ad.locator(f"#paySubs tr.det tr[data-oid='{boid}']").count() == 1 and "退款降級" in det and "到期降級" not in det, (boid, det[-700:] if det else det))
+
+        # ================= ⑦ 異常：dave 綠界通知金額不符 → 紅色異常數字 → 一鍵補開通
+        cd = new_ctx(); pdv = cd.new_page(); pdv.on("pageerror", lambda e: errs.append("dave: " + str(e)))
+        pdv.goto(base + "#overview", wait_until="domcontentloaded")
+        wait_until(pdv, "() => !!document.getElementById('acctBtn')", 8000)
+        login(pdv, "dave")
+        c3 = call(pdv, "/v1/pay/ecpay/create", {"plan": "plus", "period": "month", "back": base.split("#")[0]})
+        n = {"MerchantID": "3002607", "MerchantTradeNo": c3.get("id"), "RtnCode": "1", "RtnMsg": "交易成功", "TradeNo": "TX1", "TradeAmt": "1", "PaymentDate": "2026/10/11 12:00:00", "PaymentType": "Credit_CreditCard", "SimulatePaid": "0"}
+        n["CheckMacValue"] = _ec_mac(n)
+        rq = urllib.request.Request(api + "/v1/pay/ecpay/notify", data=urllib.parse.urlencode(n).encode(), headers={"content-type": "application/x-www-form-urlencoded"}, method="POST")
+        ok(f"{T}：前置：dave 的綠界通知（驗章正確、金額 1 元≠299）→ Worker 回 1|OK 但不開通", urllib.request.urlopen(rq, timeout=5).read().decode() == "1|OK" and plan_of(pdv)[0] == "free")
+        ad.click("[data-ptab=orders]")
+        ad.click("#payReload")
+        an = wait_until(ad, "() => { const a = document.getElementById('payAnom'); return a && !a.classList.contains('zero') ? a.innerText : ''; }", 8000)
+        red = ad.evaluate("() => getComputedStyle(document.getElementById('payAnom')).backgroundColor")
+        ok(f"{T}：管理區頁首亮紅色「異常 1」、異常清單有這筆", an == "異常 1" and red not in ("rgba(0, 0, 0, 0)", "transparent") and ad.locator(f"#payAnomSec tr[data-oid='{c3.get('id')}']").count() == 1, (an, red))
+        shot(ad, "admin_anomaly.png", "#payAdm")
+        ad.click(f"#payAnomSec [data-pa=fix][data-id='{c3.get('id')}']")
+        wait_until(ad, "() => !!document.getElementById('pdForce')", 4000)
+        ad.click("#pdGo")
+        ok(f"{T}：「查單並開通」→ 綠界查單沒過（沒付款）→ 不開通、寫原因", bool(wait_until(ad, "() => /還沒付款|不符/.test(document.querySelector('#subDlg .msg').innerText)", 6000)))
+        ad.click("#pdForce")
+        ok(f"{T}：「強制開通」→ 異常歸零、dave 變 Plus", bool(wait_until(ad, "() => document.getElementById('payAnom').innerText === '異常 0'", 8000)) and plan_of(pdv) == ["plus", True])
+
+        # ================= ⑧ 手機 390：erin 轉帳送出；確認後到期前提醒＋再匯一期
+        ce = new_ctx(390); pe = ce.new_page(); pe.on("pageerror", lambda e: errs.append("erin390: " + str(e)))
+        pe.goto(base + "#pricing", wait_until="domcontentloaded")
+        wait_until(pe, "() => !!(window.TwAccount && TwAccount.on())", 8000)
+        popup_login(pe, "erin", lambda: (pe.evaluate("() => TwAccount.login()"), pe.wait_for_selector("#acctGo", timeout=5000), pe.click("#acctGo")))
+        pe.evaluate("() => TwCheckout.open({ plan: 'plus', per: 'month' })")
+        wait_until(pe, "() => !!document.getElementById('coTabB')", 6000)
+        pe.tap("#coTabB")
+        wait_until(pe, "() => !!document.getElementById('coL5')", 6000)
+        eoid = pe.evaluate("() => document.getElementById('coOid').innerText")
+        pe.fill("#coL5", "67890")
+        pe.tap("#coAgree")
+        m = pe.evaluate("() => { const b = document.querySelector('#subDlg .box').getBoundingClientRect(), s = document.getElementById('coSendB').getBoundingClientRect(); return { l: b.left, r: b.right, sw: document.documentElement.scrollWidth - innerWidth, bh: s.height, bw: s.width }; }")
+        ok(f"{T}：390 結帳面板在螢幕內、沒有橫向捲軸、送出鈕高 ≥ 40", m["l"] >= 0 and m["r"] <= 390 and m["sw"] <= 1 and m["bh"] >= 40, m)
+        shot(pe, "m_bank.png")
+        pe.locator("#coSendB").scroll_into_view_if_needed()
+        pe.tap("#coSendB")
+        ok(f"{T}：390 能完成轉帳送出（待確認）", bool(wait_until(pe, "() => { const d = document.getElementById('subDlg'); return d && /待確認/.test(d.innerText); }", 6000)))
+        pe.tap("#coSeeOrders")
+        mrow = wait_until(pe, f"() => {{ const r = document.querySelector('#ordList .ordr[data-oid=\"{eoid}\"]'); return r ? r.innerText : ''; }}", 8000)
+        msw = pe.evaluate("() => document.documentElement.scrollWidth - innerWidth")
+        ok(f"{T}：390 我的訂單：這筆待確認、沒有橫向捲軸", bool(mrow) and "待確認" in mrow and msw <= 1, (mrow, msw))
+        shot(pe, "m_orders.png")
+        mm = pe.evaluate("() => { document.getElementById('acctBtn').click(); const m = document.getElementById('acctMenu'); const t = m ? m.innerText : ''; if (m) m.hidden = true; return t; }")
+        ok(f"{T}：手機帳號選單（acctm4）有「我的訂單／付款紀錄」", "我的訂單／付款紀錄" in mm, mm[:200])
+        dev_post("/v1/admin/pay/confirm", {"t": atok, "id": eoid})
+        dev_get("/__clock?days=25")   # erin 月繳 → 剩約 6 天
+        pe.goto(base + "#overview", wait_until="domcontentloaded")
+        pe.reload(wait_until="domcontentloaded")
+        rb = wait_until(pe, "() => { const e = document.getElementById('payRenew'); return e ? e.innerText : ''; }", 10000)
+        ok(f"{T}：到期前 7 天內：頁首一行提醒（剩 N 天、轉帳不會自動續扣、再匯一期）＋帳號鈕紅點", bool(rb) and "再匯一期" in rb and "剩" in rb and pe.evaluate("() => document.documentElement.classList.contains('pay-renew')"), rb)
+        shot(pe, "m_renew.png")
+        pe.tap("#payRenewGo")
+        ro = wait_until(pe, "() => { const e = document.getElementById('coBank'); return e ? document.getElementById('coOid').innerText : ''; }", 8000)
+        ok(f"{T}：按「再匯一期」→ 直接開轉帳分頁、產生新的待付款訂單", bool(ro) and ro != eoid, (ro, eoid))
+        pe.evaluate("() => { document.getElementById('subDlg').hidden = true; }")
+        ad.click("#payReload")
+        wait_until(ad, "() => !!document.getElementById('pfExp')", 6000)
+        ad.check("#pfExp")
+        exp_rows = ad.evaluate("() => [...document.querySelectorAll('#payTbl tr.prow')].map(r => r.querySelector('td.l').innerText)")
+        ok(f"{T}：管理區篩選「即將到期的轉帳會員」只剩 erin", bool(exp_rows) and set(exp_rows) == {"erin@example.com"}, exp_rows)
+        ad.uncheck("#pfExp")
+
+        # ================= ⑨ 到期自動降級
+        dev_get("/__clock?days=20")   # 再 +20 天：bob／dave／erin 的一個月都過了
+        ok(f"{T}：到期日一過，dave 自動回到註冊會員（伺服器到期日為準）", plan_of(pdv) == ["free", False], plan_of(pdv))
+        sw = json.loads(urllib.request.urlopen(urllib.request.Request(api + "/__cron", data=b"", method="POST"), timeout=8).read())
+        lst = dev_post("/v1/admin/pay/list", {"t": atok})
+        ev = [e for e in lst.get("events", []) if e["kind"] == "expire"]
+        ok(f"{T}：排程寫「到期降級」紀錄（dave、erin）", {"dave@example.com", "erin@example.com"} <= {e["email"] for e in ev}, (sw, ev[:3]))
+        ad.click("[data-ptab=subs]")
+        ad.click("#payReload")
+        wait_until(ad, "() => !!document.getElementById('paySubs')", 6000)
+        ok(f"{T}：會員訂閱清單顯示 dave「註冊會員（已到期）」", "註冊會員（已到期）" in ad.inner_text("#paySubs"))
+        ad.evaluate("() => document.documentElement.setAttribute('data-theme', 'light')")
+        ad.click("[data-ptab=orders]")
+        wait_until(ad, "() => !!document.querySelector('#payTbl tr.prow')", 6000)
+        la = {k: ad.evaluate(CR, k) for k in ("#payAdm h3", "#payTbl tr.prow td", "#payTbl th")}
+        ok(f"{T}：淺色主題：管理區標題、表格字、表頭的對比 ≥ 4.5", all(v >= 4.5 for v in la.values()), la)
+        shot(ad, "admin_light.png", "#payAdm")
+        ok(f"{T}：整段沒有 JS 錯誤", not errs, errs[:3])
+    finally:
+        for c in ctxs:
+            try:
+                c.close()
+            except Exception:  # noqa: BLE001
+                pass
+        dev.terminate()
 
 
 if __name__ == "__main__":

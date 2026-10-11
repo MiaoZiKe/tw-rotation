@@ -21,6 +21,14 @@
 - [10-09 22:1x] 手機版 → 網頁版：Andy 回報手機抽屜站名圖跑掉、頂欄 LOGO 點了變放大（他要：頂欄 LOGO＝回總覽；只有側欄抽屜裡的 LOGO 才放大）。手機版開 claude/m4-brand 處理，**只改 html.m4／≤640**，不動桌機 .brand .logo→#logoBox 行為。
 
 
+## 2026-10-11 結帳與付款：綠界＋銀行轉帳（金流；DECISIONS #356；docs/payment_checkout_1011.md）
+- Andy 10-11：「點擊訂閱後需要跳出金流服務…還需要新增帳戶匯款…需要一個完整介面」＋「千萬不要發生付款後還沒開放…退款機制我是否能快速退款」＋查證「手動匯款能否每月扣款」（不行 → 轉帳預付制＋到期提醒）。
+- 新檔：`workers/account-api/pay.js`（worker.js 檔尾 installPay 接上）、`workers/account-api/tests/pay.test.mjs`（部署前必跑）、`site/checkout.js`（結帳面板、#orders 我的訂單、到期提醒、帳號選單一列）、`site/admin_pay.js`（#admin/pay：訂單／會員訂閱／退款紀錄／收款帳號設定、三份 CSV）。
+- 改：pricing.js（有價格的方案按升級改開結帳面板；訂閱頁拿到「開機前的備用方案清單」時重抓一次）、billing.js（選單多「我的訂單／付款紀錄」）、account.js／acctm4.js／layout4.js（管理區入口「付款與訂單」）、wrangler.toml（cron 每 10 分鐘）、deploy-account-worker.yml（跑金流測試、寫綠界 Secret）、devserver.mjs（假綠界）。
+- **Andy 要做**（逐步在 docs 第 8 節）：①確認綠界合約有開「信用卡定期定額」②後台抄 MerchantID／HashKey／HashIV → GitHub Secrets `ECPAY_MERCHANT_ID`／`ECPAY_HASH_KEY`／`ECPAY_HASH_IV` → 手動跑「部署 Worker」③#admin/pay「收款帳號設定」填帳號 ④1 元實測付款＋退款。沒設金鑰前一律是綠界測試模式。
+- **這批驗了**：`node --test workers/account-api/tests/*.test.mjs`（130 條，含 pay 19 條）、結帳與付款1011（新，0）、桌機守門1008（0）、退款政策1009（0）、帳號選單1009（0）、網頁同步1010（1，既有的「E 手機 390 個股頁首子分頁」，origin/main 同樣紅）、`_preview.py`（1，既有的 800px #industry/ai_server 卡片交疊）、pytest。
+- **待處理**：電子發票（綠界，有統編後）；寄信（收據／續扣通知）；隱私權政策補「訂單紀錄刪帳號不刪」（法遵）；綠界 DoAction form 版欄位與 TradeStatus 代碼是中信心 → 正式上線前 1 元實測。
+
 ## 2026-10-11 比比（右下角客服鈕）情境待機＋環狀互動選單（UI 專家；DECISIONS #355）
 - Andy 10-11：「右下方的GIF圖多點變化…不同分頁，不同功能，漲跌，白天晚上，假日平日國定假日…可以摸摸他 餵它吃草 跟他玩球 讓他轉圈圈…互動紐的形式像圖一…」
 - 新檔 `site/bibi.js`（index.html 緊接 support.js 之後載入）、`site/brand/bibi/*.webp`（30 組 160px 動態 WebP，每組 ≤ 60KB，用到才載）、`site/brand/bibi/icons/*.webp`（10 個小圈圖示）、`scripts/anim/bibi_site.py`（轉檔）。

@@ -14,7 +14,8 @@ SEED_PLANS = "plus,pro"
 
 # 2026-10-09 每天台北 03:17 清一次過期的「七天保證比對碼」（benefit_hash 保存 365 天，worker.js 取消訂閱／退款區塊）
 [triggers]
-crons = ["17 19 * * *"]
+# 2026-10-11 金流：每 10 分鐘補開通（查單）／定期定額對帳／到期降級紀錄（pay.js paySweep）
+crons = ["17 19 * * *", "*/10 * * * *"]
 
 # 單一 Durable Object（SQLite 儲存）。免費方案可用：每天 10 萬列寫入、500 萬列讀取、1 GB。
 [[durable_objects.bindings]]
@@ -31,3 +32,5 @@ new_sqlite_classes = ["Hub"]
 #   ADMIN_EMAILS          管理者 email（逗號分隔），只有這些人看得到 #admin 的報表與線上名單
 #   TRIAL_HMAC_KEY        （2026-10-09）七天保證防呆的比對碼金鑰：wrangler secret put TRIAL_HMAC_KEY
 #                         產生：openssl rand -base64 48 。上線前就要設；設了之後不要換（換了舊比對碼就對不上）
+#   ECPAY_MERCHANT_ID／ECPAY_HASH_KEY／ECPAY_HASH_IV（2026-10-11）綠界正式金鑰；三個都沒設＝綠界公開測試環境（pay.js ECPAY_STAGE）
+#   ECPAY_CREDIT_CHECK_CODE（選用）綠界後台的信用卡商家檢查碼：有設才用 CreditDetail/QueryTrade/V2 判斷退款階段

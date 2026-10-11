@@ -54,7 +54,13 @@ async function seeded() {
   await pj(h.hub, '/v1/admin/perm/put', { t: andy, email: 'bob@example.com', plan: 'pro' });
   await pj(h.hub, '/v1/feedback', { t: bob, cat: 'bug', body: '圖表空白' });
   await pj(h.hub, '/v1/beat', { sid: 'sid-abcdefgh', r: 'stock', t: bob, ev: {} });
-  return { ...h, andy, bob };
+  /* 2026-10-11 金流（pay.js）：轉帳訂單走完 開單 → 回報 → 確認 → 退款，orders／refunds／plan_events／kv pay_bank 都有資料，往返要逐列一致 */
+  await pj(h.hub, '/v1/admin/pay/bank/put', { t: andy, bank_name: '測試銀行', bank_code: '999', account: '000011112222', holder: '測試戶名' });
+  const o = (await pj(h.hub, '/v1/pay/bank/create', { t: bob, plan: 'pro', period: 'month' })).j;
+  await pj(h.hub, '/v1/pay/bank/report', { t: bob, id: o.id, last5: '12345', date: '2026-10-05', amount: 299 });
+  await pj(h.hub, '/v1/admin/pay/confirm', { t: andy, id: o.id });
+  await pj(h.hub, '/v1/admin/pay/refund', { t: andy, id: o.id, rid: 'r-exp-000001', amount: 50, last5: '54321', date: '2026-10-05', perm: 'end' });
+  return { ...h, andy, bob, oid: o.id };
 }
 
 test('非管理者被擋：沒權杖、一般會員、錯的備份權杖、沒設 BACKUP_TOKEN 時的 Bearer 一律 403', async () => {
@@ -82,6 +88,8 @@ test('管理者可以匯出；備份權杖不帶 Origin 也可以；內容排除
   assert.equal(t.users.rows.length, 2);
   assert.ok(t.users.cols.includes('subh') && !t.users.cols.includes('sub'));
   assert.ok(t.lists.rows.length === 1 && t.feedback.rows.length === 1);
+  assert.ok(t.orders.rows.length === 1 && t.refunds.rows.length === 1 && t.plan_events.rows.length >= 1, '金流訂單、退款、方案異動紀錄都有備份');
+  assert.ok(t.kv.rows.some((x) => x[0] === 'pay_bank'), '收款帳號設定有備份');
   assert.equal(db.prepare("SELECT n FROM usage WHERE k = 'admin_export'").get().n, 2, '每次匯出記一筆');
 });
 
