@@ -25,6 +25,7 @@ from PIL import Image, ImageDraw, ImageFilter
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import render_1010 as B  # noqa: E402
+import v3_check as C  # noqa: E402
 from render_1010 import (CREAM, DEEP, INK, LEMON, SKY, WHITE, F_BOLD, F_MED, F_ROUND, FPS, anim_frame, back_out,  # noqa: E402
                          clamp, ease_io, ease_out, font, hide_site_mascot, lerp, logo_sized, piecewise, put_sprite,
                          reader, rounded_mask, text_w, wrap_lines)
@@ -174,6 +175,7 @@ def pill(cv, text, x, y, bg=None, fg=None, px=32, stroke=None, right=False, cent
     if alpha < 1:
         lay.putalpha(lay.getchannel("A").point(lambda v: int(v * alpha)))
     cv.paste(lay, (int(x), int(y)), lay)
+    C.reg("pill:" + text, (x + 2, y + 2, x + pw + 2, y + ph + 2))
     return pw
 
 
@@ -200,11 +202,14 @@ def headline(cv, L, text, t, hl=None):
             px -= 4
             f = font(THEME["head_font"], px)
     x0, y0 = L.head_xy
+    wmax = max(text_w(f, ln) for ln in lines)
     if getattr(L, "full_bleed", False):
-        wmax = max(text_w(f, ln) for ln in lines)
         a_ = clamp(t / 0.2, 0, 1)
         if a_ > 0:
             float_panel(cv, (x0 - 16, y0 - 4, x0 + wmax + 16, y0 + px * 1.22 + 2), int(170 * a_), 14)
+        C.reg("headline", (x0 - 16, y0 - 4, x0 + wmax + 16, y0 + px * 1.22 + 2))
+    else:
+        C.reg("headline", (x0, y0, x0 + wmax, y0 + len(lines) * px * 1.22 + 2))
     d = ImageDraw.Draw(cv)
     k = 0
     hl_span = (text.index(hl), text.index(hl) + len(hl)) if hl and hl in text else None
@@ -245,6 +250,7 @@ def subtitle(cv, L, text, t):
             x = x - wmax
         nl = len(lines)
         y = y - (nl - 1) * L.sub_px * 1.32
+        C.reg("subtitle", (x - 22, y, x + wmax + 22, y + nl * L.sub_px * 1.3 + 12))
         d.rounded_rectangle([x - 22, 0, x + wmax + 22, nl * L.sub_px * 1.3 + 12], min(14, THEME["panel_r"]), fill=THEME["panel_fill"] + (150,), outline=THEME["panel_outline"], width=1)
         if THEME["name"] == "pro":
             d.rectangle([x - 22, 4, x - 18, nl * L.sub_px * 1.3 + 8], fill=DEEP)
@@ -707,6 +713,7 @@ def bubble3(cv, text, box, tail, t, px=40):
     if u != 1:
         lay = lay.resize((max(1, int(w * u)), max(1, int(h * u))), Image.BILINEAR)
     cv.paste(lay, (int(ox), int(oy + h * (1 - u) / 2)), lay)
+    C.reg("bubble", (min(x0, tail[0]), min(y0, tail[1]), max(x1, tail[0]), max(y1, tail[1])))
 
 
 # ───────────────────────── 片尾卡、警語卡 ─────────────────────────
