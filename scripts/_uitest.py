@@ -32917,7 +32917,7 @@ def t_bibi_1011(b, base):
     pg.goto(base + "#overview", wait_until="domcontentloaded")
     ok(f"【{T}】比比接上客服鈕（window.Bibi 與 #supFab 的兩張圖層都在）",
        bool(wait_until(pg, "() => !!window.Bibi && !!document.getElementById('supFab') && document.querySelectorAll('#supFab img.bibiimg').length === 2", 10000)))
-    pg.evaluate("() => Bibi.test({ fidget: false })")
+    pg.evaluate("() => Bibi.test({ fidget: false, hop: false })")   # 待機小動作與 Default 穿插跳先關（會跟換圖斷言搶），下面另外驗
     s0 = pg.evaluate(BIBI_ST)
     ok(f"【{T}】比比圖用 brand/bibi/ 的動態 WebP（{s0 and s0['src']}）", bool(s0) and s0["src"].startswith("brand/bibi/"), s0)
     cases = [
@@ -32936,8 +32936,7 @@ def t_bibi_1011(b, base):
         ("和平紀念日 → 不戴慶祝帽、用週末放鬆款", {"now": "2026-02-28T10:00:00+08:00", "hol": {"2026-02-28": "和平紀念日"}}, "overview", "weekend", "holiday", "和平紀念日"),
         ("12/24 平日盤後 → 聖誕帽", {"now": "2026-12-24T15:00:00+08:00", "pct": None, "hol": {}}, "overview", "festival_xmas", "xmas", "聖誕"),
     ]
-    HAPPY = pg.evaluate("() => Bibi.PART.happy || Bibi.BASE")   # 大部分情境的待機圖：「開心的跳」素材，沒有就是 Andy 指定的原版 Default（＋CSS 小跳）
-    HOP_ASSET = pg.evaluate("() => !!Bibi.PART.happy")
+    HAPPY = pg.evaluate("() => Bibi.BASE")   # 大部分情境的待機圖：Andy 指定的原版 Default（圖三；穿插跳一次＝圖二 jump，下面另驗）
     NOT_HAPPY = ("night", "holiday", "xmas", "down2")
     IDLE_F = HAPPY                                 # 盤後總覽的待機圖（下面回待機都比這張）
     for name, inj, route, want, key, say in cases:
@@ -32948,26 +32947,36 @@ def t_bibi_1011(b, base):
         st = pg.evaluate(BIBI_ST)
         ok(f"【{T}】桌機 情境「{name}」→ 待機換成 {want}（{st['src']}）、情境鍵 {key}、說明句含「{say or '—'}」",
            bool(shown) and got and got.get("key") == key and (say is None or say in (got.get("say") or "")), {"got": got, "st": st})
-    # 開心的跳（Andy 10-11 晚：「大部分情況盡量維持開心的跳」）：一般情境整顆在跳；深夜、國定假日、大跌安慰不跳
+    # Default 待機（Andy 10-11：「使用圖2 圖3 GIF圖片就好」）：一般情境＝原版 Default（圖三）靜止幾秒 → 跳一次（圖二 jump）→ 回 Default；
+    # 深夜、國定假日、大跌安慰保留原情境款、不跳。驗收把間隔縮成 500ms（Bibi.test hopMs），真的錄到「default → jump → default」
+    JUMP_REC = """(ms) => new Promise((res) => { const o = [], t0 = performance.now();
+      const k = () => { o.push(Bibi.state().src.split('/').pop()); if (performance.now() - t0 < ms) setTimeout(k, 40); else res(o); }; k(); })"""
+    pg.evaluate("() => Bibi.test({ hop: true, hopMs: 500 })")
     for name, inj, want_h in (("盤後總覽", {"now": "2026-10-14T16:00:00+08:00", "pct": None, "hol": {}}, True),
                               ("盤中小跌", {"now": "2026-10-14T10:00:00+08:00", "pct": -0.3}, True),
-                              ("盤中大跌", {"pct": -1.6}, False), ("深夜", {"now": "2026-10-14T23:40:00+08:00", "pct": None}, False),
+                              ("週末", {"now": "2026-10-17T15:00:00+08:00", "pct": None}, True),
+                              ("盤中大跌", {"now": "2026-10-14T10:00:00+08:00", "pct": -1.6}, False), ("深夜", {"now": "2026-10-14T23:40:00+08:00", "pct": None}, False),
                               ("國定假日", {"now": "2026-02-16T10:00:00+08:00", "hol": {"2026-02-16": "春節"}}, False)):
-        pg.evaluate("(o) => Bibi.test(o)", inj); pg.wait_for_timeout(700)
-        hp = pg.evaluate("""() => { const h = document.querySelector('#supFab .bibihop'), s = Bibi.state(); return { happy: s.happy, anim: h ? getComputedStyle(h).animationName : '', src: s.src.split('/').pop() }; }""")
-        ys = pg.evaluate("""() => new Promise((res) => { const h = document.querySelector('#supFab .bibihop'), o = []; const t0 = performance.now();
-          const k = () => { o.push(h.getBoundingClientRect().top); if (performance.now() - t0 < 2600) setTimeout(k, 60); else res(o); }; k(); })""")
-        moved = max(ys) - min(ys)
-        if HOP_ASSET:   # 有素材：圖就是 happy_hop（素材自己在跳），CSS 小跳關掉
-            _bibi_src(pg, HAPPY if want_h else "__none__", 3000 if want_h else 300)
-            hp = pg.evaluate("""() => { const s = Bibi.state(); return { happy: s.happy, src: s.src.split('/').pop() }; }""")
-            ok(f"【{T}】桌機 待機「{name}」→ " + (f"開心的跳 {HAPPY}（{hp['src']}）" if want_h else f"不跳、保留原情境款（{hp['src']}）"),
-               (hp["src"] == HAPPY + ".webp") == want_h and not hp["happy"] and moved < 1, {"hp": hp, "moved": moved})
+        pg.evaluate("(o) => Bibi.test(o)", inj); pg.wait_for_timeout(500)
+        seq = pg.evaluate(JUMP_REC, 3200)
+        uniq = [x for i, x in enumerate(seq) if i == 0 or x != seq[i - 1]]
+        if want_h:
+            ok(f"【{T}】桌機 Default 待機「{name}」→ 原版 Default 靜止 → 跳一次 → 回 Default（順序 {uniq[:6]}）",
+               "default_idle.webp" in uniq and "jump.webp" in uniq[uniq.index("default_idle.webp"):]   # 錄的時候上一個情境的跳可能還沒播完：從第一次看到 Default 起算
+               and "default_idle.webp" in uniq[uniq.index("jump.webp", uniq.index("default_idle.webp")) + 1:], uniq)
         else:
-            ok(f"【{T}】桌機 待機「{name}」→ " + ("原版 Default 造型（{}）＋開心的跳（整顆真的上下跳 {:.0f}px）".format(hp["src"], moved) if want_h else "不跳（原情境款 {}，跳動 {:.0f}px）".format(hp["src"], moved)),
-               (hp["happy"] and hp["anim"] == "bibihappy" and moved >= 8 and hp["src"] == HAPPY + ".webp") if want_h else (not hp["happy"] and moved < 1 and hp["src"] != HAPPY + ".webp"), {"hp": hp, "moved": moved})
+            ok(f"【{T}】桌機 待機「{name}」→ 保留原情境款、不跳（{uniq}）", "jump.webp" not in uniq and "default_idle.webp" not in uniq, uniq)
         pg.evaluate("() => Bibi.test({ hol: {} })")
-    pg.evaluate("() => Bibi.test({ hol: {} })")
+    pg.evaluate("() => Bibi.test({ hop: false, hopMs: 0, hol: {} })")
+    if BIBI_SHOT_DIR:   # Default 待機截圖（idle_default.png）＋跳一次連拍（hop_seq_*.png）
+        pg.evaluate("() => Bibi.test({ now: '2026-10-14T16:00:00+08:00', pct: null, hol: {} })"); _bibi_src(pg, "default_idle", 3000); pg.wait_for_timeout(500)
+        clipd = {"x": 1440 - 200, "y": 900 - 200, "width": 200, "height": 200}
+        pg.screenshot(path=str(pathlib.Path(BIBI_SHOT_DIR) / "idle_default.png"), clip=clipd)
+        pg.evaluate("() => { Bibi.test({ hop: true, hopMs: 30 }); }")
+        wait_until(pg, "() => Bibi.state().src.endsWith('jump.webp')", 3000, 10)
+        for i in range(6):
+            pg.screenshot(path=str(pathlib.Path(BIBI_SHOT_DIR) / f"hop_seq_{i}.png"), clip=clipd); pg.wait_for_timeout(150)
+        pg.evaluate("() => Bibi.test({ hop: false, hopMs: 0 })"); pg.wait_for_timeout(1300)
     # 盤後依分頁：真的換頁（hashchange 重算）
     pg.evaluate("() => Bibi.test({ now: '2026-10-14T16:00:00+08:00', pct: null, hol: {} })")
     for route, want, key in (("flow/sankey", "coins", "flow"), ("flow/rotation", "growth", "rotation"), ("industry", "magnifier", "industry"), ("themes", "fire", "themes"),
@@ -33259,7 +33268,7 @@ def t_bibi_1011(b, base):
         if pg.evaluate("() => !document.querySelector('#bibiRing .bopt[data-act=ball]').classList.contains('pg-off')"):
             break
         pg.tap("#bibiRing .bopt[data-act=next]"); pg.wait_for_timeout(600)
-    pg.evaluate("() => Bibi.test({ fidget: false })")
+    pg.evaluate("() => Bibi.test({ fidget: false, hop: false })")
     pg.tap(f"#bibiRing .bopt[data-act=ball]")
     rec = pg.evaluate(BIBI_REC, 3200)
     ok(f"【{T}】手機 點「玩球」→ 300ms 內在動、比比跑出去（最遠 {min(r['ox'] for r in rec):.0f}px）",
