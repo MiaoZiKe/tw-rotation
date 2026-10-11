@@ -212,8 +212,126 @@ def clip_ball_catch() -> list[dict]:
     return frames
 
 
+
+# ================================================================== 開心跳（預設待機）
+FRONT = dict(view="front", mouth="smile", blush=1.2)
+
+
+def clip_happy_hop() -> list[dict]:
+    """正面原地小跳循環：站→蹲（預備）→蹬（拉長）→最高（星星眼、手舉高）→下落→落地壓扁→回彈→歪頭→眨眼→站。"""
+    F = FRONT
+    up = lambda dx, dy, r: ((-dx, dy, -r), (dx, dy, r))   # noqa: E731  (左手, 右手) 對稱
+    fr = []
+
+    def add(ms, label, fx=None, props=None, **kw):
+        lf, rf = kw.pop("hands", ((0, 0, 0), (0, 0, 0)))
+        fr.append(dict(pose=dict(F, fp_far=lf, fp_near=rf, **kw), ms=ms, label=label, fx=fx or [],
+                       props_front=props or []))
+
+    add(240, "站好（圓眼）", eye="dot", mouth="w", ear=0, ear2=0)
+    add(110, "往下蹲（預備、瞇眼笑）", eye="arc", sy=0.84, sx=1.1, ear=16, ear2=16, flutter=-4,
+        hands=up(-6, 6, -12), bf_far=(-4, 0, -8), bf_near=(4, 0, 8))
+    add(70, "蹬起來（拉長、手舉起）", eye="arc", mouth="open", y=R.FOOT_Y - 24, sy=1.13, sx=0.91, ear=26, ear2=26,
+        flutter=6, fphase=0.6, hands=up(8, -46, 24), bf_far=(2, 8, 10), bf_near=(-2, 8, -10))
+    add(130, "跳到最高（星星眼、耳朵往上甩）", eye="star", mouth="smile", y=R.FOOT_Y - 50, sy=1.03, sx=0.98,
+        ear=-12, ear2=-12, flutter=3, fphase=1.4, hands=up(12, -62, 36), bf_far=(6, -6, -16), bf_near=(-6, -6, 16),
+        fx=[R.star_svg(110, 196, 12, 0), R.star_svg(392, 186, 14, 20), R.star_svg(424, 240, 8, 40, "#FFE58A")])
+    add(70, "往下掉（耳朵還在上）", eye="arc", mouth="open", y=R.FOOT_Y - 26, sy=1.08, sx=0.95, ear=-6, ear2=-6,
+        flutter=-3, fphase=2.0, hands=up(6, -30, 18), bf_far=(0, 6, 6), bf_near=(0, 6, -6))
+    add(100, "落地壓扁（閉眼笑）", eye="smile", mouth="w", sy=0.8, sx=1.15, ear=30, ear2=30, flutter=-7,
+        fphase=2.6, hands=up(14, 6, 26), bf_far=(-8, 0, -10), bf_near=(8, 0, 10),
+        fx=[R.dust_svg(88, 470, 0.9, 0.9), R.dust_svg(412, 470, 0.9, 0.9)])
+    add(90, "回彈（耳朵慢一拍）", eye="dot", mouth="smile", y=R.FOOT_Y - 8, sy=1.06, sx=0.97, ear=12, ear2=12,
+        flutter=3, fphase=3.2, hands=up(0, -10, 6),
+        fx=[R.dust_svg(70, 462, 1.1, 0.45), R.dust_svg(430, 462, 1.1, 0.45)])
+    add(170, "歪頭笑（耳朵甩過頭）", eye="dot", mouth="smile", rot=-5, sy=0.98, ear=-6, ear2=4, look=(-0.015, 0.0),
+        props=[fx_part("fx_heart", 404, 214, 0.45, 14)])
+    add(100, "眨眼", eye="dot", eye_open=0.2, mouth="smile", rot=3, ear=2, ear2=-2,
+        props=[fx_part("fx_heart", 410, 190, 0.4, 20)])
+    add(150, "微微縮一下、準備再跳", eye="dot", mouth="smile", rot=0, sy=0.95, sx=1.03, ear=8, ear2=8,
+        hands=up(-3, 4, -6))
+    return fr
+
+
+# ================================================================== 接收（給草／給球）
+def clip_receive(item: str = "") -> list[dict]:
+    """正面：看到東西（圓眼＋！）→ 眼睛發亮（星星眼、身體往右前傾）→ 雙肉掌往右前伸 → 接住 → 抱回胸前 → 開心彈一下。
+    item：''（不畫東西，網頁自己疊）／'grass'／'ball'。東西從畫面右上方遞進來。"""
+    F = FRONT
+    fr = []
+    held_reach = (352, 330)
+
+    def item_layer(where):
+        if not item:
+            return []
+        if where == "reach":
+            x, y = held_reach
+            if item == "ball":
+                return [ball_layer(x + 6, y - 22, 20)]
+            return [R.svg_layer(R.grass_svg(x + 64, y - 70, 150, -55, 15))]
+        x, y = 248, 418
+        if item == "ball":
+            return [ball_layer(x, y, 0)]
+        return [R.svg_layer(R.grass_svg(x + 40, y + 34, 170, -70, 15))]
+
+    def add(ms, label, fx=None, props=None, mid=None, **kw):
+        fr.append(dict(pose=dict(F, **kw), ms=ms, label=label, fx=fx or [], props_front=props or [],
+                       props_mid=mid or []))
+
+    add(300, "站好", eye="dot", mouth="w")
+    add(130, "咦？看到東西（圓眼、耳朵豎）", eye="wide", mouth="o", y=R.FOOT_Y - 10, sy=1.05, sx=0.97,
+        ear=-16, ear2=-16, flutter=3, look=(0.02, 0.0), props=[fx_part("fx_exclaim", 388, 196, 0.6, 12)])
+    add(220, "眼睛發亮（星星眼、往右傾）", eye="star", mouth="smile", rot=6, look=(0.035, 0.0), ear=6, ear2=-4,
+        blush=1.5, hands_front=True, fp_far=(6, -6, 10), fp_near=(-6, -6, -10),
+        fx=[R.star_svg(130, 250, 10, 10), R.star_svg(110, 300, 7, 30, "#FFE58A")])
+    add(110, "雙肉掌往右前伸（拉長）", eye="wide", mouth="open", rot=11, sx=0.95, sy=1.06, look=(0.04, -0.01),
+        ear=-8, ear2=14, flutter=4, fp_far=(118, -78, 40), fp_near=(44, -58, 30),
+        mid=item_layer("reach") if item else [])
+    add(130, "接住！（瞇眼笑）", eye="arc", mouth="open", rot=9, sx=0.97, sy=1.03, look=(0.035, 0.0),
+        ear=-2, ear2=18, fp_far=(112, -70, 34), fp_near=(50, -52, 26), mid=item_layer("reach"),
+        fx=[R.star_svg(420, 238, 11, 15)] if item else [])
+    add(140, "抱回胸前（壓扁、臉紅）", eye="smile", mouth="w", rot=0, sy=0.9, sx=1.07, blush=1.7, ear=16, ear2=16,
+        flutter=-4, hands_front=True, mid=item_layer("chest"))
+    add(110, "開心彈一下", eye="arc", mouth="smile", y=R.FOOT_Y - 16, sy=1.07, sx=0.96, ear=-8, ear2=-8, flutter=4,
+        blush=1.5, hands_front=True, mid=item_layer("chest"), props=[fx_part("fx_hearts_small", 402, 206, 0.6, 8)])
+    add(520, "抱著滿足（圓眼）", eye="dot", mouth="smile", ear=2, ear2=2, blush=1.3, hands_front=True,
+        mid=item_layer("chest"), props=[fx_part("fx_heart", 412, 176, 0.45, 18)])
+    return fr
+
+
+def make_hand_prop(path, item):
+    """給東西的那隻手：從右上角伸進來的短肉掌（粉色肉掌＋奶油色毛袖口），拿著草或球。512 透明。"""
+    can = Image.new("RGBA", (R.SIZE * R.S, R.SIZE * R.S))
+    if item == "ball":
+        can.alpha_composite(R.svg_layer(R.ball_svg(250, 262, 92, 15, stroke=10)))
+    else:
+        can.alpha_composite(R.svg_layer(R.grass_svg(366, 196, 330, -48, 30)))
+    # 袖口：一團毛（畫到畫布右上角外面，網頁從畫面外滑進來）
+    can.alpha_composite(R.svg_layer(
+        f'<path d="M 560 -40 L 400 120 C 372 148 380 196 420 214 C 446 226 470 214 488 196 L 600 90 Z" '
+        f'fill="{R.FUR}" stroke="{R.INK}" stroke-width="12" stroke-linejoin="round"/>'
+        f'<path d="M 420 150 q 10 8 22 2 M 448 186 q 10 6 20 -2" fill="none" stroke="#EAD9C2" stroke-width="7" '
+        f'stroke-linecap="round"/>'))
+    R.place(can, R.part("hand_l", 2.4), 340 if item == "ball" else 352, 196 if item == "ball" else 206,
+            rot=-135 if item == "ball" else -128, anchor=(0.5, 0.45))
+    R.finish(can).save(path)
+
+
+def make_grass_prop(path):
+    can = R.svg_layer(R.grass_svg(330, 470, 520, -62, 34))
+    R.finish(can).save(path)
+
+
 # ================================================================== 渲染
 CLIPS = {
+    "happy_hop": dict(make=clip_happy_hop, facing="left", loop=True,
+                      note="全部 10 格循環＝大部分情境的預設待機（正面，不分左右）。"),
+    "receive": dict(make=lambda: clip_receive(""), facing="left", loop=False,
+                    note="播一次；東西由網頁疊（從右上遞進來），第 4～5 格肉掌在右上 (约 x 350, y 330) 接。"),
+    "receive_grass": dict(make=lambda: clip_receive("grass"), facing="left", loop=False,
+                          note="播一次；畫面內含牧草：第 4 格起草在右前方肉掌上，第 6 格抱到胸前。接 eat_grass_v2。"),
+    "receive_ball": dict(make=lambda: clip_receive("ball"), facing="left", loop=False,
+                         note="播一次；畫面內含球：第 4 格起球在右前方肉掌上，第 6 格抱到胸前。之後網頁丟球→run_r→ball_catch。"),
     "run_r": dict(make=clip_run, facing="right", loop=True, note="全部 8 格循環（第 8 格接回第 1 格）；網頁負責位移，這裡原地跑。"),
     "run_l": dict(make=clip_run, facing="left", loop=True, note="同 run_r，面向左。"),
     "run_start_r": dict(make=clip_run_start, facing="right", loop=False, note="播一次；最後一格＝run_r 第 1 格，直接接循環。"),
@@ -234,6 +352,7 @@ def render_clip(name: str):
         if fr.get("ball"):
             bx, by, ang = fr["ball"]
             mid = [ball_layer(bx, by, ang)]
+        mid = mid + list(fr.get("props_mid") or [])
         can, boxes = R.compose(pose, props_mid=mid, props_front=fr.get("props_front"),
                                props_back=fr.get("props_back"), fx=fr.get("fx"))
         if fr.get("post") is not None:
@@ -352,6 +471,10 @@ def main():
         write_storyboard(name, frs, durs, rd / "storyboard.md")
         if name.startswith("ball_catch"):
             make_ball_prop(rd / "ball_prop.png")
+        if name == "receive":
+            make_hand_prop(rd / "hand_grass_prop.png", "grass")
+            make_hand_prop(rd / "hand_ball_prop.png", "ball")
+            make_grass_prop(rd / "grass_prop.png")
         report[name] = dict(frames=n, kb=round(kb, 1), q=q, problems=bad, diffs=diffs, ms=sum(durs))
         print(name, json.dumps(report[name], ensure_ascii=False), flush=True)
     (out / "report.json").write_text(json.dumps(report, ensure_ascii=False, indent=1), encoding="utf-8")

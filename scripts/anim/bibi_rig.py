@@ -39,6 +39,7 @@ SIZE = 512
 CX, FOOT_Y = 248.0, 482.0  # 場景中心與腳底
 BODY_W = 290.0             # 本體內容寬（512 單位）
 PART_K = 0.6               # 單件部件相對總表大小的比例（手、腳）
+FEET_DROP = 11.0           # 腳從本體底緣往下露出的量（512 單位）
 EAR_K = 0.8                # 耳朵
 EYE_K = 0.85               # 眼睛（對過 pose_front：眼寬約身寬 6%）
 
@@ -170,7 +171,35 @@ def body_box():
     return m, m, im.width - m, im.height - m  # 內容框（S 倍像素）
 
 
-def fluttered_body(amp=0.0, phase=0.0, back=1.0, top=0.6) -> Image.Image:
+@lru_cache(maxsize=64)
+def fluttered_body(amp=0.0, phase=0.0, back=1.0, top=0.6, mode="side") -> Image.Image:
+    if mode == "front":
+        return _flutter_front(amp, phase)
+    return _flutter_side(amp, phase, back, top)
+
+
+def _flutter_front(amp, phase):
+    """正面毛飄：上跳時頭頂毛被往下壓（amp>0）、落地時往上蓬（amp<0）；兩側毛往外抖。"""
+    im = body_img()
+    if abs(amp) <= 0.01:
+        return im
+    x0, y0, x1, y1 = body_box()
+    w, h = x1 - x0, y1 - y0
+    A = amp * S
+
+    def inv(x, y):
+        u = (x - x0) / w
+        v = (y - y0) / h
+        et = max(0.0, min(1.0, (0.4 - v) / 0.4)) ** 1.4
+        es = max(0.0, min(1.0, (abs(u - 0.5) - 0.3) / 0.2)) ** 1.4
+        dy = -A * et * (0.7 + 0.3 * math.sin(phase + u * 9))
+        dx = -A * 0.45 * es * (1 if u > 0.5 else -1) * (0.6 + 0.4 * math.sin(phase * 1.4 + v * 8))
+        return x + dx, y + dy
+
+    return mesh_warp(im, inv)
+
+
+def _flutter_side(amp=0.0, phase=0.0, back=1.0, top=0.6) -> Image.Image:
     """毛飄：背後（u 大的一側）與頭頂的毛跟著正弦波擺，振幅 amp（512 單位）。面向左時背後在右。"""
     im = body_img()
     if abs(amp) <= 0.01:   # 負值＝往前甩（急停時的跟隨動作）
@@ -353,7 +382,7 @@ def eye_svg(kind: str, x, y, s=1.0) -> str:
         return (f'<path d="M {x+8*k:.1f} {y-8*k:.1f} L {x-6*k:.1f} {y:.1f} L {x+8*k:.1f} {y+8*k:.1f}" fill="none" '
                 f'stroke="{INK}" stroke-width="{4.6*k:.1f}" stroke-linecap="round" stroke-linejoin="round"/>')
     if kind == "star":
-        return star_svg(x, y, 11 * k, 0, "#FFD25A")
+        return star_svg(x, y, 14.5 * k, 0, "#FFD25A")
     if kind == "x":
         return (f'<path d="M {x-7*k:.1f} {y-7*k:.1f} L {x+7*k:.1f} {y+7*k:.1f} M {x+7*k:.1f} {y-7*k:.1f} L {x-7*k:.1f} {y+7*k:.1f}" '
                 f'stroke="{INK}" stroke-width="{4.4*k:.1f}" stroke-linecap="round"/>')
@@ -420,7 +449,8 @@ def body_matrix(p):
     """本體圖（S 倍像素）→ 畫布（S 倍像素）。"""
     x0, y0, x1, y1 = body_box()
     px, py = (x0 + x1) / 2, y1 - 6 * S   # 錨點：底部中心（毛的最下緣再往上一點，讓腳貼地）
-    return mat(p["x"] * S, p["y"] * S, p["rot"], p["sx"], p["sy"], p["shear"], px, py)
+    # 腳掌會從身體底下露出約 FEET_DROP，所以本體錨點抬高，讓「腳底」落在 p["y"]（場景腳底 y=482）
+    return mat(p["x"] * S, (p["y"] - FEET_DROP) * S, p["rot"], p["sx"], p["sy"], p["shear"], px, py)
 
 
 def body_pt(p, u, v):
@@ -485,9 +515,9 @@ def compose(p: dict, extra_back: str = "", extra_front: str = "", props_back=Non
 
     # --- 耳朵（在身體後面，插進毛裡）
     if p["view"] == "front":
-        X, Y = body_pt(p, 0.21 + lu, 0.15)
+        X, Y = body_pt(p, 0.235 + lu, 0.17)
         place(can, part("ear_l", EAR_K), X, Y, -14 - p["ear"], anchor=(0.6, 0.9))
-        X, Y = body_pt(p, 0.79 + lu, 0.15)
+        X, Y = body_pt(p, 0.765 + lu, 0.17)
         place(can, part("ear_r", EAR_K), X, Y, 14 + p["ear2"], anchor=(0.4, 0.9))
     elif p["view"] == "back":
         X, Y = body_pt(p, 0.21, 0.15)
@@ -496,7 +526,7 @@ def compose(p: dict, extra_back: str = "", extra_front: str = "", props_back=Non
         place(can, part("ear_r", EAR_K), X, Y, 14 + p["ear2"], anchor=(0.4, 0.9))
 
     # --- 本體
-    b = fluttered_body(p["flutter"], p["fphase"])
+    b = fluttered_body(round(p["flutter"], 2), round(p["fphase"], 2), mode="front" if p["view"] != "side" else "side")
     blay = warp_affine(b, body_matrix(p), can.size)
     boxes["body"] = blay.getchannel("A").getbbox()
     can.alpha_composite(blay)
@@ -520,21 +550,21 @@ def compose(p: dict, extra_back: str = "", extra_front: str = "", props_back=Non
         ex, ey = body_pt(p, 0.15 + lu, 0.43 + lv)
         bx, by = body_pt(p, 0.18 + lu, 0.555 + lv)
         mx, my = body_pt(p, 0.055 + lu, 0.545 + lv)
+        can.alpha_composite(svg_layer(blush_svg(bx, by, p["blush"], 0.8)))
         flay = Image.new("RGBA", can.size)
-        flay.alpha_composite(svg_layer(blush_svg(bx, by, p["blush"], 0.8)))
         _draw_eye(flay, p["eye"], ex, ey, p["eye_open"], left=True)
         flay.alpha_composite(svg_layer(mouth_svg(p["mouth"], mx, my, 1.2)))
         boxes["face"] = flay.getchannel("A").getbbox()
         can.alpha_composite(flay)
     elif p["view"] == "front":
-        flay = Image.new("RGBA", can.size)
+        flay = Image.new("RGBA", can.size)   # 臉（眼＋嘴）外框給重疊檢查；腮紅另畫不算
         for sgn, sub in ((-1, "L"), (1, "R")):
             ex, ey = body_pt(p, 0.5 + lu + sgn * 0.13, 0.42 + lv)
             bx, by = body_pt(p, 0.5 + lu + sgn * 0.27, 0.53 + lv)
-            flay.alpha_composite(svg_layer(blush_svg(bx, by, p["blush"])))
+            can.alpha_composite(svg_layer(blush_svg(bx, by, p["blush"])))
             _draw_eye(flay, p["eye"], ex, ey, p["eye_open"], left=(sgn < 0))
         mx, my = body_pt(p, 0.5 + lu, 0.50 + lv)
-        flay.alpha_composite(svg_layer(mouth_svg(p["mouth"], mx, my, 1.3)))
+        flay.alpha_composite(svg_layer(mouth_svg(p["mouth"], mx, my, 1.5)))
         boxes["face"] = flay.getchannel("A").getbbox()
         can.alpha_composite(flay)
         # 正面的手：貼在身體兩側或身前
