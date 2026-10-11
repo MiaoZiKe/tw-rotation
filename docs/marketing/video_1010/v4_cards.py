@@ -22,11 +22,39 @@ MINT = (140, 210, 180)
 INK = (60, 70, 90)
 
 
+MCX = 540            # 手機卡片水平中心（畫面正中；內容寬 ≤800 → x 140～940，不進右側 140px 的 Reels 介面區）
+MHEAD_Y = 250        # 手機卡片大字的 y（卡片內容整體在 y 250～1580，上下對稱）
+
+
+def _push(fn, amt=0.03):
+    """整張卡片慢推（3 秒內放大 3%）：動畫收尾後畫面也持續微動，不會被判成停格（freezedetect n=0.003 d=0.5）。"""
+    def w(cv, t, shot):
+        fn(cv, t, shot)
+        k = 1 + amt * clamp(t / max(0.5, shot.dur), 0, 1)
+        W, H = cv.size
+        im = cv.resize((int(W * k) + 1, int(H * k) + 1), Image.BILINEAR)
+        ox, oy = (im.width - W) // 2, (im.height - H) // 2
+        cv.paste(im.crop((ox, oy, ox + W, oy + H)), (0, 0))
+    return w
+
+
+def _host(cv, L, nm, text, t, mode=None):
+    """卡片鏡頭的比比＋泡泡。網頁用一般主持位；手機改放底部安全區上緣（比比在左、泡泡在右，整組水平置中）。"""
+    if L.fmt == "web":
+        return card_host(cv, L, nm, text, t, mode)
+    old = (L.host_x, L.host_foot, L.host_w, L.host_h, L.host_size)
+    L.host_x, L.host_foot, L.host_w, L.host_h, L.host_size = 330, 1570, 300, 280, 380
+    try:
+        card_host(cv, L, nm, text, t, mode)
+    finally:
+        L.host_x, L.host_foot, L.host_w, L.host_h, L.host_size = old
+
+
 def _zone(L):
     """內容區（避開標題、比比帶與手機 Reels 介面區）。"""
     if L.fmt == "web":
         return (360, 150, 1680, 800)
-    return (60, 450, 920, 1560)
+    return (140, 500, 940, 1230)
 
 
 def _icon(d, kind, r):
@@ -66,7 +94,7 @@ def opening_fn(kind):
     def fn(cv, t, shot):
         L = shot.L
         web = L.fmt == "web"
-        center_head(cv, L, cfg[0], t, cfg[1], y=26 if web else 14, px=None if web else 64)
+        center_head(cv, L, cfg[0], t, cfg[1], y=26 if web else MHEAD_Y, px=None if web else 72)
         zx0, zy0, zx1, zy1 = _zone(L)
         d = ImageDraw.Draw(cv)
         if kind == 1:
@@ -74,8 +102,8 @@ def opening_fn(kind):
                 cells = [(zx0 + 20 + i * 470, zy0 + 30) for i in range(3)] + [(zx0 + 255 + i * 470, zy0 + 360) for i in range(2)]
                 size = (430, 290)
             else:
-                cells = [(zx0 + 20, zy0 + 20), (zx0 + 450, zy0 + 20), (zx0 + 20, zy0 + 380), (zx0 + 450, zy0 + 380), (zx0 + 235, zy0 + 740)]
-                size = (390, 320)
+                cells = [(zx0 + 20, zy0 + 0), (zx0 + 410, zy0 + 0), (zx0 + 20, zy0 + 250), (zx0 + 410, zy0 + 250), (zx0 + 215, zy0 + 500)]
+                size = (370, 230)
             kinds = ["k", "news", "table", "k", "news"]
             for k, (cx, cy) in enumerate(cells):
                 u = ease_out((t - 0.08 * k) / 0.4)
@@ -136,8 +164,8 @@ def opening_fn(kind):
                     if on:
                         tw = text_w(fq, "?")
                         d.text(((r[0] + r[2]) / 2 - tw / 2, (r[1] + r[3]) / 2 - fq.size * 0.55), "?", font=fq, fill=(220, 90, 110))
-        card_host(cv, L, cfg[2], cfg[3], t)
-    return fn
+        _host(cv, L, cfg[2], cfg[3], t)
+    return _push(fn)
 
 
 def logo_fn():
@@ -145,7 +173,7 @@ def logo_fn():
     def fn(cv, t, shot):
         L = shot.L
         web = L.fmt == "web"
-        cx, cy, lg_px = (960, 380, 380) if web else (470, 820, 420)
+        cx, cy, lg_px = (960, 380, 380) if web else (MCX, 700, 420)
         if t < 0.35:
             s = 0.6 + (1.05 - 0.6) * ease_out(t / 0.35)
         else:
@@ -163,24 +191,49 @@ def logo_fn():
             d.rounded_rectangle([cx - tw / 2 - 8, ty + f.size * 0.8, cx - tw / 2 + (tw + 16) * a, ty + f.size * 1.1], 12, fill=LEMON)
             d.text((cx - tw / 2, ty), "哩股哩股", font=f, fill=THEME["ink"])
         C.reg("title", (cx - tw / 2 - 8, ty, cx + tw / 2 + 8, ty + f.size * 1.15))
-        card_host(cv, L, "reveal", "這些我都整理好了！", t)
-    return fn
+        _host(cv, L, "reveal", "這些我都整理好了！", t)
+    return _push(fn)
+
+
+def _body_rect(name, idx, foot, size):
+    """比比本體的外框（不含頭上的名牌）：名牌與身體之間有一排全透明列，取那排以下。"""
+    import numpy as np
+    info = B.bibi_index()[name]
+    al = np.array(Image.open(info["frames"][idx]).convert("RGBA"))[..., 3] > 40
+    rows = al.sum(1)
+    ys = np.where(rows > 0)[0]
+    top = int(ys[0])
+    gaps = [y for y in range(int(ys[0]), int(ys[-1])) if rows[y] == 0]
+    if gaps:
+        top = next(y for y in range(gaps[-1], int(ys[-1]) + 1) if rows[y] > 0)
+    xs = np.where(al[top:].sum(0) > 0)[0]
+    sz = int(round(size / 4) * 4)
+    s = sz / 512
+    return (foot[0] + (int(xs[0]) - 248) * s, foot[1] + (top - 482) * s, foot[0] + (int(xs[-1]) - 248) * s, foot[1] + (int(ys[-1]) - 482) * s)
 
 
 def intro4_fn():
-    """0-5：比比自我介紹（名牌是素材內建）；泡泡在比比旁邊，不壓名牌。"""
+    """0-5：比比自我介紹（名牌是素材內建）；泡泡在比比旁邊、尾巴指向比比身體（不指名牌），不壓名牌。
+    素材 intro 第 8～11 格（0.6～1.2 秒）右前掌舉起揮動，違反四腳原則，改用第 12 格（掌放下）頂替。"""
     def fn(cv, t, shot):
         L = shot.L
         web = L.fmt == "web"
-        center_head(cv, L, "認識比比", t, "比比", y=26 if web else 14, px=None if web else 64)
+        center_head(cv, L, "認識比比", t, "比比", y=26 if web else MHEAD_Y, px=None if web else 72)
+        fi = anim_frame("intro", t, "hold")
+        if 7 <= fi <= 10:
+            fi = 11
+        nfr = len(B.bibi_index()["intro"]["frames"])
         if web:
             size, foot = 640, (760, 1040)
         else:
-            size, foot = 620, (470, 1500)
+            size = 700
+            ur0 = sprite_union_rect("intro", range(nfr), (0, 1420), size)
+            gw = (ur0[2] - ur0[0]) + 13 + 34 + 330
+            foot = (MCX - gw / 2 - ur0[0], 1420)
         ROLE[0] = "bibi"
-        put_sprite(cv, "intro", anim_frame("intro", t, "hold"), foot, size)
+        put_sprite(cv, "intro", fi, foot, size)
         if t >= 0.6:
-            ur = sprite_union_rect("intro", range(len(B.bibi_index()["intro"]["frames"])), foot, size)
+            ur = sprite_union_rect("intro", range(nfr), foot, size)
             lines = ["我是比比，", "帶你逛一圈！"]
             if web:
                 bw, bh = 420, 2 * 52 + 40
@@ -189,11 +242,13 @@ def intro4_fn():
                 rect = (x0, tip[1] - bh / 2, x0 + bw, tip[1] + bh / 2)
                 bubble_box(cv, lines, rect, tip, t, 42, t0=0.6)
             else:
-                bw, bh = 520, 2 * 52 + 40
-                tip = ((ur[0] + ur[2]) / 2, ur[1] - 13)
-                rect = (470 - bw / 2, tip[1] - 34 - bh, 470 + bw / 2, tip[1] - 34)
+                br = _body_rect("intro", 15, foot, size)
+                bw, bh = 330, 2 * 52 + 40
+                tip = (max(ur[2], br[2]) + 13, (br[1] + br[3]) / 2)
+                x0 = tip[0] + 34
+                rect = (x0, tip[1] - bh / 2, x0 + bw, tip[1] + bh / 2)
                 bubble_box(cv, lines, rect, tip, t, 42, t0=0.6)
-    return fn
+    return _push(fn)
 
 
 def grid4_fn(srcs_w, srcs_m):
@@ -207,11 +262,12 @@ def grid4_fn(srcs_w, srcs_m):
             x0 = 380
             y0 = 66
         else:
+            # 每格＝整張 3D 畫布（1142×1076 → 寬高比 1.06），左右編號圓點與整個模型都入格；四格整組水平置中、垂直置中於安全區
             gap, lab = 12, 46
-            cw = (1000 - gap) // 2
-            ch = (L.box[3] - 2 * lab - gap) // 2
-            x0 = 40 + (1000 - (2 * cw + gap)) // 2
-            y0 = L.box[1]
+            cw = 470
+            ch = 442
+            x0 = MCX - (2 * cw + gap) // 2
+            y0 = 440
         for k, (clip, name, win, st0) in enumerate(srcs):
             col, row = k % 2, k // 2
             cx = x0 + col * (cw + gap)
@@ -244,9 +300,9 @@ def grid4_fn(srcs_w, srcs_m):
         pw = R.pill(cv, "產業地圖", L.pill_xy[0], L.pill_xy[1], px=L.pill_px)
         L.head_xy = (L.pill_xy[0] + pw + (36 if web else 30), L.head_y)
         R.headline(cv, L, "還有更多 3D", t, "更多")
-        card_host(cv, L, "peek_r", "封裝、HBM、液冷都能轉", t)
+        _host(cv, L, "face_surprise_happy", "封裝、HBM、液冷都能轉", t)
         footnote4(cv, L)
-    return fn
+    return _push(fn, 0.02)
 
 
 def end4_fn():

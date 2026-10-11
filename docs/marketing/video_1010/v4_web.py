@@ -23,13 +23,27 @@ def idle_sub(idle):
     return [(t, SPR_SUB.get(n, n)) for t, n in idle]
 
 
+_NF_OK = {}
+
+
+def _playable(path):
+    """錄影端還在寫的重錄檔（沒收尾，ffprobe 讀不出）不能用，退回原檔。"""
+    import subprocess
+    k = str(path)
+    if k not in _NF_OK:
+        r = subprocess.run(["ffprobe", "-v", "error", "-select_streams", "v:0", "-show_entries", "stream=width,height", "-of", "csv=p=0", k], capture_output=True)
+        _NF_OK[k] = r.returncode == 0 and bool(r.stdout.strip())
+    return _NF_OK[k]
+
+
 def nofab(clip):
-    """錄影端的藏客服鈕重錄版（原檔名加 _nofab）到了就自動換上。"""
+    """錄影端的藏客服鈕重錄版（原檔名加 _nofab）到了且能播就自動換上。"""
     import os
     from v3_core import RAW3
     if os.environ.get("NOFAB", "1") == "0":
         return clip
-    return clip + "_nofab" if (RAW3 / f"{clip}_nofab.mp4").exists() else clip
+    p = RAW3 / f"{clip}_nofab.mp4"
+    return clip + "_nofab" if (p.exists() and _playable(p)) else clip
 
 
 def _hl(head):
@@ -89,10 +103,13 @@ def grid_card(sid, grid, D=3.0):
     return sh
 
 
-GRID_W = [("V12a_desktop", "AI 伺服器", (900, 523, 2600, 1437), 6.0), ("V12b_desktop", "CoWoS-L 先進封裝", (1030, 663, 2730, 1577), 3.5),
-          ("V12c_desktop", "HBM 記憶體", (1030, 643, 2730, 1557), 3.5), ("V12d_desktop", "液冷散熱", (1050, 443, 2750, 1357), 3.5)]
-GRID_M = [("V12a_mobile", "AI 伺服器", (235, 900, 935, 1900), 6.2), ("V12b_mobile", "CoWoS-L 先進封裝", (235, 900, 935, 1900), 3.1),
-          ("V12c_mobile", "HBM 記憶體", (235, 900, 935, 1900), 3.1), ("V12d_mobile", "液冷散熱", (235, 900, 935, 1900), 3.1)]
+# 四宮格：每格裁「整張 3D 畫布」（含兩側編號標籤，完整入格不被切），模型也完整。桌機畫布 src (538,290)-(3104,1600)；手機 (14,796)-(1156,1872)
+_GW = (538, 290, 3104, 1600)
+_GM = (14, 796, 1156, 1872)
+GRID_W = [("V12a_desktop", "AI 伺服器", _GW, 6.0), ("V12b_desktop", "CoWoS-L 先進封裝", _GW, 3.5),
+          ("V12c_desktop", "HBM 記憶體", _GW, 3.5), ("V12d_desktop", "液冷散熱", _GW, 3.5)]
+GRID_M = [("V12a_mobile", "AI 伺服器", _GM, 6.2), ("V12b_mobile", "CoWoS-L 先進封裝", _GM, 3.1),
+          ("V12c_mobile", "HBM 記憶體", _GM, 3.1), ("V12d_mobile", "液冷散熱", _GM, 3.1)]
 
 
 def build():
