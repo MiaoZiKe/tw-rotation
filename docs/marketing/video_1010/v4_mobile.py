@@ -29,7 +29,7 @@ def shot(sid, page, clip, segs, head, sub, idle, pan=None, chain=None, cont=Fals
     if fixed is not None:
         pan_ = (fixed, fixed, 0.3, 0.3)
     elif pan:
-        pan_ = (pan[0], pan[1], 0.3, 0.3 + 0.6 * D)
+        pan_ = (pan[0], pan[1], 0.3, 0.3 + 0.6 * D) if abs(pan[1] - pan[0]) > 1 else (pan[0], pan[0], 0.3, 0.3)
     rec = Rec4(clip, pts, pan=pan_)
     rec.meta = {}
     rec.top_only = True

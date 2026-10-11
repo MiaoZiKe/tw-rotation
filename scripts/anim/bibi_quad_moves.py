@@ -22,7 +22,7 @@ import sys
 from pathlib import Path
 
 import numpy as np
-from PIL import Image
+from PIL import Image, ImageFilter
 
 sys.path.insert(0, str(Path(__file__).parent))
 import bibi_quad as Q  # noqa: E402
@@ -741,6 +741,284 @@ def clip_popcorn():
     return fr
 
 
+# ================================================================== 丟東西 → 比比追（10-12 Andy：「我很喜歡丟球的互動效果，希望能多點這樣的」）
+def seed_svg(x, y, s=1.0, rot=0.0) -> str:
+    """葵瓜子：黑灰條紋水滴形。"""
+    return (f'<g transform="translate({x:.1f},{y:.1f}) rotate({rot:.1f}) scale({s:.3f})">'
+            f'<path d="M 0 -20 C 11 -12 12 8 0 20 C -12 8 -11 -12 0 -20 Z" fill="#3B3638" stroke="{INK}" stroke-width="4" stroke-linejoin="round"/>'
+            f'<path d="M -4 -12 C -5 -2 -5 6 -3 14 M 4 -12 C 5 -2 5 6 3 14" stroke="#E9E4DA" stroke-width="2.6" fill="none" stroke-linecap="round"/>'
+            f'<path d="M 0 -17 C 1 -6 1 6 0 17" stroke="#9E9890" stroke-width="2" fill="none"/></g>')
+
+
+def carrot_svg(x, y, s=1.0, rot=0.0) -> str:
+    """胡蘿蔔丁：圓角小方塊、橘色、亮面。"""
+    return (f'<g transform="translate({x:.1f},{y:.1f}) rotate({rot:.1f}) scale({s:.3f})">'
+            f'<rect x="-13" y="-13" width="26" height="26" rx="6" fill="#F28C28" stroke="{INK}" stroke-width="4"/>'
+            f'<path d="M -13 -3 L 13 -3" stroke="#D8701A" stroke-width="2.4"/>'
+            f'<rect x="-8" y="-9" width="8" height="4" rx="2" fill="#FFC27A"/></g>')
+
+
+def bubble_svg(x, y, r=40.0, alpha=1.0) -> str:
+    """半透明泡泡：淡藍紫漸層邊、兩個亮點。"""
+    gid = f"bb{int(x)}{int(y)}{int(r)}"
+    return (f'<defs><radialGradient id="{gid}" cx="0.5" cy="0.5" r="0.5"><stop offset="0.6" stop-color="#DDF1FF" stop-opacity="0.15"/>'
+            f'<stop offset="0.92" stop-color="#9FD3F7" stop-opacity="0.55"/><stop offset="1" stop-color="#C9B4F5" stop-opacity="0.8"/>'
+            f'</radialGradient></defs><g opacity="{alpha:.2f}">'
+            f'<circle cx="{x:.1f}" cy="{y:.1f}" r="{r:.1f}" fill="url(#{gid})" stroke="#5E8FC9" stroke-width="{max(2.5, r*0.07):.1f}" stroke-opacity="0.8"/>'
+            f'<ellipse cx="{x-r*0.38:.1f}" cy="{y-r*0.4:.1f}" rx="{r*0.2:.1f}" ry="{r*0.12:.1f}" fill="#fff" fill-opacity="0.9" '
+            f'transform="rotate(-35 {x-r*0.38:.1f} {y-r*0.4:.1f})"/><circle cx="{x+r*0.42:.1f}" cy="{y+r*0.38:.1f}" r="{r*0.07:.1f}" fill="#fff" fill-opacity="0.8"/></g>')
+
+
+def bubble_pop_svg(x, y, r, t) -> str:
+    """泡泡破掉：t=0 變形、t=1 破成水花線、t=2 小水滴散開。"""
+    if t == 0:
+        return (f'<ellipse cx="{x:.1f}" cy="{y:.1f}" rx="{r*1.12:.1f}" ry="{r*0.88:.1f}" fill="#DDF1FF" fill-opacity="0.3" '
+                f'stroke="#5E8FC9" stroke-width="{r*0.07:.1f}" stroke-dasharray="{r*0.5:.1f} {r*0.12:.1f}"/>')
+    out = ""
+    n = 8
+    for i in range(n):
+        a = math.radians(i * 360 / n + 10)
+        r0, r1 = (r * 0.7, r * 1.25) if t == 1 else (r * 1.3, r * 1.55)
+        if t == 1:
+            out += (f'<path d="M {x + r0*math.cos(a):.1f} {y + r0*math.sin(a):.1f} L {x + r1*math.cos(a):.1f} {y + r1*math.sin(a):.1f}" '
+                    f'stroke="#5E8FC9" stroke-width="{r*0.09:.1f}" stroke-linecap="round"/>')
+        else:
+            out += f'<circle cx="{x + r1*math.cos(a):.1f}" cy="{y + r1*math.sin(a):.1f}" r="{r*0.08:.1f}" fill="#9FD3F7" stroke="#5E8FC9" stroke-width="2"/>'
+    return out
+
+
+def feather_svg(x, y, s=1.0, rot=0.0, stick=True) -> str:
+    """逗貓羽毛棒：細木棒＋線＋粉色羽毛。(x,y)＝羽毛中心。"""
+    st = ""
+    if stick:
+        st = (f'<path d="M 30 -10 L 150 -150" stroke="#B88A55" stroke-width="9" stroke-linecap="round"/>'
+              f'<path d="M 30 -10 L 150 -150" stroke="{INK}" stroke-width="13" stroke-linecap="round" opacity="0.0"/>'
+              f'<path d="M 150 -150 Q 120 -90 22 -8" fill="none" stroke="{INK}" stroke-width="2.4"/>')
+    vanes = "".join(f'<path d="M {i*6-30:.1f} 0 Q {i*6-24:.1f} {-12 - (6 - abs(i-4))*2:.1f} {i*6-18:.1f} {-16 - (6 - abs(i-4))*2:.1f}" '
+                    f'fill="none" stroke="#D9577E" stroke-width="2.4" stroke-linecap="round"/>' for i in range(9))
+    return (f'<g transform="translate({x:.1f},{y:.1f}) rotate({rot:.1f}) scale({s:.3f})">{st}'
+            f'<path d="M -40 2 C -30 -26 10 -30 34 -6 C 12 6 -18 16 -40 2 Z" fill="#F7A3BE" stroke="{INK}" stroke-width="4.5" stroke-linejoin="round"/>'
+            f'{vanes}<path d="M -44 4 L 34 -6" stroke="#FFF2F6" stroke-width="3" stroke-linecap="round"/></g>')
+
+
+def yarn_svg(x, y, r=38.0, rot=0.0, tail=True) -> str:
+    """毛線球：粉紫色圓＋纏繞線＋拖一條線。"""
+    lines = "".join(f'<path d="M {-r*0.9:.1f} {r*f:.1f} Q 0 {r*(f-0.5):.1f} {r*0.9:.1f} {r*f:.1f}" fill="none" stroke="#9B5FC0" '
+                    f'stroke-width="{r*0.07:.1f}" stroke-linecap="round"/>' for f in (-0.45, -0.1, 0.25, 0.6))
+    cross = (f'<path d="M {-r*0.3:.1f} {-r*0.9:.1f} Q {r*0.4:.1f} 0 {-r*0.2:.1f} {r*0.92:.1f}" fill="none" stroke="#9B5FC0" '
+             f'stroke-width="{r*0.07:.1f}"/>')
+    tl = ""
+    if tail:
+        tl = (f'<path d="M {r*0.7:.1f} {r*0.62:.1f} C {r*1.4:.1f} {r*1.1:.1f} {r*2.2:.1f} {r*0.7:.1f} {r*3.0:.1f} {r*0.95:.1f}" fill="none" '
+              f'stroke="{INK}" stroke-width="{r*0.16:.1f}" stroke-linecap="round"/>'
+              f'<path d="M {r*0.7:.1f} {r*0.62:.1f} C {r*1.4:.1f} {r*1.1:.1f} {r*2.2:.1f} {r*0.7:.1f} {r*3.0:.1f} {r*0.95:.1f}" fill="none" '
+              f'stroke="#C68BE6" stroke-width="{r*0.08:.1f}" stroke-linecap="round"/>')
+    return (f'<g transform="translate({x:.1f},{y:.1f})">{tl}<g transform="rotate({rot:.1f})">'
+            f'<clipPath id="yc{int(x)}{int(y)}"><circle r="{r:.1f}"/></clipPath><circle r="{r:.1f}" fill="#D9A6F2"/>'
+            f'<g clip-path="url(#yc{int(x)}{int(y)})">{lines}{cross}</g>'
+            f'<circle r="{r - r*0.05:.1f}" fill="none" stroke="{INK}" stroke-width="{r*0.11:.1f}"/></g></g>')
+
+
+def plane_svg(x, y, s=1.0, rot=0.0) -> str:
+    """紙飛機：白紙三角＋摺線。"""
+    return (f'<g transform="translate({x:.1f},{y:.1f}) rotate({rot:.1f}) scale({s:.3f})">'
+            f'<path d="M -50 -6 L 52 -26 L -16 22 Z" fill="#FFFFFF" stroke="{INK}" stroke-width="5" stroke-linejoin="round"/>'
+            f'<path d="M -50 -6 L 52 -26 L -6 4 Z" fill="#E6EEF8" stroke="{INK}" stroke-width="4" stroke-linejoin="round"/>'
+            f'<path d="M -6 4 L -16 22" stroke="{INK}" stroke-width="4" stroke-linecap="round"/></g>')
+
+
+def leaf_prop_svg(x, y, s=1.0, rot=0.0) -> str:
+    """落葉：橘黃楓葉形的簡化葉子＋葉脈。"""
+    return (f'<g transform="translate({x:.1f},{y:.1f}) rotate({rot:.1f}) scale({s:.3f})">'
+            f'<path d="M 0 -42 C 18 -30 30 -10 26 10 C 22 26 8 34 0 40 C -8 34 -22 26 -26 10 C -30 -10 -18 -30 0 -42 Z" '
+            f'fill="#F2A33A" stroke="{INK}" stroke-width="4.5" stroke-linejoin="round"/>'
+            f'<path d="M 0 -36 L 0 52 M 0 -10 L 14 -22 M 0 6 L 18 -4 M 0 -10 L -14 -22 M 0 6 L -18 -4" stroke="#B9661A" '
+            f'stroke-width="3" stroke-linecap="round" fill="none"/></g>')
+
+
+def petal_svg(x, y, s=1.0, rot=0.0) -> str:
+    """櫻花花瓣：淡粉、頂端小缺口。"""
+    return (f'<g transform="translate({x:.1f},{y:.1f}) rotate({rot:.1f}) scale({s:.3f})">'
+            f'<path d="M 0 34 C -26 18 -28 -18 -10 -34 L 0 -26 L 10 -34 C 28 -18 26 18 0 34 Z" fill="#FBC6D6" stroke="{INK}" '
+            f'stroke-width="4.5" stroke-linejoin="round"/><path d="M 0 24 L 0 -12" stroke="#F294B0" stroke-width="3" stroke-linecap="round"/></g>')
+
+
+def save_prop(svg: str, path: Path, icon: Path | None = None):
+    """道具 512 透明 PNG（置中）＋ 96px 圖示。"""
+    im = R.finish(R.svg_layer(svg))
+    bb = im.getchannel("A").getbbox()
+    crop = im.crop(bb)
+    k = min(1.0, 440 / max(crop.size))
+    if k < 1:
+        crop = crop.resize((round(crop.width * k), round(crop.height * k)), Image.LANCZOS)
+    c = Image.new("RGBA", (512, 512))
+    c.alpha_composite(crop, ((512 - crop.width) // 2, (512 - crop.height) // 2))
+    c.save(path)
+    if icon:
+        c.convert("RGBa").resize((96, 96), Image.LANCZOS).convert("RGBA").save(icon)
+
+
+def clip_sniff_eat():
+    """撒零食：低頭嗅地上的瓜子、啃一顆（6 格一次性）。clip 面向右（零食在右前方地上）。"""
+    fr = []
+    seq = [
+        (eat_pose(0.6, 0, "o", "default", 0, -14), 80, "低頭嗅地上的零食（鼻子抖）", "sniff", True),
+        (eat_pose(0.9, 1.0, "nibble_a", "default", 0, -6), 70, "張嘴咬住", "", True),
+        (eat_pose(0.7, 0, "nibble_c", "smile", 1.1, 8), 80, "叼起來嚼（臉頰鼓）", "crumb", False),
+        (eat_pose(0.72, 0.3, "nibble_d", "smile", 1.2, -4), 80, "嚼嚼", "", False),
+        (dict(view="q3", eye="smile", mouth="w", blush=1.3), 160, "好吃！（小愛心）", "heart", False),
+    ]
+    for p, ms, lab, k, seed in seq:
+        mx, my = mouth_at(p)
+        fx = []
+        if k == "sniff":
+            fx = [sniff_svg(mx - 30, my - 4, 1.0, -1)]
+        if k == "crumb":
+            fx = [R.crumbs_svg(mx - 30, my + 20, 3, 14, seed=2)]
+        if k == "heart":
+            fx = [heart_svg(R.CX + 150, 140, 1.0, 10)]
+        mid = [seed_svg(mx - 6, GROUND - 14 if lab.startswith("低頭") else my + 6, 1.0, 70)] if seed else None
+        fr.append(F(p, ms, lab, fx=fx, props_mid=mid))
+    fr.append(F(DEFAULT_END, 400, "回 Default"))
+    return fr
+
+
+def clip_hop_reach():
+    """吹泡泡：原地往上撲（四腳離地、鼻子往上頂泡泡）。"""
+    fr = []
+    up = (0, -34)
+    seq = [
+        (dict(view="front", sy=0.86, sx=1.08, eye="wide", mouth="o", look=up, ear=-12, ear2=-12), 90, "抬頭盯著泡泡、蹲低", []),
+        (dict(view="front", y=GROUND - 50, sy=1.12, sx=0.92, eye="wide", mouth="o", look=(0, -40), ear=-18, ear2=-18, flutter=5,
+              legs={"fl": (4, 4, 8, 0.6), "fr": (-4, 4, -8, 0.6), "bl": (6, 0, 0, 0.6), "br": (-6, 0, 0, 0.6)}), 70, "往上撲（四腳離地）", []),
+        (dict(view="front", y=GROUND - 72, sy=1.06, sx=0.96, eye="arc", mouth="big", look=(0, -40), ear=-20, ear2=-20, flutter=3,
+              legs={"fl": (6, 6, 12, 0.9), "fr": (-6, 6, -12, 0.9), "bl": (8, 0, 6, 0.9), "br": (-8, 0, -6, 0.9)}), 100,
+         "最高點、鼻子碰到泡泡（網頁在這格播 pop_burst）", ["spark"]),
+        (dict(view="front", y=GROUND - 30, sy=1.06, sx=0.96, eye="arc", mouth="default", ear=-8, ear2=-8), 70, "往下掉", []),
+        (dict(view="front", sy=0.82, sx=1.14, eye="arc", mouth="w", ear=14, ear2=14, flutter=-4), 80, "落地壓扁", ["dust"]),
+    ]
+    for p, ms, lab, k in seq:
+        fx, fxb = [], None
+        if "spark" in k:
+            fx = [sparkle_svg(130, 70, 16), sparkle_svg(380, 64, 14)]
+        if "dust" in k:
+            fxb = [R.dust_svg(64, 468, 0.8), R.dust_svg(434, 468, 0.8)]
+        fr.append(F(p, ms, lab, fx=fx, fx_back=fxb))
+    fr.append(F(DEFAULT_END, 400, "回 Default"))
+    return fr
+
+
+def clip_pounce():
+    """羽毛棒：蹲低屁股扭 → 往前撲（clip 面向右，羽毛在右前方）。"""
+    fr = []
+    low = dict(view="side", x=R.CX + 40, sy=0.8, sx=1.12, shear=-0.05, eye="wide", mouth="w", ear=-14, ear2=-14,
+               legs={"bl": (8, 0, 6, 0), "br": (8, 0, 6, 0)})
+    seq = [
+        (dict(low, sy=0.84), 100, "盯著羽毛、蹲低", []),
+        (dict(low, rot=3, shear=-0.08), 70, "屁股扭（右）", ["m"]),
+        (dict(low, rot=-1, shear=-0.03), 70, "屁股扭（左）", ["m"]),
+        (dict(low, rot=3, shear=-0.08, eye="squeeze"), 70, "屁股扭、用力", ["m"]),
+        (dict(view="side", x=R.CX - 20, y=GROUND - 56, sy=0.9, sx=1.14, rot=-8, eye="default", mouth="o", ear=26, ear2=26, flutter=7,
+              legs={"fl": (-16, 0, -24, 0.6), "fr": (-12, 0, -20, 0.6), "bl": (18, 0, 24, 0.6), "br": (16, 0, 22, 0.6)}), 70,
+         "往前撲！（四腳伸直騰空）", ["speed"]),
+        (dict(view="side", x=R.CX - 40, sy=0.78, sx=1.14, eye="smile", mouth="w", ear=16, ear2=16, flutter=-5, blush=1.3), 90,
+         "撲到、整隻壓低", ["dust"]),
+        (dict(view="side", x=R.CX - 30, sy=1.04, sx=0.99, eye="arc", mouth="default", ear=0, ear2=0, blush=1.2), 110, "抬頭得意", []),
+        (dict(view="q3", x=R.CX - 10, eye="arc", mouth="default", blush=1.2), 140, "轉正", []),
+    ]
+    for p, ms, lab, k in seq:
+        fx, fxb = [], None
+        if "m" in k:
+            fx = [R.motion_marks_svg(p["x"] + 196, 300, 1, 1.0, 2)]
+        if "speed" in k:
+            fx = [R.speed_lines_svg(440, 300, 3, 36, 22, 0.8, 1)]
+        if "dust" in k:
+            fxb = [R.dust_svg(60, 468, 0.9), R.dust_svg(430, 468, 0.7)]
+        fr.append(F(p, ms, lab, fx=fx, fx_back=fxb))
+    fr.append(F(DEFAULT_END, 400, "回 Default"))
+    return fr
+
+
+def yarn_wrap_overlay(k=1.0, ph=0.0, loose=0.0):
+    """毛線纏在身上：照本體輪廓畫 3 圈斜斜的紫色線（只畫在身體裡、不經過臉的高度）。"""
+    def fn(p, A):
+        Mb = A > 128
+        ys, xs = np.nonzero(Mb)
+        x0, x1, yt, yb = xs.min() / R.S, xs.max() / R.S, ys.min() / R.S, ys.max() / R.S
+        w, h = x1 - x0, yb - yt
+        sv = ""
+        for i, f in enumerate((0.64, 0.76, 0.88)):
+            yy = yt + h * f + 6 * math.sin(ph + i) + loose * 22 * (i + 1)
+            sv += (f'<path d="M {x0 - 6:.1f} {yy - 18:.1f} Q {(x0 + x1) / 2:.1f} {yy + 22 + 4*i:.1f} {x1 + 6:.1f} {yy - 10:.1f}" fill="none" '
+                   f'stroke="{INK}" stroke-width="10" stroke-linecap="round"/>'
+                   f'<path d="M {x0 - 6:.1f} {yy - 18:.1f} Q {(x0 + x1) / 2:.1f} {yy + 22 + 4*i:.1f} {x1 + 6:.1f} {yy - 10:.1f}" fill="none" '
+                   f'stroke="#C68BE6" stroke-width="5" stroke-linecap="round"/>')
+        lay = R.svg_layer(sv)
+        a = np.asarray(lay.getchannel("A")).astype(np.float32)
+        mask = np.asarray(Image.fromarray(A).filter(ImageFilter.MaxFilter(13))).astype(np.float32) / 255
+        lay.putalpha(Image.fromarray((a * mask * k).astype(np.uint8)))
+        return lay
+    return fn
+
+
+def clip_tangle():
+    """毛線球：撲到後被線纏住、扭兩下掙脫（接在四腳版 ball_catch 撲到之後；6 格）。"""
+    fr = []
+    b = dict(view="front", sy=0.9, sx=1.06, mouth="wobble_small", blush=1.2)
+    seq = [
+        (dict(b, eye="wide", ear=-12, ear2=-12), 90, "被線纏住（嚇一跳）", yarn_wrap_overlay(1, 0), ["ex"]),
+        (dict(b, eye="squeeze", rot=-9, ear=20, ear2=-4, flutter=5), 80, "扭（左）", yarn_wrap_overlay(1, 1.2), ["m"]),
+        (dict(b, eye="squeeze", rot=9, ear=-4, ear2=20, flutter=-5), 80, "扭（右）", yarn_wrap_overlay(1, 2.4), ["m"]),
+        (dict(b, eye="squeeze", rot=-6, sy=1.06, sx=0.96, ear=-10, ear2=-10), 80, "用力一彈、線鬆開往下掉", yarn_wrap_overlay(0.8, 3.0, 0.5), []),
+        (dict(view="front", eye="arc", mouth="default", sy=0.92, sx=1.06, blush=1.3), 150, "掙脫了！抖抖毛", yarn_wrap_overlay(0.0, 0), ["spark"]),
+    ]
+    for p, ms, lab, ov, k in seq:
+        fx = []
+        if "ex" in k:
+            fx = [exclaim_svg(430, 150, 1.0, 10)]
+        if "m" in k:
+            fx = [R.motion_marks_svg(450 if p["rot"] < 0 else 46, 300, 1 if p["rot"] < 0 else -1, 1.0, 2)]
+        if "spark" in k:
+            fx = [sparkle_svg(436, 160, 16)]
+        fr.append(F(p, ms, lab, fx=fx, overlay=ov))
+    fr.append(F(DEFAULT_END, 400, "回 Default"))
+    return fr
+
+
+def clip_look_up():
+    """紙飛機：抬頭、眼睛跟著飛機轉（循環 4 格：左上→上→右上→上）。"""
+    fr = []
+    seq = [((-30, -30), 4, -4, "看左上"), ((0, -40), 0, 0, "看正上方"), ((30, -30), -4, 4, "看右上"), ((0, -40), 0, 0, "看正上方（接回第 1 格）")]
+    for look, rot, er, lab in seq:
+        p = dict(view="front", look=look, rot=rot, eye="wide", mouth="o", ear=-14 + er, ear2=-14 - er, sy=1.02, sx=0.99)
+        fr.append(F(p, 160, f"抬頭、眼睛跟著飛機轉・{lab}"))
+    return fr
+
+
+def make_toss_props(rd: Path, kind: str):
+    if kind == "sniff_eat":
+        save_prop(seed_svg(256, 256, 8.0, 30), rd / "seed_prop.png", rd / "seed_icon96.png")
+        save_prop(carrot_svg(256, 256, 8.0, 12), rd / "carrot_prop.png", rd / "carrot_icon96.png")
+    elif kind == "hop_reach":
+        save_prop(bubble_svg(256, 256, 200), rd / "bubble_prop.png", rd / "bubble_icon96.png")
+        frames = []
+        for t in range(3):
+            frames.append(R.finish(R.svg_layer(bubble_pop_svg(256, 256, 150, t))))
+        sm = [f.convert("RGBa").resize((160, 160), Image.LANCZOS).convert("RGBA") for f in frames]
+        sm[0].save(rd / "pop_burst.webp", save_all=True, append_images=sm[1:], duration=[60, 70, 90], loop=1, lossless=False,
+                   quality=86, method=6)
+        for t, f in enumerate(frames):
+            f.save(rd / f"pop_burst_{t+1}.png")
+    elif kind == "pounce":
+        save_prop(feather_svg(150, 380, 2.0, 0), rd / "feather_prop.png", rd / "feather_icon96.png")
+    elif kind == "tangle":
+        save_prop(yarn_svg(150, 230, 100, 0), rd / "yarn_prop.png", rd / "yarn_icon96.png")
+    elif kind == "look_up":
+        save_prop(plane_svg(256, 256, 4.0, -10), rd / "plane_prop.png", rd / "plane_icon96.png")
+        save_prop(leaf_prop_svg(256, 256, 4.5, 20), rd / "leaf_prop.png", rd / "leaf_icon96.png")
+        save_prop(petal_svg(256, 256, 5.0, -15), rd / "petal_prop.png", rd / "petal_icon96.png")
+
+
 # ================================================================== 框架：渲染、檢查、輸出
 CLIPS = {
     "eat_grass": dict(make=clip_eat_grass, loop=False,
@@ -781,6 +1059,20 @@ CLIPS = {
                     note="10-12 改成「低頭嗅一嗅」：東西由網頁放在比比右前方地上（約 x 440, y 450），頭前伸、鼻子抖、耳朵前傾、邁一步湊近；最後一格＝Default。"),
     "popcorn": dict(make=clip_popcorn, loop=False,
                     note="播一次（點爆米花圖示 popcorn_icon.png，保留舊檔）；四腳離地垂直彈起、空中扭身踢腳、落地連彈越來越小；最後一格＝Default。"),
+    "sniff_eat": dict(make=clip_sniff_eat, loop=False, facing="right",
+                      note="撒零食：網頁一次撒 4～6 顆 seed_prop／carrot_prop 在地上，比比跑到一顆旁邊（run_r）後播這組：低頭嗅、咬住叼起來嚼"
+                           "（第 1～2 格畫面內含一顆瓜子在嘴前，網頁把被吃那顆移掉）；最後一格＝Default。",
+                      allow={"propM0": "瓜子在嘴前（刻意碰到嘴，不碰眼）"}),
+    "hop_reach": dict(make=clip_hop_reach, loop=False,
+                      note="吹泡泡／落葉／花瓣：網頁讓 bubble_prop（或 leaf_prop、petal_prop）飄到比比頭頂上方約 (x 256, y 60)，"
+                           "第 3 格鼻子頂到 → 網頁在那個位置播 pop_burst.webp（3 格，60/70/90ms）；最後一格＝Default。"),
+    "pounce": dict(make=clip_pounce, loop=False, facing="right",
+                   note="羽毛棒：網頁把 feather_prop 在比比右前方地面附近晃（約 x 470, y 440）；第 5 格撲出去、第 6 格壓到；最後一格＝Default。"),
+    "tangle": dict(make=clip_tangle, loop=False,
+                   note="毛線球：yarn_prop 滾過去 → run_r → ball_catch（撲到）→ 播這組：線纏在身上、扭兩下、彈開掙脫；最後一格＝Default。"),
+    "look_up": dict(make=clip_look_up, loop=True,
+                    note="紙飛機：plane_prop 在頭頂飛時循環這 4 格（眼睛左上→上→右上→上）；飛機落地後 run_r 跑過去 → sniff_eat 前兩格（或 receive）聞一聞。"
+                         "落葉／花瓣（leaf_prop、petal_prop 也放在這個資料夾）沿用 hop_reach／sniff_eat。"),
 }
 
 
@@ -909,6 +1201,8 @@ def main():
 
 
 CLIPS["eat_grass"]["extra"] = lambda rd: make_grass_prop(rd / "grass_prop.png")
+for _k in ("sniff_eat", "hop_reach", "pounce", "tangle", "look_up"):
+    CLIPS[_k]["extra"] = (lambda kk: (lambda rd: make_toss_props(rd, kk)))(_k)
 
 if __name__ == "__main__":
     main()

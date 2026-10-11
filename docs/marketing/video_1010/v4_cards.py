@@ -180,7 +180,7 @@ def intro4_fn():
         ROLE[0] = "bibi"
         put_sprite(cv, "intro", anim_frame("intro", t, "hold"), foot, size)
         if t >= 0.6:
-            ur = sprite_union_rect("intro", range(9, 16), foot, size)
+            ur = sprite_union_rect("intro", range(len(B.bibi_index()["intro"]["frames"])), foot, size)
             lines = ["我是比比，", "帶你逛一圈！"]
             if web:
                 bw, bh = 420, 2 * 52 + 40
