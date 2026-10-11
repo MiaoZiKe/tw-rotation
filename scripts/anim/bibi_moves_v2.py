@@ -1267,9 +1267,9 @@ def dizzy_stars(i: int, pose, n: int = 8):
     for j in range(3):
         th = TAU * (i / n) + j * TAU / 3
         x = tx + 118 * math.cos(th)
-        y = ty - 26 + 20 * math.sin(th)
+        y = ty - 30 + 24 * math.sin(th)
         depth = math.sin(th)
-        r = 13 + 4 * depth
+        r = 16 + 4 * depth
         svg = R.star_svg(x, y, r, i * 25 + j * 40, "#FFD25A" if j != 1 else "#FFE58A").replace(
             'stroke-width="3.5"', 'stroke-width="4"')
         if depth >= -0.2:
