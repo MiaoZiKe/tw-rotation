@@ -366,6 +366,18 @@ def popcorn_icon_svg() -> str:
     return top + bucket
 
 
+def burst_svg(x, y, r=26, n=8, rot=0.0, w=5.0, color=None) -> str:
+    """放射短線（擊掌、閃光燈、驚嚇）。"""
+    c = color or INK
+    out = []
+    for i in range(n):
+        a = math.radians(rot + i * 360 / n)
+        x0, y0 = x + r * 0.55 * math.cos(a), y + r * 0.55 * math.sin(a)
+        x1, y1 = x + r * math.cos(a), y + r * math.sin(a)
+        out.append(f'<path d="M {x0:.1f} {y0:.1f} L {x1:.1f} {y1:.1f}" stroke="{c}" stroke-width="{w}" stroke-linecap="round"/>')
+    return "".join(out)
+
+
 def speed_lines_svg(x, y, n=3, length=60, gap=16, alpha=0.9, seed=0) -> str:
     out = []
     for i in range(n):
@@ -502,7 +514,8 @@ def lerp_pose(a: dict, b: dict, t: float) -> dict:
     """數值鍵 ease 內插；字串／布林鍵取 t<0.5 的那邊；巢狀 dict 遞迴。"""
     out = {}
     for k in set(a) | set(b):
-        va, vb = a.get(k, b.get(k)), b.get(k, a.get(k))
+        # 一邊沒寫的鍵用預設姿勢補（不然「站好→蹲下」少寫 sy 就不會內插）
+        va, vb = a.get(k, DEFAULT.get(k, b.get(k))), b.get(k, DEFAULT.get(k, a.get(k)))
         if isinstance(va, (int, float)) and isinstance(vb, (int, float)) and not isinstance(va, bool):
             out[k] = va + (vb - va) * t
         elif isinstance(va, dict) and isinstance(vb, dict):
@@ -755,6 +768,8 @@ def tail_img(k: float = 0.9) -> Image.Image:
 
 
 def _draw_eye(lay, kind, x, y, open_=1.0, left=True):
+    if kind == "wink":      # 眨一隻眼：左眼圓點、右眼彎月
+        kind = "dot" if left else "arc"
     if kind == "dot":
         if open_ < 0.35:   # 眨眼中段：閉成一條線
             lay.alpha_composite(svg_layer(

@@ -123,7 +123,7 @@ def clip_run_stop() -> list[dict]:
              fx=[R.dust_svg(70, 466, 1.0), R.dust_svg(104, 470, 0.7, 0.8)]),
         dict(pose=rock, ms=110, label="身體往前晃回來（耳朵還在前）", fx=[R.dust_svg(60, 458, 1.25, 0.45)]),
         dict(pose=settle, ms=150, label="回彈、耳朵慢一拍倒回"),
-        dict(pose=dict(idle, eye_open=0.2), ms=90, label="眨眼"),
+        dict(pose=dict(idle, eye_open=0.2, rot=2, sy=0.98), ms=90, label="眨眼"),
         dict(pose=idle, ms=500, label="站好"),
     ]
 
@@ -540,8 +540,162 @@ def clip_spin() -> list[dict]:
     return fr
 
 
+# ================================================================== 其餘：擊掌、跳舞、抱抱、打瞌睡、被叫醒、拍照
+def _front_clip(rows):
+    """rows：(ms, label, kw)；kw 可含 fx、props。"""
+    fr = []
+    for ms, label, kw in rows:
+        kw = dict(kw)
+        fx = kw.pop("fx", [])
+        props = kw.pop("props", [])
+        fr.append(dict(pose=dict(view="front", **kw), ms=ms, label=label, fx=fx, props_front=props))
+    return fr
+
+
+def clip_highfive():
+    """右肉掌舉到身體右上緣跟你擊掌（網頁的手在右上 約 x 400, y 190 迎上來）。第 1 格直接是蓄力舉掌。"""
+    return _front_clip([
+        (90, "蹲低蓄力、右肉掌往上冒（圓眼）", dict(eye="wide", mouth="o", sy=0.86, sx=1.08, rot=-4, ear=10, ear2=14,
+                                           fp_near=(6, -26, 18))),
+        (70, "跳起來、肉掌舉到右上緣", dict(eye="arc", mouth="open", y=R.FOOT_Y - 28, sy=1.12, sx=0.92, rot=6, ear=24, ear2=30,
+                                    flutter=6, fp_near=(20, -118, 34), bf_far=(0, 8, 6), bf_near=(0, 8, -6))),
+        (120, "啪！擊掌（星星迸出）", dict(eye="arc", mouth="smile", y=R.FOOT_Y - 36, sy=1.04, rot=9, ear=-12, ear2=-16, flutter=3,
+                                      fp_near=(30, -130, 8), blush=1.5,
+                                      fx=[R.burst_svg(404, 168, 44, 8, 10, 6), R.text_svg("啪", 408, 120, 36, 10),
+                                          R.star_svg(452, 230, 10, 0)])),
+        (90, "被拍回來（星星眼）", dict(eye="star", mouth="open", y=R.FOOT_Y - 20, sy=1.06, rot=-5, ear=18, ear2=22,
+                                   fp_near=(22, -96, 46), fp_far=(-4, -10, -6),
+                                   fx=[R.star_svg(420, 200, 11, 20), R.star_svg(104, 220, 9, 0, "#FFE58A")])),
+        (90, "落地壓扁（閉眼笑）", dict(eye="smile", mouth="w", sy=0.84, sx=1.1, ear=30, ear2=30, flutter=-6,
+                                   fp_near=(8, 0, 12), fx=[R.dust_svg(96, 470, 0.8), R.dust_svg(404, 470, 0.8)])),
+        (110, "雙掌舉起歡呼（彈一下）", dict(eye="arc", mouth="smile", y=R.FOOT_Y - 12, sy=1.06, sx=0.96, ear=-10, ear2=-10,
+                                      fp_far=(-8, -60, -30), fp_near=(8, -60, 30), blush=1.4,
+                                      props=[fx_part("fx_hearts_small", 404, 200, 0.6, 8)])),
+        (130, "開心晃（左）", dict(eye="arc", mouth="smile", rot=-6, ear=8, ear2=-4, fp_far=(-4, -28, -16), fp_near=(4, -20, 12))),
+        (130, "開心晃（右）", dict(eye="dot", mouth="smile", rot=5, ear=-3, ear2=8, fp_far=(0, -12, -6), fp_near=(4, -26, 16))),
+        (400, "站好（圓眼笑）", dict(eye="dot", mouth="smile", blush=1.2)),
+    ])
+
+
+def clip_dance():
+    """左右扭＋踏腳＋肉掌輪流舉，頭上飄音符；表情輪換。第 1 格直接扭。"""
+    rows = []
+    eyes = ["arc", "dot", "star", "arc", "smile", "dot", "arc", "star", "arc", "smile", "dot"]
+    mouths = ["smile", "open", "smile", "w", "open", "smile", "open", "smile", "w", "open", "smile"]
+    for i in range(11):
+        side = 1 if i % 2 == 0 else -1
+        up = i % 4 in (0, 1)
+        lift = -10 if i % 2 == 0 else 0
+        notes = [R.svg_layer("")] and []
+        props = [fx_part("fx_music", 118 + 10 * ((i + 1) % 3) if side > 0 else 382 - 10 * (i % 3), 214 - 12 * (i % 3), 0.55,
+                         -10 * side)]
+        rows.append((110 if i % 4 != 3 else 150, ["扭右", "扭左", "扭右舉掌", "扭左停一拍"][i % 4] + f"（{['彎月眼', '圓眼', '星星眼', '閉眼笑'][i % 4]}）",
+                     dict(eye=eyes[i], mouth=mouths[i], rot=9 * side, x=R.CX + 12 * side, shear=0.05 * side,
+                          y=R.FOOT_Y - (14 if i % 4 == 2 else 0), sy=0.93 if i % 2 else 1.04, sx=1.04 if i % 2 else 0.97,
+                          ear=14 * side + 6, ear2=-14 * side + 6, flutter=5 * side, fphase=i * 0.8, blush=1.3,
+                          fp_far=(-6, -58, -28) if (up and side > 0) else (0, -8, -6),
+                          fp_near=(6, -58, 28) if (up and side < 0) or i % 4 == 2 else (0, -8, 6),
+                          bf_far=(0, lift if side < 0 else 0, -10 if side < 0 else 0),
+                          bf_near=(0, lift if side > 0 else 0, 10 if side > 0 else 0),
+                          props=props)))
+    rows.append((400, "收尾站好（圓眼笑）", dict(eye="dot", mouth="smile", blush=1.2)))
+    return _front_clip(rows)
+
+
+def clip_hug():
+    """自己抱抱：兩隻肉掌交叉抱在胸前、身體一擠一擠左右晃、臉紅冒愛心。第 1 格直接把掌收到胸前。"""
+    cross = dict(hands_front=True, fp_far=(30, -14, 30), fp_near=(-30, -6, -30))
+    return _front_clip([
+        (100, "肉掌收到胸前（圓眼）", dict(cross, eye="wide", mouth="o", sy=1.04, sx=0.97, ear=-8, ear2=-8)),
+        (140, "抱緊！身體擠一下（閉眼笑、臉紅）", dict(cross, eye="smile", mouth="w", sy=0.9, sx=0.95, ear=20, ear2=20, flutter=-4,
+                                           blush=1.8, fp_far=(40, -16, 40), fp_near=(-40, -8, -40))),
+        (140, "左晃", dict(cross, eye="smile", mouth="smile", rot=-9, sy=0.93, sx=0.96, ear=26, ear2=8, blush=1.8,
+                         props=[fx_part("fx_hearts_small", 402, 214, 0.55, 8)])),
+        (140, "右晃", dict(cross, eye="smile", mouth="smile", rot=9, sy=0.93, sx=0.96, ear=8, ear2=26, blush=1.9,
+                         props=[fx_part("fx_hearts_small", 98, 214, 0.55, -8)])),
+        (130, "左晃（小）", dict(cross, eye="arc", mouth="smile", rot=-5, sy=0.95, ear=18, ear2=10, blush=1.8)),
+        (130, "右晃（小）", dict(cross, eye="arc", mouth="w", rot=5, sy=0.95, ear=10, ear2=18, blush=1.8)),
+        (160, "大愛心冒出來（拉長）", dict(cross, eye="star", mouth="smile", y=R.FOOT_Y - 10, sy=1.06, sx=0.96, ear=-10, ear2=-10,
+                                       blush=1.6, props=[fx_part("fx_heart", 404, 170, 0.8, 12)])),
+        (130, "放開（彎月眼）", dict(eye="arc", mouth="smile", sy=0.97, ear=4, ear2=4, blush=1.4,
+                                 props=[fx_part("fx_heart", 412, 136, 0.6, 18)])),
+        (400, "站好（圓眼笑）", dict(eye="dot", mouth="smile", blush=1.3)),
+    ])
+
+
+def clip_sleep_loop():
+    """坐著打瞌睡（循環 8 格）：吸氣鼓起→吐氣扁下、頭一點一點、耳朵垂、Zzz 一個接一個往上飄。"""
+    rows = []
+    for i in range(8):
+        a = TAU * i / 8
+        br = math.sin(a)                     # 呼吸
+        nod = max(0.0, math.sin(a - 0.6))    # 吐氣時頭往下點
+        z = []
+        for j in range(3):
+            t = ((i / 8) + j / 3) % 1.0
+            zx, zy = 330 + 50 * t + 8 * math.sin(t * 9), 230 - 130 * t
+            z.append(fx_part("fx_zzz", zx, zy, 0.35 + 0.35 * t, -10 + 20 * t))
+        rows.append((180, ["吸氣", "吸飽（鼓起）", "停", "吐氣", "吐氣（頭往下點）", "扁扁", "頭抬一點", "準備吸氣"][i] + "（閉眼）",
+                     dict(eye="closed", mouth="o" if br < -0.3 else "w", sy=1 + 0.035 * br, sx=1 - 0.03 * br,
+                          rot=2.5 * math.sin(a - 1.0), look=(0, 0.02 * nod), ear=22 + 6 * nod, ear2=22 + 6 * nod,
+                          blush=1.0, flutter=-2 * br, fphase=a, hands_front=True, fp_far=(10, 4, 14), fp_near=(-10, 4, -14),
+                          props=z)))
+    return _front_clip(rows)
+
+
+def clip_wake_once():
+    """睡著被點→整隻彈起（耳朵豎、毛炸開、！！）→落地→左右張望→不好意思（汗滴、波浪嘴）→伸懶腰→站好。第 1 格直接彈起。"""
+    return _front_clip([
+        (70, "嚇！彈起來（圓眼、毛炸開）", dict(eye="wide", mouth="o", y=R.FOOT_Y - 46, sy=1.14, sx=0.92, ear=-26, ear2=-26,
+                                        flutter=-9, fp_far=(-10, -50, -40), fp_near=(10, -50, 40),
+                                        props=[fx_part("fx_exclaim", 404, 160, 0.7, 12)],
+                                        fx=[R.burst_svg(248, 120, 60, 7, -90, 5)])),
+        (90, "最高點（還在驚）", dict(eye="wide", mouth="o", y=R.FOOT_Y - 56, sy=1.06, ear=-20, ear2=-20, flutter=-6, fphase=1,
+                                  fp_far=(-8, -44, -30), fp_near=(8, -44, 30),
+                                  props=[fx_part("fx_exclaim", 410, 150, 0.7, 16)])),
+        (80, "落地壓扁", dict(eye="wide", mouth="o", sy=0.82, sx=1.12, ear=26, ear2=26, flutter=-6, fphase=2,
+                            fx=[R.dust_svg(96, 470, 0.8), R.dust_svg(404, 470, 0.8)])),
+        (140, "往左看", dict(eye="dot", mouth="o", look=(-0.05, 0), rot=-4, ear=4, ear2=-8)),
+        (140, "往右看", dict(eye="dot", mouth="w", look=(0.05, 0), rot=4, ear=-8, ear2=4)),
+        (90, "眨眼", dict(eye="dot", eye_open=0.2, mouth="w", ear=0, ear2=0)),
+        (160, "不好意思（汗滴、波浪嘴）", dict(eye="arc", mouth="wavy", sy=0.97, blush=1.6, ear=14, ear2=14,
+                                        props=[fx_part("fx_sweat", 400, 236, 0.55, 0)])),
+        (180, "伸懶腰（拉長、雙掌舉高）", dict(eye="closed", mouth="open", y=R.FOOT_Y - 6, sy=1.1, sx=0.93, ear=-10, ear2=-10,
+                                        fp_far=(-6, -70, -30), fp_near=(6, -70, 30))),
+        (400, "站好（圓眼笑）", dict(eye="dot", mouth="smile", blush=1.2)),
+    ])
+
+
+def clip_selfie():
+    """擺三個拍照姿勢（眨眼＋肉掌貼臉邊、星星眼、雙掌歡呼），每擺一個就閃光燈「咔嚓」。第 1 格直接擺第一個姿勢。"""
+    flash = lambda: [R.burst_svg(80, 120, 50, 8, 0, 6, "#FFD25A"), R.burst_svg(432, 120, 50, 8, 22, 6, "#FFD25A"),  # noqa: E731
+                     R.text_svg("咔嚓", 192, 110, 34, -6)]
+    return _front_clip([
+        (100, "歪頭眨眼、右掌貼臉邊", dict(eye="wink", mouth="smile", rot=-9, look=(-0.01, 0), ear=-4, ear2=16, blush=1.5,
+                                     fp_near=(6, -64, 10))),
+        (120, "咔嚓！（閃光）", dict(eye="wink", mouth="smile", rot=-10, ear=-4, ear2=18, blush=1.5, fp_near=(6, -66, 6),
+                                 fx=flash())),
+        (100, "換姿勢：往右歪、左掌舉起", dict(eye="star", mouth="open", rot=9, sy=0.96, ear=18, ear2=-4, fp_far=(-6, -70, -14),
+                                       fp_near=(0, 0, 0))),
+        (120, "咔嚓！（星星眼）", dict(eye="star", mouth="open", rot=10, ear=20, ear2=-4, fp_far=(-6, -72, -10), fx=flash())),
+        (90, "蹲一下", dict(eye="arc", mouth="w", sy=0.86, sx=1.08, ear=16, ear2=16, flutter=-4)),
+        (100, "跳起雙掌歡呼", dict(eye="arc", mouth="smile", y=R.FOOT_Y - 30, sy=1.1, sx=0.93, ear=-14, ear2=-14, flutter=5,
+                                fp_far=(-8, -64, -30), fp_near=(8, -64, 30))),
+        (130, "咔嚓！（空中定格）", dict(eye="arc", mouth="smile", y=R.FOOT_Y - 34, sy=1.06, ear=-12, ear2=-12,
+                                    fp_far=(-10, -66, -34), fp_near=(10, -66, 34), fx=flash())),
+        (90, "落地", dict(eye="smile", mouth="w", sy=0.86, sx=1.1, ear=24, ear2=24, flutter=-5)),
+        (400, "看鏡頭笑（愛心）", dict(eye="dot", mouth="smile", blush=1.3, props=[fx_part("fx_heart", 404, 190, 0.5, 14)])),
+    ])
+
+
 # ================================================================== 渲染
 CLIPS = {
+    "highfive": dict(make=clip_highfive, facing="left", loop=False, note="播一次；網頁的手在右上（約 x 400, y 190）迎上來擊掌（第 3 格）。"),
+    "dance": dict(make=clip_dance, facing="left", loop=False, note="播一次；最後一格＝站好。"),
+    "hug": dict(make=clip_hug, facing="left", loop=False, note="播一次；最後一格＝站好。"),
+    "sleep_loop": dict(make=clip_sleep_loop, facing="left", loop=True, note="全部 8 格循環（呼吸一輪＋Zzz 輪流往上飄）。"),
+    "wake_once": dict(make=clip_wake_once, facing="left", loop=False, note="播一次（打瞌睡時被點）；最後一格＝站好。"),
+    "selfie": dict(make=clip_selfie, facing="left", loop=False, note="播一次；三個姿勢各閃一次光；最後一格＝看鏡頭笑。"),
     "pet_v2": dict(make=clip_pet, facing="left", loop=False,
                    note="播一次；網頁同時把 hand_prop.png 從右上伸到頭頂右上（約 x 300, y 190，第 1～7 格），第 8 格手離開。"),
     "spin_v2": dict(make=clip_spin, facing="left", loop=False, note="播一次；最後一格＝正面站好，可接 happy_hop。"),
