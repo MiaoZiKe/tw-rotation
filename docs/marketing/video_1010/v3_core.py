@@ -1323,7 +1323,7 @@ class Op:
                 hit_main, _ = _mask_hits(mainm & ~bm & ~rowb, sx, sy, m)
                 cov, _ = _mask_hits(bm, sx, sy, m)
                 # CEO 10-12（例外 1）：主角圖表資料區 0%、其他文字 ≤15%、按鈕露出 ≥80%；越乾淨越好、越大越好
-                ok = hit_main == 0 and hit_out <= 0.12 * tot and cov <= 0.18 * barea      # 留安全邊（檢查上限 15％／20％）
+                ok = hit_main == 0 and hit_out <= 0.10 * tot and cov <= 0.18 * barea      # 留安全邊（檢查上限 15％／20％）
                 bad = hit_main / tot * 10 + hit_out / tot + max(0.0, cov / barea - 0.2) * 3
                 pref = {"top": 0, "left": 1, "right": 1, "bottom": 2}[side]
                 clean = hit_out <= 0.01 * tot
@@ -1340,18 +1340,22 @@ class Op:
         """跳躍弧線高度：取幾個高度試算，挑跳躍途中壓到主角資料區最少的（快取）。"""
         if "_peak" in tp:
             return tp["_peak"]
-        _, mainm = self._busy_at(shot, L, tp["t"])
+        b0, m0 = self._busy_at(shot, L, max(0.0, tp["t"] - self.TAP_IN))
+        b1, m1 = self._busy_at(shot, L, min(shot.dur - 1 / FPS, tp["t"] + self.TAP_OUT))
+        busy, mainm = b0 | b1, m0 | m1
         best = None
-        for peak in (60, 160, 280, 0, 400):
-            hit = 0
-            for u in (0.25, 0.5, 0.75):
+        for peak in (60, 160, 280, 400, 520, 0, -120, -240):
+            score = 0.0
+            for u in (0.1, 0.3, 0.5, 0.7, 0.9):
                 p = (lerp(home[0], foot[0], u), lerp(home[1], foot[1], u) - peak * math.sin(math.pi * u))
                 nm = "hop_r" if foot[0] >= home[0] else "hop_l"
                 sx, sy, m = _sprite_alpha(nm, 2 + int(u * 3.99), p, lerp(hs, size, u))
-                h, _ = _mask_hits(mainm, sx, sy, m)
-                hit += h
-            if best is None or hit < best[0]:
-                best = (hit, peak)
+                tot = max(1, int(m.sum()))
+                hm, _ = _mask_hits(mainm, sx, sy, m)
+                ho, _ = _mask_hits(busy, sx, sy, m)
+                score += hm / tot * 10 + max(0.0, ho / tot - 0.10)
+            if best is None or score < best[0]:
+                best = (score, peak)
         tp["_peak"] = best[1]
         return best[1]
 
@@ -1433,8 +1437,8 @@ class Op:
             return "tail"
         if V4:
             for tp in taps:
-                if tp["t"] - self.TAP_IN <= t < tp["t"] + self.TAP_OUT:
-                    return "plain"           # 比比去踩按鈕時泡泡留著（不帶尾巴），不閃
+                if tp["t"] - self.TAP_IN - 0.05 <= t < tp["t"] + self.TAP_OUT + 0.05:
+                    return "hide"            # 比比跳去踩按鈕的 0.65 秒泡泡先收起（不然比比會從泡泡上跳過去）
             return "tail"
         if self.chain:
             c0, cl = taps[0]["t"], taps[-1]["t"]
