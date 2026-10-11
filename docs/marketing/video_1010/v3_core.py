@@ -1328,11 +1328,15 @@ class Op:
                 cands.append(("right", fy))
             for fx in (0.5, 0.2, 0.8):
                 cands.append(("bottom", fx))
+            for fx in (0.85, 0.15, 0.5):           # 大型目標（輸入框、文字欄）：站在框內空白角落，框本身露出 ≥80%
+                cands.append(("inside", fx))
             for side, q in cands:
                 if side == "top":
                     foot = (bx0 + q * (bx1 - bx0), by0 + 5)
                 elif side == "bottom":
                     foot = (bx0 + q * (bx1 - bx0), by1 - r0[1] - 3)
+                elif side == "inside":
+                    foot = (bx0 + q * (bx1 - bx0), by1 - 6)
                 elif side == "left":
                     foot = (bx0 - r0[2] + 4, by0 + q * (by1 - by0))
                 else:
@@ -1349,7 +1353,7 @@ class Op:
                 # CEO 10-12（例外 1）：主角圖表資料區 0%、其他文字 ≤15%、按鈕露出 ≥80%；越乾淨越好、越大越好
                 ok = hit_main == 0 and hit_out <= 0.08 * tot and cov <= 0.18 * barea      # 留安全邊（檢查上限 15％／20％）
                 bad = hit_main / tot * 10 + hit_out / tot + max(0.0, cov / barea - 0.2) * 3
-                pref = {"top": 0, "left": 1, "right": 1, "bottom": 2}[side]
+                pref = {"top": 0, "left": 1, "right": 1, "bottom": 2, "inside": 3}[side]
                 clean = hit_out <= 0.01 * tot
                 score = (not ok, not clean, -size if ok else 0, pref, bad)
                 if best is None or score < best[0]:
@@ -1410,6 +1414,8 @@ class Op:
             return (bx0 + q * (bx1 - bx0), by0 + 5), size
         if side == "bottom":
             return (bx0 + q * (bx1 - bx0), by1 - r0[1] - 3), size
+        if side == "inside":
+            return (bx0 + q * (bx1 - bx0), by1 - 6), size
         if side == "left":
             return (bx0 - r0[2] + 4, by0 + q * (by1 - by0)), size
         return (bx1 - r0[0] - 4, by0 + q * (by1 - by0)), size
