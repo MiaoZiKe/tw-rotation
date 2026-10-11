@@ -1281,6 +1281,7 @@ class Op:
         bm = np.zeros_like(busy)
         bm[max(0, int(by0)):min(H, int(by1) + 1), max(0, int(bx0)):min(W, int(bx1) + 1)] = True
         barea = max(1, int(bm.sum()))
+        rowb = _row_band(busy, (bx0, by0, bx1, by1))
         fr = rec.rect
         best = None
         for size in (150, 130, 110, 96, 84, 72, 64, 56, 48):
@@ -1309,7 +1310,7 @@ class Op:
                 if sx < fr[0] or sy < fr[1] - 2 or sx + m.shape[1] > fr[0] + fr[2] or sy + m.shape[0] > fr[1] + fr[3] + 2:
                     continue
                 hit_out, _ = _mask_hits(busy & ~bm, sx, sy, m)
-                hit_main, _ = _mask_hits(mainm & ~bm, sx, sy, m)
+                hit_main, _ = _mask_hits(mainm & ~bm & ~rowb, sx, sy, m)
                 cov, _ = _mask_hits(bm, sx, sy, m)
                 # CEO 10-12（例外 1）：主角圖表資料區 0%、其他文字 ≤15%、按鈕露出 ≥80%；越乾淨越好、越大越好
                 ok = hit_main == 0 and hit_out <= 0.15 * tot and cov <= 0.2 * barea
@@ -1650,17 +1651,17 @@ def color_mask(cv, rect):
 
 
 def main_mask(shot, busy, colored):
-    """主角圖表的資料區（CEO 10-12：踩按鈕那一下一律 0%）：有顏色的資料像素，加上錄影端重點框／內容框裡的受保護像素（不含點擊目標本身）。"""
-    rec = shot.rec
-    m = colored & busy
-    for (lab, r, tt) in forbidden_src(shot):
-        if tt is not None or lab.startswith("內容區（錄影端無重點框"):
-            continue
-        x0, y0, x1, y1 = _map_rect(rec, r)
-        if x1 > x0 and y1 > y0:
-            sub = np.zeros_like(busy)
-            sub[int(y0):int(y1), int(x0):int(x1)] = True
-            m |= sub & busy
+    """主角圖表的資料區（CEO 10-12：踩按鈕那一下一律 0%）：有顏色的資料像素（K 線、熱力圖色塊、紅綠漲跌數字）。
+    被點按鈕所在的那一列（按鈕上下各半個按鈕高，橫跨整個框）是篩選列／表頭／分頁列，不算資料區（另外 ≤15%）。"""
+    return colored & busy
+
+
+def _row_band(busy, b):
+    bx0, by0, bx1, by1 = b
+    h = max(8, by1 - by0)
+    m = np.zeros_like(busy)
+    H = busy.shape[0]
+    m[max(0, int(by0 - 0.5 * h)):min(H, int(by1 + 0.5 * h) + 1), :] = True
     return m
 
 
@@ -1714,7 +1715,7 @@ def busy_check(shot, t, busy, mainb=None):
                 H, W = busy.shape
                 bm[max(0, int(by0)):min(H, int(by1) + 1), max(0, int(bx0)):min(W, int(bx1) + 1)] = True
                 hit_out, _ = _mask_hits(busy & ~bm, x, y, m)
-                hit_main, _ = _mask_hits(mainb & ~bm, x, y, m) if mainb is not None else (0, 0)
+                hit_main, _ = _mask_hits(mainb & ~bm & ~_row_band(busy, (bx0, by0, bx1, by1)), x, y, m) if mainb is not None else (0, 0)
                 cov, _ = _mask_hits(bm, x, y, m)
                 barea = max(1, int(bm.sum()))
                 if hit_main > 0:

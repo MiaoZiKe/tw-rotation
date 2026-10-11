@@ -2104,6 +2104,8 @@ def v26w(pg, a, start, base):
     start()
     a.wait(800)
     tap(a, "#supFab", "比比客服鈕", 300)
+    # 手機觸控點擊有時被拖曳判定吞掉（面板沒開）→ 同一刻用網站自己的 API 打開願望清單，畫面與真點一致
+    pg.evaluate("() => { const p = document.getElementById('supPanel'); if ((!p || p.hidden) && window.TwSupport) TwSupport.open('wish'); }")
     if NOFAB_ACTIVE.get("on"):
         pg.evaluate("(css) => { const st = document.createElement('style'); st.textContent = css; document.head.appendChild(st); }", NOFAB_CSS)
     a.wait(900)

@@ -26,13 +26,20 @@ def idle_sub(idle):
 _NF_OK = {}
 
 
-def _playable(path):
-    """錄影端還在寫的重錄檔（沒收尾，ffprobe 讀不出）不能用，退回原檔。"""
+def _dur(path):
     import subprocess
+    r = subprocess.run(["ffprobe", "-v", "error", "-show_entries", "format=duration", "-of", "csv=p=0", str(path)], capture_output=True)
+    try:
+        return float(r.stdout.decode().strip())
+    except ValueError:
+        return 0.0
+
+
+def _playable(path, orig):
+    """錄影端還在寫的重錄檔（沒收尾、讀不出、或比原檔短很多）不能用，退回原檔。"""
     k = str(path)
     if k not in _NF_OK:
-        r = subprocess.run(["ffprobe", "-v", "error", "-select_streams", "v:0", "-show_entries", "stream=width,height", "-of", "csv=p=0", k], capture_output=True)
-        _NF_OK[k] = r.returncode == 0 and bool(r.stdout.strip())
+        _NF_OK[k] = _dur(path) >= _dur(orig) - 1.0
     return _NF_OK[k]
 
 
@@ -43,7 +50,7 @@ def nofab(clip):
     if os.environ.get("NOFAB", "1") == "0":
         return clip
     p = RAW3 / f"{clip}_nofab.mp4"
-    return clip + "_nofab" if (p.exists() and _playable(p)) else clip
+    return clip + "_nofab" if (p.exists() and _playable(p, RAW3 / f"{clip}.mp4")) else clip
 
 
 def _hl(head):
@@ -124,13 +131,13 @@ def build():
     # 1 總覽（含今日事件、搜尋）
     S.append(shot("b01", "總覽", "V01_desktop", [(0.0, 2.2)], "① 每天先看這頁", "我先帶你看今天大盤", [(0, "talk_happy"), (1.2, "folder")]))
     S.append(shot("b02", "總覽", "V02_desktop", [(1.4, 4.8)], "今日事件不漏看", "重要消息我幫你列好", [(0, "news"), (1.8, "face_surprise_happy")]))
-    S.append(shot("b03", "總覽", "V27_desktop", [(1.5, 2.45), (4.6, 7.4)], "打幾個字就到", "想查哪檔，打簡稱就找到", [(0, "magnifier"), (2.4, "face_relief")], min_cap=3.2))
+    S.append(shot("b03", "總覽", "V27_desktop", [(4.6, 7.4)], "打幾個字就到", "想查哪檔，打簡稱就找到", [(0, "magnifier"), (2.4, "face_relief")], min_cap=3.2))
     # 2 財經日曆（一段連續錄影）
     S.append(shot("c01", "財經日曆", "V03_desktop", [(9.4, 11.8)], "② 財經日曆", "財報、法說、FED 我排好了", [(0, "calendar"), (1.2, "tilt")], cont=True))
     S.append(shot("c02", "財經日曆", "V03_desktop", [(12.4, 16.6)], "重要日子不漏看", "點一下，說明馬上出來", [(0, "face_shock"), (1.6, "globe"), (3.2, "face_nod")]))
     # 3 資金流向（播放鏡用 60fps 素材）
     S.append(shot("d01", "資金流向", "V04_desktop_v3c", [(1.4, 3.6)], "③ 錢往哪裡跑", "錢跑去哪？我帶你看", [(0, "talk_happy"), (1.2, "face_curious")]))
-    S.append(shot("d02", "資金流向", "V04_desktop_v3c", [(3.6, 7.2)], "按播放看輪動", "族群怎麼輪，一路播給你", [(0, "coins"), (2.2, "face_surprise_happy")]))
+    S.append(shot("d02", "資金流向", "V04_desktop_v3c", [(4.5, 8.1)], "輪動一路播放", "族群怎麼輪，播給你看", [(0, "coins"), (2.2, "face_surprise_happy")]))
     S.append(shot("d03", "資金流向", "V06_desktop_v3c", [(2.4, 4.28)], "資金分流樹", "大盤的錢分去哪？", [(0, "talk_happy"), (1.0, "tilt")], cont=True))
     S.append(shot("d04", "資金流向", "V06_desktop_v3c", [(5.1, 8.1)], "每天分流一路播", "錢從哪流到哪，一看就懂", [(0, "spotlight"), (2.0, "face_love")]))
     # 4 熱力圖
@@ -146,7 +153,7 @@ def build():
     # 個股：錄影端補錄的 D10（一開場就是日 K，沒有分時圖、沒有「非即時」浮水印）一段連續操作：日 K → 點週 → 往下看總覽 → 點營收 → 點獲利
     D10 = "D10_desktop_v3j"
     S.append(shot("g01", "個股", D10, [(1.1, 3.4)], "⑥ 個股一頁看", "這檔的走勢，我幫你打開", [(0, "talk_happy"), (1.0, "face_curious")]))
-    S.append(shot("g02", "個股", D10, [(3.9, 7.0)], "週期一鍵切", "日、週、月，點一下切換", [(0, "face_nod")]))
+    S.append(shot("g02", "個股", D10, [(4.8, 7.0)], "週期一鍵切", "切到週線，趨勢更清楚", [(0, "face_nod")]))
     S.append(shot("g03", "個股", D10, [(9.1, 11.3)], "下方看總覽", "基本面、籌碼，重點整理好", [(0, "bulb"), (1.0, "face_thinking_bulb")]))
     S.append(shot("g04", "個股", D10, [(11.9, 13.0), (15.5, 17.2)], "旁邊看營收獲利", "營收、獲利，旁邊點就有", [(0, "face_proud"), (0.9, "magnifier")], hl="營收獲利"))
     S.append(shot("g05", "個股", D10, [(18.3, 19.4), (21.9, 23.6)], "旁邊看營收獲利", "營收、獲利，旁邊點就有", [(0, "face_proud"), (1.0, "face_nod")], hl="營收獲利"))
@@ -155,7 +162,7 @@ def build():
     S.append(shot("h03", "週期統計", "V18_desktop", [(4.0, 6.8)], "⑨ 週期統計", "歷年月份規律，一張表", [(0, "hourglass"), (1.4, "face_think")]))
     # 10 ETF（I03 不用；報酬比較用 V21 勾選完成後的結果段）
     S.append(shot("i01", "ETF", "V19_desktop", [(3.6, 6.8)], "⑩ ETF 配息曆", "存 ETF？哪天除息我標好", [(0, "piggy"), (1.6, "face_love")]))
-    S.append(shot("i02", "ETF", "V20_desktop", [(2.4, 5.5)], "各類前五名", "配息、市值型，前五名", [(0, "trophy"), (1.6, "face_proud")]))
+    S.append(shot("i02", "ETF", "V20_desktop", [(3.3, 5.5)], "各類前五名", "配息、市值型，前五名", [(0, "trophy"), (1.6, "face_proud")]))
     S[-1].note = "過去表現不代表未來"   # 報酬比較在畫面上：附註小字（卡片層，不疊在圖表上）
     S.append(shot("i03", "ETF", "V20_desktop", [(5.75, 7.95)], "報酬一起比", "含息不含息分開算", [(0, "tilt"), (1.2, "face_nod")], limit=8.0, min_cap=3.2))
     S[-1].note = "過去表現不代表未來"   # 報酬比較在畫面上：附註小字（卡片層，不疊在圖表上）
@@ -164,7 +171,7 @@ def build():
     # 11～13 自選清單／導覽／願望清單
     S.append(shot("j01", "自選清單", "V24_desktop", [(6.6, 10.4)], "⑪ 自選清單", "常看的收進來，一開就有", [(0, "star_save"), (2.2, "face_love")],
                   win_keys=[(0.0, (0, 0, 2990, 1682))]))
-    S.append(shot("j02", "導覽", "V25_desktop", [(1.4, 4.6)], "看不懂有導覽", "每一頁我都一步步帶你", [(0, "talk_happy"), (1.8, "face_wink")], min_cap=3.0))
+    S.append(shot("j02", "導覽", "V25_desktop", [(3.8, 6.9)], "看不懂有導覽", "每一頁我都一步步帶你", [(0, "talk_happy"), (1.8, "face_wink")], min_cap=3.0))
     S.append(shot("j03", "願望清單", "V26_desktop", [(13.3, 16.9)], "歡迎許願", "想要什麼功能，跟我說！", [(0, "heart_wish"), (1.6, "face_love")], chain="solo",
                   win_keys=[(0.0, (1290, 716, 3170, 1726))]))   # 裁到面板表單區：不露出「AI 客服即將推出」橫幅與上方分頁
     # 14～15 片尾與警語
