@@ -28,7 +28,7 @@
   const ls = { get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }, set(k, v) { try { localStorage.setItem(k, v); } catch (e) { /* 同上 */ } } };
   const PEND = 'tw.co.pending', DISMISS = 'tw.pay.renew.off';
   const ST_CLS = { pending: 'wait', review: 'wait', paid: 'wait', active: 'ok', failed: 'bad', rejected: 'bad', expired: 'mute', refunded: 'mute', cancelled: 'mute' };
-  const ST_NAME = { pending: '待付款', review: '待確認', paid: '已入帳', active: '已開通', failed: '失敗', rejected: '已退回', expired: '已逾期', refunded: '已退款', cancelled: '已取消' };
+  const ST_NAME = { pending: '待付款', review: '待確認', paid: '已入帳', active: '已開通', failed: '失敗', rejected: '已退回', expired: '已逾期', refunded: '已退款', cancelled: '已取消（未付款）' };
   const S = { my: null, fly: null, poll: null };
   const me = () => { const a = A(); return a && a.on && a.on() ? a.user() : null; };
   const call = (p, b) => { const a = A(); return a && a.on() ? a.call(p, b || {}) : Promise.resolve(null); };
@@ -308,29 +308,39 @@ html.pay-renew #acctBtn.ame::after{content:'';position:absolute;top:2px;right:2p
       return;
     }
     if (!S.my) v.innerHTML = '<div class="card ordp"><h2>我的訂單／付款紀錄</h2><p class="muted">載入中…</p></div>';
+    /* 付款完成頁：先向伺服器查這一筆（伺服器會順手查綠界、該開通就開通），之後才抓會員資料 ——
+       順序反過來的話，摘要會是「查單之前」那一份（橫幅寫已開通、摘要還是註冊會員）。
+       還沒確認付款的這一筆不列在清單裡，只拿來顯示「正在確認付款結果」並輪詢。 */
+    let f = null, cur = null;
+    if (focus) {
+      const r = await call('/v1/pay/order', { id: focus });
+      if (r && r._s === 200 && r.order) { f = r.order; cur = r; }
+      if (f && f.status === 'active') { S.my = null; S.fly = null; if (window.TwPerm && window.TwPerm.refresh) await window.TwPerm.refresh(); }
+      if (!/^#orders\b/.test(location.hash || '')) return;
+    }
     const j = await refresh();
     if (!/^#orders\b/.test(location.hash || '')) return;
     if (!j) { v.innerHTML = '<div class="card ordp"><h2>我的訂單／付款紀錄</h2><p class="muted">讀不到訂單（會員伺服器沒有回應）。</p></div>'; return; }
-    const os = j.orders || [];
-    const f = focus ? os.find((o) => o.id === focus) : null;
+    const os = j.orders || [];   // 伺服器只回真的付過錢的（待付款／未完成付款不列，Andy 10-11）
+    cur = cur || j;
     let banner = '';
-    if (f) banner = bannerOf(f, j);
+    if (f) banner = bannerOf(f, cur);
     const rn = j.renew;
     v.innerHTML = `<div class="card ordp"><h2>我的訂單／付款紀錄</h2><p class="muted">每一筆付款的方式、金額、狀態與時間；退款也會列在這裡。</p>
       <div id="ordBn">${banner}</div>
       <div class="ordsum" id="ordSum"><span>目前方案 <b>${esc(j.planName || '註冊會員')}</b></span>${j.expires && j.plan !== 'free' ? `<span>到期日 <b>${esc(ymd(j.expires))}</b></span>` : ''}
         ${j.plan !== 'free' ? `<span>自動續訂 <b>${j.autoRenew ? '開' : '關'}</b></span>` : ''}${rn ? `<span style="color:var(--amber)">剩 ${rn.days} 天到期</span><button type="button" class="pri" data-renew="1">${rn.method === 'bank' ? '再匯一期' : '續訂一期'}</button>` : ''}
         <span style="flex:1"></span><a href="#pricing">看方案</a></div>
-      <div class="ordl" id="ordList">${os.length ? '<div class="ordr hd"><div>時間</div><div>方案</div><div>金額</div><div>方式</div><div>狀態</div><div></div></div>' + os.map((o) => rowHTML(o, o.id === focus)).join('') : '<p class="muted" style="padding:12px 4px">還沒有訂單。到 <a href="#pricing">訂閱方案</a> 挑一個吧。</p>'}</div></div>`;
+      <div class="ordl" id="ordList">${os.length ? '<div class="ordr hd"><div>時間</div><div>方案</div><div>金額</div><div>方式</div><div>狀態</div><div></div></div>' + os.map((o) => rowHTML(o, o.id === focus)).join('') : '<p class="muted" id="ordEmpty" style="padding:12px 4px">還沒有付款紀錄。到 <a href="#pricing">訂閱方案</a> 挑一個吧。</p>'}</div></div>`;
     bind(v, j);
-    if (f && !['active', 'refunded', 'rejected', 'expired', 'failed', 'cancelled'].includes(f.status) && f.method === 'ecpay') startPoll(v, f.id);
+    if (f && ['pending', 'paid'].includes(f.status) && f.method === 'ecpay') startPoll(v, f.id);
   }
   function bannerOf(o, j) {
     if (o.status === 'active') return `<div class="ordbn ok" id="ordDone"><b>付款完成，已開通 ${esc(j.planName || o.planName)}</b>，到期日 <b>${esc(ymd(j.expires || o.grantTo))}</b>。功能已經解鎖，不用重新登入。</div>`;
     if (o.status === 'review') return '<div class="ordbn wait">已收到你的匯款資料，管理者確認入帳後就會開通。</div>';
     if (o.status === 'pending' && o.method === 'ecpay') return `<div class="ordbn wait" id="ordWait">正在確認付款結果…（訂單 ${esc(o.id)}）<br><small>ATM／超商要等你繳費後才會開通；信用卡通常幾秒內完成。</small></div>`;
     if (o.status === 'paid') return '<div class="ordbn wait">已收到款項，正在開通…</div>';
-    if (o.status === 'failed') return `<div class="ordbn bad">付款沒有成功${o.rtnMsg ? '（' + esc(o.rtnMsg) + '）' : ''}，可以重新結帳。</div>`;
+    if (o.status === 'failed' || o.status === 'cancelled') return '<div class="ordbn bad">這筆沒有完成付款，會員狀態沒有變更；要訂閱請重新結帳。</div>';
     return '';
   }
   function bind(v, j) {
@@ -349,10 +359,10 @@ html.pay-renew #acctBtn.ame::after{content:'';position:absolute;top:2px;right:2p
       if (j && j._s === 200 && j.order && j.order.status === 'active') {
         if (window.TwPerm && window.TwPerm.refresh) await window.TwPerm.refresh();
         if (window.TwBilling && window.TwBilling.refresh) window.TwBilling.refresh();
-        S.my = null; renderOrders(v, id);
+        S.my = null; S.fly = null; renderOrders(v, id);
         return;
       }
-      if (j && j.order && ['failed', 'expired'].includes(j.order.status)) { S.my = null; renderOrders(v, id); return; }
+      if (j && j.order && ['failed', 'expired', 'cancelled'].includes(j.order.status)) { S.my = null; renderOrders(v, id); return; }
       if (n < 60) S.poll = setTimeout(tick, n < 5 ? 1500 : 3000);
     };
     S.poll = setTimeout(tick, 600);

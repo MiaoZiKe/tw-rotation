@@ -69777,6 +69777,14 @@ def t_pay_1011(b, base):
            and fm["f"].get("CheckMacValue") == _ec_mac(fm["f"]) and fm["f"].get("TotalAmount") == "299" and fm["f"].get("ChoosePayment") == "ALL" and "amount" not in body, (fm, body))
         oid1 = fm["f"]["MerchantTradeNo"] if fm else ""
         ok(f"{T}：面板的訂單編號換成這筆（{oid1}）", pb.evaluate("() => document.getElementById('coOid').innerText") == oid1)
+        # Andy 10-11：「只要還沒付費 就不能出現這樣 只有真的付費了 才能變更當前會員狀態」→ 建了綠界單、還沒付：我的訂單看不到、狀態不變
+        pb.evaluate("() => { document.getElementById('subDlg').hidden = true; location.hash = '#orders'; }")
+        empty = wait_until(pb, "() => { const e = document.getElementById('ordEmpty'); return e ? document.getElementById('v-orders').innerText : ''; }", 8000)
+        unpaid = pb.evaluate("async () => { await TwPerm.refresh(); const m = await TwAccount.call('/v1/pay/my', {}); return { plan: TwPerm.state().plan, n: m.orders.length, exp: m.expires, dot: document.documentElement.classList.contains('pay-renew'), badge: window.TwPlanBadge ? TwPlanBadge() : '' }; }")
+        ok(f"{T}：建了綠界訂單但沒付款 → 我的訂單寫「還沒有付款紀錄」、沒有「已開通／到期日」、方案仍是註冊會員、帳號鈕沒紅點",
+           bool(empty) and "還沒有付款紀錄" in empty and "已開通" not in empty and "到期日" not in empty and "註冊會員" in empty
+           and unpaid["plan"] == "free" and unpaid["n"] == 0 and unpaid["exp"] == 0 and not unpaid["dot"], (empty, unpaid))
+        shot(pb, "my_orders_unpaid_hidden.png", "#v-orders .ordp")
         pb.evaluate("() => document.getElementById('coEcForm').submit()")
         pb.wait_for_selector("#ecPaySkip", timeout=8000)
         ok(f"{T}：送出後到綠界付款頁（假綠界收到的表單驗章通過）", oid1 in pb.inner_text("#ecInfo"))
@@ -69786,6 +69794,8 @@ def t_pay_1011(b, base):
         ok(f"{T}：模擬「ReturnURL 漏送」：假綠界已付款但沒通知（notify 空）", st0 and st0["status"] == "1" and st0["notify"] == "", st0)
         done = wait_until(pb, "() => { const e = document.getElementById('ordDone'); return e ? e.innerText : ''; }", 15000)
         ok(f"{T}：付款完成頁輪詢 → 伺服器查單補開通 → 畫面寫「已開通 Plus，到期日 X」", bool(done) and "已開通 Plus" in done and re.search(r"到期日 \d{4}-\d{2}-\d{2}", done), done)
+        cons = pb.evaluate(f"""() => ({{ sum: (document.getElementById('ordSum') || {{}}).innerText || '', row: !!document.querySelector('#ordList .ordr[data-oid="{oid1}"]') }})""")
+        ok(f"{T}：付款完成頁前後一致：摘要「目前方案 Plus」、清單有這筆（不會橫幅寫已開通、摘要還是註冊會員）", "Plus" in cons["sum"] and "註冊會員" not in cons["sum"] and cons["row"], cons)
         pl = plan_of(pb)
         ok(f"{T}：開通後 TwPerm 已刷新：方案 plus、原本鎖住的「指標設定」解鎖（不用重新登入）", pl == ["plus", True], pl)
         shot(pb, "pay_done_unlocked.png")
@@ -69952,6 +69962,19 @@ def t_pay_1011(b, base):
         ad.click("#pdForce")
         ok(f"{T}：「強制開通」→ 異常歸零、dave 變 Plus", bool(wait_until(ad, "() => document.getElementById('payAnom').innerText === '異常 0'", 8000)) and plan_of(pdv) == ["plus", True])
 
+        # 管理區：未付款的單預設不顯示，打開「顯示未完成付款」才看得到
+        c4 = call(pc, "/v1/pay/ecpay/create", {"plan": "plus", "period": "month", "back": base.split("#")[0]})
+        ad.click("#payReload")
+        wait_until(ad, "() => !!document.getElementById('pfAll')", 6000)
+        hid = ad.evaluate(f"() => document.querySelectorAll('#payTbl tr[data-oid=\"{c4.get('id')}\"]').length")
+        ad.check("#pfAll")
+        row4 = wait_until(ad, f"() => {{ const r = document.querySelector('#payTbl tr[data-oid=\"{c4.get('id')}\"]'); return r ? r.innerText : ''; }}", 4000)
+        ok(f"{T}：管理區預設不顯示未付款的綠界單；勾「顯示未完成付款」後出現（待付款）", hid == 0 and bool(row4) and "待付款" in row4, (hid, row4))
+        shot(ad, "admin_orders_toggle.png", "#payAdm")
+        ad.uncheck("#pfAll")
+        cm = [o for o in call(pc, "/v1/pay/my", {}).get("orders", []) if o["id"] == c4.get("id")]
+        ok(f"{T}：carol 的我的訂單看不到這筆待付款", not cm, cm)
+
         # ================= ⑧ 手機 390：erin 轉帳送出；確認後到期前提醒＋再匯一期
         ce = new_ctx(390); pe = ce.new_page(); pe.on("pageerror", lambda e: errs.append("erin390: " + str(e)))
         pe.goto(base + "#pricing", wait_until="domcontentloaded")
@@ -70006,6 +70029,8 @@ def t_pay_1011(b, base):
         ad.click("#payReload")
         wait_until(ad, "() => !!document.getElementById('paySubs')", 6000)
         ok(f"{T}：會員訂閱清單顯示 dave「註冊會員（已到期）」", "註冊會員（已到期）" in ad.inner_text("#paySubs"))
+        st4 = [o for o in lst.get("orders", []) if o["id"] == c4.get("id")]
+        ok(f"{T}：綠界待付款超過 3 天 → 排程自動標「已取消（未付款）」", bool(st4) and st4[0]["status"] == "cancelled" and lst.get("status", {}).get("cancelled") == "已取消（未付款）", st4[:1])
         ad.evaluate("() => document.documentElement.setAttribute('data-theme', 'light')")
         ad.click("[data-ptab=orders]")
         wait_until(ad, "() => !!document.querySelector('#payTbl tr.prow')", 6000)
