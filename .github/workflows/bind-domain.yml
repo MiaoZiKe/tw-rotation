@@ -1,0 +1,76 @@
+# 2026-10-11 Andy（急件）：「先幫我更改網域名稱，因為我使用cloudfare 自己架伺服器」「LIGULIGU.com 就好」
+# 把 liguligu-puipui.com／www 綁到（10-11 Andy 實際買到的是 liguligu-puipui.com） Cloudflare Pages 專案 tw-rotation（網站每次推 main 都已經部署到這裡，見 pages.yml 雙部署）。
+# 用既有的 CLOUDFLARE_API_TOKEN／CLOUDFLARE_ACCOUNT_ID；不印出任何金鑰。可以重複跑（已綁的會略過）。
+# 步驟：① Pages 專案加自訂網域 ② 網域的 DNS 若在同一個 Cloudflare 帳號，補 CNAME → tw-rotation.pages.dev（已有就略過）③ 列出每個網域的狀態到 Step Summary。
+name: 綁定正式網域（liguligu-puipui.com）
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/bind-domain.yml']
+  schedule:
+    - cron: '7,37 * * * *'   # 每 30 分鐘重試一次，直到兩個網域都 active 就什麼都不做
+permissions:
+  contents: read
+concurrency:
+  group: bind-domain
+  cancel-in-progress: false
+jobs:
+  bind:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      CF_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CF_ACC: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      PROJECT: tw-rotation
+      APEX: liguligu-puipui.com
+    steps:
+      - name: 綁定網域並回報狀態
+        run: |
+          set -u
+          sum() { echo "$1" | tee -a "$GITHUB_STEP_SUMMARY"; }   # 同時印到 log（Claude 讀得到 log、讀不到 Summary）
+          if [ -z "${CF_TOKEN:-}" ] || [ -z "${CF_ACC:-}" ]; then sum "### 缺 CLOUDFLARE_API_TOKEN／CLOUDFLARE_ACCOUNT_ID"; exit 1; fi
+          API=https://api.cloudflare.com/client/v4
+          H=(-H "Authorization: Bearer $CF_TOKEN" -H "Content-Type: application/json")
+          sum "## 綁定 $APEX 到 Cloudflare Pages（$PROJECT）"
+          # 先看現況：兩個都 active 就結束（排程重跑時不做事）
+          cur=$(curl -s "${H[@]}" "$API/accounts/$CF_ACC/pages/projects/$PROJECT/domains")
+          echo "$cur" | jq -r '.result[]? | "\(.name)  \(.status)"' || true
+          act=$(echo "$cur" | jq -r --arg a "$APEX" '[.result[]? | select((.name==$a or .name==("www."+$a)) and .status=="active")] | length')
+          if [ "$act" = "2" ]; then sum "✅ 兩個網域都已 active：https://$APEX 、https://www.$APEX"; exit 0; fi
+          # ⓪ 拿掉先前誤綁的 liguligu.com／www.liguligu.com（沒買到那個名稱；留著會一直顯示 Inactive）
+          for d in liguligu.com www.liguligu.com; do
+            if echo "$cur" | jq -e --arg d "$d" '[.result[]? | select(.name==$d)] | length > 0' >/dev/null; then
+              r=$(curl -s -X DELETE "${H[@]}" "$API/accounts/$CF_ACC/pages/projects/$PROJECT/domains/$d"); sum "- 移除舊的 $d：$(echo "$r" | jq -r '.success')"
+            fi
+          done
+          # ① 加自訂網域
+          for d in "$APEX" "www.$APEX"; do
+            has=$(echo "$cur" | jq -r --arg d "$d" '[.result[]? | select(.name==$d)] | length')
+            if [ "$has" = "0" ]; then
+              r=$(curl -s -X POST "${H[@]}" "$API/accounts/$CF_ACC/pages/projects/$PROJECT/domains" --data "{\"name\":\"$d\"}")
+              ok=$(echo "$r" | jq -r '.success'); msg=$(echo "$r" | jq -r '[.errors[]?.message] | join("；")')
+              sum "- 加入 $d：$( [ "$ok" = true ] && echo 成功 || echo "失敗（$msg）")"
+            else sum "- $d：已在專案裡"; fi
+          done
+          # ② DNS：網域在同一個 Cloudflare 帳號時補 CNAME（需要 token 有 Zone→DNS→Edit；沒有就提示）
+          z=$(curl -s "${H[@]}" "$API/zones?name=$APEX")
+          zid=$(echo "$z" | jq -r '.result[0].id // empty'); zst=$(echo "$z" | jq -r '.result[0].status // empty')
+          if [ -z "$zid" ]; then
+            sum "- DNS：這個 Cloudflare 帳號裡還沒有 $APEX 這個網站（或 token 沒有讀取 Zone 的權限）。網域註冊完、在 Cloudflare 加入網站後會自動接上（本工作流每 30 分鐘重試）。"
+          else
+            sum "- DNS：找到網站 $APEX（狀態 $zst）"
+            for d in "$APEX" "www.$APEX"; do
+              ex=$(curl -s "${H[@]}" "$API/zones/$zid/dns_records?name=$d" | jq -r '.result | length')
+              if [ "$ex" = "0" ]; then
+                r=$(curl -s -X POST "${H[@]}" "$API/zones/$zid/dns_records" --data "{\"type\":\"CNAME\",\"name\":\"$d\",\"content\":\"$PROJECT.pages.dev\",\"proxied\":true,\"comment\":\"Cloudflare Pages tw-rotation（bind-domain.yml）\"}")
+                ok=$(echo "$r" | jq -r '.success'); msg=$(echo "$r" | jq -r '[.errors[]?.message] | join("；")')
+                sum "  - 新增 CNAME $d → $PROJECT.pages.dev：$( [ "$ok" = true ] && echo 成功 || echo "失敗（$msg；token 可能缺 Zone→DNS→Edit 權限）")"
+              else sum "  - $d 已有 DNS 紀錄，沒動"; fi
+            done
+          fi
+          # ③ 最新狀態
+          sleep 5
+          curl -s "${H[@]}" "$API/accounts/$CF_ACC/pages/projects/$PROJECT/domains" | jq -r '.result[]? | "- \(.name)：\(.status)\(if .verification_data.error_message then "（" + .verification_data.error_message + "）" else "" end)"' | tee -a "$GITHUB_STEP_SUMMARY"
+          sum ""
+          sum "狀態 active＝網址可以開了；pending＝等 DNS／憑證（通常 5～15 分鐘）。"

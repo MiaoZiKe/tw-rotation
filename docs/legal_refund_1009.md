@@ -12,7 +12,7 @@
 | 1 | 方案說明和價格 | **有**。`#pricing` 三張方案卡＋功能比較表，月繳／年繳切換；價格讀後端（Worker `/v1/plans/public`），讀不到就寫「價格待定」，不編數字。目前是「申請制，專人開通；線上付款即將推出」 | 不變；付費卡升級鈕下面多一行「付款前請先閱讀《退款與取消訂閱政策》《使用條款》」；**訂閱申請對話框的必勾同意改成 Andy 10-09 指定那一句**（含排除七日解除權），沒勾不能送，送出時記錄同意時間＋條款版本 | `/#pricing` |
 | 2 | 退款／取消訂閱政策 | **沒有獨立頁**。只有使用條款一句「退款條件以購買頁所示為準」 | **新增 `#refund`「退款與取消訂閱政策」**（第四份法律文件）；頁尾、使用條款付費段、方案頁都連過去 | `/#refund` |
 | 3 | 隱私權政策和服務條款 | **有**：`#disclaimer` 免責聲明、`#terms` 使用條款、`#privacy` 隱私權政策，頁尾有連結 | 補內容（見第三節）；法律頁頂端分頁從 3 顆變 4 顆 | `/#terms`、`/#privacy`、`/#disclaimer` |
-| 4 | 聯絡方式 | **有**：`legal.js` 的 `CONTACT_EMAIL`（kcq01010909@gmail.com，開 Gmail 撰寫＋複製信箱鈕）；右下角客服表單（`support.js`，類別有「帳號與付費 → 退款與取消」） | 退款頁的聯絡卡多一顆「開啟客服表單」（直接打開右下角客服） | 每頁右下角；各法律頁最後一節 |
+| 4 | 聯絡方式 | **有**：`legal.js` 的 `CONTACT_EMAIL`（liguligu0818@gmail.com，開 Gmail 撰寫＋複製信箱鈕）；右下角客服表單（`support.js`，類別有「帳號與付費 → 退款與取消」） | 退款頁的聯絡卡多一顆「開啟客服表單」（直接打開右下角客服） | 每頁右下角；各法律頁最後一節 |
 
 ### CEO 盤點中要更正的兩點（逐項驗過）
 
@@ -55,7 +55,7 @@ const r = window.TwLegal.refund();   // { days: 7, processDays: 14, outageDays: 
 // 退路：直接讀設定檔
 const days = (window.TW_LEGAL || {}).REFUND_DAYS || 7;
 // 客服信箱
-window.TwLegal.contact   // 'kcq01010909@gmail.com'
+window.TwLegal.contact   // 'liguligu0818@gmail.com'
 window.TwLegal.termsVersion()   // 同意證據用的條款版本：effective_date；未填時 'draft-2026-10-09'
 ```
 
@@ -124,7 +124,7 @@ window.TwLegal.termsVersion()   // 同意證據用的條款版本：effective_da
 | 欄位 | 要填什麼 | 已填入的值 | 依據 |
 |---|---|---|---|
 | `operator` | 服務提供者 | **哩股哩股** | Andy 原話：「哩股哩股」 |
-| `email` | 法律文件聯絡信箱 | **kcq01010909@gmail.com** | Andy 原話：「沿用 kcq01010909@gmail.com 後面會更改」（要改時連 `legal.js` 的 `CONTACT_EMAIL` 一起換） |
+| `email` | 法律文件聯絡信箱 | **liguligu0818@gmail.com**（10-11 換成商用信箱） | Andy 原話：「沿用 kcq01010909@gmail.com 後面會更改」（要改時連 `legal.js` 的 `CONTACT_EMAIL` 一起換） |
 | `effective_date` | 生效日期 | **2026-10-01** | Andy 原話：「先設定10/01 後面上架 會在改」（改它＝所有人重新看到一次同意橫幅） |
 | `tax_id` | 統一編號 | **尚未辦理** | Andy 原話：「尚未辦理」 |
 | `court` | 第一審管轄法院 | **臺灣臺北地方法院**，使用條款加但書：「但不得排除消費者保護法第 47 條及民事訴訟法第 436 條之 9 小額訴訟管轄規定之適用；法律有專屬管轄之特別規定者，從其規定。」 | CEO 查證後採用：實務多採認臺北地院合意管轄，但消費訴訟得由消費關係發生地法院管轄（消保法 §47、民訴 §2-2），常見條款範例都加這段但書。使用條款改成讀 `legal_config.court`，不再寫死。仍列入第七節第 10 項請專業人士看 |

@@ -66,6 +66,8 @@ const CHART_FILES = {
 
 // 允許呼叫這支 Worker 的網站。要多一個網域就加在這裡。
 const ALLOW_ORIGINS = [
+  'https://liguligu-puipui.com',       // 2026-10-11 Andy：正式網域（Cloudflare Pages 自訂網域）
+  'https://www.liguligu-puipui.com',
   'https://miaozike.github.io',
   'https://tw-rotation.pages.dev',   // 2026-10-06 Cloudflare Pages 雙部署
   'http://127.0.0.1:8766',   // scripts/_preview.py

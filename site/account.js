@@ -529,7 +529,7 @@ html:not(.m4) .m4deldlg .msg{min-height:1.4em;font-size:13px;color:#ff6b7a;margi
         <li><b>線上狀態</b>：關掉分頁，或 7 分鐘沒有訊號，就刪除。</li>
         <li><b>保存期限</b>：會員資料保存到你刪除為止；連續 24 個月沒有使用會自動刪除。</li>
         <li><b>存放</b>：Cloudflare（Workers／Durable Objects）；登入經由 Google 驗證身分。</li>
-        <li><b>刪除</b>：可於登入後的帳號選單自行刪除帳號（立即刪除會員資料與雲端自選清單），或來信客服 kcq01010909@gmail.com 申請，十五日內處理。</li>
+        <li><b>刪除</b>：可於登入後的帳號選單自行刪除帳號（立即刪除會員資料與雲端自選清單），或來信客服 liguligu0818@gmail.com 申請，十五日內處理。</li>
       </ul>
       <p class="muted">詳見 <a href="#privacy" data-close>隱私權政策</a>。按下「用 Google 帳號登入」即表示你同意上述蒐集與利用。</p>
       <div class="row2"><button type="button" data-close>取消</button><button type="button" class="pri" id="acctGo">用 Google 帳號登入</button></div>`;
