@@ -8,7 +8,7 @@ workers_dev = true
 # 只有這些網站可以呼叫（CORS ＋ POST 的 Origin 檢查 ＋ 登入完成後可以回去的網址）。
 # 這不是金鑰，是公開的網域白名單。
 [vars]
-ALLOWED_ORIGINS = "https://miaozike.github.io https://tw-rotation.pages.dev"
+ALLOWED_ORIGINS = "https://liguligu.com https://www.liguligu.com https://miaozike.github.io https://tw-rotation.pages.dev"
 # 2026-10-07 每日額度：第一次啟動時種 Plus（每日 50）與 Pro（不限）兩個付費範本（只種一次；管理者刪掉不會再長回來，docs/quota_plan.md）
 SEED_PLANS = "plus,pro"
 

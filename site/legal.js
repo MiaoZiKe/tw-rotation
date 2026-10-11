@@ -22,7 +22,7 @@
   const SITE_NAME = '本網站';
   // 2026-10-07 Andy 定案站名「哩股哩股」：頁尾 © 用它；條文內文仍用 SITE_NAME「本網站」（法律文件的泛稱，不必跟著改名）
   const BRAND_NAME = '哩股哩股';
-  const CONTACT_EMAIL = 'kcq01010909@gmail.com';
+  const CONTACT_EMAIL = 'liguligu0818@gmail.com';   // 2026-10-11 Andy：「今天我正式成立新的商用mail : LIGULIGU0818@gmail.com 幫我把原來的所有Mail 改成新的」
   const UPDATED = '2026-10-07';
 
   /* 驗收腳本用 add_init_script 注入 window.TW_LEGAL_OVERRIDE 來模擬「已經填好」的狀態。

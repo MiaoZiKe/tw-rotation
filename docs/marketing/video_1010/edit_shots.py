@@ -54,3 +54,24 @@ def add_kw(path, table):
     for e, t in sorted(reps, reverse=True):
         b = b[:e] + t.encode("utf8") + b[e:]
     open(path, "w", encoding="utf8").write(b.decode("utf8"))
+
+
+def replace_stmt(path, sid, newcode):
+    """把 S.append(feat*("sid", ...)) 整個敘述換成 newcode（縮排 4 格；可多行）。"""
+    src = open(path, encoding="utf8").read()
+    tree = ast.parse(src)
+    lines = src.split("\n")
+    offs = [0]
+    for ln in lines:
+        offs.append(offs[-1] + len(ln.encode("utf8")) + 1)
+    b = src.encode("utf8")
+    for n in ast.walk(tree):
+        if isinstance(n, ast.Expr) and isinstance(n.value, ast.Call) and getattr(n.value.func, "attr", "") == "append":
+            c = n.value.args[0] if n.value.args else None
+            if isinstance(c, ast.Call) and c.args and isinstance(c.args[0], ast.Constant) and c.args[0].value == sid:
+                s_ = offs[n.lineno - 1]
+                e_ = offs[n.end_lineno - 1] + n.end_col_offset
+                b = b[:s_] + newcode.encode("utf8") + b[e_:]
+                open(path, "w", encoding="utf8").write(b.decode("utf8"))
+                return True
+    raise KeyError(sid)

@@ -43,6 +43,8 @@ const CACHE_CHART = 10;
 const UPSTREAM_TIMEOUT_MS = 8000;
 
 const ALLOW_ORIGINS = [
+  'https://liguligu.com',       // 2026-10-11 Andy：正式網域（Cloudflare Pages 自訂網域）
+  'https://www.liguligu.com',
   'https://miaozike.github.io',
   'http://127.0.0.1:8766',   // scripts/_preview.py
   'http://127.0.0.1:8767',   // scripts/_uitest.py
