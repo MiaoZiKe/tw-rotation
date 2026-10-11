@@ -36,7 +36,7 @@ def featp(sid, D, clip, ev_clip, srcmap, head, hl, sub, pill, focus=None, idle="
     """播放鏡頭：用 _v3c（60fps）素材原速，不凍結不丟格；點擊事件借用同鏡原檔的事件表。"""
     from v3_core import events_for
     rec = Rec4(clip, srcmap, focus=focus, pan=pan_)
-    op = Op(rec, idle=idle, events=events_for(ev_clip))
+    op = Op(rec, idle=idle, events=(events_for(clip) or events_for(ev_clip)))
     rec.pan = solve_pan(rec, op, D, pan_)
     return Shot4(sid, D, [rec], pill=pill, head=head, hl=hl, sub=sub, op=op)
 
@@ -98,18 +98,18 @@ def build():
     S.append(feat("12", 2.5, "V08_mobile", stat(3.1, 2.5), "④ 哪裡熱一眼看", "一眼看", '哪裡熱？整個台股我幫你畫成一張圖', "熱力圖",
                   idle=[(0, 'magnifier'), (1.4, 'face_star')], pan_=pan(0, 400, 2.5)))
     M7 = "V07b_mobile_v3g"
-    S.append(feat("13a", 3.0, M7, [(0, 5.0), (3.0, 8.0)], "題材資金熱力", "題材", "點進一個題材，我帶你看它的上中下游", "熱力圖",
-                  idle=[(0, "fire"), (1.6, "face_shock")], pan_=pan(0, 0, 3.0)))
-    S.append(feat("13b", 2.8, M7, [(0, 12.3), (2.8, 15.1)], "① GPU／ASIC 與封裝", "上游", "GPU、ASIC 與封裝：這一環誰在做，我點給你看", "熱力圖",
-                  idle="pointer_r", pan_=pan(0, 1300, 2.8)))
-    S.append(feat("13c", 2.8, M7, [(0, 16.900000000000002), (2.8, 19.700000000000003)], "② 上板", "上板", "接著往下游，上板這一環也一樣", "熱力圖",
-                  idle="face_curious", pan_=pan(0, 1300, 2.8)))
-    S.append(feat("13d", 2.8, M7, [(0, 21.5), (2.8, 24.3)], "③ 電源與散熱", "電源散熱", "電源與散熱，每家負責什麼我標好了", "熱力圖",
-                  idle="magnifier", pan_=pan(0, 1300, 2.8)))
-    S.append(feat("13e", 2.8, M7, [(0, 28.6), (2.8, 31.400000000000002)], "④ 托盤組裝", "托盤", "托盤組裝，離整櫃交付又近一步", "熱力圖",
-                  idle="face_think", pan_=pan(0, 1300, 2.8)))
-    S.append(feat("13f", 2.8, M7, [(0, 35.599999999999994), (2.8, 38.4)], "⑤ 整櫃交付", "整櫃交付", "整櫃交付，上中下游一路看到底", "熱力圖",
-                  idle="face_proud", pan_=pan(0, 1300, 2.8)))
+    S.append(feat("13a", 2.0, M7, [(0, 4.3), (2.0, 6.3)], "上中下游，一路看到底", "一路", "上中下游，一路看到底", "熱力圖",
+                  idle=[(0, "fire"), (1.0, "face_shock")], pan_=pan(0, 0, 2.0)))
+    S.append(feat("13b", 1.2, M7, [(0, 12.55), (1.2, 13.75)], "上中下游，一路看到底", "一路", "上中下游，一路看到底", "熱力圖",
+                  idle="pointer_r", pan_=pan(0, 700, 1.2)))
+    S.append(feat("13c", 1.2, M7, [(0, 17.15), (1.2, 18.35)], "上中下游，一路看到底", "一路", "上中下游，一路看到底", "熱力圖",
+                  idle="face_curious", pan_=pan(0, 700, 1.2)))
+    S.append(feat("13d", 1.2, M7, [(0, 21.75), (1.2, 22.95)], "上中下游，一路看到底", "一路", "上中下游，一路看到底", "熱力圖",
+                  idle="magnifier", pan_=pan(0, 700, 1.2)))
+    S.append(feat("13e", 1.2, M7, [(0, 28.85), (1.2, 30.05)], "上中下游，一路看到底", "一路", "上中下游，一路看到底", "熱力圖",
+                  idle="face_think", pan_=pan(0, 700, 1.2)))
+    S.append(feat("13f", 1.2, M7, [(0, 35.85), (1.2, 37.05)], "上中下游，一路看到底", "一路", "上中下游，一路看到底", "熱力圖",
+                  idle="face_proud", pan_=pan(0, 700, 1.2)))
     S.append(feat("14", 2.5, "V11_mobile", [(0, 14.8), (2.5, 17.6)], "⑤ 2D 看產業鏈", "2D", '圓圈編號對到說明卡，我一段一段講給你', "產業地圖",
                   idle=[(0, 'face_nod'), (1.5, 'talk_happy')], pan_=pan(600, 1000, 2.5)))
     S.append(feat("15", 3.0, "V12a_mobile", [(0, 2.0), (3.0, 9.0)], "3D：AI 伺服器", "3D", '拖一下就能轉，整台機櫃我幫你拆開給你看', "產業地圖",
@@ -123,18 +123,31 @@ def build():
                   idle=[(0, 'face_wink'), (1.6, 'talk_happy')], pan_=pan(0, 0, 3.4)))
     S.append(feat("19b", 1.8, D1, stat(14.5, 1.8), "報價、K 線一眼看", "K 線", '報價、K 線、指標，我放在同一張卡', "個股",
                   focus=F((0, 0, 1, 1), "個股報價與 K 線卡", D1, 0.5), idle=[(0, 'face_nod')], pan_=pan(0, 0, 1.8)))
-    S.append(feat("19c", 1.6, D1, [(0, 17.0), (1.6, 19.2)], "基本面一張卡", "基本面", 'EPS、ROE、本益比，基本面我幫你抓重點', "個股",
-                  idle=[(0, 'face_think')], pan_=pan(380, 900, 1.6)))
-    S.append(feat("19d", 1.6, D1, [(0, 20.4), (1.6, 22.0)], "籌碼快照", "籌碼", '法人、集保、信用、當沖，一次給你看', "個股",
-                  idle=[(0, 'magnifier')], pan_=pan(380, 900, 1.6)))
-    S.append(feat("19e", 2.0, D1, [(0, 24.3), (2.0, 26.3)], "AI 分析", "AI 分析", 'AI 分析先給你結論，條件到哪我也列出來', "個股",
-                  idle=[(0, 'bulb')], pan_=pan(380, 900, 2.0)))
-    S.append(feat("19f", 2.2, "D06_mobile_v3d", [(0, 8.0), (2.2, 10.2)], "K 線、指標、畫線", "K 線", 'K 線想切週期、加指標、畫線，都行', "個股",
-                  idle=[(0, 'face_star'), (1.2, 'face_proud')], use_events=False, pan_=pan(0, 0, 2.2)))
-    S.append(feat("19g", 2.0, "D05_mobile_v3d", [(0, 10.0), (2.0, 12.0)], "資券一頁看", "資券", '融資融券的變化，我幫你一頁排好', "個股",
-                  idle=[(0, 'face_curious')], use_events=False, pan_=pan(0, 500, 2.0)))
-    S.append(feat("19h", 2.0, "D07_mobile_v3d", [(0, 10.0), (2.0, 12.0)], "除權息紀錄", "除權息", '歷年股利、除息日，一頁看完', "個股",
-                  idle=[(0, 'piggy')], use_events=False, pan_=pan(0, 500, 2.0)))
+    S.append(feat("19c", 2.2, D1, [(0, 17.5), (2.2, 21.0)], "基本面一張卡", "基本面", "EPS、ROE、本益比，基本面我幫你抓重點", "個股",
+                  idle="face_think", pan_=pan(380, 900, 2.2)))
+    S.append(feat("19d", 2.2, D1, [(0, 21.5), (2.2, 25.0)], "籌碼快照", "籌碼", "法人、集保、信用、當沖，一次給你看", "個股",
+                  idle="magnifier", pan_=pan(380, 900, 2.2)))
+    S.append(feat("19e", 2.4, D1, [(0, 25.4), (2.4, 28.9)], "AI 分析", "AI 分析", "AI 分析先給你結論，條件到哪我也列出來", "個股",
+                  idle="bulb", pan_=pan(380, 900, 2.4)))
+    D2M = "D02_mobile_v3d"
+    S.append(feat("19e2", 2.6, D2M, [(0, 3.8), (2.6, 6.4)], "AI 分析：看細節", "看細節", "想知道原因？點開，我逐條講給你聽", "個股",
+                  idle=[(0, "talk_explain"), (1.4, "face_nod")], pan_=pan(0, 0, 2.6)))
+    S.append(feat("19e3", 2.4, D2M, [(0, 13.3), (2.4, 15.7)], "切到籌碼面", "籌碼面", "切到籌碼面，法人買賣我幫你看", "個股",
+                  idle="face_curious", pan_=pan(0, 0, 2.4)))
+    S.append(feat("19e4", 2.2, D2M, [(0, 18.0), (2.2, 20.2)], "切到基本面", "基本面", "基本面也一鍵切換，營運估值一次看", "個股",
+                  idle="face_think", pan_=pan(0, 0, 2.2)))
+    S.append(feat("19e5", 2.2, D2M, [(0, 22.7), (2.2, 24.9)], "切到消息面", "消息面", "消息面，我把新聞整理成一面給你", "個股",
+                  idle="news", pan_=pan(0, 0, 2.2)))
+    S.append(feat("19f", 2.4, "D06_mobile_v3d", [(0, 7.0), (2.4, 9.4)], "切週期，K 線立刻換", "切週期", "切週期，K 線我立刻幫你換", "個股",
+                  idle=[(0, "face_star"), (1.2, "face_proud")], pan_=pan(0, 0, 2.4)))
+    S.append(feat("19g1", 2.4, "D05_mobile_v3d", [(0, 0.9), (2.4, 3.3)], "法人買賣一頁看", "法人", "三大法人買賣超，我幫你排成一張", "個股",
+                  idle="magnifier", pan_=pan(0, 0, 2.4)))
+    S.append(feat("19g2", 2.4, "D05_mobile_v3d", [(0, 4.6), (2.4, 7.0)], "資券一頁看", "資券", "融資融券的變化，我幫你一頁排好", "個股",
+                  idle="face_think", pan_=pan(0, 0, 2.4)))
+    S.append(feat("19h1", 2.2, "D07_mobile_v3d", [(0, 0.9), (2.2, 3.1)], "基本資料", "基本資料", "公司基本資料，我幫你整理好", "個股",
+                  idle="folder", pan_=pan(0, 0, 2.2)))
+    S.append(feat("19h2", 2.4, "D07_mobile_v3d", [(0, 4.6), (2.4, 7.0)], "除權息紀錄", "除權息", "歷年股利、除息日，我幫你列出來", "個股",
+                  idle="piggy", pan_=pan(0, 0, 2.4)))
     S.append(feat("22", 2.5, "V16_mobile", act(3.4, 2.5, 1.3, 0.8), "⑦ 完整名單", "完整名單", '完整名單我排給你，點欄位就能排序', "市場明細",
                   idle=[(0, 'hourglass'), (1.5, 'face_nod')], pan_=pan(0, 400, 2.5)))
     S.append(feat("23", 2.5, "V17_mobile", act(6.6, 2.5, 1.0, 0.8), "⑧ 公開條件篩", "條件篩", '用公開條件篩一遍，省下你自己翻的時間', "選股策略",
@@ -148,14 +161,14 @@ def build():
     S.append(feat("27", 3.0, "V21_mobile_v3b", act(4.3, 3.0, 1.6, 0.8), "報酬放一起比", "一起比", '幾檔一起比，含息不含息我分開算', "ETF",
                   idle=[(0, 'calc'), (1.8, 'face_think')], pan_=pan(0, 900, 3.0)))
     ME = "V13b_mobile_v3e"
-    S.append(feat("28a", 2.6, ME, stat(4.6, 2.6), "現金流試算組合", "試算組合", "組合 B：甜甜圈、12 個月時鐘、每月入帳長條、明細", "ETF",
-                  idle=[(0, "calc"), (1.4, "boba")], pan_=pan(1500, 3500, 2.6), no_solve=True))
-    S.append(feat("28b", 2.8, ME, [(0, 6.0), (2.8, 8.8)], "點一檔，三張圖一起亮", "一起亮", "點一檔，三張圖一起亮", "ETF",
-                  idle="face_love", pan_=(3500, 1550, 1.1, 2.3), no_solve=True))
-    S.append(feat("28c", 2.8, ME, [(0, 9.5), (2.8, 12.3)], "再點一檔", "再點", "哪個月領多少，一眼看懂", "ETF",
-                  idle="face_nod", pan_=(3500, 1550, 1.1, 2.3), no_solve=True))
-    S.append(feat("28d", 2.8, ME, [(0, 12.9), (2.8, 15.7)], "每月入帳跟著變", "跟著變", "換一檔，每月入帳立刻跟著變", "ETF",
-                  idle="face_proud", pan_=(3500, 1550, 1.1, 2.3), no_solve=True))
+    S.append(feat("28a", 1.6, ME, stat(4.6, 1.6), "點一檔，三張圖一起亮", "一起亮", "點一檔，三張圖一起亮", "ETF",
+                  idle=[(0, "calc"), (0.9, "boba")], pan_=pan(1600, 3400, 1.6), no_solve=True))
+    S.append(feat("28b", 1.3, ME, [(0, 6.2), (1.3, 7.5)], "點一檔，三張圖一起亮", "一起亮", "點一檔，三張圖一起亮", "ETF",
+                  idle="face_love", pan_=(3500, 1550, 0.55, 1.25), no_solve=True))
+    S.append(feat("28c", 1.3, ME, [(0, 9.7), (1.3, 11.0)], "點一檔，三張圖一起亮", "一起亮", "點一檔，三張圖一起亮", "ETF",
+                  idle="face_nod", pan_=(3500, 1550, 0.55, 1.25), no_solve=True))
+    S.append(feat("28d", 1.8, ME, [(0, 13.1), (1.8, 14.9)], "點一檔，三張圖一起亮", "一起亮", "點一檔，三張圖一起亮", "ETF",
+                  idle="face_proud", pan_=(3500, 1550, 0.55, 1.35), no_solve=True))
     S.append(feat("29", 2.5, "V23_mobile", [(0, 1.0), (1.5, 2.5), (2.5, 5.5)], "複利看得到", "複利", '配息再投入，複利我畫給你看', "ETF",
                   idle=[(0, 'growth'), (1.5, 'face_proud')], pan_=pan(0, 600, 2.5)))
     S.append(feat("30", 3.0, "V24_mobile", act(3.9, 3.0, 1.6, 0.8), "⑪ 存自己的股", "存自己", '喜歡的股票存起來，每天打開就看到', "自選清單",
@@ -166,4 +179,7 @@ def build():
     S.append(card("33", 3.0, K.benefits_fn(), [(0.3, "pop"), (0.65, "pop"), (1.0, "pop"), (1.35, "pop")]))
     S.append(card("34", 3.0, K.end_fn(), [(0, "pop"), (1.0, "ding")]))
     S.append(card("35", 5.0, K.disclaimer_fn()))
+    for _s in S:
+        if _s.sid in ('13c', '13d', '13e', '13f', '28b', '28c', '28d'):
+            _s.cont = True
     return S

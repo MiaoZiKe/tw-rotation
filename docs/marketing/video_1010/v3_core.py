@@ -190,9 +190,11 @@ def click_target(clip, t_src, x, y):
                 continue
             dt = abs(float(it["t"]) - t_src)
             if dt < 0.5 and (best is None or dt < best[0]):
-                best = (dt, _xywh(it["video_rect"]), it.get("label", ""))
+                best = (dt, _xywh(it["video_rect"]), it.get("label", ""), it.get("hit_expected", None))
         if best:
-            return best[1], best[2], "錄影端 DOM（coords／click_targets）"
+            h = best[3]
+            tag = "；hit_expected=True（最上層元素驗證過）" if h is True else ("；hit_expected=False（最上層不是目標）" if h is False else "；未驗 hit_expected（舊錄影，以 DOM rect 驗落點）")
+            return best[1], best[2], "錄影端 DOM（click_targets）" + tag
     return (x - 45, y - 45, x + 45, y + 45), "", "座標估值±45px（錄影端尚未提供該素材）"
 
 
@@ -754,7 +756,7 @@ class Op:
                     sx0, sy0, sw_, sh_ = rec.rect
                     inside_v = sx0 <= cxy[0] <= sx0 + sw_ and sy0 <= cxy[1] <= sy0 + sh_
                     CLICKS.append((shot.sid, round(t, 2), rec.clip, label or "(座標)", (round(cxy[0]), round(cxy[1])),
-                                   (round(a[0]), round(a[1]), round(b[0]), round(b[1])), inside_t and inside_v, srcname))
+                                   (round(a[0]), round(a[1]), round(b[0]), round(b[1])), inside_t and inside_v and "hit_expected=False" not in srcname, srcname))
         if not pro:
             for t0, t1, name, foot, size, mode in self.extra:
                 if t0 <= t < t1:
@@ -855,6 +857,8 @@ class Shot4:
                 c.append((r.focus.t_zoom, "zoom"))
         return sorted(c)
 
+    cont = False      # 與前一鏡同一句字卡：不重新淡入
+
     def render(self, t, L):
         self.L = L
         C.begin()
@@ -865,11 +869,11 @@ class Shot4:
         if self.custom:
             self.custom(cv, t, self)
         if self.kind == "feature":
-            self._overlays(cv, t, L)
+            self._overlays(cv, t + (1.0 if self.cont else 0.0), L)
         if self.op:
             self.op.draw(cv, t, self)
         if self.kind == "feature":
-            host_bubble(cv, L, self, self.sub, t)
+            host_bubble(cv, L, self, self.sub, t, t + (1.0 if self.cont else 0.0))
         return cv
 
     def _overlays(self, cv, t, L):
@@ -942,12 +946,12 @@ def footnote4(cv, L):
         C.reg("footnote", (x, y, x + tw, y + 28))
 
 
-def host_bubble(cv, L, shot, text, t):
+def host_bubble(cv, L, shot, text, t, t_alpha=None):
     """比比的台詞泡泡（網頁、手機共用）：單一路徑，尾巴尖端離比比 14px、只指向比比，文字離尾巴 ≥10px。"""
     if not text or not shot.op:
         return
     nm, br = shot.op.home_rect(L, t)
-    _bubble_at(cv, L, text, t, br, hide=shot.op.away(t))
+    _bubble_at(cv, L, text, t if t_alpha is None else t_alpha, br, hide=shot.op.away(t))
 
 
 def card_host(cv, L, nm, text, t, mode=None):
