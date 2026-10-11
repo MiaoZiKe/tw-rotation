@@ -92,7 +92,7 @@ def build():
     S.append(shot("g05", "個股", D10, [(20.3, 21.4), (23.7, 25.4)], "旁邊看營收獲利", "營收、獲利，旁邊點就有", [(0, "face_proud"), (1.0, "face_nod")], hl="營收獲利"))
     S.append(shot("h01", "市場明細", "V16_mobile", [(7.8, 10.0)], "⑦ 市場明細", "法人連買賣，名單直接看", [(0, "pointer_l"), (1.4, "face_curious")], min_cap=3.0))
     S.append(shot("h02", "選股策略", "V17_mobile", [(6.1, 9.1)], "⑧ 條件分好類", "技術、籌碼，分面向整理", [(0, "folder"), (1.4, "face_nod")]))
-    S.append(shot("h03", "週期統計", "V18_mobile", [(3.8, 6.8)], "⑨ 週期統計", "歷年月份規律，一張表", [(0, "hourglass"), (1.4, "face_think")]))
+    S.append(shot("h03", "週期統計", "V18_mobile_dsf4_nofab", [(3.8, 6.8)], "⑨ 週期統計", "歷年月份規律，一張表", [(0, "hourglass"), (1.4, "face_think")]))
     S.append(shot("i01", "ETF", "V19_mobile_v3b", [(3.6, 6.8)], "⑩ ETF 配息曆", "存 ETF？哪天除息我標好", [(0, "piggy"), (1.6, "face_love")]))
     # 手機 ETF 順序：報酬比較（配息型）→ 各類前五名（配息型→市值型），類型只往前切、不回頭（錄影 V21 的類型＝V20 開場的類型）
     S.append(shot("i02", "ETF", "V21_mobile_v3b", [(10.9, 12.9)], "報酬一起比", "含息不含息分開算", [(0, "face_think"), (1.2, "point_ur")], pan=(0, 700)))
