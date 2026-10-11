@@ -973,6 +973,12 @@ def def_pt(p, x, y):
 def _def_local_inv(p):
     """原圖座標上的局部變形（反向）：耳朵繞耳根轉、腳平移、毛邊飄。回傳 f(x,y)->(sx,sy)（向量化）。"""
     ears = [(DEF_EAR_L, DEF_EARP_L, -p["ear"]), (DEF_EAR_R, DEF_EARP_R, p["ear2"])]
+    # 大傾斜時耳朵自己調位置（CEO 10-11：傾斜 >18° 耳朵不能只跟著身體轉）：
+    # 兩耳都往傾斜方向（頭頂移動方向）挪一點；背向那一耳縮小、收進毛裡一點。
+    rot = p["rot"]
+    tilt = max(0.0, abs(rot) - 8) * (1 if rot > 0 else -1)
+    ear_tx = [0.55 * tilt, 0.55 * tilt]
+    ear_sc = [1 - max(0.0, tilt) / 70, 1 - max(0.0, -tilt) / 70]
     feet = [(DEF_FOOT_L, p["bf_far"]), (DEF_FOOT_R, p["bf_near"])]
     amp, ph = p["flutter"], p["fphase"]
     bx, by = DEF_BODY_C
@@ -980,14 +986,15 @@ def _def_local_inv(p):
     def f(X, Y):
         sx_, sy_ = X.copy(), Y.copy()
         # 耳朵：權重＝離耳朵中心近、且在頭頂（y 小於耳根下方一點）
-        for (ec, pv, ang) in ears:
-            if abs(ang) < 0.05:
+        for k_, (ec, pv, ang) in enumerate(ears):
+            tx, sc = ear_tx[k_], ear_sc[k_]
+            if abs(ang) < 0.05 and abs(tx) < 0.05 and abs(sc - 1) < 0.005:
                 continue
-            d = np.hypot(X - ec[0], Y - ec[1])
+            d = np.hypot(X - ec[0] - tx, Y - ec[1])
             w = _smooth((78 - d) / 40) * _smooth((pv[1] + 22 - Y) / 30)
             th = np.radians(-ang) * w        # 反向旋轉
             c, s = np.cos(th), np.sin(th)
-            dx, dy = X - pv[0], Y - pv[1]
+            dx, dy = (X - tx * w - pv[0]) / (1 + (sc - 1) * w), (Y - pv[1]) / (1 + (sc - 1) * w)
             sx_ += (c * dx - s * dy + pv[0]) - X
             sy_ += (s * dx + c * dy + pv[1]) - Y
         # 腳：在腳附近平移（反向：取 p - d·w，w 在「移過去的位置」估）
@@ -1042,6 +1049,23 @@ def def_layer_affine(im: Image.Image, p) -> Image.Image:
     M = def_matrix(p)
     Sm = np.diag([S, S, 1.0])
     return warp_affine(im, Sm @ M @ np.linalg.inv(Sm))
+
+
+def motion_marks_svg(x, y, side=1, s=1.0, n=2) -> str:
+    """身體旁的小弧形動作線（原版跳躍參考圖那種）：side=1 畫在右邊（弧往右彎）。"""
+    out = []
+    for i in range(n):
+        yy = y + i * 22 * s
+        xx = x + side * i * 6 * s
+        out.append(f'<path d="M {xx:.1f} {yy-10*s:.1f} Q {xx + side*9*s:.1f} {yy:.1f} {xx:.1f} {yy+10*s:.1f}" fill="none" '
+                   f'stroke="{DEF_INK}" stroke-width="{5*s:.1f}" stroke-linecap="round"/>')
+    return "".join(out)
+
+
+def drop_lines_svg(x, y, n=3, gap=26, L=26) -> str:
+    """身體下方的短直線（往上跳時的速度線）。"""
+    return "".join(f'<path d="M {x + (i-(n-1)/2)*gap:.1f} {y:.1f} L {x + (i-(n-1)/2)*gap:.1f} {y+L:.1f}" stroke="{DEF_INK}" '
+                   f'stroke-width="5" stroke-linecap="round"/>' for i in range(n))
 
 
 def def_paw_svg(x, y, rot=0.0, s=1.0) -> str:
@@ -1185,8 +1209,13 @@ def compose_default(p: dict, props_back=None, props_mid=None, props_front=None, 
         face.alpha_composite(svg_layer(sv))
         if kind == "wink":
             face.alpha_composite(def_layer_affine(shifted(A["eye_l"]), p))
-    if p["mouth"] == "default":
+    # 張嘴笑一律用原版小舌頭嘴的原像素（CEO 10-11：不要大一號）；big＝同一張嘴往下拉長一點（驚喜、歡呼）
+    if p["mouth"] in ("default", "smile", "open"):
         face.alpha_composite(def_layer_affine(shifted(A["mouth"]), p))
+    elif p["mouth"] == "big":
+        mx_, my_ = DEF_MOUTH[0] * S, (DEF_MOUTH[1] - 26) * S
+        Mb = mat(mx_, my_, 0, 1.06, 1.3, 0, mx_, my_)
+        face.alpha_composite(def_layer_affine(warp_affine(shifted(A["mouth"]), Mb), p))
     elif p["mouth"] != "none":
         X, Y = def_pt(p, DEF_MOUTH[0] + off[0], DEF_MOUTH[1] - 6 + off[1])
         face.alpha_composite(svg_layer(def_mouth_svg(p["mouth"], X, Y)))

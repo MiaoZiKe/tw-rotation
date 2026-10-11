@@ -691,6 +691,87 @@ def clip_selfie():
     ])
 
 
+# ================================================================== 原版 Default 造型（Andy 10-11 第二次退件後）
+def _dp(pose, ox, oy):
+    """原圖座標 → 這一格的世界座標（跟著本體擠壓、傾斜）。"""
+    return R.def_pt({**R.DEFAULT, **pose}, ox, oy)
+
+
+SIDE_PAWS = lambda rl=-60, rr=60, dy=0: [(70, 350, -4, dy, rl), (438, 350, 4, dy, rr)]  # noqa: E731
+
+
+def clip_happy_hop_d() -> list[dict]:
+    """開心跳（原版造型，照 hop_sheet_ref 節奏）：Default→微蹲→壓扁^^→更扁><→起跳左傾（露腳底、下方速度線）→
+    最高點右傾（星星眼、頭上放射線）→下落→落地壓扁><→回彈→眨眼接回 Default。循環。"""
+    fr = []
+
+    def add(ms, label, fx=None, props=None, **kw):
+        fr.append(dict(pose=dict(kw), ms=ms, label=label, fx=fx or [], props_front=props or []))
+
+    mm = lambda y, s=1.0: [R.motion_marks_svg(30, y, -1, s), R.motion_marks_svg(466, y, 1, s)]  # noqa: E731
+    add(260, "Default 站好（原版）")
+    add(120, "微蹲預備（耳朵慢一拍）", sy=0.94, sx=1.04, ear=6, ear2=6)
+    add(110, "壓扁（^^ 瞇眼笑＋動作線）", sy=0.85, sx=1.1, eye="arc", ear=14, ear2=14, flutter=-4, fx=mm(318))
+    add(90, "壓到最扁（>< 用力）", sy=0.78, sx=1.15, eye="squeeze", mouth="w", ear=22, ear2=22, flutter=-6, fphase=0.5,
+        fx=mm(338, 1.1))
+    add(80, "起跳！左傾、露腳底", y=R.FOOT_Y - 56, rot=-14, sy=1.08, sx=0.95, eye="arc", ear=18, ear2=22,
+        flutter=7, fphase=1.0, bf_far=(-12, 12, 0), bf_near=(10, 9, 0), paws=SIDE_PAWS(-70, 70, -6),
+        fx=[R.drop_lines_svg(248, 446, 3, 30, 24)])
+    add(120, "最高點右傾（星星眼、頭上放射線）", y=R.FOOT_Y - 78, rot=16, sy=1.02, eye="star", mouth="smile", blush=1.4,
+        ear=-14, ear2=-10, flutter=4, fphase=1.8, bf_far=(-6, -8, 0), bf_near=(6, -10, 0), paws=SIDE_PAWS(-40, 40, -18),
+        fx=[R.burst_svg(290, 44, 34, 7, -90, 5, R.DEF_INK)])
+    add(70, "往下掉（耳朵還在上）", y=R.FOOT_Y - 36, rot=2, sy=1.07, sx=0.95, ear=-8, ear2=-8, flutter=-3, fphase=2.4,
+        bf_far=(0, 10, 0), bf_near=(0, 10, 0), fx=[R.drop_lines_svg(248, 52, 3, 34, 22)])
+    add(100, "落地壓扁（><＋動作線）", sy=0.8, sx=1.14, eye="squeeze", mouth="w", ear=24, ear2=24, flutter=-7, fphase=3.0,
+        fx=mm(350, 1.1))
+    add(110, "回彈（拉長一點）", y=R.FOOT_Y - 6, sy=1.05, sx=0.97, ear=8, ear2=8, flutter=3, fphase=3.6)
+    add(140, "眨眼、耳朵回位（接回第 1 格）", sy=0.98, rot=-2, eye_open=0.2, ear=-2, ear2=-2)
+    return fr
+
+
+def clip_receive_d(item: str = "") -> list[dict]:
+    """接收（原版造型）：第 1 格就是看到東西彈一下 → 星星眼往右傾、肉掌合在胸前 → 往右前伸 → 接住往回收 →
+    抱到胸前（臉紅）→ 開心彈一下 → 抱著東西回 Default 表情。東西從右上遞進來。"""
+    fr = []
+
+    def item_at(pose, where, dx=0.0, dy=0.0):
+        if not item:
+            return []
+        if where == "reach":
+            x, y = _dp(pose, 424, 304)
+            x, y = x + dx, y + dy
+            if item == "ball":
+                return [ball_layer(x, y, 20, 40)]
+            return [R.svg_layer(R.grass_svg(x - 34, y + 66, 170, 118, 18))]
+        x, y = _dp(pose, 253, 410)
+        x, y = x + dx, y + dy
+        if item == "ball":
+            return [ball_layer(x, y, 0, 46)]
+        return [R.svg_layer(R.grass_svg(x + 96, y + 8, 196, 8, 18))]
+
+    def add(ms, label, where=None, idx=None, fx=None, props=None, **kw):
+        mid = item_at(kw, where, *(idx or (0, 0))) if where else []
+        fr.append(dict(pose=dict(kw), ms=ms, label=label, fx=fx or [], props_front=props or [], props_mid=mid))
+
+    chest = [(212, 404, 0, 0, -18), (296, 404, 0, 0, 18)]
+    add(140, "看到東西彈一下（圓眼、耳朵豎）", y=R.FOOT_Y - 12, sy=1.05, sx=0.97, eye="wide", mouth="o", ear=-14, ear2=-14,
+        flutter=3, look=(0.02, 0))
+    add(220, "眼睛發亮（星星眼）往右傾、肉掌合胸前", rot=7, eye="star", blush=1.5, look=(0.03, 0), ear=6, ear2=-6,
+        paws=chest, fx=[R.star_svg(70, 236, 11, 10), R.star_svg(54, 290, 8, 30, "#FFE58A")])
+    add(110, "雙肉掌往右前伸（拉長）", rot=10, sx=0.96, sy=1.05, eye="wide", mouth="big", look=(0.035, -0.01), ear=-8,
+        ear2=16, flutter=4, paws=[(432, 300, 4, -6, 60), (350, 392, 0, 0, 40)], where="reach")
+    add(130, "接住！往回收（瞇眼笑）", rot=4, sx=1.03, sy=0.97, eye="arc", look=(0.03, 0.01), ear=-2, ear2=20,
+        paws=[(420, 330, 4, 0, 50), (330, 398, 0, 0, 30)], where="reach", idx=(-28, 14),
+        fx=[R.star_svg(476, 238, 11, 15)] if item else [])
+    add(140, "抱到胸前（壓扁、臉紅）", sy=0.9, sx=1.06, eye="smile", mouth="w", blush=1.8, ear=16, ear2=16, flutter=-4,
+        paws=chest, where="chest", idx=(0, 4))
+    add(110, "開心彈一下（愛心）", y=R.FOOT_Y - 16, sy=1.07, sx=0.96, eye="arc", blush=1.5, ear=-8, ear2=-8, flutter=4,
+        paws=chest, where="chest", props=[fx_part("fx_hearts_small", 444, 200, 0.6, 8)])
+    add(520, "抱著東西（回 Default 表情）", blush=1.2, paws=chest, where="chest",
+        props=[fx_part("fx_heart", 452, 172, 0.45, 18)])
+    return fr
+
+
 # ================================================================== 渲染
 CLIPS = {
     "highfive": dict(make=clip_highfive, facing="left", loop=False, note="播一次；網頁的手在右上（約 x 400, y 190）迎上來擊掌（第 3 格）。"),
@@ -706,13 +787,13 @@ CLIPS = {
                     note="播一次（點爆米花圖示）；第 1 格直接起跳預備，最後一格＝正面開心定格，可接 happy_hop。"),
     "eat_grass_v2": dict(make=clip_eat_grass, facing="left", loop=False,
                          note="播一次；接在 receive_grass 後面（第 1 格直接把草送到嘴邊）；最後一格＝正面滿足，可接 happy_hop。"),
-    "happy_hop": dict(make=clip_happy_hop, facing="left", loop=True,
+    "happy_hop": dict(make=clip_happy_hop_d, facing="left", loop=True, rig="default",
                       note="全部 10 格循環＝大部分情境的預設待機（正面，不分左右）。"),
-    "receive": dict(make=lambda: clip_receive(""), facing="left", loop=False,
+    "receive": dict(make=lambda: clip_receive_d(""), facing="left", loop=False, rig="default",
                     note="播一次；東西由網頁疊（從右上遞進來），第 4～5 格肉掌在右上 (约 x 350, y 330) 接。"),
-    "receive_grass": dict(make=lambda: clip_receive("grass"), facing="left", loop=False,
+    "receive_grass": dict(make=lambda: clip_receive_d("grass"), facing="left", loop=False, rig="default",
                           note="播一次；畫面內含牧草：第 4 格起草在右前方肉掌上，第 6 格抱到胸前。接 eat_grass_v2。"),
-    "receive_ball": dict(make=lambda: clip_receive("ball"), facing="left", loop=False,
+    "receive_ball": dict(make=lambda: clip_receive_d("ball"), facing="left", loop=False, rig="default",
                          note="播一次；畫面內含球：第 4 格起球在右前方肉掌上，第 6 格抱到胸前。之後網頁丟球→run_r→ball_catch。"),
     "run_r": dict(make=clip_run, facing="right", loop=True, note="全部 8 格循環（第 8 格接回第 1 格）；網頁負責位移，這裡原地跑。"),
     "run_l": dict(make=clip_run, facing="left", loop=True, note="同 run_r，面向左。"),
@@ -738,8 +819,12 @@ def render_clip(name: str):
             bx, by, ang = fr["ball"]
             mid = [ball_layer(bx, by, ang)]
         mid = mid + list(fr.get("props_mid") or [])
-        can, boxes = R.compose(pose, props_mid=mid, props_front=fr.get("props_front"),
-                               props_back=fr.get("props_back"), fx=fr.get("fx"))
+        if cfg.get("rig") == "default":      # 原版 Default 造型骨架
+            can, boxes = R.compose_default(fr["pose"], props_mid=mid, props_front=fr.get("props_front"),
+                                           props_back=fr.get("props_back"), fx=fr.get("fx"))
+        else:
+            can, boxes = R.compose(pose, props_mid=mid, props_front=fr.get("props_front"),
+                                   props_back=fr.get("props_back"), fx=fr.get("fx"))
         if fr.get("post") is not None:
             post = fr["post"]
             if cfg["facing"] == "right":
