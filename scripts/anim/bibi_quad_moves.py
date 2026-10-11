@@ -176,15 +176,15 @@ def clip_eat_grass():
     def grass(p, L, lifted=True, bite=False):
         mx, my = mouth_at(p)
         if not lifted:
-            return [grass_bunch_svg(mx - 10, GROUND - 8, L, lifted=False)]
+            return [grass_bunch_svg(mx + 6, GROUND - 8, L, lifted=False)]
         return [grass_bunch_svg(mx + 2, my + 4, L, lifted=True, bite=bite)]
 
     seq = [
         # (pose, ms, label, grass_len, lifted, fx)
-        (eat_pose(0.55, 0, "o", "default", 0, -12), 90, "低頭湊近草、鼻子嗅嗅（耳朵前傾）", 112, False, "sniff"),
-        (eat_pose(0.75, 0.4, "o", "default", 0, -16), 80, "再湊近一點嗅（鼻子抖）", 112, False, "sniff2"),
-        (eat_pose(0.9, 1.0, "nibble_a", "default", 0, -6), 70, "張嘴露門牙咬住草尖、叼起來", 112, True, ""),
-        (eat_pose(0.8, 0, "nibble_c", "smile", 0.8, 8), 80, "嚼（臉頰鼓、耳朵抖）", 112, True, "crumb0"),
+        (eat_pose(0.55, 0, "o", "default", 0, -12), 90, "低頭湊近草、鼻子嗅嗅（耳朵前傾）", 96, False, "sniff"),
+        (eat_pose(0.75, 0.4, "o", "default", 0, -16), 80, "再湊近一點嗅（鼻子抖）", 96, False, "sniff2"),
+        (eat_pose(0.9, 1.0, "nibble_a", "default", 0, -6), 70, "張嘴露門牙咬住草尖、叼起來", 96, True, ""),
+        (eat_pose(0.8, 0, "nibble_c", "smile", 0.8, 8), 80, "嚼（臉頰鼓、耳朵抖）", 96, True, "crumb0"),
         (eat_pose(0.82, 0.3, "nibble_d", "smile", 1.1, -4), 80, "嚼（嘴形換邊）草短一截", 92, True, "crumb1"),
         (eat_pose(0.8, 0, "nibble_b", "smile", 0.9, 8), 80, "嚼（半開）", 92, True, ""),
         (eat_pose(0.92, 1.0, "nibble_a", "default", 0.3, -6), 70, "再咬一口（往前湊）", 92, True, ""),
@@ -207,7 +207,7 @@ def clip_eat_grass():
         if fx == "heart":
             fxs.append(heart_svg(R.CX + 120, 196, 1.15, 12))
             fxs.append(heart_svg(R.CX + 160, 150, 0.8, -10))
-        fr.append(F(p, ms, lab, props_mid=grass(p, L, lifted, bite=L < 112), fx=fxs))
+        fr.append(F(p, ms, lab, props_mid=grass(p, L, lifted, bite=L < 96), fx=fxs))
     # 抬頭轉正 → Default
     up = dict(view="q3", eye="smile", mouth="w", blush=1.25, ear=-4)
     fr.append(F(up, 220, "轉正、瞇眼笑（小愛心往上飄）", fx=[heart_svg(R.CX + 150, 120, 0.9, 8)]))
@@ -301,11 +301,11 @@ def clip_wake_once():
               flutter=-7, fphase=1.0, legs={"fl": (-8, 6, -10, 0.6), "fr": (-4, 4, -10, 0.6), "bl": (8, 6, 10, 0.6), "br": (6, 4, 10, 0.6)})
     ht = head_top(p1, 200)
     fr.append(F(p1, 70, "被叫醒嚇一跳：整隻彈起來、毛炸開",
-                fx=[exclaim_svg(ht[0] - 40, ht[1] - 46, 1.15, -10), R.burst_svg(ht[0] - 40, ht[1] - 50, 52, 7, 10, 5.0)],
-                overlay=Q.blanket_overlay(lift=70, dx=70, rot=20, alpha=0.95)))
+                fx=[exclaim_svg(ht[0] - 40, ht[1] - 46, 1.15, -10)],
+                overlay=Q.blanket_overlay(lift=30, dx=24, rot=10, alpha=0.95)))
     p2 = dict(p1, y=GROUND - 26, sy=1.03, sx=1.0, flutter=-4, ear=-14, ear2=-10)
     fr.append(F(p2, 70, "往下掉（被子飛走）", fx=[exclaim_svg(head_top(p2, 200)[0] - 40, head_top(p2, 200)[1] - 40, 1.0, -6)],
-                overlay=Q.blanket_overlay(lift=150, dx=150, rot=40, alpha=0.5)))
+                overlay=Q.blanket_overlay(lift=10, dx=40, rot=24, alpha=0.4)))
     p3 = dict(view="side", x=R.CX + 8, sx=1.12, sy=0.82, eye="wide", mouth="o", ear=8, ear2=8, flutter=4)
     fr.append(F(p3, 80, "落地壓扁（四腳著地）", fx=[R.dust_svg(70, 466, 0.8), R.dust_svg(440, 466, 0.8)]))
     p4 = dict(view="side", x=R.CX + 8, sx=1.02, sy=1.03, eye="default", mouth="w", ear=-4, ear2=-4)
@@ -332,7 +332,7 @@ def cry_pose(i, n=8):
     a = TAU * i / n
     sob = i % 2 == 0
     return dict(view="front", x=R.CX + (3 if i % 4 == 0 else -3 if i % 4 == 2 else 0), y=GROUND - (3 if sob else 0),
-                sx=1.04 - (0.02 if sob else 0), sy=0.94 + (0.03 if sob else 0), eye="teary_big", eye_s=1.08,
+                sx=1.04 - (0.02 if sob else 0), sy=0.94 + (0.03 if sob else 0), eye="teary_big", eye_s=1.3,
                 mouth="wobble_small" if sob else "pout", blush=1.3, tear=1.0, rim=1.0, tear_ph=(i % 4) / 4,
                 wobble=math.sin(2 * a), ear=22 + (5 if sob else 0), ear2=22 + (5 if sob else 0),
                 flutter=2.0 * math.sin(2 * a), fphase=a, plant=True)
@@ -348,12 +348,12 @@ def clip_cry():
 
 def clip_hit():
     fr = []
-    sq = dict(view="front", sy=0.6, sx=1.26, eye="squeeze", mouth="wail", ear=30, ear2=30, flutter=6,
-              legs={"fl": (-24, 0, -22, 0), "fr": (24, 0, 22, 0), "bl": (-36, 0, -28, 0), "br": (36, 0, 28, 0)})
+    sq = dict(view="front", sy=0.62, sx=1.17, eye="squeeze", mouth="wail", ear=30, ear2=30, flutter=6,
+              legs={"fl": (-18, 0, -22, 0), "fr": (18, 0, 22, 0), "bl": (-22, 0, -28, 0), "br": (22, 0, 28, 0)})
     ht = head_top(sq)
     fr.append(F(sq, 80, "被敲扁：整隻壓在地上、四腳往外撐",
-                fx=[R.burst_svg(ht[0], ht[1] - 34, 60, 9, 0, 6.0), R.star_svg(ht[0] - 70, ht[1] - 40, 15, 10),
-                    R.star_svg(ht[0] + 74, ht[1] - 30, 13, -12)]))
+                fx=[R.burst_svg(ht[0], ht[1] - 34, 60, 9, 0, 6.0), R.star_svg(ht[0] - 110, ht[1] - 50, 15, 10),
+                    R.star_svg(ht[0] + 112, ht[1] - 44, 13, -12)]))
     st = dict(view="front", y=GROUND - 16, sy=1.14, sx=0.92, eye="wide", mouth="o", ear=-12, ear2=-12, flutter=-5,
               legs={"fl": (4, 4, 6, 0.5), "fr": (-4, 4, -6, 0.5), "bl": (6, 0, 0, 0.5), "br": (-6, 0, 0, 0.5)})
     fr.append(F(st, 70, "彈回來（拉長、嚇呆）"))
@@ -407,7 +407,7 @@ def spin_frames():
                  legs=legs, rot=-3 if view == "side" else 0, tail=(0, 0, 10 * (1 if ph else -1)))
         fx = []
         if view == "side":     # 效果用「面向左」的座標給，面向右時整格鏡像會跟著翻；動作線貼在背後上方
-            fx.append(R.motion_marks_svg(p["x"] + 186, 196, 1, 1.0, 2))
+            fx.append(R.motion_marks_svg(p["x"] + 168, 176, 1, 1.0, 2))
         lab = {"side": "側面小跑", "back": "背對（往後跑）", "q3": "3/4 轉身", "front": "正面跑過來"}[view]
         out.append(F(p, 60, f"四腳小跑繞圈・{lab}", fx=fx,
                      fx_back=[R.dust_svg(p["x"] + 150, 468, 0.7, 0.8)] if k % 3 == 0 else None))
@@ -439,12 +439,12 @@ def clip_selfie():
               blush=1.3, legs=tuck)
     c = head_top(p3)
     fr.append(F(p3, 60, "喀嚓！快門瞬間整隻彈起來（四腳離地、星星眼）",
-                fx_back=[flash_svg(c[0], c[1] + 120, 210, 14, 5)],
+                fx_back=[flash_svg(c[0], c[1] + 120, 150, 14, 5)],
                 fx=[sparkle_svg(70, 150, 20), sparkle_svg(430, 120, 16)]))
     p4 = dict(p3, y=GROUND - 84, sy=1.0, sx=1.0, rot=-5, flutter=3)
     c = head_top(p4)
     fr.append(F(p4, 220, "空中最高點：YA！（星星眼大笑、閃光）",
-                fx_back=[flash_svg(c[0], c[1] + 130, 190, 14, 18, 0.75)],
+                fx_back=[flash_svg(c[0], c[1] + 130, 140, 14, 18, 0.75)],
                 fx=[ya_svg(424, 96, 1.0, 10), sparkle_svg(62, 120, 18), R.star_svg(84, 260, 14, 15), R.star_svg(452, 240, 12, -10)]))
     p5 = dict(view="front", y=GROUND - 36, sy=1.07, sx=0.95, eye="arc", mouth="smile", ear=-8, ear2=-8, blush=1.2,
               legs={"fl": (4, 2, 6, 0.5), "fr": (-4, 2, -6, 0.5), "bl": (6, 0, 0, 0.5), "br": (-6, 0, 0, 0.5)})
@@ -515,7 +515,7 @@ def verify(name, frs, imgs, checks):
         fpad = face.copy()
         for sh in ((1, 0), (-1, 0), (0, 1), (0, -1), (2, 0), (-2, 0), (0, 2), (0, -2)):
             fpad |= np.roll(face, sh, axis=(0, 1))
-        keys = [k for k in ms if k.startswith(("fx", "propF", "propM"))]
+        keys = [k for k in ms if k.startswith(("fx", "propF", "propM")) and not k.startswith("fxB")]   # fxB 畫在身體後面
         for k in keys:
             if k in allow:
                 # 允許碰嘴：只檢查有沒有碰到眼睛那一半（臉遮罩上半部）

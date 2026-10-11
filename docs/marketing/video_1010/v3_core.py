@@ -295,7 +295,7 @@ def plan_mobile(rec, op, D, L):
     h = last["rect"][3] - last["rect"][1]
     dmin = last["arr"] + 1.5
     reached = True
-    if h > wh - 200:
+    if h > wh - 200 and not getattr(rec, "top_only", False):
         y_end = cl(last["rect"][3] - wh + 40)
         dist = max(0.0, y_end - last["w_c"])
         tscroll = max(0.8, dist / SPEED)
@@ -326,7 +326,7 @@ def plan_mobile(rec, op, D, L):
             t_chk = min(t_chk, max(c + 0.5, items[k_ + 1]["c"] - 0.75))
         w15 = win_at(t_chk)
         inc = _area(_inter_rect(top, (0, w15, sw, w15 + wh))) / max(1.0, _area(top))
-        note = "內容高於視窗：取上段並慢滑到底" if r[3] - r[1] > wh - 200 else ""
+        note = ("內容高於視窗：只看上段重點圖表（Andy 退件：每分頁一個重點，不再滑到底）" if getattr(rec, "top_only", False) else "內容高於視窗：取上段並慢滑到底") if r[3] - r[1] > wh - 200 else ""
         chk.append((it["lab"], round(inc * 100, 1), it["src"], note, it["tp"], r))
     return out, chk, dmin
 

@@ -443,8 +443,8 @@ def tears_svg(p, lay) -> str:
             x0, y0 = X + sg * rx * 0.35, Y + ry * 0.85
             L = 62 * t
             x1, y1 = x0 + sg * 6, y0 + L
-            out += (f'<path d="M {x0-8:.1f} {y0:.1f} C {x0-8:.1f} {y0+L*0.4:.1f} {x1-6:.1f} {y1-L*0.3:.1f} {x1-5:.1f} {y1:.1f} '
-                    f'Q {x1:.1f} {y1+6:.1f} {x1+5:.1f} {y1:.1f} C {x1+6:.1f} {y1-L*0.3:.1f} {x0+8:.1f} {y0+L*0.4:.1f} {x0+8:.1f} {y0:.1f} Z" '
+            out += (f'<path d="M {x0-12:.1f} {y0:.1f} C {x0-12:.1f} {y0+L*0.4:.1f} {x1-9:.1f} {y1-L*0.3:.1f} {x1-8:.1f} {y1:.1f} '
+                    f'Q {x1:.1f} {y1+9:.1f} {x1+8:.1f} {y1:.1f} C {x1+9:.1f} {y1-L*0.3:.1f} {x0+12:.1f} {y0+L*0.4:.1f} {x0+12:.1f} {y0:.1f} Z" '
                     f'fill="#A9DDF8" fill-opacity="0.95" stroke="{TEAR_INK}" stroke-width="3" stroke-linejoin="round"/>'
                     f'<path d="M {x0-3:.1f} {y0+6:.1f} C {x0-3:.1f} {y0+L*0.4:.1f} {x1-2:.1f} {y1-L*0.4:.1f} {x1-2:.1f} {y1-8:.1f}" '
                     f'fill="none" stroke="#fff" stroke-opacity="0.8" stroke-width="3" stroke-linecap="round"/>')
