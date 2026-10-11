@@ -75,38 +75,26 @@ def mini(clip, st, box, size):
 
 
 def bubble_box(cv, lines, rect, tail, t, px=40, t0=0.0):
-    """對話泡泡：rect＝(x0,y0,x1,y1)，tail＝尾巴尖端（只指向比比，呼叫端保證在比比外框之外）。"""
+    """對話泡泡：rect＝(x0,y0,x1,y1)，tail＝尾巴尖端（只指向比比，呼叫端保證離比比 ≥12px）。單一路徑、尾巴不蓋字。"""
+    from v3_core import draw_bubble
     u = clamp((t - t0) / 0.2, 0, 1)
     if u <= 0:
         return
     x0, y0, x1, y1 = rect
-    lay = Image.new("RGBA", cv.size, (0, 0, 0, 0))
-    d = ImageDraw.Draw(lay)
-    ink = THEME["ink"]
-    cy = (y0 + y1) / 2
-    side = 1 if tail[0] > x1 else (-1 if tail[0] < x0 else 0)
-    if side:
-        bx = x1 if side > 0 else x0
-        d.polygon([(bx - side * 4, cy - 24), (bx - side * 4, cy + 24), tail], fill=WHITE + (255,), outline=ink + (255,))
-    else:
-        by = y1
-        cx = clamp(tail[0], x0 + 40, x1 - 40)
-        d.polygon([(cx - 24, by - 4), (cx + 24, by - 4), tail], fill=WHITE + (255,), outline=ink + (255,))
-    d.rounded_rectangle([x0, y0, x1, y1], THEME["panel_r"] + 4, fill=WHITE + (255,), outline=ink + (255,), width=4)
-    if side:
-        bx = x1 if side > 0 else x0
-        d.polygon([(bx - side * 2, cy - 21), (bx - side * 2, cy + 21), (lerp(bx, tail[0], 0.86), lerp(cy, tail[1], 0.86))], fill=WHITE + (255,))
-    else:
-        cx = clamp(tail[0], x0 + 40, x1 - 40)
-        d.polygon([(cx - 21, y1 - 2), (cx + 21, y1 - 2), (lerp(cx, tail[0], 0.86), lerp(y1, tail[1], 0.86))], fill=WHITE + (255,))
     f = font(B.F_ROUND, px)
     lh = px * 1.3
+    cy = (y0 + y1) / 2
     ty = cy - lh * len(lines) / 2 + 2
+    tw = max(text_w(f, ln) for ln in lines)
+    cx = (x0 + x1) / 2
+    tr = (cx - tw / 2, ty, cx + tw / 2, ty + lh * len(lines))
+    draw_bubble(cv, rect, tail, alpha=u, ink=THEME["ink"], width=4, r=THEME["panel_r"] + 4, text_rect=tr)
+    lay = Image.new("RGBA", cv.size, (0, 0, 0, 0))
+    d = ImageDraw.Draw(lay)
     for i, ln in enumerate(lines):
-        d.text(((x0 + x1) / 2 - text_w(f, ln) / 2, ty + i * lh), ln, font=f, fill=ink)
+        d.text((cx - text_w(f, ln) / 2, ty + i * lh), ln, font=f, fill=THEME["ink"])
     lay.putalpha(lay.getchannel("A").point(lambda v: int(v * u)))
     cv.paste(lay, (0, 0), lay)
-    C.reg("bubble", (min(x0, tail[0]), min(y0, tail[1]), max(x1, tail[0]), max(y1, tail[1])))
 
 
 # ───────────────────────── 01 痛點開場（碎片就位彈出、不互相壓住） ─────────────────────────
@@ -201,7 +189,7 @@ def intro_fn():
             size, foot = 700, (1330, 1010)
         else:
             lg_px, cx, cy = 330, 540, 330
-            size, foot = 600, (540, 1520)
+            size, foot = 600, (400, 1520)
         u = back_out((t - 0.1) / 0.5)
         px = int(lg_px * clamp(0.6 + 0.4 * u, 0.2, 1.1))
         lg = logo_sized(px)
@@ -220,20 +208,19 @@ def intro_fn():
         put_sprite(cv, "intro", anim_frame("intro", t, "hold"), foot, size)
         if t >= 1.3:
             ur = sprite_union_rect("intro", range(9, 16), foot, size)
-            lines = ["我是比比，", "問題解答小助手！", "看不懂就問我"]
-            bw = 420 if web else 560
-            bh = 3 * 52 + 34 if web else 2 * 52 + 34
             if web:
-                x1 = ur[0] - 70
-                rect = (x1 - bw, 300, x1, 300 + bh)
-                tail = (ur[0] - 24, (ur[1] + ur[3]) / 2 - 40)
-                lines = lines
+                lines = ["我是比比，", "問題解答小助手！", "看不懂就問我"]
+                bw, bh = 420, 3 * 52 + 34
+                tip = (ur[0] - 13, 700)
+                x1 = tip[0] - 34
+                rect = (x1 - bw, tip[1] - bh / 2, x1, tip[1] + bh / 2)
             else:
-                lines = ["我是比比，問題解答小助手！", "看不懂就問我"]
-                y1 = ur[1] - 70
-                rect = (L.W / 2 - bw / 2, y1 - bh, L.W / 2 + bw / 2, y1)
-                tail = (L.W / 2, ur[1] - 22)
-            bubble_box(cv, lines, rect, tail, t, 40 if web else 40, t0=1.3)
+                lines = ["我是比比，", "問題解答小助手！", "看不懂就問我"]
+                bw, bh = 400, 3 * 46 + 34
+                tip = (ur[2] + 13, 1340)
+                x0 = tip[0] + 34
+                rect = (x0, tip[1] - bh / 2, x0 + bw, tip[1] + bh / 2)
+            bubble_box(cv, lines, rect, tip, t, 40 if web else 36, t0=1.3)
     return fn
 
 
@@ -433,10 +420,10 @@ def end_fn():
         if t > 0.6 and THEME["name"] == "cute":
             ur = sprite_union_rect("wave", range(12), foot, size)
             bw, bh = (380, 100) if web else (380, 150)
-            x0 = ur[2] + 60
+            x0 = ur[2] + 47
             rect = (x0, (ur[1] + ur[3]) / 2 - bh / 2, x0 + bw, (ur[1] + ur[3]) / 2 + bh / 2)
             lines = ["我們網站見，掰掰～"] if web else ["我們網站見，", "掰掰～"]
-            bubble_box(cv, lines, rect, (ur[2] + 16, (ur[1] + ur[3]) / 2), t, 38, t0=0.6)
+            bubble_box(cv, lines, rect, (ur[2] + 13, (ur[1] + ur[3]) / 2), t, 38, t0=0.6)
         elif t > 0.6:
             line_panel(cv, L, "我們網站見", t, W / 2 + 200 if web else 600, foot[1] - (60 if web else 100), px=34)
     return fn
