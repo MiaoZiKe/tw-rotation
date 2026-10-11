@@ -286,6 +286,46 @@ class Recorder:
         return {"ok": True, "dur": round(n / FPS, 2), "frames": n}
 
 
+# ------------------------------------------------------------------ 點擊目標／焦點框量測（Andy 退件：漣漪必須落在被點的元素上、發光框要框完整語意區塊）
+TARGET_JS = r"""([x, y]) => {
+  const el = document.elementFromPoint(x, y); if (!el) return null;
+  let c = el; const SEL = 'button,a,input,select,textarea,[role=button],[role=tab],[role=option],[role=combobox],label,summary,canvas,svg,.chip,.tab,.lbl3d,.mnum';
+  while (c && c !== document.body && !(c.matches && c.matches(SEL))) c = c.parentElement;
+  if (!c || c === document.body) c = el;
+  const r = c.getBoundingClientRect();
+  const cls = typeof c.className === 'string' ? c.className.trim().split(/\s+/).filter(Boolean).slice(0, 2).join('.') : '';
+  const info = { tag: c.tagName.toLowerCase(), selector: c.id ? '#' + c.id : c.tagName.toLowerCase() + (cls ? '.' + cls : ''),
+    text: ((c.innerText || c.getAttribute('aria-label') || c.title || '') + '').trim().replace(/\s+/g, ' ').slice(0, 48),
+    rect: [r.x, r.y, r.width, r.height], scrollY: Math.round(scrollY) };
+  const host = c.closest && c.closest('[_echarts_instance_]');
+  if (host && window.echarts) {
+    const ch = echarts.getInstanceByDom(host);
+    if (ch) { try {
+      const hr = host.getBoundingClientRect(), px = x - hr.left, py = y - hr.top;
+      const sm = ch.getModel().getSeriesByIndex(0);
+      if (sm && sm.get('type') === 'treemap') {
+        const d = sm.getData(); let best = null;
+        d.each(i => { const L = d.getItemLayout(i); if (!L || L.width == null) return;
+          if (px >= L.x && px <= L.x + L.width && py >= L.y && py <= L.y + L.height) { const a = L.width * L.height; if (!best || a < best.a) best = { a, L, name: d.getName(i) }; } });
+        if (best) { info.block = best.name; info.block_rect = [hr.left + best.L.x, hr.top + best.L.y, best.L.width, best.L.height]; }
+        else info.block = '（方塊以外：圖例／空白）';
+      }
+    } catch (e) { info.echarts_err = String(e).slice(0, 80); } }
+  }
+  return info;
+}"""
+RECT_JS = """(s) => { const e = document.querySelector(s); if (!e) return null; const r = e.getBoundingClientRect(); return [r.x, r.y, r.width, r.height]; }"""
+TEXT_RECT_JS = """([txt, up]) => { const vis = e => e.offsetParent && e.getBoundingClientRect().width > 0;
+  const es = [...document.querySelectorAll('body *')].filter(e => vis(e) && e.children.length === 0 && (e.textContent || '').trim().startsWith(txt));
+  if (!es.length) return null; let e = es[0]; for (let i = 0; i < (up || 0); i++) if (e.parentElement) e = e.parentElement;
+  const r = e.getBoundingClientRect(); return [r.x, r.y, r.width, r.height]; }"""
+TREEMAP_GROUPS_JS = """(s) => { const host = document.querySelector(s); if (!host || !window.echarts) return null;
+  const h = host.hasAttribute('_echarts_instance_') ? host : host.querySelector('[_echarts_instance_]'); if (!h) return null;
+  const ch = echarts.getInstanceByDom(h); if (!ch) return null; const hr = h.getBoundingClientRect();
+  const sm = ch.getModel().getSeriesByIndex(0); const out = [];
+  sm.getData().tree.root.children.forEach(n => { const L = n.getLayout(); if (L) out.push({ name: n.name, rect: [hr.left + L.x, hr.top + L.y, L.width, L.height] }); });
+  return out; }"""
+
 # ------------------------------------------------------------------ 操作工具（每一步都以「格」為單位推進）
 def _ease(k):
     return 0.5 - 0.5 * math.cos(math.pi * k)
@@ -298,6 +338,39 @@ class Act:
         self.log: list[str] = []
         self.rec: Recorder | None = None
         self.dsf = 1.0
+        self.targets: list = []     # 每一次點擊／拖曳起點：被點到的元素與外框（click_targets.json）
+        self.focus: list = []       # 發光框焦點：完整語意區塊的外框與時間區間（focus_targets.json）
+        self.last_hold = None
+
+    def _vrect(self, r):
+        return [round(v * self.dsf, 1) for v in r] if r else None
+
+    def record_target(self, x, y, kind="click", label=""):
+        try:
+            info = self.pg.evaluate(TARGET_JS, [x, y]) or {}
+        except Exception as exc:  # noqa: BLE001
+            info = {"err": str(exc)[:80]}
+        rect = info.get("rect")
+        e = {"t": round(self.t, 2), "kind": kind, "label": label or info.get("block") or info.get("text") or info.get("selector"),
+             "selector": info.get("selector"), "text": info.get("text"), "block": info.get("block"),
+             "css_rect": [round(v, 1) for v in rect] if rect else None, "video_rect": self._vrect(rect),
+             "block_css_rect": [round(v, 1) for v in info["block_rect"]] if info.get("block_rect") else None,
+             "block_video_rect": self._vrect(info.get("block_rect")),
+             "css_point": [round(x, 1), round(y, 1)], "center": [round(x * self.dsf, 1), round(y * self.dsf, 1)],
+             "scrollY": info.get("scrollY")}
+        self.targets.append(e)
+        what = info.get("block") or info.get("text") or info.get("selector")
+        self.note(f"  ↳ {kind} 目標：{what}｜{info.get('selector')}｜外框 css {e['css_rect']}｜影片 {e['video_rect']}｜中心 影片{e['center']}")
+
+    def add_focus(self, label, rect, t0, t1, selector=""):
+        if not rect:
+            self.note(f"（焦點量不到：{label}）")
+            return
+        self.focus.append({"t_start": round(t0, 2), "t_end": round(t1, 2), "label": label, "selector": selector,
+                           "css_rect": [round(v, 1) for v in rect], "video_rect": self._vrect(rect)})
+
+    def focus_sel(self, label, sel, t0, t1):
+        self.add_focus(label, self.pg.evaluate(RECT_JS, sel), t0, t1, sel)
 
     @property
     def t(self):
@@ -366,6 +439,7 @@ class Act:
         self.wait(pause)
         self.note(f"踩下 ({x:.0f},{y:.0f})css → 影片({x * self.dsf:.0f},{y * self.dsf:.0f})px")
         self.pg.evaluate("([x,y]) => window.__vcRipple && window.__vcRipple(x,y)", [x, y])
+        self.record_target(x, y, "click")
         self.pg.mouse.down()
         self.frame()
         self.pg.mouse.up()
@@ -385,6 +459,7 @@ class Act:
         self.move(x0, y0, 350)
         self.wait(150)
         self.note(f"拖曳開始 ({x0:.0f},{y0:.0f})css → 影片({x0 * self.dsf:.0f},{y0 * self.dsf:.0f})px")
+        self.record_target(x0, y0, "dragstart")
         self.pg.mouse.down(button=button)
         self.frame()
         n = max(1, round(ms * FPS / 1000))
@@ -1073,6 +1148,8 @@ def frame(a, sel, hold=2000, ms=1100, label=""):
     full = r[0] >= pad - 2 and r[1] <= vh + 2
     t0 = a.t
     a.wait(hold)
+    a.last_hold = (t0, a.t)
+    a.focus_sel(label or sel, sel, t0, a.t)
     a.note(f"完整入框 {t0:.1f}–{a.t:.1f}s：{label or sel}" + ("" if full else f"（卡片高 {h:.0f}px 超過畫面，只入框上段）"))
     return True
 
@@ -1338,6 +1415,7 @@ def spin(a, secs=5.5, turns=1.0, hide=False):
             a.move(x0, cy, 350)
             a.wait(100)
             a.note(f"拖曳開始 ({x0:.0f},{cy:.0f})css → 影片({x0 * a.dsf:.0f},{cy * a.dsf:.0f})px")
+            a.record_target(x0, cy, "dragstart", "3D 畫布（旋轉）")
             a.pg.mouse.down()
             n = round(secs / k_drag * FPS)
             for i in range(1, n + 1):
@@ -1368,6 +1446,8 @@ def spin(a, secs=5.5, turns=1.0, hide=False):
         a.note(f"拖曳放開 ({x0 + L:.0f},{cy:.0f})css → 影片({(x0 + L) * a.dsf:.0f},{cy * a.dsf:.0f})px；手指左→右拖曳旋轉，{t0:.1f}–{a.t:.1f}s")
         a.wait(300)
         return
+    a.note(f"拖曳開始 ({x0:.0f},{cy:.0f})css → 影片({x0 * a.dsf:.0f},{cy * a.dsf:.0f})px")
+    a.record_target(x0, cy, "dragstart", "3D 畫布（旋轉）")
     a.pg.mouse.down()
     n = round(secs * FPS)
     t0 = a.t
@@ -1862,7 +1942,7 @@ def main() -> int:
                     pg.goto(base + "#overview", wait_until="networkidle")
                     pg.wait_for_timeout(2500)
                     act = Act(pg, dev == "m")
-                    act.x, act.y = cfg["viewport"]["width"] - 4, cfg["viewport"]["height"] * 0.55   # 起始游標放右緣，不壓到圖表提示框
+                    act.x, act.y = (4, 450) if dev == "d" else (cfg["viewport"]["width"] - 4, cfg["viewport"]["height"] * 0.55)   # 桌機起始游標放左緣空白處：不會停在圖表上跳出 hover 提示框
                     W = int(cfg["viewport"]["width"] * cfg["device_scale_factor"])
                     H = int(cfg["viewport"]["height"] * cfg["device_scale_factor"])
                     rec = Recorder(pg, W, H, dry=args.log_only, realtime=(args.set == "v3c"))
@@ -1888,7 +1968,7 @@ def main() -> int:
                             mid = r["dur"] / 2
                             subprocess.run(["ffmpeg", "-y", "-loglevel", "error", "-ss", f"{mid:.2f}", "-i", str(mp4),
                                             "-frames:v", "1", str(out / "thumbs" / f"{name}.png")], check=True)
-                        r.update(size=f"{W}x{H}", steps=act.log, errs=errs[:5], desc=spec["desc"],
+                        r.update(size=f"{W}x{H}", targets=act.targets, focus=act.focus, steps=act.log, errs=errs[:5], desc=spec["desc"],
                                  data_date=meta.get("data_date"))
                         log[name] = r
                         print(name, json.dumps({k: r[k] for k in r if k not in ("steps",)}, ensure_ascii=False))
