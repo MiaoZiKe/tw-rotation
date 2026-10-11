@@ -1,7 +1,7 @@
 # 比比・receive_ball（v2 骨架重做，7 格）
 
 - 退件原因（Andy 10-11）：舊版是原 GIF 第 0 張變形＋貼東西，沒有真的肢體動作。
-- 做法：`scripts/anim/bibi_rig.py` 官方部件骨架（本體、耳朵、肉掌、腳、尾巴、眼、嘴、腮紅獨立擺位）＋`scripts/anim/bibi_moves_v2.py` 關鍵格（ease 補間，不是 crossfade）。
+- 做法：`scripts/anim/bibi_rig.py` 原版 Default 骨架（本體＝default_idle_1011 原像素局部變形：耳朵繞耳根轉、小腳踢、毛邊飄；眼／嘴／腮紅原像素拆件，其他表情照原版尺寸補畫；只有貼身小肉掌，沒有手臂）＋`scripts/anim/bibi_moves_v2.py` 關鍵格（ease 補間，不是 crossfade）。
 - 規格：512×512 透明、全身入鏡、場景座標中心 x=248、腳底 y=482；成品 160px 動態 WebP（anim.webp）。
 - 播放：播一次（loop=1）；播一次；畫面內含球：第 4 格起球在右前方肉掌上，第 6 格抱到胸前。之後網頁丟球→run_r→ball_catch。
 - 合計 1370 ms。

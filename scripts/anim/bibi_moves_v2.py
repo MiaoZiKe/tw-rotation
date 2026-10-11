@@ -911,8 +911,8 @@ def clip_ball_catch_d() -> list[dict]:
     _F(fr, 160, "整隻壓到球上（壓扁、星星）", **q3, x=232, y=R.FOOT_Y - 44, sy=0.84, sx=1.08, rot=-6, ear=-18, ear2=-18,
        flutter=-6, eye="squeeze", mouth="big", back=B(196, 430, -130),
        fx=[R.star_svg(52, 360, 14, 10), R.star_svg(44, 410, 10, -20, "#FFE58A"), R.star_svg(96, 450, 9, 30)])
-    _F(fr, 90, "在球上往前搖", **q3, x=234, y=R.FOOT_Y - 48, rot=-18, sy=0.9, sx=1.05, ear=22, ear2=22, flutter=6,
-       eye="arc", back=B(198, 430, -170), fx=[R.motion_marks_svg(462, 260, 1)])
+    _F(fr, 90, "在球上往前搖", **q3, x=250, y=R.FOOT_Y - 48, rot=-18, sy=0.9, sx=1.05, ear=22, ear2=22, flutter=6,
+       eye="arc", back=B(212, 430, -170), fx=[R.motion_marks_svg(466, 250, 1)])
     _F(fr, 90, "往後搖回來", **q3, x=240, y=R.FOOT_Y - 42, rot=9, sy=0.92, sx=1.04, ear=-10, ear2=-10, flutter=-4,
        eye="arc", back=B(200, 430, -140), fx=[R.motion_marks_svg(40, 260, -1)])
     _F(fr, 90, "再往前搖（閉眼笑）", **q3, x=236, y=R.FOOT_Y - 46, rot=-12, sy=0.9, sx=1.04, ear=16, ear2=16, eye="smile",
@@ -1004,6 +1004,8 @@ def clip_run_stop_d() -> list[dict]:
     fr[0]["fx"] = run_fx_d(2)
     fr[1]["fx"] = [R.dust_svg(40, 462, 0.9), R.dust_svg(74, 466, 0.65, 0.8)]
     fr[2]["fx"] = [R.dust_svg(34, 458, 1.1, 0.45)]
+    fr[1]["pose"]["rot"] = 6            # 原版身體大：後仰太多會讓屁股掉出畫面
+    fr[1]["pose"]["y"] = R.FOOT_Y - 8
     return fr
 
 
@@ -1205,7 +1207,7 @@ def write_storyboard(name, frs, durs, path, extra=""):
     total = sum(durs)
     lines = [f"# 比比・{name}（v2 骨架重做，{len(frs)} 格）", "",
              "- 退件原因（Andy 10-11）：舊版是原 GIF 第 0 張變形＋貼東西，沒有真的肢體動作。",
-             "- 做法：`scripts/anim/bibi_rig.py` 官方部件骨架（本體、耳朵、肉掌、腳、尾巴、眼、嘴、腮紅獨立擺位）＋"
+             "- 做法：`scripts/anim/bibi_rig.py` 原版 Default 骨架（本體、耳朵、肉掌、腳、尾巴、眼、嘴、腮紅獨立擺位）＋"
              "`scripts/anim/bibi_moves_v2.py` 關鍵格（ease 補間，不是 crossfade）。",
              "- 規格：512×512 透明、全身入鏡、場景座標中心 x=248、腳底 y=482；成品 160px 動態 WebP（anim.webp）。",
              f"- 播放：{'循環' if cfg['loop'] else '播一次（loop=1）'}；{cfg['note']}",
