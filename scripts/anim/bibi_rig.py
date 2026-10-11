@@ -1084,9 +1084,58 @@ def def_paw_svg(x, y, rot=0.0, s=1.0) -> str:
 </g>'''
 
 
-def def_eye_svg(kind, x, y, s=1.0) -> str:
-    """原版尺寸的補畫眼（原版圓點眼約 25×28、描邊約 6px）。"""
+TEAR_FILL, TEAR_INK, TEAR_LT = "#A9DDF8", "#2A7FC0", "#E4F5FF"
+
+
+def _sad_brow(x, y, side, s=1.0, lift=0.0) -> str:
+    """八字眉（難過）：靠臉中線那一端抬高。side='l' 左眼（內側在右）。"""
+    sg = 1 if side == "l" else -1
+    xo, yo = x - sg * 17 * s, y - 25 * s + lift
+    xi, yi = x + sg * 11 * s, y - 36 * s + lift
+    return (f'<path d="M {xo:.1f} {yo:.1f} Q {(xo+xi)/2:.1f} {(yo+yi)/2 - 3*s:.1f} {xi:.1f} {yi:.1f}" fill="none" '
+            f'stroke="{DEF_INK}" stroke-width="{5.6*s:.1f}" stroke-linecap="round"/>')
+
+
+def tear_bead_svg(x, y, r=7.0) -> str:
+    """眼角含著的一顆淚珠（藍描邊、白高光）。"""
+    return (f'<path d="M {x:.1f} {y-1.9*r:.1f} C {x+0.9*r:.1f} {y-0.6*r:.1f} {x+r:.1f} {y-0.2*r:.1f} {x+r:.1f} {y+0.3*r:.1f} '
+            f'A {r:.1f} {r:.1f} 0 1 1 {x-r:.1f} {y+0.3*r:.1f} C {x-r:.1f} {y-0.2*r:.1f} {x-0.9*r:.1f} {y-0.6*r:.1f} {x:.1f} {y-1.9*r:.1f} Z" '
+            f'fill="{TEAR_FILL}" stroke="{TEAR_INK}" stroke-width="{max(2.4, r*0.36):.1f}" stroke-linejoin="round"/>'
+            f'<ellipse cx="{x-0.35*r:.1f}" cy="{y+0.05*r:.1f}" rx="{0.28*r:.1f}" ry="{0.4*r:.1f}" fill="#fff"/>')
+
+
+def def_eye_svg(kind, x, y, s=1.0, side=None) -> str:
+    """原版尺寸的補畫眼（原版圓點眼約 25×28、描邊約 6px）。side＝'l'/'r'（有些眼型左右不同：淚珠在外眼角、八字眉）。"""
     k = s * 1.9
+    sd = side or "l"
+    out_x = -1 if sd == "l" else 1          # 外眼角方向
+    if kind in ("cry_wide", "teary"):      # 水汪汪大眼（兩顆亮點＋下緣淚光）；cry_wide 加八字眉＋外眼角淚珠
+        e = (f'<ellipse cx="{x:.1f}" cy="{y:.1f}" rx="{8.6*k:.1f}" ry="{9.6*k:.1f}" fill="{DEF_INK}"/>'
+             f'<path d="M {x-7.4*k:.1f} {y+3.2*k:.1f} Q {x:.1f} {y+8.4*k:.1f} {x+7.4*k:.1f} {y+3.2*k:.1f} Q {x:.1f} {y+5.4*k:.1f} '
+             f'{x-7.4*k:.1f} {y+3.2*k:.1f} Z" fill="{TEAR_FILL}"/>'
+             f'<circle cx="{x-3.2*k:.1f}" cy="{y-3.6*k:.1f}" r="{3.1*k:.1f}" fill="#fff"/>'
+             f'<circle cx="{x+3.4*k:.1f}" cy="{y+0.6*k:.1f}" r="{1.5*k:.1f}" fill="#fff"/>')
+        if kind == "cry_wide":
+            e += _sad_brow(x, y, sd, 1.0) + tear_bead_svg(x + out_x * 15, y + 16, 6.5)
+        else:
+            e += _sad_brow(x, y, sd, 0.9, 3)
+        return e
+    if kind == "cry_squeeze":              # 緊閉 >< ＋八字眉（大哭）
+        kk = "squeeze_l" if sd == "l" else "squeeze_r"
+        return def_eye_svg(kk, x, y, s) + _sad_brow(x, y, sd, 1.0, -2)
+    if kind.startswith("swirl"):           # 暈眩漩渦眼 @_@：swirl:角度（每格轉）；左右反向
+        ang = float(kind.split(":")[1]) if ":" in kind else 0.0
+        if sd == "r":
+            ang = -ang
+        pts = []
+        turns = 2.6
+        for i in range(60):
+            t = i / 59
+            th = math.radians(ang) + t * turns * 2 * math.pi * (1 if sd == "l" else -1)
+            r = 1.5 + 21 * s * t
+            pts.append(f"{x + r*math.cos(th):.1f},{y + r*math.sin(th):.1f}")
+        return (f'<polyline points="{" ".join(pts)}" fill="none" stroke="{DEF_INK}" stroke-width="{5.2*s:.1f}" '
+                f'stroke-linecap="round" stroke-linejoin="round"/>')
     if kind == "arc":      # ^ 彎月（開心）
         return (f'<path d="M {x-10*k:.1f} {y+4*k:.1f} Q {x:.1f} {y-8*k:.1f} {x+10*k:.1f} {y+4*k:.1f}" fill="none" '
                 f'stroke="{DEF_INK}" stroke-width="{6.5*s:.1f}" stroke-linecap="round"/>')
@@ -1114,6 +1163,27 @@ def def_mouth_svg(kind, x, y, s=1.0) -> str:
     """原版尺寸的補畫嘴（原版嘴寬約 60、描邊約 6px）。"""
     k = s * 2.3
     sw = 6.2 * s
+    if kind == "frown":   # 撇嘴（倒弧 ︵，嘴角往下）
+        return (f'<path d="M {x-10*k:.1f} {y+5*k:.1f} Q {x:.1f} {y-5*k:.1f} {x+10*k:.1f} {y+5*k:.1f}" fill="none" '
+                f'stroke="{DEF_INK}" stroke-width="{sw:.1f}" stroke-linecap="round"/>')
+    if kind == "wail":    # 大哭張嘴：上緣拱起、嘴角往下，裡面小舌頭
+        return (f'<path d="M {x-11*k:.1f} {y+8*k:.1f} Q {x-9*k:.1f} {y-6*k:.1f} {x:.1f} {y-6*k:.1f} Q {x+9*k:.1f} {y-6*k:.1f} '
+                f'{x+11*k:.1f} {y+8*k:.1f} Q {x:.1f} {y+5*k:.1f} {x-11*k:.1f} {y+8*k:.1f} Z" fill="#6E1E16" stroke="{DEF_INK}" '
+                f'stroke-width="{sw:.1f}" stroke-linejoin="round"/>'
+                f'<path d="M {x-6*k:.1f} {y+5.6*k:.1f} Q {x:.1f} {y+0.5*k:.1f} {x+6*k:.1f} {y+5.6*k:.1f} Q {x:.1f} {y+5*k:.1f} '
+                f'{x-6*k:.1f} {y+5.6*k:.1f} Z" fill="#F08A72"/>')
+    if kind.startswith("wobble"):   # 歪掉的波浪嘴（暈眩）：wobble:傾斜角:相位
+        parts_ = kind.split(":")
+        ang = float(parts_[1]) if len(parts_) > 1 else 0.0
+        ph = float(parts_[2]) if len(parts_) > 2 else 0.0
+        pts = []
+        for i in range(41):
+            t = i / 40
+            xx = -13 * k + 26 * k * t
+            yy = 3.2 * k * math.sin(ph + t * 3 * math.pi)
+            pts.append(f"{xx:.1f},{yy:.1f}")
+        return (f'<g transform="translate({x:.1f},{y + 2*k:.1f}) rotate({ang:.1f})"><polyline points="{" ".join(pts)}" '
+                f'fill="none" stroke="{DEF_INK}" stroke-width="{sw:.1f}" stroke-linecap="round" stroke-linejoin="round"/></g>')
     if kind == "w":     # ω 閉嘴笑
         return (f'<path d="M {x-12*k:.1f} {y-4*k:.1f} Q {x-6*k:.1f} {y+6*k:.1f} {x:.1f} {y-2*k:.1f} Q {x+6*k:.1f} {y+6*k:.1f} '
                 f'{x+12*k:.1f} {y-4*k:.1f}" fill="none" stroke="{DEF_INK}" stroke-width="{sw:.1f}" stroke-linecap="round" '
@@ -1249,7 +1319,7 @@ def compose_default(p: dict, props_back=None, props_mid=None, props_front=None, 
                 kk = "default_dot" if side == "l" else "arc"
             if kk == "default_dot":
                 continue
-            sv += def_eye_svg(kk, X, Y)
+            sv += def_eye_svg(kk, X, Y, side=side)
         face.alpha_composite(svg_layer(sv))
         if kind == "wink":
             face.alpha_composite(def_layer_affine(shifted(A["eye_l"]), p))
