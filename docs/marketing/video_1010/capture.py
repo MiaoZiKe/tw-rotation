@@ -519,7 +519,10 @@ class Act:
                 if cur and prev and all(abs(cur[k] - prev[k]) < 0.6 for k in ("x", "y", "width", "height")):
                     return cur
                 prev = cur
-                self.wait(50)
+                if getattr(self, "stable_noframes", False):
+                    self.pg.wait_for_timeout(50)   # 不推進影片時間
+                else:
+                    self.wait(50)
             return prev
         b = stable()
         for _ in range(4):   # 中心點被頂欄／浮層蓋住（hit-test 不是這個元素）→ 捲到畫面正中再量一次
@@ -1258,6 +1261,12 @@ DEVS3 = {
     "d": dict(viewport={"width": 1600, "height": 900}, device_scale_factor=2),
 }
 SHOTS3: dict = {}
+# 第 4 版：右下角客服鈕與比比壓在圖表上（Andy：「圖表一定要都被看到」）→ 錄影時藏起來（不改 site/）
+NOFAB_JS = r"""
+(() => { const css = 'html body .supfab, html body #supFab, html body .bibiring, html body #bibiRing, html body #bibiStage, html body .bibiwrap, html body .bibitip, html body #bibiTip, html body .bibifx, html body .bibiflash, html body .bibihop{display:none!important}';
+  const go = () => { const st = document.createElement('style'); st.id = '__vnofab'; st.textContent = css; document.head.appendChild(st); };
+  document.readyState === 'loading' ? document.addEventListener('DOMContentLoaded', go) : go(); })();
+"""
 # v3b：手機版這些鏡頭的卡片比 844 高 → 加高 viewport（寬仍 390、DPR 3，版面仍是手機版）讓整張卡片入框；值＝卡片高＋頂欄＋餘裕
 V3C = ["V04", "V05", "V06"]   # v3c＝真實時間錄影（播放類鏡頭：資金輪動 ▶、資金分流樹 ▶）
 V3B_H = {"V01": 1250, "V03": 1420, "V04": 1300, "V05": 1650, "V06": 1650, "V10": 1000, "V13": 1150, "V19": 1320, "V21": 1250}
@@ -2788,6 +2797,8 @@ def main() -> int:
     ap.add_argument("--out", default="")
     ap.add_argument("--set", default="v2", choices=["v2", "v3", "v3b", "v3c", "v3d", "v3e", "v3f", "v3g", "v3h", "v3i", "v3j"], help="v3＝第 3 版素材（桌機 1600×900@2、不藏 B 類、完整入框）")
     ap.add_argument("--port", type=int, default=PORT)
+    ap.add_argument("--nofab", action="store_true", help="錄影時藏起右下角客服鈕與比比（.supfab、.bibiring 等），檔名加 _nofab；V25／V26 例外不藏")
+    ap.add_argument("--stable-noframes", action="store_true", help="點擊前的版面穩定等待不推進影片時間（重錄 10-11 20:19 以前錄的素材時用，時間軸才會跟原檔一致）")
     ap.add_argument("--fps", type=int, default=0, help="輸出幀率（預設 30；v3c 預設 60：逐格算圖每一個 rAF 刻度都收進來）")
     ap.add_argument("--realtime", action="store_true", help="真實時間錄影（CDP screencast，依時間戳重採樣）；本機 CPU 繪圖只有 ~13fps 來源，實測比逐格算圖差，預設不用")
     ap.add_argument("--log-only", action="store_true", help="不截圖，只重跑一次操作記下點擊秒數與座標（已錄好的鏡頭補座標用）")
@@ -2857,8 +2868,11 @@ def main() -> int:
                     H = int(cfg["viewport"]["height"] * cfg["device_scale_factor"])
                     rec = Recorder(pg, W, H, dry=args.log_only, realtime=args.realtime)
                     act.dsf = cfg["device_scale_factor"]
+                    act.stable_noframes = args.stable_noframes
                     act.log_moves = v3   # v3 沒有錄進游標 → 游標路徑寫進 shots.md 給後製畫比比
-                    name = f"{sid}_{'mobile' if dev == 'm' else 'desktop'}" + ("_v3b" if args.set == "v3b" else "_v3c" if args.set == "v3c" else "_v3d" if args.set == "v3d" else "_" + args.set if args.set in ("v3e", "v3f", "v3g", "v3h", "v3i", "v3j") else "")
+                    if args.nofab and sid not in ("V25", "V26"):
+                        ctx.add_init_script(NOFAB_JS)
+                    name = f"{sid}_{'mobile' if dev == 'm' else 'desktop'}" + ("_v3b" if args.set == "v3b" else "_v3c" if args.set == "v3c" else "_v3d" if args.set == "v3d" else "_" + args.set if args.set in ("v3e", "v3f", "v3g", "v3h", "v3i", "v3j") else "") + ("_nofab" if args.nofab and sid not in ("V25", "V26") else "")
                     try:
                         # 每鏡自己決定何時開錄：fn(pg, act, rec_start) —— 先做準備（換頁、等圖畫完）再開錄
                         state = {}
