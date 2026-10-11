@@ -1274,9 +1274,11 @@ class Op:
         if "_pose" in tp:
             return tp["_pose"]
         rec = self.rec
-        bs = [self._busy_at(shot, L, tt_) for tt_ in (max(0.0, tp["t"] - self.TAP_IN), tp["t"], min(shot.dur - 1 / FPS, tp["t"] + self.TAP_OUT))]
-        busy = bs[0][0] | bs[1][0] | bs[2][0]
-        mainm = bs[0][1] | bs[1][1] | bs[2][1]
+        st0 = tp["t"] - self.TAP_IN + self.HOP
+        st1 = tp["t"] + self.TAP_OUT - self.HOP
+        bs = [self._busy_at(shot, L, min(shot.dur - 1 / FPS, max(0.0, st0 + (st1 - st0) * k / 4))) for k in range(5)]
+        busy = bs[0][0] | bs[1][0] | bs[2][0] | bs[3][0] | bs[4][0]
+        mainm = bs[0][1] | bs[1][1] | bs[2][1] | bs[3][1] | bs[4][1]
         mm = mainm.copy()                 # 主角資料區再外擴 6px 當安全邊（逐幀檢查時畫面有 1.5% 慢推）
         for k in range(1, 7):
             mm[k:, :] |= mainm[:-k, :]
@@ -1336,28 +1338,46 @@ class Op:
         tp["_pose_bad"] = (best[2], best[3]) if best else (1.0, False)
         return tp["_pose"]
 
-    def _hop_peak(self, shot, L, tp, home, foot, hs, size):
-        """跳躍弧線高度：取幾個高度試算，挑跳躍途中壓到主角資料區最少的（快取）。"""
-        if "_peak" in tp:
-            return tp["_peak"]
-        b0, m0 = self._busy_at(shot, L, max(0.0, tp["t"] - self.TAP_IN))
-        b1, m1 = self._busy_at(shot, L, min(shot.dur - 1 / FPS, tp["t"] + self.TAP_OUT))
-        busy, mainm = b0 | b1, m0 | m1
+    def _hop_peak(self, shot, L, tp, home, foot, hs, size, go=True):
+        """跳躍弧線：在實際跳躍的那幾個時間點（去程 c-0.25～c-0.05、回程 c+0.2～c+0.4）逐一算忙碌圖，
+        挑「主角資料區 0、其他文字 ≤15%、不跳進標題／小字帶、不出畫面」的弧線高度；都不行就回傳 None（改成原地出現）。"""
+        key = "_peak_go" if go else "_peak_back"
+        if key in tp:
+            return tp[key]
+        c = tp["t"]
+        t0 = c - self.TAP_IN if go else c + self.TAP_OUT - self.HOP
+        a, b = (home, foot) if go else (foot, home)
+        s0, s1 = (hs, size) if go else (size, hs)
+        min_y = 142 if L.fmt == "mobile" else 56     # 不跳進上方標題、小字帶
+        note_r = (30, 366, 950, 412) if (L.fmt == "mobile" and getattr(shot, "note", None)) else None
         best = None
-        for peak in (60, 160, 280, 400, 520, 0, -120, -240):
-            score = 0.0
+        for peak in (0, 60, 160, 280, 400, 520, -120, -240, -360):
+            score, okk = 0.0, True
             for u in (0.1, 0.3, 0.5, 0.7, 0.9):
-                p = (lerp(home[0], foot[0], u), lerp(home[1], foot[1], u) - peak * math.sin(math.pi * u))
-                nm = "hop_r" if foot[0] >= home[0] else "hop_l"
-                sx, sy, m = _sprite_alpha(nm, 2 + int(u * 3.99), p, lerp(hs, size, u))
+                tt = min(shot.dur - 1 / FPS, max(0.0, t0 + u * self.HOP))
+                busy, mainm = self._busy_at(shot, L, tt)
+                p = (lerp(a[0], b[0], u), lerp(a[1], b[1], u) - peak * math.sin(math.pi * u))
+                nm = "hop_r" if b[0] >= a[0] else "hop_l"
+                sz = lerp(s0, s1, u)
+                rr = C.sprite_rect(B.bibi_index()[nm]["frames"][2 + int(u * 3.99)], p, sz)
+                inside_frame = rr[1] >= L.box[1] - 2
+                if rr[1] < min_y or rr[0] < 4 or rr[2] > L.W - 4 or rr[3] > L.H - 2 or (note_r and C._inter(rr, note_r) > 0):
+                    okk = False
+                    score += 5
+                    continue
+                if not inside_frame:
+                    continue
+                sx, sy, m = _sprite_alpha(nm, 2 + int(u * 3.99), p, sz)
                 tot = max(1, int(m.sum()))
                 hm, _ = _mask_hits(mainm, sx, sy, m)
                 ho, _ = _mask_hits(busy, sx, sy, m)
-                score += hm / tot * 10 + max(0.0, ho / tot - 0.10)
-            if best is None or score < best[0]:
-                best = (score, peak)
-        tp["_peak"] = best[1]
-        return best[1]
+                if hm > 0 or ho > 0.12 * tot:
+                    okk = False
+                score += hm / tot * 10 + max(0.0, ho / tot - 0.12)
+            if best is None or (okk, -score) > (best[0], -best[1]):
+                best = (okk, score, peak)
+        tp[key] = best[2] if best[0] else None
+        return tp[key]
 
     def _pose_foot(self, rec, tp, pose):
         side, q, size = pose
@@ -1404,12 +1424,17 @@ class Op:
                 t_back = c + self.TAP_OUT - self.HOP
                 ROLE[0] = "bibi_tap"
                 if t < t_land or t >= t_back:
-                    # 四腳跳躍（CEO 10-12）：用 hop 的騰空格，0.2 秒從待機位跳到按鈕（回程反向），弧線高度挑最不壓主角資料區的
+                    # 四腳跳躍（CEO 10-12）：hop 騰空格 0.2 秒；弧線挑不壓主角資料區、不進標題帶的；找不到合格弧線就在待機位原地蓄力、時間到出現在按鈕上
                     go = t < t_land
+                    peak = self._hop_peak(shot, L, tp, home, foot, hs, size, go)
                     u = ease_io((t - (c - self.TAP_IN)) / self.HOP) if go else ease_io((t - t_back) / self.HOP)
+                    if peak is None:
+                        ROLE[0] = "bibi"
+                        put_sprite(cv, "hop_r", 1, home, hs)
+                        ROLE[0] = "bibi"
+                        return
                     a, b = (home, foot) if go else (foot, home)
                     s0, s1 = (hs, size) if go else (size, hs)
-                    peak = self._hop_peak(shot, L, tp, home, foot, hs, size)
                     p = (lerp(a[0], b[0], u), lerp(a[1], b[1], u) - peak * math.sin(math.pi * u))
                     nm = "hop_r" if b[0] >= a[0] else "hop_l"
                     put_sprite(cv, nm, 2 + int(clamp(u, 0, 0.999) * 3.99), p, lerp(s0, s1, u))
