@@ -1259,7 +1259,7 @@ class Op:
         if "_pose" in tp:
             return tp["_pose"]
         rec = self.rec
-        busy = self._busy_at(shot, L, tp["t"])
+        busy = self._busy_at(shot, L, max(0.0, tp["t"] - self.TAP_IN)) | self._busy_at(shot, L, tp["t"]) | self._busy_at(shot, L, min(shot.dur - 1 / FPS, tp["t"] + self.TAP_OUT))
         (bx0, by0, bx1, by1), _ = self._btn(rec, tp)
         H, W = busy.shape
         bm = np.zeros_like(busy)
@@ -1267,7 +1267,7 @@ class Op:
         barea = max(1, int(bm.sum()))
         fr = rec.rect
         best = None
-        for size in (150, 130, 110, 96, 84, 72, 64):
+        for size in (150, 130, 110, 96, 84, 72, 64, 56, 48):
             r0 = C.sprite_rect(B.bibi_index()["tap"]["frames"][8], (0, 0), size)   # 相對腳底的外框
             cands = []
             for fx in (0.5, 0.3, 0.7, 0.1, 0.9):
@@ -2019,7 +2019,14 @@ def _shot_note(cv, L, shot, t):
     f = font(F_MED, 22 if L.fmt == "web" else 24)
     tw = text_w(f, text)
     if L.fmt == "web":
-        x, y = L.box[0] + L.box[2] - tw - 16, 16
+        y = 16
+        occ = [r for (n, r, ro, g) in C.CUR if n in ("headline",) or n.startswith("pill")]
+        x = L.box[0] + L.box[2] - tw - 16
+        for cand in [L.box[0] + L.box[2] - tw - 16] + [r[2] + 40 for r in occ] + [r[0] - tw - 40 for r in occ]:
+            box = (cand - 10, y - 4, cand + tw + 10, y + 30)
+            if cand >= 12 and cand + tw <= L.W - 12 and not any(C._inter((box[0] - 8, box[1], box[2] + 8, box[3]), r) > 0 for r in occ):
+                x = cand
+                break
     else:
         x, y = 40 + (900 - tw) / 2, 386
     R.float_panel(cv, (x - 10, y - 4, x + tw + 10, y + 30), 225, 10)
