@@ -52,12 +52,20 @@ RIG_NAMES = {"happy_hop", "receive", "receive_grass", "receive_ball",
              "highfive", "dance", "hug", "wake_once", "selfie", "sleep_loop",
              "run_r", "run_l", "run_start_r", "run_stop_r", "hit", "cry", "dizzy",
              # 10-12 動畫單位四腳重畫第 1～5 組（docs/anim/bibi_<名>/.quad1012；同一套原版 Default 尺寸，一樣要縮）
-             "eat_q", "spin_q"}
+             "eat_q", "spin_q",
+             # 10-12 動畫單位四腳版第 6～8 組＋丟東西互動（0ff4ddd）：同一套原版 Default 尺寸，一樣要縮
+             "pet_q", "sniff_eat", "hop_reach", "pounce", "tangle", "look_up"}
 # 10-12 四腳版：網站檔名 → 來源（素材庫 bibi_library 裡也有同名的舊 eat_grass／spin，所以這兩組改名 eat_q／spin_q、指定來源，免得撿到舊版）
 # sleep_loop／wake_once／hit／cry／selfie 動畫單位直接覆蓋同名資料夾，src_of 照舊找得到新版
 # 檔案上限的例外：eat_q 16 格、草畫在地上細節多，60KB 會被隔格抽成 8 格（動作變跳格）→ 放寬到 100KB 保留 16 格（10-12 量過）
-LIMIT_OVR = {"eat_q": 100 * 1024}
-QUAD_SRC = {"eat_q": NEW / "bibi_eat_grass" / "anim.webp", "spin_q": NEW / "bibi_spin" / "anim.webp"}
+# 10-12 第 6～8 組起（CEO：「檔案上限可以放寬到 100KB，以保住格數」）：四腳版一律 100KB，不准為了 60KB 隔格抽掉
+QUAD_ALL = ["eat_q", "spin_q", "hit", "cry", "selfie", "sleep_loop", "wake_once",
+            "run_r", "run_l", "run_start_r", "run_stop_r", "ball_catch", "ball_catch_l", "pet_q", "highfive", "dance", "hug",
+            "receive", "popcorn", "sniff_eat", "hop_reach", "pounce", "tangle", "look_up"]
+LIMIT_OVR = {n: 100 * 1024 for n in QUAD_ALL}
+# pet_q：動畫單位四腳版放在 docs/anim/bibi_pet（網站舊的 pet_v2 是站著被手摸的版本）→ 改名 pet_q、指定來源
+QUAD_SRC = {"eat_q": NEW / "bibi_eat_grass" / "anim.webp", "spin_q": NEW / "bibi_spin" / "anim.webp",
+            "pet_q": NEW / "bibi_pet" / "anim.webp"}
 
 # 網站用到的才轉（情境待機＋互動動作；對照表在 site/bibi.js 的 MAP）
 NAMES = [
@@ -78,6 +86,8 @@ NAMES = [
     "face_star", "receive", "receive_grass", "receive_ball",
     # 10-12 四腳版第 1～5 組（吃草、轉圈＝新檔名；睡覺／叫醒／被敲／哭／自拍＝同名覆蓋，上面已列）
     "eat_q", "spin_q",
+    # 10-12 四腳版第 6～8 組＋丟東西互動（玩球、摸摸、碰鼻子、跳舞、蹭蹭、低頭嗅、爆米花、撒零食、吹泡泡、羽毛棒、毛線球、紙飛機）
+    "pet_q", "sniff_eat", "hop_reach", "pounce", "tangle", "look_up",
 ]
 
 
@@ -140,40 +150,87 @@ def convert(name: str) -> tuple[int, int] | None:
 
 
 def icons():
-    """互動小圈圖示（docs/anim/bibi_icons/*.png，96px）→ site/brand/bibi/icons/*.webp（同尺寸＝42px 小圈的 2 倍螢幕，檔案小一半以上）。"""
+    """互動小圈圖示（docs/anim/bibi_icons/*.png，96px）→ site/brand/bibi/icons/*.webp（同尺寸＝42px 小圈的 2 倍螢幕，檔案小一半以上）。
+
+    10-12 玩具六件組：動畫單位交的 *_icon96.png（docs/anim/bibi_sniff_eat、bibi_hop_reach、bibi_pounce、bibi_tangle、bibi_look_up）
+    只有物件本身、沒有圓底 → 放進跟其他小圈同款的奶油圓底＋深色粗描邊（96px），深淺主題都清楚。"""
+    from PIL import ImageDraw
     src = NEW / "bibi_icons"
-    if not src.exists():
-        return
     (OUT / "icons").mkdir(parents=True, exist_ok=True)
-    extra = [NEW / "bibi_popcorn" / "popcorn_icon.png"]   # 爆米花小圈圖示跟著 popcorn 素材交（10-11 深夜）
-    for f in sorted(src.glob("*.png")) + [e for e in extra if e.exists()]:
-        im = Image.open(f).convert("RGBA")
-        stem = f.stem.replace("_icon", "")
-        im.save(OUT / "icons" / (stem + ".webp"), "WEBP", quality=90, method=6)
-        print(f"  圖示 {stem:10s} {(OUT / 'icons' / (stem + '.webp')).stat().st_size / 1024:4.1f} KB")
+    if src.exists():
+        extra = [NEW / "bibi_popcorn" / "popcorn_icon.png"]   # 爆米花小圈圖示跟著 popcorn 素材交（10-11 深夜）
+        for f in sorted(src.glob("*.png")) + [e for e in extra if e.exists()]:
+            im = Image.open(f).convert("RGBA")
+            stem = f.stem.replace("_icon", "")
+            im.save(OUT / "icons" / (stem + ".webp"), "WEBP", quality=90, method=6)
+            print(f"  圖示 {stem:10s} {(OUT / 'icons' / (stem + '.webp')).stat().st_size / 1024:4.1f} KB")
+    # 玩具小圈：網站小圈 id → 圖示來源（撒零食用紅蘿蔔丁、落葉用葉子；瓜子、花瓣的圖示沒用到）
+    toys = {"carrot": NEW / "bibi_sniff_eat" / "carrot_icon96.png", "bubble": NEW / "bibi_hop_reach" / "bubble_icon96.png",
+            "feather": NEW / "bibi_pounce" / "feather_icon96.png", "yarn": NEW / "bibi_tangle" / "yarn_icon96.png",
+            "plane": NEW / "bibi_look_up" / "plane_icon96.png", "leaf": NEW / "bibi_look_up" / "leaf_icon96.png"}
+    for stem, f in toys.items():
+        if not f.exists():
+            print(f"  略過圖示 {stem}（{f} 還沒到）")
+            continue
+        S = 4 * 96   # 4 倍畫再縮，圓邊才平滑
+        bg = Image.new("RGBA", (S, S), (0, 0, 0, 0))
+        d = ImageDraw.Draw(bg)
+        d.ellipse((6, 6, S - 6, S - 6), fill=(26, 9, 7, 255))
+        d.ellipse((26, 26, S - 26, S - 26), fill=(253, 245, 233, 255))
+        bg = bg.resize((96, 96), Image.LANCZOS)
+        ic = Image.open(f).convert("RGBA")
+        ic = ic.crop(ic.getbbox())
+        k = 62 / max(ic.size)
+        ic = ic.resize((max(1, round(ic.size[0] * k)), max(1, round(ic.size[1] * k))), Image.LANCZOS)
+        bg.alpha_composite(ic, ((96 - ic.size[0]) // 2, (96 - ic.size[1]) // 2))
+        bg.save(OUT / "icons" / (stem + ".webp"), "WEBP", quality=90, method=6)
+        print(f"  玩具圖示 {stem:8s} {(OUT / 'icons' / (stem + '.webp')).stat().st_size / 1024:4.1f} KB")
 
 
 def props():
-    """道具（從被點的小圈飛到比比面前）→ site/brand/bibi/props/ball.webp、grass.webp（裁到東西本身、長邊 128px）。
+    """道具（從被點的小圈飛到比比面前）→ site/brand/bibi/props/<名>.png（動畫單位的正式 PNG，裁到東西本身、長邊 128px）。
 
     Andy 10-11：「伸出去的手太奇怪了，需要修正」→ hand_*_prop.png 一律不用，改成道具自己飛過去。
-    來源：docs/anim/bibi_ball_catch/ball_prop.png、docs/anim/bibi_eat_grass_v2/grass_prop.png（512 畫布、透明）。
+    10-12：玩具六件組的 SVG 替代道具換成動畫單位的正式 PNG（CEO：「把 SVG 替代道具換成正式 PNG」）；
+    球、草、槌子也一起改出 PNG（同一套流程，舊的 .webp 刪掉）。
+    pop_burst.webp：吹泡泡戳破那一下（3 格 60／70／90ms、播一次），整個 512 畫布縮到 128px，網頁照泡泡大小 ×512/420 疊上去
+    （bubble_prop 的泡泡寬 420／512）。
     """
     dst = OUT / "props"
     dst.mkdir(parents=True, exist_ok=True)
-    for f in dst.glob("hand*.webp"):          # 舊版的手（10-11 晚用過）一律清掉
-        f.unlink()
-    for name, src in (("ball", NEW / "bibi_ball_catch" / "ball_prop.png"), ("grass", NEW / "bibi_eat_grass_v2" / "grass_prop.png"),
-                      ("hammer", NEW / "bibi_hit" / "hammer_prop.png")):
+    for f in list(dst.glob("hand*.*")) + list(dst.glob("*.webp")):   # 舊版的手（10-11 晚）與舊的 webp 道具一律清掉
+        if f.name != "pop_burst.webp":
+            f.unlink()
+    items = (("ball", NEW / "bibi_ball_catch" / "ball_prop.png", None), ("grass", NEW / "bibi_eat_grass_v2" / "grass_prop.png", None),
+             ("hammer", NEW / "bibi_hit" / "hammer_prop.png", None),
+             ("seed", NEW / "bibi_sniff_eat" / "seed_prop.png", None), ("carrot", NEW / "bibi_sniff_eat" / "carrot_prop.png", None),
+             ("bubble", NEW / "bibi_hop_reach" / "bubble_prop.png", None), ("feather", NEW / "bibi_pounce" / "feather_prop.png", None),
+             ("yarn", NEW / "bibi_tangle" / "yarn_prop.png", None),
+             # 毛線球滾動／蓋住 ball_catch 素材裡那顆球用的「只有球」版本：yarn_prop 左邊那顆球（尾巴線另外用網頁 SVG 畫）
+             ("yarn_ball", NEW / "bibi_tangle" / "yarn_prop.png", (46, 148, 258, 360)),
+             ("plane", NEW / "bibi_look_up" / "plane_prop.png", None), ("leaf", NEW / "bibi_look_up" / "leaf_prop.png", None),
+             ("petal", NEW / "bibi_look_up" / "petal_prop.png", None))
+    for name, src, box in items:
         if not src.exists():
             print(f"  略過道具 {name}（{src} 還沒到）")
             continue
         im = Image.open(src).convert("RGBA")
+        if box:   # 只要那顆球：裁出來再套一個圓形遮罩，把壓在球右下角的尾巴線去掉
+            from PIL import ImageDraw
+            im = im.crop(box)
+            m = Image.new("L", im.size, 0)
+            ImageDraw.Draw(m).ellipse((0, 0, im.size[0] - 1, im.size[1] - 1), fill=255)
+            im.putalpha(Image.fromarray(__import__("numpy").minimum(__import__("numpy").asarray(im.split()[3]), __import__("numpy").asarray(m))))
         im = im.crop(im.getbbox())
         k = 128 / max(im.size)
         im = im.resize((max(1, round(im.size[0] * k)), max(1, round(im.size[1] * k))), Image.LANCZOS)
-        im.save(dst / f"{name}.webp", "WEBP", quality=90, method=6)
-        print(f"  道具 {name:6s} {im.size[0]}×{im.size[1]}  {(dst / f'{name}.webp').stat().st_size / 1024:4.1f} KB")
+        im.save(dst / f"{name}.png", "PNG", optimize=True)
+        print(f"  道具 {name:9s} {im.size[0]}×{im.size[1]}  {(dst / f'{name}.png').stat().st_size / 1024:4.1f} KB")
+    pb = [NEW / "bibi_hop_reach" / f"pop_burst_{i}.png" for i in (1, 2, 3)]
+    if all(p.exists() for p in pb):
+        fr = [Image.open(p).convert("RGBA").resize((128, 128), Image.LANCZOS) for p in pb]
+        fr[0].save(dst / "pop_burst.webp", "WEBP", save_all=True, append_images=fr[1:], duration=[60, 70, 90], loop=1, quality=88, method=6)
+        print(f"  道具 pop_burst 3 格 {(dst / 'pop_burst.webp').stat().st_size / 1024:4.1f} KB")
 
 def _fit_original(fr):
     """原版造型（default_idle_1011／jump 都是同一個座標：描邊寬 385、中心 x=253.5、腳底 y=483）→ 素材庫場景座標
