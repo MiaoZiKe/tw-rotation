@@ -50,7 +50,9 @@ def card(sid, D, fn, cues=()):
 
 def build():
     S = []
-    S.append(card("01", 2.5, K.chaos_fn(), [(0, "pop")]))
+    S.append(card("01a", 2.8, K.chaos_fn(1), [(0, "pop")]))
+    S.append(card("01b", 2.8, K.chaos_fn(2), [(0, "pop")]))
+    S.append(card("01c", 2.8, K.chaos_fn(3), [(0, "pop")]))
     S.append(card("02", 2.0, K.tidy_fn("V01_desktop"), [(0, "swish"), (0.7, "ding")]))
     S.append(card("03", 3.5, K.intro_fn(), [(0, "pop"), (1.4, "ding")]))
 

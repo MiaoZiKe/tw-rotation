@@ -103,24 +103,51 @@ DESK = [("V14_desktop", 17.0), ("V02_desktop", 4.8), ("V20_desktop", 1.0), ("V03
 MOB = [("V14_mobile", 2.5), ("V16_mobile", 1.0), ("V20_mobile", 1.0), ("V09_mobile", 2.5), ("V18_mobile", 2.5), ("V21_mobile_v3b", 2.5)]
 
 
-def chaos_fn():
+CHAOS = {
+    1: dict(head="看盤資訊太多？", hl="太多", small="新聞、財報、資金、ETF，每天看到眼花", bibi="alarm", say="新聞、財報、資金、ETF…看到眼花，我陪你整理",
+            desk=DESK, mob=MOB),
+    2: dict(head="台股產業這麼多，要怎麼看懂？", hl="看懂", small="從資金流向、題材到 3D 產業鏈，一步步看懂", bibi="face_sweat", say="產業那麼多，連我都頭大…",
+            desk=[("V08_desktop", 3.1), ("V11_desktop", 15.0), ("V13_desktop", 4.0), ("V12a_desktop", 3.0), ("V09_desktop", 3.1), ("V05_desktop", 3.0)],
+            mob=[("V08_mobile", 3.1), ("V11_mobile", 14.8), ("V12a_mobile", 3.0), ("V09_mobile", 3.1), ("V05_mobile", 3.0), ("V07_mobile", 3.3)]),
+    3: dict(head="ETF 這麼多，怎麼配才有現金流？", hl="現金流", small="從配息月曆到組合試算，幫你排出每月現金流", bibi="face_think", say="標的這麼多，到底怎麼配？",
+            desk=[("V19_desktop", 4.3), ("V20_desktop", 3.1), ("V21_desktop", 4.3), ("V22_desktop", 3.4), ("V23_desktop", 5.5), ("V22_desktop", 5.0)],
+            mob=[("V19_mobile_v3b", 4.3), ("V20_mobile", 3.1), ("V21_mobile_v3b", 4.3), ("V22_mobile", 3.4), ("V23_mobile", 5.5), ("V19_mobile_v3b", 6.0)]),
+}
+
+
+def chaos_fn(kind=1):
+    cfg = CHAOS[kind]
+
     def fn(cv, t, shot):
         L = shot.L
         web = L.fmt == "web"
-        center_head(cv, L, "看盤資訊太多？", t, "太多", y=30 if web else 130)
+        center_head(cv, L, cfg["head"], t, cfg["hl"], y=30 if web else 100, px=None if web else 60)
+        sf = font(B.F_BOLD, 34 if web else 30)
+        stw = text_w(sf, cfg["small"])
+        sy = 168 if web else 232
+        a_ = clamp((t - 0.25) / 0.25, 0, 1)
+        sx = L.W / 2 - stw / 2
+        R.float_panel(cv, (sx - 20, sy, sx + stw + 20, sy + sf.size * 1.3 + 8), int(225 * a_), 14)
+        ImageDraw.Draw(cv).text((sx, sy + 4), cfg["small"], font=sf, fill=THEME["ink"])
+        C.reg("small", (sx - 20, sy, sx + stw + 20, sy + sf.size * 1.3 + 8))
         if web:
             size = (420, 236)
-            cells = [(60 + (i % 4) * 465, 190 + (i // 4) * 276) for i in range(8)]
-            frags = DESK
-            box = (440, 60, 3040, 1522)
+            n = 8 if kind == 1 else 6
+            if kind == 1:
+                cells = [(60 + (i % 4) * 465, 240 + (i // 4) * 276) for i in range(8)]
+            else:
+                cells = [(60 + (i % 3) * 620 + 20, 240 + (i // 3) * 276) for i in range(6)]
+                size = (560, 236)
+            frags = cfg["desk"]
+            box = (440, 60, 3040, 1522) if kind == 1 else (440, 60, 3040, 1180)
         else:
-            size = (470, 280)
-            cells = [(60 + (i % 2) * 520, 300 + (i // 2) * 310) for i in range(6)]
-            frags = MOB
-            box = (0, 420, 1170, 1250)
+            size = (470, 330)
+            cells = [(60 + (i % 2) * 520, 330 + (i // 2) * 370) for i in range(6)]
+            frags = cfg["mob"]
+            box = (0, 400, 1170, 1222)
         for k, (cx, cy) in enumerate(cells):
-            u = back_out((t - 0.15 - 0.17 * k) / 0.3)
-            if t < 0.15 + 0.17 * k:
+            u = back_out((t - 0.15 - 0.14 * k) / 0.3)
+            if t < 0.15 + 0.14 * k:
                 continue
             clip, st = frags[k % len(frags)]
             im = mini(clip, st, box, size)
@@ -130,7 +157,7 @@ def chaos_fn():
             cv.paste(im, (int(cx + size[0] / 2 - im.width / 2), int(cy + size[1] / 2 - im.height / 2)), im)
             C.reg(f"frag{k}", (cx, cy, cx + size[0], cy + size[1]))
         from v3_core import card_host
-        card_host(cv, L, "alarm", "新聞、財報、資金、ETF…看到眼花，我陪你整理", t)
+        card_host(cv, L, cfg["bibi"], cfg["say"], t)
     return fn
 
 
@@ -155,7 +182,7 @@ def tidy_fn(clip):
         hx = L.pill_xy[0]
         pw = R.pill(cv, "整理好了", L.pill_xy[0], L.pill_xy[1], px=L.pill_px)
         L.head_xy = (hx + pw + (36 if web else 30), L.head_y)
-        R.headline(cv, L, "這些我們整理好了", t, "整理好了")
+        R.headline(cv, L, "這些，比比幫你整理好了", t, "整理好了")
         from v3_core import card_host
         card_host(cv, L, "face_relief", "別擔心，這些我幫你整理成圖了", t)
         from v3_core import footnote4
@@ -393,6 +420,14 @@ def end_fn():
         if b > 0:
             R.pill(cv, "搜尋 哩股哩股", x, py, bg=WHITE, fg=THEME["ink"], px=px1, stroke=False, alpha=b)
             R.pill(cv, "免費註冊", x + w1 + gap, py, bg=LEMON, fg=THEME["ink"], px=px1, stroke=False, alpha=b)
+        ef = font(THEME["head_font"], 52 if web else 46)
+        etxt = "產業看得懂，現金流排得出來"
+        etw = text_w(ef, etxt)
+        ea = ease_out((t - 0.7) / 0.3)
+        ey = (py + 100) if web else (py + 110)
+        R.float_panel(cv, (W / 2 - etw / 2 - 24, ey, W / 2 + etw / 2 + 24, ey + ef.size * 1.3 + 8), int(235 * ea), 18)
+        ImageDraw.Draw(cv).text((W / 2 - etw / 2, ey + 4), etxt, font=ef, fill=THEME["ink"] + (255,))
+        C.reg("echo", (W / 2 - etw / 2 - 24, ey, W / 2 + etw / 2 + 24, ey + ef.size * 1.3 + 8))
         size = 300 if web else 420
         foot = (W / 2 if web else 330, (1030 if web else 1640))
         ROLE[0] = "bibi"
