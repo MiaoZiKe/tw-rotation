@@ -21,6 +21,10 @@
 - [10-09 22:1x] 手機版 → 網頁版：Andy 回報手機抽屜站名圖跑掉、頂欄 LOGO 點了變放大（他要：頂欄 LOGO＝回總覽；只有側欄抽屜裡的 LOGO 才放大）。手機版開 claude/m4-brand 處理，**只改 html.m4／≤640**，不動桌機 .brand .logo→#logoBox 行為。
 
 
+## 2026-10-12 凌晨 比比：待機只剩一直跳（取消情境待機款）＋新增「跳跳」小圈（UI 專家；DECISIONS #357 第 ⑤ 點）
+- Andy：「右下GIF 需要改成圖二一直跳的狀態，除非他點選其他互動紐，需要把圖二也新增在互動紐裡面」→ 深夜／假日／大跌／週末／聖誕都是 jump 一直跳（只換泡泡句）；新增第 13 個小圈「跳跳」（原版比比頭像，連跳 3 次）。
+- 驗收：比比互動1011（105 條）＋桌機守門1008、客服鈕1009、願望清單1009、_preview.py。
+
 ## 2026-10-11 晚～深夜 比比：小圈一次攤開、動作編排（跑出去追球／道具從小圈飛出／打他哭哭／爆米花）、Default 一直跳（UI 專家；DECISIONS #357）
 - Andy 原話（最後一輪）：「伸出去的手太奇怪了，需要修正，並且 Default 改成一直跳；頭暈應該要表情暈眩；互動按鈕改成原本那樣；需要新增打他互動，並且他會哭哭」。
 - 檔案：`site/bibi.js`、`site/support.js`（開場圖版本戳、避讓把 `#bibiStage` 當自己）、`site/brand/bibi/`（動畫單位全部原版造型的互動素材＋jump／default_idle、`props/ball|grass|hammer.webp`、`icons/popcorn|hammer.webp`）、`scripts/anim/bibi_site.py`（`RIG_FIT`、`default_idle`／`jump`／`props` 子指令）、`scripts/_uitest.py`（比比互動1011）。

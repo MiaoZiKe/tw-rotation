@@ -32941,23 +32941,23 @@ def t_bibi_1011(b, base):
     NOT_HAPPY = ("night", "holiday", "xmas", "down2")
     IDLE_F = HAPPY                                 # 盤後總覽的待機圖（下面回待機都比這張）
     for name, inj, route, want, key, say in cases:
-        if HAPPY and key not in NOT_HAPPY:
-            want = HAPPY
+        want = HAPPY   # Andy 10-11 深夜：「右下GIF 需要改成圖二一直跳的狀態」→ 每種情境的圖都一樣（只換泡泡說明句）
         got = pg.evaluate("(o) => Bibi.test(o)", inj)
         shown = _bibi_src(pg, want)
         st = pg.evaluate(BIBI_ST)
         ok(f"【{T}】桌機 情境「{name}」→ 待機換成 {want}（{st['src']}）、情境鍵 {key}、說明句含「{say or '—'}」",
            bool(shown) and got and got.get("key") == key and (say is None or say in (got.get("say") or "")), {"got": got, "st": st})
-    # Default 待機（Andy 10-11 深夜：「Default 改成一直跳」）：一般情境＝圖二 jump 一直循環（錄 2.8 秒每一筆都是 jump、沒有停在 Default）；
-    # 深夜、國定假日、大跌安慰保留原情境款、不跳
+    # 待機只有一種（Andy 10-11 深夜：「右下GIF 需要改成圖二一直跳的狀態，除非他點選其他互動紐」）：每種情境都是圖二 jump 一直循環（錄 2.8 秒每一筆都是 jump）；
+    # 深夜、國定假日、大跌、週末、聖誕也一樣，只換泡泡說明句
     JUMP_REC = """(ms) => new Promise((res) => { const o = [], t0 = performance.now();
       const k = () => { o.push(Bibi.state().src.split('/').pop()); if (performance.now() - t0 < ms) setTimeout(k, 40); else res(o); }; k(); })"""
     pg.evaluate("() => Bibi.test({ hop: true })")
     for name, inj, want_h in (("盤後總覽", {"now": "2026-10-14T16:00:00+08:00", "pct": None, "hol": {}}, True),
                               ("盤中小跌", {"now": "2026-10-14T10:00:00+08:00", "pct": -0.3}, True),
                               ("週末", {"now": "2026-10-17T15:00:00+08:00", "pct": None}, True),
-                              ("盤中大跌", {"now": "2026-10-14T10:00:00+08:00", "pct": -1.6}, False), ("深夜", {"now": "2026-10-14T23:40:00+08:00", "pct": None}, False),
-                              ("國定假日", {"now": "2026-02-16T10:00:00+08:00", "hol": {"2026-02-16": "春節"}}, False)):
+                              ("盤中大跌", {"now": "2026-10-14T10:00:00+08:00", "pct": -1.6}, True), ("深夜", {"now": "2026-10-14T23:40:00+08:00", "pct": None}, True),
+                              ("國定假日", {"now": "2026-02-16T10:00:00+08:00", "hol": {"2026-02-16": "春節"}}, True),
+                              ("聖誕", {"now": "2026-12-24T15:00:00+08:00", "pct": None, "hol": {}}, True)):
         pg.evaluate("(o) => Bibi.test(o)", inj); pg.wait_for_timeout(700)
         seq = pg.evaluate(JUMP_REC, 2800)
         uniq = sorted(set(seq))
@@ -33004,7 +33004,7 @@ def t_bibi_1011(b, base):
     tip = pg.evaluate(BIBI_ST)["tip"]
     ok(f"【{T}】桌機 停在比比上有提示泡泡說他在幹嘛（{tip}）", "比比" in tip, tip)
     ids1 = [x["id"] for x in R1["bs"]]
-    ALL_IDS = ["ask", "popcorn", "pet", "grass", "ball", "spin", "hit", "five", "dance", "hug", "sleep", "selfie"]
+    ALL_IDS = ["ask", "hop", "popcorn", "pet", "grass", "ball", "spin", "hit", "five", "dance", "hug", "sleep", "selfie"]
     ok(f"【{T}】桌機 滑鼠移到比比上 → 全部 {len(ids1)} 個小圈一次攤開（沒有「下一頁」）：{names}",
        R1["on"] and sorted(ids1) == sorted(ALL_IDS) and "next" not in ids1, R1)
     rads = {x["id"]: (((x["l"] + x["r"]) / 2 - R1["rx"]) ** 2 + ((x["t"] + x["b"]) / 2 - R1["ry"]) ** 2) ** .5 for x in R1["bs"]}
@@ -33123,6 +33123,14 @@ def t_bibi_1011(b, base):
        started(rec) and any(r["src"] == PRT["spin"] + ".webp" for r in rec) and len(dz) * 50 >= 1200
        and rec.index(next(r for r in rec if r["src"] == PRT["spin"] + ".webp")) < rec.index(dz[0]) and all(r["phase"] == "dizzy" for r in dz[:-1]), [r["src"] for r in rec[::6]])
     home("spin")
+
+    rec = play("hop", 3900)
+    oys = [r["oy"] for r in rec if r["run"] == "hop"]
+    tops = sum(1 for i in range(1, len(oys) - 1) if oys[i] < -8 and oys[i] <= oys[i - 1] and oys[i] < oys[i + 1])
+    ok(f"【{T}】桌機 點「跳跳」（原版比比頭像）→ 300ms 內在動、jump 從頭重播、連跳 {tops} 次、每次往上多送 {-min(oys or [0]):.0f}px、整顆放大",
+       started(rec) and sum(r["src"] == "jump.webp" for r in rec if r["run"] == "hop") >= 0.9 * max(1, sum(r["run"] == "hop" for r in rec)) and tops >= 3 and min(oys or [0]) < -15
+       and any("scale(1.08" in (r["body"] or "") for r in rec), {"oys": oys[::4], "srcs": sorted(set(r["src"] for r in rec if r["run"] == "hop")), "st": started(rec), "body": [r["body"] for r in rec[:3]]})
+    home("hop")
 
     rec = play("popcorn", 2200)
     oys = [r["oy"] for r in rec if r["run"] == "popcorn"]
@@ -33260,7 +33268,7 @@ def t_bibi_1011(b, base):
     pg.tap("#supFab"); pg.wait_for_timeout(900)
     M1 = pg.evaluate(BIBI_RING)
     mids = [x["id"] for x in M1["bs"]]
-    ok(f"【{T}】手機 點比比一下 → 全部 {len(mids)} 個小圈一次攤開、不直接開客服", M1["on"] and sorted(mids) == sorted(["ask", "popcorn", "pet", "grass", "ball", "spin", "hit", "five", "dance", "hug", "sleep", "selfie"]) and not M1["panel"], M1)
+    ok(f"【{T}】手機 點比比一下 → 全部 {len(mids)} 個小圈一次攤開、不直接開客服", M1["on"] and sorted(mids) == sorted(["ask", "hop", "popcorn", "pet", "grass", "ball", "spin", "hit", "five", "dance", "hug", "sleep", "selfie"]) and not M1["panel"], M1)
     out = [x["id"] for x in M1["bs"] if not (x["l"] >= 0 and x["t"] >= 0 and x["r"] <= M1["vw"] and x["b"] <= M1["vh"])]
     ok(f"【{T}】手機 全部小圈在 390 視窗內（超出：{out}）、沒有橫向捲軸（{M1['sw']}）", not out and M1["sw"] <= 390, M1)
     ok(f"【{T}】手機 以比比當下位置為圓心、小圈 ≥ 40px、兩兩不重疊", abs(M1["fx"] - M1["rx"]) <= 3 and abs(M1["fx"] - M0["fx"]) <= 2
