@@ -164,7 +164,7 @@ BAD_JS = r"""() => {
     if (cs.visibility === 'hidden' || cs.display === 'none' || +cs.opacity === 0) return false;
     return r.width > 2 && r.height > 2 && r.bottom > 0 && r.right > 0 && r.top < vh && r.left < vw; };
   const out = [];
-  const RE0 = /看方案|升級|上限|Pro 不限|方案最多|已選\s*\d+\s*[／\/]\s*\d+|請登入|請先登入|載入中|讀取中|查無|沒有符合|尚無資料|沒有資料|發生錯誤|錯誤|Error|此功能需開通|今日已用完|需開通/;
+  const RE0 = /看方案|升級|上限|Pro 不限|方案最多|已選\s*\d+\s*[／\/]\s*\d+|請登入|請先登入|載入中|讀取中|查無|沒有符合|尚無|無資料|暫無|尚未選擇|沒有資料|資料的第一天|沒有前一交易日|發生錯誤|錯誤|Error|此功能需開通|今日已用完|需開通|退款|取消訂閱/;
   document.querySelectorAll('[role=dialog], [role=alertdialog], .modal, .toast, .qcov, .qcard, .qlkov, [data-plk], [data-qlk], .upsell').forEach(e => {
     if (e.closest('#supPanel') || e.id === 'logoBox') return;
     // 內容型底部面板（手機 #mSheet 顯示零件／族群說明）是正常畫面：只有付費／上限／鎖頭類，或文字含上述字樣才算
@@ -176,10 +176,16 @@ BAD_JS = r"""() => {
   let n, k = 0;
   while ((n = walker.nextNode()) && k < 4000) { k++;
     const t = n.nodeValue; if (!t || !RE.test(t)) continue;
-    const e = n.parentElement; if (!e || e.closest('#supPanel, script, style, noscript, .faq, footer, .sitefoot, [aria-hidden=true]')) continue;
+    const e = n.parentElement; if (!e || e.closest('#supPanel, script, style, noscript, .faq, [aria-hidden=true]')) continue;
     if (!inView(e)) continue;
     out.push('字樣：「' + t.trim().replace(/\s+/g, ' ').slice(0, 40) + '」');
     if (out.length > 6) break; }
+  // 客服面板停在「意見反饋」分頁（預設類別「錯誤回報」）也算
+  const sp = document.getElementById('supPanel');
+  if (sp && inView(sp)) { const on = sp.querySelector('.sptabs button.on'); if (on && /意見反饋/.test(on.textContent || '')) { const k = sp.querySelector('#fbKind button.on'); if (!k || !/願望清單/.test(k.textContent || '')) out.push('客服面板停在「意見反饋」分頁（顯示錯誤回報表單）'); } }
+  // 排名／清單欄位全是「—」（空狀態）
+  let dash = 0; document.querySelectorAll('td, .num, .rk, dd, span, b').forEach(e => { if (e.children.length === 0 && (e.textContent || '').trim() === '—' && inView(e)) dash++; });
+  if (dash >= 6) out.push(`空狀態：畫面上 ${dash} 個欄位是「—」`);
   return out.length ? out : null;
 }"""
 
@@ -2089,6 +2095,29 @@ def v25(pg, a, start, base):
         tap(a, "#twTourNext", f"下一步 {i + 1}", 2200)
 
 
+@shot3("V26w", "md", "比比客服面板：一打開就是「願望清單」分頁（不經過意見反饋／錯誤回報）→ 輸入一則願望")
+def v26w(pg, a, start, base):
+    goto3(pg, a, base, "#overview")
+    # 開錄前先讓面板記住「意見反饋＞願望清單」再關上：之後點客服鈕一打開就是願望清單
+    pg.evaluate("() => { if (window.TwSupport) { TwSupport.open('wish'); TwSupport.close(); } }")
+    pg.wait_for_timeout(600)
+    start()
+    a.wait(800)
+    tap(a, "#supFab", "比比客服鈕", 300)
+    if NOFAB_ACTIVE.get("on"):
+        pg.evaluate("(css) => { const st = document.createElement('style'); st.textContent = css; document.head.appendChild(st); }", NOFAB_CSS)
+    a.wait(900)
+    pg.evaluate("() => document.querySelectorAll('#supPanel input[type=email]').forEach(e => e.value = '')")
+    frame(a, "#supPanel", 2000, label="客服面板：願望清單")
+    if a.click("#wsWant", 600, 300, label="想要的功能"):
+        for ch in "希望自選股可以設價格提醒":
+            pg.keyboard.type(ch)
+            a.wait(120)
+    t0 = a.t
+    a.wait(2200)
+    a.focus_sel("願望清單表單（已輸入）", "#supPanel", t0, a.t)
+
+
 @shot3("V26", "md", "比比客服面板：常見問題 → 意見反饋 → 願望清單（輸入一則願望）")
 def v26(pg, a, start, base):
     goto3(pg, a, base, "#overview")
@@ -2863,6 +2892,8 @@ def main() -> int:
                         ctx.add_init_script(HIDE_TIER_JS)
                     if not v3:   # v3：剪輯在後製畫比比的游標與漣漪 → 錄影不畫游標、不畫漣漪（座標照記）
                         ctx.add_init_script(CURSOR_JS % ("true" if dev == "m" else "false"))
+                    if args.nofab and sid not in ("V26", "V26w"):   # 必須在 new_page／goto 之前：hash 路由不重載，晚加不會執行
+                        ctx.add_init_script(NOFAB_JS)
                     pg = ctx.new_page()
                     errs = []
                     pg.on("pageerror", lambda e: errs.append(str(e)[:160]))
@@ -2876,8 +2907,6 @@ def main() -> int:
                     act.dsf = cfg["device_scale_factor"]
                     act.stable_noframes = args.stable_noframes
                     act.log_moves = v3   # v3 沒有錄進游標 → 游標路徑寫進 shots.md 給後製畫比比
-                    if args.nofab and sid not in ("V26",):
-                        ctx.add_init_script(NOFAB_JS)
                     name = f"{sid}_{'mobile' if dev == 'm' else 'desktop'}" + ("_v3b" if args.set == "v3b" else "_v3c" if args.set == "v3c" else "_v3d" if args.set == "v3d" else "_" + args.set if args.set in ("v3e", "v3f", "v3g", "v3h", "v3i", "v3j") else "") + ("_nofab" if args.nofab else "")
                     try:
                         # 每鏡自己決定何時開錄：fn(pg, act, rec_start) —— 先做準備（換頁、等圖畫完）再開錄

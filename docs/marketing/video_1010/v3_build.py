@@ -48,7 +48,7 @@ def timeline(S):
 
 def run_seg(args):
     fmt, theme, sid, path, step, only_check = args
-    C.LOG.clear(); C.EXC.clear(); K.CLICKS.clear(); K.FOCUSES.clear(); K.CROPS.clear(); K.MAINCHK.clear(); K.DWELLCHK.clear(); K.CONTENTCHK.clear(); K.ZOOMCHK.clear(); K.SITEOV.clear()
+    C.LOG.clear(); C.EXC.clear(); K.CLICKS.clear(); K.FOCUSES.clear(); K.CROPS.clear(); K.MAINCHK.clear(); K.DWELLCHK.clear(); K.CONTENTCHK.clear(); K.ZOOMCHK.clear(); K.SITEOV.clear(); K.BUSYCHK.clear()
     R.set_theme(theme)
     S = shots_for(fmt)
     L = K.Lay(fmt, theme)
@@ -75,13 +75,13 @@ def run_seg(args):
     for r in list(B._READERS.values()):
         r.close()
     B._READERS.clear()
-    chk = {"frames": frames, "LOG": C.LOG, "EXC": C.EXC, "CLICKS": K.CLICKS, "FOCUSES": K.FOCUSES, "CROPS": K.CROPS, "MAIN": K.MAINCHK, "DWELL": K.DWELLCHK, "CONTENT": K.CONTENTCHK, "ZOOM": K.ZOOMCHK, "SITEOV": K.SITEOV}
+    chk = {"frames": frames, "LOG": C.LOG, "EXC": C.EXC, "CLICKS": K.CLICKS, "FOCUSES": K.FOCUSES, "CROPS": K.CROPS, "MAIN": K.MAINCHK, "DWELL": K.DWELLCHK, "CONTENT": K.CONTENTCHK, "ZOOM": K.ZOOMCHK, "SITEOV": K.SITEOV, "BUSY": K.BUSYCHK}
     Path(str(path) + ".chk.json").write_text(json.dumps(chk, ensure_ascii=False))
     return sid
 
 
 def write_reports(work, S, label):
-    tot = {"frames": 0, "LOG": [], "EXC": [], "CLICKS": [], "FOCUSES": [], "CROPS": [], "MAIN": [], "DWELL": [], "CONTENT": [], "ZOOM": [], "SITEOV": []}
+    tot = {"frames": 0, "LOG": [], "EXC": [], "CLICKS": [], "FOCUSES": [], "CROPS": [], "MAIN": [], "DWELL": [], "CONTENT": [], "ZOOM": [], "SITEOV": [], "BUSY": []}
     for s in S:
         f = Path(work) / f"seg_{s.sid}.mp4.chk.json"
         if not f.exists():
@@ -150,8 +150,19 @@ def write_reports(work, S, label):
     else:
         L9.append("全部通過，0 筆。")
     (work / "site_overlay_check.md").write_text("\n".join(L9))
-    bad = len(so) + len(zbad) + len(dbad) + len(cbad) + len(log) + (len(cl) - ok) + (len(fo) - fok) + (len(cr) - cok) + len(mbad)
-    print(f"重疊 {len(log)} 筆（檢查 {tot['frames']} 幀）；site_overlay_check {len(tot['SITEOV'])} 筆；點擊 {len(cl)} 次通過 {ok}；焦點框 {len(fo)} 個通過 {fok}；裁切 {len(cr)} 鏡通過 {cok}；例外 {len(tot['EXC'])} 幀")
+    bz = tot["BUSY"]
+    L10 = [f"# 忙碌圖檢查 busy_check（{label}）", "",
+           "規則（CEO 10-12）：每一鏡每一幀，在網站框內用邊緣密度算出受保護像素（有字、有線、有圖），比比、泡泡、字卡、小字、道具與受保護像素的相交 ≤ 該元素面積 1%；受保護區 0 個直接判失敗；比比踩按鈕那一下只准碰被點的按鈕、按鈕露出 ≥80%。",
+           "", f"檢查幀數：{tot['frames']}　違規：{len(bz)} 筆", ""]
+    if bz:
+        L10 += ["| 鏡 | 秒 | 元素 | 相交% | 說明 |", "|---|---|---|---|---|"] + [f"| {a} | {b_} | {c} | {d} | {e} |" for a, b_, c, d, e in bz[:600]]
+        if len(bz) > 600:
+            L10.append(f"…另有 {len(bz) - 600} 筆")
+    else:
+        L10.append("全部通過，0 筆。")
+    (work / "busy_check.md").write_text("\n".join(L10))
+    bad = len(bz) + len(so) + len(zbad) + len(dbad) + len(cbad) + len(log) + (len(cl) - ok) + (len(fo) - fok) + (len(cr) - cok) + len(mbad)
+    print(f"重疊 {len(log)} 筆（檢查 {tot['frames']} 幀）；busy_check {len(tot['BUSY'])} 筆；客服鈕檢查 {len(tot['SITEOV'])} 筆；點擊 {len(cl)} 次通過 {ok}；焦點框 {len(fo)} 個通過 {fok}；裁切 {len(cr)} 鏡通過 {cok}；例外 {len(tot['EXC'])} 幀")
     return bad, tot
 
 
@@ -207,7 +218,7 @@ def main():
     work.mkdir(parents=True, exist_ok=True)
     import v3_guard as G
     gbad = G.guard(S, work, label, strict=a.final)
-    if gbad and (a.final or not a.allow):
+    if gbad:
         print(f"★ 來回切換／錯誤畫面檢查未通過（{gbad} 筆），不出片。報告：{work}/flow_check.md、bad_span_check.md")
         sys.exit(3)
     only = set(a.only.split(",")) if a.only else None
@@ -220,7 +231,11 @@ def main():
     if a.check:
         print("總長", round(total, 1), "秒；報告在", work)
         return
-    if bad and not a.allow:
+    if bad:
+        # CEO 10-12：任何檢查失敗都不准輸出 mp4（預覽也一樣），舊檔刪掉免得誤導
+        if a.out and Path(a.out).exists():
+            Path(a.out).unlink()
+            print("已刪除舊檔：", a.out)
         print("★ 檢查未通過，不出片。報告：", work)
         sys.exit(2)
     lst = work / "list.txt"
@@ -234,7 +249,20 @@ def main():
             cmd += ["-c:a", "aac", "-b:a", "192k", "-ar", "44100", "-shortest"]
         cmd += [a.out]
         subprocess.check_call(cmd)
-        print("輸出", a.out, "總長", round(total, 1))
+        # 停格檢查改在成片上跑（CEO 10-12）：ffmpeg freezedetect n=0.003 d=0.5，開場、字卡、四宮格、片尾都算
+        fz = subprocess.run(["ffmpeg", "-hide_banner", "-nostats", "-i", a.out, "-vf", "freezedetect=n=0.003:d=0.5", "-map", "0:v:0", "-f", "null", "-"],
+                            capture_output=True, text=True).stderr
+        import re as _re
+        starts = [float(x) for x in _re.findall(r"freeze_start: ([0-9.]+)", fz)]
+        durs = [float(x) for x in _re.findall(r"freeze_duration: ([0-9.]+)", fz)]
+        lines_ = [f"# 停格檢查（成片 freezedetect n=0.003 d=0.5）（{label}）", "", f"停格 {len(starts)} 筆", ""]
+        lines_ += [f"- {s0:.2f} 秒起停 {d0:.2f} 秒" for s0, d0 in zip(starts, durs + [0] * (len(starts) - len(durs)))] or ["全部通過，0 筆。"]
+        (work / "freeze_check.md").write_text("\n".join(lines_))
+        if starts:
+            Path(a.out).unlink()
+            print(f"★ 成片停格 {len(starts)} 筆（{', '.join(f'{s0:.2f}s' for s0 in starts[:12])}），刪除成片、不交件。報告：{work}/freeze_check.md")
+            sys.exit(4)
+        print("輸出", a.out, "總長", round(total, 1), "；停格 0 筆")
 
 
 if __name__ == "__main__":

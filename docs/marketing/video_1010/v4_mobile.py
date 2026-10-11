@@ -5,7 +5,7 @@ from __future__ import annotations
 
 import v4_cards as K4
 from v3_core import Lay, Op, Rec4, Shot4, plan_dwell
-from v4_web import GRID_M, GRID_W, _hl, card, grid_card, nofab
+from v4_web import GRID_M, GRID_W, _hl, card, grid_card, idle_sub, nofab
 
 _LM = Lay("mobile")
 _CUR = {}
@@ -34,7 +34,7 @@ def shot(sid, page, clip, segs, head, sub, idle, pan=None, chain=None, cont=Fals
     rec = Rec4(clip, pts, pan=pan_)
     rec.meta = {}
     rec.top_only = True
-    op = Op(rec, idle=idle, chain=chain)
+    op = Op(rec, idle=idle_sub(idle), chain=chain)
     D, dw = plan_dwell(rec, op, D, sub, _LM, pan_, chain, no_solve=fixed is not None, cont=cont, min_cap=min_cap)
     sh = Shot4(sid, D, [rec], pill=page, head=head, hl=hl or _hl(head), sub=sub, op=op)
     if fixed is not None:
