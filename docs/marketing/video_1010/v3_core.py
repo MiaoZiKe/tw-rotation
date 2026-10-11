@@ -374,7 +374,7 @@ def plan_dwell(rec, op, D, sub, L, pan_, chain=None, no_solve=False):
     wh = L.box[3] * sw / L.box[2] if mobile else 0
     units = content_units(rec.clip, s0, s1)
     min_req = min(7.0, 2.0 + 0.35 * units)
-    reading = len(sub or "") / 6.5 + 0.55
+    reading = len(sub or "") / 6.5 + 0.3
     need = max(min_req, reading)
     reached, hold = True, 0.0
     taps = [tp for tp in op.taps if not tp["hover"]]
@@ -388,8 +388,8 @@ def plan_dwell(rec, op, D, sub, L, pan_, chain=None, no_solve=False):
             min_req = min(7.0, 2.0 + 0.35 * units)
             need = max(need, min_req, reading)
             hold = D - (taps[-1]["t"] + 0.95)
-        elif not no_solve and not chain:
-            p2 = solve_pan(rec, op, D, pan_, L)
+        elif not chain:
+            p2 = solve_pan(rec, op, D, pan_, L) if not no_solve else tuple(pan_ or (0, 0, 0.3, 0.3))
             ya, yb, t0, t1 = p2
             if abs(yb - ya) > 1:
                 ts_ = max(0.6, abs(yb - ya) / 700.0)

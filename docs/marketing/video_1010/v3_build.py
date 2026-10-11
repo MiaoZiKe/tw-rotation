@@ -41,7 +41,7 @@ def timeline(S):
 
 def run_seg(args):
     fmt, theme, sid, path, step, only_check = args
-    C.LOG.clear(); C.EXC.clear(); K.CLICKS.clear(); K.FOCUSES.clear(); K.CROPS.clear(); K.MAINCHK.clear()
+    C.LOG.clear(); C.EXC.clear(); K.CLICKS.clear(); K.FOCUSES.clear(); K.CROPS.clear(); K.MAINCHK.clear(); K.DWELLCHK.clear(); K.CONTENTCHK.clear()
     R.set_theme(theme)
     S = shots_for(fmt)
     L = K.Lay(fmt, theme)
@@ -68,13 +68,13 @@ def run_seg(args):
     for r in list(B._READERS.values()):
         r.close()
     B._READERS.clear()
-    chk = {"frames": frames, "LOG": C.LOG, "EXC": C.EXC, "CLICKS": K.CLICKS, "FOCUSES": K.FOCUSES, "CROPS": K.CROPS, "MAIN": K.MAINCHK}
+    chk = {"frames": frames, "LOG": C.LOG, "EXC": C.EXC, "CLICKS": K.CLICKS, "FOCUSES": K.FOCUSES, "CROPS": K.CROPS, "MAIN": K.MAINCHK, "DWELL": K.DWELLCHK, "CONTENT": K.CONTENTCHK}
     Path(str(path) + ".chk.json").write_text(json.dumps(chk, ensure_ascii=False))
     return sid
 
 
 def write_reports(work, S, label):
-    tot = {"frames": 0, "LOG": [], "EXC": [], "CLICKS": [], "FOCUSES": [], "CROPS": [], "MAIN": []}
+    tot = {"frames": 0, "LOG": [], "EXC": [], "CLICKS": [], "FOCUSES": [], "CROPS": [], "MAIN": [], "DWELL": [], "CONTENT": []}
     for s in S:
         f = Path(work) / f"seg_{s.sid}.mp4.chk.json"
         if not f.exists():
@@ -99,8 +99,8 @@ def write_reports(work, S, label):
     (work / "overlap_report.md").write_text("\n".join(lines))
     cl = tot["CLICKS"]
     ok = sum(1 for c in cl if c[6])
-    L2 = [f"# 點擊檢查（{label}）", "", f"點擊 {len(cl)} 次，落點在目標元素 rect 內 {ok} 次", "", "| 鏡 | 秒 | 素材 | 目標 | 漣漪中心 | 目標 rect（框內座標） | 通過 | 來源 |", "|---|---|---|---|---|---|---|---|"]
-    L2 += [f"| {c[0]} | {c[1]} | {c[2]} | {c[3]} | {c[4]} | {c[5]} | {'✓' if c[6] else '✗'} | {c[7]} |" for c in cl]
+    L2 = [f"# 點擊檢查（{label}）", "", f"點擊 {len(cl)} 次，落點在目標元素 rect 內（離邊緣 ≥6px）{ok} 次", "", "| 鏡 | 秒 | 素材 | 目標標籤 | 漣漪中心（畫面座標） | 目標 rect（畫面座標） | 錄影端中心（src px） | 離邊緣 px | 通過 | 來源 |", "|---|---|---|---|---|---|---|---|---|---|"]
+    L2 += [f"| {c[0]} | {c[1]} | {c[2]} | {c[3]} | {c[4]} | {c[5]} | {c[8] if len(c) > 8 else ''} | {c[9] if len(c) > 9 else ''} | {'✓' if c[6] else '✗'} | {c[7]} |" for c in cl]
     (work / "click_check.md").write_text("\n".join(L2))
     fo = tot["FOCUSES"]
     fok = sum(1 for f in fo if f[5])
@@ -118,7 +118,19 @@ def write_reports(work, S, label):
           "| 鏡 | 主圖標籤 | 入鏡% | 主圖佔視窗% | 視窗 src px (x0,y0,x1,y1) |", "|---|---|---|---|---|"]
     L5 += [f"| {m[0]} | {m[1]} | {m[2]} | {m[3]} | {m[4]} |" for m in mn]
     (work / "main_check.md").write_text("\n".join(L5))
-    bad = len(log) + (len(cl) - ok) + (len(fo) - fok) + (len(cr) - cok) + len(mbad)
+    dw = tot["DWELL"]
+    dbad = [d for d in dw if (not d[4]) or (d[3] + 1e-6 < d[2] and "快節奏" not in d[6] and "播放" not in d[6])]
+    L6 = [f"# 每鏡停留表（{label}）", "", "規則：最短＝2.0＋0.35×區塊數（≤7s）、字卡讀完（6.5 字／秒）；長頁必須滑到內容底部並停 ≥1.2 秒；點擊後內容區完整入窗停 ≥1.5 秒。", "",
+          "| 鏡 | 內容量(區塊) | 規定最短秒 | 實際秒 | 看完（底部入窗停≥1.2s） | 備註 |", "|---|---|---|---|---|---|"]
+    L6 += [f"| {d[0]} | {d[1]} | {d[2]} | {d[3]} | {'是' if d[4] else '否'} | {d[6]} |" for d in dw]
+    (work / "dwell_check.md").write_text("\n".join(L6))
+    ct = tot["CONTENT"]
+    cbad = [c for c in ct if c[3] < 99.9]
+    L7 = [f"# 點擊後內容入框檢查（{label}）", "", f"{len(ct)} 筆；點擊後 1.5 秒內內容區完整入窗：{sum(1 for c in ct if c[3] >= 99.9)} 筆", "",
+          "| 鏡 | 點擊目標 | 內容區標籤 | 入框% | 停留秒 | 內容區來源 | 備註 |", "|---|---|---|---|---|---|---|"]
+    L7 += [f"| {c[0]} | {c[1]} | {c[2]} | {c[3]} | {c[4]} | {c[5]} | {c[6]} |" for c in ct]
+    (work / "content_check.md").write_text("\n".join(L7))
+    bad = len(dbad) + len(cbad) + len(log) + (len(cl) - ok) + (len(fo) - fok) + (len(cr) - cok) + len(mbad)
     print(f"重疊 {len(log)} 筆（檢查 {tot['frames']} 幀）；點擊 {len(cl)} 次通過 {ok}；焦點框 {len(fo)} 個通過 {fok}；裁切 {len(cr)} 鏡通過 {cok}；例外 {len(tot['EXC'])} 幀")
     return bad, tot
 

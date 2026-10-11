@@ -526,8 +526,14 @@ class Act:
                 self.note(f"快點：找不到 {sel}")
                 return False
             loc.evaluate("e => { const r = e.getBoundingClientRect(); if (r.top < 70 || r.bottom > innerHeight - 8 || r.left < 0 || r.right > innerWidth) e.scrollIntoView({block: 'center', inline: 'center', behavior: 'instant'}); }")
-            self.wait(80)
-            bb = loc.bounding_box()
+            prev = None
+            bb = None
+            for _ in range(25):   # 版面還在變（圖表重畫、smooth scroll）→ 連續兩次量到同一位置才算穩
+                self.wait(70)
+                bb = loc.bounding_box()
+                if bb and prev and all(abs(bb[k] - prev[k]) < 0.6 for k in ("x", "y", "width", "height")):
+                    break
+                prev = bb
         except Exception:  # noqa: BLE001
             return False
         if not bb:
@@ -535,6 +541,11 @@ class Act:
         x, y = bb["x"] + bb["width"] / 2, bb["y"] + bb["height"] / 2
         self.move(x, y, ms)
         self.wait(pause)
+        bb2 = loc.bounding_box()   # 移動期間若又動了 → 以最新位置為準
+        if bb2 and any(abs(bb2[k] - bb[k]) > 0.6 for k in ("x", "y", "width", "height")):
+            bb = bb2
+            x, y = bb["x"] + bb["width"] / 2, bb["y"] + bb["height"] / 2
+            self.move(x, y, 150)
         info = {}
         try:
             info = self.pg.evaluate("""([s, p, m]) => { const e = document.querySelector(s) ; return null; }""", [sel, [x, y], margin]) or {}
@@ -549,6 +560,11 @@ class Act:
         tg["margin_px"] = round(min(x - bb["x"], bb["x"] + bb["width"] - x, y - bb["y"], bb["y"] + bb["height"] - y), 1)
         tg["inside_rect"] = bool(inside)
         tg["hit_expected"] = bool(top) and bool(inside)
+        if not tg["hit_expected"]:
+            try:
+                tg["top_element"] = self.pg.evaluate("([x, y]) => { const h = document.elementFromPoint(x, y); return h ? h.tagName + '#' + h.id + '.' + String(h.className).slice(0, 40) + '|' + (h.textContent || '').trim().slice(0, 20) : null; }", [x, y])
+            except Exception:  # noqa: BLE001
+                pass
         self.note(f"快點「{label or sel}」落點離邊 {tg['margin_px']}px，最上層元素{'＝' if top else '≠'}目標")
         self.pg.evaluate("([x,y]) => window.__vcRipple && window.__vcRipple(x,y)", [x, y])
         self.pg.mouse.down()
@@ -1778,6 +1794,8 @@ def v16(pg, a, start, base):
             a.scroll(to_y=0, ms=600)
             t0 = a.t
             a.wait(2200)
+            a.attach_content("#v-market", t0, a.t, t)
+            a.focus_sel(f"市場明細：{t}", "#v-market", t0, a.t)
             a.note(f"完整入框 {t0:.1f}–{a.t:.1f}s：{t}")
 
 
@@ -1858,7 +1876,11 @@ def v20(pg, a, start, base):
             continue
         a.click_xy(bb["x"] + bb["width"] / 2, bb["y"] + bb["height"] / 2, 600, 300)
         a.note(f"類型分頁 {i + 1}")
-        a.wait(1500)
+        if a.mob:   # 點完自動捲到被點出的內容區（前五名）完整入框停 2 秒
+            frame(a, "#etfListCard, #etfBody", 1600, label=f"類型分頁 {i + 1}：前五名內容區")
+            a.scroll(to_y=0, ms=500)
+        else:
+            a.wait(1500)
 
 
 @shot3("V21", "md", "ETF 報酬比較：完整入框 → 加入兩檔 → 切期間")
@@ -2433,13 +2455,257 @@ def v07b(pg, a, start, base):
 
 
 
+# ======================================================================== v3i：連續快點（Andy：不回原位、點在正確位置、篩選清單連點多個選項）
+def _fc_rect(a, rect, label, expect=None, ms=420, pause=220, gap=140, margin=6):
+    """用已知外框（例如 treemap 方塊）當目標的快點：中心點、驗證離邊 ≥ margin、點下去。"""
+    x, y = rect[0] + rect[2] / 2, rect[1] + rect[3] / 2
+    a.move(x, y, ms)
+    a.wait(pause)
+    top = a.hit_ok(expect, x, y) if expect else None
+    a.record_target(x, y, "click", label, expect=expect)
+    tg = a.targets[-1]
+    mg = min(x - rect[0], rect[0] + rect[2] - x, y - rect[1], rect[1] + rect[3] - y)
+    tg["target_rect_css"] = [round(v, 1) for v in rect]
+    tg["margin_px"] = round(mg, 1)
+    tg["inside_rect"] = mg >= min(margin, min(rect[2], rect[3]) / 2)
+    tg["hit_expected"] = bool(tg["inside_rect"]) and (top is not False)
+    a.note(f"快點「{label}」落點離邊 {tg['margin_px']}px")
+    a.pg.evaluate("([x,y]) => window.__vcRipple && window.__vcRipple(x,y)", [x, y])
+    a.pg.mouse.down()
+    a.frame()
+    a.pg.mouse.up()
+    a.wait(gap)
+
+
+def _fselect(a, sel, idx, label, ms=420, pause=220, gap=500):
+    """下拉選單（原生 select）連選：游標移到 select、顯示點擊、選到第 idx 個選項（原生選單無法錄進影片，所以點擊後直接換值）。"""
+    loc = a.pg.locator(sel).first
+    if not loc.count():
+        a.note(f"快選：找不到 {sel}")
+        return False
+    loc.evaluate("e => { const r = e.getBoundingClientRect(); if (r.top < 70 || r.bottom > innerHeight - 8) e.scrollIntoView({block: 'center', behavior: 'instant'}); }")
+    a.wait(80)
+    bb = loc.bounding_box()
+    if not bb:
+        return False
+    vals = loc.evaluate("e => [...e.options].map(o => [o.value, o.textContent.trim()])")
+    if idx >= len(vals):
+        return False
+    _fc_rect(a, [bb["x"], bb["y"], bb["width"], bb["height"]], f"{label}→{vals[idx][1][:12]}", expect=sel, ms=ms, pause=pause, gap=0)
+    loc.select_option(vals[idx][0])
+    a.wait(gap)
+    return True
+
+
+def _chain(a, scope, n, label, skip_re=r"^(\?|▸|⤢|全部收合|全部展開)$", maxlen=12, first_nth=0, gap_chart=None):
+    """連點 scope 內前 n 顆『目前沒選中』的按鈕（每次重新定位，因為點完版面可能變）。"""
+    done = 0
+    seen = set()
+    for _ in range(n + 6):
+        if done >= n:
+            break
+        info = a.pg.evaluate("""([sc, skip, ml, seen]) => { const re = new RegExp(skip); const out = [];
+          document.querySelectorAll(sc + ' button').forEach((b, i) => { if (!b.offsetParent) return; const r = b.getBoundingClientRect(); if (r.width < 14 || r.height < 14) return;
+            if (b.classList.contains('howbtn') || b.classList.contains('on')) return; const t = (b.textContent || '').trim().replace(/\\s+/g, ' ');
+            if (!t || t.length > ml || re.test(t) || seen.includes(t)) return; out.push([i, t]); }); return out[0] || null; }""", [scope, skip_re, maxlen, list(seen)])
+        if not info:
+            break
+        seen.add(info[1])
+        if _fc_btn(a, scope, info[0], f"{label}：{info[1]}"):
+            done += 1
+    return done
+
+
+def _fc_btn(a, scope, i, label):
+    sel = f"{scope} button >> nth={i}"
+    return a.fast_click(sel, label)
+
+
+def _hold(a, sel, ms, label):
+    t0 = a.t
+    a.wait(ms)
+    a.focus_sel(label, sel, t0, a.t)
+    a.attach_content(sel, t0, a.t, label)
+
+
+@shot3("I01", "md", "題材連點：AI 伺服器 環節 1→2→3→4→5 → 換題材（高階 PCB）點 1→3 → 再換一個題材點 1→2")
+def i01(pg, a, start, base):
+    goto3(pg, a, base, "#heatmap/theme", 4000)
+    start()
+    frame(a, "#themeMapCard", 1800, label="題材資金熱力（完整）")
+
+    def open_theme(kw):
+        pg.evaluate("() => { const e = document.querySelector('#themeMapCard'); e.scrollIntoView({block: 'start', behavior: 'instant'}); window.scrollBy(0, -80); }")
+        a.wait(300)
+        r = pg.evaluate(TM_FIND_JS, ["#themeMap", kw])
+        if r:
+            _fc_rect(a, [r["x"], r["y"], r["w"], r["h"]], f"題材方塊「{r['n']}」", expect="#themeMap canvas", gap=1200)
+        a.wait(900)
+
+    def chain_steps(nums):
+        for i in nums:
+            if a.mob:
+                if not a.fast_click(f"#themeDetail g.step >> nth={i - 1}", f"環節 {i}", gap=300):
+                    break
+            else:
+                if not a.fast_click(f"#themeDetail g.p3.stn >> nth={i - 1}", f"環節 {i}", gap=300):
+                    break
+            a.wait(450)
+            a.focus_sel(f"環節 {i} 展開內容", "#themeDetail", a.t - 0.5, a.t)
+            a.attach_content("#themeDetail", a.t - 0.5, a.t, f"環節 {i}")
+    open_theme("AI 伺服器")
+    chain_steps([1, 2, 3, 4, 5])
+    open_theme("高階 PCB")
+    chain_steps([1, 3])
+    open_theme("矽光子")
+    chain_steps([1, 2])
+    a.wait(800)
+
+
+@shot3("I02", "md", "ETF 連點：組合 B 三檔明細連點 → 組合 A→B→C→D→E 連切 → 投入最少／含息報酬最高 → 期間連切")
+def i02(pg, a, start, base):
+    goto3(pg, a, base, "#etf/inc", 4500)
+    start()
+    a.wait(600)
+    CB = lambda c: f"#v-etf button:text-matches('^組合 {c}'):visible"
+    a.fast_click(CB("B"), "組合 B", gap=900)
+    a.wait(500)
+    for i in range(3):
+        a.fast_click(f"#incCTbl .cmr:nth-child({i + 1}) .cmn", f"明細第 {i + 1} 檔", gap=300)
+        a.wait(500)
+        link_focus(a, a.t - 0.5, a.t, f"選第 {i + 1} 檔：")
+    for c in "ABCDE":
+        a.fast_click(CB(c), f"組合 {c}", gap=300)
+        a.wait(550)
+        link_focus(a, a.t - 0.55, a.t, f"組合 {c}：")
+    for nm in ["含息報酬最高", "投入最少"]:
+        a.fast_click(f"button:visible:has-text('{nm}')", nm, gap=300)
+        a.wait(550)
+    for i in range(3):
+        if not _fselect(a, "#v-etf select.rpsel", i, "期間", gap=700):
+            break
+
+
+@shot3("I03", "md", "ETF 報酬比較連點：勾選 4 檔 → 期間連切；ETF 類型分頁連切全部（每類停 1 秒看前五名）")
+def i03(pg, a, start, base):
+    goto3(pg, a, base, "#etf/list", 4000)
+    start()
+    a.wait(1500)
+    a.scroll(to_y=pg.evaluate("() => (document.querySelector('#etfRetCard') || document.body).getBoundingClientRect().top + scrollY") - 120, ms=800)
+    if a.fast_click("#etfCmpDD .ddbtn", "加入比較下拉", gap=500):
+        k = 0
+        boxes = pg.locator("#etfCmpDD input[type=checkbox]:visible")
+        for i in range(boxes.count()):
+            if k >= 4:
+                break
+            if boxes.nth(i).is_checked():
+                continue
+            if a.fast_click(f"#etfCmpDD input[type=checkbox]:visible >> nth={i}", f"勾選第 {i + 1} 檔", gap=200):
+                a.wait(500)
+                k += 1
+        pg.keyboard.press("Escape")
+        a.wait(400)
+    for i in range(1, 3):
+        if not _fselect(a, "#v-etf select.rpsel", i, "報酬期間", gap=800):
+            break
+    a.scroll(to_y=0, ms=700)
+    cat = "#etfCatSeg button:visible" if pg.locator("#etfCatSeg button:visible").count() else "#etfCatBar button:visible"
+    for i in range(pg.locator(cat).count()):
+        a.fast_click(f"{cat} >> nth={i}", f"ETF 類型分頁 {i + 1}", gap=200)
+        t0 = a.t
+        a.wait(1000)
+        a.focus_sel("該類型最近最受歡迎前 5", "#etfListCard, #etfBody", t0, a.t)
+        a.attach_content("#etfListCard, #etfBody", t0, a.t, "類型前五名")
+
+
+@shot3("I04", "md", "篩選連點：產業地圖連選產業鏈 → 熱力圖分組／題材顏色切換 → 週期統計連選條件／月份")
+def i04(pg, a, start, base):
+    goto3(pg, a, base, "#industry", 4000)
+    start()
+    a.wait(500)
+    chips = pg.locator("#v-industry button:visible")
+    done = 0
+    for nm in ["半導體", "AI 伺服器", "一般電子", "金融"]:
+        if a.fast_click(f"#v-industry button:visible:has-text('{nm}') >> nth=0", f"產業鏈 {nm}", gap=300):
+            a.wait(700)
+            done += 1
+    goto(pg, base, "#heatmap/industry", 3000)
+    a.wait(500)
+    for i in range(1, 4):
+        if not _fselect(a, "#indTreeGroup", i, "熱力圖分組", gap=900):
+            break
+    goto(pg, base, "#heatmap/theme", 3000)
+    a.wait(500)
+    for i in range(1, 3):
+        if not _fselect(a, "#themeColorSel", i, "題材顏色", gap=900):
+            break
+    goto(pg, base, "#season", 3500)
+    a.wait(500)
+    if a.mob:
+        for k in (2, 4):   # 排序面板（底部彈出）：連選兩個排序，每次選完面板收起，再開下一次
+            if not a.fast_click("#mSeasonSort", "排序", gap=400):
+                break
+            a.wait(400)
+            opt = ".msheet button:visible, .msheet [role=option]:visible, .msheet label:visible"
+            if pg.locator(opt).count() > k:
+                a.fast_click(f"{opt} >> nth={k}", f"排序選項 {k}", gap=300)
+            a.wait(400)
+            if pg.locator("#mSheetBack:visible").count():
+                pg.keyboard.press("Escape")
+                a.wait(300)
+                if pg.locator("#mSheetBack:visible").count():
+                    a.fast_click("#mSheetBack", "點背景收起面板", gap=200)
+            a.wait(300)
+        for m in ["3", "6", "9", "12"]:
+            a.fast_click(f"#v-season button:visible:text-is('{m}')", f"{m} 月", gap=300)
+            a.wait(500)
+        a.fast_click("#mSeasonNum", "顯示數字", gap=500)
+    else:
+        _chain(a, "#v-season", 6, "週期統計條件", gap_chart=None)
+        a.wait(500)
+        for m in ["3 月", "6 月", "9 月"]:
+            a.fast_click(f"#v-season button:visible:text-is('{m}')", m, gap=300)
+            a.wait(500)
+
+
+@shot3("I05", "md", "篩選連點：市場明細（上市／上櫃／漲停／跌停／成交值前段）→ 選股策略（切面向、連點標籤）")
+def i05(pg, a, start, base):
+    goto3(pg, a, base, "#market", 3500)
+    start()
+    a.wait(500)
+    for nm in (["漲停", "跌停", "漲幅前段", "跌幅前段", "成交值前段"] if True else []):
+        a.fast_click(f"#v-market button:visible:has-text('{nm}') >> nth=0", f"篩選 {nm}", gap=300)
+        a.wait(800)
+    if not a.mob:
+        for nm in ["上市", "上櫃", "全部"]:
+            a.fast_click(f"#v-market button:visible:text-is('{nm}')", f"市場 {nm}", gap=300)
+            a.wait(700)
+    goto(pg, base, "#explore", 3500)
+    a.wait(500)
+    if a.mob:
+        for nm in ["技術面", "籌碼面", "消息面", "基本面"]:
+            a.fast_click(f"#v-explore button.sl-chip:has-text('{nm}')", nm, gap=300)
+            a.wait(900)
+    else:
+        for nm in ["技術面", "籌碼面", "消息面", "基本面"]:
+            a.fast_click(f'#tabs .l4subtab[data-parent="explore"]:has-text("{nm}")', nm, gap=300)
+            a.wait(900)
+    if a.fast_click("#slTagDd", "標籤下拉", gap=500):
+        osel = next((q for q in ("[role=option]:visible", "#slTagDd ~ * button:visible", "#slTagDd ~ * label:visible", ".sl-ddmenu *:visible") if pg.locator(q).count() > 1), None)
+        for i in range(min(3, pg.locator(osel).count() if osel else 0)):
+            if not a.fast_click(f"{osel} >> nth={i}", f"標籤選項 {i + 1}", gap=300):
+                break
+            a.wait(500)
+
+
+
 # ------------------------------------------------------------------ 主程式
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--shots", default="")
     ap.add_argument("--dev", default="md")
     ap.add_argument("--out", default="")
-    ap.add_argument("--set", default="v2", choices=["v2", "v3", "v3b", "v3c", "v3d", "v3e", "v3f", "v3g", "v3h"], help="v3＝第 3 版素材（桌機 1600×900@2、不藏 B 類、完整入框）")
+    ap.add_argument("--set", default="v2", choices=["v2", "v3", "v3b", "v3c", "v3d", "v3e", "v3f", "v3g", "v3h", "v3i"], help="v3＝第 3 版素材（桌機 1600×900@2、不藏 B 類、完整入框）")
     ap.add_argument("--port", type=int, default=PORT)
     ap.add_argument("--fps", type=int, default=0, help="輸出幀率（預設 30；v3c 預設 60：逐格算圖每一個 rAF 刻度都收進來）")
     ap.add_argument("--realtime", action="store_true", help="真實時間錄影（CDP screencast，依時間戳重採樣）；本機 CPU 繪圖只有 ~13fps 來源，實測比逐格算圖差，預設不用")
@@ -2451,8 +2717,8 @@ def main() -> int:
     v3 = args.set.startswith("v3")
     reg = SHOTS3 if v3 else SHOTS
     devs_cfg = DEVS3 if v3 else DEVS
-    if args.set in ("v3e", "v3f", "v3g", "v3h") and not args.shots.strip():
-        args.shots = {"v3e": "V13b", "v3f": "V03b", "v3g": "V07b", "v3h": "D08,D09"}[args.set]
+    if args.set in ("v3e", "v3f", "v3g", "v3h", "v3i") and not args.shots.strip():
+        args.shots = {"v3e": "V13b", "v3f": "V03b", "v3g": "V07b", "v3h": "D08,D09", "v3i": "I01,I02,I03,I04,I05"}[args.set]
     if args.set == "v3d" and not args.shots.strip():
         args.shots = "D02,D01,D03,D04,D05,D06,D07"
     if args.set == "v3c" and not args.shots.strip():
@@ -2511,7 +2777,7 @@ def main() -> int:
                     rec = Recorder(pg, W, H, dry=args.log_only, realtime=args.realtime)
                     act.dsf = cfg["device_scale_factor"]
                     act.log_moves = v3   # v3 沒有錄進游標 → 游標路徑寫進 shots.md 給後製畫比比
-                    name = f"{sid}_{'mobile' if dev == 'm' else 'desktop'}" + ("_v3b" if args.set == "v3b" else "_v3c" if args.set == "v3c" else "_v3d" if args.set == "v3d" else "_" + args.set if args.set in ("v3e", "v3f", "v3g", "v3h") else "")
+                    name = f"{sid}_{'mobile' if dev == 'm' else 'desktop'}" + ("_v3b" if args.set == "v3b" else "_v3c" if args.set == "v3c" else "_v3d" if args.set == "v3d" else "_" + args.set if args.set in ("v3e", "v3f", "v3g", "v3h", "v3i") else "")
                     try:
                         # 每鏡自己決定何時開錄：fn(pg, act, rec_start) —— 先做準備（換頁、等圖畫完）再開錄
                         state = {}

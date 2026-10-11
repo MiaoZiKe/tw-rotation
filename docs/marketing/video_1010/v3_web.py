@@ -59,7 +59,7 @@ def build():
     S.append(card("01a", 2.8, K.chaos_fn(1), [(0, "pop")]))
     S.append(card("01b", 2.8, K.chaos_fn(2), [(0, "pop")]))
     S.append(card("01c", 2.8, K.chaos_fn(3), [(0, "pop")]))
-    S.append(card("02", 2.0, K.tidy_fn("V01_desktop"), [(0, "swish"), (0.7, "ding")]))
+    S.append(card("02", 2.5, K.tidy_fn("V01_desktop"), [(0, "swish"), (0.7, "ding")]))
     S.append(card("03", 3.5, K.intro_fn(), [(0, "pop"), (1.4, "ding")]))
 
     S.append(feat("04", 2.5, "V01", stat(0.5, 2.5), "① 一頁看完今天", "一頁看完", '我把今天的行情排在同一頁，你一眼就看完', "總覽",
@@ -121,7 +121,7 @@ def build():
     S.append(feat("19", 3.5, "V12e", [(0, 3.1), (1.5, 4.6), (1.5001, 8.5), (3.5, 10.5)], "零件是誰做的", "誰做的", '點零件，我告訴你哪家公司負責哪一層', "產業地圖",
                   focus=F((520, 740, 3120, 1130), "CCL 銅箔基板說明卡", "V12e", 2.0, zoom=False), idle=[(0, 'face_proud'), (1.8, 'face_nod')]))
     S.append(card("20", 3.0, K.grid_fn(3.0, 1.9), [(0, "swish")]))
-    S.append(card("21", 2.0, K.more_fn(), [(0.5, "pop")]))
+    S.append(card("21", 2.5, K.more_fn(), [(0.5, "pop")]))
     # 個股頁（v3d 素材：D01 總覽、D02 AI 分析、D05 資券、D06 K 線、D07 除權息；營收／獲利素材尚未到）
     D1, D2 = "D01_desktop_v3d", "D02_desktop_v3d"
     S.append(featv("22a", 3.0, D1, [(0, 0.9), (0.7, 1.9), (0.7001, 3.0), (1.6, 4.4), (2.3, 5.1), (2.3001, 6.5), (3.0, 7.2)], "⑥ 個股一頁全有", "一頁全有", '打幾個字，點建議，我帶你進個股頁', "個股",

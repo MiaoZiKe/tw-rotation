@@ -85,7 +85,7 @@ def main():
         stage = out / f"{no}_{name}_checks"
         stage.mkdir(exist_ok=True)
         bad, tot = VB.write_reports(work, sub, f"{a.fmt}／{theme}／{name}")
-        for f in ("overlap_report.md", "click_check.md", "focus_check.md", "crop_check.md", "main_check.md"):
+        for f in ("overlap_report.md", "click_check.md", "focus_check.md", "crop_check.md", "main_check.md", "dwell_check.md", "content_check.md"):
             shutil.copy(work / f, stage / f)
         t0 = tl[ids[0]][0]
         dur = sum(tl[i][1] for i in ids)

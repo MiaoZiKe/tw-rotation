@@ -53,7 +53,7 @@ def build():
     S.append(card("01a", 2.8, K.chaos_fn(1), [(0, "pop")]))
     S.append(card("01b", 2.8, K.chaos_fn(2), [(0, "pop")]))
     S.append(card("01c", 2.8, K.chaos_fn(3), [(0, "pop")]))
-    S.append(card("02", 2.0, K.tidy_fn("V01_mobile_v3b"), [(0, "swish"), (0.7, "ding")]))
+    S.append(card("02", 2.5, K.tidy_fn("V01_mobile_v3b"), [(0, "swish"), (0.7, "ding")]))
     S.append(card("03", 3.5, K.intro_fn(), [(0, "pop"), (1.4, "ding")]))
 
     V1 = "V01_mobile_v3b"
@@ -120,7 +120,7 @@ def build():
     S.append(feat("16", 3.0, "V12e_mobile", act(3.9, 3.0, 1.0, 0.8), "零件是誰做的", "誰做的", '點零件，我告訴你哪家公司負責哪一層', "產業地圖",
                   idle=[(0, 'face_proud'), (1.8, 'face_nod')], pan_=pan(700, 800, 3.0)))
     S.append(card("17", 3.0, K.grid_fn(3.0, 1.9), [(0, "swish")]))
-    S.append(card("18", 2.0, K.more_fn(), [(0.5, "pop")]))
+    S.append(card("18", 2.5, K.more_fn(), [(0.5, "pop")]))
     D1 = "D01_mobile_v3d"
     S.append(feat("19a", 3.4, D1, [(0, 1.0), (0.9, 2.0), (0.9001, 2.9), (1.4, 3.4), (1.4001, 4.5), (2.0, 5.9), (2.0001, 8.0), (3.4, 9.0)], "⑥ 個股一頁全有", "一頁全有", '打幾個字，點建議，我帶你進個股頁', "個股",
                   idle=[(0, 'face_wink'), (1.6, 'talk_happy')], pan_=pan(0, 0, 3.4)))
