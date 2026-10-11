@@ -41,7 +41,7 @@ def timeline(S):
 
 def run_seg(args):
     fmt, theme, sid, path, step, only_check = args
-    C.LOG.clear(); C.EXC.clear(); K.CLICKS.clear(); K.FOCUSES.clear(); K.CROPS.clear()
+    C.LOG.clear(); C.EXC.clear(); K.CLICKS.clear(); K.FOCUSES.clear(); K.CROPS.clear(); K.MAINCHK.clear()
     R.set_theme(theme)
     S = shots_for(fmt)
     L = K.Lay(fmt, theme)
@@ -68,20 +68,21 @@ def run_seg(args):
     for r in list(B._READERS.values()):
         r.close()
     B._READERS.clear()
-    chk = {"frames": frames, "LOG": C.LOG, "EXC": C.EXC, "CLICKS": K.CLICKS, "FOCUSES": K.FOCUSES, "CROPS": K.CROPS}
+    chk = {"frames": frames, "LOG": C.LOG, "EXC": C.EXC, "CLICKS": K.CLICKS, "FOCUSES": K.FOCUSES, "CROPS": K.CROPS, "MAIN": K.MAINCHK}
     Path(str(path) + ".chk.json").write_text(json.dumps(chk, ensure_ascii=False))
     return sid
 
 
 def write_reports(work, S, label):
-    tot = {"frames": 0, "LOG": [], "EXC": [], "CLICKS": [], "FOCUSES": [], "CROPS": []}
+    tot = {"frames": 0, "LOG": [], "EXC": [], "CLICKS": [], "FOCUSES": [], "CROPS": [], "MAIN": []}
     for s in S:
         f = Path(work) / f"seg_{s.sid}.mp4.chk.json"
         if not f.exists():
             continue
         d = json.loads(f.read_text())
         for k in tot:
-            tot[k] = tot[k] + d[k] if isinstance(tot[k], list) else tot[k] + d[k]
+            if k in d:
+                tot[k] = tot[k] + d[k] if isinstance(tot[k], list) else tot[k] + d[k]
     work = Path(work)
     log = tot["LOG"]
     lines = [f"# 重疊檢查報告（{label}）", "", f"- 檢查幀數：{tot['frames']}　違規筆數：{len(log)}　例外（比比踩按鈕整段與網站畫面）：{len(tot['EXC'])} 幀", ""]
@@ -111,7 +112,13 @@ def write_reports(work, S, label):
     L4 = [f"# 裁切／置中檢查（{label}）", "", f"{len(cr)} 鏡，網站畫面完整且左右空白差 <20px：{cok} 鏡", "", "| 鏡 | 素材 | 左空白 | 右空白 | 內容完整 | 通過 |", "|---|---|---|---|---|---|"]
     L4 += [f"| {c[0]} | {c[1]} | {c[2]} | {c[3]} | {'是' if c[4] else '否'} | {'✓' if c[5] else '✗'} |" for c in cr]
     (work / "crop_check.md").write_text("\n".join(L4))
-    bad = len(log) + (len(cl) - ok) + (len(fo) - fok) + (len(cr) - cok)
+    mn = tot["MAIN"]
+    mbad = [m for m in mn if m[2] < 99.9 or m[3] < 35]
+    L5 = [f"# 主圖入鏡檢查（{label}）", "", f"{len(mn)} 鏡；主圖 100% 入框：{sum(1 for m in mn if m[2] >= 99.9)} 鏡；主圖佔視窗 ≥60%：{sum(1 for m in mn if m[3] >= 60)} 鏡；未達 35%（視為不合格）：{len([m for m in mn if m[3] < 35])} 鏡", "",
+          "| 鏡 | 主圖標籤 | 入鏡% | 主圖佔視窗% | 視窗 src px (x0,y0,x1,y1) |", "|---|---|---|---|---|"]
+    L5 += [f"| {m[0]} | {m[1]} | {m[2]} | {m[3]} | {m[4]} |" for m in mn]
+    (work / "main_check.md").write_text("\n".join(L5))
+    bad = len(log) + (len(cl) - ok) + (len(fo) - fok) + (len(cr) - cok) + len(mbad)
     print(f"重疊 {len(log)} 筆（檢查 {tot['frames']} 幀）；點擊 {len(cl)} 次通過 {ok}；焦點框 {len(fo)} 個通過 {fok}；裁切 {len(cr)} 鏡通過 {cok}；例外 {len(tot['EXC'])} 幀")
     return bad, tot
 

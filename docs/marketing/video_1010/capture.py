@@ -217,7 +217,7 @@ class Recorder:
                 j += 1
             os.link(fr[j][1], seq / f"s{i:06d}.jpg")
         cmd = ["ffmpeg", "-y", "-loglevel", "error", "-framerate", str(FPS), "-i", str(seq / "s%06d.jpg"),
-               "-vf", f"scale={self.w}:{self.h}:flags=lanczos,format=yuv420p", "-c:v", "libx264", "-preset", "slow", "-crf", "18",
+               "-vf", f"scale={self.w}:{self.h}:flags=lanczos,format=yuv420p", "-c:v", "libx264", "-preset", "medium", "-threads", "2", "-crf", "18",
                "-r", str(FPS), "-movflags", "+faststart", str(out_mp4)]
         subprocess.run(cmd, check=True)
         shutil.rmtree(self.dir)
@@ -278,7 +278,7 @@ class Recorder:
             shutil.rmtree(self.dir)
             return {"ok": True, "dry": True, "dur": round(self.n / FPS, 2), "frames": self.n}
         cmd = ["ffmpeg", "-y", "-loglevel", "error", "-framerate", str(FPS), "-i", str(self.dir / "s%06d.png"),
-               "-vf", f"scale={self.w}:{self.h}:flags=lanczos,format=yuv420p", "-c:v", "libx264", "-preset", "slow", "-crf", "18",
+               "-vf", f"scale={self.w}:{self.h}:flags=lanczos,format=yuv420p", "-c:v", "libx264", "-preset", "medium", "-threads", "2", "-crf", "18",
                "-r", str(FPS), "-movflags", "+faststart", str(out_mp4)]
         subprocess.run(cmd, check=True)
         n = self.n
@@ -304,9 +304,13 @@ TARGET_JS = r"""([x, y]) => {
       const hr = host.getBoundingClientRect(), px = x - hr.left, py = y - hr.top;
       const sm = ch.getModel().getSeriesByIndex(0);
       if (sm && sm.get('type') === 'treemap') {
-        const d = sm.getData(); let best = null;
-        d.each(i => { const L = d.getItemLayout(i); if (!L || L.width == null) return;
-          if (px >= L.x && px <= L.x + L.width && py >= L.y && py <= L.y + L.height) { const a = L.width * L.height; if (!best || a < best.a) best = { a, L, name: d.getName(i) }; } });
+        let best = null;
+        const walk = (n, ox, oy) => { const kids = n.viewChildren && n.viewChildren.length ? n.viewChildren : n.children;
+          const L = n.getLayout && n.getLayout(); let ax = ox, ay = oy;
+          if (L && L.width != null) { ax = ox + L.x; ay = oy + L.y;   // 子節點的版面是相對於父節點外框（ECharts treemap）→ 逐層累加
+            if (n.name && px >= ax && px <= ax + L.width && py >= ay && py <= ay + L.height) { const a = L.width * L.height; if (!best || a < best.a) best = { a, L: { x: ax, y: ay, width: L.width, height: L.height }, name: n.name }; } }
+          if (kids) kids.forEach(k => walk(k, ax, ay)); };
+        walk(sm.getData().tree.root, 0, 0);
         if (best) { info.block = best.name; info.block_rect = [hr.left + best.L.x, hr.top + best.L.y, best.L.width, best.L.height]; }
         else info.block = '（方塊以外：圖例／空白）';
       }
@@ -1193,9 +1197,12 @@ def frame(a, sel, hold=2000, ms=1100, label=""):
 TM_FIND_JS = """([sel, kw]) => { const root = document.querySelector(sel); if (!root || !window.echarts) return null;
   const h = root.hasAttribute('_echarts_instance_') ? root : root.querySelector('[_echarts_instance_]'); if (!h) return null;
   const ch = echarts.getInstanceByDom(h); if (!ch) return null; const hr = h.getBoundingClientRect();
-  const d = ch.getModel().getSeriesByIndex(0).getData(); let best = null;
-  d.each(i => { const L = d.getItemLayout(i); const n = d.getName(i); if (!L || !L.width || !n || n.indexOf(kw) < 0) return;
-    const a = L.width * L.height; if (!best || a > best.a) best = { a, n, x: hr.left + L.x, y: hr.top + L.y, w: L.width, h: L.height }; });
+  let best = null;
+  const walk = (n, ox, oy) => { const kids = n.viewChildren && n.viewChildren.length ? n.viewChildren : n.children; const L = n.getLayout && n.getLayout(); let ax = ox, ay = oy;
+    if (L && L.width != null) { ax = ox + L.x; ay = oy + L.y;
+      if (n.name && n.name.indexOf(kw) >= 0) { const a = L.width * L.height; if (!best || a > best.a) best = { a, n: n.name, x: hr.left + ax, y: hr.top + ay, w: L.width, h: L.height }; } }
+    if (kids) kids.forEach(k => walk(k, ax, ay)); };
+  walk(ch.getModel().getSeriesByIndex(0).getData().tree.root, 0, 0);
   return best; }"""
 
 

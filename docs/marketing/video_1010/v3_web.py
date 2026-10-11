@@ -23,24 +23,24 @@ def stat(s, D):
 
 
 def F(rect, label, clip, t_draw=0.5, **kw):
+    kw["zoom"] = False
     return Focus4(rect, label=label, clip=clip + C, t_draw=t_draw, **kw)
 
 
-def feat(sid, D, clip, srcmap, head, hl, sub, pill, focus=None, idle="talk_happy", extra=(), soft_hover=False, use_events=True):
-    rec = Rec4(clip + C, srcmap, focus=focus)
+def feat(sid, D, clip, srcmap, head, hl, sub, pill, focus=None, idle="talk_happy", extra=(), soft_hover=False, use_events=True, main=None):
+    rec = Rec4(clip + C, srcmap, focus=focus, main=main)
     op = Op(rec, idle=idle, extra=extra, soft_hover=soft_hover, use_events=use_events)
-    rec.pan = solve_pan(rec, op, D, None, _LW)
     return Shot4(sid, D, [rec], pill=pill, head=head, hl=hl, sub=sub, op=op)
 
 
 def FV(rect, label, clip_full, t_draw=0.5, **kw):
+    kw["zoom"] = False
     return Focus4(rect, label=label, clip=clip_full, t_draw=t_draw, **kw)
 
 
-def featv(sid, D, clip_full, srcmap, head, hl, sub, pill, focus=None, idle="talk_happy", extra=(), soft_hover=False, use_events=True):
-    rec = Rec4(clip_full, srcmap, focus=focus)
+def featv(sid, D, clip_full, srcmap, head, hl, sub, pill, focus=None, idle="talk_happy", extra=(), soft_hover=False, use_events=True, main=None):
+    rec = Rec4(clip_full, srcmap, focus=focus, main=main)
     op = Op(rec, idle=idle, extra=extra, soft_hover=soft_hover, use_events=use_events)
-    rec.pan = solve_pan(rec, op, D, None, _LW)
     return Shot4(sid, D, [rec], pill=pill, head=head, hl=hl, sub=sub, op=op)
 
 
@@ -57,13 +57,13 @@ def build():
     S.append(card("03", 3.5, K.intro_fn(), [(0, "pop"), (1.4, "ding")]))
 
     S.append(feat("04", 2.5, "V01", stat(0.5, 2.5), "① 一頁看完今天", "一頁看完", '我把今天的行情排在同一頁，你一眼就看完', "總覽",
-                  focus=F((440, 100, 3140, 410), "四張摘要卡", "V01", 0.5, t_zoom=1.0), idle=[(0, 'talk_explain'), (1.5, 'face_nod')]))
+                  focus=F((440, 100, 3140, 410), "四張摘要卡", "V01", 0.5, t_zoom=1.0), idle=[(0, 'talk_explain'), (1.5, 'face_nod')], main=[(480, 100, 3168, 1470)]))
     S.append(feat("05", 3.0, "V02", act(2.0, 3.0, 1.0, 0.8), "今日事件不漏看", "不漏看", '重要消息我幫你按時間排好，你不怕漏看', "總覽",
-                  focus=F((2360, 60, 3186, 1500), "今日事件清單", "V02", 1.7, t_zoom=2.2), idle=[(0, 'news'), (1.6, 'face_shock')]))
+                  focus=F((2360, 60, 3186, 1500), "今日事件清單", "V02", 1.7, t_zoom=2.2), idle=[(0, 'news'), (1.6, 'face_shock')], main=[(480, 60, 3200, 1800)]))
     S.append(feat("06", 3.0, "V27", act(2.4, 3.0, 1.4, 0.8), "想看什麼，打幾個字就到", "打幾個字", '想看哪一檔？打幾個字，我幫你找出來', "搜尋",
-                  focus=F((20, 150, 800, 1300), "搜尋下拉", "V27", 2.1, t_zoom=2.6), idle=[(0, 'magnifier'), (1.6, 'face_wink')]))
+                  focus=F((20, 150, 800, 1300), "搜尋下拉", "V27", 2.1, t_zoom=2.6), idle=[(0, 'magnifier'), (1.6, 'face_wink')], main=[(0, 100, 1800, 1000)]))
     S.append(feat("07", 3.0, "V27", [(0, 5.0), (3.0, 9.0)], "打代號或名稱", "代號", '代號或名稱都行，點一下我就帶你過去', "搜尋",
-                  focus=F((20, 150, 900, 440), "搜尋框與建議", "V27", 1.0, zoom=False), idle=[(0, 'talk_excited'), (1.8, 'face_nod')]))
+                  focus=F((20, 150, 900, 440), "搜尋框與建議", "V27", 1.0, zoom=False), idle=[(0, 'talk_excited'), (1.8, 'face_nod')], main=[(0, 0, 3200, 1800)]))
     S.append(feat("08", 3.0, "V03", [(0, 3.1), (0.7, 3.1), (0.7001, 9.9), (3.0, 13.35)], "② 大日子排一起", "大日子", '重要的日子，我幫你排在一張月曆裡，不怕漏掉', "財經日曆",
                   focus=F((2300, 300, 3150, 1720), "FED 事件說明卡", "V03", 1.8, zoom=False), idle=[(0, 'face_shock'), (1.5, 'calendar')]))
     S.append(feat("09", 2.5, "V04", stat(2.0, 2.5), "③ 錢往哪裡跑", "錢", '錢往哪裡跑？我幫你標出誰領先、誰落後', "資金流向",

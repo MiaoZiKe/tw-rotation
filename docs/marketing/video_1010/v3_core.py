@@ -224,15 +224,112 @@ def fit_aspect(win, ar, sw, sh, min_w=0.0):
     return (cx - w / 2, cy - h / 2, cx + w / 2, cy + h / 2)
 
 
-class Rec4:
-    """錄影層。web：整張縮進框，focus 可推近；mobile：寬度鋪滿框，內容比框高就垂直平移（pan）。"""
+MAINCHK: list = []   # (鏡, 主圖標籤, 入鏡%, 主圖面積佔視窗%, 視窗(src px), 備註)
+AVAIL_W = (77, 66, 1766, 770)     # 網頁：網站畫面可用區（下方 244px 留給比比與泡泡）
+AR_MIN, AR_MAX = 1.3, 2.3          # 視窗長寬比下限／上限（長條主圖補些上下文，維持可讀）
 
-    def __init__(self, clip, srcmap, focus=None, pan=None):
+
+def _clip_rect(r, sw, sh):
+    return (max(0, r[0]), max(0, r[1]), min(sw, r[2]), min(sh, r[3]))
+
+
+def _area(r):
+    return max(0.0, r[2] - r[0]) * max(0.0, r[3] - r[1])
+
+
+def _inter_rect(a, b):
+    return (max(a[0], b[0]), max(a[1], b[1]), min(a[2], b[2]), min(a[3], b[3]))
+
+
+def web_window(rects, sw, sh):
+    """網頁視窗：包住所有主圖／點擊目標；長寬比在 [1.3, 2.3]（不夠就補上下文）；沒有目標＝整頁。"""
+    if not rects:
+        return (0.0, 0.0, float(sw), float(sh))
+    x0 = min(r[0] for r in rects)
+    y0 = min(r[1] for r in rects)
+    x1 = max(r[2] for r in rects)
+    y1 = max(r[3] for r in rects)
+    px, py = (x1 - x0) * 0.025 + 12, (y1 - y0) * 0.025 + 12
+    x0, y0, x1, y1 = max(0, x0 - px), max(0, y0 - py), min(sw, x1 + px), min(sh, y1 + py)
+    w, h = x1 - x0, y1 - y0
+    if w < 1100:
+        c = (x0 + x1) / 2
+        x0, x1 = c - 550, c + 550
+        w = 1100
+    if h < 620:
+        c = (y0 + y1) / 2
+        y0, y1 = c - 310, c + 310
+        h = 620
+    ar = w / h
+    if ar > AR_MAX:
+        h2 = w / AR_MAX
+        c = (y0 + y1) / 2
+        y0, y1 = c - h2 / 2, c + h2 / 2
+    elif ar < AR_MIN:
+        w2 = h * AR_MIN
+        c = (x0 + x1) / 2
+        x0, x1 = c - w2 / 2, c + w2 / 2
+    # 平移進素材範圍（不縮小視窗）
+    dx = -x0 if x0 < 0 else (sw - x1 if x1 > sw else 0)
+    dy = -y0 if y0 < 0 else (sh - y1 if y1 > sh else 0)
+    x0, x1, y0, y1 = x0 + dx, x1 + dx, y0 + dy, y1 + dy
+    x0, y0, x1, y1 = max(0, x0), max(0, y0), min(sw, x1), min(sh, y1)
+    return (x0, y0, x1, y1)
+
+
+class Rec4:
+    """錄影層。web：每鏡視窗依「主圖＋點擊目標」決定、框依視窗長寬比縮放；mobile：寬度鋪滿框，內容比框高就垂直平移（pan）。"""
+
+    def __init__(self, clip, srcmap, focus=None, pan=None, main=None):
         self.clip, self.srcmap, self.focus, self.pan = clip, srcmap, focus, pan   # pan=(y0, y1, t0, t1)
+        self.main = list(main or [])      # 額外指定的主圖 rect（src px：x0,y0,x1,y1）
         self.win = self.rect = None
+        self._wl = None
 
     def zoom_u(self, t):
-        return self.focus.zoom_u(t) if self.focus else 0.0
+        return 0.0 if self.focus is None or not self.focus.zoom else self.focus.zoom_u(t)
+
+    def main_rects(self):
+        rs = list(self.main)
+        if self.focus and self.focus.frame:
+            rs.append(tuple(self.focus.rect))
+        return rs
+
+    def _web_layout(self, L, shot, sw, sh):
+        if self._wl is None:
+            base_main = list(self.main)
+            default_main = not base_main
+            if default_main:
+                f_ = sw / 3200.0
+                base_main = [(480 * f_, 100 * f_, 3168 * f_, 1760 * f_)]      # 內容區（側欄與頁首以外）
+            rs0 = base_main + ([tuple(self.focus.rect)] if self.focus and self.focus.frame else [])
+            rs = [_clip_rect(r, sw, sh) for r in rs0]
+            tap_rs = []
+            if shot.op:
+                for tp in shot.op.taps:
+                    if tp["hover"]:
+                        continue
+                    r, _, _ = click_target(self.clip, tp["src_t"], tp["x"], tp["y"])
+                    tap_rs.append(_clip_rect(r, sw, sh))
+            win = web_window(rs + tap_rs, sw, sh)
+            ww, wh = win[2] - win[0], win[3] - win[1]
+            ax, ay, aw, ah = AVAIL_W
+            sc = min(aw / ww, ah / wh)
+            fw, fh = ww * sc, wh * sc
+            rect = (ax + (aw - fw) / 2, ay + (ah - fh) / 2, fw, fh)
+            self._wl = (win, rect)
+            # 主圖入鏡檢查
+            if rs:
+                mrs = [_clip_rect(r, sw, sh) for r in base_main]
+                mb = (min(r[0] for r in mrs), min(r[1] for r in mrs), max(r[2] for r in mrs), max(r[3] for r in mrs))
+                inc = _area(_inter_rect(mb, win)) / max(1.0, _area(mb))
+                ratio = _area(mb) / max(1.0, _area(win))
+                label = ("內容區（主圖整區）" if default_main else "指定主圖") + ("＋" + self.focus.label if self.focus and self.focus.frame else "")
+            else:
+                inc, ratio, label = 1.0, 1.0, "整頁（無單一主圖，整頁入鏡）"
+                mb = win
+            MAINCHK.append((shot.sid, label, round(inc * 100, 1), round(ratio * 100, 1), tuple(round(v) for v in win), ""))
+        return self._wl
 
     def draw(self, cv, t, shot):
         L = shot.L
@@ -251,31 +348,9 @@ class Rec4:
                 y0 = 0
             y0 = clamp(y0, 0, max(0, sh - wh))
             self.win = (0, y0, ww, min(sh, y0 + wh))
-            if self.win[3] - self.win[1] < wh - 1:       # 素材比框矮：下緣不補空白，框高縮到內容高
-                pass
         else:
-            u = self.zoom_u(t)
-            wh0 = sw * rh / rw
-            if self.pan:
-                ya, yb, t0, t1 = self.pan
-                py = lerp(ya, yb, ease_io((t - t0) / max(0.01, t1 - t0)))
-            else:
-                py = 0
-            py = clamp(py, 0, max(0, sh - wh0))
-            full = (0, py, sw, min(sh, py + wh0))
-            if self.focus and u > 0:
-                x0, y0, x1, y1 = self.focus.rect
-                mx, my = (x1 - x0) * 0.06, (y1 - y0) * 0.06
-                tgt = fit_aspect((x0 - mx, y0 - my, x1 + mx, y1 + my), rw / rh, sw, sh, rw * self.focus.max_up_inv)
-            else:
-                tgt = full
-            cx = lerp((full[0] + full[2]) / 2, (tgt[0] + tgt[2]) / 2, u)
-            cy = lerp((full[1] + full[3]) / 2, (tgt[1] + tgt[3]) / 2, u)
-            ww = lerp(sw, tgt[2] - tgt[0], u)
-            wh = ww * rh / rw
-            cx = clamp(cx, ww / 2, sw - ww / 2)
-            cy = clamp(cy, wh / 2, sh - wh / 2)
-            self.win = (cx - ww / 2, cy - wh / 2, cx + ww / 2, cy + wh / 2)
+            win, rect = self._web_layout(L, shot, sw, sh)
+            self.win, self.rect = win, rect
         ix, iy, iw, ih = [int(round(v)) for v in self.rect]
         im = src.resize((iw, ih), Image.LANCZOS, box=self.win)
         tile = im.convert("RGBA")
@@ -285,7 +360,10 @@ class Rec4:
         C.reg("site", (ix, iy, ix + iw, iy + ih), role="site")
         if t < 1.5 / FPS and not getattr(shot, "_cropped", False):
             shot._cropped = True
-            full_w = abs((self.win[2] - self.win[0]) - sw) < 1.0 if L.fmt == "mobile" else abs((self.win[2] - self.win[0]) - sw) < 1.0
+            if L.fmt == "mobile":
+                full_w = abs((self.win[2] - self.win[0]) - sw) < 1.0
+            else:
+                full_w = MAINCHK[-1][2] >= 99.9 if MAINCHK else True
             left, right = ix, L.W - (ix + iw)
             CROPS.append((shot.sid, self.clip, left, right, full_w, abs(left - right) < 20 and full_w))
         if self.focus:
@@ -610,9 +688,10 @@ class Op:
         return None, (x0, y0, x1, y1)
 
     @staticmethod
-    def land(L, p, ts):
+    def land(L, p, ts, box=None):
         """比比落地點：漣漪維持在元素正中；比比本人只踩在畫面框內（上緣太近就站在目標下方，下緣太近就站在框內底）。"""
-        top, bot = L.box[1] + 4, L.box[1] + L.box[3] - 6
+        bx = box or L.box
+        top, bot = bx[1] + 4, bx[1] + bx[3] - 6
         y = p[1]
         if y - ts < top:
             y = p[1] + ts + 16
@@ -683,17 +762,17 @@ class Op:
             c = tp["t"]
             nxt = taps[i + 1]["t"] if i + 1 < len(taps) else 1e9
             tgt = rec.map(tp["x"], tp["y"])
-            tgt = self.land(L, tgt, ts)
+            tgt = self.land(L, tgt, ts, rec.rect)
             chained = i > 0 and c - taps[i - 1]["t"] < self.FLY + self.STAY + self.BACK + 0.2
             if chained:
                 p = rec.map(taps[i - 1]["x"], taps[i - 1]["y"])
-                start = self.land(L, p, ts)
+                start = self.land(L, p, ts, rec.rect)
                 ssize = ts
             else:
                 start, ssize = home, hs
             if c - self.FLY <= t < c:
                 u = ease_io((t - (c - self.FLY)) / self.FLY)
-                foot = (lerp(start[0], tgt[0], u), max(L.box[1] + ts + 4, lerp(start[1], tgt[1], u) - 120 * THEME["bounce"] * math.sin(math.pi * u)))
+                foot = (lerp(start[0], tgt[0], u), max(rec.rect[1] + ts + 4, lerp(start[1], tgt[1], u) - 120 * THEME["bounce"] * math.sin(math.pi * u)))
                 size = lerp(ssize, ts, u)
                 ROLE[0] = "bibi_tap"
                 put_sprite(cv, "tap", 3 + int(clamp(u, 0, 0.999) * 5), foot, size)
@@ -706,7 +785,7 @@ class Op:
                 return
             if not (nxt - c < self.FLY + self.STAY + self.BACK + 0.2) and c + self.STAY <= t < c + self.STAY + self.BACK:
                 u = ease_io((t - c - self.STAY) / self.BACK)
-                foot = (lerp(tgt[0], home[0], u), max(L.box[1] + ts + 4, lerp(tgt[1], home[1], u) - 90 * THEME["bounce"] * math.sin(math.pi * u)))
+                foot = (lerp(tgt[0], home[0], u), max(rec.rect[1] + ts + 4, lerp(tgt[1], home[1], u) - 90 * THEME["bounce"] * math.sin(math.pi * u)))
                 ROLE[0] = "bibi_tap"
                 put_sprite(cv, "hop_l" if home[0] < tgt[0] else "hop_r", 2 + int(u * 3.99), foot, lerp(ts, hs, u))
                 ROLE[0] = "bibi"
@@ -789,8 +868,8 @@ class Shot4:
                     if tp["hover"]:
                         continue
                     mx, my = self.rec.map(tp["x"], tp["y"])
-                    if my < L.box[1] + 130 and px - 70 <= mx <= px + total + 70:
-                        px = L.box[0] + L.box[2] - total
+                    if my < self.rec.rect[1] + 130 and px - 70 <= mx <= px + total + 70:
+                        px = self.rec.rect[0] + self.rec.rect[2] - total
                         break
             hx = px
             if self.pill:

@@ -66,9 +66,27 @@ def sprite_union_rect(name, frames, foot, size):
     return (xs0, ys0, xs1, ys1)
 
 
-def mini(clip, st, box, size):
+def mini(clip, st, rect, size):
+    """縮影：以 rect（主圖，src px）為準裁出「完整主圖」——裁切框長寬比＝格子長寬比，只往外補上下文，不切到主圖。"""
     src = reader(clip).get(st)
-    im = src.crop(box).resize(size, Image.LANCZOS).convert("RGBA")
+    sw, sh = src.size
+    x0, y0, x1, y1 = rect
+    x0, y0, x1, y1 = max(0, x0), max(0, y0), min(sw, x1), min(sh, y1)
+    ar = size[0] / size[1]
+    w, h = x1 - x0, y1 - y0
+    if w / h > ar:
+        h2 = w / ar
+        w2 = w
+    else:
+        w2 = h * ar
+        h2 = h
+    if w2 > sw or h2 > sh:           # 補不下就整張縮進去（仍包含主圖）
+        k = min(sw / w2, sh / h2)
+        w2, h2 = w2 * k, h2 * k
+    cx, cy = (x0 + x1) / 2, (y0 + y1) / 2
+    bx0 = min(max(cx - w2 / 2, 0), sw - w2)
+    by0 = min(max(cy - h2 / 2, 0), sh - h2)
+    im = src.crop((int(bx0), int(by0), int(bx0 + w2), int(by0 + h2))).resize(size, Image.LANCZOS).convert("RGBA")
     im.putalpha(rounded_mask(size[0], size[1], 18))
     ImageDraw.Draw(im).rounded_rectangle([1, 1, size[0] - 2, size[1] - 2], 18, outline=(60, 80, 120, 255), width=2)
     return im
@@ -103,15 +121,20 @@ DESK = [("V14_desktop", 17.0), ("V02_desktop", 4.8), ("V20_desktop", 1.0), ("V03
 MOB = [("V14_mobile", 2.5), ("V16_mobile", 1.0), ("V20_mobile", 1.0), ("V09_mobile", 2.5), ("V18_mobile", 2.5), ("V21_mobile_v3b", 2.5)]
 
 
+DC = (480, 100, 3168, 1760)       # 桌機內容區（主圖整區）
+MC = (24, 174, 1146, 1969)       # 手機內容區（上段 1795px）
 CHAOS = {
     1: dict(head="看盤資訊太多？", hl="太多", small="新聞、財報、資金、ETF，每天看到眼花", bibi="alarm", say="新聞、財報、資金、ETF…看到眼花，我陪你整理",
-            desk=DESK, mob=MOB),
+            desk=[(c, st, DC) for c, st in DESK], mob=[(c, st, MC) for c, st in MOB]),
     2: dict(head="台股產業這麼多，要怎麼看懂？", hl="看懂", small="從資金流向、題材到 3D 產業鏈，一步步看懂", bibi="face_sweat", say="產業那麼多，連我都頭大…",
-            desk=[("V08_desktop", 3.1), ("V11_desktop", 15.0), ("V13_desktop", 4.0), ("V12a_desktop", 3.0), ("V09_desktop", 3.1), ("V05_desktop", 3.0)],
-            mob=[("V08_mobile", 3.1), ("V11_mobile", 14.8), ("V12a_mobile", 3.0), ("V09_mobile", 3.1), ("V05_mobile", 3.0), ("V07_mobile", 3.3)]),
+            desk=[("V08_desktop", 3.1, (480, 106, 3168, 1784)), ("V11_desktop", 15.0, (540, 181, 3108, 1699)), ("V12a_desktop", 3.0, (500, 150, 3168, 1700)),
+                  ("V13_desktop", 6.0, (514, 110, 3134, 1768)), ("V09_desktop", 3.1, (480, 130, 3168, 944)), ("V05_desktop", 3.0, (480, 112, 3168, 1766))],
+            mob=[("V08_mobile", 3.1, (24, 246, 1146, 2041)), ("V11_mobile", 14.8, (39, 862, 1131, 1793)), ("V12a_mobile", 3.0, (39, 790, 1131, 1870)),
+                 ("V09_mobile", 3.1, (24, 369, 1146, 2164)), ("V05_mobile", 3.0, (24, 174, 1146, 1969)), ("V07_mobile", 3.3, (24, 348, 1146, 2143))]),
     3: dict(head="ETF 這麼多，怎麼配才有現金流？", hl="現金流", small="從配息月曆到組合試算，幫你排出每月現金流", bibi="face_think", say="標的這麼多，到底怎麼配？",
-            desk=[("V19_desktop", 4.3), ("V20_desktop", 3.1), ("V21_desktop", 4.3), ("V22_desktop", 3.4), ("V23_desktop", 5.5), ("V22_desktop", 5.0)],
-            mob=[("V19_mobile_v3b", 4.3), ("V20_mobile", 3.1), ("V21_mobile_v3b", 4.3), ("V22_mobile", 3.4), ("V23_mobile", 5.5), ("V19_mobile_v3b", 6.0)]),
+            desk=[("V19_desktop", 4.3, (480, 100, 3168, 1500)), ("V20_desktop", 3.1, (480, 100, 3168, 1100)), ("V21_desktop", 4.3, (480, 100, 3168, 1500)),
+                  ("V22_desktop", 7.0, (480, 560, 3168, 1800)), ("V23_desktop", 5.5, (480, 100, 3168, 1500)), ("V22_desktop", 11.0, (480, 560, 3168, 1800))],
+            mob=[("V19_mobile_v3b", 4.3, MC), ("V20_mobile", 3.1, MC), ("V21_mobile_v3b", 4.3, MC), ("V22_mobile", 3.4, MC), ("V23_mobile", 5.5, MC), ("V19_mobile_v3b", 6.0, MC)]),
 }
 
 
@@ -132,25 +155,22 @@ def chaos_fn(kind=1):
         C.reg("small", (sx - 20, sy, sx + stw + 20, sy + sf.size * 1.3 + 8))
         if web:
             size = (420, 236)
-            n = 8 if kind == 1 else 6
             if kind == 1:
                 cells = [(60 + (i % 4) * 465, 240 + (i // 4) * 276) for i in range(8)]
             else:
-                cells = [(60 + (i % 3) * 620 + 20, 240 + (i // 3) * 276) for i in range(6)]
-                size = (560, 236)
+                size = (500, 300)
+                cells = [(150 + (i % 3) * 570, 240 + (i // 3) * 320) for i in range(6)]
             frags = cfg["desk"]
-            box = (440, 60, 3040, 1522) if kind == 1 else (440, 60, 3040, 1180)
         else:
-            size = (470, 330)
-            cells = [(60 + (i % 2) * 520, 330 + (i // 2) * 370) for i in range(6)]
+            size = (300, 480)
+            cells = [(60 + (i % 3) * 330, 330 + (i // 3) * 520) for i in range(6)]
             frags = cfg["mob"]
-            box = (0, 400, 1170, 1222)
         for k, (cx, cy) in enumerate(cells):
             u = back_out((t - 0.15 - 0.14 * k) / 0.3)
             if t < 0.15 + 0.14 * k:
                 continue
-            clip, st = frags[k % len(frags)]
-            im = mini(clip, st, box, size)
+            clip, st, rect = frags[k % len(frags)]
+            im = mini(clip, st, rect, size)
             sc = clamp(u, 0.1, 1.05)
             if sc != 1:
                 im = im.resize((max(1, int(size[0] * sc)), max(1, int(size[1] * sc))), Image.BILINEAR)

@@ -33,3 +33,24 @@ def apply(path, table):
         b = b[:s_] + t.encode("utf8") + b[e_:]
     open(path, "w", encoding="utf8").write(b.decode("utf8"))
     print(path, len(table), "鏡")
+
+
+def add_kw(path, table):
+    """table: {sid: 'main=[(...)]' 這種 kwarg 原始碼字串}"""
+    src = open(path, encoding="utf8").read()
+    tree = ast.parse(src)
+    lines = src.split("\n")
+    offs = [0]
+    for ln in lines:
+        offs.append(offs[-1] + len(ln.encode("utf8")) + 1)
+    b = src.encode("utf8")
+    reps = []
+    for n in ast.walk(tree):
+        if isinstance(n, ast.Call) and getattr(n.func, "id", "") in ("feat", "featv", "featp") and n.args and isinstance(n.args[0], ast.Constant) and n.args[0].value in table:
+            kws = table[n.args[0].value]
+            last = n.keywords[-1].value if n.keywords else n.args[-1]
+            e = offs[last.end_lineno - 1] + last.end_col_offset
+            reps.append((e, f", {kws}"))
+    for e, t in sorted(reps, reverse=True):
+        b = b[:e] + t.encode("utf8") + b[e:]
+    open(path, "w", encoding="utf8").write(b.decode("utf8"))
