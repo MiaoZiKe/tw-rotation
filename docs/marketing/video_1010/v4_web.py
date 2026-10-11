@@ -124,7 +124,7 @@ def build():
     # 1 總覽（含今日事件、搜尋）
     S.append(shot("b01", "總覽", "V01_desktop", [(0.0, 2.2)], "① 每天先看這頁", "我先帶你看今天大盤", [(0, "talk_happy"), (1.2, "folder")]))
     S.append(shot("b02", "總覽", "V02_desktop", [(1.4, 4.8)], "今日事件不漏看", "重要消息我幫你列好", [(0, "news"), (1.8, "face_surprise_happy")]))
-    S.append(shot("b03", "總覽", "V27_desktop", [(1.7, 5.3)], "打幾個字就到", "想查哪檔，打簡稱就找到", [(0, "magnifier"), (2.4, "face_relief")]))
+    S.append(shot("b03", "總覽", "V27_desktop", [(1.5, 2.45), (4.6, 7.4)], "打幾個字就到", "想查哪檔，打簡稱就找到", [(0, "magnifier"), (2.4, "face_relief")], min_cap=3.2))
     # 2 財經日曆（一段連續錄影）
     S.append(shot("c01", "財經日曆", "V03_desktop", [(9.4, 11.8)], "② 財經日曆", "財報、法說、FED 我排好了", [(0, "calendar"), (1.2, "tilt")], cont=True))
     S.append(shot("c02", "財經日曆", "V03_desktop", [(12.4, 16.6)], "重要日子不漏看", "點一下，說明馬上出來", [(0, "face_shock"), (1.6, "globe"), (3.2, "face_nod")]))
@@ -135,7 +135,7 @@ def build():
     S.append(shot("d04", "資金流向", "V06_desktop_v3c", [(5.1, 8.1)], "每天分流一路播", "錢從哪流到哪，一看就懂", [(0, "spotlight"), (2.0, "face_love")]))
     # 4 熱力圖
     S.append(shot("e01", "熱力圖", "V08_desktop", [(0.05, 3.05)], "④ 哪裡熱一眼看", "方塊越大，錢越多", [(0, "magnifier"), (1.5, "face_shock")], min_cap=3.0))
-    S.append(shot("e02", "熱力圖", "I01_desktop_v3i", [(3.5, 6.4)], "題材熱度", "熱門題材，我拆開給你看", [(0, "talk_excited"), (1.4, "fire")], cont=True))
+    S.append(shot("e02", "熱力圖", "I01_desktop_v3i", [(3.5, 6.4)], "題材熱度", "熱門題材，我拆開給你看", [(0, "talk_excited"), (1.4, "fire")], cont=True, min_cap=3.2))
     S.append(shot("e03", "熱力圖", "I01_desktop_v3i", [(6.4, 9.4)], "一步一步看懂", "從晶片到整櫃，照順序看", [(0, "bulb"), (1.6, "face_thinking_bulb")], chain="solo"))
     # 5 產業地圖（2D → 3D → 四宮格 → 關聯圖）
     S.append(shot("f01", "產業地圖", "V11_desktop", [(14.2, 17.2)], "⑤ 產業鏈 2D", "上下游怎麼排，一張看懂", [(0, "talk_happy"), (1.4, "spotlight")]))
@@ -150,22 +150,23 @@ def build():
     S.append(shot("g03", "個股", D10, [(9.1, 11.3)], "下方看總覽", "基本面、籌碼，重點整理好", [(0, "bulb"), (1.0, "face_thinking_bulb")]))
     S.append(shot("g04", "個股", D10, [(11.9, 13.0), (15.5, 17.2)], "旁邊看營收獲利", "營收、獲利，旁邊點就有", [(0, "face_proud"), (0.9, "magnifier")], hl="營收獲利"))
     S.append(shot("g05", "個股", D10, [(18.3, 19.4), (21.9, 23.6)], "旁邊看營收獲利", "營收、獲利，旁邊點就有", [(0, "face_proud"), (1.0, "face_nod")], hl="營收獲利"))
-    S.append(shot("h01", "市場明細", "V16_desktop", [(7.1, 10.1)], "⑦ 市場明細", "法人連買賣，名單直接看", [(0, "coins"), (1.4, "face_curious")]))
+    S.append(shot("h01", "市場明細", "V16_desktop", [(7.6, 10.0)], "⑦ 市場明細", "法人連買賣，名單直接看", [(0, "coins"), (1.4, "face_curious")], min_cap=3.0))
     S.append(shot("h02", "選股策略", "V17_desktop", [(6.1, 9.1)], "⑧ 條件分好類", "技術、籌碼，分面向整理", [(0, "folder"), (1.4, "face_nod")]))
     S.append(shot("h03", "週期統計", "V18_desktop", [(4.0, 6.8)], "⑨ 週期統計", "歷年月份規律，一張表", [(0, "hourglass"), (1.4, "face_think")]))
     # 10 ETF（I03 不用；報酬比較用 V21 勾選完成後的結果段）
     S.append(shot("i01", "ETF", "V19_desktop", [(3.6, 6.8)], "⑩ ETF 配息曆", "存 ETF？哪天除息我標好", [(0, "piggy"), (1.6, "face_love")]))
-    S.append(shot("i02", "ETF", "V20_desktop", [(2.4, 4.9)], "各類前五名", "配息、市值型，前五名", [(0, "trophy"), (1.6, "face_proud")]))
+    S.append(shot("i02", "ETF", "V20_desktop", [(2.4, 5.5)], "各類前五名", "配息、市值型，前五名", [(0, "trophy"), (1.6, "face_proud")]))
     S[-1].note = "過去表現不代表未來"   # 報酬比較在畫面上：附註小字（卡片層，不疊在圖表上）
-    S.append(shot("i03", "ETF", "V20_desktop", [(4.9, 7.9)], "報酬一起比", "含息不含息分開算", [(0, "tilt"), (1.2, "face_nod")]))
+    S.append(shot("i03", "ETF", "V20_desktop", [(5.75, 7.95)], "報酬一起比", "含息不含息分開算", [(0, "tilt"), (1.2, "face_nod")], limit=8.0, min_cap=3.2))
     S[-1].note = "過去表現不代表未來"   # 報酬比較在畫面上：附註小字（卡片層，不疊在圖表上）
-    S.append(shot("i04", "ETF", "V13b_desktop_v3e", [(7.1, 10.3)], "三張圖一起亮", "點一檔，現金流三圖連動", [(0, "calc"), (2.0, "face_surprise_happy")]))
-    S.append(shot("i05", "ETF", "V23_desktop", [(1.5, 2.3), (5.3, 7.4)], "複利怎麼長大", "再投入和領現金，並排看", [(0, "face_proud"), (1.0, "growth")], hl="長大"))
+    S.append(shot("i04", "ETF", "V13b_desktop_v3e", [(7.1, 10.3)], "三張圖一起亮", "點一檔，現金流三圖連動", [(0, "calc"), (2.0, "face_surprise_happy")], min_cap=3.4))
+    S.append(shot("i05", "ETF", "V23_desktop", [(2.5, 5.6)], "複利怎麼長大", "再投入和領現金，並排看", [(0, "face_proud"), (1.0, "growth")], hl="長大"))
     # 11～13 自選清單／導覽／願望清單
     S.append(shot("j01", "自選清單", "V24_desktop", [(6.6, 10.4)], "⑪ 自選清單", "常看的收進來，一開就有", [(0, "star_save"), (2.2, "face_love")],
                   win_keys=[(0.0, (0, 0, 2990, 1682))]))
-    S.append(shot("j02", "導覽", "V25_desktop", [(1.4, 4.6)], "看不懂有導覽", "每一頁我都一步步帶你", [(0, "talk_happy"), (1.8, "face_wink")]))
-    S.append(shot("j03", "願望清單", "V26_desktop", [(13.3, 16.9)], "歡迎許願", "想要什麼功能，跟我說！", [(0, "heart_wish"), (1.6, "face_love")], chain="solo"))
+    S.append(shot("j02", "導覽", "V25_desktop", [(1.4, 4.6)], "看不懂有導覽", "每一頁我都一步步帶你", [(0, "talk_happy"), (1.8, "face_wink")], min_cap=3.0))
+    S.append(shot("j03", "願望清單", "V26_desktop", [(13.3, 16.9)], "歡迎許願", "想要什麼功能，跟我說！", [(0, "heart_wish"), (1.6, "face_love")], chain="solo",
+                  win_keys=[(0.0, (1290, 716, 3170, 1726))]))   # 裁到面板表單區：不露出「AI 客服即將推出」橫幅與上方分頁
     # 14～15 片尾與警語
     S.append(card("k01", 3.0, K4.end4_fn(), [(0, "pop"), (1.0, "ding")]))
     S.append(card("k02", 5.0, K4.disclaimer4_fn()))
