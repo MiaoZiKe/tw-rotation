@@ -1262,6 +1262,8 @@ DEVS3 = {
 }
 SHOTS3: dict = {}
 # 第 4 版：右下角客服鈕與比比壓在圖表上（Andy：「圖表一定要都被看到」）→ 錄影時藏起來（不改 site/）
+NOFAB_ACTIVE = {"on": False}
+NOFAB_CSS = 'html body .supfab, html body #supFab, html body .bibiring, html body #bibiRing, html body #bibiStage, html body .bibiwrap, html body .bibitip, html body #bibiTip, html body .bibifx, html body .bibiflash, html body .bibihop{display:none!important}'
 NOFAB_JS = r"""
 (() => { const css = 'html body .supfab, html body #supFab, html body .bibiring, html body #bibiRing, html body #bibiStage, html body .bibiwrap, html body .bibitip, html body #bibiTip, html body .bibifx, html body .bibiflash, html body .bibihop{display:none!important}';
   const go = () => { const st = document.createElement('style'); st.id = '__vnofab'; st.textContent = css; document.head.appendChild(st); };
@@ -2092,6 +2094,8 @@ def v26(pg, a, start, base):
     start()
     a.wait(800)
     tap(a, "#supFab", "比比客服鈕", 1500)
+    if NOFAB_ACTIVE.get("on"):   # 客服鈕本身要被點；面板打開後才把鈕與比比藏起來（Andy：圖表不准被壓）
+        pg.evaluate("(css) => { const st = document.createElement('style'); st.textContent = css; document.head.appendChild(st); }", NOFAB_CSS)
     tap(a, "#supPanel .faq button >> nth=0", "常見問題第一題", 1800)
     tap(a, "#supPanel .faq button >> nth=4", "常見問題第五題", 1800)
     tap(a, '#supPanel .sptabs button[data-t="fb"]', "意見反饋")
@@ -2807,6 +2811,7 @@ def main() -> int:
     global FPS
     FPS = args.fps or (60 if args.set == "v3c" else 30)
     v3 = args.set.startswith("v3")
+    NOFAB_ACTIVE["on"] = bool(args.nofab)
     reg = SHOTS3 if v3 else SHOTS
     devs_cfg = DEVS3 if v3 else DEVS
     if args.set in ("v3e", "v3f", "v3g", "v3h", "v3i", "v3j") and not args.shots.strip():
@@ -2870,9 +2875,9 @@ def main() -> int:
                     act.dsf = cfg["device_scale_factor"]
                     act.stable_noframes = args.stable_noframes
                     act.log_moves = v3   # v3 沒有錄進游標 → 游標路徑寫進 shots.md 給後製畫比比
-                    if args.nofab and sid not in ("V25", "V26"):
+                    if args.nofab and sid not in ("V26",):
                         ctx.add_init_script(NOFAB_JS)
-                    name = f"{sid}_{'mobile' if dev == 'm' else 'desktop'}" + ("_v3b" if args.set == "v3b" else "_v3c" if args.set == "v3c" else "_v3d" if args.set == "v3d" else "_" + args.set if args.set in ("v3e", "v3f", "v3g", "v3h", "v3i", "v3j") else "") + ("_nofab" if args.nofab and sid not in ("V25", "V26") else "")
+                    name = f"{sid}_{'mobile' if dev == 'm' else 'desktop'}" + ("_v3b" if args.set == "v3b" else "_v3c" if args.set == "v3c" else "_v3d" if args.set == "v3d" else "_" + args.set if args.set in ("v3e", "v3f", "v3g", "v3h", "v3i", "v3j") else "") + ("_nofab" if args.nofab else "")
                     try:
                         # 每鏡自己決定何時開錄：fn(pg, act, rec_start) —— 先做準備（換頁、等圖畫完）再開錄
                         state = {}
