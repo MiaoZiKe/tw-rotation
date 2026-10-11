@@ -1,4 +1,4 @@
-# 比比互動小圈圖示（10 個）
+# 比比互動小圈圖示（11 個）
 
 - 用途：網頁版客服鈕「比比」互動選單的小圈圖示；每個 96×96 透明 PNG、手繪風粗描邊（#1A0907）、奶油白圓底，與比比同風格。
 - 製作：`python scripts/anim/bibi_interact_g1.py --out <scratchpad>/bibi_g --repo-out docs/anim --icons`（`scripts/anim/bibi_icons_g1.py`）。
@@ -16,3 +16,6 @@
 | <img src="moon.png" width="48"> | `moon.png` | 月亮 | 晚安 |
 | <img src="camera.png" width="48"> | `camera.png` | 相機 | 拍照 |
 | <img src="chat.png" width="48"> | `chat.png` | 對話泡泡 | 聊天 |
+| <img src="hammer.png" width="48"> | `hammer.png` | 玩具嗶嗶槌 | 敲一下（bibi_hit → bibi_cry） |
+
+- `hammer.png`（10-11 晚新增）：`python scripts/anim/bibi_moves_v2.py --out <scratchpad>/bibi_v2 --repo-out docs/anim --only hit` 會一起重畫（`make_hammer_icon`）。

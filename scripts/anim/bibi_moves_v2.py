@@ -8,6 +8,7 @@ Andy 2026-10-11 退件：「需要是點擊互動按鈕，他會有對應動作�
 用法
 ----
     python scripts/anim/bibi_moves_v2.py --out <scratchpad>/bibi_v2 --repo-out docs/anim [--only run_r,ball_catch]
+    # 10-11 晚新增：--only hit,cry（＋槌子圖示 bibi_icons/hammer.png）、--only dizzy,spin_v2
 
 輸出
 ----
@@ -1009,8 +1010,397 @@ def clip_run_stop_d() -> list[dict]:
     return fr
 
 
+# ================================================================== 10-11 晚：被打（hit）／哭哭（cry）／暈眩（dizzy）
+# Andy：「頭暈應該要表情暈眩」「需要新增打他互動，並且他會哭哭」。無手（網頁已拿掉手）。
+TEAR_FILL, TEAR_INK = R.TEAR_FILL, R.TEAR_INK
+
+
+def _head_top_y(ox: float) -> float:
+    """原圖 x=ox 那一欄，毛的最上緣（原圖座標，含描邊）。"""
+    fg = R.default_assets()["masks"]["fg"]
+    col = np.nonzero(fg[:, int(round(ox))])[0]
+    return float(col.min()) if len(col) else 150.0
+
+
+def drop_svg(x, y, r, ang) -> str:
+    """飛行中的大顆淚滴：圓頭＋尾尖指向 ang 的反方向（ang＝速度方向，度）；藍描邊、白高光。"""
+    return (f'<g transform="translate({x:.1f},{y:.1f}) rotate({ang - 90:.1f})">'
+            f'<path d="M 0 {-1.9*r:.1f} C {0.8*r:.1f} {-0.8*r:.1f} {r:.1f} {-0.3*r:.1f} {r:.1f} {0.15*r:.1f} '
+            f'A {r:.1f} {r:.1f} 0 1 1 {-r:.1f} {0.15*r:.1f} C {-r:.1f} {-0.3*r:.1f} {-0.8*r:.1f} {-0.8*r:.1f} 0 {-1.9*r:.1f} Z" '
+            f'fill="{TEAR_FILL}" stroke="{TEAR_INK}" stroke-width="{max(2.6, r*0.33):.1f}" stroke-linejoin="round"/>'
+            f'<ellipse cx="{-0.38*r:.1f}" cy="{-0.05*r:.1f}" rx="{0.26*r:.1f}" ry="{0.42*r:.1f}" fill="#fff"/></g>')
+
+
+def puddle_svg(x, y, rx, ry, ripple=0.0) -> str:
+    """地上的小水窪（淡藍＋藍描邊＋白高光）；ripple 0～1＝水波圈往外擴。"""
+    s = (f'<ellipse cx="{x:.1f}" cy="{y:.1f}" rx="{rx:.1f}" ry="{ry:.1f}" fill="{TEAR_FILL}" fill-opacity="0.92" '
+         f'stroke="{TEAR_INK}" stroke-width="3.2"/>'
+         f'<path d="M {x-rx*0.55:.1f} {y-ry*0.25:.1f} Q {x-rx*0.2:.1f} {y-ry*0.6:.1f} {x+rx*0.1:.1f} {y-ry*0.45:.1f}" '
+         f'fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round"/>')
+    if ripple > 0.01:
+        k = 0.35 + 0.55 * ripple
+        s += (f'<ellipse cx="{x:.1f}" cy="{y:.1f}" rx="{rx*k:.1f}" ry="{ry*k:.1f}" fill="none" stroke="{TEAR_INK}" '
+              f'stroke-width="2.4" stroke-opacity="{0.85 - 0.6*ripple:.2f}"/>')
+    return s
+
+
+def splash_svg(x, y, t, side) -> str:
+    """水滴落地濺起：兩三顆小水珠往上外彈（t 0～1）。"""
+    out = []
+    for j, (dx, h, r) in enumerate(((-16, 26, 4.6), (4, 34, 5.2), (20, 22, 4.2))):
+        xx = x + side * dx * (0.4 + 0.9 * t)
+        yy = y - h * 4 * t * (1 - t) * 1.2 - 6
+        out.append(f'<circle cx="{xx:.1f}" cy="{yy:.1f}" r="{r * (1 - 0.35*t):.1f}" fill="{TEAR_FILL}" stroke="{TEAR_INK}" '
+                   f'stroke-width="2.4"/>')
+    return "".join(out)
+
+
+def bump_svg(x, y_top, k=1.0) -> str:
+    """頭頂鼓起的包：桃粉圓丘從毛裡冒出（往毛裡漸層融回毛色、蓋住那段毛緣描邊），只描露出毛外的上緣；亮點。
+    (x, y_top)＝這一格頭頂毛緣（世界座標）。"""
+    rx, ry = 36 * k, 31 * k
+    cy = y_top + 8                      # 圓丘中心埋在毛緣下面一點 → 露出約 ry-6
+    gid = f"bp{int(x)}{int(y_top)}{int(k*100)}"
+    clip = f"cl{gid}"
+    y0, y1 = cy - ry, cy + ry
+    f = lambda yy: max(0.0, min(1.0, (yy - y0) / (y1 - y0)))  # noqa: E731
+    return (f'<defs><linearGradient id="{gid}" gradientUnits="userSpaceOnUse" x1="0" y1="{y0:.1f}" x2="0" y2="{y1:.1f}">'
+            f'<stop offset="0" stop-color="#F49A86"/><stop offset="{f(y_top - 4):.3f}" stop-color="#F8B9A6"/>'
+            f'<stop offset="{f(y_top + 10):.3f}" stop-color="#FBE6DA"/><stop offset="{f(y_top + 16):.3f}" stop-color="#FDF5E9"/>'
+            f'<stop offset="{f(y_top + 26):.3f}" stop-color="#FDF5E9" stop-opacity="0"/>'
+            f'</linearGradient>'
+            f'<clipPath id="{clip}"><rect x="{x-2*rx:.1f}" y="{y0-10:.1f}" width="{4*rx:.1f}" height="{y_top + 3 - (y0 - 10):.1f}"/></clipPath></defs>'
+            f'<ellipse cx="{x:.1f}" cy="{cy:.1f}" rx="{rx:.1f}" ry="{ry:.1f}" fill="url(#{gid})"/>'
+            f'<g clip-path="url(#{clip})"><ellipse cx="{x:.1f}" cy="{cy:.1f}" rx="{rx:.1f}" ry="{ry:.1f}" fill="none" '
+            f'stroke="{R.DEF_INK}" stroke-width="6.2" stroke-linecap="round"/></g>'
+            f'<ellipse cx="{x - rx*0.36:.1f}" cy="{cy - ry*0.6:.1f}" rx="{rx*0.2:.1f}" ry="{ry*0.13:.1f}" fill="#fff" '
+            f'fill-opacity="0.9" transform="rotate(-28 {x - rx*0.36:.1f} {cy - ry*0.6:.1f})"/>')
+
+
+def bump_top(y_top, k=1.0):
+    return y_top + 8 - 31 * k
+
+
+def burst_up_svg(x, y, r=60, n=7, w=6.0) -> str:
+    """只往上半圈放射的衝擊短線（敲中頭頂那一下，不壓進身體）。"""
+    out = []
+    for i in range(n):
+        a = math.radians(-165 + i * 150 / (n - 1))
+        x0, y0 = x + r * 0.5 * math.cos(a), y + r * 0.5 * math.sin(a)
+        x1, y1 = x + r * math.cos(a), y + r * math.sin(a)
+        out.append(f'<path d="M {x0:.1f} {y0:.1f} L {x1:.1f} {y1:.1f}" stroke="{R.DEF_INK}" stroke-width="{w}" stroke-linecap="round"/>')
+    return "".join(out)
+
+
+def throb_svg(x, y, r, a=1.0) -> str:
+    """包兩側一跳一跳的「痛」短弧線。"""
+    out = []
+    for sg in (-1, 1):
+        for j, d in enumerate((0, 10)):
+            xx = x + sg * (r + 8 + d)
+            out.append(f'<path d="M {xx:.1f} {y - 9 - j*3:.1f} Q {xx + sg*6:.1f} {y:.1f} {xx:.1f} {y + 9 + j*3:.1f}" fill="none" '
+                       f'stroke="{R.DEF_INK}" stroke-width="4.5" stroke-linecap="round" stroke-opacity="{a:.2f}"/>')
+    return "".join(out)
+
+
+def _bump_at(pose, ox=272.0, k=1.0):
+    """包：照這一格實際畫出來的本體（含毛飄）長出來。回傳 (X, 毛緣Y, 圖層 S 倍)。
+    填色在毛裡面往內 ~12px 漸層融回毛色（蓋住那段毛緣描邊）；描邊只畫在身體外面（往內吃 2px 跟毛緣描邊接起來）。"""
+    from PIL import ImageFilter
+    full = {**R.DEFAULT, "eye": "default", "mouth": "default", "paws": None, **pose}
+    X, _ = _dp(pose, ox, _head_top_y(ox))
+    body = R.def_body_layer(full).getchannel("A")
+    a = np.asarray(body) > 128
+    tops = []
+    for xx in range(int((X - 14) * R.S), int((X + 14) * R.S) + 1, 2):
+        c = np.nonzero(a[:, xx])[0]
+        if len(c):
+            tops.append(c.min() / R.S)
+    Y = float(np.median(tops))
+    rx, ry = 36 * k, 31 * k
+    cy = Y + 8
+    gid = f"bp{int(X)}{int(Y)}{int(k*100)}"
+    fill = R.svg_layer(
+        f'<defs><linearGradient id="{gid}" gradientUnits="userSpaceOnUse" x1="0" y1="{cy-ry:.1f}" x2="0" y2="{cy+ry:.1f}">'
+        f'<stop offset="0" stop-color="#F49A86"/><stop offset="0.55" stop-color="#F8BCA9"/><stop offset="1" stop-color="#FCE9DE"/>'
+        f'</linearGradient></defs><ellipse cx="{X:.1f}" cy="{cy:.1f}" rx="{rx:.1f}" ry="{ry:.1f}" fill="url(#{gid})"/>'
+        f'<ellipse cx="{X - rx*0.36:.1f}" cy="{cy - ry*0.6:.1f}" rx="{rx*0.2:.1f}" ry="{ry*0.13:.1f}" fill="#fff" '
+        f'fill-opacity="0.9" transform="rotate(-28 {X - rx*0.36:.1f} {cy - ry*0.6:.1f})"/>')
+    stroke = R.svg_layer(f'<ellipse cx="{X:.1f}" cy="{cy:.1f}" rx="{rx:.1f}" ry="{ry:.1f}" fill="none" '
+                         f'stroke="{R.DEF_INK}" stroke-width="6.2"/>')
+    ba = np.asarray(body).astype(np.float32) / 255
+    deep = np.asarray(body.filter(ImageFilter.MinFilter(25))).astype(np.float32) / 255   # 往內 ~6px（512 單位）
+    blur = np.asarray(Image.fromarray((deep * 255).astype(np.uint8)).filter(ImageFilter.GaussianBlur(10))).astype(np.float32) / 255
+    fa = np.asarray(fill.getchannel("A")).astype(np.float32) * np.clip(1 - blur * 1.6, 0, 1)
+    fill.putalpha(Image.fromarray(fa.astype(np.uint8)))
+    ins = np.asarray(body.filter(ImageFilter.MinFilter(9))).astype(np.float32) / 255     # 往內 2px
+    sa = np.asarray(stroke.getchannel("A")).astype(np.float32) * (1 - ins)
+    stroke.putalpha(Image.fromarray(sa.astype(np.uint8)))
+    fill.alpha_composite(stroke)
+    return X, Y, fill
+
+
+def bump_top(y_top, k=1.0):
+    return y_top + 8 - 31 * k
+
+
+def clip_hit() -> list[dict]:
+    """被敲頭（播一次 6 格）：第 1 格就被敲中→瞬間壓扁、><、耳朵被壓扁、頭頂衝擊線→彈起拉長、包冒出來＋星星→
+    回壓（波浪嘴）→小彈、眼睛含淚（包一跳一跳）→停一下委屈→回 Default。網頁的槌子從右上往頭頂敲（第 1 格接觸）。"""
+    fr = []
+
+    def add(ms, label, bump=None, stars=None, throb=0.0, extra=None, names=None, **kw):
+        pose = dict(kw)
+        fx, nm, pf = [], [], []
+        if bump:
+            X, Y, lay = _bump_at(pose, k=bump)
+            pf.append(lay)
+            bt = bump_top(Y, bump)
+            if throb > 0:
+                fx.append(throb_svg(X, (bt + Y) / 2, 36 * bump, throb)); nm.append("throb")
+            for j, (ang, r) in enumerate(stars or []):
+                a = math.radians(ang)
+                fx.append(R.star_svg(X + 100 * math.cos(a), bt - 6 + 26 * math.sin(a), r, ang * 0.5,
+                                     "#FFD25A" if j % 2 == 0 else "#FFE58A").replace('stroke-width="3.5"', 'stroke-width="4.2"'))
+                nm.append(f"star{j}")
+        for s, n in zip(extra or [], names or []):
+            fx.append(s); nm.append(n)
+        fr.append(dict(pose=pose, ms=ms, label=label, fx=fx, fx_names=nm, props_front=pf,
+                       prop_names={"propF0": "bump"} if pf else {}))
+
+    # 第 1 格：敲中瞬間
+    p1 = dict(sy=0.7, sx=1.2, eye="squeeze", mouth="o", ear=46, ear2=46, ear_sc_l=0.8, ear_sc_r=0.8, flutter=-9)
+    tx, ty = _dp(p1, 262, _head_top_y(262))
+    hitfx = [burst_up_svg(tx, ty - 8, 66, 7, 6), R.text_svg("咚！", 384, 168, 46, 12)]
+    hitfx += [R.dust_svg(70, 470, 0.9), R.dust_svg(428, 470, 0.9)]
+    add(60, "敲中！瞬間壓扁（><、耳朵被壓扁、衝擊線）", extra=hitfx, names=["burst", "text", "dust0", "dust1"], **p1)
+    add(70, "彈起拉長、頭頂冒包＋星星（耳朵甩起）", bump=1.3, stars=[(-160, 15), (-20, 14), (-100, 11)],
+        y=R.FOOT_Y - 16, sy=1.14, sx=0.9, eye="squeeze", mouth="o", ear=-24, ear2=-24, flutter=8, fphase=0.6)
+    add(90, "回壓（波浪嘴、星星繞包）", bump=1.05, stars=[(-185, 14), (-35, 13), (-80, 10)],
+        sy=0.88, sx=1.08, eye="squeeze", mouth="wavy", ear=22, ear2=22, flutter=-5, fphase=1.2)
+    add(110, "小彈一下、眼睛含淚（包一跳一跳）", bump=1.12, stars=[(-215, 12), (-25, 11)], throb=1.0,
+        y=R.FOOT_Y - 6, sy=1.04, sx=0.97, eye="cry_wide", mouth="frown", ear=12, ear2=16, blush=1.4, flutter=3, fphase=1.8)
+    add(300, "委屈（含淚、撇嘴，包還在跳）", bump=1.0, stars=[(-165, 10)], throb=0.8,
+        rot=-3, sy=0.99, eye="cry_wide", mouth="frown", ear=26, ear2=30, blush=1.5)
+    add(400, "Default（原版）")
+    return fr
+
+
+def cry_pose(i: int) -> dict:
+    """哭哭循環 8 格（一個循環兩次抽噎）：0、4＝抽一下往上（大哭 ><＋張嘴）、1、5＝抽完壓扁、其餘＝含淚撇嘴微抖。"""
+    k = i % 4
+    j = i // 4
+    shake = (-3 if (i % 2) else 3) * (1 if j == 0 else -1)
+    if k == 0:
+        return dict(y=R.FOOT_Y - 8, sy=1.07, sx=0.95, rot=shake * 0.6, x=R.CX + shake * 0.6, eye="cry_squeeze", mouth="wail",
+                    ear=30, ear2=34, blush=1.4, flutter=5, fphase=0.8 + j, bf_far=(0, 6, 0), bf_near=(0, 6, 0))
+    if k == 1:
+        return dict(sy=0.9, sx=1.07, rot=-shake * 0.5, eye="cry_squeeze", mouth="wail", ear=40, ear2=44, blush=1.4,
+                    flutter=-5, fphase=1.4 + j)
+    if k == 2:
+        return dict(sy=1.0, sx=1.0, rot=shake * 0.7, x=R.CX + shake, eye="cry_wide", mouth="frown", ear=38, ear2=36,
+                    blush=1.35, flutter=2, fphase=2.0 + j)
+    return dict(sy=0.97, sx=1.02, rot=-shake * 0.4, x=R.CX - shake * 0.6, eye="cry_wide", mouth="frown", ear=34, ear2=38,
+                blush=1.35, flutter=-2, fphase=2.6 + j)
+
+
+def cry_fx(i: int, n: int = 8, pose=None):
+    """兩眼外眼角噴出大顆淚滴（每邊 3 顆錯開相位，拋物線落地）→ 落到兩側水窪、濺起小水珠、水波圈。"""
+    fx, nm = [], []
+    eye_l = _dp(pose, R.DEF_EYE_L[0], R.DEF_EYE_L[1])
+    eye_r = _dp(pose, R.DEF_EYE_R[0], R.DEF_EYE_R[1])
+    sides = [(-1, (eye_l[0] - 42, eye_l[1] - 8), (52.0, 471.0)), (1, (eye_r[0] + 42, eye_r[1] - 10), (444.0, 469.0))]
+    wail = cry_pose(i)["mouth"] == "wail"
+    for sg, S0, L in sides:
+        # 水窪（先畫，淚滴落在上面）
+        land_t = [((i / n) + q / 3 + (0.5 if sg > 0 else 0.0) / 3) % 1.0 for q in range(3)]
+        rip = max([1 - t / 0.34 for t in land_t if t < 0.34] or [0.0])
+        fx.append(puddle_svg(L[0], L[1], 36, 8.5, rip if rip > 0 else 0.0)); nm.append(f"puddle{sg}")
+        for q, t in enumerate(land_t):
+            H = 70 if wail else 52
+            x = S0[0] + (L[0] - S0[0]) * t + sg * 34 * 4 * t * (1 - t)      # 往外噴的弧
+            y = S0[1] - 4 * H * t * (1 - t) * 0.9 + (L[1] - 12 - S0[1]) * t * t
+            if t < 0.2 and not wail:
+                continue                      # 沒在大哭時，剛冒出眼角那一段不畫（淚珠還含在眼角）
+            if t > 0.9:
+                continue                      # 快落地那段由水窪＋濺水接手
+            vx = (L[0] - S0[0]) + sg * 34 * 4 * (1 - 2 * t)
+            vy = -4 * H * (1 - 2 * t) * 0.9 + 2 * (L[1] - 12 - S0[1]) * t
+            ang = math.degrees(math.atan2(vy, vx))
+            r = 9.5 + 3.5 * min(1.0, t * 2) + (1.5 if wail else 0)
+            fx.append(drop_svg(x, y, r, ang)); nm.append(f"drop{sg}_{q}")
+            if t < 0.22:   # 剛落地的那顆（相位循環）在水窪濺起
+                pass
+        just = [t for t in land_t if t < 0.3]
+        if just:
+            fx.append(splash_svg(L[0] + sg * 6, L[1], just[0] / 0.3, sg)); nm.append(f"splash{sg}")
+    return fx, nm
+
+
+def clip_cry() -> list[dict]:
+    fr = []
+    durs = [70, 90, 180, 160, 70, 90, 180, 200]
+    labels = ["抽一下往上（大哭 ><、張嘴、淚噴出）", "抽完壓扁（耳朵垂到底）", "含淚撇嘴（八字眉、抖）", "抖回來（淚珠滾落）",
+              "又抽一下（大哭）", "壓扁（抽噎）", "含淚撇嘴（往另一邊抖）", "吸鼻子（接回第 1 格）"]
+    for i in range(8):
+        p = cry_pose(i)
+        fx, nm = cry_fx(i, 8, p)
+        fr.append(dict(pose=p, ms=durs[i], label=labels[i], fx=fx, fx_names=nm))
+    return fr
+
+
+def dizzy_pose(i: int, n: int = 8) -> dict:
+    """暈眩循環：身體左右慢晃（弧線）、耳朵一高一低（慢一拍）、漩渦眼每格轉、歪波浪嘴、小腳站不穩。"""
+    a = TAU * i / n
+    s = math.sin(a)
+    return dict(rot=8 * s, x=R.CX + 9 * s, y=R.FOOT_Y - 3 * abs(math.cos(a)), sy=1 - 0.025 * math.cos(2 * a),
+                sx=1 + 0.02 * math.cos(2 * a), eye=f"swirl:{-60 * i}", mouth=f"wobble:{-7 * s:.1f}:{a * 2:.2f}",
+                ear=6 + 20 * math.sin(a - 0.9), ear2=6 - 20 * math.sin(a - 0.9), blush=1.0,
+                flutter=4 * math.sin(a - 0.6), fphase=a,
+                bf_far=(0, -8 * max(0.0, -s), 0), bf_near=(0, -8 * max(0.0, s), 0))
+
+
+def dizzy_stars(i: int, pose, n: int = 8):
+    """頭上 3 顆小星星繞圈（一個循環繞一圈）：前半圈在頭前面、大一點；後半圈在頭後面、小一點。"""
+    tx, ty = _dp(pose, 253, _head_top_y(253))
+    front, back, nm = [], [], []
+    for j in range(3):
+        th = TAU * (i / n) + j * TAU / 3
+        x = tx + 118 * math.cos(th)
+        y = ty - 26 + 20 * math.sin(th)
+        depth = math.sin(th)
+        r = 13 + 4 * depth
+        svg = R.star_svg(x, y, r, i * 25 + j * 40, "#FFD25A" if j != 1 else "#FFE58A").replace(
+            'stroke-width="3.5"', 'stroke-width="4"')
+        if depth >= -0.2:
+            front.append(svg); nm.append(f"star{j}")
+        else:
+            back.append(R.svg_layer(svg))
+    return front, nm, back
+
+
+def clip_dizzy() -> list[dict]:
+    fr = []
+    labels = ["晃到中間（漩渦眼 @_@）", "往右晃", "右邊最遠（停一下）", "晃回來", "中間", "往左晃", "左邊最遠（停一下）", "晃回來（接回第 1 格）"]
+    durs = [170, 170, 200, 170, 170, 170, 200, 170]
+    for i in range(8):
+        p = dizzy_pose(i)
+        front, nm, back = dizzy_stars(i, p)
+        fr.append(dict(pose=p, ms=durs[i], label=labels[i], fx=front, fx_names=nm, props_back=back))
+    return fr
+
+
+def clip_spin_dizzy() -> list[dict]:
+    """轉一圈（改版）：前 6 格照舊轉身；第 7 格衝過頭直接變暈眩臉（漩渦眼＋歪波浪嘴＋星星），
+    晃 4 格（＝bibi_dizzy 第 6、7、8、1 格，倒數第 2 格跟 bibi_dizzy 第 1 格一模一樣，可以直接接暈眩循環），最後 1 格 Default。
+    不畫手（Andy：伸出去的手太奇怪了）。"""
+    fr = clip_spin_d()[:6]
+    p = dict(rot=10, sx=1.06, sy=0.93, eye="swirl:30", mouth="wobble:6:0.5", ear=-18, ear2=22, flutter=-7, fphase=3.4)
+    front, nm, back = dizzy_stars(4, p)
+    fr.append(dict(pose=p, ms=90, label="正面停（衝過頭）→ 暈眩臉、星星冒出", fx=front, fx_names=nm, props_back=back))
+    for k, i in enumerate((5, 6, 7, 0)):
+        p = dizzy_pose(i)
+        front, nm, back = dizzy_stars(i, p)
+        lab = ["暈眩晃（往左）", "暈眩晃（左邊最遠）", "暈眩晃回來", "暈眩臉（＝bibi_dizzy 第 1 格，可接暈眩循環）"][k]
+        fr.append(dict(pose=p, ms=[150, 190, 150, 220][k], label=lab, fx=front, fx_names=nm, props_back=back))
+    fr.append(dict(pose={}, ms=400, label="Default（原版）", fx=[]))
+    return fr
+
+
+def hammer_svg(cx=48.0, cy=48.0, s=1.0, rot=-32.0, fx=True) -> str:
+    """玩具嗶嗶槌（96 座標，s 倍）：圓胖紅色槌身＋兩端黃色風琴摺圓蓋＋黃色握柄（紅色握把尾端）；
+    打擊端（左）外側有一顆星星與三條衝擊短線。"""
+    INK = "#1A0907"
+    RED, RED_D, YEL, YEL_D = "#EE5A4A", "#C8402F", "#FFD25A", "#E9B23A"
+    st = f'stroke="{INK}" stroke-width="{4.2 / s:.2f}" stroke-linejoin="round" stroke-linecap="round"'   # 縮小後描邊仍＝其他圖示的 4.2
+    cap = lambda sg: (  # noqa: E731
+        f'<path d="M {sg*17} -17 Q {sg*29} -17 {sg*29} -5 Q {sg*29} 7 {sg*17} 7 Z" fill="{YEL}" {st}/>'
+        f'<path d="M {sg*21.5} -15.5 L {sg*21.5} 5.5 M {sg*25.5} -13 L {sg*25.5} 3" stroke="{YEL_D}" stroke-width="2.6" '
+        f'stroke-linecap="round"/>')
+    g = (
+        f'<rect x="-5" y="4" width="10" height="36" rx="5" fill="{YEL}" {st}/>'
+        f'<path d="M -1.5 10 L -1.5 26" stroke="#FFF1B8" stroke-width="2.4" stroke-linecap="round"/>'
+        f'<rect x="-6.5" y="30" width="13" height="13" rx="6" fill="{RED}" {st}/>'
+        + cap(-1) + cap(1) +
+        f'<rect x="-18" y="-19" width="36" height="28" rx="11" fill="{RED}" {st}/>'
+        f'<path d="M -10 -13 Q 0 -15.5 10 -13" fill="none" stroke="#FFA597" stroke-width="3.4" stroke-linecap="round"/>'
+        f'<path d="M -15 3 Q 0 6 15 3" fill="none" stroke="{RED_D}" stroke-width="2.6" stroke-linecap="round"/>'
+    )
+    out = f'<g transform="translate({cx},{cy}) scale({s}) rotate({rot})">{g}</g>'
+    if fx:
+        a = math.radians(rot)
+        lx, ly = -34.0, -5.0                                  # 打擊端外側（局部座標）
+        ex, ey = cx + s * (lx * math.cos(a) - ly * math.sin(a)), cy + s * (lx * math.sin(a) + ly * math.cos(a))
+        base = math.degrees(math.atan2(ey - cy, ex - cx))
+        lines = "".join(
+            f'<path d="M {ex + s*math.cos(math.radians(base + d))*4:.1f} {ey + s*math.sin(math.radians(base + d))*4:.1f} '
+            f'L {ex + s*math.cos(math.radians(base + d))*10:.1f} {ey + s*math.sin(math.radians(base + d))*10:.1f}" '
+            f'stroke="{INK}" stroke-width="{3.6*s:.1f}" stroke-linecap="round"/>' for d in (-50, 0, 50))
+        star = R.star_svg(ex + 4 * s, ey + 17 * s, 7.5 * s, 12, YEL).replace(
+            'stroke-width="3.5"', f'stroke-width="{3.2*s:.1f}"').replace(R.INK, INK)
+        out = lines + out + star
+    return out
+
+
+def make_hammer_icon(outdir: Path):
+    """96×96 奶油白圓底圖示（與 bibi_icons 同版型）＋更新 index.md。"""
+    import bibi_icons_g1 as IC
+    svg = (f'<svg xmlns="http://www.w3.org/2000/svg" width="384" height="384" viewBox="0 0 96 96">'
+           + IC.badge(hammer_svg(53, 43, 0.8, -35)) + '</svg>')
+    import cairosvg
+    import io
+    im = Image.open(io.BytesIO(cairosvg.svg2png(bytestring=svg.encode("utf-8")))).convert("RGBA")
+    im = im.convert("RGBa").resize((96, 96), Image.LANCZOS).convert("RGBA")
+    outdir.mkdir(parents=True, exist_ok=True)
+    im.save(outdir / "hammer.png", optimize=True)
+    idx = outdir / "index.md"
+    txt = idx.read_text(encoding="utf-8")
+    row = '| <img src="hammer.png" width="48"> | `hammer.png` | 玩具嗶嗶槌 | 敲一下（bibi_hit → bibi_cry） |'
+    if "hammer.png" not in txt:
+        txt = txt.replace("# 比比互動小圈圖示（10 個）", "# 比比互動小圈圖示（11 個）").rstrip("\n") + "\n" + row + "\n"
+        txt += ("\n- `hammer.png`（10-11 晚新增）：`python scripts/anim/bibi_moves_v2.py --out <scratchpad>/bibi_v2 "
+                "--repo-out docs/anim --only hit` 會一起重畫（`make_hammer_icon`）。\n")
+        idx.write_text(txt, encoding="utf-8")
+    return im
+
+
+def make_hammer_prop(path: Path):
+    """512 透明大槌子（網頁疊在比比頭上右上方揮下來用；不含星星特效）。"""
+    lay = R.svg_layer(f'<g transform="scale(5.33)">{hammer_svg(48, 50, 1.25, -35, fx=False)}</g>')
+    lay.convert("RGBa").resize((512, 512), Image.LANCZOS).convert("RGBA").save(path)
+
+
+def verify_fx_pairs(frs, checks):
+    """特效彼此也不准互相壓（星星／包／衝擊線／字／淚滴）；淚滴落進水窪、濺水在水窪上是設計，不算。"""
+    ok_pairs = {("drop", "puddle"), ("splash", "puddle"), ("bump", "throb")}
+    bad = []
+    for i, (fr, c) in enumerate(zip(frs, checks)):
+        names = fr.get("fx_names") or []
+        ms_ = c.get("__masks", {})
+        ks = [(f"fx{j}", nm) for j, nm in enumerate(names) if f"fx{j}" in ms_]
+        ks += [(k_, v_) for k_, v_ in (fr.get("prop_names") or {}).items() if k_ in ms_]
+        for a in range(len(ks)):
+            for b in range(a + 1, len(ks)):
+                na, nb = ks[a][1], ks[b][1]
+                ta, tb = na.rstrip("0123456789-_"), nb.rstrip("0123456789-_")
+                ta, tb = ta.split("-")[0].rstrip("0123456789"), tb.split("-")[0].rstrip("0123456789")
+                if (ta, tb) in ok_pairs or (tb, ta) in ok_pairs:
+                    continue
+                n = int((ms_[ks[a][0]] & ms_[ks[b][0]]).sum())
+                if n:
+                    bad.append(f"第 {i+1} 格 {na}×{nb} 互壓 {n} 格點")
+    return bad
+
+
 # ================================================================== 渲染
 CLIPS = {
+    "hit": dict(make=clip_hit, facing="left", rig="default", loop=False,
+                note="播一次（點槌子圖示）；第 1 格就是敲中；網頁可把 hammer_prop.png 從右上揮到頭頂（約 x 300, y 150）只在第 1 格碰到。"
+                     "最後一格＝Default；要哭就接 bibi_cry。"),
+    "cry": dict(make=clip_cry, facing="left", rig="default", loop=True,
+                note="全部 8 格循環（一輪抽噎兩次，約 1 秒）；兩眼淚滴拋物線落到身體兩側的小水窪（左 x≈52、右 x≈444，地面 y≈470）。"),
+    "dizzy": dict(make=clip_dizzy, facing="left", rig="default", loop=True,
+                  note="全部 8 格循環（約 1.4 秒）；spin_v2 倒數第 2 格＝本組第 1 格，可直接接；播完切 Default。"),
     "highfive": dict(make=clip_highfive, facing="left", rig="default", convert=True, loop=False, note="播一次；網頁的手在右上（約 x 400, y 190）迎上來擊掌（第 3 格）。"),
     "dance": dict(make=clip_dance, facing="left", rig="default", convert=True, loop=False, note="播一次；最後一格＝站好。"),
     "hug": dict(make=clip_hug, facing="left", rig="default", convert=True, loop=False, note="播一次；最後一格＝站好。"),
@@ -1019,7 +1409,9 @@ CLIPS = {
     "selfie": dict(make=clip_selfie, facing="left", rig="default", convert=True, loop=False, note="播一次；三個姿勢各閃一次光；最後一格＝看鏡頭笑。"),
     "pet_v2": dict(make=clip_pet_d, facing="left", rig="default", loop=False,
                    note="播一次；網頁同時把 hand_prop.png 從右上伸到頭頂右上（約 x 300, y 190，第 1～7 格），第 8 格手離開。"),
-    "spin_v2": dict(make=clip_spin_d, facing="left", rig="default", loop=False, note="播一次；最後一格＝正面站好，可接 happy_hop。"),
+    "spin_v2": dict(make=clip_spin_dizzy, facing="left", rig="default", loop=False,
+                    note="播一次；第 7～11 格收在暈眩臉（漩渦眼＋歪波浪嘴＋星星繞頭）；第 11 格＝bibi_dizzy 第 1 格（要接暈眩循環就在第 11 格切過去），"
+                         "第 12 格＝Default。"),
     "popcorn": dict(make=clip_popcorn_d, facing="left", rig="default", loop=False,
                     note="播一次（點爆米花圖示）；第 1 格直接起跳預備，最後一格＝正面開心定格，可接 happy_hop。"),
     "eat_grass_v2": dict(make=clip_eat_grass_d, facing="left", loop=False, rig="default",
@@ -1243,6 +1635,8 @@ def main():
         rd.mkdir(parents=True, exist_ok=True)
         kb, q = save_webps(imgs, durs, rd / "anim.webp", out / name / "anim512.webp", CLIPS[name]["loop"])
         bad, diffs = verify(name, frs, imgs, checks)
+        if any(fr.get("fx_names") or fr.get("prop_names") for fr in frs):
+            bad += verify_fx_pairs(frs, checks)
         n = len(imgs)
         pick = list(range(n)) if n <= 12 else sorted({round(i * (n - 1) / 11) for i in range(12)})
         contact_sheet(imgs, frs, rd / "sheet_12.png", pick, 4, f"bibi_{name}：12 格接觸表（共 {n} 格）")
@@ -1254,6 +1648,9 @@ def main():
             compare_sheet(imgs, frs, rd / "compare_default.png")
         if name == "pet_v2":
             make_pet_hand(rd / "hand_prop.png")
+        if name == "hit":
+            make_hammer_prop(rd / "hammer_prop.png")
+            make_hammer_icon(rep / "bibi_icons")
         if name == "popcorn":
             make_popcorn_icon(rd / "popcorn_icon.png")
         if name == "receive":
