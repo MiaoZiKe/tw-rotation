@@ -857,6 +857,8 @@ class Shot4:
                 c.append((r.focus.t_zoom, "zoom"))
         return sorted(c)
 
+    cont = False      # 與前一鏡同一句字卡：不重新淡入
+
     def render(self, t, L):
         self.L = L
         C.begin()
@@ -867,11 +869,11 @@ class Shot4:
         if self.custom:
             self.custom(cv, t, self)
         if self.kind == "feature":
-            self._overlays(cv, t, L)
+            self._overlays(cv, t + (1.0 if self.cont else 0.0), L)
         if self.op:
             self.op.draw(cv, t, self)
         if self.kind == "feature":
-            host_bubble(cv, L, self, self.sub, t)
+            host_bubble(cv, L, self, self.sub, t + (1.0 if self.cont else 0.0))
         return cv
 
     def _overlays(self, cv, t, L):
