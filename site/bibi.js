@@ -85,6 +85,7 @@
   /* once：素材是播一次的專屬動作（播一輪＝MS 毫秒就回待機）；沒有 once 的是現有素材代替（循環素材，播兩輪） */
   const ACTS = [
     { id: 'ask', name: '問比比', ask: true },
+    { id: 'hop', name: '跳跳', file: 'jump', once: true, fx: 'star', say: ['跳跳跳～好開心！', '比比跳最高！'], cnt: (n) => `今天陪比比跳了 ${n} 次！` },
     { id: 'popcorn', name: '爆米花', file: 'popcorn', once: true, fx: 'star', say: ['爆米花跳！啵啵啵～', '開心到跳起來了！'], cnt: (n) => `今天爆米花跳了 ${n} 次！` },
     { id: 'pet', name: '摸摸頭', file: 'pet_v2', once: true, fx: 'heart', say: ['好舒服～', '再摸一下嘛', '嘿嘿，癢癢的'], cnt: (n) => `今天第 ${n} 次摸我了～` },
     { id: 'grass', name: '餵牧草', file: 'eat_grass_v2', once: true, fx: 'grass', say: ['嚼嚼嚼…牧草好香！', '謝謝你餵我～'], cnt: (n) => `今天吃了 ${n} 口牧草，好飽～` },
@@ -100,7 +101,7 @@
   /* 素材對照（was＝10-11 G1／G2 交件前用的替代素材，留著是為了萬一新素材要退回時知道原本是哪一組） */
   /* 小圈上的物件圖：動畫單位 10-11 交的 10 個圖示（docs/anim/bibi_icons → brand/bibi/icons/*.webp，奶油白圓底＋粗描邊，深淺主題都清楚）。
      沒列在這裡的（叫醒）用下面的線條圖示，外框照圖示同款畫。 */
-  const ICON_IMG = { ask: 'chat', popcorn: 'popcorn', hit: 'hammer', pet: 'hand', grass: 'grass', ball: 'ball', spin: 'spin', five: 'highfive', dance: 'music', hug: 'heart', sleep: 'moon', selfie: 'camera' };
+  const ICON_IMG = { ask: 'chat', hop: 'hop', popcorn: 'popcorn', hit: 'hammer', pet: 'hand', grass: 'grass', ball: 'ball', spin: 'spin', five: 'highfive', dance: 'music', hug: 'heart', sleep: 'moon', selfie: 'camera' };
   const SVG = {
     ask: '<path d="M5 5.5h14a2.5 2.5 0 0 1 2.5 2.5v7A2.5 2.5 0 0 1 19 17.5h-6l-4.2 3.3v-3.3H5A2.5 2.5 0 0 1 2.5 15V8A2.5 2.5 0 0 1 5 5.5z" fill="#7cc4ff" fill-opacity=".35" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="M10 9.6a2 2 0 1 1 2.6 1.9c-.5.2-.6.5-.6 1v.4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><circle cx="12" cy="14.9" r=".95" fill="currentColor"/>',
     pet: '<ellipse cx="12" cy="15" rx="5" ry="4.2" fill="#ffb3c4" stroke="currentColor" stroke-width="1.5"/><circle cx="6.4" cy="9.6" r="1.9" fill="#ffb3c4" stroke="currentColor" stroke-width="1.4"/><circle cx="10" cy="7" r="1.9" fill="#ffb3c4" stroke="currentColor" stroke-width="1.4"/><circle cx="14" cy="7" r="1.9" fill="#ffb3c4" stroke="currentColor" stroke-width="1.4"/><circle cx="17.6" cy="9.6" r="1.9" fill="#ffb3c4" stroke="currentColor" stroke-width="1.4"/>',
@@ -244,8 +245,10 @@ html.fab-off .bibiring,html.fab-off .bibitip,html.fab-off .bibifx,html.fab-off #
   /** 情境待機：回 { key, file, say }，優先序 國定假日 → 週末 → 深夜 → 盤中漲跌 → 分頁 */
   function idle() {
     const r = idle0();
-    r.happy = NOT_HAPPY.indexOf(r.key) < 0;
-    if (r.happy) r.file = reduce() || !hopOn ? STILL : BASE_IDLE;
+    /* Andy 10-11 深夜：「右下GIF 需要改成圖二一直跳的狀態，除非他點選其他互動紐」→ 待機只有一種：一直跳（jump）；
+       深夜／國定假日／大跌／週末／聖誕的情境款一律不換圖，只留泡泡說明句。減少動態偏好＝原版 Default 靜止。 */
+    r.happy = true;
+    r.file = reduce() || !hopOn ? STILL : BASE_IDLE;
     return r;
   }
   function idle0() {
@@ -319,7 +322,7 @@ html.fab-off .bibiring,html.fab-off .bibitip,html.fab-off .bibifx,html.fab-off #
   let hopOn = true;
   function hopSched() { /* 已改成 jump 素材本身循環，不必排程（留著給舊呼叫點） */ }
   /* 不跳「開心的跳」的情境：深夜睡覺、國定假日（節日帽／肅穆紀念日）、聖誕帽、大跌安慰（Andy 10-11 晚點名的例外） */
-  const NOT_HAPPY = ['night', 'holiday', 'xmas', 'down2'];
+  const NOT_HAPPY = [];   // （10-11 深夜起沒有例外：每種情境都一直跳）
 
   /* ---------- 提示泡泡 ---------- */
   let tip = null;
@@ -924,7 +927,21 @@ html.fab-off .bibiring,html.fab-off .bibitip,html.fab-off .bibifx,html.fab-off #
       if (said === 1 && t > 1700) { said = 2; floatText('嗚嗚', g.cx, g.top); }
     });
   }
-  const CHOREO = { ball: ballScript, grass: grassScript, pet: petScript, spin: spinScript, popcorn: popcornScript, hit: hitScript };
+  /* ---------- 腳本：跳跳（Andy 10-11 深夜：「需要把圖二也新增在互動紐裡面」） ----------
+     圖二 jump 從第 1 格重播、連跳 3 次；每次跟素材的最高點（第 10～16 格、450～800ms）對齊再往上送一段、整顆放大一點，落地冒星星。 */
+  async function hopScript(g) {
+    show(JUMP, true); cue();
+    const H = g.mob ? 20 : 28, CYC = MS[JUMP] || 1200, N = 3;
+    let landed = 0;
+    await tween(CYC * N, (k, t) => {
+      const c = t % CYC, u = (c - 450) / 350, up = u > 0 && u < 1 ? Math.sin(Math.PI * u) : 0;
+      pose(0, -H * up, { sx: 1.08, sy: 1.08 + 0.04 * up });
+      const n = Math.floor((t - 820) / CYC) + 1;
+      if (t >= 820 && n > landed) { landed = n; burstAt('star', g.cx + (Math.random() - 0.5) * g.s * 0.4, g.foot - 6, 2, 1.8); }
+    });
+    await tween(220, (k) => { const d = E.damp(k, 2.5); pose(0, 0, { sx: 1.08 - 0.08 * k + 0.05 * d, sy: 1.08 - 0.08 * k - 0.06 * d }); });
+  }
+  const CHOREO = { hop: hopScript, ball: ballScript, grass: grassScript, pet: petScript, spin: spinScript, popcorn: popcornScript, hit: hitScript };
 
   /* ---------- 待機小動作（每 20～40 秒隨機一次）：眨眼／伸懶腰／東張西望／跳一下（現有素材＋位移） ---------- */
   const FIDGET = {
@@ -986,7 +1003,7 @@ html.fab-off .bibiring,html.fab-off .bibitip,html.fab-off .bibifx,html.fab-off #
   function playChoreo(a, line) {
     clearTimeout(fidgetT); stopFidget(); preload();
     const g = geo();                      // 量原位（鈕本身不會動，只有裡面的圖層在動）
-    startRun(a.id, true); tipFollow = true; run.line = line; watchOn(); run.tipSide = ['pet', 'popcorn', 'hit', 'spin'].indexOf(a.id) >= 0;   // 摸摸頭（手在頭上）、爆米花跳（跳很高）：泡泡放旁邊，不擋到
+    startRun(a.id, true); tipFollow = true; run.line = line; watchOn(); run.tipSide = ['pet', 'popcorn', 'hit', 'spin', 'hop'].indexOf(a.id) >= 0;   // 摸摸頭（手在頭上）、爆米花跳（跳很高）：泡泡放旁邊，不擋到
     const tok = runTok;
     CHOREO[a.id](g).then(() => { if (tok === runTok) { if (!run.said) cue(); endRun(); finishAct(); } },
       (e) => { if (e !== ABORT && tok === runTok) { endRun(); finishAct(); if (window.console) console.warn('bibi', e); } });

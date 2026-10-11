@@ -193,6 +193,34 @@ def default_idle():
     print(f"  default_idle  {(OUT / 'default_idle.webp').stat().st_size / 1024:5.1f} KB（單張）")
 
 
+def hop_icon():
+    """「跳跳」小圈圖示（Andy 10-11 深夜：「需要把圖二也新增在互動紐裡面」）：原版 Default（default_idle_1011）的頭像，
+    奶油白圓底＋深咖啡粗描邊（跟動畫單位其他 96px 圖示同款）→ site/brand/bibi/icons/hop.webp。"""
+    import numpy as np
+    from PIL import ImageDraw
+    sys.path.insert(0, str(Path(__file__).resolve().parent))
+    from gif_pipeline import cutout
+    src = LIB / "reference" / "default_idle_1011.webp"
+    if not src.exists():
+        print("  略過 hop 圖示（參考圖還沒到）")
+        return
+    rgb = np.asarray(Image.open(src).convert("RGB"))
+    body = Image.fromarray(np.dstack([rgb, cutout(rgb)]), "RGBA").crop((70, 140, 440, 470))   # 頭＋身體上半（原版描邊框 61～446、148～483）
+    S = 384
+    can = Image.new("RGBA", (S, S), (0, 0, 0, 0))
+    d = ImageDraw.Draw(can)
+    d.ellipse((6, 6, S - 6, S - 6), fill=(253, 245, 233, 255))
+    k = (S - 60) / body.size[0]
+    b2 = body.resize((round(body.size[0] * k), round(body.size[1] * k)), Image.LANCZOS)
+    can.alpha_composite(b2, ((S - b2.size[0]) // 2, 48))
+    mask = Image.new("L", (S, S), 0); ImageDraw.Draw(mask).ellipse((6, 6, S - 6, S - 6), fill=255)
+    out = Image.new("RGBA", (S, S), (0, 0, 0, 0)); out.paste(can, (0, 0), mask)
+    ImageDraw.Draw(out).ellipse((8, 8, S - 8, S - 8), outline=(26, 9, 7, 255), width=12)
+    (OUT / "icons").mkdir(parents=True, exist_ok=True)
+    out.resize((96, 96), Image.LANCZOS).save(OUT / "icons" / "hop.webp", "WEBP", quality=90, method=6)
+    print(f"  圖示 hop        {(OUT / 'icons' / 'hop.webp').stat().st_size / 1024:4.1f} KB（原版 Default 頭像）")
+
+
 def jump():
     """Andy 10-11 圖二：docs/anim/jump/animation.gif（24 格跳躍、每格 50ms、每格本身就帶透明）→ site/brand/bibi/jump.webp（播一次）。
     網站的 Default 待機＝default_idle 靜止幾秒 → 播一次 jump → 回 default（bibi.js 的 hopLoop）。超過 60KB 就隔格抽掉（總長不變）。"""
@@ -232,6 +260,9 @@ def main(argv):
         return
     if argv == ["jump"]:
         jump()
+        return
+    if argv == ["hop_icon"]:
+        hop_icon()
         return
     names = argv or NAMES
     ms = {}
