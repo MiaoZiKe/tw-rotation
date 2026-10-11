@@ -100,7 +100,9 @@ def main():
                                "-shortest", "-movflags", "+faststart", str(mp4)])
         cl = tot["CLICKS"]; fo = tot["FOCUSES"]; cr = tot["CROPS"]
         res = (f"重疊 {len(tot['LOG'])} 筆（{tot['frames']} 幀逐幀）；例外 {len(tot['EXC'])} 幀；點擊 {len(cl)} 次落點正確 {sum(1 for c in cl if c[6])}；"
-               f"焦點框 {len(fo)} 個誤差≤12px {sum(1 for f in fo if f[5])}；裁切 {len(cr)} 鏡通過 {sum(1 for c in cr if c[5])}")
+               f"焦點框 {len(fo)} 個誤差≤12px {sum(1 for f in fo if f[5])}；裁切 {len(cr)} 鏡通過 {sum(1 for c in cr if c[5])}；"
+               f"點擊後內容入框 {sum(1 for c in tot['CONTENT'] if c[3] >= 99.9)}/{len(tot['CONTENT'])}；"
+               f"內容看完（停留規則）{sum(1 for d in tot['DWELL'] if d[4])}/{len(tot['DWELL'])}")
         size = mp4.stat().st_size / 1e6
         from datetime import datetime, timedelta, timezone
         ts = datetime.now(timezone(timedelta(hours=8))).strftime("%m-%d %H:%M")

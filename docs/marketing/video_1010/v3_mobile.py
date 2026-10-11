@@ -59,6 +59,8 @@ def seqm(sid, clip, segs, head, hl, sub, pill, idle="talk_happy", focus=None):
 def autom(sid, clip, win, head, hl, sub, pill, idle="talk_happy", focus=None, hold=1.6):
     """依錄影端「點擊後內容區」自動排時間軸（手機）：點下→內容出現並入框→停留；內容高就慢滑到底。"""
     sm, D, meta = auto_map(clip, win, hold=hold)
+    if not sm:
+        raise ValueError(f'autom {sid} {clip} {win} 沒有點擊事件')
     return feat(sid, D, clip, sm, head, hl, sub, pill, focus=focus, idle=idle, meta=meta)
 
 
@@ -168,11 +170,11 @@ def build():
                    idle=[(0, "face_star"), (1.2, "face_proud")]))
     S.append(autom("19g1", "D05_mobile_v3d", (0.9, 2.4), "法人買賣一頁看", "法人", "三大法人買賣超，我幫你排成一張", "個股",
                    idle="magnifier", hold=2.0))
-    S.append(autom("19g2", "D05_mobile_v3d", (4.6, 6.1), "資券一頁看", "資券", "融資融券的變化，我幫你一頁排好", "個股",
+    S.append(autom("19g2", "D05_mobile_v3d", (10.1, 11.6), "資券一頁看", "資券", "融資融券的變化，我幫你一頁排好", "個股",
                    idle="face_think", hold=2.0))
     S.append(autom("19h1", "D07_mobile_v3d", (0.9, 2.4), "基本資料", "基本資料", "公司基本資料，我幫你整理好", "個股",
                    idle="folder", hold=2.0))
-    S.append(autom("19h2", "D07_mobile_v3d", (4.6, 6.1), "除權息紀錄", "除權息", "歷年股利、除息日，我幫你列出來", "個股",
+    S.append(autom("19h2", "D07_mobile_v3d", (7.3, 8.8), "除權息紀錄", "除權息", "歷年股利、除息日，我幫你列出來", "個股",
                    idle="piggy", hold=2.0))
     _r = autom("19r", "D08_mobile_v3h", (12.8, 14.4), "營收：月營收圖", "營收", "月營收和年增率，每個月我幫你畫好", "個股",
                idle=[(0, "piggy"), (2.0, "face_proud")], hold=4.8)
@@ -190,7 +192,7 @@ def build():
                   idle=[(0, "face_curious"), (1.5, "magnifier"), (3.0, "face_nod"), (4.5, "face_shock")]))
     S.append(feat("23", 2.5, "V17_mobile", act(6.6, 2.5, 1.0, 0.8), "⑧ 公開條件篩", "條件篩", '用公開條件篩一遍，省下你自己翻的時間', "選股策略",
                   idle=[(0, 'face_think'), (1.6, 'pointer_r')]))
-    S.append(seqm("23s", "I05_mobile_v3i", [(11.0, 23.5, 1.7)], "四個面向連著切", "連著切", "技術、籌碼、消息、基本，四個面向我連著切給你看", "選股策略",
+    S.append(seqm("23s", "I05_mobile_v3i", [(11.0, 23.4, 1.7)], "四個面向連著切", "連著切", "技術、籌碼、消息、基本，四個面向我連著切給你看", "選股策略",
                   idle=[(0, "face_think"), (1.4, "magnifier"), (2.8, "face_nod"), (4.2, "face_proud")]))
     S.append(feat("24", 2.0, "V18_mobile", stat(3.3, 2.0), "⑨ 週期統計", "週期", '各族群每個月份的表現，我排成一張表', "週期統計",
                   idle=[(0, 'face_curious')], pan_=pan(0, 400, 2.0)))
