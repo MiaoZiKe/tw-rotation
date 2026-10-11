@@ -766,6 +766,19 @@ class Rec4:
                 y0 = 0
             y0 = clamp(y0, 0, max(0, sh - wh))
             self.win = _drift((0, y0, ww, min(sh, y0 + wh)), t, shot.dur)
+            if V4 and getattr(self, "win_keys", None):
+                # 手機推近（content-editor 10-12）：win_keys＝[(鏡內秒, (x0, y0, x1, y1) 來源座標)]，寬高比固定為框的 1000:1480；
+                # 視窗寬不得小於 1000 來源 px（輸出 1000px，倍率 ≤1.0，不超過原解析度）
+                wk = self.win_keys[0][1]
+                for (k, w_) in self.win_keys:
+                    if t >= k - 1e-6:
+                        wk = w_
+                x0, y0_, x1, _ = wk
+                cw = max(rw, min(sw, x1 - x0))
+                ch = cw * rh / rw
+                x0 = clamp(x0, 0, sw - cw)
+                y0_ = clamp(y0_, 0, max(0, sh - ch))
+                self.win = _drift((x0, y0_, x0 + cw, min(sh, y0_ + ch)), t, shot.dur)
             if not getattr(self, "_zdone", False):
                 self._zdone = True
                 ZOOMCHK.append((shot.sid, self.clip, round(rw / sw, 3)))
@@ -1319,12 +1332,13 @@ class Op:
 
     def _drag_pose(self, shot, L, p, t):
         """3D 推轉：比比跟著拖曳點走，站在模型旁邊的空白處（不壓模型與其他內容）。"""
-        busy = self._busy_at(shot, L, round(t * 2) / 2)
+        tq = round(t * 2) / 2
+        busy = self._busy_at(shot, L, tq) | self._busy_at(shot, L, min(shot.dur - 1 / FPS, tq + 0.5))
         fr = self.rec.rect
         best = None
-        for size in (150, 130, 110):
-            for dy in (0.0, 0.5, 1.0, -0.5, 1.5, -1.0):
-                for dx in (0.0, -0.6, 0.6):
+        for size in (150, 130, 110, 96):
+            for dy in (0.0, 0.5, 1.0, -0.5, 1.5, -1.0, 2.0, -1.5, 2.5):
+                for dx in (0.0, -0.6, 0.6, -1.2, 1.2):
                     foot = (p[0] + dx * size, p[1] + dy * size)
                     sx, sy, m = _sprite_alpha("hop_r", 2, foot, size)
                     tot = int(m.sum())
@@ -1686,6 +1700,7 @@ def shot_busy_union(shot, L, n=6):
     rec = shot.rec
     saved = list(C.CUR)
     acc = None
+    n = max(n, int(shot.dur * 5))          # 每 0.2 秒取一格（中途才出現的內容、播放動畫也算進去）
     ts = [shot.dur * k / max(1, n - 1) for k in range(n)]
     for tt in ts:
         cv = R.background(L.fmt).copy()
