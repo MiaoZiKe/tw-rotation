@@ -30,6 +30,12 @@
 - 驗收（這批只驗了這幾段）：註冊會員權限1012（新）、註冊會員限次開放1011、免費會員權限1010、額度上限1010、ETF試算免費限制1010、套用建議方案1007、訪客權限1008、熱力圖跳個股1008、會員權限、網頁同步1010、帳號選單1009、會員權限開關、桌機守門1008（--workers 1）、`_preview.py`。剩下的紅都在 origin/main 同樣紅（既有）：網頁同步1010 E「手機 390 個股頁首子分頁」、會員權限開關「全部預設開啟（live.tick 停用）」＋#moreBtn 逾時、_preview 800px #industry/ai_server 卡片交疊。純前端（site／scripts 測試檔／docs）→ 依規則跳過 pytest。
 - **已知、不是這批造成**：資金輪動上方篩選一換，ECharts 丟「Cannot read properties of undefined (reading 'width')」（origin/main 同樣重現）→ 待處理。
 
+## 2026-10-12 比比：四腳版第 6～8 組＋丟東西互動全部換上（UI 專家；DECISIONS #357）
+- 動畫單位 0ff4ddd（CEO 審過）→ `python scripts/anim/bibi_site.py eat_q hit cry selfie run_r run_l run_start_r run_stop_r ball_catch ball_catch_l pet_q highfive dance hug receive popcorn sniff_eat hop_reach pounce tangle look_up`＋`props`＋`icons`；AV＝1012c。
+- 玩球（receive 低頭嗅 → run → ball_catch 身體壓球 → 跑回家）、摸摸 pet_q（不疊手、愛心圈）、擊掌改「碰鼻子」、跳舞／抱抱／爆米花四腳版、玩具六件組道具全換 PNG＋各自的四腳動作（sniff_eat／hop_reach＋pop_burst／pounce／ball_catch→tangle／look_up）、18 顆小圈的玩具圖示換 *_icon96。
+- 仍是替代的：碰鼻子小圈圖示沿用 highfive（肉球）圖、摸摸小圈圖示 hand（肉球）圖（動畫單位沒交新圖示）；毛線球撲到那段用 ball_catch（素材裡是紅白球，網頁的毛線球蓋在上面）；瓜子、花瓣的 icon96 沒用到（撒零食用紅蘿蔔、落葉用葉子當小圈圖示）。
+- 驗收（這批只驗了這幾段）：比比互動1011、比比玩具1012、桌機守門1008（--workers 1）、客服鈕1009、`_preview.py`。純前端（site／scripts 測試檔與 anim 轉檔）→ 依規則跳過 pytest。截圖：scratchpad/bibi1012b/。
+
 ## 2026-10-12 比比：玩具六件組（分支 claude/bibi-play6，待 CEO 看截圖才推 main）
 - 撒零食／吹泡泡／羽毛棒／毛線球／紙飛機／落葉，小圈 18 顆；驗收段 `比比玩具1012`（桌機＋手機 390，每個互動驗道具出現且移動、比比離開原位、四腳、不撐捲軸、回原位；毛線球中途 Esc／點空白打斷）。截圖 scratchpad/bibi1012/toys/act_<名>_mid(_m).png。
 - 動畫單位專屬素材（docs/anim/bibi_<名>/）還沒到；到了改 bibi.js `PART.snack_eat／leap／crouch`。
