@@ -1,0 +1,366 @@
+{
+  "target_date": "2026-10-11",
+  "data_date": "2026-10-11",
+  "warning": "",
+  "n": 8,
+  "track_a": {
+    "name": "A 總經",
+    "schedule": [
+      {
+        "date_et": "2026-10-14",
+        "tw_time": "10/14 20:30",
+        "kind": "cpi",
+        "title": "美國 CPI 消費者物價",
+        "ref": "",
+        "org": "美國勞工統計局（BLS）",
+        "via": "fred",
+        "phase": "未來",
+        "confidence": "待查證"
+      }
+    ],
+    "news": [
+      {
+        "title": "普丁傳達伊朗停戰構想給川普！俄承諾增供逾400萬噸柴油、美暫緩制裁",
+        "source": "cnyes",
+        "url": "https://news.cnyes.com/news/id/6627502",
+        "date": "2026-10-11",
+        "groups": [],
+        "companies": [],
+        "also_reported_by": [],
+        "key_point": "",
+        "confidence": "待查證",
+        "extension_topics": [
+          "這件事的來龍去脈：背景與時間線",
+          "它對利率、匯率、油價或台股資金流的傳導路徑（描述，不預測）",
+          "過去類似事件發生時市場怎麼反應（歷史對照）"
+        ]
+      },
+      {
+        "title": "川普要求澤倫斯基「停炸」俄羅斯煉油廠！喊烏克蘭「該換總統了」",
+        "source": "cnyes",
+        "url": "https://news.cnyes.com/news/id/6627500",
+        "date": "2026-10-11",
+        "groups": [],
+        "companies": [],
+        "also_reported_by": [],
+        "key_point": "",
+        "confidence": "待查證",
+        "extension_topics": [
+          "這件事的來龍去脈：背景與時間線",
+          "它對利率、匯率、油價或台股資金流的傳導路徑（描述，不預測）",
+          "過去類似事件發生時市場怎麼反應（歷史對照）"
+        ]
+      },
+      {
+        "title": "台股 5 萬點前高檔震盪，渣打：企業獲利跑贏股價，漲勢仍有基本面支撐",
+        "source": "technews",
+        "url": "https://finance.technews.tw/2026/10/11/what-driving-taiwan-stocks-toward-50000/",
+        "date": "2026-10-11",
+        "groups": [],
+        "companies": [],
+        "also_reported_by": [],
+        "key_point": "",
+        "confidence": "待查證",
+        "extension_topics": [
+          "這件事的來龍去脈：背景與時間線",
+          "它對利率、匯率、油價或台股資金流的傳導路徑（描述，不預測）",
+          "過去類似事件發生時市場怎麼反應（歷史對照）"
+        ]
+      },
+      {
+        "title": "立訊精密回應美337調查：涉案產品尚處客戶驗證階段 不影響營運",
+        "source": "cnyes",
+        "url": "https://news.cnyes.com/news/id/6627523",
+        "date": "2026-10-11",
+        "groups": [
+          "電源供應器",
+          "電源",
+          "AI 伺服器組裝",
+          "智慧型手機"
+        ],
+        "companies": [
+          {
+            "code": "2308",
+            "name": "台達電"
+          },
+          {
+            "code": "2317",
+            "name": "鴻海"
+          },
+          {
+            "code": "2382",
+            "name": "廣達"
+          }
+        ],
+        "also_reported_by": [],
+        "key_point": "",
+        "confidence": "待查證",
+        "extension_topics": [
+          "AI 伺服器電源供應的架構與供應鏈",
+          "高功率電源為什麼需求變強",
+          "AI 伺服器組裝（ODM）的流程與主要客戶關係",
+          "伺服器供應鏈上下游誰跟誰合作",
+          "為何 AI 伺服器需求強（雲端業者資本支出與模型訓練）"
+        ]
+      },
+      {
+        "title": "2029告別「最不發達國家」！孟加拉告別關稅紅利積極轉型   力拚工業化擺脫成衣依賴",
+        "source": "cnyes",
+        "url": "https://news.cnyes.com/news/id/6621322",
+        "date": "2026-10-11",
+        "groups": [],
+        "companies": [],
+        "also_reported_by": [],
+        "key_point": "",
+        "confidence": "待查證",
+        "extension_topics": [
+          "這件事的來龍去脈：背景與時間線",
+          "它對利率、匯率、油價或台股資金流的傳導路徑（描述，不預測）",
+          "過去類似事件發生時市場怎麼反應（歷史對照）"
+        ]
+      },
+      {
+        "title": "俄羅斯鼠疫研究人員死亡原因依舊「不明」！WHO：未通報任何鼠疫病例",
+        "source": "cnyes",
+        "url": "https://news.cnyes.com/news/id/6627493",
+        "date": "2026-10-11",
+        "groups": [],
+        "companies": [],
+        "also_reported_by": [],
+        "key_point": "",
+        "confidence": "待查證",
+        "extension_topics": [
+          "這件事的來龍去脈：背景與時間線",
+          "它對利率、匯率、油價或台股資金流的傳導路徑（描述，不預測）",
+          "過去類似事件發生時市場怎麼反應（歷史對照）"
+        ]
+      },
+      {
+        "title": "駭客巧用 GitHub 詩句隱藏指令，狂組 AI 挖礦殭屍大軍",
+        "source": "technews",
+        "url": "https://infosecu.technews.tw/2026/10/11/poetry-is-the-new-ai-security-threat-as-poellm-malware-infects-3k-servers/",
+        "date": "2026-10-11",
+        "groups": [],
+        "companies": [],
+        "also_reported_by": [],
+        "key_point": "",
+        "confidence": "待查證",
+        "extension_topics": [
+          "這件事的來龍去脈：背景與時間線",
+          "它對利率、匯率、油價或台股資金流的傳導路徑（描述，不預測）",
+          "過去類似事件發生時市場怎麼反應（歷史對照）"
+        ]
+      },
+      {
+        "title": "川普表態：烏克蘭該換總統了 澤倫斯基成俄烏和平協議阻礙",
+        "source": "cnyes",
+        "url": "https://news.cnyes.com/news/id/6627469",
+        "date": "2026-10-11",
+        "groups": [],
+        "companies": [],
+        "also_reported_by": [],
+        "key_point": "",
+        "confidence": "待查證",
+        "extension_topics": [
+          "這件事的來龍去脈：背景與時間線",
+          "它對利率、匯率、油價或台股資金流的傳導路徑（描述，不預測）",
+          "過去類似事件發生時市場怎麼反應（歷史對照）"
+        ]
+      }
+    ]
+  },
+  "track_b": {
+    "name": "B 科技",
+    "news": [
+      {
+        "title": "AI 代理的下道關卡，網站願不願意放行",
+        "source": "technews",
+        "url": "https://infosecu.technews.tw/2026/10/11/the-next-hurdle-for-ai-agents-getting-websites-to-let-them-in/",
+        "date": "2026-10-11",
+        "groups": [],
+        "companies": [],
+        "also_reported_by": [],
+        "key_point": "",
+        "confidence": "待查證",
+        "extension_topics": [
+          "這項技術或產品是什麼（一張圖看懂）",
+          "它在 AI／半導體供應鏈的位置",
+          "台股相關供應鏈介紹（依環節）"
+        ]
+      },
+      {
+        "title": "澳洲 UNSW 攜手 UtmoLight，大面積鈣鈦礦太陽能次模組效率達 23.5% 創世界紀錄",
+        "source": "technews",
+        "url": "https://technews.tw/2026/10/11/perovskite-solar-efficiency-hits-new-record/",
+        "date": "2026-10-11",
+        "groups": [],
+        "companies": [],
+        "also_reported_by": [],
+        "key_point": "",
+        "confidence": "待查證",
+        "extension_topics": [
+          "這項技術或產品是什麼（一張圖看懂）",
+          "它在 AI／半導體供應鏈的位置",
+          "台股相關供應鏈介紹（依環節）"
+        ]
+      },
+      {
+        "title": "長鑫存儲準備年底推出 4F² DDR5 RDIMM 產品，預計超前三星 2 年",
+        "source": "technews",
+        "url": "https://technews.tw/2026/10/11/cxmt-dram-memory-4f%c2%b2-ddr5/",
+        "date": "2026-10-11",
+        "groups": [],
+        "companies": [],
+        "also_reported_by": [],
+        "key_point": "",
+        "confidence": "待查證",
+        "extension_topics": [
+          "這項技術或產品是什麼（一張圖看懂）",
+          "它在 AI／半導體供應鏈的位置",
+          "台股相關供應鏈介紹（依環節）"
+        ]
+      },
+      {
+        "title": "H-1B數據與范斯說法有落差？微軟多數核准者早已在職  亞馬遜、Meta人多卻未受限",
+        "source": "cnyes",
+        "url": "https://news.cnyes.com/news/id/6627402",
+        "date": "2026-10-11",
+        "groups": [],
+        "companies": [],
+        "also_reported_by": [],
+        "key_point": "",
+        "confidence": "待查證",
+        "extension_topics": [
+          "這項技術或產品是什麼（一張圖看懂）",
+          "它在 AI／半導體供應鏈的位置",
+          "台股相關供應鏈介紹（依環節）"
+        ]
+      },
+      {
+        "title": "友達飆 16 年新高是基本面轉強還是有夢最美？看懂面板業轉型三大關鍵",
+        "source": "technews",
+        "url": "https://finance.technews.tw/2026/10/11/auo-tsmc-plant-sale-38-billion-stock-16-year-high-3-keys-reality/",
+        "date": "2026-10-11",
+        "groups": [
+          "面板產業",
+          "面板 TFT-LCD"
+        ],
+        "companies": [
+          {
+            "code": "2409",
+            "name": "友達"
+          }
+        ],
+        "also_reported_by": [],
+        "key_point": "",
+        "confidence": "待查證",
+        "extension_topics": [
+          "這個電子零組件在終端產品裡的位置",
+          "上下游合作關係：誰供貨給誰",
+          "景氣目前邁向哪個階段",
+          "台股電子零組件供應鏈介紹",
+          "這件事的來龍去脈：背景與時間線"
+        ]
+      },
+      {
+        "title": "對美順差恐創新高惹關注，USTR 前官員授四大溝通策略應對川普變數",
+        "source": "technews",
+        "url": "https://technews.tw/2026/10/11/taiwan-us-trade-surplus-expands-trump-targeted-former-us-trade-negotiator-4-strategies-respond/",
+        "date": "2026-10-11",
+        "groups": [],
+        "companies": [],
+        "also_reported_by": [],
+        "key_point": "",
+        "confidence": "待查證",
+        "extension_topics": [
+          "這項技術或產品是什麼（一張圖看懂）",
+          "它在 AI／半導體供應鏈的位置",
+          "台股相關供應鏈介紹（依環節）"
+        ]
+      },
+      {
+        "title": "橋水達里歐教戰AI泡沫避險！警告投資人：不知道的比知道的更多",
+        "source": "cnyes",
+        "url": "https://news.cnyes.com/news/id/6627375",
+        "date": "2026-10-11",
+        "groups": [],
+        "companies": [],
+        "also_reported_by": [],
+        "key_point": "",
+        "confidence": "待查證",
+        "extension_topics": [
+          "這項技術或產品是什麼（一張圖看懂）",
+          "它在 AI／半導體供應鏈的位置",
+          "台股相關供應鏈介紹（依環節）"
+        ]
+      },
+      {
+        "title": "汽車百貨龍頭 10 月登興櫃，車麗屋靠「零庫存換胎」策略打造全新加盟生態圈",
+        "source": "technews",
+        "url": "https://finance.technews.tw/2026/10/11/car-quality-automotive-expands-its-footprint/",
+        "date": "2026-10-11",
+        "groups": [],
+        "companies": [],
+        "also_reported_by": [],
+        "key_point": "",
+        "confidence": "待查證",
+        "extension_topics": [
+          "這項技術或產品是什麼（一張圖看懂）",
+          "它在 AI／半導體供應鏈的位置",
+          "台股相關供應鏈介紹（依環節）"
+        ]
+      }
+    ],
+    "lectures": [
+      {
+        "date": "2026-10-12",
+        "code": "4934",
+        "name": "太極",
+        "note": "公司重大訊息公告（公開資訊觀測站），僅列事實，非推薦",
+        "confidence": "待查證"
+      },
+      {
+        "date": "2026-10-12",
+        "code": "6281",
+        "name": "全國電",
+        "note": "公司重大訊息公告（公開資訊觀測站），僅列事實，非推薦",
+        "confidence": "待查證"
+      },
+      {
+        "date": "2026-10-13",
+        "code": "1725",
+        "name": "元禎",
+        "note": "公司重大訊息公告（公開資訊觀測站），僅列事實，非推薦",
+        "confidence": "待查證"
+      },
+      {
+        "date": "2026-10-15",
+        "code": "1540",
+        "name": "喬福",
+        "note": "公司重大訊息公告（公開資訊觀測站），僅列事實，非推薦",
+        "confidence": "待查證"
+      },
+      {
+        "date": "2026-10-15",
+        "code": "2330",
+        "name": "台積電",
+        "note": "公司重大訊息公告（公開資訊觀測站），僅列事實，非推薦",
+        "confidence": "待查證"
+      },
+      {
+        "date": "2026-10-15",
+        "code": "2402",
+        "name": "毅嘉",
+        "note": "公司重大訊息公告（公開資訊觀測站），僅列事實，非推薦",
+        "confidence": "待查證"
+      },
+      {
+        "date": "2026-10-16",
+        "code": "6414",
+        "name": "樺漢",
+        "note": "公司重大訊息公告（公開資訊觀測站），僅列事實，非推薦",
+        "confidence": "待查證"
+      }
+    ]
+  }
+}
