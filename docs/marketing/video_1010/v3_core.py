@@ -203,6 +203,9 @@ def _xywh(r):
 
 def _clip_keys(clip):
     base = clip.replace("_v3b", "").replace("_v3c", "")
+    if "_nofab" in clip:          # 藏客服鈕重錄版：錄影端沒另外寫的資料就沿用原檔（流程與座標照舊）
+        orig = clip.replace("_nofab", "")
+        return [clip, orig, orig.replace("_v3b", "").replace("_v3c", "")]
     return [clip, base]
 
 
@@ -1451,6 +1454,28 @@ def _map_rect(rec, r):
     return _inter_rect((x0, y0, x1, y1), fr)
 
 
+# 網站錄影內建的客服鈕（.supfab GIF 模式 76×76 CSS px、right/bottom 20px；.bibiring 同位置）
+# CEO 10-12：當成永久的疊加元素檢查；素材是 _nofab（錄影時已藏）或在例外清單就不檢查
+FAB_EXEMPT = {
+    "V25_desktop": "客服在這段是主角（導覽／客服面板），CEO 10-12 決定不重錄",
+    "V26_desktop": "客服在這段是主角（客服面板、願望清單），CEO 10-12 決定不重錄",
+    "V25_mobile": "客服在這段是主角，CEO 10-12 決定不重錄",
+    "V26_mobile": "客服在這段是主角，CEO 10-12 決定不重錄",
+    "V16_desktop": "目視確認客服鈕落在空白底色（fab_hits.json，10-12）",
+    "V17_desktop": "目視確認客服鈕落在空白底色（fab_hits.json，10-12）",
+    "V18_desktop": "目視確認客服鈕只壓到頁尾「顯示詳細規範」鈕，非圖表（fab_hits.json，10-12）",
+    "V23_desktop": "目視確認客服鈕落在空白底色（fab_hits.json，10-12）",
+    "V04_mobile_v3c": "目視確認客服鈕落在兩張卡片之間的空白（fab_hits.json，10-12）",
+}
+
+
+def fab_rect_src(clip, sw, sh):
+    if "mobile" in clip:          # 手機 @3 實測：右 35、下 30，含兩側晃動線
+        return (sw - 240, sh - 170, sw - 35, sh - 30)
+    dpr = sw / 1600.0             # 桌機 @2；_v3c 2400 寬 @1.5
+    return (sw - 96 * dpr - 6, sh - 96 * dpr - 6, sw - 20 * dpr + 6, sh - 20 * dpr + 6)
+
+
 def site_overlay_check(shot, t):
     """逐幀：疊加元素（比比、泡泡、字卡、小字、道具）與重點框／內容框／點擊目標相交面積必須是 0。
     踩按鈕那一下（bibi_tap）只准腳碰到按鈕邊緣：與被踩按鈕的重疊高度 ≤8px，按鈕文字要露出。"""
@@ -1465,7 +1490,14 @@ def site_overlay_check(shot, t):
         mr = _map_rect(rec, r)
         if _area(mr) > 0:
             mapped.append((lab, mr, tt))
-    for (name, r, role, grp) in list(C.CUR):
+    items = list(C.CUR)
+    clip = rec.clip
+    if "_nofab" not in clip and clip not in FAB_EXEMPT:
+        sw, sh = clip_size(clip)
+        fr = _map_rect(rec, fab_rect_src(clip, sw, sh))
+        if _area(fr) > 0:
+            items.append(("網站客服鈕（錄影內建，需 _nofab 重錄）", fr, "fab", None))
+    for (name, r, role, grp) in items:
         if role == "site" or name.startswith("ripple"):
             continue
         for (lab, mr, tt) in mapped:

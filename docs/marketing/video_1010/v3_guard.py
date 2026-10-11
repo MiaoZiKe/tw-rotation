@@ -205,7 +205,7 @@ def span_check(S, strict=False):
             if exists and (c in unchecked or c not in spans) and c not in seen_unc:
                 seen_unc.add(c)
                 (bad if strict else warn).append((s.sid, f"素材 {c} 錄影端還沒量壞畫面時段（unchecked）" + ("，成片不可用" if strict else "，預覽先用")))
-            sp = list(spans.get(c, [])) + [(a_, b_, "分鏡避開：" + w_) for a_, b_, w_ in STORY_AVOID.get(c, [])]
+            sp = list(spans.get(c, [])) + [(a_, b_, "分鏡避開：" + w_) for a_, b_, w_ in STORY_AVOID.get(c, STORY_AVOID.get(c.replace("_nofab", ""), []))]
             for (t0, t1, why) in sp:
                 if a < t1 and b > t0:
                     bad.append((s.sid, f"素材 {c} 使用 {a:.2f}–{b:.2f}s，落在壞畫面時段 {t0:.2f}–{t1:.2f}s（{why}）"))

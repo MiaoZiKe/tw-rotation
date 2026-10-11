@@ -5,7 +5,7 @@ from __future__ import annotations
 
 import v4_cards as K4
 from v3_core import Lay, Op, Rec4, Shot4, plan_dwell
-from v4_web import GRID_M, GRID_W, _hl, card, grid_card
+from v4_web import GRID_M, GRID_W, _hl, card, grid_card, nofab
 
 _LM = Lay("mobile")
 _CUR = {}
@@ -14,6 +14,7 @@ _CUR = {}
 def shot(sid, page, clip, segs, head, sub, idle, pan=None, chain=None, cont=False, fixed=None, hl=None, limit=None, keys=None, min_cap=None):
     """pan＝(ya, yb)：沒有點擊的鏡頭慢慢平移；有點擊的鏡頭由 plan_mobile 依點擊與內容區自動排（只看上段重點，不滑到底）。
     fixed＝y：整鏡視窗固定在這個高度（例：自選清單避開「1／5 頁」字樣）。"""
+    clip = nofab(clip)
     a0 = segs[0][0]
     prev = _CUR.get(clip)
     if prev is not None and a0 < prev - 1e-6:

@@ -12,6 +12,12 @@ _LW = Lay("web")
 _CUR = {}      # 素材 -> 已播到的來源秒（給下一鏡接續用）
 
 
+def nofab(clip):
+    """錄影端的藏客服鈕重錄版（原檔名加 _nofab）到了就自動換上。"""
+    from v3_core import RAW3
+    return clip + "_nofab" if (RAW3 / f"{clip}_nofab.mp4").exists() else clip
+
+
 def _hl(head):
     h = head.lstrip("①②③④⑤⑥⑦⑧⑨⑩⑪ ")
     return h[-4:] if len(h) > 4 else h
@@ -19,6 +25,7 @@ def _hl(head):
 
 def shot(sid, page, clip, segs, head, sub, idle, chain=None, cont=False, main=None, hl=None, limit=None, win_max=None, win_keys=None, min_cap=None):
     """segs＝[(來源起, 來源迄), ...]（原速，多段＝往前跳接）。"""
+    clip = nofab(clip)
     a0 = segs[0][0]
     prev = _CUR.get(clip)
     if prev is not None and a0 < prev - 1e-6:
