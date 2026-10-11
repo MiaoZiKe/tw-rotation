@@ -363,12 +363,12 @@ def clip_hit():
     fr.append(F(st, 70, "彈回來（拉長、嚇呆）"))
     back = dict(view="front", sy=0.9, sx=1.08, eye="teary_big", eye_s=1.0, mouth="pout", ear=18, ear2=18, rim=0.5, blush=1.2)
     ht = head_top(back)
-    fr.append(F(back, 90, "壓回來、頭上腫一個包", fx=[V.bump_svg(ht[0] + 30, ht[1], 0.9)]))
+    fr.append(F(back, 90, "壓回來、頭上腫一個包", fx=[V.bump_svg(ht[0] + 30, ht[1], 0.9)], fx_on_body=True))
     p4 = dict(cry_pose(1), tear=0.0, tear_ph=-1)
     ht = head_top(p4)
-    fr.append(F(p4, 160, "眼睛含淚、嘴撇下來", fx=[V.bump_svg(ht[0] + 30, ht[1], 0.9)]))
+    fr.append(F(p4, 160, "眼睛含淚、嘴撇下來", fx=[V.bump_svg(ht[0] + 30, ht[1], 0.9)], fx_on_body=True))
     p5 = dict(cry_pose(1), tear=0.6, tear_ph=-1)
-    fr.append(F(p5, 160, "眼淚流下來", fx=[V.bump_svg(head_top(p5)[0] + 30, head_top(p5)[1], 0.75)]))
+    fr.append(F(p5, 160, "眼淚流下來", fx=[V.bump_svg(head_top(p5)[0] + 30, head_top(p5)[1], 0.75)], fx_on_body=True))
     fr.append(F(cry_pose(0), 90, "淚汪汪（＝bibi_cry 第 1 格，接 cry 循環）"))
     return fr
 
@@ -478,8 +478,8 @@ def run_pose4(i, n=8):
 
 
 def run_fx4(i, p):
-    out = [R.motion_marks_svg(p.get("x", R.CX) + 196, 190 + 6 * (i % 2), 1, 1.0, 2)]
-    fxb = [R.dust_svg(p.get("x", R.CX) + 186 + 6 * (i % 2), 468, 0.7 if i % 4 == 0 else 0.9, 1.0 if i % 4 == 0 else 0.55)] \
+    out = [R.motion_marks_svg(p.get("x", R.CX) + 186, 190 + 6 * (i % 2), 1, 1.0, 2)]
+    fxb = [R.dust_svg(p.get("x", R.CX) + 176 + 6 * (i % 2), 468, 0.7 if i % 4 == 0 else 0.9, 1.0 if i % 4 == 0 else 0.55)] \
         if i % 4 in (0, 1) else None
     return out, fxb
 
@@ -529,47 +529,50 @@ def clip_run_stop():
     return fr
 
 
-def ball_l(x, y, ang, r=40.0):
+def ball_l(x, y, ang, r=34.0):
     return R.svg_layer(R.ball_svg(x, y, r, ang))
 
 
 def clip_ball_catch():
     """面向左撲球（clip 設定面向右時整組鏡像）：追→壓低扭屁股→撲上去用身體壓住→彈起→用鼻子推球→開心。"""
     fr = []
-    BR = 40.0
+    BR = 34.0
     gy = GROUND - BR
-    p = run_pose4(0)
+    X0 = R.CX + 28
+
+    def ball(x, ang, dy=0.0):
+        return [ball_l(x, gy + dy, ang, BR)]
+    p = dict(run_pose4(0), x=X0)
     fx, fxb = run_fx4(0, p)
-    fr.append(F(p, 70, "追著球跑（球在前面滾）", fx=fx, fx_back=fxb, props_back=[ball_l(56, gy, -40)]))
-    p = run_pose4(2)
+    fr.append(F(p, 70, "追著球跑（球在前面滾）", fx=fx, fx_back=fxb, props_back=ball(46, -40)))
+    p = dict(run_pose4(2), x=X0)
     fx, fxb = run_fx4(2, p)
-    fr.append(F(p, 70, "追", fx=fx, fx_back=fxb, props_back=[ball_l(64, gy, -70)]))
-    p = dict(view="side", x=R.CX + 10, sy=0.82, sx=1.12, shear=-0.05, eye="wide", mouth="w", ear=-10, ear2=-10,
+    fr.append(F(p, 70, "追", fx=fx, fx_back=fxb, props_back=ball(46, -70)))
+    p = dict(view="side", x=X0 + 6, sy=0.82, sx=1.08, shear=-0.05, eye="wide", mouth="w", ear=-10, ear2=-10,
              legs={"bl": (8, 0, 6, 0), "br": (8, 0, 6, 0)})
-    fr.append(F(p, 110, "壓低盯著球（屁股往後）", props_back=[ball_l(70, gy, -80)]))
-    p = dict(p, rot=3, x=R.CX + 14, shear=-0.07)
-    fr.append(F(p, 80, "屁股扭一下（預備）", props_back=[ball_l(70, gy, -80)], fx=[R.motion_marks_svg(R.CX + 220, 300, 1, 1.0, 2)]))
-    p = dict(view="side", x=R.CX - 40, y=GROUND - 50, sy=0.9, sx=1.14, rot=-8, eye="squeeze", mouth="default", ear=26, ear2=26,
-             flutter=7, legs={"fl": (-16, 0, -24, 0.6), "fr": (-12, 0, -20, 0.6), "bl": (18, 0, 24, 0.6), "br": (16, 0, 22, 0.6)})
-    fr.append(F(p, 70, "撲出去（四腳伸直、整隻騰空）", props_back=[ball_l(70, gy, -80)], fx=[R.speed_lines_svg(430, 300, 3, 40, 22, 0.8, 1)]))
-    p = dict(view="side", x=R.CX - 70, sy=0.78, sx=1.12, eye="smile", mouth="w", ear=16, ear2=16, flutter=-5, blush=1.3)
-    fr.append(F(p, 90, "用身體壓住球！（球被壓在胸前下面）", props_back=[ball_l(76, gy + 6, -80)],
-                fx=[R.star_svg(60, 320, 13, 10)]))
-    p = dict(p, sy=0.84, sx=1.08)
-    fr.append(F(p, 150, "壓著不放（得意）", props_back=[ball_l(76, gy + 6, -80)]))
-    p = dict(view="side", x=R.CX - 50, y=GROUND - 34, sy=1.08, sx=0.98, eye="default", mouth="default", ear=-8, ear2=-8,
+    fr.append(F(p, 110, "壓低盯著球（屁股往後）", props_back=ball(46, -80)))
+    p = dict(p, rot=3, shear=-0.07)
+    fr.append(F(p, 80, "屁股扭一下（預備）", props_back=ball(46, -80)))
+    p = dict(view="side", x=X0 - 24, y=GROUND - 50, sy=0.9, sx=1.08, rot=-8, eye="squeeze", mouth="default", ear=26, ear2=26,
+             flutter=7, legs={"fl": (-14, 0, -24, 0.6), "fr": (-10, 0, -20, 0.6), "bl": (16, 0, 24, 0.6), "br": (14, 0, 22, 0.6)})
+    fr.append(F(p, 70, "撲出去（四腳伸直、整隻騰空）", props_back=ball(46, -80)))
+    p = dict(view="side", x=X0 - 40, sy=0.78, sx=1.1, eye="smile", mouth="w", ear=16, ear2=16, flutter=-5, blush=1.3)
+    fr.append(F(p, 90, "用身體壓住球！（球被壓在胸前下面）", props_back=ball(50, -80, 4), fx=[R.star_svg(150, 230, 13, 10)]))
+    p = dict(p, sy=0.84, sx=1.07)
+    fr.append(F(p, 150, "壓著不放（得意）", props_back=ball(50, -80, 4)))
+    p = dict(view="side", x=X0 - 30, y=GROUND - 34, sy=1.06, sx=0.98, eye="default", mouth="default", ear=-8, ear2=-8,
              legs={"fl": (2, 2, 4, 0.5), "fr": (2, 2, 4, 0.5), "bl": (-2, 2, -4, 0.5), "br": (-2, 2, -4, 0.5)})
-    fr.append(F(p, 70, "彈起來（球滾出去一點）", props_back=[ball_l(58, gy, -130)]))
-    p = dict(view="side", x=R.CX - 40, sy=0.92, sx=1.08, eye="default", mouth="default", ear=6, ear2=6)
-    fr.append(F(p, 80, "落地", props_back=[ball_l(52, gy, -160)], fx_back=[R.dust_svg(R.CX + 140, 468, 0.8)]))
-    p = dict(view="side", x=R.CX - 30, sy=0.9, sx=1.08, shear=0.12, look=(-14, 44), eye="default", mouth="w", ear=-8, ear2=-8)
-    fr.append(F(p, 120, "低頭用鼻子推球", props_back=[ball_l(64, gy, -170)],
-                fx=[sniff_svg(84, 346, 1.0, -1)]))
-    p = dict(p, shear=0.16, x=R.CX - 36)
-    fr.append(F(p, 90, "推一下（球往前滾）", props_back=[ball_l(46, gy, -230)]))
-    p = dict(view="q3", x=R.CX + 20, eye="arc", mouth="default", blush=1.3, ear=-4, ear2=-4)
-    fr.append(F(p, 160, "轉頭開心看鏡頭", props_back=[ball_l(46, gy, -250)], fx=[heart_svg(R.CX + 170, 150, 1.0, 10)]))
-    fr.append(F(dict(DEFAULT_END, x=R.CX + 20), 400, "回 Default（球停在身邊）", props_back=[ball_l(46, gy, -250)]))
+    fr.append(F(p, 70, "彈起來（球滾出去一點）", props_back=ball(46, -130)))
+    p = dict(view="side", x=X0 - 20, sy=0.92, sx=1.06, eye="default", mouth="default", ear=6, ear2=6)
+    fr.append(F(p, 80, "落地", props_back=ball(46, -160), fx_back=[R.dust_svg(X0 + 150, 468, 0.8)]))
+    p = dict(view="side", x=X0 - 10, sy=0.9, sx=1.06, shear=0.12, look=(-14, 44), eye="default", mouth="w", ear=-8, ear2=-8)
+    mx, my = mouth_at(p)
+    fr.append(F(p, 120, "低頭用鼻子推球", props_back=ball(48, -170), fx=[sniff_svg(mx - 40, my - 30, 0.9, -1)]))
+    p = dict(p, shear=0.16, x=X0 - 14)
+    fr.append(F(p, 90, "推一下（球往前滾）", props_back=ball(44, -230)))
+    p = dict(view="q3", x=R.CX + 30, eye="arc", mouth="default", blush=1.3, ear=-4, ear2=-4)
+    fr.append(F(p, 160, "轉頭開心看鏡頭", props_back=ball(44, -250), fx=[heart_svg(R.CX + 170, 150, 1.0, 10)]))
+    fr.append(F(dict(DEFAULT_END, x=R.CX + 30), 400, "回 Default（球停在身邊）", props_back=ball(44, -250)))
     return fr
 
 
@@ -620,9 +623,9 @@ def clip_boop():
         if k:
             mx, my = mouth_at(p)
             if k == "sniff":
-                fx = [sniff_svg(mx - 30, my - 6, 1.0, -1)]
+                fx = [sniff_svg(mx - 64, my - 14, 1.0, -1)]
             elif k == "boop":
-                fx = [sparkle_svg(mx - 46, my - 24, 18), R.burst_svg(mx - 46, my - 24, 40, 8, 0, 4.5)]
+                fx = [sparkle_svg(mx - 92, my - 54, 16)]
             elif k == "heart":
                 fx = [heart_svg(mx - 30, my - 110, 1.0, -10)]
             else:
@@ -646,15 +649,15 @@ def clip_dance():
     """原地 popcorn 連跳 3 下＋左右扭（四腳離地），音符。"""
     fr = []
     seq = [
-        (hop_pose(0, phase="crouch", eye="smile"), 90, "蹲（預備）", [music_svg(70, 200, 1.1, -10)]),
-        (hop_pose(56, 12), 80, "跳！往右扭", [music_svg(430, 150, 1.1, 10)]),
+        (hop_pose(0, phase="crouch", eye="smile"), 90, "蹲（預備）", [music_svg(56, 170, 1.1, -10)]),
+        (hop_pose(56, 12), 80, "跳！往右扭", [music_svg(452, 96, 1.1, 10)]),
         (hop_pose(0, 10, "land"), 80, "落地", []),
-        (hop_pose(56, -12), 80, "跳！往左扭", [music_svg(80, 140, 1.1, -10)]),
+        (hop_pose(56, -12), 80, "跳！往左扭", [music_svg(52, 96, 1.1, -10)]),
         (hop_pose(0, -10, "land"), 80, "落地", []),
-        (hop_pose(70, 14, eye="star_big", mouth="big"), 90, "第三下跳最高（星星眼）", [music_svg(432, 120, 1.2, 12), music_svg(76, 170, 0.9, -8)]),
+        (hop_pose(70, 14, eye="star_big", mouth="big"), 90, "第三下跳最高（星星眼）", [music_svg(456, 70, 1.2, 12), music_svg(46, 110, 0.9, -8)]),
         (hop_pose(36, 4), 70, "往下掉", []),
         (hop_pose(0, 0, "land"), 80, "落地壓扁", []),
-        (dict(view="front", sy=1.04, sx=0.98, eye="arc", mouth="default", blush=1.3, rot=-4), 120, "左右晃", [music_svg(436, 180, 1.0, 8)]),
+        (dict(view="front", sy=1.04, sx=0.98, eye="arc", mouth="default", blush=1.3, rot=-4), 120, "左右晃", [music_svg(456, 150, 1.0, 8)]),
         (dict(view="front", sy=1.0, eye="arc", mouth="default", blush=1.3, rot=4), 120, "晃回來", []),
     ]
     for p, ms, lab, fx in seq:
@@ -669,11 +672,11 @@ def clip_hug():
     b = dict(view="q3", facing="right", mouth="w", blush=1.3)
     seq = [
         (dict(b, eye="default", ear=-8, ear2=-8), 100, "轉向一側", []),
-        (dict(b, eye="smile", x=R.CX - 10, shear=0.1, sx=1.04, sy=0.94), 90, "往旁邊靠過去", []),
-        (dict(b, eye="smile", x=R.CX - 22, shear=0.18, rot=-6, sx=1.06, sy=0.9, ear=20, ear2=20, blush=1.5), 160, "整隻貼過去蹭（臉紅）", "h1"),
-        (dict(b, eye="smile", x=R.CX - 18, shear=0.14, rot=-3, sx=1.05, sy=0.92, ear=24, ear2=24, blush=1.6), 100, "蹭蹭", []),
-        (dict(b, eye="smile", x=R.CX - 24, shear=0.2, rot=-7, sx=1.06, sy=0.89, ear=26, ear2=26, blush=1.6), 300, "貼著不放（愛心）", "h2"),
-        (dict(b, eye="arc", x=R.CX - 8, shear=0.05, sx=1.0, sy=1.0, ear=4, ear2=4, blush=1.4), 110, "回正", []),
+        (dict(b, eye="smile", x=R.CX + 24, shear=0.08, sx=1.04, sy=0.94), 90, "往旁邊靠過去", []),
+        (dict(b, eye="smile", x=R.CX + 30, shear=0.12, rot=-6, sx=1.06, sy=0.9, ear=20, ear2=20, blush=1.5), 160, "整隻貼過去蹭（臉紅）", "h1"),
+        (dict(b, eye="smile", x=R.CX + 28, shear=0.1, rot=-3, sx=1.05, sy=0.92, ear=24, ear2=24, blush=1.6), 100, "蹭蹭", []),
+        (dict(b, eye="smile", x=R.CX + 32, shear=0.13, rot=-7, sx=1.06, sy=0.89, ear=26, ear2=26, blush=1.6), 300, "貼著不放（愛心）", "h2"),
+        (dict(b, eye="arc", x=R.CX + 12, shear=0.04, sx=1.0, sy=1.0, ear=4, ear2=4, blush=1.4), 110, "回正", []),
         (dict(view="front", eye="arc", mouth="default", blush=1.3), 150, "轉正", []),
     ]
     for p, ms, lab, k in seq:
@@ -791,14 +794,14 @@ def feather_svg(x, y, s=1.0, rot=0.0, stick=True) -> str:
     """逗貓羽毛棒：細木棒＋線＋粉色羽毛。(x,y)＝羽毛中心。"""
     st = ""
     if stick:
-        st = (f'<path d="M 30 -10 L 150 -150" stroke="#B88A55" stroke-width="9" stroke-linecap="round"/>'
-              f'<path d="M 30 -10 L 150 -150" stroke="{INK}" stroke-width="13" stroke-linecap="round" opacity="0.0"/>'
+        st = (f'<path d="M 30 -10 L 150 -150" stroke="{INK}" stroke-width="13" stroke-linecap="round"/>'
+              f'<path d="M 30 -10 L 150 -150" stroke="#C99A62" stroke-width="7" stroke-linecap="round"/>'
               f'<path d="M 150 -150 Q 120 -90 22 -8" fill="none" stroke="{INK}" stroke-width="2.4"/>')
-    vanes = "".join(f'<path d="M {i*6-30:.1f} 0 Q {i*6-24:.1f} {-12 - (6 - abs(i-4))*2:.1f} {i*6-18:.1f} {-16 - (6 - abs(i-4))*2:.1f}" '
-                    f'fill="none" stroke="#D9577E" stroke-width="2.4" stroke-linecap="round"/>' for i in range(9))
+    vanes = "".join(f'<path d="M {i*9-30:.1f} {1 - i*0.6:.1f} L {i*9-23:.1f} {-8 - (3 - abs(i-3)):.1f}" fill="none" '
+                    f'stroke="#D9577E" stroke-width="1.8" stroke-linecap="round"/>' for i in range(7))
     return (f'<g transform="translate({x:.1f},{y:.1f}) rotate({rot:.1f}) scale({s:.3f})">{st}'
-            f'<path d="M -40 2 C -30 -26 10 -30 34 -6 C 12 6 -18 16 -40 2 Z" fill="#F7A3BE" stroke="{INK}" stroke-width="4.5" stroke-linejoin="round"/>'
-            f'{vanes}<path d="M -44 4 L 34 -6" stroke="#FFF2F6" stroke-width="3" stroke-linecap="round"/></g>')
+            f'<g transform="rotate(-30) scale(2)"><path d="M -40 2 C -30 -26 10 -30 34 -6 C 12 6 -18 16 -40 2 Z" fill="#F7A3BE" stroke="{INK}" stroke-width="3" stroke-linejoin="round"/>'
+            f'{vanes}<path d="M -44 4 L 34 -6" stroke="#FFF2F6" stroke-width="2" stroke-linecap="round"/></g></g>')
 
 
 def yarn_svg(x, y, r=38.0, rot=0.0, tail=True) -> str:
@@ -869,6 +872,8 @@ def clip_sniff_eat():
         (dict(view="q3", eye="smile", mouth="w", blush=1.3), 160, "好吃！（小愛心）", "heart", False),
     ]
     for p, ms, lab, k, seed in seq:
+        if p.get("view") == "side":
+            p["x"] = R.CX + 40          # 面向右會以 x=248 鏡像，往左挪免得屁股出框
         mx, my = mouth_at(p)
         fx = []
         if k == "sniff":
@@ -911,20 +916,20 @@ def clip_hop_reach():
 def clip_pounce():
     """羽毛棒：蹲低屁股扭 → 往前撲（clip 面向右，羽毛在右前方）。"""
     fr = []
-    low = dict(view="side", x=R.CX + 40, sy=0.8, sx=1.12, shear=-0.05, eye="wide", mouth="w", ear=-14, ear2=-14,
+    low = dict(view="side", x=R.CX + 24, sy=0.8, sx=1.12, shear=-0.05, eye="wide", mouth="w", ear=-14, ear2=-14,
                legs={"bl": (8, 0, 6, 0), "br": (8, 0, 6, 0)})
     seq = [
         (dict(low, sy=0.84), 100, "盯著羽毛、蹲低", []),
         (dict(low, rot=3, shear=-0.08), 70, "屁股扭（右）", ["m"]),
         (dict(low, rot=-1, shear=-0.03), 70, "屁股扭（左）", ["m"]),
         (dict(low, rot=3, shear=-0.08, eye="squeeze"), 70, "屁股扭、用力", ["m"]),
-        (dict(view="side", x=R.CX - 20, y=GROUND - 56, sy=0.9, sx=1.14, rot=-8, eye="default", mouth="o", ear=26, ear2=26, flutter=7,
+        (dict(view="side", x=R.CX - 6, y=GROUND - 56, sy=0.9, sx=1.14, rot=-8, eye="default", mouth="o", ear=26, ear2=26, flutter=7,
               legs={"fl": (-16, 0, -24, 0.6), "fr": (-12, 0, -20, 0.6), "bl": (18, 0, 24, 0.6), "br": (16, 0, 22, 0.6)}), 70,
          "往前撲！（四腳伸直騰空）", ["speed"]),
-        (dict(view="side", x=R.CX - 40, sy=0.78, sx=1.14, eye="smile", mouth="w", ear=16, ear2=16, flutter=-5, blush=1.3), 90,
+        (dict(view="side", x=R.CX - 14, sy=0.78, sx=1.14, eye="smile", mouth="w", ear=16, ear2=16, flutter=-5, blush=1.3), 90,
          "撲到、整隻壓低", ["dust"]),
-        (dict(view="side", x=R.CX - 30, sy=1.04, sx=0.99, eye="arc", mouth="default", ear=0, ear2=0, blush=1.2), 110, "抬頭得意", []),
-        (dict(view="q3", x=R.CX - 10, eye="arc", mouth="default", blush=1.2), 140, "轉正", []),
+        (dict(view="side", x=R.CX - 10, sy=1.04, sx=0.99, eye="arc", mouth="default", ear=0, ear2=0, blush=1.2), 110, "抬頭得意", []),
+        (dict(view="q3", x=R.CX - 4, eye="arc", mouth="default", blush=1.2), 140, "轉正", []),
     ]
     for p, ms, lab, k in seq:
         fx, fxb = [], None
@@ -1122,6 +1127,12 @@ def verify(name, frs, imgs, checks):
             n = int((fpad & ms[k]).sum())
             if n:
                 bad.append(f"第 {i+1} 格 {k} 壓到臉 {n}")
+        body = ms.get("body")
+        for k in keys:
+            if k.startswith("fx") and body is not None and k not in allow and not frs[i].get("fx_on_body"):
+                n = int((body & ms[k]).sum())
+                if n > 6:
+                    bad.append(f"第 {i+1} 格 {k} 疊到身體 {n}")
         fxk = [k for k in keys if k.startswith("fx") and not k.startswith("fxB")]
         for a in range(len(fxk)):
             for b in range(a + 1, len(fxk)):

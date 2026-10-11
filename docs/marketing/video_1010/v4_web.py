@@ -17,7 +17,7 @@ def _hl(head):
     return h[-4:] if len(h) > 4 else h
 
 
-def shot(sid, page, clip, segs, head, sub, idle, chain=None, cont=False, main=None, hl=None, limit=None):
+def shot(sid, page, clip, segs, head, sub, idle, chain=None, cont=False, main=None, hl=None, limit=None, win_max=None):
     """segs＝[(來源起, 來源迄), ...]（原速，多段＝往前跳接）。"""
     a0 = segs[0][0]
     prev = _CUR.get(clip)
@@ -34,6 +34,7 @@ def shot(sid, page, clip, segs, head, sub, idle, chain=None, cont=False, main=No
         pts.append((loc, b))
     D = round(loc, 2)
     rec = Rec4(clip, pts, main=main)
+    rec.win_max = win_max
     op = Op(rec, idle=idle, chain=chain)
     D, dw = plan_dwell(rec, op, D, sub, _LW, None, chain, cont=cont)
     sh = Shot4(sid, D, [rec], pill=page, head=head, hl=hl or _hl(head), sub=sub, op=op)
@@ -120,7 +121,7 @@ def build():
     S.append(shot("i05", "ETF", "V23_desktop", [(1.5, 2.3), (5.3, 7.4)], "複利怎麼長大", "再投入和領現金，並排看", [(0, "face_determined"), (1.0, "growth")], hl="長大"))
     # 11～13 自選清單／導覽／願望清單
     S.append(shot("j01", "自選清單", "V24_desktop", [(6.6, 10.4)], "⑪ 自選清單", "常看的收進來，一開就有", [(0, "star_save"), (2.2, "face_love")],
-                  main=[(480, 240, 2980, 820)]))
+                  main=[(480, 240, 2980, 820)], win_max=(0, 0, 2990, 1800)))
     S.append(shot("j02", "導覽", "V25_desktop", [(1.4, 4.6)], "看不懂有導覽", "每一頁我都一步步帶你", [(0, "talk_happy"), (1.8, "face_wink")]))
     S.append(shot("j03", "願望清單", "V26_desktop", [(12.5, 16.1)], "歡迎許願", "想要什麼功能，跟我說！", [(0, "heart_wish"), (1.6, "face_love")], chain="solo"))
     # 14～15 片尾與警語

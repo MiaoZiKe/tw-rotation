@@ -688,6 +688,9 @@ class Rec4:
                     r, _, _ = click_target(self.clip, tp["src_t"], tp["x"], tp["y"])
                     tap_rs.append(_clip_rect(r, sw, sh))
             win = web_window(rs + tap_rs + [c_[0] for c_ in cont_rs], sw, sh)
+            wm = getattr(self, "win_max", None)      # 分鏡指定的裁切上限（例：自選清單右上「1／5 頁」裁在畫面外）
+            if wm:
+                win = (max(win[0], wm[0]), max(win[1], wm[1]), min(win[2], wm[2]), min(win[3], wm[3]))
             for (cr_, clab, csrc, tpx) in cont_rs:
                 inc_ = _area(_inter_rect(cr_, win)) / max(1.0, _area(cr_))
                 CONTENTCHK.append((shot.sid, tpx.get("_lab", ""), clab, round(inc_ * 100, 1), round(shot.dur - (tpx["t"] + 0.95), 2), csrc, ""))
