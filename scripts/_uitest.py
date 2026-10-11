@@ -32918,7 +32918,7 @@ def t_bibi_1011(b, base):
     pg.goto(base + "#overview", wait_until="domcontentloaded")
     ok(f"【{T}】比比接上客服鈕（window.Bibi 與 #supFab 的兩張圖層都在）",
        bool(wait_until(pg, "() => !!window.Bibi && !!document.getElementById('supFab') && document.querySelectorAll('#supFab img.bibiimg').length === 2", 10000)))
-    pg.evaluate("() => Bibi.test({ fidget: false, hop: false })")   # 待機小動作與 Default 穿插跳先關（會跟換圖斷言搶），下面另外驗
+    pg.evaluate("() => Bibi.test({ fidget: false })")   # 待機小動作（10-12 起預設就不跑）保險再關一次，下面另外驗
     s0 = pg.evaluate(BIBI_ST)
     ok(f"【{T}】比比圖用 brand/bibi/ 的動態 WebP（{s0 and s0['src']}）", bool(s0) and s0["src"].startswith("brand/bibi/"), s0)
     cases = [
@@ -32937,47 +32937,52 @@ def t_bibi_1011(b, base):
         ("和平紀念日 → 不戴慶祝帽、用週末放鬆款", {"now": "2026-02-28T10:00:00+08:00", "hol": {"2026-02-28": "和平紀念日"}}, "overview", "weekend", "holiday", "和平紀念日"),
         ("12/24 平日盤後 → 聖誕帽", {"now": "2026-12-24T15:00:00+08:00", "pct": None, "hol": {}}, "overview", "festival_xmas", "xmas", "聖誕"),
     ]
-    HAPPY = "default_idle"   # 驗收先關掉「一直跳」（hop:false）＝一般情境停在原版 Default（圖三）；一直跳（圖二 jump 循環）下面另驗
-    NOT_HAPPY = ("night", "holiday", "xmas", "down2")
-    IDLE_F = HAPPY                                 # 盤後總覽的待機圖（下面回待機都比這張）
+    # Andy 10-12：「比比改成一直跳，但是是在主畫面狀態，我說的狀態就是第一版做出來的樣式」→ 待機只有 idle_hop（第一版 8 格跳躍 GIF），
+    # 每種情境的圖都一樣，只換泡泡說明句（cases 裡的第 4 欄是 10-11 以前的情境款，留著當對照，不再比）
+    HAPPY = "idle_hop"
+    IDLE_F = HAPPY                                 # 待機圖（下面回待機都比這張）
     for name, inj, route, want, key, say in cases:
-        want = HAPPY   # Andy 10-11 深夜：「右下GIF 需要改成圖二一直跳的狀態」→ 每種情境的圖都一樣（只換泡泡說明句）
+        want = HAPPY
         got = pg.evaluate("(o) => Bibi.test(o)", inj)
         shown = _bibi_src(pg, want)
         st = pg.evaluate(BIBI_ST)
         ok(f"【{T}】桌機 情境「{name}」→ 待機換成 {want}（{st['src']}）、情境鍵 {key}、說明句含「{say or '—'}」",
            bool(shown) and got and got.get("key") == key and (say is None or say in (got.get("say") or "")), {"got": got, "st": st})
-    # 待機只有一種（Andy 10-11 深夜：「右下GIF 需要改成圖二一直跳的狀態，除非他點選其他互動紐」）：每種情境都是圖二 jump 一直循環（錄 2.8 秒每一筆都是 jump）；
-    # 深夜、國定假日、大跌、週末、聖誕也一樣，只換泡泡說明句
+    # 待機只有一種（Andy 10-12）：每種情境都是 idle_hop 一直循環（錄 2.4 秒每一筆都是 idle_hop）；深夜、國定假日、大跌、週末、聖誕也一樣
     JUMP_REC = """(ms) => new Promise((res) => { const o = [], t0 = performance.now();
       const k = () => { o.push(Bibi.state().src.split('/').pop()); if (performance.now() - t0 < ms) setTimeout(k, 40); else res(o); }; k(); })"""
-    pg.evaluate("() => Bibi.test({ hop: true })")
-    for name, inj, want_h in (("盤後總覽", {"now": "2026-10-14T16:00:00+08:00", "pct": None, "hol": {}}, True),
-                              ("盤中小跌", {"now": "2026-10-14T10:00:00+08:00", "pct": -0.3}, True),
-                              ("週末", {"now": "2026-10-17T15:00:00+08:00", "pct": None}, True),
-                              ("盤中大跌", {"now": "2026-10-14T10:00:00+08:00", "pct": -1.6}, True), ("深夜", {"now": "2026-10-14T23:40:00+08:00", "pct": None}, True),
-                              ("國定假日", {"now": "2026-02-16T10:00:00+08:00", "hol": {"2026-02-16": "春節"}}, True),
-                              ("聖誕", {"now": "2026-12-24T15:00:00+08:00", "pct": None, "hol": {}}, True)):
-        pg.evaluate("(o) => Bibi.test(o)", inj); pg.wait_for_timeout(700)
-        seq = pg.evaluate(JUMP_REC, 2800)
+    for name, inj in (("盤後總覽", {"now": "2026-10-14T16:00:00+08:00", "pct": None, "hol": {}}),
+                      ("盤中小跌", {"now": "2026-10-14T10:00:00+08:00", "pct": -0.3}),
+                      ("週末", {"now": "2026-10-17T15:00:00+08:00", "pct": None}),
+                      ("盤中大跌", {"now": "2026-10-14T10:00:00+08:00", "pct": -1.6}),
+                      ("深夜", {"now": "2026-10-14T23:40:00+08:00", "pct": None}),
+                      ("國定假日", {"now": "2026-02-16T10:00:00+08:00", "hol": {"2026-02-16": "春節"}}),
+                      ("聖誕", {"now": "2026-12-24T15:00:00+08:00", "pct": None, "hol": {}})):
+        pg.evaluate("(o) => Bibi.test(o)", inj); pg.wait_for_timeout(500)
+        seq = pg.evaluate(JUMP_REC, 2400)
         uniq = sorted(set(seq))
-        if want_h:
-            loop = pg.evaluate("() => { const i = [...document.querySelectorAll('#supFab img.bibiimg')].find(x => !x.classList.contains('bibiback')); return i ? i.getAttribute('src') : ''; }")
-            ok(f"【{T}】桌機 Default 待機「{name}」→ 一直跳（2.8 秒內全部是 jump：{uniq}）", uniq == ["jump.webp"] and "jump.webp" in loop, {"uniq": uniq, "src": loop})
-        else:
-            ok(f"【{T}】桌機 待機「{name}」→ 保留原情境款、不跳（{uniq}）", "jump.webp" not in uniq and "default_idle.webp" not in uniq, uniq)
+        loop = pg.evaluate("() => { const i = [...document.querySelectorAll('#supFab img.bibiimg')].find(x => !x.classList.contains('bibiback')); return i ? i.getAttribute('src') : ''; }")
+        ok(f"【{T}】桌機 待機「{name}」→ 一律第一版跳躍 GIF（2.4 秒內全部是 idle_hop：{uniq}；src {loop}）", uniq == ["idle_hop.webp"] and "brand/bibi/idle_hop.webp?v=" in loop, {"uniq": uniq, "src": loop})
         pg.evaluate("() => Bibi.test({ hol: {} })")
-    loopflag = pg.evaluate("""() => fetch('brand/bibi/jump.webp?v=' + Date.now()).then(r => r.arrayBuffer()).then(b => { const u = new Uint8Array(b);
-      for (let i = 0; i < u.length - 8; i++) if (u[i] === 65 && u[i + 1] === 78 && u[i + 2] === 73 && u[i + 3] === 77) return u[i + 12] | (u[i + 13] << 8); return -1; })""")
-    ok(f"【{T}】jump 素材本身設成無限循環（ANIM loop={loopflag}；0＝一直播）", loopflag == 0, loopflag)
-    if BIBI_SHOT_DIR:   # 一直跳的連拍（hop_seq_*.png）＋原版 Default（idle_default.png，驗收關掉一直跳時的樣子）
-        pg.evaluate("() => Bibi.test({ now: '2026-10-14T16:00:00+08:00', pct: null, hol: {} })"); _bibi_src(pg, "jump", 3000); pg.wait_for_timeout(300)
+    meta = pg.evaluate("""() => fetch('brand/bibi/idle_hop.webp?v=' + Date.now()).then(r => r.arrayBuffer()).then(b => { const u = new Uint8Array(b);
+      let loop = -1, n = 0, w = 0;
+      for (let i = 0; i < u.length - 8; i++) {
+        if (u[i] === 65 && u[i + 1] === 78 && u[i + 2] === 73 && u[i + 3] === 77 && u[i + 4] !== 70) loop = u[i + 12] | (u[i + 13] << 8);
+        if (u[i] === 65 && u[i + 1] === 78 && u[i + 2] === 77 && u[i + 3] === 70) n++;
+        if (u[i] === 86 && u[i + 1] === 80 && u[i + 2] === 56 && u[i + 3] === 88) w = 1 + (u[i + 12] | (u[i + 13] << 8) | (u[i + 14] << 16));
+      } return { loop, n, w }; })""")
+    ok(f"【{T}】idle_hop 素材：160px、8 格、無限循環（{meta}）", meta["loop"] == 0 and meta["n"] == 8 and meta["w"] == 160, meta)
+    if BIBI_SHOT_DIR:   # 一直跳的連拍（idle_seq_*.png）＋深夜也是同一支（idle_night.png）
+        pg.evaluate("() => Bibi.test({ now: '2026-10-14T16:00:00+08:00', pct: null, hol: {} })"); _bibi_src(pg, HAPPY, 3000); pg.wait_for_timeout(300)
         clipd = {"x": 1440 - 200, "y": 900 - 200, "width": 200, "height": 200}
         for i in range(6):
-            pg.screenshot(path=str(pathlib.Path(BIBI_SHOT_DIR) / f"hop_seq_{i}.png"), clip=clipd); pg.wait_for_timeout(170)
-        pg.evaluate("() => Bibi.test({ hop: false })"); _bibi_src(pg, "default_idle", 3000); pg.wait_for_timeout(500)
-        pg.screenshot(path=str(pathlib.Path(BIBI_SHOT_DIR) / "idle_default.png"), clip=clipd)
-    pg.evaluate("() => Bibi.test({ hop: false, hol: {} })")
+            pg.screenshot(path=str(pathlib.Path(BIBI_SHOT_DIR) / f"idle_seq_{i}.png"), clip=clipd); pg.wait_for_timeout(110)
+        pg.evaluate("() => Bibi.test({ now: '2026-10-14T23:40:00+08:00', pct: null, hol: {} })"); _bibi_src(pg, HAPPY, 3000)
+        fc = pg.evaluate("() => { const r = document.getElementById('supFab').getBoundingClientRect(); return [r.left + r.width / 2, r.top + r.height / 2]; }")
+        pg.mouse.move(fc[0], fc[1]); pg.wait_for_timeout(250)   # 停在比比上讓泡泡講「深夜」那句，圖照樣是跳躍 GIF
+        pg.screenshot(path=str(pathlib.Path(BIBI_SHOT_DIR) / "idle_night.png"), clip={"x": 1440 - 420, "y": 900 - 420, "width": 420, "height": 420})
+        pg.mouse.move(300, 300, steps=3); pg.wait_for_timeout(700)
+    pg.evaluate("() => Bibi.test({ hol: {} })")
     # 盤後依分頁：真的換頁（hashchange 重算）
     pg.evaluate("() => Bibi.test({ now: '2026-10-14T16:00:00+08:00', pct: null, hol: {} })")
     for route, want, key in (("flow/sankey", "coins", "flow"), ("flow/rotation", "growth", "rotation"), ("industry", "magnifier", "industry"), ("themes", "fire", "themes"),
@@ -33004,7 +33009,8 @@ def t_bibi_1011(b, base):
     tip = pg.evaluate(BIBI_ST)["tip"]
     ok(f"【{T}】桌機 停在比比上有提示泡泡說他在幹嘛（{tip}）", "比比" in tip, tip)
     ids1 = [x["id"] for x in R1["bs"]]
-    ALL_IDS = ["ask", "hop", "popcorn", "pet", "grass", "ball", "spin", "hit", "five", "dance", "hug", "sleep", "selfie"]
+    ALL_IDS = ["ask", "popcorn", "pet", "grass", "ball", "spin", "hit", "five", "dance", "hug", "sleep", "selfie"]   # 10-12 拿掉「跳跳」
+    ok(f"【{T}】桌機 沒有「跳跳」小圈（Andy 10-12：「『跳跳』小圓 拿掉」）、正好 12 顆", "hop" not in ids1 and "跳跳" not in names and len(ids1) == 12, names)
     ok(f"【{T}】桌機 滑鼠移到比比上 → 全部 {len(ids1)} 個小圈一次攤開（沒有「下一頁」）：{names}",
        R1["on"] and sorted(ids1) == sorted(ALL_IDS) and "next" not in ids1, R1)
     rads = {x["id"]: (((x["l"] + x["r"]) / 2 - R1["rx"]) ** 2 + ((x["t"] + x["b"]) / 2 - R1["ry"]) ** 2) ** .5 for x in R1["bs"]}
@@ -33023,7 +33029,7 @@ def t_bibi_1011(b, base):
        not any((x["l"] + x["r"]) / 2 > R1["rx"] + 25 and (x["t"] + x["b"]) / 2 > R1["ry"] + 25 for x in R1["bs"]), R1["bs"])
     if BIBI_SHOT_DIR:
         pg.mouse.move(R1["rx"], R1["ry"]); pg.wait_for_timeout(400)
-        pg.screenshot(path=str(pathlib.Path(BIBI_SHOT_DIR) / "uitest_desk_ring.png"), clip={"x": 1440 - 420, "y": 900 - 420, "width": 420, "height": 420})
+        pg.screenshot(path=str(pathlib.Path(BIBI_SHOT_DIR) / "ring12_desk.png"), clip={"x": 1440 - 420, "y": 900 - 420, "width": 420, "height": 420})
 
     # ---------- 桌機：點每一個小圈 ----------
     MAP = {"pet": "face_love", "grass": "boba", "ball": "hop_l", "spin": "tilt", "five": "face_clap", "dance": "celebrate", "hug": "heart_wish", "sleep": "face_sleepy", "selfie": "face_wink"}
@@ -33130,14 +33136,6 @@ def t_bibi_1011(b, base):
        started(rec) and any(r["src"] == PRT["spin"] + ".webp" for r in rec) and len(dz) * 50 >= 1200
        and rec.index(next(r for r in rec if r["src"] == PRT["spin"] + ".webp")) < rec.index(dz[0]) and all(r["phase"] == "dizzy" for r in dz[:-1]), [r["src"] for r in rec[::6]])
     home("spin")
-
-    rec = play("hop", 3900)
-    oys = [r["oy"] for r in rec if r["run"] == "hop"]
-    tops = sum(1 for i in range(1, len(oys) - 1) if oys[i] < -8 and oys[i] <= oys[i - 1] and oys[i] < oys[i + 1])
-    ok(f"【{T}】桌機 點「跳跳」（原版比比頭像）→ 300ms 內在動、jump 從頭重播、連跳 {tops} 次、每次往上多送 {-min(oys or [0]):.0f}px、整顆放大",
-       started(rec) and sum(r["src"] == "jump.webp" for r in rec if r["run"] == "hop") >= 0.9 * max(1, sum(r["run"] == "hop" for r in rec)) and tops >= 3 and min(oys or [0]) < -15
-       and any("scale(1.08" in (r["body"] or "") for r in rec), {"oys": oys[::4], "srcs": sorted(set(r["src"] for r in rec if r["run"] == "hop")), "st": started(rec), "body": [r["body"] for r in rec[:3]]})
-    home("hop")
 
     rec = play("popcorn", 2200)
     oys = [r["oy"] for r in rec if r["run"] == "popcorn"]
@@ -33263,7 +33261,9 @@ def t_bibi_1011(b, base):
     ok(f"【{T}】減少動態偏好 → 玩球不跑出去（只換圖 {st['src']}、位移 {st['off']}）", not st["run"] and st["off"]["x"] == 0 and st["mode"] == "act", st)
     wait_until(pg, "() => Bibi.state().mode === 'idle'", 5000)
     pg.evaluate("() => Bibi.test({ now: '2026-10-14T16:00:00+08:00', pct: null, hol: {} })")
-    ok(f"【{T}】減少動態偏好 → 待機停在原版 Default、不跳（{pg.evaluate(BIBI_ST)['src']}）", bool(_bibi_src(pg, "default_idle", 3000)), pg.evaluate(BIBI_ST))
+    ok(f"【{T}】減少動態偏好 → 待機停在跳躍 GIF 的第 1 格靜態圖（{pg.evaluate(BIBI_ST)['src']}）", bool(_bibi_src(pg, "idle_hop_still", 3000)), pg.evaluate(BIBI_ST))
+    pg.evaluate("() => { location.hash = '#flow/sankey'; }"); pg.wait_for_timeout(600)
+    ok(f"【{T}】減少動態偏好 → 換頁也還是第 1 格靜態圖（{pg.evaluate(BIBI_ST)['src']}）", bool(_bibi_src(pg, "idle_hop_still", 5000)), pg.evaluate(BIBI_ST))
     c.close()
 
     # ---------- 手機 390：點一下展開 ----------
@@ -33279,7 +33279,7 @@ def t_bibi_1011(b, base):
     pg.tap("#supFab"); pg.wait_for_timeout(900)
     M1 = pg.evaluate(BIBI_RING)
     mids = [x["id"] for x in M1["bs"]]
-    ok(f"【{T}】手機 點比比一下 → 全部 {len(mids)} 個小圈一次攤開、不直接開客服", M1["on"] and sorted(mids) == sorted(["ask", "hop", "popcorn", "pet", "grass", "ball", "spin", "hit", "five", "dance", "hug", "sleep", "selfie"]) and not M1["panel"], M1)
+    ok(f"【{T}】手機 點比比一下 → 全部 {len(mids)} 個小圈一次攤開、不直接開客服", M1["on"] and sorted(mids) == sorted(["ask", "popcorn", "pet", "grass", "ball", "spin", "hit", "five", "dance", "hug", "sleep", "selfie"]) and not M1["panel"], M1)
     out = [x["id"] for x in M1["bs"] if not (x["l"] >= 0 and x["t"] >= 0 and x["r"] <= M1["vw"] and x["b"] <= M1["vh"])]
     ok(f"【{T}】手機 全部小圈在 390 視窗內（超出：{out}）、沒有橫向捲軸（{M1['sw']}）", not out and M1["sw"] <= 390, M1)
     ok(f"【{T}】手機 以比比當下位置為圓心、小圈 ≥ 40px、兩兩不重疊", abs(M1["fx"] - M1["rx"]) <= 3 and abs(M1["fx"] - M0["fx"]) <= 2
@@ -33287,12 +33287,12 @@ def t_bibi_1011(b, base):
     tipfs = pg.evaluate("() => { const t = document.getElementById('bibiTip'); return t && !t.hidden ? parseFloat(getComputedStyle(t).fontSize) : 0; }")
     ok(f"【{T}】手機 展開時提示泡泡出現、字 ≥ 11px（{tipfs}px）", tipfs >= 11, tipfs)
     if BIBI_SHOT_DIR:
-        pg.screenshot(path=str(pathlib.Path(BIBI_SHOT_DIR) / "uitest_mob_ring.png"))
-    pg.evaluate("() => Bibi.test({ fidget: false, hop: false })")
+        pg.screenshot(path=str(pathlib.Path(BIBI_SHOT_DIR) / "ring12_mob.png"))
+    pg.evaluate("() => Bibi.test({ fidget: false })")
     pg.tap(f"#bibiRing .bopt[data-act=ball]")
     rec = pg.evaluate(BIBI_REC, 3200)
     ok(f"【{T}】手機 點「玩球」→ 300ms 內在動、比比跑出去（最遠 {min(r['ox'] for r in rec):.0f}px）",
-       any(r["t"] <= 300 and r["run"] and (r["ox"] or r["oy"] or r["body"] or r["src"] != "default_idle.webp") for r in rec) and min(r["ox"] for r in rec) < -60 and not any(r["hand"] for r in rec), rec[:5])
+       any(r["t"] <= 300 and r["run"] and (r["ox"] or r["oy"] or r["body"] or r["src"] != "idle_hop.webp") for r in rec) and min(r["ox"] for r in rec) < -60 and not any(r["hand"] for r in rec), rec[:5])
     outm = [r["t"] for r in rec if r["sw"] > 390 or (r["ball"] and (r["ball"]["l"] < -1 or r["ball"]["r"] > 391))]
     ok(f"【{T}】手機 玩球全程沒有橫向捲軸、球都在 390 內（超出 {outm[:5]}）", not outm and any(r["ball"] for r in rec), outm[:5])
     pg.touchscreen.tap(250, 88); pg.wait_for_timeout(200)

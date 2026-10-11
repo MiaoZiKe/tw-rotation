@@ -231,8 +231,10 @@ html.fab-off .supfab{display:none!important}`);
      按鈕只剩天竺鼠動畫本身 —— 沒有青色膠囊底、沒有「客服」字（字留給讀屏，.supsr 視覺隱藏）、不管減少動態偏好一律一直動。
      原檔 site/brand/src/support_anim_1009.gif（512×512・8 格・每格 100ms）→ 裁到身體、米色背景去掉成透明、128px（2 倍螢幕）。*/
   /* ★ 2026-10-11（Andy：「右下方的GIF圖多點變化…讓比比看起來更像真的在陪伴你」）：圖改成比比素材庫的 160px 動態 WebP，
-     情境待機與環狀互動由 bibi.js 接手（換圖、交叉淡入淡出、互動選單）；這裡只放開場那一張（總覽揮手）。 */
-  const MARK = '<img class="supmark supgif" src="brand/bibi/wave.webp?v=1011c" width="64" height="64" alt="" aria-hidden="true" draggable="false">';
+     環狀互動由 bibi.js 接手（換圖、互動選單）。
+     ★ 2026-10-12（Andy：「比比改成一直跳…就是第一版做出來的樣式」）：開場圖＝待機同一支 idle_hop（第一版 8 格跳躍 GIF），
+     bibi.js 接手後也是這張，開場不會先閃一下別的造型。版本戳跟 bibi.js 的 AV 一起改。 */
+  const MARK = '<img class="supmark supgif" src="brand/bibi/idle_hop.webp?v=1012a" width="64" height="64" alt="" aria-hidden="true" draggable="false">';
   let tab = 'faq', fbKind = 'fb';
   const WISH_TAG = '【願望清單】';
   const isWish = (r) => r.type === 'wish' || String(r.body || '').startsWith(WISH_TAG);

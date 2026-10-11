@@ -13,7 +13,8 @@
 
 用法：python scripts/anim/bibi_site.py            # 全部重做
       python scripts/anim/bibi_site.py default_idle   # Andy 指定的 Default 待機（圖三，單張）
-      python scripts/anim/bibi_site.py jump           # Default 待機穿插的跳一下（圖二 docs/anim/jump）
+      python scripts/anim/bibi_site.py idle_hop       # ★ 待機（唯一一款）：第一版客服鈕的 8 格跳躍 GIF，一直循環（Andy 10-12）
+      python scripts/anim/bibi_site.py jump           # （10-12 起不再用在待機）圖二 docs/anim/jump
       python scripts/anim/bibi_site.py props      # 給草／給球的手與道具（site/brand/bibi/props/；含拆出來的「空手」）
       python scripts/anim/bibi_site.py pet ball    # 只做這幾組
 輸出最後一行印出每組的總長毫秒（site/bibi.js 的 MS 表要抄這個數字，動作播完才回待機）。
@@ -193,32 +194,35 @@ def default_idle():
     print(f"  default_idle  {(OUT / 'default_idle.webp').stat().st_size / 1024:5.1f} KB（單張）")
 
 
-def hop_icon():
-    """「跳跳」小圈圖示（Andy 10-11 深夜：「需要把圖二也新增在互動紐裡面」）：原版 Default（default_idle_1011）的頭像，
-    奶油白圓底＋深咖啡粗描邊（跟動畫單位其他 96px 圖示同款）→ site/brand/bibi/icons/hop.webp。"""
+def idle_hop(sheet_dir: str | None = None):
+    """比比的待機（唯一一款）：Andy 最早給的 8 格跳躍 GIF（site/brand/src/support_anim_1009.gif，第一版客服鈕 sup-anim-128.gif 的來源）
+    → site/brand/bibi/idle_hop.webp（160px 透明動態 WebP、無限循環）＋ idle_hop_still.webp（第 1 格靜態，減少動態偏好用）。
+
+    Andy 10-12：「比比改成一直跳，但是是在主畫面狀態，我說的狀態就是第一版做出來的樣式，一直處於跳的狀態…『跳跳』小圓 拿掉」＋「是這張喔」
+    （附的 9 格分格圖＝站好 → 微蹲 → 壓扁 ^^ → 壓扁 >< → 起跳左傾 → 最高點右傾 → 往下掉 → 落地壓扁 → 站好，就是這支 GIF 的 8 格再回第 1 格）。
+    去背走動畫單位的 gif_pipeline（load_frames＋cutout：在沒裁切的 512 原圖上補縫灌水、吃掉地上淡影子、不加陰影）。
+    這支 GIF 第 1 格跟原版 Default（default_idle_1011）同一個座標（描邊 x 61～446、腳底 484，10-12 量過），
+    所以直接用 _fit_original 對到素材庫場景座標 → 大小、腳底跟所有互動素材一致，互動播完切回待機不會忽大忽小。"""
     import numpy as np
-    from PIL import ImageDraw
     sys.path.insert(0, str(Path(__file__).resolve().parent))
-    from gif_pipeline import cutout
-    src = LIB / "reference" / "default_idle_1011.webp"
-    if not src.exists():
-        print("  略過 hop 圖示（參考圖還沒到）")
-        return
-    rgb = np.asarray(Image.open(src).convert("RGB"))
-    body = Image.fromarray(np.dstack([rgb, cutout(rgb)]), "RGBA").crop((70, 140, 440, 470))   # 頭＋身體上半（原版描邊框 61～446、148～483）
-    S = 384
-    can = Image.new("RGBA", (S, S), (0, 0, 0, 0))
-    d = ImageDraw.Draw(can)
-    d.ellipse((6, 6, S - 6, S - 6), fill=(253, 245, 233, 255))
-    k = (S - 60) / body.size[0]
-    b2 = body.resize((round(body.size[0] * k), round(body.size[1] * k)), Image.LANCZOS)
-    can.alpha_composite(b2, ((S - b2.size[0]) // 2, 48))
-    mask = Image.new("L", (S, S), 0); ImageDraw.Draw(mask).ellipse((6, 6, S - 6, S - 6), fill=255)
-    out = Image.new("RGBA", (S, S), (0, 0, 0, 0)); out.paste(can, (0, 0), mask)
-    ImageDraw.Draw(out).ellipse((8, 8, S - 8, S - 8), outline=(26, 9, 7, 255), width=12)
-    (OUT / "icons").mkdir(parents=True, exist_ok=True)
-    out.resize((96, 96), Image.LANCZOS).save(OUT / "icons" / "hop.webp", "WEBP", quality=90, method=6)
-    print(f"  圖示 hop        {(OUT / 'icons' / 'hop.webp').stat().st_size / 1024:4.1f} KB（原版 Default 頭像）")
+    from gif_pipeline import load_frames, cutout, sheet
+    src = ROOT / "site" / "brand" / "src" / "support_anim_1009.gif"
+    frames, durs = [], []
+    for rgb, d in load_frames(str(src)):
+        frames.append(_fit_original(Image.fromarray(np.dstack([rgb, cutout(rgb)]), "RGBA")))
+        durs.append(int(d))
+    data = None
+    for q in (86, 80, 72, 62):
+        data = encode(frames, durs, q, 0)   # loop=0＝無限循環
+        if len(data) <= LIMIT:
+            break
+    OUT.mkdir(parents=True, exist_ok=True)
+    (OUT / "idle_hop.webp").write_bytes(data)
+    frames[0].save(OUT / "idle_hop_still.webp", "WEBP", quality=88, method=6)
+    if sheet_dir:
+        Path(sheet_dir).mkdir(parents=True, exist_ok=True)
+        sheet(frames, Path(sheet_dir) / "sheet_idle_hop.png")
+    print(f"  idle_hop      {len(data) / 1024:5.1f} KB  {len(frames)} 格  {sum(durs)} ms（＋ idle_hop_still 第 1 格）")
 
 
 def jump():
@@ -261,8 +265,8 @@ def main(argv):
     if argv == ["jump"]:
         jump()
         return
-    if argv == ["hop_icon"]:
-        hop_icon()
+    if argv == ["idle_hop"]:
+        idle_hop()
         return
     names = argv or NAMES
     ms = {}

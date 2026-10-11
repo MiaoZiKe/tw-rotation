@@ -21,6 +21,12 @@
 - [10-09 22:1x] 手機版 → 網頁版：Andy 回報手機抽屜站名圖跑掉、頂欄 LOGO 點了變放大（他要：頂欄 LOGO＝回總覽；只有側欄抽屜裡的 LOGO 才放大）。手機版開 claude/m4-brand 處理，**只改 html.m4／≤640**，不動桌機 .brand .logo→#logoBox 行為。
 
 
+## 2026-10-12 比比：待機一律「第一版跳躍 GIF」、拿掉「跳跳」小圈（UI 專家；DECISIONS #357 第 ⑥ 點，蓋掉下面那條）
+- Andy：「比比改成一直跳，但是是在主畫面狀態，我說的狀態就是第一版做出來的樣式，一直處於跳的狀態如圖一我提供的GIF、『跳跳』小圓 拿掉」＋「是這張喔」（9 格跳躍分格圖＝`site/brand/src/support_anim_1009.gif`）。
+- 素材：`python scripts/anim/bibi_site.py idle_hop`（走 gif_pipeline 的 load_frames＋cutout，在 512 原圖去背，再用 `_fit_original` 對到素材庫座標）→ `site/brand/bibi/idle_hop.webp`（160px、8 格、800ms、無限循環、38KB）＋ `idle_hop_still.webp`（第 1 格，減少動態用）。第 1 格跟 default_idle 外框、腳底逐像素一致；洋紅／深／淺三種底檢查 0 白邊。
+- `site/bibi.js`：待機一律 idle_hop（深夜／假日／大跌／週末／聖誕／各分頁都不換圖，只換泡泡句）；IDLE／HOLIDAY 情境款表整段拿掉；「跳跳」小圈與 hopScript、icons/hop.webp 拿掉（12 顆）；待機小動作預設不自動跑、東張西望（會換圖）拿掉；AV＝1012a。`site/support.js` 開場圖換成 idle_hop.webp?v=1012a。
+- 驗收：比比互動1011（改寫：7 種情境錄 2.4 秒全是 idle_hop、素材 160px／8 格／loop=0、沒有跳跳、12 顆在視窗內不重疊、點互動後回 idle_hop、減少動態＝idle_hop_still）＋桌機守門1008（--workers 1）＋客服鈕1009。純前端（site/**＋scripts/_uitest.py、scripts/anim）→ 跳過 pytest。
+
 ## 2026-10-12 凌晨 比比：待機只剩一直跳（取消情境待機款）＋新增「跳跳」小圈（UI 專家；DECISIONS #357 第 ⑤ 點）
 - Andy：「右下GIF 需要改成圖二一直跳的狀態，除非他點選其他互動紐，需要把圖二也新增在互動紐裡面」→ 深夜／假日／大跌／週末／聖誕都是 jump 一直跳（只換泡泡句）；新增第 13 個小圈「跳跳」（原版比比頭像，連跳 3 次）。
 - 驗收：比比互動1011（105 條）＋桌機守門1008、客服鈕1009、願望清單1009、_preview.py。

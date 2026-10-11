@@ -7,8 +7,8 @@
    圖一：比比在中間，周圍一圈小圓圈。
 
    這支只接手 support.js 建好的 #supFab（不重做按鈕）：
-     ① 情境待機：依「國定假日 → 週末 → 深夜 → 盤中漲跌 → 分頁」決定比比現在播哪一段，換頁／每 5 分鐘／盤中報價更新時重算，
-        換的時候兩張圖交叉淡入淡出（先載好才換，不閃）。
+     ① 待機：只有一款＝第一版客服鈕那支 8 格跳躍 GIF（idle_hop，一直循環；Andy 10-12）。情境（國定假日 → 週末 → 深夜 → 盤中漲跌 → 分頁）
+        只決定泡泡說明句，不換圖；換頁／每 5 分鐘／盤中報價更新時重算說明句。
      ② 環狀選單：桌機滑鼠移到比比上展開；手機（html.m4／≤640，或沒有滑鼠的裝置）點一下展開、點空白收起。
         以比比當下位置為圓心、只排一層（角落＝扇形弧、畫面中間＝一整圈），每頁 5 格、最後一格「下一頁 ›」（10-11 晚 Andy）。
      ③ 點小圈：球／草／摸摸／轉圈／爆米花跑「動作編排」腳本（比比整顆離開原位、道具照物理走，見下面「動作編排引擎」）；
@@ -17,7 +17,7 @@
      ④ 互動次數記在這台裝置（localStorage tw.bibi.n，不送伺服器），比比偶爾回一句「今天第 3 次摸我了～」。
    客服鈕被關掉（html.fab-off）、管理區（fab.hidden）、被抽屜蓋住（supaway）時，環與提示泡泡一律不出現。
    素材：site/brand/bibi/<名稱>.webp（160px 動態 WebP，scripts/anim/bibi_site.py 產生，用到才載）。
-   ★ 動畫單位新素材到了：跑 bibi_site.py 轉檔 → 改下面 IDLE／ACTS 的 file（want 欄寫的就是要換成的新素材名）。
+   ★ 動畫單位新素材到了：跑 bibi_site.py 轉檔 → 改下面 ACTS 的 file／PART。待機不准再加情境款（DECISIONS #357）。
    ============================================================================ */
 (function () {
   'use strict';
@@ -25,48 +25,19 @@
   /* ---------- 素材對照表（MAP）：情境／動作 → 檔名（site/brand/bibi/<file>.webp） ----------
      want＝動畫單位正在做的專屬素材；到了就把 file 改成 want（MS 也補上它的總長，bibi_site.py 最後一行會印）。 */
   const MS = {   // 每組一輪的毫秒數；bibi_site.py 最後一行印的就是這張表
-    // 情境待機（循環）
-    wave: 1000, coins: 840, growth: 1290, magnifier: 1050, fire: 1050, calc: 1160, news: 1070, piggy: 1030, calendar: 1160,
-    bulb: 1050, clock: 1060, star_save: 1000, face_proud: 1630,
-    weekend: 1560, sleep_loop: 1440, idle_down: 1440, idle_bigup: 1200,
-    festival_newyear: 1560, festival_dragon: 1560, festival_moon: 1560, festival_xmas: 1560,
+    // 待機（唯一一款，循環）：第一版客服鈕的 8 格跳躍 GIF（bibi_site.py idle_hop）
+    idle_hop: 800,
+    sleep_loop: 1440,                     // 點「睡覺」之後一直睡（互動，不是待機）
     // 互動（動畫單位 G1／G2 專屬素材；播一輪＝這個毫秒數就回情境待機）
     // 互動（動畫單位 10-11 深夜照原版造型重畫；bibi_site.py 最後一行印的毫秒數）
     highfive: 1230, dance: 1690, hug: 1470, wake_once: 1350, selfie: 1250,
     eat_grass_v2: 2110, ball_catch: 2170, ball_catch_l: 2170, popcorn: 1530, pet_v2: 1730, spin_v2: 1580, dizzy: 1420,
     run_r: 600, run_l: 600, run_start_r: 460, run_stop_r: 1060,
     hit: 1030, cry: 1040,                 // 打他（播一次）／哭哭（循環一輪）
-    // 動作編排的零件（10-11 晚；PART 那張表）：跑步替代 hop_l／hop_r（循環）、抬頭看 face_curious、東張西望 tilt
-    face_curious: 1470, tilt: 1040, face_star: 1370,
-    // Andy 10-11 指定的原版 Default 待機造型
-    default_idle: 1000, jump: 1200,   // Andy 指定的 Default 待機（圖三，單張）＋穿插的跳一下（圖二 docs/anim/jump，播一次）
+    face_star: 1370,
     receive: 1370, receive_grass: 1370, receive_ball: 1370,   // 互動「接東西」（動畫單位照原版造型重做的骨架版）
   };
-  const IDLE = {
-    holiday: { file: 'idle_bigup' },      // 國定假日：實際用哪一款看 HOLIDAY（依節日名稱挑帽子）；表外的節日用這個
-    xmas: { file: 'festival_xmas' },      // 12/24～25（行憲紀念日那天走 HOLIDAY，也是聖誕帽）
-    weekend: { file: 'weekend' },
-    night: { file: 'sleep_loop' },
-    up2: { file: 'idle_bigup' },
-    up: { file: 'face_proud' },
-    down: { file: 'idle_down' },          // 跌一律「安慰」款（Andy：陪伴，不要驚恐）；大跌、小跌只差說明句
-    down2: { file: 'idle_down' },
-    overview: { file: 'wave' }, flow: { file: 'coins' }, rotation: { file: 'growth' }, industry: { file: 'magnifier' },
-    themes: { file: 'fire' }, stock: { file: 'calc' }, etf: { file: 'piggy' }, season: { file: 'calendar' },
-    explore: { file: 'bulb' }, market: { file: 'clock' }, watch: { file: 'star_save' }, news: { file: 'news' }, other: { file: 'wave' },
-  };
-  /* 國定假日（site/tw_holidays.json 的名稱）→ 節日款。比對用「包含」，所以「春節」「和平紀念日補假」都對得到。
-     肅穆的紀念日（和平紀念日、清明節）不戴慶祝帽，用週末放鬆款；颱風等臨時休市也是放鬆款。 */
-  const HOLIDAY = [
-    [['春節', '除夕', '開國紀念日', '元旦'], 'festival_newyear'],
-    [['端午'], 'festival_dragon'],
-    [['中秋'], 'festival_moon'],
-    [['行憲紀念日', '聖誕'], 'festival_xmas'],
-    [['和平紀念日', '清明', '颱風', '停市'], 'weekend'],
-    [['國慶', '光復', '兒童節', '勞動節', '教師節', '軍人節'], 'idle_bigup'],
-  ];
-  const holFile = (name) => { for (const [ks, f] of HOLIDAY) if (ks.some((k) => String(name).indexOf(k) >= 0)) return f; return IDLE.holiday.file; };
-  /* 分頁（hash 第一段）→ 待機情境＋一句話 */
+  /* 分頁（hash 第一段）→ 情境鍵＋泡泡說明句（10-12 起只換說明句，不換圖） */
   const PAGES = [
     [['overview', ''], 'overview', '歡迎回來！比比陪你看今天的盤勢'],
     [['flow'], 'flow', '比比在追錢往哪個族群跑'],
@@ -81,11 +52,10 @@
     [['watch'], 'watch', '你的自選股比比幫你收好了'],
     [['news', 'event', 'events', 'delivery'], 'news', '比比在看今天的財經消息'],
   ];
-  /* 環狀選單的 10 個小圈（順時針，從正上方開始）。fx＝點了冒什麼小特效；say＝回應（隨機一句）；cnt＝第 N 次的回應 */
+  /* 環狀選單的 12 個小圈（「問比比」最內層，由內往外排）。fx＝點了冒什麼小特效；say＝回應（隨機一句）；cnt＝第 N 次的回應 */
   /* once：素材是播一次的專屬動作（播一輪＝MS 毫秒就回待機）；沒有 once 的是現有素材代替（循環素材，播兩輪） */
   const ACTS = [
     { id: 'ask', name: '問比比', ask: true },
-    { id: 'hop', name: '跳跳', file: 'jump', once: true, fx: 'star', say: ['跳跳跳～好開心！', '比比跳最高！'], cnt: (n) => `今天陪比比跳了 ${n} 次！` },
     { id: 'popcorn', name: '爆米花', file: 'popcorn', once: true, fx: 'star', say: ['爆米花跳！啵啵啵～', '開心到跳起來了！'], cnt: (n) => `今天爆米花跳了 ${n} 次！` },
     { id: 'pet', name: '摸摸頭', file: 'pet_v2', once: true, fx: 'heart', say: ['好舒服～', '再摸一下嘛', '嘿嘿，癢癢的'], cnt: (n) => `今天第 ${n} 次摸我了～` },
     { id: 'grass', name: '餵牧草', file: 'eat_grass_v2', once: true, fx: 'grass', say: ['嚼嚼嚼…牧草好香！', '謝謝你餵我～'], cnt: (n) => `今天吃了 ${n} 口牧草，好飽～` },
@@ -101,7 +71,7 @@
   /* 素材對照（was＝10-11 G1／G2 交件前用的替代素材，留著是為了萬一新素材要退回時知道原本是哪一組） */
   /* 小圈上的物件圖：動畫單位 10-11 交的 10 個圖示（docs/anim/bibi_icons → brand/bibi/icons/*.webp，奶油白圓底＋粗描邊，深淺主題都清楚）。
      沒列在這裡的（叫醒）用下面的線條圖示，外框照圖示同款畫。 */
-  const ICON_IMG = { ask: 'chat', hop: 'hop', popcorn: 'popcorn', hit: 'hammer', pet: 'hand', grass: 'grass', ball: 'ball', spin: 'spin', five: 'highfive', dance: 'music', hug: 'heart', sleep: 'moon', selfie: 'camera' };
+  const ICON_IMG = { ask: 'chat', popcorn: 'popcorn', hit: 'hammer', pet: 'hand', grass: 'grass', ball: 'ball', spin: 'spin', five: 'highfive', dance: 'music', hug: 'heart', sleep: 'moon', selfie: 'camera' };
   const SVG = {
     ask: '<path d="M5 5.5h14a2.5 2.5 0 0 1 2.5 2.5v7A2.5 2.5 0 0 1 19 17.5h-6l-4.2 3.3v-3.3H5A2.5 2.5 0 0 1 2.5 15V8A2.5 2.5 0 0 1 5 5.5z" fill="#7cc4ff" fill-opacity=".35" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="M10 9.6a2 2 0 1 1 2.6 1.9c-.5.2-.6.5-.6 1v.4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><circle cx="12" cy="14.9" r=".95" fill="currentColor"/>',
     pet: '<ellipse cx="12" cy="15" rx="5" ry="4.2" fill="#ffb3c4" stroke="currentColor" stroke-width="1.5"/><circle cx="6.4" cy="9.6" r="1.9" fill="#ffb3c4" stroke="currentColor" stroke-width="1.4"/><circle cx="10" cy="7" r="1.9" fill="#ffb3c4" stroke="currentColor" stroke-width="1.4"/><circle cx="14" cy="7" r="1.9" fill="#ffb3c4" stroke="currentColor" stroke-width="1.4"/><circle cx="17.6" cy="9.6" r="1.9" fill="#ffb3c4" stroke="currentColor" stroke-width="1.4"/>',
@@ -137,7 +107,7 @@
   const fabOff = () => html.classList.contains('fab-off');
   const $ = (id) => document.getElementById(id);
   /* 素材版本戳：換了 brand/bibi/ 裡的圖（同檔名）就改這個字串，使用者不用清快取就拿到新圖（10-11 週末款換圖後 Andy 仍看到舊圖） */
-  const AV = '1011c';
+  const AV = '1012a';
   const src = (f) => 'brand/bibi/' + f + '.webp?v=' + AV;
   const T = { now: null, pct: undefined, hol: null };   // 驗收注入（Bibi.test）：假時間、假漲跌、假休市表
 
@@ -245,15 +215,15 @@ html.fab-off .bibiring,html.fab-off .bibitip,html.fab-off .bibifx,html.fab-off #
   /** 情境待機：回 { key, file, say }，優先序 國定假日 → 週末 → 深夜 → 盤中漲跌 → 分頁 */
   function idle() {
     const r = idle0();
-    /* Andy 10-11 深夜：「右下GIF 需要改成圖二一直跳的狀態，除非他點選其他互動紐」→ 待機只有一種：一直跳（jump）；
-       深夜／國定假日／大跌／週末／聖誕的情境款一律不換圖，只留泡泡說明句。減少動態偏好＝原版 Default 靜止。 */
-    r.happy = true;
-    r.file = reduce() || !hopOn ? STILL : BASE_IDLE;
+    /* Andy 10-12：「比比改成一直跳，但是是在主畫面狀態，我說的狀態就是第一版做出來的樣式，一直處於跳的狀態」＋「是這張喔」（9 格跳躍分格圖）
+       → 待機只有一款：第一版客服鈕那支 8 格跳躍 GIF（idle_hop）一直循環。深夜／國定假日／大跌／週末／聖誕／各分頁都不換圖，只換泡泡說明句。
+       系統開「減少動態」＝同一支 GIF 的第 1 格靜態圖。 */
+    r.file = reduce() ? IDLE_STILL : IDLE_HOP;
     return r;
   }
   function idle0() {
     const t = tpe(), hol = T.hol || HOL || {};
-    if (hol[t.ymd]) return { key: 'holiday', file: holFile(hol[t.ymd]), say: `今天${String(hol[t.ymd]).replace(/（.*$/, '')}，台股休市，比比也放假一天～` };
+    if (hol[t.ymd]) return { key: 'holiday', say: `今天${String(hol[t.ymd]).replace(/（.*$/, '')}，台股休市，比比也放假一天～` };
     if (t.dow === 0 || t.dow === 6) return { key: 'weekend', say: '週末不開盤，比比喝杯珍奶放鬆一下～' };
     if (t.hm >= 23 * 60 || t.hm < 6 * 60) return { key: 'night', say: '深夜了，比比想睡覺…你也早點休息' };
     if (t.hm >= 9 * 60 && t.hm <= 13 * 60 + 30) {
@@ -262,7 +232,7 @@ html.fab-off .bibiring,html.fab-off .bibitip,html.fab-off .bibifx,html.fab-off #
         if (p >= 1) return { key: 'up2', say: `今天大盤漲 ${pf(p)}%，比比好開心！` };
         if (p > 0) return { key: 'up', say: `大盤小漲 ${pf(p)}%，比比偷偷得意～` };
         if (p <= -1) return { key: 'down2', say: `大盤跌 ${pf(p)}%，先深呼吸，比比陪著你` };
-        return { key: 'down', file: (IDLE[pageOf()[0]] || IDLE.other).file, say: `大盤小跌 ${pf(p)}%，沒關係，比比陪你` };   // 小跌也開心的跳（Andy 10-11 晚只留「大跌」安慰）
+        return { key: 'down', say: `大盤小跌 ${pf(p)}%，沒關係，比比陪你` };
       }
     }
     if (/-12-2[45]$/.test(t.ymd)) return { key: 'xmas', say: '聖誕快樂！比比戴上聖誕帽陪你看盤～' };
@@ -315,14 +285,11 @@ html.fab-off .bibiring,html.fab-off .bibitip,html.fab-off .bibifx,html.fab-off #
     show(f);
     hopSched();
   }
-  /* ---------- Default 待機 ----------
-     Andy 10-11：「使用圖2 圖3 GIF圖片就好」→ 10-11 深夜：「Default 改成一直跳」：一般情境的待機直接循環播圖二 jump（docs/anim/jump，24 格跳躍，
-     bibi_site.py jump 轉成循環）；減少動態偏好時改成圖三 default_idle 靜止。深夜、國定假日、聖誕帽、大跌安慰保留原情境款。 */
-  const JUMP = 'jump', STILL = 'default_idle';
-  let hopOn = true;
-  function hopSched() { /* 已改成 jump 素材本身循環，不必排程（留著給舊呼叫點） */ }
-  /* 不跳「開心的跳」的情境：深夜睡覺、國定假日（節日帽／肅穆紀念日）、聖誕帽、大跌安慰（Andy 10-11 晚點名的例外） */
-  const NOT_HAPPY = [];   // （10-11 深夜起沒有例外：每種情境都一直跳）
+  /* ---------- 待機 ----------
+     Andy 10-12：待機只用第一版跳躍 GIF（site/brand/src/support_anim_1009.gif → bibi_site.py idle_hop，160px 透明動態 WebP、無限循環）。
+     jump（圖二）與 default_idle（圖三）10-12 起都不再用在待機。 */
+  const IDLE_HOP = 'idle_hop', IDLE_STILL = 'idle_hop_still';
+  function hopSched() { /* 待機素材本身循環，不必排程（留著給舊呼叫點） */ }
 
   /* ---------- 提示泡泡 ---------- */
   let tip = null;
@@ -584,15 +551,12 @@ html.fab-off .bibiring,html.fab-off .bibitip,html.fab-off .bibifx,html.fab-off #
      現在的替代：跑步＝素材庫 hop_l／hop_r（run_l／run_r 還沒到）；撲球／吃草／摸摸／轉圈＝G1 的 ball／eat_grass／pet／spin（_v2 還沒到）。 */
   /* receive＝手把草／球遞過來時往前接（receive 未到先用 face_star）；popcorn＝天竺鼠爆米花跳（未到先用 face_star＋編排位移）；
      receive_*：動畫單位照原版 Default 造型重做的骨架版（第一版 Andy 退件「已經跟原來的不同了」，重做版 CEO 對照過 → 互動可以接）。
-     清空就退回替代（face_star＋SVG 手）。⚠ 待機不用骨架的 happy_hop：Andy「使用圖2 圖3 GIF圖片就好」（見 BASE_IDLE／JUMP）。 */
+     清空就退回替代（face_star＋SVG 手）。⚠ 待機只用 idle_hop（Andy 10-12），不用骨架的 happy_hop、也不用 jump／default_idle。 */
   const PART = { run_l: 'run_l', run_r: 'run_r', run_start_r: 'run_start_r', run_stop_r: 'run_stop_r',
     ball_catch: 'ball_catch', ball_catch_l: 'ball_catch_l', eat: 'eat_grass_v2', pet: 'pet_v2', spin: 'spin_v2', dizzy: 'dizzy', popcorn: 'popcorn',
     receive: 'receive', receive_grass: 'receive_grass', receive_ball: 'receive_ball',
     hit: 'hit', cry: 'cry',                         // 打他（播一次）／哭哭（循環）：動畫單位 10-11 深夜交件
-    look: 'face_curious', peek: 'tilt' };
-  /* 預設待機：Andy 10-11 指定的原版 Default 造型（圖三 docs/anim/bibi_library/reference/default_idle_1011.webp → bibi_site.py default_idle）。
-     「大部分時間都是那樣子」→ 一般情境一律用這張、每 3～5.5 秒穿插跳一次（JUMP）；深夜、國定假日、聖誕帽、大跌安慰保留原情境款。 */
-  const BASE_IDLE = 'jump';
+  };
   /* 替代素材太長時只播這麼久（key＝零件、值＝[替代檔名, 毫秒]；換成真零件後檔名對不上就自動照 MS 播完整段） */
   /* 道具圖：動畫單位的 PNG 到了填檔名（放 site/brand/bibi/props/<名>.png）；空字串＝用下面畫的 inline SVG */
   const PROP_IMG = { ball: '', grass: '', hand: '' };
@@ -629,7 +593,7 @@ html.fab-off .bibiring,html.fab-off .bibitip,html.fab-off .bibifx,html.fab-off #
   };
   const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
   const ABORT = { abort: true };
-  let wrapEl = null, bodyEl = null, stage = null, run = null, runTok = 0, rafId = 0, fidgetT = 0, noFidget = false, tipFollow = false, lastStop = '';
+  let wrapEl = null, bodyEl = null, stage = null, run = null, runTok = 0, rafId = 0, fidgetT = 0, noFidget = true, tipFollow = false, lastStop = '';
   const OFF = { x: 0, y: 0 };
   /** 比比的位移（相對原位）＋身體的擠壓伸展：sx/sy 縮放、sk 傾斜（正＝上半身往左）、r 旋轉 */
   function pose(x, y, o) {
@@ -701,7 +665,7 @@ html.fab-off .bibiring,html.fab-off .bibitip,html.fab-off .bibifx,html.fab-off #
     Object.keys(PART).forEach((k) => { if (PART[k]) { const i = new Image(); i.src = src(PART[k]); } });
     ['ball', 'grass'].forEach((f) => { const i = new Image(); i.src = `brand/bibi/props/${f}.webp?v=${AV}`; });
   }
-  function idleFile() { return sleeping ? SLEEP_FILE : ((idleNow && idleNow.file) || (IDLE[idleNow && idleNow.key] || IDLE.other).file); }
+  function idleFile() { return sleeping ? SLEEP_FILE : ((idleNow && idleNow.file) || IDLE_HOP); }
 
   /* ---------- 給的動作（Andy 10-11 深夜：「伸出去的手太奇怪了，需要修正」） ----------
      不再出手：道具（球／草）從「被點的那顆小圈」沿弧線飛到比比右前方、輕輕彈一下，比比播 receive_grass／receive_ball 接住
@@ -944,23 +908,11 @@ html.fab-off .bibiring,html.fab-off .bibitip,html.fab-off .bibifx,html.fab-off #
       if (said === 1 && t > 1700) { said = 2; floatText('嗚嗚', g.cx, g.top); }
     });
   }
-  /* ---------- 腳本：跳跳（Andy 10-11 深夜：「需要把圖二也新增在互動紐裡面」） ----------
-     圖二 jump 從第 1 格重播、連跳 3 次；每次跟素材的最高點（第 10～16 格、450～800ms）對齊再往上送一段、整顆放大一點，落地冒星星。 */
-  async function hopScript(g) {
-    show(JUMP, true); cue();
-    const H = g.mob ? 20 : 28, CYC = MS[JUMP] || 1200, N = 3;
-    let landed = 0;
-    await tween(CYC * N, (k, t) => {
-      const c = t % CYC, u = (c - 450) / 350, up = u > 0 && u < 1 ? Math.sin(Math.PI * u) : 0;
-      pose(0, -H * up, { sx: 1.08, sy: 1.08 + 0.02 * up });
-      const n = Math.floor((t - 820) / CYC) + 1;
-      if (t >= 820 && n > landed) { landed = n; burstAt('star', g.cx + (Math.random() - 0.5) * g.s * 0.4, g.foot - 6, 2, 1.8); }
-    });
-    await tween(220, (k) => { const d = E.damp(k, 2.5); pose(0, 0, { sx: 1.08 - 0.08 * k + 0.05 * d, sy: 1.08 - 0.08 * k - 0.06 * d }); });
-  }
-  const CHOREO = { hop: hopScript, ball: ballScript, grass: grassScript, pet: petScript, spin: spinScript, popcorn: popcornScript, hit: hitScript };
+  const CHOREO = { ball: ballScript, grass: grassScript, pet: petScript, spin: spinScript, popcorn: popcornScript, hit: hitScript };
 
-  /* ---------- 待機小動作（每 20～40 秒隨機一次）：眨眼／伸懶腰／東張西望／跳一下（現有素材＋位移） ---------- */
+  /* ---------- 待機小動作：眨眼／伸懶腰／跳一下（只動 transform）----------
+     10-12 起預設不自動跑：待機本身就是一直跳的 GIF，再疊小動作會亂；「東張西望」會換圖（tilt），違反「待機一律 idle_hop」，拿掉。
+     只留給 Bibi.test({ fidget: true }) 驗收用。 */
   const FIDGET = {
     blink: async () => { for (let i = 0; i < 2; i++) await tween(240, (k) => { const c = Math.sin(Math.PI * k); pose(0, 0, { sy: 1 - 0.07 * c, sx: 1 + 0.03 * c }); }); },
     stretch: async () => {                       // 天竺鼠伸懶腰＝身體往前後拉長、壓低（四隻腳著地，不站起來）
@@ -968,14 +920,6 @@ html.fab-off .bibiring,html.fab-off .bibitip,html.fab-off .bibifx,html.fab-off #
       await tween(520, (k) => { const e = E.out(k); pose(0, 0, { sx: 1.03 + 0.09 * e, sy: 0.97 - 0.05 * e, sk: -3 * e }); });
       await wait(320);
       await tween(420, (k) => { const d = E.damp(k, 2.5); pose(0, 0, { sx: 1 + 0.12 * d, sy: 1 - 0.08 * d, sk: -3 * (1 - k) }); });
-    },
-    look: async () => {
-      show(PART.peek);
-      await tween(380, (k) => pose(-3 * E.inOut(k), 0, { r: -5 * E.inOut(k) }));
-      await wait(260);
-      await tween(560, (k) => { const e = E.inOut(k); pose(-3 + 6 * e, 0, { r: -5 + 10 * e }); });
-      await wait(260);
-      await tween(360, (k) => { const e = E.inOut(k); pose(3 * (1 - e), 0, { r: 5 * (1 - e) }); });
     },
     hop: async (g) => {
       const J = g.mob ? 14 : 18;
@@ -1020,7 +964,7 @@ html.fab-off .bibiring,html.fab-off .bibitip,html.fab-off .bibifx,html.fab-off #
   function playChoreo(a, line) {
     clearTimeout(fidgetT); stopFidget(); preload();
     const g = geo();                      // 量原位（鈕本身不會動，只有裡面的圖層在動）
-    startRun(a.id, true); tipFollow = true; run.line = line; watchOn(); run.tipSide = ['pet', 'popcorn', 'hit', 'spin', 'hop'].indexOf(a.id) >= 0;   // 摸摸頭（手在頭上）、爆米花跳（跳很高）：泡泡放旁邊，不擋到
+    startRun(a.id, true); tipFollow = true; run.line = line; watchOn(); run.tipSide = ['pet', 'popcorn', 'hit', 'spin'].indexOf(a.id) >= 0;   // 摸摸頭（手在頭上）、爆米花跳（跳很高）：泡泡放旁邊，不擋到
     const tok = runTok;
     CHOREO[a.id](g).then(() => { if (tok === runTok) { if (!run.said) cue(); endRun(); finishAct(); } },
       (e) => { if (e !== ABORT && tok === runTok) { endRun(); finishAct(); if (window.console) console.warn('bibi', e); } });
@@ -1132,15 +1076,14 @@ html.fab-off .bibiring,html.fab-off .bibitip,html.fab-off .bibifx,html.fab-off #
   }
   /* 驗收用：注入假時間／假漲跌／假休市表、直接播某個動作、讀目前狀態 */
   window.Bibi = {
-    MAP: { IDLE, ACTS, MS },
+    MAP: { ACTS, MS, IDLE: IDLE_HOP, STILL: IDLE_STILL },
     state: () => ({ file: fab && fab.dataset.bibi || shown, shown, want, mode, idle: idleNow && idleNow.key, say: idleNow && idleNow.say, sleeping, ring: ringOpen(),
-      run: run ? run.id : '', phase: run && run.phase || '', happy: shown === BASE_IDLE, off: { x: OFF.x, y: OFF.y }, body: bodyEl ? bodyEl.style.transform : '', stop: lastStop, props: stage ? stage.children.length : 0,
+      run: run ? run.id : '', phase: run && run.phase || '', happy: shown === IDLE_HOP, off: { x: OFF.x, y: OFF.y }, body: bodyEl ? bodyEl.style.transform : '', stop: lastStop, props: stage ? stage.children.length : 0,
       src: imgs[front] ? (imgs[front].getAttribute('src') || '').replace(/[?#].*$/, '') : '',
       tip: tip && !tip.hidden && tip.classList.contains('on') ? tip.textContent : '' }),
     test: (o) => { o = o || {}; if ('now' in o) T.now = o.now; if ('pct' in o) T.pct = o.pct; if ('hol' in o) T.hol = o.hol;
-      if ('hop' in o) hopOn = !!o.hop;   // 驗收用：關掉＝一般情境停在原版 Default（換圖斷言不被跳躍格干擾）
       if ('fidget' in o) { noFidget = !o.fidget; if (noFidget) { clearTimeout(fidgetT); stopFidget(); } else schedFidget(); } applyIdle(); return idleNow; },
-    fidget: (k) => doFidget(k), stop: (why) => stopRun(why || 'api'), PART, BASE: BASE_IDLE,
+    fidget: (k) => doFidget(k), stop: (why) => stopRun(why || 'api'), PART, BASE: IDLE_HOP,
     reset: () => { T.now = null; T.pct = undefined; T.hol = null; applyIdle(); },
     idle: () => idle(), open: openRing, close: closeRing, act,
   };
