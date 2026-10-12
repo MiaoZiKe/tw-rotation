@@ -58,7 +58,7 @@ async function seeded() {
   await pj(h.hub, '/v1/admin/pay/bank/put', { t: andy, bank_name: '測試銀行', bank_code: '999', account: '000011112222', holder: '測試戶名' });
   const o = (await pj(h.hub, '/v1/pay/bank/create', { t: bob, plan: 'pro', period: 'month' })).j;
   await pj(h.hub, '/v1/pay/bank/report', { t: bob, id: o.id, last5: '12345', date: '2026-10-05', amount: 299 });
-  await pj(h.hub, '/v1/admin/pay/confirm', { t: andy, id: o.id });
+  await pj(h.hub, '/v1/admin/pay/confirm', { t: andy, id: o.id, received: o.amount });
   await pj(h.hub, '/v1/admin/pay/refund', { t: andy, id: o.id, rid: 'r-exp-000001', amount: 50, last5: '54321', date: '2026-10-05', perm: 'end' });
   return { ...h, andy, bob, oid: o.id };
 }

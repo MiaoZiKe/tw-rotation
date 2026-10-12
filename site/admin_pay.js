@@ -105,18 +105,22 @@
   function paint(v) {
     const d = S.d;
     const nAn = d.anomalies.length, nRev = d.orders.filter((o) => o.method === 'bank' && o.status === 'review').length;
-    const tabs = [['bankord', '銀行轉帳訂單'], ['orders', '綠界訂單'], ['subs', '會員訂閱'], ['refunds', '退款紀錄'], ['bank', '收款帳號設定']];
+    const nReq = (d.reqs || []).filter((r) => r.status === 'new').length;
+    const tabs = [['bankord', '銀行轉帳訂單'], ['orders', '綠界訂單'], ['reqs', '取消／退款申請' + (nReq ? `<span class="anom" style="margin-left:4px;padding:0 6px;background:#e5484d;color:#fff">${nReq}</span>` : '')], ['subs', '會員訂閱'], ['refunds', '退款紀錄'], ['bank', '收款帳號設定']];
     v.innerHTML = `<div class="card pay" id="payAdm">
       <div class="hd"><h3>付款與訂單</h3>${d.test ? '<span class="tst" title="綠界正式金鑰還沒設：綠界付款走測試環境">綠界測試模式</span>' : ''}
         <span class="anom${nAn ? '' : ' zero'}" id="payAnom" title="已付款但沒開通、開通出錯、金額不符">異常 ${nAn}</span>
         ${nRev ? `<span class="anom" style="background:var(--amber);color:#04121a" id="payRevCnt">待確認轉帳 ${nRev}</span>` : ''}
+        ${nReq ? `<span class="anom" style="background:#e5484d;color:#fff;cursor:pointer" id="payReqCnt" title="會員按了取消訂閱或申請退款，還沒處理">待處理申請 ${nReq}</span>` : ''}
         <span class="sp"></span><button type="button" id="payReload">重新整理</button></div>
       <div class="nbsw" id="payTabs" role="tablist" aria-label="付款與訂單分頁">${tabs.map(([k, n]) => `<button type="button" role="tab" data-ptab="${k}" class="${S.tab === k ? 'on' : ''}" aria-selected="${S.tab === k}">${n}</button>`).join('')}</div>
       <div id="payView"></div><div class="st" id="paySt" role="status"></div></div>`;
     v.querySelector('#payReload').onclick = () => render(v);
+    const rq = v.querySelector('#payReqCnt'); if (rq) rq.onclick = () => { S.tab = 'reqs'; paint(v); };
     v.querySelectorAll('[data-ptab]').forEach((b) => { b.onclick = () => { S.tab = b.dataset.ptab; paint(v); }; });
     const box = v.querySelector('#payView');
     if (S.tab === 'orders' || S.tab === 'bankord') ordersView(v, box, S.tab === 'bankord' ? 'bank' : 'ecpay');
+    else if (S.tab === 'reqs') reqsView(v, box);
     else if (S.tab === 'subs') subsView(v, box);
     else if (S.tab === 'refunds') refundsView(v, box);
     else bankView(v, box);
@@ -144,6 +148,12 @@
   const rsLoad = () => { try { const j = JSON.parse(localStorage.getItem('twpay.reasons') || '[]'); return Array.isArray(j) ? j.filter((x) => typeof x === 'string').slice(0, 30) : []; } catch (e) { return []; } };
   const rsSave = (a) => { try { localStorage.setItem('twpay.reasons', JSON.stringify(a)); } catch (e) { /* 存不了就算了 */ } };
 
+  /* 會員每一次匯款回報（不可改；重送的舊紀錄標「已作廢」）*/
+  function repHist(o) {
+    const a = o.reports || [];
+    if (!a.length) return '';
+    return `<div style="margin-top:8px;font-size:12.5px"><b>會員回報紀錄（${a.length} 筆）</b>${a.map((r, i) => `<div style="${r.state === 'void' ? 'opacity:.6;text-decoration:line-through' : ''}">${i + 1}. ${esc(ymdhm(r.at))} 送出：末 5 碼 ${esc(r.last5)}・轉帳日 ${esc(r.date)}・<b style="${r.amount < o.amount ? 'color:#e5484d' : r.amount > o.amount ? 'color:#30a46c' : ''}">NT$ ${nt(r.amount)}</b>${r.note ? '・' + esc(r.note) : ''}${r.state === 'void' ? `　<span style="text-decoration:none">（已作廢：${esc(r.voidWhy || '')}）</span>` : '　（目前這筆）'}</div>`).join('')}</div>`;
+  }
   /* ---------------------------------------------------------------- ① 訂單 */
   /* 2026-10-11 Andy：未付款的不算訂單 → 預設不顯示「待付款」「已取消（未付款）」；對帳時打開「顯示未完成付款」 */
   const UNPAID = ['pending', 'cancelled'];
@@ -165,8 +175,10 @@
       if (o.method === 'ecpay' && !o.parent && (!o.applied || o.recur)) acts.push(`<button type="button" class="sm" data-pa="sync" data-id="${esc(o.id)}">${o.recur && o.applied ? '對帳' : '查單'}</button>`);
       acts.push(`<button type="button" class="sm" data-pa="note" data-id="${esc(o.id)}">備註</button>`);
     }
-    const mism = o.method === 'bank' && o.last5 && o.xferAmount && o.xferAmount !== o.amount;
-    const bankCols = kind === 'ecpay' ? '' : `<td class="n"${mism ? ' style="color:var(--rise);font-weight:700" title="客戶匯款金額和應付金額不同"' : ''}>${o.method === 'bank' && o.last5 ? nt(o.xferAmount) + (mism ? ' ⚠' : '') : ''}</td>`;
+    /* 2026-10-12 Andy：少於應付＝紅字、多於應付＝綠字、相同＝一般顏色（紅綠是金額對錯，不是台股漲跌） */
+    const xa = o.method === 'bank' && o.last5 ? o.xferAmount : 0;
+    const xc = !xa ? '' : xa < o.amount ? ' style="color:#e5484d;font-weight:700" title="少於應付金額 NT$ ' + nt(o.amount - xa) + '"' : xa > o.amount ? ' style="color:#30a46c;font-weight:700" title="多於應付金額 NT$ ' + nt(xa - o.amount) + '"' : '';
+    const bankCols = kind === 'ecpay' ? '' : `<td class="n"${xc}>${xa ? nt(xa) + (xa < o.amount ? ' ⚠' : '') : ''}</td>`;
     const bankCols2 = kind === 'ecpay' ? '' : `<td style="text-align:center;font-variant-numeric:tabular-nums">${esc(o.last5 || '')}</td><td>${esc(o.xferDate || '')}</td>`;
     return `<tr class="prow" data-oid="${esc(o.id)}"><td>${esc(ymdhm(o.created))}</td><td class="l" title="${esc(o.email)}">${mailA(o.email, o)}</td><td>${esc(o.planName)}</td><td>${o.period === 'year' ? '年繳' : '月繳'}</td>
       <td class="n">${nt(o.amount)}</td>${bankCols}<td>${esc(methodName(o))}</td><td><span class="stp ${ST_CLS[o.status] || 'mute'}">${esc(stName(o))}</span></td>
@@ -181,6 +193,8 @@
     if (o.recur && !o.parent) a.push('自動續訂：' + (o.periodState === 'active' ? '開' : o.periodState === 'cancelled' ? '已取消 ' + esc(ymd(o.cancelAt)) : '—') + `・已扣 ${o.periodN || 0} 期`);
     if (o.note) a.push('會員備註：' + esc(o.note)); if (o.rejectReason) a.push('退回原因：' + esc(o.rejectReason));
     if (o.anomaly) a.push('<b style="color:var(--rise)">異常：' + esc(o.anomaly) + '</b>'); if (o.actErr) a.push('<b style="color:var(--rise)">開通出錯：' + esc(o.actErr) + '</b>');
+    if (o.recvAmount) a.push(`管理者確認實收 <b>NT$ ${nt(o.recvAmount)}</b>`);
+    if ((o.reports || []).length) a.push(repHist(o));
     if (o.rtnMsg) a.push('綠界訊息：' + esc(o.rtnMsg));
     (o.refundRows || []).forEach((r) => a.push(`退款 <b>NT$ ${nt(r.amount)}</b>・${r.status === 'done' ? '完成' : r.status === 'failed' ? '失敗' : '處理中'}・${r.kind === 'manual' ? '人工' + (r.acct_last5 ? '（退到末 5 碼 ' + esc(r.acct_last5) + '）' : '') : '綠界 ' + esc(r.action)}・${esc(r.rdate || ymd(r.created))}・${r.perm === 'end' ? '到期才停' : '立即降級'}${r.note ? '・' + esc(r.note) : ''}${r.msg ? '・' + esc(r.msg) : ''}`));
     return a.filter(Boolean).join('　');
@@ -218,6 +232,20 @@
     box.querySelectorAll('[data-pa]').forEach((b) => { b.onclick = (e) => { e.stopPropagation(); act(v, b.dataset.pa, S.d.orders.find((o) => o.id === b.dataset.id)); }; });
   }
 
+  /* ---------------------------------------------------------------- 取消／退款申請（2026-10-12 Andy：會員按退款後我這邊要收到通知、有分頁看紀錄）*/
+  const RQ = { cancel: '取消訂閱', refund: '申請退款' };
+  function reqsView(v, box) {
+    const rs = S.d.reqs || [];
+    box.innerHTML = `<p class="muted" style="margin:0 0 8px">會員在帳號選單按「取消訂閱」或「申請退款」都會列在這裡；紅色數字＝還沒處理。退款請到「銀行轉帳訂單／綠界訂單」找那筆按「退款」，處理完再回來按「標記已處理」。</p>
+      <div class="tw"><table id="payReqs"><thead><tr><th>申請時間</th><th>種類</th><th>會員 email</th><th>當時方案</th><th>會員留言</th><th>狀態</th><th></th></tr></thead>
+      <tbody>${rs.map((r) => `<tr><td>${esc(ymdhm(r.created))}</td><td>${esc(RQ[r.type] || r.type)}</td><td class="l">${mailA(r.email)}</td><td>${esc(((S.d.orders || []).find((o) => o.plan === r.plan) || {}).planName || r.plan || '')}</td><td class="l" style="max-width:260px" title="${esc(r.note || '')}">${esc(r.note || '')}</td>
+        <td>${r.status === 'new' ? '<span class="stp bad">待處理</span>' : '<span class="stp ok">已處理</span>'}</td>
+        <td class="act">${r.status === 'new' ? `<button type="button" class="sm pri" data-rqd="${esc(r.id)}">標記已處理</button>` : `<button type="button" class="sm" data-rqn="${esc(r.id)}">改回待處理</button>`}</td></tr>`).join('') || '<tr><td colspan="7" class="muted">沒有申請</td></tr>'}</tbody></table></div>`;
+    const set = async (id, status) => { const r = await call('/v1/admin/feedback/set', { kind: 'request', id, status }); if (r && r._s === 200) { await load(); paint(v); st(v, status === 'done' ? '已標記處理' : '已改回待處理'); } else st(v, '沒有成功', true); };
+    box.querySelectorAll('[data-rqd]').forEach((b) => { b.onclick = () => set(b.dataset.rqd, 'done'); });
+    box.querySelectorAll('[data-rqn]').forEach((b) => { b.onclick = () => set(b.dataset.rqn, 'new'); });
+  }
+
   /* ---------------------------------------------------------------- 動作（每個都先確認）*/
   async function done(v, r, okMsg) {
     if (r && r._s === 200 && r.ok !== false) { await load(); paint(v); st(v, okMsg); return true; }
@@ -226,12 +254,27 @@
   function act(v, k, o) {
     if (!o) return;
     const D = T().dialog;
-    const who = `<div class="kv"><span>訂單</span><b>${esc(o.id)}</b><span>會員</span><b>${mailA(o.email, o)}</b><span>方案</span><b>${esc(o.planName)}・${o.period === 'year' ? '年繳' : '月繳'}</b><span>應付金額</span><b>NT$ ${nt(o.amount)}</b>${o.last5 ? `<span>客戶匯款</span><b${o.xferAmount !== o.amount ? ' style="color:var(--rise)"' : ''}>末 5 碼 ${esc(o.last5)}（${esc(o.xferDate)}，NT$ ${nt(o.xferAmount)}）${o.xferAmount !== o.amount ? ' ⚠ 與應付金額不同' : ''}</b>` : ''}</div>`;
-    const err = (dl, r) => { const m = dl.querySelector('.msg'); m.className = 'msg bad'; m.textContent = '沒有成功：' + ((r && (r.msg || (r.error === 'not_reported' ? '會員還沒回報匯款資料，不能確認入帳' : r.error))) || (r ? r._s : '連不到會員伺服器')); };
+    const who = `<div class="kv"><span>訂單</span><b>${esc(o.id)}</b><span>會員</span><b>${mailA(o.email, o)}</b><span>方案</span><b>${esc(o.planName)}・${o.period === 'year' ? '年繳' : '月繳'}</b><span>應付金額</span><b>NT$ ${nt(o.amount)}</b>${o.last5 ? `<span>客戶匯款</span><b${o.xferAmount < o.amount ? ' style="color:#e5484d"' : o.xferAmount > o.amount ? ' style="color:#30a46c"' : ''}>末 5 碼 ${esc(o.last5)}（${esc(o.xferDate)}，NT$ ${nt(o.xferAmount)}）${o.xferAmount < o.amount ? ' ⚠ 少於應付' : o.xferAmount > o.amount ? '（多於應付）' : ''}</b>` : ''}</div>`;
+    const err = (dl, r) => { const m = dl.querySelector('.msg'); m.className = 'msg bad'; m.textContent = '沒有成功：' + ((r && (r.msg || (r.error === 'not_reported' ? '會員還沒回報匯款資料，不能確認入帳' : r.error === 'underpaid' ? '實收金額少於應付，不能開通' : r.error === 'need_received' ? '請輸入網銀實際入帳金額' : r.error))) || (r ? r._s : '連不到會員伺服器')); };
     if (k === 'confirm') {
-      const dl = D(`<div class="payd"><h3>確認入帳並開通？</h3>${who}<p>按下去會：① 這筆標成「已開通」② 會員立刻變成 <b>${esc(o.planName)}</b>，到期日${o.period === 'year' ? '加 12 個月' : '加 1 個月'}（從目前到期日或今天較晚的那天起算）③ 記一筆開通紀錄。<br>請先到網銀確認<b>真的有這筆入帳</b>、金額相符。</p>
-        <div class="msg" role="status"></div><div class="row2"><button type="button" data-close>取消</button><button type="button" class="pri" id="pdGo">確認入帳並開通</button></div></div>`);
-      dl.querySelector('#pdGo').onclick = async () => { dl.querySelector('#pdGo').disabled = true; const r = await call('/v1/admin/pay/confirm', { id: o.id }); if (await done(v, r, `已開通 ${o.email}`)) dl.hidden = true; else { err(dl, r); dl.querySelector('#pdGo').disabled = false; } };
+      /* 2026-10-12 Andy：資金確認第二道 CHK —— 一定要輸入網銀實際入帳金額；少於應付按不下去（伺服器也擋） */
+      const dl = D(`<div class="payd"><h3>確認入帳並開通？</h3>${who}${repHist(o)}
+        <label for="pdRecv" style="display:block;margin-top:8px"><b>網銀實際入帳金額</b>（請登入網銀看這筆入帳，照實輸入）</label>
+        <input type="text" id="pdRecv" inputmode="numeric" autocomplete="off" placeholder="例如 ${esc(o.amount)}">
+        <div id="pdRecvM" style="margin:6px 0;font-size:13px"></div>
+        <p>按下去會：① 這筆標成「已開通」② 會員立刻變成 <b>${esc(o.planName)}</b>，到期日${o.period === 'year' ? '加 12 個月' : '加 1 個月'}（從目前到期日或今天較晚的那天起算）③ 記一筆開通紀錄（含你輸入的實收金額）。</p>
+        <div class="msg" role="status"></div><div class="row2"><button type="button" data-close>取消</button><button type="button" class="pri" id="pdGo" disabled>確認入帳並開通</button></div></div>`);
+      const inp = dl.querySelector('#pdRecv'), go = dl.querySelector('#pdGo'), rm = dl.querySelector('#pdRecvM');
+      const val = () => { const n = parseInt(String(inp.value).replace(/[,\s]/g, ''), 10); return Number.isInteger(n) && n > 0 ? n : 0; };
+      inp.oninput = () => {
+        const n = val();
+        go.disabled = !(n >= o.amount); go.style.opacity = go.disabled ? '.35' : ''; go.style.cursor = go.disabled ? 'not-allowed' : '';
+        rm.style.color = !n ? '' : n < o.amount ? '#e5484d' : n > o.amount ? '#30a46c' : '';
+        rm.textContent = !n ? '' : n < o.amount ? `少收 NT$ ${nt(o.amount - n)}，不能開通。請按「退回」並寫原因（例如請補匯差額）。` : n > o.amount ? `多收 NT$ ${nt(n - o.amount)}，可以開通；多的部分請另外退還或備註。` : '金額相符。';
+      };
+      go.onclick = async () => { const n = val(); if (n < o.amount) return; go.disabled = true; const r = await call('/v1/admin/pay/confirm', { id: o.id, received: n }); if (await done(v, r, `已開通 ${o.email}（實收 NT$ ${nt(n)}）`)) dl.hidden = true; else { err(dl, r); go.disabled = false; } };
+      go.style.opacity = '.35'; go.style.cursor = 'not-allowed';
+      setTimeout(() => inp.focus(), 50);
     } else if (k === 'reject') {
       const dl = D(`<div class="payd"><h3>退回這筆轉帳？</h3>${who}<p>按下去會把這筆標成「已退回」，<b>不會開通</b>；會員在「我的訂單」看得到退回原因，可以重新回報。</p>
         <label for="pdWhy">退回原因（會員看得到）</label><input type="text" id="pdWhy" maxlength="200" placeholder="例如：查無這筆入帳／金額不符">
@@ -324,7 +367,7 @@
       <div class="tw"><table id="paySubs"><thead><tr><th>會員 email</th><th>目前方案</th><th>付款方式</th><th>第一次付款</th><th>最近付款</th><th>週期</th><th>本期開始</th><th>到期日</th><th>自動續訂</th><th>到期後降回註冊會員</th><th>累計付款</th><th>筆數</th></tr></thead>
       <tbody>${subs.map((s) => `<tr class="prow" data-em="${esc(s.email)}"><td class="l" title="${esc(s.email)}">${mailA(s.email)}</td><td>${esc(s.expired ? '註冊會員（已到期）' : s.planName)}</td><td>${esc(subMethod(s))}</td>
         <td>${esc(ymd(s.firstPaid))}</td><td>${esc(ymd(s.lastPaid))}</td><td>${s.period === 'year' ? '年繳' : '月繳'}</td><td>${esc(ymd(s.curFrom))}</td><td>${esc(ymd(s.expires))}</td>
-        <td>${s.autoRenew ? '<span class="stp ok">開</span>' : '<span class="stp mute">關</span>'}</td><td>${s.downgradeAt ? esc(ymd(s.downgradeAt)) : '自動續扣中'}</td>
+        <td>${s.autoRenew ? '<span class="stp ok">開</span>' : s.recur ? '<span class="stp mute">已取消</span>' : '<span class="muted" title="銀行轉帳與單次付款是預付制，沒有自動扣款">不適用</span>'}</td><td>${s.downgradeAt ? esc(ymd(s.downgradeAt)) : '自動續扣中'}</td>
         <td class="n">${nt(s.total)}${s.refunded ? `<small style="color:var(--rise)">（退 ${nt(s.refunded)}）</small>` : ''}</td><td class="n">${s.count}</td></tr>`
         + (S.open['s:' + s.email] ? `<tr class="det"><td colspan="12"><div class="tw"><table>${TH}<tbody>${d.orders.filter((o) => o.email === s.email).map((o) => orderRow(o, true)).join('')}</tbody></table></div>
           <p style="margin:6px 0 0">方案異動：${ev(s.email).map((e) => `${esc(ymdhm(e.at))} ${esc(EV[e.kind] || e.kind)}${e.detail ? '（' + esc(e.detail) + '）' : ''}`).join('　') || '—'}</p></td></tr>` : '')).join('') || '<tr><td colspan="12" class="muted">還沒有付費會員</td></tr>'}</tbody></table></div>`;

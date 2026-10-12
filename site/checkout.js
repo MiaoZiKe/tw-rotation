@@ -301,7 +301,9 @@ html.pay-renew #acctBtn.ame::after{content:'';position:absolute;top:2px;right:2p
   function subLine(o) {
     const a = [];
     if (o.grantTo) a.push(`開通期間 ${ymd(o.grantFrom)}～${ymd(o.grantTo)}`);
-    if (o.method === 'bank' && o.last5) a.push(`轉出末 5 碼 ${esc(o.last5)}・${esc(o.xferDate)}・NT$ ${nt(o.xferAmount)}`);
+    /* 2026-10-12 Andy：記錄每一次回報的時間與真實輸入的金額，不可修改；重送的舊紀錄標「已作廢」 */
+    if (o.method === 'bank' && (o.reports || []).length) a.push('匯款回報：' + o.reports.map((r, i) => `<span style="${r.state === 'void' ? 'opacity:.6;text-decoration:line-through' : ''}">#${i + 1} ${esc(ymdhm(r.at))} 末 5 碼 ${esc(r.last5)}・${esc(r.date)}・NT$ ${nt(r.amount)}</span>${r.state === 'void' ? '（已作廢：' + esc(r.voidWhy || '') + '）' : ''}`).join('；'));
+    else if (o.method === 'bank' && o.last5) a.push(`轉出末 5 碼 ${esc(o.last5)}・${esc(o.xferDate)}・NT$ ${nt(o.xferAmount)}`);
     if (o.method === 'bank' && o.status === 'pending') a.push(`請於 ${ymd(o.created + 3 * 86400000)} 前轉帳，轉完按「回報匯款」`);
     if (o.payInfo && o.status === 'pending') a.push(o.payInfo.account ? `ATM 繳費帳號 ${esc(o.payInfo.bank)}-${esc(o.payInfo.account)}（${esc(o.payInfo.expire)} 前）` : o.payInfo.code ? `超商繳費代碼 ${esc(o.payInfo.code)}（${esc(o.payInfo.expire)} 前）` : '');
     if (o.recur && !o.parent) a.push(o.periodState === 'active' ? '自動續訂：開' : o.periodState === 'cancelled' ? `自動續訂：已取消（${ymd(o.cancelAt)}）` : '');
@@ -312,7 +314,7 @@ html.pay-renew #acctBtn.ame::after{content:'';position:absolute;top:2px;right:2p
   }
   function rowHTML(o, hit) {
     const act = [];
-    if (o.method === 'bank' && ['pending', 'review', 'expired'].includes(o.status)) act.push(`<button type="button" data-rep="${esc(o.id)}">${o.status === 'review' ? '修改匯款資料' : '回報匯款'}</button>`);
+    if (o.method === 'bank' && ['pending', 'review'].includes(o.status)) act.push(`<button type="button" data-rep="${esc(o.id)}" title="${o.status === 'review' ? '已送出的資料不能修改；補送會新增一筆，上一筆標成已作廢' : ''}">${o.status === 'review' ? '補送新的匯款資料' : '回報匯款'}</button>`);
     if (o.recur && !o.parent && o.periodState === 'active') act.push(`<button type="button" data-cxl="${esc(o.id)}">取消自動續訂</button>`);
     return `<div class="ordr${hit ? ' hit' : ''}" data-oid="${esc(o.id)}">
       <div class="c-time t" title="${esc(ymdhm(o.created))}">${esc(ymdhm(o.created))}</div>
@@ -352,9 +354,10 @@ html.pay-renew #acctBtn.ame::after{content:'';position:absolute;top:2px;right:2p
     v.innerHTML = `<div class="card ordp"><h2>我的訂單／付款紀錄</h2><p class="muted">每一筆付款的方式、金額、狀態與時間；退款也會列在這裡。</p>
       <div id="ordBn">${banner}</div>
       <div class="ordsum" id="ordSum"><span>目前方案 <b>${esc(j.planName || '註冊會員')}</b></span>${j.expires && j.plan !== 'free' ? `<span>到期日 <b>${esc(ymd(j.expires))}</b></span>` : ''}
-        ${j.plan !== 'free' ? `<span>自動續訂 <b>${j.autoRenew ? '開' : '關'}</b></span>` : ''}${rn ? `<span style="color:var(--amber)">剩 ${rn.days} 天到期</span><button type="button" class="pri" data-renew="1">${rn.method === 'bank' ? '再匯一期' : '續訂一期'}</button>` : ''}
+        ${j.plan !== 'free' ? `<span>自動續訂 <b>${j.autoRenew ? '開' : os.some((o) => o.recur && !o.parent) ? '已取消' : '不適用'}</b>${!j.autoRenew && !os.some((o) => o.recur && !o.parent) ? '<small class="muted">（轉帳／單次付款是預付制，不會自動扣款）</small>' : ''}</span>` : ''}${rn ? `<span style="color:var(--amber)">剩 ${rn.days} 天到期</span><button type="button" class="pri" data-renew="1">${rn.method === 'bank' ? '再匯一期' : '續訂一期'}</button>` : ''}
         <span style="flex:1"></span><a href="#pricing">看方案</a></div>
-      <div class="ordl" id="ordList">${os.length ? '<div class="ordr hd"><div>時間</div><div>方案</div><div>金額</div><div>方式</div><div>狀態</div><div></div></div>' + os.map((o) => rowHTML(o, o.id === focus)).join('') : '<p class="muted" id="ordEmpty" style="padding:12px 4px">還沒有付款紀錄。到 <a href="#pricing">訂閱方案</a> 挑一個吧。</p>'}</div></div>`;
+      <div class="ordl" id="ordList">${os.length ? '<div class="ordr hd"><div>時間</div><div>方案</div><div>金額</div><div>方式</div><div>狀態</div><div></div></div>' + os.map((o) => rowHTML(o, o.id === focus)).join('') : '<p class="muted" id="ordEmpty" style="padding:12px 4px">還沒有付款紀錄。到 <a href="#pricing">訂閱方案</a> 挑一個吧。</p>'}</div>
+      ${(j.reqs || []).length ? `<h3 style="margin:16px 0 6px;font-size:15px">我的取消／退款申請</h3><div class="ordl" id="ordReqs">${j.reqs.map((r) => `<div class="ordr" style="grid-template-columns:auto auto 1fr auto"><div class="c-time t">${esc(ymdhm(r.created))}</div><div><b>${r.type === 'refund' ? '申請退款' : '取消訂閱'}</b></div><div class="t" title="${esc(r.note || '')}">${esc(r.note || '')}</div><div><span class="stp ${r.status === 'new' ? 'wait' : 'ok'}">${r.status === 'new' ? '處理中' : '已處理'}</span></div></div>`).join('')}</div>` : ''}</div>`;
     bind(v, j);
     if (f && ['pending', 'paid'].includes(f.status) && f.method === 'ecpay') startPoll(v, f.id);
   }
@@ -395,14 +398,23 @@ html.pay-renew #acctBtn.ame::after{content:'';position:absolute;top:2px;right:2p
     css();
     const today = ymd(Date.now());
     const d = T().dialog(`<div class="cohd"><b>回報匯款</b><span class="sp"></span><button type="button" data-close aria-label="關閉">×</button></div><div class="cobd">
-      <p>訂單 <code>${esc(o.id)}</code>・${esc(o.planName)}・NT$ ${nt(o.amount)}</p>
-      <div class="cofrm"><div class="w2m"><label for="rpL5">轉出帳號末 5 碼</label><input id="rpL5" inputmode="numeric" maxlength="5" value="${esc(o.last5)}"></div>
-      <div><label for="rpDate">轉帳日期</label><input id="rpDate" type="date" value="${esc(o.xferDate || today)}" max="${esc(today)}"></div>
-      <div><label for="rpAmt">轉帳金額</label><input id="rpAmt" inputmode="numeric" value="${esc(o.xferAmount || o.amount)}"></div>
-      <div class="w3"><label for="rpNote">備註（選填）</label><input id="rpNote" maxlength="200" value="${esc(o.note)}"></div></div>
+      <p>訂單 <code>${esc(o.id)}</code>・${esc(o.planName)}・應付 <b>NT$ ${nt(o.amount)}</b></p>
+      ${o.status === 'review' ? '<p class="muted" style="font-size:12.5px">已送出的匯款資料<b>不能修改</b>。這裡送出的是<b>新的一筆</b>，上一筆會標成「已作廢（已有最新匯款資料）」，兩筆都會留紀錄。</p>' : ''}
+      <div class="cofrm"><div class="w2m"><label for="rpL5">轉出帳號末 5 碼</label><input id="rpL5" inputmode="numeric" maxlength="5" autocomplete="off"></div>
+      <div><label for="rpDate">轉帳日期</label><input id="rpDate" type="date" value="${esc(today)}" max="${esc(today)}"></div>
+      <div><label for="rpAmt">轉帳金額</label><input id="rpAmt" inputmode="numeric" value="${esc(o.amount)}"></div>
+      <div class="w3"><label for="rpNote">備註（選填）</label><input id="rpNote" maxlength="200"></div></div>
       <button type="button" class="cogo" id="rpGo">送出</button><div class="msg" id="rpMsg" role="status"></div></div>`, (dl) => { dl.querySelector('.box').className = 'box codlg'; });
     const msg = (t, bad) => { const m = d.querySelector('#rpMsg'); m.className = 'msg ' + (bad ? 'bad' : 'ok'); m.textContent = t; };
-    d.querySelector('#rpGo').onclick = () => report(o.id, { last5: d.querySelector('#rpL5').value.trim(), date: d.querySelector('#rpDate').value, amount: parseInt(d.querySelector('#rpAmt').value, 10), note: d.querySelector('#rpNote').value.trim() }, msg, () => {
+    let armed = '';
+    d.querySelector('#rpGo').onclick = () => {
+      const f = { last5: d.querySelector('#rpL5').value.trim(), date: d.querySelector('#rpDate').value, amount: parseInt(String(d.querySelector('#rpAmt').value).replace(/[,\s]/g, ''), 10), note: d.querySelector('#rpNote').value.trim() };
+      /* 送出前確認：金額和應付不同 → 先警告，再按一次才送 */
+      const key = JSON.stringify(f);
+      if (Number.isInteger(f.amount) && f.amount !== o.amount && armed !== key) { armed = key; msg(`⚠ 你填的 NT$ ${nt(f.amount)} 和應付 NT$ ${nt(o.amount)} 不同。金額不足會被退回、不會開通。確定沒填錯就再按一次「送出」。`, true); return; }
+      sendRep(f);
+    };
+    const sendRep = (f) => report(o.id, f, msg, () => {
       d.hidden = true; T().toast('已送出，狀態：待確認'); S.my = null; const v = document.getElementById('v-orders'); if (v) renderOrders(v, o.id);
     });
   }

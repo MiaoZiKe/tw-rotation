@@ -93,6 +93,10 @@ export function installPay(Hub, H) {
     this.q('CREATE UNIQUE INDEX IF NOT EXISTS plan_events_u ON plan_events (email, kind, ref)');
     /* 金流原始事件（通知、查單、退款回應）：對帳與查問題用 */
     this.q('CREATE TABLE IF NOT EXISTS pay_events (id INTEGER PRIMARY KEY AUTOINCREMENT, at INTEGER, oid TEXT, kind TEXT, detail TEXT)');
+    /* 2026-10-12：管理者確認時輸入的網銀實收金額（recv_amount）；會員每一次匯款回報的不可改紀錄（reports，JSON 陣列，新的在後）*/
+    const cols = new Set(this.q('PRAGMA table_info(orders)').map((c) => c.name));
+    if (!cols.has('recv_amount')) this.q('ALTER TABLE orders ADD COLUMN recv_amount INTEGER');
+    if (!cols.has('reports')) this.q('ALTER TABLE orders ADD COLUMN reports TEXT');
     this._payOk = true;
   };
   Hub.prototype.payEv = function (oid, kind, detail) {
@@ -349,6 +353,8 @@ export function installPay(Hub, H) {
     periodN: o.period_n || 0, periodState: o.period_state || '', status: o.status, statusName: PAY_STATUS[o.status] || o.status,
     payType: o.pay_type || '', payInfo: (() => { try { return JSON.parse(o.pay_info || 'null'); } catch (e) { return null; } })(),
     last5: o.from_last5 || '', xferDate: o.xfer_date || '', xferAmount: o.xfer_amount || 0, note: o.note || '', rejectReason: o.reject_reason || '',
+    reports: (() => { try { const a = JSON.parse(o.reports || '[]'); return Array.isArray(a) ? a : []; } catch (e) { return []; } })(),
+    recvAmount: o.recv_amount || 0,
     grantFrom: o.grant_from || 0, grantTo: o.grant_to || 0, refunded: o.refunded || 0, test: !!o.test,
     created: o.created, paidAt: o.paid_at || 0, confirmedAt: o.confirmed_at || 0, cancelAt: o.cancel_at || 0,
     refunds: (refunds || []).filter((r) => r.oid === o.id && r.status === 'done').map((r) => ({ amount: r.amount, at: r.done_at || r.created, kind: r.kind })),
@@ -376,7 +382,8 @@ export function installPay(Hub, H) {
       const days = Math.max(0, Math.ceil((e.expires - now) / DAY));
       renew = { plan, planName: e.planName, period: per, amount: pr ? pr.amount : null, expires: e.expires, days, stage: days <= 1 ? 1 : 7, method: last ? last.method : '' };
     }
-    return { orders: rows.map((o) => pubOrder(o, refunds)), plan, planName: e.planName, expires: e.expires || 0, autoRenew: !!active, autoRenewId: active ? active.id : '', renew, test: this.ecCfg().test, now };
+    const reqs = this.q("SELECT id, type, plan, note, created, status FROM sub_requests WHERE uid = ? AND type IN ('cancel', 'refund') ORDER BY created DESC LIMIT 50", v.user.uid);
+    return { reqs, orders: rows.map((o) => pubOrder(o, refunds)), plan, planName: e.planName, expires: e.expires || 0, autoRenew: !!active, autoRenewId: active ? active.id : '', renew, test: this.ecCfg().test, now };
   };
 
   /* ---------------------------------------------------------------- 會員訂閱清單（管理區）*/
@@ -527,13 +534,19 @@ export function installPay(Hub, H) {
       this.payInit();
       const o = this.payOrder(b.id);
       if (!o || o.uid !== v.user.uid || o.method !== 'bank') return this.json(req, { error: 'not_found' }, 404);
-      if (!['pending', 'review', 'expired'].includes(o.status)) return this.json(req, { error: 'bad_status', status: o.status }, 409);
+      /* 2026-10-12 Andy：會員不能修改已送出的匯款資料；重送＝新增一筆，前一筆標「已作廢（已有最新匯款資料）」，每一筆都留時間與真實輸入的金額 */
+      if (!['pending', 'review'].includes(o.status)) return this.json(req, { error: 'bad_status', status: o.status }, 409);
       const last5 = String(b.last5 || '').trim(), date = String(b.date || '').trim(), amt = b.amount;
       if (!/^\d{5}$/.test(last5)) return this.json(req, { error: 'bad_last5' }, 400);
       if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || Date.parse(date + 'T00:00:00+08:00') > this.now() + DAY || Date.parse(date + 'T00:00:00+08:00') < o.created - 2 * DAY) return this.json(req, { error: 'bad_date' }, 400);
       if (!Number.isInteger(amt) || amt < 1 || amt > 9999999) return this.json(req, { error: 'bad_amount' }, 400);
-      this.paySet(o.id, { status: 'review', from_last5: last5, xfer_date: date, xfer_amount: amt, note: subClean(b.note, 200) });
-      this.payEv(o.id, 'report', { last5, date, amt });
+      let hist = []; try { hist = JSON.parse(o.reports || '[]'); if (!Array.isArray(hist)) hist = []; } catch (e) { hist = []; }
+      if (hist.length >= 10) return this.json(req, { error: 'too_many_reports' }, 429);
+      const at = this.now();
+      hist = hist.map((r) => (r.state === 'active' ? { ...r, state: 'void', voidAt: at, voidWhy: '已有最新匯款資料' } : r));
+      hist.push({ at, last5, date, amount: amt, note: subClean(b.note, 200), state: 'active' });
+      this.paySet(o.id, { status: 'review', from_last5: last5, xfer_date: date, xfer_amount: amt, note: subClean(b.note, 200), reports: JSON.stringify(hist) });
+      this.payEv(o.id, hist.length > 1 ? 'report_again' : 'report', { last5, date, amt, n: hist.length });
       return this.json(req, { ok: true, order: pubOrder(this.payOrder(o.id)) });
     },
     '/v1/pay/my': async function (req, b) {
@@ -576,7 +589,8 @@ export function installPay(Hub, H) {
       const subs = this.paySubs();
       const expiring = subs.filter((s) => s.lastMethod === 'bank' && !s.autoRenew && s.expires > now && s.expires - now <= PAY_RENEW_DAYS * DAY).map((s) => s.email);
       const events = this.q("SELECT email, kind, plan, at, ref, detail FROM plan_events ORDER BY id DESC LIMIT 2000");
-      return this.json(req, { now, orders, refunds, subs, anomalies, expiring, events, bank: this.payBank(), test: this.ecCfg().test, status: PAY_STATUS });
+      const reqs = this.q("SELECT s.id, s.type, s.email, s.plan, s.note, s.created, s.status, u.name FROM sub_requests s LEFT JOIN users u ON u.uid = s.uid WHERE s.type IN ('cancel', 'refund') ORDER BY s.created DESC LIMIT 500");
+      return this.json(req, { now, reqs, orders, refunds, subs, anomalies, expiring, events, bank: this.payBank(), test: this.ecCfg().test, status: PAY_STATUS });
     },
     '/v1/admin/pay/confirm': async function (req, b) {
       const v = await this.admin(req, b); if (!v) return this.json(req, { error: 'forbidden' }, 403);
@@ -587,8 +601,13 @@ export function installPay(Hub, H) {
       if (!['pending', 'review', 'expired'].includes(o.status)) return this.json(req, { error: 'bad_status', status: o.status }, 409);
       /* 2026-10-12 Andy：會員只是打開訂閱頁沒付款，管理者不該有確認鍵 → 沒回報匯款資料（沒有末 5 碼）的轉帳單一律不能確認入帳 */
       if (!o.from_last5) return this.json(req, { error: 'not_reported' }, 409);
+      /* 2026-10-12 Andy：「若是發生他給 2000 但我沒注意到，就等於少收錢」→ 管理者必須輸入網銀實際入帳金額，少於應付不能開通 */
+      const recv = b.received;
+      if (!Number.isInteger(recv) || recv < 1 || recv > 9999999) return this.json(req, { error: 'need_received' }, 400);
+      if (recv < o.amount) return this.json(req, { error: 'underpaid', amount: o.amount, received: recv }, 409);
+      this.paySet(o.id, { recv_amount: recv });
       this.paySet(o.id, { status: 'paid', paid_at: o.xfer_date ? Date.parse(o.xfer_date + 'T12:00:00+08:00') : this.now() });
-      this.payEv(o.id, 'confirm', v.user.email);
+      this.payEv(o.id, 'confirm', { by: v.user.email, received: recv, amount: o.amount, reported: o.xfer_amount });
       const r = this.payActivate(o.id, 'admin:' + norm(v.user.email));
       if (!r.ok) return this.json(req, { error: r.error }, 500);
       return this.json(req, { ok: true, order: admOrder(this.payOrder(o.id)) });

@@ -2249,6 +2249,8 @@ Hub.prototype.billState = async function (v) {
     canRefund: paid && inWindow && !trialUsed && !owner,
     refundWhy: !paid ? 'not_paid' : trialUsed ? 'used' : !inWindow ? 'window' : '',
     cancel: open('cancel'), refund: open('refund'),
+    /* 2026-10-12 Andy：轉帳年繳卻顯示「次期不再扣款」很誤導 → 只有綠界信用卡定期定額生效中才算「會自動續扣」 */
+    autoRenew: (() => { try { return this.q("SELECT 1 FROM orders WHERE (uid = ? OR email = ?) AND recur = 1 AND parent IS NULL AND applied = 1 AND period_state = 'active' LIMIT 1", v.user.uid, email).length > 0; } catch (e) { return false; } })(),
     hk: this.env.TRIAL_HMAC_KEY ? 'secret' : 'fallback',
   };
 };
