@@ -146,7 +146,7 @@
     }
     return `<tr class="prow" data-oid="${esc(o.id)}"><td>${esc(ymdhm(o.created))}</td><td class="l" title="${esc(o.email)}">${esc(o.email)}</td><td>${esc(o.planName)}</td><td>${o.period === 'year' ? '年繳' : '月繳'}</td>
       <td class="n">${nt(o.amount)}</td><td>${esc(methodName(o))}</td><td><span class="stp ${ST_CLS[o.status] || 'mute'}">${esc(stName(o))}</span></td>
-      <td class="n">${esc(o.last5 || '')}</td><td>${esc(o.xferDate || '')}</td><td class="l" title="${esc(o.adminNote)}">${esc(o.adminNote)}</td><td class="act">${acts.join('')}</td></tr>`
+      <td style="text-align:center;font-variant-numeric:tabular-nums">${esc(o.last5 || '')}</td><td>${esc(o.xferDate || '')}</td><td class="l" title="${esc(o.adminNote)}">${esc(o.adminNote)}</td><td class="act">${acts.join('')}</td></tr>`
       + (S.open[o.id] ? `<tr class="det"><td colspan="11">${detail(o)}</td></tr>` : '');
   }
   function detail(o) {
