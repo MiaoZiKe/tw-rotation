@@ -144,7 +144,7 @@ def build():
     S.append(shot("b02", "總覽", "V02_desktop", [(1.4, 4.5)], "今日事件不漏看", "重要消息我幫你列好", [(0, "news"), (1.8, "face_surprise_happy")]))
     S.append(shot("b03", "總覽", "V27_desktop", [(4.4, 6.8)], "打幾個字就到", "想查哪檔，打簡稱就找到", [(0, "magnifier"), (2.4, "face_relief")], min_cap=3.2))
     # 2 財經日曆（一段連續錄影）
-    S.append(shot("c01", "財經日曆", "V03_desktop", [(9.4, 11.8)], "② 財經日曆", "財報、法說、FED 我排好了", [(0, "calendar"), (1.2, "tilt")], cont=True))
+    S.append(shot("c01", "財經日曆", "V03_desktop", [(9.4, 11.8)], "② 財經日曆", "財報法說都排好了", [(0, "calendar"), (1.2, "tilt")], cont=True))
     S.append(shot("c02", "財經日曆", "V03_desktop", [(12.4, 15.4)], "重要日子不漏看", "點一下，說明馬上出來", [(0, "face_shock"), (1.6, "globe"), (3.2, "face_nod")]))
     # 3 資金流向（播放鏡用 60fps 素材）
     S.append(shot("d01", "資金流向", "V04_desktop_v3c", [(1.4, 3.6)], "③ 錢往哪裡跑", "錢跑去哪？我帶你看", [(0, "talk_happy"), (1.2, "face_curious")]))
@@ -153,8 +153,8 @@ def build():
     S.append(shot("d04", "資金流向", "V06_desktop_v3c", [(5.1, 8.1)], "每天分流一路播", "錢從哪流到哪，一看就懂", [(0, "spotlight"), (2.0, "face_love")]))
     # 4 熱力圖
     S.append(shot("e01", "熱力圖", "V08_desktop", [(0.05, 2.55)], "④ 哪裡熱一眼看", "方塊越大，錢越多", [(0, "magnifier"), (1.5, "face_shock")], min_cap=2.5))
-    S.append(shot("e02", "熱力圖", "I01_desktop_v3i", [(4.0, 6.4)], "題材熱度", "熱門題材，我拆開給你看", [(0, "talk_excited"), (1.4, "fire")], cont=True, min_cap=3.2))
-    S.append(shot("e03", "熱力圖", "I01_desktop_v3i", [(6.4, 9.4)], "一步一步看懂", "從晶片到整櫃，照順序看", [(0, "bulb"), (1.6, "face_thinking_bulb")], chain="solo"))
+    S.append(shot("e02", "熱力圖", "I01_desktop_v3i", [(7.0, 8.3)], "題材熱度", "熱門題材，我拆開給你看", [(0, "talk_excited"), (1.4, "fire")], cont=True, min_cap=3.2))
+    S.append(shot("e03", "熱力圖", "I01_desktop_v3i", [(8.3, 11.3)], "一步一步看懂", "從晶片到整櫃，照順序看", [(0, "bulb"), (1.6, "face_thinking_bulb")], chain="solo"))
     # 5 產業地圖（2D → 3D → 四宮格 → 關聯圖）
     S.append(shot("f01", "產業地圖", "V11_desktop_nofab", [(11.7, 14.7)], "⑤ 產業鏈 2D", "上下游怎麼排，一張看懂", [(0, "talk_happy"), (1.4, "spotlight")]))
     S.append(shot("f02", "產業地圖", "V12a_desktop", [(2.0, 6.0)], "3D 拆開看", "戴上眼鏡，推一下就轉！", [(0, "3dglasses"), (2.0, "face_star")]))
@@ -167,8 +167,8 @@ def build():
     S.append(shot("g02", "個股", D10, [(4.8, 7.0)], "週期一鍵切", "切到週線，趨勢更清楚", [(0, "face_nod")]))
     # 「無資料」＝AI 分析卡 1 小時／4 小時 狀態標籤，非錯誤畫面（CEO 10-12 07:4x 目視確認），g03 恢復
     S.append(shot("g03", "個股", D10, [(9.1, 11.5)], "下方看總覽", "基本面、籌碼，重點整理好", [(0, "bulb"), (1.0, "face_thinking_bulb")]))
-    S.append(shot("g04", "個股", D10, [(11.9, 13.0), (15.5, 17.2)], "旁邊看營收獲利", "營收、獲利，旁邊點就有", [(0, "face_proud"), (0.9, "magnifier")], hl="營收獲利"))
-    S.append(shot("g05", "個股", D10, [(18.3, 19.4), (21.9, 23.6)], "旁邊看營收獲利", "營收、獲利，旁邊點就有", [(0, "face_proud"), (1.0, "face_nod")], hl="營收獲利"))
+    S.append(shot("g04", "個股", D10, [(14.0, 14.8), (15.5, 17.2)], "旁邊看營收獲利", "營收、獲利，旁邊點就有", [(0, "face_proud"), (0.9, "magnifier")], hl="營收獲利"))
+    S.append(shot("g05", "個股", D10, [(22.0, 23.7)], "旁邊看營收獲利", "營收、獲利，旁邊點就有", [(0, "face_proud"), (1.0, "face_nod")], hl="營收獲利"))
     S.append(shot("h01", "市場明細", "V16_desktop", [(7.6, 10.0)], "⑦ 市場明細", "法人連買賣，名單直接看", [(0, "coins"), (1.4, "face_curious")], min_cap=3.0))
     S.append(shot("h02", "選股策略", "V17_desktop", [(6.1, 9.1)], "⑧ 條件分好類", "技術、籌碼，分面向整理", [(0, "folder"), (1.4, "face_nod")]))
     S.append(shot("h03", "週期統計", "V18_desktop", [(4.0, 6.8)], "⑨ 週期統計", "歷年月份規律，一張表", [(0, "hourglass"), (1.4, "face_think")]))

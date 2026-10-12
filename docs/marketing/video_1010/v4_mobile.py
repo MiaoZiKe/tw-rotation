@@ -70,7 +70,7 @@ def build():
     S.append(shot("b01", "總覽", "V01_mobile", [(0.0, 2.2)], "① 每天先看這頁", "我先帶你看今天大盤", [(0, "talk_explain"), (1.2, "folder")], pan=(0, 300)))
     S.append(shot("b02", "總覽", "V02_mobile", [(3.6, 6.9)], "今日事件不漏看", "重要消息我幫你列好", [(0, "news"), (1.8, "face_surprise_happy")]))
     S.append(shot("b03", "總覽", "V27_mobile", [(5.7, 8.55)], "打幾個字就到", "想查哪檔，打簡稱就找到", [(0, "magnifier"), (2.4, "face_relief")], min_cap=3.2))
-    S.append(shot("c01", "財經日曆", "V03_mobile_v3b", [(9.4, 11.8)], "② 財經日曆", "財報、法說、FED 我排好了", [(0, "calendar"), (1.2, "face_think")], cont=True))
+    S.append(shot("c01", "財經日曆", "V03_mobile_v3b", [(9.4, 11.8)], "② 財經日曆", "財報法說都排好了", [(0, "calendar"), (1.2, "face_think")], cont=True))
     S.append(shot("c02", "財經日曆", "V03_mobile_v3b", [(12.4, 15.5)], "重要日子不漏看", "點一下，說明馬上出來", [(0, "face_shock"), (1.6, "globe"), (3.2, "face_nod")]))
     S.append(shot("d01", "資金流向", "V04_mobile_v3c", [(1.4, 3.6)], "③ 錢往哪裡跑", "錢跑去哪？我帶你看", [(0, "talk_happy"), (1.2, "face_curious")], pan=(300, 500)))
     S.append(shot("d02", "資金流向", "V04_mobile_v3c", [(3.6, 7.2)], "按播放看輪動", "族群怎麼輪，一路播給你", [(0, "coins"), (2.2, "face_surprise_happy")]))
@@ -79,13 +79,13 @@ def build():
     S.append(shot("e01", "熱力圖", "V08_mobile", [(0.05, 3.05)], "④ 哪裡熱一眼看", "方塊越大，錢越多", [(0, "magnifier"), (1.5, "face_shock")], pan=(300, 700), min_cap=3.0))
     S.append(shot("e02", "熱力圖", "I01_mobile_v3i", [(2.7, 5.5)], "題材熱度", "熱門題材，我拆開給你看", [(0, "talk_excited"), (1.4, "fire")], cont=True, min_cap=3.2))
     S.append(shot("e03", "熱力圖", "I01_mobile_v3i", [(5.6, 6.95)], "一步一步看懂", "從晶片到整櫃，照順序看", [(0, "bulb"), (1.6, "face_thinking_bulb")], chain="solo", limit=6.95))
-    S.append(shot("f01", "產業地圖", "V11_mobile", [(14.9, 17.9)], "⑤ 產業鏈 2D", "上下游怎麼排，一張看懂", [(0, "talk_explain"), (1.4, "pointer_r")], wk=[(0.0, (70, 880, 1070, 2360))]))
+    S.append(shot("f01", "產業地圖", "V11_mobile", [(15.4, 17.4)], "⑤ 產業鏈 2D", "上下游怎麼排，一張看懂", [(0, "talk_explain"), (1.4, "pointer_r")], wk=[(0.0, (70, 880, 1070, 2360))], min_cap=2.4))
     S.append(shot("f02", "產業地圖", "V12a_mobile", [(2.0, 6.0)], "3D 拆開看", "戴上眼鏡，推一下就轉！", [(0, "3dglasses"), (2.0, "face_star")], pan=(700, 700)))
     S.append(grid_card("f03", GRID_M))
     # 手機錄影沒有「滑過」動作（hover 落在畫面外、連線不亮），台詞改成畫面實際有的：上下游供貨關係一張連起來；視窗固定在關聯圖本體
     S.append(shot("f04", "產業地圖", "V13_mobile_v3b", [(1.2, 3.3)], "上下游一張連", "上下游供貨關係，連成一張圖", [(0, "point_r"), (2.0, "face_love")], fixed=1000, noev=True, limit=4.1))
     D10 = "D10_mobile_v3j"
-    S.append(shot("g01", "個股", D10, [(1.1, 3.4)], "⑥ 個股一頁看", "這檔的走勢，我幫你打開", [(0, "talk_explain"), (1.0, "face_curious")], pan=(300, 300)))
+    S.append(shot("g01", "個股", D10, [(1.1, 3.4)], "⑥ 個股一頁看", "這檔的走勢，我幫你打開", [(0, "talk_explain"), (1.0, "face_curious")], pan=(120, 120)))
     S.append(shot("g02", "個股", D10, [(3.9, 7.0)], "週期一鍵切", "日、週、月，點一下切換", [(0, "face_nod")]))
     S.append(shot("g03", "個股", D10, [(8.9, 11.1)], "下方看總覽", "基本面、籌碼，重點整理好", [(0, "bulb"), (1.0, "face_thinking_bulb")], pan=(0, 300)))
     S.append(shot("g04", "個股", D10, [(11.5, 12.6), (14.9, 16.6)], "旁邊看營收獲利", "營收、獲利，旁邊點就有", [(0, "face_proud"), (0.9, "magnifier")], hl="營收獲利"))
@@ -99,10 +99,10 @@ def build():
     S[-1].note = "過去表現不代表未來"
     S.append(shot("i03", "ETF", "V20_mobile", [(2.4, 5.6)], "各類前五名", "配息、市值型，前五名", [(0, "trophy"), (1.6, "face_proud")], min_cap=3.2))
     S[-1].note = "過去表現不代表未來"
-    S.append(shot("i04", "ETF", "V13b_mobile_v3e", [(5.6, 9.0)], "三張圖一起亮", "點一檔，現金流三圖連動", [(0, "calc"), (2.0, "face_surprise_happy")], min_cap=3.4))
+    S.append(shot("i04", "ETF", "V13b_mobile_v3e", [(7.3, 9.0)], "兩張圖一起亮", "點一檔，甜甜圈和時鐘一起亮", [(0, "calc"), (2.0, "face_surprise_happy")], min_cap=3.4, fixed=1650, noev=True))
     S.append(shot("i05", "ETF", "V23_mobile", [(2.6, 5.7)], "複利怎麼長大", "再投入和領現金，並排看", [(0, "face_determined"), (1.0, "growth")], hl="長大"))
     S.append(shot("j01", "自選清單", "V24_mobile", [(8.2, 10.95)], "⑪ 自選清單", "常看的收進來，一開就有", [(0, "star_save"), (2.2, "face_love")], fixed=540))
-    S.append(shot("j02", "導覽", "V25_mobile", [(1.4, 4.8)], "看不懂有導覽", "每一頁我都一步步帶你", [(0, "talk_happy"), (1.8, "face_wink")], chain="solo", min_cap=3.0))
+    S.append(shot("j02", "導覽", "V25_mobile", [(4.4, 7.0)], "看不懂有導覽", "每一頁我都一步步帶你", [(0, "talk_happy"), (1.8, "face_wink")], chain="solo", min_cap=3.0, fixed=780, noev=True))
     if fresh_nofab("V26w_mobile"):
         S.append(shot("j03", "願望清單", "V26w_mobile", [(5.4, 8.9)], "歡迎許願", "想要什麼功能，跟我說！", [(0, "heart_wish"), (1.6, "face_love")], chain="solo", fixed=800))
     else:

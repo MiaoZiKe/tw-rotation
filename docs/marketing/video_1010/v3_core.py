@@ -1266,7 +1266,7 @@ class Op:
         return [tp for tp in self.taps if not tp["hover"] and not tp["dense"]]
 
     # ───── 第 4 版（CEO 10-12）：比比瞬移踩按鈕（不從內容上飛過）、腳只碰按鈕上緣、身體落在空白處 ─────
-    TAP_IN, TAP_OUT = 0.25, 0.40          # 點下前 0.25 秒起跳（四腳跳 0.2 秒）→ 踩著 → 點下後 0.2 秒起跳回去、0.4 秒回到待機位（整段 0.65 秒 ≤0.7）
+    TAP_IN, TAP_OUT = 0.35, 0.55   # 10-12 第二輪：站著 0.5 秒（點下前 0.15～點下後 0.35），觀眾看得出是比比按的；          # 點下前 0.25 秒起跳（四腳跳 0.2 秒）→ 踩著 → 點下後 0.2 秒起跳回去、0.4 秒回到待機位（整段 0.65 秒 ≤0.7）
     HOP = 0.2
 
     def _busy_at(self, shot, L, t):
@@ -1278,8 +1278,7 @@ class Op:
             win, rect = rec.win, rec.rect
             cv = R.background(L.fmt).copy()
             rec.draw(cv, t, shot)
-            b = busy_mask(cv, rec.rect)
-            cache[key] = (b, main_mask(shot, b, color_mask(cv, rec.rect)))
+            cache[key] = protect_masks(shot, cv, rec.rect)
             rec.win, rec.rect = win, rect
             C.CUR[:] = saved
         return cache[key]
@@ -1332,9 +1331,26 @@ class Op:
         barea = max(1, int(bm.sum()))
         rowb = _row_band(busy, (bx0, by0, bx1, by1))
         fr = rec.rect
+        bcx, bcy = (bx0 + bx1) / 2, (by0 + by1) / 2
+
+        def evaluate(name, fi, foot, size):
+            sx, sy, m = _sprite_alpha(name, fi, foot, size)
+            tot = int(m.sum())
+            if tot == 0:
+                return None
+            if sx < fr[0] or sy < fr[1] - 2 or sx + m.shape[1] > fr[0] + fr[2] or sy + m.shape[0] > fr[1] + fr[3] + 2:
+                return None
+            hit_out, _ = _mask_hits(busy & ~bm, sx, sy, m)
+            hit_main, _ = _mask_hits(mainm & ~bm & ~rowb, sx, sy, m)
+            cov, _ = _mask_hits(bm, sx, sy, m)
+            gap = max(0.0, max(bx0 - (sx + m.shape[1]), sx - bx1, by0 - (sy + m.shape[0]), sy - by1))
+            return hit_out / tot, hit_main, cov / barea, gap
+
         best = None
-        for size in (150, 130, 110, 96, 84, 72, 64, 56, 48):
-            r0 = C.sprite_rect(B.bibi_index()["tap"]["frames"][8], (0, 0), size)   # 相對腳底的外框
+        # CEO 10-12 第二輪：點擊時比比 ≥100px、站著 ≥0.45 秒；能站上按鈕就站（腳碰上緣／站左右／頭碰下緣／站框內角落），
+        # 不能站就跳到按鈕旁 160px 內的空白處、拿指示棒朝向按鈕。主角資料區（含圖表區）一律 0%。
+        for size in (150, 130, 115, 100):
+            r0 = C.sprite_rect(B.bibi_index()["tap"]["frames"][8], (0, 0), size)
             cands = []
             for fx in (0.5, 0.3, 0.7, 0.1, 0.9):
                 cands.append(("top", fx))
@@ -1343,39 +1359,41 @@ class Op:
                 cands.append(("right", fy))
             for fx in (0.5, 0.2, 0.8):
                 cands.append(("bottom", fx))
-            for fx in (0.85, 0.15, 0.5):           # 大型目標（輸入框、文字欄）：站在框內空白角落，框本身露出 ≥80%
+            for fx in (0.85, 0.15, 0.5):
                 cands.append(("inside", fx))
             for side, q in cands:
-                if side == "top":
-                    foot = (bx0 + q * (bx1 - bx0), by0 + 5)
-                elif side == "bottom":
-                    foot = (bx0 + q * (bx1 - bx0), by1 - r0[1] - 3)
-                elif side == "inside":
-                    foot = (bx0 + q * (bx1 - bx0), by1 - 6)
-                elif side == "left":
-                    foot = (bx0 - r0[2] + 4, by0 + q * (by1 - by0))
-                else:
-                    foot = (bx1 - r0[0] - 4, by0 + q * (by1 - by0))
-                sx, sy, m = _sprite_alpha("tap", 8, foot, size)
-                tot = int(m.sum())
-                if tot == 0:
+                pose = (side, q, size, "tap", 8)
+                foot = self._pose_foot(rec, tp, pose)[0]
+                ev = evaluate("tap", 8, foot, size)
+                if ev is None:
                     continue
-                if sx < fr[0] or sy < fr[1] - 2 or sx + m.shape[1] > fr[0] + fr[2] or sy + m.shape[0] > fr[1] + fr[3] + 2:
-                    continue
-                hit_out, _ = _mask_hits(busy & ~bm, sx, sy, m)
-                hit_main, _ = _mask_hits(mainm & ~bm & ~rowb, sx, sy, m)
-                cov, _ = _mask_hits(bm, sx, sy, m)
-                # CEO 10-12（例外 1）：主角圖表資料區 0%、其他文字 ≤15%、按鈕露出 ≥80%；越乾淨越好、越大越好
-                ok = hit_main == 0 and hit_out <= 0.08 * tot and cov <= 0.18 * barea      # 留安全邊（檢查上限 15％／20％）
-                bad = hit_main / tot * 10 + hit_out / tot + max(0.0, cov / barea - 0.2) * 3
-                pref = {"top": 0, "left": 1, "right": 1, "bottom": 2, "inside": 3}[side]
-                clean = hit_out <= 0.01 * tot
-                score = (not ok, not clean, -size if ok else 0, pref, bad)
+                o, mh, cv_, gap = ev
+                ok = mh == 0 and o <= 0.08 and cv_ <= 0.18
+                score = (0 if ok else 2, 0 if o <= 0.01 else 1, -size, {"top": 0, "left": 1, "right": 1, "bottom": 2, "inside": 3}[side], o + mh)
                 if best is None or score < best[0]:
-                    best = (score, (side, q, size), bad, ok)
-            if best and best[3] and not best[0][1]:
+                    best = (score, pose, o + mh / 100.0, ok or (mh == 0 and o <= 0.12 and cv_ <= 0.18))
+            if best and best[3] and best[0][1] == 0:
                 break
-        tp["_pose"] = best[1] if best else ("top", 0.5, 96)
+        if not (best and best[3]):
+            # 旁邊 160px 內的空白處：指示棒朝向按鈕
+            for size in (130, 115, 100):
+                for dy in range(-200, 241, 24):
+                    for dx in range(-260, 261, 24):
+                        foot = (bcx + dx, by1 + dy)
+                        nm = "pointer_r" if foot[0] < bcx else "pointer_l"
+                        ev = evaluate(nm, 6, foot, size)
+                        if ev is None:
+                            continue
+                        o, mh, cv_, gap = ev
+                        if gap > 160 or cv_ > 0.05:
+                            continue
+                        ok = mh == 0 and o <= 0.08          # 例外 1：其他文字 ≤15%（留安全邊 8%），越乾淨越好
+                        score = (1 if ok else 3, 0 if o <= 0.01 else 1, -size, gap, o + mh)
+                        if best is None or score < best[0]:
+                            best = (score, ("near", (dx, dy), size, nm, 6), o + mh / 100.0, ok or (mh == 0 and o <= 0.12))
+                if best and best[3] and best[0][1] == 0:
+                    break
+        tp["_pose"] = best[1] if best else ("top", 0.5, 100, "tap", 8)
         tp["_pose_bad"] = (best[2], best[3]) if best else (1.0, False)
         return tp["_pose"]
 
@@ -1428,18 +1446,23 @@ class Op:
         return tp[key]
 
     def _pose_foot(self, rec, tp, pose):
-        side, q, size = pose
+        side, q, size = pose[:3]
+        nm, fi = (pose[3], pose[4]) if len(pose) > 3 else ("tap", 8)
         (bx0, by0, bx1, by1), _ = self._btn(rec, tp)
+        if side == "near":
+            return ((bx0 + bx1) / 2 + q[0], by1 + q[1]), size, nm, fi
         r0 = C.sprite_rect(B.bibi_index()["tap"]["frames"][8], (0, 0), size)
         if side == "top":
-            return (bx0 + q * (bx1 - bx0), by0 + 5), size
-        if side == "bottom":
-            return (bx0 + q * (bx1 - bx0), by1 - r0[1] - 3), size
-        if side == "inside":
-            return (bx0 + q * (bx1 - bx0), by1 - 6), size
-        if side == "left":
-            return (bx0 - r0[2] + 4, by0 + q * (by1 - by0)), size
-        return (bx1 - r0[0] - 4, by0 + q * (by1 - by0)), size
+            f = (bx0 + q * (bx1 - bx0), by0 + 5)
+        elif side == "bottom":
+            f = (bx0 + q * (bx1 - bx0), by1 - r0[1] - 3)
+        elif side == "inside":
+            f = (bx0 + q * (bx1 - bx0), by1 - 6)
+        elif side == "left":
+            f = (bx0 - r0[2] + 4, by0 + q * (by1 - by0))
+        else:
+            f = (bx1 - r0[0] - 4, by0 + q * (by1 - by0))
+        return f, size, nm, fi
 
     def _drag_pose(self, shot, L, p, t, nm="hop_r", fi=2):
         """3D 推轉：比比跟著拖曳點走，站在模型旁邊的空白處（不壓模型與其他內容）。"""
@@ -1464,7 +1487,10 @@ class Op:
                         best = (sc, (foot, size))
             if best and best[0][1] <= 0.01:
                 break
-        return best[1] if best else (p, 110)
+        if not best or best[0][1] > 0.01:
+            # 畫布裡找不到空白（手機 3D 模型和編號標籤佔滿畫布）：比比留在待機位做推的動作，不壓模型
+            return self.home(L, nm)
+        return best[1]
 
     def _v4_draw(self, cv, t, shot, L, home, hs, iname):
         rec = self.rec
@@ -1477,7 +1503,7 @@ class Op:
                     ROLE[0] = "bibi"
                     put_sprite(cv, iname, anim_frame(iname, t), home, hs)
                     return
-                foot, size = self._pose_foot(rec, tp, pose)
+                foot, size, snm, sfi = self._pose_foot(rec, tp, pose)
                 t_land = c - self.TAP_IN + self.HOP
                 t_back = c + self.TAP_OUT - self.HOP
                 ROLE[0] = "bibi_tap"
@@ -1496,7 +1522,7 @@ class Op:
                     nm = "hop_r" if b[0] >= a[0] else "hop_l"
                     put_sprite(cv, nm, 2 + int(clamp(u, 0, 0.999) * 3.99), p, lerp(s0, s1, u))
                 else:
-                    put_sprite(cv, "tap", 8, foot, size)
+                    put_sprite(cv, snm, sfi, foot, size)
                 ROLE[0] = "bibi"
                 return
         for d in self.drags:
@@ -1776,6 +1802,84 @@ def color_mask(cv, rect):
     return out
 
 
+def chart_region(data, cell=12, min_cells=10, min_w=90, min_h=60, max_frac=0.45):
+    """圖表區（10-12 審片擋片：比比和道具坐在「每月入帳」長條之間、複利走勢圖格線區的空白上，
+    邊緣密度的忙碌圖看不到空白的繪圖區，所以沒擋到）。
+    有顏色的資料像素以 12px 格網分群（相鄰格相連）；底邊對齊（差 ≤1 格）、左右間隔 ≤200px 的群合成同一張圖（長條圖的長條共用基線），
+    合併後外接矩形高 ≥60px、寬 ≥90px 的整塊當受保護區（含長條之間、曲線下方的空白）。一行彩色文字高度不到 60px，不會被當成圖。"""
+    H, W = data.shape
+    gh, gw = (H + cell - 1) // cell, (W + cell - 1) // cell
+    pad = np.zeros((gh * cell, gw * cell), dtype=bool)
+    pad[:H, :W] = data
+    g = pad.reshape(gh, cell, gw, cell).sum(axis=(1, 3)) >= 3
+    out = np.zeros_like(data)
+    if not g.any():
+        return out
+    seen = np.zeros_like(g)
+    comps = []
+    ys, xs = np.nonzero(g)
+    for sy, sx in zip(ys, xs):
+        if seen[sy, sx]:
+            continue
+        stack = [(sy, sx)]
+        seen[sy, sx] = True
+        y0 = y1 = sy
+        x0 = x1 = sx
+        n = 0
+        while stack:
+            y, x = stack.pop()
+            n += 1
+            y0, y1, x0, x1 = min(y0, y), max(y1, y), min(x0, x), max(x1, x)
+            for ny in (y - 1, y, y + 1):
+                for nx in (x - 1, x, x + 1):
+                    if 0 <= ny < gh and 0 <= nx < gw and g[ny, nx] and not seen[ny, nx]:
+                        seen[ny, nx] = True
+                        stack.append((ny, nx))
+        comps.append([x0, y0, x1, y1, n])
+    # 底邊對齊的群合併（長條圖）
+    comps.sort(key=lambda c: (c[3], c[0]))
+    merged = []
+    for c in comps:
+        for m in merged:
+            if abs(m[3] - c[3]) <= 4 and (c[0] - m[2]) * cell <= 200 and (m[0] - c[2]) * cell <= 200 and (c[3] - c[1] >= 2 or m[3] - m[1] >= 2):
+                m[0], m[1], m[2], m[3], m[4] = min(m[0], c[0]), min(m[1], c[1]), max(m[2], c[2]), max(m[3], c[3]), m[4] + c[4]
+                break
+        else:
+            merged.append(list(c))
+    area = float(H * W)
+    for x0, y0, x1, y1, n in merged:
+        w, h = (x1 - x0 + 1) * cell, (y1 - y0 + 1) * cell
+        if n < min_cells or w < min_w or h < min_h or w * h > max_frac * area:
+            continue
+        out[max(0, y0 * cell - 6):min(H, (y1 + 1) * cell + 6), max(0, x0 * cell - 6):min(W, (x1 + 1) * cell + 6)] = True
+    return out
+
+
+def pastel_mask(cv, rect):
+    """圖表用：飽和度 >0.18、亮度 >60 的像素（含淡色長條、淡色曲線填色），不外擴。"""
+    W, H = cv.size
+    x0, y0 = max(0, int(rect[0])), max(0, int(rect[1]))
+    x1, y1 = min(W, int(rect[0] + rect[2])), min(H, int(rect[1] + rect[3]))
+    out = np.zeros((H, W), dtype=bool)
+    if x1 - x0 < 8 or y1 - y0 < 8:
+        return out
+    a = np.asarray(cv.crop((x0, y0, x1, y1)).convert("RGB"), dtype=np.int16)
+    mx, mn = a.max(axis=2), a.min(axis=2)
+    m = ((mx - mn) > 0.18 * np.maximum(mx, 1)) & (mx > 60)
+    m[:4, :] = m[-4:, :] = False
+    m[:, :4] = m[:, -4:] = False
+    out[y0:y1, x0:x1] = m
+    return out
+
+
+def protect_masks(shot, cv, rect):
+    """(受保護像素, 主角資料區)：邊緣密度 ∪ 圖表區；主角資料區 ＝ 有色資料像素 ∪ 圖表區。"""
+    b = busy_mask(cv, rect)
+    data = color_mask(cv, rect) & b
+    ch = chart_region(pastel_mask(cv, rect))      # 淡色長條（沒選到的那幾根）也算圖
+    return b | ch, data | ch
+
+
 def main_mask(shot, busy, colored):
     """主角圖表的資料區（CEO 10-12：踩按鈕那一下一律 0%）：有顏色的資料像素（K 線、熱力圖色塊、紅綠漲跌數字）。
     被點按鈕所在的那一列（按鈕上下各半個按鈕高，橫跨整個框）是篩選列／表頭／分頁列，不算資料區（另外 ≤15%）。"""
@@ -1837,6 +1941,24 @@ def busy_check(shot, t, busy, mainb=None):
         return
     rec = shot.rec
     taps = [tp for tp in (shot.op.taps if shot.op else []) if not tp["hover"]]
+    # 點擊時看得出是比比按的（CEO 10-12 第二輪）：站著那 0.5 秒，比比 ≥100px、離按鈕 ≤160px
+    if shot.op is not None and V4:
+        op_ = shot.op
+        for q in taps:
+            if q["t"] - op_.TAP_IN + op_.HOP + 0.01 <= t <= q["t"] + op_.TAP_OUT - op_.HOP - 0.01:
+                r, lab, _ = click_target(rec.clip, q["src_t"], q["x"], q["y"])
+                bx0, by0 = rec.map(r[0], r[1])
+                bx1, by1 = rec.map(r[2], r[3])
+                okv = False
+                for (name, i, foot, size, role) in SPR_DRAWN:
+                    if role != "bibi_tap" or size < 99:
+                        continue
+                    sr = C.sprite_rect(B.bibi_index()[name]["frames"][i], foot, size)
+                    gap = max(0.0, bx0 - sr[2], sr[0] - bx1, by0 - sr[3], sr[1] - by1)
+                    okv = okv or gap <= 160
+                if not okv:
+                    BUSYCHK.append((shot.sid, round(t, 3), f"點擊「{lab}」", 0.0, "點擊時比比不在按鈕旁（要 ≥100px、離按鈕 ≤160px、站 ≥0.45 秒）"))
+                break
     # 比比素材：逐像素
     for (name, i, foot, size, role) in SPR_DRAWN:
         x, y, m = _sprite_alpha(name, i, foot, size)
@@ -1844,7 +1966,8 @@ def busy_check(shot, t, busy, mainb=None):
         if tot == 0:
             continue
         if role == "bibi_tap":
-            tp = next((q for q in taps if q["t"] - 0.25 <= t <= q["t"] + 0.45), None)
+            op_ = shot.op
+            tp = next((q for q in taps if q["t"] - op_.TAP_IN <= t <= q["t"] + op_.TAP_OUT), None)
             if tp is not None:
                 r, lab, _ = click_target(rec.clip, tp["src_t"], tp["x"], tp["y"])
                 bx0, by0 = rec.map(r[0], r[1])
@@ -1860,7 +1983,7 @@ def busy_check(shot, t, busy, mainb=None):
                     BUSYCHK.append((shot.sid, round(t, 3), "bibi:" + name + "（踩按鈕）", round(hit_main * 100 / tot, 2), "踩按鈕時壓到主角圖表資料區（必須 0%）"))
                 if hit_out > 0.15 * tot:
                     BUSYCHK.append((shot.sid, round(t, 3), "bibi:" + name + "（踩按鈕）", round(hit_out * 100 / tot, 2), "踩按鈕時壓到按鈕以外的文字 >15%"))
-                standing = tp["t"] - 0.06 <= t <= tp["t"] + 0.21     # 站在按鈕上那段才檢查按鈕露出；跳躍途中掠過不算
+                standing = tp["t"] - op_.TAP_IN + op_.HOP - 0.01 <= t <= tp["t"] + op_.TAP_OUT - op_.HOP     # 站在按鈕上那段才檢查按鈕露出；跳躍途中掠過不算
                 if standing and cov > 0.2 * barea:
                     BUSYCHK.append((shot.sid, round(t, 3), "bibi:" + name + "（踩按鈕）", round(cov * 100 / barea, 2), f"按鈕「{lab}」被蓋超過 20%（文字要露出 ≥80%）"))
                 continue
@@ -1895,7 +2018,7 @@ def shot_busy_union(shot, L, n=6):
     for tt in ts:
         cv = R.background(L.fmt).copy()
         rec.draw(cv, min(tt, shot.dur - 1 / FPS), shot)
-        m = busy_mask(cv, rec.rect)
+        m = protect_masks(shot, cv, rec.rect)[0]
         acc = m if acc is None else (acc | m)
     C.CUR[:] = saved
     _BUSY_CACHE[key] = acc
@@ -2175,8 +2298,7 @@ class Shot4:
         SPR_DRAWN.clear()
         for ly in self.layers:
             ly.draw(cv, t, self)
-        busy = busy_mask(cv, self.rec.rect) if (V4 and self.kind == "feature" and self.rec is not None and self.rec.rect is not None) else None
-        mainb = main_mask(self, busy, color_mask(cv, self.rec.rect)) if busy is not None else None
+        busy, mainb = protect_masks(self, cv, self.rec.rect) if (V4 and self.kind == "feature" and self.rec is not None and self.rec.rect is not None) else (None, None)
         if self.custom:
             self.custom(cv, t, self)
         if self.kind == "feature":
@@ -2292,11 +2414,79 @@ def host_bubble(cv, L, shot, text, t, t_alpha=None):
     """比比的台詞泡泡（網頁、手機共用）：單一路徑，尾巴尖端離比比 14px、只指向比比，文字離尾巴 ≥10px。"""
     if not text or not shot.op:
         return
+    if V4 and shot.op.drags and any(d["t0"] - 0.1 <= t <= d["t1"] + 0.1 for d in shot.op.drags):
+        if L.fmt == "mobile":
+            _bubble_follow(cv, L, shot, text, t if t_alpha is None else t_alpha, t)
+        # 網頁：畫布裡沒有一直放得下泡泡的空白（7 成時間放不下，跟著跑會一閃一閃），推的這段泡泡先收起（審片建議做法之一）
+        return
     nm, br = shot.op.home_rect(L, t)
     if getattr(shot.op, "bside", "R") == "T":
         _bubble_top(cv, L, text, t if t_alpha is None else t_alpha, br, mode=shot.op.bubble_mode(t), maxw=getattr(shot.op, "bmaxw", 215))
         return
     _bubble_at(cv, L, text, t if t_alpha is None else t_alpha, br, mode=shot.op.bubble_mode(t))
+
+
+def _bubble_follow(cv, L, shot, text, ta, t):
+    """3D 推轉時比比進到畫布裡：泡泡跟著比比走，尾巴指向比比本人（規則第 3 條）；
+    泡泡放在比比右、左或上方的空白處（受保護像素 0），都放不下才收起。"""
+    bib = [e for e in SPR_DRAWN if e[4] in ("bibi", "bibi_tap")]
+    if not bib:
+        return
+    name, i, foot, size, _ = bib[-1]
+    br = C.sprite_rect(B.bibi_index()[name]["frames"][i], foot, size)
+    op = shot.op
+    tq = math.floor(t * 4) / 4
+    busy = op._busy_at(shot, L, tq)[0] | op._busy_at(shot, L, min(shot.dur - 1 / FPS, tq + 0.25))[0]
+    px = 28 if L.fmt == "web" else 34
+    f = font(B.F_ROUND, px)
+    lh = px * 1.3
+    H, W = busy.shape
+
+    def layout(side):
+        maxw = 300 if side in ("R", "L") else 360
+        lines = _wrap(f, text, maxw)
+        tw = max(text_w(f, ln) for ln in lines)
+        w, h = tw + 44, len(lines) * lh + 26
+        cy = (br[1] + br[3]) / 2
+        if side == "R":
+            tip = (br[2] + 12, cy)
+            rect = (tip[0] + 26, cy - h / 2, tip[0] + 26 + w, cy + h / 2)
+        elif side == "L":
+            tip = (br[0] - 12, cy)
+            rect = (tip[0] - 26 - w, cy - h / 2, tip[0] - 26, cy + h / 2)
+        else:
+            cx = (br[0] + br[2]) / 2
+            tip = (cx, br[1] - 12)
+            rect = (cx - w / 2, tip[1] - 26 - h, cx + w / 2, tip[1] - 26)
+        return lines, tw, rect, tip
+
+    def ok(rect):
+        x0, y0, x1, y1 = [int(round(v)) for v in rect]
+        if x0 < 12 or y0 < 12 or x1 > W - 12 or y1 > H - 12:
+            return False
+        if any(C._inter(rect, r) > 0 for (n_, r, role, g) in C.CUR if n_ in ("headline", "pill", "footnote", "note", "subtitle")):
+            return False
+        return busy[max(0, y0 - 4):y1 + 4, max(0, x0 - 4):x1 + 4].mean() <= 0.005
+
+    order = [getattr(op, "_fside", "R")] + [sd for sd in ("R", "L", "T") if sd != getattr(op, "_fside", "R")]
+    for sd in order:
+        lines, tw, rect, tip = layout(sd)
+        if ok(rect):
+            op._fside = sd
+            break
+    else:
+        return
+    a = clamp(ta / 0.2, 0, 1)
+    cx = (rect[0] + rect[2]) / 2
+    ty = rect[1] + 13
+    tr = (cx - tw / 2, ty, cx + tw / 2, ty + len(lines) * lh)
+    draw_bubble(cv, rect, tip, alpha=a, ink=THEME["ink"], width=4, r=min(THEME["panel_r"], 20), text_rect=tr)
+    lay = Image.new("RGBA", cv.size, (0, 0, 0, 0))
+    d = ImageDraw.Draw(lay)
+    for k, ln in enumerate(lines):
+        d.text((cx - text_w(f, ln) / 2, ty + k * lh), ln, font=f, fill=THEME["ink"])
+    lay.putalpha(lay.getchannel("A").point(lambda v: int(v * a)))
+    cv.paste(lay, (0, 0), lay)
 
 
 def _bubble_top(cv, L, text, t, br, mode="tail", maxw=215, op=None):
