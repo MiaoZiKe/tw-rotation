@@ -126,13 +126,13 @@ class Lay:
             if V4:
                 # 第 4 版（Andy：「網站畫面約佔 92% 寬，比比放大…重點是圖表一定要都被看到」）：網站框 1766 寬滿高；
                 # 比比與泡泡疊在網站左側導覽欄（不是重點內容），位置逐鏡避開重點框／內容框／點擊目標（site_overlay_check）
-                self.box = (77, 58, 1766, 993)
+                self.box = (86, 58, 1748, 983)       # 10-12：1766×993 時框底 1051，頁尾警語小字被擠到畫面最底（字貼邊、框線被切）；縮到 91%，框底 1041
                 self.frame_y = 58
                 self.host_x = 210
                 self.host_foot = 1040
                 self.host_w = 236
                 self.host_h = 214
-                self.foot_y = 1052
+                self.foot_y = 1046                   # 警語 1046～1074，離畫面底 6px、離網站框 5px
         else:
             self.W, self.H = 1080, 1920
             self.box = (40, 146, 1000, 1480)             # 網站畫面框（寬 1000×高 1480）
@@ -2105,7 +2105,8 @@ def v4_place(shot, L):
         return
     # 縮框讓出右側邊條（87% 寬），比比 130px＋泡泡在邊條內
     bw4 = 1660
-    rec.box4 = (24, 58 + (993 - bw4 * 993 / 1766) / 2, bw4, bw4 * 993 / 1766)
+    _bx, _by, _bw, _bh = L.box
+    rec.box4 = (24, _by + (_bh - bw4 * _bh / _bw) / 2, bw4, bw4 * _bh / _bw)
     op.hx, op.hfoot, op.hh, op.bside, op.bmaxw = 1802, 1040, 130, "T", 150
     op.place_note = "整鏡找不到夠大的空白：網站框縮到 86.5% 寬（1660px），比比在右側邊條"
     _BUSY_CACHE.clear()
