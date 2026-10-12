@@ -244,7 +244,7 @@ html.pay-renew #acctBtn.ame::after{content:'';position:absolute;top:2px;right:2p
         <div class="cofrm">
           <div class="w2m"><label for="coL5">轉出帳號末 5 碼</label><input id="coL5" inputmode="numeric" maxlength="5" autocomplete="off" placeholder="例如 12345"></div>
           <div><label for="coDate">轉帳日期</label><input id="coDate" type="date" value="${esc(today)}" max="${esc(today)}"></div>
-          <div><label for="coXAmt">轉帳金額</label><input id="coXAmt" inputmode="numeric" value="${esc(j.amount)}"></div>
+          <div><label for="coXAmt">實際轉帳金額</label><input id="coXAmt" inputmode="numeric" autocomplete="off" placeholder="照網銀明細填，例如 ${esc(j.amount)}"></div>
           <div class="w3"><label for="coNote">備註（選填）</label><input id="coNote" maxlength="200" placeholder="例如：用公司帳戶轉帳"></div></div>
         <button type="button" class="cogo" id="coSendB">我已轉帳，送出匯款資料</button>
         <p class="muted" style="font-size:12.5px;margin:6px 0 0">送出後狀態是「待確認」，管理者確認入帳就會開通（可在帳號選單「我的訂單」查看）。轉帳不會自動續扣，到期前 7 天會提醒你再匯一期。</p>`;
@@ -402,7 +402,7 @@ html.pay-renew #acctBtn.ame::after{content:'';position:absolute;top:2px;right:2p
       ${o.status === 'review' ? '<p class="muted" style="font-size:12.5px">已送出的匯款資料<b>不能修改</b>。這裡送出的是<b>新的一筆</b>，上一筆會標成「已作廢（已有最新匯款資料）」，兩筆都會留紀錄。</p>' : ''}
       <div class="cofrm"><div class="w2m"><label for="rpL5">轉出帳號末 5 碼</label><input id="rpL5" inputmode="numeric" maxlength="5" autocomplete="off"></div>
       <div><label for="rpDate">轉帳日期</label><input id="rpDate" type="date" value="${esc(today)}" max="${esc(today)}"></div>
-      <div><label for="rpAmt">轉帳金額</label><input id="rpAmt" inputmode="numeric" value="${esc(o.amount)}"></div>
+      <div><label for="rpAmt">實際轉帳金額</label><input id="rpAmt" inputmode="numeric" autocomplete="off" placeholder="照網銀明細填"></div>
       <div class="w3"><label for="rpNote">備註（選填）</label><input id="rpNote" maxlength="200"></div></div>
       <button type="button" class="cogo" id="rpGo">送出</button><div class="msg" id="rpMsg" role="status"></div></div>`, (dl) => { dl.querySelector('.box').className = 'box codlg'; });
     const msg = (t, bad) => { const m = d.querySelector('#rpMsg'); m.className = 'msg ' + (bad ? 'bad' : 'ok'); m.textContent = t; };

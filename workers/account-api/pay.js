@@ -198,6 +198,16 @@ export function installPay(Hub, H) {
       const cur = this.q('SELECT plan, over, expires FROM perm WHERE email = ?', email)[0];
       const months = o.period === 'year' ? 12 : 1;
       const same = cur && cur.plan === o.plan;
+      /* 稽核 H7（2026-10-12）：目前有效方案等級較高 → 不准用較低方案蓋掉已付的期間；這筆停在「已入帳」進異常清單，管理者決定延長／轉換／退款 */
+      const live = cur && cur.plan !== 'free' && (!cur.expires || cur.expires > now);
+      const rc = live ? PAY_RANK[cur.plan] : 0, ro = PAY_RANK[o.plan];
+      if (live && rc && ro && rc > ro) {
+        this.paySet(o.id, { status: 'paid', anomaly: `方案衝突：會員目前是 ${cur.plan}（${cur.expires ? '到 ' + tpeDay(cur.expires) : '不到期'}），這筆 ${o.plan_name}・${o.period === 'year' ? '年繳' : '月繳'} 沒有開通；請決定延長、轉換或退款`, paid_at: o.paid_at || now });
+        this.payEv(o.id, 'plan_conflict', { cur: cur.plan, exp: cur.expires });
+        return { ok: false, error: 'plan_conflict' };
+      }
+      /* 稽核 H9：升級（較低→較高）時舊方案剩餘期間不折抵 → 記一筆待處理，管理者決定是否部分退款 */
+      const upNote = live && rc && ro && ro > rc && cur.expires ? `升級：舊方案 ${cur.plan} 還剩 ${Math.ceil((cur.expires - now) / DAY)} 天（到 ${tpeDay(cur.expires)}）沒有折抵，請決定是否部分退款舊方案` : null;
       if (same && !cur.expires && cur.plan !== 'free') {
         /* 管理者手動設成「不會到期」的同方案：不動到期日，只記這筆已開通 */
         this.paySet(o.id, { applied: 1, status: 'active', grant_from: now, grant_to: 0, confirmed_at: now, act_src: src, act_err: null, paid_at: o.paid_at || now });
@@ -210,7 +220,7 @@ export function installPay(Hub, H) {
       else this.q('INSERT INTO perm (email, plan, over, updated, expires) VALUES (?, ?, ?, ?, ?)', email, o.plan, '{}', now, to);
       const bf = this.billFlags(email);
       if (!bf || !bf.first_paid) this.billUpsert(email, { first_paid: o.paid_at || now });
-      this.paySet(o.id, { applied: 1, status: 'active', grant_from: from, grant_to: to, confirmed_at: now, act_src: src, act_err: null, paid_at: o.paid_at || now });
+      this.paySet(o.id, { applied: 1, status: 'active', grant_from: from, grant_to: to, confirmed_at: now, act_src: src, act_err: null, paid_at: o.paid_at || now, ...(upNote ? { anomaly: upNote } : {}) });
       this.planEv(email, same && from > now ? 'extend' : 'activate', o.plan, o.id, `${tpeDay(from)}～${tpeDay(to)}（${src}）`);
       this.payEv(o.id, 'activate', { src, from, to });
       return { ok: true, order: this.payOrder(o.id) };
@@ -223,6 +233,8 @@ export function installPay(Hub, H) {
   /* 綠界付款成功（ReturnURL／查單／排程共用）：驗金額 → 記付款 → 開通 */
   Hub.prototype.payMarkPaid = function (o, info, src) {
     if (o.applied) return { ok: true, dup: true };
+    /* 稽核 H1：綠界通知只能開綠界單（轉帳單一律走管理者確認）*/
+    if (o.method !== 'ecpay') { this.payEv(o.id, 'notify_not_ecpay', info); return { ok: false, error: 'not_ecpay' }; }
     const amt = parseInt(info.amount, 10);
     const set = { trade_no: info.trade_no || o.trade_no, pay_type: info.pay_type || o.pay_type, paid_at: o.paid_at || info.paid_at || this.now(), rtn_msg: info.msg || o.rtn_msg };
     if (info.gwsr) set.gwsr = info.gwsr;
@@ -235,6 +247,13 @@ export function installPay(Hub, H) {
       return { ok: false, error: 'amount_mismatch' };
     }
     set.status = 'paid';
+    /* 稽核 H1：測試模式（沒設正式金鑰）用的是 repo 公開的測試金鑰，任何人都算得出驗章碼 → 只記付款、不寫權限；
+       只有本機 devserver（ECPAY_STAGE_HOST）或明確打開 PAY_TEST_ACTIVATE 才准開通 */
+    if (this.ecCfg().test && !this.env.ECPAY_STAGE_HOST && String(this.env.PAY_TEST_ACTIVATE || '') !== '1') {
+      set.anomaly = '測試模式付款：沒有設定正式金鑰，不自動開通（防偽造通知）';
+      this.paySet(o.id, set); this.payEv(o.id, 'test_no_activate', info);
+      return { ok: false, error: 'test_mode' };
+    }
     this.paySet(o.id, set);
     return this.payActivate(o.id, src);
   };
@@ -276,8 +295,15 @@ export function installPay(Hub, H) {
     }
     if (n > (p.period_n || 0)) this.paySet(p.id, { period_n: n });
     const c = this.payOrder(cid);
+    /* 稽核 H8：這個定期定額之後會員又買了別的（升級／改年繳）→ 這期不開通（不准蓋回舊方案），列異常、排程會去終止 */
+    const sup = this.paySuperseding(p);
+    if (sup && !c.applied) { this.paySet(cid, { anomaly: `舊的定期定額照扣：會員已改買 ${sup.plan_name}（訂單 ${sup.id}），這期沒有開通，請退款並確認已終止自動扣款` }); return { ok: false, error: 'superseded' }; }
     if ((parseInt(info.amount, 10) || p.amount) !== p.amount) { this.paySet(cid, { anomaly: `金額不符：綠界 ${info.amount}、訂單 ${p.amount}` }); return { ok: false, error: 'amount_mismatch' }; }
     return c.applied ? { ok: true, dup: true } : this.payActivate(cid, src);
+  };
+  /* 這個定期定額母單之後，同一會員有沒有「別張單」開通（不是自己的子單）→ 有就代表舊的自動扣款該停了 */
+  Hub.prototype.paySuperseding = function (p) {
+    return this.q("SELECT * FROM orders WHERE email = ? AND applied = 1 AND id <> ? AND (parent IS NULL OR parent <> ?) AND confirmed_at > ? ORDER BY confirmed_at DESC LIMIT 1", p.email, p.id, p.id, p.confirmed_at || 0)[0] || null;
   };
   /* 定期定額對帳（QueryCreditCardPeriodInfo；回 JSON）*/
   Hub.prototype.payPeriodSync = async function (oid, src) {
@@ -342,6 +368,15 @@ export function installPay(Hub, H) {
     for (const o of this.q("SELECT id FROM orders WHERE method = 'ecpay' AND recur = 1 AND parent IS NULL AND applied = 1 AND period_state = 'active' AND (last_sync IS NULL OR last_sync < ?) ORDER BY last_sync LIMIT 20", now - PAY_PERIOD_SYNC_MS)) {
       const r = await this.payPeriodSync(o.id, 'sweep');
       if (r.ok) out.period += r.added;
+    }
+    /* 稽核 H8／H14：被新訂單取代的定期定額 → 自動向綠界終止；失敗留在異常清單，下次排程再試 */
+    for (const p of this.q("SELECT * FROM orders WHERE method = 'ecpay' AND recur = 1 AND parent IS NULL AND applied = 1 AND period_state = 'active' LIMIT 50")) {
+      const sup = this.paySuperseding(p);
+      const refunded = p.refunded > 0;
+      if (!sup && !refunded) continue;
+      const r = await this.payPeriodCancel(p.id, sup ? 'superseded:' + sup.id : 'refund_retry');
+      if (!r.ok) this.paySet(p.id, { anomaly: `自動扣款還沒停：${sup ? '會員已改買 ' + sup.plan_name : '已退款'}，向綠界終止失敗（${r.msg || r.error}），排程會重試；也可到綠界後台手動終止` });
+      else out.cancelled = (out.cancelled || 0) + 1;
     }
     this.payExpireLog();
     return out;
@@ -420,17 +455,21 @@ export function installPay(Hub, H) {
   Hub.prototype.payRefundQuote = function (o) {
     const now = this.now();
     const done = this.q("SELECT COALESCE(SUM(amount), 0) AS s FROM refunds WHERE oid = ? AND status = 'done'", o.id)[0].s;
-    const left = o.amount - done;
+    /* 稽核 H4：轉帳單以管理者確認的實收金額為準（多收的也能退；少收的不會多退）*/
+    const base = o.method === 'bank' && o.recv_amount ? o.recv_amount : o.amount;
+    const left = base - done;
     const bf = this.billFlags(o.email) || {};
     const first = bf.first_paid || o.paid_at || 0;
     let suggest = left, rule = '';
-    if (first && now - first <= 7 * DAY && !bf.refund_used) { rule = '首次付款 7 天內：全額退款保證'; }
+    /* 稽核 H11：七天以「會員申請退款的時間」為準（申請時間在七天內，管理者晚幾天處理也一樣全額）*/
+    const asked = bf.refund_req_at || 0;
+    if (first && (now - first <= 7 * DAY || (asked && asked - first <= 7 * DAY)) && !bf.refund_used) { rule = '首次付款 7 天內：全額退款保證' + (asked && now - first > 7 * DAY ? '（以申請日為準）' : ''); }
     else if (o.grant_to && o.grant_from && o.grant_to > now) {
       const ratio = Math.max(0, Math.min(1, (o.grant_to - Math.max(now, o.grant_from)) / (o.grant_to - o.grant_from)));
-      suggest = Math.min(left, Math.round(o.amount * ratio)); rule = `超過 7 天：依未使用日數比例（剩 ${Math.ceil((o.grant_to - now) / DAY)} 天）`;
+      suggest = Math.min(left, Math.round(base * ratio)); rule = `超過 7 天：依未使用日數比例（剩 ${Math.ceil((o.grant_to - now) / DAY)} 天）`;
     } else { suggest = 0; rule = '這一筆的期間已經用完，政策上不退（可手動改金額）'; }
     const credit = o.method === 'ecpay' && /^Credit/.test(o.pay_type || '');
-    return { left, suggest, rule, kind: credit ? 'ecpay' : 'manual', test: !!o.test || this.ecCfg().test, recur: !!o.recur && !o.parent, periodActive: o.period_state === 'active' };
+    return { base, left, suggest, rule, kind: credit ? 'ecpay' : 'manual', test: !!o.test || this.ecCfg().test, recur: !!o.recur && !o.parent, periodActive: o.period_state === 'active' };
   };
   /* 信用卡退款：判斷授權／關帳階段 → 選 Action（N 放棄、C 改關帳金額、R 退刷）。
      有 ECPAY_CREDIT_CHECK_CODE＋gwsr 就查 CreditDetail/QueryTrade/V2 拿真實狀態；沒有就用「每日 20:00 自動關帳」推估（docs 第 6 節）。*/
@@ -453,6 +492,9 @@ export function installPay(Hub, H) {
       if (cut > now) cut -= DAY;
       stage = (o.paid_at || 0) < cut ? 'closed' : 'auth';
     }
+    const doneSum = this.q("SELECT COALESCE(SUM(amount), 0) AS s FROM refunds WHERE oid = ? AND status = 'done'", o.id)[0].s;
+    /* 稽核 H6：關帳前（授權階段）只准做一次部分退款；第二次要等關帳後走退刷，避免關帳金額算錯 */
+    if (stage !== 'closed' && !full && doneSum > 0) return { ok: false, action: 'C', msg: '這筆今天已經部分退過一次，請等今晚 20:00 關帳後（明天）再退剩下的' };
     const steps = stage === 'closed' ? [['R', amount]] : stage === 'closing' ? (full ? [['E', o.amount], ['N', o.amount]] : [['C', o.amount - amount]]) : (full ? [['N', o.amount]] : [['C', o.amount - amount]]);
     for (const [act, amt] of steps) {
       const r = await this.ecPost('/CreditDetail/DoAction', { MerchantTradeNo: o.id, TradeNo: o.trade_no || '', Action: act, TotalAmount: String(amt) }, c.test ? c.host : ECPAY_PROD_HOST);
@@ -570,7 +612,7 @@ export function installPay(Hub, H) {
       const v = await this.auth(req, b); if (!v) return this.json(req, { error: 'auth' }, 401);
       this.payInit();
       const o = this.payOrder(b.id);
-      if (!o || o.uid !== v.user.uid || !o.recur || o.parent) return this.json(req, { error: 'not_found' }, 404);
+      if (!o || (o.uid !== v.user.uid && norm(o.email) !== norm(v.user.email)) || !o.recur || o.parent) return this.json(req, { error: 'not_found' }, 404);
       const r = await this.payPeriodCancel(o.id, 'member');
       if (!r.ok) return this.json(req, { error: r.error, msg: r.msg || '' }, 502);
       return this.json(req, { ok: true, ...this.payMine(v) });
@@ -605,11 +647,15 @@ export function installPay(Hub, H) {
       const recv = b.received;
       if (!Number.isInteger(recv) || recv < 1 || recv > 9999999) return this.json(req, { error: 'need_received' }, 400);
       if (recv < o.amount) return this.json(req, { error: 'underpaid', amount: o.amount, received: recv }, 409);
+      /* 稽核 H3：同一筆入帳（末 5 碼＋轉帳日期）已經確認過別張單 → 擋下；管理者確定是另一筆錢才可勾選並寫理由 */
+      const dupO = this.q("SELECT id, email FROM orders WHERE id <> ? AND method = 'bank' AND applied = 1 AND from_last5 = ? AND xfer_date = ?", o.id, o.from_last5, o.xfer_date)[0];
+      const dupWhy = subClean(b.dupReason, 200);
+      if (dupO && !(b.dupOk === true && dupWhy)) return this.json(req, { error: 'dup_xfer', other: dupO.id, otherEmail: dupO.email }, 409);
       this.paySet(o.id, { recv_amount: recv });
       this.paySet(o.id, { status: 'paid', paid_at: o.xfer_date ? Date.parse(o.xfer_date + 'T12:00:00+08:00') : this.now() });
-      this.payEv(o.id, 'confirm', { by: v.user.email, received: recv, amount: o.amount, reported: o.xfer_amount });
+      this.payEv(o.id, 'confirm', { by: v.user.email, received: recv, amount: o.amount, reported: o.xfer_amount, dupOf: dupO ? dupO.id : '', dupWhy });
       const r = this.payActivate(o.id, 'admin:' + norm(v.user.email));
-      if (!r.ok) return this.json(req, { error: r.error }, 500);
+      if (!r.ok) return this.json(req, { error: r.error, msg: r.error === 'plan_conflict' ? '會員目前有較高的方案，這筆沒有開通，已列入異常清單' : '' }, r.error === 'plan_conflict' ? 409 : 500);
       return this.json(req, { ok: true, order: admOrder(this.payOrder(o.id)) });
     },
     '/v1/admin/pay/reject': async function (req, b) {
@@ -630,14 +676,15 @@ export function installPay(Hub, H) {
       this.payInit();
       const o = this.payOrder(b.id); if (!o) return this.json(req, { error: 'not_found' }, 404);
       if (!o.applied) return this.json(req, { error: 'not_applied' }, 409);
+      this.payEv(o.id, 'ack', { by: v.user.email, anomaly: o.anomaly || '', actErr: o.act_err || '' });
       this.paySet(o.id, { anomaly: null, act_err: null });
-      this.payEv(o.id, 'ack', v.user.email);
       return this.json(req, { ok: true });
     },
     '/v1/admin/pay/note': async function (req, b) {
-      if (!(await this.admin(req, b))) return this.json(req, { error: 'forbidden' }, 403);
+      const v = await this.admin(req, b); if (!v) return this.json(req, { error: 'forbidden' }, 403);
       this.payInit();
       const o = this.payOrder(b.id); if (!o) return this.json(req, { error: 'not_found' }, 404);
+      this.payEv(o.id, 'note', { by: v.user.email, before: o.admin_note || '', after: subClean(b.note, 300) });
       this.paySet(o.id, { admin_note: subClean(b.note, 300) });
       return this.json(req, { ok: true });
     },
@@ -647,6 +694,10 @@ export function installPay(Hub, H) {
       this.payInit();
       let o = this.payOrder(b.id); if (!o) return this.json(req, { error: 'not_found' }, 404);
       if (o.applied) return this.json(req, { ok: true, dup: true });
+      /* 稽核 M1：退過款的單不准補開通 */
+      if (o.refunded > 0 || o.status === 'refunded') return this.json(req, { error: 'refunded', msg: '這筆已經退過款，不能再開通' }, 409);
+      /* 稽核 M2：轉帳單一律走「確認入帳」（要有回報、要輸入實收），不能用強制補開通繞過 */
+      if (o.method === 'bank') return this.json(req, { error: 'use_confirm', msg: '轉帳單請用「確認入帳並開通」（要輸入網銀實收金額）' }, 409);
       if (o.method === 'ecpay' && !o.parent && !b.force) {
         const q = await this.payQuery(o.id, 'admin_query');
         o = this.payOrder(o.id);
@@ -655,8 +706,11 @@ export function installPay(Hub, H) {
         return this.json(req, { error: q.error || 'unpaid', msg: q.error === 'amount_mismatch' ? '綠界金額跟訂單不符' : q.error === 'network' ? '連不到綠界' : '綠界查單顯示還沒付款' }, 409);
       }
       if (!b.force && o.status !== 'paid') return this.json(req, { error: 'unpaid' }, 409);
+      /* 稽核 M3／M10：強制開通要寫理由；原本的異常文字保留在事件裡 */
+      const why = subClean(b.reason, 200);
+      if (b.force && !why) return this.json(req, { error: 'need_reason', msg: '強制開通請寫理由（例如：已到綠界後台確認實收金額）' }, 400);
+      this.payEv(o.id, 'reactivate', { by: v.user.email, force: !!b.force, reason: why, prevAnomaly: o.anomaly || '' });
       this.paySet(o.id, { anomaly: null, status: 'paid', paid_at: o.paid_at || this.now() });
-      this.payEv(o.id, 'reactivate', { by: v.user.email, force: !!b.force });
       const r = this.payActivate(o.id, 'admin_fix:' + norm(v.user.email));
       return r.ok ? this.json(req, { ok: true }) : this.json(req, { error: r.error }, 500);
     },
@@ -713,14 +767,22 @@ export function installPay(Hub, H) {
       this.billUpsert(o.email, { refund_used: 1, trial_used: 1, refund_at: now });
       let cancel = null;
       const parent = o.parent ? this.payOrder(o.parent) : o;
-      if (parent && parent.recur && parent.period_state === 'active') cancel = await this.payPeriodCancel(parent.id, 'refund');
-      if (permAct === 'now') {
-        const cur = this.q('SELECT plan, expires FROM perm WHERE email = ?', o.email)[0];
-        if (cur && cur.plan === o.plan && (!cur.expires || cur.expires > now)) {
-          this.q('UPDATE perm SET expires = ?, updated = ? WHERE email = ?', now - 1, now, o.email);   // effective() 判斷「到期日 < 現在」，減 1 毫秒＝當下就降
-          this.planEv(o.email, 'refund_downgrade', o.plan, rid, `退款 NT$ ${amount}，立即回到註冊會員`);
-        }
-      } else this.planEv(o.email, 'refund_keep', o.plan, rid, `退款 NT$ ${amount}，用到 ${tpeDay((this.effective(o.email).expires) || now)} 才停`);
+      if (parent && parent.recur && parent.period_state === 'active') {
+        cancel = await this.payPeriodCancel(parent.id, 'refund');
+        /* 稽核 H14：退款成功但終止自動扣款失敗 → 列異常，排程會重試 */
+        if (!cancel.ok) this.paySet(parent.id, { anomaly: `已退款，但向綠界終止自動扣款失敗（${cancel.msg || cancel.error}），排程會重試；也可到綠界後台手動終止` });
+      }
+      /* 稽核 M13：沒開通過的單退款不動權限；H10：依這一筆實際給的期間回收（不是一律砍到現在）*/
+      const cur = this.q('SELECT plan, expires FROM perm WHERE email = ?', o.email)[0];
+      if (o.applied && cur && cur.plan === o.plan && cur.expires && cur.expires > now && o.grant_to) {
+        const future = o.grant_from > now;                                   // 這一筆是還沒開始的續訂期
+        const cut = permAct === 'now' || future ? Math.max(0, o.grant_to - Math.max(o.grant_from, now)) : 0;
+        if (cut > 0) {
+          let nexp = cur.expires - cut; if (nexp <= now) nexp = now - 1;   // effective() 判斷「到期日 < 現在」，減 1 毫秒＝當下就降
+          this.q('UPDATE perm SET expires = ?, updated = ? WHERE email = ?', nexp, now, o.email);
+          this.planEv(o.email, nexp <= now ? 'refund_downgrade' : 'refund_keep', o.plan, rid, nexp <= now ? `退款 NT$ ${amount}，立即回到註冊會員` : `退款 NT$ ${amount}，收回這一筆的期間，到期日改為 ${tpeDay(nexp)}`);
+        } else this.planEv(o.email, 'refund_keep', o.plan, rid, `退款 NT$ ${amount}，用到 ${tpeDay(cur.expires)} 才停`);
+      } else this.planEv(o.email, 'refund_keep', o.plan, rid, `退款 NT$ ${amount}${o.applied ? '' : '（這筆沒開通過，不動權限）'}`);
       this.payEv(o.id, 'refund', { rid, amount, perm: permAct, action: res.action });
       return this.json(req, { ok: true, refund: this.q('SELECT * FROM refunds WHERE id = ?', rid)[0], cancel, order: admOrder(this.payOrder(o.id)) });
     },
@@ -812,12 +874,20 @@ export function installPay(Hub, H) {
   const payOrigCleanup = Hub.prototype.cleanup;
   Hub.prototype.cleanup = function () {
     payOrigCleanup.call(this);
-    try { this.payExpireLog(); this.q('DELETE FROM pay_events WHERE at < ?', this.now() - 400 * DAY); } catch (e) { /* 不擋其他清理 */ }
+    try { this.payExpireLog(); /* 稽核 M10：金流事件是唯一的時間軸證據，只增不刪（不再 400 天清除）*/ } catch (e) { /* 不擋其他清理 */ }
   };
   /* 刪除帳號：訂單、退款是交易紀錄（對帳、稅務），不跟著刪；只把 uid 斷開（docs/payment_checkout_1011.md 第 9 節）*/
   const payOrigDelete = Hub.prototype.deleteMe;
   Hub.prototype.deleteMe = async function (req, b) {
     const v = await this.auth(req, b || {});
+    /* 稽核 H13：刪帳號前先終止所有自動扣款；終止失敗就不刪，請他稍後再試或聯絡客服 */
+    if (v) {
+      this.payInit();
+      for (const p of this.q("SELECT id FROM orders WHERE (uid = ? OR email = ?) AND recur = 1 AND parent IS NULL AND applied = 1 AND period_state = 'active'", v.user.uid, norm(v.user.email))) {
+        const r = await this.payPeriodCancel(p.id, 'delete_account');
+        if (!r.ok) return this.json(req, { error: 'period_cancel_failed', msg: '你的信用卡自動扣款還沒能終止，帳號先不刪除；請稍後再試或聯絡客服' }, 409);
+      }
+    }
     const res = await payOrigDelete.call(this, req, b);
     if (v && res.status === 200) { this.payInit(); this.q("UPDATE orders SET uid = '' WHERE uid = ?", v.user.uid); }
     return res;

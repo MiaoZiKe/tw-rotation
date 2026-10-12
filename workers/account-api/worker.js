@@ -2205,6 +2205,7 @@ Hub.prototype.billInit = function () {
   if (!this.q('PRAGMA table_info(sub_requests)').some((c) => c.name === 'type')) this.q("ALTER TABLE sub_requests ADD COLUMN type TEXT DEFAULT 'subscribe'");
   this.q('CREATE TABLE IF NOT EXISTS bill_flags (email TEXT PRIMARY KEY, first_paid INTEGER, trial_used INTEGER DEFAULT 0, refund_used INTEGER DEFAULT 0, cancel_at INTEGER, refund_at INTEGER, updated INTEGER)');
   this.q('CREATE TABLE IF NOT EXISTS benefit_hash (emh TEXT, kind TEXT, at INTEGER, PRIMARY KEY (emh, kind))');
+  if (!this.q('PRAGMA table_info(bill_flags)').some((c) => c.name === 'refund_req_at')) this.q('ALTER TABLE bill_flags ADD COLUMN refund_req_at INTEGER');
   this._billOk = true;
 };
 const billNorm = (email) => String(email || '').trim().toLowerCase();
@@ -2280,8 +2281,19 @@ Object.assign(Hub.prototype.subRoutes, {
     const id = rand(9), now = this.now();
     this.q('INSERT INTO sub_requests (id, uid, email, contact, plan, period, note, created, status, type) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
       id, v.user.uid, email, email, s.plan, 'month', subClean(b.note, 300), now, 'new', type);
-    this.billUpsert(email, type === 'cancel' ? { trial_used: 1, cancel_at: now } : { trial_used: 1, refund_used: 1, refund_at: now });
-    return this.json(req, { ok: true, id, ...(await this.billState(v)) });
+    /* 稽核 H11（2026-10-12）：申請當下只記「申請時間」，refund_used 等管理者真的退款才設 —— 否則試算會把合規的七天申請算成比例退款 */
+    this.billUpsert(email, type === 'cancel' ? { trial_used: 1, cancel_at: now } : { trial_used: 1, refund_req_at: now });
+    /* 稽核 H12：信用卡定期定額會員按「取消訂閱」→ 直接向綠界終止自動扣款（不是只留一筆申請）*/
+    let periodCancel = null;
+    if (type === 'cancel' && typeof this.payPeriodCancel === 'function') {
+      this.payInit();
+      for (const p of this.q("SELECT id FROM orders WHERE (uid = ? OR email = ?) AND recur = 1 AND parent IS NULL AND applied = 1 AND period_state = 'active'", v.user.uid, email)) {
+        const r = await this.payPeriodCancel(p.id, 'member_cancel');
+        periodCancel = periodCancel && !periodCancel.ok ? periodCancel : r;
+      }
+      if (periodCancel && !periodCancel.ok) this.q("UPDATE sub_requests SET note = ? WHERE id = ?", subClean(`${b.note || ''}【自動終止綠界扣款失敗：${periodCancel.msg || periodCancel.error}，請管理者到綠界後台手動終止】`, 300), id);
+    }
+    return this.json(req, { ok: true, id, periodCancel, ...(await this.billState(v)) });
   },
 });
 /* 第一次被設成付費方案：記 first_paid（退款七天從這天算）。已有就不動 —— 續訂、改方案不會讓七天重新起算。*/

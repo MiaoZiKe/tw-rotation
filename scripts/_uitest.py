@@ -70847,6 +70847,7 @@ def t_pay_1011(b, base):
         boid = pc.evaluate("() => document.getElementById('coOid').innerText")
         ok(f"{T}：轉帳訂單編號出現在面板上（{boid}）", bool(re.match(r"^LG[0-9A-Z]{16}$", boid or "")), boid)
         pc.fill("#coL5", "12345")
+        pc.fill("#coXAmt", "299")
         pc.check("#coAgree")
         shot(pc, "co_bank.png", "#subDlg .box")
         pc.click("#coSendB")
@@ -70959,6 +70960,9 @@ def t_pay_1011(b, base):
         ad.click("#pdGo")
         ok(f"{T}：「查單並開通」→ 綠界查單沒過（沒付款）→ 不開通、寫原因", bool(wait_until(ad, "() => /還沒付款|不符/.test(document.querySelector('#subDlg .msg').innerText)", 6000)))
         ad.click("#pdForce")
+        ok(f"{T}：「強制開通」沒寫理由 → 擋下要求寫理由", bool(wait_until(ad, "() => /寫理由/.test(document.querySelector('#subDlg .msg').innerText)", 4000)))
+        ad.fill("#pdWhyF", "已到綠界後台確認實收")
+        ad.click("#pdForce")
         ok(f"{T}：「強制開通」→ 異常歸零、dave 變 Plus", bool(wait_until(ad, "() => document.getElementById('payAnom').innerText === '異常 0'", 8000)) and plan_of(pdv) == ["plus", True])
 
         # 管理區：未付款的單預設不顯示，打開「顯示未完成付款」才看得到
@@ -70985,6 +70989,7 @@ def t_pay_1011(b, base):
         wait_until(pe, "() => !!document.getElementById('coL5')", 6000)
         eoid = pe.evaluate("() => document.getElementById('coOid').innerText")
         pe.fill("#coL5", "67890")
+        pe.fill("#coXAmt", "299")
         pe.tap("#coAgree")
         m = pe.evaluate("() => { const b = document.querySelector('#subDlg .box').getBoundingClientRect(), s = document.getElementById('coSendB').getBoundingClientRect(); return { l: b.left, r: b.right, sw: document.documentElement.scrollWidth - innerWidth, bh: s.height, bw: s.width }; }")
         ok(f"{T}：390 結帳面板在螢幕內、沒有橫向捲軸、送出鈕高 ≥ 40", m["l"] >= 0 and m["r"] <= 390 and m["sw"] <= 1 and m["bh"] >= 40, m)

@@ -170,7 +170,7 @@
     if (actions) {
       if (o.method === 'bank' && o.last5 && ['review', 'expired'].includes(o.status)) acts.push(`<button type="button" class="sm pri" data-pa="confirm" data-id="${esc(o.id)}">確認入帳並開通</button><button type="button" class="sm danger" data-pa="reject" data-id="${esc(o.id)}">退回</button>`);
       if (o.applied && o.status !== 'refunded') acts.push(`<button type="button" class="sm" data-pa="refund" data-id="${esc(o.id)}">退款</button>`);
-      if (!o.applied && (o.anomaly || o.actErr || o.status === 'paid')) acts.push(`<button type="button" class="sm pri" data-pa="fix" data-id="${esc(o.id)}">補開通</button>`);
+      if (!o.applied && o.method !== 'bank' && !o.refunded && o.status !== 'refunded' && (o.anomaly || o.actErr || o.status === 'paid')) acts.push(`<button type="button" class="sm pri" data-pa="fix" data-id="${esc(o.id)}">補開通</button>`);
       if (o.applied && (o.anomaly || o.actErr)) acts.push(`<button type="button" class="sm" data-pa="ack" data-id="${esc(o.id)}">標記已處理</button>`);
       if (o.method === 'ecpay' && !o.parent && (!o.applied || o.recur)) acts.push(`<button type="button" class="sm" data-pa="sync" data-id="${esc(o.id)}">${o.recur && o.applied ? '對帳' : '查單'}</button>`);
       acts.push(`<button type="button" class="sm" data-pa="note" data-id="${esc(o.id)}">備註</button>`);
@@ -255,7 +255,7 @@
     if (!o) return;
     const D = T().dialog;
     const who = `<div class="kv"><span>訂單</span><b>${esc(o.id)}</b><span>會員</span><b>${mailA(o.email, o)}</b><span>方案</span><b>${esc(o.planName)}・${o.period === 'year' ? '年繳' : '月繳'}</b><span>應付金額</span><b>NT$ ${nt(o.amount)}</b>${o.last5 ? `<span>客戶匯款</span><b${o.xferAmount < o.amount ? ' style="color:#e5484d"' : o.xferAmount > o.amount ? ' style="color:#30a46c"' : ''}>末 5 碼 ${esc(o.last5)}（${esc(o.xferDate)}，NT$ ${nt(o.xferAmount)}）${o.xferAmount < o.amount ? ' ⚠ 少於應付' : o.xferAmount > o.amount ? '（多於應付）' : ''}</b>` : ''}</div>`;
-    const err = (dl, r) => { const m = dl.querySelector('.msg'); m.className = 'msg bad'; m.textContent = '沒有成功：' + ((r && (r.msg || (r.error === 'not_reported' ? '會員還沒回報匯款資料，不能確認入帳' : r.error === 'underpaid' ? '實收金額少於應付，不能開通' : r.error === 'need_received' ? '請輸入網銀實際入帳金額' : r.error))) || (r ? r._s : '連不到會員伺服器')); };
+    const err = (dl, r) => { const m = dl.querySelector('.msg'); m.className = 'msg bad'; m.textContent = '沒有成功：' + ((r && (r.msg || (r.error === 'not_reported' ? '會員還沒回報匯款資料，不能確認入帳' : r.error === 'underpaid' ? '實收金額少於應付，不能開通' : r.error === 'need_received' ? '請輸入網銀實際入帳金額' : r.error === 'need_reason' ? '請寫理由' : r.error))) || (r ? r._s : '連不到會員伺服器')); };
     if (k === 'confirm') {
       /* 2026-10-12 Andy：資金確認第二道 CHK —— 一定要輸入網銀實際入帳金額；少於應付按不下去（伺服器也擋） */
       const dl = D(`<div class="payd"><h3>確認入帳並開通？</h3>${who}${repHist(o)}
@@ -272,7 +272,23 @@
         rm.style.color = !n ? '' : n < o.amount ? '#e5484d' : n > o.amount ? '#30a46c' : '';
         rm.textContent = !n ? '' : n < o.amount ? `少收 NT$ ${nt(o.amount - n)}，不能開通。請按「退回」並寫原因（例如請補匯差額）。` : n > o.amount ? `多收 NT$ ${nt(n - o.amount)}，可以開通；多的部分請另外退還或備註。` : '金額相符。';
       };
-      go.onclick = async () => { const n = val(); if (n < o.amount) return; go.disabled = true; const r = await call('/v1/admin/pay/confirm', { id: o.id, received: n }); if (await done(v, r, `已開通 ${o.email}（實收 NT$ ${nt(n)}）`)) dl.hidden = true; else { err(dl, r); go.disabled = false; } };
+      let dupOk = false;
+      go.onclick = async () => {
+        const n = val(); if (n < o.amount) return; go.disabled = true;
+        const body = { id: o.id, received: n };
+        if (dupOk) { body.dupOk = true; body.dupReason = (dl.querySelector('#pdDupWhy') || {}).value || ''; if (!body.dupReason.trim()) { err(dl, { msg: '請寫為什麼確定是另一筆入帳' }); go.disabled = false; return; } }
+        const r = await call('/v1/admin/pay/confirm', body);
+        if (await done(v, r, `已開通 ${o.email}（實收 NT$ ${nt(n)}）`)) { dl.hidden = true; return; }
+        go.disabled = false;
+        /* 稽核 H3：同一筆入帳已經確認過別張單 → 顯示是哪張，要勾選並寫理由才能再送 */
+        if (r && r.error === 'dup_xfer' && !dupOk) {
+          dupOk = true;
+          rm.insertAdjacentHTML('afterend', `<div id="pdDupBox" style="border:1px solid #e5484d;border-radius:8px;padding:8px;margin:6px 0;color:#e5484d;font-size:13px">⚠ 末 5 碼 ${esc(o.last5)}、轉帳日 ${esc(o.xferDate)} 這筆入帳，<b>已經確認過另一張訂單</b>（${esc(r.other)}・${esc(r.otherEmail)}）。同一筆錢不能開通兩次。<br>只有在網銀確實看到<b>兩筆不同的入帳</b>時才繼續：<input type="text" id="pdDupWhy" maxlength="200" placeholder="寫下理由，例如：網銀有兩筆，交易序號不同" style="width:100%;margin-top:4px"></div>`);
+          err(dl, { msg: '同一筆入帳已用過，請確認後寫理由再按一次' });
+          return;
+        }
+        err(dl, r);
+      };
       go.style.opacity = '.35'; go.style.cursor = 'not-allowed';
       setTimeout(() => inp.focus(), 50);
     } else if (k === 'reject') {
@@ -308,9 +324,11 @@
       const ec = o.method === 'ecpay' && !o.parent;
       const dl = D(`<div class="payd"><h3>補開通？</h3>${who}${o.anomaly ? `<p class="warn">異常：${esc(o.anomaly)}</p>` : ''}${o.actErr ? `<p class="warn">開通出錯：${esc(o.actErr)}</p>` : ''}
         <p>${ec ? '會先向綠界<b>查單</b>：確定已付款、金額相符就開通。查單不過時可以按「強制開通」（請先在綠界後台確認這筆真的收到錢）。' : '會把這筆開通（期間照月繳／年繳加上去），同一筆不會加兩次。'}</p>
+        <label for="pdWhyF">${ec ? '強制開通的理由（必填，會永久記錄）' : '開通理由（必填，會永久記錄）'}</label><input type="text" id="pdWhyF" maxlength="200" placeholder="例如：已到綠界後台確認實收 NT$ ${esc(o.amount)}">
         <div class="msg" role="status"></div><div class="row2"><button type="button" data-close>取消</button>${ec ? '<button type="button" id="pdForce">強制開通</button>' : ''}<button type="button" class="pri" id="pdGo">${ec ? '查單並開通' : '補開通'}</button></div></div>`);
-      dl.querySelector('#pdGo').onclick = async () => { const r = await call('/v1/admin/pay/reactivate', { id: o.id, force: !ec }); if (await done(v, r, '已補開通')) dl.hidden = true; else err(dl, r); };
-      const fz = dl.querySelector('#pdForce'); if (fz) fz.onclick = async () => { const r = await call('/v1/admin/pay/reactivate', { id: o.id, force: true }); if (await done(v, r, '已強制開通')) dl.hidden = true; else err(dl, r); };
+      const fwhy = () => dl.querySelector('#pdWhyF').value.trim();
+      dl.querySelector('#pdGo').onclick = async () => { if (!ec && !fwhy()) { err(dl, { msg: '請寫開通理由' }); return; } const r = await call('/v1/admin/pay/reactivate', { id: o.id, force: !ec, reason: fwhy() }); if (await done(v, r, '已補開通')) dl.hidden = true; else err(dl, r); };
+      const fz = dl.querySelector('#pdForce'); if (fz) fz.onclick = async () => { if (!fwhy()) { err(dl, { msg: '強制開通請寫理由' }); return; } const r = await call('/v1/admin/pay/reactivate', { id: o.id, force: true, reason: fwhy() }); if (await done(v, r, '已強制開通')) dl.hidden = true; else err(dl, r); };
     } else if (k === 'ack') {
       const dl = D(`<div class="payd"><h3>標記已處理？</h3>${who}<p class="warn">${esc(o.anomaly || o.actErr)}</p><p>這筆已經開通了。確認你看過、處理完（例如跟會員聯絡過）後按下去，就會從異常清單拿掉；訂單本身不變。</p>
         <div class="msg" role="status"></div><div class="row2"><button type="button" data-close>取消</button><button type="button" class="pri" id="pdGo">標記已處理</button></div></div>`);
@@ -327,7 +345,7 @@
     const today = ymd(Date.now());
     const dl = T().dialog(`<div class="payd" id="payRefundDlg"><h3>退款</h3>
       <div class="kv"><span>訂單</span><b>${esc(o.id)}</b><span>會員</span><b>${esc(o.email)}</b><span>付款方式</span><b>${esc(methodName(o))}${o.payType ? '（' + esc(o.payType) + '）' : ''}</b><span>訂單金額</span><b>NT$ ${nt(o.amount)}</b><span>可退金額</span><b id="rfLeft">NT$ ${nt(q.left)}</b><span>試算</span><b>NT$ ${nt(q.suggest)}<small style="color:var(--ink-2);font-weight:400">・${esc(q.rule)}</small></b></div>
-      <label for="rfAmt">退款金額（可改）</label><input type="number" id="rfAmt" min="1" max="${q.left}" value="${q.suggest || q.left}">
+      <label for="rfAmt">退款金額（可改）</label><input type="number" id="rfAmt" min="1" max="${q.left}" value="${q.suggest}">${q.suggest === 0 ? '<small style="color:#e5484d;display:block">試算是 0 元（政策上不退）；要退請自己填金額並在備註寫原因</small>' : ''}
       <label>退款後權限</label>
       <label class="rad"><input type="radio" name="rfPerm" value="now" checked><span>立即降級<small>會員馬上回到註冊會員</small></span></label>
       <label class="rad"><input type="radio" name="rfPerm" value="end"><span>到期才停<small>用到 ${esc(ymd(o.grantTo))} 才回到註冊會員</small></span></label>
@@ -345,12 +363,15 @@
       const m = dl.querySelector('.msg');
       const amount = parseInt(dl.querySelector('#rfAmt').value, 10);
       if (!Number.isInteger(amount) || amount < 1 || amount > q.left) { m.className = 'msg bad'; m.textContent = `金額要在 1～${q.left} 之間`; return; }
+      /* 稽核 H5：退得比政策試算多 → 一定要寫原因 */
+      if (amount > q.suggest && !dl.querySelector('#rfNote').value.trim()) { m.className = 'msg bad'; m.textContent = `退款金額 NT$ ${nt(amount)} 高於試算 NT$ ${nt(q.suggest)}，請在備註寫原因`; return; }
       const asManual = manual || (mb && mb.checked);
       const body = { id: o.id, rid, amount, perm: dl.querySelector('input[name=rfPerm]:checked').value, note: dl.querySelector('#rfNote').value.trim(), manual: !!asManual };
       if (manual) { body.last5 = dl.querySelector('#rfL5').value.trim(); body.date = dl.querySelector('#rfDate').value; if (!/^\d{5}$/.test(body.last5)) { m.className = 'msg bad'; m.textContent = '請填退款帳號末 5 碼'; return; } }
       else if (asManual) body.date = dl.querySelector('#rfDate2').value;
       go.disabled = true; m.className = 'msg'; m.textContent = asManual ? '登記中…' : '向綠界送出退款…';
       const r = await call('/v1/admin/pay/refund', body);
+      if (r && r._s === 200 && r.cancel && !r.cancel.ok) { await load(); paint(v); st(v, `已退款 NT$ ${nt(amount)}，但綠界自動扣款「沒有」終止成功（${r.cancel.msg || r.cancel.error}）：已列入異常，排程會重試，也請到綠界後台確認`, true); dl.hidden = true; return; }
       if (await done(v, r, `已退款 NT$ ${nt(amount)}（${o.email}）`)) { dl.hidden = true; return; }
       go.disabled = false; m.className = 'msg bad';
       m.textContent = '退款沒有成功：' + ((r && (r.msg || ({ over: '超過可退金額', running: '這筆有退款正在處理中', bad_last5: '請填退款帳號末 5 碼', bad_date: '請選退款日期', stage_no_refund: '測試環境不能退刷' })[r.error] || r.error)) || '連不到會員伺服器');
