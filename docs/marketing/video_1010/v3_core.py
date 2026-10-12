@@ -1405,7 +1405,7 @@ class Op:
         if key in tp:
             return tp[key]
         c = tp["t"]
-        t0 = c - self.TAP_IN if go else c + self.TAP_OUT - self.HOP
+        t0 = c - self.TAP_IN if go else tp.get("_c_last", c) + self.TAP_OUT - self.HOP
         a, b = (home, foot) if go else (foot, home)
         s0, s1 = (hs, size) if go else (size, hs)
         min_y = 142 if L.fmt == "mobile" else 56     # 不跳進上方標題、小字帶
@@ -1495,9 +1495,25 @@ class Op:
 
     def _v4_draw(self, cv, t, shot, L, home, hs, iname):
         rec = self.rec
-        for tp in self._seq():
+        seq = self._seq()
+        # 連點（下一次點擊在這次跳回之前）：比比站著不跳回，直到最後一次點完（例：手機 e03 同一個「環節 1」0.93、1.07 秒連點兩次）
+        skip = set()
+        for i, tp in enumerate(seq):
+            if i in skip:
+                continue
+            last = tp["t"]
+            j = i + 1
+            while j < len(seq) and seq[j]["t"] - last < self.TAP_IN + self.TAP_OUT:
+                last = seq[j]["t"]
+                skip.add(j)
+                j += 1
+            tp["_c_last"] = last
+        for i, tp in enumerate(seq):
+            if i in skip:
+                continue
             c = tp["t"]
-            if c - self.TAP_IN <= t < c + self.TAP_OUT:
+            cl = tp.get("_c_last", c)
+            if c - self.TAP_IN <= t < cl + self.TAP_OUT:
                 pose = self._tap_pose(shot, L, tp)
                 if not tp.get("_pose_bad", (0, True))[1]:
                     # 按鈕旁找不到合格站位（主角資料 0%、其他文字 ≤15%、按鈕露出 ≥80%）：比比留在待機位，只留點擊漣漪
@@ -1506,7 +1522,7 @@ class Op:
                     return
                 foot, size, snm, sfi = self._pose_foot(rec, tp, pose)
                 t_land = c - self.TAP_IN + self.HOP
-                t_back = c + self.TAP_OUT - self.HOP
+                t_back = cl + self.TAP_OUT - self.HOP
                 ROLE[0] = "bibi_tap"
                 if t < t_land or t >= t_back:
                     # 四腳跳躍（CEO 10-12）：hop 騰空格 0.2 秒；弧線挑不壓主角資料區、不進標題帶的；找不到合格弧線就在待機位原地蓄力、時間到出現在按鈕上
