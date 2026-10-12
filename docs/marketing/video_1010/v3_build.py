@@ -48,7 +48,7 @@ def timeline(S):
 
 def run_seg(args):
     fmt, theme, sid, path, step, only_check = args
-    C.LOG.clear(); C.EXC.clear(); K.CLICKS.clear(); K.FOCUSES.clear(); K.CROPS.clear(); K.MAINCHK.clear(); K.DWELLCHK.clear(); K.CONTENTCHK.clear(); K.ZOOMCHK.clear(); K.SITEOV.clear(); K.BUSYCHK.clear()
+    C.LOG.clear(); C.EXC.clear(); K.CLICKS.clear(); K.FOCUSES.clear(); K.CROPS.clear(); K.MAINCHK.clear(); K.DWELLCHK.clear(); K.CONTENTCHK.clear(); K.ZOOMCHK.clear(); K.SITEOV.clear(); K.BUSYCHK.clear(); K.TAPNOPOSE.clear()
     R.set_theme(theme)
     S = shots_for(fmt)
     L = K.Lay(fmt, theme)
@@ -75,13 +75,13 @@ def run_seg(args):
     for r in list(B._READERS.values()):
         r.close()
     B._READERS.clear()
-    chk = {"frames": frames, "LOG": C.LOG, "EXC": C.EXC, "CLICKS": K.CLICKS, "FOCUSES": K.FOCUSES, "CROPS": K.CROPS, "MAIN": K.MAINCHK, "DWELL": K.DWELLCHK, "CONTENT": K.CONTENTCHK, "ZOOM": K.ZOOMCHK, "SITEOV": K.SITEOV, "BUSY": K.BUSYCHK}
+    chk = {"frames": frames, "LOG": C.LOG, "EXC": C.EXC, "CLICKS": K.CLICKS, "FOCUSES": K.FOCUSES, "CROPS": K.CROPS, "MAIN": K.MAINCHK, "DWELL": K.DWELLCHK, "CONTENT": K.CONTENTCHK, "ZOOM": K.ZOOMCHK, "SITEOV": K.SITEOV, "BUSY": K.BUSYCHK, "TAPNOPOSE": K.TAPNOPOSE}
     Path(str(path) + ".chk.json").write_text(json.dumps(chk, ensure_ascii=False))
     return sid
 
 
 def write_reports(work, S, label):
-    tot = {"frames": 0, "LOG": [], "EXC": [], "CLICKS": [], "FOCUSES": [], "CROPS": [], "MAIN": [], "DWELL": [], "CONTENT": [], "ZOOM": [], "SITEOV": [], "BUSY": []}
+    tot = {"frames": 0, "LOG": [], "EXC": [], "CLICKS": [], "FOCUSES": [], "CROPS": [], "MAIN": [], "DWELL": [], "CONTENT": [], "ZOOM": [], "SITEOV": [], "BUSY": [], "TAPNOPOSE": []}
     for s in S:
         f = Path(work) / f"seg_{s.sid}.mp4.chk.json"
         if not f.exists():
@@ -160,9 +160,12 @@ def write_reports(work, S, label):
             L10.append(f"…另有 {len(bz) - 600} 筆")
     else:
         L10.append("全部通過，0 筆。")
+    tn = tot["TAPNOPOSE"]
+    L10 += ["", f"## 找不到合格站位的點擊（比比留待機位、只有漣漪）：{len(tn)} 個", "（按鈕旁 160px 內沒有主角資料 0%、其他文字 ≤8% 的位置；依規則 2-1 請內容剪輯換時段或換點擊對象）", ""]
+    L10 += [f"- {a} {b_} 秒「{c}」" for a, b_, c in tn]
     (work / "busy_check.md").write_text("\n".join(L10))
     bad = len(bz) + len(so) + len(zbad) + len(dbad) + len(cbad) + len(log) + (len(cl) - ok) + (len(fo) - fok) + (len(cr) - cok) + len(mbad)
-    print(f"重疊 {len(log)} 筆（檢查 {tot['frames']} 幀）；busy_check {len(tot['BUSY'])} 筆；客服鈕檢查 {len(tot['SITEOV'])} 筆；點擊 {len(cl)} 次通過 {ok}；焦點框 {len(fo)} 個通過 {fok}；裁切 {len(cr)} 鏡通過 {cok}；例外 {len(tot['EXC'])} 幀")
+    print(f"重疊 {len(log)} 筆（檢查 {tot['frames']} 幀）；busy_check {len(tot['BUSY'])} 筆；客服鈕檢查 {len(tot['SITEOV'])} 筆；點擊 {len(cl)} 次通過 {ok}；焦點框 {len(fo)} 個通過 {fok}；裁切 {len(cr)} 鏡通過 {cok}；例外 {len(tot['EXC'])} 幀；找不到站位的點擊 {len(tot['TAPNOPOSE'])} 個")
     return bad, tot
 
 

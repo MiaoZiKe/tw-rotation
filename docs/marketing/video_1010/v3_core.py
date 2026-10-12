@@ -37,6 +37,7 @@ EXPAND_FOCUS = 10
 
 
 # ───────────────────────── 比比外框登記 ─────────────────────────
+TAPNOPOSE: list = []   # 找不到合格站位的點擊（鏡, 秒, 按鈕）
 SPR_DRAWN: list = []    # 這一幀畫過的比比素材：(名稱, 格, 腳底, 大小, 角色)——忙碌圖逐像素檢查用
 
 
@@ -1956,7 +1957,11 @@ def busy_check(shot, t, busy, mainb=None):
                     sr = C.sprite_rect(B.bibi_index()[name]["frames"][i], foot, size)
                     gap = max(0.0, bx0 - sr[2], sr[0] - bx1, by0 - sr[3], sr[1] - by1)
                     okv = okv or gap <= 160
-                if not okv:
+                if not okv and q.get("_pose_bad") and not q["_pose_bad"][1]:
+                    key = (shot.sid, round(q["t"], 2), lab)
+                    if key not in TAPNOPOSE:
+                        TAPNOPOSE.append(key)      # 按鈕四周找不到合格站位：比比留待機位（不壓內容），交件報告列出，請內容剪輯換時段
+                elif not okv:
                     BUSYCHK.append((shot.sid, round(t, 3), f"點擊「{lab}」", 0.0, "點擊時比比不在按鈕旁（要 ≥100px、離按鈕 ≤160px、站 ≥0.45 秒）"))
                 break
     # 比比素材：逐像素

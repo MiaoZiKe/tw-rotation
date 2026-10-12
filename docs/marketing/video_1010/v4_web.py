@@ -141,7 +141,7 @@ def build():
     S.append(card("a05", 3.0, K4.intro4_fn(), [(0.2, "pop")]))
     # 1 總覽（含今日事件、搜尋）
     S.append(shot("b01", "總覽", "V01_desktop", [(0.0, 2.2)], "① 每天先看這頁", "我先帶你看今天大盤", [(0, "talk_happy"), (1.2, "folder")]))
-    S.append(shot("b02", "總覽", "V02_desktop", [(1.4, 4.5)], "今日事件不漏看", "重要消息我幫你列好", [(0, "news"), (1.8, "face_surprise_happy")]))
+    S.append(shot("b02", "總覽", "V02_desktop", [(2.2, 4.4)], "今日事件不漏看", "重要消息我幫你列好", [(0, "news"), (1.8, "face_surprise_happy")]))
     S.append(shot("b03", "總覽", "V27_desktop", [(4.4, 6.8)], "打幾個字就到", "想查哪檔，打簡稱就找到", [(0, "magnifier"), (2.4, "face_relief")], min_cap=3.2))
     # 2 財經日曆（一段連續錄影）
     S.append(shot("c01", "財經日曆", "V03_desktop", [(9.4, 11.8)], "② 財經日曆", "財報法說都排好了", [(0, "calendar"), (1.2, "tilt")], cont=True))
@@ -171,7 +171,7 @@ def build():
     S.append(shot("g05", "個股", D10, [(22.0, 23.7)], "旁邊看營收獲利", "營收、獲利，旁邊點就有", [(0, "face_proud"), (1.0, "face_nod")], hl="營收獲利"))
     S.append(shot("h01", "市場明細", "V16_desktop", [(7.6, 10.0)], "⑦ 市場明細", "法人連買賣，名單直接看", [(0, "coins"), (1.4, "face_curious")], min_cap=3.0))
     S.append(shot("h02", "選股策略", "V17_desktop", [(6.1, 9.1)], "⑧ 條件分好類", "技術、籌碼，分面向整理", [(0, "folder"), (1.4, "face_nod")]))
-    S.append(shot("h03", "週期統計", "V18_desktop", [(4.0, 6.8)], "⑨ 週期統計", "歷年月份規律，一張表", [(0, "hourglass"), (1.4, "face_think")]))
+    S.append(shot("h03", "週期統計", "V18_desktop", [(4.2, 6.4)], "⑨ 週期統計", "歷年月份規律，一張表", [(0, "hourglass"), (1.4, "face_think")], min_cap=2.2))
     # 10 ETF（I03 不用；報酬比較用 V21 勾選完成後的結果段）
     S.append(shot("i01", "ETF", "V19_desktop", [(3.6, 6.8)], "⑩ ETF 配息曆", "存 ETF？哪天除息我標好", [(0, "piggy"), (1.6, "face_love")]))
     S.append(shot("i02", "ETF", "V20_desktop", [(3.3, 5.5)], "各類前五名", "配息、市值型，前五名", [(0, "trophy"), (1.6, "face_proud")]))
@@ -184,7 +184,7 @@ def build():
     # 11～13 自選清單／導覽／願望清單
     S.append(shot("j01", "自選清單", "V24_desktop", [(6.6, 10.4)], "⑪ 自選清單", "常看的收進來，一開就有", [(0, "star_save"), (2.2, "face_love")],
                   win_keys=[(0.0, (0, 0, 2990, 1682))]))
-    S.append(shot("j02", "導覽", "V25_desktop", [(3.8, 6.9)], "看不懂有導覽", "每一頁我都一步步帶你", [(0, "talk_happy"), (1.8, "face_wink")], min_cap=3.0))
+    S.append(shot("j02", "導覽", "V25_desktop", [(2.6, 5.5)], "看不懂有導覽", "每一頁我都一步步帶你", [(0, "talk_happy"), (1.8, "face_wink")], min_cap=3.0))
     # 願望清單：錄影端補錄的 V26w（打開就是願望清單分頁、沒有「錯誤回報」類別）到了就用；沒到退回 V26 的願望清單分頁段
     if fresh_nofab("V26w_desktop"):
         S.append(shot("j03", "願望清單", "V26w_desktop", [(5.4, 8.9)], "歡迎許願", "想要什麼功能，跟我說！", [(0, "heart_wish"), (1.6, "face_love")], chain="solo",
