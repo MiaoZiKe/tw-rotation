@@ -1278,7 +1278,8 @@ class Op:
             saved = list(C.CUR)
             win, rect = rec.win, rec.rect
             cv = R.background(L.fmt).copy()
-            rec.draw(cv, t, shot)
+            for ly in shot.layers:            # 跟逐幀檢查同一條路徑（不只畫網站本身）
+                ly.draw(cv, t, shot)
             cache[key] = protect_masks(shot, cv, rec.rect)
             rec.win, rec.rect = win, rect
             C.CUR[:] = saved
@@ -1401,7 +1402,8 @@ class Op:
     def _hop_peak(self, shot, L, tp, home, foot, hs, size, go=True):
         """跳躍弧線：在實際跳躍的那幾個時間點（去程 c-0.25～c-0.05、回程 c+0.2～c+0.4）逐一算忙碌圖，
         挑「主角資料區 0、其他文字 ≤15%、不跳進標題／小字帶、不出畫面」的弧線高度；都不行就回傳 None（改成原地出現）。"""
-        key = "_peak_go" if go else "_peak_back"
+        # 落點跟著畫面慢推／平移在動：快取要連同落點、比比大小一起當鍵（不同幀算出來的弧線不能共用）
+        key = ("_peak_go" if go else "_peak_back", round(foot[0] / 4), round(foot[1] / 4), round(home[0] / 4), round(home[1] / 4), int(size), int(hs))
         if key in tp:
             return tp[key]
         c = tp["t"]
@@ -1422,7 +1424,7 @@ class Op:
                 tt = min(shot.dur - 1 / FPS, max(0.0, t0 + ul * self.HOP))
                 u = ease_io(ul)
                 busy, mainm = self._busy_at(shot, L, tt)
-                mainm = _dilate(mainm, 6)
+                mainm = _dilate(mainm, 14)        # 畫面在慢推／平移，取樣時間與渲染幀差 1/100 秒，安全邊放寬
                 p = (lerp(a[0], b[0], u), lerp(a[1], b[1], u) - peak * math.sin(math.pi * u))
                 nm = "hop_r" if b[0] >= a[0] else "hop_l"
                 sz = lerp(s0, s1, u)
@@ -1442,6 +1444,7 @@ class Op:
             if best is None or (okk, -score) > (best[0], -best[1]):
                 best = (okk, score, peak)
         tp[key] = best[2] if best[0] else None
+        tp["_peak_go" if go else "_peak_back"] = tp[key]
         return tp[key]
 
     def _pose_foot(self, rec, tp, pose):
