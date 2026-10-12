@@ -1446,6 +1446,7 @@ class Op:
         busy = self._busy_at(shot, L, tq)[0].copy()
         for k in range(1, 9):                                 # 這 0.25 秒內每 1/30 秒都算（3D 轉動中內容一直變）
             busy |= self._busy_at(shot, L, min(shot.dur - 1 / FPS, tq + k / 32))[0]
+        busy = _dilate(busy, 22)          # 3D 模型面板內部是平塗暗色（邊緣密度低），外擴 22px 把整個模型當成內容，比比只走模型外的空白（10-12 自審）
         fr = self.rec.rect
         best = None
         for size in (150, 130, 110, 96):
@@ -1513,6 +1514,10 @@ class Op:
     def bubble_mode(self, t):
         """'tail'＝比比在 home（泡泡帶尾巴）；'hide'＝比比飛行中（泡泡淡出）；'plain'＝連續點擊期間比比在框內（只留字卡，不帶尾巴）。"""
         taps = self._seq()
+        if V4:
+            for d in self.drags:
+                if d["t0"] - 0.1 <= t <= d["t1"] + 0.1:
+                    return "plain"           # 3D 推轉時比比跟著拖曳點進框內：泡泡留著但不帶尾巴（尾巴不可指向空位，規則 3）
         if not taps:
             return "tail"
         if V4:
