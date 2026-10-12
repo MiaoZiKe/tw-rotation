@@ -1309,8 +1309,9 @@ class Op:
         rec = self.rec
         st0 = tp["t"] - self.TAP_IN + self.HOP
         st1 = tp["t"] + self.TAP_OUT - self.HOP
-        nf = max(1, int(round((st1 - st0) * FPS)))          # 站在按鈕上的每一幀都算（點下去那一幀畫面常會跳）
-        bs = [self._busy_at(shot, L, min(shot.dur - 1 / FPS, max(0.0, st0 + k / FPS))) for k in range(nf + 1)]
+        # 站在按鈕上的每一幀都算（點下去那一幀畫面常會跳）：取實際渲染的幀時間（n/FPS），前後各多一幀
+        f0, f1 = math.floor(st0 * FPS) - 1, math.ceil(st1 * FPS) + 1
+        bs = [self._busy_at(shot, L, min(shot.dur - 1 / FPS, max(0.0, n / FPS))) for n in range(f0, f1 + 1)]
         busy, mainm = bs[0][0].copy(), bs[0][1].copy()
         for b_, m_ in bs[1:]:
             busy |= b_
@@ -2045,6 +2046,14 @@ def _wrap(f, text, maxw):
             cur += tk
     if cur:
         lines.append(cur)
+    # 不留單字孤行（例：「想查哪檔，／打簡稱就找／到」）：從上一行借字，借到不超寬為止
+    while len(lines) >= 2 and len(lines[-1]) <= 1 and len(lines[-2]) >= 3:
+        mv = lines[-2][-1]
+        if text_w(f, mv + lines[-1]) > maxw:
+            break
+        lines[-2], lines[-1] = lines[-2][:-1], mv + lines[-1]
+        if len(lines[-1]) >= 2:
+            break
     return lines[:3]
 
 
