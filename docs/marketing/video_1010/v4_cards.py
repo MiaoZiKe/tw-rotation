@@ -337,11 +337,11 @@ _ARMS_M = [
 ]
 _SNOW_COLS = [SKY, PINK, MINT, LEMON, PURP, (250, 196, 150)]
 _SNOW = {}
-_SNOW_P = {"w": dict(sx=1.4, sy=0.85, r1=200, r2=330, r3=400, fk=18), "m": dict(sx=1.0, sy=1.0, r1=150, r2=320, r3=0, fk=20)}
+_SNOW_P = {"w": dict(sx=1.4, sy=0.85, r1=200, r2=330, r3=400, fk=18), "m": dict(sx=1.0, sy=1.1, r1=190, r2=320, r3=0, fk=24)}
 
 
 def _node_size(label, web, lvl):
-    fs = {0: 54 if web else 46, 1: 38 if web else 30, 2: 30 if web else 24, 3: 30 if web else 24}[lvl]
+    fs = {0: 54 if web else 50, 1: 38 if web else 34, 2: 30 if web else 28, 3: 30 if web else 28}[lvl]
     f = _fr(fs)
     ic = 0 if lvl == 0 else int(fs * 1.05)
     w = text_w(f, label) + 2 * (16 if web else 12) + (ic + 8 if ic else 0)
