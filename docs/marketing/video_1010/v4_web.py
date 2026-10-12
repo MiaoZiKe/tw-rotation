@@ -144,8 +144,8 @@ def build():
     S.append(shot("b02", "總覽", "V02_desktop", [(2.2, 4.4)], "今日事件不漏看", "重要消息我幫你列好", [(0, "news"), (1.8, "face_surprise_happy")]))
     S.append(shot("b03", "總覽", "V27_desktop", [(4.4, 6.8)], "打幾個字就到", "想查哪檔，打簡稱就找到", [(0, "magnifier"), (2.4, "face_relief")], min_cap=3.2))
     # 2 財經日曆（一段連續錄影）
-    S.append(shot("c01", "財經日曆", "V03_desktop", [(9.4, 11.8)], "② 財經日曆", "財報法說都排好了", [(0, "calendar"), (1.2, "tilt")], cont=True))
-    S.append(shot("c02", "財經日曆", "V03_desktop", [(12.4, 15.4)], "重要日子不漏看", "點一下，說明馬上出來", [(0, "face_shock"), (1.6, "globe"), (3.2, "face_nod")]))
+    S.append(shot("c01", "財經日曆", "V03_desktop", [(5.2, 7.3)], "② 財經日曆", "財報法說都排好了", [(0, "calendar"), (1.2, "tilt")], cont=True))
+    S.append(shot("c02", "財經日曆", "V03_desktop", [(10.9, 13.0)], "重要日子不漏看", "點一下，說明馬上出來", [(0, "face_shock"), (1.6, "globe")], min_cap=2.1))
     # 3 資金流向（播放鏡用 60fps 素材）
     S.append(shot("d01", "資金流向", "V04_desktop_v3c", [(1.4, 3.6)], "③ 錢往哪裡跑", "錢跑去哪？我帶你看", [(0, "talk_happy"), (1.2, "face_curious")]))
     S.append(shot("d02", "資金流向", "V04_desktop_v3c", [(4.5, 8.1)], "輪動一路播放", "族群怎麼輪，播給你看", [(0, "coins"), (2.2, "face_surprise_happy")]))
@@ -170,7 +170,7 @@ def build():
     S.append(shot("g04", "個股", D10, [(14.0, 14.8), (15.5, 17.2)], "旁邊看營收獲利", "營收、獲利，旁邊點就有", [(0, "face_proud"), (0.9, "magnifier")], hl="營收獲利"))
     S.append(shot("g05", "個股", D10, [(22.0, 23.7)], "旁邊看營收獲利", "營收、獲利，旁邊點就有", [(0, "face_proud"), (1.0, "face_nod")], hl="營收獲利"))
     S.append(shot("h01", "市場明細", "V16_desktop", [(7.6, 10.0)], "⑦ 市場明細", "法人連買賣，名單直接看", [(0, "coins"), (1.4, "face_curious")], min_cap=3.0))
-    S.append(shot("h02", "選股策略", "V17_desktop", [(6.1, 9.1)], "⑧ 條件分好類", "技術、籌碼，分面向整理", [(0, "folder"), (1.4, "face_nod")]))
+    S.append(shot("h02", "選股策略", "V17_desktop", [(7.0, 9.4)], "⑧ 條件分好類", "技術、籌碼，分面向整理", [(0, "folder"), (1.4, "face_nod")], min_cap=2.4))
     S.append(shot("h03", "週期統計", "V18_desktop", [(4.2, 6.4)], "⑨ 週期統計", "歷年月份規律，一張表", [(0, "hourglass"), (1.4, "face_think")], min_cap=2.2))
     # 10 ETF（I03 不用；報酬比較用 V21 勾選完成後的結果段）
     S.append(shot("i01", "ETF", "V19_desktop", [(3.6, 6.8)], "⑩ ETF 配息曆", "存 ETF？哪天除息我標好", [(0, "piggy"), (1.6, "face_love")]))
@@ -178,11 +178,11 @@ def build():
     S[-1].note = "過去表現不代表未來"   # 報酬比較在畫面上：附註小字（卡片層，不疊在圖表上）
     S.append(shot("i03", "ETF", "V20_desktop", [(5.75, 7.95)], "報酬一起比", "含息不含息分開算", [(0, "tilt"), (1.2, "face_nod")], limit=8.0, min_cap=3.2))
     S[-1].note = "過去表現不代表未來"   # 報酬比較在畫面上：附註小字（卡片層，不疊在圖表上）
-    S.append(shot("i04", "ETF", "V13b_desktop_v3e", [(7.1, 9.9)], "三張圖一起亮", "點一檔，現金流三圖連動", [(0, "calc"), (2.0, "face_surprise_happy")], min_cap=2.8))
+    S.append(shot("i04", "ETF", "V13b_desktop_v3e", [(8.2, 10.5)], "三張圖一起亮", "點一檔，現金流三圖連動", [(0, "calc"), (2.0, "face_surprise_happy")], min_cap=2.8))
     S.append(shot("i05", "ETF", "V23_desktop", [(2.5, 5.6)], "複利怎麼長大", "再投入和領現金，並排看", [(0, "face_proud"), (1.0, "growth")], hl="長大",
                   win_keys=[(0.0, (0, 0, 3200, 1700))]))   # 裁掉頁尾（退款與取消訂閱）
     # 11～13 自選清單／導覽／願望清單
-    S.append(shot("j01", "自選清單", "V24_desktop", [(6.6, 10.4)], "⑪ 自選清單", "常看的收進來，一開就有", [(0, "star_save"), (2.2, "face_love")],
+    S.append(shot("j01", "自選清單", "V24_desktop", [(8.4, 10.9)], "⑪ 自選清單", "常看的收進來，一開就有", [(0, "star_save"), (2.2, "face_love")],
                   win_keys=[(0.0, (0, 0, 2990, 1682))]))
     S.append(shot("j02", "導覽", "V25_desktop", [(5.7, 7.9)], "看不懂有導覽", "每一頁我都一步步帶你", [(0, "talk_happy"), (1.8, "face_wink")], min_cap=3.0))
     # 願望清單：錄影端補錄的 V26w（打開就是願望清單分頁、沒有「錯誤回報」類別）到了就用；沒到退回 V26 的願望清單分頁段

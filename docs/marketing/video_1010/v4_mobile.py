@@ -86,18 +86,18 @@ def build():
     S.append(shot("f04", "產業地圖", "V13_mobile_v3b", [(1.2, 3.3)], "上下游一張連", "上下游供貨關係，連成一張圖", [(0, "point_r"), (2.0, "face_love")], fixed=1000, noev=True, limit=4.1))
     D10 = "D10_mobile_v3j"
     S.append(shot("g01", "個股", D10, [(1.1, 3.4)], "⑥ 個股一頁看", "這檔的走勢，我幫你打開", [(0, "talk_explain"), (1.0, "face_curious")], pan=(120, 120)))
-    S.append(shot("g02", "個股", D10, [(3.9, 7.0)], "週期一鍵切", "日、週、月，點一下切換", [(0, "face_nod")]))
+    S.append(shot("g02", "個股", D10, [(4.8, 7.0)], "週期一鍵切", "切到週線，趨勢更清楚", [(0, "face_nod")]))
     S.append(shot("g03", "個股", D10, [(8.9, 11.1)], "下方看總覽", "基本面、籌碼，重點整理好", [(0, "bulb"), (1.0, "face_thinking_bulb")], pan=(0, 300)))
     S.append(shot("g04", "個股", D10, [(11.5, 12.6), (14.9, 16.6)], "旁邊看營收獲利", "營收、獲利，旁邊點就有", [(0, "face_proud"), (0.9, "magnifier")], hl="營收獲利"))
     S.append(shot("g05", "個股", D10, [(20.3, 21.4), (23.7, 25.4)], "旁邊看營收獲利", "營收、獲利，旁邊點就有", [(0, "face_proud"), (1.0, "face_nod")], hl="營收獲利"))
-    S.append(shot("h01", "市場明細", "V16_mobile", [(7.8, 10.0)], "⑦ 市場明細", "法人連買賣，名單直接看", [(0, "pointer_l"), (1.4, "face_curious")], min_cap=3.0))
+    S.append(shot("h01", "市場明細", "V16_mobile", [(8.7, 11.0)], "⑦ 市場明細", "法人連買賣，名單直接看", [(0, "pointer_l"), (1.4, "face_curious")], min_cap=3.0))
     S.append(shot("h02", "選股策略", "V17_mobile", [(6.1, 9.1)], "⑧ 條件分好類", "技術、籌碼，分面向整理", [(0, "folder"), (1.4, "face_nod")]))
-    S.append(shot("h03", "週期統計", "V18_mobile_dsf4_nofab", [(3.8, 6.8)], "⑨ 週期統計", "歷年月份規律，一張表", [(0, "hourglass"), (1.4, "face_think")]))
-    S.append(shot("i01", "ETF", "V19_mobile_v3b", [(3.6, 6.8)], "⑩ ETF 配息曆", "存 ETF？哪天除息我標好", [(0, "piggy"), (1.6, "face_love")]))
+    S.append(shot("h03", "週期統計", "V18_mobile_dsf4_nofab", [(1.1, 3.3)], "⑨ 週期統計", "歷年月份規律，一張表", [(0, "hourglass"), (1.4, "face_think")]))
+    S.append(shot("i01", "ETF", "V19_mobile_v3b", [(1.2, 3.6)], "⑩ ETF 配息曆", "存 ETF？哪天除息我標好", [(0, "piggy"), (1.6, "face_love")]))
     # 手機 ETF 順序：報酬比較（配息型）→ 各類前五名（配息型→市值型），類型只往前切、不回頭（錄影 V21 的類型＝V20 開場的類型）
     S.append(shot("i02", "ETF", "V21_mobile_v3b", [(10.9, 12.9)], "報酬一起比", "含息不含息分開算", [(0, "face_think"), (1.2, "point_ur")], pan=(0, 700)))
     S[-1].note = "過去表現不代表未來"
-    S.append(shot("i03", "ETF", "V20_mobile", [(2.4, 5.6)], "各類前五名", "配息、市值型，前五名", [(0, "trophy"), (1.6, "face_proud")], min_cap=3.2))
+    S.append(shot("i03", "ETF", "V20_mobile", [(3.8, 5.9)], "各類前五名", "配息、市值型，前五名", [(0, "trophy"), (1.6, "face_proud")], min_cap=3.2))
     S[-1].note = "過去表現不代表未來"
     S.append(shot("i04", "ETF", "V13b_mobile_v3e", [(7.3, 9.0)], "兩張圖一起亮", "點一檔，甜甜圈和時鐘一起亮", [(0, "calc"), (2.0, "face_surprise_happy")], min_cap=3.4, fixed=1650, noev=True))
     S.append(shot("i05", "ETF", "V23_mobile", [(2.6, 5.7)], "複利怎麼長大", "再投入和領現金，並排看", [(0, "face_determined"), (1.0, "growth")], hl="長大"))
