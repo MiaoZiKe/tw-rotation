@@ -117,7 +117,7 @@ def scallop(mask: np.ndarray, zone: np.ndarray, step=20 * K, rad=12 * K, off=-5 
     return m | ((canvas > 0) & zone)
 
 
-def reink(body: np.ndarray, cut: np.ndarray, t: int) -> np.ndarray:
+def reink(body: np.ndarray, cut: np.ndarray, t: int, taper=()) -> np.ndarray:
     """耳朵／腳拿走後，毛球在那幾處缺了描邊、留下凹口：
     在切口附近把輪廓修圓（閉運算＋平滑＋毛邊小波浪），新補的毛用周圍顏色 inpaint，再沿新輪廓補上同粗細的描邊。"""
     zone = cv2.dilate(cut.astype(np.uint8), disk(6 * K).astype(np.uint8)) > 0
@@ -141,7 +141,17 @@ def reink(body: np.ndarray, cut: np.ndarray, t: int) -> np.ndarray:
     rgb = np.where(holem[..., None].astype(bool), inp, rgb)
     # 沿新輪廓畫描邊：距外緣 < t 的內圈塗墨
     din = ndi.distance_transform_edt(newm)
-    soft = np.clip((t + 1.5 * K - din) / (1.5 * K), 0, 1)
+    T = np.full(din.shape, float(t), np.float32)
+    # 腳上方那段描邊：線寬在腳的正上方變細、往腳的兩側收尖接回原粗細（CEO 10-12：不要像一條整條橫線）
+    xs_ = np.arange(din.shape[1], dtype=np.float32)[None, :]
+    for fm in taper:
+        ys, xs = np.nonzero(fm)
+        fx, hw, ytop = (xs.min() + xs.max()) / 2, (xs.max() - xs.min()) / 2, ys.min()
+        prof = 0.3 + 0.7 * np.clip(np.abs(xs_ - fx) / (hw * 1.05), 0, 1) ** 1.6
+        rows = np.zeros((din.shape[0], 1), bool)
+        rows[max(0, ytop - 30 * K):] = True
+        T = np.where(rows & (np.abs(xs_ - fx) < hw * 1.05), np.minimum(T, t * prof), T)
+    soft = np.clip((T + 1.5 * K - din) / (1.5 * K), 0, 1)
     soft = np.where(zp, soft, 0) * np.maximum(zw, (holem > 0))
     rgb = rgb * (1 - soft[..., None]) + INK * soft[..., None]
     a = body[..., 3].copy()
@@ -228,7 +238,7 @@ def layers():
     for o in ear_own + foot_own:
         own_any |= o
     body = np.dstack([body_rgb, alpha * (~own_any)])
-    body = reink(body, own_any, t)
+    body = reink(body, own_any, t, taper=foot_own)
 
     # --- 五官貼片：對奶油色反解 alpha，顏色固定（拿到哪裡貼都乾淨）
     def decal_dark(m512):
@@ -272,7 +282,7 @@ def layers():
         pm = ndi.binary_dilation(comp_at(colp, sd), disk(2)) & ~ink
         pm4 = (up(pm) > 0.3) & (body[..., 3] > 0.5) & (lum(body) > 110)
         ring_ = cv2.dilate(pm4.astype(np.uint8), disk(12 * K).astype(np.uint8)).astype(bool) & ~pm4
-        src_ = ring_ & (lum(body) > 215) & (body[..., 3] > 0.9)
+        src_ = ring_ & (lum(body) > 238) & (body[..., 3] > 0.9)
         col = np.median(body[src_][:, :3], 0)
         w_ = cv2.GaussianBlur(pm4.astype(np.float32), (0, 0), 1.5 * K)[..., None]
         w_ = np.clip(w_ * 1.6, 0, 1) * (lum(body) > 110)[..., None]
@@ -287,6 +297,7 @@ def layers():
         "foot_l": cut(foot_own[0]), "foot_r": cut(foot_own[1]),
         **feats,
         "_orig": np.dstack([rgb, alpha]),
+        "_foot_own": foot_own,
     }
     return parts
 
@@ -507,6 +518,8 @@ def closed_eye(kind: str, w: float, sw: float):
 
 # ---------------------------------------------------------------- 5. 組一個姿勢
 FACE_YAW = 0.5            # 五官跟著轉的比例（<1：側面時臉不會擠到最邊、不會縮成一小塊）
+FACE_GATHER = 0.15        # 側面時五官經度間距縮小的比例（CEO 10-12 初審：腮紅離眼睛太遠）
+FACE_INSET = math.radians(9)   # 側面時整張臉往身體內側轉回 9°（CEO 10-12 初審：臉貼在最右邊輪廓、舌頭壓線）
 FACE_FS = 0.45            # 透視壓縮強度（0＝不壓縮，1＝真實球面），減半保留五官大小
 EAR_RHO = 0.65            # 耳朵所在那一圈（相對身體半寬）
 EAR_LAM = math.radians(117)
@@ -514,7 +527,8 @@ EAR_SINK = 6.0            # 轉身後耳朵往頭裡收（512 單位），切口
 EAR_SINK_FAR = 18.0       # 遠側耳朵再多收一些：只露一點   # 耳朵在頭頂偏後方（|經度|>90°）
 FOOT_LAM_F = math.radians(50)
 FOOT_LAM_B = math.radians(130)
-FEET_DROP = 7.0           # 身體底部描邊補齊後，腳要往下露出的量（512 單位），讓露出的腳掌跟原圖一樣多
+FEET_DROP = 0.0           # 身體底部描邊補齊後，腳要往下露出的量（512 單位），讓露出的腳掌跟原圖一樣多
+FOOT_HOME_DY = {"foot_l": 0.0, "foot_r": 1.0}   # 原圖兩隻腳露出量本來就差 6%；四隻腳用同一張圖，靠這 1px 讓重組版與 Default 露出面積差 ≤2%
 DEPTH_RAISE = 7.0         # 遠側的腳往上縮（512 單位），表現俯視一點點的透視
 FEET = {  # 名稱: (基本經度, 用哪一張腳的原圖)
     "FR": (-FOOT_LAM_F, "foot_l"), "FL": (FOOT_LAM_F, "foot_r"),
@@ -627,7 +641,7 @@ def compose(p: dict, stats: dict | None = None) -> Image.Image:
         dx, dy = gait.get(key, (0.0, 0.0))
         x2 += dx * K
         y2 -= dy * K
-        y2 += (FEET_DROP + p.get("feet_dy", 0.0)) * K
+        y2 += (FEET_DROP + FOOT_HOME_DY[src] + p.get("feet_dy", 0.0)) * K
         feet.append((z, key, src, x2, y2))
     tilt = p.get("tilt", 0.0)
     lift = p.get("lift", 0.0) * K
@@ -665,8 +679,10 @@ def compose(p: dict, stats: dict | None = None) -> Image.Image:
         orx = (oxr[iy] - oxl[iy]) / 2
         u = np.clip((fx - ocx) / orx, -0.999, 0.999)
         lam = math.asin(u)
-        lam2 = lam + fyaw
-        lim = math.radians(62 if nm.startswith("eye") else 76)
+        # 側面時五官彼此靠攏（經度間距縮 15%）、整組往身體內側轉回 9°：眼、嘴、腮紅是一張臉，嘴不壓外輪廓
+        side = abs(math.sin(yaw))
+        lam2 = fyaw - math.copysign(FACE_INSET, yaw) * side * side + lam * (1 - FACE_GATHER * side)
+        lim = math.radians(50 if nm.startswith("eye") else (56 if nm.startswith("blush") else 76))
         if abs(lam2) > lim:
             continue
         fade = float(np.clip((lim - abs(lam2)) / math.radians(6), 0, 1))
@@ -680,7 +696,7 @@ def compose(p: dict, stats: dict | None = None) -> Image.Image:
             sw = 5.5 * K
             w_ = 30 * K
             if eyes == "smile":
-                im, anc = closed_eye("smile", w_, sw)
+                im, anc = closed_eye("smile", w_, sw * 1.35)
                 paste(canvas, "", x2, y2 + 2 * K, sx=fs, img=im, anchor=anc, clip=clip, alpha=fade)
             else:
                 im, anc = closed_eye("squeeze", w_ * 0.95, sw)
@@ -711,8 +727,12 @@ def compose(p: dict, stats: dict | None = None) -> Image.Image:
         for key, one in stats.pop("_foot_layers", {}).items():
             one = move(one, rot=follow, up=follow)
             a1 = np.asarray(one.getchannel("A")).astype(np.float32) / 255
+            vis = (a1 > 0.5) & (upper_a < 0.5)
+            ys_, xs_ = np.nonzero(vis)
             fa[key] = {"full": float((a1 > 0.5).sum()) / K / K,
-                       "visible": float(((a1 > 0.5) & (upper_a < 0.5)).sum()) / K / K}
+                       "visible": float(vis.sum()) / K / K,
+                       "visible_cx": float(xs_.mean()) / K if len(xs_) else None,
+                       "visible_cy": float(ys_.mean()) / K if len(ys_) else None}
         stats["feet"] = fa
     fcan.alpha_composite(canvas)
     return fcan
@@ -720,7 +740,7 @@ def compose(p: dict, stats: dict | None = None) -> Image.Image:
 
 # ---------------------------------------------------------------- 6. 姿勢表（全部面向右或正面；面向左＝整張水平鏡像）
 SIDE = 90.0
-RUN_S, RUN_H, RUN_B = 14.0, 8.0, 3.0      # 奔跑：步幅、抬腳高度、身體起伏（512 單位）
+RUN_S, RUN_H, RUN_B = 20.0, 9.0, 3.0      # 身體起伏 0～6px（±3）      # 奔跑：步幅、抬腳高度、身體起伏（512 單位）
 
 
 def run_pose(phase: float) -> dict:
@@ -729,10 +749,11 @@ def run_pose(phase: float) -> dict:
     f = 2 * math.pi * phase
     d1 = (RUN_S * math.cos(f), RUN_H * max(0.0, math.sin(f)))
     d2 = (RUN_S * math.cos(f + math.pi), RUN_H * max(0.0, math.sin(f + math.pi)))
-    sxx = 1 + 0.018 * math.cos(2 * f)
+    c2 = math.cos(2 * f)                     # 1＝兩對腳張開著地（A、C），−1＝騰空收腳（B）
+    sxx = 1 + 0.015 * c2                     # 著地壓扁 1.5%、騰空拉長 1.5%（sx×sy＝1，體積守恆）
     return dict(
         yaw=SIDE, sx=sxx, sy_top=1 / sxx, sy_bot=1 / sxx,
-        lift=RUN_B * abs(math.sin(f)), tilt=2.0 + 1.2 * math.sin(2 * f), pivot="center",
+        lift=RUN_B * (1 - c2), tilt=3.0 + 1.5 * c2, pivot="center",
         feet={"FR": d1, "BL": d1, "FL": d2, "BR": d2},
         ear_back=6 + 4 * math.sin(2 * f),
     )
@@ -764,9 +785,9 @@ POSES = {
     "lie_front": ("趴姿（正面）", dict(sx=1.2, sy_top=0.92, sy_bot=0.75, spread=1.12, feet_dy=-4, ear_out=10)),
     "lie_side_r": ("趴姿（側面）", dict(yaw=SIDE, sx=1.2, sy_top=0.92, sy_bot=0.75, feet_dy=-4, face_dy=4,
                                     feet={"FR": (7, 0), "FL": (7, 0), "BR": (-7, 0), "BL": (-7, 0)}, ear_back=8)),
-    "sit_r": ("坐姿（四腳著地）", dict(yaw=SIDE, sx=0.95, sy_top=1.1, sy_bot=0.96, tilt=-8, pivot="ground", pivot_dx=-80,
+    "sit_r": ("坐姿（四腳著地）", dict(yaw=SIDE, sx=0.95, sy_top=1.1, sy_bot=0.96, tilt=-12, pivot="ground", pivot_dx=-80,
                                    feet_follow=False, face_dy=-4,
-                                   feet={"FR": (3, 0), "FL": (3, 0), "BR": (-2, 2), "BL": (-2, 2)}, ear_back=6)),
+                                   feet={"FR": (3, 0), "FL": (3, 0), "BR": (4, 5), "BL": (4, 5)}, ear_back=6)),
     "lay_r": ("躺姿（側面攤平）", dict(yaw=SIDE, sx=1.28, sy_top=0.9, sy_bot=0.66, face_dy=6, eyes="smile",
                                    feet={"FR": (14, 0), "FL": (14, 0), "BR": (-52, 2), "BL": (-46, 2)},
                                    feet_dy=-2, ear_back=14)),
@@ -848,6 +869,23 @@ def main():
     rebuild = compose({}, st0)
     imgs["front_stand_rebuild"] = ("正面站姿（分層重組版）", down512(rebuild))
     report["poses"]["front_stand_rebuild"] = st0
+    # 分層重組版 vs Default 原圖：腳露出面積與位置差（動畫要接 Default 用）
+    oa = layers()["_orig"][..., 3]
+    cmp_ = {}
+    for key, own in (("FR", layers()["_foot_own"][0]), ("FL", layers()["_foot_own"][1])):
+        m = own & (oa > 0.5)
+        ys_, xs_ = np.nonzero(m)
+        o_area, o_cx, o_cy = m.sum() / K / K, xs_.mean() / K, ys_.mean() / K
+        r = st0["feet"][key]
+        cmp_[key] = {"orig_area": float(o_area), "rebuild_area": r["visible"],
+                     "area_diff_pct": float((r["visible"] / o_area - 1) * 100),
+                     "orig_cx": float(o_cx), "orig_cy": float(o_cy),
+                     "rebuild_cx": r["visible_cx"], "rebuild_cy": r["visible_cy"],
+                     "pos_diff_px": float(math.hypot(r["visible_cx"] - o_cx, r["visible_cy"] - o_cy))}
+    report["rebuild_vs_default_feet"] = cmp_
+    print("重組版腳 vs 原圖：", json.dumps(cmp_, ensure_ascii=False), flush=True)
+    if a.only == "rebuild":
+        return
     names = [n for n in POSES if not a.only or n in a.only.split(",")]
     for n in names:
         zh, p = POSES[n]
