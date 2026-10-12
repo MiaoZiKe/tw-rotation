@@ -1350,7 +1350,7 @@ class Op:
         best = None
         # CEO 10-12 第二輪：點擊時比比 ≥100px、站著 ≥0.45 秒；能站上按鈕就站（腳碰上緣／站左右／頭碰下緣／站框內角落），
         # 不能站就跳到按鈕旁 160px 內的空白處、拿指示棒朝向按鈕。主角資料區（含圖表區）一律 0%。
-        for size in (150, 130, 115, 100):
+        for size in (240, 210, 182):     # 素材外框高 ≈ 0.55×size：182 → 身體 100px
             r0 = C.sprite_rect(B.bibi_index()["tap"]["frames"][8], (0, 0), size)
             cands = []
             for fx in (0.5, 0.3, 0.7, 0.1, 0.9):
@@ -1377,12 +1377,12 @@ class Op:
                 break
         if not (best and best[3]):
             # 旁邊 160px 內的空白處：指示棒朝向按鈕
-            for size in (130, 115, 100):
-                for dy in range(-200, 241, 24):
+            for size in (210, 182):
+                for dy in range(-240, 281, 24):
                     for dx in range(-260, 261, 24):
                         foot = (bcx + dx, by1 + dy)
-                        nm = "pointer_r" if foot[0] < bcx else "pointer_l"
-                        ev = evaluate(nm, 6, foot, size)
+                        nm = "tap"          # 四腳原則：不拿東西；站在空白處，鼻尖對按鈕，加一道虛線箭頭指過去
+                        ev = evaluate(nm, 8, foot, size)
                         if ev is None:
                             continue
                         o, mh, cv_, gap = ev
@@ -1391,10 +1391,10 @@ class Op:
                         ok = mh == 0 and o <= 0.08          # 例外 1：其他文字 ≤15%（留安全邊 8%），越乾淨越好
                         score = (1 if ok else 3, 0 if o <= 0.01 else 1, -size, gap, o + mh)
                         if best is None or score < best[0]:
-                            best = (score, ("near", (dx, dy), size, nm, 6), o + mh / 100.0, ok or (mh == 0 and o <= 0.12))
+                            best = (score, ("near", (dx, dy), size, nm, 8), o + mh / 100.0, ok or (mh == 0 and o <= 0.12))
                 if best and best[3] and best[0][1] == 0:
                     break
-        tp["_pose"] = best[1] if best else ("top", 0.5, 100, "tap", 8)
+        tp["_pose"] = best[1] if best else ("top", 0.5, 182, "tap", 8)
         tp["_pose_bad"] = (best[2], best[3]) if best else (1.0, False)
         return tp["_pose"]
 
@@ -1540,6 +1540,8 @@ class Op:
                     put_sprite(cv, nm, 2 + int(clamp(u, 0, 0.999) * 3.99), p, lerp(s0, s1, u))
                 else:
                     put_sprite(cv, snm, sfi, foot, size)
+                    if pose[0] == "near":
+                        _tap_arrow(cv, C.sprite_rect(B.bibi_index()[snm]["frames"][sfi], foot, size), self._btn(rec, tp)[0], (t - t_land) / 0.15)
                 ROLE[0] = "bibi"
                 return
         for d in self.drags:
@@ -1968,9 +1970,11 @@ def busy_check(shot, t, busy, mainb=None):
                 bx1, by1 = rec.map(r[2], r[3])
                 okv = False
                 for (name, i, foot, size, role) in SPR_DRAWN:
-                    if role != "bibi_tap" or size < 99:
+                    if role != "bibi_tap":
                         continue
                     sr = C.sprite_rect(B.bibi_index()[name]["frames"][i], foot, size)
+                    if sr[3] - sr[1] < 99:
+                        continue
                     gap = max(0.0, bx0 - sr[2], sr[0] - bx1, by0 - sr[3], sr[1] - by1)
                     okv = okv or gap <= 160
                 if not okv and q.get("_pose_bad") and not q["_pose_bad"][1]:
@@ -2445,6 +2449,48 @@ def host_bubble(cv, L, shot, text, t, t_alpha=None):
         _bubble_top(cv, L, text, t if t_alpha is None else t_alpha, br, mode=shot.op.bubble_mode(t), maxw=getattr(shot.op, "bmaxw", 215))
         return
     _bubble_at(cv, L, text, t if t_alpha is None else t_alpha, br, mode=shot.op.bubble_mode(t))
+
+
+def _tap_arrow(cv, br, btn, u):
+    """比比站在按鈕旁時：從比比鼻尖射向按鈕的虛線箭頭（0.15 秒畫出來），觀眾看得出是比比按的。"""
+    u = clamp(u, 0.0, 1.0)
+    if u <= 0:
+        return
+    sx, sy = (br[0] + br[2]) / 2, br[1] + (br[3] - br[1]) * 0.42
+    bx0, by0, bx1, by1 = btn
+    tx, ty = clamp(sx, bx0 + 4, bx1 - 4), clamp(sy, by0 + 4, by1 - 4)
+    dx, dy = tx - sx, ty - sy
+    dist = math.hypot(dx, dy)
+    if dist < 1:
+        return
+    ux, uy = dx / dist, dy / dist
+    # 從比比外框邊緣起、到按鈕邊緣前 6px 止
+    tin = 0.0
+    for k in range(int(dist)):
+        x, y = sx + ux * k, sy + uy * k
+        if not (br[0] <= x <= br[2] and br[1] <= y <= br[3]):
+            tin = k
+            break
+    tend = dist
+    for k in range(int(dist), 0, -1):
+        x, y = sx + ux * k, sy + uy * k
+        if not (bx0 - 6 <= x <= bx1 + 6 and by0 - 6 <= y <= by1 + 6):
+            tend = k
+            break
+    if tend - tin < 12:
+        return
+    tend = tin + (tend - tin) * u
+    col = THEME.get("accent", (255, 170, 40)) if isinstance(THEME.get("accent"), tuple) else (255, 170, 40)
+    d = ImageDraw.Draw(cv)
+    k = tin
+    while k < tend - 10:
+        a = (sx + ux * k, sy + uy * k)
+        b = (sx + ux * min(k + 12, tend - 10), sy + uy * min(k + 12, tend - 10))
+        d.line([a, b], fill=col, width=5)
+        k += 20
+    hx, hy = sx + ux * tend, sy + uy * tend
+    px, py = -uy, ux
+    d.polygon([(hx, hy), (hx - ux * 16 + px * 9, hy - uy * 16 + py * 9), (hx - ux * 16 - px * 9, hy - uy * 16 - py * 9)], fill=col)
 
 
 def _bubble_follow(cv, L, shot, text, ta, t):
