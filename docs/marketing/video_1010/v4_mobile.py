@@ -62,9 +62,9 @@ def shot(sid, page, clip, segs, head, sub, idle, pan=None, chain=None, cont=Fals
 def build():
     _CUR.clear()
     S = []
-    S.append(card("a01", 2.0, K4.opening_fn(1), [(0, "pop")]))
-    S.append(card("a02", 2.0, K4.opening_fn(2), [(0, "pop")]))
-    S.append(card("a03", 2.0, K4.opening_fn(3), [(0, "ding")]))
+    S.append(card("a01", 3.4, K4.opening_fn(1), [(0, "pop")]))
+    S.append(card("a02", 3.4, K4.opening_fn(2), [(0, "pop")]))
+    S.append(card("a03", 3.4, K4.opening_fn(3), [(0, "ding")]))
     S.append(card("a04", 2.0, K4.logo_fn(), [(0, "swish"), (0.4, "ding")]))
     S.append(card("a05", 3.0, K4.intro4_fn(), [(0.2, "pop")]))
     S.append(shot("b01", "總覽", "V01_mobile", [(0.0, 2.2)], "① 每天先看這頁", "我先帶你看今天大盤", [(0, "talk_explain"), (1.2, "folder")], pan=(0, 300)))

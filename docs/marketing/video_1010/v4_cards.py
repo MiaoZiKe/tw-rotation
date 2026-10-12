@@ -405,6 +405,8 @@ def ImageFont_scaled(f, S):
 
 
 def _snow_draw(cv, L, t, web):
+    # 10-12 CEO：動畫放慢，約 1.8 秒長齊（原本網頁 1.25 秒、手機 1.12 秒），後面留給觀眾看（鏡長 3.4 秒）
+    t = t * ((1.25 if web else 1.12) / 1.8)
     zx0, zy0, zx1, zy1 = _zone(L)
     cx, cy = (zx0 + zx1) / 2, (zy0 + zy1) / 2 + (0 if web else 8)
     N = _snow_nodes(web)
@@ -442,7 +444,7 @@ def _coin(d, cx, cy, r, ch="配"):
     d.text((cx * S, (cy + 1) * S), ch, font=font(B.F_ROUND, int(r * 1.05 * S)), fill=(150, 90, 10), anchor="mm")
 
 
-MONTH_STEP = 0.1      # 每個月亮起的間隔（秒）。12 個月 × 0.1 = 1.2 秒；前 1.5 秒內全亮
+MONTH_STEP = 0.22     # 每個月亮起的間隔（秒）。12 個月 × 0.22 = 2.6 秒，第 3.1 秒金幣落完（鏡長 3.4 秒）；一格一格看得出來
 
 
 def _calendar(cv, L, t, web):

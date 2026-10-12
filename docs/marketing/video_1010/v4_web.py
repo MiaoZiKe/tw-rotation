@@ -134,9 +134,9 @@ def build():
     _CUR.clear()
     S = []
     # 0 開場（11.0 秒）
-    S.append(card("a01", 2.0, K4.opening_fn(1), [(0, "pop")]))
-    S.append(card("a02", 2.0, K4.opening_fn(2), [(0, "pop")]))
-    S.append(card("a03", 2.0, K4.opening_fn(3), [(0, "ding")]))
+    S.append(card("a01", 3.4, K4.opening_fn(1), [(0, "pop")]))
+    S.append(card("a02", 3.4, K4.opening_fn(2), [(0, "pop")]))
+    S.append(card("a03", 3.4, K4.opening_fn(3), [(0, "ding")]))
     S.append(card("a04", 2.0, K4.logo_fn(), [(0, "swish"), (0.4, "ding")]))
     S.append(card("a05", 3.0, K4.intro4_fn(), [(0.2, "pop")]))
     # 1 總覽（含今日事件、搜尋）
