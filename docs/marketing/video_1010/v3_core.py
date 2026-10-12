@@ -1296,6 +1296,17 @@ class Op:
         if "_pose" in tp:
             return tp["_pose"]
         rec = self.rec
+        # 站位一律以「點擊那一刻」的畫面座標算（不然會跟著第一個渲染到的幀而不同，多工分段渲染時結果不一致）
+        saved, win0, rect0 = list(C.CUR), rec.win, rec.rect
+        rec.draw(R.background(L.fmt).copy(), min(shot.dur - 1 / FPS, tp["t"]), shot)
+        try:
+            return self._tap_pose_at(shot, L, tp)
+        finally:
+            rec.win, rec.rect = win0, rect0
+            C.CUR[:] = saved
+
+    def _tap_pose_at(self, shot, L, tp):
+        rec = self.rec
         st0 = tp["t"] - self.TAP_IN + self.HOP
         st1 = tp["t"] + self.TAP_OUT - self.HOP
         bs = [self._busy_at(shot, L, min(shot.dur - 1 / FPS, max(0.0, st0 + (st1 - st0) * k / 4))) for k in range(5)]
@@ -1448,6 +1459,11 @@ class Op:
             c = tp["t"]
             if c - self.TAP_IN <= t < c + self.TAP_OUT:
                 pose = self._tap_pose(shot, L, tp)
+                if not tp.get("_pose_bad", (0, True))[1]:
+                    # 按鈕旁找不到合格站位（主角資料 0%、其他文字 ≤15%、按鈕露出 ≥80%）：比比留在待機位，只留點擊漣漪
+                    ROLE[0] = "bibi"
+                    put_sprite(cv, iname, anim_frame(iname, t), home, hs)
+                    return
                 foot, size = self._pose_foot(rec, tp, pose)
                 t_land = c - self.TAP_IN + self.HOP
                 t_back = c + self.TAP_OUT - self.HOP
@@ -1459,8 +1475,7 @@ class Op:
                     u = ease_io((t - (c - self.TAP_IN)) / self.HOP) if go else ease_io((t - t_back) / self.HOP)
                     if peak is None:
                         ROLE[0] = "bibi"
-                        put_sprite(cv, "hop_r", 1, home, hs)
-                        ROLE[0] = "bibi"
+                        put_sprite(cv, iname, anim_frame(iname, t), home, hs)   # 與待機位驗過的同一個圖形
                         return
                     a, b = (home, foot) if go else (foot, home)
                     s0, s1 = (hs, size) if go else (size, hs)
@@ -1858,7 +1873,7 @@ def shot_busy_union(shot, L, n=6):
     rec = shot.rec
     saved = list(C.CUR)
     acc = None
-    n = max(n, int(shot.dur * 5))          # 每 0.2 秒取一格（中途才出現的內容、播放動畫也算進去）
+    n = max(n, int(shot.dur * FPS / 2))   # 每 2 幀取一格（中途才出現的內容、播放動畫也算進去）
     ts = [shot.dur * k / max(1, n - 1) for k in range(n)]
     for tt in ts:
         cv = R.background(L.fmt).copy()
