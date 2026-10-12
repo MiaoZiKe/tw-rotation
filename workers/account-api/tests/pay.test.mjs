@@ -410,6 +410,40 @@ test('稽核 1012：升級（Plus 月繳→Pro 年繳）開通後記「舊方案
   assert.ok((await pj(hub, '/v1/admin/pay/list', { t: andy })).j.anomalies.includes(b2.id), '進異常清單提醒管理者');
 });
 
+test('會員帳務通知：回報匯款、開通、升級、退回、退款都進站內通知（鈴鐺），同一件事只一則；設了 Resend 才寄信', async () => {
+  const sent = [];
+  const realFetch = globalThis.fetch;
+  const { hub, db, bob, andy } = await setup({ RESEND_API_KEY: 're_test', MAIL_FROM: '哩股哩股 <notice@liguligu-puipui.com>' });
+  await pj(hub, '/v1/admin/pay/bank/put', { t: andy, bank_name: '測試銀行', bank_code: '999', account: '000011112222', holder: '測試戶名' });
+  const a = (await pj(hub, '/v1/pay/bank/create', { t: bob, plan: 'plus', period: 'month' })).j;
+  await pj(hub, '/v1/pay/bank/report', { t: bob, id: a.id, last5: '20001', date: '2026-10-11', amount: 299 });
+  await pj(hub, '/v1/admin/pay/confirm', { t: andy, id: a.id, received: 299 });
+  await pj(hub, '/v1/admin/pay/confirm', { t: andy, id: a.id, received: 299 });   // 重按不重複通知
+  const b2 = (await pj(hub, '/v1/pay/bank/create', { t: bob, plan: 'pro', period: 'year' })).j;
+  await pj(hub, '/v1/pay/bank/report', { t: bob, id: b2.id, last5: '20002', date: '2026-10-11', amount: 5268 });
+  await pj(hub, '/v1/admin/pay/confirm', { t: andy, id: b2.id, received: 5268 });
+  await pj(hub, '/v1/admin/pay/refund', { t: andy, id: b2.id, rid: 'r-note-00001', amount: 5268, last5: '33333', date: '2026-10-11', perm: 'now' });
+  const n = (await pj(hub, '/v1/notices', { t: bob })).j.notices.filter((x) => x.kind === 'pay');
+  const titles = n.map((x) => x.title);
+  assert.ok(titles.some((t) => /已收到你的匯款資料/.test(t)), titles);
+  assert.ok(titles.some((t) => /付款完成，已開通：Plus/.test(t)), titles);
+  assert.ok(titles.some((t) => /升級完成：Pro・年繳/.test(t)), titles);
+  assert.ok(titles.some((t) => /退款完成：NT\$ 5268/.test(t)), titles);
+  assert.equal(titles.filter((t) => /付款完成，已開通：Plus/.test(t)).length, 1, '同一件事只通知一次');
+  const rf = n.find((x) => /退款完成/.test(x.title));
+  assert.ok(/末 5 碼 33333/.test(rf.body) && /回到註冊會員/.test(rf.body), rf.body);
+  assert.ok(n.every((x) => x.read === false));
+  await pj(hub, '/v1/notices/read', { t: bob, ids: [rf.id] });
+  assert.equal((await pj(hub, '/v1/notices', { t: bob })).j.notices.find((x) => x.id === rf.id).read, true, '已讀會記住');
+  /* 別人看不到 bob 的通知 */
+  assert.equal((await pj(hub, '/v1/notices', { t: andy })).j.notices.filter((x) => x.kind === 'pay').length, 0);
+  /* 寄信：排程送出、帶收件人 */
+  globalThis.fetch = async (u, init) => { if (String(u).startsWith('https://api.resend.com')) { sent.push(JSON.parse(init.body)); return new Response('{}', { status: 200 }); } return realFetch(u, init); };
+  try { await hub.payMailFlush(); } finally { globalThis.fetch = realFetch; }
+  assert.ok(sent.length >= 4 && sent.every((m) => m.to[0] === 'bob@example.com' && /^【哩股哩股】/.test(m.subject)), JSON.stringify(sent.map((m) => m.subject)));
+  assert.equal(db.prepare("SELECT COUNT(*) AS c FROM mail_out WHERE status = 'pending'").get().c, 0);
+});
+
 test('方案異動：月繳 Plus 可升 Plus 年繳／Pro；不可降級；Pro 年繳什麼都不能再買', async () => {
   const { hub, db, bob, andy } = await setup();
   await pj(hub, '/v1/admin/pay/bank/put', { t: andy, bank_name: '測試銀行', bank_code: '999', account: '000011112222', holder: '測試戶名' });

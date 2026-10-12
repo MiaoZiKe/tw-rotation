@@ -17,7 +17,7 @@
   if (!T()) return;
   const { esc, css, call, view, toast, ls } = T();
   const K_READ = 'tw.notice.read', K_BAN = 'tw.notice.banner';
-  const KINDS = { event: '活動', feature: '功能更新', maint: '維護', plan: '方案異動' };
+  const KINDS = { event: '活動', feature: '功能更新', maint: '維護', plan: '方案異動', pay: '帳務通知' };   // pay＝只有本人看得到的付款／升級／退款通知（2026-10-12）
   const AUD = [['all', '全部'], ['guest', '訪客'], ['member', '註冊會員（含付費）'], ['paid', '付費會員']];
   const S = { list: [], loaded: false, open: false, expand: null, at: 0 };
   const A = () => window.TwAccount;
@@ -56,6 +56,7 @@
 .ntkind.k-feature{color:var(--cyan);border-color:color-mix(in srgb,var(--cyan) 50%,transparent)}
 .ntkind.k-maint{color:var(--rise);border-color:color-mix(in srgb,var(--rise) 50%,transparent)}
 .ntkind.k-plan{color:var(--violet);border-color:color-mix(in srgb,var(--violet) 50%,transparent)}
+.ntkind.k-pay{color:var(--green,#30a46c);border-color:color-mix(in srgb,var(--green,#30a46c) 50%,transparent)}
 .ntpin{font-size:11.5px;color:var(--amber)}
 .ntempty{padding:22px 14px;text-align:center;color:var(--ink-2);font-size:13.5px}
 .ntban{position:relative;z-index:30;display:flex;align-items:center;gap:12px;margin:8px auto 0;max-width:1280px;padding:10px 14px;border-radius:12px;
@@ -249,7 +250,7 @@
       <div class="ntform">
         <div class="w2"><label for="ntTitle">標題</label><input id="ntTitle" maxlength="80" value="${esc(e.title)}"></div>
         <div class="w2"><label for="ntBody">內容</label><textarea id="ntBody" maxlength="2000">${esc(e.body)}</textarea></div>
-        <div><label for="ntKind">類型</label><select id="ntKind">${Object.entries(KINDS).map(([k, n]) => `<option value="${k}" ${e.kind === k ? 'selected' : ''}>${n}</option>`).join('')}</select></div>
+        <div><label for="ntKind">類型</label><select id="ntKind">${Object.entries(KINDS).filter(([k]) => k !== 'pay').map(([k, n]) => `<option value="${k}" ${e.kind === k ? 'selected' : ''}>${n}</option>`).join('')}</select></div>
         <div><label for="ntAud">對象</label><select id="ntAud">${audOpts.map(([k, n]) => `<option value="${esc(k)}" ${e.audience === k ? 'selected' : ''}>${esc(n)}</option>`).join('')}</select></div>
         <div><label for="ntStart">上架時間</label><input type="datetime-local" id="ntStart" value="${toLocal(e.start)}"></div>
         <div><label for="ntEnd">下架時間</label><input type="datetime-local" id="ntEnd" value="${toLocal(e.end)}"></div>

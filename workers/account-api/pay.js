@@ -97,10 +97,41 @@ export function installPay(Hub, H) {
     const cols = new Set(this.q('PRAGMA table_info(orders)').map((c) => c.name));
     if (!cols.has('recv_amount')) this.q('ALTER TABLE orders ADD COLUMN recv_amount INTEGER');
     if (!cols.has('reports')) this.q('ALTER TABLE orders ADD COLUMN reports TEXT');
+    /* 2026-10-12 Andy：「使用者升級以及退款這類重大資訊都需要給他們通知」→ 個人帳務通知（站內鈴鐺）＋選用 email 佇列 */
+    this.q('CREATE TABLE IF NOT EXISTS user_notices (id TEXT PRIMARY KEY, email TEXT, title TEXT, body TEXT, ref TEXT, created INTEGER, read_at INTEGER)');
+    this.q('CREATE INDEX IF NOT EXISTS user_notices_em ON user_notices (email, created)');
+    this.q('CREATE TABLE IF NOT EXISTS mail_out (id TEXT PRIMARY KEY, email TEXT, subject TEXT, body TEXT, created INTEGER, status TEXT, tries INTEGER DEFAULT 0, msg TEXT, sent_at INTEGER)');
     this._payOk = true;
   };
   Hub.prototype.payEv = function (oid, kind, detail) {
     this.q('INSERT INTO pay_events (at, oid, kind, detail) VALUES (?, ?, ?, ?)', this.now(), oid || '', kind, String(typeof detail === 'string' ? detail : JSON.stringify(detail || {})).slice(0, 1500));
+  };
+  /* 個人帳務通知：同一件事（ref）只通知一次。站內鈴鐺一定有；設了 Resend 才另外寄 email（排程每 10 分鐘送出）*/
+  Hub.prototype.payTell = function (email, title, body, ref) {
+    try {
+      const em = norm(email); if (!em) return;
+      let h1 = 0x811c9dc5, h2 = 0x01000193; for (const ch of String(ref)) { const c = ch.codePointAt(0); h1 = Math.imul(h1 ^ c, 16777619) >>> 0; h2 = Math.imul(h2 + c, 2246822519) >>> 0; }
+      const id = 'u' + h1.toString(36) + h2.toString(36);   // ref 的雜湊：同一件事同一個 id（冪等）
+      if (this.q('SELECT 1 FROM user_notices WHERE id = ?', id).length) return;
+      const now = this.now();
+      const full = body + '\n\n有任何問題，直接回覆這封信或從網站右下角「客服」聯絡我們。\n哩股哩股 https://liguligu-puipui.com/';
+      this.q('INSERT INTO user_notices (id, email, title, body, ref, created) VALUES (?, ?, ?, ?, ?, ?)', id, em, title.slice(0, 80), body.slice(0, 1500), ref, now);
+      this.q('INSERT OR IGNORE INTO mail_out (id, email, subject, body, created, status) VALUES (?, ?, ?, ?, ?, ?)', id, em, '【哩股哩股】' + title.slice(0, 80), full.slice(0, 3000), now, 'pending');
+    } catch (e) { /* 通知失敗不影響金流本身 */ }
+  };
+  Hub.prototype.payMailFlush = async function () {
+    const e = this.env;
+    if (!e.RESEND_API_KEY || !e.MAIL_FROM) return 0;
+    let n = 0;
+    for (const m of this.q("SELECT * FROM mail_out WHERE status = 'pending' AND tries < 5 AND created > ? ORDER BY created LIMIT 20", this.now() - 3 * DAY)) {
+      try {
+        const r = await fetch('https://api.resend.com/emails', { method: 'POST', headers: { 'content-type': 'application/json', Authorization: 'Bearer ' + e.RESEND_API_KEY },
+          body: JSON.stringify({ from: e.MAIL_FROM, to: [m.email], subject: m.subject, text: m.body, reply_to: e.MAIL_REPLY_TO || 'liguligu0818@gmail.com' }) });
+        if (r.ok) { this.q("UPDATE mail_out SET status = 'sent', sent_at = ?, tries = tries + 1 WHERE id = ?", this.now(), m.id); n++; }
+        else this.q('UPDATE mail_out SET tries = tries + 1, msg = ? WHERE id = ?', ('HTTP ' + r.status + ' ' + (await r.text()).slice(0, 150)), m.id);
+      } catch (err) { this.q('UPDATE mail_out SET tries = tries + 1, msg = ? WHERE id = ?', String(err && err.message || err).slice(0, 150), m.id); }
+    }
+    return n;
   };
   Hub.prototype.planEv = function (email, kind, plan, ref, detail) {
     this.q('INSERT OR IGNORE INTO plan_events (email, kind, plan, at, ref, detail) VALUES (?, ?, ?, ?, ?, ?)', norm(email), kind, plan || '', this.now(), String(ref || ''), String(detail || '').slice(0, 300));
@@ -204,6 +235,7 @@ export function installPay(Hub, H) {
       if (live && rc && ro && rc > ro) {
         this.paySet(o.id, { status: 'paid', anomaly: `方案衝突：會員目前是 ${cur.plan}（${cur.expires ? '到 ' + tpeDay(cur.expires) : '不到期'}），這筆 ${o.plan_name}・${o.period === 'year' ? '年繳' : '月繳'} 沒有開通；請決定延長、轉換或退款`, paid_at: o.paid_at || now });
         this.payEv(o.id, 'plan_conflict', { cur: cur.plan, exp: cur.expires });
+        this.payTell(email, '已收到款項，專人處理中', `我們已收到你的訂單 ${o.id}（${o.plan_name}・${o.period === 'year' ? '年繳' : '月繳'}，NT$ ${o.recv_amount || o.amount}）的款項。\n因為你目前已有較高的方案（到 ${cur.expires ? tpeDay(cur.expires) : '不到期'}），這筆沒有自動開通，專人會在 1～2 個工作天內跟你聯絡（延長、轉換或退款）。`, 'conflict-' + o.id);
         return { ok: false, error: 'plan_conflict' };
       }
       /* 稽核 H9：升級（較低→較高）時舊方案剩餘期間不折抵 → 記一筆待處理，管理者決定是否部分退款 */
@@ -223,6 +255,9 @@ export function installPay(Hub, H) {
       this.paySet(o.id, { applied: 1, status: 'active', grant_from: from, grant_to: to, confirmed_at: now, act_src: src, act_err: null, paid_at: o.paid_at || now, ...(upNote ? { anomaly: upNote } : {}) });
       this.planEv(email, same && from > now ? 'extend' : 'activate', o.plan, o.id, `${tpeDay(from)}～${tpeDay(to)}（${src}）`);
       this.payEv(o.id, 'activate', { src, from, to });
+      const per = o.period === 'year' ? '年繳' : '月繳', paid = o.recv_amount || o.amount;
+      const kindT = upNote ? '升級完成' : same && from > now ? '續訂完成' : '付款完成，已開通';
+      this.payTell(email, `${kindT}：${o.plan_name}・${per}`, `你的訂單 ${o.id} 已經${o.parent ? '自動扣款' : '付款'}完成。\n方案：${o.plan_name}・${per}${o.parent ? `（自動扣款第 ${o.period_n} 期）` : ''}\n金額：NT$ ${paid}\n使用期間：${tpeDay(from)} ～ ${tpeDay(to)}\n${upNote ? `\n你原本的方案 ${cur.plan} 還剩 ${Math.ceil((cur.expires - now) / DAY)} 天，這部分我們會另外跟你聯絡處理。\n` : ''}功能已經解鎖，重新整理網頁就生效。`, 'act-' + o.id);
       return { ok: true, order: this.payOrder(o.id) };
     } catch (e) {
       this.paySet(o.id, { act_err: String(e && e.message || e).slice(0, 200) });
@@ -341,6 +376,7 @@ export function installPay(Hub, H) {
     if (String(r.form.RtnCode) !== '1') return { ok: false, error: 'ecpay', msg: r.form.RtnMsg || `HTTP ${r.status}` };
     this.paySet(p.id, { period_state: 'cancelled', cancel_at: this.now() });
     this.planEv(p.email, 'auto_renew_off', p.plan, p.id, by || '');
+    { const e2 = this.effective(norm(p.email)); this.payTell(p.email, '信用卡自動扣款已停止', `你的訂單 ${p.id}（${p.plan_name}・${p.period === 'year' ? '年繳' : '月繳'}）的信用卡自動扣款已經停止，之後不會再扣款。${e2.expires && !e2.expired ? `\n已付的期間照常用到 ${tpeDay(e2.expires)}。` : ''}`, 'pc-' + p.id); }
     return { ok: true };
   };
 
@@ -352,6 +388,7 @@ export function installPay(Hub, H) {
     for (const r of this.q(`SELECT email, plan, expires FROM perm p WHERE expires IS NOT NULL AND expires > 0 AND expires <= ? AND plan <> 'free' AND expires > ?
       AND NOT EXISTS (SELECT 1 FROM plan_events e WHERE e.email = p.email AND e.kind = 'refund_downgrade' AND e.at BETWEEN p.expires - 60000 AND p.expires + 60000)`, now, now - 400 * DAY)) {
       this.planEv(r.email, 'expire', r.plan, String(r.expires), `到期日 ${tpeDay(r.expires)} 已過，自動回到註冊會員`);
+      this.payTell(r.email, '方案已到期', `你的方案已在 ${tpeDay(r.expires)} 到期，帳號回到註冊會員。想繼續使用，到網站「訂閱方案」重新訂閱即可。`, 'exp-' + r.email + '-' + r.expires);
     }
     this.q("UPDATE orders SET status = 'expired', updated = ? WHERE method = 'bank' AND status = 'pending' AND created < ?", now, now - PAY_BANK_DAYS * DAY);
     this.q("UPDATE orders SET status = 'cancelled', rtn_msg = '超過 3 天未付款，自動取消', updated = ? WHERE method = 'ecpay' AND status = 'pending' AND applied = 0 AND parent IS NULL AND created < ?", now, now - PAY_ECPAY_EXPIRE_DAYS * DAY);
@@ -379,6 +416,7 @@ export function installPay(Hub, H) {
       else out.cancelled = (out.cancelled || 0) + 1;
     }
     this.payExpireLog();
+    try { out.mail = await this.payMailFlush(); } catch (e) { /* 寄信失敗下次再試 */ }
     return out;
   };
 
@@ -509,6 +547,33 @@ export function installPay(Hub, H) {
   const consentOf = (b) => JSON.stringify({ at: subClean(b.consent_at, 40), ver: subClean(b.consent_version, 40), c: subClean(b.consent, 80) });
   const backOk = (hub, back) => { try { const u = new URL(String(back || '')); return hub.originOk(u.origin) ? u.origin + u.pathname : ''; } catch (e) { return ''; } };
   const newCount = (hub, uid, method) => hub.q('SELECT COUNT(*) AS c FROM orders WHERE uid = ? AND method = ? AND parent IS NULL AND created > ?', uid, method, hub.now() - DAY)[0].c;
+  /* 個人帳務通知併進 /v1/notices（前端鈴鐺不用改資料流）；已讀一樣走 /v1/notices/read */
+  const origNotices = Hub.prototype.subRoutes['/v1/notices'], origRead = Hub.prototype.subRoutes['/v1/notices/read'];
+  const unOut = (r) => ({ id: r.id, title: r.title, body: r.body, kind: 'pay', audience: 'me', start: r.created, end: 0, pinned: false, created: r.created, updated: r.created, read: !!r.read_at });
+  Object.assign(Hub.prototype.subRoutes, {
+    '/v1/notices': async function (req, b) {
+      const res = await origNotices.call(this, req, b);
+      if (res.status !== 200 || !b || !b.t) return res;
+      const v = await this.auth(req, b); if (!v) return res;
+      this.payInit();
+      const j = await res.clone().json();
+      const mine = this.q('SELECT * FROM user_notices WHERE email = ? ORDER BY created DESC LIMIT 50', norm(v.user.email)).map(unOut);
+      return this.json(req, { ...j, notices: mine.concat(j.notices || []).sort((x, y) => (y.pinned - x.pinned) || (y.start - x.start)) });
+    },
+    '/v1/notices/read': async function (req, b) {
+      const v = b && b.t ? await this.auth(req, b) : null;
+      if (v && Array.isArray(b.ids)) { this.payInit(); for (const id of b.ids.slice(0, 200)) if (typeof id === 'string' && id[0] === 'u') this.q('UPDATE user_notices SET read_at = COALESCE(read_at, ?) WHERE id = ? AND email = ?', this.now(), id, norm(v.user.email)); }
+      const res = await origRead.call(this, req, b);
+      if (res.status !== 200 || !v) return res;
+      const j = await res.clone().json();
+      return this.json(req, { ...j, read: (j.read || []).concat(this.q('SELECT id FROM user_notices WHERE email = ? AND read_at IS NOT NULL', norm(v.user.email)).map((r) => r.id)) });
+    },
+    '/v1/admin/pay/mail': async function (req, b) {
+      if (!(await this.admin(req, b))) return this.json(req, { error: 'forbidden' }, 403);
+      this.payInit();
+      return this.json(req, { on: !!(this.env.RESEND_API_KEY && this.env.MAIL_FROM), notices: this.q('SELECT n.id, n.email, n.title, n.created, n.read_at, m.status AS mail, m.msg AS mail_msg, m.sent_at FROM user_notices n LEFT JOIN mail_out m ON m.id = n.id ORDER BY n.created DESC LIMIT 500') });
+    },
+  });
   Object.assign(Hub.prototype.subRoutes, {
     '/v1/pay/quote': async function (req, b) {
       const v = await this.auth(req, b); if (!v) return this.json(req, { error: 'auth' }, 401);
@@ -589,6 +654,7 @@ export function installPay(Hub, H) {
       hist.push({ at, last5, date, amount: amt, note: subClean(b.note, 200), state: 'active' });
       this.paySet(o.id, { status: 'review', from_last5: last5, xfer_date: date, xfer_amount: amt, note: subClean(b.note, 200), reports: JSON.stringify(hist) });
       this.payEv(o.id, hist.length > 1 ? 'report_again' : 'report', { last5, date, amt, n: hist.length });
+      this.payTell(o.email, '已收到你的匯款資料', `我們已收到你的訂單 ${o.id}（${o.plan_name}・${o.period === 'year' ? '年繳' : '月繳'}，應付 NT$ ${o.amount}）的匯款資料：\n送出時間：${tpeStr(at)}\n轉出帳號末 5 碼：${last5}\n轉帳日期：${date}\n你填的金額：NT$ ${amt}${amt !== o.amount ? `（和應付金額不同，差 NT$ ${Math.abs(o.amount - amt)}）` : ''}\n\n管理者確認入帳後就會開通，屆時會再通知你。`, 'rep-' + o.id + '-' + hist.length);
       return this.json(req, { ok: true, order: pubOrder(this.payOrder(o.id)) });
     },
     '/v1/pay/my': async function (req, b) {
@@ -668,6 +734,7 @@ export function installPay(Hub, H) {
       if (!reason) return this.json(req, { error: 'need_reason' }, 400);
       this.paySet(o.id, { status: 'rejected', reject_reason: reason });
       this.payEv(o.id, 'reject', { by: v.user.email, reason });
+      this.payTell(o.email, '你的轉帳沒有通過確認', `你的訂單 ${o.id}（${o.plan_name}・${o.period === 'year' ? '年繳' : '月繳'}，應付 NT$ ${o.amount}）的匯款資料沒有通過確認。\n你回報的匯款：末 5 碼 ${o.from_last5 || '—'}，NT$ ${o.xfer_amount || 0}，${o.xfer_date || ''}\n原因：${reason}\n\n這筆沒有開通。請依原因確認後重新下單回報；如果你已經匯款，請直接回覆這封信，我們會協助處理。`, 'rej-' + o.id + '-' + this.now());
       return this.json(req, { ok: true, order: admOrder(this.payOrder(o.id)) });
     },
     /* 已開通但帶異常註記（例如取消後才付款）→ 管理者看過後「標記已處理」，從異常清單拿掉 */
@@ -784,6 +851,12 @@ export function installPay(Hub, H) {
         } else this.planEv(o.email, 'refund_keep', o.plan, rid, `退款 NT$ ${amount}，用到 ${tpeDay(cur.expires)} 才停`);
       } else this.planEv(o.email, 'refund_keep', o.plan, rid, `退款 NT$ ${amount}${o.applied ? '' : '（這筆沒開通過，不動權限）'}`);
       this.payEv(o.id, 'refund', { rid, amount, perm: permAct, action: res.action });
+      {
+        const e2 = this.effective(norm(o.email));
+        const after = e2.expired || e2.plan === 'free' ? '你的帳號已回到註冊會員。' : `你的方案 ${e2.planName} 可以用到 ${tpeDay(e2.expires)}。`;
+        const how = manual ? (quote.kind === 'manual' ? `退款會匯回你的帳戶（末 5 碼 ${String(b.last5 || '')}），一般 1～3 個工作天入帳。` : '退款已在綠界處理，依發卡銀行作業時間退回你的信用卡。') : '退款已送出到綠界，會退回你付款的信用卡；實際入帳時間依發卡銀行而定（通常 7～14 個工作天）。';
+        this.payTell(o.email, `退款完成：NT$ ${amount}`, `你的訂單 ${o.id}（${o.plan_name}・${o.period === 'year' ? '年繳' : '月繳'}）已退款 NT$ ${amount}。\n${how}\n${after}${cancel && cancel.ok ? '\n信用卡自動扣款也已經停止，之後不會再扣款。' : ''}`, 'rf-' + rid);
+      }
       return this.json(req, { ok: true, refund: this.q('SELECT * FROM refunds WHERE id = ?', rid)[0], cancel, order: admOrder(this.payOrder(o.id)) });
     },
     '/v1/admin/pay/period_cancel': async function (req, b) {

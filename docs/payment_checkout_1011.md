@@ -137,3 +137,25 @@
 
 - `node --test workers/account-api/tests/pay.test.mjs`：CheckMacValue 官方範例、存取控制、金額以伺服器為準、B1 ReturnURL、驗章錯誤／模擬付款／金額不符不開通＋異常補開通、B6 重複通知不重複延長、B2 導回查單、B3 排程查單、B4 輪詢、定期定額每期＋對帳補期＋取消、B7 到期降級＋降級後再付款從今天起算、轉帳開單／回報／確認／退回／每日 5 筆、到期提醒、退款（人工、部分、到期才停、重複 rid、DoAction N／R、失敗原因、定期定額同時終止）、刪帳號保留交易紀錄＋備份。
 - `python scripts/_uitest.py --sections 結帳與付款1011 --workers 1`：本機真的 worker.js＋假綠界（`devserver.mjs` 的 `/Cashier/*`，一樣驗章／簽章），瀏覽器實際操作整條流程（含 ReturnURL 漏送 → 查單補開通 → 功能解鎖、退款降級、異常一鍵補開通、到期提醒、到期降級、手機 390、淺色主題對比）。截圖：`TW_PAY_SHOTS=<資料夾>`。
+
+## 11. 會員帳務通知（2026-10-12）
+
+Andy 原話：「使用者升級以及退款這類重大資訊都需要給他們通知」。
+
+**什麼時候通知**（每件事只通知一次，只有本人看得到）：
+已收到匯款資料｜付款完成已開通｜續訂完成｜升級完成（含舊方案剩餘天數提醒）｜已收到款項但方案衝突、專人處理中｜轉帳沒有通過確認（含原因）｜退款完成（金額、退回方式、退款後方案）｜信用卡自動扣款已停止｜方案到期。
+
+**通知管道**：
+1. **站內鈴鐺（已上線）**：網站右上角鈴鐺，類型標「帳務通知」。訂單狀態一變，鈴鐺就重抓，不等快取。
+2. **Email（選用，要 Andy 設定）**：用 Resend 寄信，排程每 10 分鐘送一次，失敗最多重試 5 次。只送 3 天內的通知，避免設定好之後一次補寄一堆舊信。回信地址是 liguligu0818@gmail.com。
+
+**Email 設定步驟**（設好前只有站內通知）：
+1. 到 Resend 官網註冊（免費方案的額度以官網為準）。
+2. 在 Resend 的 **Domains**（網域）加入 `liguligu-puipui.com`，照畫面給的 DNS 紀錄，到 Cloudflare 的 DNS 頁逐筆新增，等 Resend 顯示驗證通過。
+3. 在 Resend 的 **API Keys**（金鑰）建立一把金鑰。**不要貼到對話裡。**
+4. GitHub repo → Settings（設定）→ Secrets and variables → Actions → New repository secret，新增兩個：
+   - `RESEND_API_KEY`：上一步的金鑰
+   - `MAIL_FROM`：`哩股哩股 <notice@liguligu-puipui.com>`
+5. Actions → 「部署 Worker（會員登入與使用統計）」→ Run workflow（手動跑一次）。
+
+**查寄送狀態**：管理者 API `/v1/admin/pay/mail` 列出每一則通知、已讀時間、寄信結果。

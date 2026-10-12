@@ -294,7 +294,16 @@ html.pay-renew #acctBtn.ame::after{content:'';position:absolute;top:2px;right:2p
   function refresh() {
     if (!me()) { S.my = null; paintRenew(); return Promise.resolve(null); }
     if (S.fly) return S.fly;
-    S.fly = call('/v1/pay/my', {}).then((j) => { S.fly = null; S.my = j && j._s === 200 ? j : null; paintRenew(); return S.my; });
+    S.fly = call('/v1/pay/my', {}).then((j) => {
+      S.fly = null; S.my = j && j._s === 200 ? j : null; paintRenew();
+      /* 2026-10-12：帳務通知（開通／退款／退回）在鈴鐺裡 —— 訂單狀態一變就叫鈴鐺重抓，不等它 10 分鐘的快取 */
+      if (S.my) {
+        const sig = (S.my.orders || []).map((o) => o.id + ':' + o.status + ':' + (o.refunded || 0) + ':' + ((o.reports || []).length)).join('|') + '#' + (S.my.reqs || []).map((r) => r.id + r.status).join('|') + '#' + S.my.plan + S.my.expires;
+        let old = null; try { old = sessionStorage.getItem('tw.pay.sig'); sessionStorage.setItem('tw.pay.sig', sig); } catch (e) { /* 略 */ }
+        if (old !== null && old !== sig && window.TwNotices && window.TwNotices.refresh) window.TwNotices.refresh();
+      }
+      return S.my;
+    });
     return S.fly;
   }
   const methodName = (o) => o.method === 'bank' ? '銀行轉帳' : o.recur ? (o.parent ? `綠界・自動扣款第 ${o.periodN} 期` : '綠界・信用卡自動扣款') : /^ATM/.test(o.payType) ? '綠界・ATM' : /^CVS|^BARCODE/.test(o.payType) ? '綠界・超商' : '綠界・' + (o.payType ? '信用卡' : '單次付款');

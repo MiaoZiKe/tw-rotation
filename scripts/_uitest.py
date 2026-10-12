@@ -70878,6 +70878,17 @@ def t_pay_1011(b, base):
         ad.click("#pdGo")
         ok(f"{T}：確認後狀態變成「已開通」", bool(wait_until(ad, f"() => {{ const r = document.querySelector('#payTbl tr[data-oid=\"{boid}\"]'); return r && /已開通/.test(r.innerText); }}", 8000)))
         ok(f"{T}：carol 變 Plus（伺服器到期日為準）", plan_of(pc) == ["plus", True], plan_of(pc))
+        # 2026-10-12 Andy：「使用者升級以及退款這類重大資訊都需要給他們通知」→ 本人鈴鐺看得到帳務通知
+        nts = call(pc, "/v1/notices", {})
+        pays = [x for x in (nts.get("notices") or []) if x.get("kind") == "pay"]
+        ok(f"{T}：carol 的鈴鐺有帳務通知：「已收到你的匯款資料」「付款完成，已開通：Plus」", any("已收到你的匯款資料" in x["title"] for x in pays) and any("付款完成，已開通：Plus" in x["title"] for x in pays), [x["title"] for x in pays])
+        pc.reload(wait_until="domcontentloaded")
+        wait_until(pc, "() => !!document.getElementById('ntBell')", 8000)
+        pc.click("#ntBell")
+        bt = wait_until(pc, "() => { const p = document.getElementById('ntDrop'); return p && !p.hidden && p.querySelector('.ntitem') ? p.innerText : ''; }", 5000)
+        ok(f"{T}：點鈴鐺 → 看得到「帳務通知」與開通內容", bool(bt) and "帳務通知" in bt and "已開通" in bt, ((bt or "")[:300], pc.evaluate("() => ({ bell: !!document.getElementById('ntBell'), drop: (document.getElementById('ntDrop') || {}).innerText || null, hash: location.hash })")))
+        shot(pc, "bell_pay.png")
+        pc.keyboard.press("Escape")
 
         # ================= ⑥ 退回流程＋退款（轉帳＝登記人工退款、立即降級）
         r_new = call(pc, "/v1/pay/bank/create", {"plan": "plus", "period": "year"})
