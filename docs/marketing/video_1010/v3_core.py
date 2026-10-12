@@ -1432,8 +1432,6 @@ class Op:
                     okk = False
                     score += 5
                     continue
-                if not inside_frame:
-                    continue
                 sx, sy, m = _sprite_alpha(nm, 2 + int(u * 3.99), p, sz)
                 tot = max(1, int(m.sum()))
                 hm, _ = _mask_hits(mainm, sx, sy, m)
@@ -1821,7 +1819,7 @@ def color_mask(cv, rect):
     return out
 
 
-def chart_region(data, cell=12, min_cells=10, min_w=90, min_h=60, max_frac=0.45):
+def chart_region(data, cell=12, min_cells=10, min_w=90, min_h=60, max_frac=0.45, strong=None):
     """圖表區（10-12 審片擋片：比比和道具坐在「每月入帳」長條之間、複利走勢圖格線區的空白上，
     邊緣密度的忙碌圖看不到空白的繪圖區，所以沒擋到）。
     有顏色的資料像素以 12px 格網分群（相鄰格相連）；底邊對齊（差 ≤1 格）、左右間隔 ≤200px 的群合成同一張圖（長條圖的長條共用基線），
@@ -1830,7 +1828,14 @@ def chart_region(data, cell=12, min_cells=10, min_w=90, min_h=60, max_frac=0.45)
     gh, gw = (H + cell - 1) // cell, (W + cell - 1) // cell
     pad = np.zeros((gh * cell, gw * cell), dtype=bool)
     pad[:H, :W] = data
-    g = pad.reshape(gh, cell, gw, cell).sum(axis=(1, 3)) >= 3
+    cnt = pad.reshape(gh, cell, gw, cell).sum(axis=(1, 3))
+    if strong is not None:
+        sp = np.zeros((gh * cell, gw * cell), dtype=bool)
+        sp[:H, :W] = strong
+        scnt = sp.reshape(gh, cell, gw, cell).sum(axis=(1, 3))
+        g = (scnt >= 3) | (cnt >= 40)     # 鮮色線（曲線、K 線）細也算；淡色只有成片（長條）才算，卡片淡藍框線不算
+    else:
+        g = cnt >= 3
     out = np.zeros_like(data)
     if not g.any():
         return out
@@ -1860,11 +1865,33 @@ def chart_region(data, cell=12, min_cells=10, min_w=90, min_h=60, max_frac=0.45)
     merged = []
     for c in comps:
         for m in merged:
-            if abs(m[3] - c[3]) <= 4 and (c[0] - m[2]) * cell <= 200 and (m[0] - c[2]) * cell <= 200 and (c[3] - c[1] >= 2 or m[3] - m[1] >= 2):
+            ov = min(m[3], c[3]) - max(m[1], c[1]) + 1           # 垂直重疊格數
+            tall = c[3] - c[1] >= 2 and m[3] - m[1] >= 2
+            near = (c[0] - m[2]) * cell <= 200 and (m[0] - c[2]) * cell <= 200
+            big = (max(m[2], c[2]) - min(m[0], c[0]) + 1) * (max(m[3], c[3]) - min(m[1], c[1]) + 1) * cell * cell > max_frac * H * W
+            big = big or max(m[3] - m[1], c[3] - c[1]) > 40          # 側欄等很高的群不參與合併
+            if not big and near and ((abs(m[3] - c[3]) <= 4 and (c[3] - c[1] >= 2 or m[3] - m[1] >= 2))):
                 m[0], m[1], m[2], m[3], m[4] = min(m[0], c[0]), min(m[1], c[1]), max(m[2], c[2]), max(m[3], c[3]), m[4] + c[4]
                 break
         else:
             merged.append(list(c))
+    changed = True
+    while changed:                       # 合併後的外框可能又和別群相鄰：重複合併到穩定
+        changed = False
+        for i in range(len(merged)):
+            for j in range(i + 1, len(merged)):
+                m, c = merged[i], merged[j]
+                ov = min(m[3], c[3]) - max(m[1], c[1]) + 1
+                near = (c[0] - m[2]) * cell <= 200 and (m[0] - c[2]) * cell <= 200
+                big = (max(m[2], c[2]) - min(m[0], c[0]) + 1) * (max(m[3], c[3]) - min(m[1], c[1]) + 1) * cell * cell > max_frac * H * W
+                big = big or max(m[3] - m[1], c[3] - c[1]) > 40
+                if not big and near and abs(m[3] - c[3]) <= 4 and (c[3] - c[1] >= 2 or m[3] - m[1] >= 2):
+                    m[0], m[1], m[2], m[3], m[4] = min(m[0], c[0]), min(m[1], c[1]), max(m[2], c[2]), max(m[3], c[3]), m[4] + c[4]
+                    merged.pop(j)
+                    changed = True
+                    break
+            if changed:
+                break
     area = float(H * W)
     for x0, y0, x1, y1, n in merged:
         w, h = (x1 - x0 + 1) * cell, (y1 - y0 + 1) * cell
@@ -1884,18 +1911,24 @@ def pastel_mask(cv, rect):
         return out
     a = np.asarray(cv.crop((x0, y0, x1, y1)).convert("RGB"), dtype=np.int16)
     mx, mn = a.max(axis=2), a.min(axis=2)
-    m = ((mx - mn) > 0.18 * np.maximum(mx, 1)) & (mx > 60)
-    m[:4, :] = m[-4:, :] = False
-    m[:, :4] = m[:, -4:] = False
+    sat = (mx - mn) / np.maximum(mx, 1)
+    m = (sat > 0.18) & (mx > 60)
+    m2 = (sat > 0.45) & (mx > 60)
+    for q in (m, m2):
+        q[:4, :] = q[-4:, :] = False
+        q[:, :4] = q[:, -4:] = False
+    out2 = np.zeros((H, W), dtype=bool)
     out[y0:y1, x0:x1] = m
-    return out
+    out2[y0:y1, x0:x1] = m2
+    return out, out2
 
 
 def protect_masks(shot, cv, rect):
     """(受保護像素, 主角資料區)：邊緣密度 ∪ 圖表區；主角資料區 ＝ 有色資料像素 ∪ 圖表區。"""
     b = busy_mask(cv, rect)
     data = color_mask(cv, rect) & b
-    ch = chart_region(pastel_mask(cv, rect))      # 淡色長條（沒選到的那幾根）也算圖
+    pm, sm = pastel_mask(cv, rect)
+    ch = chart_region(pm, strong=sm)      # 淡色長條（沒選到的那幾根）也算圖
     return b | ch, data | ch
 
 
