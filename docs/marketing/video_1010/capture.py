@@ -2117,7 +2117,14 @@ def v26w(pg, a, start, base):
             a.wait(120)
     t0 = a.t
     a.wait(2200)
-    a.focus_sel("願望清單表單（已輸入）", "#supPanel", t0, a.t)
+    # 剪輯要求（10-12）：焦點框只框表單本體 ——「想要的功能（必填）」標題到「送出願望」鈕，不含上方 AI 客服橫幅與分頁列
+    r = pg.evaluate("""() => { const p = document.getElementById('supPanel'); if (!p) return null;
+      const top = p.querySelector('label[for=wsWant]'), btn = p.querySelector('#fbSend'); if (!top || !btn) return null;
+      const els = [top, btn, p.querySelector('#wsWant'), p.querySelector('#wsWhy'), p.querySelector('#fbMail')].filter(Boolean).map((e) => e.getBoundingClientRect());
+      const x0 = Math.min(...els.map((b) => b.left)), x1 = Math.max(...els.map((b) => b.right));
+      const y0 = top.getBoundingClientRect().top, y1 = btn.getBoundingClientRect().bottom;
+      return [x0, y0, x1 - x0, y1 - y0]; }""")
+    a.add_focus("願望清單表單（已輸入）", r, t0, a.t, "label[for=wsWant] … #fbSend")
 
 
 @shot3("V26", "md", "比比客服面板：常見問題 → 意見反饋 → 願望清單（輸入一則願望）")

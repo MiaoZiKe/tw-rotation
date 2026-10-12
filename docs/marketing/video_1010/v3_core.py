@@ -1309,9 +1309,12 @@ class Op:
         rec = self.rec
         st0 = tp["t"] - self.TAP_IN + self.HOP
         st1 = tp["t"] + self.TAP_OUT - self.HOP
-        bs = [self._busy_at(shot, L, min(shot.dur - 1 / FPS, max(0.0, st0 + (st1 - st0) * k / 4))) for k in range(5)]
-        busy = bs[0][0] | bs[1][0] | bs[2][0] | bs[3][0] | bs[4][0]
-        mainm = bs[0][1] | bs[1][1] | bs[2][1] | bs[3][1] | bs[4][1]
+        nf = max(1, int(round((st1 - st0) * FPS)))          # 站在按鈕上的每一幀都算（點下去那一幀畫面常會跳）
+        bs = [self._busy_at(shot, L, min(shot.dur - 1 / FPS, max(0.0, st0 + k / FPS))) for k in range(nf + 1)]
+        busy, mainm = bs[0][0].copy(), bs[0][1].copy()
+        for b_, m_ in bs[1:]:
+            busy |= b_
+            mainm |= m_
         mm = mainm.copy()                 # 主角資料區再外擴 6px 當安全邊（逐幀檢查時畫面有 1.5% 慢推）
         for k in range(1, 7):
             mm[k:, :] |= mainm[:-k, :]
@@ -1390,8 +1393,14 @@ class Op:
         best = None
         for peak in (0, 60, 160, 280, 400, 520, -120, -240, -360):
             score, okk = 0.0, True
-            for u in [k / 20 for k in range(1, 20)]:
-                tt = min(shot.dur - 1 / FPS, max(0.0, t0 + u * self.HOP))
+            # 取「實際會渲染的那幾幀」＋細分點；位置與 _v4_draw 一樣用 ease_io（之前用線性 u，算的位置跟畫的不一樣）
+            f0, f1 = math.ceil(t0 * FPS - 1e-6), math.ceil((t0 + self.HOP) * FPS - 1e-6)
+            samp = sorted({(n / FPS - t0) / self.HOP for n in range(f0, f1)} | {k / 20 for k in range(1, 20)})
+            for ul in samp:
+                if not (0.0 <= ul < 1.0):
+                    continue
+                tt = min(shot.dur - 1 / FPS, max(0.0, t0 + ul * self.HOP))
+                u = ease_io(ul)
                 busy, mainm = self._busy_at(shot, L, tt)
                 mainm = _dilate(mainm, 6)
                 p = (lerp(a[0], b[0], u), lerp(a[1], b[1], u) - peak * math.sin(math.pi * u))
@@ -1434,7 +1443,9 @@ class Op:
     def _drag_pose(self, shot, L, p, t, nm="hop_r", fi=2):
         """3D 推轉：比比跟著拖曳點走，站在模型旁邊的空白處（不壓模型與其他內容）。"""
         tq = math.floor(t * 4) / 4
-        busy = self._busy_at(shot, L, tq)[0] | self._busy_at(shot, L, min(shot.dur - 1 / FPS, tq + 0.25))[0]
+        busy = self._busy_at(shot, L, tq)[0].copy()
+        for k in range(1, 9):                                 # 這 0.25 秒內每 1/30 秒都算（3D 轉動中內容一直變）
+            busy |= self._busy_at(shot, L, min(shot.dur - 1 / FPS, tq + k / 32))[0]
         fr = self.rec.rect
         best = None
         for size in (150, 130, 110, 96):
