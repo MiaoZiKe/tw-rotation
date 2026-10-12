@@ -184,7 +184,7 @@ def build():
     # 11～13 自選清單／導覽／願望清單
     S.append(shot("j01", "自選清單", "V24_desktop", [(6.6, 10.4)], "⑪ 自選清單", "常看的收進來，一開就有", [(0, "star_save"), (2.2, "face_love")],
                   win_keys=[(0.0, (0, 0, 2990, 1682))]))
-    S.append(shot("j02", "導覽", "V25_desktop", [(2.6, 5.5)], "看不懂有導覽", "每一頁我都一步步帶你", [(0, "talk_happy"), (1.8, "face_wink")], min_cap=3.0))
+    S.append(shot("j02", "導覽", "V25_desktop", [(5.7, 7.9)], "看不懂有導覽", "每一頁我都一步步帶你", [(0, "talk_happy"), (1.8, "face_wink")], min_cap=3.0))
     # 願望清單：錄影端補錄的 V26w（打開就是願望清單分頁、沒有「錯誤回報」類別）到了就用；沒到退回 V26 的願望清單分頁段
     if fresh_nofab("V26w_desktop"):
         S.append(shot("j03", "願望清單", "V26w_desktop", [(5.4, 8.9)], "歡迎許願", "想要什麼功能，跟我說！", [(0, "heart_wish"), (1.6, "face_love")], chain="solo",
