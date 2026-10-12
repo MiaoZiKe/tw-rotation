@@ -76,6 +76,8 @@ async function setup(x) {
   db.prepare("INSERT OR IGNORE INTO plans (id, name, feats, builtin, updated, price, period) VALUES ('plus', 'Plus', '{}', 0, 0, 299, 'month')").run();
   db.prepare("UPDATE plans SET price = 299, period = 'month' WHERE id = 'plus'").run();
   hub.expInit(); db.prepare("UPDATE plans SET price_year = 2990 WHERE id = 'plus'").run();
+  db.prepare("INSERT OR IGNORE INTO plans (id, name, feats, builtin, updated, price, period) VALUES ('pro', 'Pro', '{}', 0, 0, 499, 'month')").run();
+  db.prepare("UPDATE plans SET builtin = 0, price = 499, period = 'month', price_year = 5268 WHERE id = 'pro'").run();
   const bob = await login(hub, 'bob@example.com');
   const andy = await login(hub, 'andy@example.com');
   return { hub, db, bob, andy };
@@ -171,7 +173,9 @@ test('B6 冪等：同一筆通知重複送 3 次只加一次期間', async () =>
   const exp = db.prepare("SELECT expires FROM perm WHERE email = 'bob@example.com'").get().expires;
   assert.equal(new Date(exp).toISOString(), '2026-11-11T04:00:00.000Z', '只加一個月');
   assert.equal(db.prepare("SELECT COUNT(*) AS c FROM plan_events WHERE email = 'bob@example.com' AND kind IN ('activate','extend')").get().c, 1);
-  /* 第二筆訂單（續訂）→ 從原到期日接下去 */
+  /* 第二筆訂單（續訂）→ 從原到期日接下去；續訂只在到期前 7 天內才開放 */
+  assert.equal((await pj(hub, '/v1/pay/ecpay/create', { t: bob, plan: 'plus', period: 'month', back: BACK })).s, 409, '還很久：同方案同週期不能再買');
+  clock = Date.parse('2026-11-06T04:00:00Z');
   const c2 = await ecCreate(hub, bob);
   await notify(hub, c2.id, 299);
   assert.equal(new Date(ord(db, c2.id).grant_from).toISOString(), '2026-11-11T04:00:00.000Z');
@@ -307,14 +311,47 @@ test('銀行轉帳：收款帳號沒設＝尚未開放；設了只有登入會�
   assert.equal(new Date(ord(db, c.id).grant_to).toISOString(), '2027-10-11T04:00:00.000Z', '年繳 +12 個月');
   assert.equal((await permOf(hub, bob)).plan, 'plus');
   assert.equal((await pj(hub, '/v1/admin/pay/confirm', { t: andy, id: c.id })).j.dup, true, '重按確認不重複開通');
-  for (let i = 0; i < 4; i++) assert.equal((await pj(hub, '/v1/pay/bank/create', { t: bob, plan: 'plus', period: i % 2 ? 'month' : 'year' })).s, 200);
-  /* 上面 4 次：第 1 次開新單（年）、第 2 次開新單（月）、第 3 次沿用年、第 4 次沿用月 → 24 小時共 3 筆。再換方式灌 */
-  db.prepare("UPDATE orders SET status = 'review' WHERE method = 'bank' AND status = 'pending'").run();
-  assert.equal((await pj(hub, '/v1/pay/bank/create', { t: bob, plan: 'plus', period: 'month' })).s, 200);
-  db.prepare("UPDATE orders SET status = 'review' WHERE method = 'bank' AND status = 'pending'").run();
-  assert.equal((await pj(hub, '/v1/pay/bank/create', { t: bob, plan: 'plus', period: 'month' })).s, 200);
-  db.prepare("UPDATE orders SET status = 'review' WHERE method = 'bank' AND status = 'pending'").run();
-  assert.equal((await pj(hub, '/v1/pay/bank/create', { t: bob, plan: 'plus', period: 'month' })).s, 429, '24 小時第 6 筆擋下');
+  /* 方案異動規則：年繳 Plus 生效中 → 不能再買月繳、不能重買同一個，只能升 Pro 年繳 */
+  const blk = async (plan, period) => (await pj(hub, '/v1/pay/bank/create', { t: bob, plan, period })).j;
+  assert.deepEqual([(await blk('plus', 'month')).reason, (await blk('plus', 'year')).reason, (await blk('pro', 'month')).reason], ['year_to_month', 'same_active', 'year_to_month']);
+  assert.equal((await pj(hub, '/v1/pay/quote', { t: bob, plan: 'plus', period: 'month' })).j.blocked, 'year_to_month', '報價也帶出擋下原因，前端據此反灰');
+  assert.equal((await pj(hub, '/v1/pay/bank/create', { t: bob, plan: 'pro', period: 'year' })).s, 200, '年繳可升 Pro 年繳');
+  /* 到期前 7 天內才能續訂同方案同週期；上面 4 次之後再灌到第 6 筆 → 24 小時上限 */
+  const soon = clock + 3 * 86400000;
+  db.prepare("UPDATE perm SET expires = ? WHERE email = 'bob@example.com'").run(soon);
+  db.prepare("UPDATE orders SET grant_to = ? WHERE id = ?").run(soon, c.id);
+  for (let i = 0; i < 3; i++) {   // 前面已開 2 筆（原單＋Pro 年繳），再 3 筆到 5 筆上限
+    assert.equal((await pj(hub, '/v1/pay/bank/create', { t: bob, plan: 'plus', period: 'year' })).s, 200);
+    db.prepare("UPDATE orders SET status = 'review' WHERE method = 'bank' AND status = 'pending'").run();
+  }
+  assert.equal((await pj(hub, '/v1/pay/bank/create', { t: bob, plan: 'plus', period: 'year' })).s, 429, '24 小時第 6 筆擋下');
+});
+
+test('銀行轉帳：沒回報匯款資料（只是開了訂閱頁）→ 管理者不能確認入帳', async () => {
+  const { hub, db, bob, andy } = await setup();
+  await pj(hub, '/v1/admin/pay/bank/put', { t: andy, bank_name: '測試銀行', bank_code: '999', account: '000011112222', holder: '測試戶名' });
+  const c = (await pj(hub, '/v1/pay/bank/create', { t: bob, plan: 'plus', period: 'month' })).j;
+  const cf = await pj(hub, '/v1/admin/pay/confirm', { t: andy, id: c.id });
+  assert.deepEqual([cf.s, cf.j.error], [409, 'not_reported']);
+  assert.equal(ord(db, c.id).applied, 0);
+  assert.equal((await permOf(hub, bob)).plan, 'free');
+});
+
+test('方案異動：月繳 Plus 可升 Plus 年繳／Pro；不可降級；Pro 年繳什麼都不能再買', async () => {
+  const { hub, db, bob, andy } = await setup();
+  await pj(hub, '/v1/admin/pay/bank/put', { t: andy, bank_name: '測試銀行', bank_code: '999', account: '000011112222', holder: '測試戶名' });
+  const buy = async (plan, period) => {
+    const c = (await pj(hub, '/v1/pay/bank/create', { t: bob, plan, period })).j;
+    if (!c.ok) return c;
+    await pj(hub, '/v1/pay/bank/report', { t: bob, id: c.id, last5: '11111', date: '2026-10-11', amount: c.amount });
+    await pj(hub, '/v1/admin/pay/confirm', { t: andy, id: c.id });
+    return c;
+  };
+  await buy('plus', 'month');
+  const st = async (plan, period) => (await pj(hub, '/v1/pay/quote', { t: bob, plan, period })).j.blocked;
+  assert.deepEqual([await st('plus', 'month'), await st('plus', 'year'), await st('pro', 'month'), await st('pro', 'year')], ['same_active', '', '', '']);
+  await buy('pro', 'year');
+  assert.deepEqual([await st('plus', 'month'), await st('plus', 'year'), await st('pro', 'month'), await st('pro', 'year')], ['lower_plan', 'lower_plan', 'year_to_month', 'same_active']);
 });
 
 test('銀行轉帳：退回要寫原因、不開通；管理者備註；轉帳會員到期前 7 天出現提醒', async () => {
@@ -330,6 +367,7 @@ test('銀行轉帳：退回要寫原因、不開通；管理者備註；轉帳�
   assert.equal(ord(db, c.id).admin_note, '已電話聯絡');
   /* 確認一筆 → 到期前 7 天 → 提醒（stage 7）；前 1 天（stage 1）；管理區「即將到期的轉帳會員」 */
   const c2 = (await pj(hub, '/v1/pay/bank/create', { t: bob, plan: 'plus', period: 'month' })).j;
+  await pj(hub, '/v1/pay/bank/report', { t: bob, id: c2.id, last5: '54321', date: '2026-10-11', amount: 299 });
   await pj(hub, '/v1/admin/pay/confirm', { t: andy, id: c2.id });
   assert.equal((await pj(hub, '/v1/pay/my', { t: bob })).j.renew, null, '還很久');
   clock = Date.parse('2026-11-05T04:00:00Z');

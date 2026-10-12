@@ -130,6 +130,28 @@ export function installPay(Hub, H) {
   };
   const ts = (hub) => String(Math.floor(hub.now() / 1000));
 
+  /* ---------------------------------------------------------------- 方案異動規則（2026-10-12 Andy：「已經是年繳，除非要升級 Pro，不然不可以再出現月繳帳單；原本月繳可以升 Pro 或 Plus 年繳」）
+     目前方案 × 週期 → 能買什麼：同方案同週期只有「快到期（PAY_RENEW_DAYS 天內）」才能續訂；月繳→年繳（同方案）可以；
+     升到更高方案：目前是年繳就只能買年繳，目前是月繳月年都行；降級、年繳改月繳一律擋。方案不在排行表（自訂方案）或查不到目前訂單時不擋。 */
+  const PAY_RANK = { plus: 1, pro: 2 };
+  Hub.prototype.payChangeCheck = function (email, plan, period) {
+    const now = this.now(), e = this.effective(email);
+    if (e.expired || !e.plan || e.plan === 'free' || !e.expires || e.expires <= now) return { ok: true };
+    const cur = this.q('SELECT period FROM orders WHERE email = ? AND applied = 1 AND plan = ? AND grant_from <= ? AND grant_to > ? ORDER BY grant_to DESC LIMIT 1', email, e.plan, now, now)[0];
+    const rc = PAY_RANK[e.plan], rt = PAY_RANK[plan];
+    if (!cur || !rc || !rt) return { ok: true };
+    const curName = `${e.planName}・${cur.period === 'year' ? '年繳' : '月繳'}`;
+    const no = (reason, msg) => ({ ok: false, reason, msg });
+    if (rt < rc) return no('lower_plan', `你目前是 ${curName}，不能再購買比現在低的方案。`);
+    if (rt === rc) {
+      if (cur.period === 'year' && period === 'month') return no('year_to_month', `你目前是 ${curName}，不能改買月繳；要換週期請等這期到期後再選。`);
+      if (cur.period === period && e.expires - now > PAY_RENEW_DAYS * DAY) return no('same_active', `你目前已是 ${curName}，到期日前 ${PAY_RENEW_DAYS} 天才能續訂。`);
+      return { ok: true };
+    }
+    if (cur.period === 'year' && period === 'month') return no('year_to_month', `你目前是 ${curName}，要升級只能買年繳。`);
+    return { ok: true };
+  };
+
   /* ---------------------------------------------------------------- 價格（只信伺服器 plans）*/
   Hub.prototype.payPrice = function (planId, period) {
     if (!/^[a-z0-9_-]{1,20}$/.test(String(planId || '')) || planId === 'guest' || planId === 'free') return null;
@@ -445,7 +467,8 @@ export function installPay(Hub, H) {
       const pr = this.payPrice(String(b.plan || ''), b.period === 'year' ? 'year' : 'month');
       if (!pr) return this.json(req, { error: 'no_price' }, 400);
       const bank = this.payBank();
-      return this.json(req, { ...pr, test: this.ecCfg().test, bank: bank ? { ...bank, days: PAY_BANK_DAYS } : null, recurOk: true });
+      const chk = this.payChangeCheck(norm(v.user.email), pr.plan, pr.period);
+      return this.json(req, { ...pr, blocked: chk.ok ? '' : chk.reason, blockedMsg: chk.ok ? '' : chk.msg, test: this.ecCfg().test, bank: bank ? { ...bank, days: PAY_BANK_DAYS } : null, recurOk: true });
     },
     '/v1/pay/ecpay/create': async function (req, b) {
       const v = await this.auth(req, b); if (!v) return this.json(req, { error: 'auth' }, 401);
@@ -453,6 +476,8 @@ export function installPay(Hub, H) {
       const period = b.period === 'year' ? 'year' : b.period === 'month' ? 'month' : null;
       const pr = period && this.payPrice(String(b.plan || ''), period);
       if (!pr) return this.json(req, { error: 'no_price' }, 400);
+      const chkE = this.payChangeCheck(norm(v.user.email), pr.plan, period);
+      if (!chkE.ok) return this.json(req, { error: 'blocked', reason: chkE.reason, msg: chkE.msg }, 409);
       if (newCount(this, v.user.uid, 'ecpay') >= PAY_MAX_ECPAY_DAY) return this.json(req, { error: 'too_many' }, 429);
       const back = backOk(this, b.back);
       if (!back) return this.json(req, { error: 'bad_back' }, 400);
@@ -484,6 +509,8 @@ export function installPay(Hub, H) {
       const period = b.period === 'year' ? 'year' : b.period === 'month' ? 'month' : null;
       const pr = period && this.payPrice(String(b.plan || ''), period);
       if (!pr) return this.json(req, { error: 'no_price' }, 400);
+      const chkB = this.payChangeCheck(norm(v.user.email), pr.plan, period);
+      if (!chkB.ok) return this.json(req, { error: 'blocked', reason: chkB.reason, msg: chkB.msg }, 409);
       const now = this.now();
       /* 同方案同週期、3 天內還沒回報的待付款單 → 沿用（切分頁、重新打開不會一直開新單）*/
       const old = this.q("SELECT * FROM orders WHERE uid = ? AND method = 'bank' AND status = 'pending' AND plan = ? AND period = ? AND created > ? ORDER BY created DESC LIMIT 1", v.user.uid, pr.plan, period, now - PAY_BANK_DAYS * DAY)[0];
@@ -558,6 +585,8 @@ export function installPay(Hub, H) {
       if (!o || o.method !== 'bank') return this.json(req, { error: 'not_found' }, 404);
       if (o.applied) return this.json(req, { ok: true, dup: true, order: admOrder(o) });
       if (!['pending', 'review', 'expired'].includes(o.status)) return this.json(req, { error: 'bad_status', status: o.status }, 409);
+      /* 2026-10-12 Andy：會員只是打開訂閱頁沒付款，管理者不該有確認鍵 → 沒回報匯款資料（沒有末 5 碼）的轉帳單一律不能確認入帳 */
+      if (!o.from_last5) return this.json(req, { error: 'not_reported' }, 409);
       this.paySet(o.id, { status: 'paid', paid_at: o.xfer_date ? Date.parse(o.xfer_date + 'T12:00:00+08:00') : this.now() });
       this.payEv(o.id, 'confirm', v.user.email);
       const r = this.payActivate(o.id, 'admin:' + norm(v.user.email));

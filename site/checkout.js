@@ -145,8 +145,15 @@ html.pay-renew #acctBtn.ame::after{content:'';position:absolute;top:2px;right:2p
     const D = T().dialog('<div class="cohd"><b>結帳</b></div><div class="cobd"><p class="muted">讀取價格…</p></div>', (d) => { d.querySelector('.box').className = 'box codlg'; });
     const [qm, qy] = await Promise.all([call('/v1/pay/quote', { plan, period: 'month' }), call('/v1/pay/quote', { plan, period: 'year' })]);
     const Q = { month: qm && qm._s === 200 ? qm : null, year: qy && qy._s === 200 ? qy : null };
-    if (!Q[per]) per = Q.month ? 'month' : 'year';
+    if (!Q[per] || Q[per].blocked) per = Q.month && !Q.month.blocked ? 'month' : Q.year && !Q.year.blocked ? 'year' : per;
     const box = D.querySelector('.box');
+    /* 2026-10-12 Andy：已是年繳不能再出現月繳；降級／重複購買一律不能付款 → 兩種週期都被擋就只顯示說明，不產生任何訂單 */
+    const okPer = ['month', 'year'].filter((k) => Q[k] && !Q[k].blocked);
+    if ((Q.month || Q.year) && !okPer.length) {
+      const bm = (Q.month && Q.month.blockedMsg) || (Q.year && Q.year.blockedMsg) || '你目前的方案不能購買這個項目。';
+      box.innerHTML = `<div class="cohd"><b>結帳</b><span class="sp"></span><button type="button" data-close aria-label="關閉">×</button></div><div class="cobd"><p>${esc(bm)}</p></div>`;
+      return;
+    }
     if (!Q.month && !Q.year) {
       const e = (qm && qm.error) || (qy && qy.error);
       box.innerHTML = `<div class="cohd"><b>結帳</b><span class="sp"></span><button type="button" data-close aria-label="關閉">×</button></div><div class="cobd"><p>${!qm ? '連不到會員伺服器，請稍後再試。' : e === 'no_price' ? '這個方案還沒有線上價格，請從右下角「客服」聯絡我們。' : e === 'auth' ? '登入已過期，請重新登入。' : '讀不到價格（' + esc((qm && qm._s) || '') + '）'}</p></div>`;
@@ -157,7 +164,7 @@ html.pay-renew #acctBtn.ame::after{content:'';position:absolute;top:2px;right:2p
     box.innerHTML = `<div class="cohd"><b id="coName">${esc(nameOf(base))}</b>${base.test ? '<span class="cotest" title="綠界金鑰還沒設定：付款會走綠界測試環境，不會真的扣款">測試模式</span>' : ''}<span class="sp"></span><button type="button" data-close aria-label="關閉">×</button></div>
       <div class="cobd">
         <div class="cosum"><span>方案</span><div>${esc(nameOf(base))}</div>
-          <span>週期</span><div><div class="seg" id="coPer">${Q.month ? `<button type="button" data-per="month">月繳</button>` : ''}${Q.year ? `<button type="button" data-per="year">年繳</button>` : ''}</div></div>
+          <span>週期</span><div><div class="seg" id="coPer">${Q.month ? `<button type="button" data-per="month"${Q.month.blocked ? ' disabled title="' + esc(Q.month.blockedMsg) + '"' : ''}>月繳</button>` : ''}${Q.year ? `<button type="button" data-per="year"${Q.year.blocked ? ' disabled title="' + esc(Q.year.blockedMsg) + '"' : ''}>年繳</button>` : ''}</div>${(Q.month && Q.month.blocked) || (Q.year && Q.year.blocked) ? `<small class="muted" style="display:block;margin-top:4px">${esc((Q.month && Q.month.blockedMsg) || (Q.year && Q.year.blockedMsg))}</small>` : ''}</div>
           <span>金額</span><div class="amt" id="coAmt"></div>
           <span>訂單編號</span><div><code id="coOid">選擇付款方式後產生</code></div></div>
         <div class="cotabs" role="tablist" aria-label="付款方式"><button type="button" role="tab" id="coTabE" data-tab="ecpay">信用卡／ATM／超商<small>綠界 ECPay</small></button><button type="button" role="tab" id="coTabB" data-tab="bank">銀行轉帳<small>預付制・人工確認</small></button></div>
@@ -199,7 +206,7 @@ html.pay-renew #acctBtn.ame::after{content:'';position:absolute;top:2px;right:2p
       const j = await call('/v1/pay/ecpay/create', { plan, period: st.per, recur: st.kind === 'recur', back: location.origin + location.pathname, ...consent() });
       if (!j || j._s !== 200 || !j.ok) {
         btn.disabled = false;
-        msg(!j ? '連不到會員伺服器，請稍後再試' : j.error === 'too_many' ? '今天建立的訂單太多了，請明天再試或聯絡客服' : j.error === 'no_price' ? '這個方案還沒有線上價格' : `建立訂單失敗（${j._s}）`, true);
+        msg(!j ? '連不到會員伺服器，請稍後再試' : j.error === 'blocked' ? (j.msg || '目前方案不能購買這個項目') : j.error === 'too_many' ? '今天建立的訂單太多了，請明天再試或聯絡客服' : j.error === 'no_price' ? '這個方案還沒有線上價格' : `建立訂單失敗（${j._s}）`, true);
         return;
       }
       st.oid = j.id; sync();
@@ -218,7 +225,7 @@ html.pay-renew #acctBtn.ame::after{content:'';position:absolute;top:2px;right:2p
       pane.innerHTML = '<p class="muted">產生轉帳訂單…</p>';
       const j = await call('/v1/pay/bank/create', { plan, period: st.per, ...consent() });
       if (!j || j._s !== 200 || !j.ok) {
-        pane.innerHTML = `<div class="cooff">${!j ? '連不到會員伺服器' : j.error === 'too_many' ? '24 小時內最多建立 5 筆轉帳訂單，請明天再試或聯絡客服' : j.error === 'bank_off' ? '銀行轉帳尚未開放' : '產生訂單失敗（' + esc(j._s) + '）'}</div>`;
+        pane.innerHTML = `<div class="cooff">${!j ? '連不到會員伺服器' : j.error === 'blocked' ? esc(j.msg || '目前方案不能購買這個項目') : j.error === 'too_many' ? '24 小時內最多建立 5 筆轉帳訂單，請明天再試或聯絡客服' : j.error === 'bank_off' ? '銀行轉帳尚未開放' : '產生訂單失敗（' + esc(j._s) + '）'}</div>`;
         return;
       }
       st.bankOrder = j; sync();
@@ -242,16 +249,32 @@ html.pay-renew #acctBtn.ame::after{content:'';position:absolute;top:2px;right:2p
         <button type="button" class="cogo" id="coSendB">我已轉帳，送出匯款資料</button>
         <p class="muted" style="font-size:12.5px;margin:6px 0 0">送出後狀態是「待確認」，管理者確認入帳就會開通（可在帳號選單「我的訂單」查看）。轉帳不會自動續扣，到期前 7 天會提醒你再匯一期。</p>`;
       pane.querySelectorAll('[data-copy]').forEach((c) => { c.onclick = () => { try { navigator.clipboard.writeText(c.dataset.copy); c.textContent = '已複製'; } catch (e) { /* 沒權限就算了 */ } }; });
-      $('#coSendB').onclick = () => report(j.id, {
-        last5: $('#coL5').value.trim(), date: $('#coDate').value, amount: parseInt(String($('#coXAmt').value).replace(/[,\s]/g, ''), 10), note: $('#coNote').value.trim(),
-      }, msg, (o) => {
+      /* 2026-10-12 Andy：送出前要有確認機制，金額和應付不同要明確提醒（客戶可能不是匯 2,990）。確認區放在按鈕下方，不用彈窗。 */
+      const doneBank = (o) => {
         box.innerHTML = `<div class="cohd"><b>已送出匯款資料</b><span class="sp"></span><button type="button" data-close aria-label="關閉">×</button></div>
           <div class="cobd codone"><h3>狀態：<span class="stp wait">待確認</span></h3><p>訂單 <code>${esc(o.id)}</code>・NT$ ${nt(o.amount)}・${o.period === 'year' ? '年繳' : '月繳'}</p>
           <p class="muted">管理者確認入帳後會自動開通方案，重新整理網頁就生效。</p>
           <button type="button" class="cogo" id="coSeeOrders">看我的訂單</button></div>`;
         box.querySelector('#coSeeOrders').onclick = () => { D.hidden = true; location.hash = '#orders/' + o.id; };
         refresh();
-      });
+      };
+      $('#coSendB').onclick = () => {
+        const f = { last5: $('#coL5').value.trim(), date: $('#coDate').value, amount: parseInt(String($('#coXAmt').value).replace(/[,\s]/g, ''), 10), note: $('#coNote').value.trim() };
+        if (!/^\d{5}$/.test(f.last5)) return msg('轉出帳號末 5 碼要是 5 個數字', true);
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(f.date)) return msg('請選轉帳日期', true);
+        if (!Number.isInteger(f.amount) || f.amount < 1) return msg('請填轉帳金額', true);
+        msg('');
+        const diff = f.amount !== j.amount;
+        let cf = pane.querySelector('#coCfm'); if (cf) cf.remove();
+        cf = document.createElement('div'); cf.id = 'coCfm'; cf.className = 'cooff'; cf.style.cssText = 'margin-top:8px;text-align:left';
+        cf.innerHTML = `<b>請再確認一次匯款資料</b><div class="kv" style="margin:6px 0"><span>轉出帳號末 5 碼</span><b>${esc(f.last5)}</b><span>轉帳日期</span><b>${esc(f.date)}</b><span>你填的轉帳金額</span><b${diff ? ' style="color:var(--rise)"' : ''}>NT$ ${nt(f.amount)}</b><span>這筆訂單應付</span><b>NT$ ${nt(j.amount)}</b></div>
+          ${diff ? `<p style="color:var(--rise);margin:4px 0">⚠ 你填的金額和應付金額不同。管理者會依實際入帳金額處理，金額不足會被退回、要求補匯，不會開通。</p>` : ''}
+          <p class="muted" style="margin:4px 0;font-size:12.5px">資料送出後無法修改；填錯會影響管理者對帳。</p>
+          <div style="display:flex;gap:8px"><button type="button" id="coCfmBack">返回修改</button><button type="button" class="cogo" id="coCfmGo">${diff ? '金額不同，仍要送出' : '確認無誤，送出'}</button></div>`;
+        $('#coSendB').after(cf); $('#coSendB').hidden = true;
+        cf.querySelector('#coCfmBack').onclick = () => { cf.remove(); $('#coSendB').hidden = false; };
+        cf.querySelector('#coCfmGo').onclick = () => report(j.id, f, msg, doneBank);
+      };
       sync();
     }
     if (st.tab === 'bank') bankPane();

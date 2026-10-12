@@ -70703,8 +70703,8 @@ def t_pay_1011(b, base):
         r2 = call(ad, "/v1/admin/plans/put", {"id": "free", "name": "註冊會員", "feats": {"stock.ind": False}})
         ok(f"{T}：前置：Plus 定價（月 299／年 2990）、註冊會員關掉指標設定", r1.get("_s") == 200 and r2.get("_s") == 200, (r1.get("_s"), r2.get("_s"), r1.get("error")))
         ad.goto(base + "#admin/pay", wait_until="domcontentloaded")
-        ok(f"{T}：#admin/pay 打得開，四個分頁（訂單／會員訂閱／退款紀錄／收款帳號設定）",
-           bool(wait_until(ad, "() => document.querySelectorAll('#payTabs [data-ptab]').length === 4", 10000)))
+        ok(f"{T}：#admin/pay 打得開，五個分頁（銀行轉帳訂單／綠界訂單／會員訂閱／退款紀錄／收款帳號設定）",
+           bool(wait_until(ad, "() => document.querySelectorAll('#payTabs [data-ptab]').length === 5", 10000)))
         side = ad.evaluate("() => [...document.querySelectorAll('.l4subtab[data-parent=admin]')].map(x => x.textContent.trim())")
         ok(f"{T}：桌機側欄管理區多一格「付款與訂單」而且是目前這格", "付款與訂單" in side and ad.evaluate("() => !!document.querySelector('.l4subtab[data-adm=pay].on')"), side)
         ad.click("[data-ptab=bank]")
@@ -70778,6 +70778,8 @@ def t_pay_1011(b, base):
         ok(f"{T}：桌機帳號選單有「我的訂單／付款紀錄」", "我的訂單／付款紀錄" in menu, menu[:200])
 
         # ================= ④ 綠界定期定額（正常流程：ReturnURL＋OrderResultURL）→ 取消自動續訂
+        # 2026-10-12 方案異動規則：已是 Plus 年繳不能再買 Plus 月繳 → 這段要測月繳定期定額，先把會員權限重設成註冊會員
+        call(ad, "/v1/admin/perm/put", {"email": pb.evaluate("() => (TwAccount.user() || {}).email"), "reset": True})
         pb.evaluate("() => TwCheckout.open({ plan: 'plus', per: 'month' })")
         wait_until(pb, "() => !!document.getElementById('coGoE')", 6000)
         pb.check("#subDlg input[name=coKind][value=recur]"); pb.check("#coAgree")
@@ -70847,14 +70849,20 @@ def t_pay_1011(b, base):
         pc.fill("#coL5", "12345")
         pc.check("#coAgree")
         shot(pc, "co_bank.png", "#subDlg .box")
+        pc.click("#coSendB")
+        ok(f"{T}：送出前先出現確認區（顯示末 5 碼、金額、應付），金額相同沒有警告", bool(wait_until(pc, "() => { const c = document.getElementById('coCfm'); return c && /請再確認/.test(c.innerText) && !/金額和應付金額不同/.test(c.innerText) ? 1 : 0; }", 3000)))
+        pc.fill("#coXAmt", "200"); pc.click("#coCfmBack"); pc.click("#coSendB")
+        ok(f"{T}：金額和應付不同 → 確認區紅字警告、按鈕寫「金額不同，仍要送出」", bool(wait_until(pc, "() => { const c = document.getElementById('coCfm'); return c && /金額和應付金額不同/.test(c.innerText) && /仍要送出/.test(c.innerText) ? 1 : 0; }", 3000)))
+        shot(pc, "co_bank_confirm.png", "#subDlg .box")
+        pc.click("#coCfmBack"); pc.fill("#coXAmt", "299"); pc.click("#coSendB")
         with pc.expect_response(lambda r: "/v1/pay/bank/report" in r.url, timeout=6000) as ri:
-            pc.click("#coSendB")
+            pc.click("#coCfmGo")
         ok(f"{T}：填末 5 碼送出 → 真的送出 bank/report、面板寫「待確認」", ri.value.status == 200 and bool(wait_until(pc, "() => { const d = document.getElementById('subDlg'); return d && /待確認/.test(d.innerText); }", 4000)))
         pc.click("#coSeeOrders")
         row = wait_until(pc, f"() => {{ const r = document.querySelector('#ordList .ordr[data-oid=\"{boid}\"]'); return r ? r.innerText : ''; }}", 8000)
         ok(f"{T}：我的訂單出現這筆「銀行轉帳」「待確認」、轉出末 5 碼 12345", bool(row) and "銀行轉帳" in row and "待確認" in row and "12345" in row, row)
         shot(pc, "my_orders.png", "#v-orders .ordp")
-        ad.click("[data-ptab=orders]")
+        ad.click("[data-ptab=bankord]")
         ad.click("#payReload")
         rev = wait_until(ad, f"() => {{ const s = document.getElementById('payRevSec'); return s && s.querySelector('tr[data-oid=\"{boid}\"]') ? s.innerText : ''; }}", 8000)
         ok(f"{T}：管理區「待確認的轉帳」放最上面、標數量、看得到這筆（carol、末 5 碼 12345）", bool(rev) and "carol@example.com" in rev and "12345" in rev and ad.evaluate("() => document.querySelector('#payRevSec .cnt').innerText") == "1", rev)
@@ -70874,6 +70882,17 @@ def t_pay_1011(b, base):
         wait_until(ad, "() => !!document.getElementById('pdWhy')", 4000)
         ad.click("#pdGo")
         ok(f"{T}：退回沒寫原因 → 擋下", bool(wait_until(ad, "() => /請寫退回原因/.test(document.querySelector('#subDlg .msg').innerText)", 3000)))
+        ad.click("#pdChips [data-rs='0']")
+        ok(f"{T}：退回視窗有常用字卡，點一張 → 原因欄自動填入", "查無這筆入帳" in ad.evaluate("() => document.getElementById('pdWhy').value") and ad.evaluate("() => document.querySelectorAll('#pdChips [data-rs]').length") >= 5)
+        ad.fill("#pdWhy", "測試自訂字卡：請改用末五碼重新回報")
+        ad.click("#pdAdd")
+        ok(f"{T}：按「＋」把輸入框文字存成新字卡（出現在字卡列、重開仍在）", ad.evaluate("() => [...document.querySelectorAll('#pdChips [data-rm]')].some(b => b.textContent.includes('測試自訂字卡'))") and "測試自訂字卡" in ad.evaluate("() => localStorage.getItem('twpay.reasons') || ''"))
+        mh = ad.evaluate("() => { const a = document.getElementById('pdMail'); a.dispatchEvent(new MouseEvent('mousedown', {bubbles:true})); return ''; }")
+        ad.evaluate("() => { const a = document.getElementById('pdMail'); a.addEventListener('click', e => e.preventDefault(), true); a.click(); }")
+        mhref = urllib.parse.unquote(ad.evaluate("() => document.getElementById('pdMail').href"))
+        ok(f"{T}：「寫信通知他」mailto 信件帶入會員 email、方案、金額、原因", mhref.startswith("mailto:carol@example.com") and "Plus" in mhref and "2,990" in mhref and "測試自訂字卡" in mhref, mhref[:300])
+        shot(ad, "admin_reject.png", "#subDlg .box")
+        ad.click("#pdChips [data-del='0']")
         ad.fill("#pdWhy", "查無這筆入帳")
         ad.click("#pdGo")
         ok(f"{T}：退回後狀態「已退回」", bool(wait_until(ad, f"() => {{ const r = document.querySelector('#payTbl tr[data-oid=\"{r_new.get('id')}\"]'); return r && /已退回/.test(r.innerText); }}", 8000)))
@@ -70897,7 +70916,7 @@ def t_pay_1011(b, base):
         mo = [o for o in call(pc, "/v1/pay/my", {}).get("orders", []) if o["id"] == boid]
         ok(f"{T}：carol 的我的訂單顯示「已退款 NT$ 299」", bool(mo) and mo[0]["statusName"] == "已退款" and mo[0]["refunded"] == 299, mo)
         csvs = {}
-        for tab, btn, key in (("orders", "#pfCsv", "訂單"), ("refunds", "#prCsv", "退款"), ("subs", "#psCsv", "會員訂閱")):
+        for tab, btn, key in (("bankord", "#pfCsv", "訂單"), ("refunds", "#prCsv", "退款"), ("subs", "#psCsv", "會員訂閱")):
             ad.click(f"[data-ptab={tab}]")
             wait_until(ad, f"() => !!document.querySelector('{btn}')", 4000)
             with ad.expect_download(timeout=6000) as di:
@@ -70967,6 +70986,8 @@ def t_pay_1011(b, base):
         shot(pe, "m_bank.png")
         pe.locator("#coSendB").scroll_into_view_if_needed()
         pe.tap("#coSendB")
+        pe.locator("#coCfmGo").scroll_into_view_if_needed()
+        pe.tap("#coCfmGo")
         ok(f"{T}：390 能完成轉帳送出（待確認）", bool(wait_until(pe, "() => { const d = document.getElementById('subDlg'); return d && /待確認/.test(d.innerText); }", 6000)))
         pe.tap("#coSeeOrders")
         mrow = wait_until(pe, f"() => {{ const r = document.querySelector('#ordList .ordr[data-oid=\"{eoid}\"]'); return r ? r.innerText : ''; }}", 8000)
@@ -70986,6 +71007,7 @@ def t_pay_1011(b, base):
         ro = wait_until(pe, "() => { const e = document.getElementById('coBank'); return e ? document.getElementById('coOid').innerText : ''; }", 8000)
         ok(f"{T}：按「再匯一期」→ 直接開轉帳分頁、產生新的待付款訂單", bool(ro) and ro != eoid, (ro, eoid))
         pe.evaluate("() => { document.getElementById('subDlg').hidden = true; }")
+        ad.click("[data-ptab=bankord]")
         ad.click("#payReload")
         wait_until(ad, "() => !!document.getElementById('pfExp')", 6000)
         ad.check("#pfExp")
