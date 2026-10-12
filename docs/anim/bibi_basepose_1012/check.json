@@ -1,0 +1,766 @@
+{
+ "ground_y_512": 484.75,
+ "center_x_512": 253.875,
+ "poses": {
+  "front_stand_rebuild": {
+   "body_area": 91182.8125,
+   "upper_area": 97002.875,
+   "feet": {
+    "BL": {
+     "full": 2845.25,
+     "visible": 1766.625
+    },
+    "BR": {
+     "full": 2845.5625,
+     "visible": 1749.5625
+    },
+    "FL": {
+     "full": 2839.9375,
+     "visible": 2104.5625
+    },
+    "FR": {
+     "full": 2840.625,
+     "visible": 2081.1875
+    }
+   },
+   "name_zh": "正面站姿（分層重組版）",
+   "corner_opaque": false
+  },
+  "front_squash": {
+   "body_area": 91183.6875,
+   "upper_area": 96906.9375,
+   "feet": {
+    "BL": {
+     "full": 2845.0,
+     "visible": 1692.5625
+    },
+    "BR": {
+     "full": 2845.875,
+     "visible": 1665.375
+    },
+    "FL": {
+     "full": 2838.0625,
+     "visible": 2026.125
+    },
+    "FR": {
+     "full": 2840.4375,
+     "visible": 2003.4375
+    }
+   },
+   "name_zh": "正面壓縮",
+   "corner_opaque": false
+  },
+  "front_stretch": {
+   "body_area": 91219.875,
+   "upper_area": 97126.6875,
+   "feet": {
+    "BL": {
+     "full": 2845.1875,
+     "visible": 1746.375
+    },
+    "BR": {
+     "full": 2845.0,
+     "visible": 1742.625
+    },
+    "FL": {
+     "full": 2840.0625,
+     "visible": 2095.0625
+    },
+    "FR": {
+     "full": 2842.0,
+     "visible": 2096.8125
+    }
+   },
+   "name_zh": "正面拉伸",
+   "corner_opaque": false
+  },
+  "front_jump": {
+   "body_area": 91208.75,
+   "upper_area": 97098.8125,
+   "feet": {
+    "BL": {
+     "full": 2845.0,
+     "visible": 1999.5625
+    },
+    "BR": {
+     "full": 2844.875,
+     "visible": 1990.75
+    },
+    "FL": {
+     "full": 2839.8125,
+     "visible": 2324.1875
+    },
+    "FR": {
+     "full": 2842.5,
+     "visible": 2318.8125
+    }
+   },
+   "name_zh": "正面跳躍（空中）",
+   "corner_opaque": false
+  },
+  "front_land": {
+   "body_area": 91180.1875,
+   "upper_area": 96813.5,
+   "feet": {
+    "BL": {
+     "full": 2848.6875,
+     "visible": 1653.0
+    },
+    "BR": {
+     "full": 2849.125,
+     "visible": 1629.875
+    },
+    "FL": {
+     "full": 2845.0,
+     "visible": 1992.3125
+    },
+    "FR": {
+     "full": 2845.6875,
+     "visible": 1970.5625
+    }
+   },
+   "name_zh": "正面落地壓縮",
+   "corner_opaque": false
+  },
+  "q34_r": {
+   "body_area": 91182.8125,
+   "upper_area": 95567.3125,
+   "feet": {
+    "BL": {
+     "full": 2839.375,
+     "visible": 289.875
+    },
+    "BR": {
+     "full": 2847.1875,
+     "visible": 1986.4375
+    },
+    "FL": {
+     "full": 2848.125,
+     "visible": 1997.0
+    },
+    "FR": {
+     "full": 2846.375,
+     "visible": 1104.5
+    }
+   },
+   "name_zh": "右前 3/4 站姿",
+   "corner_opaque": false
+  },
+  "side_r": {
+   "body_area": 91182.8125,
+   "upper_area": 94176.3125,
+   "feet": {
+    "BL": {
+     "full": 2844.8125,
+     "visible": 1266.75
+    },
+    "FL": {
+     "full": 2844.75,
+     "visible": 1241.125
+    },
+    "BR": {
+     "full": 2844.75,
+     "visible": 1947.5625
+    },
+    "FR": {
+     "full": 2845.375,
+     "visible": 2052.25
+    }
+   },
+   "name_zh": "右側面站姿",
+   "corner_opaque": false
+  },
+  "run_r_A": {
+   "body_area": 91200.125,
+   "upper_area": 94158.4375,
+   "feet": {
+    "BL": {
+     "full": 2846.5625,
+     "visible": 958.4375
+    },
+    "FL": {
+     "full": 2847.3125,
+     "visible": 900.125
+    },
+    "BR": {
+     "full": 2844.6875,
+     "visible": 2134.0
+    },
+    "FR": {
+     "full": 2846.25,
+     "visible": 2245.875
+    }
+   },
+   "name_zh": "側面奔跑 A（張開著地）",
+   "corner_opaque": false
+  },
+  "run_r_B": {
+   "body_area": 91202.8125,
+   "upper_area": 94189.3125,
+   "feet": {
+    "BL": {
+     "full": 2843.8125,
+     "visible": 829.5625
+    },
+    "FL": {
+     "full": 2843.9375,
+     "visible": 1256.8125
+    },
+    "BR": {
+     "full": 2847.625,
+     "visible": 1965.1875
+    },
+    "FR": {
+     "full": 2846.4375,
+     "visible": 1552.6875
+    }
+   },
+   "name_zh": "側面奔跑 B（騰空收腳）",
+   "corner_opaque": false
+  },
+  "run_r_C": {
+   "body_area": 91200.125,
+   "upper_area": 94158.4375,
+   "feet": {
+    "BL": {
+     "full": 2846.9375,
+     "visible": 1438.1875
+    },
+    "FL": {
+     "full": 2846.875,
+     "visible": 1486.3125
+    },
+    "BR": {
+     "full": 2844.6875,
+     "visible": 1610.875
+    },
+    "FR": {
+     "full": 2844.8125,
+     "visible": 1698.8125
+    }
+   },
+   "name_zh": "側面奔跑 C（另一對張開）",
+   "corner_opaque": false
+  },
+  "side_takeoff_r": {
+   "body_area": 91219.875,
+   "upper_area": 94246.25,
+   "feet": {
+    "BL": {
+     "full": 2845.3125,
+     "visible": 1600.1875
+    },
+    "FL": {
+     "full": 2849.0625,
+     "visible": 2314.0
+    },
+    "BR": {
+     "full": 2845.125,
+     "visible": 2285.9375
+    },
+    "FR": {
+     "full": 2845.8125,
+     "visible": 2781.375
+    }
+   },
+   "name_zh": "側面起跳",
+   "corner_opaque": false
+  },
+  "side_apex_r": {
+   "body_area": 91182.8125,
+   "upper_area": 94526.6875,
+   "feet": {
+    "BL": {
+     "full": 2844.0625,
+     "visible": 1012.75
+    },
+    "FL": {
+     "full": 2845.375,
+     "visible": 974.0625
+    },
+    "BR": {
+     "full": 2846.125,
+     "visible": 1664.25
+    },
+    "FR": {
+     "full": 2847.9375,
+     "visible": 1770.625
+    }
+   },
+   "name_zh": "側面空中最高點",
+   "corner_opaque": false
+  },
+  "side_land_r": {
+   "body_area": 91182.4375,
+   "upper_area": 94139.9375,
+   "feet": {
+    "BL": {
+     "full": 2844.875,
+     "visible": 1251.75
+    },
+    "FL": {
+     "full": 2846.25,
+     "visible": 1272.9375
+    },
+    "BR": {
+     "full": 2847.25,
+     "visible": 1948.8125
+    },
+    "FR": {
+     "full": 2845.875,
+     "visible": 2058.75
+    }
+   },
+   "name_zh": "側面落地",
+   "corner_opaque": false
+  },
+  "lie_front": {
+   "body_area": 90327.3125,
+   "upper_area": 96055.125,
+   "feet": {
+    "BL": {
+     "full": 2845.0,
+     "visible": 1271.875
+    },
+    "BR": {
+     "full": 2845.875,
+     "visible": 1253.25
+    },
+    "FL": {
+     "full": 2838.3125,
+     "visible": 1597.5625
+    },
+    "FR": {
+     "full": 2840.4375,
+     "visible": 1587.0625
+    }
+   },
+   "name_zh": "趴姿（正面）",
+   "corner_opaque": false
+  },
+  "lie_side_r": {
+   "body_area": 90327.3125,
+   "upper_area": 93303.0625,
+   "feet": {
+    "BL": {
+     "full": 2845.25,
+     "visible": 857.75
+    },
+    "FL": {
+     "full": 2845.75,
+     "visible": 866.5
+    },
+    "BR": {
+     "full": 2844.9375,
+     "visible": 1557.4375
+    },
+    "FR": {
+     "full": 2845.0625,
+     "visible": 1630.25
+    }
+   },
+   "name_zh": "趴姿（側面）",
+   "corner_opaque": false
+  },
+  "sit_r": {
+   "body_area": 88581.6875,
+   "upper_area": 91629.125,
+   "feet": {
+    "BL": {
+     "full": 2845.6875,
+     "visible": 1276.5
+    },
+    "FL": {
+     "full": 2845.875,
+     "visible": 2380.1875
+    },
+    "BR": {
+     "full": 2846.5,
+     "visible": 1956.0625
+    },
+    "FR": {
+     "full": 2848.5625,
+     "visible": 2808.3125
+    }
+   },
+   "name_zh": "坐姿（四腳著地）",
+   "corner_opaque": false
+  },
+  "lay_r": {
+   "body_area": 89467.0,
+   "upper_area": 92475.875,
+   "feet": {
+    "BL": {
+     "full": 2845.75,
+     "visible": 819.8125
+    },
+    "FL": {
+     "full": 2845.4375,
+     "visible": 939.375
+    },
+    "BR": {
+     "full": 2845.125,
+     "visible": 1540.125
+    },
+    "FR": {
+     "full": 2845.1875,
+     "visible": 1680.25
+    }
+   },
+   "name_zh": "躺姿（側面攤平）",
+   "corner_opaque": false
+  },
+  "sniff_r": {
+   "body_area": 90293.0,
+   "upper_area": 93211.0625,
+   "feet": {
+    "BL": {
+     "full": 2845.375,
+     "visible": 2151.3125
+    },
+    "FL": {
+     "full": 2846.125,
+     "visible": 1233.0
+    },
+    "BR": {
+     "full": 2845.125,
+     "visible": 2620.1875
+    },
+    "FR": {
+     "full": 2848.5625,
+     "visible": 2001.8125
+    }
+   },
+   "name_zh": "低頭嗅地",
+   "corner_opaque": false
+  },
+  "q34_l": {
+   "mirror_of": "q34_r",
+   "name_zh": "左前 3/4 站姿",
+   "corner_opaque": false
+  },
+  "side_l": {
+   "mirror_of": "side_r",
+   "name_zh": "左側面站姿",
+   "corner_opaque": false
+  },
+  "run_l_A": {
+   "mirror_of": "run_r_A",
+   "name_zh": "側面奔跑 A（左）",
+   "corner_opaque": false
+  },
+  "run_l_B": {
+   "mirror_of": "run_r_B",
+   "name_zh": "側面奔跑 B（左）",
+   "corner_opaque": false
+  },
+  "run_l_C": {
+   "mirror_of": "run_r_C",
+   "name_zh": "側面奔跑 C（左）",
+   "corner_opaque": false
+  },
+  "side_takeoff_l": {
+   "mirror_of": "side_takeoff_r",
+   "name_zh": "側面起跳（左）",
+   "corner_opaque": false
+  },
+  "side_apex_l": {
+   "mirror_of": "side_apex_r",
+   "name_zh": "側面空中最高點（左）",
+   "corner_opaque": false
+  },
+  "side_land_l": {
+   "mirror_of": "side_land_r",
+   "name_zh": "側面落地（左）",
+   "corner_opaque": false
+  },
+  "lie_side_l": {
+   "mirror_of": "lie_side_r",
+   "name_zh": "趴姿側面（左）",
+   "corner_opaque": false
+  },
+  "sit_l": {
+   "mirror_of": "sit_r",
+   "name_zh": "坐姿（左）",
+   "corner_opaque": false
+  },
+  "lay_l": {
+   "mirror_of": "lay_r",
+   "name_zh": "躺姿（左）",
+   "corner_opaque": false
+  },
+  "sniff_l": {
+   "mirror_of": "sniff_r",
+   "name_zh": "低頭嗅地（左）",
+   "corner_opaque": false
+  },
+  "front_stand": {
+   "name_zh": "正面站姿（＝Default 原圖）",
+   "corner_opaque": false
+  }
+ },
+ "run_cycle": {
+  "body_area": [
+   91200.125,
+   91198.4375,
+   91204.9375,
+   91202.8125,
+   91204.9375,
+   91198.4375,
+   91200.125,
+   91198.4375,
+   91204.9375,
+   91202.8125,
+   91204.9375,
+   91198.4375
+  ],
+  "body_area_max_dev_pct": 0.003643484473221996,
+  "upper_area": [
+   94158.4375,
+   94155.6875,
+   94172.8125,
+   94189.3125,
+   94196.3125,
+   94176.8125,
+   94158.4375,
+   94155.6875,
+   94172.8125,
+   94189.3125,
+   94196.3125,
+   94176.8125
+  ],
+  "upper_area_max_dev_pct": 0.02274137547714819,
+  "feet": [
+   {
+    "BL": {
+     "full": 2846.5625,
+     "visible": 958.4375
+    },
+    "FL": {
+     "full": 2847.3125,
+     "visible": 900.125
+    },
+    "BR": {
+     "full": 2844.6875,
+     "visible": 2134.0
+    },
+    "FR": {
+     "full": 2846.25,
+     "visible": 2245.875
+    }
+   },
+   {
+    "BL": {
+     "full": 2845.3125,
+     "visible": 794.75
+    },
+    "FL": {
+     "full": 2844.9375,
+     "visible": 946.75
+    },
+    "BR": {
+     "full": 2845.875,
+     "visible": 2128.75
+    },
+    "FR": {
+     "full": 2844.875,
+     "visible": 1980.5
+    }
+   },
+   {
+    "BL": {
+     "full": 2844.3125,
+     "visible": 759.6875
+    },
+    "FL": {
+     "full": 2844.75,
+     "visible": 1080.5
+    },
+    "BR": {
+     "full": 2844.9375,
+     "visible": 2090.25
+    },
+    "FR": {
+     "full": 2844.0625,
+     "visible": 1744.375
+    }
+   },
+   {
+    "BL": {
+     "full": 2843.8125,
+     "visible": 829.5625
+    },
+    "FL": {
+     "full": 2843.9375,
+     "visible": 1256.8125
+    },
+    "BR": {
+     "full": 2847.625,
+     "visible": 1965.1875
+    },
+    "FR": {
+     "full": 2846.4375,
+     "visible": 1552.6875
+    }
+   },
+   {
+    "BL": {
+     "full": 2844.25,
+     "visible": 971.375
+    },
+    "FL": {
+     "full": 2845.625,
+     "visible": 1398.75
+    },
+    "BR": {
+     "full": 2845.0,
+     "visible": 1791.3125
+    },
+    "FR": {
+     "full": 2844.0,
+     "visible": 1446.4375
+    }
+   },
+   {
+    "BL": {
+     "full": 2844.125,
+     "visible": 1183.4375
+    },
+    "FL": {
+     "full": 2844.8125,
+     "visible": 1467.6875
+    },
+    "BR": {
+     "full": 2845.6875,
+     "visible": 1660.0
+    },
+    "FR": {
+     "full": 2845.125,
+     "visible": 1493.625
+    }
+   },
+   {
+    "BL": {
+     "full": 2846.9375,
+     "visible": 1438.1875
+    },
+    "FL": {
+     "full": 2846.875,
+     "visible": 1486.3125
+    },
+    "BR": {
+     "full": 2844.6875,
+     "visible": 1610.875
+    },
+    "FR": {
+     "full": 2844.8125,
+     "visible": 1698.8125
+    }
+   },
+   {
+    "BL": {
+     "full": 2844.8125,
+     "visible": 1432.25
+    },
+    "FL": {
+     "full": 2845.1875,
+     "visible": 1216.75
+    },
+    "BR": {
+     "full": 2846.875,
+     "visible": 1399.5625
+    },
+    "FR": {
+     "full": 2844.0625,
+     "visible": 1749.25
+    }
+   },
+   {
+    "BL": {
+     "full": 2846.25,
+     "visible": 1392.0
+    },
+    "FL": {
+     "full": 2844.5625,
+     "visible": 983.4375
+    },
+    "BR": {
+     "full": 2843.5,
+     "visible": 1342.3125
+    },
+    "FR": {
+     "full": 2844.125,
+     "visible": 1887.9375
+    }
+   },
+   {
+    "BL": {
+     "full": 2844.5625,
+     "visible": 1282.1875
+    },
+    "FL": {
+     "full": 2843.5625,
+     "visible": 804.9375
+    },
+    "BR": {
+     "full": 2847.3125,
+     "visible": 1444.0
+    },
+    "FR": {
+     "full": 2845.75,
+     "visible": 2069.3125
+    }
+   },
+   {
+    "BL": {
+     "full": 2845.5,
+     "visible": 1132.625
+    },
+    "FL": {
+     "full": 2844.375,
+     "visible": 703.5625
+    },
+    "BR": {
+     "full": 2845.625,
+     "visible": 1640.125
+    },
+    "FR": {
+     "full": 2845.625,
+     "visible": 2200.625
+    }
+   },
+   {
+    "BL": {
+     "full": 2844.4375,
+     "visible": 1005.8125
+    },
+    "FL": {
+     "full": 2845.9375,
+     "visible": 731.625
+    },
+    "BR": {
+     "full": 2845.0,
+     "visible": 1883.0625
+    },
+    "FR": {
+     "full": 2843.8125,
+     "visible": 2240.0
+    }
+   }
+  ],
+  "corner_opaque": [
+   false,
+   false,
+   false,
+   false,
+   false,
+   false,
+   false,
+   false,
+   false,
+   false,
+   false,
+   false
+  ]
+ }
+}

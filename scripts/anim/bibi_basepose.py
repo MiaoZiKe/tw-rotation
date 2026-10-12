@@ -214,7 +214,7 @@ def layers():
     # --- 身體底：五官挖掉後 inpaint（只在毛球內）
     hole = np.zeros_like(ink)
     for m in eye_m + blush_m + [mouth_m]:
-        hole |= ndi.binary_dilation(m, disk(2))
+        hole |= ndi.binary_dilation(m, disk(4))
     hole4 = (up(hole) > 0.3).astype(np.uint8)
     bgr = cv2.cvtColor(big.astype(np.uint8), cv2.COLOR_RGB2BGR)
     inp = cv2.inpaint(bgr, hole4, 12, cv2.INPAINT_TELEA)
@@ -416,6 +416,10 @@ def _pil(arr):
 @lru_cache(None)
 def decal(name: str):
     """裁切後的 PIL 貼片與「回到原圖位置時」的錨點（原圖質心，相對裁切框）。"""
+    if name == "foot_l":
+        # 左右腳用同一張（右腳原圖鏡射），保證每一格、每一隻腳都一樣大
+        im, ax, ay = decal("foot_r")
+        return im.transpose(Image.FLIP_LEFT_RIGHT), im.width - ax, ay
     P = layers()
     arr = P[name]
     gx, gy = centroid(arr)
@@ -555,7 +559,7 @@ def orig_extents():
     return _smooth(xl, 3 * K), _smooth(xr, 3 * K), _smooth(top, 8 * K)
 
 
-def compose(p: dict) -> Image.Image:
+def compose(p: dict, stats: dict | None = None) -> Image.Image:
     """回傳 2048×2048 RGBA。p 的鍵見 POSES 的說明。"""
     P, g = layers(), geo()
     yaw = math.radians(p.get("yaw", 0.0))
@@ -641,6 +645,10 @@ def compose(p: dict) -> Image.Image:
             tr = math.radians(tilt)
             x2 = pv[0] + (x2 - pv[0]) * math.cos(tr) - (y2 - pv[1]) * math.sin(tr)
         paste(fcan, src, x2, y2, rot=p.get("foot_rot", {}).get(key, 0.0))
+        if stats is not None:
+            one = Image.new("RGBA", (W, W), (0, 0, 0, 0))
+            paste(one, src, x2, y2, rot=p.get("foot_rot", {}).get(key, 0.0))
+            stats.setdefault("_foot_layers", {})[key] = one
 
     # ---- 身體
     canvas.alpha_composite(to_img(body))
@@ -695,6 +703,17 @@ def compose(p: dict) -> Image.Image:
         return im
     canvas = move(canvas)
     fcan = move(fcan, rot=follow, up=follow)
+    if stats is not None:
+        upper_a = np.asarray(canvas.getchannel("A")).astype(np.float32) / 255
+        stats["body_area"] = float((body[..., 3] > 0.5).sum()) / K / K
+        stats["upper_area"] = float((upper_a > 0.5).sum()) / K / K
+        fa = {}
+        for key, one in stats.pop("_foot_layers", {}).items():
+            one = move(one, rot=follow, up=follow)
+            a1 = np.asarray(one.getchannel("A")).astype(np.float32) / 255
+            fa[key] = {"full": float((a1 > 0.5).sum()) / K / K,
+                       "visible": float(((a1 > 0.5) & (upper_a < 0.5)).sum()) / K / K}
+        stats["feet"] = fa
     fcan.alpha_composite(canvas)
     return fcan
 
@@ -742,13 +761,13 @@ POSES = {
     "side_land_r": ("側面落地", dict(yaw=SIDE, sx=1.15, sy_top=1 / 1.15, sy_bot=1 / 1.15, tilt=4, pivot="ground",
                                    feet={"FR": (8, 0), "FL": (8, 0), "BR": (-7, 0), "BL": (-7, 0)},
                                    ear_back=-8, eyes="squeeze")),
-    "lie_front": ("趴姿（正面）", dict(sx=1.2, sy_top=0.92, sy_bot=0.72, spread=1.12, feet_dy=-4, ear_out=10)),
-    "lie_side_r": ("趴姿（側面）", dict(yaw=SIDE, sx=1.2, sy_top=0.92, sy_bot=0.72, feet_dy=-4, face_dy=4,
+    "lie_front": ("趴姿（正面）", dict(sx=1.2, sy_top=0.92, sy_bot=0.75, spread=1.12, feet_dy=-4, ear_out=10)),
+    "lie_side_r": ("趴姿（側面）", dict(yaw=SIDE, sx=1.2, sy_top=0.92, sy_bot=0.75, feet_dy=-4, face_dy=4,
                                     feet={"FR": (7, 0), "FL": (7, 0), "BR": (-7, 0), "BL": (-7, 0)}, ear_back=8)),
-    "sit_r": ("坐姿（四腳著地）", dict(yaw=SIDE, sx=0.95, sy_top=1.1, sy_bot=0.96, tilt=-11, pivot="ground", pivot_dx=-80,
+    "sit_r": ("坐姿（四腳著地）", dict(yaw=SIDE, sx=0.95, sy_top=1.1, sy_bot=0.96, tilt=-8, pivot="ground", pivot_dx=-80,
                                    feet_follow=False, face_dy=-4,
-                                   feet={"FR": (10, -3), "FL": (10, -3), "BR": (-2, 2), "BL": (-2, 2)}, ear_back=6)),
-    "lay_r": ("躺姿（側面攤平）", dict(yaw=SIDE, sx=1.28, sy_top=0.86, sy_bot=0.62, face_dy=6, eyes="smile",
+                                   feet={"FR": (3, 0), "FL": (3, 0), "BR": (-2, 2), "BL": (-2, 2)}, ear_back=6)),
+    "lay_r": ("躺姿（側面攤平）", dict(yaw=SIDE, sx=1.28, sy_top=0.9, sy_bot=0.66, face_dy=6, eyes="smile",
                                    feet={"FR": (14, 0), "FL": (14, 0), "BR": (-52, 2), "BL": (-46, 2)},
                                    feet_dy=-2, ear_back=14)),
     "sniff_r": ("低頭嗅地", dict(yaw=SIDE, sx=1.04, sy_top=0.94, sy_bot=1 / 1.04 / 0.94 * 0.94, tilt=6, pivot="ground",
@@ -763,3 +782,129 @@ MIRROR = {  # 左版＝右版鏡像
     "side_land_l": ("側面落地（左）", "side_land_r"), "lie_side_l": ("趴姿側面（左）", "lie_side_r"),
     "sit_l": ("坐姿（左）", "sit_r"), "lay_l": ("躺姿（左）", "lay_r"), "sniff_l": ("低頭嗅地（左）", "sniff_r"),
 }
+
+
+# ---------------------------------------------------------------- 7. 輸出、接觸表、奔跑預覽、自檢
+FONT = "/usr/share/fonts/truetype/wqy/wqy-zenhei.ttc"
+BGS = [("奶油白", (251, 244, 234)), ("淺藍", (227, 238, 249)), ("深色", (31, 35, 41))]
+
+
+def ground512() -> float:
+    return geo()["ground"] / K
+
+
+def baseline_images():
+    """接觸表左邊的兩張基準：default_idle（原圖去背）與第一版跳躍 GIF 第 9 格。"""
+    d = down512(to_img(layers()["_orig"]))
+    jg = Image.open(JUMP_GIF)
+    jg.seek(8)
+    j9 = jg.convert("RGBA")
+    return [("基準：default_idle", d), ("基準：跳躍第 9 格", j9)]
+
+
+def corner_opaque(im: Image.Image) -> bool:
+    a = np.asarray(im.getchannel("A"))
+    return bool(max(a[:8, :8].max(), a[:8, -8:].max(), a[-8:, :8].max(), a[-8:, -8:].max()) > 0)
+
+
+def contact_sheet(items, path: Path, cols=8, cell=220):
+    font = ImageFont.truetype(FONT, 15)
+    tfont = ImageFont.truetype(FONT, 22)
+    rows = (len(items) + cols - 1) // cols
+    lab_h, band_t = 26, 40
+    band_h = band_t + rows * (cell + lab_h)
+    sheet = Image.new("RGB", (cols * cell, band_h * len(BGS)), (255, 255, 255))
+    d = ImageDraw.Draw(sheet)
+    gy = ground512() * cell / 512
+    for bi, (bname, bg) in enumerate(BGS):
+        y0 = bi * band_h
+        fg = (235, 235, 235) if sum(bg) < 300 else (40, 40, 40)
+        d.rectangle([0, y0, sheet.width, y0 + band_h], fill=bg)
+        d.text((10, y0 + 8), f"比比基礎姿勢資產包 1012｜底色：{bname}｜紅線＝地面基準線 y={ground512():.0f}（512 座標）", font=tfont, fill=fg)
+        for i, (label, im) in enumerate(items):
+            cx, cy = (i % cols) * cell, y0 + band_t + (i // cols) * (cell + lab_h)
+            t = im.resize((cell, cell), Image.LANCZOS)
+            tile = Image.new("RGBA", (cell, cell), bg + (255,))
+            tile.alpha_composite(t)
+            sheet.paste(tile.convert("RGB"), (cx, cy))
+            d.line([(cx + 4, cy + gy), (cx + cell - 4, cy + gy)], fill=(220, 60, 60), width=1)
+            d.rectangle([cx, cy, cx + cell - 1, cy + cell + lab_h - 1], outline=(150, 150, 150))
+            d.text((cx + 6, cy + cell + 4), label, font=font, fill=fg)
+    sheet.save(path)
+
+
+def main():
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--out", default=str(ROOT / "docs/anim/bibi_basepose_1012"))
+    ap.add_argument("--only", default="")
+    a = ap.parse_args()
+    out = Path(a.out)
+    (out / "png").mkdir(parents=True, exist_ok=True)
+    report = {"ground_y_512": ground512(), "center_x_512": geo()["cx"] / K, "poses": {}}
+    imgs = {}
+    st0 = {}
+    base = down512(to_img(layers()["_orig"]))
+    imgs["front_stand"] = ("正面站姿（＝Default 原圖）", base)
+    rebuild = compose({}, st0)
+    imgs["front_stand_rebuild"] = ("正面站姿（分層重組版）", down512(rebuild))
+    report["poses"]["front_stand_rebuild"] = st0
+    names = [n for n in POSES if not a.only or n in a.only.split(",")]
+    for n in names:
+        zh, p = POSES[n]
+        st = {}
+        im = down512(compose(p, st))
+        imgs[n] = (zh, im)
+        report["poses"][n] = st
+        print("完成", n, zh, flush=True)
+    for n, (zh, srcn) in MIRROR.items():
+        if srcn in imgs:
+            imgs[n] = (zh, imgs[srcn][1].transpose(Image.FLIP_LEFT_RIGHT))
+            report["poses"][n] = {"mirror_of": srcn}
+    for n, (zh, im) in imgs.items():
+        im.save(out / "png" / f"{n}.png")
+        report["poses"].setdefault(n, {})
+        report["poses"][n]["name_zh"] = zh
+        report["poses"][n]["corner_opaque"] = corner_opaque(im)
+    # 接觸表
+    order = ["front_stand", "front_stand_rebuild", "front_squash", "front_stretch", "front_jump", "front_land",
+             "q34_r", "q34_l", "side_r", "side_l", "run_r_A", "run_r_B", "run_r_C",
+             "side_takeoff_r", "side_apex_r", "side_land_r", "lie_front", "lie_side_r", "sit_r", "lay_r", "sniff_r",
+             "run_l_A", "run_l_B", "run_l_C", "side_takeoff_l", "side_apex_l", "side_land_l",
+             "lie_side_l", "sit_l", "lay_l", "sniff_l"]
+    items = baseline_images() + [(f"{imgs[n][0]}", imgs[n][1]) for n in order if n in imgs]
+    contact_sheet(items, out / "contact_sheet.png")
+    # 奔跑循環 12 格
+    frames, rst = [], []
+    for k in range(12):
+        st = {}
+        frames.append(down512(compose(run_pose(k / 12), st)))
+        rst.append(st)
+        print("奔跑格", k + 1, flush=True)
+    frames[0].save(out / "run_cycle.webp", save_all=True, append_images=frames[1:], duration=60, loop=0,
+                   lossless=False, quality=92, method=6)
+    strip = Image.new("RGBA", (12 * 256, 256 * 2), (0, 0, 0, 0))
+    for bi, bg in enumerate([(251, 244, 234), (31, 35, 41)]):
+        for k, f in enumerate(frames):
+            tile = Image.new("RGBA", (256, 256), bg + (255,))
+            tile.alpha_composite(f.resize((256, 256), Image.LANCZOS))
+            dd = ImageDraw.Draw(tile)
+            dd.line([(0, ground512() / 2), (256, ground512() / 2)], fill=(220, 60, 60, 255))
+            dd.text((6, 6), f"{k + 1:02d}", font=ImageFont.truetype(FONT, 16), fill=(200, 60, 60, 255))
+            strip.alpha_composite(tile, (k * 256, bi * 256))
+    strip.convert("RGB").save(out / "run_cycle_sheet.png")
+    areas = [s["body_area"] for s in rst]
+    ua = [s["upper_area"] for s in rst]
+    m = sum(areas) / len(areas)
+    mu = sum(ua) / len(ua)
+    report["run_cycle"] = {
+        "body_area": areas, "body_area_max_dev_pct": max(abs(x - m) / m * 100 for x in areas),
+        "upper_area": ua, "upper_area_max_dev_pct": max(abs(x - mu) / mu * 100 for x in ua),
+        "feet": [s["feet"] for s in rst],
+        "corner_opaque": [corner_opaque(f) for f in frames],
+    }
+    (out / "check.json").write_text(json.dumps(report, ensure_ascii=False, indent=1))
+    print("輸出完成", out)
+
+
+if __name__ == "__main__":
+    main()
