@@ -1,73 +1,135 @@
 {
   "steps": {
-    "mis.index_minute": {
+    "twse.price_daily": {
       "ok": true,
-      "rows": 292,
-      "seconds": 2.8
+      "rows": 1327,
+      "seconds": 5.5
+    },
+    "price_daily": {
+      "stored": 2332
+    },
+    "twse.valuation": {
+      "ok": true,
+      "rows": 1083,
+      "seconds": 1.9
+    },
+    "valuation_daily": {
+      "stored": 1083
+    },
+    "twse.index": {
+      "ok": true,
+      "rows": 267,
+      "seconds": 0.5
+    },
+    "index_daily": {
+      "stored": 267
+    },
+    "twse.market": {
+      "ok": true,
+      "rows": 7,
+      "seconds": 0.2
+    },
+    "market_daily": {
+      "stored": 1
+    },
+    "tpex.price_daily": {
+      "ok": true,
+      "rows": 1005,
+      "seconds": 2.6
+    },
+    "mis.date_check": {
+      "mis_date": "2026-10-13",
+      "openapi_date": "2026-10-12",
+      "lake_latest": "2026-10-12",
+      "twse_rows_on_mis_date": 0,
+      "min_needed": 800,
+      "session_closed": true,
+      "will_fill": true
+    },
+    "mis.price_snapshot": {
+      "ok": true,
+      "rows": 2332,
+      "seconds": 13.2
+    },
+    "mis.market_snapshot": {
+      "ok": true,
+      "rows": 1,
+      "seconds": 0.2
+    },
+    "intraday.since": {
+      "since": "2026-10-12T13:00:00+08:00",
+      "codes": 2035,
+      "skipped_no_data": 0,
+      "period": "8d",
+      "lake_last": "2026-10-12T13:00:00+08:00",
+      "got_codes": 2034,
+      "rows": 9547
+    },
+    "yahoo.intraday_60m": {
+      "ok": true,
+      "rows": 9547,
+      "seconds": 187.6
+    },
+    "intraday_60m": {
+      "stored": 9547
+    },
+    "yahoo.index_intraday": {
+      "ok": true,
+      "rows": 46,
+      "seconds": 1.0
     },
     "index_intraday": {
-      "stored": 813
+      "stored": 548
     },
-    "taifex.futures_minute": {
+    "mis.index_minute": {
       "ok": true,
-      "rows": 813,
-      "seconds": 2.2
+      "rows": 840,
+      "seconds": 3.4
     },
     "news.collect": {
       "ok": true,
       "rows": 135,
-      "seconds": 2.3
+      "seconds": 3.1
     },
     "news": {
-      "stored": 96
+      "stored": 89
     },
     "news.broker_views": {
-      "ok": true,
-      "rows": 4,
+      "ok": false,
+      "rows": 0,
       "seconds": 0.0
-    },
-    "broker_views": {
-      "stored": 4
     },
     "mops.material_news": {
       "ok": true,
       "rows": 102,
-      "seconds": 6.3
+      "seconds": 5.3
     },
     "material_news": {
-      "stored": 102
-    },
-    "macro.intl": {
-      "ok": true,
-      "rows": 1759,
-      "seconds": 1.4
-    },
-    "intl_daily": {
-      "stored": 3
-    },
-    "macro.fred": {
-      "ok": true,
-      "rows": 15521,
-      "seconds": 2.4
-    },
-    "macro": {
       "stored": 0
     },
-    "macro.fred_calendar": {
+    "finmind.index_ohlc": {
       "ok": true,
-      "rows": 26,
-      "seconds": 1.9
+      "rows": 52,
+      "seconds": 1.5
     },
-    "macro_calendar": {
-      "stored": 0
+    "index_ohlc": {
+      "stored": 2
+    },
+    "finmind.futures_ohlc": {
+      "ok": true,
+      "rows": 52,
+      "seconds": 0.3
     },
     "build_payload": {
       "ok": true
     }
   },
   "errors": [],
-  "empty": [],
-  "phase": "news",
+  "empty": [
+    "news.broker_views"
+  ],
+  "phase": "price",
+  "provisional_date": "2026-10-13",
   "index_minute_days": {
     "FUT": [
       "2026-10-13"
@@ -79,47 +141,41 @@
       "2026-10-13"
     ]
   },
-  "taifex_minute_days": {
-    "FUT_N": [
-      "2026-10-12",
-      "2026-10-13"
-    ]
-  },
-  "started_at": "2026-10-13T02:32:41.675436+00:00",
-  "finished_at": "2026-10-13T02:56:09.465816+00:00",
-  "duration_seconds": 1407.8,
-  "trade_date": null,
+  "started_at": "2026-10-13T07:29:35.631009+00:00",
+  "finished_at": "2026-10-13T07:45:16.599777+00:00",
+  "duration_seconds": 941.0,
+  "trade_date": "2026-10-12",
   "complete": true,
-  "finmind_budget_left": 440,
+  "finmind_budget_left": 437,
   "tables": [
     {
       "table": "price_daily",
-      "rows": 9535808,
-      "latest": "2026-10-12"
+      "rows": 9538140,
+      "latest": "2026-10-13"
     },
     {
       "table": "valuation_daily",
-      "rows": 21624,
-      "latest": "2026-10-08"
+      "rows": 22707,
+      "latest": "2026-10-12"
     },
     {
       "table": "margin_daily",
-      "rows": 2662508,
+      "rows": 2663238,
       "latest": "2026-10-12"
     },
     {
       "table": "index_daily",
-      "rows": 5364,
-      "latest": "2026-10-08"
-    },
-    {
-      "table": "market_daily",
-      "rows": 27,
+      "rows": 5631,
       "latest": "2026-10-12"
     },
     {
+      "table": "market_daily",
+      "rows": 28,
+      "latest": "2026-10-13"
+    },
+    {
       "table": "inst_daily",
-      "rows": 3990302,
+      "rows": 3990434,
       "latest": "2026-10-12"
     },
     {
@@ -154,7 +210,7 @@
     },
     {
       "table": "news",
-      "rows": 5229,
+      "rows": 5318,
       "latest": "2026-10-13"
     },
     {
@@ -204,17 +260,17 @@
     },
     {
       "table": "index_ohlc",
-      "rows": 20870,
-      "latest": "2026-10-12"
+      "rows": 20874,
+      "latest": "2026-10-13"
     },
     {
       "table": "intraday_60m",
-      "rows": 7364268,
+      "rows": 7373815,
       "latest": "—"
     },
     {
       "table": "index_intraday",
-      "rows": 202833,
+      "rows": 203427,
       "latest": "—"
     },
     {
@@ -234,7 +290,7 @@
     },
     {
       "table": "sbl_daily",
-      "rows": 778807,
+      "rows": 779963,
       "latest": "2026-10-12"
     },
     {
