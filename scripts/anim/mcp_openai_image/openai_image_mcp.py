@@ -78,6 +78,12 @@ def _retry(fn, tries: int = 3):
     raise last  # pragma: no cover
 
 
+def _log_usage(r) -> None:
+    u = getattr(r, "usage", None)
+    if u is not None:
+        _log(f"usage: {u}")
+
+
 def _save_b64(b64: str, path: Path) -> str:
     path.write_bytes(base64.b64decode(b64))
     return str(path)
@@ -94,6 +100,7 @@ def _generate(prompt, path: Path, size, quality, transparent, model) -> str:
     if transparent:
         kw["background"] = "transparent"
     r = _retry(lambda: _client().images.generate(**kw))
+    _log_usage(r)
     return _save_b64(r.data[0].b64_json, path)
 
 
@@ -124,6 +131,7 @@ def _edit(ref_paths, prompt, path: Path, size, quality, transparent, model, inpu
             r = _retry(lambda: call(False))
         else:
             raise
+    _log_usage(r)
     return _save_b64(r.data[0].b64_json, path)
 
 
