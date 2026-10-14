@@ -41947,14 +41947,17 @@
     "inst@fresh2026-10-13:8921": "no_data",
     "inst@fresh2026-10-13:6661": "no_data",
     "inst@fresh2026-10-13:5348": "no_data",
-    "inst@fresh2026-10-13:8067": "no_data"
+    "inst@fresh2026-10-13:8067": "no_data",
+    "inst@fresh2026-10-13:5276": true,
+    "inst@fresh2026-10-13:9110": true,
+    "inst@fresh2026-10-13:6212": true
   },
-  "updated_at": "2026-10-14T07:48:53.557468+00:00",
+  "updated_at": "2026-10-14T08:45:34.810273+00:00",
   "complete": {
     "balance+financial+revenue": {
       "done": true,
-      "at": "2026-10-14T07:41:47.874316+00:00",
-      "codes": 2334,
+      "at": "2026-10-14T08:43:30.802776+00:00",
+      "codes": 500,
       "remaining": {
         "balance": 0,
         "financial": 0,
@@ -41968,7 +41971,7 @@
     },
     "plan:default": {
       "done": true,
-      "at": "2026-10-14T07:48:53.557445+00:00",
+      "at": "2026-10-14T08:45:34.810257+00:00",
       "month": "2026-10",
       "steps": {
         "balance+financial+revenue": true,
@@ -41995,33 +41998,33 @@
     },
     "dividend+divresult": {
       "done": true,
-      "at": "2026-10-14T07:42:09.733671+00:00",
-      "codes": 2334,
+      "at": "2026-10-14T08:43:36.394139+00:00",
+      "codes": 500,
       "remaining": {
         "dividend": 0,
         "divresult": 0
       },
       "no_data": {
-        "dividend": 3,
-        "divresult": 3
+        "dividend": 0,
+        "divresult": 0
       }
     },
     "holding+margin@2021-01-01": {
       "done": true,
-      "at": "2026-10-14T07:42:43.152252+00:00",
-      "codes": 2334,
+      "at": "2026-10-14T08:43:44.194604+00:00",
+      "codes": 500,
       "remaining": {
-        "holding": 2334,
+        "holding": 500,
         "margin": 0
       },
       "no_data": {
         "holding": 0,
-        "margin": 1
+        "margin": 0
       }
     },
     "price@2000-01-01": {
       "done": true,
-      "at": "2026-10-14T07:42:47.008537+00:00",
+      "at": "2026-10-14T08:43:48.041794+00:00",
       "codes": 445,
       "remaining": {
         "price": 0
@@ -42114,20 +42117,20 @@
       }
     },
     "inst_fresh": {
-      "done": false,
+      "done": true,
       "date": "2026-10-14",
       "latest": "2026-10-13",
       "codes": {
         "daytrade": 82,
         "sbl": 10,
         "margin": 150,
-        "inst": 606
+        "inst": 147
       },
-      "at": "2026-10-14T07:48:53.510649+00:00"
+      "at": "2026-10-14T08:45:34.778732+00:00"
     },
     "inst@market": {
       "done": true,
-      "at": "2026-10-14T07:43:05.628619+00:00",
+      "at": "2026-10-14T08:44:06.580860+00:00",
       "codes": 1981,
       "remaining": {
         "inst": 0
@@ -42138,7 +42141,7 @@
     },
     "daytrade+sbl@2025-01-01@market": {
       "done": true,
-      "at": "2026-10-14T07:43:24.246269+00:00",
+      "at": "2026-10-14T08:44:25.121886+00:00",
       "codes": 1981,
       "remaining": {
         "daytrade": 0,
@@ -42151,7 +42154,7 @@
     },
     "dividend+divresult@2009-01-01@market": {
       "done": true,
-      "at": "2026-10-14T07:43:42.867524+00:00",
+      "at": "2026-10-14T08:44:43.660136+00:00",
       "codes": 1981,
       "remaining": {
         "dividend": 0,
@@ -42212,11 +42215,11 @@
         "marked_from_lake": 0
       },
       "stopped": null,
-      "at": "2026-10-14T07:41:25.552245+00:00"
+      "at": "2026-10-14T08:43:24.613257+00:00"
     },
     "dividend+divresult@m2026-10": {
       "done": true,
-      "at": "2026-10-14T07:44:18.729505+00:00",
+      "at": "2026-10-14T08:45:19.311895+00:00",
       "codes": 445,
       "remaining": {
         "dividend": 0,
@@ -42317,7 +42320,7 @@
     },
     "price@2000-01-01@market": {
       "done": true,
-      "at": "2026-10-14T07:44:01.472842+00:00",
+      "at": "2026-10-14T08:45:02.207851+00:00",
       "codes": 1981,
       "remaining": {
         "price": 0
@@ -42341,7 +42344,7 @@
     },
     "price@2000-01-01@etf": {
       "done": true,
-      "at": "2026-10-14T07:44:14.839980+00:00",
+      "at": "2026-10-14T08:45:15.470048+00:00",
       "codes": 392,
       "remaining": {
         "price": 0
@@ -42365,7 +42368,7 @@
     },
     "dividend+divresult@etf2009@etf": {
       "done": true,
-      "at": "2026-10-14T07:44:05.923466+00:00",
+      "at": "2026-10-14T08:45:06.626956+00:00",
       "codes": 392,
       "remaining": {
         "dividend": 0,
@@ -42378,7 +42381,7 @@
     },
     "etfdiv@etfx2009@etf": {
       "done": true,
-      "at": "2026-10-14T07:44:10.389090+00:00",
+      "at": "2026-10-14T08:45:11.046356+00:00",
       "codes": 392,
       "remaining": {
         "etfdiv": 0
@@ -42389,7 +42392,7 @@
     },
     "divresult+etfdiv@em2026-10@etf": {
       "done": true,
-      "at": "2026-10-14T07:44:23.171918+00:00",
+      "at": "2026-10-14T08:45:23.720853+00:00",
       "codes": 392,
       "remaining": {
         "divresult": 0,
@@ -42578,7 +42581,7 @@
     },
     "margin@fresh2026-10-13": {
       "done": true,
-      "at": "2026-10-14T07:45:00.787554+00:00",
+      "at": "2026-10-14T08:45:31.475602+00:00",
       "codes": 150,
       "remaining": {
         "margin": 0
@@ -42588,11 +42591,11 @@
       }
     },
     "inst@fresh2026-10-13": {
-      "done": false,
-      "at": "2026-10-14T07:48:53.473999+00:00",
-      "codes": 606,
+      "done": true,
+      "at": "2026-10-14T08:45:34.742278+00:00",
+      "codes": 147,
       "remaining": {
-        "inst": 3
+        "inst": 0
       },
       "no_data": {
         "inst": 11
@@ -42600,7 +42603,7 @@
     },
     "daytrade@fresh2026-10-13": {
       "done": true,
-      "at": "2026-10-14T07:44:59.399540+00:00",
+      "at": "2026-10-14T08:45:30.091832+00:00",
       "codes": 82,
       "remaining": {
         "daytrade": 0
@@ -42611,7 +42614,7 @@
     },
     "sbl@fresh2026-10-13": {
       "done": true,
-      "at": "2026-10-14T07:44:59.430547+00:00",
+      "at": "2026-10-14T08:45:30.122496+00:00",
       "codes": 10,
       "remaining": {
         "sbl": 0
@@ -42623,7 +42626,7 @@
   },
   "finmind_health": {
     "ok": true,
-    "at": "2026-10-14T07:41:25.960977+00:00",
+    "at": "2026-10-14T08:43:25.204554+00:00",
     "probe": "TaiwanStockPrice/2330 since 2026-10-04",
     "detail": ""
   },
@@ -42635,12 +42638,5 @@
       "last_reason": "HTTP 400：Your level is register. Please update your user level. Detail information:https://finmindtrade.com/analysis/#/Sponsor/sponsor"
     }
   },
-  "intraday_60m_empty": {},
-  "quota_stopped": {
-    "stopped": true,
-    "steps": [
-      "inst"
-    ],
-    "at": "2026-10-14T07:48:53.506156+00:00"
-  }
+  "intraday_60m_empty": {}
 }
