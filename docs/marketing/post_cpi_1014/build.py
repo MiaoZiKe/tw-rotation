@@ -45,10 +45,10 @@ def s2():
         c.card(nm,(x,y,x+312,y+190),fl,ol)
         ib=(x+312/2-45,y+18,x+312/2+45,y+108); fn(c,ib); c.reg(f"圖示{ch}",ib,nm)
         c.text(f"字{ch}",x+16,y+118,280,ch,50,align="center",parent=nm,stroke=1.5)
-    c.rr((48,940,1032,1020),40,YEL,O_YEL,5); c.reg("黃條",(48,940,1032,1020),None,"card")
-    c.text("黃條字",60,953,960,"物價漲得快不快，用它來量",44,align="center",parent="黃條")
-    b=c.sticker("比比",STK%2,x=48,y=1055,h=255)
-    bub_side(c,"泡泡",b,"你今天花了哪一格？",44,"right",560,1180)
+    c.rr((48,925,1032,1000),40,YEL,O_YEL,5); c.reg("黃條",(48,925,1032,1000),None,"card")
+    c.text("黃條字",60,936,960,"物價漲得快不快，用它來量",44,align="center",parent="黃條")
+    b=c.sticker("比比",STK%2,x=48,y=1025,h=290)
+    bub_side(c,"泡泡",b,"你今天花了哪一格？",44,"right",560,1170)
     return c
 def s3():
     c=C(3); header(c,3,"數字怎麼看？")
@@ -64,11 +64,11 @@ def s3():
     cb=(790,640,950,860); I.coffee(c,cb); c.reg("咖啡圖",cb,"舉例框")
     c.text("免責例",48,922,700,"例子僅供說明，不是實際數據",32,color=(120,90,70))
     b=c.sticker("比比",STK%3,x=1032-370,y=1010,w=370)
-    bub_side(c,"泡泡",b,"50 變 52，就是 4% 喔！",44,"left",560,(b[1]+b[3])/2)
+    bub_side(c,"泡泡",b,"50 變 52，\n就是 4% 喔！",44,"left",560,(b[1]+b[3])/2)
     return c
 def s4():
     c=C(4); header(c,4,"整體 CPI vs 核心 CPI")
-    for k,(x,fl,ol,hd,tx,cross) in enumerate([(48,BLU,O_BLUE,"整體 CPI","全部項目都算",False),(552,PEACH,O_CORAL,"核心 CPI","扣掉價格大起大落的項目",True)]):
+    for k,(x,fl,ol,hd,tx,cross) in enumerate([(48,BLU,O_BLUE,"整體 CPI","全部項目都算",False),(552,PEACH,O_CORAL,"核心 CPI","扣掉價格大起大落\n的項目",True)]):
         nm=f"卡{k}"; c.card(nm,(x,150,x+480,540),fl,ol)
         c.text(f"卡{k}標",x+20,172,440,hd,54,align="center",parent=nm,stroke=1.8)
         c.text(f"卡{k}文",x+25,250,430,tx,42,align="center",parent=nm)
@@ -78,27 +78,28 @@ def s4():
         y=570+k*125; nm=f"列{k}"; c.card(nm,(48,y,1032,y+105),fl,ol,r=40)
         c.text(f"列{k}字",68,y+30,944,t,42,align="center",parent=nm)
     b=c.sticker("比比",STK%4,x=1032-400,y=990,w=400)
-    bub_side(c,"泡泡",b,"波動大的先扣掉，看趨勢更準！",44,"left",540,(b[1]+b[3])/2)
+    bub_side(c,"泡泡",b,"波動大的先扣掉，\n看趨勢更準！",44,"left",540,(b[1]+b[3])/2)
     return c
 def s5():
     c=C(5); header(c,5,"誰公布？什麼時候？")
-    for k,(x,fl,ol,fn,nm_,org,desc) in enumerate([(48,GRN,O_GRN,I.flag_tw,"台灣","行政院主計總處","通常每月上旬公布上個月數字"),(552,BLU,O_BLUE,I.flag_us,"美國","勞工統計局（BLS）","通常每月中旬前後公布")]):
-        n=f"卡{k}"; c.card(n,(x,150,x+480,640),fl,ol)
+    for k,(x,fl,ol,fn,nm_,org,desc) in enumerate([(48,GRN,O_GRN,I.flag_tw,"台灣","行政院主計總處","通常每月上旬\n公布上個月數字"),(552,BLU,O_BLUE,I.flag_us,"美國","勞工統計局（BLS）","通常每月中旬前後公布")]):
+        n=f"卡{k}"; c.card(n,(x,150,x+480,590),fl,ol)
         fb=(x+60,178,x+60+120,178+80); fn(c,fb); c.reg(f"旗{k}",fb,n)
         c.text(f"國{k}",x+200,184,260,nm_,60,parent=n,stroke=2)
         c.text(f"機構{k}",x+20,290,440,org,46,align="center",parent=n,stroke=1.2)
         c.text(f"說明{k}",x+25,370,430,desc,42,align="center",parent=n)
-    cb=(420,670,660,850); I.calendar(c,cb); c.reg("月曆",cb,None)
-    c.star("星a",300,760,30); c.star("星b",760,730,26)
-    c.rr((48,880,1032,960),40,YEL,O_YEL,5); c.reg("黃條",(48,880,1032,960),None,"card")
-    c.text("黃條字",60,893,960,"實際日期以官方公布為準",44,align="center",parent="黃條")
-    b=c.sticker("比比",STK%5,x=48,y=1000,h=310)
-    bub_side(c,"泡泡",b,"別錯過公布日！",46,"right",560,1170)
+        c.pill(f"旬{k}",(x+120,500,x+360,572),YEL if k==0 else PEACH,O_YEL if k==0 else O_CORAL,"上旬" if k==0 else "中旬前後",44,parent=n)
+    cb=(430,625,650,795); I.calendar(c,cb); c.reg("月曆",cb,None)
+    c.star("星a",310,710,30); c.star("星b",770,690,26)
+    c.rr((48,830,1032,910),40,YEL,O_YEL,5); c.reg("黃條",(48,830,1032,910),None,"card")
+    c.text("黃條字",60,843,960,"實際日期以官方公布為準",44,align="center",parent="黃條")
+    b=c.sticker("比比",STK%5,x=48,y=945,h=370)
+    bub_side(c,"泡泡",b,"別錯過公布日！",46,"right",560,1150)
     return c
 def s6():
     c=C(6); header(c,6,"CPI 為什麼牽動利率？")
     c.card("左標",(48,150,508,300),ROSE,O_PINK); c.text("左標字",68,205,420,"物價漲太快",50,align="center",parent="左標",stroke=1.5)
-    c.card("右標",(572,150,1032,300),BLU,O_BLUE); c.text("右標字",592,170,420,"央行可能升息或延後降息",42,align="center",parent="右標")
+    c.card("右標",(572,150,1032,300),BLU,O_BLUE); c.text("右標字",592,170,420,"央行可能升息\n或延後降息",42,align="center",parent="右標")
     sb=(48,330,1032,750); I.seesaw(c,sb); c.reg("蹺蹺板",sb)
     for k,(x,fl,ol,hd,tx) in enumerate([(48,GRN,O_GRN,"通膨降溫","降息空間變大"),(552,PEACH,O_CORAL,"通膨偏高","利率可能維持高檔")]):
         n=f"卡{k}"; c.card(n,(x,780,x+480,990),fl,ol)
@@ -107,7 +108,7 @@ def s6():
         ab=(x+215,865,x+265,890); 
     c.text("註",48,1012,900,"許多央行以 2% 左右為目標",34,color=(120,90,70))
     b=c.sticker("比比",STK%6,x=48,y=1085,h=225)
-    bub_side(c,"泡泡",b,"物價一翹，利率跟著變！",44,"right",440,1190)
+    bub_side(c,"泡泡",b,"物價一翹，\n利率跟著變！",44,"right",440,1190)
     return c
 def s7():
     c=C(7); header(c,7,"CPI 和股市有什麼關係？")
@@ -117,7 +118,7 @@ def s7():
         c.text(f"流程{k}字",xs[k]+8,195,272,txt[k],42,align="center",parent=n,stroke=1.2)
     for k in range(2):
         ab=(xs[k]+288+8,200,xs[k]+288+48,250); I.arrow_right(c,ab); c.reg(f"箭頭{k}",ab)
-    for k,(x,fl_,ol_,hd,tx,up) in enumerate([(48,ROSE,O_PINK,"高於預期","升息預期升高，成長股、科技股常承壓",True),(552,GRN,O_GRN,"低於預期","降息預期升溫，市場情緒常偏樂觀",False)]):
+    for k,(x,fl_,ol_,hd,tx,up) in enumerate([(48,ROSE,O_PINK,"高於預期","升息預期升高，\n成長股、科技股\n常承壓",True),(552,GRN,O_GRN,"低於預期","降息預期升溫，\n市場情緒\n常偏樂觀",False)]):
         n=f"卡{k}"; c.card(n,(x,330,x+480,780),fl_,ol_)
         c.text(f"卡{k}標",x+20,352,440,hd,54,align="center",parent=n,stroke=1.8)
         c.text(f"卡{k}文",x+25,445,430,tx,42,align="center",parent=n)
@@ -129,7 +130,7 @@ def s7():
     c.rr((48,810,1032,900),44,YEL,O_YEL,5); c.reg("黃條",(48,810,1032,900),None,"card")
     c.text("黃條字",60,827,960,"重點是「預期 vs 實際」的差距",48,align="center",parent="黃條",stroke=1.5)
     b=c.sticker("比比",STK%7,x=48,y=980,h=290)
-    bub_side(c,"泡泡",b,"重點是預期差距，不是數字本身。",44,"right",520,1100)
+    bub_side(c,"泡泡",b,"重點是預期差距，\n不是數字本身。",44,"right",520,1100)
     c.text("註",560,1280,472,"市場反應不一定單向",34,color=(120,90,70),align="right")
     return c
 def s8():
@@ -158,7 +159,7 @@ def s8():
     c.rr((48,935,1032,1015),40,YEL,O_YEL,5); c.reg("黃條",(48,935,1032,1015),None,"card")
     c.text("黃條字",60,948,960,"重要數據日，先在財經日曆標起來",44,align="center",parent="黃條")
     b=c.sticker("比比",STK%8,x=1032-360,y=1030,w=360)
-    bub_side(c,"泡泡",b,"重要日子我幫你標好了！",44,"left",540,(b[1]+b[3])/2-10)
+    bub_side(c,"泡泡",b,"重要日子\n我幫你標好了！",44,"left",540,(b[1]+b[3])/2-10)
     return c
 def s9():
     c=C(9); header(c,9,"3 句話記住 CPI")
@@ -169,7 +170,7 @@ def s9():
     c.rr((48,905,610,1015),55,PINK,BR,5); c.reg("按鈕",(48,905,610,1015),None,"card")
     c.text("按鈕字",60,935,538,"搜尋「哩股哩股」",48,color=WHITE,align="center",parent="按鈕",stroke=1.5)
     b=c.sticker("比比",STK%9,x=1032-340,y=880,w=340)
-    bub_side(c,"泡泡",b,"記住這 3 句，下次看 CPI 就不慌！",44,"left",540,1130)
+    bub_side(c,"泡泡",b,"記住這 3 句，\n下次看 CPI 就不慌！",44,"left",540,1130)
     c.text("免責",48,1268,984,"本內容為公開資料整理，不構成任何投資建議；投資有風險，請自行判斷。",26,color=(110,80,60))
     return c
 if __name__=="__main__":

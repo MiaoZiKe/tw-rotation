@@ -29,13 +29,27 @@ class C:
     def line(s,pts,fill=BR,w=4):
         s.d.line([(x*S,y*S) for x,y in pts],fill=fill,width=w*S,joint="curve")
     def lines(s,text,sz,maxw):
-        f=font(sz); out=[]
+        import re
+        f=font(sz); out=[]; NOSTART="，。、；：！？）」』…,.;:!?)%"
         for para in text.split("\n"):
-            cur=""
-            for ch in para:
-                if f.getlength(cur+ch)/S>maxw and cur: out.append(cur); cur=ch
-                else: cur+=ch
-            out.append(cur)
+            toks=re.findall(r"[A-Za-z0-9%/\.\-]+|.",para)
+            def wrap(w):
+                ls=[];cur=""
+                for tk in toks:
+                    if cur and f.getlength(cur+tk)/S>w and tk[0] not in NOSTART:
+                        ls.append(cur);cur=tk.lstrip()
+                    else: cur+=tk
+                ls.append(cur); return ls
+            ls=wrap(maxw); n=len(ls)
+            if n>1:
+                lo,hi=maxw*0.5,maxw
+                for _ in range(14):
+                    mid=(lo+hi)/2
+                    if len(wrap(mid))<=n: hi=mid
+                    else: lo=mid
+                ls2=wrap(hi)
+                if len(ls2)==n and all(len(l)>=2 for l in ls2): ls=ls2
+            out+=ls
         return out
     def text(s,name,x,y,w,text,sz,color=BR,align="left",parent=None,gap=1.28,segs=None,stroke=1.0):
         """x,y 為文字區左上；w 為最大寬；回傳 (實際外框)"""
