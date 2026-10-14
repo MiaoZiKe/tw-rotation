@@ -41,7 +41,7 @@ for n, pg in sorted(L.items(), key=lambda x: int(x[0])):
     for e in pg["els"]:
         x0, y0, x1, y1 = e["box"]
         if x0 < 0 or y0 < 0 or x1 > 1080 or y1 > 1350: hits.append((n, e["name"], "畫布邊界", e["box"], None))
-        if e["kind"] in ("text",) and (x0 < 30 or x1 > 1050): hits.append((n, e["name"], "安全邊界30px", e["box"], None))
+        if e["kind"] not in ("bibi", "logo", "fx") and (x0 < 40 or x1 > 1040): hits.append((n, e["name"], "安全邊界 40px", e["box"], None))
 out.append(f"## 1 重疊檢查\n程式 {len(L)} 張、{total_pairs} 組元素配對，{len(hits)} 筆")
 for h in hits: out.append(f"- 第 {h[0]} 張：{h[1]} × {h[2]} {h[3]} {h[4]}")
 if hits: fails.append("重疊")
@@ -49,7 +49,7 @@ if hits: fails.append("重疊")
 # 2 文字／事實
 facts_txt = " ".join(f["text"] for f in CT["facts"].values()) + CT["event"]["title"] + CT["event"]["date"]
 allow_nums = {str(i) for i in range(1, 11)} | {"01", "02", "03", "04", "05", "06", "07", "08", "09", "10", "0", "50", "100", "2026", "2025", "1984", "10", "14", "13", "7", "15", "3", "2"}
-bad = []; forbid = ["買進", "賣出", "目標價", "推薦買", "http", "www", ".com", "@", "會員", "VIP", "Email"]
+bad = []; forbid = ["買進", "賣出", "目標價", "推薦買", "http", "www", ".com", ".org", ".tw", ".net", "@", "會員", "VIP", "Email", "hwbusters", "techovedas", "halbleiter"]
 for n, pg in L.items():
     alltext = " ".join(t["text"] for t in pg["texts"])
     for t in pg["texts"]:

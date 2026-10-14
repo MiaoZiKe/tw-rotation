@@ -220,17 +220,17 @@ def s01():
     c.text("標題1", 48, 226, 984, "ASML 為何是", 100, INK, bold=2.6, role="title")
     c.text("標題2", 48, 352, 984, "景氣前哨？", 100, INK, bold=2.6, role="title", marker=YEL)
     c.text("副標", 50, 484, 700, t["sub"], 40, COCOA, bold=1.0, role="sub")
-    c.svg("曝光機插畫", I.euv_machine(), 24, 590, w=780)
+    c.svg("曝光機插畫", I.euv_machine(), 24, 600, w=750)
     c.tag("示意標", 48, 1132, "示意圖", "示意圖，非實際構造")
-    bw, bh = c.bsize(t["bubble"], 34, 236)
-    bx0 = 1044 - bw
-    c.bubble("泡泡", (bx0, 566, 1044, 566 + bh), ("down", bx0 + bw / 2, bx0 + bw / 2 + 10, 566 + bh + 34), t["bubble"], 34)
-    b = c.bibi("s01", cx=922, y=740, h=210)
+    bw, bh = c.bsize(t["bubble"], 32, 256)
+    bx0 = 1032 - bw
+    c.bubble("泡泡", (bx0, 566, 1032, 566 + bh), ("down", bx0 + bw / 2, bx0 + bw / 2 + 6, 566 + bh + 34), t["bubble"], 32)
+    b = c.bibi("s01", cx=905, y=740, h=210)
     # 速度線＋地面影子（騰空）
     for i, dx in enumerate((-60, 0, 60)):
-        c.d.line([((922 + dx) * S, 972 * S), ((922 + dx * 0.8) * S, 1004 * S)], fill=hx("D8C3AE"), width=6 * S)
-    c.reg("速度線", (858, 968, 986, 1008), None, "fx")
-    c.reg("影子", c.ground(922, 1086, 96))
+        c.d.line([((905 + dx) * S, 972 * S), ((905 + dx * 0.8) * S, 1004 * S)], fill=hx("D8C3AE"), width=6 * S)
+    c.reg("速度線", (841, 968, 969, 1008), None, "fx")
+    c.reg("影子", c.ground(905, 1086, 96))
     c.card("事件條", (48, 1190, 1032, 1266), PALE["yel"], INK, r=24)
     c.text("事件條字", 72, 1206, 936, "2026/10/14　ASML 公布第 3 季財報（預定）", 36, INK, "center", parent="事件條", bold=1.2)
     c.footer("TechNews 2026-10-13", swipe=False)
@@ -269,36 +269,36 @@ def s02():
 
 def s03():
     c = Slide(3); c.header(SL[3]["title"])
-    card = c.card("檔案卡", (48, 236, 1032, 690), WHITE, INK, r=32)
+    card = c.card("檔案卡", (48, 236, 1032, 630), WHITE, INK, r=32)
     c.d.rounded_rectangle([48 * S, 236 * S, 1032 * S, 300 * S], radius=32 * S, fill=PALE["aqua"], outline=INK, width=4 * S)
     c.d.rectangle([52 * S, 270 * S, 1028 * S, 298 * S], fill=PALE["aqua"])
     c.d.line([48 * S, 300 * S, 1032 * S, 300 * S], fill=INK, width=4 * S)
     c.text("卡標", 80, 248, 600, "公司檔案　COMPANY FILE", 30, hx("2F7F78"), parent="檔案卡", bold=1.0)
     c.svg("夾子", I.paperclip(), 940, 214, w=44, parent="檔案卡", shadow=False)
-    c.svg("機台小圖", I.euv_machine(), 66, 360, w=360, parent="檔案卡")
+    c.svg("機台小圖", I.euv_machine(), 70, 340, w=340, parent="檔案卡")
     rows = [("名字", "ASML 艾司摩爾"), ("成立", "1984 年"), ("總部", "荷蘭維爾德霍芬"), ("專長", "曝光機（微影設備）")]
     for i, (k, v) in enumerate(rows):
-        yy = 330 + i * 76
+        yy = 322 + i * 70
         c.pill(f"欄{i}", (440, yy, 548, yy + 50), PALE["yel"], INK, k, 28, parent="檔案卡", bold=0.8)
         c.text(f"值{i}", 568, yy + 4, 440, v, 36, INK, parent="檔案卡", bold=1.4)
-    c.tag("卡事實", 1008, 636, "已確認事實", right=True, parent="檔案卡")
+    c.tag("卡事實", 1008, 576, "已確認事實", right=True, parent="檔案卡")
     # 賣給誰
-    c.text("小標", 48, 724, 600, "曝光機賣給誰？", 40, INK, bold=1.8, marker=YEL)
+    c.text("小標", 48, 664, 600, "曝光機賣給誰？", 40, INK, bold=1.8, marker=YEL)
     items = [(I.machine_icon(), "ASML\n曝光機"), (I.fab_icon(), "晶圓廠"), (I.chip_icon(), "晶片"), (I.server_icon(), "AI 伺服器\n手機")]
     xs = [48, 306, 564, 822]
     for i, ((res), lab) in enumerate(items):
         w = 190 if i != 3 else 160
-        c.svg(f"鏈圖{i}", res, xs[i] + (210 - w) / 2, 778, w=w)
-        c.text(f"鏈字{i}", xs[i], 976, 210, lab, 30, INK, "center", bold=0.8)
-        if i < 3: c.arrow(f"鏈箭{i}", xs[i] + 214, 848, 50)
-    c.text("客戶", 48, 1064, 984, "主要客戶：台積電、三星、英特爾（多家媒體報導）", 30, COCOA, bold=0.6)
+        c.svg(f"鏈圖{i}", res, xs[i] + (210 - w) / 2, 722, w=w)
+        c.text(f"鏈字{i}", xs[i], 920, 210, lab, 30, INK, "center", bold=0.8)
+        if i < 3: c.arrow(f"鏈箭{i}", xs[i] + 214, 792, 50)
+    c.text("客戶", 48, 1022, 984, "主要客戶：台積電、三星、英特爾（多家媒體報導）", 32, COCOA, bold=0.6)
     b = c.bibi("s03", x=48, y=1104, h=160)
     bw, bh = c.bsize(SL[3]["bubble"], 32, 420)
     c.bubble("泡泡", (250, 1112, 250 + bw, 1112 + bh), ("left", 1112 + bh / 2, 222, 1170), SL[3]["bubble"], 32)
     c.card("便條", (706, 1100, 1032, 1266), PALE["yel"], INK, r=20)
     c.text("便條字", 726, 1114, 290, "EUV 曝光機目前只有 ASML 能量產", 28, INK, parent="便條", bold=0.8)
     c.tag("便條標", 1016, 1222, "市場看法", "市場普遍看法", right=True, parent="便條", sz=22)
-    c.footer("TechNews 2026-09-11；TechNews、hwbusters、自由時報等")
+    c.footer("TechNews 2026-09-11；多家媒體報導（TechNews 等）")
     return c
 
 
@@ -326,10 +326,10 @@ def s04():
     b = c.bibi("s04", x=48, y=760, h=210)
     bw, bh = c.bsize(SL[4]["bubble"], 34, 520)
     c.bubble("泡泡", (48, 590, 48 + bw, 590 + bh), ("down", 170, 180, 590 + bh + 40), SL[4]["bubble"], 34)
-    c.card("說明卡", (48, 1110, 1032, 1266), WHITE, INK, r=24)
-    c.text("說明字", 72, 1134, 760, "曝光機像超精密的投影機：把光罩上的電路圖，投射到塗了光阻的晶圓上。", 30, INK, parent="說明卡", bold=0.6)
-    c.tag("說明標", 1012, 1214, "示意圖", "示意流程（簡化）", right=True, parent="說明卡", sz=22)
-    c.footer("ASML 官網〈lithography principles〉；halbleiter.org")
+    c.tag("說明標", 1032, 1062, "示意圖", "示意流程（簡化）", right=True)
+    c.card("說明卡", (48, 1116, 1032, 1266), WHITE, INK, r=24)
+    c.text("說明字", 72, 1140, 936, "曝光機像超精密的投影機：把光罩上的電路圖，\n投射到塗了光阻的晶圓上。", 32, INK, parent="說明卡", bold=0.6)
+    c.footer("ASML 官方技術說明；半導體技術科普資料")
     return c
 
 
@@ -354,7 +354,7 @@ def s05():
     bw, bh = c.bsize(SL[5]["bubble"], 34, 220)
     c.bubble("泡泡", (40, 880, 40 + bw, 880 + bh), ("down", 120, 130, 880 + bh + 30), SL[5]["bubble"], 34)
     b = c.bibi("s05", x=44, y=1040, h=220)
-    c.footer("ASML 官網〈light and lasers〉；techovedas；halbleiter.org")
+    c.footer("ASML 官方技術說明；半導體技術媒體")
     return c
 
 
@@ -370,7 +370,7 @@ def s06():
         c.text(f"列名{i}", 92, y + 16, 300, nm, 32, INK, parent=f"列底{i}", bold=1.6)
         c.text(f"列值{i}", 92, y + 66, 340, sp, 28 if i < 2 else 24, COCOA, parent=f"列底{i}", bold=0.6)
         c.svg(f"波{i}", I.wave(per, 540, 28 if i < 2 else 34, "#%02X%02X%02X" % col), 448, y + 18, w=540, parent=f"列底{i}", shadow=False)
-    c.text("光尺註", 76, 702, 900, "EUV 波長比 DUV 短十四倍以上（ASML 官網）", 28, COCOA, parent="光尺卡", bold=0.5)
+    c.text("光尺註", 76, 702, 900, "EUV 波長比 DUV 短十四倍以上（ASML 官方說明）", 28, COCOA, parent="光尺卡", bold=0.5)
     # 單價
     c.text("價標", 48, 792, 600, "一台多少錢？（約）", 38, INK, bold=1.8, marker=YEL)
     bars = [("EUV（低 NA）", 1.8, "約 1.8 億美元", VIO), ("High-NA EUV", 3.8, "約 3.8 億美元\n（約 3.5 億歐元）", CORAL)]
@@ -385,7 +385,7 @@ def s06():
     c.svg("放大鏡", I.magnifier_prop(), 280, 1088, w=120)
     bw, bh = c.bsize(SL[6]["bubble"], 34, 560)
     c.bubble("泡泡", (444, 1110, 444 + bw, 1110 + bh), ("left", 1110 + bh / 2, 412, 1150), SL[6]["bubble"], 34)
-    c.footer("ASML 官網；Yole Group 等（單價為約略值）")
+    c.footer("ASML 官方技術說明；研究機構與媒體（單價為約略值）")
     return c
 
 
@@ -523,7 +523,7 @@ def s10():
     c.pill("CTA", (48, 950, 720, 1036), CORAL, INK, "搜尋「哩股哩股」", 44, color=WHITE, bold=2.0)
     c.card("免責卡", (48, 1072, 1032, 1196), PALE["blue"], INK, r=22)
     c.text("免責字", 72, 1090, 936, CT["disclaimer"], 30, INK, parent="免責卡", bold=0.6)
-    c.text("出處", 48, 1222, 984, "資料：TechNews、ASML 官網、Yole Group 等；完整出處見文案", 24, hx("8A6C60"), bold=0.3, role="foot")
+    c.text("出處", 48, 1222, 984, "資料：TechNews、ASML 官方技術說明、研究機構等；完整出處見文案", 24, hx("8A6C60"), bold=0.3, role="foot")
     return c
 
 
