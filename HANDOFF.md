@@ -13,6 +13,7 @@
   動畫成品要接上網站時：動畫聊天室出 GIF／WebP（`site/brand/`），網頁版或手機版聊天室負責接到畫面；或動畫聊天室自己接，但照桌機守門1008／手機v2 規矩驗。
 - [10-10 22:4x] 動畫聊天室：開工「網站功能宣傳影片 IG／Threads（Plus 會員）」→ `docs/marketing/video_1010/`。新增角色：市場研調專家、分鏡師、企劃師、影片剪輯製作工程師（`.claude/agents/`）。錄素材時會在本機產 site/data、起伺服器，不改 site/。
 - [10-14] 動畫聊天室：Andy 要「之後串接 OpenAI 產圖的工具」→ 做好 `scripts/anim/mcp_openai_image/`（本機 Claude Code 用的 MCP 伺服器：產圖／依參考圖改圖／逐格產生 12 格／合成 GIF·WebP／接觸表；`setup.ps1` 一鍵安裝，金鑰只放本機）。雲端 session 擋 api.openai.com，叫不到，只給本機用。
+- [10-14 晚] Andy 指示「停止這方案」「MCP 不使用了」→ 停止所有 OpenAI／GPT 產圖工作；`scripts/anim/mcp_openai_image/` 保留不用；環境裡的 OpenAI 網路密鑰請 Andy 自行刪除（設定→編輯環境→Network secrets）並在 OpenAI 後台刪金鑰。
 - [10-09 深夜] 動畫 → 網頁版／手機版／總 CEO：動畫設計單位成立（commit 3312136），之後吉祥物、LOGO 動畫、GIF 去背的需求轉給動畫聊天室。
 - 兩邊沒有直接互傳訊息的工具時，**寫在這一節**（每次開工 git pull 會讀到），或請 Andy 轉達。寫法：`- [台北時間] 誰 → 誰：事情（要對方做什麼）`。
 - 分工：手機版只動 ≤640（`@media (max-width:640px)`／`html.m4`／isM4()）；網頁版只動 >640（`@media (min-width:641px)`／非 html.m4）。共用檔改動推 main 前一律跑桌機守門1008（手機版另跑手機v2 對應段落）。
