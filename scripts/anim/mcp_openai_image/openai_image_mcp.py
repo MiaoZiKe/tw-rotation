@@ -67,6 +67,8 @@ def _retry(fn, tries: int = 3):
             return fn()
         except Exception as e:  # noqa: BLE001
             name = type(e).__name__
+            if "insufficient_quota" in str(e) or "credit_balance" in str(e):
+                raise RuntimeError("OpenAI 帳號沒有可用額度（insufficient_quota）。請到 platform.openai.com 的 Billing 儲值後再試。") from e
             if name in ("RateLimitError", "APIConnectionError", "APITimeoutError", "InternalServerError") and i < tries - 1:
                 last = e
                 _log(f"{name}，{2 ** (i + 1)} 秒後重試")
