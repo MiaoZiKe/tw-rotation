@@ -29,7 +29,7 @@ powershell -ExecutionPolicy Bypass -File $HOME\setup-openai-mcp.ps1
 
 ## 在雲端 session 直接用（不需要本機 Claude Code）
 Andy 的日常是用雲端 session，本機沒有 `claude` 指令。這種情況下不用註冊 MCP，雲端的 Claude 直接 import 同一支程式呼叫即可：
-1. 環境設定（雲端環境選單 → Edit）：Network access 加入網域 `api.openai.com`；金鑰放環境變數 `OPENAI_API_KEY`（不要貼進聊天室）。
+1. 環境設定（claude.ai/code 輸入框上方的雲端圖示 → 環境旁的齒輪）。Pro／Max 方案優先用 **Network secrets**：Add secret，Allowed websites 填 `api.openai.com`，Custom headers 的 Name 填 `Authorization`、Prefix 填 `Bearer`、Value 貼金鑰，按 Connect；金鑰不進 VM，Claude 呼叫時設 `OPENAI_API_KEY=proxy-injected` 當佔位即可。沒有這一區的方案：Network access 選 Custom 加 `api.openai.com`，並把 `OPENAI_API_KEY=金鑰` 放環境變數。金鑰一律不貼進聊天室。
 2. 新開一個 session，Claude 用 `python3 -c "import sys; sys.path.insert(0,'scripts/anim/mcp_openai_image'); import openai_image_mcp as m; ..."` 呼叫 `m.generate_image(...)`、`m.edit_image_from_reference(...)`、`m.generate_frames_from_reference(...)`、`m.make_gif_from_frames(...)`。
 3. 產出放 repo 內的 `docs/anim/…`，審過才 commit（金鑰永遠不進 repo）。
 
