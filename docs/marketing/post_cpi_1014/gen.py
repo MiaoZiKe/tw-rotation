@@ -17,7 +17,9 @@ if __name__ == "__main__":
     quality = sys.argv[3] if len(sys.argv) > 3 else "medium"
     s = SLIDES[i - 1]
     prompt = STYLE + "\n\n【這一張的內容，文字照抄，不要改字】\n" + s["prompt"] + "\n\n【比比主持規則】比比要夠大（佔畫面約五分之一），是這張圖的主持人，要有清楚的表情、情境、動作、道具與互動，並有一個第一人稱對話泡泡跟觀眾說話。\n" + s["bibi"]
-    out = m._edit([f"{HERE}/refs/bibi_default.png", f"{HERE}/refs/style_infographic.png", f"{HERE}/refs/style_cover.png"],
-                  prompt, __import__("pathlib").Path(f"{HERE}/raw/slide_{i:02d}.png"), "1024x1024", quality, False, model, "high")
+    nref = int(os.environ.get("NREF", "3")); fid = os.environ.get("FID", "high")
+    refs = [f"{HERE}/refs/bibi_default.png", f"{HERE}/refs/style_infographic.png", f"{HERE}/refs/style_cover.png"][:nref]
+    out = m._edit(refs,
+                  prompt, __import__("pathlib").Path(f"{HERE}/raw/slide_{i:02d}_{model}.png"), "1024x1024", quality, False, model, fid)
     print(out)
     import time; print("耗時", round(time.time()-T0,1), "秒")
