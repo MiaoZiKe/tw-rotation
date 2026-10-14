@@ -1,0 +1,11 @@
+{
+  "updated": "2026-10-14",
+  "_note": "假資料（UI 專家 2026-10-14 放的示範主題候選，等真的候選清單產出後整份換掉）",
+  "topics": [
+    {"id": "t-sample-1", "cat": "news", "title": "【示範】本週外資連續買超的族群", "why": "示範理由：資金流向頁的族群×法人連續多日同方向", "site_links": ["#flow/inst"], "score": 82, "format_hint": "貼文"},
+    {"id": "t-sample-2", "cat": "intro", "title": "【示範】CoWoS 先進封裝在做什麼", "why": "示範理由：題材熱度高、站上已有剖析圖可引用", "site_links": ["#heatmap/theme", "#industry/semiconductor"], "score": 91, "format_hint": "短影片"},
+    {"id": "t-sample-3", "cat": "know", "title": "【示範】RSI 為什麼用 Wilder 平滑", "why": "示範理由：個股頁的指標說明常被問", "site_links": ["#stock/2330"], "score": 64, "format_hint": "長文"},
+    {"id": "t-sample-4", "cat": "know", "title": "【示範】殖利率與含息報酬差在哪", "why": "示範理由：ETF 頁的報酬比較需要觀念補充", "site_links": ["#etf/list"], "score": 73, "format_hint": "貼文"},
+    {"id": "t-sample-5", "cat": "news", "title": "【示範】FOMC 前後台股的歷史表現", "why": "示範理由：財經日曆下一次 FOMC 接近", "site_links": ["#earnings", "#season"], "score": 58, "format_hint": "短影片"}
+  ]
+}

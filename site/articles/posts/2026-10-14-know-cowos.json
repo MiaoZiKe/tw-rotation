@@ -1,0 +1,315 @@
+{
+ "id": "2026-10-14-know-cowos",
+ "cat": "know",
+ "title": "CoWoS 是什麼？AI 晶片的關鍵封裝",
+ "subtitle": "為什麼 HBM 要貼在 GPU 旁邊、產能為什麼總是不夠，一次看懂",
+ "date": "2026-10-14",
+ "updated": "2026-10-14",
+ "tags": [
+  "CoWoS",
+  "先進封裝",
+  "HBM",
+  "台積電",
+  "ABF 載板",
+  "半導體"
+ ],
+ "summary": "CoWoS 是台積電的 2.5D 先進封裝，把運算晶片與高頻寬記憶體並排放在中介層上，解決 AI 晶片「資料送不進來」的瓶頸。本文說明它的三層結構、-S／-R／-L 三個版本的差異、產能為何吃緊，以及台灣設備、載板、封測各環節的代表公司。",
+ "reading_min": 5,
+ "blocks": [
+  {
+   "t": "callout",
+   "text": "一句話版本：CoWoS 是台積電的「先進封裝」，把運算晶片和高頻寬記憶體（HBM）並排放在同一塊中介層上，讓兩者之間的資料通道又寬又短。"
+  },
+  {
+   "t": "h",
+   "text": "先從名字拆起"
+  },
+  {
+   "t": "p",
+   "text": "CoWoS 是「晶片在晶圓上、再放到基板上」（Chip on Wafer on Substrate）的縮寫，屬於台積電 3DFabric 先進封裝家族。名字本身就描述了它的三層結構：晶片、中介層（Interposer）、IC 載板。"
+  },
+  {
+   "t": "h",
+   "text": "為什麼 AI 晶片需要它：記憶體牆"
+  },
+  {
+   "t": "p",
+   "text": "研調機構集邦科技（TrendForce）整理過一組對比：過去 20 年 GPU 運算能力成長約 6 萬倍，DRAM 記憶體頻寬卻只成長約 100 倍。資料送不進來，運算再快也只能等，這就是「記憶體牆」。"
+  },
+  {
+   "t": "p",
+   "text": "HBM 的做法是把多層 DRAM 垂直疊起來，每一顆 HBM 拉出上千條資料線。SK 海力士（SK hynix）在 2026 年的技術研討會上表示，HBM4 每一疊有 2,048 個輸入輸出（I/O），單疊頻寬可達每秒 2TB 以上。這麼多條線無法繞到主機板再繞回來，只能讓 HBM 緊貼運算晶片，透過中介層的細線直接相連 —— 走線短，速度快也省電。"
+  },
+  {
+   "t": "h",
+   "text": "跟傳統封裝差在哪"
+  },
+  {
+   "t": "p",
+   "text": "傳統做法是一顆晶片封一個包裝再焊到電路板上，兩顆晶片要溝通得經過載板與電路板繞一圈，距離長、能拉的線數有限。CoWoS 屬於「2.5D 封裝」：在晶片和載板之間多加一層中介層，讓多顆晶片並排在上面直接連線。若把晶片直接往上疊，則叫 3D 封裝。"
+  },
+  {
+   "t": "h",
+   "text": "結構怎麼疊：由上而下"
+  },
+  {
+   "t": "ul",
+   "items": [
+    "第一層：運算晶片（GPU 或客製化 AI 晶片）與周圍的多顆 HBM。",
+    "第二層：中介層。上面布滿極細的連線，負責晶片與 HBM 之間的高速通道；底下再透過矽穿孔（TSV）或凸塊往下接。",
+    "第三層：IC 載板（多為 ABF 載板）。把中介層的訊號轉成較粗的線路，最後焊到伺服器主機板上。"
+   ]
+  },
+  {
+   "t": "h",
+   "text": "CoWoS-S、-R、-L 差在中介層"
+  },
+  {
+   "t": "table",
+   "head": [
+    "版本",
+    "中介層材質",
+    "查得到的特色"
+   ],
+   "rows": [
+    [
+     "CoWoS-S",
+     "整片矽",
+     "台積電官網：中介層最大可到光罩尺寸 3.3 倍（約 2,700 平方毫米），更大的需求建議改用 -L 或 -R（部分媒體寫約 2,500，以官網為準）"
+    ],
+    [
+     "CoWoS-R",
+     "有機重佈線層（RDL），由高分子與銅線組成",
+     "台積電官網：最小線距 4 微米；媒體描述為成本較低、彈性較高，效能不如 -S"
+    ],
+    [
+     "CoWoS-L",
+     "重佈線層＋局部嵌入的小塊矽橋（LSI）",
+     "只在需要高密度連線處放矽橋，避開大片矽中介層的良率問題（EDN Asia）；媒體報導 NVIDIA Blackwell 採用"
+    ]
+   ]
+  },
+  {
+   "t": "p",
+   "text": "簡單記：-S 效能好但貴、尺寸有上限；-R 便宜有彈性；-L 是折衷。各版本可放幾顆 HBM，媒體寫法不一，本文不列。"
+  },
+  {
+   "t": "h",
+   "text": "產能為什麼常被說吃緊"
+  },
+  {
+   "t": "p",
+   "text": "台積電董事長魏哲家在 2024 年 10 月法說會表示，CoWoS 產能當年與隔年都要翻倍，仍然不夠；2025 年 10 月再度表示供應仍緊張。2026 年被問到客戶是否轉向英特爾（Intel）的 EMIB 方案時，他回應台積電仍提供業界最大尺寸的封裝方案。"
+  },
+  {
+   "t": "p",
+   "text": "數字方面，台積電沒有公布 CoWoS 月產能，以下都是法人估計：2026 年底月產能各家估在約 11 萬到 14 萬片之間，2027 年底約 17 萬到 20 萬片；供需缺口的說法也從約一成到兩成都有。吃緊的原因：晶片越做越大、HBM 越放越多，一片晶圓切得出的中介層變少；新廠房與無塵室要好幾年才蓋得好；後段組裝與測試放量也跟不上前段。"
+  },
+  {
+   "t": "callout",
+   "text": "台積電 2026 年資本支出預算為 520 億到 560 億美元，其中約一到兩成用於先進封裝、光罩製作等項目（2026 年 1 月法說會，媒體轉述）。"
+  },
+  {
+   "t": "h",
+   "text": "台灣供應鏈有哪些環節"
+  },
+  {
+   "t": "p",
+   "text": "CoWoS 本體由台積電自己做。依媒體與法人描述，前段（CoW）以台積電為主，後段接上載板（oS）有封測廠分擔，最常被提到的是日月光投控。日月光自己在 2026 年 7 月法說會表示，今年先進封測（LEAP）營收將優於原訂的 35 億美元目標 —— 但 LEAP 涵蓋多種先進封裝，不全是 CoWoS。"
+  },
+  {
+   "t": "stocks",
+   "items": [
+    {
+     "code": "2330",
+     "name": "台積電",
+     "why": "CoWoS 本體，前段製程與中介層"
+    },
+    {
+     "code": "3711",
+     "name": "日月光投控",
+     "why": "封測，承接後段組裝與測試"
+    },
+    {
+     "code": "3131",
+     "name": "弘塑",
+     "why": "設備：濕製程清洗、電鍍"
+    },
+    {
+     "code": "3583",
+     "name": "辛耘",
+     "why": "設備：濕製程設備（另有設備代理與再生晶圓）"
+    },
+    {
+     "code": "6187",
+     "name": "萬潤",
+     "why": "設備：點膠、自動光學檢測"
+    },
+    {
+     "code": "3680",
+     "name": "家登",
+     "why": "載具：含先進封裝用載具"
+    },
+    {
+     "code": "3037",
+     "name": "欣興",
+     "why": "ABF 載板"
+    },
+    {
+     "code": "8046",
+     "name": "南電",
+     "why": "ABF 載板"
+    },
+    {
+     "code": "3189",
+     "name": "景碩",
+     "why": "ABF 與 BT 載板"
+    }
+   ]
+  },
+  {
+   "t": "ul",
+   "items": [
+    "設備：2024 年工商時報報導，弘塑與辛耘是台積電 CoWoS 濕製程清洗設備的主要供應商，萬潤是點膠機與自動光學檢測的主要供應商。設備商營收跟著客戶資本支出走，節奏與產能廠不同。",
+    "載板：法人指出 AI 晶片把 ABF 載板推向大尺寸、高層數，並預估供給偏緊；各家缺口數字差距大，本文不列。",
+    "注意：本站「CoWoS／先進封裝」題材清單裡的精材，做的是晶圓級封裝與矽穿孔，不是 CoWoS 本身。"
+   ]
+  },
+  {
+   "t": "p",
+   "text": "本文為公開資訊整理，不構成投資建議。"
+  }
+ ],
+ "site_links": [
+  {
+   "label": "CoWoS／先進封裝題材",
+   "hash": "#heatmap/theme/cowos"
+  },
+  {
+   "label": "AI 先進封裝族群",
+   "hash": "#industry/group/ai_adv_packaging"
+  },
+  {
+   "label": "封裝製程機台族群",
+   "hash": "#industry/group/pkg_equipment"
+  },
+  {
+   "label": "PCB 載板族群",
+   "hash": "#industry/group/ic_substrate"
+  },
+  {
+   "label": "半導體產業鏈",
+   "hash": "#industry/semiconductor"
+  },
+  {
+   "label": "台積電個股頁",
+   "hash": "#stock/2330"
+  }
+ ],
+ "sources": [
+  {
+   "title": "CoWoS 技術介紹（3DFabric 官方頁面）",
+   "publisher": "台積電",
+   "date": "",
+   "url": "https://3dfabric.tsmc.com/chinese/dedicatedFoundry/technology/cowos.htm"
+  },
+  {
+   "title": "打破記憶體牆：HBM 基礎與 HBM4 在 AI 的崛起（英文原文）",
+   "publisher": "集邦科技 TrendForce",
+   "date": "2025-09-29",
+   "url": "https://www.trendforce.com/news/2025/09/29/news-breaking-the-memory-wall-hbm-basics-and-the-rise-of-hbm4-in-ai/"
+  },
+  {
+   "title": "SK 海力士 Hot Chips 2026 談 HBM 先進封裝",
+   "publisher": "科技新報",
+   "date": "2026-08-24",
+   "url": "https://technews.tw/2026/08/24/sk-hynix-hot-chips-2026-hbm/"
+  },
+  {
+   "title": "CoWoS、CoPoS、CoWoP 傻傻分不清",
+   "publisher": "科技新報",
+   "date": "2025-09-08",
+   "url": "https://technews.tw/2025/09/08/what-is-cowos-copos-cowop/"
+  },
+  {
+   "title": "CoWoS-L 技術說明",
+   "publisher": "EDN Asia",
+   "date": "",
+   "url": "https://www.ednasia.com/?p=33318"
+  },
+  {
+   "title": "CoWoS 產能連兩年倍增還不夠，設備廠好光景直達 2026 年",
+   "publisher": "科技新報",
+   "date": "2024-10-18",
+   "url": "https://technews.tw/2024/10/18/cowos-equipment-factory/"
+  },
+  {
+   "title": "魏哲家：AI 需求持續強勁，甚至較三個月前更樂觀",
+   "publisher": "科技新報",
+   "date": "2025-10-16",
+   "url": "https://finance.technews.tw/2025/10/16/current-ai-demand-is-even-more-optimistic-than-expected-three-months-ago/"
+  },
+  {
+   "title": "先進封裝產能吃緊，客戶是否轉向 EMIB？魏哲家法說會回應",
+   "publisher": "科技新報",
+   "date": "2026-04-16",
+   "url": "https://finance.technews.tw/2026/04/16/intel-emib-copos/"
+  },
+  {
+   "title": "台積電 2026 年資本支出與先進封裝擴產",
+   "publisher": "旺得富／中時",
+   "date": "2026-01-16",
+   "url": "https://wantrich.chinatimes.com/news/20260116900007-420101"
+  },
+  {
+   "title": "CoWoS 月產能上修至 13 萬片，供需缺口仍約兩成",
+   "publisher": "旺得富／中時",
+   "date": "2026-07-23",
+   "url": "https://wantrich.chinatimes.com/news/20260723900161-420101"
+  },
+  {
+   "title": "台積電號召夥伴加入衝刺先進封裝（月產能與缺口估計）",
+   "publisher": "世界日報",
+   "date": "",
+   "url": "https://www.worldjournal.com/wj/amp/story/121347/9566295"
+  },
+  {
+   "title": "台積電協力廠人氣旺：法人 CoWoS 月產能預估",
+   "publisher": "經濟日報",
+   "date": "",
+   "url": "https://money.udn.com/money/amp/story/5607/9233420"
+  },
+  {
+   "title": "CoWoS 主場在台灣：前段 CoW 與後段 oS 分工",
+   "publisher": "科技新報",
+   "date": "2024-11-04",
+   "url": "https://technews.tw/2024/11/04/cowos-home-court-taiwan/"
+  },
+  {
+   "title": "〈日月光法說〉今年 LEAP 營收估逾 35 億美元，明年再翻倍",
+   "publisher": "優分析",
+   "date": "2026-07-30",
+   "url": "https://uanalyze.com.tw/articles/6288452485"
+  },
+  {
+   "title": "CoWoS 擴產，弘塑、辛耘、萬潤設備接單",
+   "publisher": "工商時報",
+   "date": "2024-02-07",
+   "url": "https://www.ctee.com.tw/news/20240207700238-439901"
+  },
+  {
+   "title": "ABF 載板結構性供需失衡將擴大",
+   "publisher": "經濟日報",
+   "date": "",
+   "url": "https://money.udn.com/money/story/5607/9650547"
+  },
+  {
+   "title": "ABF 載板缺口 2030 年擴大",
+   "publisher": "科技新報",
+   "date": "2026-05-19",
+   "url": "https://finance.technews.tw/2026/05/19/supply-growth/"
+  }
+ ],
+ "confidence": "中",
+ "status": "published"
+}
