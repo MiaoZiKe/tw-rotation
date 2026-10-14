@@ -40,14 +40,14 @@
   "情境": "跟著製程一步步聞過去"
  },
  "s05": {
-  "src": "docs/anim/bibi_library/face_shock/key.png",
+  "src": "docs/anim/bibi_library/face_surprise_happy/key.png",
   "size": [
-   321,
-   368
+   304,
+   325
   ],
-  "表情": "嚇一跳",
-  "動作": "毛炸開、白眼圈",
-  "情境": "雷射打錫滴？！"
+  "表情": "驚呆張大嘴",
+  "動作": "四腳坐、頭上冒驚嘆小線",
+  "情境": "雷射打錫滴？！（CEO 10-14 退回 face_shock 的線條炸毛）"
  },
  "s06": {
   "src": "docs/anim/bibi_basepose_1012/png/side_r.png",
@@ -70,14 +70,14 @@
   "情境": "想通因果鏈"
  },
  "s08": {
-  "src": "docs/anim/bibi_library/peek_r/key.png",
+  "src": "docs/anim/bibi_library/face_curious/key.png",
   "size": [
-   203,
-   248
+   340,
+   299
   ],
   "表情": "好奇",
-  "動作": "從右下角探頭",
-  "情境": "偷看財報數字"
+  "動作": "湊近、歪頭",
+  "情境": "湊近看財報數字（CEO 10-14 退回 peek_r 被畫布裁切）"
  },
  "s09": {
   "src": "docs/anim/bibi_basepose_1012/png/lie_front.png",
@@ -90,13 +90,13 @@
   "情境": "趴在產業鏈旁邊"
  },
  "s10": {
-  "src": "docs/anim/bibi_library/face_star/key.png",
+  "src": "docs/anim/bibi_library/face_love/key.png",
   "size": [
-   338,
-   302
+   290,
+   367
   ],
-  "表情": "超讚",
-  "動作": "星星眼",
-  "情境": "總結"
+  "表情": "喜歡",
+  "動作": "愛心眼、飄小愛心",
+  "情境": "總結（第 5 張已用星星眼系，這張換愛心眼避免重複）"
  }
 }

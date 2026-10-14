@@ -11,12 +11,12 @@ PICK = {
     "s02": ("docs/anim/bibi_library/calendar/key.png", "開心期待", "四腳坐、日曆懸空在頭上", "今天 10/14 財報日"),
     "s03": ("docs/anim/bibi_library/tilt/key.png", "疑惑", "歪頭", "ASML 是誰？"),
     "s04": ("docs/anim/bibi_basepose_1012/png/sniff_r.png", "專心", "低頭嗅地，鼻子沿著流程往右", "跟著製程一步步聞過去"),
-    "s05": ("docs/anim/bibi_library/face_shock/key.png", "嚇一跳", "毛炸開、白眼圈", "雷射打錫滴？！"),
+    "s05": ("docs/anim/bibi_library/face_surprise_happy/key.png", "驚呆張大嘴", "四腳坐、頭上冒驚嘆小線", "雷射打錫滴？！（CEO 10-14 退回 face_shock 的線條炸毛）"),
     "s06": ("docs/anim/bibi_basepose_1012/png/side_r.png", "認真", "側面站、面向右，放大鏡懸空在身旁（sit_r 原檔右下有一隻脫離的腳不用）", "比較三代光"),
     "s07": ("docs/anim/bibi_library/face_thinking_bulb/key.png", "恍然大悟", "瞇眼點頭、燈泡亮", "想通因果鏈"),
-    "s08": ("docs/anim/bibi_library/peek_r/key.png", "好奇", "從右下角探頭", "偷看財報數字"),
+    "s08": ("docs/anim/bibi_library/face_curious/key.png", "好奇", "湊近、歪頭", "湊近看財報數字（CEO 10-14 退回 peek_r 被畫布裁切）"),
     "s09": ("docs/anim/bibi_basepose_1012/png/lie_front.png", "放鬆", "正面趴著", "趴在產業鏈旁邊"),
-    "s10": ("docs/anim/bibi_library/face_star/key.png", "超讚", "星星眼", "總結"),
+    "s10": ("docs/anim/bibi_library/face_love/key.png", "喜歡", "愛心眼、飄小愛心", "總結（第 5 張已用星星眼系，這張換愛心眼避免重複）"),
 }
 
 

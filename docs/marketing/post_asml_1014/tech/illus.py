@@ -183,9 +183,20 @@ def euv_cross():
     # 晶圓台（右下）
     b += f'<rect x="700" y="500" width="250" height="56" rx="16" fill="url(#gMetalSide)" stroke="{INK}" stroke-width="4"/>'
     b += _wafer_disk(824, 482, 104, 26, thick=9)
-    # 小編號圓章 1~6
-    for n, (x, y) in enumerate([(300, 470), (84, 300), (300, 360), (456, 56), (690, 132), (930, 450)], 1):
-        pass
+    # 中間焦點（光源艙出口）
+    b += f'<circle cx="392" cy="300" r="26" fill="url(#gGlow)"/><circle cx="392" cy="300" r="7" fill="#FFFFFF" stroke="{VIO}" stroke-width="3"/>'
+    # 放大圈：多層反射鏡的膜層（鉬／矽交替）
+    b += f'<path d="M512,110 L560,330" stroke="{INK}" stroke-width="3" stroke-dasharray="8 8" opacity="0.6"/>'
+    b += f'<clipPath id="cZoom"><circle cx="560" cy="430" r="96"/></clipPath>'
+    b += f'<circle cx="560" cy="430" r="104" fill="#FFFFFF" stroke="{INK}" stroke-width="{SW + 2}"/>'
+    b += '<g clip-path="url(#cZoom)">'
+    for k in range(14):
+        y = 340 + k * 14
+        b += f'<rect x="460" y="{y}" width="200" height="14" fill="{"#8F7AD6" if k % 2 == 0 else "#DCE9F7"}"/>'
+    b += f'<path d="M470,350 L560,420 L650,350" stroke="#FFF3B0" stroke-width="7" fill="none" opacity="0.9" stroke-linejoin="round"/>'
+    b += "</g>"
+    b += f'<circle cx="560" cy="430" r="96" fill="none" stroke="#FFFFFF" stroke-width="5" opacity="0.7"/>'
+    b += f'<path d="M634,506 L668,540" stroke="{COCOA}" stroke-width="18" stroke-linecap="round"/>'
     return _wrap(vw, vh, b), vw, vh
 
 

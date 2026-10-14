@@ -1,0 +1,5683 @@
+{
+"1": {
+"els": [
+{
+"name": "LOGO",
+"box": [
+38,
+34,
+126,
+122
+],
+"parent": null,
+"kind": "logo"
+},
+{
+"name": "品牌字",
+"box": [
+142,
+49.0,
+286.0,
+80.5
+],
+"parent": null,
+"kind": "text",
+"size": 36
+},
+{
+"name": "欄名",
+"box": [
+142,
+93.0,
+262.0,
+115.0
+],
+"parent": null,
+"kind": "text",
+"size": 24
+},
+{
+"name": "頁碼",
+"box": [
+900,
+50,
+1040,
+104
+],
+"parent": null,
+"kind": "card"
+},
+{
+"name": "頁碼_字",
+"box": [
+917.9,
+62.5,
+1022.1,
+88.0
+],
+"parent": "頁碼",
+"kind": "text",
+"size": 30
+},
+{
+"name": "欄位標",
+"box": [
+48,
+150,
+400,
+204
+],
+"parent": null,
+"kind": "card"
+},
+{
+"name": "欄位標_字",
+"box": [
+84.0,
+161.7,
+364.0,
+187.2
+],
+"parent": "欄位標",
+"kind": "text",
+"size": 28
+},
+{
+"name": "標題1",
+"box": [
+48,
+231.5,
+660.9,
+321.0
+],
+"parent": null,
+"kind": "text",
+"size": 100
+},
+{
+"name": "標題2",
+"box": [
+48,
+357.5,
+548.0,
+447.5
+],
+"parent": null,
+"kind": "text",
+"size": 100
+},
+{
+"name": "副標",
+"box": [
+50,
+486.0,
+530.0,
+522.5
+],
+"parent": null,
+"kind": "text",
+"size": 40
+},
+{
+"name": "曝光機插畫",
+"box": [
+46.0,
+629.5,
+786.5,
+1103.5
+],
+"parent": null,
+"kind": "illus"
+},
+{
+"name": "示意標",
+"box": [
+48,
+1132,
+296.0,
+1174
+],
+"parent": null,
+"kind": "card"
+},
+{
+"name": "示意標_字",
+"box": [
+64,
+1139.6,
+280.0,
+1161.6
+],
+"parent": "示意標",
+"kind": "text",
+"size": 24
+},
+{
+"name": "泡泡",
+"box": [
+786.0,
+566,
+1044,
+727.9
+],
+"parent": null,
+"kind": "bubble",
+"tip": [
+925.0,
+727.9
+]
+},
+{
+"name": "泡泡_字",
+"box": [
+813.0,
+591.5,
+1017.0,
+666.7
+],
+"parent": "泡泡",
+"kind": "text",
+"size": 34
+},
+{
+"name": "比比",
+"box": [
+802.2,
+740,
+1041.8,
+950
+],
+"parent": null,
+"kind": "bibi",
+"key": "s01"
+},
+{
+"name": "速度線",
+"box": [
+858,
+968,
+986,
+1008
+],
+"parent": null,
+"kind": "fx"
+},
+{
+"name": "影子",
+"box": [
+826,
+1074,
+1018,
+1098
+],
+"parent": null,
+"kind": "leaf"
+},
+{
+"name": "事件條",
+"box": [
+48,
+1190,
+1032,
+1266
+],
+"parent": null,
+"kind": "card"
+},
+{
+"name": "事件條字",
+"box": [
+160.2,
+1208.0,
+919.8,
+1241.0
+],
+"parent": "事件條",
+"kind": "text",
+"size": 36
+},
+{
+"name": "出處",
+"box": [
+48,
+1291.0,
+378.0,
+1313.0
+],
+"parent": null,
+"kind": "text",
+"size": 24
+},
+{
+"name": "往右滑",
+"box": [
+929.5,
+1289.5,
+1032.0,
+1315.0
+],
+"parent": null,
+"kind": "text",
+"size": 28
+}
+],
+"texts": [
+{
+"name": "品牌字",
+"text": "哩股哩股",
+"size": 36,
+"role": "brand"
+},
+{
+"name": "欄名",
+"text": "科技小教室",
+"size": 24,
+"role": "brand"
+},
+{
+"name": "頁碼_字",
+"text": "01 / 10",
+"size": 30,
+"role": "pill"
+},
+{
+"name": "欄位標_字",
+"text": "財報前・半導體小知識",
+"size": 28,
+"role": "pill"
+},
+{
+"name": "標題1",
+"text": "ASML 為何是",
+"size": 100,
+"role": "title"
+},
+{
+"name": "標題2",
+"text": "景氣前哨？",
+"size": 100,
+"role": "title"
+},
+{
+"name": "副標",
+"text": "一台曝光機，看懂晶片景氣",
+"size": 40,
+"role": "sub"
+},
+{
+"name": "示意標_字",
+"text": "示意圖，非實際構造",
+"size": 24,
+"role": "tag"
+},
+{
+"name": "泡泡_字",
+"text": "這台機器到底在做什麼？",
+"size": 34,
+"role": "bubble"
+},
+{
+"name": "事件條字",
+"text": "2026/10/14　ASML 公布第 3 季財報（預定）",
+"size": 36,
+"role": "body"
+},
+{
+"name": "出處",
+"text": "資料：TechNews 2026-10-13",
+"size": 24,
+"role": "foot"
+},
+{
+"name": "往右滑",
+"text": "往右滑 ›",
+"size": 28,
+"role": "foot"
+}
+]
+},
+"2": {
+"els": [
+{
+"name": "LOGO",
+"box": [
+38,
+34,
+126,
+122
+],
+"parent": null,
+"kind": "logo"
+},
+{
+"name": "品牌字",
+"box": [
+142,
+49.0,
+286.0,
+80.5
+],
+"parent": null,
+"kind": "text",
+"size": 36
+},
+{
+"name": "欄名",
+"box": [
+142,
+93.0,
+262.0,
+115.0
+],
+"parent": null,
+"kind": "text",
+"size": 24
+},
+{
+"name": "頁碼",
+"box": [
+900,
+50,
+1040,
+104
+],
+"parent": null,
+"kind": "card"
+},
+{
+"name": "頁碼_字",
+"box": [
+917.9,
+62.5,
+1022.1,
+88.0
+],
+"parent": "頁碼",
+"kind": "text",
+"size": 30
+},
+{
+"name": "標題",
+"box": [
+48,
+149.0,
+358.0,
+205.5
+],
+"parent": null,
+"kind": "text",
+"size": 62
+},
+{
+"name": "剪報",
+"box": [
+92.5,
+236.0,
+987.5,
+632.5
+],
+"parent": null,
+"kind": "illus"
+},
+{
+"name": "剪報來源",
+"box": [
+120,
+291.5,
+561.0,
+317.0
+],
+"parent": "剪報",
+"kind": "text",
+"size": 28
+},
+{
+"name": "剪報標題",
+"box": [
+120,
+344.0,
+741.7,
+442.1
+],
+"parent": "剪報",
+"kind": "text",
+"size": 44
+},
+{
+"name": "剪報摘要",
+"box": [
+120,
+487.5,
+694.5,
+516.5
+],
+"parent": "剪報",
+"kind": "text",
+"size": 32
+},
+{
+"name": "剪報標",
+"box": [
+120,
+556,
+296.0,
+598
+],
+"parent": "剪報",
+"kind": "card"
+},
+{
+"name": "剪報標_字",
+"box": [
+136,
+563.6,
+280.0,
+586.1
+],
+"parent": "剪報標",
+"kind": "text",
+"size": 24
+},
+{
+"name": "時間軸線",
+"box": [
+90,
+755,
+990,
+765
+],
+"parent": null,
+"kind": "line"
+},
+{
+"name": "節點0",
+"box": [
+128,
+738,
+172,
+782
+],
+"parent": "時間軸線",
+"kind": "badge"
+},
+{
+"name": "節點日0",
+"box": [
+111.9,
+673.0,
+188.1,
+702.0
+],
+"parent": null,
+"kind": "text",
+"size": 34
+},
+{
+"name": "節點字0",
+"box": [
+72.0,
+812.0,
+228.0,
+878.0
+],
+"parent": null,
+"kind": "text",
+"size": 30
+},
+{
+"name": "節點1",
+"box": [
+378,
+738,
+422,
+782
+],
+"parent": "時間軸線",
+"kind": "badge"
+},
+{
+"name": "節點日1",
+"box": [
+350.9,
+673.0,
+449.1,
+702.0
+],
+"parent": null,
+"kind": "text",
+"size": 34
+},
+{
+"name": "節點字1",
+"box": [
+325.0,
+812.0,
+475.0,
+878.0
+],
+"parent": null,
+"kind": "text",
+"size": 30
+},
+{
+"name": "節點2",
+"box": [
+616,
+726,
+684,
+794
+],
+"parent": "時間軸線",
+"kind": "badge"
+},
+{
+"name": "節點日2",
+"box": [
+592.3,
+674.5,
+707.7,
+708.5
+],
+"parent": null,
+"kind": "text",
+"size": 40
+},
+{
+"name": "節點字2",
+"box": [
+572.0,
+812.0,
+728.0,
+878.0
+],
+"parent": null,
+"kind": "text",
+"size": 30
+},
+{
+"name": "節點3",
+"box": [
+878,
+738,
+922,
+782
+],
+"parent": "時間軸線",
+"kind": "badge"
+},
+{
+"name": "節點日3",
+"box": [
+866.0,
+671.5,
+934.0,
+702.5
+],
+"parent": null,
+"kind": "text",
+"size": 34
+},
+{
+"name": "節點字3",
+"box": [
+840.0,
+812.0,
+960.0,
+878.0
+],
+"parent": null,
+"kind": "text",
+"size": 30
+},
+{
+"name": "順序標",
+"box": [
+740.0,
+900,
+940.0,
+942
+],
+"parent": null,
+"kind": "card"
+},
+{
+"name": "順序標_字",
+"box": [
+756.0,
+907.6,
+924.0,
+930.1
+],
+"parent": "順序標",
+"kind": "text",
+"size": 24
+},
+{
+"name": "比比",
+"box": [
+56,
+966,
+242.5,
+1256
+],
+"parent": null,
+"kind": "bibi",
+"key": "s02"
+},
+{
+"name": "泡泡",
+"box": [
+252,
+1140,
+762.0,
+1223.7
+],
+"parent": null,
+"kind": "bubble",
+"tip": [
+252,
+1176
+]
+},
+{
+"name": "泡泡_字",
+"box": [
+327.0,
+1165.5,
+735.0,
+1197.0
+],
+"parent": "泡泡",
+"kind": "text",
+"size": 34
+},
+{
+"name": "白話卡",
+"box": [
+290,
+966,
+1032,
+1110
+],
+"parent": null,
+"kind": "card"
+},
+{
+"name": "白話卡字",
+"box": [
+316,
+985.5,
+979.9,
+1052.5
+],
+"parent": "白話卡",
+"kind": "text",
+"size": 30
+},
+{
+"name": "白話標",
+"box": [
+884.0,
+1060,
+1012.0,
+1102
+],
+"parent": "白話卡",
+"kind": "card"
+},
+{
+"name": "白話標_字",
+"box": [
+900.0,
+1067.6,
+996.0,
+1089.6
+],
+"parent": "白話標",
+"kind": "text",
+"size": 24
+},
+{
+"name": "出處",
+"box": [
+48,
+1291.0,
+538.4,
+1313.0
+],
+"parent": null,
+"kind": "text",
+"size": 24
+},
+{
+"name": "往右滑",
+"box": [
+929.5,
+1289.5,
+1032.0,
+1315.0
+],
+"parent": null,
+"kind": "text",
+"size": 28
+}
+],
+"texts": [
+{
+"name": "品牌字",
+"text": "哩股哩股",
+"size": 36,
+"role": "brand"
+},
+{
+"name": "欄名",
+"text": "科技小教室",
+"size": 24,
+"role": "brand"
+},
+{
+"name": "頁碼_字",
+"text": "02 / 10",
+"size": 30,
+"role": "pill"
+},
+{
+"name": "標題",
+"text": "今天的事件",
+"size": 62,
+"role": "title"
+},
+{
+"name": "剪報來源",
+"text": "TechNews 科技新報｜2026-10-13",
+"size": 28,
+"role": "body"
+},
+{
+"name": "剪報標題",
+"text": "先台積電一步公布業績，ASML 第三季有望獲利年增翻倍",
+"size": 44,
+"role": "body"
+},
+{
+"name": "剪報摘要",
+"text": "ASML 預計 10 月 14 日公布第 3 季財報",
+"size": 32,
+"role": "body"
+},
+{
+"name": "剪報標_字",
+"text": "新聞標題原文",
+"size": 24,
+"role": "tag"
+},
+{
+"name": "節點0",
+"text": "",
+"size": 25,
+"role": "badge"
+},
+{
+"name": "節點日0",
+"text": "7/15",
+"size": 34,
+"role": "body"
+},
+{
+"name": "節點字0",
+"text": "第 2 季財報已公布",
+"size": 30,
+"role": "body"
+},
+{
+"name": "節點1",
+"text": "",
+"size": 25,
+"role": "badge"
+},
+{
+"name": "節點日1",
+"text": "10/13",
+"size": 34,
+"role": "body"
+},
+{
+"name": "節點字1",
+"text": "新聞：財報前預期",
+"size": 30,
+"role": "body"
+},
+{
+"name": "節點2",
+"text": "",
+"size": 39,
+"role": "badge"
+},
+{
+"name": "節點日2",
+"text": "10/14",
+"size": 40,
+"role": "body"
+},
+{
+"name": "節點字2",
+"text": "第 3 季財報（預定）",
+"size": 30,
+"role": "body"
+},
+{
+"name": "節點3",
+"text": "",
+"size": 25,
+"role": "badge"
+},
+{
+"name": "節點日3",
+"text": "之後",
+"size": 34,
+"role": "body"
+},
+{
+"name": "節點字3",
+"text": "台積電公布業績",
+"size": 30,
+"role": "body"
+},
+{
+"name": "順序標_字",
+"text": "順序依新聞標題",
+"size": 24,
+"role": "tag"
+},
+{
+"name": "泡泡_字",
+"text": "財報前，先把背景補起來！",
+"size": 34,
+"role": "bubble"
+},
+{
+"name": "白話卡字",
+"text": "白話：ASML 賣晶片「曝光機」，它的訂單常被拿來觀察半導體景氣。",
+"size": 30,
+"role": "body"
+},
+{
+"name": "白話標_字",
+"text": "市場看法",
+"size": 24,
+"role": "tag"
+},
+{
+"name": "出處",
+"text": "資料：TechNews 2026-10-13、2026-07-15",
+"size": 24,
+"role": "foot"
+},
+{
+"name": "往右滑",
+"text": "往右滑 ›",
+"size": 28,
+"role": "foot"
+}
+]
+},
+"3": {
+"els": [
+{
+"name": "LOGO",
+"box": [
+38,
+34,
+126,
+122
+],
+"parent": null,
+"kind": "logo"
+},
+{
+"name": "品牌字",
+"box": [
+142,
+49.0,
+286.0,
+80.5
+],
+"parent": null,
+"kind": "text",
+"size": 36
+},
+{
+"name": "欄名",
+"box": [
+142,
+93.0,
+262.0,
+115.0
+],
+"parent": null,
+"kind": "text",
+"size": 24
+},
+{
+"name": "頁碼",
+"box": [
+900,
+50,
+1040,
+104
+],
+"parent": null,
+"kind": "card"
+},
+{
+"name": "頁碼_字",
+"box": [
+917.9,
+62.5,
+1022.1,
+88.0
+],
+"parent": "頁碼",
+"kind": "text",
+"size": 30
+},
+{
+"name": "標題",
+"box": [
+48,
+149.5,
+428.0,
+204.0
+],
+"parent": null,
+"kind": "text",
+"size": 62
+},
+{
+"name": "檔案卡",
+"box": [
+48,
+236,
+1032,
+690
+],
+"parent": null,
+"kind": "card"
+},
+{
+"name": "卡標",
+"box": [
+80,
+250.0,
+454.9,
+277.0
+],
+"parent": "檔案卡",
+"kind": "text",
+"size": 30
+},
+{
+"name": "夾子",
+"box": [
+950.0,
+221.0,
+974.0,
+291.5
+],
+"parent": "檔案卡",
+"kind": "illus"
+},
+{
+"name": "機台小圖",
+"box": [
+76.0,
+378.0,
+418.0,
+597.0
+],
+"parent": "檔案卡",
+"kind": "illus"
+},
+{
+"name": "欄0",
+"box": [
+440,
+330,
+548,
+380
+],
+"parent": "檔案卡",
+"kind": "card"
+},
+{
+"name": "欄0_字",
+"box": [
+466.0,
+339.7,
+522.0,
+364.7
+],
+"parent": "欄0",
+"kind": "text",
+"size": 28
+},
+{
+"name": "值0",
+"box": [
+568,
+336.0,
+824.6,
+368.5
+],
+"parent": "檔案卡",
+"kind": "text",
+"size": 36
+},
+{
+"name": "欄1",
+"box": [
+440,
+406,
+548,
+456
+],
+"parent": "檔案卡",
+"kind": "card"
+},
+{
+"name": "欄1_字",
+"box": [
+466.0,
+415.7,
+522.0,
+440.7
+],
+"parent": "欄1",
+"kind": "text",
+"size": 28
+},
+{
+"name": "值1",
+"box": [
+568,
+412.5,
+702.9,
+444.5
+],
+"parent": "檔案卡",
+"kind": "text",
+"size": 36
+},
+{
+"name": "欄2",
+"box": [
+440,
+482,
+548,
+532
+],
+"parent": "檔案卡",
+"kind": "card"
+},
+{
+"name": "欄2_字",
+"box": [
+466.0,
+491.7,
+522.0,
+517.2
+],
+"parent": "欄2",
+"kind": "text",
+"size": 28
+},
+{
+"name": "值2",
+"box": [
+568,
+488.0,
+820.0,
+521.0
+],
+"parent": "檔案卡",
+"kind": "text",
+"size": 36
+},
+{
+"name": "欄3",
+"box": [
+440,
+558,
+548,
+608
+],
+"parent": "檔案卡",
+"kind": "card"
+},
+{
+"name": "欄3_字",
+"box": [
+466.0,
+567.7,
+522.0,
+593.2
+],
+"parent": "欄3",
+"kind": "text",
+"size": 28
+},
+{
+"name": "值3",
+"box": [
+568,
+564.0,
+892.0,
+597.0
+],
+"parent": "檔案卡",
+"kind": "text",
+"size": 36
+},
+{
+"name": "卡事實",
+"box": [
+856.0,
+636,
+1008.0,
+678
+],
+"parent": "檔案卡",
+"kind": "card"
+},
+{
+"name": "卡事實_字",
+"box": [
+872.0,
+643.6,
+992.0,
+665.6
+],
+"parent": "卡事實",
+"kind": "text",
+"size": 24
+},
+{
+"name": "小標",
+"box": [
+48,
+726.0,
+328.0,
+762.5
+],
+"parent": null,
+"kind": "text",
+"size": 40
+},
+{
+"name": "鏈圖0",
+"box": [
+70.5,
+812.0,
+235.5,
+933.0
+],
+"parent": null,
+"kind": "illus"
+},
+{
+"name": "鏈字0",
+"box": [
+108.0,
+980.5,
+198.0,
+1044.0
+],
+"parent": null,
+"kind": "text",
+"size": 30
+},
+{
+"name": "鏈箭0",
+"box": [
+262.0,
+851.0,
+310.0,
+881.0
+],
+"parent": null,
+"kind": "arrow"
+},
+{
+"name": "鏈圖1",
+"box": [
+332.0,
+784.0,
+490.0,
+933.0
+],
+"parent": null,
+"kind": "illus"
+},
+{
+"name": "鏈字1",
+"box": [
+366.0,
+978.0,
+456.0,
+1005.0
+],
+"parent": null,
+"kind": "text",
+"size": 30
+},
+{
+"name": "鏈箭1",
+"box": [
+520.0,
+851.0,
+568.0,
+881.0
+],
+"parent": null,
+"kind": "arrow"
+},
+{
+"name": "鏈圖2",
+"box": [
+594.5,
+798.5,
+743.5,
+963.5
+],
+"parent": null,
+"kind": "illus"
+},
+{
+"name": "鏈字2",
+"box": [
+639.0,
+978.0,
+699.0,
+1005.0
+],
+"parent": null,
+"kind": "text",
+"size": 30
+},
+{
+"name": "鏈箭2",
+"box": [
+778.0,
+851.0,
+826.0,
+881.0
+],
+"parent": null,
+"kind": "arrow"
+},
+{
+"name": "鏈圖3",
+"box": [
+866.0,
+800.0,
+988.0,
+950.0
+],
+"parent": null,
+"kind": "illus"
+},
+{
+"name": "鏈字3",
+"box": [
+862.5,
+978.0,
+991.5,
+1044.0
+],
+"parent": null,
+"kind": "text",
+"size": 30
+},
+{
+"name": "客戶",
+"box": [
+48,
+1065.5,
+738.0,
+1093.5
+],
+"parent": null,
+"kind": "text",
+"size": 30
+},
+{
+"name": "比比",
+"box": [
+48,
+1104,
+220.0,
+1264
+],
+"parent": null,
+"kind": "bibi",
+"key": "s03"
+},
+{
+"name": "泡泡",
+"box": [
+222,
+1112,
+688.0,
+1193.6
+],
+"parent": null,
+"kind": "bubble",
+"tip": [
+222,
+1170
+]
+},
+{
+"name": "泡泡_字",
+"box": [
+277.0,
+1137.5,
+661.0,
+1167.0
+],
+"parent": "泡泡",
+"kind": "text",
+"size": 32
+},
+{
+"name": "便條",
+"box": [
+706,
+1100,
+1032,
+1266
+],
+"parent": null,
+"kind": "card"
+},
+{
+"name": "便條字",
+"box": [
+726,
+1115.5,
+995.6,
+1177.4
+],
+"parent": "便條",
+"kind": "text",
+"size": 28
+},
+{
+"name": "便條標",
+"box": [
+852.0,
+1222,
+1016.0,
+1262
+],
+"parent": "便條",
+"kind": "card"
+},
+{
+"name": "便條標_字",
+"box": [
+868.0,
+1229.8,
+1000.0,
+1250.3
+],
+"parent": "便條標",
+"kind": "text",
+"size": 22
+},
+{
+"name": "出處",
+"box": [
+48,
+1291.0,
+799.3,
+1313.5
+],
+"parent": null,
+"kind": "text",
+"size": 24
+},
+{
+"name": "往右滑",
+"box": [
+929.5,
+1289.5,
+1032.0,
+1315.0
+],
+"parent": null,
+"kind": "text",
+"size": 28
+}
+],
+"texts": [
+{
+"name": "品牌字",
+"text": "哩股哩股",
+"size": 36,
+"role": "brand"
+},
+{
+"name": "欄名",
+"text": "科技小教室",
+"size": 24,
+"role": "brand"
+},
+{
+"name": "頁碼_字",
+"text": "03 / 10",
+"size": 30,
+"role": "pill"
+},
+{
+"name": "標題",
+"text": "ASML 是誰？",
+"size": 62,
+"role": "title"
+},
+{
+"name": "卡標",
+"text": "公司檔案　COMPANY FILE",
+"size": 30,
+"role": "body"
+},
+{
+"name": "欄0_字",
+"text": "名字",
+"size": 28,
+"role": "pill"
+},
+{
+"name": "值0",
+"text": "ASML 艾司摩爾",
+"size": 36,
+"role": "body"
+},
+{
+"name": "欄1_字",
+"text": "成立",
+"size": 28,
+"role": "pill"
+},
+{
+"name": "值1",
+"text": "1984 年",
+"size": 36,
+"role": "body"
+},
+{
+"name": "欄2_字",
+"text": "總部",
+"size": 28,
+"role": "pill"
+},
+{
+"name": "值2",
+"text": "荷蘭維爾德霍芬",
+"size": 36,
+"role": "body"
+},
+{
+"name": "欄3_字",
+"text": "專長",
+"size": 28,
+"role": "pill"
+},
+{
+"name": "值3",
+"text": "曝光機（微影設備）",
+"size": 36,
+"role": "body"
+},
+{
+"name": "卡事實_字",
+"text": "已確認事實",
+"size": 24,
+"role": "tag"
+},
+{
+"name": "小標",
+"text": "曝光機賣給誰？",
+"size": 40,
+"role": "body"
+},
+{
+"name": "鏈字0",
+"text": "ASML曝光機",
+"size": 30,
+"role": "body"
+},
+{
+"name": "鏈字1",
+"text": "晶圓廠",
+"size": 30,
+"role": "body"
+},
+{
+"name": "鏈字2",
+"text": "晶片",
+"size": 30,
+"role": "body"
+},
+{
+"name": "鏈字3",
+"text": "AI 伺服器手機",
+"size": 30,
+"role": "body"
+},
+{
+"name": "客戶",
+"text": "主要客戶：台積電、三星、英特爾（多家媒體報導）",
+"size": 30,
+"role": "body"
+},
+{
+"name": "泡泡_字",
+"text": "艾司摩爾？好像在哪聽過…",
+"size": 32,
+"role": "bubble"
+},
+{
+"name": "便條字",
+"text": "EUV 曝光機目前只有 ASML 能量產",
+"size": 28,
+"role": "body"
+},
+{
+"name": "便條標_字",
+"text": "市場普遍看法",
+"size": 22,
+"role": "tag"
+},
+{
+"name": "出處",
+"text": "資料：TechNews 2026-09-11；TechNews、hwbusters、自由時報等",
+"size": 24,
+"role": "foot"
+},
+{
+"name": "往右滑",
+"text": "往右滑 ›",
+"size": 28,
+"role": "foot"
+}
+]
+},
+"4": {
+"els": [
+{
+"name": "LOGO",
+"box": [
+38,
+34,
+126,
+122
+],
+"parent": null,
+"kind": "logo"
+},
+{
+"name": "品牌字",
+"box": [
+142,
+49.0,
+286.0,
+80.5
+],
+"parent": null,
+"kind": "text",
+"size": 36
+},
+{
+"name": "欄名",
+"box": [
+142,
+93.0,
+262.0,
+115.0
+],
+"parent": null,
+"kind": "text",
+"size": 24
+},
+{
+"name": "頁碼",
+"box": [
+900,
+50,
+1040,
+104
+],
+"parent": null,
+"kind": "card"
+},
+{
+"name": "頁碼_字",
+"box": [
+917.9,
+62.5,
+1022.1,
+88.0
+],
+"parent": "頁碼",
+"kind": "text",
+"size": 30
+},
+{
+"name": "標題",
+"box": [
+48,
+149.0,
+686.0,
+201.5
+],
+"parent": null,
+"kind": "text",
+"size": 58
+},
+{
+"name": "步驟圖1",
+"box": [
+73.0,
+329.5,
+247.0,
+408.5
+],
+"parent": null,
+"kind": "illus"
+},
+{
+"name": "步驟號1",
+"box": [
+52,
+246,
+100,
+294
+],
+"parent": null,
+"kind": "badge"
+},
+{
+"name": "步驟字1",
+"box": [
+128.0,
+427.7,
+192.0,
+454.7
+],
+"parent": null,
+"kind": "text",
+"size": 32
+},
+{
+"name": "步驟圖2",
+"box": [
+343.0,
+321.5,
+517.0,
+408.5
+],
+"parent": null,
+"kind": "illus"
+},
+{
+"name": "步驟號2",
+"box": [
+322,
+246,
+370,
+294
+],
+"parent": null,
+"kind": "badge"
+},
+{
+"name": "步驟字2",
+"box": [
+366.0,
+426.7,
+494.0,
+455.2
+],
+"parent": null,
+"kind": "text",
+"size": 32
+},
+{
+"name": "箭12",
+"box": [
+270.0,
+371.0,
+324.0,
+401.0
+],
+"parent": null,
+"kind": "arrow"
+},
+{
+"name": "箭23",
+"box": [
+540.0,
+371.0,
+594.0,
+401.0
+],
+"parent": null,
+"kind": "arrow"
+},
+{
+"name": "曝光主卡",
+"box": [
+612,
+228,
+1032,
+760
+],
+"parent": null,
+"kind": "card"
+},
+{
+"name": "主卡標",
+"box": [
+651.0,
+247.0,
+1001.0,
+279.0
+],
+"parent": "曝光主卡",
+"kind": "text",
+"size": 34
+},
+{
+"name": "光罩",
+"box": [
+729.5,
+323.5,
+924.5,
+452.0
+],
+"parent": "曝光主卡",
+"kind": "illus"
+},
+{
+"name": "光罩字",
+"box": [
+714.0,
+469.5,
+938.0,
+494.5
+],
+"parent": "曝光主卡",
+"kind": "text",
+"size": 28
+},
+{
+"name": "曝光晶圓",
+"box": [
+718.0,
+510.0,
+926.0,
+700.0
+],
+"parent": "曝光主卡",
+"kind": "illus"
+},
+{
+"name": "曝光字",
+"box": [
+686.0,
+719.5,
+966.0,
+745.0
+],
+"parent": "曝光主卡",
+"kind": "text",
+"size": 28
+},
+{
+"name": "箭34",
+"box": [
+803.0,
+780.0,
+833.0,
+834.0
+],
+"parent": null,
+"kind": "arrow"
+},
+{
+"name": "步驟圖4",
+"box": [
+792.5,
+908.0,
+957.5,
+990.5
+],
+"parent": null,
+"kind": "illus"
+},
+{
+"name": "步驟號4",
+"box": [
+772,
+836,
+820,
+884
+],
+"parent": null,
+"kind": "badge"
+},
+{
+"name": "步驟字4",
+"box": [
+795.0,
+1007.8,
+955.0,
+1037.3
+],
+"parent": null,
+"kind": "text",
+"size": 32
+},
+{
+"name": "箭45",
+"box": [
+682.0,
+943.0,
+736.0,
+973.0
+],
+"parent": null,
+"kind": "arrow"
+},
+{
+"name": "步驟圖5",
+"box": [
+462.5,
+889.0,
+627.5,
+990.5
+],
+"parent": null,
+"kind": "illus"
+},
+{
+"name": "步驟號5",
+"box": [
+442,
+836,
+490,
+884
+],
+"parent": null,
+"kind": "badge"
+},
+{
+"name": "步驟字5",
+"box": [
+465.0,
+1008.3,
+625.0,
+1037.3
+],
+"parent": null,
+"kind": "text",
+"size": 32
+},
+{
+"name": "比比",
+"box": [
+48,
+760,
+285.7,
+970
+],
+"parent": null,
+"kind": "bibi",
+"key": "s04"
+},
+{
+"name": "泡泡",
+"box": [
+48,
+590,
+476.0,
+713.7
+],
+"parent": null,
+"kind": "bubble",
+"tip": [
+180,
+713.7
+]
+},
+{
+"name": "泡泡_字",
+"box": [
+75.0,
+615.5,
+449.0,
+647.0
+],
+"parent": "泡泡",
+"kind": "text",
+"size": 34
+},
+{
+"name": "說明卡",
+"box": [
+48,
+1110,
+1032,
+1266
+],
+"parent": null,
+"kind": "card"
+},
+{
+"name": "說明字",
+"box": [
+72,
+1135.5,
+822.0,
+1202.0
+],
+"parent": "說明卡",
+"kind": "text",
+"size": 30
+},
+{
+"name": "說明標",
+"box": [
+804.0,
+1214,
+1012.0,
+1254
+],
+"parent": "說明卡",
+"kind": "card"
+},
+{
+"name": "說明標_字",
+"box": [
+820.0,
+1221.8,
+996.0,
+1242.3
+],
+"parent": "說明標",
+"kind": "text",
+"size": 22
+},
+{
+"name": "出處",
+"box": [
+48,
+1291.0,
+704.1,
+1316.0
+],
+"parent": null,
+"kind": "text",
+"size": 24
+},
+{
+"name": "往右滑",
+"box": [
+929.5,
+1289.5,
+1032.0,
+1315.0
+],
+"parent": null,
+"kind": "text",
+"size": 28
+}
+],
+"texts": [
+{
+"name": "品牌字",
+"text": "哩股哩股",
+"size": 36,
+"role": "brand"
+},
+{
+"name": "欄名",
+"text": "科技小教室",
+"size": 24,
+"role": "brand"
+},
+{
+"name": "頁碼_字",
+"text": "04 / 10",
+"size": 30,
+"role": "pill"
+},
+{
+"name": "標題",
+"text": "曝光在做晶片的哪一步？",
+"size": 58,
+"role": "title"
+},
+{
+"name": "步驟號1",
+"text": "1",
+"size": 27,
+"role": "badge"
+},
+{
+"name": "步驟字1",
+"text": "晶圓",
+"size": 32,
+"role": "body"
+},
+{
+"name": "步驟號2",
+"text": "2",
+"size": 27,
+"role": "badge"
+},
+{
+"name": "步驟字2",
+"text": "塗上光阻",
+"size": 32,
+"role": "body"
+},
+{
+"name": "主卡標",
+"text": "③ 曝光：就是這一步！",
+"size": 34,
+"role": "body"
+},
+{
+"name": "光罩字",
+"text": "光罩＝電路圖底片",
+"size": 28,
+"role": "body"
+},
+{
+"name": "曝光字",
+"text": "電路圖被投影到晶圓上",
+"size": 28,
+"role": "body"
+},
+{
+"name": "步驟號4",
+"text": "4",
+"size": 27,
+"role": "badge"
+},
+{
+"name": "步驟字4",
+"text": "顯影、蝕刻",
+"size": 32,
+"role": "body"
+},
+{
+"name": "步驟號5",
+"text": "5",
+"size": 27,
+"role": "badge"
+},
+{
+"name": "步驟字5",
+"text": "一層層重複",
+"size": 32,
+"role": "body"
+},
+{
+"name": "泡泡_字",
+"text": "用光把電路「印」上去！",
+"size": 34,
+"role": "bubble"
+},
+{
+"name": "說明字",
+"text": "曝光機像超精密的投影機：把光罩上的電路圖，投射到塗了光阻的晶圓上。",
+"size": 30,
+"role": "body"
+},
+{
+"name": "說明標_字",
+"text": "示意流程（簡化）",
+"size": 22,
+"role": "tag"
+},
+{
+"name": "出處",
+"text": "資料：ASML 官網〈lithography principles〉；halbleiter.org",
+"size": 24,
+"role": "foot"
+},
+{
+"name": "往右滑",
+"text": "往右滑 ›",
+"size": 28,
+"role": "foot"
+}
+]
+},
+"5": {
+"els": [
+{
+"name": "LOGO",
+"box": [
+38,
+34,
+126,
+122
+],
+"parent": null,
+"kind": "logo"
+},
+{
+"name": "品牌字",
+"box": [
+142,
+49.0,
+286.0,
+80.5
+],
+"parent": null,
+"kind": "text",
+"size": 36
+},
+{
+"name": "欄名",
+"box": [
+142,
+93.0,
+262.0,
+115.0
+],
+"parent": null,
+"kind": "text",
+"size": 24
+},
+{
+"name": "頁碼",
+"box": [
+900,
+50,
+1040,
+104
+],
+"parent": null,
+"kind": "card"
+},
+{
+"name": "頁碼_字",
+"box": [
+917.9,
+62.5,
+1022.1,
+88.0
+],
+"parent": "頁碼",
+"kind": "text",
+"size": 30
+},
+{
+"name": "標題",
+"box": [
+48,
+149.5,
+564.7,
+205.0
+],
+"parent": null,
+"kind": "text",
+"size": 62
+},
+{
+"name": "剖面",
+"box": [
+53.0,
+237.0,
+1027.0,
+837.0
+],
+"parent": null,
+"kind": "illus"
+},
+{
+"name": "剖面號1",
+"box": [
+290.7,
+588.9,
+332.7,
+630.9
+],
+"parent": "剖面",
+"kind": "badge"
+},
+{
+"name": "剖面號2",
+"box": [
+399.0,
+718.7,
+441.0,
+760.7
+],
+"parent": "剖面",
+"kind": "badge"
+},
+{
+"name": "剖面號3",
+"box": [
+188.4,
+673.5,
+230.4,
+715.5
+],
+"parent": "剖面",
+"kind": "badge"
+},
+{
+"name": "剖面號4",
+"box": [
+105.7,
+535.7,
+147.7,
+577.7
+],
+"parent": "剖面",
+"kind": "badge"
+},
+{
+"name": "剖面號5",
+"box": [
+467.8,
+340.9,
+509.8,
+382.9
+],
+"parent": "剖面",
+"kind": "badge"
+},
+{
+"name": "剖面號6",
+"box": [
+790.6,
+268.1,
+832.6,
+310.1
+],
+"parent": "剖面",
+"kind": "badge"
+},
+{
+"name": "剖面號7",
+"box": [
+892.9,
+777.8,
+934.9,
+819.8
+],
+"parent": "剖面",
+"kind": "badge"
+},
+{
+"name": "示意標",
+"box": [
+76,
+252,
+324.0,
+294
+],
+"parent": "剖面",
+"kind": "card"
+},
+{
+"name": "示意標_字",
+"box": [
+92,
+259.6,
+308.0,
+281.6
+],
+"parent": "示意標",
+"kind": "text",
+"size": 24
+},
+{
+"name": "真空標",
+"box": [
+284.2,
+379.6,
+441.6,
+425.6
+],
+"parent": "剖面",
+"kind": "card"
+},
+{
+"name": "真空標_字",
+"box": [
+310.9,
+388.5,
+414.9,
+412.0
+],
+"parent": "真空標",
+"kind": "text",
+"size": 26
+},
+{
+"name": "放大標",
+"box": [
+510.5,
+771.2,
+687.6,
+815.2
+],
+"parent": "剖面",
+"kind": "card"
+},
+{
+"name": "放大標_字",
+"box": [
+539.0,
+779.8,
+659.0,
+801.8
+],
+"parent": "放大標",
+"kind": "text",
+"size": 24
+},
+{
+"name": "圖例號0",
+"box": [
+281,
+877,
+319,
+915
+],
+"parent": null,
+"kind": "badge"
+},
+{
+"name": "圖例0",
+"box": [
+332,
+880.0,
+662.0,
+907.0
+],
+"parent": null,
+"kind": "text",
+"size": 30
+},
+{
+"name": "圖例號1",
+"box": [
+281,
+931,
+319,
+969
+],
+"parent": null,
+"kind": "badge"
+},
+{
+"name": "圖例1",
+"box": [
+332,
+934.0,
+602.0,
+961.0
+],
+"parent": null,
+"kind": "text",
+"size": 30
+},
+{
+"name": "圖例號2",
+"box": [
+281,
+985,
+319,
+1023
+],
+"parent": null,
+"kind": "badge"
+},
+{
+"name": "圖例2",
+"box": [
+332,
+987.5,
+731.2,
+1015.5
+],
+"parent": null,
+"kind": "text",
+"size": 30
+},
+{
+"name": "圖例號3",
+"box": [
+281,
+1039,
+319,
+1077
+],
+"parent": null,
+"kind": "badge"
+},
+{
+"name": "圖例3",
+"box": [
+332,
+1041.5,
+602.0,
+1069.0
+],
+"parent": null,
+"kind": "text",
+"size": 30
+},
+{
+"name": "圖例號4",
+"box": [
+281,
+1093,
+319,
+1131
+],
+"parent": null,
+"kind": "badge"
+},
+{
+"name": "圖例4",
+"box": [
+332,
+1095.0,
+948.0,
+1121.0
+],
+"parent": null,
+"kind": "text",
+"size": 28
+},
+{
+"name": "圖例號5",
+"box": [
+281,
+1147,
+319,
+1185
+],
+"parent": null,
+"kind": "badge"
+},
+{
+"name": "圖例5",
+"box": [
+332,
+1150.0,
+692.0,
+1177.0
+],
+"parent": null,
+"kind": "text",
+"size": 30
+},
+{
+"name": "圖例號6",
+"box": [
+281,
+1201,
+319,
+1239
+],
+"parent": null,
+"kind": "badge"
+},
+{
+"name": "圖例6",
+"box": [
+332,
+1203.5,
+632.0,
+1231.5
+],
+"parent": null,
+"kind": "text",
+"size": 30
+},
+{
+"name": "泡泡",
+"box": [
+40,
+880,
+264.0,
+1037.9
+],
+"parent": null,
+"kind": "bubble",
+"tip": [
+130,
+1037.9
+]
+},
+{
+"name": "泡泡_字",
+"box": [
+67.0,
+905.5,
+237.0,
+980.7
+],
+"parent": "泡泡",
+"kind": "text",
+"size": 34
+},
+{
+"name": "比比",
+"box": [
+44,
+1040,
+249.8,
+1260
+],
+"parent": null,
+"kind": "bibi",
+"key": "s05"
+},
+{
+"name": "出處",
+"box": [
+48,
+1291.0,
+783.3,
+1316.0
+],
+"parent": null,
+"kind": "text",
+"size": 24
+},
+{
+"name": "往右滑",
+"box": [
+929.5,
+1289.5,
+1032.0,
+1315.0
+],
+"parent": null,
+"kind": "text",
+"size": 28
+}
+],
+"texts": [
+{
+"name": "品牌字",
+"text": "哩股哩股",
+"size": 36,
+"role": "brand"
+},
+{
+"name": "欄名",
+"text": "科技小教室",
+"size": 24,
+"role": "brand"
+},
+{
+"name": "頁碼_字",
+"text": "05 / 10",
+"size": 30,
+"role": "pill"
+},
+{
+"name": "標題",
+"text": "EUV 光怎麼來的？",
+"size": 62,
+"role": "title"
+},
+{
+"name": "剖面號1",
+"text": "1",
+"size": 24,
+"role": "badge"
+},
+{
+"name": "剖面號2",
+"text": "2",
+"size": 24,
+"role": "badge"
+},
+{
+"name": "剖面號3",
+"text": "3",
+"size": 24,
+"role": "badge"
+},
+{
+"name": "剖面號4",
+"text": "4",
+"size": 24,
+"role": "badge"
+},
+{
+"name": "剖面號5",
+"text": "5",
+"size": 24,
+"role": "badge"
+},
+{
+"name": "剖面號6",
+"text": "6",
+"size": 24,
+"role": "badge"
+},
+{
+"name": "剖面號7",
+"text": "7",
+"size": 24,
+"role": "badge"
+},
+{
+"name": "示意標_字",
+"text": "示意圖，非實際構造",
+"size": 24,
+"role": "tag"
+},
+{
+"name": "真空標_字",
+"text": "全程真空",
+"size": 26,
+"role": "pill"
+},
+{
+"name": "放大標_字",
+"text": "多層膜放大",
+"size": 24,
+"role": "pill"
+},
+{
+"name": "圖例號0",
+"text": "1",
+"size": 21,
+"role": "badge"
+},
+{
+"name": "圖例0",
+"text": "錫滴：小錫珠一顆顆落下",
+"size": 30,
+"role": "body"
+},
+{
+"name": "圖例號1",
+"text": "2",
+"size": 21,
+"role": "badge"
+},
+{
+"name": "圖例1",
+"text": "雷射：精準打中錫滴",
+"size": 30,
+"role": "body"
+},
+{
+"name": "圖例號2",
+"text": "3",
+"size": 21,
+"role": "badge"
+},
+{
+"name": "圖例2",
+"text": "電漿：發出 13.5 奈米 EUV 光",
+"size": 30,
+"role": "body"
+},
+{
+"name": "圖例號3",
+"text": "4",
+"size": 21,
+"role": "badge"
+},
+{
+"name": "圖例3",
+"text": "收集鏡：把光聚起來",
+"size": 30,
+"role": "body"
+},
+{
+"name": "圖例號4",
+"text": "5",
+"size": 21,
+"role": "badge"
+},
+{
+"name": "圖例4",
+"text": "反射鏡：空氣、玻璃會吸光，全程真空、只用鏡子",
+"size": 28,
+"role": "body"
+},
+{
+"name": "圖例號5",
+"text": "6",
+"size": 21,
+"role": "badge"
+},
+{
+"name": "圖例5",
+"text": "光罩：反射式，帶著電路圖",
+"size": 30,
+"role": "body"
+},
+{
+"name": "圖例號6",
+"text": "7",
+"size": 21,
+"role": "badge"
+},
+{
+"name": "圖例6",
+"text": "晶圓：電路圖被印上去",
+"size": 30,
+"role": "body"
+},
+{
+"name": "泡泡_字",
+"text": "用雷射打錫滴？！",
+"size": 34,
+"role": "bubble"
+},
+{
+"name": "出處",
+"text": "資料：ASML 官網〈light and lasers〉；techovedas；halbleiter.org",
+"size": 24,
+"role": "foot"
+},
+{
+"name": "往右滑",
+"text": "往右滑 ›",
+"size": 28,
+"role": "foot"
+}
+]
+},
+"6": {
+"els": [
+{
+"name": "LOGO",
+"box": [
+38,
+34,
+126,
+122
+],
+"parent": null,
+"kind": "logo"
+},
+{
+"name": "品牌字",
+"box": [
+142,
+49.0,
+286.0,
+80.5
+],
+"parent": null,
+"kind": "text",
+"size": 36
+},
+{
+"name": "欄名",
+"box": [
+142,
+93.0,
+262.0,
+115.0
+],
+"parent": null,
+"kind": "text",
+"size": 24
+},
+{
+"name": "頁碼",
+"box": [
+900,
+50,
+1040,
+104
+],
+"parent": null,
+"kind": "card"
+},
+{
+"name": "頁碼_字",
+"box": [
+917.9,
+62.5,
+1022.1,
+88.0
+],
+"parent": "頁碼",
+"kind": "text",
+"size": 30
+},
+{
+"name": "標題",
+"box": [
+48,
+154.5,
+685.7,
+213.5
+],
+"parent": null,
+"kind": "text",
+"size": 62
+},
+{
+"name": "光尺卡",
+"box": [
+48,
+232,
+1032,
+760
+],
+"parent": null,
+"kind": "card"
+},
+{
+"name": "光尺標",
+"box": [
+76,
+253.5,
+652.0,
+283.5
+],
+"parent": "光尺卡",
+"kind": "text",
+"size": 32
+},
+{
+"name": "列底0",
+"box": [
+70,
+316,
+1010,
+436
+],
+"parent": "光尺卡",
+"kind": "card"
+},
+{
+"name": "列名0",
+"box": [
+92,
+333.5,
+298.2,
+362.5
+],
+"parent": "列底0",
+"kind": "text",
+"size": 32
+},
+{
+"name": "列值0",
+"box": [
+92,
+383.5,
+287.2,
+409.0
+],
+"parent": "列底0",
+"kind": "text",
+"size": 28
+},
+{
+"name": "波0",
+"box": [
+450.5,
+345.0,
+985.0,
+415.0
+],
+"parent": "列底0",
+"kind": "illus"
+},
+{
+"name": "列底1",
+"box": [
+70,
+456,
+1010,
+576
+],
+"parent": "光尺卡",
+"kind": "card"
+},
+{
+"name": "列名1",
+"box": [
+92,
+473.5,
+294.7,
+503.0
+],
+"parent": "列底1",
+"kind": "text",
+"size": 32
+},
+{
+"name": "列值1",
+"box": [
+92,
+523.5,
+214.8,
+549.0
+],
+"parent": "列底1",
+"kind": "text",
+"size": 28
+},
+{
+"name": "波1",
+"box": [
+449.5,
+485.5,
+986.0,
+554.5
+],
+"parent": "列底1",
+"kind": "illus"
+},
+{
+"name": "列底2",
+"box": [
+70,
+596,
+1010,
+716
+],
+"parent": "光尺卡",
+"kind": "card"
+},
+{
+"name": "列名2",
+"box": [
+92,
+616.0,
+297.7,
+647.0
+],
+"parent": "列底2",
+"kind": "text",
+"size": 32
+},
+{
+"name": "列值2",
+"box": [
+92,
+663.0,
+365.3,
+685.0
+],
+"parent": "列底2",
+"kind": "text",
+"size": 24
+},
+{
+"name": "波2",
+"box": [
+449.5,
+625.5,
+986.5,
+706.5
+],
+"parent": "列底2",
+"kind": "illus"
+},
+{
+"name": "光尺註",
+"box": [
+76,
+695.5,
+669.6,
+721.0
+],
+"parent": "光尺卡",
+"kind": "text",
+"size": 28
+},
+{
+"name": "價標",
+"box": [
+48,
+794.0,
+390.0,
+828.5
+],
+"parent": null,
+"kind": "text",
+"size": 38
+},
+{
+"name": "價名0",
+"box": [
+48,
+870.0,
+253.4,
+897.0
+],
+"parent": null,
+"kind": "text",
+"size": 30
+},
+{
+"name": "價條0",
+"box": [
+270,
+862,
+594.0,
+918
+],
+"parent": null,
+"kind": "bar"
+},
+{
+"name": "價字0",
+"box": [
+610.0,
+873.5,
+779.7,
+899.0
+],
+"parent": null,
+"kind": "text",
+"size": 28
+},
+{
+"name": "價名1",
+"box": [
+48,
+956.0,
+240.8,
+985.0
+],
+"parent": null,
+"kind": "text",
+"size": 30
+},
+{
+"name": "價條1",
+"box": [
+270,
+946,
+954.0,
+1002
+],
+"parent": null,
+"kind": "bar"
+},
+{
+"name": "價字1",
+"box": [
+970.0,
+957.5,
+1026.0,
+1237.8
+],
+"parent": null,
+"kind": "text",
+"size": 28
+},
+{
+"name": "價標籤",
+"box": [
+832.0,
+1036,
+1032.0,
+1078
+],
+"parent": null,
+"kind": "card"
+},
+{
+"name": "價標籤_字",
+"box": [
+848.0,
+1043.6,
+1016.0,
+1065.6
+],
+"parent": "價標籤",
+"kind": "text",
+"size": 24
+},
+{
+"name": "比比",
+"box": [
+48,
+1062,
+262.4,
+1262
+],
+"parent": null,
+"kind": "bibi",
+"key": "s06"
+},
+{
+"name": "放大鏡",
+"box": [
+289.5,
+1097.5,
+394.0,
+1202.0
+],
+"parent": null,
+"kind": "illus"
+},
+{
+"name": "泡泡",
+"box": [
+412,
+1110,
+770.0,
+1193.7
+],
+"parent": null,
+"kind": "bubble",
+"tip": [
+412,
+1150
+]
+},
+{
+"name": "泡泡_字",
+"box": [
+471.0,
+1135.5,
+743.0,
+1166.5
+],
+"parent": "泡泡",
+"kind": "text",
+"size": 34
+},
+{
+"name": "出處",
+"box": [
+48,
+1291.0,
+613.4,
+1316.0
+],
+"parent": null,
+"kind": "text",
+"size": 24
+},
+{
+"name": "往右滑",
+"box": [
+929.5,
+1289.5,
+1032.0,
+1315.0
+],
+"parent": null,
+"kind": "text",
+"size": 28
+}
+],
+"texts": [
+{
+"name": "品牌字",
+"text": "哩股哩股",
+"size": 36,
+"role": "brand"
+},
+{
+"name": "欄名",
+"text": "科技小教室",
+"size": 24,
+"role": "brand"
+},
+{
+"name": "頁碼_字",
+"text": "06 / 10",
+"size": 30,
+"role": "pill"
+},
+{
+"name": "標題",
+"text": "DUV、EUV、High-NA",
+"size": 62,
+"role": "title"
+},
+{
+"name": "光尺標",
+"text": "用「光的尺」來比：波長越短，畫得越細",
+"size": 32,
+"role": "body"
+},
+{
+"name": "列名0",
+"text": "DUV 深紫外光",
+"size": 32,
+"role": "body"
+},
+{
+"name": "列值0",
+"text": "248／193 奈米",
+"size": 28,
+"role": "body"
+},
+{
+"name": "列名1",
+"text": "EUV 極紫外光",
+"size": 32,
+"role": "body"
+},
+{
+"name": "列值1",
+"text": "13.5 奈米",
+"size": 28,
+"role": "body"
+},
+{
+"name": "列名2",
+"text": "High-NA EUV",
+"size": 32,
+"role": "body"
+},
+{
+"name": "列值2",
+"text": "13.5 奈米・收光角度更大",
+"size": 24,
+"role": "body"
+},
+{
+"name": "光尺註",
+"text": "EUV 波長比 DUV 短十四倍以上（ASML 官網）",
+"size": 28,
+"role": "body"
+},
+{
+"name": "價標",
+"text": "一台多少錢？（約）",
+"size": 38,
+"role": "body"
+},
+{
+"name": "價名0",
+"text": "EUV（低 NA）",
+"size": 30,
+"role": "body"
+},
+{
+"name": "價字0",
+"text": "約 1.8 億美元",
+"size": 28,
+"role": "body"
+},
+{
+"name": "價名1",
+"text": "High-NA EUV",
+"size": 30,
+"role": "body"
+},
+{
+"name": "價字1",
+"text": "約 3.8 億美元（約 3.5 億歐元）",
+"size": 28,
+"role": "body"
+},
+{
+"name": "價標籤_字",
+"text": "各來源略有差異",
+"size": 24,
+"role": "tag"
+},
+{
+"name": "泡泡_字",
+"text": "光越短，畫得越細",
+"size": 34,
+"role": "bubble"
+},
+{
+"name": "出處",
+"text": "資料：ASML 官網；Yole Group 等（單價為約略值）",
+"size": 24,
+"role": "foot"
+},
+{
+"name": "往右滑",
+"text": "往右滑 ›",
+"size": 28,
+"role": "foot"
+}
+]
+},
+"7": {
+"els": [
+{
+"name": "LOGO",
+"box": [
+38,
+34,
+126,
+122
+],
+"parent": null,
+"kind": "logo"
+},
+{
+"name": "品牌字",
+"box": [
+142,
+49.0,
+286.0,
+80.5
+],
+"parent": null,
+"kind": "text",
+"size": 36
+},
+{
+"name": "欄名",
+"box": [
+142,
+93.0,
+262.0,
+115.0
+],
+"parent": null,
+"kind": "text",
+"size": 24
+},
+{
+"name": "頁碼",
+"box": [
+900,
+50,
+1040,
+104
+],
+"parent": null,
+"kind": "card"
+},
+{
+"name": "頁碼_字",
+"box": [
+917.9,
+62.5,
+1022.1,
+88.0
+],
+"parent": "頁碼",
+"kind": "text",
+"size": 30
+},
+{
+"name": "標題",
+"box": [
+48,
+149.0,
+606.0,
+205.5
+],
+"parent": null,
+"kind": "text",
+"size": 62
+},
+{
+"name": "瞭望塔",
+"box": [
+94.0,
+250.0,
+286.0,
+584.0
+],
+"parent": null,
+"kind": "illus"
+},
+{
+"name": "塔名",
+"box": [
+56,
+610,
+330,
+664
+],
+"parent": null,
+"kind": "card"
+},
+{
+"name": "塔名_字",
+"box": [
+95.0,
+621.7,
+291.0,
+647.2
+],
+"parent": "塔名",
+"kind": "text",
+"size": 28
+},
+{
+"name": "步0",
+"box": [
+380,
+236,
+1032,
+408
+],
+"parent": null,
+"kind": "card"
+},
+{
+"name": "步號0",
+"box": [
+358,
+238,
+402,
+282
+],
+"parent": null,
+"kind": "badge"
+},
+{
+"name": "步圖0",
+"box": [
+425.5,
+274.0,
+514.5,
+383.0
+],
+"parent": "步0",
+"kind": "illus"
+},
+{
+"name": "步題0",
+"box": [
+580,
+272.0,
+716.0,
+303.0
+],
+"parent": "步0",
+"kind": "text",
+"size": 34
+},
+{
+"name": "步文0",
+"box": [
+580,
+329.0,
+848.6,
+355.5
+],
+"parent": "步0",
+"kind": "text",
+"size": 28
+},
+{
+"name": "步1",
+"box": [
+380,
+432,
+1032,
+604
+],
+"parent": null,
+"kind": "card"
+},
+{
+"name": "步號1",
+"box": [
+358,
+434,
+402,
+478
+],
+"parent": null,
+"kind": "badge"
+},
+{
+"name": "步圖1",
+"box": [
+424.5,
+459.0,
+553.0,
+579.5
+],
+"parent": "步1",
+"kind": "illus"
+},
+{
+"name": "步題1",
+"box": [
+580,
+467.5,
+818.0,
+498.5
+],
+"parent": "步1",
+"kind": "text",
+"size": 34
+},
+{
+"name": "步文1",
+"box": [
+580,
+525.5,
+720.0,
+551.0
+],
+"parent": "步1",
+"kind": "text",
+"size": 28
+},
+{
+"name": "步2",
+"box": [
+380,
+628,
+1032,
+800
+],
+"parent": null,
+"kind": "card"
+},
+{
+"name": "步號2",
+"box": [
+358,
+630,
+402,
+674
+],
+"parent": null,
+"kind": "badge"
+},
+{
+"name": "步圖2",
+"box": [
+422.0,
+677.5,
+555.5,
+775.5
+],
+"parent": "步2",
+"kind": "illus"
+},
+{
+"name": "步題2",
+"box": [
+580,
+663.5,
+818.0,
+694.5
+],
+"parent": "步2",
+"kind": "text",
+"size": 34
+},
+{
+"name": "步文2",
+"box": [
+580,
+721.5,
+916.0,
+747.0
+],
+"parent": "步2",
+"kind": "text",
+"size": 28
+},
+{
+"name": "步3",
+"box": [
+380,
+824,
+1032,
+996
+],
+"parent": null,
+"kind": "card"
+},
+{
+"name": "步號3",
+"box": [
+358,
+826,
+402,
+870
+],
+"parent": null,
+"kind": "badge"
+},
+{
+"name": "步圖3",
+"box": [
+426.0,
+860.0,
+526.0,
+971.0
+],
+"parent": "步3",
+"kind": "illus"
+},
+{
+"name": "步題3",
+"box": [
+580,
+859.5,
+886.0,
+890.5
+],
+"parent": "步3",
+"kind": "text",
+"size": 34
+},
+{
+"name": "步文3",
+"box": [
+580,
+917.5,
+776.0,
+943.0
+],
+"parent": "步3",
+"kind": "text",
+"size": 28
+},
+{
+"name": "先",
+"box": [
+313.0,
+702.0,
+347.0,
+732.0
+],
+"parent": null,
+"kind": "text",
+"size": 34
+},
+{
+"name": "時間箭",
+"box": [
+307.0,
+750.0,
+331.0,
+948.0
+],
+"parent": null,
+"kind": "arrow"
+},
+{
+"name": "後",
+"box": [
+313.0,
+961.5,
+347.0,
+992.5
+],
+"parent": null,
+"kind": "text",
+"size": 34
+},
+{
+"name": "示意標",
+"box": [
+808.0,
+1028,
+1032.0,
+1070
+],
+"parent": null,
+"kind": "card"
+},
+{
+"name": "示意標_字",
+"box": [
+824.0,
+1035.6,
+1016.0,
+1057.6
+],
+"parent": "示意標",
+"kind": "text",
+"size": 24
+},
+{
+"name": "比比",
+"box": [
+48,
+760,
+219.4,
+940
+],
+"parent": null,
+"kind": "bibi",
+"key": "s07"
+},
+{
+"name": "泡泡",
+"box": [
+48,
+958,
+442.0,
+1073.7
+],
+"parent": null,
+"kind": "bubble",
+"tip": [
+160,
+958
+]
+},
+{
+"name": "泡泡_字",
+"box": [
+75.0,
+1015.5,
+415.0,
+1046.5
+],
+"parent": "泡泡",
+"kind": "text",
+"size": 34
+},
+{
+"name": "結論卡",
+"box": [
+48,
+1124,
+1032,
+1266
+],
+"parent": null,
+"kind": "card"
+},
+{
+"name": "結論字",
+"box": [
+72,
+1143.5,
+894.7,
+1171.5
+],
+"parent": "結論卡",
+"kind": "text",
+"size": 30
+},
+{
+"name": "結論標",
+"box": [
+892.0,
+1214,
+1012.0,
+1254
+],
+"parent": "結論卡",
+"kind": "card"
+},
+{
+"name": "結論標_字",
+"box": [
+908.0,
+1221.8,
+996.0,
+1242.3
+],
+"parent": "結論標",
+"kind": "text",
+"size": 22
+},
+{
+"name": "出處",
+"box": [
+48,
+1291.0,
+504.0,
+1313.0
+],
+"parent": null,
+"kind": "text",
+"size": 24
+},
+{
+"name": "往右滑",
+"box": [
+929.5,
+1289.5,
+1032.0,
+1315.0
+],
+"parent": null,
+"kind": "text",
+"size": 28
+}
+],
+"texts": [
+{
+"name": "品牌字",
+"text": "哩股哩股",
+"size": 36,
+"role": "brand"
+},
+{
+"name": "欄名",
+"text": "科技小教室",
+"size": 24,
+"role": "brand"
+},
+{
+"name": "頁碼_字",
+"text": "07 / 10",
+"size": 30,
+"role": "pill"
+},
+{
+"name": "標題",
+"text": "為什麼叫景氣前哨？",
+"size": 62,
+"role": "title"
+},
+{
+"name": "塔名_字",
+"text": "前哨站＝設備商",
+"size": 28,
+"role": "pill"
+},
+{
+"name": "步號0",
+"text": "1",
+"size": 25,
+"role": "badge"
+},
+{
+"name": "步題0",
+"text": "需求升溫",
+"size": 34,
+"role": "body"
+},
+{
+"name": "步文0",
+"text": "例如 AI 晶片需求變多",
+"size": 28,
+"role": "body"
+},
+{
+"name": "步號1",
+"text": "2",
+"size": 25,
+"role": "badge"
+},
+{
+"name": "步題1",
+"text": "晶圓廠規劃擴產",
+"size": 34,
+"role": "body"
+},
+{
+"name": "步文1",
+"text": "要蓋新產線",
+"size": 28,
+"role": "body"
+},
+{
+"name": "步號2",
+"text": "3",
+"size": 25,
+"role": "badge"
+},
+{
+"name": "步題2",
+"text": "先向設備商下單",
+"size": 34,
+"role": "body"
+},
+{
+"name": "步文2",
+"text": "設備商的訂單、財報先看到",
+"size": 28,
+"role": "body"
+},
+{
+"name": "步號3",
+"text": "4",
+"size": 25,
+"role": "badge"
+},
+{
+"name": "步題3",
+"text": "設備裝好、產能開出",
+"size": 34,
+"role": "body"
+},
+{
+"name": "步文3",
+"text": "晶片之後才出貨",
+"size": 28,
+"role": "body"
+},
+{
+"name": "先",
+"text": "先",
+"size": 34,
+"role": "body"
+},
+{
+"name": "後",
+"text": "後",
+"size": 34,
+"role": "body"
+},
+{
+"name": "示意標_字",
+"text": "因果示意，非必然",
+"size": 24,
+"role": "tag"
+},
+{
+"name": "泡泡_字",
+"text": "設備先動，產能後到！",
+"size": 34,
+"role": "bubble"
+},
+{
+"name": "結論字",
+"text": "所以市場常把 ASML 的訂單，當作半導體景氣的「溫度計」。",
+"size": 30,
+"role": "body"
+},
+{
+"name": "結論標_字",
+"text": "市場看法",
+"size": 22,
+"role": "tag"
+},
+{
+"name": "出處",
+"text": "資料：產業常識整理（定性說明，非預測）",
+"size": 24,
+"role": "foot"
+},
+{
+"name": "往右滑",
+"text": "往右滑 ›",
+"size": 28,
+"role": "foot"
+}
+]
+},
+"8": {
+"els": [
+{
+"name": "LOGO",
+"box": [
+38,
+34,
+126,
+122
+],
+"parent": null,
+"kind": "logo"
+},
+{
+"name": "品牌字",
+"box": [
+142,
+49.0,
+286.0,
+80.5
+],
+"parent": null,
+"kind": "text",
+"size": 36
+},
+{
+"name": "欄名",
+"box": [
+142,
+93.0,
+262.0,
+115.0
+],
+"parent": null,
+"kind": "text",
+"size": 24
+},
+{
+"name": "頁碼",
+"box": [
+900,
+50,
+1040,
+104
+],
+"parent": null,
+"kind": "card"
+},
+{
+"name": "頁碼_字",
+"box": [
+917.9,
+62.5,
+1022.1,
+88.0
+],
+"parent": "頁碼",
+"kind": "text",
+"size": 30
+},
+{
+"name": "標題",
+"box": [
+48,
+149.5,
+668.0,
+205.0
+],
+"parent": null,
+"kind": "text",
+"size": 62
+},
+{
+"name": "圖卡",
+"box": [
+48,
+232,
+1032,
+846
+],
+"parent": null,
+"kind": "card"
+},
+{
+"name": "圖標",
+"box": [
+76,
+253.5,
+428.0,
+283.0
+],
+"parent": "圖卡",
+"kind": "text",
+"size": 32
+},
+{
+"name": "預估標",
+"box": [
+756.0,
+254,
+1004.0,
+296
+],
+"parent": "圖卡",
+"kind": "card"
+},
+{
+"name": "預估標_字",
+"box": [
+772.0,
+261.6,
+988.0,
+284.1
+],
+"parent": "預估標",
+"kind": "text",
+"size": 24
+},
+{
+"name": "長條圖",
+"box": [
+180.0,
+381.5,
+950.0,
+720.0
+],
+"parent": "圖卡",
+"kind": "illus"
+},
+{
+"name": "軸0",
+"box": [
+155.3,
+685.5,
+170.0,
+702.5
+],
+"parent": "長條圖",
+"kind": "text",
+"size": 24
+},
+{
+"name": "軸50",
+"box": [
+140.6,
+558.6,
+170.0,
+575.6
+],
+"parent": "長條圖",
+"kind": "text",
+"size": 24
+},
+{
+"name": "軸100",
+"box": [
+125.8,
+431.7,
+170.0,
+448.7
+],
+"parent": "長條圖",
+"kind": "text",
+"size": 24
+},
+{
+"name": "值0",
+"box": [
+297.1,
+453.6,
+392.9,
+488.1
+],
+"parent": "長條圖",
+"kind": "text",
+"size": 38
+},
+{
+"name": "季0",
+"box": [
+261.8,
+717.5,
+428.2,
+743.0
+],
+"parent": "圖卡",
+"kind": "text",
+"size": 28
+},
+{
+"name": "類0",
+"box": [
+321.0,
+757.0,
+369.0,
+779.0
+],
+"parent": "圖卡",
+"kind": "text",
+"size": 24
+},
+{
+"name": "值1",
+"box": [
+527.1,
+407.9,
+622.9,
+442.4
+],
+"parent": "長條圖",
+"kind": "text",
+"size": 38
+},
+{
+"name": "季1",
+"box": [
+491.8,
+717.5,
+658.2,
+743.0
+],
+"parent": "圖卡",
+"kind": "text",
+"size": 28
+},
+{
+"name": "類1",
+"box": [
+551.0,
+757.0,
+599.0,
+779.0
+],
+"parent": "圖卡",
+"kind": "text",
+"size": 24
+},
+{
+"name": "值2",
+"box": [
+720.8,
+342.9,
+889.2,
+368.9
+],
+"parent": "長條圖",
+"kind": "text",
+"size": 36
+},
+{
+"name": "季2",
+"box": [
+721.8,
+717.5,
+888.2,
+743.0
+],
+"parent": "圖卡",
+"kind": "text",
+"size": 28
+},
+{
+"name": "類2",
+"box": [
+757.0,
+757.0,
+853.0,
+779.0
+],
+"parent": "圖卡",
+"kind": "text",
+"size": 24
+},
+{
+"name": "圖註",
+"box": [
+235.9,
+791.5,
+846.1,
+815.5
+],
+"parent": "圖卡",
+"kind": "text",
+"size": 26
+},
+{
+"name": "毛利卡",
+"box": [
+48,
+874,
+520,
+1112
+],
+"parent": null,
+"kind": "card"
+},
+{
+"name": "毛利標",
+"box": [
+162.0,
+892.0,
+408.0,
+919.0
+],
+"parent": "毛利卡",
+"kind": "text",
+"size": 30
+},
+{
+"name": "儀表",
+"box": [
+145.0,
+950.0,
+335.0,
+1055.0
+],
+"parent": "毛利卡",
+"kind": "illus"
+},
+{
+"name": "毛利值",
+"box": [
+336,
+995.0,
+507.5,
+1019.5
+],
+"parent": "毛利卡",
+"kind": "text",
+"size": 34
+},
+{
+"name": "毛利副",
+"box": [
+336,
+1041.0,
+432.0,
+1063.0
+],
+"parent": "毛利卡",
+"kind": "text",
+"size": 24
+},
+{
+"name": "觀察卡",
+"box": [
+548,
+874,
+1032,
+1112
+],
+"parent": null,
+"kind": "card"
+},
+{
+"name": "觀察標",
+"box": [
+715.0,
+892.0,
+865.0,
+919.0
+],
+"parent": "觀察卡",
+"kind": "text",
+"size": 30
+},
+{
+"name": "觀察1",
+"box": [
+574,
+947.0,
+876.8,
+1009.4
+],
+"parent": "觀察卡",
+"kind": "text",
+"size": 28
+},
+{
+"name": "觀察2",
+"box": [
+574,
+1035.5,
+917.4,
+1061.0
+],
+"parent": "觀察卡",
+"kind": "text",
+"size": 28
+},
+{
+"name": "比比",
+"box": [
+861.4,
+1128,
+1032.0,
+1278
+],
+"parent": null,
+"kind": "bibi",
+"key": "s08"
+},
+{
+"name": "泡泡",
+"box": [
+393.4,
+1150,
+853.4,
+1233.7
+],
+"parent": null,
+"kind": "bubble",
+"tip": [
+853.4314381270904,
+1196
+]
+},
+{
+"name": "泡泡_字",
+"box": [
+420.4,
+1175.5,
+794.4,
+1206.5
+],
+"parent": "泡泡",
+"kind": "text",
+"size": 34
+},
+{
+"name": "出處",
+"box": [
+48,
+1291.0,
+538.4,
+1313.0
+],
+"parent": null,
+"kind": "text",
+"size": 24
+},
+{
+"name": "往右滑",
+"box": [
+929.5,
+1289.5,
+1032.0,
+1315.0
+],
+"parent": null,
+"kind": "text",
+"size": 28
+}
+],
+"texts": [
+{
+"name": "品牌字",
+"text": "哩股哩股",
+"size": 36,
+"role": "brand"
+},
+{
+"name": "欄名",
+"text": "科技小教室",
+"size": 24,
+"role": "brand"
+},
+{
+"name": "頁碼_字",
+"text": "08 / 10",
+"size": 30,
+"role": "pill"
+},
+{
+"name": "標題",
+"text": "財報前，看這幾個數字",
+"size": 62,
+"role": "title"
+},
+{
+"name": "圖標",
+"text": "每季淨銷售額（億歐元）",
+"size": 32,
+"role": "body"
+},
+{
+"name": "預估標_字",
+"text": "黃色＝公司預估區間",
+"size": 24,
+"role": "tag"
+},
+{
+"name": "軸0",
+"text": "0",
+"size": 24,
+"role": "axis"
+},
+{
+"name": "軸50",
+"text": "50",
+"size": 24,
+"role": "axis"
+},
+{
+"name": "軸100",
+"text": "100",
+"size": 24,
+"role": "axis"
+},
+{
+"name": "值0",
+"text": "約 75",
+"size": 38,
+"role": "body"
+},
+{
+"name": "季0",
+"text": "2025 第 3 季",
+"size": 28,
+"role": "body"
+},
+{
+"name": "類0",
+"text": "實際",
+"size": 24,
+"role": "body"
+},
+{
+"name": "值1",
+"text": "約 93",
+"size": 38,
+"role": "body"
+},
+{
+"name": "季1",
+"text": "2026 第 2 季",
+"size": 28,
+"role": "body"
+},
+{
+"name": "類1",
+"text": "實際",
+"size": 24,
+"role": "body"
+},
+{
+"name": "值2",
+"text": "110～120",
+"size": 36,
+"role": "body"
+},
+{
+"name": "季2",
+"text": "2026 第 3 季",
+"size": 28,
+"role": "body"
+},
+{
+"name": "類2",
+"text": "公司預估",
+"size": 24,
+"role": "body"
+},
+{
+"name": "圖註",
+"text": "預估區間不是實際結果；實際數字以 10/14 公布為準",
+"size": 26,
+"role": "body"
+},
+{
+"name": "毛利標",
+"text": "第 3 季毛利率預估",
+"size": 30,
+"role": "body"
+},
+{
+"name": "毛利值",
+"text": "55%～57%",
+"size": 34,
+"role": "body"
+},
+{
+"name": "毛利副",
+"text": "公司預估",
+"size": 24,
+"role": "body"
+},
+{
+"name": "觀察標",
+"text": "也可以對照",
+"size": 30,
+"role": "body"
+},
+{
+"name": "觀察1",
+"text": "去年同期訂單 54 億歐元（其中 EUV 36 億）",
+"size": 28,
+"role": "body"
+},
+{
+"name": "觀察2",
+"text": "全年預估 430～450 億歐元",
+"size": 28,
+"role": "body"
+},
+{
+"name": "泡泡_字",
+"text": "實際數字落在區間哪裡？",
+"size": 34,
+"role": "bubble"
+},
+{
+"name": "出處",
+"text": "資料：TechNews 2025-10-15、2026-07-15",
+"size": 24,
+"role": "foot"
+},
+{
+"name": "往右滑",
+"text": "往右滑 ›",
+"size": 28,
+"role": "foot"
+}
+]
+},
+"9": {
+"els": [
+{
+"name": "LOGO",
+"box": [
+38,
+34,
+126,
+122
+],
+"parent": null,
+"kind": "logo"
+},
+{
+"name": "品牌字",
+"box": [
+142,
+49.0,
+286.0,
+80.5
+],
+"parent": null,
+"kind": "text",
+"size": 36
+},
+{
+"name": "欄名",
+"box": [
+142,
+93.0,
+262.0,
+115.0
+],
+"parent": null,
+"kind": "text",
+"size": 24
+},
+{
+"name": "頁碼",
+"box": [
+900,
+50,
+1040,
+104
+],
+"parent": null,
+"kind": "card"
+},
+{
+"name": "頁碼_字",
+"box": [
+917.9,
+62.5,
+1022.1,
+88.0
+],
+"parent": "頁碼",
+"kind": "text",
+"size": 30
+},
+{
+"name": "標題",
+"box": [
+48,
+149.0,
+606.0,
+205.5
+],
+"parent": null,
+"kind": "text",
+"size": 62
+},
+{
+"name": "層0",
+"box": [
+57.5,
+252.5,
+672.5,
+384.0
+],
+"parent": null,
+"kind": "illus"
+},
+{
+"name": "層題0",
+"box": [
+83.4,
+311.4,
+393.8,
+342.4
+],
+"parent": "層0",
+"kind": "text",
+"size": 34
+},
+{
+"name": "層文0",
+"box": [
+83.4,
+357.4,
+274.1,
+381.4
+],
+"parent": "層0",
+"kind": "text",
+"size": 26
+},
+{
+"name": "層箭0",
+"box": [
+263.0,
+408.0,
+293.0,
+460.0
+],
+"parent": null,
+"kind": "arrow"
+},
+{
+"name": "層1",
+"box": [
+57.5,
+488.5,
+672.5,
+620.0
+],
+"parent": null,
+"kind": "illus"
+},
+{
+"name": "層題1",
+"box": [
+83.4,
+547.4,
+389.4,
+578.4
+],
+"parent": "層1",
+"kind": "text",
+"size": 34
+},
+{
+"name": "層文1",
+"box": [
+83.4,
+593.4,
+381.4,
+617.4
+],
+"parent": "層1",
+"kind": "text",
+"size": 26
+},
+{
+"name": "層箭1",
+"box": [
+263.0,
+644.0,
+293.0,
+696.0
+],
+"parent": null,
+"kind": "arrow"
+},
+{
+"name": "層2",
+"box": [
+57.5,
+724.5,
+672.5,
+856.0
+],
+"parent": null,
+"kind": "illus"
+},
+{
+"name": "層題2",
+"box": [
+83.4,
+783.4,
+341.3,
+814.4
+],
+"parent": "層2",
+"kind": "text",
+"size": 34
+},
+{
+"name": "層文2",
+"box": [
+83.4,
+829.4,
+299.2,
+853.4
+],
+"parent": "層2",
+"kind": "text",
+"size": 26
+},
+{
+"name": "台灣標",
+"box": [
+470,
+470,
+690,
+520
+],
+"parent": null,
+"kind": "card"
+},
+{
+"name": "台灣標_字",
+"box": [
+510.0,
+479.7,
+650.0,
+505.2
+],
+"parent": "台灣標",
+"kind": "text",
+"size": 28
+},
+{
+"name": "層事實",
+"box": [
+40,
+950,
+288.0,
+992
+],
+"parent": null,
+"kind": "card"
+},
+{
+"name": "層事實_字",
+"box": [
+56,
+957.6,
+272.0,
+980.1
+],
+"parent": "層事實",
+"kind": "text",
+"size": 24
+},
+{
+"name": "產能卡",
+"box": [
+712,
+236,
+1032,
+960
+],
+"parent": null,
+"kind": "card"
+},
+{
+"name": "產能標",
+"box": [
+748.0,
+256.0,
+996.0,
+322.0
+],
+"parent": "產能卡",
+"kind": "text",
+"size": 30
+},
+{
+"name": "產能柱1",
+"box": [
+760,
+540,
+860,
+840
+],
+"parent": "產能卡",
+"kind": "bar"
+},
+{
+"name": "產能柱2",
+"box": [
+890,
+450,
+990,
+840
+],
+"parent": "產能卡",
+"kind": "bar"
+},
+{
+"name": "柱值1",
+"box": [
+756.6,
+491.5,
+863.4,
+517.0
+],
+"parent": "產能卡",
+"kind": "text",
+"size": 28
+},
+{
+"name": "柱值2",
+"box": [
+882.0,
+402.0,
+998.0,
+429.0
+],
+"parent": "產能卡",
+"kind": "text",
+"size": 30
+},
+{
+"name": "柱年1",
+"box": [
+775.7,
+858.0,
+844.3,
+878.5
+],
+"parent": "產能卡",
+"kind": "text",
+"size": 28
+},
+{
+"name": "柱年2",
+"box": [
+878.3,
+855.5,
+1001.7,
+879.5
+],
+"parent": "產能卡",
+"kind": "text",
+"size": 26
+},
+{
+"name": "產能標籤",
+"box": [
+830.0,
+900,
+1016.0,
+940
+],
+"parent": "產能卡",
+"kind": "card"
+},
+{
+"name": "產能標籤_字",
+"box": [
+846.0,
+907.8,
+1000.0,
+928.3
+],
+"parent": "產能標籤",
+"kind": "text",
+"size": 22
+},
+{
+"name": "比比",
+"box": [
+48,
+1010,
+294.8,
+1160
+],
+"parent": null,
+"kind": "bibi",
+"key": "s09"
+},
+{
+"name": "泡泡",
+"box": [
+300,
+1008,
+724.0,
+1091.7
+],
+"parent": null,
+"kind": "bubble",
+"tip": [
+300,
+1080
+]
+},
+{
+"name": "泡泡_字",
+"box": [
+357.0,
+1033.5,
+697.0,
+1064.5
+],
+"parent": "泡泡",
+"kind": "text",
+"size": 34
+},
+{
+"name": "觀察卡",
+"box": [
+48,
+1176,
+1032,
+1266
+],
+"parent": null,
+"kind": "card"
+},
+{
+"name": "觀察字",
+"box": [
+70,
+1195.5,
+667.4,
+1221.0
+],
+"parent": "觀察卡",
+"kind": "text",
+"size": 28
+},
+{
+"name": "觀察標",
+"box": [
+892.0,
+1198,
+1012.0,
+1238
+],
+"parent": "觀察卡",
+"kind": "card"
+},
+{
+"name": "觀察標_字",
+"box": [
+908.0,
+1205.8,
+996.0,
+1226.3
+],
+"parent": "觀察標",
+"kind": "text",
+"size": 22
+},
+{
+"name": "出處",
+"box": [
+48,
+1291.0,
+587.2,
+1313.5
+],
+"parent": null,
+"kind": "text",
+"size": 24
+},
+{
+"name": "往右滑",
+"box": [
+929.5,
+1289.5,
+1032.0,
+1315.0
+],
+"parent": null,
+"kind": "text",
+"size": 28
+}
+],
+"texts": [
+{
+"name": "品牌字",
+"text": "哩股哩股",
+"size": 36,
+"role": "brand"
+},
+{
+"name": "欄名",
+"text": "科技小教室",
+"size": 24,
+"role": "brand"
+},
+{
+"name": "頁碼_字",
+"text": "09 / 10",
+"size": 30,
+"role": "pill"
+},
+{
+"name": "標題",
+"text": "跟台灣有什麼關係？",
+"size": 62,
+"role": "title"
+},
+{
+"name": "層題0",
+"text": "設備：ASML 曝光機",
+"size": 34,
+"role": "body"
+},
+{
+"name": "層文0",
+"text": "EUV 等先進設備",
+"size": 26,
+"role": "body"
+},
+{
+"name": "層題1",
+"text": "晶圓代工：台積電等",
+"size": 34,
+"role": "body"
+},
+{
+"name": "層文1",
+"text": "ASML EUV 主要客戶之一",
+"size": 26,
+"role": "body"
+},
+{
+"name": "層題2",
+"text": "晶片 → 終端產品",
+"size": 34,
+"role": "body"
+},
+{
+"name": "層文2",
+"text": "AI 伺服器、手機…",
+"size": 26,
+"role": "body"
+},
+{
+"name": "台灣標_字",
+"text": "台灣在這層",
+"size": 28,
+"role": "pill"
+},
+{
+"name": "層事實_字",
+"text": "客戶：多家媒體報導",
+"size": 24,
+"role": "tag"
+},
+{
+"name": "產能標",
+"text": "ASML 低 NA EUV產能規劃",
+"size": 30,
+"role": "body"
+},
+{
+"name": "柱值1",
+"text": "約 65 台",
+"size": 28,
+"role": "body"
+},
+{
+"name": "柱值2",
+"text": "+約 30%",
+"size": 30,
+"role": "body"
+},
+{
+"name": "柱年1",
+"text": "2026",
+"size": 28,
+"role": "body"
+},
+{
+"name": "柱年2",
+"text": "2027 規劃",
+"size": 26,
+"role": "body"
+},
+{
+"name": "產能標籤_字",
+"text": "媒體引述管理層",
+"size": 22,
+"role": "tag"
+},
+{
+"name": "泡泡_字",
+"text": "台灣在鏈子的這一段！",
+"size": 34,
+"role": "bubble"
+},
+{
+"name": "觀察字",
+"text": "觀察重點：EUV 出貨步調，和先進製程擴產有關",
+"size": 28,
+"role": "body"
+},
+{
+"name": "觀察標_字",
+"text": "市場看法",
+"size": 22,
+"role": "tag"
+},
+{
+"name": "出處",
+"text": "資料：技術媒體引述 ASML 管理層；TechNews 等",
+"size": 24,
+"role": "foot"
+},
+{
+"name": "往右滑",
+"text": "往右滑 ›",
+"size": 28,
+"role": "foot"
+}
+]
+},
+"10": {
+"els": [
+{
+"name": "LOGO",
+"box": [
+38,
+34,
+126,
+122
+],
+"parent": null,
+"kind": "logo"
+},
+{
+"name": "品牌字",
+"box": [
+142,
+49.0,
+286.0,
+80.5
+],
+"parent": null,
+"kind": "text",
+"size": 36
+},
+{
+"name": "欄名",
+"box": [
+142,
+93.0,
+262.0,
+115.0
+],
+"parent": null,
+"kind": "text",
+"size": 24
+},
+{
+"name": "頁碼",
+"box": [
+900,
+50,
+1040,
+104
+],
+"parent": null,
+"kind": "card"
+},
+{
+"name": "頁碼_字",
+"box": [
+917.9,
+62.5,
+1022.1,
+88.0
+],
+"parent": "頁碼",
+"kind": "text",
+"size": 30
+},
+{
+"name": "標題",
+"box": [
+48,
+149.0,
+482.0,
+205.0
+],
+"parent": null,
+"kind": "text",
+"size": 62
+},
+{
+"name": "筆記卡",
+"box": [
+48,
+232,
+1032,
+790
+],
+"parent": null,
+"kind": "card"
+},
+{
+"name": "重點底0",
+"box": [
+72,
+258,
+1008,
+414
+],
+"parent": "筆記卡",
+"kind": "card"
+},
+{
+"name": "重點號0",
+"box": [
+92,
+298,
+168,
+374
+],
+"parent": "重點底0",
+"kind": "badge"
+},
+{
+"name": "重點題0",
+"box": [
+196,
+282.5,
+586.2,
+318.5
+],
+"parent": "重點底0",
+"kind": "text",
+"size": 40
+},
+{
+"name": "重點文0",
+"box": [
+196,
+348.0,
+526.0,
+375.5
+],
+"parent": "重點底0",
+"kind": "text",
+"size": 30
+},
+{
+"name": "重點底1",
+"box": [
+72,
+432,
+1008,
+588
+],
+"parent": "筆記卡",
+"kind": "card"
+},
+{
+"name": "重點號1",
+"box": [
+92,
+472,
+168,
+548
+],
+"parent": "重點底1",
+"kind": "badge"
+},
+{
+"name": "重點題1",
+"box": [
+196,
+456.5,
+436.0,
+492.5
+],
+"parent": "重點底1",
+"kind": "text",
+"size": 40
+},
+{
+"name": "重點文1",
+"box": [
+196,
+521.5,
+706.0,
+549.5
+],
+"parent": "重點底1",
+"kind": "text",
+"size": 30
+},
+{
+"name": "重點底2",
+"box": [
+72,
+606,
+1008,
+762
+],
+"parent": "筆記卡",
+"kind": "card"
+},
+{
+"name": "重點號2",
+"box": [
+92,
+646,
+168,
+722
+],
+"parent": "重點底2",
+"kind": "badge"
+},
+{
+"name": "重點題2",
+"box": [
+196,
+630.0,
+523.1,
+666.5
+],
+"parent": "重點底2",
+"kind": "text",
+"size": 40
+},
+{
+"name": "重點文2",
+"box": [
+196,
+696.0,
+744.0,
+723.0
+],
+"parent": "重點底2",
+"kind": "text",
+"size": 30
+},
+{
+"name": "比比",
+"box": [
+780,
+812,
+958.6,
+1038
+],
+"parent": null,
+"kind": "bibi",
+"key": "s10"
+},
+{
+"name": "泡泡",
+"box": [
+48,
+830,
+770,
+913.7
+],
+"parent": null,
+"kind": "bubble",
+"tip": [
+770,
+900
+]
+},
+{
+"name": "泡泡_字",
+"box": [
+75.0,
+855.5,
+415.0,
+886.5
+],
+"parent": "泡泡",
+"kind": "text",
+"size": 34
+},
+{
+"name": "CTA",
+"box": [
+48,
+950,
+720,
+1036
+],
+"parent": null,
+"kind": "card"
+},
+{
+"name": "CTA_字",
+"box": [
+208.0,
+968.1,
+560.0,
+1009.6
+],
+"parent": "CTA",
+"kind": "text",
+"size": 44
+},
+{
+"name": "免責卡",
+"box": [
+48,
+1072,
+1032,
+1196
+],
+"parent": null,
+"kind": "card"
+},
+{
+"name": "免責字",
+"box": [
+72,
+1091.5,
+1002.0,
+1158.0
+],
+"parent": "免責卡",
+"kind": "text",
+"size": 30
+},
+{
+"name": "出處",
+"box": [
+48,
+1223.0,
+751.5,
+1248.0
+],
+"parent": null,
+"kind": "text",
+"size": 24
+}
+],
+"texts": [
+{
+"name": "品牌字",
+"text": "哩股哩股",
+"size": 36,
+"role": "brand"
+},
+{
+"name": "欄名",
+"text": "科技小教室",
+"size": 24,
+"role": "brand"
+},
+{
+"name": "頁碼_字",
+"text": "10 / 10",
+"size": 30,
+"role": "pill"
+},
+{
+"name": "標題",
+"text": "比比幫你畫重點",
+"size": 62,
+"role": "title"
+},
+{
+"name": "重點號0",
+"text": "1",
+"size": 43,
+"role": "badge"
+},
+{
+"name": "重點題0",
+"text": "ASML 做 EUV 曝光機",
+"size": 40,
+"role": "body"
+},
+{
+"name": "重點文0",
+"text": "先進晶片製造的關鍵設備",
+"size": 30,
+"role": "body"
+},
+{
+"name": "重點號1",
+"text": "2",
+"size": 43,
+"role": "badge"
+},
+{
+"name": "重點題1",
+"text": "設備訂單先動",
+"size": 40,
+"role": "body"
+},
+{
+"name": "重點文1",
+"text": "所以財報常被當景氣前哨（市場看法）",
+"size": 30,
+"role": "body"
+},
+{
+"name": "重點號2",
+"text": "3",
+"size": 43,
+"role": "badge"
+},
+{
+"name": "重點題2",
+"text": "10/14 財報看什麼",
+"size": 40,
+"role": "body"
+},
+{
+"name": "重點文2",
+"text": "營收是否落在公司預估 110～120 億歐元",
+"size": 30,
+"role": "body"
+},
+{
+"name": "泡泡_字",
+"text": "財報出爐，再一起看！",
+"size": 34,
+"role": "bubble"
+},
+{
+"name": "CTA_字",
+"text": "搜尋「哩股哩股」",
+"size": 44,
+"role": "pill"
+},
+{
+"name": "免責字",
+"text": "本內容為公開資料整理，不構成任何投資建議；投資有風險，請自行判斷。",
+"size": 30,
+"role": "body"
+},
+{
+"name": "出處",
+"text": "資料：TechNews、ASML 官網、Yole Group 等；完整出處見文案",
+"size": 24,
+"role": "foot"
+}
+]
+}
+}
