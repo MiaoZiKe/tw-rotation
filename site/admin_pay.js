@@ -393,6 +393,23 @@
         + (S.open['s:' + s.email] ? `<tr class="det"><td colspan="12"><div class="tw"><table>${TH}<tbody>${d.orders.filter((o) => o.email === s.email).map((o) => orderRow(o, true)).join('')}</tbody></table></div>
           <p style="margin:6px 0 0">方案異動：${ev(s.email).map((e) => `${esc(ymdhm(e.at))} ${esc(EV[e.kind] || e.kind)}${e.detail ? '（' + esc(e.detail) + '）' : ''}`).join('　') || '—'}</p></td></tr>` : '')).join('') || '<tr><td colspan="12" class="muted">還沒有付費會員</td></tr>'}</tbody></table></div>`;
     box.querySelector('#psCsv').onclick = () => csvSubs(subs);
+    /* 2026-10-14：清除測試帳號的金流資料（防呆：要再打一次 email；有綠界正式付款的帳號伺服器會拒絕）*/
+    box.insertAdjacentHTML('beforeend', `<details class="sec" id="payPurge" style="margin-top:14px"><summary style="cursor:pointer"><b>清除測試資料</b> <small class="muted">只用在自己測試用的帳號；真的客戶請用「退款」</small></summary>
+      <p class="muted" style="margin:6px 0">會刪掉這個 email 的<b>所有訂單、退款紀錄、帳務通知、取消／退款申請、方案異動紀錄</b>，會員回到「註冊會員」。刪除無法復原（刪了哪些會留一筆紀錄在金流事件裡）。有綠界正式付款的帳號不能清除。</p>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center"><input type="email" id="ppEm" placeholder="測試帳號 email" style="min-width:240px"><input type="email" id="ppEm2" placeholder="再輸入一次" style="min-width:240px"><button type="button" class="danger" id="ppGo">清除</button></div>
+      <div class="msg" id="ppMsg" role="status" style="margin-top:6px"></div></details>`);
+    const pm = box.querySelector('#ppMsg');
+    box.querySelector('#ppGo').onclick = async () => {
+      const em = box.querySelector('#ppEm').value.trim(), em2 = box.querySelector('#ppEm2').value.trim();
+      if (!em || em.toLowerCase() !== em2.toLowerCase()) { pm.className = 'msg bad'; pm.textContent = '兩次輸入的 email 要一樣'; return; }
+      const n = S.d.orders.filter((o) => o.email === em.toLowerCase()).length;
+      const dl = T().dialog(`<div class="payd"><h3>清除 ${esc(em)} 的測試資料？</h3><p>會刪掉 <b>${n}</b> 筆訂單與相關的退款、通知、申請紀錄，會員回到註冊會員。<b>無法復原。</b></p><div class="msg" role="status"></div><div class="row2"><button type="button" data-close>取消</button><button type="button" class="danger" id="pdGo">確定清除</button></div></div>`);
+      dl.querySelector('#pdGo').onclick = async () => {
+        const r = await call('/v1/admin/pay/purge', { email: em, confirm: em2 });
+        if (r && r._s === 200 && r.ok) { dl.hidden = true; await load(); paint(v); st(v, `已清除 ${em}：訂單 ${r.orders} 筆、退款 ${r.refunds} 筆、通知 ${r.notices} 則、申請 ${r.requests} 筆`); return; }
+        const m = dl.querySelector('.msg'); m.className = 'msg bad'; m.textContent = '沒有清除：' + ((r && (r.msg || r.error)) || '連不到會員伺服器');
+      };
+    };
     box.querySelectorAll('tr.prow[data-em]').forEach((tr) => { tr.onclick = (e) => { if (e.target.closest('button,a')) return; const k = 's:' + tr.dataset.em; S.open[k] = !S.open[k]; subsView(v, box); }; });
     box.querySelectorAll('[data-pa]').forEach((b) => { b.onclick = (e) => { e.stopPropagation(); act(v, b.dataset.pa, S.d.orders.find((o) => o.id === b.dataset.id)); }; });
   }

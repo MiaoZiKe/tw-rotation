@@ -859,6 +859,35 @@ export function installPay(Hub, H) {
       }
       return this.json(req, { ok: true, refund: this.q('SELECT * FROM refunds WHERE id = ?', rid)[0], cancel, order: admOrder(this.payOrder(o.id)) });
     },
+    /* 2026-10-14 Andy：「liguligu0818 重複開通的測試資料要不要清掉」→ OK。
+       清除「測試帳號」的金流資料：訂單、退款、帳務通知、通知信、取消／退款申請、方案異動紀錄，權限回到註冊會員。
+       防呆：① 管理者要再打一次 email ② 有綠界正式付款（非測試、已付款）的訂單一律拒絕（那是真的錢，只能走退款）③ 刪了什麼寫進 pay_events（不刪）*/
+    '/v1/admin/pay/purge': async function (req, b) {
+      const v = await this.admin(req, b); if (!v) return this.json(req, { error: 'forbidden' }, 403);
+      this.payInit();
+      const email = norm(b.email);
+      if (!email || norm(b.confirm) !== email) return this.json(req, { error: 'confirm', msg: '請再輸入一次相同的 email' }, 400);
+      const os = this.q('SELECT * FROM orders WHERE email = ?', email);
+      const real = os.filter((o) => o.method === 'ecpay' && !o.test && (o.applied || ['paid', 'active', 'refunded'].includes(o.status)));
+      if (real.length) return this.json(req, { error: 'real_payment', msg: `這個帳號有 ${real.length} 筆綠界正式付款，不能用清除，請用退款處理` }, 409);
+      const recurOn = os.filter((o) => o.recur && !o.parent && o.period_state === 'active');
+      if (recurOn.length) return this.json(req, { error: 'recur_active', msg: '這個帳號還有信用卡自動扣款，請先終止' }, 409);
+      const ids = os.map((o) => o.id);
+      const cnt = { orders: ids.length, refunds: 0, notices: 0, requests: 0 };
+      for (const id of ids) cnt.refunds += this.q('SELECT COUNT(*) AS c FROM refunds WHERE oid = ?', id)[0].c;
+      this.payEv('', 'purge', { by: v.user.email, email, orders: os.map((o) => ({ id: o.id, plan: o.plan, period: o.period, amount: o.amount, method: o.method, status: o.status, recv: o.recv_amount || 0 })), refunds: cnt.refunds });
+      for (const id of ids) { this.q('DELETE FROM refunds WHERE oid = ?', id); }
+      this.q('DELETE FROM orders WHERE email = ?', email);
+      cnt.notices = this.q('SELECT COUNT(*) AS c FROM user_notices WHERE email = ?', email)[0].c;
+      this.q('DELETE FROM user_notices WHERE email = ?', email);
+      this.q('DELETE FROM mail_out WHERE email = ?', email);
+      cnt.requests = this.q("SELECT COUNT(*) AS c FROM sub_requests WHERE email = ? AND type IN ('cancel', 'refund')", email)[0].c;
+      this.q("DELETE FROM sub_requests WHERE email = ? AND type IN ('cancel', 'refund')", email);
+      this.q('DELETE FROM plan_events WHERE email = ?', email);
+      this.q('DELETE FROM bill_flags WHERE email = ?', email);
+      this.q('DELETE FROM perm WHERE email = ?', email);   // 權限回到註冊會員（範本與個別微調一起清掉）
+      return this.json(req, { ok: true, email, ...cnt });
+    },
     '/v1/admin/pay/period_cancel': async function (req, b) {
       const v = await this.admin(req, b); if (!v) return this.json(req, { error: 'forbidden' }, 403);
       this.payInit();

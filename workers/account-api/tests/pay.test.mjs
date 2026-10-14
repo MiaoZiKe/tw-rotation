@@ -444,6 +444,31 @@ test('會員帳務通知：回報匯款、開通、升級、退回、退款都�
   assert.equal(db.prepare("SELECT COUNT(*) AS c FROM mail_out WHERE status = 'pending'").get().c, 0);
 });
 
+test('清除測試資料：要再打一次 email、清掉訂單／退款／通知／申請、權限回註冊會員、留事件；有綠界正式付款的帳號拒絕', async () => {
+  const { hub, db, bob, andy } = await setup();
+  await pj(hub, '/v1/admin/pay/bank/put', { t: andy, bank_name: '測試銀行', bank_code: '999', account: '000011112222', holder: '測試戶名' });
+  const a = (await pj(hub, '/v1/pay/bank/create', { t: bob, plan: 'plus', period: 'month' })).j;
+  await pj(hub, '/v1/pay/bank/report', { t: bob, id: a.id, last5: '30001', date: '2026-10-11', amount: 299 });
+  await pj(hub, '/v1/admin/pay/confirm', { t: andy, id: a.id, received: 299 });
+  await pj(hub, '/v1/subscribe/change', { t: bob, type: 'refund' });
+  assert.equal((await permOf(hub, bob)).plan, 'plus');
+  assert.equal((await pj(hub, '/v1/admin/pay/purge', { t: bob, email: 'bob@example.com', confirm: 'bob@example.com' })).s, 403, '只有管理者');
+  assert.equal((await pj(hub, '/v1/admin/pay/purge', { t: andy, email: 'bob@example.com', confirm: 'bo@example.com' })).j.error, 'confirm');
+  const r = await pj(hub, '/v1/admin/pay/purge', { t: andy, email: 'bob@example.com', confirm: 'BOB@example.com' });
+  assert.equal(r.s, 200, JSON.stringify(r.j));
+  assert.equal(r.j.orders, 1);
+  assert.equal(db.prepare("SELECT COUNT(*) AS c FROM orders WHERE email = 'bob@example.com'").get().c, 0);
+  assert.equal(db.prepare("SELECT COUNT(*) AS c FROM user_notices WHERE email = 'bob@example.com'").get().c, 0);
+  assert.equal((await permOf(hub, bob)).plan, 'free');
+  assert.ok(db.prepare("SELECT COUNT(*) AS c FROM pay_events WHERE kind = 'purge'").get().c === 1, '刪了什麼留紀錄');
+  /* 綠界正式付款（非測試）不能清 */
+  const { hub: h2, db: d2, bob: b2, andy: a2 } = await setup({ ECPAY_MERCHANT_ID: '3002607', ECPAY_HASH_KEY: ECPAY_STAGE.key, ECPAY_HASH_IV: ECPAY_STAGE.iv });
+  const c = (await pj(h2, '/v1/pay/ecpay/create', { t: b2, plan: 'plus', period: 'month', back: BACK })).j;
+  await notify(h2, c.id, 299);
+  assert.equal((await pj(h2, '/v1/admin/pay/purge', { t: a2, email: 'bob@example.com', confirm: 'bob@example.com' })).j.error, 'real_payment');
+  assert.equal(d2.prepare("SELECT COUNT(*) AS c FROM orders WHERE email = 'bob@example.com'").get().c, 1);
+});
+
 test('方案異動：月繳 Plus 可升 Plus 年繳／Pro；不可降級；Pro 年繳什麼都不能再買', async () => {
   const { hub, db, bob, andy } = await setup();
   await pj(hub, '/v1/admin/pay/bank/put', { t: andy, bank_name: '測試銀行', bank_code: '999', account: '000011112222', holder: '測試戶名' });
