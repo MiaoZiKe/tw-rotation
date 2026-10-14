@@ -570,7 +570,8 @@ test('2026-10-09 取消訂閱／申請退款：建立 type 申請、七天保證
   assert.equal((await post(hub, '/v1/admin/perm/put', { t: andy, email: 'dan@example.com', plan: 'paid', over: {}, expires: exp })).status, 200);
   assert.equal((await post(hub, '/v1/subscribe/change', { t: dan, type: 'refund' })).status, 200);
   s = await (await post(hub, '/v1/billing/me', { t: dan })).json();
-  assert.equal(s.refundUsed, true); assert.equal(s.trialUsed, true); assert.equal(s.canRefund, false);
+  /* 2026-10-12 稽核 H11：申請當下不算「已用過退款」（等管理者真的退款才設），但不能再申請第二次 */
+  assert.equal(s.refundUsed, false); assert.equal(s.trialUsed, true); assert.equal(s.canRefund, false);
   // 管理區列表帶 type
   const li = await (await post(hub, '/v1/admin/feedback/list', { t: andy })).json();
   assert.deepEqual(li.requests.map((r) => r.type).sort(), ['cancel', 'refund']);

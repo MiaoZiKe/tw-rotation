@@ -72,10 +72,12 @@ async function login(hub, email) {
 async function setup(x) {
   FAKE.trades = {}; FAKE.periods = {}; FAKE.calls = []; FAKE.doaction = { RtnCode: '1', RtnMsg: '成功' }; FAKE.cancel = { RtnCode: '1', RtnMsg: '成功' };
   clock = Date.parse('2026-10-11T04:00:00Z');
-  const { hub, db } = makeHub(env(x));
+  const { hub, db } = makeHub(env({ PAY_TEST_ACTIVATE: '1', ...(x || {}) }));
   db.prepare("INSERT OR IGNORE INTO plans (id, name, feats, builtin, updated, price, period) VALUES ('plus', 'Plus', '{}', 0, 0, 299, 'month')").run();
   db.prepare("UPDATE plans SET price = 299, period = 'month' WHERE id = 'plus'").run();
   hub.expInit(); db.prepare("UPDATE plans SET price_year = 2990 WHERE id = 'plus'").run();
+  db.prepare("INSERT OR IGNORE INTO plans (id, name, feats, builtin, updated, price, period) VALUES ('pro', 'Pro', '{}', 0, 0, 499, 'month')").run();
+  db.prepare("UPDATE plans SET builtin = 0, price = 499, period = 'month', price_year = 5268 WHERE id = 'pro'").run();
   const bob = await login(hub, 'bob@example.com');
   const andy = await login(hub, 'andy@example.com');
   return { hub, db, bob, andy };
@@ -158,7 +160,8 @@ test('B1 驗章錯誤不開通、SimulatePaid=1 不開通、金額不符不開�
   assert.ok(l.anomalies.includes(c.id), '異常清單有這筆');
   /* B5 一鍵補開通（金額不符要強制）*/
   assert.equal((await pj(hub, '/v1/admin/pay/reactivate', { t: andy, id: c.id })).s, 409, '沒強制 → 綠界查單顯示沒付');
-  assert.equal((await pj(hub, '/v1/admin/pay/reactivate', { t: andy, id: c.id, force: true })).s, 200);
+  assert.equal((await pj(hub, '/v1/admin/pay/reactivate', { t: andy, id: c.id, force: true })).s, 400, '強制開通要寫理由');
+  assert.equal((await pj(hub, '/v1/admin/pay/reactivate', { t: andy, id: c.id, force: true, reason: '已到綠界後台確認' })).s, 200);
   assert.equal(ord(db, c.id).status, 'active');
   assert.equal((await permOf(hub, bob)).plan, 'plus');
   assert.equal((await pj(hub, '/v1/admin/pay/list', { t: andy })).j.anomalies.length, 0, '補完異常清單清空');
@@ -171,7 +174,9 @@ test('B6 冪等：同一筆通知重複送 3 次只加一次期間', async () =>
   const exp = db.prepare("SELECT expires FROM perm WHERE email = 'bob@example.com'").get().expires;
   assert.equal(new Date(exp).toISOString(), '2026-11-11T04:00:00.000Z', '只加一個月');
   assert.equal(db.prepare("SELECT COUNT(*) AS c FROM plan_events WHERE email = 'bob@example.com' AND kind IN ('activate','extend')").get().c, 1);
-  /* 第二筆訂單（續訂）→ 從原到期日接下去 */
+  /* 第二筆訂單（續訂）→ 從原到期日接下去；續訂只在到期前 7 天內才開放 */
+  assert.equal((await pj(hub, '/v1/pay/ecpay/create', { t: bob, plan: 'plus', period: 'month', back: BACK })).s, 409, '還很久：同方案同週期不能再買');
+  clock = Date.parse('2026-11-06T04:00:00Z');
   const c2 = await ecCreate(hub, bob);
   await notify(hub, c2.id, 299);
   assert.equal(new Date(ord(db, c2.id).grant_from).toISOString(), '2026-11-11T04:00:00.000Z');
@@ -301,20 +306,185 @@ test('銀行轉帳：收款帳號沒設＝尚未開放；設了只有登入會�
   const my = (await pj(hub, '/v1/pay/my', { t: bob })).j;
   assert.equal(my.orders[0].statusName, '待確認');
   assert.equal((await permOf(hub, bob)).plan, 'free', '待確認還沒開通');
-  const cf = await pj(hub, '/v1/admin/pay/confirm', { t: andy, id: c.id });
+  /* 2026-10-12：管理者一定要輸入網銀實收金額；少於應付擋下、不開通 */
+  assert.equal((await pj(hub, '/v1/admin/pay/confirm', { t: andy, id: c.id })).j.error, 'need_received');
+  const up = await pj(hub, '/v1/admin/pay/confirm', { t: andy, id: c.id, received: 2000 });
+  assert.deepEqual([up.s, up.j.error, ord(db, c.id).applied], [409, 'underpaid', 0], '實收 2000 < 2990 不能開通');
+  assert.equal((await permOf(hub, bob)).plan, 'free');
+  const cf = await pj(hub, '/v1/admin/pay/confirm', { t: andy, id: c.id, received: 2990 });
   assert.equal(cf.s, 200);
   assert.equal(ord(db, c.id).status, 'active');
+  assert.equal(ord(db, c.id).recv_amount, 2990);
   assert.equal(new Date(ord(db, c.id).grant_to).toISOString(), '2027-10-11T04:00:00.000Z', '年繳 +12 個月');
   assert.equal((await permOf(hub, bob)).plan, 'plus');
   assert.equal((await pj(hub, '/v1/admin/pay/confirm', { t: andy, id: c.id })).j.dup, true, '重按確認不重複開通');
-  for (let i = 0; i < 4; i++) assert.equal((await pj(hub, '/v1/pay/bank/create', { t: bob, plan: 'plus', period: i % 2 ? 'month' : 'year' })).s, 200);
-  /* 上面 4 次：第 1 次開新單（年）、第 2 次開新單（月）、第 3 次沿用年、第 4 次沿用月 → 24 小時共 3 筆。再換方式灌 */
-  db.prepare("UPDATE orders SET status = 'review' WHERE method = 'bank' AND status = 'pending'").run();
-  assert.equal((await pj(hub, '/v1/pay/bank/create', { t: bob, plan: 'plus', period: 'month' })).s, 200);
-  db.prepare("UPDATE orders SET status = 'review' WHERE method = 'bank' AND status = 'pending'").run();
-  assert.equal((await pj(hub, '/v1/pay/bank/create', { t: bob, plan: 'plus', period: 'month' })).s, 200);
-  db.prepare("UPDATE orders SET status = 'review' WHERE method = 'bank' AND status = 'pending'").run();
-  assert.equal((await pj(hub, '/v1/pay/bank/create', { t: bob, plan: 'plus', period: 'month' })).s, 429, '24 小時第 6 筆擋下');
+  /* 方案異動規則：年繳 Plus 生效中 → 不能再買月繳、不能重買同一個，只能升 Pro 年繳 */
+  const blk = async (plan, period) => (await pj(hub, '/v1/pay/bank/create', { t: bob, plan, period })).j;
+  assert.deepEqual([(await blk('plus', 'month')).reason, (await blk('plus', 'year')).reason, (await blk('pro', 'month')).reason], ['year_to_month', 'same_active', 'year_to_month']);
+  assert.equal((await pj(hub, '/v1/pay/quote', { t: bob, plan: 'plus', period: 'month' })).j.blocked, 'year_to_month', '報價也帶出擋下原因，前端據此反灰');
+  assert.equal((await pj(hub, '/v1/pay/bank/create', { t: bob, plan: 'pro', period: 'year' })).s, 200, '年繳可升 Pro 年繳');
+  /* 到期前 7 天內才能續訂同方案同週期；上面 4 次之後再灌到第 6 筆 → 24 小時上限 */
+  const soon = clock + 3 * 86400000;
+  db.prepare("UPDATE perm SET expires = ? WHERE email = 'bob@example.com'").run(soon);
+  db.prepare("UPDATE orders SET grant_to = ? WHERE id = ?").run(soon, c.id);
+  for (let i = 0; i < 3; i++) {   // 前面已開 2 筆（原單＋Pro 年繳），再 3 筆到 5 筆上限
+    assert.equal((await pj(hub, '/v1/pay/bank/create', { t: bob, plan: 'plus', period: 'year' })).s, 200);
+    db.prepare("UPDATE orders SET status = 'review' WHERE method = 'bank' AND status = 'pending'").run();
+  }
+  assert.equal((await pj(hub, '/v1/pay/bank/create', { t: bob, plan: 'plus', period: 'year' })).s, 429, '24 小時第 6 筆擋下');
+});
+
+test('銀行轉帳：沒回報匯款資料（只是開了訂閱頁）→ 管理者不能確認入帳', async () => {
+  const { hub, db, bob, andy } = await setup();
+  await pj(hub, '/v1/admin/pay/bank/put', { t: andy, bank_name: '測試銀行', bank_code: '999', account: '000011112222', holder: '測試戶名' });
+  const c = (await pj(hub, '/v1/pay/bank/create', { t: bob, plan: 'plus', period: 'month' })).j;
+  const cf = await pj(hub, '/v1/admin/pay/confirm', { t: andy, id: c.id });
+  assert.deepEqual([cf.s, cf.j.error], [409, 'not_reported']);
+  assert.equal(ord(db, c.id).applied, 0);
+  assert.equal((await permOf(hub, bob)).plan, 'free');
+});
+
+test('匯款回報不可修改：重送＝新增一筆、上一筆作廢（已有最新匯款資料）；確認／退回後不能再回報；會員看得到自己的取消／退款申請', async () => {
+  const { hub, db, bob, andy } = await setup();
+  await pj(hub, '/v1/admin/pay/bank/put', { t: andy, bank_name: '測試銀行', bank_code: '999', account: '000011112222', holder: '測試戶名' });
+  const c = (await pj(hub, '/v1/pay/bank/create', { t: bob, plan: 'plus', period: 'year' })).j;
+  await pj(hub, '/v1/pay/bank/report', { t: bob, id: c.id, last5: '11111', date: '2026-10-11', amount: 2000 });
+  clock += 60000;
+  await pj(hub, '/v1/pay/bank/report', { t: bob, id: c.id, last5: '22222', date: '2026-10-11', amount: 2990 });
+  const rs = JSON.parse(ord(db, c.id).reports);
+  assert.deepEqual(rs.map((r) => [r.last5, r.amount, r.state]), [['11111', 2000, 'void'], ['22222', 2990, 'active']]);
+  assert.equal(rs[0].voidWhy, '已有最新匯款資料');
+  assert.deepEqual([ord(db, c.id).from_last5, ord(db, c.id).xfer_amount], ['22222', 2990], '訂單上是最新一筆');
+  const mine = (await pj(hub, '/v1/pay/my', { t: bob })).j.orders.find((o) => o.id === c.id);
+  assert.equal(mine.reports.length, 2, '會員看得到兩筆回報紀錄');
+  await pj(hub, '/v1/admin/pay/confirm', { t: andy, id: c.id, received: 2990 });
+  assert.equal((await pj(hub, '/v1/pay/bank/report', { t: bob, id: c.id, last5: '33333', date: '2026-10-11', amount: 1 })).s, 409, '開通後不能再回報');
+  /* 申請退款 → 會員「我的訂單」與管理區都看得到 */
+  const rq = await pj(hub, '/v1/subscribe/change', { t: bob, type: 'refund', note: '不需要了' });
+  assert.equal(rq.s, 200);
+  assert.deepEqual((await pj(hub, '/v1/pay/my', { t: bob })).j.reqs.map((r) => [r.type, r.status]), [['refund', 'new']]);
+  const adm = (await pj(hub, '/v1/admin/pay/list', { t: andy })).j.reqs;
+  assert.deepEqual(adm.map((r) => [r.type, r.email, r.status, r.note]), [['refund', 'bob@example.com', 'new', '不需要了']]);
+  /* 轉帳會員：帳務狀態 autoRenew=false（前端顯示「不會自動扣款」，不寫「次期不再扣款」）*/
+  assert.equal((await pj(hub, '/v1/billing/me', { t: bob })).j.autoRenew, false);
+});
+
+test('稽核 1012：重複入帳擋下、方案衝突不蓋掉較高方案、升級留待處理、轉帳不能強制補開通、退款後不能補開通、轉帳以實收退款', async () => {
+  const { hub, db, bob, andy } = await setup();
+  await pj(hub, '/v1/admin/pay/bank/put', { t: andy, bank_name: '測試銀行', bank_code: '999', account: '000011112222', holder: '測試戶名' });
+  const c1 = (await pj(hub, '/v1/pay/bank/create', { t: bob, plan: 'plus', period: 'month' })).j;
+  const c2x = (await pj(hub, '/v1/pay/bank/create', { t: bob, plan: 'pro', period: 'year' })).j;
+  await pj(hub, '/v1/pay/bank/report', { t: bob, id: c1.id, last5: '12345', date: '2026-10-11', amount: 299 });
+  await pj(hub, '/v1/pay/bank/report', { t: bob, id: c2x.id, last5: '12345', date: '2026-10-11', amount: 5268 });
+  /* H2／M2：轉帳不能用強制補開通繞過 */
+  assert.equal((await pj(hub, '/v1/admin/pay/reactivate', { t: andy, id: c1.id, force: true, reason: 'x' })).j.error, 'use_confirm');
+  /* 先開 Pro 年繳 */
+  assert.equal((await pj(hub, '/v1/admin/pay/confirm', { t: andy, id: c2x.id, received: 5300 })).s, 200, '多收可以開通');
+  /* H3：同一筆入帳（末 5 碼＋日期）再確認別張 → 擋下；勾選並寫理由才可以 */
+  const d1 = await pj(hub, '/v1/admin/pay/confirm', { t: andy, id: c1.id, received: 299 });
+  assert.deepEqual([d1.s, d1.j.error, d1.j.other], [409, 'dup_xfer', c2x.id]);
+  /* H7：Pro 年繳生效中，晚到的 Plus 月繳不准蓋掉 → 不開通、列異常 */
+  const d2 = await pj(hub, '/v1/admin/pay/confirm', { t: andy, id: c1.id, received: 299, dupOk: true, dupReason: '網銀有兩筆不同入帳' });
+  assert.deepEqual([d2.s, d2.j.error], [409, 'plan_conflict']);
+  assert.deepEqual([ord(db, c1.id).applied, /方案衝突/.test(ord(db, c1.id).anomaly)], [0, true]);
+  assert.equal((await permOf(hub, bob)).plan, 'pro');
+  /* H4：轉帳以實收（5300）為可退上限 */
+  const q = (await pj(hub, '/v1/admin/pay/refund_quote', { t: andy, id: c2x.id })).j;
+  assert.deepEqual([q.base, q.left], [5300, 5300]);
+  const rf = await pj(hub, '/v1/admin/pay/refund', { t: andy, id: c2x.id, rid: 'r-aud-000001', amount: 5300, last5: '11111', date: '2026-10-11', perm: 'now' });
+  assert.equal(rf.s, 200, JSON.stringify(rf.j));
+  assert.equal((await permOf(hub, bob)).plan, 'free', '退全額＋立即 → 降回');
+});
+
+test('稽核 1012：升級（Plus 月繳→Pro 年繳）開通後記「舊方案剩餘沒折抵」待處理', async () => {
+  const { hub, db, bob, andy } = await setup();
+  await pj(hub, '/v1/admin/pay/bank/put', { t: andy, bank_name: '測試銀行', bank_code: '999', account: '000011112222', holder: '測試戶名' });
+  const a = (await pj(hub, '/v1/pay/bank/create', { t: bob, plan: 'plus', period: 'month' })).j;
+  await pj(hub, '/v1/pay/bank/report', { t: bob, id: a.id, last5: '10001', date: '2026-10-11', amount: 299 });
+  await pj(hub, '/v1/admin/pay/confirm', { t: andy, id: a.id, received: 299 });
+  const b2 = (await pj(hub, '/v1/pay/bank/create', { t: bob, plan: 'pro', period: 'year' })).j;
+  await pj(hub, '/v1/pay/bank/report', { t: bob, id: b2.id, last5: '10002', date: '2026-10-11', amount: 5268 });
+  assert.equal((await pj(hub, '/v1/admin/pay/confirm', { t: andy, id: b2.id, received: 5268 })).s, 200);
+  assert.equal((await permOf(hub, bob)).plan, 'pro');
+  assert.ok(/升級：舊方案 plus 還剩/.test(ord(db, b2.id).anomaly), ord(db, b2.id).anomaly);
+  assert.ok((await pj(hub, '/v1/admin/pay/list', { t: andy })).j.anomalies.includes(b2.id), '進異常清單提醒管理者');
+});
+
+test('會員帳務通知：回報匯款、開通、升級、退回、退款都進站內通知（鈴鐺），同一件事只一則；設了 Resend 才寄信', async () => {
+  const sent = [];
+  const realFetch = globalThis.fetch;
+  const { hub, db, bob, andy } = await setup({ RESEND_API_KEY: 're_test', MAIL_FROM: '哩股哩股 <notice@liguligu-puipui.com>' });
+  await pj(hub, '/v1/admin/pay/bank/put', { t: andy, bank_name: '測試銀行', bank_code: '999', account: '000011112222', holder: '測試戶名' });
+  const a = (await pj(hub, '/v1/pay/bank/create', { t: bob, plan: 'plus', period: 'month' })).j;
+  await pj(hub, '/v1/pay/bank/report', { t: bob, id: a.id, last5: '20001', date: '2026-10-11', amount: 299 });
+  await pj(hub, '/v1/admin/pay/confirm', { t: andy, id: a.id, received: 299 });
+  await pj(hub, '/v1/admin/pay/confirm', { t: andy, id: a.id, received: 299 });   // 重按不重複通知
+  const b2 = (await pj(hub, '/v1/pay/bank/create', { t: bob, plan: 'pro', period: 'year' })).j;
+  await pj(hub, '/v1/pay/bank/report', { t: bob, id: b2.id, last5: '20002', date: '2026-10-11', amount: 5268 });
+  await pj(hub, '/v1/admin/pay/confirm', { t: andy, id: b2.id, received: 5268 });
+  await pj(hub, '/v1/admin/pay/refund', { t: andy, id: b2.id, rid: 'r-note-00001', amount: 5268, last5: '33333', date: '2026-10-11', perm: 'now' });
+  const n = (await pj(hub, '/v1/notices', { t: bob })).j.notices.filter((x) => x.kind === 'pay');
+  const titles = n.map((x) => x.title);
+  assert.ok(titles.some((t) => /已收到你的匯款資料/.test(t)), titles);
+  assert.ok(titles.some((t) => /付款完成，已開通：Plus/.test(t)), titles);
+  assert.ok(titles.some((t) => /升級完成：Pro・年繳/.test(t)), titles);
+  assert.ok(titles.some((t) => /退款完成：NT\$ 5268/.test(t)), titles);
+  assert.equal(titles.filter((t) => /付款完成，已開通：Plus/.test(t)).length, 1, '同一件事只通知一次');
+  const rf = n.find((x) => /退款完成/.test(x.title));
+  assert.ok(/末 5 碼 33333/.test(rf.body) && /回到註冊會員/.test(rf.body), rf.body);
+  assert.ok(n.every((x) => x.read === false));
+  await pj(hub, '/v1/notices/read', { t: bob, ids: [rf.id] });
+  assert.equal((await pj(hub, '/v1/notices', { t: bob })).j.notices.find((x) => x.id === rf.id).read, true, '已讀會記住');
+  /* 別人看不到 bob 的通知 */
+  assert.equal((await pj(hub, '/v1/notices', { t: andy })).j.notices.filter((x) => x.kind === 'pay').length, 0);
+  /* 寄信：排程送出、帶收件人 */
+  globalThis.fetch = async (u, init) => { if (String(u).startsWith('https://api.resend.com')) { sent.push(JSON.parse(init.body)); return new Response('{}', { status: 200 }); } return realFetch(u, init); };
+  try { await hub.payMailFlush(); } finally { globalThis.fetch = realFetch; }
+  assert.ok(sent.length >= 4 && sent.every((m) => m.to[0] === 'bob@example.com' && /^【哩股哩股】/.test(m.subject)), JSON.stringify(sent.map((m) => m.subject)));
+  assert.equal(db.prepare("SELECT COUNT(*) AS c FROM mail_out WHERE status = 'pending'").get().c, 0);
+});
+
+test('清除測試資料：要再打一次 email、清掉訂單／退款／通知／申請、權限回註冊會員、留事件；有綠界正式付款的帳號拒絕', async () => {
+  const { hub, db, bob, andy } = await setup();
+  await pj(hub, '/v1/admin/pay/bank/put', { t: andy, bank_name: '測試銀行', bank_code: '999', account: '000011112222', holder: '測試戶名' });
+  const a = (await pj(hub, '/v1/pay/bank/create', { t: bob, plan: 'plus', period: 'month' })).j;
+  await pj(hub, '/v1/pay/bank/report', { t: bob, id: a.id, last5: '30001', date: '2026-10-11', amount: 299 });
+  await pj(hub, '/v1/admin/pay/confirm', { t: andy, id: a.id, received: 299 });
+  await pj(hub, '/v1/subscribe/change', { t: bob, type: 'refund' });
+  assert.equal((await permOf(hub, bob)).plan, 'plus');
+  assert.equal((await pj(hub, '/v1/admin/pay/purge', { t: bob, email: 'bob@example.com', confirm: 'bob@example.com' })).s, 403, '只有管理者');
+  assert.equal((await pj(hub, '/v1/admin/pay/purge', { t: andy, email: 'bob@example.com', confirm: 'bo@example.com' })).j.error, 'confirm');
+  const r = await pj(hub, '/v1/admin/pay/purge', { t: andy, email: 'bob@example.com', confirm: 'BOB@example.com' });
+  assert.equal(r.s, 200, JSON.stringify(r.j));
+  assert.equal(r.j.orders, 1);
+  assert.equal(db.prepare("SELECT COUNT(*) AS c FROM orders WHERE email = 'bob@example.com'").get().c, 0);
+  assert.equal(db.prepare("SELECT COUNT(*) AS c FROM user_notices WHERE email = 'bob@example.com'").get().c, 0);
+  assert.equal((await permOf(hub, bob)).plan, 'free');
+  assert.ok(db.prepare("SELECT COUNT(*) AS c FROM pay_events WHERE kind = 'purge'").get().c === 1, '刪了什麼留紀錄');
+  /* 綠界正式付款（非測試）不能清 */
+  const { hub: h2, db: d2, bob: b2, andy: a2 } = await setup({ ECPAY_MERCHANT_ID: '3002607', ECPAY_HASH_KEY: ECPAY_STAGE.key, ECPAY_HASH_IV: ECPAY_STAGE.iv });
+  const c = (await pj(h2, '/v1/pay/ecpay/create', { t: b2, plan: 'plus', period: 'month', back: BACK })).j;
+  await notify(h2, c.id, 299);
+  assert.equal((await pj(h2, '/v1/admin/pay/purge', { t: a2, email: 'bob@example.com', confirm: 'bob@example.com' })).j.error, 'real_payment');
+  assert.equal(d2.prepare("SELECT COUNT(*) AS c FROM orders WHERE email = 'bob@example.com'").get().c, 1);
+});
+
+test('方案異動：月繳 Plus 可升 Plus 年繳／Pro；不可降級；Pro 年繳什麼都不能再買', async () => {
+  const { hub, db, bob, andy } = await setup();
+  await pj(hub, '/v1/admin/pay/bank/put', { t: andy, bank_name: '測試銀行', bank_code: '999', account: '000011112222', holder: '測試戶名' });
+  const buy = async (plan, period) => {
+    const c = (await pj(hub, '/v1/pay/bank/create', { t: bob, plan, period })).j;
+    if (!c.ok) return c;
+    const l5 = String(10000 + Math.floor(Math.random() * 89999));   // 每次不同的入帳（同末 5 碼＋同日期會被當成重複入帳擋下，見下一個測試）
+    await pj(hub, '/v1/pay/bank/report', { t: bob, id: c.id, last5: l5, date: '2026-10-11', amount: c.amount });
+    await pj(hub, '/v1/admin/pay/confirm', { t: andy, id: c.id, received: c.amount });
+    return c;
+  };
+  await buy('plus', 'month');
+  const st = async (plan, period) => (await pj(hub, '/v1/pay/quote', { t: bob, plan, period })).j.blocked;
+  assert.deepEqual([await st('plus', 'month'), await st('plus', 'year'), await st('pro', 'month'), await st('pro', 'year')], ['same_active', '', '', '']);
+  await buy('pro', 'year');
+  assert.deepEqual([await st('plus', 'month'), await st('plus', 'year'), await st('pro', 'month'), await st('pro', 'year')], ['lower_plan', 'lower_plan', 'year_to_month', 'same_active']);
 });
 
 test('銀行轉帳：退回要寫原因、不開通；管理者備註；轉帳會員到期前 7 天出現提醒', async () => {
@@ -330,7 +500,8 @@ test('銀行轉帳：退回要寫原因、不開通；管理者備註；轉帳�
   assert.equal(ord(db, c.id).admin_note, '已電話聯絡');
   /* 確認一筆 → 到期前 7 天 → 提醒（stage 7）；前 1 天（stage 1）；管理區「即將到期的轉帳會員」 */
   const c2 = (await pj(hub, '/v1/pay/bank/create', { t: bob, plan: 'plus', period: 'month' })).j;
-  await pj(hub, '/v1/admin/pay/confirm', { t: andy, id: c2.id });
+  await pj(hub, '/v1/pay/bank/report', { t: bob, id: c2.id, last5: '54321', date: '2026-10-11', amount: 299 });
+  await pj(hub, '/v1/admin/pay/confirm', { t: andy, id: c2.id, received: 299 });
   assert.equal((await pj(hub, '/v1/pay/my', { t: bob })).j.renew, null, '還很久');
   clock = Date.parse('2026-11-05T04:00:00Z');
   const r7 = (await pj(hub, '/v1/pay/my', { t: bob })).j.renew;
@@ -345,7 +516,7 @@ test('退款：轉帳人工登記＋立即降級；重複按同一個 rid 不重
   await pj(hub, '/v1/admin/pay/bank/put', { t: andy, bank_name: '測試銀行', bank_code: '999', account: '000011112222', holder: '測試戶名' });
   const c = (await pj(hub, '/v1/pay/bank/create', { t: bob, plan: 'plus', period: 'month' })).j;
   await pj(hub, '/v1/pay/bank/report', { t: bob, id: c.id, last5: '54321', date: '2026-10-11', amount: 299 });
-  await pj(hub, '/v1/admin/pay/confirm', { t: andy, id: c.id });
+  await pj(hub, '/v1/admin/pay/confirm', { t: andy, id: c.id, received: 299 });
   const q = (await pj(hub, '/v1/admin/pay/refund_quote', { t: andy, id: c.id })).j;
   assert.deepEqual([q.kind, q.suggest, q.left], ['manual', 299, 299], '7 天內全額、轉帳要人工');
   assert.equal((await pj(hub, '/v1/admin/pay/refund', { t: andy, id: c.id, rid: 'r-000000001', amount: 300, last5: '11111', date: '2026-10-11' })).s, 400, '超過可退金額');

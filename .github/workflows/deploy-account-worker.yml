@@ -132,7 +132,17 @@ jobs:
           EC_KEY: ${{ secrets.ECPAY_HASH_KEY }}
           EC_IV: ${{ secrets.ECPAY_HASH_IV }}
           EC_CCC: ${{ secrets.ECPAY_CREDIT_CHECK_CODE }}
+          RS_KEY: ${{ secrets.RESEND_API_KEY }}
+          RS_FROM: ${{ secrets.MAIL_FROM }}
         run: |
+          # 2026-10-12 會員帳務通知 email（選用）：RESEND_API_KEY＋MAIL_FROM（例如 哩股哩股 <notice@liguligu-puipui.com>）都設了才寄信；沒設＝只有站內通知
+          if [ -n "$RS_KEY" ] && [ -n "$RS_FROM" ]; then
+            printf '%s' "$RS_KEY" | npx --yes wrangler@3 secret put RESEND_API_KEY >/dev/null
+            printf '%s' "$RS_FROM" | npx --yes wrangler@3 secret put MAIL_FROM >/dev/null
+            echo "已設定通知信（Resend）"
+          else
+            { echo "### 待辦（選用）：會員通知信還沒設"; echo ""; echo "沒設 RESEND_API_KEY／MAIL_FROM：升級、退款等通知只出現在網站右上角鈴鐺，不寄 email。步驟見 docs/payment_checkout_1011.md 第 10 節。"; echo ""; } >> "$GITHUB_STEP_SUMMARY"
+          fi
           if [ -n "$EC_ID" ] && [ -n "$EC_KEY" ] && [ -n "$EC_IV" ]; then
             printf '%s' "$EC_ID" | npx --yes wrangler@3 secret put ECPAY_MERCHANT_ID >/dev/null
             printf '%s' "$EC_KEY" | npx --yes wrangler@3 secret put ECPAY_HASH_KEY >/dev/null
