@@ -1,0 +1,3 @@
+HTTP Request: POST https://api.openai.com/v1/images/edits "HTTP/1.1 200 OK"
+usage: Usage(input_tokens=514, input_tokens_details=UsageInputTokensDetails(image_tokens=194, text_tokens=320), output_tokens=1312, total_tokens=1826, output_tokens_details=UsageOutputTokensDetails(image_tokens=1056, text_tokens=256))
+8 /home/user/tw-rotation/docs/marketing/post_cpi_1014/stk/s8_raw.png 13.6 s
