@@ -127,6 +127,8 @@
   :root.l4 .tab[data-view="overview"]{order:1}
   /* 2026-10-05 財報日曆：DOM 在最後一顆（手機底部列的 nth-child 不能被打亂），用 order 排到總覽正下方（同 order 1、DOM 較後 → 緊接總覽） */
   :root.l4 .tab[data-view="earnings"]{order:1;--l4-ic:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3.5' y='5' width='17' height='15.5' rx='2'/%3E%3Cpath d='M3.5 10h17M8 3v4M16 3v4'/%3E%3Cpath d='M8 14h2M14 14h2M8 17.2h2' stroke-width='2'/%3E%3C/svg%3E")}
+  /* 2026-10-14 精選文章（Andy 截圖標在總覽與財經日曆之間）：同 order 1、DOM 在財經日曆前面 → 總覽、精選文章、財經日曆。圖示＝打開的書頁 */
+  :root.l4 .tab[data-view="articles"]{order:1;--l4-ic:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 4.5h6a2 2 0 0 1 2 2V20a1.6 1.6 0 0 0-1.6-1.6H4z'/%3E%3Cpath d='M20 4.5h-6a2 2 0 0 0-2 2V20a1.6 1.6 0 0 1 1.6-1.6H20z'/%3E%3Cpath d='M6.5 8.5h3M6.5 11.5h3M14.5 8.5h3M14.5 11.5h3'/%3E%3C/svg%3E")}
   :root.l4 .tab[data-view="flow"]{order:2}
   :root.l4 .tab[data-view="heatmap"]{order:3}
   :root.l4 .tab[data-view="industry"]{order:4}
@@ -183,6 +185,7 @@
   /* ---- 子分頁（2026-10-03，Andy：資金流向拆三格、熱力圖拆產業／題材）：父頁下面的縮排子項 ----
      layout4.js 插在 #tabs 裡、父頁按鈕後面（class l4subtab，不是 .tab）；order 跟父頁一樣，同 order 時照 DOM 順序 → 緊跟在父頁下面。
      左邊一條細線對齊父頁圖示中心，像樹狀目錄；目前那格＝主色淡底＋主色字＋主色線（跟分頁「實心反白」區分：這是「在哪一段」）。 */
+  :root.l4 .tabs>.l4subtab[data-parent="articles"]{order:1}   /* 2026-10-14 精選文章三個子項（消息／介紹／知識），跟在精選文章下面、財經日曆上面 */
   :root.l4 .tabs>.l4subtab[data-parent="flow"]{order:2}
   :root.l4 .tabs>.l4subtab[data-parent="heatmap"]{order:3}
   :root.l4 .tabs>.l4subtab[data-parent="etf"]{order:5}   /* v9：ETF 三個子項（配息行事曆／ETF 總覽／現金流試算），跟在 ETF 下面 */
@@ -207,6 +210,7 @@
   /* 有子分頁亮著時，父頁不再實心反白（同一個位置不要亮兩格），改成粗體字表示「在這一頁裡」 */
   /* 2026-10-06：子項收著時目前那格看不到，母分頁恢復實心反白（只在 .tabs 沒有 data-cs 收合時才讓位給子項） */
   :root.l4[data-l4sub^="flow-"] .tabs:not([data-cs~="flow"])>.tab[data-view="flow"].on,:root.l4[data-l4sub^="heat-"] .tabs:not([data-cs~="heatmap"])>.tab[data-view="heatmap"].on,
+  :root.l4:is([data-l4sub="art-news"],[data-l4sub="art-intro"],[data-l4sub="art-know"]) .tabs:not([data-cs~="articles"])>.tab[data-view="articles"].on,
   :root.l4[data-l4sub^="etf-"] .tabs:not([data-cs~="etf"])>.tab[data-view="etf"].on,
   :root.l4[data-l4sub^="mkt-"] .tabs:not([data-cs~="market"])>.tab[data-view="market"].on,:root.l4[data-l4sub^="xp-"] .tabs:not([data-cs~="explore"])>.tab[data-view="explore"].on{
     background:transparent;color:var(--ink);box-shadow:none;font-weight:700}
@@ -516,7 +520,9 @@
   /* 收起：群組裡除了「目前所在頁」以外的格子都藏（目前那格照樣看得到） */
   /* 2026-10-06（Andy：「收合後應該只會出現母分頁」）：拿掉 :not(.on)，收起就整組全藏、只剩群組標題（目前頁由標題的點提示）。
      根因修正：財經日曆加進今日市場時這裡漏列（它從來不會被收），ETF 改到族群與個股。 */
-  :root.l4.l4g:not(.l4-mini) .tabs[data-cg~="today"]>:is(.tab[data-view="overview"],.tab[data-view="earnings"]),
+  :root.l4.l4g:not(.l4-mini) .tabs[data-cg~="today"]>:is(.tab[data-view="overview"],.tab[data-view="earnings"],.tab[data-view="articles"]),
+  :root.l4.l4g:not(.l4-mini) .tabs[data-cg~="today"]>.l4subtab[data-parent="articles"],
+  :root.l4.l4g:not(.l4-mini) .tabs[data-cs~="articles"]>.l4subtab[data-parent="articles"],
   :root.l4.l4g:not(.l4-mini) .tabs[data-cg~="money"]>:is(.tab[data-view="flow"],.tab[data-view="heatmap"]),
   :root.l4.l4g:not(.l4-mini) .tabs[data-cg~="money"]>.l4subtab:is([data-parent="flow"],[data-parent="heatmap"]),
   :root.l4.l4g:not(.l4-mini) .tabs[data-cg~="stock"]>:is(.tab[data-view="industry"],.tab[data-view="stock"],.tab[data-view="market"],.tab[data-view="explore"],.tab[data-view="etf"]),

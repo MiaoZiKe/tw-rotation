@@ -49,6 +49,7 @@
      這裡一句話講清楚每一頁在那個順序裡的位置，讓第一次來的人知道從哪裡開始看。 */
   const PAGES = {
     overview: { grp: '今日市場', t: '總覽', d: '今天大盤怎麼走、錢集中在哪幾個族群、題材在做什麼 —— 從這裡開始，一頁看完今天的重點。' },
+    articles: { grp: '今日市場', t: '精選文章', d: '站上整理過的文章：消息（近期大事）、介紹（產業與公司）、知識（觀念與指標）；可依分類、日期與標題關鍵字篩選，文中的股票與頁面都點得過去。' },
     earnings: { grp: '今日市場', t: '財經日曆', d: '三大分類排在同一張月曆：公司財報（市值前 50 公告的財報董事會與已公布財報）、公司法說（全部上市櫃公司公告的法說會）、FED 消息（FOMC 與美國重大數據）；點一項看分析與說明。' },
     flow: { grp: '資金流水', t: '資金流向', d: '錢正在往哪個族群跑：輪盤看輪動階段、排行看誰進誰出、資金分流樹看錢從哪裡流到哪裡。' },
     heatmap: { grp: '資金流水', t: '熱力圖', d: '全市場與題材的冷熱一眼看完：方塊越大錢越多、越紅漲越多；點方塊看成分股。' },
@@ -98,6 +99,13 @@
       { k: 'mkt-ma', h: '#market/ma', t: '站上均線', s: '均線', ic: 'line' },
       { k: 'mkt-cand', h: '#market/cand', t: '今日關注', s: '關注', ic: 'target' },
     ],
+    /* ★ 2026-10-14（Andy：「精選文章母分頁，裡面三個小分頁……分成 消息 介紹 知識」）：同 ETF 那套。#articles（不帶類別）＝全部，不亮任何子項。
+       只給電腦版（DESK_ONLY）：手機抽屜點「精選文章」進全部，頁內分類分頁（#artCats）本來就有全部／消息／介紹／知識，頂端再多一排子頁籤會重複。 */
+    articles: [
+      { k: 'art-news', h: '#articles/news', t: '消息', s: '消息', ic: 'newspaper' },
+      { k: 'art-intro', h: '#articles/intro', t: '介紹', s: '介紹', ic: 'layers' },
+      { k: 'art-know', h: '#articles/know', t: '知識', s: '知識', ic: 'book' },
+    ],
     explore: [
       { k: 'xp-fund', h: '#explore/fund', t: '基本面', s: '基本', ic: 'bars' },
       { k: 'xp-tech', h: '#explore/tech', t: '技術面', s: '技術', ic: 'pulse' },
@@ -105,7 +113,7 @@
       { k: 'xp-news', h: '#explore/news', t: '消息面', s: '消息', ic: 'news' },
     ],
   };
-  const DESK_ONLY = ['market', 'explore'];   // 只有電腦版側欄有子項；手機抽屜（mobile4.js 讀 TwL4Nav.SUBS）不給
+  const DESK_ONLY = ['market', 'explore', 'articles'];   // 只有電腦版側欄有子項；手機抽屜（mobile4.js 讀 TwL4Nav.SUBS）不給
   /* 子分頁圖示：優先用 icons.js（全站同一套 Lucide、同一個線寬）；它被擋掉時退回這裡內嵌的同一組路徑 */
   const SUB_IC = {
     compass: '<circle cx="12" cy="12" r="10"/><path d="m16.24 7.76-1.804 5.411a2 2 0 0 1-1.265 1.265L7.76 16.24l1.804-5.411a2 2 0 0 1 1.265-1.265z"/>',
@@ -122,6 +130,9 @@
     bars: '<path d="M3 3v16a2 2 0 0 0 2 2h16"/><path d="M18 17V9"/><path d="M13 17V5"/><path d="M8 17v-3"/>',
     pulse: '<path d="M22 12h-2.48a2 2 0 0 0-1.93 1.46l-2.35 8.36a.25.25 0 0 1-.48 0L9.24 2.18a.25.25 0 0 0-.48 0l-2.35 8.36A2 2 0 0 1 4.49 12H2"/>',
     users: '<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><path d="M16 3.128a4 4 0 0 1 0 7.744"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><circle cx="9" cy="7" r="4"/>',
+    book: '<path d="M12 7v14"/><path d="M3 18a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h5a4 4 0 0 1 4 4 4 4 0 0 1 4-4h5a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1h-6a3 3 0 0 0-3 3 3 3 0 0 0-3-3z"/>',
+    newspaper: '<path d="M15 18h-5"/><path d="M18 14h-8"/><path d="M4 22h16a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2H8a2 2 0 0 0-2 2v16a2 2 0 0 1-4 0v-9a2 2 0 0 1 2-2h2"/><rect width="8" height="4" x="10" y="6" rx="1"/>',
+    layers: '<path d="m12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.83l8.58 3.91a2 2 0 0 0 1.66 0l8.58-3.9a1 1 0 0 0 0-1.83z"/><path d="m22 17.65-9.17 4.16a2 2 0 0 1-1.66 0L2 17.65"/><path d="m22 12.65-9.17 4.16a2 2 0 0 1-1.66 0L2 12.65"/>',
     news: '<path d="M15 18h-5"/><path d="M18 14h-8"/><path d="M4 22h16a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2H8a2 2 0 0 0-2 2v16a2 2 0 0 1-4 0v-9a2 2 0 0 1 2-2h2"/><rect width="8" height="4" x="10" y="6" rx="1"/>',
   };
   function subIcon(key) {
@@ -335,7 +346,7 @@
      ④ 2026-10-06 改（Andy：「收合後應該只會出現母分頁」）：收起就整組（含目前所在頁與它的子項）全部藏起來，只剩群組標題；目前頁在組裡時標題右邊那顆點提示「你在這組裡」。
      ⑤ 收合成圖示列（l4-mini）時整套不作用：標題按鈕藏起來、群組不收（圖示列本來就短，收了反而找不到）。 */
   const GROUPS = [
-    { g: 'today', t: '今日市場', first: 'overview', views: ['overview', 'earnings'] },
+    { g: 'today', t: '今日市場', first: 'overview', views: ['overview', 'articles', 'earnings'] },   // 2026-10-14 精選文章插在總覽與財經日曆之間（Andy 截圖標的位置）
     { g: 'money', t: '資金流水', first: 'flow', views: ['flow', 'heatmap'] },
     { g: 'stock', t: '族群與個股', first: 'industry', views: ['industry', 'stock', 'market', 'explore', 'etf'] },
     { g: 'hist', t: '歷史規律', first: 'season', views: ['season'] },
@@ -475,7 +486,7 @@
   // 2026-10-05（admin-v2c，Andy）：子項順序改成「會員管理」在上、「會員權限」在下，流量觀測維持最後
   // 2026-10-07（Andy：意見反饋要留在站上、只有我看得到）：管理區下加「意見反饋」（#admin/feedback，support.js 畫；未讀數紅點由 support.js 填 TwSupport.unread）
   // 10-07 15:25（Andy：意見反饋需要圖示）：原本寫 'mail'，但圖示表沒有這個鍵 → 畫出空 svg；改成對話泡泡 message（icons.js 新增）
-  const ADM_SUBS = [['admins', '管理權限', 'admTabAdmins', 'users'], ['perm', '會員權限', 'admTabPerm', 'scale'], ['traffic', '流量觀測', 'admTabTraffic', 'gauge'], ['feedback', '意見反饋', 'admTabFeedback', 'message'], ['grants', '體驗額度', 'admTabGrants', 'sparkles'], ['pay', '付款與訂單', 'admTabPay', 'wallet']];   // 2026-10-11 付款與訂單（site/admin_pay.js）   // 2026-10-09 體驗額度（site/admin_grants.js）；2026-10-07 15:45 Andy：管理權限移到會員權限上方
+  const ADM_SUBS = [['admins', '管理權限', 'admTabAdmins', 'users'], ['perm', '會員權限', 'admTabPerm', 'scale'], ['traffic', '流量觀測', 'admTabTraffic', 'gauge'], ['feedback', '意見反饋', 'admTabFeedback', 'message'], ['grants', '體驗額度', 'admTabGrants', 'sparkles'], ['pay', '付款與訂單', 'admTabPay', 'wallet'], ['articles', '精選文章管理', 'admTabArticles', 'newspaper']];   // 2026-10-14 精選文章管理（site/articles.js）   // 2026-10-11 付款與訂單（site/admin_pay.js）   // 2026-10-09 體驗額度（site/admin_grants.js）；2026-10-07 15:45 Andy：管理權限移到會員權限上方
   /* 2026-10-07 15:45 Andy：「旁邊的分頁 有在權限內的帳號也可以進行拖曳 但不能刪除」→ 管理區子項可拖曳排序（只有管理者看得到這一區，所以也只有管理者能拖）；
      沒有刪除。順序存本機 tw.l4.admOrd；滑鼠移動超過 6px 才算拖曳，放開後吞掉那一次 click。*/
   const ADM_ORD = 'tw.l4.admOrd';
@@ -535,7 +546,7 @@
       });
     }
     const on = /^#admin\b/.test(location.hash || '');
-    const m = /^#admin\/(perm|members|traffic|feedback|admins|grants|pay)\b/.exec(location.hash || ''), cur = on ? (m ? (m[1] === 'members' ? 'perm' : m[1]) : 'traffic') : '';
+    const m = /^#admin\/(perm|members|traffic|feedback|admins|grants|pay|articles)\b/.exec(location.hash || ''), cur = on ? (m ? (m[1] === 'members' ? 'perm' : m[1]) : 'traffic') : '';
     // 子項亮著時「管理區」本身不實心反白（同一個位置不要亮兩格，同資金流向），但保留 .on 讓「在管理區裡」這件事查得到
     b.classList.toggle('on', on); b.classList.toggle('l4hassub', on);
     if (on) b.setAttribute('aria-current', 'page'); else b.removeAttribute('aria-current');

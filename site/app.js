@@ -2285,7 +2285,8 @@
   // 2026-09-28：'watch'＝自選分頁（導覽列最後一格，取代交付清單的入口；'delivery' 路由照舊留著）
   // 2026-10-05：'etf'＝ETF 專區（site/etfpage.js）、'explore'＝選股策略
   // 2026-10-05（晚）：'earnings'＝財報日曆（site/earnings.js）
-  const VIEWS = ['overview', 'flow', 'market', 'industry', 'heatmap', 'season', 'etf', 'tasks', 'delivery', 'watch', 'explore', 'earnings'];
+  // 2026-10-14：'articles'＝精選文章（site/articles.js）；單篇 #article/<id> 也落在這個 view（見 route() 的 view 對照）
+  const VIEWS = ['overview', 'flow', 'market', 'industry', 'heatmap', 'season', 'etf', 'tasks', 'delivery', 'watch', 'explore', 'earnings', 'articles'];
   // 2026-10-03 電腦版資金流向的子分頁（側欄縮排子項；第一個是 #flow 的預設）。layout4.js 的側欄子項用同一份名單
   const FLOW_SUBS = ['rotation', 'sankey', 'inst'];
   const rendered = {};
@@ -3155,9 +3156,17 @@
       const xc = window.TwExplore && window.TwExplore.catOf ? window.TwExplore.catOf(rest[0]) : (['fund', 'tech', 'chip', 'news'].includes(rest[0]) ? rest[0] : 'fund');
       l4sub = 'xp-' + xc;
     }
+    if (l4on && (head === 'articles' || head === 'article')) {
+      /* ★ 2026-10-14 精選文章（Andy：「精選文章母分頁，裡面三個小分頁……消息 介紹 知識」）：側欄子項亮哪一格。
+         #articles＝全部（不亮子項、母項實心反白）；#articles/<類別>＝那一格；單篇 #article/<id> 亮它所屬的類別 ——
+         清單還沒讀到時不知道類別，先當全部，articles.js 讀到之後自己補（markSub）。不 replace 網址：「全部」本身就是一頁。*/
+      const ac = ['news', 'intro', 'know'];
+      const c = head === 'articles' ? rest[0] : (window.TwArticles && window.TwArticles.catOf ? window.TwArticles.catOf(rest[0]) : '');
+      l4sub = 'art-' + (ac.includes(c) ? c : 'all');
+    }
     if (l4sub) document.documentElement.setAttribute('data-l4sub', l4sub);
     else document.documentElement.removeAttribute('data-l4sub');
-    let view = VIEWS.includes(head) ? head : head === 'stock' ? 'industry' : 'overview';
+    let view = VIEWS.includes(head) ? head : head === 'stock' ? 'industry' : head === 'article' ? 'articles' : 'overview';
     if (view !== 'market') { mktLeft = true; }   // 離開市場明細：回來時 mktReset
     /* 近期搜尋（2026-09-26）：進個股頁就記一筆 —— 不管是從搜尋點進來、從別的圖點進來、還是直接貼網址。
        只記全市場索引裡找得到的代號（打錯的代號會走「找不到代號」，不該留在紀錄裡）。*/
@@ -3260,6 +3269,8 @@
       }
       return;
     }
+    // 2026-10-14 精選文章：列表換分類／換篩選、點進單篇都由 articles.js 自己決定要重畫哪一塊（篩選狀態留在它的 S 裡），所以每次都交給它
+    if (view === 'articles') { if (window.TwArticles) await window.TwArticles.show(head, rest); mia(); return; }
     if (view === 'industry') { if (!(await needLazy('ind', '#v-industry'))) return; if (location.hash !== h0) return; await window.Industry.route(head, rest); mia(); setTimeout(mia, 500); return; }
     if (view === 'market' && rendered.market) { drawMarket(rest[0] || 'updown'); mia(); return; }
     // 自選分頁：第一次進來整頁畫；之後每次回來重畫一次（別頁按 ☆ 改過清單、或換過主題）

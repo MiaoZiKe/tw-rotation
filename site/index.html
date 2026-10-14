@@ -5499,6 +5499,10 @@ h3 .howbtn.pop{font-family:inherit}
     <!-- ★ 2026-10-05（Andy：「總覽下方新增"財報日曆"，並不是子分頁」）：site/earnings.js。
          DOM 放最後（手機底部列用 nth-child 排兩列，插在中間會把後面每一顆往後推一格）；
          電腦版側欄由 layout4.css 的 order 把它排到「總覽」正下方、同一組「今日市場」。≤820 先藏（手機版暫停中，同選股策略）。 -->
+    <!-- ★ 2026-10-14（Andy：「幫我成立一個精選文章母分頁，裡面三個小分頁……分成 消息 介紹 知識」）：site/articles.js。
+         DOM 放在財經日曆前面：電腦版側欄兩顆都是 order 1（同「今日市場」組），同 order 照 DOM 排 → 總覽、精選文章（＋三個子項）、財經日曆。
+         手機（html.m4）#tabs 整排藏起來、由 mobile4.js 抽屜讀 layout4.js 的 GROUPS，不吃這裡的順序。 -->
+    <button class="tab" data-view="articles">精選文章</button>
     <button class="tab" data-view="earnings">財經日曆</button>
     <!-- ★ 2026-09-23（Andy：「上方分頁任務板移除」）：入口收掉。
          `site/tasks.js`、`#v-tasks` 與 `#tasks` 路由**刻意留著**（他只說移除分頁）——
@@ -5842,6 +5846,8 @@ h3 .howbtn.pop{font-family:inherit}
   <section class="view" id="v-etf"></section>
   <!-- ================= 財報日曆（#earnings，2026-10-05） ================= 整頁由 site/earnings.js 畫 -->
   <section class="view" id="v-earnings"></section>
+  <!-- ================= 精選文章（#articles、#articles/<類別>、#article/<id>，2026-10-14） ================= 整頁由 site/articles.js 畫 -->
+  <section class="view" id="v-articles"></section>
 
   <!-- ================= 週期統計（路由沿用 #season） =================
        ★ 2026-09-24（Andy：「下方的兩個表格都拿掉」）：「逐年明細」與「本月歷史最強族群」兩張卡整張移除。
@@ -6034,6 +6040,7 @@ return {load:load,ready:ready,srcs:srcs};})();
 <script src="rangepick.js"></script>
 <script src="etfpage.js"></script>
 <script src="earnings.js"></script>
+<script src="articles.js"></script><!-- 2026-10-14 精選文章（列表／單篇）＋管理區 #admin/articles；資料在 site/articles/（不在 site/data/）-->
 <script src="market3.js"></script>
 <script src="tasks.js"></script>
 <script src="live.js"></script>
