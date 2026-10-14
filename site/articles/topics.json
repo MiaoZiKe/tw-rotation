@@ -1,11 +1,389 @@
 {
-  "updated": "2026-10-14",
-  "_note": "假資料（UI 專家 2026-10-14 放的示範主題候選，等真的候選清單產出後整份換掉）",
-  "topics": [
-    {"id": "t-sample-1", "cat": "news", "title": "【示範】本週外資連續買超的族群", "why": "示範理由：資金流向頁的族群×法人連續多日同方向", "site_links": ["#flow/inst"], "score": 82, "format_hint": "貼文"},
-    {"id": "t-sample-2", "cat": "intro", "title": "【示範】CoWoS 先進封裝在做什麼", "why": "示範理由：題材熱度高、站上已有剖析圖可引用", "site_links": ["#heatmap/theme", "#industry/semiconductor"], "score": 91, "format_hint": "短影片"},
-    {"id": "t-sample-3", "cat": "know", "title": "【示範】RSI 為什麼用 Wilder 平滑", "why": "示範理由：個股頁的指標說明常被問", "site_links": ["#stock/2330"], "score": 64, "format_hint": "長文"},
-    {"id": "t-sample-4", "cat": "know", "title": "【示範】殖利率與含息報酬差在哪", "why": "示範理由：ETF 頁的報酬比較需要觀念補充", "site_links": ["#etf/list"], "score": 73, "format_hint": "貼文"},
-    {"id": "t-sample-5", "cat": "news", "title": "【示範】FOMC 前後台股的歷史表現", "why": "示範理由：財經日曆下一次 FOMC 接近", "site_links": ["#earnings", "#season"], "score": 58, "format_hint": "短影片"}
-  ]
+ "updated": "2026-10-14",
+ "topics": [
+  {
+   "id": "k_rotation",
+   "cat": "know",
+   "title": "類股輪動是什麼？資金怎麼換跑道",
+   "why": "散戶最常問「錢跑去哪」，正是本站資金流向頁在回答的事",
+   "site_links": [
+    "#flow",
+    "#overview"
+   ],
+   "score": 5,
+   "format_hint": "兩者"
+  },
+  {
+   "id": "i_ai_server",
+   "cat": "intro",
+   "title": "AI 伺服器產業鏈：一座機櫃拆給你看",
+   "why": "AI 伺服器是 2026 年討論度最高的主軸，觀眾想知道台廠各在哪一層",
+   "site_links": [
+    "#industry/ai_server",
+    "#heatmap/theme/ai_server",
+    "#industry/group/ai_server_odm"
+   ],
+   "score": 5,
+   "format_hint": "兩者"
+  },
+  {
+   "id": "n_tsmc_q3",
+   "cat": "news",
+   "title": "台積電法說會：產業鏈該看哪五個數字",
+   "why": "10/15 法說是全市場焦點，散戶想知道哪些數字會牽動上下游",
+   "site_links": [
+    "#stock/2330",
+    "#industry/semiconductor",
+    "#industry/group/ai_adv_packaging",
+    "#heatmap/theme/cowos"
+   ],
+   "score": 5,
+   "format_hint": "兩者"
+  },
+  {
+   "id": "k_cowos",
+   "cat": "know",
+   "title": "CoWoS 是什麼？三分鐘看懂",
+   "why": "新聞天天講「CoWoS 產能被搶光」，多數人說不清它是什麼",
+   "site_links": [
+    "#heatmap/theme/cowos",
+    "#industry/group/ai_adv_packaging"
+   ],
+   "score": 5,
+   "format_hint": "兩者"
+  },
+  {
+   "id": "i_thermal",
+   "cat": "intro",
+   "title": "散熱產業鏈：從風扇到水冷板",
+   "why": "散熱是抗跌又常上新聞的族群，氣冷液冷分工看不懂",
+   "site_links": [
+    "#industry/group/liquid_cooling",
+    "#industry/group/air_cooling",
+    "#heatmap/theme/thermal"
+   ],
+   "score": 5,
+   "format_hint": "兩者"
+  },
+  {
+   "id": "k_dividend",
+   "cat": "know",
+   "title": "除權息與填息：領股利不等於賺",
+   "why": "ETF 存股族最大誤解是把配息當報酬，第四季又是除息旺季",
+   "site_links": [
+    "#etf",
+    "#season"
+   ],
+   "score": 5,
+   "format_hint": "兩者"
+  },
+  {
+   "id": "n_nanya_dram",
+   "cat": "news",
+   "title": "南亞科法說：記憶體缺貨還會持續嗎",
+   "why": "10/12 法說稱仍嚴重缺貨，但券商看法分歧，觀眾想看兩邊說法",
+   "site_links": [
+    "#stock/2408",
+    "#heatmap/theme/hbm_memory",
+    "#industry/group/memory_module"
+   ],
+   "score": 5,
+   "format_hint": "兩者"
+  },
+  {
+   "id": "k_institutional",
+   "cat": "know",
+   "title": "法人買賣超怎麼看才不誤讀",
+   "why": "新手把單日買超當訊號，教學文一再提醒要看連續性",
+   "site_links": [
+    "#flow",
+    "#overview"
+   ],
+   "score": 5,
+   "format_hint": "貼文"
+  },
+  {
+   "id": "i_cowos_chain",
+   "cat": "intro",
+   "title": "先進封裝供應鏈：誰在台積電身邊",
+   "why": "接著 CoWoS 知識文，觀眾自然會問「那上下游有誰」",
+   "site_links": [
+    "#industry/semiconductor",
+    "#industry/group/ai_adv_packaging",
+    "#heatmap/theme/cowos"
+   ],
+   "score": 5,
+   "format_hint": "貼文"
+  },
+  {
+   "id": "n_cpo",
+   "cat": "news",
+   "title": "CPO 商轉元年：進度到哪了",
+   "why": "CPO 被稱為今年商轉關鍵，但概念股暴增近兩百檔，觀眾想分辨真假",
+   "site_links": [
+    "#heatmap/theme/silicon_photonics",
+    "#industry/group/silicon_photonics",
+    "#industry/group/optical_module"
+   ],
+   "score": 4,
+   "format_hint": "兩者"
+  },
+  {
+   "id": "k_concept",
+   "cat": "know",
+   "title": "「概念股」是誰貼的標籤？",
+   "why": "概念股清單越拉越長，觀眾想知道怎麼判斷是不是真的相關",
+   "site_links": [
+    "#heatmap/theme/silicon_photonics",
+    "#industry/ai_server"
+   ],
+   "score": 4,
+   "format_hint": "貼文"
+  },
+  {
+   "id": "n_hvdc",
+   "cat": "news",
+   "title": "800V 高壓直流：延後傳聞怎麼看",
+   "why": "電源族群消息互相矛盾（2027 或 2028 後），觀眾需要時間軸整理",
+   "site_links": [
+    "#heatmap/theme/power_bbu",
+    "#industry/group/server_psu",
+    "#stock/2308"
+   ],
+   "score": 4,
+   "format_hint": "貼文"
+  },
+  {
+   "id": "i_power",
+   "cat": "intro",
+   "title": "AI 電源鏈：電源供應器到電池備援",
+   "why": "AI 機櫃耗電暴增，電源與 BBU 是新的熱門環節",
+   "site_links": [
+    "#industry/group/server_psu",
+    "#industry/group/bbu",
+    "#heatmap/theme/power_bbu"
+   ],
+   "score": 4,
+   "format_hint": "兩者"
+  },
+  {
+   "id": "i_pcb_ccl",
+   "cat": "intro",
+   "title": "從銅箔到載板：AI 板材鏈一次看",
+   "why": "PCB、CCL、載板常被混為一談，分層講清楚很有需求",
+   "site_links": [
+    "#industry/group/ccl",
+    "#industry/group/ic_substrate",
+    "#industry/group/pcb_rigid",
+    "#heatmap/theme/pcb_ccl"
+   ],
+   "score": 4,
+   "format_hint": "貼文"
+  },
+  {
+   "id": "k_hbm",
+   "cat": "know",
+   "title": "HBM 跟一般記憶體差在哪？",
+   "why": "記憶體缺貨新聞多，HBM 這個名詞頻繁出現卻少有白話解釋",
+   "site_links": [
+    "#industry/group/hbm",
+    "#heatmap/theme/hbm_memory"
+   ],
+   "score": 4,
+   "format_hint": "兩者"
+  },
+  {
+   "id": "i_memory",
+   "cat": "intro",
+   "title": "記憶體產業鏈：DRAM、HBM、模組",
+   "why": "記憶體循環是今年第二大話題，觀眾想知道各環節角色",
+   "site_links": [
+    "#industry/group/hbm",
+    "#industry/group/memory_module",
+    "#industry/group/nor_niche_memory",
+    "#heatmap/theme/hbm_memory"
+   ],
+   "score": 4,
+   "format_hint": "貼文"
+  },
+  {
+   "id": "n_asic",
+   "cat": "news",
+   "title": "雲端大廠自研晶片：台廠在哪一段",
+   "why": "Google TPU 等客製晶片被法人列為今年主要題材",
+   "site_links": [
+    "#heatmap/theme/asic_ip",
+    "#industry/group/ip_asic"
+   ],
+   "score": 4,
+   "format_hint": "貼文"
+  },
+  {
+   "id": "k_cpo",
+   "cat": "know",
+   "title": "CPO 共同封裝光學是什麼？",
+   "why": "新名詞討論度高，又有 CPO 與 LPO 路線之爭",
+   "site_links": [
+    "#heatmap/theme/silicon_photonics",
+    "#industry/group/silicon_photonics"
+   ],
+   "score": 4,
+   "format_hint": "兩者"
+  },
+  {
+   "id": "i_optical",
+   "cat": "intro",
+   "title": "光通訊鏈：光模組到矽光子",
+   "why": "接 CPO 知識文，把光通訊上下游畫清楚",
+   "site_links": [
+    "#industry/group/optical_module",
+    "#industry/group/silicon_photonics",
+    "#heatmap/theme/switch_800g"
+   ],
+   "score": 4,
+   "format_hint": "貼文"
+  },
+  {
+   "id": "k_cooling",
+   "cat": "know",
+   "title": "為什麼 AI 伺服器要改用水冷？",
+   "why": "液冷取代氣冷是散熱股最常見的敘事，原理卻少人講",
+   "site_links": [
+    "#industry/group/liquid_cooling",
+    "#heatmap/theme/thermal"
+   ],
+   "score": 4,
+   "format_hint": "短影片"
+  },
+  {
+   "id": "n_csp_capex",
+   "cat": "news",
+   "title": "雲端四大廠資本支出：台廠怎麼接",
+   "why": "資本支出是 AI 鏈的源頭消息，但不等於每家都受惠",
+   "site_links": [
+    "#industry/ai_server",
+    "#industry/group/ai_server_odm"
+   ],
+   "score": 4,
+   "format_hint": "貼文"
+  },
+  {
+   "id": "i_semi_map",
+   "cat": "intro",
+   "title": "半導體產業地圖：設計到封測",
+   "why": "新開戶族年輕化，很多人連上中下游都還不熟",
+   "site_links": [
+    "#industry/semiconductor",
+    "#industry/group/foundry",
+    "#industry/group/ip_asic"
+   ],
+   "score": 4,
+   "format_hint": "兩者"
+  },
+  {
+   "id": "k_pe",
+   "cat": "know",
+   "title": "本益比是什麼？為何同業差很多",
+   "why": "「貴不貴」是本站第二個問題，本益比是最常被誤用的指標",
+   "site_links": [
+    "#industry"
+   ],
+   "score": 4,
+   "format_hint": "貼文"
+  },
+  {
+   "id": "n_revenue",
+   "cat": "news",
+   "title": "9 月營收出爐：哪些族群創同期新高",
+   "why": "每月 10 日前後營收公布是固定流量點，可直接連到族群資金面",
+   "site_links": [
+    "#flow",
+    "#stock/2330"
+   ],
+   "score": 3,
+   "format_hint": "貼文"
+  },
+  {
+   "id": "n_etf_q4",
+   "cat": "news",
+   "title": "第四季 ETF 除息潮：資金怎麼動",
+   "why": "ETF 受益人破千萬，季配息前後的資金移動是存股族關心的事",
+   "site_links": [
+    "#etf",
+    "#season"
+   ],
+   "score": 3,
+   "format_hint": "貼文"
+  },
+  {
+   "id": "k_seasonality",
+   "cat": "know",
+   "title": "台股有季節性嗎？月份效應怎麼看",
+   "why": "本站獨有季節性頁，能用資料而不是傳聞回答",
+   "site_links": [
+    "#season"
+   ],
+   "score": 3,
+   "format_hint": "貼文"
+  },
+  {
+   "id": "k_revenue",
+   "cat": "know",
+   "title": "月營收的年增和月增怎麼看",
+   "why": "營收是散戶最常拿來判斷公司的數字，但月增常被誤讀",
+   "site_links": [
+    "#stock/2330"
+   ],
+   "score": 3,
+   "format_hint": "貼文"
+  },
+  {
+   "id": "i_heavy_electric",
+   "cat": "intro",
+   "title": "重電為什麼跟 AI 扯上關係？",
+   "why": "資料中心用電帶動重電，傳產股搭上 AI 的邏輯需要解釋",
+   "site_links": [
+    "#industry/group/heavy_electric",
+    "#heatmap/theme/heavy_electric"
+   ],
+   "score": 3,
+   "format_hint": "兩者"
+  },
+  {
+   "id": "i_satellite",
+   "cat": "intro",
+   "title": "低軌衛星：台廠在哪一段",
+   "why": "低軌衛星被法人列為今年五大題材之一",
+   "site_links": [
+    "#industry/group/satellite",
+    "#heatmap/theme/satellite"
+   ],
+   "score": 3,
+   "format_hint": "貼文"
+  },
+  {
+   "id": "n_macro",
+   "cat": "news",
+   "title": "降息與匯率：外資資金怎麼進出",
+   "why": "外資動向牽動權值股，總經消息需要轉成「對台股資金面的意思」",
+   "site_links": [
+    "#flow",
+    "#overview"
+   ],
+   "score": 3,
+   "format_hint": "貼文"
+  },
+  {
+   "id": "i_glass",
+   "cat": "intro",
+   "title": "玻璃基板是什麼？台廠布局一覽",
+   "why": "先進封裝的下一代材料，題材熱但資訊零散",
+   "site_links": [
+    "#industry/group/glass_substrate",
+    "#heatmap/theme/glass_substrate"
+   ],
+   "score": 2,
+   "format_hint": "貼文"
+  }
+ ]
 }
