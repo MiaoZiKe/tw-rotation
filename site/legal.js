@@ -406,6 +406,9 @@
 /* 左欄文字上限跟著變寬（760 → 1040）：footer 全寬之後 760 會在中間留一大塊空白；1040 在 12px 下約 85 字一行，還讀得動。*/
 .sitefoot .sf-main{flex:1 1 auto;min-width:0;max-width:1040px}
 .sitefoot .sf-copy{color:var(--ink-2);margin-bottom:4px}
+.sitefoot .sf-pay,.sitefoot .sf-contact{margin-top:4px;color:var(--ink-2)}
+.sitefoot .sf-pay a,.sitefoot .sf-contact a{color:var(--cyan);text-decoration:none}
+.sitefoot .sf-pay a:hover,.sitefoot .sf-contact a:hover{text-decoration:underline}
 .sitefoot .sf-links{display:flex;flex-wrap:wrap;gap:4px 14px;margin-top:8px}
 .sitefoot .sf-links a,.sitefoot .sf-links button{font:inherit;font-size:12px;color:var(--cyan);background:none;border:0;padding:0;
   cursor:pointer;text-decoration:none}
@@ -716,6 +719,26 @@
     void save; void K_FOOT;   // 不再寫入（見 footOpenPref 的說明）
   }
 
+  /* 收費方式一行：價格跟 plan_presets.js（管理區「套用建議方案」的來源）一致；讀不到就用 2026-10-12 上線的價格 */
+  function payLine() {
+    const P = (window.TW_PLAN_PRESETS && Array.isArray(window.TW_PLAN_PRESETS.tiers)) ? window.TW_PLAN_PRESETS.tiers : null;
+    const pick = (k, dm, dy) => { const p = P && P.find((x) => x.key === k); return [p && p.price > 0 ? p.price : dm, p && p.price_year > 0 ? p.price_year : dy]; };
+    const n = (x) => 'NT$' + Number(x).toLocaleString('en-US');
+    const [pm, py] = pick('plus', 299, 2990), [rm, ry] = pick('pro', 549, 5268);
+    return `註冊會員免費；付費訂閱 Plus 每月 ${n(pm)}／每年 ${n(py)}，Pro 每月 ${n(rm)}／每年 ${n(ry)}（新台幣）。付款方式：信用卡（可選每月／每年自動扣款）、ATM 轉帳、超商代碼、銀行轉帳。付款後立即開通，可隨時取消續訂，退款依「退款與取消訂閱」規定。`;
+  }
+  /* 聯絡方式：一定要有一項跟綠界賣家資料「完全相同」（綠界 2026-10-14 退件原因 1）。SELLER_PHONE／SELLER_EMAIL 由 Andy 決定填哪一個 */
+  const SELLER_EMAIL = 'liguligu0818@gmail.com';   // 2026-10-14 Andy：「我的申請Mail 已經改成 liguligu0818@gmail.com」（綠界賣家資料）
+  const SELLER_PHONE = '';
+  function contactLine() {
+    const a = [];
+    if (SELLER_PHONE) a.push('電話 <a href="tel:' + esc(SELLER_PHONE.replace(/[^0-9+]/g, '')) + '">' + esc(SELLER_PHONE) + '</a>');
+    if (SELLER_EMAIL) a.push('Email <a href="mailto:' + esc(SELLER_EMAIL) + '">' + esc(SELLER_EMAIL) + '</a>');
+    if (!SELLER_EMAIL || SELLER_EMAIL.toLowerCase() !== CONTACT_EMAIL.toLowerCase()) a.push('客服信箱 <a href="mailto:' + esc(CONTACT_EMAIL) + '">' + esc(CONTACT_EMAIL) + '</a>');
+    a.push('網站右下角「客服」');
+    return a.join('｜');
+  }
+
   function buildFooter() {
     const main = document.querySelector('main');
     if (!main || document.getElementById('siteFoot')) return;
@@ -727,7 +750,12 @@
       + '<p class="sf-dis"><b>免責聲明</b>　本站為公開資料之整理、計算與視覺化工具，不是證券投資顧問事業，'
       + '不提供投資建議、不推介任何有價證券；所有數值僅供研究參考，資料可能有誤、遺漏或延遲，'
       + '投資決策與風險由使用者自行判斷並承擔。</p>'
+      /* 2026-10-14 綠界收款審核退件：「網頁無相關收費資訊」「請於銷售網頁加註與綠界賣家資料相同的 EMAIL 或電話」
+         → 每一頁頁尾都看得到收費方案、付款方式與聯絡方式（審核人員從任何一頁進來都看得到）*/
+      + '<p class="sf-pay" id="sfPay"><b>收費方式</b>　' + esc(payLine()) + '　<a href="#pricing" id="sfPriceLink">看方案與功能比較</a></p>'
+      + '<p class="sf-contact" id="sfContact"><b>客服聯絡</b>　' + contactLine() + '</p>'
       + '<nav class="sf-links" aria-label="法律與說明">'
+      + '<a href="#pricing" id="sfPricing">收費方案</a><em aria-hidden="true">｜</em>'
       + '<a href="#disclaimer" id="sfDis">免責聲明</a><em aria-hidden="true">｜</em>'
       + '<a href="#terms" id="sfTerms">使用條款</a><em aria-hidden="true">｜</em>'
       + '<a href="#privacy" id="sfPriv">隱私權政策</a><em aria-hidden="true">｜</em>'
