@@ -1,0 +1,102 @@
+{
+ "s01": {
+  "src": "docs/anim/bibi_basepose_1012/png/front_stand_rebuild.png",
+  "size": [
+   388,
+   340
+  ],
+  "表情": "興奮",
+  "動作": "跳起騰空（站姿整隻上移＋地面影子＋速度線；front_jump 原檔右耳描邊有缺口不用）",
+  "情境": "封面：跳起來看曝光機"
+ },
+ "s02": {
+  "src": "docs/anim/bibi_library/calendar/key.png",
+  "size": [
+   290,
+   451
+  ],
+  "表情": "開心期待",
+  "動作": "四腳坐、日曆懸空在頭上",
+  "情境": "今天 10/14 財報日"
+ },
+ "s03": {
+  "src": "docs/anim/bibi_library/tilt/key.png",
+  "size": [
+   287,
+   267
+  ],
+  "表情": "疑惑",
+  "動作": "歪頭",
+  "情境": "ASML 是誰？"
+ },
+ "s04": {
+  "src": "docs/anim/bibi_basepose_1012/png/sniff_r.png",
+  "size": [
+   403,
+   356
+  ],
+  "表情": "專心",
+  "動作": "低頭嗅地，鼻子沿著流程往右",
+  "情境": "跟著製程一步步聞過去"
+ },
+ "s05": {
+  "src": "docs/anim/bibi_library/face_shock/key.png",
+  "size": [
+   321,
+   368
+  ],
+  "表情": "嚇一跳",
+  "動作": "毛炸開、白眼圈",
+  "情境": "雷射打錫滴？！"
+ },
+ "s06": {
+  "src": "docs/anim/bibi_basepose_1012/png/side_r.png",
+  "size": [
+   388,
+   362
+  ],
+  "表情": "認真",
+  "動作": "側面站、面向右，放大鏡懸空在身旁（sit_r 原檔右下有一隻脫離的腳不用）",
+  "情境": "比較三代光"
+ },
+ "s07": {
+  "src": "docs/anim/bibi_library/face_thinking_bulb/key.png",
+  "size": [
+   298,
+   313
+  ],
+  "表情": "恍然大悟",
+  "動作": "瞇眼點頭、燈泡亮",
+  "情境": "想通因果鏈"
+ },
+ "s08": {
+  "src": "docs/anim/bibi_library/peek_r/key.png",
+  "size": [
+   203,
+   248
+  ],
+  "表情": "好奇",
+  "動作": "從右下角探頭",
+  "情境": "偷看財報數字"
+ },
+ "s09": {
+  "src": "docs/anim/bibi_basepose_1012/png/lie_front.png",
+  "size": [
+   464,
+   282
+  ],
+  "表情": "放鬆",
+  "動作": "正面趴著",
+  "情境": "趴在產業鏈旁邊"
+ },
+ "s10": {
+  "src": "docs/anim/bibi_library/face_star/key.png",
+  "size": [
+   338,
+   302
+  ],
+  "表情": "超讚",
+  "動作": "星星眼",
+  "情境": "總結"
+ }
+}

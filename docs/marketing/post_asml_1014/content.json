@@ -1,0 +1,34 @@
+{
+  "_說明": "所有上圖文字與數字的唯一來源。render_post.py 只從這裡取字；validate_output.py 逐字核對與事實出處。kind：已確認事實／公司預估／市場看法／示意圖／原理說明。",
+  "post": "ASML 財報前：EUV 曝光機與半導體景氣前哨",
+  "event": {"date": "2026-10-13", "source": "technews", "title": "先台積電一步公布業績，ASML 第三季有望獲利年增翻倍", "url": "https://finance.technews.tw/2026/10/13/asmls-third-quarter-profit-is-expected-to-double-year-on-year/", "news_id": "technews-c4a9a2672ee429a9"},
+  "facts": {
+    "F1": {"text": "ASML 預定 2026-10-14 公布第 3 季財報", "kind": "已確認事實", "src": "TechNews 2026-10-13（本站今日事件，news_id technews-c4a9a2672ee429a9）", "conf": "高"},
+    "F2": {"text": "2026 第 2 季淨銷售額約 93 億歐元、淨利約 29 億歐元，優於市場預期", "kind": "已確認事實", "src": "TechNews 2026-07-15 第 2 季財報報導", "conf": "中高（媒體轉述公司財報）"},
+    "F3": {"text": "公司預估 2026 第 3 季淨銷售額 110～120 億歐元、毛利率 55%～57%", "kind": "公司預估", "src": "TechNews 第 2 季財報報導（引述 ASML 管理層財測）", "conf": "中高"},
+    "F4": {"text": "公司預估 2026 全年淨銷售額 430～450 億歐元、毛利率 54%～56%", "kind": "公司預估", "src": "TechNews 第 2 季財報報導（引述 ASML 管理層財測）", "conf": "中高"},
+    "F5": {"text": "2025 第 3 季淨銷售額約 75 億歐元、淨利約 21 億歐元、訂單 54 億歐元（其中 EUV 36 億歐元）", "kind": "已確認事實", "src": "TechNews 2025-10-15", "conf": "中高"},
+    "F6": {"text": "EUV 光源波長 13.5 奈米，用雷射轟擊錫滴產生電漿發出 EUV 光", "kind": "已確認事實", "src": "techovedas 等；ASML 官網〈light and lasers〉", "conf": "高"},
+    "F7": {"text": "High-NA EUV 單價約 3.5 億歐元（約 3.8 億美元）；Low-NA EUV 約 1.8 億美元", "kind": "市場看法", "src": "yolegroup 等；各來源略有差異（另見媒體 3.5～4 億美元）", "conf": "中（區間值，圖上寫「約」）"},
+    "F8": {"text": "ASML 計畫 2027 年把低 NA EUV 產能從 2026 年約 65 台再提高約 30%", "kind": "公司規劃（媒體引述管理層）", "src": "技術媒體引述 ASML 管理層", "conf": "中"},
+    "F9": {"text": "目前能量產 EUV 曝光機的只有 ASML（多家媒體與研究機構一致說法）", "kind": "市場看法", "src": "WebSearch 三組關鍵字：hwbusters、自由時報 LTN、TechNews 2021-10-13、Seeking Alpha、Nasdaq；未找到 ASML 官方原文自稱", "conf": "中（多來源一致，但非官方原文）"},
+    "F10": {"text": "ASML 成立於 1984 年，總部在荷蘭維爾德霍芬", "kind": "已確認事實", "src": "TechNews 2026-09-11（本站新聞庫 news_id technews-f9d4a2ea6426bdd1 摘要）", "conf": "高"},
+    "F11": {"text": "台積電、三星、英特爾是 ASML EUV 主要客戶", "kind": "已確認事實", "src": "TechNews 2024-09（台積電接收 High-NA EUV）、hwbusters、TechNews 多篇", "conf": "中高"},
+    "F12": {"text": "DUV 用 248 奈米（KrF）與 193 奈米（ArF）光；EUV 13.5 奈米，比 DUV 短十四倍以上", "kind": "已確認事實", "src": "ASML 官網〈light and lasers〉（WebSearch 摘要）", "conf": "高"},
+    "F13": {"text": "EUV 會被空氣與玻璃吸收，需在真空中用多層反射鏡，光罩也是反射式", "kind": "原理說明", "src": "halbleiter.org〈DUV vs EUV〉（WebSearch 摘要）", "conf": "中高"},
+    "F14": {"text": "設備先拿訂單、晶圓廠後擴產，所以設備商財報常被當景氣前哨", "kind": "市場看法", "src": "產業常識性推論，本貼文標示為示意，非必然", "conf": "中（定性）"}
+  },
+  "disclaimer": "本內容為公開資料整理，不構成任何投資建議；投資有風險，請自行判斷。",
+  "slides": [
+    {"n": 1, "title": "ASML 為何是景氣前哨？", "sub": "一台曝光機，看懂晶片景氣", "bubble": "這台機器到底在做什麼？", "facts": ["F1"]},
+    {"n": 2, "title": "今天的事件", "bubble": "財報前，先把背景補起來！", "facts": ["F1", "F2"]},
+    {"n": 3, "title": "ASML 是誰？", "bubble": "艾司摩爾？好像在哪聽過…", "facts": ["F9", "F10", "F11"]},
+    {"n": 4, "title": "曝光在做晶片的哪一步？", "bubble": "用光把電路「印」上去！", "facts": ["F13"]},
+    {"n": 5, "title": "EUV 光怎麼來的？", "bubble": "用雷射打錫滴？！", "facts": ["F6", "F13"]},
+    {"n": 6, "title": "DUV、EUV、High-NA", "bubble": "光越短，畫得越細", "facts": ["F7", "F12"]},
+    {"n": 7, "title": "為什麼叫景氣前哨？", "bubble": "設備先動，產能後到！", "facts": ["F14"]},
+    {"n": 8, "title": "財報前，看這幾個數字", "bubble": "實際數字落在區間哪裡？", "facts": ["F2", "F3", "F4", "F5"]},
+    {"n": 9, "title": "跟台灣有什麼關係？", "bubble": "台灣在鏈子的這一段！", "facts": ["F8", "F11"]},
+    {"n": 10, "title": "比比幫你畫重點", "bubble": "財報出爐，再一起看！", "facts": ["F1", "F3", "F14"]}
+  ]
+}
