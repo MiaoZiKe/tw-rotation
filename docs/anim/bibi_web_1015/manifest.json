@@ -1,0 +1,221 @@
+{
+  "version": "1015gpt1",
+  "animations": [
+    {
+      "file": "sleep_loop",
+      "frames": 16,
+      "total_ms": 1360,
+      "loop": 0,
+      "bytes": 55230,
+      "sha256": "1e5b726c7de8477dc48e9f3b5fa20c62e5fa4a78cae2de57cc2da9e6264288e7",
+      "quality": 78
+    },
+    {
+      "file": "wake_once",
+      "frames": 16,
+      "total_ms": 1630,
+      "loop": 1,
+      "bytes": 56774,
+      "sha256": "4fdf6e29ec9b052e6a7f9b90375c72e1cc916921b5b67ff18482a7482fb14ea5",
+      "quality": 78
+    },
+    {
+      "file": "selfie",
+      "frames": 16,
+      "total_ms": 1200,
+      "loop": 1,
+      "bytes": 59070,
+      "sha256": "1486eca4cebd5569470ebf1ace7b6add7e737c1b6e51947fed78085ccb5a504b",
+      "quality": 68
+    },
+    {
+      "file": "hit",
+      "frames": 16,
+      "total_ms": 650,
+      "loop": 1,
+      "bytes": 61356,
+      "sha256": "87f2f56fe3244e70165b6a420856422cb857d15fd2fa2dd5e444902a9865838f",
+      "quality": 78
+    },
+    {
+      "file": "cry",
+      "frames": 16,
+      "total_ms": 1000,
+      "loop": 0,
+      "bytes": 58938,
+      "sha256": "82c103f6dfcd66b22d9a6ad152f3afc0dee5f3ce86346ed0a2e18aa872fdc51c",
+      "quality": 58
+    },
+    {
+      "file": "eat_q",
+      "frames": 16,
+      "total_ms": 1900,
+      "loop": 1,
+      "bytes": 59668,
+      "sha256": "daa26f6ee3b0e3140a82d21b12be3b81bce9190822d179aebf79d025bd626896",
+      "quality": 58
+    },
+    {
+      "file": "spin_q",
+      "frames": 16,
+      "total_ms": 1290,
+      "loop": 1,
+      "bytes": 59812,
+      "sha256": "15f7d770cdd26b9a3c95214b425a44af739979f0d9f927064a84ababf315b82d",
+      "quality": 68
+    },
+    {
+      "file": "run_r",
+      "frames": 16,
+      "total_ms": 560,
+      "loop": 0,
+      "bytes": 61044,
+      "sha256": "c15c42eb23fe87a767f0b9adf7df6e4a6f3714ff62512fbec29bf24262802614",
+      "quality": 78
+    },
+    {
+      "file": "run_start_r",
+      "frames": 16,
+      "total_ms": 340,
+      "loop": 1,
+      "bytes": 59882,
+      "sha256": "91e4910e3a06c2c5ea8a9b3014e808f671e2893c33fdddbd0d512bec796a5268",
+      "quality": 68
+    },
+    {
+      "file": "run_stop_r",
+      "frames": 16,
+      "total_ms": 850,
+      "loop": 1,
+      "bytes": 58372,
+      "sha256": "32a17ff23e36b034d7c1922da42d7ff3857b64ed076189af93c8ee7285561bbf",
+      "quality": 78
+    },
+    {
+      "file": "ball_catch",
+      "frames": 16,
+      "total_ms": 1560,
+      "loop": 1,
+      "bytes": 65520,
+      "sha256": "3e4dba2bce872dce15ecc3874f19fbb4a4dc650314954de609254fa983a719e3",
+      "quality": 58
+    },
+    {
+      "file": "pet_q",
+      "frames": 16,
+      "total_ms": 1680,
+      "loop": 1,
+      "bytes": 64570,
+      "sha256": "0b2d824bfe76be7edcfd982c55306792537363f6cee1b6daed05d0525557916b",
+      "quality": 58
+    },
+    {
+      "file": "highfive",
+      "frames": 16,
+      "total_ms": 1190,
+      "loop": 1,
+      "bytes": 58804,
+      "sha256": "206e2c027481ce4af2120d0bdb202e59ea877583aa0faf4d0ce09b445a76e86e",
+      "quality": 68
+    },
+    {
+      "file": "dance",
+      "frames": 16,
+      "total_ms": 1290,
+      "loop": 1,
+      "bytes": 61918,
+      "sha256": "60caad980ebe761a12aea80882d819c384e9e852eb231c518f6265168cff2f2c",
+      "quality": 58
+    },
+    {
+      "file": "hug",
+      "frames": 16,
+      "total_ms": 1410,
+      "loop": 1,
+      "bytes": 60628,
+      "sha256": "b64c5d912be14aab44cdf15acae99cd16b284ef9ef211ec1d3abf675ae3ff276",
+      "quality": 58
+    },
+    {
+      "file": "receive",
+      "frames": 16,
+      "total_ms": 1180,
+      "loop": 1,
+      "bytes": 57872,
+      "sha256": "8b37601ca530c6280813b5cb676d71ec63d0fe17267b250af93a0ba23690e02c",
+      "quality": 68
+    },
+    {
+      "file": "popcorn",
+      "frames": 16,
+      "total_ms": 1220,
+      "loop": 1,
+      "bytes": 60348,
+      "sha256": "c583a34e1915ec625ea06f174f796ac8bcb9452a87490e968ac367ccfbd47132",
+      "quality": 68
+    },
+    {
+      "file": "sniff_eat",
+      "frames": 16,
+      "total_ms": 870,
+      "loop": 1,
+      "bytes": 56790,
+      "sha256": "d2c39cd875e62cd19d79dd36f30f477b0e403efe703b8666e540dbb1e77e9c98",
+      "quality": 68
+    },
+    {
+      "file": "hop_reach",
+      "frames": 16,
+      "total_ms": 810,
+      "loop": 1,
+      "bytes": 57430,
+      "sha256": "8bda4b3909dcdb20ced290db052e1aee92b04a199b5ed209bc571dc28ac2e926",
+      "quality": 68
+    },
+    {
+      "file": "pounce",
+      "frames": 16,
+      "total_ms": 1120,
+      "loop": 1,
+      "bytes": 59514,
+      "sha256": "f6cacfe952329000e4569ddf3565c98d682c699b537d7ec1006198fb79a84b38",
+      "quality": 68
+    },
+    {
+      "file": "tangle",
+      "frames": 16,
+      "total_ms": 880,
+      "loop": 1,
+      "bytes": 60836,
+      "sha256": "d30549cf49dc746f674f19f7e64b926d49e098cdc92f162785a55e13bf0b4e36",
+      "quality": 58
+    },
+    {
+      "file": "look_up",
+      "frames": 16,
+      "total_ms": 640,
+      "loop": 0,
+      "bytes": 59954,
+      "sha256": "8b6bab409d262d9e241b32fcb41b87320b910f35943a7eac09125dcca78642c4",
+      "quality": 58
+    },
+    {
+      "file": "run_l",
+      "frames": 16,
+      "total_ms": 560,
+      "loop": 0,
+      "bytes": 61058,
+      "sha256": "544137c07bcfa01a253a76edf3efdf6599260952c526f35f27e3d88b00d5f69a",
+      "quality": 78
+    },
+    {
+      "file": "ball_catch_l",
+      "frames": 16,
+      "total_ms": 1560,
+      "loop": 1,
+      "bytes": 65576,
+      "sha256": "3a6ab852e4fb2a2405ba3f0b49e32b5015104c3a575240c90242ddc4e81c3204",
+      "quality": 58
+    }
+  ]
+}

@@ -125,7 +125,7 @@
   const fabOff = () => html.classList.contains('fab-off');
   const $ = (id) => document.getElementById(id);
   /* 素材版本戳：換了 brand/bibi/ 裡的圖（同檔名）就改這個字串，使用者不用清快取就拿到新圖（10-11 週末款換圖後 Andy 仍看到舊圖） */
-  const AV = '1012c';
+  const AV = '1015gpt1';
   const src = (f) => 'brand/bibi/' + f + '.webp?v=' + AV;
   const T = { now: null, pct: undefined, hol: null };   // 驗收注入（Bibi.test）：假時間、假漲跌、假休市表
 
@@ -792,7 +792,7 @@ html.fab-off .bibiring,html.fab-off .bibitip,html.fab-off .bibifx,html.fab-off #
      不畫手（Andy 10-11「伸出去的手太奇怪了」）：從被點的小圈飄過來一顆小愛心停在鼻子前，鼻子碰到那一刻「啵」一下散成小愛心。
      比比臉朝畫面內側（右下角＝鏡像朝左）。 */
   async function noseScript(g) {
-    const f = g.dir, P = Q(g, 440, 330, f), S = srcPoint(g), tx = g.cx + P.dx, ty = P.y;
+    const f = g.dir, P = A(g, 123, 108, f), S = srcPoint(g), tx = g.cx + P.dx, ty = P.y;   // 1015 第4格實際鼻尖，維持270ms接觸
     const ht = prop('heart', g.mob ? 14 : 16, g.mob ? 14 : 16);
     at(ht, S.x, S.y, '', 0);
     let go = false;
@@ -1036,7 +1036,7 @@ html.fab-off .bibiring,html.fab-off .bibitip,html.fab-off .bibifx,html.fab-off #
   async function bubbleScript(g) {
     const dir = g.dir, S = srcPoint(g), n = 3 + Math.floor(Math.random() * 3), R = g.mob ? 13 : 16;
     const span = g.mob ? 200 : 330, rise = g.mob ? 14 : 18, t0 = performance.now(), lo = topLim() + R + 4;
-    const NOSE = Q(g, 256, 60);                                  // hop_reach storyboard：第 3 格鼻子頂到泡泡（頭頂正上方 x 256, y 60）
+    const NOSE = A(g, 80, 110);                                  // 1015 新圓身素材：第5格鼻尖位置，190ms接觸；位移由 hopReach 負責
     const B = [];
     for (let i = 0; i < n; i++) {
       B.push({ el: pic('bubble', 'bubble', R * 2, R * 2), x0: clamp(g.cx + dir * (g.s * 0.35 + span * (i + 0.5) / n), R + 8, g.vw - R - 8),
@@ -1247,7 +1247,7 @@ html.fab-off .bibiring,html.fab-off .bibitip,html.fab-off .bibifx,html.fab-off #
   async function leafScript(g) {
     const dir = g.dir, n = 5 + Math.floor(Math.random() * 4), lw = g.mob ? 15 : 18, t0 = performance.now();
     const top = Math.max(topLim() + 14, g.top - (g.mob ? 150 : 210)), v = g.mob ? 62 : 72;
-    const reach = g.mob ? 34 : 50, LH = g.mob ? 30 : 40, NOSE = Q(g, 256, 60), catchY = NOSE.y - LH * 0.85;   // 撲到最高點時鼻子的高度
+    const reach = g.mob ? 34 : 50, LH = g.mob ? 30 : 40, NOSE = A(g, 80, 110), catchY = NOSE.y - LH * 0.85;   // 1015 第5格鼻尖＋網頁撲跳位移
     const Lf = [];
     for (let i = 0; i < n; i++) {
       const petal = i % 2 === 1, lh = lw * 128 / (petal ? 88 : 83);
