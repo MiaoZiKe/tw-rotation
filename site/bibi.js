@@ -125,7 +125,7 @@
   const fabOff = () => html.classList.contains('fab-off');
   const $ = (id) => document.getElementById(id);
   /* 素材版本戳：換了 brand/bibi/ 裡的圖（同檔名）就改這個字串，使用者不用清快取就拿到新圖（10-11 週末款換圖後 Andy 仍看到舊圖） */
-  const AV = '1015gpt1';
+  const AV = '1015gpt3';
   const src = (f) => 'brand/bibi/' + f + '.webp?v=' + AV;
   const T = { now: null, pct: undefined, hol: null };   // 驗收注入（Bibi.test）：假時間、假漲跌、假休市表
 
@@ -500,11 +500,21 @@ html.fab-off .bibiring,html.fab-off .bibitip,html.fab-off .bibifx,html.fab-off #
   function watchOff() { if (blockMo) { blockMo.disconnect(); blockMo = null; } clearTimeout(blockT); blockT = 0; }
 
   /* ---------- 動作 ---------- */
-  let actFrom = null, hitUntil = 0, hitLog = [], actFxTimer = 0, actSerial = 0;
-  function act(id, btn) {
+  let actFrom = null, hitUntil = 0, hitLog = [], actFxTimer = 0, actSerial = 0, pendingAct = 0, waitingAct = false;
+  async function act(id, btn) {
     const a0 = ACTS.find((x) => x.id === id); if (!a0) return;
-    if (a0.ask) { closeRing(true); if (window.TwSupport && window.TwSupport.open) window.TwSupport.open(); return; }
+    if (a0.ask) { pendingAct++; waitingAct = false; closeRing(true); if (window.TwSupport && window.TwSupport.open) window.TwSupport.open(); return; }
     if (mode === 'act') return;                       // 冷卻：上一個動作還沒播完
+    const request = ++pendingAct;
+    waitingAct = false;
+    if (!reduce() && !assetsReady) {
+      waitingAct = true;
+      say('比比準備玩具中…', 15000);
+      const ready = await preload();
+      if (request !== pendingAct || mode === 'act') return;
+      waitingAct = false;
+      if (!ready) { say('玩具還沒載好，再試一次吧', 2500); return; }
+    }
     /* 打他：不准連打（Andy：「點太多次時加冷卻」）—— 每次打完至少隔 4 秒；一分鐘內第 3 次起隔 15 秒 */
     if (a0.id === 'hit' && Date.now() < hitUntil) { say('比比還在痛…等一下再玩嘛', 1800); return; }
     if (a0.id === 'hit') {
@@ -671,13 +681,19 @@ html.fab-off .bibiring,html.fab-off .bibitip,html.fab-off .bibifx,html.fab-off #
     const cx = fr.left + fr.width / 2;
     return { cx, s, foot: bottom - s * 0.05, top: bottom - s, vw, vh: window.innerHeight, mob: isMob(), dir: cx > vw / 2 ? -1 : 1 };
   }
-  let preloaded = false;
+  let preloaded = null, assetsReady = false;
   const PROP_FILES = ['ball', 'grass', 'hammer', 'seed', 'carrot', 'bubble', 'feather', 'yarn_ball', 'plane', 'leaf', 'petal'];
   function preload() {
-    if (preloaded) return; preloaded = true;
-    Object.keys(PART).forEach((k) => { if (PART[k]) { const i = new Image(); i.src = src(PART[k]); } });
-    PROP_FILES.forEach((f) => { const i = new Image(); i.src = `brand/bibi/props/${f}.png?v=${AV}`; });
-    { const i = new Image(); i.src = `brand/bibi/props/pop_burst.webp?v=${AV}`; }
+    if (preloaded) return preloaded;
+    const urls = Object.keys(MS).filter((f) => f !== IDLE_HOP).map(src)
+      .concat(PROP_FILES.map((f) => `brand/bibi/props/${f}.png?v=${AV}`), `brand/bibi/props/pop_burst.webp?v=${AV}`);
+    preloaded = Promise.all(urls.map((url) => new Promise((resolve) => {
+      const image = new Image(); let done = false;
+      const finish = (ok) => { if (done) return; done = true; clearTimeout(timer); image.onload = image.onerror = null; resolve(ok); };
+      const timer = setTimeout(() => finish(false), 15000);
+      image.onload = () => finish(true); image.onerror = () => finish(false); image.src = url;
+    }))).then((loaded) => { assetsReady = loaded.every(Boolean); if (!assetsReady) preloaded = null; return assetsReady; });
+    return preloaded;
   }
   function idleFile() { return sleeping ? SLEEP_FILE : ((idleNow && idleNow.file) || IDLE_HOP); }
 
@@ -1344,6 +1360,8 @@ html.fab-off .bibiring,html.fab-off .bibitip,html.fab-off .bibifx,html.fab-off #
   }
   /** 打斷：立刻回原位、道具清掉。動作被打斷＝回情境待機；小動作被打斷＝只回原位（東張西望換過圖就換回來） */
   function stopRun(why) {
+    pendingAct++;   // 包含仍在等首次載圖的動作：Esc／換頁／停止後不可偷偷啟動
+    waitingAct = false;
     if (!run) {
       if (mode !== 'act') return false;
       lastStop = why || ''; actSerial++;
@@ -1442,7 +1460,7 @@ html.fab-off .bibiring,html.fab-off .bibitip,html.fab-off .bibifx,html.fab-off #
       const t = e.target;
       if (t && t.closest && (t.closest('#supFab') || t.closest('#bibiRing'))) return;
       /* 手機點空白＝收環；比比正在外面玩也一起叫回原位（桌機滑鼠點頁面不打斷，等他玩完） */
-      if (run && (tapMode() || e.pointerType === 'touch')) stopRun('tap');
+      if ((run || waitingAct) && (tapMode() || e.pointerType === 'touch')) stopRun('tap');
       if (!ringOpen()) return;
       closeRing();
     }, true);
@@ -1481,7 +1499,7 @@ html.fab-off .bibiring,html.fab-off .bibitip,html.fab-off .bibifx,html.fab-off #
   /* 驗收用：注入假時間／假漲跌／假休市表、直接播某個動作、讀目前狀態 */
   window.Bibi = {
     MAP: { ACTS, MS, IDLE: IDLE_HOP, STILL: IDLE_STILL },
-    state: () => ({ file: fab && fab.dataset.bibi || shown, shown, want, mode, idle: idleNow && idleNow.key, say: idleNow && idleNow.say, sleeping, ring: ringOpen(),
+    state: () => ({ file: fab && fab.dataset.bibi || shown, shown, want, mode, loading: waitingAct, idle: idleNow && idleNow.key, say: idleNow && idleNow.say, sleeping, ring: ringOpen(),
       run: run ? run.id : '', phase: run && run.phase || '', happy: shown === IDLE_HOP, off: { x: OFF.x, y: OFF.y }, body: bodyEl ? bodyEl.style.transform : '', stop: lastStop, props: stage ? stage.children.length : 0,
       src: imgs[front] ? (imgs[front].getAttribute('src') || '').replace(/[?#].*$/, '') : '', flip: flipNow,
       tip: tip && !tip.hidden && tip.classList.contains('on') ? tip.textContent : '' }),
