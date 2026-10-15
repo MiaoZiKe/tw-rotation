@@ -1,0 +1,460 @@
+{
+  "source_filename": "source_sheet.png",
+  "source_grid_offset": [
+    0,
+    0
+  ],
+  "total_ms": 1200,
+  "contact_frame": 6,
+  "contact_ms": 300,
+  "sequence": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    9,
+    10,
+    11,
+    12,
+    13,
+    14,
+    15,
+    16
+  ],
+  "durations_ms": [
+    60,
+    50,
+    50,
+    60,
+    80,
+    70,
+    20,
+    60,
+    100,
+    60,
+    100,
+    60,
+    80,
+    60,
+    70,
+    90,
+    20,
+    110
+  ],
+  "anchors": [
+    {
+      "frame": 1,
+      "name": "mouth",
+      "source_cell_xy": [
+        234,
+        188
+      ],
+      "measurement": "本輪重新生成source_sheet.png逐格人工量；第6格放大確認，口鼻深咖啡區邊界輔助，約±3來源像素；未沿用遺失舊版座標"
+    },
+    {
+      "frame": 1,
+      "name": "nose",
+      "source_cell_xy": [
+        235,
+        181
+      ],
+      "measurement": "本輪重新生成source_sheet.png逐格人工量；第6格放大確認，口鼻深咖啡區邊界輔助，約±3來源像素；未沿用遺失舊版座標"
+    },
+    {
+      "frame": 2,
+      "name": "mouth",
+      "source_cell_xy": [
+        238,
+        191
+      ],
+      "measurement": "本輪重新生成source_sheet.png逐格人工量；第6格放大確認，口鼻深咖啡區邊界輔助，約±3來源像素；未沿用遺失舊版座標"
+    },
+    {
+      "frame": 2,
+      "name": "nose",
+      "source_cell_xy": [
+        239,
+        186
+      ],
+      "measurement": "本輪重新生成source_sheet.png逐格人工量；第6格放大確認，口鼻深咖啡區邊界輔助，約±3來源像素；未沿用遺失舊版座標"
+    },
+    {
+      "frame": 3,
+      "name": "mouth",
+      "source_cell_xy": [
+        230,
+        225
+      ],
+      "measurement": "本輪重新生成source_sheet.png逐格人工量；第6格放大確認，口鼻深咖啡區邊界輔助，約±3來源像素；未沿用遺失舊版座標"
+    },
+    {
+      "frame": 3,
+      "name": "nose",
+      "source_cell_xy": [
+        231,
+        219
+      ],
+      "measurement": "本輪重新生成source_sheet.png逐格人工量；第6格放大確認，口鼻深咖啡區邊界輔助，約±3來源像素；未沿用遺失舊版座標"
+    },
+    {
+      "frame": 4,
+      "name": "mouth",
+      "source_cell_xy": [
+        234,
+        244
+      ],
+      "measurement": "本輪重新生成source_sheet.png逐格人工量；第6格放大確認，口鼻深咖啡區邊界輔助，約±3來源像素；未沿用遺失舊版座標"
+    },
+    {
+      "frame": 4,
+      "name": "nose",
+      "source_cell_xy": [
+        235,
+        240
+      ],
+      "measurement": "本輪重新生成source_sheet.png逐格人工量；第6格放大確認，口鼻深咖啡區邊界輔助，約±3來源像素；未沿用遺失舊版座標"
+    },
+    {
+      "frame": 5,
+      "name": "mouth",
+      "source_cell_xy": [
+        245,
+        204
+      ],
+      "measurement": "本輪重新生成source_sheet.png逐格人工量；第6格放大確認，口鼻深咖啡區邊界輔助，約±3來源像素；未沿用遺失舊版座標"
+    },
+    {
+      "frame": 5,
+      "name": "nose",
+      "source_cell_xy": [
+        246,
+        193
+      ],
+      "measurement": "本輪重新生成source_sheet.png逐格人工量；第6格放大確認，口鼻深咖啡區邊界輔助，約±3來源像素；未沿用遺失舊版座標"
+    },
+    {
+      "frame": 6,
+      "name": "mouth",
+      "source_cell_xy": [
+        240,
+        203
+      ],
+      "measurement": "本輪重新生成source_sheet.png逐格人工量；第6格放大確認，口鼻深咖啡區邊界輔助，約±3來源像素；未沿用遺失舊版座標"
+    },
+    {
+      "frame": 6,
+      "name": "nose",
+      "source_cell_xy": [
+        241,
+        196
+      ],
+      "measurement": "本輪重新生成source_sheet.png逐格人工量；第6格放大確認，口鼻深咖啡區邊界輔助，約±3來源像素；未沿用遺失舊版座標"
+    },
+    {
+      "frame": 7,
+      "name": "mouth",
+      "source_cell_xy": [
+        236,
+        209
+      ],
+      "measurement": "本輪重新生成source_sheet.png逐格人工量；第6格放大確認，口鼻深咖啡區邊界輔助，約±3來源像素；未沿用遺失舊版座標"
+    },
+    {
+      "frame": 7,
+      "name": "nose",
+      "source_cell_xy": [
+        243,
+        198
+      ],
+      "measurement": "本輪重新生成source_sheet.png逐格人工量；第6格放大確認，口鼻深咖啡區邊界輔助，約±3來源像素；未沿用遺失舊版座標"
+    },
+    {
+      "frame": 8,
+      "name": "mouth",
+      "source_cell_xy": [
+        232,
+        207
+      ],
+      "measurement": "本輪重新生成source_sheet.png逐格人工量；第6格放大確認，口鼻深咖啡區邊界輔助，約±3來源像素；未沿用遺失舊版座標"
+    },
+    {
+      "frame": 8,
+      "name": "nose",
+      "source_cell_xy": [
+        233,
+        200
+      ],
+      "measurement": "本輪重新生成source_sheet.png逐格人工量；第6格放大確認，口鼻深咖啡區邊界輔助，約±3來源像素；未沿用遺失舊版座標"
+    },
+    {
+      "frame": 9,
+      "name": "mouth",
+      "source_cell_xy": [
+        245,
+        180
+      ],
+      "measurement": "本輪重新生成source_sheet.png逐格人工量；第6格放大確認，口鼻深咖啡區邊界輔助，約±3來源像素；未沿用遺失舊版座標"
+    },
+    {
+      "frame": 9,
+      "name": "nose",
+      "source_cell_xy": [
+        246,
+        169
+      ],
+      "measurement": "本輪重新生成source_sheet.png逐格人工量；第6格放大確認，口鼻深咖啡區邊界輔助，約±3來源像素；未沿用遺失舊版座標"
+    },
+    {
+      "frame": 10,
+      "name": "mouth",
+      "source_cell_xy": [
+        241,
+        180
+      ],
+      "measurement": "本輪重新生成source_sheet.png逐格人工量；第6格放大確認，口鼻深咖啡區邊界輔助，約±3來源像素；未沿用遺失舊版座標"
+    },
+    {
+      "frame": 10,
+      "name": "nose",
+      "source_cell_xy": [
+        242,
+        172
+      ],
+      "measurement": "本輪重新生成source_sheet.png逐格人工量；第6格放大確認，口鼻深咖啡區邊界輔助，約±3來源像素；未沿用遺失舊版座標"
+    },
+    {
+      "frame": 11,
+      "name": "mouth",
+      "source_cell_xy": [
+        235,
+        187
+      ],
+      "measurement": "本輪重新生成source_sheet.png逐格人工量；第6格放大確認，口鼻深咖啡區邊界輔助，約±3來源像素；未沿用遺失舊版座標"
+    },
+    {
+      "frame": 11,
+      "name": "nose",
+      "source_cell_xy": [
+        236,
+        176
+      ],
+      "measurement": "本輪重新生成source_sheet.png逐格人工量；第6格放大確認，口鼻深咖啡區邊界輔助，約±3來源像素；未沿用遺失舊版座標"
+    },
+    {
+      "frame": 12,
+      "name": "mouth",
+      "source_cell_xy": [
+        235,
+        190
+      ],
+      "measurement": "本輪重新生成source_sheet.png逐格人工量；第6格放大確認，口鼻深咖啡區邊界輔助，約±3來源像素；未沿用遺失舊版座標"
+    },
+    {
+      "frame": 12,
+      "name": "nose",
+      "source_cell_xy": [
+        236,
+        182
+      ],
+      "measurement": "本輪重新生成source_sheet.png逐格人工量；第6格放大確認，口鼻深咖啡區邊界輔助，約±3來源像素；未沿用遺失舊版座標"
+    },
+    {
+      "frame": 13,
+      "name": "mouth",
+      "source_cell_xy": [
+        240,
+        149
+      ],
+      "measurement": "本輪重新生成source_sheet.png逐格人工量；第6格放大確認，口鼻深咖啡區邊界輔助，約±3來源像素；未沿用遺失舊版座標"
+    },
+    {
+      "frame": 13,
+      "name": "nose",
+      "source_cell_xy": [
+        241,
+        142
+      ],
+      "measurement": "本輪重新生成source_sheet.png逐格人工量；第6格放大確認，口鼻深咖啡區邊界輔助，約±3來源像素；未沿用遺失舊版座標"
+    },
+    {
+      "frame": 14,
+      "name": "mouth",
+      "source_cell_xy": [
+        245,
+        146
+      ],
+      "measurement": "本輪重新生成source_sheet.png逐格人工量；第6格放大確認，口鼻深咖啡區邊界輔助，約±3來源像素；未沿用遺失舊版座標"
+    },
+    {
+      "frame": 14,
+      "name": "nose",
+      "source_cell_xy": [
+        246,
+        138
+      ],
+      "measurement": "本輪重新生成source_sheet.png逐格人工量；第6格放大確認，口鼻深咖啡區邊界輔助，約±3來源像素；未沿用遺失舊版座標"
+    },
+    {
+      "frame": 15,
+      "name": "mouth",
+      "source_cell_xy": [
+        227,
+        152
+      ],
+      "measurement": "本輪重新生成source_sheet.png逐格人工量；第6格放大確認，口鼻深咖啡區邊界輔助，約±3來源像素；未沿用遺失舊版座標"
+    },
+    {
+      "frame": 15,
+      "name": "nose",
+      "source_cell_xy": [
+        228,
+        145
+      ],
+      "measurement": "本輪重新生成source_sheet.png逐格人工量；第6格放大確認，口鼻深咖啡區邊界輔助，約±3來源像素；未沿用遺失舊版座標"
+    },
+    {
+      "frame": 16,
+      "name": "mouth",
+      "source_cell_xy": [
+        223,
+        150
+      ],
+      "measurement": "本輪重新生成source_sheet.png逐格人工量；第6格放大確認，口鼻深咖啡區邊界輔助，約±3來源像素；未沿用遺失舊版座標"
+    },
+    {
+      "frame": 16,
+      "name": "nose",
+      "source_cell_xy": [
+        224,
+        143
+      ],
+      "measurement": "本輪重新生成source_sheet.png逐格人工量；第6格放大確認，口鼻深咖啡區邊界輔助，約±3來源像素；未沿用遺失舊版座標"
+    }
+  ],
+  "body_source": [
+    [
+      160,
+      212,
+      125,
+      82,
+      0
+    ],
+    [
+      166,
+      212,
+      124,
+      82,
+      0
+    ],
+    [
+      164,
+      229,
+      123,
+      74,
+      0
+    ],
+    [
+      168,
+      237,
+      123,
+      66,
+      0
+    ],
+    [
+      163,
+      224,
+      126,
+      77,
+      0
+    ],
+    [
+      163,
+      224,
+      126,
+      78,
+      0
+    ],
+    [
+      166,
+      226,
+      124,
+      76,
+      0
+    ],
+    [
+      167,
+      228,
+      124,
+      75,
+      0
+    ],
+    [
+      163,
+      207,
+      126,
+      73,
+      0
+    ],
+    [
+      164,
+      205,
+      127,
+      73,
+      0
+    ],
+    [
+      162,
+      211,
+      126,
+      73,
+      0
+    ],
+    [
+      164,
+      213,
+      126,
+      72,
+      0
+    ],
+    [
+      162,
+      181,
+      125,
+      79,
+      0
+    ],
+    [
+      165,
+      181,
+      124,
+      80,
+      0
+    ],
+    [
+      160,
+      188,
+      123,
+      79,
+      0
+    ],
+    [
+      159,
+      185,
+      123,
+      80,
+      0
+    ]
+  ],
+  "measurement_note": "每來源格嘴鼻人工量約±3來源像素，身體橢圓為人工形體近似。此來源為reset後重新生成新圖，非被退件笑吐舌版。",
+  "visual_review": {
+    "status": "已看本輪原始16格與放大接觸格，洋紅/深/淺三底全16格已檢；未完成瀏覽器動態審片",
+    "limitation": "新圖有小白齒形，與提示詞無齒存在差異；第7格左嘴線形狀異常；需QA判斷，不以補畫掩蓋。",
+    "mouth_cycle": "保留16格；第7異常左嘴線縮為20ms；使用明確9開/10閉額外重播一次，開100閉60ms；第6閉口300ms"
+  }
+}

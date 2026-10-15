@@ -1,0 +1,23 @@
+{
+  "tool": "內建image_gen",
+  "reference": "output/bibi_library_v1/brand/approved_master.png",
+  "grid": [
+    4,
+    4
+  ],
+  "frames": 16,
+  "timing": {
+    "total_ms": 1200,
+    "contact_frame": 6,
+    "contact_ms": 300
+  },
+  "qa": {
+    "status": "已人工檢視原版，交獨立QA，尚未宣稱通過",
+    "observed": "無吐舌大笑，4/5窄橫口→6閉夾，7頰顎線下收，9/11微開、10/12閉。無字格線陰影及道具。",
+    "limitations": [
+      "口內仍暗紅褐，小門牙與下顎變化縮到160px可能不明顯，需正常速度判讀。",
+      "接觸錨點須動畫師逐幀測量。"
+    ]
+  },
+  "source_output": "generated_images/exec-34433972-9f98-4317-8e0f-908b6ba26d77.png"
+}

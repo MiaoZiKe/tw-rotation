@@ -1,0 +1,23 @@
+{
+  "tool": "內建image_gen",
+  "reference": "output/bibi_library_v1/brand/approved_master.png",
+  "grid": [
+    4,
+    4
+  ],
+  "frames": 16,
+  "timing": {
+    "total_ms": 1200,
+    "contact_frame": 6,
+    "contact_ms": 200
+  },
+  "qa": {
+    "status": "清理版已人工看圖，交獨立QA",
+    "observed": "編號、橢圓陰影、彩色雜點已消失；閉嘴不吃紙，第7驚訝睜眼、第9眨眼、第10–14低地嗅。",
+    "limitations": [
+      "第6格已略回縮，動畫師可將第5格作實際接觸格；需對齊200ms時點。",
+      "四腳接地與鼻尖錨點待逐幀測量。"
+    ]
+  },
+  "source_output": "generated_images/exec-aae77c02-a6ab-4b9f-b27f-3ef13d294b2c.png"
+}
