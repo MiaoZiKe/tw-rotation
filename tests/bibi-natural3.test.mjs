@@ -91,3 +91,12 @@ for(const name of ['leaf_bite','bubble_react','plane_react','yarn_tumble']) test
   assert.equal(m.body.length,d.tracks.length);assert.ok(d.tracks.some(t=>t.start_ms===m.contact));
   assert.deepEqual(fs.readFileSync(new URL(`../site/brand/bibi/${name}.webp`,import.meta.url)),fs.readFileSync(new URL('anim.webp',base)));
 });
+
+
+test('跑完一圈確實換螺旋眼暈眩表情，期間取消仍清掉補間並回位',async()=>{
+  const h=harness();h.engine.begin('spin');const p=h.engine.spinScript(h.engine.geo()).catch(()=>{});
+  for(let elapsed=0;h.api.state().phase!=='dizzy'&&elapsed<6000;elapsed+=8)await h.advance(8);
+  assert.equal(h.api.state().phase,'dizzy');assert.equal(h.api.state().file,'dizzy');assert.equal(h.api.PART.dizzy,'dizzy');assert.equal(h.api.MAP.MS.dizzy,1420);
+  assert.equal(h.api.state().off.x,0);assert.equal(h.api.state().off.y,0);assert.equal(h.api.state().tweens,1);
+  h.api.stop('esc');await p;await h.advance(2000);assert.equal(h.api.state().tweens,0);assert.equal(h.api.state().mode,'idle');assert.equal(h.api.state().props,0);assert.equal(h.api.state().off.x,0);assert.equal(h.api.state().off.y,0);
+});

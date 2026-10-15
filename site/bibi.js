@@ -33,7 +33,7 @@
     // 互動（動畫單位 10-11 深夜照原版造型重畫；bibi_site.py 最後一行印的毫秒數）
     wake_once: 1630, selfie: 2000,        // wake_once／selfie：10-12 四腳版
     hit: 650, cry: 1800,                  // 打他（播一次，最後一格＝cry 第 1 格）／哭哭（循環一輪）：10-12 四腳版
-    eat_q: 1900, spin_q: 1600,            // 10-12 四腳版：側面低頭吃地上的草（16 格）／四腳小跑繞一圈＋暈眩（13 格），播完都回 Default
+    eat_q: 1900, spin_q: 1600, dizzy: 1420,            // 10-12 四腳版：側面低頭吃地上的草（16 格）／四腳小跑繞一圈＋暈眩（13 格），播完都回 Default
     /* 10-12 四腳版第 6～8 組＋丟東西互動（動畫單位 0ff4ddd，docs/anim/bibi_<名>/storyboard.md）：全部四腳著地、沒有手 */
     run_r: 560, run_l: 560, run_start_r: 340, run_stop_r: 850,   // 四腳對角小跑（循環）／起跑／煞車
     ball_catch: 1560, ball_catch_l: 1560,  // 撲出去用身體壓住球、彈起、用鼻子推（素材裡畫了球，最後一格＝Default＋球在旁邊）
@@ -1831,7 +1831,7 @@ html.fab-off .bibiring,html.fab-off .bibitip,html.fab-off .bibifx,html.fab-off #
      只畫了臉朝右的素材（receive／sniff_eat／pounce／highfive／ball_catch／run_start_r／run_stop_r）要往左時用 show(…, -1) 鏡像。
      ⚠ 待機只用 idle_hop（Andy 10-12），不用骨架的 happy_hop、也不用 jump／default_idle。 */
   const PART = { run_l: 'run_l', run_r: 'run_r', run_start_r: 'run_start_r', run_stop_r: 'run_stop_r',
-    ball_catch: 'ball_catch', ball_catch_l: 'ball_catch_l', eat: 'eat_q', pet: 'pet_q', spin: 'spin_q', popcorn: 'popcorn',   // eat／spin：10-12 四腳版（spin 素材本身有暈眩，不再另接 dizzy）
+    ball_catch: 'ball_catch', ball_catch_l: 'ball_catch_l', eat: 'eat_q', pet: 'pet_q', spin: 'spin_q', dizzy: 'dizzy', popcorn: 'popcorn',   // eat／spin：10-12 四腳版（跑圈後沿用四腳螺旋眼dizzy，不播放spin_q位移）
     receive: 'receive',                             // 低頭嗅一嗅（玩球：球滾到腳邊時）
     hit: 'hit', cry: 'cry',                         // 打他（播一次）／哭哭（循環）
     nose: 'highfive',                               // 碰鼻子（擊掌改的）
@@ -2180,7 +2180,7 @@ html.fab-off .bibiring,html.fab-off .bibitip,html.fab-off .bibifx,html.fab-off #
       if(f!==facing) { show(f<0?PART.run_l:PART.run_r); facing=f; }
       pose(g.dir*rx*(1-Math.cos(a)),-ry*Math.sin(a));
     });
-    pose(0,0); run.phase='dizzy'; show(IDLE_STILL); cue('呼…頭好暈！');
+    pose(0,0); run.phase='dizzy'; show(PART.dizzy,true); cue('呼…頭好暈！');
     await tween(700,k => pose(0,0,{r:3*Math.sin(k*Math.PI*5)*(1-k)}));
   }
 
