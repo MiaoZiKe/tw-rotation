@@ -612,7 +612,7 @@ html.fab-off .bibiring,html.fab-off .bibitip,html.fab-off .bibifx,html.fab-off #
     receive: 'receive',                             // 低頭嗅一嗅（玩球：球滾到腳邊時）
     hit: 'hit', cry: 'cry',                         // 打他（播一次）／哭哭（循環）
     nose: 'highfive',                               // 碰鼻子（擊掌改的）
-    // 玩具六件組（10-12 第 8 組）：撒零食＝跑過去 sniff_eat、吹泡泡／落葉＝hop_reach 往上撲、羽毛棒＝pounce、毛線球＝ball_catch→tangle、紙飛機＝look_up 抬頭循環
+    // 專屬接觸反應使用獨立映射；缺圖才沿用保守四腳圖，readyParts明示實際載入狀態。
     leaf_bite: 'leaf_bite', bubble_react: 'bubble_react', plane_react: 'plane_react', yarn_tumble: 'yarn_tumble',
     snack_eat: 'sniff_eat', hop: 'hop_reach', pounce: 'pounce', tangle: 'tangle', look: 'look_up',
   };
@@ -939,8 +939,8 @@ html.fab-off .bibiring,html.fab-off .bibitip,html.fab-off .bibifx,html.fab-off #
   }
 
   /* ---------- 腳本：轉圈圈（10-12 四腳版） ----------
-     spin_q（bibi_spin，13 格、1290ms）：四腳小跑繞一圈 → 急停歪一邊 → 暈眩臉 → 回 Default，暈眩畫在素材裡，不再另外接 dizzy 循環。
-     網頁先沿可見橢圓跑一圈，回原位才播放暈眩表情。 */
+     run素材只負責四腳步態；外層按弧長等速跑淺透視地面跑道。
+     舊spin_q自帶另一次跑動及大幅垂直位移，不再疊加當尾巴。 */
   async function spinScript(g) {
     const room=g.dir<0 ? g.cx-g.s/2-8 : g.vw-g.cx-g.s/2-8;
     const rx=Math.max(8,Math.min(g.mob?90:165,room/2)),ry=g.mob?4:6;
@@ -1011,11 +1011,11 @@ html.fab-off .bibiring,html.fab-off .bibitip,html.fab-off .bibifx,html.fab-off #
      10-12 第 8 組到貨（動畫單位 0ff4ddd）：道具一律換成正式 PNG（seed／carrot／bubble／feather／yarn／plane／leaf／petal），
      比比的動作照各組 storyboard.md 接：
        撒零食＝跑過去（run_l／run_r）→ sniff_eat（第 1～2 格嘴前畫了一顆，網頁那顆收掉）
-       吹泡泡＝跑到泡泡底下 → hop_reach（第 3 格鼻子頂到）→ 那個位置播 pop_burst
+       吹泡泡＝泡泡表面碰鼻 → pop_burst → 受驚眨眼 → 好奇
        羽毛棒＝羽毛在比比前方地面附近晃 → pounce（第 5 格撲出去、第 6 格壓到）；第一下被抽走、第二下抓到
-       毛線球＝線球被頂出去拖一條線（網頁 SVG）→ run → ball_catch（素材裡那顆球被網頁的毛線球蓋住）→ tangle（線纏在身上、扭兩下掙脫）
-       紙飛機＝飛機繞一圈時 look_up 抬頭循環 → 落地跑過去 sniff_eat
-       落葉／花瓣＝hop_reach 往上撲 → 落地的跑過去 sniff_eat 一片
+       毛線球＝身體前後分層纏線 → 受阻 → 側跌 → 掙扎 → 逐環收回線球
+       紙飛機＝追視 → 機尖碰鼻 → 縮頭 → 嗅聞
+       落葉＝張嘴 → 葉尖貼口閉咬 → 小咀嚼 → 鬆口，葉子不套零食
      ⚠ 比比是四隻腳的天竺鼠：全程不准做縱向拉長（站起來）的變形，跳只用位移（pose 的 y），身體只准壓扁／微傾。
      ⚠ 位置一律夾在視窗內（bx()）；道具都在 #bibiStage（fixed、overflow:hidden）→ 不撐捲軸，手機留在 390 內。
      ====================================================================================== */
@@ -1035,8 +1035,8 @@ html.fab-off .bibiring,html.fab-off .bibitip,html.fab-off .bibifx,html.fab-off #
   }
   /** 比比位移夾在視窗內（整顆圖都在畫面裡） */
   const bx = (g, x) => clamp(x, g.s / 2 + 4 - g.cx, g.vw - g.s / 2 - 4 - g.cx);
-  const bobY = () => 0; // run素材自帶起伏，外層不重複跳。   // 四腳版 run 素材 560ms／8 格、一步約 140ms
-  /** 跑到位移 x1（從 x0），回傳實際到的位置。跑步上下彈、往前傾，身體只微微拉長（≤1.03） */
+  const bobY = () => 0; // run素材自帶起伏，外層不重複跳。
+  /** 從x0以固定水平像素速度跑到x1，回傳實際到的位置。 */
   async function runTo(g, x0, x1, speed) {
     x1 = bx(g, x1);
     const d = x1 - x0;
@@ -1195,8 +1195,7 @@ html.fab-off .bibiring,html.fab-off .bibitip,html.fab-off .bibifx,html.fab-off #
     await goHome(g, x);
   }
 
-  /* ---------- 毛線球：線球從小圈飛來、被比比一頂滾出去，後面拖一條線（網頁 SVG）；比比追（run）→ 撲到（ball_catch，素材裡的球被毛線球蓋住）
-     → 被線纏住、扭兩下彈開掙脫（tangle，線畫在素材裡）→ 跑回家 ---------- */
+  /* ---------- 毛線球：追球 → 前後分層纏身 → 受阻側跌 → 掙扎鬆脫 → 回位 ---------- */
   async function yarnScript(g) {
     const dir=g.dir,S=srcPoint(g),R=g.s*.09,x=bx(g,dir*(g.mob?110:200));
     const ball=pic('yarn','yarn_ball',R*2,R*2),frontLine=threadLayer('thread-front','#a77bd6',2.2),backLine=threadLayer('thread-back','#9470c4',2.2,true),ground=g.foot-R;
@@ -1236,7 +1235,7 @@ html.fab-off .bibiring,html.fab-off .bibitip,html.fab-off .bibifx,html.fab-off #
     frontLine.remove(); backLine.remove(); ball.remove(); await goHome(g,x);
   }
 
-  /* ---------- 紙飛機：飛機沿曲線在畫面上繞一圈（整條路線都在視窗內）、比比抬頭跟著看（look_up 循環）；落地滑一下，比比跑過去嗅（sniff_eat） ---------- */
+  /* ---------- 紙飛機：追視飛行 → 機尖碰鼻 → 縮頭 → 嗅聞 ---------- */
   async function planeScript(g) {
     const dir = g.dir, S = srcPoint(g), pw = g.mob ? 34 : 42, ph = pw * 81 / 128, ground = g.foot - ph / 2;
     const R1 = g.mob ? 120 : 180, R2 = g.mob ? 64 : 90, tl = topLim();
@@ -1291,8 +1290,7 @@ html.fab-off .bibiring,html.fab-off .bibitip,html.fab-off .bibifx,html.fab-off #
     await goHome(g, x);
   }
 
-  /* ---------- 落葉／花瓣：5～8 片從上面飄下來（左右晃、翻轉），比比往上撲（hop_reach）去頂，頂到的閃一下收掉；
-     落到地上的留著，最後跑過去嗅一片吃掉（sniff_eat），其他的淡掉 ---------- */
+  /* ---------- 落葉：葉尖碰口，張嘴 → 閉咬 → 小咀嚼 → 鬆口落地 ---------- */
   async function leafScript(g) {
     const face=g.dir,meta=REACTION_META.leaf_bite,x=bx(g,face*(g.mob?80:130)),mouth=reactionAnchor(g,'leaf_bite','mouth',meta.contact,face),lw=g.mob?18:22;
     const leaf=pic('leaf','leaf',lw,lw*128/83),target={x:g.cx+x+mouth.dx,y:mouth.y},from=srcPoint(g),angle=face<0?70:-110;
