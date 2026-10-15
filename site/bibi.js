@@ -132,7 +132,7 @@
   /* ---------- 樣式 ---------- */
   const CSS = `
 /* 比比圖：一律用同一個裁切框的 160px 素材（腳底同一高度），顯示得比按鈕大一點、往上長，換動作時大小位置不跳 */
-.supfab.supgifonly .supgif.bibiimg{position:absolute;width:104px;height:104px;left:calc(50% - 52px);bottom:-3px;max-width:none;transform:none;transition:opacity .35s ease;pointer-events:none}
+.supfab.supgifonly .supgif.bibiimg{position:absolute;width:104px;height:104px;left:calc(50% - 52px);bottom:-3px;max-width:none;transform:none;transition:none;pointer-events:none}
 .supfab.supgifonly:hover .supgif.bibiimg{transform:none}
 .supfab.supgifonly .supgif.bibiimg.bibiback{opacity:0}
 @media (max-width:820px){.supfab.supgifonly .supgif.bibiimg{width:84px;height:84px;left:calc(50% - 42px);bottom:-2px}}
@@ -500,7 +500,7 @@ html.fab-off .bibiring,html.fab-off .bibitip,html.fab-off .bibifx,html.fab-off #
   function watchOff() { if (blockMo) { blockMo.disconnect(); blockMo = null; } clearTimeout(blockT); blockT = 0; }
 
   /* ---------- 動作 ---------- */
-  let actFrom = null, hitUntil = 0, hitLog = [];
+  let actFrom = null, hitUntil = 0, hitLog = [], actFxTimer = 0, actSerial = 0;
   function act(id, btn) {
     const a0 = ACTS.find((x) => x.id === id); if (!a0) return;
     if (a0.ask) { closeRing(true); if (window.TwSupport && window.TwSupport.open) window.TwSupport.open(); return; }
@@ -517,6 +517,7 @@ html.fab-off .bibiring,html.fab-off .bibitip,html.fab-off .bibifx,html.fab-off #
     let a = a0;
     if (a0.sleep && sleeping) a = Object.assign({ id: 'wake' }, a0.wake);
     const n = bump(a0.id === 'sleep' ? (sleeping ? 'wake' : 'sleep') : a0.id);
+    const serial = ++actSerial;
     mode = 'act'; fab.dataset.bibiAct = a.id === 'wake' ? 'wake' : a0.id;
     /* 有編排腳本的（球／草／摸摸／轉圈）：比比要離開原位、道具要空間 → 環先收起（這一下不算打斷），泡泡跟著比比走 */
     if (CHOREO[a.id] && !reduce()) {
@@ -529,7 +530,13 @@ html.fab-off .bibiring,html.fab-off .bibitip,html.fab-off .bibifx,html.fab-off #
     }
     if (ring) ring.classList.add('cool');
     show(a.file, !!a.once);
-    { const f = a.file, t0 = Date.now(); const go = () => { if (mode !== 'act') return; if (shown === f || Date.now() - t0 > 700) burst(a.fx); else setTimeout(go, 40); }; go(); }
+    { const f = a.file; const go = () => {
+      if (mode !== 'act' || serial !== actSerial) return;
+      if (shown === f) {
+        // 自拍最高點220–440ms，閃光延220ms、100ms後達峰，避免還在蹲下就拍。
+        actFxTimer = setTimeout(() => { if (mode === 'act' && serial === actSerial) burst(a.fx); }, a.id === 'selfie' ? 220 : 0);
+      } else actFxTimer = setTimeout(go, 40);
+    }; go(); }
     let line = a.say[Math.floor(Math.random() * a.say.length)];
     if (a.cnt && (n === 3 || n % 5 === 0)) line = a.cnt(n);
     say(line, 2600);
@@ -1337,7 +1344,14 @@ html.fab-off .bibiring,html.fab-off .bibitip,html.fab-off .bibifx,html.fab-off #
   }
   /** 打斷：立刻回原位、道具清掉。動作被打斷＝回情境待機；小動作被打斷＝只回原位（東張西望換過圖就換回來） */
   function stopRun(why) {
-    if (!run) return false;
+    if (!run) {
+      if (mode !== 'act') return false;
+      lastStop = why || ''; actSerial++;
+      clearTimeout(actTimer); clearTimeout(actFxTimer);
+      document.querySelectorAll('.bibifx,.bibiflash').forEach((el) => el.remove());
+      finishAct(); return true;
+    }
+    actSerial++; clearTimeout(actFxTimer);
     const wasAct = run.act; lastStop = why || '';
     runTok++; cancelAnimationFrame(rafId); clearTimeout(actTimer);
     endRun();
