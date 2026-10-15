@@ -22,7 +22,7 @@ function harness(width=1440,optional=true) {
     requestAnimationFrame:fn=>{const id=++next;queue.set(id,{fn:()=>fn(now),at:now+8});return id;},cancelAnimationFrame:id=>queue.delete(id),MutationObserver:class{observe(){}disconnect(){}},fetch:async()=>({json:async()=>[]})});
   let source=fs.readFileSync(new URL('../site/bibi.js',import.meta.url),'utf8');
   source=source.replace('  window.Bibi = {',`
-  window._engine={init:(f,im,w,b,h,t)=>{fab=f;imgs=im;wrapEl=w;bodyEl=b;hopEl=h;tip=t;shown=want=IDLE_HOP;},begin:id=>{mode='act';startRun(id,true);},ready:names=>names.forEach(x=>readyParts.add(x)),reactionAnchor,reactionBody,reactionFrame,reactionDuration,atTip,runTo,spinScript,bubbleScript,leafScript,planeScript,yarnScript,tween,loopBg,geo};
+  window._engine={init:(f,im,w,b,h,t)=>{fab=f;imgs=im;wrapEl=w;bodyEl=b;hopEl=h;tip=t;shown=want=IDLE_HOP;},begin:id=>{mode='act';startRun(id,true);},ready:names=>names.forEach(x=>readyParts.add(x)),reactionGround,reactionAnchor,reactionBody,reactionFrame,reactionDuration,atTip,runTo,spinScript,bubbleScript,leafScript,planeScript,yarnScript,tween,loopBg,geo};
   window.Bibi = {`);
   vm.runInContext(source,context); const f=element(),im=[element(),element()],engine=context.window._engine,api=context.window.Bibi;
   engine.init(f,im,element(),element(),element(),element()); if(optional)engine.ready(['leaf_bite','bubble_react','plane_react','yarn_tumble']);
@@ -99,4 +99,22 @@ test('跑完一圈確實換螺旋眼暈眩表情，期間取消仍清掉補間�
   assert.equal(h.api.state().phase,'dizzy');assert.equal(h.api.state().file,'dizzy');assert.equal(h.api.PART.dizzy,'dizzy');assert.equal(h.api.MAP.MS.dizzy,1420);
   assert.equal(h.api.state().off.x,0);assert.equal(h.api.state().off.y,0);assert.equal(h.api.state().tweens,1);
   h.api.stop('esc');await p;await h.advance(2000);assert.equal(h.api.state().tweens,0);assert.equal(h.api.state().mode,'idle');assert.equal(h.api.state().props,0);assert.equal(h.api.state().off.x,0);assert.equal(h.api.state().off.y,0);
+});
+
+
+for(const width of [390,1440]) for(const [id,name] of [['leaf','leaf_bite'],['bubble','bubble_react'],['plane','plane_react'],['yarn','yarn_tumble']]) test(`${width}：${name}逐格支撐底固定155且口鼻/身體同步，取消後回跑無殘留高差`,async()=>{
+  const h=harness(width),g=h.engine.geo(),m=h.api.MAP.REACTIONS[name];assert.equal(m.groundY,155);assert.equal(m.support.length,m.durations.length);
+  let elapsed=0;
+  for(let i=0;i<m.durations.length;i++) {
+    const dy=h.engine.reactionGround(g,name,elapsed),mouth=h.engine.reactionAnchor(g,name,'mouth',elapsed,-1),nose=h.engine.reactionAnchor(g,name,'nose',elapsed,-1),body=h.engine.reactionBody(g,name,elapsed,-1);
+    assert.ok(Math.abs(m.support[i]+dy*160/g.s-155)<1e-9);
+    assert.ok(Math.abs(mouth.y-(g.top+m.mouth[i][1]*g.s/160+dy))<1e-9);
+    assert.ok(Math.abs(nose.y-(g.top+m.nose[i][1]*g.s/160+dy))<1e-9);
+    assert.ok(Math.abs(body.y-(g.top+m.body[i].cy*g.s/160+dy))<1e-9);elapsed+=m.durations[i];
+  }
+  h.engine.begin(id);const p=h.engine[id+'Script'](g).catch(()=>{});
+  for(let t=0;h.api.state().file!==name&&t<6000;t+=8) await h.advance(8);
+  assert.equal(h.api.state().file,name);assert.ok(h.api.state().off.y>0); // 腳本確實套補正，非只修接點計算。
+  h.api.stop('esc');await p;assert.equal(h.api.state().off.y,0);assert.equal(h.api.state().tweens,0);
+  h.engine.begin('run');const back=h.engine.runTo(g,0,-10,200);assert.equal(h.api.state().off.y,0);await h.advance(80);await back;assert.equal(h.api.state().off.y,0);h.api.stop('esc');
 });

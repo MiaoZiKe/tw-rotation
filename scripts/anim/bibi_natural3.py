@@ -118,6 +118,8 @@ def export(folder,key,revision):
     timeline=[];t=0;bodies=settings.get('body_source',[])
     for n,(f,d) in enumerate(zip(sequence,durations)):
         item={'playback_frame':n+1,'source_frame':f,'start_ms':t,'duration_ms':d};t+=d
+        support=settings.get('source_support_160',[])
+        item['support_160']=support[f-1] if len(support)==16 else None
         for name in ['mouth','nose']:
             anchor=next((a for a in anchors if a['frame']==f and a['name']==name),None);item[name+'_160']=anchor['runtime160_xy'] if anchor else None
         if len(bodies)==16:
@@ -125,7 +127,7 @@ def export(folder,key,revision):
         else:item['body160']=None
         timeline.append(item)
     contact=next(v['start_ms'] for v in timeline if v['source_frame']==plan['contact_frame'])
-    tracks={'file':key,'revision':revision,'total_ms':t,'contact_ms':contact,'events_ms':settings.get('events_ms',{}),'tracks':timeline,'measurement_note':settings.get('measurement_note','未量錨點以null標示，不可拿總外框猜嘴或靜態錨點掩蓋動圖缺漏')}
+    tracks={'file':key,'revision':revision,'ground_y_160':settings.get('ground_y_160',155),'total_ms':t,'contact_ms':contact,'events_ms':settings.get('events_ms',{}),'tracks':timeline,'measurement_note':settings.get('measurement_note','未量錨點以null標示，不可拿總外框猜嘴或靜態錨點掩蓋動圖缺漏')}
     dump(output/'engine_tracks.json',tracks)
     details={'file':key,'version':VERSION,'revision':revision,'output_dir':str(output.relative_to(ROOT)),'source_filename':source.name,'source_sha256':hashlib.sha256(source.read_bytes()).hexdigest(),'created_utc':datetime.now(timezone.utc).isoformat(),'source_frames':16,'sequence':sequence,'durations_ms':durations,'total_ms':t,'contact_source_frame':plan['contact_frame'],'contact_ms':contact,'geometry':g,'cleaning':cleaning,'anchors':anchors,'runtime_quality':quality,'runtime_within_80kb':len(buffer.getvalue())<=81920,'visual_review':settings.get('visual_review',{'status':'待三底與瀏覽器動態審片，機器檢查不代表流暢通過'}),'validation':{n:verify(output/n,t) for n in ['anim-512.gif','anim-512.webp','anim.webp']}}
     dump(output/'storyboard.json',details);return details
