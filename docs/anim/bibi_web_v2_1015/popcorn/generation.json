@@ -1,0 +1,21 @@
+{
+  "action": "popcorn",
+  "tool": "built-in image_gen",
+  "reference": "output/bibi_library_v1/brand/approved_master.png",
+  "prompt": "Use case: illustration-story. Production animation spritesheet, exactly 4 columns x 4 rows = 16 equal square cells, read left to right then top to bottom, no borders, no numbers or text, transparent background. Reference image is ONLY the character identity master. Preserve exact thick dark chocolate outline, creamy white continuous fluffy guinea pig body, rounded ears, tiny black eyes, short round pink paws attached naturally inside fur. Absolutely NO pink/orange fur below ears or on body; only inner ears and paws pink, modest round cheek blush allowed as in master. No human arms, no upright human stance, no separated head/body balls. Character fully within each cell with wide padding. Stable size and consistent face; natural quadruped weight and grounded paws. No shadows. ACTION: Real guinea pig excited popcorning. Frame1 calm four paws, 2 alert head up,3 crouch compact,4 explosive four-paw lift,5 airborne body twists left head jerks right with feet kicking asymmetrically,6 drops sideways,7 four-paw soft landing crouch,8 quick scamper stride right,9 second crouch,10 sudden higher sideways leap rear feet kick,11 airborne corkscrew only 30 degrees not full spin,12 lands facing slightly different direction,13 short scamper back,14 little joyful head flick,15 settles breathing,16 calm matching frame1. Exuberant wide joyful mouth and bright excited eyes in jumps. NOT evenly spaced bouncing. Keep body one connected fluffy mass.",
+  "columns": 4,
+  "rows": 4,
+  "frame_count": 16,
+  "background": "transparent",
+  "status": "source_generated_reviewed",
+  "size": [
+    1254,
+    1254
+  ],
+  "mode": "RGBA",
+  "alpha_extrema": [
+    0,
+    255
+  ],
+  "review": "審查退回：部分前掌在腹中、側倒，另產 popcorn_v2 修正"
+}

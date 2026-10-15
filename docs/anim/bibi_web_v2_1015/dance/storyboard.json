@@ -1,0 +1,70 @@
+{
+  "file": "dance",
+  "version": "1015gpt2",
+  "source_sha256": "e20ed746db113671f8bb4f39391fdded66763331f86aba51112a02b9486fdb42",
+  "frames": 16,
+  "durations_ms": [
+    160,
+    160,
+    150,
+    140,
+    140,
+    150,
+    140,
+    130,
+    140,
+    150,
+    140,
+    130,
+    140,
+    160,
+    180,
+    190
+  ],
+  "total_ms": 2400,
+  "geometry": {
+    "union_box": [
+      6,
+      28,
+      310,
+      306
+    ],
+    "scale": 1.5,
+    "origin": [
+      28,
+      67
+    ],
+    "alignment": "全格共同畫布；保留空中位移"
+  },
+  "transparent": true,
+  "validation": {
+    "anim.gif": {
+      "frames": 16,
+      "duration_ms": 2400,
+      "bytes": 49011,
+      "sha256": "3ea8dad09268ea2742b65618addada9c1ea08938e88c130af37a6fa928593df4",
+      "opaque_corners": []
+    },
+    "anim.webp": {
+      "frames": 16,
+      "duration_ms": 2400,
+      "bytes": 81694,
+      "sha256": "9ac78dea7e77475b1083935d46e588950c2af4041788e2c6802db7382432ee1b",
+      "opaque_corners": []
+    },
+    "anim-512.gif": {
+      "frames": 16,
+      "duration_ms": 2400,
+      "bytes": 236113,
+      "sha256": "b567b80b188e583a584faea3185e94a52e7872c15e86ed3fbc8c2f470ea00fdf",
+      "opaque_corners": []
+    },
+    "anim-512.webp": {
+      "frames": 16,
+      "duration_ms": 2400,
+      "bytes": 467980,
+      "sha256": "6df955424fddfeb5987b14ff4b6c23f1fee95077ead6e7bdabb25cbed2ee77e8",
+      "opaque_corners": []
+    }
+  }
+}

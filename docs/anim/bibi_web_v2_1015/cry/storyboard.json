@@ -1,0 +1,70 @@
+{
+  "file": "cry",
+  "version": "1015gpt2",
+  "source_sha256": "b99412a472100a5c41dbc021dd25b823723dfafa1a6da1d2e06f733881e9ed90",
+  "frames": 16,
+  "durations_ms": [
+    130,
+    100,
+    100,
+    110,
+    120,
+    130,
+    130,
+    110,
+    100,
+    100,
+    110,
+    120,
+    120,
+    110,
+    100,
+    110
+  ],
+  "total_ms": 1800,
+  "geometry": {
+    "union_box": [
+      9,
+      52,
+      314,
+      314
+    ],
+    "scale": 1.4950819672131148,
+    "origin": [
+      28,
+      92
+    ],
+    "alignment": "全格共同畫布；保留空中位移"
+  },
+  "transparent": true,
+  "validation": {
+    "anim.gif": {
+      "frames": 16,
+      "duration_ms": 1800,
+      "bytes": 62084,
+      "sha256": "2bf19f683edd2d0e9f4bac3aec5e220aa6b451d43afc83d6c90fbdbda9e3196c",
+      "opaque_corners": []
+    },
+    "anim.webp": {
+      "frames": 16,
+      "duration_ms": 1800,
+      "bytes": 77180,
+      "sha256": "cdd7bac0371264841a1c2d050287cfbbfd6da2319b50f88e8fa268187de1b033",
+      "opaque_corners": []
+    },
+    "anim-512.gif": {
+      "frames": 16,
+      "duration_ms": 1800,
+      "bytes": 320689,
+      "sha256": "62fb2b691901959084c3deae2e94061a9993e042c068b70a2b5a2887b9036a45",
+      "opaque_corners": []
+    },
+    "anim-512.webp": {
+      "frames": 16,
+      "duration_ms": 1800,
+      "bytes": 474350,
+      "sha256": "e7cde58e0fabb3f2a1fb52380beb9a47b37305d9da8424d4b516b388082d0a2a",
+      "opaque_corners": []
+    }
+  }
+}

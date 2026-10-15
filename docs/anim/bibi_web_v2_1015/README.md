@@ -1,5 +1,7 @@
 # 比比網頁互動第二版
 
+保存範圍：此美術備份分支包含原始分鏡、生成提示詞、160 動畫、逐格時間與檢查圖。下文提到的 `frames/`、512 動畫與完整高解析檔案存於交付包「比比互動自然行為_v2_20261015.zip」（166 檔、96 影格），詳見「驗收紀錄.md」。網站運行版本位於 `preview/bibi-web-1015`，正式 main 未改動。
+
 原始分鏡與生成提示詞保留於各動作目錄的 `source_sheet.png`、`generation.json`；512 透明影格保留於 `frames/`。
 
 輸出為 `anim-512.gif`、`anim-512.webp`、160 網頁用 `anim.gif`、`anim.webp`。`storyboard.json` 記錄逐格時間、原圖雜湊、共同畫布幾何與讀回驗證。`sheet_three_backgrounds.png` 用洋紅、深、淺背景檢查透明邊緣。

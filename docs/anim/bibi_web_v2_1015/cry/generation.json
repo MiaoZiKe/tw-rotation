@@ -1,0 +1,21 @@
+{
+  "action": "cry",
+  "tool": "built-in image_gen",
+  "reference": "output/bibi_library_v1/brand/approved_master.png",
+  "prompt": "Use case: illustration-story. Production animation spritesheet, exactly 4 columns x 4 rows = 16 equal square cells, read left to right then top to bottom, no borders, no numbers or text, transparent background. Reference image is ONLY the character identity master. Preserve exact thick dark chocolate outline, creamy white continuous fluffy guinea pig body, rounded ears, tiny black eyes, short round pink paws attached naturally inside fur. Absolutely NO pink/orange fur below ears or on body; only inner ears and paws pink, modest round cheek blush allowed as in master. No human arms, no upright human stance, no separated head/body balls. Character fully within each cell with wide padding. Stable size and consistent face; natural quadruped weight and grounded paws. No shadows. ACTION: Very expressive upset guinea pig while body stays natural grounded quadruped:1wary,2lowered ears,3worried brows,4eyes fill with tears,5shut eyes trembling mouth,6big sob open wailing mouth tears run down cheeks,7tears flick outward,8body slight shudder head low,9another sob with very sad brows,10tear drops fall,11sniff nose eyes wet,12shaky exhale,13small sob,14sniff looking down,15wet eyes calmer,16sad relaxed. No human raised hands or upright stance. Dramatic face but compact believable animal posture.",
+  "columns": 4,
+  "rows": 4,
+  "frame_count": 16,
+  "background": "transparent",
+  "status": "source_generated_reviewed",
+  "size": [
+    1254,
+    1254
+  ],
+  "mode": "RGBA",
+  "alpha_extrema": [
+    0,
+    255
+  ],
+  "review": "自然四足低伏、大淚珠與哀號"
+}

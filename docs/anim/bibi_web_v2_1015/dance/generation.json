@@ -1,0 +1,21 @@
+{
+  "action": "dance",
+  "tool": "built-in image_gen",
+  "reference": "output/bibi_library_v1/brand/approved_master.png",
+  "prompt": "Use case: illustration-story. Production animation spritesheet, exactly 4 columns x 4 rows = 16 equal square cells, read left to right then top to bottom, no borders, no numbers or text, transparent background. Reference image is ONLY the character identity master. Preserve exact thick dark chocolate outline, creamy white continuous fluffy guinea pig body, rounded ears, tiny black eyes, short round pink paws attached naturally inside fur. Absolutely NO pink/orange fur below ears or on body; only inner ears and paws pink, modest round cheek blush allowed as in master. No human arms, no upright human stance, no separated head/body balls. Character fully within each cell with wide padding. Stable size and consistent face; natural quadruped weight and grounded paws. No shadows. ACTION: Guinea pig hearing pleasant music: 1rest,2ears perk,3head tilted left listening,4nose lifted,5tiny head bob,6weight shifts four paws,7brief joyful crouch,8short excited hop all feet airborne,9soft landing,10ears perk other way,11head tilts right,12little forward step,13nose twitch,14happy little head flick,15settle,16rest. Natural animal enthusiasm, no human dancing, no raised human arms, no music notes props.",
+  "columns": 4,
+  "rows": 4,
+  "frame_count": 16,
+  "background": "transparent",
+  "status": "source_generated_reviewed",
+  "size": [
+    1254,
+    1254
+  ],
+  "mode": "RGBA",
+  "alpha_extrema": [
+    0,
+    255
+  ],
+  "review": "聆聽抬頭、小跳；無人類舞姿"
+}

@@ -1,0 +1,21 @@
+{
+  "action": "selfie",
+  "tool": "built-in image_gen",
+  "reference": "output/bibi_library_v1/brand/approved_master.png",
+  "prompt": "Use case: illustration-story. Production animation spritesheet, exactly 4 columns x 4 rows = 16 equal square cells, read left to right then top to bottom, no borders, no numbers or text, transparent background. Reference image is ONLY the character identity master. Preserve exact thick dark chocolate outline, creamy white continuous fluffy guinea pig body, rounded ears, tiny black eyes, short round pink paws attached naturally inside fur. Absolutely NO pink/orange fur below ears or on body; only inner ears and paws pink, modest round cheek blush allowed as in master. No human arms, no upright human stance, no separated head/body balls. Character fully within each cell with wide padding. Stable size and consistent face; natural quadruped weight and grounded paws. No shadows. ACTION: A natural guinea pig responding to camera: frame1 alert resting,2 notices camera,3 tilts head left,4 raises nose,5 leans forward sniffing,6 nose twitches,7 looks curious,8 head tilt right,9 brief surprised widened eyes at photo,10 blink,11 blink closed,12 soft cheerful eyes,13 tiny nose lick,14 pulls back,15 relaxed happy,16 same as first. NO camera prop within image, no peace sign, no human gesture.",
+  "columns": 4,
+  "rows": 4,
+  "frame_count": 16,
+  "background": "transparent",
+  "status": "source_generated_reviewed",
+  "size": [
+    1254,
+    1254
+  ],
+  "mode": "RGBA",
+  "alpha_extrema": [
+    0,
+    255
+  ],
+  "review": "歪頭、嗅聞、眨眼；無比耶"
+}

@@ -1,0 +1,18 @@
+{
+  "action": "popcorn",
+  "variant": "v2",
+  "tool": "built-in image_gen",
+  "columns": 4,
+  "rows": 4,
+  "frame_count": 16,
+  "status": "source_generated_reviewed",
+  "size": [
+    1437,
+    1095
+  ],
+  "alpha_extrema": [
+    0,
+    255
+  ],
+  "review": "已改水平側身、前腳位於胸下、短腳朝下、不側躺翻滾；第10格仍有前腳略內縮的卡通化，實際運動需動態審片"
+}

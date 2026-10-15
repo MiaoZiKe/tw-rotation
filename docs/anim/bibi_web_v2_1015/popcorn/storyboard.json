@@ -1,0 +1,72 @@
+{
+  "file": "popcorn",
+  "version": "1015gpt2",
+  "source_sha256": "e94024f42e3f1d1b7dc429b1b77967106ef7b481ad17fa617ab3b80e58512947",
+  "frames": 16,
+  "durations_ms": [
+    150,
+    110,
+    70,
+    70,
+    90,
+    100,
+    70,
+    110,
+    70,
+    90,
+    110,
+    90,
+    140,
+    180,
+    240,
+    310
+  ],
+  "total_ms": 2000,
+  "geometry": {
+    "union_box": [
+      2,
+      15,
+      356,
+      274
+    ],
+    "scale": 1.2881355932203389,
+    "origin": [
+      28,
+      150
+    ],
+    "alignment": "全格共同畫布；保留空中位移"
+  },
+  "transparent": true,
+  "runtime_quality": 86,
+  "runtime_size_limit_bytes": 81920,
+  "validation": {
+    "anim.gif": {
+      "frames": 16,
+      "duration_ms": 2000,
+      "bytes": 41750,
+      "sha256": "b6de9eb3dbba134061947b6da1ecaaba74d483470d919e10c30f0912efffe6cb",
+      "opaque_corners": []
+    },
+    "anim.webp": {
+      "frames": 16,
+      "duration_ms": 2000,
+      "bytes": 78918,
+      "sha256": "d3c08bf206b3affb9237edb09a975e68dd6565d7bd1423e26bafc40960404bbf",
+      "opaque_corners": []
+    },
+    "anim-512.gif": {
+      "frames": 16,
+      "duration_ms": 2000,
+      "bytes": 196442,
+      "sha256": "32d7d848bba817fd094ab25b108592068aff3f9d72fa306716f9e30b5d2fcdc4",
+      "opaque_corners": []
+    },
+    "anim-512.webp": {
+      "frames": 16,
+      "duration_ms": 2000,
+      "bytes": 387844,
+      "sha256": "9c9c2594f77123aff1764c1aa75ad983088cc3e8e2e1a0ec99b3c2c148588823",
+      "opaque_corners": []
+    }
+  }
+}

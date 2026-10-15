@@ -1,0 +1,21 @@
+{
+  "action": "spin_q",
+  "tool": "built-in image_gen",
+  "reference": "output/bibi_library_v1/brand/approved_master.png",
+  "prompt": "Use case: illustration-story. Production animation spritesheet, exactly 4 columns x 4 rows = 16 equal square cells, read left to right then top to bottom, no borders, no numbers or text, transparent background. Reference image is ONLY the character identity master. Preserve exact thick dark chocolate outline, creamy white continuous fluffy guinea pig body, rounded ears, tiny black eyes, short round pink paws attached naturally inside fur. Absolutely NO pink/orange fur below ears or on body; only inner ears and paws pink, modest round cheek blush allowed as in master. No human arms, no upright human stance, no separated head/body balls. Character fully within each cell with wide padding. Stable size and consistent face; natural quadruped weight and grounded paws. No shadows. ACTION: Guinea pig after running a full lap, now dizzy recovery: 1four paws steady,2head tilts left,3head sways right,4eyes become subtle spiral dizzy pupils,5lowers body closer to ground,6brief small stumble front paw crosses only slightly,7catches weight securely on all paws,8head tips left ears uneven,9eyes spiral mouth small wobbly line,10low crouch breathing,11blinks closed,12eyes reopen unfocused,13head shakes gently,14normal black eyes return,15steadies,16rest. No actual running lap drawn here, this is dizzy ending; never stand on two legs, no human arms, no circling stars props.",
+  "columns": 4,
+  "rows": 4,
+  "frame_count": 16,
+  "background": "transparent",
+  "status": "source_generated_reviewed",
+  "size": [
+    1254,
+    1254
+  ],
+  "mode": "RGBA",
+  "alpha_extrema": [
+    0,
+    255
+  ],
+  "review": "低伏暈眩、漩渦眼、恢復；跑圈路線由網站編排"
+}

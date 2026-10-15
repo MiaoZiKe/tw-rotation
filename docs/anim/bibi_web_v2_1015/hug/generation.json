@@ -1,0 +1,21 @@
+{
+  "action": "hug",
+  "tool": "built-in image_gen",
+  "reference": "output/bibi_library_v1/brand/approved_master.png",
+  "prompt": "Use case: illustration-story. Production animation spritesheet, exactly 4 columns x 4 rows = 16 equal square cells, read left to right then top to bottom, no borders, no numbers or text, transparent background. Reference image is ONLY the character identity master. Preserve exact thick dark chocolate outline, creamy white continuous fluffy guinea pig body, rounded ears, tiny black eyes, short round pink paws attached naturally inside fur. Absolutely NO pink/orange fur below ears or on body; only inner ears and paws pink, modest round cheek blush allowed as in master. No human arms, no upright human stance, no separated head/body balls. Character fully within each cell with wide padding. Stable size and consistent face; natural quadruped weight and grounded paws. No shadows. ACTION: Guinea pig affection sequence directed to an off-screen visitor at left:1rest,2notices,3nose stretches left sniff,4small step left,5lowers head,6leans cheek left,7gently nuzzles invisible vertical contact,8eyes close in contentment cheek pressed left,9small rub upward,10small rub down,11cheek nuzzle,12soft eyes open,13pulls back slowly,14nose twitch,15happy relaxed,16rest. No hands, no hugging arms, no heart objects, no second character.",
+  "columns": 4,
+  "rows": 4,
+  "frame_count": 16,
+  "background": "transparent",
+  "status": "source_generated_reviewed",
+  "size": [
+    1254,
+    1254
+  ],
+  "mode": "RGBA",
+  "alpha_extrema": [
+    0,
+    255
+  ],
+  "review": "靠近嗅聞輕蹭；無張臂"
+}
