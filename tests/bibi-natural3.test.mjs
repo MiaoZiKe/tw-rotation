@@ -71,9 +71,23 @@ test('旋轉後葉尖精準貼口緣，非圖片中心貼臉',()=>{
   const h=harness(),el={_w:20,_h:30,style:{}},tip=[.72,.03],angle=70;h.engine.atTip(el,200,300,tip,angle);const [left,top]=el.style.transform.match(/translate\(([-\d.]+)px,([-\d.]+)px\)/).slice(1).map(Number),rad=angle*Math.PI/180,dx=(tip[0]-.5)*20,dy=(tip[1]-.5)*30;
   assert.ok(Math.abs(left+10+dx*Math.cos(rad)-dy*Math.sin(rad)-200)<.06);assert.ok(Math.abs(top+15+dx*Math.sin(rad)+dy*Math.cos(rad)-300)<.06);assert.ok(Math.abs(left+10-200)>5);
 });
-test('逐格肩腹臀角度驅動毛線，解纏有效長度縮至零且不淡出',async()=>{
-  const h=harness(),g=h.engine.geo(),m=h.api.MAP.REACTIONS.yarn_tumble;m.durations=[1300,1300];m.body=[{cx:80,cy:103,angle:0,shoulder:[75,90],belly:[80,103],hip:[85,115]},{cx:83,cy:110,angle:60,shoulder:[70,103],belly:[83,110],hip:[95,116]}];
-  const a=h.engine.reactionBody(g,'yarn_tumble',0,-1),b=h.engine.reactionBody(g,'yarn_tumble',1300,-1);assert.equal(b.angle,-Math.PI/3);assert.notEqual(a.anchors[0].x,b.anchors[0].x);assert.notEqual(a.anchors[0].y,b.anchors[0].y);
-  h.engine.begin('yarn');const p=h.engine.yarnScript(g).catch(()=>{});let elapsed=0;while(h.api.state().phase!=='yarn-release'&&elapsed<6000){await h.advance(8);elapsed+=8;}
-  const f=h.elements.find(e=>e.className==='bp bp-thread-front'),r=h.elements.find(e=>e.className==='bp bp-thread-back');assert.ok(f.path.d.length>100);assert.ok(r.path.d.length>100);const start=f.path.d.length+r.path.d.length;await h.advance(560);assert.ok(f.path.d.length+r.path.d.length<start/2);assert.equal(f.style.opacity,'1');assert.equal(r.style.opacity,'1');h.api.stop('esc');await p;
+test('原畫負責身上毛線，網頁只接實測尾線並收回球',async()=>{
+  const h=harness(),g=h.engine.geo(),m=h.api.MAP.REACTIONS.yarn_tumble;
+  assert.equal(m.embeddedThread,true);assert.equal(m.tail.length,m.durations.length);
+  const a=h.engine.reactionBody(g,'yarn_tumble',0,-1),b=h.engine.reactionBody(g,'yarn_tumble',1120,-1);
+  assert.equal(b.angle,-Math.PI/3);assert.notEqual(a.x,b.x);assert.notEqual(a.y,b.y);
+  h.engine.begin('yarn');const p=h.engine.yarnScript(g).catch(()=>{});let elapsed=0;
+  while(h.api.state().phase!=='yarn-release'&&elapsed<6000){await h.advance(8);elapsed+=8;}
+  const f=h.elements.find(e=>e.className==='bp bp-thread-front'),r=h.elements.find(e=>e.className==='bp bp-thread-back');
+  assert.ok(f.path.d.startsWith('M '));assert.equal(r.path.d,'');assert.equal(f.style.opacity,'1');assert.equal(r.style.opacity,'0');
+  await h.advance(m.events.restored-m.events.first_loosen+16);assert.equal(f.path.d,'');assert.equal(f.style.opacity,'1');
+  h.api.stop('esc');await p;
+});
+
+for(const name of ['leaf_bite','bubble_react','plane_react','yarn_tumble']) test(`${name}：正式逐格量點、總時長與runtime檔一致`,()=>{
+  const h=harness(),m=h.api.MAP.REACTIONS[name],base=new URL(`../docs/anim/bibi_natural3/${name}/export_natural3/`,import.meta.url),d=JSON.parse(fs.readFileSync(new URL('engine_tracks.json',base),'utf8'));
+  assert.equal(m.duration,d.total_ms);assert.equal(m.contact,d.contact_ms);assert.equal(m.durations.reduce((sum,v)=>sum+v,0),m.duration);
+  assert.deepEqual(JSON.parse(JSON.stringify(m.mouth)),d.tracks.map(t=>t.mouth_160));assert.deepEqual(JSON.parse(JSON.stringify(m.nose)),d.tracks.map(t=>t.nose_160));
+  assert.equal(m.body.length,d.tracks.length);assert.ok(d.tracks.some(t=>t.start_ms===m.contact));
+  assert.deepEqual(fs.readFileSync(new URL(`../site/brand/bibi/${name}.webp`,import.meta.url)),fs.readFileSync(new URL('anim.webp',base)));
 });

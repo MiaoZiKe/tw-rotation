@@ -47,11 +47,1234 @@
   // 160px最終素材逐格錨點，durations/mouth/nose/body同索引。空陣列代表待量測，不能宣稱已校準。
   // body每格格式：{cx,cy,angle,rx,ry,shoulder:[x,y],belly:[x,y],hip:[x,y]}。
   const REACTION_META = {
-    leaf_bite: {duration:1200,contact:300,durations:[],mouth:[],nose:[],body:[],fallback:{mouth:[112,125],nose:[112,125]},tip:[0.72,0.03]},
-    bubble_react: {duration:1000,contact:200,durations:[],mouth:[],nose:[],body:[],fallback:{mouth:[112,125],nose:[112,125]}},
-    plane_react: {duration:1200,contact:200,durations:[],mouth:[],nose:[],body:[],fallback:{mouth:[112,125],nose:[112,125]},tip:[0.99,0.01]},
-    yarn_tumble: {duration:2600,contact:520,durations:[],mouth:[],nose:[],body:[],fallback:{mouth:[112,125],nose:[112,125]}},
-  };
+  "leaf_bite": {
+    "duration": 1200,
+    "contact": 300,
+    "durations": [
+      60,
+      50,
+      50,
+      60,
+      80,
+      70,
+      20,
+      60,
+      100,
+      60,
+      100,
+      60,
+      80,
+      60,
+      70,
+      90,
+      20,
+      110
+    ],
+    "mouth": [
+      [
+        114.22,
+        91.56
+      ],
+      [
+        116.09,
+        92.97
+      ],
+      [
+        112.34,
+        108.91
+      ],
+      [
+        114.22,
+        117.81
+      ],
+      [
+        119.38,
+        99.06
+      ],
+      [
+        117.03,
+        98.59
+      ],
+      [
+        115.16,
+        101.41
+      ],
+      [
+        113.28,
+        100.47
+      ],
+      [
+        119.38,
+        87.81
+      ],
+      [
+        117.5,
+        87.81
+      ],
+      [
+        119.38,
+        87.81
+      ],
+      [
+        117.5,
+        87.81
+      ],
+      [
+        114.69,
+        91.09
+      ],
+      [
+        114.69,
+        92.5
+      ],
+      [
+        117.03,
+        73.28
+      ],
+      [
+        119.38,
+        71.88
+      ],
+      [
+        110.94,
+        74.69
+      ],
+      [
+        109.06,
+        73.75
+      ]
+    ],
+    "nose": [
+      [
+        114.69,
+        88.28
+      ],
+      [
+        116.56,
+        90.62
+      ],
+      [
+        112.81,
+        106.09
+      ],
+      [
+        114.69,
+        115.94
+      ],
+      [
+        119.84,
+        93.91
+      ],
+      [
+        117.5,
+        95.31
+      ],
+      [
+        118.44,
+        96.25
+      ],
+      [
+        113.75,
+        97.19
+      ],
+      [
+        119.84,
+        82.66
+      ],
+      [
+        117.97,
+        84.06
+      ],
+      [
+        119.84,
+        82.66
+      ],
+      [
+        117.97,
+        84.06
+      ],
+      [
+        115.16,
+        85.94
+      ],
+      [
+        115.16,
+        88.75
+      ],
+      [
+        117.5,
+        70.0
+      ],
+      [
+        119.84,
+        68.12
+      ],
+      [
+        111.41,
+        71.41
+      ],
+      [
+        109.53,
+        70.47
+      ]
+    ],
+    "body": [
+      {
+        "cx": 79.53,
+        "cy": 102.81,
+        "rx": 58.59,
+        "ry": 38.44,
+        "angle": 0
+      },
+      {
+        "cx": 82.34,
+        "cy": 102.81,
+        "rx": 58.12,
+        "ry": 38.44,
+        "angle": 0
+      },
+      {
+        "cx": 81.41,
+        "cy": 110.78,
+        "rx": 57.66,
+        "ry": 34.69,
+        "angle": 0
+      },
+      {
+        "cx": 83.28,
+        "cy": 114.53,
+        "rx": 57.66,
+        "ry": 30.94,
+        "angle": 0
+      },
+      {
+        "cx": 80.94,
+        "cy": 108.44,
+        "rx": 59.06,
+        "ry": 36.09,
+        "angle": 0
+      },
+      {
+        "cx": 80.94,
+        "cy": 108.44,
+        "rx": 59.06,
+        "ry": 36.56,
+        "angle": 0
+      },
+      {
+        "cx": 82.34,
+        "cy": 109.38,
+        "rx": 58.12,
+        "ry": 35.62,
+        "angle": 0
+      },
+      {
+        "cx": 82.81,
+        "cy": 110.31,
+        "rx": 58.12,
+        "ry": 35.16,
+        "angle": 0
+      },
+      {
+        "cx": 80.94,
+        "cy": 100.47,
+        "rx": 59.06,
+        "ry": 34.22,
+        "angle": 0
+      },
+      {
+        "cx": 81.41,
+        "cy": 99.53,
+        "rx": 59.53,
+        "ry": 34.22,
+        "angle": 0
+      },
+      {
+        "cx": 80.94,
+        "cy": 100.47,
+        "rx": 59.06,
+        "ry": 34.22,
+        "angle": 0
+      },
+      {
+        "cx": 81.41,
+        "cy": 99.53,
+        "rx": 59.53,
+        "ry": 34.22,
+        "angle": 0
+      },
+      {
+        "cx": 80.47,
+        "cy": 102.34,
+        "rx": 59.06,
+        "ry": 34.22,
+        "angle": 0
+      },
+      {
+        "cx": 81.41,
+        "cy": 103.28,
+        "rx": 59.06,
+        "ry": 33.75,
+        "angle": 0
+      },
+      {
+        "cx": 80.47,
+        "cy": 88.28,
+        "rx": 58.59,
+        "ry": 37.03,
+        "angle": 0
+      },
+      {
+        "cx": 81.88,
+        "cy": 88.28,
+        "rx": 58.12,
+        "ry": 37.5,
+        "angle": 0
+      },
+      {
+        "cx": 79.53,
+        "cy": 91.56,
+        "rx": 57.66,
+        "ry": 37.03,
+        "angle": 0
+      },
+      {
+        "cx": 79.06,
+        "cy": 90.16,
+        "rx": 57.66,
+        "ry": 37.5,
+        "angle": 0
+      }
+    ],
+    "events": {},
+    "fallback": {
+      "mouth": [
+        112,
+        125
+      ],
+      "nose": [
+        112,
+        125
+      ]
+    },
+    "tip": [
+      0.72,
+      0.03
+    ],
+    "release": 850
+  },
+  "bubble_react": {
+    "duration": 1000,
+    "contact": 200,
+    "durations": [
+      40,
+      40,
+      40,
+      40,
+      40,
+      50,
+      100,
+      100,
+      80,
+      80,
+      70,
+      70,
+      60,
+      60,
+      60,
+      70
+    ],
+    "mouth": [
+      [
+        105.03,
+        78.07
+      ],
+      [
+        111.02,
+        75.07
+      ],
+      [
+        101.61,
+        87.5
+      ],
+      [
+        115.3,
+        87.5
+      ],
+      [
+        133.7,
+        71.22
+      ],
+      [
+        132.42,
+        68.65
+      ],
+      [
+        50.69,
+        93.92
+      ],
+      [
+        89.63,
+        90.92
+      ],
+      [
+        114.88,
+        78.07
+      ],
+      [
+        115.3,
+        74.22
+      ],
+      [
+        104.61,
+        79.79
+      ],
+      [
+        105.46,
+        69.08
+      ],
+      [
+        117.44,
+        81.93
+      ],
+      [
+        113.59,
+        54.51
+      ],
+      [
+        105.46,
+        72.08
+      ],
+      [
+        94.34,
+        75.07
+      ]
+    ],
+    "nose": [
+      [
+        105.46,
+        73.79
+      ],
+      [
+        111.02,
+        71.22
+      ],
+      [
+        101.61,
+        83.64
+      ],
+      [
+        115.3,
+        83.64
+      ],
+      [
+        133.7,
+        66.93
+      ],
+      [
+        132.42,
+        63.94
+      ],
+      [
+        50.69,
+        89.21
+      ],
+      [
+        89.63,
+        87.5
+      ],
+      [
+        115.3,
+        73.79
+      ],
+      [
+        115.73,
+        70.36
+      ],
+      [
+        105.03,
+        76.36
+      ],
+      [
+        105.89,
+        64.79
+      ],
+      [
+        117.87,
+        78.93
+      ],
+      [
+        114.02,
+        49.37
+      ],
+      [
+        105.89,
+        68.22
+      ],
+      [
+        94.34,
+        70.79
+      ]
+    ],
+    "body": [
+      {
+        "cx": 75.93,
+        "cy": 99.92,
+        "rx": 53.49,
+        "ry": 35.13,
+        "angle": 0
+      },
+      {
+        "cx": 79.79,
+        "cy": 99.06,
+        "rx": 53.06,
+        "ry": 34.7,
+        "angle": -5
+      },
+      {
+        "cx": 75.93,
+        "cy": 103.35,
+        "rx": 51.78,
+        "ry": 32.56,
+        "angle": 0
+      },
+      {
+        "cx": 82.35,
+        "cy": 104.63,
+        "rx": 54.77,
+        "ry": 29.99,
+        "angle": -10
+      },
+      {
+        "cx": 84.49,
+        "cy": 100.78,
+        "rx": 56.91,
+        "ry": 32.56,
+        "angle": -15
+      },
+      {
+        "cx": 84.49,
+        "cy": 99.92,
+        "rx": 56.49,
+        "ry": 32.98,
+        "angle": -15
+      },
+      {
+        "cx": 74.65,
+        "cy": 104.63,
+        "rx": 49.21,
+        "ry": 31.27,
+        "angle": 0
+      },
+      {
+        "cx": 75.51,
+        "cy": 105.49,
+        "rx": 48.36,
+        "ry": 30.84,
+        "angle": 0
+      },
+      {
+        "cx": 76.79,
+        "cy": 96.49,
+        "rx": 53.06,
+        "ry": 31.27,
+        "angle": 0
+      },
+      {
+        "cx": 81.5,
+        "cy": 96.49,
+        "rx": 52.21,
+        "ry": 32.56,
+        "angle": 0
+      },
+      {
+        "cx": 75.51,
+        "cy": 100.35,
+        "rx": 50.92,
+        "ry": 32.56,
+        "angle": 0
+      },
+      {
+        "cx": 78.5,
+        "cy": 95.21,
+        "rx": 53.06,
+        "ry": 32.56,
+        "angle": -5
+      },
+      {
+        "cx": 78.93,
+        "cy": 89.21,
+        "rx": 54.35,
+        "ry": 29.56,
+        "angle": 0
+      },
+      {
+        "cx": 82.78,
+        "cy": 81.07,
+        "rx": 53.92,
+        "ry": 32.56,
+        "angle": -15
+      },
+      {
+        "cx": 78.07,
+        "cy": 86.21,
+        "rx": 50.92,
+        "ry": 32.56,
+        "angle": 0
+      },
+      {
+        "cx": 76.36,
+        "cy": 86.64,
+        "rx": 51.78,
+        "ry": 32.13,
+        "angle": 0
+      }
+    ],
+    "events": {},
+    "fallback": {
+      "mouth": [
+        112,
+        125
+      ],
+      "nose": [
+        112,
+        125
+      ]
+    },
+    "curious": 450
+  },
+  "plane_react": {
+    "duration": 1200,
+    "contact": 200,
+    "durations": [
+      40,
+      40,
+      40,
+      40,
+      40,
+      70,
+      180,
+      120,
+      70,
+      80,
+      90,
+      90,
+      80,
+      80,
+      70,
+      70
+    ],
+    "mouth": [
+      [
+        89.02,
+        85.48
+      ],
+      [
+        90.37,
+        81.87
+      ],
+      [
+        102.55,
+        85.93
+      ],
+      [
+        111.12,
+        93.14
+      ],
+      [
+        128.7,
+        71.96
+      ],
+      [
+        112.02,
+        80.97
+      ],
+      [
+        97.59,
+        77.82
+      ],
+      [
+        89.02,
+        80.97
+      ],
+      [
+        96.69,
+        75.11
+      ],
+      [
+        106.16,
+        106.2
+      ],
+      [
+        102.1,
+        117.47
+      ],
+      [
+        111.57,
+        108.46
+      ],
+      [
+        107.51,
+        96.29
+      ],
+      [
+        109.31,
+        103.95
+      ],
+      [
+        93.08,
+        60.24
+      ],
+      [
+        90.82,
+        60.24
+      ]
+    ],
+    "nose": [
+      [
+        89.02,
+        82.77
+      ],
+      [
+        90.37,
+        79.17
+      ],
+      [
+        102.55,
+        83.22
+      ],
+      [
+        111.12,
+        90.43
+      ],
+      [
+        128.7,
+        69.25
+      ],
+      [
+        112.02,
+        77.82
+      ],
+      [
+        97.59,
+        75.11
+      ],
+      [
+        89.02,
+        78.27
+      ],
+      [
+        96.69,
+        72.41
+      ],
+      [
+        106.16,
+        103.5
+      ],
+      [
+        102.1,
+        114.77
+      ],
+      [
+        111.57,
+        105.75
+      ],
+      [
+        107.51,
+        93.59
+      ],
+      [
+        109.31,
+        101.25
+      ],
+      [
+        93.08,
+        57.54
+      ],
+      [
+        90.82,
+        57.54
+      ]
+    ],
+    "body": [
+      {
+        "cx": 69.63,
+        "cy": 107.56,
+        "rx": 50.06,
+        "ry": 34.7,
+        "angle": 0
+      },
+      {
+        "cx": 70.98,
+        "cy": 107.11,
+        "rx": 50.51,
+        "ry": 34.7,
+        "angle": 0
+      },
+      {
+        "cx": 77.75,
+        "cy": 108.01,
+        "rx": 51.86,
+        "ry": 34.25,
+        "angle": 0
+      },
+      {
+        "cx": 83.61,
+        "cy": 109.81,
+        "rx": 52.76,
+        "ry": 33.35,
+        "angle": -5
+      },
+      {
+        "cx": 89.02,
+        "cy": 108.91,
+        "rx": 56.82,
+        "ry": 33.8,
+        "angle": -15
+      },
+      {
+        "cx": 79.55,
+        "cy": 111.16,
+        "rx": 54.56,
+        "ry": 32.89,
+        "angle": -8
+      },
+      {
+        "cx": 75.49,
+        "cy": 109.81,
+        "rx": 50.96,
+        "ry": 33.35,
+        "angle": 0
+      },
+      {
+        "cx": 69.18,
+        "cy": 109.81,
+        "rx": 50.96,
+        "ry": 33.35,
+        "angle": 0
+      },
+      {
+        "cx": 70.98,
+        "cy": 99.9,
+        "rx": 51.86,
+        "ry": 32.44,
+        "angle": 0
+      },
+      {
+        "cx": 74.14,
+        "cy": 99.9,
+        "rx": 53.66,
+        "ry": 34.25,
+        "angle": 10
+      },
+      {
+        "cx": 74.59,
+        "cy": 105.75,
+        "rx": 53.66,
+        "ry": 32.89,
+        "angle": 12
+      },
+      {
+        "cx": 80.9,
+        "cy": 104.4,
+        "rx": 55.47,
+        "ry": 32.44,
+        "angle": 8
+      },
+      {
+        "cx": 72.33,
+        "cy": 88.63,
+        "rx": 54.11,
+        "ry": 33.8,
+        "angle": 8
+      },
+      {
+        "cx": 77.75,
+        "cy": 92.69,
+        "rx": 53.66,
+        "ry": 32.44,
+        "angle": 8
+      },
+      {
+        "cx": 71.43,
+        "cy": 80.52,
+        "rx": 51.86,
+        "ry": 34.7,
+        "angle": 0
+      },
+      {
+        "cx": 70.98,
+        "cy": 80.52,
+        "rx": 50.96,
+        "ry": 34.7,
+        "angle": 0
+      }
+    ],
+    "events": {},
+    "fallback": {
+      "mouth": [
+        112,
+        125
+      ],
+      "nose": [
+        112,
+        125
+      ]
+    },
+    "tip": [
+      0.99,
+      0.01
+    ],
+    "sniff": 570
+  },
+  "yarn_tumble": {
+    "duration": 2600,
+    "contact": 600,
+    "durations": [
+      110,
+      110,
+      120,
+      130,
+      130,
+      160,
+      180,
+      180,
+      230,
+      230,
+      190,
+      190,
+      180,
+      180,
+      160,
+      120
+    ],
+    "mouth": [
+      [
+        102.05,
+        100.81
+      ],
+      [
+        101.63,
+        116.09
+      ],
+      [
+        99.08,
+        103.78
+      ],
+      [
+        99.08,
+        103.78
+      ],
+      [
+        100.36,
+        109.3
+      ],
+      [
+        100.78,
+        111.85
+      ],
+      [
+        95.69,
+        115.24
+      ],
+      [
+        93.57,
+        115.24
+      ],
+      [
+        99.08,
+        102.08
+      ],
+      [
+        102.48,
+        105.48
+      ],
+      [
+        96.96,
+        107.18
+      ],
+      [
+        84.67,
+        111.0
+      ],
+      [
+        110.54,
+        97.83
+      ],
+      [
+        105.87,
+        105.48
+      ],
+      [
+        104.17,
+        85.52
+      ],
+      [
+        98.66,
+        81.7
+      ]
+    ],
+    "nose": [
+      [
+        102.05,
+        96.14
+      ],
+      [
+        101.63,
+        111.85
+      ],
+      [
+        99.08,
+        99.53
+      ],
+      [
+        99.08,
+        99.53
+      ],
+      [
+        100.36,
+        104.63
+      ],
+      [
+        100.78,
+        106.33
+      ],
+      [
+        95.69,
+        109.72
+      ],
+      [
+        93.57,
+        111.0
+      ],
+      [
+        99.08,
+        96.98
+      ],
+      [
+        102.48,
+        99.96
+      ],
+      [
+        96.96,
+        102.5
+      ],
+      [
+        84.67,
+        105.9
+      ],
+      [
+        110.54,
+        93.59
+      ],
+      [
+        105.87,
+        102.08
+      ],
+      [
+        104.17,
+        80.85
+      ],
+      [
+        98.66,
+        77.03
+      ]
+    ],
+    "body": [
+      {
+        "cx": 76.61,
+        "cy": 99.53,
+        "rx": 50.47,
+        "ry": 33.54,
+        "angle": 0
+      },
+      {
+        "cx": 78.73,
+        "cy": 105.48,
+        "rx": 49.62,
+        "ry": 29.72,
+        "angle": 8
+      },
+      {
+        "cx": 77.46,
+        "cy": 101.66,
+        "rx": 49.62,
+        "ry": 33.12,
+        "angle": 8
+      },
+      {
+        "cx": 77.46,
+        "cy": 101.66,
+        "rx": 49.62,
+        "ry": 33.12,
+        "angle": 8
+      },
+      {
+        "cx": 78.3,
+        "cy": 104.2,
+        "rx": 50.89,
+        "ry": 33.54,
+        "angle": 15
+      },
+      {
+        "cx": 80.0,
+        "cy": 105.9,
+        "rx": 51.32,
+        "ry": 33.12,
+        "angle": 30
+      },
+      {
+        "cx": 76.61,
+        "cy": 108.02,
+        "rx": 51.74,
+        "ry": 32.27,
+        "angle": 40
+      },
+      {
+        "cx": 77.46,
+        "cy": 108.87,
+        "rx": 51.74,
+        "ry": 31.0,
+        "angle": 50
+      },
+      {
+        "cx": 77.03,
+        "cy": 98.68,
+        "rx": 53.44,
+        "ry": 31.42,
+        "angle": 60
+      },
+      {
+        "cx": 80.42,
+        "cy": 100.38,
+        "rx": 52.17,
+        "ry": 31.0,
+        "angle": 55
+      },
+      {
+        "cx": 77.03,
+        "cy": 103.35,
+        "rx": 50.89,
+        "ry": 31.0,
+        "angle": 40
+      },
+      {
+        "cx": 75.76,
+        "cy": 104.63,
+        "rx": 50.89,
+        "ry": 29.3,
+        "angle": 20
+      },
+      {
+        "cx": 79.15,
+        "cy": 91.46,
+        "rx": 51.74,
+        "ry": 28.45,
+        "angle": 12
+      },
+      {
+        "cx": 77.88,
+        "cy": 96.98,
+        "rx": 51.74,
+        "ry": 28.45,
+        "angle": 10
+      },
+      {
+        "cx": 76.61,
+        "cy": 90.19,
+        "rx": 50.04,
+        "ry": 31.85,
+        "angle": 0
+      },
+      {
+        "cx": 77.03,
+        "cy": 88.49,
+        "rx": 49.62,
+        "ry": 31.85,
+        "angle": 0
+      }
+    ],
+    "events": {
+      "line_appears": 220,
+      "paw_blocked": 340,
+      "tilt_starts": 600,
+      "side_contact": 940,
+      "side_lie": 1120,
+      "struggle": 1350,
+      "first_loosen": 1580,
+      "second_loosen": 1770,
+      "paw_free": 1960,
+      "body_free": 2140,
+      "stand_up": 2320,
+      "restored": 2480
+    },
+    "fallback": {
+      "mouth": [
+        112,
+        125
+      ],
+      "nose": [
+        112,
+        125
+      ]
+    },
+    "embeddedThread": true,
+    "tail": [
+      null,
+      null,
+      [
+        9.67,
+        128.5
+      ],
+      [
+        9.67,
+        128.5
+      ],
+      [
+        31.62,
+        88.62
+      ],
+      [
+        28.67,
+        90.17
+      ],
+      [
+        17.63,
+        104.32
+      ],
+      [
+        14.6,
+        103.8
+      ],
+      [
+        50.64,
+        93.14
+      ],
+      [
+        42.0,
+        91.0
+      ],
+      [
+        14.8,
+        118.4
+      ],
+      [
+        12.83,
+        119.0
+      ],
+      [
+        58.71,
+        99.86
+      ],
+      [
+        111.67,
+        111.67
+      ],
+      null,
+      null
+    ]
+  }
+};
   /* 分頁（hash 第一段）→ 情境鍵＋泡泡說明句（10-12 起只換說明句，不換圖） */
   const PAGES = [
     [['overview', ''], 'overview', '歡迎回來！比比陪你看今天的盤勢'],
@@ -134,7 +1357,7 @@
   const fabOff = () => html.classList.contains('fab-off');
   const $ = (id) => document.getElementById(id);
   /* 素材版本戳：換了 brand/bibi/ 裡的圖（同檔名）就改這個字串，使用者不用清快取就拿到新圖（10-11 週末款換圖後 Andy 仍看到舊圖） */
-  const AV = '1015natural3';
+  const AV = '1016natural3';
   const src = (f) => 'brand/bibi/' + f + '.webp?v=' + AV;
   const T = { now: null, pct: undefined, hol: null };   // 驗收注入（Bibi.test）：假時間、假漲跌、假休市表
 
@@ -1136,7 +2359,7 @@ html.fab-off .bibiring,html.fab-off .bibitip,html.fab-off .bibifx,html.fab-off #
     await tween(duration,(k,t) => {
       pose(x,0);
       if(!touched && t>=meta.contact) { touched=true; bubble.remove(); popBurst(target.x,target.y,R*2); run.phase='bubble-startle'; cue('啵！嚇一跳…咦，泡泡呢？'); }
-      if(t>=600) run.phase='bubble-curious';
+      if(t>=meta.curious) run.phase='bubble-curious';
     });
     await goHome(g,x);
   }
@@ -1204,13 +2427,28 @@ html.fab-off .bibiring,html.fab-off .bibitip,html.fab-off .bibifx,html.fab-off #
     await runTo(g,0,x);
     const file=reactionFile('yarn_tumble',PART.tangle),duration=readyParts.has('yarn_tumble')?reactionDuration('yarn_tumble'):2600;
     show(file,true,dir); cue('哎呀，毛線纏住了！');
+    const meta=REACTION_META.yarn_tumble,embedded=readyParts.has('yarn_tumble') && meta.embeddedThread;
+    if(embedded) frontLine.classList.add('bp-yarn-tail');
     await tween(duration,(k,elapsed) => {
       const fallback=!readyParts.has('yarn_tumble'),tilt=k<.25?0:k<.45?(k-.25)/.2:k<.72?1:(1-k)/.28;
       const fallbackAngle=dir*22*tilt+(k>.45 && k<.75?3*Math.sin(k*55):0);
       pose(x,0,fallback?{r:fallbackAngle}:{});
-      run.phase=k<.2?'yarn-wrap':k<.35?'yarn-blocked':k<.5?'yarn-fall':k<.72?'yarn-struggle':'yarn-release';
+      const events=meta.events;
+      run.phase=elapsed<events.paw_blocked?'yarn-wrap':elapsed<events.tilt_starts?'yarn-blocked':elapsed<events.side_lie?'yarn-fall':elapsed<events.first_loosen?'yarn-struggle':'yarn-release';
       const body=reactionBody(g,'yarn_tumble',elapsed,dir),angle=fallback?fallbackAngle*Math.PI/180:body.angle;
       const ballX=g.cx+x+dir*g.s*.58+dir*k*15; let front='',back='';
+      if(embedded) {
+        const tail=meta.tail[reactionFrame('yarn_tumble',elapsed)];
+        const release=clamp((elapsed-events.body_free)/(events.restored-events.body_free),0,1);
+        if(tail && elapsed>=events.line_appears && release<1) {
+          const anchor=A(g,tail[0],tail[1],dir),startX=g.cx+x+anchor.dx,startY=anchor.y;
+          const tx=startX+(ballX-startX)*release,ty=startY+(ground-startY)*release;
+          front=`M ${tx.toFixed(2)} ${ty.toFixed(2)} Q ${((tx+ballX)/2).toFixed(2)} ${(Math.max(ty,ground)+5*(1-release)).toFixed(2)} ${ballX.toFixed(2)} ${ground.toFixed(2)}`;
+        }
+        frontLine._p.setAttribute('d',front); backLine._p.setAttribute('d','');
+        frontLine.style.opacity='1';backLine.style.opacity='0';
+        at(ball,ballX,ground,` rotate(${dir*k*120}deg)`,1);return;
+      }
       const arc=(cx,cy,rx,ry,start,end) => {
         if(end<=start || rx<.05) return ''; const points=[];
         for(let step=0;step<=18;step++) {
@@ -1282,7 +2520,7 @@ html.fab-off .bibiring,html.fab-off .bibitip,html.fab-off .bibifx,html.fab-off #
     await tween(duration,(k,t) => {
       pose(x,0); const point=reactionAnchor(g,'plane_react','nose',Math.min(t,meta.contact),face),meetX=g.cx+x+point.dx;
       if(t<meta.contact) atTip(pl,meetX+face*12*(1-t/meta.contact),ground+(point.y-ground)*t/meta.contact,meta.tip,0,-face);
-      else { const after=t-meta.contact; run.phase=after<450?'plane-recoil':'plane-sniff'; atTip(pl,meetX+face*7*Math.min(1,after/200),point.y+(ground-point.y)*Math.min(1,after/350),meta.tip,0,-face); }
+      else { const after=t-meta.contact; run.phase=t<meta.sniff?'plane-recoil':'plane-sniff'; atTip(pl,meetX+face*7*Math.min(1,after/200),point.y+(ground-point.y)*Math.min(1,after/350),meta.tip,0,-face); }
     });
     cue('嗅嗅…是紙做的！');
     await tween(280, (k) => { pl.style.opacity = (1 - k).toFixed(2); });
@@ -1299,8 +2537,8 @@ html.fab-off .bibiring,html.fab-off .bibitip,html.fab-off .bibifx,html.fab-off #
     await runTo(g,0,x);
     const file=reactionFile('leaf_bite',PART.receive),duration=readyParts.has('leaf_bite')?reactionDuration('leaf_bite'):MS[file]; show(file,true,face);
     await tween(duration,(k,t) => {
-      pose(x,0); run.phase=t<meta.contact?'leaf-mouth-open':t<meta.contact+200?'leaf-bite':t<duration*.8?'leaf-chew':'leaf-release';
-      const point=reactionAnchor(g,'leaf_bite','mouth',t,face),release=clamp((k-.8)/.2,0,1),gap=t<meta.contact?face*8*(1-t/meta.contact):0;
+      pose(x,0); run.phase=t<meta.contact?'leaf-mouth-open':t<meta.contact+200?'leaf-bite':t<meta.release?'leaf-chew':'leaf-release';
+      const point=reactionAnchor(g,'leaf_bite','mouth',t,face),release=clamp((t-meta.release)/(duration-meta.release),0,1),gap=t<meta.contact?face*8*(1-t/meta.contact):0;
       atTip(leaf,g.cx+x+point.dx+gap+face*release*12,point.y+(g.foot-5-point.y)*release,meta.tip,angle+release*45);
     });
     cue('咬一下，葉子沙沙響～'); await tween(220,k => {leaf.style.opacity=String(1-k);}); leaf.remove(); await goHome(g,x);
