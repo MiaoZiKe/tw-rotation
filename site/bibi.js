@@ -361,7 +361,28 @@
       0.72,
       0.03
     ],
-    "release": 850
+    "release": 850,
+    "support": [
+      144,
+      143,
+      144,
+      144,
+      138,
+      138,
+      138,
+      137,
+      130,
+      129,
+      130,
+      129,
+      130,
+      129,
+      128,
+      126,
+      127,
+      128
+    ],
+    "groundY": 155
   },
   "bubble_react": {
     "duration": 1000,
@@ -641,7 +662,26 @@
         125
       ]
     },
-    "curious": 450
+    "curious": 450,
+    "support": [
+      135,
+      135,
+      136,
+      135,
+      132,
+      132,
+      131,
+      132,
+      126,
+      126,
+      128,
+      129,
+      119,
+      119,
+      120,
+      118
+    ],
+    "groundY": 155
   },
   "plane_react": {
     "duration": 1200,
@@ -925,7 +965,26 @@
       0.99,
       0.01
     ],
-    "sniff": 570
+    "sniff": 570,
+    "support": [
+      138,
+      138,
+      138,
+      139,
+      132,
+      134,
+      133,
+      134,
+      126,
+      126,
+      127,
+      126,
+      121,
+      118,
+      118,
+      119
+    ],
+    "groundY": 155
   },
   "yarn_tumble": {
     "duration": 2600,
@@ -1272,7 +1331,26 @@
       ],
       null,
       null
-    ]
+    ],
+    "support": [
+      134,
+      134,
+      134,
+      134,
+      132,
+      131,
+      132,
+      130,
+      121,
+      123,
+      122,
+      121,
+      115,
+      113,
+      116,
+      116
+    ],
+    "groundY": 155
   }
 };
   /* 分頁（hash 第一段）→ 情境鍵＋泡泡說明句（10-12 起只換說明句，不換圖） */
@@ -1357,7 +1435,7 @@
   const fabOff = () => html.classList.contains('fab-off');
   const $ = (id) => document.getElementById(id);
   /* 素材版本戳：換了 brand/bibi/ 裡的圖（同檔名）就改這個字串，使用者不用清快取就拿到新圖（10-11 週末款換圖後 Andy 仍看到舊圖） */
-  const AV = '1016natural3';
+  const AV = '1016natural4';
   const src = (f) => 'brand/bibi/' + f + '.webp?v=' + AV;
   const T = { now: null, pct: undefined, hol: null };   // 驗收注入（Bibi.test）：假時間、假漲跌、假休市表
 
@@ -1963,15 +2041,20 @@ html.fab-off .bibiring,html.fab-off .bibitip,html.fab-off .bibifx,html.fab-off #
     const ds = REACTION_META[name].durations; let i=0,end=ds[0] || Infinity;
     while (i < ds.length-1 && elapsed >= end) end += ds[++i]; return i;
   }
+  // 非跳躍反應保留raw量點，以支撐底同步平移角色、嘴鼻與線尾；不裁切原圖的鬆線。
+  function reactionGround(g,name,elapsed) {
+    const meta=REACTION_META[name],support=meta.support?.[reactionFrame(name,elapsed)];
+    return readyParts.has(name) && Number.isFinite(support) ? (meta.groundY-support)*g.s/160 : 0;
+  }
   function reactionAnchor(g,name,kind,elapsed,facing) {
     const m = REACTION_META[name], point = (readyParts.has(name) && m[kind][reactionFrame(name,elapsed)]) || m.fallback[kind];
-    return A(g,point[0],point[1],facing);
+    const anchor=A(g,point[0],point[1],facing); anchor.y+=reactionGround(g,name,elapsed); return anchor;
   }
   function reactionBody(g,name,elapsed,facing) {
     const raw = (readyParts.has(name) && REACTION_META[name].body[reactionFrame(name,elapsed)]) || {};
-    const center = A(g,raw.cx ?? 80,raw.cy ?? 103,facing), unit=g.s/160, angle=(raw.angle || 0)*facing*Math.PI/180;
+    const center = A(g,raw.cx ?? 80,raw.cy ?? 103,facing), unit=g.s/160, angle=(raw.angle || 0)*facing*Math.PI/180,groundOffset=reactionGround(g,name,elapsed); center.y+=groundOffset;
     const anchors = ['shoulder','belly','hip'].map((kind,i) => {
-      if(raw[kind]) { const p=A(g,raw[kind][0],raw[kind][1],facing); return {x:p.dx,y:p.y}; }
+      if(raw[kind]) { const p=A(g,raw[kind][0],raw[kind][1],facing); return {x:p.dx,y:p.y+groundOffset}; }
       const dy=(i-1)*g.s*.1; return {x:center.dx-Math.sin(angle)*dy,y:center.y+Math.cos(angle)*dy};
     });
     return {x:center.dx,y:center.y,angle,rx:(raw.rx ?? 57.6)*unit,ry:(raw.ry ?? 25.6)*unit,anchors};
@@ -2357,7 +2440,7 @@ html.fab-off .bibiring,html.fab-off .bibitip,html.fab-off .bibifx,html.fab-off #
     const file=reactionFile('bubble_react',PART.nose),duration=readyParts.has('bubble_react')?reactionDuration('bubble_react'):MS[file];
     show(file,true,face); let touched=false;
     await tween(duration,(k,t) => {
-      pose(x,0);
+      pose(x,reactionGround(g,'bubble_react',t));
       if(!touched && t>=meta.contact) { touched=true; bubble.remove(); popBurst(target.x,target.y,R*2); run.phase='bubble-startle'; cue('啵！嚇一跳…咦，泡泡呢？'); }
       if(t>=meta.curious) run.phase='bubble-curious';
     });
@@ -2432,7 +2515,7 @@ html.fab-off .bibiring,html.fab-off .bibitip,html.fab-off .bibifx,html.fab-off #
     await tween(duration,(k,elapsed) => {
       const fallback=!readyParts.has('yarn_tumble'),tilt=k<.25?0:k<.45?(k-.25)/.2:k<.72?1:(1-k)/.28;
       const fallbackAngle=dir*22*tilt+(k>.45 && k<.75?3*Math.sin(k*55):0);
-      pose(x,0,fallback?{r:fallbackAngle}:{});
+      pose(x,reactionGround(g,'yarn_tumble',elapsed),fallback?{r:fallbackAngle}:{});
       const events=meta.events;
       run.phase=elapsed<events.paw_blocked?'yarn-wrap':elapsed<events.tilt_starts?'yarn-blocked':elapsed<events.side_lie?'yarn-fall':elapsed<events.first_loosen?'yarn-struggle':'yarn-release';
       const body=reactionBody(g,'yarn_tumble',elapsed,dir),angle=fallback?fallbackAngle*Math.PI/180:body.angle;
@@ -2441,7 +2524,7 @@ html.fab-off .bibiring,html.fab-off .bibitip,html.fab-off .bibifx,html.fab-off #
         const tail=meta.tail[reactionFrame('yarn_tumble',elapsed)];
         const release=clamp((elapsed-events.body_free)/(events.restored-events.body_free),0,1);
         if(tail && elapsed>=events.line_appears && release<1) {
-          const anchor=A(g,tail[0],tail[1],dir),startX=g.cx+x+anchor.dx,startY=anchor.y;
+          const anchor=A(g,tail[0],tail[1],dir),startX=g.cx+x+anchor.dx,startY=anchor.y+reactionGround(g,'yarn_tumble',elapsed);
           const tx=startX+(ballX-startX)*release,ty=startY+(ground-startY)*release;
           front=`M ${tx.toFixed(2)} ${ty.toFixed(2)} Q ${((tx+ballX)/2).toFixed(2)} ${(Math.max(ty,ground)+5*(1-release)).toFixed(2)} ${ballX.toFixed(2)} ${ground.toFixed(2)}`;
         }
@@ -2518,7 +2601,7 @@ html.fab-off .bibiring,html.fab-off .bibitip,html.fab-off .bibifx,html.fab-off #
     const file=reactionFile('plane_react',PART.receive),duration=readyParts.has('plane_react')?reactionDuration('plane_react'):MS[file];
     show(file,true,face);
     await tween(duration,(k,t) => {
-      pose(x,0); const point=reactionAnchor(g,'plane_react','nose',Math.min(t,meta.contact),face),meetX=g.cx+x+point.dx;
+      pose(x,reactionGround(g,'plane_react',t)); const point=reactionAnchor(g,'plane_react','nose',Math.min(t,meta.contact),face),meetX=g.cx+x+point.dx;
       if(t<meta.contact) atTip(pl,meetX+face*12*(1-t/meta.contact),ground+(point.y-ground)*t/meta.contact,meta.tip,0,-face);
       else { const after=t-meta.contact; run.phase=t<meta.sniff?'plane-recoil':'plane-sniff'; atTip(pl,meetX+face*7*Math.min(1,after/200),point.y+(ground-point.y)*Math.min(1,after/350),meta.tip,0,-face); }
     });
@@ -2537,7 +2620,7 @@ html.fab-off .bibiring,html.fab-off .bibitip,html.fab-off .bibifx,html.fab-off #
     await runTo(g,0,x);
     const file=reactionFile('leaf_bite',PART.receive),duration=readyParts.has('leaf_bite')?reactionDuration('leaf_bite'):MS[file]; show(file,true,face);
     await tween(duration,(k,t) => {
-      pose(x,0); run.phase=t<meta.contact?'leaf-mouth-open':t<meta.contact+200?'leaf-bite':t<meta.release?'leaf-chew':'leaf-release';
+      pose(x,reactionGround(g,'leaf_bite',t)); run.phase=t<meta.contact?'leaf-mouth-open':t<meta.contact+200?'leaf-bite':t<meta.release?'leaf-chew':'leaf-release';
       const point=reactionAnchor(g,'leaf_bite','mouth',t,face),release=clamp((t-meta.release)/(duration-meta.release),0,1),gap=t<meta.contact?face*8*(1-t/meta.contact):0;
       atTip(leaf,g.cx+x+point.dx+gap+face*release*12,point.y+(g.foot-5-point.y)*release,meta.tip,angle+release*45);
     });

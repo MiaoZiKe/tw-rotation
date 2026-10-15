@@ -1,0 +1,481 @@
+{
+  "source_filename": "source_sheet.png",
+  "source_grid_offset": [
+    0,
+    0
+  ],
+  "source_cell_padding": [
+    40,
+    30
+  ],
+  "isolate_main_character": true,
+  "total_ms": 1000,
+  "contact_frame": 6,
+  "contact_ms": 200,
+  "sequence": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12,
+    13,
+    14,
+    15,
+    16
+  ],
+  "durations_ms": [
+    40,
+    40,
+    40,
+    40,
+    40,
+    50,
+    100,
+    100,
+    80,
+    80,
+    70,
+    70,
+    60,
+    60,
+    60,
+    70
+  ],
+  "anchors": [
+    {
+      "frame": 1,
+      "name": "mouth",
+      "source_cell_xy": [
+        273,
+        197
+      ],
+      "measurement": "本輪新原圖逐格放大人工定位，深咖啡口鼻區輔助，約±3來源像素；已加共同窗padding(40,30)"
+    },
+    {
+      "frame": 1,
+      "name": "nose",
+      "source_cell_xy": [
+        274,
+        187
+      ],
+      "measurement": "本輪新原圖逐格放大人工定位，深咖啡口鼻區輔助，約±3來源像素；已加共同窗padding(40,30)"
+    },
+    {
+      "frame": 2,
+      "name": "mouth",
+      "source_cell_xy": [
+        287,
+        190
+      ],
+      "measurement": "本輪新原圖逐格放大人工定位，深咖啡口鼻區輔助，約±3來源像素；已加共同窗padding(40,30)"
+    },
+    {
+      "frame": 2,
+      "name": "nose",
+      "source_cell_xy": [
+        287,
+        181
+      ],
+      "measurement": "本輪新原圖逐格放大人工定位，深咖啡口鼻區輔助，約±3來源像素；已加共同窗padding(40,30)"
+    },
+    {
+      "frame": 3,
+      "name": "mouth",
+      "source_cell_xy": [
+        265,
+        219
+      ],
+      "measurement": "本輪新原圖逐格放大人工定位，深咖啡口鼻區輔助，約±3來源像素；已加共同窗padding(40,30)"
+    },
+    {
+      "frame": 3,
+      "name": "nose",
+      "source_cell_xy": [
+        265,
+        210
+      ],
+      "measurement": "本輪新原圖逐格放大人工定位，深咖啡口鼻區輔助，約±3來源像素；已加共同窗padding(40,30)"
+    },
+    {
+      "frame": 4,
+      "name": "mouth",
+      "source_cell_xy": [
+        297,
+        219
+      ],
+      "measurement": "本輪新原圖逐格放大人工定位，深咖啡口鼻區輔助，約±3來源像素；已加共同窗padding(40,30)"
+    },
+    {
+      "frame": 4,
+      "name": "nose",
+      "source_cell_xy": [
+        297,
+        210
+      ],
+      "measurement": "本輪新原圖逐格放大人工定位，深咖啡口鼻區輔助，約±3來源像素；已加共同窗padding(40,30)"
+    },
+    {
+      "frame": 5,
+      "name": "mouth",
+      "source_cell_xy": [
+        340,
+        181
+      ],
+      "measurement": "本輪新原圖逐格放大人工定位，深咖啡口鼻區輔助，約±3來源像素；已加共同窗padding(40,30)"
+    },
+    {
+      "frame": 5,
+      "name": "nose",
+      "source_cell_xy": [
+        340,
+        171
+      ],
+      "measurement": "本輪新原圖逐格放大人工定位，深咖啡口鼻區輔助，約±3來源像素；已加共同窗padding(40,30)"
+    },
+    {
+      "frame": 6,
+      "name": "mouth",
+      "source_cell_xy": [
+        337,
+        175
+      ],
+      "measurement": "本輪新原圖逐格放大人工定位，深咖啡口鼻區輔助，約±3來源像素；已加共同窗padding(40,30)"
+    },
+    {
+      "frame": 6,
+      "name": "nose",
+      "source_cell_xy": [
+        337,
+        164
+      ],
+      "measurement": "本輪新原圖逐格放大人工定位，深咖啡口鼻區輔助，約±3來源像素；已加共同窗padding(40,30)"
+    },
+    {
+      "frame": 7,
+      "name": "mouth",
+      "source_cell_xy": [
+        146,
+        234
+      ],
+      "measurement": "本輪新原圖逐格放大人工定位，深咖啡口鼻區輔助，約±3來源像素；已加共同窗padding(40,30)"
+    },
+    {
+      "frame": 7,
+      "name": "nose",
+      "source_cell_xy": [
+        146,
+        223
+      ],
+      "measurement": "本輪新原圖逐格放大人工定位，深咖啡口鼻區輔助，約±3來源像素；已加共同窗padding(40,30)"
+    },
+    {
+      "frame": 8,
+      "name": "mouth",
+      "source_cell_xy": [
+        237,
+        227
+      ],
+      "measurement": "本輪新原圖逐格放大人工定位，深咖啡口鼻區輔助，約±3來源像素；已加共同窗padding(40,30)"
+    },
+    {
+      "frame": 8,
+      "name": "nose",
+      "source_cell_xy": [
+        237,
+        219
+      ],
+      "measurement": "本輪新原圖逐格放大人工定位，深咖啡口鼻區輔助，約±3來源像素；已加共同窗padding(40,30)"
+    },
+    {
+      "frame": 9,
+      "name": "mouth",
+      "source_cell_xy": [
+        296,
+        197
+      ],
+      "measurement": "本輪新原圖逐格放大人工定位，深咖啡口鼻區輔助，約±3來源像素；已加共同窗padding(40,30)"
+    },
+    {
+      "frame": 9,
+      "name": "nose",
+      "source_cell_xy": [
+        297,
+        187
+      ],
+      "measurement": "本輪新原圖逐格放大人工定位，深咖啡口鼻區輔助，約±3來源像素；已加共同窗padding(40,30)"
+    },
+    {
+      "frame": 10,
+      "name": "mouth",
+      "source_cell_xy": [
+        297,
+        188
+      ],
+      "measurement": "本輪新原圖逐格放大人工定位，深咖啡口鼻區輔助，約±3來源像素；已加共同窗padding(40,30)"
+    },
+    {
+      "frame": 10,
+      "name": "nose",
+      "source_cell_xy": [
+        298,
+        179
+      ],
+      "measurement": "本輪新原圖逐格放大人工定位，深咖啡口鼻區輔助，約±3來源像素；已加共同窗padding(40,30)"
+    },
+    {
+      "frame": 11,
+      "name": "mouth",
+      "source_cell_xy": [
+        272,
+        201
+      ],
+      "measurement": "本輪新原圖逐格放大人工定位，深咖啡口鼻區輔助，約±3來源像素；已加共同窗padding(40,30)"
+    },
+    {
+      "frame": 11,
+      "name": "nose",
+      "source_cell_xy": [
+        273,
+        193
+      ],
+      "measurement": "本輪新原圖逐格放大人工定位，深咖啡口鼻區輔助，約±3來源像素；已加共同窗padding(40,30)"
+    },
+    {
+      "frame": 12,
+      "name": "mouth",
+      "source_cell_xy": [
+        274,
+        176
+      ],
+      "measurement": "本輪新原圖逐格放大人工定位，深咖啡口鼻區輔助，約±3來源像素；已加共同窗padding(40,30)"
+    },
+    {
+      "frame": 12,
+      "name": "nose",
+      "source_cell_xy": [
+        275,
+        166
+      ],
+      "measurement": "本輪新原圖逐格放大人工定位，深咖啡口鼻區輔助，約±3來源像素；已加共同窗padding(40,30)"
+    },
+    {
+      "frame": 13,
+      "name": "mouth",
+      "source_cell_xy": [
+        302,
+        206
+      ],
+      "measurement": "本輪新原圖逐格放大人工定位，深咖啡口鼻區輔助，約±3來源像素；已加共同窗padding(40,30)"
+    },
+    {
+      "frame": 13,
+      "name": "nose",
+      "source_cell_xy": [
+        303,
+        199
+      ],
+      "measurement": "本輪新原圖逐格放大人工定位，深咖啡口鼻區輔助，約±3來源像素；已加共同窗padding(40,30)"
+    },
+    {
+      "frame": 14,
+      "name": "mouth",
+      "source_cell_xy": [
+        293,
+        142
+      ],
+      "measurement": "本輪新原圖逐格放大人工定位，深咖啡口鼻區輔助，約±3來源像素；已加共同窗padding(40,30)"
+    },
+    {
+      "frame": 14,
+      "name": "nose",
+      "source_cell_xy": [
+        294,
+        130
+      ],
+      "measurement": "本輪新原圖逐格放大人工定位，深咖啡口鼻區輔助，約±3來源像素；已加共同窗padding(40,30)"
+    },
+    {
+      "frame": 15,
+      "name": "mouth",
+      "source_cell_xy": [
+        274,
+        183
+      ],
+      "measurement": "本輪新原圖逐格放大人工定位，深咖啡口鼻區輔助，約±3來源像素；已加共同窗padding(40,30)"
+    },
+    {
+      "frame": 15,
+      "name": "nose",
+      "source_cell_xy": [
+        275,
+        174
+      ],
+      "measurement": "本輪新原圖逐格放大人工定位，深咖啡口鼻區輔助，約±3來源像素；已加共同窗padding(40,30)"
+    },
+    {
+      "frame": 16,
+      "name": "mouth",
+      "source_cell_xy": [
+        248,
+        190
+      ],
+      "measurement": "本輪新原圖逐格放大人工定位，深咖啡口鼻區輔助，約±3來源像素；已加共同窗padding(40,30)"
+    },
+    {
+      "frame": 16,
+      "name": "nose",
+      "source_cell_xy": [
+        248,
+        180
+      ],
+      "measurement": "本輪新原圖逐格放大人工定位，深咖啡口鼻區輔助，約±3來源像素；已加共同窗padding(40,30)"
+    }
+  ],
+  "body_source": [
+    [
+      205,
+      248,
+      125,
+      82,
+      0
+    ],
+    [
+      214,
+      246,
+      124,
+      81,
+      -5
+    ],
+    [
+      205,
+      256,
+      121,
+      76,
+      0
+    ],
+    [
+      220,
+      259,
+      128,
+      70,
+      -10
+    ],
+    [
+      225,
+      250,
+      133,
+      76,
+      -15
+    ],
+    [
+      225,
+      248,
+      132,
+      77,
+      -15
+    ],
+    [
+      202,
+      259,
+      115,
+      73,
+      0
+    ],
+    [
+      204,
+      261,
+      113,
+      72,
+      0
+    ],
+    [
+      207,
+      240,
+      124,
+      73,
+      0
+    ],
+    [
+      218,
+      240,
+      122,
+      76,
+      0
+    ],
+    [
+      204,
+      249,
+      119,
+      76,
+      0
+    ],
+    [
+      211,
+      237,
+      124,
+      76,
+      -5
+    ],
+    [
+      212,
+      223,
+      127,
+      69,
+      0
+    ],
+    [
+      221,
+      204,
+      126,
+      76,
+      -15
+    ],
+    [
+      210,
+      216,
+      119,
+      76,
+      0
+    ],
+    [
+      206,
+      217,
+      121,
+      75,
+      0
+    ]
+  ],
+  "measurement_note": "嘴鼻逐格人工定位約±3來源像素；body是人工形體橢圓近似，無線圈附著驗收。",
+  "visual_review": {
+    "status": "已看本輪原始16格與放大接觸格，洋紅/深/淺三底全16格已檢；未完成瀏覽器動態審片",
+    "notes": "鼻碰第6在200ms；第7/8閉眼縮頭各100ms；耳旁游離抖動線與鄰格碎片以最大連通主角色保留方式移除，不改原圖。",
+    "geometry_note": "全格共同加窗左右40上下30；取主角色最大連通區排除鄰格碎片，不逐格對齊腳底"
+  },
+  "source_support_160": [
+    135,
+    135,
+    136,
+    135,
+    132,
+    132,
+    131,
+    132,
+    126,
+    126,
+    128,
+    129,
+    119,
+    119,
+    120,
+    118
+  ],
+  "ground_y_160": 155,
+  "support_measurement": "160解碼alpha>=128、排紫線/洋紅、最大主體連通區、底列至少3實體像素；0起算。未在bitmap或raw錨點加入dy，由引擎統一補償。"
+}
