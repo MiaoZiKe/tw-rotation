@@ -27,6 +27,7 @@
   const MS = {   // 每組一輪的毫秒數；bibi_site.py 最後一行印的就是這張表
     // 待機（唯一一款，循環）：第一版客服鈕的 8 格跳躍 GIF（bibi_site.py idle_hop）
     idle_hop: 800,
+    leaf_bite: 1200, bubble_react: 1000, plane_react: 1200, yarn_tumble: 2600,
     sleep_loop: 1360,                     // 點「睡覺」之後一直睡（互動，不是待機；10-12 四腳版：趴著蓋被子，8 格循環）
     // 互動（動畫單位 G1／G2 專屬素材；播一輪＝這個毫秒數就回情境待機）
     // 互動（動畫單位 10-11 深夜照原版造型重畫；bibi_site.py 最後一行印的毫秒數）
@@ -42,6 +43,14 @@
     receive: 1180,                         // 低頭嗅一嗅（東西在右前方地上）
     popcorn: 2000,                         // 爆米花：垂直彈起、落地連彈越來越小
     sniff_eat: 870, hop_reach: 810, pounce: 1120, tangle: 880, look_up: 640,   // 撒零食／吹泡泡＋落葉／羽毛棒／毛線球／紙飛機（look_up 循環）
+  };
+  // 160px最終素材逐格錨點，durations/mouth/nose/body同索引。空陣列代表待量測，不能宣稱已校準。
+  // body每格格式：{cx,cy,angle,rx,ry,shoulder:[x,y],belly:[x,y],hip:[x,y]}。
+  const REACTION_META = {
+    leaf_bite: {duration:1200,contact:300,durations:[],mouth:[],nose:[],body:[],fallback:{mouth:[112,125],nose:[112,125]},tip:[0.72,0.03]},
+    bubble_react: {duration:1000,contact:200,durations:[],mouth:[],nose:[],body:[],fallback:{mouth:[112,125],nose:[112,125]}},
+    plane_react: {duration:1200,contact:200,durations:[],mouth:[],nose:[],body:[],fallback:{mouth:[112,125],nose:[112,125]},tip:[0.99,0.01]},
+    yarn_tumble: {duration:2600,contact:520,durations:[],mouth:[],nose:[],body:[],fallback:{mouth:[112,125],nose:[112,125]}},
   };
   /* 分頁（hash 第一段）→ 情境鍵＋泡泡說明句（10-12 起只換說明句，不換圖） */
   const PAGES = [
@@ -125,7 +134,7 @@
   const fabOff = () => html.classList.contains('fab-off');
   const $ = (id) => document.getElementById(id);
   /* 素材版本戳：換了 brand/bibi/ 裡的圖（同檔名）就改這個字串，使用者不用清快取就拿到新圖（10-11 週末款換圖後 Andy 仍看到舊圖） */
-  const AV = '1015gpt4';
+  const AV = '1015natural3';
   const src = (f) => 'brand/bibi/' + f + '.webp?v=' + AV;
   const T = { now: null, pct: undefined, hol: null };   // 驗收注入（Bibi.test）：假時間、假漲跌、假休市表
 
@@ -185,6 +194,9 @@ html.fab-off .bibiring,html.fab-off .bibitip,html.fab-off .bibifx,html.fab-off #
 .supfab .bibibody{transform-origin:50% 96%}
 .supfab .bibihop{position:absolute;inset:0;pointer-events:none;display:block;transform-origin:50% 96%}
 .supfab.bibirun{pointer-events:none}
+.supfab.bibiinteracting .bibihop,.supfab.bibiinteracting .bibiimg{animation:none!important;transition:none!important}
+.supfab .bibiimg.bibiback{visibility:hidden!important}
+.supfab.bibiinteracting .bibiimg:not(.bibiback){opacity:1!important}
 .supfab.bibirun .supgif.bibiimg,.supfab.bibiquick .supgif.bibiimg{transition:none}   /* 動作中、跳一下（Default↔jump）直接切格：交叉淡化會看到兩隻半透明疊在一起 */
 #bibiStage{position:fixed;left:0;top:0;width:100vw;height:100vh;overflow:hidden;pointer-events:none;z-index:1201}
 #bibiStage>*{position:absolute;left:0;top:0;pointer-events:none;will-change:transform}
@@ -273,7 +285,7 @@ html.fab-off .bibiring,html.fab-off .bibitip,html.fab-off .bibifx,html.fab-off #
   }
 
   /* ---------- 圖層：兩張 img 交叉淡入淡出 ---------- */
-  let fab = null, imgs = [], front = 0, shown = '', want = '', mode = 'idle', idleNow = null, actTimer = 0, sleeping = false, sayTimer = 0;
+  let fab = null, imgs = [], front = 0, shown = '', want = '', mode = 'idle', idleNow = null, actTimer = 0, sleeping = false, sayTimer = 0, sayRaf = 0;
   let replay = 0, showTok = 0, hopEl = null, flipNow = 1;
   /** 素材左右翻面（f＝-1：臉朝左）。四腳版只畫了臉朝右的（嗅、撲、吃零食、碰鼻子…），比比在右下角、東西都在左邊 → 鏡像。
       翻的是 .bibihop 這層（跟 .bibibody 的擠壓伸展分開，驗收量身體比例照舊只看 .bibibody）。只鏡像、不改身體比例。 */
@@ -323,11 +335,11 @@ html.fab-off .bibiring,html.fab-off .bibitip,html.fab-off .bibifx,html.fab-off #
     if (!tip || !fab || fabOff() || fab.hidden) return;
     tip.textContent = text; tip.hidden = false;
     placeTip();
-    requestAnimationFrame(() => tip.classList.add('on'));
+    cancelAnimationFrame(sayRaf); sayRaf = requestAnimationFrame(() => { sayRaf = 0; tip.classList.add('on'); });
     clearTimeout(sayTimer);
     if (ms) sayTimer = setTimeout(() => { if (ring && ring.classList.contains('on') || hoverFab) { tip.textContent = tipText(); placeTip(); } else hideTip(); }, ms);
   }
-  function hideTip() { if (!tip) return; tip.classList.remove('on'); clearTimeout(sayTimer); sayTimer = setTimeout(() => { if (!tip.classList.contains('on')) tip.hidden = true; }, 200); }
+  function hideTip() { cancelAnimationFrame(sayRaf); sayRaf = 0; if (!tip) return; tip.classList.remove('on'); clearTimeout(sayTimer); sayTimer = setTimeout(() => { if (!tip.classList.contains('on')) tip.hidden = true; }, 200); }
   function placeTip() {
     if (!tip || tip.hidden) return;
     /* 比比跑出去時泡泡只跟著他左右走（不跟著上下彈，不然字會抖）；摸摸頭時手在頭上 → 泡泡放到比比靠畫面內側的旁邊 */
@@ -352,7 +364,7 @@ html.fab-off .bibiring,html.fab-off .bibitip,html.fab-off .bibifx,html.fab-off #
   /* 10-11 深夜 Andy 看了線上版：「互動按鈕改成原本那樣」（選擇題確認＝全部小圈一次攤開，回到第一版：分層扇形一次全部顯示、拿掉「下一頁」）。
      以比比當下位置為圓心，每一層半徑算出「整顆小圈都在視窗內」的角度範圍，由內往外一層層排，直到全部放完；
      比比在右下角＝往左上的扇形；被拖到左邊／上方自動往右／往下翻；在畫面中間＝一整圈。「問比比」排第一個＝最內層（離比比最近）。 */
-  let openWH = '', ring = null, hoverFab = false, openT = 0, closeT = 0, openedAt = 0, ringMaxR = 0;
+  let openWH = '', ring = null, hoverFab = false, openT = 0, closeT = 0, openedAt = 0, ringMaxR = 0, ringSayTimer = 0;
   const OPT = () => (isMob() ? 40 : 44);   // 手機 40px（Andy 規則 ≥40、≥32 觸控下限）；桌機 44px
   function center() {
     const r = fab.getBoundingClientRect();
@@ -465,10 +477,10 @@ html.fab-off .bibiring,html.fab-off .bibitip,html.fab-off .bibifx,html.fab-off #
     ring.classList.add('on');
     watchOn();
     ring.classList.toggle('cool', mode === 'act');
-    setTimeout(() => say(tapMode() ? (tipText() + '（點小圈跟比比玩）') : tipText()), reduce() ? 0 : 200);
+    clearTimeout(ringSayTimer); ringSayTimer = setTimeout(() => { if (ringOpen() && mode === 'idle') say(tapMode() ? (tipText() + '（點小圈跟比比玩）') : tipText()); }, reduce() ? 0 : 200);
   }
   function closeRing(instant) {
-    clearTimeout(openT); clearTimeout(closeT);
+    clearTimeout(openT); clearTimeout(closeT); clearTimeout(ringSayTimer);
     if (!fab) return;
     delete fab.dataset.ring;
     fab.classList.remove('bibiopen');
@@ -503,9 +515,11 @@ html.fab-off .bibiring,html.fab-off .bibitip,html.fab-off .bibifx,html.fab-off #
   let actFrom = null, hitUntil = 0, hitLog = [], actFxTimer = 0, actSerial = 0, pendingAct = 0, waitingAct = false;
   async function act(id, btn) {
     const a0 = ACTS.find((x) => x.id === id); if (!a0) return;
-    if (a0.ask) { pendingAct++; waitingAct = false; closeRing(true); if (window.TwSupport && window.TwSupport.open) window.TwSupport.open(); return; }
+    if (a0.ask) { stopRun('ask'); pendingAct++; waitingAct = false; closeRing(true); if (window.TwSupport && window.TwSupport.open) window.TwSupport.open(); return; }
     if (mode === 'act') return;                       // 冷卻：上一個動作還沒播完
+    stopFidget(); freezeIdle();
     const request = ++pendingAct;
+    mode = 'loading';
     waitingAct = false;
     if (!reduce() && !assetsReady) {
       waitingAct = true;
@@ -513,10 +527,10 @@ html.fab-off .bibiring,html.fab-off .bibitip,html.fab-off .bibifx,html.fab-off #
       const ready = await preload();
       if (request !== pendingAct || mode === 'act') return;
       waitingAct = false;
-      if (!ready) { say('玩具還沒載好，再試一次吧', 2500); return; }
+      if (!ready) { finishAct(); say('玩具還沒載好，再試一次吧', 2500); return; }
     }
     /* 打他：不准連打（Andy：「點太多次時加冷卻」）—— 每次打完至少隔 4 秒；一分鐘內第 3 次起隔 15 秒 */
-    if (a0.id === 'hit' && Date.now() < hitUntil) { say('比比還在痛…等一下再玩嘛', 1800); return; }
+    if (a0.id === 'hit' && Date.now() < hitUntil) { finishAct(); say('比比還在痛…等一下再玩嘛', 1800); return; }
     if (a0.id === 'hit') {
       const now = Date.now(); hitLog = hitLog.filter((t) => now - t < 60000); hitLog.push(now);
       hitUntil = now + 4500 + (hitLog.length >= 3 ? 15000 : 4000);   // 4.5 秒＝整段（飛＋敲＋哭）的長度
@@ -535,7 +549,7 @@ html.fab-off .bibiring,html.fab-off .bibitip,html.fab-off .bibifx,html.fab-off #
       let line0 = a.say[Math.floor(Math.random() * a.say.length)];
       if (a.cnt && (n === 3 || n % 5 === 0)) line0 = a.cnt(n);
       playChoreo(a, line0);
-      setTimeout(() => { if (run && run.act && run.id === a.id && !run.said && ['ball', 'grass', 'hit', 'snack', 'bubble', 'feather', 'yarn', 'plane', 'leaf', 'five'].indexOf(run.id) < 0) cue(); }, 60);   // 摸摸／轉圈開頭就說；球、草等到接住／開吃、打他等到哭才說
+      setTimeout(() => { if (serial === actSerial && run && run.act && run.id === a.id && !run.said && ['ball', 'grass', 'hit', 'snack', 'bubble', 'feather', 'yarn', 'plane', 'leaf', 'five'].indexOf(run.id) < 0) cue(); }, 60);   // 摸摸／轉圈開頭就說；球、草等到接住／開吃、打他等到哭才說
       return;
     }
     if (ring) ring.classList.add('cool');
@@ -553,7 +567,7 @@ html.fab-off .bibiring,html.fab-off .bibitip,html.fab-off .bibifx,html.fab-off #
     const dur = a.once ? (MS[a.file] || 2500) + 150 : Math.max(1800, Math.min(3200, (MS[a.file] || 1200) * 2));
     clearTimeout(actTimer);
     actTimer = setTimeout(() => {
-      mode = 'idle'; delete fab.dataset.bibiAct; fab.classList.remove('bibispin');
+      mode = 'idle'; delete fab.dataset.bibiAct; fab.classList.remove('bibispin', 'bibiinteracting');
       if (a0.sleep) { sleeping = a.id !== 'wake'; fab.dataset.bibiSleep = sleeping ? '1' : ''; syncSleepBtn(); }
       if (ring) ring.classList.remove('cool');
       applyIdle(); schedFidget();
@@ -599,6 +613,7 @@ html.fab-off .bibiring,html.fab-off .bibitip,html.fab-off .bibifx,html.fab-off #
     hit: 'hit', cry: 'cry',                         // 打他（播一次）／哭哭（循環）
     nose: 'highfive',                               // 碰鼻子（擊掌改的）
     // 玩具六件組（10-12 第 8 組）：撒零食＝跑過去 sniff_eat、吹泡泡／落葉＝hop_reach 往上撲、羽毛棒＝pounce、毛線球＝ball_catch→tangle、紙飛機＝look_up 抬頭循環
+    leaf_bite: 'leaf_bite', bubble_react: 'bubble_react', plane_react: 'plane_react', yarn_tumble: 'yarn_tumble',
     snack_eat: 'sniff_eat', hop: 'hop_reach', pounce: 'pounce', tangle: 'tangle', look: 'look_up',
   };
   /* 網頁自己畫的小東西只剩：影子、摸摸頭的愛心圈、星星（道具一律用動畫單位的 PNG，見 pic()） */
@@ -615,7 +630,7 @@ html.fab-off .bibiring,html.fab-off .bibitip,html.fab-off .bibifx,html.fab-off #
   };
   const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
   const ABORT = { abort: true };
-  let wrapEl = null, bodyEl = null, stage = null, run = null, runTok = 0, rafId = 0, fidgetT = 0, noFidget = true, tipFollow = false, lastStop = '';
+  let wrapEl = null, bodyEl = null, stage = null, run = null, runTok = 0, fidgetT = 0, noFidget = true, tipFollow = false, lastStop = '';
   const OFF = { x: 0, y: 0 };
   /** 比比的位移（相對原位）＋身體的擠壓伸展：sx/sy 縮放、sk 傾斜（正＝上半身往左）、r 旋轉 */
   function pose(x, y, o) {
@@ -626,18 +641,24 @@ html.fab-off .bibiring,html.fab-off .bibitip,html.fab-off .bibifx,html.fab-off #
     bodyEl.style.transform = (sx !== 1 || sy !== 1 || sk || r) ? `rotate(${r.toFixed(2)}deg) skewX(${sk.toFixed(2)}deg) scale(${sx.toFixed(3)},${sy.toFixed(3)})` : '';
   }
   /** 一段 ms 毫秒的補間：每格叫 fn(k∈0..1, 經過毫秒)。被打斷（runTok 換了）就丟 ABORT，腳本整段停下。 */
+  const activeTweens = new Set();
+  function cancelTweens() {
+    for (const task of activeTweens) { cancelAnimationFrame(task.id); task.reject(ABORT); }
+    activeTweens.clear();
+  }
   function tween(ms, fn) {
     const tok = runTok;
     return new Promise((res, rej) => {
-      const t0 = performance.now();
-      const step = (now) => {
-        if (tok !== runTok) { rej(ABORT); return; }
-        const el = Math.max(0, now - t0), k = ms > 0 ? Math.min(1, el / ms) : 1;
-        try { fn(k, el); } catch (e) { rej(e); return; }
+      const t0 = performance.now(), task = {id:0,reject:rej}; activeTweens.add(task);
+      const finish = err => { activeTweens.delete(task); err ? rej(err) : res(); };
+      const step = now => {
+        if (tok !== runTok) { finish(ABORT); return; }
+        const el = Math.max(0,now-t0), k = ms > 0 ? Math.min(1,el/ms) : 1;
+        try { fn(k,el); } catch(e) { finish(e); return; }
         if (tipFollow && tip && !tip.hidden) placeTip();
-        if (k >= 1) res(); else rafId = requestAnimationFrame(step);
+        if (k >= 1) finish(); else task.id = requestAnimationFrame(step);
       };
-      rafId = requestAnimationFrame(step);
+      step(t0); // 起步當下執行，每條並行補間各自追蹤，不漏背景RAF。
     });
   }
   const wait = (ms) => tween(ms, () => {});
@@ -648,7 +669,7 @@ html.fab-off .bibiring,html.fab-off .bibitip,html.fab-off .bibifx,html.fab-off #
     stage = document.createElement('div'); stage.id = 'bibiStage'; stage.setAttribute('aria-hidden', 'true');
     document.body.appendChild(stage); return stage;
   }
-  function clearStage() { if (stage) stage.innerHTML = ''; }
+  function clearStage() { if (stage) stage.innerHTML = ''; document.querySelectorAll('.bibi-back-thread').forEach(el => el.remove()); }
   /** 道具：寬 w 高 h，用 at() 以「中心點」擺位置 */
   function prop(kind, w, h) {
     const el = document.createElement('div'); el.className = 'bp bp-' + kind + (kind === 'shadow' ? ' bshadow' : '');
@@ -682,6 +703,14 @@ html.fab-off .bibiring,html.fab-off .bibitip,html.fab-off .bibifx,html.fab-off #
     return { cx, s, foot: bottom - s * 0.05, top: bottom - s, vw, vh: window.innerHeight, mob: isMob(), dir: cx > vw / 2 ? -1 : 1 };
   }
   let preloaded = null, assetsReady = false;
+  const optionalParts = new Set(['leaf_bite','bubble_react','plane_react','yarn_tumble']), readyParts = new Set();
+  const reactionFile = (name,fallback) => readyParts.has(name) ? PART[name] : fallback;
+  function freezeIdle() {
+    fab.classList.add('bibiinteracting'); fab.classList.remove('bibispin');
+    ++showTok; want = shown = IDLE_STILL; fab.dataset.bibi = IDLE_STILL;
+    imgs.forEach((img,i) => { img.onload = img.onerror = null; img.setAttribute('src',src(IDLE_STILL)); img.classList.toggle('bibiback',i !== front); });
+    pose(0,0); face(1);
+  }
   const PROP_FILES = ['ball', 'grass', 'hammer', 'seed', 'carrot', 'bubble', 'feather', 'yarn_ball', 'plane', 'leaf', 'petal'];
   function preload() {
     if (preloaded) return preloaded;
@@ -691,8 +720,8 @@ html.fab-off .bibiring,html.fab-off .bibitip,html.fab-off .bibifx,html.fab-off #
       const image = new Image(); let done = false;
       const finish = (ok) => { if (done) return; done = true; clearTimeout(timer); image.onload = image.onerror = null; resolve(ok); };
       const timer = setTimeout(() => finish(false), 15000);
-      image.onload = () => finish(true); image.onerror = () => finish(false); image.src = url;
-    }))).then((loaded) => { assetsReady = loaded.every(Boolean); if (!assetsReady) preloaded = null; return assetsReady; });
+      image.onload = () => { readyParts.add(url.split('/').pop().split('.')[0]); finish(true); }; image.onerror = () => finish(false); image.src = url;
+    }))).then((loaded) => { assetsReady = loaded.every((ok,i) => ok || optionalParts.has(urls[i].split('/').pop().split('.')[0])); if (!assetsReady) preloaded = null; return assetsReady; });
     return preloaded;
   }
   function idleFile() { return sleeping ? SLEEP_FILE : ((idleNow && idleNow.file) || IDLE_HOP); }
@@ -704,6 +733,32 @@ html.fab-off .bibiring,html.fab-off .bibitip,html.fab-off .bibifx,html.fab-off #
   const sc = (g, X, Y) => ({ x: g.cx + (X - 248) * g.s / 440, y: g.top + (Y - 52) * g.s / 440 });
   const A = (g, ax, ay, f) => ({ dx: (f || 1) * (ax - 80) * g.s / 160, y: g.top + ay * g.s / 160 });
   const Q = (g, X, Y, f) => A(g, (247.5 + (X - 248) * 0.745 - 28) * 160 / 440, (481 + (Y - 488) * 0.745 - 52) * 160 / 440, f);
+  const reactionDuration = name => {
+    const m = REACTION_META[name]; return m.durations.length ? m.durations.reduce((sum,ms) => sum + ms,0) : m.duration;
+  };
+  function reactionFrame(name,elapsed) {
+    const ds = REACTION_META[name].durations; let i=0,end=ds[0] || Infinity;
+    while (i < ds.length-1 && elapsed >= end) end += ds[++i]; return i;
+  }
+  function reactionAnchor(g,name,kind,elapsed,facing) {
+    const m = REACTION_META[name], point = (readyParts.has(name) && m[kind][reactionFrame(name,elapsed)]) || m.fallback[kind];
+    return A(g,point[0],point[1],facing);
+  }
+  function reactionBody(g,name,elapsed,facing) {
+    const raw = (readyParts.has(name) && REACTION_META[name].body[reactionFrame(name,elapsed)]) || {};
+    const center = A(g,raw.cx ?? 80,raw.cy ?? 103,facing), unit=g.s/160, angle=(raw.angle || 0)*facing*Math.PI/180;
+    const anchors = ['shoulder','belly','hip'].map((kind,i) => {
+      if(raw[kind]) { const p=A(g,raw[kind][0],raw[kind][1],facing); return {x:p.dx,y:p.y}; }
+      const dy=(i-1)*g.s*.1; return {x:center.dx-Math.sin(angle)*dy,y:center.y+Math.cos(angle)*dy};
+    });
+    return {x:center.dx,y:center.y,angle,rx:(raw.rx ?? 57.6)*unit,ry:(raw.ry ?? 25.6)*unit,anchors};
+  }
+  // 以PNG尖端錨定，旋轉或鏡像後仍對齊嘴緣／鼻尖，非圖片中心貼臉。
+  function atTip(el,x,y,tip,angle,flip) {
+    const rad=angle*Math.PI/180,dx=(tip[0]-.5)*el._w*(flip || 1),dy=(tip[1]-.5)*el._h;
+    const ox=dx*Math.cos(rad)-dy*Math.sin(rad),oy=dx*Math.sin(rad)+dy*Math.cos(rad);
+    at(el,x-ox,y-oy,` rotate(${angle.toFixed(2)}deg) scaleX(${flip || 1})`,1);
+  }
   /** 道具圖（動畫單位的正式 PNG：brand/bibi/props/<file>.png，bibi_site.py props 裁到東西本身、長邊 128px）。
       cls＝驗收找它用的 class（bp-<cls>）、w×h 是螢幕尺寸、flip＝左右鏡像。第一次 at() 擺好位置才出現（不然會在左上角閃一格）。 */
   function pic(cls, file, w, h, flip) {
@@ -777,7 +832,7 @@ html.fab-off .bibiring,html.fab-off .bibitip,html.fab-off .bibifx,html.fab-off #
       drawBall(ballAt(t));
       if (t < lag) { const u = t / lag; pose(dir * 4 * Math.sin(Math.PI * Math.min(1, u * 2)), 0, {}); return; }
       if (!ran) { ran = true; show(dir < 0 ? PART.run_l : PART.run_r); }
-      const u = (t - lag) / (T - lag), p = Db * E.inOut(u);
+      const u = (t - lag) / (T - lag), p = Db * u;
       const sp = Math.sin(Math.PI * u);
       pose(p, bobY(g, t - lag), { sk: -dir * 7 * sp, sx: 1 - 0.02 * sp, sy: 1 + 0.025 * sp });
     });
@@ -792,12 +847,12 @@ html.fab-off .bibiring,html.fab-off .bibitip,html.fab-off .bibifx,html.fab-off #
     // 3. 跑回原位：球留在原地（素材最後一格球停在比比旁邊 → 網頁的球接手，放在同一個位置）；起跑 → 跑 → 到位煞車
     at(ball, bxEnd, ground - R, '', 1); at(sh, bxEnd, ground + 1, '', 0.55);
     const back = dir < 0;
-    if (back && PART.run_start_r) { show(PART.run_start_r, true); await tween(MS[PART.run_start_r] || 340, (k) => pose(Db + 6 * E.in(k), 0, { sk: -4 * k })); }
+    // 取消起跑加速前奏，立即固定速度跑。
     show(dir < 0 ? PART.run_r : PART.run_l);
-    const Tr = clamp(Math.abs(Db) / (g.mob ? 260 : 340) * 1000, 650, 1900), x0 = Db + (back && PART.run_start_r ? 6 : 0);
+    const Tr = clamp(Math.abs(Db) / (g.mob ? 260 : 340) * 1000, 650, 1900), x0 = Db;
     await tween(Tr, (k, t) => {
       const sp = Math.sin(Math.PI * k);
-      pose(x0 * (1 - E.inOut(k)), bobY(g, t), { sk: dir * 7 * sp, sx: 1 - 0.02 * sp, sy: 1 + 0.025 * sp });
+      pose(x0 * (1 - k), bobY(g, t), { sk: dir * 7 * sp, sx: 1 - 0.02 * sp, sy: 1 + 0.025 * sp });
       if (k > 0.6) ball.style.opacity = sh.style.opacity = ((1 - k) / 0.4).toFixed(2);   // 跑遠了，球淡掉
     });
     ball.remove(); sh.remove();
@@ -805,7 +860,7 @@ html.fab-off .bibiring,html.fab-off .bibitip,html.fab-off .bibifx,html.fab-off #
       show(PART.run_stop_r, true);
       await tween(MS[PART.run_stop_r] || 850, (k) => { const d = E.damp(k, 3); pose(0, 0, { sk: dir * 6 * d, sx: 1 + 0.04 * d, sy: 1 - 0.05 * d }); });
     } else {
-      show(idleFile());
+      show(IDLE_STILL);
       await tween(380, (k) => { const d = E.damp(k, 3); pose(0, 0, { sk: dir * 8 * d, sx: 1 + 0.05 * d, sy: 1 - 0.06 * d }); });
     }
   }
@@ -887,22 +942,23 @@ html.fab-off .bibiring,html.fab-off .bibitip,html.fab-off .bibifx,html.fab-off #
      spin_q（bibi_spin，13 格、1290ms）：四腳小跑繞一圈 → 急停歪一邊 → 暈眩臉 → 回 Default，暈眩畫在素材裡，不再另外接 dizzy 循環。
      網頁先沿可見橢圓跑一圈，回原位才播放暈眩表情。 */
   async function spinScript(g) {
-    // 以待機位置為橢圓最右／左端，完整繞一圈，手機同樣保留全身在視窗內。
-    const room = g.dir < 0 ? g.cx - g.s / 2 - 8 : g.vw - g.cx - g.s / 2 - 8;
-    const rx = Math.max(12, Math.min(g.mob ? 90 : 165, room / 2));
-    const ry = Math.min(g.mob ? 30 : 46, Math.max(8, (g.foot - topLim() - g.s) / 2));
-    let facing = 0;
-    run.phase = 'lap'; cue('跑操場一圈！');
-    await tween(g.mob ? 2600 : 3200, (k) => {
-      const a = 2 * Math.PI * E.inOut(k);
-      const x = g.dir * rx * (1 - Math.cos(a)), y = -ry * (1 - Math.cos(a)) + ry * 0.32 * Math.sin(a);
-      const f = g.dir * Math.sin(a) < 0 ? -1 : 1;
-      if (f !== facing) { show(f < 0 ? PART.run_l : PART.run_r); facing = f; }
-      pose(x, y);
+    const room=g.dir<0 ? g.cx-g.s/2-8 : g.vw-g.cx-g.s/2-8;
+    const rx=Math.max(8,Math.min(g.mob?90:165,room/2)),ry=g.mob?4:6;
+    const points=[{a:0,len:0}]; let total=0;
+    for(let i=1;i<=720;i++) {
+      const a=i*2*Math.PI/720,prev=points[i-1].a;
+      total+=Math.hypot(rx*(Math.cos(a)-Math.cos(prev)),ry*(Math.sin(a)-Math.sin(prev))); points.push({a,len:total});
+    }
+    let index=1,facing=0; run.phase='lap'; cue('跑操場一圈！');
+    await tween(total/(g.mob?200:260)*1000,k => {
+      const distance=total*k; while(index<points.length-1 && points[index].len<distance) index++;
+      const p=points[index-1],q=points[index],a=p.a+(q.a-p.a)*(distance-p.len)/(q.len-p.len);
+      const f=g.dir*Math.sin(a+.001)<0?-1:1;
+      if(f!==facing) { show(f<0?PART.run_l:PART.run_r); facing=f; }
+      pose(g.dir*rx*(1-Math.cos(a)),-ry*Math.sin(a));
     });
-    pose(0, 0); run.phase = 'dizzy';
-    show(PART.spin, true); cue('呼…頭好暈！');
-    await tween(MS[PART.spin] || 1290, (k) => pose(0, 0, { r: 4 * Math.sin(k * Math.PI * 5) * Math.sin(Math.PI * k) }));
+    pose(0,0); run.phase='dizzy'; show(IDLE_STILL); cue('呼…頭好暈！');
+    await tween(700,k => pose(0,0,{r:3*Math.sin(k*Math.PI*5)*(1-k)}));
   }
 
   /* ---------- 腳本：天竺鼠爆米花跳：影格自帶不規則跳躍，禁止網頁重複疊加垂直跳 ---------- */
@@ -964,11 +1020,12 @@ html.fab-off .bibiring,html.fab-off .bibitip,html.fab-off .bibifx,html.fab-off #
      ⚠ 位置一律夾在視窗內（bx()）；道具都在 #bibiStage（fixed、overflow:hidden）→ 不撐捲軸，手機留在 390 內。
      ====================================================================================== */
   /** 一條線（毛線、羽毛棒的繩子）：蓋整個視窗的 SVG，path 由腳本每格改 d（這兩條線動畫單位說「維持網頁 SVG」） */
-  function threadLayer(kind, color, width) {
+  function threadLayer(kind, color, width, behind) {
     const el = document.createElement('div'); el.className = 'bp bp-' + kind;
     el.style.width = '100%'; el.style.height = '100%';
     el.innerHTML = `<svg width="100%" height="100%" aria-hidden="true"><path d="" fill="none" stroke="${color}" stroke-width="${width}" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
-    ensureStage().appendChild(el); el._p = el.querySelector('path'); return el;
+    if (behind) { el.classList.add('bibi-back-thread'); Object.assign(el.style,{position:'fixed',left:'0',top:'0',zIndex:'1199',pointerEvents:'none'}); document.body.appendChild(el); }
+    else ensureStage().appendChild(el); el._p = el.querySelector('path'); return el;
   }
   /** 背景動畫（泡泡飄、葉子落、羽毛晃）：跟比比的動作同時跑；回傳停止函式。被打斷時照樣丟 ABORT 收掉。 */
   function loopBg(fn) {
@@ -978,15 +1035,15 @@ html.fab-off .bibiring,html.fab-off .bibitip,html.fab-off .bibifx,html.fab-off #
   }
   /** 比比位移夾在視窗內（整顆圖都在畫面裡） */
   const bx = (g, x) => clamp(x, g.s / 2 + 4 - g.cx, g.vw - g.s / 2 - 4 - g.cx);
-  const bobY = (g, t) => -Math.abs(Math.sin(t / 140 * Math.PI)) * (g.mob ? 3 : 4);   // 四腳版 run 素材 560ms／8 格、一步約 140ms
+  const bobY = () => 0; // run素材自帶起伏，外層不重複跳。   // 四腳版 run 素材 560ms／8 格、一步約 140ms
   /** 跑到位移 x1（從 x0），回傳實際到的位置。跑步上下彈、往前傾，身體只微微拉長（≤1.03） */
   async function runTo(g, x0, x1, speed) {
     x1 = bx(g, x1);
     const d = x1 - x0;
     if (Math.abs(d) < 3) { pose(x1, 0); return x1; }
     show(d < 0 ? PART.run_l : PART.run_r);
-    const sg = Math.sign(d), T = clamp(Math.abs(d) / (speed || (g.mob ? 260 : 340)) * 1000, 260, 1600);
-    await tween(T, (k, t) => { const sp = Math.sin(Math.PI * k); pose(x0 + d * E.inOut(k), bobY(g, t), { sk: -sg * 7 * sp, sx: 1 - 0.02 * sp, sy: 1 + 0.025 * sp }); });
+    const T = Math.abs(d) / (speed || (g.mob ? 260 : 340)) * 1000;
+    await tween(T,k => pose(x0+d*k,0));
     return x1;
   }
   /** 跑回原位：往右跑回家有煞車素材（run_stop_r），往左就急停回彈 */
@@ -998,7 +1055,7 @@ html.fab-off .bibiring,html.fab-off .bibitip,html.fab-off .bibifx,html.fab-off #
         await tween(Math.min(700, MS[PART.run_stop_r] || 700), (k) => { const d = E.damp(k, 3); pose(0, 0, { sk: -6 * d, sx: 1 + 0.04 * d, sy: 1 - 0.05 * d }); });
       }
     }
-    show(idleFile());
+    show(IDLE_STILL);
     await tween(300, (k) => { const d = E.damp(k, 3); pose(0, 0, { sx: 1 + 0.05 * d, sy: 1 - 0.06 * d }); });
   }
   /** 往上撲（hop_reach：蹲 0～90 → 起跳 90～160 → 最高點、鼻子碰到 160～260 → 往下 260～330 → 落地壓扁 330～410）：
@@ -1068,48 +1125,20 @@ html.fab-off .bibiring,html.fab-off .bibitip,html.fab-off .bibifx,html.fab-off #
 
   /* ---------- 吹泡泡：3～5 顆從小圈吹出來、慢慢往上飄、左右晃；比比追到底下往上撲（hop_reach）用鼻子頂破，破掉播 pop_burst ---------- */
   async function bubbleScript(g) {
-    const dir = g.dir, S = srcPoint(g), n = 3 + Math.floor(Math.random() * 3), R = g.mob ? 13 : 16;
-    const span = g.mob ? 200 : 330, rise = g.mob ? 14 : 18, t0 = performance.now(), lo = topLim() + R + 4;
-    const NOSE = A(g, 80, 110);                                  // 1015 新圓身素材：第5格鼻尖位置，190ms接觸；位移由 hopReach 負責
-    const B = [];
-    for (let i = 0; i < n; i++) {
-      B.push({ el: pic('bubble', 'bubble', R * 2, R * 2), x0: clamp(g.cx + dir * (g.s * 0.35 + span * (i + 0.5) / n), R + 8, g.vw - R - 8),
-        y0: g.top + 6 - Math.random() * 18, born: i * 260, ph: Math.random() * 6, popped: false });
-    }
-    const pos = (b, t) => {                                      // 先從小圈飄到起點（500ms），之後慢慢上升、左右晃
-      const a = t - b.born;
-      if (a < 500) { const u = E.out(clamp(a / 500, 0, 1)); return { x: S.x + (b.x0 - S.x) * u, y: S.y + (b.y0 - S.y) * u, op: clamp(a / 120, 0, 1) }; }
-      const s = (a - 500) / 1000;
-      return { x: b.x0 + 14 * Math.sin(s * 2.4 + b.ph), y: Math.max(lo, b.y0 - rise * s), op: 1 };
-    };
-    B.forEach((b) => at(b.el, S.x, S.y, '', 0));
-    const stop = loopBg(() => {
-      const t = performance.now() - t0;
-      B.forEach((b) => { if (b.popped || t < b.born) return; const p = pos(b, t); at(b.el, p.x, p.y, ` scale(${(0.6 + 0.4 * Math.min(1, (t - b.born) / 500)).toFixed(2)})`, p.op); });
+    const S=srcPoint(g),R=g.mob?13:16,face=g.dir,meta=REACTION_META.bubble_react;
+    const nose=reactionAnchor(g,'bubble_react','nose',meta.contact,face),x=bx(g,face*(g.mob?85:140));
+    const target={x:g.cx+x+nose.dx+face*R,y:nose.y},bubble=pic('bubble','bubble',R*2,R*2);
+    show(PART.look,true,face); run.phase='bubble-approach';
+    await tween(480,k => { at(bubble,S.x+(target.x-S.x)*k,S.y+(target.y-S.y)*k-14*Math.sin(Math.PI*k),'',k); pose(0,0); });
+    await runTo(g,0,x);
+    const file=reactionFile('bubble_react',PART.nose),duration=readyParts.has('bubble_react')?reactionDuration('bubble_react'):MS[file];
+    show(file,true,face); let touched=false;
+    await tween(duration,(k,t) => {
+      pose(x,0);
+      if(!touched && t>=meta.contact) { touched=true; bubble.remove(); popBurst(target.x,target.y,R*2); run.phase='bubble-startle'; cue('啵！嚇一跳…咦，泡泡呢？'); }
+      if(t>=600) run.phase='bubble-curious';
     });
-    pose(0, 0, { sk: -dir * 3 });
-    await wait(260);
-    cue('泡泡！比比要抓到它～');
-    let x = 0, i = 0;
-    const order = B.slice().sort((a, b) => Math.abs(a.x0 - g.cx) - Math.abs(b.x0 - g.cx));
-    for (const b of order) {
-      const now = performance.now() - t0;
-      if (now < b.born + 500) await wait(b.born + 500 - now);
-      x = await runTo(g, x, pos(b, performance.now() - t0).x - g.cx);
-      const tgt = pos(b, performance.now() - t0 + (MS[PART.hop] || 810) * 190 / 410);
-      const H = clamp(NOSE.y - tgt.y, 4, g.mob ? 80 : 100);
-      run.phase = 'hop' + (++i);
-      x = await hopReach(g, x, tgt.x - g.cx, H, () => {
-        b.popped = true;
-        const p = pos(b, performance.now() - t0);
-        b.el.style.opacity = '0';
-        popBurst(p.x, p.y, R * 2);
-        floatText('啵！', p.x, p.y - R);
-        if (run) run.phase = 'nose-pop' + i;
-      });
-    }
-    stop();
-    await goHome(g, x);
+    await goHome(g,x);
   }
 
   /* ---------- 羽毛棒：羽毛（繩子連著被點的小圈）在比比前方地面附近晃；比比撲（pounce）——第一下被抽走、第二下撲到壓住 ---------- */
@@ -1169,68 +1198,42 @@ html.fab-off .bibiring,html.fab-off .bibitip,html.fab-off .bibifx,html.fab-off #
   /* ---------- 毛線球：線球從小圈飛來、被比比一頂滾出去，後面拖一條線（網頁 SVG）；比比追（run）→ 撲到（ball_catch，素材裡的球被毛線球蓋住）
      → 被線纏住、扭兩下彈開掙脫（tangle，線畫在素材裡）→ 跑回家 ---------- */
   async function yarnScript(g) {
-    const dir = g.dir, S = srcPoint(g), BALL = A(g, 135, 145), catchDx = BALL.dx;
-    const R = g.s * 0.068, ground = BALL.y + R;                  // 毛線球要整顆蓋住撲球素材裡那顆球（直徑約 17／160 個圖寬）
-    const D = clamp(dir < 0 ? g.cx - 40 - R : g.vw - 40 - R - g.cx, 110, g.mob ? 220 : 480);
-    const ball = pic('yarn', 'yarn_ball', R * 2, R * 2), line = threadLayer('thread', '#a77bd6', 2.2);
-    const trail = [];
-    const drawLine = () => line._p.setAttribute('d', trail.length ? 'M ' + trail.map((p) => p.x.toFixed(1) + ' ' + p.y.toFixed(1)).join(' L ') : '');
-    const L0 = g.cx + dir * g.s * 0.5;
-    at(ball, S.x, S.y, '', 0);
-    await tween(440, (u) => {                                    // 弧線飛到比比腳邊
-      const x = S.x + (L0 - S.x) * u, y = S.y + (ground - R - S.y) * E.in(u) - 50 * Math.sin(Math.PI * u) * (1 - u);
-      at(ball, x, y, ` rotate(${(-dir * 300 * u).toFixed(1)}deg)`, Math.min(1, u * 5));
-      pose(0, 0, { sk: -dir * 3 * u });
+    const dir=g.dir,S=srcPoint(g),R=g.s*.09,x=bx(g,dir*(g.mob?110:200));
+    const ball=pic('yarn','yarn_ball',R*2,R*2),frontLine=threadLayer('thread-front','#a77bd6',2.2),backLine=threadLayer('thread-back','#9470c4',2.2,true),ground=g.foot-R;
+    show(PART.look,true,dir); run.phase='yarn-roll';
+    await tween(500,k => at(ball,S.x+(g.cx+x+dir*g.s*.5-S.x)*k,S.y+(ground-S.y)*k,` rotate(${dir*360*k}deg)`,k));
+    await runTo(g,0,x);
+    const file=reactionFile('yarn_tumble',PART.tangle),duration=readyParts.has('yarn_tumble')?reactionDuration('yarn_tumble'):2600;
+    show(file,true,dir); cue('哎呀，毛線纏住了！');
+    await tween(duration,(k,elapsed) => {
+      const fallback=!readyParts.has('yarn_tumble'),tilt=k<.25?0:k<.45?(k-.25)/.2:k<.72?1:(1-k)/.28;
+      const fallbackAngle=dir*22*tilt+(k>.45 && k<.75?3*Math.sin(k*55):0);
+      pose(x,0,fallback?{r:fallbackAngle}:{});
+      run.phase=k<.2?'yarn-wrap':k<.35?'yarn-blocked':k<.5?'yarn-fall':k<.72?'yarn-struggle':'yarn-release';
+      const body=reactionBody(g,'yarn_tumble',elapsed,dir),angle=fallback?fallbackAngle*Math.PI/180:body.angle;
+      const ballX=g.cx+x+dir*g.s*.58+dir*k*15; let front='',back='';
+      const arc=(cx,cy,rx,ry,start,end) => {
+        if(end<=start || rx<.05) return ''; const points=[];
+        for(let step=0;step<=18;step++) {
+          const a=start+(end-start)*step/18,ax=rx*Math.cos(a),ay=ry*Math.sin(a);
+          points.push(`${(cx+ax*Math.cos(angle)-ay*Math.sin(angle)).toFixed(2)} ${(cy+ax*Math.sin(angle)+ay*Math.cos(angle)).toFixed(2)}`);
+        }
+        return 'M '+points.join(' L ')+' ';
+      };
+      for(let i=0;i<3;i++) {
+        // 逐環減少有效弧長、縮小半徑並收回球，解纏不使用淡出替代。
+        const unwind=clamp((k-(.72+i*.06))/.16,0,1),remain=1-unwind,anchor=body.anchors[i],cx0=g.cx+x+anchor.x;
+        const cx=cx0+(ballX-cx0)*unwind,cy=anchor.y+(ground-anchor.y)*unwind,rx=body.rx*remain,ry=body.ry*remain,end=Math.PI*2*remain;
+        front+=arc(cx,cy,rx,ry,0,Math.min(Math.PI,end)); back+=arc(cx,cy,rx,ry,Math.PI,end);
+        if(unwind>0 && unwind<1) {
+          const ax=rx*Math.cos(end),ay=ry*Math.sin(end);
+          front+=`M ${(cx+ax*Math.cos(angle)-ay*Math.sin(angle)).toFixed(2)} ${(cy+ax*Math.sin(angle)+ay*Math.cos(angle)).toFixed(2)} L ${ballX.toFixed(2)} ${ground.toFixed(2)} `;
+        }
+      }
+      frontLine._p.setAttribute('d',front); backLine._p.setAttribute('d',back);
+      frontLine.style.opacity=backLine.style.opacity=String(Math.min(1,k/.15)); at(ball,ballX,ground,` rotate(${dir*k*120}deg)`,1);
     });
-    cue('毛線球！');
-    trail.push({ x: L0, y: ground - 1 });                        // 線頭留在落地的地方
-    await tween(220, (k) => pose(-dir * 4 * E.out(k), 0, { sx: 1 + 0.06 * E.out(k), sy: 1 - 0.08 * E.out(k) }));   // 蓄力
-    await tween(110, (k) => pose(-dir * 4 + dir * 12 * E.out(k), 0, { sk: -dir * 7 * k }));                        // 頂！
-    const bx0 = L0, bx1 = g.cx + dir * D, Tb = g.mob ? 1300 : 1700, lag = 300;
-    const ballAt = (t) => {                                      // 滾出去：越滾越慢、前段小彈兩下、線越拖越長
-      const u = clamp(t / Tb, 0, 1), x = bx0 + (bx1 - bx0) * E.out(u), hb = u < 0.35 ? 12 * Math.abs(Math.sin(u / 0.35 * 2 * Math.PI)) * (1 - u * 2) : 0;
-      return { x, y: ground - R - Math.max(0, hb), rot: (x - bx0) / R * 180 / Math.PI };
-    };
-    let x = dir * 8, ran = false;
-    const Db = (bx1 - g.cx) - dir * catchDx;                     // 追到時：毛線球正好在撲球素材裡那顆球的位置
-    await tween(Tb + 200, (k, t) => {
-      const b = ballAt(t);
-      at(ball, b.x, b.y, ` rotate(${b.rot.toFixed(1)}deg)`, 1);
-      const last = trail[trail.length - 1];
-      if (Math.abs(b.x - last.x) > 6) { trail.push({ x: b.x - dir * R * 0.6, y: ground - 1 - (trail.length % 2) * 1.5 }); drawLine(); }
-      if (t < lag) { pose(x, 0, { sk: -dir * 5 * (1 - t / lag) }); return; }
-      if (!ran) { ran = true; show(dir < 0 ? PART.run_l : PART.run_r); }
-      const u = clamp((t - lag) / (Tb + 200 - lag), 0, 1), sp = Math.sin(Math.PI * u);
-      pose(dir * 8 + (Db - dir * 8) * E.inOut(u), bobY(g, t), { sk: -dir * 7 * sp, sx: 1 - 0.02 * sp, sy: 1 + 0.025 * sp });
-    });
-    x = Db;
-    // 毛線使用自己的撲抓姿勢，絕不播放內建紅白球的 ball_catch。
-    const bEnd = { x: g.cx + Db + dir * catchDx, y: BALL.y };
-    run.phase = 'yarn-pounce';
-    show(PART.pounce, true, dir);
-    trail.push({ x: bEnd.x, y: bEnd.y }); drawLine();
-    await tween(MS[PART.pounce] || 1120, (k) => {
-      pose(x, 0);
-      at(ball, bEnd.x + dir * R * 0.6 * Math.sin(k * Math.PI * 2), bEnd.y,
-        ` rotate(${(k * dir * 220).toFixed(1)}deg)`, 1);
-    });
-    // 被纏住（tangle：線纏在身上、扭兩下、第 4 格用力一彈線鬆開）：網頁那條線的尾端拉到比比身上，彈開時淡掉
-    run.phase = 'tangle';
-    cue('哎呀～被毛線纏住了！');
-    show(PART.tangle, true);
-    const body = { x: g.cx + x, y: g.top + g.s * 0.62 };
-    let freed = false;
-    await tween(MS[PART.tangle] || 880, (k, t) => {
-      const u = clamp(t / 160, 0, 1);
-      trail[trail.length - 1] = { x: bEnd.x + (body.x - bEnd.x) * u, y: bEnd.y + (body.y - bEnd.y) * u }; drawLine();
-      line.style.opacity = t < 250 ? '1' : clamp(1 - (t - 250) / 200, 0, 1).toFixed(2);
-      if (!freed && t >= 330) { freed = true; burstAt('star', body.x, g.top + g.s * 0.3, 5, 2); floatText('掙脫！', body.x, g.top); }
-      pose(x, 0);
-    });
-    line.remove();
-    par(tween(600, (k) => { ball.style.opacity = (1 - k).toFixed(2); }));
-    await goHome(g, x);
-    ball.remove();
+    frontLine.remove(); backLine.remove(); ball.remove(); await goHome(g,x);
   }
 
   /* ---------- 紙飛機：飛機沿曲線在畫面上繞一圈（整條路線都在視窗內）、比比抬頭跟著看（look_up 循環）；落地滑一下，比比跑過去嗅（sniff_eat） ---------- */
@@ -1273,15 +1276,16 @@ html.fab-off .bibiring,html.fab-off .bibitip,html.fab-off .bibifx,html.fab-off #
     });
     const land = Lx + dir * 14;
     await tween(220, (k) => { place({ x: Lx + dir * 14 * E.out(k), y: ground }); });   // 落地滑一下
-    cue('嗅嗅…是紙做的！');
-    floatText('嗅嗅', land, ground - 20);
-    const face = land < g.cx + x ? -1 : 1, nose = A(g, 112, 125, face);
-    x = await runTo(g, x, land - g.cx - nose.dx);
-    run.phase = 'sniff'; show(PART.receive, true, face);
-    await tween(MS[PART.receive] || 1180, (k) => {
-      pose(x, 0, { r: -face * 2 * Math.sin(k * Math.PI * 4) });
-      at(pl, land, ground, '', 1);
+    const face=land<g.cx+x?-1:1,meta=REACTION_META.plane_react,nose=reactionAnchor(g,'plane_react','nose',meta.contact,face);
+    x=await runTo(g,x,land-g.cx-nose.dx); run.phase='plane-nose';
+    const file=reactionFile('plane_react',PART.receive),duration=readyParts.has('plane_react')?reactionDuration('plane_react'):MS[file];
+    show(file,true,face);
+    await tween(duration,(k,t) => {
+      pose(x,0); const point=reactionAnchor(g,'plane_react','nose',Math.min(t,meta.contact),face),meetX=g.cx+x+point.dx;
+      if(t<meta.contact) atTip(pl,meetX+face*12*(1-t/meta.contact),ground+(point.y-ground)*t/meta.contact,meta.tip,0,-face);
+      else { const after=t-meta.contact; run.phase=after<450?'plane-recoil':'plane-sniff'; atTip(pl,meetX+face*7*Math.min(1,after/200),point.y+(ground-point.y)*Math.min(1,after/350),meta.tip,0,-face); }
     });
+    cue('嗅嗅…是紙做的！');
     await tween(280, (k) => { pl.style.opacity = (1 - k).toFixed(2); });
     pl.remove();
     await goHome(g, x);
@@ -1290,71 +1294,20 @@ html.fab-off .bibiring,html.fab-off .bibitip,html.fab-off .bibifx,html.fab-off #
   /* ---------- 落葉／花瓣：5～8 片從上面飄下來（左右晃、翻轉），比比往上撲（hop_reach）去頂，頂到的閃一下收掉；
      落到地上的留著，最後跑過去嗅一片吃掉（sniff_eat），其他的淡掉 ---------- */
   async function leafScript(g) {
-    const dir = g.dir, n = 5 + Math.floor(Math.random() * 4), lw = g.mob ? 15 : 18, t0 = performance.now();
-    const top = Math.max(topLim() + 14, g.top - (g.mob ? 150 : 210)), v = g.mob ? 62 : 72;
-    const reach = g.mob ? 34 : 50, LH = g.mob ? 30 : 40, NOSE = A(g, 80, 110), catchY = NOSE.y - LH;   // 1015 第5格鼻尖＋網頁撲跳位移
-    const Lf = [];
-    for (let i = 0; i < n; i++) {
-      const petal = i % 2 === 1, lh = lw * 128 / (petal ? 88 : 83);
-      const x0 = clamp(g.cx + dir * (-12 + Math.random() * (g.mob ? 110 : 160)), lw + 6, g.vw - lw - 6);
-      Lf.push({ el: pic('leaf', petal ? 'petal' : 'leaf', lw, lh), x0, y0: top - Math.random() * 30, born: 200 + i * 430, ph: Math.random() * 6,
-        st: 'fall', ground: g.foot - lw * 0.45, rest: null });
-    }
-    const pos = (L, t) => {
-      const a = (t - L.born) / 1000, y = Math.min(L.ground, L.y0 + v * a);
-      return { x: L.x0 + 16 * Math.sin(a * 3.1 + L.ph), y, rot: 40 * Math.sin(a * 2.3 + L.ph) + a * 90, landed: y >= L.ground };
-    };
-    Lf.forEach((L) => at(L.el, L.x0, L.y0, '', 0));
-    const stop = loopBg(() => {
-      const t = performance.now() - t0;
-      Lf.forEach((L) => {
-        if (L.st === 'caught' || L.st === 'gone' || t < L.born) return;
-        if (L.st === 'ground') { at(L.el, L.rest.x, L.rest.y, ' rotate(84deg)', 1); return; }   // 躺在地上
-        const p = pos(L, t);
-        if (p.landed) { L.st = 'ground'; L.rest = p; }
-        at(L.el, p.x, p.y, ` rotate(${p.rot.toFixed(1)}deg) scaleX(${Math.cos((t - L.born) / 330 + L.ph).toFixed(2)})`, clamp((t - L.born) / 200, 0, 1));
-      });
+    const face=g.dir,meta=REACTION_META.leaf_bite,x=bx(g,face*(g.mob?80:130)),mouth=reactionAnchor(g,'leaf_bite','mouth',meta.contact,face),lw=g.mob?18:22;
+    const leaf=pic('leaf','leaf',lw,lw*128/83),target={x:g.cx+x+mouth.dx,y:mouth.y},from=srcPoint(g),angle=face<0?70:-110;
+    show(PART.look,true,face); run.phase='leaf-drift';
+    await tween(650,k => { atTip(leaf,from.x+(target.x+face*8-from.x)*k+10*Math.sin(Math.PI*2*k),from.y+(target.y-from.y)*k,meta.tip,angle); leaf.style.opacity=String(k); pose(0,0); });
+    await runTo(g,0,x);
+    const file=reactionFile('leaf_bite',PART.receive),duration=readyParts.has('leaf_bite')?reactionDuration('leaf_bite'):MS[file]; show(file,true,face);
+    await tween(duration,(k,t) => {
+      pose(x,0); run.phase=t<meta.contact?'leaf-mouth-open':t<meta.contact+200?'leaf-bite':t<duration*.8?'leaf-chew':'leaf-release';
+      const point=reactionAnchor(g,'leaf_bite','mouth',t,face),release=clamp((k-.8)/.2,0,1),gap=t<meta.contact?face*8*(1-t/meta.contact):0;
+      atTip(leaf,g.cx+x+point.dx+gap+face*release*12,point.y+(g.foot-5-point.y)*release,meta.tip,angle+release*45);
     });
-    pose(0, -4, { sy: 0.98 });                                   // 0.2 秒內就在動：抬頭準備
-    cue('葉子飄下來了～');
-    let x = 0, busyTill = 0, k = 0;
-    const tc = (L) => L.born + (catchY - L.y0) / v * 1000;      // 葉子落到鼻子能碰到的高度的時間
-    const order = Lf.slice().sort((a, b) => tc(a) - tc(b));
-    const PEAK = (MS[PART.hop] || 810) * 190 / 410;                                            // hop_reach 鼻子碰到的那一刻
-    for (const L of order) {
-      const at_ = tc(L), startAt = at_ - PEAK, now = performance.now() - t0;
-      if (startAt < now || startAt < busyTill) continue;         // 來不及／前一下還沒落地：讓它落地
-      await tween(startAt - now, (kk, t) => { const c = Math.max(0, Math.sin((now + t) / 120)); pose(x, 0, { sx: 1 + 0.04 * c, sy: 1 - 0.05 * c }); });   // 等的時候原地小蹦
-      const p = pos(L, at_), tx = bx(g, p.x - g.cx);   // 原地往上撲：最多往旁邊挪一小步（bx 再夾在視窗內）
-      run.phase = 'hop' + (++k);
-      x = await hopReach(g, x, tx, LH, () => {
-        L.st = 'caught';
-        const q = pos(L, performance.now() - t0);
-        at(L.el, g.cx + OFF.x, NOSE.y + OFF.y, ' rotate(-25deg)', 1);
-        floatText('咬住！', g.cx + OFF.x, NOSE.y + OFF.y - 16);
-        // 接觸後葉子仍可見，咬住到落地；不在半空瞬間消失。
-        L.rest = { x: g.cx + OFF.x, y: L.ground };
-        return () => at(L.el, g.cx + OFF.x, NOSE.y + OFF.y, ' rotate(-25deg)', 1);
-      });
-      if (L.st === 'caught') {
-        run.phase = 'leaf-bite' + k;
-        const mouth = A(g, 112, 125);
-        show(PART.receive, true, 1);
-        await tween(260, () => { pose(x, 0); at(L.el, g.cx + x + mouth.dx, mouth.y, ' rotate(-25deg)', 1); });
-        await tween(160, (u) => at(L.el, g.cx + x + mouth.dx, mouth.y + (L.ground - mouth.y) * E.in(u), ' rotate(84deg)', 1));
-        L.rest = { x: g.cx + x + mouth.dx, y: L.ground }; L.st = 'ground';
-      }
-      busyTill = performance.now() - t0;
-    }
-    const last = Math.max(...Lf.map((L) => L.born + (L.ground - L.y0) / v * 1000)) + 200, now = performance.now() - t0;
-    if (last > now) await tween(last - now, (kk, t) => { const c = Math.max(0, Math.sin(t / 140)); pose(x, 0, { sx: 1 + 0.03 * c, sy: 1 - 0.04 * c }); });
-    stop();
-    const onGround = Lf.filter((L) => L.st === 'ground').sort((a, b) => Math.abs(a.rest.x - g.cx - x) - Math.abs(b.rest.x - g.cx - x));
-    const pick = onGround[0];
-    onGround.slice(1).forEach((L) => par(tween(400, (kk) => { L.el.style.opacity = (1 - kk).toFixed(2); })));
-    if (pick) x = await eatAt(g, x, pick.rest.x, pick.rest.y, pick.el, true, 'eatleaf');
-    await goHome(g, x);
+    cue('咬一下，葉子沙沙響～'); await tween(220,k => {leaf.style.opacity=String(1-k);}); leaf.remove(); await goHome(g,x);
   }
+
   const CHOREO = { snack: snackScript, bubble: bubbleScript, feather: featherScript, yarn: yarnScript, plane: planeScript, leaf: leafScript, ball: ballScript, grass: grassScript, pet: petScript, spin: spinScript, popcorn: popcornScript, hit: hitScript, five: noseScript };
 
   /* ---------- 待機小動作：眨眼／伸懶腰／跳一下（只動 transform）----------
@@ -1377,36 +1330,37 @@ html.fab-off .bibiring,html.fab-off .bibitip,html.fab-off .bibifx,html.fab-off #
     },
   };
   function startRun(id, isAct) {
-    runTok++; cancelAnimationFrame(rafId); clearStage();
+    runTok++; cancelTweens(); clearStage();
     run = { id, act: !!isAct }; fab.dataset.bibiRun = id;
     if (isAct) fab.classList.add('bibirun');   // 動作中鈕本身不接點擊（比比不在那裡）；待機小動作不擋，滑鼠移過去照樣開環
     ensureStage(); pose(0, 0); face(1);
   }
   function endRun() {
+    runTok++; cancelTweens(); ++showTok; watchOff();
     run = null; tipFollow = false; setTimeout(hopSched, 0);
     if (fab) { fab.classList.remove('bibirun'); delete fab.dataset.bibiRun; }
     pose(0, 0); face(1); clearStage();
   }
   function finishAct() {
-    mode = 'idle'; if (fab) delete fab.dataset.bibiAct;
+    mode = 'idle'; if (fab) {delete fab.dataset.bibiAct; fab.classList.remove('bibiinteracting');}
     if (ring) ring.classList.remove('cool');
     applyIdle(); schedFidget();
   }
   /** 打斷：立刻回原位、道具清掉。動作被打斷＝回情境待機；小動作被打斷＝只回原位（東張西望換過圖就換回來） */
   function stopRun(why) {
     pendingAct++;   // 包含仍在等首次載圖的動作：Esc／換頁／停止後不可偷偷啟動
-    waitingAct = false;
+    waitingAct = false; clearTimeout(ringSayTimer);
     if (!run) {
-      if (mode !== 'act') return false;
+      if (mode !== 'act' && mode !== 'loading') return false;
       lastStop = why || ''; actSerial++;
       clearTimeout(actTimer); clearTimeout(actFxTimer);
       document.querySelectorAll('.bibifx,.bibiflash').forEach((el) => el.remove());
-      finishAct(); return true;
+      runTok++; cancelTweens(); watchOff(); pose(0,0); face(1); clearStage(); hideTip(); finishAct(); return true;
     }
     actSerial++; clearTimeout(actFxTimer);
     const wasAct = run.act; lastStop = why || '';
-    runTok++; cancelAnimationFrame(rafId); clearTimeout(actTimer);
-    endRun();
+    runTok++; cancelTweens(); clearTimeout(actTimer);
+    endRun(); hideTip(); document.querySelectorAll('.bibifx,.bibiflash').forEach(el => el.remove());
     if (wasAct) finishAct(); else if (want !== idleFile()) applyIdle();
     return true;
   }
@@ -1456,6 +1410,7 @@ html.fab-off .bibiring,html.fab-off .bibitip,html.fab-off .bibifx,html.fab-off #
     hopEl = document.createElement('span'); hopEl.className = 'bibihop';   // 待機「開心的跳」的 CSS 動畫掛在這層（跟編排的 transform 分開，互不覆蓋）
     hopEl.appendChild(bodyEl); wrapEl.appendChild(hopEl); a.before(wrapEl); bodyEl.appendChild(a); bodyEl.appendChild(b);
     imgs = [a, b]; front = 0;
+    const stillCache = new Image(); stillCache.src = src(IDLE_STILL);
     shown = '';   // 開場那張（support.js 的 wave.webp，沒有版本戳）一律換成帶版本戳的待機圖
     fab.title = '';   // 改用自己的提示泡泡（說比比現在在幹嘛）；讀屏仍讀 aria-label「客服：比比・問題小助手」
     tip = document.createElement('div'); tip.id = 'bibiTip'; tip.className = 'bibitip'; tip.hidden = true; tip.setAttribute('aria-hidden', 'true');
@@ -1532,9 +1487,9 @@ html.fab-off .bibiring,html.fab-off .bibitip,html.fab-off .bibifx,html.fab-off #
   }
   /* 驗收用：注入假時間／假漲跌／假休市表、直接播某個動作、讀目前狀態 */
   window.Bibi = {
-    MAP: { ACTS, MS, IDLE: IDLE_HOP, STILL: IDLE_STILL },
+    MAP: { ACTS, MS, REACTIONS: REACTION_META, IDLE: IDLE_HOP, STILL: IDLE_STILL },
     state: () => ({ file: fab && fab.dataset.bibi || shown, shown, want, mode, loading: waitingAct, idle: idleNow && idleNow.key, say: idleNow && idleNow.say, sleeping, ring: ringOpen(),
-      run: run ? run.id : '', phase: run && run.phase || '', happy: shown === IDLE_HOP, off: { x: OFF.x, y: OFF.y }, body: bodyEl ? bodyEl.style.transform : '', stop: lastStop, props: stage ? stage.children.length : 0,
+      run: run ? run.id : '', phase: run && run.phase || '', happy: shown === IDLE_HOP, off: { x: OFF.x, y: OFF.y }, body: bodyEl ? bodyEl.style.transform : '', stop: lastStop, props: stage ? stage.children.length : 0, tweens: activeTweens.size, readyParts: Array.from(readyParts).filter(f => optionalParts.has(f)),
       src: imgs[front] ? (imgs[front].getAttribute('src') || '').replace(/[?#].*$/, '') : '', flip: flipNow,
       tip: tip && !tip.hidden && tip.classList.contains('on') ? tip.textContent : '' }),
     test: (o) => { o = o || {}; if ('now' in o) T.now = o.now; if ('pct' in o) T.pct = o.pct; if ('hol' in o) T.hol = o.hol;
