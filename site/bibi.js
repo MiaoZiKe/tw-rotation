@@ -27,22 +27,1254 @@
   const MS = {   // 每組一輪的毫秒數；bibi_site.py 最後一行印的就是這張表
     // 待機（唯一一款，循環）：第一版客服鈕的 8 格跳躍 GIF（bibi_site.py idle_hop）
     idle_hop: 800,
+    leaf_bite: 1200, bubble_react: 1000, plane_react: 1200, yarn_tumble: 2600,
     sleep_loop: 1360,                     // 點「睡覺」之後一直睡（互動，不是待機；10-12 四腳版：趴著蓋被子，8 格循環）
     // 互動（動畫單位 G1／G2 專屬素材；播一輪＝這個毫秒數就回情境待機）
     // 互動（動畫單位 10-11 深夜照原版造型重畫；bibi_site.py 最後一行印的毫秒數）
-    wake_once: 1630, selfie: 1200,        // wake_once／selfie：10-12 四腳版
-    hit: 650, cry: 1000,                  // 打他（播一次，最後一格＝cry 第 1 格）／哭哭（循環一輪）：10-12 四腳版
-    eat_q: 1900, spin_q: 1290,            // 10-12 四腳版：側面低頭吃地上的草（16 格）／四腳小跑繞一圈＋暈眩（13 格），播完都回 Default
+    wake_once: 1630, selfie: 2000,        // wake_once／selfie：10-12 四腳版
+    hit: 650, cry: 1800,                  // 打他（播一次，最後一格＝cry 第 1 格）／哭哭（循環一輪）：10-12 四腳版
+    eat_q: 1900, spin_q: 1600,            // 10-12 四腳版：側面低頭吃地上的草（16 格）／四腳小跑繞一圈＋暈眩（13 格），播完都回 Default
     /* 10-12 四腳版第 6～8 組＋丟東西互動（動畫單位 0ff4ddd，docs/anim/bibi_<名>/storyboard.md）：全部四腳著地、沒有手 */
     run_r: 560, run_l: 560, run_start_r: 340, run_stop_r: 850,   // 四腳對角小跑（循環）／起跑／煞車
     ball_catch: 1560, ball_catch_l: 1560,  // 撲出去用身體壓住球、彈起、用鼻子推（素材裡畫了球，最後一格＝Default＋球在旁邊）
     pet_q: 1680,                           // 摸摸：趴低瞇眼往右上蹭（不畫手）
     highfive: 1190,                        // 碰鼻子：往前伸頭、第 4 格（270ms）鼻子碰到
-    dance: 1290, hug: 1410,                // 跳舞＝爆米花連跳＋左右扭／抱抱＝蹭過來貼貼
+    dance: 2400, hug: 2200,                // 跳舞＝爆米花連跳＋左右扭／抱抱＝蹭過來貼貼
     receive: 1180,                         // 低頭嗅一嗅（東西在右前方地上）
-    popcorn: 1220,                         // 爆米花：垂直彈起、落地連彈越來越小
+    popcorn: 2000,                         // 爆米花：垂直彈起、落地連彈越來越小
     sniff_eat: 870, hop_reach: 810, pounce: 1120, tangle: 880, look_up: 640,   // 撒零食／吹泡泡＋落葉／羽毛棒／毛線球／紙飛機（look_up 循環）
   };
+  // 160px最終素材逐格錨點，durations/mouth/nose/body同索引。空陣列代表待量測，不能宣稱已校準。
+  // body每格格式：{cx,cy,angle,rx,ry,shoulder:[x,y],belly:[x,y],hip:[x,y]}。
+  const REACTION_META = {
+  "leaf_bite": {
+    "duration": 1200,
+    "contact": 300,
+    "durations": [
+      60,
+      50,
+      50,
+      60,
+      80,
+      70,
+      20,
+      60,
+      100,
+      60,
+      100,
+      60,
+      80,
+      60,
+      70,
+      90,
+      20,
+      110
+    ],
+    "mouth": [
+      [
+        114.22,
+        91.56
+      ],
+      [
+        116.09,
+        92.97
+      ],
+      [
+        112.34,
+        108.91
+      ],
+      [
+        114.22,
+        117.81
+      ],
+      [
+        119.38,
+        99.06
+      ],
+      [
+        117.03,
+        98.59
+      ],
+      [
+        115.16,
+        101.41
+      ],
+      [
+        113.28,
+        100.47
+      ],
+      [
+        119.38,
+        87.81
+      ],
+      [
+        117.5,
+        87.81
+      ],
+      [
+        119.38,
+        87.81
+      ],
+      [
+        117.5,
+        87.81
+      ],
+      [
+        114.69,
+        91.09
+      ],
+      [
+        114.69,
+        92.5
+      ],
+      [
+        117.03,
+        73.28
+      ],
+      [
+        119.38,
+        71.88
+      ],
+      [
+        110.94,
+        74.69
+      ],
+      [
+        109.06,
+        73.75
+      ]
+    ],
+    "nose": [
+      [
+        114.69,
+        88.28
+      ],
+      [
+        116.56,
+        90.62
+      ],
+      [
+        112.81,
+        106.09
+      ],
+      [
+        114.69,
+        115.94
+      ],
+      [
+        119.84,
+        93.91
+      ],
+      [
+        117.5,
+        95.31
+      ],
+      [
+        118.44,
+        96.25
+      ],
+      [
+        113.75,
+        97.19
+      ],
+      [
+        119.84,
+        82.66
+      ],
+      [
+        117.97,
+        84.06
+      ],
+      [
+        119.84,
+        82.66
+      ],
+      [
+        117.97,
+        84.06
+      ],
+      [
+        115.16,
+        85.94
+      ],
+      [
+        115.16,
+        88.75
+      ],
+      [
+        117.5,
+        70.0
+      ],
+      [
+        119.84,
+        68.12
+      ],
+      [
+        111.41,
+        71.41
+      ],
+      [
+        109.53,
+        70.47
+      ]
+    ],
+    "body": [
+      {
+        "cx": 79.53,
+        "cy": 102.81,
+        "rx": 58.59,
+        "ry": 38.44,
+        "angle": 0
+      },
+      {
+        "cx": 82.34,
+        "cy": 102.81,
+        "rx": 58.12,
+        "ry": 38.44,
+        "angle": 0
+      },
+      {
+        "cx": 81.41,
+        "cy": 110.78,
+        "rx": 57.66,
+        "ry": 34.69,
+        "angle": 0
+      },
+      {
+        "cx": 83.28,
+        "cy": 114.53,
+        "rx": 57.66,
+        "ry": 30.94,
+        "angle": 0
+      },
+      {
+        "cx": 80.94,
+        "cy": 108.44,
+        "rx": 59.06,
+        "ry": 36.09,
+        "angle": 0
+      },
+      {
+        "cx": 80.94,
+        "cy": 108.44,
+        "rx": 59.06,
+        "ry": 36.56,
+        "angle": 0
+      },
+      {
+        "cx": 82.34,
+        "cy": 109.38,
+        "rx": 58.12,
+        "ry": 35.62,
+        "angle": 0
+      },
+      {
+        "cx": 82.81,
+        "cy": 110.31,
+        "rx": 58.12,
+        "ry": 35.16,
+        "angle": 0
+      },
+      {
+        "cx": 80.94,
+        "cy": 100.47,
+        "rx": 59.06,
+        "ry": 34.22,
+        "angle": 0
+      },
+      {
+        "cx": 81.41,
+        "cy": 99.53,
+        "rx": 59.53,
+        "ry": 34.22,
+        "angle": 0
+      },
+      {
+        "cx": 80.94,
+        "cy": 100.47,
+        "rx": 59.06,
+        "ry": 34.22,
+        "angle": 0
+      },
+      {
+        "cx": 81.41,
+        "cy": 99.53,
+        "rx": 59.53,
+        "ry": 34.22,
+        "angle": 0
+      },
+      {
+        "cx": 80.47,
+        "cy": 102.34,
+        "rx": 59.06,
+        "ry": 34.22,
+        "angle": 0
+      },
+      {
+        "cx": 81.41,
+        "cy": 103.28,
+        "rx": 59.06,
+        "ry": 33.75,
+        "angle": 0
+      },
+      {
+        "cx": 80.47,
+        "cy": 88.28,
+        "rx": 58.59,
+        "ry": 37.03,
+        "angle": 0
+      },
+      {
+        "cx": 81.88,
+        "cy": 88.28,
+        "rx": 58.12,
+        "ry": 37.5,
+        "angle": 0
+      },
+      {
+        "cx": 79.53,
+        "cy": 91.56,
+        "rx": 57.66,
+        "ry": 37.03,
+        "angle": 0
+      },
+      {
+        "cx": 79.06,
+        "cy": 90.16,
+        "rx": 57.66,
+        "ry": 37.5,
+        "angle": 0
+      }
+    ],
+    "events": {},
+    "fallback": {
+      "mouth": [
+        112,
+        125
+      ],
+      "nose": [
+        112,
+        125
+      ]
+    },
+    "tip": [
+      0.72,
+      0.03
+    ],
+    "release": 850
+  },
+  "bubble_react": {
+    "duration": 1000,
+    "contact": 200,
+    "durations": [
+      40,
+      40,
+      40,
+      40,
+      40,
+      50,
+      100,
+      100,
+      80,
+      80,
+      70,
+      70,
+      60,
+      60,
+      60,
+      70
+    ],
+    "mouth": [
+      [
+        105.03,
+        78.07
+      ],
+      [
+        111.02,
+        75.07
+      ],
+      [
+        101.61,
+        87.5
+      ],
+      [
+        115.3,
+        87.5
+      ],
+      [
+        133.7,
+        71.22
+      ],
+      [
+        132.42,
+        68.65
+      ],
+      [
+        50.69,
+        93.92
+      ],
+      [
+        89.63,
+        90.92
+      ],
+      [
+        114.88,
+        78.07
+      ],
+      [
+        115.3,
+        74.22
+      ],
+      [
+        104.61,
+        79.79
+      ],
+      [
+        105.46,
+        69.08
+      ],
+      [
+        117.44,
+        81.93
+      ],
+      [
+        113.59,
+        54.51
+      ],
+      [
+        105.46,
+        72.08
+      ],
+      [
+        94.34,
+        75.07
+      ]
+    ],
+    "nose": [
+      [
+        105.46,
+        73.79
+      ],
+      [
+        111.02,
+        71.22
+      ],
+      [
+        101.61,
+        83.64
+      ],
+      [
+        115.3,
+        83.64
+      ],
+      [
+        133.7,
+        66.93
+      ],
+      [
+        132.42,
+        63.94
+      ],
+      [
+        50.69,
+        89.21
+      ],
+      [
+        89.63,
+        87.5
+      ],
+      [
+        115.3,
+        73.79
+      ],
+      [
+        115.73,
+        70.36
+      ],
+      [
+        105.03,
+        76.36
+      ],
+      [
+        105.89,
+        64.79
+      ],
+      [
+        117.87,
+        78.93
+      ],
+      [
+        114.02,
+        49.37
+      ],
+      [
+        105.89,
+        68.22
+      ],
+      [
+        94.34,
+        70.79
+      ]
+    ],
+    "body": [
+      {
+        "cx": 75.93,
+        "cy": 99.92,
+        "rx": 53.49,
+        "ry": 35.13,
+        "angle": 0
+      },
+      {
+        "cx": 79.79,
+        "cy": 99.06,
+        "rx": 53.06,
+        "ry": 34.7,
+        "angle": -5
+      },
+      {
+        "cx": 75.93,
+        "cy": 103.35,
+        "rx": 51.78,
+        "ry": 32.56,
+        "angle": 0
+      },
+      {
+        "cx": 82.35,
+        "cy": 104.63,
+        "rx": 54.77,
+        "ry": 29.99,
+        "angle": -10
+      },
+      {
+        "cx": 84.49,
+        "cy": 100.78,
+        "rx": 56.91,
+        "ry": 32.56,
+        "angle": -15
+      },
+      {
+        "cx": 84.49,
+        "cy": 99.92,
+        "rx": 56.49,
+        "ry": 32.98,
+        "angle": -15
+      },
+      {
+        "cx": 74.65,
+        "cy": 104.63,
+        "rx": 49.21,
+        "ry": 31.27,
+        "angle": 0
+      },
+      {
+        "cx": 75.51,
+        "cy": 105.49,
+        "rx": 48.36,
+        "ry": 30.84,
+        "angle": 0
+      },
+      {
+        "cx": 76.79,
+        "cy": 96.49,
+        "rx": 53.06,
+        "ry": 31.27,
+        "angle": 0
+      },
+      {
+        "cx": 81.5,
+        "cy": 96.49,
+        "rx": 52.21,
+        "ry": 32.56,
+        "angle": 0
+      },
+      {
+        "cx": 75.51,
+        "cy": 100.35,
+        "rx": 50.92,
+        "ry": 32.56,
+        "angle": 0
+      },
+      {
+        "cx": 78.5,
+        "cy": 95.21,
+        "rx": 53.06,
+        "ry": 32.56,
+        "angle": -5
+      },
+      {
+        "cx": 78.93,
+        "cy": 89.21,
+        "rx": 54.35,
+        "ry": 29.56,
+        "angle": 0
+      },
+      {
+        "cx": 82.78,
+        "cy": 81.07,
+        "rx": 53.92,
+        "ry": 32.56,
+        "angle": -15
+      },
+      {
+        "cx": 78.07,
+        "cy": 86.21,
+        "rx": 50.92,
+        "ry": 32.56,
+        "angle": 0
+      },
+      {
+        "cx": 76.36,
+        "cy": 86.64,
+        "rx": 51.78,
+        "ry": 32.13,
+        "angle": 0
+      }
+    ],
+    "events": {},
+    "fallback": {
+      "mouth": [
+        112,
+        125
+      ],
+      "nose": [
+        112,
+        125
+      ]
+    },
+    "curious": 450
+  },
+  "plane_react": {
+    "duration": 1200,
+    "contact": 200,
+    "durations": [
+      40,
+      40,
+      40,
+      40,
+      40,
+      70,
+      180,
+      120,
+      70,
+      80,
+      90,
+      90,
+      80,
+      80,
+      70,
+      70
+    ],
+    "mouth": [
+      [
+        89.02,
+        85.48
+      ],
+      [
+        90.37,
+        81.87
+      ],
+      [
+        102.55,
+        85.93
+      ],
+      [
+        111.12,
+        93.14
+      ],
+      [
+        128.7,
+        71.96
+      ],
+      [
+        112.02,
+        80.97
+      ],
+      [
+        97.59,
+        77.82
+      ],
+      [
+        89.02,
+        80.97
+      ],
+      [
+        96.69,
+        75.11
+      ],
+      [
+        106.16,
+        106.2
+      ],
+      [
+        102.1,
+        117.47
+      ],
+      [
+        111.57,
+        108.46
+      ],
+      [
+        107.51,
+        96.29
+      ],
+      [
+        109.31,
+        103.95
+      ],
+      [
+        93.08,
+        60.24
+      ],
+      [
+        90.82,
+        60.24
+      ]
+    ],
+    "nose": [
+      [
+        89.02,
+        82.77
+      ],
+      [
+        90.37,
+        79.17
+      ],
+      [
+        102.55,
+        83.22
+      ],
+      [
+        111.12,
+        90.43
+      ],
+      [
+        128.7,
+        69.25
+      ],
+      [
+        112.02,
+        77.82
+      ],
+      [
+        97.59,
+        75.11
+      ],
+      [
+        89.02,
+        78.27
+      ],
+      [
+        96.69,
+        72.41
+      ],
+      [
+        106.16,
+        103.5
+      ],
+      [
+        102.1,
+        114.77
+      ],
+      [
+        111.57,
+        105.75
+      ],
+      [
+        107.51,
+        93.59
+      ],
+      [
+        109.31,
+        101.25
+      ],
+      [
+        93.08,
+        57.54
+      ],
+      [
+        90.82,
+        57.54
+      ]
+    ],
+    "body": [
+      {
+        "cx": 69.63,
+        "cy": 107.56,
+        "rx": 50.06,
+        "ry": 34.7,
+        "angle": 0
+      },
+      {
+        "cx": 70.98,
+        "cy": 107.11,
+        "rx": 50.51,
+        "ry": 34.7,
+        "angle": 0
+      },
+      {
+        "cx": 77.75,
+        "cy": 108.01,
+        "rx": 51.86,
+        "ry": 34.25,
+        "angle": 0
+      },
+      {
+        "cx": 83.61,
+        "cy": 109.81,
+        "rx": 52.76,
+        "ry": 33.35,
+        "angle": -5
+      },
+      {
+        "cx": 89.02,
+        "cy": 108.91,
+        "rx": 56.82,
+        "ry": 33.8,
+        "angle": -15
+      },
+      {
+        "cx": 79.55,
+        "cy": 111.16,
+        "rx": 54.56,
+        "ry": 32.89,
+        "angle": -8
+      },
+      {
+        "cx": 75.49,
+        "cy": 109.81,
+        "rx": 50.96,
+        "ry": 33.35,
+        "angle": 0
+      },
+      {
+        "cx": 69.18,
+        "cy": 109.81,
+        "rx": 50.96,
+        "ry": 33.35,
+        "angle": 0
+      },
+      {
+        "cx": 70.98,
+        "cy": 99.9,
+        "rx": 51.86,
+        "ry": 32.44,
+        "angle": 0
+      },
+      {
+        "cx": 74.14,
+        "cy": 99.9,
+        "rx": 53.66,
+        "ry": 34.25,
+        "angle": 10
+      },
+      {
+        "cx": 74.59,
+        "cy": 105.75,
+        "rx": 53.66,
+        "ry": 32.89,
+        "angle": 12
+      },
+      {
+        "cx": 80.9,
+        "cy": 104.4,
+        "rx": 55.47,
+        "ry": 32.44,
+        "angle": 8
+      },
+      {
+        "cx": 72.33,
+        "cy": 88.63,
+        "rx": 54.11,
+        "ry": 33.8,
+        "angle": 8
+      },
+      {
+        "cx": 77.75,
+        "cy": 92.69,
+        "rx": 53.66,
+        "ry": 32.44,
+        "angle": 8
+      },
+      {
+        "cx": 71.43,
+        "cy": 80.52,
+        "rx": 51.86,
+        "ry": 34.7,
+        "angle": 0
+      },
+      {
+        "cx": 70.98,
+        "cy": 80.52,
+        "rx": 50.96,
+        "ry": 34.7,
+        "angle": 0
+      }
+    ],
+    "events": {},
+    "fallback": {
+      "mouth": [
+        112,
+        125
+      ],
+      "nose": [
+        112,
+        125
+      ]
+    },
+    "tip": [
+      0.99,
+      0.01
+    ],
+    "sniff": 570
+  },
+  "yarn_tumble": {
+    "duration": 2600,
+    "contact": 600,
+    "durations": [
+      110,
+      110,
+      120,
+      130,
+      130,
+      160,
+      180,
+      180,
+      230,
+      230,
+      190,
+      190,
+      180,
+      180,
+      160,
+      120
+    ],
+    "mouth": [
+      [
+        102.05,
+        100.81
+      ],
+      [
+        101.63,
+        116.09
+      ],
+      [
+        99.08,
+        103.78
+      ],
+      [
+        99.08,
+        103.78
+      ],
+      [
+        100.36,
+        109.3
+      ],
+      [
+        100.78,
+        111.85
+      ],
+      [
+        95.69,
+        115.24
+      ],
+      [
+        93.57,
+        115.24
+      ],
+      [
+        99.08,
+        102.08
+      ],
+      [
+        102.48,
+        105.48
+      ],
+      [
+        96.96,
+        107.18
+      ],
+      [
+        84.67,
+        111.0
+      ],
+      [
+        110.54,
+        97.83
+      ],
+      [
+        105.87,
+        105.48
+      ],
+      [
+        104.17,
+        85.52
+      ],
+      [
+        98.66,
+        81.7
+      ]
+    ],
+    "nose": [
+      [
+        102.05,
+        96.14
+      ],
+      [
+        101.63,
+        111.85
+      ],
+      [
+        99.08,
+        99.53
+      ],
+      [
+        99.08,
+        99.53
+      ],
+      [
+        100.36,
+        104.63
+      ],
+      [
+        100.78,
+        106.33
+      ],
+      [
+        95.69,
+        109.72
+      ],
+      [
+        93.57,
+        111.0
+      ],
+      [
+        99.08,
+        96.98
+      ],
+      [
+        102.48,
+        99.96
+      ],
+      [
+        96.96,
+        102.5
+      ],
+      [
+        84.67,
+        105.9
+      ],
+      [
+        110.54,
+        93.59
+      ],
+      [
+        105.87,
+        102.08
+      ],
+      [
+        104.17,
+        80.85
+      ],
+      [
+        98.66,
+        77.03
+      ]
+    ],
+    "body": [
+      {
+        "cx": 76.61,
+        "cy": 99.53,
+        "rx": 50.47,
+        "ry": 33.54,
+        "angle": 0
+      },
+      {
+        "cx": 78.73,
+        "cy": 105.48,
+        "rx": 49.62,
+        "ry": 29.72,
+        "angle": 8
+      },
+      {
+        "cx": 77.46,
+        "cy": 101.66,
+        "rx": 49.62,
+        "ry": 33.12,
+        "angle": 8
+      },
+      {
+        "cx": 77.46,
+        "cy": 101.66,
+        "rx": 49.62,
+        "ry": 33.12,
+        "angle": 8
+      },
+      {
+        "cx": 78.3,
+        "cy": 104.2,
+        "rx": 50.89,
+        "ry": 33.54,
+        "angle": 15
+      },
+      {
+        "cx": 80.0,
+        "cy": 105.9,
+        "rx": 51.32,
+        "ry": 33.12,
+        "angle": 30
+      },
+      {
+        "cx": 76.61,
+        "cy": 108.02,
+        "rx": 51.74,
+        "ry": 32.27,
+        "angle": 40
+      },
+      {
+        "cx": 77.46,
+        "cy": 108.87,
+        "rx": 51.74,
+        "ry": 31.0,
+        "angle": 50
+      },
+      {
+        "cx": 77.03,
+        "cy": 98.68,
+        "rx": 53.44,
+        "ry": 31.42,
+        "angle": 60
+      },
+      {
+        "cx": 80.42,
+        "cy": 100.38,
+        "rx": 52.17,
+        "ry": 31.0,
+        "angle": 55
+      },
+      {
+        "cx": 77.03,
+        "cy": 103.35,
+        "rx": 50.89,
+        "ry": 31.0,
+        "angle": 40
+      },
+      {
+        "cx": 75.76,
+        "cy": 104.63,
+        "rx": 50.89,
+        "ry": 29.3,
+        "angle": 20
+      },
+      {
+        "cx": 79.15,
+        "cy": 91.46,
+        "rx": 51.74,
+        "ry": 28.45,
+        "angle": 12
+      },
+      {
+        "cx": 77.88,
+        "cy": 96.98,
+        "rx": 51.74,
+        "ry": 28.45,
+        "angle": 10
+      },
+      {
+        "cx": 76.61,
+        "cy": 90.19,
+        "rx": 50.04,
+        "ry": 31.85,
+        "angle": 0
+      },
+      {
+        "cx": 77.03,
+        "cy": 88.49,
+        "rx": 49.62,
+        "ry": 31.85,
+        "angle": 0
+      }
+    ],
+    "events": {
+      "line_appears": 220,
+      "paw_blocked": 340,
+      "tilt_starts": 600,
+      "side_contact": 940,
+      "side_lie": 1120,
+      "struggle": 1350,
+      "first_loosen": 1580,
+      "second_loosen": 1770,
+      "paw_free": 1960,
+      "body_free": 2140,
+      "stand_up": 2320,
+      "restored": 2480
+    },
+    "fallback": {
+      "mouth": [
+        112,
+        125
+      ],
+      "nose": [
+        112,
+        125
+      ]
+    },
+    "embeddedThread": true,
+    "tail": [
+      null,
+      null,
+      [
+        9.67,
+        128.5
+      ],
+      [
+        9.67,
+        128.5
+      ],
+      [
+        31.62,
+        88.62
+      ],
+      [
+        28.67,
+        90.17
+      ],
+      [
+        17.63,
+        104.32
+      ],
+      [
+        14.6,
+        103.8
+      ],
+      [
+        50.64,
+        93.14
+      ],
+      [
+        42.0,
+        91.0
+      ],
+      [
+        14.8,
+        118.4
+      ],
+      [
+        12.83,
+        119.0
+      ],
+      [
+        58.71,
+        99.86
+      ],
+      [
+        111.67,
+        111.67
+      ],
+      null,
+      null
+    ]
+  }
+};
   /* 分頁（hash 第一段）→ 情境鍵＋泡泡說明句（10-12 起只換說明句，不換圖） */
   const PAGES = [
     [['overview', ''], 'overview', '歡迎回來！比比陪你看今天的盤勢'],
@@ -77,8 +1309,8 @@
     { id: 'hit', name: '打他', file: 'hit', once: true, fx: 'star', say: ['嗚嗚…好痛', '哇——比比哭哭了'], cnt: (n) => `今天被打了 ${n} 次…嗚嗚` },
     /* 擊掌 → 碰鼻子（10-12 四腳版：天竺鼠不擊掌，往前伸頭用鼻子碰一下） */
     { id: 'five', name: '碰鼻子', file: 'highfive', once: true, fx: 'heart', say: ['啵！碰鼻子～', '鼻子碰鼻子，今天也一起加油'], cnt: (n) => `今天第 ${n} 次碰鼻子，默契 100！` },
-    { id: 'dance', name: '跳舞', file: 'dance', once: true, fx: 'note', say: ['爆米花舞～啵啵啵', '比比的舞步帥嗎？'], cnt: (n) => `今天跳了 ${n} 支舞！` },
-    { id: 'hug', name: '抱抱', file: 'hug', once: true, fx: 'heart', say: ['蹭蹭～貼貼～比比陪著你', '暖暖的'], cnt: (n) => `今天第 ${n} 個抱抱，好幸福` },
+    { id: 'dance', name: '聽音樂', file: 'dance', once: true, fx: 'note', say: ['這首好喜歡～', '跟著節奏晃一晃！'], cnt: (n) => `今天聽了 ${n} 次音樂！` },
+    { id: 'hug', name: '蹭蹭', file: 'hug', once: true, fx: 'heart', say: ['蹭蹭～貼貼～比比陪著你', '暖暖的'], cnt: (n) => `今天第 ${n} 次蹭蹭，好幸福` },
     { id: 'sleep', name: '睡覺', file: 'sleep_loop', fx: 'z', sleep: true, say: ['比比去睡一下，Zzz…'], wake: { name: '叫醒', file: 'wake_once', once: true, fx: 'star', say: ['醒來了！繼續陪你看盤'] } },
     { id: 'selfie', name: '拍照比耶', file: 'selfie', once: true, fx: 'flash', say: ['咔嚓！比耶～', '拍得可愛嗎？'], cnt: (n) => `今天拍了 ${n} 張，比比是網美` },
   ];
@@ -125,14 +1357,14 @@
   const fabOff = () => html.classList.contains('fab-off');
   const $ = (id) => document.getElementById(id);
   /* 素材版本戳：換了 brand/bibi/ 裡的圖（同檔名）就改這個字串，使用者不用清快取就拿到新圖（10-11 週末款換圖後 Andy 仍看到舊圖） */
-  const AV = '1012c';
+  const AV = '1016natural3';
   const src = (f) => 'brand/bibi/' + f + '.webp?v=' + AV;
   const T = { now: null, pct: undefined, hol: null };   // 驗收注入（Bibi.test）：假時間、假漲跌、假休市表
 
   /* ---------- 樣式 ---------- */
   const CSS = `
 /* 比比圖：一律用同一個裁切框的 160px 素材（腳底同一高度），顯示得比按鈕大一點、往上長，換動作時大小位置不跳 */
-.supfab.supgifonly .supgif.bibiimg{position:absolute;width:104px;height:104px;left:calc(50% - 52px);bottom:-3px;max-width:none;transform:none;transition:opacity .35s ease;pointer-events:none}
+.supfab.supgifonly .supgif.bibiimg{position:absolute;width:104px;height:104px;left:calc(50% - 52px);bottom:-3px;max-width:none;transform:none;transition:none;pointer-events:none}
 .supfab.supgifonly:hover .supgif.bibiimg{transform:none}
 .supfab.supgifonly .supgif.bibiimg.bibiback{opacity:0}
 @media (max-width:820px){.supfab.supgifonly .supgif.bibiimg{width:84px;height:84px;left:calc(50% - 42px);bottom:-2px}}
@@ -185,6 +1417,9 @@ html.fab-off .bibiring,html.fab-off .bibitip,html.fab-off .bibifx,html.fab-off #
 .supfab .bibibody{transform-origin:50% 96%}
 .supfab .bibihop{position:absolute;inset:0;pointer-events:none;display:block;transform-origin:50% 96%}
 .supfab.bibirun{pointer-events:none}
+.supfab.bibiinteracting .bibihop,.supfab.bibiinteracting .bibiimg{animation:none!important;transition:none!important}
+.supfab .bibiimg.bibiback{visibility:hidden!important}
+.supfab.bibiinteracting .bibiimg:not(.bibiback){opacity:1!important}
 .supfab.bibirun .supgif.bibiimg,.supfab.bibiquick .supgif.bibiimg{transition:none}   /* 動作中、跳一下（Default↔jump）直接切格：交叉淡化會看到兩隻半透明疊在一起 */
 #bibiStage{position:fixed;left:0;top:0;width:100vw;height:100vh;overflow:hidden;pointer-events:none;z-index:1201}
 #bibiStage>*{position:absolute;left:0;top:0;pointer-events:none;will-change:transform}
@@ -273,7 +1508,7 @@ html.fab-off .bibiring,html.fab-off .bibitip,html.fab-off .bibifx,html.fab-off #
   }
 
   /* ---------- 圖層：兩張 img 交叉淡入淡出 ---------- */
-  let fab = null, imgs = [], front = 0, shown = '', want = '', mode = 'idle', idleNow = null, actTimer = 0, sleeping = false, sayTimer = 0;
+  let fab = null, imgs = [], front = 0, shown = '', want = '', mode = 'idle', idleNow = null, actTimer = 0, sleeping = false, sayTimer = 0, sayRaf = 0;
   let replay = 0, showTok = 0, hopEl = null, flipNow = 1;
   /** 素材左右翻面（f＝-1：臉朝左）。四腳版只畫了臉朝右的（嗅、撲、吃零食、碰鼻子…），比比在右下角、東西都在左邊 → 鏡像。
       翻的是 .bibihop 這層（跟 .bibibody 的擠壓伸展分開，驗收量身體比例照舊只看 .bibibody）。只鏡像、不改身體比例。 */
@@ -323,11 +1558,11 @@ html.fab-off .bibiring,html.fab-off .bibitip,html.fab-off .bibifx,html.fab-off #
     if (!tip || !fab || fabOff() || fab.hidden) return;
     tip.textContent = text; tip.hidden = false;
     placeTip();
-    requestAnimationFrame(() => tip.classList.add('on'));
+    cancelAnimationFrame(sayRaf); sayRaf = requestAnimationFrame(() => { sayRaf = 0; tip.classList.add('on'); });
     clearTimeout(sayTimer);
     if (ms) sayTimer = setTimeout(() => { if (ring && ring.classList.contains('on') || hoverFab) { tip.textContent = tipText(); placeTip(); } else hideTip(); }, ms);
   }
-  function hideTip() { if (!tip) return; tip.classList.remove('on'); clearTimeout(sayTimer); sayTimer = setTimeout(() => { if (!tip.classList.contains('on')) tip.hidden = true; }, 200); }
+  function hideTip() { cancelAnimationFrame(sayRaf); sayRaf = 0; if (!tip) return; tip.classList.remove('on'); clearTimeout(sayTimer); sayTimer = setTimeout(() => { if (!tip.classList.contains('on')) tip.hidden = true; }, 200); }
   function placeTip() {
     if (!tip || tip.hidden) return;
     /* 比比跑出去時泡泡只跟著他左右走（不跟著上下彈，不然字會抖）；摸摸頭時手在頭上 → 泡泡放到比比靠畫面內側的旁邊 */
@@ -352,7 +1587,7 @@ html.fab-off .bibiring,html.fab-off .bibitip,html.fab-off .bibifx,html.fab-off #
   /* 10-11 深夜 Andy 看了線上版：「互動按鈕改成原本那樣」（選擇題確認＝全部小圈一次攤開，回到第一版：分層扇形一次全部顯示、拿掉「下一頁」）。
      以比比當下位置為圓心，每一層半徑算出「整顆小圈都在視窗內」的角度範圍，由內往外一層層排，直到全部放完；
      比比在右下角＝往左上的扇形；被拖到左邊／上方自動往右／往下翻；在畫面中間＝一整圈。「問比比」排第一個＝最內層（離比比最近）。 */
-  let openWH = '', ring = null, hoverFab = false, openT = 0, closeT = 0, openedAt = 0, ringMaxR = 0;
+  let openWH = '', ring = null, hoverFab = false, openT = 0, closeT = 0, openedAt = 0, ringMaxR = 0, ringSayTimer = 0;
   const OPT = () => (isMob() ? 40 : 44);   // 手機 40px（Andy 規則 ≥40、≥32 觸控下限）；桌機 44px
   function center() {
     const r = fab.getBoundingClientRect();
@@ -465,10 +1700,10 @@ html.fab-off .bibiring,html.fab-off .bibitip,html.fab-off .bibifx,html.fab-off #
     ring.classList.add('on');
     watchOn();
     ring.classList.toggle('cool', mode === 'act');
-    setTimeout(() => say(tapMode() ? (tipText() + '（點小圈跟比比玩）') : tipText()), reduce() ? 0 : 200);
+    clearTimeout(ringSayTimer); ringSayTimer = setTimeout(() => { if (ringOpen() && mode === 'idle') say(tapMode() ? (tipText() + '（點小圈跟比比玩）') : tipText()); }, reduce() ? 0 : 200);
   }
   function closeRing(instant) {
-    clearTimeout(openT); clearTimeout(closeT);
+    clearTimeout(openT); clearTimeout(closeT); clearTimeout(ringSayTimer);
     if (!fab) return;
     delete fab.dataset.ring;
     fab.classList.remove('bibiopen');
@@ -500,13 +1735,25 @@ html.fab-off .bibiring,html.fab-off .bibitip,html.fab-off .bibifx,html.fab-off #
   function watchOff() { if (blockMo) { blockMo.disconnect(); blockMo = null; } clearTimeout(blockT); blockT = 0; }
 
   /* ---------- 動作 ---------- */
-  let actFrom = null, hitUntil = 0, hitLog = [];
-  function act(id, btn) {
+  let actFrom = null, hitUntil = 0, hitLog = [], actFxTimer = 0, actSerial = 0, pendingAct = 0, waitingAct = false;
+  async function act(id, btn) {
     const a0 = ACTS.find((x) => x.id === id); if (!a0) return;
-    if (a0.ask) { closeRing(true); if (window.TwSupport && window.TwSupport.open) window.TwSupport.open(); return; }
+    if (a0.ask) { stopRun('ask'); pendingAct++; waitingAct = false; closeRing(true); if (window.TwSupport && window.TwSupport.open) window.TwSupport.open(); return; }
     if (mode === 'act') return;                       // 冷卻：上一個動作還沒播完
+    stopFidget(); freezeIdle();
+    const request = ++pendingAct;
+    mode = 'loading';
+    waitingAct = false;
+    if (!reduce() && !assetsReady) {
+      waitingAct = true;
+      say('比比準備玩具中…', 15000);
+      const ready = await preload();
+      if (request !== pendingAct || mode === 'act') return;
+      waitingAct = false;
+      if (!ready) { finishAct(); say('玩具還沒載好，再試一次吧', 2500); return; }
+    }
     /* 打他：不准連打（Andy：「點太多次時加冷卻」）—— 每次打完至少隔 4 秒；一分鐘內第 3 次起隔 15 秒 */
-    if (a0.id === 'hit' && Date.now() < hitUntil) { say('比比還在痛…等一下再玩嘛', 1800); return; }
+    if (a0.id === 'hit' && Date.now() < hitUntil) { finishAct(); say('比比還在痛…等一下再玩嘛', 1800); return; }
     if (a0.id === 'hit') {
       const now = Date.now(); hitLog = hitLog.filter((t) => now - t < 60000); hitLog.push(now);
       hitUntil = now + 4500 + (hitLog.length >= 3 ? 15000 : 4000);   // 4.5 秒＝整段（飛＋敲＋哭）的長度
@@ -517,6 +1764,7 @@ html.fab-off .bibiring,html.fab-off .bibitip,html.fab-off .bibifx,html.fab-off #
     let a = a0;
     if (a0.sleep && sleeping) a = Object.assign({ id: 'wake' }, a0.wake);
     const n = bump(a0.id === 'sleep' ? (sleeping ? 'wake' : 'sleep') : a0.id);
+    const serial = ++actSerial;
     mode = 'act'; fab.dataset.bibiAct = a.id === 'wake' ? 'wake' : a0.id;
     /* 有編排腳本的（球／草／摸摸／轉圈）：比比要離開原位、道具要空間 → 環先收起（這一下不算打斷），泡泡跟著比比走 */
     if (CHOREO[a.id] && !reduce()) {
@@ -524,19 +1772,25 @@ html.fab-off .bibiring,html.fab-off .bibitip,html.fab-off .bibifx,html.fab-off #
       let line0 = a.say[Math.floor(Math.random() * a.say.length)];
       if (a.cnt && (n === 3 || n % 5 === 0)) line0 = a.cnt(n);
       playChoreo(a, line0);
-      setTimeout(() => { if (run && run.act && run.id === a.id && !run.said && ['ball', 'grass', 'hit', 'snack', 'bubble', 'feather', 'yarn', 'plane', 'leaf', 'five'].indexOf(run.id) < 0) cue(); }, 60);   // 摸摸／轉圈開頭就說；球、草等到接住／開吃、打他等到哭才說
+      setTimeout(() => { if (serial === actSerial && run && run.act && run.id === a.id && !run.said && ['ball', 'grass', 'hit', 'snack', 'bubble', 'feather', 'yarn', 'plane', 'leaf', 'five'].indexOf(run.id) < 0) cue(); }, 60);   // 摸摸／轉圈開頭就說；球、草等到接住／開吃、打他等到哭才說
       return;
     }
     if (ring) ring.classList.add('cool');
     show(a.file, !!a.once);
-    { const f = a.file, t0 = Date.now(); const go = () => { if (mode !== 'act') return; if (shown === f || Date.now() - t0 > 700) burst(a.fx); else setTimeout(go, 40); }; go(); }
+    { const f = a.file; const go = () => {
+      if (mode !== 'act' || serial !== actSerial) return;
+      if (shown === f) {
+        // 拍照新版中段定格觸發快門；取消時沿用 actFxTimer 清除。
+        actFxTimer = setTimeout(() => { if (mode === 'act' && serial === actSerial) burst(a.fx); }, a.id === 'selfie' ? 1170 : 0);
+      } else actFxTimer = setTimeout(go, 40);
+    }; go(); }
     let line = a.say[Math.floor(Math.random() * a.say.length)];
     if (a.cnt && (n === 3 || n % 5 === 0)) line = a.cnt(n);
     say(line, 2600);
     const dur = a.once ? (MS[a.file] || 2500) + 150 : Math.max(1800, Math.min(3200, (MS[a.file] || 1200) * 2));
     clearTimeout(actTimer);
     actTimer = setTimeout(() => {
-      mode = 'idle'; delete fab.dataset.bibiAct; fab.classList.remove('bibispin');
+      mode = 'idle'; delete fab.dataset.bibiAct; fab.classList.remove('bibispin', 'bibiinteracting');
       if (a0.sleep) { sleeping = a.id !== 'wake'; fab.dataset.bibiSleep = sleeping ? '1' : ''; syncSleepBtn(); }
       if (ring) ring.classList.remove('cool');
       applyIdle(); schedFidget();
@@ -581,7 +1835,8 @@ html.fab-off .bibiring,html.fab-off .bibitip,html.fab-off .bibifx,html.fab-off #
     receive: 'receive',                             // 低頭嗅一嗅（玩球：球滾到腳邊時）
     hit: 'hit', cry: 'cry',                         // 打他（播一次）／哭哭（循環）
     nose: 'highfive',                               // 碰鼻子（擊掌改的）
-    // 玩具六件組（10-12 第 8 組）：撒零食＝跑過去 sniff_eat、吹泡泡／落葉＝hop_reach 往上撲、羽毛棒＝pounce、毛線球＝ball_catch→tangle、紙飛機＝look_up 抬頭循環
+    // 專屬接觸反應使用獨立映射；缺圖才沿用保守四腳圖，readyParts明示實際載入狀態。
+    leaf_bite: 'leaf_bite', bubble_react: 'bubble_react', plane_react: 'plane_react', yarn_tumble: 'yarn_tumble',
     snack_eat: 'sniff_eat', hop: 'hop_reach', pounce: 'pounce', tangle: 'tangle', look: 'look_up',
   };
   /* 網頁自己畫的小東西只剩：影子、摸摸頭的愛心圈、星星（道具一律用動畫單位的 PNG，見 pic()） */
@@ -598,7 +1853,7 @@ html.fab-off .bibiring,html.fab-off .bibitip,html.fab-off .bibifx,html.fab-off #
   };
   const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
   const ABORT = { abort: true };
-  let wrapEl = null, bodyEl = null, stage = null, run = null, runTok = 0, rafId = 0, fidgetT = 0, noFidget = true, tipFollow = false, lastStop = '';
+  let wrapEl = null, bodyEl = null, stage = null, run = null, runTok = 0, fidgetT = 0, noFidget = true, tipFollow = false, lastStop = '';
   const OFF = { x: 0, y: 0 };
   /** 比比的位移（相對原位）＋身體的擠壓伸展：sx/sy 縮放、sk 傾斜（正＝上半身往左）、r 旋轉 */
   function pose(x, y, o) {
@@ -609,18 +1864,24 @@ html.fab-off .bibiring,html.fab-off .bibitip,html.fab-off .bibifx,html.fab-off #
     bodyEl.style.transform = (sx !== 1 || sy !== 1 || sk || r) ? `rotate(${r.toFixed(2)}deg) skewX(${sk.toFixed(2)}deg) scale(${sx.toFixed(3)},${sy.toFixed(3)})` : '';
   }
   /** 一段 ms 毫秒的補間：每格叫 fn(k∈0..1, 經過毫秒)。被打斷（runTok 換了）就丟 ABORT，腳本整段停下。 */
+  const activeTweens = new Set();
+  function cancelTweens() {
+    for (const task of activeTweens) { cancelAnimationFrame(task.id); task.reject(ABORT); }
+    activeTweens.clear();
+  }
   function tween(ms, fn) {
     const tok = runTok;
     return new Promise((res, rej) => {
-      const t0 = performance.now();
-      const step = (now) => {
-        if (tok !== runTok) { rej(ABORT); return; }
-        const el = Math.max(0, now - t0), k = ms > 0 ? Math.min(1, el / ms) : 1;
-        try { fn(k, el); } catch (e) { rej(e); return; }
+      const t0 = performance.now(), task = {id:0,reject:rej}; activeTweens.add(task);
+      const finish = err => { activeTweens.delete(task); err ? rej(err) : res(); };
+      const step = now => {
+        if (tok !== runTok) { finish(ABORT); return; }
+        const el = Math.max(0,now-t0), k = ms > 0 ? Math.min(1,el/ms) : 1;
+        try { fn(k,el); } catch(e) { finish(e); return; }
         if (tipFollow && tip && !tip.hidden) placeTip();
-        if (k >= 1) res(); else rafId = requestAnimationFrame(step);
+        if (k >= 1) finish(); else task.id = requestAnimationFrame(step);
       };
-      rafId = requestAnimationFrame(step);
+      step(t0); // 起步當下執行，每條並行補間各自追蹤，不漏背景RAF。
     });
   }
   const wait = (ms) => tween(ms, () => {});
@@ -631,7 +1892,7 @@ html.fab-off .bibiring,html.fab-off .bibitip,html.fab-off .bibifx,html.fab-off #
     stage = document.createElement('div'); stage.id = 'bibiStage'; stage.setAttribute('aria-hidden', 'true');
     document.body.appendChild(stage); return stage;
   }
-  function clearStage() { if (stage) stage.innerHTML = ''; }
+  function clearStage() { if (stage) stage.innerHTML = ''; document.querySelectorAll('.bibi-back-thread').forEach(el => el.remove()); }
   /** 道具：寬 w 高 h，用 at() 以「中心點」擺位置 */
   function prop(kind, w, h) {
     const el = document.createElement('div'); el.className = 'bp bp-' + kind + (kind === 'shadow' ? ' bshadow' : '');
@@ -664,13 +1925,27 @@ html.fab-off .bibiring,html.fab-off .bibitip,html.fab-off .bibifx,html.fab-off #
     const cx = fr.left + fr.width / 2;
     return { cx, s, foot: bottom - s * 0.05, top: bottom - s, vw, vh: window.innerHeight, mob: isMob(), dir: cx > vw / 2 ? -1 : 1 };
   }
-  let preloaded = false;
+  let preloaded = null, assetsReady = false;
+  const optionalParts = new Set(['leaf_bite','bubble_react','plane_react','yarn_tumble']), readyParts = new Set();
+  const reactionFile = (name,fallback) => readyParts.has(name) ? PART[name] : fallback;
+  function freezeIdle() {
+    fab.classList.add('bibiinteracting'); fab.classList.remove('bibispin');
+    ++showTok; want = shown = IDLE_STILL; fab.dataset.bibi = IDLE_STILL;
+    imgs.forEach((img,i) => { img.onload = img.onerror = null; img.setAttribute('src',src(IDLE_STILL)); img.classList.toggle('bibiback',i !== front); });
+    pose(0,0); face(1);
+  }
   const PROP_FILES = ['ball', 'grass', 'hammer', 'seed', 'carrot', 'bubble', 'feather', 'yarn_ball', 'plane', 'leaf', 'petal'];
   function preload() {
-    if (preloaded) return; preloaded = true;
-    Object.keys(PART).forEach((k) => { if (PART[k]) { const i = new Image(); i.src = src(PART[k]); } });
-    PROP_FILES.forEach((f) => { const i = new Image(); i.src = `brand/bibi/props/${f}.png?v=${AV}`; });
-    { const i = new Image(); i.src = `brand/bibi/props/pop_burst.webp?v=${AV}`; }
+    if (preloaded) return preloaded;
+    const urls = Object.keys(MS).filter((f) => f !== IDLE_HOP).map(src)
+      .concat(PROP_FILES.map((f) => `brand/bibi/props/${f}.png?v=${AV}`), `brand/bibi/props/pop_burst.webp?v=${AV}`);
+    preloaded = Promise.all(urls.map((url) => new Promise((resolve) => {
+      const image = new Image(); let done = false;
+      const finish = (ok) => { if (done) return; done = true; clearTimeout(timer); image.onload = image.onerror = null; resolve(ok); };
+      const timer = setTimeout(() => finish(false), 15000);
+      image.onload = () => { readyParts.add(url.split('/').pop().split('.')[0]); finish(true); }; image.onerror = () => finish(false); image.src = url;
+    }))).then((loaded) => { assetsReady = loaded.every((ok,i) => ok || optionalParts.has(urls[i].split('/').pop().split('.')[0])); if (!assetsReady) preloaded = null; return assetsReady; });
+    return preloaded;
   }
   function idleFile() { return sleeping ? SLEEP_FILE : ((idleNow && idleNow.file) || IDLE_HOP); }
 
@@ -681,6 +1956,32 @@ html.fab-off .bibiring,html.fab-off .bibitip,html.fab-off .bibifx,html.fab-off #
   const sc = (g, X, Y) => ({ x: g.cx + (X - 248) * g.s / 440, y: g.top + (Y - 52) * g.s / 440 });
   const A = (g, ax, ay, f) => ({ dx: (f || 1) * (ax - 80) * g.s / 160, y: g.top + ay * g.s / 160 });
   const Q = (g, X, Y, f) => A(g, (247.5 + (X - 248) * 0.745 - 28) * 160 / 440, (481 + (Y - 488) * 0.745 - 52) * 160 / 440, f);
+  const reactionDuration = name => {
+    const m = REACTION_META[name]; return m.durations.length ? m.durations.reduce((sum,ms) => sum + ms,0) : m.duration;
+  };
+  function reactionFrame(name,elapsed) {
+    const ds = REACTION_META[name].durations; let i=0,end=ds[0] || Infinity;
+    while (i < ds.length-1 && elapsed >= end) end += ds[++i]; return i;
+  }
+  function reactionAnchor(g,name,kind,elapsed,facing) {
+    const m = REACTION_META[name], point = (readyParts.has(name) && m[kind][reactionFrame(name,elapsed)]) || m.fallback[kind];
+    return A(g,point[0],point[1],facing);
+  }
+  function reactionBody(g,name,elapsed,facing) {
+    const raw = (readyParts.has(name) && REACTION_META[name].body[reactionFrame(name,elapsed)]) || {};
+    const center = A(g,raw.cx ?? 80,raw.cy ?? 103,facing), unit=g.s/160, angle=(raw.angle || 0)*facing*Math.PI/180;
+    const anchors = ['shoulder','belly','hip'].map((kind,i) => {
+      if(raw[kind]) { const p=A(g,raw[kind][0],raw[kind][1],facing); return {x:p.dx,y:p.y}; }
+      const dy=(i-1)*g.s*.1; return {x:center.dx-Math.sin(angle)*dy,y:center.y+Math.cos(angle)*dy};
+    });
+    return {x:center.dx,y:center.y,angle,rx:(raw.rx ?? 57.6)*unit,ry:(raw.ry ?? 25.6)*unit,anchors};
+  }
+  // 以PNG尖端錨定，旋轉或鏡像後仍對齊嘴緣／鼻尖，非圖片中心貼臉。
+  function atTip(el,x,y,tip,angle,flip) {
+    const rad=angle*Math.PI/180,dx=(tip[0]-.5)*el._w*(flip || 1),dy=(tip[1]-.5)*el._h;
+    const ox=dx*Math.cos(rad)-dy*Math.sin(rad),oy=dx*Math.sin(rad)+dy*Math.cos(rad);
+    at(el,x-ox,y-oy,` rotate(${angle.toFixed(2)}deg) scaleX(${flip || 1})`,1);
+  }
   /** 道具圖（動畫單位的正式 PNG：brand/bibi/props/<file>.png，bibi_site.py props 裁到東西本身、長邊 128px）。
       cls＝驗收找它用的 class（bp-<cls>）、w×h 是螢幕尺寸、flip＝左右鏡像。第一次 at() 擺好位置才出現（不然會在左上角閃一格）。 */
   function pic(cls, file, w, h, flip) {
@@ -754,7 +2055,7 @@ html.fab-off .bibiring,html.fab-off .bibitip,html.fab-off .bibifx,html.fab-off #
       drawBall(ballAt(t));
       if (t < lag) { const u = t / lag; pose(dir * 4 * Math.sin(Math.PI * Math.min(1, u * 2)), 0, {}); return; }
       if (!ran) { ran = true; show(dir < 0 ? PART.run_l : PART.run_r); }
-      const u = (t - lag) / (T - lag), p = Db * E.inOut(u);
+      const u = (t - lag) / (T - lag), p = Db * u;
       const sp = Math.sin(Math.PI * u);
       pose(p, bobY(g, t - lag), { sk: -dir * 7 * sp, sx: 1 - 0.02 * sp, sy: 1 + 0.025 * sp });
     });
@@ -769,12 +2070,12 @@ html.fab-off .bibiring,html.fab-off .bibitip,html.fab-off .bibifx,html.fab-off #
     // 3. 跑回原位：球留在原地（素材最後一格球停在比比旁邊 → 網頁的球接手，放在同一個位置）；起跑 → 跑 → 到位煞車
     at(ball, bxEnd, ground - R, '', 1); at(sh, bxEnd, ground + 1, '', 0.55);
     const back = dir < 0;
-    if (back && PART.run_start_r) { show(PART.run_start_r, true); await tween(MS[PART.run_start_r] || 340, (k) => pose(Db + 6 * E.in(k), 0, { sk: -4 * k })); }
+    // 取消起跑加速前奏，立即固定速度跑。
     show(dir < 0 ? PART.run_r : PART.run_l);
-    const Tr = clamp(Math.abs(Db) / (g.mob ? 260 : 340) * 1000, 650, 1900), x0 = Db + (back && PART.run_start_r ? 6 : 0);
+    const Tr = clamp(Math.abs(Db) / (g.mob ? 260 : 340) * 1000, 650, 1900), x0 = Db;
     await tween(Tr, (k, t) => {
       const sp = Math.sin(Math.PI * k);
-      pose(x0 * (1 - E.inOut(k)), bobY(g, t), { sk: dir * 7 * sp, sx: 1 - 0.02 * sp, sy: 1 + 0.025 * sp });
+      pose(x0 * (1 - k), bobY(g, t), { sk: dir * 7 * sp, sx: 1 - 0.02 * sp, sy: 1 + 0.025 * sp });
       if (k > 0.6) ball.style.opacity = sh.style.opacity = ((1 - k) / 0.4).toFixed(2);   // 跑遠了，球淡掉
     });
     ball.remove(); sh.remove();
@@ -782,7 +2083,7 @@ html.fab-off .bibiring,html.fab-off .bibitip,html.fab-off .bibifx,html.fab-off #
       show(PART.run_stop_r, true);
       await tween(MS[PART.run_stop_r] || 850, (k) => { const d = E.damp(k, 3); pose(0, 0, { sk: dir * 6 * d, sx: 1 + 0.04 * d, sy: 1 - 0.05 * d }); });
     } else {
-      show(idleFile());
+      show(IDLE_STILL);
       await tween(380, (k) => { const d = E.damp(k, 3); pose(0, 0, { sk: dir * 8 * d, sx: 1 + 0.05 * d, sy: 1 - 0.06 * d }); });
     }
   }
@@ -792,7 +2093,7 @@ html.fab-off .bibiring,html.fab-off .bibitip,html.fab-off .bibifx,html.fab-off #
      不畫手（Andy 10-11「伸出去的手太奇怪了」）：從被點的小圈飄過來一顆小愛心停在鼻子前，鼻子碰到那一刻「啵」一下散成小愛心。
      比比臉朝畫面內側（右下角＝鏡像朝左）。 */
   async function noseScript(g) {
-    const f = g.dir, P = Q(g, 440, 330, f), S = srcPoint(g), tx = g.cx + P.dx, ty = P.y;
+    const f = g.dir, P = A(g, 123, 108, f), S = srcPoint(g), tx = g.cx + P.dx, ty = P.y;   // 1015 第4格實際鼻尖，維持270ms接觸
     const ht = prop('heart', g.mob ? 14 : 16, g.mob ? 14 : 16);
     at(ht, S.x, S.y, '', 0);
     let go = false;
@@ -861,27 +2162,37 @@ html.fab-off .bibiring,html.fab-off .bibitip,html.fab-off .bibifx,html.fab-off #
   }
 
   /* ---------- 腳本：轉圈圈（10-12 四腳版） ----------
-     spin_q（bibi_spin，13 格、1290ms）：四腳小跑繞一圈 → 急停歪一邊 → 暈眩臉 → 回 Default，暈眩畫在素材裡，不再另外接 dizzy 循環。
-     網頁只在跑的那段讓整顆微微離地。 */
+     run素材只負責四腳步態；外層按弧長等速跑淺透視地面跑道。
+     舊spin_q自帶另一次跑動及大幅垂直位移，不再疊加當尾巴。 */
   async function spinScript(g) {
-    show(PART.spin, true);
-    await tween(MS[PART.spin] || 1290, (k, t) => { const u = Math.min(1, t / 600); pose(0, -3 * Math.sin(Math.PI * u), {}); });
+    const room=g.dir<0 ? g.cx-g.s/2-8 : g.vw-g.cx-g.s/2-8;
+    const rx=Math.max(8,Math.min(g.mob?90:165,room/2)),ry=g.mob?4:6;
+    const points=[{a:0,len:0}]; let total=0;
+    for(let i=1;i<=720;i++) {
+      const a=i*2*Math.PI/720,prev=points[i-1].a;
+      total+=Math.hypot(rx*(Math.cos(a)-Math.cos(prev)),ry*(Math.sin(a)-Math.sin(prev))); points.push({a,len:total});
+    }
+    let index=1,facing=0; run.phase='lap'; cue('跑操場一圈！');
+    await tween(total/(g.mob?200:260)*1000,k => {
+      const distance=total*k; while(index<points.length-1 && points[index].len<distance) index++;
+      const p=points[index-1],q=points[index],a=p.a+(q.a-p.a)*(distance-p.len)/(q.len-p.len);
+      const f=g.dir*Math.sin(a+.001)<0?-1:1;
+      if(f!==facing) { show(f<0?PART.run_l:PART.run_r); facing=f; }
+      pose(g.dir*rx*(1-Math.cos(a)),-ry*Math.sin(a));
+    });
+    pose(0,0); run.phase='dizzy'; show(IDLE_STILL); cue('呼…頭好暈！');
+    await tween(700,k => pose(0,0,{r:3*Math.sin(k*Math.PI*5)*(1-k)}));
   }
 
-  /* ---------- 腳本：天竺鼠爆米花跳（popcorn 素材：彈三下越來越小） ----------
-     素材自己在原地彈，網頁再把整顆往上送一點（跟素材的三個最高點對齊），落地冒星星。 */
+  /* ---------- 腳本：天竺鼠爆米花跳：影格自帶不規則跳躍，禁止網頁重複疊加垂直跳 ---------- */
   async function popcornScript(g) {
-    const dir = g.dir, J = g.mob ? 22 : 30;
-    show(PART.popcorn, true); cue();
-    const hops = [[80, 330, J], [350, 500, J * 0.45], [500, 640, J * 0.2]];   // 10-12 四腳版 popcorn storyboard：第 2～5 格（80～370）、第 6～7 格、第 8～9 格
-    let starred = 0;
-    await tween(MS[PART.popcorn] || 1220, (k, t) => {
-      let y = 0, r = 0;
-      hops.forEach(([a, b, h], i) => { if (t >= a && t <= b) { const u = (t - a) / (b - a); y = -h * Math.sin(Math.PI * u); r = (i === 0 ? -dir * 8 : dir * 4) * Math.sin(Math.PI * u); } });
-      const land = hops.findIndex(([, b]) => t >= b);
-      pose(0, y, { r });
-      for (let i = starred; i < hops.length; i++) if (t >= hops[i][1]) { burstAt('star', g.cx + (Math.random() - 0.5) * g.s * 0.4, g.foot - 6, i === 0 ? 3 : 1, 1.8); starred = i + 1; }
-      void land;
+    // 新版影格已畫出蹬地、扭身、落地與第二次短跳；網頁只加地面方向的短位移。
+    show(PART.popcorn, true); cue('開心到停不下來！');
+    const T = MS[PART.popcorn] || 2000, d = g.dir * (g.mob ? 15 : 22);
+    await tween(T, (k) => {
+      const x = k < 0.18 ? d * E.out(k / 0.18)
+        : k < 0.7 ? d : d * (1 - E.inOut((k - 0.7) / 0.3));
+      pose(bx(g, x), 0);
     });
   }
 
@@ -923,20 +2234,21 @@ html.fab-off .bibiring,html.fab-off .bibitip,html.fab-off .bibifx,html.fab-off #
      10-12 第 8 組到貨（動畫單位 0ff4ddd）：道具一律換成正式 PNG（seed／carrot／bubble／feather／yarn／plane／leaf／petal），
      比比的動作照各組 storyboard.md 接：
        撒零食＝跑過去（run_l／run_r）→ sniff_eat（第 1～2 格嘴前畫了一顆，網頁那顆收掉）
-       吹泡泡＝跑到泡泡底下 → hop_reach（第 3 格鼻子頂到）→ 那個位置播 pop_burst
+       吹泡泡＝泡泡表面碰鼻 → pop_burst → 受驚眨眼 → 好奇
        羽毛棒＝羽毛在比比前方地面附近晃 → pounce（第 5 格撲出去、第 6 格壓到）；第一下被抽走、第二下抓到
-       毛線球＝線球被頂出去拖一條線（網頁 SVG）→ run → ball_catch（素材裡那顆球被網頁的毛線球蓋住）→ tangle（線纏在身上、扭兩下掙脫）
-       紙飛機＝飛機繞一圈時 look_up 抬頭循環 → 落地跑過去 sniff_eat
-       落葉／花瓣＝hop_reach 往上撲 → 落地的跑過去 sniff_eat 一片
+       毛線球＝身體前後分層纏線 → 受阻 → 側跌 → 掙扎 → 逐環收回線球
+       紙飛機＝追視 → 機尖碰鼻 → 縮頭 → 嗅聞
+       落葉＝張嘴 → 葉尖貼口閉咬 → 小咀嚼 → 鬆口，葉子不套零食
      ⚠ 比比是四隻腳的天竺鼠：全程不准做縱向拉長（站起來）的變形，跳只用位移（pose 的 y），身體只准壓扁／微傾。
      ⚠ 位置一律夾在視窗內（bx()）；道具都在 #bibiStage（fixed、overflow:hidden）→ 不撐捲軸，手機留在 390 內。
      ====================================================================================== */
   /** 一條線（毛線、羽毛棒的繩子）：蓋整個視窗的 SVG，path 由腳本每格改 d（這兩條線動畫單位說「維持網頁 SVG」） */
-  function threadLayer(kind, color, width) {
+  function threadLayer(kind, color, width, behind) {
     const el = document.createElement('div'); el.className = 'bp bp-' + kind;
     el.style.width = '100%'; el.style.height = '100%';
     el.innerHTML = `<svg width="100%" height="100%" aria-hidden="true"><path d="" fill="none" stroke="${color}" stroke-width="${width}" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
-    ensureStage().appendChild(el); el._p = el.querySelector('path'); return el;
+    if (behind) { el.classList.add('bibi-back-thread'); Object.assign(el.style,{position:'fixed',left:'0',top:'0',zIndex:'1199',pointerEvents:'none'}); document.body.appendChild(el); }
+    else ensureStage().appendChild(el); el._p = el.querySelector('path'); return el;
   }
   /** 背景動畫（泡泡飄、葉子落、羽毛晃）：跟比比的動作同時跑；回傳停止函式。被打斷時照樣丟 ABORT 收掉。 */
   function loopBg(fn) {
@@ -946,15 +2258,15 @@ html.fab-off .bibiring,html.fab-off .bibitip,html.fab-off .bibifx,html.fab-off #
   }
   /** 比比位移夾在視窗內（整顆圖都在畫面裡） */
   const bx = (g, x) => clamp(x, g.s / 2 + 4 - g.cx, g.vw - g.s / 2 - 4 - g.cx);
-  const bobY = (g, t) => -Math.abs(Math.sin(t / 140 * Math.PI)) * (g.mob ? 3 : 4);   // 四腳版 run 素材 560ms／8 格、一步約 140ms
-  /** 跑到位移 x1（從 x0），回傳實際到的位置。跑步上下彈、往前傾，身體只微微拉長（≤1.03） */
+  const bobY = () => 0; // run素材自帶起伏，外層不重複跳。
+  /** 從x0以固定水平像素速度跑到x1，回傳實際到的位置。 */
   async function runTo(g, x0, x1, speed) {
     x1 = bx(g, x1);
     const d = x1 - x0;
     if (Math.abs(d) < 3) { pose(x1, 0); return x1; }
     show(d < 0 ? PART.run_l : PART.run_r);
-    const sg = Math.sign(d), T = clamp(Math.abs(d) / (speed || (g.mob ? 260 : 340)) * 1000, 260, 1600);
-    await tween(T, (k, t) => { const sp = Math.sin(Math.PI * k); pose(x0 + d * E.inOut(k), bobY(g, t), { sk: -sg * 7 * sp, sx: 1 - 0.02 * sp, sy: 1 + 0.025 * sp }); });
+    const T = Math.abs(d) / (speed || (g.mob ? 260 : 340)) * 1000;
+    await tween(T,k => pose(x0+d*k,0));
     return x1;
   }
   /** 跑回原位：往右跑回家有煞車素材（run_stop_r），往左就急停回彈 */
@@ -966,19 +2278,21 @@ html.fab-off .bibiring,html.fab-off .bibitip,html.fab-off .bibifx,html.fab-off #
         await tween(Math.min(700, MS[PART.run_stop_r] || 700), (k) => { const d = E.damp(k, 3); pose(0, 0, { sk: -6 * d, sx: 1 + 0.04 * d, sy: 1 - 0.05 * d }); });
       }
     }
-    show(idleFile());
+    show(IDLE_STILL);
     await tween(300, (k) => { const d = E.damp(k, 3); pose(0, 0, { sx: 1 + 0.05 * d, sy: 1 - 0.06 * d }); });
   }
   /** 往上撲（hop_reach：蹲 0～90 → 起跳 90～160 → 最高點、鼻子碰到 160～260 → 往下 260～330 → 落地壓扁 330～410）：
       素材自己在框裡跳，網頁再整顆往上送 H（只有位移，身體不拉長）、往旁邊挪到 x1；鼻子碰到那一刻（190ms）叫 onTouch。 */
-  async function hopReach(g, x0, x1, H, onTouch) {
+  async function hopReach(g, x0, x1, H, onTouch, face) {
     x1 = bx(g, x1);
-    show(PART.hop, true);
-    const dx = x1 - x0; let touched = false;
-    await tween(410, (k, t) => {
-      const up = t < 90 ? 0 : t < 210 ? Math.sin(Math.PI / 2 * (t - 90) / 120) : t < 330 ? Math.cos(Math.PI / 2 * (t - 210) / 120) : 0;
-      pose(x0 + dx * E.inOut(Math.min(1, t / 330)), -H * up);
-      if (!touched && t >= 190) { touched = true; if (onTouch) onTouch(); }
+    show(PART.hop, true, face || 1);
+    const dx = x1 - x0, duration = MS[PART.hop] || 810; let touched = false, follow = null;
+    await tween(duration, (k, elapsed) => {
+      const t = elapsed * 410 / duration;
+      const up = t < 90 ? 0 : t < 190 ? Math.sin(Math.PI / 2 * (t - 90) / 100) : t < 330 ? Math.cos(Math.PI / 2 * (t - 190) / 140) : 0;
+      pose(x0 + dx * E.inOut(Math.min(1, t / 190)), -H * up);
+      if (!touched && t >= 190) { touched = true; if (onTouch) follow = onTouch(); }
+      if (typeof follow === 'function') follow();
     });
     pose(x1, 0);
     return x1;
@@ -1034,47 +2348,20 @@ html.fab-off .bibiring,html.fab-off .bibitip,html.fab-off .bibifx,html.fab-off #
 
   /* ---------- 吹泡泡：3～5 顆從小圈吹出來、慢慢往上飄、左右晃；比比追到底下往上撲（hop_reach）用鼻子頂破，破掉播 pop_burst ---------- */
   async function bubbleScript(g) {
-    const dir = g.dir, S = srcPoint(g), n = 3 + Math.floor(Math.random() * 3), R = g.mob ? 13 : 16;
-    const span = g.mob ? 200 : 330, rise = g.mob ? 14 : 18, t0 = performance.now(), lo = topLim() + R + 4;
-    const NOSE = Q(g, 256, 60);                                  // hop_reach storyboard：第 3 格鼻子頂到泡泡（頭頂正上方 x 256, y 60）
-    const B = [];
-    for (let i = 0; i < n; i++) {
-      B.push({ el: pic('bubble', 'bubble', R * 2, R * 2), x0: clamp(g.cx + dir * (g.s * 0.35 + span * (i + 0.5) / n), R + 8, g.vw - R - 8),
-        y0: g.top + 6 - Math.random() * 18, born: i * 260, ph: Math.random() * 6, popped: false });
-    }
-    const pos = (b, t) => {                                      // 先從小圈飄到起點（500ms），之後慢慢上升、左右晃
-      const a = t - b.born;
-      if (a < 500) { const u = E.out(clamp(a / 500, 0, 1)); return { x: S.x + (b.x0 - S.x) * u, y: S.y + (b.y0 - S.y) * u, op: clamp(a / 120, 0, 1) }; }
-      const s = (a - 500) / 1000;
-      return { x: b.x0 + 14 * Math.sin(s * 2.4 + b.ph), y: Math.max(lo, b.y0 - rise * s), op: 1 };
-    };
-    B.forEach((b) => at(b.el, S.x, S.y, '', 0));
-    const stop = loopBg(() => {
-      const t = performance.now() - t0;
-      B.forEach((b) => { if (b.popped || t < b.born) return; const p = pos(b, t); at(b.el, p.x, p.y, ` scale(${(0.6 + 0.4 * Math.min(1, (t - b.born) / 500)).toFixed(2)})`, p.op); });
+    const S=srcPoint(g),R=g.mob?13:16,face=g.dir,meta=REACTION_META.bubble_react;
+    const nose=reactionAnchor(g,'bubble_react','nose',meta.contact,face),x=bx(g,face*(g.mob?85:140));
+    const target={x:g.cx+x+nose.dx+face*R,y:nose.y},bubble=pic('bubble','bubble',R*2,R*2);
+    show(PART.look,true,face); run.phase='bubble-approach';
+    await tween(480,k => { at(bubble,S.x+(target.x-S.x)*k,S.y+(target.y-S.y)*k-14*Math.sin(Math.PI*k),'',k); pose(0,0); });
+    await runTo(g,0,x);
+    const file=reactionFile('bubble_react',PART.nose),duration=readyParts.has('bubble_react')?reactionDuration('bubble_react'):MS[file];
+    show(file,true,face); let touched=false;
+    await tween(duration,(k,t) => {
+      pose(x,0);
+      if(!touched && t>=meta.contact) { touched=true; bubble.remove(); popBurst(target.x,target.y,R*2); run.phase='bubble-startle'; cue('啵！嚇一跳…咦，泡泡呢？'); }
+      if(t>=meta.curious) run.phase='bubble-curious';
     });
-    pose(0, 0, { sk: -dir * 3 });
-    await wait(260);
-    cue('泡泡！比比要抓到它～');
-    let x = 0, i = 0;
-    const order = B.slice().sort((a, b) => Math.abs(a.x0 - g.cx) - Math.abs(b.x0 - g.cx));
-    for (const b of order) {
-      const now = performance.now() - t0;
-      if (now < b.born + 500) await wait(b.born + 500 - now);
-      x = await runTo(g, x, pos(b, performance.now() - t0).x - g.cx);
-      const tgt = pos(b, performance.now() - t0 + 190);
-      const H = clamp(NOSE.y - tgt.y, 4, g.mob ? 80 : 100);
-      run.phase = 'hop' + (++i);
-      x = await hopReach(g, x, tgt.x - g.cx, H, () => {
-        b.popped = true;
-        const p = pos(b, performance.now() - t0);
-        b.el.style.opacity = '0';
-        popBurst(p.x, p.y, R * 2);
-        floatText('啵！', p.x, p.y - R);
-      });
-    }
-    stop();
-    await goHome(g, x);
+    await goHome(g,x);
   }
 
   /* ---------- 羽毛棒：羽毛（繩子連著被點的小圈）在比比前方地面附近晃；比比撲（pounce）——第一下被抽走、第二下撲到壓住 ---------- */
@@ -1131,72 +2418,62 @@ html.fab-off .bibiring,html.fab-off .bibitip,html.fab-off .bibifx,html.fab-off #
     await goHome(g, x);
   }
 
-  /* ---------- 毛線球：線球從小圈飛來、被比比一頂滾出去，後面拖一條線（網頁 SVG）；比比追（run）→ 撲到（ball_catch，素材裡的球被毛線球蓋住）
-     → 被線纏住、扭兩下彈開掙脫（tangle，線畫在素材裡）→ 跑回家 ---------- */
+  /* ---------- 毛線球：追球 → 前後分層纏身 → 受阻側跌 → 掙扎鬆脫 → 回位 ---------- */
   async function yarnScript(g) {
-    const dir = g.dir, S = srcPoint(g), BALL = A(g, 135, 145), catchDx = BALL.dx;
-    const R = g.s * 0.068, ground = BALL.y + R;                  // 毛線球要整顆蓋住撲球素材裡那顆球（直徑約 17／160 個圖寬）
-    const D = clamp(dir < 0 ? g.cx - 40 - R : g.vw - 40 - R - g.cx, 110, g.mob ? 220 : 480);
-    const ball = pic('yarn', 'yarn_ball', R * 2, R * 2), line = threadLayer('thread', '#a77bd6', 2.2);
-    const trail = [];
-    const drawLine = () => line._p.setAttribute('d', trail.length ? 'M ' + trail.map((p) => p.x.toFixed(1) + ' ' + p.y.toFixed(1)).join(' L ') : '');
-    const L0 = g.cx + dir * g.s * 0.5;
-    at(ball, S.x, S.y, '', 0);
-    await tween(440, (u) => {                                    // 弧線飛到比比腳邊
-      const x = S.x + (L0 - S.x) * u, y = S.y + (ground - R - S.y) * E.in(u) - 50 * Math.sin(Math.PI * u) * (1 - u);
-      at(ball, x, y, ` rotate(${(-dir * 300 * u).toFixed(1)}deg)`, Math.min(1, u * 5));
-      pose(0, 0, { sk: -dir * 3 * u });
+    const dir=g.dir,S=srcPoint(g),R=g.s*.09,x=bx(g,dir*(g.mob?110:200));
+    const ball=pic('yarn','yarn_ball',R*2,R*2),frontLine=threadLayer('thread-front','#a77bd6',2.2),backLine=threadLayer('thread-back','#9470c4',2.2,true),ground=g.foot-R;
+    show(PART.look,true,dir); run.phase='yarn-roll';
+    await tween(500,k => at(ball,S.x+(g.cx+x+dir*g.s*.5-S.x)*k,S.y+(ground-S.y)*k,` rotate(${dir*360*k}deg)`,k));
+    await runTo(g,0,x);
+    const file=reactionFile('yarn_tumble',PART.tangle),duration=readyParts.has('yarn_tumble')?reactionDuration('yarn_tumble'):2600;
+    show(file,true,dir); cue('哎呀，毛線纏住了！');
+    const meta=REACTION_META.yarn_tumble,embedded=readyParts.has('yarn_tumble') && meta.embeddedThread;
+    if(embedded) frontLine.classList.add('bp-yarn-tail');
+    await tween(duration,(k,elapsed) => {
+      const fallback=!readyParts.has('yarn_tumble'),tilt=k<.25?0:k<.45?(k-.25)/.2:k<.72?1:(1-k)/.28;
+      const fallbackAngle=dir*22*tilt+(k>.45 && k<.75?3*Math.sin(k*55):0);
+      pose(x,0,fallback?{r:fallbackAngle}:{});
+      const events=meta.events;
+      run.phase=elapsed<events.paw_blocked?'yarn-wrap':elapsed<events.tilt_starts?'yarn-blocked':elapsed<events.side_lie?'yarn-fall':elapsed<events.first_loosen?'yarn-struggle':'yarn-release';
+      const body=reactionBody(g,'yarn_tumble',elapsed,dir),angle=fallback?fallbackAngle*Math.PI/180:body.angle;
+      const ballX=g.cx+x+dir*g.s*.58+dir*k*15; let front='',back='';
+      if(embedded) {
+        const tail=meta.tail[reactionFrame('yarn_tumble',elapsed)];
+        const release=clamp((elapsed-events.body_free)/(events.restored-events.body_free),0,1);
+        if(tail && elapsed>=events.line_appears && release<1) {
+          const anchor=A(g,tail[0],tail[1],dir),startX=g.cx+x+anchor.dx,startY=anchor.y;
+          const tx=startX+(ballX-startX)*release,ty=startY+(ground-startY)*release;
+          front=`M ${tx.toFixed(2)} ${ty.toFixed(2)} Q ${((tx+ballX)/2).toFixed(2)} ${(Math.max(ty,ground)+5*(1-release)).toFixed(2)} ${ballX.toFixed(2)} ${ground.toFixed(2)}`;
+        }
+        frontLine._p.setAttribute('d',front); backLine._p.setAttribute('d','');
+        frontLine.style.opacity='1';backLine.style.opacity='0';
+        at(ball,ballX,ground,` rotate(${dir*k*120}deg)`,1);return;
+      }
+      const arc=(cx,cy,rx,ry,start,end) => {
+        if(end<=start || rx<.05) return ''; const points=[];
+        for(let step=0;step<=18;step++) {
+          const a=start+(end-start)*step/18,ax=rx*Math.cos(a),ay=ry*Math.sin(a);
+          points.push(`${(cx+ax*Math.cos(angle)-ay*Math.sin(angle)).toFixed(2)} ${(cy+ax*Math.sin(angle)+ay*Math.cos(angle)).toFixed(2)}`);
+        }
+        return 'M '+points.join(' L ')+' ';
+      };
+      for(let i=0;i<3;i++) {
+        // 逐環減少有效弧長、縮小半徑並收回球，解纏不使用淡出替代。
+        const unwind=clamp((k-(.72+i*.06))/.16,0,1),remain=1-unwind,anchor=body.anchors[i],cx0=g.cx+x+anchor.x;
+        const cx=cx0+(ballX-cx0)*unwind,cy=anchor.y+(ground-anchor.y)*unwind,rx=body.rx*remain,ry=body.ry*remain,end=Math.PI*2*remain;
+        front+=arc(cx,cy,rx,ry,0,Math.min(Math.PI,end)); back+=arc(cx,cy,rx,ry,Math.PI,end);
+        if(unwind>0 && unwind<1) {
+          const ax=rx*Math.cos(end),ay=ry*Math.sin(end);
+          front+=`M ${(cx+ax*Math.cos(angle)-ay*Math.sin(angle)).toFixed(2)} ${(cy+ax*Math.sin(angle)+ay*Math.cos(angle)).toFixed(2)} L ${ballX.toFixed(2)} ${ground.toFixed(2)} `;
+        }
+      }
+      frontLine._p.setAttribute('d',front); backLine._p.setAttribute('d',back);
+      frontLine.style.opacity=backLine.style.opacity=String(Math.min(1,k/.15)); at(ball,ballX,ground,` rotate(${dir*k*120}deg)`,1);
     });
-    cue('毛線球！');
-    trail.push({ x: L0, y: ground - 1 });                        // 線頭留在落地的地方
-    await tween(220, (k) => pose(-dir * 4 * E.out(k), 0, { sx: 1 + 0.06 * E.out(k), sy: 1 - 0.08 * E.out(k) }));   // 蓄力
-    await tween(110, (k) => pose(-dir * 4 + dir * 12 * E.out(k), 0, { sk: -dir * 7 * k }));                        // 頂！
-    const bx0 = L0, bx1 = g.cx + dir * D, Tb = g.mob ? 1300 : 1700, lag = 300;
-    const ballAt = (t) => {                                      // 滾出去：越滾越慢、前段小彈兩下、線越拖越長
-      const u = clamp(t / Tb, 0, 1), x = bx0 + (bx1 - bx0) * E.out(u), hb = u < 0.35 ? 12 * Math.abs(Math.sin(u / 0.35 * 2 * Math.PI)) * (1 - u * 2) : 0;
-      return { x, y: ground - R - Math.max(0, hb), rot: (x - bx0) / R * 180 / Math.PI };
-    };
-    let x = dir * 8, ran = false;
-    const Db = (bx1 - g.cx) - dir * catchDx;                     // 追到時：毛線球正好在撲球素材裡那顆球的位置
-    await tween(Tb + 200, (k, t) => {
-      const b = ballAt(t);
-      at(ball, b.x, b.y, ` rotate(${b.rot.toFixed(1)}deg)`, 1);
-      const last = trail[trail.length - 1];
-      if (Math.abs(b.x - last.x) > 6) { trail.push({ x: b.x - dir * R * 0.6, y: ground - 1 - (trail.length % 2) * 1.5 }); drawLine(); }
-      if (t < lag) { pose(x, 0, { sk: -dir * 5 * (1 - t / lag) }); return; }
-      if (!ran) { ran = true; show(dir < 0 ? PART.run_l : PART.run_r); }
-      const u = clamp((t - lag) / (Tb + 200 - lag), 0, 1), sp = Math.sin(Math.PI * u);
-      pose(dir * 8 + (Db - dir * 8) * E.inOut(u), bobY(g, t), { sk: -dir * 7 * sp, sx: 1 - 0.02 * sp, sy: 1 + 0.025 * sp });
-    });
-    x = Db;
-    // 撲到：ball_catch 素材（撲出去、身體壓住、彈起、鼻子推）；網頁的毛線球蓋在素材那顆球上
-    const bEnd = { x: g.cx + Db + dir * catchDx, y: BALL.y };
-    run.phase = 'catch';
-    show(dir < 0 ? PART.ball_catch_l : PART.ball_catch, true);
-    at(ball, bEnd.x, bEnd.y, ` rotate(${ballAt(Tb).rot.toFixed(1)}deg)`, 1);
-    trail.push({ x: bEnd.x, y: bEnd.y }); drawLine();
-    burstAt('star', bEnd.x, bEnd.y - R - 8, 4, 1.6);
-    await tween(MS[dir < 0 ? PART.ball_catch_l : PART.ball_catch] || 1560, () => pose(x, 0));
-    // 被纏住（tangle：線纏在身上、扭兩下、第 4 格用力一彈線鬆開）：網頁那條線的尾端拉到比比身上，彈開時淡掉
-    run.phase = 'tangle';
-    cue('哎呀～被毛線纏住了！');
-    show(PART.tangle, true);
-    const body = { x: g.cx + x, y: g.top + g.s * 0.62 };
-    let freed = false;
-    await tween(MS[PART.tangle] || 880, (k, t) => {
-      const u = clamp(t / 160, 0, 1);
-      trail[trail.length - 1] = { x: bEnd.x + (body.x - bEnd.x) * u, y: bEnd.y + (body.y - bEnd.y) * u }; drawLine();
-      line.style.opacity = t < 250 ? '1' : clamp(1 - (t - 250) / 200, 0, 1).toFixed(2);
-      if (!freed && t >= 330) { freed = true; burstAt('star', body.x, g.top + g.s * 0.3, 5, 2); floatText('掙脫！', body.x, g.top); }
-      pose(x, 0);
-    });
-    line.remove();
-    par(tween(600, (k) => { ball.style.opacity = (1 - k).toFixed(2); }));
-    await goHome(g, x);
-    ball.remove();
+    frontLine.remove(); backLine.remove(); ball.remove(); await goHome(g,x);
   }
 
-  /* ---------- 紙飛機：飛機沿曲線在畫面上繞一圈（整條路線都在視窗內）、比比抬頭跟著看（look_up 循環）；落地滑一下，比比跑過去嗅（sniff_eat） ---------- */
+  /* ---------- 紙飛機：追視飛行 → 機尖碰鼻 → 縮頭 → 嗅聞 ---------- */
   async function planeScript(g) {
     const dir = g.dir, S = srcPoint(g), pw = g.mob ? 34 : 42, ph = pw * 81 / 128, ground = g.foot - ph / 2;
     const R1 = g.mob ? 120 : 180, R2 = g.mob ? 64 : 90, tl = topLim();
@@ -1236,68 +2513,37 @@ html.fab-off .bibiring,html.fab-off .bibitip,html.fab-off .bibifx,html.fab-off #
     });
     const land = Lx + dir * 14;
     await tween(220, (k) => { place({ x: Lx + dir * 14 * E.out(k), y: ground }); });   // 落地滑一下
+    const face=land<g.cx+x?-1:1,meta=REACTION_META.plane_react,nose=reactionAnchor(g,'plane_react','nose',meta.contact,face);
+    x=await runTo(g,x,land-g.cx-nose.dx); run.phase='plane-nose';
+    const file=reactionFile('plane_react',PART.receive),duration=readyParts.has('plane_react')?reactionDuration('plane_react'):MS[file];
+    show(file,true,face);
+    await tween(duration,(k,t) => {
+      pose(x,0); const point=reactionAnchor(g,'plane_react','nose',Math.min(t,meta.contact),face),meetX=g.cx+x+point.dx;
+      if(t<meta.contact) atTip(pl,meetX+face*12*(1-t/meta.contact),ground+(point.y-ground)*t/meta.contact,meta.tip,0,-face);
+      else { const after=t-meta.contact; run.phase=t<meta.sniff?'plane-recoil':'plane-sniff'; atTip(pl,meetX+face*7*Math.min(1,after/200),point.y+(ground-point.y)*Math.min(1,after/350),meta.tip,0,-face); }
+    });
     cue('嗅嗅…是紙做的！');
-    floatText('嗅嗅', land, ground - 20);
-    x = await eatAt(g, x, land, ground, pl, true, 'sniff');
+    await tween(280, (k) => { pl.style.opacity = (1 - k).toFixed(2); });
+    pl.remove();
     await goHome(g, x);
   }
 
-  /* ---------- 落葉／花瓣：5～8 片從上面飄下來（左右晃、翻轉），比比往上撲（hop_reach）去頂，頂到的閃一下收掉；
-     落到地上的留著，最後跑過去嗅一片吃掉（sniff_eat），其他的淡掉 ---------- */
+  /* ---------- 落葉：葉尖碰口，張嘴 → 閉咬 → 小咀嚼 → 鬆口落地 ---------- */
   async function leafScript(g) {
-    const dir = g.dir, n = 5 + Math.floor(Math.random() * 4), lw = g.mob ? 15 : 18, t0 = performance.now();
-    const top = Math.max(topLim() + 14, g.top - (g.mob ? 150 : 210)), v = g.mob ? 62 : 72;
-    const reach = g.mob ? 34 : 50, LH = g.mob ? 30 : 40, NOSE = Q(g, 256, 60), catchY = NOSE.y - LH * 0.85;   // 撲到最高點時鼻子的高度
-    const Lf = [];
-    for (let i = 0; i < n; i++) {
-      const petal = i % 2 === 1, lh = lw * 128 / (petal ? 88 : 83);
-      const x0 = clamp(g.cx + dir * (-12 + Math.random() * (g.mob ? 110 : 160)), lw + 6, g.vw - lw - 6);
-      Lf.push({ el: pic('leaf', petal ? 'petal' : 'leaf', lw, lh), x0, y0: top - Math.random() * 30, born: 200 + i * 430, ph: Math.random() * 6,
-        st: 'fall', ground: g.foot - lw * 0.45, rest: null });
-    }
-    const pos = (L, t) => {
-      const a = (t - L.born) / 1000, y = Math.min(L.ground, L.y0 + v * a);
-      return { x: L.x0 + 16 * Math.sin(a * 3.1 + L.ph), y, rot: 40 * Math.sin(a * 2.3 + L.ph) + a * 90, landed: y >= L.ground };
-    };
-    Lf.forEach((L) => at(L.el, L.x0, L.y0, '', 0));
-    const stop = loopBg(() => {
-      const t = performance.now() - t0;
-      Lf.forEach((L) => {
-        if (L.st === 'caught' || L.st === 'gone' || t < L.born) return;
-        if (L.st === 'ground') { at(L.el, L.rest.x, L.rest.y, ' rotate(84deg)', 1); return; }   // 躺在地上
-        const p = pos(L, t);
-        if (p.landed) { L.st = 'ground'; L.rest = p; }
-        at(L.el, p.x, p.y, ` rotate(${p.rot.toFixed(1)}deg) scaleX(${Math.cos((t - L.born) / 330 + L.ph).toFixed(2)})`, clamp((t - L.born) / 200, 0, 1));
-      });
+    const face=g.dir,meta=REACTION_META.leaf_bite,x=bx(g,face*(g.mob?80:130)),mouth=reactionAnchor(g,'leaf_bite','mouth',meta.contact,face),lw=g.mob?18:22;
+    const leaf=pic('leaf','leaf',lw,lw*128/83),target={x:g.cx+x+mouth.dx,y:mouth.y},from=srcPoint(g),angle=face<0?70:-110;
+    show(PART.look,true,face); run.phase='leaf-drift';
+    await tween(650,k => { atTip(leaf,from.x+(target.x+face*8-from.x)*k+10*Math.sin(Math.PI*2*k),from.y+(target.y-from.y)*k,meta.tip,angle); leaf.style.opacity=String(k); pose(0,0); });
+    await runTo(g,0,x);
+    const file=reactionFile('leaf_bite',PART.receive),duration=readyParts.has('leaf_bite')?reactionDuration('leaf_bite'):MS[file]; show(file,true,face);
+    await tween(duration,(k,t) => {
+      pose(x,0); run.phase=t<meta.contact?'leaf-mouth-open':t<meta.contact+200?'leaf-bite':t<meta.release?'leaf-chew':'leaf-release';
+      const point=reactionAnchor(g,'leaf_bite','mouth',t,face),release=clamp((t-meta.release)/(duration-meta.release),0,1),gap=t<meta.contact?face*8*(1-t/meta.contact):0;
+      atTip(leaf,g.cx+x+point.dx+gap+face*release*12,point.y+(g.foot-5-point.y)*release,meta.tip,angle+release*45);
     });
-    pose(0, -4, { sy: 0.98 });                                   // 0.2 秒內就在動：抬頭準備
-    cue('葉子飄下來了～');
-    let x = 0, busyTill = 0, k = 0;
-    const tc = (L) => L.born + (catchY - L.y0) / v * 1000;      // 葉子落到鼻子能碰到的高度的時間
-    const order = Lf.slice().sort((a, b) => tc(a) - tc(b));
-    const PEAK = 190;                                            // hop_reach 鼻子碰到的那一刻
-    for (const L of order) {
-      const at_ = tc(L), startAt = at_ - PEAK, now = performance.now() - t0;
-      if (startAt < now || startAt < busyTill) continue;         // 來不及／前一下還沒落地：讓它落地
-      await tween(startAt - now, (kk, t) => { const c = Math.max(0, Math.sin((now + t) / 120)); pose(x, 0, { sx: 1 + 0.04 * c, sy: 1 - 0.05 * c }); });   // 等的時候原地小蹦
-      const p = pos(L, at_), tx = clamp(p.x - g.cx, -reach * 1.6, reach * 1.6);   // 原地往上撲：最多往旁邊挪一小步（bx 再夾在視窗內）
-      run.phase = 'hop' + (++k);
-      x = await hopReach(g, x, tx, LH, () => {
-        L.st = 'caught'; L.el.style.opacity = '0';
-        const q = pos(L, performance.now() - t0);
-        burstAt('star', q.x, q.y, 3, 2);
-      });
-      busyTill = performance.now() - t0;
-    }
-    const last = Math.max(...Lf.map((L) => L.born + (L.ground - L.y0) / v * 1000)) + 200, now = performance.now() - t0;
-    if (last > now) await tween(last - now, (kk, t) => { const c = Math.max(0, Math.sin(t / 140)); pose(x, 0, { sx: 1 + 0.03 * c, sy: 1 - 0.04 * c }); });
-    stop();
-    const onGround = Lf.filter((L) => L.st === 'ground').sort((a, b) => Math.abs(a.rest.x - g.cx - x) - Math.abs(b.rest.x - g.cx - x));
-    const pick = onGround[0];
-    onGround.slice(1).forEach((L) => par(tween(400, (kk) => { L.el.style.opacity = (1 - kk).toFixed(2); })));
-    if (pick) x = await eatAt(g, x, pick.rest.x, pick.rest.y, pick.el, true, 'eatleaf');
-    await goHome(g, x);
+    cue('咬一下，葉子沙沙響～'); await tween(220,k => {leaf.style.opacity=String(1-k);}); leaf.remove(); await goHome(g,x);
   }
+
   const CHOREO = { snack: snackScript, bubble: bubbleScript, feather: featherScript, yarn: yarnScript, plane: planeScript, leaf: leafScript, ball: ballScript, grass: grassScript, pet: petScript, spin: spinScript, popcorn: popcornScript, hit: hitScript, five: noseScript };
 
   /* ---------- 待機小動作：眨眼／伸懶腰／跳一下（只動 transform）----------
@@ -1320,27 +2566,37 @@ html.fab-off .bibiring,html.fab-off .bibitip,html.fab-off .bibifx,html.fab-off #
     },
   };
   function startRun(id, isAct) {
-    runTok++; cancelAnimationFrame(rafId); clearStage();
+    runTok++; cancelTweens(); clearStage();
     run = { id, act: !!isAct }; fab.dataset.bibiRun = id;
     if (isAct) fab.classList.add('bibirun');   // 動作中鈕本身不接點擊（比比不在那裡）；待機小動作不擋，滑鼠移過去照樣開環
     ensureStage(); pose(0, 0); face(1);
   }
   function endRun() {
+    runTok++; cancelTweens(); ++showTok; watchOff();
     run = null; tipFollow = false; setTimeout(hopSched, 0);
     if (fab) { fab.classList.remove('bibirun'); delete fab.dataset.bibiRun; }
     pose(0, 0); face(1); clearStage();
   }
   function finishAct() {
-    mode = 'idle'; if (fab) delete fab.dataset.bibiAct;
+    mode = 'idle'; if (fab) {delete fab.dataset.bibiAct; fab.classList.remove('bibiinteracting');}
     if (ring) ring.classList.remove('cool');
     applyIdle(); schedFidget();
   }
   /** 打斷：立刻回原位、道具清掉。動作被打斷＝回情境待機；小動作被打斷＝只回原位（東張西望換過圖就換回來） */
   function stopRun(why) {
-    if (!run) return false;
+    pendingAct++;   // 包含仍在等首次載圖的動作：Esc／換頁／停止後不可偷偷啟動
+    waitingAct = false; clearTimeout(ringSayTimer);
+    if (!run) {
+      if (mode !== 'act' && mode !== 'loading') return false;
+      lastStop = why || ''; actSerial++;
+      clearTimeout(actTimer); clearTimeout(actFxTimer);
+      document.querySelectorAll('.bibifx,.bibiflash').forEach((el) => el.remove());
+      runTok++; cancelTweens(); watchOff(); pose(0,0); face(1); clearStage(); hideTip(); finishAct(); return true;
+    }
+    actSerial++; clearTimeout(actFxTimer);
     const wasAct = run.act; lastStop = why || '';
-    runTok++; cancelAnimationFrame(rafId); clearTimeout(actTimer);
-    endRun();
+    runTok++; cancelTweens(); clearTimeout(actTimer);
+    endRun(); hideTip(); document.querySelectorAll('.bibifx,.bibiflash').forEach(el => el.remove());
     if (wasAct) finishAct(); else if (want !== idleFile()) applyIdle();
     return true;
   }
@@ -1390,6 +2646,7 @@ html.fab-off .bibiring,html.fab-off .bibitip,html.fab-off .bibifx,html.fab-off #
     hopEl = document.createElement('span'); hopEl.className = 'bibihop';   // 待機「開心的跳」的 CSS 動畫掛在這層（跟編排的 transform 分開，互不覆蓋）
     hopEl.appendChild(bodyEl); wrapEl.appendChild(hopEl); a.before(wrapEl); bodyEl.appendChild(a); bodyEl.appendChild(b);
     imgs = [a, b]; front = 0;
+    const stillCache = new Image(); stillCache.src = src(IDLE_STILL);
     shown = '';   // 開場那張（support.js 的 wave.webp，沒有版本戳）一律換成帶版本戳的待機圖
     fab.title = '';   // 改用自己的提示泡泡（說比比現在在幹嘛）；讀屏仍讀 aria-label「客服：比比・問題小助手」
     tip = document.createElement('div'); tip.id = 'bibiTip'; tip.className = 'bibitip'; tip.hidden = true; tip.setAttribute('aria-hidden', 'true');
@@ -1428,7 +2685,7 @@ html.fab-off .bibiring,html.fab-off .bibitip,html.fab-off .bibifx,html.fab-off #
       const t = e.target;
       if (t && t.closest && (t.closest('#supFab') || t.closest('#bibiRing'))) return;
       /* 手機點空白＝收環；比比正在外面玩也一起叫回原位（桌機滑鼠點頁面不打斷，等他玩完） */
-      if (run && (tapMode() || e.pointerType === 'touch')) stopRun('tap');
+      if ((run || waitingAct) && (tapMode() || e.pointerType === 'touch')) stopRun('tap');
       if (!ringOpen()) return;
       closeRing();
     }, true);
@@ -1466,9 +2723,9 @@ html.fab-off .bibiring,html.fab-off .bibitip,html.fab-off .bibifx,html.fab-off #
   }
   /* 驗收用：注入假時間／假漲跌／假休市表、直接播某個動作、讀目前狀態 */
   window.Bibi = {
-    MAP: { ACTS, MS, IDLE: IDLE_HOP, STILL: IDLE_STILL },
-    state: () => ({ file: fab && fab.dataset.bibi || shown, shown, want, mode, idle: idleNow && idleNow.key, say: idleNow && idleNow.say, sleeping, ring: ringOpen(),
-      run: run ? run.id : '', phase: run && run.phase || '', happy: shown === IDLE_HOP, off: { x: OFF.x, y: OFF.y }, body: bodyEl ? bodyEl.style.transform : '', stop: lastStop, props: stage ? stage.children.length : 0,
+    MAP: { ACTS, MS, REACTIONS: REACTION_META, IDLE: IDLE_HOP, STILL: IDLE_STILL },
+    state: () => ({ file: fab && fab.dataset.bibi || shown, shown, want, mode, loading: waitingAct, idle: idleNow && idleNow.key, say: idleNow && idleNow.say, sleeping, ring: ringOpen(),
+      run: run ? run.id : '', phase: run && run.phase || '', happy: shown === IDLE_HOP, off: { x: OFF.x, y: OFF.y }, body: bodyEl ? bodyEl.style.transform : '', stop: lastStop, props: stage ? stage.children.length : 0, tweens: activeTweens.size, readyParts: Array.from(readyParts).filter(f => optionalParts.has(f)),
       src: imgs[front] ? (imgs[front].getAttribute('src') || '').replace(/[?#].*$/, '') : '', flip: flipNow,
       tip: tip && !tip.hidden && tip.classList.contains('on') ? tip.textContent : '' }),
     test: (o) => { o = o || {}; if ('now' in o) T.now = o.now; if ('pct' in o) T.pct = o.pct; if ('hol' in o) T.hol = o.hol;
