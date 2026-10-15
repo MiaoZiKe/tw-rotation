@@ -1,5 +1,23 @@
 # AGENTS.md — 十八個專家 Agent 與 CEO
 
+## 比比動畫互動單位（2026-10-16 使用者委任）
+
+使用者指定本工作階段主代理為CEO，負責找專家、分工與驗收。單位入口：`docs/anim/bibi_unit/README.md`。
+
+| 工作 | 角色檔 |
+|---|---|
+| 企劃 | `.claude/agents/bibi-planner.md` |
+| 動畫 | `.claude/agents/bibi-animator.md` |
+| 插圖 | `.claude/agents/bibi-illustrator.md` |
+| 互動工程 | `.claude/agents/bibi-interaction.md` |
+| 獨立品管 | `.claude/agents/bibi-review.md` |
+| Token與流程效率 | `.claude/agents/bibi-efficiency.md` |
+
+本輪使用者明確授權修改互動程式及素材，並於2026-10-16要求「繼續執行並且直接推上線」，因此驗收通過後直接部署正式站；未通過素材不能隨同部署。此授權覆蓋本輪舊有只改素材及僅限預覽的限制。保留客服、原始待機素材與無關功能。
+
+每檔僅一人寫入，專家用最小必要上下文，不重複檢查已通過且未變更部分；不編造Token或費用節省比例。製作、測試、畫面驗收、提交、部署分別記錄，只有部署成功才稱已上線。
+
+
 這份文件定義專案的虛擬團隊。在 Claude Code / Cowork 裡的實作方式：**主 session 就是 CEO**，
 專家用 `Agent` 工具（subagent）開，把下面對應段落整段貼進 subagent 的 prompt 當角色設定。
 
