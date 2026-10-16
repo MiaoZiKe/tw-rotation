@@ -1538,3 +1538,23 @@
   :root.m4 #ovFlowHead:has(>.ftm4hd){display:flex;align-items:center;gap:6px}
   :root.m4 .row.spread:has(>.ftm4hd)>h3{flex:1 1 auto!important}
 }
+
+/* ============================================================================
+   ★ 2026-10-16 手機點擊面板不透明1016（Andy iPhone 實機，淺色、資金流向「族群資金排行」點了封測代工：
+   「這邊出現重疊現況，幫我確認是否其他點擊後的圖片也會這樣背景透明，幫我修正這問題」）
+   原因：第 14 節（10-08「手機一律不用方格」）把 .hpanel／.panel 等一律 background:transparent!important。
+   一般的 .hpanel 是排在圖下面的清單，透明沒事；但「點了才出現、蓋在圖上」的那幾塊（position:absolute）
+   也是 .hpanel —— 底色被拿掉之後，底下的長條、族群名、軸名全部透上來，跟面板的字疊成一團。
+   修法：凡是「蓋在圖上」的面板，底色改回卡片底色，而且一定不透明：
+     卡片底色（HUD 主題是半透明的 rgba(…,.55)）疊在頁面實色（--bg）上 —— 看起來跟所在的卡片同一個顏色，但 alpha＝1。
+   只在 ≤640＋html.m4；桌機一個字不變。
+   ---------------------------------------------------------------------------- */
+@media (max-width:640px){
+  :root.m4{--m4-op-bg:linear-gradient(var(--m4-cd-bg,var(--panel)),var(--m4-cd-bg,var(--panel))),var(--bg,var(--panel))}
+  /* 族群資金排行／輪動時鐘的成分股面板、象限面板（#rankFlowWrap 裡 absolute inset:0 的側欄，整塊蓋住排行圖） */
+  :root.m4 main .view #rankFlowWrap>.sidepanel:not(#m4-n1):not(#m4-n2){background:var(--m4-op-bg)!important}
+  /* 同一塊面板裡每一檔是兩行（名稱＋代號／成交值・占比・漲跌），但 .ms 是格線、列高被算成 32px（只算到第一行），
+     第二行被下一檔蓋住。手機這一欄本來就只有一欄，改成直欄 flex：每一列多高就多高，清單照樣自己捲。 */
+  :root.m4 main .view #rankFlowWrap>.sidepanel div.ms:not(#m4-n1){display:flex!important;flex-direction:column;gap:6px}
+  :root.m4 main .view #rankFlowWrap>.sidepanel div.ms>a:not(#m4-n1){flex:none;height:auto;min-height:44px;box-sizing:border-box}
+}
