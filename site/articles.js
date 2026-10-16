@@ -1570,7 +1570,7 @@ ${gs.length ? `<section><h5>熱門族群</h5><div class="gps">${gs.map((g) => `<
   <thead><tr><th class="c">選</th><th>分數</th><th class="c">類別</th><th>標題</th><th>理由</th><th class="c">建議形式</th><th>產出狀態</th></tr></thead><tbody id="artTpBody"></tbody></table></div></div>
 </div>
 <div class="card artadm" id="artAdmJobs">
-  <div class="hd"><h3>產出進度</h3><span class="muted">排隊中的請求由 Claude 每天台北 09:50、14:50、20:50 三輪處理；文章推上線後這裡自動變「已完成」</span></div>
+  <div class="hd"><h3>產出進度</h3><span class="muted">排隊中的請求由 Claude 每小時（台北 :05）處理；文章推上線後這裡自動變「已完成」</span></div>
   <div class="aflt" id="artJobFlt">
     <select id="artJfKind" aria-label="產出種類"><option value="">全部種類</option><option value="article">精選文章</option><option value="video">短影片</option></select>
     <select id="artJfSt" aria-label="狀態"><option value="">全部狀態</option>${Object.keys(JST).map((k) => `<option value="${k}">${JST[k]}</option>`).join('')}</select>

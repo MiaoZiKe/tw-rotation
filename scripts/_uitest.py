@@ -71948,10 +71948,10 @@ _load_section_plugins()
 #       「先都不要填，它為可動開關，我可以選擇要不要開啟，但開啟後，會依據我設定的週期、時段進行生產對應類別文章」
 # 圖一＝點閱統計、圖二＝已上架文章＋主題候選清單、圖三＝產出進度。真人操作（每一步驗畫面／送出的內容真的變了）：
 #   ① 桌機管理者：兩分頁「文章主題」「統計數據」、預設文章主題；文章主題內依序是 已上架文章、主題候選、產出進度、產貼文頻率設定；沒有今日選題／Issue 流程；統計藏起來
-#   ② 頻率設定預設：開關關、星期／時段／類別／篇數全空、兩處「未啟用，不會自動產出」、開關禁用並寫缺什麼
-#   ③ 補齊（勾格子、加篇數）→ 開關才能開 → 切開關即時送出 {enabled,slots,cats} → 已儲存、未啟用標示消失
-#   ④ 篇數上限 3、快速鈕、時段由早到晚；關掉開關 → 即時送出 enabled=false 且設定保留、欄位仍可編輯；開著時清空時段 → 自動關閉並送出
-#   ⑤ 兩分頁切換（統計內容前後一致、頻率設定與主題勾選不丟）、重新整理（設定從伺服器讀回、停在上次分頁）
+#   ② 頻率設定（2026-10-16 晚改第 2 版：① 日期 → ② 整點時段 → ③ 類別篇數 → ④ 加入排程清單 → ⑤ 啟用）預設全空、關閉；清單空的時啟用打不開
+#   ③ 照順序組規則 → 加入（自動存 {ver:2, enabled, rules}）→ 開關才能開 → 切開關即時送出 → 已儲存
+#   ④ 篇數上限 3；只改 ①②③ 不送出；關掉開關 → 規則保留；開著把規則刪光 → 自動關閉並送出（細項另見「產貼文頻率設定v2」段）
+#   ⑤ 兩分頁切換（統計內容前後一致、頻率設定清單與正在組的那條、主題勾選不丟）、重新整理（設定從伺服器讀回、停在上次分頁）
 #   ⑥ 後端沒更新／預覽唯讀／非管理者；⑧ 已上架文章「傳給 GPT・IG 貼文／影片」（連結 title／labels／body 逐項解析、已傳送紀錄、批次清單、複製、手機下拉）；⑦ 手機 390／360
 def t_art_tabs_1016(b, base):
     T = "文章主題兩分頁1016"
@@ -71986,12 +71986,12 @@ def t_art_tabs_1016(b, base):
             if m == "deny":
                 return r.fulfill(status=403, body='{"error":"forbidden"}', headers=hd)
             if path.endswith("/get"):
-                return r.fulfill(status=200, body=json.dumps({"schedule": SCH["cfg"], "allowed": {"times": ["09:50", "14:50", "20:50"], "cats": ["news", "intro", "know"], "max": 3}}), headers=hd)
+                return r.fulfill(status=200, body=json.dumps({"schedule": SCH["cfg"], "allowed": {"hours": list(range(24)), "cats": ["news", "intro", "know"], "max": 3, "maxRules": 20, "maxDates": 31}}), headers=hd)
             if path.endswith("/add"):
                 SCH["log"].append({k: v for k, v in body.items() if k != "t"})
                 if m == "ro":
                     return r.fulfill(status=403, body='{"error":"preview_readonly"}', headers=hd)
-                SCH["cfg"] = {"enabled": body.get("enabled"), "slots": body.get("slots"), "cats": body.get("cats"), "updated": 1792130000000 + len(SCH["log"]) * 60000}
+                SCH["cfg"] = {"ver": 2, "enabled": body.get("enabled"), "rules": body.get("rules"), "updated": 1792130000000 + len(SCH["log"]) * 60000}
                 return r.fulfill(status=200, body=json.dumps({"ok": True, "schedule": SCH["cfg"]}), headers=hd)
         return r.fulfill(status=200, body='{"ok":true}', headers=hd)
 
@@ -72011,13 +72011,28 @@ def t_art_tabs_1016(b, base):
         cards: [...document.querySelectorAll('#artStats .admgrid > .card')].map(c => c.querySelector('h3').textContent),
         days: [...document.querySelectorAll('#artStDays .dc')].map(d => +d.dataset.n), lg: [...document.querySelectorAll('#artStDonut li')].map(l => [l.dataset.k, +l.dataset.n]),
         top: [...document.querySelectorAll('#artStTop .bl')].map(x => x.dataset.k) })"""
-    SS = """() => { const V = (e) => !!e && e.getClientRects().length > 0; const on = document.getElementById('asdOn');
-        return { on: on.checked, dis: on.disabled, why: document.getElementById('asdOnWhy').textContent, offTags: [...document.querySelectorAll('#artSchedCard [data-off]')].filter(V).length,
-                 cells: [...document.querySelectorAll('#asdTbl .dd.on')].map(b => b.dataset.d + '@' + b.dataset.t), cats: [...document.querySelectorAll('#artSchedCard input[data-kn]')].map(i => [i.dataset.kn, i.value]),
-                 sum: document.getElementById('asdSum').textContent, msg: document.getElementById('asdMsg').textContent, state: document.getElementById('asdState').textContent, save: document.getElementById('asdSave').disabled,
-                 why2: document.getElementById('asdWhy').textContent }; }"""
+    SS = """() => { const q = (s) => document.querySelector(s), on = q('#asdOn');
+        return { on: on.checked, dis: on.disabled, lbl: q('#asdOnLbl').textContent,
+                 rules: [...document.querySelectorAll('#asdRules .asd-rule')].map(li => [...li.querySelectorAll('.asd-rd,.asd-rh,.asd-rc')].map(x => x.textContent.trim()).join('｜')),
+                 days: [...document.querySelectorAll('#asdDays .dd[aria-pressed=true]')].map(b => +b.dataset.d), hours: [...document.querySelectorAll('.asd .hb[aria-pressed=true]')].map(b => +b.dataset.h),
+                 cats: [...document.querySelectorAll('#artSchedCard input[data-kn]')].map(i => [i.dataset.kn, i.value]), add: q('#asdAdd').disabled, lack: q('#asdLack').textContent,
+                 state: q('#asdState').textContent, note: q('#asdNote').textContent }; }"""
     ss = lambda pg: pg.evaluate(SS)
     cat_in = lambda pg, k: pg.input_value(f"#artSchedCard input[data-kn='{k}']")
+
+    def mk(pg, days, hours, cats):
+        """照 ①②③④ 的順序組一條規則並按「加入排程」（第 2 版，2026-10-16 晚）。days＝星期清單或 "all"（按「每天」快捷）。"""
+        if days == "all":
+            pg.click(".asd-quick button[data-q='all']")
+        else:
+            for d in days:
+                pg.click(f"#asdDays .dd[data-d='{d}']")
+        for h in hours:
+            pg.click(f".asd .hb[data-h='{h}']")
+        for k, n in cats.items():
+            for _ in range(n):
+                pg.click(f"#artSchedCard .asd-kr[data-cat='{k}'] button[data-st='1']")
+        pg.click("#asdAdd"); pg.wait_for_timeout(500)
 
     def shot(el_page, name, sel="#artSchedCard"):
         if shots:
@@ -72033,29 +72048,30 @@ def t_art_tabs_1016(b, base):
     ok(f"{T}：沒有「今日選題」「產主題設定」那套 GitHub Issue 流程（不留兩套送出方式），側欄管理區也沒有第二個入口", tb["old"] == 0 and ap.evaluate("() => document.querySelectorAll('.l4subtab[data-adm=social], #admTabSocial').length") == 0, tb["old"])
     # ---------------------------------------------------------------- ② 預設全空、關閉
     d0 = ss(ap)
-    ok(f"{T}：頻率設定預設＝開關關閉、沒有任何星期×時段、三個類別篇數都是 0（不預填）", not d0["on"] and d0["cells"] == [] and d0["cats"] == [["news", "0"], ["intro", "0"], ["know", "0"]], d0)
-    ok(f"{T}：預設兩處標「未啟用，不會自動產出」；開關禁用並寫缺什麼（星期×時段、類別）", d0["offTags"] == 2 and d0["dis"] and "星期 × 時段" in d0["why"] and "類別" in d0["why"], d0)
-    ok(f"{T}：明講生效時間（等每小時同步＋Claude 排程到點）、列出現有三輪 09:50／14:50／20:50", all(x in ap.inner_text("#artSchedCard") for x in ("每小時一次的同步", "09:50", "14:50", "20:50", "日後要增加時段")), None)
+    ok(f"{T}：頻率設定預設＝開關關閉、沒有規則、沒有任何星期／時段、三個類別篇數都是 0（不預填）", not d0["on"] and d0["rules"] == [] and d0["days"] == [] and d0["hours"] == [] and d0["cats"] == [["news", "0"], ["intro", "0"], ["know", "0"]], d0)
+    ok(f"{T}：啟用（⑤ 最後一步）預設禁用並寫「清單至少要有一條規則」；加入排程鈕禁用並寫缺 ①②③", d0["dis"] and "至少要有一條規則" in d0["lbl"] and d0["add"] and all(x in d0["lack"] for x in ("①", "②", "③")), d0)
+    t_ = ap.inner_text("#artSchedCard")
+    ok(f"{T}：頂部一句「到點後最多約 1 小時內」；舊的三輪時間（09:50／14:50／20:50）與「儲存設定」鈕都拿掉", "到點後最多約 1 小時內" in t_ and not any(x in t_ for x in ("09:50", "14:50", "20:50", "儲存設定")), t_[:160])
     ap.click("#asdOn", force=True); ap.wait_for_timeout(300)
-    ok(f"{T}：條件不足時硬點開關 → 打不開、也沒有送出任何儲存", not ss(ap)["on"] and not SCH["log"], [ss(ap)["on"], SCH["log"]])
+    ok(f"{T}：清單是空的時硬點開關 → 打不開、也沒有送出任何儲存", not ss(ap)["on"] and not SCH["log"], [ss(ap)["on"], SCH["log"]])
     shot(ap, "desk-sched-1-default.png")
-    # ---------------------------------------------------------------- ③ 補齊 → 開啟
-    ap.click("#asdTbl .dd[data-d='1'][data-t='09:50']"); ap.wait_for_timeout(120)
+    # ---------------------------------------------------------------- ③ 照順序組規則 → 加入 → 開啟
+    ap.click("#asdDays .dd[data-d='1']"); ap.wait_for_timeout(120)
     d1 = ss(ap)
-    ok(f"{T}：只勾了「週一 09:50」→ 開關仍禁用、原因只剩「類別」（星期×時段那條消失）、欄位可編輯但仍標未啟用", d1["cells"] == ["1@09:50"] and d1["dis"] and "類別" in d1["why"] and "星期 × 時段" not in d1["why"] and d1["offTags"] == 2, d1)
-    ap.click("#artSchedCard .asd-kr[data-cat='news'] button[data-st='1']"); ap.wait_for_timeout(120)
+    ok(f"{T}：只選了週一 → 加入鈕仍禁用、缺的只剩 ②③", d1["days"] == [1] and d1["add"] and "①" not in d1["lack"] and "②" in d1["lack"] and "③" in d1["lack"], d1)
+    ap.click("#asdHoursAm .hb[data-h='9']"); ap.click("#artSchedCard .asd-kr[data-cat='news'] button[data-st='1']"); ap.wait_for_timeout(120)
     d2 = ss(ap)
-    ok(f"{T}：比比快訊 +1 → 開關可以開了（不再禁用、原因清空）、仍是關閉、沒有送出儲存", not d2["dis"] and not d2["on"] and d2["why"] == "" and not SCH["log"], d2)
-    ap.click("#asdTbl .dd[data-d='2'][data-t='09:50']"); ap.click("#asdTbl .dd[data-d='3'][data-t='09:50']")
-    ap.click("#asdTbl .dd[data-d='1'][data-t='20:50']"); ap.click("#asdTbl .dd[data-d='3'][data-t='20:50']"); ap.wait_for_timeout(120)
-    ap.click("#artSchedCard .asd-kr[data-cat='know'] button[data-st='1']"); ap.click("#artSchedCard .asd-kr[data-cat='know'] button[data-st='1']"); ap.wait_for_timeout(120)
+    ok(f"{T}：再選 9:00 AM、比比快訊 +1 → 加入鈕可以按、缺什麼清空、還沒送出儲存", not d2["add"] and d2["lack"] == "" and not SCH["log"], d2)
+    ap.click("#asdAdd"); ap.wait_for_timeout(500)
+    r_a = {"days": [1], "hours": [9], "cats": {"news": 1, "intro": 0, "know": 0}}
+    ok(f"{T}：按加入排程 → 自動送出 {{ver:2, enabled:false, rules:[週一 9 點 快訊 1]}}", SCH["log"] == [{"ver": 2, "enabled": False, "rules": [r_a]}], SCH["log"])
+    mk(ap, [1, 3], [9, 20], {"know": 2})
+    r_b = {"days": [1, 3], "hours": [9, 20], "cats": {"news": 0, "intro": 0, "know": 2}}
     ap.click("#asdOn"); ap.wait_for_timeout(500)
     d3 = ss(ap)
-    want = {"enabled": True, "slots": {"1": ["09:50", "20:50"], "2": ["09:50"], "3": ["09:50", "20:50"]}, "cats": {"news": 1, "intro": 0, "know": 2}}
-    ok(f"{T}：切開關 → 馬上送出 {{enabled:true, slots（時段由早到晚）, cats}}，內容與畫面勾的一致", SCH["log"] == [want], SCH["log"])
-    ok(f"{T}：開啟後畫面＝開關亮、「未啟用」標示消失、顯示已儲存時間、白話摘要寫對（週一、週三 09:50、20:50；週二 09:50；每輪 快訊1＋知識2；一週共 15 篇）",
-       d3["on"] and d3["offTags"] == 0 and "已儲存" in d3["msg"] and "已儲存的版本" in d3["state"] and "週一、週三 09:50、20:50" in d3["sum"] and "週二 09:50" in d3["sum"]
-       and "比比快訊 1 篇" in d3["sum"] and "比比知識 2 篇" in d3["sum"] and "共 15 篇" in d3["sum"], d3)
+    ok(f"{T}：再加一條、切開關 → 馬上送出 {{ver:2, enabled:true, rules:兩條}}，內容與畫面一致", SCH["log"][-1] == {"ver": 2, "enabled": True, "rules": [r_a, r_b]}, SCH["log"][-1])
+    ok(f"{T}：開啟後畫面＝開關亮、寫「已啟用」與「已儲存 HH:MM」、清單兩條白話正確（每週一｜9:00 AM｜快訊 1；每週一、三｜9:00 AM、8:00 PM｜知識 2）",
+       d3["on"] and "已啟用" in d3["lbl"] and re.match(r"^已儲存 ", d3["state"]) and d3["rules"] == ["每週一｜9:00 AM｜快訊 1", "每週一、三｜9:00 AM、8:00 PM｜知識 2"], d3)
     shot(ap, "desk-sched-2-on.png")
     # ---------------------------------------------------------------- ④ 邊界、關閉、自動關閉
     for _ in range(5):
@@ -72066,25 +72082,19 @@ def t_art_tabs_1016(b, base):
     v9 = cat_in(ap, "intro")
     ap.fill("#artSchedCard input[data-kn='intro']", "-2"); ap.dispatch_event("#artSchedCard input[data-kn='intro']", "change"); ap.wait_for_timeout(100)
     ok(f"{T}：輸入 9 → {v9}、輸入 -2 → {cat_in(ap, 'intro')}", v9 == "3" and cat_in(ap, "intro") == "0", [v9, cat_in(ap, "intro")])
-    n_before = len(SCH["log"])
-    ap.click("#asdSave"); ap.wait_for_timeout(400)
-    ok(f"{T}：開著時改設定要按「儲存設定」才送出（只多一筆、enabled 仍是 true）", len(SCH["log"]) == n_before + 1 and SCH["log"][-1]["enabled"] is True, SCH["log"][-1])
+    ok(f"{T}：只在 ①②③ 改東西（還沒按加入）不會送出儲存", SCH["log"][-1]["enabled"] is True and len(SCH["log"]) == 3, len(SCH["log"]))
     ap.click("#asdOn"); ap.wait_for_timeout(500)
     d4 = ss(ap)
-    ok(f"{T}：關掉開關 → 馬上送出 enabled=false、slots 與 cats 都還在（沒被清掉）；標示回到「未啟用，不會自動產出」", SCH["log"][-1]["enabled"] is False and SCH["log"][-1]["slots"] == want["slots"] and not d4["on"] and d4["offTags"] == 2 and len(d4["cells"]) == 5, [SCH["log"][-1], d4["offTags"]])
-    ap.click("#asdTbl .dd[data-d='7'][data-t='14:50']"); ap.wait_for_timeout(120)
-    ok(f"{T}：開關關著時，欄位仍可編輯（勾週日 14:50 → 格子亮起）", "7@14:50" in ss(ap)["cells"], ss(ap)["cells"])
-    ap.click(".asd-q button[data-q='work']"); ap.wait_for_timeout(120)
-    dq = ss(ap)
-    ok(f"{T}：快速鈕「全部時段 週一至週五」→ 15 格（5 天 × 3 時段）、沒有週六日", len(dq["cells"]) == 15 and not any(c.startswith(("6@", "7@")) for c in dq["cells"]), dq["cells"])
+    ok(f"{T}：關掉開關 → 馬上送出 enabled=false、兩條規則都還在（沒被清掉）", SCH["log"][-1] == {"ver": 2, "enabled": False, "rules": [r_a, r_b]} and not d4["on"] and len(d4["rules"]) == 2, [SCH["log"][-1], d4])
     ap.click("#asdOn"); ap.wait_for_timeout(500)
-    ok(f"{T}：再開啟 → 送出 enabled=true 與週一至週五三輪", SCH["log"][-1]["enabled"] is True and SCH["log"][-1]["slots"] == {str(d): ["09:50", "14:50", "20:50"] for d in range(1, 6)}, SCH["log"][-1])
-    ap.click(".asd-q button[data-q='none']"); ap.wait_for_timeout(500)
+    ap.click("#asdRules .asd-rule[data-i='0'] button[data-del]"); ap.wait_for_timeout(500)
+    ap.click("#asdRules .asd-rule[data-i='0'] button[data-del]"); ap.wait_for_timeout(500)
     d5 = ss(ap)
-    ok(f"{T}：開著時把星期×時段全部取消 → 自動關閉（不能開著卻什麼都不做）、送出 enabled=false、畫面寫「已自動關閉」", not d5["on"] and "已自動關閉" in d5["msg"] and SCH["log"][-1]["enabled"] is False and d5["dis"], [d5["msg"], SCH["log"][-1]])
+    ok(f"{T}：開著時把規則全部刪掉 → 自動關閉（不能開著卻什麼都不做）、送出 {{enabled:false, rules:[]}}、畫面寫「已自動關閉」", not d5["on"] and "已自動關閉" in d5["note"] and SCH["log"][-1] == {"ver": 2, "enabled": False, "rules": []} and d5["dis"], [d5, SCH["log"][-1]])
     shot(ap, "desk-sched-3-off.png")
-    ap.click(".asd-q button[data-q='all']"); ap.wait_for_timeout(150)
-    ap.click("#asdSave"); ap.wait_for_timeout(400)
+    mk(ap, "all", [9, 14, 20], {"news": 1, "know": 2})
+    want_all = "每天｜9:00 AM、2:00 PM、8:00 PM｜快訊 1、知識 2"
+    ap.click("#asdDays .dd[data-d='2']"); ap.wait_for_timeout(100)   # 正在組的那一條（還沒加入）：切分頁後要還在
     # ---------------------------------------------------------------- ⑤ 兩分頁切換、重新整理
     ap.click("#artTpBody tr[data-tid]:nth-child(1)"); ap.wait_for_timeout(150)
     sel0 = ap.evaluate("() => document.querySelectorAll('#artTpBody tr[aria-selected=true]').length")
@@ -72096,18 +72106,18 @@ def t_art_tabs_1016(b, base):
     shot(ap, "desk-stats-1440.png", "#artPanelStats")
     ap.click("#artTabTopics"); ap.wait_for_timeout(300)
     d6 = ss(ap); sel1 = ap.evaluate("() => document.querySelectorAll('#artTpBody tr[aria-selected=true]').length")
-    ok(f"{T}：切回「文章主題」→ 頻率設定（21 格＝每天三輪）與主題勾選（{sel0} 個）原封不動；來回切換後統計內容一模一樣", len(d6["cells"]) == 21 and sel1 == sel0 and ap.evaluate(SNAP) == sn1, [len(d6["cells"]), sel1, sel0])
+    ok(f"{T}：切回「文章主題」→ 頻率設定（清單 1 條、正在組的那條＝週二）與主題勾選（{sel0} 個）原封不動；來回切換後統計內容一模一樣", d6["rules"] == [want_all] and d6["days"] == [2] and sel1 == sel0 and ap.evaluate(SNAP) == sn1, [d6, sel1, sel0])
     ap.click("#artTabStats"); ap.wait_for_timeout(200)
     ap.reload(wait_until="domcontentloaded")
     wait_until(ap, "() => !!document.querySelector('#artStDays .dc')", 15000); ap.wait_for_timeout(400)
     ok(f"{T}：停在「統計數據」重新整理 → 還是停在統計數據", ap.evaluate(TABS)["on"] == ["stats"], None)
     ap.click("#artTabTopics"); ap.wait_for_timeout(300)
-    wait_until(ap, "() => document.getElementById('asdState') && /已儲存的版本/.test(document.getElementById('asdState').textContent)", 8000)
+    wait_until(ap, "() => document.getElementById('asdState') && /已儲存/.test(document.getElementById('asdState').textContent)", 8000)
     d7 = ss(ap)
-    ok(f"{T}：重新整理後頻率設定從伺服器讀回（關閉、21 格、篇數同上次存的），而不是回到空白", not d7["on"] and len(d7["cells"]) == 21 and d7["cats"] == [["news", "1"], ["intro", "0"], ["know", "2"]] and "已儲存的版本" in d7["state"], d7)
-    ap.evaluate("() => { try { localStorage.removeItem('tw.art.admtab'); localStorage.removeItem('tw.art.sched.draft'); } catch (e) {} }")
+    ok(f"{T}：重新整理後頻率設定從伺服器讀回（關閉、清單 1 條＝每天三個時段），而不是回到空白", not d7["on"] and d7["rules"] == [want_all] and "已儲存" in d7["state"], d7)
+    ap.evaluate("() => { try { localStorage.removeItem('tw.art.admtab'); localStorage.removeItem('tw.art.sched.draft2'); } catch (e) {} }")
     lay = ap.evaluate("""() => { let minfs = 99; document.querySelectorAll('#artSchedCard *, #artAdmTabs *').forEach(e => { if (!e.getClientRects().length) return; if ([...e.childNodes].some(n => n.nodeType === 3 && n.textContent.trim())) minfs = Math.min(minfs, parseFloat(getComputedStyle(e).fontSize)); });
-        const c = document.getElementById('artSchedCard').getBoundingClientRect(); const bad = [...document.querySelectorAll('#artSchedCard .asd-days, #artSchedCard .asd-box')].filter(e => e.getBoundingClientRect().right > c.right + 0.5).length;
+        const c = document.getElementById('artSchedCard').getBoundingClientRect(); const bad = [...document.querySelectorAll('#artSchedCard .asd-st, #artSchedCard .asd-hours, #artSchedCard .asd-days')].filter(e => e.getBoundingClientRect().right > c.right + 0.5).length;
         return { sx: document.documentElement.scrollWidth - innerWidth, minfs, bad }; }""")
     ok(f"{T}：1440 沒有橫向溢出、字級 ≥ 12、格線在卡片內", lay["sx"] <= 0 and lay["minfs"] >= 12 and lay["bad"] == 0, lay)
     ac.close()
@@ -72117,21 +72127,21 @@ def t_art_tabs_1016(b, base):
         SCH["mode"] = mode; SCH["cfg"] = None; SCH["log"].clear()
         bc, _ = _acctm4_ctx(b, "admin", desk=True)
         bp = new_page(bc)
-        wait_until(bp, "() => !!document.getElementById('asdOn') && !/讀取中/.test(document.getElementById('asdState').textContent)", 15000); bp.wait_for_timeout(300)
+        wait_until(bp, "() => !!document.getElementById('asdOn') && !/讀取/.test(document.getElementById('asdState').textContent)", 15000); bp.wait_for_timeout(300)
         s_ = ss(bp)
-        ok(f"{T}：頻率設定讀取回「{mode}」→ 畫面寫「{expect}」、其他欄位仍可操作", expect in s_["state"], s_["state"])
-        bp.click("#asdTbl .dd[data-d='1'][data-t='09:50']"); bp.click("#artSchedCard .asd-kr[data-cat='news'] button[data-st='1']"); bp.wait_for_timeout(100)
+        ok(f"{T}：頻率設定讀取回「{mode}」→ ⑤ 寫「{expect}」、其他欄位仍可操作", expect in s_["state"], s_["state"])
+        mk(bp, [1], [9], {"news": 1})
         bp.click("#asdOn"); bp.wait_for_timeout(500)
         s2 = ss(bp)
-        ok(f"{T}：{mode} 時按開關 → 存不進去，畫面講原因（{s2['msg']}）、開關退回關閉不假裝成功", not s2["on"] or "失敗" in s2["msg"], s2)
+        ok(f"{T}：{mode} 時加規則、按開關 → 規則留在畫面不丟、開關退回關閉不假裝成功（{s2['note']}）", not s2["on"] and s2["rules"] == ["每週一｜9:00 AM｜快訊 1"] and "已儲存" not in s2["state"], s2)
         bc.close()
     SCH["mode"] = "ro"; SCH["cfg"] = None; SCH["log"].clear()
     rc, _ = _acctm4_ctx(b, "admin", desk=True)
     rp = new_page(rc)
-    wait_until(rp, "() => !!document.getElementById('asdOn')", 15000); rp.wait_for_timeout(300)
-    rp.click("#asdTbl .dd[data-d='1'][data-t='09:50']"); rp.click("#artSchedCard .asd-kr[data-cat='news'] button[data-st='1']"); rp.click("#asdSave"); rp.wait_for_timeout(500)
+    wait_until(rp, "() => !!document.getElementById('asdOn') && !/讀取/.test(document.getElementById('asdState').textContent)", 15000); rp.wait_for_timeout(300)
+    mk(rp, [1], [9], {"news": 1})
     sr = ss(rp)
-    ok(f"{T}：預覽唯讀（寫入被擋）→ 畫面寫「預覽版不會真的儲存」", "預覽版不會真的儲存" in sr["msg"], sr["msg"])
+    ok(f"{T}：預覽唯讀（寫入被擋）→ 加規則後畫面寫「預覽版不會真的儲存」", "預覽版不會真的儲存" in sr["note"] + sr["state"], sr)
     rc.close()
     SCH["mode"] = "ok"
 
@@ -72328,7 +72338,7 @@ def t_art_tabs_1016(b, base):
         m = mp.evaluate("""() => { const V = (e) => !!e && e.getClientRects().length > 0; const H = innerHeight; const tabs = document.getElementById('artAdmTabs').getBoundingClientRect();
             let minfs = 99; document.querySelectorAll('#artSchedCard *, #artAdmTabs *').forEach(e => { if (!V(e)) return; if ([...e.childNodes].some(n => n.nodeType === 3 && n.textContent.trim())) minfs = Math.min(minfs, parseFloat(getComputedStyle(e).fontSize)); });
             const c = document.getElementById('artSchedCard').getBoundingClientRect();
-            const days = [...document.querySelectorAll('#asdTbl .asd-row:first-child .dd')].map(e => e.getBoundingClientRect());
+            const days = [...document.querySelectorAll('#asdDays .dd')].map(e => e.getBoundingClientRect());
             const small = [...document.querySelectorAll('#artSchedCard button, #artSchedCard input:not([type=checkbox])')].filter(V).map(e => e.getBoundingClientRect()).filter(r => r.height < 31.5 || r.width < 31.5).length;
             return { H, tabsTop: Math.round(tabs.top), sx: document.documentElement.scrollWidth - innerWidth, minfs, days: days.length, dw: Math.round(Math.min(...days.map(r => r.width))), dh: Math.round(Math.min(...days.map(r => r.height))), inside: days.every(r => r.right <= c.right + 0.5 && r.left >= c.left - 0.5), small }; }""")
         ok(f"{T}：手機 {vp[0]}：分頁列在第一屏（頂 {m['tabsTop']} < {m['H']}）、沒有橫向捲軸、字 ≥ 11px（最小 {m['minfs']}）", m["tabsTop"] < m["H"] and m["sx"] <= 0 and m["minfs"] >= 11, m)
@@ -72336,18 +72346,18 @@ def t_art_tabs_1016(b, base):
         if shots and vp[0] == 390:
             mp.locator("#artSchedCard").scroll_into_view_if_needed(); mp.wait_for_timeout(200)
             shot(mp, "mob-sched-1-default.png")
-        mp.locator("#asdTbl .dd[data-d='1'][data-t='09:50']").tap(); mp.locator("#asdTbl .dd[data-d='5'][data-t='20:50']").tap()
+        mp.locator("#asdDays .dd[data-d='1']").tap(); mp.locator("#asdDays .dd[data-d='5']").tap()
+        mp.locator("#asdHoursAm .hb[data-h='9']").tap(); mp.locator("#asdHoursPm .hb[data-h='20']").tap()
         mp.locator("#artSchedCard .asd-kr[data-cat='intro'] button[data-st='1']").tap(); mp.wait_for_timeout(150)
+        mp.locator("#asdAdd").tap(); mp.wait_for_timeout(500)
         ms = ss(mp)
-        ok(f"{T}：手機 {vp[0]}：手指點格子與 ＋ → 勾到 2 格、開關解鎖", ms["cells"] == ["1@09:50", "5@20:50"] and not ms["dis"], ms)
+        ok(f"{T}：手機 {vp[0]}：手指點週一、週五 → 9:00 AM、8:00 PM → 產業鏈 ＋ → 加入排程 → 清單 1 條、啟用解鎖", ms["rules"] == ["每週一、五｜9:00 AM、8:00 PM｜產業鏈 1"] and not ms["dis"], ms)
         mp.locator("#asdOn").tap(); mp.wait_for_timeout(500)
-        ok(f"{T}：手機 {vp[0]}：手指切開關 → 送出 enabled=true、週一 09:50／週五 20:50、比比產業鏈 1 篇", SCH["log"] and SCH["log"][-1] == {"enabled": True, "slots": {"1": ["09:50"], "5": ["20:50"]}, "cats": {"news": 0, "intro": 1, "know": 0}}, SCH["log"][-1:])
+        ok(f"{T}：手機 {vp[0]}：手指切開關 → 送出 {{ver:2, enabled:true, rules:[週一五 9、20 點 產業鏈 1]}}", SCH["log"] and SCH["log"][-1] == {"ver": 2, "enabled": True, "rules": [{"days": [1, 5], "hours": [9, 20], "cats": {"news": 0, "intro": 1, "know": 0}}]}, SCH["log"][-1:])
         if shots and vp[0] == 390:
             shot(mp, "mob-sched-2-on.png")
         mp.locator("#asdOn").tap(); mp.wait_for_timeout(500)
-        ok(f"{T}：手機 {vp[0]}：手指關開關 → 送出 enabled=false", SCH["log"][-1]["enabled"] is False and not ss(mp)["on"], SCH["log"][-1])
-        if shots and vp[0] == 390:
-            shot(mp, "mob-sched-3-off.png")
+        ok(f"{T}：手機 {vp[0]}：手指關開關 → 送出 enabled=false、規則保留", SCH["log"][-1]["enabled"] is False and len(SCH["log"][-1]["rules"]) == 1 and not ss(mp)["on"], SCH["log"][-1])
         mp.locator("#artTabStats").tap(); mp.wait_for_timeout(500)
         wait_until(mp, "() => !!document.querySelector('#artStDays .dc')", 8000)
         sx = mp.evaluate("""() => { const V = (e) => !!e && e.getClientRects().length > 0; return { sx: document.documentElement.scrollWidth - innerWidth, stats: V(document.getElementById('artStats')), topics: V(document.getElementById('artPanelTopics')) }; }""")
