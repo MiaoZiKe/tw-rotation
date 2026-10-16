@@ -49,37 +49,10 @@
   function css() {
     if (!T()) return;
     T().css('coCss', `
-#subDlg .box.codlg{width:min(560px,100%);padding:0;overflow:auto}
-#subDlg .codlg .cohd{display:flex;align-items:center;gap:10px;padding:16px 20px;border-bottom:1px solid var(--line)}
-#subDlg .codlg .cohd b{font-size:18px}
 #subDlg .codlg .cohd .sp{flex:1}
 #subDlg .codlg .cohd button{width:32px;height:32px;border-radius:8px;border:1px solid var(--line-2);background:var(--panel-3);color:var(--ink);cursor:pointer;font-size:18px;line-height:1}
 #subDlg .codlg .cotest{font-size:12px;padding:2px 8px;border-radius:999px;border:1px solid var(--amber);color:var(--amber);white-space:nowrap}
-#subDlg .codlg .cobd{padding:14px 20px 18px}
-#subDlg .codlg .cosum{display:grid;grid-template-columns:88px minmax(0,1fr);gap:8px 12px;align-items:center;font-size:14px;margin-bottom:12px}
-#subDlg .codlg .cosum>span{color:var(--ink-2)}
-#subDlg .codlg .cosum .amt{font-size:22px;font-weight:700;color:var(--ink);font-variant-numeric:tabular-nums}
-#subDlg .codlg .cosum code{font-family:var(--mono,ui-monospace,monospace);font-size:13.5px;color:var(--ink)}
-#subDlg .codlg .cotabs{display:flex;border:1px solid var(--line-2);border-radius:10px;overflow:hidden;margin:4px 0 12px}
-#subDlg .codlg .cotabs button{flex:1;min-height:44px;border:0;background:transparent;color:var(--ink-2);font-size:14px;cursor:pointer;padding:6px 8px;line-height:1.25}
-#subDlg .codlg .cotabs button small{display:block;font-size:11.5px;color:var(--ink-3,var(--ink-2));font-weight:400}
-#subDlg .codlg .cotabs button[aria-selected=true]{background:var(--cyan);color:#04121a;font-weight:700}
-#subDlg .codlg .cotabs button[aria-selected=true] small{color:#04121a}
-#subDlg .codlg .coopt{display:flex;gap:10px;align-items:flex-start;border:1px solid var(--line-2);border-radius:10px;padding:10px 12px;margin:0 0 8px;cursor:pointer;color:var(--ink);font-size:14px}
-#subDlg .codlg .coopt:has(input:checked){border-color:var(--cyan);background:color-mix(in srgb,var(--cyan) 8%,transparent)}
-#subDlg .codlg .coopt input{margin-top:3px;flex:none}
-#subDlg .codlg .coopt small{display:block;color:var(--ink-2);font-size:12.5px;line-height:1.5;margin-top:2px}
-#subDlg .codlg .cobank{display:grid;grid-template-columns:88px minmax(0,1fr) auto;gap:4px 10px;align-items:center;border:1px solid var(--line-2);border-radius:10px;padding:8px 12px;font-size:14px;margin-bottom:8px}
-#subDlg .codlg .cobank>span{color:var(--ink-2)}
-#subDlg .codlg .cobank b{font-variant-numeric:tabular-nums;word-break:break-all}
-#subDlg .codlg .cobank button{height:28px;padding:0 10px;border-radius:7px;border:1px solid var(--line-2);background:var(--panel-3);color:var(--ink);font-size:12.5px;cursor:pointer}
 #subDlg .codlg .codue{grid-column:1/-1;color:var(--amber);font-size:13px}
-#subDlg .codlg .cofrm{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px 10px}
-#subDlg .codlg .cofrm label{margin:0;font-size:12.5px}
-#subDlg .codlg .cofrm .w3{grid-column:1/-1}
-#subDlg .codlg .cofrm>div{display:flex;flex-direction:column;justify-content:flex-end;min-width:0}
-#subDlg .codlg .cofrm label{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-#subDlg .codlg .cofrm input::placeholder{color:var(--ink-3);font-size:13px}
 #subDlg .codlg .cocfm{margin-top:10px;text-align:left;padding:12px 14px}
 #subDlg .codlg .cocfm>b{font-size:14px}
 #subDlg .codlg .cooff.cocfm{text-align:left}
@@ -88,70 +61,73 @@
 #subDlg .codlg .cocfm .cfbtn button{height:44px;margin:0;border-radius:10px;font:inherit;font-size:14px;white-space:nowrap}
 #subDlg .codlg .cocfm #coCfmBack{flex:none;padding:0 16px;border:1px solid var(--line-2);background:var(--panel-3);color:var(--ink);cursor:pointer}
 #subDlg .codlg .cocfm .cogo{flex:1;font-size:15px}
-#subDlg .codlg .cofrm label,#subDlg .codlg .cofrm .lb{display:block;margin:0 0 4px;font-size:12.5px;color:var(--ink)}
-#subDlg .codlg .cofrm label small,#subDlg .codlg .cofrm .lb small{margin-left:6px;color:var(--ink-2);font-size:11.5px;font-weight:400}
-#subDlg .codlg .cofrm .opt{font-style:normal;margin-left:4px;color:var(--ink-2);font-size:11px}
-#subDlg .codlg .cohint{display:block;margin-top:4px;color:var(--ink-2);font-size:12px;line-height:1.55;font-weight:400}
-#subDlg .codlg .cohint a{color:var(--cyan)}
-#subDlg .codlg .cogd{display:flex;width:100%;margin:0}
-#subDlg .codlg .cogd button{flex:1;min-height:36px;font-size:14px}
-#subDlg .codlg .cogd button[aria-checked=true]{background:var(--cyan);color:#04121a;font-weight:700}
-#subDlg .codlg .cofrm .cogc{display:flex;gap:8px;align-items:flex-start;margin:8px 0 0;font-size:12.5px;line-height:1.5;color:var(--ink);white-space:normal;overflow:visible}
-#subDlg .codlg .cofrm .cogc input{width:auto;height:auto;margin-top:2px;flex:none}
-#subDlg .codlg .coinfo{border:1px solid var(--line-2);border-radius:10px;padding:10px 12px;margin:10px 0 8px;font-size:14px;color:var(--ink)}
-#subDlg .codlg .coinfo small{display:block;color:var(--ink-2);font-size:12.5px;line-height:1.5;margin-top:2px}
-#subDlg .codlg .cosum .coday{display:block;font-size:12.5px;font-weight:400;color:var(--ink-2)}
-#subDlg .codlg .cofrm .req{font-style:normal;margin-left:4px;color:var(--rise);font-size:11px}
-#subDlg .codlg .cofrm .ro{height:36px;display:flex;align-items:center;padding:0 10px;border:1px dashed var(--line-2);border-radius:8px;font-weight:700;font-variant-numeric:tabular-nums;color:var(--ink)}
-#subDlg .codlg .cofrm input{width:100%;box-sizing:border-box;height:36px;background:var(--panel);color:var(--ink);border:1px solid var(--line-2);border-radius:8px;padding:0 10px;font:inherit;font-size:14px}
 #subDlg .codlg .cooff{border:1px dashed var(--line-2);border-radius:10px;padding:14px;color:var(--ink-2);font-size:14px;text-align:center}
-#subDlg .codlg .colegal{border-top:1px solid var(--line);margin-top:14px;padding-top:12px;font-size:13px;color:var(--ink-2);line-height:1.6}
-#subDlg .codlg .colegal label{display:flex;gap:8px;align-items:flex-start;margin:0 0 6px;color:var(--ink);font-size:13px}
-#subDlg .codlg .colegal a{color:var(--cyan)}
-#subDlg .codlg .cogo{width:100%;height:44px;border-radius:10px;border:0;background:var(--cyan);color:#04121a;font-weight:700;font-size:15px;cursor:pointer;margin-top:10px}
-#subDlg .codlg .cogo:disabled{opacity:.45;cursor:not-allowed}
 #subDlg .codlg .msg{margin-top:8px}
 #subDlg .codlg .codone{text-align:center;padding:10px 0}
 #subDlg .codlg .codone h3{font-size:18px;margin:6px 0}
-/* 2026-10-16 結帳視窗精簡（Andy：版面文字太多、排版浪費空間）：摘要一排、姓名＋性別同一排、說明收進 ⓘ */
-#subDlg .codlg .cosum2{display:flex;align-items:center;justify-content:space-between;gap:6px 14px;flex-wrap:wrap;margin:0 0 8px}
-#subDlg .codlg .cosp{display:flex;align-items:center;gap:10px;min-width:0}
-#subDlg .codlg .coplan{font-size:15px;font-weight:700;color:var(--ink)}
-#subDlg .codlg .cosum2 .amt{font-size:21px;font-weight:700;color:var(--ink);font-variant-numeric:tabular-nums;text-align:right;display:flex;align-items:baseline;gap:6px;flex-wrap:wrap;justify-content:flex-end}
-#subDlg .codlg .cosum2 .amt .coday{font-size:12px;font-weight:400;color:var(--ink-2)}
-#subDlg .codlg .cooid{font-size:12.5px;color:var(--ink-2);margin:0 0 6px}
+/* 2026-10-16 結帳視窗重做（Andy 退件：歪七扭八、大小不一、文字沒置中、性別佔太大）：
+   一組間距 12／16、三級字 16／14／12、所有輸入框統一 44px 高、同一排用 grid 等分、標籤放欄位上方；一律限定在 #subDlg .codlg 內 */
+#subDlg .box.codlg{width:min(560px,100%);padding:0;overflow:auto}
+#subDlg .codlg .cohd{display:flex;align-items:center;gap:8px;padding:16px}
+#subDlg .codlg .cohd b{font-size:16px;line-height:24px}
+#subDlg .codlg .cohd button{font-size:16px;line-height:1}
+#subDlg .codlg .cobadge{display:inline-flex;align-items:center;justify-content:center;height:24px;padding:0 12px;border-radius:999px;background:color-mix(in srgb,var(--cyan) 16%,transparent);color:var(--cyan);font-size:12px;font-weight:600;line-height:1;white-space:nowrap}
+#subDlg .codlg .cobd{padding:0 16px 16px}
+#subDlg .codlg .coamt{display:flex;justify-content:center;align-items:baseline;gap:12px;white-space:nowrap;margin:0 0 16px;font-size:16px;font-weight:700;line-height:24px;color:var(--ink);font-variant-numeric:tabular-nums}
+#subDlg .codlg .coamt .coday{font-size:12px;font-weight:400;color:var(--ink-2)}
+#subDlg .codlg .cooid{text-align:center;font-size:12px;line-height:16px;color:var(--ink-2);margin:-8px 0 16px}
 #subDlg .codlg .cooid code{font-family:var(--mono,ui-monospace,monospace);color:var(--ink)}
-#subDlg .codlg .cotabs{margin:0 0 10px}
-#subDlg .codlg .cotabs button{min-height:40px;padding:3px 8px}
-#subDlg .codlg .cofrm.coprof{grid-template-columns:minmax(0,1fr) 132px;gap:6px 12px;align-items:end}
-#subDlg .codlg .cofrm.coprof .l5row{grid-column:1/-1;flex-direction:row;align-items:center;justify-content:flex-start;gap:8px}
-#subDlg .codlg .cofrm.coprof .l5row label{margin:0;flex:none}
-#subDlg .codlg .cofrm.coprof .l5row input{width:104px;flex:none}
-#subDlg .codlg .cofrm.coprof .l5row .cohelpb{margin-left:auto}
-#subDlg .codlg .cofrm .cogw{justify-content:flex-end}
-#subDlg .codlg .cofrm .cogw.g2{grid-column:span 2}
-#subDlg .codlg .cofrm .cogw .cogd{height:36px}
-#subDlg .codlg .cofrm .cogw .cogd button{min-height:34px;height:34px;padding:0}
-#subDlg .codlg .conote{margin:6px 0 0;font-size:12px;line-height:1.55;color:var(--ink-2)}
-#subDlg .codlg .conote.fx{display:flex;gap:8px;align-items:center}
-#subDlg .codlg .conote.fx span{flex:1;min-width:0}
-#subDlg .codlg .conote a,#subDlg .codlg .cohelp a{color:var(--cyan)}
-#subDlg .codlg .cohelpb{height:32px;min-width:32px;padding:0 10px;border-radius:8px;border:1px solid var(--line-2);background:var(--panel-3);color:var(--ink);font-size:12.5px;cursor:pointer;white-space:nowrap;flex:none}
+#subDlg .codlg .cotabs{display:grid;grid-template-columns:1fr 1fr;border:1px solid var(--line-2);border-radius:10px;overflow:hidden;margin:0 0 16px}
+#subDlg .codlg .cotabs button{height:44px;padding:0 8px;border:0;background:transparent;color:var(--ink-2);cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:14px;line-height:18px;text-align:center}
+#subDlg .codlg .cotabs button small{display:block;font-size:12px;line-height:16px;font-weight:400;color:var(--ink-2)}
+#subDlg .codlg .cotabs button[aria-selected=true]{background:var(--cyan);color:#04121a;font-weight:700}
+#subDlg .codlg .cotabs button[aria-selected=true] small{color:#04121a}
+#subDlg .codlg .cog{display:grid;gap:12px;margin:0 0 12px}
+#subDlg .codlg .cog.c2{grid-template-columns:repeat(2,minmax(0,1fr))}
+#subDlg .codlg .cog.c3{grid-template-columns:repeat(3,minmax(0,1fr))}
+#subDlg .codlg .cog .fld{display:flex;flex-direction:column;gap:4px;min-width:0}
+#subDlg .codlg .cog .fld>label,#subDlg .codlg .cog .fld>.lb{display:block;margin:0;font-size:12px;line-height:16px;font-weight:400;color:var(--ink-2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#subDlg .codlg .cog em{font-style:normal;margin-left:4px;font-size:12px}
+#subDlg .codlg .cog em.req{color:var(--rise)}
+#subDlg .codlg .cog em.opt{color:var(--ink-2)}
+#subDlg .codlg .cog input{display:block;width:100%;box-sizing:border-box;height:44px;margin:0;padding:0 12px;border:1px solid var(--line-2);border-radius:10px;background:var(--panel);color:var(--ink);font:inherit;font-size:14px}
+#subDlg .codlg .cog input::placeholder{color:var(--ink-3);font-size:14px}
+#subDlg .codlg .cogrow{display:flex;align-items:center;gap:12px;height:44px;margin:0 0 12px}
+#subDlg .codlg .cogrow .lb{font-size:12px;line-height:16px;color:var(--ink-2);margin:0;white-space:nowrap}
+#subDlg .codlg .cogrow .lb em{font-style:normal;margin-left:4px;font-size:12px}
+#subDlg .codlg .cogrow .lb em.opt{color:var(--ink-2)}
+#subDlg .codlg .cogrow .lb em.req{color:var(--rise)}
+#subDlg .codlg .cogd{display:inline-flex;gap:8px;margin:0}
+#subDlg .codlg .cogd button{flex:none;width:56px;height:32px;min-height:0;padding:0;border-radius:999px;border:1px solid var(--line-2);background:transparent;color:var(--ink-2);font-size:14px;line-height:1;display:inline-flex;align-items:center;justify-content:center;cursor:pointer}
+#subDlg .codlg .cogd button[aria-checked=true]{background:var(--cyan);border-color:var(--cyan);color:#04121a;font-weight:700}
+#subDlg .codlg .cohelpb{flex:none;width:32px;height:32px;padding:0;border-radius:50%;border:1px solid var(--line-2);background:var(--panel-3);color:var(--ink-2);font-size:14px;line-height:1;display:inline-flex;align-items:center;justify-content:center;cursor:pointer}
 #subDlg .codlg .cohelpb[aria-expanded=true]{border-color:var(--cyan);color:var(--cyan)}
-#subDlg .codlg .conote .cohelpb{margin-left:auto}
-#subDlg .codlg .cohelp{margin:6px 0 0;padding:8px 10px 8px 26px;border:1px solid var(--line-2);border-radius:8px;font-size:12px;line-height:1.6;color:var(--ink-2);background:color-mix(in srgb,var(--cyan) 5%,transparent)}
+#subDlg .codlg .cohelp{margin:0 0 12px;padding:12px 12px 12px 28px;border:1px solid var(--line-2);border-radius:10px;font-size:12px;line-height:20px;color:var(--ink-2);background:color-mix(in srgb,var(--cyan) 5%,transparent)}
 #subDlg .codlg .cohelp[hidden]{display:none}
 #subDlg .codlg .cohelp li{margin:0 0 4px}
+#subDlg .codlg .cohelp li:last-child{margin:0}
 #subDlg .codlg .cohelp b{color:var(--ink)}
-#subDlg .codlg .coopt#coRenewL{border:0;background:none;padding:6px 2px 2px;margin:0;font-size:13px;line-height:1.5;min-height:36px;align-items:center}
-#subDlg .codlg .coopt#coRenewL input,#subDlg .codlg .colegal input{width:18px;height:18px}
-#subDlg .codlg .coopt#coRenewL:has(input:checked){background:none}
-#subDlg .codlg .coopt#coRenewL b{font-size:13px}
-#subDlg .codlg .colegal{margin-top:6px;padding-top:8px;border-top:1px solid var(--line)}
-#subDlg .codlg .colegal label{margin:0;font-size:12.5px;line-height:1.5;min-height:36px;align-items:center}
-#subDlg .codlg .cogo{margin-top:10px}
-#subDlg .codlg .coop{margin:6px 0 0;font-size:11.5px;color:var(--ink-2);text-align:center}
+#subDlg .codlg .cohelp a,#subDlg .codlg .coagree a{color:var(--cyan)}
+#subDlg .codlg .cogc{display:flex;gap:12px;align-items:flex-start;margin:0 0 12px;font-size:12px;line-height:20px;color:var(--ink)}
+#subDlg .codlg .cogc input{flex:none;width:20px;height:20px;margin:0}
+#subDlg .codlg .coagree{display:flex;gap:12px;align-items:flex-start;margin:4px 0 16px;font-size:12px;line-height:20px;color:var(--ink)}
+#subDlg .codlg .coagree input{flex:none;width:20px;height:20px;margin:0}
+#subDlg .codlg .coagree b{font-weight:700}
+#subDlg .codlg .cobank{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));grid-auto-rows:1fr;gap:12px;margin:0 0 12px}
+#subDlg .codlg .cobc{display:flex;align-items:center;gap:8px;min-height:56px;padding:8px 12px;box-sizing:border-box;border:1px solid var(--line-2);border-radius:10px;min-width:0}
+#subDlg .codlg .cobt{flex:1;min-width:0;display:flex;flex-direction:column;justify-content:center}
+#subDlg .codlg .cobt span{font-size:12px;line-height:16px;color:var(--ink-2)}
+#subDlg .codlg .cobt b{font-size:14px;line-height:20px;font-variant-numeric:tabular-nums;word-break:break-all}
+#subDlg .codlg .cobc button{flex:none;width:48px;height:32px;padding:0;border-radius:8px;border:1px solid var(--line-2);background:var(--panel-3);color:var(--ink);font-size:12px;line-height:1;display:inline-flex;align-items:center;justify-content:center;cursor:pointer}
+#subDlg .codlg .cogo{display:flex;align-items:center;justify-content:center;width:100%;height:48px;margin:0;padding:0;border-radius:10px;border:0;background:var(--cyan);color:#04121a;font-weight:700;font-size:16px;line-height:1;cursor:pointer}
+#subDlg .codlg .cogo[hidden]{display:none}
+#subDlg .codlg .cogo:disabled{opacity:.45;cursor:not-allowed}
+#subDlg .codlg .conote{margin:12px 0 0;font-size:12px;line-height:16px;color:var(--ink-2);text-align:center}
+#subDlg .codlg .conote[hidden]{display:none}
+#subDlg .codlg .coop{margin:12px 0 0;font-size:12px;line-height:16px;color:var(--ink-2);text-align:center}
+#subDlg .codlg .msg{margin-top:12px;text-align:center;font-size:12px;line-height:16px}
 #subDlg .codlg .msg:empty{display:none}
+#subDlg .codlg .cocfm{margin-top:12px}
 #v-orders .ordp{margin-top:16px}
 #v-orders .ordp h2{margin:0 0 4px;font-size:18px}
 #v-orders .ordp .muted{color:var(--ink-2);font-size:13px;margin:0 0 10px}
@@ -182,21 +158,15 @@
 #payRenew .x{width:32px;padding:0}
 /* 淺色主題：--cyan 是深青色，上面的字改白色（深色主題維持深字） */
 :root[data-theme=light] #subDlg .codlg .cotabs button[aria-selected=true],:root[data-theme=light] #subDlg .codlg .cotabs button[aria-selected=true] small,
-:root[data-theme=light] #subDlg .codlg .cogo,:root[data-theme=light] #subDlg .codlg .cogd button[aria-checked=true],:root[data-theme=light] #subDlg .codlg .seg button.on,
+:root[data-theme=light] #subDlg .codlg .cogo,:root[data-theme=light] #subDlg .codlg .cogd button[aria-checked=true],
 :root[data-theme=light] #v-orders button.pri,:root[data-theme=light] #payRenew button.pri{color:#fff}
 html.pay-renew #acctBtn.ame{position:relative}
 html.pay-renew #acctBtn.ame::after{content:'';position:absolute;top:2px;right:2px;width:9px;height:9px;border-radius:50%;background:var(--rise);box-shadow:0 0 0 2px var(--bg)}
 .acctmenu .ordi .dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--rise);margin-left:6px;vertical-align:middle}
 @media (max-width:640px){
   #subDlg .box.codlg{max-height:calc(100vh - 16px)}
-  #subDlg .codlg .cohd{padding:12px 14px}
-  #subDlg .codlg .cobd{padding:12px 14px 16px}
-  #subDlg .codlg .cosum{grid-template-columns:72px minmax(0,1fr)}
-  #subDlg .codlg .cofrm{grid-template-columns:minmax(0,1fr)}
-  #subDlg .codlg .cofrm.coprof{grid-template-columns:minmax(0,1fr) 124px;gap:6px 10px}
-  #subDlg .codlg .cofrm .cogw.g2{grid-column:auto}
-  #subDlg .codlg .cosum2 .amt{font-size:19px}
-  #subDlg .codlg .cobank{grid-template-columns:64px minmax(0,1fr) auto}
+  #subDlg .codlg .cog.c3{grid-template-columns:repeat(2,minmax(0,1fr))}
+  #subDlg .codlg .cog.c3 .fld:first-child{grid-column:1/-1}
   #v-orders .ordr{grid-template-columns:minmax(0,1fr) auto;gap:2px 8px;padding:10px 2px}
   #v-orders .ordr.hd{display:none}
   #v-orders .ordr>div{text-align:left}
@@ -210,12 +180,12 @@ html.pay-renew #acctBtn.ame::after{content:'';position:absolute;top:2px;right:2p
   /* 2026-10-16 Andy「版面文字太多且排版太浪費空間，姓名跟性別可以同一排」：
      欄位旁只留一行必要告知（用途＋隱私權政策連結），其餘長說明一律收進「ⓘ 說明」，預設收起、點了才展開（手機五準則第 3、5 條）。
      法遵必要告知一個字都沒少：只是從「常駐」變成「一句常駐＋完整說明可展開」。 */
-  function genderField(sfx) {
-    return `<span class="lb" id="coGLb${sfx}">性別<em class="${GENDER_REQUIRED ? 'req' : 'opt'}">${GENDER_REQUIRED ? '必選' : '選填'}</em></span>
-      <div class="seg cogd" role="radiogroup" aria-labelledby="coGLb${sfx}">${GENDERS.map(([k, n]) => `<button type="button" role="radio" aria-checked="false" data-g="${k}">${n}</button>`).join('')}</div>`;
-  }
-  function noteHtml() {
-    return `<p class="conote">性別${GENDER_REQUIRED ? '為必選' : '選填'}，僅用於匿名彙總統計，不公開；個資處理見<a href="#privacy" target="_blank" rel="noopener">《隱私權政策》</a>。</p>${GENDER_CONSENT_REQUIRED ? '<label class="cogc"><input type="checkbox" class="cogcb"><span>我已閱讀<a href="#privacy" target="_blank" rel="noopener">《隱私權政策》</a>，同意本網站為上述統計目的，蒐集並使用我於結帳時選擇的性別。</span></label>' : ''}`;
+  /* 性別：一行小控制（左標籤、右兩顆 56×32 小膠囊、緊貼 ⓘ），高度不超過輸入框（44px） */
+  function genderRow(sfx) {
+    return `<div class="cogrow"><span class="lb" id="coGLb${sfx}">性別<em class="${GENDER_REQUIRED ? 'req' : 'opt'}">${GENDER_REQUIRED ? '必選' : '選填'}</em></span>
+      <div class="cogd" role="radiogroup" aria-labelledby="coGLb${sfx}">${GENDERS.map(([k, n]) => `<button type="button" role="radio" aria-checked="false" data-g="${k}">${n}</button>`).join('')}</div>
+      <button type="button" class="cohelpb" aria-expanded="false" aria-label="說明">ⓘ</button></div>
+      ${GENDER_CONSENT_REQUIRED ? '<label class="cogc"><input type="checkbox" class="cogcb"><span>我已閱讀<a href="#privacy" target="_blank" rel="noopener">《隱私權政策》</a>，同意本網站為上述統計目的，蒐集並使用我於結帳時選擇的性別。</span></label>' : ''}`;
   }
   /* 完整說明（預設收起）：kind＝ecpay／bank */
   function helpHtml(kind) {
@@ -228,12 +198,12 @@ html.pay-renew #acctBtn.ame::after{content:'';position:absolute;top:2px;right:2p
         <li><b>轉出帳號末 5 碼（選填）</b>：若你之後改用 ATM 轉帳／超商繳款，可填轉出帳號末 5 碼供我們核對。<b>這不是信用卡號，請勿填寫信用卡卡號的任何數字。</b></li>
         <li><b>信用卡</b>：卡片資料將於下一步由綠界科技的付款頁輸入，本網站不會看到、也不會保存你的卡號。可隨時在「我的訂單」取消自動續訂，已付的期間照常用到期滿。</li>${pr}</ul>`;
   }
-  const helpBtn = '<button type="button" class="cohelpb" aria-expanded="false">ⓘ 說明</button>';
   const nameOf = (p) => (p && (p.planName || p.name)) || '';
   async function open(opt) {
     const p = opt || {};
     const plan = String(p.plan || '');
     let per = p.per === 'year' ? 'year' : 'month';
+    const req = per;   // 使用者在訂閱頁選的週期（被擋時會改成另一個，畫面要說明）
     const a = A();
     if (!a || !a.on()) { T().toast('會員功能尚未開放'); return; }
     if (!me()) {
@@ -261,53 +231,58 @@ html.pay-renew #acctBtn.ame::after{content:'';position:absolute;top:2px;right:2p
       box.innerHTML = `<div class="cohd"><b>結帳</b><span class="sp"></span><button type="button" data-close aria-label="關閉">×</button></div><div class="cobd"><p>${!qm ? '連不到會員伺服器，請稍後再試。' : e === 'no_price' ? '這個方案還沒有線上價格，請從右下角「客服」聯絡我們。' : e === 'auth' ? '登入已過期，請重新登入。' : '讀不到價格（' + esc((qm && qm._s) || '') + '）'}</p></div>`;
       return;
     }
-    const st = { per, tab: p.tab === 'bank' ? 'bank' : 'ecpay', kind: 'recur', oid: '', bankOrder: null, gender: '', gc: false };
+    const st = { per, tab: p.tab === 'bank' ? 'bank' : 'ecpay', kind: 'recur', oid: '', bankOrder: null, gender: '', gc: false, cfm: false };
     const base = Q[per];
-    box.innerHTML = `<div class="cohd"><b id="coName">${esc(nameOf(base))}</b>${base.test ? '<span class="cotest" title="綠界金鑰還沒設定：付款會走綠界測試環境，不會真的扣款">測試模式</span>' : ''}<span class="sp"></span><button type="button" data-close aria-label="關閉">×</button></div>
+    box.innerHTML = `<div class="cohd"><b id="coName">${esc(nameOf(base))}</b><span class="cobadge" id="coBadge">${st.per === 'year' ? '年繳' : '月繳'}</span>${base.test ? '<span class="cotest" title="綠界金鑰還沒設定：付款會走綠界測試環境，不會真的扣款">測試模式</span>' : ''}<span class="sp"></span><button type="button" data-close aria-label="關閉">×</button></div>
       <div class="cobd">
-        <div class="cosum2"><div class="cosp"><div class="seg" id="coPer">${Q.month ? `<button type="button" data-per="month"${Q.month.blocked ? ' disabled title="' + esc(Q.month.blockedMsg) + '"' : ''}>月繳</button>` : ''}${Q.year ? `<button type="button" data-per="year"${Q.year.blocked ? ' disabled title="' + esc(Q.year.blockedMsg) + '"' : ''}>年繳</button>` : ''}</div></div>
-          <div class="amt" id="coAmt"></div></div>
-        ${(Q.month && Q.month.blocked) || (Q.year && Q.year.blocked) ? `<small class="muted" style="display:block;margin:-4px 0 6px">${esc((Q.month && Q.month.blockedMsg) || (Q.year && Q.year.blockedMsg))}</small>` : ''}
+        <div class="coamt" id="coAmt"></div>
+        ${req !== st.per ? `<p class="conote" style="margin:-8px 0 16px">你選的週期目前不能購買，已改為${st.per === 'year' ? '年繳' : '月繳'}。</p>` : ''}
         <div class="cooid" id="coOidRow" hidden>訂單編號 <code id="coOid"></code></div>
         <div class="cotabs" role="tablist" aria-label="付款方式"><button type="button" role="tab" id="coTabE" data-tab="ecpay">信用卡<small>綠界 ECPay・自動續扣</small></button><button type="button" role="tab" id="coTabB" data-tab="bank">銀行轉帳<small>預付制・人工確認</small></button></div>
         <div id="coPaneE" role="tabpanel" aria-labelledby="coTabE">
-          <div class="cofrm coprof" id="coFrmE">
-            <div><label for="coNameE">姓名<em class="req">必填</em></label><input id="coNameE" maxlength="40" autocomplete="name" required aria-required="true"></div>
-            <div class="cogw">${genderField('E')}</div>
-            <div class="l5row"><label for="coL5E">轉出帳號末 5 碼<em class="opt">選填</em></label><input id="coL5E" inputmode="numeric" autocomplete="off" placeholder="5 位數字">${helpBtn}</div>
+          <div class="cog c2" id="coFrmE">
+            <div class="fld"><label for="coNameE">姓名<em class="req">必填</em></label><input id="coNameE" maxlength="40" autocomplete="name" required aria-required="true"></div>
+            <div class="fld"><label for="coL5E">轉出帳號末 5 碼<em class="opt">選填</em></label><input id="coL5E" inputmode="numeric" autocomplete="off" placeholder="5 位數字"></div>
           </div>
-          ${noteHtml()}${helpHtml('ecpay')}
-          <label class="coopt" id="coRenewL"><input type="checkbox" id="coRenew"><span><b id="coRecurT"></b>　<span id="coRenewT"></span></span></label>
+          ${genderRow('E')}${helpHtml('ecpay')}
         </div>
         <div id="coPaneB" role="tabpanel" aria-labelledby="coTabB" hidden></div>
-        <div class="colegal"><label><input type="checkbox" id="coAgree"><span>我已閱讀並同意<a href="#terms" target="_blank" rel="noopener">《使用條款》</a><a href="#refund" target="_blank" rel="noopener">《退款與取消訂閱政策》</a>，並同意付款後立即開通、排除消費者保護法第 19 條之七日解除權。</span></label></div>
+        <label class="coagree"><input type="checkbox" id="coAgree"><span id="coAgreeT"></span></label>
         <button type="button" class="cogo" id="coGoE" disabled>前往綠界付款</button>
+        <button type="button" class="cogo" id="coSendB" hidden>我已轉帳，送出匯款資料</button>
+        <p class="conote" id="coBankNote" hidden>管理者確認入帳後開通，可在「我的訂單」查看。</p>
         <div class="msg" id="coMsg" role="status"></div>
         <p class="coop" id="coOp">經營者：${esc(opName())}・客服信箱：${esc(contactMail())}</p>
       </div>`;
     const $ = (s) => box.querySelector(s);
     const msg = (t, bad) => { const m = $('#coMsg'); m.className = 'msg ' + (bad ? 'bad' : 'ok'); m.textContent = t; };
-    const consent = () => ({ consent_at: new Date().toISOString(), consent_version: window.TwLegal && window.TwLegal.termsVersion ? window.TwLegal.termsVersion() : 'unknown', consent: 'terms+refund;immediate_start;waive_cpa19' + (st.kind === 'recur' && st.tab === 'ecpay' ? ';auto_renew' : '') });
+    const consent = () => ({ consent_at: new Date().toISOString(), consent_version: window.TwLegal && window.TwLegal.termsVersion ? window.TwLegal.termsVersion() : 'unknown', consent: 'terms+refund+privacy;immediate_start;waive_cpa19' + (st.tab === 'ecpay' ? ';auto_renew' : '') });
+    /* 同意句（單一勾選）：信用卡分頁含「自動續扣＋金額＋直到我自行取消」，轉帳分頁沒有續扣那段；金額與每月／每年跟著週期顯示 */
+    const agreeHtml = () => {
+      const per = st.per === 'year' ? '年' : '月', amt = nt(Q[st.per].amount);
+      const renew = st.tab === 'ecpay' ? `同意每${per}自動續扣 <b>NT$ ${amt}</b>，<b>直到我自行取消</b>，` : '';
+      return `我已閱讀並同意<a href="#terms" target="_blank" rel="noopener">《使用條款》</a><a href="#refund" target="_blank" rel="noopener">《退款與取消訂閱政策》</a><a href="#privacy" target="_blank" rel="noopener">《隱私權政策》</a>，${renew}並同意付款後立即開通、排除<a href="#refund" target="_blank" rel="noopener">消費者保護法第 19 條之七日解除權</a>。`;
+    };
+    let agreeKey = '';
     function sync() {
       const q = Q[st.per];
-      box.querySelectorAll('#coPer button').forEach((b) => b.classList.toggle('on', b.dataset.per === st.per));
       /* 10-16 Andy：金額旁換算一天多少台幣；跟方案卡同一個函式（TwSub.dayCost），口徑＝一年總價 ÷ 365 */
       const dc = T().dayCost ? T().dayCost(q.amount, st.per) : null;
-      $('#coAmt').innerHTML = `NT$ ${nt(q.amount)}<small style="font-size:13px;font-weight:400;color:var(--ink-2)">／${st.per === 'year' ? '年' : '月'}</small>${dc == null ? '' : `<span class="coday" id="coDay">每天約 NT$ ${dc.toFixed(1)}</span>`}`;
-      $('#coRecurT').textContent = st.per === 'year' ? '信用卡每年自動扣款（定期定額）' : '信用卡每月自動扣款（定期定額）';
-      $('#coRenewT').textContent = `我同意每${st.per === 'year' ? '年' : '月'}自動續扣 NT$ ${nt(q.amount)}，直到我自行取消。`;
+      $('#coAmt').innerHTML = `<span>NT$ ${nt(q.amount)}／${st.per === 'year' ? '年' : '月'}</span>${dc == null ? '' : `<span class="coday" id="coDay">每天約 NT$ ${dc.toFixed(1)}</span>`}`;
+      const ak = st.tab + st.per + q.amount;
+      if (ak !== agreeKey) { agreeKey = ak; $('#coAgreeT').innerHTML = agreeHtml(); }
       box.querySelectorAll('.cogd button').forEach((b) => b.setAttribute('aria-checked', String(b.dataset.g === st.gender)));
       box.querySelectorAll('.cogcb').forEach((c) => { c.checked = st.gc; });
       const nm = $('#coNameE');
-      $('#coGoE').disabled = !($('#coAgree').checked && $('#coRenew').checked && profOk(nm ? nm.value : '') && l5Ok($('#coL5E') ? $('#coL5E').value : ''));
+      $('#coGoE').disabled = !($('#coAgree').checked && profOk(nm ? nm.value : '') && l5Ok($('#coL5E') ? $('#coL5E').value : ''));
       box.querySelectorAll('.cotabs button').forEach((b) => b.setAttribute('aria-selected', String(b.dataset.tab === st.tab)));
       $('#coPaneE').hidden = st.tab !== 'ecpay'; $('#coPaneB').hidden = st.tab !== 'bank';
-      $('#coGoE').hidden = st.tab !== 'ecpay';   // 前往綠界鈕是兩個分頁共用的底部鈕，轉帳分頁有自己的送出鈕
+      $('#coGoE').hidden = st.tab !== 'ecpay';   // 信用卡鈕與轉帳送出鈕共用視窗底部
+      const sb = $('#coSendB'); sb.hidden = st.tab !== 'bank' || !st.bankOrder || st.cfm; sb.disabled = !$('#coAgree').checked;   // 性別／姓名沒填：按下去用文字擋
+      $('#coBankNote').hidden = st.tab !== 'bank' || !st.bankOrder;
       const oidTxt = st.tab === 'bank' && st.bankOrder ? st.bankOrder.id : '';
       $('#coOid').textContent = oidTxt; $('#coOidRow').hidden = !oidTxt;
-      const sb = $('#coSendB'); if (sb) sb.disabled = !$('#coAgree').checked;   // 性別／姓名沒填：按下去用文字擋（跟姓名同一個做法）
     }
-    box.querySelectorAll('#coPer button').forEach((b) => { b.onclick = () => { if (st.per === b.dataset.per) return; st.per = b.dataset.per; st.bankOrder = null; if (st.tab === 'bank') bankPane(); sync(); }; });
     /* 10-16 Andy：只剩信用卡定期定額（單次付款拿掉）；姓名、性別、獨立同意、卡號防呆 */
     const genderOk = () => (!GENDER_REQUIRED || !!st.gender) && (!st.gender || !GENDER_CONSENT_REQUIRED || st.gc);
     const profOk = (name) => !!String(name || '').trim() && !looksCard(name) && genderOk();
@@ -335,7 +310,7 @@ html.pay-renew #acctBtn.ame::after{content:'';position:absolute;top:2px;right:2p
       const t = (e.clipboardData && e.clipboardData.getData('text')) || '';
       if (looksCard(t) || (/^coL5/.test(el.id) && t.replace(/\D/g, '').length > 5)) { e.preventDefault(); msg(looksCard(t) ? CARD_MSG : '末 5 碼欄只能填 5 位數字', true); }
     });
-    $('#coRenew').onchange = sync; $('#coAgree').onchange = sync;
+    $('#coAgree').onchange = sync;
     box.querySelectorAll('.cotabs button').forEach((b) => { b.onclick = () => { st.tab = b.dataset.tab; if (st.tab === 'bank' && !st.bankOrder) bankPane(); sync(); }; });
     $('#coGoE').onclick = async () => {
       const btn = $('#coGoE'); btn.disabled = true; msg('建立訂單中…');
@@ -370,21 +345,14 @@ html.pay-renew #acctBtn.ame::after{content:'';position:absolute;top:2px;right:2p
     function paintBank(pane, j) {
       const b = j.bank;
       const today = ymd(Date.now());
-      pane.innerHTML = `<div class="cobank" id="coBank">
-          <span>銀行</span><b id="coBankName">${esc(b.bank_name)}（${esc(b.bank_code)}）</b><span></span>
-          <span>帳號</span><b id="coBankAcct">${esc(b.account)}</b><button type="button" data-copy="${esc(b.account)}">複製</button>
-          <span>戶名</span><b>${esc(b.holder)}</b><span></span>
-          <span>應付金額</span><b>NT$ ${nt(j.amount)}</b><button type="button" data-copy="${esc(j.amount)}">複製</button></div>
-        <div class="cofrm" id="coFrm">
-          <div><label for="coPayer">匯款人姓名<em class="req">必填</em></label><input id="coPayer" maxlength="40" autocomplete="name" required aria-required="true"></div>
-          <div><label for="coL5">轉出帳號末 5 碼</label><input id="coL5" inputmode="numeric" autocomplete="off"></div>
-          <div><label for="coDate">轉帳日期</label><input id="coDate" type="date" value="${esc(today)}" max="${esc(today)}"></div>
-          <div class="cogw g2">${genderField('B')}</div>
-          <div><span class="lb">轉帳金額（依訂單，不用填）</span><div class="ro" id="coXAmt" aria-readonly="true">NT$ ${nt(j.amount)}</div></div></div>
-        <p class="conote fx"><span>請勿填完整帳號、信用卡號、身分證字號。性別${GENDER_REQUIRED ? '為必選' : '選填'}，僅用於匿名彙總統計，不公開；個資處理見<a href="#privacy" target="_blank" rel="noopener">《隱私權政策》</a>。</span>${helpBtn}</p>
-        ${GENDER_CONSENT_REQUIRED ? '<label class="cogc"><input type="checkbox" class="cogcb"><span>我已閱讀<a href="#privacy" target="_blank" rel="noopener">《隱私權政策》</a>，同意本網站為上述統計目的，蒐集並使用我於結帳時選擇的性別。</span></label>' : ''}${helpHtml('bank')}
-        <button type="button" class="cogo" id="coSendB">我已轉帳，送出匯款資料</button>
-        <p class="muted" style="font-size:12px;margin:6px 0 0">管理者確認入帳後開通，可在「我的訂單」查看。</p>`;
+      const cards = [['銀行', `${b.bank_name}（${b.bank_code}）`, 'coBankName', `${b.bank_name}（${b.bank_code}）`], ['帳號', b.account, 'coBankAcct', b.account], ['戶名', b.holder, '', b.holder], ['應付金額', 'NT$ ' + nt(j.amount), 'coXAmt', String(j.amount)]];
+      pane.innerHTML = `<div class="cobank" id="coBank">${cards.map(([k, v, id, cp]) => `<div class="cobc"><div class="cobt"><span>${k}</span><b${id ? ` id="${id}"` : ''}>${esc(v)}</b></div><button type="button" data-copy="${esc(cp)}">複製</button></div>`).join('')}</div>
+        <div class="cog c3" id="coFrm">
+          <div class="fld"><label for="coPayer">匯款人姓名<em class="req">必填</em></label><input id="coPayer" maxlength="40" autocomplete="name" required aria-required="true"></div>
+          <div class="fld"><label for="coL5">轉出帳號末 5 碼</label><input id="coL5" inputmode="numeric" autocomplete="off"></div>
+          <div class="fld"><label for="coDate">轉帳日期</label><input id="coDate" type="date" value="${esc(today)}" max="${esc(today)}"></div></div>
+        ${genderRow('B')}${helpHtml('bank')}`;
+      const sbtn = $('#coSendB');
       pane.querySelectorAll('[data-copy]').forEach((c) => { c.onclick = () => { try { navigator.clipboard.writeText(c.dataset.copy); c.textContent = '已複製'; } catch (e) { /* 沒權限就算了 */ } }; });
       /* 2026-10-12 Andy：送出前要有確認機制，金額和應付不同要明確提醒（客戶可能不是匯 2,990）。確認區放在按鈕下方，不用彈窗。 */
       const doneBank = (o) => {
@@ -396,7 +364,7 @@ html.pay-renew #acctBtn.ame::after{content:'';position:absolute;top:2px;right:2p
         refresh();
       };
       /* 2026-10-16 Andy：金額寫死＝訂單金額（客戶不能改，只有管理區能改）、匯款人姓名必填、不放範例字與備註 */
-      $('#coSendB').onclick = () => {
+      sbtn.onclick = () => {
         const f = { name: $('#coPayer').value.trim(), last5: $('#coL5').value.trim(), date: $('#coDate').value, gender: st.gender, gc: st.gc };
         if (!f.name) { $('#coPayer').focus(); return msg('請填匯款人姓名', true); }
         if (GENDER_REQUIRED && !f.gender) return msg('請選擇性別', true);
@@ -404,13 +372,13 @@ html.pay-renew #acctBtn.ame::after{content:'';position:absolute;top:2px;right:2p
         if (!/^\d{5}$/.test(f.last5)) return msg('轉出帳號末 5 碼要是 5 個數字', true);
         if (!/^\d{4}-\d{2}-\d{2}$/.test(f.date)) return msg('請選轉帳日期', true);
         msg('');
-        let cf = pane.querySelector('#coCfm'); if (cf) cf.remove();
+        let cf = box.querySelector('#coCfm'); if (cf) cf.remove();
         cf = document.createElement('div'); cf.id = 'coCfm'; cf.className = 'cooff cocfm';
         /* 10-16 Andy：「請調整適當大小排版，文字有點太多」「返回修改」不換行、跟送出鈕同高 */
         cf.innerHTML = `<b>請確認匯款資料（送出後不能修改）</b><div class="kv"><span>匯款人姓名</span><b>${esc(f.name)}</b><span>轉出帳號末 5 碼</span><b>${esc(f.last5)}</b><span>轉帳日期</span><b>${esc(f.date)}</b>${f.gender ? `<span>性別</span><b>${esc((GENDERS.find((g) => g[0] === f.gender) || [])[1] || '')}</b>` : ''}<span>轉帳金額</span><b>NT$ ${nt(j.amount)}</b></div>
           <div class="cfbtn"><button type="button" id="coCfmBack">返回修改</button><button type="button" class="cogo" id="coCfmGo">確認無誤，送出</button></div>`;
-        $('#coSendB').after(cf); $('#coSendB').hidden = true;
-        cf.querySelector('#coCfmBack').onclick = () => { cf.remove(); $('#coSendB').hidden = false; };
+        sbtn.after(cf); st.cfm = true; sync();
+        cf.querySelector('#coCfmBack').onclick = () => { cf.remove(); st.cfm = false; sync(); };
         cf.querySelector('#coCfmGo').onclick = () => report(j.id, f, msg, doneBank);
       };
       sync();
