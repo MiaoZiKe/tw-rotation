@@ -1,16 +1,4 @@
 {
- "updated": "2026-10-17 05:08",
- "jobs": [
-  {
-   "id": 6,
-   "topic_id": "k_hbm",
-   "kind": "article",
-   "title": "HBM 跟一般記憶體差在哪？",
-   "note": "",
-   "status": "queued",
-   "created": 1792183971723,
-   "updated": 1792183971723,
-   "result": null
-  }
- ]
+ "updated": "2026-10-17 05:09",
+ "jobs": []
 }
