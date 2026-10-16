@@ -245,7 +245,7 @@ html.pay-renew #acctBtn.ame::after{content:'';position:absolute;top:2px;right:2p
           <span>訂單編號</span><b>${esc(j.id)}</b><button type="button" data-copy="${esc(j.id)}">複製</button>
           <div class="codue">請於 ${esc(b.days || 3)} 天內轉帳（${esc(ymd(j.deadline))} 前），轉帳備註可填訂單編號，方便對帳。</div></div>
         <div class="cofrm" id="coFrm">
-          <div><label for="coName">匯款人姓名<em class="req">必填</em><small>轉出帳戶的戶名</small></label><input id="coName" maxlength="40" autocomplete="name" required aria-required="true"></div>
+          <div><label for="coPayer">匯款人姓名<em class="req">必填</em><small>轉出帳戶的戶名</small></label><input id="coPayer" maxlength="40" autocomplete="name" required aria-required="true"></div>
           <div><label for="coL5">轉出帳號末 5 碼<small>5 個數字</small></label><input id="coL5" inputmode="numeric" maxlength="5" autocomplete="off"></div>
           <div><label for="coDate">轉帳日期</label><input id="coDate" type="date" value="${esc(today)}" max="${esc(today)}"></div>
           <div class="w3"><span class="lb">轉帳金額<small>依訂單金額，不用填</small></span><div class="ro" id="coXAmt" aria-readonly="true">NT$ ${nt(j.amount)}</div></div></div>
@@ -263,8 +263,8 @@ html.pay-renew #acctBtn.ame::after{content:'';position:absolute;top:2px;right:2p
       };
       /* 2026-10-16 Andy：金額寫死＝訂單金額（客戶不能改，只有管理區能改）、匯款人姓名必填、不放範例字與備註 */
       $('#coSendB').onclick = () => {
-        const f = { name: $('#coName').value.trim(), last5: $('#coL5').value.trim(), date: $('#coDate').value };
-        if (!f.name) { $('#coName').focus(); return msg('請填匯款人姓名', true); }
+        const f = { name: $('#coPayer').value.trim(), last5: $('#coL5').value.trim(), date: $('#coDate').value };
+        if (!f.name) { $('#coPayer').focus(); return msg('請填匯款人姓名', true); }
         if (!/^\d{5}$/.test(f.last5)) return msg('轉出帳號末 5 碼要是 5 個數字', true);
         if (!/^\d{4}-\d{2}-\d{2}$/.test(f.date)) return msg('請選轉帳日期', true);
         msg('');

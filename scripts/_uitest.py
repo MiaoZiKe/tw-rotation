@@ -60011,7 +60011,11 @@ def t_bank_1016(b, base, code):
         ok(f"{T}：前置：Plus 定價、收款帳號", r1.get("_s") == 200 and r2.get("_s") == 200, (r1, r2))
 
         oids = {}
+        # TW_BANK1016_W=390：只跑某個寬度（拿來對改版前的網站截「改前」圖；平常不設＝三個寬度都跑）
+        only_w = os.environ.get("TW_BANK1016_W")
         for w, who in ((360, "m360"), (390, "m390"), (430, "m430")):
+            if only_w and str(w) != only_w:
+                continue
             cm = new_ctx(w); pm = cm.new_page(); pm.on("pageerror", lambda e, w=w: errs.append(f"{w}: {e}"))
             pm.goto(base + "#pricing", wait_until="domcontentloaded")
             if not ok(f"{T}：{w} 登入", bool(login(pm, who))):
@@ -60037,13 +60041,13 @@ def t_bank_1016(b, base, code):
                g["oneCol"] and g["rows"] == g["n"] and not g["clip"] and g["inView"] and g["sw"] <= 1, g)
             ok(f"{T}：{w} 輸入框沒有任何範例字（placeholder）、沒有「備註」欄、沒有「實際轉帳金額」輸入框", not g["ph"] and not g["note"] and "coXAmt" not in g["ids"] and "備註" not in g["txt"], g)
             ok(f"{T}：{w} 轉帳金額唯讀＝訂單金額 NT$ 2,990", g["amt"] != "INPUT" and "2,990" in g["amtTxt"], g)
-            ok(f"{T}：{w} 有「匯款人姓名」欄、標「必填」", "匯款人姓名" in g["txt"] and "必填" in g["txt"] and "coName" in g["ids"], g)
+            ok(f"{T}：{w} 有「匯款人姓名」欄、標「必填」", "匯款人姓名" in g["txt"] and "必填" in g["txt"] and "coPayer" in g["ids"], g)
             oids[who] = pm.evaluate("() => document.getElementById('coOid').innerText")
             pm.locator("#coL5").tap(); pm.fill("#coL5", "1" + w.__str__() + "1")
             pm.tap("#coAgree") if pm.locator("#coAgree").count() else None
             pm.locator("#coSendB").scroll_into_view_if_needed(); pm.tap("#coSendB")
             ok(f"{T}：{w} 沒填姓名按送出 → 擋下、不出確認區", bool(wait_until(pm, "() => /請填匯款人姓名/.test(document.getElementById('coMsg').innerText) && !document.getElementById('coCfm')", 3000)))
-            pm.locator("#coName").tap(); pm.fill("#coName", f"王{w}")
+            pm.locator("#coPayer").tap(); pm.fill("#coPayer", f"王{w}")
             pm.locator("#coSendB").scroll_into_view_if_needed(); pm.tap("#coSendB")
             cf = wait_until(pm, "() => { const c = document.getElementById('coCfm'); return c ? c.innerText : ''; }", 3000)
             ok(f"{T}：{w} 確認區顯示姓名、末 5 碼、金額 NT$ 2,990", bool(cf) and f"王{w}" in cf and "2,990" in cf, cf)
@@ -71010,7 +71014,7 @@ def t_pay_1011(b, base):
         ok(f"{T}：轉帳金額唯讀＝應付 NT$ 299（不是輸入框）", pc.evaluate("() => { const e = document.getElementById('coXAmt'); return !!e && e.tagName !== 'INPUT' && /NT\$ 299/.test(e.innerText); }"))
         pc.click("#coSendB")
         ok(f"{T}：沒填匯款人姓名 → 擋下、不出確認區", bool(wait_until(pc, "() => /請填匯款人姓名/.test(document.getElementById('coMsg').innerText) && !document.getElementById('coCfm')", 3000)))
-        pc.fill("#coName", "卡蘿")
+        pc.fill("#coPayer", "卡蘿")
         pc.click("#coSendB")
         ok(f"{T}：送出前先出現確認區（姓名、末 5 碼、日期、金額 NT$ 299）", bool(wait_until(pc, "() => { const c = document.getElementById('coCfm'); return c && /請再確認/.test(c.innerText) && /卡蘿/.test(c.innerText) && /12345/.test(c.innerText) && /NT\$ 299/.test(c.innerText) ? 1 : 0; }", 3000)))
         shot(pc, "co_bank_confirm.png", "#subDlg .box")
@@ -71165,7 +71169,7 @@ def t_pay_1011(b, base):
         pe.tap("#coTabB")
         wait_until(pe, "() => !!document.getElementById('coL5')", 6000)
         eoid = pe.evaluate("() => document.getElementById('coOid').innerText")
-        pe.fill("#coName", "艾琳")
+        pe.fill("#coPayer", "艾琳")
         pe.fill("#coL5", "67890")
         pe.tap("#coAgree")
         m = pe.evaluate("() => { const b = document.querySelector('#subDlg .box').getBoundingClientRect(), s = document.getElementById('coSendB').getBoundingClientRect(); return { l: b.left, r: b.right, sw: document.documentElement.scrollWidth - innerWidth, bh: s.height, bw: s.width }; }")
