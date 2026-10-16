@@ -1,5 +1,5 @@
-# 視覺規範放置處
+# 視覺規範
 
-預期檔案：`LIGULIGU_IG_Threads_Style_Guide.md`。
-
-⚠ 2026-10-16 查詢結果：repo、本機檔案系統與 Andy 的 Google 雲端硬碟（以檔名與全文搜尋）都找不到這份檔案。請 Andy 提供，放進這個資料夾後，將各 manifest 的 `style_guide_status` 改為 `present` 再標 `ready_for_gpt`。在此之前不自行重建成另一套規範。
+- `LIGULIGU_IG_Threads_Style_Guide.md`：v1.0（2026-10-16），由 Andy 提供，適用 GPT 社群製作部門；內含部門分工、配色、版面、比比主持規範、交接單格式、素材作者分類（§7 為規劃，尚未搬移任何 GitHub 素材）。
+- 這份規範的「GPT 原繪／待核實」等分類與本專案 `asset_references.category` 對應：gpt_original／claude_original／claude_derived／user_provided（＝user_reference）／author_unverified。
+- 不自行修改這份檔的內容；有衝突請回報 Andy。

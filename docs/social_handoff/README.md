@@ -31,7 +31,7 @@
 - 不預設有能直接向 ChatGPT 對話送訊息的 API；不使用瀏覽器自動貼訊息；不使用付費 OpenAI API。
 
 ## 視覺規範
-`LIGULIGU_IG_Threads_Style_Guide.md` 預期放在 `docs/social_handoff/style/`。**目前專案與 Google 雲端硬碟都找不到這份檔案**，需 Andy 提供；未提供前 manifest 的 `style_guide_status` 為 `missing`，`ready` 指令會拒絕標成 ready_for_gpt。不得自行重建成另一套規範。
+`docs/social_handoff/style/LIGULIGU_IG_Threads_Style_Guide.md`（v1.0，Andy 2026-10-16 提供）。manifest 的 `style_guide_status` 必須是 `present` 才能標 `ready_for_gpt`。不得自行重建成另一套規範。
 比比主持規則（沿用既有）：`docs/marketing/video_1010/bibi_host_spec.md`、造型以 `docs/anim/bibi_library/reference/parts_sheet_1011.webp` 為準；每頁依內容換表情、視線、姿勢與道具，不能十頁同一張笑臉。
 
 ## 素材來源分類（`asset_references[].category`）
