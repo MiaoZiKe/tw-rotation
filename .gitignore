@@ -69,3 +69,12 @@ etf_cover_1008.tsv
 
 # 動畫設計單位 gif_pipeline.py 的檢查圖（只看不進版控）
 site/brand/_check/
+
+# 會員備份與還原目錄：含明文會員資料，repo 是 public，永遠不進版控
+# （2026-10-16 資安審查：備份檔 members-YYYYMMDD.json 放在筆電 D:\tw-backup\members，誤放進工作目錄也推不上去）
+members-*.json
+**/members-*.json
+tw-backup/
+tw-restore/
+*.bak
+*.sql.gz
