@@ -65,14 +65,24 @@ def check(folder: Path) -> list[str]:
         p = m.get(k)
         if p and not (ROOT / p).exists():
             errs.append(f"{k} 指向的檔案不存在：{p}")
+    src = ROOT / m.get("sources_path", "") if m.get("sources_path") else folder / "sources.md"
+    if src.exists():
+        rows = [ln for ln in src.read_text(encoding="utf-8").splitlines()
+                if re.match(r"^\|\s*\d+\s*\|", ln)]
+        if not rows:
+            errs.append("sources.md 沒有任何一筆來源（第一欄為編號的資料列）")
+        for ln in rows:
+            cells = [c.strip() for c in ln.strip().strip("|").split("|")]
+            if len(cells) < 5 or not all(cells[:5]) or not re.search(r"https?://", ln):
+                errs.append(f"sources.md 來源資料不完整（需標題／發布者／日期／連結）：{ln[:60]}")
     brief = ROOT / m.get("brief_path", "") if m.get("brief_path") else folder / "brief.md"
     if brief.exists():
         text = brief.read_text(encoding="utf-8")
         for sec in BRIEF_SECTIONS:
             if sec not in text:
                 errs.append(f"brief.md 缺段落：{sec}")
-        if re.search(r"待補|TODO|TBD", text):
-            errs.append("brief.md 仍有「待補／TODO／TBD」")
+        if re.search(r"待補|TODO|TBD|<填寫>", text):
+            errs.append("brief.md 仍有「待補／TODO／TBD／<填寫>」")
     if m.get("style_guide_status") != "present":
         errs.append("視覺規範未就緒（style_guide_status != present）；缺 LIGULIGU_IG_Threads_Style_Guide.md")
     else:

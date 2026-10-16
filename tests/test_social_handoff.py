@@ -38,6 +38,7 @@ def test_ready_succeeds_when_complete(tmp_path, monkeypatch):
     sh.main(["new", "2026-10-16", "demo", "示範"])
     folder = tmp_path / "docs" / "social_handoff" / "2026-10-16_demo"
     (folder / "brief.md").write_text("\n".join(f"## {s}\n內容" for s in sh.BRIEF_SECTIONS), encoding="utf-8")
+    (folder / "sources.md").write_text("| # | 標題 | 發布者 | 發布日期 | 連結 | 摘要 |\n|---|---|---|---|---|---|\n| 1 | 標題 | 發布者 | 2026-10-15 | https://example.com | x |\n", encoding="utf-8")
     sg = tmp_path / "docs" / "social_handoff" / "style" / "LIGULIGU_IG_Threads_Style_Guide.md"
     sg.parent.mkdir(parents=True)
     sg.write_text("x", encoding="utf-8")
@@ -61,3 +62,13 @@ def test_bad_asset_category_and_missing_path_flagged(tmp_path, monkeypatch):
     errs = sh.check(folder)
     assert any("category 不合法" in e for e in errs)
     assert any("路徑不存在" in e for e in errs)
+
+
+def test_empty_sources_table_and_template_placeholder_flagged(tmp_path, monkeypatch):
+    _setup(tmp_path, monkeypatch)
+    sh.main(["new", "2026-10-16", "demo", "示範"])
+    folder = tmp_path / "docs" / "social_handoff" / "2026-10-16_demo"
+    errs = sh.check(folder)
+    assert any("沒有任何一筆來源" in e for e in errs)
+    (folder / "brief.md").write_text("\n".join(f"## {s}\n<填寫>" for s in sh.BRIEF_SECTIONS), encoding="utf-8")
+    assert any("<填寫>" in e for e in sh.check(folder))
