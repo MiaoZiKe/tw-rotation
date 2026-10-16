@@ -534,6 +534,7 @@
 #v-subadm .artadm .aflt label{display:inline-flex;align-items:center;gap:4px;color:var(--ink-2);white-space:nowrap}
 #v-subadm .artadm .aflt .cnt{margin-left:auto;font-size:12px;color:var(--ink-3);white-space:nowrap}
 #v-subadm .artadm .aflt button.clr{height:30px;padding:0 10px;border-radius:var(--r-sm,8px);border:1px solid var(--line-2);background:var(--panel-3);color:var(--ink);font:inherit;font-size:12.5px;cursor:pointer}
+#v-subadm .artadm .aflt button.clr:disabled{opacity:.4;cursor:default}
 #v-subadm .artadm .tpact{display:flex;align-items:center;gap:var(--sp-2);flex-wrap:wrap;padding:var(--sp-2) var(--sp-3);margin-bottom:var(--sp-2);border:1px solid var(--line);border-radius:var(--r-sm,8px);background:var(--panel-2);font-size:13px}
 #v-subadm .artadm .tpact .sel{flex:0 1 auto;min-width:0;max-width:420px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 #v-subadm .artadm .tpact .sel b{color:var(--ink)}
@@ -1731,10 +1732,13 @@ ${gs.length ? `<section><h5>熱門族群</h5><div class="gps">${gs.map((g) => `<
     ids.forEach((id) => S.gsel.delete(id));
     paintAdmList(v); gptSync(v);
   }
+  /* 10-16 Andy：「清除」按了「沒作用」→ 沒有任何篩選時按了畫面本來就不會變；改成沒有篩選＝反灰不能按，有篩選才亮 */
+  function clrState(b, on) { if (!b) return; b.disabled = !on; b.title = on ? '清除所有篩選條件' : '目前沒有篩選條件'; }
   function paintAdmList(v) {
     const body = $('#artAdmBody', v); if (!body) return;
     const af = S.af, all = S.idx ? S.idx.list : [];
     $$('#artAfCats>button', v).forEach((b) => { const on = b.dataset.cat === af.cat; b.classList.toggle('on', on); b.setAttribute('aria-selected', on ? 'true' : 'false'); });
+    clrState($('#artAfClr', v), !!((af.cat && af.cat !== 'all') || af.grp || af.from || af.to || af.q));
     const q = af.q.toLowerCase();
     const rows = all.filter((a) => (af.cat === 'all' || a.cat === af.cat) && (!af.grp || (a.groups || []).some((g) => g.id === af.grp))
       && (!af.from || a.date >= af.from) && (!af.to || a.date <= af.to) && (!q || String(a.title).toLowerCase().includes(q) || (a.tags || []).some((t) => String(t).toLowerCase().includes(q))));
@@ -1827,6 +1831,7 @@ ${gs.length ? `<section><h5>熱門族群</h5><div class="gps">${gs.map((g) => `<
     const hit = S.jobs.map(eff).filter((j) => (!jf.kind || j.kind === jf.kind) && (!jf.st || j.status === jf.st)
       && (!q || String(j.title || '').toLowerCase().includes(q) || String(j.note || '').toLowerCase().includes(q)));
     const rows = hit.slice(0, 100);
+    clrState($('#artJfClr', v), !!(jf.kind || jf.st || jf.q));
     const c = $('#artJfCnt', v); if (c) { c.textContent = `${hit.length}／${S.jobs.length} 筆${hit.length > rows.length ? '（顯示前 100 筆）' : ''}`; c.dataset.n = String(hit.length); }
     body.innerHTML = rows.length ? rows.map((j) => {
       const pub = j.kind === 'article' && j.status === 'done' && j.result && S.idx && S.idx.list.find((a) => a.id === j.result);

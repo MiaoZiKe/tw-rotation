@@ -71892,7 +71892,10 @@ def t_articles_1014(b, base):
     ok(f"{T}：產出進度最上面是「短影片」那筆；按「取消」→ 變「已取消」", st[0] == ["短影片", "已取消"] and len(st) == 3, st)
     # 產出進度篩選（Andy 10-16：「產出進度也需要有篩選功能」）
     JR = "() => [...document.querySelectorAll('#artJobBody tr[data-job]')].map(r => [r.querySelector('.kd').textContent, r.querySelector('.js:not(.kdc)').textContent, r.children[2].textContent])"
+    # 10-16 Andy：「清除」按了「沒作用」→ 沒篩選時反灰不能按、有篩選才亮、按完又反灰
+    ok(f"{T}：產出進度沒有篩選時「清除」反灰不能按", ap.evaluate("() => document.getElementById('artJfClr').disabled"), None)
     ap.select_option("#artJfKind", "article"); ap.wait_for_timeout(150)
+    ok(f"{T}：選了篩選 →「清除」亮起來可以按", not ap.evaluate("() => document.getElementById('artJfClr').disabled"), None)
     jr = ap.evaluate(JR)
     ok(f"{T}：產出進度選「精選文章」→ 只剩 2 筆文章、計數 2／3", len(jr) == 2 and all(x[0] == "精選文章" for x in jr) and ap.evaluate("() => +document.getElementById('artJfCnt').dataset.n") == 2, jr)
     ap.select_option("#artJfKind", ""); ap.select_option("#artJfSt", "cancelled"); ap.wait_for_timeout(150)
@@ -71904,7 +71907,8 @@ def t_articles_1014(b, base):
     ap.fill("#artJfQ", "zzz查無"); ap.wait_for_timeout(150)
     ok(f"{T}：產出進度查無 → 寫「沒有符合篩選條件的請求」", "沒有符合篩選條件" in ap.inner_text("#artJobBody"), ap.inner_text("#artJobBody"))
     ap.click("#artJfClr"); ap.wait_for_timeout(150)
-    ok(f"{T}：產出進度按「清除」→ 3 筆都回來", len(ap.evaluate(JR)) == 3, None)
+    ok(f"{T}：產出進度按「清除」→ 3 筆都回來、篩選欄清空、「清除」又反灰", len(ap.evaluate(JR)) == 3
+       and ap.evaluate("() => !document.getElementById('artJfKind').value && !document.getElementById('artJfSt').value && !document.getElementById('artJfQ').value && document.getElementById('artJfClr').disabled"), None)
     # 10-16 Andy：「也需要我填寫主題 產文章，例如 今天新聞 馬斯克飛天電動車介紹」
     ok(f"{T}：自訂主題沒填字 → 兩顆產生鈕反灰", ap.evaluate("() => document.getElementById('artCusArt').disabled && document.getElementById('artCusVid').disabled"), None)
     ap.select_option("#artCusCat", "news"); ap.fill("#artCusT", "今天新聞 馬斯克飛天電動車介紹"); ap.wait_for_timeout(100)
