@@ -4,7 +4,8 @@
 - Andy：「管理者有訂單，點擊後會跳到對應分頁」→ 鈴鐺／公告頁的「新訂單」點了 → `#admin/pay/bankord|orders/<訂單號>`（admin_pay.js 子路由：切分頁、搜尋填訂單號、那列 `.hit` 標亮展開並捲到畫面內，套用後網址改回 `#admin/pay`）；「新申請」→ 取消／退款申請分頁。判斷依 payNotifyOwner 的固定內文（notices.js `payLink`），不改 Worker。
 - 注意：鈴鐺清單有 10 分鐘本機快取（tw.nt.c），新訂單最慢約 10 分鐘才出現在鈴鐺。
 - 這批只驗：訂單通知跳轉1016（新段）、付款管理區1016、結帳與付款1011（單獨跑兩次 0；跟別組同時跑會在綠界步驟紅＝埠衝突）、桌機守門1008。
-- 進行中：「產貼文頻率設定」重做（日期→小時時段 AM/PM→類型篇數→加入規則→最後才啟用；Worker 新格式 ver 2），交給前端專員在分支 artsched-v2-1016／preview/artsched-v2；完成後 CEO 要把文章佇列排程改成每小時 :05。
+- 「產貼文頻率設定」第 2 版做完，**預覽版已部署（台北 22:24）、等 Andy 確認**：https://miaozike.github.io/tw-rotation/preview/artsched-v2/#admin/articles（分支 artsched-v2-1016，最後 4a19816e）。①日期（每週／指定日期）→②整點時段 12 小時制→③類別篇數→④加入排程清單（可編輯刪除、增刪改即時存）→⑤啟用。Worker 新格式 {ver:2,enabled,rules}（舊格式讀到自動轉）、機器路由 op:add；到點排隊改由 article-jobs.yml（每小時 :41）做，Claude 每小時 :05 只負責寫。驗收：產貼文頻率設定v2、文章主題兩分頁1016、精選文章1014、桌機守門1008 全 0；pytest test_article_jobs 8 過；Worker 160 過。
+- **合 main 時要做**：把排程 trig_01Nd9NpzN6yWGbBspqQ3xsmf 從 09:50／14:50／20:50 改成每小時 :05（CRON_TZ=Asia/Taipei 5 * * * *）。
 
 ## 2026-10-16 21:25 客服面板拿掉「寄信」分頁（網頁版 CEO；main 71884b65，✅ 已部署）
 - Andy：「改成原來那樣，並且把寄信拿掉 只留兩個」→ 面板維持原樣，分頁只剩「常見問題｜意見反饋」；信箱（Gmail 撰寫＋複製信箱，`#supMail`／`#supCopy`）移到意見反饋最下面一行。`TwSupport.open('mail')` 改導到意見反饋。
