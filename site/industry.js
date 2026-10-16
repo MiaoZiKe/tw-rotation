@@ -4568,6 +4568,73 @@
     } catch (e) { /* 圖已銷毀 */ }
   }
 
+  /* ★ 2026-10-16（Andy iPhone，南電 8046 4時：「個股K線圖那邊資的訊太多，可以看到 K線圖 被遮住一大部分」）——只限手機 html.m4：
+     圖頭（#legendOv，日期／開高低收／振幅／量／四條均線）原本蓋在主圖上、還用 reserveTop 把 K 棒壓到下半部，主圖上半部都是字。
+     手機改成**圖的上方一條兩行的資訊列 #m4kInfo**（不在繪圖區裡，K 棒用回整個主圖）：
+       第 1 行：日期時間 · 收 價 漲跌% · 量
+       第 2 行：均線讀數小晶片，可左右滑（「還原」小標由 CSS 擺在這一行右端）；手指點到某一根 K 棒時，這一行最前面多出「開／高／低／振幅」（放開後保留在那一根，點別根就換）。
+     桌機不走這裡（isM4Info() 為假），#legendOv 那條路徑一個字都沒動。*/
+  const isM4Info = () => document.documentElement.classList.contains('m4');
+  function m4KInfo() {
+    const lw = document.getElementById('lwc');
+    if (!lw || !isM4Info()) return null;
+    let s = lw.previousElementSibling;
+    if (!s || s.id !== 'm4kInfo') {
+      s = document.createElement('div'); s.id = 'm4kInfo'; s.className = 'm4kinfo';
+      s.innerHTML = '<div class="m4ki1"></div><div class="m4ki2" tabindex="0" aria-label="均線讀數（可左右滑）"></div>';
+      const l2 = s.lastChild;
+      l2.addEventListener('scroll', () => m4KInfoFade(l2), { passive: true });
+      lw.parentNode.insertBefore(s, lw);
+    }
+    return s;
+  }
+  function m4KInfoFade(l2) {
+    const more = l2.scrollWidth - l2.clientWidth - l2.scrollLeft > 2;
+    l2.classList.toggle('more', more);
+  }
+  function paintM4KInfo(s, line1, chips, picked) {
+    s.firstChild.innerHTML = line1;
+    const l2 = s.lastChild;
+    l2.innerHTML = chips.map((c) => `<span class="c">${c}</span>`).join('');
+    s.dataset.picked = picked ? '1' : '';
+    if (picked) l2.scrollLeft = 0;
+    m4KInfoFade(l2);
+  }
+  /* 手機點一下就選那一根：lightweight-charts 在觸控上要「長按」才出十字線，短點一下反而把十字線清掉。
+     手機（html.m4）上短點（< 350ms、位移 < 10px）主圖 → 把十字線放到手指那一根（setCrosshairPosition），資訊列跟著換成那一根；
+     長按、拖曳、雙指縮放照舊交給圖表庫。畫線工具開著時不攔（那時候點一下是畫線）。只綁一次（#lwc 跨週期活著，換股票才重建）。*/
+  function m4TapPick(box) {
+    if (!box || box._m4tap) return;
+    box._m4tap = true;
+    let st = null;
+    box.addEventListener('pointerdown', (e) => { st = e.pointerType === 'touch' && e.isPrimary ? { x: e.clientX, y: e.clientY, t: Date.now() } : null; }, true);
+    box.addEventListener('pointerup', (e) => {
+      const s = st; st = null;
+      if (!s || !isM4Info() || drawTool !== 'cursor') return;
+      if (Date.now() - s.t > 350 || Math.hypot(e.clientX - s.x, e.clientY - s.y) > 10) return;
+      if (e.target && e.target.closest && e.target.closest('button,a,.kfit,.tk-gap')) return;
+      const x0 = e.clientX, y0 = e.clientY;
+      setTimeout(() => {   // 等圖表庫自己處理完這一下（它會清掉十字線），再放上去
+        try {
+          const ch = kchart || tchart; if (!ch || ch._dead || !ch.chart) return;
+          const ser = kchart ? kchart.candle : tchart.line; if (!ser) return;
+          const r = ch.chart.chartElement().getBoundingClientRect();
+          const ps = ch.chart.panes()[0]; const mh = ps ? ps.getHeight() : 0;
+          const x = x0 - r.left, y = y0 - r.top;
+          if (y > mh || x > r.width - ch.chart.priceScale('right').width()) return;   // 點到副圖或價格軸：不處理
+          const t = ch.chart.timeScale().coordinateToTime(x); if (t == null) return;
+          const p = ser.coordinateToPrice(y);
+          ch.chart.setCrosshairPosition(p == null ? 0 : p, t, ser);
+          // 程式放的十字線不一定會回呼 crosshairMove（v5 不帶 point）→ 資訊列直接用那一根重畫
+          if (kchart && kchart._m4show) { const i = kchart.data.findIndex(d => String(d.time) === String(t)); if (i >= 0) kchart._m4show(i, { x, y }); }
+          else if (tchart && tchart._m4show) { const row = (tchart.pts || []).find(q => q.time === t); if (row) tchart._m4show(row); }
+        } catch (err) { /* 圖已銷毀 */ }
+      }, 40);
+    }, true);
+  }
+  // 日期時間縮短：分 K 只寫「月/日 時:分」（手機一行放得下），日 K 以上照原樣
+  const m4Time = (t) => String(t).replace(/^\d{4}-(\d\d)-(\d\d)[ T](\d\d:\d\d).*$/, '$1/$2 $3');
+
   function adjTag(pg) {
     const pa = pg && pg.price_adjust;
     if (!pa || !pa.daily_adjusted) return '';
@@ -5512,15 +5579,24 @@
         const p = r || rows[rows.length - 1]; if (!p) { legend.innerHTML = ''; return; }
         const chg = d.prev ? p.value - d.prev : null;
         const col = A.upDown(chg || 0);
+        const strip = m4KInfo();
+        if (strip) {   // 手機（html.m4）：分時的讀數也搬到圖上方那條資訊列，不蓋在價格線上
+          paintM4KInfo(strip, `<b>${KUtil.fmtTime(p.time, '1m').slice(11)}</b><i>·</i>價 <b style="color:${col}">${A.fmt.n(p.value)}</b>`
+            + (chg != null ? ` <span style="color:${col}">${chg > 0 ? '+' : ''}${A.fmt.n(chg)}（${A.fmt.pct(chg / d.prev * 100, 2)}）</span>` : '')
+            + (p.v != null ? `<i>·</i>量 ${A.fmt.lot((p.v || 0) / 1000)}` : ''),
+          d.prev ? [`昨收 ${A.fmt.n(d.prev)}`] : [], !!r);
+          return;
+        }
         legend.innerHTML = `<b>${KUtil.fmtTime(p.time, '1m').slice(11)}</b>　價 <b style="color:${col}">${A.fmt.n(p.value)}</b>`
           + (chg != null ? `　<span style="color:${col}">${chg > 0 ? '+' : ''}${A.fmt.n(chg)}（${A.fmt.pct(chg / d.prev * 100, 2)}）</span>` : '')
           + (p.v != null ? `　量 ${A.fmt.lot((p.v || 0) / 1000)}` : '')
           + (d.prev ? `<br><span class="muted">昨收 ${A.fmt.n(d.prev)}</span>` : '');
       };
-      show(null); tchart.onCrosshair(show);
+      show(null); tchart.onCrosshair(show); tchart._m4show = show;
     };
     const apply = () => {
       const box = $('#lwc'); if (!box) return;
+      if (isM4Info()) m4TapPick(box);   // 手機：短點主圖＝選那一根（只綁一次）
       state._apply = apply;      // 驗收用：模擬一次「即時更新造成的重畫」
       if (state.tf === 'tick') { applyTick(box); return; }
       paintTickMode(false);
@@ -5616,8 +5692,18 @@
           const bits = vals.PE.map(b => { const v = at(b.vals, i); return v == null ? null : `<span style="color:${b.color}">${b.mult}倍 ${A.fmt.n(v)}</span>`; }).filter(Boolean);
           if (bits.length) parts.push('本益比 ' + bits.join('　'));
         }
-        legend.innerHTML = s + (parts.length ? '<br>' + parts.join('　') : '');
-        if (m4) fitM4Legend(legend);
+        const strip = m4 ? m4KInfo() : null;
+        if (strip) {
+          // 手機：資訊搬到圖上方的 #m4kInfo，圖頭（CSS 收掉）不再佔主圖頂端 → 保留高度歸零，K 棒用回整個主圖
+          const line1 = `<b>${A.fmt.esc(m4Time(KUtil.fmtTime(d.time, tf)))}</b><i>·</i>收 <b style="color:${col}">${A.fmt.n(d.close)}</b>`
+            + (chg != null ? ` <span style="color:${A.upDown(chg)}">${A.fmt.pct(chg, 2)}</span>` : '') + `<i>·</i>量 ${A.fmt.lot(d.volume / 1000)}`;
+          const det = pt ? [`開 ${A.fmt.n(d.open)}`, `高 ${A.fmt.n(d.high)}`, `低 ${A.fmt.n(d.low)}`, `振幅 ${amp != null ? A.fmt.n(amp, 1) + '%' : '—'}`] : [];
+          paintM4KInfo(strip, line1, det.concat(parts), !!pt);
+          if (kchart.reserveTop && kchart._resPx !== 0) kchart.reserveTop(0);
+        } else {
+          legend.innerHTML = s + (parts.length ? '<br>' + parts.join('　') : '');
+          if (m4) fitM4Legend(legend);
+        }
         /* 資訊列佔多高，主圖頂端就留多少（kchart.reserveTop，見 chart.js）：K 棒最高點永遠在資訊列下面 */
         if (kchart.reserveTop && legend.offsetParent) {
           const r0 = kchart.el.getBoundingClientRect(), r1 = legend.getBoundingClientRect();
@@ -5630,7 +5716,7 @@
         if (vals.RSI) pl.rsi = `RSI(${cfg.rsi.n})　<span style="color:${KUtil.colors.rsi}">${A.fmt.n(at(vals.RSI, i), 1)}</span>`;
         kchart.setPaneLabels(pl);
       };
-      show(null, null); kchart.onCrosshair(show);
+      show(null, null); kchart.onCrosshair(show); kchart._m4show = show;
       /* 面板高度：拖完（滑鼠放開）就記下來，下次打開、換股票、換週期都沿用。
          Andy 2026-09-15：「下方MACD KD 成交量等範圍上下可以拉大」—— 拉得動只是第一步，
          拉完換一檔又縮回去等於白拉。 */
