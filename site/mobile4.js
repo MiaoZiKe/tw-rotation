@@ -1723,9 +1723,12 @@
       groups: [segG('pop', '最受歡迎依', '#etfPopSeg'), selG('rng', '報酬期間', '#etfRngBox select.rpsel'), segG('basis', '報酬口徑', '#etfBasisSeg'), selG('sort', '一覽排序', '#etfSort')],
       // 原本的位置藏起來（只藏切換本身，旁邊的說明字、「加入比較」照舊）；選了起始日期時日期列照樣露出來
       hide: () => [['#etfPopSeg', true], ['#etfRngBox', !rpkCustom($('#etfRngBox select.rpsel'))], ['#etfBasisSeg', true], ['#etfSort', true], ['label[for="etfSort"]', true]] },
+    /* ★ 2026-10-16 Andy（iPhone）：「圖四將最上方功能配置在每個組合裡面…目的是每個組合都能自己個別調整」——
+       摘要鈕從條件列的位置（分頁列上方）搬進**目前這個分頁的內容最上面**（單檔 ETF＝#incSingle、組合 A～E＝#incCombo），
+       鈕上先寫「單檔 ETF／組合 B」再寫條件；每個分頁的條件各自一份（etfpage.js ptSync／incPut），抽屜改的是目前分頁那一份。*/
     { id: 'inc', title: '月配試算條件', on: () => vis($('#incPM')),
-      // 插在 wireCond 的「條件 ▾」鈕前面（它認「緊鄰 .incctl 的前一個兄弟」，插在中間它會一直再生一顆新的）
-      anchor: () => $('#incPM > .m4cond') || $('#incPM > .incctl'),
+      anchor: () => { const sec = [$('#incSingle'), $('#incCombo')].find((e) => e && !e.hidden); return sec ? $(':scope > :not(.m4etfrow)', sec) : null; },
+      tag: () => { const b = $('#incTabs button.on'); return b ? (b.firstChild && b.firstChild.nodeType === 3 ? b.firstChild.textContent : b.textContent).trim() : ''; },
       groups: [selG('mode', '目標', '#incPM #incMode + select.m4segsel'), selG('amt', '金額', '#incPM #incAmtSeg + select.m4segsel'), selG('scope', '範圍', '#incPM #incScope + select.m4segsel'),
         chkG('nhi', '二代健保（單筆 ≥ 2 萬扣 2.11%）', '#incNhi'), selG('rng', '報酬期間', '#etfIncRngBox select.rpsel')],
       hide: () => { const amt = $('#incAmt'), need = (amt && amt.classList.contains('m4show')) || rpkCustom($('#etfIncRngBox select.rpsel'));
@@ -1735,9 +1738,10 @@
     return { t: g.short ? g.short(o) : o[1].replace(/\s+/g, ''), full: g.t + '：' + o[1] }; }).filter(Boolean);
   function paint(P, b) {
     const s = summary(P), txt = s.map((x) => x.t).join('・') || '設定', full = s.map((x) => x.full).join('；');
-    const h = `${ICON}<span class="m4st">${esc(txt)}</span><i aria-hidden="true">›</i>`;
+    const tg = P.tag ? P.tag() : '', ttl = (tg ? tg + ' ' : '') + P.title;
+    const h = `${ICON}${tg ? `<b class="m4tg">${esc(tg)}</b>` : ''}<span class="m4st">${esc(txt)}</span><i aria-hidden="true">›</i>`;
     if (b.__h !== h) { b.innerHTML = h; b.__h = h; }
-    if (b.getAttribute('aria-label') !== P.title + '：' + full) { b.setAttribute('aria-label', P.title + '：' + full); b.title = P.title + '：' + full; }
+    if (b.getAttribute('aria-label') !== ttl + '：' + full) { b.setAttribute('aria-label', ttl + '：' + full); b.title = ttl + '：' + full; }
   }
   function sheetBody(P, body) {
     body.innerHTML = P.groups.map((g) => { const e = g.el(); if (!e) return '';
@@ -1753,7 +1757,8 @@
   function open(P) {
     const api = window.M3; if (!api || !api.openSheet) return;
     const wrap = document.createElement('div');
-    wrap.innerHTML = `<div class="mshhead"><b>${esc(P.title)}</b></div><div class="m4shsegs m4dw" id="m4EtfSegs" data-p="${P.id}"></div>`;
+    const tg = P.tag ? P.tag() : '';
+    wrap.innerHTML = `<div class="mshhead"><b>${esc((tg ? tg + ' ' : '') + P.title)}</b>${tg ? '<small class="m4tgn">只套用在這個分頁</small>' : ''}</div><div class="m4shsegs m4dw" id="m4EtfSegs" data-p="${P.id}"></div>`;
     const body = $('.m4shsegs', wrap);
     sheetBody(P, body);
     body.addEventListener('click', (ev) => {
