@@ -33624,7 +33624,7 @@ SECTIONS = {
     #   —— 側欄位置與子項、分類同步、關鍵字／日期篩選筆數、單篇區塊與來源、純文字防注入、手機 390、管理區反灰按鈕與主題候選（⚠ --workers 1）
     "精選文章1014":        lambda pg, b, base, code: t_articles_1014(b, base),
     # ★ 2026-10-16 Andy：「需要分成兩個分頁，一個是跟文章主題有關，另一個是統計數據；並且……可以設定每週幾、哪個時段幫我產出精選貼文」
-    #   —— #admin/articles 兩分頁切換、今日選題勾選→連結內容→重新整理保留、統計內容未變、星期×時段產主題設定、手機 390／360
+    #   —— #admin/articles 兩分頁（文章主題＝圖二＋圖三＋頻率設定／統計數據＝圖一）、頻率設定預設全空關閉→補齊才能開→切開關即時存、重新整理讀回、手機 390／360
     "文章主題兩分頁1016":  lambda pg, b, base, code: t_art_tabs_1016(b, base),
     # ★ 2026-10-09 Andy：「手機版本…不能有縮放功能…不會出現這樣縮放後的 BUG」—— 只剩兩種版面（≤640 m4／>640 l4）＋手機縮放鎖（⚠ --workers 1）
     "縮放混合版1009":      lambda pg, b, base, code: t_zoom_mix_1009(b, base),
@@ -71934,35 +71934,25 @@ def t_articles_1014(b, base):
 _load_section_plugins()
 
 
-# ===================================================================== 文章主題兩分頁1016（site/articles.js＋site/socialpick.js；Andy 2026-10-16）
-# Andy：「目前先沿用正式版，基於正式版本修正，需要分成兩個分頁，一個是跟文章主題有關，另一個是統計數據；並且我需要新增功能是可以設定頻率，
-#        我可以設定每週幾、哪個時段幫我產出精選貼文」
-# 真人操作（每一步都驗畫面或連結內容真的變了，不是驗元素存在）：
-#   ① 桌機 1440 管理者開 #admin/articles：兩個分頁「文章主題」「統計數據」、預設文章主題；舊 #admin/social 轉回這裡、側欄沒有第二個入口
-#   ② 文章主題：今日選題 6 張卡（圖表有無／查證／⚠／預估產出）→ 勾 → 連結內容（repo／title／labels／body／註解 JSON）→ 重新整理仍保留 → 複製指令／送出開 GitHub
-#   ③ 兩分頁切換：切統計數據（文章主題整塊藏起來、統計 KPI／四張卡在）→ 切回（勾選與連結都還在）→ 統計內容前後一模一樣 → 重新整理記得停在統計
-#   ④ 產主題設定：每週幾 × 時段格線（點星期、加時段、改時間、刪時段、快速鈕）→ 白話摘要＋JSON slots＋兩顆 Issue 連結；只跑一次；立刻產一份；全空停用；重新整理仍保留
-#   ⑤ 清單 404／空 → 空狀態寫原因；⑥ 非管理者只看到「只有管理者看得到」；⑦ 手機 390／360：兩個分頁都沒有橫向捲軸、字 ≥ 11、觸控 ≥ 32、手指能勾能切
+# ===================================================================== 文章主題兩分頁1016（site/articles.js＋site/artsched.js；Andy 2026-10-16）
+# Andy：「分兩個分頁，第一分頁內容是圖二＋圖三，另一個分頁是圖一；並且我需要可以產貼文頻率設定」
+#       「先都不要填，它為可動開關，我可以選擇要不要開啟，但開啟後，會依據我設定的週期、時段進行生產對應類別文章」
+# 圖一＝點閱統計、圖二＝已上架文章＋主題候選清單、圖三＝產出進度。真人操作（每一步驗畫面／送出的內容真的變了）：
+#   ① 桌機管理者：兩分頁「文章主題」「統計數據」、預設文章主題；文章主題內依序是 已上架文章、主題候選、產出進度、產貼文頻率設定；沒有今日選題／Issue 流程；統計藏起來
+#   ② 頻率設定預設：開關關、星期／時段／類別／篇數全空、兩處「未啟用，不會自動產出」、開關禁用並寫缺什麼
+#   ③ 補齊（勾格子、加篇數）→ 開關才能開 → 切開關即時送出 {enabled,slots,cats} → 已儲存、未啟用標示消失
+#   ④ 篇數上限 3、快速鈕、時段由早到晚；關掉開關 → 即時送出 enabled=false 且設定保留、欄位仍可編輯；開著時清空時段 → 自動關閉並送出
+#   ⑤ 兩分頁切換（統計內容前後一致、頻率設定與主題勾選不丟）、重新整理（設定從伺服器讀回、停在上次分頁）
+#   ⑥ 後端沒更新／預覽唯讀／非管理者；⑦ 手機 390／360
 def t_art_tabs_1016(b, base):
-    import urllib.parse as _up
     T = "文章主題兩分頁1016"
-    GH = "https://github.com/MiaoZiKe/tw-rotation/issues/new"
     shots = Path(os.environ["TW_TAB_SHOTS"]) if os.environ.get("TW_TAB_SHOTS") else None
-    gh_hits = []
     real = json.loads((SITE / "articles" / "index.json").read_text(encoding="utf-8"))["articles"]
     rid = [a["id"] for a in sorted(real, key=lambda a: a["date"], reverse=True)]
     import datetime as _dt
     today = (_dt.datetime.now(_dt.timezone.utc) + _dt.timedelta(hours=8)).date()
     DAILY = [[str(today - _dt.timedelta(days=k)), rid[i % len(rid)], n] for k, i, n in ((3, 0, 5), (1, 0, 7), (0, 0, 4), (1, 1, 6), (0, 1, 2))]
-
-    def parse(u):
-        p = _up.urlparse(u)
-        q = _up.parse_qs(p.query, keep_blank_values=True)
-        return p.scheme + "://" + p.netloc + p.path, {k: v[0] for k, v in q.items()}
-
-    def fake_gh(r):
-        gh_hits.append(r.request.url)
-        r.fulfill(status=200, content_type="text/html", body="<title>gh</title>fake github")
+    SCH = {"cfg": None, "log": [], "mode": "ok"}   # mode：ok／old（Worker 沒更新→404）／ro（預覽唯讀）／deny
 
     def art_api(r):
         hd = {"access-control-allow-origin": "*", "content-type": "application/json"}
@@ -71970,278 +71960,215 @@ def t_art_tabs_1016(b, base):
         path = re.sub(r"^https?://[^/]+", "", req.url).split("?")[0]
         if req.method == "OPTIONS":
             return r.fulfill(status=204, headers={"access-control-allow-origin": "*", "access-control-allow-headers": "*", "access-control-allow-methods": "POST"})
+        try:
+            body = json.loads(req.post_data or "{}")
+        except Exception:  # noqa: BLE001
+            body = {}
         if path == "/v1/articles/stats":
             return r.fulfill(status=200, body=json.dumps({"views": {rid[0]: 99}}), headers=hd)
         if path == "/v1/articles/stats/daily":
             return r.fulfill(status=200, body=json.dumps({"first": DAILY[0][0], "rows": DAILY}), headers=hd)
         if path == "/v1/articles/jobs/list":
             return r.fulfill(status=200, body='{"jobs":[]}', headers=hd)
+        if path.startswith("/v1/articles/schedule/"):
+            m = SCH["mode"]
+            if m == "old":
+                return r.fulfill(status=404, body='{"error":"not_found"}', headers=hd)
+            if m == "deny":
+                return r.fulfill(status=403, body='{"error":"forbidden"}', headers=hd)
+            if path.endswith("/get"):
+                return r.fulfill(status=200, body=json.dumps({"schedule": SCH["cfg"], "allowed": {"times": ["09:50", "14:50", "20:50"], "cats": ["news", "intro", "know"], "max": 3}}), headers=hd)
+            if path.endswith("/add"):
+                SCH["log"].append({k: v for k, v in body.items() if k != "t"})
+                if m == "ro":
+                    return r.fulfill(status=403, body='{"error":"preview_readonly"}', headers=hd)
+                SCH["cfg"] = {"enabled": body.get("enabled"), "slots": body.get("slots"), "cats": body.get("cats"), "updated": 1792130000000 + len(SCH["log"]) * 60000}
+                return r.fulfill(status=200, body=json.dumps({"ok": True, "schedule": SCH["cfg"]}), headers=hd)
         return r.fulfill(status=200, body='{"ok":true}', headers=hd)
 
     def new_page(ctx, hash_="#admin/articles"):
-        ctx.route("https://github.com/**", fake_gh)
         ctx.route(ACCTM4_API + "/v1/articles/**", art_api)
         p = ctx.new_page()
         p.goto(base + hash_, wait_until="domcontentloaded")
         return p
 
-    JS_ST = """() => { const V = (e) => !!e && e.getClientRects().length > 0; const A = document.getElementById('spkSend');
-        return { n: document.getElementById('spkN') ? document.getElementById('spkN').textContent : null, href: A ? (A.getAttribute('href') || '') : null, dis: A ? A.getAttribute('aria-disabled') : null,
-                 items: [...document.querySelectorAll('#spkList .it')].filter(V).map(e => e.dataset.id), on: [...document.querySelectorAll('#spkList .it.on')].map(e => e.dataset.id) }; }"""
-    st = lambda pg: pg.evaluate(JS_ST)
-    sch = lambda pg: pg.evaluate("""() => ({ json: (() => { try { return JSON.parse(document.getElementById('spkJson').textContent); } catch (e) { return null; } })(), sum: document.getElementById('spkSum').textContent,
-        why: document.getElementById('spkWhy').textContent, save: document.getElementById('spkSave').getAttribute('href'), now: document.getElementById('spkNow').getAttribute('href'),
-        sd: document.getElementById('spkSave').getAttribute('aria-disabled'), nd: document.getElementById('spkNow').getAttribute('aria-disabled') })""")
-    strip = lambda j: {k: v for k, v in (j or {}).items() if k != "created"}
-    # 兩個分頁的可見狀態＋統計內容快照（切來切去前後要一模一樣）
     TABS = """() => { const V = (e) => !!e && e.getClientRects().length > 0; const t = [...document.querySelectorAll('#artAdmTabs>button')];
-        return { tabs: t.map(x => x.textContent.trim()), on: t.filter(x => x.classList.contains('on')).map(x => x.dataset.t), sel: t.filter(x => x.getAttribute('aria-selected') === 'true').map(x => x.dataset.t),
-                 topics: V(document.getElementById('artPanelTopics')), stats: V(document.getElementById('artPanelStats')), pick: V(document.getElementById('spkPickCard')), sched: V(document.getElementById('spkSchedCard')),
-                 list: V(document.getElementById('artAdmList')), stats_kpi: V(document.getElementById('artStKpi')) }; }"""
+        const ids = ['artAdmList', 'artAdmTopics', 'artAdmJobs', 'artSchedCard'];
+        return { tabs: t.map(x => x.textContent.trim()), on: t.filter(x => x.classList.contains('on')).map(x => x.dataset.t), topics: V(document.getElementById('artPanelTopics')), stats: V(document.getElementById('artPanelStats')),
+                 order: ids.map(i => { const e = document.getElementById(i); return e ? Math.round(e.getBoundingClientRect().top + scrollY) : null; }), vis: ids.map(i => V(document.getElementById(i))),
+                 old: document.querySelectorAll('#spkPickCard, #spkSchedCard, .spk, [id^=spk]').length }; }"""
     SNAP = """() => ({ kpi: [...document.querySelectorAll('#artStKpi > div')].map(d => d.textContent.replace(/\\s+/g, ' ').trim()),
         cards: [...document.querySelectorAll('#artStats .admgrid > .card')].map(c => c.querySelector('h3').textContent),
         days: [...document.querySelectorAll('#artStDays .dc')].map(d => +d.dataset.n), lg: [...document.querySelectorAll('#artStDonut li')].map(l => [l.dataset.k, +l.dataset.n]),
         top: [...document.querySelectorAll('#artStTop .bl')].map(x => x.dataset.k) })"""
+    SS = """() => { const V = (e) => !!e && e.getClientRects().length > 0; const on = document.getElementById('asdOn');
+        return { on: on.checked, dis: on.disabled, why: document.getElementById('asdOnWhy').textContent, offTags: [...document.querySelectorAll('#artSchedCard [data-off]')].filter(V).length,
+                 cells: [...document.querySelectorAll('#asdTbl .dd.on')].map(b => b.dataset.d + '@' + b.dataset.t), cats: [...document.querySelectorAll('#artSchedCard input[data-kn]')].map(i => [i.dataset.kn, i.value]),
+                 sum: document.getElementById('asdSum').textContent, msg: document.getElementById('asdMsg').textContent, state: document.getElementById('asdState').textContent, save: document.getElementById('asdSave').disabled,
+                 why2: document.getElementById('asdWhy').textContent }; }"""
+    ss = lambda pg: pg.evaluate(SS)
+    cat_in = lambda pg, k: pg.input_value(f"#artSchedCard input[data-kn='{k}']")
+
+    def shot(el_page, name, sel="#artSchedCard"):
+        if shots:
+            el_page.locator(sel).screenshot(path=str(shots / name))
 
     # ---------------------------------------------------------------- ① 桌機管理者
     ac, _ = _acctm4_ctx(b, "admin", desk=True)
-    ac.grant_permissions(["clipboard-read", "clipboard-write"], origin=re.match(r"https?://[^/]+", base).group(0))
     ap = new_page(ac)
-    wait_until(ap, "() => document.querySelectorAll('#spkList .it').length > 0 && document.querySelectorAll('#artTpBody tr[data-tid]').length > 0", 20000); ap.wait_for_timeout(500)
+    wait_until(ap, "() => document.querySelectorAll('#artTpBody tr[data-tid]').length > 0 && !!document.getElementById('asdOn')", 20000); ap.wait_for_timeout(600)
     tb = ap.evaluate(TABS)
-    ok(f"{T}：管理者開 #admin/articles → 兩個分頁「文章主題」「統計數據」、預設亮「文章主題」；文章主題內容看得到、統計數據藏起來",
-       tb["tabs"] == ["文章主題", "統計數據"] and tb["on"] == ["topics"] and tb["sel"] == ["topics"] and tb["topics"] and not tb["stats"] and tb["pick"] and tb["sched"] and tb["list"], tb)
-    side = ap.evaluate("() => ({ a: !!document.querySelector('.l4subtab[data-adm=articles].on'), social: document.querySelectorAll('.l4subtab[data-adm=social], #admTabSocial').length, txt: (document.querySelector('.l4subtab[data-adm=articles]') || {}).textContent || '' })")
-    ok(f"{T}：側欄管理區只有「精選文章管理」一格（亮著），沒有獨立的「社群選題」入口", side["a"] and side["social"] == 0 and "精選文章管理" in side["txt"], side)
-    ap.evaluate("() => { location.hash = '#admin/social'; }"); ap.wait_for_timeout(700)
-    rd = ap.evaluate("() => ({ h: location.hash, n: document.querySelectorAll('#artAdmTabs>button').length, spk: !!document.getElementById('spkPickCard') })")
-    ok(f"{T}：舊網址 #admin/social → 自動轉回 #admin/articles 並顯示兩分頁（不留第二個入口）", rd["h"] == "#admin/articles" and rd["n"] == 2 and rd["spk"], rd)
-    wait_until(ap, "() => document.querySelectorAll('#spkList .it').length > 0", 15000); ap.wait_for_timeout(300)
-    d = ap.evaluate("""() => { const V = (e) => !!e && e.getClientRects().length > 0;
-        return { ex: V(document.getElementById('spkExB')), exw: V(document.getElementById('spkEx')),
-          rows: [...document.querySelectorAll('#spkList .it')].map(e => ({ id: e.dataset.id, chips: [...e.querySelectorAll('.mt .ch')].map(c => c.textContent.trim()), det: !e.querySelector('.det').hidden })),
-          tabs: [...document.querySelectorAll('#spkKinds button')].map(b => b.textContent.trim().replace(/\\s+/g, '')) }; }""")
-    ok(f"{T}：今日選題標「範例」、6 張卡每張有 圖表有/無、查證、預估產出，預設全部收起", d["ex"] and d["exw"] and len(d["rows"]) == 6 and all(len(r["chips"]) >= 3 and r["chips"][0].startswith("圖表：") and not r["det"] for r in d["rows"]), d)
-    ok(f"{T}：⚠ 法遵紅旗的題目標 ⚠（D1016-2、D1016-4、D1016-6）、類型分頁＝全部6／最新消息2／產業延伸2／精選文章1／總經名詞1",
-       sorted(r["id"] for r in d["rows"] if any(c.startswith("⚠") for c in r["chips"])) == ["D1016-2", "D1016-4", "D1016-6"] and d["tabs"] == ["全部6", "最新消息2", "產業延伸2", "精選文章1", "總經名詞1"], d)
-    # ---------------------------------------------------------------- ② 勾選 → 連結內容 → 重新整理保留
-    s0 = st(ap)
-    ok(f"{T}：還沒勾 → 計數 0、「送出選擇」停用（沒有 href）", s0["n"] == "0" and not s0["href"] and s0["dis"] == "true", s0)
-    ap.check("#spkList input[data-pick='D1016-1']"); ap.wait_for_timeout(120)
-    ap.check("#spkList input[data-pick='D1016-3']"); ap.wait_for_timeout(150)
-    s1 = st(ap)
-    url, q = parse(s1["href"] or "")
-    cm = re.search(r"<!-- social-pick (\{.*?\}) -->", q.get("body", ""))
-    pj = json.loads(cm.group(1)) if cm else {}
-    ok(f"{T}：勾 D1016-1、D1016-3 → 計數 2、兩張卡反白、連結 repo／title／labels 正確",
-       s1["n"] == "2" and s1["on"] == ["D1016-1", "D1016-3"] and url == GH and q.get("title") == "每日選題勾選 2026-10-16" and q.get("labels") == "social-pick" and not s1["dis"], [s1, url, q.get("title"), q.get("labels")])
-    body = q.get("body", "")
-    ok(f"{T}：連結 body 列出被勾編號與題目、沒勾的不在、機器讀註解 JSON＝date＋picked",
-       "日期：2026-10-16" in body and "被勾 2 項（共 6 項）" in body and "- [x] D1016-1｜最新消息｜【範例】外資連三買" in body and "- [x] D1016-3｜產業延伸｜【範例】CoWoS" in body
-       and "D1016-2" not in body.split("<!--")[0] and pj == {"date": "2026-10-16", "picked": ["D1016-1", "D1016-3"]}, body)
-    ap.uncheck("#spkList input[data-pick='D1016-3']"); ap.wait_for_timeout(150)
-    s2 = st(ap); q2 = parse(s2["href"] or "")[1]
-    ok(f"{T}：取消勾 D1016-3 → 計數 1、連結 body 跟著變（不再有 D1016-3、被勾 1 項）", s2["n"] == "1" and "D1016-3" not in q2.get("body", "") and "被勾 1 項" in q2.get("body", ""), [s2, q2.get("body")])
-    ap.check("#spkList input[data-pick='D1016-3']"); ap.wait_for_timeout(100)
-    ls = ap.evaluate("() => { try { return JSON.parse(localStorage.getItem('tw.social.pick')); } catch (e) { return 'ERR'; } }")
-    ok(f"{T}：勾選真的寫進 localStorage（tw.social.pick＝日期＋編號）", ls == {"date": "2026-10-16", "ids": ["D1016-1", "D1016-3"]}, ls)
-    ap.reload(wait_until="domcontentloaded")
-    wait_until(ap, "() => document.querySelectorAll('#spkList .it').length > 0", 15000); ap.wait_for_timeout(400)
-    s3 = st(ap)
-    ok(f"{T}：重新整理後仍保留 D1016-1、D1016-3 的勾選、連結內容還在", s3["on"] == ["D1016-1", "D1016-3"] and s3["n"] == "2" and parse(s3["href"])[1].get("body") == body, s3)
-    ap.hover("#spkList .it[data-id='D1016-2']"); ap.click("#spkList .it[data-id='D1016-2'] .mn"); ap.wait_for_timeout(200)
-    dt = ap.evaluate("""() => { const e = document.querySelector('#spkList .it[data-id=D1016-2]'), d = e.querySelector('.det');
-        return { vis: d.getClientRects().length > 0, li: d.querySelectorAll('ol li').length, txt: d.textContent.replace(/\\s+/g, ' '), h: location.hash }; }""")
-    ok(f"{T}：點卡 → 原地展開細節（三點內文、圖表、圖片需補充、查證、預估產出、⚠ 紅旗），不換頁",
-       dt["vis"] and dt["li"] == 3 and dt["h"] == "#admin/articles" and all(x in dt["txt"] for x in ("這次內文會講", "圖片需補充", "待查證", "輪播 5 張", "點名個股")), dt)
-    if shots:
-        ap.screenshot(path=str(shots / "desk-topics-1440.png"))
-    ap.click("#spkList .it[data-id='D1016-2'] .chev"); ap.wait_for_timeout(150)
-    href = st(ap)["href"]
-    with ac.expect_page() as pi:
-        ap.click("#spkSend")
-    pop = pi.value
-    pop.wait_for_load_state("domcontentloaded")
-    ok(f"{T}：按「送出選擇」→ 新分頁開 GitHub 新 Issue（網址＝連結內容）、原頁還在", pop.url == href and any(h == href for h in gh_hits) and ap.evaluate("() => location.hash") == "#admin/articles", [pop.url == href, gh_hits[-1:]])
-    pop.close()
-    ap.click("#spkCopy"); ap.wait_for_timeout(400)
-    clip = ap.evaluate("async () => { try { return await navigator.clipboard.readText(); } catch (e) { return 'ERR ' + e; } }")
-    tt = ap.evaluate("() => (document.getElementById('subToast') || {}).textContent || ''")
-    ok(f"{T}：按「複製指令」→ 剪貼簿是 gh issue create（repo、social-pick、被勾題目）、跳出「已複製指令」",
-       (clip.startswith("gh issue create -R MiaoZiKe/tw-rotation -t ") and "-l social-pick" in clip and "D1016-3" in clip and "已複製" in tt) or ("已複製" in tt and clip.startswith("ERR")), [clip[:90], tt])
-    # ---------------------------------------------------------------- ③ 兩分頁切換
+    ok(f"{T}：管理者開 #admin/articles → 兩個分頁「文章主題」「統計數據」、預設亮「文章主題」、統計數據藏起來", tb["tabs"] == ["文章主題", "統計數據"] and tb["on"] == ["topics"] and tb["topics"] and not tb["stats"], tb)
+    ok(f"{T}：文章主題由上到下＝已上架文章、主題候選清單、產出進度、產貼文頻率設定（Andy 圖二＋圖三＋新功能），四塊都看得到", all(tb["vis"]) and tb["order"] == sorted(tb["order"]) and None not in tb["order"], tb)
+    ok(f"{T}：沒有「今日選題」「產主題設定」那套 GitHub Issue 流程（不留兩套送出方式），側欄管理區也沒有第二個入口", tb["old"] == 0 and ap.evaluate("() => document.querySelectorAll('.l4subtab[data-adm=social], #admTabSocial').length") == 0, tb["old"])
+    # ---------------------------------------------------------------- ② 預設全空、關閉
+    d0 = ss(ap)
+    ok(f"{T}：頻率設定預設＝開關關閉、沒有任何星期×時段、三個類別篇數都是 0（不預填）", not d0["on"] and d0["cells"] == [] and d0["cats"] == [["news", "0"], ["intro", "0"], ["know", "0"]], d0)
+    ok(f"{T}：預設兩處標「未啟用，不會自動產出」；開關禁用並寫缺什麼（星期×時段、類別）", d0["offTags"] == 2 and d0["dis"] and "星期 × 時段" in d0["why"] and "類別" in d0["why"], d0)
+    ok(f"{T}：明講生效時間（等每小時同步＋Claude 排程到點）、列出現有三輪 09:50／14:50／20:50", all(x in ap.inner_text("#artSchedCard") for x in ("每小時一次的同步", "09:50", "14:50", "20:50", "日後要增加時段")), None)
+    ap.click("#asdOn", force=True); ap.wait_for_timeout(300)
+    ok(f"{T}：條件不足時硬點開關 → 打不開、也沒有送出任何儲存", not ss(ap)["on"] and not SCH["log"], [ss(ap)["on"], SCH["log"]])
+    shot(ap, "desk-sched-1-default.png")
+    # ---------------------------------------------------------------- ③ 補齊 → 開啟
+    ap.click("#asdTbl .dd[data-d='1'][data-t='09:50']"); ap.wait_for_timeout(120)
+    d1 = ss(ap)
+    ok(f"{T}：只勾了「週一 09:50」→ 開關仍禁用、原因只剩「類別」（星期×時段那條消失）、欄位可編輯但仍標未啟用", d1["cells"] == ["1@09:50"] and d1["dis"] and "類別" in d1["why"] and "星期 × 時段" not in d1["why"] and d1["offTags"] == 2, d1)
+    ap.click("#artSchedCard .asd-kr[data-cat='news'] button[data-st='1']"); ap.wait_for_timeout(120)
+    d2 = ss(ap)
+    ok(f"{T}：比比快訊 +1 → 開關可以開了（不再禁用、原因清空）、仍是關閉、沒有送出儲存", not d2["dis"] and not d2["on"] and d2["why"] == "" and not SCH["log"], d2)
+    ap.click("#asdTbl .dd[data-d='2'][data-t='09:50']"); ap.click("#asdTbl .dd[data-d='3'][data-t='09:50']")
+    ap.click("#asdTbl .dd[data-d='1'][data-t='20:50']"); ap.click("#asdTbl .dd[data-d='3'][data-t='20:50']"); ap.wait_for_timeout(120)
+    ap.click("#artSchedCard .asd-kr[data-cat='know'] button[data-st='1']"); ap.click("#artSchedCard .asd-kr[data-cat='know'] button[data-st='1']"); ap.wait_for_timeout(120)
+    ap.click("#asdOn"); ap.wait_for_timeout(500)
+    d3 = ss(ap)
+    want = {"enabled": True, "slots": {"1": ["09:50", "20:50"], "2": ["09:50"], "3": ["09:50", "20:50"]}, "cats": {"news": 1, "intro": 0, "know": 2}}
+    ok(f"{T}：切開關 → 馬上送出 {{enabled:true, slots（時段由早到晚）, cats}}，內容與畫面勾的一致", SCH["log"] == [want], SCH["log"])
+    ok(f"{T}：開啟後畫面＝開關亮、「未啟用」標示消失、顯示已儲存時間、白話摘要寫對（週一、週三 09:50、20:50；週二 09:50；每輪 快訊1＋知識2；一週共 15 篇）",
+       d3["on"] and d3["offTags"] == 0 and "已儲存" in d3["msg"] and "已儲存的版本" in d3["state"] and "週一、週三 09:50、20:50" in d3["sum"] and "週二 09:50" in d3["sum"]
+       and "比比快訊 1 篇" in d3["sum"] and "比比知識 2 篇" in d3["sum"] and "共 15 篇" in d3["sum"], d3)
+    shot(ap, "desk-sched-2-on.png")
+    # ---------------------------------------------------------------- ④ 邊界、關閉、自動關閉
+    for _ in range(5):
+        ap.click("#artSchedCard .asd-kr[data-cat='intro'] button[data-st='1']")
+    ap.wait_for_timeout(100)
+    ok(f"{T}：按 ＋ 五次 → 篇數停在上限 3；直接輸入 9 → 修正成 3、輸入 -2 → 0", cat_in(ap, "intro") == "3", cat_in(ap, "intro"))
+    ap.fill("#artSchedCard input[data-kn='intro']", "9"); ap.dispatch_event("#artSchedCard input[data-kn='intro']", "change"); ap.wait_for_timeout(100)
+    v9 = cat_in(ap, "intro")
+    ap.fill("#artSchedCard input[data-kn='intro']", "-2"); ap.dispatch_event("#artSchedCard input[data-kn='intro']", "change"); ap.wait_for_timeout(100)
+    ok(f"{T}：輸入 9 → {v9}、輸入 -2 → {cat_in(ap, 'intro')}", v9 == "3" and cat_in(ap, "intro") == "0", [v9, cat_in(ap, "intro")])
+    n_before = len(SCH["log"])
+    ap.click("#asdSave"); ap.wait_for_timeout(400)
+    ok(f"{T}：開著時改設定要按「儲存設定」才送出（只多一筆、enabled 仍是 true）", len(SCH["log"]) == n_before + 1 and SCH["log"][-1]["enabled"] is True, SCH["log"][-1])
+    ap.click("#asdOn"); ap.wait_for_timeout(500)
+    d4 = ss(ap)
+    ok(f"{T}：關掉開關 → 馬上送出 enabled=false、slots 與 cats 都還在（沒被清掉）；標示回到「未啟用，不會自動產出」", SCH["log"][-1]["enabled"] is False and SCH["log"][-1]["slots"] == want["slots"] and not d4["on"] and d4["offTags"] == 2 and len(d4["cells"]) == 5, [SCH["log"][-1], d4["offTags"]])
+    ap.click("#asdTbl .dd[data-d='7'][data-t='14:50']"); ap.wait_for_timeout(120)
+    ok(f"{T}：開關關著時，欄位仍可編輯（勾週日 14:50 → 格子亮起）", "7@14:50" in ss(ap)["cells"], ss(ap)["cells"])
+    ap.click(".asd-q button[data-q='work']"); ap.wait_for_timeout(120)
+    dq = ss(ap)
+    ok(f"{T}：快速鈕「全部時段 週一至週五」→ 15 格（5 天 × 3 時段）、沒有週六日", len(dq["cells"]) == 15 and not any(c.startswith(("6@", "7@")) for c in dq["cells"]), dq["cells"])
+    ap.click("#asdOn"); ap.wait_for_timeout(500)
+    ok(f"{T}：再開啟 → 送出 enabled=true 與週一至週五三輪", SCH["log"][-1]["enabled"] is True and SCH["log"][-1]["slots"] == {str(d): ["09:50", "14:50", "20:50"] for d in range(1, 6)}, SCH["log"][-1])
+    ap.click(".asd-q button[data-q='none']"); ap.wait_for_timeout(500)
+    d5 = ss(ap)
+    ok(f"{T}：開著時把星期×時段全部取消 → 自動關閉（不能開著卻什麼都不做）、送出 enabled=false、畫面寫「已自動關閉」", not d5["on"] and "已自動關閉" in d5["msg"] and SCH["log"][-1]["enabled"] is False and d5["dis"], [d5["msg"], SCH["log"][-1]])
+    shot(ap, "desk-sched-3-off.png")
+    ap.click(".asd-q button[data-q='all']"); ap.wait_for_timeout(150)
+    ap.click("#asdSave"); ap.wait_for_timeout(400)
+    # ---------------------------------------------------------------- ⑤ 兩分頁切換、重新整理
+    ap.click("#artTpBody tr[data-tid]:nth-child(1)"); ap.wait_for_timeout(150)
+    sel0 = ap.evaluate("() => document.querySelectorAll('#artTpBody tr[aria-selected=true]').length")
     ap.click("#artTabStats"); ap.wait_for_timeout(300)
     wait_until(ap, "() => !!document.querySelector('#artStDays .dc')", 8000)
-    t2 = ap.evaluate(TABS); sn1 = ap.evaluate(SNAP)
-    tot = sum(x[2] for x in DAILY)
-    ok(f"{T}：點「統計數據」→ 該分頁亮、文章主題整塊（今日選題／產主題設定／文章表）藏起來、統計 KPI 與四張卡片出現",
-       t2["on"] == ["stats"] and t2["sel"] == ["stats"] and t2["stats"] and t2["stats_kpi"] and not t2["topics"] and not t2["pick"] and not t2["sched"] and not t2["list"] and len(sn1["cards"]) == 4, [t2, sn1["cards"]])
-    ok(f"{T}：統計內容沿用正式版口徑 —— KPI 五格、期間點閱＝假資料加總 {tot}、每日直條 30 根且加總相同、類別圓餅有資料",
-       len(sn1["kpi"]) == 5 and sn1["kpi"][0].startswith(str(tot)) and len(sn1["days"]) == 30 and sum(sn1["days"]) == tot and sum(x[1] for x in sn1["lg"]) == tot and sn1["top"], sn1)
-    if shots:
-        ap.screenshot(path=str(shots / "desk-stats-1440.png"), full_page=True)
+    t2 = ap.evaluate(TABS); sn1 = ap.evaluate(SNAP); tot = sum(x[2] for x in DAILY)
+    ok(f"{T}：點「統計數據」→ 該分頁亮、文章主題整塊（含頻率設定）藏起來、統計 KPI 與四張卡片出現（圖一）", t2["on"] == ["stats"] and t2["stats"] and not t2["topics"] and not any(t2["vis"]) and len(sn1["cards"]) == 4, [t2, sn1["cards"]])
+    ok(f"{T}：統計沿用正式版口徑 —— KPI 五格、期間點閱＝假資料加總 {tot}、每日直條 30 根且加總相同、類別圓餅有資料", len(sn1["kpi"]) == 5 and sn1["kpi"][0].startswith(str(tot)) and len(sn1["days"]) == 30 and sum(sn1["days"]) == tot and sum(x[1] for x in sn1["lg"]) == tot, sn1)
+    shot(ap, "desk-stats-1440.png", "#artPanelStats")
     ap.click("#artTabTopics"); ap.wait_for_timeout(300)
-    t3 = ap.evaluate(TABS); s4 = st(ap); sn2_hidden = ap.evaluate(SNAP)
-    ok(f"{T}：切回「文章主題」→ 內容回來、統計藏起來；剛才的勾選（D1016-1、D1016-3）與連結內容原封不動（沒有重畫掉）",
-       t3["on"] == ["topics"] and t3["topics"] and not t3["stats"] and t3["pick"] and s4["on"] == ["D1016-1", "D1016-3"] and s4["n"] == "2" and parse(s4["href"])[1].get("body") == body, [t3, s4["on"]])
-    ok(f"{T}：來回切換之後，統計數據的內容跟第一次一模一樣（KPI／直條／圓餅／熱門文章都沒變）", sn2_hidden == sn1, [sn1, sn2_hidden])
+    d6 = ss(ap); sel1 = ap.evaluate("() => document.querySelectorAll('#artTpBody tr[aria-selected=true]').length")
+    ok(f"{T}：切回「文章主題」→ 頻率設定（21 格＝每天三輪）與主題勾選（{sel0} 個）原封不動；來回切換後統計內容一模一樣", len(d6["cells"]) == 21 and sel1 == sel0 and ap.evaluate(SNAP) == sn1, [len(d6["cells"]), sel1, sel0])
     ap.click("#artTabStats"); ap.wait_for_timeout(200)
     ap.reload(wait_until="domcontentloaded")
     wait_until(ap, "() => !!document.querySelector('#artStDays .dc')", 15000); ap.wait_for_timeout(400)
-    t4 = ap.evaluate(TABS)
-    ok(f"{T}：停在「統計數據」重新整理 → 還是停在統計數據（localStorage 記住分頁），文章主題藏著", t4["on"] == ["stats"] and t4["stats"] and not t4["topics"], t4)
+    ok(f"{T}：停在「統計數據」重新整理 → 還是停在統計數據", ap.evaluate(TABS)["on"] == ["stats"], None)
     ap.click("#artTabTopics"); ap.wait_for_timeout(300)
-    wait_until(ap, "() => document.querySelectorAll('#spkList .it').length > 0", 8000)
-    # ---------------------------------------------------------------- ④ 產主題設定：每週幾 × 時段
-    lag = ap.evaluate("() => document.getElementById('spkLag').textContent")
-    ok(f"{T}：產主題設定明講「設定會在下一個處理週期（最多數小時）生效，要立刻生效請在對話告訴 CEO」", "下一個處理週期（最多數小時）生效" in lag and "告訴 CEO" in lag, lag)
-    j0 = sch(ap)
-    want0 = {"version": 1, "action": "set_schedule", "tz": "Asia/Taipei", "kinds": {"最新消息": 2, "產業延伸": 2, "精選文章": 0, "總經名詞": 1}, "frequency": "weekly",
-             "slots": {"1": ["21:50"], "2": ["21:50"], "3": ["21:50"], "4": ["21:50"], "5": ["21:50"]}, "date": None}
-    ok(f"{T}：預設＝每週一至週五 21:50、最新消息 2／產業延伸 2／總經名詞 1 → JSON frequency=weekly、slots 週一～週五各 [21:50]", strip(j0["json"]) == want0, j0["json"])
-    g0 = ap.evaluate("() => ({ rows: document.querySelectorAll('#spkGrid .gr').length, on: [...document.querySelectorAll('#spkGrid .gr:first-child .dd.on')].map(b => b.textContent), all: [...document.querySelectorAll('#spkGrid .gr:first-child .dd')].map(b => b.textContent) })")
-    ok(f"{T}：格線一列＝一個時段，列內七顆星期鈕（一～日），預設亮 一二三四五", g0["rows"] == 1 and g0["all"] == list("一二三四五六日") and g0["on"] == list("一二三四五"), g0)
-    ap.click("#spkGrid .gr[data-r='0'] .dd[data-d='5']"); ap.wait_for_timeout(120)
-    ap.click("#spkRAdd"); ap.wait_for_timeout(150)
-    ap.fill("#spkGrid input[data-ti='1']", "09:50"); ap.wait_for_timeout(120)
-    for dd in (1, 2, 3, 4):
-        ap.click(f"#spkGrid .gr[data-r='1'] .dd[data-d='{dd}']"); ap.wait_for_timeout(60)
-    for dd in (6, 7):
-        ap.click(f"#spkGrid .gr[data-r='1'] .dd[data-d='{dd}']"); ap.wait_for_timeout(60)
-    j1 = sch(ap)
-    want1 = {**want0, "slots": {"1": ["21:50"], "2": ["21:50"], "3": ["21:50"], "4": ["21:50"], "6": ["09:50"], "7": ["09:50"]}}
-    ok(f"{T}：第一列去掉週五、加第二列 09:50 只勾週六週日 → JSON slots 週一～四 [21:50]、週六日 [09:50]、沒有週五", strip(j1["json"]) == want1, j1["json"])
-    ok(f"{T}：下方白話摘要照實寫「週一至週四…」不含週五、含「週六、週日 09:50」、台北時間",
-       "週一、週二、週三、週四 21:50" in j1["sum"] and "週六、週日 09:50" in j1["sum"] and "週五" not in j1["sum"] and "台北時間" in j1["sum"] and "最新消息 2、產業延伸 2、總經名詞 1（共 5 項）" in j1["sum"], j1["sum"])
-    ap.click("#spkGrid .gr[data-r='1'] .dd[data-d='1']"); ap.wait_for_timeout(120)
-    j1b = sch(ap)
-    ok(f"{T}：第二列再勾週一 → 週一同一天有兩個時段 [09:50, 21:50]（同一天可多個時段）", j1b["json"]["slots"]["1"] == ["09:50", "21:50"] and "週一 09:50、21:50" in j1b["sum"], [j1b["json"]["slots"], j1b["sum"]])
-    surl, sq = parse(j1b["save"] or "")
-    blk = re.search(r"```json social-schedule\n(.*?)\n```", sq.get("body", ""), re.S)
-    bj = json.loads(blk.group(1)) if blk else None
-    ok(f"{T}：「送出排程設定」連結＝GitHub 新 Issue、labels=social-schedule、body 有白話摘要＋「下一個處理週期」說明＋JSON 區塊（與畫面 JSON 同）",
-       surl == GH and sq.get("labels") == "social-schedule" and sq.get("title", "").startswith("每日產主題設定 ") and "週六、週日 09:50" in sq.get("body", "") and "下一個處理週期" in sq.get("body", "") and strip(bj) == strip(j1b["json"]), [surl, sq.get("title"), sq.get("body", "")[:160]])
-    ap.click("#spkQuick button[data-q='all']"); ap.wait_for_timeout(120)
-    j2 = sch(ap)
-    ok(f"{T}：按「全部時段 每天」→ 每天都有 09:50 與 21:50（七天 × 兩個時段）、摘要寫「每天 09:50、21:50」",
-       all(j2["json"]["slots"].get(str(d)) == ["09:50", "21:50"] for d in range(1, 8)) and "每天 09:50、21:50" in j2["sum"], [j2["json"]["slots"], j2["sum"]])
-    ap.click("#spkQuick button[data-q='none']"); ap.wait_for_timeout(120)
-    j3 = sch(ap)
-    ok(f"{T}：按「全部取消」→ 沒有任何一格 → 「送出排程設定」停用並寫「請至少勾一格」、立刻產一份仍可按", j3["sd"] == "true" and "至少勾一格" in j3["why"] and not j3["nd"] and j3["json"] is None, j3)
-    ap.click("#spkQuick button[data-q='work']"); ap.wait_for_timeout(120)
-    j3b = sch(ap)
-    ok(f"{T}：按「全部時段 週一至週五」→ 兩個時段都是週一至週五（連結恢復）", not j3b["sd"] and j3b["json"]["slots"] == {str(d): ["09:50", "21:50"] for d in range(1, 6)} and "週一至週五 09:50、21:50" in j3b["sum"], [j3b["json"], j3b["sum"]])
-    ap.click("#spkGrid .gr[data-r='1'] .del"); ap.wait_for_timeout(150)
-    g1 = ap.evaluate("() => ({ rows: document.querySelectorAll('#spkGrid .gr').length, delDis: document.querySelector('#spkGrid .gr .del').disabled })")
-    j3c = sch(ap)
-    ok(f"{T}：刪第二個時段 → 剩 1 列且最後一列的刪除鈕停用；JSON 只剩該時段（{list(j3c['json']['slots'].get('1', []))}）", g1["rows"] == 1 and g1["delDis"] and len(j3c["json"]["slots"]["1"]) == 1, [g1, j3c["json"]["slots"]])
-    # 改項數與類型
-    ap.click("#spkSchedCard .kr[data-kind='精選文章'] button[data-st='1']"); ap.wait_for_timeout(100)
-    ap.uncheck("#spkSchedCard .kr[data-kind='總經名詞'] input[data-kc]"); ap.wait_for_timeout(100)
-    ap.click("#spkSchedCard .kr[data-kind='最新消息'] button[data-st='-1']"); ap.wait_for_timeout(100)
-    j4 = sch(ap)
-    ok(f"{T}：改項數（精選＋1、最新−1）、取消總經名詞 → JSON kinds＝最新 1／產業 2／精選 1／總經 0，摘要「共 4 項」", j4["json"]["kinds"] == {"最新消息": 1, "產業延伸": 2, "精選文章": 1, "總經名詞": 0} and "（共 4 項）" in j4["sum"], [j4["json"]["kinds"], j4["sum"]])
-    # 只跑一次
-    ap.click("#spkFreq button[data-f='once']"); ap.wait_for_timeout(150)
-    j5 = sch(ap)
-    oc = ap.evaluate("() => { const V = (e) => !!e && e.getClientRects().length > 0; return { date: V(document.getElementById('spkOnce')), dd: [...document.querySelectorAll('#spkGrid .dd')].filter(V).length, quick: V(document.querySelector('#spkQuick button')) }; }")
-    ok(f"{T}：改「只跑一次」→ 日期欄出現、星期鈕與快速鈕藏起來；沒填日期 → 送出排程停用並寫「指定哪一天」", oc["date"] and oc["dd"] == 0 and not oc["quick"] and j5["sd"] == "true" and "指定哪一天" in j5["why"] and not j5["nd"], [oc, j5["why"]])
-    ap.fill("#spkDate", "2099-01-02"); ap.wait_for_timeout(200)
-    j6 = sch(ap)
-    ok(f"{T}：填日期 2099-01-02 → JSON frequency=once、date、times＝該時段、slots 空；連結恢復", j6["json"] and j6["json"]["frequency"] == "once" and j6["json"]["date"] == "2099-01-02" and j6["json"]["times"] == ["21:50"] and j6["json"]["slots"] == {} and not j6["sd"] and "只跑一次，2099-01-02 21:50" in j6["sum"], j6)
-    nurl, nq = parse(j6["now"] or "")
-    nb = re.search(r"```json social-schedule\n(.*?)\n```", nq.get("body", ""), re.S)
-    nj = json.loads(nb.group(1)) if nb else {}
-    ok(f"{T}：「立刻產一份」連結＝labels social-schedule、title「立刻產主題 …」、JSON action=run_now、只有 kinds（沒有 slots／frequency）",
-       nurl == GH and nq.get("labels") == "social-schedule" and nq.get("title", "").startswith("立刻產主題 ") and nj.get("action") == "run_now" and nj.get("kinds") == j4["json"]["kinds"] and "slots" not in nj and "frequency" not in nj, [nq.get("title"), nj])
-    ap.fill("#spkDate", "2000-01-01"); ap.wait_for_timeout(150)
-    j7 = sch(ap)
-    ok(f"{T}：指定日期早於今天 → 排程連結停用、寫「不能早於今天」", j7["sd"] == "true" and "早於今天" in j7["why"], j7)
-    ap.fill("#spkDate", "2099-01-02"); ap.wait_for_timeout(100)
-    sv = ap.evaluate("() => { try { return JSON.parse(localStorage.getItem('tw.social.sched2')); } catch (e) { return 'ERR'; } }")
-    ok(f"{T}：設定寫進 localStorage（tw.social.sched2）", isinstance(sv, dict) and sv.get("freq") == "once" and sv.get("date") == "2099-01-02" and sv["rows"][0]["t"] == "21:50", sv)
-    ap.reload(wait_until="domcontentloaded")
-    wait_until(ap, "() => document.querySelectorAll('#spkList .it').length > 0", 15000); ap.wait_for_timeout(300)
-    j8 = sch(ap)
-    ok(f"{T}：重新整理後產主題設定還在（只跑一次、日期、項數、時段）", j8["json"] and j8["json"]["frequency"] == "once" and j8["json"]["date"] == "2099-01-02" and j8["json"]["kinds"] == j4["json"]["kinds"] and j8["json"]["times"] == ["21:50"], j8["json"])
-    ap.click("#spkFreq button[data-f='weekly']"); ap.wait_for_timeout(150)
-    if shots:
-        ap.screenshot(path=str(shots / "desk-sched-1440.png"), full_page=True)
-    for k in ("最新消息", "產業延伸", "精選文章"):
-        ap.uncheck(f"#spkSchedCard .kr[data-kind='{k}'] input[data-kc]"); ap.wait_for_timeout(80)
-    j9 = sch(ap)
-    ok(f"{T}：所有類型都取消 → 兩顆連結都停用、寫「至少要有一種類型」、JSON 不給假資料", j9["sd"] == "true" and j9["nd"] == "true" and "至少要有一種類型" in j9["why"] and j9["json"] is None, j9)
-    ap.evaluate("() => { try { localStorage.removeItem('tw.social.sched2'); localStorage.removeItem('tw.social.pick'); localStorage.removeItem('tw.art.admtab'); } catch (e) {} }")
-    ap.reload(wait_until="domcontentloaded"); wait_until(ap, "() => document.querySelectorAll('#spkList .it').length > 0", 15000); ap.wait_for_timeout(300)
-    lay = ap.evaluate("""() => { let minfs = 99; const bad = [];
-        document.querySelectorAll('#spkPickCard *, #spkSchedCard *, #artAdmTabs *').forEach(e => { if (!e.getClientRects().length) return; if ([...e.childNodes].some(n => n.nodeType === 3 && n.textContent.trim())) minfs = Math.min(minfs, parseFloat(getComputedStyle(e).fontSize)); });
-        document.querySelectorAll('#spkList .it').forEach(e => { if (e.scrollWidth > e.clientWidth + 1) bad.push(e.dataset.id); });
-        const gr = document.querySelector('#spkGrid .gr').getBoundingClientRect(), card = document.getElementById('spkSchedCard').getBoundingClientRect();
-        return { sx: document.documentElement.scrollWidth - innerWidth, minfs, bad, grOk: gr.right <= card.right }; }""")
-    ok(f"{T}：1440 沒有橫向溢出、題目卡沒有撐出、字級 ≥ 12、時段列在卡片內", lay["sx"] <= 0 and not lay["bad"] and lay["minfs"] >= 12 and lay["grOk"], lay)
+    wait_until(ap, "() => document.getElementById('asdState') && /已儲存的版本/.test(document.getElementById('asdState').textContent)", 8000)
+    d7 = ss(ap)
+    ok(f"{T}：重新整理後頻率設定從伺服器讀回（關閉、21 格、篇數同上次存的），而不是回到空白", not d7["on"] and len(d7["cells"]) == 21 and d7["cats"] == [["news", "1"], ["intro", "0"], ["know", "2"]] and "已儲存的版本" in d7["state"], d7)
+    ap.evaluate("() => { try { localStorage.removeItem('tw.art.admtab'); localStorage.removeItem('tw.art.sched.draft'); } catch (e) {} }")
+    lay = ap.evaluate("""() => { let minfs = 99; document.querySelectorAll('#artSchedCard *, #artAdmTabs *').forEach(e => { if (!e.getClientRects().length) return; if ([...e.childNodes].some(n => n.nodeType === 3 && n.textContent.trim())) minfs = Math.min(minfs, parseFloat(getComputedStyle(e).fontSize)); });
+        const c = document.getElementById('artSchedCard').getBoundingClientRect(); const bad = [...document.querySelectorAll('#artSchedCard .asd-days, #artSchedCard .asd-box')].filter(e => e.getBoundingClientRect().right > c.right + 0.5).length;
+        return { sx: document.documentElement.scrollWidth - innerWidth, minfs, bad }; }""")
+    ok(f"{T}：1440 沒有橫向溢出、字級 ≥ 12、格線在卡片內", lay["sx"] <= 0 and lay["minfs"] >= 12 and lay["bad"] == 0, lay)
     ac.close()
 
-    # ---------------------------------------------------------------- ⑤ 清單 404／空清單
-    ec, _ = _acctm4_ctx(b, "admin", desk=True)
-    ec.route("**/social/menu_latest.json*", lambda r: r.fulfill(status=404, body="nope"))
-    ep = new_page(ec)
-    wait_until(ep, "() => !!document.getElementById('spkEmpty')", 15000)
-    e1 = ep.evaluate("() => ({ t: document.getElementById('spkEmpty').textContent, n: document.querySelectorAll('#spkList .it').length, h: Math.round(document.getElementById('spkEmpty').getBoundingClientRect().height), tabs: document.querySelectorAll('#artAdmTabs>button').length })")
-    ok(f"{T}：清單檔 404 → 今日選題空狀態寫原因（找不到 social/menu_latest.json）、有「重新讀取」、沒有題目卡、不是黑方塊；其他分頁內容照常", "找不到" in e1["t"] and "menu_latest.json" in e1["t"] and e1["n"] == 0 and 40 < e1["h"] < 260 and e1["tabs"] == 2, e1)
-    ec.unroute("**/social/menu_latest.json*")
-    ec.route("**/social/menu_latest.json*", lambda r: r.fulfill(status=200, content_type="application/json", body=json.dumps({"version": 1, "date": "2026-10-16", "items": []})))
-    ep.click("#spkRetry"); wait_until(ep, "() => /是空的/.test((document.getElementById('spkEmpty') || {}).textContent || '')", 8000)
-    ok(f"{T}：按「重新讀取」→ 讀到空清單 → 改寫「今天的清單是空的」", "是空的" in ep.evaluate("() => (document.getElementById('spkEmpty') || {}).textContent || ''"), None)
-    ec.close()
+    # ---------------------------------------------------------------- ⑥ 後端狀態
+    for mode, key, expect in (("old", "old", "後端還沒更新"), ("deny", "denied", "不是管理者")):
+        SCH["mode"] = mode; SCH["cfg"] = None; SCH["log"].clear()
+        bc, _ = _acctm4_ctx(b, "admin", desk=True)
+        bp = new_page(bc)
+        wait_until(bp, "() => !!document.getElementById('asdOn') && !/讀取中/.test(document.getElementById('asdState').textContent)", 15000); bp.wait_for_timeout(300)
+        s_ = ss(bp)
+        ok(f"{T}：頻率設定讀取回「{mode}」→ 畫面寫「{expect}」、其他欄位仍可操作", expect in s_["state"], s_["state"])
+        bp.click("#asdTbl .dd[data-d='1'][data-t='09:50']"); bp.click("#artSchedCard .asd-kr[data-cat='news'] button[data-st='1']"); bp.wait_for_timeout(100)
+        bp.click("#asdOn"); bp.wait_for_timeout(500)
+        s2 = ss(bp)
+        ok(f"{T}：{mode} 時按開關 → 存不進去，畫面講原因（{s2['msg']}）、開關退回關閉不假裝成功", not s2["on"] or "失敗" in s2["msg"], s2)
+        bc.close()
+    SCH["mode"] = "ro"; SCH["cfg"] = None; SCH["log"].clear()
+    rc, _ = _acctm4_ctx(b, "admin", desk=True)
+    rp = new_page(rc)
+    wait_until(rp, "() => !!document.getElementById('asdOn')", 15000); rp.wait_for_timeout(300)
+    rp.click("#asdTbl .dd[data-d='1'][data-t='09:50']"); rp.click("#artSchedCard .asd-kr[data-cat='news'] button[data-st='1']"); rp.click("#asdSave"); rp.wait_for_timeout(500)
+    sr = ss(rp)
+    ok(f"{T}：預覽唯讀（寫入被擋）→ 畫面寫「預覽版不會真的儲存」", "預覽版不會真的儲存" in sr["msg"], sr["msg"])
+    rc.close()
+    SCH["mode"] = "ok"
 
     # ---------------------------------------------------------------- 非管理者
     for who, nm in (("free", "註冊會員"), ("guest", "訪客")):
         gc, _ = _acctm4_ctx(b, who, desk=True)
         gp = new_page(gc)
         wait_until(gp, "() => !!document.querySelector('#v-subadm .artadm')", 12000); gp.wait_for_timeout(800)
-        g = gp.evaluate("() => ({ t: (document.querySelector('#v-subadm .artadm') || {}).textContent || '', items: document.querySelectorAll('#spkList .it').length, tabs: document.querySelectorAll('#artAdmTabs').length, spk: document.querySelectorAll('.spk').length, side: document.querySelectorAll('.l4subtab[data-parent=admin]').length })")
-        ok(f"{T}：{nm}自己打 #admin/articles → 只寫「只有管理者看得到」、沒有分頁、沒有題目與排程；側欄沒有管理區", "只有管理者" in g["t"] and g["items"] == 0 and g["tabs"] == 0 and g["spk"] == 0 and g["side"] == 0, g)
+        g = gp.evaluate("() => ({ t: (document.querySelector('#v-subadm .artadm') || {}).textContent || '', tabs: document.querySelectorAll('#artAdmTabs').length, sched: document.querySelectorAll('#artSchedCard, #asdOn').length, side: document.querySelectorAll('.l4subtab[data-parent=admin]').length })")
+        ok(f"{T}：{nm}自己打 #admin/articles → 只寫「只有管理者看得到」、沒有分頁、沒有頻率設定；側欄沒有管理區", "只有管理者" in g["t"] and g["tabs"] == 0 and g["sched"] == 0 and g["side"] == 0, g)
         gc.close()
 
     # ---------------------------------------------------------------- ⑦ 手機 390／360
     for vp in ((390, 844), (360, 780)):
+        SCH["cfg"] = None; SCH["log"].clear()
         mc, _ = _acctm4_ctx(b, "admin", vp=vp)
         mp = new_page(mc)
-        wait_until(mp, "() => document.querySelectorAll('#spkList .it').length > 0", 20000); mp.wait_for_timeout(600)
-        m = mp.evaluate("""() => { const V = (e) => !!e && e.getClientRects().length > 0; const H = innerHeight;
-            let minfs = 99; document.querySelectorAll('#spkPickCard *, #spkSchedCard *, #artAdmTabs *').forEach(e => { if (!V(e)) return; if ([...e.childNodes].some(n => n.nodeType === 3 && n.textContent.trim())) minfs = Math.min(minfs, parseFloat(getComputedStyle(e).fontSize)); });
-            const cb = document.querySelector('#spkList .cb').getBoundingClientRect(), tabs = document.getElementById('artAdmTabs').getBoundingClientRect(), r0 = document.querySelector('#spkList .it').getBoundingClientRect();
-            const rows = [...document.querySelectorAll('#spkList .it')];
-            return { H, sx: document.documentElement.scrollWidth - innerWidth, minfs, cb: [Math.round(cb.width), Math.round(cb.height)], tabsTop: Math.round(tabs.top), firstRowTop: Math.round(r0.top),
-              tabH: Math.round(tabs.height), bad: rows.filter(e => e.scrollWidth > e.clientWidth + 1).map(e => e.dataset.id), wcShown: V(document.querySelector('#spkList .wc')) }; }""")
+        wait_until(mp, "() => !!document.getElementById('asdOn') && document.querySelectorAll('#artTpBody tr[data-tid]').length > 0", 20000); mp.wait_for_timeout(600)
+        m = mp.evaluate("""() => { const V = (e) => !!e && e.getClientRects().length > 0; const H = innerHeight; const tabs = document.getElementById('artAdmTabs').getBoundingClientRect();
+            let minfs = 99; document.querySelectorAll('#artSchedCard *, #artAdmTabs *').forEach(e => { if (!V(e)) return; if ([...e.childNodes].some(n => n.nodeType === 3 && n.textContent.trim())) minfs = Math.min(minfs, parseFloat(getComputedStyle(e).fontSize)); });
+            const c = document.getElementById('artSchedCard').getBoundingClientRect();
+            const days = [...document.querySelectorAll('#asdTbl .asd-row:first-child .dd')].map(e => e.getBoundingClientRect());
+            const small = [...document.querySelectorAll('#artSchedCard button, #artSchedCard input:not([type=checkbox])')].filter(V).map(e => e.getBoundingClientRect()).filter(r => r.height < 31.5 || r.width < 31.5).length;
+            return { H, tabsTop: Math.round(tabs.top), sx: document.documentElement.scrollWidth - innerWidth, minfs, days: days.length, dw: Math.round(Math.min(...days.map(r => r.width))), dh: Math.round(Math.min(...days.map(r => r.height))), inside: days.every(r => r.right <= c.right + 0.5 && r.left >= c.left - 0.5), small }; }""")
+        ok(f"{T}：手機 {vp[0]}：分頁列在第一屏（頂 {m['tabsTop']} < {m['H']}）、沒有橫向捲軸、字 ≥ 11px（最小 {m['minfs']}）", m["tabsTop"] < m["H"] and m["sx"] <= 0 and m["minfs"] >= 11, m)
+        ok(f"{T}：手機 {vp[0]}：頻率設定七顆星期鈕都在卡片內且 ≥ 32px（{m['dw']}×{m['dh']}）、其他按鈕與輸入框觸控 ≥ 32px", m["days"] == 7 and m["inside"] and m["dw"] >= 32 and m["dh"] >= 32 and m["small"] == 0, m)
         if shots and vp[0] == 390:
-            mp.screenshot(path=str(shots / "mob-topics-390.png"))
-        ok(f"{T}：手機 {vp[0]}：分頁列與第一題都在第一屏（分頁列頂 {m['tabsTop']}、第一題頂 {m['firstRowTop']} < 螢幕高 {m['H']}）、沒有橫向捲軸、題目卡沒撐出", m["tabsTop"] < m["H"] and m["firstRowTop"] < m["H"] - 60 and m["sx"] <= 0 and not m["bad"], m)
-        ok(f"{T}：手機 {vp[0]}：勾選區 ≥ 32px（{m['cb']}）、字 ≥ 11px（最小 {m['minfs']}）、手機只留重點（不顯示內文三點那一行）", m["cb"][0] >= 32 and m["cb"][1] >= 32 and m["minfs"] >= 11 and not m["wcShown"], m)
-        mp.locator("#spkList .it[data-id='D1016-1'] .cb").tap(); mp.wait_for_timeout(150)
-        mp.locator("#spkList .it[data-id='D1016-4'] .cb").tap(); mp.wait_for_timeout(200)
-        ms = st(mp); mq = parse(ms["href"] or "")[1]
-        ok(f"{T}：手機 {vp[0]}：手指點勾選 D1016-1、D1016-4 → 計數 2、連結 body 含兩題", ms["n"] == "2" and ms["on"] == ["D1016-1", "D1016-4"] and "D1016-4" in mq.get("body", "") and mq.get("labels") == "social-pick", [ms["n"], ms["on"]])
-        sm = mp.evaluate("""() => { const V = (e) => !!e && e.getClientRects().length > 0; const c = document.getElementById('spkSchedCard').getBoundingClientRect();
-            const days = [...document.querySelectorAll('#spkGrid .gr:first-child .dd')].map(e => e.getBoundingClientRect());
-            const small = [...document.querySelectorAll('#spkSchedCard button, #spkSchedCard input:not([type=checkbox]), #spkSchedCard a.btn')].filter(V).map(e => e.getBoundingClientRect()).filter(r => r.height < 31.5 || r.width < 31.5).length;
-            return { card: [Math.round(c.left), Math.round(c.right)], vw: innerWidth, days: days.length, dw: Math.round(Math.min(...days.map(r => r.width))), dh: Math.round(Math.min(...days.map(r => r.height))), inside: days.every(r => r.right <= c.right + 0.5 && r.left >= c.left - 0.5), small,
-              sx: document.documentElement.scrollWidth - innerWidth }; }""")
-        ok(f"{T}：手機 {vp[0]}：星期 × 時段格線七顆星期鈕都在卡片內（≥ 32px：{sm['dw']}×{sm['dh']}）、其他按鈕與輸入框觸控 ≥ 32px、沒有橫向捲軸", sm["days"] == 7 and sm["inside"] and sm["dw"] >= 32 and sm["dh"] >= 32 and sm["small"] == 0 and sm["sx"] <= 0, sm)
-        mp.locator("#spkGrid .gr[data-r='0'] .dd[data-d='6']").tap(); mp.wait_for_timeout(150)
-        jm = sch(mp)
-        ok(f"{T}：手機 {vp[0]}：手指點週六 → JSON slots 多出週六 [21:50]", jm["json"] and jm["json"]["slots"].get("6") == ["21:50"], jm["json"])
+            mp.locator("#artSchedCard").scroll_into_view_if_needed(); mp.wait_for_timeout(200)
+            shot(mp, "mob-sched-1-default.png")
+        mp.locator("#asdTbl .dd[data-d='1'][data-t='09:50']").tap(); mp.locator("#asdTbl .dd[data-d='5'][data-t='20:50']").tap()
+        mp.locator("#artSchedCard .asd-kr[data-cat='intro'] button[data-st='1']").tap(); mp.wait_for_timeout(150)
+        ms = ss(mp)
+        ok(f"{T}：手機 {vp[0]}：手指點格子與 ＋ → 勾到 2 格、開關解鎖", ms["cells"] == ["1@09:50", "5@20:50"] and not ms["dis"], ms)
+        mp.locator("#asdOn").tap(); mp.wait_for_timeout(500)
+        ok(f"{T}：手機 {vp[0]}：手指切開關 → 送出 enabled=true、週一 09:50／週五 20:50、比比產業鏈 1 篇", SCH["log"] and SCH["log"][-1] == {"enabled": True, "slots": {"1": ["09:50"], "5": ["20:50"]}, "cats": {"news": 0, "intro": 1, "know": 0}}, SCH["log"][-1:])
         if shots and vp[0] == 390:
-            mp.screenshot(path=str(shots / "mob-sched-390.png"), full_page=True)
+            shot(mp, "mob-sched-2-on.png")
+        mp.locator("#asdOn").tap(); mp.wait_for_timeout(500)
+        ok(f"{T}：手機 {vp[0]}：手指關開關 → 送出 enabled=false", SCH["log"][-1]["enabled"] is False and not ss(mp)["on"], SCH["log"][-1])
+        if shots and vp[0] == 390:
+            shot(mp, "mob-sched-3-off.png")
         mp.locator("#artTabStats").tap(); mp.wait_for_timeout(500)
         wait_until(mp, "() => !!document.querySelector('#artStDays .dc')", 8000)
-        sx = mp.evaluate("""() => { const V = (e) => !!e && e.getClientRects().length > 0; return { sx: document.documentElement.scrollWidth - innerWidth, stats: V(document.getElementById('artStats')), topics: V(document.getElementById('artPanelTopics')), on: [...document.querySelectorAll('#artAdmTabs>button.on')].map(x => x.dataset.t) }; }""")
-        ok(f"{T}：手機 {vp[0]}：手指點「統計數據」→ 切過去、沒有橫向捲軸、文章主題藏起來", sx["stats"] and not sx["topics"] and sx["on"] == ["stats"] and sx["sx"] <= 0, sx)
+        sx = mp.evaluate("""() => { const V = (e) => !!e && e.getClientRects().length > 0; return { sx: document.documentElement.scrollWidth - innerWidth, stats: V(document.getElementById('artStats')), topics: V(document.getElementById('artPanelTopics')) }; }""")
+        ok(f"{T}：手機 {vp[0]}：手指點「統計數據」→ 切過去、沒有橫向捲軸、文章主題藏起來", sx["stats"] and not sx["topics"] and sx["sx"] <= 0, sx)
         if shots and vp[0] == 390:
             mp.screenshot(path=str(shots / "mob-stats-390.png"))
-        mp.locator("#artTabTopics").tap(); mp.wait_for_timeout(300)
-        s5 = st(mp)
-        ok(f"{T}：手機 {vp[0]}：切回文章主題 → 剛才勾的 D1016-1、D1016-4 還在", s5["on"] == ["D1016-1", "D1016-4"], s5["on"])
         mc.close()
 
 
