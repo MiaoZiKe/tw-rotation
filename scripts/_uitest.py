@@ -59704,7 +59704,7 @@ def t_sub_1005(b, base, code):
        len(fb) == 1 and fb[0].get("cat") == "idea" and fb[0].get("body") == "希望加 ETF 資金流向" and fb[0].get("contact") == "member@example.com"
        and "#pricing" in fb[0].get("url", "") and "1440" in fb[0].get("ua", ""), fb)
     ok(f"{T}：送出後清空內容、顯示已收到", pg.input_value("#fbBody") == "" and "已收到" in pg.inner_text("#fbMsg"))
-    pg.click("#supPanel .sptabs button[data-t='mail']")
+    pg.click("#supPanel .sptabs button[data-t='fb']")
     # ★ 2026-10-07 改前→改後（Andy：「聯絡客服改用連結 Gmail」）：改前 mailto: → 改後 Gmail 網頁撰寫（新分頁）＋複製信箱鈕
     ok(f"{T}：寄信分頁是 Gmail 撰寫連結（新分頁）", (pg.get_attribute("#supMail", "href") or "").startswith("https://mail.google.com/mail/?view=cm") and pg.get_attribute("#supMail", "target") == "_blank")
     pg.click("#supClose")
@@ -60018,7 +60018,7 @@ def t_support_1007(b, base, code):
     pg.goto(base + "#overview", wait_until="domcontentloaded")
     wait_until(pg, "() => !!document.getElementById('supFab')", 8000)
     pg.click("#supFab")
-    pg.click("#supPanel .sptabs button[data-t='mail']")
+    pg.click("#supPanel .sptabs button[data-t='fb']")
     href = pg.get_attribute("#supMail", "href") or ""
     ok(f"{T}：寄信分頁 → Gmail 撰寫網址（收件者 liguligu0818、主旨「哩股哩股－客服」）、target=_blank、rel=noopener",
        href.startswith(GM + "liguligu0818%40gmail.com") and "su=" + urllib.parse.quote("哩股哩股－客服") in href
