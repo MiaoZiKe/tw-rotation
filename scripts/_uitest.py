@@ -33695,9 +33695,12 @@ def t_m4_ovseg_1016(b, base):
             if who is None:
                 # 故障注入①：切段中途丟錯（getComputedStyle 第一次被叫就丟）→ try/catch 退回簡單顯示，圖仍出來
                 pg.locator("#v-overview > .mpager > button", has_text="大盤").first.tap(); pg.wait_for_timeout(800)
-                pg.evaluate("() => { const g = window.getComputedStyle; let n = 0; window.getComputedStyle = function () { if (n++ === 0) { window.getComputedStyle = g; throw new Error('注入故障'); } return g.apply(this, arguments); }; }")
+                # 只對 #ovLeft（.ovmain 裡的排版容器，切段時收空殼那一步會量它）丟一次 —— 丟在切段流程裡，不波及別的程式
+                pg.evaluate("() => { const g = window.getComputedStyle; window.getComputedStyle = function (el) { if (el && el.id === 'ovLeft') { window.getComputedStyle = g; throw new Error('注入故障'); } return g.apply(this, arguments); }; }")
                 pg.locator("#v-overview > .mpager > button", has_text="熱度").first.tap(); pg.wait_for_timeout(1200)
                 check(pg, f"{w} {nm} 切段中途丟錯後", "熱度")
+                ok(f"【{T}】{w} {nm}：注入的錯誤被切段流程接住（沒有漏成頁面錯誤）、而且真的有被觸發", "注入故障" not in " ".join(errs)
+                   and pg.evaluate("() => window.getComputedStyle.toString().includes('[native code]')"), errs[:3])
                 # 故障注入②：外層排版容器殘留 mp-off（上一段收掉的空殼沒被拿掉）→ 450ms 自我檢查補開
                 pg.evaluate("() => { const b = [...document.querySelectorAll('#v-overview > .mpager > button')].find(x => x.textContent.trim() === '資金流向'); "
                             "b.click(); document.querySelector('#v-overview .ovmain').classList.add('mp-off'); }")
