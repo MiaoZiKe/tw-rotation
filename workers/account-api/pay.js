@@ -63,7 +63,12 @@ export const PAY_STATUS = { pending: '待付款', review: '待確認', paid: '�
    瀏覽器快取裡的舊版網頁不會送這些欄位，先部署 Worker 時不能讓它們結帳失敗。 */
 export const GENDERS = ['male', 'female'];
 export const GENDER_REQUIRED = true;
+/* 法遵意見（docs/legal/gender_collection_1016.md 3-3）：性別要有「獨立勾選同意」（不併進條款勾選）。GENDER_CONSENT_REQUIRED 是它的開關，
+   前端 checkout.js 同名常數。要改成選填版本：兩個常數都改 false。 */
+export const GENDER_CONSENT_REQUIRED = true;
 export const PAY_FORM_VERSION = 2;
+/* 卡號防呆：任何欄位出現連續 13～19 位數字（可夾空白、連字號）就拒收。本站任何欄位都不該有卡號。 */
+export const looksLikeCard = (v) => /\d(?:[ -]?\d){12,18}/.test(String(v == null ? '' : v));
 /* 驗結帳表單的個人欄位：回 { name, gender, last5 } 或 { error }。
    · 末 5 碼＝銀行轉帳對帳用的轉出帳號末 5 碼，只收 5 個數字（綠界分頁選填）；絕不收信用卡卡號任何位數。 */
 export function payProfile(b, subClean, opt) {
@@ -72,8 +77,10 @@ export function payProfile(b, subClean, opt) {
   const name = subClean(b.name, 40);
   const gender = b.gender == null || b.gender === '' ? '' : String(b.gender);
   if (gender && !GENDERS.includes(gender)) return { error: 'bad_gender' };
+  if (looksLikeCard(name) || looksLikeCard(b.last5)) return { error: 'card_number' };
   if (strict && !name) return { error: 'need_name' };
   if (strict && GENDER_REQUIRED && !gender) return { error: 'need_gender' };
+  if (strict && gender && GENDER_CONSENT_REQUIRED && b.gender_consent !== true) return { error: 'need_gender_consent' };
   let last5 = '';
   if (o.last5 && b.last5 != null && String(b.last5).trim() !== '') {
     last5 = String(b.last5).trim();
@@ -126,8 +133,10 @@ export function installPay(Hub, H) {
     /* 2026-10-16 Andy：結帳加性別；綠界分頁的姓名放 payer_name、選填末 5 碼放 payer_last5（不用 from_last5：那欄有「已回報匯款」的意思，很多判斷靠它）*/
     if (!cols.has('gender')) this.q('ALTER TABLE orders ADD COLUMN gender TEXT');
     if (!cols.has('payer_last5')) this.q('ALTER TABLE orders ADD COLUMN payer_last5 TEXT');
-    /* 會員性別（男女用量比例統計用；只有管理者端點讀得到，只輸出彙總人數）*/
-    if (!this.q('PRAGMA table_info(users)').some((c) => c.name === 'gender')) this.q('ALTER TABLE users ADD COLUMN gender TEXT');
+    /* 性別只存「計數」（法遵意見 4-2 做法 A）：gender_counts 每列＝一天 × 男／女 的人數，不含 uid、email、訂單編號。
+       orders.gender 只是「付款完成前的暫存」：訂單開通那一刻 payCountGender 把它算進計數並清成 NULL；
+       沒付款的單，排程 14 天後也清掉。所以長期留在資料庫的性別只有計數。 */
+    this.q('CREATE TABLE IF NOT EXISTS gender_counts (day TEXT, g TEXT, n INTEGER NOT NULL DEFAULT 0, PRIMARY KEY (day, g))');
     /* 2026-10-12 Andy：「使用者升級以及退款這類重大資訊都需要給他們通知」→ 個人帳務通知（站內鈴鐺）＋選用 email 佇列 */
     this.q('CREATE TABLE IF NOT EXISTS user_notices (id TEXT PRIMARY KEY, email TEXT, title TEXT, body TEXT, ref TEXT, created INTEGER, read_at INTEGER)');
     this.q('CREATE INDEX IF NOT EXISTS user_notices_em ON user_notices (email, created)');
@@ -139,8 +148,20 @@ export function installPay(Hub, H) {
     if (!this.q('PRAGMA table_info(refunds)').some((c) => c.name === 'req')) this.q('ALTER TABLE refunds ADD COLUMN req TEXT');
     this._payOk = true;
   };
+  /* 綠界回傳／通知的原文只留白名單欄位（交易編號、金額、狀態、時間），其餘（含 NeedExtraPaidInfo=Y 時會帶的 card6no／card4no 等持卡人資訊）一律丟掉 */
+  const EV_KEEP = /^(MerchantTradeNo|TradeNo|RtnCode|RtnMsg|TradeAmt|TradeStatus|PaymentType|PaymentDate|TradeDate|PeriodType|Frequency|ExecTimes|PeriodAmount|ExecStatus|TotalSuccessTimes|TotalSuccessAmount|amount|gwsr|process_date|SimulatePaid)$/;
+  const evSafe = (src) => {
+    let o = null;
+    if (src && typeof src === 'object') o = src;
+    else { const t = String(src == null ? '' : src); try { o = JSON.parse(t); } catch (e) { o = null; } if (!o || typeof o !== 'object') { try { o = Object.fromEntries(new URLSearchParams(t)); } catch (e) { o = null; } } }
+    if (!o) return '(格式無法解析，未記錄)';
+    const out = {};
+    for (const k of Object.keys(o)) if (EV_KEEP.test(k) && (typeof o[k] === 'string' || typeof o[k] === 'number')) out[k] = String(o[k]).slice(0, 80);
+    return JSON.stringify(out);
+  };
   Hub.prototype.payEv = function (oid, kind, detail) {
-    this.q('INSERT INTO pay_events (at, oid, kind, detail) VALUES (?, ?, ?, ?)', this.now(), oid || '', kind, String(typeof detail === 'string' ? detail : JSON.stringify(detail || {})).slice(0, 1500));
+    /* 2026-10-16 稽核：事件紀錄不留卡號資訊。最後一道關卡：連續 13～19 位數字一律遮成 [已遮蔽]（各呼叫處另用 evSafe 只留白名單欄位） */
+    this.q('INSERT INTO pay_events (at, oid, kind, detail) VALUES (?, ?, ?, ?)', this.now(), oid || '', kind, String(typeof detail === 'string' ? detail : JSON.stringify(detail || {})).replace(/\d(?:[ -]?\d){12,18}/g, '[已遮蔽]').slice(0, 1500));
   };
   /* 個人帳務通知：同一件事（ref）只通知一次。站內鈴鐺一定有；設了 Resend 才另外寄 email（排程每 10 分鐘送出）*/
   Hub.prototype.payTell = function (email, title, body, ref) {
@@ -345,15 +366,20 @@ export function installPay(Hub, H) {
     return 'LG' + s + Array.from(r, (x) => A[x % A.length]).join('');   // 18 碼英數（綠界 MerchantTradeNo 上限 20）
   };
   Hub.prototype.payOrder = function (id) { return this.q('SELECT * FROM orders WHERE id = ?', String(id || ''))[0] || null; };
-  /* 會員性別：結帳填了就記在 users（統計用）；沒填不蓋掉以前填過的 */
-  Hub.prototype.payRememberGender = function (uid, gender) {
-    if (GENDERS.includes(gender)) this.q('UPDATE users SET gender = ? WHERE uid = ?', gender, uid);
+  /* 訂單開通時把暫存的性別算進計數（冪等：算完清成 NULL）。包在 try 裡：統計出任何問題都不能影響開通 */
+  Hub.prototype.payCountGender = function (oid) {
+    const o = this.payOrder(oid);
+    if (!o || !o.applied || o.parent || !o.gender) return;
+    if (GENDERS.includes(o.gender)) this.q('INSERT INTO gender_counts (day, g, n) VALUES (?, ?, 1) ON CONFLICT(day, g) DO UPDATE SET n = n + 1', tpeDay(this.now()), o.gender);
+    this.q('UPDATE orders SET gender = NULL WHERE id = ?', oid);
   };
-  /* 男女用量比例：只回彙總人數（男／女／未填），不回任何個別會員的性別。未填＝沒填過（含舊會員）。 */
+  /* 男女用量比例：只回彙總人數。paid＝已開通的首期付費訂單數（定期定額續扣不重複算）；
+     沒有性別資料的（計數機制上線前的舊訂單、或客服人工開通的）＝ paid − 男 − 女，前端標「估算」。 */
   Hub.prototype.payGenderStats = function () {
     this.payInit();
-    const r = this.q("SELECT COALESCE(SUM(gender = 'male'), 0) AS male, COALESCE(SUM(gender = 'female'), 0) AS female, COUNT(*) AS total FROM users")[0];
-    return { male: r.male, female: r.female, unset: r.total - r.male - r.female, total: r.total };
+    const r = this.q("SELECT COALESCE(SUM(CASE WHEN g = 'male' THEN n END), 0) AS male, COALESCE(SUM(CASE WHEN g = 'female' THEN n END), 0) AS female, MIN(day) AS since FROM gender_counts")[0];
+    const paid = this.q('SELECT COUNT(*) AS c FROM orders WHERE applied = 1 AND parent IS NULL')[0].c;
+    return { male: r.male, female: r.female, paid, unset: Math.max(0, paid - r.male - r.female), since: r.since || null };
   };
   const payOrigAdminStats = Hub.prototype.adminStats;
   Hub.prototype.adminStats = async function (req, b) {
@@ -465,7 +491,7 @@ export function installPay(Hub, H) {
     let r;
     try { r = await this.ecPost('/Cashier/QueryTradeInfo/V5', { MerchantTradeNo: o.id, TimeStamp: ts(this) }); } catch (e) { return { ok: false, error: 'network' }; }
     this.paySet(o.id, { last_sync: this.now() });
-    if (!(await this.ecVerify(r.form))) { this.payEv(o.id, 'query_badmac', r.text.slice(0, 300)); return { ok: false, error: 'bad_mac' }; }
+    if (!(await this.ecVerify(r.form))) { this.payEv(o.id, 'query_badmac', evSafe(r.text)); return { ok: false, error: 'bad_mac' }; }
     const f = r.form;
     this.payEv(o.id, 'query', { TradeStatus: f.TradeStatus, TradeAmt: f.TradeAmt, PaymentType: f.PaymentType });
     const o2 = this.payOrder(o.id);
@@ -512,7 +538,7 @@ export function installPay(Hub, H) {
     try { r = await this.ecPost('/Cashier/QueryCreditCardPeriodInfo', { MerchantTradeNo: p.id, TimeStamp: ts(this) }); } catch (e) { return { ok: false, error: 'network' }; }
     this.paySet(p.id, { last_sync: this.now() });
     let j = null; try { j = JSON.parse(r.text); } catch (e) { j = null; }
-    if (!j || String(j.MerchantTradeNo || p.id) !== p.id) { this.payEv(p.id, 'period_query_bad', r.text.slice(0, 300)); return { ok: false, error: 'bad_reply' }; }
+    if (!j || String(j.MerchantTradeNo || p.id) !== p.id) { this.payEv(p.id, 'period_query_bad', evSafe(r.text)); return { ok: false, error: 'bad_reply' }; }
     this.payEv(p.id, 'period_query', { ExecStatus: j.ExecStatus, TotalSuccessTimes: j.TotalSuccessTimes, PeriodAmount: j.PeriodAmount });
     const n = parseInt(j.TotalSuccessTimes, 10) || 0;
     const amt = parseInt(j.PeriodAmount, 10) || p.amount;
@@ -534,7 +560,7 @@ export function installPay(Hub, H) {
     if (p.period_state === 'cancelled') return { ok: true, dup: true };
     let r;
     try { r = await this.ecPost('/Cashier/CreditCardPeriodAction', { MerchantTradeNo: p.id, Action: 'Cancel', TimeStamp: ts(this) }); } catch (e) { return { ok: false, error: 'network', msg: '連不到綠界' }; }
-    this.payEv(p.id, 'period_cancel', r.text.slice(0, 300));
+    this.payEv(p.id, 'period_cancel', evSafe(r.text));
     if (r.form.CheckMacValue && !(await this.ecVerify(r.form))) return { ok: false, error: 'bad_mac', msg: '綠界回應驗章失敗' };
     if (String(r.form.RtnCode) !== '1') return { ok: false, error: 'ecpay', msg: r.form.RtnMsg || `HTTP ${r.status}` };
     this.paySet(p.id, { period_state: 'cancelled', cancel_at: this.now() });
@@ -557,9 +583,18 @@ export function installPay(Hub, H) {
     this.q("UPDATE orders SET status = 'cancelled', rtn_msg = '超過 3 天未付款，自動取消', updated = ? WHERE method = 'ecpay' AND status = 'pending' AND applied = 0 AND parent IS NULL AND created < ?", now, now - PAY_ECPAY_EXPIRE_DAYS * DAY);
   };
   /* 排程（每 10 分鐘，wrangler.toml）：補開通 → 對帳 → 到期紀錄 */
+  /* 開通後把暫存性別算進計數（要放在 payActivate 定義之後才包得到） */
+  const payOrigActivate = Hub.prototype.payActivate;
+  Hub.prototype.payActivate = function (oid, src) {
+    const r = payOrigActivate.call(this, oid, src);
+    try { this.payCountGender(oid); } catch (e) { /* 統計失敗不影響開通 */ }
+    return r;
+  };
   Hub.prototype.paySweep = async function () {
     this.payInit();
     const now = this.now(), out = { query: 0, fixed: 0, period: 0 };
+    /* 沒付款的訂單不留性別：14 天還沒開通就清掉暫存 */
+    this.q('UPDATE orders SET gender = NULL WHERE gender IS NOT NULL AND applied = 0 AND created < ?', now - 14 * DAY);
     for (const o of this.q("SELECT id FROM orders WHERE method = 'ecpay' AND parent IS NULL AND applied = 0 AND status IN ('pending', 'paid', 'cancelled') AND created > ? ORDER BY created LIMIT 30", now - (PAY_SWEEP_DAYS + 1) * DAY)) {
       out.query++;
       const r = await this.payQuery(o.id, 'sweep');
@@ -595,7 +630,7 @@ export function installPay(Hub, H) {
     created: o.created, paidAt: o.paid_at || 0, confirmedAt: o.confirmed_at || 0, cancelAt: o.cancel_at || 0,
     refunds: (refunds || []).filter((r) => r.oid === o.id && r.status === 'done').map((r) => ({ amount: r.amount, at: r.done_at || r.created, kind: r.kind })),
   });
-  const admOrder = (o, refunds, names) => ({ ...pubOrder(o, refunds), email: o.email, name: (names && names[o.uid]) || '', gender: o.gender || '', payerLast5: o.payer_last5 || '', adminNote: o.admin_note || '', actSrc: o.act_src || '',
+  const admOrder = (o, refunds, names) => ({ ...pubOrder(o, refunds), email: o.email, name: (names && names[o.uid]) || '', payerLast5: o.payer_last5 || '', adminNote: o.admin_note || '', actSrc: o.act_src || '',
     actErr: o.act_err || '', anomaly: o.anomaly || '', tradeNo: o.trade_no || '', gwsr: o.gwsr || '', rtnMsg: o.rtn_msg || '', applied: !!o.applied,
     refundRows: (refunds || []).filter((r) => r.oid === o.id) });
 
@@ -684,7 +719,7 @@ export function installPay(Hub, H) {
         const q = await this.ecPost('/CreditDetail/QueryTrade/V2', { CreditRefundId: o.gwsr, CreditAmount: String(o.amount), CreditCheckCode: String(this.env.ECPAY_CREDIT_CHECK_CODE) });
         const st = (() => { try { const j = JSON.parse(q.text); return String((j.RtnValue && j.RtnValue.status) || j.status || ''); } catch (e) { return ''; } })();
         stage = /已關帳/.test(st) ? 'closed' : /要關帳/.test(st) ? 'closing' : st ? 'auth' : '';
-        this.payEv(o.id, 'credit_query', st || q.text.slice(0, 200));
+        this.payEv(o.id, 'credit_query', st || evSafe(q.text));
       } catch (e) { stage = ''; }
     }
     if (!stage) {
@@ -700,7 +735,7 @@ export function installPay(Hub, H) {
     const steps = stage === 'closed' ? [['R', amount]] : stage === 'closing' ? (full ? [['E', o.amount], ['N', o.amount]] : [['C', o.amount - amount]]) : (full ? [['N', o.amount]] : [['C', o.amount - amount]]);
     for (const [act, amt] of steps) {
       const r = await this.ecPost('/CreditDetail/DoAction', { MerchantTradeNo: o.id, TradeNo: o.trade_no || '', Action: act, TotalAmount: String(amt) }, c.test ? c.host : ECPAY_PROD_HOST);
-      this.payEv(o.id, 'doaction_' + act, r.text.slice(0, 300));
+      this.payEv(o.id, 'doaction_' + act, evSafe(r.text));
       if (r.form.CheckMacValue && !(await this.ecVerify(r.form))) return { ok: false, action: act, msg: '綠界回應驗章失敗' };
       if (String(r.form.RtnCode) !== '1') return { ok: false, action: act, msg: r.form.RtnMsg || `HTTP ${r.status}` };
     }
@@ -779,8 +814,7 @@ export function installPay(Hub, H) {
       if (recur) Object.assign(f, { PeriodAmount: String(pr.amount), PeriodType: period === 'year' ? 'Y' : 'M', Frequency: '1', ExecTimes: period === 'year' ? '9' : '99', PeriodReturnURL: api + '/v1/pay/ecpay/period' });
       else f.PaymentInfoURL = api + '/v1/pay/ecpay/notify';
       f.CheckMacValue = await ecpayMac(f, c.key, c.iv);
-      this.paySet(id, { payer_name: prof.name, gender: prof.gender, payer_last5: prof.last5 });
-      this.payRememberGender(v.user.uid, prof.gender);
+      this.paySet(id, { payer_name: prof.name, gender: prof.gender || null, payer_last5: prof.last5 });
       this.payEv(id, 'create', { recur, amount: pr.amount });
       return this.json(req, { ok: true, id, amount: pr.amount, test: c.test, action: c.host + '/Cashier/AioCheckOut/V5', fields: f });
     },
@@ -829,8 +863,7 @@ export function installPay(Hub, H) {
       let hist = []; try { hist = JSON.parse(o.reports || '[]'); if (!Array.isArray(hist)) hist = []; } catch (e) { hist = []; }
       const at = this.now();
       hist.push({ at, name, last5, date, amount: amt, state: 'active' });
-      this.payRememberGender(v.user.uid, prof.gender);
-      this.paySet(o.id, { status: 'review', payer_name: name, gender: prof.gender, from_last5: last5, xfer_date: date, xfer_amount: amt, note: '', reports: JSON.stringify(hist) });
+      this.paySet(o.id, { status: 'review', payer_name: name, gender: prof.gender || null, from_last5: last5, xfer_date: date, xfer_amount: amt, note: '', reports: JSON.stringify(hist) });
       this.payEv(o.id, 'report', { name, last5, date, amt });
       /* 10-16：送出匯款資料＝新訂單事件 → 同一個 email 比它舊的待確認轉帳標「已被取代」、待處理的取消／退款申請自動結案 */
       this.payReconcile(o.email);
@@ -1148,7 +1181,7 @@ export function installPay(Hub, H) {
   Hub.prototype.payNotify = async function (req) {
     this.payInit();
     const f = await formOf(req);
-    if (!f || !(await this.ecVerify(f))) { this.payEv(f && f.MerchantTradeNo, 'notify_badmac', f ? JSON.stringify(f).slice(0, 300) : ''); return txt('0|CheckMacValue Error', 400); }
+    if (!f || !(await this.ecVerify(f))) { this.payEv(f && f.MerchantTradeNo, 'notify_badmac', f ? evSafe(f) : ''); return txt('0|CheckMacValue Error', 400); }
     const o = this.payOrder(f.MerchantTradeNo);
     this.payEv(f.MerchantTradeNo, 'notify', { RtnCode: f.RtnCode, TradeAmt: f.TradeAmt, PaymentType: f.PaymentType, SimulatePaid: f.SimulatePaid });
     if (!o) return txt('0|Order Not Found', 404);

@@ -242,7 +242,11 @@
   /* 在「per」這個切換狀態下要顯示什麼：{ amount, unit, note, period（送申請用）}；amount null＝洽詢 */
   /* 10-07 Andy「價格旁備註一天多少錢」：口徑一律「一年總價 ÷ 365」（月繳＝月價×12÷365、年繳＝年價÷365），四捨五入到小數 1 位；
      算出來而不是寫死，後台改價、切月／年都會跟著變。一次付清與免費不給（沒有「一年」可攤）。 */
-  const perDay = (r) => (r && !r.free && r.amount != null && !r.once ? Math.round((r.period === 'year' ? r.total : r.amount * 12) / 365 * 10) / 10 : null);
+  /* 10-16 Andy「訂閱金額旁邊換算一天多少台幣」：結帳視窗與方案卡共用這一個算法（TwSub.dayCost），兩處不會不一致。
+     amount＝這一期實付金額、period＝month／year；月繳先換成一年總價（×12）再 ÷365，跟上面 10-07 的口徑相同。 */
+  const dayCost = (amount, period) => (Number.isFinite(amount) && amount > 0 ? Math.round((period === 'year' ? amount : amount * 12) / 365 * 10) / 10 : null);
+  window.TwSub.dayCost = dayCost;
+  const perDay = (r) => (r && !r.free && r.amount != null && !r.once ? dayCost(r.period === 'year' ? r.total : r.amount, r.period) : null);
   const dayTag = (r) => { const d = perDay(r); return d == null ? '' : `<small class="prday">每天約 NT$ ${d.toFixed(1)}</small>`; };
   function priceAt(p, per) {
     const r = priceAt0(p, per);

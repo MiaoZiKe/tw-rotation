@@ -920,51 +920,82 @@ test('措施 5 通知：申請送出 → 管理者鈴鐺；申請被自動結案
   assert.ok(db.prepare("SELECT 1 FROM user_notices WHERE email = 'bob@example.com' AND title = '你的取消訂閱申請已結案'").get(), '被新訂單結案 → 會員收到結案通知');
 });
 
-/* ---------------------------------------------------------------- 2026-10-16 結帳加姓名＋性別（男／女），性別納入男女用量比例統計 */
-test('結帳表單 form=2：姓名必填、性別必填且只能是 male／female；末 5 碼選填但只收 5 位數字', async () => {
+/* ---------------------------------------------------------------- 2026-10-16 結帳加姓名＋性別（男／女），性別只存計數（法遵意見 gender_collection_1016 4-2 做法 A） */
+const GOOD = { name: '鮑伯', gender: 'female', gender_consent: true };
+test('結帳表單 form=2：姓名、性別、獨立同意都必填；性別只能 male／female；末 5 碼選填且只收 5 位數字；卡號一律拒收', async () => {
   const { hub, db, bob } = await setup();
   const base = { t: bob, plan: 'plus', period: 'month', back: BACK, recur: true, form: 2 };
   const e = async (x) => (await pj(hub, '/v1/pay/ecpay/create', { ...base, ...x }));
-  assert.equal((await e({ gender: 'male' })).j.error, 'need_name');
+  assert.equal((await e({ gender: 'male', gender_consent: true })).j.error, 'need_name');
   assert.equal((await e({ name: '鮑伯' })).j.error, 'need_gender', 'Andy 10-16：性別先必填');
-  assert.equal((await e({ name: '鮑伯', gender: 'undisclosed' })).j.error, 'bad_gender', '白名單只有男女');
-  assert.equal((await e({ name: '鮑伯', gender: 'x<script>' })).s, 400);
-  assert.equal((await e({ name: '鮑伯', gender: 'female', last5: '1234' })).j.error, 'bad_last5');
-  assert.equal((await e({ name: '鮑伯', gender: 'female', last5: '4111111111111111' })).j.error, 'bad_last5', '卡號一類的長數字一律拒收');
+  assert.equal((await e({ name: '鮑伯', gender: 'female' })).j.error, 'need_gender_consent', '法遵：獨立勾選同意，沒勾不收');
+  assert.equal((await e({ name: '鮑伯', gender: 'undisclosed', gender_consent: true })).j.error, 'bad_gender', '白名單只有男女');
+  assert.equal((await e({ ...GOOD, last5: '1234' })).j.error, 'bad_last5');
+  assert.equal((await e({ ...GOOD, last5: '4111111111111111' })).j.error, 'card_number', '卡號一律拒收');
+  assert.equal((await e({ ...GOOD, last5: '4111 1111 1111 1111' })).j.error, 'card_number', '夾空白也擋');
+  assert.equal((await e({ ...GOOD, name: '4111-1111-1111-1111' })).j.error, 'card_number', '姓名欄也擋');
   assert.equal(db.prepare('SELECT COUNT(*) AS c FROM orders').get().c, 0, '驗證失敗不開任何訂單');
-  const ok = await e({ name: '鮑伯', gender: 'female', last5: '12345' });
+  const ok = await e({ ...GOOD, last5: '12345' });
   assert.equal(ok.s, 200);
   const o = ord(db, ok.j.id);
-  assert.deepEqual([o.payer_name, o.gender, o.payer_last5, o.from_last5 || null], ['鮑伯', 'female', '12345', null], '綠界末 5 碼不能寫進 from_last5（那欄代表已回報匯款）');
-  assert.equal(db.prepare("SELECT gender FROM users WHERE email = 'bob@example.com'").get().gender, 'female');
+  assert.deepEqual([o.payer_name, o.payer_last5, o.from_last5 || null], ['鮑伯', '12345', null], '綠界末 5 碼不能寫進 from_last5（那欄代表已回報匯款）');
   /* 舊版網頁（沒帶 form）仍可結帳：先部署 Worker 不能讓快取裡的舊前端壞掉 */
   assert.equal((await pj(hub, '/v1/pay/ecpay/create', { t: bob, plan: 'plus', period: 'month', back: BACK, recur: true })).s, 200);
+  assert.ok(!db.prepare("SELECT name FROM pragma_table_info('users')").all().some((c) => c.name === 'gender'), '會員表沒有性別欄（不跟會員綁定）');
 });
 
-test('銀行轉帳回報 form=2：性別必填；寫進訂單與會員；管理者訂單清單看得到、會員自己的輸出沒有', async () => {
+test('性別只存計數：開通那一刻才算進計數並清掉訂單上的暫存；未付款不算；重複通知不重複算；管理者清單與會員輸出都沒有性別', async () => {
+  const { hub, db, bob, andy } = await setup();
+  const c = await ecCreate(hub, bob, { recur: false, form: 2, ...GOOD });
+  assert.equal(ord(db, c.id).gender, 'female', '付款前只是暫存');
+  assert.equal(db.prepare('SELECT COUNT(*) AS c FROM gender_counts').get().c, 0, '未付款不計');
+  await notify(hub, c.id, 299);
+  await notify(hub, c.id, 299);
+  assert.equal(ord(db, c.id).gender, null, '開通後暫存清掉：訂單不再綁性別');
+  const rows = db.prepare('SELECT * FROM gender_counts').all();
+  assert.deepEqual(rows.map((r) => [r.g, r.n]), [['female', 1]], '只算一次');
+  assert.deepEqual(Object.keys(rows[0]).sort(), ['day', 'g', 'n'], '計數表沒有 uid／email／訂單');
+  const adm = (await pj(hub, '/v1/admin/pay/list', { t: andy })).j;
+  assert.ok(!JSON.stringify(adm).includes('"gender"'), '管理者訂單清單不含性別');
+  assert.ok(!JSON.stringify((await pj(hub, '/v1/pay/my', { t: bob })).j).includes('"gender"'));
+});
+
+test('銀行轉帳回報 form=2：性別與獨立同意必填；管理者確認入帳後才算進計數', async () => {
   const { hub, db, bob, andy } = await setup();
   await pj(hub, '/v1/admin/pay/bank/put', { t: andy, bank_name: '測試銀行', bank_code: '812', account: '1234567890', holder: '哩股' });
   const c = (await pj(hub, '/v1/pay/bank/create', { t: bob, plan: 'plus', period: 'month' })).j;
   const rp = { t: bob, id: c.id, name: '鮑伯', last5: '54321', date: '2026-10-11', form: 2 };
   assert.equal((await pj(hub, '/v1/pay/bank/report', rp)).j.error, 'need_gender');
-  assert.equal((await pj(hub, '/v1/pay/bank/report', { ...rp, gender: 'other' })).j.error, 'bad_gender');
-  assert.equal((await pj(hub, '/v1/pay/bank/report', { ...rp, gender: 'male' })).s, 200);
-  assert.deepEqual([ord(db, c.id).gender, db.prepare("SELECT gender FROM users WHERE email = 'bob@example.com'").get().gender], ['male', 'male']);
-  const adm = (await pj(hub, '/v1/admin/pay/list', { t: andy })).j;
-  assert.equal((adm.orders.find((x) => x.id === c.id) || {}).gender, 'male');
-  const mine = (await pj(hub, '/v1/pay/my', { t: bob })).j;
-  assert.ok(!JSON.stringify(mine).includes('"gender"'), '會員自己的訂單輸出不含性別欄');
-  assert.equal((await pj(hub, '/v1/admin/pay/list', { t: bob })).s, 403);
+  assert.equal((await pj(hub, '/v1/pay/bank/report', { ...rp, gender: 'male' })).j.error, 'need_gender_consent');
+  assert.equal((await pj(hub, '/v1/pay/bank/report', { ...rp, gender: 'other', gender_consent: true })).j.error, 'bad_gender');
+  assert.equal((await pj(hub, '/v1/pay/bank/report', { ...rp, last5: '4111111111111111', gender: 'male', gender_consent: true })).j.error, 'card_number');
+  assert.equal((await pj(hub, '/v1/pay/bank/report', { ...rp, gender: 'male', gender_consent: true })).s, 200);
+  assert.equal(db.prepare('SELECT COUNT(*) AS c FROM gender_counts').get().c, 0, '回報還沒入帳，不計');
+  const cf = await pj(hub, '/v1/admin/pay/confirm', { t: andy, id: c.id, received: 299 });
+  assert.equal(cf.s, 200, JSON.stringify(cf.j));
+  assert.deepEqual(db.prepare('SELECT g, n FROM gender_counts').all().map((r) => [r.g, r.n]), [['male', 1]]);
+  assert.equal(ord(db, c.id).gender, null);
 });
 
-test('男女用量比例：/v1/admin/stats 只回彙總人數（男、女、未填），非管理者拿不到；沒填過（含舊會員）算未填', async () => {
+test('男女用量比例：/v1/admin/stats 只回彙總人數；舊訂單（沒有性別）＝已付款數 − 男 − 女；非管理者拿不到', async () => {
   const { hub, db, bob, andy } = await setup();
-  await login(hub, 'carol@example.com');
-  await pj(hub, '/v1/pay/ecpay/create', { t: bob, plan: 'plus', period: 'month', back: BACK, recur: true, form: 2, name: '鮑伯', gender: 'male' });
+  const c = await ecCreate(hub, bob, { recur: false, form: 2, ...GOOD });
+  await notify(hub, c.id, 299);
+  db.prepare("INSERT INTO gender_counts (day, g, n) VALUES ('2026-10-01', 'male', 4)").run();
+  const old = ord(db, c.id);
+  db.prepare("INSERT INTO orders (id, uid, email, plan, plan_name, period, amount, method, status, applied, created, updated) VALUES ('LGOLD000000001', 'u9', 'old@example.com', 'plus', 'Plus', 'month', 299, 'bank', 'active', 1, 1, 1)").run();
   const j = (await pj(hub, '/v1/admin/stats', { t: andy, days: 7 })).j;
-  assert.deepEqual(j.gender, { male: 1, female: 0, unset: 2, total: 3 });
-  assert.ok(!JSON.stringify(j.gender).includes('bob'), '統計裡不出現個別會員');
+  assert.deepEqual(j.gender, { male: 4, female: 1, paid: 2, unset: 0, since: '2026-10-01' });
+  assert.equal(old.applied, 1);
   assert.equal((await pj(hub, '/v1/admin/stats', { t: bob, days: 7 })).s, 403);
-  db.prepare("UPDATE users SET gender = 'female' WHERE email = 'carol@example.com'").run();
-  assert.deepEqual((await pj(hub, '/v1/admin/stats', { t: andy, days: 7 })).j.gender, { male: 1, female: 1, unset: 1, total: 3 });
+});
+
+test('稽核：綠界回傳／通知驗章失敗時，事件紀錄只留白名單欄位，不留卡號資訊（card4no／card6no 等）', async () => {
+  const { hub, db, bob } = await setup();
+  const c = await ecCreate(hub, bob);
+  const bad = await form(hub, '/v1/pay/ecpay/notify', { MerchantTradeNo: c.id, RtnCode: '1', TradeAmt: '299', card6no: '411111', card4no: '1111', CardNumber: '4111111111111111', Extra: 'x'.repeat(50) }, false);
+  assert.equal(bad.status, 400);
+  const ev = db.prepare("SELECT detail FROM pay_events WHERE kind = 'notify_badmac'").all().map((r) => r.detail).join('|');
+  assert.ok(ev.includes('MerchantTradeNo') && ev.includes('299'), ev);
+  for (const w of ['card6no', 'card4no', '411111', '1111', 'CardNumber', 'Extra']) assert.ok(!ev.includes(w), w + ' 不該出現在事件紀錄：' + ev);
 });
