@@ -5915,6 +5915,7 @@ h3 .howbtn.pop{font-family:inherit}
 <!-- drawtools.js 要排在 chart.js 前面：KChart.enableDrawing() 與 KUtil.DRAW_* 都從它拿（DECISIONS #289） -->
 <script src="vendor/echarts.min.js"></script>
 <script src="vendor/lightweight-charts.js"></script>
+<script src="protect.js"></script><!-- 2026-10-16 全站防複製＋浮水印「哩股哩股」（Andy：「所有分頁 圖表 內容，且不可被複製，都需要浮水印」）：要在兩個圖表庫之後、chart.js／app.js 之前，才包得到 echarts.init 與 createChart -->
 <script src="timegrid.js"></script><!-- 時間軸垂直分隔線的共用邏輯（DECISIONS #337）：要在 chart.js 與 app.js 之前 -->
 <script src="drawtools.js"></script>
 <script src="chart.js"></script>

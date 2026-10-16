@@ -71420,7 +71420,7 @@ def t_articles_1014(b, base):
                  "highlight": [4], "marks": [{"x": "2026-08", "text": "單月新高"}, {"x": "2026-09", "text": "次高"}], "note": "說明", "source": "測試"},
                 {"t": "chart", "kind": "bar", "title": "直條", "unit": "kW", "x": ["甲", "乙"], "series": [{"name": "功耗", "data": [40, 120]}], "highlight": [1], "marks": [{"x": "乙", "text": "約 3 倍"}]},
                 {"t": "chart", "kind": "line", "title": "折線", "unit": "%", "x": ["Q1", "Q2", "Q3"], "series": [{"name": "毛利率", "data": [53, 58, 59]}]},
-                {"t": "chart", "kind": "hbar", "title": "橫條", "unit": "家", "x": ["一", "二", "三"], "series": [{"name": "家數", "data": [9, 5, 2]}], "marks": [{"x": "三", "text": "最少"}]},
+                {"t": "chart", "kind": "hbar", "title": "橫條", "unit": "家", "x": ["一", "二", "三", "四", "五"], "series": [{"name": "家數", "data": [9, 7, 5, 3, 2]}], "marks": [{"x": "五", "text": "最少"}]},
                 {"t": "chart", "kind": "range", "title": "區間", "unit": "萬片", "x": ["2026", "2027"], "series": [{"name": "月產能", "data": [[11, 14], [17, 20]]}]},
                 {"t": "h", "text": "關係圖"},
                 {"t": "flow", "title": "關係圖", "note": "說明", "columns": [
@@ -71431,6 +71431,17 @@ def t_articles_1014(b, base):
                 {"t": "stack", "title": "剖面", "note": "示意", "layers": [
                     {"label": "運算晶片＋HBM", "sub": "說明一", "tone": "chip", "w": 0.7, "split": [{"label": "HBM", "w": 0.2, "tone": "mem"}, {"label": "GPU", "w": 0.5, "tone": "chip"}]},
                     {"label": "矽中介層", "sub": "說明二", "tone": "interposer", "w": 0.9}, {"label": "ABF 載板", "tone": "substrate", "w": 1.0}]},
+                {"t": "h", "text": "說明圖"},
+                {"t": "steps", "title": "從晶圓到伺服器", "note": "流程示意", "items": [
+                    {"label": "晶圓製造", "text": "晶圓廠在矽晶圓上做出電晶體與導線", "icon": "wafer"},
+                    {"label": "先進封裝", "text": "把運算晶片與記憶體放上中介層", "icon": "package"},
+                    {"label": "載板", "text": "ABF 載板把細線路放大到主機板能接的尺寸", "icon": "substrate"},
+                    {"label": "伺服器組裝", "text": "裝進機櫃、接上散熱與電源", "icon": "server"},
+                    {"label": "雲端出貨", "text": "交給雲端業者上線", "icon": "truck"}]},
+                {"t": "compare", "title": "傳統封裝 vs 先進封裝", "note": "對照示意", "cols": [
+                    {"label": "傳統封裝", "tone": "neutral", "points": ["打線接合", "腳數少"], "verdict": "便宜、夠用"},
+                    {"label": "先進封裝", "tone": "accent", "points": ["晶片並排上中介層", "頻寬高", "良率挑戰大"], "verdict": "AI 晶片必備"},
+                    {"label": "產能瓶頸", "tone": "warn", "points": ["CoWoS 擴產慢"], "verdict": "短期供不應求"}]},
                 {"t": "p", "text": "內文"}],
             "site_links": [{"label": "產業地圖", "hash": "#industry"}], "sources": [{"title": "測試來源", "publisher": "p", "date": "", "url": "https://example.com/a"}]}
     old = {"id": "uitest-old-1016", "cat": "news", "title": "驗收用：三個月前的舊快訊", "subtitle": "", "date": OLD, "tags": [], "summary": "舊", "reading_min": 1,
@@ -71449,7 +71460,40 @@ def t_articles_1014(b, base):
         j["articles"] = list(j.get("articles", [])) + [{k: v for k, v in full.items() if k != "blocks"}, {k: v for k, v in old.items() if k != "blocks"}]
         r.fulfill(status=200, content_type="application/json", body=json.dumps(j, ensure_ascii=False))
 
-    def prep(ctx):
+    # 點閱數 API（會員 Worker 的 /v1/articles/*）：假的帳號 API 網址＋攔截回假資料；api_mode＝"ok" 正常、"fail" 一律 500
+    ART_API = "https://artviews.example.test"
+    first_real = sorted([a for a in vis if a in real], key=lambda a: a["date"], reverse=True)
+    VIEWS = {"uitest-full-1016": 56}
+    if first_real:
+        VIEWS[first_real[0]["id"]] = 1234
+    api_log = []
+
+    def api_route(r, mode):
+        req = r.request
+        path = re.sub(r"^https?://[^/]+", "", req.url).split("?")[0]
+        if req.method == "OPTIONS":
+            return r.fulfill(status=204, headers={"access-control-allow-origin": "*", "access-control-allow-headers": "*", "access-control-allow-methods": "POST"})
+        try:
+            body = json.loads(req.post_data or "{}")
+        except Exception:  # noqa: BLE001
+            body = {}
+        api_log.append((mode, path, body))
+        hd = {"access-control-allow-origin": "*", "content-type": "application/json"}
+        if path.startswith("/v1/articles/") and mode == "fail":
+            return r.fulfill(status=500, body='{"error":"boom"}', headers=hd)
+        if path == "/v1/articles/stats":
+            return r.fulfill(status=200, body=json.dumps({"views": VIEWS}), headers=hd)
+        if path == "/v1/articles/view":
+            i = str(body.get("id", ""))
+            VIEWS[i] = VIEWS.get(i, 0) + 1
+            return r.fulfill(status=200, body=json.dumps({"ok": True, "id": i, "views": VIEWS[i]}), headers=hd)
+        if path == "/v1/perm/me":   # 訪客、不設上限（不讓權限鎖頭干擾這一段）
+            return r.fulfill(status=200, body=json.dumps({"who": "guest", "plan": "guest", "planName": "訪客", "feats": {}, "lims": {}, "dq": None}), headers=hd)
+        return r.fulfill(status=200, body='{"ok":true}', headers=hd)
+
+    def prep(ctx, mode="ok"):
+        ctx.add_init_script("window.TW_ACCOUNT_OVERRIDE = " + json.dumps({"api": ART_API}) + ";")
+        ctx.route(ART_API + "/**", lambda r: api_route(r, mode))
         ctx.route("**/fonts.googleapis.com/**", lambda r: r.abort())
         ctx.route("**/articles/index.json", idx_route)
         ctx.route("**/articles/posts/uitest-full-1016.json", lambda r: r.fulfill(status=200, content_type="application/json", body=json.dumps(full, ensure_ascii=False)))
@@ -71488,6 +71532,19 @@ def t_articles_1014(b, base):
     cs = cards(pg)
     ok(f"{T}：清單＝預設區間內的 {n_vis} 篇（三個月前的舊快訊不在）、計數也寫 {n_vis}", len(cs) == n_vis and cnt(pg) == n_vis and not any(x["id"] == "uitest-old-1016" for x in cs), [cs, cnt(pg)])
     ok(f"{T}：卡片依日期新到舊", [x["date"] for x in cs] == sorted([x["date"] for x in cs], reverse=True), [x["date"] for x in cs])
+    # 10-16 第三版：所有卡片同一尺寸（Andy：「這邊的大小需要一致」）、點閱次數
+    CSZ = "() => [...document.querySelectorAll('#artList .artc')].map(a => { const r = a.getBoundingClientRect(); const pb = parseFloat(getComputedStyle(a).paddingBottom); return [Math.round(r.width), Math.round(r.height), [...a.children].filter(e => !e.classList.contains('wm') && e.getClientRects().length).every(e => e.getBoundingClientRect().bottom <= r.bottom - pb + 1)]; })"
+    sz = pg.evaluate(CSZ)
+    ok(f"{T}：清單 {len(sz)} 張卡片同寬同高（沒有放大的焦點卡）、內容沒有撐出卡片",
+       len(sz) >= 2 and len({x[0] for x in sz}) == 1 and len({x[1] for x in sz}) == 1 and all(x[2] for x in sz)
+       and not pg.evaluate("() => !!document.querySelector('#artList .artc.hero, #artList .artc .hx')"), sz)
+    wait_until(pg, "() => !!document.querySelector('#artList [data-vw]:not([hidden])')", 6000)
+    vw = pg.evaluate("() => [...document.querySelectorAll('#artList .artc')].map(a => { const v = a.querySelector('[data-vw]'); return [a.dataset.id, v && !v.hidden ? v.textContent.trim() : null, !!(v && v.querySelector('svg'))]; })")
+    want_vw = {k: f"{v:,} 次" for k, v in VIEWS.items()}
+    ok(f"{T}：列表載入呼叫一次 /v1/articles/stats，卡片寫「眼睛圖示＋N 次」（{want_vw}），沒有數字的卡不寫（不顯示 0）",
+       any(x[1] == "/v1/articles/stats" for x in api_log) and all((x[1] == want_vw.get(x[0])) and x[2] for x in vw if x[0] in want_vw)
+       and all(x[1] is None for x in vw if x[0] not in want_vw) and all("0 次" != (x[1] or "") for x in vw), [vw, api_log[-3:]])
+    ok(f"{T}：點閱數 API 不帶登入權杖（沒登入也能呼叫）", all("t" not in x[2] for x in api_log if x[1].startswith("/v1/articles/")), api_log)
     # ② 填滿版面＋分頁顏色
     st = pg.evaluate("""() => { const L = document.getElementById('artList'), C = document.getElementById('artCard'), V = document.getElementById('v-articles'), M = document.querySelector('main');
         const tabs = [...document.querySelectorAll('#artCats>button')].map(b => [b.dataset.cat, b.textContent.trim(), getComputedStyle(b.querySelector('.artic')).color, !!b.querySelector('svg')]);
@@ -71580,12 +71637,31 @@ def t_articles_1014(b, base):
            len(st["links"]) == len(post.get("site_links", [])) and st["srcN"] == len(post.get("sources", [])) and all(t == "_blank" and "noopener" in r for t, r in st["src"]) and "不構成" in st["disc"]
            and st["end"] == "#articles/" + post["cat"], st)
         ok(f"{T}：單篇頁側欄亮它的類別（art-{post['cat']}）、沒有橫向捲軸", st["side"] == "art-" + post["cat"] and st["sw"] <= 0, st)
+        n0 = len([x for x in api_log if x[1] == "/v1/articles/view"])
+        wait_until(pg, "() => { const v = document.querySelector('#artPost .artmeta [data-vw]'); return v && !v.hidden; }", 6000)
+        pv = pg.evaluate("() => { const v = document.querySelector('#artPost .artmeta [data-vw]'); return v && !v.hidden ? v.textContent.trim() : null; }")
+        sent = [x for x in api_log if x[1] == "/v1/articles/view"]
+        ok(f"{T}：打開單篇 → POST /v1/articles/view 送一次（id＝{first['id']}）、標題下寫「{VIEWS.get(first['id'], 0):,} 次」",
+           len(sent) == 1 and sent[0][2].get("id") == first["id"] and pv == f"{VIEWS.get(first['id'], 0):,} 次", [pv, sent])
+        # 版面：內容欄填滿主欄扣右側目錄（Andy：「左右側還有空白處」）
+        wd = pg.evaluate("""() => { const V = document.getElementById('v-articles'), P = document.querySelector('.artpage'), A = document.getElementById('artPost'), C = document.querySelector('.arttoc');
+            const cs = getComputedStyle(V), vw = V.getBoundingClientRect().width - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
+            const gap = parseFloat(getComputedStyle(P).columnGap) || 0;
+            return { vw: Math.round(vw), page: Math.round(P.getBoundingClientRect().width), post: Math.round(A.getBoundingClientRect().width), toc: Math.round(C.getBoundingClientRect().width), gap,
+              pL: Math.round(A.getBoundingClientRect().left - P.getBoundingClientRect().left), fs: parseFloat(getComputedStyle(document.querySelector('#artBody > p') || A).fontSize) }; }""")
+        ok(f"{T}：1440 單篇內容欄寬 {wd['post']} ≥ 主欄 {wd['vw']} 扣右欄 {wd['toc']} 的 95%、左邊不留白、內文字級 ≥ 16",
+           wd["page"] >= wd["vw"] - 2 and wd["post"] >= 0.95 * (wd["vw"] - wd["toc"] - wd["gap"]) and wd["pL"] <= 1 and wd["fs"] >= 16, wd)
         nfig = len([bk for bk in post["blocks"] if bk.get("t") in ("chart", "flow", "stack", "kpi")])
         got = pg.evaluate("() => document.querySelectorAll('#artBody .artchart, #artBody .artflow, #artBody .artstack, #artBody .artkpi').length")
         ok(f"{T}：這篇的 {nfig} 個圖表／示意圖／數字卡區塊都畫出來", got == nfig, [got, nfig])
         pg.click("#artBack")
         wait_until(pg, "() => location.hash === '#articles' && document.querySelectorAll('#artList .artc').length > 0", 6000)
         ok(f"{T}：按「← 返回」（從清單點進來的）→ 回到上一頁 #articles 清單", pg.evaluate("() => location.hash") == "#articles", pg.evaluate("() => location.hash"))
+        pg.click(f"#artList .artc[data-id='{first['id']}']")
+        wait_until(pg, "() => { const v = document.querySelector('#artPost .artmeta [data-vw]'); return v && !v.hidden; }", 8000)
+        sent2 = [x for x in api_log if x[1] == "/v1/articles/view"]
+        ok(f"{T}：30 分鐘內再開同一篇 → 不再送 view（仍 1 次），數字照樣顯示", len(sent2) == 1 and pg.evaluate("() => document.querySelector('#artPost .artmeta [data-vw]').textContent.trim()") == f"{VIEWS.get(first['id'], 0):,} 次", sent2)
+        pg.goto(base + "#articles"); wait_until(pg, "() => document.querySelectorAll('#artList .artc').length > 0", 6000)
     # ⑦ 新區塊（假文章，直接開網址 → 返回走類別清單）
     p2 = c.new_page()
     p2.goto(base + "#article/uitest-full-1016", wait_until="domcontentloaded")
@@ -71614,6 +71690,38 @@ def t_articles_1014(b, base):
        st["nodes"] == 5 and st["edges"] == 5 and st["paths"] == 5 and st["nodeHit"] == 0 and "#stock/2330" in st["codes"] and len(st["codes"]) == 4, st)
     ok(f"{T}：stack 剖面圖 3 層、第一層拆 2 片（共 4 片色塊、都有底色）、右側說明不重疊、疊層在說明左邊",
        st["layers"] == 3 and st["segs"] == 4 and all("gradient" in s for s in st["segBg"]) and st["lblHit"] == 0 and st["leadOk"], st)
+    # 10-16：steps／compare 說明圖、配色多樣（Andy：「圖表色彩需要豐富點且多樣」）、浮水印
+    SC = """() => { const R = (e) => e.getBoundingClientRect(); const P = document.getElementById('artBody');
+        const hit = (a, b) => { const x = R(a), y = R(b); return !(x.right <= y.left + 0.5 || y.right <= x.left + 0.5 || x.bottom <= y.top + 0.5 || y.bottom <= x.top + 0.5); };
+        const pairs = (els) => { let n = 0; for (let i = 0; i < els.length; i++) for (let j = i + 1; j < els.length; j++) if (hit(els[i], els[j])) n++; return n; };
+        const li = [...P.querySelectorAll('.artsteps .sti')];
+        const cmc = [...P.querySelectorAll('.artcmp .cmc')];
+        const charts = [...P.querySelectorAll('.artchart .cv')].map(el => echarts.getInstanceByDom(el)).filter(Boolean);
+        const colOf = (c) => !c ? '' : typeof c === 'string' ? c : (c.colorStops ? c.colorStops[c.colorStops.length - 1].color : '');
+        const hb = charts[3] ? charts[3].getOption().series[0].data.map(d => colOf(d.itemStyle && d.itemStyle.color)) : [];
+        const wm = charts.map(c => { const g = (c.getOptionWm().graphic || []).flatMap(x => x.elements || [x]).filter(e => e.id === '__twwm');
+          const g2 = (c.getOption().graphic || []).flatMap(x => x.elements || [x]).filter(e => e.id === '__twwm');
+          return [g.length, g[0] ? (g[0].style || {}).text : '', g[0] ? g[0].silent : null, g[0] ? (g[0].style || {}).fill : '', g2.length]; });
+        const fcol = [...P.querySelectorAll('.artflow .fcol')].map(c => getComputedStyle(c.querySelector('.fnd')).borderLeftColor);
+        return { n: li.length, ic: li.map(l => !!l.querySelector('.stc svg') && !l.querySelector('.ticon')), num: li.map(l => (l.querySelector('.stc em') || {}).textContent),
+          arrows: P.querySelectorAll('.artsteps .sta').length, circ: li.map(l => getComputedStyle(l.querySelector('.stc')).borderTopColor),
+          rowOne: li.every(l => Math.abs(R(l).top - R(li[0]).top) < 2), stHit: pairs(li.flatMap(l => [...l.querySelectorAll('.stc, b, span')].filter(e => !e.closest('.stc') || e.classList.contains('stc')))),
+          cmp: cmc.map(c => [c.dataset.tone, getComputedStyle(c, '::before').backgroundColor, c.querySelectorAll('li').length, (c.querySelector('.vd') || {}).textContent || '']),
+          cmpRow: cmc.every(c => Math.abs(R(c).top - R(cmc[0]).top) < 2), vdLine: new Set(cmc.map(c => Math.round(R(c.querySelector('.vd')).bottom))).size,
+          hb, wm, fcol, kc: [...P.querySelectorAll('.artkpi .akc')].map(k => getComputedStyle(k, '::before').backgroundColor),
+          sw: document.documentElement.scrollWidth - innerWidth }; }"""
+    sc = p2.evaluate(SC)
+    ok(f"{T}：steps 流程圖 5 步排成一排、每步圓形圖示（SVG）＋編號 1～5、步與步之間 4 個箭頭、5 種顏色、文字互不重疊",
+       sc["n"] == 5 and all(sc["ic"]) and sc["num"] == ["1", "2", "3", "4", "5"] and sc["arrows"] == 4 and len(set(sc["circ"])) == 5 and sc["rowOne"] and sc["stHit"] == 0, sc)
+    ok(f"{T}：compare 對照卡 3 欄並排、欄頂色條依 tone（3 種顏色）、要點數對、結論貼齊同一條底線",
+       [c[0] for c in sc["cmp"]] == ["neutral", "accent", "warn"] and len({c[1] for c in sc["cmp"]}) == 3 and [c[2] for c in sc["cmp"]] == [2, 3, 1]
+       and [c[3] for c in sc["cmp"]] == ["便宜、夠用", "AI 晶片必備", "短期供不應求"] and sc["cmpRow"] and sc["vdLine"] == 1, sc["cmp"])
+    ok(f"{T}：配色多樣 —— 同一張橫條 5 列至少 4 種顏色、關係圖不同欄節點顏色不同、kpi 三張色條顏色不同",
+       len(set(sc["hb"])) >= 4 and len(set(sc["fcol"])) == len(sc["fcol"]) == 3 and len(set(sc["kc"])) == 3, [sc["hb"], sc["fcol"], sc["kc"]])
+    ok(f"{T}：每張 ECharts 圖的 option 裡都有浮水印 graphic「哩股哩股」（silent、深色主題白 6%），getOption() 看不到它（不打亂既有讀法）",
+       len(sc["wm"]) == 5 and all(w[0] == 1 and w[1] == "哩股哩股" and w[2] is True and "255,255,255" in (w[3] or "").replace(" ", "") and w[4] == 0 for w in sc["wm"]), sc["wm"])
+    ok(f"{T}：說明圖區塊自帶浮水印背景（關係圖、剖面圖、流程圖、對照卡、數字卡）",
+       p2.evaluate("() => [...document.querySelectorAll('#artBody .artflow, #artBody .artstack, #artBody .artsteps, #artBody .artcmp, #artBody .artkpi .akc')].every(e => /svg/.test(getComputedStyle(e).backgroundImage))"))
     # 滑過：每張圖都要出提示框，而且寫的是系列名
     tips = []
     for i, nm in enumerate(["月營收", "功耗", "毛利率", "家數", "月產能"]):
@@ -71659,7 +71767,112 @@ def t_articles_1014(b, base):
         pg.screenshot(path=str(sd / "list-1440.png"))
         pg.goto(base + "#article/uitest-full-1016"); wait_until(pg, "() => !!document.querySelector('#artPost .artttl')", 8000); pg.wait_for_timeout(800)
         pg.screenshot(path=str(sd / "post-blocks-1440.png"), full_page=True)
+    # ⑪ 防複製（全站，Andy 10-16：「內容需設定不可被他人複製」→「所有分頁…不可被複製」）：真的用滑鼠拖選、按 Ctrl+C、按右鍵
+    def drag_select(pgx, sel):
+        el = pgx.locator(sel).filter(visible=True).first
+        el.scroll_into_view_if_needed(); bb = el.bounding_box()
+        pgx.mouse.move(bb["x"] + 2, bb["y"] + bb["height"] / 2); pgx.mouse.down()
+        pgx.mouse.move(bb["x"] + bb["width"] - 2, bb["y"] + bb["height"] / 2, steps=8); pgx.mouse.up()
+        pgx.mouse.click(bb["x"] + bb["width"] / 2, bb["y"] + bb["height"] / 2, click_count=3)   # 三連點選整段
+        return pgx.evaluate("() => String(window.getSelection())")
+
+    def copy_blocked(pgx, sel):
+        b0 = pgx.evaluate("() => TwProtect.blocked()")
+        pgx.keyboard.press("Control+c"); pgx.wait_for_timeout(120)
+        ev = pgx.evaluate("(s) => { const e = new ClipboardEvent('copy', { bubbles: true, cancelable: true, clipboardData: new DataTransfer() }); [...document.querySelectorAll(s)].find(x => x.getClientRects().length && getComputedStyle(x).visibility !== 'hidden').dispatchEvent(e); return e.defaultPrevented; }", sel)
+        el = pgx.locator(sel).filter(visible=True).first; el.scroll_into_view_if_needed(); bb = el.bounding_box()
+        pgx.mouse.click(bb["x"] + bb["width"] / 2, bb["y"] + bb["height"] / 2, button="right"); pgx.wait_for_timeout(150)
+        st = pgx.evaluate("() => ({ n: TwProtect.blocked(), t: (document.getElementById('twProtToast') || {}).textContent || '', on: !!document.querySelector('#twProtToast.on'), cls: document.documentElement.classList.contains('twnocopy') })")
+        pgx.keyboard.press("Escape"); pgx.wait_for_timeout(50)
+        return ev, st["n"] - b0, st
+    pg.goto(base + "#articles"); wait_until(pg, "() => document.querySelectorAll('#artList .artc').length > 0", 8000); pg.wait_for_timeout(400)
+    got = drag_select(pg, "#artCard .artfoot") + drag_select(pg, "#artCard h3")
+    ev, dn, st = copy_blocked(pg, "#artCard .artfoot")
+    ok(f"{T}：精選文章清單 —— 拖選／三連點標題與免責文字選不到字、copy 事件被攔、右鍵被攔（次數 +{dn}）、左下角跳「請勿複製」小提示（不是 alert）",
+       got.strip() == "" and ev and dn >= 2 and st["on"] and "請勿複製" in st["t"] and st["cls"], [got, ev, dn, st])
+    pg.click("#artQ"); pg.keyboard.type("驗收", delay=20); pg.keyboard.press("Control+a")
+    q = pg.evaluate("() => { const e = document.getElementById('artQ'); return { v: e.value, a: e.selectionStart, z: e.selectionEnd, us: getComputedStyle(e).userSelect }; }")
+    b0 = pg.evaluate("() => TwProtect.blocked()")
+    ev2 = pg.evaluate("() => { const e = new ClipboardEvent('copy', { bubbles: true, cancelable: true, clipboardData: new DataTransfer() }); document.getElementById('artQ').dispatchEvent(e); return e.defaultPrevented; }")
+    ok(f"{T}：搜尋框照常可以打字、全選（選取範圍＝整段文字）、在框裡複製不被攔",
+       q["v"] == "驗收" and q["a"] == 0 and q["z"] == 2 and q["us"] == "text" and not ev2 and pg.evaluate("() => TwProtect.blocked()") == b0, [q, ev2])
+    pg.fill("#artQ", ""); pg.wait_for_timeout(200)
+    pg.goto(base + "#article/uitest-full-1016"); wait_until(pg, "() => !!document.querySelector('#artBody .artsteps')", 8000); pg.wait_for_timeout(400)
+    got = drag_select(pg, "#artBody > p")
+    ev, dn, st = copy_blocked(pg, "#artBody > p")
+    ok(f"{T}：單篇內文選不到字、copy／右鍵被攔", got.strip() == "" and ev and dn >= 2, [got, ev, dn, st])
+    st = pg.evaluate("() => ({ wm: getComputedStyle(document.body, '::after').backgroundImage.slice(0, 40), pe: getComputedStyle(document.body, '::after').pointerEvents, pos: getComputedStyle(document.body, '::after').position })")
+    ok(f"{T}：整頁斜向浮水印（body::after 固定層、SVG 背景、不吃滑鼠）", "svg" in st["wm"] and st["pe"] == "none" and st["pos"] == "fixed", st)
+    if os.environ.get("TW_ART_SHOTS3"):
+        s3 = Path(os.environ["TW_ART_SHOTS3"]); s3.mkdir(parents=True, exist_ok=True)
+        pg.goto(base + "#articles"); wait_until(pg, "() => !!document.querySelector('#artList [data-vw]:not([hidden])')", 8000); pg.wait_for_timeout(800)
+        pg.screenshot(path=str(s3 / "list-1440.png"))
+        pg.goto(base + "#article/uitest-full-1016"); wait_until(pg, "() => !!document.querySelector('#artBody .artsteps')", 8000); pg.wait_for_timeout(1200)
+        pg.screenshot(path=str(s3 / "post-1440-full.png"), full_page=True)
     c.close()
+    # ⑫ 點閱數 API 失敗 → 不顯示數字（不寫 0、不跳錯）
+    fc = b.new_context(viewport={"width": 1440, "height": 900})
+    fc.add_init_script("try{localStorage.setItem('tw.live.on','0')}catch(e){}")
+    prep(fc, "fail")
+    fp = fc.new_page(); errs = []
+    fp.on("pageerror", lambda e: errs.append(str(e)))
+    fp.goto(base + "#articles", wait_until="domcontentloaded")
+    wait_until(fp, "() => document.querySelectorAll('#artList .artc').length > 0", 12000); fp.wait_for_timeout(1500)
+    st1 = fp.evaluate("() => ({ vis: [...document.querySelectorAll('[data-vw]')].filter(e => !e.hidden && e.getClientRects().length).length, txt: document.getElementById('artList').textContent.includes(' 次') })")
+    fp.goto(base + "#article/uitest-full-1016"); wait_until(fp, "() => !!document.querySelector('#artPost .artttl')", 8000); fp.wait_for_timeout(1500)
+    st2 = fp.evaluate("() => ({ vis: [...document.querySelectorAll('[data-vw]')].filter(e => !e.hidden && e.getClientRects().length).length, err: !!document.querySelector('.arterr') })")
+    calls = [x for x in api_log if x[0] == "fail" and x[1].startswith("/v1/articles/")]
+    ok(f"{T}：點閱 API 回 500 → 清單與單篇都不顯示點閱數（不是 0）、頁面照常、沒有錯誤",
+       len(calls) >= 2 and st1["vis"] == 0 and not st1["txt"] and st2["vis"] == 0 and not st2["err"] and not errs, [st1, st2, calls, errs])
+    fc.close()
+    # ⑬ 全站防複製＋浮水印：總覽、資金流向、個股（K 線）、深淺主題
+    gc0 = b.new_context(viewport={"width": 1440, "height": 900})
+    gc0.add_init_script("try{localStorage.setItem('tw.live.on','0')}catch(e){}")
+    gc0.route("**/fonts.googleapis.com/**", lambda r: r.abort())
+    gc0.grant_permissions(["clipboard-read", "clipboard-write"])
+    gp0 = gc0.new_page()
+    for hsh, sel, ready in (("#overview", "main .view.on .card h3", "() => document.querySelectorAll('main .view.on [_echarts_instance_]').length > 0"),
+                            ("#flow", "main .view.on .card h3", "() => document.querySelectorAll('main .view.on [_echarts_instance_]').length > 0"),
+                            ("#stock/2330", "main .view.on .card h3", "() => !!document.querySelector('main .view.on .tv-lightweight-charts')")):
+        gp0.goto(base + hsh, wait_until="domcontentloaded"); wait_until(gp0, ready, 25000); gp0.wait_for_timeout(1500)
+        got = drag_select(gp0, sel)
+        ev, dn, st = copy_blocked(gp0, sel)
+        ok(f"{T}：{hsh} 選不到字、copy 被攔、右鍵被攔、跳小提示", got.strip() == "" and ev and dn >= 2 and "請勿複製" in st["t"], [hsh, got[:40], ev, dn, st])
+        wmc = gp0.evaluate("""() => { const all = [...document.querySelectorAll('main .view.on [_echarts_instance_]')].map(e => echarts.getInstanceByDom(e)).filter(Boolean);
+            const has = all.filter(c => (c.getOptionWm().graphic || []).flatMap(x => x.elements || [x]).some(e => e.id === '__twwm' && (e.style || {}).text === '哩股哩股'));
+            return [all.length, has.length]; }""")
+        ok(f"{T}：{hsh} 頁上每一張 ECharts 圖都帶浮水印（{wmc[1]}/{wmc[0]}）", wmc[1] == wmc[0], wmc)
+        if hsh == "#stock/2330":
+            lw = gp0.evaluate("() => TwProtect.lwc()")
+            ok(f"{T}：個股 K 線（lightweight-charts）掛了內建文字浮水印「哩股哩股」", len(lw) >= 1 and all(x == "哩股哩股" for x in lw), lw)
+            if os.environ.get("TW_ART_SHOTS3"):
+                gp0.evaluate("() => window.scrollTo(0, 0)"); gp0.wait_for_timeout(300)
+                gp0.screenshot(path=str(Path(os.environ["TW_ART_SHOTS3"]) / "stock-k-1440.png"))
+        if hsh == "#overview" and os.environ.get("TW_ART_SHOTS3"):
+            gp0.evaluate("() => window.scrollTo(0, 0)"); gp0.wait_for_timeout(300)
+            gp0.screenshot(path=str(Path(os.environ["TW_ART_SHOTS3"]) / "overview-1440.png"))
+    # 站內「複製」按鈕（跟 checkout.js 銀行帳號同一種寫法：navigator.clipboard.writeText）照常能用；data-copyable 照常可選
+    gp0.evaluate("""() => { const d = document.createElement('div'); d.id = 'zzCopyT'; d.style.cssText = 'position:fixed;left:300px;top:300px;z-index:99999;background:#222;padding:8px';
+        d.innerHTML = '<b data-copyable id="zzAcct">000011112222</b> <button type="button" id="zzCopy" data-copy="000011112222">複製</button> <input id="zzL5" value="">';
+        document.body.appendChild(d); d.querySelector('#zzCopy').onclick = (e) => { navigator.clipboard.writeText(e.target.dataset.copy).then(() => { e.target.textContent = '已複製'; }); }; }""")
+    gp0.click("#zzCopy"); gp0.wait_for_timeout(300)
+    clip = gp0.evaluate("() => navigator.clipboard.readText()")
+    gp0.click("#zzL5"); gp0.keyboard.type("12345"); gp0.keyboard.press("Control+a")
+    l5 = gp0.evaluate("() => { const e = document.getElementById('zzL5'); return [e.value, e.selectionStart, e.selectionEnd]; }")
+    sel_ok = drag_select(gp0, "#zzAcct")
+    ok(f"{T}：「複製」按鈕（navigator.clipboard）照常把帳號寫進剪貼簿、轉帳表單輸入框可打字可全選、data-copyable 的帳號可選取",
+       clip == "000011112222" and gp0.evaluate("() => document.getElementById('zzCopy').textContent") == "已複製" and l5 == ["12345", 0, 5] and "000011112222" in sel_ok, [clip, l5, sel_ok])
+    # 淺色主題：浮水印換成黑 6%
+    gp0.evaluate("() => { try { localStorage.setItem('tw.theme', 'light'); } catch (e) {} }")
+    gp0.goto(base + "#overview", wait_until="domcontentloaded"); gp0.reload(wait_until="domcontentloaded")
+    wait_until(gp0, "() => document.querySelectorAll('main .view.on [_echarts_instance_]').length > 0", 20000); gp0.wait_for_timeout(1500)
+    lt = gp0.evaluate("""() => { const c = [...document.querySelectorAll('main .view.on [_echarts_instance_]')].map(e => echarts.getInstanceByDom(e)).filter(Boolean)[0];
+        const g = c ? (c.getOptionWm().graphic || []).flatMap(x => x.elements || [x]).find(e => e.id === '__twwm') : null;
+        return { th: document.documentElement.getAttribute('data-theme'), fill: g ? (g.style || {}).fill : '', bg: getComputedStyle(document.body, '::after').backgroundImage.includes('0%2C0%2C0') }; }""")
+    ok(f"{T}：淺色主題 → 圖表浮水印換黑 6%、整頁浮水印換深色字", lt["th"] == "light" and "0,0,0" in lt["fill"].replace(" ", "") and lt["bg"], lt)
+    if os.environ.get("TW_ART_SHOTS3"):
+        gp0.screenshot(path=str(Path(os.environ["TW_ART_SHOTS3"]) / "overview-light-1440.png"))
+    gc0.close()
     # ⑨ 手機 390（觸控）
     m = b.new_context(viewport={"width": 390, "height": 844}, device_scale_factor=2, is_mobile=True, has_touch=True)
     m.add_init_script("try{localStorage.setItem('tw.live.on','0')}catch(e){}")
@@ -71694,6 +71907,20 @@ def t_articles_1014(b, base):
     ok(f"{T}：手機 kpi 兩欄、五張圖都畫出且不超出螢幕、關係圖改成由上到下且線照畫、節點與剖面說明不重疊",
        fl["kpiCols"] == 2 and fl["over"] == 0 and fl["stacked"] and st2["edges"] == 5 and st2["nodeHit"] == 0 and st2["lblHit"] == 0
        and all(x[1] > 100 and x[2] > 100 for x in st2["charts"]), [fl, st2])
+    mst = mp.evaluate(SC)
+    mfl = mp.evaluate("""() => { const li = [...document.querySelectorAll('.artsteps .sti')].map(e => e.getBoundingClientRect()), cm = [...document.querySelectorAll('.artcmp .cmc')].map(e => e.getBoundingClientRect());
+        const ar = [...document.querySelectorAll('.artsteps .sta')].map(e => { const r = e.getBoundingClientRect(); return [Math.round(r.width), Math.round(r.height)]; });
+        const over = [...document.querySelectorAll('#artBody .artsteps, #artBody .artcmp, #artBody .artsteps *, #artBody .artcmp *')].filter(e => e.getBoundingClientRect().right > innerWidth + 0.5).length;
+        return { stepsV: li.every((r, i) => i === 0 || r.top >= li[i - 1].bottom - 1), cmpV: cm.every((r, i) => i === 0 || r.top >= cm[i - 1].bottom - 1), ar, over }; }""")
+    ok(f"{T}：手機 steps 改直向（一步一列、箭頭往下）、compare 直向堆疊、不超出螢幕、文字不重疊、沒有橫向捲軸",
+       mfl["stepsV"] and mfl["cmpV"] and mfl["over"] == 0 and all(a[1] > a[0] for a in mfl["ar"]) and len(mfl["ar"]) == 4 and mst["stHit"] == 0 and mst["sw"] <= 0, [mfl, mst["stHit"], mst["sw"]])
+    msz = mp.evaluate("() => [...document.querySelectorAll('#artMore .artc')].length")
+    if os.environ.get("TW_ART_SHOTS3"):
+        mp.screenshot(path=str(Path(os.environ["TW_ART_SHOTS3"]) / "post-390-full.png"), full_page=True)
+    mp.goto(base + "#articles"); wait_until(mp, "() => document.querySelectorAll('#artList .artc').length > 0", 8000); mp.wait_for_timeout(500)
+    sz = mp.evaluate(CSZ)
+    ok(f"{T}：手機清單卡片也同一尺寸、內容不撐出卡片", len(sz) >= 2 and len({x[0] for x in sz}) == 1 and len({x[1] for x in sz}) == 1 and all(x[2] for x in sz), sz)
+    mp.goto(base + "#article/uitest-full-1016"); wait_until(mp, "() => !!document.querySelector('#artBody .artsteps')", 8000); mp.wait_for_timeout(400)
     el = mp.locator("#artBody .artchart .cv").first
     el.scroll_into_view_if_needed(); mp.wait_for_timeout(200); bb = el.bounding_box()
     mp.touchscreen.tap(bb["x"] + bb["width"] * 0.6, bb["y"] + bb["height"] * 0.6); mp.wait_for_timeout(400)
@@ -71707,6 +71934,7 @@ def t_articles_1014(b, base):
     m.close()
     # ⑩ 管理區
     ac, _ = _acctm4_ctx(b, "admin", desk=True)
+    ac.route(ACCTM4_API + "/v1/articles/**", lambda r: api_route(r, "ok"))   # 後註冊的攔截優先：點閱數走假資料
     ap = ac.new_page()
     ap.goto(base + "#admin/articles", wait_until="domcontentloaded")
     wait_until(ap, "() => document.querySelectorAll('#artAdmList tbody tr[data-id]').length > 0 && document.querySelectorAll('#artTpBody tr[data-tid]').length > 0", 15000)
@@ -71718,6 +71946,11 @@ def t_articles_1014(b, base):
     ok(f"{T}：管理區側欄多一格「精選文章管理」而且是目前這格", st["side"] and "精選文章管理" in st["sideT"], st)
     ok(f"{T}：已上架文章 {n_all} 篇，每篇「產出貼文」「產出短影片」兩顆都反灰、旁邊小字「待 Andy 確認後開放」",
        st["n"] == n_all and all(bs == [["產出貼文", True], ["產出短影片", True]] for bs in st["btn"]) and all(s == "待 Andy 確認後開放" for s in st["small"]), st)
+    vc = ap.evaluate("() => ({ th: [...document.querySelectorAll('#artAdmList thead th')].map(t => t.textContent.trim()), td: [...document.querySelectorAll('#artAdmList td[data-vwc]')].map(t => [t.dataset.vwc, t.textContent.trim()]) })")
+    ok(f"{T}：管理區文章表格多一欄「點閱」，數字＝/v1/articles/stats（沒有數字的寫「—」）",
+       "點閱" in vc["th"] and len(vc["td"]) == n_all and all(t[1] == (f"{VIEWS[t[0]]:,}" if t[0] in VIEWS else "—") for t in vc["td"]), vc)
+    adsel = ap.evaluate("() => { const td = document.querySelector('#artAdmList td.l a'); const r = document.createRange(); r.selectNodeContents(td); const s = getSelection(); s.removeAllRanges(); s.addRange(r); return [String(s), document.documentElement.classList.contains('twnocopy'), getComputedStyle(td).userSelect]; }")
+    ok(f"{T}：管理區 #admin/* 不套防複製（可選取、可複製 email／訂單號）", adsel[0].strip() != "" and not adsel[1] and adsel[2] != "none", adsel)
     ap.locator("#artAdmList button[data-act=post]").first.click(force=True); ap.wait_for_timeout(400)
     st = ap.evaluate("() => ({ h: location.hash, dlg: !!(document.getElementById('subDlg') && !document.getElementById('subDlg').hidden) })")
     ok(f"{T}：按反灰按鈕 → 沒有跳窗、沒有換頁", st["h"] == "#admin/articles" and not st["dlg"], st)

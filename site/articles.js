@@ -62,7 +62,7 @@
   };
   const defRange = () => { const t = tpeToday(); return { from: monthAgo(t), to: t }; };
 
-  const S = { idx: null, idxP: null, idxErr: false, cat: 'all', q: '', from: null, to: null, grp: new Set(), ms: null,
+  const S = { views: null, statsP: null, statsAt: 0, idx: null, idxP: null, idxErr: false, cat: 'all', q: '', from: null, to: null, grp: new Set(), ms: null,
     posts: {}, cur: '', curData: null, backOk: false, topics: null, topicsP: null, tcat: 'all', tsort: 'desc' };
 
   /* 「← 返回」要不要用 history.back()：只有「在站內從別頁換過來」才有上一頁可回；直接貼網址開的，回該類別清單 */
@@ -78,9 +78,16 @@
     const s = document.createElement('style'); s.id = 'artCss';
     s.textContent = `
 :root{--art-all:var(--ink-2);--art-news:#ff9d4a;--art-intro:#2fd1c1;--art-know:#b99bff;--art-hl:#f5c842;
-  --art-t-chip:#6f9dff;--art-t-mem:#3fd6c2;--art-t-interposer:#f2c14e;--art-t-substrate:#e3925c;--art-t-board:#8ea2cc;--art-t-bump:#c6cfdf;--art-t-other:#9aa6c0;--art-t-ink:#0b1220}
+  --art-t-chip:#5b9cff;--art-t-mem:#2ec4b6;--art-t-interposer:#f2c14e;--art-t-substrate:#ff8a65;--art-t-board:#a88bff;--art-t-bump:#c6cfdf;--art-t-other:#9aa6c0;--art-t-ink:#0b1220;
+  /* 文章圖表調色盤（Andy 10-16：「圖表色彩需要豐富點且多樣，不要太單一」）：只給這一頁的區塊用，全站其他圖不吃這一組。
+     刻意避開紅、綠（紅漲綠跌保留給漲跌）與標註用的金色（--art-hl）；彩度壓在不刺眼的範圍。深淺主題各一組，淺色每色都 ≥ 3:1。 */
+  --art-p1:#5b9cff;--art-p2:#2ec4b6;--art-p3:#a88bff;--art-p4:#ff8a65;--art-p5:#ec74b5;--art-p6:#d39b5b;--art-p7:#4cc3ef;
+  --art-tn-neutral:#8e9bb8;--art-tn-accent:#5b9cff;--art-tn-warn:#f2a93b;--art-tn-good:#2ec4b6}
 :root[data-theme="light"]{--art-news:#b45309;--art-intro:#0f766e;--art-know:#7e22ce;--art-hl:#a36d00;
-  --art-t-chip:#2f5fb3;--art-t-mem:#13786d;--art-t-interposer:#946200;--art-t-substrate:#a24a1a;--art-t-board:#4c5d80;--art-t-bump:#6b7385;--art-t-other:#5d6b88;--art-t-ink:#ffffff}
+  --art-t-chip:#2f5fb3;--art-t-mem:#0f7d72;--art-t-interposer:#946200;--art-t-substrate:#c0461e;--art-t-board:#6d4bd1;--art-t-bump:#6b7385;--art-t-other:#5d6b88;--art-t-ink:#ffffff;
+  --art-p1:#2563c9;--art-p2:#0e8a74;--art-p3:#6e44d6;--art-p4:#c9502b;--art-p5:#b83a7f;--art-p6:#8a5a1e;--art-p7:#0f7fa8;
+  --art-tn-neutral:#5d6b88;--art-tn-accent:#2563c9;--art-tn-warn:#a86400;--art-tn-good:#0e8a74}
+.pc1{--pc:var(--art-p1)}.pc2{--pc:var(--art-p2)}.pc3{--pc:var(--art-p3)}.pc4{--pc:var(--art-p4)}.pc5{--pc:var(--art-p5)}.pc6{--pc:var(--art-p6)}.pc7{--pc:var(--art-p7)}
 .k-all{--k:var(--art-all)}.k-news{--k:var(--art-news)}.k-intro{--k:var(--art-intro)}.k-know{--k:var(--art-know)}
 /* 側欄子項的圖示上類別色（layout4.js 畫的 .l4subtab；選中那格字仍是主色，圖示保留類別色當辨識） */
 :root.l4 .l4subtab[data-l4sub="art-news"] .ic{color:var(--art-news);opacity:1}
@@ -111,29 +118,12 @@
 .artflt .cnt .rg{font-family:var(--mono);font-variant-numeric:tabular-nums;font-size:var(--fs-min);color:var(--ink-3);padding:1px 8px;border:1px solid var(--line);border-radius:999px}
 .artmain{flex:1 1 auto;display:grid;grid-template-columns:minmax(0,1fr);gap:var(--sp-4);align-items:start}
 @media (min-width:1280px){.artmain{grid-template-columns:minmax(0,1fr) 280px}}
-.artlist{grid-auto-flow:row dense;display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:var(--gap-card,12px);align-items:stretch;align-content:start}
-.artc{position:relative;display:flex;flex-direction:column;gap:6px;min-width:0;min-height:214px;box-sizing:border-box;padding:var(--sp-3) var(--sp-4) var(--sp-3) calc(var(--sp-4) + 4px);
+/* 卡片一律同寬同高（Andy 10-16：「這邊的大小需要一致」）：格線決定寬、固定高度決定高，內容過長一律截斷（標題 2 行、副標 1 行、摘要 3 行、族群 1 行） */
+.artlist{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));grid-auto-rows:var(--art-card-h,236px);gap:var(--gap-card,12px);align-items:stretch;align-content:start}
+.artc{position:relative;display:flex;flex-direction:column;gap:6px;min-width:0;height:100%;box-sizing:border-box;padding:var(--sp-3) var(--sp-4) var(--sp-3) calc(var(--sp-4) + 4px);
   border:1px solid var(--line);border-radius:var(--r,12px);overflow:hidden;
   background:linear-gradient(135deg,color-mix(in srgb,var(--k) 8%,var(--panel)) 0%,var(--panel) 55%);color:var(--ink);text-decoration:none;transition:border-color .15s,transform .15s}
 .artc::before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--k)}
-.artc.hero{grid-column:1/-1;min-height:200px;padding:var(--sp-4) var(--sp-5) var(--sp-4) calc(var(--sp-5) + 4px);
-  background:linear-gradient(120deg,color-mix(in srgb,var(--k) 16%,var(--panel)) 0%,var(--panel) 65%)}
-.artc.hero .tt{font-size:var(--fs-h2);-webkit-line-clamp:2}
-.artc.hero .st{font-size:var(--fs-body)}
-.artc.hero .sm{font-size:var(--fs-body);-webkit-line-clamp:3;max-width:78%}
-.artlist[data-cols="3"] .artc.hero,.artlist[data-cols="4"] .artc.hero,.artlist[data-cols="5"] .artc.hero{grid-column:span 2;grid-row:span 2}
-.artlist[data-cols="3"] .artc.hero .sm,.artlist[data-cols="4"] .artc.hero .sm,.artlist[data-cols="5"] .artc.hero .sm{-webkit-line-clamp:6;max-width:none}
-.artc .hx{display:none}
-.artlist[data-cols="3"] .artc.hero .hx,.artlist[data-cols="4"] .artc.hero .hx,.artlist[data-cols="5"] .artc.hero .hx{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--sp-2);margin-top:var(--sp-2);position:relative;z-index:1;max-width:82%}
-.artc .hx .hk{padding:8px 10px;border:1px solid color-mix(in srgb,var(--k) 35%,var(--line));border-radius:10px;background:color-mix(in srgb,var(--panel) 85%,transparent);min-width:0}
-.artc .hx .hk i{display:block;font-style:normal;font-size:var(--fs-min);color:var(--ink-2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.artc .hx .hk b{font-family:var(--mono);font-variant-numeric:tabular-nums;font-size:20px;color:var(--ink)}
-.artc .hx .hk small{font-size:var(--fs-min);color:var(--ink-3);margin-left:3px}
-.artc .hx .hk em{font-style:normal;font-family:var(--mono);font-size:var(--fs-min);font-weight:700;margin-left:6px}
-.artc .hx .hk em.up{color:var(--rise)}.artc .hx .hk em.dn{color:var(--fall)}
-.artc .hx .hs{grid-column:1/-1;display:flex;flex-wrap:wrap;gap:4px 14px;font-size:var(--fs-sm);color:var(--ink-2)}
-.artc .hx .hs span::before{content:"▸";color:var(--k);margin-right:4px}
-.artc.hero .wm{right:24px;bottom:auto;top:50%;transform:translateY(-50%);opacity:.13}
 .artc .wm{position:absolute;right:-10px;bottom:-12px;color:var(--k);opacity:.08;pointer-events:none}
 .artc:hover,.artc:focus-visible{border-color:var(--k);transform:translateY(-1px)}
 .artc .r1{display:flex;align-items:center;gap:var(--sp-2);font-size:var(--fs-min);color:var(--ink-3);white-space:nowrap}
@@ -142,7 +132,16 @@
 .artc .tt{font-size:var(--fs-h3);font-weight:600;line-height:1.45;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 .artc .st{font-size:var(--fs-sm);color:var(--ink-2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .artc .sm{font-size:var(--fs-sm);color:var(--ink-3);line-height:1.6;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
-.artc .ft{margin-top:auto;display:flex;gap:6px;flex-wrap:wrap;overflow:hidden;min-width:0;max-height:58px;padding-top:4px}
+/* 卡片最底一列：左邊族群膠囊（只留一行，放不下的藏起來）、右邊點閱數（不被族群擠掉） */
+.artc .fr{margin-top:auto;display:flex;align-items:center;gap:var(--sp-2);min-width:0;flex:none}
+.artc .ft{flex:1 1 auto;display:flex;gap:6px;flex-wrap:wrap;overflow:hidden;min-width:0;height:22px}
+.artc .fr .artvw{font-size:var(--fs-min)}
+.artc .tt,.artc .st,.artc .r1{flex:none}
+.artc .sm{flex:0 1 auto;min-height:0}
+/* 點閱次數（眼睛圖示＋N 次）：只有 API 有回數字才出現，失敗就整個不畫（不顯示 0） */
+.artvw{display:inline-flex;align-items:center;gap:3px;font-family:var(--mono);font-variant-numeric:tabular-nums;color:var(--ink-2);white-space:nowrap;flex:none}
+.artvw[hidden]{display:none}
+.artvw svg{flex:none;color:var(--ink-3)}
 .artc .ft .artgp{max-width:100%;overflow:hidden;text-overflow:ellipsis;box-sizing:border-box}
 .arttags{display:flex;gap:6px;flex-wrap:nowrap;overflow:hidden;min-width:0}
 .arttags span,.artgp{flex:none;font-size:var(--fs-min);color:var(--ink-2);background:var(--panel-3);border:1px solid var(--line);border-radius:999px;padding:1px 8px;white-space:nowrap}
@@ -177,7 +176,9 @@
 .artside .rc a small{grid-column:2;font-family:var(--mono);font-size:var(--fs-min);color:var(--ink-3)}
 .artside .rc a:hover span{color:var(--k)}
 /* ---- 單篇 ---- */
-.artpage{display:grid;grid-template-columns:minmax(0,1fr);gap:var(--sp-4);align-items:start;max-width:1240px;margin:0 auto}
+/* 單篇：內容欄填滿主欄（扣掉右側目錄），不再限 1240 置中（Andy 10-16：「版面需要調整適當大小，左右側還有空白處」）。
+   寬螢幕行寬變長，用字級跟著放大（15.5 → 最多 18px）維持每行字數好讀，不用限寬留白。 */
+.artpage{display:grid;grid-template-columns:minmax(0,1fr);gap:var(--sp-4);align-items:start}
 @media (min-width:1280px){.artpage{grid-template-columns:minmax(0,1fr) 250px}}
 .artpost{min-width:0}
 .artback{display:inline-flex;align-items:center;gap:6px;height:32px;padding:0 12px;margin-bottom:var(--sp-2);border:1px solid var(--line-2);border-radius:var(--r-sm,8px);background:var(--panel-3);color:var(--ink);font:inherit;font-size:var(--fs-sm);cursor:pointer}
@@ -199,7 +200,7 @@
 .artlead{margin:var(--sp-3) 0;padding:var(--sp-3) var(--sp-4);border-left:3px solid var(--k,var(--cyan));background:var(--panel-3);border-radius:0 var(--r-sm,8px) var(--r-sm,8px) 0;
   font-size:15px;line-height:1.8;color:var(--ink)}
 .artbody{font-size:15.5px;line-height:1.85;color:var(--ink)}
-.artbody>p,.artbody>ul,.artbody>h4{max-width:860px}
+@media (min-width:1280px){.artbody{font-size:clamp(16px,calc(8px + .62vw),18px)}.artlead{font-size:clamp(15px,calc(7.5px + .6vw),17px)!important}}
 .artbody h4{margin:var(--sp-5) 0 var(--sp-2);font-size:18px;line-height:1.4;font-weight:700;display:flex;align-items:center;gap:var(--sp-2);scroll-margin-top:16px}
 .artbody h4::before{content:"";flex:none;width:4px;height:16px;border-radius:2px;background:var(--k,var(--cyan))}
 .artbody p{margin:0 0 var(--sp-3)}
@@ -225,7 +226,9 @@
 .artstk a .h span{font-weight:600;overflow:hidden;text-overflow:ellipsis}
 .artstk a .w{font-size:var(--fs-sm);color:var(--ink-2);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 /* ---- 圖類區塊共用外框（figure）：標題一行、圖、底部一行小字（說明＋資料來源） ---- */
-.artfig{margin:var(--sp-4) 0;padding:var(--sp-3) var(--sp-4);border:1px solid var(--line);border-radius:var(--r,12px);background:var(--panel-2);font-size:var(--fs-body);line-height:1.5}
+.artfig{margin:var(--sp-4) 0;padding:var(--sp-3) var(--sp-4);border:1px solid var(--line);border-radius:var(--r,12px);background-color:var(--panel-2);font-size:var(--fs-body);line-height:1.5}
+/* 圖類區塊自己也帶一層浮水印（protect.js 的 --tw-wm；整頁那層被卡片底色蓋住時仍看得到） */
+.artfig,.artkpi .akc{background-image:var(--tw-wm,none);background-repeat:repeat;background-size:260px 170px}
 .artfig .fh{display:flex;align-items:center;gap:var(--sp-2);margin:0 0 var(--sp-2);font-size:var(--fs-h3);font-weight:600;color:var(--ink)}
 .artfig .fh::before{content:"";flex:none;width:4px;height:14px;border-radius:2px;background:var(--k,var(--cyan))}
 .artfig .fn2{margin:var(--sp-2) 0 0;font-size:var(--fs-min);color:var(--ink-3);line-height:1.6}
@@ -235,7 +238,9 @@
 .artchart .cv{width:100%;height:300px}
 /* kpi 數字卡 */
 .artkpi{display:grid;grid-template-columns:repeat(var(--n,3),minmax(0,1fr));gap:var(--sp-2);margin:var(--sp-4) 0}
-.artkpi .akc{min-width:0;padding:var(--sp-3);border:1px solid var(--line);border-radius:var(--r,12px);background:var(--panel-2);text-align:center;display:flex;flex-direction:column;gap:4px;justify-content:center}
+.artkpi .akc{position:relative;overflow:hidden;min-width:0;padding:var(--sp-3);border:1px solid var(--line);border-radius:var(--r,12px);background-color:color-mix(in srgb,var(--pc,var(--cyan)) 7%,var(--panel-2));text-align:center;display:flex;flex-direction:column;gap:4px;justify-content:center}
+.artkpi .akc::before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--pc,var(--cyan))}
+.artkpi .akl{color:color-mix(in srgb,var(--pc,var(--ink-2)) 55%,var(--ink-2))!important}
 .artkpi .akl{font-size:var(--fs-sm);color:var(--ink-2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .artkpi .akv{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .artkpi .akv b{font-family:var(--mono);font-variant-numeric:tabular-nums;font-size:24px;font-weight:700;color:var(--ink);line-height:1.15}
@@ -257,7 +262,7 @@
 .artflow .fch{align-self:flex-start;max-width:100%;font-size:var(--fs-min);font-weight:700;color:var(--fc);padding:2px 10px;border-radius:999px;border:1px solid color-mix(in srgb,var(--fc) 55%,transparent);
   background:color-mix(in srgb,var(--fc) 12%,var(--panel));white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .artflow .fnodes{display:flex;flex-direction:column;gap:12px;flex:1;justify-content:center}
-.artflow .fnd{min-width:0;padding:8px 10px;border:1px solid var(--line-2);border-left:3px solid var(--fc);border-radius:10px;background:var(--panel);transition:border-color .12s,box-shadow .12s}
+.artflow .fnd{min-width:0;padding:8px 10px;border:1px solid color-mix(in srgb,var(--fc) 35%,var(--line-2));border-left:3px solid var(--fc);border-radius:10px;background:color-mix(in srgb,var(--fc) 9%,var(--panel));transition:border-color .12s,box-shadow .12s}
 .artflow .fnd:hover{border-color:var(--fc);box-shadow:0 0 0 1px var(--fc)}
 .artflow .fnd>b{display:block;font-size:var(--fs-sm);font-weight:700;color:var(--ink);line-height:1.4}
 .artflow .fnd>span{display:block;font-size:var(--fs-min);color:var(--ink-2);line-height:1.5;margin-top:2px}
@@ -292,7 +297,8 @@
 .artsrc li{margin:4px 0;overflow-wrap:anywhere}
 .artsrc a{color:var(--cyan)}
 .artmore{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:var(--sp-2)}
-.artmore .artc{min-height:0;padding-top:var(--sp-2);padding-bottom:var(--sp-2)}
+.artmore{grid-auto-rows:150px}
+.artmore .artc{padding-top:var(--sp-2);padding-bottom:var(--sp-2)}
 .artmore .artc .tt{font-size:var(--fs-body)}
 .artmore .artc .sm{display:none}
 .artdisc{margin:var(--sp-4) 0 0;font-size:var(--fs-min);color:var(--ink-3);line-height:1.6}
@@ -301,6 +307,28 @@
 .artend a:hover{background:color-mix(in srgb,var(--k,var(--cyan)) 12%,transparent)}
 .arterr{padding:var(--sp-5) var(--sp-3);text-align:center;color:var(--ink-2);font-size:var(--fs-body)}
 .arterr a{color:var(--cyan)}
+/* steps 編號流程圖：橫向一排（每步＝圓形圖示＋編號＋標題＋說明，步與步之間箭頭）；手機改直向（圓在左、箭頭往下） */
+.artsteps .stp{--g:28px;list-style:none;margin:var(--sp-2) 0 0;padding:0;display:grid;grid-template-columns:repeat(var(--n,4),minmax(0,1fr));column-gap:var(--g);row-gap:var(--sp-3)}
+.artsteps .sti{position:relative;min-width:0;display:flex;flex-direction:column;align-items:center;text-align:center;gap:6px}
+.artsteps .stc{position:relative;flex:none;width:56px;height:56px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:var(--pc);
+  border:2px solid var(--pc);background:color-mix(in srgb,var(--pc) 14%,var(--panel));box-sizing:border-box}
+.artsteps .stc em{position:absolute;right:-6px;top:-6px;min-width:20px;height:20px;padding:0 4px;box-sizing:border-box;border-radius:999px;background:var(--pc);color:var(--art-t-ink);
+  font-style:normal;font-family:var(--mono);font-size:12px;font-weight:700;line-height:20px;text-align:center}
+.artsteps .sti>b{display:block;max-width:100%;font-size:var(--fs-body);font-weight:700;color:var(--ink);line-height:1.4;overflow-wrap:anywhere}
+.artsteps .sti>span{display:block;font-size:var(--fs-sm);color:var(--ink-2);line-height:1.6;overflow-wrap:anywhere}
+.artsteps .sta{position:absolute;top:27px;left:calc(50% + 36px);width:calc(100% + var(--g) - 72px);height:2px;background:color-mix(in srgb,var(--pc) 60%,var(--ink-3));border-radius:1px}
+.artsteps .sta::after{content:"";position:absolute;right:-1px;top:-4px;border-left:7px solid color-mix(in srgb,var(--pc) 60%,var(--ink-3));border-top:5px solid transparent;border-bottom:5px solid transparent}
+/* compare 對照卡：2～4 欄，欄頂色條依 tone；結論固定貼在每欄底部（各欄結論同一條水平線） */
+.artcmp .cmg{display:grid;grid-template-columns:repeat(var(--n,2),minmax(0,1fr));gap:var(--sp-3);margin-top:var(--sp-2)}
+.artcmp .cmc{position:relative;min-width:0;display:flex;flex-direction:column;gap:var(--sp-2);padding:var(--sp-4) var(--sp-3) var(--sp-3);border:1px solid color-mix(in srgb,var(--tn) 40%,var(--line));
+  border-radius:var(--r,12px);background:color-mix(in srgb,var(--tn) 6%,var(--panel));overflow:hidden}
+.artcmp .cmc::before{content:"";position:absolute;left:0;right:0;top:0;height:4px;background:var(--tn)}
+.artcmp .cmc h5{margin:0;font-size:var(--fs-h3);font-weight:700;color:var(--tn);line-height:1.4;overflow-wrap:anywhere}
+.artcmp .cmc ul{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:6px}
+.artcmp .cmc li{position:relative;padding-left:16px;font-size:var(--fs-sm);line-height:1.6;color:var(--ink);overflow-wrap:anywhere}
+.artcmp .cmc li::before{content:"";position:absolute;left:2px;top:.62em;width:7px;height:7px;border-radius:2px;background:var(--tn)}
+.artcmp .cmc .vd{margin:auto 0 0;padding:8px 10px;border-radius:8px;background:color-mix(in srgb,var(--tn) 14%,transparent);font-size:var(--fs-sm);font-weight:700;color:var(--ink);line-height:1.5}
+.tn-neutral{--tn:var(--art-tn-neutral)}.tn-accent{--tn:var(--art-tn-accent)}.tn-warn{--tn:var(--art-tn-warn)}.tn-good{--tn:var(--art-tn-good)}
 /* 單篇右側目錄（≥1280）：跟著捲動、點了捲到那一節（不換網址） */
 .arttoc{display:none}
 @media (min-width:1280px){.arttoc{display:flex;flex-direction:column;gap:var(--sp-3);position:sticky;top:var(--sp-3)}}
@@ -327,7 +355,8 @@
   .artflt #artGrp{flex:1 1 auto;--ms-w:100%}
   .artflt #artClr{flex:none}
   .artflt .cnt{margin-left:0}
-  .artc{padding:var(--sp-3) var(--sp-3) var(--sp-3) calc(var(--sp-3) + 4px);min-height:0}
+  .artlist{--art-card-h:164px}
+  .artc{padding:var(--sp-3) var(--sp-3) var(--sp-3) calc(var(--sp-3) + 4px)}
   .artc .sm{display:none}   /* 手機只留重點（準則 3）：摘要點進去才看 */
   .artempty{min-height:260px}
   .artpost h2.artttl{font-size:21px}
@@ -344,6 +373,13 @@
   .artflow .fnodes>.fnd:only-child{grid-column:1/-1}
   .artstack .skr{grid-template-columns:minmax(0,52fr) minmax(0,48fr)}
   .artstack .sks{padding:0 3px}
+  .artsteps .stp{grid-template-columns:minmax(0,1fr)!important;row-gap:22px}
+  .artsteps .sti{display:grid;grid-template-columns:56px minmax(0,1fr);column-gap:var(--sp-3);align-items:start;text-align:left}
+  .artsteps .stc{grid-row:1/3}
+  .artsteps .sti>b{align-self:end;padding-top:6px}
+  .artsteps .sta{top:60px;left:27px;width:2px;height:calc(100% - 64px + 22px)}
+  .artsteps .sta::after{right:auto;left:-4px;top:auto;bottom:-1px;border-left:5px solid transparent;border-right:5px solid transparent;border-top:7px solid color-mix(in srgb,var(--pc) 60%,var(--ink-3));border-bottom:0}
+  .artcmp .cmg{grid-template-columns:minmax(0,1fr)!important}
 }
 `;
     s.textContent += ADM_CSS;
@@ -408,6 +444,51 @@
       .catch(() => { S.topicsP = null; return null; });
     return S.topicsP;
   }
+  /* ------------------------------------------------------------------ 點閱次數（Andy 10-16：「需要新增點閱次數」）
+     會員 Worker 的兩支公開 API（不需要登入，所以不帶權杖 t —— 也不經過 TwAccount.call，免得權杖失效時被當成登出）：
+       POST {api}/v1/articles/view  {"id"} → {"ok":true,"id","views":N}   單篇打開時送一次；同一個瀏覽器分頁 30 分鐘內同一篇不重送（sessionStorage）
+       POST {api}/v1/articles/stats {}     → {"views":{"<id>":N,…}}      列表頁載入時讀一次
+     帳號 API 網址沒設定（repo 預設）、連不到、回非 2xx、格式不對 → 一律當作沒有數字，畫面上不寫（不顯示 0、不跳錯）。 */
+  const VIEW_TTL = 30 * 60 * 1000;
+  const acctApi = () => { const A = window.TwAccount; const u = A && typeof A.api === 'function' ? A.api() : ''; return typeof u === 'string' ? u : ''; };
+  function apiPost(path, body) {
+    const base = acctApi(); if (!base) return Promise.resolve(null);
+    return fetch(base + path, { method: 'POST', headers: { 'content-type': 'text/plain' }, body: JSON.stringify(body || {}), credentials: 'omit' })
+      .then((r) => (r.ok ? r.json() : null)).catch(() => null);
+  }
+  const putViews = (m) => { if (!m || typeof m !== 'object') return; S.views = S.views || {}; Object.keys(m).forEach((k) => { const v = Number(m[k]); if (okId(k) && Number.isFinite(v) && v >= 0) S.views[k] = Math.floor(v); }); };
+  function loadStats(force) {
+    if (!acctApi()) return Promise.resolve(null);
+    if (S.statsP && !force && Date.now() - S.statsAt < 60e3) return S.statsP;
+    S.statsAt = Date.now();
+    S.statsP = apiPost('/v1/articles/stats', {}).then((j) => { if (j && j.views && typeof j.views === 'object') { putViews(j.views); paintViews(); } return S.views; });
+    return S.statsP;
+  }
+  function recordView(id) {
+    if (!okId(id) || !acctApi()) return Promise.resolve(null);
+    let seen = 0; try { seen = Number(sessionStorage.getItem('tw.art.seen.' + id)) || 0; } catch (e) { seen = 0; }
+    if (Date.now() - seen < VIEW_TTL) return loadStats();   // 30 分鐘內看過：不重送，只讀目前數字
+    try { sessionStorage.setItem('tw.art.seen.' + id, String(Date.now())); } catch (e) { /* 私密視窗：照送 */ }
+    return apiPost('/v1/articles/view', { id }).then((j) => {
+      if (j && j.ok !== false && Number.isFinite(Number(j.views))) { putViews({ [id]: Number(j.views) }); paintViews(); }
+      else { try { sessionStorage.removeItem('tw.art.seen.' + id); } catch (e) { /* 略 */ } }
+      return S.views;
+    });
+  }
+  /* 拿到數字之後只改畫面上的點閱格（不整頁重畫，免得清單捲動位置、輸入框焦點被打斷） */
+  function paintViews() {
+    $$('[data-vw]').forEach((el) => {
+      const v = viewsOf(el.dataset.vw);
+      if (v == null) { el.hidden = true; const t0 = el.querySelector('span'); if (t0) t0.textContent = ''; return; }
+      el.hidden = false; const t = el.querySelector('span'); if (t) t.textContent = v.toLocaleString('zh-TW') + ' 次';
+    });
+    $$('#artAdmList td[data-vwc]').forEach((td) => { const v = viewsOf(td.dataset.vwc); td.textContent = v == null ? '—' : v.toLocaleString('zh-TW'); });
+  }
+  window.addEventListener('tw:account-config', () => {   // 帳號 API 網址比文章頁晚就緒（直接開文章網址）：就緒時補讀
+    const h = (location.hash || '').replace(/^#/, '').split('/');
+    if (h[0] === 'articles' || h[0] === 'admin') loadStats(true);
+    else if (h[0] === 'article' && S.cur) recordView(S.cur);
+  });
   const catOf = (id) => { const a = S.idx && S.idx.list.find((x) => x.id === id); return a ? a.cat : ''; };
 
   /* 側欄子項亮哪一格（<html data-l4sub>）：單篇頁在清單讀到之前不知道類別，讀到之後補上 */
@@ -422,17 +503,20 @@
   const catT = (k) => (CATS[k] ? CATS[k].t : ALL_T);
   const badge = (cat) => `<span class="artbadge k-${CATS[cat] ? cat : 'all'}">${icon(CATS[cat] ? cat : 'all', 13)}${esc(catT(cat))}</span>`;
   const tagsHTML = (tags) => (Array.isArray(tags) && tags.length ? `<div class="arttags">${tags.slice(0, 8).map((t) => `<span>${esc(t)}</span>`).join('')}</div>` : '');
-  const cardHTML = (a, hero) => `<a class="artc k-${esc(a.cat)}${hero ? ' hero' : ''}" href="#article/${encodeURIComponent(a.id)}" data-id="${esc(a.id)}" data-cat="${esc(a.cat)}" data-date="${esc(a.date)}" data-groups="${esc((a.groups || []).map((g) => g.id).join(' '))}" title="${esc(a.title)}">
-    <span class="wm">${icon(a.cat, hero ? 150 : 96)}</span>
+  const EYE = '<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg>';
+  /* 點閱數：只有拿到有效數字才寫（API 失敗、沒有這一篇 → 不畫，不顯示 0） */
+  const viewsOf = (id) => { const v = S.views && S.views[id]; return Number.isFinite(v) && v >= 0 ? Math.floor(v) : null; };
+  const vwHTML = (id) => { const v = viewsOf(id); return `<span class="artvw" data-vw="${esc(id)}" title="點閱次數"${v == null ? ' hidden' : ''}>${EYE}<span>${v == null ? '' : v.toLocaleString('zh-TW') + ' 次'}</span></span>`; };
+  const cardHTML = (a) => `<a class="artc k-${esc(a.cat)}" href="#article/${encodeURIComponent(a.id)}" data-id="${esc(a.id)}" data-cat="${esc(a.cat)}" data-date="${esc(a.date)}" data-groups="${esc((a.groups || []).map((g) => g.id).join(' '))}" title="${esc(a.title)}">
+    <span class="wm">${icon(a.cat, 96)}</span>
     <div class="r1">${badge(a.cat)}<span class="d">${esc(a.date)}</span><span class="rm" title="閱讀時間">約 ${esc(Number(a.reading_min) || 1)} 分鐘</span></div>
     <div class="tt">${esc(a.title)}</div>${a.subtitle ? `<div class="st">${esc(a.subtitle)}</div>` : ''}
-    ${a.summary ? `<div class="sm">${esc(a.summary)}</div>` : ''}${hero ? '<div class="hx" aria-hidden="true"></div>' : ''}
-    <div class="ft">${(a.groups || []).slice(0, 4).map((g) => `<span class="artgp">${esc(g.name)}</span>`).join('')}${(a.groups || []).length ? '' : (Array.isArray(a.tags) ? a.tags.slice(0, 5).map((t) => `<span class="artgp">${esc(t)}</span>`).join('') : '')}</div></a>`;
+    ${a.summary ? `<div class="sm">${esc(a.summary)}</div>` : ''}
+    <div class="fr"><div class="ft">${(a.groups || []).slice(0, 4).map((g) => `<span class="artgp">${esc(g.name)}</span>`).join('')}${(a.groups || []).length ? '' : (Array.isArray(a.tags) ? a.tags.slice(0, 5).map((t) => `<span class="artgp">${esc(t)}</span>`).join('') : '')}</div>${vwHTML(a.id)}</div></a>`;
   const DISC = 'ⓘ 本站文章為公開資訊與產業知識的整理，不構成任何投資建議；內容以資料來源發布時點為準，投資前請自行查證並評估風險。';
 
   /* ------------------------------------------------------------------ 列表頁 */
-  /* 最新一篇放大成橫跨整排的焦點卡（寬螢幕篇數少時，版面不會只有一排小卡＋下面大片空白）；手機不放大 */
-  const isNarrow = () => window.innerWidth <= 640;
+  /* ★ 10-16 拿掉「最新一篇放大成 2×2 焦點卡」（Andy：「這邊的大小需要一致」）：所有卡片同一尺寸，見 .artlist／.artc 的 CSS */
   function ensureRange() { if (S.from == null || S.to == null) { const d = defRange(); S.from = d.from; S.to = d.to; } }
   function resetFilters() { const d = defRange(); S.q = ''; S.from = d.from; S.to = d.to; S.grp = new Set(); if (S.ms) S.ms.set({ selected: [] }); }
   function filtered(cat, ignoreCat) {
@@ -537,36 +621,12 @@ ${gs.length ? `<section><h5>熱門族群</h5><div class="gps">${gs.map((g) => `<
     cnt.innerHTML = `共 <b>${list.length}</b> 篇`;
     cnt.dataset.n = String(list.length);
     const dirty = !!(S.q.trim() || S.from !== D.from || S.to !== D.to || S.grp.size);
-    box.innerHTML = list.length ? list.map((a, i) => cardHTML(a, i === 0 && list.length > 1 && !isNarrow())).join('')
+    box.innerHTML = list.length ? list.map((a) => cardHTML(a)).join('')
       : `<div class="artempty k-${S.cat === 'all' ? 'all' : S.cat}" id="artEmpty">${icon(S.cat, 40)}<div>${dirty ? '這個條件下沒有符合的文章，換個關鍵字、族群或放寬日期試試。' : '近一個月這個分類還沒有文章。'}</div>`
         + `${dirty ? '<button type="button" class="btn small" data-clr>清除篩選</button>' : '<button type="button" class="btn small" data-wide>看全部日期</button>'}</div>`;
     const c2 = $('[data-clr]', box); if (c2) c2.onclick = () => { resetFilters(); paintList(); };
     const c3 = $('[data-wide]', box); if (c3) c3.onclick = () => { S.from = ''; S.to = ''; paintList(); };
     paintSide(root);
-    watchCols(box);
-    fillHero(box);
-  }
-  /* 焦點卡：先讀那一篇的內文，把第一組「數字卡」與段落標題放進卡片中段（2×2 的大卡不會只有標題＋大片空白） */
-  function fillHero(box) {
-    const hx = $('.artc.hero .hx', box); if (!hx) return;
-    const id = hx.closest('.artc').dataset.id;
-    loadPost(id).then((d) => {
-      if (!d || !hx.isConnected) return;
-      const bl = Array.isArray(d.blocks) ? d.blocks : [];
-      const k = bl.find((b) => b && b.t === 'kpi' && Array.isArray(b.items));
-      const ks = k ? k.items.filter((x) => x && x.label).slice(0, 4) : [];
-      const hs = bl.filter((b) => b && b.t === 'h' && b.text).slice(0, 6);
-      const nf = bl.filter((b) => b && ['chart', 'flow', 'stack'].includes(b.t)).length;
-      hx.innerHTML = ks.map((x) => { const dl = String(x.delta == null ? '' : x.delta).trim(); const dc = /^\+/.test(dl) ? 'up' : /^[-−]/.test(dl) ? 'dn' : '';
-        return `<div class="hk"><i>${esc(x.label)}</i><b>${esc(x.value)}</b>${x.unit ? `<small>${esc(x.unit)}</small>` : ''}${dl ? `<em class="${dc}">${esc(dl)}</em>` : ''}</div>`; }).join('')
-        + (hs.length ? `<div class="hs">${hs.map((h) => `<span>${esc(h.text)}</span>`).join('')}${nf ? `<span>${nf} 張圖表與示意圖</span>` : ''}</div>` : '');
-    });
-  }
-  /* 量目前幾欄（auto-fill 由寬度決定，CSS 不知道）：≥3 欄時焦點卡佔 2×2，旁邊一欄疊兩張，篇數少也不會留一個空格 */
-  function watchCols(box) {
-    const upd = () => { const n = getComputedStyle(box).gridTemplateColumns.split(' ').filter(Boolean).length; if (box.dataset.cols !== String(n)) box.dataset.cols = String(n); };
-    upd();
-    if (!box._ro && typeof ResizeObserver !== 'undefined') { box._ro = new ResizeObserver(upd); box._ro.observe(box); }
   }
   async function showList(cat) {
     css();
@@ -577,12 +637,14 @@ ${gs.length ? `<section><h5>熱門族群</h5><div class="gps">${gs.map((g) => `<
     markSub(S.cat);
     if (!$('#artList', root)) { disposeCharts(root); skeletonList(root); }
     paintList();
+    loadStats();
     await loadIndex();
     if (location.hash.replace(/^#/, '').split('/')[0] !== 'articles') return;   // 讀清單的時候使用者已經換頁
     paintList();
   }
 
   /* ------------------------------------------------------------------ 單篇：內文區塊 */
+  const NPAL = 7;   // 文章調色盤 --art-p1..7（css() 定義，深淺主題各一組）
   const TONES = ['chip', 'mem', 'interposer', 'substrate', 'board', 'bump'];
   const tone = (t) => (TONES.includes(t) ? t : 'other');
   const clampW = (w) => { const x = num(w); return x == null ? 1 : Math.max(0.12, Math.min(1, x)); };
@@ -595,10 +657,10 @@ ${gs.length ? `<section><h5>熱門族群</h5><div class="gps">${gs.map((g) => `<
   function kpiHTML(b) {
     const its = (Array.isArray(b.items) ? b.items : []).filter((x) => x && (x.label || x.value != null)).slice(0, 8);
     if (!its.length) return '';
-    return `<div class="artkpi" style="--n:${Math.min(4, its.length)}">${its.map((x) => {
+    return `<div class="artkpi" style="--n:${Math.min(4, its.length)}">${its.map((x, i) => {
       const d = String(x.delta == null ? '' : x.delta).trim();
       const dc = /^\+/.test(d) ? 'up' : /^[-−]/.test(d) ? 'dn' : '';
-      return `<div class="akc"><div class="akl" title="${esc(x.label)}">${esc(x.label)}</div><div class="akv"><b>${esc(x.value)}</b>${x.unit ? `<small>${esc(x.unit)}</small>` : ''}</div>`
+      return `<div class="akc pc${(i % NPAL) + 1}"><div class="akl" title="${esc(x.label)}">${esc(x.label)}</div><div class="akv"><b>${esc(x.value)}</b>${x.unit ? `<small>${esc(x.unit)}</small>` : ''}</div>`
         + (d ? `<div class="akd ${dc}">${esc(d)}${x.note ? `<span>${esc(x.note)}</span>` : ''}</div>` : (x.note ? `<div class="akn" title="${esc(x.note)}">${esc(x.note)}</div>` : '')) + '</div>';
     }).join('')}</div>`;
   }
@@ -616,7 +678,7 @@ ${gs.length ? `<section><h5>熱門族群</h5><div class="gps">${gs.map((g) => `<
     if (!cols.length) return '';
     const nm = (c) => { const L = window.App && window.App.L; return (L && L.cname && L.cname[c]) || ''; };
     return `<figure class="artfig artflow" data-bi="${bi}">${b.title ? `<figcaption class="fh">${esc(b.title)}</figcaption>` : ''}
-      <div class="fl" style="--cols:${cols.length}"><svg class="fe" aria-hidden="true"></svg>${cols.map((c, ci) => `<div class="fcol" style="--fc:var(--cat-${(ci % 4) + 1})"><div class="fch" title="${esc(c.label)}">${esc(c.label || '')}</div><div class="fnodes">${c.nodes.filter((n) => n && n.label).map((n) => {
+      <div class="fl" style="--cols:${cols.length}"><svg class="fe" aria-hidden="true"></svg>${cols.map((c, ci) => `<div class="fcol" style="--fc:var(--art-p${(ci % NPAL) + 1})"><div class="fch" title="${esc(c.label)}">${esc(c.label || '')}</div><div class="fnodes">${c.nodes.filter((n) => n && n.label).map((n) => {
         const codes = (Array.isArray(n.codes) ? n.codes : []).filter(okCode).slice(0, 6);
         return `<div class="fnd" data-nid="${esc(n.id || '')}"><b>${esc(n.label)}</b>${n.sub ? `<span>${esc(n.sub)}</span>` : ''}${codes.length ? `<div class="fcodes">${codes.map((c) => `<a href="#stock/${esc(c)}" title="到個股頁"><b>${esc(c)}</b>${nm(c) ? esc(nm(c)) : ''}</a>`).join('')}</div>` : ''}</div>`;
       }).join('')}</div></div>`).join('')}</div>${figFoot(b)}</figure>`;
@@ -632,6 +694,47 @@ ${gs.length ? `<section><h5>熱門族群</h5><div class="gps">${gs.map((g) => `<
         : `<span class="sks t-${tone(l.tone)}" style="flex:1 1 0" title="${esc(l.label)}">${esc(l.label)}</span>`;
       return `<div class="skr t-${tone(l.tone)}" style="--w:${(w * 100).toFixed(1)}%"><div class="skw"><div class="skb">${segs}</div><i></i></div><div class="skl"><b>${esc(l.label)}</b>${l.sub ? `<span>${esc(l.sub)}</span>` : ''}</div></div>`;
     }).join('')}</div>${figFoot(b)}</figure>`;
+  }
+  /* steps 說明圖的圖示（簡潔線條風、currentColor 上色；Lucide 同一套 24×24、線寬 2） */
+  const STEP_IC = {
+    chip: '<rect x="6" y="6" width="12" height="12" rx="1.5"/><rect x="9.5" y="9.5" width="5" height="5" rx=".5"/><path d="M9 2v4M15 2v4M9 18v4M15 18v4M2 9h4M2 15h4M18 9h4M18 15h4"/>',
+    wafer: '<circle cx="12" cy="12" r="9"/><path d="M7.5 8.5h9M6.5 12h11M7.5 15.5h9M9.5 6v12M14.5 6v12"/><path d="M10.5 20.9h3"/>',
+    package: '<rect x="3" y="10" width="18" height="8" rx="1.5"/><rect x="8" y="6" width="8" height="4" rx="1"/><path d="M6 18v3M10 18v3M14 18v3M18 18v3"/>',
+    substrate: '<path d="M3 16l9 4 9-4"/><path d="M3 12l9 4 9-4"/><path d="M3 8l9 4 9-4-9-4-9 4z"/>',
+    board: '<rect x="3" y="4" width="18" height="16" rx="2"/><rect x="7" y="8" width="5" height="5" rx=".5"/><path d="M15 9h2M15 12h2M7 16.5h10"/>',
+    server: '<rect x="3" y="4" width="18" height="7" rx="1.5"/><rect x="3" y="13" width="18" height="7" rx="1.5"/><path d="M7 7.5h.01M7 16.5h.01M11 7.5h6M11 16.5h6"/>',
+    cool: '<circle cx="12" cy="12" r="2"/><path d="M12 10c-.5-3.5.5-7 3.5-7 2.5 0 2.5 4-1.5 7.2"/><path d="M14 12c3.5-.5 7 .5 7 3.5 0 2.5-4 2.5-7.2-1.5"/><path d="M12 14c.5 3.5-.5 7-3.5 7-2.5 0-2.5-4 1.5-7.2"/><path d="M10 12c-3.5.5-7-.5-7-3.5 0-2.5 4-2.5 7.2 1.5"/>',
+    power: '<path d="M13 2 4 14h7l-1 8 9-12h-7l1-8z"/>',
+    net: '<circle cx="12" cy="5" r="2.5"/><circle cx="5" cy="19" r="2.5"/><circle cx="19" cy="19" r="2.5"/><path d="M12 7.5V12M12 12l-5.3 5.3M12 12l5.3 5.3"/>',
+    money: '<rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="3"/><path d="M6 9.5v.01M18 14.5v.01"/>',
+    chart: '<path d="M3 3v18h18"/><path d="m7 15 4-4 3 3 5-6"/>',
+    factory: '<path d="M3 21V10l6 4v-4l6 4V5l6 3v13z"/><path d="M7 18h2M12 18h2M17 18h2"/>',
+    truck: '<path d="M2 6h11v10H2z"/><path d="M13 10h4l4 4v2h-8z"/><circle cx="6" cy="18" r="2"/><circle cx="17" cy="18" r="2"/>',
+    memory: '<rect x="2" y="7" width="20" height="10" rx="1.5"/><path d="M6 10v4M10 10v4M14 10v4M18 10v4M5 17v3M9 17v3M15 17v3M19 17v3"/>',
+    eye: '<path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/>',
+    clock: '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
+  };
+  const stepIc = (k) => (STEP_IC[k] ? `<svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">${STEP_IC[k]}</svg>` : '');
+  /* steps 編號流程圖：{t:'steps', title, note, items:[{label, text, icon}]}（2～8 步）。
+     這張圖回答「這件事是怎麼一步一步走到下一環的」：由左到右照順序讀，每步顏色不同、圓圈右上是第幾步。 */
+  /* ⚠ 圖示名記在 data-sic 不是 data-icon：icons.js 會替全站任何 [data-icon] 元素自動補一顆標題小圖示（實測每一步上面多一顆長條圖）。 */
+  function stepsHTML(b, bi) {
+    const its = (Array.isArray(b.items) ? b.items : []).filter((x) => x && x.label).slice(0, 8);
+    if (!its.length) return '';
+    return `<figure class="artfig artsteps" data-bi="${bi}">${b.title ? `<figcaption class="fh">${esc(b.title)}</figcaption>` : ''}
+      <ol class="stp" style="--n:${its.length}">${its.map((x, i) => `<li class="sti pc${(i % NPAL) + 1}" data-sic="${esc(STEP_IC[x.icon] ? x.icon : '')}"><div class="stc">${stepIc(x.icon) || `<b style="font-family:var(--mono);font-size:20px">${i + 1}</b>`}<em>${i + 1}</em></div>`
+        + `<b>${esc(x.label)}</b>${x.text ? `<span>${esc(x.text)}</span>` : ''}${i < its.length - 1 ? '<i class="sta" aria-hidden="true"></i>' : ''}</li>`).join('')}</ol>${figFoot(b)}</figure>`;
+  }
+  /* compare 對照卡：{t:'compare', title, note, cols:[{label, tone:'neutral|accent|warn|good', points:[…], verdict}]}（2～4 欄）。
+     這張圖回答「這幾個選項差在哪、各自的結論是什麼」：同一列由左到右比，每欄最底下那句是結論。 */
+  const CMP_TONES = ['neutral', 'accent', 'warn', 'good'];
+  function compareHTML(b, bi) {
+    const cols = (Array.isArray(b.cols) ? b.cols : []).filter((c) => c && c.label).slice(0, 4);
+    if (!cols.length) return '';
+    return `<figure class="artfig artcmp" data-bi="${bi}">${b.title ? `<figcaption class="fh">${esc(b.title)}</figcaption>` : ''}
+      <div class="cmg" style="--n:${cols.length}">${cols.map((c) => { const tn = CMP_TONES.includes(c.tone) ? c.tone : 'neutral';
+        const pts = (Array.isArray(c.points) ? c.points : []).filter((x) => x != null && String(x).trim()).slice(0, 10);
+        return `<section class="cmc tn-${tn}" data-tone="${tn}"><h5>${esc(c.label)}</h5>${pts.length ? `<ul>${pts.map((x) => `<li>${esc(x)}</li>`).join('')}</ul>` : ''}${c.verdict ? `<p class="vd">${esc(c.verdict)}</p>` : ''}</section>`; }).join('')}</div>${figFoot(b)}</figure>`;
   }
   function blockHTML(b, bi) {
     if (!b || typeof b !== 'object') return '';
@@ -654,6 +757,8 @@ ${gs.length ? `<section><h5>熱門族群</h5><div class="gps">${gs.map((g) => `<
       case 'chart': return chartHTML(b, bi);
       case 'flow': return flowHTML(b, bi);
       case 'stack': return stackHTML(b, bi);
+      case 'steps': return stepsHTML(b, bi);
+      case 'compare': return compareHTML(b, bi);
       default: return '';
     }
   }
@@ -665,6 +770,13 @@ ${gs.length ? `<section><h5>熱門族群</h5><div class="gps">${gs.map((g) => `<
       ink: cssv('--ink', '#e8eeff'), ink2: cssv('--ink-2', '#a9b6d6'), ink3: cssv('--ink-3', '#6f7ea3'), line: cssv('--line', '#1e2a48'), grid: cssv('--grid', 'rgba(255,255,255,.06)'), panel: cssv('--panel', '#0f172b') };
     const A = window.App || {};
     const NF = A.NUM_FONT || 'monospace';
+    /* 調色盤（--art-p1..7）：不同系列不同色、橫條每列不同色、區間條每列不同色；長條一律自己給「同色漸層物件」——
+       App.chart 的長條共用風格只會把「字串色」換成全站青藍，漸層物件原樣保留，所以文章的配色不會被統一蓋掉。 */
+    const P = [1, 2, 3, 4, 5, 6, 7].map((k) => cssv('--art-p' + k, ['#5b9cff', '#2ec4b6', '#a88bff', '#ff8a65', '#ec74b5', '#d39b5b', '#4cc3ef'][k - 1]));
+    const rgbaOf = (c, a) => { const m = /^#([0-9a-f]{6})$/i.exec(String(c).trim()); if (!m) return c; const h = m[1]; return `rgba(${parseInt(h.slice(0, 2), 16)},${parseInt(h.slice(2, 4), 16)},${parseInt(h.slice(4), 16)},${a})`; };
+    const grad = (c, horiz) => (horiz ? { type: 'linear', x: 0, y: 0, x2: 1, y2: 0, colorStops: [{ offset: 0, color: rgbaOf(c, 0.5) }, { offset: 1, color: rgbaOf(c, 1) }] }
+      : { type: 'linear', x: 0, y: 0, x2: 0, y2: 1, colorStops: [{ offset: 0, color: rgbaOf(c, 1) }, { offset: 1, color: rgbaOf(c, 0.42) }] });
+    const hlStyle = (horiz) => ({ color: grad(C.hl, horiz), borderColor: C.ink, borderWidth: 1.5, borderRadius: 3 });
     const kind = ['bar', 'line', 'barline', 'hbar', 'range'].includes(b.kind) ? b.kind : 'bar';
     const x = b.x.map(String), n = x.length;
     const unit = b.unit ? String(b.unit) : '', u2 = b.y2unit ? String(b.y2unit) : '';
@@ -682,12 +794,13 @@ ${gs.length ? `<section><h5>熱門族群</h5><div class="gps">${gs.map((g) => `<
       ser0.forEach((s, si) => {
         const pr = x.map((_, i) => { const d = s.data[i]; const a = Array.isArray(d) ? num(d[0]) : null, z = Array.isArray(d) ? num(d[1]) : null; return a == null || z == null ? null : [Math.min(a, z), Math.max(a, z)]; });
         pr.forEach((p) => { if (p) { lo = Math.min(lo, p[0]); hi = Math.max(hi, p[1]); } });
-        const col = [C.c1, C.c2, C.c3][si % 3];
+        const multi = ser0.length > 1;
+        const col = P[si % P.length];
         names.push(sName(s, si));
         out.push({ name: sName(s, si) + '__base', type: 'bar', stack: 'r' + si, silent: true, itemStyle: { color: 'transparent' }, barMaxWidth: 22, data: pr.map((p) => (p ? p[0] : null)),
           label: { show: true, position: 'insideRight', color: C.ink2, fontSize: 12, fontFamily: NF, formatter: (q) => fmtN(q.value) }, tooltip: { show: false } });
-        out.push({ name: sName(s, si), type: 'bar', stack: 'r' + si, barMaxWidth: 22, data: pr.map((p, i) => (p ? { value: p[1] - p[0], _r: p, itemStyle: { color: hl.has(i) ? C.hl : col, borderRadius: 3 } } : null)),
-          itemStyle: { color: col, borderRadius: 3 },
+        out.push({ name: sName(s, si), type: 'bar', stack: 'r' + si, barMaxWidth: 22, data: pr.map((p, i) => (p ? { value: p[1] - p[0], _r: p, itemStyle: hl.has(i) ? hlStyle(true) : { color: grad(multi ? col : P[i % P.length], true), borderRadius: 3 } } : null)),
+          itemStyle: { color: grad(col, true), borderRadius: 3 },
           label: { show: true, position: 'right', color: C.ink, fontSize: 12, fontWeight: 700, fontFamily: NF, formatter: (q) => (q.data && q.data._r ? fmtN(q.data._r[1]) + unit : '') } });
       });
       if (!isFinite(lo)) return null;
@@ -721,8 +834,8 @@ ${gs.length ? `<section><h5>熱門族群</h5><div class="gps">${gs.map((g) => `<
           : { type: 'value', name: unit, nameTextStyle: { color: C.ink3, fontSize: 12 }, axisLabel: axLab, splitLine: { lineStyle: { color: C.grid } } },
         yAxis: { type: 'category', inverse: true, data: x, axisLabel: { color: C.ink2, fontSize: 12, width: 130, overflow: 'truncate' }, axisTick: { show: false }, axisLine: { lineStyle: { color: C.line } } },
         series: [{ name: sName(s, 0), type: 'bar', barMaxWidth: 18,
-          data: vals.map((v, i) => ({ value: v, itemStyle: hl.has(i) || marks.has(i) ? { color: C.hl } : undefined })),
-          itemStyle: { color: C.c1 },
+          data: vals.map((v, i) => ({ value: v, itemStyle: hl.has(i) || marks.has(i) ? hlStyle(true) : { color: grad(P[i % P.length], true), borderRadius: 3 } })),
+          itemStyle: { color: grad(P[0], true) },
           label: { show: true, position: 'right', color: C.ink, fontSize: 12, fontFamily: NF, formatter: (q) => fmtN(q.value) + (marks.has(q.dataIndex) ? ' ◆' : '') } }],
         timeGrid: false, m4dz: false,
       };
@@ -737,11 +850,12 @@ ${gs.length ? `<section><h5>熱門族群</h5><div class="gps">${gs.map((g) => `<
     const series = ser0.map((s, si) => {
       const typ = s.type === 'line' || s.type === 'bar' ? s.type : (kind === 'line' ? 'line' : kind === 'barline' && si > 0 ? 'line' : 'bar');
       const ax = hasY2 && Number(s.axis) === 1 ? 1 : 0;
-      const col = typ === 'bar' ? [C.c1, C.c3][barK++ % 2] : (ax === 1 ? C.c2 : [C.c2, C.c3, C.c1][si % 3]);
+      // 柱子從 p1 起輪、折線從 p4（珊瑚）起輪：同一張圖的柱與線一定是兩個色系，一眼分得出
+      const col = typ === 'bar' ? P[(barK++ * 2) % P.length] : P[(3 + si) % P.length];
       const vals = x.map((_, i) => num(s.data[i]));
       const lab = { show: false, position: 'top', color: C.ink2, fontSize: 12, fontFamily: NF, formatter: (q) => fmtN(q.value) };
-      const o = { name: sName(s, si), type: typ, yAxisIndex: ax, itemStyle: { color: col }, label: lab,
-        data: vals.map((v, i) => { const d = { value: v }; if (typ === 'bar' && hl.has(i)) d.itemStyle = { color: C.hl }; if (si === 0 || typ === 'bar' || ser0.length === 1) { if (showLab(i)) d.label = { show: true }; } return d; }) };
+      const o = { name: sName(s, si), type: typ, yAxisIndex: ax, itemStyle: { color: typ === 'bar' ? grad(col, false) : col }, label: lab,
+        data: vals.map((v, i) => { const d = { value: v }; if (typ === 'bar' && hl.has(i)) d.itemStyle = hlStyle(false); if (si === 0 || typ === 'bar' || ser0.length === 1) { if (showLab(i)) d.label = { show: true }; } return d; }) };
       if (typ === 'line') Object.assign(o, { symbol: 'circle', symbolSize: 7, showAllSymbol: true, lineStyle: { width: 2, color: col }, z: 3 });
       else Object.assign(o, { barMaxWidth: 40 });
       return o;
@@ -851,7 +965,7 @@ ${gs.length ? `<section><h5>熱門族群</h5><div class="gps">${gs.map((g) => `<
 <article class="card artpost" id="artPost" data-id="${esc(d.id)}">
   <button type="button" class="artback" id="artBack" data-to="${listHash}" title="回上一頁">← 返回</button>
   <nav class="artcrumb" aria-label="麵包屑"><a href="#articles">精選文章</a><span aria-hidden="true">›</span>${CATS[cat] ? `<a class="kc" href="#articles/${cat}">${icon(cat, 14)}${esc(catT(cat))}</a><span aria-hidden="true">›</span>` : ''}<span class="cur">${esc(d.title)}</span></nav>
-  <div class="artmeta">${cat ? badge(cat) : ''}<span class="mono">${esc(d.date || '')}</span>${upd}<span>閱讀約 ${esc(Number(d.reading_min) || 1)} 分鐘</span>${d.confidence ? `<span title="資料信心：依來源數量與一致性自評">資料信心 ${esc(d.confidence)}</span>` : ''}</div>
+  <div class="artmeta">${cat ? badge(cat) : ''}<span class="mono">${esc(d.date || '')}</span>${upd}<span>閱讀約 ${esc(Number(d.reading_min) || 1)} 分鐘</span>${vwHTML(d.id)}${d.confidence ? `<span title="資料信心：依來源數量與一致性自評">資料信心 ${esc(d.confidence)}</span>` : ''}</div>
   <h2 class="artttl">${esc(d.title)}</h2>
   ${d.subtitle ? `<p class="artsub">${esc(d.subtitle)}</p>` : ''}
   ${groups.length ? `<div class="artgps"><span class="lb">相關族群</span>${groups.map((g) => `<button type="button" class="artgp" data-gid="${esc(g.id)}" title="看其他提到「${esc(g.name)}」的文章">${esc(g.name)}</button>`).join('')}</div>` : ''}
@@ -892,6 +1006,7 @@ ${gs.length ? `<section><h5>熱門族群</h5><div class="gps">${gs.map((g) => `<
     root.innerHTML = postHTML(d, meta);
     S.curData = d;
     hydrate(root, d);
+    recordView(d.id);
     document.title = d.title + '｜精選文章';
   }
 
@@ -912,16 +1027,17 @@ ${gs.length ? `<section><h5>熱門族群</h5><div class="gps">${gs.map((g) => `<
     v.innerHTML = '<div class="card artadm"><p class="muted">載入中…</p></div>';
     const [idx, tp] = await Promise.all([loadIndex(), loadTopics()]);
     if (location.hash !== '#admin/articles') return;
+    loadStats(true);
     const list = idx ? idx.list : [];
     const LOCK = '待 Andy 確認後開放';
     v.innerHTML = `
 <div class="card artadm" id="artAdmList">
   <div class="hd"><h3>精選文章管理：已上架文章</h3><span class="muted">${list.length} 篇${idx && idx.updated ? '・清單更新 ' + esc(idx.updated) : ''}</span></div>
-  <div class="tbw"><table><thead><tr><th>類別</th><th>標題</th><th>日期</th><th>狀態</th><th>產出</th></tr></thead><tbody>
+  <div class="tbw"><table><thead><tr><th>類別</th><th>標題</th><th>日期</th><th title="會員 Worker 統計的點閱次數；讀不到寫「—」">點閱</th><th>狀態</th><th>產出</th></tr></thead><tbody>
   ${list.length ? list.map((a) => `<tr data-id="${esc(a.id)}"><td>${badge(a.cat)}</td><td class="l"><a href="#article/${encodeURIComponent(a.id)}" title="${esc(a.title)}">${esc(a.title)}</a></td>
-    <td class="n">${esc(a.date)}</td><td><span class="stp">已上架</span></td>
+    <td class="n">${esc(a.date)}</td><td class="n" data-vwc="${esc(a.id)}">${viewsOf(a.id) == null ? '—' : viewsOf(a.id).toLocaleString('zh-TW')}</td><td><span class="stp">已上架</span></td>
     <td class="act"><button type="button" disabled aria-disabled="true" data-act="post" title="${LOCK}">產出貼文</button><button type="button" disabled aria-disabled="true" data-act="video" title="${LOCK}">產出短影片</button><small>${LOCK}</small></td></tr>`).join('')
-    : `<tr><td colspan="5" class="muted">${idx ? '還沒有上架的文章' : '文章清單讀不到'}</td></tr>`}
+    : `<tr><td colspan="6" class="muted">${idx ? '還沒有上架的文章' : '文章清單讀不到'}</td></tr>`}
   </tbody></table></div>
 </div>
 <div class="card artadm" id="artAdmTopics" style="margin-top:var(--gap-card,12px)">
