@@ -555,14 +555,14 @@
 
   /* ---------------------------------------------------------------- ⑤ 操作紀錄（處理措施第 4 條：誰、何時、做了什麼、前後狀態）*/
   const AK = { confirm: '確認入帳', reject: '退回', ack: '異常標記已處理', amount: '改金額', note: '備註', reactivate: '補開通', refund: '退款', purge: '清除測試資料', req_set: '申請改狀態',
-    req_close: '申請結案', req_refunded: '申請已退款', superseded: '訂單被取代', period_cancel_admin: '終止自動扣款', bank_put: '收款帳號設定' };
+    req_close: '申請結案', req_refunded: '申請已退款', superseded: '訂單被取代', period_cancel_admin: '終止自動扣款', bank_put: '收款帳號設定', events_clean: '清理舊事件紀錄' };
   const stw = (x) => ST[x] || ({ new: '待處理', done: '已處理' })[x] || x || '';
   function auditView(v, box) {
     const d = S.d, em = {}; d.orders.forEach((o) => { em[o.id] = o.email; });
     const q = (S.aq || '').trim().toLowerCase();
     const rows = (d.audit || []).map((a) => ({ ...a, mail: a.email || em[a.oid] || (a.detail && a.detail.email) || '' }))
       .filter((a) => !q || [a.mail, a.oid, a.by, AK[a.kind] || a.kind].some((x) => String(x || '').toLowerCase().includes(q)));
-    const det = (a) => { const x = a.detail || {}; return [x.reason, x.why, x.received ? '實收 NT$ ' + nt(x.received) : '', x.amount && a.kind !== 'confirm' ? 'NT$ ' + nt(x.amount) : '', x.before != null && a.kind === 'amount' ? `NT$ ${nt(x.before)} → ${nt(x.after)}` : '', x.req ? '申請 ' + x.req : '', x.rid ? '退款 ' + x.rid : '', x.bank || '', x.msg || ''].filter(Boolean).join('・'); };
+    const det = (a) => { const x = a.detail || {}; return [x.reason, x.why, x.received ? '實收 NT$ ' + nt(x.received) : '', x.amount && a.kind !== 'confirm' ? 'NT$ ' + nt(x.amount) : '', x.before != null && a.kind === 'amount' ? `NT$ ${nt(x.before)} → ${nt(x.after)}` : '', x.req ? '申請 ' + x.req : '', x.rid ? '退款 ' + x.rid : '', x.bank || '', x.scanned != null ? `掃描 ${x.scanned} 筆、裁 ${x.trimmed} 遮 ${x.masked}` : '', x.msg || ''].filter(Boolean).join('・'); };
     box.innerHTML = `<p class="muted" style="margin:0 0 8px">管理者與規則自動做的每個動作：誰、何時、做了什麼、前後狀態。<b>規則自動</b>＝同一個 email 出現較新的訂單／申請時，系統把舊的結案或標「已被取代」。</p>
       <div class="flt"><input type="search" id="paQ" placeholder="搜尋 email／訂單號／操作者" value="${esc(S.aq || '')}" aria-label="搜尋操作紀錄"><span class="muted" style="margin:0">${rows.length} 筆</span></div>
       <div class="tw"><table id="payAudit"><thead><tr><th>時間</th><th>操作者</th><th>動作</th><th>訂單</th><th>會員 email</th><th>前 → 後</th><th>細節</th></tr></thead>
@@ -581,6 +581,22 @@
         <label for="pbAcct">帳號</label><input id="pbAcct" maxlength="24" inputmode="numeric" value="${esc(b.account || '')}">
         <label for="pbHolder">戶名</label><input id="pbHolder" maxlength="40" value="${esc(b.holder || '')}">
         <span></span><div style="display:flex;gap:8px"><button type="button" class="pri" id="pbSave">儲存</button>${S.d.bank ? '<button type="button" class="danger" id="pbClear">關閉銀行轉帳</button>' : ''}</div></div>`;
+    /* 2026-10-16 維護：清理舊付款事件紀錄（Andy 同意）。以前驗章失敗會把綠界通知原文寫進事件紀錄，其中可能有卡號前 6／後 4 碼。
+       不自動執行、不跟 Worker 部署一起跑；只有管理者在正式站按。可重複按（冪等）。預覽版寫入被擋，所以預覽版按了只說明不送出。 */
+    box.insertAdjacentHTML('beforeend', `<div id="payMaint" style="margin-top:20px;border-top:1px solid var(--line);padding-top:12px"><b>維護工具</b>
+      <p class="muted" style="margin:4px 0 8px">把舊的付款事件紀錄裡可能殘留的綠界通知原文裁成只剩交易編號、金額、狀態，並遮掉長串數字。只動事件紀錄的內容欄，不動訂單與退款；可重複執行。</p>
+      <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap"><button type="button" class="danger" id="pmClean">清理舊事件紀錄</button><span id="pmRes" class="muted" role="status"></span></div></div>`);
+    box.querySelector('#pmClean').onclick = () => {
+      const res = box.querySelector('#pmRes');
+      const dl = T().dialog('<div class="payd"><h3>清理舊事件紀錄？</h3><p>會把<b>舊的綠界通知／回傳原文</b>裁成白名單欄位、純文字事件裡 13～19 碼的數字遮成「[已遮蔽]」。<b>不會動訂單、退款、方案</b>；做完會顯示處理筆數，重複按不會再改。</p><div class="msg" role="status"></div><div class="row2"><button type="button" data-close>取消</button><button type="button" class="pri" id="pdGo">確定清理</button></div></div>');
+      dl.querySelector('#pdGo').onclick = async () => {
+        const m = dl.querySelector('.msg');
+        if (/\/preview\//.test(location.pathname || '')) { m.className = 'msg bad'; m.textContent = '預覽版的寫入被擋，不會送出；請到正式站執行。'; return; }
+        const r = await call('/v1/admin/pay/events/clean', { confirm: true });
+        if (r && r._s === 200 && r.ok) { dl.hidden = true; res.textContent = `已掃描 ${nt(r.scanned)} 筆，裁成白名單 ${nt(r.trimmed)} 筆、遮蔽數字 ${nt(r.masked)} 筆（共改 ${nt(r.changed)} 筆）`; return; }
+        m.className = 'msg bad'; m.textContent = r && r._s === 404 ? '會員系統還沒更新（Worker 尚未部署）' : '沒有處理成功';
+      };
+    };
     box.querySelector('#pbSave').onclick = () => {
       const body = { bank_name: box.querySelector('#pbName').value.trim(), bank_code: box.querySelector('#pbCode').value.trim(), account: box.querySelector('#pbAcct').value.trim(), holder: box.querySelector('#pbHolder').value.trim() };
       const dl = T().dialog(`<div class="payd"><h3>儲存收款帳號？</h3><div class="kv"><span>銀行</span><b>${esc(body.bank_name)}（${esc(body.bank_code)}）</b><span>帳號</span><b>${esc(body.account)}</b><span>戶名</span><b>${esc(body.holder)}</b></div>

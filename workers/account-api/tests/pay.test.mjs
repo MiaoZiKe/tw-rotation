@@ -1004,3 +1004,43 @@ test('稽核：綠界回傳／通知驗章失敗時，事件紀錄只留白名�
   assert.ok(ev.includes('MerchantTradeNo') && ev.includes('299'), ev);
   for (const w of ['card6no', 'card4no', '411111', '1111', 'CardNumber', 'Extra']) assert.ok(!ev.includes(w), w + ' 不該出現在事件紀錄：' + ev);
 });
+
+test('清理舊事件紀錄（管理者按鈕才執行）：綠界原文裁成白名單、純文字裡的 13～19 碼遮掉；JSON 結構事件不動；冪等；非管理者 403；要帶 confirm', async () => {
+  const { hub, db, bob, andy } = await setup();
+  await ecCreate(hub, bob);   // 讓 pay_events 表存在
+  const ins = db.prepare('INSERT INTO pay_events (at, oid, kind, detail) VALUES (?, ?, ?, ?)');
+  const old = [
+    [111, 'A1', 'notify_badmac', JSON.stringify({ MerchantTradeNo: 'A1', RtnCode: '1', TradeNo: '2610161234567890123', card6no: '411111', card4no: '1111', CardNumber: '4111111111111111' }).slice(0, 300)],
+    [112, 'A2', 'query_badmac', 'MerchantTradeNo=A2&TradeStatus=1&card6no=411111&card4no=2222&TradeAmt=299'],
+    [113, 'A3', 'doaction_N', 'RtnCode=1&RtnMsg=OK&CardNo=4111111111111111'],
+    [114, 'A4', 'credit_query', '已授權'],
+    [115, 'A5', 'credit_query', '4111 1111 1111 1111 殘留'],
+    [116, 'A6', 'plan_conflict', JSON.stringify({ cur: 'plus', exp: 1760000000000 })],
+    [117, 'A7', 'create', JSON.stringify({ recur: true, amount: 299 })],
+    [118, 'A8', 'note_text', '備註 4111111111111111 其他'],
+  ];
+  for (const r of old) ins.run(...r);
+  const snap = () => db.prepare("SELECT id, at, oid, kind, detail FROM pay_events WHERE oid LIKE 'A%' ORDER BY id").all();
+  const before = snap();
+  assert.equal((await pj(hub, '/v1/admin/pay/events/clean', { t: bob, confirm: true })).s, 403, '一般會員不能清');
+  assert.equal((await pj(hub, '/v1/admin/pay/events/clean', { t: andy })).s, 400, '沒帶 confirm 不執行');
+  assert.deepEqual(snap(), before, '前兩步沒動任何資料');
+  const r1 = await pj(hub, '/v1/admin/pay/events/clean', { t: andy, confirm: true });
+  assert.equal(r1.s, 200);
+  assert.deepEqual([r1.j.trimmed, r1.j.masked], [3, 2], JSON.stringify(r1.j));
+  const after = snap();
+  const by = (o) => after.find((x) => x.oid === o);
+  assert.equal(by('A1').detail, JSON.stringify({ MerchantTradeNo: 'A1', RtnCode: '1', TradeNo: '2610161234567890123' }), '只留白名單欄位，TradeNo（19 位數字）照留');
+  assert.ok(!/card|2222/.test(by('A2').detail) && by('A2').detail.includes('A2') && by('A2').detail.includes('299'));
+  assert.ok(!by('A3').detail.includes('4111') && by('A3').detail.includes('RtnCode'));
+  assert.equal(by('A4').detail, '已授權', '只是狀態字的 credit_query 不動');
+  assert.equal(by('A5').detail, '[已遮蔽] 殘留');
+  assert.equal(by('A8').detail, '備註 [已遮蔽] 其他');
+  assert.equal(by('A6').detail, before.find((x) => x.oid === 'A6').detail, '毫秒時間戳（13 位數字）的 JSON 事件不能被誤遮');
+  assert.equal(by('A7').detail, before.find((x) => x.oid === 'A7').detail);
+  for (let i = 0; i < before.length; i++) assert.deepEqual([after[i].id, after[i].at, after[i].oid, after[i].kind], [before[i].id, before[i].at, before[i].oid, before[i].kind], '只動 detail，其他欄位不變');
+  const r2 = await pj(hub, '/v1/admin/pay/events/clean', { t: andy, confirm: true });
+  assert.equal(r2.j.changed, 0, '冪等：第二次一筆都不改');
+  assert.deepEqual(snap(), after);
+  assert.ok(db.prepare("SELECT 1 FROM pay_events WHERE kind = 'events_clean'").get(), '留一筆操作紀錄');
+});

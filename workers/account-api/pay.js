@@ -150,18 +150,27 @@ export function installPay(Hub, H) {
   };
   /* 綠界回傳／通知的原文只留白名單欄位（交易編號、金額、狀態、時間），其餘（含 NeedExtraPaidInfo=Y 時會帶的 card6no／card4no 等持卡人資訊）一律丟掉 */
   const EV_KEEP = /^(MerchantTradeNo|TradeNo|RtnCode|RtnMsg|TradeAmt|TradeStatus|PaymentType|PaymentDate|TradeDate|PeriodType|Frequency|ExecTimes|PeriodAmount|ExecStatus|TotalSuccessTimes|TotalSuccessAmount|amount|gwsr|process_date|SimulatePaid)$/;
+  /* 舊版會把綠界原文整段寫進來的事件種類 */
+  const PAY_RAW_EV = /^(notify_badmac|query_badmac|period_query_bad|period_cancel|doaction_.*|credit_query)$/;
+  const EV_NUM_OK = /^(TradeNo|gwsr|process_date|TradeDate|PaymentDate|MerchantTradeNo)$/;
+  const CARD_RUN = /\d(?:[ -]?\d){12,18}/g;
   const evSafe = (src) => {
     let o = null;
     if (src && typeof src === 'object') o = src;
     else { const t = String(src == null ? '' : src); try { o = JSON.parse(t); } catch (e) { o = null; } if (!o || typeof o !== 'object') { try { o = Object.fromEntries(new URLSearchParams(t)); } catch (e) { o = null; } } }
     if (!o) return '(格式無法解析，未記錄)';
     const out = {};
-    for (const k of Object.keys(o)) if (EV_KEEP.test(k) && (typeof o[k] === 'string' || typeof o[k] === 'number')) out[k] = String(o[k]).slice(0, 80);
+    for (const k of Object.keys(o)) {
+      if (!EV_KEEP.test(k) || !(typeof o[k] === 'string' || typeof o[k] === 'number')) continue;
+      /* 交易編號（TradeNo 是 20 位數字）、時間欄位照留；其餘值若出現 13～19 碼連續數字一律遮掉 */
+      out[k] = EV_NUM_OK.test(k) ? String(o[k]).slice(0, 80) : String(o[k]).replace(CARD_RUN, '[已遮蔽]').slice(0, 80);
+    }
     return JSON.stringify(out);
   };
   Hub.prototype.payEv = function (oid, kind, detail) {
-    /* 2026-10-16 稽核：事件紀錄不留卡號資訊。最後一道關卡：連續 13～19 位數字一律遮成 [已遮蔽]（各呼叫處另用 evSafe 只留白名單欄位） */
-    this.q('INSERT INTO pay_events (at, oid, kind, detail) VALUES (?, ?, ?, ?)', this.now(), oid || '', kind, String(typeof detail === 'string' ? detail : JSON.stringify(detail || {})).replace(/\d(?:[ -]?\d){12,18}/g, '[已遮蔽]').slice(0, 1500));
+    /* 2026-10-16 稽核：事件紀錄不留卡號資訊。綠界回傳／通知的原文一律先經 evSafe 只留白名單欄位；
+       這裡不再對全部事件遮 13 碼數字（毫秒時間戳、交易編號本來就是 13～20 位數字，會誤遮） */
+    this.q('INSERT INTO pay_events (at, oid, kind, detail) VALUES (?, ?, ?, ?)', this.now(), oid || '', kind, String(typeof detail === 'string' ? detail : JSON.stringify(detail || {})).slice(0, 1500));
   };
   /* 個人帳務通知：同一件事（ref）只通知一次。站內鈴鐺一定有；設了 Resend 才另外寄 email（排程每 10 分鐘送出）*/
   Hub.prototype.payTell = function (email, title, body, ref) {
@@ -919,7 +928,7 @@ export function installPay(Hub, H) {
       const reqs = this.q("SELECT s.id, s.type, s.email, s.plan, s.note, s.created, s.status, s.close_reason AS closeReason, s.closed_at AS closedAt, s.closed_by AS closedBy, s.pinned, u.name FROM sub_requests s LEFT JOIN users u ON u.uid = s.uid WHERE s.type IN ('cancel', 'refund') ORDER BY s.created DESC LIMIT 500")
         .map((r) => ({ ...r, oid: r.type === 'refund' ? this.payRefundTarget(r.email) : '' }));
       /* 稽核（第 4 條）：管理者與規則自動做的每個動作（誰、何時、做了什麼、前後狀態）*/
-      const AUD = ['confirm', 'reject', 'ack', 'amount', 'note', 'reactivate', 'refund', 'purge', 'req_set', 'req_close', 'req_refunded', 'superseded', 'period_cancel_admin', 'bank_put'];
+      const AUD = ['confirm', 'reject', 'ack', 'amount', 'note', 'reactivate', 'refund', 'purge', 'req_set', 'req_close', 'req_refunded', 'superseded', 'period_cancel_admin', 'bank_put', 'events_clean'];
       const audit = this.q(`SELECT id, at, oid, kind, detail FROM pay_events WHERE kind IN (${AUD.map(() => '?').join(',')}) ORDER BY id DESC LIMIT 2000`, ...AUD)
         .map((e) => { let d = {}; try { d = JSON.parse(e.detail); } catch (x) { d = {}; } return { id: e.id, at: e.at, oid: e.oid, kind: e.kind, by: d.by || '', from: d.from || '', to: d.to || '', email: d.email || '', detail: d }; });
       return this.json(req, { now, reqs, orders, refunds, subs, anomalies, expiring, events, audit, bank: this.payBank(), test: this.ecCfg().test, status: PAY_STATUS });
@@ -1158,6 +1167,26 @@ export function installPay(Hub, H) {
       this.payAudit(String(b.id || ''), 'period_cancel_admin', v.user.email, '', r.ok ? 'cancelled' : 'failed', { msg: r.msg || r.error || '' });
       return r.ok ? this.json(req, { ok: true }) : this.json(req, { error: r.error, msg: r.msg || '' }, 502);
     },
+    /* 2026-10-16 清理舊付款事件紀錄（Andy 同意）：以前驗章失敗時把綠界通知／回傳原文前 300 字寫進 pay_events，
+       NeedExtraPaidInfo=Y 的通知帶 card6no／card4no。這個操作把「綠界原文類」事件（kind 見 PAY_RAW_EV）裁成白名單欄位、
+       其餘事件裡不是 JSON 的純文字再把 13～19 碼連續數字遮成 [已遮蔽]；JSON 結構的事件（時間戳、金額）一律不動。
+       只有管理者、要帶 confirm:true、不會自動執行；冪等（做第二次一筆都不改）。 */
+    '/v1/admin/pay/events/clean': async function (req, b) {
+      const v = await this.admin(req, b); if (!v) return this.json(req, { error: 'forbidden' }, 403);
+      if (b.confirm !== true) return this.json(req, { error: 'need_confirm' }, 400);
+      this.payInit();
+      let scanned = 0, trimmed = 0, masked = 0;
+      for (const r of this.q('SELECT id, kind, detail FROM pay_events')) {
+        scanned++;
+        const d = String(r.detail == null ? '' : r.detail);
+        let nd = d, how = '';
+        if (PAY_RAW_EV.test(r.kind) && (r.kind !== 'credit_query' || /[={]/.test(d))) { nd = evSafe(d); how = 'trim'; }   // credit_query 有時只是一個狀態字，沒有 = 或 { 的就只走遮蔽
+        else if (!/^\s*[\[{]/.test(d)) { nd = d.replace(CARD_RUN, '[已遮蔽]'); how = 'mask'; }
+        if (nd !== d) { this.q('UPDATE pay_events SET detail = ? WHERE id = ?', nd, r.id); if (how === 'trim') trimmed++; else masked++; }
+      }
+      this.payAudit('', 'events_clean', v.user.email, '', '', { scanned, trimmed, masked });
+      return this.json(req, { ok: true, scanned, trimmed, masked, changed: trimmed + masked });
+    },
     '/v1/admin/pay/bank/get': async function (req, b) {
       if (!(await this.admin(req, b))) return this.json(req, { error: 'forbidden' }, 403);
       return this.json(req, { bank: this.payBank() });
@@ -1306,5 +1335,5 @@ export function installPay(Hub, H) {
   });
   const payOrigExpInit = Hub.prototype.expInit;
   Hub.prototype.expInit = function () { payOrigExpInit.call(this); this.payInit(); };
-  for (const t of ['orders', 'refunds', 'plan_events', 'pay_events']) if (!EXPORT_TABLES.includes(t)) EXPORT_TABLES.push(t);
+  for (const t of ['orders', 'refunds', 'plan_events', 'pay_events', 'gender_counts']) if (!EXPORT_TABLES.includes(t)) EXPORT_TABLES.push(t);
 }
