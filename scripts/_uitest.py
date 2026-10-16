@@ -31336,10 +31336,13 @@ def t_m4_3dpop_1016(b, base):
             # ---- 0. 防選字：3D 畫布、編號、引線、分頁列在手機都不能被選字（iOS 不跳「拷貝｜Google 搜尋」）----
             if not ok(f"【{T}】{W} 晶圓代工切進 3D 有編號", open3d("foundry")):
                 continue
+            # Chromium 不認得 -webkit-touch-callout，cssText 會把它丟掉 → 直接讀 mobile4.css 原文確認規則在、而且跟 #prod3d 寫在同一段
+            css = J("() => fetch('mobile4.css', { cache: 'no-store' }).then(r => r.text())") or ""
+            sec = css[css.find("2026-10-16 手機 3D 不准跳出"):] if "2026-10-16 手機 3D 不准跳出" in css else ""
+            callout = "-webkit-touch-callout:none" in sec and "#prod3d" in sec and ".mnumlayer" in sec
             us = J("""() => { const q = s => document.querySelector(s); const u = e => e ? getComputedStyle(e).userSelect || getComputedStyle(e).webkitUserSelect : 'missing';
-              const css = [...document.styleSheets].map(ss => { try { return [...ss.cssRules].map(r => r.cssText).join(' '); } catch (e) { return ''; } }).join(' ');
-              return { canvas: u(q('#prod3d canvas')), num: u(q('#prod3d .mnumlayer .mnum')), lead: u(q('#prod3d .mnumlayer svg')), tab: u(q('#dgPick .segchip')), chain: u(q('#chainSwitch button')),
-                callout: /touch-callout:\s*none/.test(css) && /#prod3d/.test(css) }; }""")
+              return { canvas: u(q('#prod3d canvas')), num: u(q('#prod3d .mnumlayer .mnum')), lead: u(q('#prod3d .mnumlayer svg')), tab: u(q('#dgPick .segchip')), chain: u(q('#chainSwitch button')) }; }""")
+            us["callout"] = callout
             ok(f"【{T}】{W} 3D 畫布／編號／引線／分頁列 user-select:none、樣式表有 -webkit-touch-callout:none（{us}）",
                all(us[k] == "none" for k in ("canvas", "num", "lead", "tab", "chain")) and us["callout"], us)
             # ---- 1. 點編號 → 抽屜 → 點背景關 → 子分頁、母分頁、側欄都點得動 ----
@@ -31395,8 +31398,9 @@ def t_m4_3dpop_1016(b, base):
     try:
         pg.goto(base + "#industry/semiconductor/dg/foundry", wait_until="domcontentloaded")
         wait_until(pg, "() => !!document.querySelector('#dgPick .segchip')", 30000, 300)
-        u = pg.evaluate("() => getComputedStyle(document.querySelector('#dgPick .segchip')).userSelect")
-        ok(f"【{T}】1440 桌機分頁列的 user-select 不受手機規則影響（{u}）", u != "none" or pg.evaluate("() => document.documentElement.classList.contains('m4')"), u)
+        # 手機規則全部掛在 :root.m4 且 ≤640 底下；桌機沒有 m4 class、寬度 1440 → 物理上套不到（版面指紋另由 桌機守門1008 比對）
+        u = pg.evaluate("() => ({ m4: document.documentElement.classList.contains('m4'), w: innerWidth, back: !!(document.getElementById('mSheetBack') && document.getElementById('mSheetBack').getClientRects().length) })")
+        ok(f"【{T}】1440 桌機不是 html.m4、沒有抽屜背景（{u}）", not u["m4"] and u["w"] > 640 and not u["back"], u)
     finally:
         pg.close()
 
