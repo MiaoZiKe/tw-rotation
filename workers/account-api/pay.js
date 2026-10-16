@@ -57,6 +57,30 @@ const PAY_SWEEP_DAYS = 3;                // 排程：3 天內還沒開通的綠�
 const PAY_PERIOD_SYNC_MS = 6 * 3600 * 1000;   // 定期定額對帳：每筆最多 6 小時查一次
 const PAY_RENEW_DAYS = 7;                // 轉帳會員：到期前 7 天與 1 天提醒
 export const PAY_STATUS = { pending: '待付款', review: '待確認', paid: '已入帳', active: '已開通', failed: '失敗', rejected: '已退回', expired: '已逾期', refunded: '已退款', cancelled: '已取消（未付款）', superseded: '已被取代' };
+/* 2026-10-16 Andy：結帳要填姓名＋性別（男／女），性別納入男女用量比例統計。
+   GENDER_REQUIRED 是「性別要不要必填」的唯一開關（Andy 10-16：先必填；法遵意見若要求改選填就改這個 false，
+   前端 site/checkout.js 開頭有同名常數，兩邊一起改）。只有新版結帳表單（form >= 2）才檢查必填：
+   瀏覽器快取裡的舊版網頁不會送這些欄位，先部署 Worker 時不能讓它們結帳失敗。 */
+export const GENDERS = ['male', 'female'];
+export const GENDER_REQUIRED = true;
+export const PAY_FORM_VERSION = 2;
+/* 驗結帳表單的個人欄位：回 { name, gender, last5 } 或 { error }。
+   · 末 5 碼＝銀行轉帳對帳用的轉出帳號末 5 碼，只收 5 個數字（綠界分頁選填）；絕不收信用卡卡號任何位數。 */
+export function payProfile(b, subClean, opt) {
+  const o = opt || {};
+  const strict = Number(b.form) >= PAY_FORM_VERSION;
+  const name = subClean(b.name, 40);
+  const gender = b.gender == null || b.gender === '' ? '' : String(b.gender);
+  if (gender && !GENDERS.includes(gender)) return { error: 'bad_gender' };
+  if (strict && !name) return { error: 'need_name' };
+  if (strict && GENDER_REQUIRED && !gender) return { error: 'need_gender' };
+  let last5 = '';
+  if (o.last5 && b.last5 != null && String(b.last5).trim() !== '') {
+    last5 = String(b.last5).trim();
+    if (!/^\d{5}$/.test(last5)) return { error: 'bad_last5' };
+  }
+  return { name, gender, last5 };
+}
 const ID_RE = /^LG[0-9A-Z]{10,18}(P\d{1,3})?$/;
 const DAY = 86400 * 1000;
 
@@ -99,6 +123,11 @@ export function installPay(Hub, H) {
     if (!cols.has('reports')) this.q('ALTER TABLE orders ADD COLUMN reports TEXT');
     /* 2026-10-16 Andy：「需要多一個客戶填姓名的欄位，強制要求填寫」→ 匯款人姓名 */
     if (!cols.has('payer_name')) this.q('ALTER TABLE orders ADD COLUMN payer_name TEXT');
+    /* 2026-10-16 Andy：結帳加性別；綠界分頁的姓名放 payer_name、選填末 5 碼放 payer_last5（不用 from_last5：那欄有「已回報匯款」的意思，很多判斷靠它）*/
+    if (!cols.has('gender')) this.q('ALTER TABLE orders ADD COLUMN gender TEXT');
+    if (!cols.has('payer_last5')) this.q('ALTER TABLE orders ADD COLUMN payer_last5 TEXT');
+    /* 會員性別（男女用量比例統計用；只有管理者端點讀得到，只輸出彙總人數）*/
+    if (!this.q('PRAGMA table_info(users)').some((c) => c.name === 'gender')) this.q('ALTER TABLE users ADD COLUMN gender TEXT');
     /* 2026-10-12 Andy：「使用者升級以及退款這類重大資訊都需要給他們通知」→ 個人帳務通知（站內鈴鐺）＋選用 email 佇列 */
     this.q('CREATE TABLE IF NOT EXISTS user_notices (id TEXT PRIMARY KEY, email TEXT, title TEXT, body TEXT, ref TEXT, created INTEGER, read_at INTEGER)');
     this.q('CREATE INDEX IF NOT EXISTS user_notices_em ON user_notices (email, created)');
@@ -316,6 +345,24 @@ export function installPay(Hub, H) {
     return 'LG' + s + Array.from(r, (x) => A[x % A.length]).join('');   // 18 碼英數（綠界 MerchantTradeNo 上限 20）
   };
   Hub.prototype.payOrder = function (id) { return this.q('SELECT * FROM orders WHERE id = ?', String(id || ''))[0] || null; };
+  /* 會員性別：結帳填了就記在 users（統計用）；沒填不蓋掉以前填過的 */
+  Hub.prototype.payRememberGender = function (uid, gender) {
+    if (GENDERS.includes(gender)) this.q('UPDATE users SET gender = ? WHERE uid = ?', gender, uid);
+  };
+  /* 男女用量比例：只回彙總人數（男／女／未填），不回任何個別會員的性別。未填＝沒填過（含舊會員）。 */
+  Hub.prototype.payGenderStats = function () {
+    this.payInit();
+    const r = this.q("SELECT COALESCE(SUM(gender = 'male'), 0) AS male, COALESCE(SUM(gender = 'female'), 0) AS female, COUNT(*) AS total FROM users")[0];
+    return { male: r.male, female: r.female, unset: r.total - r.male - r.female, total: r.total };
+  };
+  const payOrigAdminStats = Hub.prototype.adminStats;
+  Hub.prototype.adminStats = async function (req, b) {
+    const res = await payOrigAdminStats.call(this, req, b);
+    if (res.status !== 200) return res;
+    const j = await res.json();
+    j.gender = this.payGenderStats();
+    return this.json(req, j);
+  };
   Hub.prototype.paySet = function (id, set) {
     const ks = Object.keys(set); if (!ks.length) return;
     this.q(`UPDATE orders SET ${ks.map((k) => k + ' = ?').join(', ')}, updated = ? WHERE id = ?`, ...ks.map((k) => set[k]), this.now(), id);
@@ -548,7 +595,7 @@ export function installPay(Hub, H) {
     created: o.created, paidAt: o.paid_at || 0, confirmedAt: o.confirmed_at || 0, cancelAt: o.cancel_at || 0,
     refunds: (refunds || []).filter((r) => r.oid === o.id && r.status === 'done').map((r) => ({ amount: r.amount, at: r.done_at || r.created, kind: r.kind })),
   });
-  const admOrder = (o, refunds, names) => ({ ...pubOrder(o, refunds), email: o.email, name: (names && names[o.uid]) || '', adminNote: o.admin_note || '', actSrc: o.act_src || '',
+  const admOrder = (o, refunds, names) => ({ ...pubOrder(o, refunds), email: o.email, name: (names && names[o.uid]) || '', gender: o.gender || '', payerLast5: o.payer_last5 || '', adminNote: o.admin_note || '', actSrc: o.act_src || '',
     actErr: o.act_err || '', anomaly: o.anomaly || '', tradeNo: o.trade_no || '', gwsr: o.gwsr || '', rtnMsg: o.rtn_msg || '', applied: !!o.applied,
     refundRows: (refunds || []).filter((r) => r.oid === o.id) });
 
@@ -713,6 +760,8 @@ export function installPay(Hub, H) {
       const back = backOk(this, b.back);
       if (!back) return this.json(req, { error: 'bad_back' }, 400);
       const recur = b.recur === true;
+      const prof = payProfile(b, subClean, { last5: true });
+      if (prof.error) return this.json(req, { error: prof.error }, 400);
       const c = this.ecCfg(), id = this.payNewId(), now = this.now();
       /* 同一個會員重新點結帳：舊的未付款綠界單作廢，不讓它一直累積（綠界的 MerchantTradeNo 送出過就不能重用，所以是建新單）。
          已經取號（ATM 帳號／超商代碼）的留著，等 3 天排程；作廢的單如果之後綠界才通知付款成功，照樣開通＋列異常。 */
@@ -730,6 +779,8 @@ export function installPay(Hub, H) {
       if (recur) Object.assign(f, { PeriodAmount: String(pr.amount), PeriodType: period === 'year' ? 'Y' : 'M', Frequency: '1', ExecTimes: period === 'year' ? '9' : '99', PeriodReturnURL: api + '/v1/pay/ecpay/period' });
       else f.PaymentInfoURL = api + '/v1/pay/ecpay/notify';
       f.CheckMacValue = await ecpayMac(f, c.key, c.iv);
+      this.paySet(id, { payer_name: prof.name, gender: prof.gender, payer_last5: prof.last5 });
+      this.payRememberGender(v.user.uid, prof.gender);
       this.payEv(id, 'create', { recur, amount: pr.amount });
       return this.json(req, { ok: true, id, amount: pr.amount, test: c.test, action: c.host + '/Cashier/AioCheckOut/V5', fields: f });
     },
@@ -768,6 +819,8 @@ export function installPay(Hub, H) {
       if (hiRev) return this.json(req, { error: 'pending_review', msg: `你有一筆「${hiRev.plan_name}・${perName(hiRev.period)}」待審核中，審核完成前只能送出更高級別方案的匯款資料。` }, 409);
       const name = subClean(b.name, 40);
       if (!name) return this.json(req, { error: 'need_name' }, 400);
+      const prof = payProfile(b, subClean);
+      if (prof.error) return this.json(req, { error: prof.error }, 400);
       const last5 = String(b.last5 || '').trim(), date = String(b.date || '').trim();
       if (!/^\d{5}$/.test(last5)) return this.json(req, { error: 'bad_last5' }, 400);
       if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || Date.parse(date + 'T00:00:00+08:00') > this.now() + DAY || Date.parse(date + 'T00:00:00+08:00') < o.created - 2 * DAY) return this.json(req, { error: 'bad_date' }, 400);
@@ -776,7 +829,8 @@ export function installPay(Hub, H) {
       let hist = []; try { hist = JSON.parse(o.reports || '[]'); if (!Array.isArray(hist)) hist = []; } catch (e) { hist = []; }
       const at = this.now();
       hist.push({ at, name, last5, date, amount: amt, state: 'active' });
-      this.paySet(o.id, { status: 'review', payer_name: name, from_last5: last5, xfer_date: date, xfer_amount: amt, note: '', reports: JSON.stringify(hist) });
+      this.payRememberGender(v.user.uid, prof.gender);
+      this.paySet(o.id, { status: 'review', payer_name: name, gender: prof.gender, from_last5: last5, xfer_date: date, xfer_amount: amt, note: '', reports: JSON.stringify(hist) });
       this.payEv(o.id, 'report', { name, last5, date, amt });
       /* 10-16：送出匯款資料＝新訂單事件 → 同一個 email 比它舊的待確認轉帳標「已被取代」、待處理的取消／退款申請自動結案 */
       this.payReconcile(o.email);
