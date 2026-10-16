@@ -34611,6 +34611,8 @@ def t_etf_amt_1016(b, base):
 
 
 SECTIONS = {
+    # ★ 2026-10-16 Andy：管理區「社群選題」（僅管理者）—— 勾選→預填 GitHub Issue 連結內容→重新整理保留→產主題設定 JSON；非管理者看不到；手機 390 一屏可勾（⚠ --workers 1）
+    "社群選題1016":        lambda pg, b, base, code: t_social_1016(b, base),
     # ★ 2026-10-16 Andy（iPhone）：「ETF 功能 BUG 為何自訂點選沒任何反應…年領 切到 月領 再切到 年領 系統出問題」—— 360／390／430 抽屜裡年月切五次金額組都在、自訂原地輸入 3 重算、各記各的、重整記住；1440 不變
     "ETF月配金額1016":     lambda pg, b, base, code: t_etf_amt_1016(b, base),
     # ★ 2026-10-16 Andy（iPhone）：「圖四將最上方功能配置在每個組合裡面，只有手機版本要這樣」—— 360／390／430：每個分頁自己的條件鈕＋抽屜、互不影響、重整記住、參數鎖照舊；1440 不變
@@ -73028,6 +73030,251 @@ def t_articles_1014(b, base):
     st = gp.evaluate("() => ({ t: (document.querySelector('#v-subadm .artadm') || {}).textContent || '', rows: document.querySelectorAll('#artAdmList tr[data-id]').length })")
     ok(f"{T}：沒登入（非管理者）打開 #admin/articles → 只寫「只有管理者看得到」、沒有文章清單", "只有管理者" in st["t"] and st["rows"] == 0, st)
     gc.close()
+
+
+# ===================================================================== 社群選題1016（site/socialpick.js；Andy 2026-10-16）
+# Andy：「僅管理者可見…讓我在網站上選擇今日要產的主題」「該頁面需要新增產主題功能，我可以挑類型產…生產的時間、日期、頻率、類型我可以上面直接設定」
+# 真人操作（每一步都驗畫面或連結內容真的變了）：
+#   ① 桌機 1440 管理者：側欄「社群選題」亮著、範例標籤、6 張卡每張有 圖表/查證/⚠/預估產出；勾 D1016-1、D1016-3 → 計數 2、「送出選擇」連結的 title／labels／body／註解 JSON 都對
+#   ② 取消勾 → 連結跟著變；重新整理仍保留（localStorage）；類型篩選、全選這一頁、全部取消；展開細節（三點／圖片／查證／⚠）；點「送出」真的開 GitHub 新分頁；複製指令
+#   ③ 產主題設定：改項數、取消類型、加時段、選自訂星期、只跑一次＋日期 → 畫面 JSON 與兩顆連結（social-schedule、JSON 區塊）正確；立刻產一份 → run_now；全 0 → 兩顆都停用；重新整理仍保留
+#   ④ 非管理者（註冊會員、訪客）：打網址只看到「只有管理者看得到」、側欄沒有入口、沒有題目
+#   ⑤ 清單讀不到（404）／空清單 → 空狀態寫原因
+#   ⑥ 手機 390（觸控）：沒有橫向捲軸、6 題一屏可勾（列底 ≤ 螢幕高）、勾選區 ≥ 32px、字 ≥ 11px、點卡展開、設定表單不溢出、抽屜有入口
+def t_social_1016(b, base):
+    import urllib.parse as _up
+    T = "社群選題1016"
+    GH = "https://github.com/MiaoZiKe/tw-rotation/issues/new"
+    shots = Path(os.environ["TW_SOC_SHOTS"]) if os.environ.get("TW_SOC_SHOTS") else None
+    gh_hits = []
+
+    def parse(u):
+        p = _up.urlparse(u)
+        q = _up.parse_qs(p.query, keep_blank_values=True)
+        return p.scheme + "://" + p.netloc + p.path, {k: v[0] for k, v in q.items()}
+
+    def fake_gh(r):
+        gh_hits.append(r.request.url)
+        r.fulfill(status=200, content_type="text/html", body="<title>gh</title>fake github")
+
+    def new_page(ctx):
+        ctx.route("https://github.com/**", fake_gh)
+        p = ctx.new_page()
+        p.goto(base + "#admin/social", wait_until="domcontentloaded")
+        return p
+
+    JS_ST = """() => { const V = (e) => !!e && e.getClientRects().length > 0; const A = document.getElementById('spkSend');
+        return { n: document.getElementById('spkN') ? document.getElementById('spkN').textContent : null, href: A ? (A.getAttribute('href') || '') : null, dis: A ? A.getAttribute('aria-disabled') : null,
+                 items: [...document.querySelectorAll('#spkList .it')].filter(V).map(e => e.dataset.id), on: [...document.querySelectorAll('#spkList .it.on')].map(e => e.dataset.id) }; }"""
+    st = lambda pg: pg.evaluate(JS_ST)
+    sch = lambda pg: pg.evaluate("""() => ({ json: (() => { try { return JSON.parse(document.getElementById('spkJson').textContent); } catch (e) { return null; } })(), sum: document.getElementById('spkSum').textContent,
+        why: document.getElementById('spkWhy').textContent, save: document.getElementById('spkSave').getAttribute('href'), now: document.getElementById('spkNow').getAttribute('href'),
+        sd: document.getElementById('spkSave').getAttribute('aria-disabled'), nd: document.getElementById('spkNow').getAttribute('aria-disabled') })""")
+    strip = lambda j: {k: v for k, v in (j or {}).items() if k != "created"}
+
+    # ---------------------------------------------------------------- ① 桌機管理者
+    ac, _ = _acctm4_ctx(b, "admin", desk=True)
+    ac.grant_permissions(["clipboard-read", "clipboard-write"], origin=re.match(r"https?://[^/]+", base).group(0))
+    ap = new_page(ac)
+    wait_until(ap, "() => document.querySelectorAll('#spkList .it').length > 0", 15000); ap.wait_for_timeout(400)
+    d = ap.evaluate("""() => { const V = (e) => !!e && e.getClientRects().length > 0;
+        return { side: !!document.querySelector('.l4subtab[data-adm=social].on'), sideT: (document.querySelector('.l4subtab[data-adm=social]') || {}).textContent || '', ex: V(document.getElementById('spkExB')),
+          exw: V(document.getElementById('spkEx')), hash: location.hash, view: (document.querySelector('main .view.on') || {}).id,
+          rows: [...document.querySelectorAll('#spkList .it')].map(e => ({ id: e.dataset.id, kind: e.dataset.kind, chips: [...e.querySelectorAll('.mt .ch')].map(c => c.textContent.trim()), wc: (e.querySelector('.wc') || {}).textContent || '', det: !e.querySelector('.det').hidden })),
+          tabs: [...document.querySelectorAll('#spkKinds button')].map(b => b.textContent.trim()) }; }""")
+    ok(f"{T}：管理者打開 #admin/social → 側欄「社群選題」是目前這格、顯示在管理區頁面", d["side"] and "社群選題" in d["sideT"] and d["view"] == "v-subadm", d)
+    ok(f"{T}：標「範例」標籤與範例提醒（menu_latest.json 是範例資料）", d["ex"] and d["exw"], d)
+    ok(f"{T}：6 張題目卡，每張有 圖表有/無、查證狀態、預估產出，並預設全部收起", len(d["rows"]) == 6 and all(len(r["chips"]) >= 3 and r["chips"][0].startswith("圖表：") and not r["det"] for r in d["rows"]), d["rows"])
+    ok(f"{T}：有 ⚠ 法遵紅旗的題目標 ⚠（D1016-2、D1016-4、D1016-6）、類型分頁＝全部 6／最新消息 2／產業延伸 2／精選文章 1／總經名詞 1",
+       sorted(r["id"] for r in d["rows"] if any(c.startswith("⚠") for c in r["chips"])) == ["D1016-2", "D1016-4", "D1016-6"]
+       and [t.replace("\n", "") for t in d["tabs"]] == ["全部6", "最新消息2", "產業延伸2", "精選文章1", "總經名詞1"], d)
+    s0 = st(ap)
+    ok(f"{T}：還沒勾 → 計數 0、「送出選擇」停用（沒有 href）", s0["n"] == "0" and not s0["href"] and s0["dis"] == "true", s0)
+    ap.check("#spkList input[data-pick='D1016-1']"); ap.wait_for_timeout(120)
+    ap.check("#spkList input[data-pick='D1016-3']"); ap.wait_for_timeout(150)
+    s1 = st(ap)
+    url, q = parse(s1["href"] or "")
+    cm = re.search(r"<!-- social-pick (\{.*?\}) -->", q.get("body", ""))
+    pj = json.loads(cm.group(1)) if cm else {}
+    ok(f"{T}：勾 D1016-1、D1016-3 → 計數 2、兩張卡反白、連結 repo／title／labels 正確",
+       s1["n"] == "2" and s1["on"] == ["D1016-1", "D1016-3"] and url == GH and q.get("title") == "每日選題勾選 2026-10-16" and q.get("labels") == "social-pick" and not s1["dis"], [s1, url, q.get("title"), q.get("labels")])
+    body = q.get("body", "")
+    ok(f"{T}：連結 body 列出被勾編號與題目、沒勾的不在、機器讀註解 JSON＝date＋picked",
+       "日期：2026-10-16" in body and "被勾 2 項（共 6 項）" in body and "- [x] D1016-1｜最新消息｜【範例】外資連三買" in body and "- [x] D1016-3｜產業延伸｜【範例】CoWoS" in body
+       and "D1016-2" not in body.split("<!--")[0] and pj == {"date": "2026-10-16", "picked": ["D1016-1", "D1016-3"]}, body)
+    pv = ap.evaluate("() => document.getElementById('spkPrev').textContent")
+    ok(f"{T}：「送出內容預覽」跟連結同一份內容（標題、標籤、被勾題目）", "每日選題勾選 2026-10-16" in pv and "social-pick" in pv and "D1016-3" in pv, pv)
+    ap.uncheck("#spkList input[data-pick='D1016-3']"); ap.wait_for_timeout(150)
+    s2 = st(ap); q2 = parse(s2["href"] or "")[1]
+    ok(f"{T}：取消勾 D1016-3 → 計數 1、連結 body 跟著變（不再有 D1016-3、被勾 1 項）", s2["n"] == "1" and s2["on"] == ["D1016-1"] and "D1016-3" not in q2.get("body", "") and "被勾 1 項" in q2.get("body", ""), [s2, q2.get("body")])
+    ap.check("#spkList input[data-pick='D1016-3']"); ap.wait_for_timeout(100)
+    ls = ap.evaluate("() => { try { return JSON.parse(localStorage.getItem('tw.social.pick')); } catch (e) { return 'ERR'; } }")
+    ok(f"{T}：勾選真的寫進 localStorage（tw.social.pick＝日期＋編號）", ls == {"date": "2026-10-16", "ids": ["D1016-1", "D1016-3"]}, ls)
+    ap.reload(wait_until="domcontentloaded")
+    wait_until(ap, "() => document.querySelectorAll('#spkList .it').length > 0", 15000); ap.wait_for_timeout(300)
+    s3 = st(ap)
+    ok(f"{T}：重新整理後仍保留 D1016-1、D1016-3 的勾選、連結還在", s3["on"] == ["D1016-1", "D1016-3"] and s3["n"] == "2" and (s3["href"] or "").startswith(GH), s3)
+    # 類型篩選／全選／全部取消
+    ap.click("#spkKinds button[data-k='產業延伸']"); ap.wait_for_timeout(200)
+    s4 = st(ap)
+    ok(f"{T}：點類型「產業延伸」→ 只剩 2 張（D1016-3、D1016-4）、先前的勾選不丟（仍已勾 2 項）", s4["items"] == ["D1016-3", "D1016-4"] and s4["n"] == "2", s4)
+    ap.click("#spkAll"); ap.wait_for_timeout(200)
+    s5 = st(ap)
+    ok(f"{T}：按「全選這一頁」→ 這一頁 2 張都勾、總計 3 項（D1016-1＋3＋4，連結 body 三題都在）", s5["n"] == "3" and s5["on"] == ["D1016-3", "D1016-4"] and all(x in parse(s5["href"])[1]["body"] for x in ("D1016-1", "D1016-3", "D1016-4")), s5)
+    ap.click("#spkNone"); ap.wait_for_timeout(200)
+    s6 = st(ap)
+    ok(f"{T}：按「全部取消」→ 0 項、連結停用", s6["n"] == "0" and s6["dis"] == "true" and not s6["href"], s6)
+    ap.click("#spkKinds button[data-k='']"); ap.wait_for_timeout(150)
+    ap.check("#spkList input[data-pick='D1016-1']"); ap.check("#spkList input[data-pick='D1016-3']"); ap.wait_for_timeout(150)
+    # 展開細節
+    ap.hover("#spkList .it[data-id='D1016-2']"); ap.wait_for_timeout(100)
+    ap.click("#spkList .it[data-id='D1016-2'] .mn"); ap.wait_for_timeout(200)
+    dt = ap.evaluate("""() => { const e = document.querySelector('#spkList .it[data-id=D1016-2]'), d = e.querySelector('.det'); const V = d.getClientRects().length > 0;
+        return { vis: V, open: e.classList.contains('open'), li: d.querySelectorAll('ol li').length, txt: d.textContent.replace(/\\s+/g, ' '), ex: e.querySelector('.mn').getAttribute('aria-expanded') }; }""")
+    ok(f"{T}：點卡 → 原地展開細節（三點內文、圖表、圖片需補充、查證找誰、預估產出、⚠ 紅旗），不換頁",
+       dt["vis"] and dt["open"] and dt["li"] == 3 and dt["ex"] == "true" and all(x in dt["txt"] for x in ("這次內文會講", "圖表", "圖片需補充", "待查證", "semi-chain-analyst", "輪播 5 張", "點名個股", "涉及預測")) and ap.evaluate("() => location.hash") == "#admin/social", dt)
+    if shots:
+        ap.screenshot(path=str(shots / "desk-picked-hover-1440.png"))
+    ap.click("#spkList .it[data-id='D1016-2'] .chev"); ap.wait_for_timeout(200)
+    ok(f"{T}：再點一次 → 收起", not ap.evaluate("() => document.querySelector('#spkList .it[data-id=D1016-2] .det').getClientRects().length > 0"), None)
+    # 送出：真的開 GitHub 新分頁
+    href = st(ap)["href"]
+    with ac.expect_page() as pi:
+        ap.click("#spkSend")
+    pop = pi.value
+    pop.wait_for_load_state("domcontentloaded")
+    ok(f"{T}：按「送出選擇」→ 新分頁開 GitHub 新 Issue（網址＝連結內容）、原頁還在", pop.url == href and any(h == href for h in gh_hits) and ap.evaluate("() => location.hash") == "#admin/social", [pop.url == href, gh_hits[-1:]])
+    pop.close()
+    ap.click("#spkCopy"); ap.wait_for_timeout(400)
+    clip = ap.evaluate("async () => { try { return await navigator.clipboard.readText(); } catch (e) { return 'ERR ' + e; } }")
+    tt = ap.evaluate("() => (document.getElementById('subToast') || {}).textContent || ''")
+    ok(f"{T}：按「複製指令」→ 剪貼簿是 gh issue create（repo、social-pick、被勾題目）、跳出「已複製指令」",
+       (clip.startswith("gh issue create -R MiaoZiKe/tw-rotation -t ") and "-l social-pick" in clip and "D1016-3" in clip and "D1016-2" not in clip.split("<!--")[0] and "已複製" in tt) or ("已複製" in tt and clip.startswith("ERR")), [clip[:90], tt])
+    # ---------------------------------------------------------------- ③ 產主題設定
+    ap.click("#spkTabs button[data-t='sched']"); ap.wait_for_timeout(300)
+    j0 = sch(ap)
+    lag = ap.evaluate("() => document.getElementById('spkLag').textContent")
+    ok(f"{T}：切「產主題設定」→ 明講「設定會在下一個處理週期（最多數小時）生效，要立刻生效請在對話告訴 CEO」", "下一個處理週期（最多數小時）生效" in lag and "告訴 CEO" in lag, lag)
+    ok(f"{T}：預設 JSON＝每天 21:50、最新消息 2／產業延伸 2／總經名詞 1、action=set_schedule、tz=Asia/Taipei",
+       strip(j0["json"]) == {"version": 1, "action": "set_schedule", "tz": "Asia/Taipei", "kinds": {"最新消息": 2, "產業延伸": 2, "精選文章": 0, "總經名詞": 1}, "times": ["21:50"], "frequency": "daily", "days": [], "date": None}, j0["json"])
+    ap.click("#spkRoot .kr[data-kind='精選文章'] button[data-st='1']"); ap.wait_for_timeout(100)
+    ap.uncheck("#spkRoot .kr[data-kind='總經名詞'] input[data-kc]"); ap.wait_for_timeout(100)
+    ap.click("#spkRoot .kr[data-kind='最新消息'] button[data-st='-1']"); ap.wait_for_timeout(100)
+    ap.click("#spkTAdd"); ap.wait_for_timeout(150)
+    ap.fill("#spkTimes input[data-ti='1']", "22:30"); ap.wait_for_timeout(150)
+    ap.click("#spkFreq button[data-f='weekly']"); ap.wait_for_timeout(150)
+    ap.click("#spkWk button[data-d='5']"); ap.wait_for_timeout(150)
+    j1 = sch(ap)
+    want1 = {"version": 1, "action": "set_schedule", "tz": "Asia/Taipei", "kinds": {"最新消息": 1, "產業延伸": 2, "精選文章": 1, "總經名詞": 0}, "times": ["21:50", "22:30"], "frequency": "weekly", "days": [1, 2, 3, 4], "date": None}
+    ok(f"{T}：改項數（精選+1、最新−1）、取消總經名詞、加 22:30 時段、自訂星期去掉週五 → 畫面 JSON 全部對得上", strip(j1["json"]) == want1, j1["json"])
+    surl, sq = parse(j1["save"] or "")
+    blk = re.search(r"```json social-schedule\n(.*?)\n```", sq.get("body", ""), re.S)
+    bj = json.loads(blk.group(1)) if blk else None
+    ok(f"{T}：「送出排程設定」連結＝GitHub 新 Issue、labels=social-schedule、body 有白話摘要＋「下一個處理週期」說明＋JSON 區塊（與畫面 JSON 同）",
+       surl == GH and sq.get("labels") == "social-schedule" and sq.get("title", "").startswith("每日產主題設定 ") and "每週 週一、週二、週三、週四 21:50、22:30（台北時間）產：最新消息 1、產業延伸 2、精選文章 1（共 4 項）" in sq.get("body", "")
+       and "下一個處理週期" in sq.get("body", "") and strip(bj) == want1, [surl, sq.get("title"), sq.get("body", "")[:160]])
+    ap.click("#spkFreq button[data-f='once']"); ap.wait_for_timeout(150)
+    j2 = sch(ap)
+    ok(f"{T}：改「只跑一次」→ 日期欄出現、星期鈕藏起來、沒填日期 → 「送出排程設定」停用並寫原因（立刻產一份不受影響）",
+       ap.evaluate("() => !document.getElementById('spkOnce').hidden && document.getElementById('spkWk').hidden") and j2["sd"] == "true" and "指定哪一天" in j2["why"] and not j2["nd"], j2)
+    ap.fill("#spkDate", "2099-01-02"); ap.wait_for_timeout(200)
+    j3 = sch(ap)
+    ok(f"{T}：填日期 2099-01-02 → JSON frequency=once、date=2099-01-02、days=[]、連結恢復可按",
+       j3["json"] and j3["json"]["frequency"] == "once" and j3["json"]["date"] == "2099-01-02" and j3["json"]["days"] == [] and not j3["sd"] and "只跑一次，2099-01-02" in j3["sum"], j3)
+    nurl, nq = parse(j3["now"] or "")
+    nb = re.search(r"```json social-schedule\n(.*?)\n```", nq.get("body", ""), re.S)
+    nj = json.loads(nb.group(1)) if nb else {}
+    ok(f"{T}：「立刻產一份」連結＝labels social-schedule、title「立刻產主題 …」、JSON action=run_now、只有 kinds（沒有 times／frequency）",
+       nurl == GH and nq.get("labels") == "social-schedule" and nq.get("title", "").startswith("立刻產主題 ") and nj.get("action") == "run_now" and nj.get("kinds") == want1["kinds"] and "times" not in nj and "frequency" not in nj, [nq.get("title"), nj])
+    st_ = ap.evaluate("() => { try { return JSON.parse(localStorage.getItem('tw.social.sched')); } catch (e) { return 'ERR'; } }")
+    ok(f"{T}：設定寫進 localStorage（tw.social.sched）", isinstance(st_, dict) and st_.get("freq") == "once" and st_.get("date") == "2099-01-02" and st_.get("times") == ["21:50", "22:30"], st_)
+    ap.fill("#spkDate", "2000-01-01"); ap.wait_for_timeout(200)
+    j3b = sch(ap)
+    ok(f"{T}：指定日期早於今天 → 排程連結停用、寫「不能早於今天」", j3b["sd"] == "true" and "早於今天" in j3b["why"], j3b)
+    ap.fill("#spkDate", "2099-01-02"); ap.wait_for_timeout(100)
+    ap.reload(wait_until="domcontentloaded")
+    wait_until(ap, "() => document.querySelectorAll('#spkList .it').length > 0", 15000)
+    ap.click("#spkTabs button[data-t='sched']"); ap.wait_for_timeout(300)
+    j4 = sch(ap)
+    ok(f"{T}：重新整理後設定還在（兩個時段、只跑一次、日期、項數）", strip(j4["json"]) == {**want1, "frequency": "once", "days": [], "date": "2099-01-02"}, j4["json"])
+    if shots:
+        ap.screenshot(path=str(shots / "desk-sched-1440.png"))
+    # 全部 0 → 兩顆停用
+    for k in ("最新消息", "產業延伸", "精選文章"):
+        ap.uncheck(f"#spkRoot .kr[data-kind='{k}'] input[data-kc]"); ap.wait_for_timeout(80)
+    j5 = sch(ap)
+    ok(f"{T}：所有類型都取消 → 兩顆連結都停用、寫「至少要有一種類型」、JSON 不給假資料", j5["sd"] == "true" and j5["nd"] == "true" and "至少要有一種類型" in j5["why"] and j5["json"] is None, j5)
+    # 清除設定，避免影響後面（只清這個 context 的 localStorage）
+    ap.evaluate("() => { try { localStorage.removeItem('tw.social.sched'); localStorage.removeItem('tw.social.pick'); } catch (e) {} }")
+    # 版面：1440 沒有橫向溢出、字 ≥ 12
+    ap.reload(wait_until="domcontentloaded"); wait_until(ap, "() => document.querySelectorAll('#spkList .it').length > 0", 15000); ap.wait_for_timeout(300)
+    lay = ap.evaluate("""() => { const r = document.getElementById('spkRoot'); const bad = []; let minfs = 99;
+        r.querySelectorAll('*').forEach(e => { if (!e.getClientRects().length) return; const t = [...e.childNodes].some(n => n.nodeType === 3 && n.textContent.trim()); if (t) minfs = Math.min(minfs, parseFloat(getComputedStyle(e).fontSize)); });
+        document.querySelectorAll('#spkList .it').forEach(e => { if (e.scrollWidth > e.clientWidth + 1) bad.push(e.dataset.id); });
+        return { sx: document.documentElement.scrollWidth - innerWidth, minfs, bad, w: Math.round(r.getBoundingClientRect().width) }; }""")
+    ok(f"{T}：1440 沒有橫向溢出、卡片沒有撐出、字級 ≥ 12", lay["sx"] <= 0 and not lay["bad"] and lay["minfs"] >= 12, lay)
+    ac.close()
+
+    # ---------------------------------------------------------------- ⑤ 清單 404／空清單
+    ec, _ = _acctm4_ctx(b, "admin", desk=True)
+    ec.route("**/social/menu_latest.json*", lambda r: r.fulfill(status=404, body="nope"))
+    ep = new_page(ec)
+    wait_until(ep, "() => !!document.getElementById('spkEmpty')", 12000)
+    e1 = ep.evaluate("() => ({ t: document.getElementById('spkEmpty').textContent, n: document.querySelectorAll('#spkList .it').length, h: Math.round(document.getElementById('spkEmpty').getBoundingClientRect().height) })")
+    ok(f"{T}：清單檔 404 → 空狀態寫原因（找不到 social/menu_latest.json）、有「重新讀取」、沒有題目卡、不是黑方塊", "找不到" in e1["t"] and "menu_latest.json" in e1["t"] and e1["n"] == 0 and 40 < e1["h"] < 260, e1)
+    ec.unroute("**/social/menu_latest.json*")
+    ec.route("**/social/menu_latest.json*", lambda r: r.fulfill(status=200, content_type="application/json", body=json.dumps({"version": 1, "date": "2026-10-16", "items": []})))
+    ep.click("#spkRetry"); wait_until(ep, "() => /是空的/.test((document.getElementById('spkEmpty') || {}).textContent || '')", 8000)
+    ok(f"{T}：按「重新讀取」→ 讀到空清單 → 改寫「今天的清單是空的」", "是空的" in ep.evaluate("() => (document.getElementById('spkEmpty') || {}).textContent || ''"), None)
+    ec.close()
+
+    # ---------------------------------------------------------------- ④ 非管理者
+    for who, nm in (("free", "註冊會員"), ("guest", "訪客")):
+        gc, _ = _acctm4_ctx(b, who, desk=True)
+        gp = new_page(gc)
+        wait_until(gp, "() => !!document.getElementById('spkDenied') || !!document.getElementById('spkRoot')", 12000); gp.wait_for_timeout(800)
+        g = gp.evaluate("() => ({ denied: !!document.getElementById('spkDenied'), t: (document.getElementById('spkDenied') || {}).textContent || '', items: document.querySelectorAll('#spkList .it').length, tab: !!document.getElementById('spkTabs'), side: document.querySelectorAll('.l4subtab[data-adm=social], #admTabSocial').length, adm: document.querySelectorAll('.l4subtab[data-parent=admin]').length })")
+        ok(f"{T}：{nm}自己打 #admin/social → 只寫「只有管理者看得到」、沒有題目、沒有分頁；側欄沒有「社群選題」也沒有管理區", g["denied"] and "只有管理者" in g["t"] and g["items"] == 0 and not g["tab"] and g["side"] == 0 and g["adm"] == 0, g)
+        gc.close()
+
+    # ---------------------------------------------------------------- ⑥ 手機 390
+    for vp in ((390, 844), (360, 780)):
+        mc, _ = _acctm4_ctx(b, "admin", vp=vp)
+        mp = new_page(mc)
+        wait_until(mp, "() => document.querySelectorAll('#spkList .it').length > 0", 15000); mp.wait_for_timeout(500)
+        m = mp.evaluate("""() => { const V = (e) => !!e && e.getClientRects().length > 0; const H = innerHeight; const rows = [...document.querySelectorAll('#spkList .it')];
+            let minfs = 99; document.getElementById('spkRoot').querySelectorAll('*').forEach(e => { if (!V(e)) return; if ([...e.childNodes].some(n => n.nodeType === 3 && n.textContent.trim())) minfs = Math.min(minfs, parseFloat(getComputedStyle(e).fontSize)); });
+            const cb = document.querySelector('#spkList .cb').getBoundingClientRect(); const bar = document.getElementById('spkBar').getBoundingClientRect();
+            const mt = document.querySelector('#spkList .it .mt').getBoundingClientRect(), ti = document.querySelector('#spkList .it .mn').getBoundingClientRect();
+            return { n: rows.length, lastBottom: Math.round(rows[rows.length - 1].getBoundingClientRect().bottom), H, barBottom: Math.round(bar.bottom), sx: document.documentElement.scrollWidth - innerWidth,
+              cb: [Math.round(cb.width), Math.round(cb.height)], minfs, wcShown: V(document.querySelector('#spkList .wc')), mtBelow: mt.top >= ti.top, bad: rows.filter(e => e.scrollWidth > e.clientWidth + 1).map(e => e.dataset.id),
+              segSc: document.getElementById('spkKinds').scrollWidth >= document.getElementById('spkKinds').clientWidth, seg: Math.round(document.getElementById('spkKinds').getBoundingClientRect().right) }; }""")
+        ok(f"{T}：手機 {vp[0]}：6 題 + 勾選列一屏內（列底 {m['lastBottom']} / 送出列底 {m['barBottom']} ≤ 螢幕高 {m['H']}）、沒有橫向捲軸、卡片沒撐出",
+           m["n"] == 6 and m["lastBottom"] <= m["H"] and m["barBottom"] <= m["H"] + 1 and m["sx"] <= 0 and not m["bad"], m)
+        ok(f"{T}：手機 {vp[0]}：勾選區 ≥ 32px（{m['cb']}）、字 ≥ 11px（最小 {m['minfs']}）、手機只留重點（不顯示內文三點那一行）", m["cb"][0] >= 32 and m["cb"][1] >= 32 and m["minfs"] >= 11 and not m["wcShown"], m)
+        mp.locator("#spkList .it[data-id='D1016-1'] .cb").tap(); mp.wait_for_timeout(150)
+        mp.locator("#spkList .it[data-id='D1016-4'] .cb").tap(); mp.wait_for_timeout(200)
+        ms = st(mp); mq = parse(ms["href"] or "")[1]
+        ok(f"{T}：手機 {vp[0]}：手指點勾選 D1016-1、D1016-4 → 計數 2、連結 body 含兩題", ms["n"] == "2" and ms["on"] == ["D1016-1", "D1016-4"] and "D1016-4" in mq.get("body", "") and mq.get("labels") == "social-pick", [ms["n"], ms["on"]])
+        mp.locator("#spkList .it[data-id='D1016-2'] .mn").tap(); mp.wait_for_timeout(250)
+        mo = mp.evaluate("""() => { const e = document.querySelector('#spkList .it[data-id=D1016-2]'), d = e.querySelector('.det'); return { vis: d.getClientRects().length > 0, li: d.querySelectorAll('li').length, sx: document.documentElement.scrollWidth - innerWidth, w: Math.round(d.getBoundingClientRect().width), vw: innerWidth }; }""")
+        ok(f"{T}：手機 {vp[0]}：點卡 → 原地展開細節（單欄、不溢出）、勾選不受影響", mo["vis"] and mo["li"] >= 4 and mo["sx"] <= 0 and mo["w"] <= mo["vw"] and st(mp)["n"] == "2", mo)
+        if shots and vp[0] == 390:
+            mp.screenshot(path=str(shots / "mob-picked-390.png"))
+        mp.locator("#spkTabs button[data-t='sched']").tap(); mp.wait_for_timeout(300)
+        sm = mp.evaluate("""() => { const V = (e) => !!e && e.getClientRects().length > 0; let minfs = 99; document.getElementById('spkRoot').querySelectorAll('*').forEach(e => { if (!V(e)) return; if ([...e.childNodes].some(n => n.nodeType === 3 && n.textContent.trim())) minfs = Math.min(minfs, parseFloat(getComputedStyle(e).fontSize)); });
+            const small = [...document.querySelectorAll('#spkRoot button, #spkRoot input:not([type=checkbox]), #spkRoot a.btn')].filter(V).map(e => e.getBoundingClientRect()).filter(r => r.height < 31.5 || r.width < 31.5).length;
+            return { sx: document.documentElement.scrollWidth - innerWidth, minfs, small, fm: Math.round(document.querySelector('#spkRoot .fm').getBoundingClientRect().width), vw: innerWidth }; }""")
+        ok(f"{T}：手機 {vp[0]}：產主題設定表單單欄、沒有橫向捲軸、字 ≥ 11、按鈕與輸入框觸控高度 ≥ 32px", sm["sx"] <= 0 and sm["minfs"] >= 11 and sm["small"] == 0 and sm["fm"] <= sm["vw"], sm)
+        mp.locator("#spkRoot .kr[data-kind='精選文章'] button[data-st='1']").tap(); mp.wait_for_timeout(150)
+        jm = sch(mp)
+        ok(f"{T}：手機 {vp[0]}：手指點「＋」→ JSON 精選文章變 1", jm["json"] and jm["json"]["kinds"]["精選文章"] == 1, jm["json"])
+        if shots and vp[0] == 390:
+            mp.screenshot(path=str(shots / "mob-sched-390.png"), full_page=True)
+        if vp[0] == 390:
+            nav = mp.evaluate("() => { const N = window.TwL4Nav; return N && N.admSubs ? N.admSubs().map(x => x[0]) : null; }")
+            ok(f"{T}：手機抽屜的管理區子項清單含「社群選題」（管理者）", bool(nav) and "social" in nav, nav)
+        mc.close()
 
 
 if __name__ == "__main__":
