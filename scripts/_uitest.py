@@ -71890,6 +71890,16 @@ def t_articles_1014(b, base):
     ok(f"{T}：產出進度查無 → 寫「沒有符合篩選條件的請求」", "沒有符合篩選條件" in ap.inner_text("#artJobBody"), ap.inner_text("#artJobBody"))
     ap.click("#artJfClr"); ap.wait_for_timeout(150)
     ok(f"{T}：產出進度按「清除」→ 3 筆都回來", len(ap.evaluate(JR)) == 3, None)
+    # 10-16 Andy：「也需要我填寫主題 產文章，例如 今天新聞 馬斯克飛天電動車介紹」
+    ok(f"{T}：自訂主題沒填字 → 兩顆產生鈕反灰", ap.evaluate("() => document.getElementById('artCusArt').disabled && document.getElementById('artCusVid').disabled"), None)
+    ap.select_option("#artCusCat", "news"); ap.fill("#artCusT", "今天新聞 馬斯克飛天電動車介紹"); ap.wait_for_timeout(100)
+    n1 = len([x for x in api_log if x[1] == "/v1/articles/jobs/add"])
+    ap.click("#artCusArt"); ap.wait_for_timeout(500)
+    add = [x for x in api_log if x[1] == "/v1/articles/jobs/add"][n1:]
+    st = ap.evaluate("() => ({ msg: document.getElementById('artTpMsg').textContent, v: document.getElementById('artCusT').value, top: (document.querySelector('#artJobBody tr[data-job]') || {}).textContent || '' })")
+    ok(f"{T}：自訂主題填字按「產生精選文章」→ 送一筆（topic_id＝c-news-…、標題＝填的字）、提示已送出、欄位清空、產出進度最上面是它",
+       len(add) == 1 and str(add[0][2].get("topic_id", "")).startswith("c-news-") and add[0][2].get("title") == "今天新聞 馬斯克飛天電動車介紹" and add[0][2].get("kind") == "article"
+       and "已送出" in st["msg"] and st["v"] == "" and "馬斯克飛天電動車" in st["top"], [add, st])
     TP = "() => [...document.querySelectorAll('#artTpBody tr[data-tid]')].map(r => ({ s: +r.dataset.score, c: (r.querySelector('.artbadge') || {}).textContent }))"
     rows = ap.evaluate(TP)
     ok(f"{T}：主題候選 {len(tops)} 筆全列出、分數高 → 低", len(rows) == len(tops) and [r["s"] for r in rows] == sorted([r["s"] for r in rows], reverse=True), rows[:8])
