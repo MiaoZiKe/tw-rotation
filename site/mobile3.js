@@ -48,10 +48,25 @@
     sheet.setAttribute('role', 'dialog'); sheet.setAttribute('aria-modal', 'true');
     sheet.innerHTML = '<div class="mgrab" aria-hidden="true"></div><div class="msheetbody"></div>';
     document.body.append(scrim, sheet);
-    scrim.addEventListener('click', closeSheet);
+    /* ★ 2026-10-16（Andy iPhone：「3D 之後其他分頁不能使用」）：抽屜開著時，手指點上方的分頁列（母分頁、子分頁、頂欄子頁、漢堡鈕）
+       其實是點在背景上 —— 以前只關抽屜、分頁沒切，使用者得再點一次，看起來就是「分頁點不動」。
+       改成：點背景照舊關抽屜；手指底下若剛好是分頁類的鈕（TAPTHRU），關完順手把那一下交給它，一下就切過去。
+       只放行分頁類，不放行一般按鈕／連結（點背景的本意是「關掉」，不該順手按到圖上別的東西）。
+       程式呼叫的 .click()（座標 0,0）不轉。*/
+    scrim.addEventListener('click', (e) => {
+      const x = e.clientX, y = e.clientY;
+      closeSheet();
+      if (!(x || y)) return;
+      const t = document.elementFromPoint(x, y), tab = t && t.closest && t.closest(TAPTHRU);
+      if (tab && !tab.closest('.msheet')) tab.click();
+    });
   }
+  const TAPTHRU = '[role=tab], .nbsw > a, .nbsw > button, .m4subtabs button, #m4Burger';
+  /* iOS：頁面上掛著一段文字選取時，下一次點擊只會被拿去取消選取、不變成 click（分頁鈕灰一下卻不切）。開關抽屜都先把選取清掉。*/
+  const unselect = () => { try { const s = window.getSelection && window.getSelection(); if (s && s.rangeCount) s.removeAllRanges(); } catch (e) { /* 不擋抽屜 */ } };
   function closeSheet() {
     if (!sheet || sheet.hidden) return;
+    unselect();
     sheet.hidden = true; scrim.hidden = true;
     delete sheet.dataset.kind; delete sheet.dataset.no;
     const f = onClose; onClose = null;
@@ -66,6 +81,7 @@
     body.innerHTML = '';
     if (typeof html === 'string') body.innerHTML = html; else if (html) body.appendChild(html);
     sheet.dataset.kind = opts.kind || '';
+    unselect();
     sheet.hidden = false; scrim.hidden = false;
     sheet.scrollTop = 0;
     onClose = opts.onClose || null;

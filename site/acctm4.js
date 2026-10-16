@@ -106,8 +106,10 @@
   function css() {
     if (document.getElementById('acctM4Css')) return;
     const s = document.createElement('style'); s.id = 'acctM4Css';
+    /* ★ 2026-10-16（Andy：「右上角打開的畫面太大 需要調整適當大小，條窄一點」）：帳號選單從「左右各留 8px 幾乎滿版」改成靠右、寬 312px
+       （360 寬手機左邊露出 40px 頁面；版面風格那組三格分段在 312 裡放得下同一排）。 */
     s.textContent = `
-html.m4 .acctmenu.m4am{left:8px!important;right:8px;width:auto;min-width:0;max-width:none;max-height:calc(100dvh - var(--m4am-top,60px) - 12px);overflow:auto;overscroll-behavior:contain;padding:6px 6px 8px;font-size:15px}
+html.m4 .acctmenu.m4am{left:auto!important;right:8px!important;width:min(312px,calc(100vw - 16px));min-width:0;max-width:none;max-height:calc(100dvh - var(--m4am-top,60px) - 12px);overflow:auto;overscroll-behavior:contain;padding:6px 6px 8px;font-size:15px}
 /* 頂欄頭像鈕：mobile4.css 把字級設 0（藏名字與 ▾），但它是 inline-grid —— 「▾」文字節點自成一列，把頭像擠到上半部；
    訪客那顆的「登入」也被字級 0 藏掉，只剩一個空框。這裡改成置中的 flex，訪客畫一個人形圖示。只在 html.m4 生效。*/
 html.m4 .m4tools button#acctBtn:is(.abtn){display:inline-flex!important;align-items:center;justify-content:center}
@@ -123,6 +125,7 @@ html.m4 .m4am .mh .nm{display:flex;align-items:center;gap:6px;min-width:0;flex-w
 html.m4 .m4am .mh .nm b{display:inline;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:16px}
 html.m4 .m4am .mh small{font-size:12.5px;color:var(--ink-2);word-break:break-all}
 html.m4 .m4am .mh .m4login{grid-column:2;justify-self:start;margin-top:6px;height:36px;padding:0 16px;border-radius:9px;border:0;background:var(--cyan);color:#04121a;font-weight:700;font-size:14px;width:auto;text-align:center}
+html.m4 .acctmenu.m4am .planbadge{font-size:12px}   /* 10-16：方案徽章原本 11.5px，手機字級下限 12px */
 html.m4 .m4am .planbadge.t-guest{color:var(--ink-2);border:1px solid var(--line-2);background:transparent}
 html.m4 .m4am .planbadge.t-free{color:var(--cyan);border:1px solid color-mix(in srgb,var(--cyan) 45%,transparent);background:color-mix(in srgb,var(--cyan) 10%,transparent)}
 html.m4 .m4am .m4role{display:inline-flex;align-items:center;height:20px;padding:0 8px;border-radius:999px;font-size:12px;font-weight:700;color:#ff6b7a;border:1px solid color-mix(in srgb,#ff6b7a 55%,transparent);background:color-mix(in srgb,#ff6b7a 14%,transparent)}

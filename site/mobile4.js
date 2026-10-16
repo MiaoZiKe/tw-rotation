@@ -1723,9 +1723,12 @@
       groups: [segG('pop', '最受歡迎依', '#etfPopSeg'), selG('rng', '報酬期間', '#etfRngBox select.rpsel'), segG('basis', '報酬口徑', '#etfBasisSeg'), selG('sort', '一覽排序', '#etfSort')],
       // 原本的位置藏起來（只藏切換本身，旁邊的說明字、「加入比較」照舊）；選了起始日期時日期列照樣露出來
       hide: () => [['#etfPopSeg', true], ['#etfRngBox', !rpkCustom($('#etfRngBox select.rpsel'))], ['#etfBasisSeg', true], ['#etfSort', true], ['label[for="etfSort"]', true]] },
+    /* ★ 2026-10-16 Andy（iPhone）：「圖四將最上方功能配置在每個組合裡面…目的是每個組合都能自己個別調整」——
+       摘要鈕從條件列的位置（分頁列上方）搬進**目前這個分頁的內容最上面**（單檔 ETF＝#incSingle、組合 A～E＝#incCombo），
+       鈕上先寫「單檔 ETF／組合 B」再寫條件；每個分頁的條件各自一份（etfpage.js ptSync／incPut），抽屜改的是目前分頁那一份。*/
     { id: 'inc', title: '月配試算條件', on: () => vis($('#incPM')),
-      // 插在 wireCond 的「條件 ▾」鈕前面（它認「緊鄰 .incctl 的前一個兄弟」，插在中間它會一直再生一顆新的）
-      anchor: () => $('#incPM > .m4cond') || $('#incPM > .incctl'),
+      anchor: () => { const sec = [$('#incSingle'), $('#incCombo')].find((e) => e && !e.hidden); return sec ? $(':scope > :not(.m4etfrow)', sec) : null; },
+      tag: () => { const b = $('#incTabs button.on'); return b ? (b.firstChild && b.firstChild.nodeType === 3 ? b.firstChild.textContent : b.textContent).trim() : ''; },
       groups: [selG('mode', '目標', '#incPM #incMode + select.m4segsel'), selG('amt', '金額', '#incPM #incAmtSeg + select.m4segsel'), selG('scope', '範圍', '#incPM #incScope + select.m4segsel'),
         chkG('nhi', '二代健保（單筆 ≥ 2 萬扣 2.11%）', '#incNhi'), selG('rng', '報酬期間', '#etfIncRngBox select.rpsel')],
       hide: () => { const amt = $('#incAmt'), need = (amt && amt.classList.contains('m4show')) || rpkCustom($('#etfIncRngBox select.rpsel'));
@@ -1735,9 +1738,10 @@
     return { t: g.short ? g.short(o) : o[1].replace(/\s+/g, ''), full: g.t + '：' + o[1] }; }).filter(Boolean);
   function paint(P, b) {
     const s = summary(P), txt = s.map((x) => x.t).join('・') || '設定', full = s.map((x) => x.full).join('；');
-    const h = `${ICON}<span class="m4st">${esc(txt)}</span><i aria-hidden="true">›</i>`;
+    const tg = P.tag ? P.tag() : '', ttl = (tg ? tg + ' ' : '') + P.title;
+    const h = `${ICON}${tg ? `<b class="m4tg">${esc(tg)}</b>` : ''}<span class="m4st">${esc(txt)}</span><i aria-hidden="true">›</i>`;
     if (b.__h !== h) { b.innerHTML = h; b.__h = h; }
-    if (b.getAttribute('aria-label') !== P.title + '：' + full) { b.setAttribute('aria-label', P.title + '：' + full); b.title = P.title + '：' + full; }
+    if (b.getAttribute('aria-label') !== ttl + '：' + full) { b.setAttribute('aria-label', ttl + '：' + full); b.title = ttl + '：' + full; }
   }
   function sheetBody(P, body) {
     body.innerHTML = P.groups.map((g) => { const e = g.el(); if (!e) return '';
@@ -1753,7 +1757,8 @@
   function open(P) {
     const api = window.M3; if (!api || !api.openSheet) return;
     const wrap = document.createElement('div');
-    wrap.innerHTML = `<div class="mshhead"><b>${esc(P.title)}</b></div><div class="m4shsegs m4dw" id="m4EtfSegs" data-p="${P.id}"></div>`;
+    const tg = P.tag ? P.tag() : '';
+    wrap.innerHTML = `<div class="mshhead"><b>${esc((tg ? tg + ' ' : '') + P.title)}</b>${tg ? '<small class="m4tgn">只套用在這個分頁</small>' : ''}</div><div class="m4shsegs m4dw" id="m4EtfSegs" data-p="${P.id}"></div>`;
     const body = $('.m4shsegs', wrap);
     sheetBody(P, body);
     body.addEventListener('click', (ev) => {
@@ -1795,4 +1800,51 @@
     kick();
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot); else boot();
+})();
+
+/* ============================================================================
+   ★ 2026-10-16 手機分頁「點了沒切」保險（Andy iPhone 實機：「產業地圖切換到3D圖之後 其他分頁不能使用」）
+   截圖二：關掉 3D 的零件抽屜之後，「先進封裝」分頁鈕呈灰底按下狀態，卻沒有切過去 ——
+   手指的 touchstart／touchend 都到了，iOS 卻沒有補發 click（頁面上掛著文字選取、或 3D 畫布剛搶過指標時，iOS 會把這一下吞掉）。
+   這個容器只有 Chromium、跑不了 WebKit，無法逐一證實是哪一個機制吞的；所以不賭機制，改成「保險絲」：
+     · 只管分頁類（TABS：母分頁 #chainSwitch、子分頁 #dgPick 等 .nbsw、頂欄子頁 .m4subtabs、role=tab、漢堡鈕、抽屜背景）；
+     · 原地點（移動 ≤ 10px、按住 ≤ 700ms）放開後 450ms 內，這顆鈕沒收到 click → 補一個帶座標的 click 給它；
+     · 收到了（正常情況，Chromium／Android 都是）就什麼都不做，不會按兩次。
+   只在手機（html.m4 且 ≤640）作用；桌機沒有觸控事件，也不經過這裡。
+   ---------------------------------------------------------------------------- */
+(function () {
+  'use strict';
+  const isM = () => document.documentElement.classList.contains('m4') && window.innerWidth <= 640;
+  const TABS = '#chainSwitch > button, .nbsw > a, .nbsw > button, .m4subtabs button, [role=tab], #m4Burger, #mSheetBack';
+  let tp = null;
+  const pend = new Map();        // 鈕 → 計時器
+  document.addEventListener('touchstart', (e) => {
+    tp = null;
+    if (!isM() || e.touches.length !== 1) return;
+    const el = e.target && e.target.closest && e.target.closest(TABS); if (!el) return;
+    const t = e.touches[0]; tp = { el, x: t.clientX, y: t.clientY, t: Date.now() };
+  }, { capture: true, passive: true });
+  document.addEventListener('touchmove', (e) => {
+    if (!tp) return; const t = e.touches[0];
+    if (!t || Math.hypot(t.clientX - tp.x, t.clientY - tp.y) > 10) tp = null;     // 在橫捲分頁列＝捲動，不是點
+  }, { capture: true, passive: true });
+  document.addEventListener('touchcancel', () => { tp = null; }, { capture: true, passive: true });
+  document.addEventListener('touchend', (e) => {
+    const p = tp; tp = null;
+    if (!p || Date.now() - p.t > 700 || e.touches.length) return;
+    const t = e.changedTouches && e.changedTouches[0], x = t ? t.clientX : p.x, y = t ? t.clientY : p.y;
+    if (pend.has(p.el)) clearTimeout(pend.get(p.el));
+    pend.set(p.el, setTimeout(() => {
+      pend.delete(p.el);
+      if (!p.el.isConnected || p.el.hidden || !p.el.getClientRects().length) return;   // 已經換頁重畫掉了＝原本那一下有生效
+      p.el.dataset.m4tapfix = String((+p.el.dataset.m4tapfix || 0) + 1);             // 驗收讀數：保險絲補過幾次
+      p.el.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, view: window, clientX: x, clientY: y }));
+    }, 450));
+  }, { capture: true, passive: true });
+  // 原生 click 到了 → 拆掉保險絲（window 捕獲：比任何一頁自己的監聽都早，就算後面有人 stopPropagation 也拆得到）
+  window.addEventListener('click', (e) => {
+    if (!pend.size || !e.isTrusted) return;
+    const el = e.target && e.target.closest && e.target.closest(TABS);
+    if (el && pend.has(el)) { clearTimeout(pend.get(el)); pend.delete(el); }
+  }, true);
 })();

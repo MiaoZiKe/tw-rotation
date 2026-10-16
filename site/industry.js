@@ -5971,7 +5971,25 @@
 #etfHoldCard .hdnote b{color:var(--ink)}
 @media (max-width:1099px){#etfHoldCard .hdgrid{grid-template-columns:minmax(0,1fr);gap:16px}
 #etfHoldCard .hdlist{min-height:0}#etfHoldCard .hdlistin{position:static}#etfHoldCard .hdscroll{max-height:420px}}
-@media (max-width:640px){#etfHoldCard .hdleft{flex-direction:column;gap:8px}#etfHoldCard .hdpie{width:260px;height:260px}#etfHoldCard .gplegend{grid-template-columns:12px minmax(0,1fr) max-content max-content}#etfHoldCard .gplegend .lg{grid-column:1/-1}#etfHoldCard .hdq{width:100%}#etfHoldCard .hdhead{align-items:stretch}#etfHoldCard .sk{display:none}#etfHoldCard .wtr{display:none}#etfHoldCard td.wt{width:56px}#etfHoldCard td.wt .wv{margin-left:0;min-width:0}#etfHoldCard td.px{width:auto}#etfHoldCard td.nm{width:44%}#etfHoldCard td.px .pv,#etfHoldCard td.px .pc{display:block;margin:0;line-height:1.25}#etfHoldCard td.px .pc{font-size:11px}#etfHoldCard td.iv{width:auto;font-size:12px}#etfHoldCard th,#etfHoldCard td{padding-left:6px;padding-right:6px}#etfHoldCard .gplegend .lg{height:30px}#etfHoldCard .gplegend{width:100%}}`;
+@media (max-width:640px){#etfHoldCard .hdleft{flex-direction:column;gap:8px}#etfHoldCard .hdpie{width:260px;height:260px}#etfHoldCard .gplegend{grid-template-columns:12px minmax(0,1fr) max-content max-content}#etfHoldCard .gplegend .lg{grid-column:1/-1}#etfHoldCard .hdq{width:100%}#etfHoldCard .hdhead{align-items:stretch}#etfHoldCard .sk{display:none}#etfHoldCard .wtr{display:none}#etfHoldCard td.wt{width:56px}#etfHoldCard td.wt .wv{margin-left:0;min-width:0}#etfHoldCard td.px{width:auto}#etfHoldCard td.nm{width:44%}#etfHoldCard td.px .pv,#etfHoldCard td.px .pc{display:block;margin:0;line-height:1.25}#etfHoldCard td.px .pc{font-size:11px}#etfHoldCard td.iv{width:auto;font-size:12px}#etfHoldCard th,#etfHoldCard td{padding-left:6px;padding-right:6px}#etfHoldCard .gplegend .lg{height:30px}#etfHoldCard .gplegend{width:100%}}
+/* ★ 2026-10-16 Andy（iPhone）：「ETF 成分股內圓圈需要滿版…只留下面清單即可」—— 只動手機（html.m4）：
+   ① 甜甜圈＝卡片內寬（同 m4-pie 產業地圖甜甜圈的做法），② 拿掉甜甜圈下面那份圖例（與下面的表重複；前 10 大的色點、其他 N 檔合計都已在表裡），
+   ③ 表格改自動欄寬、名稱可換行不截字（不再 ellipsis）、代號移到第二行與族群同列、logo 收掉省寬度；360／390／430 量過不重疊。
+   放不下時（極長的海外成分名）由 .hdscroll 自己橫向捲，整頁不橫捲。桌機沒有 html.m4，以下規則一條都不生效。*/
+html.m4 #etfHoldCard .hdpie{width:100%;max-width:none;height:auto;aspect-ratio:1/1}
+html.m4 #etfHoldCard .gplegend{display:none}
+html.m4 #etfHoldCard table{table-layout:auto;width:100%}
+html.m4 #etfHoldCard td.nm{max-width:none;width:auto;white-space:normal;overflow:visible;text-overflow:clip;word-break:break-word;padding-top:4px;padding-bottom:4px;line-height:1.3}
+html.m4 #etfHoldCard td.nm .hdlogo{display:none}
+html.m4 #etfHoldCard td.nm .cd{display:none}
+html.m4 #etfHoldCard td.nm .gp2{padding:2px 0 0 14px;white-space:normal}
+html.m4 #etfHoldCard td.nm .gp2 .cdm{color:var(--ink-3);font-family:var(--mono);margin-right:6px}
+html.m4 #etfHoldCard td.px,html.m4 #etfHoldCard td.iv,html.m4 #etfHoldCard td.wt{width:1%}
+html.m4 #etfHoldCard th{white-space:nowrap}
+html.m4 #etfHoldCard td.wt .wv{min-width:0}
+html.m4 #etfHoldCard tr.hdsep td{white-space:normal}
+html.m4 #etfHoldCard tbody tr[data-i]{cursor:pointer}
+html.m4 #etfHoldCard tr.hi td{background:color-mix(in srgb,var(--accent,#4ea1ff) 16%,var(--panel))}`;
     document.head.appendChild(s);
   }
   async function tabHoldings(pg, el) {
@@ -6054,6 +6072,7 @@
     const topCol = (i) => A.donut.color(i);
     const fmtSh = (x) => (x.shares != null ? `持股 ${A.fmt.i(Math.round(x.shares / 1000))} 張` : '');
     const sepAt = rest.length && restSum > 0.005 ? HOLD_TOPN : -1;
+    const m4h = document.documentElement.classList.contains('m4');   // 手機（html.m4）：代號移到第二行、其他 N 檔列寫合計權重（桌機 DOM 不變）
     card.innerHTML = `<div class="hdhead"><h3>成分股<span class="hdasof" id="etfHoldAsof" data-src="${srcKind}">${tag}・共 ${items.length} 檔${srcTxt ? `・<span>${srcTxt}</span>` : ''}</span></h3>
         <input class="hdq" id="etfHoldQ" type="search" placeholder="搜尋代號或名稱" aria-label="搜尋成分股"></div>
       <div class="hdgrid"><div class="hdleft"><div class="hdpie" id="etfHoldPie"></div><div class="gplegend" id="etfHoldLegend" aria-label="前 10 大圖例"></div></div>
@@ -6061,13 +6080,13 @@
         ${items.map((x, i) => { const c = String(x.code || ''), go = canGo(c), ch = chgOf.get(c), nm = shortName(x), isTop = i < HOLD_TOPN;
           const tip = [go ? `看 ${nm} 個股頁` : '非台股成分，沒有個股頁', fmtSh(x)].filter(Boolean).join('・');
           const sr = rowOf_.get(c), tw = !!sr, px = sr ? sr.close : null, iv = sr && sr.inst != null ? sr.inst : null, gp = sr ? (sr.group || '') : '';
-          return (i === sepAt ? `<tr class="hdsep"><td colspan="5">其他 ${rest.length} 檔</td></tr>` : '')
+          return (i === sepAt ? `<tr class="hdsep"><td colspan="5">其他 ${rest.length} 檔${m4h ? `・合計 ${A.fmt.n(restSum, 2)}%` : ''}</td></tr>` : '')
             + `<tr data-code="${A.fmt.esc(c)}" data-i="${i}" data-w="${x.w}" data-q="${A.fmt.esc((c + ' ' + (x.name || '') + ' ' + nm).toLowerCase())}"${go ? ` class="go"` : ''} title="${A.fmt.esc(tip)}">`
             + `<td class="nm"><i class="dot${isTop ? '' : ' no'}"${isTop ? ` style="background:${topCol(i)}"` : ''}></i>`
             + (tw && A.logo ? A.logo(c, nm, 20, 'hdlogo') : `<span class="slogo hdlogo nolg" data-l="${A.fmt.esc(Array.from(String(nm || '?'))[0])}" style="--lg:#4d5b73;--lz:20px" aria-hidden="true"></span>`)
             + `<span class="nmt">${go ? `<a href="#stock/${A.fmt.esc(c)}">${A.fmt.esc(nm)}</a>` : A.fmt.esc(nm)}<span class="cd mono">${A.fmt.esc(c || '')}</span></span>`
             /* 2026-10-08：債券成分第二行顯示「票息 X%・到期 YYYY-MM-DD」（管線從名稱讀出，見 etf_pcf.bond_terms），股票照舊顯示族群 */
-            + `<span class="gp2"${x.mat ? ' data-bond="1"' : ''}>${x.mat ? `票息 ${x.cpn != null ? A.fmt.n(x.cpn, 3).replace(/\.?0+$/, '') + '%' : '—'}・到期 ${A.fmt.esc(x.mat)}` : A.fmt.esc(gp || '—')}</span></td>`
+            + `<span class="gp2"${x.mat ? ' data-bond="1"' : ''}>${m4h ? `<span class="cdm">${A.fmt.esc(c || '')}</span>` : ''}${x.mat ? `票息 ${x.cpn != null ? A.fmt.n(x.cpn, 3).replace(/\.?0+$/, '') + '%' : '—'}・到期 ${A.fmt.esc(x.mat)}` : A.fmt.esc(gp || '—')}</span></td>`
             + `<td class="sk">${tw && A.sparkSVG ? `<span class="spkw" data-spk="${A.fmt.esc(c)}" data-w="48" data-h="18">${A.sparkSVG(c, { w: 48, h: 18 })}</span>` : '<span class="muted">—</span>'}</td>`
             + `<td class="mono px">${px == null ? '<span class="muted">—</span>' : `<span class="pv">${A.fmt.n(px, px >= 1000 ? 0 : 2)}</span><span class="pc ${ch == null ? 'muted' : A.fmt.cls(ch)}">${ch == null ? '—' : A.fmt.pct(ch)}</span>`}</td>`
             + `<td class="mono iv ${iv == null ? 'muted' : A.fmt.cls(iv)}">${iv == null ? '—' : `${iv > 0 ? '+' : ''}${A.fmt.i(iv)} 張`}</td>`
@@ -6103,18 +6122,31 @@
       const r = nm && rowOf(nm); if (r) r.classList.add('hi'); };
     if (inst) {
       inst.on('mouseover', (p) => { if (p.seriesIndex === 0) paint(p.name); });
-      inst.on('globalout', () => paint(null));
+      inst.on('globalout', () => { if (!m4h) paint(null); });   // 手機的選取要留著（手指離開不算取消）
       inst.on('click', (p) => { if (p.seriesIndex !== 0) return; const d = parts.find(x => x.name === p.name);
+        /* 手機（html.m4）：點扇區＝選取（扇區放大、中心字換、表格那一列高亮並捲進框內），不跳頁 —— 手指沒有 hover，一點就跳頁看不到占比。
+           進個股頁走表格名稱上的連結。桌機照舊點了進個股頁。*/
+        if (m4h) { m4Sel(p.name, true); return; }
         if (d && d.code && canGo(String(d.code))) location.hash = '#stock/' + d.code; });
     }
-    tbody.addEventListener('mouseover', (e) => { const r = e.target.closest('tr'); if (!r || r.dataset.i == null) return; const i = +r.dataset.i;
+    tbody.addEventListener('mouseover', (e) => { if (m4h) return; const r = e.target.closest('tr'); /* 手機：手指點列走下面的 click 選取，不吃模擬 hover */ if (!r || r.dataset.i == null) return; const i = +r.dataset.i;
       paint(i < HOLD_TOPN ? parts[i].name : (restSum > 0.005 ? '其他' : null)); });
-    tbody.addEventListener('mouseleave', () => paint(null));
+    tbody.addEventListener('mouseleave', () => { if (!m4h) paint(null); });
     legEl.addEventListener('mouseover', (e) => { const r = e.target.closest('.lg'); if (r) paint(parts[+r.dataset.n].name); });
     legEl.addEventListener('mouseleave', () => paint(null));
     legEl.addEventListener('click', (e) => { const r = e.target.closest('.lg'); const d = r && parts[+r.dataset.n];
       if (d && d.code && canGo(String(d.code))) location.hash = '#stock/' + d.code; });
-    tbody.addEventListener('click', (e) => { if (e.target.closest('a')) return; const r = e.target.closest('tr.go'); if (r) location.hash = '#stock/' + r.dataset.code; });
+    /* 手機（html.m4）選取：nm＝扇區名；同一塊再點一次＝取消。fromPie＝從甜甜圈點的 → 把表格那一列捲進 .hdscroll 可視範圍。*/
+    let m4Cur = null;
+    const nameOfRow = (r) => { const i = +r.dataset.i; return i < HOLD_TOPN ? parts[i] && parts[i].name : (restSum > 0.005 ? '其他' : null); };
+    const m4Sel = (nm, fromPie, keep) => { const nx = nm && nm === m4Cur && !keep ? null : nm; m4Cur = nx; hiName = undefined; paint(nx);
+      card.dataset.sel = nx || '';
+      if (fromPie && nx) { const r = rowOf(nx) || (nx === '其他' ? tbody.querySelector('tr.hdsep') : null); const sc = card.querySelector('.hdscroll');
+        if (r && sc) { const rt = r.getBoundingClientRect(), st = sc.getBoundingClientRect(); if (rt.top < st.top + 30 || rt.bottom > st.bottom) sc.scrollTop += rt.top - st.top - 34; } } };
+    tbody.addEventListener('click', (e) => { if (e.target.closest('a')) return;
+      if (m4h) { const r = e.target.closest('tr[data-i]'); if (!r) return; const was = r.classList.contains('hi') && m4Cur;
+        if (was) m4Sel(m4Cur, false); /* 再點同一列＝取消 */ else { m4Sel(nameOfRow(r), false, true); r.classList.add('hi'); } return; }
+      const r = e.target.closest('tr.go'); if (r) location.hash = '#stock/' + r.dataset.code; });
     card.querySelector('#etfHoldQ').addEventListener('input', (e) => { const q = e.target.value.trim().toLowerCase();
       tbody.querySelectorAll('tr').forEach(r => { r.hidden = r.classList.contains('hdsep') ? !!q : (!!q && r.dataset.q.indexOf(q) < 0); }); });
   }
