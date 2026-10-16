@@ -70795,27 +70795,31 @@ def t_pay_1011(b, base):
         atok = ad.evaluate("() => TwAccount.tok()")
 
         def co_metrics(pg, tag):
-            # 10-16 結帳視窗重做：量每個控制項的 bounding box、文字中線、字級、勾選數，供尺規式斷言
+            # 10-16 結帳視窗：量每個控制項的 bounding box、符號置中、字級、勾選數，供尺規式斷言
             m = pg.evaluate("""() => { const d = document.getElementById('subDlg'), bx = d.querySelector('.box'), vh = innerHeight;
               const rc = (e) => { const r = e.getBoundingClientRect(); return { t: Math.round(r.top * 10) / 10, b: Math.round(r.bottom * 10) / 10, l: Math.round(r.left * 10) / 10, r: Math.round(r.right * 10) / 10, h: Math.round(r.height * 10) / 10, w: Math.round(r.width * 10) / 10 }; };
-              const pos = (s) => { const e = d.querySelector(s); return e && e.offsetParent ? rc(e) : null; };
-              const diff = (s) => { const e = d.querySelector(s); if (!e || !e.offsetParent) return null; const rg = document.createRange(); rg.selectNodeContents(e);
+              const vis = (s) => [...d.querySelectorAll(s)].filter((e) => e.offsetParent && !e.closest('[hidden]'));
+              const pos = (s) => { const e = vis(s)[0]; return e ? rc(e) : null; };
+              const diff = (s) => { const e = vis(s)[0]; if (!e) return null; const rg = document.createRange(); rg.selectNodeContents(e);
                 const rs = [...rg.getClientRects()].filter((x) => x.height > 0); if (!rs.length) return null;
                 const tt = Math.min(...rs.map((x) => x.top)), tb = Math.max(...rs.map((x) => x.bottom)), r = e.getBoundingClientRect();
                 return Math.round(Math.abs((tt + tb) / 2 - (r.top + r.bottom) / 2) * 10) / 10; };
               const sizes = {}; d.querySelectorAll('*').forEach((e) => { if (!e.offsetParent || e.closest('[hidden]') || e.closest('#coCfm')) return; const own = [...e.childNodes].some((n) => n.nodeType === 3 && n.textContent.trim()); if (own) { const f = parseFloat(getComputedStyle(e).fontSize); sizes[f] = (sizes[f] || 0) + 1; } });
               const pad = (s) => { const e = d.querySelector(s); if (!e) return null; const c = getComputedStyle(e); return [c.paddingTop, c.paddingBottom, c.borderTopWidth, c.borderBottomWidth].join('|'); };
+              /* 符號置中：量 SVG 圖形外框（getBBox）的中心離 24×24 viewBox 正中央幾個單位，換成螢幕像素；再量 SVG 盒子中心離按鈕中心 */
+              const sym = vis('.cogd button').map((b) => { const sv = b.querySelector('svg'), bb = sv.getBBox(), k = sv.getBoundingClientRect().width / 24, br = b.getBoundingClientRect(), sr = sv.getBoundingClientRect();
+                return { aria: b.getAttribute('aria-label'), title: b.getAttribute('title'), text: b.textContent.trim(), off: Math.round(Math.hypot((bb.x + bb.width / 2 - 12) * k, (bb.y + bb.height / 2 - 12) * k) * 10) / 10, box: Math.round(Math.hypot((sr.left + sr.right) / 2 - (br.left + br.right) / 2, (sr.top + sr.bottom) / 2 - (br.top + br.bottom) / 2) * 10) / 10, rect: rc(b) }; });
               return { vw: innerWidth, vh, boxH: Math.round(bx.getBoundingClientRect().height), scrollH: bx.scrollHeight, clientH: bx.clientHeight,
                 name: pos('#coNameE'), l5: pos('#coL5E'), payer: pos('#coPayer'), l5b: pos('#coL5'), date: pos('#coDate'),
-                gender: pos('.cogrow:not([hidden])') && pos('#coPaneE:not([hidden]) .cogrow') || pos('#coPaneB:not([hidden]) .cogrow'),
-                glabel: pos('#coPaneE:not([hidden]) .cogrow .lb') || pos('#coPaneB:not([hidden]) .cogrow .lb'),
-                pills: [...d.querySelectorAll('.cogd button')].filter((e) => e.offsetParent).map(rc), help: (() => { const e = [...d.querySelectorAll('.cohelpb')].find((x) => x.offsetParent); return e ? rc(e) : null; })(),
-                tabs: [...d.querySelectorAll('.cotabs button')].map(rc), agree: pos('.coagree'), agreeBox: pos('#coAgree'), go: pos('#coGoE') || pos('#coSendB'), amt: pos('#coAmt'), badge: pos('#coBadge'), hd: pos('.cohd'),
+                flds: vis('.cog .fld').map(rc), nmrows: vis('.cog .nmrow').map(rc), sym,
+                help: (() => { const e = vis('.cohelpb')[0]; return e ? rc(e) : null; })(),
+                tabs: [...d.querySelectorAll('.cotabs button')].map(rc), agree: pos('.coagree'), agreeBox: pos('#coAgree'), go: pos('#coGoE') || pos('#coSendB'), amt: pos('#coAmt'), badge: pos('#coBadge'), title: pos('#coName'), hd: pos('.cohd'), testDot: pos('.cotest'),
                 cards: [...d.querySelectorAll('.cobc')].map(rc), copies: [...d.querySelectorAll('.cobc button')].map(rc),
-                cdiff: { tabE: diff('#coTabE'), tabB: diff('#coTabB'), pillM: diff('.cogd button[data-g=male]'), pillF: diff('.cogd button[data-g=female]'), help: diff('.cogrow .cohelpb'), go: diff('#coGoE:not([hidden])') ?? diff('#coSendB:not([hidden])'), badge: diff('#coBadge') },
+                cdiff: { tabE: diff('#coTabE'), tabB: diff('#coTabB'), help: diff('.cohelpb'), go: diff('#coGoE') ?? diff('#coSendB'), badge: diff('#coBadge') },
                 copyDiff: [...d.querySelectorAll('.cobc button')].map((e) => { const rg = document.createRange(); rg.selectNodeContents(e); const x = rg.getClientRects()[0], r = e.getBoundingClientRect(); return x ? Math.round(Math.abs((x.top + x.bottom) / 2 - (r.top + r.bottom) / 2) * 10) / 10 : 99; }),
                 padSym: { name: pad('#coNameE'), l5: pad('#coL5E'), payer: pad('#coPayer'), date: pad('#coDate') },
-                checks: [...d.querySelectorAll('input[type=checkbox]')].filter((e) => e.offsetParent).length, perSwitch: !!d.querySelector('#coPer') || !!d.querySelector('[data-per]'), sizes }; }""")
+                legacy: { coop: !!d.querySelector('.coop'), cooid: !!d.querySelector('#coOidRow'), cogrow: !!d.querySelector('.cogrow'), owner: /經營者：|客服信箱：/.test(d.innerText), genderText: [...d.querySelectorAll('.cogd *')].some((e) => /[男女]/.test(e.textContent)) },
+                checks: vis('input[type=checkbox]').length, perSwitch: !!d.querySelector('#coPer') || !!d.querySelector('[data-per]'), sizes }; }""")
             m["tag"] = tag
             out = os.environ.get("TW_PAY_METRICS")
             if out:
@@ -70824,32 +70828,43 @@ def t_pay_1011(b, base):
             return m
 
         def co_layout(m, label, bank=False):
-            # 10-16 Andy 退件後的尺規式驗收：同排等大、44px、文字置中、性別行不比輸入框高、單一勾選、沒有月／年切換、不捲動
+            # 10-16 Andy 第三次修改後的尺規式驗收：姓名與 ♂♀ 同列同高、符號置中、標題列含金額、沒有經營者行、沒有「男」「女」文字
             vh = m["vh"]
-            eq = lambda a, b: a and b and abs(a["h"] - b["h"]) <= 1 and abs(a["w"] - b["w"]) <= 1 and abs(a["t"] - b["t"]) <= 1
+            narrow = m["vw"] <= 640
+            nm = m["payer"] if bank else m["name"]
+            sym = m["sym"]
+            same_row = len(sym) == 2 and all(abs((x["rect"]["t"] + x["rect"]["b"]) / 2 - (nm["t"] + nm["b"]) / 2) <= 2 and x["rect"]["l"] >= nm["r"] - 1 and abs(x["rect"]["w"] - 32) <= 1 and abs(x["rect"]["h"] - 32) <= 1 for x in sym)
+            ok(f"{T}：{label}：姓名輸入框（高 {nm['h']}px）與 ♂ ♀ 兩顆 32×32 小鈕同一列、中線差 ≤2px、小鈕在輸入框右側", same_row and abs(nm["h"] - 44) <= 1, m["sym"])
+            ok(f"{T}：{label}：♂ ♀ 符號圖形置中（圖形外框中心離按鈕中心 ≤ 2px）；畫面沒有「男」「女」文字節點，但有 aria-label／title", all(x["off"] <= 2 and x["box"] <= 1 and x["text"] == "" and x["aria"] in ("男", "女") and x["title"] in ("男", "女") for x in sym) and not m["legacy"]["genderText"] and [x["aria"] for x in sym] == ["男", "女"], sym)
             if bank:
-                row = [m["payer"], m["l5b"], m["date"]]
-                narrow = m["vw"] <= 640
-                row_ok = all(r and abs(r["h"] - 44) <= 1 for r in row) and (eq(row[1], row[2]) if narrow else (eq(row[0], row[1]) and eq(row[1], row[2])))
                 cards = m["cards"]
-                cards_ok = len(cards) == 4 and all(abs(c["h"] - cards[0]["h"]) <= 1 and abs(c["w"] - cards[0]["w"]) <= 1 for c in cards) and all(abs(c["h"] - c["h"]) <= 1 for c in m["copies"]) and len({(c["w"], c["h"]) for c in m["copies"]}) == 1
-                ok(f"{T}：{label}：收款資訊 2×2 四格同大小（{cards[0]['w']}×{cards[0]['h']}）、複製鈕同尺寸且文字置中；匯款人姓名／末 5 碼／轉帳日期輸入框高 44px、{'末 5 碼與日期等寬' if narrow else '三欄等寬'}", row_ok and cards_ok and all(x <= 2 for x in m["copyDiff"]), m)
-                first = ["go"]
+                cards_ok = len(cards) == 4 and all(abs(c["h"] - cards[0]["h"]) <= 1 and abs(c["w"] - cards[0]["w"]) <= 1 for c in cards) and len({(c["w"], c["h"]) for c in m["copies"]}) == 1
+                ok(f"{T}：{label}：收款資訊 2×2 四格同大小（{cards[0]['w']}×{cards[0]['h']}）、複製鈕同尺寸且文字置中", cards_ok and all(x <= 2 for x in m["copyDiff"]), m)
+                inputs_ok = all(r and abs(r["h"] - 44) <= 1 for r in (m["payer"], m["l5b"], m["date"]))
+                f = m["flds"]
+                if narrow:
+                    fld_ok = len(f) == 3 and abs(f[1]["w"] - f[2]["w"]) <= 1 and f[0]["w"] > f[1]["w"]
+                else:
+                    fld_ok = len(f) == 3 and abs(f[0]["w"] - f[1]["w"]) <= 1 and abs(f[0]["t"] - f[1]["t"]) <= 1 and f[2]["w"] > f[0]["w"]
+                ok(f"{T}：{label}：匯款人姓名／末 5 碼／轉帳日期輸入框高 44px；{'姓名獨佔一排，末 5 碼與日期等寬' if narrow else '姓名與末 5 碼兩欄等寬、日期整排'}", inputs_ok and fld_ok, m["flds"])
             else:
-                row_ok = eq(m["name"], m["l5"]) and abs(m["name"]["h"] - 44) <= 1
-                ok(f"{T}：{label}：「姓名｜轉出帳號末 5 碼」兩欄等寬（{m['name']['w']}）、等高 44px、上緣對齊", row_ok, m)
-            g = m["gender"]
-            ref = m["name"] if not bank else m["payer"]
-            ok(f"{T}：{label}：性別是單行小控制：行高 {g['h']}px 不大於輸入框 {ref['h']}px；左緣與上方欄位對齊；兩顆小膠囊各 ≈56×32、說明鈕 32×32", g["h"] <= ref["h"] + 1 and abs(m["glabel"]["l"] - ref["l"]) <= 1 and len(m["pills"]) == 2 and all(abs(p["w"] - 56) <= 2 and abs(p["h"] - 32) <= 1 for p in m["pills"]) and m["help"] and abs(m["help"]["w"] - 32) <= 1 and abs(m["help"]["h"] - 32) <= 1, m)
+                f = m["flds"]
+                if narrow:
+                    row_ok = len(f) == 2 and f[0]["t"] < f[1]["t"] and abs(f[0]["w"] - f[1]["w"]) <= 1
+                else:
+                    row_ok = len(f) == 2 and abs(f[0]["w"] - f[1]["w"]) <= 1 and abs(f[0]["t"] - f[1]["t"]) <= 1
+                ok(f"{T}：{label}：「姓名＋♂♀」與「末 5 碼＋ⓘ」{'各佔一排' if narrow else '兩欄等寬、上緣對齊'}、輸入框高 44px", row_ok and abs(m["l5"]["h"] - 44) <= 1 and m["help"] and abs(m["help"]["w"] - 32) <= 1 and abs(m["help"]["h"] - 32) <= 1, m)
             tabs = m["tabs"]
             ok(f"{T}：{label}：兩個付款分頁鈕等寬等高（{tabs[0]['w']}×{tabs[0]['h']}，高 44px）", len(tabs) == 2 and all(abs(t["h"] - 44) <= 1 for t in tabs) and abs(tabs[0]["w"] - tabs[1]["w"]) <= 1, tabs)
             cd = [v for v in m["cdiff"].values() if v is not None]
-            ok(f"{T}：{label}：文字垂直置中（分頁、男女膠囊、ⓘ、前往／送出鈕、週期徽章的文字中線與控制項中線差 ≤ 2px）", bool(cd) and all(v <= 2 for v in cd), m["cdiff"])
+            ok(f"{T}：{label}：文字垂直置中（分頁、ⓘ、前往／送出鈕、週期徽章的文字中線與控制項中線差 ≤ 2px）", bool(cd) and all(v <= 2 for v in cd), m["cdiff"])
             ps = m["padSym"]
             ok(f"{T}：{label}：輸入框上下內距與邊框對稱（文字垂直置中）", all(v is None or v.split("|")[0] == v.split("|")[1] and v.split("|")[2] == v.split("|")[3] for v in ps.values()), ps)
-            ok(f"{T}：{label}：視窗內沒有月／年切換、只有一個同意勾選（框 20px）、頂部有週期徽章、金額單行置中", not m["perSwitch"] and m["checks"] == 1 and m["agreeBox"] and abs(m["agreeBox"]["w"] - 20) <= 1 and m["badge"] and m["amt"] and abs((m["amt"]["l"] + m["amt"]["r"]) / 2 - (m["hd"]["l"] + m["hd"]["r"]) / 2) <= 6 and m["amt"]["h"] <= 26, m)
+            hd, am, ti, ba = m["hd"], m["amt"], m["title"], m["badge"]
+            ok(f"{T}：{label}：金額與每天約在標題列（同一個標題列、在關閉鈕左邊、與「{'Plus'}・月／年繳」同一列）；不再有獨立金額列、訂單編號列、經營者客服信箱行", am and hd and am["t"] >= hd["t"] - 1 and am["b"] <= hd["b"] + 1 and abs((am["t"] + am["b"]) / 2 - (ti["t"] + ti["b"]) / 2) <= 14 and ba["r"] <= am["l"] and not m["legacy"]["coop"] and not m["legacy"]["cooid"] and not m["legacy"]["owner"] and not m["legacy"]["cogrow"], m)
+            ok(f"{T}：{label}：視窗內沒有月／年切換、只有一個同意勾選（框 20px）", not m["perSwitch"] and m["checks"] == 1 and m["agreeBox"] and abs(m["agreeBox"]["w"] - 20) <= 1, m)
             lasts = (m["go"] or m["agree"])
-            ok(f"{T}：{label}：姓名／性別／同意／前往鈕都在第一屏、不用捲動（視窗高 {m['boxH']}px）", all(x and x["b"] <= vh for x in (g, m["agree"], lasts, m["amt"])) and m["scrollH"] <= m["clientH"] + 2, m)
+            ok(f"{T}：{label}：姓名／♂♀／同意／前往鈕都在第一屏、不用捲動（視窗高 {m['boxH']}px）", all(x and x["b"] <= vh for x in (nm, m["agree"], lasts)) and m["scrollH"] <= m["clientH"] + 2, m)
             sz = set(float(k) for k in m["sizes"])
             ok(f"{T}：{label}：字級只有 12／14／16 三級、全部 ≥ 12px", sz <= {12.0, 14.0, 16.0}, m["sizes"])
 
@@ -70877,21 +70892,21 @@ def t_pay_1011(b, base):
            bool(wait_until(pb, "() => { const d = document.getElementById('subDlg'); return d && !d.hidden && !!d.querySelector('#coTabE'); }", 10000)))
         pb.evaluate("() => TwCheckout.open({ plan: 'plus', per: 'month' })")
         wait_until(pb, "() => /299/.test((document.getElementById('coAmt') || {}).innerText || '')", 6000)
-        info = pb.evaluate("() => ({ amt: document.getElementById('coAmt').innerText, test: !!document.querySelector('#subDlg .cotest'), name: document.getElementById('coName').innerText, badge: document.getElementById('coBadge').innerText, oidHidden: document.getElementById('coOidRow').hidden, refund: !!document.querySelector('#subDlg .coagree a[href=\"#refund\"]'), agreeT: document.querySelector('#subDlg .coagree').innerText })")
-        ok(f"{T}：結帳面板：標題「Plus」＋徽章「月繳」（由訂閱頁帶入、視窗內沒有月／年切換鈕）、金額 NT$ 299（伺服器價）、測試模式、信用卡分頁不顯示訂單編號、退款政策連結、同意條款含七日解除權",
+        info = pb.evaluate("() => ({ amt: document.getElementById('coAmt').innerText, test: !!document.querySelector('#subDlg .cotest'), name: document.getElementById('coName').innerText, badge: document.getElementById('coBadge').innerText, oidHidden: !document.getElementById('coBankNote') || document.getElementById('coBankNote').hidden, refund: !!document.querySelector('#subDlg .coagree a[href=\"#refund\"]'), agreeT: document.querySelector('#subDlg .coagree').innerText })")
+        ok(f"{T}：結帳面板：標題「Plus」＋徽章「月繳」（由訂閱頁帶入、視窗內沒有月／年切換鈕）、金額 NT$ 299（伺服器價）、測試模式、信用卡分頁不顯示訂單編號、金額在標題列、退款政策連結、同意條款含七日解除權",
            info["name"] == "Plus" and "299" in info["amt"] and info["test"] and info["badge"] == "月繳" and info["oidHidden"] and info["refund"] and "使用條款" in info["agreeT"] and "七日解除權" in info["agreeT"], info)
         shot(pb, "co_ecpay.png", "#subDlg .box")
         # ================= ③ 10-16 新結帳表單（只剩信用卡定期定額）；再用舊路徑（單次，伺服器仍支援）驗「ReturnURL 漏送 → 前端輪詢＋伺服器查單補開通」
         ui = pb.evaluate("""() => { const d = document.getElementById('subDlg'); const g = [...d.querySelectorAll('#coPaneE .cogd button')];
           return { kinds: d.querySelectorAll('input[name=coKind]').length, once: /單次付款/.test(d.innerText), tab: d.querySelector('#coTabE').innerText, day: (document.getElementById('coDay') || {}).textContent || '',
-            fields: !!(d.querySelector('#coNameE') && d.querySelector('#coL5E')), gbtn: g.map(x => x.textContent + ':' + x.getAttribute('aria-checked')), gc: d.querySelectorAll('#coPaneE .cogcb').length,
+            fields: !!(d.querySelector('#coNameE') && d.querySelector('#coL5E')), gbtn: g.map(x => x.getAttribute('aria-label') + ':' + x.getAttribute('aria-checked') + ':' + x.textContent.trim()), gc: d.querySelectorAll('#coPaneE .cogcb').length,
             go: document.getElementById('coGoE').disabled, hint: /僅用於匿名彙總統計，不公開/.test(d.querySelector('#coPaneE .cohelp').textContent) && !!d.querySelector('#coPaneE .cohelp a[href="#privacy"]') && !!d.querySelector('.coagree a[href="#privacy"]'),
-            gdReq: /選填/.test(d.querySelector('#coGLbE').parentElement.innerText) && /不選擇不影響結帳與任何功能/.test(d.querySelector('#coPaneE .cohelp').textContent), exit: !/人工協助開通/.test(d.querySelector('#coPaneE').textContent),
+            gdReq: /性別 ♂／♀（選填）/.test(d.querySelector('#coPaneE .cohelp').textContent) && /不選擇不影響結帳與任何功能/.test(d.querySelector('#coPaneE .cohelp').textContent), exit: !/人工協助開通/.test(d.querySelector('#coPaneE').textContent),
             helpHidden: d.querySelector('#coPaneE .cohelp').hidden, helpVis: !!d.querySelector('#coPaneE .cohelp').offsetParent }; }""")
         co_layout(co_metrics(pb, "desk1440 預設"), "桌機 1440×900 預設")
         ok(f"{T}：10-16 結帳視窗：沒有單次付款／兩種付款方式雙選、分頁寫「信用卡」不再寫 ATM／超商；有姓名、性別（選填、男／女都沒預選、沒有獨立同意勾選）、選填末 5 碼；前往綠界鈕一開始是灰的",
-           ui["kinds"] == 0 and not ui["once"] and "信用卡" in ui["tab"] and "超商" not in ui["tab"] and ui["fields"] and ui["gbtn"] == ["男:false", "女:false"] and ui["gc"] == 0 and ui["go"], ui)
-        ok(f"{T}：10-16 退件後：性別旁只剩小 ⓘ，用途（僅用於匿名彙總統計，不公開）與完整說明都收在 ⓘ 裡預設收起（隱私權政策連結在合併勾選的句子裡）；沒有「來信人工開通」出口", ui["hint"] and ui["gdReq"] and ui["exit"] and ui["helpHidden"] and not ui["helpVis"], ui)
+           ui["kinds"] == 0 and not ui["once"] and "信用卡" in ui["tab"] and "超商" not in ui["tab"] and ui["fields"] and ui["gbtn"] == ["男:false:", "女:false:"] and ui["gc"] == 0 and ui["go"], ui)
+        ok(f"{T}：10-16 退件後：沒有獨立的性別列與文字標籤，♂♀ 小鈕在姓名欄右側、ⓘ 在末 5 碼欄右側，用途（僅用於匿名彙總統計，不公開）與完整說明都收在 ⓘ 裡預設收起（隱私權政策連結在合併勾選的句子裡）；沒有「來信人工開通」出口", ui["hint"] and ui["gdReq"] and ui["exit"] and ui["helpHidden"] and not ui["helpVis"], ui)
         pb.click("#coPaneE .cohelpb")
         hv = pb.evaluate("() => { const h = document.querySelector('#coPaneE .cohelp'); const b = document.querySelector('#coPaneE .cohelpb'); return { vis: !!h.offsetParent, exp: b.getAttribute('aria-expanded'), t: h.innerText, tiny: [...h.querySelectorAll('li')].some(l => parseFloat(getComputedStyle(l).fontSize) < 11) }; }")
         ok(f"{T}：按「ⓘ 說明」→ 展開姓名／性別／末 5 碼／信用卡／個資處理說明（含「這不是信用卡號」「卡號不會被本網站看到」）、字 ≥ 11px", hv["vis"] and hv["exp"] == "true" and "這不是信用卡號" in hv["t"] and "不會看到" in hv["t"] and "隱私權政策" in hv["t"] and not hv["tiny"], hv)
@@ -71038,8 +71053,8 @@ def t_pay_1011(b, base):
         ok(f"{T}：選轉帳 → 顯示收款資訊（銀行＋代碼、帳號、戶名、應付金額、訂單編號）；10-16 Andy 拿掉「請於 3 天內轉帳」那行",
            bool(bank_ok) and f"{PAY_BANK['bank_name']}（{PAY_BANK['bank_code']}）" in bank_ok and PAY_BANK["account"] in bank_ok and PAY_BANK["holder"] in bank_ok and "NT$ 299" in bank_ok and "3 天內" not in bank_ok, bank_ok)
         # 10-16 Andy：「需要調整版面，可以看到跑掉了」→ 三個輸入框上緣切齊、標籤一行不換行
-        fl = pc.evaluate("() => { const ins = ['coPayer', 'coL5', 'coDate'].map(i => document.getElementById(i).getBoundingClientRect()); const lb = [...document.querySelectorAll('#coFrm label:not(.cogc)')].map(l => l.getBoundingClientRect().height); return { tops: ins.map(r => Math.round(r.top)), lbh: lb }; }")
-        ok(f"{T}：轉帳表單三個輸入框上緣切齊、標籤都只有一行", max(fl["tops"]) - min(fl["tops"]) <= 1 and all(h <= 22 for h in fl["lbh"]), fl)
+        fl = pc.evaluate("() => { const ins = ['coPayer', 'coL5'].map(i => document.getElementById(i).getBoundingClientRect()); const lb = [...document.querySelectorAll('#coFrm label:not(.cogc)')].map(l => l.getBoundingClientRect().height); return { tops: ins.map(r => Math.round(r.top)), lbh: lb }; }")
+        ok(f"{T}：轉帳表單姓名與末 5 碼輸入框上緣切齊、標籤都只有一行", max(fl["tops"]) - min(fl["tops"]) <= 1 and all(h <= 22 for h in fl["lbh"]), fl)
         boid = pc.evaluate("() => document.getElementById('coOid').innerText")
         ok(f"{T}：轉帳訂單編號出現在面板上（{boid}）", bool(re.match(r"^LG[0-9A-Z]{16}$", boid or "")), boid)
         pc.fill("#coL5", "12345")
