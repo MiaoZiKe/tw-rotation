@@ -1328,7 +1328,7 @@
             <div class="segtools" id="segTools"></div>
             <div class="seglist" id="chainList"></div>
           </div></div></div>` : ''}
-        ${otherChains.length && !(window.matchMedia && matchMedia('(min-width: 821px)').matches) ? `<div class="linkrow chainothers"><span class="muted">其他產業鏈</span>${otherChains.map(c => A.L.chain(c.id, c.name)).join('')}${A.L.chain('industry', '法定產業別')}</div>` : ''}
+        ${otherChains.length && !(window.matchMedia && matchMedia('(min-width: 821px)').matches) && !document.documentElement.classList.contains('m4') ? `<div class="linkrow chainothers"><span class="muted">其他產業鏈</span>${otherChains.map(c => A.L.chain(c.id, c.name)).join('')}${A.L.chain('industry', '法定產業別')}</div>` : ''}
       </div>`;
     /* ★ 族群卡片 `#groupCards` 已移除（DECISIONS #248）。
        它承載的兩件事都搬到關聯圖上，一件都沒有消失：
@@ -2067,6 +2067,13 @@
        手機另有人處理，這裡只擋桌機 —— 用 matchMedia 而非 CSS 藏，才是真的「不存在」，
        不會留下一顆看不到但還能被 Tab 到的按鈕。*/
     if (window.matchMedia && matchMedia('(min-width: 821px)').matches) { box.innerHTML = ''; return; }
+    /* ★ 2026-10-16 手機（html.m4）：環節詳情整塊不畫，跟桌機同一個理由、同一個做法（JS 不畫＝真的不存在）。
+       Andy iPhone：「產業地圖那邊，不該出現這樣的說明框了……只會出現 關聯圖 和 上面的2D 3D 圖以及公司的說明卡」。
+       他看到的是跨鏈比較卡（`#cgXChains`：「AI 伺服器 切到這條鏈看 →」＋縮圖＋上游／下游膠囊＋「半導體（現在這條）」），
+       它住在這塊裡；手機用「篩選 環節」下拉選一格就會長出來。這一格有誰，關聯圖本身已經篩好、點公司另有說明卡，
+       這塊在手機是第三份重複資訊，而且一張縮圖＋好幾排膠囊就吃掉一屏多。
+       ⚠ 只擋 html.m4（≤640 手機版面）；641～820 的窄桌機照舊（_uitest 的 800 寬斷言靠它）。*/
+    if (document.documentElement.classList.contains('m4')) { box.innerHTML = ''; return; }
     const o = opt || {};
     const tw = twOf(sc, seg), fo = foreignOf(sc, seg), gids = A.L.sgroups[seg] || [];
     const s = sc.segments.find(x => x.id === seg) || {};
@@ -4080,7 +4087,15 @@
        畫面上又跟實績長得一模一樣 —— 一筆 2026 年初的法人預估，到 2028 年還是綠的。*/
     const shares = (co.share || []).map(s => `<li>${A.fmt.esc(s.metric || s.product || '市占')}：<b class="mono">${s.value_pct != null ? s.value_pct + '%' : (s.value_pct_range ? s.value_pct_range.join('–') + '%' : (s.value || '—'))}</b>${s.forecast ? ' <em class="cf cf-estimated">預估</em>' : ''} <small class="muted">${A.fmt.esc(String(s.as_of || '').replace(/F$/, ''))} · ${A.fmt.esc(s.source || '')}${s.stale ? ' · 已過期' : ''}</small></li>`).join('');
     const peers = sc.companies.filter(c => c.segment === co.segment && c.id !== co.id);
-    box.innerHTML = `<div class="row spread"><h3>${A.fmt.esc(co.name)} ${co.tw_code ? `<span class="mono cyan">${co.tw_code}</span>` : '<span class="pill">外商</span>'}</h3><button class="close" onclick="document.getElementById('coBox').remove()">×</button></div>
+    /* ★ 2026-10-16 手機：卡片最下面那顆「看個股頁 →」拿掉，改成標題的公司名本身就是個股頁連結。
+       Andy：「說明卡最下方為何有個空白方框，點選後就是股票頁面，這拿掉，因為點選股票名稱即可連結到個股分頁」——
+       那顆是 .btn.primary（深色字），主題 v4 把所有 .btn 的底換成半透明控制項底，字跟底同色，看起來就是一個空框。
+       主題那條另外修（theme4.css 補 .btn.primary）；手機這裡照 Andy 的話直接拿掉，入口改到名字上。桌機不動。*/
+    const m4co = document.documentElement.classList.contains('m4');
+    const coTitle = co.tw_code && m4co
+      ? `<a class="lk cotitle" href="#stock/${co.tw_code}">${A.fmt.esc(co.name)} <span class="mono cyan">${co.tw_code}</span> <span class="cogo" aria-hidden="true">›</span></a>`
+      : `${A.fmt.esc(co.name)} ${co.tw_code ? `<span class="mono cyan">${co.tw_code}</span>` : '<span class="pill">外商</span>'}`;
+    box.innerHTML = `<div class="row spread"><h3>${coTitle}</h3><button class="close" onclick="document.getElementById('coBox').remove()">×</button></div>
       <div class="sub"><span style="color:${segColor(co.segment)}">● ${A.fmt.esc(segName(sc, co.segment))}</span>${(co.groups || []).length ? ' · ' + co.groups.map(gn => A.L.groupByName(gn)).join(' ') : ''}</div>
       ${(co.tech || []).length ? `<div class="row" style="gap:6px;margin:6px 0">${co.tech.map(t => `<span class="pill">${A.fmt.esc(t)}</span>`).join('')}</div>` : ''}
       ${shares ? `<ul style="margin:6px 0;padding-left:18px;font-size:13.5px">${shares}</ul>` : ''}
@@ -4088,7 +4103,7 @@
       ${growthText(co.growth) ? `<div class="note">成長：${A.fmt.esc(growthText(co.growth))}${co.growth && co.growth.capacity_source ? A.srcInfo(co.growth.capacity_source) : ''}</div>` : ''}${(co.risks || []).length ? `<div class="note">風險：${co.risks.map(A.fmt.esc).join('；')}</div>` : ''}
       ${relBlock(co, sc)}
       ${peers.length ? `<div class="row" style="gap:4px 8px;margin-top:8px;font-size:12.5px"><span class="muted">同環節</span>${peers.map(p => p.tw_code ? A.L.stock(p.tw_code, p.name, { cls: 'sm' }) : `<span class="muted">${A.fmt.esc(p.name)}</span>`).join('')}</div>` : ''}
-      ${co.tw_code ? `<button class="btn primary" style="margin-top:8px" onclick="goStock('${co.tw_code}')">看個股頁 →</button>` : ''}`;
+      ${co.tw_code && !m4co ? `<button class="btn primary" style="margin-top:8px" onclick="goStock('${co.tw_code}')">看個股頁 →</button>` : ''}`;
     wireRelBlock(box, sc, host);
     /* ★ 2026-09-26：點背景／Esc 收掉這張卡（全站 dismissable）。
        產業鏈頁（#relSec 裡）由 renderChain 那一筆負責 —— 它收卡的同時還要取消環節選取，兩筆一起登記會各關各的。
@@ -4154,7 +4169,7 @@
     }
     return `<div class="relbox">
       <div class="row spread"><b class="rh">產業關係</b>
-        <button class="btn sm" id="relHi" data-on="0">在圖上highlight</button></div>
+        <button class="btn sm" id="relHi" data-on="0">在圖上標示</button></div>
       ${up.length ? `<div class="relcol"><h5>上游 · 誰供給它（${up.length}）</h5><ul>${up.join('')}</ul></div>` : ''}
       ${down.length ? `<div class="relcol"><h5>下游 · 它供給誰（${down.length}）</h5><ul>${down.join('')}</ul></div>` : ''}
       ${rivals.length ? `<div class="relcol"><h5>同業競爭</h5><div class="row" style="gap:6px">${rivals.map(r => r.tw_code ? A.L.stock(r.tw_code, r.name, { cls: 'sm' }) : `<span class="muted">${A.fmt.esc(r.name)}</span>`).join('')}</div></div>` : ''}
@@ -4162,7 +4177,7 @@
     </div>`;
   }
 
-  /* 「在圖上 highlight」：把這家公司的線亮起來、其餘變暗。
+  /* 「在圖上標示」（原文案「在圖上highlight」，2026-10-16 Andy 要繁中）：把這家公司的線亮起來、其餘變暗。
      按第二次還原 —— 不還原的話使用者會以為圖壞掉了。*/
   function wireRelBlock(box, sc, host) {
     const btn = box && box.querySelector('#relHi');
@@ -4174,7 +4189,7 @@
       const on = btn.dataset.on === '1';
       btn.dataset.on = on ? '0' : '1';
       btn.classList.toggle('cyan', !on);
-      btn.textContent = on ? '在圖上highlight' : '取消 highlight';
+      btn.textContent = on ? '在圖上標示' : '取消標示';
       // 釘住這組高亮：滑鼠經過公司卡不准把它洗掉（見 drawChainMap 的 hover）
       if (svgHost && svgHost.classList) svgHost.classList.toggle('cghold', !on);
       const id = box.dataset.co, gid = box.dataset.gid || '';
