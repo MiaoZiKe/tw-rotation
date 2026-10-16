@@ -627,8 +627,21 @@
 .lgban.out{animation:lgDown .18s ease both}
 @keyframes lgUp{from{transform:translate(-50%,24px);opacity:0}to{transform:translate(-50%,0);opacity:1}}
 @keyframes lgDown{to{transform:translate(-50%,24px);opacity:0}}
+/* ★ 2026-10-16 上架前修（docs/launch_standard.md 第二節第 9 條）：
+   ① 手機下方多空 114px —— 原本 bottom 寫 calc(var(--mnav-h,102px) + 12px)，是替「底部分頁列」留位置；
+      底部導覽 2026-10-08 已經拿掉、--mnav-h 全站沒有人定義，於是一律吃到 102 的預設值，
+      橫幅浮在半空、下面空一塊（390×844 量到底緣 730、離視窗底 114）。改成貼底只留 12px＋安全區。
+      客服鈕（support.js）原本就有「被固定元素蓋到就整顆藏起來」的避讓，橫幅收掉就回來，不必另外挪。
+   ② 法律頁上橫幅蓋住「重點一覽」—— 法律頁改成「內嵌」：橫幅放在文件分頁下面、跟內容一起排版（.lgban.inl），
+      不再浮在內容上面；使用者要讀的正是這幾份文件，浮動的框只會擋住它們。見 syncBanner()。*/
+.lgban.inl{position:relative;left:auto;right:auto;bottom:auto;transform:none;width:auto;margin:0 0 20px;z-index:auto;
+  background:var(--panel);box-shadow:none;backdrop-filter:none;-webkit-backdrop-filter:none;animation:none}
+:root[data-theme="light"] .lgban.inl{background:var(--panel)}
+@container (min-width:1000px){ .lgban.inl{max-width:1324px;margin:0 auto 20px;box-sizing:border-box} }
+/* 平台導覽（site/tour.js #twTour，z 2400 全螢幕）進行中：橫幅先讓開，導覽結束再回來（不疊在一起）*/
+.lgban.lghold{display:none!important}
 @media (max-width:820px){
-  .lgban{left:12px;right:12px;width:auto;transform:none;bottom:calc(var(--mnav-h,102px) + 12px);border-radius:20px;
+  .lgban{left:12px;right:12px;width:auto;transform:none;bottom:calc(12px + env(safe-area-inset-bottom));border-radius:20px;
     padding:20px;flex-direction:column;align-items:stretch;gap:14px;animation-name:lgUpM}
   .lgban.out{animation-name:lgDownM}
   .lgban .lgbtns{flex-direction:column-reverse}
@@ -1007,20 +1020,36 @@
     b.classList.add('out');
     setTimeout(() => b.remove(), 190);
   }
+  /* 法律頁（#terms／#privacy／#disclaimer／#refund）：橫幅內嵌在文件分頁下面（.inl），其他頁固定在畫面下方。
+     為什麼分兩種：法律頁上使用者要讀的就是條文本身，浮動橫幅會蓋住「重點一覽」與條文（10-10 記錄的瑕疵）；
+     內嵌就跟內容一起排版，什麼都不擋，讀完往上捲就能按。其他頁維持浮動 —— 不同意前任何內容都還看得到、點得到。*/
+  function placeBanner(el, h) {
+    const v = document.getElementById('v-legal');
+    const inl = DOC_ROUTES.includes(h) && !!v;
+    el.classList.toggle('inl', !!inl);
+    if (inl) {
+      const tabs = v.querySelector('.lgtabs');
+      const ref = tabs ? tabs.nextSibling : v.firstChild;
+      if (el.parentNode !== v || el.previousSibling !== tabs) v.insertBefore(el, ref);
+    } else if (el.parentNode !== document.body) {
+      document.body.appendChild(el);
+    }
+  }
   function syncBanner() {
     const h = (location.hash.replace('#', '').split('/')[0]) || '';
     const want = active() && !readConsent() && h !== 'leave';
     const b = bannerEl();
     if (!want) { if (b && !b.classList.contains('out')) b.remove(); return; }
-    if (b) return;
+    if (b) { if (!b.classList.contains('out')) placeBanner(b, h); return; }
     const el = document.createElement('div');
     el.className = 'lgban'; el.id = 'lgBanner';
+    if (window.TwTour && typeof window.TwTour.state === 'function' && window.TwTour.state().active) el.classList.add('lghold');
     el.setAttribute('role', 'region'); el.setAttribute('aria-label', '使用條款同意');
     el.innerHTML = '<p>本站整理公開資料供研究參考，不是投資建議。繼續使用前，請先閱讀'
       + '<a href="#terms">使用條款</a>、<a href="#privacy">隱私權政策</a>與<a href="#disclaimer">免責聲明</a>。</p>'
       + '<div class="lgbtns"><button type="button" class="lgb2" id="lgDecline">不同意</button>'
       + '<button type="button" class="lgb1" id="lgAccept">同意並繼續</button></div>';
-    document.body.appendChild(el);          // 出現時**不搶焦點**：這不是強制彈窗
+    placeBanner(el, h);                     // 出現時**不搶焦點**：這不是強制彈窗
     el.querySelector('#lgAccept').addEventListener('click', () => {
       accept(true);
     });
@@ -1153,12 +1182,14 @@
        'redirect' → 使用者剛按了「不同意」、又想去別頁：這一次瀏覽維持在 #leave（重新整理就解除）
        null       → 不關本檔的事，照舊 */
   const ROUTES = ['terms', 'privacy', 'disclaimer', 'refund', 'leave'];
+  const DOC_ROUTES = ['terms', 'privacy', 'disclaimer', 'refund'];
   /* 會員功能的設定檔是非同步讀的（account.js），可能比第一次畫隱私權政策晚到：到了就重畫一次，才會出現那幾列 */
-  window.addEventListener('tw:account-config', () => { if ((location.hash || '') === '#privacy') renderDoc('privacy'); });
+  window.addEventListener('tw:account-config', () => { if ((location.hash || '') === '#privacy') { renderDoc('privacy'); syncBanner(); } });
   function route(head) {
     syncBanner();
     if (ROUTES.includes(head)) {
       if (head === 'leave') renderLeave(); else renderDoc(head);
+      syncBanner();                          // renderDoc 換掉了 #v-legal 的內容（內嵌的橫幅跟著被清掉）→ 重新放回分頁下面
       return 'legal';
     }
     if (declined && active() && !readConsent()) { location.replace('#leave'); return 'redirect'; }
@@ -1171,6 +1202,11 @@
     e.preventDefault();
     if (window.TwSupport && typeof window.TwSupport.open === 'function') window.TwSupport.open();
     else window.open(gmail(CONTACT_EMAIL, '哩股哩股－退款與取消'), '_blank', 'noopener');
+  });
+
+  /* 平台導覽（tour.js）開始／結束會丟 tw:tour：導覽期間橫幅讓開，結束再回來 —— 兩者不疊在一起。*/
+  window.addEventListener('tw:tour', (e) => {
+    const b = bannerEl(); if (b) b.classList.toggle('lghold', !!(e && e.detail && e.detail.on));
   });
 
   // ------------------------------------------------------------------ 啟動
