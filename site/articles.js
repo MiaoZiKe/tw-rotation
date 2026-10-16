@@ -49,6 +49,9 @@
   const icon = (k, sz) => `<svg class="artic" viewBox="0 0 24 24" width="${sz || 16}" height="${sz || 16}" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">${CAT_IC[k] || CAT_IC.all}</svg>`;
   /* 類別：名稱＋色（--art-<k>，深淺主題各一組，在 css() 定義）。紅綠保留給漲跌，所以快訊用橘、產業鏈用青綠（偏藍，跟跌的綠分得開）、知識用紫 */
   const CATS = { news: { t: '比比快訊' }, intro: { t: '比比產業鏈' }, know: { t: '比比知識' } };
+  /* 手機（≤640）分頁用的短名（mobile4.css 檔尾「精選文章分頁」那節用 attr(data-s) 換上）：
+     2026-10-16 Andy「手機版的分頁需要適當調整寬度」—— 360 寬四格各只有 ~84px，「比比產業鏈＋篇數」塞不下，短名才能四格等寬、不換行、不被切 */
+  const CAT_S = { all: '全部', news: '快訊', intro: '產業鏈', know: '知識' };
   const ALL_T = '全部文章';
   const CAT_KEYS = Object.keys(CATS);
   const okId = (id) => /^[\w.-]{1,120}$/.test(String(id || ''));
@@ -71,7 +74,7 @@
   const defRange = () => { const t = tpeToday(); return { from: monthAgo(t), to: t }; };
 
   const S = { views: null, statsP: null, statsAt: 0, idx: null, idxP: null, idxErr: false, cat: 'all', q: '', from: null, to: null, grp: new Set(), ms: null,
-    posts: {}, cur: '', curData: null, backOk: false, topics: null, topicsP: null, tcat: 'all', tsort: 'desc' };
+    posts: {}, cur: '', curData: null, backOk: false, topics: null, topicsP: null, tcat: 'all', tsort: 'desc', tsels: [], jobs: null, af: { cat: 'all', grp: '', from: '', to: '', q: '' }, jf: { kind: '', st: '', q: '' } };
 
   /* 「← 返回」要不要用 history.back()：只有「在站內從別頁換過來」才有上一頁可回；直接貼網址開的，回該類別清單 */
   window.addEventListener('hashchange', (e) => {
@@ -97,10 +100,6 @@
   --art-tn-neutral:#5d6b88;--art-tn-accent:#2563c9;--art-tn-warn:#a86400;--art-tn-good:#0e8a74}
 .pc1{--pc:var(--art-p1)}.pc2{--pc:var(--art-p2)}.pc3{--pc:var(--art-p3)}.pc4{--pc:var(--art-p4)}.pc5{--pc:var(--art-p5)}.pc6{--pc:var(--art-p6)}.pc7{--pc:var(--art-p7)}
 .k-all{--k:var(--art-all)}.k-news{--k:var(--art-news)}.k-intro{--k:var(--art-intro)}.k-know{--k:var(--art-know)}
-/* 側欄子項的圖示上類別色（layout4.js 畫的 .l4subtab；選中那格字仍是主色，圖示保留類別色當辨識） */
-:root.l4 .l4subtab[data-l4sub="art-news"] .ic{color:var(--art-news);opacity:1}
-:root.l4 .l4subtab[data-l4sub="art-intro"] .ic{color:var(--art-intro);opacity:1}
-:root.l4 .l4subtab[data-l4sub="art-know"] .ic{color:var(--art-know);opacity:1}
 .artic{flex:none;display:block}
 #v-articles .artcard{display:flex;flex-direction:column}
 @media (min-width:821px){#v-articles .artcard{min-height:calc(100vh - 110px);box-sizing:border-box}}
@@ -196,8 +195,8 @@
 .artcrumb a.kc{color:var(--k)}
 .artcrumb a:hover{text-decoration:underline}
 .artcrumb .cur{color:var(--ink-2);overflow:hidden;text-overflow:ellipsis}
-.artpost h2.artttl{margin:var(--sp-2) 0 6px;font-size:24px;line-height:1.4;font-weight:700}
-.artpost .artsub{margin:0 0 var(--sp-3);font-size:var(--fs-h3);color:var(--ink-2);line-height:1.6}
+.artpost h2.artttl{margin:var(--sp-2) 0 6px;font-size:21px;line-height:1.4;font-weight:700}
+.artpost .artsub{margin:0 0 var(--sp-3);font-size:14.5px;color:var(--ink-2);line-height:1.6}
 .artmeta{display:flex;flex-wrap:wrap;align-items:center;gap:var(--sp-2) var(--sp-3);font-size:var(--fs-sm);color:var(--ink-2)}
 .artmeta .mono{font-family:var(--mono);font-variant-numeric:tabular-nums}
 .artpost .arttags{flex-wrap:wrap;margin:var(--sp-3) 0}
@@ -206,10 +205,10 @@
 .artgps button.artgp{font:inherit;font-size:var(--fs-min);cursor:pointer;height:24px}
 .artgps button.artgp:hover{border-color:var(--k)}
 .artlead{margin:var(--sp-3) 0;padding:var(--sp-3) var(--sp-4);border-left:3px solid var(--k,var(--cyan));background:var(--panel-3);border-radius:0 var(--r-sm,8px) var(--r-sm,8px) 0;
-  font-size:15px;line-height:1.8;color:var(--ink)}
-.artbody{font-size:15.5px;line-height:1.85;color:var(--ink)}
-@media (min-width:1280px){.artbody{font-size:clamp(16px,calc(8px + .62vw),18px)}.artlead{font-size:clamp(15px,calc(7.5px + .6vw),17px)!important}}
-.artbody h4{margin:var(--sp-5) 0 var(--sp-2);font-size:18px;line-height:1.4;font-weight:700;display:flex;align-items:center;gap:var(--sp-2);scroll-margin-top:16px}
+  font-size:14.5px;line-height:1.75;color:var(--ink)}
+/* 2026-10-16 Andy：「精選文章字體有點大 調整一下」—— 內文 15px（原本寬螢幕放大到 16～18px）、標題 21px、小標 16px */
+.artbody{font-size:15px;line-height:1.8;color:var(--ink)}
+.artbody h4{margin:var(--sp-5) 0 var(--sp-2);font-size:16px;line-height:1.4;font-weight:700;display:flex;align-items:center;gap:var(--sp-2);scroll-margin-top:16px}
 .artbody h4::before{content:"";flex:none;width:4px;height:16px;border-radius:2px;background:var(--k,var(--cyan))}
 .artbody p{margin:0 0 var(--sp-3)}
 .artbody ul{margin:0 0 var(--sp-3);padding-left:1.4em}
@@ -217,7 +216,7 @@
 .artbody .callout{margin:var(--sp-4) 0;padding:var(--sp-3) var(--sp-4);border:1px solid color-mix(in srgb,var(--amber) 55%,transparent);border-radius:var(--r-sm,8px);
   background:color-mix(in srgb,var(--amber) 9%,var(--panel));font-weight:600}
 .artbody .tbw{overflow-x:auto;margin:var(--sp-3) 0 var(--sp-4);border:1px solid var(--line);border-radius:var(--r-sm,8px)}
-.artbody table{width:100%;border-collapse:collapse;font-size:14px;line-height:1.5}
+.artbody table{width:100%;border-collapse:collapse;font-size:13.5px;line-height:1.5}
 .artbody th,.artbody td{padding:7px 10px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
 .artbody th{white-space:nowrap}
 .artbody td:first-child{white-space:nowrap;font-weight:600}   /* 第一欄多半是項目名：一行；其餘欄是說明句，讓它換行（不然整張表要左右捲）*/
@@ -367,10 +366,10 @@
   .artc{padding:var(--sp-3) var(--sp-3) var(--sp-3) calc(var(--sp-3) + 4px)}
   .artc .sm{display:none}   /* 手機只留重點（準則 3）：摘要點進去才看 */
   .artempty{min-height:260px}
-  .artpost h2.artttl{font-size:21px}
-  .artbody{font-size:16px;line-height:1.85}
-  .artlead{font-size:15px}
-  .artbody h4{font-size:17px}
+  .artpost h2.artttl{font-size:19px}
+  .artbody{font-size:15px;line-height:1.8}
+  .artlead{font-size:14.5px}
+  .artbody h4{font-size:16px}
   .artstk .g{grid-template-columns:minmax(0,1fr)}
   .artfig{padding:var(--sp-3) var(--sp-2);margin-left:0;margin-right:0}
   .artchart .cv{height:260px}
@@ -394,32 +393,70 @@
     document.head.appendChild(s);
   }
   const ADM_CSS = `
-/* ---- 管理區 #admin/articles ---- */
-#v-subadm .artadm h3{margin:0;font-size:var(--fs-h3);font-weight:600}
+/* ---- 管理區 #admin/articles（2026-10-16 二版：Andy「版面需要調整適當，周圍不要空白太多，字體也需要調整適當，表格需要對齊」）---- */
+#v-subadm:has(>.artadm){max-width:none;padding-left:var(--sp-2);padding-right:var(--sp-2)}   /* 管理區預設 1280 置中 —— 這頁表格欄位多，吃滿主欄 */
+#v-subadm .artadm{margin-top:var(--gap-card,12px)}
+#v-subadm .artadm h3{margin:0;font-size:15px;font-weight:700}
 #v-subadm .artadm .hd{display:flex;align-items:center;gap:var(--sp-2);flex-wrap:wrap;margin-bottom:var(--sp-2)}
 #v-subadm .artadm .hd .sp{flex:1}
+#v-subadm .artadm .hd .muted{font-size:var(--fs-min)}
 #v-subadm .artadm .tbw{overflow-x:auto}
-#v-subadm .artadm table{width:100%;border-collapse:collapse;font-size:var(--fs-sm)}
-#v-subadm .artadm th,#v-subadm .artadm td{padding:6px 8px;border-bottom:1px solid var(--line);height:32px;white-space:nowrap;text-align:center}
-#v-subadm .artadm th{color:var(--ink-2);font-weight:600;font-size:var(--fs-min)}
-#v-subadm .artadm td.l{text-align:left;max-width:300px;overflow:hidden;text-overflow:ellipsis}
-#v-subadm .artadm td.l a{color:var(--ink);text-decoration:none}
-#v-subadm .artadm td.l a:hover{color:var(--cyan)}
+#v-subadm .artadm table{width:100%;min-width:860px;border-collapse:collapse;table-layout:fixed;font-size:13px}
+#v-subadm .artadm th,#v-subadm .artadm td{padding:0 10px;border-bottom:1px solid var(--line);height:36px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-align:left;vertical-align:middle}
+#v-subadm .artadm th{color:var(--ink-2);font-weight:600;font-size:12px;background:var(--panel-3);height:32px}
+#v-subadm .artadm th.c,#v-subadm .artadm td.c{text-align:center}
+#v-subadm .artadm th.r,#v-subadm .artadm td.r{text-align:right}
+#v-subadm .artadm td a{color:var(--ink);text-decoration:none}
+#v-subadm .artadm td a:hover{color:var(--cyan)}
 #v-subadm .artadm td.n{font-family:var(--mono);font-variant-numeric:tabular-nums}
-#v-subadm .artadm td.act{text-align:left}
-#v-subadm .artadm td.act button{height:28px;padding:0 10px;margin-right:6px;border-radius:var(--r-sm,8px);border:1px solid var(--line-2);background:var(--panel-3);color:var(--ink);font-size:var(--fs-min)}
-#v-subadm .artadm td.act button:disabled{opacity:.45;cursor:not-allowed}
-#v-subadm .artadm td.act small{font-size:var(--fs-min);color:var(--ink-3)}
-#v-subadm .artadm .stp{display:inline-block;font-size:var(--fs-min);padding:1px 8px;border-radius:999px;border:1px solid color-mix(in srgb,var(--cyan) 55%,transparent);color:var(--cyan)}
-#v-subadm .artadm .stp.draft{border-color:var(--line-2);color:var(--ink-2)}
-#v-subadm .artadm .scb{display:inline-flex;align-items:center;gap:6px}
-#v-subadm .artadm .scb i{display:block;height:6px;border-radius:3px;background:var(--cat-1,var(--cyan))}
-#v-subadm .artadm .why{text-align:left;color:var(--ink-2);max-width:320px;overflow:hidden;text-overflow:ellipsis}   /* 一行＋滑過看全文（style_guide 一-3：文字一行，不准換行撐高列）*/
-#v-subadm .artadm .muted{color:var(--ink-3);font-size:var(--fs-sm)}
-#v-subadm .artadm .lnk{text-align:left;max-width:240px;overflow:hidden;text-overflow:ellipsis}
-#v-subadm .artadm .lnk a{color:var(--cyan);margin-right:6px;text-decoration:none;font-size:var(--fs-min)}
+#v-subadm .artadm .artbadge{vertical-align:middle}
+#v-subadm .artadm .muted{color:var(--ink-3);font-size:12px}
+#v-subadm .artadm .scb{display:inline-flex;align-items:center;gap:6px;font-family:var(--mono);font-variant-numeric:tabular-nums}
+#v-subadm .artadm .scb i{display:block;width:40px;height:6px;border-radius:3px;background:var(--line);position:relative;overflow:hidden}
+#v-subadm .artadm .scb i>b{position:absolute;left:0;top:0;bottom:0;border-radius:3px;background:var(--cat-1,var(--cyan))}
+#v-subadm .artadm td.dm{color:var(--ink-2)}
 #v-subadm .artadm .nbsw{margin-top:var(--sp-1)}
 #v-subadm .artadm .nbbody{margin-bottom:0}
+/* 主題可點選（整列）＋選取後的動作列 */
+#v-subadm .artadm #artTpBody tr[data-tid]{cursor:pointer}
+#v-subadm .artadm #artTpBody tr[data-tid]:hover>td{background:color-mix(in srgb,var(--cyan) 6%,transparent)}
+#v-subadm .artadm #artTpBody tr[aria-selected=true]>td{background:color-mix(in srgb,var(--cyan) 14%,transparent)}
+#v-subadm .artadm .rd{display:inline-grid;place-items:center;width:16px;height:16px;border-radius:4px;border:2px solid var(--line-2);vertical-align:middle;box-sizing:border-box;color:#fff;font-size:11px;line-height:1}
+#v-subadm .artadm tr[aria-selected=true] .rd{border-color:var(--cyan);background:var(--cyan)}
+#v-subadm .artadm tr[aria-selected=true] .rd::after{content:"✓"}
+#v-subadm .artadm .tpact .sel{display:flex;align-items:center;gap:6px;flex-wrap:wrap;max-width:none;flex:1 1 100%;white-space:normal}
+#v-subadm .artadm .tpchip{display:inline-flex;align-items:center;gap:4px;max-width:260px;height:26px;padding:0 4px 0 8px;border-radius:999px;border:1px solid var(--line-2);background:var(--panel);font-size:12.5px}
+#v-subadm .artadm .tpchip span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#v-subadm .artadm .tpchip button{height:20px!important;width:20px;padding:0!important;border:0!important;background:none!important;color:var(--ink-3)!important;font-size:14px!important;line-height:1;cursor:pointer}
+#v-subadm .artadm .tpcnt{font-family:var(--mono);font-size:12px;color:var(--ink-3)}
+/* 已上架文章的篩選列：類別、族群、日期、關鍵字 */
+#v-subadm .artadm .aflt{display:flex;align-items:center;gap:var(--sp-2);flex-wrap:wrap;margin-bottom:var(--sp-2);font-size:13px}
+#v-subadm .artadm .aflt .nbsw{margin:0}
+#v-subadm .artadm .aflt select,#v-subadm .artadm .aflt input{height:30px;box-sizing:border-box;padding:0 8px;border:1px solid var(--line-2);border-radius:var(--r-sm,8px);background:var(--panel);color:var(--ink);font:inherit;font-size:13px}
+#v-subadm .artadm .aflt input[type=search]{width:180px}
+#v-subadm .artadm .aflt label{display:inline-flex;align-items:center;gap:4px;color:var(--ink-2);white-space:nowrap}
+#v-subadm .artadm .aflt .cnt{margin-left:auto;font-size:12px;color:var(--ink-3);white-space:nowrap}
+#v-subadm .artadm .aflt button.clr{height:30px;padding:0 10px;border-radius:var(--r-sm,8px);border:1px solid var(--line-2);background:var(--panel-3);color:var(--ink);font:inherit;font-size:12.5px;cursor:pointer}
+#v-subadm .artadm .tpact{display:flex;align-items:center;gap:var(--sp-2);flex-wrap:wrap;padding:var(--sp-2) var(--sp-3);margin-bottom:var(--sp-2);border:1px solid var(--line);border-radius:var(--r-sm,8px);background:var(--panel-2);font-size:13px}
+#v-subadm .artadm .tpact .sel{flex:0 1 auto;min-width:0;max-width:420px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#v-subadm .artadm .tpact .sel b{color:var(--ink)}
+#v-subadm .artadm .tpact input{flex:1 1 220px;min-width:160px;height:32px;box-sizing:border-box;padding:0 10px;border:1px solid var(--line-2);border-radius:var(--r-sm,8px);background:var(--panel);color:var(--ink);font:inherit;font-size:13px}
+#v-subadm .artadm .tpact button{height:32px;padding:0 14px;border-radius:var(--r-sm,8px);border:1px solid var(--cyan);background:color-mix(in srgb,var(--cyan) 14%,var(--panel));color:var(--ink);font:inherit;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap}
+#v-subadm .artadm .tpact button:disabled{opacity:.45;cursor:not-allowed;border-color:var(--line-2);background:var(--panel-3)}
+#v-subadm .artadm .tpact .lk{display:flex;gap:6px;flex-wrap:wrap;width:100%;font-size:12px;color:var(--ink-3)}
+#v-subadm .artadm .tpact .lk a{color:var(--cyan);text-decoration:none}
+#v-subadm .artadm .tpmsg{font-size:12.5px;color:var(--ink-2);margin:0 0 var(--sp-2)}
+#v-subadm .artadm .tpmsg.err{color:var(--red,#e5484d)}
+#v-subadm .artadm .js{display:inline-flex;align-items:center;gap:4px;font-size:12px;padding:1px 8px;border-radius:999px;border:1px solid var(--line-2);color:var(--ink-2);margin-right:4px}
+#v-subadm .artadm .js.queued{border-color:color-mix(in srgb,var(--amber,#f5a524) 60%,transparent);color:var(--amber,#f5a524)}
+#v-subadm .artadm .js.working{border-color:color-mix(in srgb,var(--cyan) 60%,transparent);color:var(--cyan)}
+#v-subadm .artadm .js.done{border-color:color-mix(in srgb,var(--green,#30a46c) 60%,transparent);color:var(--green,#30a46c)}
+#v-subadm .artadm .js.failed{border-color:color-mix(in srgb,var(--red,#e5484d) 60%,transparent);color:var(--red,#e5484d)}
+#v-subadm .artadm .js .kd{font-style:normal;font-weight:700;font-size:11px;padding:0 5px;margin-left:-4px;border-radius:999px;color:#fff;line-height:16px}
+#v-subadm .artadm .js .kd.article{background:#2563eb}
+#v-subadm .artadm .js .kd.video{background:#db2777}
+#v-subadm .artadm .js.kdc{border:0;padding:0;margin:0}#v-subadm .artadm .js.kdc .kd{margin:0;font-size:12px;padding:1px 8px;line-height:18px}
+#v-subadm .artadm td button.cx{height:26px;padding:0 10px;border-radius:var(--r-sm,8px);border:1px solid var(--line-2);background:var(--panel-3);color:var(--ink);font:inherit;font-size:12px;cursor:pointer}
 `;
 
   /* ------------------------------------------------------------------ 資料 */
@@ -499,12 +536,11 @@
   });
   const catOf = (id) => { const a = S.idx && S.idx.list.find((x) => x.id === id); return a ? a.cat : ''; };
 
-  /* 側欄子項亮哪一格（<html data-l4sub>）：單篇頁在清單讀到之前不知道類別，讀到之後補上 */
-  function markSub(cat) {
+  /* 2026-10-16 Andy：「精選文章已經裡面有分頁，側邊子分頁就拿掉」→ 側欄沒有子項可亮，這裡只負責把殘留的 art-* 清掉
+     （舊版快取的 app.js 還會掛 data-l4sub="art-…"，留著會讓母項變成「讓位給子項」的半亮樣式） */
+  function markSub() {
     const r = document.documentElement;
-    if (!r.classList.contains('l4') && !r.classList.contains('m4')) return;
-    const want = 'art-' + (CATS[cat] ? cat : 'all');
-    if (r.getAttribute('data-l4sub') !== want) r.setAttribute('data-l4sub', want);
+    if (/^art-/.test(r.getAttribute('data-l4sub') || '')) r.removeAttribute('data-l4sub');
   }
 
   /* ------------------------------------------------------------------ 共用小片段 */
@@ -544,7 +580,7 @@
 <div class="card artcard" id="artCard">
   <div class="row spread"><h3>精選文章 <small id="artUpd"></small></h3></div>
   <div class="nbsw" id="artCats" role="tablist" aria-label="文章分類">
-    ${['all'].concat(CAT_KEYS).map((k) => `<button type="button" role="tab" class="k-${k}" data-cat="${k}" title="${esc(catT(k))}">${icon(k, 15)}<span>${esc(catT(k))}</span><em></em></button>`).join('')}
+    ${['all'].concat(CAT_KEYS).map((k) => `<button type="button" role="tab" class="k-${k}" data-cat="${k}" data-s="${esc(CAT_S[k])}" title="${esc(catT(k))}">${icon(k, 15)}<span>${esc(catT(k))}</span><em></em></button>`).join('')}
   </div>
   <div class="nbbody">
     <div class="artflt">
@@ -1026,6 +1062,29 @@ ${gs.length ? `<section><h5>熱門族群</h5><div class="gps">${gs.map((g) => `<
 
   /* ------------------------------------------------------------------ 管理區 #admin/articles */
   function isAdmin() { const A = window.TwAccount; const u = A && A.on && A.on() && A.user && A.user(); return !!(u && u.admin); }
+  /* 產出佇列（2026-10-16，Andy：「claude 指負責產出文章，內容……點選清單內主題，點選後我可以再次點選產生精選文章，或是短影片」）
+     按鈕 → 會員 Worker /v1/articles/jobs/add 排一筆 → GitHub Actions（article-jobs.yml）每小時同步進 repo →
+     Claude 排程撰寫、推上 main → 文章 index.json 帶同一個 topic 時自動標「已上架」。*/
+  const KIND_T = { article: '精選文章', video: '短影片' };
+  const JST = { queued: '排隊中', working: '撰寫中', done: '已完成', failed: '失敗', cancelled: '已取消' };
+  const acctCall = (path, body) => { const A = window.TwAccount; return A && typeof A.call === 'function' ? A.call(path, body) : Promise.resolve(null); };
+  function loadJobs() {
+    return acctCall('/v1/articles/jobs/list', {}).then((j) => { S.jobs = j && Array.isArray(j.jobs) ? j.jobs : null; return S.jobs; });
+  }
+  const twTime = (ms) => { if (!Number.isFinite(Number(ms))) return ''; const d = new Date(Number(ms) + 8 * 3600e3); return d.toISOString().slice(5, 16).replace('T', ' '); };
+  const pubOfTopic = (tid) => { const l = S.idx ? S.idx.list.filter((a) => a.topic === tid) : []; return l.length ? l[0] : null; };   // 清單已依日期新到舊
+  /* 一個主題的產出狀態：已上架的文章優先，其次是各種類最新一筆請求 */
+  function jobChips(tid) {
+    const out = [], pub = pubOfTopic(tid);
+    /* Andy 10-16：「產出狀態必須備註是文章還是短影片」→ 每顆狀態前面一個種類小標（文章／短影片） */
+    if (pub) out.push(`<a class="js done" data-kind="article" href="#article/${encodeURIComponent(pub.id)}" title="${esc(pub.title)}"><em class="kd article">文章</em>已上架</a>`);
+    ['article', 'video'].forEach((k) => {
+      if (k === 'article' && pub) return;
+      const j = (S.jobs || []).find((x) => x.topic_id === tid && x.kind === k && x.status !== 'cancelled');
+      if (j) out.push(`<span class="js ${esc(j.status)}" data-kind="${k}" title="#${esc(j.id)} ${esc(twTime(j.created))} 送出"><em class="kd ${k}">${k === 'article' ? '文章' : '短影片'}</em>${esc(JST[j.status] || j.status)}</span>`);
+    });
+    return out.join('') || '<span class="muted">—</span>';
+  }
   async function renderAdmin(v) {
     css();
     if (!isAdmin()) {
@@ -1033,45 +1092,165 @@ ${gs.length ? `<section><h5>熱門族群</h5><div class="gps">${gs.map((g) => `<
       return;
     }
     v.innerHTML = '<div class="card artadm"><p class="muted">載入中…</p></div>';
-    const [idx, tp] = await Promise.all([loadIndex(), loadTopics()]);
+    const [idx, tp] = await Promise.all([loadIndex(), loadTopics(), loadJobs()]);
     if (location.hash !== '#admin/articles') return;
     loadStats(true);
     const list = idx ? idx.list : [];
-    const LOCK = '待 Andy 確認後開放';
+    const gm = new Map(); list.forEach((a) => (a.groups || []).forEach((g) => { if (!gm.has(g.id)) gm.set(g.id, g.name); }));
+    const grpOpts = [...gm].sort((x, y) => x[1].localeCompare(y[1], 'zh-Hant')).map(([id, n]) => `<option value="${esc(id)}">${esc(n)}</option>`).join('');
     v.innerHTML = `
 <div class="card artadm" id="artAdmList">
-  <div class="hd"><h3>精選文章管理：已上架文章</h3><span class="muted">${list.length} 篇${idx && idx.updated ? '・清單更新 ' + esc(idx.updated) : ''}</span></div>
-  <div class="tbw"><table><thead><tr><th>類別</th><th>標題</th><th>日期</th><th title="會員 Worker 統計的點閱次數；讀不到寫「—」">點閱</th><th>狀態</th><th>產出</th></tr></thead><tbody>
-  ${list.length ? list.map((a) => `<tr data-id="${esc(a.id)}"><td>${badge(a.cat)}</td><td class="l"><a href="#article/${encodeURIComponent(a.id)}" title="${esc(a.title)}">${esc(a.title)}</a></td>
-    <td class="n">${esc(a.date)}</td><td class="n" data-vwc="${esc(a.id)}">${viewsOf(a.id) == null ? '—' : viewsOf(a.id).toLocaleString('zh-TW')}</td><td><span class="stp">已上架</span></td>
-    <td class="act"><button type="button" disabled aria-disabled="true" data-act="post" title="${LOCK}">產出貼文</button><button type="button" disabled aria-disabled="true" data-act="video" title="${LOCK}">產出短影片</button><small>${LOCK}</small></td></tr>`).join('')
-    : `<tr><td colspan="6" class="muted">${idx ? '還沒有上架的文章' : '文章清單讀不到'}</td></tr>`}
-  </tbody></table></div>
+  <div class="hd"><h3>已上架文章</h3><span class="muted">${list.length} 篇${idx && idx.updated ? '・清單更新 ' + esc(idx.updated) : ''}</span></div>
+  <div class="aflt" id="artAdmFlt">
+    <div class="nbsw lv2" id="artAfCats" role="tablist" aria-label="已上架文章類別"><button type="button" role="tab" data-cat="all">全部</button>${CAT_KEYS.map((k) => `<button type="button" role="tab" data-cat="${k}">${CATS[k].t}</button>`).join('')}</div>
+    <select id="artAfGrp" aria-label="族群"><option value="">全部族群</option>${grpOpts}</select>
+    <label>日期 <input type="date" id="artAfFrom" aria-label="起"></label><label>～ <input type="date" id="artAfTo" aria-label="迄"></label>
+    <input type="search" id="artAfQ" placeholder="搜尋標題" aria-label="搜尋標題">
+    <button type="button" class="clr" id="artAfClr">清除</button>
+    <span class="cnt" id="artAfCnt"></span>
+  </div>
+  <div class="tbw"><table><colgroup><col style="width:120px"><col><col style="width:110px"><col style="width:70px"><col style="width:18%"><col style="width:22%"></colgroup>
+  <thead><tr><th class="c">類別</th><th>標題</th><th class="c">日期</th><th class="r" title="會員 Worker 統計的點閱次數；讀不到寫「—」">點閱</th><th>相關族群</th><th>來源主題</th></tr></thead><tbody id="artAdmBody"></tbody></table></div>
 </div>
-<div class="card artadm" id="artAdmTopics" style="margin-top:var(--gap-card,12px)">
-  <div class="hd"><h3>精選文章管理：主題候選清單</h3><span class="muted" id="artTpUpd">${tp && tp.updated ? '更新 ' + esc(tp.updated) : ''}</span><span class="sp"></span>
+<div class="card artadm" id="artAdmTopics">
+  <div class="hd"><h3>主題候選清單</h3><span class="muted" id="artTpUpd">${tp && tp.updated ? '更新 ' + esc(tp.updated) : ''}・點列勾選主題（最多 5 個、可跨類別），再按上方按鈕交給 Claude 撰寫</span><span class="sp"></span>
     <button type="button" class="btn small" id="artTpSort" title="切換分數排序方向"></button></div>
+  <div class="tpact" id="artTpAct">
+    <div class="sel" id="artTpSel"></div>
+    <input type="text" id="artTpNote" maxlength="500" placeholder="給 Claude 的補充（選填；會寫進公開的 repo，請勿填個資）">
+    <button type="button" id="artGenArt" data-kind="article" disabled>產生精選文章</button>
+    <button type="button" id="artGenVid" data-kind="video" disabled>產生短影片</button>
+  </div>
+  <p class="tpmsg" id="artTpMsg" role="status" hidden></p>
   <div class="nbsw lv2" id="artTpCats" role="tablist" aria-label="候選主題分類"><button type="button" role="tab" data-cat="all">全部</button>${CAT_KEYS.map((k) => `<button type="button" role="tab" data-cat="${k}">${CATS[k].t}</button>`).join('')}</div>
-  <div class="nbbody"><div class="tbw"><table><thead><tr><th>分數</th><th>類別</th><th>標題</th><th>理由</th><th>建議形式</th><th>站內頁面</th></tr></thead><tbody id="artTpBody"></tbody></table></div></div>
+  <div class="nbbody"><div class="tbw"><table><colgroup><col style="width:44px"><col style="width:96px"><col style="width:120px"><col style="width:30%"><col><col style="width:84px"><col style="width:190px"></colgroup>
+  <thead><tr><th class="c">選</th><th>分數</th><th class="c">類別</th><th>標題</th><th>理由</th><th class="c">建議形式</th><th>產出狀態</th></tr></thead><tbody id="artTpBody"></tbody></table></div></div>
+</div>
+<div class="card artadm" id="artAdmJobs">
+  <div class="hd"><h3>產出進度</h3><span class="muted">排隊中的請求由 Claude 每天台北 09:50、14:50、20:50 三輪處理；文章推上線後這裡自動變「已完成」</span></div>
+  <div class="aflt" id="artJobFlt">
+    <select id="artJfKind" aria-label="產出種類"><option value="">全部種類</option><option value="article">精選文章</option><option value="video">短影片</option></select>
+    <select id="artJfSt" aria-label="狀態"><option value="">全部狀態</option>${Object.keys(JST).map((k) => `<option value="${k}">${JST[k]}</option>`).join('')}</select>
+    <input type="search" id="artJfQ" placeholder="搜尋主題或補充" aria-label="搜尋主題或補充">
+    <button type="button" class="clr" id="artJfClr">清除</button>
+    <span class="cnt" id="artJfCnt"></span>
+  </div>
+  <div class="tbw"><table><colgroup><col style="width:64px"><col style="width:96px"><col style="width:30%"><col><col style="width:96px"><col style="width:120px"><col style="width:96px"></colgroup>
+  <thead><tr><th class="r">編號</th><th class="c">產出</th><th>主題</th><th>補充</th><th class="c">狀態</th><th class="c">送出時間</th><th class="c">操作</th></tr></thead><tbody id="artJobBody"></tbody></table></div>
 </div>`;
     $$('#artTpCats>button', v).forEach((b) => { b.onclick = () => { S.tcat = b.dataset.cat; paintTopics(v); }; });
     $('#artTpSort', v).onclick = () => { S.tsort = S.tsort === 'desc' ? 'asc' : 'desc'; paintTopics(v); };
+    $('#artTpBody', v).addEventListener('click', (e) => {
+      if (e.target.closest('a')) return;
+      const tr = e.target.closest('tr[data-tid]'); if (!tr) return;
+      toggleSel(v, tr.dataset.tid);
+    });
+    $('#artTpSel', v).addEventListener('click', (e) => { const b = e.target.closest('button[data-rm]'); if (b) toggleSel(v, b.dataset.rm); });
+    // 已上架文章篩選
+    const af = S.af;
+    $$('#artAfCats>button', v).forEach((b) => { b.onclick = () => { af.cat = b.dataset.cat; paintAdmList(v); }; });
+    const bind = (id, k, ev) => { const el = $(id, v); el.value = af[k]; el.addEventListener(ev, () => { af[k] = el.value.trim(); paintAdmList(v); }); };
+    bind('#artAfGrp', 'grp', 'change'); bind('#artAfFrom', 'from', 'change'); bind('#artAfTo', 'to', 'change'); bind('#artAfQ', 'q', 'input');
+    if (af.grp && !gm.has(af.grp)) af.grp = '';
+    $('#artAfClr', v).onclick = () => { Object.assign(af, { cat: 'all', grp: '', from: '', to: '', q: '' }); ['#artAfGrp', '#artAfFrom', '#artAfTo', '#artAfQ'].forEach((id) => { $(id, v).value = ''; }); paintAdmList(v); };
+    paintAdmList(v);
+    // 產出進度篩選（Andy 10-16：「產出進度也需要有篩選功能」）
+    const jf = S.jf;
+    const jb = (id, k, ev) => { const el = $(id, v); el.value = jf[k]; el.addEventListener(ev, () => { jf[k] = el.value.trim(); paintJobs(v); }); };
+    jb('#artJfKind', 'kind', 'change'); jb('#artJfSt', 'st', 'change'); jb('#artJfQ', 'q', 'input');
+    $('#artJfClr', v).onclick = () => { Object.assign(jf, { kind: '', st: '', q: '' }); ['#artJfKind', '#artJfSt', '#artJfQ'].forEach((id) => { $(id, v).value = ''; }); paintJobs(v); };
+    $$('#artGenArt,#artGenVid', v).forEach((b) => { b.onclick = () => submitJob(v, b.dataset.kind); });
+    $('#artJobBody', v).addEventListener('click', async (e) => {
+      const b = e.target.closest('button[data-cancel]'); if (!b) return;
+      b.disabled = true;
+      const r = await acctCall('/v1/articles/jobs/cancel', { id: Number(b.dataset.cancel) });
+      tpMsg(v, r && r.ok ? `已取消 #${b.dataset.cancel}` : '取消失敗：這筆可能已經開始撰寫', !(r && r.ok));
+      await loadJobs(); paintTopics(v); paintJobs(v);
+    });
+    paintTopics(v); paintJobs(v);
+  }
+  function tpMsg(v, t, err) { const m = $('#artTpMsg', v); if (!m) return; m.hidden = !t; m.textContent = t || ''; m.classList.toggle('err', !!err); }
+  const SEL_MAX = 5;
+  function toggleSel(v, tid) {
+    const i = S.tsels.indexOf(tid);
+    if (i >= 0) { S.tsels.splice(i, 1); tpMsg(v, ''); }
+    else if (S.tsels.length >= SEL_MAX) { tpMsg(v, `最多一次選 ${SEL_MAX} 個主題，先取消一個再選`, true); return; }
+    else { S.tsels.push(tid); tpMsg(v, ''); }
     paintTopics(v);
+  }
+  async function submitJob(v, kind) {
+    const picks = S.tsels.map((id) => S.topics && S.topics.list.find((x) => x.id === id)).filter(Boolean);
+    if (!picks.length || !KIND_T[kind]) return;
+    $$('#artGenArt,#artGenVid', v).forEach((b) => { b.disabled = true; });
+    const note = (($('#artTpNote', v) || {}).value || '').trim();
+    const ok = [], dup = [], bad = []; let err = '';
+    for (const t of picks) {   // 一筆一筆送（Worker 端逐筆檢查重複），不並發
+      const r = await acctCall('/v1/articles/jobs/add', { topic_id: t.id, kind, title: t.title, note });
+      if (r && r.job) (r.dup ? dup : ok).push(`#${r.job.id}「${t.title}」`);
+      else { bad.push(`「${t.title}」`); err = err || (r && r._s === 403 ? '登入身分不是管理者（請重新登入）' : r && r.error === 'too_many' ? '排隊中的請求太多（上限 100 筆）' : '連不到會員伺服器，請稍後再試'); }
+    }
+    const parts = [];
+    if (ok.length) parts.push(`已送出 ${ok.length} 筆${KIND_T[kind]}：${ok.join('、')}`);
+    if (dup.length) parts.push(`已經在排隊、不重複送出：${dup.join('、')}`);
+    if (bad.length) parts.push(`送出失敗（${err}）：${bad.join('、')}`);
+    tpMsg(v, parts.join('；') + (ok.length ? '。Claude 下一輪會撰寫，完成後出現在「已上架文章」' : ''), !!bad.length);
+    if (!bad.length) { S.tsels = []; if ($('#artTpNote', v)) $('#artTpNote', v).value = ''; }
+    await loadJobs(); paintTopics(v); paintJobs(v);
+  }
+  function paintAdmList(v) {
+    const body = $('#artAdmBody', v); if (!body) return;
+    const af = S.af, all = S.idx ? S.idx.list : [];
+    $$('#artAfCats>button', v).forEach((b) => { const on = b.dataset.cat === af.cat; b.classList.toggle('on', on); b.setAttribute('aria-selected', on ? 'true' : 'false'); });
+    const q = af.q.toLowerCase();
+    const rows = all.filter((a) => (af.cat === 'all' || a.cat === af.cat) && (!af.grp || (a.groups || []).some((g) => g.id === af.grp))
+      && (!af.from || a.date >= af.from) && (!af.to || a.date <= af.to) && (!q || String(a.title).toLowerCase().includes(q) || (a.tags || []).some((t) => String(t).toLowerCase().includes(q))));
+    const c = $('#artAfCnt', v); if (c) { c.textContent = `${rows.length}／${all.length} 篇`; c.dataset.n = String(rows.length); }
+    const tpTitle = (id) => { const t = S.topics && S.topics.list.find((x) => x.id === id); return t ? t.title : ''; };
+    body.innerHTML = rows.length ? rows.map((a) => { const gs = (a.groups || []).map((g) => g.name);
+      return `<tr data-id="${esc(a.id)}" data-cat="${esc(a.cat)}" data-date="${esc(a.date)}"><td class="c">${badge(a.cat)}</td><td class="l" title="${esc(a.title)}"><a href="#article/${encodeURIComponent(a.id)}">${esc(a.title)}</a></td>
+    <td class="n c">${esc(a.date)}</td><td class="n r" data-vwc="${esc(a.id)}">${viewsOf(a.id) == null ? '—' : viewsOf(a.id).toLocaleString('zh-TW')}</td>
+    <td class="dm" title="${esc(gs.join('、'))}">${gs.length ? esc(gs.join('、')) : '<span class="muted">—</span>'}</td>
+    <td class="dm" title="${esc(tpTitle(a.topic))}">${a.topic && tpTitle(a.topic) ? esc(tpTitle(a.topic)) : '<span class="muted">—</span>'}</td></tr>`; }).join('')
+      : `<tr><td colspan="6" class="muted">${S.idx ? (all.length ? '沒有符合篩選條件的文章' : '還沒有上架的文章') : '文章清單讀不到'}</td></tr>`;
+  }
+  function paintJobs(v) {
+    const body = $('#artJobBody', v); if (!body) return;
+    if (!S.jobs) { body.innerHTML = '<tr><td colspan="7" class="muted">讀不到產出紀錄（會員伺服器沒回應）</td></tr>'; return; }
+    const jf = S.jf, q = jf.q.toLowerCase();
+    const hit = S.jobs.filter((j) => (!jf.kind || j.kind === jf.kind) && (!jf.st || j.status === jf.st)
+      && (!q || String(j.title || '').toLowerCase().includes(q) || String(j.note || '').toLowerCase().includes(q)));
+    const rows = hit.slice(0, 100);
+    const c = $('#artJfCnt', v); if (c) { c.textContent = `${hit.length}／${S.jobs.length} 筆${hit.length > rows.length ? '（顯示前 100 筆）' : ''}`; c.dataset.n = String(hit.length); }
+    body.innerHTML = rows.length ? rows.map((j) => {
+      const pub = j.kind === 'article' && j.status === 'done' && j.result && S.idx && S.idx.list.find((a) => a.id === j.result);
+      const op = j.status === 'queued' ? `<button type="button" class="cx" data-cancel="${esc(j.id)}">取消</button>`
+        : pub ? `<a href="#article/${encodeURIComponent(pub.id)}">看文章</a>` : '<span class="muted">—</span>';
+      return `<tr data-job="${esc(j.id)}"><td class="n r">#${esc(j.id)}</td><td class="c"><span class="kdc js"><em class="kd ${esc(j.kind)}">${esc(KIND_T[j.kind] || j.kind)}</em></span></td><td title="${esc(j.title)}">${esc(j.title)}</td>
+        <td class="dm" title="${esc(j.note || '')}">${j.note ? esc(j.note) : '<span class="muted">—</span>'}</td><td class="c"><span class="js ${esc(j.status)}">${esc(JST[j.status] || j.status)}</span></td>
+        <td class="n c">${esc(twTime(j.created))}</td><td class="c">${op}</td></tr>`;
+    }).join('') : `<tr><td colspan="7" class="muted">${S.jobs.length ? '沒有符合篩選條件的請求' : '還沒有送出過產出請求'}</td></tr>`;
   }
   function paintTopics(v) {
     const body = $('#artTpBody', v); if (!body) return;
     $$('#artTpCats>button', v).forEach((b) => { const on = b.dataset.cat === S.tcat; b.classList.toggle('on', on); b.setAttribute('aria-selected', on ? 'true' : 'false'); });
     $('#artTpSort', v).textContent = S.tsort === 'desc' ? '分數：高 → 低' : '分數：低 → 高';
-    if (!S.topics) { body.innerHTML = '<tr><td colspan="6" class="muted">主題候選清單讀不到</td></tr>'; return; }
+    S.tsels = S.tsels.filter((id) => S.topics && S.topics.list.some((x) => x.id === id));
+    const sels = S.tsels.map((id) => S.topics.list.find((x) => x.id === id));
+    const st = $('#artTpSel', v);
+    if (st) st.innerHTML = `已選主題 <span class="tpcnt">${sels.length}／${SEL_MAX}</span>：` + (sels.length
+      ? sels.map((t) => `<span class="tpchip" data-tid="${esc(t.id)}">${badge(t.cat)}<span title="${esc(t.title)}">${esc(t.title)}</span><button type="button" data-rm="${esc(t.id)}" aria-label="取消選取 ${esc(t.title)}">×</button></span>`).join('')
+      : '<span class="muted">尚未選擇（點下方列勾選，最多 5 個，可跨類別）</span>');
+    $$('#artGenArt,#artGenVid', v).forEach((b) => { b.disabled = !sels.length; });
+    if (!S.topics) { body.innerHTML = '<tr><td colspan="7" class="muted">主題候選清單讀不到</td></tr>'; return; }
     const mx = 5;   // 分數是 1～5 分（市場研調的評分口徑）
     const rows = S.topics.list.filter((t) => S.tcat === 'all' || t.cat === S.tcat)
       .sort((a, b) => ((Number(b.score) || 0) - (Number(a.score) || 0)) * (S.tsort === 'desc' ? 1 : -1));
-    body.innerHTML = rows.length ? rows.map((t) => `<tr data-tid="${esc(t.id)}" data-score="${esc(Number(t.score) || 0)}">
-      <td class="n"><span class="scb"><i style="width:${Math.round(40 * Math.min(mx, Number(t.score) || 0) / mx)}px"></i>${esc(Number(t.score) || 0)}<small class="muted">/5</small></span></td>
-      <td>${CATS[t.cat] ? badge(t.cat) : esc(t.cat || '')}</td><td class="l" title="${esc(t.title)}">${esc(t.title)}</td>
-      <td class="why" title="${esc(t.why || '')}">${esc(t.why || '')}</td><td>${esc(t.format_hint || '')}</td>
-      <td class="lnk" title="${esc((Array.isArray(t.site_links) ? t.site_links : []).join('  '))}">${(Array.isArray(t.site_links) ? t.site_links : []).filter(okHash).map((h) => `<a href="${esc(h)}">${esc(h.slice(1))}</a>`).join('')}</td></tr>`).join('')
-      : '<tr><td colspan="6" class="muted">這個分類沒有候選主題</td></tr>';
+    body.innerHTML = rows.length ? rows.map((t) => `<tr data-tid="${esc(t.id)}" data-score="${esc(Number(t.score) || 0)}" aria-selected="${S.tsels.includes(t.id) ? 'true' : 'false'}">
+      <td class="c"><span class="rd" aria-hidden="true"></span></td>
+      <td class="n"><span class="scb"><i><b style="width:${Math.round(100 * Math.min(mx, Number(t.score) || 0) / mx)}%"></b></i>${esc(Number(t.score) || 0)}<small class="muted">/5</small></span></td>
+      <td class="c">${CATS[t.cat] ? badge(t.cat) : esc(t.cat || '')}</td><td class="l" title="${esc(t.title)}">${esc(t.title)}</td>
+      <td class="dm" title="${esc(t.why || '')}">${esc(t.why || '')}</td><td class="c">${esc(t.format_hint || '')}</td><td>${jobChips(t.id)}</td></tr>`).join('')
+      : '<tr><td colspan="7" class="muted">這個分類沒有候選主題</td></tr>';
   }
 
   (window.TwSubRoutes = window.TwSubRoutes || []).push((head, rest) => {

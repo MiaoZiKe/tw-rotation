@@ -1,0 +1,8 @@
+/* site/m4/20261016-04-etf-combo.css —— 2026-10-16 從 mobile4.css 尾巴原封搬出（月配試算每分頁條件鈕（手機ETF組合參數1016））。
+   載入順序＝index.html 裡 mobile4.css 之後、依檔名排序（scripts/m4_css_links.py 產生），層疊順序跟搬出前一樣。 */
+/* 2026-10-16 月配試算：每個分頁自己的條件鈕（mobile4.js 31j 的 tag）—— 鈕上先標「單檔 ETF／組合 B」 */
+@media (max-width:640px){
+  :root.m4 #incPM .m4etfset .m4tg{flex:none;margin-right:6px;padding:1px 6px;border-radius:6px;font-size:12px;font-weight:700;color:var(--ink);background:color-mix(in srgb,var(--cyan,#3ee0ff) 18%,transparent)}
+  :root.m4 #incSingle > .m4etfrow,:root.m4 #incCombo > .m4etfrow{margin:0 0 8px}
+  :root.m4 #mSheet .mshhead .m4tgn{display:block;font-size:12px;color:var(--ink-3);font-weight:400;margin-top:2px}
+}

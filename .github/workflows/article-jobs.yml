@@ -1,0 +1,74 @@
+name: 精選文章產出佇列
+
+# 2026-10-16：管理區「產生精選文章／產生短影片」排進會員 Worker 的請求，同步成 data/_state/article_jobs.json，
+# 讓 Claude 排程讀得到；Claude 開工／完成時用 workflow_dispatch 的 mark 參數標狀態。
+# 文章推上 main（site/articles/index.json 有同一個 topic）時也跑一次，自動標完成。
+on:
+  schedule:
+    - cron: "41 * * * *"
+  push:
+    branches: [main]
+    paths: ["site/articles/index.json"]
+  workflow_dispatch:
+    inputs:
+      mark_id:
+        description: "要標狀態的請求編號（留空＝只同步）"
+        type: string
+        default: ""
+      mark_status:
+        description: "working／done／failed"
+        type: string
+        default: ""
+      result:
+        description: "完成時填文章 id 或影片檔名"
+        type: string
+        default: ""
+
+concurrency:
+  group: tw-rotation-data-write
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: 同步佇列
+        env:
+          ACCOUNT_API_URL: ${{ secrets.ACCOUNT_API_URL }}
+          CF_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          MARK_ID: ${{ inputs.mark_id }}
+          MARK_STATUS: ${{ inputs.mark_status }}
+          RESULT: ${{ inputs.result }}
+        run: |
+          # 機器鑰匙：跟 deploy-account-worker.yml 寫進 Worker 的 ARTICLE_BOT_KEY 同一個公式
+          export ARTICLE_BOT_KEY=$(printf 'tw-article-jobs|%s' "$CF_TOKEN" | sha256sum | cut -c1-48)
+          echo "::add-mask::$ARTICLE_BOT_KEY"
+          if [ -n "$MARK_ID" ]; then
+            python scripts/article_jobs.py --mark "$MARK_ID" "$MARK_STATUS" --result "$RESULT"
+          else
+            python scripts/article_jobs.py
+          fi
+      - name: 回寫 article_jobs.json（只 add 這一支）
+        run: |
+          git config user.name  "tw-rotation-bot"
+          git config user.email "actions@github.com"
+          [ -f data/_state/article_jobs.json ] || exit 0
+          git add data/_state/article_jobs.json
+          if git diff --staged --quiet; then echo "沒有變動"; exit 0; fi
+          git commit -m "精選文章產出佇列 $(TZ=Asia/Taipei date '+%Y-%m-%d %H:%M')"
+          for i in 1 2 3 4 5; do
+            if git push origin main; then exit 0; fi
+            git pull --rebase origin main || git rebase --abort
+            sleep $((i * 5))
+          done
+          echo "::error::推送連續失敗 5 次"; exit 1

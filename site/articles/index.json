@@ -85,7 +85,8 @@
      "id": "optical_module",
      "name": "高速光模組"
     }
-   ]
+   ],
+   "topic": "i_ai_server"
   },
   {
    "id": "2026-10-14-know-cowos",
@@ -128,7 +129,8 @@
      "id": "hbm",
      "name": "HBM 高頻寬記憶體"
     }
-   ]
+   ],
+   "topic": "k_cowos"
   }
  ]
 }

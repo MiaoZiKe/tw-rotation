@@ -109,6 +109,19 @@ jobs:
           # 沒設時給一個不是 email 的值：空字串的 Secret 會讓 wrangler 失敗；'none' 比對不到任何人＝沒有管理者
           ADMIN_EMAILS: ${{ secrets.ACCOUNT_ADMIN_EMAILS || 'none' }}
 
+      # 2026-10-16 精選文章產出佇列的機器鑰匙：由 CLOUDFLARE_API_TOKEN 推導（sha256("tw-article-jobs|" + token)），
+      # article-jobs.yml 用同一個公式算 —— 不必另外設 Secret，值不進 repo、不進 log。
+      - name: 精選文章佇列鑰匙（ARTICLE_BOT_KEY）
+        if: steps.guard.outputs.ok == 'true'
+        working-directory: workers/account-api
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          K=$(printf 'tw-article-jobs|%s' "$CLOUDFLARE_API_TOKEN" | sha256sum | cut -c1-48)
+          echo "::add-mask::$K"
+          printf '%s' "$K" | npx --yes wrangler@3 secret put ARTICLE_BOT_KEY >/dev/null && echo "已設定 ARTICLE_BOT_KEY"
+
       # 2026-10-06 data-gw 停權端點的鑰匙（選用）：沒設＝/internal/suspend 不存在（404），其他功能不受影響
       - name: 選用 Secret（data-gw 停權鑰匙）
         if: steps.guard.outputs.ok == 'true'
