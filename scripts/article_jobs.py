@@ -21,6 +21,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 OUT = ROOT / "data" / "_state" / "article_jobs.json"
+SCHED_OUT = ROOT / "data" / "_state" / "article_schedule.json"
 INDEX = ROOT / "site" / "articles" / "index.json"
 TAIPEI = timezone(timedelta(hours=8))
 KEEP = ("id", "topic_id", "kind", "title", "note", "status", "created", "updated", "result")
@@ -76,6 +77,26 @@ def write_if_changed(data: dict, path: Path = OUT) -> bool:
     return True
 
 
+def write_schedule_if_changed(sch, path=None) -> bool:
+    """頻率設定 → data/_state/article_schedule.json。只留 enabled／slots／cats／updated（沒有 uid、email）；
+    內容沒變就不寫（updated 不算），免得每小時一個空 commit。還沒存過設定＝不建檔。"""
+    path = path or SCHED_OUT
+    if not sch:
+        return False
+    data = {"enabled": bool(sch.get("enabled")), "slots": sch.get("slots") or {}, "cats": sch.get("cats") or {}}
+    try:
+        old = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        old = None
+    if old is not None and {k: old.get(k) for k in data} == data:
+        return False
+    ts = sch.get("updated")
+    data["updated"] = datetime.fromtimestamp(ts / 1000, TAIPEI).strftime("%Y-%m-%d %H:%M") if isinstance(ts, (int, float)) else None
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(data, ensure_ascii=False, indent=1) + "\n", encoding="utf-8")
+    return True
+
+
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--mark", nargs=2, metavar=("ID", "STATUS"))
@@ -105,6 +126,14 @@ def main(argv=None) -> int:
                 jobs.remove(j)
     changed = write_if_changed(snapshot(jobs))
     print(f"未完成 {len(jobs)} 筆；{'已更新' if changed else '沒有變動'} {OUT.relative_to(ROOT)}")
+    # 2026-10-16 產文章頻率設定：同步最新一份給 Claude 排程讀（舊版 Worker 還沒部署這個 op 時回 bad_op，只印提示、不讓整支變紅）
+    sc = call(base, token, {"op": "schedule"})
+    if sc.get("error"):
+        print(f"頻率設定略過：{sc['error']}")
+    else:
+        ch = write_schedule_if_changed(sc.get("schedule"))
+        state = "未設定" if not sc.get("schedule") else ("啟用" if sc["schedule"].get("enabled") else "關閉")
+        print(f"頻率設定：{state}；{'已更新' if ch else '沒有變動'} {SCHED_OUT.relative_to(ROOT)}")
     return 0
 
 
