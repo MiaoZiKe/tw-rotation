@@ -1796,3 +1796,50 @@
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot); else boot();
 })();
+
+/* ============================================================================
+   ★ 2026-10-16 手機分頁「點了沒切」保險（Andy iPhone 實機：「產業地圖切換到3D圖之後 其他分頁不能使用」）
+   截圖二：關掉 3D 的零件抽屜之後，「先進封裝」分頁鈕呈灰底按下狀態，卻沒有切過去 ——
+   手指的 touchstart／touchend 都到了，iOS 卻沒有補發 click（頁面上掛著文字選取、或 3D 畫布剛搶過指標時，iOS 會把這一下吞掉）。
+   這個容器只有 Chromium、跑不了 WebKit，無法逐一證實是哪一個機制吞的；所以不賭機制，改成「保險絲」：
+     · 只管分頁類（TABS：母分頁 #chainSwitch、子分頁 #dgPick 等 .nbsw、頂欄子頁 .m4subtabs、role=tab、漢堡鈕、抽屜背景）；
+     · 原地點（移動 ≤ 10px、按住 ≤ 700ms）放開後 450ms 內，這顆鈕沒收到 click → 補一個帶座標的 click 給它；
+     · 收到了（正常情況，Chromium／Android 都是）就什麼都不做，不會按兩次。
+   只在手機（html.m4 且 ≤640）作用；桌機沒有觸控事件，也不經過這裡。
+   ---------------------------------------------------------------------------- */
+(function () {
+  'use strict';
+  const isM = () => document.documentElement.classList.contains('m4') && window.innerWidth <= 640;
+  const TABS = '#chainSwitch > button, .nbsw > a, .nbsw > button, .m4subtabs button, [role=tab], #m4Burger, #mSheetBack';
+  let tp = null;
+  const pend = new Map();        // 鈕 → 計時器
+  document.addEventListener('touchstart', (e) => {
+    tp = null;
+    if (!isM() || e.touches.length !== 1) return;
+    const el = e.target && e.target.closest && e.target.closest(TABS); if (!el) return;
+    const t = e.touches[0]; tp = { el, x: t.clientX, y: t.clientY, t: Date.now() };
+  }, { capture: true, passive: true });
+  document.addEventListener('touchmove', (e) => {
+    if (!tp) return; const t = e.touches[0];
+    if (!t || Math.hypot(t.clientX - tp.x, t.clientY - tp.y) > 10) tp = null;     // 在橫捲分頁列＝捲動，不是點
+  }, { capture: true, passive: true });
+  document.addEventListener('touchcancel', () => { tp = null; }, { capture: true, passive: true });
+  document.addEventListener('touchend', (e) => {
+    const p = tp; tp = null;
+    if (!p || Date.now() - p.t > 700 || e.touches.length) return;
+    const t = e.changedTouches && e.changedTouches[0], x = t ? t.clientX : p.x, y = t ? t.clientY : p.y;
+    if (pend.has(p.el)) clearTimeout(pend.get(p.el));
+    pend.set(p.el, setTimeout(() => {
+      pend.delete(p.el);
+      if (!p.el.isConnected || p.el.hidden || !p.el.getClientRects().length) return;   // 已經換頁重畫掉了＝原本那一下有生效
+      p.el.dataset.m4tapfix = String((+p.el.dataset.m4tapfix || 0) + 1);             // 驗收讀數：保險絲補過幾次
+      p.el.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, view: window, clientX: x, clientY: y }));
+    }, 450));
+  }, { capture: true, passive: true });
+  // 原生 click 到了 → 拆掉保險絲（window 捕獲：比任何一頁自己的監聽都早，就算後面有人 stopPropagation 也拆得到）
+  window.addEventListener('click', (e) => {
+    if (!pend.size || !e.isTrusted) return;
+    const el = e.target && e.target.closest && e.target.closest(TABS);
+    if (el && pend.has(el)) { clearTimeout(pend.get(el)); pend.delete(el); }
+  }, true);
+})();
