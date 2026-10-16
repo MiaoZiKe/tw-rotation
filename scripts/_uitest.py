@@ -29916,7 +29916,7 @@ def t_mobile_m4_pie1010(b, base, code):
 #   只動手機（html.m4）的市場明細 › 法人連買賣 四象限：點圓點只出提示框不跳頁；十字虛線準星（橫、直兩條虛線＋兩軸數值標籤）吸附最近的點、手指拖動跟著換；
 #   橫軸／縱軸兩條拉Bar（dataZoom slider）＋兩指縮放（dataZoom inside）＋「重置」。
 #   驗：360／390／430（is_mobile、has_touch、DPR2；全部用 CDP 真的送觸控事件）——
-#   ① 手指點第 1 顆點 → 網址沒變、準星標到那一檔（data-cross）、畫面上真的多出 2 條虛線＋2 塊軸標籤、提示框寫著那一檔的名字
+#   ① 手指點第 1 顆點 → 網址沒變、準星標到那一檔（data-cross）、畫面上真的多出 2 條虛線＋2 塊軸標籤、圖上方那一列寫著那一檔的代號與累計張數
 #   ② 按住第 1 顆點拖到第 2 顆點附近 → 準星跳到第 2 顆、網址沒變 ③ 拖橫軸拉Bar 右把手往左 → 橫軸可視範圍真的變窄、「重置」亮起
 #   ④ 按「重置」→ 回全圖 ⑤ 兩指在圖中央撐開 → 縮放範圍真的變了 ⑥ 提示列＋圖整塊高 ≤ 600（一屏內）、整頁不橫捲。
 #   桌機 1440：沒有提示列、沒有 dataZoom，點圓點照舊進個股頁。
@@ -29928,10 +29928,10 @@ def t_m4_scatter_1016(b, base):
                  grid: { l: r.left + R.x, t: r.top + R.y, w: R.width, h: R.height } }; }"""
     ST = """() => { const e = document.getElementById('trust'), ch = echarts.getInstanceByDom(e), o = ch.getOption();
         const ds = ch.getZr().storage.getDisplayList();
-        const tipEl = [...document.querySelectorAll('#trust > div')].find(x => x.style && x.style.zIndex && x.style.display !== 'none' && x.style.opacity !== '0' && /連續/.test(x.textContent));
+        const tipEl = document.getElementById('trustM4Info');
         const xa = ch.getModel().getComponent('xAxis', 0).axis.scale.getExtent(), ya = ch.getModel().getComponent('yAxis', 0).axis.scale.getExtent();
         return { cross: e.dataset.cross || '', dash: ds.filter(x => x.type === 'line' && x.style && x.style.lineDash && x.z === 50).length,
-                 tags: ds.filter(x => x.type === 'text' && x.z === 51).map(x => x.style.text), tip: tipEl ? tipEl.textContent : '', hash: location.hash,
+                 tags: ds.filter(x => x.type === 'tspan' && x.z === 51).map(x => x.style.text), tip: tipEl ? tipEl.textContent : '', hash: location.hash,
                  dz: (o.dataZoom || []).map(z => [+(z.start || 0).toFixed(1), +(z.end == null ? 100 : z.end).toFixed(1)]), xr: xa, yr: ya,
                  zoomed: document.getElementById('trustWrap').dataset.zoomed }; }"""
     for W in (360, 390, 430):
@@ -29968,20 +29968,22 @@ def t_m4_scatter_1016(b, base):
             bb = max(inside, key=lambda p: (p["x"] - a["x"]) ** 2 + (p["y"] - a["y"]) ** 2)
             m.touchscreen.tap(a["x"], a["y"]); m.wait_for_timeout(500)
             s = m.evaluate(ST)
-            ok(f"{tag}①：點圓點 → 不跳頁（{s['hash']}）、準星標到 {a['code']}、2 條虛線＋2 塊軸標籤 {s['tags']}、提示框有寫",
-               s["hash"] == h0 and s["cross"] == a["code"] and s["dash"] == 2 and len(s["tags"]) == 2 and any("天" in t for t in s["tags"]) and bool(s["tip"]), s)
+            ok(f"{tag}①：點圓點 → 不跳頁（{s['hash']}）、準星標到 {a['code']}、2 條虛線＋2 塊軸標籤 {s['tags']}、圖上方那列寫出這一檔",
+               s["hash"] == h0 and s["cross"] == a["code"] and s["dash"] == 2 and len(s["tags"]) == 2 and any("天" in t for t in s["tags"]) and a["code"] in s["tip"] and "累計" in s["tip"], s)
             touch([(a["x"], a["y"])], [(bb["x"] + 1, bb["y"] + 1)], steps=14)
             s = m.evaluate(ST)
-            ok(f"{tag}②：手指從 {a['code']} 拖到 {bb['code']} 附近 → 準星吸附到 {bb['code']}、仍不跳頁", s["cross"] == bb["code"] and s["hash"] == h0 and s["dash"] == 2, s)
+            ok(f"{tag}②：手指從 {a['code']} 拖到 {bb['code']} 附近 → 準星吸附到 {bb['code']}、上方那列換成它、仍不跳頁", s["cross"] == bb["code"] and bb["code"] in s["tip"] and s["hash"] == h0 and s["dash"] == 2, s)
             x0 = s["xr"]
             hd = m.evaluate("""() => { const e = document.getElementById('trust'), ch = echarts.getInstanceByDom(e), r = e.getBoundingClientRect();
                 const v = ch.getModel().getComponent('dataZoom', 0); const W = r.width, op = v.option; return { y: r.bottom - 6 - 11, x1: r.left + 40, x2: r.left + W - 44 }; }""")
             touch([(hd["x2"], hd["y"])], [(hd["x2"] - (hd["x2"] - hd["x1"]) * 0.45, hd["y"])], steps=12)
             s = m.evaluate(ST)
             ok(f"{tag}③：拖橫軸拉Bar 右把手往左 → 橫軸範圍 {x0} → {s['xr']} 真的變窄、「重置」亮起", (s["xr"][1] - s["xr"][0]) < (x0[1] - x0[0]) * 0.8 and s["zoomed"] == "1", s)
-            m.tap("#trustReset"); m.wait_for_timeout(500)
+            m.locator("#trustReset").tap(); m.wait_for_timeout(900)   # 鈕若被頂欄蓋住，Playwright 會先把它捲出來（頁面 scroll-behavior:smooth）→ 等捲完
             s = m.evaluate(ST)
             ok(f"{tag}④：按「重置」→ 橫軸回全圖 {s['xr']}、全部 dataZoom 回 0～100", abs((s["xr"][1] - s["xr"][0]) - (x0[1] - x0[0])) < 0.01 and all(z == [0, 100] for z in s["dz"]) and s["zoomed"] == "0", s)
+            m.evaluate("() => { const w = document.getElementById('trust'); window.scrollTo({ top: w.getBoundingClientRect().top + scrollY - 70, behavior: 'instant' }); }"); m.wait_for_timeout(700)
+            g = m.evaluate(PTS)["grid"]   # 上一步可能捲過頁面：圖捲回視窗內、重新量圖區位置
             cx, cy = g["l"] + g["w"] / 2, g["t"] + g["h"] / 2
             y0 = s["yr"]
             touch([(cx - 20, cy - 20), (cx + 20, cy + 20)], [(cx - 110, cy - 110), (cx + 110, cy + 110)], steps=12, gap=30)

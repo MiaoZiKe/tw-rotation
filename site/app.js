@@ -8797,7 +8797,8 @@
     if (m4q) { G.right = 44; G.bottom = 74; }   // 右邊留給縱軸拉Bar、下面留給橫軸拉Bar（桌機 G 不動）
     const c = chart('trust', {
       ...(m4q ? trustM4Zoom() : {}),
-      tooltip: { ...tip, ...(m4q ? { confine: true } : {}), trigger: 'item', formatter: q => { const r = q.data.r;
+      tooltip: { ...tip, ...(m4q ? { show: false } : {}), trigger: 'item',   // 手機：提示框會蓋住點與拉Bar → 改寫在圖上方那一列（trustM4Cross）
+      formatter: q => { const r = q.data.r;
         return `<b>${fmt.esc(nm(r.code))} ${r.code}</b>　<span style="color:${r.side === 'buy' ? CH.up : CH.down}">${quad(r)}</span><br>`
           + `${STREAK_NAME[who]}連續${r.side === 'buy' ? '買' : '賣'}超 <b>${r.n}</b> 天，期間累計 <b>${fmt.lot(r.lots)}</b>`
           + (r.last != null ? `<br>最後一天 ${fmt.lot(r.last)}（期間日均 ${fmt.lot(r.avg)}，力道 <b>${fmt.n(r.ratio, 2)}×</b>）` : '')
@@ -8829,7 +8830,8 @@
           data: [{ xAxis: 0 }].concat(hasRatio ? [{ yAxis: 1 }] : []) } }],
     }, { notMerge: true });
     if (el) { el.dataset.pts = String(rows.length); el.dataset.buys = String(buys.length); el.dataset.sells = String(sells.length); }
-    if (c && m4q) trustM4Cross(c, el, hasRatio);   // 手機：點／拖＝十字虛線準星吸附最近的點，只看不跳頁
+    if (c && m4q) trustM4Cross(c, el, hasRatio, (r) => `<b>${fmt.esc(nm(r.code))} ${r.code}</b> <span style="color:${r.side === 'buy' ? CH.up : CH.down}">${quad(r)}</span>`
+      + `<br>${STREAK_NAME[who]}連${r.side === 'buy' ? '買' : '賣'} ${r.n} 天・累計 ${fmt.lot(r.lots)}${r.ratio != null ? `・力道 ${fmt.n(r.ratio, 2)}×` : ''}`);   // 兩行放得下（360 也不折第三行，圖不會跳）   // 手機：點／拖＝十字虛線準星吸附最近的點，只看不跳頁
     else if (c) c.off('click').on('click', q => zoomClick($('#trustWrap'), () => { if (q.data && q.data.code) goStock(q.data.code); }));
     // 滾輪放大、放大後拖曳、雙擊或按「還原」回原尺寸（Andy 2026-09-15），1 倍時滾輪照常捲頁面
     wheelZoom($('#trustWrap'), { onZoom: () => { const i = echarts.getInstanceByDom($('#trust')); if (i) i.resize(); } });
@@ -8854,14 +8856,17 @@
       { type: 'inside', id: 'tziy', yAxisIndex: 0, filterMode: 'none', zoomOnMouseWheel: true, moveOnMouseMove: false, moveOnMouseWheel: false, preventDefaultMouseMove: false },
     ] };
   }
-  function trustM4Cross(c, el, hasRatio) {
+  function trustM4Cross(c, el, hasRatio, info) {
     const wrap = $('#trustWrap');
     /* 重置鈕（只有手機長出來；放大過才亮） */
     let bar = $('#trustM4Bar', wrap);
     if (!bar) { bar = document.createElement('div'); bar.id = 'trustM4Bar'; bar.className = 'trustM4Bar';
-      bar.innerHTML = '<span>點／拖圓點看準星・雙指或拉Bar 放大</span><button type="button" class="btn small" id="trustReset" aria-label="縮放重置，回到全圖">重置</button>';
+      bar.innerHTML = '<span class="tmi" id="trustM4Info" aria-live="polite"></span><button type="button" class="btn small" id="trustReset" aria-label="縮放重置，回到全圖">重置</button>';
       wrap.insertBefore(bar, wrap.firstChild); }
-    const rb = $('#trustReset', bar);
+    const rb = $('#trustReset', bar), infoEl = $('#trustM4Info', bar);
+    const HINT = '<span class="muted">點／拖圓點看數字（十字虛線＝目前這一檔）<br>雙指撐開或拖拉Bar 放大</span>';
+    const say = (h) => { infoEl.innerHTML = h || HINT; };
+    say('');
     const zoomed = () => { const o = c.getOption(); return (o.dataZoom || []).some(z => (z.start || 0) > 0.01 || (z.end == null ? 100 : z.end) < 99.99); };
     const syncRb = () => { rb.classList.toggle('on', zoomed()); wrap.dataset.zoomed = zoomed() ? '1' : '0'; };
     rb.onclick = () => { c.dispatchAction({ type: 'dataZoom', batch: [0, 1, 2, 3].map(i => ({ dataZoomIndex: i, start: 0, end: 100 })) }); syncRb(); };
@@ -8869,7 +8874,7 @@
     const zr = c.getZr(); let grp = null, cur = -1;
     const data = () => (c.getOption().series[0].data || []);
     const rect = () => c.getModel().getComponent('grid', 0).coordinateSystem.getRect();
-    const clear = () => { if (grp) { zr.remove(grp); grp = null; } cur = -1; el.dataset.cross = ''; c.dispatchAction({ type: 'hideTip' }); };
+    const clear = () => { if (grp) { zr.remove(grp); grp = null; } cur = -1; el.dataset.cross = ''; say(''); };
     const draw = (i) => {
       const d = data()[i]; if (!d) return clear();
       const [px, py] = c.convertToPixel({ seriesIndex: 0 }, d.value), R = rect();
@@ -8886,7 +8891,7 @@
       grp.add(tag(`${d.r.side === 'buy' ? '連買' : '連賣'} ${xv} 天`, Math.min(Math.max(px, R.x + 40), R.x + R.width - 40), R.y + R.height + 2, 'center', 'top'));
       grp.add(tag(hasRatio ? fmt.n(yv, 2) + '×' : fmt.lot(d.r.lots), R.x + 2, py, 'left', 'middle'));
       zr.add(grp); cur = i; el.dataset.cross = d.r.code;
-      c.dispatchAction({ type: 'showTip', seriesIndex: 0, dataIndex: i });
+      say(info(d.r));
     };
     const nearest = (x, y, lim) => { let bi = -1, bd = Infinity; const R = rect();
       data().forEach((d, i) => { const [px, py] = c.convertToPixel({ seriesIndex: 0 }, d.value);
