@@ -30990,8 +30990,9 @@ def t_m4_chain1016(b, base):
             ok(f"【{T}】{vw}：名字本身是個股頁連結（{a['title']}）", a["title"] == "#stock/1785")
             # 「在圖上標示」真的按：按了變「取消標示」、關聯圖上別家被壓暗；再按一次還原
             tap("() => document.querySelector('#coBox #relHi')"); m.wait_for_timeout(500)
-            h1 = J("() => ({ t: document.querySelector('#coBox #relHi').textContent, dim: document.querySelectorAll('#chainMap .co.dim').length })")
-            ok(f"【{T}】{vw}：按「在圖上標示」→ 變「取消標示」、別家被壓暗（{h1}）", h1["t"] == "取消標示" and h1["dim"] > 0, h1)
+            # 手機的關聯圖其他環節預設收著（只剩膠囊），所以量「圖上有東西被壓暗或亮起來」（線 .edge.hi／.dim、公司 .co.dim）
+            h1 = J("() => ({ t: document.querySelector('#coBox #relHi').textContent, dim: document.querySelectorAll('#chainMap .dim, #chainMap .hi').length })")
+            ok(f"【{T}】{vw}：按「在圖上標示」→ 變「取消標示」、圖上的線／公司真的亮暗改變（{h1}）", h1["t"] == "取消標示" and h1["dim"] > 0, h1)
             tap("() => document.querySelector('#coBox #relHi')"); m.wait_for_timeout(500)
             ok(f"【{T}】{vw}：再按一次還原成「在圖上標示」", J("() => document.querySelector('#coBox #relHi').textContent") == "在圖上標示")
             tap("() => document.querySelector('#coBox h3 a')"); m.wait_for_timeout(2500)
