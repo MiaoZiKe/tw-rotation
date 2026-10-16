@@ -1,5 +1,8 @@
 # HANDOFF.md — 目前進度（接手先讀這份）
 
+## 2026-10-17 03:1x 短影片 #4「CPO 共同封裝光學是什麼？」完成（main 87a22a79）
+- 成品 docs/marketing/videos/2026-10-17-k_cpo/（k_cpo_9x16.mp4 45 秒 1080×1920、封面、srt、分鏡、posts.md IG／Threads 文案＋合規自查、overlap_report）。重疊檢查：程式 1350 幀 0 筆；人工 90 格 0 筆。不點名個股；NVIDIA／Broadcom 數字標「廠商說法」＋新聞稿日期。字型 Huninn／Noto Sans TC（OFL），重跑渲染用 CPO_FONT_DIR。佇列 #4 已標 done。
+
 ## 2026-10-17 02:0x 精選文章 #3「CPO 共同封裝光學是什麼？」寫好但卡在上架鑰匙
 - 全文已寫好、驗過（內文 882 字、剖析圖 8 部位、時間軸、對照表；來源與數字出處在子 agent 回報），檔案只在暫存區：/tmp/claude-0/-home-user-tw-rotation/09911d5e-cbec-5eb0-a188-19f18707f268/scratchpad/art_cpo/2026-10-17-know-cpo.json（⚠ 容器回收就沒了；10-16 防白嫖規則：全文不得進 repo）。
 - 卡在：Claude 環境沒有 ARTICLE_PUT_KEY／ACCOUNT_API_URL、網路白名單沒有 tw-account.kcq01010909.workers.dev（curl 403）。照手冊第 5 點把 #3 標 failed。Andy 設好後：`python scripts/article_publish.py <上面那支>` → 只推 index.json → deploy_wait → 手動標 #3 done。
