@@ -60,6 +60,14 @@
      標題列「今日事件｜全部（N）▾｜×」同一行；分類（全部／台股／科技／總經／券商）改成同一款分段控制器、一行、放不下就框裡橫捲。
      兩個抽屜 touch-action:pan-y：上下捲交給瀏覽器、左右滑收起交給 mobile4.js swipeClose */
   :root.m4 aside#side{width:min(300px,78vw)}
+  /* ★ 2026-10-16（Andy iPhone 實機：「手機版本網頁打開右滑都會出現這樣的問題，請務必處理」）：
+     根因＝右側事件抽屜 aside#side 關著時是 position:fixed＋right:0＋translateX(100%)，整條 300px 停在視窗右外側（L=390～690）。
+     Chromium 不把它算進捲動範圍，但 iOS Safari／LINE 內建瀏覽器會 —— 手指往左拖，整頁被拖走、右邊露出 300px 空白。
+     修法：關著時寬度收成 0（跟 visibility 一樣延到滑出動畫 .25s 之後才生效），打開時立刻回到 300。
+     translateX(100%) 是百分比、以當下寬度解析，所以滑入／滑出動畫照舊。 */
+  :root.m4 aside#side:not(.open){width:0;border-left-width:0;transition:transform .25s ease,visibility 0s linear .25s,width 0s linear .25s,border-left-width 0s linear .25s}
+  /* 保險：整頁不准橫向捲。clip 不會讓 body 變成捲動容器（hidden 會）；舊版 iOS（<16）不認 clip 就退回 hidden */
+  :root.m4,:root.m4 body{overflow-x:hidden;overflow-x:clip}
   /* 2026-10-09 手機監督退件（帳本 40）：抽屜寬 300 後新聞標題會斷在詞中間（例「· 下｜修」）→ 手機標題一律單行＋…，完整標題放 title */
   :root.m4 #side #evList .ev>a{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   /* 手機監督（帳本 40 附帶）：總覽「走勢圖｜K 線」那組（#m3Mode，父層 .m3-bar 左內距 14）左緣跟另外兩組對齊在 8 */
