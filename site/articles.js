@@ -71,7 +71,7 @@
   const defRange = () => { const t = tpeToday(); return { from: monthAgo(t), to: t }; };
 
   const S = { views: null, statsP: null, statsAt: 0, idx: null, idxP: null, idxErr: false, cat: 'all', q: '', from: null, to: null, grp: new Set(), ms: null,
-    posts: {}, cur: '', curData: null, backOk: false, topics: null, topicsP: null, tcat: 'all', tsort: 'desc' };
+    posts: {}, cur: '', curData: null, backOk: false, topics: null, topicsP: null, tcat: 'all', tsort: 'desc', tsel: '', jobs: null };
 
   /* 「← 返回」要不要用 history.back()：只有「在站內從別頁換過來」才有上一頁可回；直接貼網址開的，回該類別清單 */
   window.addEventListener('hashchange', (e) => {
@@ -196,8 +196,8 @@
 .artcrumb a.kc{color:var(--k)}
 .artcrumb a:hover{text-decoration:underline}
 .artcrumb .cur{color:var(--ink-2);overflow:hidden;text-overflow:ellipsis}
-.artpost h2.artttl{margin:var(--sp-2) 0 6px;font-size:24px;line-height:1.4;font-weight:700}
-.artpost .artsub{margin:0 0 var(--sp-3);font-size:var(--fs-h3);color:var(--ink-2);line-height:1.6}
+.artpost h2.artttl{margin:var(--sp-2) 0 6px;font-size:21px;line-height:1.4;font-weight:700}
+.artpost .artsub{margin:0 0 var(--sp-3);font-size:14.5px;color:var(--ink-2);line-height:1.6}
 .artmeta{display:flex;flex-wrap:wrap;align-items:center;gap:var(--sp-2) var(--sp-3);font-size:var(--fs-sm);color:var(--ink-2)}
 .artmeta .mono{font-family:var(--mono);font-variant-numeric:tabular-nums}
 .artpost .arttags{flex-wrap:wrap;margin:var(--sp-3) 0}
@@ -206,10 +206,10 @@
 .artgps button.artgp{font:inherit;font-size:var(--fs-min);cursor:pointer;height:24px}
 .artgps button.artgp:hover{border-color:var(--k)}
 .artlead{margin:var(--sp-3) 0;padding:var(--sp-3) var(--sp-4);border-left:3px solid var(--k,var(--cyan));background:var(--panel-3);border-radius:0 var(--r-sm,8px) var(--r-sm,8px) 0;
-  font-size:15px;line-height:1.8;color:var(--ink)}
-.artbody{font-size:15.5px;line-height:1.85;color:var(--ink)}
-@media (min-width:1280px){.artbody{font-size:clamp(16px,calc(8px + .62vw),18px)}.artlead{font-size:clamp(15px,calc(7.5px + .6vw),17px)!important}}
-.artbody h4{margin:var(--sp-5) 0 var(--sp-2);font-size:18px;line-height:1.4;font-weight:700;display:flex;align-items:center;gap:var(--sp-2);scroll-margin-top:16px}
+  font-size:14.5px;line-height:1.75;color:var(--ink)}
+/* 2026-10-16 Andy：「精選文章字體有點大 調整一下」—— 內文 15px（原本寬螢幕放大到 16～18px）、標題 21px、小標 16px */
+.artbody{font-size:15px;line-height:1.8;color:var(--ink)}
+.artbody h4{margin:var(--sp-5) 0 var(--sp-2);font-size:16px;line-height:1.4;font-weight:700;display:flex;align-items:center;gap:var(--sp-2);scroll-margin-top:16px}
 .artbody h4::before{content:"";flex:none;width:4px;height:16px;border-radius:2px;background:var(--k,var(--cyan))}
 .artbody p{margin:0 0 var(--sp-3)}
 .artbody ul{margin:0 0 var(--sp-3);padding-left:1.4em}
@@ -217,7 +217,7 @@
 .artbody .callout{margin:var(--sp-4) 0;padding:var(--sp-3) var(--sp-4);border:1px solid color-mix(in srgb,var(--amber) 55%,transparent);border-radius:var(--r-sm,8px);
   background:color-mix(in srgb,var(--amber) 9%,var(--panel));font-weight:600}
 .artbody .tbw{overflow-x:auto;margin:var(--sp-3) 0 var(--sp-4);border:1px solid var(--line);border-radius:var(--r-sm,8px)}
-.artbody table{width:100%;border-collapse:collapse;font-size:14px;line-height:1.5}
+.artbody table{width:100%;border-collapse:collapse;font-size:13.5px;line-height:1.5}
 .artbody th,.artbody td{padding:7px 10px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
 .artbody th{white-space:nowrap}
 .artbody td:first-child{white-space:nowrap;font-weight:600}   /* 第一欄多半是項目名：一行；其餘欄是說明句，讓它換行（不然整張表要左右捲）*/
@@ -367,10 +367,10 @@
   .artc{padding:var(--sp-3) var(--sp-3) var(--sp-3) calc(var(--sp-3) + 4px)}
   .artc .sm{display:none}   /* 手機只留重點（準則 3）：摘要點進去才看 */
   .artempty{min-height:260px}
-  .artpost h2.artttl{font-size:21px}
-  .artbody{font-size:16px;line-height:1.85}
-  .artlead{font-size:15px}
-  .artbody h4{font-size:17px}
+  .artpost h2.artttl{font-size:19px}
+  .artbody{font-size:15px;line-height:1.8}
+  .artlead{font-size:14.5px}
+  .artbody h4{font-size:16px}
   .artstk .g{grid-template-columns:minmax(0,1fr)}
   .artfig{padding:var(--sp-3) var(--sp-2);margin-left:0;margin-right:0}
   .artchart .cv{height:260px}
@@ -394,32 +394,52 @@
     document.head.appendChild(s);
   }
   const ADM_CSS = `
-/* ---- 管理區 #admin/articles ---- */
-#v-subadm .artadm h3{margin:0;font-size:var(--fs-h3);font-weight:600}
+/* ---- 管理區 #admin/articles（2026-10-16 二版：Andy「版面需要調整適當，周圍不要空白太多，字體也需要調整適當，表格需要對齊」）---- */
+#v-subadm:has(>.artadm){max-width:none;padding-left:var(--sp-2);padding-right:var(--sp-2)}   /* 管理區預設 1280 置中 —— 這頁表格欄位多，吃滿主欄 */
+#v-subadm .artadm{margin-top:var(--gap-card,12px)}
+#v-subadm .artadm h3{margin:0;font-size:15px;font-weight:700}
 #v-subadm .artadm .hd{display:flex;align-items:center;gap:var(--sp-2);flex-wrap:wrap;margin-bottom:var(--sp-2)}
 #v-subadm .artadm .hd .sp{flex:1}
+#v-subadm .artadm .hd .muted{font-size:var(--fs-min)}
 #v-subadm .artadm .tbw{overflow-x:auto}
-#v-subadm .artadm table{width:100%;border-collapse:collapse;font-size:var(--fs-sm)}
-#v-subadm .artadm th,#v-subadm .artadm td{padding:6px 8px;border-bottom:1px solid var(--line);height:32px;white-space:nowrap;text-align:center}
-#v-subadm .artadm th{color:var(--ink-2);font-weight:600;font-size:var(--fs-min)}
-#v-subadm .artadm td.l{text-align:left;max-width:300px;overflow:hidden;text-overflow:ellipsis}
-#v-subadm .artadm td.l a{color:var(--ink);text-decoration:none}
-#v-subadm .artadm td.l a:hover{color:var(--cyan)}
+#v-subadm .artadm table{width:100%;min-width:860px;border-collapse:collapse;table-layout:fixed;font-size:13px}
+#v-subadm .artadm th,#v-subadm .artadm td{padding:0 10px;border-bottom:1px solid var(--line);height:36px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-align:left;vertical-align:middle}
+#v-subadm .artadm th{color:var(--ink-2);font-weight:600;font-size:12px;background:var(--panel-3);height:32px}
+#v-subadm .artadm th.c,#v-subadm .artadm td.c{text-align:center}
+#v-subadm .artadm th.r,#v-subadm .artadm td.r{text-align:right}
+#v-subadm .artadm td a{color:var(--ink);text-decoration:none}
+#v-subadm .artadm td a:hover{color:var(--cyan)}
 #v-subadm .artadm td.n{font-family:var(--mono);font-variant-numeric:tabular-nums}
-#v-subadm .artadm td.act{text-align:left}
-#v-subadm .artadm td.act button{height:28px;padding:0 10px;margin-right:6px;border-radius:var(--r-sm,8px);border:1px solid var(--line-2);background:var(--panel-3);color:var(--ink);font-size:var(--fs-min)}
-#v-subadm .artadm td.act button:disabled{opacity:.45;cursor:not-allowed}
-#v-subadm .artadm td.act small{font-size:var(--fs-min);color:var(--ink-3)}
-#v-subadm .artadm .stp{display:inline-block;font-size:var(--fs-min);padding:1px 8px;border-radius:999px;border:1px solid color-mix(in srgb,var(--cyan) 55%,transparent);color:var(--cyan)}
-#v-subadm .artadm .stp.draft{border-color:var(--line-2);color:var(--ink-2)}
-#v-subadm .artadm .scb{display:inline-flex;align-items:center;gap:6px}
-#v-subadm .artadm .scb i{display:block;height:6px;border-radius:3px;background:var(--cat-1,var(--cyan))}
-#v-subadm .artadm .why{text-align:left;color:var(--ink-2);max-width:320px;overflow:hidden;text-overflow:ellipsis}   /* 一行＋滑過看全文（style_guide 一-3：文字一行，不准換行撐高列）*/
-#v-subadm .artadm .muted{color:var(--ink-3);font-size:var(--fs-sm)}
-#v-subadm .artadm .lnk{text-align:left;max-width:240px;overflow:hidden;text-overflow:ellipsis}
-#v-subadm .artadm .lnk a{color:var(--cyan);margin-right:6px;text-decoration:none;font-size:var(--fs-min)}
+#v-subadm .artadm .artbadge{vertical-align:middle}
+#v-subadm .artadm .muted{color:var(--ink-3);font-size:12px}
+#v-subadm .artadm .scb{display:inline-flex;align-items:center;gap:6px;font-family:var(--mono);font-variant-numeric:tabular-nums}
+#v-subadm .artadm .scb i{display:block;width:40px;height:6px;border-radius:3px;background:var(--line);position:relative;overflow:hidden}
+#v-subadm .artadm .scb i>b{position:absolute;left:0;top:0;bottom:0;border-radius:3px;background:var(--cat-1,var(--cyan))}
+#v-subadm .artadm td.dm{color:var(--ink-2)}
 #v-subadm .artadm .nbsw{margin-top:var(--sp-1)}
 #v-subadm .artadm .nbbody{margin-bottom:0}
+/* 主題可點選（整列）＋選取後的動作列 */
+#v-subadm .artadm #artTpBody tr[data-tid]{cursor:pointer}
+#v-subadm .artadm #artTpBody tr[data-tid]:hover>td{background:color-mix(in srgb,var(--cyan) 6%,transparent)}
+#v-subadm .artadm #artTpBody tr[aria-selected=true]>td{background:color-mix(in srgb,var(--cyan) 14%,transparent)}
+#v-subadm .artadm .rd{display:inline-block;width:14px;height:14px;border-radius:50%;border:2px solid var(--line-2);vertical-align:middle;box-sizing:border-box}
+#v-subadm .artadm tr[aria-selected=true] .rd{border-color:var(--cyan);background:radial-gradient(var(--cyan) 0 3px,transparent 3.5px)}
+#v-subadm .artadm .tpact{display:flex;align-items:center;gap:var(--sp-2);flex-wrap:wrap;padding:var(--sp-2) var(--sp-3);margin-bottom:var(--sp-2);border:1px solid var(--line);border-radius:var(--r-sm,8px);background:var(--panel-2);font-size:13px}
+#v-subadm .artadm .tpact .sel{flex:0 1 auto;min-width:0;max-width:420px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#v-subadm .artadm .tpact .sel b{color:var(--ink)}
+#v-subadm .artadm .tpact input{flex:1 1 220px;min-width:160px;height:32px;box-sizing:border-box;padding:0 10px;border:1px solid var(--line-2);border-radius:var(--r-sm,8px);background:var(--panel);color:var(--ink);font:inherit;font-size:13px}
+#v-subadm .artadm .tpact button{height:32px;padding:0 14px;border-radius:var(--r-sm,8px);border:1px solid var(--cyan);background:color-mix(in srgb,var(--cyan) 14%,var(--panel));color:var(--ink);font:inherit;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap}
+#v-subadm .artadm .tpact button:disabled{opacity:.45;cursor:not-allowed;border-color:var(--line-2);background:var(--panel-3)}
+#v-subadm .artadm .tpact .lk{display:flex;gap:6px;flex-wrap:wrap;width:100%;font-size:12px;color:var(--ink-3)}
+#v-subadm .artadm .tpact .lk a{color:var(--cyan);text-decoration:none}
+#v-subadm .artadm .tpmsg{font-size:12.5px;color:var(--ink-2);margin:0 0 var(--sp-2)}
+#v-subadm .artadm .tpmsg.err{color:var(--red,#e5484d)}
+#v-subadm .artadm .js{display:inline-flex;align-items:center;gap:4px;font-size:12px;padding:1px 8px;border-radius:999px;border:1px solid var(--line-2);color:var(--ink-2);margin-right:4px}
+#v-subadm .artadm .js.queued{border-color:color-mix(in srgb,var(--amber,#f5a524) 60%,transparent);color:var(--amber,#f5a524)}
+#v-subadm .artadm .js.working{border-color:color-mix(in srgb,var(--cyan) 60%,transparent);color:var(--cyan)}
+#v-subadm .artadm .js.done{border-color:color-mix(in srgb,var(--green,#30a46c) 60%,transparent);color:var(--green,#30a46c)}
+#v-subadm .artadm .js.failed{border-color:color-mix(in srgb,var(--red,#e5484d) 60%,transparent);color:var(--red,#e5484d)}
+#v-subadm .artadm td button.cx{height:26px;padding:0 10px;border-radius:var(--r-sm,8px);border:1px solid var(--line-2);background:var(--panel-3);color:var(--ink);font:inherit;font-size:12px;cursor:pointer}
 `;
 
   /* ------------------------------------------------------------------ 資料 */
@@ -1026,6 +1046,28 @@ ${gs.length ? `<section><h5>熱門族群</h5><div class="gps">${gs.map((g) => `<
 
   /* ------------------------------------------------------------------ 管理區 #admin/articles */
   function isAdmin() { const A = window.TwAccount; const u = A && A.on && A.on() && A.user && A.user(); return !!(u && u.admin); }
+  /* 產出佇列（2026-10-16，Andy：「claude 指負責產出文章，內容……點選清單內主題，點選後我可以再次點選產生精選文章，或是短影片」）
+     按鈕 → 會員 Worker /v1/articles/jobs/add 排一筆 → GitHub Actions（article-jobs.yml）每小時同步進 repo →
+     Claude 排程撰寫、推上 main → 文章 index.json 帶同一個 topic 時自動標「已上架」。*/
+  const KIND_T = { article: '精選文章', video: '短影片' };
+  const JST = { queued: '排隊中', working: '撰寫中', done: '已完成', failed: '失敗', cancelled: '已取消' };
+  const acctCall = (path, body) => { const A = window.TwAccount; return A && typeof A.call === 'function' ? A.call(path, body) : Promise.resolve(null); };
+  function loadJobs() {
+    return acctCall('/v1/articles/jobs/list', {}).then((j) => { S.jobs = j && Array.isArray(j.jobs) ? j.jobs : null; return S.jobs; });
+  }
+  const twTime = (ms) => { if (!Number.isFinite(Number(ms))) return ''; const d = new Date(Number(ms) + 8 * 3600e3); return d.toISOString().slice(5, 16).replace('T', ' '); };
+  const pubOfTopic = (tid) => { const l = S.idx ? S.idx.list.filter((a) => a.topic === tid) : []; return l.length ? l[0] : null; };   // 清單已依日期新到舊
+  /* 一個主題的產出狀態：已上架的文章優先，其次是各種類最新一筆請求 */
+  function jobChips(tid) {
+    const out = [], pub = pubOfTopic(tid);
+    if (pub) out.push(`<a class="js done" href="#article/${encodeURIComponent(pub.id)}" title="${esc(pub.title)}">文章已上架</a>`);
+    ['article', 'video'].forEach((k) => {
+      if (k === 'article' && pub) return;
+      const j = (S.jobs || []).find((x) => x.topic_id === tid && x.kind === k && x.status !== 'cancelled');
+      if (j) out.push(`<span class="js ${esc(j.status)}" title="#${esc(j.id)} ${esc(twTime(j.created))} 送出">${KIND_T[k]}${esc(JST[j.status] || j.status)}</span>`);
+    });
+    return out.join('') || '<span class="muted">—</span>';
+  }
   async function renderAdmin(v) {
     css();
     if (!isAdmin()) {
@@ -1033,45 +1075,105 @@ ${gs.length ? `<section><h5>熱門族群</h5><div class="gps">${gs.map((g) => `<
       return;
     }
     v.innerHTML = '<div class="card artadm"><p class="muted">載入中…</p></div>';
-    const [idx, tp] = await Promise.all([loadIndex(), loadTopics()]);
+    const [idx, tp] = await Promise.all([loadIndex(), loadTopics(), loadJobs()]);
     if (location.hash !== '#admin/articles') return;
     loadStats(true);
     const list = idx ? idx.list : [];
-    const LOCK = '待 Andy 確認後開放';
+    const tpTitle = (id) => { const t = S.topics && S.topics.list.find((x) => x.id === id); return t ? t.title : ''; };
     v.innerHTML = `
 <div class="card artadm" id="artAdmList">
-  <div class="hd"><h3>精選文章管理：已上架文章</h3><span class="muted">${list.length} 篇${idx && idx.updated ? '・清單更新 ' + esc(idx.updated) : ''}</span></div>
-  <div class="tbw"><table><thead><tr><th>類別</th><th>標題</th><th>日期</th><th title="會員 Worker 統計的點閱次數；讀不到寫「—」">點閱</th><th>狀態</th><th>產出</th></tr></thead><tbody>
-  ${list.length ? list.map((a) => `<tr data-id="${esc(a.id)}"><td>${badge(a.cat)}</td><td class="l"><a href="#article/${encodeURIComponent(a.id)}" title="${esc(a.title)}">${esc(a.title)}</a></td>
-    <td class="n">${esc(a.date)}</td><td class="n" data-vwc="${esc(a.id)}">${viewsOf(a.id) == null ? '—' : viewsOf(a.id).toLocaleString('zh-TW')}</td><td><span class="stp">已上架</span></td>
-    <td class="act"><button type="button" disabled aria-disabled="true" data-act="post" title="${LOCK}">產出貼文</button><button type="button" disabled aria-disabled="true" data-act="video" title="${LOCK}">產出短影片</button><small>${LOCK}</small></td></tr>`).join('')
-    : `<tr><td colspan="6" class="muted">${idx ? '還沒有上架的文章' : '文章清單讀不到'}</td></tr>`}
+  <div class="hd"><h3>已上架文章</h3><span class="muted">${list.length} 篇${idx && idx.updated ? '・清單更新 ' + esc(idx.updated) : ''}</span></div>
+  <div class="tbw"><table><colgroup><col style="width:120px"><col><col style="width:110px"><col style="width:70px"><col style="width:26%"></colgroup>
+  <thead><tr><th class="c">類別</th><th>標題</th><th class="c">日期</th><th class="r" title="會員 Worker 統計的點閱次數；讀不到寫「—」">點閱</th><th>來源主題</th></tr></thead><tbody>
+  ${list.length ? list.map((a) => `<tr data-id="${esc(a.id)}"><td class="c">${badge(a.cat)}</td><td class="l" title="${esc(a.title)}"><a href="#article/${encodeURIComponent(a.id)}">${esc(a.title)}</a></td>
+    <td class="n c">${esc(a.date)}</td><td class="n r" data-vwc="${esc(a.id)}">${viewsOf(a.id) == null ? '—' : viewsOf(a.id).toLocaleString('zh-TW')}</td>
+    <td class="dm" title="${esc(tpTitle(a.topic))}">${a.topic && tpTitle(a.topic) ? esc(tpTitle(a.topic)) : '<span class="muted">—</span>'}</td></tr>`).join('')
+    : `<tr><td colspan="5" class="muted">${idx ? '還沒有上架的文章' : '文章清單讀不到'}</td></tr>`}
   </tbody></table></div>
 </div>
-<div class="card artadm" id="artAdmTopics" style="margin-top:var(--gap-card,12px)">
-  <div class="hd"><h3>精選文章管理：主題候選清單</h3><span class="muted" id="artTpUpd">${tp && tp.updated ? '更新 ' + esc(tp.updated) : ''}</span><span class="sp"></span>
+<div class="card artadm" id="artAdmTopics">
+  <div class="hd"><h3>主題候選清單</h3><span class="muted" id="artTpUpd">${tp && tp.updated ? '更新 ' + esc(tp.updated) : ''}・點一列選主題，再按上方按鈕交給 Claude 撰寫</span><span class="sp"></span>
     <button type="button" class="btn small" id="artTpSort" title="切換分數排序方向"></button></div>
+  <div class="tpact" id="artTpAct">
+    <span class="sel" id="artTpSel">已選主題：<span class="muted">尚未選擇</span></span>
+    <input type="text" id="artTpNote" maxlength="500" placeholder="給 Claude 的補充（選填；會寫進公開的 repo，請勿填個資）">
+    <button type="button" id="artGenArt" data-kind="article" disabled>產生精選文章</button>
+    <button type="button" id="artGenVid" data-kind="video" disabled>產生短影片</button>
+    <div class="lk" id="artTpLinks" hidden></div>
+  </div>
+  <p class="tpmsg" id="artTpMsg" role="status" hidden></p>
   <div class="nbsw lv2" id="artTpCats" role="tablist" aria-label="候選主題分類"><button type="button" role="tab" data-cat="all">全部</button>${CAT_KEYS.map((k) => `<button type="button" role="tab" data-cat="${k}">${CATS[k].t}</button>`).join('')}</div>
-  <div class="nbbody"><div class="tbw"><table><thead><tr><th>分數</th><th>類別</th><th>標題</th><th>理由</th><th>建議形式</th><th>站內頁面</th></tr></thead><tbody id="artTpBody"></tbody></table></div></div>
+  <div class="nbbody"><div class="tbw"><table><colgroup><col style="width:44px"><col style="width:96px"><col style="width:120px"><col style="width:30%"><col><col style="width:84px"><col style="width:190px"></colgroup>
+  <thead><tr><th class="c">選</th><th>分數</th><th class="c">類別</th><th>標題</th><th>理由</th><th class="c">建議形式</th><th>產出狀態</th></tr></thead><tbody id="artTpBody"></tbody></table></div></div>
+</div>
+<div class="card artadm" id="artAdmJobs">
+  <div class="hd"><h3>產出進度</h3><span class="muted">排隊中的請求由 Claude 每天台北 09:50、14:50、20:50 三輪處理；文章推上線後這裡自動變「已完成」</span></div>
+  <div class="tbw"><table><colgroup><col style="width:64px"><col style="width:96px"><col style="width:30%"><col><col style="width:96px"><col style="width:120px"><col style="width:96px"></colgroup>
+  <thead><tr><th class="r">編號</th><th class="c">產出</th><th>主題</th><th>補充</th><th class="c">狀態</th><th class="c">送出時間</th><th class="c">操作</th></tr></thead><tbody id="artJobBody"></tbody></table></div>
 </div>`;
     $$('#artTpCats>button', v).forEach((b) => { b.onclick = () => { S.tcat = b.dataset.cat; paintTopics(v); }; });
     $('#artTpSort', v).onclick = () => { S.tsort = S.tsort === 'desc' ? 'asc' : 'desc'; paintTopics(v); };
-    paintTopics(v);
+    $('#artTpBody', v).addEventListener('click', (e) => {
+      if (e.target.closest('a')) return;
+      const tr = e.target.closest('tr[data-tid]'); if (!tr) return;
+      S.tsel = S.tsel === tr.dataset.tid ? '' : tr.dataset.tid; paintTopics(v);
+    });
+    $$('#artGenArt,#artGenVid', v).forEach((b) => { b.onclick = () => submitJob(v, b.dataset.kind); });
+    $('#artJobBody', v).addEventListener('click', async (e) => {
+      const b = e.target.closest('button[data-cancel]'); if (!b) return;
+      b.disabled = true;
+      const r = await acctCall('/v1/articles/jobs/cancel', { id: Number(b.dataset.cancel) });
+      tpMsg(v, r && r.ok ? `已取消 #${b.dataset.cancel}` : '取消失敗：這筆可能已經開始撰寫', !(r && r.ok));
+      await loadJobs(); paintTopics(v); paintJobs(v);
+    });
+    paintTopics(v); paintJobs(v);
+  }
+  function tpMsg(v, t, err) { const m = $('#artTpMsg', v); if (!m) return; m.hidden = !t; m.textContent = t || ''; m.classList.toggle('err', !!err); }
+  async function submitJob(v, kind) {
+    const t = S.topics && S.topics.list.find((x) => x.id === S.tsel); if (!t || !KIND_T[kind]) return;
+    const btns = $$('#artGenArt,#artGenVid', v); btns.forEach((b) => { b.disabled = true; });
+    const note = ($('#artTpNote', v) || {}).value || '';
+    const r = await acctCall('/v1/articles/jobs/add', { topic_id: t.id, kind, title: t.title, note: note.trim() });
+    if (r && r.job) {
+      tpMsg(v, r.dup ? `「${t.title}」的${KIND_T[kind]}已經在排隊（#${r.job.id}，${JST[r.job.status] || r.job.status}），不重複送出`
+        : `已送出 #${r.job.id}：「${t.title}」${KIND_T[kind]}。Claude 下一輪會撰寫，完成後會出現在「已上架文章」`);
+      if (!r.dup && $('#artTpNote', v)) $('#artTpNote', v).value = '';
+    } else tpMsg(v, r && r._s === 403 ? '送出失敗：登入身分不是管理者（請重新登入）' : r && r.error === 'too_many' ? '送出失敗：排隊中的請求太多（上限 100 筆）' : '送出失敗：連不到會員伺服器，請稍後再試', true);
+    await loadJobs(); paintTopics(v); paintJobs(v);
+  }
+  function paintJobs(v) {
+    const body = $('#artJobBody', v); if (!body) return;
+    if (!S.jobs) { body.innerHTML = '<tr><td colspan="7" class="muted">讀不到產出紀錄（會員伺服器沒回應）</td></tr>'; return; }
+    const rows = S.jobs.slice(0, 50);
+    body.innerHTML = rows.length ? rows.map((j) => {
+      const pub = j.kind === 'article' && j.status === 'done' && j.result && S.idx && S.idx.list.find((a) => a.id === j.result);
+      const op = j.status === 'queued' ? `<button type="button" class="cx" data-cancel="${esc(j.id)}">取消</button>`
+        : pub ? `<a href="#article/${encodeURIComponent(pub.id)}">看文章</a>` : '<span class="muted">—</span>';
+      return `<tr data-job="${esc(j.id)}"><td class="n r">#${esc(j.id)}</td><td class="c">${esc(KIND_T[j.kind] || j.kind)}</td><td title="${esc(j.title)}">${esc(j.title)}</td>
+        <td class="dm" title="${esc(j.note || '')}">${j.note ? esc(j.note) : '<span class="muted">—</span>'}</td><td class="c"><span class="js ${esc(j.status)}">${esc(JST[j.status] || j.status)}</span></td>
+        <td class="n c">${esc(twTime(j.created))}</td><td class="c">${op}</td></tr>`;
+    }).join('') : '<tr><td colspan="7" class="muted">還沒有送出過產出請求</td></tr>';
   }
   function paintTopics(v) {
     const body = $('#artTpBody', v); if (!body) return;
     $$('#artTpCats>button', v).forEach((b) => { const on = b.dataset.cat === S.tcat; b.classList.toggle('on', on); b.setAttribute('aria-selected', on ? 'true' : 'false'); });
     $('#artTpSort', v).textContent = S.tsort === 'desc' ? '分數：高 → 低' : '分數：低 → 高';
-    if (!S.topics) { body.innerHTML = '<tr><td colspan="6" class="muted">主題候選清單讀不到</td></tr>'; return; }
+    const sel = S.topics && S.topics.list.find((x) => x.id === S.tsel);
+    const st = $('#artTpSel', v);
+    if (st) st.innerHTML = sel ? `已選主題：${badge(sel.cat)} <b title="${esc(sel.title)}">${esc(sel.title)}</b>` : '已選主題：<span class="muted">尚未選擇（點下方任一列）</span>';
+    $$('#artGenArt,#artGenVid', v).forEach((b) => { b.disabled = !sel; });
+    const lk = $('#artTpLinks', v), links = sel && Array.isArray(sel.site_links) ? sel.site_links.filter(okHash) : [];
+    if (lk) { lk.hidden = !links.length; lk.innerHTML = links.length ? '相關站內頁面：' + links.map((h) => `<a href="${esc(h)}">${esc(h.slice(1))}</a>`).join('') : ''; }
+    if (!S.topics) { body.innerHTML = '<tr><td colspan="7" class="muted">主題候選清單讀不到</td></tr>'; return; }
     const mx = 5;   // 分數是 1～5 分（市場研調的評分口徑）
     const rows = S.topics.list.filter((t) => S.tcat === 'all' || t.cat === S.tcat)
       .sort((a, b) => ((Number(b.score) || 0) - (Number(a.score) || 0)) * (S.tsort === 'desc' ? 1 : -1));
-    body.innerHTML = rows.length ? rows.map((t) => `<tr data-tid="${esc(t.id)}" data-score="${esc(Number(t.score) || 0)}">
-      <td class="n"><span class="scb"><i style="width:${Math.round(40 * Math.min(mx, Number(t.score) || 0) / mx)}px"></i>${esc(Number(t.score) || 0)}<small class="muted">/5</small></span></td>
-      <td>${CATS[t.cat] ? badge(t.cat) : esc(t.cat || '')}</td><td class="l" title="${esc(t.title)}">${esc(t.title)}</td>
-      <td class="why" title="${esc(t.why || '')}">${esc(t.why || '')}</td><td>${esc(t.format_hint || '')}</td>
-      <td class="lnk" title="${esc((Array.isArray(t.site_links) ? t.site_links : []).join('  '))}">${(Array.isArray(t.site_links) ? t.site_links : []).filter(okHash).map((h) => `<a href="${esc(h)}">${esc(h.slice(1))}</a>`).join('')}</td></tr>`).join('')
-      : '<tr><td colspan="6" class="muted">這個分類沒有候選主題</td></tr>';
+    body.innerHTML = rows.length ? rows.map((t) => `<tr data-tid="${esc(t.id)}" data-score="${esc(Number(t.score) || 0)}" aria-selected="${t.id === S.tsel ? 'true' : 'false'}">
+      <td class="c"><span class="rd" aria-hidden="true"></span></td>
+      <td class="n"><span class="scb"><i><b style="width:${Math.round(100 * Math.min(mx, Number(t.score) || 0) / mx)}%"></b></i>${esc(Number(t.score) || 0)}<small class="muted">/5</small></span></td>
+      <td class="c">${CATS[t.cat] ? badge(t.cat) : esc(t.cat || '')}</td><td class="l" title="${esc(t.title)}">${esc(t.title)}</td>
+      <td class="dm" title="${esc(t.why || '')}">${esc(t.why || '')}</td><td class="c">${esc(t.format_hint || '')}</td><td>${jobChips(t.id)}</td></tr>`).join('')
+      : '<tr><td colspan="7" class="muted">這個分類沒有候選主題</td></tr>';
   }
 
   (window.TwSubRoutes = window.TwSubRoutes || []).push((head, rest) => {

@@ -72523,6 +72523,7 @@ def t_articles_1014(b, base):
     if first_real:
         VIEWS[first_real[0]["id"]] = 1234
     api_log = []
+    JOBS = []   # 產出佇列（假 Worker；10-16 二版）
 
     def api_route(r, mode):
         req = r.request
@@ -72543,6 +72544,22 @@ def t_articles_1014(b, base):
             i = str(body.get("id", ""))
             VIEWS[i] = VIEWS.get(i, 0) + 1
             return r.fulfill(status=200, body=json.dumps({"ok": True, "id": i, "views": VIEWS[i]}), headers=hd)
+        if path == "/v1/articles/jobs/list":
+            return r.fulfill(status=200, body=json.dumps({"jobs": list(reversed(JOBS))}), headers=hd)
+        if path == "/v1/articles/jobs/add":
+            dup = next((j for j in JOBS if j["topic_id"] == body.get("topic_id") and j["kind"] == body.get("kind") and j["status"] in ("queued", "working")), None)
+            if dup:
+                return r.fulfill(status=200, body=json.dumps({"ok": True, "dup": True, "job": dup}), headers=hd)
+            j = {"id": len(JOBS) + 1, "topic_id": body.get("topic_id"), "kind": body.get("kind"), "title": body.get("title"), "note": body.get("note", ""),
+                 "status": "queued", "created": 1792130000000, "updated": 1792130000000, "result": None}
+            JOBS.append(j)
+            return r.fulfill(status=200, body=json.dumps({"ok": True, "job": j}), headers=hd)
+        if path == "/v1/articles/jobs/cancel":
+            j = next((j for j in JOBS if j["id"] == body.get("id")), None)
+            if j and j["status"] == "queued":
+                j["status"] = "cancelled"
+                return r.fulfill(status=200, body=json.dumps({"ok": True, "job": j}), headers=hd)
+            return r.fulfill(status=409, body='{"error":"not_queued"}', headers=hd)
         if path == "/v1/perm/me":   # 訪客、不設上限（不讓權限鎖頭干擾這一段）
             return r.fulfill(status=200, body=json.dumps({"who": "guest", "plan": "guest", "planName": "訪客", "feats": {}, "lims": {}, "dq": None}), headers=hd)
         return r.fulfill(status=200, body='{"ok":true}', headers=hd)
@@ -72705,8 +72722,8 @@ def t_articles_1014(b, base):
             const gap = parseFloat(getComputedStyle(P).columnGap) || 0;
             return { vw: Math.round(vw), page: Math.round(P.getBoundingClientRect().width), post: Math.round(A.getBoundingClientRect().width), toc: Math.round(C.getBoundingClientRect().width), gap,
               pL: Math.round(A.getBoundingClientRect().left - P.getBoundingClientRect().left), fs: parseFloat(getComputedStyle(document.querySelector('#artBody > p') || A).fontSize) }; }""")
-        ok(f"{T}：1440 單篇內容欄寬 {wd['post']} ≥ 主欄 {wd['vw']} 扣右欄 {wd['toc']} 的 95%、左邊不留白、內文字級 ≥ 16",
-           wd["page"] >= wd["vw"] - 2 and wd["post"] >= 0.95 * (wd["vw"] - wd["toc"] - wd["gap"]) and wd["pL"] <= 1 and wd["fs"] >= 16, wd)
+        ok(f"{T}：1440 單篇內容欄寬 {wd['post']} ≥ 主欄 {wd['vw']} 扣右欄 {wd['toc']} 的 95%、左邊不留白、內文字級 15（Andy 10-16：「精選文章字體有點大」）",
+           wd["page"] >= wd["vw"] - 2 and wd["post"] >= 0.95 * (wd["vw"] - wd["toc"] - wd["gap"]) and wd["pL"] <= 1 and wd["fs"] == 15, wd)
         nfig = len([bk for bk in post["blocks"] if bk.get("t") in ("chart", "flow", "stack", "kpi")])
         got = pg.evaluate("() => document.querySelectorAll('#artBody .artchart, #artBody .artflow, #artBody .artstack, #artBody .artkpi').length")
         ok(f"{T}：這篇的 {nfig} 個圖表／示意圖／數字卡區塊都畫出來", got == nfig, [got, nfig])
@@ -72895,12 +72912,13 @@ def t_articles_1014(b, base):
         ev, dn, st = copy_blocked(gp0, sel)
         ok(f"{T}：{hsh} 選不到字、copy 被攔、右鍵被攔、跳小提示", got.strip() == "" and ev and dn >= 2 and "請勿複製" in st["t"], [hsh, got[:40], ev, dn, st])
         wmc = gp0.evaluate("""() => { const all = [...document.querySelectorAll('main .view.on [_echarts_instance_]')].map(e => echarts.getInstanceByDom(e)).filter(Boolean);
-            const has = all.filter(c => (c.getOptionWm().graphic || []).flatMap(x => x.elements || [x]).some(e => e.id === '__twwm' && (e.style || {}).text === '哩股哩股'));
+            const has = all.filter(c => ((c.getOptionWm ? c.getOptionWm() : c.getOption()).graphic || []).flatMap(x => x.elements || [x]).some(e => e.id === '__twwm' && (e.style || {}).text === '哩股哩股'));
             return [all.length, has.length]; }""")
-        ok(f"{T}：{hsh} 頁上每一張 ECharts 圖都帶浮水印（{wmc[1]}/{wmc[0]}）", wmc[1] == wmc[0], wmc)
+        bgw = gp0.evaluate("() => document.documentElement.classList.contains('twwm') || getComputedStyle(document.body, '::after').backgroundImage !== 'none'")
+        ok(f"{T}：{hsh} 不是文章頁 → 圖表與整頁背景都沒有浮水印（Andy 10-16：除了文章以外都不用）（{wmc[1]}/{wmc[0]}）", wmc[0] > 0 and wmc[1] == 0 and not bgw, [wmc, bgw])
         if hsh == "#stock/2330":
             lw = gp0.evaluate("() => TwProtect.lwc()")
-            ok(f"{T}：個股 K 線（lightweight-charts）掛了內建文字浮水印「哩股哩股」", len(lw) >= 1 and all(x == "哩股哩股" for x in lw), lw)
+            ok(f"{T}：個股 K 線（lightweight-charts）不是文章 → 沒有掛浮水印", len(lw) == 0, lw)
             if os.environ.get("TW_ART_SHOTS3"):
                 gp0.evaluate("() => window.scrollTo(0, 0)"); gp0.wait_for_timeout(300)
                 gp0.screenshot(path=str(Path(os.environ["TW_ART_SHOTS3"]) / "stock-k-1440.png"))
@@ -72918,11 +72936,13 @@ def t_articles_1014(b, base):
     sel_ok = drag_select(gp0, "#zzAcct")
     ok(f"{T}：「複製」按鈕（navigator.clipboard）照常把帳號寫進剪貼簿、轉帳表單輸入框可打字可全選、data-copyable 的帳號可選取",
        clip == "000011112222" and gp0.evaluate("() => document.getElementById('zzCopy').textContent") == "已複製" and l5 == ["12345", 0, 5] and "000011112222" in sel_ok, [clip, l5, sel_ok])
-    # 淺色主題：浮水印換成黑 6%
+    # 淺色主題：浮水印換成黑 6%（只看文章頁）
+    gc0.route("**/articles/index.json", idx_route)
+    gc0.route("**/articles/posts/uitest-full-1016.json", lambda r: r.fulfill(status=200, content_type="application/json", body=json.dumps(full, ensure_ascii=False)))
     gp0.evaluate("() => { try { localStorage.setItem('tw.theme', 'light'); } catch (e) {} }")
-    gp0.goto(base + "#overview", wait_until="domcontentloaded"); gp0.reload(wait_until="domcontentloaded")
-    wait_until(gp0, "() => document.querySelectorAll('main .view.on [_echarts_instance_]').length > 0", 20000); gp0.wait_for_timeout(1500)
-    lt = gp0.evaluate("""() => { const c = [...document.querySelectorAll('main .view.on [_echarts_instance_]')].map(e => echarts.getInstanceByDom(e)).filter(Boolean)[0];
+    gp0.goto(base + "#article/uitest-full-1016", wait_until="domcontentloaded"); gp0.reload(wait_until="domcontentloaded")
+    wait_until(gp0, "() => document.querySelectorAll('#artBody [_echarts_instance_]').length > 0", 20000); gp0.wait_for_timeout(1500)
+    lt = gp0.evaluate("""() => { const c = [...document.querySelectorAll('#artBody [_echarts_instance_]')].map(e => echarts.getInstanceByDom(e)).filter(Boolean)[0];
         const g = c ? (c.getOptionWm().graphic || []).flatMap(x => x.elements || [x]).find(e => e.id === '__twwm') : null;
         return { th: document.documentElement.getAttribute('data-theme'), fill: g ? (g.style || {}).fill : '', bg: getComputedStyle(document.body, '::after').backgroundImage.includes('0%2C0%2C0') }; }""")
     ok(f"{T}：淺色主題 → 圖表浮水印換黑 6%、整頁浮水印換深色字", lt["th"] == "light" and "0,0,0" in lt["fill"].replace(" ", "") and lt["bg"], lt)
@@ -72997,19 +73017,43 @@ def t_articles_1014(b, base):
     ap.wait_for_timeout(500)
     n_all = len(real)
     st = ap.evaluate("""() => { const rows = [...document.querySelectorAll('#artAdmList tbody tr[data-id]')];
-        return { n: rows.length, btn: rows.map(r => [...r.querySelectorAll('button')].map(b => [b.textContent.trim(), b.disabled])), small: rows.map(r => (r.querySelector('td.act small') || {}).textContent),
+        return { n: rows.length, btn: document.querySelectorAll('#artAdmList button').length,
           side: !!document.querySelector('.l4subtab[data-adm=articles].on'), sideT: (document.querySelector('.l4subtab[data-adm=articles]') || {}).textContent || '' }; }""")
     ok(f"{T}：管理區側欄多一格「精選文章管理」而且是目前這格", st["side"] and "精選文章管理" in st["sideT"], st)
-    ok(f"{T}：已上架文章 {n_all} 篇，每篇「產出貼文」「產出短影片」兩顆都反灰、旁邊小字「待 Andy 確認後開放」",
-       st["n"] == n_all and all(bs == [["產出貼文", True], ["產出短影片", True]] for bs in st["btn"]) and all(s == "待 Andy 確認後開放" for s in st["small"]), st)
+    ok(f"{T}：已上架文章 {n_all} 篇；不再有「產出貼文」反灰按鈕（Andy 10-16：Claude 負責的是文章，不是 IG 貼文）", st["n"] == n_all and st["btn"] == 0, st)
     vc = ap.evaluate("() => ({ th: [...document.querySelectorAll('#artAdmList thead th')].map(t => t.textContent.trim()), td: [...document.querySelectorAll('#artAdmList td[data-vwc]')].map(t => [t.dataset.vwc, t.textContent.trim()]) })")
     ok(f"{T}：管理區文章表格多一欄「點閱」，數字＝/v1/articles/stats（沒有數字的寫「—」）",
        "點閱" in vc["th"] and len(vc["td"]) == n_all and all(t[1] == (f"{VIEWS[t[0]]:,}" if t[0] in VIEWS else "—") for t in vc["td"]), vc)
     adsel = ap.evaluate("() => { const td = document.querySelector('#artAdmList td.l a'); const r = document.createRange(); r.selectNodeContents(td); const s = getSelection(); s.removeAllRanges(); s.addRange(r); return [String(s), document.documentElement.classList.contains('twnocopy'), getComputedStyle(td).userSelect]; }")
     ok(f"{T}：管理區 #admin/* 不套防複製（可選取、可複製 email／訂單號）", adsel[0].strip() != "" and not adsel[1] and adsel[2] != "none", adsel)
-    ap.locator("#artAdmList button[data-act=post]").first.click(force=True); ap.wait_for_timeout(400)
-    st = ap.evaluate("() => ({ h: location.hash, dlg: !!(document.getElementById('subDlg') && !document.getElementById('subDlg').hidden) })")
-    ok(f"{T}：按反灰按鈕 → 沒有跳窗、沒有換頁", st["h"] == "#admin/articles" and not st["dlg"], st)
+    # 版面：吃滿主欄（不再 1280 置中留大片空白）、每張表的欄位左緣上下對齊
+    lay = ap.evaluate("""() => { const v = document.getElementById('v-subadm'), m = v.parentElement.getBoundingClientRect(), r = v.getBoundingClientRect();
+        const cols = [...document.querySelectorAll('#v-subadm .artadm table')].map(t => { const hs = [...t.querySelectorAll('thead th')].map(h => Math.round(h.getBoundingClientRect().left));
+          const bad = [...t.querySelectorAll('tbody tr')].filter(tr => tr.children.length === hs.length).filter(tr => [...tr.children].some((td, i) => Math.abs(Math.round(td.getBoundingClientRect().left) - hs[i]) > 1)).length; return bad; });
+        return { gapL: Math.round(r.left - m.left), gapR: Math.round(m.right - r.right), bad: cols }; }""")
+    ok(f"{T}：管理頁吃滿主欄（左右空白各 ≤ 24px）、三張表每一列的欄位都跟表頭對齊", lay["gapL"] <= 24 and lay["gapR"] <= 24 and all(x == 0 for x in lay["bad"]), lay)
+    # 選主題 → 產生精選文章／短影片
+    gen = lambda: ap.evaluate("() => [document.getElementById('artGenArt').disabled, document.getElementById('artGenVid').disabled]")
+    ok(f"{T}：還沒選主題 → 「產生精選文章」「產生短影片」兩顆反灰", gen() == [True, True], gen())
+    tr0 = ap.locator("#artTpBody tr[data-tid]").nth(2); tid = tr0.get_attribute("data-tid"); ttl = tr0.locator("td.l").inner_text().strip()
+    tr0.click(); ap.wait_for_timeout(200)
+    st = ap.evaluate("() => ({ sel: document.querySelectorAll('#artTpBody tr[aria-selected=true]').length, t: document.getElementById('artTpSel').textContent })")
+    ok(f"{T}：點一列 → 那列反白、動作列寫「已選主題：{ttl}」、兩顆按鈕可按", st["sel"] == 1 and ttl in st["t"] and gen() == [False, False], st)
+    ap.fill("#artTpNote", "驗收補充"); ap.click("#artGenArt"); ap.wait_for_timeout(500)
+    add = [x for x in api_log if x[1] == "/v1/articles/jobs/add"]
+    st = ap.evaluate(f"() => ({{ msg: document.getElementById('artTpMsg').textContent, chip: (document.querySelector('#artTpBody tr[data-tid=\"{tid}\"] .js.queued') || {{}}).textContent || '', job: [...document.querySelectorAll('#artJobBody tr[data-job]')].map(r => r.textContent) }})")
+    ok(f"{T}：按「產生精選文章」→ 送出 /v1/articles/jobs/add（主題、種類、補充都帶到）、提示「已送出」、該列狀態「精選文章排隊中」、產出進度多一筆",
+       len(add) == 1 and add[0][2].get("topic_id") == tid and add[0][2].get("kind") == "article" and add[0][2].get("note") == "驗收補充"
+       and "已送出" in st["msg"] and "排隊中" in st["chip"] and len(st["job"]) == 1 and ttl in st["job"][0], [add, st])
+    ap.click("#artGenArt"); ap.wait_for_timeout(400)
+    st = ap.evaluate("() => ({ msg: document.getElementById('artTpMsg').textContent, n: document.querySelectorAll('#artJobBody tr[data-job]').length })")
+    ok(f"{T}：同主題再按一次 → 提示「已經在排隊」、不多排一筆", "已經在排隊" in st["msg"] and st["n"] == 1, st)
+    ap.click("#artGenVid"); ap.wait_for_timeout(400)
+    ap.click("#artJobBody button[data-cancel]"); ap.wait_for_timeout(400)
+    st = ap.evaluate("() => [...document.querySelectorAll('#artJobBody tr[data-job]')].map(r => r.querySelector('.js').textContent)")
+    ok(f"{T}：再按「產生短影片」多一筆；按最上面那筆的「取消」→ 變「已取消」", len(st) == 2 and st[0] == "已取消" and st[1] == "排隊中", st)
+    tr0.click(); ap.wait_for_timeout(150)
+    ok(f"{T}：再點同一列 → 取消選取、按鈕回到反灰", gen() == [True, True], gen())
     TP = "() => [...document.querySelectorAll('#artTpBody tr[data-tid]')].map(r => ({ s: +r.dataset.score, c: (r.querySelector('.artbadge') || {}).textContent }))"
     rows = ap.evaluate(TP)
     ok(f"{T}：主題候選 {len(tops)} 筆全列出、分數高 → 低", len(rows) == len(tops) and [r["s"] for r in rows] == sorted([r["s"] for r in rows], reverse=True), rows[:8])
