@@ -7,7 +7,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { makeHub } from '../harness.mjs';
-import { ecpayMac, ECPAY_STAGE } from '../pay.js';
+import { ecpayMac, ECPAY_STAGE, GENDER_REQUIRED, GENDER_CONSENT_REQUIRED } from '../pay.js';
 
 const ORIGIN = 'https://miaozike.github.io';
 const API = 'https://tw-account.example.workers.dev';
@@ -927,14 +927,19 @@ test('結帳表單 form=2：姓名、性別、獨立同意都必填；性別只�
   const base = { t: bob, plan: 'plus', period: 'month', back: BACK, recur: true, form: 2 };
   const e = async (x) => (await pj(hub, '/v1/pay/ecpay/create', { ...base, ...x }));
   assert.equal((await e({ gender: 'male', gender_consent: true })).j.error, 'need_name');
-  assert.equal((await e({ name: '鮑伯' })).j.error, 'need_gender', 'Andy 10-16：性別先必填');
-  assert.equal((await e({ name: '鮑伯', gender: 'female' })).j.error, 'need_gender_consent', '法遵：獨立勾選同意，沒勾不收');
+  /* Andy 10-16 最終決定：性別選填（GENDER_REQUIRED=false）；常數改 true 時下面兩條自動變成必填驗收 */
+  if (GENDER_REQUIRED) assert.equal((await e({ name: '鮑伯' })).j.error, 'need_gender');
+  if (GENDER_CONSENT_REQUIRED) assert.equal((await e({ name: '鮑伯', gender: 'female' })).j.error, 'need_gender_consent', '法遵：獨立勾選同意，沒勾不收');
+  assert.equal(GENDER_REQUIRED, false, '目前決定：選填');
   assert.equal((await e({ name: '鮑伯', gender: 'undisclosed', gender_consent: true })).j.error, 'bad_gender', '白名單只有男女');
+  assert.equal((await e({ name: '鮑伯', last5: '12345' })).s, 200, '選填：沒選性別、沒勾同意也能結帳（統計歸未填）');
+  assert.equal(db.prepare('SELECT gender FROM orders ORDER BY created DESC, rowid DESC LIMIT 1').get().gender, null, '沒選＝不存');
+  db.prepare('DELETE FROM orders').run();
   assert.equal((await e({ ...GOOD, last5: '1234' })).j.error, 'bad_last5');
   assert.equal((await e({ ...GOOD, last5: '4111111111111111' })).j.error, 'card_number', '卡號一律拒收');
   assert.equal((await e({ ...GOOD, last5: '4111 1111 1111 1111' })).j.error, 'card_number', '夾空白也擋');
   assert.equal((await e({ ...GOOD, name: '4111-1111-1111-1111' })).j.error, 'card_number', '姓名欄也擋');
-  assert.equal(db.prepare('SELECT COUNT(*) AS c FROM orders').get().c, 0, '驗證失敗不開任何訂單');
+  assert.equal(db.prepare('SELECT COUNT(*) AS c FROM orders').get().c, 0, '驗證失敗不開任何訂單（上面那張選填成功單已清掉）');
   const ok = await e({ ...GOOD, last5: '12345' });
   assert.equal(ok.s, 200);
   const o = ord(db, ok.j.id);
@@ -965,8 +970,8 @@ test('銀行轉帳回報 form=2：性別與獨立同意必填；管理者確認�
   await pj(hub, '/v1/admin/pay/bank/put', { t: andy, bank_name: '測試銀行', bank_code: '812', account: '1234567890', holder: '哩股' });
   const c = (await pj(hub, '/v1/pay/bank/create', { t: bob, plan: 'plus', period: 'month' })).j;
   const rp = { t: bob, id: c.id, name: '鮑伯', last5: '54321', date: '2026-10-11', form: 2 };
-  assert.equal((await pj(hub, '/v1/pay/bank/report', rp)).j.error, 'need_gender');
-  assert.equal((await pj(hub, '/v1/pay/bank/report', { ...rp, gender: 'male' })).j.error, 'need_gender_consent');
+  if (GENDER_REQUIRED) assert.equal((await pj(hub, '/v1/pay/bank/report', rp)).j.error, 'need_gender');
+  if (GENDER_CONSENT_REQUIRED) assert.equal((await pj(hub, '/v1/pay/bank/report', { ...rp, gender: 'male' })).j.error, 'need_gender_consent');
   assert.equal((await pj(hub, '/v1/pay/bank/report', { ...rp, gender: 'other', gender_consent: true })).j.error, 'bad_gender');
   assert.equal((await pj(hub, '/v1/pay/bank/report', { ...rp, last5: '4111111111111111', gender: 'male', gender_consent: true })).j.error, 'card_number');
   assert.equal((await pj(hub, '/v1/pay/bank/report', { ...rp, gender: 'male', gender_consent: true })).s, 200);

@@ -70784,8 +70784,8 @@ def t_pay_1011(b, base):
         def co_fill(pg, name="王小明", gender="male", l5=""):
             # 10-16 新結帳表單（綠界分頁）：姓名、性別（預設不選）、性別獨立同意、選填末 5 碼
             pg.fill("#coNameE", name)
-            pg.click(f"#coPaneE .cogd button[data-g={gender}]")
-            pg.check("#coPaneE .cogcb")
+            if gender:
+                pg.click(f"#coPaneE .cogd button[data-g={gender}]")
             if l5:
                 pg.fill("#coL5E", l5)
 
@@ -70814,12 +70814,12 @@ def t_pay_1011(b, base):
         # ================= ③ 10-16 新結帳表單（只剩信用卡定期定額）；再用舊路徑（單次，伺服器仍支援）驗「ReturnURL 漏送 → 前端輪詢＋伺服器查單補開通」
         ui = pb.evaluate("""() => { const d = document.getElementById('subDlg'); const g = [...d.querySelectorAll('#coPaneE .cogd button')];
           return { kinds: d.querySelectorAll('input[name=coKind]').length, once: /單次付款/.test(d.innerText), tab: d.querySelector('#coTabE').innerText, day: (document.getElementById('coDay') || {}).textContent || '',
-            fields: !!(d.querySelector('#coNameE') && d.querySelector('#coL5E')), gbtn: g.map(x => x.textContent + ':' + x.getAttribute('aria-checked')), gc: d.querySelector('#coPaneE .cogcb').checked,
+            fields: !!(d.querySelector('#coNameE') && d.querySelector('#coL5E')), gbtn: g.map(x => x.textContent + ':' + x.getAttribute('aria-checked')), gc: d.querySelectorAll('#coPaneE .cogcb').length,
             go: document.getElementById('coGoE').disabled, hint: /僅用於匿名彙總統計，不公開/.test(d.querySelector('#coPaneE').innerText) && !!d.querySelector('#coPaneE a[href="#privacy"]'),
-            gdReq: /未選擇將無法送出結帳/.test(d.querySelector('#coPaneE').innerText), exit: /由人工協助開通/.test(d.querySelector('#coPaneE').innerText) }; }""")
-        ok(f"{T}：10-16 結帳視窗：沒有單次付款／兩種付款方式雙選、分頁寫「信用卡」不再寫 ATM／超商；有姓名、性別（男／女都沒預選）、性別獨立同意（沒預選）、選填末 5 碼；前往綠界鈕一開始是灰的",
-           ui["kinds"] == 0 and not ui["once"] and "信用卡" in ui["tab"] and "超商" not in ui["tab"] and ui["fields"] and ui["gbtn"] == ["男:false", "女:false"] and ui["gc"] is False and ui["go"], ui)
-        ok(f"{T}：性別欄旁有用途（僅用於匿名彙總統計，不公開）、隱私權政策連結、必填說明、不願提供的人工出口", ui["hint"] and ui["gdReq"] and ui["exit"], ui)
+            gdReq: /選填/.test(d.querySelector('#coGLb').parentElement.innerText) && /不選擇不影響結帳與任何功能/.test(d.querySelector('#coPaneE').innerText), exit: !/人工協助開通/.test(d.querySelector('#coPaneE').innerText) }; }""")
+        ok(f"{T}：10-16 結帳視窗：沒有單次付款／兩種付款方式雙選、分頁寫「信用卡」不再寫 ATM／超商；有姓名、性別（選填、男／女都沒預選、沒有獨立同意勾選）、選填末 5 碼；前往綠界鈕一開始是灰的",
+           ui["kinds"] == 0 and not ui["once"] and "信用卡" in ui["tab"] and "超商" not in ui["tab"] and ui["fields"] and ui["gbtn"] == ["男:false", "女:false"] and ui["gc"] == 0 and ui["go"], ui)
+        ok(f"{T}：性別欄旁有用途（僅用於匿名彙總統計，不公開）、隱私權政策連結、選填說明（不選擇不影響結帳）、沒有「來信人工開通」出口", ui["hint"] and ui["gdReq"] and ui["exit"], ui)
         ok(f"{T}：金額旁換算每天多少台幣：月繳 NT$ 299 → 每天約 NT$ 9.8（跟方案卡同一個函式）", ui["day"] == "每天約 NT$ 9.8", ui["day"])
         dcv = pb.evaluate("() => [TwSub.dayCost(299, 'month'), TwSub.dayCost(2990, 'year'), TwSub.dayCost(5268, 'year'), TwSub.dayCost(549, 'month'), TwSub.dayCost(0, 'month'), TwSub.dayCost(null, 'year')]")
         ok(f"{T}：每日換算是同一個共用函式 TwSub.dayCost（方案卡與結帳視窗共用）：299/月→9.8、2,990/年→8.2、5,268/年→14.4、549/月→18.0、0 與空值→不顯示", dcv == [9.8, 8.2, 14.4, 18.0, None, None], dcv)
@@ -70828,13 +70828,15 @@ def t_pay_1011(b, base):
         pb.click("#coPer button[data-per=month]")
         pb.check("#coAgree"); pb.check("#coRenew")
         en = lambda: pb.evaluate("() => !document.getElementById('coGoE').disabled")
-        ok(f"{T}：同意條款與自動續扣都勾了，但姓名、性別沒填 → 前往綠界仍按不下去", not en())
+        ok(f"{T}：同意條款與自動續扣都勾了，但姓名沒填 → 前往綠界仍按不下去", not en())
         pb.fill("#coNameE", "王小明")
-        ok(f"{T}：只填姓名、沒選性別 → 仍按不下去", not en())
+        ok(f"{T}：10-16 Andy 最終決定性別選填：只填姓名、性別沒選 → 前往綠界可以按", en())
+        shot(pb, "co_ecpay_nogender.png", "#subDlg .box")
         pb.click("#coPaneE .cogd button[data-g=male]")
-        ok(f"{T}：選了性別但沒勾性別同意（獨立勾選，不併進條款） → 仍按不下去；選中的性別按鈕亮起", not en() and pb.evaluate("() => document.querySelector('#coPaneE .cogd button[data-g=male]').getAttribute('aria-checked')") == "true")
-        pb.check("#coPaneE .cogcb")
-        ok(f"{T}：姓名＋性別＋性別同意都有 → 前往綠界可以按", en())
+        ok(f"{T}：選了男 → 按鈕亮起（aria-checked）、仍可按", en() and pb.evaluate("() => document.querySelector('#coPaneE .cogd button[data-g=male]').getAttribute('aria-checked')") == "true")
+        pb.click("#coPaneE .cogd button[data-g=male]")
+        ok(f"{T}：再按一次選中的男 → 取消選擇（選填可以反悔）、仍可按", en() and pb.evaluate("() => document.querySelector('#coPaneE .cogd button[data-g=male]').getAttribute('aria-checked')") == "false")
+        pb.click("#coPaneE .cogd button[data-g=male]")
         pb.fill("#coL5E", "4111111111111111")
         g1 = pb.evaluate("() => ({ v: document.getElementById('coL5E').value, m: document.getElementById('coMsg').innerText })")
         ok(f"{T}：末 5 碼欄填入 16 位卡號 → 被清空並提示「偵測到可能是卡號」（卡號防呆）", g1["v"] == "" and "卡號" in g1["m"], g1)
@@ -70847,7 +70849,7 @@ def t_pay_1011(b, base):
         with pb.expect_response(lambda r: "/v1/pay/ecpay/create" in r.url, timeout=6000) as ri:
             pb.click("#coGoE")
         body = json.loads(ri.value.request.post_data or "{}")
-        ok(f"{T}：按前往綠界 → 送出的請求含姓名、性別 male、性別同意、末 5 碼、表單版本 2、recur=true，沒有金額", body.get("name") == "王小明" and body.get("gender") == "male" and body.get("gender_consent") is True and body.get("last5") == "12345" and body.get("form") == 2 and body.get("recur") is True and "amount" not in body, body)
+        ok(f"{T}：按前往綠界 → 送出的請求含姓名、性別 male、末 5 碼、表單版本 2、recur=true，沒有金額", body.get("name") == "王小明" and body.get("gender") == "male" and body.get("last5") == "12345" and body.get("form") == 2 and body.get("recur") is True and "amount" not in body, body)
         wait_until(pb, "() => !!document.getElementById('coEcForm')", 6000)
         fmq = pb.evaluate("() => { const o = {}; document.querySelectorAll('#coEcForm input').forEach(i => { o[i.name] = i.value; }); return o; }")
         ok(f"{T}：只剩信用卡定期定額：表單 ChoosePayment=Credit、PeriodType=M、PeriodAmount=299", fmq.get("ChoosePayment") == "Credit" and fmq.get("PeriodType") == "M" and fmq.get("PeriodAmount") == "299", fmq)
@@ -70966,12 +70968,7 @@ def t_pay_1011(b, base):
         pc.click("#coSendB")
         ok(f"{T}：沒填匯款人姓名 → 擋下、不出確認區", bool(wait_until(pc, "() => /請填匯款人姓名/.test(document.getElementById('coMsg').innerText) && !document.getElementById('coCfm')", 3000)))
         pc.fill("#coPayer", "卡蘿")
-        pc.click("#coSendB")
-        ok(f"{T}：10-16 轉帳分頁也有性別：姓名填了、沒選性別 → 擋下「請選擇性別」、不出確認區", bool(wait_until(pc, "() => /請選擇性別/.test(document.getElementById('coMsg').innerText) && !document.getElementById('coCfm')", 3000)))
         pc.click("#coPaneB .cogd button[data-g=female]")
-        pc.click("#coSendB")
-        ok(f"{T}：選了性別沒勾性別同意 → 擋下「請勾選性別統計的同意」", bool(wait_until(pc, "() => /性別統計的同意/.test(document.getElementById('coMsg').innerText) && !document.getElementById('coCfm')", 3000)))
-        pc.check("#coPaneB .cogcb")
         pc.click("#coSendB")
         ok(f"{T}：送出前先出現確認區（姓名、末 5 碼、日期、金額 NT$ 299）", bool(wait_until(pc, "() => { const c = document.getElementById('coCfm'); return c && /請確認匯款資料/.test(c.innerText) && /卡蘿/.test(c.innerText) && /12345/.test(c.innerText) && /NT\$ 299/.test(c.innerText) ? 1 : 0; }", 3000)))
         shot(pc, "co_bank_confirm.png", "#subDlg .box")
@@ -70980,7 +70977,7 @@ def t_pay_1011(b, base):
         with pc.expect_response(lambda r: "/v1/pay/bank/report" in r.url, timeout=6000) as ri:
             pc.click("#coCfmGo")
         rb = json.loads(ri.value.request.post_data or "{}")
-        ok(f"{T}：轉帳回報請求含姓名、性別 female、性別同意、表單版本 2", rb.get("name") == "卡蘿" and rb.get("gender") == "female" and rb.get("gender_consent") is True and rb.get("form") == 2, rb)
+        ok(f"{T}：轉帳回報請求含姓名、性別 female、表單版本 2", rb.get("name") == "卡蘿" and rb.get("gender") == "female" and rb.get("form") == 2, rb)
         ok(f"{T}：填末 5 碼送出 → 真的送出 bank/report、面板寫「待確認」", ri.value.status == 200 and bool(wait_until(pc, "() => { const d = document.getElementById('subDlg'); return d && /待確認/.test(d.innerText); }", 4000)))
         pc.click("#coSeeOrders")
         row = wait_until(pc, f"() => {{ const r = document.querySelector('#ordList .ordr[data-oid=\"{boid}\"]'); return r ? r.innerText : ''; }}", 8000)
@@ -71205,7 +71202,7 @@ def t_pay_1011(b, base):
         popup_login(pe, "erin", lambda: (pe.evaluate("() => TwAccount.login()"), pe.wait_for_selector("#acctGo", timeout=5000), pe.click("#acctGo")))
         pe.evaluate("() => TwCheckout.open({ plan: 'plus', per: 'month' })")
         wait_until(pe, "() => !!document.getElementById('coTabB')", 6000)
-        pe.fill("#coNameE", "艾琳"); pe.tap("#coPaneE .cogd button[data-g=female]"); pe.check("#coPaneE .cogcb")
+        pe.fill("#coNameE", "艾琳"); pe.tap("#coPaneE .cogd button[data-g=female]")
         sw0 = pe.evaluate("() => ({ sw: document.documentElement.scrollWidth - innerWidth, tiny: [...document.querySelectorAll('#coPaneE small, #coPaneE label, #coPaneE .cogd button')].filter(e => e.offsetParent && parseFloat(getComputedStyle(e).fontSize) < 11).length, day: (document.getElementById('coDay') || {}).textContent })")
         ok(f"{T}：390 綠界分頁（姓名＋性別＋同意＋每日換算）沒有橫向捲軸、字都 ≥ 11px、有每天約", sw0["sw"] <= 1 and sw0["tiny"] == 0 and "每天約" in (sw0["day"] or ""), sw0)
         shot(pe, "m_ecpay.png")
@@ -71214,7 +71211,7 @@ def t_pay_1011(b, base):
         eoid = pe.evaluate("() => document.getElementById('coOid').innerText")
         pe.fill("#coPayer", "艾琳")
         pe.fill("#coL5", "67890")
-        pe.tap("#coPaneB .cogd button[data-g=female]"); pe.check("#coPaneB .cogcb")
+        # 艾琳不選性別（選填）→ 照樣能送出
         pe.tap("#coAgree")
         m = pe.evaluate("() => { const b = document.querySelector('#subDlg .box').getBoundingClientRect(), s = document.getElementById('coSendB').getBoundingClientRect(); return { l: b.left, r: b.right, sw: document.documentElement.scrollWidth - innerWidth, bh: s.height, bw: s.width }; }")
         ok(f"{T}：390 結帳面板在螢幕內、沒有橫向捲軸、送出鈕高 ≥ 40", m["l"] >= 0 and m["r"] <= 390 and m["sw"] <= 1 and m["bh"] >= 40, m)

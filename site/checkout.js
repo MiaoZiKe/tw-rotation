@@ -27,15 +27,18 @@
   const ss = { get(k) { try { return sessionStorage.getItem(k); } catch (e) { return null; } }, set(k, v) { try { sessionStorage.setItem(k, v); } catch (e) { /* 私密視窗 */ } }, del(k) { try { sessionStorage.removeItem(k); } catch (e) { /* 同上 */ } } };
   const ls = { get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }, set(k, v) { try { localStorage.setItem(k, v); } catch (e) { /* 同上 */ } } };
   const PEND = 'tw.co.pending', DISMISS = 'tw.pay.renew.off';
-  /* ★ 2026-10-16 Andy：結帳加姓名＋性別（男／女），性別納入男女用量比例。三個開關（要改選填版本就改這裡，Worker 的 pay.js 有同名常數要一起改）：
-       GENDER_REQUIRED          性別必選才能前往付款／送出匯款資料（Andy：先必填）
-       GENDER_CONSENT_REQUIRED  性別另設「獨立勾選同意」，不併進條款勾選（法遵意見 docs/legal/gender_collection_1016.md 3-3）
+  /* ★ 2026-10-16 Andy：結帳加姓名＋性別（男／女），性別納入男女用量比例。三個開關（Worker 的 pay.js 有同名常數要一起改）：
+       GENDER_REQUIRED          性別必選才能前往付款／送出匯款資料（Andy 10-16 最終決定：選填，所以現在是 false；改 true 就變必填）
+       GENDER_CONSENT_REQUIRED  性別另設「獨立勾選同意」（選填版本不需要；改必填時要一起改 true；法遵意見 docs/legal/gender_collection_1016.md 3-3）
        FORM_VERSION             表單版本；Worker 看到 form>=2 才強制檢查，舊版快取網頁不受影響 */
-  const GENDER_REQUIRED = true, GENDER_CONSENT_REQUIRED = true, FORM_VERSION = 2;
+  const GENDER_REQUIRED = false, GENDER_CONSENT_REQUIRED = false, FORM_VERSION = 2;
   const GENDERS = [['male', '男'], ['female', '女']];
   /* 卡號防呆（法遵意見 7-2）：本站任何欄位都不收卡號；連續 13～19 位數字（可夾空白、連字號）一律擋 */
   const looksCard = (v) => /\d(?:[ -]?\d){12,18}/.test(String(v == null ? '' : v));
   const CARD_MSG = '偵測到可能是卡號的內容，為保護您的資料已拒絕，請只填轉出帳號末 5 碼。';
+  /* 經營者與客服信箱都讀網站現有常數（legal.js 的 CONTACT_EMAIL、support.js 的 SUPPORT_EMAIL），不在這裡另寫一份 */
+  const opName = () => (window.TW_LEGAL && window.TW_LEGAL.operator) || '哩股哩股';
+  const contactMail = () => (window.TwLegal && window.TwLegal.contact) || (window.TwSupport && window.TwSupport.email) || '';
   const supportMail = () => (window.TwSupport && window.TwSupport.email) || '';
   const ST_CLS = { pending: 'wait', review: 'wait', paid: 'wait', active: 'ok', failed: 'bad', rejected: 'bad', expired: 'mute', refunded: 'mute', cancelled: 'mute', superseded: 'mute' };
   const ST_NAME = { pending: '待付款', review: '待確認', paid: '已入帳', active: '已開通', failed: '失敗', rejected: '已退回', expired: '已逾期', refunded: '已退款', cancelled: '已取消（未付款）', superseded: '已被取代' };
@@ -167,7 +170,7 @@ html.pay-renew #acctBtn.ame::after{content:'';position:absolute;top:2px;right:2p
     const mail = supportMail();
     return `<div class="w3 cogw"><span class="lb" id="coGLb">性別<em class="req">${GENDER_REQUIRED ? '必選' : '選填'}</em></span>
       <div class="seg cogd" role="radiogroup" aria-labelledby="coGLb">${GENDERS.map(([k, n]) => `<button type="button" role="radio" aria-checked="false" data-g="${k}">${n}</button>`).join('')}</div>
-      <small class="cohint">用於<b>不具名的使用情形統計</b>（只呈現男女比例，不會單獨顯示個別會員，也不用於推薦、行銷或對外提供），僅用於匿名彙總統計，不公開。${GENDER_REQUIRED ? '本欄位為結帳必填，<b>未選擇將無法送出結帳</b>。' : '不選擇不影響結帳。'}</small>
+      <small class="cohint">${GENDER_REQUIRED ? '' : '<b>選填</b>：'}用於<b>不具名的使用情形統計</b>（只呈現男女比例，不會單獨顯示個別會員，也不用於推薦、行銷或對外提供），僅用於匿名彙總統計，不公開，僅管理者可讀。${GENDER_REQUIRED ? '本欄位為結帳必填，<b>未選擇將無法送出結帳</b>。' : '<b>不選擇不影響結帳與任何功能</b>，未選擇者統計時歸入「未填」；選錯了可再按一次選中的按鈕取消。'}</small>
       ${GENDER_CONSENT_REQUIRED ? '<label class="cogc"><input type="checkbox" class="cogcb"><span>我已閱讀<a href="#privacy" target="_blank" rel="noopener">《隱私權政策》</a>，同意本網站為上述統計目的，蒐集並使用我於結帳時選擇的性別。</span></label>' : ''}
       <small class="cohint">${GENDER_REQUIRED ? `不願提供性別？請來信客服${mail ? '（' + esc(mail) + '）' : ''}，由人工協助開通。` : ''}個資處理依<a href="#privacy" target="_blank" rel="noopener">《隱私權政策》</a>「付款與訂單資料」辦理。</small></div>`;
   }
@@ -225,7 +228,7 @@ html.pay-renew #acctBtn.ame::after{content:'';position:absolute;top:2px;right:2p
         </div>
         <div id="coPaneB" role="tabpanel" aria-labelledby="coTabB" hidden></div>
         <div class="colegal"><label><input type="checkbox" id="coAgree"><span>我已閱讀並同意<a href="#terms" target="_blank" rel="noopener">《使用條款》</a><a href="#refund" target="_blank" rel="noopener">《退款與取消訂閱政策》</a>，並同意付款後立即開通服務、排除消費者保護法第 19 條之七日解除權。</span></label>
-          付款即表示同意使用條款。退款規則見<a href="#refund" target="_blank" rel="noopener">退款政策</a>；個人資料之處理見<a href="#privacy" target="_blank" rel="noopener">《隱私權政策》</a>。</div>
+          付款即表示同意使用條款。退款規則見<a href="#refund" target="_blank" rel="noopener">退款政策</a>；個人資料之處理見<a href="#privacy" target="_blank" rel="noopener">《隱私權政策》</a>。<br><span id="coOp">經營者：${esc(opName())}；客服信箱：${esc(contactMail())}</span></div>
         <div class="msg" id="coMsg" role="status"></div>
       </div>`;
     const $ = (s) => box.querySelector(s);
@@ -254,7 +257,7 @@ html.pay-renew #acctBtn.ame::after{content:'';position:absolute;top:2px;right:2p
     const genderOk = () => (!GENDER_REQUIRED || !!st.gender) && (!st.gender || !GENDER_CONSENT_REQUIRED || st.gc);
     const profOk = (name) => !!String(name || '').trim() && !looksCard(name) && genderOk();
     const l5Ok = (v) => !String(v || '').trim() || /^\d{5}$/.test(String(v).trim());
-    box.addEventListener('click', (e) => { const b = e.target.closest('.cogd button'); if (!b) return; st.gender = b.dataset.g; sync(); });
+    box.addEventListener('click', (e) => { const b = e.target.closest('.cogd button'); if (!b) return; st.gender = st.gender === b.dataset.g && !GENDER_REQUIRED ? '' : b.dataset.g; if (!st.gender) st.gc = false; sync(); });   // 選填時再按一次可取消（單選鈕本身取消不了）
     box.addEventListener('change', (e) => { if (e.target.classList && e.target.classList.contains('cogcb')) { st.gc = e.target.checked; sync(); } });
     box.addEventListener('input', (e) => {
       const el = e.target; if (!el || !/^(coNameE|coL5E|coPayer|coL5)$/.test(el.id)) return;

@@ -62,10 +62,10 @@ export const PAY_STATUS = { pending: '待付款', review: '待確認', paid: '�
    前端 site/checkout.js 開頭有同名常數，兩邊一起改）。只有新版結帳表單（form >= 2）才檢查必填：
    瀏覽器快取裡的舊版網頁不會送這些欄位，先部署 Worker 時不能讓它們結帳失敗。 */
 export const GENDERS = ['male', 'female'];
-export const GENDER_REQUIRED = true;
+export const GENDER_REQUIRED = false;
 /* 法遵意見（docs/legal/gender_collection_1016.md 3-3）：性別要有「獨立勾選同意」（不併進條款勾選）。GENDER_CONSENT_REQUIRED 是它的開關，
    前端 checkout.js 同名常數。要改成選填版本：兩個常數都改 false。 */
-export const GENDER_CONSENT_REQUIRED = true;
+export const GENDER_CONSENT_REQUIRED = false;
 export const PAY_FORM_VERSION = 2;
 /* 卡號防呆：任何欄位出現連續 13～19 位數字（可夾空白、連字號）就拒收。本站任何欄位都不該有卡號。 */
 export const looksLikeCard = (v) => /\d(?:[ -]?\d){12,18}/.test(String(v == null ? '' : v));
