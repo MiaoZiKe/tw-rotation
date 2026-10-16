@@ -55,7 +55,13 @@ html.twnocopy [data-copyable],html.twnocopy [data-copyable] *{-webkit-user-selec
 .twprot-toast svg{flex:none;color:var(--amber,#f5b041)}
 @media (max-width:640px){html.m4 .twprot-toast{left:12px;right:12px;bottom:auto;top:calc(12px + env(safe-area-inset-top,0px));max-width:none;justify-content:center}}`;
   (document.head || root).appendChild(css);
-  root.classList.add('twwm');
+  /* 2026-10-16 Andy：「除了文章以外，其他都不用出現背景有浮水印」→ 整頁浮水印與圖表浮水印只在精選文章（#articles、#article/<id>）出現；
+     防複製照舊全站（#admin/* 除外）。*/
+  const isArt = () => /^#articles?(\/|$)/.test(location.hash || '');
+  const inArt = (node) => !!(node && node.closest && node.closest('#v-articles'));
+  const syncWm = () => root.classList.toggle('twwm', isArt());
+  syncWm();
+  window.addEventListener('hashchange', syncWm);
 
   /* ------------------------------------------------------------------ 防複製 */
   const isAdmin = () => /^#admin(\/|$)/.test(location.hash || '');
@@ -128,6 +134,7 @@ html.twnocopy [data-copyable],html.twnocopy [data-copyable] *{-webkit-user-selec
   }
   function wrapEc(inst) {
     if (!inst || inst.__twwm) return inst;
+    try { if (!inArt(inst.getDom())) return inst; } catch (e) { return inst; }   // 只有精選文章裡的圖加浮水印
     inst.__twwm = true;
     const rawSet = inst.setOption.bind(inst), rawGet = inst.getOption.bind(inst), rawResize = inst.resize.bind(inst), rawClear = inst.clear.bind(inst);
     let has = false, fs = 0;
@@ -182,7 +189,7 @@ html.twnocopy [data-copyable],html.twnocopy [data-copyable] *{-webkit-user-selec
         try {
           const node = typeof el === 'string' ? document.getElementById(el) : el;
           const h = node && node.clientHeight;
-          if (!(h && h < 90)) {     // 很矮的迷你圖不放
+          if (inArt(node) && !(h && h < 90)) {     // 只有精選文章裡的圖放；很矮的迷你圖不放
             /* 放主窗格「上方置中」不放正中央：K 線卡正中央已有站內自己的大字（「台積電 2330 · 日K」，chart.js 的 setWatermark），
                兩層疊在一起反而兩個都讀不清；主窗格頂端是 chart.js 留給資訊列的空帶，資料線很少經過。 */
             const wm = LW0.createTextWatermark(ch.panes()[0], { horzAlign: 'center', vertAlign: 'top', lines: [lwLine(h)] });

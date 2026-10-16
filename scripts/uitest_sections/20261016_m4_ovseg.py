@@ -57,4 +57,4 @@ def t_m4_ovseg_1016(b, base):
 
 
 # ★ 2026-10-16 Andy（LINE）：「首頁的資金圖 和 熱力圖都不見了」—— 三身分 × 三分段圖真的畫出來＋兩種故障注入後仍出來（360／390／430）
-register("手機總覽分段圖1016", lambda pg, b, base, code: t_m4_ovseg_1016(b, base), after="精選文章1014")
+register("手機總覽分段圖1016", lambda pg, b, base, code: t_m4_ovseg_1016(b, base), after="精選文章分頁1016")
