@@ -34,3 +34,16 @@ def test_沒設金鑰就跳過(monkeypatch):
     monkeypatch.delenv("BACKUP_TOKEN", raising=False)
     monkeypatch.delenv("ARTICLE_BOT_KEY", raising=False)
     assert aj.main([]) == 0
+
+
+def test_頻率設定同步_只寫四個欄位_沒變不寫_沒設定不建檔(tmp_path):
+    """產文章頻率設定（2026-10-16）：data/_state/article_schedule.json 在 public repo，不能帶 uid／email；內容沒變就不重寫。"""
+    import json
+    p = tmp_path / "article_schedule.json"
+    assert aj.write_schedule_if_changed(None, p) is False and not p.exists()
+    sch = {"enabled": True, "slots": {"1": ["09:50"]}, "cats": {"news": 2, "intro": 0, "know": 1}, "updated": 1792130000000, "by": "uid-secret", "email": "a@b"}
+    assert aj.write_schedule_if_changed(sch, p) is True
+    d = json.loads(p.read_text(encoding="utf-8"))
+    assert set(d) == {"enabled", "slots", "cats", "updated"} and d["slots"] == {"1": ["09:50"]}
+    assert aj.write_schedule_if_changed({**sch, "updated": 1792139999999}, p) is False   # 只有時間變＝不寫
+    assert aj.write_schedule_if_changed({**sch, "enabled": False}, p) is True

@@ -120,6 +120,67 @@ export function installArticles(Hub, EXPORT_TABLES) {
       return this.json(req, { ok: true, job: jobOf(this, id) });
     },
   });
+  /* ==========================================================================
+     「產精選文章頻率」設定（2026-10-16）
+     Andy 10-16：「我需要可以產貼文頻率設定……每週幾、哪個時段幫我產出精選貼文」。
+     做法照產出佇列：管理區按「儲存」→ 這裡存一份（只留最新一份有效，舊的留作紀錄）→ article-jobs.yml 每小時把最新一份同步進
+     repo（data/_state/article_schedule.json）→ Claude 排程（台北 09:50／14:50／20:50）醒來時讀它，
+     「今天星期幾、這一輪是哪個時段」對得上就自己依類別與篇數排進佇列（不需要 Andy 再按）。
+     · 管理者路由：/v1/articles/schedule/get {t} → {schedule|null, allowed}；/v1/articles/schedule/add {t, enabled, slots, cats} → {ok, schedule}
+     · 機器路由：/v1/articles/jobs/bot {op:'schedule'} → {schedule|null}
+     · 時段只收現有排程的三輪（SCH_TIMES）；日後要增加就改這個清單與 Claude 排程時間，前端會讀 allowed 自動多出選項。
+     · 設定內容：enabled（總開關）、slots（{"1":["09:50","20:50"],…} 星期 1＝週一…7＝週日）、cats（{news,intro,know} 各 0～3 篇）。
+     ========================================================================== */
+  if (EXPORT_TABLES && !EXPORT_TABLES.includes('article_schedule')) EXPORT_TABLES.push('article_schedule');
+  const SCH_TIMES = ['09:50', '14:50', '20:50'], SCH_CATS = ['news', 'intro', 'know'], SCH_MAX = 3, SCH_KEEP = 50;
+  const origArtInit2 = Hub.prototype.artInit;
+  Hub.prototype.artInit = function () {
+    origArtInit2.call(this);
+    if (this._artSchOk) return;
+    this.q('CREATE TABLE IF NOT EXISTS article_schedule (id INTEGER PRIMARY KEY AUTOINCREMENT, cfg TEXT, created INTEGER, by TEXT)');
+    this._artSchOk = true;
+  };
+  /* 驗證並整理成固定形狀；壞輸入回 null（不猜、不補） */
+  function cleanSchedule(b) {
+    if (!b || typeof b !== 'object' || typeof b.enabled !== 'boolean') return null;
+    const slots = {}, cats = {};
+    const sl = b.slots && typeof b.slots === 'object' && !Array.isArray(b.slots) ? b.slots : null, ct = b.cats && typeof b.cats === 'object' && !Array.isArray(b.cats) ? b.cats : null;
+    if (!sl || !ct) return null;
+    for (const [d, ts] of Object.entries(sl)) {
+      if (!/^[1-7]$/.test(d) || !Array.isArray(ts)) return null;
+      const u = [...new Set(ts.map(String))];
+      if (u.some((x) => !SCH_TIMES.includes(x))) return null;
+      if (u.length) slots[d] = SCH_TIMES.filter((x) => u.includes(x));
+    }
+    for (const k of Object.keys(ct)) if (!SCH_CATS.includes(k)) return null;
+    for (const k of SCH_CATS) {
+      const n = ct[k] == null ? 0 : ct[k];
+      if (!Number.isInteger(n) || n < 0 || n > SCH_MAX) return null;
+      cats[k] = n;
+    }
+    if (b.enabled && (!Object.keys(slots).length || !SCH_CATS.some((k) => cats[k] > 0))) return null;   // 開著卻沒有時段或沒有類別 ＝ 不會做任何事，擋下
+    return { enabled: b.enabled, slots, cats };
+  }
+  const latestSchedule = (hub) => {
+    const r = hub.q('SELECT cfg, created FROM article_schedule ORDER BY id DESC LIMIT 1')[0];
+    if (!r) return null;
+    try { return { ...JSON.parse(r.cfg), updated: r.created }; } catch (e) { return null; }
+  };
+  Object.assign(Hub.prototype.subRoutes, {
+    '/v1/articles/schedule/get': async function (req, b) {
+      if (!(await this.admin(req, b))) return this.json(req, { error: 'forbidden' }, 403);
+      this.artInit();
+      return this.json(req, { schedule: latestSchedule(this), allowed: { times: SCH_TIMES, cats: SCH_CATS, max: SCH_MAX } });
+    },
+    '/v1/articles/schedule/add': async function (req, b) {
+      const v = await this.admin(req, b); if (!v) return this.json(req, { error: 'forbidden' }, 403);
+      this.artInit();
+      const c = cleanSchedule(b); if (!c) return this.json(req, { error: 'bad_input' }, 400);
+      this.q('INSERT INTO article_schedule (cfg, created, by) VALUES (?, ?, ?)', JSON.stringify(c), this.now(), String(v.user.uid || ''));
+      this.q('DELETE FROM article_schedule WHERE id <= (SELECT MAX(id) FROM article_schedule) - ?', SCH_KEEP);
+      return this.json(req, { ok: true, schedule: latestSchedule(this) });
+    },
+  });
   const origFetch = Hub.prototype.fetch;
   Hub.prototype.fetch = async function (req) {
     if (req.method !== 'POST' || new URL(req.url).pathname !== '/v1/articles/jobs/bot') return origFetch.call(this, req);
@@ -132,6 +193,7 @@ export function installArticles(Hub, EXPORT_TABLES) {
       let b = {}; try { b = JSON.parse(raw || '{}') || {}; } catch (e) { return this.json(req, { error: 'bad_json' }, 400); }
       this.artInit();
       if (b.op === 'open') return this.json(req, { jobs: this.q(OPEN_SQL) });
+      if (b.op === 'schedule') return this.json(req, { schedule: latestSchedule(this) });   // 頻率設定（只讀）
       if (b.op === 'mark') {
         const id = Number(b.id), st = String(b.status || ''), j = Number.isInteger(id) ? jobOf(this, id) : null;
         if (!j) return this.json(req, { error: 'not_found' }, 404);

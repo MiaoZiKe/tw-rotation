@@ -102,3 +102,35 @@ test('每日點閱：計數同時記台北日期；管理者讀得到明細、�
   assert.deepEqual((await pj(hub, '/v1/articles/stats/daily', { t: andy, from: '2026-10-18' })).j.rows, [['2026-10-18', 'a-1111', 1]]);
   clock = t0;
 });
+
+test('產文章頻率設定：只有管理者能存／讀；壞輸入擋；只留最新一份；機器路由讀得到', async () => {
+  const { hub } = makeHub({ ...env, GOOGLE_CLIENT_ID: CID, BACKUP_TOKEN: BT });
+  const andy = await login(hub, 'andy@example.com'), bob = await login(hub, 'bob@example.com');
+  const ok1 = { enabled: true, slots: { 1: ['20:50', '09:50'], 5: ['14:50'] }, cats: { news: 2, intro: 0, know: 1 } };
+  assert.equal((await pj(hub, '/v1/articles/schedule/add', { t: bob, ...ok1 })).s, 403, '非管理者不能存');
+  assert.equal((await pj(hub, '/v1/articles/schedule/get', { t: bob })).s, 403, '非管理者不能讀');
+  const g0 = await pj(hub, '/v1/articles/schedule/get', { t: andy });
+  assert.equal(g0.j.schedule, null, '還沒存過＝null');
+  assert.deepEqual(g0.j.allowed.times, ['09:50', '14:50', '20:50']);
+  // 壞輸入
+  for (const bad of [{ ...ok1, slots: { 8: ['09:50'] } }, { ...ok1, slots: { 1: ['10:00'] } }, { ...ok1, cats: { news: 4, intro: 0, know: 0 } }, { ...ok1, cats: { news: 1.5 } },
+                     { ...ok1, cats: { video: 1 } }, { ...ok1, enabled: 'yes' }, { ...ok1, slots: {} }, { ...ok1, cats: { news: 0, intro: 0, know: 0 } }, { enabled: true }]) {
+    assert.equal((await pj(hub, '/v1/articles/schedule/add', { t: andy, ...bad })).s, 400, JSON.stringify(bad));
+  }
+  const a = await pj(hub, '/v1/articles/schedule/add', { t: andy, ...ok1 });
+  assert.equal(a.s, 200);
+  assert.deepEqual(a.j.schedule.slots, { 1: ['09:50', '20:50'], 5: ['14:50'] }, '時間排序、去重');
+  assert.deepEqual(a.j.schedule.cats, { news: 2, intro: 0, know: 1 });
+  // 關閉時可以不帶時段與類別
+  const off = await pj(hub, '/v1/articles/schedule/add', { t: andy, enabled: false, slots: {}, cats: {} });
+  assert.equal(off.s, 200); assert.equal(off.j.schedule.enabled, false);
+  assert.equal((await pj(hub, '/v1/articles/schedule/get', { t: andy })).j.schedule.enabled, false, '讀到的是最新一份');
+  // 機器路由
+  assert.equal((await bot(hub, { op: 'schedule' }, 'wrong-token-wrong-token-wrong')).s, 403);
+  assert.equal((await bot(hub, { op: 'schedule' })).j.schedule.enabled, false);
+  await pj(hub, '/v1/articles/schedule/add', { t: andy, ...ok1 });
+  assert.deepEqual((await bot(hub, { op: 'schedule' })).j.schedule.slots, { 1: ['09:50', '20:50'], 5: ['14:50'] });
+  // 只留最近 50 份
+  for (let i = 0; i < 55; i++) await pj(hub, '/v1/articles/schedule/add', { t: andy, ...ok1 });
+  assert.equal(hub.q('SELECT COUNT(*) AS c FROM article_schedule')[0].c, 50);
+});
