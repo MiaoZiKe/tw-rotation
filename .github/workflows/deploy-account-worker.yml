@@ -48,6 +48,10 @@ jobs:
       - name: 金流訂單測試
         run: node --test workers/account-api/tests/pay.test.mjs
 
+      # 2026-10-16 防白嫖：新文章全文只在後端（未登入拿不到、Plus 第 6 篇拒絕）、訪客累計 5 次的伺服器端計數 —— 紅了就不准部署
+      - name: 防白嫖測試
+        run: node --test workers/account-api/tests/anti_freeload.test.mjs workers/account-api/tests/articles.test.mjs
+
       - id: guard
         name: 檢查金鑰
         env:
