@@ -109,6 +109,10 @@ window.TW_PLAN_PRESETS = {
     "stock.news": false,
     "live.tick": false,
     "events": true,
+    /* ★ 2026-10-16（Andy：「今日事件開放，修正，但限制次數 5 次 Total」）：訪客今日事件累計 5 次（不是每日）；一次＝打開抽屜一次。
+       訪客範本原本的 lims.events 每日 3 次拿掉（兩個上限疊在一起，累計 5 次永遠用不到）；註冊會員依自己既有額度不變（events.total 999＝不限）。
+       features.js 的 defBy 也寫了訪客 5，按「套用建議方案」之前就照這個跑 */
+    "events.total": 5,
     "theme": true,
     "explore.page": true,
     "explore.chart": true,
@@ -154,7 +158,6 @@ window.TW_PLAN_PRESETS = {
     "ind.3d": 0,
     "ind.rel": 0,
     "stock.ai": 0,
-    "events": 3,
     "flow.rank.click": 3,
     "flow.filter": 3,
     "mkt.updown.filter": 3,
@@ -235,6 +238,7 @@ window.TW_PLAN_PRESETS = {
     "stock.news": true,
     "live.tick": false,
     "events": true,
+    "events.total": 999,
     "theme": true,
     "explore.page": true,
     "explore.chart": true,
@@ -377,6 +381,7 @@ window.TW_PLAN_PRESETS = {
     "stock.news": true,
     "live.tick": false,
     "events": true,
+    "events.total": 999,
     "theme": true,
     "explore.page": true,
     "explore.chart": true,
@@ -491,6 +496,7 @@ window.TW_PLAN_PRESETS = {
     "stock.news": true,
     "live.tick": false,
     "events": true,
+    "events.total": 999,
     "theme": true,
     "explore.page": true,
     "explore.chart": true,

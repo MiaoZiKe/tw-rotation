@@ -252,6 +252,14 @@
       desc: '盤中每 5 秒更新報價。2026-10-08 起只有站主與管理員看得到、也只有他們會打報價；訪客、免費、Plus、Pro、預覽版一律沒有 —— 這個開關對會員範本沒有作用', veil: [], mark: [], block: ['.livetg-b'] },
     { id: 'events', name: '今日事件中心', cat: 'global', def: true, kind: 'bool', desc: '新聞／法說／總經事件抽屜',
       veil: [['#side'], ['#ovEvents']], mark: [], block: ['#evToggle', '#mmEvents'] },
+    /* ★ 2026-10-16 今日事件對訪客開放、累計 5 次（Andy：「今日事件開放，修正，但限制次數 5 次 Total」）。
+       events.total＝「訪客最多能開啟今日事件幾次」，**累計、不是每日**（不歸零，存在 quota.js 的 TwQuota.total）。
+       一次＝打開今日事件抽屜一次（桌機「事件」鈕、手機「⋯ → 今日事件」、總覽的今日事件卡每個瀏覽器分頁第一次看到算一次）；
+       點新聞連結另有 news.open 的每日次數（沿用，不動）。滿了：抽屜內容換成「免費註冊」提示卡。
+       defBy：訪客 5、註冊會員 999（＝不限；註冊會員依自己既有的每日額度，不受這個累計上限影響）；付費方案沒寫＝不限（max）。
+       訪客不再吃 events 的「每日 N 次」（quota.js limited() 對訪客略過 events，改由這個累計上限管）。只擋畫面、非伺服器端。 */
+    pickF('events.total', 'global', '今日事件開啟次數（訪客累計）', '次', 999, [0, 3, 5, 10, 20, 999], 5, 999,
+      '訪客最多能打開今日事件幾次（累計、不歸零；一次＝打開抽屜一次）。滿了抽屜內容換成「免費註冊」提示。註冊會員與付費方案不受這個上限影響'),
     { id: 'theme', name: '主題外觀', cat: 'global', def: true, kind: 'bool', desc: '切換深淺色與版面風格（關掉時維持目前外觀）',
       /* 2026-10-10：手機帳號選單的「版面風格」三格（acctm4.js，只在 html.m4 畫）也照這個開關上鎖；那幾個節點桌機不存在，桌機不受影響 */
       veil: [], mark: ['#acctMenu .m4styrow > .t'], block: ['#themeBtn', '#mmTheme', '#t4Btn', '#t4Pop button', '#mmT4 button', '#acctMenu [data-m="sty"]'] },

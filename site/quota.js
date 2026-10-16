@@ -116,7 +116,9 @@
     const Ft = F(), p = P(); if (!Ft || !p) return [];
     const st = p.state(); const ks = Object.keys(st.lims || {});
     needGrp(ks, Ft);
-    return ks.map((k) => Ft.byId(k)).filter((f) => f && f.kind !== 'limit' && limitOf(f.id) >= 1 && limitOf(f.id) !== Infinity && p.can(f.id));
+    /* 2026-10-16：訪客的今日事件改吃「累計 N 次」（events.total，下面 total），不再同時吃 events 的每日次數 —— 兩個上限疊在一起，訪客第 4 次就被每日 3 次擋掉，累計 5 次永遠用不到 */
+    const evTotal = () => total.limit('events.total') !== Infinity;
+    return ks.map((k) => Ft.byId(k)).filter((f) => f && f.kind !== 'limit' && limitOf(f.id) >= 1 && limitOf(f.id) !== Infinity && p.can(f.id) && !(f.id === 'events' && evTotal()));
   }
   const vis = (el) => el.getClientRects().length > 0;
   const q = (sel) => { try { return Array.from(document.querySelectorAll(sel)); } catch (e) { return []; } };

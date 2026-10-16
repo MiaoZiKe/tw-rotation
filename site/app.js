@@ -2840,11 +2840,32 @@
      今日事件在手機上是抽屜（`aside`，`position:fixed`）—— 抽屜不能同時當一屏的內容，
      所以這裡用**同一份資料**（`window.twEventItems`，renderEvents 產的那一份）
      在總覽裡長一張手機專屬的卡片。⚠ 只在手機建立、回桌機整個移除。*/
+  /* ★ 2026-10-16 今日事件對訪客開放、累計 5 次（Andy：「今日事件開放，修正，但限制次數 5 次 Total」；features.js events.total）。
+     「次數」的定義＝打開今日事件一次：桌機按「事件」鈕、手機「⋯ → 今日事件」都是打開同一個抽屜（setSide 打開那一刻算一次，關掉再開又一次）；
+     手機總覽自己長出來的今日事件卡（#ovEvents）在 ≤640（html.m4）被 mobile4.css 整張藏起來（display:none），所以手機訪客只有抽屜一條路、不另外算；
+     卡片仍保留「用完就不畫清單、換提示卡」，萬一哪天 m4 不藏它，已用完的訪客也看不到清單。
+     為什麼選「開啟抽屜」而不是「點新聞連結」：現行額度計法 events（每日瀏覽）就是看「抽屜在不在畫面上」，這個最貼近；點新聞連結另有 news.open，沿用不動。
+     滿了：抽屜／卡片的內容**不畫**（不是 CSS 藏），換成「免費註冊」提示卡；註冊會員（events.total 預設 999＝不限）完全不受影響。
+     計數在 quota.js 的 TwQuota.total（localStorage，不歸零）；導覽（tour.js）進行中不扣不擋。只擋畫面、非伺服器端。 */
+  const evTotalT = () => { const T = window.TwQuota && window.TwQuota.total; return T && T.limit('events.total') !== Infinity ? T : null; };
+  const evTouring = () => { try { const s = window.TwTour && window.TwTour.state(); return !!(s && s.on); } catch (e) { return false; } };
+  const evLockHTML = (id) => {
+    const QC = window.TwQCard, T = evTotalT(), n = T ? T.limit('events.total') : 5;
+    if (!QC) return `<div class="empty">訪客預覽已用完，免費註冊後即可繼續查看今日事件。<br><a href="#pricing/plan/free">免費註冊</a></div>`;
+    if (QC.css) QC.css();
+    return `<div class="evlock" id="${id}" style="padding:12px 8px 16px">${QC.html({ kind: 'lock', kick: '訪客預覽・今日事件', title: `今日事件的訪客預覽 ${n} 次已用完`,
+      sub: `訪客累計可以打開今日事件 ${n} 次（不是每日，不會重置）。免費註冊成為會員，就能繼續查看今日事件。`, lh: '免費註冊還能使用',
+      items: ['今日事件的新聞、法說與券商目標價', '自選清單（登入後跨裝置同步）', '依註冊會員方案額度繼續使用'],
+      btn: '免費註冊', href: '#pricing/plan/free', btnCls: 'qactgo' })}</div>`;
+  };
   function miaEvents() {
     const view = document.getElementById('v-overview');
     const old = document.getElementById('ovEvents');
     if (!view || !mIsM()) { if (old) old.remove(); return; }
-    const items = window.twEventItems || [];
+    /* 訪客累計上限：已經用完 → 不畫清單、放提示卡（這張卡在 m4 是藏著的，見上面說明） */
+    const evT = evTotalT();
+    const lockCard = !!evT && !evTouring() && evT.left('events.total') === 0;
+    const items = lockCard ? [] : (window.twEventItems || []);
     let box = old;
     if (!box) {
       box = document.createElement('div');
@@ -2856,8 +2877,9 @@
       + `<span class="m"><span class="mono">${fmt.esc(i._d || '')}</span><span class="cat">${fmt.esc(i.cat || '')}</span>`
       + `<span>${fmt.esc(i.source || '')}</span></span></a>`).join('');
     const html = `<h3>今日事件 <small>新聞、法說、券商目標價</small></h3>`
-      + `<div class="ovev">${rows || '<div class="empty">今天沒有事件</div>'}</div>`
-      + `<button type="button" class="mmore" id="ovEvAll">看全部 ${items.length} 則事件 ›</button>`;
+      + (lockCard ? evLockHTML("ovEvLock")
+        : `<div class="ovev">${rows || '<div class="empty">今天沒有事件</div>'}</div>`
+        + `<button type="button" class="mmore" id="ovEvAll">看全部 ${items.length} 則事件 ›</button>`);
     if (box.innerHTML !== html) {
       box.innerHTML = html;
       const b = box.querySelector('#ovEvAll');
@@ -13695,7 +13717,19 @@
     const MD = (d) => d.slice(5).replace('-', '/');
     let cat = 'all', pick = 'all';
     const sel = $('#evDate');
+    /* 訪客累計上限（見 miaEvents 上面的說明）：renderEventsWith 會被呼叫兩次（先 30 則、再完整版），所以「這次打開算過了嗎」存在函式本身上，不存在 closure。
+       _ok：undefined＝還沒打開過；true＝這次打開有算到（內容看得到）；false＝這次打開時已經用完（換提示卡） */
+    const evBlocked = () => { const T = evTotalT(); return !!T && !evTouring() && (renderEventsWith._ok === false || (renderEventsWith._ok === undefined && T.left('events.total') === 0)); };
+    const evGate = () => {
+      const T = evTotalT();
+      renderEventsWith._ok = !T || evTouring() ? true : T.use('events.total', 'o' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5));
+    };
     const draw = () => {
+      if (evBlocked()) {
+        $('#evList').innerHTML = evLockHTML("evLock");
+        sel.innerHTML = '<option value="all">—</option>'; sel.value = 'all';
+        return;
+      }
       const byCat = items.filter(i => cat === 'all' || i.cat === cat);
       // 最近一週的日期（新到舊）；更早的仍留在「全部」裡，只是不單獨列一個選項
       const cnt = new Map();
@@ -13712,6 +13746,9 @@
       const list = pick === 'all' ? byCat : byCat.filter(i => i._d === pick);
       $('#evList').innerHTML = list.slice(0, 120).map(i => `<div class="ev"><a href="${fmt.esc(i.url || '#')}" target="_blank" rel="noopener" title="${fmt.esc(i.title)}">${fmt.esc(i.title)}</a><div class="m"><span class="mono">${fmt.esc(i._d)}</span><span class="cat">${fmt.esc(i.cat)}</span><span>${fmt.esc(i.source || '')}</span>${(i.code ? [i.code] : String(i.codes || '').split(/[,\s]+/).filter(Boolean)).slice(0, 4).map(c => L.stock(c, L.cname[c] || '', { cls: 'sm' })).join('')}</div></div>`).join('')
         || `<div class="empty">${pick === 'all' ? '沒有這類事件' : pick + ' 沒有這類事件'}</div>`;
+      /* 訪客：清單最上面一行小字，寫已用幾次（累計），讓他知道還剩幾次、滿了要註冊 */
+      { const T = evTotalT(); if (T && !evTouring()) $('#evList').insertAdjacentHTML('afterbegin',
+        `<div class="evquota" id="evQuota" style="margin:8px 16px 4px;font-size:12px;line-height:1.5;color:var(--ink-3)">訪客預覽：已用 ${T.used('events.total').length}／${T.limit('events.total')} 次（累計，不是每日）・免費註冊的會員不受此限</div>`); }
     };
     $$('#evFilters button').forEach(b => b.onclick = () => { $$('#evFilters button').forEach(x => x.classList.toggle('on', x === b)); cat = b.dataset.c; draw(); });
     sel.onchange = () => { pick = sel.value; draw(); };
@@ -13736,7 +13773,7 @@
     };
     const setSide = (open) => {
       open = !!open;
-      if (open && !side.classList.contains('open')) resetSide();
+      if (open && !side.classList.contains('open')) { evGate(); resetSide(); }
       side.classList.toggle('open', open);
       side.setAttribute('aria-hidden', open ? 'false' : 'true');
       if (back) back.classList.toggle('on', open);
@@ -13756,6 +13793,9 @@
        事件鈕自己要排除，不然「按鈕打開 → 同一下被當成點外面」會立刻關掉。*/
     if (!renderEventsWith._wired) dismissable(side, () => window.twSetSide(false), { ignore: ['#evToggle', '#mmEvents', '#moreBtn'],
       isOpen: () => side.classList.contains('open') });
+    /* 權限晚到／換身分（登入、登出、管理者改範本）：抽屜關著時重畫一次，已用完的訪客就不會在關著的抽屜裡留著整份清單；手機卡片同理 */
+    renderEventsWith._redraw = () => { if (!side.classList.contains('open')) { renderEventsWith._ok = undefined; draw(); } };
+    if (!renderEventsWith._wired) ['tw:perm', 'tw:account'].forEach((ev) => window.addEventListener(ev, () => { if (renderEventsWith._redraw) renderEventsWith._redraw(); try { miaEvents(); } catch (e) { /* 不是手機／還沒畫 */ } }));
     renderEventsWith._wired = true;
   }
 
