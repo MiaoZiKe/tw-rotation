@@ -14,6 +14,7 @@ import argparse
 import json
 import os
 import sys
+import urllib.error
 import urllib.request
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
@@ -26,10 +27,20 @@ KEEP = ("id", "topic_id", "kind", "title", "note", "status", "created", "updated
 
 
 def call(base: str, token: str, body: dict) -> dict:
+    # Cloudflare 會擋 Python 預設的 User-Agent（Python-urllib → 403），帶一個自己的
     req = urllib.request.Request(base.rstrip("/") + "/v1/articles/jobs/bot", data=json.dumps(body).encode(),
-                                 headers={"Authorization": "Bearer " + token, "content-type": "text/plain"}, method="POST")
-    with urllib.request.urlopen(req, timeout=30) as r:
-        return json.loads(r.read().decode())
+                                 headers={"Authorization": "Bearer " + token, "content-type": "text/plain",
+                                          "User-Agent": "tw-rotation-article-jobs/1.0"}, method="POST")
+    try:
+        with urllib.request.urlopen(req, timeout=30) as r:
+            return json.loads(r.read().decode())
+    except urllib.error.HTTPError as e:
+        raw = e.read()[:300].decode("utf-8", "replace")
+        print(f"HTTP {e.code}：{raw}")
+        try:
+            return {"error": json.loads(raw).get("error") or f"http_{e.code}", "_s": e.code}
+        except ValueError:
+            return {"error": f"http_{e.code}", "_s": e.code}
 
 
 def published_topics(index_path: Path = INDEX) -> dict[str, str]:
@@ -80,7 +91,11 @@ def main(argv=None) -> int:
         print(json.dumps(r, ensure_ascii=False))
         if r.get("error"):
             return 1
-    jobs = call(base, token, {"op": "open"}).get("jobs") or []
+    got = call(base, token, {"op": "open"})
+    if got.get("error"):
+        print(f"讀佇列失敗：{got['error']}")
+        return 1
+    jobs = got.get("jobs") or []
     pub = published_topics()
     for j in list(jobs):
         if j.get("kind") == "article" and j.get("topic_id") in pub:
