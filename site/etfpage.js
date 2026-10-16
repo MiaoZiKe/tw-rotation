@@ -1377,6 +1377,9 @@ html.m4 #v-etf #etfInc[data-inclk] .inclknote.m4o{display:flex;margin:-4px 0 8px
   const NHI = 0.0211, NHI_MIN = 20000;
   const INC_Y = [[200000, '20 萬'], [500000, '50 萬'], [1000000, '100 萬'], [2000000, '200 萬']];
   const INC_M = [[5000, '5000'], [10000, '1 萬'], [20000, '2 萬'], [30000, '3 萬']];
+  /* ★ 2026-10-16 Andy（iPhone）：「月領 就Default 1萬 2萬 5萬 10萬 自訂」—— 只換手機（html.m4）月領的快捷金額，自訂在抽屜裡直接打數字（mobile4.js 31j）。
+     桌機的月領快捷鈕照舊（5000／1萬／2萬／3萬＋旁邊的數字框），不動桌機版面。 */
+  const INC_M4 = [[10000, '1 萬'], [20000, '2 萬'], [50000, '5 萬'], [100000, '10 萬']];
   const wan = (v) => (v == null ? '—' : v >= 1e8 ? (v / 1e8).toFixed(2) + ' 億' : v >= 1e4 ? (v / 1e4).toFixed(v >= 1e6 ? 0 : 1) + ' 萬' : Math.round(v).toLocaleString());
   const netOf = (g) => (S.inc.nhi && g >= NHI_MIN ? g * (1 - NHI) : g);
   /* 每檔 ETF 的「12 個月配息表」：{m: [每單位金額 ×12], sum, n} */
@@ -1639,9 +1642,11 @@ html.m4 #v-etf #etfInc[data-inclk] .inclknote.m4o{display:flex;margin:-4px 0 8px
   const incM4 = () => document.documentElement.classList.contains('m4');
   const ptKey = () => (S.inc.tab === 'c' ? 'c' + (S.inc.ci || 0) : 's');
   function ptAll() { try { const o = JSON.parse(LS.get('tw.etf.inc.pt', '') || '{}'); return o && typeof o === 'object' && !Array.isArray(o) ? o : {}; } catch (e) { return {}; } }
+  /* 手機各分頁的起點：月領沒記過任何值時預設 1 萬（10-16 Andy「月領 就Default 1萬」）；桌機或之前存過的 tw.etf.inc.mon 照用。
+     （incBase 只在手機路徑與「從手機寬回到桌機寬的還原」用到；還原時 tw.etf.inc.mon 沒存過＝桌機原本也沒改過，S.inc.mon 一律回 incLoad 的 2 萬見 ptSync） */
   function incBase() {
     const num = (k, d) => { const v = +LS.get(k, ''); return v > 0 ? v : d; };
-    return { mode: LS.get('tw.etf.inc.mode', 'y') === 'm' ? 'm' : 'y', mon: num('tw.etf.inc.mon', 20000), year: num('tw.etf.inc.year', 1000000),
+    return { mode: LS.get('tw.etf.inc.mode', 'y') === 'm' ? 'm' : 'y', mon: num('tw.etf.inc.mon', 10000), year: num('tw.etf.inc.year', 1000000),
       scope: LS.get('tw.etf.inc.scope', 'div'), nhi: LS.get('tw.etf.inc.nhi', '') === '1' };
   }
   /* 套某一個分頁的條件到 S.inc／S.per（key＝null：全域預設）*/
@@ -1655,7 +1660,7 @@ html.m4 #v-etf #etfInc[data-inclk] .inclknote.m4o{display:flex;margin:-4px 0 8px
   /* 每次 drawInc 開頭：手機且沒鎖＝套目前分頁那一份；不是（桌機寬、鎖住）＝還原成全域值 */
   function ptSync() {
     if (incM4() && !S.inc._lk) { ptSet(ptKey()); S._incPtOn = true; return; }
-    if (S._incPtOn) { S._incPtOn = false; if (!S.inc._lk) { const b = incBase(); INC_PF.forEach((f) => { S.inc[f] = b[f]; }); } }
+    if (S._incPtOn) { S._incPtOn = false; if (!S.inc._lk) { const b = incBase(); INC_PF.forEach((f) => { S.inc[f] = b[f]; }); if (!(+LS.get('tw.etf.inc.mon', '') > 0)) S.inc.mon = 20000; } }
     ptPerOff();
   }
   /* 改條件時存哪裡：手機＝目前分頁那一份；桌機＝原本的全域鍵（照舊）*/
@@ -1889,7 +1894,7 @@ html.m4 #v-etf #etfInc[data-inclk] .inclknote.m4o{display:flex;margin:-4px 0 8px
     const box = $('#etfInc'); if (!box) return;
     if (!$('#incPX', box)) incSkeleton(box);
     const segOn = (id, v) => $$(`#${id} button`).forEach((b) => b.classList.toggle('on', String(b.dataset.v) === String(v)));
-    const P = S.inc.mode === 'm' ? INC_M : INC_Y, amt = S.inc.mode === 'm' ? S.inc.mon : S.inc.year;
+    const P = S.inc.mode === 'm' ? (incM4() ? INC_M4 : INC_M) : INC_Y, amt = S.inc.mode === 'm' ? S.inc.mon : S.inc.year;
     $('#incAmtBox').innerHTML = `<div class="seg" id="incAmtSeg">${P.map(([x, t]) => `<button type="button" data-v="${x}"${x === amt ? ' class="on"' : ''}>${t}</button>`).join('')}</div>`;
     $$('#incAmtSeg button').forEach((b) => { b.onclick = () => box._setAmt(+b.dataset.v); });
     $('#incAmt').value = amt; $('#incAmt').step = S.inc.mode === 'm' ? 1000 : 10000;
