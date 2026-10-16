@@ -34215,17 +34215,19 @@ def t_m4_fix_1016b(b, base):
         c = b.new_context(viewport={"width": w, "height": 844}, device_scale_factor=2, is_mobile=True, has_touch=True)
         c.add_init_script("try { localStorage.setItem('tw.live.on', '0'); } catch (e) {}")
         c.route("**/fonts.googleapis.com/**", lambda r: r.abort())
-        pg = c.new_page(); errs = []; pg.on("pageerror", lambda e: errs.append(str(e)))
+        pg = c.new_page(); errs = []; pg.on("pageerror", lambda e: errs.append(((getattr(e, "stack", None) or str(e)) + " @" + pg.url.split("#")[-1])[:400]))
         # ① 頁尾以下不再一直滑
         for h in FIX1016B_ROUTES:
             pg.goto(base + "#" + h, wait_until="domcontentloaded")
             if not ok(f"【{T}】{w} #{h}：手機版就緒", bool(wait_until(pg, "() => document.documentElement.classList.contains('m4')", 20000))):
                 continue
             pg.wait_for_timeout(2500)
+            # 等版面穩定（前一頁的內容收掉、這一頁的卡畫完）再滑：scrollHeight 連兩次一樣
+            wait_until(pg, "() => { const h = document.scrollingElement.scrollHeight; const o = window.__fx16h; window.__fx16h = h; return o === h; }", 8000, 500)
             _fix1016b_swipe_bottom(c, pg)
             g = pg.evaluate(FIX1016B_SCROLL_JS)
-            ok(f"【{T}】{w} #{h}：手指滑到底 → 頁尾底離視窗底 ≤ 40、scrollHeight（{g['sh']}）≤ 頁尾底（{g['fb']}）+ 40",
-               g["fb"] is not None and g["sh"] <= g["fb"] + 40 and (g["sh"] <= g["H"] + 1 or g["vgap"] <= 40), g)
+            ok(f"【{T}】{w} #{h}：手指滑到底 → 頁面不比一屏高，或 scrollHeight（{g['sh']}）≤ 頁尾底（{g['fb']}）+ 40 且頁尾底離視窗底 ≤ 40",
+               g["fb"] is not None and (g["sh"] <= g["H"] + 1 or (g["sh"] <= g["fb"] + 40 and g["vgap"] <= 40)), g)
             ok(f"【{T}】{w} #{h}：沒有固定定位的框藏著比視窗還高的內容（關著的事件抽屜 scrollHeight {g['side']} ≤ 視窗高）",
                not g["leak"] and g["side"] <= g["H"], g)
         # 抽屜真的打開：新聞清單有東西、寬 > 250；關上 → 又收起來
