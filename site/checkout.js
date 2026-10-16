@@ -27,6 +27,16 @@
   const ss = { get(k) { try { return sessionStorage.getItem(k); } catch (e) { return null; } }, set(k, v) { try { sessionStorage.setItem(k, v); } catch (e) { /* 私密視窗 */ } }, del(k) { try { sessionStorage.removeItem(k); } catch (e) { /* 同上 */ } } };
   const ls = { get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }, set(k, v) { try { localStorage.setItem(k, v); } catch (e) { /* 同上 */ } } };
   const PEND = 'tw.co.pending', DISMISS = 'tw.pay.renew.off';
+  /* ★ 2026-10-16 Andy：結帳加姓名＋性別（男／女），性別納入男女用量比例。三個開關（要改選填版本就改這裡，Worker 的 pay.js 有同名常數要一起改）：
+       GENDER_REQUIRED          性別必選才能前往付款／送出匯款資料（Andy：先必填）
+       GENDER_CONSENT_REQUIRED  性別另設「獨立勾選同意」，不併進條款勾選（法遵意見 docs/legal/gender_collection_1016.md 3-3）
+       FORM_VERSION             表單版本；Worker 看到 form>=2 才強制檢查，舊版快取網頁不受影響 */
+  const GENDER_REQUIRED = true, GENDER_CONSENT_REQUIRED = true, FORM_VERSION = 2;
+  const GENDERS = [['male', '男'], ['female', '女']];
+  /* 卡號防呆（法遵意見 7-2）：本站任何欄位都不收卡號；連續 13～19 位數字（可夾空白、連字號）一律擋 */
+  const looksCard = (v) => /\d(?:[ -]?\d){12,18}/.test(String(v == null ? '' : v));
+  const CARD_MSG = '偵測到可能是卡號的內容，為保護您的資料已拒絕，請只填轉出帳號末 5 碼。';
+  const supportMail = () => (window.TwSupport && window.TwSupport.email) || '';
   const ST_CLS = { pending: 'wait', review: 'wait', paid: 'wait', active: 'ok', failed: 'bad', rejected: 'bad', expired: 'mute', refunded: 'mute', cancelled: 'mute', superseded: 'mute' };
   const ST_NAME = { pending: '待付款', review: '待確認', paid: '已入帳', active: '已開通', failed: '失敗', rejected: '已退回', expired: '已逾期', refunded: '已退款', cancelled: '已取消（未付款）', superseded: '已被取代' };
   const S = { my: null, fly: null, poll: null };
@@ -77,6 +87,17 @@
 #subDlg .codlg .cocfm .cogo{flex:1;font-size:15px}
 #subDlg .codlg .cofrm label,#subDlg .codlg .cofrm .lb{display:block;margin:0 0 4px;font-size:12.5px;color:var(--ink)}
 #subDlg .codlg .cofrm label small,#subDlg .codlg .cofrm .lb small{margin-left:6px;color:var(--ink-2);font-size:11.5px;font-weight:400}
+#subDlg .codlg .cofrm .opt{font-style:normal;margin-left:4px;color:var(--ink-2);font-size:11px}
+#subDlg .codlg .cohint{display:block;margin-top:4px;color:var(--ink-2);font-size:12px;line-height:1.55;font-weight:400}
+#subDlg .codlg .cohint a{color:var(--cyan)}
+#subDlg .codlg .cogd{display:flex;width:100%;margin:0}
+#subDlg .codlg .cogd button{flex:1;min-height:36px;font-size:14px}
+#subDlg .codlg .cogd button[aria-checked=true]{background:var(--cyan);color:#04121a;font-weight:700}
+#subDlg .codlg .cofrm .cogc{display:flex;gap:8px;align-items:flex-start;margin:8px 0 0;font-size:12.5px;line-height:1.5;color:var(--ink);white-space:normal;overflow:visible}
+#subDlg .codlg .cofrm .cogc input{width:auto;height:auto;margin-top:2px;flex:none}
+#subDlg .codlg .coinfo{border:1px solid var(--line-2);border-radius:10px;padding:10px 12px;margin:10px 0 8px;font-size:14px;color:var(--ink)}
+#subDlg .codlg .coinfo small{display:block;color:var(--ink-2);font-size:12.5px;line-height:1.5;margin-top:2px}
+#subDlg .codlg .cosum .coday{display:block;font-size:12.5px;font-weight:400;color:var(--ink-2)}
 #subDlg .codlg .cofrm .req{font-style:normal;margin-left:4px;color:var(--rise);font-size:11px}
 #subDlg .codlg .cofrm .ro{height:36px;display:flex;align-items:center;padding:0 10px;border:1px dashed var(--line-2);border-radius:8px;font-weight:700;font-variant-numeric:tabular-nums;color:var(--ink)}
 #subDlg .codlg .cofrm input{width:100%;box-sizing:border-box;height:36px;background:var(--panel);color:var(--ink);border:1px solid var(--line-2);border-radius:8px;padding:0 10px;font:inherit;font-size:14px}
@@ -119,7 +140,7 @@
 #payRenew .x{width:32px;padding:0}
 /* 淺色主題：--cyan 是深青色，上面的字改白色（深色主題維持深字） */
 :root[data-theme=light] #subDlg .codlg .cotabs button[aria-selected=true],:root[data-theme=light] #subDlg .codlg .cotabs button[aria-selected=true] small,
-:root[data-theme=light] #subDlg .codlg .cogo,:root[data-theme=light] #subDlg .codlg .seg button.on,
+:root[data-theme=light] #subDlg .codlg .cogo,:root[data-theme=light] #subDlg .codlg .cogd button[aria-checked=true],:root[data-theme=light] #subDlg .codlg .seg button.on,
 :root[data-theme=light] #v-orders button.pri,:root[data-theme=light] #payRenew button.pri{color:#fff}
 html.pay-renew #acctBtn.ame{position:relative}
 html.pay-renew #acctBtn.ame::after{content:'';position:absolute;top:2px;right:2px;width:9px;height:9px;border-radius:50%;background:var(--rise);box-shadow:0 0 0 2px var(--bg)}
@@ -141,6 +162,15 @@ html.pay-renew #acctBtn.ame::after{content:'';position:absolute;top:2px;right:2p
   }
 
   /* ---------------------------------------------------------------- ① 結帳面板 */
+  /* 性別欄（兩個付款分頁共用同一段）：預設不選；欄位旁寫用途與必要性（法遵意見 2-A 必填版）、獨立同意勾選、不填的出口 */
+  function genderHtml() {
+    const mail = supportMail();
+    return `<div class="w3 cogw"><span class="lb" id="coGLb">性別<em class="req">${GENDER_REQUIRED ? '必選' : '選填'}</em></span>
+      <div class="seg cogd" role="radiogroup" aria-labelledby="coGLb">${GENDERS.map(([k, n]) => `<button type="button" role="radio" aria-checked="false" data-g="${k}">${n}</button>`).join('')}</div>
+      <small class="cohint">用於<b>不具名的使用情形統計</b>（只呈現男女比例，不會單獨顯示個別會員，也不用於推薦、行銷或對外提供），僅用於匿名彙總統計、不公開。${GENDER_REQUIRED ? '本欄位為結帳必填，<b>未選擇將無法送出結帳</b>。' : '不選擇不影響結帳。'}</small>
+      ${GENDER_CONSENT_REQUIRED ? '<label class="cogc"><input type="checkbox" class="cogcb"><span>我已閱讀<a href="#privacy" target="_blank" rel="noopener">《隱私權政策》</a>，同意本網站為上述統計目的，蒐集並使用我於結帳時選擇的性別。</span></label>' : ''}
+      <small class="cohint">${GENDER_REQUIRED ? `不願提供性別？請來信客服${mail ? '（' + esc(mail) + '）' : ''}，由人工協助開通。` : ''}個資處理依<a href="#privacy" target="_blank" rel="noopener">《隱私權政策》</a>「付款與訂單資料」辦理。</small></div>`;
+  }
   const nameOf = (p) => (p && (p.planName || p.name)) || '';
   async function open(opt) {
     const p = opt || {};
@@ -173,7 +203,7 @@ html.pay-renew #acctBtn.ame::after{content:'';position:absolute;top:2px;right:2p
       box.innerHTML = `<div class="cohd"><b>結帳</b><span class="sp"></span><button type="button" data-close aria-label="關閉">×</button></div><div class="cobd"><p>${!qm ? '連不到會員伺服器，請稍後再試。' : e === 'no_price' ? '這個方案還沒有線上價格，請從右下角「客服」聯絡我們。' : e === 'auth' ? '登入已過期，請重新登入。' : '讀不到價格（' + esc((qm && qm._s) || '') + '）'}</p></div>`;
       return;
     }
-    const st = { per, tab: p.tab === 'bank' ? 'bank' : 'ecpay', kind: 'recur', oid: '', bankOrder: null };
+    const st = { per, tab: p.tab === 'bank' ? 'bank' : 'ecpay', kind: 'recur', oid: '', bankOrder: null, gender: '', gc: false };
     const base = Q[per];
     box.innerHTML = `<div class="cohd"><b id="coName">${esc(nameOf(base))}</b>${base.test ? '<span class="cotest" title="綠界金鑰還沒設定：付款會走綠界測試環境，不會真的扣款">測試模式</span>' : ''}<span class="sp"></span><button type="button" data-close aria-label="關閉">×</button></div>
       <div class="cobd">
@@ -181,12 +211,17 @@ html.pay-renew #acctBtn.ame::after{content:'';position:absolute;top:2px;right:2p
           <span>週期</span><div><div class="seg" id="coPer">${Q.month ? `<button type="button" data-per="month"${Q.month.blocked ? ' disabled title="' + esc(Q.month.blockedMsg) + '"' : ''}>月繳</button>` : ''}${Q.year ? `<button type="button" data-per="year"${Q.year.blocked ? ' disabled title="' + esc(Q.year.blockedMsg) + '"' : ''}>年繳</button>` : ''}</div>${(Q.month && Q.month.blocked) || (Q.year && Q.year.blocked) ? `<small class="muted" style="display:block;margin-top:4px">${esc((Q.month && Q.month.blockedMsg) || (Q.year && Q.year.blockedMsg))}</small>` : ''}</div>
           <span>金額</span><div class="amt" id="coAmt"></div>
           <span>訂單編號</span><div><code id="coOid">選擇付款方式後產生</code></div></div>
-        <div class="cotabs" role="tablist" aria-label="付款方式"><button type="button" role="tab" id="coTabE" data-tab="ecpay">信用卡／ATM／超商<small>綠界 ECPay</small></button><button type="button" role="tab" id="coTabB" data-tab="bank">銀行轉帳<small>預付制・人工確認</small></button></div>
+        <div class="cotabs" role="tablist" aria-label="付款方式"><button type="button" role="tab" id="coTabE" data-tab="ecpay">信用卡<small>綠界 ECPay・自動續扣</small></button><button type="button" role="tab" id="coTabB" data-tab="bank">銀行轉帳<small>預付制・人工確認</small></button></div>
         <div id="coPaneE" role="tabpanel" aria-labelledby="coTabE">
-          <label class="coopt"><input type="radio" name="coKind" value="recur"><span><b id="coRecurT"></b><small id="coRecurS"></small></span></label>
-          <label class="coopt"><input type="radio" name="coKind" value="once"><span><b>單次付款（信用卡／ATM／超商）</b><small>付一期就好，不會自動續扣；到期前網站會提醒你續訂</small></span></label>
+          <div class="cofrm" id="coFrmE">
+            <div class="w3"><label for="coNameE">姓名<em class="req">必填</em></label><input id="coNameE" maxlength="40" autocomplete="name" required aria-required="true"><small class="cohint">用於付款核對、確認入帳與退款，請填寫真實姓名。</small></div>
+            ${genderHtml()}
+            <div class="w3"><label for="coL5E">轉出帳號末 5 碼<em class="opt">選填</em></label><input id="coL5E" inputmode="numeric" maxlength="5" autocomplete="off" placeholder="5 位數字"><small class="cohint">若你之後改用 ATM 轉帳／超商繳款，可填轉出帳號末 5 碼供我們核對。<b>這不是信用卡號，請勿填寫信用卡卡號的任何數字。</b></small></div>
+          </div>
+          <div class="coinfo"><b id="coRecurT"></b><small id="coRecurS"></small></div>
           <label class="coopt" id="coRenewL" style="border:0;padding:4px 2px;background:none"><input type="checkbox" id="coRenew"><span id="coRenewT"></span></label>
           <button type="button" class="cogo" id="coGoE" disabled>前往綠界付款</button>
+          <p class="muted" style="font-size:12.5px;margin:6px 0 0">信用卡資料將於下一步由綠界科技的付款頁輸入，本網站不會看到、也不會保存你的卡號。</p>
         </div>
         <div id="coPaneB" role="tabpanel" aria-labelledby="coTabB" hidden></div>
         <div class="colegal"><label><input type="checkbox" id="coAgree"><span>我已閱讀並同意<a href="#terms" target="_blank" rel="noopener">《使用條款》</a><a href="#refund" target="_blank" rel="noopener">《退款與取消訂閱政策》</a>，並同意付款後立即開通服務、排除消費者保護法第 19 條之七日解除權。</span></label>
@@ -199,28 +234,47 @@ html.pay-renew #acctBtn.ame::after{content:'';position:absolute;top:2px;right:2p
     function sync() {
       const q = Q[st.per];
       box.querySelectorAll('#coPer button').forEach((b) => b.classList.toggle('on', b.dataset.per === st.per));
-      $('#coAmt').innerHTML = `NT$ ${nt(q.amount)}<small style="font-size:13px;font-weight:400;color:var(--ink-2)">／${st.per === 'year' ? '年' : '月'}</small>`;
+      /* 10-16 Andy：金額旁換算一天多少台幣；跟方案卡同一個函式（TwSub.dayCost），口徑＝一年總價 ÷ 365 */
+      const dc = T().dayCost ? T().dayCost(q.amount, st.per) : null;
+      $('#coAmt').innerHTML = `NT$ ${nt(q.amount)}<small style="font-size:13px;font-weight:400;color:var(--ink-2)">／${st.per === 'year' ? '年' : '月'}</small>${dc == null ? '' : `<span class="coday" id="coDay">每天約 NT$ ${dc.toFixed(1)}</span>`}`;
       $('#coRecurT').textContent = st.per === 'year' ? '信用卡每年自動扣款（定期定額）' : '信用卡每月自動扣款（定期定額）';
       $('#coRecurS').textContent = `每${st.per === 'year' ? '年' : '月'}自動扣 NT$ ${nt(q.amount)}，可隨時在「我的訂單」取消自動續訂（已付的期間照常用到期滿）`;
       $('#coRenewT').textContent = `我同意每${st.per === 'year' ? '年' : '月'}自動續扣 NT$ ${nt(q.amount)}，直到我自行取消。`;
-      box.querySelectorAll('input[name=coKind]').forEach((r) => { r.checked = r.value === st.kind; });
-      $('#coRenewL').hidden = st.kind !== 'recur';
-      $('#coGoE').disabled = !$('#coAgree').checked || (st.kind === 'recur' && !$('#coRenew').checked);
+      box.querySelectorAll('.cogd button').forEach((b) => b.setAttribute('aria-checked', String(b.dataset.g === st.gender)));
+      box.querySelectorAll('.cogcb').forEach((c) => { c.checked = st.gc; });
+      const nm = $('#coNameE');
+      $('#coGoE').disabled = !($('#coAgree').checked && $('#coRenew').checked && profOk(nm ? nm.value : '') && l5Ok($('#coL5E') ? $('#coL5E').value : ''));
       box.querySelectorAll('.cotabs button').forEach((b) => b.setAttribute('aria-selected', String(b.dataset.tab === st.tab)));
       $('#coPaneE').hidden = st.tab !== 'ecpay'; $('#coPaneB').hidden = st.tab !== 'bank';
       $('#coOid').textContent = st.tab === 'bank' && st.bankOrder ? st.bankOrder.id : st.oid || '選擇付款方式後產生';
-      const sb = $('#coSendB'); if (sb) sb.disabled = !$('#coAgree').checked;
+      const sb = $('#coSendB'); if (sb) sb.disabled = !$('#coAgree').checked || !genderOk();
     }
     box.querySelectorAll('#coPer button').forEach((b) => { b.onclick = () => { if (st.per === b.dataset.per) return; st.per = b.dataset.per; st.bankOrder = null; if (st.tab === 'bank') bankPane(); sync(); }; });
-    box.querySelectorAll('input[name=coKind]').forEach((r) => { r.onchange = () => { st.kind = r.value; sync(); }; });
+    /* 10-16 Andy：只剩信用卡定期定額（單次付款拿掉）；姓名、性別、獨立同意、卡號防呆 */
+    const genderOk = () => (!GENDER_REQUIRED || !!st.gender) && (!st.gender || !GENDER_CONSENT_REQUIRED || st.gc);
+    const profOk = (name) => !!String(name || '').trim() && !looksCard(name) && genderOk();
+    const l5Ok = (v) => !String(v || '').trim() || /^\d{5}$/.test(String(v).trim());
+    box.addEventListener('click', (e) => { const b = e.target.closest('.cogd button'); if (!b) return; st.gender = b.dataset.g; sync(); });
+    box.addEventListener('change', (e) => { if (e.target.classList && e.target.classList.contains('cogcb')) { st.gc = e.target.checked; sync(); } });
+    box.addEventListener('input', (e) => {
+      const el = e.target; if (!el || !/^(coNameE|coL5E|coPayer|coL5)$/.test(el.id)) return;
+      if (/^coL5/.test(el.id)) el.value = el.value.replace(/\D/g, '');
+      if (looksCard(el.value)) { el.value = ''; msg(CARD_MSG, true); }
+      sync();
+    });
+    box.addEventListener('paste', (e) => {
+      const el = e.target; if (!el || !/^(coNameE|coL5E|coPayer|coL5)$/.test(el.id)) return;
+      const t = (e.clipboardData && e.clipboardData.getData('text')) || '';
+      if (looksCard(t) || (/^coL5/.test(el.id) && t.replace(/\D/g, '').length > 5)) { e.preventDefault(); msg(looksCard(t) ? CARD_MSG : '末 5 碼欄只能填 5 位數字', true); }
+    });
     $('#coRenew').onchange = sync; $('#coAgree').onchange = sync;
     box.querySelectorAll('.cotabs button').forEach((b) => { b.onclick = () => { st.tab = b.dataset.tab; if (st.tab === 'bank' && !st.bankOrder) bankPane(); sync(); }; });
     $('#coGoE').onclick = async () => {
       const btn = $('#coGoE'); btn.disabled = true; msg('建立訂單中…');
-      const j = await call('/v1/pay/ecpay/create', { plan, period: st.per, recur: st.kind === 'recur', back: location.origin + location.pathname, ...consent() });
+      const j = await call('/v1/pay/ecpay/create', { plan, period: st.per, recur: true, back: location.origin + location.pathname, form: FORM_VERSION, name: $('#coNameE').value.trim(), gender: st.gender, gender_consent: st.gc, last5: $('#coL5E').value.trim(), ...consent() });
       if (!j || j._s !== 200 || !j.ok) {
         btn.disabled = false;
-        msg(!j ? '連不到會員伺服器，請稍後再試' : j.error === 'blocked' ? (j.msg || '目前方案不能購買這個項目') : j.error === 'too_many' ? '今天建立的訂單太多了，請明天再試或聯絡客服' : j.error === 'no_price' ? '這個方案還沒有線上價格' : `建立訂單失敗（${j._s}）`, true);
+        msg(!j ? '連不到會員伺服器，請稍後再試' : j.error === 'blocked' ? (j.msg || '目前方案不能購買這個項目') : j.error === 'too_many' ? '今天建立的訂單太多了，請明天再試或聯絡客服' : j.error === 'need_name' ? '請填姓名' : j.error === 'need_gender' ? '請選擇性別' : j.error === 'need_gender_consent' ? '請勾選性別統計的同意' : j.error === 'card_number' ? CARD_MSG : j.error === 'bad_last5' ? '末 5 碼要是 5 個數字' : j.error === 'no_price' ? '這個方案還沒有線上價格' : `建立訂單失敗（${j._s}）`, true);
         return;
       }
       st.oid = j.id; sync();
@@ -258,7 +312,9 @@ html.pay-renew #acctBtn.ame::after{content:'';position:absolute;top:2px;right:2p
           <div><label for="coPayer">匯款人姓名<em class="req">必填</em></label><input id="coPayer" maxlength="40" autocomplete="name" required aria-required="true"></div>
           <div><label for="coL5">轉出帳號末 5 碼</label><input id="coL5" inputmode="numeric" maxlength="5" autocomplete="off"></div>
           <div><label for="coDate">轉帳日期</label><input id="coDate" type="date" value="${esc(today)}" max="${esc(today)}"></div>
+          ${genderHtml()}
           <div class="w3"><span class="lb">轉帳金額（依訂單，不用填）</span><div class="ro" id="coXAmt" aria-readonly="true">NT$ ${nt(j.amount)}</div></div></div>
+        <p class="muted" style="font-size:12px;margin:6px 0 0">匯款人姓名與轉出帳號末 5 碼僅用於核對這筆匯款是否為您本人所匯。<b>請勿填寫完整帳號、信用卡號、身分證字號。</b></p>
         <button type="button" class="cogo" id="coSendB">我已轉帳，送出匯款資料</button>
         <p class="muted" style="font-size:12.5px;margin:6px 0 0">管理者確認入帳後開通，可在「我的訂單」查看。</p>`;
       pane.querySelectorAll('[data-copy]').forEach((c) => { c.onclick = () => { try { navigator.clipboard.writeText(c.dataset.copy); c.textContent = '已複製'; } catch (e) { /* 沒權限就算了 */ } }; });
@@ -273,15 +329,17 @@ html.pay-renew #acctBtn.ame::after{content:'';position:absolute;top:2px;right:2p
       };
       /* 2026-10-16 Andy：金額寫死＝訂單金額（客戶不能改，只有管理區能改）、匯款人姓名必填、不放範例字與備註 */
       $('#coSendB').onclick = () => {
-        const f = { name: $('#coPayer').value.trim(), last5: $('#coL5').value.trim(), date: $('#coDate').value };
+        const f = { name: $('#coPayer').value.trim(), last5: $('#coL5').value.trim(), date: $('#coDate').value, gender: st.gender, gc: st.gc };
         if (!f.name) { $('#coPayer').focus(); return msg('請填匯款人姓名', true); }
+        if (GENDER_REQUIRED && !f.gender) return msg('請選擇性別', true);
+        if (f.gender && GENDER_CONSENT_REQUIRED && !f.gc) return msg('請勾選性別統計的同意', true);
         if (!/^\d{5}$/.test(f.last5)) return msg('轉出帳號末 5 碼要是 5 個數字', true);
         if (!/^\d{4}-\d{2}-\d{2}$/.test(f.date)) return msg('請選轉帳日期', true);
         msg('');
         let cf = pane.querySelector('#coCfm'); if (cf) cf.remove();
         cf = document.createElement('div'); cf.id = 'coCfm'; cf.className = 'cooff cocfm';
         /* 10-16 Andy：「請調整適當大小排版，文字有點太多」「返回修改」不換行、跟送出鈕同高 */
-        cf.innerHTML = `<b>請確認匯款資料（送出後不能修改）</b><div class="kv"><span>匯款人姓名</span><b>${esc(f.name)}</b><span>轉出帳號末 5 碼</span><b>${esc(f.last5)}</b><span>轉帳日期</span><b>${esc(f.date)}</b><span>轉帳金額</span><b>NT$ ${nt(j.amount)}</b></div>
+        cf.innerHTML = `<b>請確認匯款資料（送出後不能修改）</b><div class="kv"><span>匯款人姓名</span><b>${esc(f.name)}</b><span>轉出帳號末 5 碼</span><b>${esc(f.last5)}</b><span>轉帳日期</span><b>${esc(f.date)}</b>${f.gender ? `<span>性別</span><b>${esc((GENDERS.find((g) => g[0] === f.gender) || [])[1] || '')}</b>` : ''}<span>轉帳金額</span><b>NT$ ${nt(j.amount)}</b></div>
           <div class="cfbtn"><button type="button" id="coCfmBack">返回修改</button><button type="button" class="cogo" id="coCfmGo">確認無誤，送出</button></div>`;
         $('#coSendB').after(cf); $('#coSendB').hidden = true;
         cf.querySelector('#coCfmBack').onclick = () => { cf.remove(); $('#coSendB').hidden = false; };
@@ -297,9 +355,9 @@ html.pay-renew #acctBtn.ame::after{content:'';position:absolute;top:2px;right:2p
     if (!/^\d{5}$/.test(f.last5)) return msg('轉出帳號末 5 碼要是 5 個數字', true);
     if (!/^\d{4}-\d{2}-\d{2}$/.test(f.date)) return msg('請選轉帳日期', true);
     msg('送出中…');
-    const j = await call('/v1/pay/bank/report', { id, name: f.name, last5: f.last5, date: f.date });
+    const j = await call('/v1/pay/bank/report', { id, name: f.name, last5: f.last5, date: f.date, form: FORM_VERSION, gender: f.gender || '', gender_consent: !!f.gc });
     if (j && j._s === 200 && j.ok) { msg(''); done(j.order); return; }
-    msg(!j ? '連不到會員伺服器' : j.error === 'need_name' ? '請填匯款人姓名' : j.error === 'bad_date' ? '轉帳日期不對（不能是未來，也不能早於開單日）' : j.error === 'pending_review' ? (j.msg || '你有一筆待審核的訂單，審核完成前只能送出更高級別的方案') : j.error === 'already_reported' ? '這筆已經送出過匯款資料；要更正請用右下角「客服」→「意見反饋」' : j.error === 'bad_status' ? '這筆訂單已經處理過了' : `送出失敗（${j._s}）`, true);
+    msg(!j ? '連不到會員伺服器' : j.error === 'need_name' ? '請填匯款人姓名' : j.error === 'need_gender' ? '請選擇性別' : j.error === 'need_gender_consent' ? '請勾選性別統計的同意' : j.error === 'card_number' ? CARD_MSG : j.error === 'bad_date' ? '轉帳日期不對（不能是未來，也不能早於開單日）' : j.error === 'pending_review' ? (j.msg || '你有一筆待審核的訂單，審核完成前只能送出更高級別的方案') : j.error === 'already_reported' ? '這筆已經送出過匯款資料；要更正請用右下角「客服」→「意見反饋」' : j.error === 'bad_status' ? '這筆訂單已經處理過了' : `送出失敗（${j._s}）`, true);
   }
 
   /* ---------------------------------------------------------------- ② 我的訂單 */

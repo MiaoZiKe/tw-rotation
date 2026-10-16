@@ -195,6 +195,14 @@ html[data-theme="light"] #v-admin{--pgL:40%}
 #v-admin .trtabs>#trPageBody{padding:0 16px 16px;border-top:1px solid var(--line-2)}
 #v-admin .trtabs .nbsw .tdot,#v-admin .trtabs .nbsw.lv2 .tdot{display:inline-block;width:9px;height:9px;border-radius:3px;flex:none}
 #v-admin .trtabs .nbsw em{margin-left:4px}
+#v-admin .admgrid.trgender{grid-template-columns:minmax(0,1fr);margin-top:12px}
+#trGender .gdrow{display:grid;grid-template-columns:64px minmax(0,1fr) 150px;gap:10px;align-items:center;margin:8px 0;font-size:14px}
+#trGender .gdrow .trk{height:14px;border-radius:7px;background:var(--panel-3);overflow:hidden}
+#trGender .gdrow .trk i{display:block;height:100%;border-radius:7px;min-width:2px}
+#trGender .gdrow b{font-variant-numeric:tabular-nums;text-align:right;font-weight:600}
+#trGender .gdnote{margin:8px 0 0;font-size:12.5px;line-height:1.6;color:var(--ink-2)}
+#trGender .gdsum{font-size:14px;line-height:1.7;color:var(--ink)}
+@media (max-width:640px){#trGender .gdrow{grid-template-columns:44px minmax(0,1fr);}#trGender .gdrow b{grid-column:1/-1;text-align:left}}
 #v-admin .admgrid.trusers{grid-auto-rows:minmax(380px,auto);grid-template-columns:minmax(0,1fr) minmax(0,1fr)}   /* 時鐘卡放大：環可到卡高約 85% */
 #v-admin .admgrid.trone{margin-top:12px}#v-admin .admgrid.trone>.card{grid-column:1/-1}
 #admBody .sbody{flex:1;display:flex;gap:24px;align-items:stretch;min-height:240px}#admBody .sbody .bigno{flex:0 0 220px;border-right:1px solid var(--line);padding-right:24px}#admBody .sbody .sch{flex:1;min-width:0;display:flex;flex-direction:column}
@@ -896,6 +904,7 @@ html[data-theme="light"] #v-admin{--pm-blue:#1f4fd8;--pm-blue-2:#163fb4}
       const out = { from: dayKey(i0), to: dayKey(iB), rows, e2, users: { total: NU, recent: users.slice(0, 50).map((u) => ({ name: u.name, email: u.email, created: u.created, seen: u.seen })) } };
       const sess = rows.filter((r) => r.k === 'ev:session').reduce((x, r) => x + r.n, 0), lg = rows.filter((r) => r.k === 'ev:session_login').reduce((x, r) => x + r.n, 0);
       const split = [['free', '註冊會員', 0.6, 'var(--cat-1)'], ['demo_basic', '基本方案（月）', 0.22, null], ['demo_pro', '進階方案（年）', 0.13, null], ['demo_team', '旗艦方案', 0.05, null]];
+      out.gender = window.__demoGender || { male: 34, female: 21, paid: 72, unset: 17, since: '2026-10-16' };
       out.tiers = { est: false, list: split.map(([id, name, f, col]) => ({ id, name, n: Math.round(lg * f), col: col || planCol(id), login: true })).concat([{ id: 'guest', name: '訪客', n: sess - lg, col: 'var(--cat-2)', login: false }]) };
       const HW = [0.4, 0.25, 0.18, 0.15, 0.2, 0.45, 1.1, 2.3, 4.6, 6.4, 6.9, 6.1, 5.2, 5.0, 5.8, 5.6, 4.4, 3.4, 3.1, 3.6, 4.6, 5.2, 4.1, 1.8], hs = HW.reduce((a, b) => a + b, 0);
       out.hourly = HW.map((w) => Math.round(rows.filter((r) => r.k.startsWith('pv:')).reduce((a, r) => a + r.n, 0) * w / hs));
@@ -1163,7 +1172,24 @@ html[data-theme="light"] #v-admin{--pm-blue:#1f4fd8;--pm-blue-2:#163fb4}
     const clock = clockHtml(series.length === 2 ? src.login.map((x, i) => x + (src.guest[i] || 0)) : src.pv, hm === 'open' ? '開站' : '瀏覽');
     return `<div class="admgrid trpair trusers">
       <div class="card" id="trHours"><h3>什麼時段最多人用？</h3><p class="use" title="每小時的${hm === 'open' ? '開站次數（登入／訪客堆疊）' : '頁面瀏覽次數'}。白天＝06:00–18:00、夜晚＝18:00–06:00。">白天 06–18／夜晚 18–06</p><div class="cb">${modes}${chart}${since}</div></div>
-      <div class="card" id="trClock"><h3>24 小時時鐘</h3><p class="use" title="12 小時錶面、頂端是 12／0、順時針；內圈＝00:00–11:59、外圈＝12:00–23:59；長度與顏色深淺＝該小時的${hm === 'open' ? '開站' : '瀏覽'}量">內圈上午・外圈下午</p><div class="cb">${clock}</div></div></div>`;
+      <div class="card" id="trClock"><h3>24 小時時鐘</h3><p class="use" title="12 小時錶面、頂端是 12／0、順時針；內圈＝00:00–11:59、外圈＝12:00–23:59；長度與顏色深淺＝該小時的${hm === 'open' ? '開站' : '瀏覽'}量">內圈上午・外圈下午</p><div class="cb">${clock}</div></div></div>
+    <div class="admgrid trgender">${genderCard(st.gender)}</div>`;
+  }
+  /* 男女用量比例（2026-10-16 Andy：「兩邊需要新增性別…把男女資訊也列入統計流量內，我想知道男女用量比例」）。
+     資料是 Worker 的 gender＝{ male, female, paid, unset, since }：性別只存計數（法遵意見 gender_collection_1016 4-2 做法 A），
+     所以這張卡是「累計」、不跟上面的期間連動，也查不到是誰。最小揭露（法遵 4-3，建議值）：已填性別 < 20 人只說樣本不足；
+     男或女任一類 < 5 人不拆開，只顯示合計。這兩個門檻是下面兩個常數，要調只改這裡。 */
+  const GENDER_MIN_TOTAL = 20, GENDER_MIN_CELL = 5;
+  function genderCard(g) {
+    const head = '<h3>男女用量比例</h3><p class="use" title="性別是結帳時選的，只存累計人數，不跟會員或訂單綁在一起">付款者・累計</p>';
+    if (!g || typeof g.male !== 'number') return `<div class="card" id="trGender">${head}<div class="cb"><div class="empty">會員系統還沒更新，讀不到性別統計（Worker 部署後重新整理）</div></div></div>`;
+    const filled = g.male + g.female, paid = Math.max(g.paid, filled), pct = (n) => (paid ? (n / paid * 100).toFixed(1) : '0.0') + '%';
+    let body;
+    if (filled < GENDER_MIN_TOTAL) body = `<div class="gdsum">已填性別 <b>${nf(filled)}</b> 人，樣本不足（至少 ${GENDER_MIN_TOTAL} 人才顯示男女比例，避免推測出個別會員）。</div>`;
+    else if (g.male < GENDER_MIN_CELL || g.female < GENDER_MIN_CELL) body = `<div class="gdsum">已填性別 <b>${nf(filled)}</b> 人；其中某一類不足 ${GENDER_MIN_CELL} 人，為避免推測個別會員，不拆開顯示。</div>`;
+    else body = [['男', g.male, 'var(--cat-1)'], ['女', g.female, 'var(--cat-2)'], ['未填（估算）', g.unset, 'var(--ink-3)']].map(([n, v, c]) => `<div class="gdrow" data-g="${esc(n)}"><span>${esc(n)}</span><div class="trk"><i style="width:${paid ? (v / paid * 100).toFixed(1) : 0}%;background:${c}"></i></div><b>${nf(v)} 人・${pct(v)}</b></div>`).join('');
+    return `<div class="card" id="trGender">${head}<div class="cb">${body}
+      <p class="gdnote">已付款 <b>${nf(paid)}</b> 人（首期付款的訂單數）。只含付款時填寫性別的人${g.since ? `（自 ${esc(g.since)} 起計數）` : ''}；<b>未填 ＝ 已付款人數 − 男 − 女</b>，含計數上線前的舊訂單與客服人工開通者，為估算值。性別只存累計人數，不與會員或訂單綁定，這裡看不到個別會員。</p></div></div>`;
   }
   /* 時鐘（12 小時錶面＋內外兩圈）：頂端是 12／0，順時針 12 格；內圈＝00:00–11:59（上午）、外圈＝12:00–23:59（下午），同一個鐘點方向上下午對齊；
      每段長度與顏色深淺＝該小時使用量（兩圈共用同一把尺）；中心＝尖峰時段；圖例在右 */
