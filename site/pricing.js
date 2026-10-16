@@ -579,11 +579,29 @@
     const top = rev.reduce((a, o) => (tierNum(o.plan, o.period) > tierNum(a.plan, a.period) ? o : a));
     return { n: tierNum(top.plan, top.period), name: `${top.planName || top.plan}・${top.period === 'year' ? '年繳' : '月繳'}` };
   }
+  /* 2026-10-16 Andy：「已經是 Plus 月方案，在年方案這邊是可以選擇的；但如果是 Plus 年方案，月／年分頁內都顯示『目前方案』就好」
+     會員目前這張方案是月繳還是年繳：看「我的訂單」裡還在使用期間內的那筆（續扣的子單也算）；沒有訂單（管理者手動給的方案）就不知道 → 維持原本「目前方案」。
+     規則跟伺服器 payChangeCheck 同一條（級別 Pro 年 > Pro 月 > Plus 年 > Plus 月：升級可買、同級到期前 7 天才能續、較低一律擋含年改月），這裡只是讓按鈕狀態跟它一致。 */
+  function curPeriod(planId) {
+    const C = window.TwCheckout, my = C && C.state && C.state().my;
+    if (!my || !Array.isArray(my.orders)) return '';
+    const now = my.now || Date.now();
+    const cur = my.orders.filter((o) => o && o.plan === planId && (o.grantTo || 0) > now && (o.grantFrom || 0) <= now).sort((a, b) => b.grantTo - a.grantTo)[0];
+    return cur ? cur.period : '';
+  }
+  const canYear = (p, me) => !!(me && me.id === p.id && TIER_RANK[p.id] && priceAt(p, S.per).period === 'year' && curPeriod(p.id) === 'month');
   function btnOf(p, me) {
     /* ★ 10-07 Andy「已是 pro 用戶但 plus 尚未包含」：以前只認「同一張＝目前方案、免費卡＝已包含」，其餘一律「升級」。
        改成比層級（rankOf：免費 0、付費＝折合每月價格，不寫死方案名）：比目前低＝已包含、同一張＝目前方案、比目前高才升級。站主全部已包含。 */
     if (me.tier === 'owner') return `<button type="button" class="prgo" disabled>已包含</button>`;
-    if (me.id === p.id) return `<button type="button" class="prgo" disabled>目前方案</button>`;
+    if (me.id === p.id) {
+      if (canYear(p, me)) {
+        const pend = pendTier();
+        if (pend && tierNum(p.id, 'year') <= pend.n) return `<button type="button" class="prgo prwait" disabled title="${esc(pend.name)}待審核中，審核完成前只能申請更高級別">待審核</button>`;
+        return `<button type="button" class="prgo" data-go="${esc(p.id)}" title="目前是 ${esc(showName(p))} 月繳，改選年繳（一次付清）">改選年繳</button>`;
+      }
+      return `<button type="button" class="prgo" disabled>目前方案</button>`;
+    }
     if (tierOf(p) === 'free' && me.tier === 'guest') return `<button type="button" class="prgo" data-go="${esc(p.id)}">免費註冊／登入</button>`;
     const mine = me.tier === 'free' ? 0 : me.tier === 'guest' ? -1 : (() => { const x = tidy(S.plans || FALLBACK).find((q) => q.id === me.id); return x ? rankOf(x) : -1; })();
     if (rankOf(p) <= mine) return `<button type="button" class="prgo" disabled>已包含</button>`;
@@ -603,7 +621,9 @@
     /* 10-07 排版統一：「適合…」一行移到欄頭（.mfit，跟合併表同一層）；這裡只留說明，固定 4 行高（沒寫也佔位），打勾清單才會三張卡同一條起跑線 */
     /* 10-07 17:50 Andy：免費方案的灰底說明框「沒必要」→ 註冊會員不畫內容，只留同高的空白，打勾清單仍跟 Plus／Pro 同一條起跑線 */
     const showFit = p.fit_desc && t !== 'free';
-    const fit = `<div class="prfit${showFit ? '' : ' nil'}"><p title="${esc(showFit ? p.fit_desc : '')}">${showFit ? esc(p.fit_desc) : '&nbsp;'}</p></div>`;
+    /* 目前是月繳、看年繳視圖：說明放在這個固定高度的說明區（不加在按鈕下面，三張卡的按鈕才會在同一條線上） */
+    const chgNote = canYear(p, me) ? `目前是 ${showName(p)} 月繳，改選年繳一次付清` : '';
+    const fit = chgNote ? `<div class="prfit"><p class="prchg">${esc(chgNote)}</p></div>` : `<div class="prfit${showFit ? '' : ' nil'}"><p title="${esc(showFit ? p.fit_desc : '')}">${showFit ? esc(p.fit_desc) : '&nbsp;'}</p></div>`;
     return `<div class="prcard pc-${esc(lk.color)}${hot ? ' hot' : ''}${need ? ' need' : ''}${isMine ? ' mine' : ''}" data-plan="${esc(p.id)}" data-tier="${t}">
       ${tag}<div class="prhd"><span class="prico">${svgI(lk.icon)}</span><h2 title="${esc(showName(p))}">${esc(showName(p))}</h2><div class="who" title="${esc(who)}">${esc(who)}</div></div>
       ${priceHtml(p)}<div class="mfit" title="${esc(p.fit_title || '')}">${p.fit_title ? esc(p.fit_title) : '&nbsp;'}</div><hr>

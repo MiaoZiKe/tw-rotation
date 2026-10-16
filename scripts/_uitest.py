@@ -71297,6 +71297,66 @@ def t_pay_1011(b, base):
         cm = [o for o in call(pc, "/v1/pay/my", {}).get("orders", []) if o["id"] == c4.get("id")]
         ok(f"{T}：carol 的我的訂單看不到這筆待付款", not cm, cm)
 
+        # ================= ⑦b 10-16 Andy：方案頁「目前方案」依週期（Plus 月→年視圖可改選年繳；Plus 年→兩個視圖都目前方案；Pro 同理）
+        call(ad, "/v1/admin/plans/put", {"id": "pro", "name": "Pro", "feats": {}, "price": 549, "period": "month", "price_year": 5268})
+        cgm = new_ctx(); pgm = cgm.new_page(); pgm.on("pageerror", lambda e: errs.append("gina-plan: " + str(e)))
+        fake_my = {}
+
+        def _my_route(route):
+            if route.request.method != "POST":
+                route.continue_()
+                return
+            route.fulfill(status=200, content_type="application/json", headers={"access-control-allow-origin": "*"}, body=json.dumps(fake_my))
+        pgm.route("**/v1/pay/my", _my_route)
+        pgm.goto(base + "#overview", wait_until="domcontentloaded")
+        wait_until(pgm, "() => !!document.getElementById('acctBtn')", 8000)
+        login(pgm, "gina")
+        pgm.goto(base + "#pricing", wait_until="domcontentloaded")
+        wait_until(pgm, "() => !!document.querySelector('#prPeriod button[data-per=month]')", 10000)
+        gina_mail = "gina@example.com"
+
+        def as_member(plan, per):
+            now_ms = int(time.time() * 1000)
+            call(ad, "/v1/admin/perm/put", {"email": gina_mail, "plan": plan, "expires": now_ms + 20 * 86400000})
+            name = {"plus": "Plus", "pro": "Pro"}[plan]
+            fake_my.clear()
+            fake_my.update({"reqs": [], "orders": [{"id": "LGFAKE" + plan + per, "plan": plan, "planName": name, "period": per, "amount": 299, "method": "ecpay", "recur": False, "parent": None, "periodN": 0, "periodState": "", "status": "active", "statusName": "已開通", "payType": "Credit", "payInfo": None, "payerName": "", "last5": "", "xferDate": "", "xferAmount": 0, "note": "", "rejectReason": "", "reports": [], "recvAmount": 0, "grantFrom": now_ms - 5 * 86400000, "grantTo": now_ms + 20 * 86400000, "refunded": 0, "test": True, "created": now_ms - 5 * 86400000, "paidAt": now_ms - 5 * 86400000, "confirmedAt": 0, "cancelAt": 0, "refunds": []}],
+                            "plan": plan, "planName": name, "expires": now_ms + 20 * 86400000, "autoRenew": False, "autoRenewId": "", "renew": None, "test": True, "now": now_ms})
+            pgm.evaluate("async () => { await TwPerm.refresh(); await TwCheckout.refresh(); }")
+            pgm.goto(base + "#overview", wait_until="domcontentloaded"); pgm.goto(base + "#pricing", wait_until="domcontentloaded")
+            wait_until(pgm, "() => !!document.querySelector('#prPeriod button[data-per=month]')", 10000)
+            pgm.evaluate("async () => { await TwPerm.refresh(); await TwCheckout.refresh(); }")
+
+        def btn_state(per, plan):
+            pgm.click(f"#prPeriod button[data-per={per}]")
+            pgm.wait_for_timeout(250)
+            return pgm.evaluate("(pl) => { const b = document.querySelector('.prcard[data-plan=' + pl + '] .prgo'); return b ? { t: b.textContent.trim(), dis: b.disabled, go: b.dataset.go || '' } : null; }", plan)
+        CASES = [("plus", "month", {"month": ("目前方案", True), "year": ("改選年繳", False)}, ("升級 Pro", False)),
+                 ("plus", "year", {"month": ("目前方案", True), "year": ("目前方案", True)}, ("升級 Pro", False)),
+                 ("pro", "month", {"month": ("目前方案", True), "year": ("改選年繳", False)}, ("已包含", True)),
+                 ("pro", "year", {"month": ("目前方案", True), "year": ("目前方案", True)}, ("已包含", True))]
+        for plan, per, want, other in CASES:
+            as_member(plan, per)
+            nm = {"plus": "Plus", "pro": "Pro"}[plan]
+            othp = "pro" if plan == "plus" else "plus"
+            got = {v: btn_state(v, plan) for v in ("month", "year")}
+            oth = {v: btn_state(v, othp) for v in ("month", "year")}
+            good = all(got[v] and (got[v]["t"], got[v]["dis"]) == want[v] for v in ("month", "year")) and all(oth[v] and (oth[v]["t"].startswith(other[0]), oth[v]["dis"]) == (True, other[1]) for v in ("month", "year"))
+            ok(f"{T}：方案頁（{nm} {'月繳' if per == 'month' else '年繳'}會員）月繳視圖「{want['month'][0]}」、年繳視圖「{want['year'][0]}」{'（可點）' if not want['year'][1] else '（禁用）'}；另一張卡（{'Pro' if plan == 'plus' else 'Plus'}）兩個視圖都是「{other[0]}」", good, {"自己": got, "另一張": oth})
+            pgm.click("#prPeriod button[data-per=year]")
+            shot(pgm, f"pricing_{plan}_{per}_yearview.png", "#prCards")
+            pgm.click("#prPeriod button[data-per=month]")
+            shot(pgm, f"pricing_{plan}_{per}_monthview.png", "#prCards")
+        # Plus 月繳 → 年繳視圖按「改選年繳」→ 進結帳視窗，徽章寫「年繳」
+        as_member("plus", "month")
+        pgm.click("#prPeriod button[data-per=year]")
+        note = pgm.evaluate("() => { const c = document.querySelector('.prcard[data-plan=plus] .prchg'); return c ? c.textContent : ''; }")
+        ok(f"{T}：年繳視圖的 Plus 卡按鈕下方寫明「目前是 Plus 月繳，改選年繳一次付清」", "月繳" in note and "改選年繳" in note, note)
+        pgm.click(".prcard[data-plan=plus] .prgo[data-go=plus]")
+        okd = bool(wait_until(pgm, "() => { const d = document.getElementById('subDlg'); return d && !d.hidden && !!d.querySelector('#coBadge') && /2,990/.test((document.getElementById('coAmt') || {}).innerText || ''); }", 10000))
+        bd = pgm.evaluate("() => (document.getElementById('coBadge') || {}).textContent")
+        ok(f"{T}：按「改選年繳」→ 結帳視窗開啟，標題徽章「年繳」、金額 NT$ 2,990／年", okd and bd == "年繳", bd)
+        cgm.close()
         # ================= ⑧ 手機 390：erin 轉帳送出；確認後到期前提醒＋再匯一期
         ce = new_ctx(390); pe = ce.new_page(); pe.on("pageerror", lambda e: errs.append("erin390: " + str(e)))
         pe.goto(base + "#pricing", wait_until="domcontentloaded")
