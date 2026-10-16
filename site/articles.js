@@ -650,8 +650,29 @@
     }
     return S.idxP;
   }
+  /* ------------------------------------------------------------------ 新文章的全文：只在會員後端（2026-10-16 防白嫖）
+     索引裡 src:'api' 的文章，公開檔只有標題／分類／日期／族群，全文要 POST /v1/articles/get（帶登入權杖）才拿得到；
+     訪客／註冊會員（0 篇）被伺服器 403、Plus 第 6 篇 402、Pro／管理者不限。次數由伺服器記，這裡只把伺服器回報的「已讀清單」併進快取給畫面用。
+     舊的 4 篇（沒有 src）維持原樣：靜態 JSON、本機計數。 */
+  const isRemote = (m) => !!m && m.src === 'api';
+  const legacyIds = () => new Set((S.idx ? S.idx.list : []).filter((a) => !isRemote(a)).map((a) => a.id));
+  async function remoteGet(id) {
+    const A = window.TwAccount, T = TQ();
+    if (!A || !A.call || !A.user || !A.user()) return { kind: 'auth' };
+    const j = await A.call('/v1/articles/get', { id });
+    if (!j) return { kind: 'net' };
+    const keep = legacyIds();
+    if (T && Array.isArray(j.reads) && Object.prototype.hasOwnProperty.call(j, 'limit') && j.limit != null) { T.merge(AID, j.reads, (k) => !keep.has(k)); T.setLimit(AID, j.limit); }
+    if (j.ok && j.post && j.post.title) return { kind: 'ok', d: Object.assign({}, j.post, { src: 'api' }) };
+    if (j._s === 401 || j.error === 'auth') return { kind: 'auth' };
+    if (j.error === 'quota') return { kind: 'quota' };
+    if (j.error === 'forbidden') { if (T) T.setLimit(AID, 0); return { kind: 'forbidden' }; }
+    if (j.error === 'not_found') return { kind: 'nf' };
+    return { kind: 'net' };
+  }
   function loadPost(id) {
     if (!okId(id)) return Promise.resolve(null);
+    if (isRemote(S.idx && S.idx.list.find((a) => a.id === id))) return remoteGet(id).then((r) => (r.kind === 'ok' ? r.d : null));   // 管理者用（GPT 交接）：伺服器照樣驗身分
     if (S.posts[id]) return S.posts[id];
     S.posts[id] = fetchJson('articles/posts/' + encodeURIComponent(id) + '.json').catch(() => { delete S.posts[id]; return null; });
     return S.posts[id];
@@ -734,7 +755,7 @@
   /* 權限／身分晚到或換了（登入、登出、管理者改了範本）：列表重畫；單篇只在「讀不讀得到」的規則真的變了才重載（避免記額度又觸發重載的迴圈） */
   function regate() {
     const head = (location.hash || '').replace(/^#/, '').split('/')[0];
-    if (head === 'articles') { if ($('#artList')) paintList(); }
+    if (head === 'articles') { if ($('#artList')) { paintList(); syncReads(); } }
     else if (head === 'article' && S.cur && S.sig && S.sig !== sigOf(access())) { const id = S.cur; S.cur = ''; showPost(id); }
   }
   window.addEventListener('tw:perm', regate);
@@ -767,8 +788,16 @@
   const LOCK_IC = '<svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><path fill="currentColor" d="M5 7V5a3 3 0 1 1 6 0v2h.5A1.5 1.5 0 0 1 13 8.5v5a1.5 1.5 0 0 1-1.5 1.5h-7A1.5 1.5 0 0 1 3 13.5v-5A1.5 1.5 0 0 1 4.5 7H5zm1.5 0h3V5a1.5 1.5 0 1 0-3 0v2z"/></svg>';
   const CHK_IC = '<svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><path d="M3 8.4l3.1 3.1L13 4.6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>';
   const TQ = () => (window.TwQuota && window.TwQuota.total) || null;
+  /* 2026-10-16 防白嫖 fail-closed：計數模組（quota.js）沒載入（被擋掉、載入失敗）時，**不再全開**，照訪客算（只看標題）；
+     只有「預覽版」與「會員系統根本沒開」（本機、沒設 account_config）才不鎖 */
+  function noTotalFallback() {
+    if (window.TW_PREVIEW) return { mode: 'full' };
+    const A = window.TwAccount, c = window.TW_ACCOUNT_OVERRIDE || window.TW_ACCOUNT;
+    if (A && A.on ? !A.on() : !(c && typeof c.api === 'string' && c.api)) return { mode: 'full' };
+    return { mode: 'none', lim: 0, used: 0, ids: [], tier: 'guest', demo: '' };
+  }
   function access() {
-    const T = TQ(); if (!T) return { mode: 'full' };
+    const T = TQ(); if (!T) return noTotalFallback();
     const lim = T.limit(AID);
     if (lim === Infinity) return { mode: 'full' };
     const ids = T.used(AID);
@@ -984,7 +1013,26 @@ ${gs.length ? `<section><h5>熱門族群</h5><div class="gps">${gs.map((g) => `<
     await Promise.all([loadIndex(), permReady()]);
     if (location.hash.replace(/^#/, '').split('/')[0] !== 'articles') return;   // 讀清單的時候使用者已經換頁
     paintList();
+    syncReads();
   }
+  /* 防白嫖：登入的 Plus 會員，「哪幾篇已解鎖、還剩幾篇」以伺服器為準（換瀏覽器／清資料也對得上）。同步回來後重畫列表 */
+  function syncReads() {
+    const T = TQ(); if (!T || !T.remote || !T.remote()) return;
+    const keep = legacyIds();
+    T.sync(AID).then((r) => {
+      if (!r || !r.ok || r.local) return;
+      if (Array.isArray(r.used)) T.merge(AID, r.used, (k) => !keep.has(k));
+    });
+  }
+  let repaintT = 0;
+  window.addEventListener('tw:total', (e) => {          // 計數（伺服器回報）變了：列表／單篇的鎖定狀態重畫
+    if (!e || !e.detail || e.detail.id !== AID) return;
+    clearTimeout(repaintT);
+    repaintT = setTimeout(() => {
+      const head = (location.hash || '').replace(/^#/, '').split('/')[0];
+      if (head === 'articles' && document.getElementById('artList')) paintList();
+    }, 60);
+  });
 
   /* ------------------------------------------------------------------ 單篇：內文區塊 */
   const NPAL = 7;   // 文章調色盤 --art-p1..7（css() 定義，深淺主題各一組）
@@ -1429,11 +1477,27 @@ ${gs.length ? `<section><h5>熱門族群</h5><div class="gps">${gs.map((g) => `<
     };
     let acc = access();
     if (!mayOpen(acc, id)) return locked(acc);
-    const d = await loadPost(id);
-    if (gone()) return;
-    if (!d || !d.title) return notFound();
-    /* 讀得到才記一次額度（讀不到的 id 不扣）；同一篇重讀 total.use 不重算。兩個分頁同時用掉最後一格的競態：use 回 false → 退回鎖定頁 */
-    if (acc.mode === 'quota' && !TQ().use(AID, id)) return locked(access());
+    let d;
+    if (isRemote(meta)) {
+      /* 新文章：伺服器才是裁判。本機判斷「可以讀」只代表「值得去問」；伺服器說不行（402 額度滿、403 沒權限、401 沒登入）就退回鎖定頁；連不到＝不顯示（fail-closed） */
+      const r = await remoteGet(id);
+      if (gone()) return;
+      if (r.kind === 'nf') return notFound();
+      if (r.kind === 'net') {
+        S.curData = null; S.sig = sigOf(acc); disposeCharts(root);
+        root.innerHTML = `<div class="card artpost" id="artPost"><button type="button" class="artback" id="artBack" data-to="#articles">← 返回</button><div class="arterr" id="artErr">會員伺服器暫時連不到，全文無法顯示。<br><a href="#article/${esc(encodeURIComponent(id))}" id="artRetry">重新載入</a>　<a href="#articles">回精選文章清單</a></div></div>`;
+        hydrate(root, {});
+        return;
+      }
+      if (r.kind !== 'ok') { const a2 = access(); return locked(a2.mode === 'full' ? { mode: 'none', lim: 0, used: 0, ids: [], tier: a2.tier || 'guest' } : a2); }
+      d = r.d;
+    } else {
+      d = await loadPost(id);
+      if (gone()) return;
+      if (!d || !d.title) return notFound();
+      /* 讀得到才記一次額度（讀不到的 id 不扣）；同一篇重讀不重算。兩個分頁同時用掉最後一格的競態：use 回 false → 退回鎖定頁。舊的靜態文章維持本機計數（它本來就是公開檔） */
+      if (acc.mode === 'quota' && !TQ().useLocal(AID, id)) return locked(access());
+    }
     acc = access();
     S.sig = sigOf(acc);
     markSub(CATS[d.cat] ? d.cat : meta && meta.cat);

@@ -6980,3 +6980,19 @@ Andy 10-12 原話：「CEO我這邊一頁一頁跟你說明並請你改動，以
 - 不要把用完的樣子改回升級卡或 toast（Andy 10-10、10-12 第 5 點「切記不要跳需要升級會員資訊，頂多沒反應」）。
 - features.js 的 `limBy`／`defBy` 要跟 plan_presets.js 註冊會員範本一致（驗收段 0 會比對）—— 線上範本沒按「套用建議方案」之前吃的是 limBy／defBy。
 - 已知、不是這批造成：資金輪動上方篩選一換，ECharts 丟「Cannot read properties of undefined (reading 'width')」（origin/main 同樣重現），另開工作追。
+
+## #359 防白嫖「最小有效版本」：新文章全文只在會員後端、訪客今日事件 5 次與 Plus 5 篇改伺服器計數、累計額度 fail-closed（資安，2026-10-16；預覽分支 preview/anti-freeload，尚未進 main；合併時若撞號請改號）
+- Andy 批准資安評估（`docs/security/anti_freeload_1016.md`）的最小版，並決定：**已公開的 4 篇維持原狀**（不改免費試閱、不刪、不改寫歷史）。
+- 新文章（索引 `src:"api"`）：全文存 Worker `article_body`，寫入只走機器路由 `put_body`（鑰匙＝`ARTICLE_BOT_KEY`，或最小權限的 `ARTICLE_PUT_KEY`，後者只能上傳／刪除／列出全文）；公開索引只有標題、分類、日期、`topic`、族群、`reading_min`（**不含摘要、副標、標籤**）。單篇 `POST /v1/articles/get`：未登入 401、註冊會員 403、Plus 累計 5 篇由**伺服器**計（`article_reads`，重讀不重複計）、第 6 篇 402、Pro／管理者不限；管理區對方案關掉 `art.read`／`art.cat.*` 時伺服器也照關。
+- 訪客今日事件 5 次：Worker 簽發訪客編號（`g1.<隨機>.<簽章>`，前端存 localStorage `tw.gid`、用標頭 `X-Tw-Guest` 送；**不用 Cookie**——跨網站 Cookie 在 Safari 等被擋、也要與隱私權政策「不使用 Cookie 進行追蹤」一致）＋連線 IP 的 HMAC 雜湊（IPv6 取 /64、**每週換鹽**換鹽時整批清掉舊雜湊、資料 8 天刪、訪客編號 180 天沒出現就刪）。共用 IP 緩解：同一個 IP 這週出現超過 3 個不同編號才啟用 IP 總量上限（個人上限×4＝20 次）。**所以同一個網路一週最多約 20 次，不是 5 次**（已寫進回報與 rollout 文件）。
+- fail-closed 只動 `art.read.n`、`events.total` 兩項：連不到會員伺服器／權限沒載入／`quota.js` 沒載入 → 照訪客算（5 次、0 篇）。**全站其他功能的「寧可多給，不要誤鎖」慣例不動。** 會員系統根本沒開（本機、沒設 account_config）與擁有者／管理員／預覽版仍不限。
+- 前端 `TwQuota.total`：伺服器為準、localStorage `tw.total` 只是顯示快取；`useAsync`（今日事件，問伺服器）、`sync`／`merge`（Plus 已讀清單）；舊的 4 篇靜態文章走 `useLocal`（本機計數，維持原狀）。伺服器的 Plus 5 篇**只計新文章**。
+- 隱私權政策（`site/legal.js`）補「訪客使用次數」「精選文章閱讀紀錄」兩列＋一段說明＋Cookie 與本機儲存補 `tw.gid`；保存期限與 Worker 一致（IP 雜湊 8 日、訪客編號 180 日、換鹽 7 日）。
+- 發佈流程：`scripts/article_publish.py` 先傳全文、`list_bodies` 確認後才寫「僅標題」索引；沒有鑰匙就**不退而求其次推 repo**，標 failed。全文絕不經過 public repo 的 Actions（紀錄與 `workflow_dispatch` 輸入值公開）。`pytest tests/test_article_public_guard.py` 守公開檔不洩漏。
+- 部署順序：**Worker 先、前端後**（前端新＋Worker 舊 ＝ 訪客今日事件全擋）。回滾見 `docs/security/anti_freeload_rollout_1016.md`。
+
+### 別順手改回去
+- 不要把新文章的摘要／副標／標籤放回公開 `index.json`、不要把全文放進 `site/articles/posts/`（pytest 會紅）。要給列表放摘要，得走後端。
+- 不要把 `art.read.n`／`events.total` 的「連不到」改回全開；也不要把這個 fail-closed 擴到其他功能（Andy 只要這兩個）。
+- 不要把訪客編號改放 Cookie（見上）；不要把 IP 原值存進任何表（測試會掃）；不要把換鹽拿掉。
+- 不要把 `BACKUP_TOKEN` 放進 Claude 環境（整庫匯出的鑰匙）；上傳全文用 `ARTICLE_PUT_KEY`。

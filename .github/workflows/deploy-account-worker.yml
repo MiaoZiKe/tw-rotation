@@ -48,6 +48,10 @@ jobs:
       - name: 金流訂單測試
         run: node --test workers/account-api/tests/pay.test.mjs
 
+      # 2026-10-16 防白嫖：新文章全文只在後端（未登入拿不到、Plus 第 6 篇拒絕）、訪客累計 5 次的伺服器端計數 —— 紅了就不准部署
+      - name: 防白嫖測試
+        run: node --test workers/account-api/tests/anti_freeload.test.mjs workers/account-api/tests/articles.test.mjs
+
       - id: guard
         name: 檢查金鑰
         env:
@@ -121,6 +125,22 @@ jobs:
           K=$(printf 'tw-article-jobs|%s' "$CLOUDFLARE_API_TOKEN" | sha256sum | cut -c1-48)
           echo "::add-mask::$K"
           printf '%s' "$K" | npx --yes wrangler@3 secret put ARTICLE_BOT_KEY >/dev/null && echo "已設定 ARTICLE_BOT_KEY"
+
+      # 2026-10-16 防白嫖：Claude 雲端環境把「新文章全文」傳進 Worker 用的最小權限鑰匙（選用）。
+      # 只能 put_body／del_body／list_bodies；Andy 自己想一串 24 字以上的隨機字串，同一串存成 repo Secret ARTICLE_PUT_KEY 與 Claude 環境變數 ARTICLE_BOT_KEY。沒設＝跳過（部署照常）。
+      - name: 精選文章全文上傳鑰匙（ARTICLE_PUT_KEY，有設才寫）
+        if: steps.guard.outputs.ok == 'true'
+        working-directory: workers/account-api
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          PUT_KEY: ${{ secrets.ARTICLE_PUT_KEY }}
+        run: |
+          if [ ${#PUT_KEY} -ge 24 ]; then
+            printf '%s' "$PUT_KEY" | npx --yes wrangler@3 secret put ARTICLE_PUT_KEY >/dev/null && echo "已設定 ARTICLE_PUT_KEY"
+          else
+            echo "::notice::沒設 ARTICLE_PUT_KEY（或少於 24 字）：跳過；新文章全文暫時無法由 Claude 上傳（見 docs/articles/production_guide.md「一次性設定」）"
+          fi
 
       # 2026-10-06 data-gw 停權端點的鑰匙（選用）：沒設＝/internal/suspend 不存在（404），其他功能不受影響
       - name: 選用 Secret（data-gw 停權鑰匙）

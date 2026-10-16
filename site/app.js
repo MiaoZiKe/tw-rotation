@@ -2846,15 +2846,26 @@
      卡片仍保留「用完就不畫清單、換提示卡」，萬一哪天 m4 不藏它，已用完的訪客也看不到清單。
      為什麼選「開啟抽屜」而不是「點新聞連結」：現行額度計法 events（每日瀏覽）就是看「抽屜在不在畫面上」，這個最貼近；點新聞連結另有 news.open，沿用不動。
      滿了：抽屜／卡片的內容**不畫**（不是 CSS 藏），換成「免費註冊」提示卡；註冊會員（events.total 預設 999＝不限）完全不受影響。
-     計數在 quota.js 的 TwQuota.total（localStorage，不歸零）；導覽（tour.js）進行中不扣不擋。只擋畫面、非伺服器端。 */
+     ★ 2026-10-16 防白嫖：計數改在伺服器（quota.js 的 TwQuota.total.useAsync → /v1/total/use：訪客編號＋IP 雜湊雙鍵），localStorage 只是顯示用快取；
+       清除網站資料、無痕視窗不再讓次數重來。連不到伺服器／quota.js 沒載入 ＝ 照訪客算（fail-closed），不是全開。
+       ⚠ 今日事件的資料本身（news.json、data/news）仍是公開檔，這道門擋的是「一般人」，不是會直接抓檔的人（已寫進隱私／已知限制文件）。
+     導覽（tour.js）進行中不扣不擋。 */
   const evTotalT = () => { const T = window.TwQuota && window.TwQuota.total; return T && T.limit('events.total') !== Infinity ? T : null; };
+  /* quota.js 根本沒載入（被擋掉、載入失敗）：會員系統有開就當「已用完」（fail-closed）；預覽版與會員系統沒開（本機）不鎖 */
+  const evNoQuota = () => {
+    if (window.TwQuota || window.TW_PREVIEW) return false;
+    const A = window.TwAccount, c = window.TW_ACCOUNT_OVERRIDE || window.TW_ACCOUNT;
+    return A && A.on ? !!A.on() : !!(c && typeof c.api === 'string' && c.api);
+  };
   const evTouring = () => { try { const s = window.TwTour && window.TwTour.state(); return !!(s && s.on); } catch (e) { return false; } };
   const evLockHTML = (id) => {
     const QC = window.TwQCard, T = evTotalT(), n = T ? T.limit('events.total') : 5;
     if (!QC) return `<div class="empty">訪客預覽已用完，免費註冊後即可繼續查看今日事件。<br><a href="#pricing/plan/free">免費註冊</a></div>`;
     if (QC.css) QC.css();
-    return `<div class="evlock" id="${id}" style="padding:12px 8px 16px">${QC.html({ kind: 'lock', kick: '訪客預覽・今日事件', title: `今日事件的訪客預覽 ${n} 次已用完`,
-      sub: `訪客累計可以打開今日事件 ${n} 次（不是每日，不會重置）。免費註冊成為會員，就能繼續查看今日事件。`, lh: '免費註冊還能使用',
+    /* 同一個網路的訪客總量用完（伺服器 why:'ip'）：這個人自己未必用過 5 次 → 換一句，不指責任何人，直接給免費註冊 */
+    const capped = !!T && T.capped && T.capped('events.total');
+    return `<div class="evlock" id="${id}" style="padding:12px 8px 16px">${QC.html({ kind: 'lock', kick: '訪客預覽・今日事件', title: capped ? '這個網路的訪客預覽次數已用完' : `今日事件的訪客預覽 ${n} 次已用完`,
+      sub: capped ? '同一個網路的訪客預覽有總量上限（本週已用完）。免費註冊成為會員，就能繼續查看今日事件。' : `訪客累計可以打開今日事件 ${n} 次（不是每日，不會重置）。免費註冊成為會員，就能繼續查看今日事件。`, lh: '免費註冊還能使用',
       items: ['今日事件的新聞、法說與券商目標價', '自選清單（登入後跨裝置同步）', '依註冊會員方案額度繼續使用'],
       btn: '免費註冊', href: '#pricing/plan/free', btnCls: 'qactgo' })}</div>`;
   };
@@ -2864,7 +2875,7 @@
     if (!view || !mIsM()) { if (old) old.remove(); return; }
     /* 訪客累計上限：已經用完 → 不畫清單、放提示卡（這張卡在 m4 是藏著的，見上面說明） */
     const evT = evTotalT();
-    const lockCard = !!evT && !evTouring() && evT.left('events.total') === 0;
+    const lockCard = (!!evT && !evTouring() && evT.left('events.total') === 0) || (evNoQuota() && !evTouring());
     const items = lockCard ? [] : (window.twEventItems || []);
     let box = old;
     if (!box) {
@@ -13719,12 +13730,31 @@
     const sel = $('#evDate');
     /* 訪客累計上限（見 miaEvents 上面的說明）：renderEventsWith 會被呼叫兩次（先 30 則、再完整版），所以「這次打開算過了嗎」存在函式本身上，不存在 closure。
        _ok：undefined＝還沒打開過；true＝這次打開有算到（內容看得到）；false＝這次打開時已經用完（換提示卡） */
-    const evBlocked = () => { const T = evTotalT(); return !!T && !evTouring() && (renderEventsWith._ok === false || (renderEventsWith._ok === undefined && T.left('events.total') === 0)); };
+    const evBlocked = () => {
+      if (evNoQuota() && !evTouring()) return true;
+      const T = evTotalT(); return !!T && !evTouring() && (renderEventsWith._ok === false || (renderEventsWith._ok === undefined && T.left('events.total') === 0));
+    };
+    /* 打開一次抽屜 ＝ 向伺服器要一次（_ok：'wait' 確認中、true 算到了、false 被拒或連不到）。伺服器還沒回之前清單不畫（不是先畫再收）。
+       會員系統沒開／預覽版示範身分沒有伺服器可問 → 照舊同步本機計數 */
     const evGate = () => {
       const T = evTotalT();
-      renderEventsWith._ok = !T || evTouring() ? true : T.use('events.total', 'o' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5));
+      if (!T || evTouring()) { renderEventsWith._ok = true; return; }
+      const key = 'o' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5);
+      if (!T.remote || !T.remote()) { renderEventsWith._ok = T.use('events.total', key); return; }
+      const tok = renderEventsWith._gt = (renderEventsWith._gt || 0) + 1;
+      renderEventsWith._ok = 'wait';
+      T.useAsync('events.total', key).then((ok) => {
+        if (renderEventsWith._gt !== tok) return;      // 使用者已經關掉又開（新的一輪）：舊的結果作廢
+        renderEventsWith._ok = !!ok; draw();
+        try { miaEvents(); } catch (e) { /* 不是手機／還沒畫 */ }
+      });
     };
     const draw = () => {
+      if (renderEventsWith._ok === 'wait') {
+        $('#evList').innerHTML = '<div class="empty" id="evWait" style="padding:24px 16px">確認訪客預覽額度中…</div>';
+        sel.innerHTML = '<option value="all">—</option>'; sel.value = 'all';
+        return;
+      }
       if (evBlocked()) {
         $('#evList').innerHTML = evLockHTML("evLock");
         sel.innerHTML = '<option value="all">—</option>'; sel.value = 'all';

@@ -30,6 +30,8 @@ def t_today_events_5(b, base, code):
         if preview:
             init += "window.TW_PREVIEW={name:'uitest'};"
         c.add_init_script(init)
+        # 2026-10-16 防白嫖：計數改在伺服器。這段測的是「畫面行為」，所以用一個照伺服器規則回應的假的 /v1/total/*（真的 Worker 另有「防白嫖後端1016」端到端驗）
+        af_fake_total(c, used=[f"o{i}" for i in range(5)] if seed else [])
         return c
 
     def boot(pg, suffix="#overview"):

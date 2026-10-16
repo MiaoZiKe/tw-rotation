@@ -22,6 +22,7 @@ const { hub } = makeHub({
   __now: () => Date.now() + CLOCK.off,
   ALLOWED_ORIGINS: ORIGIN, GOOGLE_CLIENT_ID: CID, GOOGLE_CLIENT_SECRET: 'dev', ADMIN_EMAILS: 'andy@example.com',
   GOOGLE_AUTH_URL: BASE + '/__g/auth', GOOGLE_TOKEN_URL: BASE + '/__g/token',
+  ARTICLE_BOT_KEY: 'dev-article-bot-key-0123456789abcdef',   // 2026-10-16 防白嫖驗收：本機機器路由的鑰匙（只在本機 devserver，不是正式鑰匙）
   ECPAY_STAGE_HOST: BASE,   // 2026-10-11：綠界改打下面的「假綠界」（pay.js 只收 127.0.0.1）
 });
 const codes = new Map();
