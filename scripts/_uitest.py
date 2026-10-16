@@ -71617,8 +71617,13 @@ def t_articles_1014(b, base):
     got = drag_select(pg, "#artBody > p")
     ev, dn, st = copy_blocked(pg, "#artBody > p")
     ok(f"{T}：單篇內文選不到字、copy／右鍵被攔", got.strip() == "" and ev and dn >= 2, [got, ev, dn, st])
-    st = pg.evaluate("() => ({ wm: getComputedStyle(document.body, '::after').backgroundImage.slice(0, 40), pe: getComputedStyle(document.body, '::after').pointerEvents, pos: getComputedStyle(document.body, '::after').position })")
-    ok(f"{T}：整頁斜向浮水印（body::after 固定層、SVG 背景、不吃滑鼠）", "svg" in st["wm"] and st["pe"] == "none" and st["pos"] == "fixed", st)
+    st = pg.evaluate("() => { const a = getComputedStyle(document.getElementById('artPost'), '::after'); const side = document.querySelector('#v-articles .artside, #v-articles aside'); return { wm: a.backgroundImage.slice(0, 40), pe: a.pointerEvents, pos: a.position, body: getComputedStyle(document.body, '::after').backgroundImage, side: side ? getComputedStyle(side, '::after').backgroundImage : 'none' }; }")
+    ok(f"{T}：浮水印只在文章卡裡（#artPost::after、SVG 背景、不吃滑鼠）；整頁、側欄、目錄沒有（10-16 Andy：浮水印只有在文章內，不是周邊都要有）",
+       "svg" in st["wm"] and st["pe"] == "none" and st["pos"] == "absolute" and st["body"] == "none" and st["side"] == "none", st)
+    pg.goto(base + "#articles"); wait_until(pg, "() => document.querySelectorAll('#artList .artc').length > 0", 8000)
+    lw = pg.evaluate("() => getComputedStyle(document.body, '::after').backgroundImage")
+    ok(f"{T}：文章列表頁沒有浮水印（只有點進單篇才有）", lw == "none", lw)
+    pg.goto(base + "#article/uitest-full-1016"); wait_until(pg, "() => !!document.querySelector('#artBody .artsteps')", 8000)
     if os.environ.get("TW_ART_SHOTS3"):
         s3 = Path(os.environ["TW_ART_SHOTS3"]); s3.mkdir(parents=True, exist_ok=True)
         pg.goto(base + "#articles"); wait_until(pg, "() => !!document.querySelector('#artList [data-vw]:not([hidden])')", 8000); pg.wait_for_timeout(2800)
@@ -71687,8 +71692,8 @@ def t_articles_1014(b, base):
     wait_until(gp0, "() => document.querySelectorAll('#artBody [_echarts_instance_]').length > 0", 20000); gp0.wait_for_timeout(1500)
     lt = gp0.evaluate("""() => { const c = [...document.querySelectorAll('#artBody [_echarts_instance_]')].map(e => echarts.getInstanceByDom(e)).filter(Boolean)[0];
         const g = c ? (c.getOptionWm().graphic || []).flatMap(x => x.elements || [x]).find(e => e.id === '__twwm') : null;
-        return { th: document.documentElement.getAttribute('data-theme'), fill: g ? (g.style || {}).fill : '', bg: getComputedStyle(document.body, '::after').backgroundImage.includes('0%2C0%2C0') }; }""")
-    ok(f"{T}：淺色主題 → 圖表浮水印換黑 6%、整頁浮水印換深色字", lt["th"] == "light" and "0,0,0" in lt["fill"].replace(" ", "") and lt["bg"], lt)
+        return { th: document.documentElement.getAttribute('data-theme'), fill: g ? (g.style || {}).fill : '', bg: getComputedStyle(document.getElementById('artPost'), '::after').backgroundImage.includes('0%2C0%2C0') }; }""")
+    ok(f"{T}：淺色主題 → 圖表浮水印換黑 6%、文章卡浮水印換深色字", lt["th"] == "light" and "0,0,0" in lt["fill"].replace(" ", "") and lt["bg"], lt)
     if os.environ.get("TW_ART_SHOTS3"):
         gp0.screenshot(path=str(Path(os.environ["TW_ART_SHOTS3"]) / "overview-light-1440.png"))
     gc0.close()

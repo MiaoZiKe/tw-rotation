@@ -44,7 +44,9 @@
   css.textContent = `
 :root{--tw-wm:${tile('rgba(255,255,255,0.045)')}}
 :root[data-theme="light"]{--tw-wm:${tile('rgba(0,0,0,0.05)')}}
-html.twwm body::after{content:"";position:fixed;inset:0;z-index:2147483000;pointer-events:none;background-image:var(--tw-wm);background-repeat:repeat;background-size:260px 170px}
+/* 10-16 Andy：「浮水印只有在文章內，不是周邊都要有」→ 只鋪在單篇文章卡（#artPost）裡；側欄、頁首、右側目錄、文章列表都沒有 */
+html.twwm #artPost{position:relative}
+html.twwm #artPost::after{content:"";position:absolute;inset:0;z-index:5;pointer-events:none;border-radius:inherit;background-image:var(--tw-wm);background-repeat:repeat;background-size:260px 170px}
 html.twnocopy body{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
 html.twnocopy input,html.twnocopy textarea,html.twnocopy select,html.twnocopy [contenteditable]:not([contenteditable="false"]),html.twnocopy [contenteditable]:not([contenteditable="false"]) *,
 html.twnocopy [data-copyable],html.twnocopy [data-copyable] *{-webkit-user-select:text;user-select:text;-webkit-touch-callout:default}
@@ -58,7 +60,7 @@ html.twnocopy [data-copyable],html.twnocopy [data-copyable] *{-webkit-user-selec
   /* 2026-10-16 Andy：「除了文章以外，其他都不用出現背景有浮水印」→ 整頁浮水印與圖表浮水印只在精選文章（#articles、#article/<id>）出現；
      防複製照舊全站（#admin/* 除外）。*/
   const isArt = () => /^#articles?(\/|$)/.test(location.hash || '');
-  const inArt = (node) => !!(node && node.closest && node.closest('#v-articles'));
+  const inArt = (node) => !!(node && node.closest && node.closest('#artPost'));
   const syncWm = () => root.classList.toggle('twwm', isArt());
   syncWm();
   window.addEventListener('hashchange', syncWm);
