@@ -1290,8 +1290,13 @@ def plan_steps(name: str, today: date | None = None) -> list[dict]:
     # ETF 月更新用自己的 tag（e 前綴）：避免與族群月更新共用 done 鍵，也避開舊跳過邏輯標過的鍵。
     # 2026-10-05 晚：ETF 月更新改抓 etfdiv（寫 etf_dividend_events，鍵含除息日，月配每期都留）＋除息結果；
     #   ETF 不再寫 dividend_events，一次請求不浪費。
-    return [dict(s) for s in PLANS[name]] + [m, {**m, "datasets": "divresult+etfdiv",
-                                                 "scope": "etf", "tag": "e" + m["tag"]}]
+    # ★ 2026-10-16 Andy：「ETF 日曆 10/16 明明有 00947 但為何沒出現」——
+    #   ETF 配息公告通常在除息前 2～4 週才出來，月更新（10 月初抓過就不再抓）會整個月漏掉月中才公告的除息。
+    #   改成：除息結果（divresult）照舊每月一次；配息公告（etfdiv）每週兩次（週一～三一輪、週四～日一輪），
+    #   約 390 檔 × 2 輪 ≈ 每週 780 次請求，額度吃得下。
+    etf_month = {**m, "datasets": "divresult", "scope": "etf", "tag": "e" + m["tag"]}
+    etf_week = {**m, "datasets": "etfdiv", "scope": "etf", "tag": etf_week_tag(today)}
+    return [dict(s) for s in PLANS[name]] + [m, etf_month, etf_week]
 
 
 def _codes_for_scope(scope: str, limit: int | None) -> list[str]:
@@ -1308,12 +1313,19 @@ def _codes_for_scope(scope: str, limit: int | None) -> list[str]:
     return target_codes(limit)
 
 
+def etf_week_tag(today: date | None = None) -> str:
+    """ETF 配息公告的輪次 tag：w年-週a（週一～三）／b（週四～日）。plan_steps 與 backfill.yml 守門共用。"""
+    t = today or datetime.now(TAIPEI).date()
+    iso = t.isocalendar()
+    return f"w{iso[0]}-{iso[1]:02d}{'a' if iso[2] <= 3 else 'b'}"
+
+
 def plan_is_done(prog: dict, name: str = "default", today: date | None = None) -> bool:
     """進度檔裡的計畫是否已補齊且仍在同一個月（月更新步驟的 tag 換了就算未完成）。"""
     flag = (prog.get("complete") or {}).get(f"plan:{name}")
     if not isinstance(flag, dict) or not flag.get("done"):
         return False
-    return flag.get("month") == monthly_step(today)["tag"][1:]
+    return flag.get("month") == monthly_step(today)["tag"][1:] and flag.get("week") == etf_week_tag(today)
 
 
 def run_plan(name: str, limit: int | None, today: date | None = None) -> dict:
@@ -1374,6 +1386,7 @@ def run_plan(name: str, limit: int | None, today: date | None = None) -> dict:
         "done": all_done,
         "at": datetime.now(timezone.utc).isoformat(),
         "month": month,
+        "week": etf_week_tag(today),   # 2026-10-16：ETF 配息公告每週兩輪，守門要看這個
         "steps": results,
         "stopped_at": stopped_at,
     }

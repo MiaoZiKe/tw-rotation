@@ -100,6 +100,10 @@ jobs:
                   # 計畫的 done 只在同一個月內有效（月更新步驟的 tag 每月不同）
                   month = datetime.now(timezone(timedelta(hours=8))).strftime("%Y-%m")
                   done = done and isinstance(flag, dict) and flag.get("month") == month
+                  # 2026-10-16：ETF 配息公告每週兩輪（週一～三 a、週四～日 b），輪次換了就放行
+                  _t = datetime.now(timezone(timedelta(hours=8))).date().isocalendar()
+                  _wk = f"w{_t[0]}-{_t[1]:02d}{'a' if _t[2] <= 3 else 'b'}"
+                  done = done and flag.get("week") == _wk
                   # 計畫補齊後才新增的步驟（例：2026-09-25 加的大盤分 K index_intraday）
                   # 不會被 plan:default 的 done 涵蓋；不看它的話排程一律跳過，新步驟永遠不會跑。
                   # 所以 index_intraday 還沒補完（台指期逐筆不可用時 run_backfill 自己會把 done 設成真），照樣放行一輪。

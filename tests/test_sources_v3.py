@@ -1069,7 +1069,12 @@ def test_etf回補_計畫有新鍵_月更新抓etfdiv():
     from pipeline import run_backfill
     steps = run_backfill.plan_steps("default", date(2026, 10, 5))
     assert any(s["datasets"] == "etfdiv" and s.get("scope") == "etf" for s in steps)
-    assert steps[-1]["datasets"] == "divresult+etfdiv" and steps[-1]["scope"] == "etf"
+    assert steps[-1]["datasets"] == "etfdiv" and steps[-1]["scope"] == "etf"
+    assert steps[-2]["datasets"] == "divresult" and steps[-2]["scope"] == "etf"
+    # 2026-10-16：配息公告每週兩輪（週一～三、週四～日各一個 tag），不再一個月只抓一次
+    assert steps[-1]["tag"] == "w2026-41a"
+    assert run_backfill.plan_steps("default", date(2026, 10, 8))[-1]["tag"] == "w2026-41b"
+    assert run_backfill.plan_steps("default", date(2026, 10, 12))[-1]["tag"] == "w2026-42a"
     assert "etfdiv" in run_backfill.DATA_KEYS and "etfdiv" not in run_backfill.ETF_SKIP_KEYS
 
 

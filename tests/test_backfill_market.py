@@ -181,7 +181,8 @@ def _run_guard(tmp_path: Path, complete: dict) -> dict:
 
 def _all_done_complete() -> dict:
     tp = datetime.now(timezone(timedelta(hours=8)))
-    cp = {"plan:default": {"done": True, "month": tp.strftime("%Y-%m")},
+    # 2026-10-16：ETF 配息公告改半週一輪，計畫旗標多了 week（換半週就要放行）
+    cp = {"plan:default": {"done": True, "month": tp.strftime("%Y-%m"), "week": run_backfill.etf_week_tag(tp.date())},
           # 2026-09-28：大盤分 K 多了櫃買 IX0043.TWO（yahoo_v 3）與加權真實 1 分 K（tse1m_v 1）兩個版本鍵
           "index_intraday": {"done": True, "yahoo_v": 3, "tse1m_v": 1},
           "inst_fresh": {"done": True, "date": tp.strftime("%Y-%m-%d")},
@@ -198,6 +199,15 @@ def _all_done_complete() -> dict:
 
 def test_守門_全部補齊才跳過(tmp_path):
     assert _run_guard(tmp_path, _all_done_complete())["skip"] == "true"
+
+
+def test_守門_換半週要放行_ETF配息公告(tmp_path):
+    """2026-10-16：00947 10/16 除息沒出現 —— 配息公告原本一個月才抓一次。旗標的 week 不是本半週就要放行。"""
+    cp = _all_done_complete()
+    cp["plan:default"]["week"] = "w2000-01a"
+    assert _run_guard(tmp_path, cp)["skip"] == "false"
+    cp["plan:default"].pop("week")
+    assert _run_guard(tmp_path, cp)["skip"] == "false"
 
 
 def test_守門_大盤分K舊版進度要放行(tmp_path):
