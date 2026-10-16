@@ -1408,7 +1408,7 @@
    · 自己已經有框的（.osc、#themeDetail>.card、#indChain #dgSec／#relSec）不再套第二層。
    · 卡裡面原本替圖單獨掛的外框（.m4cbox／#lwc 以外）拿掉，免得框中有框；圖的內框交給卡片外框。
    · 樣式全走變數（深／淺、三套主題自動跟著換）；內距 10～12px；只在 ≤640＋html.m4，桌機不動。
-   分批：第 1 批 = 總覽、資金流向、熱力圖（本段末尾的 :is(…) 選擇器逐批擴充）。
+   分批：第 1 批 = 總覽、資金流向、熱力圖；第 2 批 = 產業地圖、市場明細、週期統計、選股（本段的 :is(…) 選擇器逐批擴充）。
    ---------------------------------------------------------------------------- */
 @media (max-width:640px){
   :root.m4{
@@ -1419,16 +1419,6 @@
     --m4-cd-gap:10px;
   }
   /* ---- 第 1 批：總覽、資金流向、熱力圖 ---- */
-  :root.m4 :is(#v-overview,#v-flow,#v-heatmap) .card:not(.card .card):not(#m4-none){
-    background:var(--m4-cd-bg)!important;border:1px solid var(--m4-cd-bd)!important;border-radius:var(--m4-cd-r)!important;
-    padding:var(--m4-cd-pad)!important;margin:0 0 var(--m4-cd-gap)!important;box-sizing:border-box;box-shadow:none!important;overflow:hidden}
-  /* 卡片之間不再靠分隔線（第 5、14 節那條 border-top）；外層 m4sep 只是個包裝，線拿掉 */
-  :root.m4 :is(#v-overview,#v-flow,#v-heatmap) :is(.m4sep,.m4sepb):has(>.card:not(.card .card)){border-top:0!important;border-bottom:0!important;margin-top:0!important;margin-bottom:0!important;padding-top:0!important;padding-bottom:0!important}
-  /* 卡裡面的圖原本自己掛一圈框（.m4cbox）→ 拿掉，框交給卡片 */
-  :root.m4 :is(#v-overview,#v-flow,#v-heatmap) .card:not(.card .card) .m4cbox:not(#m4-none){background:transparent!important;border:0!important;border-radius:0!important}
-}
-
-/* ============================================================================
    ★ 2026-10-16 手機 3D 不准跳出 iOS 文字選取選單（Andy iPhone 實機：「產業地圖切換到3D圖之後 其他分頁不能使用」）
    截圖：3D 點了編號 03 之後，畫面中間跳出「拷貝｜使用 Google 搜尋」，整片被選取染成藍灰。
    iOS 只要頁面上掛著一段文字選取，下一次點擊多半只被拿去「取消選取」，不會變成 click ——
@@ -1444,4 +1434,26 @@
   :root.m4 .m4subtabs, :root.m4 .m4subtabs *,
   :root.m4 .msheetback, :root.m4 .msheet .mgrab, :root.m4 .msheet .mshhead{
     -webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+=======
+  :root.m4 :is(#v-overview,#v-flow,#v-heatmap,#v-industry,#v-market,#v-season) .card:not(.card .card):not(#m4-none){
+    background:var(--m4-cd-bg)!important;border:1px solid var(--m4-cd-bd)!important;border-radius:var(--m4-cd-r)!important;
+    padding:var(--m4-cd-pad)!important;margin:0 0 var(--m4-cd-gap)!important;box-sizing:border-box;box-shadow:none!important;overflow:hidden}
+  /* 卡片之間不再靠分隔線（第 5、14 節那條 border-top）；外層 m4sep 只是個包裝，線拿掉 */
+  :root.m4 :is(#v-overview,#v-flow,#v-heatmap,#v-industry,#v-market,#v-season) :is(.m4sep,.m4sepb):has(>.card:not(.card .card)){border-top:0!important;border-bottom:0!important;margin-top:0!important;margin-bottom:0!important;padding-top:0!important;padding-bottom:0!important}
+  /* 卡裡面的圖原本自己掛一圈框（.m4cbox）→ 拿掉，框交給卡片 */
+  :root.m4 :is(#v-overview,#v-flow,#v-heatmap,#v-industry,#v-market,#v-season) .card:not(.card .card) .m4cbox:not(#m4-none){background:transparent!important;border:0!important;border-radius:0!important}
+  /* 卡裡面「左右滑的列」不再拓寬到螢幕邊（第 30 節）：拓寬會超出卡片、被卡片邊緣切掉第一項／最後一項。改回卡片內容寬，列自己照樣可以用手指左右拖。
+     兩個 :not(#…) ＝ 兩個 ID 的權重，蓋得過第 30 節那條帶兩個 #m4-none 的 !important。 */
+  :root.m4 :is(#v-overview,#v-flow,#v-heatmap,#v-industry,#v-market,#v-season) .card:not(.card .card) .m4bleed:not(#m4-n1):not(#m4-n2):not(#m4-n3){
+    width:auto!important;margin-left:0!important;margin-right:0!important;padding-left:0!important;padding-right:0!important;
+    border-left-width:1px!important;border-right-width:1px!important;border-radius:9px!important;scroll-padding-inline:0}
+  /* ---- 第 2 批：產業地圖（含產業鏈）、題材、市場明細、週期統計、選股 ----
+     卡裡面自己再掛的框（供應鏈關聯圖／剖析圖外框）一併拿掉，只留最外層一圈；選股頁沒有 .card，每一張策略卡（.sl-card）各自一框。 */
+  :root.m4 :is(#v-industry,#v-heatmap) .card:not(.card .card) :is(#dgSec,#relSec,.dgwrap):not(#m4-none){
+    background:transparent!important;border:0!important;border-radius:0!important;margin-left:0!important;margin-right:0!important;padding-left:0!important;padding-right:0!important}
+  :root.m4 #v-explore .sl-card:not(#m4-none){
+    background:var(--m4-cd-bg)!important;border:1px solid var(--m4-cd-bd)!important;border-radius:var(--m4-cd-r)!important;
+    padding:var(--m4-cd-pad)!important;margin:0 0 var(--m4-cd-gap)!important;box-sizing:border-box;box-shadow:none!important;overflow:hidden}
 }
+
+/* =====================================================================}
