@@ -185,7 +185,6 @@
   /* ---- 子分頁（2026-10-03，Andy：資金流向拆三格、熱力圖拆產業／題材）：父頁下面的縮排子項 ----
      layout4.js 插在 #tabs 裡、父頁按鈕後面（class l4subtab，不是 .tab）；order 跟父頁一樣，同 order 時照 DOM 順序 → 緊跟在父頁下面。
      左邊一條細線對齊父頁圖示中心，像樹狀目錄；目前那格＝主色淡底＋主色字＋主色線（跟分頁「實心反白」區分：這是「在哪一段」）。 */
-  :root.l4 .tabs>.l4subtab[data-parent="articles"]{order:1}   /* 2026-10-14 精選文章三個子項（消息／介紹／知識），跟在精選文章下面、財經日曆上面 */
   :root.l4 .tabs>.l4subtab[data-parent="flow"]{order:2}
   :root.l4 .tabs>.l4subtab[data-parent="heatmap"]{order:3}
   :root.l4 .tabs>.l4subtab[data-parent="etf"]{order:5}   /* v9：ETF 三個子項（配息行事曆／ETF 總覽／現金流試算），跟在 ETF 下面 */
@@ -210,7 +209,6 @@
   /* 有子分頁亮著時，父頁不再實心反白（同一個位置不要亮兩格），改成粗體字表示「在這一頁裡」 */
   /* 2026-10-06：子項收著時目前那格看不到，母分頁恢復實心反白（只在 .tabs 沒有 data-cs 收合時才讓位給子項） */
   :root.l4[data-l4sub^="flow-"] .tabs:not([data-cs~="flow"])>.tab[data-view="flow"].on,:root.l4[data-l4sub^="heat-"] .tabs:not([data-cs~="heatmap"])>.tab[data-view="heatmap"].on,
-  :root.l4:is([data-l4sub="art-news"],[data-l4sub="art-intro"],[data-l4sub="art-know"]) .tabs:not([data-cs~="articles"])>.tab[data-view="articles"].on,
   :root.l4[data-l4sub^="etf-"] .tabs:not([data-cs~="etf"])>.tab[data-view="etf"].on,
   :root.l4[data-l4sub^="mkt-"] .tabs:not([data-cs~="market"])>.tab[data-view="market"].on,:root.l4[data-l4sub^="xp-"] .tabs:not([data-cs~="explore"])>.tab[data-view="explore"].on{
     background:transparent;color:var(--ink);box-shadow:none;font-weight:700}

@@ -1538,3 +1538,26 @@
   :root.m4 #ovFlowHead:has(>.ftm4hd){display:flex;align-items:center;gap:6px}
   :root.m4 .row.spread:has(>.ftm4hd)>h3{flex:1 1 auto!important}
 }
+
+/* ============================================================================
+   ★ artnav1016 精選文章分頁（2026-10-16 Andy：「精選文章已經裡面有分頁，側邊子分頁就拿掉，並且手機版的分頁需要適當調整寬度」）
+   根因：第 23 節把所有頁內切換（.nbsw 也算）掛成分段控制器，寫了 width:fit-content!important（權重含一個 id），
+   articles.js 自己的 #artCats{width:100%!important} 權重較低 → 外框縮成字寬：430 寬時只有 360px、右邊空一截，
+   四格各 ~84px 又塞「比比產業鏈」這種長名，看起來擠。
+   做法：兩個 id 的權重把外框蓋回滿寬、四格等寬（grid 1fr×4）；手機改用短名（全部／快訊／產業鏈／知識，articles.js 的 data-s），
+   篇數縮成 11px 小字跟在後面。⚠ 全在 ≤640＋:root.m4，桌機一條都不吃（桌機守門1008 驗）。
+   ============================================================================ */
+@media (max-width:640px){
+  :root.m4 #v-articles.view.on #artCats#artCats.nbsw{display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr))!important;
+    width:auto!important;max-width:none!important;min-width:0!important;margin-left:8px!important;margin-right:8px!important;overflow:hidden!important;
+    /* 左右各留 8px 跟下面的文章卡對齊；第 30 節 .m4bleed（滿版帶子：拿掉左右框與圓角、右緣淡出）不適用 —— 四格本來就放得下，不需要滑 */
+    padding:2px!important;border-left-width:1px!important;border-right-width:1px!important;border-radius:9px!important;-webkit-mask-image:none!important;mask-image:none!important}
+  :root.m4 #v-articles.view.on #artCats#artCats.nbsw>button{width:auto!important;min-width:0!important;padding:0 4px!important;gap:3px!important;
+    font-size:13px!important;white-space:nowrap!important;overflow:hidden}
+  /* 長名藏起來、換短名：短名用 ::after 放在圖示後面、篇數前面（order） */
+  :root.m4 #v-articles.view.on #artCats#artCats.nbsw>button>span{display:none!important}
+  :root.m4 #v-articles.view.on #artCats#artCats.nbsw>button::after{content:attr(data-s);order:1;min-width:0;overflow:hidden;text-overflow:ellipsis}
+  :root.m4 #v-articles.view.on #artCats#artCats.nbsw>button>svg{order:0;flex:none}
+  :root.m4 #v-articles.view.on #artCats#artCats.nbsw>button>em{display:inline!important;order:2;flex:none;font-size:11px!important;margin-left:1px!important;font-style:normal;opacity:.8}
+  :root.m4 #v-articles.view.on #artCats#artCats.nbsw>button>em:empty{display:none!important}
+}
