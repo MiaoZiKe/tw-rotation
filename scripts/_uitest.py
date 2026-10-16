@@ -71241,6 +71241,10 @@ def t_articles_1014(b, base):
         VIEWS[first_real[0]["id"]] = 1234
     api_log = []
     JOBS = []   # 產出佇列（假 Worker；10-16 二版）
+    _td = today
+    _rid = [x["id"] for x in sorted(real, key=lambda a: a["date"], reverse=True)]
+    DAILY = sorted([[str(_td - _dt.timedelta(days=k)), i, n] for k, i, n in
+                    ([(3, _rid[0], 5), (1, _rid[0], 7), (0, _rid[0], 4)] + ([(1, _rid[1], 6), (0, _rid[1], 2)] if len(_rid) > 1 else []) + ([(0, _rid[2], 9)] if len(_rid) > 2 else []))])
 
     def api_route(r, mode):
         req = r.request
@@ -71261,6 +71265,8 @@ def t_articles_1014(b, base):
             i = str(body.get("id", ""))
             VIEWS[i] = VIEWS.get(i, 0) + 1
             return r.fulfill(status=200, body=json.dumps({"ok": True, "id": i, "views": VIEWS[i]}), headers=hd)
+        if path == "/v1/articles/stats/daily":   # 每日點閱（假資料：今天與前 1、3 天）
+            return r.fulfill(status=200, body=json.dumps({"first": DAILY[0][0] if DAILY else None, "rows": DAILY}), headers=hd)
         if path == "/v1/articles/jobs/list":
             return r.fulfill(status=200, body=json.dumps({"jobs": list(reversed(JOBS))}), headers=hd)
         if path == "/v1/articles/jobs/add":
@@ -71755,6 +71761,37 @@ def t_articles_1014(b, base):
         return { id: w.closest('.card').id, mh, h: Math.round(r0.height), over, oy: getComputedStyle(w).overflowY, headOk }; })""")
     ok(f"{T}：三張表都限高（≤ 520px）、超過就表內出捲軸、往下捲表頭仍固定在上面；主題清單 {len(tops)} 筆一定超過要捲",
        len(sc) == 3 and all(x["mh"] <= 520 and x["h"] <= 522 and x["oy"] == "auto" and x["headOk"] for x in sc) and any(x["id"] == "artAdmTopics" and x["over"] for x in sc), sc)
+    # 點閱統計（Andy 10-16：「新增統計數據……可以篩選族群 類型，需要將資訊可視化，並且圖表 排版格式follow 流量觀測」）
+    wait_until(ap, "() => !!document.querySelector('#artStDays')", 8000)
+    rbi = {x["id"]: x for x in real}
+    SK = """() => ({ k: [...document.querySelectorAll('#artStKpi > div')].map(d => [d.querySelector('span:last-child').textContent, d.querySelector('b').textContent]),
+        days: [...document.querySelectorAll('#artStDays .dc')].map(d => +d.dataset.n), lg: [...document.querySelectorAll('#artStDonut li')].map(l => [l.dataset.k, +l.dataset.n]),
+        top: [...document.querySelectorAll('#artStTop .bl')].map(b => b.dataset.k), grp: [...document.querySelectorAll('#artStGrp .bl')].map(b => b.textContent),
+        cards: [...document.querySelectorAll('#artStats .admgrid > .card')].map(c => [c.id, c.querySelector('h3').textContent, getComputedStyle(c.querySelector('h3'), '::before').width]) })"""
+    st = ap.evaluate(SK); tot = sum(x[2] for x in DAILY)
+    pc = {}
+    for d, i, n in DAILY:
+        pc[rbi[i]["cat"]] = pc.get(rbi[i]["cat"], 0) + n
+    ok(f"{T}：點閱統計照流量觀測版型（KPI 卡五格、四張卡片 h3 前面有色塊）、期間點閱＝{tot}、每日直條加總對、類別圓餅對、熱門文章依次數排",
+       len(st["k"]) == 5 and st["k"][0] == ["期間點閱", str(tot)] and sum(st["days"]) == tot and len(st["days"]) == 30
+       and dict(st["lg"]) == pc and len(st["cards"]) == 4 and all(c[2] == "4px" for c in st["cards"])
+       and st["top"][0] == max({i for _, i, _ in DAILY}, key=lambda i: sum(n for _, j, n in DAILY if j == i)), st)
+    one = rbi[DAILY[0][1]]["cat"]
+    ap.select_option("#artStCat", one); ap.wait_for_timeout(200)
+    st = ap.evaluate(SK)
+    ok(f"{T}：點閱統計選類別「{one}」→ 圓餅只剩它、熱門文章都是它、期間點閱＝{pc[one]}", [x[0] for x in st["lg"]] == [one] and all(rbi[t]["cat"] == one for t in st["top"]) and st["k"][0][1] == str(pc[one]), st)
+    ap.select_option("#artStCat", "")
+    g = ap.evaluate("() => { const o = document.querySelector('#artStGrpSel option:nth-child(2)'); return o ? [o.value, o.textContent] : null; }")
+    if g:
+        ap.select_option("#artStGrpSel", g[0]); ap.wait_for_timeout(200)
+        st = ap.evaluate(SK)
+        want = sum(n for _, i, n in DAILY if any(x.get("id") == g[0] for x in rbi[i].get("groups", [])))
+        ok(f"{T}：點閱統計選族群「{g[1]}」→ 期間點閱＝掛這個族群的文章加總 {want}、族群長條只剩它", st["k"][0][1] == str(want) and (st["grp"] == [g[1]] if want else True), st)
+        ap.select_option("#artStGrpSel", "")
+    ap.select_option("#artStRng .rpsel", "7"); ap.wait_for_timeout(200)
+    st = ap.evaluate(SK)
+    ok(f"{T}：點閱統計期間切「近 7 天」→ 直條 7 根、加總不變（假資料都在近 4 天）", len(st["days"]) == 7 and sum(st["days"]) == tot, st["days"])
+    ap.select_option("#artStRng .rpsel", "30")
     # 已上架文章篩選（Andy 10-16：「上架文章之後會越來越多，所以也需要有日期 類型 分類」）
     AROWS = "() => [...document.querySelectorAll('#artAdmBody tr[data-id]')].map(r => [r.dataset.cat, r.dataset.date, r.querySelector('td.l').textContent])"
     allr = ap.evaluate(AROWS)

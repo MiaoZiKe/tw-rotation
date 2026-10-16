@@ -84,3 +84,21 @@ test('產出佇列：管理者排／重複不排／取消；備份權杖讀未�
   assert.equal((await bot(h3, { op: 'open' }, 'short')).s, 403);
 
 });
+
+test('每日點閱：計數同時記台北日期；管理者讀得到明細、非管理者擋', async () => {
+  const { hub } = makeHub({ ...env, GOOGLE_CLIENT_ID: CID });
+  const andy = await login(hub, 'andy@example.com'), bob = await login(hub, 'bob@example.com');
+  const t0 = clock;
+  clock = Date.parse('2026-10-16T17:00:00Z');   // 台北 10-17 01:00
+  await pj(hub, '/v1/articles/view', { id: 'a-1111' }, '9.9.9.1');
+  await pj(hub, '/v1/articles/view', { id: 'a-1111' }, '9.9.9.2');
+  await pj(hub, '/v1/articles/view', { id: 'b-2222' }, '9.9.9.1');
+  clock += 86400e3;
+  await pj(hub, '/v1/articles/view', { id: 'a-1111' }, '9.9.9.3');
+  assert.equal((await pj(hub, '/v1/articles/stats/daily', { t: bob })).s, 403);
+  const d = (await pj(hub, '/v1/articles/stats/daily', { t: andy })).j;
+  assert.equal(d.first, '2026-10-17');
+  assert.deepEqual(d.rows, [['2026-10-17', 'a-1111', 2], ['2026-10-17', 'b-2222', 1], ['2026-10-18', 'a-1111', 1]]);
+  assert.deepEqual((await pj(hub, '/v1/articles/stats/daily', { t: andy, from: '2026-10-18' })).j.rows, [['2026-10-18', 'a-1111', 1]]);
+  clock = t0;
+});

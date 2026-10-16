@@ -5,7 +5,7 @@
    · 文章 id 只收英數、點、底線、減號（最長 80）；資料表最多 3000 列，避免被灌垃圾 id
    ============================================================================ */
 export function installArticles(Hub, EXPORT_TABLES) {
-  if (EXPORT_TABLES && !EXPORT_TABLES.includes('article_views')) EXPORT_TABLES.push('article_views');   // 備份一起帶走
+  for (const t of ['article_views', 'article_views_day']) if (EXPORT_TABLES && !EXPORT_TABLES.includes(t)) EXPORT_TABLES.push(t);   // 備份一起帶走
   const ID_RE = /^[A-Za-z0-9._-]{4,80}$/;
   const DEDUP_MS = 30 * 60 * 1000, IP_HOUR_MAX = 120, MAX_ROWS = 3000;
   /* 備份匯出前要先有表（見 pay.js 的 expInit 做法）*/
@@ -14,6 +14,8 @@ export function installArticles(Hub, EXPORT_TABLES) {
   Hub.prototype.artInit = function () {
     if (this._artOk) return;
     this.q('CREATE TABLE IF NOT EXISTS article_views (id TEXT PRIMARY KEY, views INTEGER DEFAULT 0, updated INTEGER)');
+    /* 2026-10-16 每日點閱（Andy：「新增統計數據，可以統計文章點擊次數，可以篩選族群 類型，需要將資訊可視化」）：只記「台北日期＋文章＋次數」，不記是誰；保留 400 天 */
+    this.q('CREATE TABLE IF NOT EXISTS article_views_day (day TEXT, id TEXT, n INTEGER, PRIMARY KEY (day, id))');
     this._artSeen = new Map();   // ip|id → 上次計數時間
     this._artIp = new Map();     // ip → [小時, 次數]
     this._artOk = true;
@@ -32,6 +34,9 @@ export function installArticles(Hub, EXPORT_TABLES) {
         const exists = this.q('SELECT 1 FROM article_views WHERE id = ?', id).length;
         if (exists || this.q('SELECT COUNT(*) AS c FROM article_views')[0].c < MAX_ROWS) {
           this.q('INSERT INTO article_views (id, views, updated) VALUES (?, 1, ?) ON CONFLICT(id) DO UPDATE SET views = views + 1, updated = excluded.updated', id, now);
+          const day = new Date(now + 8 * 3600e3).toISOString().slice(0, 10);
+          this.q('INSERT INTO article_views_day (day, id, n) VALUES (?, ?, 1) ON CONFLICT(day, id) DO UPDATE SET n = n + 1', day, id);
+          if (Math.random() < 0.01) this.q('DELETE FROM article_views_day WHERE day < ?', new Date(now + 8 * 3600e3 - 400 * 86400e3).toISOString().slice(0, 10));
           this._artSeen.set(k, now);
           if (this._artSeen.size > 20000) this._artSeen.clear();
           if (!r || r[0] !== hr) this._artIp.set(ip, [hr, 1]); else r[1]++;
@@ -39,6 +44,15 @@ export function installArticles(Hub, EXPORT_TABLES) {
         }
       }
       return this.json(req, { ok: true, id, views: views(this, id) });
+    },
+    /* 管理者：每日點閱明細 {t, from?} → {first, rows:[[day, id, n]…]}（from 預設 400 天前；first＝有紀錄的第一天） */
+    '/v1/articles/stats/daily': async function (req, b) {
+      if (!(await this.admin(req, b))) return this.json(req, { error: 'forbidden' }, 403);
+      this.artInit();
+      const lim = new Date(this.now() + 8 * 3600e3 - 400 * 86400e3).toISOString().slice(0, 10);
+      const from = /^\d{4}-\d\d-\d\d$/.test(String(b.from || '')) && b.from > lim ? b.from : lim;
+      const first = (this.q('SELECT MIN(day) AS d FROM article_views_day')[0] || {}).d || null;
+      return this.json(req, { first, rows: this.q('SELECT day, id, n FROM article_views_day WHERE day >= ? ORDER BY day', from).map((r) => [r.day, r.id, r.n]) });
     },
     '/v1/articles/stats': async function (req) {
       this.artInit();

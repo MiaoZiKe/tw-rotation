@@ -74,7 +74,7 @@
   const defRange = () => { const t = tpeToday(); return { from: monthAgo(t), to: t }; };
 
   const S = { views: null, statsP: null, statsAt: 0, idx: null, idxP: null, idxErr: false, cat: 'all', q: '', from: null, to: null, grp: new Set(), ms: null,
-    posts: {}, cur: '', curData: null, backOk: false, topics: null, topicsP: null, tcat: 'all', tsort: 'desc', tsels: [], jobs: null, af: { cat: 'all', grp: '', from: '', to: '', q: '' }, jf: { kind: '', st: '', q: '' } };
+    posts: {}, cur: '', curData: null, backOk: false, topics: null, topicsP: null, tcat: 'all', tsort: 'desc', tsels: [], jobs: null, af: { cat: 'all', grp: '', from: '', to: '', q: '' }, jf: { kind: '', st: '', q: '' }, ss: { period: '30', from: '', to: '', cat: '', grp: '', daily: null, first: null } };
 
   /* 「← 返回」要不要用 history.back()：只有「在站內從別頁換過來」才有上一頁可回；直接貼網址開的，回該類別清單 */
   window.addEventListener('hashchange', (e) => {
@@ -400,6 +400,61 @@
 #v-subadm .artadm .hd{display:flex;align-items:center;gap:var(--sp-2);flex-wrap:wrap;margin-bottom:var(--sp-2)}
 #v-subadm .artadm .hd .sp{flex:1}
 #v-subadm .artadm .hd .muted{font-size:var(--fs-min)}
+/* ---- 點閱統計（Andy 10-16：「新增統計數據，可以統計文章點擊次數，可以篩選族群 類型，需要將資訊可視化，並且圖表 排版格式follow 流量觀測」）
+   版型照 admin.js 流量觀測：區段標題列（h2＋小字＋期間元件）→ KPI 卡 → 三欄格線卡片（h3 前面一條色塊、灰色副標、.cb 圖區吃滿） */
+#artStats .secttl{display:flex;align-items:center;gap:var(--sp-2);flex-wrap:wrap;margin:var(--sp-2) 0 0}
+#artStats .secttl h2{margin:0;font-size:18px;font-weight:700}
+#artStats .secttl small{color:var(--ink-2);font-size:13px}
+#artStats .secttl .sp{flex:1}
+#artStats .secttl .rpk{flex-wrap:nowrap}
+#artStats .secttl select{height:30px;border-radius:8px;border:1px solid var(--line-2);background:var(--panel-3);color:var(--ink);padding:0 8px;font:inherit;font-size:13px}
+#artStats .secttl .icobtn{height:30px;width:30px;display:inline-grid;place-items:center;border-radius:8px;border:1px solid var(--line-2);background:var(--panel-3);color:var(--ink);cursor:pointer}
+#artStats .secttl .icobtn svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+#artStats .trkpi{display:flex;align-items:center;gap:16px;flex-wrap:wrap;padding:14px 16px;margin-top:12px}
+#artStats .kpis{flex:1 1 560px;display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:12px;margin:0}
+#artStats .kpis>div{text-align:center;display:flex;flex-direction:column;align-items:center;gap:2px;font-size:13px;color:var(--ink-2);white-space:nowrap;min-width:0}
+#artStats .kpis b{display:block;font-size:24px;line-height:1.15;font-weight:700;color:var(--ink);font-family:var(--mono);font-variant-numeric:tabular-nums;max-width:100%;overflow:hidden;text-overflow:ellipsis}
+#artStats .kpis b.t{font-family:inherit;font-size:15px;line-height:1.6}
+#artStats .kpis .ic{display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:8px;margin-bottom:2px;background:color-mix(in srgb,currentColor 16%,transparent)}
+#artStats .kpis .ic svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+#artStats .admgrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));grid-auto-rows:minmax(300px,auto);gap:var(--gap-card,12px);margin-top:12px}
+#artStats .admgrid>.s2{grid-column:span 2}
+#artStats .admgrid>.card{display:flex;flex-direction:column;min-width:0;padding:14px 16px;margin:0}
+#artStats .admgrid>.card>h3{display:flex;align-items:center;gap:8px;white-space:nowrap;margin:0;font-size:var(--fs-h3,16px);font-weight:600;line-height:1.3}
+#artStats .admgrid>.card>h3::before{content:"";width:4px;height:14px;border-radius:2px;background:var(--accent,var(--cyan));flex:none}
+#artStats .admgrid>.card>.use{margin:2px 0 10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:13px;line-height:20px;color:var(--ink-2)}
+#artStats .cb{flex:1 1 auto;min-height:0;display:flex;flex-direction:column}
+#artStats .empty{flex:1;display:grid;place-items:center;color:var(--ink-3);font-size:13px;min-height:120px}
+#artStats .bars{flex:1;display:grid;grid-template-columns:minmax(0,9.5em) minmax(0,1fr) 6em;grid-auto-rows:32px;align-content:space-evenly;column-gap:12px;align-items:center;font-size:14px}
+#artStats .bars .bl{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#artStats #artStTop.bars{grid-template-columns:minmax(0,22em) minmax(0,1fr) 6em}
+#artStats .secttl small{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#artStats .bars .bt{height:10px;background:var(--panel-3);border-radius:3px;overflow:hidden;display:flex}
+#artStats .bars .bt i{display:block;height:100%}
+#artStats .bars .bn{font-family:var(--mono);text-align:center;white-space:nowrap;font-variant-numeric:tabular-nums}
+#artStats .bars .bn small{display:inline-block;width:3em;color:var(--ink-2);font-size:12px}
+#artStats .dayplot{flex:1;display:flex;gap:6px;min-height:200px}
+#artStats .dayy{display:flex;flex-direction:column;justify-content:space-between;font-family:var(--mono);font-size:11px;color:var(--ink-3);text-align:right;min-width:2.5em;padding-bottom:18px}
+#artStats .days{flex:1;position:relative;display:flex;align-items:flex-end;gap:2px;border-bottom:1px solid var(--line);margin-bottom:18px}
+#artStats .days .dc{flex:1;min-width:0;height:100%;display:flex;flex-direction:column-reverse;position:relative;cursor:default}
+#artStats .days .dc i{display:block;width:100%;flex:none}
+#artStats .days .dc i:last-child{border-radius:3px 3px 0 0}
+#artStats .days .dc:hover{background:color-mix(in srgb,var(--ink) 6%,transparent)}
+#artStats .days .dc .dd{position:absolute;bottom:-18px;left:50%;transform:translateX(-50%);font-family:var(--mono);font-size:10.5px;color:var(--ink-3);white-space:nowrap}
+#artStats .days .avg{position:absolute;left:0;right:0;border-top:1px dashed var(--ink-3);pointer-events:none}
+#artStats .days .avg b{position:absolute;left:4px;top:-18px;font-size:11px;font-weight:600;color:var(--ink-2);background:var(--panel);padding:0 4px}
+#artStats .dn{flex:1;display:flex;align-items:center;gap:16px;min-height:200px}
+#artStats .dnc{flex:none;width:150px;height:150px;border-radius:50%;position:relative;display:grid;place-items:center}
+#artStats .dnc::after{content:"";position:absolute;inset:26px;border-radius:50%;background:var(--panel)}
+#artStats .dnc span{position:relative;z-index:1;text-align:center;font-size:12px;color:var(--ink-2);line-height:1.3}
+#artStats .dnc span b{display:block;font-family:var(--mono);font-size:20px;color:var(--ink)}
+#artStats .lg{list-style:none;margin:0;padding:0;flex:1;min-width:0;display:flex;flex-direction:column;gap:8px;font-size:13px}
+#artStats .lg li{display:grid;grid-template-columns:12px minmax(0,1fr) auto 3.5em;gap:8px;align-items:center}
+#artStats .lg li i{width:10px;height:10px;border-radius:3px}
+#artStats .lg li span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#artStats .lg li b{font-family:var(--mono);font-weight:600}
+#artStats .lg li small{color:var(--ink-3);text-align:right;font-family:var(--mono)}
+#artStats .note{font-size:12px;color:var(--ink-3);margin:6px 0 0}
 /* Andy 10-16：「文章管理 每個表格清單都需要限制長度，太長都使用拉Bar」→ 三張表各自限高、表內捲動、表頭固定 */
 #v-subadm .artadm .tbw{overflow:auto;max-height:var(--artadm-h,420px);overscroll-behavior:contain;border:1px solid var(--line);border-radius:var(--r-sm,8px)}
 #v-subadm .artadm #artAdmTopics .tbw{--artadm-h:520px}
@@ -1103,6 +1158,7 @@ ${gs.length ? `<section><h5>熱門族群</h5><div class="gps">${gs.map((g) => `<
     const gm = new Map(); list.forEach((a) => (a.groups || []).forEach((g) => { if (!gm.has(g.id)) gm.set(g.id, g.name); }));
     const grpOpts = [...gm].sort((x, y) => x[1].localeCompare(y[1], 'zh-Hant')).map(([id, n]) => `<option value="${esc(id)}">${esc(n)}</option>`).join('');
     v.innerHTML = `
+<section id="artStats" class="artadm"></section>
 <div class="card artadm" id="artAdmList">
   <div class="hd"><h3>已上架文章</h3><span class="muted">${list.length} 篇${idx && idx.updated ? '・清單更新 ' + esc(idx.updated) : ''}</span></div>
   <div class="aflt" id="artAdmFlt">
@@ -1172,6 +1228,7 @@ ${gs.length ? `<section><h5>熱門族群</h5><div class="gps">${gs.map((g) => `<
       await loadJobs(); paintTopics(v); paintJobs(v);
     });
     paintTopics(v); paintJobs(v);
+    paintStats(v); Promise.all([loadDaily(), loadStats(true)]).then(() => { if (location.hash === '#admin/articles') paintStats(v); });
   }
   function tpMsg(v, t, err) { const m = $('#artTpMsg', v); if (!m) return; m.hidden = !t; m.textContent = t || ''; m.classList.toggle('err', !!err); }
   const SEL_MAX = 5;
@@ -1216,6 +1273,76 @@ ${gs.length ? `<section><h5>熱門族群</h5><div class="gps">${gs.map((g) => `<
     <td class="dm" title="${esc(gs.join('、'))}">${gs.length ? esc(gs.join('、')) : '<span class="muted">—</span>'}</td>
     <td class="dm" title="${esc(tpTitle(a.topic))}">${a.topic && tpTitle(a.topic) ? esc(tpTitle(a.topic)) : '<span class="muted">—</span>'}</td></tr>`; }).join('')
       : `<tr><td colspan="6" class="muted">${S.idx ? (all.length ? '沒有符合篩選條件的文章' : '還沒有上架的文章') : '文章清單讀不到'}</td></tr>`;
+  }
+  /* ---------------- 點閱統計 ---------------- */
+  function loadDaily() {
+    return acctCall('/v1/articles/stats/daily', {}).then((j) => { const ss = S.ss;
+      ss.daily = j && Array.isArray(j.rows) ? j.rows.filter((r) => Array.isArray(r) && /^\d{4}-\d\d-\d\d$/.test(r[0]) && okId(r[1]) && Number.isFinite(+r[2])) : null;
+      ss.first = j && /^\d{4}-\d\d-\d\d$/.test(String(j.first || '')) ? j.first : null; return ss.daily; });
+  }
+  const dShift = (d, n) => new Date(Date.parse(d + 'T00:00:00Z') + n * 86400e3).toISOString().slice(0, 10);
+  const nf = (n) => Math.round(n).toLocaleString('zh-TW');
+  const CAT_COL = { news: 'var(--art-news)', intro: 'var(--art-intro)', know: 'var(--art-know)' };
+  const ICO = { eye: '<path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/>', avg: '<path d="M3 3v18h18"/><path d="M7 15l4-4 3 3 5-6"/>',
+    doc: '<path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6"/>', star: '<path d="M12 3l2.9 6 6.1.9-4.5 4.3 1.1 6.3L12 17.8 6.4 20.5l1.1-6.3L3 9.9 9.1 9z"/>', sum: '<path d="M18 4H6l6 8-6 8h12"/>' };
+  const kpi = (ic, col, n, lab, cls) => `<div style="color:${col}"><span class="ic"><svg viewBox="0 0 24 24" aria-hidden="true">${ICO[ic]}</svg></span><b${cls ? ` class="${cls}"` : ''} title="${esc(String(n))}">${esc(String(n))}</b><span>${esc(lab)}</span></div>`;
+  function statRange() {
+    const ss = S.ss, today = tpeToday();
+    if (ss.period === 'since') return { from: ss.from || dShift(today, -29), to: ss.to || today };
+    return { from: dShift(today, -(+ss.period - 1)), to: today };
+  }
+  function paintStats(v) {
+    const box = $('#artStats', v); if (!box) return;
+    const ss = S.ss, list = S.idx ? S.idx.list : [], byId = new Map(list.map((a) => [a.id, a]));
+    const gm = new Map(); list.forEach((a) => (a.groups || []).forEach((g) => { if (!gm.has(g.id)) gm.set(g.id, g.name); }));
+    if (ss.grp && !gm.has(ss.grp)) ss.grp = '';
+    const rng = statRange();
+    const pass = (a) => a && (!ss.cat || a.cat === ss.cat) && (!ss.grp || (a.groups || []).some((g) => g.id === ss.grp));
+    const rows = (ss.daily || []).filter((r) => r[0] >= rng.from && r[0] <= rng.to && pass(byId.get(r[1])));
+    const days = []; for (let d = rng.from; d <= rng.to && days.length < 400; d = dShift(d, 1)) days.push(d);
+    const perDay = {}, perArt = {}, perCat = {}, perGrp = {};
+    rows.forEach(([d, id, n]) => { const a = byId.get(id); n = +n;
+      (perDay[d] = perDay[d] || {})[a.cat] = (perDay[d][a.cat] || 0) + n;
+      perArt[id] = (perArt[id] || 0) + n; perCat[a.cat] = (perCat[a.cat] || 0) + n;
+      (a.groups || []).forEach((g) => { if (!ss.grp || g.id === ss.grp) perGrp[g.id] = (perGrp[g.id] || 0) + n; }); });
+    const tot = Object.values(perCat).reduce((x, y) => x + y, 0);
+    const dsum = (d) => Object.values(perDay[d] || {}).reduce((x, y) => x + y, 0);
+    const top = Object.entries(perArt).sort((x, y) => y[1] - x[1]);
+    const life = list.filter(pass).reduce((s0, a) => s0 + (viewsOf(a.id) || 0), 0);
+    const opt = [['7', '近 7 天'], ['30', '近 30 天'], ['90', '近 90 天'], ['365', '近 365 天'], ['since', '起始日期～至今']];
+    const dmax = Math.max(1, ...days.map(dsum)), avg = tot / Math.max(1, days.length), few = days.length <= 14;
+    const tip = (d) => `${d}：${nf(dsum(d))} 次` + CAT_KEYS.filter((k) => perDay[d] && perDay[d][k]).map((k) => `\n${CATS[k].t} ${nf(perDay[d][k])}`).join('');
+    const dayHtml = !ss.daily ? '<div class="empty">讀不到每日點閱（會員伺服器沒回應）</div>' : !tot ? '<div class="empty">這段期間沒有點閱紀錄</div>'
+      : `<div class="dayplot"><div class="dayy">${[1, 0.75, 0.5, 0.25, 0].map((f) => `<span>${nf(dmax * f)}</span>`).join('')}</div><div class="days" id="artStDays">${days.map((d, i) =>
+        `<div class="dc" data-day="${d}" data-n="${dsum(d)}" title="${esc(tip(d))}">${CAT_KEYS.filter((k) => perDay[d] && perDay[d][k]).map((k) => `<i style="height:${(perDay[d][k] / dmax * 100).toFixed(1)}%;background:${CAT_COL[k]}"></i>`).join('')}${few || i % Math.ceil(days.length / 8) === 0 ? `<span class="dd">${d.slice(5).replace('-', '/')}</span>` : ''}</div>`).join('')}
+        ${days.length > 1 ? `<div class="avg" style="bottom:${(avg / dmax * 100).toFixed(1)}%"><b>平均 ${nf(avg)}</b></div>` : ''}</div></div>`;
+    let acc = 0;
+    const segs = CAT_KEYS.filter((k) => perCat[k]).map((k) => { const a0 = acc; acc += perCat[k] / tot * 360; return `${CAT_COL[k]} ${a0.toFixed(2)}deg ${acc.toFixed(2)}deg`; });
+    const donut = !tot ? '<div class="empty">沒有資料</div>' : `<div class="dn" id="artStDonut"><div class="dnc" role="img" aria-label="各類別點閱占比" style="background:conic-gradient(${segs.join(',')})"><span>期間點閱<b>${nf(tot)}</b></span></div>
+      <ul class="lg">${CAT_KEYS.filter((k) => perCat[k]).sort((x, y) => perCat[y] - perCat[x]).map((k) => `<li data-k="${k}" data-n="${perCat[k]}"><i style="background:${CAT_COL[k]}"></i><span>${CATS[k].t}</span><b>${nf(perCat[k])}</b><small>${(perCat[k] / tot * 100).toFixed(1)}%</small></li>`).join('')}</ul></div>`;
+    const barsH = (ents, nm, colOf, id) => !ents.length ? '<div class="empty">沒有資料</div>' : `<div class="bars" id="${id}">` + (() => { const mx = Math.max(...ents.map((e) => e[1]), 1);
+      return ents.map(([k, n]) => `<span class="bl" title="${esc(nm(k))}" data-k="${esc(k)}">${esc(nm(k))}</span><span class="bt"><i style="width:${(n / mx * 100).toFixed(1)}%;background:${colOf(k)}"></i></span><span class="bn" data-n="${n}">${nf(n)}<small> ${(n / Math.max(1, tot) * 100).toFixed(0)}%</small></span>`).join(''); })() + '</div>';
+    const topArt = barsH(top.slice(0, 10), (id) => (byId.get(id) || {}).title || id, (id) => CAT_COL[(byId.get(id) || {}).cat] || 'var(--cyan)', 'artStTop');
+    const grpEnts = Object.entries(perGrp).sort((x, y) => y[1] - x[1]).slice(0, 10);
+    const grpBars = barsH(grpEnts, (g) => gm.get(g) || g, () => 'var(--cat-1,var(--cyan))', 'artStGrp');
+    const best = top[0] && byId.get(top[0][0]);
+    box.innerHTML = `<div class="secttl"><h2>點閱統計</h2><small>共 ${nf(tot)} 次點閱</small><span class="sp"></span>
+      <select id="artStCat" aria-label="類別"><option value="">全部類別</option>${CAT_KEYS.map((k) => `<option value="${k}"${ss.cat === k ? ' selected' : ''}>${CATS[k].t}</option>`).join('')}</select>
+      <select id="artStGrpSel" aria-label="族群"><option value="">全部族群</option>${[...gm].sort((x, y) => x[1].localeCompare(y[1], 'zh-Hant')).map(([id, n]) => `<option value="${esc(id)}"${ss.grp === id ? ' selected' : ''}>${esc(n)}</option>`).join('')}</select>
+      ${(() => { const ref = '<button type="button" class="icobtn" id="artStRef" title="重新整理" aria-label="重新整理"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12a9 9 0 0 0-15.5-6.2L3 8"/><path d="M3 3v5h5"/><path d="M3 12a9 9 0 0 0 15.5 6.2L21 16"/><path d="M16 16h5v5"/></svg></button>';
+        return window.RangePick ? window.RangePick.html({ id: 'artStRng', options: opt, value: ss.period, from: rng.from, to: rng.to, max: tpeToday(), custom: 'since', extra: ref }) : ref; })()}</div>
+    <div class="card trkpi"><div class="kpis" id="artStKpi">${kpi('eye', 'var(--cyan)', nf(tot), '期間點閱')}${kpi('avg', 'var(--art-intro)', nf(avg), '日平均')}${kpi('doc', 'var(--art-know)', nf(top.length), '被點文章數')}${kpi('star', 'var(--art-news)', best ? best.title : '—', '最熱門文章', 't')}${kpi('sum', 'var(--ink-2)', nf(life), '累計點閱（上架至今）')}</div></div>
+    <div class="admgrid">
+      <div class="card s2" id="artStDayCard"><h3>每天被點幾次？</h3><p class="use" title="每天的文章點閱次數，依類別顏色堆疊；虛線＝期間平均">依類別堆疊・虛線＝平均</p><div class="cb">${dayHtml}</div></div>
+      <div class="card" id="artStCatCard"><h3>各類別占多少？</h3><p class="use">期間點閱依類別分</p><div class="cb">${donut}</div></div>
+      <div class="card s2" id="artStTopCard"><h3>哪篇文章最多人看？</h3><p class="use">期間點閱前 10 名・顏色＝類別</p><div class="cb">${topArt}</div></div>
+      <div class="card" id="artStGrpCard"><h3>哪個族群最多人看？</h3><p class="use" title="一篇文章掛多個族群時，點閱分別算進每個族群">文章點閱依相關族群加總・前 10</p><div class="cb">${grpBars}</div></div>
+    </div>
+    <p class="note">每日點閱自 ${esc(ss.first || '2026-10-16')} 開始記錄；之前的只有累計數。只記「哪天、哪篇、幾次」，不記是誰；同一人 30 分鐘內重複打開只算一次。</p>`;
+    $('#artStCat', box).onchange = (e) => { ss.cat = e.target.value; paintStats(v); };
+    $('#artStGrpSel', box).onchange = (e) => { ss.grp = e.target.value; paintStats(v); };
+    $('#artStRef', box).onclick = () => { loadDaily().then(() => { loadStats(true); paintStats(v); }); };
+    if (window.RangePick) window.RangePick.bind($('#artStRng', box), { onChange: ({ value, from, to }) => { ss.period = value; if (value === 'since') { ss.from = from; ss.to = to; } paintStats(v); } });
   }
   function paintJobs(v) {
     const body = $('#artJobBody', v); if (!body) return;
