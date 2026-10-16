@@ -44,7 +44,8 @@
        管理頁與鎖頭各自呼叫 addGroups() 補進來（見下面 grpKey 的鍵對照）。*/
     { id: 'grp', name: '族群觀測' },
     { id: 'explore', name: '選股策略' },  // 2026-10-05 新分類（docs/explore_page_spec.md）
-    { id: 'earnings', name: '財經日曆' }   // 2026-10-05（晚）新分類（site/earnings.js）
+    { id: 'earnings', name: '財經日曆' },  // 2026-10-05（晚）新分類（site/earnings.js）
+    { id: 'articles', name: '精選文章' }   // 2026-10-16 新分類（site/articles.js）
   ];
 
   /* 個股分頁：桌機（#stockTabs／#stockTab）與手機（#mbTabs／#mbBody）是兩套 DOM、兩套代號，這裡一次宣告兩邊 */
@@ -398,6 +399,14 @@
     'mkt.updown': ['mkt-updown'], 'mkt.streak': ['mkt-streak'], 'mkt.ma': ['mkt-ma'], 'mkt.cand': ['mkt-cand'],
     'etf.calendar': ['etf-cal'], 'etf.list': ['etf-list'], 'etf.cashflow': ['etf-inc'], 'etf.inc.comp': ['etf-cx']
   };
+  /* ★ 2026-10-16 精選文章分級（Andy：「精選貼文限制給 Pro 可以看，Plus 只能所有類別共 5 篇，其他的只能看到標題」）。
+     art.read.n＝「最多能讀幾篇全文」，**累計、不是每日**（比 etf.returns.n 這類同時選取上限多一層：數的是「已經打開過的不同文章」，存在 quota.js 的 TwQuota.total，永遠不歸零）。
+     defBy：訪客 0、註冊會員 0（只看標題與分類）、Plus 5（範本沒寫也生效，不必先按「套用建議方案」）；Pro 與其他付費方案沒寫＝不限（max）。
+     0＝只看標題；5＝跨所有分類（比比快訊／產業鏈／知識）合計最多 5 篇，同一篇重讀不重算、打開過的永遠能讀；max(999)＝不限。
+     計數與畫面在 site/articles.js；只擋畫面、非伺服器端（文章 JSON 是公開檔，見 quota.js total 的說明）。 */
+  LIST.push(Object.assign(pickF('art.read.n', 'articles', '精選文章可讀全文篇數（累計）', '篇', 999, [0, 1, 3, 5, 10, 20, 50, 999], 0, 0,
+    '精選文章全文最多可讀幾篇（所有分類合計、累計不歸零、同一篇重讀不重算）。0＝只看標題與分類；超過的文章只顯示標題與升級提示。擁有者／管理員不受限'),
+    { defBy: { guest: 0, free: 0, plus: 5 } }));
   LIST.forEach(function (f) { if (SUB_OF[f.id]) f.sub = SUB_OF[f.id]; });
   function bySub(k) { return LIST.filter(function (f) { return (f.sub || []).indexOf(k) >= 0; }).map(function (f) { return f.id; }); }
 

@@ -930,7 +930,67 @@ html.ovnl #ovRotPop .rp-ms a:hover{outline:none!important}`);
     const set = new Set(load().k[id] || []);
     return set.has(key) || set.size < n;
   }
-  window.TwQuota = { act, actOk, allow, use, out, left, pick, pickBlock, routeOk: routeOkAll, heatLinkOk, heatLinkUse, heatLinkNote, heatGo, actUnit, UNIT_KINDS, used: (id) => (load().k[id] || []).slice(),
+  /* ============================================================================
+     ★ 2026-10-16 累計額度（Total）—— 跟上面「每日」額度是兩回事，所以另存、另算
+     Andy：「精選貼文限制給 Pro 可以看，Plus 只能所有類別共 5 篇」「今日事件開放…限制次數 5 次 Total」。
+     每日額度（tw.quota）每天台北 0 點歸零；累計額度**永遠不歸零**，存在 localStorage 的 tw.total（依身分分開：訪客 guest、會員 u:<email>）。
+     上限來源：features.js 的 limit 類功能（art.read.n、events.total），範本 feats 的整數；擁有者／管理員／預覽版／會員伺服器連不到 ＝ 不限（跟 pick() 同一套）。
+     ⚠ 誠實的限制：跟全站其他額度一樣只擋畫面（GitHub Pages 靜態站，文章與事件 JSON 是公開檔）；計數在這個瀏覽器，
+       清除網站資料、換瀏覽器、無痕視窗都會從頭算。要真的擋要把內容改由 Worker 驗身分後才提供（DECISIONS #288 同一個結論）。
+     預覽版示範：預覽版一律是擁有者（不受限），Andy 看不到限制。網址加 ?demo_tier=guest|free|plus|pro 就用那個身分的範本值示範
+     （只在預覽版生效、存在這個分頁的 sessionStorage；?demo_tier=off 取消），計數另開一份（demo:<身分>），不動正式資料。
+     ============================================================================ */
+  const TOT_K = 'tw.total';
+  let TOT_MEM = null;        // localStorage 寫不進去（私密視窗）時的備援：這次載入有效、重開歸零
+  function demoTier() {
+    if (!window.TW_PREVIEW) return '';
+    let t = (/[?&]demo_tier=([a-z]+)/.exec(location.search) || [])[1] || '';
+    try { if (t) sessionStorage.setItem('tw.demo.tier', t); else t = sessionStorage.getItem('tw.demo.tier') || ''; } catch (e) { /* 私密視窗：只在這次載入有效 */ }
+    return /^(guest|free|plus|pro)$/.test(t) ? t : '';
+  }
+  function totWho() {
+    const dt = demoTier(); if (dt) return 'demo:' + dt;
+    const A = window.TwAccount, u = A && A.on && A.on() && A.user && A.user();
+    return u && u.email ? 'u:' + String(u.email).toLowerCase() : 'guest';
+  }
+  function totLimit(id) {
+    const dt = demoTier(), Ft = F();
+    if (dt) {
+      const f = Ft && Ft.byId(id); if (!f) return Infinity;
+      const pr = window.TW_PLAN_PRESETS, t = pr && (pr.tiers || []).find((x) => x.key === dt);
+      let v = t && t.feats ? t.feats[id] : undefined;
+      if (!Number.isInteger(v)) v = Ft.defOf ? Ft.defOf(f, dt) : f.def;
+      return !Number.isInteger(v) || v >= f.max ? Infinity : Math.max(0, v);
+    }
+    const A = window.TwAccount, u = A && A.on && A.on() && A.user && A.user();
+    if (u && (u.admin || u.owner)) return Infinity;      // 管理者不受限
+    return pick(id);
+  }
+  function totAll() {
+    if (TOT_MEM) return TOT_MEM;
+    let d = null; try { d = JSON.parse(localStorage.getItem(TOT_K) || 'null'); } catch (e) { d = null; }
+    return d && typeof d === 'object' ? d : {};
+  }
+  const totKeys = (id) => { const m = totAll()[totWho()]; return m && Array.isArray(m[id]) ? m[id].slice() : []; };
+  function totUse(id, key) {
+    const lim = totLimit(id);
+    if (lim === Infinity) return true;
+    const ks = totKeys(id);
+    if (ks.includes(key)) return true;           // 同一個對象重看不重算、已經算過的永遠看得到
+    if (ks.length >= lim) return false;
+    const all = totAll(), w = totWho(); all[w] = Object.assign({}, all[w]); all[w][id] = ks.concat(key);
+    try { localStorage.setItem(TOT_K, JSON.stringify(all)); TOT_MEM = null; } catch (e) { TOT_MEM = all; }
+    try { window.dispatchEvent(new CustomEvent('tw:total', { detail: { id } })); } catch (e) { /* 舊瀏覽器 */ }
+    return true;
+  }
+  const total = {
+    limit: totLimit, used: totKeys, has: (id, key) => totKeys(id).includes(key), demo: demoTier, who: totWho,
+    left: (id) => { const n = totLimit(id); return n === Infinity ? Infinity : Math.max(0, n - totKeys(id).length); },
+    can: (id, key) => { const n = totLimit(id); return n === Infinity || totKeys(id).includes(key) || totKeys(id).length < n; },
+    use: totUse,
+    tier: () => demoTier() || meTier(),      // 示範身分優先
+  };
+  window.TwQuota = { act, actOk, allow, use, out, left, pick, pickBlock, routeOk: routeOkAll, heatLinkOk, heatLinkUse, heatLinkNote, heatGo, actUnit, UNIT_KINDS, total, used: (id) => (load().k[id] || []).slice(),
     state: () => load(), limit: limitOf, evaluate: () => evaluate(), day: tpeDay, pageKey, unitKey: (id, h) => unitKey(window.TwFeatures && window.TwFeatures.byId(id), h || location.hash || ''), unitKind: (id) => unitKind(window.TwFeatures && window.TwFeatures.byId(id)),
     /* 2026-10-10 手機額度上限面板（acctm4.js）依母分頁分組：沿用這裡的 PAGE_OF／CAT_HEAD 判斷，不另寫一套（只多匯出，不改行為）*/
     onPage };

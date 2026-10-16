@@ -71305,7 +71305,7 @@ def t_articles_1014(b, base):
                 return r.fulfill(status=200, body=json.dumps({"ok": True, "job": j}), headers=hd)
             return r.fulfill(status=409, body='{"error":"not_queued"}', headers=hd)
         if path == "/v1/perm/me":   # 訪客、不設上限（不讓權限鎖頭干擾這一段）
-            return r.fulfill(status=200, body=json.dumps({"who": "guest", "plan": "guest", "planName": "訪客", "feats": {}, "lims": {}, "dq": None}), headers=hd)
+            return r.fulfill(status=200, body=json.dumps({"who": "guest", "plan": "guest", "planName": "訪客", "feats": {"art.read.n": 999}, "lims": {}, "dq": None}), headers=hd)   # 2026-10-16 精選文章分級：這段驗的是版面與圖表，所以給「全文不限篇數」（分級另有「精選文章分級1016」）
         return r.fulfill(status=200, body='{"ok":true}', headers=hd)
 
     def prep(ctx, mode="ok"):

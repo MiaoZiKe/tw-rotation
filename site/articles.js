@@ -518,6 +518,37 @@
 #v-subadm .artadm .js .kd.video{background:#db2777}
 #v-subadm .artadm .js.kdc{border:0;padding:0;margin:0}#v-subadm .artadm .js.kdc .kd{margin:0;font-size:12px;padding:1px 8px;line-height:18px}
 #v-subadm .artadm td button.cx{height:26px;padding:0 10px;border-radius:var(--r-sm,8px);border:1px solid var(--line-2);background:var(--panel-3);color:var(--ink);font:inherit;font-size:12px;cursor:pointer}
+/* 精選文章分級（2026-10-16，Andy：「精選貼文限制給 Pro 可以看，Plus 只能所有類別共 5 篇，其他的只能看到標題」）
+   · #artQuota：列表頁頂端的額度條（額度卡片同一套 amber 分段條）；Pro／管理者不顯示
+   · .artc .lk：卡片上取代摘要的一行狀態（鎖頭＝只看標題、勾＝已解鎖可重讀、數字＝點開會用掉 1 篇額度）
+   · .artlock：單篇頁沒有授權時，內文處放的升級提示卡（qcard.js 的 .qcard，置中、不模糊任何內容——因為根本沒把全文放進 DOM） */
+#artQuota{display:flex;flex-wrap:wrap;align-items:center;gap:var(--sp-2) var(--sp-4);margin:var(--sp-2) 0 0;padding:var(--sp-2) var(--sp-3);border:1px solid var(--line);border-radius:var(--r-sm,8px);background:var(--panel-2,var(--panel));font-size:var(--fs-sm);color:var(--ink-2)}
+#artQuota[hidden]{display:none}
+#artQuota .qk{display:inline-flex;align-items:center;gap:6px;font-weight:700;color:var(--amber)}
+#artQuota .qk svg{flex:none}
+#artQuota b{font-family:var(--mono);font-variant-numeric:tabular-nums;color:var(--ink)}
+#artQuota .qb{display:inline-grid;grid-auto-flow:column;grid-auto-columns:22px;gap:4px;vertical-align:middle}
+#artQuota .qb i{display:block;height:6px;border-radius:3px;background:var(--line-2)}
+#artQuota .qb i.on{background:var(--amber)}
+#artQuota .qs{flex:1 1 260px;min-width:0}
+#artQuota a.qgo{margin-left:auto;display:inline-flex;align-items:center;height:30px;padding:0 14px;border-radius:999px;background:var(--amber);color:var(--bg);font-weight:700;text-decoration:none;white-space:nowrap}
+:root[data-theme="light"] #artQuota a.qgo{color:var(--panel)}
+#artQuota .qdemo{flex:1 1 100%;font-size:var(--fs-min);color:var(--ink-3)}
+.artqt{display:inline-flex;align-items:center;gap:4px;color:var(--amber);font-family:var(--mono);font-variant-numeric:tabular-nums}
+.artc .lk{display:flex;align-items:center;gap:6px;font-size:var(--fs-sm);color:var(--ink-3);line-height:1.5;min-width:0}
+.artc .lk svg{flex:none;color:var(--amber)}
+.artc .lk span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.artc .lk.ok{color:var(--k)}
+.artc .lk.ok svg{color:var(--k)}
+.artc.lkd .tt{color:var(--ink)}
+.artlock{display:flex;flex-direction:column;align-items:center;gap:var(--sp-4);margin:var(--sp-4) 0 var(--sp-2)}
+.artlock .qcard{margin:0 auto}
+.artlock .unl{width:min(520px,100%);box-sizing:border-box}
+.artlock .unl h5{margin:0 0 6px;font-size:var(--fs-sm);color:var(--ink-2)}
+.artlock .unl a{display:flex;align-items:center;gap:8px;min-width:0;padding:6px 0;color:var(--cyan);text-decoration:none;font-size:var(--fs-body,14px)}
+.artlock .unl a span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.artlock .unl a:hover span{text-decoration:underline}
+@media (max-width:640px){#artQuota a.qgo{margin-left:0;flex:1 1 100%;justify-content:center}.artlock .qcard{width:100%}}
 `;
 
   /* ------------------------------------------------------------------ 資料 */
@@ -593,8 +624,16 @@
   window.addEventListener('tw:account-config', () => {   // 帳號 API 網址比文章頁晚就緒（直接開文章網址）：就緒時補讀
     const h = (location.hash || '').replace(/^#/, '').split('/');
     if (h[0] === 'articles' || h[0] === 'admin') loadStats(true);
-    else if (h[0] === 'article' && S.cur) recordView(S.cur);
+    else if (h[0] === 'article' && S.cur && S.curData) recordView(S.cur);   // 沒授權（沒讀全文）的單篇不算點閱
   });
+  /* 權限／身分晚到或換了（登入、登出、管理者改了範本）：列表重畫；單篇只在「讀不讀得到」的規則真的變了才重載（避免記額度又觸發重載的迴圈） */
+  function regate() {
+    const head = (location.hash || '').replace(/^#/, '').split('/')[0];
+    if (head === 'articles') { if ($('#artList')) paintList(); }
+    else if (head === 'article' && S.cur && S.sig && S.sig !== sigOf(access())) { const id = S.cur; S.cur = ''; showPost(id); }
+  }
+  window.addEventListener('tw:perm', regate);
+  window.addEventListener('tw:account', regate);
   const catOf = (id) => { const a = S.idx && S.idx.list.find((x) => x.id === id); return a ? a.cat : ''; };
 
   /* 2026-10-16 Andy：「精選文章已經裡面有分頁，側邊子分頁就拿掉」→ 側欄沒有子項可亮，這裡只負責把殘留的 art-* 清掉
@@ -612,12 +651,67 @@
   /* 點閱數：只有拿到有效數字才寫（API 失敗、沒有這一篇 → 不畫，不顯示 0） */
   const viewsOf = (id) => { const v = S.views && S.views[id]; return Number.isFinite(v) && v >= 0 ? Math.floor(v) : null; };
   const vwHTML = (id) => { const v = viewsOf(id); return `<span class="artvw" data-vw="${esc(id)}" title="點閱次數"${v == null ? ' hidden' : ''}>${EYE}<span>${v == null ? '' : v.toLocaleString('zh-TW') + ' 次'}</span></span>`; };
-  const cardHTML = (a) => `<a class="artc k-${esc(a.cat)}" href="#article/${encodeURIComponent(a.id)}" data-id="${esc(a.id)}" data-cat="${esc(a.cat)}" data-date="${esc(a.date)}" data-groups="${esc((a.groups || []).map((g) => g.id).join(' '))}" title="${esc(a.title)}">
+  /* ------------------------------------------------------------------ 分級（2026-10-16，功能鍵 art.read.n）
+     Andy：「精選貼文限制給 Pro 可以看，Plus 只能所有類別共 5 篇，其他的只能看到標題」。
+     · full（Pro、管理者、擁有者、會員系統沒開、預覽版）＝全文都能讀
+     · quota（Plus）＝所有分類合計累計最多讀 N 篇全文；同一篇重讀不重算、打開過的永遠能讀（記在 quota.js 的 TwQuota.total，不歸零）
+     · none（訪客、註冊會員）＝只看標題與分類
+     沒授權的文章**不把全文放進 DOM**（不是 CSS 藏）：單篇頁連文章 JSON 都不去抓；列表卡片也不放摘要與副標。
+     ⚠ 只擋畫面、非伺服器端：文章 JSON 是靜態公開檔，懂技術的人直接開網址還是拿得到（跟全站其他額度同一個限制）。 */
+  const AID = 'art.read.n';
+  const LOCK_IC = '<svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><path fill="currentColor" d="M5 7V5a3 3 0 1 1 6 0v2h.5A1.5 1.5 0 0 1 13 8.5v5a1.5 1.5 0 0 1-1.5 1.5h-7A1.5 1.5 0 0 1 3 13.5v-5A1.5 1.5 0 0 1 4.5 7H5zm1.5 0h3V5a1.5 1.5 0 1 0-3 0v2z"/></svg>';
+  const CHK_IC = '<svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><path d="M3 8.4l3.1 3.1L13 4.6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+  const TQ = () => (window.TwQuota && window.TwQuota.total) || null;
+  function access() {
+    const T = TQ(); if (!T) return { mode: 'full' };
+    const lim = T.limit(AID);
+    if (lim === Infinity) return { mode: 'full' };
+    const ids = T.used(AID);
+    return { mode: lim > 0 ? 'quota' : 'none', lim, used: ids.length, ids, tier: T.tier(), demo: T.demo() };
+  }
+  const mayOpen = (a, id) => a.mode === 'full' || (a.mode === 'quota' && (a.ids.includes(id) || a.used < a.lim));
+  const isOpened = (a, id) => a.mode === 'full' || (a.mode === 'quota' && a.ids.includes(id));
+  const sigOf = (a) => a.mode + ':' + (a.lim == null ? '' : a.lim);
+  function tierName(t) {
+    if (t === 'guest') return '訪客'; if (t === 'free') return '註冊會員'; if (t === 'plus') return 'Plus'; if (t === 'pro') return 'Pro';
+    const P = window.TwPerm; const n = P && P.state && P.state().planName; return n || t || '會員';
+  }
+  /* 「Plus 可以讀幾篇」寫在卡片上的數字：讀建議方案的 Plus 範本（沒有就 5） */
+  function plusN() {
+    const pr = window.TW_PLAN_PRESETS, t = pr && (pr.tiers || []).find((x) => x.key === 'plus'), v = t && t.feats && t.feats[AID];
+    return Number.isInteger(v) && v > 0 && v < 999 ? v : 5;
+  }
+  /* 沒授權時單篇頁內文處放的升級提示卡（沿用 qcard.js 的 .qcard 款式）*/
+  function lockOpts(a) {
+    const n = plusN();
+    if (a.mode === 'none') {
+      return { kind: 'lock', kick: tierName(a.tier) + '・精選文章', title: '這篇文章的全文需要 Plus 以上',
+        sub: '目前的身分只能看標題與分類，摘要與內文不會顯示。', lh: '這些方案可以讀全文',
+        items: [{ t: 'Plus', s: '累計 ' + n + ' 篇全文（所有分類合計）' }, { t: 'Pro', s: '全文不限篇數' }],
+        btn: a.tier === 'guest' ? '登入或升級' : '升級 Plus', href: '#pricing/need/' + AID, btnCls: 'qactgo' };
+    }
+    return { kind: 'lock', kick: tierName(a.tier) + '・精選文章全文額度', title: '全文額度 ' + a.used + '／' + a.lim + ' 篇已用完',
+      sub: '額度是所有分類合計、累計計算（不是每日，不會重置）。已經打開過的文章可以隨時重讀，其他文章只顯示標題。',
+      lh: '升級後', items: [{ t: 'Pro', s: '全文不限篇數' }], btn: '升級 Pro', href: '#pricing/plan/pro', btnCls: 'qactgo' };
+  }
+  /* 等會員權限載入完再決定（不然訪客第一次進來，權限還沒回就先當「全開」把全文抓下來）。連不到伺服器時最多等 4 秒，之後照全站慣例放行（perm.js：寧可多給，不要誤鎖） */
+  function permReady() {
+    const P = window.TwPerm, A = window.TwAccount;
+    if (!P || !A || !A.on || !A.on() || window.TW_PREVIEW || (P.owner && P.owner()) || P.state().src !== 'default') return Promise.resolve();
+    return new Promise((res) => { let n = 0; const t = setInterval(() => { if (P.state().src !== 'default' || ++n > 40) { clearInterval(t); res(); } }, 100); });
+  }
+  const cardHTML = (a, acc) => {
+    acc = acc || access();
+    const open = isOpened(acc, a.id), may = mayOpen(acc, a.id);
+    const lk = open ? (acc.mode === 'full' ? '' : `<div class="lk ok">${CHK_IC}<span>已解鎖，可隨時重讀</span></div>`)
+      : `<div class="lk">${LOCK_IC}<span>${may ? `點開會用掉 1 篇額度（剩 ${acc.lim - acc.used} 篇）` : acc.mode === 'none' ? '全文需 Plus 以上' : '額度已用完・只顯示標題'}</span></div>`;
+    return `<a class="artc k-${esc(a.cat)}${open ? '' : ' lkd'}" href="#article/${encodeURIComponent(a.id)}" data-id="${esc(a.id)}" data-cat="${esc(a.cat)}" data-date="${esc(a.date)}" data-lock="${open ? 0 : 1}" data-groups="${esc((a.groups || []).map((g) => g.id).join(' '))}" title="${esc(a.title)}">
     <span class="wm">${icon(a.cat, 96)}</span>
     <div class="r1">${badge(a.cat)}<span class="d">${esc(a.date)}</span><span class="rm" title="閱讀時間">約 ${esc(Number(a.reading_min) || 1)} 分鐘</span></div>
-    <div class="tt">${esc(a.title)}</div>${a.subtitle ? `<div class="st">${esc(a.subtitle)}</div>` : ''}
-    ${a.summary ? `<div class="sm">${esc(a.summary)}</div>` : ''}
+    <div class="tt">${esc(a.title)}</div>${open && a.subtitle ? `<div class="st">${esc(a.subtitle)}</div>` : ''}
+    ${open && a.summary ? `<div class="sm">${esc(a.summary)}</div>` : ''}${lk}
     <div class="fr"><div class="ft">${(a.groups || []).slice(0, 4).map((g) => `<span class="artgp">${esc(g.name)}</span>`).join('')}${(a.groups || []).length ? '' : (Array.isArray(a.tags) ? a.tags.slice(0, 5).map((t) => `<span class="artgp">${esc(t)}</span>`).join('') : '')}</div>${vwHTML(a.id)}</div></a>`;
+  };
   const DISC = 'ⓘ 本站文章為公開資訊與產業知識的整理，不構成任何投資建議；內容以資料來源發布時點為準，投資前請自行查證並評估風險。';
 
   /* ------------------------------------------------------------------ 列表頁 */
@@ -644,6 +738,7 @@
     ${['all'].concat(CAT_KEYS).map((k) => `<button type="button" role="tab" class="k-${k}" data-cat="${k}" data-s="${esc(CAT_S[k])}" title="${esc(catT(k))}">${icon(k, 15)}<span>${esc(catT(k))}</span><em></em></button>`).join('')}
   </div>
   <div class="nbbody">
+    <div id="artQuota" hidden></div>
     <div class="artflt">
       <input type="search" id="artQ" placeholder="搜尋標題關鍵字" aria-label="搜尋標題關鍵字" autocomplete="off">
       <div id="artGrp" hidden></div>
@@ -696,6 +791,25 @@ ${gs.length ? `<section><h5>熱門族群</h5><div class="gps">${gs.map((g) => `<
       b.onclick = () => { const id = b.dataset.gid; if (S.grp.has(id)) S.grp.delete(id); else S.grp.add(id); if (S.ms) S.ms.set({ selected: [...S.grp] }); paintList(); };
     });
   }
+  /* 列表頁頂端的額度條：Pro／管理者（full）不顯示；Plus 顯示「已讀 k／N 篇・剩幾篇」＋分段條；訪客、註冊會員顯示「只能看標題」＋升級鈕 */
+  function paintQuota(root, acc) {
+    const el = $('#artQuota', root); if (!el) return;
+    if (acc.mode === 'full') { el.hidden = true; el.innerHTML = ''; el.dataset.mode = 'full'; return; }
+    const n = plusN(), name = tierName(acc.tier);
+    let h;
+    if (acc.mode === 'none') {
+      h = `<span class="qk">${LOCK_IC}${esc(name)}</span><span class="qs">目前只能看<b>標題與分類</b>。全文需 Plus 以上：Plus 所有分類合計累計可讀 <b>${n}</b> 篇全文（不是每日），Pro 全文不限篇數。</span>`
+        + `<a class="qgo" href="#pricing/need/${AID}">${acc.tier === 'guest' ? '登入或升級' : '升級 Plus'}</a>`;
+    } else {
+      const segs = Math.min(10, acc.lim), lit = Math.min(segs, Math.ceil(Math.min(acc.used, acc.lim) / (acc.lim / segs) - 1e-9)), left = Math.max(0, acc.lim - acc.used);
+      h = `<span class="qk">${LOCK_IC}${esc(name)} 全文額度</span><span class="qb" role="progressbar" aria-label="已讀全文篇數" aria-valuemin="0" aria-valuemax="${acc.lim}" aria-valuenow="${acc.used}">${Array.from({ length: segs }, (_, i) => `<i class="${i < lit ? 'on' : ''}"></i>`).join('')}</span>`
+        + `<span class="qs">已讀 <b>${acc.used}／${acc.lim}</b> 篇・剩 <b>${left}</b> 篇（所有分類合計、累計不是每日，不會重置）。打開過的永遠能重讀，其餘文章只顯示標題。</span>`
+        + (left === 0 ? '<a class="qgo" href="#pricing/plan/pro">升級 Pro 不限篇數</a>' : '');
+    }
+    if (acc.demo) h += `<span class="qdemo">預覽示範身分：${esc(tierName(acc.demo))}（網址加 ?demo_tier=guest／free／plus／pro 切換，?demo_tier=off 取消；計數與正式資料分開）</span>`;
+    el.dataset.mode = acc.mode; el.dataset.used = String(acc.used || 0); el.dataset.lim = String(acc.lim == null ? '' : acc.lim);
+    el.innerHTML = h; el.hidden = false;
+  }
   function paintList() {
     const root = document.getElementById('v-articles'); if (!root || !$('#artList', root)) return;
     ensureRange();
@@ -726,7 +840,9 @@ ${gs.length ? `<section><h5>熱門族群</h5><div class="gps">${gs.map((g) => `<
     cnt.innerHTML = `共 <b>${list.length}</b> 篇`;
     cnt.dataset.n = String(list.length);
     const dirty = !!(S.q.trim() || S.from !== D.from || S.to !== D.to || S.grp.size);
-    box.innerHTML = list.length ? list.map((a) => cardHTML(a)).join('')
+    const acc = access();
+    paintQuota(root, acc);
+    box.innerHTML = list.length ? list.map((a) => cardHTML(a, acc)).join('')
       : `<div class="artempty k-${S.cat === 'all' ? 'all' : S.cat}" id="artEmpty">${icon(S.cat, 40)}<div>${dirty ? '這個條件下沒有符合的文章，換個關鍵字、族群或放寬日期試試。' : '近一個月這個分類還沒有文章。'}</div>`
         + `${dirty ? '<button type="button" class="btn small" data-clr>清除篩選</button>' : '<button type="button" class="btn small" data-wide>看全部日期</button>'}</div>`;
     const c2 = $('[data-clr]', box); if (c2) c2.onclick = () => { resetFilters(); paintList(); };
@@ -743,7 +859,7 @@ ${gs.length ? `<section><h5>熱門族群</h5><div class="gps">${gs.map((g) => `<
     if (!$('#artList', root)) { disposeCharts(root); skeletonList(root); }
     paintList();
     loadStats();
-    await loadIndex();
+    await Promise.all([loadIndex(), permReady()]);
     if (location.hash.replace(/^#/, '').split('/')[0] !== 'articles') return;   // 讀清單的時候使用者已經換頁
     paintList();
   }
@@ -1052,7 +1168,9 @@ ${gs.length ? `<section><h5>熱門族群</h5><div class="gps">${gs.map((g) => `<
     if (back) back.onclick = () => { if (S.backOk && history.length > 1) history.back(); else location.hash = back.dataset.to; };
   }
 
-  function postHTML(d, meta) {
+  function postHTML(d, meta, acc) {
+    acc = acc || access();
+    const qnote = acc.mode === 'quota' ? `<span class="artqt" title="Plus 精選文章全文額度：所有分類合計、累計不歸零">${LOCK_IC}全文額度 ${acc.used}／${acc.lim} 篇</span>` : '';
     const cat = CATS[d.cat] ? d.cat : (meta && meta.cat) || '';
     const kk = CATS[cat] ? cat : 'all';
     const links = (Array.isArray(d.site_links) ? d.site_links : []).filter((l) => l && okHash(l.hash) && l.label);
@@ -1070,7 +1188,7 @@ ${gs.length ? `<section><h5>熱門族群</h5><div class="gps">${gs.map((g) => `<
 <article class="card artpost" id="artPost" data-id="${esc(d.id)}">
   <button type="button" class="artback" id="artBack" data-to="${listHash}" title="回上一頁">← 返回</button>
   <nav class="artcrumb" aria-label="麵包屑"><a href="#articles">精選文章</a><span aria-hidden="true">›</span>${CATS[cat] ? `<a class="kc" href="#articles/${cat}">${icon(cat, 14)}${esc(catT(cat))}</a><span aria-hidden="true">›</span>` : ''}<span class="cur">${esc(d.title)}</span></nav>
-  <div class="artmeta">${cat ? badge(cat) : ''}<span class="mono">${esc(d.date || '')}</span>${upd}<span>閱讀約 ${esc(Number(d.reading_min) || 1)} 分鐘</span>${vwHTML(d.id)}${d.confidence ? `<span title="資料信心：依來源數量與一致性自評">資料信心 ${esc(d.confidence)}</span>` : ''}</div>
+  <div class="artmeta">${cat ? badge(cat) : ''}<span class="mono">${esc(d.date || '')}</span>${upd}<span>閱讀約 ${esc(Number(d.reading_min) || 1)} 分鐘</span>${vwHTML(d.id)}${qnote}${d.confidence ? `<span title="資料信心：依來源數量與一致性自評">資料信心 ${esc(d.confidence)}</span>` : ''}</div>
   <h2 class="artttl">${esc(d.title)}</h2>
   ${d.subtitle ? `<p class="artsub">${esc(d.subtitle)}</p>` : ''}
   ${groups.length ? `<div class="artgps"><span class="lb">相關族群</span>${groups.map((g) => `<button type="button" class="artgp" data-gid="${esc(g.id)}" title="看其他提到「${esc(g.name)}」的文章">${esc(g.name)}</button>`).join('')}</div>` : ''}
@@ -1081,7 +1199,7 @@ ${gs.length ? `<section><h5>熱門族群</h5><div class="gps">${gs.map((g) => `<
   ${srcs.length ? `<section class="artsec" id="artSrc"><h4>資料來源</h4><ol class="artsrc">${srcs.map((s) => {
     const t = esc(s.title || s.url), info = [s.publisher, s.date].filter(Boolean).map(esc).join('，');
     return `<li>${okUrl(s.url) ? `<a href="${esc(s.url)}" target="_blank" rel="noopener noreferrer">${t}</a>` : t}${info ? `（${info}）` : ''}</li>`; }).join('')}</ol></section>` : ''}
-  ${more.length ? `<section class="artsec" id="artMore"><h4>同類別其他文章</h4><div class="artmore">${more.map((a) => cardHTML(a)).join('')}</div></section>` : ''}
+  ${more.length ? `<section class="artsec" id="artMore"><h4>同類別其他文章</h4><div class="artmore">${more.map((a) => cardHTML(a, acc)).join('')}</div></section>` : ''}
   <p class="artdisc">${esc(DISC)}</p>
   <div class="artend"><a href="${listHash}" id="artEnd">${icon(kk, 15)}回到${esc(catT(cat))}清單</a></div>
 </article>
@@ -1097,22 +1215,68 @@ ${gs.length ? `<section><h5>熱門族群</h5><div class="gps">${gs.map((g) => `<
     const changed = S.cur !== id; S.cur = id;
     markSub(catOf(id));
     if (changed) { disposeCharts(root); root.innerHTML = '<div class="card artpost"><div class="arterr">載入中…</div></div>'; window.scrollTo({ top: 0 }); }
-    const [idx, d] = await Promise.all([loadIndex(), loadPost(id)]);
-    if (S.cur !== id || location.hash.replace(/^#/, '').split('/')[0] !== 'article') return;
+    const gone = () => S.cur !== id || location.hash.replace(/^#/, '').split('/')[0] !== 'article';
+    const [idx] = await Promise.all([loadIndex(), permReady()]);
+    if (gone()) return;
     const meta = idx ? idx.list.find((a) => a.id === id) : null;
-    if (!d || !d.title) {
+    const notFound = () => {
+      S.curData = null; S.sig = sigOf(access());
       root.innerHTML = `<div class="card artpost" id="artPost"><button type="button" class="artback" id="artBack" data-to="#articles">← 返回</button><nav class="artcrumb"><a href="#articles">精選文章</a><span aria-hidden="true">›</span><span class="cur">找不到文章</span></nav>
         <div class="arterr" id="artErr">這篇文章暫時讀不到（可能還在整理或已下架）。<br><a href="#articles">回精選文章清單</a></div></div>`;
       hydrate(root, {});
-      return;
-    }
+    };
+    /* 沒授權：不去抓文章 JSON，頁面只用清單上的標題、分類、日期、族群（這些本來就是列表卡片公開的資料）＋升級提示卡 */
+    const locked = (acc) => {
+      if (idx && !meta) return notFound();
+      S.curData = null; S.sig = sigOf(acc);
+      markSub(meta && meta.cat);
+      disposeCharts(root);
+      root.innerHTML = lockedHTML(meta, acc, id);
+      hydrate(root, {});
+      document.title = (meta ? meta.title : '精選文章') + '｜精選文章';
+    };
+    let acc = access();
+    if (!mayOpen(acc, id)) return locked(acc);
+    const d = await loadPost(id);
+    if (gone()) return;
+    if (!d || !d.title) return notFound();
+    /* 讀得到才記一次額度（讀不到的 id 不扣）；同一篇重讀 total.use 不重算。兩個分頁同時用掉最後一格的競態：use 回 false → 退回鎖定頁 */
+    if (acc.mode === 'quota' && !TQ().use(AID, id)) return locked(access());
+    acc = access();
+    S.sig = sigOf(acc);
     markSub(CATS[d.cat] ? d.cat : meta && meta.cat);
     disposeCharts(root);
-    root.innerHTML = postHTML(d, meta);
+    root.innerHTML = postHTML(d, meta, acc);
     S.curData = d;
     hydrate(root, d);
     recordView(d.id);
     document.title = d.title + '｜精選文章';
+  }
+  /* 沒授權的單篇頁：版型跟 postHTML 的頭部一致（返回、麵包屑、分類徽章、日期、標題、相關族群），內文處換成升級提示卡。
+     不放副標、摘要、標籤、區塊、站內連結、資料來源 —— 那些都是內文。Plus 額度用完時，下面列出「已解鎖的文章」讓他重讀。 */
+  function lockedHTML(meta, acc, id) {
+    const cat = meta && CATS[meta.cat] ? meta.cat : '', kk = cat || 'all';
+    const title = meta ? meta.title : '精選文章';
+    const groups = cleanGroups(meta && meta.groups);
+    const listHash = cat ? '#articles/' + cat : '#articles';
+    const QC = window.TwQCard;
+    if (QC && QC.css) QC.css();
+    const card = QC ? QC.html(lockOpts(acc)) : `<p>${esc(lockOpts(acc).title)}</p>`;
+    const open = (S.idx ? S.idx.list : []).filter((a) => acc.mode === 'quota' && acc.ids.includes(a.id));
+    const unl = open.length ? `<div class="unl"><h5>你已解鎖的文章（可隨時重讀）</h5>${open.map((a) => `<a href="#article/${encodeURIComponent(a.id)}">${CHK_IC}<span>${esc(a.title)}</span></a>`).join('')}</div>` : '';
+    return `
+<div class="artpage k-${kk}">
+<article class="card artpost artlocked" id="artPost" data-id="${esc(id)}" data-lock="1">
+  <button type="button" class="artback" id="artBack" data-to="${listHash}" title="回上一頁">← 返回</button>
+  <nav class="artcrumb" aria-label="麵包屑"><a href="#articles">精選文章</a><span aria-hidden="true">›</span>${cat ? `<a class="kc" href="#articles/${cat}">${icon(cat, 14)}${esc(catT(cat))}</a><span aria-hidden="true">›</span>` : ''}<span class="cur">${esc(title)}</span></nav>
+  <div class="artmeta">${cat ? badge(cat) : ''}${meta ? `<span class="mono">${esc(meta.date || '')}</span>` : ''}</div>
+  <h2 class="artttl">${esc(title)}</h2>
+  ${groups.length ? `<div class="artgps"><span class="lb">相關族群</span>${groups.map((g) => `<span class="artgp">${esc(g.name)}</span>`).join('')}</div>` : ''}
+  <div class="artlock" id="artLock">${card}${unl}</div>
+  <p class="artdisc">${esc(DISC)}</p>
+  <div class="artend"><a href="${listHash}" id="artEnd">${icon(kk, 15)}回到${esc(catT(cat))}清單</a></div>
+</article>
+</div>`;
   }
 
   /* ------------------------------------------------------------------ 進入點（app.js route() 呼叫） */
