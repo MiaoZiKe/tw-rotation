@@ -519,17 +519,20 @@
 #v-subadm .artadm .js .kd.article{background:#2563eb}
 #v-subadm .artadm .js .kd.video{background:#db2777}
 #v-subadm .artadm .gpm{display:none}   /* 桌機用表頭兩顆鈕；手機（表頭被藏掉）改用表格上方一條 .gpbar：下拉選類型＋一顆送出 */
-#v-subadm .artadm td.gptc .gpg{display:inline-flex;align-items:center;gap:6px;margin-right:12px;vertical-align:middle}
+#v-subadm .artadm td.gptc .gpg{display:inline-flex;flex-direction:column;align-items:flex-start;gap:1px;margin-right:10px;vertical-align:middle;line-height:1.2}
+#v-subadm #artAdmList table{min-width:1200px}   /* 多了「傳給 GPT」一欄，標題欄要夠寬（Andy 看過表格標題不能被擠成一點點）；窄螢幕在表內橫向捲 */
 #v-subadm .artadm .gpk{font-style:normal;font-size:11.5px;padding:0 7px;border-radius:999px;border:1px solid var(--cyan);color:var(--cyan)}
 #v-subadm .artadm .gpk.video{border-color:#db2777;color:#db2777}
-#v-subadm .artadm th.gpth button{height:24px;padding:0 10px;margin-left:6px;border-radius:var(--r-sm,8px);border:1px solid var(--cyan);background:color-mix(in srgb,var(--cyan) 14%,var(--panel));color:var(--ink);font:inherit;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap}
+#v-subadm .artadm th.gpth{overflow:visible;white-space:normal;height:auto;padding-top:4px;padding-bottom:4px}
+#v-subadm .artadm th.gpth .gpd{display:inline-flex;gap:6px;flex-wrap:wrap;vertical-align:middle}
+#v-subadm .artadm th.gpth button{height:24px;padding:0 10px;margin-left:0;border-radius:var(--r-sm,8px);border:1px solid var(--cyan);background:color-mix(in srgb,var(--cyan) 14%,var(--panel));color:var(--ink);font:inherit;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap}
 #v-subadm .artadm th.gpth button:disabled{opacity:.45;cursor:not-allowed;border-color:var(--line-2);background:var(--panel-3)}
-#v-subadm .artadm td.gptc{overflow:visible}
+#v-subadm .artadm td.gptc{overflow:visible;height:48px}
 #v-subadm .artadm td.gptc .gptk{display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;vertical-align:middle;cursor:pointer}
 #v-subadm .artadm td.gptc input[type=checkbox]{width:18px;height:18px;margin:0;accent-color:var(--cyan);cursor:pointer}
 #v-subadm .artadm td.gptc button.gpto{height:26px;padding:0 10px;border-radius:var(--r-sm,8px);border:1px solid var(--line-2);background:var(--panel-3);color:var(--ink);font:inherit;font-size:12px;cursor:pointer;white-space:nowrap;vertical-align:middle}
 #v-subadm .artadm td.gptc button.gpto:hover{border-color:var(--cyan)}
-#v-subadm .artadm td.gptc .gpts{font-size:12px;color:var(--ink-3);font-family:var(--mono);white-space:nowrap}
+#v-subadm .artadm td.gptc .gpts{font-size:11px;color:var(--ink-3);font-family:var(--mono);white-space:nowrap}
 #v-subadm .artadm .gpp{border:1px solid var(--line);border-radius:var(--r-sm,8px);background:var(--panel-2);padding:8px 12px;margin-bottom:var(--sp-2);font-size:13px}
 #v-subadm .artadm .gpp .gph{margin:0 0 6px;color:var(--ink-2);line-height:1.6}
 #v-subadm .artadm .gpp[hidden]{display:none}
@@ -1211,7 +1214,7 @@ ${gs.length ? `<section><h5>熱門族群</h5><div class="gps">${gs.map((g) => `<
   <div class="gpm gpbar" id="artGptBar"><span class="gpbl">傳給 GPT：</span><select id="artGptTypeH" aria-label="傳給 GPT 的類型"><option value="ig">IG 貼文</option><option value="video">影片</option></select><button type="button" id="artGptSendM" disabled>傳送勾選的文章</button></div>
   <p class="tpmsg" id="artGptMsg" role="status" hidden></p>
   <div class="gpp" id="artGptPanel" hidden></div>
-  <div class="tbw"><table><colgroup><col style="width:120px"><col><col style="width:110px"><col style="width:70px"><col style="width:14%"><col style="width:14%"><col style="width:540px"></colgroup>
+  <div class="tbw"><table><colgroup><col style="width:120px"><col><col style="width:110px"><col style="width:70px"><col style="width:14%"><col style="width:14%"><col style="width:350px"></colgroup>
   <thead><tr><th class="c">類別</th><th>標題</th><th class="c">日期</th><th class="r" title="會員 Worker 統計的點閱次數；讀不到寫「—」">點閱</th><th>相關族群</th><th>來源主題</th><th class="gpth">傳給 GPT <span class="gpd"><button type="button" id="artGptSendIg" data-gtype="ig" disabled title="先在每列勾選文章">傳送勾選・IG 貼文</button><button type="button" id="artGptSendVid" data-gtype="video" disabled title="先在每列勾選文章">傳送勾選・影片</button></span></th></tr></thead><tbody id="artAdmBody"></tbody></table></div>
 </div>
 <div class="card artadm" id="artAdmTopics">
