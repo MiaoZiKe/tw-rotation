@@ -1400,7 +1400,7 @@
    · 自己已經有框的（.osc、#themeDetail>.card、#indChain #dgSec／#relSec）不再套第二層。
    · 卡裡面原本替圖單獨掛的外框（.m4cbox／#lwc 以外）拿掉，免得框中有框；圖的內框交給卡片外框。
    · 樣式全走變數（深／淺、三套主題自動跟著換）；內距 10～12px；只在 ≤640＋html.m4，桌機不動。
-   分批：第 1 批 = 總覽、資金流向、熱力圖；第 2 批 = 產業地圖、市場明細、週期統計、選股（本段的 :is(…) 選擇器逐批擴充）。
+   分批：第 1 批 = 總覽、資金流向、熱力圖；第 2 批 = 產業地圖、市場明細、週期統計、選股；第 3 批 = 財經日曆、自選、ETF、交付、任務板、訂單、訂閱、個股（本段的 :is(…) 選擇器逐批擴充）。
    ---------------------------------------------------------------------------- */
 @media (max-width:640px){
   :root.m4{
@@ -1411,16 +1411,16 @@
     --m4-cd-gap:10px;
   }
   /* ---- 第 1 批：總覽、資金流向、熱力圖 ---- */
-  :root.m4 :is(#v-overview,#v-flow,#v-heatmap,#v-industry,#v-market,#v-season) .card:not(.card .card):not(#m4-none){
+  :root.m4 :is(#v-overview,#v-flow,#v-heatmap,#v-industry,#v-market,#v-season,#v-earnings,#v-watch,#v-etf,#v-delivery,#v-tasks,#v-orders,#v-pricing) .card:not(.card .card):not(#m4-none){
     background:var(--m4-cd-bg)!important;border:1px solid var(--m4-cd-bd)!important;border-radius:var(--m4-cd-r)!important;
     padding:var(--m4-cd-pad)!important;margin:0 0 var(--m4-cd-gap)!important;box-sizing:border-box;box-shadow:none!important;overflow:hidden}
   /* 卡片之間不再靠分隔線（第 5、14 節那條 border-top）；外層 m4sep 只是個包裝，線拿掉 */
-  :root.m4 :is(#v-overview,#v-flow,#v-heatmap,#v-industry,#v-market,#v-season) :is(.m4sep,.m4sepb):has(>.card:not(.card .card)){border-top:0!important;border-bottom:0!important;margin-top:0!important;margin-bottom:0!important;padding-top:0!important;padding-bottom:0!important}
+  :root.m4 :is(#v-overview,#v-flow,#v-heatmap,#v-industry,#v-market,#v-season,#v-earnings,#v-watch,#v-etf,#v-delivery,#v-tasks,#v-orders,#v-pricing) :is(.m4sep,.m4sepb):has(>.card:not(.card .card)){border-top:0!important;border-bottom:0!important;margin-top:0!important;margin-bottom:0!important;padding-top:0!important;padding-bottom:0!important}
   /* 卡裡面的圖原本自己掛一圈框（.m4cbox）→ 拿掉，框交給卡片 */
-  :root.m4 :is(#v-overview,#v-flow,#v-heatmap,#v-industry,#v-market,#v-season) .card:not(.card .card) .m4cbox:not(#m4-none){background:transparent!important;border:0!important;border-radius:0!important}
+  :root.m4 :is(#v-overview,#v-flow,#v-heatmap,#v-industry,#v-market,#v-season,#v-earnings,#v-watch,#v-etf,#v-delivery,#v-tasks,#v-orders,#v-pricing) .card:not(.card .card) .m4cbox:not(#m4-none){background:transparent!important;border:0!important;border-radius:0!important}
   /* 卡裡面「左右滑的列」不再拓寬到螢幕邊（第 30 節）：拓寬會超出卡片、被卡片邊緣切掉第一項／最後一項。改回卡片內容寬，列自己照樣可以用手指左右拖。
      兩個 :not(#…) ＝ 兩個 ID 的權重，蓋得過第 30 節那條帶兩個 #m4-none 的 !important。 */
-  :root.m4 :is(#v-overview,#v-flow,#v-heatmap,#v-industry,#v-market,#v-season) .card:not(.card .card) .m4bleed:not(#m4-n1):not(#m4-n2):not(#m4-n3){
+  :root.m4 :is(#v-overview,#v-flow,#v-heatmap,#v-industry,#v-market,#v-season,#v-earnings,#v-watch,#v-etf,#v-delivery,#v-tasks,#v-orders,#v-pricing) .card:not(.card .card) .m4bleed:not(#m4-n1):not(#m4-n2):not(#m4-n3){
     width:auto!important;margin-left:0!important;margin-right:0!important;padding-left:0!important;padding-right:0!important;
     border-left-width:1px!important;border-right-width:1px!important;border-radius:9px!important;scroll-padding-inline:0}
   /* ---- 第 2 批：產業地圖（含產業鏈）、題材、市場明細、週期統計、選股 ----
@@ -1430,4 +1430,16 @@
   :root.m4 #v-explore .sl-card:not(#m4-none){
     background:var(--m4-cd-bg)!important;border:1px solid var(--m4-cd-bd)!important;border-radius:var(--m4-cd-r)!important;
     padding:var(--m4-cd-pad)!important;margin:0 0 var(--m4-cd-gap)!important;box-sizing:border-box;box-shadow:none!important;overflow:hidden}
+  /* ---- 第 3 批：ETF 月配息試算區塊、個股分頁內容、（財經日曆／自選／交付／任務板／訂單／訂閱已由上面的 .card 規則涵蓋） ----
+     ETF 試算（#etfInc）沒有 .card，每個 .incsec 區塊各一框；個股的分頁內容（#mbBody，營收／獲利／除權息／法人／資券／大戶／公告／指標／基本資料）整塊一框，
+     只有分段鈕的（總覽分頁，內容是上面那排 .card）不框。表格外層（.mbtblwrap）與左右滑列在框裡改回框內寬，免得被卡片邊切到。 */
+  :root.m4 #v-etf .incsec:not(.card .card):not(#m4-none),
+  :root.m4 #mbBody:has(>:not(.mbseg)):not(#m4-none){
+    background:var(--m4-cd-bg)!important;border:1px solid var(--m4-cd-bd)!important;border-radius:var(--m4-cd-r)!important;
+    padding:var(--m4-cd-pad)!important;margin:0 0 var(--m4-cd-gap)!important;box-sizing:border-box;box-shadow:none!important;overflow:hidden}
+  :root.m4 :is(#v-etf .incsec,#mbBody) :is(.m4bleed,.mbtblwrap):not(#m4-n1):not(#m4-n2):not(#m4-n3){
+    width:auto!important;margin-left:0!important;margin-right:0!important;max-width:100%!important;padding-left:0!important;padding-right:0!important;box-sizing:border-box}
+  :root.m4 #mbBody :is(.mbchartbox,.m4cbox):not(#m4-none){background:transparent!important;border:0!important}
+  /* 訂閱方案的方案卡本來就有框（圓角 12），只把內距從 6 補到 10，跟其他卡一致；不再套第二層框 */
+  :root.m4 #v-pricing .prcard:not(#m4-none){padding:10px!important;box-sizing:border-box}
 }
