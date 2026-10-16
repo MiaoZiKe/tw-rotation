@@ -1,0 +1,20 @@
+/* ============================================================================
+   ★ 2026-10-16 客服聊天室・手機全螢幕（Andy：「意見反饋和願望那邊改成聊天室的形式……可以參考IG那樣」）
+   手機（html.m4／≤640）打開「意見・願望」時，面板變成全螢幕的聊天畫面（像 IG 私訊）：
+     · 頂端標題列＋分頁、中間對話可捲、輸入列固定在最底下；
+     · 鍵盤彈出時 support.js 的 fitMobile() 依 visualViewport 把面板高度縮到鍵盤上方（行內 height／top），輸入框不會被蓋住；
+     · 輸入框字級 16px：iPhone 的 Safari 對 < 16px 的輸入框一點就自動放大整頁，放大後畫面會左右滑。
+   只有 .chfull（support.js 只在手機加）才生效；桌機一個字都不受影響（桌機守門1008）。
+   ============================================================================ */
+@media (max-width:640px){
+  .suppanel.chfull{left:0!important;right:0!important;top:0;bottom:auto!important;width:100%!important;max-width:none!important;height:100dvh;max-height:none!important;border-radius:0!important;border:0!important;box-shadow:none!important}
+  .suppanel.chfull .sph{padding:calc(10px + env(safe-area-inset-top)) 12px 8px}
+  .suppanel.chfull .sptabs{padding:8px 12px 0}
+  .suppanel.chfull .chin textarea{font-size:16px}
+  .suppanel.chfull .chm .chw{max-width:82%}
+  .suppanel.chfull .spmail{padding-bottom:calc(7px + env(safe-area-inset-bottom))}
+  html.supchat-full .supfab{visibility:hidden!important}
+}
+:root.m4 .suppanel.chfull{left:0!important;right:0!important;bottom:auto!important;width:100%!important;max-width:none!important;max-height:none!important;border-radius:0!important;border:0!important;box-shadow:none!important}
+:root.m4 .suppanel.chfull .chin textarea{font-size:16px}
+:root.m4.supchat-full .supfab{visibility:hidden!important}

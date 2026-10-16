@@ -235,7 +235,7 @@ html.fab-off .supfab{display:none!important}`);
      ★ 2026-10-12（Andy：「比比改成一直跳…就是第一版做出來的樣式」）：開場圖＝待機同一支 idle_hop（第一版 8 格跳躍 GIF），
      bibi.js 接手後也是這張，開場不會先閃一下別的造型。版本戳跟 bibi.js 的 AV 一起改。 */
   const MARK = '<img class="supmark supgif" src="brand/bibi/idle_hop.webp?v=1012a" width="64" height="64" alt="" aria-hidden="true" draggable="false">';
-  let tab = 'faq', fbKind = 'fb';
+  let tab = 'faq';
   const WISH_TAG = '【願望清單】';
   const isWish = (r) => r.type === 'wish' || String(r.body || '').startsWith(WISH_TAG);
   /* 願望的狀態：新／評估中／已做／不做（Worker 要支援 eval／done／no 才存得住；舊 Worker 只認 new／handled，見 sendWishSt） */
@@ -268,7 +268,7 @@ html.fab-off .supfab{display:none!important}`);
     const p = document.getElementById('supPanel'), fab = document.getElementById('supFab');
     const open = want == null ? p.hidden : want;
     p.hidden = !open; fab.setAttribute('aria-expanded', String(open));
-    if (open) { paint(); placePanel(); }
+    if (open) { paint(); placePanel(); fitMobile(); } else fitMobile();
   }
 
   /* ======================================================================
@@ -460,99 +460,291 @@ html.fab-off .supfab{display:none!important}`);
   window.TwSupFab = { applyPos, checkAway, placePanel, observing: () => !!awayMo };
   function paint() {
     const p = document.getElementById('supPanel'); if (!p) return;
-    p.innerHTML = `<div class="sph"><b>比比・問題小助手<small style="font-weight:400;color:var(--ink-2);font-size:12.5px;margin-left:8px">需要幫忙嗎？</small></b><button type="button" id="supClose" aria-label="關閉">×</button></div>
-      <div class="spai"><b>AI 客服即將推出</b>　目前請先看常見問題，或留言給我們（真人回覆）。</div>
-      <div class="sptabs" role="tablist">${[['faq', '常見問題'], ['fb', '意見反饋'], ['mail', '寄信']].map(([k, n]) => `<button type="button" role="tab" data-t="${k}" class="${tab === k ? 'on' : ''}" aria-selected="${tab === k}">${n}</button>`).join('')}</div>
-      <div class="spbody" id="supBody">${body()}</div>`;
+    /* 2026-10-16（Andy：「寄信拿掉，意見反饋和願望那邊改成聊天室的形式，下方可以附上Mail」）：
+       分頁只剩「常見問題｜意見・願望」；意見・願望＝IG 私訊式聊天室（chatHtml）；信箱改成面板最底下一行小字（每個分頁都在）。
+       AI 客服的預告只留在常見問題（聊天室要把高度留給對話）。 */
+    const chat = tab === 'fb';
+    p.classList.toggle('chat', chat);
+    p.innerHTML = `<div class="sph"><b>比比・問題小助手<small style="font-weight:400;color:var(--ink-2);font-size:12.5px;margin-left:8px">${chat ? '站方真人回覆' : '需要幫忙嗎？'}</small></b><button type="button" id="supClose" aria-label="關閉">×</button></div>
+      ${chat ? '' : '<div class="spai"><b>AI 客服即將推出</b>　目前請先看常見問題，或到「意見・願望」直接傳訊息給我們（真人回覆）。</div>'}
+      <div class="sptabs" role="tablist">${[['faq', '常見問題'], ['fb', '意見・願望']].map(([k, n]) => `<button type="button" role="tab" data-t="${k}" class="${tab === k ? 'on' : ''}" aria-selected="${tab === k}">${n}${k === 'fb' && CH.unread && !chat ? `<span class="fbdot" id="chTabDot">${CH.unread}</span>` : ''}</button>`).join('')}</div>
+      <div class="spbody${chat ? ' chbody' : ''}" id="supBody">${chat ? chatHtml() : body()}</div>
+      <div class="spmail" id="supMailRow">其他聯絡方式：<a id="supMail" data-gmail href="${esc(gmail(SUPPORT_EMAIL, '哩股哩股－客服'))}" target="_blank" rel="noopener" title="用 Gmail 寄信">${SUPPORT_EMAIL}</a><button type="button" class="cpmail" id="supCopy" data-copymail="${SUPPORT_EMAIL}">複製</button></div>`;
     p.querySelector('#supClose').onclick = () => toggle(false);
     p.querySelector('.sptabs').onclick = (e) => { const b = e.target.closest('button[data-t]'); if (b) { tab = b.dataset.t; paint(); } };
     p.querySelectorAll('.faq > button').forEach((b) => { b.onclick = () => { const f = b.parentElement; f.classList.toggle('on'); b.setAttribute('aria-expanded', String(f.classList.contains('on'))); }; });
-    const go = p.querySelector('#fbSend'); if (go) go.onclick = send;
-    const ks = p.querySelector('#fbKind'); if (ks) ks.onclick = (e) => { const b = e.target.closest('button[data-fk]'); if (b && b.dataset.fk !== fbKind) { fbKind = b.dataset.fk; paint(); } };
-    const cs = p.querySelector('#fbCat');
-    if (cs) cs.onchange = () => { const w = p.querySelector('#fbSubWrap'), o = subOpts(cs.value); p.querySelector('#fbSub').innerHTML = o; w.hidden = !o.includes('value="') || cs.value === 'other'; };
-  }
-  function subOpts(cat) {
-    const t = TREE.find((x) => x[0] === cat); if (!t || !t[2].length) return '<option value="">（無細項）</option>';
-    return '<option value="">（不選）</option>' + t[2].map(([k, n]) => `<option value="${k}">${n}</option>`).join('');
+    if (chat) wireChat(p);
+    fitMobile();
   }
   function body() {
     // 「即時和盤後差在哪」那一題只給管理者看（data-live-ui，livegate.js 的 CSS 藏；DECISIONS #326）
-    if (tab === 'faq') return FAQ.map(([q, a], i) => `<div class="faq" data-i="${i}"${/「即時」/.test(q) ? ' data-live-ui' : ''}><button type="button" aria-expanded="false">${esc(q)}</button><div class="ans">${esc(a)}</div></div>`).join('')
-      + `<p class="note">找不到答案？到「意見反饋」留言，或看 <a href="#pricing">訂閱方案</a>。</p>`;
-    if (tab === 'mail') return `<p class="note">寄信給客服（一般 1～2 個工作天內回覆）：</p><div class="mailrow"><a class="mail" id="supMail" data-gmail href="${esc(gmail(SUPPORT_EMAIL, '哩股哩股－客服'))}" target="_blank" rel="noopener">用 Gmail 寄信給 ${SUPPORT_EMAIL}</a><button type="button" class="cpmail" id="supCopy" data-copymail="${SUPPORT_EMAIL}">複製信箱</button></div>
-      <p class="note">不用 Gmail 的話，按「複製信箱」再貼到你慣用的郵件程式。</p>
-      <p class="note">付款或方案問題請在信裡註明你登入用的 email。本網站不是證券投資顧問，無法回答個股買賣問題。</p>`;
-    const A = window.TwAccount, u = A && A.on() ? A.user() : null;
-    /* 1007：訪客也能送（Worker 端每 IP 每小時上限）；送出只存本站伺服器，不寄任何信。
-       只有會員伺服器沒設定（TwSub.call 根本沒有網址）時才關掉。*/
-    const can = !!(A && A.on());
-    /* 2026-10-09（Andy：「再新增一個願望清單，所以我意見回饋需要多一個功能：願望清單」）：
-       分段控制器切「意見回饋｜願望清單」。願望清單＝想要的新功能（必填）＋為什麼需要（選填）＋聯絡方式（選填，會員自動帶入），
-       送出走同一條 /v1/feedback（type='wish'），只存本站伺服器。*/
-    const seg = `<div class="fbkind" id="fbKind" role="tablist" aria-label="反饋種類">${[['fb', '意見回饋'], ['wish', '願望清單']].map(([k, n]) => `<button type="button" role="tab" data-fk="${k}" class="${fbKind === k ? 'on' : ''}" aria-selected="${fbKind === k}">${n}</button>`).join('')}</div>`;
-    const off = can ? '' : '<p class="note" style="color:var(--amber)">線上反饋暫時無法使用，請改用「寄信」。</p>';
-    if (fbKind === 'wish') return `${seg}${off}
-      <p class="note">想要網站多一個什麼功能？寫下來，我們會逐則評估，做了會在公告裡說。</p>
-      <label for="wsWant">想要的功能（必填）</label><textarea id="wsWant" maxlength="600" placeholder="例如：自選股可以設價格提醒、族群頁加上本益比排行…"></textarea>
-      <label for="wsWhy">為什麼需要（選填）</label><textarea id="wsWhy" class="sm" maxlength="1000" placeholder="你平常怎麼用、現在卡在哪裡"></textarea>
-      <label for="fbMail">聯絡方式 email（選填，做好時通知你）</label><input type="email" id="fbMail" maxlength="200" value="${esc(u && u.email || '')}" autocomplete="email">
-      <button type="button" class="go" id="fbSend" ${can ? '' : 'disabled'}>送出願望</button>
-      <div class="msg" id="fbMsg" role="status"></div>
-      <p class="note">願望只存在本站伺服器（保存 13 個月，刪除帳號時一併刪除），不會提供給第三方。</p>`;
-    return `${seg}${off}
-      <label for="fbCat">類別（先選大類）</label><select id="fbCat">${CATS.map(([k, n]) => `<option value="${k}">${n}</option>`).join('')}</select>
-      <div id="fbSubWrap"><label for="fbSub">細項（可不選）</label><select id="fbSub">${subOpts('bug')}</select></div>
-      <label for="fbBody">內容</label><textarea id="fbBody" maxlength="2000" placeholder="發生了什麼事、在哪一頁、希望怎麼改…"></textarea>
-      <label class="chk"><input type="checkbox" id="fbCtx" checked> 附上目前網址與瀏覽器資訊（幫助我們重現問題）</label>
-      <label for="fbMail">聯絡 email（選填，要回覆時用）</label><input type="email" id="fbMail" maxlength="200" value="${esc(u && u.email || '')}" autocomplete="email">
-      <button type="button" class="go" id="fbSend" ${can ? '' : 'disabled'}>送出</button>
-      <div class="msg" id="fbMsg" role="status"></div>
-      <p class="note">反饋只存在本站伺服器（保存 13 個月，刪除帳號時一併刪除），不會提供給第三方。</p>`;
-  }
-  async function send() {
-    const p = document.getElementById('supPanel');
-    const msg = p.querySelector('#fbMsg'), btn = p.querySelector('#fbSend');
-    if (fbKind === 'wish') return sendWish(p, msg, btn);
-    const text = p.querySelector('#fbBody').value.trim(), contact = p.querySelector('#fbMail').value.trim();
-    if (text.length < 2) { msg.className = 'msg bad'; msg.textContent = '請先寫一點內容'; return; }
-    if (contact && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(contact)) { msg.className = 'msg bad'; msg.textContent = 'email 格式不對（不想留可以空白）'; return; }
-    const ctx = p.querySelector('#fbCtx').checked;
-    const body = { cat: p.querySelector('#fbCat').value, body: text };
-    const sb = p.querySelector('#fbSub'); if (sb && sb.value && body.cat !== 'other') body.sub = sb.value;
-    if (contact) body.contact = contact;
-    if (ctx) { body.url = location.href.slice(0, 300); body.ua = (navigator.userAgent + ' ｜ ' + innerWidth + '×' + innerHeight).slice(0, 300); }
-    btn.disabled = true; msg.className = 'msg'; msg.textContent = '送出中…';
-    const j = await call('/v1/feedback', body);
-    btn.disabled = false;
-    if (j && j._s === 200 && j.ok) {
-      p.querySelector('#fbBody').value = '';
-      msg.className = 'msg ok'; msg.textContent = '已收到，謝謝你！' + (contact ? '我們會回信到 ' + contact : '');
-    } else {
-      msg.className = 'msg bad';
-      msg.textContent = j && j._s === 429 ? '今天送出太多次了，請改用寄信' : '送出失敗，請稍後再試，或改用「寄信」';
-    }
+    return FAQ.map(([q, a], i) => `<div class="faq" data-i="${i}"${/「即時」/.test(q) ? ' data-live-ui' : ''}><button type="button" aria-expanded="false">${esc(q)}</button><div class="ans">${esc(a)}</div></div>`).join('')
+      + `<p class="note">找不到答案？到「意見・願望」直接傳訊息，或看 <a href="#pricing">訂閱方案</a>。</p>`;
   }
 
-  /* 願望清單送出：type='wish'。cat 固定 'idea'（功能建議），內文前面加「【願望清單】」——
-     現行 Worker 還沒有 type 欄位時，管理頁靠這個前綴認出願望（Worker 補上 type 欄之後兩種都認）。*/
-  async function sendWish(p, msg, btn) {
-    const want = p.querySelector('#wsWant').value.trim(), why = p.querySelector('#wsWhy').value.trim(), contact = p.querySelector('#fbMail').value.trim();
-    if (want.length < 2) { msg.className = 'msg bad'; msg.textContent = '請先寫下想要的功能'; return; }
-    if (contact && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(contact)) { msg.className = 'msg bad'; msg.textContent = 'email 格式不對（不想留可以空白）'; return; }
-    const body = { type: 'wish', cat: 'idea', body: (WISH_TAG + want + (why ? '\n為什麼需要：' + why : '')).slice(0, 2000), url: location.href.slice(0, 300) };
-    if (contact) body.contact = contact;
-    btn.disabled = true; msg.className = 'msg'; msg.textContent = '送出中…';
-    const j = await call('/v1/feedback', body);
-    btn.disabled = false;
-    if (j && j._s === 200 && j.ok) {
-      p.querySelector('#wsWant').value = ''; p.querySelector('#wsWhy').value = '';
-      msg.className = 'msg ok'; msg.textContent = '願望收到了，謝謝你！' + (contact ? '做好會通知 ' + contact : '');
-    } else {
-      msg.className = 'msg bad';
-      msg.textContent = j && j._s === 429 ? '今天送出太多次了，請改用寄信' : '送出失敗，請稍後再試，或改用「寄信」';
-    }
+  /* ======================================================================
+     聊天室（chat-1016，Andy 10-16：「意見反饋和願望那邊改成聊天室的形式……可以參考IG那樣，目的是為了更快回覆訊息」）
+     ----------------------------------------------------------------------
+     · 一個人一串對話：自己的泡泡在右、站方在左；時間、日期分隔、最後一則「已讀／已送出」。
+     · 分類（錯誤回報／功能建議／願望…）是輸入列上方一排小標籤，不選＝其他。願望＝type:'wish'（管理頁的願望清單照舊認得）。
+     · 送出照舊打 /v1/feedback（每則仍是一筆反饋，統計不變）；對話讀 /v1/chat/mine（會員：自己的；訪客：這個瀏覽器的識別碼 tw.sup.gk）。
+     · 四種模式（CH.mode）：
+         live    正式：後端有聊天路由。
+         legacy  後端還是舊版（/v1/chat/mine 回 404）：送出照樣進 /v1/feedback，對話先留在這個瀏覽器（tw.sup.local），頂端說明。
+         demo    預覽版（TW_PREVIEW 或網址含 /preview/；驗收用 window.__supDemo）：不打任何寫入，幾則示範對話＋送出後本機顯示＋示範回覆。
+                 預覽版的會員雲端寫入本來就被擋（docs/preview.md），而 /v1/feedback 沒被擋 —— 不攔的話 Andy 在預覽試打的字會真的進正式收件匣。
+         off     沒有設定會員伺服器（本機預覽）：同 demo 的畫面，但不給未讀紅點。
+     ====================================================================== */
+  const IS_PV = () => !!window.TW_PREVIEW || /\/preview\//.test(location.pathname || '') || !!window.__supDemo;
+  const TAGS = [['bug', '錯誤回報'], ['idea', '功能建議'], ['wish', '願望'], ['ask', '資料疑問'], ['acct', '帳號與付費'], ['other', '其他']];
+  const TAGN = Object.fromEntries(TAGS);
+  const GK_KEY = 'tw.sup.gk', LOCAL_KEY = 'tw.sup.local';
+  let memGk = '';
+  const rnd = (n) => { const a = crypto.getRandomValues(new Uint8Array(n)); return btoa(String.fromCharCode(...a)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, ''); };
+  /* 訪客的對話識別碼：第一次送出時才產生（只看不送的訪客不留任何東西）。私密視窗存不進去就只在這次瀏覽有效 */
+  function gk(make) {
+    let v = memGk; try { v = localStorage.getItem(GK_KEY) || memGk; } catch (e) { /* 私密視窗 */ }
+    if (/^[A-Za-z0-9_-]{20,64}$/.test(v)) return v;
+    if (!make) return '';
+    v = rnd(24); memGk = v; try { localStorage.setItem(GK_KEY, v); } catch (e) { /* 只在記憶體 */ }
+    return v;
   }
+  const CH = { msgs: null, mode: '', unread: 0, tag: '', ctx: true, loading: false, who: '' };
+  const me = () => { const A = window.TwAccount; return A && A.on && A.on() ? A.user() : null; };
+  const demoLike = () => CH.mode === 'demo' || CH.mode === 'off';
+  function localMsgs() { try { const a = JSON.parse(localStorage.getItem(LOCAL_KEY) || '[]'); return Array.isArray(a) ? a : []; } catch (e) { return []; } }
+  function saveLocal(m) { try { const a = localMsgs(); a.push({ id: m.id, me: true, body: m.body, cat: m.cat, type: m.type, created: m.created, url: m.url, read: false }); localStorage.setItem(LOCAL_KEY, JSON.stringify(a.slice(-50))); } catch (e) { /* 存不進去：這次瀏覽看得到 */ } }
+  function demoSeed(unread) {
+    const now = Date.now(), H = 3600e3, D = 86400e3, base = location.origin + location.pathname;
+    return [
+      { id: 'd1', me: true, body: '資金流向的桑基圖在手機上右邊會被切掉一截', cat: 'bug', type: '', created: now - 2 * D - 3 * H, read: true, url: base + '#flow' },
+      { id: 'd2', me: false, body: '謝謝回報！已經重現到了，是 390 寬時右側標籤太長。今晚的版本會修好，更新後重新整理就能看到。', created: now - 2 * D - 2.6 * H, seen: true },
+      { id: 'd3', me: true, body: '想要自選股可以設價格提醒，到價時通知我', cat: 'idea', type: 'wish', created: now - 5 * H, read: true },
+      { id: 'd4', me: false, body: '這個願望收到了，已經列入評估。做好會在公告通知，也會在這裡跟你說。', created: now - 4.2 * H, seen: !unread },
+    ];
+  }
+  async function chLoad() {
+    const u = me(), who = u ? 'u:' + u.email : 'g';
+    if (IS_PV()) { if (CH.mode !== 'demo') { CH.mode = 'demo'; CH.msgs = demoSeed(true); } }
+    else if (!window.TwAccount || !window.TwAccount.on || !window.TwAccount.on()) { if (CH.mode !== 'off') { CH.mode = 'off'; CH.msgs = demoSeed(false); } }
+    else {
+      if (CH.who !== who) { CH.msgs = null; CH.who = who; }
+      const g = u ? '' : gk(false);
+      if (!u && !g) { CH.mode = CH.mode || 'live'; CH.msgs = CH.mode === 'legacy' ? localMsgs() : []; }
+      else if (!CH.loading) {
+        CH.loading = true;
+        const j = await call('/v1/chat/mine', u ? {} : { gk: g });
+        CH.loading = false;
+        if (j && j._s === 200) { CH.mode = 'live'; CH.msgs = (j.msgs || []).concat((CH.msgs || []).filter((m) => m.st)); }
+        else if (j && j._s === 404) { CH.mode = 'legacy'; CH.msgs = localMsgs().concat((CH.msgs || []).filter((m) => m.st)); }
+        else if (!CH.msgs) { CH.mode = CH.mode || 'live'; CH.msgs = []; CH.err = '讀取對話失敗，稍後會再試'; }
+      }
+    }
+    CH.unread = (CH.msgs || []).filter((m) => !m.me && !m.seen).length;
+    paintBadge();
+  }
+  /* 未讀紅點：浮動鈕右上角＋面板分頁上。站方回覆了、而且對方還沒打開聊天室 */
+  function paintBadge() {
+    const fab = document.getElementById('supFab'); if (!fab) return;
+    let d = fab.querySelector('.supbadge');
+    if (!CH.unread) { if (d) d.remove(); fab.setAttribute('aria-label', '客服：比比・問題小助手'); return; }
+    if (!d) { d = document.createElement('span'); d.className = 'supbadge'; d.setAttribute('aria-hidden', 'true'); fab.appendChild(d); }
+    d.textContent = CH.unread > 9 ? '9+' : String(CH.unread);
+    fab.setAttribute('aria-label', '客服：比比・問題小助手（' + CH.unread + ' 則站方回覆未讀）');
+  }
+  async function chSeen() {
+    if (!CH.unread) return;
+    (CH.msgs || []).forEach((m) => { if (!m.me) m.seen = true; });
+    CH.unread = 0; paintBadge();
+    if (CH.mode === 'live') { const u = me(); await call('/v1/chat/seen', u ? {} : { gk: gk(false) }); }
+  }
+  const hm = (ms) => { const d = new Date(ms + 8 * 3600e3); return String(d.getUTCHours()).padStart(2, '0') + ':' + String(d.getUTCMinutes()).padStart(2, '0'); };
+  const dayLbl = (ms) => { const d = dayOf(ms), t = todayTpe(); if (d === t) return '今天'; if (d === shiftDay(t, -1)) return '昨天'; return (d.slice(0, 4) === t.slice(0, 4) ? '' : d.slice(0, 4) + '/') + (+d.slice(5, 7)) + '/' + (+d.slice(8)); };
+  const urlShort = (u) => { try { const x = new URL(u); return (x.hash || x.pathname).slice(0, 40) || '首頁'; } catch (e) { return String(u).slice(0, 40); } };
+  const tagOf = (m) => (m.type === 'wish' || String(m.body || '').startsWith(WISH_TAG) ? 'wish' : (TAGN[m.cat] ? m.cat : ''));
+  const bodyOf = (m) => String(m.body || '').replace(WISH_TAG, '');
+  /* 泡泡串：共用給會員面板與管理收件匣（side：mine＝右邊那一方）。opts.admin：管理端（使用者在左、站方在右） */
+  function bubbles(msgs, opts) {
+    const o = opts || {}, out = [];
+    let lastDay = '';
+    const lastMine = (() => { for (let i = msgs.length - 1; i >= 0; i--) if (o.admin ? !msgs[i].me : msgs[i].me) return i; return -1; })();
+    msgs.forEach((m, i) => {
+      const d = dayOf(m.created); if (d !== lastDay) { lastDay = d; out.push(`<div class="chday"><span>${dayLbl(m.created)}</span></div>`); }
+      const right = o.admin ? !m.me : m.me;
+      const tg = m.me ? tagOf(m) : '';
+      const head = tg && tg !== 'other' ? `<span class="chtag" data-c="${tg}">${esc(TAGN[tg])}</span>` : '';
+      const link = m.url ? `<a class="churl" href="${esc(m.url)}" ${o.admin ? 'target="_blank" rel="noopener"' : ''} title="${esc(m.url)}">附上頁面：${esc(urlShort(m.url))}</a>` : '';
+      let st = '';
+      if (m.st === 'sending') st = '傳送中…';
+      else if (m.st === 'fail') st = `<span class="bad">${esc(m.err || '送出失敗')}</span>・<button type="button" class="chretry" data-retry="${esc(m.id)}">重送</button>`;
+      else if (i === lastMine && !o.admin) st = m.read ? '已讀' : '已送出';
+      else if (i === lastMine && o.admin) st = m.seen ? '對方已讀' : '已送出';
+      const extra = o.extra ? o.extra(m) : '';
+      out.push(`<div class="chm ${right ? 'r' : 'l'}${m.st ? ' ' + m.st : ''}${m.sys ? ' sys' : ''}" data-id="${esc(m.id)}">
+        ${!right ? `<span class="chav${o.admin ? ' u' : ''}" aria-hidden="true">${o.admin ? esc(o.initial || '訪') : '<img src="brand/mark-64.webp" alt="" width="28" height="28">'}</span>` : ''}
+        <div class="chw"><div class="bb">${head}<span class="tx">${esc(bodyOf(m))}</span>${link}</div>
+        <div class="mt"><time>${hm(m.created)}</time>${st ? '<span>' + st + '</span>' : ''}${extra}</div></div></div>`);
+    });
+    return out.join('');
+  }
+  function welcome() {
+    return { id: 'w', me: false, sys: true, created: (CH.msgs && CH.msgs[0] ? Math.min(CH.msgs[0].created, Date.now()) : Date.now()) - 1, seen: true,
+      body: '嗨，我是比比！錯誤回報、功能建議、想要的新功能（願望）都可以直接傳訊息給我們，站方真人會在這裡回覆你。' };
+  }
+  function logHtml() {
+    if (CH.msgs === null) return '<div class="chempty">載入對話中…</div>';
+    return bubbles([welcome()].concat(CH.msgs)) + (CH.err ? `<div class="chempty bad">${esc(CH.err)}</div>` : '');
+  }
+  const SEND_SVG = '<svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M4 12 20 4l-6 16-2.6-6.6z" fill="currentColor"/></svg>';
+  function chatHtml() {
+    const u = me();
+    const note = demoLike() ? '<div class="chdemo" id="chDemo" role="note">預覽示範：訊息不會真的送出</div>'
+      : CH.mode === 'legacy' ? '<div class="chdemo" id="chLegacy" role="note">對話紀錄更新中：訊息照樣送到站方，站方回覆先以 email 為主</div>' : '';
+    return `<div class="spchat">${note}
+      <div class="chlog" id="chLog" role="log" aria-live="polite" aria-label="對話">${logHtml()}</div>
+      <div class="chbar">
+        <div class="chtags" id="chTags" role="radiogroup" aria-label="分類（可不選）">${TAGS.map(([k, n]) => `<button type="button" role="radio" data-tag="${k}" data-c="${k}" aria-checked="${CH.tag === k}" class="${CH.tag === k ? 'on' : ''}">${n}</button>`).join('')}</div>
+        <div class="chin"><textarea id="chIn" rows="1" maxlength="2000" enterkeyhint="send" aria-label="訊息" placeholder="${CH.tag === 'wish' ? '想要網站多一個什麼功能？' : '傳訊息給站方…'}"></textarea><button type="button" id="fbSend" class="chsend" aria-label="送出" title="送出（Enter）">${SEND_SVG}</button></div>
+        <div class="chopt"><label class="chsw" title="附上目前網址與瀏覽器資訊，幫助我們重現問題"><input type="checkbox" id="chCtx"${CH.ctx ? ' checked' : ''}><i aria-hidden="true"></i>附上目前頁面</label><span class="chwho">${u ? '' : '訪客：對話只存在這個瀏覽器'}</span></div>
+      </div></div>`;
+  }
+  function chScroll(p) { const l = p.querySelector('#chLog'); if (l) l.scrollTop = l.scrollHeight; }
+  function repaintLog() {
+    const p = document.getElementById('supPanel'); if (!p || p.hidden || tab !== 'fb') return;
+    const l = p.querySelector('#chLog'); if (!l) { paint(); return; }
+    l.innerHTML = logHtml(); chScroll(p);
+  }
+  function grow(ta) { ta.style.height = 'auto'; ta.style.height = Math.min(ta.scrollHeight, 112) + 'px'; }
+  function wireChat(p) {
+    const ta = p.querySelector('#chIn');
+    if (CH.draft) ta.value = CH.draft;
+    grow(ta);
+    ta.oninput = () => { CH.draft = ta.value; grow(ta); };
+    ta.onkeydown = (e) => { if (e.key === 'Enter' && !e.shiftKey && !e.isComposing && !isMob()) { e.preventDefault(); chSend(); } };
+    p.querySelector('#fbSend').onclick = () => chSend();
+    p.querySelector('#chCtx').onchange = (e) => { CH.ctx = e.target.checked; };
+    p.querySelector('#chTags').onclick = (e) => {
+      const b = e.target.closest('button[data-tag]'); if (!b) return;
+      CH.tag = CH.tag === b.dataset.tag ? '' : b.dataset.tag;
+      p.querySelectorAll('#chTags button').forEach((x) => { const on = x.dataset.tag === CH.tag; x.classList.toggle('on', on); x.setAttribute('aria-checked', String(on)); });
+      ta.placeholder = CH.tag === 'wish' ? '想要網站多一個什麼功能？' : '傳訊息給站方…';
+    };
+    p.querySelector('#chLog').onclick = (e) => {
+      const r = e.target.closest('button[data-retry]'); if (!r) return;
+      const m = CH.msgs.find((x) => x.id === r.dataset.retry); if (!m) return;
+      CH.msgs = CH.msgs.filter((x) => x !== m); ta.value = bodyOf(m); CH.draft = ta.value; repaintLog(); ta.focus();
+    };
+    chScroll(p);
+    if (CH.msgs === null) { const m0 = CH.mode; chLoad().then(() => { if (CH.mode !== m0) paint(); else repaintLog(); chSeen(); }); }
+    else chSeen();
+    if (!isMob()) setTimeout(() => { try { ta.focus({ preventScroll: true }); } catch (e) { ta.focus(); } }, 30);
+  }
+  async function chSend() {
+    const p = document.getElementById('supPanel'); if (!p) return;
+    const ta = p.querySelector('#chIn'), text = ta.value.trim();
+    if (text.length < 2) { ta.classList.add('bad'); ta.placeholder = '至少寫兩個字再送出'; setTimeout(() => ta.classList.remove('bad'), 1200); ta.focus(); return; }
+    if (!CH.msgs) CH.msgs = [];
+    const tag = CH.tag || 'other';
+    const m = { id: 'tmp' + rnd(6), me: true, body: text, cat: tag === 'wish' ? 'idea' : tag, type: tag === 'wish' ? 'wish' : '', created: Date.now(), read: false, st: 'sending' };
+    if (CH.ctx) m.url = location.href.slice(0, 300);
+    CH.msgs.push(m); ta.value = ''; CH.draft = ''; grow(ta); repaintLog();
+    if (demoLike()) {
+      setTimeout(() => { m.st = ''; repaintLog(); }, 250);
+      setTimeout(() => {
+        m.read = true;
+        CH.msgs.push({ id: 'dr' + rnd(4), me: false, created: Date.now(), seen: !document.getElementById('supPanel').hidden && tab === 'fb',
+          body: '（示範回覆）收到了！正式上線後，站方的真人回覆會出現在這裡；你沒開著聊天室的話，右下角比比會亮紅點。' });
+        CH.unread = CH.msgs.filter((x) => !x.me && !x.seen).length; paintBadge(); repaintLog();
+      }, 1200);
+      return;
+    }
+    const u = me(), body = { cat: m.cat, body: text };
+    if (m.type) body.type = 'wish';
+    if (m.url) { body.url = m.url; body.ua = (navigator.userAgent + ' ｜ ' + innerWidth + '×' + innerHeight).slice(0, 300); }
+    if (!u) body.gk = gk(true);
+    const j = await call('/v1/feedback', body);
+    if (j && j._s === 200 && j.ok) { m.id = j.id || m.id; m.st = ''; if (CH.mode === 'legacy') saveLocal(m); }
+    else { m.st = 'fail'; m.err = j && j._s === 429 ? '今天送出太多次了' : '送出失敗'; }
+    repaintLog();
+  }
+  /* 手機（html.m4／≤640）：聊天室全螢幕；鍵盤彈出時用 visualViewport 把面板高度縮成「鍵盤上方那一段」，輸入列永遠在鍵盤正上方 */
+  let vvOn = false;
+  function fitMobile() {
+    const p = document.getElementById('supPanel'); if (!p) return;
+    const full = !p.hidden && p.classList.contains('chat') && isMob(), was = p.classList.contains('chfull');
+    p.classList.toggle('chfull', full);
+    document.documentElement.classList.toggle('supchat-full', full);
+    const vv = window.visualViewport;
+    if (full) {
+      ['left', 'right', 'bottom', 'max-height'].forEach((k) => p.style.removeProperty(k));
+      if (vv) {
+        p.style.setProperty('height', Math.round(vv.height) + 'px', 'important');
+        p.style.setProperty('top', Math.round(vv.offsetTop) + 'px', 'important');
+        if (!vvOn) { vvOn = true; vv.addEventListener('resize', fitMobile); vv.addEventListener('scroll', fitMobile); }
+      }
+    } else if (was) { p.style.removeProperty('height'); p.style.removeProperty('top'); if (!p.hidden) placePanel(); }
+  }
+  /* 有對話的人（會員、送過訊息的訪客）每 5 分鐘看一次有沒有新回覆；分頁在背景時不打 */
+  function chPoll() {
+    if (document.visibilityState !== 'visible' || CH.mode === 'demo' || CH.mode === 'off') return;
+    if (!me() && !gk(false)) return;
+    chLoad().then(() => { const p = document.getElementById('supPanel'); if (p && !p.hidden && tab === 'fb') { repaintLog(); chSeen(); } });
+  }
+  setInterval(chPoll, 5 * 60 * 1000);
+  css('supChatCss', `
+.suppanel.chat{height:min(620px,calc(100vh - 110px))}
+.suppanel .sptabs button.on{color:var(--ontop)}
+.suppanel .sptabs button .fbdot{margin-left:6px;vertical-align:1px}
+.suppanel .spbody.chbody{flex:1;min-height:0;padding:0;overflow:hidden;display:flex}
+.suppanel .spmail{flex:none;display:flex;align-items:center;justify-content:center;gap:6px;padding:7px 12px;border-top:1px solid var(--line);font-size:12px;color:var(--ink-3);white-space:nowrap;overflow:hidden}
+.suppanel .spmail a{color:var(--cyan);text-decoration:none;overflow:hidden;text-overflow:ellipsis}.suppanel .spmail a:hover{text-decoration:underline}
+.suppanel .spmail .cpmail{height:24px;padding:0 8px;font-size:12px;margin-left:2px}
+.spchat{flex:1;min-width:0;min-height:0;display:flex;flex-direction:column}
+.chdemo{flex:none;margin:8px 12px 0;padding:5px 10px;border-radius:8px;font-size:12px;text-align:center;color:var(--amber);border:1px solid color-mix(in srgb,var(--amber) 55%,transparent);background:color-mix(in srgb,var(--amber) 10%,transparent)}
+.chlog{flex:1;min-height:0;overflow-y:auto;overflow-x:hidden;padding:10px 12px 6px;display:flex;flex-direction:column;gap:2px;overscroll-behavior:contain}
+.chday{display:flex;justify-content:center;margin:10px 0 6px}.chday span{font-size:12px;color:var(--ink-3);background:var(--panel);border:1px solid var(--line);border-radius:999px;padding:1px 10px}
+.chm{display:flex;align-items:flex-end;gap:6px;margin:3px 0;max-width:100%}
+.chm.r{justify-content:flex-end}
+.chm .chw{display:flex;flex-direction:column;max-width:78%;min-width:0}
+.chm.r .chw{align-items:flex-end}
+.chm .bb{padding:8px 12px;border-radius:18px;font-size:14px;line-height:1.5;white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word}
+.chm.l .bb{background:var(--panel-3);color:var(--ink);border-bottom-left-radius:6px}
+.chm.r .bb{background:var(--cyan);color:var(--ontop);border-bottom-right-radius:6px}
+.chm.sys .bb{background:color-mix(in srgb,var(--violet) 16%,var(--panel-3))}
+.chm.sending .bb{opacity:.6}.chm.fail .bb{outline:1px solid var(--rise)}
+.chm .chtag{display:block;font-size:12px;font-weight:700;opacity:.85;margin-bottom:1px}
+.chm .churl{display:block;font-size:12px;margin-top:3px;color:inherit;opacity:.8;text-decoration:underline;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+.chm .mt{display:flex;gap:6px;align-items:center;font-size:12px;color:var(--ink-3);padding:2px 6px 0;white-space:nowrap}
+.chm .mt .bad{color:var(--rise)}
+.chm .chretry{border:0;background:none;color:var(--cyan);font:inherit;font-size:12px;padding:0;cursor:pointer;text-decoration:underline}
+.chav{flex:none;width:28px;height:28px;border-radius:50%;overflow:hidden;display:grid;place-items:center;background:var(--panel);border:1px solid var(--line-2);margin-bottom:18px}
+.chav img{width:28px;height:28px;display:block}
+.chav.u{font-size:12px;font-weight:700;color:var(--ink);background:color-mix(in srgb,var(--cyan) 18%,var(--panel))}
+.chempty{text-align:center;color:var(--ink-3);font-size:13px;padding:16px 0}.chempty.bad{color:var(--rise)}
+.chbar{flex:none;border-top:1px solid var(--line);padding:8px 10px 8px;background:var(--panel-2)}
+.chtags{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;padding-bottom:6px;-webkit-overflow-scrolling:touch}
+.chtags::-webkit-scrollbar{display:none}
+.chtags button{flex:none;height:26px;padding:0 10px;border-radius:999px;border:1px solid var(--line-2);background:transparent;color:var(--ink-2);font:inherit;font-size:12.5px;cursor:pointer;white-space:nowrap}
+.chtags button:hover{color:var(--ink)}
+.chtags button.on{background:color-mix(in srgb,var(--cyan) 20%,transparent);border-color:var(--cyan);color:var(--ink);font-weight:700}
+.chin{display:flex;align-items:flex-end;gap:8px;background:var(--panel);border:1px solid var(--line-2);border-radius:22px;padding:4px 4px 4px 14px}
+.chin:focus-within{border-color:var(--cyan)}
+.chin textarea:focus,.chin textarea:focus-visible{outline:none!important;box-shadow:none!important}
+.chin textarea{flex:1;min-width:0;border:0;outline:0;background:transparent;color:var(--ink);font:inherit;font-size:14px;line-height:20px;padding:6px 0;resize:none;height:32px;max-height:112px;box-sizing:border-box;min-height:0}
+.chin textarea.bad::placeholder{color:var(--rise)}
+.chsend{flex:none;width:34px;height:34px;border-radius:50%;border:0;background:var(--cyan);color:var(--ontop);display:grid;place-items:center;cursor:pointer}
+.chsend:hover{filter:brightness(1.1)}
+.chopt{display:flex;align-items:center;gap:10px;margin-top:6px;font-size:12px;color:var(--ink-3);white-space:nowrap}
+.chopt .chwho{margin-left:auto;overflow:hidden;text-overflow:ellipsis}
+.chsw{display:inline-flex;align-items:center;gap:6px;cursor:pointer;color:var(--ink-2)}
+.chsw input{position:absolute;opacity:0;width:1px;height:1px}
+.chsw i{display:inline-block;width:28px;height:16px;border-radius:999px;background:var(--line-2);position:relative;transition:background .15s;flex:none}
+.chsw i::after{content:"";position:absolute;left:2px;top:2px;width:12px;height:12px;border-radius:50%;background:var(--panel);transition:transform .15s}
+.chsw input:checked + i{background:var(--cyan)}.chsw input:checked + i::after{transform:translateX(12px)}
+.chsw input:focus-visible + i{outline:2px solid var(--cyan);outline-offset:2px}
+.chtag[data-c="bug"]{color:inherit}
+.supbadge{position:absolute;top:2px;right:2px;min-width:18px;height:18px;padding:0 5px;border-radius:999px;background:var(--rise);color:#fff;font-size:12px;font-weight:700;line-height:18px;text-align:center;box-sizing:border-box;pointer-events:none;box-shadow:0 0 0 2px var(--bg);z-index:2}
+@media (prefers-reduced-motion:reduce){.chsw i,.chsw i::after{transition:none}}`);
 
   // ------------------------------------------------------------------ 管理端 #admin/feedback
   const CATN = Object.fromEntries(CATS);
@@ -591,16 +783,257 @@ html.fab-off .supfab{display:none!important}`);
     const A = window.TwAccount, u = A && A.on() ? A.user() : null;
     if (!u || !u.admin) { unread = 0; paintDot(); return; }
     const j = await call('/v1/admin/feedback/list', {});
-    if (j && j._s === 200) { last = j; unread = (j.feedback || []).filter((x) => x.status === 'new').length; paintDot(); }
+    if (j && j._s === 200) { last = j; unread = (j.feedback || []).filter((x) => x.status === 'new' && !x.aread).length; paintDot(); }
+  }
+  /* ======================================================================
+     管理端收件匣（chat-1016，Andy 10-16：「可以參考IG那樣，目的是為了更快回覆訊息」）
+     ----------------------------------------------------------------------
+     左＝對話清單（每位會員／訪客一列：最後一句、時間、未讀紅點），右＝對話串＋回覆輸入框（常用回覆一鍵帶入）。
+     原本的統計（甜甜圈、每日直條、完整列表）與訂閱申請收進下面「統計、完整列表與訂閱申請」（預設收起，展開過記住）。
+     模式（IB.mode）：live＝/v1/admin/chat/*；legacy＝Worker 還沒更新（404）：用反饋列表拼出對話、只能看不能回；
+     demo＝預覽版：示範對話，回覆只在本機（頁面上標「示範資料」）。
+     ====================================================================== */
+  const IB = { mode: '', convs: [], sel: '', thread: null, q: '', flt: '', draft: {}, demo: null, busy: false };
+  const QUICK = ['收到，謝謝你！我們查一下再回覆你。', '已經修好了，請重新整理網頁（手機下拉）再看看。', '這個願望已經列入評估，做好會在公告通知你。', '可以再告訴我是在哪一頁、按了什麼嗎？截圖也很有幫助。'];
+  const MORE_KEY = 'tw.adm.fbMore';
+  const relT = (ms) => { const d = Date.now() - ms; if (d < 60e3) return '剛剛'; if (d < 3600e3) return Math.floor(d / 60e3) + ' 分'; if (dayOf(ms) === todayTpe()) return hm(ms); if (d < 7 * 86400e3) return Math.max(1, Math.round(d / 86400e3)) + ' 天'; return dayLbl(ms); };
+  const cName = (c) => (c.member ? (c.name || c.email || '會員') : (c.name || (c.email ? c.email : '訪客 ' + c.ck.slice(2, 6).toUpperCase())));
+  const cInit = (c) => { const n = cName(c); return c.member || c.name ? n.slice(0, 1).toUpperCase() : '訪'; };
+  function ibDemo() {
+    if (IB.demo) return IB.demo;
+    const now = Date.now(), H = 3600e3, D = 86400e3, base = location.origin + location.pathname;
+    const T = {}, C = [];
+    const add = (c, msgs) => { T[c.ck] = msgs; C.push(c); };
+    add({ ck: 'u:demo1', member: true, name: '王小明', email: 'ming@example.com' }, [
+      { id: 'a1', me: true, body: '個股頁切到週 K 再切回日 K，整張圖空白', cat: 'bug', sub: 'func', type: '', created: now - 26 * 60e3, url: base + '#stock/2330', ua: 'iPhone Safari ｜ 390×844', status: 'new', aread: 0 },
+      { id: 'a2', me: true, body: '重新整理才會好', cat: 'bug', type: '', created: now - 25 * 60e3, status: 'new', aread: 0 }]);
+    add({ ck: 'g:demo2', member: false, name: '', email: '' }, [
+      { id: 'b1', me: true, body: '想要自選股可以設價格提醒，到價時通知我', cat: 'idea', type: 'wish', created: now - 3 * H, status: 'new', aread: 0 }]);
+    add({ ck: 'u:demo3', member: true, name: '陳怡君', email: 'yijun@example.com' }, [
+      { id: 'c1', me: true, body: '請問族群資金流向的「資金」是成交值還是法人買賣超？', cat: 'ask', sub: 'calc', type: '', created: now - D - 2 * H, status: 'handled', aread: now - D },
+      { id: 'c2', me: false, body: '是成交值的變化（今天比過去 20 天平均多出多少），法人買賣超在個股頁的籌碼分頁。', created: now - D - 1.5 * H, seen: true, by: 'andy@example.com' },
+      { id: 'c3', me: true, body: '了解，謝謝！', cat: 'other', type: '', created: now - D - H, status: 'handled', aread: now - D }]);
+    add({ ck: 'u:demo4', member: true, name: '林大華', email: 'dahua@example.com' }, [
+      { id: 'd1', me: true, body: '年繳方案可以開發票嗎？', cat: 'acct', sub: 'pay', type: '', created: now - 2 * D, status: 'handled', aread: now - 2 * D },
+      { id: 'd2', me: false, body: '可以，付款完成後會寄電子發票到你登入的 email。', created: now - 2 * D + H, seen: false, by: 'andy@example.com' }]);
+    add({ ck: 'f:demo5', member: false, name: '', email: 'old@example.com' }, [
+      { id: 'e1', me: true, body: '（改版前的留言）手機版桑基圖右邊被切掉', cat: 'bug', sub: 'mobile', type: '', created: now - 6 * D, status: 'new', aread: 0, contact: 'old@example.com' }]);
+    C.forEach((c) => { const m = T[c.ck]; c.n = m.filter((x) => x.me).length; c.wish = m.filter((x) => x.type === 'wish').length; c.reply = !c.ck.startsWith('f:');
+      c.unread = m.filter((x) => x.me && x.status === 'new' && !x.aread).length; const l = m[m.length - 1]; c.last = { body: l.body, created: l.created, me: l.me, type: l.type || '' }; });
+    IB.demo = { T, C };
+    return IB.demo;
+  }
+  /* 示範對話 → 反饋列表（讓下面的統計也有東西看，跟收件匣是同一份） */
+  const demoFbList = () => { const { T, C } = ibDemo(); const out = []; C.forEach((c) => T[c.ck].filter((m) => m.me).forEach((m) => out.push({ ...m, contact: c.email, member: c.member, name: c.name, sub: m.sub || '' }))); return { feedback: out.sort((a, b) => b.created - a.created), requests: [] }; };
+  /* Worker 還沒更新：用反饋列表拼對話（會員看 email、訪客一則一串），只能看不能回 */
+  function legacyConvs() {
+    const m = new Map();
+    ((last || {}).feedback || []).forEach((r) => {
+      const ck = r.contact ? 'x:' + r.contact : 'f:' + r.id;
+      let c = m.get(ck); if (!c) { c = { ck, member: !!r.member, name: r.name || '', email: r.contact || '', n: 0, unread: 0, wish: 0, reply: false, last: null, rows: [] }; m.set(ck, c); }
+      c.n++; if (r.status === 'new' && !r.aread) c.unread++; if (isWish(r)) c.wish++;
+      c.rows.push({ ...r, me: true, type: isWish(r) ? 'wish' : '' });
+      if (!c.last || c.last.created < r.created) c.last = { body: r.body, created: r.created, me: true };
+    });
+    return [...m.values()].sort((a, b) => b.last.created - a.last.created);
+  }
+  async function ibLoad() {
+    if (IS_PV()) { IB.mode = 'demo'; IB.convs = ibDemo().C.slice().sort((a, b) => b.last.created - a.last.created); return; }
+    const j = await call('/v1/admin/chat/list', {});
+    if (j && j._s === 200) { IB.mode = 'live'; IB.convs = j.convs || []; }
+    else if (j && j._s === 404) { IB.mode = 'legacy'; IB.convs = legacyConvs(); }
+    else { IB.mode = 'err'; IB.convs = []; }
+  }
+  async function ibOpen(ck) {
+    IB.sel = ck; IB.thread = null;
+    const c = IB.convs.find((x) => x.ck === ck);
+    if (IB.mode === 'demo') { const T = ibDemo().T; T[ck].forEach((m) => { if (m.me && !m.aread) m.aread = Date.now(); }); IB.thread = { msgs: T[ck], reply: c ? c.reply : true }; }
+    else if (IB.mode === 'legacy') IB.thread = { msgs: (c ? c.rows : []).slice().sort((a, b) => a.created - b.created), reply: false };
+    else { paintInbox(); const j = await call('/v1/admin/chat/thread', { ck }); if (IB.sel !== ck) return; IB.thread = j && j._s === 200 ? { msgs: j.msgs, reply: j.reply } : { msgs: [], reply: false, err: '讀取失敗（' + (j ? j._s : '連不到') + '）' }; }
+    if (c && c.unread) {
+      const had = c.unread; c.unread = 0;
+      ((last || {}).feedback || []).forEach((r) => { if (IB.thread.msgs.some((m) => m.id === r.id)) r.aread = r.aread || Date.now(); });
+      unread = Math.max(0, unread - had); paintDot();
+    }
+    paintInbox();
+  }
+  async function ibSend() {
+    const host = document.getElementById('fbInbox'); if (!host || IB.busy) return;
+    const ta = host.querySelector('#ibIn'), text = ta.value.trim(), ck = IB.sel;
+    if (!text || !ck || !IB.thread || !IB.thread.reply) return;
+    const c = IB.convs.find((x) => x.ck === ck);
+    let msg = null;
+    if (IB.mode === 'demo') msg = { id: 'r' + rnd(5), me: false, body: text, created: Date.now(), seen: false, by: 'demo' };
+    else {
+      IB.busy = true; host.querySelector('#ibSend').disabled = true;
+      const j = await call('/v1/admin/chat/reply', { ck, body: text });
+      IB.busy = false;
+      if (!(j && j._s === 200 && j.msg)) { host.querySelector('#ibSend').disabled = false; toast(j && j._s === 409 ? '這位訪客用舊版表單留言，回覆對方看不到，請改用 email' : '回覆失敗，請再試一次'); return; }
+      msg = j.msg;
+      ((last || {}).feedback || []).forEach((r) => { if (IB.thread.msgs.some((m) => m.id === r.id) && r.status === 'new' && !isWish(r)) r.status = 'handled'; });
+    }
+    IB.thread.msgs.push(msg);
+    if (IB.mode !== 'demo') IB.thread.msgs.forEach((m) => { if (m.me && m.status === 'new' && m.type !== 'wish') m.status = 'handled'; });
+    if (c) c.last = { body: text, created: msg.created, me: false };
+    IB.convs.sort((a, b) => b.last.created - a.last.created);
+    IB.draft[ck] = '';
+    paintInbox();
+    const t2 = document.querySelector('#fbInbox #ibIn'); if (t2) t2.focus();
+  }
+  function ibList() {
+    const q = IB.q.trim().toLowerCase();
+    return IB.convs.filter((c) => (!IB.flt || (IB.flt === 'unread' ? c.unread : c.wish)) && (!q || (cName(c) + ' ' + (c.email || '') + ' ' + (c.last ? c.last.body : '')).toLowerCase().includes(q)));
+  }
+  function ibListHtml() {
+    const L = ibList();
+    if (!L.length) return `<div class="ibempty">${IB.convs.length ? '沒有符合的對話' : '還沒有人傳訊息'}</div>`;
+    return L.map((c) => `<button type="button" class="ibr${c.ck === IB.sel ? ' on' : ''}${c.unread ? ' unr' : ''}" data-ck="${esc(c.ck)}" title="${esc(cName(c))}">
+      <span class="chav u" aria-hidden="true">${esc(cInit(c))}</span>
+      <span class="ibn"><b>${esc(cName(c))}${c.member ? '' : '<em>訪客</em>'}${c.wish ? '<em class="w">願望</em>' : ''}</b><small>${c.last && !c.last.me ? '你：' : ''}${esc(c.last ? bodyOf(c.last) : '')}</small></span>
+      <span class="ibm"><time>${c.last ? relT(c.last.created) : ''}</time>${c.unread ? `<i class="ibdot" aria-label="${c.unread} 則未讀">${c.unread}</i>` : ''}</span></button>`).join('');
+  }
+  function ibExtra(m) {
+    if (!m.me) return IB.mode === 'live' || IB.mode === 'demo' ? `<button type="button" class="ibx-del" data-delr="${esc(m.id)}" title="刪除這則回覆">刪除</button>` : '';
+    const w = m.type === 'wish';
+    const st = w ? `<select class="wsst ibst" data-id="${esc(m.id)}" aria-label="願望狀態">${WST.map(([k, n]) => `<option value="${k}"${(wstOver[m.id] || m.status) === k ? ' selected' : ''}>${n}</option>`).join('')}</select>`
+      : `<span class="ibs ${m.status === 'new' ? 'new' : ''}">${m.status === 'new' ? '未處理' : '已處理'}</span>`;
+    return st + (m.ua ? `<span class="ibua" title="${esc(m.ua)}">裝置</span>` : '') + `<button type="button" class="ibx-del" data-delf="${esc(m.id)}" title="刪除這則反饋">刪除</button>`;
+  }
+  function ibThreadHtml() {
+    const c = IB.convs.find((x) => x.ck === IB.sel);
+    if (!c) return `<div class="ibnone"><img src="brand/mark-128.webp" alt="" width="64" height="64"><p>點左邊一位，看對話並回覆</p></div>`;
+    const t = IB.thread;
+    const mail = c.email ? `<a data-gmail href="${esc(gmail(c.email, '回覆：哩股哩股意見反饋'))}" target="_blank" rel="noopener" title="用 Gmail 回信">${esc(c.email)}</a>` : '<span>沒有留 email</span>';
+    const noRep = t && !t.reply ? (IB.mode === 'legacy' ? '後端還沒更新，暫時只能看、不能在這裡回覆；有 email 的請用 Gmail 回信。' : '這位訪客用改版前的表單留言，在這裡回覆他看不到；有留 email 的話請用 Gmail 回信。') : '';
+    return `<div class="ibth"><button type="button" class="ibback" id="ibBack" aria-label="回對話清單">‹</button><span class="chav u" aria-hidden="true">${esc(cInit(c))}</span>
+        <span class="ibn"><b>${esc(cName(c))}</b><small>${c.member ? '會員' : '訪客'}・${mail}</small></span></div>
+      <div class="chlog iblog" id="ibLog" role="log" aria-label="對話">${t ? (t.err ? `<div class="chempty bad">${esc(t.err)}</div>` : bubbles(t.msgs, { admin: true, initial: cInit(c), extra: ibExtra })) : '<div class="chempty">載入中…</div>'}</div>
+      ${noRep ? `<div class="ibnorep" id="ibNoRep">${noRep}</div>` : `<div class="chbar ibbar"><div class="chtags ibquick" id="ibQuick" aria-label="常用回覆">${QUICK.map((s, i) => `<button type="button" data-q="${i}" title="${esc(s)}">${esc(s.slice(0, 10))}…</button>`).join('')}</div>
+        <div class="chin"><textarea id="ibIn" rows="1" maxlength="2000" aria-label="回覆" placeholder="回覆 ${esc(cName(c))}…（Enter 送出，Shift+Enter 換行）"></textarea><button type="button" id="ibSend" class="chsend" aria-label="送出回覆" title="送出回覆">${SEND_SVG}</button></div></div>`}`;
+  }
+  function paintInbox() {
+    const host = document.getElementById('fbInbox'); if (!host) return;
+    const nU = IB.convs.reduce((s, c) => s + (c.unread ? 1 : 0), 0), nW = IB.convs.filter((c) => c.wish).length;
+    const listScroll = (host.querySelector('#ibList') || {}).scrollTop || 0;
+    host.innerHTML = `<div class="ibhd"><h3>收件匣</h3>${IB.mode === 'demo' ? '<span class="ibpill" id="ibDemo">示範資料（預覽版）：回覆只在這個畫面，不會送出</span>' : IB.mode === 'legacy' ? '<span class="ibpill">後端還沒更新：只能看</span>' : IB.mode === 'err' ? '<span class="ibpill bad">讀取失敗</span>' : ''}
+        <div class="fbkind ibflt" id="ibFlt" role="tablist" aria-label="篩選">${[['', '全部', IB.convs.length], ['unread', '未讀', nU], ['wish', '願望', nW]].map(([k, n, v]) => `<button type="button" role="tab" data-f="${k}" class="${IB.flt === k ? 'on' : ''}" aria-selected="${IB.flt === k}">${n}<small>${v}</small></button>`).join('')}</div></div>
+      <div class="ibx${IB.sel ? ' has' : ''}">
+        <div class="ibl"><input type="search" id="ibQ" placeholder="搜尋名字、email、內容" value="${esc(IB.q)}" aria-label="搜尋對話"><div class="iblist" id="ibList">${ibListHtml()}</div></div>
+        <div class="ibt" id="ibThread">${ibThreadHtml()}</div></div>`;
+    const ls = host.querySelector('#ibList'); ls.scrollTop = listScroll;
+    ls.onclick = (e) => { const b = e.target.closest('.ibr'); if (b) ibOpen(b.dataset.ck); };
+    host.querySelector('#ibFlt').onclick = (e) => { const b = e.target.closest('button[data-f]'); if (b) { IB.flt = b.dataset.f; paintInbox(); } };
+    const q = host.querySelector('#ibQ');
+    q.oninput = () => { IB.q = q.value; host.querySelector('#ibList').innerHTML = ibListHtml(); };
+    const back = host.querySelector('#ibBack'); if (back) back.onclick = () => { IB.sel = ''; IB.thread = null; paintInbox(); };
+    const lg = host.querySelector('#ibLog'); if (lg) lg.scrollTop = lg.scrollHeight;
+    const ta = host.querySelector('#ibIn');
+    if (ta) {
+      ta.value = IB.draft[IB.sel] || ''; grow(ta);
+      ta.oninput = () => { IB.draft[IB.sel] = ta.value; grow(ta); };
+      ta.onkeydown = (e) => { if (e.key === 'Enter' && !e.shiftKey && !e.isComposing) { e.preventDefault(); ibSend(); } };
+      host.querySelector('#ibSend').onclick = () => ibSend();
+      host.querySelector('#ibQuick').onclick = (e) => { const b = e.target.closest('button[data-q]'); if (!b) return; ta.value = (ta.value ? ta.value.replace(/\s+$/, '') + '\n' : '') + QUICK[+b.dataset.q]; IB.draft[IB.sel] = ta.value; grow(ta); ta.focus(); };
+    }
+    if (lg) lg.onclick = async (e) => {
+      const df = e.target.closest('button[data-delf]'), dr = e.target.closest('button[data-delr]');
+      if (!df && !dr) return;
+      if (!window.confirm(df ? '確定刪除這則反饋？刪除後無法復原。' : '確定刪除這則站方回覆？對方那邊也會消失。')) return;
+      const id = (df || dr).dataset[df ? 'delf' : 'delr'];
+      if (IB.mode !== 'demo') {
+        const r = await call(df ? '/v1/admin/feedback/del' : '/v1/admin/chat/del', { id });
+        if (!(r && r._s === 200)) { toast('刪除失敗'); return; }
+      }
+      IB.thread.msgs = IB.thread.msgs.filter((m) => m.id !== id);
+      if (IB.mode === 'demo') { const T = ibDemo().T; T[IB.sel] = IB.thread.msgs; }
+      if (last && last.feedback) last.feedback = last.feedback.filter((r) => r.id !== id);
+      toast('已刪除'); paintInbox();
+    };
+    host.querySelectorAll('select.ibst').forEach((s) => {
+      s.onchange = async () => {
+        const id = s.dataset.id, v = s.value, m = IB.thread.msgs.find((x) => x.id === id);
+        if (IB.mode !== 'demo') { s.disabled = true; const r = await call('/v1/admin/feedback/set', { kind: 'feedback', id, status: v }); s.disabled = false; if (!(r && r._s === 200)) { toast('更新失敗'); return; } }
+        if (m) m.status = v; const f = ((last || {}).feedback || []).find((x) => x.id === id); if (f) f.status = v;
+        toast('願望狀態：' + WSTN[v]);
+      };
+    });
   }
   async function renderFeedbackAdmin(el) {
     const A = window.TwAccount, u = A && A.on() ? A.user() : null;
-    if (!u || !u.admin) { el.innerHTML = '<div class="card" id="fbDenied"><h2>管理頁</h2><p class="muted">這一頁只有管理者看得到' + (u ? '' : '，請先登入') + '。</p></div>'; return; }
+    /* 預覽版：沒登入／不是管理者也能看示範收件匣（同 admin.js 的預覽規則，DECISIONS #343）*/
+    if (!IS_PV() && (!u || !u.admin)) { el.innerHTML = '<div class="card" id="fbDenied"><h2>管理頁</h2><p class="muted">這一頁只有管理者看得到' + (u ? '' : '，請先登入') + '。</p></div>'; return; }
     el.innerHTML = '<div class="card"><p class="muted">載入中…</p></div>';
-    const j = await call('/v1/admin/feedback/list', {});
-    if (!j || j._s !== 200) { el.innerHTML = '<div class="card"><p class="muted">讀取失敗（' + esc(j ? j._s : '連不到') + '）</p></div>'; return; }
-    last = j; paintAdmin(el);
+    let j = null;
+    if (IS_PV()) { const r = u && u.admin ? await call('/v1/admin/feedback/list', {}) : null; j = demoFbList(); j.requests = r && r._s === 200 ? r.requests || [] : []; }
+    else {
+      j = await call('/v1/admin/feedback/list', {});
+      if (!j || j._s !== 200) { el.innerHTML = '<div class="card"><p class="muted">讀取失敗（' + esc(j ? j._s : '連不到') + '）</p></div>'; return; }
+    }
+    last = j;
+    await ibLoad();
+    if (IB.sel && !IB.convs.some((c) => c.ck === IB.sel)) { IB.sel = ''; IB.thread = null; }
+    let open = false; try { open = localStorage.getItem(MORE_KEY) === '1'; } catch (e) { /* 預設收起 */ }
+    const rNew = (j.requests || []).filter((x) => x.status === 'new').length;
+    el.innerHTML = `<div class="sat"><h2>意見反饋<span id="fbTopDot"></span></h2><a href="#admin/notices">公告管理</a><button type="button" id="fbReload" title="重新整理" aria-label="重新整理">重新整理</button></div>
+      <div class="card ibcard" id="fbInbox"></div>
+      <details class="card fbmore" id="fbMore"${open ? ' open' : ''}><summary>統計、完整列表與訂閱申請${rNew ? `<span class="fbdot big">${rNew} 筆訂閱申請未處理</span>` : ''}</summary><div id="fbStatHost"></div></details>`;
+    el.querySelector('#fbReload').onclick = () => renderFeedbackAdmin(el);
+    el.querySelector('#fbMore').ontoggle = (e) => { try { localStorage.setItem(MORE_KEY, e.target.open ? '1' : '0'); } catch (x) { /* 這次有效 */ } };
+    if (IB.sel) await ibOpen(IB.sel); else paintInbox();
+    paintAdmin(el.querySelector('#fbStatHost'));
   }
+  css('supInboxCss', `
+#v-subadm .ibcard{padding:0;overflow:hidden}
+#v-subadm .ibhd{display:flex;align-items:center;gap:10px;padding:12px 16px;border-bottom:1px solid var(--line);flex-wrap:wrap}
+#v-subadm .ibhd h3{margin:0;font-size:var(--fs-h3,16px);font-weight:600}
+#v-subadm .ibpill{font-size:12px;padding:2px 10px;border-radius:999px;color:var(--amber);border:1px solid var(--amber);background:color-mix(in srgb,var(--amber) 10%,transparent);white-space:nowrap}
+#v-subadm .ibpill.bad{color:var(--rise);border-color:var(--rise)}
+#v-subadm .ibflt{margin:0 0 0 auto;max-width:300px}
+#v-subadm .ibx{display:grid;grid-template-columns:minmax(260px,320px) minmax(0,1fr);height:min(640px,calc(100vh - 230px));min-height:420px}
+#v-subadm .ibl{display:flex;flex-direction:column;min-height:0;border-right:1px solid var(--line)}
+#v-subadm .ibl input{margin:10px 12px;height:32px;box-sizing:border-box;border:1px solid var(--line-2);border-radius:999px;background:var(--panel);color:var(--ink);padding:0 14px;font:inherit;font-size:13px}
+#v-subadm .iblist{flex:1;min-height:0;overflow-y:auto}
+#v-subadm .ibr{display:grid;grid-template-columns:40px minmax(0,1fr) auto;gap:10px;align-items:center;width:100%;height:auto;padding:9px 14px;border:0;border-radius:0;background:none;color:var(--ink);text-align:left;cursor:pointer;font:inherit}
+#v-subadm .ibr:hover{background:var(--panel-3)}
+#v-subadm .ibr.on{background:color-mix(in srgb,var(--cyan) 14%,transparent)}
+#v-subadm .ibr .chav{width:40px;height:40px;margin:0;font-size:15px}
+#v-subadm .ibn{display:flex;flex-direction:column;min-width:0}
+#v-subadm .ibn b{font-size:14px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#v-subadm .ibr.unr .ibn b,#v-subadm .ibr.unr .ibn small{font-weight:700;color:var(--ink)}
+#v-subadm .ibn em{font-style:normal;font-size:12px;font-weight:400;color:var(--ink-3);margin-left:6px}
+#v-subadm .ibn em.w{color:var(--violet)}
+#v-subadm .ibn small{font-size:13px;color:var(--ink-3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#v-subadm .ibm{display:flex;flex-direction:column;align-items:flex-end;gap:4px;font-size:12px;color:var(--ink-3);white-space:nowrap}
+#v-subadm .ibdot{font-style:normal;min-width:18px;height:18px;padding:0 5px;border-radius:999px;background:var(--rise);color:#fff;font-size:12px;font-weight:700;line-height:18px;text-align:center;box-sizing:border-box}
+#v-subadm .ibempty{padding:28px 12px;text-align:center;color:var(--ink-3);font-size:13px}
+#v-subadm .ibt{display:flex;flex-direction:column;min-width:0;min-height:0}
+#v-subadm .ibth{display:flex;align-items:center;gap:10px;padding:10px 16px;border-bottom:1px solid var(--line)}
+#v-subadm .ibth .chav{margin:0;width:36px;height:36px}
+#v-subadm .ibth .ibn small a{color:var(--cyan)}
+#v-subadm .ibback{display:none;width:32px;height:32px;padding:0;border:0;background:none;color:var(--ink);font-size:26px;line-height:1;cursor:pointer}
+#v-subadm .iblog{padding:12px 16px}
+#v-subadm .iblog .chm .chw{max-width:70%}
+#v-subadm .iblog .mt select.ibst{height:22px;min-height:0;font-size:12px;padding:0 4px}
+#v-subadm .ibs{font-size:12px;padding:0 6px;border-radius:999px;background:var(--panel-3)}#v-subadm .ibs.new{background:var(--amber);color:#1a1203}
+#v-subadm .ibua{text-decoration:underline dotted;cursor:help}
+#v-subadm .ibx-del{height:auto;padding:0;border:0;background:none;color:var(--ink-3);font:inherit;font-size:12px;cursor:pointer}
+#v-subadm .ibx-del:hover{color:var(--rise)}
+#v-subadm .ibbar{border-top:1px solid var(--line)}
+#v-subadm .ibquick button{height:26px}
+#v-subadm .ibnorep{padding:12px 16px;border-top:1px solid var(--line);font-size:13px;color:var(--ink-2);background:var(--panel-2)}
+#v-subadm .ibnone{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;color:var(--ink-3);font-size:14px}
+#v-subadm .ibnone img{opacity:.85}
+#v-subadm .chsend{height:34px;padding:0;border:0}
+#v-subadm .fbmore>summary{cursor:pointer;font-size:var(--fs-h3,16px);font-weight:600;list-style:revert}
+#v-subadm .fbmore #fbStatHost{margin-top:8px}
+#v-subadm .fbmore #fbStatHost>.sat h2{font-size:16px}
+@media (max-width:820px){
+  #v-subadm .ibx{grid-template-columns:minmax(0,1fr);height:calc(100vh - 200px)}
+  #v-subadm .ibx .ibt{display:none}#v-subadm .ibx.has .ibl{display:none}#v-subadm .ibx.has .ibt{display:flex}
+  #v-subadm .ibl{border-right:0}#v-subadm .ibback{display:block}
+  #v-subadm .ibflt{margin-left:0;max-width:none;width:100%}
+  #v-subadm .iblog .chm .chw{max-width:84%}
+}`);
   const pct = (a, b) => (b ? Math.round(a / b * 1000) / 10 : 0);
   const catBadge = (r) => `<span class="fbcat" data-c="${esc(r.cat)}">${esc(CATN[r.cat] || r.cat)}</span>${r.sub ? `<span class="fbsub" data-c="${esc(r.cat)}">${esc(SUBN[r.cat + '/' + r.sub] || r.sub)}</span>` : ''}${r.legacy ? `<small class="muted fblg" title="改版前送出的類別，已對應到新大類">（舊類別：${esc((FB_LEGACY[r.legacy] || [])[2] || r.legacy)}）</small>` : ''}`;
   /* A 款甜甜圈（自繪 SVG，類別色是 CSS 變數，深淺主題自動跟）：內徑 68%、外徑 92%、扇區間細縫；
@@ -649,7 +1082,7 @@ html.fab-off .supfab{display:none!important}`);
   function paintAdmin(el) {
     const j = last || {};
     const fbAll = (j.feedback || []).map(norm), rq = j.requests || [];
-    unread = fbAll.filter((x) => x.status === 'new').length; paintDot();
+    unread = fbAll.filter((x) => x.status === 'new' && !x.aread).length; paintDot();   // 10-16：收件匣打開過就不算未讀（aread）
     const rg = rangeNow();
     if (FL.day && (FL.day < rg.from || FL.day > rg.to)) FL.day = '';
     const inR0 = fbAll.filter((x) => { const d = dayOf(x.created); return d >= rg.from && d <= rg.to; });
@@ -672,9 +1105,9 @@ html.fab-off .supfab{display:none!important}`);
     const chips = [FL.cat && ['cat', CATN[FL.cat] + (FL.sub ? '・' + (SUBN[FL.cat + '/' + FL.sub] || FL.sub) : '')], FL.day && ['day', FL.day], FL.st && ['st', stName(FL.st)]].filter(Boolean)
       .map(([k, t]) => `<span class="fbchip" data-clr="${k}"><b>${esc(t)}</b><button type="button" aria-label="取消這個篩選" title="取消這個篩選">×</button></span>`).join('');
     const rtxt = rg.from === rg.to ? rg.from : rg.from + '～' + rg.to;
-    el.innerHTML = `<div class="sat"><h2>意見反饋${unread ? `<span class="fbdot big">${unread} 未讀</span>` : ''}</h2>
-        ${window.RangePick ? window.RangePick.html({ id: 'fbRange', options: [['today', '今天'], ['7', '近 7 天'], ['30', '近 30 天'], ['90', '近 90 天'], ['custom', '自訂起訖']], value: RG.v, from: rg.from, to: rg.to, max: todayTpe() }) : ''}
-        <a href="#admin/notices">公告管理</a><button type="button" id="fbReload">重新整理</button></div>
+    const td = document.getElementById('fbTopDot'); if (td) td.innerHTML = unread ? `<span class="fbdot big">${unread} 未讀</span>` : '';
+    el.innerHTML = `<div class="sat"><h2>統計</h2>
+        ${window.RangePick ? window.RangePick.html({ id: 'fbRange', options: [['today', '今天'], ['7', '近 7 天'], ['30', '近 30 天'], ['90', '近 90 天'], ['custom', '自訂起訖']], value: RG.v, from: rg.from, to: rg.to, max: todayTpe() }) : ''}</div>
       <p class="muted">使用者在右下角客服面板送出的反饋只存在本站伺服器，不寄信、只有管理者看得到。<b>怎麼用：</b>先看「最常見細項」與甜甜圈哪一塊最大＝這段期間大家最卡在哪；點扇區或橫條，下面列表只剩那一類，逐則處理完按「標為已處理」。直條突然變高的那天點下去，通常是當天某個改版出了問題。</p>
       <div class="fbkpi" id="fbKpi">
         <div class="k"><span>期間總則數</span><b id="fbKTot">${byDay.length}</b><small>${esc(FL.day || rtxt)}</small></div>
@@ -706,7 +1139,7 @@ html.fab-off .supfab{display:none!important}`);
           <td><span class="st ${r.status === 'new' ? 'new' : ''}">${r.status === 'new' ? '待處理' : rqDone(r)[0]}</span></td>
           <td><button type="button" data-kind="request" data-id="${esc(r.id)}" data-st="${r.status === 'new' ? 'done' : 'new'}">${r.status === 'new' ? rqDone(r)[1] : '改回待處理'}</button></td></tr>`).join('')}</tbody></table>` : `<p class="muted" id="rqEmpty">${rq.length ? '沒有符合這個類型的申請。' : '還沒有人申請。'}</p>`}</div>`;
     const re = () => paintAdmin(el);
-    el.querySelector('#fbReload').onclick = () => renderFeedbackAdmin(el);
+    const reload = () => renderFeedbackAdmin(el.closest('#v-subadm') || el);
     if (window.RangePick) window.RangePick.bind(el.querySelector('#fbRange'), { onChange: ({ value, from, to }) => {
       RG.v = value;
       if (value === 'custom') { const r2 = rangeNow(); RG.from = from || r2.from; RG.to = to && to >= RG.from ? to : todayTpe(); }
@@ -725,7 +1158,7 @@ html.fab-off .supfab{display:none!important}`);
           r = await call('/v1/admin/feedback/set', { kind: 'feedback', id, status: 'handled' });
           if (r && r._s === 200) { wstOver[id] = v; toast('伺服器還不認「' + WSTN[v] + '」：先記成已處理，細的狀態重新整理後會不見（要更新 Worker）'); }
         } else if (r && r._s === 200) delete wstOver[id];
-        if (r && r._s === 200) renderFeedbackAdmin(el); else { s.disabled = false; toast('更新失敗'); }
+        if (r && r._s === 200) reload(); else { s.disabled = false; toast('更新失敗'); }
       };
     });
     el.querySelector('#rqFType').onchange = (e) => { RQF = e.target.value; re(); };
@@ -745,7 +1178,7 @@ html.fab-off .supfab{display:none!important}`);
       b.onclick = async () => {
         b.disabled = true;
         const r = await call('/v1/admin/feedback/set', { kind: b.dataset.kind, id: b.dataset.id, status: b.dataset.st });
-        if (r && r._s === 200) renderFeedbackAdmin(el); else { b.disabled = false; toast('更新失敗'); }
+        if (r && r._s === 200) reload(); else { b.disabled = false; toast('更新失敗'); }
       };
     });
     el.querySelectorAll('button[data-del]').forEach((b) => {
@@ -753,12 +1186,14 @@ html.fab-off .supfab{display:none!important}`);
         if (!window.confirm('確定刪除這則反饋？刪除後無法復原。')) return;
         b.disabled = true;
         const r = await call('/v1/admin/feedback/del', { id: b.dataset.del });
-        if (r && r._s === 200) { toast('已刪除'); renderFeedbackAdmin(el); } else { b.disabled = false; toast('刪除失敗'); }
+        if (r && r._s === 200) { toast('已刪除'); reload(); } else { b.disabled = false; toast('刪除失敗'); }
       };
     });
   }
   /* open(t)：10-10 Andy「意見回饋功能 點擊會切到對應分頁」→ open('fb') 直接開在意見反饋＞意見回饋；不帶參數＝照舊 */
-  window.TwSupport = { open: (t) => { if (t === 'fb' || t === 'wish' || t === 'faq' || t === 'mail') { tab = t === 'wish' ? 'fb' : t; if (t === 'fb' || t === 'wish') fbKind = t; } toggle(true); }, close: () => toggle(false), renderFeedbackAdmin, paintDot, refreshUnread, unread: () => unread, email: SUPPORT_EMAIL, faq: FAQ };
+  /* open(t)：'fb'＝聊天室；'wish'＝聊天室並先選好「願望」標籤；'mail'（寄信分頁 10-16 拿掉）→ 聊天室（信箱在面板底部）*/
+  window.TwSupport = { open: (t) => { if (t === 'fb' || t === 'wish' || t === 'mail') { tab = 'fb'; if (t === 'wish') CH.tag = 'wish'; } else if (t === 'faq') tab = 'faq'; toggle(true); }, close: () => toggle(false), renderFeedbackAdmin, paintDot, refreshUnread, unread: () => unread, email: SUPPORT_EMAIL, faq: FAQ,
+    chat: { state: () => ({ mode: CH.mode, unread: CH.unread, n: (CH.msgs || []).length, tag: CH.tag }), reload: () => chLoad().then(repaintLog) } };
   /* 管理端路由：#admin/feedback（這支畫）。#admin/notices 給 notices.js。view 共用 #v-subadm */
   window.TwSubRoutes.push((head, rest) => {
     if (head !== 'admin' || rest[0] !== 'feedback') return null;
@@ -769,7 +1204,10 @@ html.fab-off .supfab{display:none!important}`);
   window.addEventListener('tw:account', () => {
     refreshUnread();
     if ((location.hash || '') === '#admin/feedback') { const v = view('v-subadm'); if (v) renderFeedbackAdmin(v); }
-    const p = document.getElementById('supPanel'); if (p && !p.hidden && tab === 'fb') paint();
+    /* 換人（登入／登出）：對話重新讀；面板開在聊天室就重畫 */
+    const u = me(), who = u ? 'u:' + u.email : 'g';
+    if (CH.who === who && CH.msgs !== null) return;   // 心跳刷新身分也會派 tw:account：同一個人不重讀
+    chLoad().then(() => { const p = document.getElementById('supPanel'); if (p && !p.hidden && tab === 'fb') { paint(); chSeen(); } });
   });
   /* 管理區不放浮動鈕：#admin/perm 底部的「儲存」列是 sticky 在右下角，浮動鈕會正好蓋住「儲存」（驗收實測點不到）。
      管理者在管理區用不到客服；離開管理區就回來。*/
@@ -781,6 +1219,7 @@ html.fab-off .supfab{display:none!important}`);
     const p = document.getElementById('supPanel'); if (p && !p.hidden) toggle(false);
   }
   window.addEventListener('hashchange', syncFab);
-  const boot = () => { ensure(); syncFab(); };
+  /* 開站 3 秒後讀一次對話（只有預覽示範、會員、送過訊息的訪客才會真的打 API），有站方新回覆就亮紅點 */
+  const boot = () => { ensure(); syncFab(); setTimeout(() => { if (IS_PV() || me() || gk(false)) chLoad(); }, 3000); };
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot); else boot();
 })();
