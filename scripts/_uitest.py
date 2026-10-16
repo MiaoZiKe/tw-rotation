@@ -71944,7 +71944,7 @@ _load_section_plugins()
 #   ③ 補齊（勾格子、加篇數）→ 開關才能開 → 切開關即時送出 {enabled,slots,cats} → 已儲存、未啟用標示消失
 #   ④ 篇數上限 3、快速鈕、時段由早到晚；關掉開關 → 即時送出 enabled=false 且設定保留、欄位仍可編輯；開著時清空時段 → 自動關閉並送出
 #   ⑤ 兩分頁切換（統計內容前後一致、頻率設定與主題勾選不丟）、重新整理（設定從伺服器讀回、停在上次分頁）
-#   ⑥ 後端沒更新／預覽唯讀／非管理者；⑦ 手機 390／360
+#   ⑥ 後端沒更新／預覽唯讀／非管理者；⑧ 已上架文章「傳給 GPT・IG 貼文／影片」（連結 title／labels／body 逐項解析、已傳送紀錄、批次清單、複製、手機下拉）；⑦ 手機 390／360
 def t_art_tabs_1016(b, base):
     T = "文章主題兩分頁1016"
     shots = Path(os.environ["TW_TAB_SHOTS"]) if os.environ.get("TW_TAB_SHOTS") else None
@@ -71988,6 +71988,7 @@ def t_art_tabs_1016(b, base):
         return r.fulfill(status=200, body='{"ok":true}', headers=hd)
 
     def new_page(ctx, hash_="#admin/articles"):
+        ctx.route("https://github.com/**", lambda r: r.fulfill(status=200, content_type="text/html", body="<title>gh</title>fake github"))   # 傳給 GPT 會開 GitHub 新 Issue：攔掉，不連外
         ctx.route(ACCTM4_API + "/v1/articles/**", art_api)
         p = ctx.new_page()
         p.goto(base + hash_, wait_until="domcontentloaded")
@@ -72134,6 +72135,155 @@ def t_art_tabs_1016(b, base):
         g = gp.evaluate("() => ({ t: (document.querySelector('#v-subadm .artadm') || {}).textContent || '', tabs: document.querySelectorAll('#artAdmTabs').length, sched: document.querySelectorAll('#artSchedCard, #asdOn').length, side: document.querySelectorAll('.l4subtab[data-parent=admin]').length })")
         ok(f"{T}：{nm}自己打 #admin/articles → 只寫「只有管理者看得到」、沒有分頁、沒有頻率設定；側欄沒有管理區", "只有管理者" in g["t"] and g["tabs"] == 0 and g["sched"] == 0 and g["side"] == 0, g)
         gc.close()
+
+    # ---------------------------------------------------------------- ⑧ 傳給 GPT（IG 貼文／影片，兩顆按鈕；Andy：「按鈕要分成製作影片或是 IG 文章」）
+    import urllib.parse as _up
+    GH = "https://github.com/MiaoZiKe/tw-rotation/issues/new"
+    TODAY = today.isoformat()
+    posts = {a["id"]: json.loads((SITE / "articles" / "posts" / f"{a['id']}.json").read_text(encoding="utf-8")) for a in real}
+
+    def parse(u):
+        p = _up.urlparse(u)
+        q = _up.parse_qs(p.query, keep_blank_values=True)
+        return p.scheme + "://" + p.netloc + p.path, {k: v[0] for k, v in q.items()}
+
+    def pts_of(p):
+        bs = p["blocks"]
+        i = next(k for k, x in enumerate(bs) if x["t"] == "h" and "三句話重點" in x["text"])
+        return [s.strip() for s in bs[i + 1]["items"]][:3]
+
+    kid = "2026-10-14-news-tsmc-sep-revenue" if "2026-10-14-news-tsmc-sep-revenue" in posts else rid[0]
+    kp = posts[kid]
+    others = [i for i in rid if i != kid][:2]
+    gc, _ = _acctm4_ctx(b, "admin", desk=True)
+    gc.grant_permissions(["clipboard-read", "clipboard-write"], origin=re.match(r"https?://[^/]+", base).group(0))
+    gp = new_page(gc)
+    wait_until(gp, "() => document.querySelectorAll('#artAdmBody tr[data-id]').length > 0", 20000); gp.wait_for_timeout(500)
+    GR = f"#artAdmBody tr[data-id='{kid}']"
+    c0 = gp.evaluate("""(sel) => { const V = (e) => !!e && e.getClientRects().length > 0; const r = document.querySelector(sel);
+        return { ths: [...document.querySelectorAll('#artAdmList thead th')].map(t => t.firstChild ? t.firstChild.textContent.trim() : ''), cb: V(r.querySelector('input[data-gpt-pick]')),
+                 btn: [...r.querySelectorAll('.gpd button')].filter(V).map(b => b.textContent.trim()), sel: V(r.querySelector('.gpm select')),
+                 hdr: [...document.querySelectorAll('#artGptSendIg,#artGptSendVid')].filter(V).map(b => [b.textContent.trim(), b.disabled]), hsel: V(document.getElementById('artGptTypeH')) }; }""", GR)
+    ok(f"{T}：已上架文章表多一欄「傳給 GPT」：每列有勾選框＋「傳給 GPT・IG 貼文」「傳給 GPT・影片」兩顆按鈕；表頭兩顆批次鈕（還沒勾＝禁用）；桌機不出現下拉選類型",
+       "傳給 GPT" in c0["ths"] and c0["cb"] and c0["btn"] == ["傳給 GPT・IG 貼文", "傳給 GPT・影片"] and not c0["sel"] and not c0["hsel"] and c0["hdr"] == [["傳送勾選・IG 貼文", True], ["傳送勾選・影片", True]], c0)
+    if shots:
+        gp.locator("#artAdmList").screenshot(path=str(shots / "desk-gpt-1-before.png"))
+    gp.check(f"#artAdmBody input[data-gpt-pick='{others[0]}']"); gp.check(f"#artAdmBody input[data-gpt-pick='{others[1]}']"); gp.wait_for_timeout(150)
+    h1 = gp.evaluate("() => [...document.querySelectorAll('#artGptSendIg,#artGptSendVid')].map(b => [b.textContent.trim(), b.disabled])")
+    ok(f"{T}：勾 2 篇 → 表頭兩顆批次鈕啟用並寫（2）", h1 == [["傳送勾選・IG 貼文（2）", False], ["傳送勾選・影片（2）", False]], h1)
+    if shots:
+        gp.locator("#artAdmList").screenshot(path=str(shots / "desk-gpt-2-checked.png"))
+    gp.uncheck(f"#artAdmBody input[data-gpt-pick='{others[0]}']"); gp.uncheck(f"#artAdmBody input[data-gpt-pick='{others[1]}']"); gp.wait_for_timeout(100)
+    # 單篇：IG 貼文
+    with gc.expect_page() as pi:
+        gp.click(f"{GR} button[data-gtype='ig']")
+    pop = pi.value
+    pop.wait_for_url("https://github.com/**", timeout=10000)
+    u_ig = pop.url
+    url, q = parse(u_ig)
+    bd = q.get("body", "")
+    pts = pts_of(kp)
+    ok(f"{T}：按「傳給 GPT・IG 貼文」→ 開新分頁到 GitHub 新 Issue；title＝「[社群交接] {TODAY}｜IG 貼文｜文章標題」、labels＝social-handoff,gpt-ig-post",
+       url == GH and q.get("title") == f"[社群交接] {TODAY}｜IG 貼文｜{kp['title']}" and q.get("labels") == "social-handoff,gpt-ig-post", [url, q.get("title"), q.get("labels")])
+    ok(f"{T}：IG 貼文 body 含：母文章 id 與正式站網址、一句話核心觀點（summary）、三句話重點三條（逐字同文章）、來源清單從 1 起算（標題｜發布者｜日期｜連結）",
+       f"`{kid}`" in bd and f"https://miaozike.github.io/tw-rotation/#article/{kid}" in bd and kp["summary"].strip() in bd and all(f"{i + 1}. {t}" in bd for i, t in enumerate(pts))
+       and bool(re.search(r"## 來源（共 \d+ 筆[^\n]*\n1\. .+?｜.+?｜.+?｜https://", bd)), bd[:400])
+    ok(f"{T}：IG 貼文 body 含：內容限制（不點名個股推薦、不買賣建議、財測標財測）、免責「整理公開資訊，非投顧，投資請自行判斷。」、視覺規範連結、完整文章 JSON raw 連結",
+       "不點名個股推薦" in bd and "不寫買賣建議" in bd and "「財測」" in bd and "整理公開資訊，非投顧，投資請自行判斷。" in bd
+       and "blob/main/docs/social_handoff/style/LIGULIGU_IG_Threads_Style_Guide.md" in bd and f"https://raw.githubusercontent.com/MiaoZiKe/tw-rotation/main/site/articles/posts/{kid}.json" in bd, None)
+    ok(f"{T}：IG 貼文「請產出」＝IG 十頁 1080×1350、IG 貼文說明、Threads 文案、來源表、素材來源清單；沒有影片那套（分鏡表、1080×1920）",
+       "## 請產出（IG 貼文）" in bd and all(x in bd for x in ("1080×1350", "IG 貼文說明", "Threads 文案", "來源表", "素材來源清單")) and "分鏡" not in bd and "1080×1920" not in bd, bd[-500:])
+    kps = [x for b_ in kp["blocks"] if b_["t"] == "kpi" for x in b_["items"]]
+    ok(f"{T}：關鍵數據（kpi 的 label／value／unit／delta／note）在內容裡；網址長度 ≤ 8000（{len(u_ig)}），被省略的段落有寫明",
+       (all(x["label"] in bd for x in kps) or "關鍵數據" in bd or "已省略" in bd or "省略" in bd) and len(u_ig) <= 8000, [len(u_ig), bool(kps)])
+    pop.close(); gp.wait_for_timeout(300)
+    r1 = gp.evaluate("""(sel) => { const r = document.querySelector(sel); return { btns: [...r.querySelectorAll('.gpd button')].map(b => b.textContent.trim()), stamps: [...r.querySelectorAll('.gpd .gpts')].map(s => s.textContent.trim()), ls: Object.keys(JSON.parse(localStorage.getItem('tw.art.gptsent2') || '{}')) }; }""", GR)
+    ok(f"{T}：傳過 IG 貼文後，那列顯示「已傳送 MM-DD HH:mm」、IG 鈕變「再傳一次・IG 貼文」，影片鈕不變（沒傳過）；localStorage 記 {kid}|ig",
+       r1["btns"] == ["再傳一次・IG 貼文", "傳給 GPT・影片"] and len(r1["stamps"]) == 1 and re.match(r"已傳送 \d\d-\d\d \d\d:\d\d$", r1["stamps"][0]) and r1["ls"] == [f"{kid}|ig"], r1)
+    # 單篇：影片
+    with gc.expect_page() as pi:
+        gp.click(f"{GR} button[data-gtype='video']")
+    pop = pi.value
+    pop.wait_for_url("https://github.com/**", timeout=10000)
+    u_v = pop.url; url, q = parse(u_v); bv = q.get("body", "")
+    ok(f"{T}：按「傳給 GPT・影片」→ title＝「[社群交接] {TODAY}｜影片｜文章標題」、labels＝social-handoff,gpt-video（跟 IG 貼文那則不同）",
+       url == GH and q.get("title") == f"[社群交接] {TODAY}｜影片｜{kp['title']}" and q.get("labels") == "social-handoff,gpt-video" and u_v != u_ig, [q.get("title"), q.get("labels")])
+    ok(f"{T}：影片「請產出」＝腳本（1080×1920、30～60 秒）、逐鏡分鏡表（秒數／畫面／字卡／比比動作表情道具／轉場／音效）、封面圖、字幕稿、Reels 與 Threads 文案、來源表、素材來源清單；備註比比造型檔、不可重疊規則連結、由 Andy 決定渲染",
+       "## 請產出（影片）" in bv and all(x in bv for x in ("1080×1920", "30～60 秒", "逐鏡分鏡表", "秒數／畫面／字卡大小字／比比動作表情道具／轉場／音效", "封面圖", "字幕稿", "IG Reels 與 Threads 文案", "來源表", "素材來源清單",
+        "parts_sheet_1011.webp", "blob/main/docs/marketing/video_1010/layout_rules.md", "由 Andy 決定")) and "1080×1350" not in bv, bv[-700:])
+    same = all(x in bv for x in (f"`{kid}`", kp["summary"].strip(), "不點名個股推薦", "整理公開資訊，非投顧，投資請自行判斷。", "LIGULIGU_IG_Threads_Style_Guide.md")) and all(f"{i + 1}. {t}" in bv for i, t in enumerate(pts))
+    ok(f"{T}：兩種交接共用的內容（核心觀點、三句話重點、限制、免責、視覺規範）影片那則也一樣有", same, None)
+    pop.close(); gp.wait_for_timeout(300)
+    r2 = gp.evaluate("""(sel) => { const r = document.querySelector(sel); return { btns: [...r.querySelectorAll('.gpd button')].map(b => b.textContent.trim()), n: r.querySelectorAll('.gpd .gpts').length, ls: Object.keys(JSON.parse(localStorage.getItem('tw.art.gptsent2') || '{}')).sort() }; }""", GR)
+    ok(f"{T}：同一篇兩種都傳過 → 兩顆都變「再傳一次」且各有自己的傳送時間；localStorage 兩筆（ig、video 分開記）", r2["btns"] == ["再傳一次・IG 貼文", "再傳一次・影片"] and r2["n"] == 2 and r2["ls"] == sorted([f"{kid}|ig", f"{kid}|video"]), r2)
+    if shots:
+        gp.locator("#artAdmList").screenshot(path=str(shots / "desk-gpt-3-sent.png"))
+    gp.reload(wait_until="domcontentloaded")
+    wait_until(gp, "() => document.querySelectorAll('#artAdmBody tr[data-id]').length > 0", 20000); gp.wait_for_timeout(400)
+    ok(f"{T}：重新整理後「已傳送」紀錄還在（localStorage）", gp.evaluate("(sel) => document.querySelectorAll(sel + ' .gpd .gpts').length", GR) == 2, None)
+    # 勾多篇批次（影片）→ 清單、不一次開一堆分頁
+    gp.check(f"#artAdmBody input[data-gpt-pick='{others[0]}']"); gp.check(f"#artAdmBody input[data-gpt-pick='{others[1]}']"); gp.wait_for_timeout(100)
+    n_pages = len(gc.pages)
+    gp.click("#artGptSendVid"); gp.wait_for_timeout(1200)
+    pn = gp.evaluate("""() => ({ rows: [...document.querySelectorAll('#artGptPanel .gpr')].map(r => [r.dataset.id, r.dataset.gtype, r.querySelector('.gpl').getAttribute('href')]), vis: document.getElementById('artGptPanel').getClientRects().length > 0,
+        msg: document.getElementById('artGptMsg').textContent, sel: document.querySelectorAll('#artAdmBody input[data-gpt-pick]:checked').length })""")
+    ok(f"{T}：勾 2 篇按「傳送勾選・影片」→ 下方清單列出 2 則（一篇一則、類型＝影片）、每則有「開 GitHub 新 Issue」連結；沒有一口氣開一堆分頁；勾選清掉", len(pn["rows"]) == 2 and pn["vis"] and all(r[1] == "video" for r in pn["rows"]) and sorted(r[0] for r in pn["rows"]) == sorted(others)
+       and len(gc.pages) == n_pages and pn["sel"] == 0, [pn, n_pages, len(gc.pages)])
+    qq = [parse(r[2])[1] for r in pn["rows"]]
+    ok(f"{T}：清單兩則連結各自的 title 含「影片｜該篇標題」、labels＝social-handoff,gpt-video，URL 長度 ≤ 8000",
+       all(x.get("labels") == "social-handoff,gpt-video" and f"｜影片｜{posts[r[0]]['title']}" in x.get("title", "") for x, r in zip(qq, pn["rows"])) and all(len(r[2]) <= 8000 for r in pn["rows"]), [x.get("title") for x in qq])
+    with gc.expect_page() as pi:
+        gp.click("#artGptPanel .gpr:first-of-type .gpl")
+    pop = pi.value; pop.wait_for_url("https://github.com/**", timeout=10000); pop.close(); gp.wait_for_timeout(300)
+    st3 = gp.evaluate("(id) => document.querySelector(`#artAdmBody tr[data-id='${id}'] .gpd .gpg:nth-child(2) .gpts`) ? 1 : 0", pn["rows"][0][0])
+    ok(f"{T}：按清單裡的連結 → 該篇的影片那顆記成「已傳送」", st3 == 1, st3)
+    gp.click("#artGptPanel .gpr:first-of-type button[data-gpt-copy]"); gp.wait_for_timeout(400)
+    clip = gp.evaluate("async () => { try { return await navigator.clipboard.readText(); } catch (e) { return 'ERR ' + e; } }")
+    ok(f"{T}：按「複製完整交接內容」→ 剪貼簿是完整 Markdown（## 母文章 開頭、含 影片 請產出、來源與數據都在）", clip.startswith("## 母文章") and "## 請產出（影片）" in clip and "## 來源" in clip and "## 完整文章 JSON" in clip, clip[:80])
+    lens = gp.evaluate("""async () => { const o = []; for (const id of %s) { const p = await (await fetch('articles/posts/' + id + '.json')).json(); for (const t of ['ig', 'video']) { const r = TwGptHandoff.build(p, t); o.push([id.slice(0, 22), t, r.len, r.trimmed.length]); } } return o; }""" % json.dumps(rid))
+    ok(f"{T}：現有 {len(rid)} 篇 × 兩種，連結長度全部 ≤ 8000（{[x[2] for x in lens]}）；超過就會自動省略段落", all(x[2] <= 8000 for x in lens), lens)
+    # 不洩漏管理資料：body 只含文章已公開的內容
+    ok(f"{T}：交接內容沒有管理資料（沒有點閱數、會員 uid、email、權杖）", not re.search(r"點閱次數|\buid\b|@gmail|Bearer|token", bd + bv + clip), re.findall(r".{10}(?:點閱次數|\buid\b|@gmail|Bearer|token).{10}", bd + bv + clip))
+    gc.close()
+
+    # 手機：一顆下拉選類型再送出
+    for vp in ((390, 844), (360, 780)):
+        mc, _ = _acctm4_ctx(b, "admin", vp=vp)
+        mp = new_page(mc)
+        wait_until(mp, "() => document.querySelectorAll('#artAdmBody tr[data-id]').length > 0", 20000); mp.wait_for_timeout(500)
+        MR = f"#artAdmBody tr[data-id='{kid}']"
+        mp.evaluate("() => { const w = document.querySelector('#artAdmList .tbw'); w.scrollLeft = w.scrollWidth; }"); mp.wait_for_timeout(200)
+        mm = mp.evaluate("""(sel) => { const V = (e) => !!e && e.getClientRects().length > 0; const r = document.querySelector(sel);
+            const s = r.querySelector('.gpm select').getBoundingClientRect(), b = r.querySelector('.gpm button').getBoundingClientRect();
+            return { two: [...r.querySelectorAll('.gpd button')].filter(V).length, sel: V(r.querySelector('.gpm select')), sh: Math.round(s.height), bh: Math.round(b.height), hsel: V(document.getElementById('artGptTypeH')), hbtn: V(document.getElementById('artGptSendM')),
+                     sx: document.documentElement.scrollWidth - innerWidth, minfs: Math.min(...[...r.querySelectorAll('.gpm *')].filter(V).map(e => parseFloat(getComputedStyle(e).fontSize))) }; }""", MR)
+        ok(f"{T}：手機 {vp[0]}：每列與表頭改成「一顆下拉選類型（IG 貼文／影片）＋一顆送出」，兩顆並排的按鈕不出現；觸控高度 ≥ 32（{mm['sh']}／{mm['bh']}）、字 ≥ 11、頁面沒有橫向捲軸",
+           mm["two"] == 0 and mm["sel"] and mm["hsel"] and mm["hbtn"] and mm["sh"] >= 32 and mm["bh"] >= 32 and mm["minfs"] >= 11 and mm["sx"] <= 0, mm)
+        if shots and vp[0] == 390:
+            mp.locator("#artAdmList").scroll_into_view_if_needed(); mp.wait_for_timeout(200)
+            mp.locator("#artAdmList").screenshot(path=str(shots / "mob-gpt-1-column.png"))
+        mp.locator(f"{MR} .gpm select").select_option("video"); mp.wait_for_timeout(150)
+        with mc.expect_page() as pi:
+            mp.locator(f"{MR} .gpm button").tap()
+        pop = pi.value; pop.wait_for_url("https://github.com/**", timeout=10000)
+        qm = parse(pop.url)[1]; pop.close(); mp.wait_for_timeout(300)
+        ok(f"{T}：手機 {vp[0]}：下拉選「影片」再點送出 → Issue 標題「｜影片｜」、labels social-handoff,gpt-video、請產出是影片那套",
+           f"｜影片｜{kp['title']}" in qm.get("title", "") and qm.get("labels") == "social-handoff,gpt-video" and "## 請產出（影片）" in qm.get("body", ""), qm.get("title"))
+        st_ = mp.evaluate("(sel) => (document.querySelector(sel + ' .gpm .gpts') || {}).textContent || ''", MR)
+        ok(f"{T}：手機 {vp[0]}：傳過後那列顯示「已傳送：影片 MM-DD HH:mm」", re.match(r"已傳送：影片 \d\d-\d\d \d\d:\d\d$", st_.strip()) is not None, st_)
+        mp.locator(f"{MR} .gpm select").select_option("ig"); mp.wait_for_timeout(100)
+        mp.locator(f"#artAdmBody input[data-gpt-pick='{others[0]}']").check(); mp.wait_for_timeout(100)
+        mp.evaluate("() => { const w = document.querySelector('#artAdmList .tbw'); w.scrollTop = 0; w.scrollLeft = w.scrollWidth; }")
+        if shots and vp[0] == 390:
+            mp.locator("#artAdmList").screenshot(path=str(shots / "mob-gpt-2-checked.png"))
+        with mc.expect_page() as pi:
+            mp.locator("#artGptSendM").tap()
+            gp_ = None
+        # 單篇批次＝自動開
+        pop = pi.value; pop.wait_for_url("https://github.com/**", timeout=10000)
+        qm2 = parse(pop.url)[1]; pop.close()
+        ok(f"{T}：手機 {vp[0]}：勾 1 篇、下拉選 IG 貼文、點表頭「傳送勾選的文章」→ 開出 IG 貼文那則（labels social-handoff,gpt-ig-post）", qm2.get("labels") == "social-handoff,gpt-ig-post" and "｜IG 貼文｜" in qm2.get("title", ""), qm2.get("title"))
+        mc.close()
 
     # ---------------------------------------------------------------- ⑦ 手機 390／360
     for vp in ((390, 844), (360, 780)):
