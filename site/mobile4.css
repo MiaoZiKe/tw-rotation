@@ -1392,3 +1392,30 @@
 @media (max-width:640px){
   :root.m4 #skChipCard .mixi small,:root.m4 #skChipCard .mixsub,:root.m4 #skChipCard .mixf{font-size:12px}
 }
+
+/* ============================================================================
+   33 卡片外框1016（Andy 10-16 iPhone 實機：「所有內容都需要在背景路上他適合大小的方框，參考圖一到圖三」）
+   手機每一塊內容（圖、表、清單、說明）都放進「圓角＋淡底色＋1px 邊框」的卡片，跟財經日曆／資金分流樹／成交值占比那三張同一款。
+   · 取代第 5 節 10-08 的「內容卡攤平」，但只套在最外層的 .card；卡中卡（.card .card）維持攤平、不會框中有框。
+   · 自己已經有框的（.osc、#themeDetail>.card、#indChain #dgSec／#relSec）不再套第二層。
+   · 卡裡面原本替圖單獨掛的外框（.m4cbox／#lwc 以外）拿掉，免得框中有框；圖的內框交給卡片外框。
+   · 樣式全走變數（深／淺、三套主題自動跟著換）；內距 10～12px；只在 ≤640＋html.m4，桌機不動。
+   分批：第 1 批 = 總覽、資金流向、熱力圖（本段末尾的 :is(…) 選擇器逐批擴充）。
+   ---------------------------------------------------------------------------- */
+@media (max-width:640px){
+  :root.m4{
+    --m4-cd-bg:var(--t4-card-bg,var(--panel));
+    --m4-cd-bd:var(--line);
+    --m4-cd-r:12px;
+    --m4-cd-pad:12px 12px 12px;
+    --m4-cd-gap:10px;
+  }
+  /* ---- 第 1 批：總覽、資金流向、熱力圖 ---- */
+  :root.m4 :is(#v-overview,#v-flow,#v-heatmap) .card:not(.card .card):not(#m4-none){
+    background:var(--m4-cd-bg)!important;border:1px solid var(--m4-cd-bd)!important;border-radius:var(--m4-cd-r)!important;
+    padding:var(--m4-cd-pad)!important;margin:0 0 var(--m4-cd-gap)!important;box-sizing:border-box;box-shadow:none!important;overflow:hidden}
+  /* 卡片之間不再靠分隔線（第 5、14 節那條 border-top）；外層 m4sep 只是個包裝，線拿掉 */
+  :root.m4 :is(#v-overview,#v-flow,#v-heatmap) :is(.m4sep,.m4sepb):has(>.card:not(.card .card)){border-top:0!important;border-bottom:0!important;margin-top:0!important;margin-bottom:0!important;padding-top:0!important;padding-bottom:0!important}
+  /* 卡裡面的圖原本自己掛一圈框（.m4cbox）→ 拿掉，框交給卡片 */
+  :root.m4 :is(#v-overview,#v-flow,#v-heatmap) .card:not(.card .card) .m4cbox:not(#m4-none){background:transparent!important;border:0!important;border-radius:0!important}
+}

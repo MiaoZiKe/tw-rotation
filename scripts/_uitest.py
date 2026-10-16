@@ -31552,6 +31552,83 @@ def _desk_reverify(T, b, base, kind, routes, measure):
     return out
 
 
+# ★ 2026-10-16 手機卡片外框1016（Andy iPhone 實機：「所有內容都需要在背景路上他適合大小的方框」）
+#   手機每一塊內容（圖、表、清單）的最近容器要有「邊框或底色」而且圓角 ≥ 8；不准橫向捲動、頁高不超過準則（≤3 屏）。
+#   分批上線：CARD1016_ROUTES 逐批擴充（批 1 = 總覽、資金流向、熱力圖）。每個寬度都用觸控點頁內分頁再量一次。
+CARD1016_ROUTES = {
+    "總覽": "#overview", "資金流向": "#flow", "資金分流樹": "#flow/sankey", "族群法人": "#flow/inst", "熱力圖": "#heatmap",
+}
+CARD1016_JS = r"""()=>{
+ const v=document.querySelector('main .view.on')||document.querySelector('main');
+ const vis=e=>{const r=e.getBoundingClientRect();const cs=getComputedStyle(e);return r.width>0&&r.height>0&&cs.visibility!=='hidden'&&cs.display!=='none'};
+ const alpha=c=>{const m=c.match(/rgba?\(([^)]+)\)/);if(!m)return 0;const a=m[1].split(',').map(parseFloat);return a.length>3?a[3]:1};
+ const framed=e=>{const cs=getComputedStyle(e);
+   const bw=['Top','Right','Bottom','Left'].every(s=>parseFloat(cs['border'+s+'Width'])>0&&cs['border'+s+'Style']!=='none'&&alpha(cs['border'+s+'Color'])>0.05);
+   const bg=alpha(cs.backgroundColor)>0.15;
+   const rad=parseFloat(cs.borderTopLeftRadius)>=8;
+   return (bw||bg)&&rad};
+ const sel='canvas,svg,table,ul,ol,.heat,.hm,[class*=chart],[class*=Chart],[id*=chart],[id*=Chart]';
+ const cands=[...v.querySelectorAll(sel)].filter(e=>{
+   if(!vis(e))return false; const r=e.getBoundingClientRect();
+   if(r.width<120||r.height<60)return false;
+   if(e.tagName==='SVG'||e.tagName==='svg'){ if(e.closest('svg')!==e && e.parentElement.closest('svg'))return false; }
+   if(e.parentElement.closest('canvas,svg,table')&&e.tagName!=='TABLE')return false;
+   if(e.tagName==='UL'||e.tagName==='OL'){ if(e.children.length<3)return false; if(e.closest('nav,#tabs,.topbar'))return false;}
+   if(e.closest('.topbar,nav,#tabs,#side,.msheet,#mbar'))return false;
+   return true});
+ const bare=[];const seen=new Set();
+ for(const e of cands){
+   let n=e,ok=false;
+   while(n&&n!==document.body){ if(framed(n)){ok=true;break} if(n===v)break; n=n.parentElement }
+   if(ok)continue;
+   const d=(e.tagName.toLowerCase()+(e.id?'#'+e.id:'')+(e.className&&typeof e.className==='string'?'.'+e.className.trim().split(/\s+/).slice(0,2).join('.'):''));
+   const p=e.parentElement; const pd=(p.tagName.toLowerCase()+(p.id?'#'+p.id:'')+(p.className&&typeof p.className==='string'?'.'+p.className.trim().split(/\s+/).slice(0,2).join('.'):''));
+   const k=pd+'>'+d; if(seen.has(k))continue; seen.add(k);
+   const r=e.getBoundingClientRect();
+   bare.push({d:pd+' > '+d,w:Math.round(r.width),h:Math.round(r.height)});
+ }
+ return {h:document.documentElement.scrollHeight,sw:document.documentElement.scrollWidth,cw:document.documentElement.clientWidth,n:cands.length,bare};
+}
+"""
+def t_m4_card_frame_1016(b, base):
+    T = "手機卡片外框1016"
+    for W in (360, 390, 430):
+        H = 844
+        m = b.new_page(viewport={"width": W, "height": H}, device_scale_factor=2, is_mobile=True, has_touch=True)
+        m.route("**/fonts.googleapis.com/**", lambda r: r.abort())
+        m.on("pageerror", lambda e: fails.append(f"{T} pageerror: {e}"))
+        try:
+            for nm, h in CARD1016_ROUTES.items():
+                m.goto(f"{base}#x", wait_until="domcontentloaded")
+                m.evaluate("(h) => { location.hash = h; }", h); m.wait_for_timeout(2500)
+                def meas():
+                    r = m.evaluate(CARD1016_JS)
+                    tops = m.evaluate("""() => { const v = document.querySelector('main .view.on'); if (!v) return [];
+                      return [...v.querySelectorAll('.card')].filter(c => !c.parentElement.closest('.card') && c.getClientRects().length && c.getBoundingClientRect().height > 60)
+                        .map(c => { const cs = getComputedStyle(c); return { id: c.id || c.className.split(' ')[0], bw: parseFloat(cs.borderTopWidth), rad: parseFloat(cs.borderTopLeftRadius),
+                          pad: parseFloat(cs.paddingLeft), right: Math.round(c.getBoundingClientRect().right) }; }); }""")
+                    return r, tops
+                r, tops = meas()
+                ok(f"{T} {W}px「{nm}」：圖／表／清單的最近容器都有框或底色且圓角 ≥ 8（沒框的 {len(r['bare'])} 個）",
+                   len(r["bare"]) == 0 and r["n"] >= 1, r["bare"][:4])
+                ok(f"{T} {W}px「{nm}」：每張最外層卡片有 1px 邊框、圓角 ≥ 8、內距 10～12px、沒超出螢幕",
+                   all(t["bw"] >= 1 and t["rad"] >= 8 and 10 <= t["pad"] <= 12 and t["right"] <= W for t in tops), tops[:4])
+                ok(f"{T} {W}px「{nm}」：沒有橫向捲動、頁高 ≤ 3 屏",
+                   r["sw"] <= r["cw"] and r["h"] <= 3 * H + 120, {"sw": r["sw"], "cw": r["cw"], "h": r["h"]})
+                # 用手指點頁內分頁（有的話），每點一下再量一次
+                tabs = m.evaluate("""() => [...document.querySelectorAll('main .view.on nav.mpager button, #mM3Sw button')].filter(b => b.getClientRects().length).length""")
+                for i in range(min(tabs, 4)):
+                    xy = m.evaluate("""(i) => { const b = [...document.querySelectorAll('main .view.on nav.mpager button, #mM3Sw button')].filter(b => b.getClientRects().length)[i];
+                        if (!b) return null; b.scrollIntoView({block:'center',behavior:'instant'}); const r = b.getBoundingClientRect(); return [r.left + r.width / 2, r.top + r.height / 2]; }""", i)
+                    if not xy:
+                        continue
+                    m.touchscreen.tap(xy[0], xy[1]); m.wait_for_timeout(1500)
+                    r2, t2 = meas()
+                    ok(f"{T} {W}px「{nm}」點第 {i + 1} 個分頁後：沒框 0 個、沒橫捲（{m.evaluate('() => location.hash')}）",
+                       len(r2["bare"]) == 0 and r2["sw"] <= r2["cw"], {"bare": r2["bare"][:3], "sw": r2["sw"], "cw": r2["cw"]})
+        finally:
+            m.close()
+
 def t_desk_guard_1008(b, base):
     T = "桌機守門1008"
     _t0 = [time.time()]; _tl = []
@@ -34052,6 +34129,8 @@ SECTIONS = {
     #   全站每一頁（含分段、抽屜、彈窗）所有看得見的可點元素，390 與 360 各用觸控點一次：點得到、有反應、收得回來。
     #   量測在 scripts/_mobile_tap_audit.py（單獨跑有完整報告），⚠ 一律 --workers 1，一輪很長。
     "手機按鈕普查":        lambda pg, b, base, code: t_mobile_tap_audit(b, base, code),
+    # ★ 2026-10-16 Andy：「所有內容都需要在背景路上適合大小的方框」——手機每塊內容的最近容器要有框／底色、圓角 ≥ 8（分批擴充路由）
+    "手機卡片外框1016":    lambda pg, b, base, code: t_m4_card_frame_1016(b, base),
     # ★ 2026-09-28 設計 v4 第二批 2D：360 圖例撐寬（放大層關不掉、圖例點不到）＋觸控目標 40（章節鈕列、排序抽屜、圖例、頁尾、連結）
     "手機v4二批":          lambda pg, b, base, code: t_mobile_v4_2d(b, base, code),
     # ★ 2026-09-27 Andy：Google 登入、使用統計、線上人數、自選清單五分頁（DECISIONS #270）
