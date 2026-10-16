@@ -1348,7 +1348,9 @@ ${gs.length ? `<section><h5>熱門族群</h5><div class="gps">${gs.map((g) => `<
     const body = $('#artJobBody', v); if (!body) return;
     if (!S.jobs) { body.innerHTML = '<tr><td colspan="7" class="muted">讀不到產出紀錄（會員伺服器沒回應）</td></tr>'; return; }
     const jf = S.jf, q = jf.q.toLowerCase();
-    const hit = S.jobs.filter((j) => (!jf.kind || j.kind === jf.kind) && (!jf.st || j.status === jf.st)
+    /* 10-16 Andy：「產完後 進度這邊也需要更新」→ 文章已上架（index 有同一個 topic）就直接算「已完成」，不等同步工作流把狀態標回伺服器（篩選也照這個） */
+    const eff = (j) => { const live = j.kind === 'article' && ['queued', 'working'].includes(j.status) && pubOfTopic(j.topic_id); return live ? Object.assign({}, j, { status: 'done', result: live.id }) : j; };
+    const hit = S.jobs.map(eff).filter((j) => (!jf.kind || j.kind === jf.kind) && (!jf.st || j.status === jf.st)
       && (!q || String(j.title || '').toLowerCase().includes(q) || String(j.note || '').toLowerCase().includes(q)));
     const rows = hit.slice(0, 100);
     const c = $('#artJfCnt', v); if (c) { c.textContent = `${hit.length}／${S.jobs.length} 筆${hit.length > rows.length ? '（顯示前 100 筆）' : ''}`; c.dataset.n = String(hit.length); }

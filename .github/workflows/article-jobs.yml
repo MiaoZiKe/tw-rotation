@@ -24,8 +24,10 @@ on:
         type: string
         default: ""
 
+# 10-16：原本跟 daily／backfill 共用 tw-rotation-data-write，回補一跑一小時，這支就排在後面不動（#1 卡在「排隊中」）。
+# 改成自己一組；只 commit 一支小檔，推送被拒時下面會 pull --rebase 重試，不會跟資料工作流打架。
 concurrency:
-  group: tw-rotation-data-write
+  group: tw-article-jobs
   cancel-in-progress: false
 
 permissions:
