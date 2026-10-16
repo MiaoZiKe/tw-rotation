@@ -40,6 +40,9 @@
      新增：資金輪動排行點擊 5、資金流向上方篩選 5、市場明細三個分頁觀看各 5、漲跌家數篩選 5、週期統計觀看 10、財經日曆點標題 5、配息行事曆右側清單 5、搜尋 10。
      全站共用額度 dq：註冊會員 40 → 不設（null）—— 逐項上限已經比它細，留著反而可能比逐項更早用完、把 Andy 要的 10 次吃掉。
      訪客：新鍵給比註冊會員少的次數（多半 3 次、搜尋 5 次），其餘不動；Plus／Pro 不動。
+   · ★ 2026-10-16（Andy：「今日事件開放，修正，但限制次數 5 次 Total」）：訪客的今日事件改成「累計 5 次」——新鍵 events.total（訪客 5、其他三個範本 999＝不限），
+     訪客範本拿掉原本的 lims.events 每日 3 次（兩個上限疊在一起，累計 5 次永遠用不到）。一次＝打開今日事件抽屜一次；註冊會員依自己既有額度不變。
+     features.js 的 defBy 也寫了同樣的預設（訪客 5），按「套用建議方案」之前就照這個跑；quota.js 對訪客略過 events 的每日次數。
    這支是**資料**，不是設定：改了不會自動生效，要管理者在 #admin/perm 按一次「套用建議方案」。
    ============================================================================ */
 window.TW_PLAN_PRESETS = {
@@ -99,6 +102,7 @@ window.TW_PLAN_PRESETS = {
     "stock.news": false,
     "live.tick": false,
     "events": true,
+    "events.total": 5,
     "theme": true,
     "explore.page": true,
     "explore.chart": true,
@@ -143,7 +147,6 @@ window.TW_PLAN_PRESETS = {
     "ind.3d": 0,
     "ind.rel": 0,
     "stock.ai": 0,
-    "events": 3,
     "flow.rank.click": 3,
     "flow.filter": 3,
     "mkt.updown.filter": 3,
@@ -219,6 +222,7 @@ window.TW_PLAN_PRESETS = {
     "stock.news": true,
     "live.tick": false,
     "events": true,
+    "events.total": 999,
     "theme": true,
     "explore.page": true,
     "explore.chart": true,
@@ -355,6 +359,7 @@ window.TW_PLAN_PRESETS = {
     "stock.news": true,
     "live.tick": false,
     "events": true,
+    "events.total": 999,
     "theme": true,
     "explore.page": true,
     "explore.chart": true,
@@ -463,6 +468,7 @@ window.TW_PLAN_PRESETS = {
     "stock.news": true,
     "live.tick": false,
     "events": true,
+    "events.total": 999,
     "theme": true,
     "explore.page": true,
     "explore.chart": true,

@@ -328,5 +328,5 @@ body.m3on .m3host:not(.mfull)>.qcov:not(.m3keep):not(.m3keep-h),body.m3on .m3hos
     return m;
   }
 
-  window.TwQCard = { html, mount, modal, unmount, place, resetText, nextReset, show, clear, quotaOpts, lockOpts, demo: DEMO, state: () => (Q.cur ? Object.assign({}, Q.cur) : null) };
+  window.TwQCard = { html, css, mount, modal, unmount, place, resetText, nextReset, show, clear, quotaOpts, lockOpts, demo: DEMO, state: () => (Q.cur ? Object.assign({}, Q.cur) : null) };
 })();
