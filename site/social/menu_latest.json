@@ -1,0 +1,152 @@
+{
+  "version": 1,
+  "date": "2026-10-16",
+  "example": true,
+  "updated": "2026-10-16T08:30:00+08:00",
+  "items": [
+    {
+      "id": "D1016-1",
+      "kind": "最新消息",
+      "title": "【範例】外資連三買，資金轉進哪個族群？",
+      "will_cover": [
+        "外資近三日買超集中在哪幾個族群",
+        "對照網站熱力圖看是不是真的有資金流入",
+        "提醒：資金流向是結果，不是買進訊號"
+      ],
+      "chart": {
+        "has": true,
+        "note": "網站「資金流向」分頁真實截圖"
+      },
+      "images_needed": [
+        "比比素材：news＋magnifier"
+      ],
+      "verified": {
+        "status": "已查證",
+        "who": "finance-quant"
+      },
+      "output": "Reels 30 秒＋Threads 短文",
+      "flags": []
+    },
+    {
+      "id": "D1016-2",
+      "kind": "最新消息",
+      "title": "【範例】美國科技股財報週，台股供應鏈看什麼？",
+      "will_cover": [
+        "本週哪幾家美系大廠公布財報",
+        "財報重點如何傳導到台灣供應鏈",
+        "哪些數字要等法說會再確認"
+      ],
+      "chart": {
+        "has": false,
+        "note": "無：以文字重點卡呈現"
+      },
+      "images_needed": [
+        "需 GPT 生圖：財報週時間軸示意圖"
+      ],
+      "verified": {
+        "status": "待查證",
+        "who": "找 semi-chain-analyst 核對供應鏈說法"
+      },
+      "output": "輪播 5 張",
+      "flags": [
+        "點名個股",
+        "涉及預測"
+      ]
+    },
+    {
+      "id": "D1016-3",
+      "kind": "產業延伸",
+      "title": "【範例】CoWoS 先進封裝：為什麼產能是瓶頸？",
+      "will_cover": [
+        "CoWoS 在 AI 晶片裡負責什麼",
+        "產能吃緊的三個原因",
+        "網站產業鏈頁怎麼看上下游"
+      ],
+      "chart": {
+        "has": true,
+        "note": "網站「產業地圖」CoWoS 鏈截圖"
+      },
+      "images_needed": [
+        "需 GPT 生圖：晶片封裝剖面示意圖"
+      ],
+      "verified": {
+        "status": "已查證",
+        "who": "semi-chain-analyst"
+      },
+      "output": "Reels 60 秒＋輪播 6 張",
+      "flags": []
+    },
+    {
+      "id": "D1016-4",
+      "kind": "產業延伸",
+      "title": "【範例】伺服器散熱：氣冷到液冷的升級路線",
+      "will_cover": [
+        "散熱瓶頸從哪裡來",
+        "氣冷、水冷、浸沒式差在哪",
+        "站上哪一頁看相關族群"
+      ],
+      "chart": {
+        "has": true,
+        "note": "網站關聯圖截圖"
+      },
+      "images_needed": [],
+      "verified": {
+        "status": "待查證",
+        "who": "找 ai-server-analyst"
+      },
+      "output": "Threads 長文串",
+      "flags": [
+        "點名個股"
+      ]
+    },
+    {
+      "id": "A01",
+      "kind": "精選文章",
+      "title": "【範例】比比產業百科：一顆 AI 晶片從設計到出貨",
+      "will_cover": [
+        "設計、製造、封裝、測試四站",
+        "每一站在台灣的代表產業",
+        "常見名詞白話對照"
+      ],
+      "chart": {
+        "has": true,
+        "note": "本部自製流程圖"
+      },
+      "images_needed": [
+        "比比素材：teaching 系列",
+        "需 GPT 生圖：四站流程圖"
+      ],
+      "verified": {
+        "status": "已查證",
+        "who": "semi-chain-analyst"
+      },
+      "output": "站內長文＋輪播 8 張",
+      "flags": []
+    },
+    {
+      "id": "D1016-6",
+      "kind": "總經名詞",
+      "title": "【範例】殖利率曲線倒掛是什麼意思？",
+      "will_cover": [
+        "短債殖利率高過長債代表什麼",
+        "歷史上和景氣的關係（不保證重演）",
+        "對台股的間接影響怎麼觀察"
+      ],
+      "chart": {
+        "has": false,
+        "note": "無：用比比圖卡講解"
+      },
+      "images_needed": [
+        "需 GPT 生圖：曲線正常與倒掛對照圖"
+      ],
+      "verified": {
+        "status": "已查證",
+        "who": "finance-content-editor"
+      },
+      "output": "Reels 30 秒",
+      "flags": [
+        "地緣敏感"
+      ]
+    }
+  ]
+}
