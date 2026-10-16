@@ -64,6 +64,10 @@
 #subDlg .codlg .cofrm{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px 10px}
 #subDlg .codlg .cofrm label{margin:0;font-size:12.5px}
 #subDlg .codlg .cofrm .w3{grid-column:1/-1}
+#subDlg .codlg .cofrm label,#subDlg .codlg .cofrm .lb{display:block;margin:0 0 4px;font-size:12.5px;color:var(--ink)}
+#subDlg .codlg .cofrm label small,#subDlg .codlg .cofrm .lb small{margin-left:6px;color:var(--ink-2);font-size:11.5px;font-weight:400}
+#subDlg .codlg .cofrm .req{font-style:normal;margin-left:4px;color:var(--rise);font-size:11px}
+#subDlg .codlg .cofrm .ro{height:36px;display:flex;align-items:center;padding:0 10px;border:1px dashed var(--line-2);border-radius:8px;font-weight:700;font-variant-numeric:tabular-nums;color:var(--ink)}
 #subDlg .codlg .cofrm input{width:100%;box-sizing:border-box;height:36px;background:var(--panel);color:var(--ink);border:1px solid var(--line-2);border-radius:8px;padding:0 10px;font:inherit;font-size:14px}
 #subDlg .codlg .cooff{border:1px dashed var(--line-2);border-radius:10px;padding:14px;color:var(--ink-2);font-size:14px;text-align:center}
 #subDlg .codlg .colegal{border-top:1px solid var(--line);margin-top:14px;padding-top:12px;font-size:13px;color:var(--ink-2);line-height:1.6}
@@ -114,8 +118,7 @@ html.pay-renew #acctBtn.ame::after{content:'';position:absolute;top:2px;right:2p
   #subDlg .codlg .cohd{padding:12px 14px}
   #subDlg .codlg .cobd{padding:12px 14px 16px}
   #subDlg .codlg .cosum{grid-template-columns:72px minmax(0,1fr)}
-  #subDlg .codlg .cofrm{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
-  #subDlg .codlg .cofrm .w2m{grid-column:1/-1}
+  #subDlg .codlg .cofrm{grid-template-columns:minmax(0,1fr)}
   #subDlg .codlg .cobank{grid-template-columns:64px minmax(0,1fr) auto}
   #v-orders .ordr{grid-template-columns:minmax(0,1fr) auto;gap:2px 8px;padding:10px 2px}
   #v-orders .ordr.hd{display:none}
@@ -241,11 +244,11 @@ html.pay-renew #acctBtn.ame::after{content:'';position:absolute;top:2px;right:2p
           <span>應付金額</span><b>NT$ ${nt(j.amount)}</b><button type="button" data-copy="${esc(j.amount)}">複製</button>
           <span>訂單編號</span><b>${esc(j.id)}</b><button type="button" data-copy="${esc(j.id)}">複製</button>
           <div class="codue">請於 ${esc(b.days || 3)} 天內轉帳（${esc(ymd(j.deadline))} 前），轉帳備註可填訂單編號，方便對帳。</div></div>
-        <div class="cofrm">
-          <div class="w2m"><label for="coL5">轉出帳號末 5 碼</label><input id="coL5" inputmode="numeric" maxlength="5" autocomplete="off" placeholder="例如 12345"></div>
+        <div class="cofrm" id="coFrm">
+          <div><label for="coName">匯款人姓名<em class="req">必填</em><small>轉出帳戶的戶名</small></label><input id="coName" maxlength="40" autocomplete="name" required aria-required="true"></div>
+          <div><label for="coL5">轉出帳號末 5 碼<small>5 個數字</small></label><input id="coL5" inputmode="numeric" maxlength="5" autocomplete="off"></div>
           <div><label for="coDate">轉帳日期</label><input id="coDate" type="date" value="${esc(today)}" max="${esc(today)}"></div>
-          <div><label for="coXAmt">實際轉帳金額</label><input id="coXAmt" inputmode="numeric" autocomplete="off" placeholder="照網銀明細填，例如 ${esc(j.amount)}"></div>
-          <div class="w3"><label for="coNote">備註（選填）</label><input id="coNote" maxlength="200" placeholder="例如：用公司帳戶轉帳"></div></div>
+          <div class="w3"><span class="lb">轉帳金額<small>依訂單金額，不用填</small></span><div class="ro" id="coXAmt" aria-readonly="true">NT$ ${nt(j.amount)}</div></div></div>
         <button type="button" class="cogo" id="coSendB">我已轉帳，送出匯款資料</button>
         <p class="muted" style="font-size:12.5px;margin:6px 0 0">送出後狀態是「待確認」，管理者確認入帳就會開通（可在帳號選單「我的訂單」查看）。轉帳不會自動續扣，到期前 7 天會提醒你再匯一期。</p>`;
       pane.querySelectorAll('[data-copy]').forEach((c) => { c.onclick = () => { try { navigator.clipboard.writeText(c.dataset.copy); c.textContent = '已複製'; } catch (e) { /* 沒權限就算了 */ } }; });
@@ -258,19 +261,18 @@ html.pay-renew #acctBtn.ame::after{content:'';position:absolute;top:2px;right:2p
         box.querySelector('#coSeeOrders').onclick = () => { D.hidden = true; location.hash = '#orders/' + o.id; };
         refresh();
       };
+      /* 2026-10-16 Andy：金額寫死＝訂單金額（客戶不能改，只有管理區能改）、匯款人姓名必填、不放範例字與備註 */
       $('#coSendB').onclick = () => {
-        const f = { last5: $('#coL5').value.trim(), date: $('#coDate').value, amount: parseInt(String($('#coXAmt').value).replace(/[,\s]/g, ''), 10), note: $('#coNote').value.trim() };
+        const f = { name: $('#coName').value.trim(), last5: $('#coL5').value.trim(), date: $('#coDate').value };
+        if (!f.name) { $('#coName').focus(); return msg('請填匯款人姓名', true); }
         if (!/^\d{5}$/.test(f.last5)) return msg('轉出帳號末 5 碼要是 5 個數字', true);
         if (!/^\d{4}-\d{2}-\d{2}$/.test(f.date)) return msg('請選轉帳日期', true);
-        if (!Number.isInteger(f.amount) || f.amount < 1) return msg('請填轉帳金額', true);
         msg('');
-        const diff = f.amount !== j.amount;
         let cf = pane.querySelector('#coCfm'); if (cf) cf.remove();
         cf = document.createElement('div'); cf.id = 'coCfm'; cf.className = 'cooff'; cf.style.cssText = 'margin-top:8px;text-align:left';
-        cf.innerHTML = `<b>請再確認一次匯款資料</b><div class="kv" style="margin:6px 0"><span>轉出帳號末 5 碼</span><b>${esc(f.last5)}</b><span>轉帳日期</span><b>${esc(f.date)}</b><span>你填的轉帳金額</span><b${diff ? ' style="color:var(--rise)"' : ''}>NT$ ${nt(f.amount)}</b><span>這筆訂單應付</span><b>NT$ ${nt(j.amount)}</b></div>
-          ${diff ? `<p style="color:var(--rise);margin:4px 0">⚠ 你填的金額和應付金額不同。管理者會依實際入帳金額處理，金額不足會被退回、要求補匯，不會開通。</p>` : ''}
-          <p class="muted" style="margin:4px 0;font-size:12.5px">資料送出後無法修改；填錯會影響管理者對帳。</p>
-          <div style="display:flex;gap:8px"><button type="button" id="coCfmBack">返回修改</button><button type="button" class="cogo" id="coCfmGo">${diff ? '金額不同，仍要送出' : '確認無誤，送出'}</button></div>`;
+        cf.innerHTML = `<b>請再確認一次匯款資料</b><div class="kv" style="margin:6px 0"><span>匯款人姓名</span><b>${esc(f.name)}</b><span>轉出帳號末 5 碼</span><b>${esc(f.last5)}</b><span>轉帳日期</span><b>${esc(f.date)}</b><span>轉帳金額</span><b>NT$ ${nt(j.amount)}</b></div>
+          <p class="muted" style="margin:4px 0;font-size:12.5px">送出後不能修改；填錯請從右下角「客服」→「意見反饋」告訴我們。</p>
+          <div style="display:flex;gap:8px"><button type="button" id="coCfmBack">返回修改</button><button type="button" class="cogo" id="coCfmGo">確認無誤，送出</button></div>`;
         $('#coSendB').after(cf); $('#coSendB').hidden = true;
         cf.querySelector('#coCfmBack').onclick = () => { cf.remove(); $('#coSendB').hidden = false; };
         cf.querySelector('#coCfmGo').onclick = () => report(j.id, f, msg, doneBank);
@@ -281,13 +283,13 @@ html.pay-renew #acctBtn.ame::after{content:'';position:absolute;top:2px;right:2p
     sync();
   }
   async function report(id, f, msg, done) {
+    if (!f.name) return msg('請填匯款人姓名', true);
     if (!/^\d{5}$/.test(f.last5)) return msg('轉出帳號末 5 碼要是 5 個數字', true);
     if (!/^\d{4}-\d{2}-\d{2}$/.test(f.date)) return msg('請選轉帳日期', true);
-    if (!Number.isInteger(f.amount) || f.amount < 1) return msg('請填轉帳金額', true);
     msg('送出中…');
-    const j = await call('/v1/pay/bank/report', { id, ...f });
+    const j = await call('/v1/pay/bank/report', { id, name: f.name, last5: f.last5, date: f.date });
     if (j && j._s === 200 && j.ok) { msg(''); done(j.order); return; }
-    msg(!j ? '連不到會員伺服器' : j.error === 'bad_date' ? '轉帳日期不對（不能是未來，也不能早於開單日）' : j.error === 'bad_status' ? '這筆訂單已經處理過了' : `送出失敗（${j._s}）`, true);
+    msg(!j ? '連不到會員伺服器' : j.error === 'need_name' ? '請填匯款人姓名' : j.error === 'bad_date' ? '轉帳日期不對（不能是未來，也不能早於開單日）' : j.error === 'already_reported' ? '這筆已經送出過匯款資料；要更正請用右下角「客服」→「意見反饋」' : j.error === 'bad_status' ? '這筆訂單已經處理過了' : `送出失敗（${j._s}）`, true);
   }
 
   /* ---------------------------------------------------------------- ② 我的訂單 */
@@ -311,9 +313,9 @@ html.pay-renew #acctBtn.ame::after{content:'';position:absolute;top:2px;right:2p
     const a = [];
     if (o.grantTo) a.push(`開通期間 ${ymd(o.grantFrom)}～${ymd(o.grantTo)}`);
     /* 2026-10-12 Andy：記錄每一次回報的時間與真實輸入的金額，不可修改；重送的舊紀錄標「已作廢」 */
-    if (o.method === 'bank' && (o.reports || []).length) a.push('匯款回報：' + o.reports.map((r, i) => `<span style="${r.state === 'void' ? 'opacity:.6;text-decoration:line-through' : ''}">#${i + 1} ${esc(ymdhm(r.at))} 末 5 碼 ${esc(r.last5)}・${esc(r.date)}・NT$ ${nt(r.amount)}</span>${r.state === 'void' ? '（已作廢：' + esc(r.voidWhy || '') + '）' : ''}`).join('；'));
-    else if (o.method === 'bank' && o.last5) a.push(`轉出末 5 碼 ${esc(o.last5)}・${esc(o.xferDate)}・NT$ ${nt(o.xferAmount)}`);
-    if (o.method === 'bank' && o.status === 'pending') a.push(`請於 ${ymd(o.created + 3 * 86400000)} 前轉帳，轉完按「回報匯款」`);
+    /* 2026-10-16 Andy：「拿掉補送匯款資料這功能」→ 只列送出的那一筆；送錯改用意見反饋聯絡 */
+    if (o.method === 'bank' && o.last5) a.push(`${o.payerName ? '匯款人 ' + esc(o.payerName) + '・' : ''}轉出末 5 碼 ${esc(o.last5)}・${esc(o.xferDate)}`);
+    if (o.method === 'bank' && o.status === 'review') a.push('<span class="ordfix">資料填錯？請從右下角「客服」→「意見反饋」告訴我們</span>');
     if (o.payInfo && o.status === 'pending') a.push(o.payInfo.account ? `ATM 繳費帳號 ${esc(o.payInfo.bank)}-${esc(o.payInfo.account)}（${esc(o.payInfo.expire)} 前）` : o.payInfo.code ? `超商繳費代碼 ${esc(o.payInfo.code)}（${esc(o.payInfo.expire)} 前）` : '');
     if (o.recur && !o.parent) a.push(o.periodState === 'active' ? '自動續訂：開' : o.periodState === 'cancelled' ? `自動續訂：已取消（${ymd(o.cancelAt)}）` : '');
     if (o.rejectReason) a.push('退回原因：' + esc(o.rejectReason));
@@ -323,7 +325,6 @@ html.pay-renew #acctBtn.ame::after{content:'';position:absolute;top:2px;right:2p
   }
   function rowHTML(o, hit) {
     const act = [];
-    if (o.method === 'bank' && ['pending', 'review'].includes(o.status)) act.push(`<button type="button" data-rep="${esc(o.id)}" title="${o.status === 'review' ? '已送出的資料不能修改；補送會新增一筆，上一筆標成已作廢' : ''}">${o.status === 'review' ? '補送新的匯款資料' : '回報匯款'}</button>`);
     if (o.recur && !o.parent && o.periodState === 'active') act.push(`<button type="button" data-cxl="${esc(o.id)}">取消自動續訂</button>`);
     return `<div class="ordr${hit ? ' hit' : ''}" data-oid="${esc(o.id)}">
       <div class="c-time t" title="${esc(ymdhm(o.created))}">${esc(ymdhm(o.created))}</div>
@@ -379,7 +380,6 @@ html.pay-renew #acctBtn.ame::after{content:'';position:absolute;top:2px;right:2p
     return '';
   }
   function bind(v, j) {
-    v.querySelectorAll('[data-rep]').forEach((b) => { b.onclick = () => repDlg((j.orders || []).find((o) => o.id === b.dataset.rep)); });
     v.querySelectorAll('[data-cxl]').forEach((b) => { b.onclick = () => cancelDlg(b.dataset.cxl, j); });
     const rn = v.querySelector('[data-renew]'); if (rn) rn.onclick = () => renewNow();
   }
@@ -401,31 +401,6 @@ html.pay-renew #acctBtn.ame::after{content:'';position:absolute;top:2px;right:2p
       if (n < 60) S.poll = setTimeout(tick, n < 5 ? 1500 : 3000);
     };
     S.poll = setTimeout(tick, 600);
-  }
-  function repDlg(o) {
-    if (!o) return;
-    css();
-    const today = ymd(Date.now());
-    const d = T().dialog(`<div class="cohd"><b>回報匯款</b><span class="sp"></span><button type="button" data-close aria-label="關閉">×</button></div><div class="cobd">
-      <p>訂單 <code>${esc(o.id)}</code>・${esc(o.planName)}・應付 <b>NT$ ${nt(o.amount)}</b></p>
-      ${o.status === 'review' ? '<p class="muted" style="font-size:12.5px">已送出的匯款資料<b>不能修改</b>。這裡送出的是<b>新的一筆</b>，上一筆會標成「已作廢（已有最新匯款資料）」，兩筆都會留紀錄。</p>' : ''}
-      <div class="cofrm"><div class="w2m"><label for="rpL5">轉出帳號末 5 碼</label><input id="rpL5" inputmode="numeric" maxlength="5" autocomplete="off"></div>
-      <div><label for="rpDate">轉帳日期</label><input id="rpDate" type="date" value="${esc(today)}" max="${esc(today)}"></div>
-      <div><label for="rpAmt">實際轉帳金額</label><input id="rpAmt" inputmode="numeric" autocomplete="off" placeholder="照網銀明細填"></div>
-      <div class="w3"><label for="rpNote">備註（選填）</label><input id="rpNote" maxlength="200"></div></div>
-      <button type="button" class="cogo" id="rpGo">送出</button><div class="msg" id="rpMsg" role="status"></div></div>`, (dl) => { dl.querySelector('.box').className = 'box codlg'; });
-    const msg = (t, bad) => { const m = d.querySelector('#rpMsg'); m.className = 'msg ' + (bad ? 'bad' : 'ok'); m.textContent = t; };
-    let armed = '';
-    d.querySelector('#rpGo').onclick = () => {
-      const f = { last5: d.querySelector('#rpL5').value.trim(), date: d.querySelector('#rpDate').value, amount: parseInt(String(d.querySelector('#rpAmt').value).replace(/[,\s]/g, ''), 10), note: d.querySelector('#rpNote').value.trim() };
-      /* 送出前確認：金額和應付不同 → 先警告，再按一次才送 */
-      const key = JSON.stringify(f);
-      if (Number.isInteger(f.amount) && f.amount !== o.amount && armed !== key) { armed = key; msg(`⚠ 你填的 NT$ ${nt(f.amount)} 和應付 NT$ ${nt(o.amount)} 不同。金額不足會被退回、不會開通。確定沒填錯就再按一次「送出」。`, true); return; }
-      sendRep(f);
-    };
-    const sendRep = (f) => report(o.id, f, msg, () => {
-      d.hidden = true; T().toast('已送出，狀態：待確認'); S.my = null; const v = document.getElementById('v-orders'); if (v) renderOrders(v, o.id);
-    });
   }
   function cancelDlg(id, j) {
     const d = T().dialog(`<h3>取消自動續訂？</h3><p>取消後：</p><ul style="margin:4px 0 8px 18px;font-size:14px;line-height:1.7"><li>綠界<b>不再自動扣款</b></li><li>已付的期間照常用到 <b>${esc(ymd(j.expires))}</b>，到期後自動回到註冊會員</li><li>這個動作無法復原，之後想續訂要重新結帳</li></ul>

@@ -97,6 +97,8 @@ export function installPay(Hub, H) {
     const cols = new Set(this.q('PRAGMA table_info(orders)').map((c) => c.name));
     if (!cols.has('recv_amount')) this.q('ALTER TABLE orders ADD COLUMN recv_amount INTEGER');
     if (!cols.has('reports')) this.q('ALTER TABLE orders ADD COLUMN reports TEXT');
+    /* 2026-10-16 Andy：「需要多一個客戶填姓名的欄位，強制要求填寫」→ 匯款人姓名 */
+    if (!cols.has('payer_name')) this.q('ALTER TABLE orders ADD COLUMN payer_name TEXT');
     /* 2026-10-12 Andy：「使用者升級以及退款這類重大資訊都需要給他們通知」→ 個人帳務通知（站內鈴鐺）＋選用 email 佇列 */
     this.q('CREATE TABLE IF NOT EXISTS user_notices (id TEXT PRIMARY KEY, email TEXT, title TEXT, body TEXT, ref TEXT, created INTEGER, read_at INTEGER)');
     this.q('CREATE INDEX IF NOT EXISTS user_notices_em ON user_notices (email, created)');
@@ -117,6 +119,16 @@ export function installPay(Hub, H) {
       const full = body + '\n\n有任何問題，直接回覆這封信或從網站右下角「客服」聯絡我們。\n哩股哩股 https://liguligu-puipui.com/';
       this.q('INSERT INTO user_notices (id, email, title, body, ref, created) VALUES (?, ?, ?, ?, ?, ?)', id, em, title.slice(0, 80), body.slice(0, 1500), ref, now);
       this.q('INSERT OR IGNORE INTO mail_out (id, email, subject, body, created, status) VALUES (?, ?, ?, ?, ?, ?)', id, em, '【哩股哩股】' + title.slice(0, 80), full.slice(0, 3000), now, 'pending');
+    } catch (e) { /* 通知失敗不影響金流本身 */ }
+  };
+  /* 2026-10-16 Andy：「當訂閱後，我這邊也會收到mail 標題是他的姓名 + 方案 日期」→ 寄給站方（NOTIFY_EMAIL，沒設＝liguligu0818@gmail.com）。
+     只進寄信佇列：RESEND_API_KEY／MAIL_FROM 沒設時佇列不會送、也不會報錯，付款流程照常。ref 冪等：同一筆回報只寄一次。*/
+  Hub.prototype.payNotifyOwner = function (subject, body, ref) {
+    try {
+      const to = norm(this.env.NOTIFY_EMAIL || 'liguligu0818@gmail.com'); if (!to) return;
+      let h1 = 0x811c9dc5, h2 = 0x01000193; for (const ch of String(ref)) { const c = ch.codePointAt(0); h1 = Math.imul(h1 ^ c, 16777619) >>> 0; h2 = Math.imul(h2 + c, 2246822519) >>> 0; }
+      this.q('INSERT OR IGNORE INTO mail_out (id, email, subject, body, created, status) VALUES (?, ?, ?, ?, ?, ?)',
+        'o' + h1.toString(36) + h2.toString(36), to, String(subject).slice(0, 150), String(body).slice(0, 3000), this.now(), 'pending');
     } catch (e) { /* 通知失敗不影響金流本身 */ }
   };
   Hub.prototype.payMailFlush = async function () {
@@ -258,6 +270,12 @@ export function installPay(Hub, H) {
       const per = o.period === 'year' ? '年繳' : '月繳', paid = o.recv_amount || o.amount;
       const kindT = upNote ? '升級完成' : same && from > now ? '續訂完成' : '付款完成，已開通';
       this.payTell(email, `${kindT}：${o.plan_name}・${per}`, `你的訂單 ${o.id} 已經${o.parent ? '自動扣款' : '付款'}完成。\n方案：${o.plan_name}・${per}${o.parent ? `（自動扣款第 ${o.period_n} 期）` : ''}\n金額：NT$ ${paid}\n使用期間：${tpeDay(from)} ～ ${tpeDay(to)}\n${upNote ? `\n你原本的方案 ${cur.plan} 還剩 ${Math.ceil((cur.expires - now) / DAY)} 天，這部分我們會另外跟你聯絡處理。\n` : ''}功能已經解鎖，重新整理網頁就生效。`, 'act-' + o.id);
+      /* 2026-10-16：綠界訂閱（不含自動扣款的後續期）付款開通時也通知站方；轉帳單在會員送出匯款資料時已經通知過 */
+      if (o.method === 'ecpay' && !o.parent) {
+        const nm = ((this.q('SELECT name FROM users WHERE uid = ?', o.uid)[0] || {}).name || email);
+        this.payNotifyOwner(`${nm} ${o.plan_name}（${per}） ${tpeDay(o.paid_at || now)}`,
+          `有一筆綠界訂閱付款完成、已自動開通。\n\n訂單編號：${o.id}\n方案：${o.plan_name}（${per}${o.recur ? '・自動續訂' : ''}）\n金額：NT$ ${paid}\n付款方式：${o.pay_type || '綠界'}\n會員：${nm}\n會員 email：${email}\n使用期間：${tpeDay(from)} ～ ${tpeDay(to)}`, 'own-act-' + o.id);
+      }
       return { ok: true, order: this.payOrder(o.id) };
     } catch (e) {
       this.paySet(o.id, { act_err: String(e && e.message || e).slice(0, 200) });
@@ -425,7 +443,7 @@ export function installPay(Hub, H) {
     id: o.id, plan: o.plan, planName: o.plan_name, period: o.period, amount: o.amount, method: o.method, recur: !!o.recur, parent: o.parent || null,
     periodN: o.period_n || 0, periodState: o.period_state || '', status: o.status, statusName: PAY_STATUS[o.status] || o.status,
     payType: o.pay_type || '', payInfo: (() => { try { return JSON.parse(o.pay_info || 'null'); } catch (e) { return null; } })(),
-    last5: o.from_last5 || '', xferDate: o.xfer_date || '', xferAmount: o.xfer_amount || 0, note: o.note || '', rejectReason: o.reject_reason || '',
+    payerName: o.payer_name || '', last5: o.from_last5 || '', xferDate: o.xfer_date || '', xferAmount: o.xfer_amount || 0, note: o.note || '', rejectReason: o.reject_reason || '',
     reports: (() => { try { const a = JSON.parse(o.reports || '[]'); return Array.isArray(a) ? a : []; } catch (e) { return []; } })(),
     recvAmount: o.recv_amount || 0,
     grantFrom: o.grant_from || 0, grantTo: o.grant_to || 0, refunded: o.refunded || 0, test: !!o.test,
@@ -641,20 +659,28 @@ export function installPay(Hub, H) {
       this.payInit();
       const o = this.payOrder(b.id);
       if (!o || o.uid !== v.user.uid || o.method !== 'bank') return this.json(req, { error: 'not_found' }, 404);
-      /* 2026-10-12 Andy：會員不能修改已送出的匯款資料；重送＝新增一筆，前一筆標「已作廢（已有最新匯款資料）」，每一筆都留時間與真實輸入的金額 */
-      if (!['pending', 'review'].includes(o.status)) return this.json(req, { error: 'bad_status', status: o.status }, 409);
-      const last5 = String(b.last5 || '').trim(), date = String(b.date || '').trim(), amt = b.amount;
+      /* 2026-10-16 Andy：「拿掉補送匯款資料這功能」→ 一張單只收一次匯款資料（已送出就不能再送；送錯請用意見回饋聯絡，管理者可改金額或退回）*/
+      if (o.status === 'review') return this.json(req, { error: 'already_reported', status: o.status }, 409);
+      if (o.status !== 'pending') return this.json(req, { error: 'bad_status', status: o.status }, 409);
+      const name = subClean(b.name, 40);
+      if (!name) return this.json(req, { error: 'need_name' }, 400);
+      const last5 = String(b.last5 || '').trim(), date = String(b.date || '').trim();
       if (!/^\d{5}$/.test(last5)) return this.json(req, { error: 'bad_last5' }, 400);
       if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || Date.parse(date + 'T00:00:00+08:00') > this.now() + DAY || Date.parse(date + 'T00:00:00+08:00') < o.created - 2 * DAY) return this.json(req, { error: 'bad_date' }, 400);
-      if (!Number.isInteger(amt) || amt < 1 || amt > 9999999) return this.json(req, { error: 'bad_amount' }, 400);
+      /* 2026-10-16 Andy：「金額直接當客戶寫死對應金額，只有我這還有可以更改」→ 客戶送來的金額一律不看，以訂單金額為準 */
+      const amt = o.amount;
       let hist = []; try { hist = JSON.parse(o.reports || '[]'); if (!Array.isArray(hist)) hist = []; } catch (e) { hist = []; }
-      if (hist.length >= 10) return this.json(req, { error: 'too_many_reports' }, 429);
       const at = this.now();
-      hist = hist.map((r) => (r.state === 'active' ? { ...r, state: 'void', voidAt: at, voidWhy: '已有最新匯款資料' } : r));
-      hist.push({ at, last5, date, amount: amt, note: subClean(b.note, 200), state: 'active' });
-      this.paySet(o.id, { status: 'review', from_last5: last5, xfer_date: date, xfer_amount: amt, note: subClean(b.note, 200), reports: JSON.stringify(hist) });
-      this.payEv(o.id, hist.length > 1 ? 'report_again' : 'report', { last5, date, amt, n: hist.length });
-      this.payTell(o.email, '已收到你的匯款資料', `我們已收到你的訂單 ${o.id}（${o.plan_name}・${o.period === 'year' ? '年繳' : '月繳'}，應付 NT$ ${o.amount}）的匯款資料：\n送出時間：${tpeStr(at)}\n轉出帳號末 5 碼：${last5}\n轉帳日期：${date}\n你填的金額：NT$ ${amt}${amt !== o.amount ? `（和應付金額不同，差 NT$ ${Math.abs(o.amount - amt)}）` : ''}\n\n管理者確認入帳後就會開通，屆時會再通知你。`, 'rep-' + o.id + '-' + hist.length);
+      hist.push({ at, name, last5, date, amount: amt, state: 'active' });
+      this.paySet(o.id, { status: 'review', payer_name: name, from_last5: last5, xfer_date: date, xfer_amount: amt, note: '', reports: JSON.stringify(hist) });
+      this.payEv(o.id, 'report', { name, last5, date, amt });
+      const per = o.period === 'year' ? '年繳' : '月繳';
+      this.payTell(o.email, '已收到你的匯款資料', `我們已收到你的訂單 ${o.id}（${o.plan_name}・${per}，金額 NT$ ${o.amount}）的匯款資料：\n送出時間：${tpeStr(at)}\n匯款人姓名：${name}\n轉出帳號末 5 碼：${last5}\n轉帳日期：${date}\n\n管理者確認入帳後就會開通，屆時會再通知你。資料填錯的話，請從網站右下角「客服」→「意見反饋」告訴我們。`, 'rep-' + o.id + '-' + hist.length);
+      this.payNotifyOwner(`${name} ${o.plan_name}（${per}） ${tpeDay(at)}`,
+        `有一筆銀行轉帳訂閱送出了匯款資料，請到管理區「金流」確認入帳。\n\n訂單編號：${o.id}\n方案：${o.plan_name}（${per}）\n金額：NT$ ${o.amount}\n匯款人姓名：${name}\n轉出帳號末 5 碼：${last5}\n轉帳日期：${date}\n會員 email：${o.email}\n送出時間：${tpeStr(at)}（台北）`,
+        'own-rep-' + o.id + '-' + hist.length);
+      /* 馬上送一次（不等每 10 分鐘的排程）；沒設 Resend＝什麼都不做，寄失敗留在佇列下次再試，都不影響回應 */
+      try { await this.payMailFlush(); } catch (e) { /* 略 */ }
       return this.json(req, { ok: true, order: pubOrder(this.payOrder(o.id)) });
     },
     '/v1/pay/my': async function (req, b) {
@@ -746,6 +772,21 @@ export function installPay(Hub, H) {
       this.payEv(o.id, 'ack', { by: v.user.email, anomaly: o.anomaly || '', actErr: o.act_err || '' });
       this.paySet(o.id, { anomaly: null, act_err: null });
       return this.json(req, { ok: true });
+    },
+    /* 2026-10-16 Andy：「金額直接當客戶寫死對應金額，只有我這還有可以更改」→ 管理者改這筆轉帳單的金額（應付＝客戶匯款金額），
+       只限還沒開通的銀行轉帳單；改前改後與理由記進金流事件。*/
+    '/v1/admin/pay/amount': async function (req, b) {
+      const v = await this.admin(req, b); if (!v) return this.json(req, { error: 'forbidden' }, 403);
+      this.payInit();
+      const o = this.payOrder(b.id);
+      if (!o || o.method !== 'bank') return this.json(req, { error: 'not_found' }, 404);
+      if (o.applied || !['pending', 'review', 'expired', 'rejected'].includes(o.status)) return this.json(req, { error: 'bad_status', status: o.status }, 409);
+      const amt = b.amount;
+      if (!Number.isInteger(amt) || amt < 1 || amt > 9999999) return this.json(req, { error: 'bad_amount' }, 400);
+      const why = subClean(b.reason, 200);
+      this.payEv(o.id, 'amount', { by: v.user.email, before: o.amount, after: amt, why });
+      this.paySet(o.id, { amount: amt, ...(o.from_last5 ? { xfer_amount: amt } : {}) });
+      return this.json(req, { ok: true, order: admOrder(this.payOrder(o.id)) });
     },
     '/v1/admin/pay/note': async function (req, b) {
       const v = await this.admin(req, b); if (!v) return this.json(req, { error: 'forbidden' }, 403);
