@@ -255,7 +255,7 @@ html.pay-renew #acctBtn.ame::after{content:'';position:absolute;top:2px;right:2p
           <span>應付金額</span><b>NT$ ${nt(j.amount)}</b><button type="button" data-copy="${esc(j.amount)}">複製</button>
           <span>訂單編號</span><b>${esc(j.id)}</b><button type="button" data-copy="${esc(j.id)}">複製</button></div>
         <div class="cofrm" id="coFrm">
-          <div><label for="coPayer">匯款人姓名<em class="req">*</em></label><input id="coPayer" maxlength="40" autocomplete="name" required aria-required="true" placeholder="轉出帳戶的戶名"></div>
+          <div><label for="coPayer">匯款人姓名<em class="req">必填</em></label><input id="coPayer" maxlength="40" autocomplete="name" required aria-required="true"></div>
           <div><label for="coL5">轉出帳號末 5 碼</label><input id="coL5" inputmode="numeric" maxlength="5" autocomplete="off"></div>
           <div><label for="coDate">轉帳日期</label><input id="coDate" type="date" value="${esc(today)}" max="${esc(today)}"></div>
           <div class="w3"><span class="lb">轉帳金額（依訂單，不用填）</span><div class="ro" id="coXAmt" aria-readonly="true">NT$ ${nt(j.amount)}</div></div></div>
