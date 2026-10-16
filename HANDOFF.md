@@ -1,9 +1,10 @@
 # HANDOFF.md — 目前進度（接手先讀這份）
 
-## 2026-10-16 夜 精選文章管理改兩分頁（預覽分支 preview/admin-articles-2tabs，尚未進 main）
-- #admin/articles 兩分頁：「文章主題」（今日選題勾選＋產主題設定＋已上架文章＋主題候選＋產出進度）、「統計數據」（原統計原樣）。site/socialpick.js 改成只提供 mountPick／mountSched，由 articles.js 掛入；獨立 #admin/social 不存在、舊網址自動轉回。
-- 產主題設定＝每週「星期 × 時段」格線，JSON 用 slots（見 docs/marketing/social_unit/menu_json_spec.md）。真實 menu_latest.json 由 CEO 每日 commit；目前是 example。
-- 驗收段「文章主題兩分頁1016」；精選文章1014 的管理區段改成先切分頁。桌機守門1008、_preview（與 main 同樣 2 筆 800px 既有交疊）皆無新增問題。
+## 2026-10-16 夜 精選文章管理改兩分頁＋頻率設定＋傳給 GPT（預覽分支 preview/admin-articles-2tabs，尚未進 main）
+- #admin/articles 兩分頁：「文章主題」＝已上架文章＋主題候選＋產出進度（原樣）＋最下面「產貼文頻率設定」；「統計數據」＝點閱統計原樣。
+- 頻率設定（site/artsched.js）：預設全空、開關關；要有星期×時段＋類別篇數才能開；切開關即時存。Worker 新表 article_schedule（/v1/articles/schedule/get、add，僅管理者；機器路由 op=schedule）；article-jobs.yml 同步成 data/_state/article_schedule.json；Claude 排程怎麼讀寫在 docs/articles/production_guide.md。**Worker 尚未部署**（部署順序：先 Worker、再合 main；前端遇到舊 Worker 會寫「後端還沒更新」）。
+- 傳給 GPT（site/gpthandoff.js）：已上架文章每列「傳給 GPT・IG 貼文／影片」，純前端組 Markdown、開預填 GitHub Issue（label social-handoff＋gpt-ig-post／gpt-video），不經佇列不碰 Worker。
+- 驗收段「文章主題兩分頁1016」（精選文章1014 管理區段改成先切分頁）。桌機守門1008 0 問題；_preview 與 main 同樣 2 筆 800px 既有交疊；pytest 1120 過（5 個 yfinance 缺套件的既有錯誤）；node --test 158 過。
 - 待 Andy 在預覽確認後才合 main。
 
 ## 2026-10-16 手機版 CEO：上午～中午這批（全部已上線；最後更新 13:15 台北）
