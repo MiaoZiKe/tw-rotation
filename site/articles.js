@@ -578,6 +578,25 @@
 #v-subadm .artadm .gpr .gpl{background:var(--cyan);color:#04121a;border-color:transparent;font-weight:700}
 #v-subadm .artadm .gpr .gpn{flex:1 1 100%;font-size:12px;color:var(--ink-3)}
 @media (max-width:640px){#v-subadm .artadm th.gpth .gpd,#v-subadm .artadm td.gptc .gpd{display:none}#v-subadm .artadm .gpm{display:inline-flex;align-items:center;gap:6px}#v-subadm .artadm .gpbar{display:flex;margin-bottom:var(--sp-2)}#v-subadm .artadm .gpbar button{height:32px;padding:0 12px;border-radius:8px;border:1px solid var(--cyan);background:color-mix(in srgb,var(--cyan) 14%,var(--panel));color:var(--ink);font:inherit;font-size:13px;font-weight:600}#v-subadm .artadm .gpbar button:disabled{opacity:.45}#v-subadm .artadm .gpbl{font-size:13px;color:var(--ink-2)}#v-subadm .artadm .gpm select{height:32px;border-radius:8px;border:1px solid var(--line-2);background:var(--panel);color:var(--ink);font:inherit;font-size:13px;padding:0 6px}#v-subadm .artadm td.gptc button.gpto{height:32px}#v-subadm .artadm th.gpth button{height:32px}#v-subadm .artadm .gpr .gpl,#v-subadm .artadm .gpr button{height:36px}}
+/* 手機（≤640）：「已上架文章」表格改成每篇一張卡（Andy 看 390 截圖：欄位直接堆疊、沒有欄名、文字被截斷、看不出哪列是哪篇）。
+   第一行 類別標籤＋日期、第二行 標題（最多 2 行）、第三行 相關族群（可換行）＋點閱、最後一行 勾選框＋類型下拉＋傳給 GPT 鈕。桌機（>640）完全不動。 */
+@media (max-width:640px){
+  #v-subadm #artAdmList .tbw{overflow-x:hidden}
+  #v-subadm #artAdmList table{min-width:0;width:100%;display:block}
+  #v-subadm #artAdmList colgroup,#v-subadm #artAdmList thead{display:none}
+  #v-subadm #artAdmList tbody{display:flex;flex-direction:column;gap:8px;padding:8px}
+  #v-subadm #artAdmList tbody tr[data-id]{display:grid;grid-template-columns:auto minmax(0,1fr) auto;grid-template-areas:"cat date date" "title title title" "grp grp views" "gpt gpt gpt";gap:6px 10px;align-items:center;border:1px solid var(--line);border-radius:10px;background:var(--panel);padding:10px 12px}
+  #v-subadm #artAdmList tbody tr[data-id]>td{display:block;height:auto;padding:0;border:0;white-space:normal;overflow:visible;text-overflow:clip;text-align:left;min-width:0}
+  #v-subadm #artAdmList tbody tr[data-id]>td:nth-child(1){grid-area:cat}
+  #v-subadm #artAdmList tbody tr[data-id]>td:nth-child(3){grid-area:date;color:var(--ink-2);font-size:13px}
+  #v-subadm #artAdmList tbody tr[data-id]>td:nth-child(2){grid-area:title;font-size:15px;line-height:1.4;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden}
+  #v-subadm #artAdmList tbody tr[data-id]>td:nth-child(5){grid-area:grp;font-size:12.5px;line-height:1.5;color:var(--ink-2)}
+  #v-subadm #artAdmList tbody tr[data-id]>td:nth-child(4){grid-area:views;font-size:13px;white-space:nowrap}
+  #v-subadm #artAdmList tbody tr[data-id]>td:nth-child(4)::before{content:"點閱 ";color:var(--ink-3)}
+  #v-subadm #artAdmList tbody tr[data-id]>td:nth-child(6){display:none}
+  #v-subadm #artAdmList tbody tr[data-id]>td.gptc{grid-area:gpt;display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding-top:8px;border-top:1px solid var(--line);height:auto}
+  #v-subadm #artAdmList tbody tr:not([data-id])>td{display:block;padding:12px;height:auto;white-space:normal}
+}
 #v-subadm .artadm .js.kdc{border:0;padding:0;margin:0}#v-subadm .artadm .js.kdc .kd{margin:0;font-size:12px;padding:1px 8px;line-height:18px}
 #v-subadm .artadm td button.cx{height:26px;padding:0 10px;border-radius:var(--r-sm,8px);border:1px solid var(--line-2);background:var(--panel-3);color:var(--ink);font:inherit;font-size:12px;cursor:pointer}
 `;
@@ -1451,7 +1470,7 @@ ${gs.length ? `<section><h5>熱門族群</h5><div class="gps">${gs.map((g) => `<
       const note = (($('#artTpNote', v) || {}).value || '').trim();
       const r = await acctCall('/v1/articles/jobs/add', { topic_id: `c-${cat}-${Date.now().toString(36)}`, kind, title, note });
       if (r && r.job) { tpMsg(v, `已送出 #${r.job.id}：自訂主題「${title}」${KIND_T[kind]}（${CATS[cat].t}）。Claude 下一輪會撰寫`); cusT.value = ''; }
-      else tpMsg(v, r && r._s === 403 ? '送出失敗：登入身分不是管理者（請重新登入）' : '送出失敗：連不到會員伺服器，請稍後再試', true);
+      else tpMsg(v, r && r.error === 'preview_readonly' ? '預覽版不會真的送出（不改正式站的佇列）' : r && r._s === 403 ? '送出失敗：登入身分不是管理者（請重新登入）' : '送出失敗：連不到會員伺服器，請稍後再試', true);
       cusSync(); await loadJobs(); paintTopics(v); paintJobs(v);
     }; });
     $('#artJobBody', v).addEventListener('click', async (e) => {
@@ -1482,7 +1501,7 @@ ${gs.length ? `<section><h5>熱門族群</h5><div class="gps">${gs.map((g) => `<
     for (const t of picks) {   // 一筆一筆送（Worker 端逐筆檢查重複），不並發
       const r = await acctCall('/v1/articles/jobs/add', { topic_id: t.id, kind, title: t.title, note });
       if (r && r.job) (r.dup ? dup : ok).push(`#${r.job.id}「${t.title}」`);
-      else { bad.push(`「${t.title}」`); err = err || (r && r._s === 403 ? '登入身分不是管理者（請重新登入）' : r && r.error === 'too_many' ? '排隊中的請求太多（上限 100 筆）' : '連不到會員伺服器，請稍後再試'); }
+      else { bad.push(`「${t.title}」`); err = err || (r && r.error === 'preview_readonly' ? '預覽版不會真的送出（不改正式站的佇列）' : r && r._s === 403 ? '登入身分不是管理者（請重新登入）' : r && r.error === 'too_many' ? '排隊中的請求太多（上限 100 筆）' : '連不到會員伺服器，請稍後再試'); }
     }
     const parts = [];
     if (ok.length) parts.push(`已送出 ${ok.length} 筆${KIND_T[kind]}：${ok.join('、')}`);

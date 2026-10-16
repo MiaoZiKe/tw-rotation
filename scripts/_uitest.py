@@ -72270,6 +72270,23 @@ def t_art_tabs_1016(b, base):
             if shots:
                 mp.screenshot(path=str(shots / "mob-gpt-3-select.png"))
             ok(f"{T}：手機 {vp[0]}：捲到「傳給 GPT」欄時，下拉選單真的在表格可視範圍內、沒有被別的東西蓋住", vis["r"][0] >= vis["t"][0] - 1 and vis["r"][2] <= vis["t"][2] + 1 and vis["top"] and vis["top"].startswith("SELECT"), vis)
+        # 手機「已上架文章」＝每篇一張卡（Andy 看 390 截圖：欄位直接堆疊、沒有欄名、文字被截斷）
+        mp.locator(MR).scroll_into_view_if_needed(); mp.wait_for_timeout(200)
+        cd = mp.evaluate("""(sel) => { const V = (e) => !!e && e.getClientRects().length > 0; const tr = document.querySelector(sel), R = (e) => e.getBoundingClientRect(); const c = (n) => tr.children[n - 1];
+            const rows = [...document.querySelectorAll('#artAdmBody tr[data-id]')], tw = R(document.querySelector('#artAdmList .tbw')), tr_ = R(tr);
+            let minfs = 99; tr.querySelectorAll('*').forEach(e => { if (V(e) && [...e.childNodes].some(n => n.nodeType === 3 && n.textContent.trim())) minfs = Math.min(minfs, parseFloat(getComputedStyle(e).fontSize)); });
+            const t = c(2), tt = R(t.querySelector('a') || t);
+            return { n: rows.length, thead: V(document.querySelector('#artAdmList thead')), cat: [Math.round(R(c(1)).top), Math.round(R(c(1)).left)], date: [Math.round(R(c(3)).top), Math.round(R(c(3)).left), c(3).textContent.trim()],
+                     title: [Math.round(R(t).top), Math.round(R(t).width), t.textContent.trim().slice(0, 12), t.scrollHeight <= t.clientHeight + 1], grp: Math.round(R(c(5)).top), grpTxt: c(5).textContent.trim(), views: [Math.round(R(c(4)).top), c(4).textContent.trim(), getComputedStyle(c(4), '::before').content],
+                     gpt: Math.round(R(c(7)).top), topicHidden: !V(c(6)), inside: rows.every(r => R(r).left >= tw.left - 1 && R(r).right <= tw.right + 1), cardW: Math.round(tr_.width), tbwW: Math.round(tw.width),
+                     tds: [...tr.children].filter(V).every(td => td.scrollWidth <= td.clientWidth + 1), sx: document.documentElement.scrollWidth - innerWidth, minfs, cols: new Set(rows.map(r => Math.round(R(r).left))).size }; }""", MR)
+        ok(f"{T}：手機 {vp[0]}：已上架文章表頭藏起來、每篇一張卡（共 {cd['n']} 張、同寬同左緣、都在表格框內、沒有橫向捲軸）", cd["n"] == len(rid) and not cd["thead"] and cd["inside"] and cd["cols"] == 1 and cd["sx"] <= 0, cd)
+        ok(f"{T}：手機 {vp[0]}：卡片由上到下＝第一行 類別＋日期（同一行）、第二行 標題（寬 {cd['title'][1]}px、看得到字）、第三行 族群＋點閱「點閱 99」、最後一行 勾選＋下拉＋傳給 GPT；來源主題欄不顯示",
+           abs(cd["cat"][0] - cd["date"][0]) <= 12 and cd["date"][1] > cd["cat"][1] and re.match(r"\d{4}-\d\d-\d\d$", cd["date"][2]) and cd["title"][0] > cd["cat"][0] and cd["title"][1] >= 150 and cd["title"][2]
+           and cd["grp"] > cd["title"][0] and cd["grp"] - 2 <= cd["views"][0] < cd["gpt"] and cd["gpt"] > cd["grp"] and cd["topicHidden"] and "點閱" in cd["views"][2] and cd["grpTxt"], cd)
+        ok(f"{T}：手機 {vp[0]}：卡片內每一格文字都沒被截出格外（族群可換行）、字 ≥ 11px（最小 {cd['minfs']}）", cd["tds"] and cd["minfs"] >= 11, cd)
+        if shots:
+            mp.screenshot(path=str(shots / f"mob-card-{vp[0]}.png"))
         mp.locator(f"{MR} .gpm select").select_option("video"); mp.wait_for_timeout(150)
         with mc.expect_page() as pi:
             mp.locator(f"{MR} .gpm button").tap()
