@@ -395,12 +395,18 @@ export function installArticles(Hub, EXPORT_TABLES) {
       /* 鑰匙：ARTICLE_BOT_KEY（deploy-account-worker.yml 由 CLOUDFLARE_API_TOKEN 推導後寫入；article-jobs.yml 用同一個公式算）或 BACKUP_TOKEN */
       const h = String(req.headers.get('Authorization') || ''), got = h.startsWith('Bearer ') ? h.slice(7).trim() : '';
       const keys = [this.env.ARTICLE_BOT_KEY, this.env.BACKUP_TOKEN].map((k) => String(k || '')).filter((k) => k.length >= 16);
-      if (!got || !keys.some((k) => eqConst(got, k))) return this.json(req, { error: 'forbidden' }, 403);
+      /* 2026-10-16 最小權限的「只管全文」鑰匙 ARTICLE_PUT_KEY（≥24 字；給 Claude 的雲端環境用）：只能 put_body／del_body／list_bodies，
+         不能讀佇列、標狀態、讀頻率設定 —— 它放在 Claude 的環境金鑰裡，不該帶更多權限（BACKUP_TOKEN 更是整庫匯出的鑰匙，絕不可放進去） */
+      const putKey = String(this.env.ARTICLE_PUT_KEY || '');
+      const isFull = !!got && keys.some((k) => eqConst(got, k));
+      const isPutOnly = !isFull && !!got && putKey.length >= 24 && eqConst(got, putKey);
+      if (!isFull && !isPutOnly) return this.json(req, { error: 'forbidden' }, 403);
       /* 2026-10-16 防白嫖：put_body 要送整篇全文，上限放寬到 BODY_RAW_MAX；其他 op 仍是 4096（先看大小再解析，超過就不吞） */
       const raw = await req.text(); if (raw.length > BODY_RAW_MAX) return this.json(req, { error: 'too_large' }, 413);
       let b = {}; try { b = JSON.parse(raw || '{}') || {}; } catch (e) { return this.json(req, { error: 'bad_json' }, 400); }
       if (raw.length > 4096 && b.op !== 'put_body') return this.json(req, { error: 'too_large' }, 413);
       this.artInit();
+      if (isPutOnly && !['put_body', 'del_body', 'list_bodies'].includes(b.op)) return this.json(req, { error: 'forbidden' }, 403);
       if (b.op === 'put_body') return this.artPutBody(req, b);
       if (b.op === 'del_body') { const id = String(b.id || ''); if (!ID_RE.test(id)) return this.json(req, { error: 'bad_id' }, 400); this.q('DELETE FROM article_body WHERE id = ?', id); return this.json(req, { ok: true, id }); }
       if (b.op === 'list_bodies') return this.json(req, { bodies: this.q('SELECT id, LENGTH(json) AS bytes, updated FROM article_body ORDER BY id') });

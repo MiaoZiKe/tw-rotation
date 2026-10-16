@@ -12,7 +12,7 @@ Claude 寫完文章後不再把全文推進 repo，而是：
   --check                檢查公開檔有沒有洩漏：src:'api' 的索引項目不得帶 summary／subtitle／tags／blocks 等內容欄位，
                          而且 site/articles/posts/<id>.json 不得存在（pytest 與 CI 會跑，見 tests/test_article_public_guard.py）
   --index-only <全文.json>   不上傳，只依全文 JSON 產出索引項目（Worker 已經有這篇時用；會先確認 Worker 真的有）
-環境變數：ACCOUNT_API_URL、ARTICLE_BOT_KEY（或 BACKUP_TOKEN）。
+環境變數：ACCOUNT_API_URL、ARTICLE_PUT_KEY（最小權限，只能管全文；其次才用 ARTICLE_BOT_KEY）。
 """
 from __future__ import annotations
 
@@ -109,9 +109,9 @@ def main(argv=None) -> int:
         print("✗ " + str(e))
         return 2
     base = os.environ.get("ACCOUNT_API_URL", "").strip()
-    token = (os.environ.get("ARTICLE_BOT_KEY") or os.environ.get("BACKUP_TOKEN") or "").strip()
+    token = (os.environ.get("ARTICLE_PUT_KEY") or os.environ.get("ARTICLE_BOT_KEY") or "").strip()    # 優先用最小權限的 PUT 鑰匙；不讀 BACKUP_TOKEN（那是整庫匯出的鑰匙）
     if not base or len(token) < 16:
-        print("✗ 沒有 ACCOUNT_API_URL／ARTICLE_BOT_KEY：無法把全文傳到會員 Worker。\n"
+        print("✗ 沒有 ACCOUNT_API_URL／ARTICLE_PUT_KEY：無法把全文傳到會員 Worker。\n"
               "  不要把全文推進 repo；把這個請求標成 failed（原因：沒有機器鑰匙），等 Andy 設好環境金鑰再做。")
         return 3
     if not a.index_only:

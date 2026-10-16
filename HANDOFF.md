@@ -1,5 +1,11 @@
 # HANDOFF.md — 目前進度（接手先讀這份）
 
+## 2026-10-16 夜 防白嫖最小有效版本（預覽分支 preview/anti-freeload，**Worker 未部署、尚未進 main**；DECISIONS #359）
+- 新文章全文只存會員 Worker；公開索引僅標題等欄位（`src:"api"`）；舊 4 篇維持原狀。Plus 5 篇與訪客今日事件 5 次改伺服器計數；`art.read.n`／`events.total` 連不到＝照訪客算。隱私權政策已補段落。
+- 部署順序＆回滾＆擋不住的清單：`docs/security/anti_freeload_rollout_1016.md`。發佈新文章：`scripts/article_publish.py`（`docs/articles/production_guide.md`「發佈」）。
+- **卡在 Andy（沒做之前新文章無法上架）**：repo Secret＋Claude 環境變數 `ARTICLE_PUT_KEY`、Claude 環境 `ACCOUNT_API_URL`、Allowed domains 加會員 Worker 網域，再手動跑一次「部署 Worker」。
+- 這批驗了：`node --test workers/account-api/tests/*.test.mjs`（新增 anti_freeload 13 條）、pytest `test_article_public_guard.py`、_uitest：防白嫖後端1016（真的 Worker 端到端）、精選文章分級1016、今日事件訪客5次1016、精選文章1014、文章主題兩分頁1016、桌機守門1008、帳號選單1009；_preview 對照乾淨 main。
+
 ## 2026-10-16 夜 精選文章管理改兩分頁＋頻率設定＋傳給 GPT（預覽分支 preview/admin-articles-2tabs，尚未進 main）
 - #admin/articles 兩分頁：「文章主題」＝已上架文章＋主題候選＋產出進度（原樣）＋最下面「產貼文頻率設定」；「統計數據」＝點閱統計原樣。
 - 頻率設定（site/artsched.js）：預設全空、開關關；要有星期×時段＋類別篇數才能開；切開關即時存。Worker 新表 article_schedule（/v1/articles/schedule/get、add，僅管理者；機器路由 op=schedule）；article-jobs.yml 同步成 data/_state/article_schedule.json；Claude 排程怎麼讀寫在 docs/articles/production_guide.md。**Worker 尚未部署**（部署順序：先 Worker、再合 main；前端遇到舊 Worker 會寫「後端還沒更新」）。

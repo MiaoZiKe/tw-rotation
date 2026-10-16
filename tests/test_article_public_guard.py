@@ -70,7 +70,8 @@ def test_沒有機器鑰匙就不上傳不寫索引(tmp_path, monkeypatch, capsy
     f.write_text(json.dumps(POST), encoding="utf-8")
     monkeypatch.delenv("ACCOUNT_API_URL", raising=False)
     monkeypatch.delenv("ARTICLE_BOT_KEY", raising=False)
-    monkeypatch.delenv("BACKUP_TOKEN", raising=False)
+    monkeypatch.delenv("ARTICLE_PUT_KEY", raising=False)
+    monkeypatch.setenv("BACKUP_TOKEN", "b" * 30)      # 備份權杖不可拿來上傳全文
     before = ap.INDEX.read_text(encoding="utf-8")
     assert ap.main([str(f)]) == 3
     assert ap.INDEX.read_text(encoding="utf-8") == before
@@ -81,7 +82,7 @@ def test_上傳後清單確認不到就不寫索引(tmp_path, monkeypatch):
     f = tmp_path / "p.json"
     f.write_text(json.dumps(POST), encoding="utf-8")
     monkeypatch.setenv("ACCOUNT_API_URL", "https://x.example")
-    monkeypatch.setenv("ARTICLE_BOT_KEY", "k" * 20)
+    monkeypatch.setenv("ARTICLE_PUT_KEY", "k" * 30)
     idx = tmp_path / "index.json"
     idx.write_text(json.dumps({"articles": []}), encoding="utf-8")
     monkeypatch.setattr(ap, "INDEX", idx)

@@ -21,7 +21,8 @@ globalThis.fetch = async (url, init) => {
   throw new Error('測試不准連外網：' + url);
 };
 let clock = Date.parse('2026-10-14T04:00:00Z');       // 台北週三
-const env = () => ({ ALLOWED_ORIGINS: ORIGIN, GOOGLE_CLIENT_ID: CID, GOOGLE_CLIENT_SECRET: 's', ADMIN_EMAILS: 'andy@example.com', ARTICLE_BOT_KEY: BOT, SEED_PLANS: 'plus,pro', __now: () => clock });
+const PUT = 'article-put-key-0123456789abcdef01';
+const env = () => ({ ARTICLE_PUT_KEY: PUT, ALLOWED_ORIGINS: ORIGIN, GOOGLE_CLIENT_ID: CID, GOOGLE_CLIENT_SECRET: 's', ADMIN_EMAILS: 'andy@example.com', ARTICLE_BOT_KEY: BOT, SEED_PLANS: 'plus,pro', __now: () => clock });
 const pj = async (hub, path, body, hd = {}) => {
   const r = await hub.fetch(new Request(API + path, { method: 'POST', headers: { Origin: ORIGIN, 'content-type': 'text/plain', 'CF-Connecting-IP': '1.1.1.1', ...hd }, body: JSON.stringify(body) }));
   return { s: r.status, j: await r.json() };
@@ -71,6 +72,19 @@ test('機器路由 put_body：鑰匙錯 403、格式錯 400、太大 413、其�
   assert.equal((await bot(hub, { op: 'list_bodies' })).j.bodies.length, 1, '網頁寫不進去');
   assert.equal((await bot(hub, { op: 'del_body', id })).s, 200);
   assert.equal((await bot(hub, { op: 'list_bodies' })).j.bodies.length, 0);
+});
+
+test('最小權限鑰匙 ARTICLE_PUT_KEY：只能 put_body／del_body／list_bodies，不能讀佇列、標狀態、讀頻率；太短的不算；備份權杖不因此能傳全文以外的事', async () => {
+  const { hub } = makeHub(env());
+  const id = IDS[0];
+  assert.equal((await bot(hub, { op: 'put_body', id, json: post(id) }, PUT)).s, 200);
+  assert.equal((await bot(hub, { op: 'list_bodies' }, PUT)).j.bodies.length, 1);
+  for (const op of ['open', 'schedule']) assert.equal((await bot(hub, { op }, PUT)).s, 403, op + ' 不給 PUT 鑰匙');
+  assert.equal((await bot(hub, { op: 'mark', id: 1, status: 'done' }, PUT)).s, 403);
+  assert.equal((await bot(hub, { op: 'del_body', id }, PUT)).s, 200);
+  const { hub: h2 } = makeHub({ ...env(), ARTICLE_PUT_KEY: 'too-short-key-0123456' });
+  assert.equal((await bot(h2, { op: 'list_bodies' }, 'too-short-key-0123456')).s, 403, '少於 24 字的 PUT 鑰匙不算');
+  assert.equal((await bot(hub, { op: 'open' })).s, 200, '完整機器鑰匙照舊可用');
 });
 
 test('全文：未登入拿不到（401，回應裡沒有內文）；訪客編號、壞權杖一樣；沒有這篇 404', async () => {
