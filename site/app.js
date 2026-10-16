@@ -3193,14 +3193,8 @@
       const xc = window.TwExplore && window.TwExplore.catOf ? window.TwExplore.catOf(rest[0]) : (['fund', 'tech', 'chip', 'news'].includes(rest[0]) ? rest[0] : 'fund');
       l4sub = 'xp-' + xc;
     }
-    if (l4on && (head === 'articles' || head === 'article')) {
-      /* ★ 2026-10-14 精選文章（Andy：「精選文章母分頁，裡面三個小分頁……消息 介紹 知識」）：側欄子項亮哪一格。
-         #articles＝全部（不亮子項、母項實心反白）；#articles/<類別>＝那一格；單篇 #article/<id> 亮它所屬的類別 ——
-         清單還沒讀到時不知道類別，先當全部，articles.js 讀到之後自己補（markSub）。不 replace 網址：「全部」本身就是一頁。*/
-      const ac = ['news', 'intro', 'know'];
-      const c = head === 'articles' ? rest[0] : (window.TwArticles && window.TwArticles.catOf ? window.TwArticles.catOf(rest[0]) : '');
-      l4sub = 'art-' + (ac.includes(c) ? c : 'all');
-    }
+    /* 2026-10-16 Andy：「精選文章已經裡面有分頁，側邊子分頁就拿掉」→ 精選文章沒有側欄子項，不再掛 data-l4sub（母項照一般頁實心反白）；
+       類別由 articles.js 讀 #articles/<類別> 自己決定。 */
     if (l4sub) document.documentElement.setAttribute('data-l4sub', l4sub);
     else document.documentElement.removeAttribute('data-l4sub');
     let view = VIEWS.includes(head) ? head : head === 'stock' ? 'industry' : head === 'article' ? 'articles' : 'overview';

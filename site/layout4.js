@@ -99,15 +99,8 @@
       { k: 'mkt-ma', h: '#market/ma', t: '站上均線', s: '均線', ic: 'line' },
       { k: 'mkt-cand', h: '#market/cand', t: '今日關注', s: '關注', ic: 'target' },
     ],
-    /* ★ 2026-10-14（Andy：「精選文章母分頁，裡面三個小分頁……分成 消息 介紹 知識」）：同 ETF 那套。#articles（不帶類別）＝全部，不亮任何子項。
-       只給電腦版（DESK_ONLY）：手機抽屜點「精選文章」進全部，頁內分類分頁（#artCats）本來就有全部／消息／介紹／知識，頂端再多一排子頁籤會重複。 */
-    articles: [
-      /* 2026-10-16 Andy：「上方分頁需要不同顏色以及小圖示，名稱改比比消息、比比知識、比比產業鏈」→ 比比快訊／比比產業鏈／比比知識；
-         圖示與頁內分頁同一組（喇叭／鏈結／燈泡），顏色由 articles.js 的 --art-* 上在 .ic 上 */
-      { k: 'art-news', h: '#articles/news', t: '比比快訊', s: '快訊', ic: 'artNews' },
-      { k: 'art-intro', h: '#articles/intro', t: '比比產業鏈', s: '產業鏈', ic: 'artChain' },
-      { k: 'art-know', h: '#articles/know', t: '比比知識', s: '知識', ic: 'artKnow' },
-    ],
+    /* 2026-10-16 Andy：「精選文章已經裡面有分頁，側邊子分頁就拿掉」→ 精選文章不再有側欄子項（電腦版、手機抽屜都只剩一格「精選文章」）。
+       類別切換只靠頁內那排分頁（articles.js #artCats）；#articles/<類別> 深連結照舊由 articles.js 讀網址選分頁。 */
     explore: [
       { k: 'xp-fund', h: '#explore/fund', t: '基本面', s: '基本', ic: 'bars' },
       { k: 'xp-tech', h: '#explore/tech', t: '技術面', s: '技術', ic: 'pulse' },
@@ -115,7 +108,7 @@
       { k: 'xp-news', h: '#explore/news', t: '消息面', s: '消息', ic: 'news' },
     ],
   };
-  const DESK_ONLY = ['market', 'explore', 'articles'];   // 只有電腦版側欄有子項；手機抽屜（mobile4.js 讀 TwL4Nav.SUBS）不給
+  const DESK_ONLY = ['market', 'explore'];   // 只有電腦版側欄有子項；手機抽屜（mobile4.js 讀 TwL4Nav.SUBS）不給
   /* 子分頁圖示：優先用 icons.js（全站同一套 Lucide、同一個線寬）；它被擋掉時退回這裡內嵌的同一組路徑 */
   const SUB_IC = {
     compass: '<circle cx="12" cy="12" r="10"/><path d="m16.24 7.76-1.804 5.411a2 2 0 0 1-1.265 1.265L7.76 16.24l1.804-5.411a2 2 0 0 1 1.265-1.265z"/>',

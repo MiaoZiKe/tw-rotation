@@ -49,6 +49,9 @@
   const icon = (k, sz) => `<svg class="artic" viewBox="0 0 24 24" width="${sz || 16}" height="${sz || 16}" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">${CAT_IC[k] || CAT_IC.all}</svg>`;
   /* 類別：名稱＋色（--art-<k>，深淺主題各一組，在 css() 定義）。紅綠保留給漲跌，所以快訊用橘、產業鏈用青綠（偏藍，跟跌的綠分得開）、知識用紫 */
   const CATS = { news: { t: '比比快訊' }, intro: { t: '比比產業鏈' }, know: { t: '比比知識' } };
+  /* 手機（≤640）分頁用的短名（mobile4.css 檔尾「精選文章分頁」那節用 attr(data-s) 換上）：
+     2026-10-16 Andy「手機版的分頁需要適當調整寬度」—— 360 寬四格各只有 ~84px，「比比產業鏈＋篇數」塞不下，短名才能四格等寬、不換行、不被切 */
+  const CAT_S = { all: '全部', news: '快訊', intro: '產業鏈', know: '知識' };
   const ALL_T = '全部文章';
   const CAT_KEYS = Object.keys(CATS);
   const okId = (id) => /^[\w.-]{1,120}$/.test(String(id || ''));
@@ -97,10 +100,6 @@
   --art-tn-neutral:#5d6b88;--art-tn-accent:#2563c9;--art-tn-warn:#a86400;--art-tn-good:#0e8a74}
 .pc1{--pc:var(--art-p1)}.pc2{--pc:var(--art-p2)}.pc3{--pc:var(--art-p3)}.pc4{--pc:var(--art-p4)}.pc5{--pc:var(--art-p5)}.pc6{--pc:var(--art-p6)}.pc7{--pc:var(--art-p7)}
 .k-all{--k:var(--art-all)}.k-news{--k:var(--art-news)}.k-intro{--k:var(--art-intro)}.k-know{--k:var(--art-know)}
-/* 側欄子項的圖示上類別色（layout4.js 畫的 .l4subtab；選中那格字仍是主色，圖示保留類別色當辨識） */
-:root.l4 .l4subtab[data-l4sub="art-news"] .ic{color:var(--art-news);opacity:1}
-:root.l4 .l4subtab[data-l4sub="art-intro"] .ic{color:var(--art-intro);opacity:1}
-:root.l4 .l4subtab[data-l4sub="art-know"] .ic{color:var(--art-know);opacity:1}
 .artic{flex:none;display:block}
 #v-articles .artcard{display:flex;flex-direction:column}
 @media (min-width:821px){#v-articles .artcard{min-height:calc(100vh - 110px);box-sizing:border-box}}
@@ -519,12 +518,11 @@
   });
   const catOf = (id) => { const a = S.idx && S.idx.list.find((x) => x.id === id); return a ? a.cat : ''; };
 
-  /* 側欄子項亮哪一格（<html data-l4sub>）：單篇頁在清單讀到之前不知道類別，讀到之後補上 */
-  function markSub(cat) {
+  /* 2026-10-16 Andy：「精選文章已經裡面有分頁，側邊子分頁就拿掉」→ 側欄沒有子項可亮，這裡只負責把殘留的 art-* 清掉
+     （舊版快取的 app.js 還會掛 data-l4sub="art-…"，留著會讓母項變成「讓位給子項」的半亮樣式） */
+  function markSub() {
     const r = document.documentElement;
-    if (!r.classList.contains('l4') && !r.classList.contains('m4')) return;
-    const want = 'art-' + (CATS[cat] ? cat : 'all');
-    if (r.getAttribute('data-l4sub') !== want) r.setAttribute('data-l4sub', want);
+    if (/^art-/.test(r.getAttribute('data-l4sub') || '')) r.removeAttribute('data-l4sub');
   }
 
   /* ------------------------------------------------------------------ 共用小片段 */
@@ -564,7 +562,7 @@
 <div class="card artcard" id="artCard">
   <div class="row spread"><h3>精選文章 <small id="artUpd"></small></h3></div>
   <div class="nbsw" id="artCats" role="tablist" aria-label="文章分類">
-    ${['all'].concat(CAT_KEYS).map((k) => `<button type="button" role="tab" class="k-${k}" data-cat="${k}" title="${esc(catT(k))}">${icon(k, 15)}<span>${esc(catT(k))}</span><em></em></button>`).join('')}
+    ${['all'].concat(CAT_KEYS).map((k) => `<button type="button" role="tab" class="k-${k}" data-cat="${k}" data-s="${esc(CAT_S[k])}" title="${esc(catT(k))}">${icon(k, 15)}<span>${esc(catT(k))}</span><em></em></button>`).join('')}
   </div>
   <div class="nbbody">
     <div class="artflt">
