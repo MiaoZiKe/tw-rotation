@@ -222,6 +222,10 @@
 [data-theme4] .btn,[data-theme4] .evbtn,[data-theme4] .seg,[data-theme4] .pill,[data-theme4] .rotdd .ddbtn,[data-theme4] .minisel{
   background:var(--t4-ctl,var(--panel-3));border-color:var(--t4-ctl-edge,var(--line-2))}
 [data-theme4] .btn:hover,[data-theme4] .evbtn:hover{border-color:var(--t4-accent-solid)}
+/* ★ 2026-10-16：主要按鈕（.btn.primary）留住實心主色底。上面那條把**所有** .btn 的底換成半透明控制項底，
+   .btn.primary 的字卻還是給實心底用的深色（--ontop）→ 字跟底同色，整顆變成一個看不到字的空框
+   （Andy iPhone：公司說明卡最下面「看個股頁 →」＝「空白方框」）。同一套主色／對比字，跟分段的選中格一樣。*/
+[data-theme4] .btn.primary{background:var(--t4-accent,var(--cyan));color:var(--on-accent,var(--ontop));border-color:transparent}
 [data-theme4] .rotdd .ddbtn i,[data-theme4] .segdd .ddbtn i{font-size:12px}   /* 原樣式 11px，守 12px 下限 */
 
 /* ---- 主題專屬的「標記」：只加裝飾，不改尺寸 ---- */
