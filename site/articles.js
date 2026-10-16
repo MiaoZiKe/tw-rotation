@@ -20,6 +20,7 @@
      h／p／ul／callout／table／stocks（原有）＋ kpi（數字卡）＋ chart（bar／line／barline／hbar／range，ECharts）
      ＋ flow（產業關係圖：欄由左到右、手機由上到下，SVG 曲線箭頭）＋ stack（剖面拆解圖：由上到下疊層、右側引出線說明）。
      ＋ steps（編號流程圖：橫向一排、手機直向）＋ compare（2～4 欄對照卡，欄頂色條依 tone）。
+     ＋ illus（2026-10-16 具象插圖：kind＝cowos／rack，圖在 site/artillus.js；Andy：「有提到特定元件，需要繪圖出來，更具像化」）。
    Andy 2026-10-16 看完第二版：
      「這邊的大小需要一致」→ 拿掉 2×2 焦點卡，清單每張卡同寬同高（內容過長截斷）。
      「版面需要調整適當大小，左右側還有空白處」→ 單篇內容欄填滿主欄（扣右側目錄），寬螢幕改放大字級而不是限寬留白。
@@ -291,6 +292,33 @@
 .artstack .skl::before{content:"";position:absolute;left:0;top:50%;width:7px;height:7px;margin-top:-4px;border-radius:50%;background:var(--tc)}
 .artstack .skl b{display:block;font-size:var(--fs-sm);font-weight:700;color:var(--ink);line-height:1.4}
 .artstack .skl span{display:block;font-size:var(--fs-min);color:var(--ink-2);line-height:1.5}
+/* illus 具象插圖（2026-10-16，Andy：「有提到特定元件，需要繪圖出來，更具像化」）：左邊 2.5D 插圖（site/artillus.js 畫）、右邊說明欄；
+   引線由 JS 依實際位置畫（從零件上的錨點 → 右側說明的編號）；說明是 HTML，字級固定不跟著圖縮。
+   容器窄於 600px（手機）→ .cmp：圖右側一排編號圓點（引線接到編號），說明改成圖下方的編號清單。 */
+.artillus .ilw{position:relative;display:grid;grid-template-columns:minmax(0,1fr) minmax(220px,32%);column-gap:44px;align-items:start}
+.artillus .ild{position:relative;min-width:0;max-width:640px;justify-self:center;width:100%}
+.artillus .ill{position:relative;list-style:none;margin:0;padding:0;min-width:0}
+.artillus .ill li{position:absolute;left:0;right:0;top:0;margin:0;padding:2px 0 2px 30px;cursor:default;transition:opacity .15s}
+.artillus .ill li em,.artillus .ilbs em{position:absolute;left:0;top:2px;width:22px;height:22px;border-radius:50%;box-sizing:border-box;border:1.5px solid var(--k,var(--cyan));
+  background:var(--panel);color:var(--ink);font:700 12px/19px var(--mono);font-style:normal;text-align:center}
+.artillus .ill li b{display:block;font-size:var(--fs-sm);font-weight:700;color:var(--ink);line-height:1.6}
+.artillus .ill li span{display:block;font-size:var(--fs-min);color:var(--ink-2);line-height:1.5}
+.artillus .ilbs{display:none}
+.artillus svg.illn{position:absolute;left:0;top:0;width:100%;height:100%;pointer-events:none;overflow:visible;z-index:2}
+.artillus svg.illn path{fill:none;stroke:var(--ink-2);stroke-width:1;opacity:.85}
+.artillus svg.illn circle{fill:var(--panel);stroke:var(--ink);stroke-width:1.4}
+.artillus .ilw.hov svg.illn g:not(.on){opacity:.25}
+.artillus .ilw.hov svg.illn g.on path{stroke:var(--k,var(--cyan));stroke-width:1.6;opacity:1}
+.artillus .ilw.hov svg.illn g.on circle{stroke:var(--k,var(--cyan))}
+.artillus .ilw.hov .ilsvg [data-part]:not(.on){opacity:.35}
+.artillus .ilw.hov .ill li:not(.on){opacity:.45}
+.artillus .ill li.on em,.artillus .ilbs em.on{background:var(--k,var(--cyan));color:var(--panel)}
+.artillus .ilw.cmp{grid-template-columns:minmax(0,1fr);row-gap:var(--sp-3)}
+.artillus .ilw.cmp .ild{padding-right:34px;box-sizing:border-box;max-width:none}
+.artillus .ilw.cmp .ilbs{display:block;position:absolute;right:0;top:0;bottom:0;width:22px}
+.artillus .ilw.cmp .ilbs em{position:absolute;left:0}
+.artillus .ilw.cmp .ill{display:flex;flex-direction:column;gap:8px;height:auto!important}
+.artillus .ilw.cmp .ill li{position:relative;top:auto!important}
 .t-chip{--tc:var(--art-t-chip)}.t-mem{--tc:var(--art-t-mem)}.t-interposer{--tc:var(--art-t-interposer)}.t-substrate{--tc:var(--art-t-substrate)}
 .t-board{--tc:var(--art-t-board)}.t-bump{--tc:var(--art-t-bump)}.t-other{--tc:var(--art-t-other)}
 .artsec{margin-top:var(--sp-5);padding-top:var(--sp-3);border-top:1px solid var(--line)}
@@ -841,6 +869,74 @@ ${gs.length ? `<section><h5>熱門族群</h5><div class="gps">${gs.map((g) => `<
         const pts = (Array.isArray(c.points) ? c.points : []).filter((x) => x != null && String(x).trim()).slice(0, 10);
         return `<section class="cmc tn-${tn}" data-tone="${tn}"><h5>${esc(c.label)}</h5>${pts.length ? `<ul>${pts.map((x) => `<li>${esc(x)}</li>`).join('')}</ul>` : ''}${c.verdict ? `<p class="vd">${esc(c.verdict)}</p>` : ''}</section>`; }).join('')}</div>${figFoot(b)}</figure>`;
   }
+  /* illus 具象插圖：{t:'illus', kind:'cowos'|'rack'|'custom', title, note, parts:[{id, label, sub}]}（custom 另帶 view／depth／shapes，見 site/artillus.js）
+     這張圖回答「文章講的那個零件長什麼樣、在哪一層」：圖由 site/artillus.js 依 kind 畫，parts 只換說明文字（id 要是該 kind 認得的）。
+     編號照 kind 預設順序（由上而下）；引線在 hydrate() → wireIllus() 依實際位置畫。 */
+  function illusHTML(b, bi) {
+    const I = window.TwArtIllus;
+    if (!I || !I.has(b.kind)) return '';
+    const parts = I.parts(b.kind, b.parts, b);
+    const g = I.draw(b.kind, b); if (!g || !parts.length) return '';
+    const vb = g.vb.join(' ');
+    return `<figure class="artfig artillus" data-bi="${bi}" data-kind="${esc(b.kind)}">${b.title ? `<figcaption class="fh">${esc(b.title)}</figcaption>` : ''}
+      <div class="ilw"><div class="ild"><svg class="ilsvg" viewBox="${vb}" role="img" aria-label="${esc(b.title || '')}">${g.body}</svg>
+        <div class="ilbs">${parts.map((p, i) => `<em data-part="${esc(p.id)}" title="${esc(p.label)}">${i + 1}</em>`).join('')}</div></div>
+        <ol class="ill">${parts.map((p, i) => `<li data-part="${esc(p.id)}"><em>${i + 1}</em><b>${esc(p.label)}</b>${p.sub ? `<span>${esc(p.sub)}</span>` : ''}</li>`).join('')}</ol>
+        <svg class="illn" aria-hidden="true"></svg></div>${figFoot(b)}</figure>`;
+  }
+  /* 擺說明、畫引線：說明盡量放在它那一層的同一高度（由上往下不重疊），引線＝錨點 →（必要時先往上）→ 往右 → 說明的編號 */
+  function layIllus(fig, b) {
+    const W = $('.ilw', fig), svg = $('svg.ilsvg', fig), ln = $('svg.illn', fig); if (!W || !svg || !ln) return;
+    const R = W.getBoundingClientRect(); if (!R.width) return;
+    const A = fig._anc; if (!A) return;
+    W.classList.toggle('cmp', R.width < 600);
+    const cmp = W.classList.contains('cmp');
+    const ctm = svg.getScreenCTM(); if (!ctm) return;
+    const toPx = (x, y) => { const p = svg.createSVGPoint(); p.x = x; p.y = y; const q = p.matrixTransform(ctm); return [q.x - R.left, q.y - R.top]; };
+    const SR = svg.getBoundingClientRect(), sTop = SR.top - R.top, sBot = SR.bottom - R.top, sRight = SR.right - R.left;
+    const items = (cmp ? $$('.ilbs em', fig) : $$('.ill li', fig)).map((el) => {
+      const a = A[el.dataset.part]; if (!a) return null;
+      const p = toPx(a.x, a.y), oy = a.out != null ? toPx(a.x, a.out)[1] : p[1];
+      return { el, id: el.dataset.part, p, oy };
+    }).filter(Boolean);
+    const host = cmp ? $('.ilbs', fig) : $('.ill', fig);
+    const HR = host.getBoundingClientRect(), hTop = HR.top - R.top;
+    const gap = cmp ? 4 : 10;
+    let prev = -1e9;
+    const lay = items.map((it) => { const h = it.el.offsetHeight || 22; const head = cmp ? h / 2 : 13; let top = Math.max(it.oy - hTop - head, prev + gap, 0); prev = top + h; return { it, top, h, head }; });
+    const limit = cmp ? Math.max(0, sBot - sTop) : Math.max(sBot - hTop, 0);
+    if (lay.length && prev > limit) { let over = prev - limit; for (let i = lay.length - 1; i >= 0 && over > 0; i--) { const room = i ? lay[i].top - (lay[i - 1].top + lay[i - 1].h + gap) : lay[i].top; const mv = Math.min(over, Math.max(0, room)); for (let j = i; j < lay.length; j++) lay[j].top -= mv; over -= mv; } }
+    lay.forEach((l) => { l.it.el.style.top = l.top.toFixed(1) + 'px'; });
+    if (!cmp) host.style.height = Math.max(sBot - hTop, lay.length ? lay[lay.length - 1].top + lay[lay.length - 1].h : 0).toFixed(1) + 'px';
+    else host.style.height = '';
+    const out = [];
+    lay.forEach((l) => {
+      const er = l.it.el.querySelector('em') || l.it.el; const e = er.getBoundingClientRect();
+      const tx = e.left - R.left - 3, ty = e.top - R.top + e.height / 2;
+      const [ax, ay] = l.it.p, by = l.it.oy;
+      const xe = Math.max(ax + 6, Math.min(sRight + (cmp ? 2 : 12), tx - 10));
+      const d = `M${ax.toFixed(1)},${ay.toFixed(1)}${by !== ay ? ` V${by.toFixed(1)}` : ''} H${xe.toFixed(1)} L${tx.toFixed(1)},${ty.toFixed(1)}`;
+      out.push(`<g data-part="${esc(l.it.id)}"><path d="${d}"/><circle cx="${ax.toFixed(1)}" cy="${ay.toFixed(1)}" r="3"/></g>`);
+    });
+    ln.setAttribute('viewBox', `0 0 ${Math.round(R.width)} ${Math.round(R.height)}`);
+    ln.innerHTML = out.join('');
+    fig.dataset.lines = String(out.length);
+  }
+  function wireIllus(fig, b) {
+    const I = window.TwArtIllus; if (!I) return;
+    fig._anc = I.anchors ? I.anchors(b.kind, b) : null;
+    layIllus(fig, b);
+    const W = $('.ilw', fig); if (!W) return;
+    if (typeof ResizeObserver !== 'undefined') { let raf = 0; W._ro = new ResizeObserver(() => { cancelAnimationFrame(raf); raf = requestAnimationFrame(() => layIllus(fig, b)); }); W._ro.observe(W); }
+    // 滑過（或點）說明／編號 → 那個零件與它的引線亮起來、其他變淡
+    const hi = (id) => { W.classList.toggle('hov', !!id); $$('[data-part]', W).forEach((e) => e.classList.toggle('on', !!id && e.dataset.part === id)); fig.dataset.hi = id || ''; };
+    //   滑鼠：滑過就亮、離開就恢復；觸控：點一下亮、再點一次（或點別處）恢復 —— 觸控不吃 pointerover，免得「點」被拆成「滑過＋點」互相抵消
+    let pt = 'mouse';
+    W.addEventListener('pointerdown', (ev) => { pt = ev.pointerType || 'mouse'; });
+    W.addEventListener('pointerover', (ev) => { if (ev.pointerType !== 'mouse') return; const t = ev.target.closest('.ill li, .ilbs em'); if (t) hi(t.dataset.part); });
+    W.addEventListener('pointerleave', (ev) => { if (ev.pointerType === 'mouse') hi(''); });
+    W.addEventListener('click', (ev) => { if (pt === 'mouse') return; const t = ev.target.closest('.ill li, .ilbs em'); hi(t && fig.dataset.hi !== t.dataset.part ? t.dataset.part : ''); });
+  }
   function blockHTML(b, bi) {
     if (!b || typeof b !== 'object') return '';
     switch (b.t) {
@@ -862,6 +958,7 @@ ${gs.length ? `<section><h5>熱門族群</h5><div class="gps">${gs.map((g) => `<
       case 'chart': return chartHTML(b, bi);
       case 'flow': return flowHTML(b, bi);
       case 'stack': return stackHTML(b, bi);
+      case 'illus': return illusHTML(b, bi);
       case 'steps': return stepsHTML(b, bi);
       case 'compare': return compareHTML(b, bi);
       default: return '';
@@ -1046,6 +1143,7 @@ ${gs.length ? `<section><h5>熱門族群</h5><div class="gps">${gs.map((g) => `<
       window.App.chart(el, opt);
     });
     $$('.artflow', root).forEach((fig) => { const b = blocks[+fig.dataset.bi]; if (b) wireFlow(fig, b); });
+    $$('.artillus', root).forEach((fig) => { const b = blocks[+fig.dataset.bi]; if (b) wireIllus(fig, b); });
     $$('.arttoc .tl button', root).forEach((bt) => { bt.onclick = () => { const h = root.querySelector(`#artBody h4[data-bi="${bt.dataset.bi}"]`); if (h) h.scrollIntoView({ behavior: 'smooth', block: 'start' }); }; });
     $$('.artgps button[data-gid]', root).forEach((bt) => { bt.onclick = () => { S.grp = new Set([bt.dataset.gid]); location.hash = '#articles'; }; });
     const back = $('#artBack', root);

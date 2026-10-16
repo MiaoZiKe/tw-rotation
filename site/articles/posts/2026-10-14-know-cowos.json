@@ -62,68 +62,50 @@
       "text": "名字就是結構：「晶片在晶圓上、再放到基板上」（Chip on Wafer on Substrate）。傳統封裝的兩顆晶片要經過載板與電路板繞一圈；CoWoS 在晶片和載板之間多加一層中介層，讓晶片並排直接連線，所以叫 2.5D；把晶片直接往上疊才叫 3D。"
     },
     {
-      "t": "stack",
+      "t": "illus",
+      "kind": "cowos",
       "title": "CoWoS 剖面：由上而下",
-      "note": "以矽中介層（CoWoS-S）為例的示意圖，比例不是實際尺寸。",
-      "layers": [
+      "note": "以矽中介層（CoWoS-S）為例的示意圖，比例不是實際尺寸；凸塊大小只表達「微凸塊 < C4 < 錫球」的順序。",
+      "parts": [
         {
-          "label": "運算晶片＋HBM",
-          "sub": "GPU 或客製化 AI 晶片，周圍並排多顆 HBM",
-          "tone": "chip",
-          "w": 0.8,
-          "split": [
-            {
-              "label": "HBM",
-              "w": 0.2,
-              "tone": "mem"
-            },
-            {
-              "label": "GPU 運算晶片",
-              "w": 0.6,
-              "tone": "chip"
-            },
-            {
-              "label": "HBM",
-              "w": 0.2,
-              "tone": "mem"
-            }
-          ]
+          "id": "gpu",
+          "label": "GPU 運算晶片",
+          "sub": "GPU 或客製化 AI 晶片，放在正中間"
         },
         {
+          "id": "hbm",
+          "label": "HBM 高頻寬記憶體",
+          "sub": "多層 DRAM 垂直疊起，靠矽穿孔（TSV）上下相通；周圍並排多顆"
+        },
+        {
+          "id": "ubump",
           "label": "微凸塊",
-          "sub": "把運算晶片與 HBM 接到中介層上的細小接點",
-          "tone": "bump",
-          "w": 0.8
+          "sub": "把晶片與 HBM 接到中介層上的細小接點"
         },
         {
+          "id": "interposer",
           "label": "矽中介層",
-          "sub": "布滿極細連線，是晶片與 HBM 之間的高速通道；透過矽穿孔（TSV）往下接",
-          "tone": "interposer",
-          "w": 0.85
+          "sub": "布滿極細連線，是晶片與 HBM 之間的高速通道；透過矽穿孔（TSV）往下接"
         },
         {
+          "id": "c4",
           "label": "C4 凸塊",
-          "sub": "中介層與載板之間較大的凸塊接點",
-          "tone": "bump",
-          "w": 0.85
+          "sub": "中介層與載板之間較大的凸塊接點"
         },
         {
+          "id": "abf",
           "label": "ABF 載板",
-          "sub": "把中介層的訊號轉成較粗的線路",
-          "tone": "substrate",
-          "w": 0.95
+          "sub": "多層線路，把中介層的訊號轉成較粗的線路"
         },
         {
-          "label": "錫球",
-          "sub": "封裝底部的焊點，焊到主機板上",
-          "tone": "bump",
-          "w": 0.95
+          "id": "bga",
+          "label": "錫球（BGA）",
+          "sub": "封裝底部的焊點，焊到主機板上"
         },
         {
+          "id": "board",
           "label": "伺服器主機板",
-          "sub": "承載整顆封裝的電路板（PCB）",
-          "tone": "board",
-          "w": 1
+          "sub": "承載整顆封裝的電路板（PCB）"
         }
       ]
     },
