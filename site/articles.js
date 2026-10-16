@@ -396,6 +396,8 @@
 /* ---- 管理區 #admin/articles（2026-10-16 二版：Andy「版面需要調整適當，周圍不要空白太多，字體也需要調整適當，表格需要對齊」）---- */
 #v-subadm:has(>.artadm){max-width:none;padding-left:var(--sp-2);padding-right:var(--sp-2)}   /* 管理區預設 1280 置中 —— 這頁表格欄位多，吃滿主欄 */
 #v-subadm .artadm{margin-top:var(--gap-card,12px)}
+#v-subadm .artpanel[hidden]{display:none}
+#v-subadm #artAdmTabsW{margin-top:0}
 #v-subadm .artadm h3{margin:0;font-size:15px;font-weight:700}
 #v-subadm .artadm .hd{display:flex;align-items:center;gap:var(--sp-2);flex-wrap:wrap;margin-bottom:var(--sp-2)}
 #v-subadm .artadm .hd .sp{flex:1}
@@ -1122,7 +1124,8 @@ ${gs.length ? `<section><h5>熱門族群</h5><div class="gps">${gs.map((g) => `<
   }
 
   /* ------------------------------------------------------------------ 管理區 #admin/articles */
-  function isAdmin() { const A = window.TwAccount; const u = A && A.on && A.on() && A.user && A.user(); return !!(u && u.admin); }
+  /* 預覽版（window.TW_PREVIEW）比照其他管理頁可瀏覽（DECISIONS #343）；正式站沒有這個旗標，行為不變 */
+  function isAdmin() { if (window.TW_PREVIEW) return true; const A = window.TwAccount; const u = A && A.on && A.on() && A.user && A.user(); return !!(u && u.admin); }
   /* 產出佇列（2026-10-16，Andy：「claude 指負責產出文章，內容……點選清單內主題，點選後我可以再次點選產生精選文章，或是短影片」）
      按鈕 → 會員 Worker /v1/articles/jobs/add 排一筆 → GitHub Actions（article-jobs.yml）每小時同步進 repo →
      Claude 排程撰寫、推上 main → 文章 index.json 帶同一個 topic 時自動標「已上架」。*/
@@ -1146,6 +1149,13 @@ ${gs.length ? `<section><h5>熱門族群</h5><div class="gps">${gs.map((g) => `<
     });
     return out.join('') || '<span class="muted">—</span>';
   }
+  function admTabGet() { try { return localStorage.getItem('tw.art.admtab') === 'stats' ? 'stats' : 'topics'; } catch (e) { return 'topics'; } }
+  function setAdmTab(v, t) {
+    S.admTab = t === 'stats' ? 'stats' : 'topics';
+    $$('#artAdmTabs>button', v).forEach((b) => { const on = b.dataset.t === S.admTab; b.classList.toggle('on', on); b.setAttribute('aria-selected', String(on)); });
+    const pt = $('#artPanelTopics', v), ps = $('#artPanelStats', v);
+    if (pt) pt.hidden = S.admTab !== 'topics'; if (ps) ps.hidden = S.admTab !== 'stats';
+  }
   async function renderAdmin(v) {
     css();
     if (!isAdmin()) {
@@ -1159,8 +1169,16 @@ ${gs.length ? `<section><h5>熱門族群</h5><div class="gps">${gs.map((g) => `<
     const list = idx ? idx.list : [];
     const gm = new Map(); list.forEach((a) => (a.groups || []).forEach((g) => { if (!gm.has(g.id)) gm.set(g.id, g.name); }));
     const grpOpts = [...gm].sort((x, y) => x[1].localeCompare(y[1], 'zh-Hant')).map(([id, n]) => `<option value="${esc(id)}">${esc(n)}</option>`).join('');
+    /* 2026-10-16 Andy：「需要分成兩個分頁，一個是跟文章主題有關，另一個是統計數據」→ 兩個分頁：
+       「文章主題」＝今日選題＋產主題設定（socialpick.js）＋已上架文章＋主題候選＋產出進度；「統計數據」＝原本的點閱統計（#artStats，原樣搬入）。
+       兩塊都一次畫好、用 hidden 切換（所以切回來不會重抓、篩選與勾選都還在）；選哪個分頁存 localStorage（只是每人自己的習慣）。*/
+    S.admTab = admTabGet();
     v.innerHTML = `
-<section id="artStats" class="artadm"></section>
+<div class="artadm" id="artAdmTabsW"><div class="nbsw lv2" id="artAdmTabs" role="tablist" aria-label="精選文章管理分頁">
+  <button type="button" role="tab" id="artTabTopics" data-t="topics" aria-controls="artPanelTopics">文章主題</button><button type="button" role="tab" id="artTabStats" data-t="stats" aria-controls="artPanelStats">統計數據</button></div></div>
+<div class="artpanel" id="artPanelTopics" role="tabpanel" aria-labelledby="artTabTopics">
+<div id="spkPickHost"></div>
+<div id="spkSchedHost"></div>
 <div class="card artadm" id="artAdmList">
   <div class="hd"><h3>已上架文章</h3><span class="muted">${list.length} 篇${idx && idx.updated ? '・清單更新 ' + esc(idx.updated) : ''}</span></div>
   <div class="aflt" id="artAdmFlt">
@@ -1206,7 +1224,13 @@ ${gs.length ? `<section><h5>熱門族群</h5><div class="gps">${gs.map((g) => `<
   </div>
   <div class="tbw"><table><colgroup><col style="width:64px"><col style="width:96px"><col style="width:30%"><col><col style="width:96px"><col style="width:120px"><col style="width:96px"></colgroup>
   <thead><tr><th class="r">編號</th><th class="c">產出</th><th>主題</th><th>補充</th><th class="c">狀態</th><th class="c">送出時間</th><th class="c">操作</th></tr></thead><tbody id="artJobBody"></tbody></table></div>
-</div>`;
+</div>
+</div>
+<div class="artpanel" id="artPanelStats" role="tabpanel" aria-labelledby="artTabStats"><section id="artStats" class="artadm"></section></div>`;
+    const SP = window.TwSocialPick;
+    if (SP) { SP.mountPick($('#spkPickHost', v)); SP.mountSched($('#spkSchedHost', v)); }
+    setAdmTab(v, S.admTab);
+    $('#artAdmTabs', v).addEventListener('click', (e) => { const b = e.target.closest('button[data-t]'); if (b) { setAdmTab(v, b.dataset.t); try { localStorage.setItem('tw.art.admtab', b.dataset.t); } catch (x) { /* 私密視窗：只在這次有效 */ } } });
     $$('#artTpCats>button', v).forEach((b) => { b.onclick = () => { S.tcat = b.dataset.cat; paintTopics(v); }; });
     $('#artTpSort', v).onclick = () => { S.tsort = S.tsort === 'desc' ? 'asc' : 'desc'; paintTopics(v); };
     $('#artTpBody', v).addEventListener('click', (e) => {
@@ -1410,6 +1434,7 @@ ${gs.length ? `<section><h5>熱門族群</h5><div class="gps">${gs.map((g) => `<
   }
 
   (window.TwSubRoutes = window.TwSubRoutes || []).push((head, rest) => {
+    if (head === 'admin' && rest[0] === 'social') { try { history.replaceState(null, '', '#admin/articles'); } catch (e) { location.hash = '#admin/articles'; } rest = ['articles']; }   // 舊的獨立入口已併進「文章主題」分頁
     if (head !== 'admin' || rest[0] !== 'articles') return null;
     const T = window.TwSub; const v = T && T.view ? T.view('v-subadm') : document.getElementById('v-subadm'); if (!v) return null;
     renderAdmin(v);
