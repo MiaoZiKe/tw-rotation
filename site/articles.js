@@ -19,6 +19,14 @@
    內文區塊（全部吃 JSON、textContent／esc 輸出、不收 HTML）：
      h／p／ul／callout／table／stocks（原有）＋ kpi（數字卡）＋ chart（bar／line／barline／hbar／range，ECharts）
      ＋ flow（產業關係圖：欄由左到右、手機由上到下，SVG 曲線箭頭）＋ stack（剖面拆解圖：由上到下疊層、右側引出線說明）。
+     ＋ steps（編號流程圖：橫向一排、手機直向）＋ compare（2～4 欄對照卡，欄頂色條依 tone）。
+   Andy 2026-10-16 看完第二版：
+     「這邊的大小需要一致」→ 拿掉 2×2 焦點卡，清單每張卡同寬同高（內容過長截斷）。
+     「版面需要調整適當大小，左右側還有空白處」→ 單篇內容欄填滿主欄（扣右側目錄），寬螢幕改放大字級而不是限寬留白。
+     「需要新增點閱次數」→ 卡片與單篇「眼睛＋N 次」（會員 Worker /v1/articles/view、/v1/articles/stats；失敗就不寫）、管理區多一欄。
+     「內容除了圖表，盡可能新增剖析、分解 說明圖片」→ steps／compare 兩種說明圖區塊。
+     「圖表色彩需要豐富點且多樣，不要太單一」→ 文章專用調色盤 --art-p1..7（只這一頁用，紅綠保留給漲跌）。
+     防複製與浮水印是全站的，在 site/protect.js，不在這支。
 
    資料：site/articles/index.json（清單）＋ site/articles/posts/<id>.json（點進單篇才讀）。
      ⚠ 放在 site/articles/ 而不是 site/data/：site/data/ 是 gitignore、由工作流每天重寫；文章是人工產出、要進版控。

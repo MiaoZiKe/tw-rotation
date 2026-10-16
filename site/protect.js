@@ -25,7 +25,7 @@
      b. ECharts：包住 echarts.init，每個實例的 setOption 都在 graphic 最後面補一個 id=__twwm 的文字
         （圖中央、旋轉約 20 度、silent:true 不擋滑鼠、z 低於系列）；圖自己的 graphic 照留（合併，不覆蓋）。
         getOption() 看不到它（不打亂既有讀 graphic 的程式與驗收）；要看原樣用 getOptionWm()。
-     c. K 線（lightweight-charts v5）：包住 LightweightCharts.createChart，在主窗格掛內建的 createTextWatermark。
+     c. K 線（lightweight-charts v5）：換掉 LightweightCharts.createChart，在主窗格上方置中掛內建的 createTextWatermark（正中央留給站內原本的「股名・週期」大字）。
    驗收：scripts/_uitest.py「精選文章1014」的「全站防複製／浮水印」那幾條。
    ============================================================================ */
 (function () {
@@ -170,7 +170,7 @@ html.twnocopy [data-copyable],html.twnocopy [data-copyable] *{-webkit-user-selec
 
   /* ------------------------------------------------------------------ K 線（lightweight-charts）浮水印 */
   const LW0 = window.LightweightCharts, lwList = [];
-  const lwLine = (h) => ({ text: TXT, color: inkWm(), fontSize: Math.round(Math.max(18, Math.min(56, (h || 320) * 0.13))), fontStyle: 'bold' });
+  const lwLine = (h) => ({ text: TXT, color: inkWm(), fontSize: Math.round(Math.max(16, Math.min(40, (h || 320) * 0.09))), fontStyle: 'bold' });
   /* ⚠ lightweight-charts 匯出的物件是凍結的（實測 v5.2.1：直接改 createChart 會丟 TypeError）——
      所以換成「複製一份、只換 createChart」的新物件放回 window.LightweightCharts；chart.js 是在這之後才讀它，拿到的就是新的。 */
   if (LW0 && typeof LW0.createChart === 'function' && typeof LW0.createTextWatermark === 'function' && !LW0.__twwm) {
@@ -183,7 +183,9 @@ html.twnocopy [data-copyable],html.twnocopy [data-copyable] *{-webkit-user-selec
           const node = typeof el === 'string' ? document.getElementById(el) : el;
           const h = node && node.clientHeight;
           if (!(h && h < 90)) {     // 很矮的迷你圖不放
-            const wm = LW0.createTextWatermark(ch.panes()[0], { horzAlign: 'center', vertAlign: 'center', lines: [lwLine(h)] });
+            /* 放主窗格「上方置中」不放正中央：K 線卡正中央已有站內自己的大字（「台積電 2330 · 日K」，chart.js 的 setWatermark），
+               兩層疊在一起反而兩個都讀不清；主窗格頂端是 chart.js 留給資訊列的空帶，資料線很少經過。 */
+            const wm = LW0.createTextWatermark(ch.panes()[0], { horzAlign: 'center', vertAlign: 'top', lines: [lwLine(h)] });
             ch.__twwm = wm; lwList.push({ ch, wm, h });
             if (lwList.length > 200) lwList.splice(0, lwList.length - 200);
           }

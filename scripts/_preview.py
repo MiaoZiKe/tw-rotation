@@ -116,8 +116,10 @@ CHART_TEXT_JS = r"""
     const hr = host.getBoundingClientRect();
     if (hr.width < 20 || hr.height < 20) continue;
     const id = host.id || '(no-id)';
+    // ★ 2026-10-16：浮水印「哩股哩股」（site/protect.js 補在每張圖中央、silent、6% 透明）本來就疊在圖上，不算文字重疊
+    const WM = (window.TwProtect && window.TwProtect.TEXT) || '哩股哩股';
     const bs = [...host.querySelectorAll('svg text')]
-      .filter(t => (t.textContent || '').trim().length)
+      .filter(t => (t.textContent || '').trim().length && (t.textContent || '').trim() !== WM)
       .map(t => ({ t: (t.textContent || '').trim().slice(0, 18), r: t.getBoundingClientRect() }))
       .filter(b => b.r.width > 1 && b.r.height > 1);
     out.nodes += bs.length;
@@ -183,7 +185,7 @@ TEXT_OVERLAP_ALL_JS = r"""
     const cr = card.getBoundingClientRect(); if (!vis(cr)) continue;
     const bs = [];
     for (const t of card.querySelectorAll('svg text')) {
-      const s = (t.textContent || '').trim(); if (!s) continue;
+      const s = (t.textContent || '').trim(); if (!s || s === ((window.TwProtect && window.TwProtect.TEXT) || '哩股哩股')) continue;   // 浮水印不算（site/protect.js）
       if (t.closest('[aria-hidden="true"]') && !t.closest('[_echarts_instance_]')) continue;
       const r0 = t.getBoundingClientRect(); if (!vis(r0)) continue;
       const r = clip(t, r0); if (r) bs.push({ s, r, el: t });

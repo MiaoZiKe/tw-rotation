@@ -8223,7 +8223,7 @@ def t_new_layout(pg, base):
         if (!host || !host.getAttribute('_echarts_instance_')) { out.overlaps.push([id, '這張圖沒畫出來', '', 0, 0]); continue; }
         const hr = host.getBoundingClientRect();
         const bs = [...host.querySelectorAll('svg text')]
-          .filter(t => (t.textContent || '').trim().length)
+          .filter(t => (t.textContent || '').trim().length && (t.textContent || '').trim() !== '哩股哩股')   /* 浮水印（site/protect.js）不算 */
           .map(t => ({ t: (t.textContent || '').trim().slice(0, 18), r: t.getBoundingClientRect() }))
           .filter(b => b.r.width > 1 && b.r.height > 1);
         out.nodes[id] = bs.length;
@@ -8312,7 +8312,7 @@ def t_new_layout(pg, base):
         if (!c) return null;
         const hr = el.getBoundingClientRect();
         const bs = [...el.querySelectorAll('svg text')]
-          .filter(t => (t.textContent || '').trim().length)
+          .filter(t => (t.textContent || '').trim().length && (t.textContent || '').trim() !== '哩股哩股')   /* 浮水印（site/protect.js）不算 */
           .map(t => ({ t: (t.textContent || '').trim(), r: t.getBoundingClientRect(),
                        fs: parseFloat(getComputedStyle(t).fontSize) || 0 }))
           .filter(b => b.r.width > 1 && b.r.height > 1);
@@ -18608,7 +18608,7 @@ def t_rank_ratio(pg, b, base):
             const d = c.getModel().getSeriesByIndex(0).getData();
             let maxBar = 0; for (let i = 0; i < d.count(); i++) { const g = d.getItemGraphicEl(i); if (g) maxBar = Math.max(maxBar, g.getBoundingRect().width); }
             const rr = rf.getBoundingClientRect();
-            const ts = [...rf.querySelectorAll('svg text')].filter(t => (t.textContent || '').trim()).map(t => t.getBoundingClientRect());
+            const ts = [...rf.querySelectorAll('svg text')].filter(t => (t.textContent || '').trim() && t.textContent.trim() !== '哩股哩股').map(t => t.getBoundingClientRect());
             let hit = 0; for (let i = 0; i < ts.length; i++) for (let j = i + 1; j < ts.length; j++) {
               const a = ts[i], b2 = ts[j]; const ox = Math.min(a.right, b2.right) - Math.max(a.left, b2.left), oy = Math.min(a.bottom, b2.bottom) - Math.max(a.top, b2.top);
               if (ox > 1 && oy > 1) hit++; }
@@ -23979,7 +23979,7 @@ TABS1002_SCAN = r"""() => {
 TABS1002_CHARTTXT = r"""() => { const out = { n: 0, ov: [] };
   for (const host of document.querySelectorAll('#stockTab [_echarts_instance_]')) { const hr = host.getBoundingClientRect();
     if (hr.width < 20 || hr.height < 20) continue;
-    const bs = [...host.querySelectorAll('svg text')].filter(t => (t.textContent || '').trim().length)
+    const bs = [...host.querySelectorAll('svg text')].filter(t => (t.textContent || '').trim().length && t.textContent.trim() !== '哩股哩股')
       .map(t => ({ t: t.textContent.trim().slice(0, 16), r: t.getBoundingClientRect() })).filter(b => b.r.width > 1 && b.r.height > 1);
     out.n += bs.length;
     for (let i = 0; i < bs.length; i++) for (let j = i + 1; j < bs.length; j++) { const a = bs[i].r, b = bs[j].r;
@@ -71805,7 +71805,7 @@ def t_articles_1014(b, base):
     ok(f"{T}：整頁斜向浮水印（body::after 固定層、SVG 背景、不吃滑鼠）", "svg" in st["wm"] and st["pe"] == "none" and st["pos"] == "fixed", st)
     if os.environ.get("TW_ART_SHOTS3"):
         s3 = Path(os.environ["TW_ART_SHOTS3"]); s3.mkdir(parents=True, exist_ok=True)
-        pg.goto(base + "#articles"); wait_until(pg, "() => !!document.querySelector('#artList [data-vw]:not([hidden])')", 8000); pg.wait_for_timeout(800)
+        pg.goto(base + "#articles"); wait_until(pg, "() => !!document.querySelector('#artList [data-vw]:not([hidden])')", 8000); pg.wait_for_timeout(2800)
         pg.screenshot(path=str(s3 / "list-1440.png"))
         pg.goto(base + "#article/uitest-full-1016"); wait_until(pg, "() => !!document.querySelector('#artBody .artsteps')", 8000); pg.wait_for_timeout(1200)
         pg.screenshot(path=str(s3 / "post-1440-full.png"), full_page=True)
