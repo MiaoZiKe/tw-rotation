@@ -1,17 +1,6 @@
 {
- "updated": "2026-10-17 01:34",
+ "updated": "2026-10-17 01:55",
  "jobs": [
-  {
-   "id": 3,
-   "topic_id": "k_cpo",
-   "kind": "article",
-   "title": "CPO 共同封裝光學是什麼？",
-   "note": "",
-   "status": "working",
-   "created": 1792169186115,
-   "updated": 1792172057969,
-   "result": null
-  },
   {
    "id": 4,
    "topic_id": "k_cpo",
