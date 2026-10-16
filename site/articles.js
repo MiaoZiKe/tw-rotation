@@ -323,6 +323,14 @@
 .t-board{--tc:var(--art-t-board)}.t-bump{--tc:var(--art-t-bump)}.t-other{--tc:var(--art-t-other)}
 .artsec{margin-top:var(--sp-5);padding-top:var(--sp-3);border-top:1px solid var(--line)}
 .artsec h4{margin:0 0 var(--sp-2);font-size:var(--fs-h3);font-weight:600}
+.artfold>summary{list-style:none;cursor:pointer;display:flex;align-items:center}
+.artfold>summary::-webkit-details-marker{display:none}
+.artfold>summary h4{margin:0;display:flex;align-items:center;gap:8px;flex:1}
+.artfold>summary h4 small{font-size:var(--fs-min);font-weight:400;color:var(--ink-3);font-family:var(--mono)}
+.artfold>summary::after{content:"展開 ▾";font-size:var(--fs-min);color:var(--ink-3);white-space:nowrap}
+.artfold[open]>summary::after{content:"收起 ▴"}
+.artfold[open]>summary{margin-bottom:var(--sp-2)}
+.artfold>summary:hover h4{color:var(--k,var(--cyan))}
 .artlinks{display:flex;flex-wrap:wrap;gap:var(--sp-2)}
 .artlinks a{display:inline-flex;align-items:center;gap:6px;height:32px;padding:0 12px;border:1px solid var(--line-2);border-radius:999px;background:var(--panel-3);color:var(--ink);
   text-decoration:none;font-size:var(--fs-sm);white-space:nowrap}
@@ -670,6 +678,13 @@
     <div class="tt">${esc(a.title)}</div>${a.subtitle ? `<div class="st">${esc(a.subtitle)}</div>` : ''}
     ${a.summary ? `<div class="sm">${esc(a.summary)}</div>` : ''}
     <div class="fr"><div class="ft">${(a.groups || []).slice(0, 4).map((g) => `<span class="artgp">${esc(g.name)}</span>`).join('')}${(a.groups || []).length ? '' : (Array.isArray(a.tags) ? a.tags.slice(0, 5).map((t) => `<span class="artgp">${esc(t)}</span>`).join('') : '')}</div>${vwHTML(a.id)}</div></a>`;
+  /* 10-16 Andy：「不必要資訊改成收合，像是相關連結」→ 文末「站內相關頁面／資料來源／同類別其他文章」預設收起（手機準則 5：使用者展開過才記住） */
+  const FOLD_KEY = 'tw.art.fold';
+  const foldOpen = (k) => { try { return (JSON.parse(localStorage.getItem(FOLD_KEY) || '{}') || {})[k] ? ' open' : ''; } catch (e) { return ''; } };
+  document.addEventListener('toggle', (e) => {
+    const d = e.target; if (!d || !d.classList || !d.classList.contains('artfold')) return;
+    try { const m = JSON.parse(localStorage.getItem(FOLD_KEY) || '{}') || {}; m[d.dataset.fold] = d.open ? 1 : 0; localStorage.setItem(FOLD_KEY, JSON.stringify(m)); } catch (err) { /* 私密視窗：只這次有效 */ }
+  }, true);
   const DISC = 'ⓘ 本站文章為公開資訊與產業知識的整理，不構成任何投資建議；內容以資料來源發布時點為準，投資前請自行查證並評估風險。';
 
   /* ------------------------------------------------------------------ 列表頁 */
@@ -1209,11 +1224,11 @@ ${gs.length ? `<section><h5>熱門族群</h5><div class="gps">${gs.map((g) => `<
   ${tagsHTML(d.tags)}
   ${d.summary ? `<div class="artlead">${esc(d.summary)}</div>` : ''}
   <div class="artbody" id="artBody">${blocks.map(blockHTML).join('')}</div>
-  ${links.length ? `<section class="artsec" id="artLinks"><h4>站內相關頁面</h4><div class="artlinks">${links.map((l) => `<a href="${esc(l.hash)}">${esc(l.label)}</a>`).join('')}</div></section>` : ''}
-  ${srcs.length ? `<section class="artsec" id="artSrc"><h4>資料來源</h4><ol class="artsrc">${srcs.map((s) => {
+  ${links.length ? `<details class="artsec artfold" id="artLinks" data-fold="links"${foldOpen('links')}><summary><h4>站內相關頁面<small>${links.length}</small></h4></summary><div class="artlinks">${links.map((l) => `<a href="${esc(l.hash)}">${esc(l.label)}</a>`).join('')}</div></details>` : ''}
+  ${srcs.length ? `<details class="artsec artfold" id="artSrc" data-fold="src"${foldOpen('src')}><summary><h4>資料來源<small>${srcs.length}</small></h4></summary><ol class="artsrc">${srcs.map((s) => {
     const t = esc(s.title || s.url), info = [s.publisher, s.date].filter(Boolean).map(esc).join('，');
-    return `<li>${okUrl(s.url) ? `<a href="${esc(s.url)}" target="_blank" rel="noopener noreferrer">${t}</a>` : t}${info ? `（${info}）` : ''}</li>`; }).join('')}</ol></section>` : ''}
-  ${more.length ? `<section class="artsec" id="artMore"><h4>同類別其他文章</h4><div class="artmore">${more.map((a) => cardHTML(a)).join('')}</div></section>` : ''}
+    return `<li>${okUrl(s.url) ? `<a href="${esc(s.url)}" target="_blank" rel="noopener noreferrer">${t}</a>` : t}${info ? `（${info}）` : ''}</li>`; }).join('')}</ol></details>` : ''}
+  ${more.length ? `<details class="artsec artfold" id="artMore" data-fold="more"${foldOpen('more')}><summary><h4>同類別其他文章<small>${more.length}</small></h4></summary><div class="artmore">${more.map((a) => cardHTML(a)).join('')}</div></details>` : ''}
   <p class="artdisc">${esc(DISC)}</p>
   <div class="artend"><a href="${listHash}" id="artEnd">${icon(kk, 15)}回到${esc(catT(cat))}清單</a></div>
 </article>
