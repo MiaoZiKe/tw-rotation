@@ -177,6 +177,7 @@ Claude 寫稿時的全文檔（暫存區）容器回收就沒了——**上傳�
 
 ## 做一支短影片
 
+- ★ **一定要是比比的角色動畫，不是投影片加小比比**（Andy 10-17 看完 CPO 那支：「為什麼不是動畫」）。派工給**比比動畫單位**（`animation-director` 統籌，`bibi-planner`／`bibi-animator`／`bibi-illustrator`／`bibi-review`），不要只派 `video-editor`；派工單要附 `docs/anim/動畫製作總提示詞_原文.md` 與 `docs/anim/bibi_library/index.md`、`docs/anim/GPT優化須知_比比互動.md`，比比是主持人：要有走位、指著圖解、和道具互動、表情隨台詞變，圖解本身也要動（不是整張卡片淡入）。`video-editor` 只負責最後合成、字幕、配樂與網站錄影。
 - 規格與不重疊規矩：`docs/marketing/video_1010/layout_rules.md`（回報要有「重疊檢查：程式 N 幀 0 筆；人工 M 格 0 筆」）。
 - 成品放 `docs/marketing/videos/<YYYY-MM-DD>-<主題 id>/`（直式 1080×1920 MP4＋封面），標 `done`（result＝資料夾路徑）。
 
