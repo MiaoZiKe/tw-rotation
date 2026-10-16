@@ -71375,137 +71375,295 @@ def t_pay_1011(b, base):
         dev.terminate()
 
 
-# ===================================================================== 精選文章1014（site/articles.js；Andy 2026-10-14）
-# Andy：「幫我成立一個精選文章母分頁，裡面三個小分頁……精選文章也需要分類……分成 消息 介紹 知識……
-#        有日期可以篩選文章以及關鍵字搜尋標題」；位置在左側選單「今日市場 → 總覽」正下方。
-# 真人操作（每一步都驗畫面真的變了，不是驗元素存在）：
-#   ① 桌機 1440：側欄「總覽」正下方是「精選文章」＋三個子項、再下面才是財經日曆；點母項 → #articles、卡片數＝index.json 篇數
-#   ② 點側欄子項「消息」→ 網址、頁內分類分頁、卡片全換成消息；點頁內「介紹」→ 側欄改亮「介紹」（兩邊同步）
-#   ③ 打關鍵字 → 筆數即時變（只比對標題）；打不存在的字 → 空狀態＋清除鈕、按清除 → 回到原筆數
-#   ④ 設「從」日期 → 筆數變成「日期 ≥ 那天」的篇數；設「到」日期 → 再變；卡片依日期新到舊
-#   ⑤ 點卡片 → 單篇：麵包屑（精選文章 › 類別）、標題、內文區塊、相關台股（連到 #stock/<代號>）、站內相關頁面、資料來源（新分頁＋noopener）、免責；
-#      側欄亮那篇的類別；點麵包屑類別 → 回清單且只剩那一類
-#   ⑥ 文章內容當純文字：塞了 <b>／<img onerror> 的假文章，畫面上原樣顯示、DOM 裡沒有多出 <b>／<img>；javascript: 網址不變成連結
-#   ⑦ 讀不到的文章 → 白話錯誤＋回清單連結（不是空白）
-#   ⑧ 手機 390（觸控）：漢堡抽屜有「精選文章」、點了進清單；清單與單篇都沒有橫向捲軸、內文字 ≥ 15px、沒有 < 11px 的字
-#   ⑨ 管理區 #admin/articles（管理者）：側欄管理區多一格「精選文章管理」且亮著；每篇兩顆按鈕都反灰＋旁邊小字「待 Andy 確認後開放」、
-#      按下去沒有跳窗也沒換頁；主題候選清單筆數＝topics.json、切類別筆數變、分數高→低，按排序鈕變低→高；非管理者看不到內容
+# ===================================================================== 精選文章1014（site/articles.js；Andy 2026-10-14 建、10-16 改版）
+# Andy 10-14：「幫我成立一個精選文章母分頁，裡面三個小分頁……精選文章也需要分類……有日期可以篩選文章以及關鍵字搜尋標題」
+# Andy 10-16：「日期 Default 前一個月到今天」「需要填滿版面，不可以過多空白」「需要有族群篩選功能，上方分頁需要不同顏色以及小圖示，
+#        名稱改比比消息、比比知識、比比產業鏈」「文章內需要退回上一頁功能，且內文需要附上圖表和對應圖……有數據都需要圖表化」
+# 真人操作（每一步都驗畫面真的變了，不是驗元素存在）。index.json 用攔截在尾巴多塞兩篇假文章（repo 裡沒有這兩個檔）：
+#   · uitest-full-1016（比比知識、今天、族群「測試族群」）：kpi／chart 五種／flow／stack 全部都有
+#   · uitest-old-1016（比比快訊、三個月前、族群「晶圓代工」）：預設日期區間外，用來驗「預設只看近一個月」
+#   ① 桌機 1440：側欄順序與新名稱（比比快訊／比比產業鏈／比比知識）；點母項 → 預設區間＝台北今天往前一個月到今天、舊文章不在
+#   ② 四個分頁圖示顏色兩兩不同、側欄三個子項圖示顏色也不同；1440 至少 3 欄、800 兩欄；側欄子項 ↔ 頁內分頁同步
+#   ③ 關鍵字、④ 日期（改「從」到三個月前 → 舊文章出現、筆數變；清除篩選 → 回預設區間）
+#   ⑤ 族群篩選（下拉勾一個 → 只剩含那個族群的；右側熱門族群按鈕也能篩）
+#   ⑥ 單篇：麵包屑、← 返回（站內換頁過來 → history.back 回清單）、直接開網址 → 返回到該類別清單、文末「回到清單」
+#   ⑦ 新區塊：kpi（漲紅跌綠）、chart 五張（有畫布、滑過出提示框且寫系列名）、flow（線數＝edges、節點不重疊）、stack（層數、split 片數、說明不重疊）
+#   ⑧ 純文字（XSS）、讀不到的文章
+#   ⑨ 手機 390：抽屜、清單一欄、分類分頁、單篇圖表不溢出、關係圖改上下排、沒有 < 11px 的字、沒有橫向捲軸
+#   ⑩ 管理區
 def t_articles_1014(b, base):
+    import datetime as _dt
     T = "精選文章1014"
-    idx = json.loads((SITE / "articles" / "index.json").read_text(encoding="utf-8"))["articles"]
-    idx = [a for a in idx if not a.get("status") or a.get("status") == "published"]
+    real = json.loads((SITE / "articles" / "index.json").read_text(encoding="utf-8"))["articles"]
+    real = [a for a in real if not a.get("status") or a.get("status") == "published"]
     tops = json.loads((SITE / "articles" / "topics.json").read_text(encoding="utf-8"))["topics"]
-    n_all = len(idx)
+    today = (_dt.datetime.now(_dt.timezone.utc) + _dt.timedelta(hours=8)).date()
+
+    def month_ago(d, k=1):
+        y, m = d.year, d.month - k
+        while m < 1:
+            m += 12; y -= 1
+        import calendar
+        return _dt.date(y, m, min(d.day, calendar.monthrange(y, m)[1]))
+    D_TO, D_FROM = today.isoformat(), month_ago(today).isoformat()
+    OLD = month_ago(today, 3).isoformat()
+    full = {"id": "uitest-full-1016", "cat": "know", "title": "驗收用：圖表與示意圖全部區塊", "subtitle": "kpi／chart／flow／stack", "date": D_TO,
+            "tags": ["驗收"], "summary": "驗收用假文章", "reading_min": 2, "groups": [{"id": "zz_test_grp", "name": "測試族群"}, {"id": "foundry", "name": "晶圓代工"}],
+            "blocks": [
+                {"t": "h", "text": "數字卡"},
+                {"t": "kpi", "items": [{"label": "9月營收", "value": "5,118.6", "unit": "億元", "delta": "+54.6%", "note": "年增"},
+                                        {"label": "月增率", "value": "-0.6", "unit": "%", "delta": "-0.6%", "note": "月減"},
+                                        {"label": "沒有漲跌", "value": "17.6", "unit": "%", "note": "說明"}]},
+                {"t": "h", "text": "圖表"},
+                {"t": "chart", "kind": "barline", "title": "直條＋折線", "unit": "億元", "y2unit": "%", "x": ["2026-05", "2026-06", "2026-07", "2026-08", "2026-09"],
+                 "series": [{"name": "月營收", "type": "bar", "data": [4169.8, 4426.8, 4500, 5148.1, 5118.6], "axis": 0}, {"name": "年增率", "type": "line", "data": [30, 40, 25, 60, 54.6], "axis": 1}],
+                 "highlight": [4], "marks": [{"x": "2026-08", "text": "單月新高"}, {"x": "2026-09", "text": "次高"}], "note": "說明", "source": "測試"},
+                {"t": "chart", "kind": "bar", "title": "直條", "unit": "kW", "x": ["甲", "乙"], "series": [{"name": "功耗", "data": [40, 120]}], "highlight": [1], "marks": [{"x": "乙", "text": "約 3 倍"}]},
+                {"t": "chart", "kind": "line", "title": "折線", "unit": "%", "x": ["Q1", "Q2", "Q3"], "series": [{"name": "毛利率", "data": [53, 58, 59]}]},
+                {"t": "chart", "kind": "hbar", "title": "橫條", "unit": "家", "x": ["一", "二", "三"], "series": [{"name": "家數", "data": [9, 5, 2]}], "marks": [{"x": "三", "text": "最少"}]},
+                {"t": "chart", "kind": "range", "title": "區間", "unit": "萬片", "x": ["2026", "2027"], "series": [{"name": "月產能", "data": [[11, 14], [17, 20]]}]},
+                {"t": "h", "text": "關係圖"},
+                {"t": "flow", "title": "關係圖", "note": "說明", "columns": [
+                    {"label": "上游", "nodes": [{"id": "a", "label": "晶片設計", "sub": "GPU／ASIC", "codes": ["3443"]}, {"id": "b", "label": "材料", "sub": "銅箔"}]},
+                    {"label": "中游", "nodes": [{"id": "c", "label": "晶圓代工", "codes": ["2330", "2303"]}]},
+                    {"label": "下游", "nodes": [{"id": "d", "label": "組裝", "codes": ["2317"]}, {"id": "e", "label": "雲端"}]}],
+                 "edges": [["a", "c"], ["b", "c"], ["c", "d"], ["c", "e"], ["d", "e"], ["a", "zz-不存在"]]},
+                {"t": "stack", "title": "剖面", "note": "示意", "layers": [
+                    {"label": "運算晶片＋HBM", "sub": "說明一", "tone": "chip", "w": 0.7, "split": [{"label": "HBM", "w": 0.2, "tone": "mem"}, {"label": "GPU", "w": 0.5, "tone": "chip"}]},
+                    {"label": "矽中介層", "sub": "說明二", "tone": "interposer", "w": 0.9}, {"label": "ABF 載板", "tone": "substrate", "w": 1.0}]},
+                {"t": "p", "text": "內文"}],
+            "site_links": [{"label": "產業地圖", "hash": "#industry"}], "sources": [{"title": "測試來源", "publisher": "p", "date": "", "url": "https://example.com/a"}]}
+    old = {"id": "uitest-old-1016", "cat": "news", "title": "驗收用：三個月前的舊快訊", "subtitle": "", "date": OLD, "tags": [], "summary": "舊", "reading_min": 1,
+           "groups": [{"id": "foundry", "name": "晶圓代工"}], "blocks": [{"t": "p", "text": "舊文"}], "site_links": [], "sources": []}
+    allx = real + [{k: v for k, v in full.items() if k != "blocks"}, {k: v for k, v in old.items() if k != "blocks"}]
+    vis = [a for a in allx if D_FROM <= a["date"] <= D_TO]
+    n_vis = len(vis)
+    CN = {"news": "比比快訊", "intro": "比比產業鏈", "know": "比比知識"}
+
+    def idx_route(r):
+        try:
+            resp = r.fetch()
+            j = resp.json()
+        except Exception:  # noqa: BLE001
+            j = {"updated": D_TO, "articles": list(real)}
+        j["articles"] = list(j.get("articles", [])) + [{k: v for k, v in full.items() if k != "blocks"}, {k: v for k, v in old.items() if k != "blocks"}]
+        r.fulfill(status=200, content_type="application/json", body=json.dumps(j, ensure_ascii=False))
+
+    def prep(ctx):
+        ctx.route("**/fonts.googleapis.com/**", lambda r: r.abort())
+        ctx.route("**/articles/index.json", idx_route)
+        ctx.route("**/articles/posts/uitest-full-1016.json", lambda r: r.fulfill(status=200, content_type="application/json", body=json.dumps(full, ensure_ascii=False)))
+        ctx.route("**/articles/posts/uitest-old-1016.json", lambda r: r.fulfill(status=200, content_type="application/json", body=json.dumps(old, ensure_ascii=False)))
     cnt = lambda pg: pg.evaluate("() => { const c = document.getElementById('artCount'); return c && c.dataset.n !== undefined ? +c.dataset.n : -1; }")
-    cards = lambda pg: pg.evaluate("() => [...document.querySelectorAll('#artList .artc')].map(a => ({ id: a.dataset.id, cat: a.dataset.cat, date: a.dataset.date }))")
+    cards = lambda pg: pg.evaluate("() => [...document.querySelectorAll('#artList .artc')].map(a => ({ id: a.dataset.id, cat: a.dataset.cat, date: a.dataset.date, g: a.dataset.groups }))")
     c = b.new_context(viewport={"width": 1440, "height": 900})
     c.add_init_script("try{localStorage.setItem('tw.live.on','0');localStorage.removeItem('l4.navFold')}catch(e){}")
-    c.route("**/fonts.googleapis.com/**", lambda r: r.abort())
-    # ⑥ 假文章（只在這個 context 裡攔截；repo 裡沒有這個檔）
+    prep(c)
+    # ⑧ 假文章（只在這個 context 裡攔截；repo 裡沒有這個檔）—— 舊區塊＋新區塊都塞 HTML
     xss = {"id": "xss-test", "cat": "know", "title": "<img src=x onerror=window.__artXss=1>標題", "subtitle": "<b>粗</b>", "date": "2026-10-01",
-           "tags": ["<i>t</i>"], "summary": "摘要", "reading_min": 1,
+           "tags": ["<i>t</i>"], "summary": "摘要", "reading_min": 1, "groups": [{"id": "x\"><img src=x onerror=window.__artXss=1>", "name": "<b>族群</b>"}],
            "blocks": [{"t": "p", "text": "<b>不該變粗</b><img src=x onerror=window.__artXss=1>"}, {"t": "callout", "text": "<script>window.__artXss=1</script>"},
-                      {"t": "stocks", "items": [{"code": "2330\"><img src=x onerror=window.__artXss=1>", "name": "壞代號"}, {"code": "2330", "name": "台積電", "why": "<u>u</u>"}]}],
+                      {"t": "stocks", "items": [{"code": "2330\"><img src=x onerror=window.__artXss=1>", "name": "壞代號"}, {"code": "2330", "name": "台積電", "why": "<u>u</u>"}]},
+                      {"t": "kpi", "items": [{"label": "<b>k</b>", "value": "<img src=x onerror=window.__artXss=1>", "delta": "+<b>1</b>"}]},
+                      {"t": "flow", "columns": [{"label": "<b>欄</b>", "nodes": [{"id": "\"><img src=x onerror=window.__artXss=1>", "label": "<b>節點</b>", "codes": ["<b>1</b>", "2330"]}]}], "edges": []},
+                      {"t": "stack", "layers": [{"label": "<img src=x onerror=window.__artXss=1>層", "tone": "\"><b>x", "w": "9"}]}],
            "site_links": [{"label": "壞連結", "hash": "javascript:window.__artXss=1"}, {"label": "產業地圖", "hash": "#industry"}],
            "sources": [{"title": "壞網址", "publisher": "p", "date": "", "url": "javascript:window.__artXss=1"}, {"title": "好網址", "publisher": "p", "date": "", "url": "https://example.com/a"}]}
     c.route("**/articles/posts/xss-test.json", lambda r: r.fulfill(status=200, content_type="application/json", body=json.dumps(xss, ensure_ascii=False)))
     pg = c.new_page()
     pg.goto(base + "#overview", wait_until="domcontentloaded")
     wait_until(pg, "() => !!document.querySelector('.l4subtab[data-l4sub=\"art-news\"]')", 15000)
-    # ① 側欄位置：總覽 → 精選文章 → 消息／介紹／知識 → 財經日曆（量畫面上的 y，不是 DOM 順序）
+    # ① 側欄位置與新名稱：總覽 → 精選文章 → 比比快訊／比比產業鏈／比比知識 → 財經日曆（量畫面上的 y，不是 DOM 順序）
     ys = pg.evaluate("""() => { const y = (s) => { const e = document.querySelector(s); return e && e.getClientRects().length ? Math.round(e.getBoundingClientRect().top) : null; };
         return [y('.tab[data-view=overview]'), y('.tab[data-view=articles]'), y('.l4subtab[data-l4sub=art-news]'), y('.l4subtab[data-l4sub=art-intro]'), y('.l4subtab[data-l4sub=art-know]'), y('.tab[data-view=earnings]')]; }""")
-    ok(f"{T}：側欄「總覽」正下方是「精選文章」＋消息／介紹／知識三個子項，再下面才是財經日曆", None not in ys and ys == sorted(ys) and len(set(ys)) == 6, ys)
+    ok(f"{T}：側欄「總覽」正下方是「精選文章」＋三個子項，再下面才是財經日曆", None not in ys and ys == sorted(ys) and len(set(ys)) == 6, ys)
+    side = pg.evaluate("""() => ['news','intro','know'].map(k => { const e = document.querySelector('.l4subtab[data-l4sub=art-' + k + ']'); const ic = e && e.querySelector('.ic');
+        return [e ? e.textContent.trim() : '', ic ? getComputedStyle(ic).color : '']; })""")
+    ok(f"{T}：側欄三個子項改名「比比快訊／比比產業鏈／比比知識」、圖示三種顏色", [s[0] for s in side] == ["比比快訊", "比比產業鏈", "比比知識"] and len({s[1] for s in side}) == 3, side)
     pg.click(".tab[data-view=articles]")
-    wait_until(pg, "() => document.querySelectorAll('#artList .artc').length > 0", 10000)
-    st = pg.evaluate("() => ({ h: location.hash, v: (document.querySelector('main .view.on') || {}).id, on: !!document.querySelector('.tab[data-view=articles].on'), head: (document.querySelector('#l4Head h1') || {}).textContent })")
-    ok(f"{T}：點側欄「精選文章」→ #articles、精選文章頁、母項亮、頁首寫精選文章", st["h"] == "#articles" and st["v"] == "v-articles" and st["on"] and "精選文章" in (st["head"] or ""), st)
+    wait_until(pg, "() => document.querySelectorAll('#artList .artc').length > 0", 10000); pg.wait_for_timeout(300)
+    st = pg.evaluate("() => ({ h: location.hash, v: (document.querySelector('main .view.on') || {}).id, f: document.getElementById('artFrom').value, t: document.getElementById('artTo').value, rg: Object.assign({}, document.getElementById('artRange').dataset), rgt: document.getElementById('artRange').textContent })")
+    ok(f"{T}：點側欄「精選文章」→ #articles，日期預設＝台北今天往前一個月到今天（{D_FROM}～{D_TO}），區間寫在畫面上",
+       st["h"] == "#articles" and st["v"] == "v-articles" and st["f"] == D_FROM and st["t"] == D_TO and st["rg"].get("from") == D_FROM and D_TO in st["rgt"], st)
     cs = cards(pg)
-    ok(f"{T}：清單＝index.json 全部 {n_all} 篇、計數也寫 {n_all}", len(cs) == n_all and cnt(pg) == n_all, [cs, cnt(pg)])
+    ok(f"{T}：清單＝預設區間內的 {n_vis} 篇（三個月前的舊快訊不在）、計數也寫 {n_vis}", len(cs) == n_vis and cnt(pg) == n_vis and not any(x["id"] == "uitest-old-1016" for x in cs), [cs, cnt(pg)])
     ok(f"{T}：卡片依日期新到舊", [x["date"] for x in cs] == sorted([x["date"] for x in cs], reverse=True), [x["date"] for x in cs])
-    # ② 側欄子項 ↔ 頁內分類分頁 同步
+    # ② 填滿版面＋分頁顏色
+    st = pg.evaluate("""() => { const L = document.getElementById('artList'), C = document.getElementById('artCard'), V = document.getElementById('v-articles'), M = document.querySelector('main');
+        const tabs = [...document.querySelectorAll('#artCats>button')].map(b => [b.dataset.cat, b.textContent.trim(), getComputedStyle(b.querySelector('.artic')).color, !!b.querySelector('svg')]);
+        const cards = [...document.querySelectorAll('#artList .artc')].map(a => [getComputedStyle(a, '::before').backgroundColor, !!a.querySelector('.artbadge svg')]);
+        return { cols: getComputedStyle(L).gridTemplateColumns.split(' ').length, vw: Math.round(V.getBoundingClientRect().width), mw: Math.round(M.getBoundingClientRect().width), ch: Math.round(C.getBoundingClientRect().height),
+          side: (() => { const s = document.getElementById('artSide'); const r = s.getBoundingClientRect(); return [Math.round(r.width), Math.round(r.right), s.querySelectorAll('.cr').length]; })(), tabs, cards }; }""")
+    ok(f"{T}：版面填滿 —— 主內容區＝主欄全寬（{st['vw']}/{st['mw']}）、卡片 ≥ 3 欄、卡片框至少跟視窗一樣高、右側快速瀏覽在畫面內",
+       st["vw"] >= st["mw"] - 40 and st["cols"] >= 3 and st["ch"] >= 900 - 130 and st["side"][0] >= 240 and st["side"][1] <= 1440 and st["side"][2] == 3, st)
+    ok(f"{T}：上方分頁＝全部文章／比比快訊／比比產業鏈／比比知識，每個都有小圖示、四種顏色兩兩不同；卡片有類別色條與圖示徽章",
+       [t[1].rstrip("0123456789 ") for t in st["tabs"]] == ["全部文章", "比比快訊", "比比產業鏈", "比比知識"] and all(t[3] for t in st["tabs"]) and len({t[2] for t in st["tabs"]}) == 4
+       and all(cc[1] and cc[0] not in ("", "rgba(0, 0, 0, 0)") for cc in st["cards"]), st)
+    # 側欄子項 ↔ 頁內分類分頁 同步
     pg.click(".l4subtab[data-l4sub=art-news]")
     wait_until(pg, "() => location.hash === '#articles/news'", 5000); pg.wait_for_timeout(300)
-    cs = cards(pg); n_news = len([a for a in idx if a["cat"] == "news"])
-    st = pg.evaluate("() => ({ tab: (document.querySelector('#artCats>button.on') || {}).dataset.cat, side: (document.querySelector('.l4subtab.on') || {}).dataset.l4sub })")
-    ok(f"{T}：點側欄「消息」→ #articles/news、頁內分頁亮消息、卡片全是消息（{n_news} 篇）",
+    cs = cards(pg); n_news = len([a for a in vis if a["cat"] == "news"])
+    st = pg.evaluate("() => ({ tab: (document.querySelector('#artCats>button.on') || {}).dataset.cat, side: (document.querySelector('.l4subtab.on') || {}).dataset.l4sub, col: getComputedStyle(document.querySelector('#artCats>button.on')).color })")
+    ok(f"{T}：點側欄「比比快訊」→ #articles/news、頁內分頁亮快訊（字變類別色）、卡片全是快訊（{n_news} 篇）",
        st["tab"] == "news" and st["side"] == "art-news" and len(cs) == n_news and all(x["cat"] == "news" for x in cs), [st, cs])
     pg.click("#artCats>button[data-cat=intro]")
     wait_until(pg, "() => location.hash === '#articles/intro'", 5000); pg.wait_for_timeout(300)
-    cs = cards(pg); n_intro = len([a for a in idx if a["cat"] == "intro"])
-    side = pg.evaluate("() => (document.querySelector('.l4subtab.on') || {}).dataset.l4sub")
-    ok(f"{T}：點頁內「介紹」→ 網址換、側欄改亮「介紹」、卡片全是介紹", side == "art-intro" and len(cs) == n_intro and all(x["cat"] == "intro" for x in cs), [side, cs])
+    cs = cards(pg); n_intro = len([a for a in vis if a["cat"] == "intro"])
+    st2 = pg.evaluate("() => ({ side: (document.querySelector('.l4subtab.on') || {}).dataset.l4sub, col: getComputedStyle(document.querySelector('#artCats>button.on')).color })")
+    ok(f"{T}：點頁內「比比產業鏈」→ 側欄改亮產業鏈、卡片全是產業鏈、選中分頁顏色跟快訊不同",
+       st2["side"] == "art-intro" and len(cs) == n_intro and all(x["cat"] == "intro" for x in cs) and st2["col"] != st["col"], [st2, st, cs])
     pg.click("#artCats>button[data-cat=all]")
     wait_until(pg, "() => location.hash === '#articles'", 5000); pg.wait_for_timeout(300)
-    side = pg.evaluate("() => (document.querySelector('.l4subtab[data-parent=articles].on') || {}).dataset")
-    ok(f"{T}：點「全部」→ 回 #articles、側欄三個子項都不亮、篇數回到 {n_all}", side is None and cnt(pg) == n_all, [side, cnt(pg)])
+    ok(f"{T}：點「全部文章」→ 回 #articles、篇數回到 {n_vis}", cnt(pg) == n_vis, cnt(pg))
     # ③ 關鍵字（只比對標題）
-    kw = "CoWoS" if any("cowos" in a["title"].lower() for a in idx) else idx[0]["title"][:2]
-    want = len([a for a in idx if kw.lower() in a["title"].lower()])
+    kw = "驗收用"
+    want = len([a for a in vis if kw in a["title"]])
     pg.click("#artQ"); pg.keyboard.type(kw, delay=30); pg.wait_for_timeout(250)
-    ok(f"{T}：打關鍵字「{kw}」→ 筆數即時變成 {want}（標題含這個字的篇數）、搜尋框外框換色", cnt(pg) == want and want != n_all and pg.evaluate("() => document.getElementById('artQ').classList.contains('chg')"), [cnt(pg), want])
+    ok(f"{T}：打關鍵字「{kw}」→ 筆數即時變成 {want}、搜尋框外框換色", cnt(pg) == want and want != n_vis and pg.evaluate("() => document.getElementById('artQ').classList.contains('chg')"), [cnt(pg), want])
     pg.fill("#artQ", "完全不存在的字zz"); pg.wait_for_timeout(250)
-    st = pg.evaluate("() => ({ n: document.querySelectorAll('#artList .artc').length, e: (document.getElementById('artEmpty') || {}).textContent || '' })")
-    ok(f"{T}：沒有符合 → 空狀態一行字（不是空白）、0 張卡", st["n"] == 0 and "沒有符合" in st["e"] and cnt(pg) == 0, st)
+    st = pg.evaluate("() => { const e = document.getElementById('artEmpty'); return { n: document.querySelectorAll('#artList .artc').length, e: e ? e.textContent : '', h: e ? Math.round(e.getBoundingClientRect().height) : 0, w: e ? Math.round(e.getBoundingClientRect().width) : 0, lw: Math.round(document.getElementById('artList').getBoundingClientRect().width) }; }")
+    ok(f"{T}：沒有符合 → 空狀態填滿清單區（寬＝清單寬、高 ≥ 280，不是一小格）、0 張卡", st["n"] == 0 and "沒有符合" in st["e"] and cnt(pg) == 0 and st["h"] >= 280 and st["w"] >= st["lw"] - 2, st)
     pg.click("#artEmpty [data-clr]"); pg.wait_for_timeout(250)
-    ok(f"{T}：按空狀態裡的「清除篩選」→ 回到 {n_all} 篇、搜尋框清空", cnt(pg) == n_all and pg.input_value("#artQ") == "", cnt(pg))
+    ok(f"{T}：按空狀態裡的「清除篩選」→ 回到 {n_vis} 篇、搜尋框清空", cnt(pg) == n_vis and pg.input_value("#artQ") == "", cnt(pg))
     # ④ 日期篩選
-    ds = sorted({a["date"] for a in idx})
-    d_from = ds[-1] if len(ds) > 1 else ds[0]
-    want_from = len([a for a in idx if a["date"] >= d_from])
-    pg.fill("#artFrom", d_from); pg.wait_for_timeout(250)
-    ok(f"{T}：設「從 {d_from}」→ 只剩 {want_from} 篇（日期 ≥ 那天）", cnt(pg) == want_from and all(x["date"] >= d_from for x in cards(pg)), [cnt(pg), cards(pg)])
-    pg.fill("#artFrom", ""); pg.fill("#artTo", ds[0]); pg.wait_for_timeout(250)
-    want_to = len([a for a in idx if a["date"] <= ds[0]])
-    ok(f"{T}：改成「到 {ds[0]}」→ 只剩 {want_to} 篇（日期 ≤ 那天）", cnt(pg) == want_to and all(x["date"] <= ds[0] for x in cards(pg)) and want_to != n_all, [cnt(pg), want_to])
+    pg.fill("#artFrom", OLD); pg.dispatch_event("#artFrom", "change"); pg.wait_for_timeout(250)
+    want_old = len([a for a in allx if OLD <= a["date"] <= D_TO])
+    st = pg.evaluate("() => ({ chg: document.getElementById('artFrom').classList.contains('chg'), rg: document.getElementById('artRange').dataset.from })")
+    ok(f"{T}：把「從」改成三個月前 {OLD} → 舊快訊出現、筆數 {n_vis} → {want_old}、外框換色、區間標示跟著變",
+       cnt(pg) == want_old and want_old > n_vis and any(x["id"] == "uitest-old-1016" for x in cards(pg)) and st["chg"] and st["rg"] == OLD, [cnt(pg), want_old, st])
+    pg.fill("#artTo", OLD); pg.dispatch_event("#artTo", "change"); pg.wait_for_timeout(250)
+    want_to = len([a for a in allx if a["date"] == OLD])
+    ok(f"{T}：再把「到」改成 {OLD} → 只剩那一天的 {want_to} 篇", cnt(pg) == want_to and all(x["date"] == OLD for x in cards(pg)), [cnt(pg), cards(pg)])
     pg.click("#artClr"); pg.wait_for_timeout(250)
-    ok(f"{T}：按「清除篩選」→ 回到 {n_all} 篇", cnt(pg) == n_all, cnt(pg))
-    # ⑤ 單篇
-    first = cards(pg)[0]
-    pg.click(f"#artList .artc[data-id='{first['id']}']")
-    wait_until(pg, "() => !!document.querySelector('#artPost .artttl')", 10000); pg.wait_for_timeout(300)
-    post = json.loads((SITE / "articles" / "posts" / (first["id"] + ".json")).read_text(encoding="utf-8"))
-    st = pg.evaluate("""() => { const P = document.getElementById('artPost'), q = (s) => [...P.querySelectorAll(s)];
-        return { h: location.hash, crumb: q('.artcrumb a').map(a => a.textContent.trim()), title: P.querySelector('.artttl').textContent,
-          blocks: P.querySelectorAll('#artBody > *').length, stk: q('.artstk a').map(a => a.getAttribute('href')),
-          links: q('#artLinks a').map(a => a.getAttribute('href')), src: q('#artSrc a').map(a => [a.target, a.rel]), srcN: q('#artSrc li').length,
-          disc: (P.querySelector('.artdisc') || {}).textContent || '', side: (document.querySelector('.l4subtab.on') || {}).dataset ? document.querySelector('.l4subtab.on').dataset.l4sub : null,
-          sw: document.documentElement.scrollWidth - innerWidth }; }""")
-    cat_t = {"news": "消息", "intro": "介紹", "know": "知識"}[post["cat"]]
-    nstk = sum(len(bk.get("items", [])) for bk in post["blocks"] if bk.get("t") == "stocks")
-    ok(f"{T}：點卡片 → #article/{first['id']}、麵包屑「精選文章 › {cat_t}」、標題＝文章標題", st["h"] == "#article/" + first["id"] and st["crumb"] == ["精選文章", cat_t] and st["title"] == post["title"], st)
-    ok(f"{T}：內文區塊都畫出來（{len(post['blocks'])} 塊）、相關台股 {nstk} 張連到 #stock/<代號>",
-       st["blocks"] >= len(post["blocks"]) - 1 and len(st["stk"]) == nstk and all(h.startswith("#stock/") for h in st["stk"]), st)
-    ok(f"{T}：站內相關頁面 {len(post['site_links'])} 個、資料來源 {len(post['sources'])} 筆（外部連結開新分頁＋noopener）、文末免責",
-       len(st["links"]) == len(post["site_links"]) and st["srcN"] == len(post["sources"]) and st["src"] and all(t == "_blank" and "noopener" in r for t, r in st["src"]) and "不構成" in st["disc"], st)
-    ok(f"{T}：單篇頁側欄亮它的類別（art-{post['cat']}）、沒有橫向捲軸", st["side"] == "art-" + post["cat"] and st["sw"] <= 0, st)
-    srcd = pg.evaluate("() => [...document.querySelectorAll('#artSrc li')].map(l => l.textContent)")
-    ok(f"{T}：來源日期是空字串的那幾筆不留空括號或多餘逗號", not any("（）" in x or "，）" in x or "（，" in x for x in srcd), srcd)
-    pg.click(f".artcrumb a[href='#articles/{post['cat']}']")
-    wait_until(pg, f"() => location.hash === '#articles/{post['cat']}' && document.querySelectorAll('#artList .artc').length > 0", 6000)
-    ok(f"{T}：點麵包屑「{cat_t}」→ 回清單、只剩{cat_t}", all(x["cat"] == post["cat"] for x in cards(pg)) and len(cards(pg)) > 0, cards(pg))
-    # ⑥ 純文字
+    ok(f"{T}：按「清除篩選」→ 日期回到預設 {D_FROM}～{D_TO}、篇數回到 {n_vis}",
+       cnt(pg) == n_vis and pg.input_value("#artFrom") == D_FROM and pg.input_value("#artTo") == D_TO, [cnt(pg), pg.input_value("#artFrom"), pg.input_value("#artTo")])
+    # ⑤ 族群篩選
+    pg.click("#artGrp .twms-btn"); wait_until(pg, "() => !!document.querySelector('.twms-pan[data-ms=artGroups]')", 4000)
+    gopts = pg.evaluate("() => [...document.querySelectorAll('.twms-pan[data-ms=artGroups] input[type=checkbox]')].map(c => c.dataset.v)")
+    want_ids = sorted({g["id"] for a in allx for g in (a.get("groups") or [])})
+    ok(f"{T}：族群下拉列出所有文章出現過的族群（{len(want_ids)} 個）", sorted(gopts) == want_ids, [gopts, want_ids])
+    pg.check(".twms-pan[data-ms=artGroups] input[data-v=zz_test_grp]"); pg.wait_for_timeout(250)
+    want_g = len([a for a in vis if any(g["id"] == "zz_test_grp" for g in (a.get("groups") or []))])
+    st = pg.evaluate("() => ({ btn: document.querySelector('#artGrp .twms-btn').textContent })")
+    ok(f"{T}：勾「測試族群」→ 只剩含這個族群的 {want_g} 篇、按鈕寫測試族群", cnt(pg) == want_g and want_g < n_vis and all("zz_test_grp" in (x["g"] or "").split() for x in cards(pg)) and "測試族群" in st["btn"], [cnt(pg), st])
+    pg.keyboard.press("Escape"); pg.click("#artClr"); pg.wait_for_timeout(250)
+    ok(f"{T}：清除篩選 → 族群回到不限、{n_vis} 篇", cnt(pg) == n_vis and "不限" in pg.evaluate("() => document.querySelector('#artGrp .twms-btn').textContent"), cnt(pg))
+    pg.click(".artside .gps button[data-gid=foundry]"); pg.wait_for_timeout(250)
+    want_f = len([a for a in vis if any(g["id"] == "foundry" for g in (a.get("groups") or []))])
+    ok(f"{T}：右側「熱門族群」點晶圓代工 → 只剩 {want_f} 篇、下拉按鈕同步寫晶圓代工", cnt(pg) == want_f and "晶圓代工" in pg.evaluate("() => document.querySelector('#artGrp .twms-btn').textContent"), cnt(pg))
+    pg.click("#artClr"); pg.wait_for_timeout(250)
+    # 800 寬兩欄
+    pg.set_viewport_size({"width": 800, "height": 900}); pg.wait_for_timeout(500)
+    st = pg.evaluate("() => ({ cols: getComputedStyle(document.getElementById('artList')).gridTemplateColumns.split(' ').length, sw: document.documentElement.scrollWidth - innerWidth })")
+    ok(f"{T}：800 寬 → 卡片兩欄、沒有橫向捲軸", st["cols"] == 2 and st["sw"] <= 0, st)
+    pg.set_viewport_size({"width": 1440, "height": 900}); pg.wait_for_timeout(400)
+    # ⑥ 單篇（真文章）＋返回
+    r0 = sorted([a for a in vis if a in real], key=lambda a: a["date"], reverse=True)
+    first = r0[0] if r0 else None
+    if first:
+        pg.click(f"#artList .artc[data-id='{first['id']}']")
+        wait_until(pg, "() => !!document.querySelector('#artPost .artttl')", 10000); pg.wait_for_timeout(400)
+        post = json.loads((SITE / "articles" / "posts" / (first["id"] + ".json")).read_text(encoding="utf-8"))
+        st = pg.evaluate("""() => { const P = document.getElementById('artPost'), q = (s) => [...P.querySelectorAll(s)];
+            return { h: location.hash, crumb: q('.artcrumb a').map(a => a.textContent.trim()), title: P.querySelector('.artttl').textContent,
+              blocks: P.querySelectorAll('#artBody > *').length, stk: q('.artstk a').map(a => a.getAttribute('href')),
+              links: q('#artLinks a').map(a => a.getAttribute('href')), src: q('#artSrc a').map(a => [a.target, a.rel]), srcN: q('#artSrc li').length,
+              disc: (P.querySelector('.artdisc') || {}).textContent || '', side: document.querySelector('.l4subtab.on') ? document.querySelector('.l4subtab.on').dataset.l4sub : null,
+              back: !!document.getElementById('artBack'), end: (document.getElementById('artEnd') || {}).getAttribute ? document.getElementById('artEnd').getAttribute('href') : null,
+              sw: document.documentElement.scrollWidth - innerWidth }; }""")
+        nstk = sum(len(bk.get("items", [])) for bk in post["blocks"] if bk.get("t") == "stocks")
+        ok(f"{T}：點卡片 → #article/{first['id']}、最上方有「← 返回」、麵包屑「精選文章 › {CN[post['cat']]}」、標題＝文章標題",
+           st["h"] == "#article/" + first["id"] and st["back"] and st["crumb"] == ["精選文章", CN[post["cat"]]] and st["title"] == post["title"], st)
+        ok(f"{T}：內文區塊都畫出來（{len(post['blocks'])} 塊）、相關台股 {nstk} 張連到 #stock/<代號>",
+           st["blocks"] >= len(post["blocks"]) - 1 and len(st["stk"]) == nstk and all(h.startswith("#stock/") for h in st["stk"]), st)
+        ok(f"{T}：站內相關頁面、資料來源（外部連結開新分頁＋noopener）、文末免責與「回到清單」（#articles/{post['cat']}）",
+           len(st["links"]) == len(post.get("site_links", [])) and st["srcN"] == len(post.get("sources", [])) and all(t == "_blank" and "noopener" in r for t, r in st["src"]) and "不構成" in st["disc"]
+           and st["end"] == "#articles/" + post["cat"], st)
+        ok(f"{T}：單篇頁側欄亮它的類別（art-{post['cat']}）、沒有橫向捲軸", st["side"] == "art-" + post["cat"] and st["sw"] <= 0, st)
+        nfig = len([bk for bk in post["blocks"] if bk.get("t") in ("chart", "flow", "stack", "kpi")])
+        got = pg.evaluate("() => document.querySelectorAll('#artBody .artchart, #artBody .artflow, #artBody .artstack, #artBody .artkpi').length")
+        ok(f"{T}：這篇的 {nfig} 個圖表／示意圖／數字卡區塊都畫出來", got == nfig, [got, nfig])
+        pg.click("#artBack")
+        wait_until(pg, "() => location.hash === '#articles' && document.querySelectorAll('#artList .artc').length > 0", 6000)
+        ok(f"{T}：按「← 返回」（從清單點進來的）→ 回到上一頁 #articles 清單", pg.evaluate("() => location.hash") == "#articles", pg.evaluate("() => location.hash"))
+    # ⑦ 新區塊（假文章，直接開網址 → 返回走類別清單）
+    p2 = c.new_page()
+    p2.goto(base + "#article/uitest-full-1016", wait_until="domcontentloaded")
+    wait_until(p2, "() => !!document.querySelector('#artPost .artttl') && document.querySelectorAll('#artBody .artchart canvas').length >= 5", 15000); p2.wait_for_timeout(600)
+    BLK = """() => { const P = document.getElementById('artBody'), R = (e) => e.getBoundingClientRect();
+        const hit = (a, b) => { const x = R(a), y = R(b); return !(x.right <= y.left + 0.5 || y.right <= x.left + 0.5 || x.bottom <= y.top + 0.5 || y.bottom <= x.top + 0.5); };
+        const pairs = (els) => { let n = 0; for (let i = 0; i < els.length; i++) for (let j = i + 1; j < els.length; j++) if (hit(els[i], els[j])) n++; return n; };
+        const kd = [...P.querySelectorAll('.artkpi .akd')].map(e => [e.className, getComputedStyle(e).color]);
+        const cs = getComputedStyle(document.documentElement);
+        return { kpi: P.querySelectorAll('.artkpi .akc').length, kd, rise: cs.getPropertyValue('--rise').trim(), fall: cs.getPropertyValue('--fall').trim(),
+          charts: [...P.querySelectorAll('.artchart')].map(f => { const cv = f.querySelector('canvas'); return [f.dataset.kind, cv ? Math.round(R(cv).width) : 0, cv ? Math.round(R(cv).height) : 0, !!echarts.getInstanceByDom(f.querySelector('.cv'))]; }),
+          edges: +((P.querySelector('.artflow') || {}).dataset || {}).edges, paths: P.querySelectorAll('.artflow svg.fe path').length,
+          nodes: P.querySelectorAll('.artflow .fnd').length, nodeHit: pairs([...P.querySelectorAll('.artflow .fnd, .artflow .fch')]),
+          codes: [...P.querySelectorAll('.artflow .fcodes a')].map(a => a.getAttribute('href')),
+          layers: P.querySelectorAll('.artstack .skr').length, segs: P.querySelectorAll('.artstack .sks').length, lblHit: pairs([...P.querySelectorAll('.artstack .skl')]),
+          segBg: [...P.querySelectorAll('.artstack .sks')].map(s => getComputedStyle(s).backgroundImage.slice(0, 40)),
+          leadOk: [...P.querySelectorAll('.artstack .skr')].every(r => { const b = R(r.querySelector('.skb')), l = R(r.querySelector('.skl')); return b.right <= l.left + 1; }),
+          sw: document.documentElement.scrollWidth - innerWidth }; }"""
+    st = p2.evaluate(BLK)
+    rgb = lambda h: "rgb(%d, %d, %d)" % tuple(int(h.lstrip("#")[i:i + 2], 16) for i in (0, 2, 4)) if h.startswith("#") and len(h) == 7 else h
+    ok(f"{T}：kpi 三張數字卡；「+」開頭紅（漲）、「-」開頭綠（跌）",
+       st["kpi"] == 3 and len(st["kd"]) == 2 and "up" in st["kd"][0][0] and st["kd"][0][1] == rgb(st["rise"]) and "dn" in st["kd"][1][0] and st["kd"][1][1] == rgb(st["fall"]), st)
+    ok(f"{T}：chart 五種（barline／bar／line／hbar／range）都畫出 ECharts 畫布（寬高 > 100）",
+       [x[0] for x in st["charts"]] == ["barline", "bar", "line", "hbar", "range"] and all(x[1] > 100 and x[2] > 100 and x[3] for x in st["charts"]), st["charts"])
+    ok(f"{T}：flow 關係圖 5 個節點、5 條線（指到不存在節點的那條不畫）、節點與欄標題兩兩不重疊、代號膠囊連到個股頁",
+       st["nodes"] == 5 and st["edges"] == 5 and st["paths"] == 5 and st["nodeHit"] == 0 and "#stock/2330" in st["codes"] and len(st["codes"]) == 4, st)
+    ok(f"{T}：stack 剖面圖 3 層、第一層拆 2 片（共 4 片色塊、都有底色）、右側說明不重疊、疊層在說明左邊",
+       st["layers"] == 3 and st["segs"] == 4 and all("gradient" in s for s in st["segBg"]) and st["lblHit"] == 0 and st["leadOk"], st)
+    # 滑過：每張圖都要出提示框，而且寫的是系列名
+    tips = []
+    for i, nm in enumerate(["月營收", "功耗", "毛利率", "家數", "月產能"]):
+        el = p2.locator("#artBody .artchart .cv").nth(i)
+        el.scroll_into_view_if_needed(); p2.wait_for_timeout(200)
+        bb = el.bounding_box()
+        hitn = False
+        for fx, fy in ((0.5, 0.55), (0.72, 0.5), (0.35, 0.45), (0.6, 0.35)):
+            p2.mouse.move(bb["x"] + bb["width"] * fx, bb["y"] + bb["height"] * fy); p2.wait_for_timeout(250)
+            t = p2.evaluate("() => [...document.body.children].filter(d => (d.getAttribute('style') || '').includes('9999999') && getComputedStyle(d).display !== 'none' && getComputedStyle(d).visibility !== 'hidden' && +getComputedStyle(d).opacity > 0.5).map(d => d.textContent).join('|')")
+            if nm in t:
+                hitn = True; break
+        tips.append([nm, hitn])
+        p2.mouse.move(2, 2); p2.wait_for_timeout(150)
+    ok(f"{T}：五張圖滑過都跳出提示框、內容寫系列名與數值", all(h for _, h in tips), tips)
+    # 關係圖滑過節點：相連的線亮起來
+    p2.locator("#artBody .artflow .fnd[data-nid=c]").hover(); p2.wait_for_timeout(200)
+    hv = p2.evaluate("() => ({ hov: document.querySelector('.artflow .fl').classList.contains('hov'), on: document.querySelectorAll('.artflow svg.fe g.on').length })")
+    ok(f"{T}：滑過關係圖節點「晶圓代工」→ 跟它相連的 4 條線亮起來", hv["hov"] and hv["on"] == 4, hv)
+    p2.click("#artBack")
+    wait_until(p2, "() => location.hash === '#articles/know' && document.querySelectorAll('#artList .artc').length > 0", 6000)
+    ok(f"{T}：直接開網址的文章按「← 返回」→ 回該類別清單 #articles/know", p2.evaluate("() => location.hash") == "#articles/know", p2.evaluate("() => location.hash"))
+    p2.goto(base + "#article/uitest-full-1016"); wait_until(p2, "() => !!document.getElementById('artEnd')", 8000)
+    p2.click("#artEnd"); wait_until(p2, "() => location.hash === '#articles/know'", 5000)
+    ok(f"{T}：文末「回到比比知識清單」→ #articles/know", p2.evaluate("() => location.hash") == "#articles/know", p2.evaluate("() => location.hash"))
+    p2.close()
+    # ⑧ 純文字
     pg.goto(base + "#article/xss-test"); wait_until(pg, "() => !!document.querySelector('#artPost .artttl')", 8000); pg.wait_for_timeout(500)
-    st = pg.evaluate("""() => { const P = document.getElementById('artPost'); return { flag: !!window.__artXss, tags: P.querySelectorAll('#artBody b:not(.artstk .h b), #artBody img, #artBody script, .artttl img, .artsub b, .arttags i, .artstk u').length,
+    st = pg.evaluate("""() => { const P = document.getElementById('artPost'); return { flag: !!window.__artXss,
+        tags: P.querySelectorAll('#artBody b:not(.artstk .h b):not(.fnd>b):not(.fcodes b):not(.skl b):not(.akv b), #artBody img, #artBody script, .artttl img, .artsub b, .arttags i, .artstk u, .artgps b, .artgps img').length,
         txt: P.querySelector('#artBody p').textContent, title: P.querySelector('.artttl').textContent, stk: [...P.querySelectorAll('.artstk a')].map(a => a.getAttribute('href')),
+        codes: [...P.querySelectorAll('.fcodes a')].map(a => a.getAttribute('href')), node: (P.querySelector('.fnd>b') || {}).textContent,
         js: [...P.querySelectorAll('a')].filter(a => /^javascript:/i.test(a.getAttribute('href') || '')).length }; }""")
-    ok(f"{T}：文章內容當純文字 —— <b>／<img onerror> 原樣顯示、DOM 沒多出標籤、onerror 沒執行、壞代號不畫、javascript: 不變連結",
-       not st["flag"] and st["tags"] == 0 and "<b>不該變粗</b>" in st["txt"] and "<img" in st["title"] and st["stk"] == ["#stock/2330"] and st["js"] == 0, st)
-    # ⑦ 讀不到
+    ok(f"{T}：文章內容（含 kpi／flow／stack／族群）當純文字 —— HTML 原樣顯示、DOM 沒多出標籤、onerror 沒執行、壞代號不畫、javascript: 不變連結",
+       not st["flag"] and st["tags"] == 0 and "<b>不該變粗</b>" in st["txt"] and "<img" in st["title"] and st["stk"] == ["#stock/2330"] and st["codes"] == ["#stock/2330"]
+       and st["node"] == "<b>節點</b>" and st["js"] == 0, st)
     pg.goto(base + "#article/no-such-post-1014"); wait_until(pg, "() => !!document.getElementById('artErr')", 8000)
     st = pg.evaluate("() => ({ t: (document.getElementById('artErr') || {}).textContent || '', a: !!document.querySelector('#artErr a[href=\"#articles\"]') })")
     ok(f"{T}：讀不到的文章 → 白話錯誤＋「回精選文章清單」連結", "讀不到" in st["t"] and st["a"], st)
     if os.environ.get("TW_ART_SHOTS"):
         sd = Path(os.environ["TW_ART_SHOTS"]); sd.mkdir(parents=True, exist_ok=True)
-        pg.goto(base + "#articles"); wait_until(pg, "() => document.querySelectorAll('#artList .artc').length > 0", 8000); pg.wait_for_timeout(600)
+        pg.goto(base + "#articles"); wait_until(pg, "() => document.querySelectorAll('#artList .artc').length > 0", 8000); pg.wait_for_timeout(800)
         pg.screenshot(path=str(sd / "list-1440.png"))
-        pg.goto(base + "#article/" + first["id"]); wait_until(pg, "() => !!document.querySelector('#artPost .artttl')", 8000); pg.wait_for_timeout(600)
-        pg.screenshot(path=str(sd / "post-1440.png"), full_page=True)
+        pg.goto(base + "#article/uitest-full-1016"); wait_until(pg, "() => !!document.querySelector('#artPost .artttl')", 8000); pg.wait_for_timeout(800)
+        pg.screenshot(path=str(sd / "post-blocks-1440.png"), full_page=True)
     c.close()
-    # ⑧ 手機 390（觸控）
+    # ⑨ 手機 390（觸控）
     m = b.new_context(viewport={"width": 390, "height": 844}, device_scale_factor=2, is_mobile=True, has_touch=True)
     m.add_init_script("try{localStorage.setItem('tw.live.on','0')}catch(e){}")
-    m.route("**/fonts.googleapis.com/**", lambda r: r.abort())
+    prep(m)
     mp = m.new_page()
     mp.goto(base + "#overview", wait_until="domcontentloaded"); wait_until(mp, "() => !!document.getElementById('m4Burger')", 15000); mp.wait_for_timeout(800)
     mp.locator("#m4Burger").tap(); mp.wait_for_timeout(500)
@@ -71515,27 +71673,45 @@ def t_articles_1014(b, base):
     wait_until(mp, "() => document.querySelectorAll('#artList .artc').length > 0", 10000); mp.wait_for_timeout(500)
     MSTAT = """() => { const vis = (e) => { const r = e.getBoundingClientRect(); return r.width > 0 && r.height > 0; };
         const v = document.getElementById('v-articles'); const tiny = [...v.querySelectorAll('*')].filter(e => vis(e) && [...e.childNodes].some(n => n.nodeType === 3 && n.textContent.trim()) && parseFloat(getComputedStyle(e).fontSize) < 11).map(e => e.textContent.trim().slice(0, 20));
-        const p = v.querySelector('#artBody p'); return { h: location.hash, m4: document.documentElement.classList.contains('m4'), sw: document.documentElement.scrollWidth - innerWidth, tiny, pfs: p ? parseFloat(getComputedStyle(p).fontSize) : null, n: v.querySelectorAll('.artc').length }; }"""
+        const p = v.querySelector('#artBody > p'); const L = document.getElementById('artList');
+        const tabs = [...document.querySelectorAll('#artCats>button')].map(b => { const r = b.getBoundingClientRect(); return [Math.round(r.left), Math.round(r.right), b.scrollWidth <= b.clientWidth + 1]; });
+        return { h: location.hash, m4: document.documentElement.classList.contains('m4'), sw: document.documentElement.scrollWidth - innerWidth, tiny, pfs: p ? parseFloat(getComputedStyle(p).fontSize) : null,
+          n: v.querySelectorAll('.artc').length, cols: L ? getComputedStyle(L).gridTemplateColumns.split(' ').length : 0, tabs }; }"""
     st = mp.evaluate(MSTAT)
-    ok(f"{T}：手機點抽屜「精選文章」→ #articles 清單 {n_all} 篇、沒有橫向捲軸、沒有 < 11px 的字", st["h"] == "#articles" and st["m4"] and st["n"] == n_all and st["sw"] <= 0 and not st["tiny"], st)
+    ok(f"{T}：手機點抽屜「精選文章」→ #articles 清單 {n_vis} 篇、一欄、四個分類分頁都在畫面內、沒有橫向捲軸、沒有 < 11px 的字",
+       st["h"] == "#articles" and st["m4"] and st["n"] == n_vis and st["cols"] == 1 and st["sw"] <= 0 and not st["tiny"] and all(t[0] >= 0 and t[1] <= 390 for t in st["tabs"]), st)
     mp.locator("#artCats>button[data-cat=know]").tap(); wait_until(mp, "() => location.hash === '#articles/know'", 5000); mp.wait_for_timeout(300)
-    ok(f"{T}：手機頁內分類分頁點得動（知識）", all(x["cat"] == "know" for x in cards(mp)) and len(cards(mp)) > 0, cards(mp))
-    mp.locator("#artList .artc").first.tap()
-    wait_until(mp, "() => !!document.querySelector('#artPost .artttl')", 10000); mp.wait_for_timeout(500)
+    ok(f"{T}：手機頁內分類分頁點得動（比比知識）", all(x["cat"] == "know" for x in cards(mp)) and len(cards(mp)) > 0, cards(mp))
+    mp.locator("#artList .artc[data-id='uitest-full-1016']").tap()
+    wait_until(mp, "() => !!document.querySelector('#artPost .artttl') && document.querySelectorAll('#artBody .artchart canvas').length >= 5", 12000); mp.wait_for_timeout(800)
     st = mp.evaluate(MSTAT)
-    ok(f"{T}：手機單篇：一欄、內文 ≥ 15px（{st['pfs']}）、沒有橫向捲軸、沒有 < 11px 的字", st["pfs"] and st["pfs"] >= 15 and st["sw"] <= 0 and not st["tiny"], st)
+    ok(f"{T}：手機單篇：內文 ≥ 15px（{st['pfs']}）、沒有橫向捲軸、沒有 < 11px 的字", st["pfs"] and st["pfs"] >= 15 and st["sw"] <= 0 and not st["tiny"], st)
+    st2 = mp.evaluate(BLK)
+    fl = mp.evaluate("""() => { const cols = [...document.querySelectorAll('.artflow .fcol')].map(c => c.getBoundingClientRect());
+        const k = getComputedStyle(document.querySelector('.artkpi')).gridTemplateColumns.split(' ').length;
+        const over = [...document.querySelectorAll('#artBody .artfig, #artBody .artkpi, #artBody .artchart canvas')].filter(e => e.getBoundingClientRect().right > innerWidth + 0.5).length;
+        return { stacked: cols.length > 1 && cols[1].top >= cols[0].bottom - 1, kpiCols: k, over }; }""")
+    ok(f"{T}：手機 kpi 兩欄、五張圖都畫出且不超出螢幕、關係圖改成由上到下且線照畫、節點與剖面說明不重疊",
+       fl["kpiCols"] == 2 and fl["over"] == 0 and fl["stacked"] and st2["edges"] == 5 and st2["nodeHit"] == 0 and st2["lblHit"] == 0
+       and all(x[1] > 100 and x[2] > 100 for x in st2["charts"]), [fl, st2])
+    el = mp.locator("#artBody .artchart .cv").first
+    el.scroll_into_view_if_needed(); mp.wait_for_timeout(200); bb = el.bounding_box()
+    mp.touchscreen.tap(bb["x"] + bb["width"] * 0.6, bb["y"] + bb["height"] * 0.6); mp.wait_for_timeout(400)
+    t = mp.evaluate("() => [...document.body.children].filter(d => (d.getAttribute('style') || '').includes('9999999') && getComputedStyle(d).display !== 'none' && +getComputedStyle(d).opacity > 0.5).map(d => d.textContent).join('|')")
+    ok(f"{T}：手機手指點圖 → 跳出提示框（寫月營收）", "月營收" in t, t)
     if os.environ.get("TW_ART_SHOTS"):
         sd = Path(os.environ["TW_ART_SHOTS"])
-        mp.screenshot(path=str(sd / "post-390.png"))
+        mp.screenshot(path=str(sd / "post-blocks-390.png"), full_page=True)
         mp.goto(base + "#articles"); wait_until(mp, "() => document.querySelectorAll('#artList .artc').length > 0", 8000); mp.wait_for_timeout(600)
         mp.screenshot(path=str(sd / "list-390.png"))
     m.close()
-    # ⑨ 管理區
+    # ⑩ 管理區
     ac, _ = _acctm4_ctx(b, "admin", desk=True)
     ap = ac.new_page()
     ap.goto(base + "#admin/articles", wait_until="domcontentloaded")
     wait_until(ap, "() => document.querySelectorAll('#artAdmList tbody tr[data-id]').length > 0 && document.querySelectorAll('#artTpBody tr[data-tid]').length > 0", 15000)
     ap.wait_for_timeout(500)
+    n_all = len(real)
     st = ap.evaluate("""() => { const rows = [...document.querySelectorAll('#artAdmList tbody tr[data-id]')];
         return { n: rows.length, btn: rows.map(r => [...r.querySelectorAll('button')].map(b => [b.textContent.trim(), b.disabled])), small: rows.map(r => (r.querySelector('td.act small') || {}).textContent),
           side: !!document.querySelector('.l4subtab[data-adm=articles].on'), sideT: (document.querySelector('.l4subtab[data-adm=articles]') || {}).textContent || '' }; }""")
@@ -71550,7 +71726,7 @@ def t_articles_1014(b, base):
     ok(f"{T}：主題候選 {len(tops)} 筆全列出、分數高 → 低", len(rows) == len(tops) and [r["s"] for r in rows] == sorted([r["s"] for r in rows], reverse=True), rows[:8])
     ap.click("#artTpCats>button[data-cat=know]"); ap.wait_for_timeout(250)
     rows = ap.evaluate(TP); want = len([t for t in tops if t.get("cat") == "know"])
-    ok(f"{T}：切「知識」→ 只剩知識 {want} 筆", len(rows) == want and all(r["c"] == "知識" for r in rows) and want != len(tops), rows)
+    ok(f"{T}：切「比比知識」→ 只剩知識 {want} 筆", len(rows) == want and all(r["c"] == "比比知識" for r in rows) and want != len(tops), rows)
     ap.click("#artTpSort"); ap.wait_for_timeout(250)
     rows = ap.evaluate(TP)
     ok(f"{T}：按排序鈕 → 分數低 → 高", [r["s"] for r in rows] == sorted([r["s"] for r in rows]) and len(rows) == want, rows)
