@@ -18,6 +18,7 @@
    ============================================================================ */
 (function () {
   'use strict';
+  const ECPAY_OPEN = false;   // 2026-10-16 綠界審核中：結帳面板綠界分頁反灰、預設銀行轉帳；審核通過改 true
   const T = () => window.TwSub;
   const A = () => window.TwAccount || null;
   const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
@@ -52,6 +53,8 @@
 #subDlg .codlg .cotabs button small{display:block;font-size:11.5px;color:var(--ink-3,var(--ink-2));font-weight:400}
 #subDlg .codlg .cotabs button[aria-selected=true]{background:var(--cyan);color:#04121a;font-weight:700}
 #subDlg .codlg .cotabs button[aria-selected=true] small{color:#04121a}
+#subDlg .codlg .cotabs button:disabled{opacity:.45;cursor:not-allowed;background:repeating-linear-gradient(135deg,transparent 0 6px,color-mix(in srgb,var(--ink-2) 10%,transparent) 6px 12px)}
+#subDlg .codlg .cotabs button:disabled small{color:var(--amber)}
 #subDlg .codlg .coopt{display:flex;gap:10px;align-items:flex-start;border:1px solid var(--line-2);border-radius:10px;padding:10px 12px;margin:0 0 8px;cursor:pointer;color:var(--ink);font-size:14px}
 #subDlg .codlg .coopt:has(input:checked){border-color:var(--cyan);background:color-mix(in srgb,var(--cyan) 8%,transparent)}
 #subDlg .codlg .coopt input{margin-top:3px;flex:none}
@@ -173,15 +176,18 @@ html.pay-renew #acctBtn.ame::after{content:'';position:absolute;top:2px;right:2p
       box.innerHTML = `<div class="cohd"><b>結帳</b><span class="sp"></span><button type="button" data-close aria-label="關閉">×</button></div><div class="cobd"><p>${!qm ? '連不到會員伺服器，請稍後再試。' : e === 'no_price' ? '這個方案還沒有線上價格，請從右下角「客服」聯絡我們。' : e === 'auth' ? '登入已過期，請重新登入。' : '讀不到價格（' + esc((qm && qm._s) || '') + '）'}</p></div>`;
       return;
     }
-    const st = { per, tab: p.tab === 'bank' ? 'bank' : 'ecpay', kind: 'recur', oid: '', bankOrder: null };
+    /* 2026-10-16（Andy：「綠界那頁先反色 並註明等審核」）：綠界還在審核 → 綠界分頁反灰不能點、標「審核中」，一律直接開銀行轉帳。
+       審核通過後把 ECPAY_OPEN 改成 true 就恢復（驗收段用 window.TW_ECPAY_OPEN 打開，好繼續測綠界流程）。*/
+    const ecOpen = ECPAY_OPEN || window.TW_ECPAY_OPEN === true;
+    const st = { per, tab: p.tab === 'bank' || !ecOpen ? 'bank' : 'ecpay', kind: 'recur', oid: '', bankOrder: null };
     const base = Q[per];
-    box.innerHTML = `<div class="cohd"><b id="coName">${esc(nameOf(base))}</b>${base.test ? '<span class="cotest" title="綠界金鑰還沒設定：付款會走綠界測試環境，不會真的扣款">測試模式</span>' : ''}<span class="sp"></span><button type="button" data-close aria-label="關閉">×</button></div>
+    box.innerHTML = `<div class="cohd"><b id="coName">${esc(nameOf(base))}</b>${base.test && ecOpen ? '<span class="cotest" title="綠界金鑰還沒設定：付款會走綠界測試環境，不會真的扣款">測試模式</span>' : ''}<span class="sp"></span><button type="button" data-close aria-label="關閉">×</button></div>
       <div class="cobd">
         <div class="cosum"><span>方案</span><div>${esc(nameOf(base))}</div>
           <span>週期</span><div><div class="seg" id="coPer">${Q.month ? `<button type="button" data-per="month"${Q.month.blocked ? ' disabled title="' + esc(Q.month.blockedMsg) + '"' : ''}>月繳</button>` : ''}${Q.year ? `<button type="button" data-per="year"${Q.year.blocked ? ' disabled title="' + esc(Q.year.blockedMsg) + '"' : ''}>年繳</button>` : ''}</div>${(Q.month && Q.month.blocked) || (Q.year && Q.year.blocked) ? `<small class="muted" style="display:block;margin-top:4px">${esc((Q.month && Q.month.blockedMsg) || (Q.year && Q.year.blockedMsg))}</small>` : ''}</div>
           <span>金額</span><div class="amt" id="coAmt"></div>
           <span>訂單編號</span><div><code id="coOid">選擇付款方式後產生</code></div></div>
-        <div class="cotabs" role="tablist" aria-label="付款方式"><button type="button" role="tab" id="coTabE" data-tab="ecpay">信用卡／ATM／超商<small>綠界 ECPay</small></button><button type="button" role="tab" id="coTabB" data-tab="bank">銀行轉帳<small>預付制・人工確認</small></button></div>
+        <div class="cotabs" role="tablist" aria-label="付款方式"><button type="button" role="tab" id="coTabE" data-tab="ecpay"${ecOpen ? '' : ' disabled aria-disabled="true" title="綠界金流審核中，暫時請用銀行轉帳"'}>信用卡／ATM／超商<small>${ecOpen ? '綠界 ECPay' : '綠界審核中・暫停使用'}</small></button><button type="button" role="tab" id="coTabB" data-tab="bank">銀行轉帳<small>預付制・人工確認</small></button></div>
         <div id="coPaneE" role="tabpanel" aria-labelledby="coTabE">
           <label class="coopt"><input type="radio" name="coKind" value="recur"><span><b id="coRecurT"></b><small id="coRecurS"></small></span></label>
           <label class="coopt"><input type="radio" name="coKind" value="once"><span><b>單次付款（信用卡／ATM／超商）</b><small>付一期就好，不會自動續扣；到期前網站會提醒你續訂</small></span></label>
@@ -214,7 +220,7 @@ html.pay-renew #acctBtn.ame::after{content:'';position:absolute;top:2px;right:2p
     box.querySelectorAll('#coPer button').forEach((b) => { b.onclick = () => { if (st.per === b.dataset.per) return; st.per = b.dataset.per; st.bankOrder = null; if (st.tab === 'bank') bankPane(); sync(); }; });
     box.querySelectorAll('input[name=coKind]').forEach((r) => { r.onchange = () => { st.kind = r.value; sync(); }; });
     $('#coRenew').onchange = sync; $('#coAgree').onchange = sync;
-    box.querySelectorAll('.cotabs button').forEach((b) => { b.onclick = () => { st.tab = b.dataset.tab; if (st.tab === 'bank' && !st.bankOrder) bankPane(); sync(); }; });
+    box.querySelectorAll('.cotabs button').forEach((b) => { b.onclick = () => { if (b.disabled) return; st.tab = b.dataset.tab; if (st.tab === 'bank' && !st.bankOrder) bankPane(); sync(); }; });
     $('#coGoE').onclick = async () => {
       const btn = $('#coGoE'); btn.disabled = true; msg('建立訂單中…');
       const j = await call('/v1/pay/ecpay/create', { plan, period: st.per, recur: st.kind === 'recur', back: location.origin + location.pathname, ...consent() });

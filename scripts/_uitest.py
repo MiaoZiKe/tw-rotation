@@ -60294,9 +60294,9 @@ def t_trial_grants_1009(b, base):
         if not ok(f"{T}：本機 account-api（devserver）起得來", up):
             return
 
-        def new_ctx(width=1440, tok=None):
+        def new_ctx(width=1440, tok=None, ecopen=True):
             c = b.new_context(viewport={"width": width, "height": 900 if width > 640 else 844}, has_touch=width <= 640, is_mobile=width <= 640)
-            c.add_init_script("window.TW_ACCOUNT_OVERRIDE = " + json.dumps({"api": api}) + ";")
+            c.add_init_script("window.TW_ACCOUNT_OVERRIDE = " + json.dumps({"api": api}) + ";" + ("window.TW_ECPAY_OPEN = true;" if ecopen else ""))   # 10-16 綠界審核中：正式站反灰，這段要測綠界流程所以打開
             if tok:
                 c.add_init_script("try{localStorage.setItem('tw.acct.tok'," + json.dumps(tok) + ")}catch(e){}")
             c.route("**/fonts.googleapis.com/**", lambda r: r.abort())
@@ -70737,9 +70737,9 @@ def t_pay_1011(b, base):
         if not ok(f"{T}：本機 account-api（devserver＋假綠界）起得來", up):
             return
 
-        def new_ctx(width=1440, tok=None):
+        def new_ctx(width=1440, tok=None, ecopen=True):
             c = b.new_context(viewport={"width": width, "height": 900 if width > 640 else 844}, has_touch=width <= 640, is_mobile=width <= 640)
-            c.add_init_script("window.TW_ACCOUNT_OVERRIDE = " + json.dumps({"api": api}) + ";")
+            c.add_init_script("window.TW_ACCOUNT_OVERRIDE = " + json.dumps({"api": api}) + ";" + ("window.TW_ECPAY_OPEN = true;" if ecopen else ""))   # 10-16 綠界審核中：正式站反灰，這段要測綠界流程所以打開
             if tok:
                 c.add_init_script("try{if(!sessionStorage.getItem('__tokset')){localStorage.setItem('tw.acct.tok'," + json.dumps(tok) + ");sessionStorage.setItem('__tokset','1')}}catch(e){}")
             c.route("**/fonts.googleapis.com/**", lambda r: r.abort())
@@ -71169,6 +71169,17 @@ def t_pay_1011(b, base):
         ok(f"{T}：淺色主題：管理區標題、表格字、表頭的對比 ≥ 4.5", all(v >= 4.5 for v in la.values()), la)
         shot(ad, "admin_light.png", "#payAdm")
         ok(f"{T}：整段沒有 JS 錯誤", not errs, errs[:3])
+        # 10-16 Andy：「綠界那頁先反色 並註明等審核」→ 正式站（沒有 TW_ECPAY_OPEN）綠界分頁反灰、寫審核中、點了不會切過去，預設就是銀行轉帳
+        prv = ad   # 用已登入的管理者頁，關掉測試旗標再開結帳面板（＝正式站的樣子）
+        prv.goto(base + "#pricing", wait_until="domcontentloaded")
+        wait_until(prv, "() => !!(window.TwCheckout && window.TwAccount && TwAccount.user())", 12000)
+        prv.evaluate("() => { window.TW_ECPAY_OPEN = false; TwCheckout.open({ plan: 'plus', per: 'year' }); }")
+        rvs = wait_until(prv, "() => { const e = document.getElementById('coTabE'), bk = document.getElementById('coTabB'); return e && bk ? { dis: e.disabled, txt: e.innerText, bsel: bk.getAttribute('aria-selected'), paneB: !document.getElementById('coPaneB').hidden, paneE: !document.getElementById('coPaneE').hidden, op: getComputedStyle(e).opacity } : null; }", 10000)
+        ok(f"{T}：綠界審核中：綠界分頁反灰不能按、寫「綠界審核中」、一打開就是銀行轉帳", bool(rvs) and rvs["dis"] and "審核中" in rvs["txt"] and rvs["bsel"] == "true" and rvs["paneB"] and not rvs["paneE"] and float(rvs["op"]) < 0.6, rvs or prv.evaluate("() => ({ h: location.hash, u: !!(window.TwAccount && TwAccount.user()), dlg: (document.getElementById('subDlg') || {}).hidden, box: ((document.querySelector('#subDlg .box') || {}).innerText || '').slice(0, 200), go: [...document.querySelectorAll('.prcard .prgo')].map(b => b.outerHTML.slice(0, 90)) })"))
+        if rvs:
+            prv.click("#coTabE", force=True); prv.wait_for_timeout(200)
+            ok(f"{T}：硬點綠界分頁 → 還是停在銀行轉帳", prv.evaluate("() => document.getElementById('coTabB').getAttribute('aria-selected') === 'true' && document.getElementById('coPaneE').hidden"))
+            shot(prv, "co_ecpay_review.png", "#subDlg .box")
     finally:
         for c in ctxs:
             try:
