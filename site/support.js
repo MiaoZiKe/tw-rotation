@@ -496,7 +496,7 @@ html.fab-off .supfab{display:none!important}`);
          off     沒有設定會員伺服器（本機預覽）：同 demo 的畫面，但不給未讀紅點。
      ====================================================================== */
   const IS_PV = () => !!window.TW_PREVIEW || /\/preview\//.test(location.pathname || '') || !!window.__supDemo;
-  const TAGS = [['bug', '錯誤回報'], ['idea', '功能建議'], ['wish', '願望'], ['ask', '資料疑問'], ['acct', '帳號與付費'], ['other', '其他']];
+  const TAGS = [['bug', '錯誤回報'], ['idea', '功能建議'], ['wish', '願望'], ['ask', '資料疑問'], ['acct', '帳號付費'], ['other', '其他']];
   const TAGN = Object.fromEntries(TAGS);
   const GK_KEY = 'tw.sup.gk', LOCAL_KEY = 'tw.sup.local';
   let memGk = '';
@@ -722,9 +722,9 @@ html.fab-off .supfab{display:none!important}`);
 .chav.u{font-size:12px;font-weight:700;color:var(--ink);background:color-mix(in srgb,var(--cyan) 18%,var(--panel))}
 .chempty{text-align:center;color:var(--ink-3);font-size:13px;padding:16px 0}.chempty.bad{color:var(--rise)}
 .chbar{flex:none;border-top:1px solid var(--line);padding:8px 10px 8px;background:var(--panel-2)}
-.chtags{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;padding-bottom:6px;-webkit-overflow-scrolling:touch}
+.chtags{display:flex;gap:5px;overflow-x:auto;scrollbar-width:none;padding-bottom:6px;-webkit-overflow-scrolling:touch}
 .chtags::-webkit-scrollbar{display:none}
-.chtags button{flex:none;height:26px;padding:0 10px;border-radius:999px;border:1px solid var(--line-2);background:transparent;color:var(--ink-2);font:inherit;font-size:12.5px;cursor:pointer;white-space:nowrap}
+.chtags button{flex:none;height:26px;padding:0 8px;border-radius:999px;border:1px solid var(--line-2);background:transparent;color:var(--ink-2);font:inherit;font-size:12.5px;cursor:pointer;white-space:nowrap}
 .chtags button:hover{color:var(--ink)}
 .chtags button.on{background:color-mix(in srgb,var(--cyan) 20%,transparent);border-color:var(--cyan);color:var(--ink);font-weight:700}
 .chin{display:flex;align-items:flex-end;gap:8px;background:var(--panel);border:1px solid var(--line-2);border-radius:22px;padding:4px 4px 4px 14px}
@@ -736,7 +736,7 @@ html.fab-off .supfab{display:none!important}`);
 .chsend:hover{filter:brightness(1.1)}
 .chopt{display:flex;align-items:center;gap:10px;margin-top:6px;font-size:12px;color:var(--ink-3);white-space:nowrap}
 .chopt .chwho{margin-left:auto;overflow:hidden;text-overflow:ellipsis}
-.chsw{display:inline-flex;align-items:center;gap:6px;cursor:pointer;color:var(--ink-2)}
+.suppanel label.chsw,.chsw{display:inline-flex;align-items:center;gap:8px;margin:0;font-size:12px;cursor:pointer;color:var(--ink-2)}
 .chsw input{position:absolute;opacity:0;width:1px;height:1px}
 .chsw i{display:inline-block;width:28px;height:16px;border-radius:999px;background:var(--line-2);position:relative;transition:background .15s;flex:none}
 .chsw i::after{content:"";position:absolute;left:2px;top:2px;width:12px;height:12px;border-radius:50%;background:var(--panel);transition:transform .15s}
@@ -889,7 +889,7 @@ html.fab-off .supfab{display:none!important}`);
     if (!L.length) return `<div class="ibempty">${IB.convs.length ? '沒有符合的對話' : '還沒有人傳訊息'}</div>`;
     return L.map((c) => `<button type="button" class="ibr${c.ck === IB.sel ? ' on' : ''}${c.unread ? ' unr' : ''}" data-ck="${esc(c.ck)}" title="${esc(cName(c))}">
       <span class="chav u" aria-hidden="true">${esc(cInit(c))}</span>
-      <span class="ibn"><b>${esc(cName(c))}${c.member ? '' : '<em>訪客</em>'}${c.wish ? '<em class="w">願望</em>' : ''}</b><small>${c.last && !c.last.me ? '你：' : ''}${esc(c.last ? bodyOf(c.last) : '')}</small></span>
+      <span class="ibn"><b>${esc(cName(c))}${c.member || /^訪客/.test(cName(c)) ? '' : '<em>訪客</em>'}${c.wish ? '<em class="w">願望</em>' : ''}</b><small>${c.last && !c.last.me ? '你：' : ''}${esc(c.last ? bodyOf(c.last) : '')}</small></span>
       <span class="ibm"><time>${c.last ? relT(c.last.created) : ''}</time>${c.unread ? `<i class="ibdot" aria-label="${c.unread} 則未讀">${c.unread}</i>` : ''}</span></button>`).join('');
   }
   function ibExtra(m) {
@@ -909,7 +909,7 @@ html.fab-off .supfab{display:none!important}`);
         <span class="ibn"><b>${esc(cName(c))}</b><small>${c.member ? '會員' : '訪客'}・${mail}</small></span></div>
       <div class="chlog iblog" id="ibLog" role="log" aria-label="對話">${t ? (t.err ? `<div class="chempty bad">${esc(t.err)}</div>` : bubbles(t.msgs, { admin: true, initial: cInit(c), extra: ibExtra })) : '<div class="chempty">載入中…</div>'}</div>
       ${noRep ? `<div class="ibnorep" id="ibNoRep">${noRep}</div>` : `<div class="chbar ibbar"><div class="chtags ibquick" id="ibQuick" aria-label="常用回覆">${QUICK.map((s, i) => `<button type="button" data-q="${i}" title="${esc(s)}">${esc(s.slice(0, 10))}…</button>`).join('')}</div>
-        <div class="chin"><textarea id="ibIn" rows="1" maxlength="2000" aria-label="回覆" placeholder="回覆 ${esc(cName(c))}…（Enter 送出，Shift+Enter 換行）"></textarea><button type="button" id="ibSend" class="chsend" aria-label="送出回覆" title="送出回覆">${SEND_SVG}</button></div></div>`}`;
+        <div class="chin"><textarea id="ibIn" rows="1" maxlength="2000" aria-label="回覆" placeholder="回覆 ${esc(cName(c))}…" title="Enter 送出，Shift+Enter 換行"></textarea><button type="button" id="ibSend" class="chsend" aria-label="送出回覆" title="送出回覆">${SEND_SVG}</button></div></div>`}`;
   }
   function paintInbox() {
     const host = document.getElementById('fbInbox'); if (!host) return;
@@ -1012,6 +1012,7 @@ html.fab-off .supfab{display:none!important}`);
 #v-subadm .ibth .ibn small a{color:var(--cyan)}
 #v-subadm .ibback{display:none;width:32px;height:32px;padding:0;border:0;background:none;color:var(--ink);font-size:26px;line-height:1;cursor:pointer}
 #v-subadm .iblog{padding:12px 16px}
+#v-subadm .chm.l .bb{background:color-mix(in srgb,var(--ink) 8%,var(--panel))}
 #v-subadm .iblog .chm .chw{max-width:70%}
 #v-subadm .iblog .mt select.ibst{height:22px;min-height:0;font-size:12px;padding:0 4px}
 #v-subadm .ibs{font-size:12px;padding:0 6px;border-radius:999px;background:var(--panel-3)}#v-subadm .ibs.new{background:var(--amber);color:#1a1203}
@@ -1028,7 +1029,7 @@ html.fab-off .supfab{display:none!important}`);
 #v-subadm .fbmore #fbStatHost{margin-top:8px}
 #v-subadm .fbmore #fbStatHost>.sat h2{font-size:16px}
 @media (max-width:820px){
-  #v-subadm .ibx{grid-template-columns:minmax(0,1fr);height:calc(100vh - 200px)}
+  #v-subadm .ibx{grid-template-columns:minmax(0,1fr);height:calc(100dvh - 330px);min-height:340px;scroll-margin-top:84px}
   #v-subadm .ibx .ibt{display:none}#v-subadm .ibx.has .ibl{display:none}#v-subadm .ibx.has .ibt{display:flex}
   #v-subadm .ibl{border-right:0}#v-subadm .ibback{display:block}
   #v-subadm .ibflt{margin-left:0;max-width:none;width:100%}

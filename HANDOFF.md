@@ -1,5 +1,14 @@
 # HANDOFF.md — 目前進度（接手先讀這份）
 
+## 2026-10-16 客服聊天室（預覽版 preview/support-chat，尚未進 main；UI 專家）
+- Andy：「寄信拿掉，意見反饋和願望那邊改成聊天室的形式，下方可以附上Mail 但mail 是 liguligu0818那個。可以參考IG那樣，目的是為了更快回覆訊息。做一版預覽版本看看」
+- 會員端（site/support.js）：分頁只剩「常見問題｜意見・願望」；意見・願望＝IG 式聊天室（泡泡、時間、已讀、分類小標籤、附上目前頁面開關、Enter 送出）；面板底部一行 liguligu0818@gmail.com（Gmail 撰寫連結＋複製，沿用 10-07「mailto 改 Gmail」）；比比右上角未讀紅點；手機全螢幕（site/m4/20261016f-support-chat.css，visualViewport 跟鍵盤）。
+- 管理端 #admin/feedback：IG 式收件匣（左清單／右對話＋常用回覆）；原統計與訂閱申請收進「統計、完整列表與訂閱申請」（預設收起、展開記住）。
+- 後端（workers/account-api/worker.js 檔尾 chat-1016）：feedback 加 gk（訪客識別碼雜湊）、aread；新表 fb_reply；路由 /v1/chat/mine、/v1/chat/seen、/v1/admin/chat/list|thread|reply|del。測試 tests/chat.test.mjs。**Worker 要另外部署才會生效**；沒部署前正式站走 legacy（送出照樣進 /v1/feedback、對話留本機）。
+- 預覽版（TW_PREVIEW／網址含 /preview/）一律示範資料、不送任何訊息。
+- 驗收：_uitest「客服聊天室1016」「登入卡住1016」「桌機守門1008」0；_preview 只剩既有 800px #industry/ai_server。
+- ⚠ 進 main 前要處理：舊段落「客服與反饋1007」「願望清單1009」「訂閱與客服1005」「帳號選單1009」還在驗舊表單（類別下拉、寄信分頁、#fbTable 預設可見），會紅，要改寫或退役。
+
 ## 2026-10-16 手機版 CEO：上午～中午這批（全部已上線；最後更新 13:15 台北）
 - 10:06／10:14 Andy iPhone 回報 7 件 → 11:27 上線（faddeed5）：頁面無限往下滑（#side 0 寬撐高 → .m4shut 不排版）、資金輪動摘要壓免責、「動態 開」移卡片標題列、頂欄限制字縮、「?」18px、產業鏈頁手機不畫 #segBox／跨鏈卡／其他產業鏈列、說明卡「看個股頁」空框（.btn.primary 同色）→ 名字連結＋「在圖上標示」、ETF 月配金額（月領 1/2/5/10 萬＋自訂輸入、年月切換不掉列）。
 - 「小說明點背景就關」普查 13 頁×3 寬 132 次全合格，只加驗收段（手機彈窗點背景1016）。
