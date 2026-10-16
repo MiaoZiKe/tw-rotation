@@ -56,7 +56,7 @@ async function login(hub, email, opts = {}) {
 /* ==== 管理權限區塊（worker.js 檔尾，2026-10-07 admin-only）==== */
 const ADMIN_PATHS = ['/v1/admin/stats', '/v1/admin/online', '/v1/admin/settings', '/v1/admin/perm/get', '/v1/admin/perm/put', '/v1/admin/perm/list',
   '/v1/admin/plans/get', '/v1/admin/plans/put', '/v1/admin/plans/sort', '/v1/admin/members', '/v1/admin/member/detail', '/v1/admin/members/stats',
-  '/v1/admin/notices/list', '/v1/admin/notices/put', '/v1/admin/notices/del', '/v1/admin/feedback/list', '/v1/admin/feedback/del', '/v1/admin/feedback/set',
+  '/v1/admin/notices/list', '/v1/admin/notices/put', '/v1/admin/notices/del', '/v1/admin/feedback/list', '/v1/admin/feedback/del', '/v1/admin/feedback/set', '/v1/admin/chat/list', '/v1/admin/chat/thread', '/v1/admin/chat/reply', '/v1/admin/chat/del',
   '/v1/admin/susp/list', '/v1/admin/susp/lift', '/v1/admin/uids', '/v1/admin/admins/list', '/v1/admin/admins/add', '/v1/admin/admins/del',
   '/v1/admin/no-such-endpoint'];
 

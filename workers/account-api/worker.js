@@ -2702,3 +2702,182 @@ for (const t of ['grant_defs', 'grants', 'grant_hits']) if (!EXPORT_TABLES.inclu
    ============================================================================ */
 installPay(Hub, { rand, safeEq, tpeDay, subClean, EXPORT_TABLES });
 installArticles(Hub, EXPORT_TABLES);   // 2026-10-16 精選文章點閱次數
+
+/* ============================================================================ 客服聊天室 chat-1016（2026-10-16）
+   Andy 10-16：「寄信拿掉，意見反饋和願望那邊改成聊天室的形式……可以參考IG那樣，目的是為了更快回覆訊息」。
+   做法：不另開一張「訊息」表 —— 使用者送的每一則仍是 feedback 的一列（類別統計、願望狀態、13 個月保存全部照舊），
+   只多兩樣東西把它們串成「一個人一串對話」：
+     ① feedback.gk    訪客的對話識別（瀏覽器 localStorage 裡的隨機碼，伺服器只存 SHA-256 雜湊前 32 碼）。
+                      為什麼不用 IP：同一個 IP 可能是整間公司；隨機碼只有那個瀏覽器有 → 訪客只讀得到自己這個瀏覽器送的。
+        feedback.aread 管理者「看過」的時間（打開那串對話就記）。不碰 status —— status 仍是「已處理／願望評估」的工作狀態。
+     ② fb_reply       站方回覆：ck（對話鍵）、內文、時間、哪位管理者、對方讀過的時間（seen）。
+   對話鍵 ck：'u:<uid>'＝會員；'g:<雜湊>'＝帶識別碼的訪客；'f:<feedback id>'＝改版前的訪客留言（沒有識別碼，回覆對方看不到）。
+   隱私：會員只讀 uid 等於自己的；訪客只讀 gk 雜湊相同、而且 uid 為空的；管理者才讀得到全部。刪帳號連回覆一起刪。
+   ★ 同前面幾個區塊：只在檔尾新增、包一層 prototype，既有函式一行不動。
+   ============================================================================ */
+const CHAT_GK_RE = /^[A-Za-z0-9_-]{20,64}$/;
+const CHAT_CK_RE = /^(u:[A-Za-z0-9_-]{1,64}|g:[0-9a-f]{32}|f:[A-Za-z0-9_-]{1,24})$/;
+const CHAT_MAX_MSGS = 500, CHAT_MAX_REPLY = 2000;
+Hub.prototype.chatInit = function () {
+  if (this._chatOk) return;
+  this.subInit();
+  const cols = this.q('PRAGMA table_info(feedback)').map((c) => c.name);
+  if (!cols.includes('gk')) this.q('ALTER TABLE feedback ADD COLUMN gk TEXT');
+  if (!cols.includes('aread')) this.q('ALTER TABLE feedback ADD COLUMN aread INTEGER');
+  this.q('CREATE TABLE IF NOT EXISTS fb_reply (id TEXT PRIMARY KEY, ck TEXT, body TEXT, created INTEGER, by_email TEXT, seen INTEGER)');
+  this._chatOk = true;
+};
+Hub.prototype.chatGk = async function (gk) {
+  return hexOf(await crypto.subtle.digest('SHA-256', enc.encode('fbgk:' + gk))).slice(0, 32);
+};
+/* 這個請求是誰的對話：{ ck, where, args }／{ none:true }（訪客沒帶識別碼）／{ bad:401 }（帶了壞掉的權杖） */
+Hub.prototype.chatWho = async function (req, b) {
+  if (b.t) {
+    const v = await this.auth(req, b);
+    if (!v) return { bad: 401 };
+    return { v, ck: 'u:' + v.user.uid, where: 'uid = ?', args: [v.user.uid] };
+  }
+  const gk = String(b.gk || '');
+  if (!CHAT_GK_RE.test(gk)) return { none: true };
+  const h = await this.chatGk(gk);
+  return { ck: 'g:' + h, where: "(uid IS NULL OR uid = '') AND gk = ?", args: [h] };
+};
+const chatWhereOf = (ck) => {
+  const k = ck.slice(0, 1), x = ck.slice(2);
+  if (k === 'u') return { where: 'uid = ?', args: [x] };
+  if (k === 'g') return { where: "(uid IS NULL OR uid = '') AND gk = ?", args: [x] };
+  return { where: "id = ? AND (uid IS NULL OR uid = '') AND (gk IS NULL OR gk = '')", args: [x] };
+};
+/* 一串對話：使用者的反饋＋站方回覆，依時間排。forAdmin 時多帶瀏覽器、狀態、聯絡 email（會員自己那邊只帶需要的欄位）*/
+Hub.prototype.chatThread = function (ck, where, args, forAdmin) {
+  const mine = this.q(`SELECT id, cat, sub, body, url, ua, created, status, type, aread, contact FROM feedback WHERE ${where} ORDER BY created DESC LIMIT ${CHAT_MAX_MSGS}`, ...args);
+  const rep = ck.startsWith('f:') ? [] : this.q(`SELECT id, body, created, seen, by_email FROM fb_reply WHERE ck = ? ORDER BY created DESC LIMIT ${CHAT_MAX_MSGS}`, ck);
+  const out = mine.map((r) => {
+    const lg = FB_LEGACY[r.cat];
+    const m = { id: r.id, me: true, body: r.body, cat: lg ? lg[0] : r.cat, sub: lg ? lg[1] : r.sub || '', type: r.type || '', created: r.created, read: !!r.aread || r.status !== 'new' };
+    if (r.url) m.url = r.url;
+    if (forAdmin) Object.assign(m, { status: r.status, ua: r.ua || '', contact: r.contact || '', aread: r.aread || 0 });
+    return m;
+  }).concat(rep.map((r) => {
+    const m = { id: r.id, me: false, body: r.body, created: r.created, seen: !!r.seen };
+    if (forAdmin) m.by = r.by_email || '';
+    return m;
+  }));
+  out.sort((a, b) => a.created - b.created || (a.me === b.me ? 0 : a.me ? -1 : 1));
+  return out;
+};
+Hub.prototype.subRoutes['/v1/chat/mine'] = async function (req, b) {
+  this.chatInit();
+  if (!this.rateOk(req)) return this.json(req, { error: 'rate' }, 429);
+  const w = await this.chatWho(req, b);
+  if (w.bad) return this.json(req, { error: 'auth' }, 401);
+  if (w.none) return this.json(req, { msgs: [], unread: 0 });
+  const msgs = this.chatThread(w.ck, w.where, w.args, false);
+  return this.json(req, { msgs, unread: msgs.filter((m) => !m.me && !m.seen).length });
+};
+Hub.prototype.subRoutes['/v1/chat/seen'] = async function (req, b) {
+  this.chatInit();
+  if (!this.rateOk(req)) return this.json(req, { error: 'rate' }, 429);
+  const w = await this.chatWho(req, b);
+  if (w.bad) return this.json(req, { error: 'auth' }, 401);
+  if (w.none) return this.json(req, { ok: true });
+  this.q('UPDATE fb_reply SET seen = ? WHERE ck = ? AND (seen IS NULL OR seen = 0)', this.now(), w.ck);
+  return this.json(req, { ok: true });
+};
+/* 訪客送反饋時帶了識別碼 → 存雜湊（原本的 /v1/feedback 一行不動，成功之後才補這一欄） */
+const chatOrigFb = Hub.prototype.subRoutes['/v1/feedback'];
+Hub.prototype.subRoutes['/v1/feedback'] = async function (req, b) {
+  this.chatInit();
+  const res = await chatOrigFb.call(this, req, b);
+  if (res.status !== 200 || b.t || !CHAT_GK_RE.test(String(b.gk || ''))) return res;
+  const j = await res.json();
+  if (j && j.id) this.q("UPDATE feedback SET gk = ? WHERE id = ? AND (uid IS NULL OR uid = '')", await this.chatGk(String(b.gk)), j.id);
+  return this.json(req, j);
+};
+/* 管理者：收件匣（每人一列：最後一句、時間、未讀數）。未讀＝狀態還是 new、而且管理者還沒打開過 */
+Hub.prototype.subRoutes['/v1/admin/chat/list'] = async function (req, b) {
+  this.chatInit();
+  if (!(await this.admin(req, b))) return this.json(req, { error: 'forbidden' }, 403);
+  const rows = this.q('SELECT f.id, f.uid, f.gk, f.contact, f.cat, f.body, f.created, f.status, f.type, f.aread, u.name, u.email FROM feedback f LEFT JOIN users u ON u.uid = f.uid ORDER BY f.created DESC LIMIT 2000');
+  const conv = new Map();
+  for (const r of rows) {
+    const ck = r.uid ? 'u:' + r.uid : r.gk ? 'g:' + r.gk : 'f:' + r.id;
+    let c = conv.get(ck);
+    if (!c) { c = { ck, member: !!r.uid, name: r.name || '', email: String(r.email || r.contact || '').toLowerCase(), n: 0, unread: 0, wish: 0, last: null, reply: !ck.startsWith('f:') }; conv.set(ck, c); }
+    c.n++;
+    if (!c.email && r.contact) c.email = String(r.contact).toLowerCase();
+    if (r.status === 'new' && !r.aread) c.unread++;
+    if (r.type === 'wish') c.wish++;
+    if (!c.last) c.last = { body: String(r.body || '').slice(0, 120), created: r.created, me: true, cat: FB_LEGACY[r.cat] ? FB_LEGACY[r.cat][0] : r.cat, type: r.type || '' };
+  }
+  for (const r of this.q('SELECT ck, body, created FROM fb_reply ORDER BY created DESC LIMIT 4000')) {
+    const c = conv.get(r.ck);
+    if (c && c.last.created < r.created) c.last = { body: String(r.body || '').slice(0, 120), created: r.created, me: false };
+  }
+  const list = [...conv.values()].sort((a, b) => b.last.created - a.last.created).slice(0, 500);
+  return this.json(req, { convs: list, unread: list.reduce((s, c) => s + c.unread, 0) });
+};
+/* 管理者：打開一串對話（順手記「看過了」：未讀紅點消掉；status 不動）。peek:true 只讀不記 */
+Hub.prototype.subRoutes['/v1/admin/chat/thread'] = async function (req, b) {
+  this.chatInit();
+  if (!(await this.admin(req, b))) return this.json(req, { error: 'forbidden' }, 403);
+  const ck = String(b.ck || '');
+  if (!CHAT_CK_RE.test(ck)) return this.json(req, { error: 'bad_input' }, 400);
+  const { where, args } = chatWhereOf(ck);
+  const msgs = this.chatThread(ck, where, args, true);
+  if (!msgs.length) return this.json(req, { error: 'not_found' }, 404);
+  if (!b.peek) this.q(`UPDATE feedback SET aread = ? WHERE ${where} AND (aread IS NULL OR aread = 0)`, this.now(), ...args);
+  return this.json(req, { ck, msgs, reply: !ck.startsWith('f:') });
+};
+/* 管理者：回覆。回覆＝處理了 → 這串裡還是 new 的一般反饋改成 handled（願望的評估狀態不動）*/
+Hub.prototype.subRoutes['/v1/admin/chat/reply'] = async function (req, b) {
+  this.chatInit();
+  const v = await this.admin(req, b);
+  if (!v) return this.json(req, { error: 'forbidden' }, 403);
+  const ck = String(b.ck || ''), body = subClean(b.body, CHAT_MAX_REPLY);
+  if (!CHAT_CK_RE.test(ck) || body.length < 1) return this.json(req, { error: 'bad_input' }, 400);
+  if (ck.startsWith('f:')) return this.json(req, { error: 'no_channel' }, 409);   // 改版前的訪客留言：對方沒有識別碼，回了也看不到
+  const { where, args } = chatWhereOf(ck);
+  if (!this.q(`SELECT 1 FROM feedback WHERE ${where} LIMIT 1`, ...args).length) return this.json(req, { error: 'not_found' }, 404);
+  const id = rand(9), now = this.now(), by = String(v.user.email || '').toLowerCase();
+  this.q('INSERT INTO fb_reply (id, ck, body, created, by_email, seen) VALUES (?, ?, ?, ?, ?, 0)', id, ck, body, now, by);
+  this.q(`UPDATE feedback SET aread = ? WHERE ${where} AND (aread IS NULL OR aread = 0)`, now, ...args);
+  this.q(`UPDATE feedback SET status = 'handled' WHERE ${where} AND status = 'new' AND (type IS NULL OR type <> 'wish')`, ...args);
+  return this.json(req, { ok: true, msg: { id, me: false, body, created: now, seen: false, by } });
+};
+/* 管理者刪掉一則站方回覆（打錯字、回錯人） */
+Hub.prototype.subRoutes['/v1/admin/chat/del'] = async function (req, b) {
+  this.chatInit();
+  if (!(await this.admin(req, b))) return this.json(req, { error: 'forbidden' }, 403);
+  this.q('DELETE FROM fb_reply WHERE id = ?', String(b.id || ''));
+  return this.json(req, { ok: true });
+};
+/* 反饋列表多帶 aread（管理頁的未讀紅點改成「new 且還沒打開過」） */
+const chatOrigFbList = Hub.prototype.subRoutes['/v1/admin/feedback/list'];
+Hub.prototype.subRoutes['/v1/admin/feedback/list'] = async function (req, b) {
+  this.chatInit();
+  const res = await chatOrigFbList.call(this, req, b);
+  if (res.status !== 200) return res;
+  const j = await res.json();
+  const ar = {}; this.q('SELECT id, aread FROM feedback WHERE aread > 0').forEach((r) => { ar[r.id] = r.aread; });
+  j.feedback = (j.feedback || []).map((r) => (ar[r.id] ? { ...r, aread: ar[r.id] } : r));
+  return this.json(req, j);
+};
+const chatOrigDelete = Hub.prototype.deleteMe;
+Hub.prototype.deleteMe = async function (req, b) {
+  const v = await this.auth(req, b);
+  const res = await chatOrigDelete.call(this, req, b);
+  if (v && res.status === 200) { this.chatInit(); this.q('DELETE FROM fb_reply WHERE ck = ?', 'u:' + v.user.uid); }
+  return res;
+};
+const chatOrigCleanup = Hub.prototype.cleanup;
+Hub.prototype.cleanup = function () {
+  chatOrigCleanup.call(this);
+  this.chatInit();
+  const d = new Date(this.now()); d.setUTCMonth(d.getUTCMonth() - SUB_KEEP_MONTHS);
+  this.q('DELETE FROM fb_reply WHERE created < ?', d.getTime());
+};
+const chatOrigExpInit = Hub.prototype.expInit;
+Hub.prototype.expInit = function () { chatOrigExpInit.call(this); this.chatInit(); };
+if (!EXPORT_TABLES.includes('fb_reply')) EXPORT_TABLES.push('fb_reply');
+/* ============================================================================ 客服聊天室區塊結束 */
