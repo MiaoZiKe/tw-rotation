@@ -169,6 +169,8 @@
     const acts = [];
     if (actions) {
       if (o.method === 'bank' && o.last5 && ['review', 'expired'].includes(o.status)) acts.push(`<button type="button" class="sm pri" data-pa="confirm" data-id="${esc(o.id)}">確認入帳並開通</button><button type="button" class="sm danger" data-pa="reject" data-id="${esc(o.id)}">退回</button>`);
+      /* 2026-10-16 Andy：「金額直接當客戶寫死對應金額，只有我這還有可以更改」→ 還沒開通的轉帳單可以改金額 */
+      if (o.method === 'bank' && !o.applied && ['pending', 'review', 'expired', 'rejected'].includes(o.status)) acts.push(`<button type="button" class="sm" data-pa="amt" data-id="${esc(o.id)}">改金額</button>`);
       if (o.applied && o.status !== 'refunded') acts.push(`<button type="button" class="sm" data-pa="refund" data-id="${esc(o.id)}">退款</button>`);
       if (!o.applied && o.method !== 'bank' && !o.refunded && o.status !== 'refunded' && (o.anomaly || o.actErr || o.status === 'paid')) acts.push(`<button type="button" class="sm pri" data-pa="fix" data-id="${esc(o.id)}">補開通</button>`);
       if (o.applied && (o.anomaly || o.actErr)) acts.push(`<button type="button" class="sm" data-pa="ack" data-id="${esc(o.id)}">標記已處理</button>`);
@@ -180,13 +182,15 @@
     const xc = !xa ? '' : xa < o.amount ? ' style="color:#e5484d;font-weight:700" title="少於應付金額 NT$ ' + nt(o.amount - xa) + '"' : xa > o.amount ? ' style="color:#30a46c;font-weight:700" title="多於應付金額 NT$ ' + nt(xa - o.amount) + '"' : '';
     const bankCols = kind === 'ecpay' ? '' : `<td class="n"${xc}>${xa ? nt(xa) + (xa < o.amount ? ' ⚠' : '') : ''}</td>`;
     const bankCols2 = kind === 'ecpay' ? '' : `<td style="text-align:center;font-variant-numeric:tabular-nums">${esc(o.last5 || '')}</td><td>${esc(o.xferDate || '')}</td>`;
-    return `<tr class="prow" data-oid="${esc(o.id)}"><td>${esc(ymdhm(o.created))}</td><td class="l" title="${esc(o.email)}">${mailA(o.email, o)}</td><td>${esc(o.planName)}</td><td>${o.period === 'year' ? '年繳' : '月繳'}</td>
+    const nameCol = kind === 'ecpay' ? '' : `<td class="l pname" title="${esc(o.payerName || '')}">${esc(o.payerName || '')}</td>`;
+    return `<tr class="prow" data-oid="${esc(o.id)}"><td>${esc(ymdhm(o.created))}</td><td class="l" title="${esc(o.email)}">${mailA(o.email, o)}</td>${nameCol}<td>${esc(o.planName)}</td><td>${o.period === 'year' ? '年繳' : '月繳'}</td>
       <td class="n">${nt(o.amount)}</td>${bankCols}<td>${esc(methodName(o))}</td><td><span class="stp ${ST_CLS[o.status] || 'mute'}">${esc(stName(o))}</span></td>
       ${bankCols2}<td class="l" style="max-width:90px" title="${esc(o.adminNote)}">${esc(o.adminNote)}</td><td class="act">${acts.join('')}</td></tr>`
-      + (S.open[o.id] ? `<tr class="det"><td colspan="${kind === 'ecpay' ? 9 : 12}">${detail(o)}</td></tr>` : '');
+      + (S.open[o.id] ? `<tr class="det"><td colspan="${kind === 'ecpay' ? 9 : 13}">${detail(o)}</td></tr>` : '');
   }
   function detail(o) {
     const a = [`訂單 <b>${esc(o.id)}</b>${o.test ? '（測試）' : ''}`, o.name ? '會員：' + esc(o.name) : ''];
+    if (o.payerName) a.push('匯款人姓名 <b>' + esc(o.payerName) + '</b>');
     if (o.paidAt) a.push('付款時間 <b>' + esc(ymdhm(o.paidAt)) + '</b>');
     if (o.grantTo) a.push(`開通期間 <b>${esc(ymd(o.grantFrom))}～${esc(ymd(o.grantTo))}</b>（${esc(o.actSrc)}，${esc(ymdhm(o.confirmedAt))}）`);
     if (o.tradeNo) a.push('綠界交易號 ' + esc(o.tradeNo)); if (o.payType) a.push('付款方式 ' + esc(o.payType));
@@ -199,7 +203,7 @@
     (o.refundRows || []).forEach((r) => a.push(`退款 <b>NT$ ${nt(r.amount)}</b>・${r.status === 'done' ? '完成' : r.status === 'failed' ? '失敗' : '處理中'}・${r.kind === 'manual' ? '人工' + (r.acct_last5 ? '（退到末 5 碼 ' + esc(r.acct_last5) + '）' : '') : '綠界 ' + esc(r.action)}・${esc(r.rdate || ymd(r.created))}・${r.perm === 'end' ? '到期才停' : '立即降級'}${r.note ? '・' + esc(r.note) : ''}${r.msg ? '・' + esc(r.msg) : ''}`));
     return a.filter(Boolean).join('　');
   }
-  const TH = '<thead><tr><th>時間</th><th>會員 email</th><th>方案</th><th>週期</th><th>應付金額</th><th>客戶匯款</th><th>方式</th><th>狀態</th><th>轉出末5碼</th><th>轉帳日期</th><th>備註</th><th></th></tr></thead>';
+  const TH = '<thead><tr><th>時間</th><th>會員 email</th><th>匯款人姓名</th><th>方案</th><th>週期</th><th>應付金額</th><th>客戶匯款</th><th>方式</th><th>狀態</th><th>轉出末5碼</th><th>轉帳日期</th><th>備註</th><th></th></tr></thead>';
   const TH_EC = '<thead><tr><th>時間</th><th>會員 email</th><th>方案</th><th>週期</th><th>金額</th><th>方式</th><th>狀態</th><th>管理者備註</th><th></th></tr></thead>';
   function ordersView(v, box, kind) {
     const TH_K = kind === 'ecpay' ? TH_EC : TH;
@@ -216,7 +220,7 @@
         <label title="待付款、已取消（未付款）：會員還沒付錢的單，預設不顯示"><input type="checkbox" id="pfAll"${f.all ? ' checked' : ''}> 顯示未完成付款（${d.orders.filter(isUnpaid).length}）</label>
         ${kind === 'bank' ? `<label title="最近一筆是轉帳、7 天內到期的會員"><input type="checkbox" id="pfExp"${f.expiring ? ' checked' : ''}> 即將到期的轉帳會員（${d.expiring.length}）</label>` : ''}
         <span style="flex:1"></span><button type="button" id="pfCsv">匯出 CSV（${list.length} 筆）</button></div>
-      <div class="tw"><table id="payTbl">${TH_K}<tbody>${list.map((o) => orderRow(o, true, kind)).join('') || `<tr><td colspan="${kind === 'ecpay' ? 9 : 12}" class="muted">沒有符合的訂單</td></tr>`}</tbody></table></div>`;
+      <div class="tw"><table id="payTbl">${TH_K}<tbody>${list.map((o) => orderRow(o, true, kind)).join('') || `<tr><td colspan="${kind === 'ecpay' ? 9 : 13}" class="muted">沒有符合的訂單</td></tr>`}</tbody></table></div>`;
     const re = () => ordersView(v, box, kind);
     box.querySelector('#pfS').onchange = (e) => { f.status = e.target.value; re(); };
     box.querySelector('#pfFrom').onchange = (e) => { f.from = e.target.value; re(); };
@@ -254,7 +258,7 @@
   function act(v, k, o) {
     if (!o) return;
     const D = T().dialog;
-    const who = `<div class="kv"><span>訂單</span><b>${esc(o.id)}</b><span>會員</span><b>${mailA(o.email, o)}</b><span>方案</span><b>${esc(o.planName)}・${o.period === 'year' ? '年繳' : '月繳'}</b><span>應付金額</span><b>NT$ ${nt(o.amount)}</b>${o.last5 ? `<span>客戶匯款</span><b${o.xferAmount < o.amount ? ' style="color:#e5484d"' : o.xferAmount > o.amount ? ' style="color:#30a46c"' : ''}>末 5 碼 ${esc(o.last5)}（${esc(o.xferDate)}，NT$ ${nt(o.xferAmount)}）${o.xferAmount < o.amount ? ' ⚠ 少於應付' : o.xferAmount > o.amount ? '（多於應付）' : ''}</b>` : ''}</div>`;
+    const who = `<div class="kv"><span>訂單</span><b>${esc(o.id)}</b><span>會員</span><b>${mailA(o.email, o)}</b><span>方案</span><b>${esc(o.planName)}・${o.period === 'year' ? '年繳' : '月繳'}</b><span>應付金額</span><b>NT$ ${nt(o.amount)}</b>${o.payerName ? `<span>匯款人姓名</span><b>${esc(o.payerName)}</b>` : ''}${o.last5 ? `<span>客戶匯款</span><b${o.xferAmount < o.amount ? ' style="color:#e5484d"' : o.xferAmount > o.amount ? ' style="color:#30a46c"' : ''}>末 5 碼 ${esc(o.last5)}（${esc(o.xferDate)}，NT$ ${nt(o.xferAmount)}）${o.xferAmount < o.amount ? ' ⚠ 少於應付' : o.xferAmount > o.amount ? '（多於應付）' : ''}</b>` : ''}</div>`;
     const err = (dl, r) => { const m = dl.querySelector('.msg'); m.className = 'msg bad'; m.textContent = '沒有成功：' + ((r && (r.msg || (r.error === 'not_reported' ? '會員還沒回報匯款資料，不能確認入帳' : r.error === 'underpaid' ? '實收金額少於應付，不能開通' : r.error === 'need_received' ? '請輸入網銀實際入帳金額' : r.error === 'need_reason' ? '請寫理由' : r.error))) || (r ? r._s : '連不到會員伺服器')); };
     if (k === 'confirm') {
       /* 2026-10-12 Andy：資金確認第二道 CHK —— 一定要輸入網銀實際入帳金額；少於應付按不下去（伺服器也擋） */
@@ -316,6 +320,17 @@
       const mailBtn = dl.querySelector('#pdMail');
       mailBtn.onclick = (e) => { mailBtn.href = mailHref(o.email, o, why.value.trim()); };
       dl.querySelector('#pdGo').onclick = async () => { const w = why.value.trim(); if (!w) { err(dl, { msg: '請寫退回原因' }); return; } const r = await call('/v1/admin/pay/reject', { id: o.id, reason: w }); if (await done(v, r, '已退回')) dl.hidden = true; else err(dl, r); };
+    } else if (k === 'amt') {
+      const dl = D(`<div class="payd"><h3>修改這筆轉帳金額</h3>${who}<p class="muted">會員端金額是鎖定的（不能自己填），只有這裡能改。改了之後應付金額與會員看到的金額都會變，確認入帳時照新金額核對；改前改後會留紀錄。</p>
+        <label for="pdAmt">新的金額（NT$）</label><input type="text" id="pdAmt" inputmode="numeric" autocomplete="off" value="${esc(o.amount)}">
+        <label for="pdAmtWhy" style="display:block;margin-top:6px">原因（只有管理者看得到）</label><input type="text" id="pdAmtWhy" maxlength="200">
+        <div class="msg" role="status"></div><div class="row2"><button type="button" data-close>取消</button><button type="button" class="pri" id="pdGo">儲存金額</button></div></div>`);
+      dl.querySelector('#pdGo').onclick = async () => {
+        const n = parseInt(String(dl.querySelector('#pdAmt').value).replace(/[,\s]/g, ''), 10);
+        if (!Number.isInteger(n) || n < 1) { err(dl, { msg: '請輸入正整數金額' }); return; }
+        const r = await call('/v1/admin/pay/amount', { id: o.id, amount: n, reason: dl.querySelector('#pdAmtWhy').value });
+        if (await done(v, r, `已把 ${o.id} 改成 NT$ ${nt(n)}`)) dl.hidden = true; else err(dl, r);
+      };
     } else if (k === 'note') {
       const dl = D(`<div class="payd"><h3>管理者備註</h3>${who}<p class="muted">只有管理者看得到，會出現在清單與 CSV。</p><input type="text" id="pdNote" maxlength="300" value="${esc(o.adminNote)}">
         <div class="msg" role="status"></div><div class="row2"><button type="button" data-close>取消</button><button type="button" class="pri" id="pdGo">儲存備註</button></div></div>`);
@@ -463,8 +478,8 @@
     window.__payCsv = txt;   // 驗收用：最後一次匯出的內容
   }
   function csvOrders(list) {
-    csv('訂單', ['訂單編號', '建立時間', '會員email', '方案', '週期', '金額', '方式', '付款類型', '狀態', '付款時間', '開通起', '開通迄', '轉出末5碼', '轉帳日期', '轉帳金額', '綠界交易號', '已退款金額', '退款明細', '自動續訂', '母訂單', '期數', '會員備註', '管理者備註', '退回原因', '測試'],
-      list.map((o) => [o.id, ymdhm(o.created), o.email, o.planName, o.period === 'year' ? '年繳' : '月繳', o.amount, methodName(o), o.payType, stName(o), ymdhm(o.paidAt), ymd(o.grantFrom), ymd(o.grantTo), o.last5, o.xferDate, o.xferAmount || '', o.tradeNo, o.refunded || 0,
+    csv('訂單', ['訂單編號', '建立時間', '會員email', '方案', '週期', '金額', '方式', '付款類型', '狀態', '付款時間', '開通起', '開通迄', '匯款人姓名', '轉出末5碼', '轉帳日期', '轉帳金額', '綠界交易號', '已退款金額', '退款明細', '自動續訂', '母訂單', '期數', '會員備註', '管理者備註', '退回原因', '測試'],
+      list.map((o) => [o.id, ymdhm(o.created), o.email, o.planName, o.period === 'year' ? '年繳' : '月繳', o.amount, methodName(o), o.payType, stName(o), ymdhm(o.paidAt), ymd(o.grantFrom), ymd(o.grantTo), o.payerName || '', o.last5, o.xferDate, o.xferAmount || '', o.tradeNo, o.refunded || 0,
         (o.refundRows || []).filter((r) => r.status === 'done').map((r) => `${r.amount}@${r.rdate || ymd(r.done_at)}${r.acct_last5 ? '→' + r.acct_last5 : ''}`).join('; '),
         o.recur && !o.parent ? (o.periodState === 'active' ? '開' : '關') : '', o.parent || '', o.periodN || '', o.note, o.adminNote, o.rejectReason, o.test ? '是' : '']));
   }
