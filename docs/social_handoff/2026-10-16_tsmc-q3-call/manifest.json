@@ -2,11 +2,11 @@
   "schema_version": 1,
   "job_id": "2026-10-16_tsmc-q3-call",
   "revision": 1,
-  "status": "draft",
+  "status": "ready_for_gpt",
   "topic": "台積電法說會：產業鏈該看哪五個數字",
   "data_cutoff": "2026-10-16T14:00:00+08:00",
   "created_at": "2026-10-16T14:00:00+08:00",
-  "updated_at": "2026-10-16T15:00:00+08:00",
+  "updated_at": "2026-10-16T17:48:00+08:00",
   "brief_path": "docs/social_handoff/2026-10-16_tsmc-q3-call/brief.md",
   "sources_path": "docs/social_handoff/2026-10-16_tsmc-q3-call/sources.md",
   "style_guide_path": "docs/social_handoff/style/LIGULIGU_IG_Threads_Style_Guide.md",
@@ -91,10 +91,6 @@
       "parent_path": "",
       "note": "圖表數字來源；GPT 可依此重畫，數字不得更動"
     }
-  ],
-  "blocking_items": [
-    "一手資料 SEC 6-K 本交接未重新開啟原文",
-    "Andy 指示：目前保持草稿，不冒充正式交件（測試稿）"
   ],
   "parent_article": "site/articles/posts/2026-10-16-news-tsmc-q3-call.json",
   "pr_title_rule": "[社群交接] YYYY-MM-DD｜主題",

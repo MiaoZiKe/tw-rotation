@@ -1,6 +1,6 @@
 # 交接單｜台積電法說會：產業鏈該看哪五個數字
 
-- job_id：`2026-10-16_tsmc-q3-call`｜revision：1｜狀態：**draft**（Andy 10-16：測試稿，保持草稿，不冒充正式交件）
+- job_id：`2026-10-16_tsmc-q3-call`｜revision：1｜狀態：**ready_for_gpt**（Andy 2026-10-16 下指令「交件」；以真實已發佈文章為題，正式交件）
 - 母文章（已發佈、信心度「高」）：`site/articles/posts/2026-10-16-news-tsmc-q3-call.json`；本交接單是把它整理成社群用重點，**不得與母文章數字不同**。
 
 ## 主題
@@ -94,7 +94,7 @@ IG 十頁（1080×1350），一頁一個重點：
 
 ## 待確認
 1. ~~視覺規範檔~~：已由 Andy 提供（v1.0，2026-10-16），放在 `docs/social_handoff/style/`。
-2. 本稿維持 **draft**（Andy 10-16 指示），不標 ready_for_gpt、不冒充正式交件；要正式交件時先執行 `python scripts/social_handoff.py ready <資料夾>`。
+2. 已於 2026-10-16 依 Andy 指示「交件」標成 ready_for_gpt（`scripts/social_handoff.py ready` 檢查通過）。
 3. 一手資料 SEC 6-K 本交接未重新開啟原文（容器打不開外部網站），需 Andy 或 GPT 端對照 sources #12。
 4. Q2 基準（402 億美元、67.7%）來源較弱（sources #14），需對 6-K 補核。
 5. 比比原畫作者：Andy 表示由其 GPT 端核實，素材先標 `unknown`／`author_unverified`，不猜。
