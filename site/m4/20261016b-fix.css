@@ -1,0 +1,29 @@
+/* site/m4/20261016b-fix.css —— 2026-10-16 從 mobile4.css 尾巴原封搬出（1016b 手機修正）。
+   載入順序＝index.html 裡 mobile4.css 之後、依檔名排序（scripts/m4_css_links.py 產生），層疊順序跟搬出前一樣。 */
+/* ===== 1016b. 手機修正（Andy iPhone 10-16）=====
+   ① 「可以一直往下滑」：右側事件抽屜 aside#side 關著時寬度收成 0（10-16 右滑修正），裡面的新聞清單在 0 寬裡逐字換行、撐到兩萬多 px 高；
+      Chromium 把它關在抽屜的捲動框裡，iOS Safari／LINE 卻把它算進整頁捲動高度 → 頁尾下面一大片空白一直滑。
+      修法：抽屜滑出動畫結束後（mobile4.js 加 .m4shut），裡面的東西整個不排版（display:none）；一打開（.open）立刻回來，滑入動畫照舊。
+      頁尾下方給右下角客服鈕的留白 72px → 12px（客服鈕在右下，頁尾最後一列「顯示詳細規範」在左邊，蓋不到）。
+   ② 卡片裡「摘要一句」與「免責一行」疊字：資金輪動左欄是直向 flex，標題列（min-height:32）與摘要句（min-height:20）可被壓縮，
+      欄高一被限住（iOS 字寬不同、輪盤高度跟欄寬走）就縮到比內容矮、下一行蓋上來 → 手機一律不准壓縮。
+   ③ 「?」說明鈕：40px 大圓 → 18px 小圓、字 12px，跟標題字同一級；觸控範圍用 ::after 往外擴 8px（34×34）。
+   ④ 資金分流樹「動態 開」搬進卡片標題列右端（flowtopo.js，只在 html.m4） */
+@media (max-width:640px){
+  :root.m4 aside#side.m4shut:not(.open)>*{display:none!important}
+  :root.m4 body.m3on main,:root.m4 body.m3on.miaon main{padding-bottom:calc(12px + env(safe-area-inset-bottom))}
+
+  :root.m4 main .view :is(.rotleft,.card)>:is(.row,.t4-lede,.rotfilter,.rottime,.rotchead){flex-shrink:0}
+  :root.m4 main .view .t4-lede{min-height:0}
+
+  :root.m4 body .howbtn.pop{position:relative;width:18px!important;height:18px!important;min-width:0!important;min-height:0!important;padding:0!important;
+    font-size:12px!important;line-height:1!important;border-radius:50%!important;flex:none;vertical-align:2px}
+  :root.m4 body .howbtn.pop::after{content:'';position:absolute;inset:-8px;border-radius:50%}
+
+  :root.m4 .card>:is(.row.spread,h4.subh)>.ftbtn.ftm4hd{margin-left:auto;flex:none;padding:0 10px;
+    border:1px solid var(--line-2,var(--line));border-radius:8px;background:var(--panel-2,transparent);color:var(--ink-2);font-size:12px;line-height:1;white-space:nowrap;cursor:pointer}
+  :root.m4 .card>:is(.row.spread,h4.subh)>.ftbtn.ftm4hd[aria-pressed="true"]{color:var(--cyan);border-color:color-mix(in srgb,var(--cyan) 55%,transparent)}
+  :root.m4 .card>:is(.row.spread,h4.subh)>.ftbtn.ftm4hd:disabled{opacity:.5}
+  :root.m4 #ovFlowHead:has(>.ftm4hd){display:flex;align-items:center;gap:6px}
+  :root.m4 .row.spread:has(>.ftm4hd)>h3{flex:1 1 auto!important}
+}

@@ -1,0 +1,19 @@
+/* site/m4/20261016-02-3d-noselect.css —— 2026-10-16 從 mobile4.css 尾巴原封搬出（3D 不准選字（手機3D分頁1016））。
+   載入順序＝index.html 裡 mobile4.css 之後、依檔名排序（scripts/m4_css_links.py 產生），層疊順序跟搬出前一樣。 */
+/* ============================================================================
+   ★ 2026-10-16 手機 3D 不准跳出 iOS 文字選取選單（Andy iPhone 實機：「產業地圖切換到3D圖之後 其他分頁不能使用」）
+   截圖：3D 點了編號 03 之後，畫面中間跳出「拷貝｜使用 Google 搜尋」，整片被選取染成藍灰。
+   iOS 只要頁面上掛著一段文字選取，下一次點擊多半只被拿去「取消選取」，不會變成 click ——
+   使用者看到的就是分頁鈕灰一下（按下狀態）卻沒有切過去。所以 3D 畫布、編號泡泡、引線圖層、
+   剖析圖工具列與上方兩層分頁列、底部抽屜的背景與標題，一律不准被長按選字、不准跳長按選單。
+   只在手機（html.m4 且 ≤640）作用，桌機一個字不變。抽屜內文（零件說明）不鎖，想拷貝的人照樣能選。
+   ---------------------------------------------------------------------------- */
+@media (max-width:640px){
+  :root.m4 #prod3d, :root.m4 #prod3d *, :root.m4 #prod3d canvas,
+  :root.m4 .mnumlayer, :root.m4 .mnumlayer *,
+  :root.m4 #dgTools, :root.m4 #dgTools *, :root.m4 #dg3d, :root.m4 #dg3d *,
+  :root.m4 #dgPick, :root.m4 #dgPick *, :root.m4 #chainSwitch, :root.m4 #chainSwitch *,
+  :root.m4 .m4subtabs, :root.m4 .m4subtabs *,
+  :root.m4 .msheetback, :root.m4 .msheet .mgrab, :root.m4 .msheet .mshhead{
+    -webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+}

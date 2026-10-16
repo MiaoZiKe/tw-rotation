@@ -8,7 +8,7 @@
 #     手指點分頁＝點背景，只關抽屜、分頁不切，看起來就是「點不動」。修法：點背景照舊關，手指底下若是分頁類就順手交給它（mobile3.js TAPTHRU）。
 #   病因二（iOS 才有，這裡用「touchend 被 preventDefault＝瀏覽器不補發 click」模擬）：分頁鈕灰一下卻沒切。
 #     修法：mobile4.js 的分頁保險絲 —— 原地點放開 450ms 內沒收到 click 就補一個（data-m4tapfix 記補了幾次）。
-#   病因三：iOS 長按跳「拷貝｜使用 Google 搜尋」→ 3D 畫布、編號、引線、分頁列在手機一律 user-select:none＋-webkit-touch-callout:none（mobile4.css 末節），開關抽屜清掉選取。
+#   病因三：iOS 長按跳「拷貝｜使用 Google 搜尋」→ 3D 畫布、編號、引線、分頁列在手機一律 user-select:none＋-webkit-touch-callout:none（site/m4/20261016-02-3d-noselect.css；原本在 mobile4.css 末節），開關抽屜清掉選取。
 #   全部用 touchscreen.tap（真的手指點）；360／390／430 三種寬度。
 M43DPOP_ST = r"""() => { const s = document.getElementById('mSheet'), k = document.getElementById('mSheetBack');
   const vis = e => !!(e && !e.hidden && e.getClientRects().length && getComputedStyle(e).display !== 'none');
@@ -63,8 +63,9 @@ def t_m4_3dpop_1016(b, base):
             # ---- 0. 防選字：3D 畫布、編號、引線、分頁列在手機都不能被選字（iOS 不跳「拷貝｜Google 搜尋」）----
             if not ok(f"【{T}】{W} 晶圓代工切進 3D 有編號", open3d("foundry")):
                 continue
-            # Chromium 不認得 -webkit-touch-callout，cssText 會把它丟掉 → 直接讀 mobile4.css 原文確認規則在、而且跟 #prod3d 寫在同一段
-            css = J("() => fetch('mobile4.css', { cache: 'no-store' }).then(r => r.text())") or ""
+            # Chromium 不認得 -webkit-touch-callout，cssText 會把它丟掉 → 直接讀樣式表原文確認規則在、而且跟 #prod3d 寫在同一段
+            #   （2026-10-16 拆檔：這一段從 mobile4.css 尾巴搬到 m4/20261016-02-3d-noselect.css）
+            css = J("() => fetch('m4/20261016-02-3d-noselect.css', { cache: 'no-store' }).then(r => r.text())") or ""
             sec = css[css.find("2026-10-16 手機 3D 不准跳出"):] if "2026-10-16 手機 3D 不准跳出" in css else ""
             callout = "-webkit-touch-callout:none" in sec and "#prod3d" in sec and ".mnumlayer" in sec
             us = J("""() => { const q = s => document.querySelector(s); const u = e => e ? getComputedStyle(e).userSelect || getComputedStyle(e).webkitUserSelect : 'missing';
