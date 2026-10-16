@@ -69211,7 +69211,7 @@ FREE_NEUTRAL_LIMS = {k: None for k in ("flow.rank.click", "flow.filter", "ind.gr
                                        "season.month", "season.groups", "season.pick", "stock.k_min", "stock.mtf", "stock.ind", "stock.draw", "explore.page", "explore.filter", "etf.list",
                                        "etf.list.tab", "etf.cal.click", "earn.click", "flow.sankey.drill", "flow.inst.filter", "search", "news.open", "etf.cashflow", "etf.cmp", "etf.inc.comp")}
 Q1010_ONE = {"who": "member", "plan": "free", "planName": "免費會員", "dq": None,
-             "feats": {**{k: 9999 for k in ("watch.tabs", "watch.size", "mkt.grp.pick", "explore.list.n", "mkt.cand.n", "etf.returns.n")}, **FREE_NEUTRAL_FEATS},   # 數量類一律不限 → 只剩產業地圖一組
+             "feats": {**{k: 9999 for k in ("watch.tabs", "watch.size", "mkt.grp.pick", "explore.list.n", "mkt.cand.n", "etf.returns.n", "art.read.n")}, **FREE_NEUTRAL_FEATS},   # 數量類一律不限 → 只剩產業地圖一組
              "lims": {**FREE_NEUTRAL_LIMS, "ind.3d": 0, "ind.rel": 5}}
 
 Q1010_STATE = """() => { const d = document.getElementById('m4Quota'); if (!d || d.hidden) return null;
@@ -69312,6 +69312,10 @@ def t_m4_quota_1010(b, base, code):
         ok(f"【{T} {W}】沒有橫向捲動（面板 {s4['scW']}≤{s4['scCW']}、整頁 {s4['pageW']}≤0）",
            s4["scW"] <= s4["scCW"] + 1 and s4["ox"] == "hidden" and s4["bxW"] <= 1 and s4["pageW"] <= 1, (s4["scW"], s4["scCW"], s4["ox"], s4["bxW"], s4["pageW"]))
         ok(f"【{T} {W}】面板與底部「看方案」都在畫面內（底 {s4['ftBot']}≤{s4['H']}）", s4["bxTop"] >= 0 and s4["bxBot"] <= s4["H"] + 1 and s4["ftBot"] <= s4["H"], s4)
+        # 2026-10-16：先捲回最上面再量。全部展開時最後一組的 tap 會把面板帶到底，內容多一組（精選文章分級新增 art.read.n）就剛好只剩 49px 可滑，
+        # 低於下面「> 50」的門檻 —— 那是量測起點的問題，不是面板不能捲
+        pg.evaluate("() => { document.querySelector('#m4Quota .sc').scrollTop = 0; }")
+        pg.wait_for_timeout(150)
         top0 = pg.evaluate("() => document.querySelector('#m4Quota .sc').scrollTop")
         box = pg.evaluate("() => { const r = document.querySelector('#m4Quota .sc').getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2 }; }")
         # 用手指往上滑（CDP 觸控事件）；不支援時退回 scrollBy
@@ -70331,7 +70335,7 @@ WS_FREE = {"who": "member", "plan": "free", "planName": "免費會員", "dq": 40
            "lims": {"ind.3d": 0, "stock.ai": 0, "ind.rel": 5, "heat.detail": 10, "stock.page": 10, "flow.sankey.drill": 3, "flow.inst.filter": 5, "earn.tab": 3,
                     "explore.filter": 2, "etf.calendar.tab": 3, "etf.list.tab": 5, "season.pick": 3, "events": 3, "etf.list": 0}}
 WS_ONE = {"who": "member", "plan": "free", "planName": "免費會員", "dq": None,
-          "feats": {**{k: 9999 for k in ("watch.tabs", "watch.size", "mkt.grp.pick", "explore.list.n", "mkt.cand.n", "etf.returns.n")}, **FREE_NEUTRAL_FEATS},   # 2026-10-12：中和成只剩產業地圖一組（見 FREE_NEUTRAL_*）
+          "feats": {**{k: 9999 for k in ("watch.tabs", "watch.size", "mkt.grp.pick", "explore.list.n", "mkt.cand.n", "etf.returns.n", "art.read.n")}, **FREE_NEUTRAL_FEATS},   # 2026-10-12：中和成只剩產業地圖一組（見 FREE_NEUTRAL_*）
           "lims": {**FREE_NEUTRAL_LIMS, "ind.3d": 0, "ind.rel": 5}}
 WS_DEL_EMAIL = "delme@example.com"
 
@@ -71309,7 +71313,7 @@ def t_articles_1014(b, base):
                 return r.fulfill(status=200, body=json.dumps({"ok": True, "job": j}), headers=hd)
             return r.fulfill(status=409, body='{"error":"not_queued"}', headers=hd)
         if path == "/v1/perm/me":   # 訪客、不設上限（不讓權限鎖頭干擾這一段）
-            return r.fulfill(status=200, body=json.dumps({"who": "guest", "plan": "guest", "planName": "訪客", "feats": {}, "lims": {}, "dq": None}), headers=hd)
+            return r.fulfill(status=200, body=json.dumps({"who": "guest", "plan": "guest", "planName": "訪客", "feats": {"art.read.n": 999}, "lims": {}, "dq": None}), headers=hd)   # 2026-10-16 精選文章分級：這段驗的是版面與圖表，所以給「全文不限篇數」（分級另有「精選文章分級1016」）
         return r.fulfill(status=200, body='{"ok":true}', headers=hd)
 
     def prep(ctx, mode="ok"):

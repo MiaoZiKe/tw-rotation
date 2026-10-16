@@ -42,6 +42,9 @@
      新增：資金輪動排行點擊 5、資金流向上方篩選 5、市場明細三個分頁觀看各 5、漲跌家數篩選 5、週期統計觀看 10、財經日曆點標題 5、配息行事曆右側清單 5、搜尋 10。
      全站共用額度 dq：註冊會員 40 → 不設（null）—— 逐項上限已經比它細，留著反而可能比逐項更早用完、把 Andy 要的 10 次吃掉。
      訪客：新鍵給比註冊會員少的次數（多半 3 次、搜尋 5 次），其餘不動；Plus／Pro 不動。
+   · ★ 2026-10-16（Andy：「精選貼文限制給 Pro 可以看，Plus 只能所有類別共 5 篇，其他的只能看到標題」）：新鍵 art.read.n（精選文章可讀全文篇數，**累計、不是每日**，
+     所有分類合計）——訪客 0、註冊會員 0（只看標題與分類）、Plus 5、Pro 999（＝不限）。features.js 的 defBy 也寫了同樣的預設，按「套用建議方案」之前就照這個跑。
+     計數在 site/quota.js 的 TwQuota.total，只擋畫面、非伺服器端。
    這支是**資料**，不是設定：改了不會自動生效，要管理者在 #admin/perm 按一次「套用建議方案」。
    ============================================================================ */
 window.TW_PLAN_PRESETS = {
@@ -127,6 +130,7 @@ window.TW_PLAN_PRESETS = {
     "explore.list.n": 5,
     "mkt.cand.n": 3,
     "etf.returns.n": 0,
+    "art.read.n": 0,
     "etf.cashflow": false,
     "etf.inc.params": false,
     "etf.cmp": false,
@@ -252,6 +256,7 @@ window.TW_PLAN_PRESETS = {
     "explore.list.n": 999,
     "mkt.cand.n": 10,
     "etf.returns.n": 3,
+    "art.read.n": 0,
     "etf.cashflow": true,
     "etf.inc.params": false,
     "etf.cmp": true,
@@ -393,6 +398,7 @@ window.TW_PLAN_PRESETS = {
     "explore.list.n": 999,
     "mkt.cand.n": 999,
     "etf.returns.n": 8,
+    "art.read.n": 5,
     "etf.cashflow": true,
     "etf.inc.params": true,
     "etf.cmp": true,
@@ -506,6 +512,7 @@ window.TW_PLAN_PRESETS = {
     "explore.list.n": 999,
     "mkt.cand.n": 999,
     "etf.returns.n": 20,
+    "art.read.n": 999,
     "etf.cashflow": true,
     "etf.inc.params": true,
     "etf.cmp": true,
