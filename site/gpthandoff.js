@@ -67,7 +67,8 @@
     S.push({ k: 'must', md: `## 內容限制\n- 不點名個股推薦、不寫買賣建議、不保證獲利\n- 預估與財測不寫成事實，要標明「財測」「預估」\n- 新聞用自己的話寫並附來源\n- 結尾附免責：整理公開資訊，非投顧，投資請自行判斷。` });
     S.push({ k: 'must', md: `## 視覺規範\n${STYLE}` });
     S.push({ k: 'must', md: ask(type) });
-    S.push({ k: 'must', md: `## 完整文章 JSON\n${RAW}${encodeURIComponent(id)}.json` });
+    /* 2026-10-16 防白嫖：新文章（src:'api'）的全文只在會員後端、沒有公開網址 —— 不放死連結，請以上面整理好的內容為準 */
+    S.push({ k: 'must', md: post.src === 'api' ? '## 完整文章\n這篇的全文只存在會員後端（沒有公開網址），請以上面整理好的內容為準；不足之處請回頭問 Andy。' : `## 完整文章 JSON\n${RAW}${encodeURIComponent(id)}.json` });
     return S;
   }
   const mkUrl = (title, body, type) => 'https://github.com/' + REPO + '/issues/new?title=' + encodeURIComponent(title) + '&body=' + encodeURIComponent(body) + '&labels=' + encodeURIComponent('social-handoff,' + TYPES[type].label);

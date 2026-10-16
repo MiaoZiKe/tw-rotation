@@ -41,10 +41,10 @@
   if (!S.tok) S.user = null;
 
   // ------------------------------------------------------------------ API
-  async function call(path, body) {
+  async function call(path, body, hdr) {   // hdr：額外的請求標頭（防白嫖：訪客編號 X-Tw-Guest；有自訂標頭瀏覽器會先預檢，Worker 已允許）
     if (!S.api) return null;
     try {
-      const r = await fetch(S.api + path, { method: 'POST', headers: { 'content-type': 'text/plain' }, body: JSON.stringify(Object.assign({}, body || {}, S.tok ? { t: S.tok } : {})), credentials: 'omit' });
+      const r = await fetch(S.api + path, { method: 'POST', headers: Object.assign({ 'content-type': 'text/plain' }, hdr || {}), body: JSON.stringify(Object.assign({}, body || {}, S.tok ? { t: S.tok } : {})), credentials: 'omit' });
       let j = {}; try { j = await r.json(); } catch (e) { j = {}; }
       j._s = r.status;
       /* 權杖失效（過期、帳號被刪、Worker 換了金鑰）→ 當作登出，不要一直拿壞的權杖打 */

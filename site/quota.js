@@ -940,15 +940,22 @@ html.ovnl #ovRotPop .rp-ms a:hover{outline:none!important}`);
   /* ============================================================================
      ★ 2026-10-16 累計額度（Total）—— 跟上面「每日」額度是兩回事，所以另存、另算
      Andy：「精選貼文限制給 Pro 可以看，Plus 只能所有類別共 5 篇」「今日事件開放…限制次數 5 次 Total」。
-     每日額度（tw.quota）每天台北 0 點歸零；累計額度**永遠不歸零**，存在 localStorage 的 tw.total（依身分分開：訪客 guest、會員 u:<email>）。
-     上限來源：features.js 的 limit 類功能（art.read.n、events.total），範本 feats 的整數；擁有者／管理員／預覽版／會員伺服器連不到 ＝ 不限（跟 pick() 同一套）。
-     ⚠ 誠實的限制：跟全站其他額度一樣只擋畫面（GitHub Pages 靜態站，文章與事件 JSON 是公開檔）；計數在這個瀏覽器，
-       清除網站資料、換瀏覽器、無痕視窗都會從頭算。要真的擋要把內容改由 Worker 驗身分後才提供（DECISIONS #288 同一個結論）。
-     預覽版示範：預覽版一律是擁有者（不受限），Andy 看不到限制。網址加 ?demo_tier=guest|free|plus|pro 就用那個身分的範本值示範
-     （只在預覽版生效、存在這個分頁的 sessionStorage；?demo_tier=off 取消），計數另開一份（demo:<身分>），不動正式資料。
+     每日額度（tw.quota）每天台北 0 點歸零；累計額度**永遠不歸零**。
+
+     ★ 2026-10-16 防白嫖（docs/security/anti_freeload_1016.md）—— 計數改在伺服器，localStorage 只剩「顯示用的快取」：
+       · 登入者：以帳號（uid）計；訪客：Worker 簽發的訪客編號（存 localStorage 的 tw.gid、用請求標頭 X-Tw-Guest 送）＋連線 IP 的單向雜湊。
+         所以清除網站資料、無痕視窗、換瀏覽器都不會讓次數重來（同一個網路內）；偽造 localStorage 也沒用，伺服器不看它。
+       · events.total：useAsync() 問 /v1/total/use，伺服器說算數才算；art.read.n：次數在 /v1/articles/get（讀全文那一下伺服器順手記），這裡用 sync() 讀回已讀清單。
+       · ★ fail-closed：這兩項在「連不到會員伺服器 / 權限還沒載入 / 沒有計數模組」時**照訪客算**（events.total 5、art.read.n 0），不再「寧可多給」；
+         只有「會員系統根本沒開」（本機、沒設 account_config）與擁有者／管理員／預覽版才不限。其他全站功能的「寧可多給」慣例不動。
+       · 預覽版示範身分（?demo_tier=）仍是純本機計數（預覽版寫入本來就被擋，也不該碰正式資料）。
+     ⚠ 誠實的限制：換網路（Wi-Fi ↔ 4G）或 VPN 後再開無痕，會拿到新的一份；舊的 4 篇文章與今日事件的原始資料是公開檔，不在這裡擋。
      ============================================================================ */
-  const TOT_K = 'tw.total';
+  const TOT_K = 'tw.total', GID_K = 'tw.gid';
   let TOT_MEM = null;        // localStorage 寫不進去（私密視窗）時的備援：這次載入有效、重開歸零
+  let GID_MEM = '';
+  const SV = { lim: {}, ipcap: {}, at: {} };      // 伺服器回報的上限（依身分）、「這個網路已被 IP 總量擋住」旗標、上次同步時間
+  const acctApi = () => window.TwAccount || null;
   function demoTier() {
     if (!window.TW_PREVIEW) return '';
     let t = (/[?&]demo_tier=([a-z]+)/.exec(location.search) || [])[1] || '';
@@ -959,6 +966,24 @@ html.ovnl #ovRotPop .rp-ms a:hover{outline:none!important}`);
     const dt = demoTier(); if (dt) return 'demo:' + dt;
     const A = window.TwAccount, u = A && A.on && A.on() && A.user && A.user();
     return u && u.email ? 'u:' + String(u.email).toLowerCase() : 'guest';
+  }
+  /* 會員系統有沒有開：TwAccount 在而且 on()＝開；TwAccount 不在、但設定檔有網址（被擋掉 account.js）＝視為開（照訪客算，不是全開） */
+  function sysOn() {
+    const A = window.TwAccount; if (A && A.on) return !!A.on();
+    const c = window.TW_ACCOUNT_OVERRIDE || window.TW_ACCOUNT; return !!(c && typeof c.api === 'string' && c.api);
+  }
+  /* 要問伺服器的情境：會員系統開著、不是預覽版示範、而且 TwAccount 真的在 */
+  const remote = () => !demoTier() && !window.TW_PREVIEW && sysOn() && !!(window.TwAccount && window.TwAccount.call);
+  const toLim = (v, f) => (!Number.isInteger(v) || v >= f.max ? Infinity : Math.max(0, v));
+  /* 同「同時選取上限」pick()，只差一點：連不到會員伺服器（src＝default）、或權限／功能模組沒載入 → 照訪客算，不是「不限」*/
+  function pickClosed(id) {
+    const p = P(), Ft = F();
+    if (p && p.owner && p.owner()) return Infinity;
+    const f = Ft && Ft.byId(id);
+    if (!f) return id === 'events.total' ? 5 : id === 'art.read.n' ? 0 : Infinity;      // 功能表沒載入：寫死的訪客預設（跟 features.js defBy 一致）
+    if (!p || p.state().src === 'default') return toLim(Ft.defOf ? Ft.defOf(f, 'guest') : f.def, f);
+    const v = p.value ? p.value(id) : p.limit(id, f.max);
+    return toLim(v, f);
   }
   function totLimit(id) {
     const dt = demoTier(), Ft = F();
@@ -971,7 +996,9 @@ html.ovnl #ovRotPop .rp-ms a:hover{outline:none!important}`);
     }
     const A = window.TwAccount, u = A && A.on && A.on() && A.user && A.user();
     if (u && (u.admin || u.owner)) return Infinity;      // 管理者不受限
-    return pick(id);
+    if (!sysOn()) return Infinity;                        // 會員系統沒開（本機）：不限，跟其他功能一樣
+    const sv = SV.lim[totWho()]; if (sv && Object.prototype.hasOwnProperty.call(sv, id)) return sv[id];   // 伺服器最近一次說的上限
+    return pickClosed(id);
   }
   function totAll() {
     if (TOT_MEM) return TOT_MEM;
@@ -979,22 +1006,78 @@ html.ovnl #ovRotPop .rp-ms a:hover{outline:none!important}`);
     return d && typeof d === 'object' ? d : {};
   }
   const totKeys = (id) => { const m = totAll()[totWho()]; return m && Array.isArray(m[id]) ? m[id].slice() : []; };
-  function totUse(id, key) {
+  function totSave(all, id) {
+    try { localStorage.setItem(TOT_K, JSON.stringify(all)); TOT_MEM = null; } catch (e) { TOT_MEM = all; }
+    try { window.dispatchEvent(new CustomEvent('tw:total', { detail: { id } })); } catch (e) { /* 舊瀏覽器 */ }
+  }
+  function totSetKeys(id, keys) {
+    const all = totAll(), w = totWho(); all[w] = Object.assign({}, all[w]); all[w][id] = keys.slice(0, 500);
+    totSave(all, id);
+  }
+  /* 純本機計數：預覽版示範身分、會員系統沒開時用（沒有伺服器可問） */
+  function totUse(id, key, force) {
     const lim = totLimit(id);
     if (lim === Infinity) return true;
     const ks = totKeys(id);
     if (ks.includes(key)) return true;           // 同一個對象重看不重算、已經算過的永遠看得到
+    if (remote() && !force) return false;          // 要伺服器算的身分不能在本機偷偷加（請用 useAsync）；force＝舊的靜態文章（本來就是公開檔），維持本機計數
     if (ks.length >= lim) return false;
-    const all = totAll(), w = totWho(); all[w] = Object.assign({}, all[w]); all[w][id] = ks.concat(key);
-    try { localStorage.setItem(TOT_K, JSON.stringify(all)); TOT_MEM = null; } catch (e) { TOT_MEM = all; }
-    try { window.dispatchEvent(new CustomEvent('tw:total', { detail: { id } })); } catch (e) { /* 舊瀏覽器 */ }
+    totSetKeys(id, ks.concat(key));
     return true;
   }
+  const gidGet = () => { try { return localStorage.getItem(GID_K) || GID_MEM; } catch (e) { return GID_MEM; } };
+  const gidSet = (g) => { if (!/^g1\.[A-Za-z0-9_-]{22}\.[A-Za-z0-9_-]{22}$/.test(String(g || ''))) return; GID_MEM = g; try { localStorage.setItem(GID_K, g); } catch (e) { /* 私密視窗：這次載入內有效 */ } };
+  /* 呼叫會員 Worker（帶權杖；訪客帶訪客編號標頭）。8 秒沒回應＝連不到＝null（呼叫端照 fail-closed 處理）*/
+  function srv(path, body) {
+    const A = window.TwAccount; if (!A || !A.call) return Promise.resolve(null);
+    const hd = gidGet() ? { 'X-Tw-Guest': gidGet() } : undefined;
+    return Promise.race([A.call(path, body, hd), new Promise((res) => setTimeout(() => res(null), 8000))]).catch(() => null);
+  }
+  function noteSrv(id, j, who) {
+    if (!j || j.error) return;
+    const m = SV.lim[who] = SV.lim[who] || {};
+    if (Object.prototype.hasOwnProperty.call(j, 'limit')) m[id] = j.limit == null ? Infinity : j.limit;
+    if (Array.isArray(j.used) && who === totWho()) totSetKeys(id, j.used);
+  }
+  /* 問伺服器「用了幾次、上限多少」（art.read.n 的已讀清單也走這裡）。訪客的 art.read.n 不用問（0 篇）。回 Promise<{ok}>，永不丟錯 */
+  function totSync(id) {
+    if (!remote()) return Promise.resolve({ ok: true, local: true });
+    const A = window.TwAccount, user = !!(A.user && A.user());
+    if (id === 'art.read.n' && !user) return Promise.resolve({ ok: true, local: true });
+    const who = totWho();
+    return srv('/v1/total/state', { ids: [id] }).then((j) => {
+      if (!j || j.error || !j.limits || !j.limits[id]) return { ok: false };
+      const r = j.limits[id];
+      const m = SV.lim[who] = SV.lim[who] || {}; m[id] = r.limit == null ? Infinity : r.limit;
+      SV.at[who + '|' + id] = Date.now();
+      if (id !== 'art.read.n' && who === totWho()) totSetKeys(id, r.used || []);
+      else if (who === totWho()) { try { window.dispatchEvent(new CustomEvent('tw:total', { detail: { id } })); } catch (e) { /* 舊瀏覽器 */ } }
+      return { ok: true, used: r.used || [], limit: m[id] };
+    });
+  }
+  /* 用掉一次（events.total）。回 Promise<boolean>：伺服器說算數＝true；連不到／被拒＝false（fail-closed）。本機模式照舊同步計數 */
+  function totUseAsync(id, key) {
+    if (!remote()) return Promise.resolve(totUse(id, key));
+    if (totLimit(id) === Infinity) return Promise.resolve(true);
+    if (totKeys(id).includes(key)) return Promise.resolve(true);
+    const who = totWho();
+    return srv('/v1/total/use', { id, key }).then((j) => {
+      if (!j || j.error) return false;
+      if (j.g) gidSet(j.g);
+      noteSrv(id, j, who);
+      if (j.why === 'ip') SV.ipcap[who + '|' + id] = true; else delete SV.ipcap[who + '|' + id];
+      return !!j.ok;
+    });
+  }
+  const capped = (id) => !!SV.ipcap[totWho() + '|' + id];
   const total = {
     limit: totLimit, used: totKeys, has: (id, key) => totKeys(id).includes(key), demo: demoTier, who: totWho,
-    left: (id) => { const n = totLimit(id); return n === Infinity ? Infinity : Math.max(0, n - totKeys(id).length); },
-    can: (id, key) => { const n = totLimit(id); return n === Infinity || totKeys(id).includes(key) || totKeys(id).length < n; },
-    use: totUse,
+    left: (id) => { const n = totLimit(id); return n === Infinity ? Infinity : capped(id) ? 0 : Math.max(0, n - totKeys(id).length); },
+    can: (id, key) => { const n = totLimit(id); return n === Infinity || totKeys(id).includes(key) || (!capped(id) && totKeys(id).length < n); },
+    use: totUse, useLocal: (id, key) => totUse(id, key, true), useAsync: totUseAsync, sync: totSync, remote, capped,
+    /* 伺服器說的已讀清單併進快取：伺服器管的那些 id 以伺服器為準，其餘（舊的 4 篇靜態文章，本機計數）原樣保留 */
+    merge: (id, serverKeys, isServerKey) => { const keep = totKeys(id).filter((k) => !isServerKey(k)); totSetKeys(id, keep.concat(serverKeys)); },
+    setLimit: (id, lim) => { const who = totWho(); (SV.lim[who] = SV.lim[who] || {})[id] = lim == null ? Infinity : lim; },
     tier: () => demoTier() || meTier(),      // 示範身分優先
   };
   window.TwQuota = { act, actOk, allow, use, out, left, pick, pickBlock, routeOk: routeOkAll, heatLinkOk, heatLinkUse, heatLinkNote, heatGo, actUnit, UNIT_KINDS, total, used: (id) => (load().k[id] || []).slice(),
