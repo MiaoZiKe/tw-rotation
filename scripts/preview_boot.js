@@ -91,7 +91,8 @@
 
   /* ---------------------------------------------------------------- ③ 會員 API 寫入擋下 */
   var WRITES = ['/v1/lists/put', '/v1/delete', '/v1/beat', '/v1/admin/settings',
-                '/v1/admin/perm/put', '/v1/admin/plans/put'];
+                '/v1/admin/perm/put', '/v1/admin/plans/put',
+                '/v1/articles/schedule/add'];   // 2026-10-16 產貼文頻率設定：預覽版不寫正式站
   function isBlockedWrite(u) {
     try {
       var x = new URL(u, location.href);
