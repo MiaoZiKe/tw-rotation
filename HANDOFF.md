@@ -1,5 +1,11 @@
 # HANDOFF.md — 目前進度（接手先讀這份）
 
+## 2026-10-16 夜 精選文章管理改兩分頁（預覽分支 preview/admin-articles-2tabs，尚未進 main）
+- #admin/articles 兩分頁：「文章主題」（今日選題勾選＋產主題設定＋已上架文章＋主題候選＋產出進度）、「統計數據」（原統計原樣）。site/socialpick.js 改成只提供 mountPick／mountSched，由 articles.js 掛入；獨立 #admin/social 不存在、舊網址自動轉回。
+- 產主題設定＝每週「星期 × 時段」格線，JSON 用 slots（見 docs/marketing/social_unit/menu_json_spec.md）。真實 menu_latest.json 由 CEO 每日 commit；目前是 example。
+- 驗收段「文章主題兩分頁1016」；精選文章1014 的管理區段改成先切分頁。桌機守門1008、_preview（與 main 同樣 2 筆 800px 既有交疊）皆無新增問題。
+- 待 Andy 在預覽確認後才合 main。
+
 ## 2026-10-16 手機版 CEO：上午～中午這批（全部已上線；最後更新 13:15 台北）
 - 10:06／10:14 Andy iPhone 回報 7 件 → 11:27 上線（faddeed5）：頁面無限往下滑（#side 0 寬撐高 → .m4shut 不排版）、資金輪動摘要壓免責、「動態 開」移卡片標題列、頂欄限制字縮、「?」18px、產業鏈頁手機不畫 #segBox／跨鏈卡／其他產業鏈列、說明卡「看個股頁」空框（.btn.primary 同色）→ 名字連結＋「在圖上標示」、ETF 月配金額（月領 1/2/5/10 萬＋自訂輸入、年月切換不掉列）。
 - 「小說明點背景就關」普查 13 頁×3 寬 132 次全合格，只加驗收段（手機彈窗點背景1016）。
