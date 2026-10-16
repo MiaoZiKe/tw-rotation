@@ -1,0 +1,101 @@
+{
+  "schema_version": 1,
+  "job_id": "2026-10-16_tsmc-q3-call",
+  "revision": 1,
+  "status": "draft",
+  "topic": "台積電法說會：產業鏈該看哪五個數字",
+  "data_cutoff": "2026-10-16T14:00:00+08:00",
+  "created_at": "2026-10-16T14:00:00+08:00",
+  "updated_at": "2026-10-16T14:00:00+08:00",
+  "brief_path": "docs/social_handoff/2026-10-16_tsmc-q3-call/brief.md",
+  "sources_path": "docs/social_handoff/2026-10-16_tsmc-q3-call/sources.md",
+  "style_guide_path": "docs/social_handoff/style/LIGULIGU_IG_Threads_Style_Guide.md",
+  "style_guide_status": "missing",
+  "requested_outputs": [
+    "IG 十頁 1080x1350",
+    "IG 貼文說明",
+    "Threads 文案",
+    "來源表",
+    "素材來源清單"
+  ],
+  "asset_references": [
+    {
+      "path": "docs/anim/bibi_library/reference/parts_sheet_1011.webp",
+      "category": "user_provided",
+      "original_author": "unknown",
+      "processed_by": "",
+      "provenance_evidence": "docs/anim/bibi_library/reference/README.md：Andy 2026-10-11 提供的「官方部件總表」；原檔 site/brand/src/bibi_parts_sheet_1011.webp。repo 內沒有記載這張圖是誰畫的",
+      "parent_path": "",
+      "note": "造型唯一依據；原畫作者待 Andy 核實，不依風格猜"
+    },
+    {
+      "path": "docs/anim/bibi_library/wow/key.png",
+      "category": "claude_derived",
+      "original_author": "unknown",
+      "processed_by": "Claude（scripts/anim/bibi_library.py 合成、去背、動畫）",
+      "provenance_evidence": "docs/anim/bibi_library/index.md 與 reference/README.md 記載：由 scripts/anim/bibi_library.py 依官方部件總表逐格合成；原畫作者在 repo 內無記載",
+      "parent_path": "docs/anim/bibi_library/reference/parts_sheet_1011.webp",
+      "note": "建議用於：驚人數字（營收超財測）；sheet.png／anim.webp 為同組衍生檔"
+    },
+    {
+      "path": "docs/anim/bibi_library/tilt/key.png",
+      "category": "claude_derived",
+      "original_author": "unknown",
+      "processed_by": "Claude（scripts/anim/bibi_library.py 合成、去背、動畫）",
+      "provenance_evidence": "docs/anim/bibi_library/index.md 與 reference/README.md 記載：由 scripts/anim/bibi_library.py 依官方部件總表逐格合成；原畫作者在 repo 內無記載",
+      "parent_path": "docs/anim/bibi_library/reference/parts_sheet_1011.webp",
+      "note": "建議用於：歪頭疑問（毛利率小降）；sheet.png／anim.webp 為同組衍生檔"
+    },
+    {
+      "path": "docs/anim/bibi_library/face_relief/key.png",
+      "category": "claude_derived",
+      "original_author": "unknown",
+      "processed_by": "Claude（scripts/anim/bibi_library.py 合成、去背、動畫）",
+      "provenance_evidence": "docs/anim/bibi_library/index.md 與 reference/README.md 記載：由 scripts/anim/bibi_library.py 依官方部件總表逐格合成；原畫作者在 repo 內無記載",
+      "parent_path": "docs/anim/bibi_library/reference/parts_sheet_1011.webp",
+      "note": "建議用於：放心（小降不是需求轉弱）；sheet.png／anim.webp 為同組衍生檔"
+    },
+    {
+      "path": "docs/anim/bibi_library/calendar/key.png",
+      "category": "claude_derived",
+      "original_author": "unknown",
+      "processed_by": "Claude（scripts/anim/bibi_library.py 合成、去背、動畫）",
+      "provenance_evidence": "docs/anim/bibi_library/index.md 與 reference/README.md 記載：由 scripts/anim/bibi_library.py 依官方部件總表逐格合成；原畫作者在 repo 內無記載",
+      "parent_path": "docs/anim/bibi_library/reference/parts_sheet_1011.webp",
+      "note": "建議用於：看日曆（接下來看什麼）；sheet.png／anim.webp 為同組衍生檔"
+    },
+    {
+      "path": "docs/anim/bibi_library/magnifier/key.png",
+      "category": "claude_derived",
+      "original_author": "unknown",
+      "processed_by": "Claude（scripts/anim/bibi_library.py 合成、去背、動畫）",
+      "provenance_evidence": "docs/anim/bibi_library/index.md 與 reference/README.md 記載：由 scripts/anim/bibi_library.py 依官方部件總表逐格合成；原畫作者在 repo 內無記載",
+      "parent_path": "docs/anim/bibi_library/reference/parts_sheet_1011.webp",
+      "note": "建議用於：放大鏡（逐項看數字）；sheet.png／anim.webp 為同組衍生檔"
+    },
+    {
+      "path": "docs/anim/bibi_library/news/key.png",
+      "category": "claude_derived",
+      "original_author": "unknown",
+      "processed_by": "Claude（scripts/anim/bibi_library.py 合成、去背、動畫）",
+      "provenance_evidence": "docs/anim/bibi_library/index.md 與 reference/README.md 記載：由 scripts/anim/bibi_library.py 依官方部件總表逐格合成；原畫作者在 repo 內無記載",
+      "parent_path": "docs/anim/bibi_library/reference/parts_sheet_1011.webp",
+      "note": "建議用於：報紙（法說會新聞）；sheet.png／anim.webp 為同組衍生檔"
+    },
+    {
+      "path": "site/articles/posts/2026-10-16-news-tsmc-q3-call.json",
+      "category": "claude_original",
+      "original_author": "Claude（CEO 單位撰寫）",
+      "processed_by": "",
+      "provenance_evidence": "站上已發佈母文章，含兩張圖表（營收長條、製程橫條）的資料定義",
+      "parent_path": "",
+      "note": "圖表數字來源；GPT 可依此重畫，數字不得更動"
+    }
+  ],
+  "blocking_items": [
+    "視覺規範檔 LIGULIGU_IG_Threads_Style_Guide.md 未提供（repo 與 Google 雲端硬碟皆找不到）",
+    "一手資料 SEC 6-K 本交接未重新開啟原文"
+  ],
+  "parent_article": "site/articles/posts/2026-10-16-news-tsmc-q3-call.json",
+  "pr_title_rule": "[社群交接] YYYY-MM-DD｜主題"
+}
