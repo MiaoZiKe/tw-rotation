@@ -378,7 +378,13 @@
     const lvl = (x) => (x.lim === 0 ? 'off' : x.rem === 0 ? 'out' : x.rem === 1 ? 'low' : 'ok');
     const min = items.filter((x) => x.lim > 0).reduce((a, x) => (a == null || x.rem < a.rem ? x : a), null);
     const b = el.querySelector('.twqp-b');
-    const bt = desk ? `本頁 ${items.length} 項限制${min ? `・最少剩 ${min.rem} 次` : ''}` : (min ? `限制：剩 ${min.rem} 次` : `限制：${items.length} 項`);
+    /* ★ 2026-10-16 手機（Andy iPhone：頂欄「限制：剩 3 次」＋「剩 11」圓環太擠，360 寬「登入」被擠出畫面 19px）：
+       頂欄有額度圓環時 —— 最少剩的那一項就是全站額度（圓環已經寫了同一個數字）→ 這行字不顯示；
+       是本頁單項比較少 → 縮成「剩 X 次」（拿掉「限制：」）。沒有圓環時照舊。桌機（desk）不走這段。 */
+    const ringShown = !desk && !!(rg && !rg.hidden && rg.getClientRects().length);
+    if (ringShown && (!min || min.id === ALL)) { el.hidden = true; el.dataset.m4dup = '1'; return; }
+    delete el.dataset.m4dup;
+    const bt = desk ? `本頁 ${items.length} 項限制${min ? `・最少剩 ${min.rem} 次` : ''}` : (min ? (ringShown ? `剩 ${min.rem} 次` : `限制：剩 ${min.rem} 次`) : `限制：${items.length} 項`);
     if (b.textContent !== bt) b.textContent = bt;
     const lv = min ? lvl(min) : 'off';
     b.dataset.lvl = lv; el.dataset.lvl = lv;
