@@ -293,6 +293,16 @@
 .acctdlg .row2 .pri{background:var(--cyan);border-color:var(--cyan);color:#04121a;font-weight:700}
 .acctdlg .row2 .danger{background:#c9303f;border-color:#c9303f;color:#fff;font-weight:700}
 .acctdlg .muted{color:var(--ink-2);font-size:13px}
+/* ★ 2026-10-16（Andy iPhone：「登入帳號 不能看不到全部，用拉霸進行調整」）：手機（html.m4、≤640）告知框高度扣掉安全邊距與瀏覽器工具列（dvh），
+   內容在框內上下捲；「取消／用 Google 帳號登入」黏在框底（sticky），捲到哪裡都看得到。桌機（沒有 html.m4）不吃這段。 */
+@media (max-width:640px){
+  html.m4 .acctdlg{padding:calc(12px + env(safe-area-inset-top)) 12px calc(12px + env(safe-area-inset-bottom))}
+  html.m4 .acctdlg .box{max-height:calc(100vh - 24px - env(safe-area-inset-top) - env(safe-area-inset-bottom));max-height:calc(100dvh - 24px - env(safe-area-inset-top) - env(safe-area-inset-bottom));
+    overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;padding:16px 16px 0;touch-action:pan-y}
+  html.m4 .acctdlg .row2{position:sticky;bottom:0;z-index:1;margin:12px -16px 0;padding:10px 16px 14px;background:var(--panel);border-top:1px solid var(--line-2);box-shadow:0 -10px 16px -8px rgba(0,0,0,.35)}
+  html.m4 .acctdlg .row2 button{height:44px;flex:0 0 auto;min-width:88px;white-space:nowrap}
+  html.m4 .acctdlg .row2 :is(.pri,.danger){flex:1 1 auto}
+}
 .accttoast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);z-index:1500;background:var(--panel-3);color:var(--ink);border:1px solid var(--line-2);border-radius:10px;padding:10px 16px;font-size:14px;box-shadow:0 8px 24px rgba(0,0,0,.3);max-width:calc(100vw - 32px)}
 /* ★ 2026-10-10 網頁版同步（Andy 10-10 經手機 session 轉達）：桌機帳號選單多三列 —— 額度上限、客服鈕開關、刪除帳號。
    全部限定 html:not(.m4)：手機選單由 acctm4.js 畫，一個像素都不受影響（CLAUDE.md 10-08「兩者不可侵犯」）。
