@@ -69,7 +69,7 @@
 #subDlg .codlg .coopt:has(input:checked){border-color:var(--cyan);background:color-mix(in srgb,var(--cyan) 8%,transparent)}
 #subDlg .codlg .coopt input{margin-top:3px;flex:none}
 #subDlg .codlg .coopt small{display:block;color:var(--ink-2);font-size:12.5px;line-height:1.5;margin-top:2px}
-#subDlg .codlg .cobank{display:grid;grid-template-columns:88px minmax(0,1fr) auto;gap:6px 10px;align-items:center;border:1px solid var(--line-2);border-radius:10px;padding:10px 12px;font-size:14px;margin-bottom:10px}
+#subDlg .codlg .cobank{display:grid;grid-template-columns:88px minmax(0,1fr) auto;gap:4px 10px;align-items:center;border:1px solid var(--line-2);border-radius:10px;padding:8px 12px;font-size:14px;margin-bottom:8px}
 #subDlg .codlg .cobank>span{color:var(--ink-2)}
 #subDlg .codlg .cobank b{font-variant-numeric:tabular-nums;word-break:break-all}
 #subDlg .codlg .cobank button{height:28px;padding:0 10px;border-radius:7px;border:1px solid var(--line-2);background:var(--panel-3);color:var(--ink);font-size:12.5px;cursor:pointer}
@@ -113,6 +113,45 @@
 #subDlg .codlg .msg{margin-top:8px}
 #subDlg .codlg .codone{text-align:center;padding:10px 0}
 #subDlg .codlg .codone h3{font-size:18px;margin:6px 0}
+/* 2026-10-16 結帳視窗精簡（Andy：版面文字太多、排版浪費空間）：摘要一排、姓名＋性別同一排、說明收進 ⓘ */
+#subDlg .codlg .cosum2{display:flex;align-items:center;justify-content:space-between;gap:6px 14px;flex-wrap:wrap;margin:0 0 8px}
+#subDlg .codlg .cosp{display:flex;align-items:center;gap:10px;min-width:0}
+#subDlg .codlg .coplan{font-size:15px;font-weight:700;color:var(--ink)}
+#subDlg .codlg .cosum2 .amt{font-size:21px;font-weight:700;color:var(--ink);font-variant-numeric:tabular-nums;text-align:right;display:flex;align-items:baseline;gap:6px;flex-wrap:wrap;justify-content:flex-end}
+#subDlg .codlg .cosum2 .amt .coday{font-size:12px;font-weight:400;color:var(--ink-2)}
+#subDlg .codlg .cooid{font-size:12.5px;color:var(--ink-2);margin:0 0 6px}
+#subDlg .codlg .cooid code{font-family:var(--mono,ui-monospace,monospace);color:var(--ink)}
+#subDlg .codlg .cotabs{margin:0 0 10px}
+#subDlg .codlg .cotabs button{min-height:40px;padding:3px 8px}
+#subDlg .codlg .cofrm.coprof{grid-template-columns:minmax(0,1fr) 132px;gap:6px 12px;align-items:end}
+#subDlg .codlg .cofrm.coprof .l5row{grid-column:1/-1;flex-direction:row;align-items:center;justify-content:flex-start;gap:8px}
+#subDlg .codlg .cofrm.coprof .l5row label{margin:0;flex:none}
+#subDlg .codlg .cofrm.coprof .l5row input{width:104px;flex:none}
+#subDlg .codlg .cofrm.coprof .l5row .cohelpb{margin-left:auto}
+#subDlg .codlg .cofrm .cogw{justify-content:flex-end}
+#subDlg .codlg .cofrm .cogw.g2{grid-column:span 2}
+#subDlg .codlg .cofrm .cogw .cogd{height:36px}
+#subDlg .codlg .cofrm .cogw .cogd button{min-height:34px;height:34px;padding:0}
+#subDlg .codlg .conote{margin:6px 0 0;font-size:12px;line-height:1.55;color:var(--ink-2)}
+#subDlg .codlg .conote.fx{display:flex;gap:8px;align-items:center}
+#subDlg .codlg .conote.fx span{flex:1;min-width:0}
+#subDlg .codlg .conote a,#subDlg .codlg .cohelp a{color:var(--cyan)}
+#subDlg .codlg .cohelpb{height:32px;min-width:32px;padding:0 10px;border-radius:8px;border:1px solid var(--line-2);background:var(--panel-3);color:var(--ink);font-size:12.5px;cursor:pointer;white-space:nowrap;flex:none}
+#subDlg .codlg .cohelpb[aria-expanded=true]{border-color:var(--cyan);color:var(--cyan)}
+#subDlg .codlg .conote .cohelpb{margin-left:auto}
+#subDlg .codlg .cohelp{margin:6px 0 0;padding:8px 10px 8px 26px;border:1px solid var(--line-2);border-radius:8px;font-size:12px;line-height:1.6;color:var(--ink-2);background:color-mix(in srgb,var(--cyan) 5%,transparent)}
+#subDlg .codlg .cohelp[hidden]{display:none}
+#subDlg .codlg .cohelp li{margin:0 0 4px}
+#subDlg .codlg .cohelp b{color:var(--ink)}
+#subDlg .codlg .coopt#coRenewL{border:0;background:none;padding:6px 2px 2px;margin:0;font-size:13px;line-height:1.5;min-height:36px;align-items:center}
+#subDlg .codlg .coopt#coRenewL input,#subDlg .codlg .colegal input{width:18px;height:18px}
+#subDlg .codlg .coopt#coRenewL:has(input:checked){background:none}
+#subDlg .codlg .coopt#coRenewL b{font-size:13px}
+#subDlg .codlg .colegal{margin-top:6px;padding-top:8px;border-top:1px solid var(--line)}
+#subDlg .codlg .colegal label{margin:0;font-size:12.5px;line-height:1.5;min-height:36px;align-items:center}
+#subDlg .codlg .cogo{margin-top:10px}
+#subDlg .codlg .coop{margin:6px 0 0;font-size:11.5px;color:var(--ink-2);text-align:center}
+#subDlg .codlg .msg:empty{display:none}
 #v-orders .ordp{margin-top:16px}
 #v-orders .ordp h2{margin:0 0 4px;font-size:18px}
 #v-orders .ordp .muted{color:var(--ink-2);font-size:13px;margin:0 0 10px}
@@ -154,6 +193,9 @@ html.pay-renew #acctBtn.ame::after{content:'';position:absolute;top:2px;right:2p
   #subDlg .codlg .cobd{padding:12px 14px 16px}
   #subDlg .codlg .cosum{grid-template-columns:72px minmax(0,1fr)}
   #subDlg .codlg .cofrm{grid-template-columns:minmax(0,1fr)}
+  #subDlg .codlg .cofrm.coprof{grid-template-columns:minmax(0,1fr) 124px;gap:6px 10px}
+  #subDlg .codlg .cofrm .cogw.g2{grid-column:auto}
+  #subDlg .codlg .cosum2 .amt{font-size:19px}
   #subDlg .codlg .cobank{grid-template-columns:64px minmax(0,1fr) auto}
   #v-orders .ordr{grid-template-columns:minmax(0,1fr) auto;gap:2px 8px;padding:10px 2px}
   #v-orders .ordr.hd{display:none}
@@ -165,15 +207,28 @@ html.pay-renew #acctBtn.ame::after{content:'';position:absolute;top:2px;right:2p
   }
 
   /* ---------------------------------------------------------------- ① 結帳面板 */
-  /* 性別欄（兩個付款分頁共用同一段）：預設不選；欄位旁寫用途與必要性（法遵意見 2-A 必填版）、獨立同意勾選、不填的出口 */
-  function genderHtml() {
-    const mail = supportMail();
-    return `<div class="w3 cogw"><span class="lb" id="coGLb">性別<em class="req">${GENDER_REQUIRED ? '必選' : '選填'}</em></span>
-      <div class="seg cogd" role="radiogroup" aria-labelledby="coGLb">${GENDERS.map(([k, n]) => `<button type="button" role="radio" aria-checked="false" data-g="${k}">${n}</button>`).join('')}</div>
-      <small class="cohint">${GENDER_REQUIRED ? '' : '<b>選填</b>：'}用於<b>不具名的使用情形統計</b>（只呈現男女比例，不會單獨顯示個別會員，也不用於推薦、行銷或對外提供），僅用於匿名彙總統計，不公開，僅管理者可讀。${GENDER_REQUIRED ? '本欄位為結帳必填，<b>未選擇將無法送出結帳</b>。' : '<b>不選擇不影響結帳與任何功能</b>，未選擇者統計時歸入「未填」；選錯了可再按一次選中的按鈕取消。'}</small>
-      ${GENDER_CONSENT_REQUIRED ? '<label class="cogc"><input type="checkbox" class="cogcb"><span>我已閱讀<a href="#privacy" target="_blank" rel="noopener">《隱私權政策》</a>，同意本網站為上述統計目的，蒐集並使用我於結帳時選擇的性別。</span></label>' : ''}
-      <small class="cohint">${GENDER_REQUIRED ? `不願提供性別？請來信客服${mail ? '（' + esc(mail) + '）' : ''}，由人工協助開通。` : ''}個資處理依<a href="#privacy" target="_blank" rel="noopener">《隱私權政策》</a>「付款與訂單資料」辦理。</small></div>`;
+  /* 2026-10-16 Andy「版面文字太多且排版太浪費空間，姓名跟性別可以同一排」：
+     欄位旁只留一行必要告知（用途＋隱私權政策連結），其餘長說明一律收進「ⓘ 說明」，預設收起、點了才展開（手機五準則第 3、5 條）。
+     法遵必要告知一個字都沒少：只是從「常駐」變成「一句常駐＋完整說明可展開」。 */
+  function genderField(sfx) {
+    return `<span class="lb" id="coGLb${sfx}">性別<em class="${GENDER_REQUIRED ? 'req' : 'opt'}">${GENDER_REQUIRED ? '必選' : '選填'}</em></span>
+      <div class="seg cogd" role="radiogroup" aria-labelledby="coGLb${sfx}">${GENDERS.map(([k, n]) => `<button type="button" role="radio" aria-checked="false" data-g="${k}">${n}</button>`).join('')}</div>`;
   }
+  function noteHtml() {
+    return `<p class="conote">性別${GENDER_REQUIRED ? '為必選' : '選填'}，僅用於匿名彙總統計，不公開；個資處理見<a href="#privacy" target="_blank" rel="noopener">《隱私權政策》</a>。</p>${GENDER_CONSENT_REQUIRED ? '<label class="cogc"><input type="checkbox" class="cogcb"><span>我已閱讀<a href="#privacy" target="_blank" rel="noopener">《隱私權政策》</a>，同意本網站為上述統計目的，蒐集並使用我於結帳時選擇的性別。</span></label>' : ''}`;
+  }
+  /* 完整說明（預設收起）：kind＝ecpay／bank */
+  function helpHtml(kind) {
+    const mail = supportMail();
+    const g = `<li><b>性別（${GENDER_REQUIRED ? '必選' : '選填'}）</b>：用於<b>不具名的使用情形統計</b>（只呈現男女比例，不會單獨顯示個別會員，也不用於推薦、行銷或對外提供），僅用於匿名彙總統計，不公開，僅管理者可讀。${GENDER_REQUIRED ? `本欄位為結帳必填，<b>未選擇將無法送出結帳</b>。不願提供性別？請來信客服${mail ? '（' + esc(mail) + '）' : ''}，由人工協助開通。` : '<b>不選擇不影響結帳與任何功能</b>，未選擇者統計時歸入「未填」；選錯了可再按一次選中的按鈕取消。'}</li>`;
+    const pr = '<li><b>個資處理</b>：依<a href="#privacy" target="_blank" rel="noopener">《隱私權政策》</a>「付款與訂單資料」辦理。</li>';
+    return kind === 'bank'
+      ? `<ul class="cohelp" hidden><li><b>匯款人姓名、轉出帳號末 5 碼</b>：僅用於核對這筆匯款是否為您本人所匯。<b>請勿填寫完整帳號、信用卡號、身分證字號。</b></li>${g}${pr}</ul>`
+      : `<ul class="cohelp" hidden><li><b>姓名</b>：用於付款核對、確認入帳與退款，請填寫真實姓名。</li>${g}
+        <li><b>轉出帳號末 5 碼（選填）</b>：若你之後改用 ATM 轉帳／超商繳款，可填轉出帳號末 5 碼供我們核對。<b>這不是信用卡號，請勿填寫信用卡卡號的任何數字。</b></li>
+        <li><b>信用卡</b>：卡片資料將於下一步由綠界科技的付款頁輸入，本網站不會看到、也不會保存你的卡號。可隨時在「我的訂單」取消自動續訂，已付的期間照常用到期滿。</li>${pr}</ul>`;
+  }
+  const helpBtn = '<button type="button" class="cohelpb" aria-expanded="false">ⓘ 說明</button>';
   const nameOf = (p) => (p && (p.planName || p.name)) || '';
   async function open(opt) {
     const p = opt || {};
@@ -210,26 +265,25 @@ html.pay-renew #acctBtn.ame::after{content:'';position:absolute;top:2px;right:2p
     const base = Q[per];
     box.innerHTML = `<div class="cohd"><b id="coName">${esc(nameOf(base))}</b>${base.test ? '<span class="cotest" title="綠界金鑰還沒設定：付款會走綠界測試環境，不會真的扣款">測試模式</span>' : ''}<span class="sp"></span><button type="button" data-close aria-label="關閉">×</button></div>
       <div class="cobd">
-        <div class="cosum"><span>方案</span><div>${esc(nameOf(base))}</div>
-          <span>週期</span><div><div class="seg" id="coPer">${Q.month ? `<button type="button" data-per="month"${Q.month.blocked ? ' disabled title="' + esc(Q.month.blockedMsg) + '"' : ''}>月繳</button>` : ''}${Q.year ? `<button type="button" data-per="year"${Q.year.blocked ? ' disabled title="' + esc(Q.year.blockedMsg) + '"' : ''}>年繳</button>` : ''}</div>${(Q.month && Q.month.blocked) || (Q.year && Q.year.blocked) ? `<small class="muted" style="display:block;margin-top:4px">${esc((Q.month && Q.month.blockedMsg) || (Q.year && Q.year.blockedMsg))}</small>` : ''}</div>
-          <span>金額</span><div class="amt" id="coAmt"></div>
-          <span>訂單編號</span><div><code id="coOid">選擇付款方式後產生</code></div></div>
+        <div class="cosum2"><div class="cosp"><div class="seg" id="coPer">${Q.month ? `<button type="button" data-per="month"${Q.month.blocked ? ' disabled title="' + esc(Q.month.blockedMsg) + '"' : ''}>月繳</button>` : ''}${Q.year ? `<button type="button" data-per="year"${Q.year.blocked ? ' disabled title="' + esc(Q.year.blockedMsg) + '"' : ''}>年繳</button>` : ''}</div></div>
+          <div class="amt" id="coAmt"></div></div>
+        ${(Q.month && Q.month.blocked) || (Q.year && Q.year.blocked) ? `<small class="muted" style="display:block;margin:-4px 0 6px">${esc((Q.month && Q.month.blockedMsg) || (Q.year && Q.year.blockedMsg))}</small>` : ''}
+        <div class="cooid" id="coOidRow" hidden>訂單編號 <code id="coOid"></code></div>
         <div class="cotabs" role="tablist" aria-label="付款方式"><button type="button" role="tab" id="coTabE" data-tab="ecpay">信用卡<small>綠界 ECPay・自動續扣</small></button><button type="button" role="tab" id="coTabB" data-tab="bank">銀行轉帳<small>預付制・人工確認</small></button></div>
         <div id="coPaneE" role="tabpanel" aria-labelledby="coTabE">
-          <div class="cofrm" id="coFrmE">
-            <div class="w3"><label for="coNameE">姓名<em class="req">必填</em></label><input id="coNameE" maxlength="40" autocomplete="name" required aria-required="true"><small class="cohint">用於付款核對、確認入帳與退款，請填寫真實姓名。</small></div>
-            ${genderHtml()}
-            <div class="w3"><label for="coL5E">轉出帳號末 5 碼<em class="opt">選填</em></label><input id="coL5E" inputmode="numeric" autocomplete="off" placeholder="5 位數字"><small class="cohint">若你之後改用 ATM 轉帳／超商繳款，可填轉出帳號末 5 碼供我們核對。<b>這不是信用卡號，請勿填寫信用卡卡號的任何數字。</b></small></div>
+          <div class="cofrm coprof" id="coFrmE">
+            <div><label for="coNameE">姓名<em class="req">必填</em></label><input id="coNameE" maxlength="40" autocomplete="name" required aria-required="true"></div>
+            <div class="cogw">${genderField('E')}</div>
+            <div class="l5row"><label for="coL5E">轉出帳號末 5 碼<em class="opt">選填</em></label><input id="coL5E" inputmode="numeric" autocomplete="off" placeholder="5 位數字">${helpBtn}</div>
           </div>
-          <div class="coinfo"><b id="coRecurT"></b><small id="coRecurS"></small></div>
-          <label class="coopt" id="coRenewL" style="border:0;padding:4px 2px;background:none"><input type="checkbox" id="coRenew"><span id="coRenewT"></span></label>
-          <button type="button" class="cogo" id="coGoE" disabled>前往綠界付款</button>
-          <p class="muted" style="font-size:12.5px;margin:6px 0 0">信用卡資料將於下一步由綠界科技的付款頁輸入，本網站不會看到、也不會保存你的卡號。</p>
+          ${noteHtml()}${helpHtml('ecpay')}
+          <label class="coopt" id="coRenewL"><input type="checkbox" id="coRenew"><span><b id="coRecurT"></b>　<span id="coRenewT"></span></span></label>
         </div>
         <div id="coPaneB" role="tabpanel" aria-labelledby="coTabB" hidden></div>
-        <div class="colegal"><label><input type="checkbox" id="coAgree"><span>我已閱讀並同意<a href="#terms" target="_blank" rel="noopener">《使用條款》</a><a href="#refund" target="_blank" rel="noopener">《退款與取消訂閱政策》</a>，並同意付款後立即開通服務、排除消費者保護法第 19 條之七日解除權。</span></label>
-          付款即表示同意使用條款。退款規則見<a href="#refund" target="_blank" rel="noopener">退款政策</a>；個人資料之處理見<a href="#privacy" target="_blank" rel="noopener">《隱私權政策》</a>。<br><span id="coOp">經營者：${esc(opName())}；客服信箱：${esc(contactMail())}</span></div>
+        <div class="colegal"><label><input type="checkbox" id="coAgree"><span>我已閱讀並同意<a href="#terms" target="_blank" rel="noopener">《使用條款》</a><a href="#refund" target="_blank" rel="noopener">《退款與取消訂閱政策》</a>，並同意付款後立即開通、排除消費者保護法第 19 條之七日解除權。</span></label></div>
+        <button type="button" class="cogo" id="coGoE" disabled>前往綠界付款</button>
         <div class="msg" id="coMsg" role="status"></div>
+        <p class="coop" id="coOp">經營者：${esc(opName())}・客服信箱：${esc(contactMail())}</p>
       </div>`;
     const $ = (s) => box.querySelector(s);
     const msg = (t, bad) => { const m = $('#coMsg'); m.className = 'msg ' + (bad ? 'bad' : 'ok'); m.textContent = t; };
@@ -241,7 +295,6 @@ html.pay-renew #acctBtn.ame::after{content:'';position:absolute;top:2px;right:2p
       const dc = T().dayCost ? T().dayCost(q.amount, st.per) : null;
       $('#coAmt').innerHTML = `NT$ ${nt(q.amount)}<small style="font-size:13px;font-weight:400;color:var(--ink-2)">／${st.per === 'year' ? '年' : '月'}</small>${dc == null ? '' : `<span class="coday" id="coDay">每天約 NT$ ${dc.toFixed(1)}</span>`}`;
       $('#coRecurT').textContent = st.per === 'year' ? '信用卡每年自動扣款（定期定額）' : '信用卡每月自動扣款（定期定額）';
-      $('#coRecurS').textContent = `每${st.per === 'year' ? '年' : '月'}自動扣 NT$ ${nt(q.amount)}，可隨時在「我的訂單」取消自動續訂（已付的期間照常用到期滿）`;
       $('#coRenewT').textContent = `我同意每${st.per === 'year' ? '年' : '月'}自動續扣 NT$ ${nt(q.amount)}，直到我自行取消。`;
       box.querySelectorAll('.cogd button').forEach((b) => b.setAttribute('aria-checked', String(b.dataset.g === st.gender)));
       box.querySelectorAll('.cogcb').forEach((c) => { c.checked = st.gc; });
@@ -249,7 +302,9 @@ html.pay-renew #acctBtn.ame::after{content:'';position:absolute;top:2px;right:2p
       $('#coGoE').disabled = !($('#coAgree').checked && $('#coRenew').checked && profOk(nm ? nm.value : '') && l5Ok($('#coL5E') ? $('#coL5E').value : ''));
       box.querySelectorAll('.cotabs button').forEach((b) => b.setAttribute('aria-selected', String(b.dataset.tab === st.tab)));
       $('#coPaneE').hidden = st.tab !== 'ecpay'; $('#coPaneB').hidden = st.tab !== 'bank';
-      $('#coOid').textContent = st.tab === 'bank' && st.bankOrder ? st.bankOrder.id : st.oid || '選擇付款方式後產生';
+      $('#coGoE').hidden = st.tab !== 'ecpay';   // 前往綠界鈕是兩個分頁共用的底部鈕，轉帳分頁有自己的送出鈕
+      const oidTxt = st.tab === 'bank' && st.bankOrder ? st.bankOrder.id : '';
+      $('#coOid').textContent = oidTxt; $('#coOidRow').hidden = !oidTxt;
       const sb = $('#coSendB'); if (sb) sb.disabled = !$('#coAgree').checked;   // 性別／姓名沒填：按下去用文字擋（跟姓名同一個做法）
     }
     box.querySelectorAll('#coPer button').forEach((b) => { b.onclick = () => { if (st.per === b.dataset.per) return; st.per = b.dataset.per; st.bankOrder = null; if (st.tab === 'bank') bankPane(); sync(); }; });
@@ -257,6 +312,12 @@ html.pay-renew #acctBtn.ame::after{content:'';position:absolute;top:2px;right:2p
     const genderOk = () => (!GENDER_REQUIRED || !!st.gender) && (!st.gender || !GENDER_CONSENT_REQUIRED || st.gc);
     const profOk = (name) => !!String(name || '').trim() && !looksCard(name) && genderOk();
     const l5Ok = (v) => !String(v || '').trim() || /^\d{5}$/.test(String(v).trim());
+    /* ⓘ 說明：展開／收起同一個分頁裡的完整說明（預設收起） */
+    box.addEventListener('click', (e) => {
+      const hb = e.target.closest('.cohelpb'); if (!hb) return;
+      const pane = hb.closest('[role=tabpanel]'), hp = pane && pane.querySelector('.cohelp'); if (!hp) return;
+      hp.hidden = !hp.hidden; pane.querySelectorAll('.cohelpb').forEach((x) => x.setAttribute('aria-expanded', String(!hp.hidden)));
+    });
     box.addEventListener('click', (e) => { const b = e.target.closest('.cogd button'); if (!b) return; st.gender = st.gender === b.dataset.g && !GENDER_REQUIRED ? '' : b.dataset.g; if (!st.gender) st.gc = false; sync(); });   // 選填時再按一次可取消（單選鈕本身取消不了）
     box.addEventListener('change', (e) => { if (e.target.classList && e.target.classList.contains('cogcb')) { st.gc = e.target.checked; sync(); } });
     box.addEventListener('input', (e) => {
@@ -313,17 +374,17 @@ html.pay-renew #acctBtn.ame::after{content:'';position:absolute;top:2px;right:2p
           <span>銀行</span><b id="coBankName">${esc(b.bank_name)}（${esc(b.bank_code)}）</b><span></span>
           <span>帳號</span><b id="coBankAcct">${esc(b.account)}</b><button type="button" data-copy="${esc(b.account)}">複製</button>
           <span>戶名</span><b>${esc(b.holder)}</b><span></span>
-          <span>應付金額</span><b>NT$ ${nt(j.amount)}</b><button type="button" data-copy="${esc(j.amount)}">複製</button>
-          <span>訂單編號</span><b>${esc(j.id)}</b><button type="button" data-copy="${esc(j.id)}">複製</button></div>
+          <span>應付金額</span><b>NT$ ${nt(j.amount)}</b><button type="button" data-copy="${esc(j.amount)}">複製</button></div>
         <div class="cofrm" id="coFrm">
           <div><label for="coPayer">匯款人姓名<em class="req">必填</em></label><input id="coPayer" maxlength="40" autocomplete="name" required aria-required="true"></div>
           <div><label for="coL5">轉出帳號末 5 碼</label><input id="coL5" inputmode="numeric" autocomplete="off"></div>
           <div><label for="coDate">轉帳日期</label><input id="coDate" type="date" value="${esc(today)}" max="${esc(today)}"></div>
-          ${genderHtml()}
-          <div class="w3"><span class="lb">轉帳金額（依訂單，不用填）</span><div class="ro" id="coXAmt" aria-readonly="true">NT$ ${nt(j.amount)}</div></div></div>
-        <p class="muted" style="font-size:12px;margin:6px 0 0">匯款人姓名與轉出帳號末 5 碼僅用於核對這筆匯款是否為您本人所匯。<b>請勿填寫完整帳號、信用卡號、身分證字號。</b></p>
+          <div class="cogw g2">${genderField('B')}</div>
+          <div><span class="lb">轉帳金額（依訂單，不用填）</span><div class="ro" id="coXAmt" aria-readonly="true">NT$ ${nt(j.amount)}</div></div></div>
+        <p class="conote fx"><span>請勿填完整帳號、信用卡號、身分證字號。性別${GENDER_REQUIRED ? '為必選' : '選填'}，僅用於匿名彙總統計，不公開；個資處理見<a href="#privacy" target="_blank" rel="noopener">《隱私權政策》</a>。</span>${helpBtn}</p>
+        ${GENDER_CONSENT_REQUIRED ? '<label class="cogc"><input type="checkbox" class="cogcb"><span>我已閱讀<a href="#privacy" target="_blank" rel="noopener">《隱私權政策》</a>，同意本網站為上述統計目的，蒐集並使用我於結帳時選擇的性別。</span></label>' : ''}${helpHtml('bank')}
         <button type="button" class="cogo" id="coSendB">我已轉帳，送出匯款資料</button>
-        <p class="muted" style="font-size:12.5px;margin:6px 0 0">管理者確認入帳後開通，可在「我的訂單」查看。</p>`;
+        <p class="muted" style="font-size:12px;margin:6px 0 0">管理者確認入帳後開通，可在「我的訂單」查看。</p>`;
       pane.querySelectorAll('[data-copy]').forEach((c) => { c.onclick = () => { try { navigator.clipboard.writeText(c.dataset.copy); c.textContent = '已複製'; } catch (e) { /* 沒權限就算了 */ } }; });
       /* 2026-10-12 Andy：送出前要有確認機制，金額和應付不同要明確提醒（客戶可能不是匯 2,990）。確認區放在按鈕下方，不用彈窗。 */
       const doneBank = (o) => {

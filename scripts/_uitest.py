@@ -70665,7 +70665,7 @@ def t_web_sync_1010(b, base, code):
 #   ⑧ 手機 390：erin 用轉帳完成送出（沒有橫向捲軸）；管理者確認後把時鐘撥到到期前 6 天 → 頁首提醒＋帳號鈕紅點 →「再匯一期」開出轉帳單
 #   ⑨ 時鐘再往後撥 → 到期自動降級（權限回註冊會員）＋管理區記「到期降級」
 # 截圖：TW_PAY_SHOTS＝資料夾。
-PAY_PEOPLE = {"carol": "carol@example.com", "dave": "dave@example.com", "erin": "erin@example.com"}
+PAY_PEOPLE = {"carol": "carol@example.com", "dave": "dave@example.com", "erin": "erin@example.com", "gina": "gina@example.com"}
 PAY_BANK = {"bank_name": "測試銀行", "bank_code": "999", "account": "000011112222", "holder": "測試戶名"}   # 驗收用假帳號；真的收款帳號只存在 Worker 設定，不進 repo
 
 
@@ -70779,7 +70779,43 @@ def t_pay_1011(b, base):
         ok(f"{T}：確定 → 真的存進伺服器", ri.value.status == 200 and dev_post("/v1/admin/pay/bank/get", {"t": ad.evaluate("() => TwAccount.tok()")}).get("bank", {}).get("account") == PAY_BANK["account"])
         wait_until(ad, "() => !!document.getElementById('pbName')", 4000)
         shot(ad, "admin_settings.png", "#payAdm")
+        # ---- 10-16 清理舊事件紀錄：管理者按鈕（不自動執行、按前跳確認、顯示處理筆數、可重複按）
+        ok(f"{T}：收款帳號設定分頁下方有「維護工具／清理舊事件紀錄」鈕，一開始沒有顯示任何處理結果（不自動執行）", ad.evaluate("() => !!document.getElementById('pmClean') && document.getElementById('pmRes').textContent === ''"))
+        shot(ad, "admin_clean.png", "#payAdm")
+        ad.click("#pmClean")
+        ok(f"{T}：按「清理舊事件紀錄」→ 先跳確認框（寫明不會動訂單、退款、方案）", bool(wait_until(ad, "() => { const d = document.getElementById('subDlg'); return d && !d.hidden && /不會動訂單、退款、方案/.test(d.innerText); }", 4000)))
+        with ad.expect_response(lambda r: "/v1/admin/pay/events/clean" in r.url, timeout=6000) as ri:
+            ad.click("#pdGo")
+        cj = ri.value.json()
+        ok(f"{T}：確定 → 伺服器回處理筆數（scanned／trimmed／masked），畫面顯示「已掃描 N 筆…共改 M 筆」", ri.value.status == 200 and cj.get("ok") is True and cj.get("scanned", 0) >= 1 and bool(wait_until(ad, "() => /已掃描 \\d+ 筆/.test(document.getElementById('pmRes').textContent)", 4000)), cj)
+        ad.click("#pmClean"); wait_until(ad, "() => { const d = document.getElementById('subDlg'); return d && !d.hidden; }", 3000)
+        with ad.expect_response(lambda r: "/v1/admin/pay/events/clean" in r.url, timeout=6000) as ri2:
+            ad.click("#pdGo")
+        ok(f"{T}：再按一次 → 冪等，這次一筆都不改", ri2.value.json().get("changed") == 0, ri2.value.json())
         atok = ad.evaluate("() => TwAccount.tok()")
+
+        def co_metrics(pg, tag):
+            # 10-16 結帳視窗精簡：量視窗高度與「必要欄位／鈕」是否都在第一屏（不用捲動）
+            m = pg.evaluate("""() => { const d = document.getElementById('subDlg'), bx = d.querySelector('.box'), vh = innerHeight;
+              const pos = (s) => { const e = d.querySelector(s); if (!e || !e.offsetParent) return null; const r = e.getBoundingClientRect(); return { t: Math.round(r.top), b: Math.round(r.bottom), l: Math.round(r.left), r: Math.round(r.right), h: Math.round(r.height), w: Math.round(r.width) }; };
+              return { vw: innerWidth, vh, boxH: Math.round(bx.getBoundingClientRect().height), scrollH: bx.scrollHeight, clientH: bx.clientHeight,
+                name: pos('#coNameE'), gender: pos('#coPaneE .cogd'), l5: pos('#coL5E'), renew: pos('#coRenew'), agree: pos('#coAgree'), go: pos('#coGoE'), amt: pos('#coAmt'),
+                tiny: [...d.querySelectorAll('#coPaneE *')].filter(e => e.children.length === 0 && e.textContent.trim() && e.offsetParent && parseFloat(getComputedStyle(e).fontSize) < 11).map(e => e.textContent.trim().slice(0, 12)),
+                small: [...d.querySelectorAll('#coPaneE button, #coPaneE input')].filter(e => e.offsetParent && e.getBoundingClientRect().height < 32).map(e => (e.id || e.textContent || e.tagName).trim().slice(0, 12)) }; }""")
+            m["tag"] = tag
+            out = os.environ.get("TW_PAY_METRICS")
+            if out:
+                with open(out, "a", encoding="utf-8") as f:
+                    f.write(json.dumps(m, ensure_ascii=False) + "\n")
+            return m
+
+        def co_layout(m, label):
+            # 10-16 Andy：精簡後不捲動就看到 姓名、性別、末 5 碼、兩個同意、前往綠界付款；姓名與性別同一排；字 ≥ 11px、按鈕 ≥ 32px
+            vh = m["vh"]
+            same_row = abs(m["name"]["t"] - m["gender"]["t"]) <= 6 and m["gender"]["l"] > m["name"]["r"] - 4
+            in_view = all(m[k] and m[k]["b"] <= vh for k in ("name", "gender", "l5", "renew", "agree", "go", "amt"))
+            ok(f"{T}：{label}：姓名與性別同一排、姓名＋性別＋末 5 碼＋兩個同意＋前往綠界付款全部在第一屏（視窗 {m['boxH']}px、不用捲動）、金額在上面", same_row and in_view and m["scrollH"] <= m["clientH"] + 2, m)
+            ok(f"{T}：{label}：字 ≥ 11px、性別按鈕與說明鈕高 ≥ 32px", not m["tiny"] and m["gender"]["h"] >= 32 and all(x == "coRenew" for x in m["small"]), m)
 
         def co_fill(pg, name="王小明", gender="male", l5=""):
             # 10-16 新結帳表單（綠界分頁）：姓名、性別（預設不選）、性別獨立同意、選填末 5 碼
@@ -70804,9 +70840,9 @@ def t_pay_1011(b, base):
         ok(f"{T}：未登入按訂閱 → 先登入 → 登入完自動回到結帳面板",
            bool(wait_until(pb, "() => { const d = document.getElementById('subDlg'); return d && !d.hidden && !!d.querySelector('#coTabE'); }", 10000)))
         pb.click("#coPer button[data-per=month]")
-        info = pb.evaluate("() => ({ amt: document.getElementById('coAmt').innerText, test: !!document.querySelector('#subDlg .cotest'), name: document.getElementById('coName').innerText, per: [...document.querySelectorAll('#coPer button')].map(b => b.innerText), oid: document.getElementById('coOid').innerText, refund: !!document.querySelector('#subDlg .colegal a[href=\"#refund\"]'), agreeT: document.querySelector('#subDlg .colegal').innerText })")
-        ok(f"{T}：結帳面板：方案 Plus、月繳／年繳、金額 NT$ 299（伺服器價）、測試模式、訂單編號欄、退款政策連結、「付款即表示同意使用條款」",
-           info["name"] == "Plus" and "299" in info["amt"] and info["test"] and info["per"] == ["月繳", "年繳"] and info["oid"] == "選擇付款方式後產生" and info["refund"] and "付款即表示同意使用條款" in info["agreeT"], info)
+        info = pb.evaluate("() => ({ amt: document.getElementById('coAmt').innerText, test: !!document.querySelector('#subDlg .cotest'), name: document.getElementById('coName').innerText, per: [...document.querySelectorAll('#coPer button')].map(b => b.innerText), oidHidden: document.getElementById('coOidRow').hidden, refund: !!document.querySelector('#subDlg .colegal a[href=\"#refund\"]'), agreeT: document.querySelector('#subDlg .colegal').innerText })")
+        ok(f"{T}：結帳面板：方案 Plus、月繳／年繳、金額 NT$ 299（伺服器價）、測試模式、10-16 精簡：信用卡分頁不顯示空的訂單編號列、退款政策連結、同意條款含七日解除權",
+           info["name"] == "Plus" and "299" in info["amt"] and info["test"] and info["per"] == ["月繳", "年繳"] and info["oidHidden"] and info["refund"] and "使用條款" in info["agreeT"] and "七日解除權" in info["agreeT"], info)
         pb.click("#coPer button[data-per=year]")
         ok(f"{T}：切年繳 → 金額變 NT$ 2,990", bool(wait_until(pb, "() => /2,990/.test(document.getElementById('coAmt').innerText)", 3000)))
         pb.click("#coPer button[data-per=month]")
@@ -70816,10 +70852,19 @@ def t_pay_1011(b, base):
           return { kinds: d.querySelectorAll('input[name=coKind]').length, once: /單次付款/.test(d.innerText), tab: d.querySelector('#coTabE').innerText, day: (document.getElementById('coDay') || {}).textContent || '',
             fields: !!(d.querySelector('#coNameE') && d.querySelector('#coL5E')), gbtn: g.map(x => x.textContent + ':' + x.getAttribute('aria-checked')), gc: d.querySelectorAll('#coPaneE .cogcb').length,
             go: document.getElementById('coGoE').disabled, hint: /僅用於匿名彙總統計，不公開/.test(d.querySelector('#coPaneE').innerText) && !!d.querySelector('#coPaneE a[href="#privacy"]'),
-            gdReq: /選填/.test(d.querySelector('#coGLb').parentElement.innerText) && /不選擇不影響結帳與任何功能/.test(d.querySelector('#coPaneE').innerText), exit: !/人工協助開通/.test(d.querySelector('#coPaneE').innerText) }; }""")
+            gdReq: /選填/.test(d.querySelector('#coGLbE').parentElement.innerText) && /不選擇不影響結帳與任何功能/.test(d.querySelector('#coPaneE .cohelp').textContent), exit: !/人工協助開通/.test(d.querySelector('#coPaneE').textContent),
+            helpHidden: d.querySelector('#coPaneE .cohelp').hidden, helpVis: !!d.querySelector('#coPaneE .cohelp').offsetParent }; }""")
+        co_layout(co_metrics(pb, "desk1440 預設"), "桌機 1440×900 預設")
         ok(f"{T}：10-16 結帳視窗：沒有單次付款／兩種付款方式雙選、分頁寫「信用卡」不再寫 ATM／超商；有姓名、性別（選填、男／女都沒預選、沒有獨立同意勾選）、選填末 5 碼；前往綠界鈕一開始是灰的",
            ui["kinds"] == 0 and not ui["once"] and "信用卡" in ui["tab"] and "超商" not in ui["tab"] and ui["fields"] and ui["gbtn"] == ["男:false", "女:false"] and ui["gc"] == 0 and ui["go"], ui)
-        ok(f"{T}：性別欄旁有用途（僅用於匿名彙總統計，不公開）、隱私權政策連結、選填說明（不選擇不影響結帳）、沒有「來信人工開通」出口", ui["hint"] and ui["gdReq"] and ui["exit"], ui)
+        ok(f"{T}：性別欄旁常駐一句必要告知（僅用於匿名彙總統計，不公開＋隱私權政策連結）；完整說明（選填、不選擇不影響結帳）收在「ⓘ 說明」裡，預設收起；沒有「來信人工開通」出口", ui["hint"] and ui["gdReq"] and ui["exit"] and ui["helpHidden"] and not ui["helpVis"], ui)
+        pb.click("#coPaneE .cohelpb")
+        hv = pb.evaluate("() => { const h = document.querySelector('#coPaneE .cohelp'); const b = document.querySelector('#coPaneE .cohelpb'); return { vis: !!h.offsetParent, exp: b.getAttribute('aria-expanded'), t: h.innerText, tiny: [...h.querySelectorAll('li')].some(l => parseFloat(getComputedStyle(l).fontSize) < 11) }; }")
+        ok(f"{T}：按「ⓘ 說明」→ 展開姓名／性別／末 5 碼／信用卡／個資處理說明（含「這不是信用卡號」「卡號不會被本網站看到」）、字 ≥ 11px", hv["vis"] and hv["exp"] == "true" and "這不是信用卡號" in hv["t"] and "不會看到" in hv["t"] and "隱私權政策" in hv["t"] and not hv["tiny"], hv)
+        co_metrics(pb, "desk1440 說明展開")
+        shot(pb, "co_ecpay_help.png", "#subDlg .box")
+        pb.click("#coPaneE .cohelpb")
+        ok(f"{T}：再按一次 → 收回", pb.evaluate("() => document.querySelector('#coPaneE .cohelp').hidden"))
         ok(f"{T}：金額旁換算每天多少台幣：月繳 NT$ 299 → 每天約 NT$ 9.8（跟方案卡同一個函式）", ui["day"] == "每天約 NT$ 9.8", ui["day"])
         dcv = pb.evaluate("() => [TwSub.dayCost(299, 'month'), TwSub.dayCost(2990, 'year'), TwSub.dayCost(5268, 'year'), TwSub.dayCost(549, 'month'), TwSub.dayCost(0, 'month'), TwSub.dayCost(null, 'year')]")
         ok(f"{T}：每日換算是同一個共用函式 TwSub.dayCost（方案卡與結帳視窗共用）：299/月→9.8、2,990/年→8.2、5,268/年→14.4、549/月→18.0、0 與空值→不顯示", dcv == [9.8, 8.2, 14.4, 18.0, None, None], dcv)
@@ -70845,6 +70890,7 @@ def t_pay_1011(b, base):
         ok(f"{T}：姓名欄填卡號格式 → 也被清空、前往鈕回到灰的", g2["v"] == "" and g2["go"], g2)
         pb.fill("#coNameE", "王小明"); pb.fill("#coL5E", "12345")
         pb.evaluate("() => { window.TW_CO_NOSUBMIT = true; }")
+        co_metrics(pb, "desk1440 填寫完成")
         shot(pb, "co_ecpay_filled.png", "#subDlg .box")
         with pb.expect_response(lambda r: "/v1/pay/ecpay/create" in r.url, timeout=6000) as ri:
             pb.click("#coGoE")
@@ -71205,7 +71251,25 @@ def t_pay_1011(b, base):
         pe.fill("#coNameE", "艾琳"); pe.tap("#coPaneE .cogd button[data-g=female]")
         sw0 = pe.evaluate("() => ({ sw: document.documentElement.scrollWidth - innerWidth, tiny: [...document.querySelectorAll('#coPaneE small, #coPaneE label, #coPaneE .cogd button')].filter(e => e.offsetParent && parseFloat(getComputedStyle(e).fontSize) < 11).length, day: (document.getElementById('coDay') || {}).textContent })")
         ok(f"{T}：390 綠界分頁（姓名＋性別＋同意＋每日換算）沒有橫向捲軸、字都 ≥ 11px、有每天約", sw0["sw"] <= 1 and sw0["tiny"] == 0 and "每天約" in (sw0["day"] or ""), sw0)
+        co_layout(co_metrics(pe, "m390 填寫（男女選了）"), "手機 390×844")
         shot(pe, "m_ecpay.png")
+        # 360 寬（常見小手機）：同樣第一屏看到全部、沒有橫向捲軸
+        c3 = new_ctx(360); p3 = c3.new_page(); p3.on("pageerror", lambda e: errs.append("gina360: " + str(e)))
+        p3.goto(base + "#pricing", wait_until="domcontentloaded")
+        wait_until(p3, "() => !!(window.TwAccount && TwAccount.on())", 8000)
+        popup_login(p3, "gina", lambda: (p3.evaluate("() => TwAccount.login()"), p3.wait_for_selector("#acctGo", timeout=5000), p3.click("#acctGo")))
+        p3.evaluate("() => TwCheckout.open({ plan: 'plus', per: 'month' })")
+        wait_until(p3, "() => !!document.getElementById('coNameE')", 6000)
+        p3.fill("#coNameE", "吉娜"); p3.tap("#coPaneE .cogd button[data-g=female]"); p3.fill("#coL5E", "24680")
+        p3.tap("#coAgree"); p3.tap("#coRenew")
+        m3 = co_metrics(p3, "m360 填寫完成")
+        co_layout(m3, "手機 360×844")
+        sw3 = p3.evaluate("() => document.documentElement.scrollWidth - innerWidth")
+        ok(f"{T}：360 沒有橫向捲軸、前往綠界付款已可按", sw3 <= 1 and not p3.evaluate("() => document.getElementById('coGoE').disabled"), sw3)
+        shot(p3, "m360_ecpay_filled.png")
+        p3.tap("#coPaneE .cohelpb")
+        shot(p3, "m360_ecpay_help.png")
+        c3.close()
         pe.tap("#coTabB")
         wait_until(pe, "() => !!document.getElementById('coL5')", 6000)
         eoid = pe.evaluate("() => document.getElementById('coOid').innerText")
