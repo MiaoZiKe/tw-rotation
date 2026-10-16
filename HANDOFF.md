@@ -1,5 +1,11 @@
 # HANDOFF.md — 目前進度（接手先讀這份）
 
+## 2026-10-16 21:25 客服面板拿掉「寄信」分頁（網頁版 CEO；main 71884b65，✅ 已部署）
+- Andy：「改成原來那樣，並且把寄信拿掉 只留兩個」→ 面板維持原樣，分頁只剩「常見問題｜意見反饋」；信箱（Gmail 撰寫＋複製信箱，`#supMail`／`#supCopy`）移到意見反饋最下面一行。`TwSupport.open('mail')` 改導到意見反饋。
+- **IG 聊天室預覽版（preview/support-chat、support-chat-1016）不上線**；分支先留著，Andy 要收再刪。
+- 這批只驗：願望清單1009、帳號選單1009、登入卡住1016、桌機守門1008（全綠）、_preview（只剩既有 800px ai_server 交疊）。
+- 既有紅燈（非這批造成）：訂閱與客服1005 等不到 `#subMail`（訂閱對話框已改版）；客服與反饋1007「全站沒有 mailto」被 legal.js 頁尾（10-14 綠界退件修正）打到。
+
 ## 2026-10-16 夜 精選文章管理改兩分頁＋頻率設定＋傳給 GPT（預覽分支 preview/admin-articles-2tabs，尚未進 main）
 - #admin/articles 兩分頁：「文章主題」＝已上架文章＋主題候選＋產出進度（原樣）＋最下面「產貼文頻率設定」；「統計數據」＝點閱統計原樣。
 - 頻率設定（site/artsched.js）：預設全空、開關關；要有星期×時段＋類別篇數才能開；切開關即時存。Worker 新表 article_schedule（/v1/articles/schedule/get、add，僅管理者；機器路由 op=schedule）；article-jobs.yml 同步成 data/_state/article_schedule.json；Claude 排程怎麼讀寫在 docs/articles/production_guide.md。**Worker 尚未部署**（部署順序：先 Worker、再合 main；前端遇到舊 Worker 會寫「後端還沒更新」）。
