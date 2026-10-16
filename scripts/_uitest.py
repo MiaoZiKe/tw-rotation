@@ -31586,6 +31586,120 @@ def t_m4_3dpop_1016(b, base):
         pg.close()
 
 
+# ★ 2026-10-16 手機彈窗點背景1016（Andy iPhone：「確實檢查所有開啟的小說明，點擊背景就會消失，確實明察功能是否正常」）
+#   普查：13 頁 × 每一顆「?」、會開抽屜／下拉／選單的鈕、每頁前 3 張 ECharts 圖（點出提示框），用手指點開 → 手指點背景 → 量三件事：
+#     ① 開出來的東西真的消失（含 ECharts 提示框）② 頁面捲得動、沒有全頁遮罩殘留 ③ 原本那顆鈕點得到（elementFromPoint 是它自己）。
+#   「背景點」怎麼挑：畫面上一個非互動的點，而且它上下左右 22px 內也都沒有鈕／連結／圖表（摘要鈕的觸控區比外框大，貼著點會被當成按到它）；
+#   刻意排除的不算背景：資金輪動的時間列／篩選列（DECISIONS：拖時間軸、按 ▶ 是「畫上去之後要做的事」，dismissable 的 ignore 名單裡就有）。
+#   不算「開出來的東西」：輪動時鐘的掃描光束（div.ray）、象限鈕（.rq／.rg）、客服鈕（#supFab）—— 那是圖本身的動畫與常駐元件。
+#   360／390／430 三種寬度；⚠ --workers 1（每頁都 reload，不共用狀態）。
+M4POP_PAGES = ["#overview", "#earnings", "#flow/rotation", "#heatmap/industry", "#industry", "#industry/semiconductor/dg/foundry",
+               "#market", "#explore", "#etf/cal", "#season", "#watch", "#delivery", "#stock/2330"]
+M4POP_JS = r"""() => {
+  const vis = e => { if (!e || !e.isConnected || !e.getClientRects().length) return false; const c = getComputedStyle(e); return c.visibility !== 'hidden' && c.display !== 'none' && +c.opacity > 0.05; };
+  const POP = '.howtxt, [role=dialog], [role=menu], [role=listbox], [role=tooltip], .msddpanel, .ddpanel, .pop, .menu, .tip, .panel, .segddp, [aria-modal]';
+  const NOISE = '.ray, .rq, .rg, #supFab';
+  const X = window.__m4pop = window.__m4pop || {};
+  X.cand = () => {
+    document.querySelectorAll('[data-m4pop]').forEach(e => e.removeAttribute('data-m4pop'));
+    const S = '.howbtn[data-how], [aria-haspopup], .mfilt, .m4ctlrow button, .msdd > button, .segdd > button, #segDDBtn, .ddbtn, details > summary';
+    const out = [], seen = new Set();
+    document.querySelectorAll(S).forEach(e => { if (!vis(e) || e.closest('.msheet, #howPop, #m4Drawer, .topbar, header')) return;
+      const k = (e.id || '') + '|' + (e.dataset.how || '') + '|' + e.className + '|' + e.textContent.trim().slice(0, 12); if (seen.has(k)) return; seen.add(k);
+      e.dataset.m4pop = 'b' + out.length; out.push({ id: 'b' + out.length, txt: (e.textContent.trim().slice(0, 16) || e.getAttribute('aria-label') || e.id) }); });
+    [...document.querySelectorAll('div[_echarts_instance_]')].filter(e => { const r = e.getBoundingClientRect(); return r.width > 120 && r.height > 100 && e.offsetParent; }).slice(0, 3)
+      .forEach((e, i) => { e.dataset.m4pop = 'c' + i; out.push({ id: 'c' + i, txt: '圖表 ' + (e.id || 'echarts'), chart: true }); });
+    return out;
+  };
+  X.xy = (id) => { const b = document.querySelector('[data-m4pop="' + id + '"]'); if (!b) return null;
+    const at = () => { const r = b.getBoundingClientRect(); const x = r.left + r.width / 2, y = r.top + r.height / 2, h = document.elementFromPoint(x, y); return { x, y, ok: !!(h && (h === b || b.contains(h))) }; };
+    b.scrollIntoView({ block: 'center' }); let q = at();
+    for (const dy of [-200, -200, 400]) { if (q.ok) break; scrollBy(0, dy); q = at(); }
+    return q; };
+  X.snap = () => { const L = []; document.querySelectorAll('body *').forEach(e => { const c = getComputedStyle(e);
+    if ((c.position === 'fixed' || c.position === 'absolute' || e.matches(POP)) && vis(e)) L.push(e); }); X.old = new Set(L); };
+  X.tips = () => [...document.querySelectorAll('div')].filter(d => /z-index: 9999999/.test(d.getAttribute('style') || '') && vis(d)).length;
+  X.diff = () => { const N = []; document.querySelectorAll('body *').forEach(e => { const c = getComputedStyle(e);
+      if ((c.position === 'fixed' || c.position === 'absolute' || e.matches(POP)) && vis(e) && !X.old.has(e) && !e.closest(NOISE)) { const r = e.getBoundingClientRect(); if (r.width > 40 && r.height > 30) N.push(e); } });
+    ['howPop', 'mSheet'].forEach(id => { const e = document.getElementById(id); if (e && vis(e) && !N.includes(e) && !X.old.has(e)) N.push(e); });
+    X.open = N.filter(e => !N.some(o => o !== e && o.contains(e)));
+    return X.open.map(e => e.id ? '#' + e.id : e.tagName.toLowerCase() + '.' + String(e.className).split(' ')[0]); };
+  X.bg = () => { const H = innerHeight, W = innerWidth, open = X.open || [];
+    const INT = 'a,button,input,select,textarea,label,summary,[role=tab],[role=button],canvas,svg,[_echarts_instance_],.howbtn,[onclick],.msheet,#howPop,#supFab,.topbar,nav,.m4ctlrow,#flowRotTime,#flowRotFilter,#rotLive,.rotquads,#stagePanel,.chip,.co,.segchip';
+    const bad = (x, y) => { const e = document.elementFromPoint(x, y); return !e || !!e.closest(INT) || open.some(o => o.contains(e) && !/back/i.test(o.id + o.className)); };
+    for (let y = H * 0.18; y < H * 0.88; y += 19) for (let x = 14; x < W - 14; x += 23)
+      if (!bad(x, y) && !bad(x - 22, y) && !bad(x + 22, y) && !bad(x, y - 22) && !bad(x, y + 22)) { const e = document.elementFromPoint(x, y); return [x, y, e.id || String(e.className).slice(0, 24)]; }
+    return null; };
+  X.after = (id) => { const still = (X.open || []).filter(vis).map(e => e.id || String(e.className).split(' ')[0]);
+    const cover = [...document.querySelectorAll('body *')].filter(e => { const c = getComputedStyle(e); if (c.position !== 'fixed' || !vis(e) || c.pointerEvents === 'none') return false;
+      const r = e.getBoundingClientRect(); return r.width >= innerWidth * 0.9 && r.height >= innerHeight * 0.5; }).map(e => e.id || e.className);
+    const q = id[0] === 'b' ? X.xy(id) : { ok: true };
+    return { still, cover, hit: !!(q && q.ok), tips: X.tips() }; };
+  return true;
+}"""
+
+
+def t_m4_pop_bg_1016(b, base):
+    T = "手機彈窗點背景1016"
+    table = []
+    for W, H in ((360, 780), (390, 844), (430, 932)):
+        ctx = b.new_context(viewport={"width": W, "height": H}, is_mobile=True, has_touch=True)
+        ctx.add_init_script("try{ if(!sessionStorage.getItem('m4pop')){ localStorage.clear(); localStorage.setItem('tw.live.on','0'); localStorage.setItem('tw.tourDone','1');"
+                            " localStorage.setItem('tw.m4.3danim','0'); sessionStorage.setItem('m4pop','1'); } }catch(e){}")
+        m = ctx.new_page()
+        m.on("pageerror", lambda e, W=W: fails.append(f"{T} {W} pageerror: {e}"))
+        m.route("**/fonts.googleapis.com/**", lambda r: r.abort())
+        J = m.evaluate
+        n_open = 0
+        try:
+            for pg in M4POP_PAGES:
+                def load():
+                    m.goto(base + pg, wait_until="domcontentloaded"); m.reload(wait_until="domcontentloaded")
+                    m.wait_for_timeout(3000); J(M4POP_JS)
+                load()
+                cands = J("() => __m4pop.cand()")
+                for c in cands[:18]:
+                    if not J("() => location.hash").startswith(pg):
+                        load(); J("() => __m4pop.cand()")
+                    q = J("(i) => __m4pop.xy(i)", c["id"])
+                    if not q or not q["ok"]:
+                        continue
+                    m.wait_for_timeout(300); q = J("(i) => __m4pop.xy(i)", c["id"])
+                    if not q or not q["ok"]:
+                        continue
+                    J("() => __m4pop.snap()")
+                    m.touchscreen.tap(q["x"], q["y"]); m.wait_for_timeout(800)
+                    opened = J("() => __m4pop.diff()")
+                    tip = J("() => __m4pop.tips()") if c.get("chart") else 0
+                    if not opened and not tip:
+                        continue
+                    if not J("() => location.hash").startswith(pg):
+                        continue                                  # 點圖＝換頁（例如點個股），不是彈窗
+                    n_open += 1
+                    pt = J("() => __m4pop.bg()")
+                    if not ok(f"【{T}】{W} {pg}「{c['txt']}」開出 {opened or ['提示框']}：畫面上找得到可以點的背景", bool(pt), opened):
+                        J("() => document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }))"); continue
+                    m.touchscreen.tap(pt[0], pt[1]); m.wait_for_timeout(800)
+                    y0 = J("scrollY"); J("scrollBy(0, 120)"); m.wait_for_timeout(200); y1 = J("scrollY"); J("scrollBy(0, -120)")
+                    short = J("document.documentElement.scrollHeight <= innerHeight + 2")
+                    a = J("(i) => __m4pop.after(i)", c["id"])
+                    good = not a["still"] and a["tips"] == 0 and not a["cover"] and a["hit"] and (y1 != y0 or short)
+                    table.append((W, pg, c["txt"], "、".join(opened) or "提示框", "✓" if not a["still"] and a["tips"] == 0 else "✗",
+                                  "✓" if (y1 != y0 or short) and not a["cover"] else "✗", "✓" if a["hit"] else "✗"))
+                    ok(f"【{T}】{W} {pg}「{c['txt']}」開出 {opened or ['提示框']} → 手指點背景（{pt[2]}）：消失（殘留 {a['still']}、提示框 {a['tips']}）、"
+                       f"捲得動（{y0}→{y1}）、沒有遮罩（{a['cover']}）、鈕點得到（{a['hit']}）", good, a)
+                    if a["still"] or a["tips"]:
+                        J("() => document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }))"); m.wait_for_timeout(300)
+            ok(f"【{T}】{W} 普查真的點開過夠多個彈窗（{n_open} 個 ≥ 30）", n_open >= 30, n_open)
+        finally:
+            ctx.close()
+    if os.environ.get("TW_M4POP_TABLE"):
+        with open(os.environ["TW_M4POP_TABLE"], "w", encoding="utf-8") as f:
+            f.write("| 寬 | 頁 | 鈕 | 開出 | 消失 | 捲得動無遮罩 | 鈕點得到 |\n|---|---|---|---|---|---|---|\n")
+            for r in table:
+                f.write("| " + " | ".join(str(x) for x in r) + " |\n")
+
+
 # ★ 2026-10-09 長條寬度1009（Andy 10-09：「下方調整長條圖適當寬度」—— 總覽漲跌家數 11 根在 1730 寬只畫 10px，又細又空）：
 #   softenOption（site/app.js）的長條上限改成依類別數決定：≤ 20 個類別 → 每格 50%（上限直條 48、橫條 20）；多的照舊 ≤ 12／10。
 #   這段真的去量 ECharts 算出來的柱寬（getItemLayout）跟格寬（getBandWidth），而且點一根直條（清單打開、其他直條淡掉的局部 setOption）
@@ -34523,6 +34637,8 @@ SECTIONS = {
     "手機3D編號1010":      lambda pg, b, base, code: t_m4_3dnum_1010(b, base),
     # ★ 2026-10-16 Andy iPhone：「產業地圖切換到3D圖之後 其他分頁不能使用」（360／390／430 觸控＋1440 守桌機；⚠ --workers 1）
     "手機3D分頁1016":      lambda pg, b, base, code: t_m4_3dpop_1016(b, base),
+    # ★ 2026-10-16 Andy：「確實檢查所有開啟的小說明，點擊背景就會消失」—— 13 頁 × 每顆 ?／抽屜／下拉／圖表提示框（360／390／430 觸控；⚠ --workers 1）
+    "手機彈窗點背景1016":  lambda pg, b, base, code: t_m4_pop_bg_1016(b, base),
     # ★ 2026-09-25 手機版 v3（docs/mobile_v3_spec.md §7）：底部一列五顆、「?」氣泡、大盤合一張、新雷達＋焦點條、
     #   資金分流樹長條、法人對稱長條、篩選抽屜、剖析圖只留編號（2D／3D）。390 與 360 各一輪。⚠ 一律 --workers 1（有 3D）
     "手機v3":              lambda pg, b, base, code: t_mobile_v3(b, base, code),
