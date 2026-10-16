@@ -204,7 +204,7 @@
   :root.m4 #v-etf .etfc .nm{grid-column:1/-1;grid-row:2;font-size:12px!important;font-weight:500;color:var(--ink-2);white-space:normal!important;
     display:-webkit-box!important;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;line-height:1.3;min-height:31px}
   :root.m4 #v-etf .etfc .px>b{grid-column:1/-1;grid-row:3;font:700 14px var(--mono)!important}
-  :root.m4 #v-etf .etfc .fq{grid-column:1;grid-row:4;justify-self:start;font-size:12px;white-space:nowrap;padding:0 5px}
+  :root.m4 #v-etf .etfc .fq{grid-column:1;grid-row:4;justify-self:start;font-size:12px;white-space:nowrap;padding:0 4px}
   :root.m4 #v-etf .etfc dd.yv{display:block!important;grid-column:2;grid-row:4;text-align:right;font:12px var(--mono);color:var(--amber);align-self:center}
   /* ---- 9. 現金流試算／複利試算的控制區：手機收成一行「條件 ▾」摘要（mobile4.js wireCond），點開才看到全部控制項 */
   :root.m4 #v-etf .m4cond{display:flex;align-items:center;gap:8px;width:100%;min-height:44px;margin:0 0 8px;padding:0 12px;border:1px solid var(--line-2);border-radius:10px;
@@ -1561,3 +1561,32 @@
   :root.m4 #v-articles.view.on #artCats#artCats.nbsw>button>em{display:inline!important;order:2;flex:none;font-size:11px!important;margin-left:1px!important;font-style:normal;opacity:.8}
   :root.m4 #v-articles.view.on #artCats#artCats.nbsw>button>em:empty{display:none!important}
 }
+/* ===== 1016k. 手機個股 K 線資訊列（Andy iPhone 10-16，南電 8046 4時：「個股K線圖那邊資的訊太多，可以看到 K線圖 被遮住一大部分」）=====
+   ★ 這一節整段可以原樣搬到 site/m4/*.css（拆檔中），只吃 ≤640＋:root.m4，桌機一條都不吃。
+   · 主圖左上那塊白底圖頭（#legendOv：日期／開高低收／振幅／量／MA5～MA120）手機不畫在圖上了 —— 改由 industry.js 寫進圖上方的 #m4kInfo 兩行資訊列：
+       第 1 行：日期時間 · 收 價 漲跌% · 量（360 寬也放得下一整行）
+       第 2 行：均線讀數小晶片（可左右滑，右緣淡出＝還有）；「還原」小標擺在這一行右端（不碰 K 棒、不碰價格軸）；手指點某一根 K 棒時最前面多「開／高／低／振幅」
+   · 主圖頂端不再為圖頭保留高度（reserveTop 歸零），K 棒用回整個主圖。
+   · 圖內浮水印（股名＋週期）縮小、變淡：它在 K 棒後面，34px 大字在手機上佔掉三分之一寬。
+   · 週期沒資料（#lwc 裡只剩 .empty）時整條資訊列收起，不留上一個週期的舊數字。 */
+@media (max-width:640px){
+  :root.m4 #lwc .legend-ov{display:none!important}
+  :root.m4 #m4kInfo{position:relative;margin:0 0 2px;padding:0 2px;font-size:12px;line-height:16px;color:var(--ink-2);font-variant-numeric:tabular-nums}
+  :root.m4 #m4kInfo:has(+ #lwc > .empty){display:none}
+  :root.m4 #m4kInfo .m4ki1{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;height:16px}
+  :root.m4 #m4kInfo .m4ki1 b{color:var(--ink);font-weight:700}
+  :root.m4 #m4kInfo .m4ki1 i{font-style:normal;color:var(--ink-3);padding:0 4px}
+  :root.m4 #m4kInfo .m4ki2{display:flex;gap:4px;margin:2px 0 0;height:18px;overflow-x:auto;overflow-y:hidden;scrollbar-width:none;
+    -webkit-overflow-scrolling:touch;overscroll-behavior-x:contain;touch-action:pan-x}
+  :root.m4 #m4kInfo .m4ki2::-webkit-scrollbar{display:none}
+  :root.m4 #m4kInfo .m4ki2.more{-webkit-mask-image:linear-gradient(90deg,#000 calc(100% - 22px),transparent);mask-image:linear-gradient(90deg,#000 calc(100% - 22px),transparent)}
+  :root.m4 #m4kInfo .m4ki2 .c{flex:none;white-space:nowrap;padding:0 6px;border:1px solid var(--line);border-radius:9px;line-height:16px;background:var(--panel-2,transparent)}
+  :root.m4 #m4kInfo .m4ki2 .c span{white-space:nowrap}
+  :root.m4 #m4kInfo[data-picked="1"] .m4ki2 .c:nth-child(-n+4){color:var(--ink)}
+  /* 「還原」小標：原本絕對定位在 .chartwrap 右上 72px（壓在主圖上）→ 手機擺到資訊列第 2 行右端（晶片列右邊讓出 44px） */
+  :root.m4 #chartWrap:has(#m4kInfo) .m4ki2{margin-right:44px}
+  :root.m4 #chartWrap:has(#m4kInfo) > .adjtag{top:19px!important;right:2px!important;padding:2px 6px!important;font-size:12px;line-height:12px}
+  :root.m4 #chartWrap:has(#m4kInfo) > .adjtag .adjtip{right:0;max-width:min(300px,calc(100vw - 40px))}
+  :root.m4 #lwc .k-wm{font-size:18px;top:44%;color:color-mix(in srgb,var(--ink-3) 9%,transparent)}
+}
+/* ===== 1016k 結束 ===== */
