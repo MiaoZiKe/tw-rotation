@@ -8830,8 +8830,12 @@
     const qTxt = (t, left, top, align, vAlign) => ({ type: 'text', left, top, silent: true, z: 1,
       style: { text: t, fill: hexA(CH.ink3, .9), font: '600 12px "Noto Sans TC", sans-serif', textAlign: align, textVerticalAlign: vAlign } });
     const G = { left: 14, right: 18, top: 30, bottom: 40, containLabel: true };   // containLabel：「100.0 萬張」這種長刻度不會跑出框（_preview 1920 抓到 7px）
+    const m4q = document.documentElement.classList.contains('m4');   // 手機（html.m4）：準星＋縮放＋不跳頁（2026-10-16），桌機一行不變
+    if (m4q) { G.right = 44; G.bottom = 74; }   // 右邊留給縱軸拉Bar、下面留給橫軸拉Bar（桌機 G 不動）
     const c = chart('trust', {
-      tooltip: { ...tip, trigger: 'item', formatter: q => { const r = q.data.r;
+      ...(m4q ? trustM4Zoom() : {}),
+      tooltip: { ...tip, ...(m4q ? { show: false } : {}), trigger: 'item',   // 手機：提示框會蓋住點與拉Bar → 改寫在圖上方那一列（trustM4Cross）
+      formatter: q => { const r = q.data.r;
         return `<b>${fmt.esc(nm(r.code))} ${r.code}</b>　<span style="color:${r.side === 'buy' ? CH.up : CH.down}">${quad(r)}</span><br>`
           + `${STREAK_NAME[who]}連續${r.side === 'buy' ? '買' : '賣'}超 <b>${r.n}</b> 天，期間累計 <b>${fmt.lot(r.lots)}</b>`
           + (r.last != null ? `<br>最後一天 ${fmt.lot(r.last)}（期間日均 ${fmt.lot(r.avg)}，力道 <b>${fmt.n(r.ratio, 2)}×</b>）` : '')
@@ -8863,9 +8867,89 @@
           data: [{ xAxis: 0 }].concat(hasRatio ? [{ yAxis: 1 }] : []) } }],
     }, { notMerge: true });
     if (el) { el.dataset.pts = String(rows.length); el.dataset.buys = String(buys.length); el.dataset.sells = String(sells.length); }
-    if (c) c.off('click').on('click', q => zoomClick($('#trustWrap'), () => { if (q.data && q.data.code) goStock(q.data.code); }));
+    if (c && m4q) trustM4Cross(c, el, hasRatio, (r) => `<b>${fmt.esc(nm(r.code))} ${r.code}</b> <span style="color:${r.side === 'buy' ? CH.up : CH.down}">${quad(r)}</span>`
+      + `<br>${STREAK_NAME[who]}連${r.side === 'buy' ? '買' : '賣'} ${r.n} 天・累計 ${fmt.lot(r.lots)}${r.ratio != null ? `・力道 ${fmt.n(r.ratio, 2)}×` : ''}`);   // 兩行放得下（360 也不折第三行，圖不會跳）   // 手機：點／拖＝十字虛線準星吸附最近的點，只看不跳頁
+    else if (c) c.off('click').on('click', q => zoomClick($('#trustWrap'), () => { if (q.data && q.data.code) goStock(q.data.code); }));
     // 滾輪放大、放大後拖曳、雙擊或按「還原」回原尺寸（Andy 2026-09-15），1 倍時滾輪照常捲頁面
     wheelZoom($('#trustWrap'), { onZoom: () => { const i = echarts.getInstanceByDom($('#trust')); if (i) i.resize(); } });
+  }
+
+  /* ★ 2026-10-16 Andy（iPhone）：「法人買賣圓點不需要路上超連結，只要可以看就好，另外需要加上十字虛線座標軸，才知道目前看哪個，並且可以放大看」
+     只動手機（html.m4）的四象限散布圖：
+       · 點圓點＝顯示提示框（誰、哪一象限、幾天、累計、力道），不跳個股頁（桌機照舊點了進個股頁）。
+       · 十字虛線準星：從選中的點拉橫、直兩條虛線到兩軸，軸上各一塊標籤寫數值（連買／連賣幾天、力道幾倍）；
+         手指在圖上拖，準星即時吸附到最近的點（提示框跟著換）。點圖上離點很遠的空白處＝收起準星。
+       · 放大：橫軸、縱軸各一條拉Bar（ECharts dataZoom slider，可拖兩端把手或拖中段平移）＋兩指縮放（dataZoom inside），右上「重置」回全圖。
+     ⚠ 圖面上單指拖曳＝移動準星，所以手指放在圖面上不會捲頁；要捲頁請按圖外（卡片標題、拉Bar 以外的空白）。*/
+  function trustM4Zoom() {
+    const bar = { type: 'slider', filterMode: 'none', showDetail: false, showDataShadow: false, brushSelect: false,
+      borderColor: hexA(CH.ink3, .35), fillerColor: hexA(CH.cyan, .18), backgroundColor: hexA(CH.ink3, .08),
+      handleSize: '140%', handleStyle: { color: CH.panel, borderColor: CH.ink2, borderWidth: 1.5 }, moveHandleSize: 0,
+      textStyle: { color: CH.ink3, fontSize: 12 } };
+    return { dataZoom: [
+      { ...bar, id: 'tzx', xAxisIndex: 0, bottom: 6, height: 22, left: 40, right: 44 },
+      { ...bar, id: 'tzy', yAxisIndex: 0, right: 6, width: 22, top: 30, bottom: 74, orient: 'vertical' },
+      { type: 'inside', id: 'tzix', xAxisIndex: 0, filterMode: 'none', zoomOnMouseWheel: true, moveOnMouseMove: false, moveOnMouseWheel: false, preventDefaultMouseMove: false },
+      { type: 'inside', id: 'tziy', yAxisIndex: 0, filterMode: 'none', zoomOnMouseWheel: true, moveOnMouseMove: false, moveOnMouseWheel: false, preventDefaultMouseMove: false },
+    ] };
+  }
+  function trustM4Cross(c, el, hasRatio, info) {
+    const wrap = $('#trustWrap');
+    /* 重置鈕（只有手機長出來；放大過才亮） */
+    let bar = $('#trustM4Bar', wrap);
+    if (!bar) { bar = document.createElement('div'); bar.id = 'trustM4Bar'; bar.className = 'trustM4Bar';
+      bar.innerHTML = '<span class="tmi" id="trustM4Info" aria-live="polite"></span><button type="button" class="btn small" id="trustReset" aria-label="縮放重置，回到全圖">重置</button>';
+      wrap.insertBefore(bar, wrap.firstChild); }
+    const rb = $('#trustReset', bar), infoEl = $('#trustM4Info', bar);
+    const HINT = '<span class="muted">點／拖圓點看數字（十字虛線＝目前這一檔）<br>雙指撐開或拖拉Bar 放大</span>';
+    const say = (h) => { infoEl.innerHTML = h || HINT; };
+    say('');
+    const zoomed = () => { const o = c.getOption(); return (o.dataZoom || []).some(z => (z.start || 0) > 0.01 || (z.end == null ? 100 : z.end) < 99.99); };
+    const syncRb = () => { rb.classList.toggle('on', zoomed()); wrap.dataset.zoomed = zoomed() ? '1' : '0'; };
+    rb.onclick = () => { c.dispatchAction({ type: 'dataZoom', batch: [0, 1, 2, 3].map(i => ({ dataZoomIndex: i, start: 0, end: 100 })) }); syncRb(); };
+    syncRb();
+    const zr = c.getZr(); let grp = null, cur = -1;
+    const data = () => (c.getOption().series[0].data || []);
+    const rect = () => c.getModel().getComponent('grid', 0).coordinateSystem.getRect();
+    const clear = () => { if (grp) { zr.remove(grp); grp = null; } cur = -1; el.dataset.cross = ''; say(''); };
+    const draw = (i) => {
+      const d = data()[i]; if (!d) return clear();
+      const [px, py] = c.convertToPixel({ seriesIndex: 0 }, d.value), R = rect();
+      if (px < R.x - 1 || px > R.x + R.width + 1 || py < R.y - 1 || py > R.y + R.height + 1) return clear();   // 放大後點跑出可視範圍
+      if (grp) zr.remove(grp);
+      const G = echarts.graphic, col = d.r.side === 'buy' ? CH.up : CH.down;
+      const ln = (x1, y1, x2, y2) => new G.Line({ shape: { x1, y1, x2, y2 }, silent: true, z: 50, style: { stroke: col, lineWidth: 1.2, lineDash: [5, 4] } });
+      const tag = (txt, x, y, al, va) => new G.Text({ silent: true, z: 51, x, y, style: { text: txt, fill: '#fff', backgroundColor: col, padding: [3, 6], borderRadius: 4,
+        font: '600 12px "Noto Sans TC", sans-serif', align: al, verticalAlign: va } });
+      const yv = d.value[1], xv = Math.abs(d.value[0]);
+      grp = new G.Group();
+      grp.add(ln(R.x, py, px, py)); grp.add(ln(px, py, px, R.y + R.height));
+      grp.add(new G.Circle({ silent: true, z: 52, shape: { cx: px, cy: py, r: Math.max(6, (d.symbolSize || 10) / 2 + 3) }, style: { fill: 'none', stroke: col, lineWidth: 2 } }));
+      grp.add(tag(`${d.r.side === 'buy' ? '連買' : '連賣'} ${xv} 天`, Math.min(Math.max(px, R.x + 40), R.x + R.width - 40), R.y + R.height + 2, 'center', 'top'));
+      grp.add(tag(hasRatio ? fmt.n(yv, 2) + '×' : fmt.lot(d.r.lots), R.x + 2, py, 'left', 'middle'));
+      zr.add(grp); cur = i; el.dataset.cross = d.r.code;
+      say(info(d.r));
+    };
+    const nearest = (x, y, lim) => { let bi = -1, bd = Infinity; const R = rect();
+      data().forEach((d, i) => { const [px, py] = c.convertToPixel({ seriesIndex: 0 }, d.value);
+        if (px < R.x - 1 || px > R.x + R.width + 1 || py < R.y - 1 || py > R.y + R.height + 1) return;
+        const dd = (px - x) ** 2 + (py - y) ** 2; if (dd < bd) { bd = dd; bi = i; } });
+      return bi >= 0 && (lim == null || bd <= lim * lim) ? bi : -1; };
+    const local = (t) => { const b = el.getBoundingClientRect(); return [t.clientX - b.left, t.clientY - b.top]; };
+    const inGrid = (x, y) => { const R = rect(); return x >= R.x - 8 && x <= R.x + R.width + 8 && y >= R.y - 8 && y <= R.y + R.height + 8; };
+    let tst = null;
+    if (el._m4cross) { el.removeEventListener('touchstart', el._m4cross.s); el.removeEventListener('touchmove', el._m4cross.m); el.removeEventListener('touchend', el._m4cross.e); }
+    const onS = (e) => { if (e.touches.length !== 1) { tst = null; return; } const [x, y] = local(e.touches[0]); tst = inGrid(x, y) ? { x, y, moved: false } : null; };
+    const onM = (e) => { if (!tst || e.touches.length !== 1) return; const [x, y] = local(e.touches[0]);
+      if (!tst.moved && Math.hypot(x - tst.x, y - tst.y) < 6) return; tst.moved = true; e.preventDefault();
+      const i = nearest(x, y); if (i >= 0 && i !== cur) draw(i); };
+    const onE = () => { if (!tst) return; const t = tst; tst = null; if (t.moved) return;
+      const i = nearest(t.x, t.y, 44); if (i >= 0) draw(i); else clear(); };   // 點一下：44px 內有點＝選它，否則收起準星
+    el.addEventListener('touchstart', onS, { passive: true }); el.addEventListener('touchmove', onM, { passive: false }); el.addEventListener('touchend', onE, { passive: true });
+    el._m4cross = { s: onS, m: onM, e: onE };
+    c.off('click');   // 手機不跳個股頁
+    c.off('datazoom'); c.on('datazoom', () => { syncRb(); if (cur >= 0) { const k = cur; setTimeout(() => draw(k), 0); } });
+    el.dataset.cross = '';
   }
 
   function renderStreakRank(box, buys, sells, nm, who) {

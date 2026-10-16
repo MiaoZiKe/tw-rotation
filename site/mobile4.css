@@ -1457,3 +1457,16 @@
   :root.m4 .msheetback, :root.m4 .msheet .mgrab, :root.m4 .msheet .mshhead{
     -webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
 }
+
+/* ============================================================================
+   2026-10-16 Andy（iPhone）：法人連買賣四象限 —— 只看不跳頁、十字虛線準星、可放大（app.js trustM4Zoom／trustM4Cross）
+   圖上一列：選中那一檔的數字（沒選時是操作提示）＋「重置」（放大過才變亮）；圖高 360 → 420 給兩條拉Bar 讓位。只在 ≤640 而且 :root.m4。
+   ============================================================================ */
+@media (max-width:640px){
+  :root.m4 #trustWrap .trustM4Bar{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:0 0 4px;font-size:12px;color:var(--ink-3);line-height:1.3}
+  :root.m4 #trustWrap .trustM4Bar .tmi{min-width:0;min-height:35px;font-size:12.5px;line-height:1.4;color:var(--ink-2)}
+  :root.m4 #trustWrap .trustM4Bar .tmi b{color:var(--ink)}
+  :root.m4 #trustWrap #trustReset{flex:none;min-height:36px;min-width:56px;font-size:13px;opacity:.5}
+  :root.m4 #trustWrap[data-zoomed="1"] #trustReset{opacity:1;border-color:var(--cyan,#3ee0ff);color:var(--ink)}
+  :root.m4 #trust{min-height:420px!important;touch-action:none}
+}
