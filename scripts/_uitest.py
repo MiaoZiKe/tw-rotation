@@ -71748,6 +71748,13 @@ def t_articles_1014(b, base):
           const bad = [...t.querySelectorAll('tbody tr')].filter(tr => tr.children.length === hs.length).filter(tr => [...tr.children].some((td, i) => Math.abs(Math.round(td.getBoundingClientRect().left) - hs[i]) > 1)).length; return bad; });
         return { gapL: Math.round(r.left - m.left), gapR: Math.round(m.right - r.right), bad: cols }; }""")
     ok(f"{T}：管理頁吃滿主欄（左右空白各 ≤ 24px）、三張表每一列的欄位都跟表頭對齊", lay["gapL"] <= 24 and lay["gapR"] <= 24 and all(x == 0 for x in lay["bad"]), lay)
+    # Andy 10-16：「文章管理 每個表格清單都需要限制長度，太長都使用拉Bar」
+    sc = ap.evaluate("""() => [...document.querySelectorAll('#v-subadm .artadm .tbw')].map(w => { const mh = parseFloat(getComputedStyle(w).maxHeight); const r0 = w.getBoundingClientRect();
+        const over = w.scrollHeight > w.clientHeight + 1; let headOk = true;
+        if (over) { w.scrollTop = 300; const th = w.querySelector('thead th').getBoundingClientRect(); headOk = Math.abs(th.top - r0.top) <= 2; w.scrollTop = 0; }
+        return { id: w.closest('.card').id, mh, h: Math.round(r0.height), over, oy: getComputedStyle(w).overflowY, headOk }; })""")
+    ok(f"{T}：三張表都限高（≤ 520px）、超過就表內出捲軸、往下捲表頭仍固定在上面；主題清單 {len(tops)} 筆一定超過要捲",
+       len(sc) == 3 and all(x["mh"] <= 520 and x["h"] <= 522 and x["oy"] == "auto" and x["headOk"] for x in sc) and any(x["id"] == "artAdmTopics" and x["over"] for x in sc), sc)
     # 已上架文章篩選（Andy 10-16：「上架文章之後會越來越多，所以也需要有日期 類型 分類」）
     AROWS = "() => [...document.querySelectorAll('#artAdmBody tr[data-id]')].map(r => [r.dataset.cat, r.dataset.date, r.querySelector('td.l').textContent])"
     allr = ap.evaluate(AROWS)

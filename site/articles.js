@@ -400,7 +400,11 @@
 #v-subadm .artadm .hd{display:flex;align-items:center;gap:var(--sp-2);flex-wrap:wrap;margin-bottom:var(--sp-2)}
 #v-subadm .artadm .hd .sp{flex:1}
 #v-subadm .artadm .hd .muted{font-size:var(--fs-min)}
-#v-subadm .artadm .tbw{overflow-x:auto}
+/* Andy 10-16：「文章管理 每個表格清單都需要限制長度，太長都使用拉Bar」→ 三張表各自限高、表內捲動、表頭固定 */
+#v-subadm .artadm .tbw{overflow:auto;max-height:var(--artadm-h,420px);overscroll-behavior:contain;border:1px solid var(--line);border-radius:var(--r-sm,8px)}
+#v-subadm .artadm #artAdmTopics .tbw{--artadm-h:520px}
+#v-subadm .artadm thead th{position:sticky;top:0;z-index:2}
+#v-subadm .artadm tbody tr:last-child>td{border-bottom:0}
 #v-subadm .artadm table{width:100%;min-width:860px;border-collapse:collapse;table-layout:fixed;font-size:13px}
 #v-subadm .artadm th,#v-subadm .artadm td{padding:0 10px;border-bottom:1px solid var(--line);height:36px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-align:left;vertical-align:middle}
 #v-subadm .artadm th{color:var(--ink-2);font-weight:600;font-size:12px;background:var(--panel-3);height:32px}
