@@ -36386,7 +36386,7 @@
     "daytrade@fresh2026-10-16:4728": true,
     "daytrade@fresh2026-10-16:4116": true
   },
-  "updated_at": "2026-10-16T17:33:46.977829+00:00",
+  "updated_at": "2026-10-16T18:29:43.805263+00:00",
   "complete": {
     "balance+financial+revenue": {
       "done": true,
@@ -36639,8 +36639,8 @@
       "remaining": {
         "intraday_60m": 0
       },
-      "codes": 2036,
-      "ok": 2036,
+      "codes": 2041,
+      "ok": 2041,
       "no_data": 0,
       "per_run": 400,
       "this_run": {
@@ -36651,7 +36651,7 @@
         "marked_from_lake": 0
       },
       "stopped": null,
-      "at": "2026-10-16T17:28:29.061874+00:00"
+      "at": "2026-10-16T18:29:43.367413+00:00"
     },
     "dividend+divresult@m2026-10": {
       "done": true,
@@ -37215,10 +37215,10 @@
     }
   },
   "finmind_health": {
-    "ok": true,
-    "at": "2026-10-16T17:28:29.487525+00:00",
+    "ok": false,
+    "at": "2026-10-16T18:29:43.805168+00:00",
     "probe": "TaiwanStockPrice/2330 since 2026-10-07",
-    "detail": ""
+    "detail": "HTTP 402：Requests reach the upper limit. https://finmindtrade.com/"
   },
   "unavailable": {
     "holding": {
