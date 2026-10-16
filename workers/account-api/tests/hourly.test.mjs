@@ -187,7 +187,7 @@ test('舊 API 回應不變：stats 原有欄位的值不變、只在後面多 ho
   assert.deepEqual(Object.keys(b1.j).sort(), ['n', 'ok'], 'beat 回 {ok, n}，沒有多東西');
   const { s, j } = await stats(hub, andy, { days: 3 });
   assert.equal(s, 200);
-  assert.deepEqual(Object.keys(j), ['from', 'to', 'rows', 'e2', 'users', 'events', 'views', 'hours', 'hourly', 'hstat'], '原本的欄位順序不變，新的接在後面');
+  assert.deepEqual(Object.keys(j), ['from', 'to', 'rows', 'e2', 'users', 'events', 'views', 'hours', 'hourly', 'hstat', 'gender'], '原本的欄位順序不變，新的接在後面（gender＝2026-10-16 男女用量彙總）');
   assert.deepEqual([j.from, j.to], ['2026-10-03', '2026-10-05']);
   assert.deepEqual(j.rows.map((r) => [r.day, r.k, r.n]).sort(), [['2026-10-05', 'ev:session', 1], ['2026-10-05', 'ev:zoom', 1], ['2026-10-05', 'pv:flow', 2]]);
   assert.deepEqual(j.e2, [{ page: 'flow', comp: 'quad', detail: '領先', n: 2 }]);
