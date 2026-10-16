@@ -540,7 +540,7 @@ test('退款：轉帳人工登記＋立即降級；重複按同一個 rid 不重
   assert.equal(db.prepare("SELECT COUNT(*) AS c FROM refunds WHERE oid = ? AND status = 'done'").get(c.id).c, 1);
   assert.equal(ord(db, c.id).status, 'refunded');
   assert.equal((await permOf(hub, bob)).plan, 'free', '退款後立即降級');
-  assert.equal((await pj(hub, '/v1/admin/pay/refund', { t: andy, id: c.id, rid: 'r-000000003', amount: 1, last5: '11111', date: '2026-10-11' })).s, 400, '已全額退，再退擋下');
+  assert.equal((await pj(hub, '/v1/admin/pay/refund', { t: andy, id: c.id, rid: 'r-000000003', amount: 1, last5: '11111', date: '2026-10-11' })).s, 409, '已全額退，再退擋下（10-16 起回 409 already_refunded）');
   const my = (await pj(hub, '/v1/pay/my', { t: bob })).j.orders.find((o) => o.id === c.id);
   assert.deepEqual([my.statusName, my.refunded, my.refunds.length], ['已退款', 299, 1], '會員端看得到退款');
   const l = (await pj(hub, '/v1/admin/pay/list', { t: andy })).j;
@@ -838,4 +838,84 @@ test('10-16 舊資料修正：管理區打開清單時，同一人兩筆待確�
   /* 管理者手動標記已處理 → 寫原因 */
   await pj(hub, '/v1/admin/feedback/set', { t: andy, kind: 'request', id: rq.id, status: 'done' });
   assert.equal(db.prepare('SELECT close_reason FROM sub_requests WHERE id = ?').get(rq.id).close_reason, '管理者標記已處理');
+});
+
+/* ============================================================== 2026-10-16 處理措施（規則手冊）—— Andy：「並且需要制定完善的措施」 */
+test('措施 1 狀態機：不允許的轉換一律 409（已退回再退回、已退回又確認、開通後退回／改金額、已退款再確認）', async () => {
+  const { hub, db, bob, andy } = await setup();
+  await bankOn(hub, andy);
+  const c = (await pj(hub, '/v1/pay/bank/create', { t: bob, plan: 'plus', period: 'month' })).j;
+  await pj(hub, '/v1/pay/bank/report', { t: bob, name: '鮑伯', id: c.id, last5: '11111', date: '2026-10-11' });
+  assert.equal((await pj(hub, '/v1/admin/pay/reject', { t: andy, id: c.id, reason: '查無入帳' })).s, 200);
+  const twice = await pj(hub, '/v1/admin/pay/reject', { t: andy, id: c.id, reason: '再按一次' });
+  assert.deepEqual([twice.s, twice.j.error, twice.j.lastBy], [409, 'bad_status', 'andy@example.com'], '已退回再退回：409 並回上一個動手的人');
+  const cf = await pj(hub, '/v1/admin/pay/confirm', { t: andy, id: c.id, received: 299 });
+  assert.deepEqual([cf.s, cf.j.error, cf.j.statusName], [409, 'bad_status', '已退回'], '已退回又確認入帳：擋');
+  assert.equal(ord(db, c.id).applied, 0);
+  const c2 = await bankPaid(hub, bob, andy, 'plus', 'year', '22222');
+  assert.equal((await pj(hub, '/v1/admin/pay/reject', { t: andy, id: c2.id, reason: 'x' })).j.error, 'applied', '開通後不能退回');
+  assert.equal((await pj(hub, '/v1/admin/pay/amount', { t: andy, id: c2.id, amount: 1 })).s, 409, '開通後不能改金額');
+  await pj(hub, '/v1/admin/pay/refund', { t: andy, id: c2.id, rid: 'r-sm00000001', amount: 2990, last5: '11111', date: '2026-10-11' });
+  const again = await pj(hub, '/v1/admin/pay/refund', { t: andy, id: c2.id, rid: 'r-sm00000002', amount: 1, last5: '11111', date: '2026-10-11' });
+  assert.deepEqual([again.s, again.j.error], [409, 'already_refunded'], '已退款又要求退款');
+  assert.equal((await pj(hub, '/v1/admin/pay/confirm', { t: andy, id: c2.id, received: 2990 })).j.dup, true, '已開通過（含已退款）重按確認＝不重複開通');
+});
+
+test('措施 3 兩個管理者同時處理：expect 跟伺服器不同 → 409 stale；申請重複標記 → 409 same_status；另一位已退款結案的申請不能再退', async () => {
+  const { hub, db, bob, andy } = await setup({ ADMIN_EMAILS: 'andy@example.com,amy@example.com' });
+  const amy = await login(hub, 'amy@example.com');
+  await bankOn(hub, andy);
+  const c = (await pj(hub, '/v1/pay/bank/create', { t: bob, plan: 'plus', period: 'month' })).j;
+  await pj(hub, '/v1/pay/bank/report', { t: bob, name: '鮑伯', id: c.id, last5: '11111', date: '2026-10-11' });
+  assert.equal((await pj(hub, '/v1/admin/pay/confirm', { t: andy, id: c.id, received: 299, expect: 'review' })).s, 200);
+  const late = await pj(hub, '/v1/admin/pay/reject', { t: amy, id: c.id, reason: '晚一步', expect: 'review' });
+  assert.equal(late.s, 409);
+  assert.equal((await pj(hub, '/v1/admin/pay/confirm', { t: amy, id: c.id, received: 299, expect: 'review' })).j.lastBy, 'andy@example.com', '晚到的確認回「誰開通的」');
+  clock += 60000;
+  const rq = (await pj(hub, '/v1/subscribe/change', { t: bob, type: 'refund' })).j;
+  assert.equal((await pj(hub, '/v1/admin/pay/refund', { t: andy, id: c.id, rid: 'r-two0000001', amount: 299, last5: '11111', date: '2026-10-11', req: rq.id })).s, 200);
+  const dup = await pj(hub, '/v1/admin/pay/refund', { t: amy, id: c.id, rid: 'r-two0000002', amount: 1, last5: '11111', date: '2026-10-11', req: rq.id });
+  assert.deepEqual([dup.s, dup.j.error, dup.j.closedBy], [409, 'req_done', 'andy@example.com']);
+  const ss = await pj(hub, '/v1/admin/feedback/set', { t: amy, kind: 'request', id: rq.id, status: 'done' });
+  assert.deepEqual([ss.s, ss.j.error], [409, 'same_status']);
+  assert.equal(db.prepare("SELECT COUNT(*) AS c FROM refunds WHERE status = 'done'").get().c, 1, '錢只退一次');
+});
+
+test('措施 2＋4 退款完成會把同一人所有待處理退款申請結案；稽核清單記 誰／何時／做什麼／前後狀態', async () => {
+  const { hub, bob, andy } = await setup();
+  await bankOn(hub, andy);
+  const c = await bankPaid(hub, bob, andy);
+  clock += 60000;
+  await pj(hub, '/v1/subscribe/change', { t: bob, type: 'refund' });
+  /* 沒走「已退款」鈕，直接在訂單分頁按退款 → 申請一樣結案 */
+  await pj(hub, '/v1/admin/pay/refund', { t: andy, id: c.id, rid: 'r-aud0000001', amount: 299, last5: '11111', date: '2026-10-11' });
+  const l = (await pj(hub, '/v1/admin/pay/list', { t: andy })).j;
+  assert.equal(l.reqs[0].status, 'done');
+  assert.match(l.reqs[0].closeReason, /已退款 NT\$ 299/);
+  const k = (kind) => l.audit.find((a) => a.kind === kind);
+  assert.deepEqual([k('confirm').by, k('confirm').from, k('confirm').to], ['andy@example.com', 'review', 'active']);
+  assert.deepEqual([k('refund').by, k('refund').from, k('refund').to], ['andy@example.com', 'active', 'refunded']);
+  assert.deepEqual([k('req_close').from, k('req_close').to], ['new', 'done']);
+  assert.ok(k('bank_put') && k('bank_put').by === 'andy@example.com' && !JSON.stringify(k('bank_put')).includes('000011112222'), '收款帳號設定也留紀錄（不留完整帳號）');
+  assert.ok(l.audit.every((a) => a.at && a.kind), '每筆都有時間');
+});
+
+test('措施 5 通知：申請送出 → 管理者鈴鐺；申請被自動結案／管理者處理 → 會員鈴鐺各一則', async () => {
+  const { hub, db, bob, andy } = await setup();
+  await bankOn(hub, andy);
+  await bankPaid(hub, bob, andy);
+  clock += 60000;
+  const rq = (await pj(hub, '/v1/subscribe/change', { t: bob, type: 'cancel', note: '太貴' })).j;
+  const adm = db.prepare("SELECT * FROM user_notices WHERE email = 'andy@example.com' AND title LIKE '新申請：%'").all();
+  assert.equal(adm.length, 1, '管理者鈴鐺');
+  assert.match(adm[0].body, /太貴/);
+  assert.ok(db.prepare("SELECT 1 FROM mail_out WHERE subject LIKE '%取消訂閱申請%'").get(), '站方信件進佇列');
+  await pj(hub, '/v1/admin/feedback/set', { t: andy, kind: 'request', id: rq.id, status: 'done' });
+  const mine = db.prepare("SELECT title FROM user_notices WHERE email = 'bob@example.com' AND title LIKE '%申請已%'").all().map((r) => r.title);
+  assert.deepEqual(mine, ['你的取消訂閱申請已處理']);
+  await pj(hub, '/v1/admin/feedback/set', { t: andy, kind: 'request', id: rq.id, status: 'new' });
+  clock += 60000;
+  const c2 = (await pj(hub, '/v1/pay/bank/create', { t: bob, plan: 'pro', period: 'year' })).j;
+  await pj(hub, '/v1/pay/bank/report', { t: bob, name: '鮑伯', id: c2.id, last5: '22222', date: '2026-10-11' });
+  assert.ok(db.prepare("SELECT 1 FROM user_notices WHERE email = 'bob@example.com' AND title = '你的取消訂閱申請已結案'").get(), '被新訂單結案 → 會員收到結案通知');
 });
