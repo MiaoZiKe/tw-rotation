@@ -72,3 +72,19 @@ def test_empty_sources_table_and_template_placeholder_flagged(tmp_path, monkeypa
     assert any("沒有任何一筆來源" in e for e in errs)
     (folder / "brief.md").write_text("\n".join(f"## {s}\n<填寫>" for s in sh.BRIEF_SECTIONS), encoding="utf-8")
     assert any("<填寫>" in e for e in sh.check(folder))
+
+
+def test_from_article_builds_folder_and_blocks_until_filled(tmp_path, monkeypatch):
+    _setup(tmp_path, monkeypatch)
+    post = {"title": "測試文章", "subtitle": "副標", "date": "2026-10-16", "summary": "摘要", "confidence": "高",
+            "blocks": [{"t": "h", "text": "三句話重點"}, {"t": "ul", "items": ["甲", "乙", "丙"]},
+                       {"t": "kpi", "items": [{"label": "營收", "value": "1", "unit": "億", "delta": "+1%", "note": "n"}]}],
+            "site_links": [{"label": "頁", "hash": "#overview"}],
+            "sources": [{"title": "T", "publisher": "P", "date": "2026-10-15", "url": "https://example.com/a"}]}
+    pp = tmp_path / "post.json"
+    pp.write_text(json.dumps(post, ensure_ascii=False), encoding="utf-8")
+    assert sh.main(["from-article", str(pp), "demo"]) == 0
+    folder = tmp_path / "docs" / "social_handoff" / "2026-10-16_demo"
+    assert "| 1 | T | P | 2026-10-15 | https://example.com/a |" in (folder / "sources.md").read_text(encoding="utf-8")
+    assert "1. 甲" in (folder / "brief.md").read_text(encoding="utf-8")
+    assert any("<填寫>" in e for e in sh.check(folder))

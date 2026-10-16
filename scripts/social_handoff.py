@@ -3,6 +3,7 @@
 
 用法：
   python scripts/social_handoff.py new 2026-10-16 tsmc-q3-call "台積電法說會"
+  python scripts/social_handoff.py from-article site/articles/posts/2026-10-14-know-cowos.json cowos
   python scripts/social_handoff.py check docs/social_handoff/2026-10-16_tsmc-q3-call
   python scripts/social_handoff.py ready docs/social_handoff/2026-10-16_tsmc-q3-call
 
@@ -135,6 +136,66 @@ def cmd_new(a: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_from_article(a: argparse.Namespace) -> int:
+    """從站上已發佈文章（site/articles/posts/*.json）產生交接包骨架：sources.md 與 manifest 全自動，
+    brief.md 帶入標題、摘要、三句話重點、KPI 與站內連結，其餘段落留 <填寫> 給 Claude 查核後補，補完才能 ready。"""
+    post_path = Path(a.post)
+    post = json.loads(post_path.read_text(encoding="utf-8"))
+    date = post.get("date") or datetime.now(TAIPEI).strftime("%Y-%m-%d")
+    folder = HANDOFF / f"{date}_{a.slug}"
+    if folder.exists():
+        print(f"已存在：{folder}", file=sys.stderr)
+        return 1
+    (folder / "assets").mkdir(parents=True)
+    (folder / "assets" / ".gitkeep").write_text("", encoding="utf-8")
+    rel = folder.relative_to(ROOT).as_posix()
+    # sources.md：編號從 1 起算，與 brief 內引用一致
+    rows = ["# 來源表｜" + post["title"], "",
+            "> 來源取自站上已發佈文章，本交接未重新開啟各連結原文；「相關原文摘要」欄請 Claude 補。", "",
+            "| # | 標題 | 發布者 | 發布日期 | 連結 | 與本篇相關的原文摘要 |", "|---|---|---|---|---|---|"]
+    for i, s in enumerate(post.get("sources", []), 1):
+        rows.append(f"| {i} | {s.get('title','')} | {s.get('publisher','')} | {s.get('date') or '未標'} | {s.get('url','')} | <填寫> |")
+    (folder / "sources.md").write_text("\n".join(rows) + "\n", encoding="utf-8")
+    # brief.md
+    blocks = post.get("blocks", [])
+    key: list[str] = []
+    for i, b in enumerate(blocks):
+        if b.get("t") == "h" and "重點" in b.get("text", "") and i + 1 < len(blocks) and blocks[i + 1].get("t") == "ul":
+            key = blocks[i + 1].get("items", [])
+            break
+    kpis = [k for b in blocks if b.get("t") == "kpi" for k in b.get("items", [])]
+    kpi_rows = "\n".join(f"| {k.get('label','')} | {k.get('value','')} | {k.get('unit','')} | {k.get('delta','')} | {k.get('note','')} | <填寫> |" for k in kpis) or "| <填寫> | | | | | |"
+    links = "\n".join(f"- {l.get('label','')}：#{l.get('hash','').lstrip('#')}" for l in post.get("site_links", []))
+    brief = [f"# 交接單｜{post['title']}", "",
+             f"- job_id：`{date}_{a.slug}`｜母文章：`{post_path.as_posix()}`（母文章信心度：{post.get('confidence','')}）", "",
+             "## 主題", post.get("title", ""), post.get("subtitle", ""), "",
+             "## 資料截止", f"<填寫>（母文章日期 {date}）", "",
+             "## 一句話核心觀點", post.get("summary", ""), "",
+             "## 目標讀者", "<填寫>", "",
+             "## 必須保留的重點", "\n".join(f"{i}. {t}" for i, t in enumerate(key, 1)) or "<填寫>", "",
+             "## 關鍵數據", "| 項目 | 數值 | 單位 | 期間／變化 | 備註 | 來源編號（sources.md 第一欄） |", "|---|---|---|---|---|---|", kpi_rows, "",
+             "## 已確認事實", "<填寫>", "", "## 作者分析", "<填寫>", "", "## 財測／預估", "<填寫>", "",
+             "## 未確認資訊", "<填寫>", "", "## 專有名詞", "<填寫>", "", "## 供應鏈關係", "<填寫>", "",
+             "## 建議討論問題", "<填寫>", "", "## 內容限制",
+             "不點名個股推薦、不買賣建議；財測標「財測」、作者推算標「本站整理」；附免責「整理公開資訊，非投顧，投資請自行判斷。」", "",
+             "## 建議視覺主題", "<填寫>（依視覺規範 v1.0，IG 十頁 1080×1350）", "", "## 比比如何引導", "<填寫>", "",
+             "## 站內連結", links or "<填寫>", ""]
+    (folder / "brief.md").write_text("\n".join(brief), encoding="utf-8")
+    ts = now_iso()
+    manifest = {
+        "schema_version": SCHEMA_VERSION, "job_id": f"{date}_{a.slug}", "revision": 1, "status": "draft",
+        "topic": post["title"], "data_cutoff": "", "created_at": ts, "updated_at": ts,
+        "brief_path": f"{rel}/brief.md", "sources_path": f"{rel}/sources.md",
+        "style_guide_path": "docs/social_handoff/style/LIGULIGU_IG_Threads_Style_Guide.md",
+        "style_guide_status": "present" if (HANDOFF / "style" / "LIGULIGU_IG_Threads_Style_Guide.md").exists() else "missing",
+        "requested_outputs": DEFAULT_OUTPUTS, "asset_references": [], "parent_article": post_path.as_posix(),
+        "blocking_items": ["brief.md 與 sources.md 仍有 <填寫>，需 Claude 查核後補齊"],
+    }
+    (folder / "manifest.json").write_text(json.dumps(manifest, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    print(f"已建立 {rel}（請補完 <填寫> 後執行 check／ready）")
+    return 0
+
+
 def cmd_check(a: argparse.Namespace) -> int:
     errs = check(Path(a.folder).resolve())
     if errs:
@@ -177,6 +238,10 @@ def main(argv: list[str] | None = None) -> int:
     n.add_argument("slug")
     n.add_argument("topic")
     n.set_defaults(fn=cmd_new)
+    f = sub.add_parser("from-article")
+    f.add_argument("post", help="site/articles/posts/<id>.json")
+    f.add_argument("slug")
+    f.set_defaults(fn=cmd_from_article)
     c = sub.add_parser("check")
     c.add_argument("folder")
     c.set_defaults(fn=cmd_check)
