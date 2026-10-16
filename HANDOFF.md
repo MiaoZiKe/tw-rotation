@@ -1,5 +1,11 @@
 # HANDOFF.md — 目前進度（接手先讀這份）
 
+## 2026-10-17 02:0x 精選文章 #3「CPO 共同封裝光學是什麼？」寫好但卡在上架鑰匙
+- 全文已寫好、驗過（內文 882 字、剖析圖 8 部位、時間軸、對照表；來源與數字出處在子 agent 回報），檔案只在暫存區：/tmp/claude-0/-home-user-tw-rotation/09911d5e-cbec-5eb0-a188-19f18707f268/scratchpad/art_cpo/2026-10-17-know-cpo.json（⚠ 容器回收就沒了；10-16 防白嫖規則：全文不得進 repo）。
+- 卡在：Claude 環境沒有 ARTICLE_PUT_KEY／ACCOUNT_API_URL、網路白名單沒有 tw-account.kcq01010909.workers.dev（curl 403）。照手冊第 5 點把 #3 標 failed。Andy 設好後：`python scripts/article_publish.py <上面那支>` → 只推 index.json → deploy_wait → 手動標 #3 done。
+- 既有紅：精選文章插圖1016 在 main 上就紅（防白嫖後訪客看不到新文章，插圖段要加登入或 TW_PREVIEW）。
+- #4 短影片（k_cpo）還在佇列，下一個整點排程處理。
+
 ## 2026-10-17 00:5x 上架前（Andy 10-16 23:5x：「我準備明天上架了 目前綠界那頁先反色並註明等審核 其他事項幫我確認」）
 - ✅ 綠界反灰（main c160b76b，台北 00:37 部署）：checkout.js `ECPAY_OPEN=false` → 綠界分頁反灰＋「綠界審核中・暫停使用」、一律開銀行轉帳、不顯示測試模式標籤；**綠界審核通過改 true**。驗收段用 window.TW_ECPAY_OPEN 打開繼續測綠界（結帳與付款1011 新增審核中斷言）。
 - 🔄 法律同意橫幅打開（legal-launch-1016 合併，main 742b7b8c）：legal_config enabled=true、effective_date 2026-10-17；修手機橫幅下方多空 114px（--mnav-h 沒人定義、預設 102px → 改貼底）、法律頁改內嵌不蓋重點一覽、導覽進行中先藏橫幅。新段 法律上架1016。這批驗了：法律上架1016、退款政策1009、結帳與付款1011、桌機守門1008（三組並行時 Chromium 當掉，單獨重跑 0）。「同意條款與法律頁」4 條紅為 main 既有。
