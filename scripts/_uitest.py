@@ -72259,8 +72259,16 @@ def t_art_tabs_1016(b, base):
         ok(f"{T}：手機 {vp[0]}：每列與表頭改成「一顆下拉選類型（IG 貼文／影片）＋一顆送出」，兩顆並排的按鈕不出現；觸控高度 ≥ 32（{mm['sh']}／{mm['bh']}）、字 ≥ 11、頁面沒有橫向捲軸",
            mm["two"] == 0 and mm["sel"] and mm["hsel"] and mm["hbtn"] and mm["sh"] >= 32 and mm["bh"] >= 32 and mm["minfs"] >= 11 and mm["sx"] <= 0, mm)
         if shots and vp[0] == 390:
-            mp.locator("#artAdmList").scroll_into_view_if_needed(); mp.wait_for_timeout(200)
-            mp.locator("#artAdmList").screenshot(path=str(shots / "mob-gpt-1-column.png"))
+            mp.locator(f"{MR} .gptc").scroll_into_view_if_needed(); mp.wait_for_timeout(300)
+            mp.screenshot(path=str(shots / "mob-gpt-1-column.png"))
+        if vp[0] == 390:
+            mp.locator(f"{MR} .gpm select").scroll_into_view_if_needed(); mp.wait_for_timeout(200)
+            vis = mp.evaluate("""(sel) => { const e = document.querySelector(sel + ' .gpm select'), w = document.querySelector('#artAdmList .tbw'), r = e.getBoundingClientRect(), t = w.getBoundingClientRect();
+                const top = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
+                return { r: [Math.round(r.left), Math.round(r.top), Math.round(r.right), Math.round(r.bottom)], t: [Math.round(t.left), Math.round(t.top), Math.round(t.right), Math.round(t.bottom)], top: top ? top.tagName + '.' + top.className : null, vh: innerHeight }; }""", MR)
+            if shots:
+                mp.screenshot(path=str(shots / "mob-gpt-3-select.png"))
+            ok(f"{T}：手機 {vp[0]}：捲到「傳給 GPT」欄時，下拉選單真的在表格可視範圍內、沒有被別的東西蓋住", vis["r"][0] >= vis["t"][0] - 1 and vis["r"][2] <= vis["t"][2] + 1 and vis["top"] and vis["top"].startswith("SELECT"), vis)
         mp.locator(f"{MR} .gpm select").select_option("video"); mp.wait_for_timeout(150)
         with mc.expect_page() as pi:
             mp.locator(f"{MR} .gpm button").tap()
@@ -72274,7 +72282,8 @@ def t_art_tabs_1016(b, base):
         mp.locator(f"#artAdmBody input[data-gpt-pick='{others[0]}']").check(); mp.wait_for_timeout(100)
         mp.evaluate("() => { const w = document.querySelector('#artAdmList .tbw'); w.scrollTop = 0; w.scrollLeft = w.scrollWidth; }")
         if shots and vp[0] == 390:
-            mp.locator("#artAdmList").screenshot(path=str(shots / "mob-gpt-2-checked.png"))
+            mp.locator(f"{MR} .gptc").scroll_into_view_if_needed(); mp.wait_for_timeout(300)
+            mp.screenshot(path=str(shots / "mob-gpt-2-checked.png"))
         with mc.expect_page() as pi:
             mp.locator("#artGptSendM").tap()
             gp_ = None

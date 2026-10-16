@@ -12,6 +12,25 @@ Andy 10-16：「claude 指負責產出文章，內容……下方是我有功能
    - 有 `queued` → 一次處理一筆（先文章後影片、編號小的先），步驟見下。
 5. 文章推上 main 後，`article-jobs.yml`（`site/articles/index.json` 有變就跑）看到 index 裡有同一個 `topic` → 自動標 `done`。
 
+## 自動排隊：產貼文頻率設定（2026-10-16，Andy：「先都不要填，它為可動開關……開啟後，會依據我設定的週期、時段進行生產對應類別文章」）
+
+管理區 `#admin/articles` →「文章主題」最下面「產貼文頻率設定」。設定存在會員 Worker（`article_schedule` 表，只有管理者能存），
+`article-jobs.yml` 每小時同步成 **`data/_state/article_schedule.json`**：
+
+```json
+{ "enabled": true, "slots": {"1": ["09:50", "20:50"], "5": ["14:50"]}, "cats": {"news": 1, "intro": 0, "know": 2}, "updated": "2026-10-16 18:00" }
+```
+
+- `slots`：key＝星期（1 週一…7 週日，**台北時間**），value＝那天要跑的輪次（現有三輪 09:50／14:50／20:50；日後增加輪次＝改 Worker `SCH_TIMES` 與 Claude 排程時間）。
+- `cats`：每一輪每個類別要產幾篇（0～3）；news＝比比快訊、intro＝比比產業鏈、know＝比比知識。
+- **Claude 排程每輪醒來時**（`git pull` 後，先讀 `article_jobs.json` 再讀這支）：
+  1. 檔案不存在、`enabled` 不是 `true` → **一律不排**（Andy 關著就是關著）。
+  2. 取台北現在的星期與輪次（09:50／14:50／20:50 其中之一）；`slots[星期]` 不含這一輪 → 不排。
+  3. 對 `cats` 裡每個大於 0 的類別，從 `site/articles/topics.json` 挑該類別**還沒上架、也還沒在佇列**的最高分主題，依篇數各挑 N 個，用 `scripts/article_jobs.py` 同一套 Worker 機器路由排進佇列（`kind=article`），再照下面流程處理。**同一輪同一個主題不重複排**。
+  4. 候選主題不夠就少排，不要硬湊；在回報裡寫「該類別候選不足」。
+- 關掉開關 → 下一次同步後 `enabled=false`，之後的輪次不再排；**已經在佇列的項目照常處理**（要停請到「產出進度」按取消）。
+- 設定生效最久約：每小時同步（:41）＋排程到點，頁面上也寫明這一點。
+
 ## 標狀態
 
 用 GitHub Actions 手動觸發 `article-jobs.yml`（`workflow_dispatch`）：
@@ -52,6 +71,13 @@ Andy 10-16：「claude 指負責產出文章，內容……下方是我有功能
 
 - 規格與不重疊規矩：`docs/marketing/video_1010/layout_rules.md`（回報要有「重疊檢查：程式 N 幀 0 筆；人工 M 格 0 筆」）。
 - 成品放 `docs/marketing/videos/<YYYY-MM-DD>-<主題 id>/`（直式 1080×1920 MP4＋封面），標 `done`（result＝資料夾路徑）。
+
+## 傳給 GPT（IG 貼文／影片；純前端，不經佇列）
+
+已上架文章每列有「傳給 GPT・IG 貼文」「傳給 GPT・影片」（手機＝下拉選類型＋一顆送出）。按下去＝**Andy 決定這篇要交接**：
+前端（`site/gpthandoff.js`）讀該篇文章 JSON，組成 Markdown，開預填的 GitHub 新 Issue（label `social-handoff` 加 `gpt-ig-post` 或 `gpt-video`，
+標題 `[社群交接] 日期｜IG 貼文｜文章標題`／`…｜影片｜…`），Andy 在 GitHub 按 Submit new issue 才算送出。不排隊、不碰 Worker、Claude 排程不處理這個。
+內容只放文章已公開的部分；網址超過 8 KB 會自動省略站內連結／關鍵數據／來源，完整內容用頁面上的「複製完整交接內容」。
 
 ## 安全
 

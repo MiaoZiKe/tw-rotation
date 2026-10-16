@@ -1211,7 +1211,7 @@ ${gs.length ? `<section><h5>熱門族群</h5><div class="gps">${gs.map((g) => `<
   <div class="gpm gpbar" id="artGptBar"><span class="gpbl">傳給 GPT：</span><select id="artGptTypeH" aria-label="傳給 GPT 的類型"><option value="ig">IG 貼文</option><option value="video">影片</option></select><button type="button" id="artGptSendM" disabled>傳送勾選的文章</button></div>
   <p class="tpmsg" id="artGptMsg" role="status" hidden></p>
   <div class="gpp" id="artGptPanel" hidden></div>
-  <div class="tbw"><table><colgroup><col style="width:120px"><col><col style="width:110px"><col style="width:70px"><col style="width:14%"><col style="width:14%"><col style="width:440px"></colgroup>
+  <div class="tbw"><table><colgroup><col style="width:120px"><col><col style="width:110px"><col style="width:70px"><col style="width:14%"><col style="width:14%"><col style="width:540px"></colgroup>
   <thead><tr><th class="c">類別</th><th>標題</th><th class="c">日期</th><th class="r" title="會員 Worker 統計的點閱次數；讀不到寫「—」">點閱</th><th>相關族群</th><th>來源主題</th><th class="gpth">傳給 GPT <span class="gpd"><button type="button" id="artGptSendIg" data-gtype="ig" disabled title="先在每列勾選文章">傳送勾選・IG 貼文</button><button type="button" id="artGptSendVid" data-gtype="video" disabled title="先在每列勾選文章">傳送勾選・影片</button></span></th></tr></thead><tbody id="artAdmBody"></tbody></table></div>
 </div>
 <div class="card artadm" id="artAdmTopics">
