@@ -2862,8 +2862,10 @@
     const QC = window.TwQCard, T = evTotalT(), n = T ? T.limit('events.total') : 5;
     if (!QC) return `<div class="empty">訪客預覽已用完，免費註冊後即可繼續查看今日事件。<br><a href="#pricing/plan/free">免費註冊</a></div>`;
     if (QC.css) QC.css();
-    return `<div class="evlock" id="${id}" style="padding:12px 8px 16px">${QC.html({ kind: 'lock', kick: '訪客預覽・今日事件', title: `今日事件的訪客預覽 ${n} 次已用完`,
-      sub: `訪客累計可以打開今日事件 ${n} 次（不是每日，不會重置）。免費註冊成為會員，就能繼續查看今日事件。`, lh: '免費註冊還能使用',
+    /* 同一個網路的訪客總量用完（伺服器 why:'ip'）：這個人自己未必用過 5 次 → 換一句，不指責任何人，直接給免費註冊 */
+    const capped = !!T && T.capped && T.capped('events.total');
+    return `<div class="evlock" id="${id}" style="padding:12px 8px 16px">${QC.html({ kind: 'lock', kick: '訪客預覽・今日事件', title: capped ? '這個網路的訪客預覽次數已用完' : `今日事件的訪客預覽 ${n} 次已用完`,
+      sub: capped ? '同一個網路的訪客預覽有總量上限（本週已用完）。免費註冊成為會員，就能繼續查看今日事件。' : `訪客累計可以打開今日事件 ${n} 次（不是每日，不會重置）。免費註冊成為會員，就能繼續查看今日事件。`, lh: '免費註冊還能使用',
       items: ['今日事件的新聞、法說與券商目標價', '自選清單（登入後跨裝置同步）', '依註冊會員方案額度繼續使用'],
       btn: '免費註冊', href: '#pricing/plan/free', btnCls: 'qactgo' })}</div>`;
   };
