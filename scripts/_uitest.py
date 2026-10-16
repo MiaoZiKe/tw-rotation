@@ -31554,9 +31554,10 @@ def _desk_reverify(T, b, base, kind, routes, measure):
 
 # ★ 2026-10-16 手機卡片外框1016（Andy iPhone 實機：「所有內容都需要在背景路上他適合大小的方框」）
 #   手機每一塊內容（圖、表、清單）的最近容器要有「邊框或底色」而且圓角 ≥ 8；不准橫向捲動、頁高不超過準則（≤3 屏）。
-#   分批上線：CARD1016_ROUTES 逐批擴充（批 1 = 總覽、資金流向、熱力圖）。每個寬度都用觸控點頁內分頁再量一次。
+#   分批上線：CARD1016_ROUTES 逐批擴充（批 1 = 總覽、資金流向、熱力圖；批 2 = 產業地圖、題材、市場明細、週期統計、選股）。每個寬度都用觸控點頁內分頁再量一次。
 CARD1016_ROUTES = {
     "總覽": "#overview", "資金流向": "#flow", "資金分流樹": "#flow/sankey", "族群法人": "#flow/inst", "熱力圖": "#heatmap",
+    "產業地圖": "#industry", "產業鏈": "#industry/semiconductor", "題材": "#themes", "市場明細": "#market", "週期統計": "#season", "選股": "#explore",
 }
 CARD1016_JS = r"""()=>{
  const v=document.querySelector('main .view.on')||document.querySelector('main');
@@ -31604,15 +31605,20 @@ def t_m4_card_frame_1016(b, base):
                 def meas():
                     r = m.evaluate(CARD1016_JS)
                     tops = m.evaluate("""() => { const v = document.querySelector('main .view.on'); if (!v) return [];
-                      return [...v.querySelectorAll('.card')].filter(c => !c.parentElement.closest('.card') && c.getClientRects().length && c.getBoundingClientRect().height > 60)
+                      return [...v.querySelectorAll('.card,.sl-card')].filter(c => !c.parentElement.closest('.card,.sl-card') && c.getClientRects().length && c.getBoundingClientRect().height > 60)
                         .map(c => { const cs = getComputedStyle(c); return { id: c.id || c.className.split(' ')[0], bw: parseFloat(cs.borderTopWidth), rad: parseFloat(cs.borderTopLeftRadius),
-                          pad: parseFloat(cs.paddingLeft), right: Math.round(c.getBoundingClientRect().right) }; }); }""")
+                          pad: parseFloat(cs.paddingLeft), right: Math.round(c.getBoundingClientRect().right),
+                          // 被卡片左右邊切到的子元素數（不含自己會橫捲的容器裡面的東西）
+                          clip: [...c.querySelectorAll('*')].filter(e => { const r = e.getBoundingClientRect(), cr = c.getBoundingClientRect();
+                            if (!r.width || !r.height || getComputedStyle(e).position === 'fixed') return false;
+                            for (let p = e.parentElement; p && p !== c; p = p.parentElement) { const o = getComputedStyle(p).overflowX; if (o === 'auto' || o === 'scroll' || o === 'hidden') return false; }
+                            return r.left < cr.left - 1 || r.right > cr.right + 1; }).length }; }); }""")
                     return r, tops
                 r, tops = meas()
                 ok(f"{T} {W}px「{nm}」：圖／表／清單的最近容器都有框或底色且圓角 ≥ 8（沒框的 {len(r['bare'])} 個）",
-                   len(r["bare"]) == 0 and r["n"] >= 1, r["bare"][:4])
-                ok(f"{T} {W}px「{nm}」：每張最外層卡片有 1px 邊框、圓角 ≥ 8、內距 10～12px、沒超出螢幕",
-                   all(t["bw"] >= 1 and t["rad"] >= 8 and 10 <= t["pad"] <= 12 and t["right"] <= W for t in tops), tops[:4])
+                   len(r["bare"]) == 0 and (r["n"] >= 1 or len(tops) >= 1), r["bare"][:4])
+                ok(f"{T} {W}px「{nm}」：每張最外層卡片有 1px 邊框、圓角 ≥ 8、內距 10～12px、沒超出螢幕、裡面沒有東西被卡片邊緣切到",
+                   all(t["bw"] >= 1 and t["rad"] >= 8 and 10 <= t["pad"] <= 12 and t["right"] <= W and t["clip"] == 0 for t in tops), tops[:4])
                 ok(f"{T} {W}px「{nm}」：沒有橫向捲動、頁高 ≤ 3 屏",
                    r["sw"] <= r["cw"] and r["h"] <= 3 * H + 120, {"sw": r["sw"], "cw": r["cw"], "h": r["h"]})
                 # 用手指點頁內分頁（有的話），每點一下再量一次
