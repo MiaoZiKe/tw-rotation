@@ -88,6 +88,7 @@
 #v-subadm .spk .ch.out{max-width:170px;overflow:hidden;text-overflow:ellipsis;display:inline-block;line-height:20px}
 #v-subadm .spk .kd2,#v-subadm .spk .id2{display:none}
 #v-subadm .spk .how-m{display:none}
+#v-subadm .spk .fm,#v-subadm .spk .sh{display:none}
 #v-subadm .spk .chev{width:28px;min-height:28px!important;padding:0!important;border:0!important;background:none!important;color:var(--ink-3);transition:transform .15s}
 #v-subadm .spk .it.open .chev{transform:rotate(180deg)}
 #v-subadm .spk .det{border-top:1px solid var(--line);padding:10px 14px 12px 48px;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px 24px;font-size:13px;line-height:1.6;color:var(--ink-2)}
@@ -134,16 +135,22 @@
 @media (max-width:640px){
   /* 手機（Andy 準則 1、3）：390 一屏要看得到 6 題＋送出列 → 只留「勾選、題目（最多 2 行）、類型／編號／圖表／查證／⚠」，
      內文三點、預估產出、怎麼用長說明都收到點開的細節裡；題目允許 2 行（手機沒有滑過提示，一行截斷會看不出是哪題） */
-  #v-subadm .spk .row{grid-template-columns:40px minmax(0,1fr) 28px;align-items:start;min-height:0;padding:6px 6px 6px 0;gap:0 4px}
+  #v-subadm .spk .row{grid-template-columns:40px minmax(0,1fr) 40px;align-items:start;min-height:0;padding:4px 4px 4px 0;gap:0 4px}
   #v-subadm .spk .cb{grid-row:1/3;margin-top:-2px}
   #v-subadm .spk .mn{grid-column:2;grid-row:1;min-height:0;padding:0}
   #v-subadm .spk .mn1 .id,#v-subadm .spk .mn1 .kd{display:none}
-  #v-subadm .spk .tt{white-space:normal;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;line-height:1.35;font-size:14px}
+  #v-subadm .spk .tt{white-space:normal;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;line-height:1.3;font-size:14px}
   #v-subadm .spk .mt{grid-column:2;grid-row:2;flex-wrap:wrap;gap:4px;margin-top:4px}
-  #v-subadm .spk .kd2,#v-subadm .spk .id2{display:inline-flex}
+  #v-subadm .spk .kd2{display:inline-flex;padding:0 6px}
+  #v-subadm .spk .fd,#v-subadm .spk .lg{display:none}
+  #v-subadm .spk .fm,#v-subadm .spk .sh{display:inline}
+  #v-subadm .spk .ch{padding:0 6px}
+  #v-subadm .spk .tools{flex-wrap:nowrap}
+  #v-subadm .spk .tools .seg{flex:1 1 0;min-width:0}
+  #v-subadm .spk .tools>button{padding:0 8px;flex:none}
   #v-subadm .spk .row .chev{grid-column:3;grid-row:1;align-self:start}
   #v-subadm .spk .wc,#v-subadm .spk .ch.out,#v-subadm .spk .how-d,#v-subadm .spk .cnt,#v-subadm .spk #spkEx,#v-subadm .spk #spkDt{display:none}
-  #v-subadm .spk .how-m{display:block}
+  #v-subadm .spk .how-m{display:block;margin:8px 0 0}
   #v-subadm .spk .det{padding:10px 12px 12px}
   #v-subadm .spk .bar{padding:8px 10px;margin-top:8px}
   #v-subadm .spk .tools{margin-bottom:6px}
@@ -254,7 +261,7 @@
     const f = i.flags.length;
     return `<span class="ch ${i.chart.has ? '' : 'no'}" title="${esc(i.chart.note)}">圖表：${i.chart.has ? '有' : '無'}</span>`
       + `<span class="ch ${i.verified.ok ? '' : 'wait'}" title="${esc(i.verified.who)}">${esc(i.verified.status)}</span>`
-      + (f ? `<span class="ch flag" title="${esc(i.flags.join('、'))}">⚠ ${esc(i.flags.length > 1 ? i.flags.length + ' 項' : i.flags[0])}</span>` : '')
+      + (f ? `<span class="ch flag" title="${esc(i.flags.join('、'))}">⚠ <span class="fd">${esc(i.flags.length > 1 ? i.flags.length + ' 項' : i.flags[0])}</span><span class="fm">${f}</span></span>` : '')
       + `<span class="ch out" title="${esc(i.output)}">${esc(i.output)}</span>`;
   }
   function itemHtml(i) {
@@ -293,9 +300,10 @@
     const tabs = [['', '全部']].concat(KINDS.map((k) => [k, k])).filter((t) => !t[0] || cnt(t[0]));
     return `${m.example ? '<div class="warn" id="spkEx">這是範例資料（menu_latest.json 標了 example），不是本部今天的真實清單。</div>' : ''}${m.date && m.date !== tpeDay() ? `<div class="warn" id="spkStale">清單日期是 ${esc(m.date)}，不是今天（${tpeDay()}）：本部還沒更新今天的清單。</div>` : ''}
 <div class="tools"><div class="seg" id="spkKinds" role="tablist" aria-label="題目類型">${tabs.map(([k, n]) => `<button type="button" role="tab" data-k="${esc(k)}" class="${S.kind === k ? 'on' : ''}" aria-selected="${S.kind === k}">${esc(n)}<em>${cnt(k)}</em></button>`).join('')}</div>
-  <button type="button" id="spkAll">全選這一頁</button><button type="button" id="spkNone">全部取消</button>
+  <button type="button" id="spkAll"><span class="lg">全選這一頁</span><span class="sh">全選</span></button><button type="button" id="spkNone"><span class="lg">全部取消</span><span class="sh">取消</span></button>
   <span class="cnt" id="spkCnt"></span></div>
 <div class="list" id="spkList">${listHtml()}</div>
+<p class="muted how-m"><b>怎麼用：</b>勾題目 → 按「送出選擇」；沒勾的不做。想改時間／類型／項數，切「產主題設定」。</p>
 <div class="bar" id="spkBar"><span class="n">已勾 <b id="spkN">0</b> 項</span><span class="sp"></span>
   <a class="btn pri" id="spkSend" target="_blank" rel="noopener noreferrer" role="button">送出選擇（開 GitHub）</a>
   <button type="button" id="spkCopy" title="複製成命令列（gh issue create）；沒有 gh 時也可以直接對 CEO 說「勾 編號」">複製指令</button></div>
@@ -423,7 +431,6 @@
     const m = S.menu;
     v.innerHTML = `<div class="card spk" id="spkRoot">
   <div class="hd"><h3>社群選題</h3>${m && m.example ? '<span class="ex" id="spkExB">範例</span>' : ''}<span class="sp"></span><span class="muted" style="margin:0" id="spkDt">${m ? '清單日期 ' + esc(m.date) + (m.updated ? '・更新 ' + esc(m.updated.replace('T', ' ').slice(0, 16)) : '') : ''}</span></div>
-  <p class="muted how-m"><b>怎麼用：</b>勾題目 → 按「送出選擇」；沒勾的不做。</p>
   <p class="muted how-d"><b>怎麼用：</b>在「今日選題」勾想做的題目，按「送出選擇」；沒勾的不做。想改成別的時間、別的類型或項數，切到「產主題設定」。送出＝開 GitHub 新 Issue，按那頁的 Submit new issue 才算數。</p>
   <div class="nbsw lv2" id="spkTabs" role="tablist" aria-label="社群選題分頁"><button type="button" role="tab" data-t="pick" class="${S.tab === 'pick' ? 'on' : ''}" aria-selected="${S.tab === 'pick'}">今日選題</button><button type="button" role="tab" data-t="sched" class="${S.tab === 'sched' ? 'on' : ''}" aria-selected="${S.tab === 'sched'}">產主題設定</button></div>
   <div class="nbbody" id="spkBody">${S.tab === 'pick' ? pickHtml() : schedHtml()}</div>

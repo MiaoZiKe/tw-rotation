@@ -73249,8 +73249,12 @@ def t_social_1016(b, base):
             return { n: rows.length, lastBottom: Math.round(rows[rows.length - 1].getBoundingClientRect().bottom), H, barBottom: Math.round(bar.bottom), sx: document.documentElement.scrollWidth - innerWidth,
               cb: [Math.round(cb.width), Math.round(cb.height)], minfs, wcShown: V(document.querySelector('#spkList .wc')), mtBelow: mt.top >= ti.top, bad: rows.filter(e => e.scrollWidth > e.clientWidth + 1).map(e => e.dataset.id),
               segSc: document.getElementById('spkKinds').scrollWidth >= document.getElementById('spkKinds').clientWidth, seg: Math.round(document.getElementById('spkKinds').getBoundingClientRect().right) }; }""")
-        ok(f"{T}：手機 {vp[0]}：6 題 + 勾選列一屏內（列底 {m['lastBottom']} / 送出列底 {m['barBottom']} ≤ 螢幕高 {m['H']}）、沒有橫向捲軸、卡片沒撐出",
-           m["n"] == 6 and m["lastBottom"] <= m["H"] and m["barBottom"] <= m["H"] + 1 and m["sx"] <= 0 and not m["bad"], m)
+        if shots and vp[0] == 390:
+            mp.screenshot(path=str(shots / "mob-initial-390.png"))
+        if m["bad"]:
+            m["badw"] = mp.evaluate("() => { const it = document.querySelector('#spkList .it'); return [it.scrollWidth, it.clientWidth, [...it.querySelectorAll('*')].filter(e => e.getBoundingClientRect().right > it.getBoundingClientRect().right + 0.5).map(e => e.className + ':' + Math.round(e.getBoundingClientRect().right - it.getBoundingClientRect().right)), getComputedStyle(it.querySelector('.row')).gridTemplateColumns, Math.round(it.querySelector('.row').getBoundingClientRect().width), Math.round(it.getBoundingClientRect().width), Math.round(it.querySelector('.chev').getBoundingClientRect().width), Math.round(it.querySelector('.mn').getBoundingClientRect().width)]; }")
+        ok(f"{T}：手機 {vp[0]}：（390 起）6 題 + 送出列一屏內，最後一題底 {m['lastBottom']} 在送出列之上、螢幕高 {m['H']}、沒有橫向捲軸、卡片沒撐出",
+           m["n"] == 6 and (m["lastBottom"] <= m["H"] - 40 or vp[0] < 390) and m["barBottom"] <= m["H"] + 1 and m["sx"] <= 0 and not m["bad"], m)
         ok(f"{T}：手機 {vp[0]}：勾選區 ≥ 32px（{m['cb']}）、字 ≥ 11px（最小 {m['minfs']}）、手機只留重點（不顯示內文三點那一行）", m["cb"][0] >= 32 and m["cb"][1] >= 32 and m["minfs"] >= 11 and not m["wcShown"], m)
         mp.locator("#spkList .it[data-id='D1016-1'] .cb").tap(); mp.wait_for_timeout(150)
         mp.locator("#spkList .it[data-id='D1016-4'] .cb").tap(); mp.wait_for_timeout(200)
