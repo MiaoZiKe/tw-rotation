@@ -1,5 +1,5 @@
 {
- "updated": "2026-10-17 01:55",
+ "updated": "2026-10-17 02:08",
  "jobs": [
   {
    "id": 4,
@@ -7,9 +7,9 @@
    "kind": "video",
    "title": "CPO 共同封裝光學是什麼？",
    "note": "",
-   "status": "queued",
+   "status": "working",
    "created": 1792169205501,
-   "updated": 1792169205501,
+   "updated": 1792174134819,
    "result": null
   }
  ]
