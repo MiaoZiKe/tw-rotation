@@ -1717,6 +1717,27 @@
     set: (e, v) => { if (e.value === v) return; e.value = v; e.dispatchEvent(new Event('change', { bubbles: true })); }, short });
   const chkG = (k, t, q) => ({ k, t, el: () => live(q), opts: (e) => [['1', '扣除', e.checked], ['0', '不扣', !e.checked]],
     set: (e, v) => { if (e.checked !== (v === '1')) e.click(); }, short: (o) => (o[0] === '1' ? '扣健保' : '不扣健保') });
+  /* ★ 2026-10-16 Andy（iPhone）：「ETF 功能 BUG 為何自訂點選沒任何反應，改成 自訂 後面是可以輸入金額／年領 切到 月領 再切到 年領 系統出問題，
+     確保 兩者都是有 金額 可以選擇 月領 就Default 1萬 2萬 5萬 10萬 自訂」
+     根因：「金額」這組原本讀的是頁面上 #incAmtSeg 後面那個 select.m4segsel（第 31 節 segSelect 插的）；
+       ① 但 etfpage.js drawInc 每次都重寫 #incAmtBox.innerHTML → 年領／月領一切，那個 select 跟著被砍掉，
+          抽屜 80ms 後重畫時它還沒被補回來 → live() 找不到 → 整組「金額」消失（切回年領也一樣，要等別的事件觸發才補回）。
+       ② 點「自訂…」＝去改那個 select 再收抽屜，期待頁面上的 #incAmt 數字框露出來；但條件列已經搬進抽屜、框被藏在 .m4dwhide 底下，看起來點了沒反應。
+     改法：「金額」直接讀頁面上的金額鈕（#incAmtSeg，跟著 drawInc 重畫也找得到）＋最後一格「自訂」；
+       點「自訂」＝在抽屜裡原地變成「自訂 [____] 萬」輸入框（inputmode=decimal），打字（停 0.4 秒）／Enter／離開框就重算，
+       寫進目前分頁那一份（etfpage.js box._setAmt → incPut）。年領、月領各記各的（S.inc.year／S.inc.mon）。
+       自訂狀態只記「是哪一個目標模式按的」，切到另一個模式就回那個模式自己的金額（不在快捷鈕裡＝自動顯示成自訂）。 */
+  const amtVal = () => { const i = $('#incAmt'); const v = i ? +i.value : 0; return v > 0 ? v : 0; };
+  const amtMode = () => { const b = $('#incPM #incMode button.on'); return b ? b.dataset.v : ''; };
+  const wanTxt = (v) => Math.round(v / 100) / 100 + ' 萬';
+  let amtCustom = '';   // 按過「自訂」的那個目標模式（'y'／'m'）
+  const amtG = (k, t, q) => ({ k, t, el: () => live(q), custom: true,
+    isC: (e) => amtCustom === amtMode() || !$(':scope > button.on', e),
+    opts: (e) => { const c = amtG(k, t, q).isC(e); const v = amtVal();
+      return $$(':scope > button', e).map((b) => [b.dataset.v, b.textContent.trim(), !c && b.classList.contains('on')])
+        .concat([['custom', c && v ? '自訂 ' + wanTxt(v) : '自訂', c]]); },
+    set: (e, v) => { if (v === 'custom') { amtCustom = amtMode(); return; } amtCustom = ''; const b = $$(':scope > button', e).find((x) => x.dataset.v === v); if (b) b.click(); },
+    short: (o) => (o[0] === 'custom' ? o[1].replace(/^自訂\s*/, '').replace(/\s+/g, '') || '自訂' : o[1].replace(/\s+/g, '')) });
   const PAGES = [
     { id: 'list', title: 'ETF 總覽設定', on: () => vis($('#etfRetCard')) || vis($('#etfListCard')),
       anchor: () => $('#v-etf .m4trisg') || $('#etfTri'),
@@ -1729,9 +1750,9 @@
     { id: 'inc', title: '月配試算條件', on: () => vis($('#incPM')),
       anchor: () => { const sec = [$('#incSingle'), $('#incCombo')].find((e) => e && !e.hidden); return sec ? $(':scope > :not(.m4etfrow)', sec) : null; },
       tag: () => { const b = $('#incTabs button.on'); return b ? (b.firstChild && b.firstChild.nodeType === 3 ? b.firstChild.textContent : b.textContent).trim() : ''; },
-      groups: [selG('mode', '目標', '#incPM #incMode + select.m4segsel'), selG('amt', '金額', '#incPM #incAmtSeg + select.m4segsel'), selG('scope', '範圍', '#incPM #incScope + select.m4segsel'),
+      groups: [segG('mode', '目標', '#incPM #incMode'), amtG('amt', '金額', '#incPM #incAmtSeg'), selG('scope', '範圍', '#incPM #incScope + select.m4segsel'),
         chkG('nhi', '二代健保（單筆 ≥ 2 萬扣 2.11%）', '#incNhi'), selG('rng', '報酬期間', '#etfIncRngBox select.rpsel')],
-      hide: () => { const amt = $('#incAmt'), need = (amt && amt.classList.contains('m4show')) || rpkCustom($('#etfIncRngBox select.rpsel'));
+      hide: () => { const need = rpkCustom($('#etfIncRngBox select.rpsel'));   // 自訂金額改在抽屜裡打（10-16），只剩「起始日期」要露出頁面上那一列
         return [['#incPM > .incctl', !need], ['#incPM > .m4cond', true]]; } },
   ];
   const summary = (P) => P.groups.map((g) => { const e = g.el(); if (!e) return null; const o = g.opts(e).find((x) => x[2]); if (!o) return null;
@@ -1745,11 +1766,23 @@
   }
   function sheetBody(P, body) {
     body.innerHTML = P.groups.map((g) => { const e = g.el(); if (!e) return '';
-      return `<div class="m4dwg" data-g="${g.k}"><small>${esc(g.t)}</small><div class="seg">${g.opts(e).map(([v, t, on]) => `<button type="button" data-g="${g.k}" data-v="${esc(v)}" class="${on ? 'on' : ''}" aria-pressed="${on}">${esc(t)}</button>`).join('')}</div></div>`; }).join('');
+      const lk = !!e.closest('[data-inclk]');
+      return `<div class="m4dwg" data-g="${g.k}"><small>${esc(g.t)}</small><div class="seg">${g.opts(e).map(([v, t, on]) => (g.custom && v === 'custom' && on
+        ? `<span class="m4amtc on" data-g="${g.k}" data-v="custom"><b>自訂</b><input type="text" inputmode="decimal" id="m4AmtIn" autocomplete="off" aria-label="自訂金額（萬元）" value="${amtVal() ? esc(String(Math.round(amtVal() / 100) / 100)) : ''}"${lk ? ' disabled' : ''}><small>萬</small></span>`
+        : `<button type="button" data-g="${g.k}" data-v="${esc(v)}" class="${on ? 'on' : ''}" aria-pressed="${on}">${esc(t)}</button>`)).join('')}</div></div>`; }).join('');
+    const ai = $('#m4AmtIn', body);
+    if (ai) {   // 自訂金額：打字停 0.4 秒／Enter／離開框 → 重算（單位萬，可打小數，例 0.5＝5000 元）
+      let tm = 0, last = ai.value;
+      const go = () => { clearTimeout(tm); const v = parseFloat(String(ai.value).replace(/[,，\s]/g, '')); if (!(v > 0) || ai.value === last) return; last = ai.value;
+        const box = $('#etfInc'); if (box && box._setAmt && !box.hasAttribute('data-inclk')) { box._setAmt(Math.round(v * 10000)); kick(); } };
+      ai.addEventListener('input', () => { clearTimeout(tm); tm = setTimeout(go, 400); });
+      ai.addEventListener('change', go); ai.addEventListener('blur', go);
+      ai.addEventListener('keydown', (ev) => { if (ev.key === 'Enter') { ev.preventDefault(); go(); ai.blur(); } });
+    }
     /* 一排放不下的組（金額 5 格、報酬期間 6 格）：不換行、框裡橫拖，右緣淡出；選中那格捲進看得到的範圍；拖到底淡出拿掉（監督退件 2） */
     requestAnimationFrame(() => $$('.seg', body).forEach((sg) => {
       const ovf = sg.scrollWidth > sg.clientWidth + 1; sg.classList.toggle('m4ovf', ovf); if (!ovf) return;
-      const on = $('button.on', sg); if (on) sg.scrollLeft = Math.max(0, on.offsetLeft - (sg.clientWidth - on.offsetWidth) / 2);
+      const on = $(':scope > .on', sg); if (on) sg.scrollLeft = Math.max(0, on.offsetLeft - (sg.clientWidth - on.offsetWidth) / 2);
       const end = () => sg.classList.toggle('m4end', sg.scrollLeft + sg.clientWidth >= sg.scrollWidth - 2);
       end(); sg.addEventListener('scroll', end, { passive: true });
     }));
@@ -1758,6 +1791,7 @@
     const api = window.M3; if (!api || !api.openSheet) return;
     const wrap = document.createElement('div');
     const tg = P.tag ? P.tag() : '';
+    amtCustom = '';   // 每次開抽屜重新判斷：金額不在快捷鈕裡才顯示成自訂
     wrap.innerHTML = `<div class="mshhead"><b>${esc((tg ? tg + ' ' : '') + P.title)}</b>${tg ? '<small class="m4tgn">只套用在這個分頁</small>' : ''}</div><div class="m4shsegs m4dw" id="m4EtfSegs" data-p="${P.id}"></div>`;
     const body = $('.m4shsegs', wrap);
     sheetBody(P, body);
@@ -1765,7 +1799,9 @@
       const bt = ev.target.closest('button[data-g]'); if (!bt) return;
       const g = P.groups.find((x) => x.k === bt.dataset.g), e = g && g.el(); if (!e) return;
       g.set(e, bt.dataset.v);
-      // 選了「自訂…」金額／起始日期：要在頁面上填數字或日期 → 收起抽屜，那一列會露出來
+      // 「自訂」金額：抽屜原地變成輸入框、游標放進去（10-16）
+      if (g.custom && bt.dataset.v === 'custom') { sheetBody(P, body); kick(); const ai = $('#m4AmtIn', body); if (ai && !ai.disabled) { ai.focus(); ai.select(); } return; }
+      // 選了「起始日期」：要在頁面上填日期 → 收起抽屜，那一列會露出來
       if (bt.dataset.v === 'custom' || rpkCustom(e)) { setTimeout(() => { if (api.closeSheet) api.closeSheet(); else { const x = $('#mSheet .mshx, #mScrim'); if (x) x.click(); } }, 60); return; }
       setTimeout(() => { sheetBody(P, body); kick(); }, 80);
     });
