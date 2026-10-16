@@ -504,6 +504,8 @@
 #v-subadm .artadm .tpact button:disabled{opacity:.45;cursor:not-allowed;border-color:var(--line-2);background:var(--panel-3)}
 #v-subadm .artadm .tpact .lk{display:flex;gap:6px;flex-wrap:wrap;width:100%;font-size:12px;color:var(--ink-3)}
 #v-subadm .artadm .tpact .lk a{color:var(--cyan);text-decoration:none}
+#v-subadm .artadm .tpcus .sel{flex:none}
+#v-subadm .artadm .tpcus select{height:32px;border-radius:var(--r-sm,8px);border:1px solid var(--line-2);background:var(--panel);color:var(--ink);font:inherit;font-size:13px;padding:0 8px}
 #v-subadm .artadm .tpmsg{font-size:12.5px;color:var(--ink-2);margin:0 0 var(--sp-2)}
 #v-subadm .artadm .tpmsg.err{color:var(--red,#e5484d)}
 #v-subadm .artadm .js{display:inline-flex;align-items:center;gap:4px;font-size:12px;padding:1px 8px;border-radius:999px;border:1px solid var(--line-2);color:var(--ink-2);margin-right:4px}
@@ -1181,6 +1183,13 @@ ${gs.length ? `<section><h5>熱門族群</h5><div class="gps">${gs.map((g) => `<
     <button type="button" id="artGenArt" data-kind="article" disabled>產生精選文章</button>
     <button type="button" id="artGenVid" data-kind="video" disabled>產生短影片</button>
   </div>
+  <div class="tpact tpcus" id="artCus">
+    <span class="sel"><b>自訂主題</b></span>
+    <select id="artCusCat" aria-label="類別">${CAT_KEYS.map((k) => `<option value="${k}">${CATS[k].t}</option>`).join('')}</select>
+    <input type="text" id="artCusT" maxlength="100" placeholder="自己填主題，例如：今天新聞 馬斯克飛天電動車介紹">
+    <button type="button" id="artCusArt" data-kind="article" disabled>產生精選文章</button>
+    <button type="button" id="artCusVid" data-kind="video" disabled>產生短影片</button>
+  </div>
   <p class="tpmsg" id="artTpMsg" role="status" hidden></p>
   <div class="nbsw lv2" id="artTpCats" role="tablist" aria-label="候選主題分類"><button type="button" role="tab" data-cat="all">全部</button>${CAT_KEYS.map((k) => `<button type="button" role="tab" data-cat="${k}">${CATS[k].t}</button>`).join('')}</div>
   <div class="nbbody"><div class="tbw"><table><colgroup><col style="width:44px"><col style="width:96px"><col style="width:120px"><col style="width:30%"><col><col style="width:84px"><col style="width:190px"></colgroup>
@@ -1220,6 +1229,20 @@ ${gs.length ? `<section><h5>熱門族群</h5><div class="gps">${gs.map((g) => `<
     jb('#artJfKind', 'kind', 'change'); jb('#artJfSt', 'st', 'change'); jb('#artJfQ', 'q', 'input');
     $('#artJfClr', v).onclick = () => { Object.assign(jf, { kind: '', st: '', q: '' }); ['#artJfKind', '#artJfSt', '#artJfQ'].forEach((id) => { $(id, v).value = ''; }); paintJobs(v); };
     $$('#artGenArt,#artGenVid', v).forEach((b) => { b.onclick = () => submitJob(v, b.dataset.kind); });
+    /* 10-16 Andy：「也需要我填寫主題 產文章，例如 今天新聞 馬斯克飛天電動車介紹」→ 自訂主題：topic_id＝c-<類別>-<時間>，標題＝填的字 */
+    const cusT = $('#artCusT', v), cusB = $$('#artCusArt,#artCusVid', v);
+    const cusSync = () => cusB.forEach((b) => { b.disabled = cusT.value.trim().length < 2; });
+    cusT.addEventListener('input', cusSync); cusSync();
+    cusB.forEach((b) => { b.onclick = async () => {
+      const title = cusT.value.trim(), cat = $('#artCusCat', v).value, kind = b.dataset.kind;
+      if (title.length < 2 || !CATS[cat]) return;
+      cusB.forEach((x) => { x.disabled = true; });
+      const note = (($('#artTpNote', v) || {}).value || '').trim();
+      const r = await acctCall('/v1/articles/jobs/add', { topic_id: `c-${cat}-${Date.now().toString(36)}`, kind, title, note });
+      if (r && r.job) { tpMsg(v, `已送出 #${r.job.id}：自訂主題「${title}」${KIND_T[kind]}（${CATS[cat].t}）。Claude 下一輪會撰寫`); cusT.value = ''; }
+      else tpMsg(v, r && r._s === 403 ? '送出失敗：登入身分不是管理者（請重新登入）' : '送出失敗：連不到會員伺服器，請稍後再試', true);
+      cusSync(); await loadJobs(); paintTopics(v); paintJobs(v);
+    }; });
     $('#artJobBody', v).addEventListener('click', async (e) => {
       const b = e.target.closest('button[data-cancel]'); if (!b) return;
       b.disabled = true;
@@ -1348,7 +1371,9 @@ ${gs.length ? `<section><h5>熱門族群</h5><div class="gps">${gs.map((g) => `<
     const body = $('#artJobBody', v); if (!body) return;
     if (!S.jobs) { body.innerHTML = '<tr><td colspan="7" class="muted">讀不到產出紀錄（會員伺服器沒回應）</td></tr>'; return; }
     const jf = S.jf, q = jf.q.toLowerCase();
-    const hit = S.jobs.filter((j) => (!jf.kind || j.kind === jf.kind) && (!jf.st || j.status === jf.st)
+    /* 10-16 Andy：「產完後 進度這邊也需要更新」→ 文章已上架（index 有同一個 topic）就直接算「已完成」，不等同步工作流把狀態標回伺服器（篩選也照這個） */
+    const eff = (j) => { const live = j.kind === 'article' && ['queued', 'working'].includes(j.status) && pubOfTopic(j.topic_id); return live ? Object.assign({}, j, { status: 'done', result: live.id }) : j; };
+    const hit = S.jobs.map(eff).filter((j) => (!jf.kind || j.kind === jf.kind) && (!jf.st || j.status === jf.st)
       && (!q || String(j.title || '').toLowerCase().includes(q) || String(j.note || '').toLowerCase().includes(q)));
     const rows = hit.slice(0, 100);
     const c = $('#artJfCnt', v); if (c) { c.textContent = `${hit.length}／${S.jobs.length} 筆${hit.length > rows.length ? '（顯示前 100 筆）' : ''}`; c.dataset.n = String(hit.length); }
