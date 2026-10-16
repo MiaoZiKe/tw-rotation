@@ -228,7 +228,7 @@ export class Hub {
     const p = url.pathname;
     try {
       if (req.method === 'OPTIONS') {
-        return this.cors(req, new Response(null, { status: 204, headers: { 'Access-Control-Allow-Methods': 'POST, GET', 'Access-Control-Allow-Headers': 'content-type', 'Access-Control-Max-Age': '86400' } }));
+        return this.cors(req, new Response(null, { status: 204, headers: { 'Access-Control-Allow-Methods': 'POST, GET', 'Access-Control-Allow-Headers': 'content-type, x-tw-guest', 'Access-Control-Max-Age': '86400' } }));
       }
       if (p === '/health') return this.json(req, { ok: true, service: 'tw-rotation account-api', configured: this.configured(), admins: this.admins().length > 0 });
       if (req.method === 'GET' && p === '/auth/start') return await this.authStart(req, url);
