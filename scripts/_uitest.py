@@ -50366,6 +50366,13 @@ def t_block_implicit(b, base):
 LEGAL_ON = ("window.TW_LEGAL_OVERRIDE={operator:'驗收用營業人',email:'uitest@example.com',"
             "effective_date:'2026-10-01',tax_id:'尚未辦理',court:'臺灣臺北地方法院',enabled:true};")
 
+# ★ 2026-10-16 上架打開同意橫幅（legal_config.enabled:true）之後：
+#   · 「同意條款與法律頁」A 段原本驗的是「現況＝關著」，改成注入 LEGAL_OFF 模擬關著（驗的是開關本身仍然有效）。
+#   · 用原版 context、但驗的不是橫幅的段落（退款政策1009…）加 consent=True 預寫已同意 —— 不改產品行為去遷就測試。
+LEGAL_OFF = "window.TW_LEGAL_OVERRIDE={enabled:false};"
+CONSENT_ONLY = ("try{if(!localStorage.getItem('tw.consent'))localStorage.setItem('tw.consent',JSON.stringify({v:'*',at:'test'}));"
+                "if(!localStorage.getItem('tw.tour'))localStorage.setItem('tw.tour','*');}catch(e){}")
+
 _LG_FONTS = """(sel) => { const out = []; document.querySelectorAll(sel).forEach(root => {
     root.querySelectorAll('*').forEach(e => { if (!e.childNodes.length) return;
       const own = [...e.childNodes].some(n => n.nodeType === 3 && n.textContent.trim());
@@ -50375,7 +50382,7 @@ _LG_FONTS = """(sel) => { const out = []; document.querySelectorAll(sel).forEach
   return out; }"""
 
 
-def _lg_page(b, w=1440, h=950, init=None, mobile=False, extra=None):
+def _lg_page(b, w=1440, h=950, init=None, mobile=False, extra=None, consent=False):
     raw = getattr(type(b), "_tw_raw_new_context", None)
     kw = dict(viewport={"width": w, "height": h})
     if mobile:
@@ -50389,6 +50396,8 @@ def _lg_page(b, w=1440, h=950, init=None, mobile=False, extra=None):
         pg.add_init_script(init)
     if extra:
         pg.add_init_script(extra)
+    if consent:
+        pg.add_init_script(CONSENT_ONLY)
     return ctx, pg
 
 
@@ -50523,7 +50532,7 @@ def t_refund_1009(b, base):
     shots = os.environ.get("TW_REFUND_SHOTS", "")
     MAIL = "liguligu0818@gmail.com"
     q = "&" if "?" in base else "?"
-    ctx, pg = _lg_page(b)
+    ctx, pg = _lg_page(b, consent=True)
     pg.goto(base + "#overview", wait_until="networkidle"); pg.wait_for_timeout(2000)
     ft = pg.evaluate("() => { const a = document.getElementById('sfRefund'); return a ? { href: a.getAttribute('href'), t: a.textContent, vis: !!a.getClientRects().length } : null; }")
     ok(f"{T}：頁尾有「退款與取消訂閱」連結（#refund）", bool(ft) and ft["href"] == "#refund" and "退款" in ft["t"] and ft["vis"], ft)
@@ -50573,9 +50582,11 @@ def t_refund_1009(b, base):
        and "專屬管轄" in tt, "")
     ok(f"{T}：使用條款寫「目前不提供免費試用」", "目前不提供免費試用" in tt, "")
     cfg = pg.evaluate("() => ({ op: TW_LEGAL.operator, em: TW_LEGAL.email, ed: TW_LEGAL.effective_date, tax: TW_LEGAL.tax_id, court: TW_LEGAL.court, on: TW_LEGAL.enabled, st: TwLegal.state() })")
-    ok(f"{T}：legal_config 五格是 Andy 10-09 的值、enabled 仍是 false、判定未啟用",
-       cfg["op"] == "哩股哩股" and cfg["em"] == MAIL and cfg["ed"] == "2026-10-01" and cfg["tax"] == "尚未辦理" and cfg["court"] == "臺灣臺北地方法院"
-       and cfg["on"] is False and cfg["st"]["active"] is False, cfg)
+    # 2026-10-16 改前→改後（Andy 10-16：「我準備明天上架了」→ launch_standard 第 9 條打開橫幅）：
+    #   改前驗 effective_date 2026-10-01、enabled 仍是 false、判定未啟用；改後驗生效日＝上架日 2026-10-17、enabled true、判定啟用（必填齊、全文無【】）。
+    ok(f"{T}：legal_config 五格是 Andy 的值、生效日＝上架日 2026-10-17、enabled 已打開、判定啟用",
+       cfg["op"] == "哩股哩股" and cfg["em"] == MAIL and cfg["ed"] == "2026-10-17" and cfg["tax"] == "尚未辦理" and cfg["court"] == "臺灣臺北地方法院"
+       and cfg["on"] is True and cfg["st"]["active"] is True and not cfg["st"]["missing"]["holes"], cfg)
     bad_trial = re.compile(r"1\s*個月|30\s*天免費試用|七天免費試用|7\s*天免費試用|免費試用（目前規劃")
     hits = {}
     for hsh in ("#terms", "#refund", "#privacy", "#disclaimer"):
@@ -50596,7 +50607,7 @@ def t_refund_1009(b, base):
        "HMAC" in pt and "無法回推出原電子郵件地址" in pt and "刪除帳號後1年自動刪除" in pt.replace(" ", "") and "個人資料保護法第 20 條" in pt and "Deno Deploy" in pt, "")
     ctx.close()
     # 設定值改了 → 頁面真的跟著變（模擬 Andy 把天數改成 10、打開 App 內購、線上付款上線）
-    ctx, pg = _lg_page(b, init="window.TW_LEGAL_OVERRIDE={REFUND_DAYS:10,REFUND_PROCESS_DAYS:10,APP_STORE_IAP:true,PAY_ONLINE:true,PAY_PROVIDER:'測試金流股份有限公司',court:'臺灣新北地方法院'};")
+    ctx, pg = _lg_page(b, consent=True, init="window.TW_LEGAL_OVERRIDE={REFUND_DAYS:10,REFUND_PROCESS_DAYS:10,APP_STORE_IAP:true,PAY_ONLINE:true,PAY_PROVIDER:'測試金流股份有限公司',court:'臺灣新北地方法院'};")
     pg.goto(base + "#refund", wait_until="networkidle"); pg.wait_for_timeout(1500)
     t2 = pg.inner_text("#lgDoc")
     d2 = pg.evaluate("() => [...document.querySelectorAll('[data-refund-days]')].map(e => e.textContent)")
@@ -50610,7 +50621,7 @@ def t_refund_1009(b, base):
        "臺灣新北地方法院" in t3 and "臺灣臺北地方法院" not in t3, "")
     ctx.close()
     # 方案頁：付費卡升級鈕下面有「付款前請先閱讀」→ 點了真的進退款頁
-    ctx, pg = _lg_page(b)
+    ctx, pg = _lg_page(b, consent=True)
     pg.goto(base + q + "demo=plans#pricing", wait_until="networkidle"); pg.wait_for_timeout(3500)
     pr = pg.evaluate("""() => [...document.querySelectorAll('#v-pricing .prcard')].map(c => { const p = c.querySelector('.prpre');
         return { tier: c.dataset.tier, has: !!p, vis: !!p && getComputedStyle(p).visibility !== 'hidden', refund: !!(p && p.querySelector('a[href="#refund"]')),
@@ -50629,7 +50640,7 @@ def t_refund_1009(b, base):
        and pg.evaluate("() => (document.querySelector('#lgDoc h1') || {}).textContent") == "退款與取消訂閱政策", "")
     ctx.close()
     # 手機 402：沒有橫向捲軸、四顆分頁一列、字 ≥ 12
-    ctx, pg = _lg_page(b, 402, 874, mobile=True)
+    ctx, pg = _lg_page(b, 402, 874, mobile=True, consent=True)
     pg.goto(base + "#refund", wait_until="networkidle"); pg.wait_for_timeout(1800)
     m = pg.evaluate("""() => { const a = [...document.querySelectorAll('.lgtabs a')].map(x => x.getBoundingClientRect());
         return { sw: document.documentElement.scrollWidth - innerWidth, tops: a.map(x => Math.round(x.top)), r: Math.round(a[a.length - 1].right), w: innerWidth,
@@ -50642,7 +50653,7 @@ def t_refund_1009(b, base):
     # 手機監督退件（2026-10-09）：方案卡那行連結不准把整頁撐寬（曾經 nowrap 長書名 → 402 變 408、360 變 380）；
     #   手機改成卡片裡不放、三張卡下面整列放一次（.prpre-m），完整書名、兩個連結都在視窗內
     for w, h in ((402, 874), (360, 780)):
-        ctx, pg = _lg_page(b, w, h, mobile=True)
+        ctx, pg = _lg_page(b, w, h, mobile=True, consent=True)
         pg.goto(base + q + "demo=plans#pricing", wait_until="networkidle"); pg.wait_for_timeout(3000)
         m = pg.evaluate("""() => { const V = e => !!e && e.getClientRects().length > 0 && getComputedStyle(e).visibility !== 'hidden';
             const inCard = [...document.querySelectorAll('#v-pricing .prcard .prpre')].filter(V).length, pm = document.querySelector('#v-pricing .prpre-m');
@@ -50653,14 +50664,14 @@ def t_refund_1009(b, base):
            and [x[0] for x in m["links"]] == ["#refund", "#terms"] and all(x[1] <= w for x in m["links"]), m)
         ctx.close()
     # 桌機看不到手機那一行
-    ctx, pg = _lg_page(b)
+    ctx, pg = _lg_page(b, consent=True)
     pg.goto(base + q + "demo=plans#pricing", wait_until="networkidle"); pg.wait_for_timeout(2500)
     ok(f"{T}：1440 桌機不顯示手機版那一整列（.prpre-m）", pg.evaluate("() => { const e = document.querySelector('#v-pricing .prpre-m'); return !!e && e.getClientRects().length === 0; }"), "")
     ctx.close()
 
 def t_legal(b, base):
     # ---------------------------------------------------------------- A. 開關關著（現況）
-    ctx, pg = _lg_page(b)
+    ctx, pg = _lg_page(b, init=LEGAL_OFF)
     pg.goto(base + "#overview", wait_until="networkidle"); pg.wait_for_timeout(2500)
     st = pg.evaluate("() => window.TwLegal && window.TwLegal.state()")
     # 2026-10-09 改前→改後（Andy 10-09 18:1x 回覆五格：「哩股哩股」「沿用 kcq01010909@gmail.com 後面會更改」「先設定10/01 後面上架 會在改」「尚未辦理」＋臺北地院）：
@@ -50810,7 +50821,7 @@ def t_legal(b, base):
     ctx.close()
 
     # 手機 390：法律頁不能有橫向捲軸；頁尾在底部分頁列上面、看得到
-    ctx, pg = _lg_page(b, 390, 844, mobile=True)
+    ctx, pg = _lg_page(b, 390, 844, init=LEGAL_OFF, mobile=True)
     pg.goto(base + "#privacy", wait_until="networkidle"); pg.wait_for_timeout(2000)
     r = pg.evaluate("""() => ({ docW: document.documentElement.scrollWidth, winW: innerWidth,
         toc: getComputedStyle(document.querySelector('.lgtoc')).display, tocm: !!document.querySelector('.lgtocm') &&
@@ -50938,12 +50949,15 @@ def t_legal(b, base):
     ctx, pg = _lg_page(b, 390, 844, init=LEGAL_ON, mobile=True)
     pg.goto(base + "#overview", wait_until="networkidle"); pg.wait_for_timeout(2500)
     r = pg.evaluate("""() => { const b = document.getElementById('lgBanner'); if (!b) return null;
-        const r = b.getBoundingClientRect(), t = document.getElementById('tabs').getBoundingClientRect(),
+        const tb = document.getElementById('tabs'), tbOn = !!tb && getComputedStyle(tb).position === 'fixed' && tb.getClientRects().length > 0 && tb.getBoundingClientRect().height > 0;
+        const r = b.getBoundingClientRect(), t = tbOn ? tb.getBoundingClientRect() : { top: innerHeight },
               a = document.getElementById('lgAccept').getBoundingClientRect(), d = document.getElementById('lgDecline').getBoundingClientRect();
-        return { bb: r.bottom, tt: t.top, l: r.left, rr: innerWidth - r.right, aw: a.width, bw: r.width, stacked: a.bottom <= d.top + 1,
+        return { bb: r.bottom, tt: t.top, gap: innerHeight - r.bottom, tbOn, l: r.left, rr: innerWidth - r.right, aw: a.width, bw: r.width, stacked: a.bottom <= d.top + 1,
                  docW: document.documentElement.scrollWidth, winW: innerWidth, ah: a.height }; }""")
-    ok("[開 390] 橫幅在底部分頁列上方、左右各留 12px",
-       r and r["bb"] <= r["tt"] and abs(r["l"] - 12) <= 1 and abs(r["rr"] - 12) <= 1, r)
+    # 2026-10-16 改前→改後：底部分頁列 2026-10-08 已拿掉（#tabs 在手機是 display:none，量到的 top 是 0，這條改前其實一直是紅的）。
+    #   改後：有固定在底部的分頁列時仍要在它上方；沒有時貼底只留 12px（＋安全區）—— 改前多空 114px（launch_standard 第 9 條的瑕疵①）。
+    ok("[開 390] 橫幅貼底（有底部分頁列時在它上方；沒有時離視窗底 ≤ 13px）、左右各留 12px",
+       r and r["bb"] <= r["tt"] and (r["tbOn"] or r["gap"] <= 13) and abs(r["l"] - 12) <= 1 and abs(r["rr"] - 12) <= 1, r)
     ok("[開 390] 兩顆按鈕上下排、滿寬、高 44（「同意並繼續」在上）",
        r and r["stacked"] and r["aw"] >= r["bw"] - 42 and r["ah"] >= 43, r)
     ok("[開 390] 沒有橫向捲軸", r and r["docW"] <= r["winW"] + 1, r)
