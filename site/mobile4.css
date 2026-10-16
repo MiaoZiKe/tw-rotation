@@ -208,7 +208,7 @@
   :root.m4 #v-etf .etfc .nm{grid-column:1/-1;grid-row:2;font-size:12px!important;font-weight:500;color:var(--ink-2);white-space:normal!important;
     display:-webkit-box!important;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;line-height:1.3;min-height:31px}
   :root.m4 #v-etf .etfc .px>b{grid-column:1/-1;grid-row:3;font:700 14px var(--mono)!important}
-  :root.m4 #v-etf .etfc .fq{grid-column:1;grid-row:4;justify-self:start;font-size:12px;white-space:nowrap;padding:0 5px}
+  :root.m4 #v-etf .etfc .fq{grid-column:1;grid-row:4;justify-self:start;font-size:12px;white-space:nowrap;padding:0 4px}
   :root.m4 #v-etf .etfc dd.yv{display:block!important;grid-column:2;grid-row:4;text-align:right;font:12px var(--mono);color:var(--amber);align-self:center}
   /* ---- 9. 現金流試算／複利試算的控制區：手機收成一行「條件 ▾」摘要（mobile4.js wireCond），點開才看到全部控制項 */
   :root.m4 #v-etf .m4cond{display:flex;align-items:center;gap:8px;width:100%;min-height:44px;margin:0 0 8px;padding:0 12px;border:1px solid var(--line-2);border-radius:10px;
