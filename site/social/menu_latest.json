@@ -1,0 +1,67 @@
+{
+  "sample": true,
+  "date": "2026-10-19",
+  "note": "範例資料：虛構的題目，只用來預覽「社群選題」頁。社群媒體部之後每天會覆蓋這個檔。",
+  "items": [
+    {
+      "id": "D1019-1", "kind": "最新消息",
+      "title": "法說會後，先進封裝的擴產到底擴到哪？",
+      "will_cover": ["法說會講了哪幾個擴產數字（只引公司原話與日期）", "先進封裝為什麼是 AI 晶片的瓶頸", "資金面：封裝族群近一週的成交金額變化"],
+      "chart": { "has": true, "note": "網站「資金流向」的族群排行截圖" },
+      "images_needed": ["比比素材：news＋magnifier", "GPT 生圖：先進封裝剖面示意（晶片疊在中介層上）"],
+      "verified": { "status": "已查證", "who": "semi-chain-analyst" },
+      "output": "Reels 30 秒＋Threads 短文",
+      "flags": ["點名個股"]
+    },
+    {
+      "id": "D1019-2", "kind": "最新消息",
+      "title": "美國出口管制新草案：台灣供應鏈要看哪三件事",
+      "will_cover": ["草案目前只是草案，還沒生效", "影響可能落在哪三個環節（設備、材料、客戶端）", "事件面：怎麼把它當成「風險提醒」而不是買賣訊號"],
+      "chart": { "has": false, "note": "" },
+      "images_needed": ["GPT 生圖：三個環節的簡單流程圖"],
+      "verified": { "status": "待查證", "who": "找 semi-chain-analyst 確認草案條文與日期" },
+      "output": "Threads 短文串（5 則）",
+      "flags": ["地緣敏感"]
+    },
+    {
+      "id": "D1019-3", "kind": "產業延伸",
+      "title": "液冷散熱：從伺服器機櫃到冷卻水塔，這條鏈怎麼接？",
+      "will_cover": ["為什麼 AI 機櫃的熱撐不住氣冷", "液冷鏈由內到外：冷板、分歧管、冷卻分配單元、水塔", "網站「產業鏈」頁怎麼點進每一環"],
+      "chart": { "has": true, "note": "網站「產業地圖」AI 伺服器鏈截圖" },
+      "images_needed": ["比比素材：teacher＋board", "GPT 生圖：機櫃到水塔的水路示意"],
+      "verified": { "status": "已查證", "who": "ai-server-analyst" },
+      "output": "輪播 7 張＋Threads 短文",
+      "flags": []
+    },
+    {
+      "id": "D1019-4", "kind": "產業延伸",
+      "title": "ABF 載板為什麼又開始缺料？",
+      "will_cover": ["載板在晶片封裝裡扮演什麼角色", "缺的是哪一層材料（只講已查證的）", "怎麼用網站的「基本面」頁看這條鏈的營收變化"],
+      "chart": { "has": true, "note": "網站「基本面」月營收圖截圖" },
+      "images_needed": ["GPT 生圖：載板疊構分層圖"],
+      "verified": { "status": "待查證", "who": "找 pcb-substrate-analyst 確認缺料層別" },
+      "output": "輪播 6 張",
+      "flags": ["點名個股"]
+    },
+    {
+      "id": "D1019-5", "kind": "精選文章",
+      "title": "比比產業百科：CoWoS 是什麼？一張圖看懂",
+      "will_cover": ["CoWoS 的名字拆開來怎麼讀", "和一般封裝差在哪（中介層）", "常見名詞對照表（HBM、中介層、基板）"],
+      "chart": { "has": false, "note": "" },
+      "images_needed": ["GPT 生圖：CoWoS 剖面圖（含標註）", "比比素材：teacher＋pointer"],
+      "verified": { "status": "已查證", "who": "semi-chain-analyst" },
+      "output": "站內長文（約 1,500 字）＋輪播 8 張",
+      "flags": []
+    },
+    {
+      "id": "D1019-6", "kind": "總經名詞",
+      "title": "殖利率曲線倒掛：比比 60 秒說清楚",
+      "will_cover": ["短天期利率高過長天期代表什麼", "歷史上它被拿來當衰退預警的原因", "為什麼不能拿來單獨判斷進出場"],
+      "chart": { "has": true, "note": "本部自製簡單折線示意（非真實數據）" },
+      "images_needed": ["比比素材：thinking＋chart"],
+      "verified": { "status": "已查證", "who": "finance-content-editor" },
+      "output": "Reels 60 秒",
+      "flags": []
+    }
+  ]
+}

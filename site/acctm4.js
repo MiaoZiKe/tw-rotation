@@ -263,7 +263,7 @@ html.m4 .m4deldlg .msg{min-height:1.4em;font-size:13px;color:#ff6b7a;margin:4px 
     if (u && u.admin) {
       h += '<div class="hr"></div><button type="button" class="m4i m4grp" role="menuitem" aria-expanded="false" data-m="admgrp"><span class="t">管理區</span><span class="chev" aria-hidden="true">›</span></button>'
         + '<div class="m4sub" hidden>'
-        + '<button type="button" role="menuitem" data-a="feedback">意見反饋與訂閱申請</button><button type="button" role="menuitem" data-a="pay">付款與訂單</button><button type="button" role="menuitem" data-a="notices">公告</button>'
+        + '<button type="button" role="menuitem" data-a="feedback">意見反饋與訂閱申請</button><button type="button" role="menuitem" data-a="pay">付款與訂單</button><button type="button" role="menuitem" data-a="social">社群選題</button><button type="button" role="menuitem" data-a="notices">公告</button>'
         + '<button type="button" role="menuitem" data-a="admin">流量觀測與線上名單</button><button type="button" role="menuitem" data-a="perm">會員功能權限</button>'
         + (window.TwGw && window.TwGw.on && window.TwGw.on() ? '<button type="button" role="menuitem" data-a="gw">付費資料異常</button>' : '')
         + '</div>';

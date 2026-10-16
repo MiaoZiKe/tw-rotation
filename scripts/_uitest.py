@@ -34284,6 +34284,8 @@ SECTIONS = {
     # ★ 2026-10-10 Andy：「網頁手機資訊同步」—— 手機五件：漲跌點數直接相減、站上均線段名同網頁、觸控縮放提示、體驗橫幅（360／390／430）、ETF 複利試算格鎖
     "手機同步1010":        lambda pg, b, base, code: t_m4_sync2_1010(b, base),
     "桌機守門1008":        lambda pg, b, base, code: t_desk_guard_1008(b, base),
+    # ★ 2026-10-19 Andy：「新增一種方式讓我可以選擇主題」—— 管理區「社群選題」#admin/social：勾選每日選題 → 預填 GitHub Issue 連結／複製指令（非管理者看不到；桌機＋手機 390）
+    "社群選題1019":        lambda pg, b, base, code: t_social_pick_1019(b, base, code),
     # ★ 2026-10-16 Andy（iPhone）：「手機版本網頁打開右滑都會出現這樣的問題」—— 8 頁 × 360／390／430：沒有元素伸出視窗、往左拖 300px scrollX＝0、抽屜開關、比比玩球中
     "手機不右滑1016":      lambda pg, b, base, code: t_m4_noxpan_1016(b, base),
     # ★ 2026-10-16 Andy（LINE）：「首頁的資金圖 和 熱力圖都不見了」—— 三身分 × 三分段圖真的畫出來＋兩種故障注入後仍出來（360／390／430）
@@ -58633,6 +58635,164 @@ def _sub_ctx(b, who, width=1440, feats=None, notices=None, lims=None, dq=None, o
     c.route(SUB_API + "/**", handle)
     return c, sent, st
 
+
+
+# ===================================================================== 社群選題1019（site/admin_social.js、#admin/social）
+# Andy：「告訴網頁 team 需要新增一種方式讓我可以選擇主題」。管理者在網站勾選每日選題 → 預填好的 GitHub 新 Issue 連結（零後端）。
+# 這段真的操作：
+#   ① 訪客、一般會員：打 #admin/social 只看到「只有管理者看得到」，沒有卡片、不會去抓 menu_latest.json、導覽沒有入口
+#   ② 管理者 1440：側欄有「社群選題」→ 點進去 6 張卡、範例橫幅、送出鈕停用 → 勾 1、3 → 數字 2、連結的 title／body／labels 正確、
+#      沒勾的題目不在內文 → 複製指令真的進剪貼簿 → 點送出真的開新分頁（網址是 github.com/…/issues/new）→ 重新整理仍勾著 → 點卡展開細節 → 清除
+#   ③ 管理者 390 觸控：不橫向捲、勾選框與按鈕 ≥32px、第一屏就看得到 4 張以上的卡可以勾、字 ≥11px、帳號選單「管理區」底下有「社群選題」
+def t_social_pick_1019(b, base, code):
+    T = "社群選題1019"
+    errs: list[str] = []
+    sh = os.environ.get("TW_SOCIAL_SHOTS")
+    shot = (lambda pg, n, **k: pg.screenshot(path=str(pathlib.Path(sh) / n), **k)) if sh else (lambda pg, n, **k: None)
+    if sh:
+        pathlib.Path(sh).mkdir(parents=True, exist_ok=True)
+    from urllib.parse import urlparse, parse_qs
+
+    # ---- ① 非管理者 ----
+    for who, tag in ((None, "訪客"), ("member", "一般會員")):
+        c, sent, st = _sub_ctx(b, who)
+        got: list[str] = []
+        c.on("request", lambda r: got.append(r.url) if "menu_latest" in r.url else None)
+        pg = c.new_page(); pg.on("pageerror", lambda e: errs.append(str(e) + " @ " + (getattr(e, "stack", "") or "")[:300].replace(chr(10), " / ")))
+        pg.goto(base + "#admin/social", wait_until="domcontentloaded")
+        wait_until(pg, "() => document.querySelector('#v-subadm.on .soc')", 10000)
+        pg.wait_for_timeout(800)
+        r = pg.evaluate("() => ({ cards: document.querySelectorAll('.soc .cd').length, txt: (document.querySelector('#v-subadm .soc') || {}).innerText || '', nav: document.querySelectorAll('.l4subtab[data-adm=social]').length, perm: !!document.getElementById('l4Perm') })")
+        ok(f"{T}【{tag}】#admin/social 沒有卡片、只寫「只有管理者看得到」、側欄沒有入口、沒去抓選題檔",
+           r["cards"] == 0 and "只有管理者看得到" in r["txt"] and r["nav"] == 0 and not r["perm"] and not got, (r, got))
+        c.close()
+
+    # ---- ② 管理者 1440 ----
+    c, sent, st = _sub_ctx(b, "admin", width=1440)
+    c.grant_permissions(["clipboard-read", "clipboard-write"], origin=base.split("#")[0].rstrip("/"))
+    c.route("https://github.com/**", lambda r: r.fulfill(status=200, body="<html><body>gh stub</body></html>", headers={"content-type": "text/html"}))
+    pg = c.new_page(); pg.on("pageerror", lambda e: errs.append(str(e) + " @ " + (getattr(e, "stack", "") or "")[:300].replace(chr(10), " / ")))
+    pg.goto(base + "#overview", wait_until="domcontentloaded")   # 不從 #admin/perm 進：_sub_ctx 的假伺服器沒餵 admin.js 要的資料，會讓它自己丟錯（與本頁無關）
+    wait_until(pg, "() => document.querySelector('.l4subtab[data-adm=social]')", 12000)
+    pg.click(".l4subtab[data-adm=social]")
+    wait_until(pg, "() => document.querySelectorAll('.soc .cd').length > 0", 8000)
+    pg.wait_for_timeout(300)
+    r = pg.evaluate("""() => { const sub = document.getElementById('socSubmit'); return { hash: location.hash, n: document.querySelectorAll('.soc .cd').length,
+        samp: !!document.getElementById('socSample'), dis: sub.getAttribute('aria-disabled'), href: sub.getAttribute('href'), cnt: document.getElementById('socCount').textContent,
+        det: [...document.querySelectorAll('.soc .det')].filter(d => d.getClientRects().length).length, on: document.querySelector('.l4subtab[data-adm=social]').classList.contains('on'),
+        warn: document.querySelectorAll('.soc .warn').length }; }""")
+    ok(f"{T}【管理者 1440】側欄「社群選題」點進去 → #admin/social、6 張卡、範例橫幅、送出鈕停用沒連結、細節預設全收起、有 ⚠ 紅旗卡、側欄亮著",
+       r["hash"] == "#admin/social" and r["n"] == 6 and r["samp"] and r["dis"] == "true" and not r["href"] and r["cnt"] == "0" and r["det"] == 0 and r["warn"] >= 2 and r["on"], r)
+    pg.hover(".soc .cd[data-id='D1019-2']")
+    shot(pg, "desk_hover.png")
+    pg.click(".soc .cd[data-id='D1019-1'] .socck"); pg.click(".soc .cd[data-id='D1019-3'] .socck"); pg.wait_for_timeout(200)
+    r = pg.evaluate("""() => { const sub = document.getElementById('socSubmit'); return { cnt: document.getElementById('socCount').textContent, dis: sub.getAttribute('aria-disabled'), href: sub.getAttribute('href'),
+        on: [...document.querySelectorAll('.soc .cd.on')].map(c => c.dataset.id), ls: localStorage.getItem('tw.social.pick'), tgt: sub.target }; }""")
+    q = parse_qs(urlparse(r["href"] or "").query)
+    body = (q.get("body") or [""])[0]
+    ok(f"{T}【管理者 1440】勾第 1、3 題 → 數字 2、卡片外框亮、送出連結 title／labels 正確、內文只列被勾的兩題與指令",
+       r["cnt"] == "2" and r["dis"] == "false" and r["on"] == ["D1019-1", "D1019-3"] and (r["href"] or "").startswith("https://github.com/MiaoZiKe/tw-rotation/issues/new?")
+       and q.get("title") == ["每日選題勾選 2026-10-19（範例）"] and q.get("labels") == ["social-pick"]
+       and "- [x] D1019-1 法說會後" in body and "- [x] D1019-3 液冷散熱" in body and "D1019-2" not in body and "指令：產出 D1019-1、D1019-3，交 GPT 交接包" in body and r["tgt"] == "_blank", (r, q))
+    pg.click("#socPv summary"); pg.wait_for_timeout(150)
+    pre = pg.evaluate("() => document.getElementById('socPre').textContent")
+    ok(f"{T}【管理者 1440】展開「送出內容預覽」→ 看得到標題、標籤、內文與完整連結", "標題：每日選題勾選 2026-10-19（範例）" in pre and "標籤：social-pick" in pre and "https://github.com/" in pre, pre[:200])
+    pg.click("#socCopy"); pg.wait_for_timeout(300)
+    clip = pg.evaluate("async () => { try { return await navigator.clipboard.readText(); } catch (e) { return 'ERR ' + e; } }")
+    stt = pg.evaluate("() => document.getElementById('socSt').textContent")
+    ok(f"{T}【管理者 1440】按「複製指令」→ 剪貼簿真的是「產出 D1019-1、D1019-3，交 GPT 交接包」、狀態列有回饋",
+       clip == "產出 D1019-1、D1019-3，交 GPT 交接包" and "已複製" in stt, (clip, stt))
+    with pg.context.expect_page(timeout=6000) as np:
+        pg.click("#socSubmit")
+    npg = np.value
+    npg.wait_for_load_state("domcontentloaded") if False else None
+    ok(f"{T}【管理者 1440】按「送出選擇」→ 真的開新分頁到 github.com/MiaoZiKe/tw-rotation/issues/new（帶 title、labels）",
+       npg.url.startswith("https://github.com/MiaoZiKe/tw-rotation/issues/new?") and "labels=social-pick" in npg.url and pg.url.endswith("#admin/social"), npg.url[:120])
+    npg.close()
+    pg.reload(wait_until="domcontentloaded")
+    wait_until(pg, "() => document.querySelectorAll('.soc .cd').length > 0", 12000); pg.wait_for_timeout(300)
+    r = pg.evaluate("() => ({ cnt: document.getElementById('socCount').textContent, on: [...document.querySelectorAll('.soc .cd.on')].map(c => c.dataset.id), href: !!document.getElementById('socSubmit').getAttribute('href') })")
+    ok(f"{T}【管理者 1440】重新整理後勾選還在（D1019-1、D1019-3）、連結也還在", r["cnt"] == "2" and r["on"] == ["D1019-1", "D1019-3"] and r["href"], r)
+    pg.click(".soc .cd[data-id='D1019-4'] .socopen"); pg.wait_for_timeout(200)
+    r = pg.evaluate("""() => { const d = document.querySelector(".soc .cd[data-id='D1019-4'] .det"); return { vis: d.getClientRects().length > 0, txt: d.innerText, ex: document.querySelector(".soc .cd[data-id='D1019-4'] .socopen").getAttribute('aria-expanded'),
+        others: [...document.querySelectorAll('.soc .det')].filter(x => x.getClientRects().length).length, cnt: document.getElementById('socCount').textContent }; }""")
+    ok(f"{T}【管理者 1440】點卡片本體 → 就地展開：內文三點、圖表、查證（待查證＋找誰）、預估產出；其他卡不動、勾選數不變",
+       r["vis"] and r["ex"] == "true" and "這次內文會講" in r["txt"] and "待查證" in r["txt"] and "pcb-substrate-analyst" in r["txt"] and "輪播 6 張" in r["txt"] and r["others"] == 1 and r["cnt"] == "2", r)
+    shot(pg, "desk_selected_open.png")
+    pg.click("#socClear"); pg.wait_for_timeout(200)
+    r = pg.evaluate("() => ({ cnt: document.getElementById('socCount').textContent, dis: document.getElementById('socSubmit').getAttribute('aria-disabled'), ls: localStorage.getItem('tw.social.pick') })")
+    ok(f"{T}【管理者 1440】按「清除勾選」→ 數字 0、送出鈕又停用、localStorage 同步清空", r["cnt"] == "0" and r["dis"] == "true" and '"ids":[]' in (r["ls"] or ""), r)
+    # ---- ②b 產主題設定（排程）----
+    pg.click("#socSch > summary"); pg.wait_for_timeout(200)
+    r = pg.evaluate("() => ({ now: document.getElementById('schNow').getAttribute('href') ? 1 : 0, go: !!document.getElementById('schGo').getAttribute('href'), note: document.querySelector('#socSch .note').innerText, freq: document.getElementById('schFreq').value })")
+    ok(f"{T}【排程 1440】展開「產主題設定」→ 預設每天 21:50、有「下一個處理週期（最多數小時）／告訴 CEO」說明、兩顆送出鈕都有連結",
+       r["go"] and r["now"] and "最多數小時" in r["note"] and "告訴 CEO" in r["note"] and r["freq"] == "daily", r)
+    pg.uncheck("#socSch [data-sk='產業延伸']"); pg.fill("#socSch [data-sn='最新消息']", "3"); pg.dispatch_event("#socSch [data-sn='最新消息']", "change")
+    pg.select_option("#schFreq", "days"); pg.wait_for_timeout(200)
+    pg.uncheck("#socSch [data-sd='5']"); pg.uncheck("#socSch [data-sd='3']")
+    pg.check("#socSch [data-st='07:30']"); pg.fill("#schCustom", "13:15"); pg.click("#schAddT"); pg.wait_for_timeout(200)
+    href = pg.get_attribute("#schGo", "href")
+    q = parse_qs(urlparse(href).query); bd = q["body"][0]
+    import re as _re
+    js = json.loads(_re.search(r"```json\n(.*?)\n```", bd, _re.S).group(1))
+    ok(f"{T}【排程 1440】改類型／數量／指定星期／時段 → 連結 label＝social-schedule、body 有摘要與 JSON 區塊且內容對",
+       q.get("labels") == ["social-schedule"] and "## 摘要" in bd and js["freq"] == "days" and js["days"] == [1, 2, 4] and js["times"] == ["07:30", "13:15", "21:50"]
+       and {"kind": "最新消息", "n": 3} in js["types"] and all(t["kind"] != "產業延伸" for t in js["types"]) and js["tz"] == "Asia/Taipei", (q.get("labels"), js))
+    with pg.context.expect_page(timeout=6000) as np2:
+        pg.click("#schNow")
+    n2 = np2.value; q2 = parse_qs(urlparse(n2.url).query); js2 = json.loads(_re.search(r"```json\n(.*?)\n```", q2["body"][0], _re.S).group(1))
+    ok(f"{T}【排程 1440】按「立刻產一份」→ 新分頁 Issue（label social-schedule、標題「立刻產選題清單」、JSON freq＝now）", q2.get("labels") == ["social-schedule"] and q2["title"][0].startswith("立刻產選題清單") and js2["freq"] == "now", (q2.get("title"), js2))
+    n2.close()
+    pg.select_option("#schFreq", "date"); pg.wait_for_timeout(150)
+    dis = pg.evaluate("() => document.getElementById('schGo').getAttribute('aria-disabled')")
+    pg.fill("#schDate", "2026-10-25"); pg.dispatch_event("#schDate", "change"); pg.wait_for_timeout(150)
+    js3 = json.loads(_re.search(r"```json\n(.*?)\n```", parse_qs(urlparse(pg.get_attribute("#schGo", "href")).query)["body"][0], _re.S).group(1))
+    ok(f"{T}【排程 1440】選「指定某一天」沒填日期 → 送出鈕停用；填 2026-10-25 → JSON date 對、沒有 days", dis == "true" and js3.get("date") == "2026-10-25" and "days" not in js3, (dis, js3))
+    pg.reload(wait_until="domcontentloaded"); wait_until(pg, "() => document.getElementById('socSch')", 12000); pg.click("#socSch > summary"); pg.wait_for_timeout(250)
+    r = pg.evaluate("() => ({ f: document.getElementById('schFreq').value, d: document.getElementById('schDate').value, k: document.querySelector(\"#socSch [data-sk='產業延伸']\").checked })")
+    ok(f"{T}【排程 1440】重新整理後排程設定還在（指定某一天 2026-10-25、產業延伸仍取消）", r["f"] == "date" and r["d"] == "2026-10-25" and not r["k"], r)
+    shot(pg, "desk_sched.png")
+    c.close()
+
+    # ---- ③ 管理者 390 觸控 ----
+    c, sent, st = _sub_ctx(b, "admin", width=390, touch=True)
+    c.route("https://github.com/**", lambda r: r.fulfill(status=200, body="<html><body>gh stub</body></html>", headers={"content-type": "text/html"}))
+    pg = c.new_page(); pg.on("pageerror", lambda e: errs.append(str(e) + " @ " + (getattr(e, "stack", "") or "")[:300].replace(chr(10), " / ")))
+    pg.set_viewport_size({"width": 390, "height": 844})
+    pg.goto(base + "#overview", wait_until="domcontentloaded")
+    wait_until(pg, "() => window.TwAccount && TwAccount.user && TwAccount.user() && TwAccount.user().admin && document.getElementById('acctBtn')", 12000)
+    pg.evaluate("() => document.getElementById('acctBtn').click()"); pg.wait_for_timeout(500)
+    pg.evaluate("() => { const g = document.querySelector('#acctMenu [data-m=admgrp]'); if (g) g.click(); }"); pg.wait_for_timeout(300)
+    itm = pg.evaluate("() => { const e = document.querySelector('#acctMenu [data-a=social]'); return e ? { t: e.textContent, vis: e.getClientRects().length > 0 } : null; }")
+    ok(f"{T}【管理者 390】帳號選單 → 管理區 → 有「社群選題」", bool(itm) and itm["vis"] and itm["t"] == "社群選題", itm)
+    pg.evaluate("() => document.querySelector('#acctMenu [data-a=social]').click()")
+    wait_until(pg, "() => document.querySelectorAll('.soc .cd').length > 0", 8000); pg.wait_for_timeout(500)
+    r = pg.evaluate("""() => { const cs = [...document.querySelectorAll('.soc .cd')], H = innerHeight;
+        const ck = [...document.querySelectorAll('.soc .ck')].map(e => { const r = e.getBoundingClientRect(); return [r.width, r.height]; });
+        const bt = [...document.querySelectorAll('.soc .bar .btn')].map(e => Math.round(e.getBoundingClientRect().height));
+        const fs = Math.min(...[...document.querySelectorAll('.soc *')].filter(e => e.getClientRects().length && [...e.childNodes].some(n => n.nodeType === 3 && n.textContent.trim())).map(e => parseFloat(getComputedStyle(e).fontSize)));
+        return { n: cs.length, sw: document.documentElement.scrollWidth, vw: innerWidth, firstScreen: cs.filter(c => c.getBoundingClientRect().bottom <= H).length,
+                 ckMin: Math.min(...ck.flat()), btMin: Math.min(...bt), fs, pageH: document.documentElement.scrollHeight, H }; }""")
+    ok(f"{T}【管理者 390】不橫向捲、勾選框與按鈕 ≥32px、字 ≥11px、第一屏（844）就能看到並勾選 4 張以上的卡",
+       r["n"] == 6 and r["sw"] <= r["vw"] + 1 and r["ckMin"] >= 32 and r["btMin"] >= 32 and r["fs"] >= 11 and r["firstScreen"] >= 4, r)
+    shot(pg, "mob_list.png")
+    pg.locator(".soc .cd[data-id='D1019-2'] .socck").tap(); pg.locator(".soc .cd[data-id='D1019-5'] .socck").tap(); pg.wait_for_timeout(200)
+    pg.locator(".soc .cd[data-id='D1019-5'] .socopen").tap(); pg.wait_for_timeout(250)
+    r = pg.evaluate("""() => { const q = new URL(document.getElementById('socSubmit').href).searchParams;
+        return { cnt: document.getElementById('socCount').textContent, body: q.get('body'), det: document.querySelector(".soc .cd[data-id='D1019-5'] .det").getClientRects().length > 0,
+                 sw: document.documentElement.scrollWidth, vw: innerWidth }; }""")
+    ok(f"{T}【管理者 390】觸控勾第 2、5 題 → 數字 2、連結內文只有這兩題；點卡展開細節、仍不橫向捲",
+       r["cnt"] == "2" and "D1019-2" in r["body"] and "D1019-5" in r["body"] and "D1019-1 " not in r["body"] and r["det"] and r["sw"] <= r["vw"] + 1, r)
+    shot(pg, "mob_selected_open.png")
+    pg.locator("#socSch > summary").tap(); pg.wait_for_timeout(250)
+    r = pg.evaluate("""() => { const b = document.getElementById('socSchBody'), els = [...b.querySelectorAll('label.pk,.btn,select,input[type=date],input[type=time]')].filter(e => e.getClientRects().length);
+        return { n: els.length, minH: Math.min(...els.map(e => e.getBoundingClientRect().height)), sw: document.documentElement.scrollWidth, vw: innerWidth,
+                 fs: Math.min(...[...b.querySelectorAll('*')].filter(e => e.getClientRects().length && [...e.childNodes].some(n => n.nodeType === 3 && n.textContent.trim())).map(e => parseFloat(getComputedStyle(e).fontSize))) }; }""")
+    ok(f"{T}【排程 390】展開產主題設定 → 勾選／按鈕／下拉 ≥32px、字 ≥11px、不橫向捲", r["n"] >= 10 and r["minH"] >= 31.5 and r["fs"] >= 11 and r["sw"] <= r["vw"] + 1, r)
+    pg.locator("#schNow").scroll_into_view_if_needed()
+    shot(pg, "mob_sched.png")
+    c.close()
+    ok(f"{T}：整段沒有 JS 錯誤", not errs, errs[:3])
 
 
 # ===================================================================== 額度卡片1007／自選上限1007（2026-10-07，docs/quota_plan.md）
