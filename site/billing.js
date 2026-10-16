@@ -143,6 +143,7 @@
     const e = j && j.error;
     msg.textContent = !j ? '連不到會員系統，請確認網路後再試一次。'
       : j._s === 404 ? '伺服器尚未開放線上申請，請用「意見回饋」聯絡我們。'
+      : e === 'pending_review' ? (j.msg || '你有一筆轉帳正在審核中，審核完成後才能送出這個申請。')
       : e === 'exists' ? '你已經送過這個申請了，專人處理中。'
       : e === 'refund_used' ? '此帳號已使用過七天保證。'
       : e === 'refund_window' ? `首次付款已超過 ${REFUND_DAYS} 天，不在七天退款保證內。`

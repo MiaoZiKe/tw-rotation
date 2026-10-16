@@ -70765,8 +70765,8 @@ def t_pay_1011(b, base):
         r2 = call(ad, "/v1/admin/plans/put", {"id": "free", "name": "註冊會員", "feats": {"stock.ind": False}})
         ok(f"{T}：前置：Plus 定價（月 299／年 2990）、註冊會員關掉指標設定", r1.get("_s") == 200 and r2.get("_s") == 200, (r1.get("_s"), r2.get("_s"), r1.get("error")))
         ad.goto(base + "#admin/pay", wait_until="domcontentloaded")
-        ok(f"{T}：#admin/pay 打得開，六個分頁（銀行轉帳訂單／綠界訂單／取消退款申請／會員訂閱／退款紀錄／收款帳號設定）",
-           bool(wait_until(ad, "() => document.querySelectorAll('#payTabs [data-ptab]').length === 6", 10000)))
+        ok(f"{T}：#admin/pay 打得開，七個分頁（銀行轉帳訂單／綠界訂單／取消退款申請／會員訂閱／退款紀錄／收款帳號設定／操作紀錄（10-16 新增））",
+           bool(wait_until(ad, "() => document.querySelectorAll('#payTabs [data-ptab]').length === 7", 10000)))
         side = ad.evaluate("() => [...document.querySelectorAll('.l4subtab[data-parent=admin]')].map(x => x.textContent.trim())")
         ok(f"{T}：桌機側欄管理區多一格「付款與訂單」而且是目前這格", "付款與訂單" in side and ad.evaluate("() => !!document.querySelector('.l4subtab[data-adm=pay].on')"), side)
         ad.click("[data-ptab=bank]")
@@ -70996,6 +70996,9 @@ def t_pay_1011(b, base):
         ok(f"{T}：退回後狀態「已退回」", bool(wait_until(ad, f"() => {{ const r = document.querySelector('#payTbl tr[data-oid=\"{r_new.get('id')}\"]'); return r && /已退回/.test(r.innerText); }}", 8000)))
         mo = [o for o in call(pc, "/v1/pay/my", {}).get("orders", []) if o["id"] == r_new.get("id")]
         ok(f"{T}：carol 的我的訂單看得到「已退回」與原因、權限沒有被這筆影響", bool(mo) and mo[0]["statusName"] == "已退回" and mo[0]["rejectReason"] == "查無這筆入帳" and plan_of(pc)[0] == "plus", mo)
+        # 10-16：訂單清單同一 email 只顯示最新一筆（carol 最新的是剛退回那張），先用搜尋找到第一張再按退款
+        ad.fill("#pfQ", boid)
+        wait_until(ad, f"() => !!document.querySelector('#payTbl [data-pa=refund][data-id=\"{boid}\"]')", 4000)
         ad.click(f"#payTbl [data-pa=refund][data-id='{boid}']")
         dlg = wait_until(ad, "() => { const d = document.getElementById('payRefundDlg'); return d ? d.innerText : ''; }", 6000)
         ok(f"{T}：退款確認框：可退金額、試算（7 天內全額）、權限二選一（預設立即降級）、轉帳要人工＋提醒「請到網銀把錢匯回」",
@@ -71008,6 +71011,7 @@ def t_pay_1011(b, base):
             ad.click("#rfGo")
         rid = json.loads(ri.value.request.post_data or "{}").get("rid")
         ok(f"{T}：退款完成 → 訂單「已退款」", ri.value.status == 200 and bool(wait_until(ad, f"() => {{ const r = document.querySelector('#payTbl tr[data-oid=\"{boid}\"]'); return r && /已退款/.test(r.innerText); }}", 8000)))
+        ad.fill("#pfQ", ""); ad.wait_for_timeout(400)
         dup = dev_post("/v1/admin/pay/refund", {"t": atok, "id": boid, "rid": rid, "amount": 299, "last5": "54321", "date": "2026-10-11"})
         ok(f"{T}：同一個退款重送（同一個 rid）不會再退一次", dup.get("dup") is True and len([r for r in dev_post("/v1/admin/pay/list", {"t": atok}).get("refunds", []) if r["oid"] == boid and r["status"] == "done"]) == 1, dup)
         ok(f"{T}：退款後 carol 立即回到註冊會員（指標設定又鎖住）", plan_of(pc) == ["free", False], plan_of(pc))

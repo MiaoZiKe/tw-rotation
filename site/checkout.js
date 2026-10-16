@@ -27,8 +27,8 @@
   const ss = { get(k) { try { return sessionStorage.getItem(k); } catch (e) { return null; } }, set(k, v) { try { sessionStorage.setItem(k, v); } catch (e) { /* 私密視窗 */ } }, del(k) { try { sessionStorage.removeItem(k); } catch (e) { /* 同上 */ } } };
   const ls = { get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }, set(k, v) { try { localStorage.setItem(k, v); } catch (e) { /* 同上 */ } } };
   const PEND = 'tw.co.pending', DISMISS = 'tw.pay.renew.off';
-  const ST_CLS = { pending: 'wait', review: 'wait', paid: 'wait', active: 'ok', failed: 'bad', rejected: 'bad', expired: 'mute', refunded: 'mute', cancelled: 'mute' };
-  const ST_NAME = { pending: '待付款', review: '待確認', paid: '已入帳', active: '已開通', failed: '失敗', rejected: '已退回', expired: '已逾期', refunded: '已退款', cancelled: '已取消（未付款）' };
+  const ST_CLS = { pending: 'wait', review: 'wait', paid: 'wait', active: 'ok', failed: 'bad', rejected: 'bad', expired: 'mute', refunded: 'mute', cancelled: 'mute', superseded: 'mute' };
+  const ST_NAME = { pending: '待付款', review: '待確認', paid: '已入帳', active: '已開通', failed: '失敗', rejected: '已退回', expired: '已逾期', refunded: '已退款', cancelled: '已取消（未付款）', superseded: '已被取代' };
   const S = { my: null, fly: null, poll: null };
   const me = () => { const a = A(); return a && a.on && a.on() ? a.user() : null; };
   const call = (p, b) => { const a = A(); return a && a.on() ? a.call(p, b || {}) : Promise.resolve(null); };
@@ -299,7 +299,7 @@ html.pay-renew #acctBtn.ame::after{content:'';position:absolute;top:2px;right:2p
     msg('送出中…');
     const j = await call('/v1/pay/bank/report', { id, name: f.name, last5: f.last5, date: f.date });
     if (j && j._s === 200 && j.ok) { msg(''); done(j.order); return; }
-    msg(!j ? '連不到會員伺服器' : j.error === 'need_name' ? '請填匯款人姓名' : j.error === 'bad_date' ? '轉帳日期不對（不能是未來，也不能早於開單日）' : j.error === 'already_reported' ? '這筆已經送出過匯款資料；要更正請用右下角「客服」→「意見反饋」' : j.error === 'bad_status' ? '這筆訂單已經處理過了' : `送出失敗（${j._s}）`, true);
+    msg(!j ? '連不到會員伺服器' : j.error === 'need_name' ? '請填匯款人姓名' : j.error === 'bad_date' ? '轉帳日期不對（不能是未來，也不能早於開單日）' : j.error === 'pending_review' ? (j.msg || '你有一筆待審核的訂單，審核完成前只能送出更高級別的方案') : j.error === 'already_reported' ? '這筆已經送出過匯款資料；要更正請用右下角「客服」→「意見反饋」' : j.error === 'bad_status' ? '這筆訂單已經處理過了' : `送出失敗（${j._s}）`, true);
   }
 
   /* ---------------------------------------------------------------- ② 我的訂單 */
@@ -378,7 +378,7 @@ html.pay-renew #acctBtn.ame::after{content:'';position:absolute;top:2px;right:2p
         ${j.plan !== 'free' ? `<span>自動續訂 <b>${j.autoRenew ? '開' : os.some((o) => o.recur && !o.parent) ? '已取消' : '不適用'}</b>${!j.autoRenew && !os.some((o) => o.recur && !o.parent) ? '<small class="muted">（轉帳／單次付款是預付制，不會自動扣款）</small>' : ''}</span>` : ''}${rn ? `<span style="color:var(--amber)">剩 ${rn.days} 天到期</span><button type="button" class="pri" data-renew="1">${rn.method === 'bank' ? '再匯一期' : '續訂一期'}</button>` : ''}
         <span style="flex:1"></span><a href="#pricing">看方案</a></div>
       <div class="ordl" id="ordList">${os.length ? '<div class="ordr hd"><div>時間</div><div>方案</div><div>金額</div><div>方式</div><div>狀態</div><div></div></div>' + os.map((o) => rowHTML(o, o.id === focus)).join('') : '<p class="muted" id="ordEmpty" style="padding:12px 4px">還沒有付款紀錄。到 <a href="#pricing">訂閱方案</a> 挑一個吧。</p>'}</div>
-      ${(j.reqs || []).length ? `<h3 style="margin:16px 0 6px;font-size:15px">我的取消／退款申請</h3><div class="ordl" id="ordReqs">${j.reqs.map((r) => `<div class="ordr" style="grid-template-columns:auto auto 1fr auto"><div class="c-time t">${esc(ymdhm(r.created))}</div><div><b>${r.type === 'refund' ? '申請退款' : '取消訂閱'}</b></div><div class="t" title="${esc(r.note || '')}">${esc(r.note || '')}</div><div><span class="stp ${r.status === 'new' ? 'wait' : 'ok'}">${r.status === 'new' ? '處理中' : '已處理'}</span></div></div>`).join('')}</div>` : ''}</div>`;
+      ${(j.reqs || []).length ? `<h3 style="margin:16px 0 6px;font-size:15px">我的取消／退款申請</h3><div class="ordl" id="ordReqs">${j.reqs.map((r) => `<div class="ordr" style="grid-template-columns:auto auto 1fr auto"><div class="c-time t">${esc(ymdhm(r.created))}</div><div><b>${r.type === 'refund' ? '申請退款' : '取消訂閱'}</b></div><div class="t" title="${esc(r.note || '')}">${esc(r.note || '')}</div><div><span class="stp ${r.status === 'new' ? 'wait' : 'ok'}" title="${esc(r.closeReason || '')}">${r.status === 'new' ? '處理中' : r.closedBy === 'auto' ? '已結案' : '已處理'}</span>${r.status !== 'new' && r.closeReason ? `<small class="muted" style="display:block">${esc(r.closeReason)}</small>` : ''}</div></div>`).join('')}</div>` : ''}</div>`;
     bind(v, j);
     if (f && ['pending', 'paid'].includes(f.status) && f.method === 'ecpay') startPoll(v, f.id);
   }
