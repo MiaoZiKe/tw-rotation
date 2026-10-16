@@ -51,6 +51,14 @@ def test_加入索引取代同id且最新在前(tmp_path):
     assert d["updated"] == "2026-10-17"
 
 
+def test_僅標題索引仍帶topic_自動標完成的相容(tmp_path):
+    from scripts import article_jobs as aj
+    idx = tmp_path / "index.json"
+    idx.write_text(json.dumps({"articles": []}), encoding="utf-8")
+    ap.add_to_index(ap.public_entry(POST), idx)
+    assert aj.published_topics(idx) == {"k_test": POST["id"]}
+
+
 def test_實際的公開檔現在是乾淨的():
     assert ap.leaks() == []
 
