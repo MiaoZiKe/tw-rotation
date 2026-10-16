@@ -342,8 +342,15 @@ export class Hub {
     /* 小視窗模式：通知網站「好了，可以來換了」（訊息裡只有 n，沒有權杖），然後自己關掉。
        opener 被切斷也沒關係 —— 網站那邊本來就在輪詢 /auth/redeem。*/
     const msg = JSON.stringify({ type: 'tw-login', n: row.n }).replace(/</g, '\\u003c');
-    return this.page('登入完成', `<h2>登入完成</h2><p>這個視窗會自動關閉；沒關的話可以直接關掉，回到網站。</p>`
-      + `<script>try{window.opener&&window.opener.postMessage(${msg},${JSON.stringify(ret.origin)})}catch(e){}setTimeout(function(){window.close()},400)</script>`, 200, clear);
+    /* 10-16 Andy：「登入後會一直卡住這畫面，協助自動跳主畫面」——iPhone 的 LINE／FB／IG 內建瀏覽器 window.close() 沒作用，
+       小視窗其實是同一個畫面換頁，於是一直停在這裡。改成：先 postMessage＋close；0.8 秒後頁面還在，就整頁換回網站，
+       網址帶一次性的 n（放在 # 後面，不會送到任何伺服器、也不進 Referer），網站開起來自己拿 n 去 /auth/redeem 換權杖。
+       回去的網址＝登入開始時帶來的 ret，authStart 已經用 originOk 驗過是自家網域（liguligu-puipui.com、miaozike.github.io…）。*/
+    const back = new URL(ret.href); back.hash = 'twn=' + row.n;
+    const backJs = JSON.stringify(back.href).replace(/</g, '\\u003c');
+    return this.page('登入完成', `<h2>登入完成</h2><p>正在回到網站…</p><p><a href="${esc(back.href)}" style="color:#7cc4ff">沒有自動回去的話，按這裡回到網站</a></p>`
+      + `<script>try{window.opener&&window.opener.postMessage(${msg},${JSON.stringify(ret.origin)})}catch(e){}try{window.close()}catch(e){}`
+      + `setTimeout(function(){location.replace(${backJs})},800)</script>`, 200, clear);
   }
   async redeem(req, b) {
     const n = String(b.n || '');

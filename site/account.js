@@ -566,7 +566,9 @@ html:not(.m4) .m4deldlg .msg{min-height:1.4em;font-size:13px;color:#ff6b7a;margi
     const ret = location.origin + location.pathname;
     const url = `${S.api}/auth/start?n=${n}&mode=popup&ret=${encodeURIComponent(ret)}`;
     let w = null;
-    try { w = window.open(url, 'twlogin', 'popup,width=480,height=680'); } catch (e) { w = null; }
+    /* 10-16 Andy：「登入後會一直卡住這畫面」—— App 內建瀏覽器（LINE／FB／IG）開不出真正的小視窗、也關不掉它，
+       一開始就走整頁跳轉，不開彈窗。*/
+    if (!inApp()) { try { w = window.open(url, 'twlogin', 'popup,width=480,height=680'); } catch (e) { w = null; } }
     if (!w) {
       ss.set('tw.acct.n', n);
       location.href = `${S.api}/auth/start?n=${n}&mode=redirect&ret=${encodeURIComponent(location.href)}`;
@@ -586,6 +588,18 @@ html:not(.m4) .m4deldlg .msg{min-height:1.4em;font-size:13px;color:#ff6b7a;margi
     S.poll = setTimeout(tick, 1200);
   }
   /* 10-10 Andy：「登入後 需要自動跳回去首頁總覽」——三個登入完成的入口（彈窗輪詢、postMessage、整頁跳轉回來）都走這支 */
+  /* App 內建瀏覽器：LINE（Line/）、Facebook（FBAN/FBAV/FB_IAB）、Instagram、Messenger（FBAN/MessengerForiOS）。測試可用 window.__twInApp 強制 */
+  function inApp() {
+    if (typeof window.__twInApp === 'boolean') return window.__twInApp;
+    return /\bLine\/|FBAN|FBAV|FB_IAB|FBIOS|Instagram|MessengerForiOS/i.test(navigator.userAgent || '');
+  }
+  /* 彈窗失效時 Worker 的「登入完成」頁會整頁換回網站，網址帶 #twn=<一次性代碼>。讀出來後馬上把網址換成 #overview，代碼不留在歷史紀錄裡。*/
+  function takeHashN() {
+    const m = /^#twn=([A-Za-z0-9_-]{22,64})$/.exec(location.hash || '');
+    if (!m) return null;
+    try { history.replaceState(null, '', location.pathname + location.search + '#overview'); } catch (e) { location.hash = '#overview'; }
+    return m[1];
+  }
   function goHome() { if ((location.hash || '') !== '#overview') location.hash = '#overview'; }
   function stopPoll() { clearTimeout(S.poll); S.poll = 0; S.pollN = null; }
   window.addEventListener('message', (e) => {
@@ -689,11 +703,18 @@ html:not(.m4) .m4deldlg .msg{min-height:1.4em;font-size:13px;color:#ff6b7a;margi
     paintBar();
     pv();
     /* 整頁跳轉登入回來：拿 sessionStorage 的 n 去換權杖 */
-    const n = ss.get('tw.acct.n');
+    const hn = takeHashN();
+    const n = hn || ss.get('tw.acct.n');
     if (n) {
       ss.del('tw.acct.n');
       const j = await call('/auth/redeem', { n });
       if (j && j.tok && j.user) { setUser(j.user, j.tok); track('login'); toast('已登入：' + (j.user.name || j.user.email)); goHome(); }
+      else {
+        /* 代碼已被原本那一頁的輪詢先換走（同一個瀏覽器、共用 localStorage）：讀回權杖照樣算登入 */
+        S.tok = ls.get(K_TOK) || S.tok;
+        if (S.tok) { const k = await call('/v1/me', {}); if (k && k.user) setUser(k.user, k.tok || null); }
+        goHome();
+      }
     } else if (S.tok) {
       const j = await call('/v1/me', {});
       if (j && j.user) setUser(j.user, j.tok || null);
