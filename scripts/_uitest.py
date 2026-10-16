@@ -71834,6 +71834,9 @@ def t_articles_1014(b, base):
     ok(f"{T}：還沒選主題 → 「產生精選文章」「產生短影片」兩顆反灰", gen() == [True, True], gen())
     ap.click("#artTpCats>button[data-cat=all]"); ap.wait_for_timeout(150)
     tids = ap.evaluate("() => [...document.querySelectorAll('#artTpBody tr[data-tid]')].map(r => [r.dataset.tid, r.querySelector('.artbadge').textContent])")
+    # 已經有文章上架的主題，狀態欄顯示「已上架」而不是「排隊中」→ 驗「排隊中」只挑還沒上架的主題（10-16 產出佇列開始真的上架文章）
+    _pubt = {a.get("topic") for a in real if a.get("topic")}
+    tids = [t for t in tids if t[0] not in _pubt]
     pick = [tids[2]] + [t for t in tids if t[1] != tids[2][1]][:1]              # 先挑兩個不同類別
     for t in pick:
         ap.click(f"#artTpBody tr[data-tid=\"{t[0]}\"]"); ap.wait_for_timeout(100)
