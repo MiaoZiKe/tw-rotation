@@ -61589,7 +61589,7 @@ def t_traffic_sum_1006(b, base, code):
     T = "流量觀測期間合計1006"
     errs: list[str] = []
     pbase = base.replace("/index.html", "/preview/style-guide/index.html")
-    NP = 13
+    NP = 14   # 示範資料的頁數（admin.js 示範 PAGES）；2026-10-16 多「精選文章」13 → 14
     for theme in ("dark", "light"):
         c, sent = _adm2_ctx(b)
         c.add_init_script(f"try{{localStorage.setItem('tw.theme','{theme}');}}catch(e){{}}window.__demoDayNum=true;")
@@ -61730,7 +61730,7 @@ def t_traffic_1005(b, base, code):
     T = "流量觀測1005"
     errs: list[str] = []
     pbase = base.replace("/index.html", "/preview/style-guide/index.html")
-    NAMES = "全部,事件,市場明細,週期統計,資金流向,熱力圖,產業地圖,選股策略,ETF,自選,客服,個股,使用者"
+    NAMES = "全部,事件,市場明細,週期統計,資金流向,熱力圖,產業地圖,選股策略,ETF,自選,客服,個股,精選文章,使用者"   # 2026-10-16 精選文章接上流量觀測
     for theme in ("dark", "light"):
         c, sent = _adm2_ctx(b)
         c.add_init_script(f"try{{localStorage.setItem('tw.theme','{theme}');}}catch(e){{}}")
@@ -61821,7 +61821,7 @@ def t_traffic_1005(b, base, code):
             const stk = (p) => [...document.querySelectorAll(`#trAllB .bt[data-p="${p}"] i`)].map(i => ({ bg: getComputedStyle(i).backgroundColor, t: i.dataset.tip }));
             const dc = echarts.getInstanceByDom(document.querySelector('#trAllDonut .dnc')), dd = dc.getOption(), arcs = dd.series[0].data;
             return { n: rows.length, sorted: vals.every((v, i) => i === 0 || vals[i - 1] >= v), flow: stk('flow'), etf: stk('etf'), arcs: arcs.length, tips: arcs.every(a => a.value > 0), center: (dd.title || []).map(t => String(t.text).replace(/\\{\\w+\\|([^}]*)\\}/g, '$1').replace('\\n', ' ')).join(' '), lg: document.querySelectorAll('#trAllDonut ul.lg li').length }; }""")
-        ok(f"{TT}：「全部」左＝各頁長條（11 條、由大到小）", al["n"] == 11 and al["sorted"], al)
+        ok(f"{TT}：「全部」左＝各頁長條（12 條、由大到小；2026-10-16 多精選文章）", al["n"] == 12 and al["sorted"], al)
         ok(f"{TT}：有子頁的頁面（資金流向）長條堆疊 3 色且滑過提示有占比；沒有子頁的（ETF）單色",
            len(al["flow"]) == 3 and len({x["bg"] for x in al["flow"]}) == 3 and all("%" in x["t"] and "資金流向" in x["t"] for x in al["flow"]) and len(al["etf"]) == 1, al)
         ok(f"{TT}：「全部」右＝各頁占比甜甜圈（照產業地圖）：前 5 頁＋其他＝6 塊、不拆子頁、中心寫「前五大 xx%」、圖例 6 項",
@@ -62049,8 +62049,9 @@ def t_traffic_1005(b, base, code):
     fa = int(pg.inner_text("#trTabs [data-t=flow] em").replace(",", ""))
     pg.click("#admDayBars .dc[data-day] >> nth=10")
     wait_until(pg, "() => !!document.getElementById('trDayChip')", 4000)
+    # 2026-10-16：分頁多一顆「精選文章」→ 14 顆（全部＋12 頁＋使用者）
     ok(f"{T}：Worker 不支援起訖日 → 膠囊寫「這個功能要等會員系統更新後才有」、下方維持整段期間的統計（{fa}）、沒有空白", "這個功能要等會員系統更新後才有" in pg.inner_text("#trDayChip")
-       and int(pg.inner_text("#trTabs [data-t=flow] em").replace(",", "")) == fa and pg.locator("#trTabs button").count() == 13 and pg.locator("#trPageBody .bars .bl").count() >= 5, pg.inner_text("#trDayChip"))
+       and int(pg.inner_text("#trTabs [data-t=flow] em").replace(",", "")) == fa and pg.locator("#trTabs button").count() == 14 and pg.locator("#trPageBody .bars .bl").count() >= 5, pg.inner_text("#trDayChip"))
     c.close()
     # ★ 手機觸控（390、真的用觸控點）：點一下圖出提示、點外面收起來；有「下一步」的元素第一下只出提示、第二下才執行
     c, sent = _adm2_ctx(b, width=390, touch=True)

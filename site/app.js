@@ -14015,7 +14015,7 @@
       return hot;
     };
     let act = -1, nid = 0;
-    const rows = () => $$('[data-c]', sg);
+    const rows = () => $$('[data-c], [data-art]', sg);
     const isOpen = () => sg.style.display !== 'none' && sg.style.display !== '';
     const row = (code, name, right, del) => {
       const n = name || L.cname[code] || '';
@@ -14076,12 +14076,28 @@
       }
       open(h, 'panel');
     };
+    /* ★ 2026-10-16（Andy：「精選文章其他分頁有的功能 他也要有」）：打字時也比對精選文章的標題，排在股票後面一段「精選文章」（最多 5 篇）。
+       清單第一次聚焦才讀（TwArticles.searchList，articles/index.json 已有快取）；讀回來時框裡還有字（下拉開著、或游標還在框裡 —— 股票一筆都沒中時下拉是收著的）就重比一次。
+       點文章列＝進 #article/<id>，不吃「搜尋股票」的每日次數（那一項的單位是「從搜尋進一檔個股」）—— 文章本身的次數由 art.read 管。 */
+    let arts = null, artsAsked = false;
+    const loadArts = () => {
+      if (artsAsked || !window.TwArticles || !window.TwArticles.searchList) return;
+      artsAsked = true;
+      window.TwArticles.searchList().then((a) => { arts = Array.isArray(a) ? a : []; if (q.value.trim() && (isOpen() || document.activeElement === q)) search(); }).catch(() => { artsAsked = false; });
+    };
+    const artRow = (a) => `<div class="sgrow sgart" role="option" aria-selected="false" id="sgo${++nid}" data-art="${fmt.esc(a.id)}" data-cat="${fmt.esc(a.cat || '')}" title="${fmt.esc(a.title)}">`
+      + `<span class="code">${window.TwArticles && window.TwArticles.icon ? window.TwArticles.icon(a.cat, 14) : ''}</span><span class="nm">${fmt.esc(a.title)}</span>`
+      + `<span class="g">${fmt.esc(a.catName || '')}</span><span class="tv">${fmt.esc(String(a.date || '').slice(5))}</span></div>`;
     const search = () => {
       const v = q.value.trim().toLowerCase();
       if (!v) { panel(); return; }
+      loadArts();
       const hits = list.filter(([c, n]) => c.startsWith(v) || (n || '').toLowerCase().includes(v)).slice(0, 12);
-      open(hits.map(([c, n]) => row(c, n, grp(c))).join(''), 'hits');
+      const ah = (arts || []).filter((a) => a.title.toLowerCase().includes(v)).slice(0, 5);
+      open(hits.map(([c, n]) => row(c, n, grp(c))).join('')
+        + (ah.length ? `<div class="sghd" id="sgArtHd"><span>精選文章</span><small>標題符合「${fmt.esc(q.value.trim())}」</small></div>` + ah.map(artRow).join('') : ''), 'hits');
     };
+    const goArt = (id) => { close(); q.value = ''; q.blur(); const h = '#article/' + encodeURIComponent(id); if (location.hash !== h) location.hash = h; };
     const setAct = (i) => {
       const r = rows();
       if (!r.length) { act = -1; return; }
@@ -14096,7 +14112,7 @@
     /* 2026-10-12：今天搜尋次數用完 → 框是反灰 readOnly 的，點進去也不展開建議清單（不然清單照樣跳出來、點了卻不進，像壞掉） */
     const spent = () => !!(window.TwQuota && window.TwQuota.out && window.TwQuota.out('search'));
     q.addEventListener('input', search);
-    q.addEventListener('focus', () => { if (spent()) { q.blur(); return; } if (!isOpen()) search(); });
+    q.addEventListener('focus', () => { if (spent()) { q.blur(); return; } loadArts(); if (!isOpen()) search(); });
     q.addEventListener('click', () => { if (spent()) return; if (!isOpen()) search(); });   // Esc 關掉之後再點一下框（焦點沒離開，focus 不會再觸發）
     q.addEventListener('keydown', e => {
       if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
@@ -14108,12 +14124,12 @@
       if (e.key === 'Escape') { if (isOpen()) { e.preventDefault(); close(); } return; }
       if (e.key !== 'Enter') return;
       const r = rows();
-      if (isOpen() && act >= 0 && r[act]) { e.preventDefault(); go(r[act].dataset.c); return; }
+      if (isOpen() && act >= 0 && r[act]) { e.preventDefault(); if (r[act].dataset.art) goArt(r[act].dataset.art); else go(r[act].dataset.c); return; }
       const v = q.value.trim();
       if (!v) return;
       const hit = list.find(([c]) => c === v) || list.find(([c, n]) => (n || '') === v);
       if (hit) { go(hit[0]); return; }
-      if (isOpen() && sg.dataset.mode === 'hits' && r[0]) go(r[0].dataset.c);   // 沒有完全符合就進第一筆建議
+      if (isOpen() && sg.dataset.mode === 'hits' && r[0]) { if (r[0].dataset.art) goArt(r[0].dataset.art); else go(r[0].dataset.c); }   // 沒有完全符合就進第一筆建議（只有文章符合時＝第一篇文章）
     });
     // 按在清單上不要讓輸入框失焦：鍵盤還要能接著上下選
     sg.addEventListener('mousedown', e => { e.preventDefault(); });
@@ -14129,6 +14145,8 @@
       const st = e.target.closest('.sgstar');
       if (st) { e.stopPropagation(); toggleStar(st); q.focus(); return; }   // 不觸發整列的跳個股頁、不關下拉
       if (e.target.closest('#sgClr')) { e.stopPropagation(); recentSet([]); panel(); q.focus(); return; }
+      const ar = e.target.closest('[data-art]');
+      if (ar) { goArt(ar.dataset.art); return; }
       const r = e.target.closest('[data-c]');
       if (r) go(r.dataset.c);
     });

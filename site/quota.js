@@ -61,9 +61,13 @@
        group   ＝g.<族群>（族群觀測）                                 visit  ＝<頁>.<分頁代號>（其他：同一個瀏覽器分頁算一次）
      伺服器（workers/data-gw 的 limUnitOf）用**同一組字串**：stock/m60/hist 檔 → 代號；所以前端擋、後端也擋，兩邊數到的是同一個東西。*/
   const UNIT = { 'ind.diagram': 'diagram', 'ind.3d': 'diagram', 'ind.groups': 'chain', 'ind.rel': 'chain', 'heat.detail': 'theme' };
+  /* 2026-10-16 精選文章：單篇（art.read、art.cat.*）的單位＝一篇文章（a.<文章 id>）—— 「每日 N 次」＝每天能讀 N 篇，同一篇重看不重算；
+     清單頁（art.list）照「一次造訪」算（visit）。*/
+  const ART_UNIT = /^art\.(read|cat\.)/;
   function unitKind(f) {
     if (!f) return 'visit';
     if (UNIT[f.id]) return UNIT[f.id];
+    if (ART_UNIT.test(f.id)) return 'article';
     if (f.cat === 'grp') return 'group';
     if (f.id === 'stock.page' || f.cat === 'stockk' || f.cat === 'stocktab') return 'stock';
     return 'visit';
@@ -71,6 +75,7 @@
   function unitKey(f, h) {
     const k = unitKind(f), pk = pageKey(h);
     if (k === 'stock') { const m = /^#stock\/([0-9A-Za-z]{4,6})/.exec(h); return m ? m[1].toUpperCase() : pk; }
+    if (k === 'article') { const m = /^#article\/([^/?]+)/.exec(h); if (!m) return null; let id = m[1]; try { id = decodeURIComponent(id); } catch (e) { /* 原樣 */ } return safeKey('a.' + id); }
     if (k === 'diagram') return /^d\./.test(pk) || /^c\./.test(pk) ? pk : pk;
     if (k === 'chain') {
       const m = /^#industry\/([^/?]+)/.exec(h);
@@ -329,7 +334,7 @@
     'heat.link': /^#(overview)?([/?]|$)|^#heatmap/, 'mkt.cand': /^#market\/cand/, 'etf.inc.params': /^#etf\/inc/, 'etf.inc.comp': /^#etf\/inc/,
   };
   const CAT_HEAD = { overview: /^#(overview)?([/?]|$)/, flow: /^#flow/, industry: /^#industry/, heatmap: /^#heatmap/, market: /^#market/, stockk: /^#stock\//, stocktab: /^#stock\//,
-    etf: /^#etf(\/list)?([/?]|$)/, explore: /^#explore/, earnings: /^#earnings/, watch: /^#watch/ };
+    etf: /^#etf(\/list)?([/?]|$)/, explore: /^#explore/, earnings: /^#earnings/, watch: /^#watch/, articles: /^#articles?([/?]|$)/ };
   const UNIT_TXT = { tab: '切分頁', filter: '篩選', drill: '下鑽', obj: '看' };
   function onPage(f, h) {
     if (PAGE_OF[f.id]) return PAGE_OF[f.id].test(h);

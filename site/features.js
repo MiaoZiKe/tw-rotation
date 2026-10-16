@@ -31,6 +31,9 @@
   'use strict';
   var CATS = [
     { id: 'overview', name: '總覽' },
+    /* 2026-10-16 新分類（Andy：「精選文章其他分頁有的功能 他也要有 例如導覽 限制 這些都要在確認」）：
+       排在總覽後面＝跟左側選單「今日市場：總覽 → 精選文章 → 財經日曆」同一個順序（#admin/perm 的卡片順序就是這份宣告順序） */
+    { id: 'articles', name: '精選文章' },
     { id: 'flow', name: '資金流向' },
     { id: 'industry', name: '產業地圖／產業鏈' },
     { id: 'heatmap', name: '熱力圖' },
@@ -74,6 +77,20 @@
     box('ov.rot', 'overview', '資金輪盤', ['#rotClockMiniWrap', '#ovRotKpi'], '總覽右欄的族群強弱輪盤'),
     box('ov.flow', 'overview', '昨日資金分流樹', ['#ovFlowWrap'], '總覽右欄的資金分流樹簡圖'),
     box('ov.breadth', 'overview', '漲跌家數分佈', ['#ovBreadthCard'], '依漲跌幅分級的家數直條（全部／上市／上櫃）'),
+    // ---- 精選文章（site/articles.js，2026-10-16 接上全站開關與每日次數）
+    /* ★ 預設全部開、不設 defBy／limBy、不進 METERED（全站共用額度）＝上線這一刻任何人看得到的文章一篇都不變；
+       Andy 要收費或限篇數時，在 #admin/perm 對訪客／註冊會員／Plus／Pro 範本關掉或填「每日 N 次」。
+       單位（quota.js UNIT）：清單＝一次造訪（同一個瀏覽器分頁來回切不重算）；單篇＝一篇文章（同一篇同一天重看不重算）——「每日 N 次」就是「每天能讀 N 篇」。
+       三個類別各自一個開關：可以只把「比比產業鏈」留給付費會員，其他類別照常開放（veil 條件看 #artPost 的 data-cat）。
+       ⚠ 不掛 mark（🔒 小標）：文章卡片與分類分頁的 ::after 已經拿去畫手機短名（mobile4.css「精選文章分頁」），再掛會把版面撐壞；
+         被關掉的那一篇點進去看到的是置中的需開通卡（qcard.js），不是什麼都沒發生。*/
+    Object.assign(box('art.list', 'articles', '精選文章清單', ['#artCard'], '文章列表頁：分類分頁、標題／族群／日期篩選與文章卡片（每日次數＝造訪幾次，同一個分頁來回切不重算）'),
+      { route: /^#articles([/?]|$)/, qunit: '看' }),
+    Object.assign(box('art.read', 'articles', '閱讀文章（單篇）', ['#artPost'], '點進去讀一篇文章（內文、圖表、相關台股）；每日次數＝每天能讀幾篇，同一篇同一天重看不重算'),
+      { route: /^#article\//, qunit: '篇' }),
+    Object.assign(box('art.cat.news', 'articles', '比比快訊（單篇）', ['#artPost[data-cat="news"]'], '「比比快訊」類別的文章內文（關掉：只有這一類的單篇蓋需開通卡，其他類別照常）'), { route: /^#article\//, qunit: '篇' }),
+    Object.assign(box('art.cat.intro', 'articles', '比比產業鏈（單篇）', ['#artPost[data-cat="intro"]'], '「比比產業鏈」類別的文章內文（關掉：只有這一類的單篇蓋需開通卡，其他類別照常）'), { route: /^#article\//, qunit: '篇' }),
+    Object.assign(box('art.cat.know', 'articles', '比比知識（單篇）', ['#artPost[data-cat="know"]'], '「比比知識」類別的文章內文（關掉：只有這一類的單篇蓋需開通卡，其他類別照常）'), { route: /^#article\//, qunit: '篇' }),
     // ---- 資金流向
     box('flow.rot', 'flow', '輪動時鐘＋族群資金排行', ['#flowRotCard'], '族群相對強弱四象限與成交值／法人排行（同一張卡）'),
     box('flow.sankey', 'flow', '資金分流樹（桑基）', ['#flowSankeyCard'], '大盤 → 產業鏈 → 族群的資金分流圖'),

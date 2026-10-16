@@ -22,7 +22,7 @@
   'use strict';
   /* 使用統計白名單 —— 跟 workers/account-api/worker.js 同一份，測試會比對（改一邊要改另一邊與文件）*/
   /* 跟 Worker 的 VIEWS 完全一致（18 頁、同順序；tests/account.test.mjs 三邊一致測試）。後七頁 2026-10-05（hourly）Worker 先補、這裡跟上 */
-  const VIEWS = ['overview', 'flow', 'industry', 'heatmap', 'market', 'season', 'delivery', 'stock', 'legal', 'watch', 'other', 'etf', 'explore', 'earnings', 'events', 'support', 'pricing', 'notices'];
+  const VIEWS = ['overview', 'flow', 'industry', 'heatmap', 'market', 'season', 'delivery', 'stock', 'legal', 'watch', 'other', 'etf', 'explore', 'earnings', 'events', 'support', 'pricing', 'notices', 'articles'];   // 2026-10-16 精選文章（#articles、#article/<id>）；Worker VIEWS_ADDED 同一批加
   const EVENTS = ['session', 'session_login', 'login', 'logout', 'search', 'watch_add', 'watch_remove', 'watch_tab_new', 'watch_panel', 'stock_tab', 'k_period', 'ai_tab', 'open_3d', 'zoom', 'how', 'theme_toggle', 'events_drawer', 'mtf', 'indicators', 'draw', 'm_seg'];
   const K_TOK = 'tw.acct.tok', K_USER = 'tw.acct.user';
   const BEAT_MS = 60 * 1000;
@@ -71,6 +71,7 @@
     if (['terms', 'privacy', 'disclaimer', 'leave'].includes(head)) return 'legal';
     if (head === 'themes') return 'heatmap';
     if (head === 'tasks') return 'delivery';
+    if (head === 'article') return 'articles';                 // 單篇文章算在「精選文章」這一頁（同 app.js 的 view 對照）
     return VIEWS.includes(head) ? head : 'other';
   }
   function bump(k) { S.q[k] = Math.min(50, (S.q[k] || 0) + 1); if (S.items) counted(); }
@@ -182,6 +183,9 @@
     if (head === 'themes') return ['heatmap', 'theme'];
     if (head === 'industry') return ['industry', !rest ? 'chains' : rest === 'group' ? 'group' : 'chain'];
     if (head === 'market') return ['market', /^[a-z0-9]{1,16}$/.test(rest) ? rest : 'updown'];
+    /* 2026-10-16 精選文章：列表的類別（all／news／intro／know）與「單篇」（post）—— 每一篇各自被讀幾次另外記細項 read（articles.js recordOpen） */
+    if (head === 'articles') return ['articles', ['news', 'intro', 'know'].includes(rest) ? rest : 'all'];
+    if (head === 'article') return ['articles', 'post'];
     return null;
   }
   let lastSub = '';
@@ -226,6 +230,7 @@
     ['#supPanel #fbSend', () => ['support.send', '', 'support']],
     ['#supPanel #supMail', () => ['support.mail', '', 'support']],
     ['#evList .ev a', () => ['events.link', '', 'events']],
+    ['#sugg [data-art]', () => ['search_art', '', 'articles']],                                                  // 2026-10-16 左上搜尋點到精選文章（只記次數，不記打的字）
     ['#drawBar .dtool', (el) => ['draw.tool', (el.getAttribute('title') || el.textContent || '').trim().split(/[（(]/)[0].slice(0, 20), 'stock']],   // K 線畫線工具（工具名取自按鈕提示）                                                    // 事件抽屜：點事件連結
   ];
   document.addEventListener('click', (e) => {

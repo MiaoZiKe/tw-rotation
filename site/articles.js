@@ -621,8 +621,32 @@
   window.addEventListener('tw:account-config', () => {   // 帳號 API 網址比文章頁晚就緒（直接開文章網址）：就緒時補讀
     const h = (location.hash || '').replace(/^#/, '').split('/');
     if (h[0] === 'articles' || h[0] === 'admin') loadStats(true);
-    else if (h[0] === 'article' && S.cur) recordView(S.cur);
+    else if (h[0] === 'article' && S.cur) recordOpen(S.cur);
   });
+  /* 2026-10-16（Andy：「精選文章其他分頁有的功能 他也要有 例如導覽 限制」）：管理區可以把文章對某個方案關掉或限每日篇數
+     （features.js art.read、art.cat.<類別>）。被擋住的那一篇讀者其實沒看到內文 —— 不算一次點閱，不然「哪篇文章最多人看」會被看不到的人灌高。
+     判斷直接問權限與額度（TwPerm／TwQuota），不等鎖頭畫上去：鎖頭是下一個畫格才掛，等畫面會讓點閱晚送、數字晚出來。
+     額度：今天這一篇已經算過 → 照常；還沒算、而且已經用滿 → 擋（跟 quota.js evaluate 同一條規則）。*/
+  function artBlocked(cat) {
+    const P = window.TwPerm, Q = window.TwQuota, h = location.hash || '';
+    return ['art.read', 'art.cat.' + cat].some((fid) => {
+      try {
+        if (P && P.can && !P.can(fid)) return true;
+        const lim = Q && Q.limit ? Q.limit(fid) : Infinity;
+        if (!Number.isFinite(lim)) return false;
+        const key = Q.unitKey(fid, h), used = Q.used(fid) || [];
+        return !!key && !used.includes(key) && used.length >= lim;
+      } catch (e) { return false; }
+    });
+  }
+  function recordOpen(id, fresh) {   // fresh＝真的剛打開這一篇（showPost）；帳號 API 晚就緒的補送不再記一次流量細項
+    if (S.cur !== id || (location.hash || '').replace(/^#/, '').split('/')[0] !== 'article') return;
+    const cat = (S.curData && S.curData.id === id && S.curData.cat) || catOf(id);
+    if (artBlocked(cat)) { loadStats(); return; }
+    /* 流量觀測（管理區 → 精選文章分頁）的「被點最多的文章」：細項＝標題（account.js 會截成 24 字、拿掉引號等字元），一篇打開一次記一次 */
+    try { if (fresh && window.TwT && S.curData && S.curData.id === id) window.TwT('read', S.curData.title || id); } catch (e) { /* 統計失敗不影響閱讀 */ }
+    recordView(id);
+  }
   const catOf = (id) => { const a = S.idx && S.idx.list.find((x) => x.id === id); return a ? a.cat : ''; };
 
   /* 2026-10-16 Andy：「精選文章已經裡面有分頁，側邊子分頁就拿掉」→ 側欄沒有子項可亮，這裡只負責把殘留的 art-* 清掉
@@ -664,10 +688,20 @@
     (S.idx ? S.idx.list : []).forEach((a) => (a.groups || []).forEach((g) => { const o = m.get(g.id) || { id: g.id, name: g.name, n: 0 }; o.n += 1; m.set(g.id, o); }));
     return [...m.values()].sort((a, b) => b.n - a.n || a.name.localeCompare(b.name, 'zh-Hant'));
   }
+  /* 2026-10-16（Andy：「精選文章其他分頁有的功能 他也要有」）：卡片標題旁的「?」跟全站同一套（app.js wireHowto 委派、跳出式），
+     內容寫到「所以我該怎麼用」；條列 ≤5 條、每條 ≤30 字（_uitest「說明精簡」的量法）。App 比這支早載入；萬一沒有就退回純條列。*/
+  const HOW_ART = (() => {
+    const q = '這一頁回答：網站整理過的文章有哪些、各在講什麼';
+    const li = ['上方分頁切類別，分頁上的數字＝目前條件下的篇數', '關鍵字、族群、日期三個條件一起作用', '卡片上的眼睛圖示＝這篇被打開過幾次',
+      '所以：先挑類別或族群縮小範圍，再點卡片讀全文', '讀完點「相關族群」，看提到同一族群的其他文章'];
+    const A = window.App;
+    return A && A.howHTML ? A.howHTML(q, li) : `<b class="howq">${esc(q)}</b><ul>${li.map((t) => `<li>${esc(t)}</li>`).join('')}</ul>`;
+  })();
   function skeletonList(root) {
     root.innerHTML = `
 <div class="card artcard" id="artCard">
-  <div class="row spread"><h3>精選文章 <small id="artUpd"></small></h3></div>
+  <div class="row spread"><h3>精選文章 <small id="artUpd"></small> <button class="howbtn pop" data-how="artlist" data-ttl="精選文章怎麼看" type="button" aria-label="精選文章怎麼看">?</button></h3></div>
+  <div class="howtxt" id="how-artlist" hidden>${HOW_ART}</div>
   <div class="nbsw" id="artCats" role="tablist" aria-label="文章分類">
     ${['all'].concat(CAT_KEYS).map((k) => `<button type="button" role="tab" class="k-${k}" data-cat="${k}" data-s="${esc(CAT_S[k])}" title="${esc(catT(k))}">${icon(k, 15)}<span>${esc(catT(k))}</span><em></em></button>`).join('')}
   </div>
@@ -1165,7 +1199,7 @@ ${gs.length ? `<section><h5>熱門族群</h5><div class="gps">${gs.map((g) => `<
     const listHash = CATS[cat] ? '#articles/' + cat : '#articles';
     return `
 <div class="artpage k-${kk}">
-<article class="card artpost" id="artPost" data-id="${esc(d.id)}">
+<article class="card artpost" id="artPost" data-id="${esc(d.id)}" data-cat="${esc(cat)}">
   <button type="button" class="artback" id="artBack" data-to="${listHash}" title="回上一頁">← 返回</button>
   <nav class="artcrumb" aria-label="麵包屑"><a href="#articles">精選文章</a><span aria-hidden="true">›</span>${CATS[cat] ? `<a class="kc" href="#articles/${cat}">${icon(cat, 14)}${esc(catT(cat))}</a><span aria-hidden="true">›</span>` : ''}<span class="cur">${esc(d.title)}</span></nav>
   <div class="artmeta">${cat ? badge(cat) : ''}<span class="mono">${esc(d.date || '')}</span>${upd}<span>閱讀約 ${esc(Number(d.reading_min) || 1)} 分鐘</span>${vwHTML(d.id)}${d.confidence ? `<span title="資料信心：依來源數量與一致性自評">資料信心 ${esc(d.confidence)}</span>` : ''}</div>
@@ -1209,7 +1243,7 @@ ${gs.length ? `<section><h5>熱門族群</h5><div class="gps">${gs.map((g) => `<
     root.innerHTML = postHTML(d, meta);
     S.curData = d;
     hydrate(root, d);
-    recordView(d.id);
+    recordOpen(d.id, true);
     document.title = d.title + '｜精選文章';
   }
 
@@ -1516,7 +1550,12 @@ ${gs.length ? `<section><h5>熱門族群</h5><div class="gps">${gs.map((g) => `<
   // 管理者身分是非同步回來的（登入、/v1/me）：回來時若正停在這一頁就重畫一次
   window.addEventListener('tw:account', () => { if (location.hash === '#admin/articles') { const v = document.getElementById('v-subadm'); if (v) renderAdmin(v); } });
 
-  window.TwArticles = { show, catOf, state: () => S, renderAdmin };
+  /* 2026-10-16：左上搜尋框（app.js initSearch）也搜得到文章標題 —— 給它一份已上架清單（id、標題、類別名、日期），順序＝最新在前 */
+  function searchList() {
+    return loadIndex().then((idx) => (idx && Array.isArray(idx.list) ? idx.list : []).filter((a) => a && okId(a.id) && a.title)
+      .map((a) => ({ id: a.id, title: String(a.title), cat: a.cat, catName: catT(a.cat), date: a.date || '' })));
+  }
+  window.TwArticles = { show, catOf, state: () => S, renderAdmin, searchList, icon };
   /* 保險：這支排在 app.js 後面載入。若 app.js 第一次跑 route() 時這支還沒載好（直接開 #articles／#article/<id> 的網址），
      那一次就沒人畫 —— 開站後看一眼：頁面已經切到 #v-articles 但裡面是空的，就自己補畫一次。*/
   function boot() {

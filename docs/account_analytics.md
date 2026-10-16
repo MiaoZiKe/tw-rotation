@@ -42,6 +42,7 @@ Andy 2026-09-27：「使用者透過 google 登入設定，目的是能紀錄線
 | `support` | 右下角客服面板（`#supFab` 打開一次算一次；不是網址頁）—— 同上 |
 | `pricing` | `#pricing`（訂閱方案）—— 同上 |
 | `notices` | `#notices`（公告）—— 同上 |
+| `articles` | `#articles`（精選文章列表）與 `#article/<id>`（單篇，`viewOf` 併進同一頁）—— 2026-10-16 加；子頁開啟 `sub.all／news／intro／know／post`，單篇細項 `read`＝文章標題（前 24 字）、`search_art`＝從左上搜尋點進文章 |
 
 後面七個是 2026-10-05（hourly）在 Worker 白名單補上的（`worker.js` 檔尾 `VIEWS_ADDED`），之前這些頁都記成 `other`。
 **Worker 先上、前端後上**：前端把它們加進 `site/account.js` 的 `VIEWS` 之前，`tests/account.test.mjs` 的三邊一致測試允許前端少這七個；補上之後回到完全相等（順序照 Worker 的 `VIEWS`）。

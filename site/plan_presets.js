@@ -24,6 +24,8 @@
        註冊會員每日 10 次、訪客 3 次（跟訪客其他動作次數 3 同一級距、不比註冊會員寬）；Plus／Pro 明寫開、news.open 不設上限＝不限。
        flow.play／season.groups／mkt.cand 在 features.js 另有 defBy（訪客／註冊會員預設關），線上範本沒寫這幾項時已經生效；
        但範本若明寫 mkt.cand:true（套用過 10-08 版），3D 3 次與 news.open 次數也只在範本 lims —— 都要按「套用建議方案」（或在管理區手動改）才會寫進線上範本。
+   · ★ 2026-10-16（Andy：「精選文章其他分頁有的功能 他也要有 例如導覽 限制」）：新鍵 art.list／art.read／art.cat.news／intro／know（精選文章清單、單篇、三個類別）
+     四個方案都寫 true、不寫每日次數＝跟 features.js 的 def 一樣，套用建議方案不會讓任何人突然看不到文章；要限篇數在 #admin/perm 自己填。
    · ★ 2026-10-10（網頁手機同步稽核 7-3）：新鍵 stock.holdings（ETF 個股頁「成分股」分頁）四個方案都寫 true＝跟 features.js 的 def 一樣，只是把對應補齊，不改任何人看得到的東西。
    · ★ 2026-10-10（Andy：「選股策略」和「AI 分析」「開放 但需要限制次數」——回答 docs/launch_checklist_1009.md 第 30 行 B 類分級二選一）：
      註冊會員選股策略完整名單 explore.list.n 20 → 999（不再截前 20 檔，B 類內容不靠付費解鎖）；次數照舊限制：選股策略頁每日 5 次、篩選 5 次、AI 分析每日 3 次。
@@ -88,6 +90,11 @@ window.TW_PLAN_PRESETS = {
     "stock.ai": false,
     "stock.overview": true,
     "stock.holdings": true,
+    "art.list": true,
+    "art.read": true,
+    "art.cat.news": true,
+    "art.cat.intro": true,
+    "art.cat.know": true,
     "stock.basics": true,
     "stock.tags": false,
     "stock.revenue": true,
@@ -208,6 +215,11 @@ window.TW_PLAN_PRESETS = {
     "stock.ai": true,
     "stock.overview": true,
     "stock.holdings": true,
+    "art.list": true,
+    "art.read": true,
+    "art.cat.news": true,
+    "art.cat.intro": true,
+    "art.cat.know": true,
     "stock.basics": true,
     "stock.tags": true,
     "stock.revenue": true,
@@ -344,6 +356,11 @@ window.TW_PLAN_PRESETS = {
     "stock.ai": true,
     "stock.overview": true,
     "stock.holdings": true,
+    "art.list": true,
+    "art.read": true,
+    "art.cat.news": true,
+    "art.cat.intro": true,
+    "art.cat.know": true,
     "stock.basics": true,
     "stock.tags": true,
     "stock.revenue": true,
@@ -452,6 +469,11 @@ window.TW_PLAN_PRESETS = {
     "stock.ai": true,
     "stock.overview": true,
     "stock.holdings": true,
+    "art.list": true,
+    "art.read": true,
+    "art.cat.news": true,
+    "art.cat.intro": true,
+    "art.cat.know": true,
     "stock.basics": true,
     "stock.tags": true,
     "stock.revenue": true,

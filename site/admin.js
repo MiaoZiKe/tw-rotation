@@ -19,13 +19,13 @@
   'use strict';
   const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
   const VIEW_NAME = { themes: '題材熱度', etf: 'ETF', explore: '選股策略', overview: '總覽', flow: '資金流向', industry: '產業地圖', heatmap: '熱力圖', market: '市場明細', season: '週期統計',
-    delivery: '交付清單', stock: '個股頁', legal: '法律頁', watch: '自選清單', other: '其他' };
+    delivery: '交付清單', stock: '個股頁', legal: '法律頁', watch: '自選清單', other: '其他', articles: '精選文章' };
   const EV_NAME = { session: '開啟網站（每個分頁一次）', session_login: '登入狀態下開啟網站', login: '登入', logout: '登出',
     search: '搜尋股票', watch_add: '加入自選', watch_remove: '移出自選', watch_tab_new: '新增自選分頁', watch_panel: '打開自選清單',
     stock_tab: '切個股分頁（營收／籌碼…）', k_period: '切 K 線週期', ai_tab: '切 AI 分析面向', open_3d: '打開 3D 剖析圖', zoom: '放大圖表',
     how: '打開「?」說明', theme_toggle: '切深淺色', events_drawer: '打開今日事件', mtf: '四週期同看', indicators: '打開指標設定', draw: '畫線工具', m_seg: '手機切分段' };
   /* 細項事件的元件名（docs/account_analytics.md「細項事件」）*/
-  const COMP_NAME = { 'sankey.node': '點資金分流樹節點', 'sankey.link': '點資金分流樹連線', 'inst.tab': '切族群×法人分頁', 'inst.group': '點族群×法人族群', ind: '開啟技術指標', 'draw.tool': '使用畫線工具', 'events.link': '點事件連結', 'etf.cat': '點 ETF 類別', 'explore.topic': '選股題目', 'watch.chart': '點走勢圖', 'watch.kline': '切換 K 線', 'support.fab': '打開客服', 'support.tab': '切客服分頁', 'support.faq': '展開常見問題', 'support.send': '送出意見反饋', 'support.mail': '寄信給客服', view: '被觀看', play: '播放（時間軸）', quad: '象限卡（領先／改善／轉弱／落後）', filter_chain: '篩選：產業鏈', filter_group: '篩選：族群（勾選）',
+  const COMP_NAME = { read: '讀文章', search_art: '從搜尋進文章', 'sankey.node': '點資金分流樹節點', 'sankey.link': '點資金分流樹連線', 'inst.tab': '切族群×法人分頁', 'inst.group': '點族群×法人族群', ind: '開啟技術指標', 'draw.tool': '使用畫線工具', 'events.link': '點事件連結', 'etf.cat': '點 ETF 類別', 'explore.topic': '選股題目', 'watch.chart': '點走勢圖', 'watch.kline': '切換 K 線', 'support.fab': '打開客服', 'support.tab': '切客服分頁', 'support.faq': '展開常見問題', 'support.send': '送出意見反饋', 'support.mail': '寄信給客服', view: '被觀看', play: '播放（時間軸）', quad: '象限卡（領先／改善／轉弱／落後）', filter_chain: '篩選：產業鏈', filter_group: '篩選：族群（勾選）',
     filter_group_open: '打開族群下拉', filter_top10: '只看前 10 大', filter_clear: '清除篩選', rank_bar: '右側排行長條', clock_group: '輪盤上的族群點',
     heat_tile: '熱力圖方塊', how: '「?」說明', search: '搜尋（只記有搜尋）', zoom: '放大圖表', ai_tab: '切 AI 面向', mtf: '四週期同看', indicators: '指標設定',
     draw: '畫線工具', open_3d: '3D 剖析圖', theme_toggle: '切深淺色', events_drawer: '今日事件', m_seg: '手機切分段', watch_add: '加入自選', watch_remove: '移出自選',
@@ -824,12 +824,13 @@ html[data-theme="light"] #v-admin{--pm-blue:#1f4fd8;--pm-blue-2:#163fb4}
     const END = new Date(Date.now() + 8 * 3600000).toISOString().slice(0, 10), NDAY = 400;      // 示範資料的最後一天＝今天（台北），期間選單與日期欄才對得上
     const dayKey = (i) => new Date(Date.parse(END + 'T00:00:00Z') - (NDAY - 1 - i) * 86400000).toISOString().slice(0, 10);
     /* 頁面 30 天瀏覽量（合計約 5.4 萬）；沒有在 Worker 白名單的頁（etf／explore／events／support）示範時直接給 pv，正式站只會有功能次數 */
-    const PAGES = [['flow', 11800], ['stock', 10300], ['overview', 8600], ['industry', 5500], ['heatmap', 4600], ['market', 3900], ['etf', 2200], ['explore', 1900], ['season', 1800], ['watch', 1600], ['events', 1000], ['legal', 320], ['support', 430]];
+    const PAGES = [['flow', 11800], ['stock', 10300], ['overview', 8600], ['industry', 5500], ['heatmap', 4600], ['market', 3900], ['etf', 2200], ['explore', 1900], ['season', 1800], ['watch', 1600], ['events', 1000], ['legal', 320], ['support', 430], ['articles', 1500]];   // 2026-10-16 精選文章
     const wsum = PAGES.reduce((s, p) => s + p[1], 0);
     const W = []; for (let i = 0; i < NDAY; i++) { const dow = new Date(Date.parse(dayKey(i) + 'T00:00:00Z')).getUTCDay(); W.push((dow === 0 || dow === 6 ? 0.45 : 1) * (0.8 + rnd() * 0.45) * (0.55 + 0.45 * i / NDAY)); }
     const base30 = sum30(W.slice(-30));
     function sum30(a) { return a.reduce((x, y) => x + y, 0); }
-    const SUBS = { flow: [['rotation', 0.58], ['sankey', 0.26], ['inst', 0.16]], heatmap: [['industry', 0.63], ['theme', 0.37]], industry: [['chains', 0.34], ['chain', 0.41], ['group', 0.25]], market: [['updown', 0.37], ['inst', 0.27], ['ma', 0.21], ['pick', 0.15]] };
+    const SUBS = { flow: [['rotation', 0.58], ['sankey', 0.26], ['inst', 0.16]], heatmap: [['industry', 0.63], ['theme', 0.37]], industry: [['chains', 0.34], ['chain', 0.41], ['group', 0.25]], market: [['updown', 0.37], ['inst', 0.27], ['ma', 0.21], ['pick', 0.15]],
+      articles: [['all', 0.34], ['news', 0.14], ['intro', 0.12], ['know', 0.08], ['post', 0.32]] };
     const STK = [['2330', 3100], ['2317', 1650], ['2454', 1240], ['3711', 960], ['2382', 820], ['3037', 700], ['2603', 560], ['2308', 470], ['6669', 390], ['3661', 330], ['2881', 250], ['2412', 210]];
     const E2 = [
       ['flow', 'play', 'rotBack', 1480], ['flow', 'quad', '領先', 990], ['flow', 'quad', '改善', 760], ['flow', 'quad', '轉弱', 410], ['flow', 'quad', '落後', 300],
@@ -845,7 +846,8 @@ html[data-theme="light"] #v-admin{--pm-blue:#1f4fd8;--pm-blue-2:#163fb4}
       ['other', 'explore.topic', '營收創高', 330], ['other', 'explore.topic', '法人連買', 290], ['other', 'explore.topic', '突破前高', 240], ['other', 'explore.topic', '低基期', 170], ['other', 'explore.topic', '高殖利率', 130],
       ['other', 'support.fab', '', 310], ['other', 'support.tab', '常見問題', 260], ['other', 'support.tab', '意見反饋', 140], ['other', 'support.tab', '寄信', 70], ['other', 'support.faq', '怎麼加自選？', 150], ['other', 'support.faq', '資料多久更新？', 110], ['other', 'support.faq', '紅漲綠跌？', 60], ['other', 'support.send', '', 52], ['other', 'support.mail', '', 31],
       ['other', 'events.link', '', 720], ['overview', 'events_drawer', '', 330], ['flow', 'events_drawer', '', 210], ['stock', 'events_drawer', '', 190], ['industry', 'events_drawer', '', 120], ['market', 'events_drawer', '', 90],
-      ['overview', 'how', 'ovHeatCard', 210], ['overview', 'heat_tile', 'ABF 載板', 360], ['overview', 'zoom', 'ovIndex', 150]];
+      ['overview', 'how', 'ovHeatCard', 210], ['overview', 'heat_tile', 'ABF 載板', 360], ['overview', 'zoom', 'ovIndex', 150],
+      ['articles', 'read', 'CoWoS 產能還缺多少', 260], ['articles', 'read', 'AI 機櫃裡有哪些台廠', 210], ['articles', 'read', '先進封裝是什麼', 150], ['articles', 'read', '散熱從氣冷到液冷', 120], ['articles', 'search_art', '', 60]];
     const e2Base = [];
     SUBS && Object.entries(SUBS).forEach(([pg, arr]) => arr.forEach(([k, f]) => e2Base.push([pg, 'sub.' + k, '', Math.round(PAGES.find((p) => p[0] === pg)[1] * f)])));
     E2.forEach((r) => { if (r[3]) e2Base.push(r); });
@@ -965,7 +967,7 @@ html[data-theme="light"] #v-admin{--pm-blue:#1f4fd8;--pm-blue-2:#163fb4}
      下方：活頁簿式分頁（全部＋側欄 10 個頁面＋個股頁），每頁有子分頁；每個分頁＝左長條＋右甜甜圈。
      「頁面」是管理區自己的分類：把 Worker 回的 (頁面, 元件, 細項, 次數) 依 PAGES 設定歸到側欄的頁面與子分頁。
      ========================================================================== */
-  const PG_H = [190, 262, 36, 150, 338, 56, 214, 14, 292, 98, 170];            // 各頁色相；子分頁在同色相上微調明度／色相
+  const PG_H = [190, 262, 36, 150, 338, 56, 214, 14, 292, 98, 170, 122, 248];            // 各頁色相；子分頁在同色相上微調明度／色相   // 2026-10-16 精選文章排在第 12 格：補色相 122（綠青），使用者頁 248
   /* 頁面設定：k 鍵、n 名稱、subs（子分頁：k、n、cs＝歸屬的元件，'x.*' 為前綴）、sk＝子分頁開啟事件 sub.<鍵> 的頁面鍵 */
   const PAGES = [
     { k: 'events', n: '事件', simple: true, subs: [] },
@@ -979,11 +981,13 @@ html[data-theme="light"] #v-admin{--pm-blue:#1f4fd8;--pm-blue-2:#163fb4}
     { k: 'watch', n: '自選', subs: [] },
     { k: 'support', n: '客服', subs: [] },
     { k: 'stock', n: '個股', subs: [{ k: 'tabs', n: '分頁點擊', cs: ['tab.*'] }, { k: 'kline', n: 'K 線指標', cs: ['ind', 'indicators', 'kp.*', 'draw', 'draw.*', 'mtf', 'ai_tab', 'open_3d'] }] },
+    /* 2026-10-16 精選文章（排在個股後面、使用者前面：前面各頁的顏色索引不變）：子分頁＝列表四個類別＋單篇（sub.<k> 由 account.js subOf 記）；單篇細項 read＝哪一篇（標題） */
+    { k: 'articles', n: '精選文章', sk: 'articles', subs: [{ k: 'all', n: '全部文章', cs: [] }, { k: 'news', n: '比比快訊', cs: [] }, { k: 'intro', n: '比比產業鏈', cs: [] }, { k: 'know', n: '比比知識', cs: [] }, { k: 'post', n: '單篇文章', cs: ['read'] }] },
     { k: 'users', n: '使用者', sp: 'users', subs: [] },
   ];
     const PAGE_BY = Object.fromEntries(PAGES.map((p) => [p.k, p]));
   /* 這些元件的「細項」是值得單獨排行的對象（族群／個股／類別…）；其餘元件只統計次數 */
-  const DETK = { filter_group: '族群', rank_bar: '族群', clock_group: '族群', heat_tile: '族群', filter_chain: '產業鏈', view: '個股', 'etf.cat': 'ETF 類別', 'explore.topic': '選股題目', 'support.faq': '常見問題', 'support.tab': '客服項目', ind: '技術指標', 'draw.tool': '畫線工具', events_drawer: '來源頁面', 'theme.pick': '題材' };
+  const DETK = { filter_group: '族群', rank_bar: '族群', clock_group: '族群', heat_tile: '族群', filter_chain: '產業鏈', view: '個股', 'etf.cat': 'ETF 類別', 'explore.topic': '選股題目', 'support.faq': '常見問題', 'support.tab': '客服項目', ind: '技術指標', 'draw.tool': '畫線工具', events_drawer: '來源頁面', 'theme.pick': '題材', read: '文章' };
   const kindOf = (comp) => DETK[comp] || (/^tab\./.test(comp) ? '個股' : '');
   const compIn = (comp, cs) => cs.some((c) => (c.endsWith('*') ? comp.startsWith(c.slice(0, -1)) : comp === c));
   function classify(r) {

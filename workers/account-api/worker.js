@@ -1241,7 +1241,8 @@ Object.assign(Hub.prototype.subRoutes, {
         ★ Worker 先上、前端後上：Worker 先收得下新頁面，site/account.js 的 VIEWS 才能加（反過來＝那一分鐘的心跳整批 400、統計全丟）。
    ★ 同 sub-v1／admin-v3／perm-v4：只在檔尾新增、包一層 prototype，既有函式一行不動。
    ============================================================================ */
-export const VIEWS_ADDED = ['etf', 'explore', 'earnings', 'events', 'support', 'pricing', 'notices'];
+/* 2026-10-16：加 articles（精選文章 #articles、#article/<id>；Andy：「精選文章其他分頁有的功能 他也要有」）—— 同上，Worker 要比前端先收得下 */
+export const VIEWS_ADDED = ['etf', 'explore', 'earnings', 'events', 'support', 'pricing', 'notices', 'articles'];
 for (const v of VIEWS_ADDED) { if (!VIEWS.includes(v)) VIEWS.push(v); EV_KEYS.add('pv:' + v); }
 
 const tpeHour = (ms) => new Date(ms + 8 * 3600 * 1000).getUTCHours();
