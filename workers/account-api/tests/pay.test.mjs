@@ -694,3 +694,148 @@ test('10-16 待審核擋同級與更低：送出匯款資料後只能申請更�
   assert.equal((await pj(hub, '/v1/pay/bank/create', { t: bob, plan: 'plus', period: 'month' })).j.error, 'blocked');
   void andy;
 });
+
+/* ============================================================== 2026-10-16 管理區分頁關係（docs/payment_admin_tabs_1016.md）
+   Andy 10-16：「不應該發生 他待審核，另一個退款分頁還有這個人，一個mail 身份只能存在一個，若他有最新的一筆資訊，就只會留下最新的一筆」
+   Andy 10-16：「這邊應該是 會多出現已退款功能按鈕 並且跳到退款紀錄那邊紀錄」 */
+const bankOn = (hub, andy) => pj(hub, '/v1/admin/pay/bank/put', { t: andy, bank_name: '測試銀行', bank_code: '999', account: '000011112222', holder: '測試戶名' });
+async function bankPaid(hub, bob, andy, plan = 'plus', period = 'month', last5 = '54321') {
+  const c = (await pj(hub, '/v1/pay/bank/create', { t: bob, plan, period })).j;
+  assert.equal((await pj(hub, '/v1/pay/bank/report', { t: bob, name: '鮑伯', id: c.id, last5, date: '2026-10-11' })).s, 200);
+  if (andy) assert.equal((await pj(hub, '/v1/admin/pay/confirm', { t: andy, id: c.id, received: c.amount })).s, 200);
+  return c;
+}
+const reqsOf = (db, email) => db.prepare("SELECT * FROM sub_requests WHERE email = ? AND type IN ('cancel', 'refund') ORDER BY created").all(email);
+const evKinds = (db, kind) => db.prepare('SELECT * FROM pay_events WHERE kind = ?').all(kind);
+
+test('10-16 同一 email 只留最新：先申請退款、之後又送出新訂單 → 舊申請自動結案「已被新訂單取代」並寫事件', async () => {
+  const { hub, db, bob, andy } = await setup();
+  await bankOn(hub, andy);
+  await bankPaid(hub, bob, andy, 'plus', 'month', '11111');
+  clock += 3600000;
+  assert.equal((await pj(hub, '/v1/subscribe/change', { t: bob, type: 'refund', note: '先退款' })).s, 200);
+  assert.equal((await pj(hub, '/v1/admin/pay/list', { t: andy })).j.reqs.filter((r) => r.status === 'new').length, 1);
+  clock += 3600000;
+  const c2 = (await pj(hub, '/v1/pay/bank/create', { t: bob, plan: 'pro', period: 'year' })).j;
+  assert.equal((await pj(hub, '/v1/pay/bank/report', { t: bob, name: '鮑伯', id: c2.id, last5: '22222', date: '2026-10-11' })).s, 200);
+  const r = reqsOf(db, 'bob@example.com');
+  assert.deepEqual(r.map((x) => [x.type, x.status, x.closed_by]), [['refund', 'done', 'auto']]);
+  assert.match(r[0].close_reason, new RegExp('已被新訂單 ' + c2.id));
+  assert.equal(evKinds(db, 'req_close').length, 1, '寫進金流事件');
+  const l = (await pj(hub, '/v1/admin/pay/list', { t: andy })).j;
+  assert.deepEqual([l.reqs.filter((x) => x.status === 'new').length, l.orders.filter((o) => o.status === 'review').length], [0, 1], '待處理只剩最新那件（新訂單）');
+  assert.equal((await pj(hub, '/v1/billing/me', { t: bob })).j.refund, null, '會員端也不再顯示申請處理中');
+  const my = (await pj(hub, '/v1/pay/my', { t: bob })).j.reqs[0];
+  assert.match(my.closeReason, /已被新訂單/);
+});
+
+test('10-16 有待確認的轉帳時不能再送取消／退款申請（不會兩邊同時待處理）', async () => {
+  const { hub, bob, andy } = await setup();
+  await bankOn(hub, andy);
+  await bankPaid(hub, bob, andy, 'plus', 'month');
+  clock += 60000;
+  const c2 = (await pj(hub, '/v1/pay/bank/create', { t: bob, plan: 'pro', period: 'month' })).j;
+  await pj(hub, '/v1/pay/bank/report', { t: bob, name: '鮑伯', id: c2.id, last5: '22222', date: '2026-10-11' });
+  for (const type of ['refund', 'cancel']) {
+    const r = await pj(hub, '/v1/subscribe/change', { t: bob, type });
+    assert.deepEqual([r.s, r.j.error], [409, 'pending_review'], type);
+    assert.match(r.j.msg, /審核中/);
+  }
+});
+
+test('10-16 先申請退款、再申請取消 → 只留最新的取消申請；綠界新訂單付款完成也會結案比它舊的申請', async () => {
+  /* 註：反過來（先取消再退款）原本就被擋 —— 取消後就不能再享有七天退款保證（10-09 規則）*/
+  const { hub, db, bob, andy } = await setup();
+  await bankOn(hub, andy);
+  await bankPaid(hub, bob, andy);
+  clock += 60000;
+  assert.equal((await pj(hub, '/v1/subscribe/change', { t: bob, type: 'refund' })).s, 200);
+  clock += 60000;
+  assert.equal((await pj(hub, '/v1/subscribe/change', { t: bob, type: 'cancel' })).s, 200);
+  assert.deepEqual(reqsOf(db, 'bob@example.com').map((x) => [x.type, x.status]), [['refund', 'done'], ['cancel', 'new']]);
+  assert.match(reqsOf(db, 'bob@example.com')[0].close_reason, /較新的取消訂閱申請/);
+  clock += 60000;
+  const e = await ecCreate(hub, bob, { plan: 'pro', period: 'year' });
+  assert.equal(await (await notify(hub, e.id, 5268)).text(), '1|OK');
+  assert.deepEqual(reqsOf(db, 'bob@example.com').map((x) => x.status), ['done', 'done'], '綠界新訂單付款完成 → 取消申請也結案');
+  assert.match(reqsOf(db, 'bob@example.com')[1].close_reason, new RegExp(e.id));
+});
+
+test('10-16 待確認期間：較低級別的舊單不能再回報；較高的新單回報 → 舊待確認標「已被取代」，管理者仍可確認或退款', async () => {
+  const { hub, db, bob, andy } = await setup();
+  await bankOn(hub, andy);
+  const low = (await pj(hub, '/v1/pay/bank/create', { t: bob, plan: 'plus', period: 'month' })).j;   // 先開、還沒回報
+  const mid = (await pj(hub, '/v1/pay/bank/create', { t: bob, plan: 'plus', period: 'year' })).j;
+  assert.equal((await pj(hub, '/v1/pay/bank/report', { t: bob, name: '鮑伯', id: mid.id, last5: '11111', date: '2026-10-11' })).s, 200);
+  const lr = await pj(hub, '/v1/pay/bank/report', { t: bob, name: '鮑伯', id: low.id, last5: '33333', date: '2026-10-11' });
+  assert.deepEqual([lr.s, lr.j.error], [409, 'pending_review'], '跟 payChangeCheck 一致：同級或更低不能送');
+  clock += 60000;
+  const hi = (await pj(hub, '/v1/pay/bank/create', { t: bob, plan: 'pro', period: 'year' })).j;
+  assert.equal((await pj(hub, '/v1/pay/bank/report', { t: bob, name: '鮑伯', id: hi.id, last5: '22222', date: '2026-10-11' })).s, 200);
+  assert.deepEqual([ord(db, mid.id).status, ord(db, hi.id).status], ['superseded', 'review']);
+  assert.match(ord(db, mid.id).reject_reason, new RegExp('已被較新的訂單 ' + hi.id));
+  assert.equal(evKinds(db, 'superseded').length, 1);
+  const l = (await pj(hub, '/v1/admin/pay/list', { t: andy })).j;
+  assert.deepEqual(l.orders.filter((o) => o.status === 'review').map((o) => o.id), [hi.id], '待確認只剩最新一筆');
+  assert.equal(l.status.superseded, '已被取代');
+  assert.ok((await pj(hub, '/v1/pay/my', { t: bob })).j.orders.some((o) => o.id === mid.id && o.statusName === '已被取代'), '會員端看得到被取代的那筆與原因');
+  /* 被取代的單：兩筆都匯了錢 → 管理者登記人工退款（不動權限、不算用掉七天保證）*/
+  const q = (await pj(hub, '/v1/admin/pay/refund_quote', { t: andy, id: mid.id })).j;
+  assert.deepEqual([q.suggest, q.kind], [2990, 'manual']);
+  const rf = await pj(hub, '/v1/admin/pay/refund', { t: andy, id: mid.id, rid: 'r-sup000001', amount: 2990, last5: '11111', date: '2026-10-11' });
+  assert.equal(rf.s, 200, JSON.stringify(rf.j));
+  assert.equal(ord(db, mid.id).status, 'refunded');
+  assert.equal((db.prepare('SELECT refund_used FROM bill_flags WHERE email = ?').get('bob@example.com') || {}).refund_used || 0, 0);
+  /* 新的那筆照常確認開通 */
+  assert.equal((await pj(hub, '/v1/admin/pay/confirm', { t: andy, id: hi.id, received: 5268 })).s, 200);
+  assert.equal((await permOf(hub, bob)).plan, 'pro');
+});
+
+test('10-16 已退款鈕：退款帶申請編號 → 申請自動「已處理（已退款 NT$…）」、退款紀錄記 req；申請跟訂單不同人擋下', async () => {
+  const { hub, db, bob, andy } = await setup();
+  await bankOn(hub, andy);
+  const c = await bankPaid(hub, bob, andy);
+  clock += 60000;
+  const rq = (await pj(hub, '/v1/subscribe/change', { t: bob, type: 'refund', note: '不要了' })).j;
+  const l = (await pj(hub, '/v1/admin/pay/list', { t: andy })).j;
+  assert.equal(l.reqs[0].oid, c.id, '清單幫這筆申請找好對應訂單（預填用）');
+  /* 別人的申請不能拿來關 */
+  const carol = await login(hub, 'carol@example.com');
+  await bankPaid(hub, carol, andy, 'plus', 'month', '99999');
+  const cr = (await pj(hub, '/v1/subscribe/change', { t: carol, type: 'refund' })).j;
+  assert.equal((await pj(hub, '/v1/admin/pay/refund', { t: andy, id: c.id, rid: 'r-req0000001', amount: 299, last5: '11111', date: '2026-10-11', req: cr.id })).j.error, 'bad_req');
+  const r = await pj(hub, '/v1/admin/pay/refund', { t: andy, id: c.id, rid: 'r-req0000002', amount: 299, last5: '11111', date: '2026-10-11', req: rq.id });
+  assert.equal(r.s, 200, JSON.stringify(r.j));
+  const row = db.prepare('SELECT * FROM sub_requests WHERE id = ?').get(rq.id);
+  assert.deepEqual([row.status, row.closed_by], ['done', 'andy@example.com']);
+  assert.match(row.close_reason, /已退款 NT\$ 299/);
+  assert.equal(db.prepare('SELECT req FROM refunds WHERE id = ?').get('r-req0000002').req, rq.id);
+  assert.equal(evKinds(db, 'req_refunded').length, 1);
+  assert.equal(db.prepare('SELECT status FROM sub_requests WHERE id = ?').get(cr.id).status, 'new', 'carol 的申請不受影響');
+});
+
+test('10-16 舊資料修正：管理區打開清單時，同一人兩筆待確認＋比它舊的申請一次整理；改回待處理後不會再被舊事件結案', async () => {
+  const { hub, db, bob, andy } = await setup();
+  await bankOn(hub, andy);
+  await bankPaid(hub, bob, andy);
+  clock += 60000;
+  const rq = (await pj(hub, '/v1/subscribe/change', { t: bob, type: 'refund' })).j;
+  /* 模擬 10-16 之前留下的資料：申請之後又有兩筆待確認（當時沒有規則擋）*/
+  const mk = (id, plan, period, at) => db.prepare(`INSERT INTO orders (id, uid, email, plan, plan_name, period, amount, method, status, from_last5, xfer_date, xfer_amount, reports, created, updated)
+    VALUES (?, 'x', 'bob@example.com', ?, ?, ?, 299, 'bank', 'review', '12345', '2026-10-11', 299, ?, ?, ?)`).run(id, plan, plan === 'pro' ? 'Pro' : 'Plus', period, JSON.stringify([{ at, last5: '12345' }]), at, at);
+  mk('LG000000000001', 'plus', 'year', clock + 1000);
+  mk('LG000000000002', 'pro', 'month', clock + 2000);
+  clock += 5000;
+  const l = (await pj(hub, '/v1/admin/pay/list', { t: andy })).j;
+  assert.deepEqual([ord(db, 'LG000000000001').status, ord(db, 'LG000000000002').status], ['superseded', 'review']);
+  assert.equal(l.reqs.find((r) => r.id === rq.id).status, 'done');
+  /* 管理者改回待處理 → 再打開清單也不會被那筆（比改回時間舊的）訂單事件結案 */
+  assert.equal((await pj(hub, '/v1/admin/feedback/set', { t: andy, kind: 'request', id: rq.id, status: 'new' })).s, 200);
+  clock += 1000;
+  const l2 = (await pj(hub, '/v1/admin/pay/list', { t: andy })).j;
+  const back = l2.reqs.find((r) => r.id === rq.id);
+  assert.deepEqual([back.status, back.closeReason, !!back.pinned], ['new', null, true]);
+  /* 管理者手動標記已處理 → 寫原因 */
+  await pj(hub, '/v1/admin/feedback/set', { t: andy, kind: 'request', id: rq.id, status: 'done' });
+  assert.equal(db.prepare('SELECT close_reason FROM sub_requests WHERE id = ?').get(rq.id).close_reason, '管理者標記已處理');
+});

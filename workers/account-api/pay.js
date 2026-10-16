@@ -56,7 +56,7 @@ const PAY_ECPAY_EXPIRE_DAYS = 3;         // 2026-10-11 Andy：綠界待付款超
 const PAY_SWEEP_DAYS = 3;                // 排程：3 天內還沒開通的綠界訂單逐筆查單
 const PAY_PERIOD_SYNC_MS = 6 * 3600 * 1000;   // 定期定額對帳：每筆最多 6 小時查一次
 const PAY_RENEW_DAYS = 7;                // 轉帳會員：到期前 7 天與 1 天提醒
-export const PAY_STATUS = { pending: '待付款', review: '待確認', paid: '已入帳', active: '已開通', failed: '失敗', rejected: '已退回', expired: '已逾期', refunded: '已退款', cancelled: '已取消（未付款）' };
+export const PAY_STATUS = { pending: '待付款', review: '待確認', paid: '已入帳', active: '已開通', failed: '失敗', rejected: '已退回', expired: '已逾期', refunded: '已退款', cancelled: '已取消（未付款）', superseded: '已被取代' };
 const ID_RE = /^LG[0-9A-Z]{10,18}(P\d{1,3})?$/;
 const DAY = 86400 * 1000;
 
@@ -103,6 +103,11 @@ export function installPay(Hub, H) {
     this.q('CREATE TABLE IF NOT EXISTS user_notices (id TEXT PRIMARY KEY, email TEXT, title TEXT, body TEXT, ref TEXT, created INTEGER, read_at INTEGER)');
     this.q('CREATE INDEX IF NOT EXISTS user_notices_em ON user_notices (email, created)');
     this.q('CREATE TABLE IF NOT EXISTS mail_out (id TEXT PRIMARY KEY, email TEXT, subject TEXT, body TEXT, created INTEGER, status TEXT, tries INTEGER DEFAULT 0, msg TEXT, sent_at INTEGER)');
+    /* 2026-10-16 Andy：「一個mail 身份只能存在一個，若他有最新的一筆資訊，就只會留下最新的一筆」→ 申請被自動結案／管理者處理的原因與時間；
+       pinned＝管理者「改回待處理」的時間（之後比它舊的訂單事件不會再把它結案）。退款紀錄記下是從哪一筆申請來的（req）。 */
+    const rqCols = new Set(this.q('PRAGMA table_info(sub_requests)').map((c) => c.name));
+    for (const [c, t] of [['close_reason', 'TEXT'], ['closed_at', 'INTEGER'], ['closed_by', 'TEXT'], ['pinned', 'INTEGER']]) if (!rqCols.has(c)) this.q(`ALTER TABLE sub_requests ADD COLUMN ${c} ${t}`);
+    if (!this.q('PRAGMA table_info(refunds)').some((c) => c.name === 'req')) this.q('ALTER TABLE refunds ADD COLUMN req TEXT');
     this._payOk = true;
   };
   Hub.prototype.payEv = function (oid, kind, detail) {
@@ -211,6 +216,60 @@ export function installPay(Hub, H) {
     if (want > have) return { ok: true };
     if (want === have) return e.expires - now > PAY_RENEW_DAYS * DAY ? no('same_active', `你目前已是 ${curName}，到期日前 ${PAY_RENEW_DAYS} 天才能續訂。`) : { ok: true };
     return no(PAY_RANK[plan] < PAY_RANK[e.plan] ? 'lower_plan' : 'year_to_month', `你目前是 ${curName}，不能改買級別較低的方案（級別：Pro 年繳 > Pro 月繳 > Plus 年繳 > Plus 月繳）。`);
+  };
+
+  /* ---------------------------------------------------------------- 同一個 email 只留最新一件待處理的事（2026-10-16，docs/payment_admin_tabs_1016.md）
+     Andy 10-16：「不應該發生 他待審核，另一個退款分頁還有這個人，一個mail 身份只能存在一個，若他有最新的一筆資訊，就只會留下最新的一筆」
+     「待處理的事」只有兩種：銀行轉帳「待確認」（review）的訂單、還沒處理的取消／退款申請（sub_requests status='new'）。
+     「訂單事件」＝會員真的送出錢的那一刻：銀行轉帳送出匯款資料的時間；綠界付款完成的時間（paid_at）。
+       ① 待確認的轉帳，比最新的訂單事件舊 → 標「已被取代」（superseded；管理者在歷史裡照樣能確認入帳、退回、退款，錢不會卡住）
+       ② 待處理的申請，比最新的訂單事件舊 → 自動結案（status='done'，close_reason＝已被新訂單 X 取代）
+          管理者「改回待處理」過的申請，以改回的時間當它的時間（pinned），比那之前的訂單事件不會再把它結案
+       ③ 同一個人好幾筆待處理的申請 → 只留最新那筆，舊的自動結案（管理者改回過的不動）
+       ④ 申請比待確認的轉帳還新（10-16 之前留下的舊資料；之後新申請在有待確認訂單時會被擋）→ 那筆轉帳標「已被取代」
+     每一次自動處理都寫 payEv（金流事件），可以查是誰、什麼時候、為什麼。全部是同步 SQL，冪等：重跑不會多做事。 */
+  const RQN = { cancel: '取消訂閱', refund: '退款' };
+  const repAt = (o) => { try { const a = JSON.parse(o.reports || '[]'); if (Array.isArray(a) && a.length && a[a.length - 1].at) return a[a.length - 1].at; } catch (e) { /* 略 */ } return o.updated || o.created || 0; };
+  const evAt = (o) => (o.method === 'bank' ? (o.from_last5 ? repAt(o) : 0) : o.paid_at && (o.applied || ['paid', 'active', 'refunded'].includes(o.status)) ? Math.max(o.paid_at, o.created || 0) : 0);   // 綠界：付了錢才算；時間取「開單」與「付款」較晚的（綠界回的付款時間是台北時間字串，可能早於開單時間的毫秒）
+  Hub.prototype.payReqClose = function (r, reason, by, oid) {
+    this.q("UPDATE sub_requests SET status = 'done', close_reason = ?, closed_at = ?, closed_by = ? WHERE id = ? AND status = 'new'", String(reason).slice(0, 200), this.now(), by, r.id);
+    this.payEv(oid || '', 'req_close', { req: r.id, type: r.type, email: r.email, reason, by });
+  };
+  Hub.prototype.paySupersede = function (o, reason, by) {
+    this.paySet(o.id, { status: 'superseded', reject_reason: reason });
+    this.payEv(o.id, 'superseded', { reason, by });
+    this.payTell(o.email, '你的一筆待確認訂單已被較新的資料取代', `你的訂單 ${o.id}（${o.plan_name}・${perName(o.period)}，NT$ ${o.amount}）${reason}，這筆不會再單獨審核。\n如果這兩筆你都已經匯款，請從網站右下角「客服」告訴我們，我們會退還多匯的款項。`, 'sup-' + o.id);
+  };
+  Hub.prototype.payReconcile = function (email) {
+    this.payInit();
+    const em = norm(email); if (!em) return 0;
+    let n = 0;
+    const evs = this.q('SELECT * FROM orders WHERE email = ? AND parent IS NULL', em).map((o) => ({ o, t: evAt(o) })).filter((x) => x.t).sort((a, b) => a.t - b.t);
+    const top = evs[evs.length - 1];
+    const ordName = (o) => `訂單 ${o.id}（${o.plan_name}・${perName(o.period)}）`;
+    if (top) for (const x of evs) if (x !== top && x.o.status === 'review' && x.t <= top.t) { this.paySupersede(x.o, `已被較新的${ordName(top.o)}取代`, 'auto:' + top.o.id); n++; }
+    const open = [];
+    for (const r of this.q("SELECT * FROM sub_requests WHERE email = ? AND type IN ('cancel', 'refund') AND status = 'new' ORDER BY created, id", em)) {
+      if (top && top.t > Math.max(r.created || 0, r.pinned || 0)) { this.payReqClose(r, `已被新${ordName(top.o)}取代`, 'auto', top.o.id); n++; } else open.push(r);
+    }
+    const R = open[open.length - 1];
+    for (const r of open) if (r !== R && !r.pinned && (r.created || 0) <= (R.created || 0)) { this.payReqClose(r, `已被較新的${RQN[R.type] || ''}申請取代`, 'auto'); n++; }
+    if (R) for (const x of evs) { const cur = this.payOrder(x.o.id); if (cur && cur.status === 'review' && (R.created || 0) > x.t) { this.paySupersede(cur, `已被較新的${RQN[R.type] || ''}申請取代`, 'auto:req:' + R.id); n++; } }
+    return n;
+  };
+  /* 管理區打開清單時順手對全部有待處理事項的 email 跑一次（修正 10-16 之前留下來的重複）*/
+  Hub.prototype.payReconcileAll = function () {
+    this.payInit();
+    let n = 0;
+    for (const r of this.q("SELECT DISTINCT email FROM sub_requests WHERE type IN ('cancel', 'refund') AND status = 'new' UNION SELECT DISTINCT email FROM orders WHERE status = 'review' AND parent IS NULL")) n += this.payReconcile(r.email);
+    return n;
+  };
+  /* 申請退款時建議退哪一筆：目前生效中的那筆（開通期間包含現在），沒有就最近開通的；全額退過的不算 */
+  Hub.prototype.payRefundTarget = function (email) {
+    const now = this.now();
+    const os = this.q("SELECT id, grant_from, grant_to, confirmed_at, amount, recv_amount, refunded FROM orders WHERE email = ? AND applied = 1 AND status <> 'refunded' ORDER BY confirmed_at DESC", norm(email))
+      .filter((o) => (o.refunded || 0) < (o.recv_amount || o.amount));
+    return (os.find((o) => o.grant_from <= now && o.grant_to > now) || os[0] || {}).id || '';
   };
 
   /* ---------------------------------------------------------------- 價格（只信伺服器 plans）*/
@@ -322,7 +381,10 @@ export function installPay(Hub, H) {
       return { ok: false, error: 'test_mode' };
     }
     this.paySet(o.id, set);
-    return this.payActivate(o.id, src);
+    const res = this.payActivate(o.id, src);
+    /* 10-16：綠界付款完成也是「新訂單事件」→ 同一個 email 比它舊的待確認轉帳、待處理申請自動處理 */
+    if (!o.parent) this.payReconcile(o.email);
+    return res;
   };
 
   /* 主動查單（QueryTradeInfo/V5，回應要驗章）*/
@@ -474,7 +536,7 @@ export function installPay(Hub, H) {
     /* 2026-10-11 Andy：「只要還沒付費 就不能出現這樣 只有真的付費了 才能變更當前會員狀態」→ 會員端只列真的付過錢的：
        已付款／已開通／已退款／部分退款，以及銀行轉帳「已送出匯款資料」的（待確認、被退回看得到原因）。綠界待付款、未完成付款一律不列。 */
     const rows = all.filter((o) => o.applied || ['paid', 'active', 'refunded'].includes(o.status) || o.refunded > 0
-      || (o.method === 'bank' && o.from_last5 && ['review', 'rejected'].includes(o.status)));
+      || (o.method === 'bank' && o.from_last5 && ['review', 'rejected', 'superseded'].includes(o.status)));
     const refunds = this.q('SELECT * FROM refunds WHERE email = ?', email);
     const e = this.effective(email);
     const plan = e.expired ? 'free' : e.plan;
@@ -487,7 +549,7 @@ export function installPay(Hub, H) {
       const days = Math.max(0, Math.ceil((e.expires - now) / DAY));
       renew = { plan, planName: e.planName, period: per, amount: pr ? pr.amount : null, expires: e.expires, days, stage: days <= 1 ? 1 : 7, method: last ? last.method : '' };
     }
-    const reqs = this.q("SELECT id, type, plan, note, created, status FROM sub_requests WHERE uid = ? AND type IN ('cancel', 'refund') ORDER BY created DESC LIMIT 50", v.user.uid);
+    const reqs = this.q("SELECT id, type, plan, note, created, status, close_reason AS closeReason, closed_by AS closedBy FROM sub_requests WHERE uid = ? AND type IN ('cancel', 'refund') ORDER BY created DESC LIMIT 50", v.user.uid);
     return { reqs, orders: rows.map((o) => pubOrder(o, refunds)), plan, planName: e.planName, expires: e.expires || 0, autoRenew: !!active, autoRenewId: active ? active.id : '', renew, test: this.ecCfg().test, now };
   };
 
@@ -533,7 +595,8 @@ export function installPay(Hub, H) {
     let suggest = left, rule = '';
     /* 稽核 H11：七天以「會員申請退款的時間」為準（申請時間在七天內，管理者晚幾天處理也一樣全額）*/
     const asked = bf.refund_req_at || 0;
-    if (first && (now - first <= 7 * DAY || (asked && asked - first <= 7 * DAY)) && !bf.refund_used) { rule = '首次付款 7 天內：全額退款保證' + (asked && now - first > 7 * DAY ? '（以申請日為準）' : ''); }
+    if (!o.applied) { rule = '這筆沒有開通過（已被取代／未確認）：收到的錢全額退回'; }
+    else if (first && (now - first <= 7 * DAY || (asked && asked - first <= 7 * DAY)) && !bf.refund_used) { rule = '首次付款 7 天內：全額退款保證' + (asked && now - first > 7 * DAY ? '（以申請日為準）' : ''); }
     else if (o.grant_to && o.grant_from && o.grant_to > now) {
       const ratio = Math.max(0, Math.min(1, (o.grant_to - Math.max(now, o.grant_from)) / (o.grant_to - o.grant_from)));
       suggest = Math.min(left, Math.round(base * ratio)); rule = `超過 7 天：依未使用日數比例（剩 ${Math.ceil((o.grant_to - now) / DAY)} 天）`;
@@ -676,6 +739,11 @@ export function installPay(Hub, H) {
       /* 2026-10-16 Andy：「拿掉補送匯款資料這功能」→ 一張單只收一次匯款資料（已送出就不能再送；送錯請用意見回饋聯絡，管理者可改金額或退回）*/
       if (o.status === 'review') return this.json(req, { error: 'already_reported', status: o.status }, 409);
       if (o.status !== 'pending') return this.json(req, { error: 'bad_status', status: o.status }, 409);
+      /* 10-16：跟 payChangeCheck 同一條規則 —— 已有待確認（review）的訂單時，只能送出級別更高的（Pro 年 > Pro 月 > Plus 年 > Plus 月）。
+         擋的是「先開了較低級別的單、之後才回報」這條路：不擋的話，較低的那張會把較高的待確認單取代掉。 */
+      const myTier = payTier(o.plan, o.period);
+      const hiRev = myTier ? this.q("SELECT plan, plan_name, period FROM orders WHERE email = ? AND status = 'review' AND parent IS NULL AND id <> ?", norm(o.email), o.id).find((x) => payTier(x.plan, x.period) >= myTier) : null;
+      if (hiRev) return this.json(req, { error: 'pending_review', msg: `你有一筆「${hiRev.plan_name}・${perName(hiRev.period)}」待審核中，審核完成前只能送出更高級別方案的匯款資料。` }, 409);
       const name = subClean(b.name, 40);
       if (!name) return this.json(req, { error: 'need_name' }, 400);
       const last5 = String(b.last5 || '').trim(), date = String(b.date || '').trim();
@@ -688,6 +756,8 @@ export function installPay(Hub, H) {
       hist.push({ at, name, last5, date, amount: amt, state: 'active' });
       this.paySet(o.id, { status: 'review', payer_name: name, from_last5: last5, xfer_date: date, xfer_amount: amt, note: '', reports: JSON.stringify(hist) });
       this.payEv(o.id, 'report', { name, last5, date, amt });
+      /* 10-16：送出匯款資料＝新訂單事件 → 同一個 email 比它舊的待確認轉帳標「已被取代」、待處理的取消／退款申請自動結案 */
+      this.payReconcile(o.email);
       const per = o.period === 'year' ? '年繳' : '月繳';
       this.payTell(o.email, '已收到你的匯款資料', `我們已收到你的訂單 ${o.id}（${o.plan_name}・${per}，金額 NT$ ${o.amount}）的匯款資料：\n送出時間：${tpeStr(at)}\n匯款人姓名：${name}\n轉出帳號末 5 碼：${last5}\n轉帳日期：${date}\n\n管理者確認入帳後就會開通，屆時會再通知你。資料填錯的話，請從網站右下角「客服」→「意見反饋」告訴我們。`, 'rep-' + o.id + '-' + hist.length);
       this.payNotifyOwner(`${name} ${o.plan_name}（${per}） ${tpeDay(at)}`,
@@ -727,7 +797,7 @@ export function installPay(Hub, H) {
     /* ---------------- 管理者（/v1/admin/* 另外有總閘：權杖必須是管理者）*/
     '/v1/admin/pay/list': async function (req, b) {
       if (!(await this.admin(req, b))) return this.json(req, { error: 'forbidden' }, 403);
-      this.payInit(); this.payExpireLog();
+      this.payInit(); this.payExpireLog(); this.payReconcileAll();
       const rows = this.q('SELECT * FROM orders ORDER BY created DESC LIMIT 3000');
       const refunds = this.q('SELECT * FROM refunds ORDER BY created DESC');
       const names = {}; this.q('SELECT uid, name FROM users').forEach((u) => { names[u.uid] = u.name; });
@@ -737,7 +807,8 @@ export function installPay(Hub, H) {
       const subs = this.paySubs();
       const expiring = subs.filter((s) => s.lastMethod === 'bank' && !s.autoRenew && s.expires > now && s.expires - now <= PAY_RENEW_DAYS * DAY).map((s) => s.email);
       const events = this.q("SELECT email, kind, plan, at, ref, detail FROM plan_events ORDER BY id DESC LIMIT 2000");
-      const reqs = this.q("SELECT s.id, s.type, s.email, s.plan, s.note, s.created, s.status, u.name FROM sub_requests s LEFT JOIN users u ON u.uid = s.uid WHERE s.type IN ('cancel', 'refund') ORDER BY s.created DESC LIMIT 500");
+      const reqs = this.q("SELECT s.id, s.type, s.email, s.plan, s.note, s.created, s.status, s.close_reason AS closeReason, s.closed_at AS closedAt, s.closed_by AS closedBy, s.pinned, u.name FROM sub_requests s LEFT JOIN users u ON u.uid = s.uid WHERE s.type IN ('cancel', 'refund') ORDER BY s.created DESC LIMIT 500")
+        .map((r) => ({ ...r, oid: r.type === 'refund' ? this.payRefundTarget(r.email) : '' }));
       return this.json(req, { now, reqs, orders, refunds, subs, anomalies, expiring, events, bank: this.payBank(), test: this.ecCfg().test, status: PAY_STATUS });
     },
     '/v1/admin/pay/confirm': async function (req, b) {
@@ -746,7 +817,7 @@ export function installPay(Hub, H) {
       const o = this.payOrder(b.id);
       if (!o || o.method !== 'bank') return this.json(req, { error: 'not_found' }, 404);
       if (o.applied) return this.json(req, { ok: true, dup: true, order: admOrder(o) });
-      if (!['pending', 'review', 'expired'].includes(o.status)) return this.json(req, { error: 'bad_status', status: o.status }, 409);
+      if (!['pending', 'review', 'expired', 'superseded'].includes(o.status)) return this.json(req, { error: 'bad_status', status: o.status }, 409);
       /* 2026-10-12 Andy：會員只是打開訂閱頁沒付款，管理者不該有確認鍵 → 沒回報匯款資料（沒有末 5 碼）的轉帳單一律不能確認入帳 */
       if (!o.from_last5) return this.json(req, { error: 'not_reported' }, 409);
       /* 2026-10-12 Andy：「若是發生他給 2000 但我沒注意到，就等於少收錢」→ 管理者必須輸入網銀實際入帳金額，少於應付不能開通 */
@@ -794,7 +865,7 @@ export function installPay(Hub, H) {
       this.payInit();
       const o = this.payOrder(b.id);
       if (!o || o.method !== 'bank') return this.json(req, { error: 'not_found' }, 404);
-      if (o.applied || !['pending', 'review', 'expired', 'rejected'].includes(o.status)) return this.json(req, { error: 'bad_status', status: o.status }, 409);
+      if (o.applied || !['pending', 'review', 'expired', 'rejected', 'superseded'].includes(o.status)) return this.json(req, { error: 'bad_status', status: o.status }, 409);
       const amt = b.amount;
       if (!Number.isInteger(amt) || amt < 1 || amt > 9999999) return this.json(req, { error: 'bad_amount' }, 400);
       const why = subClean(b.reason, 200);
@@ -858,7 +929,12 @@ export function installPay(Hub, H) {
       const prev = this.q('SELECT * FROM refunds WHERE id = ?', rid)[0];
       if (prev) return this.json(req, { ok: prev.status === 'done', dup: true, refund: prev, error: prev.status === 'done' ? undefined : prev.status === 'running' ? 'running' : 'failed', msg: prev.msg || '' }, prev.status === 'done' ? 200 : 409);
       const o = this.payOrder(b.id); if (!o) return this.json(req, { error: 'not_found' }, 404);
-      if (!o.applied && !['paid', 'active'].includes(o.status)) return this.json(req, { error: 'not_paid' }, 409);
+      /* 10-16：被取代的轉帳單（會員回報過匯款、沒開通）也能登記人工退款，把多匯的錢退回去 */
+      const supPaid = o.method === 'bank' && o.status === 'superseded' && !!o.from_last5;
+      if (!o.applied && !['paid', 'active'].includes(o.status) && !supPaid) return this.json(req, { error: 'not_paid' }, 409);
+      /* 10-16 Andy：「會多出現已退款功能按鈕 並且跳到退款紀錄那邊紀錄」→ 從申請按「已退款」登記時帶 req；退款成功那一刻把申請標成已處理 */
+      const rq = b.req ? this.q("SELECT * FROM sub_requests WHERE id = ? AND type = 'refund'", String(b.req))[0] : null;
+      if (b.req && (!rq || norm(rq.email) !== norm(o.email))) return this.json(req, { error: 'bad_req', msg: '這筆申請跟訂單不是同一個會員' }, 400);
       const quote = this.payRefundQuote(o);
       const amount = b.amount;
       if (!Number.isInteger(amount) || amount < 1) return this.json(req, { error: 'bad_amount' }, 400);
@@ -883,10 +959,15 @@ export function installPay(Hub, H) {
         this.q("UPDATE refunds SET status = 'failed', action = ?, msg = ?, done_at = ? WHERE id = ?", res.action || '', res.msg || '', this.now(), rid);
         return this.json(req, { error: 'ecpay', msg: res.msg || '綠界退款失敗' }, 502);
       }
-      this.q("UPDATE refunds SET status = 'done', action = ?, done_at = ? WHERE id = ?", res.action || '', this.now(), rid);
+      this.q("UPDATE refunds SET status = 'done', action = ?, done_at = ?, req = ? WHERE id = ?", res.action || '', this.now(), rq ? rq.id : null, rid);
+      if (rq) {
+        this.q("UPDATE sub_requests SET status = 'done', close_reason = ?, closed_at = ?, closed_by = ? WHERE id = ?", `已退款 NT$ ${amount}（訂單 ${o.id}）`, this.now(), norm(v.user.email), rq.id);
+        this.payEv(o.id, 'req_refunded', { req: rq.id, rid, amount, by: v.user.email });
+      }
       const sum = this.q("SELECT COALESCE(SUM(amount), 0) AS s FROM refunds WHERE oid = ? AND status = 'done'", o.id)[0].s;
       this.paySet(o.id, { refunded: sum, status: sum >= o.amount ? 'refunded' : o.status });
-      this.billUpsert(o.email, { refund_used: 1, trial_used: 1, refund_at: now });
+      /* 退回被取代的重複匯款（沒開通過）不算用掉七天退款保證 */
+      if (o.applied) this.billUpsert(o.email, { refund_used: 1, trial_used: 1, refund_at: now });
       let cancel = null;
       const parent = o.parent ? this.payOrder(o.parent) : o;
       if (parent && parent.recur && parent.period_state === 'active') {
@@ -1049,6 +1130,34 @@ export function installPay(Hub, H) {
     if (v && res.status === 200) { this.payInit(); this.q("UPDATE orders SET uid = '' WHERE uid = ?", v.user.uid); }
     return res;
   };
+  /* 10-16：會員送出取消／退款申請 —— 有待確認（review）的轉帳時先擋（不能兩邊同時掛著待處理，也避免已匯的錢被申請蓋掉）；
+     送出成功後跑一次 payReconcile：同一個人比它舊的待處理申請自動結案（只留最新一筆）。 */
+  const payOrigChange = Hub.prototype.subRoutes['/v1/subscribe/change'];
+  const payOrigFbSet = Hub.prototype.subRoutes['/v1/admin/feedback/set'];
+  Object.assign(Hub.prototype.subRoutes, {
+    '/v1/subscribe/change': async function (req, b) {
+      const v = await this.auth(req, b);
+      if (v && b && (b.type === 'cancel' || b.type === 'refund')) {
+        this.payInit();
+        const rv = this.q("SELECT plan_name, period FROM orders WHERE email = ? AND status = 'review' AND parent IS NULL ORDER BY created DESC LIMIT 1", norm(v.user.email))[0];
+        if (rv) return this.json(req, { error: 'pending_review', msg: `你有一筆「${rv.plan_name}・${perName(rv.period)}」的轉帳正在審核中，審核完成後才能申請${b.type === 'refund' ? '退款' : '取消訂閱'}；急的話請從右下角「客服」聯絡我們。` }, 409);
+      }
+      const res = await payOrigChange.call(this, req, b);
+      if (res.status === 200 && v) this.payReconcile(v.user.email);
+      return res;
+    },
+    /* 管理者手動「標記已處理／改回待處理」：記原因與時間；改回待處理＝pinned（之後比它舊的訂單事件不再自動結案它）*/
+    '/v1/admin/feedback/set': async function (req, b) {
+      const res = await payOrigFbSet.call(this, req, b);
+      if (res.status !== 200 || !b || b.kind !== 'request') return res;
+      this.payInit();
+      const v = await this.admin(req, b), by = v ? norm(v.user.email) : 'admin', id = String(b.id || ''), now = this.now();
+      if (b.status === 'done') this.q('UPDATE sub_requests SET close_reason = ?, closed_at = ?, closed_by = ? WHERE id = ?', '管理者標記已處理', now, by, id);
+      else this.q('UPDATE sub_requests SET close_reason = NULL, closed_at = NULL, closed_by = NULL, pinned = ? WHERE id = ?', now, id);
+      this.payEv('', 'req_set', { req: id, status: b.status, by });
+      return res;
+    },
+  });
   const payOrigExpInit = Hub.prototype.expInit;
   Hub.prototype.expInit = function () { payOrigExpInit.call(this); this.payInit(); };
   for (const t of ['orders', 'refunds', 'plan_events', 'pay_events']) if (!EXPORT_TABLES.includes(t)) EXPORT_TABLES.push(t);
