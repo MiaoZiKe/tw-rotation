@@ -68,6 +68,22 @@ test('R6 登入：完整流程拿得到權杖；PKCE 用 S256、scope 只有 ope
   assert.equal(lastTokenBody.get('grant_type'), 'authorization_code');
 });
 
+test('10-16 登入完成頁：close 沒作用時 0.8 秒後整頁換回網站（ret＋#twn=<n>），權杖不出現在頁面裡', async () => {
+  const { hub } = makeHub(env());
+  const { cb, n } = await login(hub, 'bob@example.com');
+  const html = await cb.text();
+  assert.match(html, /window\.close\(\)/, '先試著關視窗');
+  assert.match(html, /postMessage/, '先通知原頁');
+  const m = /location\.replace\(("[^"]+")\)\},800\)/.exec(html);
+  assert.ok(m, '0.8 秒後整頁換回網站');
+  const back = new URL(JSON.parse(m[1]));
+  assert.equal(back.origin, ORIGIN, '回去的網址是自家網域（登入開始時帶來、已驗過的 ret）');
+  assert.equal(back.pathname, '/tw-rotation/');
+  assert.equal(back.hash, '#twn=' + n, '網址只帶一次性的 n');
+  assert.ok(!/eyJ|\btok\b/.test(html.replace(/tw-login/g, '')), '頁面裡沒有權杖');
+  assert.match(html, /按這裡回到網站/, '還有手動回去的連結');
+});
+
 test('R6 登入：中文名字不會變亂碼（id_token 是 UTF-8）', async () => {
   const { hub } = makeHub(env());
   const { j } = await login(hub, 'wang@example.com', { claims: { name: '王小明' } });

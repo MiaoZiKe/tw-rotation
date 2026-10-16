@@ -20,7 +20,7 @@
 window.TW_LEGAL = {
   /* ---- 必填（Andy 2026-10-09 18:1x 回覆；enabled 仍是 false，等 Andy 說「可以開」）---- */
   operator: '哩股哩股',              // 服務提供者。Andy：「哩股哩股」
-  email: 'liguligu0818@gmail.com',    // 聯絡 email。2026-10-11 Andy 換成新的商用信箱（原為個人信箱）。舊註：Andy：「沿用 kcq01010909@gmail.com 後面會更改」（改的時候連 legal.js 的 CONTACT_EMAIL 一起換）
+  email: 'liguligu0818@gmail.com',    // 聯絡 email。2026-10-11 Andy 換成新的商用信箱（原為個人信箱）。舊註：當時先沿用 Andy 的個人信箱（改的時候連 legal.js 的 CONTACT_EMAIL 一起換）
   effective_date: '2026-10-01',      // 生效日期，同時是「條款版本」：改了它，所有人會重新看到一次同意橫幅。Andy：「先設定10/01 後面上架 會在改」
   tax_id: '尚未辦理',                // 統一編號。Andy：「尚未辦理」
   court: '臺灣臺北地方法院',          // 第一審管轄法院。CEO 查證後採用；使用條款另加消保法 §47／民訴 §436-9 但書（legal.js 讀這一格，不再寫死）

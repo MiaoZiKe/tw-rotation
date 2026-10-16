@@ -26,6 +26,9 @@
      一定要排在所有 script 最前面（預覽版的 preview_boot.js 除外，它會插得更早、先把 localStorage 換成加前綴的殼）。
      主題、自選、登入、手繪線這些不清 —— 分類與理由寫在 viewreset.js 開頭。 -->
 <script src="viewreset.js"></script>
+<!-- ★ 2026-10-16（Andy：「登入後會一直卡住這畫面，協助自動跳主畫面」）：App 內建瀏覽器關不掉登入小視窗時，Worker 會整頁換回網站並帶 #twn=<一次性代碼>。
+     在路由開始之前把代碼收進 sessionStorage、網址換成 #overview，account.js 開機時照「整頁跳轉回來」的流程去 /auth/redeem 換權杖。 -->
+<script>(function(){try{var m=/^#twn=([A-Za-z0-9_-]{22,64})$/.exec(location.hash||'');if(!m)return;sessionStorage.setItem('tw.acct.n',m[1]);history.replaceState(null,'',location.pathname+location.search+'#overview');}catch(e){}})();</script>
 <!-- ★ 2026-10-06 即時僅管理者（Andy：「所有的即時功能，只有在我這帳號才會出現，其他帳號都隱藏」，DECISIONS #326）：
      唯一的閘門。要在 <body> 之前跑：<html> 先掛好 live-on（只有管理者），訪客第一幀就看不到任何即時 UI，不會先閃一下。
      它讀登入快取（跟 account.js 同一份 localStorage），所以排在 viewreset.js 後面就好（viewreset 不清登入）。 -->
