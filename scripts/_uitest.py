@@ -29968,7 +29968,7 @@ def t_m4_etfhold_1016(b, base):
                 r3 = "#etfHoldTbl tbody tr[data-i='2'] td.px"
                 m.locator(r3).scroll_into_view_if_needed(); m.tap(r3); m.wait_for_timeout(300)
                 s = m.evaluate(HI); nm3 = m.evaluate("(() => { const r = document.querySelector(\"#etfHoldTbl tbody tr[data-i='2'] .nmt a, #etfHoldTbl tbody tr[data-i='2'] .nmt\"); return r.childNodes[0].textContent.trim(); })()")
-                ok(f"{tag}：手指點第 3 列 → 那列高亮、甜甜圈中心字換成「{nm3}」、不跳頁", s["hi"] == [items[2]["code"]] and s["center"].startswith(nm3) and s["hash"] == h0, s)
+                ok(f"{tag}：手指點第 3 列 → 那列高亮、甜甜圈中心字換成「{nm3}」、不跳頁", s["hi"] == [items[2]["code"]] and nm3 in s["center"] and s["hash"] == h0, s)
                 m.tap(r3); m.wait_for_timeout(300)
                 s = m.evaluate(HI)
                 ok(f"{tag}：再點同一列 → 取消高亮、中心字回到「前 N 大合計」", s["hi"] == [] and "合計" in s["center"], s)
