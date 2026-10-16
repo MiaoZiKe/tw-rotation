@@ -169,6 +169,9 @@
   #v-subadm .spk .gr input[type=time]{width:100%}
   #v-subadm .spk .gr .days{display:grid;grid-column:1/-1;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px}
   #v-subadm .spk .gr .dd{width:auto}
+  #v-subadm .spk .gr input[type=time]{grid-row:1;grid-column:1}
+  #v-subadm .spk .gr .del{grid-row:1;grid-column:2}
+  #v-subadm .spk .gr .days{grid-row:2}
   #v-subadm .spk .gd.once .gr{grid-template-columns:minmax(0,1fr) 32px}
   #v-subadm .spk .fs{padding:10px 10px 12px}
   #v-subadm .spk .once-d input{width:100%;flex:1}

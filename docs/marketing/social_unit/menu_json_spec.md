@@ -1,7 +1,7 @@
 # 每日選題 JSON 與送出格式規格（menu_json_spec）
 
 > 2026-10-16 Andy 需求：在網站上選今日要產的主題、並能自己設定「產什麼類型、幾項、幾點、哪幾天、多久一次」。
-> 頁面：管理區「社群選題」`#admin/social`（僅管理者可見，程式 `site/socialpick.js`）。
+> 頁面：管理區「精選文章管理」`#admin/articles` 的「文章主題」分頁（今日選題＋產主題設定；僅管理者可見，程式 `site/socialpick.js`，由 `site/articles.js` 掛入；原獨立的 `#admin/social` 已併入並自動轉址）。
 > 本部（社群媒體部）每天把選題清單 commit 成 `site/social/menu_latest.json`；網站只讀、不寫。
 > `daily_menu/<日期>.md` 仍是人看的版本，兩份內容要一致（JSON 由同一份清單轉出）。
 
@@ -86,7 +86,7 @@
 ```
 ````
 
-## 三、schedule JSON
+## 三、schedule JSON（2026-10-16 改版：每週「星期 × 時段」）
 
 ```json
 {
@@ -94,9 +94,8 @@
   "action": "set_schedule",
   "tz": "Asia/Taipei",
   "kinds": { "最新消息": 2, "產業延伸": 2, "精選文章": 0, "總經名詞": 1 },
-  "times": ["21:50", "22:30"],
   "frequency": "weekly",
-  "days": [1, 2, 3, 4, 5],
+  "slots": { "1": ["21:50"], "2": ["21:50"], "3": ["21:50"], "4": ["21:50"], "5": ["21:50"], "6": ["09:50"], "7": ["09:50"] },
   "date": null,
   "created": "2026-10-16T21:40:00+08:00"
 }
@@ -105,17 +104,19 @@
 | 欄位 | 說明 |
 |---|---|
 | `version` | `1` |
-| `action` | `set_schedule`＝設定排程（取代舊設定）；`run_now`＝立刻產一份（一次性，不改排程） |
+| `action` | `set_schedule`＝設定排程（取代舊設定）；`run_now`＝立刻產一份（一次性，不改排程，只有 `kinds`） |
 | `tz` | 固定 `Asia/Taipei`，所有時間都是台北時間 |
-| `kinds` | 四種類型各產幾項（0～9 的整數）；`0` 或缺＝不產該類型。至少一種大於 0 |
-| `times` | 執行時間，`HH:mm` 24 小時制，1～6 個時段，由早到晚、不重複。`run_now` 省略 |
-| `frequency` | `daily`＝每天；`workdays`＝僅工作日（週一至週五，國定假日是否略過由本部決定並在回報寫明）；`weekly`＝自訂星期；`once`＝只跑一次 |
-| `days` | 只在 `frequency=weekly` 有意義：1＝週一…7＝週日，多選；其他情況為 `[]` |
-| `date` | 只在 `frequency=once`：指定那一天 `YYYY-MM-DD`（不得早於今天）；其他情況為 `null` |
+| `kinds` | 四種類型各產幾項（0～9 的整數）；`0`＝不產。至少一種大於 0 |
+| `frequency` | `weekly`＝每週固定（看 `slots`）；`once`＝只跑一次（看 `date` 與 `times`） |
+| `slots` | 只在 `weekly`：key 是星期（`"1"`＝週一…`"7"`＝週日），value 是那一天要跑的時間陣列（`HH:mm` 24 小時制、由早到晚、不重複）。沒有出現的星期＝那天不跑；同一天可有多個時段。網站最多 6 個時段列。`once` 時為 `{}` |
+| `times` | 只在 `once`：那一天要跑的時間陣列 |
+| `date` | 只在 `once`：指定那一天 `YYYY-MM-DD`（不得早於今天）；`weekly` 為 `null` |
 | `created` | 設定產生時間（ISO，台北） |
 
+> 舊版（`times`＋`frequency: daily/workdays/weekly`＋`days`）已淘汰：畫面改成「每個時段各自勾星期」，格式隨之改為 `slots`。「每天」「僅工作日」等於 `slots` 七天或五天都填同一組時間。
+
 `run_now` 範例：`{"version":1,"action":"run_now","tz":"Asia/Taipei","kinds":{"最新消息":1,"產業延伸":1,"精選文章":0,"總經名詞":0},"created":"..."}`。
-`once` 範例：`"frequency":"once","date":"2026-10-20","days":[]`。
+`once` 範例：`"frequency":"once","slots":{},"times":["21:50"],"date":"2026-10-20"`。
 
 ### 生效時間（如實）
 Issue 要等本部的下一個處理週期才會被讀取（最多數小時），**不是即時**。要立刻生效，直接在對話告訴 CEO；頁面上也明講這句。
