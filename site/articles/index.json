@@ -16,7 +16,33 @@
     "資本支出"
    ],
    "summary": "台積電 10 月 8 日公告 9 月營收 5,118.57 億元，年增 54.6%；第三季合計 1 兆 4,942 億元，季增 17.6% 創單季新高，按七月法說匯率假設換算已高於財測上緣。毛利率與美元營收待 10 月 15 日法說會公布。",
-   "reading_min": 4
+   "reading_min": 4,
+   "groups": [
+    {
+     "id": "foundry",
+     "name": "晶圓代工"
+    },
+    {
+     "id": "ai_adv_packaging",
+     "name": "AI 先進封裝"
+    },
+    {
+     "id": "fab_process_equip",
+     "name": "前段製程設備"
+    },
+    {
+     "id": "fab_equipment",
+     "name": "晶圓廠設備"
+    },
+    {
+     "id": "pkg_equipment",
+     "name": "封裝製程機台"
+    },
+    {
+     "id": "fab_material",
+     "name": "前段製程材料"
+    }
+   ]
   },
   {
    "id": "2026-10-14-intro-ai-server",
@@ -33,7 +59,33 @@
     "光通訊"
    ],
    "summary": "AI 伺服器不只是一顆 GPU。本文依本站產業鏈資料，拆解晶片、先進封裝、載板、PCB 與板材、散熱、電源、光通訊、交換器到系統組裝的各個環節，說明每段在做什麼、台股有哪些代表公司，以及環節之間如何串連。",
-   "reading_min": 5
+   "reading_min": 5,
+   "groups": [
+    {
+     "id": "ai_server_odm",
+     "name": "AI 伺服器組裝"
+    },
+    {
+     "id": "ai_adv_packaging",
+     "name": "AI 先進封裝"
+    },
+    {
+     "id": "ic_substrate",
+     "name": "PCB 載板"
+    },
+    {
+     "id": "pcb_rigid",
+     "name": "PCB 硬板製造"
+    },
+    {
+     "id": "liquid_cooling",
+     "name": "液冷散熱"
+    },
+    {
+     "id": "optical_module",
+     "name": "高速光模組"
+    }
+   ]
   },
   {
    "id": "2026-10-14-know-cowos",
@@ -50,7 +102,33 @@
     "半導體"
    ],
    "summary": "CoWoS 是台積電的 2.5D 先進封裝，把運算晶片與高頻寬記憶體並排放在中介層上，解決 AI 晶片「資料送不進來」的瓶頸。本文說明它的三層結構、-S／-R／-L 三個版本的差異、產能為何吃緊，以及台灣設備、載板、封測各環節的代表公司。",
-   "reading_min": 5
+   "reading_min": 5,
+   "groups": [
+    {
+     "id": "ai_adv_packaging",
+     "name": "AI 先進封裝"
+    },
+    {
+     "id": "foundry",
+     "name": "晶圓代工"
+    },
+    {
+     "id": "fab_process_equip",
+     "name": "前段製程設備"
+    },
+    {
+     "id": "pkg_equipment",
+     "name": "封裝製程機台"
+    },
+    {
+     "id": "ic_substrate",
+     "name": "PCB 載板"
+    },
+    {
+     "id": "hbm",
+     "name": "HBM 高頻寬記憶體"
+    }
+   ]
   }
  ]
 }
