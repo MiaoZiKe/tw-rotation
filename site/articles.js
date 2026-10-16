@@ -74,7 +74,7 @@
   const defRange = () => { const t = tpeToday(); return { from: monthAgo(t), to: t }; };
 
   const S = { views: null, statsP: null, statsAt: 0, idx: null, idxP: null, idxErr: false, cat: 'all', q: '', from: null, to: null, grp: new Set(), ms: null,
-    posts: {}, cur: '', curData: null, backOk: false, topics: null, topicsP: null, tcat: 'all', tsort: 'desc', tsels: [], jobs: null, af: { cat: 'all', grp: '', from: '', to: '', q: '' }, jf: { kind: '', st: '', q: '' }, ss: { period: '30', from: '', to: '', cat: '', grp: '', daily: null, first: null } };
+    posts: {}, cur: '', curData: null, backOk: false, topics: null, topicsP: null, tcat: 'all', tsort: 'desc', tsels: [], gsel: new Set(), gout: [], gtype: 'ig', jobs: null, af: { cat: 'all', grp: '', from: '', to: '', q: '' }, jf: { kind: '', st: '', q: '' }, ss: { period: '30', from: '', to: '', cat: '', grp: '', daily: null, first: null } };
 
   /* 「← 返回」要不要用 history.back()：只有「在站內從別頁換過來」才有上一頁可回；直接貼網址開的，回該類別清單 */
   window.addEventListener('hashchange', (e) => {
@@ -518,6 +518,27 @@
 #v-subadm .artadm .js .kd{font-style:normal;font-weight:700;font-size:11px;padding:0 5px;margin-left:-4px;border-radius:999px;color:#fff;line-height:16px}
 #v-subadm .artadm .js .kd.article{background:#2563eb}
 #v-subadm .artadm .js .kd.video{background:#db2777}
+#v-subadm .artadm .gpm{display:none}   /* 桌機用表頭兩顆鈕；手機（表頭被藏掉）改用表格上方一條 .gpbar：下拉選類型＋一顆送出 */
+#v-subadm .artadm td.gptc .gpg{display:inline-flex;align-items:center;gap:6px;margin-right:12px;vertical-align:middle}
+#v-subadm .artadm .gpk{font-style:normal;font-size:11.5px;padding:0 7px;border-radius:999px;border:1px solid var(--cyan);color:var(--cyan)}
+#v-subadm .artadm .gpk.video{border-color:#db2777;color:#db2777}
+#v-subadm .artadm th.gpth button{height:24px;padding:0 10px;margin-left:6px;border-radius:var(--r-sm,8px);border:1px solid var(--cyan);background:color-mix(in srgb,var(--cyan) 14%,var(--panel));color:var(--ink);font:inherit;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap}
+#v-subadm .artadm th.gpth button:disabled{opacity:.45;cursor:not-allowed;border-color:var(--line-2);background:var(--panel-3)}
+#v-subadm .artadm td.gptc{overflow:visible}
+#v-subadm .artadm td.gptc .gptk{display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;vertical-align:middle;cursor:pointer}
+#v-subadm .artadm td.gptc input[type=checkbox]{width:18px;height:18px;margin:0;accent-color:var(--cyan);cursor:pointer}
+#v-subadm .artadm td.gptc button.gpto{height:26px;padding:0 10px;border-radius:var(--r-sm,8px);border:1px solid var(--line-2);background:var(--panel-3);color:var(--ink);font:inherit;font-size:12px;cursor:pointer;white-space:nowrap;vertical-align:middle}
+#v-subadm .artadm td.gptc button.gpto:hover{border-color:var(--cyan)}
+#v-subadm .artadm td.gptc .gpts{font-size:12px;color:var(--ink-3);font-family:var(--mono);white-space:nowrap}
+#v-subadm .artadm .gpp{border:1px solid var(--line);border-radius:var(--r-sm,8px);background:var(--panel-2);padding:8px 12px;margin-bottom:var(--sp-2);font-size:13px}
+#v-subadm .artadm .gpp .gph{margin:0 0 6px;color:var(--ink-2);line-height:1.6}
+#v-subadm .artadm .gpp[hidden]{display:none}
+#v-subadm .artadm .gpr{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:6px 0;border-top:1px solid var(--line)}
+#v-subadm .artadm .gpr .gpt{flex:1 1 220px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--ink)}
+#v-subadm .artadm .gpr .gpl,#v-subadm .artadm .gpr button{display:inline-flex;align-items:center;height:30px;padding:0 12px;border-radius:var(--r-sm,8px);border:1px solid var(--line-2);background:var(--panel-3);color:var(--ink);font:inherit;font-size:12.5px;text-decoration:none;cursor:pointer;white-space:nowrap}
+#v-subadm .artadm .gpr .gpl{background:var(--cyan);color:#04121a;border-color:transparent;font-weight:700}
+#v-subadm .artadm .gpr .gpn{flex:1 1 100%;font-size:12px;color:var(--ink-3)}
+@media (max-width:640px){#v-subadm .artadm th.gpth .gpd,#v-subadm .artadm td.gptc .gpd{display:none}#v-subadm .artadm .gpm{display:inline-flex;align-items:center;gap:6px}#v-subadm .artadm .gpbar{display:flex;margin-bottom:var(--sp-2)}#v-subadm .artadm .gpbar button{height:32px;padding:0 12px;border-radius:8px;border:1px solid var(--cyan);background:color-mix(in srgb,var(--cyan) 14%,var(--panel));color:var(--ink);font:inherit;font-size:13px;font-weight:600}#v-subadm .artadm .gpbar button:disabled{opacity:.45}#v-subadm .artadm .gpbl{font-size:13px;color:var(--ink-2)}#v-subadm .artadm .gpm select{height:32px;border-radius:8px;border:1px solid var(--line-2);background:var(--panel);color:var(--ink);font:inherit;font-size:13px;padding:0 6px}#v-subadm .artadm td.gptc button.gpto{height:32px}#v-subadm .artadm th.gpth button{height:32px}#v-subadm .artadm .gpr .gpl,#v-subadm .artadm .gpr button{height:36px}}
 #v-subadm .artadm .js.kdc{border:0;padding:0;margin:0}#v-subadm .artadm .js.kdc .kd{margin:0;font-size:12px;padding:1px 8px;line-height:18px}
 #v-subadm .artadm td button.cx{height:26px;padding:0 10px;border-radius:var(--r-sm,8px);border:1px solid var(--line-2);background:var(--panel-3);color:var(--ink);font:inherit;font-size:12px;cursor:pointer}
 `;
@@ -1187,8 +1208,11 @@ ${gs.length ? `<section><h5>熱門族群</h5><div class="gps">${gs.map((g) => `<
     <button type="button" class="clr" id="artAfClr">清除</button>
     <span class="cnt" id="artAfCnt"></span>
   </div>
-  <div class="tbw"><table><colgroup><col style="width:120px"><col><col style="width:110px"><col style="width:70px"><col style="width:18%"><col style="width:22%"></colgroup>
-  <thead><tr><th class="c">類別</th><th>標題</th><th class="c">日期</th><th class="r" title="會員 Worker 統計的點閱次數；讀不到寫「—」">點閱</th><th>相關族群</th><th>來源主題</th></tr></thead><tbody id="artAdmBody"></tbody></table></div>
+  <div class="gpm gpbar" id="artGptBar"><span class="gpbl">傳給 GPT：</span><select id="artGptTypeH" aria-label="傳給 GPT 的類型"><option value="ig">IG 貼文</option><option value="video">影片</option></select><button type="button" id="artGptSendM" disabled>傳送勾選的文章</button></div>
+  <p class="tpmsg" id="artGptMsg" role="status" hidden></p>
+  <div class="gpp" id="artGptPanel" hidden></div>
+  <div class="tbw"><table><colgroup><col style="width:120px"><col><col style="width:110px"><col style="width:70px"><col style="width:14%"><col style="width:14%"><col style="width:440px"></colgroup>
+  <thead><tr><th class="c">類別</th><th>標題</th><th class="c">日期</th><th class="r" title="會員 Worker 統計的點閱次數；讀不到寫「—」">點閱</th><th>相關族群</th><th>來源主題</th><th class="gpth">傳給 GPT <span class="gpd"><button type="button" id="artGptSendIg" data-gtype="ig" disabled title="先在每列勾選文章">傳送勾選・IG 貼文</button><button type="button" id="artGptSendVid" data-gtype="video" disabled title="先在每列勾選文章">傳送勾選・影片</button></span></th></tr></thead><tbody id="artAdmBody"></tbody></table></div>
 </div>
 <div class="card artadm" id="artAdmTopics">
   <div class="hd"><h3>主題候選清單</h3><span class="muted" id="artTpUpd">${tp && tp.updated ? '更新 ' + esc(tp.updated) : ''}・點列勾選主題（最多 5 個、可跨類別），再按上方按鈕交給 Claude 撰寫</span><span class="sp"></span>
@@ -1245,13 +1269,27 @@ ${gs.length ? `<section><h5>熱門族群</h5><div class="gps">${gs.map((g) => `<
     bind('#artAfGrp', 'grp', 'change'); bind('#artAfFrom', 'from', 'change'); bind('#artAfTo', 'to', 'change'); bind('#artAfQ', 'q', 'input');
     if (af.grp && !gm.has(af.grp)) af.grp = '';
     $('#artAfClr', v).onclick = () => { Object.assign(af, { cat: 'all', grp: '', from: '', to: '', q: '' }); ['#artAfGrp', '#artAfFrom', '#artAfTo', '#artAfQ'].forEach((id) => { $(id, v).value = ''; }); paintAdmList(v); };
-    paintAdmList(v);
+    paintAdmList(v); gptSync(v);
     // 產出進度篩選（Andy 10-16：「產出進度也需要有篩選功能」）
     const jf = S.jf;
     const jb = (id, k, ev) => { const el = $(id, v); el.value = jf[k]; el.addEventListener(ev, () => { jf[k] = el.value.trim(); paintJobs(v); }); };
     jb('#artJfKind', 'kind', 'change'); jb('#artJfSt', 'st', 'change'); jb('#artJfQ', 'q', 'input');
     $('#artJfClr', v).onclick = () => { Object.assign(jf, { kind: '', st: '', q: '' }); ['#artJfKind', '#artJfSt', '#artJfQ'].forEach((id) => { $(id, v).value = ''; }); paintJobs(v); };
     $$('#artGenArt,#artGenVid', v).forEach((b) => { b.onclick = () => submitJob(v, b.dataset.kind); });
+    // 傳給 GPT：列內勾選（存 S.gsel，換篩選不掉）、列內按鈕＝傳這一篇、表頭按鈕＝傳勾選的；清單裡的連結被按下去就記「已傳送」
+    $('#artAdmBody', v).addEventListener('change', (e) => { const c = e.target.closest('input[data-gpt-pick]'); if (!c) return; if (c.checked) S.gsel.add(c.dataset.gptPick); else S.gsel.delete(c.dataset.gptPick); gptMsg(v, ''); gptSync(v); });
+    const typeOf = (b) => (b.dataset.gtype === 'sel' ? S.gtype : b.dataset.gtype);
+    $('#artAdmBody', v).addEventListener('click', (e) => { const b = e.target.closest('button[data-gpt-one]'); if (b) gptPrepare(v, [b.dataset.gptOne], typeOf(b)); });
+    $$('#artGptSendIg,#artGptSendVid', v).forEach((b) => { b.onclick = () => gptPrepare(v, [...S.gsel], b.dataset.gtype); });
+    $('#artGptSendM', v).onclick = () => gptPrepare(v, [...S.gsel], S.gtype);
+    v.addEventListener('change', (e) => { const s = e.target.closest('select[data-gpt-type], #artGptTypeH'); if (!s) return; S.gtype = s.value === 'video' ? 'video' : 'ig'; gptSync(v); });
+    $('#artGptPanel', v).addEventListener('click', async (e) => {
+      const o = e.target.closest('a[data-gpt-open]');
+      if (o) { if (GPT()) GPT().markSent(o.dataset.gptOpen, o.dataset.gtype); setTimeout(() => paintAdmList(v), 0); return; }
+      const c = e.target.closest('button[data-gpt-copy]'); if (!c) return;
+      const it = S.gout.find((x) => x.id === c.dataset.gptCopy && x.type === c.dataset.gtype); if (!it) return;
+      gptMsg(v, (await copyText(it.res.full)) ? `已複製「${it.title}」的完整交接內容，可以貼進 GitHub Issue 的內容欄。` : '複製失敗，請改按「開 GitHub 新 Issue」。', false);
+    });
     /* 10-16 Andy：「也需要我填寫主題 產文章，例如 今天新聞 馬斯克飛天電動車介紹」→ 自訂主題：topic_id＝c-<類別>-<時間>，標題＝填的字 */
     const cusT = $('#artCusT', v), cusB = $$('#artCusArt,#artCusVid', v);
     const cusSync = () => cusB.forEach((b) => { b.disabled = cusT.value.trim().length < 2; });
@@ -1304,6 +1342,62 @@ ${gs.length ? `<section><h5>熱門族群</h5><div class="gps">${gs.map((g) => `<
     if (!bad.length) { S.tsels = []; if ($('#artTpNote', v)) $('#artTpNote', v).value = ''; }
     await loadJobs(); paintTopics(v); paintJobs(v);
   }
+  /* ---------------- 傳給 GPT（site/gpthandoff.js 組內容；Andy 10-16：「不是做完就發送，要有個功能鈕，我可以選擇文章，將內容傳到 GPT 那邊，文章是我決定」） ----------------
+     按鈕就是 Andy 的決定：不排隊、不碰 Worker。點下去 → 讀該篇文章 JSON → 組成 Markdown → 開預填的 GitHub 新 Issue（label social-handoff，一篇一則）。
+     勾多篇 → 「傳送勾選的文章」會把每篇的連結列在下面的清單，一則一則按（瀏覽器只准一次點擊開一個新分頁）。已傳過的列顯示時間、按鈕改「再傳一次」。 */
+  const GPT = () => window.TwGptHandoff;
+  const GT = { ig: 'IG 貼文', video: '影片' };
+  function gptCell(a) {
+    const st = (ty) => (GPT() ? GPT().sentText(a.id, ty) : '');
+    const one = (ty) => `<span class="gpg"><button type="button" class="gpto" data-gpt-one="${esc(a.id)}" data-gtype="${ty}" title="把這一篇整理成「${GT[ty]}」的交接 Issue 交給 GPT">${st(ty) ? '再傳一次・' : '傳給 GPT・'}${GT[ty]}</button>${st(ty) ? `<span class="gpts" title="這個瀏覽器上次傳送的時間（台北）">已傳送 ${esc(st(ty))}</span>` : ''}</span>`;
+    const sent = ['ig', 'video'].filter((ty) => st(ty)).map((ty) => `${GT[ty]} ${st(ty)}`).join('、');
+    return `<label class="gptk" title="勾選後按表頭的「傳送勾選」"><input type="checkbox" data-gpt-pick="${esc(a.id)}"${S.gsel.has(a.id) ? ' checked' : ''} aria-label="勾選：${esc(a.title)}"></label>`
+      + `<span class="gpd">${one('ig')}${one('video')}</span>`
+      + `<span class="gpm"><select data-gpt-type aria-label="類型：${esc(a.title)}"><option value="ig"${S.gtype === 'ig' ? ' selected' : ''}>IG 貼文</option><option value="video"${S.gtype === 'video' ? ' selected' : ''}>影片</option></select><button type="button" class="gpto" data-gpt-one="${esc(a.id)}" data-gtype="sel">傳給 GPT</button>${sent ? `<span class="gpts">已傳送：${esc(sent)}</span>` : ''}</span>`;
+  }
+  function gptSync(v) {
+    const n = S.gsel.size;
+    $$('#artGptSendIg,#artGptSendVid,#artGptSendM', v).forEach((b) => { b.disabled = !n; });
+    const sfx = n ? `（${n}）` : '';
+    const g = (id, t) => { const b = $(id, v); if (b) b.textContent = t; };
+    g('#artGptSendIg', '傳送勾選・IG 貼文' + sfx); g('#artGptSendVid', '傳送勾選・影片' + sfx); g('#artGptSendM', '傳送勾選的文章' + sfx);
+    $$('select[data-gpt-type], #artGptTypeH', v).forEach((s) => { s.value = S.gtype; });
+  }
+  function gptMsg(v, t, err) { const m = $('#artGptMsg', v); if (!m) return; m.hidden = !t; m.textContent = t || ''; m.classList.toggle('err', !!err); }
+  async function copyText(t) {
+    try { await navigator.clipboard.writeText(t); return true; } catch (e) { /* 退回舊法 */ }
+    try { const ta = document.createElement('textarea'); ta.value = t; ta.style.cssText = 'position:fixed;left:-999px;top:0'; document.body.appendChild(ta); ta.select(); const r = document.execCommand('copy'); ta.remove(); return !!r; } catch (e) { return false; }
+  }
+  function paintGptPanel(v) {
+    const p = $('#artGptPanel', v); if (!p) return;
+    p.hidden = !S.gout.length;
+    p.innerHTML = S.gout.length ? `<p class="gph"><b>已整理好 ${S.gout.length} 則交接 Issue</b>（一篇一則）。按「開 GitHub 新 Issue」→ 在 GitHub 那頁按綠色的 <b>Submit new issue</b>（送出新問題）才算傳出去；Issue 是公開的，內容只有文章已公開的部分。</p>`
+      + S.gout.map((o) => `<div class="gpr" data-id="${esc(o.id)}" data-gtype="${o.type}"><span class="gpt" title="${esc(o.res.title)}"><em class="gpk ${o.type}">${GT[o.type]}</em> ${esc(o.title)}</span>
+        <a class="gpl" href="${esc(o.res.url)}" target="_blank" rel="noopener noreferrer" data-gpt-open="${esc(o.id)}" data-gtype="${o.type}">開 GitHub 新 Issue</a>
+        <button type="button" data-gpt-copy="${esc(o.id)}" data-gtype="${o.type}">複製完整交接內容</button>
+        <span class="gpn">${o.res.trimmed.length ? `網址長度有限，已省略：${esc(o.res.trimmed.join('、'))}（完整內容請按「複製完整交接內容」貼進 Issue）` : '內容完整放進連結'}</span></div>`).join('') : '';
+  }
+  async function gptPrepare(v, ids, type) {
+    type = type === 'video' ? 'video' : 'ig';
+    ids = ids.filter((id) => S.idx && S.idx.list.some((a) => a.id === id));
+    if (!ids.length || !GPT()) return;
+    let w = null;
+    if (ids.length === 1) { try { w = window.open('about:blank', '_blank'); if (w) w.opener = null; } catch (e) { w = null; } }   // 先在「點擊當下」開空白分頁，等文章讀回來再導過去（await 之後才開會被擋）
+    gptMsg(v, '整理交接內容中…');
+    const posts = await Promise.all(ids.map((id) => loadPost(id)));
+    const out = [], bad = [];
+    ids.forEach((id, i) => {
+      const a = S.idx.list.find((x) => x.id === id), p = posts[i];
+      if (p && p.id === id) out.push({ id, type, title: a.title, res: GPT().build(p, type) }); else bad.push(a.title);
+    });
+    S.gout = out; paintGptPanel(v);
+    if (out.length === 1 && w) { w.location.href = out[0].res.url; GPT().markSent(out[0].id, type); }
+    else if (w) w.close();
+    if (out.length === 1 && w) { /* 已經開了 */ } else if (out.length === 1) gptMsg(v, '瀏覽器擋掉了新分頁，請按下面的「開 GitHub 新 Issue」。');
+    gptMsg(v, bad.length ? `讀不到這幾篇的內容：${bad.join('、')}` : out.length === 1 && w ? `已開啟「${out[0].title}」（${GT[type]}）的 GitHub 新 Issue 分頁，請在那頁按 Submit new issue。` : out.length > 1 ? `已整理 ${out.length} 篇（${GT[type]}）；請在下面清單一則一則按「開 GitHub 新 Issue」。` : '', !!bad.length);
+    ids.forEach((id) => S.gsel.delete(id));
+    paintAdmList(v); gptSync(v);
+  }
   function paintAdmList(v) {
     const body = $('#artAdmBody', v); if (!body) return;
     const af = S.af, all = S.idx ? S.idx.list : [];
@@ -1317,8 +1411,9 @@ ${gs.length ? `<section><h5>熱門族群</h5><div class="gps">${gs.map((g) => `<
       return `<tr data-id="${esc(a.id)}" data-cat="${esc(a.cat)}" data-date="${esc(a.date)}"><td class="c">${badge(a.cat)}</td><td class="l" title="${esc(a.title)}"><a href="#article/${encodeURIComponent(a.id)}">${esc(a.title)}</a></td>
     <td class="n c">${esc(a.date)}</td><td class="n r" data-vwc="${esc(a.id)}">${viewsOf(a.id) == null ? '—' : viewsOf(a.id).toLocaleString('zh-TW')}</td>
     <td class="dm" title="${esc(gs.join('、'))}">${gs.length ? esc(gs.join('、')) : '<span class="muted">—</span>'}</td>
-    <td class="dm" title="${esc(tpTitle(a.topic))}">${a.topic && tpTitle(a.topic) ? esc(tpTitle(a.topic)) : '<span class="muted">—</span>'}</td></tr>`; }).join('')
-      : `<tr><td colspan="6" class="muted">${S.idx ? (all.length ? '沒有符合篩選條件的文章' : '還沒有上架的文章') : '文章清單讀不到'}</td></tr>`;
+    <td class="dm" title="${esc(tpTitle(a.topic))}">${a.topic && tpTitle(a.topic) ? esc(tpTitle(a.topic)) : '<span class="muted">—</span>'}</td>
+    <td class="gptc" data-gpt="${esc(a.id)}">${gptCell(a)}</td></tr>`; }).join('')
+      : `<tr><td colspan="7" class="muted">${S.idx ? (all.length ? '沒有符合篩選條件的文章' : '還沒有上架的文章') : '文章清單讀不到'}</td></tr>`;
   }
   /* ---------------- 點閱統計 ---------------- */
   function loadDaily() {
