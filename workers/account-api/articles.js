@@ -121,18 +121,23 @@ export function installArticles(Hub, EXPORT_TABLES) {
     },
   });
   /* ==========================================================================
-     「產精選文章頻率」設定（2026-10-16）
+     「產精選文章頻率」設定（2026-10-16 建；同日晚改第 2 版）
      Andy 10-16：「我需要可以產貼文頻率設定……每週幾、哪個時段幫我產出精選貼文」。
-     做法照產出佇列：管理區按「儲存」→ 這裡存一份（只留最新一份有效，舊的留作紀錄）→ article-jobs.yml 每小時把最新一份同步進
-     repo（data/_state/article_schedule.json）→ Claude 排程（台北 09:50／14:50／20:50）醒來時讀它，
-     「今天星期幾、這一輪是哪個時段」對得上就自己依類別與篇數排進佇列（不需要 Andy 再按）。
-     · 管理者路由：/v1/articles/schedule/get {t} → {schedule|null, allowed}；/v1/articles/schedule/add {t, enabled, slots, cats} → {ok, schedule}
-     · 機器路由：/v1/articles/jobs/bot {op:'schedule'} → {schedule|null}
-     · 時段只收現有排程的三輪（SCH_TIMES）；日後要增加就改這個清單與 Claude 排程時間，前端會讀 allowed 自動多出選項。
-     · 設定內容：enabled（總開關）、slots（{"1":["09:50","20:50"],…} 星期 1＝週一…7＝週日）、cats（{news,intro,know} 各 0～3 篇）。
+     第 2 版 Andy 10-16：「應該是可以選擇 日期 後面是時段以小時為單位……然後接者是產的類型選擇，啟用應該是這邊都選完才會輪到」。
+     → 設定從「星期 × 三個固定輪次＋一組全域篇數」改成「規則清單」：每條規則自己帶日期（每週幾 或 指定日期）、整點時段、各類別篇數，
+       這樣「哪個時段產什麼」寫在同一條規則裡，不用再對照兩塊。
+     做法照產出佇列：管理區每次增刪規則／切開關 → 這裡存一份（只留最新一份有效，舊的留作紀錄）→ article-jobs.yml 每小時把最新一份同步進
+     repo（data/_state/article_schedule.json），同一輪 scripts/article_jobs.py 比對「現在台北的日期或星期＋小時」，對得上就依篇數排進佇列 → Claude 排程（台北每小時 :05）處理佇列。
+     · 管理者路由：/v1/articles/schedule/get {t} → {schedule|null, allowed}；/v1/articles/schedule/add {t, ver:2, enabled, rules} → {ok, schedule}
+     · 機器路由：/v1/articles/jobs/bot {op:'schedule'} → {schedule|null}；{op:'add', topic_id:'sch-…', kind:'article', title, note} → 到點的規則排進佇列
+       （由每小時的 article-jobs.yml 呼叫，不是 Claude —— Claude 的 session 拿不到機器鑰匙，所以「到點排隊」放在工作流做，Claude 只負責處理佇列）
+     · 新格式：{ver:2, enabled, rules:[{days:[1..7]（1＝週一…7＝週日）或 dates:["YYYY-MM-DD"]（擇一）, hours:[0..23], cats:{news,intro,know}}]}
+     · 嚴格驗證、壞輸入回 400 不猜：每條規則 hours ≥1、cats 至少一類 >0、days／dates 擇一且非空、日期必須是真的日曆日；開著時 rules 不可空；最多 20 條。
+       過去的日期不在這裡擋（前端不給選；已經過期的規則留著不會觸發，擋了反而讓 Andy 切開關時整份存不進去）。
+     · 讀到第 1 版（slots／cats）一律轉成第 2 版回去（09:50→9、14:50→14、20:50→20；同一組時段的星期併成一條），前端不必認舊格式。
      ========================================================================== */
   if (EXPORT_TABLES && !EXPORT_TABLES.includes('article_schedule')) EXPORT_TABLES.push('article_schedule');
-  const SCH_TIMES = ['09:50', '14:50', '20:50'], SCH_CATS = ['news', 'intro', 'know'], SCH_MAX = 3, SCH_KEEP = 50;
+  const SCH_HOURS = Array.from({ length: 24 }, (_, i) => i), SCH_CATS = ['news', 'intro', 'know'], SCH_MAX = 3, SCH_KEEP = 50, SCH_RULES = 20, SCH_DATES = 31;
   const origArtInit2 = Hub.prototype.artInit;
   Hub.prototype.artInit = function () {
     origArtInit2.call(this);
@@ -140,37 +145,71 @@ export function installArticles(Hub, EXPORT_TABLES) {
     this.q('CREATE TABLE IF NOT EXISTS article_schedule (id INTEGER PRIMARY KEY AUTOINCREMENT, cfg TEXT, created INTEGER, by TEXT)');
     this._artSchOk = true;
   };
-  /* 驗證並整理成固定形狀；壞輸入回 null（不猜、不補） */
-  function cleanSchedule(b) {
-    if (!b || typeof b !== 'object' || typeof b.enabled !== 'boolean') return null;
-    const slots = {}, cats = {};
-    const sl = b.slots && typeof b.slots === 'object' && !Array.isArray(b.slots) ? b.slots : null, ct = b.cats && typeof b.cats === 'object' && !Array.isArray(b.cats) ? b.cats : null;
-    if (!sl || !ct) return null;
-    for (const [d, ts] of Object.entries(sl)) {
-      if (!/^[1-7]$/.test(d) || !Array.isArray(ts)) return null;
-      const u = [...new Set(ts.map(String))];
-      if (u.some((x) => !SCH_TIMES.includes(x))) return null;
-      if (u.length) slots[d] = SCH_TIMES.filter((x) => u.includes(x));
+  const isObj = (x) => !!x && typeof x === 'object' && !Array.isArray(x);
+  const realDate = (s) => typeof s === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(s) && new Date(s + 'T00:00:00Z').toISOString().slice(0, 10) === s;   // 2026-02-30 這種會被 Date 進位，比對回來就不相等
+  const uniqSort = (a) => [...new Set(a)].sort((x, y) => (x < y ? -1 : x > y ? 1 : 0));
+  /* 一條規則：驗證並整理成固定形狀（排序、去重）；壞的回 null */
+  function cleanRule(r) {
+    if (!isObj(r)) return null;
+    for (const k of Object.keys(r)) if (!['days', 'dates', 'hours', 'cats'].includes(k)) return null;
+    const hasD = r.days != null, hasT = r.dates != null;
+    if (hasD === hasT) return null;   // 兩個都給或都沒給 ＝ 不知道要哪一種，不猜
+    const out = {};
+    if (hasD) {
+      if (!Array.isArray(r.days) || !r.days.length || r.days.some((d) => !Number.isInteger(d) || d < 1 || d > 7)) return null;
+      out.days = uniqSort(r.days);
+    } else {
+      if (!Array.isArray(r.dates) || !r.dates.length || r.dates.length > SCH_DATES || r.dates.some((d) => !realDate(d))) return null;
+      out.dates = uniqSort(r.dates);
     }
-    for (const k of Object.keys(ct)) if (!SCH_CATS.includes(k)) return null;
+    if (!Array.isArray(r.hours) || !r.hours.length || r.hours.some((h) => !Number.isInteger(h) || h < 0 || h > 23)) return null;
+    out.hours = uniqSort(r.hours);
+    if (!isObj(r.cats)) return null;
+    for (const k of Object.keys(r.cats)) if (!SCH_CATS.includes(k)) return null;
+    out.cats = {};
     for (const k of SCH_CATS) {
-      const n = ct[k] == null ? 0 : ct[k];
+      const n = r.cats[k] == null ? 0 : r.cats[k];
       if (!Number.isInteger(n) || n < 0 || n > SCH_MAX) return null;
-      cats[k] = n;
+      out.cats[k] = n;
     }
-    if (b.enabled && (!Object.keys(slots).length || !SCH_CATS.some((k) => cats[k] > 0))) return null;   // 開著卻沒有時段或沒有類別 ＝ 不會做任何事，擋下
-    return { enabled: b.enabled, slots, cats };
+    if (!SCH_CATS.some((k) => out.cats[k] > 0)) return null;   // 一篇都不產的規則沒有意義
+    return out;
+  }
+  /* 整份設定：壞輸入回 null（不猜、不補） */
+  function cleanSchedule(b) {
+    if (!isObj(b) || typeof b.enabled !== 'boolean') return null;
+    if (b.ver != null && b.ver !== 2) return null;
+    if (!Array.isArray(b.rules) || b.rules.length > SCH_RULES) return null;
+    const rules = [];
+    for (const r of b.rules) { const c = cleanRule(r); if (!c) return null; rules.push(c); }
+    if (b.enabled && !rules.length) return null;   // 開著卻沒有規則 ＝ 不會做任何事，擋下
+    return { ver: 2, enabled: b.enabled, rules };
+  }
+  /* 第 1 版 → 第 2 版：同一組時段的星期併成一條規則；篇數是全域的，每條都帶同一組；篇數全 0 或沒時段 → 沒有規則、視為關閉 */
+  function upgradeSchedule(c) {
+    if (!isObj(c) || c.ver === 2) return c;
+    const cats = {}; SCH_CATS.forEach((k) => { const n = Number(c.cats && c.cats[k]); cats[k] = Number.isInteger(n) && n >= 0 && n <= SCH_MAX ? n : 0; });
+    const groups = {};
+    const sl = isObj(c.slots) ? c.slots : {};
+    Object.keys(sl).sort().forEach((d) => {
+      const hs = uniqSort((Array.isArray(sl[d]) ? sl[d] : []).map((t) => parseInt(String(t), 10)).filter((h) => Number.isInteger(h) && h >= 0 && h <= 23));
+      if (!/^[1-7]$/.test(d) || !hs.length) return;
+      const key = hs.join(',');
+      (groups[key] = groups[key] || { days: [], hours: hs }).days.push(+d);
+    });
+    const rules = SCH_CATS.some((k) => cats[k] > 0) ? Object.values(groups).sort((x, y) => x.days[0] - y.days[0]).map((g) => ({ days: g.days, hours: g.hours, cats: { ...cats } })) : [];
+    return { ver: 2, enabled: !!c.enabled && rules.length > 0, rules, legacy: true };
   }
   const latestSchedule = (hub) => {
     const r = hub.q('SELECT cfg, created FROM article_schedule ORDER BY id DESC LIMIT 1')[0];
     if (!r) return null;
-    try { return { ...JSON.parse(r.cfg), updated: r.created }; } catch (e) { return null; }
+    try { return { ...upgradeSchedule(JSON.parse(r.cfg)), updated: r.created }; } catch (e) { return null; }
   };
   Object.assign(Hub.prototype.subRoutes, {
     '/v1/articles/schedule/get': async function (req, b) {
       if (!(await this.admin(req, b))) return this.json(req, { error: 'forbidden' }, 403);
       this.artInit();
-      return this.json(req, { schedule: latestSchedule(this), allowed: { times: SCH_TIMES, cats: SCH_CATS, max: SCH_MAX } });
+      return this.json(req, { schedule: latestSchedule(this), allowed: { hours: SCH_HOURS, cats: SCH_CATS, max: SCH_MAX, maxRules: SCH_RULES, maxDates: SCH_DATES } });
     },
     '/v1/articles/schedule/add': async function (req, b) {
       const v = await this.admin(req, b); if (!v) return this.json(req, { error: 'forbidden' }, 403);
@@ -419,6 +458,19 @@ export function installArticles(Hub, EXPORT_TABLES) {
         if (j.status === 'cancelled' || j.status === 'done') return this.json(req, { error: 'closed', job: j }, 409);
         this.q('UPDATE article_jobs SET status = ?, result = ?, updated = ? WHERE id = ?', st, clip(b.result, 200) || j.result || null, this.now(), id);
         return this.json(req, { ok: true, job: jobOf(this, id) });
+      }
+      /* 頻率設定到點 → scripts/article_jobs.py 依規則自動排隊（2026-10-16 第 2 版）。
+         只收 sch-<YYYYMMDD>-<HH>-r<規則>-<類別>-<第幾篇> 這種 id：同一個 id 不論狀態（連已完成、已取消）都不再排，
+         這樣同一小時工作流跑兩次（排程＋文章上架觸發）也不會重複排；Andy 取消掉的也不會被補回來。 */
+      if (b.op === 'add') {
+        const topic = String(b.topic_id || ''), title = clip(b.title, 120), note = clip(b.note, 500);
+        if (!/^sch-\d{8}-\d{2}-r\d{1,2}-(news|intro|know)-\d$/.test(topic) || b.kind !== 'article' || !title) return this.json(req, { error: 'bad_input' }, 400);
+        const dup = this.q('SELECT id FROM article_jobs WHERE topic_id = ? ORDER BY id DESC LIMIT 1', topic)[0];
+        if (dup) return this.json(req, { ok: true, dup: true, job: jobOf(this, dup.id) });
+        if (this.q("SELECT COUNT(*) AS c FROM article_jobs WHERE status IN ('queued','working')")[0].c >= OPEN_MAX) return this.json(req, { error: 'too_many' }, 429);
+        const now = this.now();
+        this.q("INSERT INTO article_jobs (topic_id, kind, title, note, status, created, updated, by) VALUES (?, 'article', ?, ?, 'queued', ?, ?, 'schedule')", topic, title, note, now, now);
+        return this.json(req, { ok: true, job: jobOf(this, this.q('SELECT last_insert_rowid() AS id')[0].id) });
       }
       return this.json(req, { error: 'bad_op' }, 400);
     } catch (e) { return this.json(req, { error: 'server' }, 500); }

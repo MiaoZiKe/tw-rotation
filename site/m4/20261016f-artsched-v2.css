@@ -1,0 +1,33 @@
+/* site/m4/20261016f-artsched-v2.css —— 2026-10-16 產貼文頻率設定第 2 版（site/artsched.js）的手機版調整
+   Andy 10-16：「這邊設計好糟糕 應該是可以選擇 日期 後面是時段以小時為單位， 10:00 AM/PM 這樣 …… 這裡好亂」。
+   元件本身的版面（桌機、≤820 步驟改上下排）寫在 artsched.js 注入的樣式；這裡只放 ≤640 手機的部分（CLAUDE.md 拆檔規則）。
+   · artsched.js 的 <style> 是執行時才插到 <head> 最後面，同樣權重會蓋掉這支，所以每條前面多一個 html 提高權重。
+   · 手機五條：星期七顆平分一整行、時段每排 4 顆（上午三排、下午三排）、每顆觸控 ≥ 32px；
+     日期方式兩顆分段鈕各占一半；類別篇數一類一行、計數器靠右；清單每條的「編輯／刪除」移到該條最下面一行，文字不被擠。 */
+@media (max-width:640px){
+  html #v-subadm .asd .asd-st{padding:10px 0}
+  html #v-subadm .asd .asd-seg{display:flex;align-self:stretch}
+  html #v-subadm .asd .asd-seg button{flex:1;min-width:0}
+  html #v-subadm .asd .asd-pane{gap:8px}
+  html #v-subadm .asd .asd-days{grid-template-columns:repeat(7,minmax(0,1fr));gap:4px;width:100%}
+  html #v-subadm .asd .asd-days .dd{width:auto}
+  html #v-subadm .asd .asd-quick{width:100%}
+  html #v-subadm .asd .asd-quick button{flex:1}
+  html #v-subadm .asd .asd-dpick{width:100%}
+  html #v-subadm .asd .asd-dpick input[type=date]{flex:1;min-width:0;height:36px}
+  html #v-subadm .asd .asd-dpick button{min-height:36px}
+  html #v-subadm .asd .asd-hrow{grid-template-columns:minmax(0,1fr);gap:4px}
+  html #v-subadm .asd .asd-hl{text-align:left;font-size:12px}
+  html #v-subadm .asd .asd-hours{grid-template-columns:repeat(4,minmax(0,1fr));gap:4px}
+  html #v-subadm .asd .hb{min-height:36px;font-size:12.5px}
+  html #v-subadm .asd .asd-cats{flex-direction:column;gap:2px}
+  html #v-subadm .asd .asd-kr{justify-content:space-between;min-height:40px;border-bottom:1px solid var(--line)}
+  html #v-subadm .asd .asd-kr:last-child{border-bottom:0}
+  html #v-subadm .asd .asd-act .asd-pri{flex:1}
+  html #v-subadm .asd .asd-lack{flex-basis:100%}
+  html #v-subadm .asd .asd-rule{grid-template-columns:22px minmax(0,1fr);grid-template-areas:"i d" "i h" "i c" "i b";padding:8px 10px}
+  html #v-subadm .asd .asd-rb{justify-content:flex-end;margin-top:4px}
+  html #v-subadm .asd .asd-rb button{min-width:64px}
+  html #v-subadm .asd .asd-sw{font-size:13.5px;align-items:flex-start}
+  html #v-subadm .asd .asd-sw input{margin-top:1px;flex:0 0 20px}
+}
