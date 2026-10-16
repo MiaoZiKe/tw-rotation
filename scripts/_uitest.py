@@ -34864,6 +34864,16 @@ def t_m4_opaque_panel_1016(b, base):
                        cv.get("open") and cv.get("alpha", 0) >= 0.95 and not cv.get("leak"), cv)
                     m.keyboard.press("Escape"); m.wait_for_timeout(400)
 
+                # ---- ②b 輪盤四角的象限鈕（改善／領先…）→ #stagePanel（同一格側欄，同樣蓋住排行圖） ----
+                J("() => { const q = document.querySelector('.rotquads .rq'); if (q) q.scrollIntoView({ block: 'center', behavior: 'instant' }); }"); m.wait_for_timeout(400)
+                qx = J("() => { const q = [...document.querySelectorAll('.rotquads .rq')].find(e => e.getClientRects().length); if (!q) return null; const r = q.getBoundingClientRect(); return [r.left + r.width / 2, r.top + r.height / 2, q.textContent.trim()]; }")
+                if ok(f"{tag} 輪盤有象限鈕", bool(qx), qx):
+                    m.touchscreen.tap(qx[0], qx[1]); m.wait_for_timeout(1000)
+                    cv = J("() => __op1016.cover('#stagePanel', '#rankFlow')")
+                    ok(f"{tag} ②b 點象限鈕「{qx[2]}」→ 象限面板打開、底色不透明（{cv.get('alpha')}）、排行圖的字不透上來（{cv.get('n')} 個）",
+                       cv.get("open") and cv.get("alpha", 0) >= 0.95 and not cv.get("leak"), cv)
+                    m.keyboard.press("Escape"); m.wait_for_timeout(400)
+
                 # ---- ③ 資金分流樹：手指點族群節點 → #sankeyPanel（排在樹下面；就算蓋到也要不透明） ----
                 go("#flow/sankey", "(() => { const h = document.getElementById('sankey'); return !!(h && h._ft && window.FlowTopo && FlowTopo.probe(h)); })()")
                 J("() => document.getElementById('sankey').scrollIntoView({ block: 'center', behavior: 'instant' })"); m.wait_for_timeout(500)
