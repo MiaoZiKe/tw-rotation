@@ -106,6 +106,7 @@ const cleanName = (s) => String(s == null ? '' : s).replace(/[\u0000-\u001f\u007
 const CODE_RE = /^[0-9A-Z]{4,6}$/;
 
 import { installPay } from './pay.js';
+import { installArticles } from './articles.js';
 
 export default {
   async fetch(req, env) {
@@ -2700,3 +2701,4 @@ for (const t of ['grant_defs', 'grants', 'grant_hits']) if (!EXPORT_TABLES.inclu
    ★ 同前面幾個區塊：包一層 prototype，既有函式一行不動；一定要在檔尾（要包住前面所有的 fetch／cleanup／deleteMe／expInit）。
    ============================================================================ */
 installPay(Hub, { rand, safeEq, tpeDay, subClean, EXPORT_TABLES });
+installArticles(Hub, EXPORT_TABLES);   // 2026-10-16 精選文章點閱次數
