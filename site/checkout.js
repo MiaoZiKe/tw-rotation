@@ -64,6 +64,17 @@
 #subDlg .codlg .cofrm{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px 10px}
 #subDlg .codlg .cofrm label{margin:0;font-size:12.5px}
 #subDlg .codlg .cofrm .w3{grid-column:1/-1}
+#subDlg .codlg .cofrm>div{display:flex;flex-direction:column;justify-content:flex-end;min-width:0}
+#subDlg .codlg .cofrm label{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#subDlg .codlg .cofrm input::placeholder{color:var(--ink-3);font-size:13px}
+#subDlg .codlg .cocfm{margin-top:10px;text-align:left;padding:12px 14px}
+#subDlg .codlg .cocfm>b{font-size:14px}
+#subDlg .codlg .cooff.cocfm{text-align:left}
+#subDlg .codlg .cocfm .kv{margin:8px 0 10px;display:grid;grid-template-columns:auto minmax(0,1fr);gap:4px 16px;text-align:left}
+#subDlg .codlg .cocfm .cfbtn{display:flex;gap:8px;align-items:stretch}
+#subDlg .codlg .cocfm .cfbtn button{height:44px;margin:0;border-radius:10px;font:inherit;font-size:14px;white-space:nowrap}
+#subDlg .codlg .cocfm #coCfmBack{flex:none;padding:0 16px;border:1px solid var(--line-2);background:var(--panel-3);color:var(--ink);cursor:pointer}
+#subDlg .codlg .cocfm .cogo{flex:1;font-size:15px}
 #subDlg .codlg .cofrm label,#subDlg .codlg .cofrm .lb{display:block;margin:0 0 4px;font-size:12.5px;color:var(--ink)}
 #subDlg .codlg .cofrm label small,#subDlg .codlg .cofrm .lb small{margin-left:6px;color:var(--ink-2);font-size:11.5px;font-weight:400}
 #subDlg .codlg .cofrm .req{font-style:normal;margin-left:4px;color:var(--rise);font-size:11px}
@@ -242,15 +253,14 @@ html.pay-renew #acctBtn.ame::after{content:'';position:absolute;top:2px;right:2p
           <span>帳號</span><b id="coBankAcct">${esc(b.account)}</b><button type="button" data-copy="${esc(b.account)}">複製</button>
           <span>戶名</span><b>${esc(b.holder)}</b><span></span>
           <span>應付金額</span><b>NT$ ${nt(j.amount)}</b><button type="button" data-copy="${esc(j.amount)}">複製</button>
-          <span>訂單編號</span><b>${esc(j.id)}</b><button type="button" data-copy="${esc(j.id)}">複製</button>
-          <div class="codue">請於 ${esc(b.days || 3)} 天內轉帳（${esc(ymd(j.deadline))} 前），轉帳備註可填訂單編號，方便對帳。</div></div>
+          <span>訂單編號</span><b>${esc(j.id)}</b><button type="button" data-copy="${esc(j.id)}">複製</button></div>
         <div class="cofrm" id="coFrm">
-          <div><label for="coPayer">匯款人姓名<em class="req">必填</em><small>轉出帳戶的戶名</small></label><input id="coPayer" maxlength="40" autocomplete="name" required aria-required="true"></div>
-          <div><label for="coL5">轉出帳號末 5 碼<small>5 個數字</small></label><input id="coL5" inputmode="numeric" maxlength="5" autocomplete="off"></div>
+          <div><label for="coPayer">匯款人姓名<em class="req">*</em></label><input id="coPayer" maxlength="40" autocomplete="name" required aria-required="true" placeholder="轉出帳戶的戶名"></div>
+          <div><label for="coL5">轉出帳號末 5 碼</label><input id="coL5" inputmode="numeric" maxlength="5" autocomplete="off"></div>
           <div><label for="coDate">轉帳日期</label><input id="coDate" type="date" value="${esc(today)}" max="${esc(today)}"></div>
-          <div class="w3"><span class="lb">轉帳金額<small>依訂單金額，不用填</small></span><div class="ro" id="coXAmt" aria-readonly="true">NT$ ${nt(j.amount)}</div></div></div>
+          <div class="w3"><span class="lb">轉帳金額（依訂單，不用填）</span><div class="ro" id="coXAmt" aria-readonly="true">NT$ ${nt(j.amount)}</div></div></div>
         <button type="button" class="cogo" id="coSendB">我已轉帳，送出匯款資料</button>
-        <p class="muted" style="font-size:12.5px;margin:6px 0 0">送出後狀態是「待確認」，管理者確認入帳就會開通（可在帳號選單「我的訂單」查看）。轉帳不會自動續扣，到期前 7 天會提醒你再匯一期。</p>`;
+        <p class="muted" style="font-size:12.5px;margin:6px 0 0">管理者確認入帳後開通，可在「我的訂單」查看。</p>`;
       pane.querySelectorAll('[data-copy]').forEach((c) => { c.onclick = () => { try { navigator.clipboard.writeText(c.dataset.copy); c.textContent = '已複製'; } catch (e) { /* 沒權限就算了 */ } }; });
       /* 2026-10-12 Andy：送出前要有確認機制，金額和應付不同要明確提醒（客戶可能不是匯 2,990）。確認區放在按鈕下方，不用彈窗。 */
       const doneBank = (o) => {
@@ -269,10 +279,10 @@ html.pay-renew #acctBtn.ame::after{content:'';position:absolute;top:2px;right:2p
         if (!/^\d{4}-\d{2}-\d{2}$/.test(f.date)) return msg('請選轉帳日期', true);
         msg('');
         let cf = pane.querySelector('#coCfm'); if (cf) cf.remove();
-        cf = document.createElement('div'); cf.id = 'coCfm'; cf.className = 'cooff'; cf.style.cssText = 'margin-top:8px;text-align:left';
-        cf.innerHTML = `<b>請再確認一次匯款資料</b><div class="kv" style="margin:6px 0"><span>匯款人姓名</span><b>${esc(f.name)}</b><span>轉出帳號末 5 碼</span><b>${esc(f.last5)}</b><span>轉帳日期</span><b>${esc(f.date)}</b><span>轉帳金額</span><b>NT$ ${nt(j.amount)}</b></div>
-          <p class="muted" style="margin:4px 0;font-size:12.5px">送出後不能修改；填錯請從右下角「客服」→「意見反饋」告訴我們。</p>
-          <div style="display:flex;gap:8px"><button type="button" id="coCfmBack">返回修改</button><button type="button" class="cogo" id="coCfmGo">確認無誤，送出</button></div>`;
+        cf = document.createElement('div'); cf.id = 'coCfm'; cf.className = 'cooff cocfm';
+        /* 10-16 Andy：「請調整適當大小排版，文字有點太多」「返回修改」不換行、跟送出鈕同高 */
+        cf.innerHTML = `<b>請確認匯款資料（送出後不能修改）</b><div class="kv"><span>匯款人姓名</span><b>${esc(f.name)}</b><span>轉出帳號末 5 碼</span><b>${esc(f.last5)}</b><span>轉帳日期</span><b>${esc(f.date)}</b><span>轉帳金額</span><b>NT$ ${nt(j.amount)}</b></div>
+          <div class="cfbtn"><button type="button" id="coCfmBack">返回修改</button><button type="button" class="cogo" id="coCfmGo">確認無誤，送出</button></div>`;
         $('#coSendB').after(cf); $('#coSendB').hidden = true;
         cf.querySelector('#coCfmBack').onclick = () => { cf.remove(); $('#coSendB').hidden = false; };
         cf.querySelector('#coCfmGo').onclick = () => report(j.id, f, msg, doneBank);
@@ -298,6 +308,7 @@ html.pay-renew #acctBtn.ame::after{content:'';position:absolute;top:2px;right:2p
     if (S.fly) return S.fly;
     S.fly = call('/v1/pay/my', {}).then((j) => {
       S.fly = null; S.my = j && j._s === 200 ? j : null; paintRenew();
+      try { window.dispatchEvent(new CustomEvent('tw:pay-my')); } catch (e) { /* 略 */ }   // 10-16：方案頁的「待審核」按鈕要跟著換
       /* 2026-10-12：帳務通知（開通／退款／退回）在鈴鐺裡 —— 訂單狀態一變就叫鈴鐺重抓，不等它 10 分鐘的快取 */
       if (S.my) {
         const sig = (S.my.orders || []).map((o) => o.id + ':' + o.status + ':' + (o.refunded || 0) + ':' + ((o.reports || []).length)).join('|') + '#' + (S.my.reqs || []).map((r) => r.id + r.status).join('|') + '#' + S.my.plan + S.my.expires;

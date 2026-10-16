@@ -369,6 +369,7 @@
 #v-pricing .pc-blue{--pc:var(--pl-blue)}#v-pricing .pc-violet{--pc:var(--violet)}#v-pricing .pc-amber{--pc:var(--amber)}#v-pricing .pc-green{--pc:var(--lime)}#v-pricing .pc-neutral{--pc:var(--pl-neutral)}
 #v-pricing .prinfo{display:flex;align-items:center;gap:8px;padding:10px 4px;border-bottom:1px solid var(--line);font-size:13px;color:var(--ink-2);line-height:1.5}
 #v-pricing .prinfo svg{flex:none}
+#v-pricing .prgo.prwait{background:var(--panel-3)!important;color:var(--ink-3)!important;border-color:var(--line-2)!important;box-shadow:none!important;cursor:not-allowed}
 #v-pricing .prper{display:flex;justify-content:center;margin:22px 0 0}
 #v-pricing .prper .seg{display:inline-flex;gap:4px;padding:4px;border-radius:999px;border:1px solid var(--line-2);background:var(--panel-3)}
 #v-pricing .prper button{display:inline-flex;align-items:center;gap:8px;height:38px;padding:0 22px;border:0;border-radius:999px;background:transparent;color:var(--ink-2);font:inherit;font-size:14px;cursor:pointer}
@@ -565,6 +566,15 @@
   /* 10-07 Andy「原價錢被劃掉，旁邊標註減多少，再寫出新價格，像特賣會」：年繳時第一行＝原價（月價×12，刪除線）＋琥珀徽章「省 NT$ X・約 Y%」；
      其他情況這一行用 &nbsp; 佔位（三欄每一層才對齊）。 */
   function origLine(pr) { return pr.orig ? `<div class="prorig"><s class="prstrike">NT$ ${nt(pr.mo)}／月</s><span class="prsale">省 NT$ ${nt(pr.orig - pr.total)}／年・約 ${Math.round((pr.orig - pr.total) / pr.orig * 100)}%</span></div>` : '<div class="prorig">&nbsp;</div>'; }
+  const TIER_RANK = { plus: 1, pro: 2 };
+  const tierNum = (id, per) => (TIER_RANK[id] ? TIER_RANK[id] * 2 + (per === 'year' ? 1 : 0) : 0);
+  function pendTier() {
+    const C = window.TwCheckout, my = C && C.state && C.state().my;
+    const rev = my && Array.isArray(my.orders) ? my.orders.filter((o) => o && o.status === 'review' && !o.parent && TIER_RANK[o.plan]) : [];
+    if (!rev.length) return null;
+    const top = rev.reduce((a, o) => (tierNum(o.plan, o.period) > tierNum(a.plan, a.period) ? o : a));
+    return { n: tierNum(top.plan, top.period), name: `${top.planName || top.plan}・${top.period === 'year' ? '年繳' : '月繳'}` };
+  }
   function btnOf(p, me) {
     /* ★ 10-07 Andy「已是 pro 用戶但 plus 尚未包含」：以前只認「同一張＝目前方案、免費卡＝已包含」，其餘一律「升級」。
        改成比層級（rankOf：免費 0、付費＝折合每月價格，不寫死方案名）：比目前低＝已包含、同一張＝目前方案、比目前高才升級。站主全部已包含。 */
@@ -573,6 +583,10 @@
     if (tierOf(p) === 'free' && me.tier === 'guest') return `<button type="button" class="prgo" data-go="${esc(p.id)}">免費註冊／登入</button>`;
     const mine = me.tier === 'free' ? 0 : me.tier === 'guest' ? -1 : (() => { const x = tidy(S.plans || FALLBACK).find((q) => q.id === me.id); return x ? rankOf(x) : -1; })();
     if (rankOf(p) <= mine) return `<button type="button" class="prgo" disabled>已包含</button>`;
+    /* 2026-10-16 Andy：「已經有訂單狀態的情況，不能再訂閱其他項目，除非他是訂閱升級的版本，且訂閱後待審核都會反灰」
+       「級別排序 pro(年) > pro(月) > plus(年) > plus(月)」→ 有待審核（已送出匯款資料）的單：同級與更低的按鈕都變「待審核」反灰（伺服器也擋，見 pay.js payChangeCheck） */
+    const pend = pendTier();
+    if (pend && TIER_RANK[p.id]) { const per = priceAt(p, S.per).period; if (tierNum(p.id, per) <= pend.n) return `<button type="button" class="prgo prwait" disabled title="${esc(pend.name)}待審核中，審核完成前只能申請更高級別">待審核</button>`; }
     return `<button type="button" class="prgo" data-go="${esc(p.id)}">升級 ${esc(showName(p))}</button>`;
   }
   const tagOf = (lk, need) => (need ? `<span class="prtag need">${S.need && F() && F().byId(S.need) ? '可解鎖' : '建議升級'}</span>` : lk.badge ? `<span class="prtag">${lk.badge === '最受歡迎' ? '★ ' : '✦ '}${esc(lk.badge)}</span>` : '');
@@ -733,6 +747,7 @@
   /* 登入／登出、權限換了 → 「目前方案」那張卡要跟著換 */
   const again = () => { if ((location.hash || '').startsWith('#pricing') && S.plans) paint(); };
   window.addEventListener('tw:perm', again);
+  window.addEventListener('tw:pay-my', again);   // 10-16：我的訂單載入／變動 → 「待審核」按鈕跟著換
   window.addEventListener('tw:account', () => { S.plans = null; if ((location.hash || '').startsWith('#pricing')) show(); });
   /* 給 site/qcard.js（quota 分支）：方案清單（同步；還沒抓過回 null）、確保抓過一次、哪些方案開放某個功能（訪客除外，順序＝方案卡順序）*/
   const ensure = () => (S.plans ? Promise.resolve(S.plans) : load().then(() => S.plans));

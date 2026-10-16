@@ -322,9 +322,10 @@ test('銀行轉帳：收款帳號沒設＝尚未開放；設了只有登入會�
   assert.equal(new Date(ord(db, c.id).grant_to).toISOString(), '2027-10-11T04:00:00.000Z', '年繳 +12 個月');
   assert.equal((await permOf(hub, bob)).plan, 'plus');
   assert.equal((await pj(hub, '/v1/admin/pay/confirm', { t: andy, id: c.id })).j.dup, true, '重按確認不重複開通');
-  /* 方案異動規則：年繳 Plus 生效中 → 不能再買月繳、不能重買同一個，只能升 Pro 年繳 */
+  /* 方案異動規則（10-16 Andy 級別：Pro 年 > Pro 月 > Plus 年 > Plus 月）：年繳 Plus 生效中 → 不能再買 Plus 月繳、不能重買同一個；Pro 月繳／年繳都是升級 */
   const blk = async (plan, period) => (await pj(hub, '/v1/pay/bank/create', { t: bob, plan, period })).j;
-  assert.deepEqual([(await blk('plus', 'month')).reason, (await blk('plus', 'year')).reason, (await blk('pro', 'month')).reason], ['year_to_month', 'same_active', 'year_to_month']);
+  assert.deepEqual([(await blk('plus', 'month')).reason, (await blk('plus', 'year')).reason], ['year_to_month', 'same_active']);
+  assert.equal((await pj(hub, '/v1/pay/quote', { t: bob, plan: 'pro', period: 'month' })).j.blocked, '', 'Plus 年繳 → Pro 月繳＝級別較高，可以買');
   assert.equal((await pj(hub, '/v1/pay/quote', { t: bob, plan: 'plus', period: 'month' })).j.blocked, 'year_to_month', '報價也帶出擋下原因，前端據此反灰');
   assert.equal((await pj(hub, '/v1/pay/bank/create', { t: bob, plan: 'pro', period: 'year' })).s, 200, '年繳可升 Pro 年繳');
   /* 到期前 7 天內才能續訂同方案同週期；上面 4 次之後再灌到第 6 筆 → 24 小時上限 */
@@ -333,7 +334,7 @@ test('銀行轉帳：收款帳號沒設＝尚未開放；設了只有登入會�
   db.prepare("UPDATE orders SET grant_to = ? WHERE id = ?").run(soon, c.id);
   for (let i = 0; i < 3; i++) {   // 前面已開 2 筆（原單＋Pro 年繳），再 3 筆到 5 筆上限
     assert.equal((await pj(hub, '/v1/pay/bank/create', { t: bob, plan: 'plus', period: 'year' })).s, 200);
-    db.prepare("UPDATE orders SET status = 'review' WHERE method = 'bank' AND status = 'pending'").run();
+    db.prepare("UPDATE orders SET status = 'cancelled' WHERE method = 'bank' AND status = 'pending'").run();   // 10-16 起待審核（review）會擋同級，改用作廢讓下一筆開新單
   }
   assert.equal((await pj(hub, '/v1/pay/bank/create', { t: bob, plan: 'plus', period: 'year' })).s, 429, '24 小時第 6 筆擋下');
 });
@@ -440,7 +441,9 @@ test('會員帳務通知：回報匯款、開通、升級、退回、退款都�
   await pj(hub, '/v1/notices/read', { t: bob, ids: [rf.id] });
   assert.equal((await pj(hub, '/v1/notices', { t: bob })).j.notices.find((x) => x.id === rf.id).read, true, '已讀會記住');
   /* 別人看不到 bob 的通知 */
-  assert.equal((await pj(hub, '/v1/notices', { t: andy })).j.notices.filter((x) => x.kind === 'pay').length, 0);
+  const an = (await pj(hub, '/v1/notices', { t: andy })).j.notices.filter((x) => x.kind === 'pay');
+  assert.equal(an.filter((x) => !/^新訂單：/.test(x.title)).length, 0, '管理者看不到 bob 的個人帳務通知');
+  assert.ok(an.some((x) => /^新訂單：/.test(x.title)), '10-16：客戶送出匯款資料 → 管理者鈴鐺有「新訂單」通知');
   /* 寄信：排程送出、帶收件人 */
   globalThis.fetch = async (u, init) => { if (String(u).startsWith('https://api.resend.com')) { sent.push(JSON.parse(init.body)); return new Response('{}', { status: 200 }); } return realFetch(u, init); };
   try { await hub.payMailFlush(); } finally { globalThis.fetch = realFetch; }
@@ -679,4 +682,15 @@ test('10-16 只有管理者能改轉帳金額：會員不行；開通後不能�
   assert.equal((await pj(hub, '/v1/admin/pay/amount', { t: andy, id: c.id, amount: 100 })).s, 409, '開通後不能改');
   const adm = (await pj(hub, '/v1/admin/pay/list', { t: andy })).j.orders.find((o) => o.id === c.id);
   assert.equal(adm.payerName, '鮑伯', '管理區訂單看得到匯款人姓名');
+});
+
+test('10-16 待審核擋同級與更低：送出匯款資料後只能申請更高級別', async () => {
+  const { hub, andy, bob } = await setup();
+  await pj(hub, '/v1/admin/pay/bank/put', { t: andy, bank_name: '測試銀行', bank_code: '999', account: '0000-1111-2222', holder: '測試戶名' });
+  const c = await pj(hub, '/v1/pay/bank/create', { t: bob, plan: 'plus', period: 'year' });
+  assert.equal((await pj(hub, '/v1/pay/bank/report', { t: bob, id: c.j.id, name: '王小明', last5: '12345', date: '2026-10-11' })).s, 200);
+  const q = async (plan, period) => (await pj(hub, '/v1/pay/quote', { t: bob, plan, period })).j.blocked;
+  assert.deepEqual([await q('plus', 'month'), await q('plus', 'year'), await q('pro', 'month'), await q('pro', 'year')], ['pending_review', 'pending_review', '', '']);
+  assert.equal((await pj(hub, '/v1/pay/bank/create', { t: bob, plan: 'plus', period: 'month' })).j.error, 'blocked');
+  void andy;
 });

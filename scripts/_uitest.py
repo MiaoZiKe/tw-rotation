@@ -70903,9 +70903,12 @@ def t_pay_1011(b, base):
         wait_until(pc, "() => !!document.getElementById('coTabB')", 6000)
         pc.click("#coPer button[data-per=month]")
         pc.click("#coTabB")
-        bank_ok = wait_until(pc, "() => { const e = document.getElementById('coBank'); return e && /3 天內/.test(e.textContent) ? e.textContent : ''; }", 8000)
-        ok(f"{T}：選轉帳 → 顯示收款資訊（銀行＋代碼、帳號、戶名、應付金額、訂單編號、「請於 3 天內轉帳」）",
-           bool(bank_ok) and f"{PAY_BANK['bank_name']}（{PAY_BANK['bank_code']}）" in bank_ok and PAY_BANK["account"] in bank_ok and PAY_BANK["holder"] in bank_ok and "NT$ 299" in bank_ok and "3 天內轉帳" in bank_ok, bank_ok)
+        bank_ok = wait_until(pc, "() => { const e = document.getElementById('coBank'); return e && /NT\\$ 299/.test(e.textContent) ? e.textContent : ''; }", 8000)
+        ok(f"{T}：選轉帳 → 顯示收款資訊（銀行＋代碼、帳號、戶名、應付金額、訂單編號）；10-16 Andy 拿掉「請於 3 天內轉帳」那行",
+           bool(bank_ok) and f"{PAY_BANK['bank_name']}（{PAY_BANK['bank_code']}）" in bank_ok and PAY_BANK["account"] in bank_ok and PAY_BANK["holder"] in bank_ok and "NT$ 299" in bank_ok and "3 天內" not in bank_ok, bank_ok)
+        # 10-16 Andy：「需要調整版面，可以看到跑掉了」→ 三個輸入框上緣切齊、標籤一行不換行
+        fl = pc.evaluate("() => { const ins = ['coPayer', 'coL5', 'coDate'].map(i => document.getElementById(i).getBoundingClientRect()); const lb = [...document.querySelectorAll('#coFrm label')].map(l => l.getBoundingClientRect().height); return { tops: ins.map(r => Math.round(r.top)), lbh: lb }; }")
+        ok(f"{T}：轉帳表單三個輸入框上緣切齊、標籤都只有一行", max(fl["tops"]) - min(fl["tops"]) <= 1 and all(h <= 22 for h in fl["lbh"]), fl)
         boid = pc.evaluate("() => document.getElementById('coOid').innerText")
         ok(f"{T}：轉帳訂單編號出現在面板上（{boid}）", bool(re.match(r"^LG[0-9A-Z]{16}$", boid or "")), boid)
         pc.fill("#coL5", "12345")
@@ -70918,8 +70921,10 @@ def t_pay_1011(b, base):
         ok(f"{T}：沒填匯款人姓名 → 擋下、不出確認區", bool(wait_until(pc, "() => /請填匯款人姓名/.test(document.getElementById('coMsg').innerText) && !document.getElementById('coCfm')", 3000)))
         pc.fill("#coPayer", "卡蘿")
         pc.click("#coSendB")
-        ok(f"{T}：送出前先出現確認區（姓名、末 5 碼、日期、金額 NT$ 299）", bool(wait_until(pc, "() => { const c = document.getElementById('coCfm'); return c && /請再確認/.test(c.innerText) && /卡蘿/.test(c.innerText) && /12345/.test(c.innerText) && /NT\$ 299/.test(c.innerText) ? 1 : 0; }", 3000)))
+        ok(f"{T}：送出前先出現確認區（姓名、末 5 碼、日期、金額 NT$ 299）", bool(wait_until(pc, "() => { const c = document.getElementById('coCfm'); return c && /請確認匯款資料/.test(c.innerText) && /卡蘿/.test(c.innerText) && /12345/.test(c.innerText) && /NT\$ 299/.test(c.innerText) ? 1 : 0; }", 3000)))
         shot(pc, "co_bank_confirm.png", "#subDlg .box")
+        cb = pc.evaluate("() => { const a = document.getElementById('coCfmBack').getBoundingClientRect(), g = document.getElementById('coCfmGo').getBoundingClientRect(); return { ah: Math.round(a.height), gh: Math.round(g.height), at: Math.round(a.top), gt: Math.round(g.top) }; }")
+        ok(f"{T}：確認區「返回修改」一行不換行、跟「確認無誤，送出」同高同一列（10-16 Andy：返回修改擠成兩行）", cb["ah"] == cb["gh"] and cb["at"] == cb["gt"] and cb["ah"] <= 46, cb)
         with pc.expect_response(lambda r: "/v1/pay/bank/report" in r.url, timeout=6000) as ri:
             pc.click("#coCfmGo")
         ok(f"{T}：填末 5 碼送出 → 真的送出 bank/report、面板寫「待確認」", ri.value.status == 200 and bool(wait_until(pc, "() => { const d = document.getElementById('subDlg'); return d && /待確認/.test(d.innerText); }", 4000)))
@@ -70927,6 +70932,18 @@ def t_pay_1011(b, base):
         row = wait_until(pc, f"() => {{ const r = document.querySelector('#ordList .ordr[data-oid=\"{boid}\"]'); return r ? r.innerText : ''; }}", 8000)
         ok(f"{T}：我的訂單出現這筆「銀行轉帳」「待確認」、轉出末 5 碼 12345", bool(row) and "銀行轉帳" in row and "待確認" in row and "12345" in row, row)
         shot(pc, "my_orders.png", "#v-orders .ordp")
+        # 10-16 Andy：「申請後 這邊會變成待審核」「級別排序 pro(年) > pro(月) > plus(年) > plus(月)」→ 待審核 Plus 月繳：Plus 卡反灰「待審核」、Pro 仍可升級
+        pc.goto(base + "#pricing", wait_until="domcontentloaded")
+        wait_until(pc, "() => !!document.querySelector('#prPeriod button[data-per=month]')", 8000); pc.click("#prPeriod button[data-per=month]")
+        btn = wait_until(pc, "() => { const p = document.querySelector('.prcard[data-plan=plus] .prgo'), q = document.querySelector('.prcard:not([data-plan=plus]) .prgo[data-go]'); return p && /待審核/.test(p.innerText) && q ? [p.innerText, p.disabled, q.innerText, q.disabled] : null; }", 8000)
+        ok(f"{T}：送出匯款資料後方案頁 Plus 鈕變「待審核」反灰、更高級別的方案仍可「升級」", bool(btn) and btn[1] is True and "升級" in btn[2] and btn[3] is False,
+           btn or pc.evaluate("() => ({ b: [...document.querySelectorAll('.prcard .prgo')].map(x => x.outerHTML), my: (window.TwCheckout.state().my || {}).orders, per: window.TwPricing.state().per })"))
+        pc.click("#prPeriod button[data-per=year]")
+        yb = wait_until(pc, "() => { const p = document.querySelector('.prcard[data-plan=plus] .prgo'); return p && /升級/.test(p.innerText) ? p.innerText : ''; }", 4000)
+        bq = [call(pc, "/v1/pay/quote", {"plan": "plus", "period": per}).get("blocked") for per in ("month", "year")]
+        ok(f"{T}：切年繳 → Plus 年繳級別比待審核的 Plus 月繳高 → 可「升級」；伺服器同口徑（月繳 pending_review、年繳不擋）", bool(yb) and bq == ["pending_review", ""], [yb, bq])
+        adn = call(ad, "/v1/notices", {})
+        ok(f"{T}：客戶送出匯款資料 → 管理者鈴鐺有「新訂單」通知（10-16 Andy：客戶下訂單 我這邊會有通知）", any(str(x.get("title", "")).startswith("新訂單：") for x in (adn.get("notices") or [])), [x.get("title") for x in (adn.get("notices") or [])][:5])
         ad.click("[data-ptab=bankord]")
         ad.click("#payReload")
         rev = wait_until(ad, f"() => {{ const s = document.getElementById('payRevSec'); return s && s.querySelector('tr[data-oid=\"{boid}\"]') ? s.innerText : ''; }}", 8000)

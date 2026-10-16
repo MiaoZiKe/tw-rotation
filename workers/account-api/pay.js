@@ -129,6 +129,14 @@ export function installPay(Hub, H) {
       let h1 = 0x811c9dc5, h2 = 0x01000193; for (const ch of String(ref)) { const c = ch.codePointAt(0); h1 = Math.imul(h1 ^ c, 16777619) >>> 0; h2 = Math.imul(h2 + c, 2246822519) >>> 0; }
       this.q('INSERT OR IGNORE INTO mail_out (id, email, subject, body, created, status) VALUES (?, ?, ?, ?, ?, ?)',
         'o' + h1.toString(36) + h2.toString(36), to, String(subject).slice(0, 150), String(body).slice(0, 3000), this.now(), 'pending');
+      /* 2026-10-16 Andy：「客戶下訂單 我這邊會有通知」→ 管理者的站內鈴鐺也放一則（不另外寄信，信上面已經寄了）。
+         id 以 u 開頭才走得到既有的「已讀」路徑；每位管理者各一則、ref 冪等 */
+      for (const am of this.admins()) {
+        const r2 = 'adm|' + ref + '|' + am;
+        let a1 = 0x811c9dc5, a2 = 0x01000193; for (const ch of r2) { const c = ch.codePointAt(0); a1 = Math.imul(a1 ^ c, 16777619) >>> 0; a2 = Math.imul(a2 + c, 2246822519) >>> 0; }
+        this.q('INSERT OR IGNORE INTO user_notices (id, email, title, body, ref, created) VALUES (?, ?, ?, ?, ?, ?)', 'u' + a1.toString(36) + a2.toString(36), norm(am),
+          ('新訂單：' + String(subject)).slice(0, 80), String(body).slice(0, 1500), r2.slice(0, 200), this.now());
+      }
     } catch (e) { /* 通知失敗不影響金流本身 */ }
   };
   Hub.prototype.payMailFlush = async function () {
@@ -181,22 +189,28 @@ export function installPay(Hub, H) {
      目前方案 × 週期 → 能買什麼：同方案同週期只有「快到期（PAY_RENEW_DAYS 天內）」才能續訂；月繳→年繳（同方案）可以；
      升到更高方案：目前是年繳就只能買年繳，目前是月繳月年都行；降級、年繳改月繳一律擋。方案不在排行表（自訂方案）或查不到目前訂單時不擋。 */
   const PAY_RANK = { plus: 1, pro: 2 };
+  /* 2026-10-16 Andy：「級別排序 pro(年) > pro(月) > plus(年) > plus(月)」→ 方案＋週期一起排成一個級別數字 */
+  const payTier = (plan, period) => (PAY_RANK[plan] ? PAY_RANK[plan] * 2 + (period === 'year' ? 1 : 0) : 0);
+  const perName = (p) => (p === 'year' ? '年繳' : '月繳');
   Hub.prototype.payChangeCheck = function (email, plan, period) {
-    const now = this.now(), e = this.effective(email);
+    const now = this.now(), no = (reason, msg) => ({ ok: false, reason, msg }), want = payTier(plan, period);
+    /* 2026-10-16 Andy：「已經有訂單狀態的情況，不能再訂閱其他項目，除非他是訂閱升級的版本」→ 有待審核（銀行轉帳已送出匯款資料）的訂單時，
+       只能買級別比待審核那筆更高的；同級或更低一律擋（前端按鈕顯示「待審核」反灰）。 */
+    const rev = this.q("SELECT plan, plan_name, period FROM orders WHERE email = ? AND status = 'review' AND parent IS NULL", email);
+    if (rev.length && want) {
+      const top = rev.reduce((a, o) => (payTier(o.plan, o.period) > payTier(a.plan, a.period) ? o : a));
+      if (want <= payTier(top.plan, top.period)) return no('pending_review', `你有一筆「${top.plan_name}・${perName(top.period)}」待審核中，審核完成前只能申請更高級別的方案。`);
+    }
+    const e = this.effective(email);
     if (e.expired || !e.plan || e.plan === 'free' || !e.expires || e.expires <= now) return { ok: true };
     const cur = this.q('SELECT period FROM orders WHERE email = ? AND applied = 1 AND plan = ? AND grant_from <= ? AND grant_to > ? ORDER BY grant_to DESC LIMIT 1', email, e.plan, now, now)[0];
-    const rc = PAY_RANK[e.plan], rt = PAY_RANK[plan];
-    if (!cur || !rc || !rt) return { ok: true };
-    const curName = `${e.planName}・${cur.period === 'year' ? '年繳' : '月繳'}`;
-    const no = (reason, msg) => ({ ok: false, reason, msg });
-    if (rt < rc) return no('lower_plan', `你目前是 ${curName}，不能再購買比現在低的方案。`);
-    if (rt === rc) {
-      if (cur.period === 'year' && period === 'month') return no('year_to_month', `你目前是 ${curName}，不能改買月繳；要換週期請等這期到期後再選。`);
-      if (cur.period === period && e.expires - now > PAY_RENEW_DAYS * DAY) return no('same_active', `你目前已是 ${curName}，到期日前 ${PAY_RENEW_DAYS} 天才能續訂。`);
-      return { ok: true };
-    }
-    if (cur.period === 'year' && period === 'month') return no('year_to_month', `你目前是 ${curName}，要升級只能買年繳。`);
-    return { ok: true };
+    const have = cur ? payTier(e.plan, cur.period) : 0;
+    if (!cur || !have || !want) return { ok: true };
+    const curName = `${e.planName}・${perName(cur.period)}`;
+    /* 級別比現在高＝升級，可以買；同級＝到期前 PAY_RENEW_DAYS 天內才能續訂；比現在低一律擋（含年繳改月繳） */
+    if (want > have) return { ok: true };
+    if (want === have) return e.expires - now > PAY_RENEW_DAYS * DAY ? no('same_active', `你目前已是 ${curName}，到期日前 ${PAY_RENEW_DAYS} 天才能續訂。`) : { ok: true };
+    return no(PAY_RANK[plan] < PAY_RANK[e.plan] ? 'lower_plan' : 'year_to_month', `你目前是 ${curName}，不能改買級別較低的方案（級別：Pro 年繳 > Pro 月繳 > Plus 年繳 > Plus 月繳）。`);
   };
 
   /* ---------------------------------------------------------------- 價格（只信伺服器 plans）*/
