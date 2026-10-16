@@ -88,7 +88,7 @@
     const until = d.periodEnd ? day(d.periodEnd) : '';
     const c = d.cancel
       ? item('cancel', '取消訂閱', `已申請取消，可用到 ${until || '本期結束'}`, true)
-      : d.autoRenew === false ? item('cancel', '取消訂閱', `你的方案不會自動扣款（銀行轉帳／單次付款），到 ${until || '本期結束'} 後自動回到註冊會員，不需要取消`, true)
+      : d.autoRenew === false ? item('cancel', '取消訂閱', `你的方案不會自動扣款（銀行轉帳是預付制），到 ${until || '本期結束'} 後自動回到註冊會員，不需要取消`, true)
       : item('cancel', '取消訂閱', until ? `可用到 ${until}，次期不再扣款` : '', false);
     const n = d.refundDays || REFUND_DAYS;
     const rWhy = d.refund ? '已送出退款申請，專人處理中'

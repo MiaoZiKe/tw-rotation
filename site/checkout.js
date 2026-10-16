@@ -7,7 +7,7 @@
 
    這支做四件事：
      ① 結帳面板（#pricing 方案卡按「升級」）：方案、月繳／年繳、金額（伺服器價）、訂單編號；兩個分頁
-        · 信用卡／ATM／超商（綠界）：再分「信用卡每月自動扣款（定期定額）」與「單次付款」→ 伺服器產生表單＋CheckMacValue → 自動送到綠界
+        · 信用卡（綠界）：只有定期定額自動扣款（10-16 Andy：都改成自動扣款）→ 伺服器產生表單＋CheckMacValue → 自動送到綠界
         · 銀行轉帳：收款資訊（伺服器設定，不在 repo）＋回報末 5 碼／日期／金額／備註 → 待確認
      ② 我的訂單（#orders、#orders/<訂單號>）：每筆的方式、金額、狀態、時間、開通期間、退款；取消自動續訂；回報匯款；付款完成輪詢
      ③ 到期提醒（轉帳等不會自動續扣的人）：帳號鈕紅點＋頁首一行字＋「再匯一期」（到期前 7 天一次、前 1 天再一次）
@@ -82,7 +82,7 @@
 #subDlg .codlg .cotabs button[aria-selected=true] small{color:#04121a}
 #subDlg .codlg .cog{display:grid;gap:12px;margin:0 0 12px}
 #subDlg .codlg .cog.c2{grid-template-columns:repeat(2,minmax(0,1fr))}
-#subDlg .codlg .cog.c3{grid-template-columns:repeat(3,minmax(0,1fr))}
+#subDlg .codlg .cog.ce{grid-template-columns:minmax(0,1fr)}
 #subDlg .codlg .cog .fld{display:flex;flex-direction:column;gap:4px;min-width:0}
 #subDlg .codlg .cog .nmrow{display:flex;align-items:center;gap:8px;min-width:0}
 #subDlg .codlg .cog .nmrow input{flex:1;min-width:0;width:auto}
@@ -163,7 +163,8 @@ html.pay-renew #acctBtn.ame::after{content:'';position:absolute;top:2px;right:2p
   #subDlg .box.codlg{max-height:calc(100vh - 16px)}
   #subDlg .codlg .cog.c2.ce{grid-template-columns:minmax(0,1fr)}
   #subDlg .codlg .cog.cb .pn{grid-column:1/-1}
-  #subDlg .codlg .cog.cb .dt{grid-column:auto}
+  #subDlg .codlg .cog.cb .dt{grid-column:1/-1}
+  #subDlg .codlg .cog.cb .l5f{grid-column:1/-1}
   #subDlg .codlg .coamt{flex-direction:column;align-items:flex-end;gap:0}
   #subDlg .codlg .cotest{width:10px;height:10px;min-width:10px;padding:0;border-radius:50%;background:var(--amber);border:0;overflow:hidden;flex:none}
   #subDlg .codlg .cotest .tx{display:none}
@@ -199,10 +200,9 @@ html.pay-renew #acctBtn.ame::after{content:'';position:absolute;top:2px;right:2p
     const g = `<li><b>性別 ♂／♀（${GENDER_REQUIRED ? '必選' : '選填'}）</b>：姓名欄右側的 ♂ 是男、♀ 是女；用於<b>不具名的使用情形統計</b>（只呈現男女比例，不會單獨顯示個別會員，也不用於推薦、行銷或對外提供），僅用於匿名彙總統計，不公開，僅管理者可讀。${GENDER_REQUIRED ? `本欄位為結帳必填，<b>未選擇將無法送出結帳</b>。不願提供性別？請來信客服${mail ? '（' + esc(mail) + '）' : ''}，由人工協助開通。` : '<b>不選擇不影響結帳與任何功能</b>，未選擇者統計時歸入「未填」；選錯了可再按一次選中的按鈕取消。'}</li>`;
     const pr = '<li><b>個資處理</b>：依<a href="#privacy" target="_blank" rel="noopener">《隱私權政策》</a>「付款與訂單資料」辦理。</li>';
     return kind === 'bank'
-      ? `<ul class="cohelp" hidden><li><b>匯款人姓名、轉出帳號末 5 碼</b>：僅用於核對這筆匯款是否為您本人所匯。<b>請勿填寫完整帳號、信用卡號、身分證字號。</b></li>${g}${pr}</ul>`
+      ? `<ul class="cohelp" hidden><li><b>匯款人姓名、轉出帳號末 5 碼</b>：僅用於核對這筆匯款是否為您本人所匯。<b>請填你轉帳出款的銀行帳號後 5 碼，不是金融卡或信用卡卡號</b>；請勿填寫完整帳號、信用卡號、身分證字號。</li>${g}${pr}</ul>`
       : `<ul class="cohelp" hidden><li><b>姓名</b>：用於付款核對、確認入帳與退款，請填寫真實姓名。</li>${g}
-        <li><b>轉出帳號末 5 碼（選填）</b>：若你之後改用 ATM 轉帳／超商繳款，可填轉出帳號末 5 碼供我們核對。<b>這不是信用卡號，請勿填寫信用卡卡號的任何數字。</b></li>
-        <li><b>信用卡</b>：卡片資料將於下一步由綠界科技的付款頁輸入，本網站不會看到、也不會保存你的卡號。可隨時在「我的訂單」取消自動續訂，已付的期間照常用到期滿。</li>${pr}</ul>`;
+        <li><b>信用卡</b>：卡片資料將於下一步由綠界科技的付款頁輸入，本網站不會看到、也不會保存你的卡號，也不蒐集卡號末碼。付款成功的通知會帶上你的姓名供我們核對。可隨時在「我的訂單」取消自動續訂，已付的期間照常用到期滿。</li>${pr}</ul>`;
   }
   const nameOf = (p) => (p && (p.planName || p.name)) || '';
   async function open(opt) {
@@ -244,9 +244,8 @@ html.pay-renew #acctBtn.ame::after{content:'';position:absolute;top:2px;right:2p
         ${req !== st.per ? `<p class="conote" style="margin:0 0 12px">你選的週期目前不能購買，已改為${st.per === 'year' ? '年繳' : '月繳'}。</p>` : ''}
         <div class="cotabs" role="tablist" aria-label="付款方式"><button type="button" role="tab" id="coTabE" data-tab="ecpay">信用卡<small>綠界 ECPay・自動續扣</small></button><button type="button" role="tab" id="coTabB" data-tab="bank">銀行轉帳<small>預付制・人工確認</small></button></div>
         <div id="coPaneE" role="tabpanel" aria-labelledby="coTabE">
-          <div class="cog c2 ce" id="coFrmE">
-            <div class="fld"><label for="coNameE">姓名<em class="req">必填</em></label><div class="nmrow"><input id="coNameE" maxlength="40" autocomplete="name" required aria-required="true">${genderBtns()}</div></div>
-            <div class="fld"><label for="coL5E">轉出帳號末 5 碼<em class="opt">選填</em></label><div class="nmrow"><input id="coL5E" inputmode="numeric" autocomplete="off" placeholder="5 位數字">${helpB}</div></div>
+          <div class="cog ce" id="coFrmE">
+            <div class="fld"><label for="coNameE">姓名<em class="req">必填</em></label><div class="nmrow"><input id="coNameE" maxlength="40" autocomplete="name" required aria-required="true">${genderBtns()}${helpB}</div></div>
           </div>
           ${genderConsent()}${helpHtml('ecpay')}
         </div>
@@ -277,7 +276,7 @@ html.pay-renew #acctBtn.ame::after{content:'';position:absolute;top:2px;right:2p
       box.querySelectorAll('.cogd button').forEach((b) => b.setAttribute('aria-checked', String(b.dataset.g === st.gender)));
       box.querySelectorAll('.cogcb').forEach((c) => { c.checked = st.gc; });
       const nm = $('#coNameE');
-      $('#coGoE').disabled = !($('#coAgree').checked && profOk(nm ? nm.value : '') && l5Ok($('#coL5E') ? $('#coL5E').value : ''));
+      $('#coGoE').disabled = !($('#coAgree').checked && profOk(nm ? nm.value : ''));
       box.querySelectorAll('.cotabs button').forEach((b) => b.setAttribute('aria-selected', String(b.dataset.tab === st.tab)));
       $('#coPaneE').hidden = st.tab !== 'ecpay'; $('#coPaneB').hidden = st.tab !== 'bank';
       $('#coGoE').hidden = st.tab !== 'ecpay';   // 信用卡鈕與轉帳送出鈕共用視窗底部
@@ -317,7 +316,7 @@ html.pay-renew #acctBtn.ame::after{content:'';position:absolute;top:2px;right:2p
     box.querySelectorAll('.cotabs button').forEach((b) => { b.onclick = () => { st.tab = b.dataset.tab; if (st.tab === 'bank' && !st.bankOrder) bankPane(); sync(); }; });
     $('#coGoE').onclick = async () => {
       const btn = $('#coGoE'); btn.disabled = true; msg('建立訂單中…');
-      const j = await call('/v1/pay/ecpay/create', { plan, period: st.per, recur: true, back: location.origin + location.pathname, form: FORM_VERSION, name: $('#coNameE').value.trim(), gender: st.gender, gender_consent: st.gc, last5: $('#coL5E').value.trim(), ...consent() });
+      const j = await call('/v1/pay/ecpay/create', { plan, period: st.per, recur: true, back: location.origin + location.pathname, form: FORM_VERSION, name: $('#coNameE').value.trim(), gender: st.gender, gender_consent: st.gc, ...consent() });
       if (!j || j._s !== 200 || !j.ok) {
         btn.disabled = false;
         msg(!j ? '連不到會員伺服器，請稍後再試' : j.error === 'blocked' ? (j.msg || '目前方案不能購買這個項目') : j.error === 'too_many' ? '今天建立的訂單太多了，請明天再試或聯絡客服' : j.error === 'need_name' ? '請填姓名' : j.error === 'need_gender' ? '請選擇性別' : j.error === 'need_gender_consent' ? '請勾選性別統計的同意' : j.error === 'card_number' ? CARD_MSG : j.error === 'bad_last5' ? '末 5 碼要是 5 個數字' : j.error === 'no_price' ? '這個方案還沒有線上價格' : `建立訂單失敗（${j._s}）`, true);
@@ -335,7 +334,7 @@ html.pay-renew #acctBtn.ame::after{content:'';position:absolute;top:2px;right:2p
     async function bankPane() {
       const pane = $('#coPaneB');
       const bank = Q[st.per].bank;
-      if (!bank) { pane.innerHTML = '<div class="cooff">銀行轉帳<b>尚未開放</b>，請先用信用卡／ATM／超商付款。</div>'; return; }
+      if (!bank) { pane.innerHTML = '<div class="cooff">銀行轉帳<b>尚未開放</b>，請先用信用卡付款。</div>'; return; }
       pane.innerHTML = '<p class="muted">產生轉帳訂單…</p>';
       const j = await call('/v1/pay/bank/create', { plan, period: st.per, ...consent() });
       if (!j || j._s !== 200 || !j.ok) {
@@ -352,7 +351,7 @@ html.pay-renew #acctBtn.ame::after{content:'';position:absolute;top:2px;right:2p
       pane.innerHTML = `<div class="cobank" id="coBank">${cards.map(([k, v, id, cp]) => `<div class="cobc"><div class="cobt"><span>${k}</span><b${id ? ` id="${id}"` : ''}>${esc(v)}</b></div><button type="button" data-copy="${esc(cp)}">複製</button></div>`).join('')}</div>
         <div class="cog c2 cb" id="coFrm">
           <div class="fld pn"><label for="coPayer">匯款人姓名<em class="req">必填</em></label><div class="nmrow"><input id="coPayer" maxlength="40" autocomplete="name" required aria-required="true">${genderBtns()}</div></div>
-          <div class="fld"><label for="coL5">轉出帳號末 5 碼</label><div class="nmrow"><input id="coL5" inputmode="numeric" autocomplete="off">${helpB}</div></div>
+          <div class="fld l5f"><label for="coL5">轉出帳號末 5 碼<em class="opt">銀行帳號，不是卡號</em></label><div class="nmrow"><input id="coL5" inputmode="numeric" autocomplete="off">${helpB}</div></div>
           <div class="fld dt"><label for="coDate">轉帳日期</label><input id="coDate" type="date" value="${esc(today)}" max="${esc(today)}"></div></div>
         ${genderConsent()}${helpHtml('bank')}`;
       const sbtn = $('#coSendB');
@@ -416,7 +415,7 @@ html.pay-renew #acctBtn.ame::after{content:'';position:absolute;top:2px;right:2p
     });
     return S.fly;
   }
-  const methodName = (o) => o.method === 'bank' ? '銀行轉帳' : o.recur ? (o.parent ? `綠界・自動扣款第 ${o.periodN} 期` : '綠界・信用卡自動扣款') : /^ATM/.test(o.payType) ? '綠界・ATM' : /^CVS|^BARCODE/.test(o.payType) ? '綠界・超商' : '綠界・' + (o.payType ? '信用卡' : '單次付款');
+  const methodName = (o) => o.method === 'bank' ? '銀行轉帳' : o.recur ? (o.parent ? `綠界・自動扣款第 ${o.periodN} 期` : '綠界・信用卡自動扣款') : '綠界・信用卡';
   function subLine(o) {
     const a = [];
     if (o.grantTo) a.push(`開通期間 ${ymd(o.grantFrom)}～${ymd(o.grantTo)}`);
@@ -424,7 +423,6 @@ html.pay-renew #acctBtn.ame::after{content:'';position:absolute;top:2px;right:2p
     /* 2026-10-16 Andy：「拿掉補送匯款資料這功能」→ 只列送出的那一筆；送錯改用意見反饋聯絡 */
     if (o.method === 'bank' && o.last5) a.push(`${o.payerName ? '匯款人 ' + esc(o.payerName) + '・' : ''}轉出末 5 碼 ${esc(o.last5)}・${esc(o.xferDate)}`);
     if (o.method === 'bank' && o.status === 'review') a.push('<span class="ordfix">資料填錯？請從右下角「客服」→「意見反饋」告訴我們</span>');
-    if (o.payInfo && o.status === 'pending') a.push(o.payInfo.account ? `ATM 繳費帳號 ${esc(o.payInfo.bank)}-${esc(o.payInfo.account)}（${esc(o.payInfo.expire)} 前）` : o.payInfo.code ? `超商繳費代碼 ${esc(o.payInfo.code)}（${esc(o.payInfo.expire)} 前）` : '');
     if (o.recur && !o.parent) a.push(o.periodState === 'active' ? '自動續訂：開' : o.periodState === 'cancelled' ? `自動續訂：已取消（${ymd(o.cancelAt)}）` : '');
     if (o.rejectReason) a.push('退回原因：' + esc(o.rejectReason));
     if (o.refunded) a.push(`<b style="color:var(--rise)">已退款 NT$ ${nt(o.refunded)}</b>${o.refunds.length ? '（' + o.refunds.map((r) => ymd(r.at)).join('、') + '）' : ''}`);
@@ -472,7 +470,7 @@ html.pay-renew #acctBtn.ame::after{content:'';position:absolute;top:2px;right:2p
     v.innerHTML = `<div class="card ordp"><h2>我的訂單／付款紀錄</h2><p class="muted">每一筆付款的方式、金額、狀態與時間；退款也會列在這裡。</p>
       <div id="ordBn">${banner}</div>
       <div class="ordsum" id="ordSum"><span>目前方案 <b>${esc(j.planName || '註冊會員')}</b></span>${j.expires && j.plan !== 'free' ? `<span>到期日 <b>${esc(ymd(j.expires))}</b></span>` : ''}
-        ${j.plan !== 'free' ? `<span>自動續訂 <b>${j.autoRenew ? '開' : os.some((o) => o.recur && !o.parent) ? '已取消' : '不適用'}</b>${!j.autoRenew && !os.some((o) => o.recur && !o.parent) ? '<small class="muted">（轉帳／單次付款是預付制，不會自動扣款）</small>' : ''}</span>` : ''}${rn ? `<span style="color:var(--amber)">剩 ${rn.days} 天到期</span><button type="button" class="pri" data-renew="1">${rn.method === 'bank' ? '再匯一期' : '續訂一期'}</button>` : ''}
+        ${j.plan !== 'free' ? `<span>自動續訂 <b>${j.autoRenew ? '開' : os.some((o) => o.recur && !o.parent) ? '已取消' : '不適用'}</b>${!j.autoRenew && !os.some((o) => o.recur && !o.parent) ? '<small class="muted">（銀行轉帳是預付制，不會自動扣款）</small>' : ''}</span>` : ''}${rn ? `<span style="color:var(--amber)">剩 ${rn.days} 天到期</span><button type="button" class="pri" data-renew="1">${rn.method === 'bank' ? '再匯一期' : '續訂一期'}</button>` : ''}
         <span style="flex:1"></span><a href="#pricing">看方案</a></div>
       <div class="ordl" id="ordList">${os.length ? '<div class="ordr hd"><div>時間</div><div>方案</div><div>金額</div><div>方式</div><div>狀態</div><div></div></div>' + os.map((o) => rowHTML(o, o.id === focus)).join('') : '<p class="muted" id="ordEmpty" style="padding:12px 4px">還沒有付款紀錄。到 <a href="#pricing">訂閱方案</a> 挑一個吧。</p>'}</div>
       ${(j.reqs || []).length ? `<h3 style="margin:16px 0 6px;font-size:15px">我的取消／退款申請</h3><div class="ordl" id="ordReqs">${j.reqs.map((r) => `<div class="ordr" style="grid-template-columns:auto auto 1fr auto"><div class="c-time t">${esc(ymdhm(r.created))}</div><div><b>${r.type === 'refund' ? '申請退款' : '取消訂閱'}</b></div><div class="t" title="${esc(r.note || '')}">${esc(r.note || '')}</div><div><span class="stp ${r.status === 'new' ? 'wait' : 'ok'}" title="${esc(r.closeReason || '')}">${r.status === 'new' ? '處理中' : r.closedBy === 'auto' ? '已結案' : '已處理'}</span>${r.status !== 'new' && r.closeReason ? `<small class="muted" style="display:block">${esc(r.closeReason)}</small>` : ''}</div></div>`).join('')}</div>` : ''}</div>`;
@@ -482,7 +480,7 @@ html.pay-renew #acctBtn.ame::after{content:'';position:absolute;top:2px;right:2p
   function bannerOf(o, j) {
     if (o.status === 'active') return `<div class="ordbn ok" id="ordDone"><b>付款完成，已開通 ${esc(j.planName || o.planName)}</b>，到期日 <b>${esc(ymd(j.expires || o.grantTo))}</b>。功能已經解鎖，不用重新登入。</div>`;
     if (o.status === 'review') return '<div class="ordbn wait">已收到你的匯款資料，管理者確認入帳後就會開通。</div>';
-    if (o.status === 'pending' && o.method === 'ecpay') return `<div class="ordbn wait" id="ordWait">正在確認付款結果…（訂單 ${esc(o.id)}）<br><small>ATM／超商要等你繳費後才會開通；信用卡通常幾秒內完成。</small></div>`;
+    if (o.status === 'pending' && o.method === 'ecpay') return `<div class="ordbn wait" id="ordWait">正在確認付款結果…（訂單 ${esc(o.id)}）<br><small>信用卡通常幾秒內完成。</small></div>`;
     if (o.status === 'paid') return '<div class="ordbn wait">已收到款項，正在開通…</div>';
     if (o.status === 'failed' || o.status === 'cancelled') return '<div class="ordbn bad">這筆沒有完成付款，會員狀態沒有變更；要訂閱請重新結帳。</div>';
     return '';
@@ -522,7 +520,7 @@ html.pay-renew #acctBtn.ame::after{content:'';position:absolute;top:2px;right:2p
     };
   }
 
-  /* ---------------------------------------------------------------- ③ 到期提醒（轉帳／單次付款，不會自動續扣的人）*/
+  /* ---------------------------------------------------------------- ③ 到期提醒（銀行轉帳，不會自動續扣的人）*/
   const renewKey = (rn) => `${rn.plan}:${rn.expires}:${rn.stage}`;
   function paintRenew() {
     const rn = S.my && S.my.renew;

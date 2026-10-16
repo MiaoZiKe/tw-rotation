@@ -935,7 +935,8 @@ test('結帳表單 form=2：姓名、性別、獨立同意都必填；性別只�
   assert.equal((await e({ name: '鮑伯', last5: '12345' })).s, 200, '選填：沒選性別、沒勾同意也能結帳（統計歸未填）');
   assert.equal(db.prepare('SELECT gender FROM orders ORDER BY created DESC, rowid DESC LIMIT 1').get().gender, null, '沒選＝不存');
   db.prepare('DELETE FROM orders').run();
-  assert.equal((await e({ ...GOOD, last5: '1234' })).j.error, 'bad_last5');
+  assert.equal((await e({ ...GOOD, last5: '1234' })).s, 200, '綠界不收末 5 碼：舊前端送來的 last5 直接忽略（只有卡號格式會被擋）');
+  db.prepare('DELETE FROM orders').run();
   assert.equal((await e({ ...GOOD, last5: '4111111111111111' })).j.error, 'card_number', '卡號一律拒收');
   assert.equal((await e({ ...GOOD, last5: '4111 1111 1111 1111' })).j.error, 'card_number', '夾空白也擋');
   assert.equal((await e({ ...GOOD, name: '4111-1111-1111-1111' })).j.error, 'card_number', '姓名欄也擋');
@@ -943,7 +944,7 @@ test('結帳表單 form=2：姓名、性別、獨立同意都必填；性別只�
   const ok = await e({ ...GOOD, last5: '12345' });
   assert.equal(ok.s, 200);
   const o = ord(db, ok.j.id);
-  assert.deepEqual([o.payer_name, o.payer_last5, o.from_last5 || null], ['鮑伯', '12345', null], '綠界末 5 碼不能寫進 from_last5（那欄代表已回報匯款）');
+  assert.deepEqual([o.payer_name, o.payer_last5 || null, o.from_last5 || null], ['鮑伯', null, null], '綠界不存末 5 碼，也不能寫進 from_last5（那欄代表已回報匯款）');
   /* 舊版網頁（沒帶 form）仍可結帳：先部署 Worker 不能讓快取裡的舊前端壞掉 */
   assert.equal((await pj(hub, '/v1/pay/ecpay/create', { t: bob, plan: 'plus', period: 'month', back: BACK, recur: true })).s, 200);
   assert.ok(!db.prepare("SELECT name FROM pragma_table_info('users')").all().some((c) => c.name === 'gender'), '會員表沒有性別欄（不跟會員綁定）');
@@ -1043,4 +1044,33 @@ test('清理舊事件紀錄（管理者按鈕才執行）：綠界原文裁成�
   assert.equal(r2.j.changed, 0, '冪等：第二次一筆都不改');
   assert.deepEqual(snap(), after);
   assert.ok(db.prepare("SELECT 1 FROM pay_events WHERE kind = 'events_clean'").get(), '留一筆操作紀錄');
+});
+
+test('綠界表單帶買家姓名：ItemName 後綴＋CustomField1，只放姓名；中文與長名字簽章仍正確；特殊符號被拿掉；不收信用卡末 5 碼；管理者訂單清單看得到姓名', async () => {
+  const { hub, db, bob, andy } = await setup();
+  const base = { t: bob, plan: 'plus', period: 'month', back: BACK, recur: true, form: 2, gender: 'female', gender_consent: true };
+  const mk = async (name, extra = {}) => { const r = await pj(hub, '/v1/pay/ecpay/create', { ...base, name, ...extra }); assert.equal(r.s, 200, JSON.stringify(r.j)); return r.j; };
+  const c1 = await mk('王小明');
+  assert.equal(c1.fields.ItemName, 'Plus 月繳（自動續扣）｜王小明');
+  assert.equal(c1.fields.CustomField1, '王小明');
+  assert.equal(c1.fields.CheckMacValue, await ecpayMac(c1.fields, ECPAY_STAGE.key, ECPAY_STAGE.iv), '含中文姓名的 CheckMacValue 重算要一致');
+  const flat = JSON.stringify(c1.fields);
+  assert.ok(!/female|male|bob@example\.com|gender/i.test(flat), '表單裡只有姓名，沒有性別、email');
+  const c2 = await mk('A#B<script>"x"\'&%王 大 明' + '長'.repeat(60));
+  assert.ok(!/[#<>"'&%]/.test(c2.fields.CustomField1 + c2.fields.ItemName.split('｜')[1]), '特殊符號拿掉（ItemName 以 # 分隔商品）');
+  assert.ok(c2.fields.CustomField1.length <= 20 && c2.fields.CustomField1.length <= 50, '姓名截斷');
+  assert.ok(c2.fields.ItemName.length <= 100, 'ItemName 不超過 100 字');
+  assert.equal(c2.fields.CheckMacValue, await ecpayMac(c2.fields, ECPAY_STAGE.key, ECPAY_STAGE.iv), '特殊字元簽章仍正確');
+  /* 信用卡不收末 5 碼：就算舊版前端還送 last5 也忽略；卡號格式一樣擋 */
+  const c3 = await mk('鮑伯', { last5: '12345' });
+  assert.equal(db.prepare('SELECT payer_last5 FROM orders WHERE id = ?').get(c3.id).payer_last5, null);
+  assert.equal((await pj(hub, '/v1/pay/ecpay/create', { ...base, name: '鮑伯', last5: '4111111111111111' })).j.error, 'card_number');
+  /* 舊版前端沒帶姓名：ItemName 維持原樣、沒有 CustomField1 */
+  const c4 = (await pj(hub, '/v1/pay/ecpay/create', { t: bob, plan: 'plus', period: 'month', back: BACK, recur: true })).j;
+  assert.equal(c4.fields.ItemName, 'Plus 月繳（自動續扣）');
+  assert.ok(!('CustomField1' in c4.fields));
+  /* 訂單本身存姓名、管理者清單看得到 */
+  assert.equal(ord(db, c1.id).payer_name, '王小明');
+  const adm = (await pj(hub, '/v1/admin/pay/list', { t: andy, all: true })).j;
+  assert.equal((adm.orders.find((x) => x.id === c1.id) || {}).payerName, '王小明');
 });

@@ -152,6 +152,13 @@ export function installPay(Hub, H) {
   const EV_KEEP = /^(MerchantTradeNo|TradeNo|RtnCode|RtnMsg|TradeAmt|TradeStatus|PaymentType|PaymentDate|TradeDate|PeriodType|Frequency|ExecTimes|PeriodAmount|ExecStatus|TotalSuccessTimes|TotalSuccessAmount|amount|gwsr|process_date|SimulatePaid)$/;
   /* 舊版會把綠界原文整段寫進來的事件種類 */
   const PAY_RAW_EV = /^(notify_badmac|query_badmac|period_query_bad|period_cancel|doaction_.*|credit_query)$/;
+  /* 2026-10-16 Andy：「綠界成功時也會發 Mail 給我，我才有名稱紀錄」→ 把買家姓名帶進綠界訂單。
+     · 承載欄位：ItemName 後綴「｜姓名」（綠界給特店的付款成功通知信會列商品名稱）＋CustomField1（綠界回呼會原樣帶回，對帳用）。
+     · ⚠ 沒讀到綠界官方文件（容器連不到），以下是保守假設：ItemName 整串 ≤ 100 字、CustomField1 ≤ 50 字；
+       ItemName 以「#」分隔多個商品、且特殊符號可能被拒 → 姓名只留文字／數字／空白／・·-_.，其餘一律拿掉。
+       CheckMacValue 對全部參數做 URL 編碼（中文以 UTF-8 百分比編碼），簽章測試含中文姓名。上線後要用 1 元測試單確認通知信是否顯示姓名。 */
+  const ecName = (n) => String(n || '').replace(/[^\p{L}\p{N} ・·\-_.]/gu, '').replace(/\s+/g, ' ').trim().slice(0, 20);
+  const ecItemName = (base, n) => { const nm = ecName(n); return (nm ? `${base}｜${nm}` : base).slice(0, 100); };
   const EV_NUM_OK = /^(TradeNo|gwsr|process_date|TradeDate|PaymentDate|MerchantTradeNo)$/;
   const CARD_RUN = /\d(?:[ -]?\d){12,18}/g;
   const evSafe = (src) => {
@@ -804,7 +811,9 @@ export function installPay(Hub, H) {
       const back = backOk(this, b.back);
       if (!back) return this.json(req, { error: 'bad_back' }, 400);
       const recur = b.recur === true;
-      const prof = payProfile(b, subClean, { last5: true });
+      /* 2026-10-16 Andy：信用卡（綠界）不收末 5 碼（客戶可能誤填金融卡／信用卡卡號片段；卡片資料綠界自己有）→ 不要求也不接收 last5；
+         只收姓名與性別。舊版前端若還送 last5 就忽略（卡號格式仍會被 payProfile 拒收）。 */
+      const prof = payProfile(b, subClean);
       if (prof.error) return this.json(req, { error: prof.error }, 400);
       const c = this.ecCfg(), id = this.payNewId(), now = this.now();
       /* 同一個會員重新點結帳：舊的未付款綠界單作廢，不讓它一直累積（綠界的 MerchantTradeNo 送出過就不能重用，所以是建新單）。
@@ -816,14 +825,15 @@ export function installPay(Hub, H) {
       recur ? 1 : 0, c.test ? 1 : 0, back, consentOf(b), subClean(b.note, 120), now, now, recur ? 'new' : null);
       const f = {
         MerchantID: c.id, MerchantTradeNo: id, MerchantTradeDate: tpeStr(now), PaymentType: 'aio', TotalAmount: String(pr.amount),
-        TradeDesc: '哩股哩股訂閱', ItemName: `${pr.planName} ${period === 'year' ? '年繳' : '月繳'}${recur ? '（自動續扣）' : ''}`.slice(0, 200),
+        TradeDesc: '哩股哩股訂閱', ItemName: ecItemName(`${pr.planName} ${period === 'year' ? '年繳' : '月繳'}${recur ? '（自動續扣）' : ''}`, prof.name),
         ReturnURL: api + '/v1/pay/ecpay/notify', ChoosePayment: recur ? 'Credit' : 'ALL', EncryptType: '1',
         ClientBackURL: back + '#orders/' + id, OrderResultURL: api + '/v1/pay/ecpay/result', NeedExtraPaidInfo: 'Y',
       };
+      if (ecName(prof.name)) f.CustomField1 = ecName(prof.name);   // 買家姓名（只放姓名；不放性別、email、帳號）
       if (recur) Object.assign(f, { PeriodAmount: String(pr.amount), PeriodType: period === 'year' ? 'Y' : 'M', Frequency: '1', ExecTimes: period === 'year' ? '9' : '99', PeriodReturnURL: api + '/v1/pay/ecpay/period' });
       else f.PaymentInfoURL = api + '/v1/pay/ecpay/notify';
       f.CheckMacValue = await ecpayMac(f, c.key, c.iv);
-      this.paySet(id, { payer_name: prof.name, gender: prof.gender || null, payer_last5: prof.last5 });
+      this.paySet(id, { payer_name: prof.name, gender: prof.gender || null });
       this.payEv(id, 'create', { recur, amount: pr.amount });
       return this.json(req, { ok: true, id, amount: pr.amount, test: c.test, action: c.host + '/Cashier/AioCheckOut/V5', fields: f });
     },

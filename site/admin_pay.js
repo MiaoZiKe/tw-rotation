@@ -48,7 +48,7 @@
     st(v, (r.msg || '這筆的狀態已經變了，畫面已重新整理') + whoTxt(r), true);
     return true;
   }
-  const methodName = (o) => o.method === 'bank' ? '銀行轉帳' : o.recur ? (o.parent ? `綠界自動扣款 第${o.periodN}期` : '綠界定期定額') : /^ATM/.test(o.payType) ? '綠界 ATM' : /^CVS|^BARCODE/.test(o.payType) ? '綠界超商' : '綠界單次';
+  const methodName = (o) => o.method === 'bank' ? '銀行轉帳' : o.recur ? (o.parent ? `綠界自動扣款 第${o.periodN}期` : '綠界定期定額') : '綠界信用卡';
   const stName = (o) => (o.refunded && o.status !== 'refunded' ? '部分退款' : ST[o.status] || o.status);
 
   function css() {
@@ -227,7 +227,7 @@
     const xc = !xa ? '' : xa < o.amount ? ' style="color:#e5484d;font-weight:700" title="少於應付金額 NT$ ' + nt(o.amount - xa) + '"' : xa > o.amount ? ' style="color:#30a46c;font-weight:700" title="多於應付金額 NT$ ' + nt(xa - o.amount) + '"' : '';
     const bankCols = kind === 'ecpay' ? '' : `<td class="n"${xc}>${xa ? nt(xa) + (xa < o.amount ? ' ⚠' : '') : ''}</td>`;
     const bankCols2 = kind === 'ecpay' ? '' : `<td style="text-align:center;font-variant-numeric:tabular-nums">${esc(o.last5 || '')}</td><td>${esc(o.xferDate || '')}</td>`;
-    const nameCol = kind === 'ecpay' ? '' : `<td class="l pname" title="${esc(o.payerName || '')}">${esc(o.payerName || '')}</td>`;
+    const nameCol = `<td class="l pname" title="${esc(o.payerName || '')}">${esc(o.payerName || '')}</td>`;
     return `<tr class="prow${extra && extra.old ? ' old' : ''}" data-oid="${esc(o.id)}"><td>${esc(ymdhm(o.created))}</td><td class="l" title="${esc(o.email)}">${mailA(o.email, o)}${extra && extra.hist ? extra.hist : ''}</td>${nameCol}<td>${esc(o.planName)}</td><td>${o.period === 'year' ? '年繳' : '月繳'}</td>
       <td class="n">${nt(o.amount)}</td>${bankCols}<td>${esc(methodName(o))}</td><td><span class="stp ${ST_CLS[o.status] || 'mute'}">${esc(stName(o))}</span></td>
       ${bankCols2}<td class="l" style="max-width:90px" title="${esc(o.adminNote)}">${esc(o.adminNote)}</td><td class="act">${acts.join('')}</td></tr>`
@@ -249,7 +249,7 @@
     return a.filter(Boolean).join('　');
   }
   const TH = '<thead><tr><th>時間</th><th>會員 email</th><th>匯款人姓名</th><th>方案</th><th>週期</th><th>應付金額</th><th>客戶匯款</th><th>方式</th><th>狀態</th><th>轉出末5碼</th><th>轉帳日期</th><th>備註</th><th></th></tr></thead>';
-  const TH_EC = '<thead><tr><th>時間</th><th>會員 email</th><th>方案</th><th>週期</th><th>金額</th><th>方式</th><th>狀態</th><th>管理者備註</th><th></th></tr></thead>';
+  const TH_EC = '<thead><tr><th>時間</th><th>會員 email</th><th>姓名</th><th>方案</th><th>週期</th><th>金額</th><th>方式</th><th>狀態</th><th>管理者備註</th><th></th></tr></thead>';
   function ordersView(v, box, kind) {
     const TH_K = kind === 'ecpay' ? TH_EC : TH;
     const d = S.d, f = S.f;
@@ -444,7 +444,7 @@
       <label class="rad"><input type="radio" name="rfPerm" value="now" checked><span>立即降級<small>會員馬上回到註冊會員</small></span></label>
       <label class="rad"><input type="radio" name="rfPerm" value="end"><span>到期才停<small>用到 ${esc(ymd(o.grantTo))} 才回到註冊會員</small></span></label>
       ${q.recur && q.periodActive ? '<p class="warn">這是信用卡定期定額：退款時會同時向綠界<b>終止之後的自動扣款</b>。</p>' : ''}
-      ${manual ? `<p class="warn">${o.method === 'bank' ? '銀行轉帳' : 'ATM／超商付款'}沒辦法用 API 退款：這裡只做<b>登記</b>，<b>請到網銀把錢匯回</b>給會員。</p>
+      ${manual ? `<p class="warn">${o.method === 'bank' ? '銀行轉帳' : '這種付款方式'}沒辦法用 API 退款：這裡只做<b>登記</b>，<b>請到網銀把錢匯回</b>給會員。</p>
         <div class="two"><div><label for="rfL5">退款帳號末 5 碼</label><input type="text" id="rfL5" inputmode="numeric" maxlength="5"></div><div><label for="rfDate">退款日期</label><input type="date" id="rfDate" value="${esc(today)}"></div></div>`
         : q.test ? '<p class="warn">綠界<b>測試環境不提供信用卡退刷 API</b>（官方文件註明）。請到綠界後台退刷後，用下面「改登記人工退款」記錄。</p>'
           : '<p class="muted">會向綠界送出退款：還在授權階段 → 放棄授權（N）；已關帳 → 退刷（R）；部分退款且未關帳 → 調整關帳金額（C）。成功才標「已退款」，失敗會顯示綠界的原因。</p>'}
@@ -475,7 +475,7 @@
   }
 
   /* ---------------------------------------------------------------- ② 會員訂閱 */
-  const subMethod = (s) => (s.method === 'period' ? '信用卡定期定額' : s.method === 'bank' ? '銀行轉帳' : '單次付款');
+  const subMethod = (s) => (s.method === 'period' ? '信用卡定期定額' : s.method === 'bank' ? '銀行轉帳' : '綠界信用卡');
   function subsView(v, box) {
     const d = S.d, subs = d.subs;
     const ev = (email) => d.events.filter((e) => e.email === email);
@@ -484,7 +484,7 @@
       <div class="tw"><table id="paySubs"><thead><tr><th>會員 email</th><th>目前方案</th><th>付款方式</th><th>第一次付款</th><th>最近付款</th><th>週期</th><th>本期開始</th><th>到期日</th><th>自動續訂</th><th>到期後降回註冊會員</th><th>累計付款</th><th>筆數</th></tr></thead>
       <tbody>${subs.map((s) => `<tr class="prow" data-em="${esc(s.email)}"><td class="l" title="${esc(s.email)}">${mailA(s.email)}</td><td>${esc(s.expired ? '註冊會員（已到期）' : s.planName)}</td><td>${esc(subMethod(s))}</td>
         <td>${esc(ymd(s.firstPaid))}</td><td>${esc(ymd(s.lastPaid))}</td><td>${s.period === 'year' ? '年繳' : '月繳'}</td><td>${esc(ymd(s.curFrom))}</td><td>${esc(ymd(s.expires))}</td>
-        <td>${s.autoRenew ? '<span class="stp ok">開</span>' : s.recur ? '<span class="stp mute">已取消</span>' : '<span class="muted" title="銀行轉帳與單次付款是預付制，沒有自動扣款">不適用</span>'}</td><td>${s.downgradeAt ? esc(ymd(s.downgradeAt)) : '自動續扣中'}</td>
+        <td>${s.autoRenew ? '<span class="stp ok">開</span>' : s.recur ? '<span class="stp mute">已取消</span>' : '<span class="muted" title="銀行轉帳是預付制，沒有自動扣款">不適用</span>'}</td><td>${s.downgradeAt ? esc(ymd(s.downgradeAt)) : '自動續扣中'}</td>
         <td class="n">${nt(s.total)}${s.refunded ? `<small style="color:var(--rise)">（退 ${nt(s.refunded)}）</small>` : ''}</td><td class="n">${s.count}</td></tr>`
         + (S.open['s:' + s.email] ? `<tr class="det"><td colspan="12"><div class="tw"><table>${TH}<tbody>${d.orders.filter((o) => o.email === s.email).map((o) => orderRow(o, true)).join('')}</tbody></table></div>
           <p style="margin:6px 0 0">方案異動：${ev(s.email).map((e) => `${esc(ymdhm(e.at))} ${esc(EV[e.kind] || e.kind)}${e.detail ? '（' + esc(e.detail) + '）' : ''}`).join('　') || '—'}</p></td></tr>` : '')).join('') || '<tr><td colspan="12" class="muted">還沒有付費會員</td></tr>'}</tbody></table></div>`;

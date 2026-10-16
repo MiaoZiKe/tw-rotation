@@ -70817,7 +70817,7 @@ def t_pay_1011(b, base):
                 cards: [...d.querySelectorAll('.cobc')].map(rc), copies: [...d.querySelectorAll('.cobc button')].map(rc),
                 cdiff: { tabE: diff('#coTabE'), tabB: diff('#coTabB'), help: diff('.cohelpb'), go: diff('#coGoE') ?? diff('#coSendB'), badge: diff('#coBadge') },
                 copyDiff: [...d.querySelectorAll('.cobc button')].map((e) => { const rg = document.createRange(); rg.selectNodeContents(e); const x = rg.getClientRects()[0], r = e.getBoundingClientRect(); return x ? Math.round(Math.abs((x.top + x.bottom) / 2 - (r.top + r.bottom) / 2) * 10) / 10 : 99; }),
-                padSym: { name: pad('#coNameE'), l5: pad('#coL5E'), payer: pad('#coPayer'), date: pad('#coDate') },
+                padSym: { name: pad('#coNameE'), l5: pad('#coL5'), payer: pad('#coPayer'), date: pad('#coDate') },
                 legacy: { coop: !!d.querySelector('.coop'), cooid: !!d.querySelector('#coOidRow'), cogrow: !!d.querySelector('.cogrow'), owner: /經營者：|客服信箱：/.test(d.innerText), genderText: [...d.querySelectorAll('.cogd *')].some((e) => /[男女]/.test(e.textContent)) },
                 checks: vis('input[type=checkbox]').length, perSwitch: !!d.querySelector('#coPer') || !!d.querySelector('[data-per]'), sizes }; }""")
             m["tag"] = tag
@@ -70843,17 +70843,14 @@ def t_pay_1011(b, base):
                 inputs_ok = all(r and abs(r["h"] - 44) <= 1 for r in (m["payer"], m["l5b"], m["date"]))
                 f = m["flds"]
                 if narrow:
-                    fld_ok = len(f) == 3 and abs(f[1]["w"] - f[2]["w"]) <= 1 and f[0]["w"] > f[1]["w"]
+                    fld_ok = len(f) == 3 and all(abs(x["w"] - f[0]["w"]) <= 1 for x in f)
                 else:
                     fld_ok = len(f) == 3 and abs(f[0]["w"] - f[1]["w"]) <= 1 and abs(f[0]["t"] - f[1]["t"]) <= 1 and f[2]["w"] > f[0]["w"]
-                ok(f"{T}：{label}：匯款人姓名／末 5 碼／轉帳日期輸入框高 44px；{'姓名獨佔一排，末 5 碼與日期等寬' if narrow else '姓名與末 5 碼兩欄等寬、日期整排'}", inputs_ok and fld_ok, m["flds"])
+                ok(f"{T}：{label}：匯款人姓名／末 5 碼／轉帳日期輸入框高 44px；{'姓名、末 5 碼、日期各佔一排等寬' if narrow else '姓名與末 5 碼兩欄等寬、日期整排'}", inputs_ok and fld_ok, m["flds"])
             else:
                 f = m["flds"]
-                if narrow:
-                    row_ok = len(f) == 2 and f[0]["t"] < f[1]["t"] and abs(f[0]["w"] - f[1]["w"]) <= 1
-                else:
-                    row_ok = len(f) == 2 and abs(f[0]["w"] - f[1]["w"]) <= 1 and abs(f[0]["t"] - f[1]["t"]) <= 1
-                ok(f"{T}：{label}：「姓名＋♂♀」與「末 5 碼＋ⓘ」{'各佔一排' if narrow else '兩欄等寬、上緣對齊'}、輸入框高 44px", row_ok and abs(m["l5"]["h"] - 44) <= 1 and m["help"] and abs(m["help"]["w"] - 32) <= 1 and abs(m["help"]["h"] - 32) <= 1, m)
+                hp = m["help"]
+                ok(f"{T}：{label}：信用卡分頁只有「姓名＋♂♀＋ⓘ」一排（沒有末 5 碼欄）、輸入框高 44px、ⓘ 32×32 在 ♂♀ 右邊同一列", len(f) == 1 and abs(m["name"]["h"] - 44) <= 1 and hp and abs(hp["w"] - 32) <= 1 and abs(hp["h"] - 32) <= 1 and hp["l"] >= max(x["rect"]["r"] for x in sym) - 1 and abs((hp["t"] + hp["b"]) / 2 - (nm["t"] + nm["b"]) / 2) <= 2 and m["l5"] is None, m)
             tabs = m["tabs"]
             ok(f"{T}：{label}：兩個付款分頁鈕等寬等高（{tabs[0]['w']}×{tabs[0]['h']}，高 44px）", len(tabs) == 2 and all(abs(t["h"] - 44) <= 1 for t in tabs) and abs(tabs[0]["w"] - tabs[1]["w"]) <= 1, tabs)
             cd = [v for v in m["cdiff"].values() if v is not None]
@@ -70899,17 +70896,17 @@ def t_pay_1011(b, base):
         # ================= ③ 10-16 新結帳表單（只剩信用卡定期定額）；再用舊路徑（單次，伺服器仍支援）驗「ReturnURL 漏送 → 前端輪詢＋伺服器查單補開通」
         ui = pb.evaluate("""() => { const d = document.getElementById('subDlg'); const g = [...d.querySelectorAll('#coPaneE .cogd button')];
           return { kinds: d.querySelectorAll('input[name=coKind]').length, once: /單次付款/.test(d.innerText), tab: d.querySelector('#coTabE').innerText, day: (document.getElementById('coDay') || {}).textContent || '',
-            fields: !!(d.querySelector('#coNameE') && d.querySelector('#coL5E')), gbtn: g.map(x => x.getAttribute('aria-label') + ':' + x.getAttribute('aria-checked') + ':' + x.textContent.trim()), gc: d.querySelectorAll('#coPaneE .cogcb').length,
+            fields: !!d.querySelector('#coNameE') && !d.querySelector('#coL5E') && !/末 5 碼/.test(d.querySelector('#coPaneE').textContent), gbtn: g.map(x => x.getAttribute('aria-label') + ':' + x.getAttribute('aria-checked') + ':' + x.textContent.trim()), gc: d.querySelectorAll('#coPaneE .cogcb').length,
             go: document.getElementById('coGoE').disabled, hint: /僅用於匿名彙總統計，不公開/.test(d.querySelector('#coPaneE .cohelp').textContent) && !!d.querySelector('#coPaneE .cohelp a[href="#privacy"]') && !!d.querySelector('.coagree a[href="#privacy"]'),
             gdReq: /性別 ♂／♀（選填）/.test(d.querySelector('#coPaneE .cohelp').textContent) && /不選擇不影響結帳與任何功能/.test(d.querySelector('#coPaneE .cohelp').textContent), exit: !/人工協助開通/.test(d.querySelector('#coPaneE').textContent),
             helpHidden: d.querySelector('#coPaneE .cohelp').hidden, helpVis: !!d.querySelector('#coPaneE .cohelp').offsetParent }; }""")
         co_layout(co_metrics(pb, "desk1440 預設"), "桌機 1440×900 預設")
-        ok(f"{T}：10-16 結帳視窗：沒有單次付款／兩種付款方式雙選、分頁寫「信用卡」不再寫 ATM／超商；有姓名、性別（選填、男／女都沒預選、沒有獨立同意勾選）、選填末 5 碼；前往綠界鈕一開始是灰的",
+        ok(f"{T}：10-16 結帳視窗：沒有單次付款／兩種付款方式雙選、分頁寫「信用卡」不再寫 ATM／超商；只有姓名＋♂♀（沒有末 5 碼欄、說明裡也沒有末 5 碼）；性別選填、都沒預選、沒有獨立同意勾選；前往綠界鈕一開始是灰的",
            ui["kinds"] == 0 and not ui["once"] and "信用卡" in ui["tab"] and "超商" not in ui["tab"] and ui["fields"] and ui["gbtn"] == ["男:false:", "女:false:"] and ui["gc"] == 0 and ui["go"], ui)
         ok(f"{T}：10-16 退件後：沒有獨立的性別列與文字標籤，♂♀ 小鈕在姓名欄右側、ⓘ 在末 5 碼欄右側，用途（僅用於匿名彙總統計，不公開）與完整說明都收在 ⓘ 裡預設收起（隱私權政策連結在合併勾選的句子裡）；沒有「來信人工開通」出口", ui["hint"] and ui["gdReq"] and ui["exit"] and ui["helpHidden"] and not ui["helpVis"], ui)
         pb.click("#coPaneE .cohelpb")
         hv = pb.evaluate("() => { const h = document.querySelector('#coPaneE .cohelp'); const b = document.querySelector('#coPaneE .cohelpb'); return { vis: !!h.offsetParent, exp: b.getAttribute('aria-expanded'), t: h.innerText, tiny: [...h.querySelectorAll('li')].some(l => parseFloat(getComputedStyle(l).fontSize) < 11) }; }")
-        ok(f"{T}：按「ⓘ 說明」→ 展開姓名／性別／末 5 碼／信用卡／個資處理說明（含「這不是信用卡號」「卡號不會被本網站看到」）、字 ≥ 11px", hv["vis"] and hv["exp"] == "true" and "這不是信用卡號" in hv["t"] and "不會看到" in hv["t"] and "隱私權政策" in hv["t"] and not hv["tiny"], hv)
+        ok(f"{T}：按「ⓘ 說明」→ 展開姓名／性別／信用卡／個資處理說明（含「卡號不會被本網站看到、也不蒐集卡號末碼」「付款通知帶姓名」；已沒有末 5 碼說明）、字 ≥ 11px", hv["vis"] and hv["exp"] == "true" and "不會看到" in hv["t"] and "不蒐集卡號末碼" in hv["t"] and "隱私權政策" in hv["t"] and "末 5 碼" not in hv["t"] and not hv["tiny"], hv)
         co_metrics(pb, "desk1440 說明展開")
         shot(pb, "co_ecpay_help.png", "#subDlg .box")
         pb.click("#coPaneE .cohelpb")
@@ -70935,23 +70932,21 @@ def t_pay_1011(b, base):
         pb.click("#coPaneE .cogd button[data-g=male]")
         ok(f"{T}：再按一次選中的男 → 取消選擇（選填可以反悔）、仍可按", en() and pb.evaluate("() => document.querySelector('#coPaneE .cogd button[data-g=male]').getAttribute('aria-checked')") == "false")
         pb.click("#coPaneE .cogd button[data-g=male]")
-        pb.fill("#coL5E", "4111111111111111")
-        g1 = pb.evaluate("() => ({ v: document.getElementById('coL5E').value, m: document.getElementById('coMsg').innerText })")
-        ok(f"{T}：末 5 碼欄填入 16 位卡號 → 被清空並提示「偵測到可能是卡號」（卡號防呆）", g1["v"] == "" and "卡號" in g1["m"], g1)
         pb.fill("#coNameE", "4111 1111 1111 1111")
         g2 = pb.evaluate("() => ({ v: document.getElementById('coNameE').value, go: document.getElementById('coGoE').disabled })")
         ok(f"{T}：姓名欄填卡號格式 → 也被清空、前往鈕回到灰的", g2["v"] == "" and g2["go"], g2)
-        pb.fill("#coNameE", "王小明"); pb.fill("#coL5E", "12345")
+        pb.fill("#coNameE", "王小明")
         pb.evaluate("() => { window.TW_CO_NOSUBMIT = true; }")
         co_metrics(pb, "desk1440 填寫完成")
         shot(pb, "co_ecpay_filled.png", "#subDlg .box")
         with pb.expect_response(lambda r: "/v1/pay/ecpay/create" in r.url, timeout=6000) as ri:
             pb.click("#coGoE")
         body = json.loads(ri.value.request.post_data or "{}")
-        ok(f"{T}：按前往綠界 → 送出的請求含姓名、性別 male、末 5 碼、表單版本 2、recur=true，沒有金額", body.get("name") == "王小明" and body.get("gender") == "male" and body.get("last5") == "12345" and body.get("form") == 2 and body.get("recur") is True and "amount" not in body, body)
+        ok(f"{T}：按前往綠界 → 送出的請求含姓名、性別 male、表單版本 2、recur=true，沒有金額、沒有末 5 碼（信用卡分頁整欄拿掉）", body.get("name") == "王小明" and body.get("gender") == "male" and "last5" not in body and body.get("form") == 2 and body.get("recur") is True and "amount" not in body, body)
         wait_until(pb, "() => !!document.getElementById('coEcForm')", 6000)
         fmq = pb.evaluate("() => { const o = {}; document.querySelectorAll('#coEcForm input').forEach(i => { o[i.name] = i.value; }); return o; }")
         ok(f"{T}：只剩信用卡定期定額：表單 ChoosePayment=Credit、PeriodType=M、PeriodAmount=299", fmq.get("ChoosePayment") == "Credit" and fmq.get("PeriodType") == "M" and fmq.get("PeriodAmount") == "299", fmq)
+        ok(f"{T}：10-16 綠界表單帶買家姓名：ItemName 後綴「｜王小明」、CustomField1＝王小明（只放姓名，不放性別／email）、ItemName ≤ 100 字、CheckMacValue 簽章驗算正確（含中文）", str(fmq.get("ItemName", "")).endswith("｜王小明") and fmq.get("CustomField1") == "王小明" and len(fmq.get("ItemName", "")) <= 100 and "male" not in json.dumps(fmq) and "@" not in json.dumps({k: v for k, v in fmq.items() if k not in ("ReturnURL", "OrderResultURL", "ClientBackURL", "PeriodReturnURL")}) and fmq.get("CheckMacValue") == _ec_mac(fmq), fmq)
         pb.evaluate("() => { const f = document.getElementById('coEcForm'); if (f) f.remove(); }")
         # 舊路徑：伺服器仍支援單次（ChoosePayment=ALL）；前端沒有入口，用 API 建單再做成表單
         pb.evaluate("""async () => { const j = await TwAccount.call('/v1/pay/ecpay/create', { plan: 'plus', period: 'month', recur: false, back: location.origin + location.pathname }); const f = document.createElement('form'); f.method = 'POST'; f.action = j.action; f.id = 'coEcForm'; f.style.display = 'none'; f.acceptCharset = 'UTF-8'; Object.entries(j.fields).forEach(([k, v]) => { const i = document.createElement('input'); i.type = 'hidden'; i.name = k; i.value = v; f.appendChild(i); }); document.body.appendChild(f); }""")
@@ -71057,6 +71052,11 @@ def t_pay_1011(b, base):
         ok(f"{T}：轉帳表單姓名與末 5 碼輸入框上緣切齊、標籤都只有一行", max(fl["tops"]) - min(fl["tops"]) <= 1 and all(h <= 22 for h in fl["lbh"]), fl)
         boid = pc.evaluate("() => document.getElementById('coOid').innerText")
         ok(f"{T}：轉帳訂單編號出現在面板上（{boid}）", bool(re.match(r"^LG[0-9A-Z]{16}$", boid or "")), boid)
+        pc.fill("#coL5", "4111111111111111")
+        g1 = pc.evaluate("() => ({ v: document.getElementById('coL5').value, m: document.getElementById('coMsg').innerText })")
+        ok(f"{T}：轉帳分頁末 5 碼欄填入 16 位卡號 → 被清空並提示「偵測到可能是卡號」（卡號防呆）", g1["v"] == "" and "卡號" in g1["m"], g1)
+        lab5 = pc.evaluate("() => document.querySelector('label[for=coL5]').textContent")
+        ok(f"{T}：轉帳分頁末 5 碼標籤寫「銀行帳號，不是卡號」", "銀行帳號，不是卡號" in lab5, lab5)
         pc.fill("#coL5", "12345")
         pc.check("#coAgree")
         co_layout(co_metrics(pc, "desk1440 轉帳"), "桌機 1440×900 轉帳", bank=True)
@@ -71378,7 +71378,7 @@ def t_pay_1011(b, base):
         popup_login(p3, "gina", lambda: (p3.evaluate("() => TwAccount.login()"), p3.wait_for_selector("#acctGo", timeout=5000), p3.click("#acctGo")))
         p3.evaluate("() => TwCheckout.open({ plan: 'plus', per: 'month' })")
         wait_until(p3, "() => !!document.getElementById('coNameE')", 6000)
-        p3.fill("#coNameE", "吉娜"); p3.tap("#coPaneE .cogd button[data-g=female]"); p3.fill("#coL5E", "24680")
+        p3.fill("#coNameE", "吉娜"); p3.tap("#coPaneE .cogd button[data-g=female]")
         p3.tap("#coAgree")
         m3 = co_metrics(p3, "m360 填寫完成")
         co_layout(m3, "手機 360×844")
