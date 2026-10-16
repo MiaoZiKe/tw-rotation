@@ -33657,6 +33657,117 @@ def t_m4_noxpan_1016(b, base):
         c.close()
 
 
+# ★ 2026-10-16 Andy（LINE 內建瀏覽器，訪客、淺色）：「首頁的資金圖 和 熱力圖都不見了 重大疏失」
+#   總覽分段選「資金流向」整塊空白、直接接頁尾。Chromium 重現不出來；修法是防禦性的：
+#   分段鈕一律叫最新一輪的切換函式、切段包 try/catch（出錯退回簡單顯示）、切完 450ms 自我檢查（選到的卡往上每層容器拿掉 mp-off、等著畫的圖現在畫）。
+#   這段驗：三種身分 × 360／390／430 × 三個分段，選到的卡真的有高度、圖真的有畫布；再注入「切段中途丟錯」與「外層容器被殘留 mp-off」兩種故障，圖仍然出來。
+OV_SEG_JS = """() => { const o = {}; for (const id of ['ovRotCard', 'ovFlowCard', 'ovHeatCard', 'ovThemeCard', 'ovBreadthCard']) {
+    const e = document.getElementById(id); if (!e) { o[id] = null; continue; } const r = e.getBoundingClientRect();
+    const cv = [...e.querySelectorAll('canvas,svg')].map(c => c.getBoundingClientRect()).filter(q => q.width > 50 && q.height > 50).length;
+    o[id] = { h: Math.round(r.height), cv }; }
+  o.on = ([...document.querySelectorAll('#v-overview > .mpager > button.on')][0] || {}).textContent || ''; return o; }"""
+OV_SEG_WANT = {"大盤": ["ovBreadthCard"], "資金流向": ["ovRotCard", "ovFlowCard"], "熱度": ["ovHeatCard", "ovThemeCard"]}
+
+
+def t_m4_ovseg_1016(b, base):
+    T = "手機總覽分段圖1016"
+    def check(pg, tag, seg):
+        o = pg.evaluate(OV_SEG_JS)
+        shown = OV_SEG_WANT[seg]
+        good = o["on"].strip() == seg and all(o[k] and o[k]["h"] > 150 and o[k]["cv"] >= 1 for k in shown) \
+            and all(o[k] and o[k]["h"] == 0 for s2, ks in OV_SEG_WANT.items() if s2 != seg for k in ks)
+        ok(f"【{T}】{tag} 點「{seg}」→ {'、'.join(shown)} 有高度且有畫布、別段的卡藏起來", good, o)
+    roles = ((None, None, "訪客"), ("member", None, "註冊會員"), ("member", "p799", "Plus"))
+    for w in (360, 390, 430):
+        for who, plan, nm in roles:
+            if w != 390 and who is not None:
+                continue                                    # 寬度掃描只用訪客；三種身分在 390 各一輪
+            c, _, _ = _sub_ctx(b, who, width=w, plan=plan, touch=True)
+            c.add_init_script("try { localStorage.setItem('tw.theme', 'light'); localStorage.setItem('tw.live.on', '0'); } catch (e) {}")
+            pg = c.new_page(); errs = []; pg.on("pageerror", lambda e: errs.append(str(e)))
+            pg.goto(base + "#overview", wait_until="domcontentloaded")
+            if not ok(f"【{T}】{w} {nm}：總覽分段列就緒", bool(wait_until(pg, "() => document.querySelectorAll('#v-overview > .mpager > button').length === 3", 25000))):
+                c.close(); continue
+            pg.wait_for_timeout(2500)
+            for seg in ("資金流向", "熱度", "大盤", "資金流向"):
+                pg.locator("#v-overview > .mpager > button", has_text=seg).first.tap(); pg.wait_for_timeout(1200)
+                check(pg, f"{w} {nm}", seg)
+            if who is None:
+                # 故障注入①：切段中途丟錯（getComputedStyle 第一次被叫就丟）→ try/catch 退回簡單顯示，圖仍出來
+                pg.locator("#v-overview > .mpager > button", has_text="大盤").first.tap(); pg.wait_for_timeout(800)
+                pg.evaluate("() => { const g = window.getComputedStyle; let n = 0; window.getComputedStyle = function () { if (n++ === 0) { window.getComputedStyle = g; throw new Error('注入故障'); } return g.apply(this, arguments); }; }")
+                pg.locator("#v-overview > .mpager > button", has_text="熱度").first.tap(); pg.wait_for_timeout(1200)
+                check(pg, f"{w} {nm} 切段中途丟錯後", "熱度")
+                # 故障注入②：外層排版容器殘留 mp-off（上一段收掉的空殼沒被拿掉）→ 450ms 自我檢查補開
+                pg.evaluate("() => { const b = [...document.querySelectorAll('#v-overview > .mpager > button')].find(x => x.textContent.trim() === '資金流向'); "
+                            "b.click(); document.querySelector('#v-overview .ovmain').classList.add('mp-off'); }")
+                pg.wait_for_timeout(1200)
+                check(pg, f"{w} {nm} 外層容器殘留 mp-off 後", "資金流向")
+            ok(f"【{T}】{w} {nm}：沒有 JS 錯誤", not errs, errs[:3])
+            c.close()
+
+
+# ★ 2026-10-16 Andy（iPhone）：「右上角打開的畫面太大 需要調整適當大小，條窄一點」＋「登入帳號 不能看不到全部，用拉霸進行調整」
+#   ① 手機帳號選單：寬 300～320、靠右（右緣離視窗 ≤ 12）、左邊露出頁面、版面風格分段不溢出、字級 ≥ 12；
+#   ② 登入告知框：框在視窗內、內容框內可用手指上下捲（scrollTop 真的變）、捲到頂與捲到底「用 Google 帳號登入」都看得到也點得到（elementFromPoint）；
+#   ③ 桌機 1440：同一個告知框維持原樣（按鈕列不是 sticky、框內距 18／20）—— 點了才出現的狀態，桌機守門涵蓋不到，這裡另外驗。
+ACCT_MENU_JS = """() => { const m = document.querySelector('.acctmenu.m4am'); if (!m || m.hidden) return null; const r = m.getBoundingClientRect();
+  const seg = m.querySelector('.m4seg4');
+  const fs = Math.min(...[...m.querySelectorAll('*')].filter(e => e.offsetParent && [...e.childNodes].some(n => n.nodeType === 3 && n.textContent.trim())).map(e => parseFloat(getComputedStyle(e).fontSize)));
+  return { l: Math.round(r.left), r: Math.round(r.right), w: Math.round(r.width), W: innerWidth, segOver: seg ? seg.scrollWidth - seg.clientWidth : 0,
+           segIn: seg ? seg.getBoundingClientRect().right <= r.right : true, minfs: fs }; }"""
+ACCT_DLG_JS = """() => { const b = document.querySelector('#acctDlg .box'), g = document.getElementById('acctGo'); if (!b || !g) return null;
+  const r = b.getBoundingClientRect(), q = g.getBoundingClientRect(); const h = document.elementFromPoint(q.left + q.width / 2, q.top + q.height / 2);
+  return { top: Math.round(r.top), bot: Math.round(r.bottom), H: innerHeight, sh: b.scrollHeight, ch: b.clientHeight, st: Math.round(b.scrollTop),
+           goBot: Math.round(q.bottom), goHit: !!h && (h === g || g.contains(h)), goLines: Math.round(q.height) }; }"""
+
+
+def t_m4_acct_1016(b, base):
+    T = "手機帳號選單登入框1016"
+    for w, hgt in ((360, 640), (390, 664), (430, 740)):
+        for who in (None, "member"):
+            c, _, _ = _sub_ctx(b, who, width=w, touch=True)
+            pg = c.new_page(); pg.set_viewport_size({"width": w, "height": hgt})
+            pg.goto(base + "#overview", wait_until="domcontentloaded")
+            if not ok(f"【{T}】{w} {who or '訪客'}：頂欄帳號鈕就緒", bool(wait_until(pg, "() => document.documentElement.classList.contains('m4') && !!document.getElementById('acctBtn')", 20000))):
+                c.close(); continue
+            pg.wait_for_timeout(1500)
+            pg.locator("#acctBtn").tap()
+            m = wait_until(pg, ACCT_MENU_JS, 3000)
+            ok(f"【{T}】{w} {who or '訪客'}：帳號選單寬 300～320、靠右、左邊露出頁面", bool(m) and 300 <= m["w"] <= 320 and m["W"] - m["r"] <= 12 and m["l"] >= 28, m)
+            ok(f"【{T}】{w} {who or '訪客'}：版面風格分段放得下（不溢出、在選單內）、字級 ≥ 12", bool(m) and m["segOver"] <= 0 and m["segIn"] and m["minfs"] >= 12, m)
+            if who is None:
+                pg.locator(".acctmenu.m4am .m4login").first.tap()
+                d = wait_until(pg, ACCT_DLG_JS, 3000); pg.wait_for_timeout(300); d = pg.evaluate(ACCT_DLG_JS)
+                ok(f"【{T}】{w}×{hgt}：登入告知框在視窗內、內容比框高（要捲）", bool(d) and d["top"] >= 0 and d["bot"] <= d["H"] and d["sh"] > d["ch"] + 20, d)
+                pg.evaluate("() => { document.querySelector('#acctDlg .box').scrollTop = 0; }"); pg.wait_for_timeout(150)
+                d0 = pg.evaluate(ACCT_DLG_JS)
+                ok(f"【{T}】{w}×{hgt}：捲在最上面時「用 Google 帳號登入」就看得到、點得到、一行", d0["st"] == 0 and d0["goBot"] <= d0["H"] and d0["goHit"] and d0["goLines"] <= 50, d0)
+                # 真的用手指在框裡往上推 300px
+                cdp = c.new_cdp_session(pg)
+                tp = lambda t, y: cdp.send("Input.dispatchTouchEvent", {"type": t, "touchPoints": [] if t == "touchEnd" else [{"x": w // 2, "y": y, "id": 1}]})
+                y0 = int(hgt * 0.6); tp("touchStart", y0)
+                for i in range(1, 11):
+                    tp("touchMove", y0 - 30 * i)
+                tp("touchEnd", 0); pg.wait_for_timeout(600)
+                d1 = pg.evaluate(ACCT_DLG_JS)
+                ok(f"【{T}】{w}×{hgt}：手指在框裡往上推 → 內容真的捲了（scrollTop {d1['st']}）、整頁沒被帶著捲", d1["st"] > 40 and pg.evaluate("() => scrollY") == 0, d1)
+                ok(f"【{T}】{w}×{hgt}：捲動後「用 Google 帳號登入」仍看得到、點得到", d1["goBot"] <= d1["H"] and d1["goHit"], d1)
+                pg.locator("#acctDlg [data-close]", has_text="取消").first.tap(); pg.wait_for_timeout(300)
+                ok(f"【{T}】{w}：按「取消」→ 告知框關掉", pg.evaluate("() => document.getElementById('acctDlg').hidden"))
+            c.close()
+    # 桌機 1440：告知框維持原樣
+    c, _, _ = _sub_ctx(b, None, width=1440)
+    pg = c.new_page(); pg.goto(base + "#overview", wait_until="domcontentloaded")
+    wait_until(pg, "() => !!document.getElementById('acctBtn')", 20000); pg.wait_for_timeout(1500)
+    pg.locator("#acctBtn").click()                 # 桌機訪客點帳號鈕＝直接開告知框（account.js）
+    wait_until(pg, "() => !!document.querySelector('#acctDlg:not([hidden]) .box')", 4000); pg.wait_for_timeout(300)
+    st = pg.evaluate("() => { const b = document.querySelector('#acctDlg .box'), r2 = document.querySelector('#acctDlg .row2'); if (!b) return null; const cs = getComputedStyle(b);"
+                     " return { pad: cs.paddingTop + ' ' + cs.paddingRight + ' ' + cs.paddingBottom, pos: getComputedStyle(r2).position, w: Math.round(b.getBoundingClientRect().width) }; }")
+    ok(f"【{T}】1440：桌機登入告知框維持原樣（內距 18／20、按鈕列不黏底、寬 520）", bool(st) and st["pad"] == "18px 20px 18px" and st["pos"] == "static" and st["w"] == 520, st)
+    c.close()
+
+
 SECTIONS = {
     # ★ 2026-10-09 手機監督：360 寬播放列 ▶／⏸ 被長日期擠出畫面 —— 360／402 播放中最長那刻＋暫停在過去：▶ 在列內、一行、日期不截；1440 日期仍完整
     "手機播放列360":       lambda pg, b, base, code: t_m4_playbar360_1009(b, base),
@@ -33678,6 +33789,10 @@ SECTIONS = {
     "桌機守門1008":        lambda pg, b, base, code: t_desk_guard_1008(b, base),
     # ★ 2026-10-16 Andy（iPhone）：「手機版本網頁打開右滑都會出現這樣的問題」—— 8 頁 × 360／390／430：沒有元素伸出視窗、往左拖 300px scrollX＝0、抽屜開關、比比玩球中
     "手機不右滑1016":      lambda pg, b, base, code: t_m4_noxpan_1016(b, base),
+    # ★ 2026-10-16 Andy（LINE）：「首頁的資金圖 和 熱力圖都不見了」—— 三身分 × 三分段圖真的畫出來＋兩種故障注入後仍出來（360／390／430）
+    "手機總覽分段圖1016":  lambda pg, b, base, code: t_m4_ovseg_1016(b, base),
+    # ★ 2026-10-16 Andy（iPhone）：帳號選單「條窄一點」＋登入告知框「不能看不到全部，用拉霸」—— 選單寬 300～320 靠右；告知框框內手指捲、登入鈕永遠看得到；1440 告知框不變
+    "手機帳號選單登入框1016": lambda pg, b, base, code: t_m4_acct_1016(b, base),
     # ★ 2026-10-09 Andy：「手機版本…不能有縮放功能…不會出現這樣縮放後的 BUG」—— 只剩兩種版面（≤640 m4／>640 l4）＋手機縮放鎖（⚠ --workers 1）
     "縮放混合版1009":      lambda pg, b, base, code: t_zoom_mix_1009(b, base),
     # ★ 2026-10-09 Andy：「下方調整長條圖適當寬度」—— 類別少的長條依格寬比例（漲跌家數 ≥ 30px、≤ 格寬 60%、點直條後不縮回），類別多的仍 ≤ 12px

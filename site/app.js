@@ -2681,7 +2681,7 @@
     const centre = (host, el) => { if (!host || !el) return;
       const l = el.offsetLeft - (host.clientWidth - el.offsetWidth) / 2; host.scrollLeft = Math.max(0, l); };
 
-    const paint = () => {
+    const paint0 = () => {
       subs = subsOf(step);
       if (i > subs.length - 1) i = 0;
       /* ⚠ 先算「這一段要顯示哪些元素」的聯集，再一次套用。
@@ -2725,7 +2725,10 @@
         subs.forEach((g, k) => {
           const b = document.createElement('button');
           b.type = 'button'; b.textContent = g.n; b.setAttribute('role', 'tab');
-          b.onclick = () => { i = k; miaSave(key + '.' + step, k); paint(); after(); };
+          /* ★ 2026-10-16（Andy iPhone：「首頁的資金圖 和 熱力圖都不見了 重大疏失」）：鈕一律叫「最新一次 miaPager 留下的」切換函式。
+             以前 onclick 綁的是建鈕當下那一輪的閉包；之後視窗 resize（iOS 捲動時工具列伸縮就會觸發）又跑一輪 miaPager，
+             鈕沒重建（段名、段數一樣）→ 點下去用的是舊一輪的 i／found，跟畫面上這一輪對不起來。 */
+          b.onclick = () => { if (bar._go) bar._go(k); else { i = k; miaSave(key + '.' + step, k); paint(); after(); } };
           bar.appendChild(b);
         });
       }
@@ -2742,6 +2745,21 @@
         next.onclick = () => { step = nx; i = 0; miaSave(key + '.step', nx); paint(); after(); };
       }
     };
+    /* ★ 2026-10-16（Andy LINE 內建瀏覽器：總覽「資金流向」「熱度」整塊空白、直接接頁尾）：切段整段包 try/catch。
+       中途丟錯時，最常見的殘局是「上一段把外層排版容器（.ovmain）標成 mp-off、這一段還沒來得及拿掉」→ 整塊不見。
+       出錯就退回最簡單的顯示方式：只藏別段的卡，選到的卡連同它往上到 .view 的每一層容器一律拿掉 mp-off。 */
+    const paint = () => {
+      try { paint0(); }
+      catch (e) {
+        console.warn('手機分段切換失敗，退回簡單顯示', e);
+        try {
+          const cur = (subsOf(step)[i] || { els: [] }).els, on = new Set(cur);
+          found.forEach(g => g.els.forEach(el => el.classList.toggle('mp-off', !on.has(el))));
+          cur.forEach(el => { for (let a = el; a && a !== view; a = a.parentElement) a.classList.remove('mp-off'); });
+          [...bar.children].forEach((b, k) => b.classList.toggle('on', k === i));
+        } catch (e2) { view.querySelectorAll('.mp-off').forEach(el => el.classList.remove('mp-off')); }
+      }
+    };
     const after = () => {
       // 換段＝換一件事，回到這一段的最上面（不然會停在上一段捲到的位置）
       // 2026-10-08：導覽（tour.js）代按分段時不捲 —— 導覽自己會捲一次到目標，這裡再捲會變成「先跳到頂、再滑下來」
@@ -2749,7 +2767,25 @@
       setTimeout(miaResize, 30); setTimeout(miaResize, 260);
       if (window.twSwipeScan) setTimeout(window.twSwipeScan, 80);
       miaMore();
+      setTimeout(() => { try { selfHeal(); } catch (e) { /* 自我檢查不該讓頁面掛掉 */ } }, 450);
     };
+    /* ★ 2026-10-16 手機（html.m4）分段自我檢查：選到的那一段，卡片一定要真的看得到、圖一定要畫出來。
+       ① 卡片或它往上到 .view 之間的排版容器還掛著 mp-off（空殼收掉的判斷誤判）→ 拿掉；
+       ② 卡片裡還在等「捲近了才畫」（whenNear）的圖 → 現在就畫；③ 再 resize 一次（藏著時畫的圖寬度是 0）。
+       只在 m4 跑；桌機不走 miaPager（mIsM() 已擋）。 */
+    const selfHeal = () => {
+      if (!document.documentElement.classList.contains('m4')) return;
+      const cur = (subsOf(step)[i] || { els: [] }).els;
+      let fixed = 0;
+      cur.forEach(el => {
+        if (!el.isConnected) return;
+        for (let a = el; a && a !== view; a = a.parentElement) if (a.classList.contains('mp-off')) { a.classList.remove('mp-off'); fixed++; }
+        _near.forEach((fn, host) => { if (el.contains(host) || host.contains(el)) runNear(host); });
+      });
+      if (fixed) console.warn('手機分段自我檢查：補開', fixed, '個被藏住的容器');
+      miaResize();
+    };
+    bar._go = (k) => { i = k; miaSave(key + '.' + step, k); paint(); after(); };
     if (spine && (spine.dataset.k !== key || spine.children.length !== steps.length)) {
       spine.dataset.k = key; spine.setAttribute('role', 'tablist');
       spine.setAttribute('aria-label', '決策動線：錢往哪跑 → 貴不貴 → 何時進場 → 別進的理由');
@@ -2769,6 +2805,7 @@
     bar.setAttribute('role', 'tablist'); bar.setAttribute('aria-label', '這一步底下的分段');
     paint();
     setTimeout(miaResize, 30); setTimeout(miaResize, 300);
+    setTimeout(() => { try { selfHeal(); } catch (e) { /* 自我檢查不該讓頁面掛掉 */ } }, 450);
   }
 
   /* ★ 第①步的關鍵數字：四個象限現在各有幾個族群。
