@@ -31864,10 +31864,12 @@ def _desk_reverify(T, b, base, kind, routes, measure):
 
 # ★ 2026-10-16 手機卡片外框1016（Andy iPhone 實機：「所有內容都需要在背景路上他適合大小的方框」）
 #   手機每一塊內容（圖、表、清單）的最近容器要有「邊框或底色」而且圓角 ≥ 8；不准橫向捲動、頁高不超過準則（≤3 屏）。
-#   分批上線：CARD1016_ROUTES 逐批擴充（批 1 = 總覽、資金流向、熱力圖；批 2 = 產業地圖、題材、市場明細、週期統計、選股）。每個寬度都用觸控點頁內分頁再量一次。
+#   分批上線：CARD1016_ROUTES 逐批擴充（批 1 = 總覽、資金流向、熱力圖；批 2 = 產業地圖、題材、市場明細、週期統計、選股；批 3 = 財經日曆、自選、訂單、訂閱、交付、ETF、個股）。每個寬度都用觸控點頁內分頁再量一次。
 CARD1016_ROUTES = {
     "總覽": "#overview", "資金流向": "#flow", "資金分流樹": "#flow/sankey", "族群法人": "#flow/inst", "熱力圖": "#heatmap",
     "產業地圖": "#industry", "產業鏈": "#industry/semiconductor", "題材": "#themes", "市場明細": "#market", "週期統計": "#season", "選股": "#explore",
+    "財經日曆": "#earnings", "自選": "#watch", "訂單": "#orders", "訂閱方案": "#pricing", "交付": "#delivery",
+    "ETF行事曆": "#etf/cal", "ETF總覽": "#etf/list", "ETF試算": "#etf/inc", "個股": "#stock/2330",
 }
 CARD1016_JS = r"""()=>{
  const v=document.querySelector('main .view.on')||document.querySelector('main');
@@ -31915,7 +31917,7 @@ def t_m4_card_frame_1016(b, base):
                 def meas():
                     r = m.evaluate(CARD1016_JS)
                     tops = m.evaluate("""() => { const v = document.querySelector('main .view.on'); if (!v) return [];
-                      return [...v.querySelectorAll('.card,.sl-card')].filter(c => !c.parentElement.closest('.card,.sl-card') && c.getClientRects().length && c.getBoundingClientRect().height > 60)
+                      return [...v.querySelectorAll('.card,.sl-card,.incsec,.prcard,#mbBody')].filter(c => !c.parentElement.closest('.card,.sl-card,.incsec,.prcard') && c.getClientRects().length && c.getBoundingClientRect().height > 60 && !(c.id === 'mbBody' && [...c.children].every(k => k.classList.contains('mbseg'))))
                         .map(c => { const cs = getComputedStyle(c); return { id: c.id || c.className.split(' ')[0], bw: parseFloat(cs.borderTopWidth), rad: parseFloat(cs.borderTopLeftRadius),
                           pad: parseFloat(cs.paddingLeft), right: Math.round(c.getBoundingClientRect().right),
                           // 被卡片左右邊切到的子元素數（不含自己會橫捲的容器裡面的東西）
@@ -31932,10 +31934,10 @@ def t_m4_card_frame_1016(b, base):
                 ok(f"{T} {W}px「{nm}」：沒有橫向捲動、頁高 ≤ 3 屏",
                    r["sw"] <= r["cw"] and r["h"] <= 3 * H + 120, {"sw": r["sw"], "cw": r["cw"], "h": r["h"]})
                 # 用手指點頁內分頁（有的話），每點一下再量一次
-                tabs = m.evaluate("""() => [...document.querySelectorAll('main .view.on nav.mpager button, #mM3Sw button')].filter(b => b.getClientRects().length).length""")
-                for i in range(min(tabs, 4)):
-                    xy = m.evaluate("""(i) => { const b = [...document.querySelectorAll('main .view.on nav.mpager button, #mM3Sw button')].filter(b => b.getClientRects().length)[i];
-                        if (!b) return null; b.scrollIntoView({block:'center',behavior:'instant'}); const r = b.getBoundingClientRect(); return [r.left + r.width / 2, r.top + r.height / 2]; }""", i)
+                tabs = m.evaluate("""() => [...document.querySelectorAll('main .view.on nav.mpager button, #mM3Sw button, #mbTabs button')].filter(b => b.getClientRects().length).length""")
+                for i in range(min(tabs, 10 if nm == "個股" else 4)):
+                    xy = m.evaluate("""(i) => { const b = [...document.querySelectorAll('main .view.on nav.mpager button, #mM3Sw button, #mbTabs button')].filter(b => b.getClientRects().length)[i];
+                        if (!b) return null; b.scrollIntoView({block:'center',inline:'center',behavior:'instant'}); const r = b.getBoundingClientRect(); return [r.left + r.width / 2, r.top + r.height / 2]; }""", i)
                     if not xy:
                         continue
                     m.touchscreen.tap(xy[0], xy[1]); m.wait_for_timeout(1500)
