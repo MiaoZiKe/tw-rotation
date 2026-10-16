@@ -1848,3 +1848,29 @@
     if (el && pend.has(el)) { clearTimeout(pend.get(el)); pend.delete(el); }
   }, true);
 })();
+
+/* ★ 2026-10-16（Andy iPhone：「出現可以一直往下滑的問題需要處理 限制適當範圍」）：
+   右側事件抽屜 aside#side 關著時寬 0（同日右滑修正），裡面的新聞清單在 0 寬裡逐字換行、撐到兩萬多 px 高；
+   iOS Safari／LINE 把它算進整頁捲動高度 → 頁尾下面一大片空白。
+   抽屜關上、滑出動畫（.25s）跑完後加 .m4shut，mobile4.css 第 1016b 節讓裡面的東西不排版；打開時 :not(.open) 立刻失效、內容回來，滑入動畫照舊。
+   只在 html.m4 加；桌機不加這個 class。 */
+(function () {
+  let t = 0;
+  function sync(side) {
+    clearTimeout(t);
+    const m4 = document.documentElement.classList.contains('m4');
+    /* ⚠ classList.remove 就算本來沒有那個 class 也會寫一次屬性、觸發 MutationObserver → 一定先檢查，不然自己觸發自己無限迴圈 */
+    if (!m4 || side.classList.contains('open')) { if (side.classList.contains('m4shut')) side.classList.remove('m4shut'); return; }
+    if (side.classList.contains('m4shut')) return;
+    t = setTimeout(() => {
+      if (document.documentElement.classList.contains('m4') && !side.classList.contains('open')) side.classList.add('m4shut');
+    }, 300);
+  }
+  function init() {
+    const side = document.getElementById('side'); if (!side) return;
+    new MutationObserver(() => sync(side)).observe(side, { attributes: true, attributeFilter: ['class'] });
+    new MutationObserver(() => sync(side)).observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
+    sync(side);
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();
+})();

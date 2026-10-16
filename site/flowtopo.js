@@ -220,6 +220,7 @@
     const mbtn = document.createElement('button'); mbtn.type = 'button'; mbtn.className = 'ftbtn';
     /* id：資金流向頁那張照舊叫 sankeyMotionBtn；總覽那張（#ovFlow）叫 ovFlowMotionBtn —— 兩頁的 DOM 同時在，id 不能重複 */
     mbtn.id = host.id === 'sankey' ? 'sankeyMotionBtn' : (host.id || 'ft') + 'MotionBtn';
+    { const o = document.getElementById(mbtn.id); if (o) o.remove(); }   // 手機版那顆在卡片標題列（不在 host 裡）：重建時先收掉舊的，id 不重複
     bar.append(leg, mbtn);
     const stage = document.createElement('div'); stage.className = 'ftstage';
     const cvBase = document.createElement('canvas'), cvFx = document.createElement('canvas'), cvLab = document.createElement('canvas');
@@ -321,6 +322,7 @@
     if (S.pendIdle && window.cancelIdleCallback) try { cancelIdleCallback(S.pendIdle); } catch (e) { /* 忽略 */ }
     if (S.ro) S.ro.disconnect();
     if (S.cleanupMQ) S.cleanupMQ();
+    if (S.mbtn && S.mbtn.classList.contains('ftm4hd') && S.mbtn.parentNode) S.mbtn.parentNode.removeChild(S.mbtn);   // 手機搬進標題列的那顆一起收
     if (S.bar.parentNode === host) host.removeChild(S.bar);
     if (S.stage.parentNode === host) host.removeChild(S.stage);
     host.classList.remove('ftopo');
@@ -1637,9 +1639,18 @@
     S.bar.classList.toggle('ftfloat', fl);
     if (fl && S.bar.parentNode !== S.stage) S.stage.appendChild(S.bar);
     if (!fl && S.bar.parentNode !== S.host) S.host.insertBefore(S.bar, S.stage);
-    S.mbtn.classList.toggle('ftcorner', mini);
-    if (mini && S.mbtn.parentNode !== S.stage) S.stage.appendChild(S.mbtn);
-    if (!mini && S.mbtn.parentNode !== S.bar) S.bar.appendChild(S.mbtn);
+    /* ★ 2026-10-16 手機（Andy iPhone：「也確保所有功能紐再適當位置，圖三重疊到樹狀圖」）：
+       手機（html.m4）上「動態 開」浮在畫布角落會蓋住第一個族群標籤 → 搬進卡片標題列右端（同一顆鈕、同一個設定）。
+       只在 html.m4 走這條；桌機照舊（浮在畫布右上角／緊湊版左上角）。 */
+    const m4hd = document.documentElement.classList.contains('m4') && S.host.closest('.card')
+      ? S.host.closest('.card').querySelector(':scope > .row.spread, :scope > h4.subh') : null;
+    S.mbtn.classList.toggle('ftm4hd', !!m4hd);
+    S.mbtn.classList.toggle('ftcorner', mini && !m4hd);
+    if (m4hd) { if (S.mbtn.parentNode !== m4hd) m4hd.appendChild(S.mbtn); }
+    else {
+      if (mini && S.mbtn.parentNode !== S.stage) S.stage.appendChild(S.mbtn);
+      if (!mini && S.mbtn.parentNode !== S.bar) S.bar.appendChild(S.mbtn);
+    }
     paintMotionBtn(S);
     buildModel(S);
     layoutAndDraw(S, true);
