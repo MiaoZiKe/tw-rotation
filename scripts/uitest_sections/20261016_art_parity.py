@@ -162,6 +162,11 @@ def t_art_parity_1016(b, base):
             ad.click(f"#pmCats input[data-f='{fid}']")
             return save_plan()
 
+        # 2026-10-16 精選文章分級（art.read.n：訪客預設 0 篇＝只看標題）合進來之後，這一段要測的是「art.read 開關」本身，
+        # 所以先把訪客範本的「可讀全文篇數」設成不限，讓分級不擋（分級自己的行為由「精選文章分級1016」驗）。
+        ad.select_option("#pmCats select[data-f='art.read.n']", "999")
+        save_plan()
+
         # 訪客（另一個瀏覽器）
         cg = new_ctx(); reqs: list[str] = []
         cg.on("request", lambda r: reqs.append(r.url.split("?")[0].replace(api, "")) if r.url.startswith(api + "/v1/") else None)
