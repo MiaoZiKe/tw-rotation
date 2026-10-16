@@ -70781,6 +70781,14 @@ def t_pay_1011(b, base):
         shot(ad, "admin_settings.png", "#payAdm")
         atok = ad.evaluate("() => TwAccount.tok()")
 
+        def co_fill(pg, name="王小明", gender="male", l5=""):
+            # 10-16 新結帳表單（綠界分頁）：姓名、性別（預設不選）、性別獨立同意、選填末 5 碼
+            pg.fill("#coNameE", name)
+            pg.click(f"#coPaneE .cogd button[data-g={gender}]")
+            pg.check("#coPaneE .cogcb")
+            if l5:
+                pg.fill("#coL5E", l5)
+
         # ================= ② bob：沒登入按升級 → 先登入 → 自動回到結帳
         cb = new_ctx(); pb = cb.new_page(); pb.on("pageerror", lambda e: errs.append("bob: " + str(e)))
         _net = []
@@ -70789,6 +70797,9 @@ def t_pay_1011(b, base):
         pb.on("console", lambda m: _net.append(("console", m.text[:150])) if m.type in ("error", "warning") else None)
         pb.goto(base + "#pricing", wait_until="domcontentloaded")
         ok(f"{T}：#pricing 有 Plus 卡與「升級」鈕", bool(wait_until(pb, "() => !!document.querySelector('.prcard[data-plan=plus] .prgo[data-go=plus]')", 12000)), [pb.evaluate("() => ({ src: window.TwPricing && TwPricing.state().src, on: TwAccount.on(), hash: location.hash, cards: [...document.querySelectorAll('.prcard')].map(c => c.dataset.plan + ':' + ((c.querySelector('.prgo') || {}).outerHTML || '')), })"), _net])
+        pcd = pb.evaluate("() => { const e = document.querySelector('.prcard[data-plan=plus] .prday'); return e ? e.textContent : ''; }")
+        ok(f"{T}：10-16 訂閱頁方案卡價格旁有每日換算（跟結帳視窗同一個函式）", bool(re.match(r"^每天約 NT\$ \d+\.\d$", pcd or "")), pcd)
+        shot(pb, "pricing_card.png", ".prcard[data-plan=plus]")
         popup_login(pb, "bob", lambda: (pb.click(".prcard[data-plan=plus] .prgo[data-go=plus]"), pb.wait_for_selector("#acctGo", timeout=5000), pb.click("#acctGo")))
         ok(f"{T}：未登入按訂閱 → 先登入 → 登入完自動回到結帳面板",
            bool(wait_until(pb, "() => { const d = document.getElementById('subDlg'); return d && !d.hidden && !!d.querySelector('#coTabE'); }", 10000)))
@@ -70800,20 +70811,54 @@ def t_pay_1011(b, base):
         ok(f"{T}：切年繳 → 金額變 NT$ 2,990", bool(wait_until(pb, "() => /2,990/.test(document.getElementById('coAmt').innerText)", 3000)))
         pb.click("#coPer button[data-per=month]")
         shot(pb, "co_ecpay.png", "#subDlg .box")
-        # ================= ③ 綠界單次，ReturnURL 漏送 → 前端輪詢＋伺服器查單補開通 → 功能真的解鎖
-        pb.check("#subDlg input[name=coKind][value=once]")
-        ok(f"{T}：沒勾同意條款時「前往綠界付款」按不下去", pb.evaluate("() => document.getElementById('coGoE').disabled"))
-        pb.check("#coAgree")
+        # ================= ③ 10-16 新結帳表單（只剩信用卡定期定額）；再用舊路徑（單次，伺服器仍支援）驗「ReturnURL 漏送 → 前端輪詢＋伺服器查單補開通」
+        ui = pb.evaluate("""() => { const d = document.getElementById('subDlg'); const g = [...d.querySelectorAll('#coPaneE .cogd button')];
+          return { kinds: d.querySelectorAll('input[name=coKind]').length, once: /單次付款/.test(d.innerText), tab: d.querySelector('#coTabE').innerText, day: (document.getElementById('coDay') || {}).textContent || '',
+            fields: !!(d.querySelector('#coNameE') && d.querySelector('#coL5E')), gbtn: g.map(x => x.textContent + ':' + x.getAttribute('aria-checked')), gc: d.querySelector('#coPaneE .cogcb').checked,
+            go: document.getElementById('coGoE').disabled, hint: /僅用於匿名彙總統計，不公開/.test(d.querySelector('#coPaneE').innerText) && !!d.querySelector('#coPaneE a[href="#privacy"]'),
+            gdReq: /未選擇將無法送出結帳/.test(d.querySelector('#coPaneE').innerText), exit: /由人工協助開通/.test(d.querySelector('#coPaneE').innerText) }; }""")
+        ok(f"{T}：10-16 結帳視窗：沒有單次付款／兩種付款方式雙選、分頁寫「信用卡」不再寫 ATM／超商；有姓名、性別（男／女都沒預選）、性別獨立同意（沒預選）、選填末 5 碼；前往綠界鈕一開始是灰的",
+           ui["kinds"] == 0 and not ui["once"] and "信用卡" in ui["tab"] and "超商" not in ui["tab"] and ui["fields"] and ui["gbtn"] == ["男:false", "女:false"] and ui["gc"] is False and ui["go"], ui)
+        ok(f"{T}：性別欄旁有用途（僅用於匿名彙總統計，不公開）、隱私權政策連結、必填說明、不願提供的人工出口", ui["hint"] and ui["gdReq"] and ui["exit"], ui)
+        ok(f"{T}：金額旁換算每天多少台幣：月繳 NT$ 299 → 每天約 NT$ 9.8（跟方案卡同一個函式）", ui["day"] == "每天約 NT$ 9.8", ui["day"])
+        dcv = pb.evaluate("() => [TwSub.dayCost(299, 'month'), TwSub.dayCost(2990, 'year'), TwSub.dayCost(5268, 'year'), TwSub.dayCost(549, 'month'), TwSub.dayCost(0, 'month'), TwSub.dayCost(null, 'year')]")
+        ok(f"{T}：每日換算是同一個共用函式 TwSub.dayCost（方案卡與結帳視窗共用）：299/月→9.8、2,990/年→8.2、5,268/年→14.4、549/月→18.0、0 與空值→不顯示", dcv == [9.8, 8.2, 14.4, 18.0, None, None], dcv)
+        pb.click("#coPer button[data-per=year]")
+        ok(f"{T}：切年繳 → 每天約 NT$ 8.2（2,990÷365）", bool(wait_until(pb, "() => (document.getElementById('coDay') || {}).textContent === '每天約 NT$ 8.2'", 3000)))
+        pb.click("#coPer button[data-per=month]")
+        pb.check("#coAgree"); pb.check("#coRenew")
+        en = lambda: pb.evaluate("() => !document.getElementById('coGoE').disabled")
+        ok(f"{T}：同意條款與自動續扣都勾了，但姓名、性別沒填 → 前往綠界仍按不下去", not en())
+        pb.fill("#coNameE", "王小明")
+        ok(f"{T}：只填姓名、沒選性別 → 仍按不下去", not en())
+        pb.click("#coPaneE .cogd button[data-g=male]")
+        ok(f"{T}：選了性別但沒勾性別同意（獨立勾選，不併進條款） → 仍按不下去；選中的性別按鈕亮起", not en() and pb.evaluate("() => document.querySelector('#coPaneE .cogd button[data-g=male]').getAttribute('aria-checked')") == "true")
+        pb.check("#coPaneE .cogcb")
+        ok(f"{T}：姓名＋性別＋性別同意都有 → 前往綠界可以按", en())
+        pb.fill("#coL5E", "4111111111111111")
+        g1 = pb.evaluate("() => ({ v: document.getElementById('coL5E').value, m: document.getElementById('coMsg').innerText })")
+        ok(f"{T}：末 5 碼欄填入 16 位卡號 → 被清空並提示「偵測到可能是卡號」（卡號防呆）", g1["v"] == "" and "卡號" in g1["m"], g1)
+        pb.fill("#coNameE", "4111 1111 1111 1111")
+        g2 = pb.evaluate("() => ({ v: document.getElementById('coNameE').value, go: document.getElementById('coGoE').disabled })")
+        ok(f"{T}：姓名欄填卡號格式 → 也被清空、前往鈕回到灰的", g2["v"] == "" and g2["go"], g2)
+        pb.fill("#coNameE", "王小明"); pb.fill("#coL5E", "12345")
         pb.evaluate("() => { window.TW_CO_NOSUBMIT = true; }")
+        shot(pb, "co_ecpay_filled.png", "#subDlg .box")
         with pb.expect_response(lambda r: "/v1/pay/ecpay/create" in r.url, timeout=6000) as ri:
             pb.click("#coGoE")
         body = json.loads(ri.value.request.post_data or "{}")
+        ok(f"{T}：按前往綠界 → 送出的請求含姓名、性別 male、性別同意、末 5 碼、表單版本 2、recur=true，沒有金額", body.get("name") == "王小明" and body.get("gender") == "male" and body.get("gender_consent") is True and body.get("last5") == "12345" and body.get("form") == 2 and body.get("recur") is True and "amount" not in body, body)
+        wait_until(pb, "() => !!document.getElementById('coEcForm')", 6000)
+        fmq = pb.evaluate("() => { const o = {}; document.querySelectorAll('#coEcForm input').forEach(i => { o[i.name] = i.value; }); return o; }")
+        ok(f"{T}：只剩信用卡定期定額：表單 ChoosePayment=Credit、PeriodType=M、PeriodAmount=299", fmq.get("ChoosePayment") == "Credit" and fmq.get("PeriodType") == "M" and fmq.get("PeriodAmount") == "299", fmq)
+        pb.evaluate("() => { const f = document.getElementById('coEcForm'); if (f) f.remove(); }")
+        # 舊路徑：伺服器仍支援單次（ChoosePayment=ALL）；前端沒有入口，用 API 建單再做成表單
+        pb.evaluate("""async () => { const j = await TwAccount.call('/v1/pay/ecpay/create', { plan: 'plus', period: 'month', recur: false, back: location.origin + location.pathname }); const f = document.createElement('form'); f.method = 'POST'; f.action = j.action; f.id = 'coEcForm'; f.style.display = 'none'; f.acceptCharset = 'UTF-8'; Object.entries(j.fields).forEach(([k, v]) => { const i = document.createElement('input'); i.type = 'hidden'; i.name = k; i.value = v; f.appendChild(i); }); document.body.appendChild(f); }""")
         fm = pb.evaluate("() => { const f = document.getElementById('coEcForm'); if (!f) return null; const o = {}; f.querySelectorAll('input').forEach(i => { o[i.name] = i.value; }); return { action: f.action, method: f.method, f: o }; }")
-        ok(f"{T}：選綠界 → 產生的表單 POST 到綠界 AioCheckOut/V5（測試環境；本機換成假綠界）、有 CheckMacValue、金額是伺服器的 299、前端沒送金額",
+        ok(f"{T}：（舊路徑）單次訂單 → 產生的表單 POST 到綠界 AioCheckOut/V5（測試環境；本機換成假綠界）、有 CheckMacValue、金額是伺服器的 299、前端沒送金額",
            bool(fm) and fm["action"] == api + "/Cashier/AioCheckOut/V5" and fm["method"] == "post" and len(fm["f"].get("CheckMacValue", "")) == 64
            and fm["f"].get("CheckMacValue") == _ec_mac(fm["f"]) and fm["f"].get("TotalAmount") == "299" and fm["f"].get("ChoosePayment") == "ALL" and "amount" not in body, (fm, body))
         oid1 = fm["f"]["MerchantTradeNo"] if fm else ""
-        ok(f"{T}：面板的訂單編號換成這筆（{oid1}）", pb.evaluate("() => document.getElementById('coOid').innerText") == oid1)
         # Andy 10-11：「只要還沒付費 就不能出現這樣 只有真的付費了 才能變更當前會員狀態」→ 建了綠界單、還沒付：我的訂單看不到、狀態不變
         pb.evaluate("() => { document.getElementById('subDlg').hidden = true; location.hash = '#orders'; }")
         empty = wait_until(pb, "() => { const e = document.getElementById('ordEmpty'); return e ? document.getElementById('v-orders').innerText : ''; }", 8000)
@@ -70844,9 +70889,10 @@ def t_pay_1011(b, base):
         call(ad, "/v1/admin/perm/put", {"email": pb.evaluate("() => (TwAccount.user() || {}).email"), "reset": True})
         pb.evaluate("() => TwCheckout.open({ plan: 'plus', per: 'month' })")
         wait_until(pb, "() => !!document.getElementById('coGoE')", 6000)
-        pb.check("#subDlg input[name=coKind][value=recur]"); pb.check("#coAgree")
+        pb.check("#coAgree")
         ok(f"{T}：定期定額要另外勾「同意每月自動續扣」才按得下去", pb.evaluate("() => document.getElementById('coGoE').disabled"))
         pb.check("#coRenew")
+        co_fill(pb)
         pb.evaluate("() => { window.TW_CO_NOSUBMIT = true; }")
         pb.click("#coGoE")
         wait_until(pb, "() => !!document.getElementById('coEcForm')", 6000)
@@ -70881,7 +70927,7 @@ def t_pay_1011(b, base):
           const al = (c) => { const v = c.match(/[\\d.]+/g) || []; return v.length >= 4 ? +v[3] : 1; };
           let n = e, bg = ''; while (n) { const c = getComputedStyle(n).backgroundColor; if (al(c) >= 0.5) { bg = c; break; } n = n.parentElement; } if (!bg) bg = 'rgb(255, 255, 255)';
           const a = L(getComputedStyle(e).color), b = L(bg); return Math.round((Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05) * 10) / 10; }"""
-        lc = {k: pb.evaluate(CR, k) for k in ("#coAmt", "#subDlg .coopt b", "#subDlg .colegal label span", "#coTabE")}
+        lc = {k: pb.evaluate(CR, k) for k in ("#coAmt", "#coRecurT", "#subDlg .colegal label span", "#coTabE")}
         ok(f"{T}：淺色主題：結帳面板金額、選項、條款、分頁字的對比都 ≥ 4.5", all(v >= 4.5 for v in lc.values()), lc)
         shot(pb, "co_light.png", "#subDlg .box")
         pb.evaluate("() => { document.getElementById('subDlg').hidden = true; location.hash = '#orders'; }")
@@ -70907,7 +70953,7 @@ def t_pay_1011(b, base):
         ok(f"{T}：選轉帳 → 顯示收款資訊（銀行＋代碼、帳號、戶名、應付金額、訂單編號）；10-16 Andy 拿掉「請於 3 天內轉帳」那行",
            bool(bank_ok) and f"{PAY_BANK['bank_name']}（{PAY_BANK['bank_code']}）" in bank_ok and PAY_BANK["account"] in bank_ok and PAY_BANK["holder"] in bank_ok and "NT$ 299" in bank_ok and "3 天內" not in bank_ok, bank_ok)
         # 10-16 Andy：「需要調整版面，可以看到跑掉了」→ 三個輸入框上緣切齊、標籤一行不換行
-        fl = pc.evaluate("() => { const ins = ['coPayer', 'coL5', 'coDate'].map(i => document.getElementById(i).getBoundingClientRect()); const lb = [...document.querySelectorAll('#coFrm label')].map(l => l.getBoundingClientRect().height); return { tops: ins.map(r => Math.round(r.top)), lbh: lb }; }")
+        fl = pc.evaluate("() => { const ins = ['coPayer', 'coL5', 'coDate'].map(i => document.getElementById(i).getBoundingClientRect()); const lb = [...document.querySelectorAll('#coFrm label:not(.cogc)')].map(l => l.getBoundingClientRect().height); return { tops: ins.map(r => Math.round(r.top)), lbh: lb }; }")
         ok(f"{T}：轉帳表單三個輸入框上緣切齊、標籤都只有一行", max(fl["tops"]) - min(fl["tops"]) <= 1 and all(h <= 22 for h in fl["lbh"]), fl)
         boid = pc.evaluate("() => document.getElementById('coOid').innerText")
         ok(f"{T}：轉帳訂單編號出現在面板上（{boid}）", bool(re.match(r"^LG[0-9A-Z]{16}$", boid or "")), boid)
@@ -70921,12 +70967,20 @@ def t_pay_1011(b, base):
         ok(f"{T}：沒填匯款人姓名 → 擋下、不出確認區", bool(wait_until(pc, "() => /請填匯款人姓名/.test(document.getElementById('coMsg').innerText) && !document.getElementById('coCfm')", 3000)))
         pc.fill("#coPayer", "卡蘿")
         pc.click("#coSendB")
+        ok(f"{T}：10-16 轉帳分頁也有性別：姓名填了、沒選性別 → 擋下「請選擇性別」、不出確認區", bool(wait_until(pc, "() => /請選擇性別/.test(document.getElementById('coMsg').innerText) && !document.getElementById('coCfm')", 3000)))
+        pc.click("#coPaneB .cogd button[data-g=female]")
+        pc.click("#coSendB")
+        ok(f"{T}：選了性別沒勾性別同意 → 擋下「請勾選性別統計的同意」", bool(wait_until(pc, "() => /性別統計的同意/.test(document.getElementById('coMsg').innerText) && !document.getElementById('coCfm')", 3000)))
+        pc.check("#coPaneB .cogcb")
+        pc.click("#coSendB")
         ok(f"{T}：送出前先出現確認區（姓名、末 5 碼、日期、金額 NT$ 299）", bool(wait_until(pc, "() => { const c = document.getElementById('coCfm'); return c && /請確認匯款資料/.test(c.innerText) && /卡蘿/.test(c.innerText) && /12345/.test(c.innerText) && /NT\$ 299/.test(c.innerText) ? 1 : 0; }", 3000)))
         shot(pc, "co_bank_confirm.png", "#subDlg .box")
         cb = pc.evaluate("() => { const a = document.getElementById('coCfmBack').getBoundingClientRect(), g = document.getElementById('coCfmGo').getBoundingClientRect(); return { ah: Math.round(a.height), gh: Math.round(g.height), at: Math.round(a.top), gt: Math.round(g.top) }; }")
         ok(f"{T}：確認區「返回修改」一行不換行、跟「確認無誤，送出」同高同一列（10-16 Andy：返回修改擠成兩行）", cb["ah"] == cb["gh"] and cb["at"] == cb["gt"] and cb["ah"] <= 46, cb)
         with pc.expect_response(lambda r: "/v1/pay/bank/report" in r.url, timeout=6000) as ri:
             pc.click("#coCfmGo")
+        rb = json.loads(ri.value.request.post_data or "{}")
+        ok(f"{T}：轉帳回報請求含姓名、性別 female、性別同意、表單版本 2", rb.get("name") == "卡蘿" and rb.get("gender") == "female" and rb.get("gender_consent") is True and rb.get("form") == 2, rb)
         ok(f"{T}：填末 5 碼送出 → 真的送出 bank/report、面板寫「待確認」", ri.value.status == 200 and bool(wait_until(pc, "() => { const d = document.getElementById('subDlg'); return d && /待確認/.test(d.innerText); }", 4000)))
         pc.click("#coSeeOrders")
         row = wait_until(pc, f"() => {{ const r = document.querySelector('#ordList .ordr[data-oid=\"{boid}\"]'); return r ? r.innerText : ''; }}", 8000)
@@ -70959,6 +71013,68 @@ def t_pay_1011(b, base):
         ad.click("#pdGo")
         ok(f"{T}：確認後狀態變成「已開通」", bool(wait_until(ad, f"() => {{ const r = document.querySelector('#payTbl tr[data-oid=\"{boid}\"]'); return r && /已開通/.test(r.innerText); }}", 8000)))
         ok(f"{T}：carol 變 Plus（伺服器到期日為準）", plan_of(pc) == ["plus", True], plan_of(pc))
+        # ---- 10-16 Andy：男女用量比例（性別只存計數；管理區「流量觀測→使用者」多一張卡）
+        gs = call(ad, "/v1/admin/stats", {"days": 7})
+        gj = gs.get("gender") or {}
+        ok(f"{T}：carol 選女、管理者確認入帳後，/v1/admin/stats 的 gender 是彙總人數（female≥1、只有 male／female／paid／unset／since，沒有個別會員）",
+           gj.get("female", 0) >= 1 and sorted(gj) == ["female", "male", "paid", "since", "unset"] and gj.get("paid", 0) >= gj.get("female", 0) + gj.get("male", 0) and "carol" not in json.dumps(gj), gj)
+        ok(f"{T}：非管理者（carol）讀不到 /v1/admin/stats（性別統計只有管理者）", call(pc, "/v1/admin/stats", {"days": 7}).get("_s") == 403)
+        ad.goto(base + "#admin/traffic", wait_until="domcontentloaded")
+        wait_until(ad, "() => !!document.querySelector('#trTabs [data-t=users]')", 12000)
+        ad.click("#trTabs [data-t=users]")
+        gt = wait_until(ad, "() => { const c = document.getElementById('trGender'); return c ? c.innerText : ''; }", 8000)
+        ok(f"{T}：使用者分頁多一張「男女用量比例」卡；真實資料人數太少 → 寫「樣本不足」、不顯示比例、說明性別只存累計人數", bool(gt) and "男女用量比例" in gt and "樣本不足" in gt and "%" not in gt.split("已付款")[0] and "只存累計人數" in gt, gt)
+
+        gdbg = []
+
+        def gender_fake(g):
+            def h(route):
+                gdbg.append(route.request.method + " " + route.request.url[-40:])
+                if route.request.method != "POST":
+                    route.continue_()
+                    return
+                resp = route.fetch()
+                try:
+                    j = resp.json()
+                    j["gender"] = g
+                    route.fulfill(response=resp, json=j)
+                except Exception:
+                    route.continue_()
+            return h
+        ad.route("**/v1/admin/stats", gender_fake({"male": 30, "female": 20, "paid": 60, "unset": 10, "since": "2026-10-16"}))
+        ad.click("#admRefresh")
+        wait_until(ad, "() => !!document.querySelector('#trTabs [data-t=users]')", 12000)
+        ad.click("#trTabs [data-t=users]")
+        rows = wait_until(ad, "() => { const r = [...document.querySelectorAll('#trGender .gdrow')].map(x => x.innerText.replace(/\\s+/g, ' ')); return r.length === 3 ? r : null; }", 8000)
+        ok(f"{T}：人數足夠（已填 50）→ 男 30 人・50.0%、女 20 人・33.3%、未填（估算）10 人・16.7%", bool(rows) and "30 人・50.0%" in rows[0] and "20 人・33.3%" in rows[1] and "10 人・16.7%" in rows[2], (rows, gdbg[-3:]))
+        gw = ad.evaluate("() => [...document.querySelectorAll('#trGender .gdrow .trk i')].map(i => Math.round(parseFloat(i.style.width)))")
+        ok(f"{T}：橫條長度對應比例（50／33／17）", gw == [50, 33, 17], gw)
+        shot(ad, "admin_gender.png", "#trGender")
+        ad.unroute("**/v1/admin/stats")
+        ad.route("**/v1/admin/stats", gender_fake({"male": 3, "female": 30, "paid": 40, "unset": 7, "since": "2026-10-16"}))
+        ad.click("#admRefresh")
+        wait_until(ad, "() => !!document.querySelector('#trTabs [data-t=users]')", 12000)
+        ad.click("#trTabs [data-t=users]")
+        sm = wait_until(ad, "() => { const c = document.getElementById('trGender'); return c ? c.innerText : ''; }", 8000)
+        ok(f"{T}：任一類別不足 5 人（男 3）→ 不拆開、只寫合計 33 人", bool(sm) and "不拆開" in sm and "33" in sm and not ad.evaluate("() => document.querySelectorAll('#trGender .gdrow').length"), sm)
+        ad.unroute("**/v1/admin/stats")
+        # 手機 390：卡片沒有橫向捲軸、字 ≥ 11
+        cg = new_ctx(390); pg2 = cg.new_page(); pg2.on("pageerror", lambda e: errs.append("gender390: " + str(e)))
+        pg2.route("**/v1/admin/stats", gender_fake({"male": 30, "female": 20, "paid": 60, "unset": 10, "since": "2026-10-16"}))
+        pg2.goto(base + "#overview", wait_until="domcontentloaded")
+        wait_until(pg2, "() => !!document.getElementById('acctBtn')", 8000)
+        popup_login(pg2, "andy", lambda: (pg2.evaluate("() => TwAccount.login()"), pg2.wait_for_selector("#acctGo", timeout=5000), pg2.click("#acctGo")))
+        pg2.goto(base + "#admin/traffic", wait_until="domcontentloaded")
+        wait_until(pg2, "() => !!document.querySelector('#trTabs [data-t=users]')", 12000)
+        pg2.click("#trTabs [data-t=users]")
+        wait_until(pg2, "() => document.querySelectorAll('#trGender .gdrow').length === 3", 8000)
+        gm = pg2.evaluate("() => ({ sw: document.documentElement.scrollWidth - innerWidth, tiny: [...document.querySelectorAll('#trGender *')].filter(e => e.children.length === 0 && e.textContent.trim() && parseFloat(getComputedStyle(e).fontSize) < 11).length })")
+        ok(f"{T}：390 男女用量比例卡沒有橫向捲軸、字都 ≥ 11px", gm["sw"] <= 1 and gm["tiny"] == 0, gm)
+        pg2.locator("#trGender").scroll_into_view_if_needed()
+        shot(pg2, "m_admin_gender.png")
+        # 回到管理區付款頁，後面的步驟接著用
+        ad.goto(base + "#admin/pay", wait_until="domcontentloaded")
+        wait_until(ad, "() => document.querySelectorAll('#payTabs [data-ptab]').length === 7", 10000)
         # 2026-10-12 Andy：「使用者升級以及退款這類重大資訊都需要給他們通知」→ 本人鈴鐺看得到帳務通知
         nts = call(pc, "/v1/notices", {})
         pays = [x for x in (nts.get("notices") or []) if x.get("kind") == "pay"]
@@ -71089,11 +71205,16 @@ def t_pay_1011(b, base):
         popup_login(pe, "erin", lambda: (pe.evaluate("() => TwAccount.login()"), pe.wait_for_selector("#acctGo", timeout=5000), pe.click("#acctGo")))
         pe.evaluate("() => TwCheckout.open({ plan: 'plus', per: 'month' })")
         wait_until(pe, "() => !!document.getElementById('coTabB')", 6000)
+        pe.fill("#coNameE", "艾琳"); pe.tap("#coPaneE .cogd button[data-g=female]"); pe.check("#coPaneE .cogcb")
+        sw0 = pe.evaluate("() => ({ sw: document.documentElement.scrollWidth - innerWidth, tiny: [...document.querySelectorAll('#coPaneE small, #coPaneE label, #coPaneE .cogd button')].filter(e => e.offsetParent && parseFloat(getComputedStyle(e).fontSize) < 11).length, day: (document.getElementById('coDay') || {}).textContent })")
+        ok(f"{T}：390 綠界分頁（姓名＋性別＋同意＋每日換算）沒有橫向捲軸、字都 ≥ 11px、有每天約", sw0["sw"] <= 1 and sw0["tiny"] == 0 and "每天約" in (sw0["day"] or ""), sw0)
+        shot(pe, "m_ecpay.png")
         pe.tap("#coTabB")
         wait_until(pe, "() => !!document.getElementById('coL5')", 6000)
         eoid = pe.evaluate("() => document.getElementById('coOid').innerText")
         pe.fill("#coPayer", "艾琳")
         pe.fill("#coL5", "67890")
+        pe.tap("#coPaneB .cogd button[data-g=female]"); pe.check("#coPaneB .cogcb")
         pe.tap("#coAgree")
         m = pe.evaluate("() => { const b = document.querySelector('#subDlg .box').getBoundingClientRect(), s = document.getElementById('coSendB').getBoundingClientRect(); return { l: b.left, r: b.right, sw: document.documentElement.scrollWidth - innerWidth, bh: s.height, bw: s.width }; }")
         ok(f"{T}：390 結帳面板在螢幕內、沒有橫向捲軸、送出鈕高 ≥ 40", m["l"] >= 0 and m["r"] <= 390 and m["sw"] <= 1 and m["bh"] >= 40, m)

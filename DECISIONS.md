@@ -6980,3 +6980,13 @@ Andy 10-12 原話：「CEO我這邊一頁一頁跟你說明並請你改動，以
 - 不要把用完的樣子改回升級卡或 toast（Andy 10-10、10-12 第 5 點「切記不要跳需要升級會員資訊，頂多沒反應」）。
 - features.js 的 `limBy`／`defBy` 要跟 plan_presets.js 註冊會員範本一致（驗收段 0 會比對）—— 線上範本沒按「套用建議方案」之前吃的是 limBy／defBy。
 - 已知、不是這批造成：資金輪動上方篩選一換，ECharts 丟「Cannot read properties of undefined (reading 'width')」（origin/main 同樣重現），另開工作追。
+
+## #359 結帳改只剩信用卡定期定額＋姓名／性別（只存計數）／每日換算／卡號防呆（金流，2026-10-16；合併時若撞號請改號）
+Andy 10-16：「綠界這邊也要多出姓名及末五碼」「兩邊需要再新增性別…把男女資訊也列入統計流量內」「不需要分單次和訂閱，訂閱到了就繼續繳款，那是他的權益…填寫基本訊息、同意後送出跳到綠界科技」「訂閱金額旁邊需要換算一天多少台幣」。法遵意見：`docs/legal/gender_collection_1016.md`（在分支 claude/wonderful-bardeen-kg2wg4）。
+- **結帳視窗**：拿掉「單次付款」與雙選；綠界分頁＝姓名（必填）＋性別（男／女、必選、預設不選）＋性別獨立同意勾選＋選填轉出帳號末 5 碼＋自動續扣同意＋條款同意，全齊才能「前往綠界付款」。轉帳分頁同樣加性別。伺服器仍支援 recur=false（舊訂單、舊版網頁；前端沒有入口）。
+- **性別只存計數**（法遵 4-2 做法 A）：訂單上的性別只是暫存，開通那一刻 `payCountGender` 算進 `gender_counts(day, g, n)` 並清成 NULL；未付款 14 天排程清掉。**不跟會員、訂單綁定**，所以沒有「會員設定頁補填性別」、管理者訂單清單與 CSV 都沒有性別。`/v1/admin/stats` 多 `gender={male,female,paid,unset,since}`，未填＝已付款數−男−女（估算）。
+- **開關**：`GENDER_REQUIRED`／`GENDER_CONSENT_REQUIRED`（Worker `pay.js` 與前端 `checkout.js` 各一份，兩邊要一起改）；`form>=2` 才強制檢查，舊版快取網頁不受影響。統計卡門檻 `GENDER_MIN_TOTAL=20`、`GENDER_MIN_CELL=5`（`admin.js`，法遵建議值，Andy 可調）。
+- **每日換算**：口徑沿用 10-07「一年總價÷365」（月繳＝月價×12÷365），共用 `TwSub.dayCost`；**沒有改成「月繳÷30」**（會跟方案卡既有數字不一致）。
+- **卡號防呆**：前端末 5 碼欄不設 maxlength、偵測 13～19 碼連續數字（含貼上）就清空並提示；Worker 對姓名／末 5 碼同樣拒收（`card_number`）。事件紀錄（pay_events）一律只留白名單欄位（`evSafe`）＋全域遮蔽 13～19 碼數字：原本驗章失敗時會把綠界通知原文前 300 字寫進紀錄，而 NeedExtraPaidInfo=Y 的通知帶 card6no／card4no。
+### 別順手改回去
+- 不要把性別綁回會員或訂單、不要讓訂單清單／CSV 帶性別（法遵 4-3）。不要在末 5 碼欄放回 maxlength（貼卡號會被默默截成前 5 碼，偵測不到）。

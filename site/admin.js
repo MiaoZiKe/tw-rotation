@@ -196,7 +196,7 @@ html[data-theme="light"] #v-admin{--pgL:40%}
 #v-admin .trtabs .nbsw .tdot,#v-admin .trtabs .nbsw.lv2 .tdot{display:inline-block;width:9px;height:9px;border-radius:3px;flex:none}
 #v-admin .trtabs .nbsw em{margin-left:4px}
 #v-admin .admgrid.trgender{grid-template-columns:minmax(0,1fr);margin-top:12px}
-#trGender .gdrow{display:grid;grid-template-columns:64px minmax(0,1fr) 150px;gap:10px;align-items:center;margin:8px 0;font-size:14px}
+#trGender .gdrow{display:grid;grid-template-columns:56px minmax(0,1fr) 150px;gap:10px;align-items:center;margin:8px 0;font-size:14px}
 #trGender .gdrow .trk{height:14px;border-radius:7px;background:var(--panel-3);overflow:hidden}
 #trGender .gdrow .trk i{display:block;height:100%;border-radius:7px;min-width:2px}
 #trGender .gdrow b{font-variant-numeric:tabular-nums;text-align:right;font-weight:600}
@@ -1187,9 +1187,9 @@ html[data-theme="light"] #v-admin{--pm-blue:#1f4fd8;--pm-blue-2:#163fb4}
     let body;
     if (filled < GENDER_MIN_TOTAL) body = `<div class="gdsum">已填性別 <b>${nf(filled)}</b> 人，樣本不足（至少 ${GENDER_MIN_TOTAL} 人才顯示男女比例，避免推測出個別會員）。</div>`;
     else if (g.male < GENDER_MIN_CELL || g.female < GENDER_MIN_CELL) body = `<div class="gdsum">已填性別 <b>${nf(filled)}</b> 人；其中某一類不足 ${GENDER_MIN_CELL} 人，為避免推測個別會員，不拆開顯示。</div>`;
-    else body = [['男', g.male, 'var(--cat-1)'], ['女', g.female, 'var(--cat-2)'], ['未填（估算）', g.unset, 'var(--ink-3)']].map(([n, v, c]) => `<div class="gdrow" data-g="${esc(n)}"><span>${esc(n)}</span><div class="trk"><i style="width:${paid ? (v / paid * 100).toFixed(1) : 0}%;background:${c}"></i></div><b>${nf(v)} 人・${pct(v)}</b></div>`).join('');
+    else body = [['男', g.male, 'var(--cat-1)'], ['女', g.female, 'var(--cat-2)'], ['未填*', g.unset, 'var(--ink-3)']].map(([n, v, c]) => `<div class="gdrow" data-g="${esc(n)}"><span>${esc(n)}</span><div class="trk"><i style="width:${paid ? (v / paid * 100).toFixed(1) : 0}%;background:${c}"></i></div><b>${nf(v)} 人・${pct(v)}</b></div>`).join('');
     return `<div class="card" id="trGender">${head}<div class="cb">${body}
-      <p class="gdnote">已付款 <b>${nf(paid)}</b> 人（首期付款的訂單數）。只含付款時填寫性別的人${g.since ? `（自 ${esc(g.since)} 起計數）` : ''}；<b>未填 ＝ 已付款人數 − 男 − 女</b>，含計數上線前的舊訂單與客服人工開通者，為估算值。性別只存累計人數，不與會員或訂單綁定，這裡看不到個別會員。</p></div></div>`;
+      <p class="gdnote">已付款 <b>${nf(paid)}</b> 人（首期付款的訂單數）。只含付款時填寫性別的人${g.since ? `（自 ${esc(g.since)} 起計數）` : ''}；<b>未填 ＝ 已付款人數 − 男 − 女</b>，含計數上線前的舊訂單與客服人工開通者，為估算值（標 * 者）。性別只存累計人數，不與會員或訂單綁定，這裡看不到個別會員。</p></div></div>`;
   }
   /* 時鐘（12 小時錶面＋內外兩圈）：頂端是 12／0，順時針 12 格；內圈＝00:00–11:59（上午）、外圈＝12:00–23:59（下午），同一個鐘點方向上下午對齊；
      每段長度與顏色深淺＝該小時使用量（兩圈共用同一把尺）；中心＝尖峰時段；圖例在右 */

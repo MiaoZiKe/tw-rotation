@@ -167,7 +167,7 @@ html.pay-renew #acctBtn.ame::after{content:'';position:absolute;top:2px;right:2p
     const mail = supportMail();
     return `<div class="w3 cogw"><span class="lb" id="coGLb">性別<em class="req">${GENDER_REQUIRED ? '必選' : '選填'}</em></span>
       <div class="seg cogd" role="radiogroup" aria-labelledby="coGLb">${GENDERS.map(([k, n]) => `<button type="button" role="radio" aria-checked="false" data-g="${k}">${n}</button>`).join('')}</div>
-      <small class="cohint">用於<b>不具名的使用情形統計</b>（只呈現男女比例，不會單獨顯示個別會員，也不用於推薦、行銷或對外提供），僅用於匿名彙總統計、不公開。${GENDER_REQUIRED ? '本欄位為結帳必填，<b>未選擇將無法送出結帳</b>。' : '不選擇不影響結帳。'}</small>
+      <small class="cohint">用於<b>不具名的使用情形統計</b>（只呈現男女比例，不會單獨顯示個別會員，也不用於推薦、行銷或對外提供），僅用於匿名彙總統計，不公開。${GENDER_REQUIRED ? '本欄位為結帳必填，<b>未選擇將無法送出結帳</b>。' : '不選擇不影響結帳。'}</small>
       ${GENDER_CONSENT_REQUIRED ? '<label class="cogc"><input type="checkbox" class="cogcb"><span>我已閱讀<a href="#privacy" target="_blank" rel="noopener">《隱私權政策》</a>，同意本網站為上述統計目的，蒐集並使用我於結帳時選擇的性別。</span></label>' : ''}
       <small class="cohint">${GENDER_REQUIRED ? `不願提供性別？請來信客服${mail ? '（' + esc(mail) + '）' : ''}，由人工協助開通。` : ''}個資處理依<a href="#privacy" target="_blank" rel="noopener">《隱私權政策》</a>「付款與訂單資料」辦理。</small></div>`;
   }
@@ -216,7 +216,7 @@ html.pay-renew #acctBtn.ame::after{content:'';position:absolute;top:2px;right:2p
           <div class="cofrm" id="coFrmE">
             <div class="w3"><label for="coNameE">姓名<em class="req">必填</em></label><input id="coNameE" maxlength="40" autocomplete="name" required aria-required="true"><small class="cohint">用於付款核對、確認入帳與退款，請填寫真實姓名。</small></div>
             ${genderHtml()}
-            <div class="w3"><label for="coL5E">轉出帳號末 5 碼<em class="opt">選填</em></label><input id="coL5E" inputmode="numeric" maxlength="5" autocomplete="off" placeholder="5 位數字"><small class="cohint">若你之後改用 ATM 轉帳／超商繳款，可填轉出帳號末 5 碼供我們核對。<b>這不是信用卡號，請勿填寫信用卡卡號的任何數字。</b></small></div>
+            <div class="w3"><label for="coL5E">轉出帳號末 5 碼<em class="opt">選填</em></label><input id="coL5E" inputmode="numeric" autocomplete="off" placeholder="5 位數字"><small class="cohint">若你之後改用 ATM 轉帳／超商繳款，可填轉出帳號末 5 碼供我們核對。<b>這不是信用卡號，請勿填寫信用卡卡號的任何數字。</b></small></div>
           </div>
           <div class="coinfo"><b id="coRecurT"></b><small id="coRecurS"></small></div>
           <label class="coopt" id="coRenewL" style="border:0;padding:4px 2px;background:none"><input type="checkbox" id="coRenew"><span id="coRenewT"></span></label>
@@ -247,7 +247,7 @@ html.pay-renew #acctBtn.ame::after{content:'';position:absolute;top:2px;right:2p
       box.querySelectorAll('.cotabs button').forEach((b) => b.setAttribute('aria-selected', String(b.dataset.tab === st.tab)));
       $('#coPaneE').hidden = st.tab !== 'ecpay'; $('#coPaneB').hidden = st.tab !== 'bank';
       $('#coOid').textContent = st.tab === 'bank' && st.bankOrder ? st.bankOrder.id : st.oid || '選擇付款方式後產生';
-      const sb = $('#coSendB'); if (sb) sb.disabled = !$('#coAgree').checked || !genderOk();
+      const sb = $('#coSendB'); if (sb) sb.disabled = !$('#coAgree').checked;   // 性別／姓名沒填：按下去用文字擋（跟姓名同一個做法）
     }
     box.querySelectorAll('#coPer button').forEach((b) => { b.onclick = () => { if (st.per === b.dataset.per) return; st.per = b.dataset.per; st.bankOrder = null; if (st.tab === 'bank') bankPane(); sync(); }; });
     /* 10-16 Andy：只剩信用卡定期定額（單次付款拿掉）；姓名、性別、獨立同意、卡號防呆 */
@@ -258,8 +258,12 @@ html.pay-renew #acctBtn.ame::after{content:'';position:absolute;top:2px;right:2p
     box.addEventListener('change', (e) => { if (e.target.classList && e.target.classList.contains('cogcb')) { st.gc = e.target.checked; sync(); } });
     box.addEventListener('input', (e) => {
       const el = e.target; if (!el || !/^(coNameE|coL5E|coPayer|coL5)$/.test(el.id)) return;
-      if (/^coL5/.test(el.id)) el.value = el.value.replace(/\D/g, '');
+      /* 末 5 碼欄不設 maxlength：設了的話貼上 16 位卡號會被瀏覽器默默截成前 5 碼，偵測不到；自己處理（卡號格式整串清掉，其餘只留前 5 位數字） */
       if (looksCard(el.value)) { el.value = ''; msg(CARD_MSG, true); }
+      else {
+        if (/^coL5/.test(el.id)) el.value = el.value.replace(/\D/g, '').slice(0, 5);
+        if ($('#coMsg').textContent === CARD_MSG) msg('');   // 卡號提示只在剛擋下時顯示，改填正確內容就收掉
+      }
       sync();
     });
     box.addEventListener('paste', (e) => {
@@ -310,7 +314,7 @@ html.pay-renew #acctBtn.ame::after{content:'';position:absolute;top:2px;right:2p
           <span>訂單編號</span><b>${esc(j.id)}</b><button type="button" data-copy="${esc(j.id)}">複製</button></div>
         <div class="cofrm" id="coFrm">
           <div><label for="coPayer">匯款人姓名<em class="req">必填</em></label><input id="coPayer" maxlength="40" autocomplete="name" required aria-required="true"></div>
-          <div><label for="coL5">轉出帳號末 5 碼</label><input id="coL5" inputmode="numeric" maxlength="5" autocomplete="off"></div>
+          <div><label for="coL5">轉出帳號末 5 碼</label><input id="coL5" inputmode="numeric" autocomplete="off"></div>
           <div><label for="coDate">轉帳日期</label><input id="coDate" type="date" value="${esc(today)}" max="${esc(today)}"></div>
           ${genderHtml()}
           <div class="w3"><span class="lb">轉帳金額（依訂單，不用填）</span><div class="ro" id="coXAmt" aria-readonly="true">NT$ ${nt(j.amount)}</div></div></div>
