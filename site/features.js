@@ -31,6 +31,9 @@
   'use strict';
   var CATS = [
     { id: 'overview', name: '總覽' },
+    /* 2026-10-16 新分類（Andy：「精選文章其他分頁有的功能 他也要有 例如導覽 限制 這些都要在確認」）：
+       排在總覽後面＝跟左側選單「今日市場：總覽 → 精選文章 → 財經日曆」同一個順序（#admin/perm 的卡片順序就是這份宣告順序） */
+    { id: 'articles', name: '精選文章' },
     { id: 'flow', name: '資金流向' },
     { id: 'industry', name: '產業地圖／產業鏈' },
     { id: 'heatmap', name: '熱力圖' },
@@ -74,6 +77,20 @@
     box('ov.rot', 'overview', '資金輪盤', ['#rotClockMiniWrap', '#ovRotKpi'], '總覽右欄的族群強弱輪盤'),
     box('ov.flow', 'overview', '昨日資金分流樹', ['#ovFlowWrap'], '總覽右欄的資金分流樹簡圖'),
     box('ov.breadth', 'overview', '漲跌家數分佈', ['#ovBreadthCard'], '依漲跌幅分級的家數直條（全部／上市／上櫃）'),
+    // ---- 精選文章（site/articles.js，2026-10-16 接上全站開關與每日次數）
+    /* ★ 預設全部開、不設 defBy／limBy、不進 METERED（全站共用額度）＝上線這一刻任何人看得到的文章一篇都不變；
+       Andy 要收費或限篇數時，在 #admin/perm 對訪客／註冊會員／Plus／Pro 範本關掉或填「每日 N 次」。
+       單位（quota.js UNIT）：清單＝一次造訪（同一個瀏覽器分頁來回切不重算）；單篇＝一篇文章（同一篇同一天重看不重算）——「每日 N 次」就是「每天能讀 N 篇」。
+       三個類別各自一個開關：可以只把「比比產業鏈」留給付費會員，其他類別照常開放（veil 條件看 #artPost 的 data-cat）。
+       ⚠ 不掛 mark（🔒 小標）：文章卡片與分類分頁的 ::after 已經拿去畫手機短名（mobile4.css「精選文章分頁」），再掛會把版面撐壞；
+         被關掉的那一篇點進去看到的是置中的需開通卡（qcard.js），不是什麼都沒發生。*/
+    Object.assign(box('art.list', 'articles', '精選文章清單', ['#artCard'], '文章列表頁：分類分頁、標題／族群／日期篩選與文章卡片（每日次數＝造訪幾次，同一個分頁來回切不重算）'),
+      { route: /^#articles([/?]|$)/, qunit: '看' }),
+    Object.assign(box('art.read', 'articles', '閱讀文章（單篇）', ['#artPost'], '點進去讀一篇文章（內文、圖表、相關台股）；每日次數＝每天能讀幾篇，同一篇同一天重看不重算'),
+      { route: /^#article\//, qunit: '篇' }),
+    Object.assign(box('art.cat.news', 'articles', '比比快訊（單篇）', ['#artPost[data-cat="news"]'], '「比比快訊」類別的文章內文（關掉：只有這一類的單篇蓋需開通卡，其他類別照常）'), { route: /^#article\//, qunit: '篇' }),
+    Object.assign(box('art.cat.intro', 'articles', '比比產業鏈（單篇）', ['#artPost[data-cat="intro"]'], '「比比產業鏈」類別的文章內文（關掉：只有這一類的單篇蓋需開通卡，其他類別照常）'), { route: /^#article\//, qunit: '篇' }),
+    Object.assign(box('art.cat.know', 'articles', '比比知識（單篇）', ['#artPost[data-cat="know"]'], '「比比知識」類別的文章內文（關掉：只有這一類的單篇蓋需開通卡，其他類別照常）'), { route: /^#article\//, qunit: '篇' }),
     // ---- 資金流向
     box('flow.rot', 'flow', '輪動時鐘＋族群資金排行', ['#flowRotCard'], '族群相對強弱四象限與成交值／法人排行（同一張卡）'),
     box('flow.sankey', 'flow', '資金分流樹（桑基）', ['#flowSankeyCard'], '大盤 → 產業鏈 → 族群的資金分流圖'),
@@ -235,6 +252,14 @@
       desc: '盤中每 5 秒更新報價。2026-10-08 起只有站主與管理員看得到、也只有他們會打報價；訪客、免費、Plus、Pro、預覽版一律沒有 —— 這個開關對會員範本沒有作用', veil: [], mark: [], block: ['.livetg-b'] },
     { id: 'events', name: '今日事件中心', cat: 'global', def: true, kind: 'bool', desc: '新聞／法說／總經事件抽屜',
       veil: [['#side'], ['#ovEvents']], mark: [], block: ['#evToggle', '#mmEvents'] },
+    /* ★ 2026-10-16 今日事件對訪客開放、累計 5 次（Andy：「今日事件開放，修正，但限制次數 5 次 Total」）。
+       events.total＝「訪客最多能開啟今日事件幾次」，**累計、不是每日**（不歸零，存在 quota.js 的 TwQuota.total）。
+       一次＝打開今日事件抽屜一次（桌機「事件」鈕、手機「⋯ → 今日事件」、總覽的今日事件卡每個瀏覽器分頁第一次看到算一次）；
+       點新聞連結另有 news.open 的每日次數（沿用，不動）。滿了：抽屜內容換成「免費註冊」提示卡。
+       defBy：訪客 5、註冊會員 999（＝不限；註冊會員依自己既有的每日額度，不受這個累計上限影響）；付費方案沒寫＝不限（max）。
+       訪客不再吃 events 的「每日 N 次」（quota.js limited() 對訪客略過 events，改由這個累計上限管）。只擋畫面、非伺服器端。 */
+    pickF('events.total', 'global', '今日事件開啟次數（訪客累計）', '次', 999, [0, 3, 5, 10, 20, 999], 5, 999,
+      '訪客最多能打開今日事件幾次（累計、不歸零；一次＝打開抽屜一次）。滿了抽屜內容換成「免費註冊」提示。註冊會員與付費方案不受這個上限影響'),
     { id: 'theme', name: '主題外觀', cat: 'global', def: true, kind: 'bool', desc: '切換深淺色與版面風格（關掉時維持目前外觀）',
       /* 2026-10-10：手機帳號選單的「版面風格」三格（acctm4.js，只在 html.m4 畫）也照這個開關上鎖；那幾個節點桌機不存在，桌機不受影響 */
       veil: [], mark: ['#acctMenu .m4styrow > .t'], block: ['#themeBtn', '#mmTheme', '#t4Btn', '#t4Pop button', '#mmT4 button', '#acctMenu [data-m="sty"]'] },
@@ -398,6 +423,14 @@
     'mkt.updown': ['mkt-updown'], 'mkt.streak': ['mkt-streak'], 'mkt.ma': ['mkt-ma'], 'mkt.cand': ['mkt-cand'],
     'etf.calendar': ['etf-cal'], 'etf.list': ['etf-list'], 'etf.cashflow': ['etf-inc'], 'etf.inc.comp': ['etf-cx']
   };
+  /* ★ 2026-10-16 精選文章分級（Andy：「精選貼文限制給 Pro 可以看，Plus 只能所有類別共 5 篇，其他的只能看到標題」）。
+     art.read.n＝「最多能讀幾篇全文」，**累計、不是每日**（比 etf.returns.n 這類同時選取上限多一層：數的是「已經打開過的不同文章」，存在 quota.js 的 TwQuota.total，永遠不歸零）。
+     defBy：訪客 0、註冊會員 0（只看標題與分類）、Plus 5（範本沒寫也生效，不必先按「套用建議方案」）；Pro 與其他付費方案沒寫＝不限（max）。
+     0＝只看標題；5＝跨所有分類（比比快訊／產業鏈／知識）合計最多 5 篇，同一篇重讀不重算、打開過的永遠能讀；max(999)＝不限。
+     計數與畫面在 site/articles.js；只擋畫面、非伺服器端（文章 JSON 是公開檔，見 quota.js total 的說明）。 */
+  LIST.push(Object.assign(pickF('art.read.n', 'articles', '精選文章可讀全文篇數（累計）', '篇', 999, [0, 1, 3, 5, 10, 20, 50, 999], 0, 0,
+    '精選文章全文最多可讀幾篇（所有分類合計、累計不歸零、同一篇重讀不重算）。0＝只看標題與分類；超過的文章只顯示標題與升級提示。擁有者／管理員不受限'),
+    { defBy: { guest: 0, free: 0, plus: 5 } }));
   LIST.forEach(function (f) { if (SUB_OF[f.id]) f.sub = SUB_OF[f.id]; });
   function bySub(k) { return LIST.filter(function (f) { return (f.sub || []).indexOf(k) >= 0; }).map(function (f) { return f.id; }); }
 

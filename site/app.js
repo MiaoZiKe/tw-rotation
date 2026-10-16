@@ -2840,11 +2840,43 @@
      今日事件在手機上是抽屜（`aside`，`position:fixed`）—— 抽屜不能同時當一屏的內容，
      所以這裡用**同一份資料**（`window.twEventItems`，renderEvents 產的那一份）
      在總覽裡長一張手機專屬的卡片。⚠ 只在手機建立、回桌機整個移除。*/
+  /* ★ 2026-10-16 今日事件對訪客開放、累計 5 次（Andy：「今日事件開放，修正，但限制次數 5 次 Total」；features.js events.total）。
+     「次數」的定義＝打開今日事件一次：桌機按「事件」鈕、手機「⋯ → 今日事件」都是打開同一個抽屜（setSide 打開那一刻算一次，關掉再開又一次）；
+     手機總覽自己長出來的今日事件卡（#ovEvents）在 ≤640（html.m4）被 mobile4.css 整張藏起來（display:none），所以手機訪客只有抽屜一條路、不另外算；
+     卡片仍保留「用完就不畫清單、換提示卡」，萬一哪天 m4 不藏它，已用完的訪客也看不到清單。
+     為什麼選「開啟抽屜」而不是「點新聞連結」：現行額度計法 events（每日瀏覽）就是看「抽屜在不在畫面上」，這個最貼近；點新聞連結另有 news.open，沿用不動。
+     滿了：抽屜／卡片的內容**不畫**（不是 CSS 藏），換成「免費註冊」提示卡；註冊會員（events.total 預設 999＝不限）完全不受影響。
+     ★ 2026-10-16 防白嫖：計數改在伺服器（quota.js 的 TwQuota.total.useAsync → /v1/total/use：訪客編號＋IP 雜湊雙鍵），localStorage 只是顯示用快取；
+       清除網站資料、無痕視窗不再讓次數重來。連不到伺服器／quota.js 沒載入 ＝ 照訪客算（fail-closed），不是全開。
+       ⚠ 今日事件的資料本身（news.json、data/news）仍是公開檔，這道門擋的是「一般人」，不是會直接抓檔的人（已寫進隱私／已知限制文件）。
+     導覽（tour.js）進行中不扣不擋。 */
+  const evTotalT = () => { const T = window.TwQuota && window.TwQuota.total; return T && T.limit('events.total') !== Infinity ? T : null; };
+  /* quota.js 根本沒載入（被擋掉、載入失敗）：會員系統有開就當「已用完」（fail-closed）；預覽版與會員系統沒開（本機）不鎖 */
+  const evNoQuota = () => {
+    if (window.TwQuota || window.TW_PREVIEW) return false;
+    const A = window.TwAccount, c = window.TW_ACCOUNT_OVERRIDE || window.TW_ACCOUNT;
+    return A && A.on ? !!A.on() : !!(c && typeof c.api === 'string' && c.api);
+  };
+  const evTouring = () => { try { const s = window.TwTour && window.TwTour.state(); return !!(s && s.on); } catch (e) { return false; } };
+  const evLockHTML = (id) => {
+    const QC = window.TwQCard, T = evTotalT(), n = T ? T.limit('events.total') : 5;
+    if (!QC) return `<div class="empty">訪客預覽已用完，免費註冊後即可繼續查看今日事件。<br><a href="#pricing/plan/free">免費註冊</a></div>`;
+    if (QC.css) QC.css();
+    /* 同一個網路的訪客總量用完（伺服器 why:'ip'）：這個人自己未必用過 5 次 → 換一句，不指責任何人，直接給免費註冊 */
+    const capped = !!T && T.capped && T.capped('events.total');
+    return `<div class="evlock" id="${id}" style="padding:12px 8px 16px">${QC.html({ kind: 'lock', kick: '訪客預覽・今日事件', title: capped ? '這個網路的訪客預覽次數已用完' : `今日事件的訪客預覽 ${n} 次已用完`,
+      sub: capped ? '同一個網路的訪客預覽有總量上限（本週已用完）。免費註冊成為會員，就能繼續查看今日事件。' : `訪客累計可以打開今日事件 ${n} 次（不是每日，不會重置）。免費註冊成為會員，就能繼續查看今日事件。`, lh: '免費註冊還能使用',
+      items: ['今日事件的新聞、法說與券商目標價', '自選清單（登入後跨裝置同步）', '依註冊會員方案額度繼續使用'],
+      btn: '免費註冊', href: '#pricing/plan/free', btnCls: 'qactgo' })}</div>`;
+  };
   function miaEvents() {
     const view = document.getElementById('v-overview');
     const old = document.getElementById('ovEvents');
     if (!view || !mIsM()) { if (old) old.remove(); return; }
-    const items = window.twEventItems || [];
+    /* 訪客累計上限：已經用完 → 不畫清單、放提示卡（這張卡在 m4 是藏著的，見上面說明） */
+    const evT = evTotalT();
+    const lockCard = (!!evT && !evTouring() && evT.left('events.total') === 0) || (evNoQuota() && !evTouring());
+    const items = lockCard ? [] : (window.twEventItems || []);
     let box = old;
     if (!box) {
       box = document.createElement('div');
@@ -2856,8 +2888,9 @@
       + `<span class="m"><span class="mono">${fmt.esc(i._d || '')}</span><span class="cat">${fmt.esc(i.cat || '')}</span>`
       + `<span>${fmt.esc(i.source || '')}</span></span></a>`).join('');
     const html = `<h3>今日事件 <small>新聞、法說、券商目標價</small></h3>`
-      + `<div class="ovev">${rows || '<div class="empty">今天沒有事件</div>'}</div>`
-      + `<button type="button" class="mmore" id="ovEvAll">看全部 ${items.length} 則事件 ›</button>`;
+      + (lockCard ? evLockHTML("ovEvLock")
+        : `<div class="ovev">${rows || '<div class="empty">今天沒有事件</div>'}</div>`
+        + `<button type="button" class="mmore" id="ovEvAll">看全部 ${items.length} 則事件 ›</button>`);
     if (box.innerHTML !== html) {
       box.innerHTML = html;
       const b = box.querySelector('#ovEvAll');
@@ -13695,7 +13728,38 @@
     const MD = (d) => d.slice(5).replace('-', '/');
     let cat = 'all', pick = 'all';
     const sel = $('#evDate');
+    /* 訪客累計上限（見 miaEvents 上面的說明）：renderEventsWith 會被呼叫兩次（先 30 則、再完整版），所以「這次打開算過了嗎」存在函式本身上，不存在 closure。
+       _ok：undefined＝還沒打開過；true＝這次打開有算到（內容看得到）；false＝這次打開時已經用完（換提示卡） */
+    const evBlocked = () => {
+      if (evNoQuota() && !evTouring()) return true;
+      const T = evTotalT(); return !!T && !evTouring() && (renderEventsWith._ok === false || (renderEventsWith._ok === undefined && T.left('events.total') === 0));
+    };
+    /* 打開一次抽屜 ＝ 向伺服器要一次（_ok：'wait' 確認中、true 算到了、false 被拒或連不到）。伺服器還沒回之前清單不畫（不是先畫再收）。
+       會員系統沒開／預覽版示範身分沒有伺服器可問 → 照舊同步本機計數 */
+    const evGate = () => {
+      const T = evTotalT();
+      if (!T || evTouring()) { renderEventsWith._ok = true; return; }
+      const key = 'o' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5);
+      if (!T.remote || !T.remote()) { renderEventsWith._ok = T.use('events.total', key); return; }
+      const tok = renderEventsWith._gt = (renderEventsWith._gt || 0) + 1;
+      renderEventsWith._ok = 'wait';
+      T.useAsync('events.total', key).then((ok) => {
+        if (renderEventsWith._gt !== tok) return;      // 使用者已經關掉又開（新的一輪）：舊的結果作廢
+        renderEventsWith._ok = !!ok; draw();
+        try { miaEvents(); } catch (e) { /* 不是手機／還沒畫 */ }
+      });
+    };
     const draw = () => {
+      if (renderEventsWith._ok === 'wait') {
+        $('#evList').innerHTML = '<div class="empty" id="evWait" style="padding:24px 16px">確認訪客預覽額度中…</div>';
+        sel.innerHTML = '<option value="all">—</option>'; sel.value = 'all';
+        return;
+      }
+      if (evBlocked()) {
+        $('#evList').innerHTML = evLockHTML("evLock");
+        sel.innerHTML = '<option value="all">—</option>'; sel.value = 'all';
+        return;
+      }
       const byCat = items.filter(i => cat === 'all' || i.cat === cat);
       // 最近一週的日期（新到舊）；更早的仍留在「全部」裡，只是不單獨列一個選項
       const cnt = new Map();
@@ -13712,6 +13776,9 @@
       const list = pick === 'all' ? byCat : byCat.filter(i => i._d === pick);
       $('#evList').innerHTML = list.slice(0, 120).map(i => `<div class="ev"><a href="${fmt.esc(i.url || '#')}" target="_blank" rel="noopener" title="${fmt.esc(i.title)}">${fmt.esc(i.title)}</a><div class="m"><span class="mono">${fmt.esc(i._d)}</span><span class="cat">${fmt.esc(i.cat)}</span><span>${fmt.esc(i.source || '')}</span>${(i.code ? [i.code] : String(i.codes || '').split(/[,\s]+/).filter(Boolean)).slice(0, 4).map(c => L.stock(c, L.cname[c] || '', { cls: 'sm' })).join('')}</div></div>`).join('')
         || `<div class="empty">${pick === 'all' ? '沒有這類事件' : pick + ' 沒有這類事件'}</div>`;
+      /* 訪客：清單最上面一行小字，寫已用幾次（累計），讓他知道還剩幾次、滿了要註冊 */
+      { const T = evTotalT(); if (T && !evTouring()) $('#evList').insertAdjacentHTML('afterbegin',
+        `<div class="evquota" id="evQuota" style="margin:8px 16px 4px;font-size:12px;line-height:1.5;color:var(--ink-3)">訪客預覽：已用 ${T.used('events.total').length}／${T.limit('events.total')} 次（累計，不是每日）・免費註冊的會員不受此限</div>`); }
     };
     $$('#evFilters button').forEach(b => b.onclick = () => { $$('#evFilters button').forEach(x => x.classList.toggle('on', x === b)); cat = b.dataset.c; draw(); });
     sel.onchange = () => { pick = sel.value; draw(); };
@@ -13736,7 +13803,7 @@
     };
     const setSide = (open) => {
       open = !!open;
-      if (open && !side.classList.contains('open')) resetSide();
+      if (open && !side.classList.contains('open')) { evGate(); resetSide(); }
       side.classList.toggle('open', open);
       side.setAttribute('aria-hidden', open ? 'false' : 'true');
       if (back) back.classList.toggle('on', open);
@@ -13756,6 +13823,9 @@
        事件鈕自己要排除，不然「按鈕打開 → 同一下被當成點外面」會立刻關掉。*/
     if (!renderEventsWith._wired) dismissable(side, () => window.twSetSide(false), { ignore: ['#evToggle', '#mmEvents', '#moreBtn'],
       isOpen: () => side.classList.contains('open') });
+    /* 權限晚到／換身分（登入、登出、管理者改範本）：抽屜關著時重畫一次，已用完的訪客就不會在關著的抽屜裡留著整份清單；手機卡片同理 */
+    renderEventsWith._redraw = () => { if (!side.classList.contains('open')) { renderEventsWith._ok = undefined; draw(); } };
+    if (!renderEventsWith._wired) ['tw:perm', 'tw:account'].forEach((ev) => window.addEventListener(ev, () => { if (renderEventsWith._redraw) renderEventsWith._redraw(); try { miaEvents(); } catch (e) { /* 不是手機／還沒畫 */ } }));
     renderEventsWith._wired = true;
   }
 
@@ -14015,7 +14085,7 @@
       return hot;
     };
     let act = -1, nid = 0;
-    const rows = () => $$('[data-c]', sg);
+    const rows = () => $$('[data-c], [data-art]', sg);
     const isOpen = () => sg.style.display !== 'none' && sg.style.display !== '';
     const row = (code, name, right, del) => {
       const n = name || L.cname[code] || '';
@@ -14076,12 +14146,28 @@
       }
       open(h, 'panel');
     };
+    /* ★ 2026-10-16（Andy：「精選文章其他分頁有的功能 他也要有」）：打字時也比對精選文章的標題，排在股票後面一段「精選文章」（最多 5 篇）。
+       清單第一次聚焦才讀（TwArticles.searchList，articles/index.json 已有快取）；讀回來時框裡還有字（下拉開著、或游標還在框裡 —— 股票一筆都沒中時下拉是收著的）就重比一次。
+       點文章列＝進 #article/<id>，不吃「搜尋股票」的每日次數（那一項的單位是「從搜尋進一檔個股」）—— 文章本身的次數由 art.read 管。 */
+    let arts = null, artsAsked = false;
+    const loadArts = () => {
+      if (artsAsked || !window.TwArticles || !window.TwArticles.searchList) return;
+      artsAsked = true;
+      window.TwArticles.searchList().then((a) => { arts = Array.isArray(a) ? a : []; if (q.value.trim() && (isOpen() || document.activeElement === q)) search(); }).catch(() => { artsAsked = false; });
+    };
+    const artRow = (a) => `<div class="sgrow sgart" role="option" aria-selected="false" id="sgo${++nid}" data-art="${fmt.esc(a.id)}" data-cat="${fmt.esc(a.cat || '')}" title="${fmt.esc(a.title)}">`
+      + `<span class="code">${window.TwArticles && window.TwArticles.icon ? window.TwArticles.icon(a.cat, 14) : ''}</span><span class="nm">${fmt.esc(a.title)}</span>`
+      + `<span class="g">${fmt.esc(a.catName || '')}</span><span class="tv">${fmt.esc(String(a.date || '').slice(5))}</span></div>`;
     const search = () => {
       const v = q.value.trim().toLowerCase();
       if (!v) { panel(); return; }
+      loadArts();
       const hits = list.filter(([c, n]) => c.startsWith(v) || (n || '').toLowerCase().includes(v)).slice(0, 12);
-      open(hits.map(([c, n]) => row(c, n, grp(c))).join(''), 'hits');
+      const ah = (arts || []).filter((a) => a.title.toLowerCase().includes(v)).slice(0, 5);
+      open(hits.map(([c, n]) => row(c, n, grp(c))).join('')
+        + (ah.length ? `<div class="sghd" id="sgArtHd"><span>精選文章</span><small>標題符合「${fmt.esc(q.value.trim())}」</small></div>` + ah.map(artRow).join('') : ''), 'hits');
     };
+    const goArt = (id) => { close(); q.value = ''; q.blur(); const h = '#article/' + encodeURIComponent(id); if (location.hash !== h) location.hash = h; };
     const setAct = (i) => {
       const r = rows();
       if (!r.length) { act = -1; return; }
@@ -14096,7 +14182,7 @@
     /* 2026-10-12：今天搜尋次數用完 → 框是反灰 readOnly 的，點進去也不展開建議清單（不然清單照樣跳出來、點了卻不進，像壞掉） */
     const spent = () => !!(window.TwQuota && window.TwQuota.out && window.TwQuota.out('search'));
     q.addEventListener('input', search);
-    q.addEventListener('focus', () => { if (spent()) { q.blur(); return; } if (!isOpen()) search(); });
+    q.addEventListener('focus', () => { if (spent()) { q.blur(); return; } loadArts(); if (!isOpen()) search(); });
     q.addEventListener('click', () => { if (spent()) return; if (!isOpen()) search(); });   // Esc 關掉之後再點一下框（焦點沒離開，focus 不會再觸發）
     q.addEventListener('keydown', e => {
       if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
@@ -14108,12 +14194,12 @@
       if (e.key === 'Escape') { if (isOpen()) { e.preventDefault(); close(); } return; }
       if (e.key !== 'Enter') return;
       const r = rows();
-      if (isOpen() && act >= 0 && r[act]) { e.preventDefault(); go(r[act].dataset.c); return; }
+      if (isOpen() && act >= 0 && r[act]) { e.preventDefault(); if (r[act].dataset.art) goArt(r[act].dataset.art); else go(r[act].dataset.c); return; }
       const v = q.value.trim();
       if (!v) return;
       const hit = list.find(([c]) => c === v) || list.find(([c, n]) => (n || '') === v);
       if (hit) { go(hit[0]); return; }
-      if (isOpen() && sg.dataset.mode === 'hits' && r[0]) go(r[0].dataset.c);   // 沒有完全符合就進第一筆建議
+      if (isOpen() && sg.dataset.mode === 'hits' && r[0]) { if (r[0].dataset.art) goArt(r[0].dataset.art); else go(r[0].dataset.c); }   // 沒有完全符合就進第一筆建議（只有文章符合時＝第一篇文章）
     });
     // 按在清單上不要讓輸入框失焦：鍵盤還要能接著上下選
     sg.addEventListener('mousedown', e => { e.preventDefault(); });
@@ -14129,6 +14215,8 @@
       const st = e.target.closest('.sgstar');
       if (st) { e.stopPropagation(); toggleStar(st); q.focus(); return; }   // 不觸發整列的跳個股頁、不關下拉
       if (e.target.closest('#sgClr')) { e.stopPropagation(); recentSet([]); panel(); q.focus(); return; }
+      const ar = e.target.closest('[data-art]');
+      if (ar) { goArt(ar.dataset.art); return; }
       const r = e.target.closest('[data-c]');
       if (r) go(r.dataset.c);
     });

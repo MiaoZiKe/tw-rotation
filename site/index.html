@@ -753,6 +753,13 @@ svg.spk .dot{fill:currentColor;stroke:var(--panel);stroke-width:.8}
    看起來像「沒有漲跌幅」）。桌機改 440px；max-width 照舊保證窄畫面不出畫面，手機另有自己的欄寬（下一條）。 */
 @media (min-width:641px){.sugg{width:max(100%,440px)}}
 @media (max-width:640px){.sugg .sgrow{gap:6px}.sugg .code{width:3.6em;flex-basis:3.6em}.sugg .nm{width:4.8em;flex-basis:4.8em}.sugg .tv{width:4.2em}.sugg .chg{width:56px;min-width:56px}}
+/* 2026-10-16 搜尋也找得到精選文章（app.js initSearch 的 .sgart 列）：圖示一格、標題吃剩下的寬度（股票列的名稱欄是固定 6.5em，標題塞不下）、
+   類別與日期靠右不縮；圖示用文章類別色（--art-*，articles.js 開站就定義）。選擇器多一層 .sgart，桌機與手機都蓋過上面固定寬度那兩條。*/
+.sugg .sgart .code{width:20px;flex:0 0 20px;display:inline-flex;align-items:center;justify-content:center;color:var(--cyan)}
+.sugg .sgart[data-cat=news] .code{color:var(--art-news,var(--cyan))}.sugg .sgart[data-cat=intro] .code{color:var(--art-intro,var(--cyan))}.sugg .sgart[data-cat=know] .code{color:var(--art-know,var(--cyan))}
+.sugg .sgart .nm{flex:1 1 auto;width:auto}
+.sugg .sgart .g{flex:none;margin-left:6px}
+.sugg .sgart .tv{flex:none;width:auto;font-family:var(--mono);font-size:12px;color:var(--ink-3)}
 .sugg .sgempty{margin:0;padding:var(--sp-1) var(--sp-3) var(--sp-2);font-size:13px;color:var(--ink-3);line-height:1.5}
 @media (max-width:640px){.sugg .sgempty{padding:6px 12px 10px}}
 /* 公司 Logo（2026-09-26）：圓角方形；沒有圖／圖壞掉時是字母頭像（字由 ::before 畫，不進 DOM 文字）。
@@ -5464,6 +5471,7 @@ h3 .howbtn.pop{font-family:inherit}
 <link rel="stylesheet" href="m4/20261016c-artnav.css">
 <link rel="stylesheet" href="m4/20261016d-kinfo.css">
 <link rel="stylesheet" href="m4/20261016e-opaque.css">
+<link rel="stylesheet" href="m4/20261016f-artsched-v2.css">
 <!-- m4:css 結束 -->
 <!-- ★ 2026-10-03 一屏看完（DECISIONS #308，fit.css／fit.js）：每張圖表卡完整落在一屏可視高度內，只動桌機（≥821）的卡高與圖高。 -->
 <link rel="stylesheet" href="fit.css">
@@ -6055,6 +6063,8 @@ return {load:load,ready:ready,srcs:srcs};})();
 <script src="earnings.js"></script>
 <script src="artillus.js"></script><!-- 2026-10-16 精選文章的具象插圖（CoWoS 剖面、AI 機櫃）：{"t":"illus"} 區塊的 SVG 幾何與錨點；版面與引線在 articles.js -->
 <script src="articles.js"></script><!-- 2026-10-14 精選文章（列表／單篇）＋管理區 #admin/articles；資料在 site/articles/（不在 site/data/）-->
+<script src="gpthandoff.js"></script><!-- 2026-10-16 傳給 GPT：把已公開的精選文章組成交接 GitHub Issue（純前端、不碰 Worker） -->
+<script src="artsched.js"></script><!-- 2026-10-16 產貼文頻率設定（第 2 版：日期→整點時段→類別篇數→加入排程清單→啟用）：由 articles.js 掛進 #admin/articles「文章主題」分頁最下面（僅管理者） -->
 <script src="market3.js"></script>
 <script src="tasks.js"></script>
 <script src="live.js"></script>

@@ -1074,3 +1074,23 @@ test('綠界表單帶買家姓名：ItemName 後綴＋CustomField1，只放姓�
   const adm = (await pj(hub, '/v1/admin/pay/list', { t: andy, all: true })).j;
   assert.equal((adm.orders.find((x) => x.id === c1.id) || {}).payerName, '王小明');
 });
+
+test('銀行轉帳回報：轉出帳號末 5 碼是必填（Worker 強制）——缺、空白、少於／多於 5 位、含非數字、卡號長度都回 bad_last5 且不改訂單；剛好 5 位數字才收（不論有沒有帶新版表單旗標）', async () => {
+  const { hub, db, bob, andy } = await setup();
+  await pj(hub, '/v1/admin/pay/bank/put', { t: andy, bank_name: '測試銀行', bank_code: '812', account: '1234567890', holder: '哩股' });
+  const c = (await pj(hub, '/v1/pay/bank/create', { t: bob, plan: 'plus', period: 'month' })).j;
+  const base = { t: bob, id: c.id, name: '鮑伯', date: '2026-10-11', gender: 'female' };
+  for (const bad of [undefined, '', '   ', '1234', '123456', '12a45', '１２３４５', '1234 5', '4111111111111111']) {
+    for (const form of [undefined, 2]) {
+      const b = { ...base, ...(form ? { form } : {}), ...(bad === undefined ? {} : { last5: bad }) };
+      const r = await pj(hub, '/v1/pay/bank/report', b);
+      assert.equal(r.s, 400, JSON.stringify([bad, form]));
+      assert.equal(r.j.error, bad === '4111111111111111' ? 'card_number' : 'bad_last5', JSON.stringify([bad, form, r.j]));   // 卡號長度：同樣拒收，錯誤碼是 card_number
+    }
+  }
+  assert.equal(ord(db, c.id).status, 'pending', '被擋的回報不改訂單狀態');
+  assert.equal(ord(db, c.id).from_last5 || null, null);
+  const okr = await pj(hub, '/v1/pay/bank/report', { ...base, form: 2, last5: '54321' });
+  assert.equal(okr.s, 200, JSON.stringify(okr.j));
+  assert.equal(ord(db, c.id).from_last5, '54321');
+});

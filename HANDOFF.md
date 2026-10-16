@@ -1,5 +1,31 @@
 # HANDOFF.md — 目前進度（接手先讀這份）
 
+## 2026-10-16 22:18 管理者訂單通知點了跳到對應分頁（網頁版 CEO；main 0e379394，✅ 已部署）
+- Andy：「管理者有訂單，點擊後會跳到對應分頁」→ 鈴鐺／公告頁的「新訂單」點了 → `#admin/pay/bankord|orders/<訂單號>`（admin_pay.js 子路由：切分頁、搜尋填訂單號、那列 `.hit` 標亮展開並捲到畫面內，套用後網址改回 `#admin/pay`）；「新申請」→ 取消／退款申請分頁。判斷依 payNotifyOwner 的固定內文（notices.js `payLink`），不改 Worker。
+- 注意：鈴鐺清單有 10 分鐘本機快取（tw.nt.c），新訂單最慢約 10 分鐘才出現在鈴鐺。
+- 這批只驗：訂單通知跳轉1016（新段）、付款管理區1016、結帳與付款1011（單獨跑兩次 0；跟別組同時跑會在綠界步驟紅＝埠衝突）、桌機守門1008。
+- 「產貼文頻率設定」第 2 版 **✅ 已上線（台北 22:42，main 8f6af86d；Worker 同批部署成功）**。①日期（每週／指定日期）→②整點時段 12 小時制→③類別篇數→④加入排程清單（可編輯刪除、增刪改即時存）→⑤啟用。Worker 新格式 {ver:2,enabled,rules}（舊格式自動轉）、機器路由 op:add；到點排隊在 article-jobs.yml 做。排程 trig_01Nd9NpzN6yWGbBspqQ3xsmf 已改每小時 :05（先觸發同步＝順便排到點規則，再讀佇列）。
+- 同批：產出進度／已上架文章的「清除」沒篩選時反灰（Andy：「這沒作用」）。驗收：產貼文頻率設定v2、文章主題兩分頁1016、精選文章1014、桌機守門1008 全 0；pytest test_article_jobs 8、Worker 160 過；_preview 只剩既有 ai_server 交疊。preview/artsched-v2 分支可收。
+
+## 2026-10-16 21:25 客服面板拿掉「寄信」分頁（網頁版 CEO；main 71884b65，✅ 已部署）
+- Andy：「改成原來那樣，並且把寄信拿掉 只留兩個」→ 面板維持原樣，分頁只剩「常見問題｜意見反饋」；信箱（Gmail 撰寫＋複製信箱，`#supMail`／`#supCopy`）移到意見反饋最下面一行。`TwSupport.open('mail')` 改導到意見反饋。
+- **IG 聊天室預覽版（preview/support-chat、support-chat-1016）不上線**；分支先留著，Andy 要收再刪。
+- 這批只驗：願望清單1009、帳號選單1009、登入卡住1016、桌機守門1008（全綠）、_preview（只剩既有 800px ai_server 交疊）。
+- 既有紅燈（非這批造成）：訂閱與客服1005 等不到 `#subMail`（訂閱對話框已改版）；客服與反饋1007「全站沒有 mailto」被 legal.js 頁尾（10-14 綠界退件修正）打到。
+
+## 2026-10-16 夜 防白嫖最小有效版本（預覽分支 preview/anti-freeload，**Worker 未部署、尚未進 main**；DECISIONS #359）
+- 新文章全文只存會員 Worker；公開索引僅標題等欄位（`src:"api"`）；舊 4 篇維持原狀。Plus 5 篇與訪客今日事件 5 次改伺服器計數；`art.read.n`／`events.total` 連不到＝照訪客算。隱私權政策已補段落。
+- 部署順序＆回滾＆擋不住的清單：`docs/security/anti_freeload_rollout_1016.md`。發佈新文章：`scripts/article_publish.py`（`docs/articles/production_guide.md`「發佈」）。
+- **卡在 Andy（沒做之前新文章無法上架）**：repo Secret＋Claude 環境變數 `ARTICLE_PUT_KEY`、Claude 環境 `ACCOUNT_API_URL`、Allowed domains 加會員 Worker 網域，再手動跑一次「部署 Worker」。
+- 這批驗了：`node --test workers/account-api/tests/*.test.mjs`（新增 anti_freeload 13 條）、pytest `test_article_public_guard.py`、_uitest：防白嫖後端1016（真的 Worker 端到端）、精選文章分級1016、今日事件訪客5次1016、精選文章1014、文章主題兩分頁1016、桌機守門1008、帳號選單1009；_preview 對照乾淨 main。
+
+## 2026-10-16 夜 精選文章管理改兩分頁＋頻率設定＋傳給 GPT（預覽分支 preview/admin-articles-2tabs，尚未進 main）
+- #admin/articles 兩分頁：「文章主題」＝已上架文章＋主題候選＋產出進度（原樣）＋最下面「產貼文頻率設定」；「統計數據」＝點閱統計原樣。
+- 頻率設定（site/artsched.js）：預設全空、開關關；要有星期×時段＋類別篇數才能開；切開關即時存。Worker 新表 article_schedule（/v1/articles/schedule/get、add，僅管理者；機器路由 op=schedule）；article-jobs.yml 同步成 data/_state/article_schedule.json；Claude 排程怎麼讀寫在 docs/articles/production_guide.md。**Worker 尚未部署**（部署順序：先 Worker、再合 main；前端遇到舊 Worker 會寫「後端還沒更新」）。
+- 傳給 GPT（site/gpthandoff.js）：已上架文章每列「傳給 GPT・IG 貼文／影片」，純前端組 Markdown、開預填 GitHub Issue（label social-handoff＋gpt-ig-post／gpt-video），不經佇列不碰 Worker。
+- 驗收段「文章主題兩分頁1016」（精選文章1014 管理區段改成先切分頁）。桌機守門1008 0 問題；_preview 與 main 同樣 2 筆 800px 既有交疊；pytest 1120 過（5 個 yfinance 缺套件的既有錯誤）；node --test 158 過。
+- 待 Andy 在預覽確認後才合 main。
+
 ## 2026-10-16 手機版 CEO：上午～中午這批（全部已上線；最後更新 13:15 台北）
 - 10:06／10:14 Andy iPhone 回報 7 件 → 11:27 上線（faddeed5）：頁面無限往下滑（#side 0 寬撐高 → .m4shut 不排版）、資金輪動摘要壓免責、「動態 開」移卡片標題列、頂欄限制字縮、「?」18px、產業鏈頁手機不畫 #segBox／跨鏈卡／其他產業鏈列、說明卡「看個股頁」空框（.btn.primary 同色）→ 名字連結＋「在圖上標示」、ETF 月配金額（月領 1/2/5/10 萬＋自訂輸入、年月切換不掉列）。
 - 「小說明點背景就關」普查 13 頁×3 寬 132 次全合格，只加驗收段（手機彈窗點背景1016）。
@@ -89,9 +115,13 @@
 - **Andy 要做**（逐步在 docs 第 8 節）：①確認綠界合約有開「信用卡定期定額」②後台抄 MerchantID／HashKey／HashIV → GitHub Secrets `ECPAY_MERCHANT_ID`／`ECPAY_HASH_KEY`／`ECPAY_HASH_IV` → 手動跑「部署 Worker」③#admin/pay「收款帳號設定」填帳號 ④1 元實測付款＋退款。沒設金鑰前一律是綠界測試模式。
 - **2026-10-16 付款與訂單管理頁全面審查（分支 pay-admin-1016 合併）**：Andy「這邊應該是 會多出現已退款功能按鈕 並且跳到退款紀錄那邊紀錄」「一個mail 身份只能存在一個，若他有最新的一筆資訊，就只會留下最新的一筆」「並且需要制定完善的措施」。後端 payReconcile（同 email 新訂單／新申請取代舊的、寫 payEv）、有待確認轉帳時擋取消／退款申請（pending_review）、退款帶 req 自動結案申請、PAY_FLOW 狀態機（不允許轉換 409）、stale／same_status／already_refunded 防呆、payAudit 稽核；前端「已退款」鈕→退款紀錄預填、待處理清單一 email 一筆＋「＋N 筆歷史」、第七分頁「操作紀錄」。文件 docs/payment_admin_tabs_1016.md。轉帳表單：拿掉我 13:28 誤加的範例字、恢復「必填」（Andy 先前說不放範例字）。這批驗了：account-api 157 全過、結帳與付款1011、付款管理區1016、轉帳改版1016、_preview。⚠ 結帳與付款1011 第一次跑有 4 條紅（綠界那段），重跑 0 個問題，判斷是同時有別的驗收佔用埠。
 - **2026-10-16 轉帳表單精簡＋待審核規則＋管理者新訂單通知**：Andy「紅框處可以拿掉，並且需要調整版面」「請調整適當大小排版，文字有點太多」「已經有訂單狀態的情況，不能再訂閱其他項目，除非他是訂閱升級的版本，且訂閱後待審核都會反灰」「級別排序 pro(年) > pro(月) > plus(年) > plus(月)」「申請後這邊會變成待審核」「客戶下訂單 我這邊會有通知」。拿掉「請於 3 天內轉帳」、標籤一行、輸入框切齊、確認區返回鈕不換行；pay.js payChangeCheck 改級別制（payTier）＋有 review 單時同級與更低擋 pending_review；pricing.js 待審核反灰；payNotifyOwner 同時給 ADMIN_EMAILS 每人一則鈴鐺「新訂單：…」。⚠ 規則變更：Plus 年繳生效中可升 Pro 月繳（照 Andy 級別，以前擋）。這批驗了：結帳與付款1011、account-api 全部、_preview。
+- **2026-10-16 精選文章補齊全站共通功能（分支 articles-parity-1016，未推 main）**：Andy「精選文章其他分頁有的功能 他也要有 例如導覽 限制 這些都要在確認」。① 導覽：tour.js 新增「精選文章導覽」（列表 4 步）、「文章導覽」（單篇 6 步），頁名旁「導覽」／手機 🧭 都開得到；全站導覽多一步「精選文章」。② 限制：features.js 新分類「精選文章」五個開關（清單 art.list、單篇 art.read、三類 art.cat.news／intro／know），預設全開、不設 defBy／limBy、不進全站共用額度＝上線不改任何人的可見性；quota.js 單篇單位＝一篇文章（同一篇同一天不重算）；被擋住的那篇不送點閱；plan_presets 四方案補 true。③ 流量：account.js／Worker VIEWS 加 articles（#article/<id> 併入），子頁 sub.all／news／intro／know／post、細項 read（標題）、search_art；管理區流量觀測多「精選文章」分頁（排在個股後、使用者前，舊頁顏色不變）。④ 左上搜尋也比對文章標題（最多 5 篇、不吃「搜尋股票」次數）。⑤ 列表卡標題旁「?」。⚠ Worker 要比前端先上（同一次推 main 兩個工作流同時跑，過渡期那一分鐘的統計可能被 Worker 丟掉）。新驗收段：精選文章共通功能1016。積木清單（modules.js）刻意不登記：那份凍結在 27 塊、跟 docs/feature_modules.md 對照，ETF／選股／財經日曆也都沒登記。
 - **2026-10-16 精選文章管理四版：表格限高＋點閱統計**：Andy「文章管理 每個表格清單都需要限制長度，太長都使用拉Bar」「新增統計數據，可以統計文章點擊次數，可以篩選族群 類型，需要將資訊可視化，並且圖表 排版格式follow 流量觀測」。三張表 max-height 420／520、表頭 sticky。管理頁最上面新增「點閱統計」：類別、族群、期間（RangePick）篩選；KPI 五格；每天點閱（類別堆疊直條＋平均線）、類別圓餅、熱門文章前 10、族群前 10。Worker 新表 article_views_day（台北日期×文章×次數，保留 400 天）＋管理者路由 /v1/articles/stats/daily；每日統計從這版上線才開始記，之前只有累計。這批驗了：精選文章1014、_preview、account-api 全部。
 - **2026-10-16 精選文章管理三版**：Andy「上架文章之後會越來越多，所以也需要有日期 類型 分類，下方的選擇應該要可以多選至多5個(含不同類型)」「產出狀態必須備註是文章還是短影片」「產出進度也需要有篩選功能」。已上架文章加類別分頁、族群、日期起迄、搜尋、清除、計數，多一欄相關族群；主題改勾選（最多 5、跨類別保留、小標籤 × 取消、第 6 個擋下），一次送出多筆；產出狀態前加「文章／短影片」小標；產出進度加種類、狀態、搜尋篩選。⚠ 踩到：管理區新函式取名 paintList 撞到公開列表的同名函式，文章列表整個變空白 → 改名 paintAdmList（同一支檔案的 function 宣告會互蓋，新增前先 grep）。這批驗了：精選文章1014、_preview（只有既有 800px ai_server）。
 - **2026-10-16 精選文章管理二版＋產出佇列＋浮水印只留文章**：Andy「claude 指負責產出文章……點選清單內主題，點選後我可以再次點選產生精選文章，或是短影片」「表格需要對齊」「精選文章字體有點大」「除了文章以外，其他都不用出現背景有浮水印」。管理區拿掉「產出貼文」反灰鈕；主題整列可點選→「產生精選文章／產生短影片」排進 Worker `article_jobs`（/v1/articles/jobs/add、list、cancel；機器路由 /v1/articles/jobs/bot 認 ARTICLE_BOT_KEY＝sha256("tw-article-jobs|"+CLOUDFLARE_API_TOKEN) 前 48 字）；`article-jobs.yml` 每小時同步成 data/_state/article_jobs.json；Claude 排程（台北 09:50／14:50／20:50）照 docs/articles/production_guide.md 撰寫。版面：管理頁吃滿主欄、表格 table-layout:fixed 對齊（全域 `.why{display:flex}` 撞名害理由欄歪掉 → 改 td.dm）。文章內文 15px、標題 21px。protect.js 整頁與圖表浮水印只在 #articles／#article（防複製照舊全站）。這批驗了：精選文章1014（含新的選主題／排隊／取消／對齊）、桌機守門1008、_preview（只有既有 800px ai_server）、pytest 全部、account-api 全部。
+- **2026-10-16 晚 三件上線（Andy 逐項同意「上」）**：① 精選文章管理（#admin/articles）兩分頁「文章主題／統計數據」＋產貼文頻率設定（開關預設關、星期×三輪時段×類別篇數，Worker `article_schedule`、`article-jobs.yml` 同步 `data/_state/article_schedule.json`，Claude 排程到點讀它）＋已上架文章每列「傳給 GPT・IG 貼文／影片」（純前端預填 GitHub Issue，label social-handoff）＋手機卡片版（95f5bae4，Worker 部署 success）；② 精選文章分級（`art.read.n`：Pro 全文、Plus 終身累計 5 篇、訪客與註冊會員只看標題；`TwQuota.total`）（eb1a60b8；為此把 `精選文章共通功能1016` 開頭加兩行讓訪客範本 art.read.n=999，分級由 `精選文章分級1016` 驗）；③ 今日事件訪客累計 5 次後請註冊（`events.total`；80fbfaea）。三件 deploy_wait 都印 ✅。⚠ 兩項都只擋畫面、不是伺服器端；文章與事件 JSON 是公開靜態檔（docs/security/anti_freeload_1016.md，分支 claude/wonderful-bardeen-kg2wg4）。Andy 決定：已公開 4 篇維持原狀；開工「防白嫖最小有效版本」（新文章全文走後端）。⚠ 原預覽 HANDOFF 內「尚未進 main、Worker 尚未部署」一句已過時。
+- **2026-10-16 社群媒體部成立**（IG／Threads・比比）：章程與流程 docs/marketing/social_unit/（分支 claude/wonderful-bardeen-kg2wg4）；每日選題腳本 scripts/social_topics.py＋.github/workflows/social_topics.yml 已在 main；社群交接流程 docs/social_handoff/（PR #3，ready_for_gpt，GPT 端自動接單未串好）。Claude 排程：「社群處理 Andy 勾選並備交接包」（每天 08:07／12:07／19:07）在跑，「社群每日選題清單（傍晚）」已暫停（與正式版主題候選佇列重疊）。
+- **2026-10-16 結帳改版（預覽 preview/checkout-info，未上線）**：只剩信用卡自動續扣、姓名必填、性別選填（只存計數 `gender_counts`）、末五碼選填、每日換算共用 TwSub.dayCost、管理區男女比例卡、清理舊事件紀錄按鈕（上線後 Andy 自己按）、gender_counts 進備份。部署順序：先 Worker 再前端；上線後 1 元測試單走一遍。
 - **2026-10-16 ETF 配息公告改半週抓一輪**：Andy 回報 ETF 日曆 10/16 沒有 00947。根因：etfdiv（FinMind 配息公告）掛在回補計畫的「每月」步驟，10 月那輪在 10/1 前後就跑完，之後公告的配息要等下個月。改成 tag `w<年>-<週>a/b`（週一～三、週四～日各一輪），plan_is_done 與 backfill.yml 守門都比對 week。這批驗了 pytest 全部（1125 passed）；純 pipeline 改動，沒動 site/，未跑 _preview／_uitest。
 - **2026-10-16 精選文章上線＋全站防複製／浮水印**：側欄「精選文章」（比比快訊／比比產業鏈／比比知識）、site/articles.js、文章在 site/articles/posts/*.json＋index.json、主題候選 site/articles/topics.json（研調 docs/articles/topic_research_1014.md）。點閱數 workers/account-api/articles.js（/v1/articles/view、/stats）。全站防複製與浮水印集中在 site/protect.js（例外：輸入框、[data-copyable]、#admin/*；ECharts 包 init 加 graphic、K 線用 createTextWatermark）。精選文章圖表配色刻意破例用多色調色盤（Andy：「圖表色彩需要豐富點且多樣」），全站其他圖照 style_guide。這批驗了：精選文章1014、結帳與付款1011、桌機守門1008、account-api 全部；新-大盤三張圖／新-資金流向／新-輪動時鐘 有 21 條既有紅（拿掉 protect.js 一樣紅）、_preview 800px #industry/ai_server 重疊為既有。待 Andy：產出貼文／短影片、CoWoS 題材名單是否拿掉精材／合晶／京鼎。
 - **2026-10-12 金流狀態**：Andy 已設正式金鑰（管理區「綠界測試模式」標示消失），但綠界「信用卡／非信用卡收款」兩項都還在**審核中**（3～5 工作日），下單會回 10300023「未提供任何付款方式」——不是程式問題。銀行轉帳整組已實測通過。

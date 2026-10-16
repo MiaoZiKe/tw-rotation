@@ -75,7 +75,7 @@
   const defRange = () => { const t = tpeToday(); return { from: monthAgo(t), to: t }; };
 
   const S = { views: null, statsP: null, statsAt: 0, idx: null, idxP: null, idxErr: false, cat: 'all', q: '', from: null, to: null, grp: new Set(), ms: null,
-    posts: {}, cur: '', curData: null, backOk: false, topics: null, topicsP: null, tcat: 'all', tsort: 'desc', tsels: [], jobs: null, af: { cat: 'all', grp: '', from: '', to: '', q: '' }, jf: { kind: '', st: '', q: '' }, ss: { period: '30', from: '', to: '', cat: '', grp: '', daily: null, first: null } };
+    posts: {}, cur: '', curData: null, backOk: false, topics: null, topicsP: null, tcat: 'all', tsort: 'desc', tsels: [], gsel: new Set(), gout: [], gtype: 'ig', jobs: null, af: { cat: 'all', grp: '', from: '', to: '', q: '' }, jf: { kind: '', st: '', q: '' }, ss: { period: '30', from: '', to: '', cat: '', grp: '', daily: null, first: null } };
 
   /* 「← 返回」要不要用 history.back()：只有「在站內從別頁換過來」才有上一頁可回；直接貼網址開的，回該類別清單 */
   window.addEventListener('hashchange', (e) => {
@@ -323,6 +323,14 @@
 .t-board{--tc:var(--art-t-board)}.t-bump{--tc:var(--art-t-bump)}.t-other{--tc:var(--art-t-other)}
 .artsec{margin-top:var(--sp-5);padding-top:var(--sp-3);border-top:1px solid var(--line)}
 .artsec h4{margin:0 0 var(--sp-2);font-size:var(--fs-h3);font-weight:600}
+.artfold>summary{list-style:none;cursor:pointer;display:flex;align-items:center}
+.artfold>summary::-webkit-details-marker{display:none}
+.artfold>summary h4{margin:0;display:flex;align-items:center;gap:8px;flex:1}
+.artfold>summary h4 small{font-size:var(--fs-min);font-weight:400;color:var(--ink-3);font-family:var(--mono)}
+.artfold>summary::after{content:"展開 ▾";font-size:var(--fs-min);color:var(--ink-3);white-space:nowrap}
+.artfold[open]>summary::after{content:"收起 ▴"}
+.artfold[open]>summary{margin-bottom:var(--sp-2)}
+.artfold>summary:hover h4{color:var(--k,var(--cyan))}
 .artlinks{display:flex;flex-wrap:wrap;gap:var(--sp-2)}
 .artlinks a{display:inline-flex;align-items:center;gap:6px;height:32px;padding:0 12px;border:1px solid var(--line-2);border-radius:999px;background:var(--panel-3);color:var(--ink);
   text-decoration:none;font-size:var(--fs-sm);white-space:nowrap}
@@ -424,6 +432,8 @@
 /* ---- 管理區 #admin/articles（2026-10-16 二版：Andy「版面需要調整適當，周圍不要空白太多，字體也需要調整適當，表格需要對齊」）---- */
 #v-subadm:has(>.artadm){max-width:none;padding-left:var(--sp-2);padding-right:var(--sp-2)}   /* 管理區預設 1280 置中 —— 這頁表格欄位多，吃滿主欄 */
 #v-subadm .artadm{margin-top:var(--gap-card,12px)}
+#v-subadm .artpanel[hidden]{display:none}
+#v-subadm #artAdmTabsW{margin-top:0}
 #v-subadm .artadm h3{margin:0;font-size:15px;font-weight:700}
 #v-subadm .artadm .hd{display:flex;align-items:center;gap:var(--sp-2);flex-wrap:wrap;margin-bottom:var(--sp-2)}
 #v-subadm .artadm .hd .sp{flex:1}
@@ -524,6 +534,7 @@
 #v-subadm .artadm .aflt label{display:inline-flex;align-items:center;gap:4px;color:var(--ink-2);white-space:nowrap}
 #v-subadm .artadm .aflt .cnt{margin-left:auto;font-size:12px;color:var(--ink-3);white-space:nowrap}
 #v-subadm .artadm .aflt button.clr{height:30px;padding:0 10px;border-radius:var(--r-sm,8px);border:1px solid var(--line-2);background:var(--panel-3);color:var(--ink);font:inherit;font-size:12.5px;cursor:pointer}
+#v-subadm .artadm .aflt button.clr:disabled{opacity:.4;cursor:default}
 #v-subadm .artadm .tpact{display:flex;align-items:center;gap:var(--sp-2);flex-wrap:wrap;padding:var(--sp-2) var(--sp-3);margin-bottom:var(--sp-2);border:1px solid var(--line);border-radius:var(--r-sm,8px);background:var(--panel-2);font-size:13px}
 #v-subadm .artadm .tpact .sel{flex:0 1 auto;min-width:0;max-width:420px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 #v-subadm .artadm .tpact .sel b{color:var(--ink)}
@@ -544,8 +555,82 @@
 #v-subadm .artadm .js .kd{font-style:normal;font-weight:700;font-size:11px;padding:0 5px;margin-left:-4px;border-radius:999px;color:#fff;line-height:16px}
 #v-subadm .artadm .js .kd.article{background:#2563eb}
 #v-subadm .artadm .js .kd.video{background:#db2777}
+#v-subadm .artadm .gpm{display:none}   /* 桌機用表頭兩顆鈕；手機（表頭被藏掉）改用表格上方一條 .gpbar：下拉選類型＋一顆送出 */
+#v-subadm .artadm td.gptc .gpg{display:inline-flex;flex-direction:column;align-items:flex-start;gap:1px;margin-right:10px;vertical-align:middle;line-height:1.2}
+#v-subadm #artAdmList table{min-width:1200px}   /* 多了「傳給 GPT」一欄，標題欄要夠寬（Andy 看過表格標題不能被擠成一點點）；窄螢幕在表內橫向捲 */
+#v-subadm .artadm .gpk{font-style:normal;font-size:11.5px;padding:0 7px;border-radius:999px;border:1px solid var(--cyan);color:var(--cyan)}
+#v-subadm .artadm .gpk.video{border-color:#db2777;color:#db2777}
+#v-subadm .artadm th.gpth{overflow:visible;white-space:normal;height:auto;padding-top:4px;padding-bottom:4px}
+#v-subadm .artadm th.gpth .gpd{display:inline-flex;gap:6px;flex-wrap:wrap;vertical-align:middle}
+#v-subadm .artadm th.gpth button{height:24px;padding:0 10px;margin-left:0;border-radius:var(--r-sm,8px);border:1px solid var(--cyan);background:color-mix(in srgb,var(--cyan) 14%,var(--panel));color:var(--ink);font:inherit;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap}
+#v-subadm .artadm th.gpth button:disabled{opacity:.45;cursor:not-allowed;border-color:var(--line-2);background:var(--panel-3)}
+#v-subadm .artadm td.gptc{overflow:visible;height:48px}
+#v-subadm .artadm td.gptc .gptk{display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;vertical-align:middle;cursor:pointer}
+#v-subadm .artadm td.gptc input[type=checkbox]{width:18px;height:18px;margin:0;accent-color:var(--cyan);cursor:pointer}
+#v-subadm .artadm td.gptc button.gpto{height:26px;padding:0 10px;border-radius:var(--r-sm,8px);border:1px solid var(--line-2);background:var(--panel-3);color:var(--ink);font:inherit;font-size:12px;cursor:pointer;white-space:nowrap;vertical-align:middle}
+#v-subadm .artadm td.gptc button.gpto:hover{border-color:var(--cyan)}
+#v-subadm .artadm td.gptc .gpts{font-size:11px;color:var(--ink-3);font-family:var(--mono);white-space:nowrap}
+#v-subadm .artadm .gpp{border:1px solid var(--line);border-radius:var(--r-sm,8px);background:var(--panel-2);padding:8px 12px;margin-bottom:var(--sp-2);font-size:13px}
+#v-subadm .artadm .gpp .gph{margin:0 0 6px;color:var(--ink-2);line-height:1.6}
+#v-subadm .artadm .gpp[hidden]{display:none}
+#v-subadm .artadm .gpr{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:6px 0;border-top:1px solid var(--line)}
+#v-subadm .artadm .gpr .gpt{flex:1 1 220px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--ink)}
+#v-subadm .artadm .gpr .gpl,#v-subadm .artadm .gpr button{display:inline-flex;align-items:center;height:30px;padding:0 12px;border-radius:var(--r-sm,8px);border:1px solid var(--line-2);background:var(--panel-3);color:var(--ink);font:inherit;font-size:12.5px;text-decoration:none;cursor:pointer;white-space:nowrap}
+#v-subadm .artadm .gpr .gpl{background:var(--cyan);color:#04121a;border-color:transparent;font-weight:700}
+#v-subadm .artadm .gpr .gpn{flex:1 1 100%;font-size:12px;color:var(--ink-3)}
+@media (max-width:640px){#v-subadm .artadm th.gpth .gpd,#v-subadm .artadm td.gptc .gpd{display:none}#v-subadm .artadm .gpm{display:inline-flex;align-items:center;gap:6px}#v-subadm .artadm .gpbar{display:flex;margin-bottom:var(--sp-2)}#v-subadm .artadm .gpbar button{height:32px;padding:0 12px;border-radius:8px;border:1px solid var(--cyan);background:color-mix(in srgb,var(--cyan) 14%,var(--panel));color:var(--ink);font:inherit;font-size:13px;font-weight:600}#v-subadm .artadm .gpbar button:disabled{opacity:.45}#v-subadm .artadm .gpbl{font-size:13px;color:var(--ink-2)}#v-subadm .artadm .gpm select{height:32px;border-radius:8px;border:1px solid var(--line-2);background:var(--panel);color:var(--ink);font:inherit;font-size:13px;padding:0 6px}#v-subadm .artadm td.gptc button.gpto{height:32px}#v-subadm .artadm th.gpth button{height:32px}#v-subadm .artadm .gpr .gpl,#v-subadm .artadm .gpr button{height:36px}}
+/* 手機（≤640）：「已上架文章」表格改成每篇一張卡（Andy 看 390 截圖：欄位直接堆疊、沒有欄名、文字被截斷、看不出哪列是哪篇）。
+   第一行 類別標籤＋日期、第二行 標題（最多 2 行）、第三行 相關族群（可換行）＋點閱、最後一行 勾選框＋類型下拉＋傳給 GPT 鈕。桌機（>640）完全不動。 */
+@media (max-width:640px){
+  #v-subadm #artAdmList .tbw{overflow-x:hidden}
+  #v-subadm #artAdmList table{min-width:0;width:100%;display:block}
+  #v-subadm #artAdmList colgroup,#v-subadm #artAdmList thead{display:none}
+  #v-subadm #artAdmList tbody{display:flex;flex-direction:column;gap:8px;padding:8px}
+  #v-subadm #artAdmList tbody tr[data-id]{display:grid;grid-template-columns:auto minmax(0,1fr) auto;grid-template-areas:"cat date date" "title title title" "grp grp views" "gpt gpt gpt";gap:6px 10px;align-items:center;border:1px solid var(--line);border-radius:10px;background:var(--panel);padding:10px 12px}
+  #v-subadm #artAdmList tbody tr[data-id]>td{display:block;height:auto;padding:0;border:0;white-space:normal;overflow:visible;text-overflow:clip;text-align:left;min-width:0}
+  #v-subadm #artAdmList tbody tr[data-id]>td:nth-child(1){grid-area:cat}
+  #v-subadm #artAdmList tbody tr[data-id]>td:nth-child(3){grid-area:date;color:var(--ink-2);font-size:13px}
+  #v-subadm #artAdmList tbody tr[data-id]>td:nth-child(2){grid-area:title;font-size:15px;line-height:1.4;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden}
+  #v-subadm #artAdmList tbody tr[data-id]>td:nth-child(5){grid-area:grp;font-size:12.5px;line-height:1.5;color:var(--ink-2)}
+  #v-subadm #artAdmList tbody tr[data-id]>td:nth-child(4){grid-area:views;font-size:13px;white-space:nowrap}
+  #v-subadm #artAdmList tbody tr[data-id]>td:nth-child(4)::before{content:"點閱 ";color:var(--ink-3)}
+  #v-subadm #artAdmList tbody tr[data-id]>td:nth-child(6){display:none}
+  #v-subadm #artAdmList tbody tr[data-id]>td.gptc{grid-area:gpt;display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding-top:8px;border-top:1px solid var(--line);height:auto}
+  #v-subadm #artAdmList tbody tr:not([data-id])>td{display:block;padding:12px;height:auto;white-space:normal}
+}
 #v-subadm .artadm .js.kdc{border:0;padding:0;margin:0}#v-subadm .artadm .js.kdc .kd{margin:0;font-size:12px;padding:1px 8px;line-height:18px}
 #v-subadm .artadm td button.cx{height:26px;padding:0 10px;border-radius:var(--r-sm,8px);border:1px solid var(--line-2);background:var(--panel-3);color:var(--ink);font:inherit;font-size:12px;cursor:pointer}
+/* 精選文章分級（2026-10-16，Andy：「精選貼文限制給 Pro 可以看，Plus 只能所有類別共 5 篇，其他的只能看到標題」）
+   · #artQuota：列表頁頂端的額度條（額度卡片同一套 amber 分段條）；Pro／管理者不顯示
+   · .artc .lk：卡片上取代摘要的一行狀態（鎖頭＝只看標題、勾＝已解鎖可重讀、數字＝點開會用掉 1 篇額度）
+   · .artlock：單篇頁沒有授權時，內文處放的升級提示卡（qcard.js 的 .qcard，置中、不模糊任何內容——因為根本沒把全文放進 DOM） */
+#artQuota{display:flex;flex-wrap:wrap;align-items:center;gap:var(--sp-2) var(--sp-4);margin:var(--sp-2) 0 0;padding:var(--sp-2) var(--sp-3);border:1px solid var(--line);border-radius:var(--r-sm,8px);background:var(--panel-2,var(--panel));font-size:var(--fs-sm);color:var(--ink-2)}
+#artQuota[hidden]{display:none}
+#artQuota .qk{display:inline-flex;align-items:center;gap:6px;font-weight:700;color:var(--amber)}
+#artQuota .qk svg{flex:none}
+#artQuota b{font-family:var(--mono);font-variant-numeric:tabular-nums;color:var(--ink)}
+#artQuota .qb{display:inline-grid;grid-auto-flow:column;grid-auto-columns:22px;gap:4px;vertical-align:middle}
+#artQuota .qb i{display:block;height:6px;border-radius:3px;background:var(--line-2)}
+#artQuota .qb i.on{background:var(--amber)}
+#artQuota .qs{flex:1 1 260px;min-width:0}
+#artQuota a.qgo{margin-left:auto;display:inline-flex;align-items:center;height:30px;padding:0 14px;border-radius:999px;background:var(--amber);color:var(--bg);font-weight:700;text-decoration:none;white-space:nowrap}
+:root[data-theme="light"] #artQuota a.qgo{color:var(--panel)}
+#artQuota .qdemo{flex:1 1 100%;font-size:var(--fs-min);color:var(--ink-3)}
+.artqt{display:inline-flex;align-items:center;gap:4px;color:var(--amber);font-family:var(--mono);font-variant-numeric:tabular-nums}
+.artc .lk{display:flex;align-items:center;gap:6px;font-size:var(--fs-sm);color:var(--ink-3);line-height:1.5;min-width:0}
+.artc .lk svg{flex:none;color:var(--amber)}
+.artc .lk span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.artc .lk.ok{color:var(--k)}
+.artc .lk.ok svg{color:var(--k)}
+.artc.lkd .tt{color:var(--ink)}
+.artlock{display:flex;flex-direction:column;align-items:center;gap:var(--sp-4);margin:var(--sp-4) 0 var(--sp-2)}
+.artlock .qcard{margin:0 auto}
+.artlock .unl{width:min(520px,100%);box-sizing:border-box}
+.artlock .unl h5{margin:0 0 6px;font-size:var(--fs-sm);color:var(--ink-2)}
+.artlock .unl a{display:flex;align-items:center;gap:8px;min-width:0;padding:6px 0;color:var(--cyan);text-decoration:none;font-size:var(--fs-body,14px)}
+.artlock .unl a span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.artlock .unl a:hover span{text-decoration:underline}
+@media (max-width:640px){#artQuota a.qgo{margin-left:0;flex:1 1 100%;justify-content:center}.artlock .qcard{width:100%}}
 `;
 
   /* ------------------------------------------------------------------ 資料 */
@@ -566,8 +651,29 @@
     }
     return S.idxP;
   }
+  /* ------------------------------------------------------------------ 新文章的全文：只在會員後端（2026-10-16 防白嫖）
+     索引裡 src:'api' 的文章，公開檔只有標題／分類／日期／族群，全文要 POST /v1/articles/get（帶登入權杖）才拿得到；
+     訪客／註冊會員（0 篇）被伺服器 403、Plus 第 6 篇 402、Pro／管理者不限。次數由伺服器記，這裡只把伺服器回報的「已讀清單」併進快取給畫面用。
+     舊的 4 篇（沒有 src）維持原樣：靜態 JSON、本機計數。 */
+  const isRemote = (m) => !!m && m.src === 'api';
+  const legacyIds = () => new Set((S.idx ? S.idx.list : []).filter((a) => !isRemote(a)).map((a) => a.id));
+  async function remoteGet(id) {
+    const A = window.TwAccount, T = TQ();
+    if (!A || !A.call || !A.user || !A.user()) return { kind: 'auth' };
+    const j = await A.call('/v1/articles/get', { id });
+    if (!j) return { kind: 'net' };
+    const keep = legacyIds();
+    if (T && Array.isArray(j.reads) && Object.prototype.hasOwnProperty.call(j, 'limit') && j.limit != null) { T.merge(AID, j.reads, (k) => !keep.has(k)); T.setLimit(AID, j.limit); }
+    if (j.ok && j.post && j.post.title) return { kind: 'ok', d: Object.assign({}, j.post, { src: 'api' }) };
+    if (j._s === 401 || j.error === 'auth') return { kind: 'auth' };
+    if (j.error === 'quota') return { kind: 'quota' };
+    if (j.error === 'forbidden') { if (T) T.setLimit(AID, 0); return { kind: 'forbidden' }; }
+    if (j.error === 'not_found') return { kind: 'nf' };
+    return { kind: 'net' };
+  }
   function loadPost(id) {
     if (!okId(id)) return Promise.resolve(null);
+    if (isRemote(S.idx && S.idx.list.find((a) => a.id === id))) return remoteGet(id).then((r) => (r.kind === 'ok' ? r.d : null));   // 管理者用（GPT 交接）：伺服器照樣驗身分
     if (S.posts[id]) return S.posts[id];
     S.posts[id] = fetchJson('articles/posts/' + encodeURIComponent(id) + '.json').catch(() => { delete S.posts[id]; return null; });
     return S.posts[id];
@@ -621,8 +727,40 @@
   window.addEventListener('tw:account-config', () => {   // 帳號 API 網址比文章頁晚就緒（直接開文章網址）：就緒時補讀
     const h = (location.hash || '').replace(/^#/, '').split('/');
     if (h[0] === 'articles' || h[0] === 'admin') loadStats(true);
-    else if (h[0] === 'article' && S.cur) recordView(S.cur);
+    else if (h[0] === 'article' && S.cur && S.curData) recordOpen(S.cur);   // 沒授權（沒讀全文）的單篇不算點閱
   });
+  /* 2026-10-16（Andy：「精選文章其他分頁有的功能 他也要有 例如導覽 限制」）：管理區可以把文章對某個方案關掉或限每日篇數
+     （features.js art.read、art.cat.<類別>）。被擋住的那一篇讀者其實沒看到內文 —— 不算一次點閱，不然「哪篇文章最多人看」會被看不到的人灌高。
+     判斷直接問權限與額度（TwPerm／TwQuota），不等鎖頭畫上去：鎖頭是下一個畫格才掛，等畫面會讓點閱晚送、數字晚出來。
+     額度：今天這一篇已經算過 → 照常；還沒算、而且已經用滿 → 擋（跟 quota.js evaluate 同一條規則）。*/
+  function artBlocked(cat) {
+    const P = window.TwPerm, Q = window.TwQuota, h = location.hash || '';
+    return ['art.read', 'art.cat.' + cat].some((fid) => {
+      try {
+        if (P && P.can && !P.can(fid)) return true;
+        const lim = Q && Q.limit ? Q.limit(fid) : Infinity;
+        if (!Number.isFinite(lim)) return false;
+        const key = Q.unitKey(fid, h), used = Q.used(fid) || [];
+        return !!key && !used.includes(key) && used.length >= lim;
+      } catch (e) { return false; }
+    });
+  }
+  function recordOpen(id, fresh) {   // fresh＝真的剛打開這一篇（showPost）；帳號 API 晚就緒的補送不再記一次流量細項
+    if (S.cur !== id || (location.hash || '').replace(/^#/, '').split('/')[0] !== 'article') return;
+    const cat = (S.curData && S.curData.id === id && S.curData.cat) || catOf(id);
+    if (artBlocked(cat)) { loadStats(); return; }
+    /* 流量觀測（管理區 → 精選文章分頁）的「被點最多的文章」：細項＝標題（account.js 會截成 24 字、拿掉引號等字元），一篇打開一次記一次 */
+    try { if (fresh && window.TwT && S.curData && S.curData.id === id) window.TwT('read', S.curData.title || id); } catch (e) { /* 統計失敗不影響閱讀 */ }
+    recordView(id);
+  }
+  /* 權限／身分晚到或換了（登入、登出、管理者改了範本）：列表重畫；單篇只在「讀不讀得到」的規則真的變了才重載（避免記額度又觸發重載的迴圈） */
+  function regate() {
+    const head = (location.hash || '').replace(/^#/, '').split('/')[0];
+    if (head === 'articles') { if ($('#artList')) { paintList(); syncReads(); } }
+    else if (head === 'article' && S.cur && S.sig && S.sig !== sigOf(access())) { const id = S.cur; S.cur = ''; showPost(id); }
+  }
+  window.addEventListener('tw:perm', regate);
+  window.addEventListener('tw:account', regate);
   const catOf = (id) => { const a = S.idx && S.idx.list.find((x) => x.id === id); return a ? a.cat : ''; };
 
   /* 2026-10-16 Andy：「精選文章已經裡面有分頁，側邊子分頁就拿掉」→ 側欄沒有子項可亮，這裡只負責把殘留的 art-* 清掉
@@ -640,12 +778,82 @@
   /* 點閱數：只有拿到有效數字才寫（API 失敗、沒有這一篇 → 不畫，不顯示 0） */
   const viewsOf = (id) => { const v = S.views && S.views[id]; return Number.isFinite(v) && v >= 0 ? Math.floor(v) : null; };
   const vwHTML = (id) => { const v = viewsOf(id); return `<span class="artvw" data-vw="${esc(id)}" title="點閱次數"${v == null ? ' hidden' : ''}>${EYE}<span>${v == null ? '' : v.toLocaleString('zh-TW') + ' 次'}</span></span>`; };
-  const cardHTML = (a) => `<a class="artc k-${esc(a.cat)}" href="#article/${encodeURIComponent(a.id)}" data-id="${esc(a.id)}" data-cat="${esc(a.cat)}" data-date="${esc(a.date)}" data-groups="${esc((a.groups || []).map((g) => g.id).join(' '))}" title="${esc(a.title)}">
+  /* ------------------------------------------------------------------ 分級（2026-10-16，功能鍵 art.read.n）
+     Andy：「精選貼文限制給 Pro 可以看，Plus 只能所有類別共 5 篇，其他的只能看到標題」。
+     · full（Pro、管理者、擁有者、會員系統沒開、預覽版）＝全文都能讀
+     · quota（Plus）＝所有分類合計累計最多讀 N 篇全文；同一篇重讀不重算、打開過的永遠能讀（記在 quota.js 的 TwQuota.total，不歸零）
+     · none（訪客、註冊會員）＝只看標題與分類
+     沒授權的文章**不把全文放進 DOM**（不是 CSS 藏）：單篇頁連文章 JSON 都不去抓；列表卡片也不放摘要與副標。
+     ⚠ 只擋畫面、非伺服器端：文章 JSON 是靜態公開檔，懂技術的人直接開網址還是拿得到（跟全站其他額度同一個限制）。 */
+  const AID = 'art.read.n';
+  const LOCK_IC = '<svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><path fill="currentColor" d="M5 7V5a3 3 0 1 1 6 0v2h.5A1.5 1.5 0 0 1 13 8.5v5a1.5 1.5 0 0 1-1.5 1.5h-7A1.5 1.5 0 0 1 3 13.5v-5A1.5 1.5 0 0 1 4.5 7H5zm1.5 0h3V5a1.5 1.5 0 1 0-3 0v2z"/></svg>';
+  const CHK_IC = '<svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><path d="M3 8.4l3.1 3.1L13 4.6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+  const TQ = () => (window.TwQuota && window.TwQuota.total) || null;
+  /* 2026-10-16 防白嫖 fail-closed：計數模組（quota.js）沒載入（被擋掉、載入失敗）時，**不再全開**，照訪客算（只看標題）；
+     只有「預覽版」與「會員系統根本沒開」（本機、沒設 account_config）才不鎖 */
+  function noTotalFallback() {
+    if (window.TW_PREVIEW) return { mode: 'full' };
+    const A = window.TwAccount, c = window.TW_ACCOUNT_OVERRIDE || window.TW_ACCOUNT;
+    if (A && A.on ? !A.on() : !(c && typeof c.api === 'string' && c.api)) return { mode: 'full' };
+    return { mode: 'none', lim: 0, used: 0, ids: [], tier: 'guest', demo: '' };
+  }
+  function access() {
+    const T = TQ(); if (!T) return noTotalFallback();
+    const lim = T.limit(AID);
+    if (lim === Infinity) return { mode: 'full' };
+    const ids = T.used(AID);
+    return { mode: lim > 0 ? 'quota' : 'none', lim, used: ids.length, ids, tier: T.tier(), demo: T.demo() };
+  }
+  const mayOpen = (a, id) => a.mode === 'full' || (a.mode === 'quota' && (a.ids.includes(id) || a.used < a.lim));
+  const isOpened = (a, id) => a.mode === 'full' || (a.mode === 'quota' && a.ids.includes(id));
+  const sigOf = (a) => a.mode + ':' + (a.lim == null ? '' : a.lim);
+  function tierName(t) {
+    if (t === 'guest') return '訪客'; if (t === 'free') return '註冊會員'; if (t === 'plus') return 'Plus'; if (t === 'pro') return 'Pro';
+    const P = window.TwPerm; const n = P && P.state && P.state().planName; return n || t || '會員';
+  }
+  /* 「Plus 可以讀幾篇」寫在卡片上的數字：讀建議方案的 Plus 範本（沒有就 5） */
+  function plusN() {
+    const pr = window.TW_PLAN_PRESETS, t = pr && (pr.tiers || []).find((x) => x.key === 'plus'), v = t && t.feats && t.feats[AID];
+    return Number.isInteger(v) && v > 0 && v < 999 ? v : 5;
+  }
+  /* 沒授權時單篇頁內文處放的升級提示卡（沿用 qcard.js 的 .qcard 款式）*/
+  function lockOpts(a) {
+    const n = plusN();
+    if (a.mode === 'none') {
+      return { kind: 'lock', kick: tierName(a.tier) + '・精選文章', title: '這篇文章的全文需要 Plus 以上',
+        sub: '目前的身分只能看標題與分類，摘要與內文不會顯示。', lh: '這些方案可以讀全文',
+        items: [{ t: 'Plus', s: '累計 ' + n + ' 篇全文（所有分類合計）' }, { t: 'Pro', s: '全文不限篇數' }],
+        btn: a.tier === 'guest' ? '登入或升級' : '升級 Plus', href: '#pricing/need/' + AID, btnCls: 'qactgo' };
+    }
+    return { kind: 'lock', kick: tierName(a.tier) + '・精選文章全文額度', title: '全文額度 ' + a.used + '／' + a.lim + ' 篇已用完',
+      sub: '額度是所有分類合計、累計計算（不是每日，不會重置）。已經打開過的文章可以隨時重讀，其他文章只顯示標題。',
+      lh: '升級後', items: [{ t: 'Pro', s: '全文不限篇數' }], btn: '升級 Pro', href: '#pricing/plan/pro', btnCls: 'qactgo' };
+  }
+  /* 等會員權限載入完再決定（不然訪客第一次進來，權限還沒回就先當「全開」把全文抓下來）。連不到伺服器時最多等 4 秒，之後照全站慣例放行（perm.js：寧可多給，不要誤鎖） */
+  function permReady() {
+    const P = window.TwPerm, A = window.TwAccount;
+    if (!P || !A || !A.on || !A.on() || window.TW_PREVIEW || (P.owner && P.owner()) || P.state().src !== 'default') return Promise.resolve();
+    return new Promise((res) => { let n = 0; const t = setInterval(() => { if (P.state().src !== 'default' || ++n > 40) { clearInterval(t); res(); } }, 100); });
+  }
+  const cardHTML = (a, acc) => {
+    acc = acc || access();
+    const open = isOpened(acc, a.id), may = mayOpen(acc, a.id);
+    const lk = open ? (acc.mode === 'full' ? '' : `<div class="lk ok">${CHK_IC}<span>已解鎖，可隨時重讀</span></div>`)
+      : `<div class="lk">${LOCK_IC}<span>${may ? `點開會用掉 1 篇額度（剩 ${acc.lim - acc.used} 篇）` : acc.mode === 'none' ? '全文需 Plus 以上' : '額度已用完・只顯示標題'}</span></div>`;
+    return `<a class="artc k-${esc(a.cat)}${open ? '' : ' lkd'}" href="#article/${encodeURIComponent(a.id)}" data-id="${esc(a.id)}" data-cat="${esc(a.cat)}" data-date="${esc(a.date)}" data-lock="${open ? 0 : 1}" data-groups="${esc((a.groups || []).map((g) => g.id).join(' '))}" title="${esc(a.title)}">
     <span class="wm">${icon(a.cat, 96)}</span>
     <div class="r1">${badge(a.cat)}<span class="d">${esc(a.date)}</span><span class="rm" title="閱讀時間">約 ${esc(Number(a.reading_min) || 1)} 分鐘</span></div>
-    <div class="tt">${esc(a.title)}</div>${a.subtitle ? `<div class="st">${esc(a.subtitle)}</div>` : ''}
-    ${a.summary ? `<div class="sm">${esc(a.summary)}</div>` : ''}
+    <div class="tt">${esc(a.title)}</div>${open && a.subtitle ? `<div class="st">${esc(a.subtitle)}</div>` : ''}
+    ${open && a.summary ? `<div class="sm">${esc(a.summary)}</div>` : ''}${lk}
     <div class="fr"><div class="ft">${(a.groups || []).slice(0, 4).map((g) => `<span class="artgp">${esc(g.name)}</span>`).join('')}${(a.groups || []).length ? '' : (Array.isArray(a.tags) ? a.tags.slice(0, 5).map((t) => `<span class="artgp">${esc(t)}</span>`).join('') : '')}</div>${vwHTML(a.id)}</div></a>`;
+  };
+  /* 10-16 Andy：「不必要資訊改成收合，像是相關連結」→ 文末「站內相關頁面／資料來源／同類別其他文章」預設收起（手機準則 5：使用者展開過才記住） */
+  const FOLD_KEY = 'tw.art.fold';
+  const foldOpen = (k) => { try { return (JSON.parse(localStorage.getItem(FOLD_KEY) || '{}') || {})[k] ? ' open' : ''; } catch (e) { return ''; } };
+  document.addEventListener('toggle', (e) => {
+    const d = e.target; if (!d || !d.classList || !d.classList.contains('artfold')) return;
+    try { const m = JSON.parse(localStorage.getItem(FOLD_KEY) || '{}') || {}; m[d.dataset.fold] = d.open ? 1 : 0; localStorage.setItem(FOLD_KEY, JSON.stringify(m)); } catch (err) { /* 私密視窗：只這次有效 */ }
+  }, true);
   const DISC = 'ⓘ 本站文章為公開資訊與產業知識的整理，不構成任何投資建議；內容以資料來源發布時點為準，投資前請自行查證並評估風險。';
 
   /* ------------------------------------------------------------------ 列表頁 */
@@ -664,14 +872,25 @@
     (S.idx ? S.idx.list : []).forEach((a) => (a.groups || []).forEach((g) => { const o = m.get(g.id) || { id: g.id, name: g.name, n: 0 }; o.n += 1; m.set(g.id, o); }));
     return [...m.values()].sort((a, b) => b.n - a.n || a.name.localeCompare(b.name, 'zh-Hant'));
   }
+  /* 2026-10-16（Andy：「精選文章其他分頁有的功能 他也要有」）：卡片標題旁的「?」跟全站同一套（app.js wireHowto 委派、跳出式），
+     內容寫到「所以我該怎麼用」；條列 ≤5 條、每條 ≤30 字（_uitest「說明精簡」的量法）。App 比這支早載入；萬一沒有就退回純條列。*/
+  const HOW_ART = (() => {
+    const q = '這一頁回答：網站整理過的文章有哪些、各在講什麼';
+    const li = ['上方分頁切類別，分頁上的數字＝目前條件下的篇數', '關鍵字、族群、日期三個條件一起作用', '卡片上的眼睛圖示＝這篇被打開過幾次',
+      '所以：先挑類別或族群縮小範圍，再點卡片讀全文', '讀完點「相關族群」，看提到同一族群的其他文章'];
+    const A = window.App;
+    return A && A.howHTML ? A.howHTML(q, li) : `<b class="howq">${esc(q)}</b><ul>${li.map((t) => `<li>${esc(t)}</li>`).join('')}</ul>`;
+  })();
   function skeletonList(root) {
     root.innerHTML = `
 <div class="card artcard" id="artCard">
-  <div class="row spread"><h3>精選文章 <small id="artUpd"></small></h3></div>
+  <div class="row spread"><h3>精選文章 <small id="artUpd"></small> <button class="howbtn pop" data-how="artlist" data-ttl="精選文章怎麼看" type="button" aria-label="精選文章怎麼看">?</button></h3></div>
+  <div class="howtxt" id="how-artlist" hidden>${HOW_ART}</div>
   <div class="nbsw" id="artCats" role="tablist" aria-label="文章分類">
     ${['all'].concat(CAT_KEYS).map((k) => `<button type="button" role="tab" class="k-${k}" data-cat="${k}" data-s="${esc(CAT_S[k])}" title="${esc(catT(k))}">${icon(k, 15)}<span>${esc(catT(k))}</span><em></em></button>`).join('')}
   </div>
   <div class="nbbody">
+    <div id="artQuota" hidden></div>
     <div class="artflt">
       <input type="search" id="artQ" placeholder="搜尋標題關鍵字" aria-label="搜尋標題關鍵字" autocomplete="off">
       <div id="artGrp" hidden></div>
@@ -724,6 +943,25 @@ ${gs.length ? `<section><h5>熱門族群</h5><div class="gps">${gs.map((g) => `<
       b.onclick = () => { const id = b.dataset.gid; if (S.grp.has(id)) S.grp.delete(id); else S.grp.add(id); if (S.ms) S.ms.set({ selected: [...S.grp] }); paintList(); };
     });
   }
+  /* 列表頁頂端的額度條：Pro／管理者（full）不顯示；Plus 顯示「已讀 k／N 篇・剩幾篇」＋分段條；訪客、註冊會員顯示「只能看標題」＋升級鈕 */
+  function paintQuota(root, acc) {
+    const el = $('#artQuota', root); if (!el) return;
+    if (acc.mode === 'full') { el.hidden = true; el.innerHTML = ''; el.dataset.mode = 'full'; return; }
+    const n = plusN(), name = tierName(acc.tier);
+    let h;
+    if (acc.mode === 'none') {
+      h = `<span class="qk">${LOCK_IC}${esc(name)}</span><span class="qs">目前只能看<b>標題與分類</b>。全文需 Plus 以上：Plus 所有分類合計累計可讀 <b>${n}</b> 篇全文（不是每日），Pro 全文不限篇數。</span>`
+        + `<a class="qgo" href="#pricing/need/${AID}">${acc.tier === 'guest' ? '登入或升級' : '升級 Plus'}</a>`;
+    } else {
+      const segs = Math.min(10, acc.lim), lit = Math.min(segs, Math.ceil(Math.min(acc.used, acc.lim) / (acc.lim / segs) - 1e-9)), left = Math.max(0, acc.lim - acc.used);
+      h = `<span class="qk">${LOCK_IC}${esc(name)} 全文額度</span><span class="qb" role="progressbar" aria-label="已讀全文篇數" aria-valuemin="0" aria-valuemax="${acc.lim}" aria-valuenow="${acc.used}">${Array.from({ length: segs }, (_, i) => `<i class="${i < lit ? 'on' : ''}"></i>`).join('')}</span>`
+        + `<span class="qs">已讀 <b>${acc.used}／${acc.lim}</b> 篇・剩 <b>${left}</b> 篇（所有分類合計、累計不是每日，不會重置）。打開過的永遠能重讀，其餘文章只顯示標題。</span>`
+        + (left === 0 ? '<a class="qgo" href="#pricing/plan/pro">升級 Pro 不限篇數</a>' : '');
+    }
+    if (acc.demo) h += `<span class="qdemo">預覽示範身分：${esc(tierName(acc.demo))}（網址加 ?demo_tier=guest／free／plus／pro 切換，?demo_tier=off 取消；計數與正式資料分開）</span>`;
+    el.dataset.mode = acc.mode; el.dataset.used = String(acc.used || 0); el.dataset.lim = String(acc.lim == null ? '' : acc.lim);
+    el.innerHTML = h; el.hidden = false;
+  }
   function paintList() {
     const root = document.getElementById('v-articles'); if (!root || !$('#artList', root)) return;
     ensureRange();
@@ -754,7 +992,9 @@ ${gs.length ? `<section><h5>熱門族群</h5><div class="gps">${gs.map((g) => `<
     cnt.innerHTML = `共 <b>${list.length}</b> 篇`;
     cnt.dataset.n = String(list.length);
     const dirty = !!(S.q.trim() || S.from !== D.from || S.to !== D.to || S.grp.size);
-    box.innerHTML = list.length ? list.map((a) => cardHTML(a)).join('')
+    const acc = access();
+    paintQuota(root, acc);
+    box.innerHTML = list.length ? list.map((a) => cardHTML(a, acc)).join('')
       : `<div class="artempty k-${S.cat === 'all' ? 'all' : S.cat}" id="artEmpty">${icon(S.cat, 40)}<div>${dirty ? '這個條件下沒有符合的文章，換個關鍵字、族群或放寬日期試試。' : '近一個月這個分類還沒有文章。'}</div>`
         + `${dirty ? '<button type="button" class="btn small" data-clr>清除篩選</button>' : '<button type="button" class="btn small" data-wide>看全部日期</button>'}</div>`;
     const c2 = $('[data-clr]', box); if (c2) c2.onclick = () => { resetFilters(); paintList(); };
@@ -771,10 +1011,29 @@ ${gs.length ? `<section><h5>熱門族群</h5><div class="gps">${gs.map((g) => `<
     if (!$('#artList', root)) { disposeCharts(root); skeletonList(root); }
     paintList();
     loadStats();
-    await loadIndex();
+    await Promise.all([loadIndex(), permReady()]);
     if (location.hash.replace(/^#/, '').split('/')[0] !== 'articles') return;   // 讀清單的時候使用者已經換頁
     paintList();
+    syncReads();
   }
+  /* 防白嫖：登入的 Plus 會員，「哪幾篇已解鎖、還剩幾篇」以伺服器為準（換瀏覽器／清資料也對得上）。同步回來後重畫列表 */
+  function syncReads() {
+    const T = TQ(); if (!T || !T.remote || !T.remote()) return;
+    const keep = legacyIds();
+    T.sync(AID).then((r) => {
+      if (!r || !r.ok || r.local) return;
+      if (Array.isArray(r.used)) T.merge(AID, r.used, (k) => !keep.has(k));
+    });
+  }
+  let repaintT = 0;
+  window.addEventListener('tw:total', (e) => {          // 計數（伺服器回報）變了：列表／單篇的鎖定狀態重畫
+    if (!e || !e.detail || e.detail.id !== AID) return;
+    clearTimeout(repaintT);
+    repaintT = setTimeout(() => {
+      const head = (location.hash || '').replace(/^#/, '').split('/')[0];
+      if (head === 'articles' && document.getElementById('artList')) paintList();
+    }, 60);
+  });
 
   /* ------------------------------------------------------------------ 單篇：內文區塊 */
   const NPAL = 7;   // 文章調色盤 --art-p1..7（css() 定義，深淺主題各一組）
@@ -1150,7 +1409,9 @@ ${gs.length ? `<section><h5>熱門族群</h5><div class="gps">${gs.map((g) => `<
     if (back) back.onclick = () => { if (S.backOk && history.length > 1) history.back(); else location.hash = back.dataset.to; };
   }
 
-  function postHTML(d, meta) {
+  function postHTML(d, meta, acc) {
+    acc = acc || access();
+    const qnote = acc.mode === 'quota' ? `<span class="artqt" title="Plus 精選文章全文額度：所有分類合計、累計不歸零">${LOCK_IC}全文額度 ${acc.used}／${acc.lim} 篇</span>` : '';
     const cat = CATS[d.cat] ? d.cat : (meta && meta.cat) || '';
     const kk = CATS[cat] ? cat : 'all';
     const links = (Array.isArray(d.site_links) ? d.site_links : []).filter((l) => l && okHash(l.hash) && l.label);
@@ -1165,21 +1426,21 @@ ${gs.length ? `<section><h5>熱門族群</h5><div class="gps">${gs.map((g) => `<
     const listHash = CATS[cat] ? '#articles/' + cat : '#articles';
     return `
 <div class="artpage k-${kk}">
-<article class="card artpost" id="artPost" data-id="${esc(d.id)}">
+<article class="card artpost" id="artPost" data-id="${esc(d.id)}" data-cat="${esc(cat)}">
   <button type="button" class="artback" id="artBack" data-to="${listHash}" title="回上一頁">← 返回</button>
   <nav class="artcrumb" aria-label="麵包屑"><a href="#articles">精選文章</a><span aria-hidden="true">›</span>${CATS[cat] ? `<a class="kc" href="#articles/${cat}">${icon(cat, 14)}${esc(catT(cat))}</a><span aria-hidden="true">›</span>` : ''}<span class="cur">${esc(d.title)}</span></nav>
-  <div class="artmeta">${cat ? badge(cat) : ''}<span class="mono">${esc(d.date || '')}</span>${upd}<span>閱讀約 ${esc(Number(d.reading_min) || 1)} 分鐘</span>${vwHTML(d.id)}${d.confidence ? `<span title="資料信心：依來源數量與一致性自評">資料信心 ${esc(d.confidence)}</span>` : ''}</div>
+  <div class="artmeta">${cat ? badge(cat) : ''}<span class="mono">${esc(d.date || '')}</span>${upd}<span>閱讀約 ${esc(Number(d.reading_min) || 1)} 分鐘</span>${vwHTML(d.id)}${qnote}${d.confidence ? `<span title="資料信心：依來源數量與一致性自評">資料信心 ${esc(d.confidence)}</span>` : ''}</div>
   <h2 class="artttl">${esc(d.title)}</h2>
   ${d.subtitle ? `<p class="artsub">${esc(d.subtitle)}</p>` : ''}
   ${groups.length ? `<div class="artgps"><span class="lb">相關族群</span>${groups.map((g) => `<button type="button" class="artgp" data-gid="${esc(g.id)}" title="看其他提到「${esc(g.name)}」的文章">${esc(g.name)}</button>`).join('')}</div>` : ''}
   ${tagsHTML(d.tags)}
   ${d.summary ? `<div class="artlead">${esc(d.summary)}</div>` : ''}
   <div class="artbody" id="artBody">${blocks.map(blockHTML).join('')}</div>
-  ${links.length ? `<section class="artsec" id="artLinks"><h4>站內相關頁面</h4><div class="artlinks">${links.map((l) => `<a href="${esc(l.hash)}">${esc(l.label)}</a>`).join('')}</div></section>` : ''}
-  ${srcs.length ? `<section class="artsec" id="artSrc"><h4>資料來源</h4><ol class="artsrc">${srcs.map((s) => {
+  ${links.length ? `<details class="artsec artfold" id="artLinks" data-fold="links"${foldOpen('links')}><summary><h4>站內相關頁面<small>${links.length}</small></h4></summary><div class="artlinks">${links.map((l) => `<a href="${esc(l.hash)}">${esc(l.label)}</a>`).join('')}</div></details>` : ''}
+  ${srcs.length ? `<details class="artsec artfold" id="artSrc" data-fold="src"${foldOpen('src')}><summary><h4>資料來源<small>${srcs.length}</small></h4></summary><ol class="artsrc">${srcs.map((s) => {
     const t = esc(s.title || s.url), info = [s.publisher, s.date].filter(Boolean).map(esc).join('，');
-    return `<li>${okUrl(s.url) ? `<a href="${esc(s.url)}" target="_blank" rel="noopener noreferrer">${t}</a>` : t}${info ? `（${info}）` : ''}</li>`; }).join('')}</ol></section>` : ''}
-  ${more.length ? `<section class="artsec" id="artMore"><h4>同類別其他文章</h4><div class="artmore">${more.map((a) => cardHTML(a)).join('')}</div></section>` : ''}
+    return `<li>${okUrl(s.url) ? `<a href="${esc(s.url)}" target="_blank" rel="noopener noreferrer">${t}</a>` : t}${info ? `（${info}）` : ''}</li>`; }).join('')}</ol></details>` : ''}
+  ${more.length ? `<details class="artsec artfold" id="artMore" data-fold="more"${foldOpen('more')}><summary><h4>同類別其他文章<small>${more.length}</small></h4></summary><div class="artmore">${more.map((a) => cardHTML(a, acc)).join('')}</div></details>` : ''}
   <p class="artdisc">${esc(DISC)}</p>
   <div class="artend"><a href="${listHash}" id="artEnd">${icon(kk, 15)}回到${esc(catT(cat))}清單</a></div>
 </article>
@@ -1195,22 +1456,84 @@ ${gs.length ? `<section><h5>熱門族群</h5><div class="gps">${gs.map((g) => `<
     const changed = S.cur !== id; S.cur = id;
     markSub(catOf(id));
     if (changed) { disposeCharts(root); root.innerHTML = '<div class="card artpost"><div class="arterr">載入中…</div></div>'; window.scrollTo({ top: 0 }); }
-    const [idx, d] = await Promise.all([loadIndex(), loadPost(id)]);
-    if (S.cur !== id || location.hash.replace(/^#/, '').split('/')[0] !== 'article') return;
+    const gone = () => S.cur !== id || location.hash.replace(/^#/, '').split('/')[0] !== 'article';
+    const [idx] = await Promise.all([loadIndex(), permReady()]);
+    if (gone()) return;
     const meta = idx ? idx.list.find((a) => a.id === id) : null;
-    if (!d || !d.title) {
+    const notFound = () => {
+      S.curData = null; S.sig = sigOf(access());
       root.innerHTML = `<div class="card artpost" id="artPost"><button type="button" class="artback" id="artBack" data-to="#articles">← 返回</button><nav class="artcrumb"><a href="#articles">精選文章</a><span aria-hidden="true">›</span><span class="cur">找不到文章</span></nav>
         <div class="arterr" id="artErr">這篇文章暫時讀不到（可能還在整理或已下架）。<br><a href="#articles">回精選文章清單</a></div></div>`;
       hydrate(root, {});
-      return;
+    };
+    /* 沒授權：不去抓文章 JSON，頁面只用清單上的標題、分類、日期、族群（這些本來就是列表卡片公開的資料）＋升級提示卡 */
+    const locked = (acc) => {
+      if (idx && !meta) return notFound();
+      S.curData = null; S.sig = sigOf(acc);
+      markSub(meta && meta.cat);
+      disposeCharts(root);
+      root.innerHTML = lockedHTML(meta, acc, id);
+      hydrate(root, {});
+      document.title = (meta ? meta.title : '精選文章') + '｜精選文章';
+    };
+    let acc = access();
+    if (!mayOpen(acc, id)) return locked(acc);
+    let d;
+    if (isRemote(meta)) {
+      /* 新文章：伺服器才是裁判。本機判斷「可以讀」只代表「值得去問」；伺服器說不行（402 額度滿、403 沒權限、401 沒登入）就退回鎖定頁；連不到＝不顯示（fail-closed） */
+      const r = await remoteGet(id);
+      if (gone()) return;
+      if (r.kind === 'nf') return notFound();
+      if (r.kind === 'net') {
+        S.curData = null; S.sig = sigOf(acc); disposeCharts(root);
+        root.innerHTML = `<div class="card artpost" id="artPost"><button type="button" class="artback" id="artBack" data-to="#articles">← 返回</button><div class="arterr" id="artErr">會員伺服器暫時連不到，全文無法顯示。<br><a href="#article/${esc(encodeURIComponent(id))}" id="artRetry">重新載入</a>　<a href="#articles">回精選文章清單</a></div></div>`;
+        hydrate(root, {});
+        return;
+      }
+      if (r.kind !== 'ok') { const a2 = access(); return locked(a2.mode === 'full' ? { mode: 'none', lim: 0, used: 0, ids: [], tier: a2.tier || 'guest' } : a2); }
+      d = r.d;
+    } else {
+      d = await loadPost(id);
+      if (gone()) return;
+      if (!d || !d.title) return notFound();
+      /* 讀得到才記一次額度（讀不到的 id 不扣）；同一篇重讀不重算。兩個分頁同時用掉最後一格的競態：use 回 false → 退回鎖定頁。舊的靜態文章維持本機計數（它本來就是公開檔） */
+      if (acc.mode === 'quota' && !TQ().useLocal(AID, id)) return locked(access());
     }
+    acc = access();
+    S.sig = sigOf(acc);
     markSub(CATS[d.cat] ? d.cat : meta && meta.cat);
     disposeCharts(root);
-    root.innerHTML = postHTML(d, meta);
+    root.innerHTML = postHTML(d, meta, acc);
     S.curData = d;
     hydrate(root, d);
-    recordView(d.id);
+    recordOpen(d.id, true);
     document.title = d.title + '｜精選文章';
+  }
+  /* 沒授權的單篇頁：版型跟 postHTML 的頭部一致（返回、麵包屑、分類徽章、日期、標題、相關族群），內文處換成升級提示卡。
+     不放副標、摘要、標籤、區塊、站內連結、資料來源 —— 那些都是內文。Plus 額度用完時，下面列出「已解鎖的文章」讓他重讀。 */
+  function lockedHTML(meta, acc, id) {
+    const cat = meta && CATS[meta.cat] ? meta.cat : '', kk = cat || 'all';
+    const title = meta ? meta.title : '精選文章';
+    const groups = cleanGroups(meta && meta.groups);
+    const listHash = cat ? '#articles/' + cat : '#articles';
+    const QC = window.TwQCard;
+    if (QC && QC.css) QC.css();
+    const card = QC ? QC.html(lockOpts(acc)) : `<p>${esc(lockOpts(acc).title)}</p>`;
+    const open = (S.idx ? S.idx.list : []).filter((a) => acc.mode === 'quota' && acc.ids.includes(a.id));
+    const unl = open.length ? `<div class="unl"><h5>你已解鎖的文章（可隨時重讀）</h5>${open.map((a) => `<a href="#article/${encodeURIComponent(a.id)}">${CHK_IC}<span>${esc(a.title)}</span></a>`).join('')}</div>` : '';
+    return `
+<div class="artpage k-${kk}">
+<article class="card artpost artlocked" id="artPost" data-id="${esc(id)}" data-lock="1">
+  <button type="button" class="artback" id="artBack" data-to="${listHash}" title="回上一頁">← 返回</button>
+  <nav class="artcrumb" aria-label="麵包屑"><a href="#articles">精選文章</a><span aria-hidden="true">›</span>${cat ? `<a class="kc" href="#articles/${cat}">${icon(cat, 14)}${esc(catT(cat))}</a><span aria-hidden="true">›</span>` : ''}<span class="cur">${esc(title)}</span></nav>
+  <div class="artmeta">${cat ? badge(cat) : ''}${meta ? `<span class="mono">${esc(meta.date || '')}</span>` : ''}</div>
+  <h2 class="artttl">${esc(title)}</h2>
+  ${groups.length ? `<div class="artgps"><span class="lb">相關族群</span>${groups.map((g) => `<span class="artgp">${esc(g.name)}</span>`).join('')}</div>` : ''}
+  <div class="artlock" id="artLock">${card}${unl}</div>
+  <p class="artdisc">${esc(DISC)}</p>
+  <div class="artend"><a href="${listHash}" id="artEnd">${icon(kk, 15)}回到${esc(catT(cat))}清單</a></div>
+</article>
+</div>`;
   }
 
   /* ------------------------------------------------------------------ 進入點（app.js route() 呼叫） */
@@ -1220,7 +1543,8 @@ ${gs.length ? `<section><h5>熱門族群</h5><div class="gps">${gs.map((g) => `<
   }
 
   /* ------------------------------------------------------------------ 管理區 #admin/articles */
-  function isAdmin() { const A = window.TwAccount; const u = A && A.on && A.on() && A.user && A.user(); return !!(u && u.admin); }
+  /* 預覽版（window.TW_PREVIEW）比照其他管理頁可瀏覽（DECISIONS #343）；正式站沒有這個旗標，行為不變 */
+  function isAdmin() { if (window.TW_PREVIEW) return true; const A = window.TwAccount; const u = A && A.on && A.on() && A.user && A.user(); return !!(u && u.admin); }
   /* 產出佇列（2026-10-16，Andy：「claude 指負責產出文章，內容……點選清單內主題，點選後我可以再次點選產生精選文章，或是短影片」）
      按鈕 → 會員 Worker /v1/articles/jobs/add 排一筆 → GitHub Actions（article-jobs.yml）每小時同步進 repo →
      Claude 排程撰寫、推上 main → 文章 index.json 帶同一個 topic 時自動標「已上架」。*/
@@ -1244,6 +1568,13 @@ ${gs.length ? `<section><h5>熱門族群</h5><div class="gps">${gs.map((g) => `<
     });
     return out.join('') || '<span class="muted">—</span>';
   }
+  function admTabGet() { try { return localStorage.getItem('tw.art.admtab') === 'stats' ? 'stats' : 'topics'; } catch (e) { return 'topics'; } }
+  function setAdmTab(v, t) {
+    S.admTab = t === 'stats' ? 'stats' : 'topics';
+    $$('#artAdmTabs>button', v).forEach((b) => { const on = b.dataset.t === S.admTab; b.classList.toggle('on', on); b.setAttribute('aria-selected', String(on)); });
+    const pt = $('#artPanelTopics', v), ps = $('#artPanelStats', v);
+    if (pt) pt.hidden = S.admTab !== 'topics'; if (ps) ps.hidden = S.admTab !== 'stats';
+  }
   async function renderAdmin(v) {
     css();
     if (!isAdmin()) {
@@ -1257,8 +1588,14 @@ ${gs.length ? `<section><h5>熱門族群</h5><div class="gps">${gs.map((g) => `<
     const list = idx ? idx.list : [];
     const gm = new Map(); list.forEach((a) => (a.groups || []).forEach((g) => { if (!gm.has(g.id)) gm.set(g.id, g.name); }));
     const grpOpts = [...gm].sort((x, y) => x[1].localeCompare(y[1], 'zh-Hant')).map(([id, n]) => `<option value="${esc(id)}">${esc(n)}</option>`).join('');
+    /* 2026-10-16 Andy：「需要分成兩個分頁，一個是跟文章主題有關，另一個是統計數據」→ 兩個分頁：
+       「文章主題」＝已上架文章＋主題候選＋產出進度（維持原樣）＋最下面「產貼文頻率設定」（artsched.js）；「統計數據」＝原本的點閱統計（#artStats，原樣搬入）。
+       兩塊都一次畫好、用 hidden 切換（所以切回來不會重抓、篩選與勾選都還在）；選哪個分頁存 localStorage（只是每人自己的習慣）。*/
+    S.admTab = admTabGet();
     v.innerHTML = `
-<section id="artStats" class="artadm"></section>
+<div class="artadm" id="artAdmTabsW"><div class="nbsw lv2" id="artAdmTabs" role="tablist" aria-label="精選文章管理分頁">
+  <button type="button" role="tab" id="artTabTopics" data-t="topics" aria-controls="artPanelTopics">文章主題</button><button type="button" role="tab" id="artTabStats" data-t="stats" aria-controls="artPanelStats">統計數據</button></div></div>
+<div class="artpanel" id="artPanelTopics" role="tabpanel" aria-labelledby="artTabTopics">
 <div class="card artadm" id="artAdmList">
   <div class="hd"><h3>已上架文章</h3><span class="muted">${list.length} 篇${idx && idx.updated ? '・清單更新 ' + esc(idx.updated) : ''}</span></div>
   <div class="aflt" id="artAdmFlt">
@@ -1269,8 +1606,11 @@ ${gs.length ? `<section><h5>熱門族群</h5><div class="gps">${gs.map((g) => `<
     <button type="button" class="clr" id="artAfClr">清除</button>
     <span class="cnt" id="artAfCnt"></span>
   </div>
-  <div class="tbw"><table><colgroup><col style="width:120px"><col><col style="width:110px"><col style="width:70px"><col style="width:18%"><col style="width:22%"></colgroup>
-  <thead><tr><th class="c">類別</th><th>標題</th><th class="c">日期</th><th class="r" title="會員 Worker 統計的點閱次數；讀不到寫「—」">點閱</th><th>相關族群</th><th>來源主題</th></tr></thead><tbody id="artAdmBody"></tbody></table></div>
+  <div class="gpm gpbar" id="artGptBar"><span class="gpbl">傳給 GPT：</span><select id="artGptTypeH" aria-label="傳給 GPT 的類型"><option value="ig">IG 貼文</option><option value="video">影片</option></select><button type="button" id="artGptSendM" disabled>傳送勾選的文章</button></div>
+  <p class="tpmsg" id="artGptMsg" role="status" hidden></p>
+  <div class="gpp" id="artGptPanel" hidden></div>
+  <div class="tbw"><table><colgroup><col style="width:120px"><col><col style="width:110px"><col style="width:70px"><col style="width:14%"><col style="width:14%"><col style="width:350px"></colgroup>
+  <thead><tr><th class="c">類別</th><th>標題</th><th class="c">日期</th><th class="r" title="會員 Worker 統計的點閱次數；讀不到寫「—」">點閱</th><th>相關族群</th><th>來源主題</th><th class="gpth">傳給 GPT <span class="gpd"><button type="button" id="artGptSendIg" data-gtype="ig" disabled title="先在每列勾選文章">傳送勾選・IG 貼文</button><button type="button" id="artGptSendVid" data-gtype="video" disabled title="先在每列勾選文章">傳送勾選・影片</button></span></th></tr></thead><tbody id="artAdmBody"></tbody></table></div>
 </div>
 <div class="card artadm" id="artAdmTopics">
   <div class="hd"><h3>主題候選清單</h3><span class="muted" id="artTpUpd">${tp && tp.updated ? '更新 ' + esc(tp.updated) : ''}・點列勾選主題（最多 5 個、可跨類別），再按上方按鈕交給 Claude 撰寫</span><span class="sp"></span>
@@ -1294,7 +1634,7 @@ ${gs.length ? `<section><h5>熱門族群</h5><div class="gps">${gs.map((g) => `<
   <thead><tr><th class="c">選</th><th>分數</th><th class="c">類別</th><th>標題</th><th>理由</th><th class="c">建議形式</th><th>產出狀態</th></tr></thead><tbody id="artTpBody"></tbody></table></div></div>
 </div>
 <div class="card artadm" id="artAdmJobs">
-  <div class="hd"><h3>產出進度</h3><span class="muted">排隊中的請求由 Claude 每天台北 09:50、14:50、20:50 三輪處理；文章推上線後這裡自動變「已完成」</span></div>
+  <div class="hd"><h3>產出進度</h3><span class="muted">排隊中的請求由 Claude 每小時（台北 :05）處理；文章推上線後這裡自動變「已完成」</span></div>
   <div class="aflt" id="artJobFlt">
     <select id="artJfKind" aria-label="產出種類"><option value="">全部種類</option><option value="article">精選文章</option><option value="video">短影片</option></select>
     <select id="artJfSt" aria-label="狀態"><option value="">全部狀態</option>${Object.keys(JST).map((k) => `<option value="${k}">${JST[k]}</option>`).join('')}</select>
@@ -1304,7 +1644,14 @@ ${gs.length ? `<section><h5>熱門族群</h5><div class="gps">${gs.map((g) => `<
   </div>
   <div class="tbw"><table><colgroup><col style="width:64px"><col style="width:96px"><col style="width:30%"><col><col style="width:96px"><col style="width:120px"><col style="width:96px"></colgroup>
   <thead><tr><th class="r">編號</th><th class="c">產出</th><th>主題</th><th>補充</th><th class="c">狀態</th><th class="c">送出時間</th><th class="c">操作</th></tr></thead><tbody id="artJobBody"></tbody></table></div>
-</div>`;
+</div>
+<div id="artSchedHost"></div>
+</div>
+<div class="artpanel" id="artPanelStats" role="tabpanel" aria-labelledby="artTabStats"><section id="artStats" class="artadm"></section></div>`;
+    /* 產貼文頻率設定（site/artsched.js）：每週幾 × 哪個時段、各類別幾篇、啟用開關 */
+    if (window.TwArtSched) window.TwArtSched.mount($('#artSchedHost', v), { call: acctCall, cats: CAT_KEYS.map((k) => [k, CATS[k].t]) });
+    setAdmTab(v, S.admTab);
+    $('#artAdmTabs', v).addEventListener('click', (e) => { const b = e.target.closest('button[data-t]'); if (b) { setAdmTab(v, b.dataset.t); try { localStorage.setItem('tw.art.admtab', b.dataset.t); } catch (x) { /* 私密視窗：只在這次有效 */ } } });
     $$('#artTpCats>button', v).forEach((b) => { b.onclick = () => { S.tcat = b.dataset.cat; paintTopics(v); }; });
     $('#artTpSort', v).onclick = () => { S.tsort = S.tsort === 'desc' ? 'asc' : 'desc'; paintTopics(v); };
     $('#artTpBody', v).addEventListener('click', (e) => {
@@ -1320,13 +1667,27 @@ ${gs.length ? `<section><h5>熱門族群</h5><div class="gps">${gs.map((g) => `<
     bind('#artAfGrp', 'grp', 'change'); bind('#artAfFrom', 'from', 'change'); bind('#artAfTo', 'to', 'change'); bind('#artAfQ', 'q', 'input');
     if (af.grp && !gm.has(af.grp)) af.grp = '';
     $('#artAfClr', v).onclick = () => { Object.assign(af, { cat: 'all', grp: '', from: '', to: '', q: '' }); ['#artAfGrp', '#artAfFrom', '#artAfTo', '#artAfQ'].forEach((id) => { $(id, v).value = ''; }); paintAdmList(v); };
-    paintAdmList(v);
+    paintAdmList(v); gptSync(v);
     // 產出進度篩選（Andy 10-16：「產出進度也需要有篩選功能」）
     const jf = S.jf;
     const jb = (id, k, ev) => { const el = $(id, v); el.value = jf[k]; el.addEventListener(ev, () => { jf[k] = el.value.trim(); paintJobs(v); }); };
     jb('#artJfKind', 'kind', 'change'); jb('#artJfSt', 'st', 'change'); jb('#artJfQ', 'q', 'input');
     $('#artJfClr', v).onclick = () => { Object.assign(jf, { kind: '', st: '', q: '' }); ['#artJfKind', '#artJfSt', '#artJfQ'].forEach((id) => { $(id, v).value = ''; }); paintJobs(v); };
     $$('#artGenArt,#artGenVid', v).forEach((b) => { b.onclick = () => submitJob(v, b.dataset.kind); });
+    // 傳給 GPT：列內勾選（存 S.gsel，換篩選不掉）、列內按鈕＝傳這一篇、表頭按鈕＝傳勾選的；清單裡的連結被按下去就記「已傳送」
+    $('#artAdmBody', v).addEventListener('change', (e) => { const c = e.target.closest('input[data-gpt-pick]'); if (!c) return; if (c.checked) S.gsel.add(c.dataset.gptPick); else S.gsel.delete(c.dataset.gptPick); gptMsg(v, ''); gptSync(v); });
+    const typeOf = (b) => (b.dataset.gtype === 'sel' ? S.gtype : b.dataset.gtype);
+    $('#artAdmBody', v).addEventListener('click', (e) => { const b = e.target.closest('button[data-gpt-one]'); if (b) gptPrepare(v, [b.dataset.gptOne], typeOf(b)); });
+    $$('#artGptSendIg,#artGptSendVid', v).forEach((b) => { b.onclick = () => gptPrepare(v, [...S.gsel], b.dataset.gtype); });
+    $('#artGptSendM', v).onclick = () => gptPrepare(v, [...S.gsel], S.gtype);
+    v.addEventListener('change', (e) => { const s = e.target.closest('select[data-gpt-type], #artGptTypeH'); if (!s) return; S.gtype = s.value === 'video' ? 'video' : 'ig'; gptSync(v); });
+    $('#artGptPanel', v).addEventListener('click', async (e) => {
+      const o = e.target.closest('a[data-gpt-open]');
+      if (o) { if (GPT()) GPT().markSent(o.dataset.gptOpen, o.dataset.gtype); setTimeout(() => paintAdmList(v), 0); return; }
+      const c = e.target.closest('button[data-gpt-copy]'); if (!c) return;
+      const it = S.gout.find((x) => x.id === c.dataset.gptCopy && x.type === c.dataset.gtype); if (!it) return;
+      gptMsg(v, (await copyText(it.res.full)) ? `已複製「${it.title}」的完整交接內容，可以貼進 GitHub Issue 的內容欄。` : '複製失敗，請改按「開 GitHub 新 Issue」。', false);
+    });
     /* 10-16 Andy：「也需要我填寫主題 產文章，例如 今天新聞 馬斯克飛天電動車介紹」→ 自訂主題：topic_id＝c-<類別>-<時間>，標題＝填的字 */
     const cusT = $('#artCusT', v), cusB = $$('#artCusArt,#artCusVid', v);
     const cusSync = () => cusB.forEach((b) => { b.disabled = cusT.value.trim().length < 2; });
@@ -1338,7 +1699,7 @@ ${gs.length ? `<section><h5>熱門族群</h5><div class="gps">${gs.map((g) => `<
       const note = (($('#artTpNote', v) || {}).value || '').trim();
       const r = await acctCall('/v1/articles/jobs/add', { topic_id: `c-${cat}-${Date.now().toString(36)}`, kind, title, note });
       if (r && r.job) { tpMsg(v, `已送出 #${r.job.id}：自訂主題「${title}」${KIND_T[kind]}（${CATS[cat].t}）。Claude 下一輪會撰寫`); cusT.value = ''; }
-      else tpMsg(v, r && r._s === 403 ? '送出失敗：登入身分不是管理者（請重新登入）' : '送出失敗：連不到會員伺服器，請稍後再試', true);
+      else tpMsg(v, r && r.error === 'preview_readonly' ? '預覽版不會真的送出（不改正式站的佇列）' : r && r._s === 403 ? '送出失敗：登入身分不是管理者（請重新登入）' : '送出失敗：連不到會員伺服器，請稍後再試', true);
       cusSync(); await loadJobs(); paintTopics(v); paintJobs(v);
     }; });
     $('#artJobBody', v).addEventListener('click', async (e) => {
@@ -1369,7 +1730,7 @@ ${gs.length ? `<section><h5>熱門族群</h5><div class="gps">${gs.map((g) => `<
     for (const t of picks) {   // 一筆一筆送（Worker 端逐筆檢查重複），不並發
       const r = await acctCall('/v1/articles/jobs/add', { topic_id: t.id, kind, title: t.title, note });
       if (r && r.job) (r.dup ? dup : ok).push(`#${r.job.id}「${t.title}」`);
-      else { bad.push(`「${t.title}」`); err = err || (r && r._s === 403 ? '登入身分不是管理者（請重新登入）' : r && r.error === 'too_many' ? '排隊中的請求太多（上限 100 筆）' : '連不到會員伺服器，請稍後再試'); }
+      else { bad.push(`「${t.title}」`); err = err || (r && r.error === 'preview_readonly' ? '預覽版不會真的送出（不改正式站的佇列）' : r && r._s === 403 ? '登入身分不是管理者（請重新登入）' : r && r.error === 'too_many' ? '排隊中的請求太多（上限 100 筆）' : '連不到會員伺服器，請稍後再試'); }
     }
     const parts = [];
     if (ok.length) parts.push(`已送出 ${ok.length} 筆${KIND_T[kind]}：${ok.join('、')}`);
@@ -1379,10 +1740,69 @@ ${gs.length ? `<section><h5>熱門族群</h5><div class="gps">${gs.map((g) => `<
     if (!bad.length) { S.tsels = []; if ($('#artTpNote', v)) $('#artTpNote', v).value = ''; }
     await loadJobs(); paintTopics(v); paintJobs(v);
   }
+  /* ---------------- 傳給 GPT（site/gpthandoff.js 組內容；Andy 10-16：「不是做完就發送，要有個功能鈕，我可以選擇文章，將內容傳到 GPT 那邊，文章是我決定」） ----------------
+     按鈕就是 Andy 的決定：不排隊、不碰 Worker。點下去 → 讀該篇文章 JSON → 組成 Markdown → 開預填的 GitHub 新 Issue（label social-handoff，一篇一則）。
+     勾多篇 → 「傳送勾選的文章」會把每篇的連結列在下面的清單，一則一則按（瀏覽器只准一次點擊開一個新分頁）。已傳過的列顯示時間、按鈕改「再傳一次」。 */
+  const GPT = () => window.TwGptHandoff;
+  const GT = { ig: 'IG 貼文', video: '影片' };
+  function gptCell(a) {
+    const st = (ty) => (GPT() ? GPT().sentText(a.id, ty) : '');
+    const one = (ty) => `<span class="gpg"><button type="button" class="gpto" data-gpt-one="${esc(a.id)}" data-gtype="${ty}" title="把這一篇整理成「${GT[ty]}」的交接 Issue 交給 GPT">${st(ty) ? '再傳一次・' : '傳給 GPT・'}${GT[ty]}</button>${st(ty) ? `<span class="gpts" title="這個瀏覽器上次傳送的時間（台北）">已傳送 ${esc(st(ty))}</span>` : ''}</span>`;
+    const sent = ['ig', 'video'].filter((ty) => st(ty)).map((ty) => `${GT[ty]} ${st(ty)}`).join('、');
+    return `<label class="gptk" title="勾選後按表頭的「傳送勾選」"><input type="checkbox" data-gpt-pick="${esc(a.id)}"${S.gsel.has(a.id) ? ' checked' : ''} aria-label="勾選：${esc(a.title)}"></label>`
+      + `<span class="gpd">${one('ig')}${one('video')}</span>`
+      + `<span class="gpm"><select data-gpt-type aria-label="類型：${esc(a.title)}"><option value="ig"${S.gtype === 'ig' ? ' selected' : ''}>IG 貼文</option><option value="video"${S.gtype === 'video' ? ' selected' : ''}>影片</option></select><button type="button" class="gpto" data-gpt-one="${esc(a.id)}" data-gtype="sel">傳給 GPT</button>${sent ? `<span class="gpts">已傳送：${esc(sent)}</span>` : ''}</span>`;
+  }
+  function gptSync(v) {
+    const n = S.gsel.size;
+    $$('#artGptSendIg,#artGptSendVid,#artGptSendM', v).forEach((b) => { b.disabled = !n; });
+    const sfx = n ? `（${n}）` : '';
+    const g = (id, t) => { const b = $(id, v); if (b) b.textContent = t; };
+    g('#artGptSendIg', '傳送勾選・IG 貼文' + sfx); g('#artGptSendVid', '傳送勾選・影片' + sfx); g('#artGptSendM', '傳送勾選的文章' + sfx);
+    $$('select[data-gpt-type], #artGptTypeH', v).forEach((s) => { s.value = S.gtype; });
+  }
+  function gptMsg(v, t, err) { const m = $('#artGptMsg', v); if (!m) return; m.hidden = !t; m.textContent = t || ''; m.classList.toggle('err', !!err); }
+  async function copyText(t) {
+    try { await navigator.clipboard.writeText(t); return true; } catch (e) { /* 退回舊法 */ }
+    try { const ta = document.createElement('textarea'); ta.value = t; ta.style.cssText = 'position:fixed;left:-999px;top:0'; document.body.appendChild(ta); ta.select(); const r = document.execCommand('copy'); ta.remove(); return !!r; } catch (e) { return false; }
+  }
+  function paintGptPanel(v) {
+    const p = $('#artGptPanel', v); if (!p) return;
+    p.hidden = !S.gout.length;
+    p.innerHTML = S.gout.length ? `<p class="gph"><b>已整理好 ${S.gout.length} 則交接 Issue</b>（一篇一則）。按「開 GitHub 新 Issue」→ 在 GitHub 那頁按綠色的 <b>Submit new issue</b>（送出新問題）才算傳出去；Issue 是公開的，內容只有文章已公開的部分。</p>`
+      + S.gout.map((o) => `<div class="gpr" data-id="${esc(o.id)}" data-gtype="${o.type}"><span class="gpt" title="${esc(o.res.title)}"><em class="gpk ${o.type}">${GT[o.type]}</em> ${esc(o.title)}</span>
+        <a class="gpl" href="${esc(o.res.url)}" target="_blank" rel="noopener noreferrer" data-gpt-open="${esc(o.id)}" data-gtype="${o.type}">開 GitHub 新 Issue</a>
+        <button type="button" data-gpt-copy="${esc(o.id)}" data-gtype="${o.type}">複製完整交接內容</button>
+        <span class="gpn">${o.res.trimmed.length ? `網址長度有限，已省略：${esc(o.res.trimmed.join('、'))}（完整內容請按「複製完整交接內容」貼進 Issue）` : '內容完整放進連結'}</span></div>`).join('') : '';
+  }
+  async function gptPrepare(v, ids, type) {
+    type = type === 'video' ? 'video' : 'ig';
+    ids = ids.filter((id) => S.idx && S.idx.list.some((a) => a.id === id));
+    if (!ids.length || !GPT()) return;
+    let w = null;
+    if (ids.length === 1) { try { w = window.open('about:blank', '_blank'); if (w) w.opener = null; } catch (e) { w = null; } }   // 先在「點擊當下」開空白分頁，等文章讀回來再導過去（await 之後才開會被擋）
+    gptMsg(v, '整理交接內容中…');
+    const posts = await Promise.all(ids.map((id) => loadPost(id)));
+    const out = [], bad = [];
+    ids.forEach((id, i) => {
+      const a = S.idx.list.find((x) => x.id === id), p = posts[i];
+      if (p && p.id === id) out.push({ id, type, title: a.title, res: GPT().build(p, type) }); else bad.push(a.title);
+    });
+    S.gout = out; paintGptPanel(v);
+    if (out.length === 1 && w) { w.location.href = out[0].res.url; GPT().markSent(out[0].id, type); }
+    else if (w) w.close();
+    if (out.length === 1 && w) { /* 已經開了 */ } else if (out.length === 1) gptMsg(v, '瀏覽器擋掉了新分頁，請按下面的「開 GitHub 新 Issue」。');
+    gptMsg(v, bad.length ? `讀不到這幾篇的內容：${bad.join('、')}` : out.length === 1 && w ? `已開啟「${out[0].title}」（${GT[type]}）的 GitHub 新 Issue 分頁，請在那頁按 Submit new issue。` : out.length > 1 ? `已整理 ${out.length} 篇（${GT[type]}）；請在下面清單一則一則按「開 GitHub 新 Issue」。` : '', !!bad.length);
+    ids.forEach((id) => S.gsel.delete(id));
+    paintAdmList(v); gptSync(v);
+  }
+  /* 10-16 Andy：「清除」按了「沒作用」→ 沒有任何篩選時按了畫面本來就不會變；改成沒有篩選＝反灰不能按，有篩選才亮 */
+  function clrState(b, on) { if (!b) return; b.disabled = !on; b.title = on ? '清除所有篩選條件' : '目前沒有篩選條件'; }
   function paintAdmList(v) {
     const body = $('#artAdmBody', v); if (!body) return;
     const af = S.af, all = S.idx ? S.idx.list : [];
     $$('#artAfCats>button', v).forEach((b) => { const on = b.dataset.cat === af.cat; b.classList.toggle('on', on); b.setAttribute('aria-selected', on ? 'true' : 'false'); });
+    clrState($('#artAfClr', v), !!((af.cat && af.cat !== 'all') || af.grp || af.from || af.to || af.q));
     const q = af.q.toLowerCase();
     const rows = all.filter((a) => (af.cat === 'all' || a.cat === af.cat) && (!af.grp || (a.groups || []).some((g) => g.id === af.grp))
       && (!af.from || a.date >= af.from) && (!af.to || a.date <= af.to) && (!q || String(a.title).toLowerCase().includes(q) || (a.tags || []).some((t) => String(t).toLowerCase().includes(q))));
@@ -1392,8 +1812,9 @@ ${gs.length ? `<section><h5>熱門族群</h5><div class="gps">${gs.map((g) => `<
       return `<tr data-id="${esc(a.id)}" data-cat="${esc(a.cat)}" data-date="${esc(a.date)}"><td class="c">${badge(a.cat)}</td><td class="l" title="${esc(a.title)}"><a href="#article/${encodeURIComponent(a.id)}">${esc(a.title)}</a></td>
     <td class="n c">${esc(a.date)}</td><td class="n r" data-vwc="${esc(a.id)}">${viewsOf(a.id) == null ? '—' : viewsOf(a.id).toLocaleString('zh-TW')}</td>
     <td class="dm" title="${esc(gs.join('、'))}">${gs.length ? esc(gs.join('、')) : '<span class="muted">—</span>'}</td>
-    <td class="dm" title="${esc(tpTitle(a.topic))}">${a.topic && tpTitle(a.topic) ? esc(tpTitle(a.topic)) : '<span class="muted">—</span>'}</td></tr>`; }).join('')
-      : `<tr><td colspan="6" class="muted">${S.idx ? (all.length ? '沒有符合篩選條件的文章' : '還沒有上架的文章') : '文章清單讀不到'}</td></tr>`;
+    <td class="dm" title="${esc(tpTitle(a.topic))}">${a.topic && tpTitle(a.topic) ? esc(tpTitle(a.topic)) : '<span class="muted">—</span>'}</td>
+    <td class="gptc" data-gpt="${esc(a.id)}">${gptCell(a)}</td></tr>`; }).join('')
+      : `<tr><td colspan="7" class="muted">${S.idx ? (all.length ? '沒有符合篩選條件的文章' : '還沒有上架的文章') : '文章清單讀不到'}</td></tr>`;
   }
   /* ---------------- 點閱統計 ---------------- */
   function loadDaily() {
@@ -1474,6 +1895,7 @@ ${gs.length ? `<section><h5>熱門族群</h5><div class="gps">${gs.map((g) => `<
     const hit = S.jobs.map(eff).filter((j) => (!jf.kind || j.kind === jf.kind) && (!jf.st || j.status === jf.st)
       && (!q || String(j.title || '').toLowerCase().includes(q) || String(j.note || '').toLowerCase().includes(q)));
     const rows = hit.slice(0, 100);
+    clrState($('#artJfClr', v), !!(jf.kind || jf.st || jf.q));
     const c = $('#artJfCnt', v); if (c) { c.textContent = `${hit.length}／${S.jobs.length} 筆${hit.length > rows.length ? '（顯示前 100 筆）' : ''}`; c.dataset.n = String(hit.length); }
     body.innerHTML = rows.length ? rows.map((j) => {
       const pub = j.kind === 'article' && j.status === 'done' && j.result && S.idx && S.idx.list.find((a) => a.id === j.result);
@@ -1516,7 +1938,12 @@ ${gs.length ? `<section><h5>熱門族群</h5><div class="gps">${gs.map((g) => `<
   // 管理者身分是非同步回來的（登入、/v1/me）：回來時若正停在這一頁就重畫一次
   window.addEventListener('tw:account', () => { if (location.hash === '#admin/articles') { const v = document.getElementById('v-subadm'); if (v) renderAdmin(v); } });
 
-  window.TwArticles = { show, catOf, state: () => S, renderAdmin };
+  /* 2026-10-16：左上搜尋框（app.js initSearch）也搜得到文章標題 —— 給它一份已上架清單（id、標題、類別名、日期），順序＝最新在前 */
+  function searchList() {
+    return loadIndex().then((idx) => (idx && Array.isArray(idx.list) ? idx.list : []).filter((a) => a && okId(a.id) && a.title)
+      .map((a) => ({ id: a.id, title: String(a.title), cat: a.cat, catName: catT(a.cat), date: a.date || '' })));
+  }
+  window.TwArticles = { show, catOf, state: () => S, renderAdmin, searchList, icon };
   /* 保險：這支排在 app.js 後面載入。若 app.js 第一次跑 route() 時這支還沒載好（直接開 #articles／#article/<id> 的網址），
      那一次就沒人畫 —— 開站後看一眼：頁面已經切到 #v-articles 但裡面是空的，就自己補畫一次。*/
   function boot() {

@@ -134,7 +134,7 @@ def t_login_stuck_1016(b, base, code):
         pg.goto(base + "#overview", wait_until="domcontentloaded")
         wait_until(pg, "() => !!document.getElementById('supFab')", 8000)
         tap(pg, "#supFab")
-        tap(pg, "#supPanel .sptabs button[data-t='mail']")
+        tap(pg, "#supPanel .sptabs button[data-t='fb']")
         href = pg.get_attribute("#supMail", "href") or ""
         ok(f"{T}：客服寄信 → 收件者是 liguligu0818@gmail.com", "to=liguligu0818%40gmail.com" in href, href)
         pg.goto(base + "#legal", wait_until="domcontentloaded")

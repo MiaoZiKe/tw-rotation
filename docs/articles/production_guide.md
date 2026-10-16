@@ -7,10 +7,95 @@ Andy 10-16：「claude 指負責產出文章，內容……下方是我有功能
 1. Andy 在管理區 `#admin/articles` →「主題候選清單」點一列 → 按「產生精選文章」或「產生短影片」（可附補充）。
 2. 請求排進會員 Worker 的 `article_jobs` 表（`workers/account-api/articles.js`），狀態 `queued`。
 3. `.github/workflows/article-jobs.yml` 每小時 :41 把未完成的請求同步成 **`data/_state/article_jobs.json`**（只有編號、主題 id、種類、標題、補充、狀態、時間）。
-4. Claude 排程（台北 09:50、14:50、20:50）`git pull` 後讀這支檔：
+4. Claude 排程（**台北每小時 :05**；2026-10-16 起由一天三輪改成每小時，因為頻率設定可以選任何整點）`git pull` 後讀這支檔（頻率設定到點的請求已經由工作流排進來，見下一節）：
    - 空的 → 什麼都不做，直接結束。
    - 有 `queued` → 一次處理一筆（先文章後影片、編號小的先），步驟見下。
-5. 文章推上 main 後，`article-jobs.yml`（`site/articles/index.json` 有變就跑）看到 index 裡有同一個 `topic` → 自動標 `done`。
+5. 文章上架（見下面「發佈」兩種路徑）後，`article-jobs.yml`（`site/articles/index.json` 有變就跑）看到 index 裡有同一個 `topic` → 自動標 `done`。
+   ⚠ **索引項目一定要帶 `topic`**（新文章由 `scripts/article_publish.py` 自動帶；它沒帶就拒絕）。
+
+## 自動排隊：產貼文頻率設定（2026-10-16 第 2 版）
+
+Andy 10-16 第一版：「先都不要填，它為可動開關……開啟後，會依據我設定的週期、時段進行生產對應類別文章」。
+第 2 版（同日晚）：「應該是可以選擇 日期 後面是時段以小時為單位……然後接者是產的類型選擇，啟用應該是這邊都選完才會輪到」。
+
+管理區 `#admin/articles` →「文章主題」最下面「產貼文頻率設定」：由上而下 ① 日期（每週重複／指定日期）② 整點時段 ③ 類別篇數 ④ 加入排程（變成一條規則）⑤ 啟用。
+設定存在會員 Worker（`article_schedule` 表，只有管理者能存；每次增刪規則、切開關都即時存），`article-jobs.yml` 每小時 :41 同步成 **`data/_state/article_schedule.json`**：
+
+```json
+{ "ver": 2, "enabled": true,
+  "rules": [
+    { "days": [1, 3, 5], "hours": [10, 14], "cats": {"news": 1, "intro": 0, "know": 1} },
+    { "dates": ["2026-10-20", "2026-10-23"], "hours": [21], "cats": {"news": 0, "intro": 2, "know": 0} }
+  ],
+  "updated": "2026-10-16 21:40" }
+```
+
+- `rules[]`：最多 20 條，每一條**自己**帶日期、時段、篇數（不再有全域篇數）。
+  - `days`：每週重複，1＝週一…7＝週日；`dates`：指定日曆日 `YYYY-MM-DD`。**一條規則只會有其中一個**。
+  - `hours`：整點，0～23，**台北時間**（10＝上午 10:00、14＝下午 2:00）。
+  - `cats`：這條規則在每個對得上的整點，每個類別要產幾篇（0～3）；news＝比比快訊、intro＝比比產業鏈、know＝比比知識。
+- 舊的第 1 版（`slots`／`cats`）已經由 Worker 與 `scripts/article_jobs.py` 自動轉成第 2 版寫進這支檔，**只需要認第 2 版**。
+- **到點排隊由工作流做，不是 Claude**（Claude 的 session 拿不到 Worker 機器鑰匙）：`article-jobs.yml` 每小時 :41 跑 `scripts/article_jobs.py`，同步完設定後
+  1. `ver` 不是 2、`enabled` 不是 `true` → **一律不排**（Andy 關著就是關著）。
+  2. 取台北「這一個小時與前一個小時」（GitHub 排程常晚十幾分鐘、偶爾跳一輪，多看一小時補得回來；更早的不補，免得剛加的規則把今天早就過去的整點一次排進來）。
+  3. 逐條規則比對：`dates` 含那天、或 `days` 含那天星期，**而且** `hours` 含那個小時 → 命中。
+  4. 命中的規則裡每個大於 0 的類別，依篇數各排一筆 `kind=article`，`topic_id`＝**`sch-<YYYYMMDD>-<HH>-r<第幾條規則>-<類別>-<第幾篇>`**（例如 `sch-20261020-14-r1-news-1`）。
+     Worker 對同一個 `sch-` id **不論狀態（連已完成、已取消）都不再排** —— 同一小時工作流跑幾次都只排一次；Andy 在「產出進度」取消的也不會被補回來。
+  5. 標題＝從 `site/articles/topics.json` 挑該類別**還沒上架、也還沒在佇列**分數最高的主題；`note` 寫「排程自動排入（規則 N，台北 日期 HH:00）；建議主題 <主題 id>」。
+     候選用完時標題寫「排程：<類別>（候選主題已用完，Claude 自選）」、`建議主題 無`。
+- **Claude 排程每小時醒來（台北每小時 :05）**，照下面「寫一篇精選文章」處理佇列。遇到 `sch-` 開頭的請求：
+  - 類別取 id 裡那一段（news／intro／know）；`note` 有「建議主題 X」就寫 `topics.json` 裡 X 那一題；寫「建議主題 無」就**自己查證挑一個該類別的新主題**（快訊挑最近的新聞），不要硬湊。
+  - `index.json` 那一筆帶 `"topic": "<這個 sch- id>"`（自動標完成靠它）**以及 `"from_topic": "<X>"`**（下次挑題才知道 X 用掉了；自選的就寫你挑的主題簡稱）。
+- 關掉開關 → 下一次同步後 `enabled=false`，之後的整點不再排；**已經在佇列的項目照常處理**（要停請到「產出進度」按取消）。
+- 指定日期的規則過了那些日期就不會再命中，留在清單上只是紀錄（管理區會標「已過期」）。
+- 時間軸：整點到 → 當小時 :41 排進佇列（管理區「產出進度」看得到）→ 下一個 :05 Claude 開工。頁面上寫「到點後最多約 1 小時內，Claude 會自動把文章排進上面的產出進度」。
+- 設定本身是存在 Worker 裡、排隊時直接讀 Worker 的最新一份，所以**整點前存好**就趕得上那個整點（不必等 `article_schedule.json` 同步進 repo；那支檔是給人與 Claude 看的紀錄）。
+
+## 發佈：新文章全文只在會員後端（2026-10-16 防白嫖，Andy 批准「最小有效版本」）
+
+Andy 10-16：已公開的 4 篇維持原狀（不改成免費試閱、不刪、不改寫歷史）；**從新文章起，全文不再放進 public repo**。原因：repo 是 public，
+`site/articles/posts/<id>.json` 推上去的那一刻任何人都讀得到，畫面上的 Pro／Plus 分級擋不住直接開網址的人（評估：`docs/security/anti_freeload_1016.md`）。
+
+| | 舊文章（目前 4 篇，維持原狀） | 新文章（從現在起） |
+|---|---|---|
+| 全文放哪 | `site/articles/posts/<id>.json`（public repo、靜態檔） | 會員 Worker 的資料庫（`article_body` 表；每天備份會一起帶走） |
+| 索引 `site/articles/index.json` | 完整（標題、副標、摘要、標籤…） | **只有**標題、分類、日期、`topic`、族群、`reading_min`，加 `"src": "api"`。**不含摘要、副標、標籤** |
+| 前端怎麼讀 | 直接抓靜態檔，次數存本機 | 登入後向 `/v1/articles/get` 取（訪客／註冊會員 403、Plus 累計 5 篇由伺服器計、Pro／管理者不限） |
+| 怎麼辨認 | 索引項目沒有 `src` | 索引項目 `src: "api"` |
+
+### Claude 寫完一篇新文章後怎麼上架（照順序，缺一不可）
+
+1. 把全文 JSON（格式照下面「寫一篇精選文章」，**要帶 `id`、`cat`、`title`、`date`、`topic`、`reading_min`、`groups`、`blocks`…**）存到 **repo 以外**的地方（暫存區）。**絕對不要放進 `site/articles/posts/`、`docs/`、`data/` 或任何會 commit 的路徑**。
+2. 執行 `python scripts/article_publish.py <全文.json>`：
+   - 用機器鑰匙把全文傳到會員 Worker（`/v1/articles/jobs/bot` 的 `put_body`），再用 `list_bodies` **確認真的存進去了**；
+   - 確認後**才**把「僅標題」的索引項目寫進 `site/articles/index.json`（所以不會出現「標題上架、全文沒上」）；
+   - 全文檔在 repo 裡面、沒帶 `topic`、沒有機器鑰匙、上傳或確認失敗 → 一律不寫索引、離開代碼非 0。
+3. `python scripts/article_publish.py --check`（公開檔洩漏檢查：新文章的索引項目不得帶 `summary`／`subtitle`／`tags`、`site/articles/posts/<id>.json` 不得存在；`pytest tests/test_article_public_guard.py` 也會跑）。
+4. 只 `git add site/articles/index.json` → 推 main → `python scripts/deploy_wait.py --branch main` 印出 ✅ → 標 `done`（`article-jobs.yml` 看到索引有同一個 `topic` 也會自動標）。
+5. **如果沒有機器鑰匙（上傳會回「沒有 ACCOUNT_API_URL／ARTICLE_BOT_KEY」）：不要退而求其次把全文推進 repo。** 把這個請求標 `failed`（原因：沒有機器鑰匙），並在回報裡寫明，等 Andy 設好下面的環境金鑰。
+
+### 一次性設定（Andy 要做，Claude 不能代做；約 5 分鐘）
+
+Claude 排程在雲端容器裡跑，要自己把全文傳到 Worker，需要三樣東西（**金鑰不要貼進對話**）：
+1. **想一串 24 字以上的隨機字串**（例如密碼產生器產一個），同一串存兩個地方：
+   ① GitHub repo → Settings → Secrets → Actions → 新增 **`ARTICLE_PUT_KEY`**；
+   ② Claude 環境設定 → Edit → 環境變數（或 Network secrets）→ 新增 **`ARTICLE_PUT_KEY`**。
+   然後到 Actions 手動跑一次「部署 Worker（會員登入與使用統計）」把它寫進 Worker。
+   這把鑰匙是**最小權限**：只能「上傳／刪除／列出全文」，不能讀佇列、標狀態、匯出資料（`BACKUP_TOKEN` 是整庫匯出的鑰匙，**不要**放進 Claude 環境）。
+2. Claude 環境再加 **`ACCOUNT_API_URL`**（會員 Worker 網址，跟 repo Secret 同一個值）。
+3. **網路白名單**：Claude 環境 → Network access → Allowed domains 加上會員 Worker 的網域（`tw-account.kcq01010909.workers.dev`），否則容器連不到、`article_publish.py` 會失敗。
+⚠ 這三項還沒設之前，**新文章無法上架**（舊的「推進 repo」做法技術上還行，但那會把全文公開——Andy 10-16 已決定不再這樣做，所以遇到就走上面第 5 點：標 failed、等 Andy 設定）。
+
+### 全文只存在 Worker：備份與復原
+
+新文章的全文**不在 repo**，所以唯一的副本在 Worker 資料庫與每日筆電備份（`article_body` 已列入匯出清單）。復原用既有的還原流程（`tools/laptop/README.md`）。
+Claude 寫稿時的全文檔（暫存區）容器回收就沒了——**上傳成功後不要指望它還在**。要改稿：從 Worker 取回（管理者登入後的 `/v1/articles/get`）、改完用同一個 `article_publish.py` 覆寫（同 id 覆蓋）。
+
+### 兩種路徑如何並存（部署順序與回滾見 `docs/security/anti_freeload_rollout_1016.md`）
+
+- 前端用 `src` 分流：沒有 `src`＝舊路徑（抓靜態檔、本機計數）；`src:"api"`＝新路徑。兩種可以同時出現在同一份索引。
+- 舊前端（還沒更新的瀏覽器快取）遇到新文章：列表顯示標題；點進去會因為沒有靜態檔而顯示「暫時讀不到」——不會壞版、也不會洩漏內文。
+- 舊 4 篇仍受前端分級（本機計數）；它們本來就是公開檔，擋的只是「一般人」。伺服器端的 Plus 5 篇額度**只計新文章**（舊 4 篇的本機計數不會同步給伺服器）。
 
 ## 標狀態
 
@@ -76,7 +161,8 @@ Andy 10-16：「claude 指負責產出文章，內容……下方是我有功能
   5. **圖說一句話**：`note` 只寫一句（口徑或「不代表個別訂單」這種必要警語）。
   6. 能用數字卡、圖、流程圖、對照表講的，就不要寫成長段落；段落一段 ≤ 120 字。
   7. 刪減時只能刪次要數字，**不能改值、不能新增沒有來源的數字**；`sources` 與免責聲明一律保留。
-- `site/articles/index.json` 新增一筆，**一定要帶 `"topic": "<主題 id>"`**（自動標完成就靠它），以及 `groups`（相關族群）。
+- **索引**：新文章**不要手寫**，由 `scripts/article_publish.py` 產生（只有標題、分類、日期、`topic`、`groups`、`reading_min`、`src:"api"`；**一定要帶 `topic`**，自動標完成就靠它）。
+  ⚠ 下面幾條寫的是「全文 JSON 長什麼樣」；**全文本身不推 repo**，見上面「發佈」。舊文章（沒有 `src`）才是索引完整＋靜態檔那一套。
 - **自訂主題（Andy 10-16：「也需要我填寫主題 產文章，例如 今天新聞 馬斯克飛天電動車介紹」，管理區有「自訂主題」欄）**：
   佇列裡 `topic_id` 開頭是 `c-<news|intro|know>-<時間碼>` 的，是 Andy 自己填的主題 ——
   類別取 id 中間那段（news／intro／know），標題與主題就是請求的 `title`（補充看 `note`）；
@@ -86,15 +172,24 @@ Andy 10-16：「claude 指負責產出文章，內容……下方是我有功能
 - 數字一律用資料湖（`data/`）或公司公告；查證規矩照 CLAUDE.md「有疑問先上網查」—— 只能用 WebSearch，摘要是線索不是事實，兩個獨立來源對得上才寫；來源日期寫原文日期，不寫查詢日。
 - 不寫投資建議、不寫目標價；結尾保留免責。
 - Andy 的補充（`note`）要照做；補充跟查證衝突時以證據為準，並在文末寫明。
-- 驗收：`python scripts/_uitest.py --sections 精選文章1014 --workers 1`、`python scripts/_preview.py`；自己看 1440 與 390 截圖。
-- 推 main → `python scripts/deploy_wait.py --branch main` 印出 ✅ → 標 `done`（result＝文章 id）。
+- 驗收：`python scripts/_uitest.py --sections 精選文章1014 --workers 1`、`python scripts/_preview.py`；自己看 1440 與 390 截圖。新文章因為全文在後端，頁面驗收請用 `--sections 防白嫖後端1016`（起本機真的 Worker）的做法，不要為了驗收把全文放進 `site/`。
+- 依上面「發佈」上傳全文 → 推**僅標題的索引** → `python scripts/deploy_wait.py --branch main` 印出 ✅ → 標 `done`（result＝文章 id）。
 
 ## 做一支短影片
 
 - 規格與不重疊規矩：`docs/marketing/video_1010/layout_rules.md`（回報要有「重疊檢查：程式 N 幀 0 筆；人工 M 格 0 筆」）。
 - 成品放 `docs/marketing/videos/<YYYY-MM-DD>-<主題 id>/`（直式 1080×1920 MP4＋封面），標 `done`（result＝資料夾路徑）。
 
+## 傳給 GPT（IG 貼文／影片；純前端，不經佇列）
+
+已上架文章每列有「傳給 GPT・IG 貼文」「傳給 GPT・影片」（手機＝下拉選類型＋一顆送出）。按下去＝**Andy 決定這篇要交接**：
+前端（`site/gpthandoff.js`）讀該篇文章 JSON，組成 Markdown，開預填的 GitHub 新 Issue（label `social-handoff` 加 `gpt-ig-post` 或 `gpt-video`，
+標題 `[社群交接] 日期｜IG 貼文｜文章標題`／`…｜影片｜…`），Andy 在 GitHub 按 Submit new issue 才算送出。不排隊、不碰 Worker、Claude 排程不處理這個。
+內容只放文章已公開的部分；網址超過 8 KB 會自動省略站內連結／關鍵數據／來源，完整內容用頁面上的「複製完整交接內容」。
+
 ## 安全
 
 - `data/_state/article_jobs.json` 在 public repo：管理區的補充欄已提示「請勿填個資」；寫入的欄位不含會員 uid／email。
 - 機器鑰匙 `ARTICLE_BOT_KEY`＝`sha256("tw-article-jobs|" + CLOUDFLARE_API_TOKEN)` 前 48 字，兩支工作流各自算，不進 repo、不進 log（`::add-mask::`）。換 Cloudflare 權杖後要重跑「部署 Worker」。
+- **全文絕不經過 public repo 的 Actions**：public repo 的執行紀錄與 `workflow_dispatch` 的輸入值任何人都看得到，所以 `article-jobs.yml` 只傳狀態（編號、狀態、文章 id），不傳全文；全文只走「Claude 容器 → 機器路由 `put_body`」。
+- `put_body` 只認機器鑰匙（`ARTICLE_PUT_KEY` 最小權限，或 `ARTICLE_BOT_KEY`／`BACKUP_TOKEN`），不看 Origin、也不開放給任何網頁來源；鑰匙錯一律 403。`ARTICLE_PUT_KEY` 只能做全文的上傳／刪除／列出。

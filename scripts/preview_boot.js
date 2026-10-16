@@ -91,7 +91,8 @@
 
   /* ---------------------------------------------------------------- ③ 會員 API 寫入擋下 */
   var WRITES = ['/v1/lists/put', '/v1/delete', '/v1/beat', '/v1/admin/settings',
-                '/v1/admin/perm/put', '/v1/admin/plans/put'];
+                '/v1/admin/perm/put', '/v1/admin/plans/put',
+                '/v1/articles/schedule/add', '/v1/articles/jobs/add', '/v1/articles/jobs/cancel'];   // 2026-10-16 預覽版連的是正式站 Worker：頻率設定、產生精選文章／短影片、取消都會真的改正式佇列，所以一併擋
   function isBlockedWrite(u) {
     try {
       var x = new URL(u, location.href);

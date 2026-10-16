@@ -1,5 +1,6 @@
 name: 精選文章產出佇列
 
+# 2026-10-16（頻率設定）：同一輪也把「產文章頻率設定」同步成 data/_state/article_schedule.json，Claude 排程到點時讀它自動排隊。
 # 2026-10-16：管理區「產生精選文章／產生短影片」排進會員 Worker 的請求，同步成 data/_state/article_jobs.json，
 # 讓 Claude 排程讀得到；Claude 開工／完成時用 workflow_dispatch 的 mark 參數標狀態。
 # 文章推上 main（site/articles/index.json 有同一個 topic）時也跑一次，自動標完成。
@@ -60,12 +61,11 @@ jobs:
           else
             python scripts/article_jobs.py
           fi
-      - name: 回寫 article_jobs.json（只 add 這一支）
+      - name: 回寫 article_jobs.json／article_schedule.json（只 add 這兩支）
         run: |
           git config user.name  "tw-rotation-bot"
           git config user.email "actions@github.com"
-          [ -f data/_state/article_jobs.json ] || exit 0
-          git add data/_state/article_jobs.json
+          for f in data/_state/article_jobs.json data/_state/article_schedule.json; do [ -f "$f" ] && git add "$f"; done
           if git diff --staged --quiet; then echo "沒有變動"; exit 0; fi
           git commit -m "精選文章產出佇列 $(TZ=Asia/Taipei date '+%Y-%m-%d %H:%M')"
           for i in 1 2 3 4 5; do

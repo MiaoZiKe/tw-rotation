@@ -4,7 +4,7 @@
    Andy：參考 stockintelli 右下角的浮動客服。這裡做三件事，回答「我卡住了，去哪裡問」：
      ① 常見問題：點一題就在原地展開答案（答案照這個網站實際的功能寫，不是罐頭文字）
      ② 意見反饋：類別＋內容＋（可選）目前網址與瀏覽器資訊＋聯絡 email（登入者預填）→ Worker /v1/feedback（feedback 表）
-     ③ 寄信給客服：mailto（SUPPORT_EMAIL）
+     ③ 信箱：意見反饋最下面一行（Gmail 撰寫＋複製信箱；10-16 寄信分頁拿掉）
    AI 回答先不接（要 API 金鑰與費用），面板上留「AI 客服即將推出」。
    隱私：反饋只存在我們的 Worker（13 個月、刪帳號一起刪），不送第三方、不進 repo。
    管理端：#admin/feedback（只有管理者）—— 反饋列表＋訂閱申請列表，各自可以標「已處理」。
@@ -30,7 +30,7 @@
     ['AI 分析是怎麼來的？', '個股頁的 AI 分析是依技術面、籌碼面、基本面、消息面的固定規則自動產生的整理，不是投資建議，也不是真人分析師的意見。'],
     ['這個網站會告訴我該買哪一檔嗎？', '不會。本網站不是證券投資顧問，只提供資料整理與視覺化，不提供個股買賣建議，所有內容僅供參考，投資請自行判斷。'],
     ['畫面怪怪的、圖表沒出來怎麼辦？', '先按 Ctrl+F5（手機下拉重新整理）強制更新。還是不行的話，請用下面的「意見反饋」選「錯誤回報」（細項可選「畫面顯示異常」），勾選附上目前網址與瀏覽器資訊，我們比較好重現。'],
-    ['怎麼聯絡客服？', `用這個面板的「意見反饋」送出，或寄信到 ${SUPPORT_EMAIL}。付款相關的問題請在反饋類別選「帳號與付費」。`],
+    ['怎麼聯絡客服？', `用這個面板的「意見反饋」送出，或寄信到 ${SUPPORT_EMAIL}（意見反饋最下面有信箱）。付款相關的問題請在反饋類別選「帳號與付費」。`],
   ];
   /* 2026-10-07（Andy：「聯絡客服改用連結 Gmail」）：mailto: 在沒設郵件程式的 Windows 會跳「郵件」App 設定畫面。改開 Gmail 網頁撰寫。*/
   const gmail = (to, su) => 'https://mail.google.com/mail/?view=cm&fs=1&to=' + encodeURIComponent(to) + '&su=' + encodeURIComponent(su);
@@ -120,6 +120,7 @@
 .cpmail{height:28px;padding:0 10px;border:1px solid var(--line-2);border-radius:7px;background:var(--panel-2);color:var(--ink-2);font-size:12.5px;cursor:pointer;vertical-align:middle;margin-left:6px}
 .cpmail:hover{color:var(--ink)}.cpmail.ok{color:var(--fall);border-color:var(--fall)}
 .suppanel .mailrow .cpmail{margin-left:0}
+.suppanel .spmail{margin-top:10px;padding-top:10px;border-top:1px dashed var(--line-2)}.suppanel .spmail .note{margin:0}
 /* 條款內文裡的「複製信箱」是行內小鈕：不撐高行距（法律頁的目錄捲動同步依段落高度判斷，行高一變末段就亮錯節）*/
 #v-legal .cpmail{height:auto;padding:0 7px;line-height:1.35;font-size:12px;vertical-align:baseline}
 .suppanel .note{font-size:12.5px;color:var(--ink-2);line-height:1.65;margin-top:10px}
@@ -462,7 +463,7 @@ html.fab-off .supfab{display:none!important}`);
     const p = document.getElementById('supPanel'); if (!p) return;
     p.innerHTML = `<div class="sph"><b>比比・問題小助手<small style="font-weight:400;color:var(--ink-2);font-size:12.5px;margin-left:8px">需要幫忙嗎？</small></b><button type="button" id="supClose" aria-label="關閉">×</button></div>
       <div class="spai"><b>AI 客服即將推出</b>　目前請先看常見問題，或留言給我們（真人回覆）。</div>
-      <div class="sptabs" role="tablist">${[['faq', '常見問題'], ['fb', '意見反饋'], ['mail', '寄信']].map(([k, n]) => `<button type="button" role="tab" data-t="${k}" class="${tab === k ? 'on' : ''}" aria-selected="${tab === k}">${n}</button>`).join('')}</div>
+      <div class="sptabs" role="tablist">${[['faq', '常見問題'], ['fb', '意見反饋']].map(([k, n]) => `<button type="button" role="tab" data-t="${k}" class="${tab === k ? 'on' : ''}" aria-selected="${tab === k}">${n}</button>`).join('')}</div>
       <div class="spbody" id="supBody">${body()}</div>`;
     p.querySelector('#supClose').onclick = () => toggle(false);
     p.querySelector('.sptabs').onclick = (e) => { const b = e.target.closest('button[data-t]'); if (b) { tab = b.dataset.t; paint(); } };
@@ -480,9 +481,6 @@ html.fab-off .supfab{display:none!important}`);
     // 「即時和盤後差在哪」那一題只給管理者看（data-live-ui，livegate.js 的 CSS 藏；DECISIONS #326）
     if (tab === 'faq') return FAQ.map(([q, a], i) => `<div class="faq" data-i="${i}"${/「即時」/.test(q) ? ' data-live-ui' : ''}><button type="button" aria-expanded="false">${esc(q)}</button><div class="ans">${esc(a)}</div></div>`).join('')
       + `<p class="note">找不到答案？到「意見反饋」留言，或看 <a href="#pricing">訂閱方案</a>。</p>`;
-    if (tab === 'mail') return `<p class="note">寄信給客服（一般 1～2 個工作天內回覆）：</p><div class="mailrow"><a class="mail" id="supMail" data-gmail href="${esc(gmail(SUPPORT_EMAIL, '哩股哩股－客服'))}" target="_blank" rel="noopener">用 Gmail 寄信給 ${SUPPORT_EMAIL}</a><button type="button" class="cpmail" id="supCopy" data-copymail="${SUPPORT_EMAIL}">複製信箱</button></div>
-      <p class="note">不用 Gmail 的話，按「複製信箱」再貼到你慣用的郵件程式。</p>
-      <p class="note">付款或方案問題請在信裡註明你登入用的 email。本網站不是證券投資顧問，無法回答個股買賣問題。</p>`;
     const A = window.TwAccount, u = A && A.on() ? A.user() : null;
     /* 1007：訪客也能送（Worker 端每 IP 每小時上限）；送出只存本站伺服器，不寄任何信。
        只有會員伺服器沒設定（TwSub.call 根本沒有網址）時才關掉。*/
@@ -491,7 +489,9 @@ html.fab-off .supfab{display:none!important}`);
        分段控制器切「意見回饋｜願望清單」。願望清單＝想要的新功能（必填）＋為什麼需要（選填）＋聯絡方式（選填，會員自動帶入），
        送出走同一條 /v1/feedback（type='wish'），只存本站伺服器。*/
     const seg = `<div class="fbkind" id="fbKind" role="tablist" aria-label="反饋種類">${[['fb', '意見回饋'], ['wish', '願望清單']].map(([k, n]) => `<button type="button" role="tab" data-fk="${k}" class="${fbKind === k ? 'on' : ''}" aria-selected="${fbKind === k}">${n}</button>`).join('')}</div>`;
-    const off = can ? '' : '<p class="note" style="color:var(--amber)">線上反饋暫時無法使用，請改用「寄信」。</p>';
+    const off = can ? '' : '<p class="note" style="color:var(--amber)">線上反饋暫時無法使用，請改用下方信箱寄信。</p>';
+    /* 2026-10-16（Andy：「寄信拿掉…只留兩個」）：分頁只剩常見問題／意見反饋；信箱改成意見反饋最下面一行（Gmail 撰寫＋複製信箱）。*/
+    const mail = `<div class="mailrow spmail"><span class="note">也可以寄信：</span><a class="mail" id="supMail" data-gmail href="${esc(gmail(SUPPORT_EMAIL, '哩股哩股－客服'))}" target="_blank" rel="noopener">${SUPPORT_EMAIL}</a><button type="button" class="cpmail" id="supCopy" data-copymail="${SUPPORT_EMAIL}">複製信箱</button></div>`;
     if (fbKind === 'wish') return `${seg}${off}
       <p class="note">想要網站多一個什麼功能？寫下來，我們會逐則評估，做了會在公告裡說。</p>
       <label for="wsWant">想要的功能（必填）</label><textarea id="wsWant" maxlength="600" placeholder="例如：自選股可以設價格提醒、族群頁加上本益比排行…"></textarea>
@@ -499,7 +499,7 @@ html.fab-off .supfab{display:none!important}`);
       <label for="fbMail">聯絡方式 email（選填，做好時通知你）</label><input type="email" id="fbMail" maxlength="200" value="${esc(u && u.email || '')}" autocomplete="email">
       <button type="button" class="go" id="fbSend" ${can ? '' : 'disabled'}>送出願望</button>
       <div class="msg" id="fbMsg" role="status"></div>
-      <p class="note">願望只存在本站伺服器（保存 13 個月，刪除帳號時一併刪除），不會提供給第三方。</p>`;
+      <p class="note">願望只存在本站伺服器（保存 13 個月，刪除帳號時一併刪除），不會提供給第三方。</p>${mail}`;
     return `${seg}${off}
       <label for="fbCat">類別（先選大類）</label><select id="fbCat">${CATS.map(([k, n]) => `<option value="${k}">${n}</option>`).join('')}</select>
       <div id="fbSubWrap"><label for="fbSub">細項（可不選）</label><select id="fbSub">${subOpts('bug')}</select></div>
@@ -508,7 +508,7 @@ html.fab-off .supfab{display:none!important}`);
       <label for="fbMail">聯絡 email（選填，要回覆時用）</label><input type="email" id="fbMail" maxlength="200" value="${esc(u && u.email || '')}" autocomplete="email">
       <button type="button" class="go" id="fbSend" ${can ? '' : 'disabled'}>送出</button>
       <div class="msg" id="fbMsg" role="status"></div>
-      <p class="note">反饋只存在本站伺服器（保存 13 個月，刪除帳號時一併刪除），不會提供給第三方。</p>`;
+      <p class="note">反饋只存在本站伺服器（保存 13 個月，刪除帳號時一併刪除），不會提供給第三方。</p>${mail}`;
   }
   async function send() {
     const p = document.getElementById('supPanel');
@@ -530,7 +530,7 @@ html.fab-off .supfab{display:none!important}`);
       msg.className = 'msg ok'; msg.textContent = '已收到，謝謝你！' + (contact ? '我們會回信到 ' + contact : '');
     } else {
       msg.className = 'msg bad';
-      msg.textContent = j && j._s === 429 ? '今天送出太多次了，請改用寄信' : '送出失敗，請稍後再試，或改用「寄信」';
+      msg.textContent = j && j._s === 429 ? '今天送出太多次了，請改用下方信箱寄信' : '送出失敗，請稍後再試，或改用下方信箱寄信';
     }
   }
 
@@ -550,7 +550,7 @@ html.fab-off .supfab{display:none!important}`);
       msg.className = 'msg ok'; msg.textContent = '願望收到了，謝謝你！' + (contact ? '做好會通知 ' + contact : '');
     } else {
       msg.className = 'msg bad';
-      msg.textContent = j && j._s === 429 ? '今天送出太多次了，請改用寄信' : '送出失敗，請稍後再試，或改用「寄信」';
+      msg.textContent = j && j._s === 429 ? '今天送出太多次了，請改用下方信箱寄信' : '送出失敗，請稍後再試，或改用下方信箱寄信';
     }
   }
 
@@ -758,7 +758,7 @@ html.fab-off .supfab{display:none!important}`);
     });
   }
   /* open(t)：10-10 Andy「意見回饋功能 點擊會切到對應分頁」→ open('fb') 直接開在意見反饋＞意見回饋；不帶參數＝照舊 */
-  window.TwSupport = { open: (t) => { if (t === 'fb' || t === 'wish' || t === 'faq' || t === 'mail') { tab = t === 'wish' ? 'fb' : t; if (t === 'fb' || t === 'wish') fbKind = t; } toggle(true); }, close: () => toggle(false), renderFeedbackAdmin, paintDot, refreshUnread, unread: () => unread, email: SUPPORT_EMAIL, faq: FAQ };
+  window.TwSupport = { open: (t) => { if (t === 'fb' || t === 'wish' || t === 'faq' || t === 'mail') { tab = (t === 'wish' || t === 'mail') ? 'fb' : t; if (t === 'fb' || t === 'wish') fbKind = t; } toggle(true); }, close: () => toggle(false), renderFeedbackAdmin, paintDot, refreshUnread, unread: () => unread, email: SUPPORT_EMAIL, faq: FAQ };
   /* 管理端路由：#admin/feedback（這支畫）。#admin/notices 給 notices.js。view 共用 #v-subadm */
   window.TwSubRoutes.push((head, rest) => {
     if (head !== 'admin' || rest[0] !== 'feedback') return null;

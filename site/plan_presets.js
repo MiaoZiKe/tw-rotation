@@ -24,6 +24,8 @@
        註冊會員每日 10 次、訪客 3 次（跟訪客其他動作次數 3 同一級距、不比註冊會員寬）；Plus／Pro 明寫開、news.open 不設上限＝不限。
        flow.play／season.groups／mkt.cand 在 features.js 另有 defBy（訪客／註冊會員預設關），線上範本沒寫這幾項時已經生效；
        但範本若明寫 mkt.cand:true（套用過 10-08 版），3D 3 次與 news.open 次數也只在範本 lims —— 都要按「套用建議方案」（或在管理區手動改）才會寫進線上範本。
+   · ★ 2026-10-16（Andy：「精選文章其他分頁有的功能 他也要有 例如導覽 限制」）：新鍵 art.list／art.read／art.cat.news／intro／know（精選文章清單、單篇、三個類別）
+     四個方案都寫 true、不寫每日次數＝跟 features.js 的 def 一樣，套用建議方案不會讓任何人突然看不到文章；要限篇數在 #admin/perm 自己填。
    · ★ 2026-10-10（網頁手機同步稽核 7-3）：新鍵 stock.holdings（ETF 個股頁「成分股」分頁）四個方案都寫 true＝跟 features.js 的 def 一樣，只是把對應補齊，不改任何人看得到的東西。
    · ★ 2026-10-10（Andy：「選股策略」和「AI 分析」「開放 但需要限制次數」——回答 docs/launch_checklist_1009.md 第 30 行 B 類分級二選一）：
      註冊會員選股策略完整名單 explore.list.n 20 → 999（不再截前 20 檔，B 類內容不靠付費解鎖）；次數照舊限制：選股策略頁每日 5 次、篩選 5 次、AI 分析每日 3 次。
@@ -40,6 +42,9 @@
      新增：資金輪動排行點擊 5、資金流向上方篩選 5、市場明細三個分頁觀看各 5、漲跌家數篩選 5、週期統計觀看 10、財經日曆點標題 5、配息行事曆右側清單 5、搜尋 10。
      全站共用額度 dq：註冊會員 40 → 不設（null）—— 逐項上限已經比它細，留著反而可能比逐項更早用完、把 Andy 要的 10 次吃掉。
      訪客：新鍵給比註冊會員少的次數（多半 3 次、搜尋 5 次），其餘不動；Plus／Pro 不動。
+   · ★ 2026-10-16（Andy：「精選貼文限制給 Pro 可以看，Plus 只能所有類別共 5 篇，其他的只能看到標題」）：新鍵 art.read.n（精選文章可讀全文篇數，**累計、不是每日**，
+     所有分類合計）——訪客 0、註冊會員 0（只看標題與分類）、Plus 5、Pro 999（＝不限）。features.js 的 defBy 也寫了同樣的預設，按「套用建議方案」之前就照這個跑。
+     計數在 site/quota.js 的 TwQuota.total，只擋畫面、非伺服器端。
    這支是**資料**，不是設定：改了不會自動生效，要管理者在 #admin/perm 按一次「套用建議方案」。
    ============================================================================ */
 window.TW_PLAN_PRESETS = {
@@ -88,6 +93,11 @@ window.TW_PLAN_PRESETS = {
     "stock.ai": false,
     "stock.overview": true,
     "stock.holdings": true,
+    "art.list": true,
+    "art.read": true,
+    "art.cat.news": true,
+    "art.cat.intro": true,
+    "art.cat.know": true,
     "stock.basics": true,
     "stock.tags": false,
     "stock.revenue": true,
@@ -99,6 +109,10 @@ window.TW_PLAN_PRESETS = {
     "stock.news": false,
     "live.tick": false,
     "events": true,
+    /* ★ 2026-10-16（Andy：「今日事件開放，修正，但限制次數 5 次 Total」）：訪客今日事件累計 5 次（不是每日）；一次＝打開抽屜一次。
+       訪客範本原本的 lims.events 每日 3 次拿掉（兩個上限疊在一起，累計 5 次永遠用不到）；註冊會員依自己既有額度不變（events.total 999＝不限）。
+       features.js 的 defBy 也寫了訪客 5，按「套用建議方案」之前就照這個跑 */
+    "events.total": 5,
     "theme": true,
     "explore.page": true,
     "explore.chart": true,
@@ -120,6 +134,7 @@ window.TW_PLAN_PRESETS = {
     "explore.list.n": 5,
     "mkt.cand.n": 3,
     "etf.returns.n": 0,
+    "art.read.n": 0,
     "etf.cashflow": false,
     "etf.inc.params": false,
     "etf.cmp": false,
@@ -143,7 +158,6 @@ window.TW_PLAN_PRESETS = {
     "ind.3d": 0,
     "ind.rel": 0,
     "stock.ai": 0,
-    "events": 3,
     "flow.rank.click": 3,
     "flow.filter": 3,
     "mkt.updown.filter": 3,
@@ -208,6 +222,11 @@ window.TW_PLAN_PRESETS = {
     "stock.ai": true,
     "stock.overview": true,
     "stock.holdings": true,
+    "art.list": true,
+    "art.read": true,
+    "art.cat.news": true,
+    "art.cat.intro": true,
+    "art.cat.know": true,
     "stock.basics": true,
     "stock.tags": true,
     "stock.revenue": true,
@@ -219,6 +238,7 @@ window.TW_PLAN_PRESETS = {
     "stock.news": true,
     "live.tick": false,
     "events": true,
+    "events.total": 999,
     "theme": true,
     "explore.page": true,
     "explore.chart": true,
@@ -240,6 +260,7 @@ window.TW_PLAN_PRESETS = {
     "explore.list.n": 999,
     "mkt.cand.n": 10,
     "etf.returns.n": 3,
+    "art.read.n": 0,
     "etf.cashflow": true,
     "etf.inc.params": false,
     "etf.cmp": true,
@@ -344,6 +365,11 @@ window.TW_PLAN_PRESETS = {
     "stock.ai": true,
     "stock.overview": true,
     "stock.holdings": true,
+    "art.list": true,
+    "art.read": true,
+    "art.cat.news": true,
+    "art.cat.intro": true,
+    "art.cat.know": true,
     "stock.basics": true,
     "stock.tags": true,
     "stock.revenue": true,
@@ -355,6 +381,7 @@ window.TW_PLAN_PRESETS = {
     "stock.news": true,
     "live.tick": false,
     "events": true,
+    "events.total": 999,
     "theme": true,
     "explore.page": true,
     "explore.chart": true,
@@ -376,6 +403,7 @@ window.TW_PLAN_PRESETS = {
     "explore.list.n": 999,
     "mkt.cand.n": 999,
     "etf.returns.n": 8,
+    "art.read.n": 5,
     "etf.cashflow": true,
     "etf.inc.params": true,
     "etf.cmp": true,
@@ -452,6 +480,11 @@ window.TW_PLAN_PRESETS = {
     "stock.ai": true,
     "stock.overview": true,
     "stock.holdings": true,
+    "art.list": true,
+    "art.read": true,
+    "art.cat.news": true,
+    "art.cat.intro": true,
+    "art.cat.know": true,
     "stock.basics": true,
     "stock.tags": true,
     "stock.revenue": true,
@@ -463,6 +496,7 @@ window.TW_PLAN_PRESETS = {
     "stock.news": true,
     "live.tick": false,
     "events": true,
+    "events.total": 999,
     "theme": true,
     "explore.page": true,
     "explore.chart": true,
@@ -484,6 +518,7 @@ window.TW_PLAN_PRESETS = {
     "explore.list.n": 999,
     "mkt.cand.n": 999,
     "etf.returns.n": 20,
+    "art.read.n": 999,
     "etf.cashflow": true,
     "etf.inc.params": true,
     "etf.cmp": true,

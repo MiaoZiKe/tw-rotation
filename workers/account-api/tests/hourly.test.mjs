@@ -142,7 +142,7 @@ test('白名單新頁可記：etf／explore／earnings／events／support／pric
   clock = tpe('2026-10-05 14:00');
   const { hub } = makeHub(env());
   const andy = await login(hub, 'andy@example.com');
-  assert.deepEqual(VIEWS_ADDED, ['etf', 'explore', 'earnings', 'events', 'support', 'pricing', 'notices']);
+  assert.deepEqual(VIEWS_ADDED, ['etf', 'explore', 'earnings', 'events', 'support', 'pricing', 'notices', 'articles']);   // 2026-10-16 加精選文章
   assert.deepEqual(VIEWS, [...OLD_VIEWS, ...VIEWS_ADDED], '舊的 11 頁順序不變，新的接在後面');
   const ev = Object.fromEntries(VIEWS_ADDED.map((v, i) => ['pv:' + v, i + 1]));
   assert.equal((await beat(hub, ev)).s, 200);

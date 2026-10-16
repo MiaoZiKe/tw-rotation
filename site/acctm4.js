@@ -339,7 +339,7 @@ html.m4 .m4deldlg .msg{min-height:1.4em;font-size:13px;color:#ff6b7a;margin:4px 
      · 面板內容太長：只有中間那段捲（.sc，細捲軸＋底部淡出），標題列與底部「看方案」固定；不准橫向捲動。 */
   const K_QOPEN = 'tw.m4quota.open';
   const QPAGES = [
-    ['overview', '總覽', ['#overview']], ['earnings', '財經日曆', ['#earnings']],
+    ['overview', '總覽', ['#overview']], ['articles', '精選文章', ['#articles', '#article/x']], ['earnings', '財經日曆', ['#earnings']],   // 2026-10-16 精選文章（列表＋單篇）
     ['flow', '資金流向', ['#flow/rotation', '#flow/sankey', '#flow/inst']], ['heatmap', '熱力圖', ['#heatmap/industry', '#heatmap/theme']],
     ['industry', '產業地圖', ['#industry']], ['stock', '個股', ['#stock/2330']], ['market', '市場明細', ['#market', '#market/cand']],
     ['explore', '選股策略', ['#explore']], ['season', '週期統計', ['#season']], ['etf', 'ETF', ['#etf', '#etf/list', '#etf/cal', '#etf/inc']],

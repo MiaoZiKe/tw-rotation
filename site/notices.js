@@ -49,6 +49,7 @@
 .ntitem .r1{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--ink-2)}
 .ntitem .r1 .u{width:8px;height:8px;border-radius:50%;background:var(--rise);flex:none}
 .ntitem .ttl{display:block;font-size:14.5px;font-weight:600;margin:3px 0 2px;line-height:1.45}
+.ntitem .ntgo,.npi .ntgo{display:inline-block;margin-top:6px;font-size:12.5px;font-weight:600;color:var(--cyan);text-decoration:none}.npi .ntgo:hover{text-decoration:underline}
 .ntitem .bd{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;font-size:13px;color:var(--ink-2);line-height:1.6}
 .ntitem.ex .bd{display:block;-webkit-line-clamp:unset}
 .ntkind{display:inline-block;font-size:11.5px;padding:1px 7px;border-radius:999px;border:1px solid var(--line-2);color:var(--ink)}
@@ -172,6 +173,8 @@
         const it = e.target.closest('.ntitem');
         if (e.target.closest('a')) { if (e.target.closest('#ntAll')) toggleDrop(false); return; }
         if (e.target.closest('#ntReadAll')) { markRead(unread().map((n) => n.id)).then(paintDrop); paintDrop(); return; }
+        const go = it && payLink(S.list.find((x) => x.id === it.dataset.id));
+        if (go) { markRead([it.dataset.id]); toggleDrop(false); location.hash = go; return; }
         if (it) { S.expand = S.expand === it.dataset.id ? null : it.dataset.id; markRead([it.dataset.id]); paintDrop(); }
       });
     }
@@ -179,11 +182,22 @@
     paintDrop();
     if (Date.now() - S.at > 60000) fetchList();
   }
+  /* 2026-10-16（Andy：「管理者有訂單，點擊後會跳到對應分頁」）：管理者收到的「新訂單／新申請」帳務通知 → 付款與訂單的對應分頁。
+     依通知內文判斷（後端 pay.js payNotifyOwner 寫的固定格式）：銀行轉帳 → 銀行轉帳訂單、綠界 → 綠界訂單（都帶訂單編號，進去會自動找出那一列）；新申請 → 取消／退款申請。*/
+  function payLink(n) {
+    if (!n || n.kind !== 'pay') return '';
+    const t = String(n.title || ''), b = String(n.body || '');
+    if (/^新申請：/.test(t)) return '#admin/pay/reqs';
+    if (!/^新訂單：/.test(t)) return '';
+    const m = /訂單編號：\s*([A-Za-z0-9_-]+)/.exec(b), oid = m ? '/' + encodeURIComponent(m[1]) : '';
+    return /綠界/.test(b) && !/銀行轉帳/.test(b) ? '#admin/pay/orders' + oid : '#admin/pay/bankord' + oid;
+  }
+  const goHTML = (n) => { const l = payLink(n); return l ? `<a class="ntgo" href="${esc(l)}" data-go="${esc(n.id)}">${/reqs$/.test(l) ? '前往取消／退款申請' : '前往付款與訂單處理'} →</a>` : ''; };
   function itemHTML(n) {
     const u = !isRead(n);
     return `<button type="button" class="ntitem${u ? ' unread' : ''}${S.expand === n.id ? ' ex' : ''}" data-id="${esc(n.id)}" aria-expanded="${S.expand === n.id}">
       <span class="r1">${u ? '<i class="u" aria-label="未讀"></i>' : ''}<span class="ntkind k-${esc(n.kind)}">${esc(KINDS[n.kind] || n.kind)}</span>${n.pinned ? '<span class="ntpin">置頂</span>' : ''}<span>${dstr(n.start)}</span></span>
-      <span class="ttl">${esc(n.title)}</span><span class="bd">${rich(n.body)}</span></button>`;
+      <span class="ttl">${esc(n.title)}</span><span class="bd">${rich(n.body)}</span>${payLink(n) ? `<span class="ntgo">${/reqs$/.test(payLink(n)) ? '前往取消／退款申請' : '前往付款與訂單處理'} →</span>` : ''}</button>`;
   }
   function paintDrop() {
     const d = document.getElementById('ntDrop'); if (!d || d.hidden) return;
@@ -224,8 +238,9 @@
     const n = unread().length;
     v.innerHTML = `<div class="nphead"><h2>公告</h2>${n ? `<button type="button" id="npReadAll">全部標為已讀（${n}）</button>` : ''}</div>
       ${S.list.length ? S.list.map((x) => `<article class="npi${isRead(x) ? '' : ' unread'}" data-id="${esc(x.id)}"><div class="r1"><span class="ntkind k-${esc(x.kind)}">${esc(KINDS[x.kind] || x.kind)}</span>${x.pinned ? '<span class="ntpin">置頂</span>' : ''}<span>${dstr(x.start)}</span>${isRead(x) ? '' : '<span style="color:var(--rise)">未讀</span>'}</div>
-        <h3>${esc(x.title)}</h3><div class="bd">${rich(x.body)}</div></article>`).join('') : '<div class="npi"><p class="bd">目前沒有公告。</p></div>'}`;
+        <h3>${esc(x.title)}</h3><div class="bd">${rich(x.body)}</div>${goHTML(x)}</article>`).join('') : '<div class="npi"><p class="bd">目前沒有公告。</p></div>'}`;
     const ra = v.querySelector('#npReadAll'); if (ra) ra.onclick = () => markRead(unread().map((x) => x.id)).then(paintPage);
+    v.querySelectorAll('a.ntgo[data-go]').forEach((a) => { a.onclick = () => { markRead([a.dataset.go]); }; });
   }
 
   // ------------------------------------------------------------------ 管理端 #admin/notices

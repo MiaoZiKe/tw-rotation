@@ -51,6 +51,9 @@
       m: '左上角 ☰ 打開全站目錄，分組跟電腦版一樣：今日市場、資金流水、族群與個股、歷史規律、專案。' },
     { t: '總覽：今天市場的全貌', sel: [tab('overview'), '#m4Title'], route: '#overview', routeRe: /^#?(overview)?$/, view: 'overview', fast: true,
       d: '大盤三張走勢圖、漲跌家數、資金熱力圖與資金輪盤放在同一頁。第一次來，從這一頁開始看。' },
+    /* 2026-10-16（Andy：「精選文章其他分頁有的功能 他也要有 例如導覽」）：左側選單「今日市場」第二格 */
+    { t: '精選文章：整理過的文章', sel: [tab('articles'), '#m4Title'], route: '#articles', routeRe: /^#articles/, view: 'articles', fast: true,
+      d: '分比比快訊、比比產業鏈、比比知識三類；文中的數字整理成圖表與示意圖，並連到相關族群與個股頁。' },
     { t: '財經日曆：接下來有哪些事', sel: [tab('earnings'), '#m4Title'], route: '#earnings', view: 'earnings', fast: true,
       d: '公司財報、法說會與美國聯準會（FED）的重要日子排在同一張月曆；點月曆上的項目看說明。' },
     { t: '資金流向：錢往哪個族群跑', sel: [tab('flow'), '#tabs .l4subtab[data-parent="flow"]', '#m4Title'], union: true, route: '#flow/rotation', routeRe: /^#flow/, view: 'flow', fast: true,
@@ -324,6 +327,35 @@
     { t: '本週重點', sel: ['#earnPanel'],
       d: '這一週與接下來的重要日子依時間排好，點一則看內容。' },
   ];
+  /* 2026-10-16 精選文章（site/articles.js）兩套：列表頁（#articles、#articles/<類別>）、單篇（#article/<id>）。
+     Andy：「精選文章其他分頁有的功能 他也要有 例如導覽 限制 這些都要在確認」。
+     右側「快速瀏覽」與「本文目錄」只在 ≥1280 才有（articles.js 的 @media），所以標 only:'desk'；800～1279 那一格看不到就跳過（不會卡住）。
+     單篇導覽從列表頁被叫起來時（route 函式）：進清單上第一篇；已經在某一篇就不換。 */
+  const ARTLIST = [
+    { t: '文章分類', sel: ['#artCats'], route: '#articles', routeRe: /^#articles/, view: 'articles',
+      d: '全部文章、比比快訊（近期大事）、比比產業鏈（產業與公司）、比比知識（觀念）；分頁上的數字是目前條件下的篇數。' },
+    { t: '篩選', sel: ['.artflt'],
+      d: '標題關鍵字、族群（可多選）與日期區間（預設近一個月）一起作用；「清除篩選」回到預設。' },
+    { t: '文章卡片', sel: ['#artList'],
+      d: '一張卡是一篇：類別、日期、標題、摘要與點閱次數；點卡片打開全文。' },
+    { t: '快速瀏覽', sel: ['#artSide'], only: 'desk',
+      d: '各類別的篇數、最常出現的族群（點了只看那個族群的文章）與最近更新的幾篇。' },
+  ];
+  const ARTPOST = [
+    { t: '返回與所在位置', sel: ['#artBack', '#artPost .artcrumb'], union: true, routeRe: /^#article\//, view: 'articles',
+      route: () => { const a = document.querySelector('#artList .artc[href], #artMore .artc[href]'); return a ? a.getAttribute('href') : '#articles'; },
+      d: '「← 返回」回到上一頁（直接開網址時回該類別清單）；麵包屑顯示這篇屬於哪一類，點類別名回那一類的清單。' },
+    { t: '標題與基本資訊', sel: ['#artPost .artmeta', '#artPost .artttl', '#artPost .artgps'], union: true,
+      d: '類別、日期、閱讀時間與點閱次數；「相關族群」點一個，列出提到同一個族群的其他文章。' },
+    { t: '內文、圖表與示意圖', sel: ['#artBody'],
+      d: '數字整理成數字卡與圖表，產業關係、剖面拆解與流程畫成示意圖；滑過圖表看每一點的數值，股票代號點得進個股頁。' },
+    { t: '本文目錄與提到的股票', sel: ['.arttoc'], only: 'desk',
+      d: '點目錄裡的小標跳到那一段；下面列出文中提到的股票，點了進個股頁。' },
+    { t: '資料來源與延伸閱讀', sel: ['#artSrc', '#artLinks'], union: true,
+      d: '資料來源列出原始出處（另開新視窗）；站內相關頁面連到網站上對應的圖。' },
+    { t: '回到清單', sel: ['#artEnd'],
+      d: '讀完從這裡回到這個類別的文章清單；上方是同類別的其他文章。' },
+  ];
   /* 產業鏈頁、族群頁（#industry/<鏈>…、#industry/group/<id>）：就是產業地圖導覽從「族群分頁」那一步開始，
      但不換頁 —— 舊版從族群頁按導覽會先被帶回 #industry、再跳到半導體，離開使用者正在看的那一頁。 */
   const CHAIN = INDUSTRY.slice(2).map((st, k) => Object.assign({}, st, { route: null, routeRe: null },
@@ -344,6 +376,8 @@
     season: { name: '週期統計導覽', steps: SEASON },
     watch: { name: '自選導覽', steps: WATCH },
     earnings: { name: '財經日曆導覽', steps: EARN },
+    articles: { name: '精選文章導覽', steps: ARTLIST },
+    article: { name: '文章導覽', steps: ARTPOST },
     chain: { name: '產業鏈導覽', steps: CHAIN, onEnd: () => TOURS.industry.onEnd() },
     stock: { name: '個股頁導覽', steps: STOCK, onEnd: () => { if (touched.stockTab) { const b = $('#stockTabs button[data-t="overview"]'); if (b && !b.classList.contains('on')) b.click(); } } },
   };

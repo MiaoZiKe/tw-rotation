@@ -29,7 +29,7 @@
   const ST = { pending: '待付款', review: '待確認', paid: '已入帳', active: '已開通', failed: '失敗', rejected: '已退回', expired: '已逾期', refunded: '已退款', cancelled: '已取消（未付款）', superseded: '已被取代' };
   const ST_CLS = { pending: 'wait', review: 'wait', paid: 'wait', active: 'ok', failed: 'bad', rejected: 'bad', expired: 'mute', refunded: 'mute', cancelled: 'mute', superseded: 'mute' };
   const EV = { activate: '開通', extend: '延長', expire: '到期降級', refund_downgrade: '退款降級', refund_keep: '退款（到期才停）', auto_renew_off: '取消自動續訂' };
-  const S = { d: null, tab: 'bankord', f: { method: '', status: '', from: '', to: '', q: '', expiring: false, all: false }, open: {}, pre: null, aq: '' };
+  const S = { d: null, tab: 'bankord', f: { method: '', status: '', from: '', to: '', q: '', expiring: false, all: false }, open: {}, pre: null, jump: null, aq: '' };
   /* 依 email 摺疊：每個 email 一組，latest＝最新一筆、older＝其他（新到舊）；組與組之間照最新一筆的時間新到舊 */
   const byEmail = (list, at) => {
     const m = new Map();
@@ -86,6 +86,7 @@
 #v-subadm .pay td.act{text-align:right;white-space:normal;min-width:200px}
 #v-subadm .pay td.act button{margin:2px 0 2px 4px}
 #v-subadm .pay tr.prow{cursor:pointer}
+#v-subadm .pay tr.prow.hit td{background:color-mix(in srgb,var(--amber) 16%,transparent)}
 #v-subadm .pay tr.prow:hover td{background:color-mix(in srgb,var(--cyan) 5%,transparent)}
 #v-subadm .pay tr.det td{white-space:normal;text-align:left;background:var(--panel-2);font-size:12.5px;line-height:1.65;color:var(--ink-2)}
 #v-subadm .pay tr.det b{color:var(--ink)}
@@ -167,6 +168,12 @@
     else if (S.tab === 'refunds') refundsView(v, box);
     else if (S.tab === 'audit') auditView(v, box);
     else bankView(v, box);
+    if (S.jump) {
+      /* 待確認／異常區排在最上面、按鈕也在那裡 → 先找到哪一列就捲到哪一列 */
+      const tr = [...box.querySelectorAll('tr.prow[data-oid]')].find((t) => t.dataset.oid === S.jump);
+      S.jump = null;
+      if (tr) { tr.classList.add('hit'); tr.scrollIntoView({ block: 'center' }); }
+    }
   }
   const st = (v, m, bad) => { const e = v.querySelector('#paySt'); if (e) { e.textContent = m; e.className = 'st ' + (bad ? 'bad' : 'ok'); } };
 
@@ -642,6 +649,16 @@
   (window.TwSubRoutes = window.TwSubRoutes || []).push((head, rest) => {
     if (head !== 'admin' || rest[0] !== 'pay' || !T()) return null;
     const v = T().view('v-subadm'); if (!v) return null;
+    /* 2026-10-16（Andy：「管理者有訂單，點擊後會跳到對應分頁」）：鈴鐺通知帶 #admin/pay/<分頁>/<訂單編號> 進來 →
+       切到那個分頁、搜尋框填訂單號、展開那一列並捲過去；套用完把網址改回 #admin/pay（重新整理不會一直卡在篩選）。*/
+    const TABS = ['bankord', 'orders', 'reqs', 'subs', 'refunds', 'bank', 'audit'];
+    if (rest[1] && TABS.includes(rest[1])) {
+      S.tab = rest[1];
+      const oid = rest[2] ? decodeURIComponent(rest[2]) : '';
+      S.jump = oid && (S.tab === 'bankord' || S.tab === 'orders') ? oid : null;
+      if (S.jump) { S.f = { ...S.f, q: oid, status: '', from: '', to: '', all: true, expiring: false }; S.open[oid] = true; }
+      try { history.replaceState(null, '', '#admin/pay'); } catch (e) { /* 略 */ }
+    }
     render(v);
     return 'v-subadm';
   });
