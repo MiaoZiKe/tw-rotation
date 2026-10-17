@@ -1,0 +1,32 @@
+{
+  "asset_id": "bibi_tilt_cream",
+  "中文名稱": "比比歪頭奶白修正版",
+  "category": "author_unverified",
+  "original_author": "unknown",
+  "processed_by": "Codex；imagegen 編修",
+  "tool": "image_gen.imagegen",
+  "provenance_evidence": [
+    "https://github.com/MiaoZiKe/tw-rotation/blob/main/docs/anim/bibi_library/tilt/key.png",
+    "本對話 2026-10-17 兩輪編修；源素材作者未核實"
+  ],
+  "prompt_summary": "保留歪頭奶白毛球外形，去除腮紅與耳下桃色毛邊，眼睛加白高光；無尾巴、無長臂、透明背景",
+  "parent_asset_id": "bibi_tilt",
+  "版本": "v001",
+  "檔案": "v001.png",
+  "尺寸": {
+    "width": 1254,
+    "height": 1254
+  },
+  "是否透明底": true,
+  "姿勢": "歪頭、短腳",
+  "表情": "好奇微笑",
+  "視線": "朝讀者",
+  "道具": "無",
+  "可用用途": [
+    "內部風格校準"
+  ],
+  "權利狀態": "unknown；不聲稱可公開自由使用",
+  "品管狀態": "造型檢查通過；原畫權利待核實",
+  "本機位置": "C:\\哩股哩股\\output\\2026-10-17_tsmc-q3-call\\assets\\bibi_clean.png",
+  "雲端備份狀態": "未備份"
+}
