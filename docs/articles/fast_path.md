@@ -14,7 +14,7 @@ Andy 10-17：「產文章這邊我不希望花費太多 Token 和時間，CEO �
 
 ## 一篇文章的流程（照順序，不要加步驟）
 
-1. **CEO（排程對話）**：讀 `data/_state/article_jobs.json` 拿一筆 → 標 `stage=plan`。只派**一個** agent（`general-purpose`），把這張卡的「撰寫 agent 規則」整段貼給它。
+1. **CEO（排程對話）**：讀 `data/_state/article_jobs.json` 拿一筆 → 標 `stage=plan`。只派**一個** agent（`general-purpose`，**Agent 工具帶 `model: "sonnet"`**，較便宜的模型；Andy 10-17：「用便宜模型」），把這張卡的「撰寫 agent 規則」整段貼給它。CEO 自己審稿那一關照樣用排程對話本身的模型把關。
 2. **撰寫 agent 一次做完文字＋插圖＋影片**（不要拆成寫手、動畫導演、網頁單位三個 agent，各自重讀文件最貴）：
    - 查資料：**WebSearch 最多 8 次**。每個關鍵數字兩個來源對上就停；查不到就不寫，不要換第三、四組關鍵字硬找。
    - 字數：快訊（news）內文 ≤ 600 字；介紹、知識 ≤ 900 字。
