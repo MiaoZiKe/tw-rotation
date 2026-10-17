@@ -1,0 +1,1707 @@
+[
+  {
+    "asset_id": "bibi_asml_cheer_front",
+    "中文名稱": "比比・開場歡迎",
+    "category": "author_unverified",
+    "original_author": "角色參考原畫 unknown；新情境由 OpenAI imagegen 生成",
+    "processed_by": "Codex：版本登錄、機械裁切／程式製圖",
+    "tool": "image_gen.imagegen；固定格機械裁切",
+    "provenance_evidence": [
+      "output/2026-10-17_asml-outlook/prompts.md",
+      "output/2026-10-17_asml-outlook/assets/pose_sheet_source.png",
+      "output/2026-10-17_asml-outlook/assets/pose_cells.json"
+    ],
+    "parent_asset_id": "bibi_clean",
+    "version": "v001",
+    "版本": "v001",
+    "files": [
+      {
+        "path": "v001.png",
+        "exists": true,
+        "bytes": 141122,
+        "sha256": "7829c94487898b2208c59ccd850ecb112793086756a7e54def26bb2411c094f6",
+        "dimensions": [
+          389,
+          413
+        ],
+        "format": "PNG",
+        "frames": 1,
+        "alpha_extrema": [
+          0,
+          255
+        ],
+        "has_transparent_pixels": true,
+        "duration_ms": null,
+        "fps": null
+      }
+    ],
+    "檔案": "v001.png",
+    "是否透明底": true,
+    "status": "review",
+    "qa_status": "review",
+    "品管狀態": "review；Andy尚未核可品牌風格",
+    "approval_evidence": null,
+    "animation": {
+      "frames": 0,
+      "fps": null,
+      "duration_ms": null,
+      "note": "靜態素材；0表示無動畫，不代表PNG影像格數"
+    },
+    "rights": "unknown：角色原畫歸屬未核實；本次生成與加工不覆蓋父素材權利",
+    "權利狀態": "unknown",
+    "可用用途": [
+      "本次ASML校準預覽；核可前不得自動挑選"
+    ],
+    "used_in": [
+      "2026-10-17_asml-outlook"
+    ],
+    "雲端備份狀態": "pending PR",
+    "fields_note": "標籤僅描述本次可見情境，不代表已通過逐頁品管",
+    "pose": "站姿、歪頭",
+    "action": "站姿、歪頭",
+    "expression": "開心張嘴",
+    "orientation": "正面偏右",
+    "scene": "開場歡迎",
+    "prop": "無",
+    "tags": [
+      "比比",
+      "主持",
+      "cheer_front",
+      "開場歡迎",
+      "站姿、歪頭"
+    ],
+    "crop_evidence": {
+      "file": "01.png",
+      "source_cell": [
+        0,
+        0
+      ],
+      "source_sheet_size": [
+        1774,
+        887
+      ],
+      "crop_bbox": [
+        32,
+        25,
+        421,
+        438
+      ],
+      "dimensions": [
+        389,
+        413
+      ],
+      "alpha_extrema": [
+        0,
+        255
+      ],
+      "status": "review"
+    },
+    "prompt_summary": "保留奶白毛球、咖啡輪廓、短掌短腳；八種主持表情與角度；透明底、不畫文字。",
+    "dimensions": [
+      389,
+      413
+    ],
+    "shared_manifest": "docs/social_assets/author_unverified/bibi_asml_cheer_front/manifest.json",
+    "shared_version": "v001"
+  },
+  {
+    "asset_id": "bibi_asml_look_right",
+    "中文名稱": "比比・側看介紹",
+    "category": "author_unverified",
+    "original_author": "角色參考原畫 unknown；新情境由 OpenAI imagegen 生成",
+    "processed_by": "Codex：版本登錄、機械裁切／程式製圖",
+    "tool": "image_gen.imagegen；固定格機械裁切",
+    "provenance_evidence": [
+      "output/2026-10-17_asml-outlook/prompts.md",
+      "output/2026-10-17_asml-outlook/assets/pose_sheet_source.png",
+      "output/2026-10-17_asml-outlook/assets/pose_cells.json"
+    ],
+    "parent_asset_id": "bibi_clean",
+    "version": "v001",
+    "版本": "v001",
+    "files": [
+      {
+        "path": "v001.png",
+        "exists": true,
+        "bytes": 139893,
+        "sha256": "0533f2891e23841b164360f7134bea97287df991059ff7eacad8d430fa8e8168",
+        "dimensions": [
+          441,
+          431
+        ],
+        "format": "PNG",
+        "frames": 1,
+        "alpha_extrema": [
+          0,
+          255
+        ],
+        "has_transparent_pixels": true,
+        "duration_ms": null,
+        "fps": null
+      }
+    ],
+    "檔案": "v001.png",
+    "是否透明底": true,
+    "status": "review",
+    "qa_status": "review",
+    "品管狀態": "review；Andy尚未核可品牌風格",
+    "approval_evidence": null,
+    "animation": {
+      "frames": 0,
+      "fps": null,
+      "duration_ms": null,
+      "note": "靜態素材；0表示無動畫，不代表PNG影像格數"
+    },
+    "rights": "unknown：角色原畫歸屬未核實；本次生成與加工不覆蓋父素材權利",
+    "權利狀態": "unknown",
+    "可用用途": [
+      "本次ASML校準預覽；核可前不得自動挑選"
+    ],
+    "used_in": [
+      "2026-10-17_asml-outlook"
+    ],
+    "雲端備份狀態": "pending PR",
+    "fields_note": "標籤僅描述本次可見情境，不代表已通過逐頁品管",
+    "pose": "四腳站姿",
+    "action": "四腳站姿",
+    "expression": "好奇微笑",
+    "orientation": "右側面",
+    "scene": "側看介紹",
+    "prop": "無",
+    "tags": [
+      "比比",
+      "主持",
+      "look_right",
+      "側看介紹",
+      "四腳站姿"
+    ],
+    "crop_evidence": {
+      "file": "02.png",
+      "source_cell": [
+        1,
+        0
+      ],
+      "source_sheet_size": [
+        1774,
+        887
+      ],
+      "crop_bbox": [
+        0,
+        3,
+        441,
+        434
+      ],
+      "dimensions": [
+        441,
+        431
+      ],
+      "alpha_extrema": [
+        0,
+        255
+      ],
+      "status": "review"
+    },
+    "prompt_summary": "保留奶白毛球、咖啡輪廓、短掌短腳；八種主持表情與角度；透明底、不畫文字。",
+    "dimensions": [
+      441,
+      431
+    ],
+    "shared_manifest": "docs/social_assets/author_unverified/bibi_asml_look_right/manifest.json",
+    "shared_version": "v001"
+  },
+  {
+    "asset_id": "bibi_asml_think_tilt",
+    "中文名稱": "比比・歪頭思考",
+    "category": "author_unverified",
+    "original_author": "角色參考原畫 unknown；新情境由 OpenAI imagegen 生成",
+    "processed_by": "Codex：版本登錄、機械裁切／程式製圖",
+    "tool": "image_gen.imagegen；固定格機械裁切",
+    "provenance_evidence": [
+      "output/2026-10-17_asml-outlook/prompts.md",
+      "output/2026-10-17_asml-outlook/assets/pose_sheet_source.png",
+      "output/2026-10-17_asml-outlook/assets/pose_cells.json"
+    ],
+    "parent_asset_id": "bibi_clean",
+    "version": "v001",
+    "版本": "v001",
+    "files": [
+      {
+        "path": "v001.png",
+        "exists": true,
+        "bytes": 157768,
+        "sha256": "eb2b77c5f6d69ca6587f52e690b2dbd42870f48f8a0113bfff2458eec5dd1009",
+        "dimensions": [
+          427,
+          376
+        ],
+        "format": "PNG",
+        "frames": 1,
+        "alpha_extrema": [
+          0,
+          255
+        ],
+        "has_transparent_pixels": true,
+        "duration_ms": null,
+        "fps": null
+      }
+    ],
+    "檔案": "v001.png",
+    "是否透明底": true,
+    "status": "review",
+    "qa_status": "review",
+    "品管狀態": "review；Andy尚未核可品牌風格",
+    "approval_evidence": null,
+    "animation": {
+      "frames": 0,
+      "fps": null,
+      "duration_ms": null,
+      "note": "靜態素材；0表示無動畫，不代表PNG影像格數"
+    },
+    "rights": "unknown：角色原畫歸屬未核實；本次生成與加工不覆蓋父素材權利",
+    "權利狀態": "unknown",
+    "可用用途": [
+      "本次ASML校準預覽；核可前不得自動挑選"
+    ],
+    "used_in": [
+      "2026-10-17_asml-outlook"
+    ],
+    "雲端備份狀態": "pending PR",
+    "fields_note": "標籤僅描述本次可見情境，不代表已通過逐頁品管",
+    "pose": "歪頭站姿",
+    "action": "歪頭站姿",
+    "expression": "疑問挑眉",
+    "orientation": "正面偏右",
+    "scene": "歪頭思考",
+    "prop": "無",
+    "tags": [
+      "比比",
+      "主持",
+      "think_tilt",
+      "歪頭思考",
+      "歪頭站姿"
+    ],
+    "crop_evidence": {
+      "file": "03.png",
+      "source_cell": [
+        2,
+        0
+      ],
+      "source_sheet_size": [
+        1774,
+        887
+      ],
+      "crop_bbox": [
+        11,
+        62,
+        438,
+        438
+      ],
+      "dimensions": [
+        427,
+        376
+      ],
+      "alpha_extrema": [
+        0,
+        255
+      ],
+      "status": "review"
+    },
+    "prompt_summary": "保留奶白毛球、咖啡輪廓、短掌短腳；八種主持表情與角度；透明底、不畫文字。",
+    "dimensions": [
+      427,
+      376
+    ],
+    "shared_manifest": "docs/social_assets/author_unverified/bibi_asml_think_tilt/manifest.json",
+    "shared_version": "v001"
+  },
+  {
+    "asset_id": "bibi_asml_wow_front",
+    "中文名稱": "比比・驚訝提醒",
+    "category": "author_unverified",
+    "original_author": "角色參考原畫 unknown；新情境由 OpenAI imagegen 生成",
+    "processed_by": "Codex：版本登錄、機械裁切／程式製圖",
+    "tool": "image_gen.imagegen；固定格機械裁切",
+    "provenance_evidence": [
+      "output/2026-10-17_asml-outlook/prompts.md",
+      "output/2026-10-17_asml-outlook/assets/pose_sheet_source.png",
+      "output/2026-10-17_asml-outlook/assets/pose_cells.json"
+    ],
+    "parent_asset_id": "bibi_clean",
+    "version": "v001",
+    "版本": "v001",
+    "files": [
+      {
+        "path": "v001.png",
+        "exists": true,
+        "bytes": 136012,
+        "sha256": "61244648b436da594a3b0f0432ca18702f139d64eaf56416a6adb161794f3b9e",
+        "dimensions": [
+          398,
+          383
+        ],
+        "format": "PNG",
+        "frames": 1,
+        "alpha_extrema": [
+          0,
+          255
+        ],
+        "has_transparent_pixels": true,
+        "duration_ms": null,
+        "fps": null
+      }
+    ],
+    "檔案": "v001.png",
+    "是否透明底": true,
+    "status": "review",
+    "qa_status": "review",
+    "品管狀態": "review；Andy尚未核可品牌風格",
+    "approval_evidence": null,
+    "animation": {
+      "frames": 0,
+      "fps": null,
+      "duration_ms": null,
+      "note": "靜態素材；0表示無動畫，不代表PNG影像格數"
+    },
+    "rights": "unknown：角色原畫歸屬未核實；本次生成與加工不覆蓋父素材權利",
+    "權利狀態": "unknown",
+    "可用用途": [
+      "本次ASML校準預覽；核可前不得自動挑選"
+    ],
+    "used_in": [
+      "2026-10-17_asml-outlook"
+    ],
+    "雲端備份狀態": "pending PR",
+    "fields_note": "標籤僅描述本次可見情境，不代表已通過逐頁品管",
+    "pose": "低重心站姿",
+    "action": "低重心站姿",
+    "expression": "驚訝圓嘴",
+    "orientation": "正面",
+    "scene": "驚訝提醒",
+    "prop": "無",
+    "tags": [
+      "比比",
+      "主持",
+      "wow_front",
+      "驚訝提醒",
+      "低重心站姿"
+    ],
+    "crop_evidence": {
+      "file": "04.png",
+      "source_cell": [
+        3,
+        0
+      ],
+      "source_sheet_size": [
+        1774,
+        887
+      ],
+      "crop_bbox": [
+        28,
+        55,
+        426,
+        438
+      ],
+      "dimensions": [
+        398,
+        383
+      ],
+      "alpha_extrema": [
+        0,
+        255
+      ],
+      "status": "review"
+    },
+    "prompt_summary": "保留奶白毛球、咖啡輪廓、短掌短腳；八種主持表情與角度；透明底、不畫文字。",
+    "dimensions": [
+      398,
+      383
+    ],
+    "shared_manifest": "docs/social_assets/author_unverified/bibi_asml_wow_front/manifest.json",
+    "shared_version": "v001"
+  },
+  {
+    "asset_id": "bibi_asml_look_left",
+    "中文名稱": "比比・回望比較",
+    "category": "author_unverified",
+    "original_author": "角色參考原畫 unknown；新情境由 OpenAI imagegen 生成",
+    "processed_by": "Codex：版本登錄、機械裁切／程式製圖",
+    "tool": "image_gen.imagegen；固定格機械裁切",
+    "provenance_evidence": [
+      "output/2026-10-17_asml-outlook/prompts.md",
+      "output/2026-10-17_asml-outlook/assets/pose_sheet_source.png",
+      "output/2026-10-17_asml-outlook/assets/pose_cells.json"
+    ],
+    "parent_asset_id": "bibi_clean",
+    "version": "v001",
+    "版本": "v001",
+    "files": [
+      {
+        "path": "v001.png",
+        "exists": true,
+        "bytes": 132176,
+        "sha256": "9941c6647c9ecfb005ecae42c1cf86ba958a354631e6b2a07ddff1bbb180306f",
+        "dimensions": [
+          423,
+          393
+        ],
+        "format": "PNG",
+        "frames": 1,
+        "alpha_extrema": [
+          0,
+          255
+        ],
+        "has_transparent_pixels": true,
+        "duration_ms": null,
+        "fps": null
+      }
+    ],
+    "檔案": "v001.png",
+    "是否透明底": true,
+    "status": "review",
+    "qa_status": "review",
+    "品管狀態": "review；Andy尚未核可品牌風格",
+    "approval_evidence": null,
+    "animation": {
+      "frames": 0,
+      "fps": null,
+      "duration_ms": null,
+      "note": "靜態素材；0表示無動畫，不代表PNG影像格數"
+    },
+    "rights": "unknown：角色原畫歸屬未核實；本次生成與加工不覆蓋父素材權利",
+    "權利狀態": "unknown",
+    "可用用途": [
+      "本次ASML校準預覽；核可前不得自動挑選"
+    ],
+    "used_in": [
+      "2026-10-17_asml-outlook"
+    ],
+    "雲端備份狀態": "pending PR",
+    "fields_note": "標籤僅描述本次可見情境，不代表已通過逐頁品管",
+    "pose": "側身站姿",
+    "action": "側身站姿",
+    "expression": "專注微笑",
+    "orientation": "左側面",
+    "scene": "回望比較",
+    "prop": "無",
+    "tags": [
+      "比比",
+      "主持",
+      "look_left",
+      "回望比較",
+      "側身站姿"
+    ],
+    "crop_evidence": {
+      "file": "05.png",
+      "source_cell": [
+        0,
+        1
+      ],
+      "source_sheet_size": [
+        1774,
+        887
+      ],
+      "crop_bbox": [
+        21,
+        23,
+        444,
+        416
+      ],
+      "dimensions": [
+        423,
+        393
+      ],
+      "alpha_extrema": [
+        0,
+        255
+      ],
+      "status": "review"
+    },
+    "prompt_summary": "保留奶白毛球、咖啡輪廓、短掌短腳；八種主持表情與角度；透明底、不畫文字。",
+    "dimensions": [
+      423,
+      393
+    ],
+    "shared_manifest": "docs/social_assets/author_unverified/bibi_asml_look_left/manifest.json",
+    "shared_version": "v001"
+  },
+  {
+    "asset_id": "bibi_asml_prone_observe",
+    "中文名稱": "比比・趴著觀察",
+    "category": "author_unverified",
+    "original_author": "角色參考原畫 unknown；新情境由 OpenAI imagegen 生成",
+    "processed_by": "Codex：版本登錄、機械裁切／程式製圖",
+    "tool": "image_gen.imagegen；固定格機械裁切",
+    "provenance_evidence": [
+      "output/2026-10-17_asml-outlook/prompts.md",
+      "output/2026-10-17_asml-outlook/assets/pose_sheet_source.png",
+      "output/2026-10-17_asml-outlook/assets/pose_cells.json",
+      "本對話 imagegen exec-f479d487-09cf-4eb7-a6c1-c49e6cb97466.png 同姿勢清理修正版"
+    ],
+    "parent_asset_id": "bibi_clean",
+    "version": "v002",
+    "版本": "v002",
+    "files": [
+      {
+        "path": "v002.png",
+        "exists": true,
+        "bytes": 753827,
+        "sha256": "d02e30253c1ff730087a50eb767afaf156d3a0ff523d5c5b49703497ed53ed86",
+        "dimensions": [
+          1358,
+          1159
+        ],
+        "format": "PNG",
+        "frames": 1,
+        "alpha_extrema": [
+          0,
+          255
+        ],
+        "has_transparent_pixels": true,
+        "duration_ms": null,
+        "fps": null
+      }
+    ],
+    "檔案": "v002.png",
+    "是否透明底": true,
+    "status": "review",
+    "qa_status": "review",
+    "品管狀態": "review；Andy尚未核可品牌風格",
+    "approval_evidence": null,
+    "animation": {
+      "frames": 0,
+      "fps": null,
+      "duration_ms": null,
+      "note": "靜態素材；0表示無動畫，不代表PNG影像格數"
+    },
+    "rights": "unknown：角色原畫歸屬未核實；本次生成與加工不覆蓋父素材權利",
+    "權利狀態": "unknown",
+    "可用用途": [
+      "本次ASML校準預覽；核可前不得自動挑選"
+    ],
+    "used_in": [
+      "2026-10-17_asml-outlook"
+    ],
+    "雲端備份狀態": "pending PR",
+    "fields_note": "標籤僅描述本次可見情境，不代表已通過逐頁品管",
+    "pose": "趴姿、前掌支撐",
+    "action": "趴姿、前掌支撐",
+    "expression": "專注微笑",
+    "orientation": "正面",
+    "scene": "趴著觀察",
+    "prop": "無",
+    "tags": [
+      "比比",
+      "主持",
+      "prone_observe",
+      "趴著觀察",
+      "趴姿、前掌支撐"
+    ],
+    "prompt_summary": "保留奶白毛球、咖啡輪廓、短掌短腳；八種主持表情與角度；透明底、不畫文字。",
+    "cleanup_note": "雙前腳間透明區局部去背碎點清理，像素紀錄見本篇 qa/pose06_cleanup.json",
+    "sha256": "eb58274ee1a2ba5f0243c9e694b300fcbf23baf4e0aec328a31e41b0eacb7cdc",
+    "version_history": [
+      {
+        "version": "v001",
+        "file": "v001.png",
+        "status": "rejected",
+        "reason": "原腳間異常碎片；退役，不正式再用"
+      },
+      {
+        "version": "v002",
+        "file": "v002.png",
+        "status": "review",
+        "reason": "imagegen清理同姿勢；風格仍待Andy核可"
+      }
+    ],
+    "crop_evidence_v001": {
+      "file": "06.png",
+      "source_cell": [
+        1,
+        1
+      ],
+      "source_sheet_size": [
+        1774,
+        887
+      ],
+      "crop_bbox": [
+        0,
+        33,
+        443,
+        411
+      ],
+      "dimensions": [
+        443,
+        378
+      ],
+      "alpha_extrema": [
+        0,
+        255
+      ],
+      "status": "review"
+    },
+    "repair_note": "v002 為imagegen新高解析度修正版，非原表機械裁切；v001留歷史禁用。",
+    "dimensions": [
+      1358,
+      1159
+    ],
+    "shared_manifest": "docs/social_assets/author_unverified/bibi_asml_prone_observe/manifest.json",
+    "shared_version": "v002"
+  },
+  {
+    "asset_id": "bibi_asml_worried_sweat",
+    "中文名稱": "比比・風險提醒",
+    "category": "author_unverified",
+    "original_author": "角色參考原畫 unknown；新情境由 OpenAI imagegen 生成",
+    "processed_by": "Codex：版本登錄、機械裁切／程式製圖",
+    "tool": "image_gen.imagegen；固定格機械裁切",
+    "provenance_evidence": [
+      "output/2026-10-17_asml-outlook/prompts.md",
+      "output/2026-10-17_asml-outlook/assets/pose_sheet_source.png",
+      "output/2026-10-17_asml-outlook/assets/pose_cells.json"
+    ],
+    "parent_asset_id": "bibi_clean",
+    "version": "v001",
+    "版本": "v001",
+    "files": [
+      {
+        "path": "v001.png",
+        "exists": true,
+        "bytes": 139728,
+        "sha256": "305d6acd956f866bdb787b999b2bd37810e39ff56edcd23c18083d997a10c1b1",
+        "dimensions": [
+          442,
+          374
+        ],
+        "format": "PNG",
+        "frames": 1,
+        "alpha_extrema": [
+          0,
+          255
+        ],
+        "has_transparent_pixels": true,
+        "duration_ms": null,
+        "fps": null
+      }
+    ],
+    "檔案": "v001.png",
+    "是否透明底": true,
+    "status": "review",
+    "qa_status": "review",
+    "品管狀態": "review；Andy尚未核可品牌風格",
+    "approval_evidence": null,
+    "animation": {
+      "frames": 0,
+      "fps": null,
+      "duration_ms": null,
+      "note": "靜態素材；0表示無動畫，不代表PNG影像格數"
+    },
+    "rights": "unknown：角色原畫歸屬未核實；本次生成與加工不覆蓋父素材權利",
+    "權利狀態": "unknown",
+    "可用用途": [
+      "本次ASML校準預覽；核可前不得自動挑選"
+    ],
+    "used_in": [
+      "2026-10-17_asml-outlook"
+    ],
+    "雲端備份狀態": "pending PR",
+    "fields_note": "標籤僅描述本次可見情境，不代表已通過逐頁品管",
+    "pose": "低重心站姿",
+    "action": "低重心站姿",
+    "expression": "擔心、汗滴",
+    "orientation": "正面",
+    "scene": "風險提醒",
+    "prop": "汗滴效果",
+    "tags": [
+      "比比",
+      "主持",
+      "worried_sweat",
+      "風險提醒",
+      "低重心站姿"
+    ],
+    "crop_evidence": {
+      "file": "07.png",
+      "source_cell": [
+        2,
+        1
+      ],
+      "source_sheet_size": [
+        1774,
+        887
+      ],
+      "crop_bbox": [
+        0,
+        9,
+        442,
+        383
+      ],
+      "dimensions": [
+        442,
+        374
+      ],
+      "alpha_extrema": [
+        0,
+        255
+      ],
+      "status": "review"
+    },
+    "prompt_summary": "保留奶白毛球、咖啡輪廓、短掌短腳；八種主持表情與角度；透明底、不畫文字。",
+    "dimensions": [
+      442,
+      374
+    ],
+    "shared_manifest": "docs/social_assets/author_unverified/bibi_asml_worried_sweat/manifest.json",
+    "shared_version": "v001"
+  },
+  {
+    "asset_id": "bibi_asml_happy_close",
+    "中文名稱": "比比・點頭總結",
+    "category": "author_unverified",
+    "original_author": "角色參考原畫 unknown；新情境由 OpenAI imagegen 生成",
+    "processed_by": "Codex：版本登錄、機械裁切／程式製圖",
+    "tool": "image_gen.imagegen；固定格機械裁切",
+    "provenance_evidence": [
+      "output/2026-10-17_asml-outlook/prompts.md",
+      "output/2026-10-17_asml-outlook/assets/pose_sheet_source.png",
+      "output/2026-10-17_asml-outlook/assets/pose_cells.json"
+    ],
+    "parent_asset_id": "bibi_clean",
+    "version": "v001",
+    "版本": "v001",
+    "files": [
+      {
+        "path": "v001.png",
+        "exists": true,
+        "bytes": 128712,
+        "sha256": "4d76870da2ffaa36a1fbbeab4aa557a33a5992ce1421d7774782878598ced61b",
+        "dimensions": [
+          418,
+          377
+        ],
+        "format": "PNG",
+        "frames": 1,
+        "alpha_extrema": [
+          0,
+          255
+        ],
+        "has_transparent_pixels": true,
+        "duration_ms": null,
+        "fps": null
+      }
+    ],
+    "檔案": "v001.png",
+    "是否透明底": true,
+    "status": "review",
+    "qa_status": "review",
+    "品管狀態": "review；Andy尚未核可品牌風格",
+    "approval_evidence": null,
+    "animation": {
+      "frames": 0,
+      "fps": null,
+      "duration_ms": null,
+      "note": "靜態素材；0表示無動畫，不代表PNG影像格數"
+    },
+    "rights": "unknown：角色原畫歸屬未核實；本次生成與加工不覆蓋父素材權利",
+    "權利狀態": "unknown",
+    "可用用途": [
+      "本次ASML校準預覽；核可前不得自動挑選"
+    ],
+    "used_in": [
+      "2026-10-17_asml-outlook"
+    ],
+    "雲端備份狀態": "pending PR",
+    "fields_note": "標籤僅描述本次可見情境，不代表已通過逐頁品管",
+    "pose": "站姿",
+    "action": "站姿",
+    "expression": "閉眼微笑",
+    "orientation": "正面",
+    "scene": "點頭總結",
+    "prop": "無",
+    "tags": [
+      "比比",
+      "主持",
+      "happy_close",
+      "點頭總結",
+      "站姿"
+    ],
+    "crop_evidence": {
+      "file": "08.png",
+      "source_cell": [
+        3,
+        1
+      ],
+      "source_sheet_size": [
+        1774,
+        887
+      ],
+      "crop_bbox": [
+        5,
+        6,
+        423,
+        383
+      ],
+      "dimensions": [
+        418,
+        377
+      ],
+      "alpha_extrema": [
+        0,
+        255
+      ],
+      "status": "review"
+    },
+    "prompt_summary": "保留奶白毛球、咖啡輪廓、短掌短腳；八種主持表情與角度；透明底、不畫文字。",
+    "dimensions": [
+      418,
+      377
+    ],
+    "shared_manifest": "docs/social_assets/author_unverified/bibi_asml_happy_close/manifest.json",
+    "shared_version": "v001"
+  },
+  {
+    "asset_id": "bibi_asml_euv_scene",
+    "中文名稱": "比比與曝光設備觀察場景",
+    "category": "author_unverified",
+    "original_author": "角色參考原畫 unknown；新情境由 OpenAI imagegen 生成",
+    "processed_by": "Codex：版本登錄、機械裁切／程式製圖",
+    "tool": "image_gen.imagegen",
+    "provenance_evidence": [
+      "output/2026-10-17_asml-outlook/prompts.md",
+      "output/2026-10-17_asml-outlook/assets/cover_scene.png"
+    ],
+    "parent_asset_id": "bibi_clean",
+    "version": "v001",
+    "版本": "v001",
+    "files": [
+      {
+        "path": "v001.png",
+        "exists": true,
+        "bytes": 2433826,
+        "sha256": "fcffdd8ad1e513a7c881d00198c208c5b52db7580924539c93000dc3742de228",
+        "dimensions": [
+          1536,
+          1024
+        ],
+        "format": "PNG",
+        "frames": 1,
+        "alpha_extrema": [
+          0,
+          254
+        ],
+        "has_transparent_pixels": true,
+        "duration_ms": null,
+        "fps": null
+      }
+    ],
+    "檔案": "v001.png",
+    "是否透明底": true,
+    "status": "review",
+    "qa_status": "review",
+    "品管狀態": "review；Andy尚未核可品牌風格",
+    "approval_evidence": null,
+    "animation": {
+      "frames": 0,
+      "fps": null,
+      "duration_ms": null,
+      "note": "靜態素材；0表示無動畫，不代表PNG影像格數"
+    },
+    "rights": "unknown：角色原畫歸屬未核實；本次生成與加工不覆蓋父素材權利",
+    "權利狀態": "unknown",
+    "可用用途": [
+      "本次ASML校準預覽；核可前不得自動挑選"
+    ],
+    "used_in": [
+      "2026-10-17_asml-outlook"
+    ],
+    "雲端備份狀態": "pending PR",
+    "fields_note": "標籤僅描述本次可見情境，不代表已通過逐頁品管",
+    "pose": "科技場景主持",
+    "action": "引導讀者觀察設備",
+    "expression": "待逐頁放大核實",
+    "orientation": "場景透視",
+    "scene": "ASML曝光設備與晶圓教學示意",
+    "prop": "曝光設備、晶圓",
+    "tags": [
+      "比比",
+      "EUV",
+      "ASML",
+      "設備",
+      "封面"
+    ],
+    "prompt_summary": "奶油紙感手繪科技主場景；比比與曝光設備自然互動；不畫正式文字與數據。",
+    "limitations": "生成設備是教學場景，非ASML真實機型剖面，技術細節須人工審核。",
+    "dimensions": [
+      1536,
+      1024
+    ],
+    "shared_manifest": "docs/social_assets/author_unverified/bibi_asml_euv_scene/manifest.json",
+    "shared_version": "v001"
+  },
+  {
+    "asset_id": "tech_asml_wafer",
+    "中文名稱": "晶圓可編輯教學元件",
+    "category": "codex_original",
+    "original_author": "Codex",
+    "processed_by": "Codex：版本登錄、機械裁切／程式製圖",
+    "tool": "Python／scripts/social/tech_library.py",
+    "provenance_evidence": [
+      "scripts/social/tech_library.py",
+      "output/2026-10-17_asml-outlook/assets/tech/wafer.svg"
+    ],
+    "parent_asset_id": null,
+    "version": "v001",
+    "版本": "v001",
+    "files": [
+      {
+        "path": "v001.svg",
+        "exists": true,
+        "bytes": 2387,
+        "sha256": "45af3542ac9a4279391f62d3cdd18090ff205ffe566fcc681fd1e31f9cf3cc0a",
+        "dimensions": [
+          1000,
+          700
+        ],
+        "editable": true,
+        "measurement_note": "尺寸由SVG產生器viewBox確認；向量透明與技術結構須人工驗證"
+      },
+      {
+        "path": "v001.png",
+        "exists": true,
+        "bytes": 57847,
+        "sha256": "df145025d8b8912008f8c40183396ce179bbadd1d870b107433a91c66c11c7d4",
+        "dimensions": [
+          1000,
+          700
+        ],
+        "format": "PNG",
+        "frames": 1,
+        "alpha_extrema": [
+          0,
+          255
+        ],
+        "has_transparent_pixels": true,
+        "duration_ms": null,
+        "fps": null
+      }
+    ],
+    "檔案": "v001.png",
+    "是否透明底": true,
+    "status": "review",
+    "qa_status": "review",
+    "品管狀態": "review；Andy尚未核可品牌風格",
+    "approval_evidence": null,
+    "animation": {
+      "frames": 0,
+      "fps": null,
+      "duration_ms": null,
+      "note": "靜態素材；0表示無動畫，不代表PNG影像格數"
+    },
+    "rights": "Codex 程式原創；可編輯教學示意",
+    "權利狀態": "程式原創",
+    "可用用途": [
+      "本次ASML校準預覽；核可前不得自動挑選"
+    ],
+    "used_in": [
+      "2026-10-17_asml-outlook"
+    ],
+    "雲端備份狀態": "pending PR",
+    "fields_note": "標籤僅描述本次可見情境，不代表已通過逐頁品管",
+    "pose": "不適用",
+    "action": "技術示意",
+    "expression": "不適用",
+    "orientation": "示意透視",
+    "scene": "半導體教學",
+    "prop": "晶圓",
+    "tags": [
+      "wafer",
+      "晶圓",
+      "科技物件",
+      "可編輯",
+      "SVG"
+    ],
+    "limitations": "教學功能示意，非真實機型剖面；光路非光學設計比例且須人工驗證。",
+    "dimensions": [
+      1000,
+      700
+    ],
+    "shared_manifest": "docs/social_assets/codex_original/tech_asml_wafer/manifest.json",
+    "shared_version": "v001"
+  },
+  {
+    "asset_id": "tech_asml_euv_tool",
+    "中文名稱": "EUV曝光設備可編輯教學元件",
+    "category": "codex_original",
+    "original_author": "Codex",
+    "processed_by": "Codex：版本登錄、機械裁切／程式製圖",
+    "tool": "Python／scripts/social/tech_library.py",
+    "provenance_evidence": [
+      "scripts/social/tech_library.py",
+      "output/2026-10-17_asml-outlook/assets/tech/euv_tool.svg"
+    ],
+    "parent_asset_id": null,
+    "version": "v001",
+    "版本": "v001",
+    "files": [
+      {
+        "path": "v001.svg",
+        "exists": true,
+        "bytes": 2778,
+        "sha256": "4d4489ce8967d3643cf9c7ce7ee5298c1da65403b3f557af161d932d5ab3cf2c",
+        "dimensions": [
+          1000,
+          700
+        ],
+        "editable": true,
+        "measurement_note": "尺寸由SVG產生器viewBox確認；向量透明與技術結構須人工驗證"
+      },
+      {
+        "path": "v001.png",
+        "exists": true,
+        "bytes": 34121,
+        "sha256": "53aab79de171b2420efc43722aced6012978f1830fac48bd7df8a4972133c121",
+        "dimensions": [
+          1000,
+          700
+        ],
+        "format": "PNG",
+        "frames": 1,
+        "alpha_extrema": [
+          0,
+          255
+        ],
+        "has_transparent_pixels": true,
+        "duration_ms": null,
+        "fps": null
+      }
+    ],
+    "檔案": "v001.png",
+    "是否透明底": true,
+    "status": "review",
+    "qa_status": "review",
+    "品管狀態": "review；Andy尚未核可品牌風格",
+    "approval_evidence": null,
+    "animation": {
+      "frames": 0,
+      "fps": null,
+      "duration_ms": null,
+      "note": "靜態素材；0表示無動畫，不代表PNG影像格數"
+    },
+    "rights": "Codex 程式原創；可編輯教學示意",
+    "權利狀態": "程式原創",
+    "可用用途": [
+      "本次ASML校準預覽；核可前不得自動挑選"
+    ],
+    "used_in": [
+      "2026-10-17_asml-outlook"
+    ],
+    "雲端備份狀態": "pending PR",
+    "fields_note": "標籤僅描述本次可見情境，不代表已通過逐頁品管",
+    "pose": "不適用",
+    "action": "技術示意",
+    "expression": "不適用",
+    "orientation": "示意透視",
+    "scene": "半導體教學",
+    "prop": "EUV曝光設備",
+    "tags": [
+      "euv_tool",
+      "EUV曝光設備",
+      "科技物件",
+      "可編輯",
+      "SVG"
+    ],
+    "limitations": "教學功能示意，非真實機型剖面；光路非光學設計比例且須人工驗證。",
+    "dimensions": [
+      1000,
+      700
+    ],
+    "shared_manifest": "docs/social_assets/codex_original/tech_asml_euv_tool/manifest.json",
+    "shared_version": "v001"
+  },
+  {
+    "asset_id": "tech_asml_optical_path",
+    "中文名稱": "EUV光路可編輯教學元件",
+    "category": "codex_original",
+    "original_author": "Codex",
+    "processed_by": "Codex：版本登錄、機械裁切／程式製圖",
+    "tool": "Python／scripts/social/tech_library.py",
+    "provenance_evidence": [
+      "scripts/social/tech_library.py",
+      "output/2026-10-17_asml-outlook/assets/tech/optical_path.svg"
+    ],
+    "parent_asset_id": null,
+    "version": "v001",
+    "版本": "v001",
+    "files": [
+      {
+        "path": "v001.svg",
+        "exists": true,
+        "bytes": 2622,
+        "sha256": "2e6c96751568a6ab6ad1c88c63d742a134537bba3b6b018b726dba2e6f376a84",
+        "dimensions": [
+          1000,
+          700
+        ],
+        "editable": true,
+        "measurement_note": "尺寸由SVG產生器viewBox確認；向量透明與技術結構須人工驗證"
+      },
+      {
+        "path": "v001.png",
+        "exists": true,
+        "bytes": 46317,
+        "sha256": "8196e460f28f4b4665fc2706ed3b63905d66ac7a8b51ee999825d94f84e3e226",
+        "dimensions": [
+          1000,
+          700
+        ],
+        "format": "PNG",
+        "frames": 1,
+        "alpha_extrema": [
+          0,
+          255
+        ],
+        "has_transparent_pixels": true,
+        "duration_ms": null,
+        "fps": null
+      }
+    ],
+    "檔案": "v001.png",
+    "是否透明底": true,
+    "status": "review",
+    "qa_status": "review",
+    "品管狀態": "review；Andy尚未核可品牌風格",
+    "approval_evidence": null,
+    "animation": {
+      "frames": 0,
+      "fps": null,
+      "duration_ms": null,
+      "note": "靜態素材；0表示無動畫，不代表PNG影像格數"
+    },
+    "rights": "Codex 程式原創；可編輯教學示意",
+    "權利狀態": "程式原創",
+    "可用用途": [
+      "本次ASML校準預覽；核可前不得自動挑選"
+    ],
+    "used_in": [
+      "2026-10-17_asml-outlook"
+    ],
+    "雲端備份狀態": "pending PR",
+    "fields_note": "標籤僅描述本次可見情境，不代表已通過逐頁品管",
+    "pose": "不適用",
+    "action": "技術示意",
+    "expression": "不適用",
+    "orientation": "平面光路",
+    "scene": "半導體教學",
+    "prop": "EUV光路",
+    "tags": [
+      "optical_path",
+      "EUV光路",
+      "科技物件",
+      "可編輯",
+      "SVG"
+    ],
+    "limitations": "教學功能示意，非真實機型剖面；光路非光學設計比例且須人工驗證。",
+    "dimensions": [
+      1000,
+      700
+    ],
+    "shared_manifest": "docs/social_assets/codex_original/tech_asml_optical_path/manifest.json",
+    "shared_version": "v001"
+  },
+  {
+    "asset_id": "tech_illustrated_machine",
+    "中文名稱": "曝光設備手繪物件",
+    "category": "gpt_original",
+    "original_author": "OpenAI imagegen（本次全新科技物件，不含比比參考）",
+    "processed_by": "Codex：固定格機械裁切、版本登錄",
+    "tool": "image_gen.imagegen",
+    "provenance_evidence": [
+      "output/2026-10-17_asml-outlook/prompts.md",
+      "output/2026-10-17_asml-outlook/assets/tech_sheet_source.png",
+      "output/2026-10-17_asml-outlook/assets/tech_cells.json"
+    ],
+    "parent_asset_id": null,
+    "related_asset_ids": [
+      "tech_asml_euv_tool"
+    ],
+    "version": "v001",
+    "版本": "v001",
+    "檔案": "v001.png",
+    "files": [
+      {
+        "path": "v001.png",
+        "exists": true,
+        "bytes": 524856,
+        "sha256": "43b0e4cbdd273edda59629445aecca679ea7034ef07ea154ad6cb65d1287edee",
+        "dimensions": [
+          600,
+          501
+        ],
+        "format": "PNG",
+        "frames": 1,
+        "alpha_extrema": [
+          0,
+          254
+        ],
+        "has_transparent_pixels": true,
+        "duration_ms": null,
+        "fps": null
+      }
+    ],
+    "是否透明底": true,
+    "dimensions": [
+      600,
+      501
+    ],
+    "source_crop_bbox": [
+      0,
+      0,
+      600,
+      510
+    ],
+    "pose": "不適用",
+    "action": "科技教學插畫",
+    "orientation": "示意透視",
+    "expression": "不適用",
+    "scene": "科技研究筆記／半導體科普",
+    "prop": "曝光設備手繪物件",
+    "tags": [
+      "machine",
+      "曝光設備手繪物件",
+      "科技物件",
+      "bitmap",
+      "PNG"
+    ],
+    "status": "review",
+    "qa_status": "review",
+    "approval_evidence": null,
+    "animation": {
+      "frames": 0,
+      "fps": null,
+      "duration_ms": null
+    },
+    "rights": "本次 imagegen 全新生成物件，可追溯；實際技術與品牌精緻度仍須審核",
+    "權利狀態": "新生成科技物件；來源見provenance_evidence",
+    "品管狀態": "review；不代表真實設備結構正確",
+    "limitations": "PNG可作獨立圖層縮放、組合與加註，不能宣稱能改視角或有對應SVG原始；相關codex SVG是另一件獨立教學元件。光路與設備非真機工程圖，須人工驗證。",
+    "prompt_summary": "奶油系手繪科技插畫；獨立透明科技物件；不含角色與正式中文數字。",
+    "used_in": [
+      "2026-10-17_asml-outlook"
+    ],
+    "雲端備份狀態": "pending PR",
+    "shared_manifest": "docs/social_assets/gpt_original/tech_illustrated_machine/manifest.json",
+    "shared_version": "v001"
+  },
+  {
+    "asset_id": "tech_illustrated_wafer",
+    "中文名稱": "晶圓手繪物件",
+    "category": "gpt_original",
+    "original_author": "OpenAI imagegen（本次全新科技物件，不含比比參考）",
+    "processed_by": "Codex：固定格機械裁切、版本登錄",
+    "tool": "image_gen.imagegen",
+    "provenance_evidence": [
+      "output/2026-10-17_asml-outlook/prompts.md",
+      "output/2026-10-17_asml-outlook/assets/tech_sheet_source.png",
+      "output/2026-10-17_asml-outlook/assets/tech_cells.json"
+    ],
+    "parent_asset_id": null,
+    "related_asset_ids": [
+      "tech_asml_wafer"
+    ],
+    "version": "v001",
+    "版本": "v001",
+    "檔案": "v001.png",
+    "files": [
+      {
+        "path": "v001.png",
+        "exists": true,
+        "bytes": 390313,
+        "sha256": "8a83341c40d6ea5b4fa7a76acb8f0b4bbedb58044334898e77e40138feaba212",
+        "dimensions": [
+          442,
+          510
+        ],
+        "format": "PNG",
+        "frames": 1,
+        "alpha_extrema": [
+          0,
+          254
+        ],
+        "has_transparent_pixels": true,
+        "duration_ms": null,
+        "fps": null
+      }
+    ],
+    "是否透明底": true,
+    "dimensions": [
+      442,
+      510
+    ],
+    "source_crop_bbox": [
+      600,
+      0,
+      1043,
+      510
+    ],
+    "pose": "不適用",
+    "action": "科技教學插畫",
+    "orientation": "示意透視",
+    "expression": "不適用",
+    "scene": "科技研究筆記／半導體科普",
+    "prop": "晶圓手繪物件",
+    "tags": [
+      "wafer",
+      "晶圓手繪物件",
+      "科技物件",
+      "bitmap",
+      "PNG"
+    ],
+    "status": "review",
+    "qa_status": "review",
+    "approval_evidence": null,
+    "animation": {
+      "frames": 0,
+      "fps": null,
+      "duration_ms": null
+    },
+    "rights": "本次 imagegen 全新生成物件，可追溯；實際技術與品牌精緻度仍須審核",
+    "權利狀態": "新生成科技物件；來源見provenance_evidence",
+    "品管狀態": "review；不代表真實設備結構正確",
+    "limitations": "PNG可作獨立圖層縮放、組合與加註，不能宣稱能改視角或有對應SVG原始；相關codex SVG是另一件獨立教學元件。光路與設備非真機工程圖，須人工驗證。",
+    "prompt_summary": "奶油系手繪科技插畫；獨立透明科技物件；不含角色與正式中文數字。",
+    "used_in": [
+      "2026-10-17_asml-outlook"
+    ],
+    "雲端備份狀態": "pending PR",
+    "shared_manifest": "docs/social_assets/gpt_original/tech_illustrated_wafer/manifest.json",
+    "shared_version": "v001"
+  },
+  {
+    "asset_id": "tech_illustrated_mirror",
+    "中文名稱": "反射鏡與光路手繪物件",
+    "category": "gpt_original",
+    "original_author": "OpenAI imagegen（本次全新科技物件，不含比比參考）",
+    "processed_by": "Codex：固定格機械裁切、版本登錄",
+    "tool": "image_gen.imagegen",
+    "provenance_evidence": [
+      "output/2026-10-17_asml-outlook/prompts.md",
+      "output/2026-10-17_asml-outlook/assets/tech_sheet_source.png",
+      "output/2026-10-17_asml-outlook/assets/tech_cells.json"
+    ],
+    "parent_asset_id": null,
+    "related_asset_ids": [
+      "tech_asml_optical_path"
+    ],
+    "version": "v001",
+    "版本": "v001",
+    "檔案": "v001.png",
+    "files": [
+      {
+        "path": "v001.png",
+        "exists": true,
+        "bytes": 422337,
+        "sha256": "70a7d649d5c7b6668446dab0119c6041fe9cd9bb224d77064509322fc0b9c106",
+        "dimensions": [
+          477,
+          497
+        ],
+        "format": "PNG",
+        "frames": 1,
+        "alpha_extrema": [
+          0,
+          254
+        ],
+        "has_transparent_pixels": true,
+        "duration_ms": null,
+        "fps": null
+      }
+    ],
+    "是否透明底": true,
+    "dimensions": [
+      477,
+      497
+    ],
+    "source_crop_bbox": [
+      1043,
+      0,
+      1536,
+      510
+    ],
+    "pose": "不適用",
+    "action": "科技教學插畫",
+    "orientation": "示意透視",
+    "expression": "不適用",
+    "scene": "科技研究筆記／半導體科普",
+    "prop": "反射鏡與光路手繪物件",
+    "tags": [
+      "mirror",
+      "反射鏡與光路手繪物件",
+      "科技物件",
+      "bitmap",
+      "PNG"
+    ],
+    "status": "review",
+    "qa_status": "review",
+    "approval_evidence": null,
+    "animation": {
+      "frames": 0,
+      "fps": null,
+      "duration_ms": null
+    },
+    "rights": "本次 imagegen 全新生成物件，可追溯；實際技術與品牌精緻度仍須審核",
+    "權利狀態": "新生成科技物件；來源見provenance_evidence",
+    "品管狀態": "review；不代表真實設備結構正確",
+    "limitations": "PNG可作獨立圖層縮放、組合與加註，不能宣稱能改視角或有對應SVG原始；相關codex SVG是另一件獨立教學元件。光路與設備非真機工程圖，須人工驗證。",
+    "prompt_summary": "奶油系手繪科技插畫；獨立透明科技物件；不含角色與正式中文數字。",
+    "used_in": [
+      "2026-10-17_asml-outlook"
+    ],
+    "雲端備份狀態": "pending PR",
+    "shared_manifest": "docs/social_assets/gpt_original/tech_illustrated_mirror/manifest.json",
+    "shared_version": "v001"
+  },
+  {
+    "asset_id": "tech_illustrated_fab",
+    "中文名稱": "晶圓廠場景",
+    "category": "gpt_original",
+    "original_author": "OpenAI imagegen（本次全新科技物件，不含比比參考）",
+    "processed_by": "Codex：固定格機械裁切、版本登錄",
+    "tool": "image_gen.imagegen",
+    "provenance_evidence": [
+      "output/2026-10-17_asml-outlook/prompts.md",
+      "output/2026-10-17_asml-outlook/assets/tech_sheet_source.png",
+      "output/2026-10-17_asml-outlook/assets/tech_cells.json"
+    ],
+    "parent_asset_id": null,
+    "related_asset_ids": [],
+    "version": "v001",
+    "版本": "v001",
+    "檔案": "v001.png",
+    "files": [
+      {
+        "path": "v001.png",
+        "exists": true,
+        "bytes": 497664,
+        "sha256": "5096613ee2edfa2b8a149780ea046a431655311a1b87cda3f7e385a23978f3fb",
+        "dimensions": [
+          610,
+          514
+        ],
+        "format": "PNG",
+        "frames": 1,
+        "alpha_extrema": [
+          0,
+          254
+        ],
+        "has_transparent_pixels": true,
+        "duration_ms": null,
+        "fps": null
+      }
+    ],
+    "是否透明底": true,
+    "dimensions": [
+      610,
+      514
+    ],
+    "source_crop_bbox": [
+      0,
+      510,
+      610,
+      1024
+    ],
+    "pose": "不適用",
+    "action": "科技教學插畫",
+    "orientation": "示意透視",
+    "expression": "不適用",
+    "scene": "科技研究筆記／半導體科普",
+    "prop": "晶圓廠場景",
+    "tags": [
+      "fab",
+      "晶圓廠場景",
+      "科技物件",
+      "bitmap",
+      "PNG"
+    ],
+    "status": "review",
+    "qa_status": "review",
+    "approval_evidence": null,
+    "animation": {
+      "frames": 0,
+      "fps": null,
+      "duration_ms": null
+    },
+    "rights": "本次 imagegen 全新生成物件，可追溯；實際技術與品牌精緻度仍須審核",
+    "權利狀態": "新生成科技物件；來源見provenance_evidence",
+    "品管狀態": "review；不代表真實設備結構正確",
+    "limitations": "PNG可作獨立圖層縮放、組合與加註，不能宣稱能改視角或有對應SVG原始；相關codex SVG是另一件獨立教學元件。光路與設備非真機工程圖，須人工驗證。",
+    "prompt_summary": "奶油系手繪科技插畫；獨立透明科技物件；不含角色與正式中文數字。",
+    "used_in": [
+      "2026-10-17_asml-outlook"
+    ],
+    "雲端備份狀態": "pending PR",
+    "shared_manifest": "docs/social_assets/gpt_original/tech_illustrated_fab/manifest.json",
+    "shared_version": "v001"
+  },
+  {
+    "asset_id": "tech_illustrated_laptop",
+    "中文名稱": "研究筆電物件",
+    "category": "gpt_original",
+    "original_author": "OpenAI imagegen（本次全新科技物件，不含比比參考）",
+    "processed_by": "Codex：固定格機械裁切、版本登錄",
+    "tool": "image_gen.imagegen",
+    "provenance_evidence": [
+      "output/2026-10-17_asml-outlook/prompts.md",
+      "output/2026-10-17_asml-outlook/assets/tech_sheet_source.png",
+      "output/2026-10-17_asml-outlook/assets/tech_cells.json"
+    ],
+    "parent_asset_id": null,
+    "related_asset_ids": [],
+    "version": "v001",
+    "版本": "v001",
+    "檔案": "v001.png",
+    "files": [
+      {
+        "path": "v001.png",
+        "exists": true,
+        "bytes": 343769,
+        "sha256": "44fbacc79684e7d3b9a1be0c0633733ebe0fa91730396f0cb9e72bc666af59ef",
+        "dimensions": [
+          490,
+          514
+        ],
+        "format": "PNG",
+        "frames": 1,
+        "alpha_extrema": [
+          0,
+          254
+        ],
+        "has_transparent_pixels": true,
+        "duration_ms": null,
+        "fps": null
+      }
+    ],
+    "是否透明底": true,
+    "dimensions": [
+      490,
+      514
+    ],
+    "source_crop_bbox": [
+      610,
+      510,
+      1100,
+      1024
+    ],
+    "pose": "不適用",
+    "action": "科技教學插畫",
+    "orientation": "示意透視",
+    "expression": "不適用",
+    "scene": "科技研究筆記／半導體科普",
+    "prop": "研究筆電物件",
+    "tags": [
+      "laptop",
+      "研究筆電物件",
+      "科技物件",
+      "bitmap",
+      "PNG"
+    ],
+    "status": "review",
+    "qa_status": "review",
+    "approval_evidence": null,
+    "animation": {
+      "frames": 0,
+      "fps": null,
+      "duration_ms": null
+    },
+    "rights": "本次 imagegen 全新生成物件，可追溯；實際技術與品牌精緻度仍須審核",
+    "權利狀態": "新生成科技物件；來源見provenance_evidence",
+    "品管狀態": "review；不代表真實設備結構正確",
+    "limitations": "PNG可作獨立圖層縮放、組合與加註，不能宣稱能改視角或有對應SVG原始；相關codex SVG是另一件獨立教學元件。光路與設備非真機工程圖，須人工驗證。",
+    "prompt_summary": "奶油系手繪科技插畫；獨立透明科技物件；不含角色與正式中文數字。",
+    "used_in": [
+      "2026-10-17_asml-outlook"
+    ],
+    "雲端備份狀態": "pending PR",
+    "shared_manifest": "docs/social_assets/gpt_original/tech_illustrated_laptop/manifest.json",
+    "shared_version": "v001"
+  },
+  {
+    "asset_id": "tech_illustrated_server",
+    "中文名稱": "伺服器物件",
+    "category": "gpt_original",
+    "original_author": "OpenAI imagegen（本次全新科技物件，不含比比參考）",
+    "processed_by": "Codex：固定格機械裁切、版本登錄",
+    "tool": "image_gen.imagegen",
+    "provenance_evidence": [
+      "output/2026-10-17_asml-outlook/prompts.md",
+      "output/2026-10-17_asml-outlook/assets/tech_sheet_source.png",
+      "output/2026-10-17_asml-outlook/assets/tech_cells.json"
+    ],
+    "parent_asset_id": null,
+    "related_asset_ids": [],
+    "version": "v001",
+    "版本": "v001",
+    "檔案": "v001.png",
+    "files": [
+      {
+        "path": "v001.png",
+        "exists": true,
+        "bytes": 448722,
+        "sha256": "f8775679319e419a85c0c742a8a53c71b99988619c1536f9eb0d11d73967a2cc",
+        "dimensions": [
+          414,
+          492
+        ],
+        "format": "PNG",
+        "frames": 1,
+        "alpha_extrema": [
+          0,
+          254
+        ],
+        "has_transparent_pixels": true,
+        "duration_ms": null,
+        "fps": null
+      }
+    ],
+    "是否透明底": true,
+    "dimensions": [
+      414,
+      492
+    ],
+    "source_crop_bbox": [
+      1100,
+      510,
+      1536,
+      1024
+    ],
+    "pose": "不適用",
+    "action": "科技教學插畫",
+    "orientation": "示意透視",
+    "expression": "不適用",
+    "scene": "科技研究筆記／半導體科普",
+    "prop": "伺服器物件",
+    "tags": [
+      "server",
+      "伺服器物件",
+      "科技物件",
+      "bitmap",
+      "PNG"
+    ],
+    "status": "review",
+    "qa_status": "review",
+    "approval_evidence": null,
+    "animation": {
+      "frames": 0,
+      "fps": null,
+      "duration_ms": null
+    },
+    "rights": "本次 imagegen 全新生成物件，可追溯；實際技術與品牌精緻度仍須審核",
+    "權利狀態": "新生成科技物件；來源見provenance_evidence",
+    "品管狀態": "review；不代表真實設備結構正確",
+    "limitations": "PNG可作獨立圖層縮放、組合與加註，不能宣稱能改視角或有對應SVG原始；相關codex SVG是另一件獨立教學元件。光路與設備非真機工程圖，須人工驗證。",
+    "prompt_summary": "奶油系手繪科技插畫；獨立透明科技物件；不含角色與正式中文數字。",
+    "used_in": [
+      "2026-10-17_asml-outlook"
+    ],
+    "雲端備份狀態": "pending PR",
+    "shared_manifest": "docs/social_assets/gpt_original/tech_illustrated_server/manifest.json",
+    "shared_version": "v001"
+  }
+]

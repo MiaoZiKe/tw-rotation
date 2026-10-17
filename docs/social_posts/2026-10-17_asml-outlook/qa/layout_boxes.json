@@ -1,0 +1,3174 @@
+[
+  {
+    "page": 1,
+    "boxes": [
+      {
+        "kind": "text",
+        "name": "text",
+        "text": "比比的科技研究筆記",
+        "reserved": [
+          88,
+          76,
+          390,
+          113
+        ],
+        "actual": [
+          [
+            88,
+            76,
+            304,
+            98
+          ]
+        ],
+        "font_size": 24
+      },
+      {
+        "kind": "text",
+        "name": "page_number",
+        "text": "01 / 10",
+        "reserved": [
+          845,
+          77,
+          1008,
+          117
+        ],
+        "actual": [
+          [
+            845,
+            77,
+            930,
+            101
+          ]
+        ],
+        "font_size": 26
+      },
+      {
+        "kind": "text",
+        "name": "brand",
+        "text": "ASML",
+        "reserved": [
+          70,
+          160,
+          1010,
+          287
+        ],
+        "actual": [
+          [
+            70,
+            160,
+            380,
+            245
+          ]
+        ],
+        "font_size": 110
+      },
+      {
+        "kind": "text",
+        "name": "title",
+        "text": "為何是半導體\n景氣前哨？",
+        "reserved": [
+          72,
+          295,
+          1008,
+          525
+        ],
+        "actual": [
+          [
+            72,
+            295,
+            600,
+            375
+          ],
+          [
+            72,
+            405,
+            512,
+            485
+          ]
+        ],
+        "font_size": 88
+      },
+      {
+        "kind": "illustration",
+        "name": "cover_scene",
+        "reserved": [
+          55,
+          520,
+          1025,
+          1053
+        ],
+        "actual": [
+          [
+            131,
+            520,
+            948,
+            1053
+          ]
+        ],
+        "expected_occlusion": "角色與道具內部接觸需人工檢查"
+      },
+      {
+        "kind": "text",
+        "name": "scene_note",
+        "text": "設備場景示意・非真實機型剖面",
+        "reserved": [
+          120,
+          1054,
+          990,
+          1087
+        ],
+        "actual": [
+          [
+            120,
+            1054,
+            456,
+            1077
+          ]
+        ],
+        "font_size": 24
+      },
+      {
+        "kind": "text",
+        "name": "cover_promise",
+        "text": "比比帶你追蹤產業訊號！",
+        "reserved": [
+          105,
+          1113,
+          976,
+          1191
+        ],
+        "actual": [
+          [
+            105,
+            1113,
+            501,
+            1146
+          ]
+        ],
+        "font_size": 36
+      },
+      {
+        "kind": "text",
+        "name": "source_note",
+        "text": "來源：ASML [1][5]",
+        "reserved": [
+          76,
+          1257,
+          1004,
+          1300
+        ],
+        "actual": [
+          [
+            76,
+            1257,
+            280,
+            1281
+          ]
+        ],
+        "font_size": 24
+      }
+    ],
+    "assets": [
+      {
+        "path": "output\\2026-10-17_asml-outlook\\assets\\cover_scene.png",
+        "alpha_extrema": [
+          0,
+          254
+        ],
+        "source_size": [
+          1536,
+          1024
+        ]
+      }
+    ]
+  },
+  {
+    "page": 2,
+    "boxes": [
+      {
+        "kind": "text",
+        "name": "text",
+        "text": "比比的科技研究筆記",
+        "reserved": [
+          88,
+          73,
+          390,
+          110
+        ],
+        "actual": [
+          [
+            88,
+            73,
+            304,
+            95
+          ]
+        ],
+        "font_size": 24
+      },
+      {
+        "kind": "text",
+        "name": "page_number",
+        "text": "02 / 10",
+        "reserved": [
+          830,
+          73,
+          1000,
+          116
+        ],
+        "actual": [
+          [
+            872.5,
+            73,
+            957.5,
+            97
+          ]
+        ],
+        "font_size": 26
+      },
+      {
+        "kind": "text",
+        "name": "title",
+        "text": "它賣的是造晶片工具",
+        "reserved": [
+          72,
+          152,
+          1008,
+          330
+        ],
+        "actual": [
+          [
+            72,
+            152,
+            648,
+            209
+          ]
+        ],
+        "font_size": 64
+      },
+      {
+        "kind": "text",
+        "name": "subtitle",
+        "text": "ASML：半導體微影設備供應商",
+        "reserved": [
+          76,
+          330,
+          1004,
+          431
+        ],
+        "actual": [
+          [
+            76,
+            330,
+            543,
+            362
+          ]
+        ],
+        "font_size": 34
+      },
+      {
+        "kind": "illustration",
+        "name": "euv_machine",
+        "reserved": [
+          86,
+          450,
+          660,
+          790
+        ],
+        "actual": [
+          [
+            169,
+            450,
+            576,
+            790
+          ]
+        ],
+        "expected_occlusion": "角色與道具內部接觸需人工檢查"
+      },
+      {
+        "kind": "illustration",
+        "name": "wafer",
+        "reserved": [
+          650,
+          510,
+          990,
+          802
+        ],
+        "actual": [
+          [
+            693,
+            510,
+            946,
+            802
+          ]
+        ],
+        "expected_occlusion": "角色與道具內部接觸需人工檢查"
+      },
+      {
+        "kind": "text",
+        "name": "body",
+        "text": "微影：把電路圖案曝光到晶圓。\n晶圓廠再配合其他製程製造晶片。",
+        "reserved": [
+          110,
+          845,
+          970,
+          942
+        ],
+        "actual": [
+          [
+            110,
+            845,
+            614,
+            878
+          ],
+          [
+            110,
+            890,
+            650,
+            923
+          ]
+        ],
+        "font_size": 36
+      },
+      {
+        "kind": "illustration",
+        "name": "bibi_observes_wafer",
+        "reserved": [
+          690,
+          560,
+          993,
+          810
+        ],
+        "actual": [
+          [
+            724,
+            560,
+            959,
+            810
+          ]
+        ],
+        "expected_occlusion": "角色與道具內部接觸需人工檢查"
+      },
+      {
+        "kind": "text",
+        "name": "host_bubble",
+        "text": "先分清設備商與晶片廠！",
+        "reserved": [
+          124,
+          1050,
+          954,
+          1158
+        ],
+        "actual": [
+          [
+            124,
+            1050,
+            520,
+            1084
+          ]
+        ],
+        "font_size": 36
+      },
+      {
+        "kind": "text",
+        "name": "source_note",
+        "text": "來源：ASML [1][2]",
+        "reserved": [
+          76,
+          1257,
+          1004,
+          1300
+        ],
+        "actual": [
+          [
+            76,
+            1257,
+            280,
+            1281
+          ]
+        ],
+        "font_size": 24
+      }
+    ],
+    "assets": [
+      {
+        "path": "output\\2026-10-17_asml-outlook\\assets\\tech_illustrated\\machine.png",
+        "alpha_extrema": [
+          0,
+          254
+        ],
+        "source_size": [
+          600,
+          501
+        ]
+      },
+      {
+        "path": "output\\2026-10-17_asml-outlook\\assets\\tech_illustrated\\wafer.png",
+        "alpha_extrema": [
+          0,
+          254
+        ],
+        "source_size": [
+          442,
+          510
+        ]
+      },
+      {
+        "path": "output\\2026-10-17_asml-outlook\\assets\\poses\\01.png",
+        "alpha_extrema": [
+          0,
+          255
+        ],
+        "source_size": [
+          389,
+          413
+        ]
+      }
+    ]
+  },
+  {
+    "page": 3,
+    "boxes": [
+      {
+        "kind": "text",
+        "name": "text",
+        "text": "比比的科技研究筆記",
+        "reserved": [
+          88,
+          73,
+          390,
+          110
+        ],
+        "actual": [
+          [
+            88,
+            73,
+            304,
+            95
+          ]
+        ],
+        "font_size": 24
+      },
+      {
+        "kind": "text",
+        "name": "page_number",
+        "text": "03 / 10",
+        "reserved": [
+          830,
+          73,
+          1000,
+          116
+        ],
+        "actual": [
+          [
+            872.5,
+            73,
+            957.5,
+            97
+          ]
+        ],
+        "font_size": 26
+      },
+      {
+        "kind": "text",
+        "name": "title",
+        "text": "為何能看見前方？",
+        "reserved": [
+          72,
+          152,
+          1008,
+          330
+        ],
+        "actual": [
+          [
+            72,
+            152,
+            584,
+            210
+          ]
+        ],
+        "font_size": 64
+      },
+      {
+        "kind": "text",
+        "name": "subtitle",
+        "text": "設備需求反映客戶投資規劃",
+        "reserved": [
+          76,
+          330,
+          1004,
+          431
+        ],
+        "actual": [
+          [
+            76,
+            330,
+            484,
+            362
+          ]
+        ],
+        "font_size": 34
+      },
+      {
+        "kind": "text",
+        "name": "text",
+        "text": "1",
+        "reserved": [
+          175,
+          622,
+          255,
+          682
+        ],
+        "actual": [
+          [
+            202.0,
+            622,
+            228.0,
+            657
+          ]
+        ],
+        "font_size": 44
+      },
+      {
+        "kind": "text",
+        "name": "text",
+        "text": "客戶需求",
+        "reserved": [
+          94,
+          705,
+          356,
+          770
+        ],
+        "actual": [
+          [
+            153.0,
+            705,
+            297.0,
+            739
+          ]
+        ],
+        "font_size": 36
+      },
+      {
+        "kind": "text",
+        "name": "text",
+        "text": "晶片與製程規劃",
+        "reserved": [
+          85,
+          812,
+          366,
+          925
+        ],
+        "actual": [
+          [
+            113.5,
+            812,
+            337.5,
+            843
+          ]
+        ],
+        "font_size": 32
+      },
+      {
+        "kind": "text",
+        "name": "text",
+        "text": "2",
+        "reserved": [
+          485,
+          577,
+          565,
+          637
+        ],
+        "actual": [
+          [
+            512.0,
+            577,
+            538.0,
+            611
+          ]
+        ],
+        "font_size": 44
+      },
+      {
+        "kind": "text",
+        "name": "text",
+        "text": "設備投資",
+        "reserved": [
+          404,
+          660,
+          666,
+          725
+        ],
+        "actual": [
+          [
+            463.0,
+            660,
+            607.0,
+            693
+          ]
+        ],
+        "font_size": 36
+      },
+      {
+        "kind": "text",
+        "name": "text",
+        "text": "採購、交付與安裝",
+        "reserved": [
+          395,
+          767,
+          676,
+          880
+        ],
+        "actual": [
+          [
+            407.5,
+            767,
+            663.5,
+            797
+          ]
+        ],
+        "font_size": 32
+      },
+      {
+        "kind": "text",
+        "name": "text",
+        "text": "3",
+        "reserved": [
+          795,
+          532,
+          875,
+          592
+        ],
+        "actual": [
+          [
+            822.0,
+            532,
+            848.0,
+            566
+          ]
+        ],
+        "font_size": 44
+      },
+      {
+        "kind": "text",
+        "name": "text",
+        "text": "未來產能",
+        "reserved": [
+          714,
+          615,
+          976,
+          680
+        ],
+        "actual": [
+          [
+            773.0,
+            615,
+            917.0,
+            647
+          ]
+        ],
+        "font_size": 36
+      },
+      {
+        "kind": "text",
+        "name": "text",
+        "text": "還需後續量產驗證",
+        "reserved": [
+          705,
+          722,
+          986,
+          835
+        ],
+        "actual": [
+          [
+            717.5,
+            722,
+            973.5,
+            752
+          ]
+        ],
+        "font_size": 32
+      },
+      {
+        "kind": "illustration",
+        "name": "demand_icon_0",
+        "reserved": [
+          100,
+          417,
+          280,
+          510
+        ],
+        "actual": [
+          [
+            135,
+            417,
+            245,
+            510
+          ]
+        ],
+        "expected_occlusion": "角色與道具內部接觸需人工檢查"
+      },
+      {
+        "kind": "illustration",
+        "name": "demand_icon_1",
+        "reserved": [
+          410,
+          417,
+          590,
+          510
+        ],
+        "actual": [
+          [
+            444,
+            417,
+            555,
+            510
+          ]
+        ],
+        "expected_occlusion": "角色與道具內部接觸需人工檢查"
+      },
+      {
+        "kind": "illustration",
+        "name": "demand_icon_2",
+        "reserved": [
+          720,
+          417,
+          900,
+          510
+        ],
+        "actual": [
+          [
+            769,
+            417,
+            850,
+            510
+          ]
+        ],
+        "expected_occlusion": "角色與道具內部接觸需人工檢查"
+      },
+      {
+        "kind": "illustration",
+        "name": "bibi_host",
+        "reserved": [
+          76,
+          965,
+          358,
+          1214
+        ],
+        "actual": [
+          [
+            89,
+            965,
+            344,
+            1214
+          ]
+        ],
+        "expected_occlusion": "角色與道具內部接觸需人工檢查"
+      },
+      {
+        "kind": "text",
+        "name": "host_bubble",
+        "text": "我們要沿著需求往前看！",
+        "reserved": [
+          420,
+          1043,
+          972,
+          1172
+        ],
+        "actual": [
+          [
+            420,
+            1043,
+            794,
+            1074
+          ]
+        ],
+        "font_size": 34
+      },
+      {
+        "kind": "text",
+        "name": "source_note",
+        "text": "來源：ASML [1]",
+        "reserved": [
+          76,
+          1257,
+          1004,
+          1300
+        ],
+        "actual": [
+          [
+            76,
+            1257,
+            250,
+            1281
+          ]
+        ],
+        "font_size": 24
+      }
+    ],
+    "assets": [
+      {
+        "path": "output\\2026-10-17_asml-outlook\\assets\\tech_illustrated\\fab.png",
+        "alpha_extrema": [
+          0,
+          254
+        ],
+        "source_size": [
+          610,
+          514
+        ]
+      },
+      {
+        "path": "output\\2026-10-17_asml-outlook\\assets\\tech_illustrated\\machine.png",
+        "alpha_extrema": [
+          0,
+          254
+        ],
+        "source_size": [
+          600,
+          501
+        ]
+      },
+      {
+        "path": "output\\2026-10-17_asml-outlook\\assets\\tech_illustrated\\wafer.png",
+        "alpha_extrema": [
+          0,
+          254
+        ],
+        "source_size": [
+          442,
+          510
+        ]
+      },
+      {
+        "path": "output\\2026-10-17_asml-outlook\\assets\\poses\\02.png",
+        "alpha_extrema": [
+          0,
+          255
+        ],
+        "source_size": [
+          441,
+          431
+        ]
+      }
+    ]
+  },
+  {
+    "page": 4,
+    "boxes": [
+      {
+        "kind": "text",
+        "name": "text",
+        "text": "比比的科技研究筆記",
+        "reserved": [
+          88,
+          73,
+          390,
+          110
+        ],
+        "actual": [
+          [
+            88,
+            73,
+            304,
+            95
+          ]
+        ],
+        "font_size": 24
+      },
+      {
+        "kind": "text",
+        "name": "page_number",
+        "text": "04 / 10",
+        "reserved": [
+          830,
+          73,
+          1000,
+          116
+        ],
+        "actual": [
+          [
+            872.5,
+            73,
+            957.5,
+            97
+          ]
+        ],
+        "font_size": 26
+      },
+      {
+        "kind": "text",
+        "name": "title",
+        "text": "EUV光從哪裡來？",
+        "reserved": [
+          72,
+          152,
+          1008,
+          330
+        ],
+        "actual": [
+          [
+            72,
+            152,
+            584,
+            210
+          ]
+        ],
+        "font_size": 64
+      },
+      {
+        "kind": "text",
+        "name": "subtitle",
+        "text": "極紫外光：13.5奈米波長",
+        "reserved": [
+          76,
+          330,
+          1004,
+          431
+        ],
+        "actual": [
+          [
+            76,
+            330,
+            450,
+            360
+          ]
+        ],
+        "font_size": 34
+      },
+      {
+        "kind": "text",
+        "name": "text",
+        "text": "錫滴",
+        "reserved": [
+          108,
+          481,
+          242,
+          535
+        ],
+        "actual": [
+          [
+            108,
+            481,
+            172,
+            510
+          ]
+        ],
+        "font_size": 32
+      },
+      {
+        "kind": "text",
+        "name": "text",
+        "text": "雷射",
+        "reserved": [
+          139,
+          723,
+          260,
+          769
+        ],
+        "actual": [
+          [
+            139,
+            723,
+            203,
+            752
+          ]
+        ],
+        "font_size": 32
+      },
+      {
+        "kind": "text",
+        "name": "text",
+        "text": "電漿發光",
+        "reserved": [
+          381,
+          467,
+          650,
+          522
+        ],
+        "actual": [
+          [
+            381,
+            467,
+            517,
+            498
+          ]
+        ],
+        "font_size": 34
+      },
+      {
+        "kind": "text",
+        "name": "text",
+        "text": "光罩圖案",
+        "reserved": [
+          565,
+          762,
+          786,
+          810
+        ],
+        "actual": [
+          [
+            565,
+            762,
+            685,
+            789
+          ]
+        ],
+        "font_size": 30
+      },
+      {
+        "kind": "text",
+        "name": "text",
+        "text": "反射鏡導引",
+        "reserved": [
+          660,
+          464,
+          971,
+          522
+        ],
+        "actual": [
+          [
+            660,
+            464,
+            820,
+            493
+          ]
+        ],
+        "font_size": 32
+      },
+      {
+        "kind": "text",
+        "name": "text",
+        "text": "晶圓曝光",
+        "reserved": [
+          714,
+          899,
+          970,
+          945
+        ],
+        "actual": [
+          [
+            714,
+            899,
+            842,
+            927
+          ]
+        ],
+        "font_size": 32
+      },
+      {
+        "kind": "text",
+        "name": "text",
+        "text": "真空光路・概念示意",
+        "reserved": [
+          106,
+          893,
+          650,
+          939
+        ],
+        "actual": [
+          [
+            106,
+            893,
+            322,
+            916
+          ]
+        ],
+        "font_size": 24
+      },
+      {
+        "kind": "illustration",
+        "name": "bibi_host",
+        "reserved": [
+          76,
+          965,
+          358,
+          1214
+        ],
+        "actual": [
+          [
+            76,
+            965,
+            358,
+            1213
+          ]
+        ],
+        "expected_occlusion": "角色與道具內部接觸需人工檢查"
+      },
+      {
+        "kind": "text",
+        "name": "host_bubble",
+        "text": "看光路！不要碰進機器喔。",
+        "reserved": [
+          420,
+          1043,
+          972,
+          1172
+        ],
+        "actual": [
+          [
+            420,
+            1043,
+            828,
+            1073
+          ]
+        ],
+        "font_size": 34
+      },
+      {
+        "kind": "text",
+        "name": "source_note",
+        "text": "來源：ASML [3][4]",
+        "reserved": [
+          76,
+          1257,
+          1004,
+          1300
+        ],
+        "actual": [
+          [
+            76,
+            1257,
+            280,
+            1281
+          ]
+        ],
+        "font_size": 24
+      }
+    ],
+    "assets": [
+      {
+        "path": "output\\2026-10-17_asml-outlook\\assets\\poses\\03.png",
+        "alpha_extrema": [
+          0,
+          255
+        ],
+        "source_size": [
+          427,
+          376
+        ]
+      }
+    ]
+  },
+  {
+    "page": 5,
+    "boxes": [
+      {
+        "kind": "text",
+        "name": "text",
+        "text": "比比的科技研究筆記",
+        "reserved": [
+          88,
+          73,
+          390,
+          110
+        ],
+        "actual": [
+          [
+            88,
+            73,
+            304,
+            95
+          ]
+        ],
+        "font_size": 24
+      },
+      {
+        "kind": "text",
+        "name": "page_number",
+        "text": "05 / 10",
+        "reserved": [
+          830,
+          73,
+          1000,
+          116
+        ],
+        "actual": [
+          [
+            872.5,
+            73,
+            957.5,
+            97
+          ]
+        ],
+        "font_size": 26
+      },
+      {
+        "kind": "text",
+        "name": "title",
+        "text": "三種訊號別混在一起",
+        "reserved": [
+          72,
+          152,
+          1008,
+          330
+        ],
+        "actual": [
+          [
+            72,
+            152,
+            648,
+            210
+          ]
+        ],
+        "font_size": 64
+      },
+      {
+        "kind": "text",
+        "name": "subtitle",
+        "text": "需求、營收、財測代表不同時間",
+        "reserved": [
+          76,
+          330,
+          1004,
+          431
+        ],
+        "actual": [
+          [
+            76,
+            330,
+            552,
+            360
+          ]
+        ],
+        "font_size": 34
+      },
+      {
+        "kind": "text",
+        "name": "text",
+        "text": "設備需求",
+        "reserved": [
+          98,
+          477,
+          350,
+          590
+        ],
+        "actual": [
+          [
+            152.0,
+            477,
+            296.0,
+            510
+          ]
+        ],
+        "font_size": 36
+      },
+      {
+        "kind": "text",
+        "name": "text",
+        "text": "1",
+        "reserved": [
+          208,
+          644,
+          258,
+          698
+        ],
+        "actual": [
+          [
+            222.5,
+            644,
+            243.5,
+            673
+          ]
+        ],
+        "font_size": 36
+      },
+      {
+        "kind": "text",
+        "name": "text",
+        "text": "客戶規劃\n不等於\n已認列營收",
+        "reserved": [
+          98,
+          767,
+          350,
+          933
+        ],
+        "actual": [
+          [
+            98,
+            767,
+            226,
+            797
+          ],
+          [
+            98,
+            807,
+            194,
+            836
+          ],
+          [
+            98,
+            847,
+            258,
+            877
+          ]
+        ],
+        "font_size": 32
+      },
+      {
+        "kind": "text",
+        "name": "text",
+        "text": "實際營收",
+        "reserved": [
+          404,
+          477,
+          656,
+          590
+        ],
+        "actual": [
+          [
+            458.0,
+            477,
+            602.0,
+            509
+          ]
+        ],
+        "font_size": 36
+      },
+      {
+        "kind": "text",
+        "name": "text",
+        "text": "2",
+        "reserved": [
+          514,
+          644,
+          564,
+          698
+        ],
+        "actual": [
+          [
+            528.5,
+            644,
+            549.5,
+            672
+          ]
+        ],
+        "font_size": 36
+      },
+      {
+        "kind": "text",
+        "name": "text",
+        "text": "當期成果\n受交付與\n認列影響",
+        "reserved": [
+          404,
+          767,
+          656,
+          933
+        ],
+        "actual": [
+          [
+            404,
+            767,
+            532,
+            796
+          ],
+          [
+            404,
+            807,
+            532,
+            836
+          ],
+          [
+            404,
+            847,
+            532,
+            877
+          ]
+        ],
+        "font_size": 32
+      },
+      {
+        "kind": "text",
+        "name": "text",
+        "text": "公司財測",
+        "reserved": [
+          710,
+          477,
+          962,
+          590
+        ],
+        "actual": [
+          [
+            764.0,
+            477,
+            908.0,
+            510
+          ]
+        ],
+        "font_size": 36
+      },
+      {
+        "kind": "text",
+        "name": "text",
+        "text": "3",
+        "reserved": [
+          820,
+          644,
+          870,
+          698
+        ],
+        "actual": [
+          [
+            834.5,
+            644,
+            855.5,
+            672
+          ]
+        ],
+        "font_size": 36
+      },
+      {
+        "kind": "text",
+        "name": "text",
+        "text": "未來預期\n不保證達成",
+        "reserved": [
+          710,
+          767,
+          962,
+          933
+        ],
+        "actual": [
+          [
+            710,
+            767,
+            838,
+            797
+          ],
+          [
+            710,
+            807,
+            870,
+            837
+          ]
+        ],
+        "font_size": 32
+      },
+      {
+        "kind": "illustration",
+        "name": "bibi_host",
+        "reserved": [
+          76,
+          965,
+          358,
+          1214
+        ],
+        "actual": [
+          [
+            87,
+            965,
+            346,
+            1214
+          ]
+        ],
+        "expected_occlusion": "角色與道具內部接觸需人工檢查"
+      },
+      {
+        "kind": "text",
+        "name": "host_bubble",
+        "text": "同一份財報，要分三層讀！",
+        "reserved": [
+          420,
+          1043,
+          972,
+          1172
+        ],
+        "actual": [
+          [
+            420,
+            1043,
+            828,
+            1075
+          ]
+        ],
+        "font_size": 34
+      },
+      {
+        "kind": "text",
+        "name": "source_note",
+        "text": "來源：ASML [1]",
+        "reserved": [
+          76,
+          1257,
+          1004,
+          1300
+        ],
+        "actual": [
+          [
+            76,
+            1257,
+            250,
+            1281
+          ]
+        ],
+        "font_size": 24
+      }
+    ],
+    "assets": [
+      {
+        "path": "output\\2026-10-17_asml-outlook\\assets\\poses\\04.png",
+        "alpha_extrema": [
+          0,
+          255
+        ],
+        "source_size": [
+          398,
+          383
+        ]
+      }
+    ]
+  },
+  {
+    "page": 6,
+    "boxes": [
+      {
+        "kind": "text",
+        "name": "text",
+        "text": "比比的科技研究筆記",
+        "reserved": [
+          88,
+          73,
+          390,
+          110
+        ],
+        "actual": [
+          [
+            88,
+            73,
+            304,
+            95
+          ]
+        ],
+        "font_size": 24
+      },
+      {
+        "kind": "text",
+        "name": "page_number",
+        "text": "06 / 10",
+        "reserved": [
+          830,
+          73,
+          1000,
+          116
+        ],
+        "actual": [
+          [
+            872.5,
+            73,
+            957.5,
+            97
+          ]
+        ],
+        "font_size": 26
+      },
+      {
+        "kind": "text",
+        "name": "title",
+        "text": "實績和財測分開看",
+        "reserved": [
+          72,
+          152,
+          1008,
+          330
+        ],
+        "actual": [
+          [
+            72,
+            152,
+            584,
+            210
+          ]
+        ],
+        "font_size": 64
+      },
+      {
+        "kind": "text",
+        "name": "subtitle",
+        "text": "2026年｜營收單位：億歐元",
+        "reserved": [
+          76,
+          330,
+          1004,
+          431
+        ],
+        "actual": [
+          [
+            76,
+            330,
+            496,
+            368
+          ]
+        ],
+        "font_size": 34
+      },
+      {
+        "kind": "text",
+        "name": "chart_unit",
+        "text": "億歐元",
+        "reserved": [
+          94,
+          438,
+          980,
+          486
+        ],
+        "actual": [
+          [
+            94,
+            438,
+            172,
+            462
+          ]
+        ],
+        "font_size": 26
+      },
+      {
+        "kind": "text",
+        "name": "zero_baseline",
+        "text": "0",
+        "reserved": [
+          90,
+          826,
+          135,
+          875
+        ],
+        "actual": [
+          [
+            90,
+            826,
+            105,
+            846
+          ]
+        ],
+        "font_size": 26
+      },
+      {
+        "kind": "text",
+        "name": "axis_tick",
+        "text": "50",
+        "reserved": [
+          77,
+          741.7939339875111,
+          132,
+          784.7939339875111
+        ],
+        "actual": [
+          [
+            89.5,
+            741.7939339875111,
+            119.5,
+            761.7939339875111
+          ]
+        ],
+        "font_size": 26
+      },
+      {
+        "kind": "text",
+        "name": "axis_tick",
+        "text": "100",
+        "reserved": [
+          77,
+          652.5878679750223,
+          132,
+          695.5878679750223
+        ],
+        "actual": [
+          [
+            82.0,
+            652.5878679750223,
+            127.0,
+            672.5878679750223
+          ]
+        ],
+        "font_size": 26
+      },
+      {
+        "kind": "text",
+        "name": "axis_tick",
+        "text": "150",
+        "reserved": [
+          77,
+          563.3818019625335,
+          132,
+          606.3818019625335
+        ],
+        "actual": [
+          [
+            82.0,
+            563.3818019625335,
+            127.0,
+            583.3818019625335
+          ]
+        ],
+        "font_size": 26
+      },
+      {
+        "kind": "text",
+        "name": "text",
+        "text": "93.26",
+        "reserved": [
+          162,
+          625.6128456735057,
+          332,
+          677.6128456735057
+        ],
+        "actual": [
+          [
+            202.5,
+            625.6128456735057,
+            291.5,
+            651.6128456735057
+          ]
+        ],
+        "font_size": 34
+      },
+      {
+        "kind": "text",
+        "name": "text",
+        "text": "Q2實績",
+        "reserved": [
+          152,
+          865,
+          352,
+          950
+        ],
+        "actual": [
+          [
+            204.0,
+            865,
+            300.0,
+            893
+          ]
+        ],
+        "font_size": 28
+      },
+      {
+        "kind": "text",
+        "name": "text",
+        "text": "116.62",
+        "reserved": [
+          427,
+          583.935771632471,
+          597,
+          635.935771632471
+        ],
+        "actual": [
+          [
+            457.5,
+            583.935771632471,
+            566.5,
+            610.935771632471
+          ]
+        ],
+        "font_size": 34
+      },
+      {
+        "kind": "text",
+        "name": "text",
+        "text": "Q3實績",
+        "reserved": [
+          417,
+          865,
+          617,
+          950
+        ],
+        "actual": [
+          [
+            469.0,
+            865,
+            565.0,
+            893
+          ]
+        ],
+        "font_size": 28
+      },
+      {
+        "kind": "text",
+        "name": "text",
+        "text": "142–152",
+        "reserved": [
+          682,
+          520.8135593220338,
+          877,
+          572.8135593220338
+        ],
+        "actual": [
+          [
+            714.0,
+            520.8135593220338,
+            845.0,
+            546.8135593220338
+          ]
+        ],
+        "font_size": 32
+      },
+      {
+        "kind": "text",
+        "name": "text",
+        "text": "Q4財測",
+        "reserved": [
+          682,
+          865,
+          882,
+          950
+        ],
+        "actual": [
+          [
+            734.0,
+            865,
+            830.0,
+            893
+          ]
+        ],
+        "font_size": 28
+      },
+      {
+        "kind": "illustration",
+        "name": "bibi_host",
+        "reserved": [
+          76,
+          965,
+          358,
+          1214
+        ],
+        "actual": [
+          [
+            83,
+            965,
+            351,
+            1214
+          ]
+        ],
+        "expected_occlusion": "角色與道具內部接觸需人工檢查"
+      },
+      {
+        "kind": "text",
+        "name": "host_bubble",
+        "text": "實線看實績，框線看財測。",
+        "reserved": [
+          420,
+          1043,
+          972,
+          1172
+        ],
+        "actual": [
+          [
+            420,
+            1043,
+            828,
+            1074
+          ]
+        ],
+        "font_size": 34
+      },
+      {
+        "kind": "text",
+        "name": "source_note",
+        "text": "來源：ASML [1][5]",
+        "reserved": [
+          76,
+          1257,
+          1004,
+          1300
+        ],
+        "actual": [
+          [
+            76,
+            1257,
+            280,
+            1281
+          ]
+        ],
+        "font_size": 24
+      }
+    ],
+    "assets": [
+      {
+        "path": "output\\2026-10-17_asml-outlook\\assets\\poses\\05.png",
+        "alpha_extrema": [
+          0,
+          255
+        ],
+        "source_size": [
+          423,
+          393
+        ]
+      }
+    ]
+  },
+  {
+    "page": 7,
+    "boxes": [
+      {
+        "kind": "text",
+        "name": "text",
+        "text": "比比的科技研究筆記",
+        "reserved": [
+          88,
+          73,
+          390,
+          110
+        ],
+        "actual": [
+          [
+            88,
+            73,
+            304,
+            95
+          ]
+        ],
+        "font_size": 24
+      },
+      {
+        "kind": "text",
+        "name": "page_number",
+        "text": "07 / 10",
+        "reserved": [
+          830,
+          73,
+          1000,
+          116
+        ],
+        "actual": [
+          [
+            872.5,
+            73,
+            957.5,
+            97
+          ]
+        ],
+        "font_size": 26
+      },
+      {
+        "kind": "text",
+        "name": "title",
+        "text": "一台設備連起產業鏈",
+        "reserved": [
+          72,
+          152,
+          1008,
+          330
+        ],
+        "actual": [
+          [
+            72,
+            152,
+            648,
+            209
+          ]
+        ],
+        "font_size": 64
+      },
+      {
+        "kind": "text",
+        "name": "subtitle",
+        "text": "從光學零件到晶圓廠",
+        "reserved": [
+          76,
+          330,
+          1004,
+          431
+        ],
+        "actual": [
+          [
+            76,
+            330,
+            382,
+            361
+          ]
+        ],
+        "font_size": 34
+      },
+      {
+        "kind": "illustration",
+        "name": "chain_icon_0",
+        "reserved": [
+          82,
+          451,
+          214,
+          556
+        ],
+        "actual": [
+          [
+            97,
+            451,
+            198,
+            556
+          ]
+        ],
+        "expected_occlusion": "角色與道具內部接觸需人工檢查"
+      },
+      {
+        "kind": "text",
+        "name": "text",
+        "text": "專業供應商",
+        "reserved": [
+          263,
+          465,
+          970,
+          522
+        ],
+        "actual": [
+          [
+            263,
+            465,
+            453,
+            500
+          ]
+        ],
+        "font_size": 38
+      },
+      {
+        "kind": "text",
+        "name": "text",
+        "text": "光學與其他關鍵元件",
+        "reserved": [
+          263,
+          514,
+          970,
+          554
+        ],
+        "actual": [
+          [
+            263,
+            514,
+            515,
+            540
+          ]
+        ],
+        "font_size": 28
+      },
+      {
+        "kind": "illustration",
+        "name": "chain_icon_1",
+        "reserved": [
+          82,
+          576,
+          214,
+          681
+        ],
+        "actual": [
+          [
+            85,
+            576,
+            211,
+            681
+          ]
+        ],
+        "expected_occlusion": "角色與道具內部接觸需人工檢查"
+      },
+      {
+        "kind": "text",
+        "name": "text",
+        "text": "ASML",
+        "reserved": [
+          263,
+          590,
+          970,
+          647
+        ],
+        "actual": [
+          [
+            262,
+            590,
+            370,
+            619
+          ]
+        ],
+        "font_size": 38
+      },
+      {
+        "kind": "text",
+        "name": "text",
+        "text": "設備整合與服務",
+        "reserved": [
+          263,
+          639,
+          970,
+          679
+        ],
+        "actual": [
+          [
+            263,
+            639,
+            459,
+            666
+          ]
+        ],
+        "font_size": 28
+      },
+      {
+        "kind": "illustration",
+        "name": "chain_icon_2",
+        "reserved": [
+          82,
+          701,
+          214,
+          806
+        ],
+        "actual": [
+          [
+            85,
+            701,
+            210,
+            806
+          ]
+        ],
+        "expected_occlusion": "角色與道具內部接觸需人工檢查"
+      },
+      {
+        "kind": "text",
+        "name": "text",
+        "text": "晶圓廠",
+        "reserved": [
+          263,
+          715,
+          970,
+          772
+        ],
+        "actual": [
+          [
+            263,
+            715,
+            377,
+            747
+          ]
+        ],
+        "font_size": 38
+      },
+      {
+        "kind": "text",
+        "name": "text",
+        "text": "晶片製造",
+        "reserved": [
+          263,
+          764,
+          970,
+          804
+        ],
+        "actual": [
+          [
+            263,
+            764,
+            375,
+            789
+          ]
+        ],
+        "font_size": 28
+      },
+      {
+        "kind": "illustration",
+        "name": "chain_icon_3",
+        "reserved": [
+          82,
+          826,
+          214,
+          931
+        ],
+        "actual": [
+          [
+            104,
+            826,
+            192,
+            931
+          ]
+        ],
+        "expected_occlusion": "角色與道具內部接觸需人工檢查"
+      },
+      {
+        "kind": "text",
+        "name": "text",
+        "text": "終端應用",
+        "reserved": [
+          263,
+          840,
+          970,
+          897
+        ],
+        "actual": [
+          [
+            263,
+            840,
+            415,
+            875
+          ]
+        ],
+        "font_size": 38
+      },
+      {
+        "kind": "text",
+        "name": "text",
+        "text": "運算等各種用途",
+        "reserved": [
+          263,
+          889,
+          970,
+          929
+        ],
+        "actual": [
+          [
+            263,
+            889,
+            459,
+            915
+          ]
+        ],
+        "font_size": 28
+      },
+      {
+        "kind": "illustration",
+        "name": "bibi_host",
+        "reserved": [
+          76,
+          965,
+          358,
+          1214
+        ],
+        "actual": [
+          [
+            76,
+            979,
+            358,
+            1200
+          ]
+        ],
+        "expected_occlusion": "角色與道具內部接觸需人工檢查"
+      },
+      {
+        "kind": "text",
+        "name": "host_bubble",
+        "text": "順著箭頭看，角色各不同！",
+        "reserved": [
+          420,
+          1043,
+          972,
+          1172
+        ],
+        "actual": [
+          [
+            420,
+            1043,
+            828,
+            1074
+          ]
+        ],
+        "font_size": 34
+      },
+      {
+        "kind": "text",
+        "name": "source_note",
+        "text": "來源：ASML [1][4][5]",
+        "reserved": [
+          76,
+          1257,
+          1004,
+          1300
+        ],
+        "actual": [
+          [
+            76,
+            1257,
+            310,
+            1281
+          ]
+        ],
+        "font_size": 24
+      }
+    ],
+    "assets": [
+      {
+        "path": "output\\2026-10-17_asml-outlook\\assets\\tech_illustrated\\mirror.png",
+        "alpha_extrema": [
+          0,
+          254
+        ],
+        "source_size": [
+          477,
+          497
+        ]
+      },
+      {
+        "path": "output\\2026-10-17_asml-outlook\\assets\\tech_illustrated\\machine.png",
+        "alpha_extrema": [
+          0,
+          254
+        ],
+        "source_size": [
+          600,
+          501
+        ]
+      },
+      {
+        "path": "output\\2026-10-17_asml-outlook\\assets\\tech_illustrated\\fab.png",
+        "alpha_extrema": [
+          0,
+          254
+        ],
+        "source_size": [
+          610,
+          514
+        ]
+      },
+      {
+        "path": "output\\2026-10-17_asml-outlook\\assets\\tech_illustrated\\server.png",
+        "alpha_extrema": [
+          0,
+          254
+        ],
+        "source_size": [
+          414,
+          492
+        ]
+      },
+      {
+        "path": "output\\2026-10-17_asml-outlook\\assets\\poses\\06.png",
+        "alpha_extrema": [
+          0,
+          255
+        ],
+        "source_size": [
+          1358,
+          1159
+        ]
+      }
+    ]
+  },
+  {
+    "page": 8,
+    "boxes": [
+      {
+        "kind": "text",
+        "name": "text",
+        "text": "比比的科技研究筆記",
+        "reserved": [
+          88,
+          73,
+          390,
+          110
+        ],
+        "actual": [
+          [
+            88,
+            73,
+            304,
+            95
+          ]
+        ],
+        "font_size": 24
+      },
+      {
+        "kind": "text",
+        "name": "page_number",
+        "text": "08 / 10",
+        "reserved": [
+          830,
+          73,
+          1000,
+          116
+        ],
+        "actual": [
+          [
+            872.5,
+            73,
+            957.5,
+            97
+          ]
+        ],
+        "font_size": 26
+      },
+      {
+        "kind": "text",
+        "name": "title",
+        "text": "前哨也有盲點",
+        "reserved": [
+          72,
+          152,
+          1008,
+          330
+        ],
+        "actual": [
+          [
+            72,
+            152,
+            456,
+            210
+          ]
+        ],
+        "font_size": 64
+      },
+      {
+        "kind": "text",
+        "name": "subtitle",
+        "text": "單一指標無法代表全產業",
+        "reserved": [
+          76,
+          330,
+          1004,
+          431
+        ],
+        "actual": [
+          [
+            76,
+            330,
+            450,
+            361
+          ]
+        ],
+        "font_size": 34
+      },
+      {
+        "kind": "text",
+        "name": "text",
+        "text": "!",
+        "reserved": [
+          120,
+          490,
+          160,
+          541
+        ],
+        "actual": [
+          [
+            132.0,
+            490,
+            148.0,
+            516
+          ]
+        ],
+        "font_size": 34
+      },
+      {
+        "kind": "text",
+        "name": "text",
+        "text": "需求會變",
+        "reserved": [
+          200,
+          470,
+          960,
+          524
+        ],
+        "actual": [
+          [
+            200,
+            470,
+            352,
+            504
+          ]
+        ],
+        "font_size": 38
+      },
+      {
+        "kind": "text",
+        "name": "text",
+        "text": "計畫不一定如期實現",
+        "reserved": [
+          200,
+          531,
+          960,
+          578
+        ],
+        "actual": [
+          [
+            200,
+            531,
+            470,
+            558
+          ]
+        ],
+        "font_size": 30
+      },
+      {
+        "kind": "text",
+        "name": "text",
+        "text": "!",
+        "reserved": [
+          120,
+          652,
+          160,
+          703
+        ],
+        "actual": [
+          [
+            132.0,
+            652,
+            148.0,
+            678
+          ]
+        ],
+        "font_size": 34
+      },
+      {
+        "kind": "text",
+        "name": "text",
+        "text": "時間有差",
+        "reserved": [
+          200,
+          632,
+          960,
+          686
+        ],
+        "actual": [
+          [
+            200,
+            632,
+            352,
+            665
+          ]
+        ],
+        "font_size": 38
+      },
+      {
+        "kind": "text",
+        "name": "text",
+        "text": "交付與認列不是同一步",
+        "reserved": [
+          200,
+          693,
+          960,
+          740
+        ],
+        "actual": [
+          [
+            200,
+            693,
+            500,
+            721
+          ]
+        ],
+        "font_size": 30
+      },
+      {
+        "kind": "text",
+        "name": "text",
+        "text": "!",
+        "reserved": [
+          120,
+          814,
+          160,
+          865
+        ],
+        "actual": [
+          [
+            132.0,
+            814,
+            148.0,
+            840
+          ]
+        ],
+        "font_size": 34
+      },
+      {
+        "kind": "text",
+        "name": "text",
+        "text": "外部限制",
+        "reserved": [
+          200,
+          794,
+          960,
+          848
+        ],
+        "actual": [
+          [
+            200,
+            794,
+            352,
+            828
+          ]
+        ],
+        "font_size": 38
+      },
+      {
+        "kind": "text",
+        "name": "text",
+        "text": "供應與出口規範等因素",
+        "reserved": [
+          200,
+          855,
+          960,
+          902
+        ],
+        "actual": [
+          [
+            200,
+            855,
+            500,
+            882
+          ]
+        ],
+        "font_size": 30
+      },
+      {
+        "kind": "illustration",
+        "name": "bibi_notebook_host",
+        "reserved": [
+          699,
+          946,
+          1003,
+          1222
+        ],
+        "actual": [
+          [
+            699,
+            955,
+            1003,
+            1212
+          ]
+        ],
+        "expected_occlusion": "角色與道具內部接觸需人工檢查"
+      },
+      {
+        "kind": "text",
+        "name": "host_bubble",
+        "text": "先看限制，再下結論。",
+        "reserved": [
+          110,
+          1042,
+          639,
+          1168
+        ],
+        "actual": [
+          [
+            110,
+            1042,
+            450,
+            1073
+          ]
+        ],
+        "font_size": 34
+      },
+      {
+        "kind": "text",
+        "name": "source_note",
+        "text": "來源：ASML [1]",
+        "reserved": [
+          76,
+          1257,
+          1004,
+          1300
+        ],
+        "actual": [
+          [
+            76,
+            1257,
+            250,
+            1281
+          ]
+        ],
+        "font_size": 24
+      }
+    ],
+    "assets": [
+      {
+        "path": "output\\2026-10-17_asml-outlook\\assets\\poses\\07.png",
+        "alpha_extrema": [
+          0,
+          255
+        ],
+        "source_size": [
+          442,
+          374
+        ]
+      }
+    ]
+  },
+  {
+    "page": 9,
+    "boxes": [
+      {
+        "kind": "text",
+        "name": "text",
+        "text": "比比的科技研究筆記",
+        "reserved": [
+          88,
+          73,
+          390,
+          110
+        ],
+        "actual": [
+          [
+            88,
+            73,
+            304,
+            95
+          ]
+        ],
+        "font_size": 24
+      },
+      {
+        "kind": "text",
+        "name": "page_number",
+        "text": "09 / 10",
+        "reserved": [
+          830,
+          73,
+          1000,
+          116
+        ],
+        "actual": [
+          [
+            872.5,
+            73,
+            957.5,
+            97
+          ]
+        ],
+        "font_size": 26
+      },
+      {
+        "kind": "text",
+        "name": "title",
+        "text": "比比的三點筆記",
+        "reserved": [
+          72,
+          152,
+          1008,
+          330
+        ],
+        "actual": [
+          [
+            72,
+            152,
+            520,
+            209
+          ]
+        ],
+        "font_size": 64
+      },
+      {
+        "kind": "text",
+        "name": "subtitle",
+        "text": "把技術、需求與限制一起讀",
+        "reserved": [
+          76,
+          330,
+          1004,
+          431
+        ],
+        "actual": [
+          [
+            76,
+            330,
+            484,
+            362
+          ]
+        ],
+        "font_size": 34
+      },
+      {
+        "kind": "text",
+        "name": "text",
+        "text": "懂技術",
+        "reserved": [
+          199,
+          489,
+          934,
+          548
+        ],
+        "actual": [
+          [
+            199,
+            489,
+            319,
+            525
+          ]
+        ],
+        "font_size": 40
+      },
+      {
+        "kind": "text",
+        "name": "text",
+        "text": "曝光機扮演什麼角色？",
+        "reserved": [
+          199,
+          553,
+          934,
+          603
+        ],
+        "actual": [
+          [
+            199,
+            553,
+            519,
+            584
+          ]
+        ],
+        "font_size": 32
+      },
+      {
+        "kind": "text",
+        "name": "text",
+        "text": "看需求",
+        "reserved": [
+          199,
+          632,
+          934,
+          691
+        ],
+        "actual": [
+          [
+            199,
+            632,
+            319,
+            668
+          ]
+        ],
+        "font_size": 40
+      },
+      {
+        "kind": "text",
+        "name": "text",
+        "text": "客戶準備做什麼？",
+        "reserved": [
+          199,
+          696,
+          934,
+          746
+        ],
+        "actual": [
+          [
+            199,
+            696,
+            455,
+            727
+          ]
+        ],
+        "font_size": 32
+      },
+      {
+        "kind": "text",
+        "name": "text",
+        "text": "查限制",
+        "reserved": [
+          199,
+          775,
+          934,
+          834
+        ],
+        "actual": [
+          [
+            199,
+            775,
+            319,
+            810
+          ]
+        ],
+        "font_size": 40
+      },
+      {
+        "kind": "text",
+        "name": "text",
+        "text": "哪些因素可能改變？",
+        "reserved": [
+          199,
+          839,
+          934,
+          889
+        ],
+        "actual": [
+          [
+            199,
+            839,
+            487,
+            868
+          ]
+        ],
+        "font_size": 32
+      },
+      {
+        "kind": "illustration",
+        "name": "bibi_notebook_host",
+        "reserved": [
+          699,
+          946,
+          1003,
+          1222
+        ],
+        "actual": [
+          [
+            699,
+            947,
+            1003,
+            1221
+          ]
+        ],
+        "expected_occlusion": "角色與道具內部接觸需人工檢查"
+      },
+      {
+        "kind": "text",
+        "name": "host_bubble",
+        "text": "收藏這個看財報的順序！",
+        "reserved": [
+          110,
+          1042,
+          639,
+          1168
+        ],
+        "actual": [
+          [
+            110,
+            1042,
+            484,
+            1073
+          ]
+        ],
+        "font_size": 34
+      },
+      {
+        "kind": "text",
+        "name": "source_note",
+        "text": "來源：ASML [1][3][4]",
+        "reserved": [
+          76,
+          1257,
+          1004,
+          1300
+        ],
+        "actual": [
+          [
+            76,
+            1257,
+            310,
+            1281
+          ]
+        ],
+        "font_size": 24
+      }
+    ],
+    "assets": [
+      {
+        "path": "output\\2026-10-17_asml-outlook\\assets\\poses\\08.png",
+        "alpha_extrema": [
+          0,
+          255
+        ],
+        "source_size": [
+          418,
+          377
+        ]
+      }
+    ]
+  },
+  {
+    "page": 10,
+    "boxes": [
+      {
+        "kind": "text",
+        "name": "text",
+        "text": "比比的科技研究筆記",
+        "reserved": [
+          88,
+          73,
+          390,
+          110
+        ],
+        "actual": [
+          [
+            88,
+            73,
+            304,
+            95
+          ]
+        ],
+        "font_size": 24
+      },
+      {
+        "kind": "text",
+        "name": "page_number",
+        "text": "10 / 10",
+        "reserved": [
+          830,
+          73,
+          1000,
+          116
+        ],
+        "actual": [
+          [
+            872.5,
+            73,
+            957.5,
+            97
+          ]
+        ],
+        "font_size": 26
+      },
+      {
+        "kind": "text",
+        "name": "title",
+        "text": "你最想追蹤哪個訊號？",
+        "reserved": [
+          72,
+          152,
+          1008,
+          330
+        ],
+        "actual": [
+          [
+            72,
+            152,
+            712,
+            209
+          ]
+        ],
+        "font_size": 64
+      },
+      {
+        "kind": "text",
+        "name": "subtitle",
+        "text": "留言：設備需求／營收／財測",
+        "reserved": [
+          76,
+          330,
+          1004,
+          431
+        ],
+        "actual": [
+          [
+            76,
+            330,
+            518,
+            363
+          ]
+        ],
+        "font_size": 34
+      },
+      {
+        "kind": "text",
+        "name": "question",
+        "text": "你會先看哪個觀察指標？",
+        "reserved": [
+          112,
+          482,
+          970,
+          626
+        ],
+        "actual": [
+          [
+            112,
+            482,
+            618,
+            524
+          ]
+        ],
+        "font_size": 46
+      },
+      {
+        "kind": "text",
+        "name": "sources",
+        "text": "[1][5] ASML 2026 Q3財報｜2026/10/14\n[3] EUV技術：光與雷射\n[4] EUV技術：反射光學\nasml.com｜完整連結見貼文說明\n資料截止：2026/10/17（台北）\n整理公開資訊，非投顧，投資請自行判斷。",
+        "reserved": [
+          90,
+          690,
+          996,
+          955
+        ],
+        "actual": [
+          [
+            90,
+            690,
+            594,
+            721
+          ],
+          [
+            90,
+            725,
+            382,
+            754
+          ],
+          [
+            90,
+            760,
+            382,
+            789
+          ],
+          [
+            90,
+            795,
+            495,
+            826
+          ],
+          [
+            90,
+            830,
+            494,
+            859
+          ],
+          [
+            90,
+            865,
+            622,
+            892
+          ]
+        ],
+        "font_size": 28
+      },
+      {
+        "kind": "illustration",
+        "name": "bibi_notebook_host",
+        "reserved": [
+          699,
+          946,
+          1003,
+          1222
+        ],
+        "actual": [
+          [
+            721,
+            946,
+            981,
+            1222
+          ]
+        ],
+        "expected_occlusion": "角色與道具內部接觸需人工檢查"
+      },
+      {
+        "kind": "text",
+        "name": "host_bubble",
+        "text": "下一次，比比陪你一起拆解！",
+        "reserved": [
+          110,
+          1042,
+          639,
+          1168
+        ],
+        "actual": [
+          [
+            110,
+            1042,
+            552,
+            1073
+          ]
+        ],
+        "font_size": 34
+      },
+      {
+        "kind": "text",
+        "name": "source_note",
+        "text": "來源：ASML [1][3][4][5]",
+        "reserved": [
+          76,
+          1257,
+          1004,
+          1300
+        ],
+        "actual": [
+          [
+            76,
+            1257,
+            340,
+            1281
+          ]
+        ],
+        "font_size": 24
+      }
+    ],
+    "assets": [
+      {
+        "path": "output\\2026-10-17_asml-outlook\\assets\\poses\\01.png",
+        "alpha_extrema": [
+          0,
+          255
+        ],
+        "source_size": [
+          389,
+          413
+        ]
+      }
+    ]
+  }
+]

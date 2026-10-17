@@ -24,3 +24,9 @@ social_assets/
 五張第三方風格參考留在本機 `reference/style_samples/`，此庫只存分析與來源登錄，不上傳原圖、不抄浮水印／Logo，也不將圖中文字當查證資料。
 
 每檔須不超過 5 MB，MP4 留本機；manifest 記本機路徑、雲端備份狀態與尺寸／透明度。透明底須檢查 alpha 有實際透明像素，不能只看 RGBA 模式。
+
+## 本次新增搜尋方式
+
+執行 `python scripts/social/asset_catalog.py search "prone" --include-review` 預覽趴姿，或以 `--prop 晶圓` 尋找道具／元件。使用 `scan --out docs/social_assets/catalog.json` 更新索引；詳細欄位與批准門檻見 [ASSET_CATALOG.md](ASSET_CATALOG.md)。本次新增八姿勢、一場景、三科技元件皆 review，沒有 Andy 核可證據，不能因程式輸出成功而改 approved。
+
+本次另收錄 `tech_illustrated_*` 六件全新科技手繪 PNG（gpt_original）。可獨立疊放、縮放、標註與重組；它們沒有 SVG 原始檔，也不能直接改視角。`tech_asml_*` 的可編輯 SVG 是獨立程式教學元件，透過 related_asset_ids 關聯；不能混稱為同一張圖的向量源。
