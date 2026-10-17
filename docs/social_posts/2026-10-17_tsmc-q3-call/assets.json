@@ -1,0 +1,156 @@
+[
+  {
+    "asset_id": "hbm_10p",
+    "中文名稱": "hbm_10p",
+    "category": "user_provided",
+    "original_author": "unknown",
+    "processed_by": "Codex",
+    "tool": "使用者提供",
+    "provenance_evidence": "專案原有 reference/style_samples；不複製原圖、標誌、帳號",
+    "parent_asset_id": null,
+    "版本": "v1",
+    "尺寸": [
+      1254,
+      1254
+    ],
+    "是否透明底": true,
+    "姿勢": "不適用",
+    "表情": "參見原圖",
+    "道具": "研究清單與晶圓示意",
+    "可用用途": "僅風格參考",
+    "權利狀態": "unknown",
+    "品管狀態": "已檢視"
+  },
+  {
+    "asset_id": "cowos_poster",
+    "中文名稱": "cowos_poster",
+    "category": "user_provided",
+    "original_author": "unknown",
+    "processed_by": "Codex",
+    "tool": "使用者提供",
+    "provenance_evidence": "專案原有 reference/style_samples；不複製原圖、標誌、帳號",
+    "parent_asset_id": null,
+    "版本": "v1",
+    "尺寸": [
+      1254,
+      1254
+    ],
+    "是否透明底": true,
+    "姿勢": "不適用",
+    "表情": "參見原圖",
+    "道具": "研究清單與晶圓示意",
+    "可用用途": "僅風格參考",
+    "權利狀態": "unknown",
+    "品管狀態": "已檢視"
+  },
+  {
+    "asset_id": "asml_10p",
+    "中文名稱": "asml_10p",
+    "category": "user_provided",
+    "original_author": "unknown",
+    "processed_by": "Codex",
+    "tool": "使用者提供",
+    "provenance_evidence": "專案原有 reference/style_samples；不複製原圖、標誌、帳號",
+    "parent_asset_id": null,
+    "版本": "v1",
+    "尺寸": [
+      1536,
+      1024
+    ],
+    "是否透明底": false,
+    "姿勢": "不適用",
+    "表情": "參見原圖",
+    "道具": "研究清單與晶圓示意",
+    "可用用途": "僅風格參考",
+    "權利狀態": "unknown",
+    "品管狀態": "已檢視"
+  },
+  {
+    "asset_id": "bibi_parts",
+    "中文名稱": "比比官方部件總表",
+    "category": "author_unverified",
+    "original_author": "unknown",
+    "processed_by": "Codex",
+    "tool": "GitHub 公開檔下載",
+    "provenance_evidence": "https://github.com/MiaoZiKe/tw-rotation/blob/main/docs/anim/bibi_library/reference/parts_sheet_1011.webp",
+    "parent_asset_id": null,
+    "版本": "v1",
+    "尺寸": [
+      1254,
+      1254
+    ],
+    "是否透明底": false,
+    "姿勢": "好奇歪頭",
+    "表情": "參見原圖",
+    "道具": "無",
+    "可用用途": "僅風格參考",
+    "權利狀態": "unknown",
+    "品管狀態": "已檢視"
+  },
+  {
+    "asset_id": "bibi_tilt",
+    "中文名稱": "原歪頭比比",
+    "category": "author_unverified",
+    "original_author": "unknown",
+    "processed_by": "Codex",
+    "tool": "GitHub 公開檔下載",
+    "provenance_evidence": "https://github.com/MiaoZiKe/tw-rotation/blob/main/docs/anim/bibi_library/tilt/key.png",
+    "parent_asset_id": null,
+    "版本": "v1",
+    "尺寸": [
+      512,
+      512
+    ],
+    "是否透明底": false,
+    "姿勢": "好奇歪頭",
+    "表情": "參見原圖",
+    "道具": "無",
+    "可用用途": "僅衍生修圖來源",
+    "權利狀態": "unknown",
+    "品管狀態": "粉腮紅不符規範，禁止直接使用"
+  },
+  {
+    "asset_id": "bibi_clean",
+    "中文名稱": "比比歪頭去粉腮修正版",
+    "category": "author_unverified",
+    "original_author": "unknown",
+    "processed_by": "Codex",
+    "tool": "image_gen.imagegen",
+    "provenance_evidence": "本對話兩輪編修；去除粉腮紅與桃色毛邊，眼睛加白高光；保留原畫歸屬",
+    "parent_asset_id": "bibi_tilt",
+    "版本": "v1",
+    "尺寸": [
+      1254,
+      1254
+    ],
+    "是否透明底": true,
+    "姿勢": "好奇歪頭",
+    "表情": "黑點眼白高光",
+    "道具": "無",
+    "可用用途": "本次風格校準；原畫權利待核實",
+    "權利狀態": "unknown",
+    "品管狀態": "已檢視"
+  },
+  {
+    "asset_id": "cover_01",
+    "中文名稱": "第 1 頁風格校準",
+    "category": "codex_original",
+    "original_author": "Codex（排版與科技示意圖）；比比原畫 unknown",
+    "processed_by": "Codex",
+    "tool": "Python / Pillow",
+    "provenance_evidence": "render_cover.py；正式文字與圖形均程式後製",
+    "parent_asset_id": "bibi_clean",
+    "版本": "v1",
+    "尺寸": [
+      1080,
+      1350
+    ],
+    "是否透明底": false,
+    "姿勢": "不適用",
+    "表情": "參見原圖",
+    "道具": "研究清單與晶圓示意",
+    "可用用途": "Andy 審閱；發布前須確認角色素材權利",
+    "權利狀態": "本次程式原創排版；角色素材原畫權利未知",
+    "品管狀態": "已檢視"
+  }
+]
