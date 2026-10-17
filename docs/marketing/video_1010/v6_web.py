@@ -202,7 +202,7 @@ def build():
     full = [(0.0, PLAY_FULL_W)]
 
     def tight(a, t_item):
-        return [(0.0, PLAY_FULL_W), (t_item - a + 0.5, PLAY_TIGHT_W, 1.2)]   # 點完小圈後 1.2 秒慢慢推近比比
+        return [(0.0, PLAY_FULL_W), (t_item - a + 0.5, PLAY_TIGHT_W, 2.0)]   # 點完小圈後 1.2 秒慢慢推近比比
     a1, a2, a3, a4, a5 = t_open - 0.8, t_ball - 0.3, t_grass - 0.6, t_pet - 0.6, t_bub - 0.6
     S.append(shot("p01", "跟比比玩", PLAY_W, [(a1, t_ball - 0.3)], "⑭ 跟比比玩", "", "hop_r", "invite_nod", no_host=True, win_keys=full, min_cap=1.4))
     S.append(shot("p02", "跟比比玩", PLAY_W, [(a2, t_ball + 3.7)], "丟球，比比去接", "", "hop_r", "hop_r", no_host=True, win_keys=full, min_cap=1.0))
