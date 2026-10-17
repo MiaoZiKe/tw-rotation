@@ -233,3 +233,37 @@ test('產出佇列階段：白名單、預設 plan、done／cancelled 跟著、f
   // 重跑 artInit（冷啟動）不報錯
   hub._artJobOk = false; assert.equal((await pj(hub, '/v1/articles/jobs/list', { t: andy })).s, 200);
 });
+
+/* 立即開工（2026-10-17）：有 ROUTINE_FIRE_TOKEN 時送出請求就叫醒 Claude 排程；2 分鐘內不重叫；沒鑰匙不叫；kick 只在有排隊中時叫 */
+test('立即開工：送出就叫醒排程、2 分鐘防連打、沒鑰匙不叫、kick 空佇列不叫', async () => {
+  const fires = [];
+  const orig = globalThis.fetch;
+  globalThis.fetch = async (url, init) => {
+    if (String(url).startsWith('https://api.anthropic.com/v1/claude_code/routines/')) { fires.push({ url: String(url), h: init.headers, body: JSON.parse(init.body) }); return Response.json({ type: 'routine_fire', claude_code_session_url: 'x' }); }
+    return orig(url, init);
+  };
+  try {
+    const { hub } = makeHub({ ...env, GOOGLE_CLIENT_ID: CID, ROUTINE_FIRE_TOKEN: 'test-fire-token-0000000000' });
+    const andy = await login(hub, 'andy@example.com');
+    const a = await pj(hub, '/v1/articles/jobs/add', { t: andy, topic_id: 'fire-1', kind: 'article', title: '測試一' });
+    assert.equal(a.j.fired, true);
+    assert.equal(fires.length, 1);
+    assert.match(fires[0].url, /routines\/trig_01JSw5RrpyD94edAaUY69HMo\/fire$/);
+    assert.equal(fires[0].h.Authorization, 'Bearer test-fire-token-0000000000');
+    assert.equal(fires[0].h['anthropic-beta'], 'experimental-cc-routine-2026-04-01');
+    const b = await pj(hub, '/v1/articles/jobs/add', { t: andy, topic_id: 'fire-2', kind: 'article', title: '測試二' });
+    assert.equal(b.j.fired, true, '剛叫過：那一輪會處理到');
+    assert.equal(fires.length, 1, '2 分鐘內不重叫');
+    clock += 3 * 60 * 1000;
+    const k = await pj(hub, '/v1/articles/jobs/kick', { t: andy });
+    assert.equal(k.j.fired, true); assert.equal(fires.length, 2);
+    const { hub: h2 } = makeHub({ ...env, GOOGLE_CLIENT_ID: CID });
+    const andy2 = await login(h2, 'andy@example.com');
+    const c = await pj(h2, '/v1/articles/jobs/add', { t: andy2, topic_id: 'fire-3', kind: 'article', title: '測試三' });
+    assert.equal(c.j.fired, false); assert.equal(fires.length, 2, '沒鑰匙不叫');
+    const { hub: h3 } = makeHub({ ...env, GOOGLE_CLIENT_ID: CID, ROUTINE_FIRE_TOKEN: 'test-fire-token-0000000000' });
+    const andy3 = await login(h3, 'andy@example.com');
+    const e = await pj(h3, '/v1/articles/jobs/kick', { t: andy3 });
+    assert.equal(e.j.fired, false); assert.equal(e.j.reason, 'empty'); assert.equal(fires.length, 2, '空佇列不叫');
+  } finally { globalThis.fetch = orig; }
+});

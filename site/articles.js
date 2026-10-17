@@ -1795,7 +1795,7 @@ ${gs.length ? `<section><h5>熱門族群</h5><div class="gps">${gs.map((g) => `<
       cusB.forEach((x) => { x.disabled = true; });
       const note = (($('#artTpNote', v) || {}).value || '').trim();
       const r = await acctCall('/v1/articles/jobs/add', { topic_id: `c-${cat}-${Date.now().toString(36)}`, kind, title, note });
-      if (r && r.job) { tpMsg(v, `已送出 #${r.job.id}：自訂主題「${title}」${KIND_T[kind]}（${CATS[cat].t}）。Claude 下一輪會撰寫`); cusT.value = ''; }
+      if (r && r.job) { tpMsg(v, `已送出 #${r.job.id}：自訂主題「${title}」${KIND_T[kind]}（${CATS[cat].t}）。${r.fired ? '已通知 Claude 立刻開工' : 'Claude 下一輪（整點 :05）會撰寫'}`); cusT.value = ''; }
       else tpMsg(v, r && r.error === 'preview_readonly' ? '預覽版不會真的送出（不改正式站的佇列）' : r && r._s === 403 ? '送出失敗：登入身分不是管理者（請重新登入）' : '送出失敗：連不到會員伺服器，請稍後再試', true);
       cusSync(); await loadJobs(); paintTopics(v); paintJobs(v);
     }; });
@@ -1823,17 +1823,17 @@ ${gs.length ? `<section><h5>熱門族群</h5><div class="gps">${gs.map((g) => `<
     if (!picks.length || !KIND_T[kind]) return;
     $$('#artGenArt,#artGenVid', v).forEach((b) => { b.disabled = true; });
     const note = (($('#artTpNote', v) || {}).value || '').trim();
-    const ok = [], dup = [], bad = []; let err = '';
+    const ok = [], dup = [], bad = []; let err = '', fired = false;
     for (const t of picks) {   // 一筆一筆送（Worker 端逐筆檢查重複），不並發
       const r = await acctCall('/v1/articles/jobs/add', { topic_id: t.id, kind, title: t.title, note });
-      if (r && r.job) (r.dup ? dup : ok).push(`#${r.job.id}「${t.title}」`);
+      if (r && r.job) { (r.dup ? dup : ok).push(`#${r.job.id}「${t.title}」`); if (r.fired) fired = true; }
       else { bad.push(`「${t.title}」`); err = err || (r && r.error === 'preview_readonly' ? '預覽版不會真的送出（不改正式站的佇列）' : r && r._s === 403 ? '登入身分不是管理者（請重新登入）' : r && r.error === 'too_many' ? '排隊中的請求太多（上限 100 筆）' : '連不到會員伺服器，請稍後再試'); }
     }
     const parts = [];
     if (ok.length) parts.push(`已送出 ${ok.length} 筆${KIND_T[kind]}：${ok.join('、')}`);
     if (dup.length) parts.push(`已經在排隊、不重複送出：${dup.join('、')}`);
     if (bad.length) parts.push(`送出失敗（${err}）：${bad.join('、')}`);
-    tpMsg(v, parts.join('；') + (ok.length ? '。Claude 下一輪會撰寫，完成後出現在「已上架文章」' : ''), !!bad.length);
+    tpMsg(v, parts.join('；') + (ok.length ? (fired ? '。已通知 Claude 立刻開工，完成後出現在「已上架文章」' : '。Claude 下一輪（整點 :05）會撰寫，完成後出現在「已上架文章」') : ''), !!bad.length);
     if (!bad.length) { S.tsels = []; if ($('#artTpNote', v)) $('#artTpNote', v).value = ''; }
     await loadJobs(); paintTopics(v); paintJobs(v);
   }

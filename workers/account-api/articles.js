@@ -103,6 +103,27 @@ export function installArticles(Hub, EXPORT_TABLES) {
   };
   const jobOf = (hub, id) => hub.q('SELECT id, topic_id, kind, title, note, status, created, updated, result, stage, stage_at FROM article_jobs WHERE id = ?', id)[0] || null;
   const OPEN_SQL = "SELECT id, topic_id, kind, title, note, status, created, updated, result, stage, stage_at FROM article_jobs WHERE status IN ('queued','working') ORDER BY id";
+  /* 2026-10-17 Andy：「這為何要下一個 05 才能開工，而非我執行後就開工」→ 送出請求時直接叫醒 Claude 的排程（routine 的 API trigger）。
+     鑰匙 ROUTINE_FIRE_TOKEN（Andy 在 claude.ai/code/routines 產生，存 GitHub Secret，deploy-account-worker.yml 寫進來）；沒設＝不叫，照舊等整點。
+     防連打：2 分鐘內只叫一次（kv art_fire_at）；叫不到不影響請求本身。官方限制每個排程每小時 30 次。 */
+  const ROUTINE_DEFAULT = 'trig_01JSw5RrpyD94edAaUY69HMo';
+  Hub.prototype.artFire = async function (text, force) {
+    const tok = String(this.env.ROUTINE_FIRE_TOKEN || ''), rid = String(this.env.ROUTINE_ID || ROUTINE_DEFAULT);
+    if (tok.length < 16 || !/^trig_[A-Za-z0-9]{8,40}$/.test(rid)) return false;
+    const now = this.now(), last = Number(this.kv('art_fire_at') || 0);
+    if (!force && now - last < 120000) return true;   // 剛叫過，那一輪會處理到這筆
+    if (force && now - last < 30000) return true;
+    try {
+      const r = await fetch(`https://api.anthropic.com/v1/claude_code/routines/${rid}/fire`, {
+        method: 'POST', signal: AbortSignal.timeout(5000),
+        headers: { Authorization: 'Bearer ' + tok, 'anthropic-beta': 'experimental-cc-routine-2026-04-01', 'anthropic-version': '2023-06-01', 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text: String(text).slice(0, 200) }),
+      });
+      if (!r.ok) return false;
+      this.setKv('art_fire_at', now);
+      return true;
+    } catch (e) { return false; }
+  };
   Object.assign(Hub.prototype.subRoutes, {
     '/v1/articles/jobs/add': async function (req, b) {
       const v = await this.admin(req, b); if (!v) return this.json(req, { error: 'forbidden' }, 403);
@@ -115,7 +136,16 @@ export function installArticles(Hub, EXPORT_TABLES) {
       const now = this.now();
       this.q("INSERT INTO article_jobs (topic_id, kind, title, note, status, created, updated, by) VALUES (?, ?, ?, ?, 'queued', ?, ?, ?)", topic, kind, title, note, now, now, String(v.user.uid || ''));
       const id = this.q('SELECT last_insert_rowid() AS id')[0].id;
-      return this.json(req, { ok: true, job: jobOf(this, id) });
+      const fired = await this.artFire(`管理區新請求 #${id}`);
+      return this.json(req, { ok: true, job: jobOf(this, id), fired });
+    },
+    /* 「立即開工」：佇列裡有排隊中的就叫醒 Claude 排程（沒排隊的不叫，免得白跑一輪） */
+    '/v1/articles/jobs/kick': async function (req, b) {
+      if (!(await this.admin(req, b))) return this.json(req, { error: 'forbidden' }, 403);
+      this.artInit();
+      const n = this.q("SELECT COUNT(*) AS c FROM article_jobs WHERE status = 'queued'")[0].c;
+      if (!n) return this.json(req, { ok: true, fired: false, reason: 'empty' });
+      return this.json(req, { ok: true, fired: await this.artFire(`管理區按「立即開工」（排隊中 ${n} 筆）`, true) });
     },
     '/v1/articles/jobs/list': async function (req, b) {
       if (!(await this.admin(req, b))) return this.json(req, { error: 'forbidden' }, 403);
