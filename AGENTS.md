@@ -414,3 +414,8 @@ CEO 彙整 → pytest + scripts/_preview.py → push → 更新 HANDOFF.md → �
 - Andy 10-09：「幫我將 LOGO GIF 圖設計成立動畫設計單位…將從分鏡圖片到合成 GIF 以及去背整套流程寫個系統先儲存」。
 - 導演寫分鏡與規格、審片；設計師用 `scripts/anim/gif_pipeline.py` 做去背與合成、接上網站。整套流程與踩過的坑在 `docs/anim/README.md`。
 
+
+## 十四、平衡版風格錨定（Andy 2026-10-18核可）
+- 未來以 docs/social_handoff/style/BIBI_BALANCED_ANCHOR_v1.md 為預設風格，已核可，不每篇重新詢問。
+- 比比以使用者提供的跳跳.gif為最新身份參考，未知原畫權利仍保留unknown。
+- 工作室每篇填製作日期、題材標籤、類型與版本，以供篩選及下載。

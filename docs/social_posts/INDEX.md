@@ -6,3 +6,5 @@
 |2026-10-18|完整APP導覽10頁輪播|Andy指定重點＋介紹影片與文章索引|10頁原生GPT圖片與文案；圖片及ZIP本機保存|https://github.com/MiaoZiKe/tw-rotation/pull/9|本機主要工作區留存|
 
 本分支建立時main尚無此索引。合併其他社群分支時須保留所有既有列，不整檔覆蓋。公開索引不含私人工作區的絕對路徑；完整路徑保存在本機備份報告。
+
+|2026-10-18|APP十頁平衡錨定版v1.0|Andy提供影片與角色參考|風格已核可；10張PNG存此PR，私人工作室已匯入|https://github.com/MiaoZiKe/tw-rotation/pull/9|本機主要工作區留存|
