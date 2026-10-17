@@ -161,7 +161,13 @@ def main():
                 row["ripple"] = [round(float(rc[0]), 1), round(float(rc[1]), 1)]
             if patch:
                 cxs, cys = tp["cx"], tp["cy"]
-                r = (cxs - 40 / max(sc, 0.2), cys - 40 / max(sc, 0.2), cxs + 40 / max(sc, 0.2), cys + 40 / max(sc, 0.2))
+                hw = 40
+                while hw < 200:      # 點擊點周圍是純色（例：整條環節色帶）時樣板會到處都對得上 → 放大到有字有邊的範圍
+                    r = (cxs - hw / max(sc, 0.2), cys - hw / max(sc, 0.2), cxs + hw / max(sc, 0.2), cys + hw / max(sc, 0.2))
+                    if float(np.asarray(src.crop(tuple(int(round(v)) for v in r)).convert("L"), dtype=float).std()) > 18:
+                        break
+                    hw += 40
+                row["tmpl_half"] = hw
                 ax, ay = rec.map(r[0], r[1])
                 bx, by = rec.map(r[2], r[3])
                 tw, th = int(round(bx - ax)), int(round(by - ay))

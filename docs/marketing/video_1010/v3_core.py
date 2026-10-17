@@ -1137,17 +1137,18 @@ def _cursor_img(fmt):
     return _CURSOR_CACHE[fmt]
 
 
-def tap_cursor(cv, xy, age, fmt, hover=False, until=1e9):
+def tap_cursor(cv, xy, age, fmt, hover=False, until=1e9, appr=0.35, stay_max=1e9):
     """手指游標（分鏡 v6 第 1 節 B）：點擊前 0.35 秒從右下 60px 滑進來、熱點對準元素中心；點下那 0.12 秒縮一下；
     點後停 0.45 秒（滑過＝停到下一個動作，最多 2.0 秒）淡出。熱點座標＝漣漪圓心（同一個 xy）。"""
     stay = min(2.0, until - 0.1) if hover else 0.45
-    if age < -0.35 or age > stay + 0.15:
+    stay = min(stay, stay_max)
+    if age < -appr or age > stay + 0.15:
         return
     im, hot = _cursor_img(fmt)
     if age < 0:
-        u = ease_io((age + 0.35) / 0.3)
+        u = ease_io((age + appr) / max(0.05, appr - 0.05))
         dx = dy = 60 * (1 - u)
-        al = clamp((age + 0.35) / 0.12, 0, 1)
+        al = clamp((age + appr) / 0.1, 0, 1)
     else:
         dx = dy = 0
         al = 1 - clamp((age - stay) / 0.15, 0, 1)
@@ -1326,6 +1327,8 @@ class Op:
             if e["kind"] in ("tap", "hover"):
                 if lt < ((0.05 if mode_b else self.FLYC) if chain in ('mid', 'end') or mode_b else self.FLY) + 0.02:
                     continue
+                if mode_b and last_xy and abs(e["x"] - last_xy[0]) < 40 and abs(e["y"] - last_xy[1]) < 40 and lt - last_t < 0.4:
+                    continue          # 同一顆按鈕連點／事件重複登記：只畫一次（游標＋漣漪重疊會看不出是哪一下）
                 near = (not chain) and (not mode_b) and last_xy and abs(e["x"] - last_xy[0]) < 70 and abs(e["y"] - last_xy[1]) < 70 and lt - last_t < 3.5
                 if near:
                     continue
@@ -1759,7 +1762,11 @@ class Op:
             if rec.win and self.mode_b:
                 cxy = rec.map(tp["cx"], tp["cy"])
                 nxt = min([q["t"] for q in self.taps if q["t"] > tp["t"]] or [1e9])
-                tap_cursor(cv, cxy, t - tp["t"], L.fmt, tp["hover"], nxt - tp["t"])
+                prv = max([q["t"] for q in self.taps if q["t"] < tp["t"]] or [-1e9])
+                # 連點：同一時間畫面上只有一個游標（上一下的停留＋下一下的滑入不重疊）
+                appr = min(0.35, max(0.1, (tp["t"] - prv) / 2))
+                appr_n = min(0.35, max(0.1, (nxt - tp["t"]) / 2))
+                tap_cursor(cv, cxy, t - tp["t"], L.fmt, tp["hover"], nxt - tp["t"], appr=appr, stay_max=max(0.05, nxt - tp["t"] - appr_n - 0.17))
             if rec.win and not tp["hover"]:
                 cxy = rec.map(tp["cx"], tp["cy"])
                 if self.mode_b:
