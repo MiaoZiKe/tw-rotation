@@ -434,7 +434,7 @@ html:not(.m4) .m4deldlg .msg{min-height:1.4em;font-size:13px;color:#ff6b7a;margi
   /* 手機（≤640）頂欄的帳號鈕收在「⋯」清單裡（見 watchlists.js moreRow），線上人數也寫在那一列 */
   function paintMoreRow() {
     if (!window.TwMoreRow || !S.on) return;
-    const n = S.online != null ? `<small style="margin-left:auto;color:var(--ink-2);font-size:12.5px">${S.today != null ? '今天 ' + S.today + ' 人造訪' : S.online + ' 人在線'}</small>` : '';
+    const n = S.online != null ? `<small style="margin-left:auto;color:var(--ink-2);font-size:12.5px">${S.online} 人在線</small>` : '';
     if (S.user) window.TwMoreRow('mmAcct', '●', '帳號：' + esc(S.user.name || S.user.email || '') + n, () => openMenu(document.getElementById('moreBtn') || document.body));
     else window.TwMoreRow('mmAcct', '⇥', '用 Google 帳號登入' + n, () => openDlg('notice'));
   }
@@ -442,10 +442,9 @@ html:not(.m4) .m4deldlg .msg{min-height:1.4em;font-size:13px;color:#ff6b7a;margi
     paintMoreRow();
     const on = document.getElementById('acctOnline'); if (!on) return;
     if (!S.on || S.online == null) { on.hidden = true; return; }
-    /* 10-17 Andy：「改顯示今天造訪人數」→ 有 today 就顯示「今天 N 人造訪」（同一台裝置一天算一次）；舊版 Worker 沒回 today 時照舊顯示在線人數 */
-    on.hidden = false;
-    on.innerHTML = S.today != null ? `<i></i><span>今天 </span>${S.today}<span> 人造訪</span>` : `<i></i>${S.online}<span> 人在線</span>`;
-    on.title = (S.today != null ? `今天約 ${S.today} 人打開過這個網站（同一台裝置一天只算一次）；` : '') + `目前約 ${S.online} 人正在看（最近 6 分鐘內有動作）` + (S.user && S.user.admin ? '・點一下看是誰在線' : '');
+    /* 10-17 Andy 先要「改顯示今天造訪人數」，看過之後：「上線改回原本的樣式」→ 頂欄照舊顯示「N 人在線」；今日造訪數（S.today）只放在滑過提示裡 */
+    on.hidden = false; on.innerHTML = `<i></i>${S.online}<span> 人在線</span>`;
+    on.title = `目前約 ${S.online} 人正在看這個網站（最近 6 分鐘內有動作）` + (S.today != null ? `；今天約 ${S.today} 台裝置打開過` : '') + (S.user && S.user.admin ? '・點一下看是誰' : '');
     on.style.cursor = S.user && S.user.admin ? 'pointer' : 'default';
   }
   /* 10-17 Andy：「點擊後我可以看到目前有誰上線，需要顯示 Mail list」→ 站主點「N 人在線」直接在下方展開線上名單（名字、email、所在頁、多久前），
