@@ -100,7 +100,7 @@ def ear_spring(poses, gks, bias, durs, gain=1.1, k=0.22, damp=0.32):
     tops = []
     for gk in gks:
         g = base_geom(poses, 0, **gk)
-        tops.append(fwd(poses, g, 256, 160))
+        tops.append(fwd_s(poses, g, 256, 160))
     n = len(gks)
     x = np.zeros(2); v = np.zeros(2)
     res = []
@@ -183,6 +183,11 @@ class Clip:
         self.fr = []
 
     def add(self, lab, gk, face, ms, fx=None, ear=(0.0, 0.0), contact=True, burst=0):
+        # 四腳著地：繞腳底轉超過 2° 會把一隻腳抬離地面，多出來的傾斜改用剪切（腳底線不動）
+        r = gk.get("rot", 0.0)
+        if 2.0 < abs(r) < 30:
+            sg = 1 if r > 0 else -1
+            gk = dict(gk, rot=2.0 * sg, sh=gk.get("sh", 0.0) + (r - 2.0 * sg) * 0.013)
         self.fr.append(dict(lab=lab, gk=gk, face=face, ms=ms, fx=fx, ear=ear, contact=contact, burst=burst))
 
 
@@ -215,13 +220,19 @@ def talk_base(c, mouths, accents=(), blink_at=None, brows=None, eyes="dot", look
               ear=((-10.0, -10.0) if acc else (0.0, 0.0)), contact=i not in hop)
 
 
+def fwd_s(poses, g, x, y):
+    """fwd＋剪切（sh：腳底不動、越高越往旁邊推，用來做「四腳著地的傾身」）。"""
+    p = fwd(poses, g, x, y)
+    return (p[0] + g.get("sh", 0.0) * (BA.GROUND - p[1]), p[1])
+
+
 def sound(poses, g, i, n=2):
-    return motion_lines(fwd(poses, g, 445, 236), 25, spread=30, r0=8, length=15 + 3 * (i % 2), n=n, w=5.0)
+    return motion_lines(fwd_s(poses, g, 445, 236), 25, spread=30, r0=8, length=15 + 3 * (i % 2), n=n, w=5.0)
 
 
 def build(poses):
     clips = []
-    F = lambda g, x, y: fwd(poses, g, x, y)  # noqa: E731
+    F = lambda g, x, y: fwd_s(poses, g, x, y)  # noqa: E731
 
     # ---------------------------------------------------------------- 1 talk_happy_v2
     c = Clip("talk_happy_v2", "說話・開心講 v2（三段嘴型、重音瞇眼抬頭、眨眼、耳朵跟著甩）", "旁白講解（輕鬆），取代 talk_happy", "表情")
@@ -249,11 +260,13 @@ def build(poses):
         if i == 8:
             s += sparkle(F(g, 440, 180), 13)
         return s
-    talk_base(c, mouths, accents=(), blink_at=11, brows="raise", looks=looks, fx=fx2, ms=88, lean=-2.0)
+    talk_base(c, mouths, accents=(), blink_at=11, brows="raise", looks=looks, fx=fx2, ms=88, lean=0.0)
+    for fr in c.fr:
+        fr["gk"]["sh"] = -0.03
     # 第 6～9 格：預備（往後縮）→ 往前傾強調 → 回穩
-    for i, add in ((5, dict(h=0.96, w=1.025, lag=-0.02, rot=-3.5)), (6, dict(h=0.985, rot=-1)),
-                   (7, dict(h=1.05, w=0.975, lag=0.07, rot=2.5)), (8, dict(h=1.035, lag=0.05, rot=2)),
-                   (9, dict(h=1.0, rot=0))):
+    for i, add in ((5, dict(h=0.96, w=1.025, lag=-0.02, rot=-1.0, sh=-0.07)), (6, dict(h=0.985, rot=-0.5, sh=-0.04)),
+                   (7, dict(h=1.05, w=0.975, lag=0.07, rot=1.0, sh=0.06)), (8, dict(h=1.035, lag=0.05, rot=1.0, sh=0.05)),
+                   (9, dict(h=1.0, rot=0, sh=0.0))):
         c.fr[i]["gk"].update(add)
         c.fr[i]["lab"] += {5: "（預備：縮）", 7: "（往前傾強調）", 9: "（回穩）"}.get(i, "")
     clips.append(c)
@@ -686,7 +699,27 @@ def draw_frame(poses, clip, i, ears):
         _, t, x, y, deg, px = front[a:b].split("|")
         texts.append((t, (float(x), float(y)), float(deg), float(px)))
         front = front[:a] + front[b + 3:]
-    return render(poses, {"g": g, "pose": pose, "front": front, "texts": texts, "burst": fr["burst"]}, BA.HUNINN)
+    return render_sh(poses, {"g": g, "pose": pose, "front": front, "texts": texts, "burst": fr["burst"]})
+
+
+def render_sh(poses, fr):
+    """同 bibi_faces_c.render，但身體可以剪切（g["sh"]）：腳底那條線不動，四腳一直著地。"""
+    g = fr["g"]
+    body = pose_tween.warp_body(fr["pose"], g, SIZE).convert("RGBA")
+    k = g.get("sh", 0.0)
+    if abs(k) > 1e-4:
+        GS = BA.GROUND * pose_tween.SS
+        body = body.transform(body.size, Image.AFFINE, (1, k, -k * GS, 0, 1, 0), Image.BICUBIC)
+    canvas = Image.new("RGBA", body.size, (0, 0, 0, 0))
+    if fr.get("burst"):
+        canvas = Image.alpha_composite(canvas, BA.raster(C.burst_svg(body, g, poses, fr["burst"])))
+    canvas = Image.alpha_composite(canvas, body)
+    if fr.get("front"):
+        canvas = Image.alpha_composite(canvas, BA.raster(fr["front"]))
+    for t in fr.get("texts", []):
+        txt, c, deg, px = t[:4]
+        canvas = Image.alpha_composite(canvas, BA.text_layer(txt, c, deg, px, BA.HUNINN))
+    return canvas.resize((SIZE, SIZE), Image.LANCZOS)
 
 
 def checker(w, h, s=16):
@@ -730,10 +763,14 @@ def auto_check(imgs, contacts):
         holes = int((filled & ~big).sum())
         # 只看身體下緣（腳）：最大連通塊的最低點
         foot = int(np.nonzero(big.any(1))[0].max()) if big.any() else -1
+        xs = np.nonzero(big.any(0))[0]
+        mid = int((xs.min() + xs.max()) / 2) if len(xs) else 256
+        fl = int(np.nonzero(big[:, :mid].any(1))[0].max()) if big[:, :mid].any() else -1
+        fr_ = int(np.nonzero(big[:, mid:].any(1))[0].max()) if big[:, mid:].any() else -1
         edge = (al > 20) & (al < 230)
         rgb = a[..., :3].astype(int)
         white = edge & (rgb.min(2) > 225)
-        rep.append(dict(foot_y=foot, top_y=int(ys.min()) if len(ys) else -1, holes_px=holes,
+        rep.append(dict(foot_y=foot, foot_l_y=fl, foot_r_y=fr_, top_y=int(ys.min()) if len(ys) else -1, holes_px=holes,
                         edge_px=int(edge.sum()), white_edge_px=int(white.sum()), contact=ct))
     return rep
 
@@ -788,11 +825,15 @@ def main():
                             "durations_ms": durs, "labels": labels, "key_frame": ki + 1,
                             "ears_deg": [[round(x, 1), round(y, 1)] for x, y in ears],
                             "check": rep, "adjacent_diff_k": diffs}
-        bad_foot = [j + 1 for j, r in enumerate(rep) if r["contact"] and r["foot_y"] < 478]
+        bad_foot = [j + 1 for j, r in enumerate(rep) if r["contact"] and min(r["foot_l_y"], r["foot_r_y"]) < 476]
         holes = [j + 1 for j, r in enumerate(rep) if r["holes_px"] > 0]
         wmax = max(r["white_edge_px"] for r in rep)
-        print(f"{clip.key}: {n} 格 {sum(durs)/1000:.2f} 秒 代表格 {ki+1} 接觸格腳底未落地 {bad_foot} 破洞格 {holes} "
+        print(f"{clip.key}: {n} 格 {sum(durs)/1000:.2f} 秒 代表格 {ki+1} 接觸格有腳離地(<476) {bad_foot} 破洞格 {holes} "
               f"白邊像素最多 {wmax} 最小相鄰差 {min(diffs)}", flush=True)
+    # 平行跑多支時，寫回前重讀一次再合併，避免互相蓋掉
+    mine = {k: v for k, v in timing.items() if not only or k in only}
+    timing = json.loads(tpath.read_text(encoding="utf-8")) if tpath.exists() else {}
+    timing.update(mine)
     tpath.write_text(json.dumps(timing, ensure_ascii=False, indent=1), encoding="utf-8")
 
 
