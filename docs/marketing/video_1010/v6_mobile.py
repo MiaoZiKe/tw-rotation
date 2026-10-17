@@ -76,7 +76,12 @@ def grid_card(sid, D=2.6):
 
 
 ART_M = "V28_mobile_v6_nofab"
-PLAY_M = "V29_mobile_v6"
+PLAY_M = "V29_mobile_v6_dsf4.5_close"   # 近景重錄：只截下半部 300×444 css、DPR 4.5
+PLAY_FULL_M = (0, 0, 1350, 1998)
+PLAY_TIGHT_M = (350, 518, 1350, 1998)
+
+
+SHORT_DROP = {"b03", "d04", "e02", "f03", "g03", "g05", "i03"}
 
 
 def build():
@@ -138,16 +143,24 @@ def build():
 
     def fab_before(t):
         return max(x for x in fabs if x < t)
-    Y = 801
-    S.append(shot("p01", "跟比比玩", PLAY_M, [(fab_before(t_ball) - 0.6, t_ball - 0.3)], "⑭ 跟比比玩", "", "hop_r", "invite_nod", fixed=Y, no_host=True, min_cap=1.4))
-    S.append(shot("p02", "跟比比玩", PLAY_M, [(t_ball - 0.3, t_ball + 4.3)], "丟球，比比去接", "", "hop_r", "hop_r", fixed=Y, no_host=True, min_cap=1.0))
-    S.append(shot("p03", "跟比比玩", PLAY_M, [(fab_before(t_grass) - 0.3, t_grass + 2.2)], "牧草放地上吃", "", "hop_r", "hop_r", fixed=Y, no_host=True, min_cap=1.0))
-    S.append(shot("p04", "跟比比玩", PLAY_M, [(fab_before(t_pet) - 0.3, t_pet + 1.6)], "摸摸頭好舒服", "", "hop_r", "hop_r", fixed=Y, no_host=True, min_cap=1.0))
-    S.append(shot("p05", "跟比比玩", PLAY_M, [(fab_before(t_bub) - 0.3, t_bub + 1.8)], "還有玩具六件", "", "hop_r", "hop_r", fixed=Y, no_host=True, min_cap=1.0))
+    full = [(0.0, PLAY_FULL_M)]
+
+    def tight(a, t_item):
+        return [(0.0, PLAY_FULL_M), (t_item - a + 0.4, PLAY_TIGHT_M)]
+    a1, a2, a3, a4, a5 = fab_before(t_ball) - 0.6, t_ball - 0.3, fab_before(t_grass) - 0.3, fab_before(t_pet) - 0.3, fab_before(t_bub) - 0.3
+    S.append(shot("p01", "跟比比玩", PLAY_M, [(a1, t_ball - 0.3)], "⑭ 跟比比玩", "", "hop_r", "invite_nod", wk=full, no_host=True, min_cap=1.4, cont=True))
+    S.append(shot("p02", "跟比比玩", PLAY_M, [(a2, t_ball + 4.3)], "丟球，比比去接", "", "hop_r", "hop_r", wk=full, no_host=True, min_cap=1.0))
+    S.append(shot("p03", "跟比比玩", PLAY_M, [(a3, t_grass + 2.2)], "牧草放地上吃", "", "hop_r", "hop_r", wk=tight(a3, t_grass), no_host=True, min_cap=1.0))
+    S.append(shot("p04", "跟比比玩", PLAY_M, [(a4, t_pet + 1.6)], "摸摸頭好舒服", "", "hop_r", "hop_r", wk=tight(a4, t_pet), no_host=True, min_cap=1.0))
+    S.append(shot("p05", "跟比比玩", PLAY_M, [(a5, t_bub + 1.8)], "還有玩具六件", "", "hop_r", "hop_r", wk=tight(a5, t_bub), no_host=True, min_cap=1.0))
     if fresh_nofab("V26w_mobile"):
         S.append(shot("j03", "願望清單", "V26w_mobile", [(5.4, 8.2)], "歡迎許願", "想要什麼功能，跟我說！", "sign_text", "heart_wish", mv="hop_l", fixed=800))
     else:
         S.append(shot("j03", "願望清單", "V26_mobile", [(15.0, 17.8)], "歡迎許願", "想要什麼功能，跟我說！", "sign_text", "heart_wish", mv="hop_l", fixed=800))
     S.append(card("k01", 3.0, K6.end6(), [(0, "pop"), (1.0, "ding")]))
     S.append(card("k02", 5.0, K4.disclaimer4_fn()))
+    import os
+    if os.environ.get("V6_SHORT") == "1":
+        # 精簡版（Andy 10-17「給我兩個版本」：≤125 秒）：每頁開頭鏡與點擊重點鏡都留，拿掉同頁的補充鏡
+        S = [sh for sh in S if sh.sid not in SHORT_DROP]
     return S

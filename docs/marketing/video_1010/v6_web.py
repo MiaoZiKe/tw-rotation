@@ -112,9 +112,10 @@ def tap_times(clip, kind="click"):
 
 # 精選文章／跟比比玩：素材名（錄影 --set v6）
 ART_W = "V28_desktop_v6_nofab"
-PLAY_W = "V29_desktop_v6"
+PLAY_W = "V29_desktop_v6_dsf4_close"   # 近景重錄：只截右下角 566×315 css、DPR 4（2264×1260）（CEO 10-17 審片：比比太小）
 # 跟比比玩：推近右下角（客服鈕＋小圈＋網站比比跑去玩的範圍），1920×1080 來源視窗（輸出 1766 寬 → 倍率 ≤1，不超過原解析度）
-PLAY_WIN_W = (1280, 720, 3200, 1800)
+PLAY_FULL_W = (0, 0, 2264, 1260)      # 小圈整圈＋接球路徑
+PLAY_TIGHT_W = (498, 277, 2264, 1260)  # 比比近景（倍率 1.0）
 
 
 def _find(ts, key):
@@ -122,6 +123,9 @@ def _find(ts, key):
         if key in (lab or ""):
             return t
     raise KeyError(key)
+
+
+SHORT_DROP = {"b03", "d04", "e02", "f03", "g03", "g05", "i03"}
 
 
 def build():
@@ -195,13 +199,16 @@ def build():
     ph = tap_times(PLAY_W, "hover")
     t_open = ph[0][0] if ph else pk[0][0] - 0.8
     t_ball, t_grass, t_pet, t_bub = _find(pk, "玩球"), _find(pk, "餵牧草"), _find(pk, "摸摸頭"), _find(pk, "吹泡泡")
-    wk = [(0.0, PLAY_WIN_W)]
-    S.append(shot("p01", "跟比比玩", PLAY_W, [(t_open - 0.8, t_ball - 0.3)], "⑭ 跟比比玩", "", "hop_r", "invite_nod", no_host=True, win_keys=wk, min_cap=1.4))
-    S.append(shot("p02", "跟比比玩", PLAY_W, [(t_ball - 0.3, t_ball + 3.7)], "丟球，比比去接", "", "hop_r", "hop_r", no_host=True, win_keys=wk, min_cap=1.0))
-    S.append(shot("p03", "跟比比玩", PLAY_W, [(t_grass - 0.6, t_grass + 2.2)], "牧草放地上吃", "", "hop_r", "hop_r", no_host=True, win_keys=wk, min_cap=1.0))
-    S.append(shot("p04", "跟比比玩", PLAY_W, [(t_pet - 0.6, t_pet + 1.6)], "摸摸頭好舒服", "", "hop_r", "hop_r", no_host=True, win_keys=wk, min_cap=1.0))
-    S.append(shot("p05", "跟比比玩", PLAY_W, [(t_bub - 0.6, t_bub + 1.8)], "還有玩具六件", "", "hop_r", "hop_r", no_host=True, win_keys=wk, min_cap=1.0))
-    # 15 願望清單
+    full = [(0.0, PLAY_FULL_W)]
+
+    def tight(a, t_item):
+        return [(0.0, PLAY_FULL_W), (t_item - a + 0.4, PLAY_TIGHT_W)]
+    a1, a2, a3, a4, a5 = t_open - 0.8, t_ball - 0.3, t_grass - 0.6, t_pet - 0.6, t_bub - 0.6
+    S.append(shot("p01", "跟比比玩", PLAY_W, [(a1, t_ball - 0.3)], "⑭ 跟比比玩", "", "hop_r", "invite_nod", no_host=True, win_keys=full, min_cap=1.4))
+    S.append(shot("p02", "跟比比玩", PLAY_W, [(a2, t_ball + 3.7)], "丟球，比比去接", "", "hop_r", "hop_r", no_host=True, win_keys=full, min_cap=1.0))
+    S.append(shot("p03", "跟比比玩", PLAY_W, [(a3, t_grass + 2.2)], "牧草放地上吃", "", "hop_r", "hop_r", no_host=True, win_keys=tight(a3, t_grass), min_cap=1.0))
+    S.append(shot("p04", "跟比比玩", PLAY_W, [(a4, t_pet + 1.6)], "摸摸頭好舒服", "", "hop_r", "hop_r", no_host=True, win_keys=tight(a4, t_pet), min_cap=1.0))
+    S.append(shot("p05", "跟比比玩", PLAY_W, [(a5, t_bub + 1.8)], "還有玩具六件", "", "hop_r", "hop_r", no_host=True, win_keys=tight(a5, t_bub), min_cap=1.0))
     for sh in S[-5:]:
         sh.foot_top = True
     if fresh_nofab("V26w_desktop"):
@@ -213,4 +220,8 @@ def build():
     # 16～17 片尾與警語
     S.append(card("k01", 3.0, K6.end6(), [(0, "pop"), (1.0, "ding")]))
     S.append(card("k02", 5.0, K4.disclaimer4_fn()))
+    import os
+    if os.environ.get("V6_SHORT") == "1":
+        # 精簡版（Andy 10-17「給我兩個版本」：≤125 秒）：每頁開頭鏡與點擊重點鏡都留，拿掉同頁的補充鏡
+        S = [sh for sh in S if sh.sid not in SHORT_DROP]
     return S

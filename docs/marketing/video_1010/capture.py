@@ -310,8 +310,11 @@ class Recorder:
         if self.dry:   # --log-only：只走時間、記座標，不截圖
             self.n += 1
             return
-        r = self.cdp.send("Page.captureScreenshot", {"format": "png", "optimizeForSpeed": True,
-                                                     "captureBeyondViewport": False})
+        opt = {"format": "png", "optimizeForSpeed": True, "captureBeyondViewport": False}
+        if getattr(self, "clip", None):      # 第 6 版跟比比玩近景：只截右下角一塊（高 DPR），推近不放大
+            x, y, w, h = self.clip
+            opt["clip"] = {"x": x, "y": y, "width": w, "height": h, "scale": self.w / w}   # 輸出＝css×DPR 像素
+        r = self.cdp.send("Page.captureScreenshot", opt)
         (self.dir / f"s{self.n:06d}.png").write_bytes(base64.b64decode(r["data"]))
         self.n += 1
 
@@ -398,7 +401,14 @@ class Act:
         self.last_hold = None
 
     def _vrect(self, r):
-        return [round(v * self.dsf, 1) for v in r] if r else None
+        if not r:
+            return None
+        ox, oy = getattr(self, "clip_off", (0, 0))
+        return [round((r[0] - ox) * self.dsf, 1), round((r[1] - oy) * self.dsf, 1), round(r[2] * self.dsf, 1), round(r[3] * self.dsf, 1)]
+
+    def _vpt(self, x, y):
+        ox, oy = getattr(self, "clip_off", (0, 0))
+        return [round((x - ox) * self.dsf, 1), round((y - oy) * self.dsf, 1)]
 
     def hit_ok(self, expect, x, y):
         """(x,y) 這一點最上層的元素，是不是 expect（Playwright 選擇器）那個元素或它的內外層？—— 被頂欄／浮層蓋住時會是 False。"""
@@ -421,12 +431,12 @@ class Act:
              "css_rect": [round(v, 1) for v in rect] if rect else None, "video_rect": self._vrect(rect),
              "block_css_rect": [round(v, 1) for v in info["block_rect"]] if info.get("block_rect") else None,
              "block_video_rect": self._vrect(info.get("block_rect")),
-             "css_point": [round(x, 1), round(y, 1)], "center": [round(x * self.dsf, 1), round(y * self.dsf, 1)],
+             "css_point": [round(x, 1), round(y, 1)], "center": self._vpt(x, y),
              "scrollY": info.get("scrollY"), "expect": expect, "hit_expected": self.hit_ok(expect, x, y)}
         # 第 6 版（Andy 10-17「點擊特效需要在精準點」）：點下那一刻量元素外框（treemap 取方塊外框），中心換成影片像素 → clicks.json，成片特效一律讀這個
         rr = info.get("block_rect") or rect
         if rr:
-            e["rect_center"] = [round((rr[0] + rr[2] / 2) * self.dsf, 1), round((rr[1] + rr[3] / 2) * self.dsf, 1)]
+            e["rect_center"] = self._vpt(rr[0] + rr[2] / 2, rr[1] + rr[3] / 2)
         self.targets.append(e)
         what = info.get("block") or info.get("text") or info.get("selector")
         warn = "｜⚠ 這一點最上層不是預期的元素（被浮層／頂欄蓋住？）" if e["hit_expected"] is False else ""
@@ -615,6 +625,7 @@ class Act:
         self.record_target(x, y, "click", label, expect=sel)
         tg = self.targets[-1]
         tg["target_rect_css"] = [round(bb["x"], 1), round(bb["y"], 1), round(bb["width"], 1), round(bb["height"], 1)]
+        tg["target_rect_video"] = self._vrect(tg["target_rect_css"])
         tg["margin_px"] = round(min(x - bb["x"], bb["x"] + bb["width"] - x, y - bb["y"], bb["y"] + bb["height"] - y), 1)
         tg["inside_rect"] = bool(inside)
         tg["hit_expected"] = bool(top) and bool(inside)
@@ -2936,8 +2947,8 @@ def click_row(tg: dict, dsf: float) -> dict:
     """點擊特效中心：被點的那個選擇器自己的外框（fast_click 量的 target_rect_css）＞熱力圖方塊＞最上層元素外框；滑過＝滑鼠位置（hover() 移到選擇器正中）。"""
     if tg.get("kind") == "hover":
         return {"x": tg["center"][0], "y": tg["center"][1], "rect": None, "rect_kind": "滑過（滑鼠位置＝選擇器中心）"}
-    if tg.get("target_rect_css"):
-        r = [v * dsf for v in tg["target_rect_css"]]
+    if tg.get("target_rect_video") or tg.get("target_rect_css"):
+        r = tg.get("target_rect_video") or [v * dsf for v in tg["target_rect_css"]]
         return {"x": round(r[0] + r[2] / 2, 1), "y": round(r[1] + r[3] / 2, 1), "rect": [round(v, 1) for v in r], "rect_kind": "選擇器外框"}
     r = tg.get("block_video_rect") or tg.get("video_rect")
     c = tg.get("rect_center") or tg.get("center")
@@ -3050,11 +3061,16 @@ def main() -> int:
                     act.x, act.y = (4, 450) if dev == "d" else (cfg["viewport"]["width"] - 4, cfg["viewport"]["height"] * 0.55)   # 桌機起始游標放左緣空白處：不會停在圖表上跳出 hover 提示框
                     W = int(cfg["viewport"]["width"] * cfg["device_scale_factor"])
                     H = int(cfg["viewport"]["height"] * cfg["device_scale_factor"])
+                    clip = [float(v) for v in os.environ.get("TW_CAP_CLIP_" + dev, "").split(",") if v.strip()]
+                    if clip:
+                        W, H = int(clip[2] * cfg["device_scale_factor"]) // 2 * 2, int(clip[3] * cfg["device_scale_factor"]) // 2 * 2   # H.264 要偶數
                     rec = Recorder(pg, W, H, dry=args.log_only, realtime=args.realtime)
+                    rec.clip = clip or None
+                    act.clip_off = (clip[0], clip[1]) if clip else (0, 0)
                     act.dsf = cfg["device_scale_factor"]
                     act.stable_noframes = args.stable_noframes
                     act.log_moves = v3   # v3 沒有錄進游標 → 游標路徑寫進 shots.md 給後製畫比比
-                    name = f"{sid}_{'mobile' if dev == 'm' else 'desktop'}" + ("_v3b" if args.set == "v3b" else "_v3c" if args.set == "v3c" else "_v3d" if args.set == "v3d" else "_" + args.set if args.set in ("v3e", "v3f", "v3g", "v3h", "v3i", "v3j", "v6") else "") + (f"_dsf{args.dsf:g}" if args.dsf else "") + ("_nofab" if args.nofab else "")
+                    name = f"{sid}_{'mobile' if dev == 'm' else 'desktop'}" + ("_v3b" if args.set == "v3b" else "_v3c" if args.set == "v3c" else "_v3d" if args.set == "v3d" else "_" + args.set if args.set in ("v3e", "v3f", "v3g", "v3h", "v3i", "v3j", "v6") else "") + (f"_dsf{args.dsf:g}" if args.dsf else "") + ("_nofab" if args.nofab else "") + ("_close" if os.environ.get("TW_CAP_CLIP_" + dev) else "")
                     try:
                         # 每鏡自己決定何時開錄：fn(pg, act, rec_start) —— 先做準備（換頁、等圖畫完）再開錄
                         state = {}

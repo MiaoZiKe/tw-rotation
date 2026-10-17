@@ -833,10 +833,7 @@ class Rec4:
             if V4 and getattr(self, "win_keys", None):
                 # 手機推近（content-editor 10-12）：win_keys＝[(鏡內秒, (x0, y0, x1, y1) 來源座標)]，寬高比固定為框的 1000:1480；
                 # 視窗寬不得小於 1000 來源 px（輸出 1000px，倍率 ≤1.0，不超過原解析度）
-                wk = self.win_keys[0][1]
-                for (k, w_) in self.win_keys:
-                    if t >= k - 1e-6:
-                        wk = w_
+                wk = _wk_at(self.win_keys, t)
                 x0, y0_, x1, _ = wk
                 cw = max(rw, min(sw, x1 - x0))
                 ch = cw * rh / rw
@@ -894,11 +891,7 @@ class Rec4:
     def _v4_win(self, t, sw, sh):
         keys = getattr(self, "win_keys", None)
         if keys:
-            w = keys[0][1]
-            for (k, wk) in keys:
-                if t >= k - 1e-6:
-                    w = wk
-            return tuple(w)
+            return tuple(_wk_at(keys, t))
         return (0.0, 0.0, float(sw), float(sh))
 
     def _v4_web(self, L, shot, sw, sh, t):
@@ -917,7 +910,8 @@ class Rec4:
             rect = (bx, by, bw, fh)
         if not getattr(self, "_v4done", False):
             self._v4done = True
-            ZOOMCHK.append((shot.sid, self.clip, round(sc, 3)))
+            sc_max = max([sc] + [bw / max(1.0, w_[2] - w_[0]) for _, w_ in (getattr(self, "win_keys", None) or [])])
+            ZOOMCHK.append((shot.sid, self.clip, round(sc_max, 3)))
             # 主圖入鏡：預設內容區 or 指定主圖（以最後一個裁切範圍為準）
             f_ = sw / 3200.0
             base = list(self.main) or [(480 * f_, 100 * f_, 3168 * f_, 1760 * f_)]
@@ -946,6 +940,19 @@ class Rec4:
         x0, y0, x1, y1 = self.win
         rx, ry, rw, rh = self.rect
         return rx + (sx - x0) / (x1 - x0) * rw, ry + (sy - y0) / (y1 - y0) * rh
+
+
+def _wk_at(keys, t, d=0.6):
+    """win_keys 取值：到了下一個關鍵秒，用 0.6 秒平滑推近／拉遠（第 6 版跟比比玩近景）。"""
+    w = keys[0][1]
+    for i, (k, wk) in enumerate(keys):
+        if t >= k - 1e-6:
+            if i and t < k + d:
+                u = ease_io((t - k) / d)
+                pw = keys[i - 1][1]
+                return tuple(a + (b - a) * u for a, b in zip(pw, wk))
+            w = wk
+    return tuple(w)
 
 
 class Focus4:
@@ -2302,6 +2309,8 @@ FAB_EXEMPT = {
     "V04_mobile_v3c": "目視確認客服鈕落在兩張卡片之間的空白（fab_hits.json，10-12）",
     "V29_desktop_v6": "跟比比玩：客服鈕與小圈就是主角（Andy 10-17：新增可以跟比比互動玩遊戲）",
     "V29_mobile_v6": "跟比比玩：客服鈕與小圈就是主角（Andy 10-17：新增可以跟比比互動玩遊戲）",
+    "V29_desktop_v6_dsf4_close": "跟比比玩近景：客服鈕與小圈就是主角",
+    "V29_mobile_v6_dsf4.5_close": "跟比比玩近景：客服鈕與小圈就是主角",
 }
 
 
