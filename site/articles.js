@@ -1132,6 +1132,7 @@ ${gs.length ? `<section><h5>熱門族群</h5><div class="gps">${gs.map((g) => `<
         return `<section class="cmc tn-${tn}" data-tone="${tn}"><h5>${esc(c.label)}</h5>${pts.length ? `<ul>${pts.map((x) => `<li>${esc(x)}</li>`).join('')}</ul>` : ''}${c.verdict ? `<p class="vd">${esc(c.verdict)}</p>` : ''}</section>`; }).join('')}</div>${figFoot(b)}</figure>`;
   }
   /* illus 具象插圖：{t:'illus', kind:'cowos'|'rack'|'custom', title, note, parts:[{id, label, sub}]}（custom 另帶 view／depth／shapes，見 site/artillus.js）
+     ★ 2026-10-17 帶 "style": 2 → 第 2 版畫法（docs/articles/illus_style.md），svg 多掛 class ilv2；沒帶的舊圖輸出一個字都不變。
      這張圖回答「文章講的那個零件長什麼樣、在哪一層」：圖由 site/artillus.js 依 kind 畫，parts 只換說明文字（id 要是該 kind 認得的）。
      編號照 kind 預設順序（由上而下）；引線在 hydrate() → wireIllus() 依實際位置畫。 */
   function illusHTML(b, bi) {
@@ -1141,7 +1142,7 @@ ${gs.length ? `<section><h5>熱門族群</h5><div class="gps">${gs.map((g) => `<
     const g = I.draw(b.kind, b); if (!g || !parts.length) return '';
     const vb = g.vb.join(' ');
     return `<figure class="artfig artillus" data-bi="${bi}" data-kind="${esc(b.kind)}">${b.title ? `<figcaption class="fh">${esc(b.title)}</figcaption>` : ''}
-      <div class="ilw"><div class="ild"><svg class="ilsvg" viewBox="${vb}" role="img" aria-label="${esc(b.title || '')}">${g.body}</svg>
+      <div class="ilw"><div class="ild"><svg class="ilsvg${g.v2 ? ' ilv2' : ''}" viewBox="${vb}" role="img" aria-label="${esc(b.title || '')}">${g.body}</svg>
         <div class="ilbs">${parts.map((p, i) => `<em data-part="${esc(p.id)}" title="${esc(p.label)}">${i + 1}</em>`).join('')}</div></div>
         <ol class="ill">${parts.map((p, i) => `<li data-part="${esc(p.id)}"><em>${i + 1}</em><b>${esc(p.label)}</b>${p.sub ? `<span>${esc(p.sub)}</span>` : ''}</li>`).join('')}</ol>
         <svg class="illn" aria-hidden="true"></svg></div>${figFoot(b)}</figure>`;
