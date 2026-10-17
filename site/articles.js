@@ -17,7 +17,7 @@
      · 單篇頁：「← 返回」（有上一頁就回上一頁，直接開網址的就回該類別清單）、麵包屑、內文區塊、圖表與示意圖、
        相關台股、站內相關頁面、資料來源、免責、文末「回到清單」；寬螢幕右側目錄。
    內文區塊（全部吃 JSON、textContent／esc 輸出、不收 HTML）：
-     h／p／ul／callout／table／stocks（原有）＋ kpi（數字卡）＋ chart（bar／line／barline／hbar／range，ECharts）
+     h／p／ul／callout／table／stocks（原有）＋ kpi（數字卡）＋ chart（bar／line／barline／hbar／range，ECharts；10-17 加 signed 正負上色、refs 參考線、bands 區間陰影）
      ＋ flow（產業關係圖：欄由左到右、手機由上到下，SVG 曲線箭頭）＋ stack（剖面拆解圖：由上到下疊層、右側引出線說明）。
      ＋ steps（編號流程圖：橫向一排、手機直向）＋ compare（2～4 欄對照卡，欄頂色條依 tone）。
      ＋ illus（2026-10-16 具象插圖：kind＝cowos／rack，圖在 site/artillus.js；Andy：「有提到特定元件，需要繪圖出來，更具像化」）。
@@ -1347,6 +1347,110 @@ ${gs.length ? `<section><h5>熱門族群</h5><div class="gps">${gs.map((g) => `<
     const ser0 = b.series.filter((s) => s && Array.isArray(s.data)).slice(0, 4);
     const sName = (s, i) => String(s.name || ('系列' + (i + 1)));
 
+    /* ★ 2026-10-17（visual_playbook 第 7 節高優先 #1、#2；Andy：「觀眾大多為視覺系生物，對圖片圖表敏感度高於文字」）
+       ① signed:true（別名 sign:true）：長條依正負上色 —— 台股慣例紅漲綠跌，直接用站上的 --rise／--fall（深淺主題各自一組、對底色對比都量過），
+          標籤與提示框的數字帶正負號。漲跌、買賣超這種圖以前正負同色，一眼看不出誰跌。
+       ② refs:[{y,label}]（hbar／range 用 x）：水平（橫條時是垂直）參考線；bands:[{from,to,label}]：類別軸上的區間陰影（升息期間、2008 年那段）。
+       全部白名單：數值一定要是有限數字、離資料範圍太遠的丟掉（不然整張圖被壓扁）、最多 4 條／4 段；
+       文字一律清成純文字（去掉控制字元，ECharts 富文字用的大括號與直線換成全形），而且只從 formatter「函式」回傳 —— 不當 ECharts 樣板字串、也不進 HTML。
+       沒帶這三個欄位的舊圖：下面每一段都不會動到 option（驗收比對舊圖 option 逐字一樣）。 */
+    const signed = b.signed === true || b.sign === true;
+    const RISE = cssv('--rise', '#ff4d6d'), FALL = cssv('--fall', '#2ee59d'), FLAT = cssv('--flat', '#8ea0c4');
+    const sgnCol = (v) => (v > 0 ? RISE : v < 0 ? FALL : FLAT);
+    const fmtS = (v) => { const z = num(v); return z == null ? '—' : (z > 0 ? '+' : '') + fmtN(z); };
+    const fmtV = signed ? fmtS : fmtN;
+    const plain = (t, max) => String(t == null || typeof t === 'object' ? '' : t).replace(/[\u0000-\u001f\u007f]/g, '').replace(/\{/g, '｛').replace(/\}/g, '｝').replace(/\|/g, '｜').trim().slice(0, max);
+    const realNum = (v) => ((typeof v === 'number' || (typeof v === 'string' && v.trim() !== '')) ? num(v) : null);
+    const horizK = kind === 'hbar' || kind === 'range';
+    const refs0 = (Array.isArray(b.refs) ? b.refs : []).map((r) => {
+      if (!r || typeof r !== 'object' || Array.isArray(r)) return null;
+      const v = realNum(horizK ? (r.x != null ? r.x : r.y) : r.y);
+      return v == null || Math.abs(v) > 1e15 ? null : { v, label: plain(r.label != null ? r.label : r.text, 24) };
+    }).filter(Boolean).slice(0, 4);
+    // 區間：from／to 先找一模一樣的類別；找不到而且類別是遞增的日期字串（2022-03、2024-10-01），就取落在區間裡的第一根與最後一根
+    const DATEY = /^\d{4}([-/.]\d{1,2}){0,2}$/;
+    const dateCats = n > 1 && x.every((c) => DATEY.test(c)) && x.every((c, i) => i === 0 || x[i - 1] < c);
+    const catIdx = (v, first) => {
+      if (v == null || typeof v === 'object') return -1;
+      const t = String(v), k = x.indexOf(t); if (k >= 0) return k;
+      if (!dateCats || !DATEY.test(t)) return -1;
+      if (first) return x.findIndex((c) => c >= t || c.startsWith(t));
+      for (let i = n - 1; i >= 0; i--) if (x[i] <= t || x[i].startsWith(t)) return i;
+      return -1;
+    };
+    const bands = (Array.isArray(b.bands) ? b.bands : []).map((r) => {
+      if (!r || typeof r !== 'object' || Array.isArray(r)) return null;
+      let i0 = catIdx(r.from, true), i1 = catIdx(r.to, false);
+      if (i0 < 0 || i1 < 0) return null;
+      if (i0 > i1) [i0, i1] = [i1, i0];
+      return { i0, i1, label: plain(r.label != null ? r.label : r.text, 14) };
+    }).filter(Boolean).slice(0, 4);
+    const refFit = (lo, hi) => {     // 資料範圍上下各再一個「範圍寬」以外的參考線丟掉（寫錯單位的 1e6 不會把整張圖壓成一條線）
+      if (!isFinite(lo) || !isFinite(hi)) { refs0.length = 0; return; }
+      const span = Math.max(hi - lo, Math.abs(hi), Math.abs(lo), 1e-9);
+      for (let i = refs0.length - 1; i >= 0; i--) if (refs0[i].v < lo - span || refs0[i].v > hi + span) refs0.splice(i, 1);
+    };
+    /* 參考線與留白掛在一條看不見的輔助系列上（名稱 REFN）：
+       · 參考線的值也放進這條系列的資料 → ECharts 算座標範圍時會把它算進去、刻度照樣取整，線不會畫到圖外；
+       · 正負長條：把最負那根再往外推一點，負值標籤（在長條下方／左方）才不會壓到軸的字；
+       · 舊圖完全沒有這條系列。提示框一律把它濾掉。
+       區間陰影另外一條自訂系列（BANDN）：ECharts 的 markArea 在類別軸上只能從「第一根的中心」畫到「最後一根的中心」，
+       頭尾兩根各被切掉一半（看起來像那根不在區間裡）；自己畫才能蓋滿整格（第一根左緣到最後一根右緣）。 */
+    const REFN = '__artaux';
+    const BANDN = '__artband';
+    const auxSeries = (extra) => {
+      const vals = refs0.map((r) => r.v).concat(extra || []);
+      const bs = bandSeries();
+      if (!vals.length) return bs;
+      const valAx = horizK ? 'xAxis' : 'yAxis';
+      const o = { name: REFN, id: REFN, type: 'line', silent: true, symbol: 'none', showSymbol: false, lineStyle: { opacity: 0, width: 0 }, tooltip: { show: false }, z: 1,
+        data: x.map((c, i) => (i < vals.length ? (horizK ? [vals[i], c] : vals[i]) : (horizK ? [null, c] : null))) };
+      if (refs0.length) o.markLine = { silent: true, symbol: 'none', animation: false,
+        lineStyle: { color: C.ink2, type: 'dashed', width: 1.4 },
+        data: refs0.map((r) => ({ [valAx]: r.v, label: { show: true, position: horizK ? 'start' : 'insideEndTop', color: C.ink, fontSize: 12, fontFamily: NF,
+          backgroundColor: C.panel, padding: [2, 4], borderRadius: 3, formatter: () => (r.label ? r.label + ' ' : '') + fmtN(r.v) + unit } })) };
+      return bs ? [o, bs] : o;
+    };
+    function bandSeries() {
+      if (!bands.length) return null;
+      const fill = rgbaOf(C.ink3, 0.16);
+      return { name: BANDN, id: BANDN, type: 'custom', silent: true, z: 0, animation: false, legendHoverLink: false, tooltip: { show: false }, emphasis: { disabled: true }, clip: false,   // 不裁切：標籤在繪圖區上方那一條（矩形自己已經夾在繪圖區裡）
+        encode: horizK ? { y: 0 } : { x: 0 }, dimensions: ['i0', 'i1'],
+        data: bands.map((r) => [r.i0, r.i1]),
+        renderItem: (params, api) => {
+          const cs = params.coordSys, r = bands[params.dataIndex];
+          if (!r) return null;
+          if (!horizK) {
+            const w = api.size([1, 0])[0];
+            const a = api.coord([r.i0, 0])[0] - w / 2, z = api.coord([r.i1, 0])[0] + w / 2;
+            const L = Math.max(cs.x, a), R = Math.min(cs.x + cs.width, z);
+            if (!(R > L)) return null;
+            const kids = [{ type: 'rect', shape: { x: L, y: cs.y, width: R - L, height: cs.height }, style: { fill } }];
+            /* 標籤放在繪圖區上方那一條（grid.top 多留了 20px），置中在陰影上方。可用寬度＝到「相鄰陰影中心」的距離（兩邊各拿一半，
+               所以相鄰兩段的字一定不會疊）且不超出繪圖區左右；太長才截成「…」。手機上窄的陰影（3 根 ≈ 34px）也放得下兩三個字以上。 */
+            if (r.label) {
+              const mid = (q) => (api.coord([q.i0, 0])[0] + api.coord([q.i1, 0])[0]) / 2;
+              const me = Math.min(Math.max((L + R) / 2, cs.x), cs.x + cs.width);
+              let room = 2 * Math.min(me - cs.x, cs.x + cs.width - me);
+              bands.forEach((q) => { if (q !== r) room = Math.min(room, Math.abs(mid(q) - me) - 6); });
+              room = Math.max(room, R - L, 24);
+              kids.push({ type: 'text', style: { text: r.label, x: me, y: cs.y - 4, align: 'center', verticalAlign: 'bottom', fill: C.ink2, fontSize: 12, width: room, overflow: 'truncate', ellipsis: '…' } });
+            }
+            return { type: 'group', children: kids };
+          }
+          const h = api.size([0, 1])[1];
+          const ya = api.coord([0, r.i0])[1], yz = api.coord([0, r.i1])[1];
+          const T = Math.max(cs.y, Math.min(ya, yz) - h / 2), B = Math.min(cs.y + cs.height, Math.max(ya, yz) + h / 2);
+          if (!(B > T)) return null;
+          const kids = [{ type: 'rect', shape: { x: cs.x, y: T, width: cs.width, height: B - T }, style: { fill } }];
+          if (r.label) kids.push({ type: 'text', style: { text: r.label, x: cs.x + cs.width - 4, y: T + 3, align: 'right', verticalAlign: 'top', fill: C.ink2, fontSize: 12 } });
+          return { type: 'group', children: kids };
+        } };
+    }
+    const auxTop = bands.some((r) => r.label) && !horizK ? 20 : 0;      // 直的：陰影標籤放在繪圖區上方那一條
+    const refTop = refs0.length && horizK ? 20 : 0;                     // 橫的：參考線標籤放在線的頂端（繪圖區上方；類別軸是反向的，所以是 start 那一端）
+    const noAux = (arr) => arr.filter((p) => p && p.seriesName !== REFN && p.seriesName !== BANDN);
+
     if (kind === 'range') {
       const out = [], names = [];
       let lo = Infinity, hi = -Infinity;
@@ -1365,8 +1469,11 @@ ${gs.length ? `<section><h5>熱門族群</h5><div class="gps">${gs.map((g) => `<
       if (!isFinite(lo)) return null;
       const pad = Math.max((hi - lo) * 0.3, Math.abs(hi) * 0.05, 1);
       let mn = Math.floor(lo - pad); if (lo >= 0 && mn < 0) mn = 0;
+      refFit(lo, hi);
+      if (refs0.some((r) => r.v < mn)) mn = Math.floor(Math.min(...refs0.map((r) => r.v)));
+      const ax = auxSeries(); if (ax) out.push(...[].concat(ax));
       return {
-        grid: { left: 8, right: 64, top: names.length > 1 ? 30 : 8, bottom: 4, containLabel: true },
+        grid: { left: 8, right: 64, top: (names.length > 1 ? 30 : 8) + refTop, bottom: 4, containLabel: true },
         legend: legend(names),
         tooltip: Object.assign({}, tipBase, { axisPointer: { type: 'shadow' }, formatter: (ps) => {
           const arr = (Array.isArray(ps) ? ps : [ps]).filter((p) => p.data && p.data._r);
@@ -1384,18 +1491,27 @@ ${gs.length ? `<section><h5>熱門族群</h5><div class="gps">${gs.map((g) => `<
       const s = ser0[0]; if (!s) return null;
       const vals = x.map((_, i) => num(s.data[i]));
       const pos = vals.filter((v) => v != null && v > 0);
-      const logAx = pos.length === vals.length && pos.length > 1 && Math.max(...pos) / Math.min(...pos) > 200;   // 差距太大（6 萬倍 vs 100 倍）改對數軸，小的那條才看得到
+      const logAx = !signed && pos.length === vals.length && pos.length > 1 && Math.max(...pos) / Math.min(...pos) > 200;   // 差距太大（6 萬倍 vs 100 倍）改對數軸，小的那條才看得到
+      const fin = vals.filter((v) => v != null), lo = Math.min(0, ...fin), hi = Math.max(0, ...fin);
+      refFit(lo, hi); if (logAx) for (let i = refs0.length - 1; i >= 0; i--) if (refs0[i].v <= 0) refs0.splice(i, 1);
+      // 正負橫條：負值標籤在長條左邊，最負那根再往左推 22% 的範圍，標籤才不會壓到左邊的類別名稱
+      const aux = auxSeries(signed && lo < 0 ? [lo - (hi - lo) * 0.22] : null);
+      const barItem = (v, i) => {
+        if (!signed) return hl.has(i) || marks.has(i) ? hlStyle(true) : { color: grad(P[i % P.length], true), borderRadius: 3 };
+        const st = { color: grad(sgnCol(v), true), borderRadius: 3 };
+        return hl.has(i) || marks.has(i) ? Object.assign(st, { borderColor: C.ink, borderWidth: 1.5 }) : st;
+      };
       return {
-        grid: { left: 8, right: 64, top: 8, bottom: logAx ? 24 : 4, containLabel: true },
-        tooltip: Object.assign({}, tipBase, { axisPointer: { type: 'shadow' }, formatter: (ps) => { const p = (Array.isArray(ps) ? ps : [ps])[0]; if (!p) return ''; const i = p.dataIndex;
-          return `<b>${esc(x[i])}</b><br>${p.marker}${esc(p.seriesName)}：${fmtN(vals[i])}${esc(unit)}` + (marks.has(i) ? `<br>◆ ${esc(marks.get(i))}` : ''); } }),
+        grid: { left: 8, right: 64, top: 8 + refTop, bottom: logAx ? 24 : 4, containLabel: true },
+        tooltip: Object.assign({}, tipBase, { axisPointer: { type: 'shadow' }, formatter: (ps) => { const p = noAux(Array.isArray(ps) ? ps : [ps])[0]; if (!p) return ''; const i = p.dataIndex;
+          return `<b>${esc(x[i])}</b><br>${p.marker}${esc(p.seriesName)}：${fmtV(vals[i])}${esc(unit)}` + (marks.has(i) ? `<br>◆ ${esc(marks.get(i))}` : ''); } }),
         xAxis: logAx ? { type: 'log', logBase: 10, name: (unit ? unit + '・' : '') + '對數刻度', nameLocation: 'middle', nameGap: 26, nameTextStyle: { color: C.ink3, fontSize: 12 }, axisLabel: axLab, splitLine: { lineStyle: { color: C.grid } } }
           : { type: 'value', name: unit, nameTextStyle: { color: C.ink3, fontSize: 12 }, axisLabel: axLab, splitLine: { lineStyle: { color: C.grid } } },
         yAxis: { type: 'category', inverse: true, data: x, axisLabel: { color: C.ink2, fontSize: 12, width: 130, overflow: 'truncate' }, axisTick: { show: false }, axisLine: { lineStyle: { color: C.line } } },
         series: [{ name: sName(s, 0), type: 'bar', barMaxWidth: 18,
-          data: vals.map((v, i) => ({ value: v, itemStyle: hl.has(i) || marks.has(i) ? hlStyle(true) : { color: grad(P[i % P.length], true), borderRadius: 3 } })),
-          itemStyle: { color: grad(P[0], true) },
-          label: { show: true, position: 'right', color: C.ink, fontSize: 12, fontFamily: NF, formatter: (q) => fmtN(q.value) + (marks.has(q.dataIndex) ? ' ◆' : '') } }],
+          data: vals.map((v, i) => { const d = { value: v, itemStyle: barItem(v, i) }; if (signed && v != null && v < 0) d.label = { position: 'left' }; return d; }),
+          itemStyle: { color: grad(signed ? RISE : P[0], true) },
+          label: { show: true, position: 'right', color: C.ink, fontSize: 12, fontFamily: NF, formatter: (q) => fmtV(q.value) + (marks.has(q.dataIndex) ? ' ◆' : '') } }].concat(aux ? [].concat(aux) : []),
         timeGrid: false, m4dz: false,
       };
     }
@@ -1412,9 +1528,13 @@ ${gs.length ? `<section><h5>熱門族群</h5><div class="gps">${gs.map((g) => `<
       // 柱子從 p1 起輪、折線從 p4（珊瑚）起輪：同一張圖的柱與線一定是兩個色系，一眼分得出
       const col = typ === 'bar' ? P[(barK++ * 2) % P.length] : P[(3 + si) % P.length];
       const vals = x.map((_, i) => num(s.data[i]));
-      const lab = { show: false, position: 'top', color: C.ink2, fontSize: 12, fontFamily: NF, formatter: (q) => fmtN(q.value) };
-      const o = { name: sName(s, si), type: typ, yAxisIndex: ax, itemStyle: { color: typ === 'bar' ? grad(col, false) : col }, label: lab,
-        data: vals.map((v, i) => { const d = { value: v }; if (typ === 'bar' && hl.has(i)) d.itemStyle = hlStyle(false); if (si === 0 || typ === 'bar' || ser0.length === 1) { if (showLab(i)) d.label = { show: true }; } return d; }) };
+      const sg = signed && typ === 'bar';      // 正負上色只套長條；同一張圖的折線照原本的色
+      const lab = { show: false, position: 'top', color: C.ink2, fontSize: 12, fontFamily: NF, formatter: (q) => (sg ? fmtS : fmtN)(q.value) };
+      const o = { name: sName(s, si), type: typ, yAxisIndex: ax, itemStyle: { color: typ === 'bar' ? grad(sg ? RISE : col, false) : col }, label: lab,
+        data: vals.map((v, i) => { const d = { value: v };
+          if (sg) { d.itemStyle = { color: grad(sgnCol(v), false) }; if (hl.has(i)) Object.assign(d.itemStyle, { borderColor: C.ink, borderWidth: 1.5 }); }
+          else if (typ === 'bar' && hl.has(i)) d.itemStyle = hlStyle(false);
+          if (si === 0 || typ === 'bar' || ser0.length === 1) { if (showLab(i)) d.label = sg && v != null && v < 0 ? { show: true, position: 'bottom' } : { show: true }; } return d; }) };
       if (typ === 'line') Object.assign(o, { symbol: 'circle', symbolSize: 7, showAllSymbol: true, lineStyle: { width: 2, color: col }, z: 3 });
       else Object.assign(o, { barMaxWidth: 40 });
       return o;
@@ -1429,19 +1549,30 @@ ${gs.length ? `<section><h5>熱門族群</h5><div class="gps">${gs.map((g) => `<
             formatter: () => `${t}　${fmtN(v)}${unit}`, color: C.ink, fontSize: 12, backgroundColor: C.panel, borderColor: C.hl, borderWidth: 1, borderRadius: 4, padding: [3, 6] } }; }) };
     }
     const unitOf = (si) => (series[si] && series[si].yAxisIndex === 1 ? u2 : unit);
+    const sgnOf = (si) => signed && series[si] && series[si].type === 'bar';
+    let aux = null;
+    if (signed || refs0.length || bands.length) {
+      const fin = []; series.forEach((s) => { if (s.yAxisIndex !== 1) s.data.forEach((d) => { if (d.value != null) fin.push(d.value); }); });
+      const lo = Math.min(0, ...fin), hi = Math.max(0, ...fin);
+      refFit(lo, hi);
+      // 正負直條：負值標籤在長條下方，最負那根再往下推 14% 的範圍，標籤才不會壓到橫軸的字
+      aux = auxSeries(signed && lo < 0 && fin.length ? [lo - (hi - lo) * 0.14] : null);
+    }
     const y = (ax) => ({ type: 'value', name: ax ? u2 : unit, nameTextStyle: { color: C.ink3, fontSize: 12, align: ax ? 'right' : 'left' }, axisLabel: Object.assign({}, axLab, ax ? { formatter: (v) => fmtN(v) } : { formatter: (v) => (Math.abs(v) >= 10000 ? Math.round(v).toLocaleString('zh-TW') : fmtN(v)) }),
       splitLine: ax ? { show: false } : { lineStyle: { color: C.grid } }, scale: false });
     return {
-      grid: { left: 8, right: hasY2 ? 8 : 14, top: (names.length > 1 ? 34 : 14) + (marks.size > 1 ? 56 : marks.size ? 30 : 12), bottom: 4, containLabel: true },
+      grid: { left: 8, right: hasY2 ? 8 : 14, top: (names.length > 1 ? 34 : 14) + (marks.size > 1 ? 56 : marks.size ? 30 : 12) + auxTop, bottom: 4, containLabel: true },
       legend: legend(names),
       tooltip: Object.assign({}, tipBase, { axisPointer: { type: series.some((s) => s.type === 'bar') ? 'shadow' : 'line' }, formatter: (ps) => {
         const arr = Array.isArray(ps) ? ps : [ps]; if (!arr.length) return '';
         const i = arr[0].dataIndex;
-        return `<b>${esc(x[i])}</b>` + arr.map((p) => `<br>${p.marker}${esc(p.seriesName)}：${fmtN(p.value)}${esc(unitOf(p.seriesIndex))}`).join('') + (marks.has(i) ? `<br>◆ ${esc(marks.get(i))}` : '');
+        return `<b>${esc(x[i])}</b>` + noAux(arr).map((p) => `<br>${p.marker}${esc(p.seriesName)}：${(sgnOf(p.seriesIndex) ? fmtS : fmtN)(p.value)}${esc(unitOf(p.seriesIndex))}`).join('') + (marks.has(i) ? `<br>◆ ${esc(marks.get(i))}` : '');
       } }),
-      xAxis: { type: 'category', data: x, axisLabel: { color: C.ink3, fontSize: 12, hideOverlap: true }, axisTick: { alignWithLabel: true }, axisLine: { lineStyle: { color: C.line } } },
+      // 正負長條：類別字固定在繪圖區最下面（預設會黏在 0 那條線上，壓到負的長條）
+      xAxis: Object.assign({ type: 'category', data: x, axisLabel: { color: C.ink3, fontSize: 12, hideOverlap: true }, axisTick: { alignWithLabel: true }, axisLine: { lineStyle: { color: C.line } } },
+        signed ? { axisLine: { onZero: false, lineStyle: { color: C.line } } } : {}),
       yAxis: hasY2 ? [y(0), y(1)] : [y(0)],
-      series, m4dz: false,
+      series: aux ? series.concat([].concat(aux)) : series, m4dz: false,
     };
   }
   function disposeCharts(root) {
