@@ -139,7 +139,7 @@ def build():
     def fab_before(t):
         return max(x for x in fabs if x < t)
     Y = 801
-    S.append(shot("p01", "跟比比玩", PLAY_M, [(fab_before(t_ball) - 0.6, t_ball - 0.3)], "⑭ 跟比比玩", "", "hop_r", "invite_nod", fixed=Y, no_host=False, min_cap=1.4))
+    S.append(shot("p01", "跟比比玩", PLAY_M, [(fab_before(t_ball) - 0.6, t_ball - 0.3)], "⑭ 跟比比玩", "", "hop_r", "invite_nod", fixed=Y, no_host=True, min_cap=1.4))
     S.append(shot("p02", "跟比比玩", PLAY_M, [(t_ball - 0.3, t_ball + 4.3)], "丟球，比比去接", "", "hop_r", "hop_r", fixed=Y, no_host=True, min_cap=1.0))
     S.append(shot("p03", "跟比比玩", PLAY_M, [(fab_before(t_grass) - 0.3, t_grass + 2.2)], "牧草放地上吃", "", "hop_r", "hop_r", fixed=Y, no_host=True, min_cap=1.0))
     S.append(shot("p04", "跟比比玩", PLAY_M, [(fab_before(t_pet) - 0.3, t_pet + 1.6)], "摸摸頭好舒服", "", "hop_r", "hop_r", fixed=Y, no_host=True, min_cap=1.0))

@@ -268,7 +268,7 @@ PRECISE_SRC: dict = {}
 
 def precise_center(clip, t_src, x, y):
     """(x, y, 來源)：點擊特效中心。小元素（按鈕、分頁、卡片、方塊）用點下當時量到的外框中心；
-    外框是整張圖（svg／canvas，>360px）時，點擊座標本身就是由子元素幾何算出的節點中心，沿用點擊座標。"""
+    外框是整張圖（svg／canvas，寬或高 >360 來源像素；點擊座標本身就是錄影端量到的元素中心）時，點擊座標本身就是由子元素幾何算出的節點中心，沿用點擊座標。"""
     d = _precise_all()
     for key in _clip_keys(clip):
         best = None

@@ -196,7 +196,7 @@ def build():
     t_open = ph[0][0] if ph else pk[0][0] - 0.8
     t_ball, t_grass, t_pet, t_bub = _find(pk, "玩球"), _find(pk, "餵牧草"), _find(pk, "摸摸頭"), _find(pk, "吹泡泡")
     wk = [(0.0, PLAY_WIN_W)]
-    S.append(shot("p01", "跟比比玩", PLAY_W, [(t_open - 0.8, t_ball - 0.3)], "⑭ 跟比比玩", "", "hop_r", "invite_nod", no_host=False, win_keys=wk, min_cap=1.4))
+    S.append(shot("p01", "跟比比玩", PLAY_W, [(t_open - 0.8, t_ball - 0.3)], "⑭ 跟比比玩", "", "hop_r", "invite_nod", no_host=True, win_keys=wk, min_cap=1.4))
     S.append(shot("p02", "跟比比玩", PLAY_W, [(t_ball - 0.3, t_ball + 3.7)], "丟球，比比去接", "", "hop_r", "hop_r", no_host=True, win_keys=wk, min_cap=1.0))
     S.append(shot("p03", "跟比比玩", PLAY_W, [(t_grass - 0.6, t_grass + 2.2)], "牧草放地上吃", "", "hop_r", "hop_r", no_host=True, win_keys=wk, min_cap=1.0))
     S.append(shot("p04", "跟比比玩", PLAY_W, [(t_pet - 0.6, t_pet + 1.6)], "摸摸頭好舒服", "", "hop_r", "hop_r", no_host=True, win_keys=wk, min_cap=1.0))

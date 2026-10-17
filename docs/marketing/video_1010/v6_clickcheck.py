@@ -136,7 +136,7 @@ def main():
             row = {"shot": s.sid, "t": round(t, 2), "kind": "滑過" if hov else "點擊", "clip": rec.clip, "src_t": tp["src_t"], "label": inf["label"] if not hov else "滑過",
                    "center_src": K.PRECISE_SRC.get((rec.clip, round(tp["src_t"], 2)), ""), "expected": [round(guess[0], 1), round(guess[1], 1)]}
             if cur is not None:
-                row["cursor"] = [round(cur[0], 1), round(cur[1], 1)]
+                row["cursor"] = [round(float(cur[0]), 1), round(float(cur[1]), 1)]
             if rc is None and cur is None:
                 row["err"] = None
                 row["why"] = "量不到漣漪與游標（在畫面外）"
@@ -145,7 +145,7 @@ def main():
             if rc is None:
                 rc = (cur[0], cur[1], 0, 0)
             if not hov:
-                row["ripple"] = [round(rc[0], 1), round(rc[1], 1)]
+                row["ripple"] = [round(float(rc[0]), 1), round(float(rc[1]), 1)]
             # 元素樣板比對（外框太大＝整張圖：改切點擊點周圍 80×80 來源像素）
             if (r[2] - r[0]) > 360 or (r[3] - r[1]) > 360:
                 cxs, cys = tp["cx"], tp["cy"]
@@ -175,17 +175,17 @@ def main():
             mx0, my0 = sx0 + loc[0], sy0 + loc[1]
             ecx, ecy = mx0 + tw / 2, my0 + th / 2
             # 元素中心（樣板比對到的外框中心；樣板若是點擊點周圍，就是點擊點）
-            row["element"] = [round(ecx, 1), round(ecy, 1)]
+            row["element"] = [round(float(ecx), 1), round(float(ecy), 1)]
             row["match_score"] = round(float(score), 3)
-            row["err"] = round(math.hypot(rc[0] - ecx, rc[1] - ecy), 1)
+            row["err"] = round(float(math.hypot(rc[0] - ecx, rc[1] - ecy)), 1)
             if cur is not None:
-                row["cursor_err"] = round(math.hypot(cur[0] - ecx, cur[1] - ecy), 1)
+                row["cursor_err"] = round(float(math.hypot(cur[0] - ecx, cur[1] - ecy)), 1)
             row["map_vs_match"] = round(math.hypot(guess[0] - ecx, guess[1] - ecy), 1)
             rows.append(row)
             # 對照裁圖
             cx_, cy_ = int(rc[0]), int(rc[1])
             bb = (cx_ - 160, cy_ - 160, cx_ + 160, cy_ + 160)
-            left = im_on.crop(bb)
+            left = on.crop(bb)
             right = site.crop(bb)
             d = ImageDraw.Draw(right)
             d.rectangle([mx0 - bb[0], my0 - bb[1], mx0 - bb[0] + tw, my0 - bb[1] + th], outline=(0, 160, 255), width=2)
