@@ -2875,6 +2875,16 @@ def v28(pg, a, start, base):
     a.wait(2600)
     a.focus_sel("CoWoS 剖面插圖", ".artillus", t0, a.t)
     a.note(f"插圖完整入框 {t0:.1f}–{a.t:.1f}s")
+    if a.mob:   # 手機：觸控插圖右側的編號圓（分鏡手機 n04 備案：HBM → GPU）
+        for part, name in (("hbm", "HBM 高頻寬記憶體"), ("gpu", "GPU 運算晶片")):
+            sel = f'.artillus .ilbs em[data-part="{part}"]'
+            if not pg.locator(sel).count():
+                a.note(f"找不到 {sel}")
+                continue
+            a.fast_click(sel, f"插圖編號：{name}", gap=300)
+            t1 = a.t
+            a.wait(1900)
+            a.focus_sel(f"插圖零件亮起：{name}", ".artillus", t1, a.t)
     if not a.mob:   # 桌機：滑過右側說明列，那一層零件亮起（分鏡 n04）
         for part, name in (("hbm", "HBM 高頻寬記憶體"), ("gpu", "GPU 運算晶片")):
             sel = f'.artillus .ill li[data-part="{part}"]'
@@ -2907,6 +2917,7 @@ def v29(pg, a, start, base):
                 fb = pg.locator("#supFab").bounding_box()
                 a.move(fb["x"] - 260, fb["y"] - 40, 300)
             a.hover("#supFab", 600)
+            a.record_target(a.x, a.y, "hover", "客服鈕（比比）", expect="#supFab")
             a.note("滑到客服鈕（比比）")
         if not a.until("() => !!document.querySelector('#bibiRing.on')", 3000):
             a.note(f"小圈沒打開（{name}）")

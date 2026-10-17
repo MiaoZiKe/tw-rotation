@@ -1288,12 +1288,14 @@ class Op:
     BACK = 0.3       # 彈回
     FLYC = 0.2       # 連續點擊：目標之間直接跳過去
 
-    def __init__(self, rec, idle="talk_happy", extra=(), events=None, use_events=True, magic=True, soft_hover=False, tap_scale=0.8, chain=None, mode_b=False, no_host=False):
+    def __init__(self, rec, idle="talk_happy", extra=(), events=None, use_events=True, magic=True, soft_hover=None, tap_scale=0.8, chain=None, mode_b=False, no_host=False):
         self.rec, self.magic = rec, magic
         # 第 6 版（分鏡 v6 第 1、2 節）：mode_b＝點擊一律「游標＋漣漪」（比比留在待機位，不跳去踩）；no_host＝這一鏡不畫主持人比比（跟比比玩：網站上的比比是主角）
         self.mode_b, self.no_host = mode_b, no_host
-        if mode_b:
-            soft_hover = True
+        if soft_hover is None and not mode_b:
+            soft_hover = False
+        if mode_b and soft_hover is None:
+            soft_hover = "_v6" in rec.clip      # 第 6 版：只有新素材錄影端記的「滑過」才畫游標；舊素材的「游標移到」只是移動紀錄
         self.chain, self.prev_op = chain, None
         self.idle = [(0, idle)] if isinstance(idle, str) else list(idle)
         self.extra = list(extra)

@@ -14,6 +14,14 @@ import v3_core as K  # noqa: E402
 RAW = K.RAW3
 
 
+def _dur(clip):
+    import subprocess
+    try:
+        return float(subprocess.check_output(["ffprobe", "-v", "error", "-show_entries", "format=duration", "-of", "csv=p=0", str(RAW / f"{clip}.mp4")], text=True))
+    except Exception:  # noqa: BLE001
+        return 0.0
+
+
 def main():
     logs = {}
     for p in sorted(RAW.glob("capture_log_*.json"), key=lambda q: q.stat().st_mtime):
@@ -23,7 +31,10 @@ def main():
             continue
         for clip, v in d.items():
             if "_v6" in clip and isinstance(v, dict) and v.get("ok"):
-                logs[clip] = v          # 較新的檔蓋過較舊的（同一支重錄）
+                # 同一支重錄多次、log 分在不同檔：取長度跟現在的 mp4 對得上的那一筆
+                if clip in logs and abs(logs[clip]["dur"] - _dur(clip)) < abs(v["dur"] - _dur(clip)):
+                    continue
+                logs[clip] = v
     ct = json.loads((RAW / "click_targets.json").read_text())
     ft = json.loads((RAW / "focus_targets.json").read_text())
     bs = json.loads((RAW / "bad_spans.json").read_text())
