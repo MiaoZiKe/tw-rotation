@@ -13,6 +13,16 @@
 - ⚠️ #5 CPO、#6 HBM 標「失敗」原因：環境沒有 ARTICLE_PUT_KEY、出口代理擋 tw-account.kcq01010909.workers.dev（403）。全文稿在暫存區 scratchpad/art_cpo/、art_hbm/（容器回收就沒了）。
   等 Andy 選：A＝照 production_guide「一次性設定」設金鑰＋白名單；B＝全文加密以 workflow_dispatch 交給 article-jobs.yml 代傳（從 CLOUDFLARE_API_TOKEN 推解密鑰；權限檢查擋下，須 Andy 明確同意才做）。
 
+### 2026-10-17 19:22 這一輪上線（CEO 主 session）
+- ✅ CPO、HBM 兩篇上架（全文在 Worker；上傳改用雲端環境網路密鑰，article_publish 不帶 Authorization）。測試誤傳的 know-test-a 已 del_body；測試加 autouse 擋真 Worker。
+- ✅ 帳號選單捲動（帳號選單捲動1017）；頂欄站主點「N 人在線」展開名單＋複製 email（線上名單1017）；頂欄試過「今天 N 人造訪」後 Andy 要改回，Worker dayvis 計數保留、數字只在 title。
+- ✅ 管理區圓餅圖例長名稱「…」截斷＋滑過看全名、分頁日期刻度 thinTicks（管理區重疊普查1017）。
+- ✅ 平台導覽：同意後直接開全站導覽（同意後平台導覽1017）；既有紅：同意條款與法律頁 3、平台導覽1007 7（main 上本來就紅）。
+- ✅ 插圖第 2 版 style:2（docs/articles/illus_style.md、精選文章插圖v2、scripts/illus_audit.py）；文章影片區塊（文章影片區塊1017，可用非官方轉載）；產出進度條＋stage（產出進度階段1017，workflow 輸入 stage）。
+- 🛠️ #7 特斯拉 Roadster 快訊：全文＋影片 TWHXrLzUKJc 在 scratchpad/art_7；插圖第一版退件，tech-illustrator 在 illus-car-1017 加 wheel／hcyl／shell 重畫。
+- 既有紅（非這批）：流量觀測1005「堆疊 3 色」、_preview #industry/ai_server 800 寬文字交疊。
+- 待處理：Worker 自動排程仍綁這個長對話（「改排程」等 Andy）。
+
 ## 2026-10-17 03:1x 短影片 #4「CPO 共同封裝光學是什麼？」完成（main 87a22a79）
 - 成品 docs/marketing/videos/2026-10-17-k_cpo/（k_cpo_9x16.mp4 45 秒 1080×1920、封面、srt、分鏡、posts.md IG／Threads 文案＋合規自查、overlap_report）。重疊檢查：程式 1350 幀 0 筆；人工 90 格 0 筆。不點名個股；NVIDIA／Broadcom 數字標「廠商說法」＋新聞稿日期。字型 Huninn／Noto Sans TC（OFL），重跑渲染用 CPO_FONT_DIR。佇列 #4 已標 done。
 
