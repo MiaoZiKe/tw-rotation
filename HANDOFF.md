@@ -1,5 +1,13 @@
 # HANDOFF.md — 目前進度（接手先讀這份）
 
+### 2026-10-17 18:5x 精選文章插圖第 2 版（style:2）渲染器＋量測＋驗收（分支 illus-v2，未推 main）
+- Andy 10-17：「自動產精選文章，之後的圖需要再更細緻，顏色不要太單一……這次先不改（指已上架的 HBM 那張）」。規格 docs/articles/illus_style.md（動畫單位）。
+- site/artillus.js：只有 illus 帶 `"style": 2` 才走新畫法（27 種 mat 深淺色票、tone、光影、19 種細節、guide、構圖自動裁切）；沒帶的舊圖 SVG 逐字相同（改版前後逐像素比過 cowos／rack／HBM 舊版 18 張圖 0 差異）。articles.js 只多 `ilv2` class。
+- scripts/illus_audit.py（規格 4.2 量測，輸出 json）、驗收段落 精選文章插圖v2（scripts/uitest_sections/20261017_illus_v2.py）。
+- 順手修：精選文章插圖1016 在 main 上是紅的（防白嫖後注入 TW_ACCOUNT_OVERRIDE ＝ 會員系統開著 → 訪客 0 篇），拿掉注入。
+- HBM style:2 試作只在 scratchpad/illus_v2/（不上架、全文不進 repo）。內建 cowos／rack 的 style:2 畫得出來，但 rack 灰色占 89%（機櫃本來就灰）、cowos 手機編號 1 個超出圖高 —— 這兩個內建圖要用 style:2 前要再調。
+- 這批只驗：pytest -k "article or illus"、精選文章插圖1016、精選文章插圖v2、精選文章1014、桌機守門1008、_preview。
+
 ### 2026-10-17 16:41 產出進度日期分隔線 ✅；文章上傳仍卡金鑰
 - ✅ 管理區精選文章「產出進度」依送出日期分段（每天一條日期列，上框線）。main 5a81304c。只驗了 精選文章1014、桌機守門1008、_preview（_preview 抓到 #industry/ai_server 800 寬 4 組文字交疊，跟這批無關，待處理）。
 - ⚠️ #5 CPO、#6 HBM 標「失敗」原因：環境沒有 ARTICLE_PUT_KEY、出口代理擋 tw-account.kcq01010909.workers.dev（403）。全文稿在暫存區 scratchpad/art_cpo/、art_hbm/（容器回收就沒了）。

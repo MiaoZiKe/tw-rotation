@@ -48,8 +48,9 @@ def t_art_illus_1016(b, base):
                                   {"id": "cell", "label": "電池", "sub": "上面有極柱"}, {"id": "ghost", "label": "圖上沒有的部件", "sub": "要被略過"}]}]}
 
     def prep(ctx, theme):
-        ctx.add_init_script("window.TW_ACCOUNT_OVERRIDE = " + json.dumps({"api": API}) + ";"
-                            "try{localStorage.setItem('tw.live.on','0');localStorage.setItem('tw.theme'," + json.dumps(theme) + ")}catch(e){}")
+        # 2026-10-17：不再注入 TW_ACCOUNT_OVERRIDE —— 10-16 防白嫖上線後「會員系統開著」＝讀全文要伺服器點頭（fail-closed 照訪客 0 篇），
+        #   這一段量的是插圖、不是權限，所以照「本機沒開會員系統＝不限」的做法（同 精選文章1014 的閱讀頁）。
+        ctx.add_init_script("try{localStorage.setItem('tw.live.on','0');localStorage.setItem('tw.theme'," + json.dumps(theme) + ")}catch(e){}")
         ctx.route(API + "/**", lambda r: r.fulfill(status=200, content_type="application/json", body='{"ok":true,"views":{}}'))
         ctx.route("**/fonts.googleapis.com/**", lambda r: r.abort())
         ctx.route("**/articles/posts/uitest-illus-custom.json", lambda r: r.fulfill(status=200, content_type="application/json", body=json.dumps(cust, ensure_ascii=False)))

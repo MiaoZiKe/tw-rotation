@@ -118,21 +118,21 @@ Claude 寫稿時的全文檔（暫存區）容器回收就沒了——**上傳�
     | `cowos` | CoWoS-S 2.5D 剖面（GPU＋兩側 HBM 堆疊、微凸塊、矽中介層含 TSV／重佈線、C4、ABF 載板、錫球、主機板） | `gpu` `hbm` `ubump` `interposer` `c4` `abf` `bga` `board` |
     | `rack` | 液冷 AI 機櫃拆開看（電源架、運算托盤、拉出的托盤上的冷板與水管、交換器托盤、分歧管、BBU） | `frame` `psu` `compute` `coldplate` `switch` `manifold` `bbu` |
     ```json
-    {"t": "illus", "kind": "cowos", "title": "CoWoS 剖面：由上而下", "note": "示意圖，比例不是實際尺寸。",
+    {"t": "illus", "kind": "cowos", "style": 2, "title": "CoWoS 剖面：由上而下", "note": "示意圖，比例不是實際尺寸。",
      "parts": [{"id": "gpu", "label": "GPU 運算晶片", "sub": "一句話"}, {"id": "hbm", "label": "HBM", "sub": "一句話"}]}
     ```
     `parts` 只換說明文字；省略＝全部用預設說明，只列幾個＝只標那幾個。
   - **其他任何設備用 `kind: "custom"`，只寫 JSON、不用改程式**：用積木描述部件，畫在 `view` 大小的座標裡（左上是 0,0，往下 y 變大），
     `depth` 是「往後」的方向（預設 `[40,-24]`＝往右上，看得到上面與右側面）。陣列順序＝畫的順序，**後面／下面的先寫，前面／上面的後寫**。
     ```json
-    {"t": "illus", "kind": "custom", "title": "氣冷散熱模組拆開看", "note": "示意圖，比例不是實際尺寸。",
+    {"t": "illus", "kind": "custom", "style": 2, "title": "氣冷散熱模組拆開看", "note": "示意圖，比例不是實際尺寸。",
      "view": [560, 330], "depth": [44, -26],
      "shapes": [
        {"part": "board", "type": "box", "x": 20, "y": 270, "w": 420, "h": 26, "mat": "pcb", "detail": "lines", "n": 2},
        {"part": "chip",  "type": "box", "x": 170, "y": 252, "w": 110, "h": 18, "mat": "chip", "detail": "grid"},
        {"part": "base",  "type": "box", "x": 150, "y": 234, "w": 150, "h": 18, "mat": "cu"},
        {"part": "pipe",  "type": "pipe", "mat": "cu", "r": 5, "points": [[180, 238], [180, 120], [200, 100]]},
-       {"part": "fins",  "type": "box", "x": 140, "y": 90, "w": 180, "h": 120, "mat": "steel", "detail": "fins", "n": 18},
+       {"part": "fins",  "type": "box", "x": 140, "y": 90, "w": 180, "h": 120, "mat": "steel", "detail": ["fins", "screws"], "n": 18},
        {"part": "fan",   "type": "box", "x": 330, "y": 96, "w": 100, "h": 110, "mat": "plastic", "detail": "fan", "d": 0.5}],
      "parts": [{"id": "fins", "label": "散熱鰭片", "sub": "一片片薄鋁片，加大散熱面積"},
                {"id": "fan", "label": "風扇", "sub": "扇框＋扇葉＋輪轂", "anchor": [380, 150], "out": 40}]}
@@ -147,7 +147,32 @@ Claude 寫稿時的全文檔（暫存區）容器回收就沒了——**上傳�
   - 畫之前先查證結構（照 CLAUDE.md「有疑問先上網查」），**結構查不到的部分不要編**，`note` 寫「示意」；不畫任何公司的產品外觀、logo、商標。
     重點是**識別特徵**：風扇要有扇葉與輪轂、電池要有極柱、連接器要有接點、封裝要有凸塊與層次 —— 不是方塊越多越好。
   - 同一種設備會在很多篇出現時，再把它做成內建 kind（`site/artillus.js` 的 `KINDS`，參考 `cowos()`／`rack()`）。
-  - 算進「每篇最多 3 張圖」的上限。驗收：`python scripts/_uitest.py --sections 精選文章插圖1016 --workers 1`（深淺 × 1440／390：零件都畫出來、層序、凸塊大小、引線對到、說明不重疊不壓圖、滑過／點了真的變、通用 custom 與白名單）。
+  - **★ 2026-10-17 起新文章的 illus 一律寫 `"style": 2`**（Andy 10-17：「自動產精選文章，之後的圖需要再更細緻，顏色不要太單一，這部分跟動畫不合作，CEO 擬請動畫單位協助網頁單位製作，這次先不改」）。
+    規格（色票、光影、細節密度、構圖、驗收門檻）全在 **`docs/articles/illus_style.md`**，動畫單位撰寫；這裡只列寫 JSON 要知道的。
+    沒帶 `style` 的舊圖（已上架的 CoWoS、AI 機櫃、HBM…）照舊畫，畫面一個像素都不變（Andy：「這次先不改」）；要換新畫法要 Andy 點頭才補 `"style": 2`。
+    | 第 2 版多的欄位 | 可用值 |
+    |---|---|
+    | `mat` 多 6 種 | `logic`（底層邏輯晶粒、控制晶片）`mold`（封裝膠體）`underfill`（底部填充膠）`gold`（金手指、接點）`tim`（導熱膏／墊）`ceramic`（陶瓷） |
+    | `tone` | −2～+2 的整數：同一種材料、讀者要分得出的兩個零件（例如組好的 HBM `mem tone:-1`、拆開的 DRAM `mem tone:1`），兩者 ΔE00 要 ≥ 8；不能拿來湊色相數 |
+    | `back` | 1＝後方零件（亮度 −0.04、彩度 ×0.9，做出遠近） |
+    | `detail` 可以給陣列 | 例如 `["grid", "label", "seal"]`；多 10 種：`bumps`（頂面凸塊陣列，`nu`×`nv`、`bmat`＝`solder`／`cu`／`gold`）`traces`（頂面細走線）`label`（晶片刻印，不寫字、不畫 logo）`pads`（銅墊）`seal`（填充膠斜邊）`screws`（四角螺絲）`pins`（針腳／金手指）`hatch`（剖面斜線）`wires`（打線）`mesh`（濾網） |
+    | `balls` | 預設兩排（後排錯開半格、較暗較小），`rows: 1` 只畫一排；**390 手機上球半徑要 ≥ 2.5px**（約 r ≥ 5.2，不夠就減顆數、加大、`note` 寫「凸塊放大畫」） |
+    | `pipe` | 兩端自動加接頭（`ends: 0` 不加）、內側一條高光 |
+    | `type: "guide"` | 拆開圖的虛線導引＋箭頭（`points` 折線，不用掛 `part`） |
+    | 構圖 | `view` 會依內容自動裁切；引線要能往右直接出去（把會被擋住的零件放右邊或上方、用 `anchor`／`out` 繞開），手機上編號要塞得進圖的高度 —— 零件 8 個時圖的長寬比最好接近 1:1 |
+    不在白名單的值一律被略過或改成預設，JSON 的字串不會進到圖或樣式裡。
+  - **插圖分工（每篇都照這個順序，規格第 5 節）**：
+    | 步 | 誰 | 交什麼 |
+    |---|---|---|
+    | 0 | 文章作者（產文那一輪） | `docs/articles/illus/<文章id>/brief.md`：要畫的設備、要標的零件（id／名稱／一句話）、結構查證來源、「查不到所以只畫示意」的部分 |
+    | 1 | **動畫單位**（`animation-director` 主導，可派 `bibi-illustrator`／`storyboard-artist`） | `sketch.md`（零件表：part／type／mat／tone／detail／大約位置）＋`sketch.svg`／`.png`：視角、哪些拆開剖開、配色配額試算 |
+    | 2 | **網頁單位 `tech-illustrator`** | 依草稿寫 illus JSON（帶 `"style": 2`）；需要新 detail／mat 才改 `site/artillus.js`；跑量測與驗收（下面兩行指令）；截規格 4.1 節的圖（深淺 × 1440／390、兩張放大 3 倍、草稿與成品並排）放 scratchpad 的 `illus_<文章id>/` |
+    | 3 | **審**：`animation-director`（細緻度、光影、配色配額）＋`art-director`（深淺主題、對比、不螢光）；結構有疑問加 `mechanical-engineer` | `review.md`：規格第 4 節逐條過／不過、「重疊檢查：程式 N 處 0 筆；人工 M 張 0 筆」那行、並排圖檔名 |
+    | 4 | CEO | 用 Read 親眼看草稿與成品並排圖、深淺兩張 1440 圖，確認後才上架（沒親眼看過不准說好了） |
+    同一張退件 2 次仍不過 → 回報 CEO，該篇先不上架插圖（不准降標準放行）。
+    量測：`python scripts/illus_audit.py --post <文章 JSON 的本機路徑> --out <scratchpad>/illus_<文章id>/illus_audit.json --shots <同一個資料夾>`（全文在後端，JSON 放 scratchpad、**不要放進 repo**）；
+    `❌` 就照它列的欄位改到全過。驗收段落：`python scripts/_uitest.py --sections 精選文章插圖v2 --workers 1`（第 2 版畫法、量測門檻、舊圖不變、主題切換、安全）。
+  - 算進「每篇最多 3 張圖」的上限。驗收：`python scripts/_uitest.py --sections 精選文章插圖1016,精選文章插圖v2 --workers 1`（深淺 × 1440／390：零件都畫出來、層序、凸塊大小、引線對到、說明不重疊不壓圖、滑過／點了真的變、通用 custom 與白名單）。
 - **★ 3 分鐘看完（Andy 10-16：「不用太多，但需要重點 且直觀看得懂 3min 內可以看完」）**，每篇都照這幾條：
   1. **字數上限**：內文（h／p／ul／callout，不含圖表、表格、相關台股、來源、免責）**約 700～900 個中文字以內**；連圖表裡的字一起算，全篇控制在約 1,300 字。`reading_min` 寫實際值，**必須 ≤ 3**。
   2. **三句話重點**：第一個區塊固定是 `{"t":"h","text":"三句話重點"}` ＋ 三條的 `ul`；只看這三句就要懂這篇在講什麼（含最關鍵的數字）。
