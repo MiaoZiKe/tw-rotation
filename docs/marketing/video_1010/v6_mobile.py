@@ -76,9 +76,9 @@ def grid_card(sid, D=2.6):
 
 
 ART_M = "V28_mobile_v6_nofab"
-PLAY_M = "V29_mobile_v6_dsf6_close"   # 近景重錄：只截下半部 300×444 css、DPR 6（1800×2664）
-PLAY_FULL_M = (0, 0, 1800, 2664)
-PLAY_TIGHT_M = (800, 1184, 1800, 2664)
+PLAY_M = "V29_mobile_v6_dsf8_close"   # 近景重錄：只截下半部 300×444 css、DPR 8（2400×3552），近景比比 ≥350px
+PLAY_FULL_M = (0, 0, 2400, 3552)
+PLAY_TIGHT_M = (1400, 2072, 2400, 3552)
 
 
 SHORT_DROP = {"b03", "d04", "e02", "f03", "g03", "g05", "i03"}
