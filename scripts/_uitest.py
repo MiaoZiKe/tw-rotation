@@ -71374,7 +71374,11 @@ def t_articles_1014(b, base):
        st["h"] == "#articles" and st["v"] == "v-articles" and st["f"] == D_FROM and st["t"] == D_TO and st["rg"].get("from") == D_FROM and D_TO in st["rgt"], st)
     cs = cards(pg)
     ok(f"{T}：清單＝預設區間內的 {n_vis} 篇（三個月前的舊快訊不在）、計數也寫 {n_vis}", len(cs) == n_vis and cnt(pg) == n_vis and not any(x["id"] == "uitest-old-1016" for x in cs), [cs, cnt(pg)])
-    ok(f"{T}：卡片依日期新到舊", [x["date"] for x in cs] == sorted([x["date"] for x in cs], reverse=True), [x["date"] for x in cs])
+    # 10-17 起「全部文章」依類型分段（快訊→產業鏈→知識）：每一段內新到舊
+    _seg = {}
+    for x in cs:
+        _seg.setdefault(x["cat"], []).append(x["date"])
+    ok(f"{T}：卡片依日期新到舊（依類型分段時，每一段內新到舊）", all(v == sorted(v, reverse=True) for v in _seg.values()), _seg)
     # 10-16 第三版：所有卡片同一尺寸（Andy：「這邊的大小需要一致」）、點閱次數
     CSZ = "() => [...document.querySelectorAll('#artList .artc')].map(a => { const r = a.getBoundingClientRect(); const pb = parseFloat(getComputedStyle(a).paddingBottom); return [Math.round(r.width), Math.round(r.height), [...a.children].filter(e => !e.classList.contains('wm') && e.getClientRects().length).every(e => e.getBoundingClientRect().bottom <= r.bottom - pb + 1)]; })"
     sz = pg.evaluate(CSZ)
@@ -71454,7 +71458,8 @@ def t_articles_1014(b, base):
     pg.click("#artClr"); pg.wait_for_timeout(250)
     # 800 寬兩欄
     pg.set_viewport_size({"width": 800, "height": 900}); pg.wait_for_timeout(500)
-    st = pg.evaluate("() => ({ cols: getComputedStyle(document.getElementById('artList')).gridTemplateColumns.split(' ').length, sw: document.documentElement.scrollWidth - innerWidth })")
+    # 10-17 起「全部文章」依類型分段：卡片在 #artList 裡每段的 .artgrid；不分段時 #artList 本身就是格線
+    st = pg.evaluate("() => { const g = document.querySelector('#artList .artgrid') || document.getElementById('artList'); return { cols: getComputedStyle(g).gridTemplateColumns.split(' ').length, sw: document.documentElement.scrollWidth - innerWidth }; }")
     ok(f"{T}：800 寬 → 卡片兩欄、沒有橫向捲軸", st["cols"] == 2 and st["sw"] <= 0, st)
     pg.set_viewport_size({"width": 1440, "height": 900}); pg.wait_for_timeout(400)
     # ⑥ 單篇（真文章）＋返回
@@ -71742,7 +71747,7 @@ def t_articles_1014(b, base):
         const p = v.querySelector('#artBody > p'); const L = document.getElementById('artList');
         const tabs = [...document.querySelectorAll('#artCats>button')].map(b => { const r = b.getBoundingClientRect(); return [Math.round(r.left), Math.round(r.right), b.scrollWidth <= b.clientWidth + 1]; });
         return { h: location.hash, m4: document.documentElement.classList.contains('m4'), sw: document.documentElement.scrollWidth - innerWidth, tiny, pfs: p ? parseFloat(getComputedStyle(p).fontSize) : null,
-          n: v.querySelectorAll('.artc').length, cols: L ? getComputedStyle(L).gridTemplateColumns.split(' ').length : 0, tabs }; }"""
+          n: v.querySelectorAll('.artc').length, cols: L ? getComputedStyle(L.querySelector('.artgrid') || L).gridTemplateColumns.split(' ').length : 0, tabs }; }"""
     st = mp.evaluate(MSTAT)
     ok(f"{T}：手機點抽屜「精選文章」→ #articles 清單 {n_vis} 篇、一欄、四個分類分頁都在畫面內、沒有橫向捲軸、沒有 < 11px 的字",
        st["h"] == "#articles" and st["m4"] and st["n"] == n_vis and st["cols"] == 1 and st["sw"] <= 0 and not st["tiny"] and all(t[0] >= 0 and t[1] <= 390 for t in st["tabs"]), st)

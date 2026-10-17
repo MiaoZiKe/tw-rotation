@@ -127,7 +127,13 @@
 .artmain{flex:1 1 auto;display:grid;grid-template-columns:minmax(0,1fr);gap:var(--sp-4);align-items:start}
 @media (min-width:1280px){.artmain{grid-template-columns:minmax(0,1fr) 280px}}
 /* 卡片一律同寬同高（Andy 10-16：「這邊的大小需要一致」）：格線決定寬、固定高度決定高，內容過長一律截斷（標題 2 行、副標 1 行、摘要 3 行、族群 1 行） */
-.artlist{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));grid-auto-rows:var(--art-card-h,236px);gap:var(--gap-card,12px);align-items:stretch;align-content:start}
+.artlist,.artgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));grid-auto-rows:var(--art-card-h,236px);gap:var(--gap-card,12px);align-items:stretch;align-content:start}
+/* 10-17 Andy：「這邊不同類型需要線條隔開」→ 全部文章依類型分段，段與段之間一條分隔線＋類型名稱 */
+.artlist.grouped{display:block}
+.artsec+.artsec{margin-top:18px;padding-top:14px;border-top:2px solid var(--line-2)}
+.artsech{display:flex;align-items:center;gap:8px;margin:0 0 10px;font-size:15px;font-weight:700;color:var(--ink)}
+.artsech em{font-style:normal;font-weight:400;font-size:12.5px;color:var(--ink-2)}
+.artsec.k-news .artsech svg{color:var(--amber,#e08a2e)}.artsec.k-intro .artsech svg{color:var(--teal,#14a39a)}.artsec.k-know .artsech svg{color:var(--violet,#8b5cf6)}
 .artc{position:relative;display:flex;flex-direction:column;gap:6px;min-width:0;height:100%;box-sizing:border-box;padding:var(--sp-3) var(--sp-4) var(--sp-3) calc(var(--sp-4) + 4px);
   border:1px solid var(--line);border-radius:var(--r,12px);overflow:hidden;
   background:linear-gradient(135deg,color-mix(in srgb,var(--k) 8%,var(--panel)) 0%,var(--panel) 55%);color:var(--ink);text-decoration:none;transition:border-color .15s,transform .15s}
@@ -405,7 +411,7 @@
   .artflt #artGrp{flex:1 1 auto;--ms-w:100%}
   .artflt #artClr{flex:none}
   .artflt .cnt{margin-left:0}
-  .artlist{--art-card-h:164px}
+  .artlist,.artgrid{--art-card-h:164px}
   .artc{padding:var(--sp-3) var(--sp-3) var(--sp-3) calc(var(--sp-3) + 4px)}
   .artc .sm{display:none}   /* 手機只留重點（準則 3）：摘要點進去才看 */
   .artempty{min-height:260px}
@@ -1018,8 +1024,15 @@ ${gs.length ? `<section><h5>熱門族群</h5><div class="gps">${gs.map((g) => `<
     const dirty = !!(S.q.trim() || S.from !== D.from || S.to !== D.to || S.grp.size);
     const acc = access();
     paintQuota(root, acc);
-    box.innerHTML = list.length ? list.map((a) => cardHTML(a, acc)).join('')
-      : `<div class="artempty k-${S.cat === 'all' ? 'all' : S.cat}" id="artEmpty">${icon(S.cat, 40)}<div>${dirty ? '這個條件下沒有符合的文章，換個關鍵字、族群或放寬日期試試。' : '近一個月這個分類還沒有文章。'}</div>`
+    /* 10-17 Andy：「這邊不同類型需要線條隔開」→ 「全部文章」依類型分段（快訊 → 產業鏈 → 知識），每段上方一條分隔線＋類型名稱與篇數；
+       只有一種類型、或在單一類型分頁時照舊一整片。卡片仍在 #artList 底下（.artc），每段自己一個同樣規格的格線（.artgrid）。 */
+    const grpCats = S.cat === 'all' ? Object.keys(CATS).filter((k) => list.some((a) => a.cat === k)) : [];
+    box.classList.toggle('grouped', grpCats.length > 1);
+    box.innerHTML = !list.length ? ''
+      : grpCats.length > 1 ? grpCats.map((k) => { const l = list.filter((a) => a.cat === k);
+        return `<section class="artsec k-${k}" data-cat="${k}"><div class="artsech" role="heading" aria-level="3">${icon(k, 16)}<span>${esc(CATS[k].t)}</span><em>${l.length} 篇</em></div><div class="artgrid">${l.map((a) => cardHTML(a, acc)).join('')}</div></section>`; }).join('')
+      : list.map((a) => cardHTML(a, acc)).join('');
+    if (!list.length) box.innerHTML = `<div class="artempty k-${S.cat === 'all' ? 'all' : S.cat}" id="artEmpty">${icon(S.cat, 40)}<div>${dirty ? '這個條件下沒有符合的文章，換個關鍵字、族群或放寬日期試試。' : '近一個月這個分類還沒有文章。'}</div>`
         + `${dirty ? '<button type="button" class="btn small" data-clr>清除篩選</button>' : '<button type="button" class="btn small" data-wide>看全部日期</button>'}</div>`;
     const c2 = $('[data-clr]', box); if (c2) c2.onclick = () => { resetFilters(); paintList(); };
     const c3 = $('[data-wide]', box); if (c3) c3.onclick = () => { S.from = ''; S.to = ''; paintList(); };
