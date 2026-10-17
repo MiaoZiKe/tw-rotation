@@ -1675,7 +1675,7 @@ ${gs.length ? `<section><h5>熱門族群</h5><div class="gps">${gs.map((g) => `<
   <thead><tr><th class="c">選</th><th>分數</th><th class="c">類別</th><th>標題</th><th>理由</th><th class="c">建議形式</th><th>產出狀態</th></tr></thead><tbody id="artTpBody"></tbody></table></div></div>
 </div>
 <div class="card artadm" id="artAdmJobs">
-  <div class="hd"><h3>產出進度</h3><span class="muted">排隊中的請求由 Claude 每小時（台北 :05）處理；進度條照「安排主題 → 查資料 → 撰寫 → 插圖 → 驗收 → 發布中 → 已完成」走，文章推上線後自動變「已完成」</span></div>
+  <div class="hd"><h3>產出進度</h3><span class="muted">排隊中的請求由 Claude 在台北 08:05～23:05 每小時處理（晚上送出的隔天早上開工）；進度條照「安排主題 → 查資料 → 撰寫 → 插圖 → 驗收 → 發布中 → 已完成」走，文章推上線後自動變「已完成」</span></div>
   <div class="aflt" id="artJobFlt">
     <select id="artJfKind" aria-label="產出種類"><option value="">全部種類</option><option value="article">精選文章</option><option value="video">短影片</option></select>
     <select id="artJfSt" aria-label="狀態"><option value="">全部狀態</option>${Object.keys(JST).map((k) => `<option value="${k}">${JST[k]}</option>`).join('')}</select>
@@ -1948,7 +1948,7 @@ ${gs.length ? `<section><h5>熱門族群</h5><div class="gps">${gs.map((g) => `<
     else if (j.status === 'cancelled') { tone = 'cancelled'; key = 'cancelled'; lab = '已取消'; tail = when(j.updated || j.created); }
     else if (j.status === 'failed') { tone = 'failed'; key = sg || 'queued'; lab = '失敗'; tail = (sg ? `卡在${STG[sg][0]}・` : '') + at; }
     else if (j.status === 'working') { tone = 'working'; key = sg || 'plan'; lab = STG[key][0]; tail = at; }
-    else { tone = 'queued'; key = 'queued'; lab = '排隊中'; tail = '下一輪 :05 開工'; }
+    else { tone = 'queued'; key = 'queued'; lab = '排隊中'; tail = (() => { const h = new Date(Date.now() + 8 * 3600e3).getUTCHours(); return h >= 23 || h < 8 ? '明早 08:05 開工' : '下一輪 :05 開工'; })(); }
     const pct = j.status === 'cancelled' ? 0 : STG[key][1];
     const aria = `${lab}${tail ? '・' + tail : ''}（${pct}%）`;
     return `<div class="jprog" data-tone="${tone}" data-stage="${esc(key)}" data-pct="${pct}" title="${esc(aria)}">`
