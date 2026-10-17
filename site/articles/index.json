@@ -2,6 +2,33 @@
  "updated": "2026-10-17",
  "articles": [
   {
+   "id": "2026-10-17-news-sox",
+   "cat": "news",
+   "title": "費半連續下跌，是金融海嘯重演嗎？",
+   "date": "2026-10-17",
+   "topic": "c-news-mvcfjf3u",
+   "groups": [
+    {
+     "id": "foundry",
+     "name": "晶圓代工"
+    },
+    {
+     "id": "hpc_network_ic",
+     "name": "HPC 與網通 IC"
+    },
+    {
+     "id": "ip_asic",
+     "name": "客製 ASIC 矽智財"
+    },
+    {
+     "id": "ai_adv_packaging",
+     "name": "AI 先進封裝"
+    }
+   ],
+   "reading_min": 3,
+   "src": "api"
+  },
+  {
    "id": "2026-10-17-news-tesla",
    "cat": "news",
    "title": "特斯拉「會飛」的 Roadster：規格、時程與台股供應鏈",
