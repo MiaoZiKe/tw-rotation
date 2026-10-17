@@ -125,12 +125,26 @@ def arrow_svg(c, deg, s=1.0, op=1.0):
     pts = [(-34, -9), (6, -9), (6, -22), (36, 0), (6, 22), (6, 9), (-34, 9)]
     r = math.radians(-deg)
     T = [(c[0] + (x * math.cos(r) - y * math.sin(r)) * s, c[1] + (x * math.sin(r) + y * math.cos(r)) * s) for x, y in pts]
-    d = smooth_closed(jitter(T, 0.3, 5)) if False else "M " + " L ".join(P(p) for p in T) + " Z"
+    d = "M " + " L ".join(P(p) for p in T) + " Z"
     hl = [(-28, -4), (2, -4)]
     H = [(c[0] + (x * math.cos(r) - y * math.sin(r)) * s, c[1] + (x * math.sin(r) + y * math.cos(r)) * s) for x, y in hl]
     g = (f'<path d="{d}" fill="{ARROW}" stroke="{INK}" stroke-width="{f(5.2*min(1.0, s))}" stroke-linejoin="round"/>'
          + brush(H, 3.4 * s, 3.0 * s, ARROW_LT))
     return g if op >= 1 else f'<g opacity="{op:.2f}">{g}</g>'
+
+
+def sad_brows():
+    """委屈八字眉（原圖座標）：內側高、外側低。bibi_faces_c 的 worry 在這張臉上看起來像生氣眉，所以另畫。"""
+    out = ""
+    for e, side in ((C.EYE_L, -1), (C.EYE_R, 1)):
+        x, y = e[0], e[1] - 31
+        inner = (x - side * 11, y - 6)
+        outer = (x + side * 13, y + 4)
+        out += brush(bez(inner, (x - side * 3, y - 6), (x + side * 6, y - 2), outer, 10), 5.6, 4.6)
+    return out
+
+
+SAD = sad_brows()
 
 
 def gloom_svg(c, k):
@@ -582,15 +596,15 @@ def build(poses):
     # ---------------------------------------------------------------- sulk_curl
     c = Clip("sulk_curl", "委屈縮成一團後恢復（扁嘴含淚→縮成球、烏雲線→深吸氣蹦回來、甩毛、笑）", "虧損、壞消息、先委屈再打起精神", "主持")
     seq = [("待機", dict(), dict(eyes="dot", mouth="w"), 0, (0, 0)),
-           ("嗯…？（眼睛往下）", dict(h=0.99, lag=-0.02), dict(eyes="dot", mouth="wavy", look=(0, 3), brows="worry"), 0, (4, 4)),
-           ("扁嘴（委屈）", dict(h=0.97, w=1.015, lag=-0.04), dict(eyes="shine", mouth="wavy", look=(0, 3), brows="worry"), 1, (8, 8)),
-           ("含淚", dict(h=0.96, w=1.02, lag=-0.05), dict(eyes="shine", mouth="wavy", look=(0, 4), brows="worry", es=(1.08, 1.08)), 2, (12, 12)),
-           ("開始縮", dict(h=0.9, w=1.06, lag=-0.07), dict(eyes="line", mouth="wavy", brows="worry"), 3, (16, 16)),
-           ("縮成一團", dict(h=0.84, w=1.09, lag=-0.09), dict(eyes="line", mouth="wavy", brows="worry"), 4, (20, 20)),
-           ("縮著（微抖）", dict(h=0.83, w=1.095, lag=-0.09, rot=-1, cx=-2), dict(eyes="line", mouth="wavy", brows="worry"), 4, (21, 20)),
-           ("縮著（微抖）", dict(h=0.84, w=1.09, lag=-0.09, rot=1, cx=2), dict(eyes="line", mouth="wavy", brows="worry"), 4, (20, 21)),
-           ("縮著（吸鼻子）", dict(h=0.85, w=1.085, lag=-0.08), dict(eyes="line", mouth="tiny", brows="worry"), 4, (20, 20)),
-           ("偷偷睜眼", dict(h=0.85, w=1.085, lag=-0.08), dict(eyes="half", mouth="tiny", brows="worry"), 5, (18, 18)),
+           ("嗯…？（眼睛往下）", dict(h=0.99, lag=-0.02), dict(eyes="dot", mouth="wavy", look=(0, 3), extra=SAD), 0, (4, 4)),
+           ("扁嘴（委屈）", dict(h=0.97, w=1.015, lag=-0.04), dict(eyes="shine", mouth="wavy", look=(0, 3), extra=SAD), 1, (8, 8)),
+           ("含淚", dict(h=0.96, w=1.02, lag=-0.05), dict(eyes="shine", mouth="wavy", look=(0, 4), extra=SAD, es=(1.08, 1.08)), 2, (12, 12)),
+           ("開始縮", dict(h=0.9, w=1.06, lag=-0.07), dict(eyes="line", mouth="wavy", extra=SAD), 3, (16, 16)),
+           ("縮成一團", dict(h=0.84, w=1.09, lag=-0.09), dict(eyes="line", mouth="wavy", extra=SAD), 4, (20, 20)),
+           ("縮著（微抖）", dict(h=0.83, w=1.095, lag=-0.09, rot=-1, cx=-2), dict(eyes="line", mouth="wavy", extra=SAD), 4, (21, 20)),
+           ("縮著（微抖）", dict(h=0.84, w=1.09, lag=-0.09, rot=1, cx=2), dict(eyes="line", mouth="wavy", extra=SAD), 4, (20, 21)),
+           ("縮著（吸鼻子）", dict(h=0.85, w=1.085, lag=-0.08), dict(eyes="line", mouth="tiny", extra=SAD), 4, (20, 20)),
+           ("偷偷睜眼", dict(h=0.85, w=1.085, lag=-0.08), dict(eyes="half", mouth="tiny", extra=SAD), 5, (18, 18)),
            ("深吸一口氣（更縮）", dict(h=0.82, w=1.1, lag=-0.1), dict(eyes="blink", mouth="w"), 5, (18, 18)),
            ("蹦回來！（拉長）", dict(h=1.1, w=0.94, lag=-0.04, bottom=-16), dict(eyes="shine", mouth="open_l", brows="up"), 6, (-10, -10)),
            ("落地", dict(h=0.93, w=1.045, lag=0.03), dict(eyes="happy", mouth="open_m"), 6, (0, 0)),
@@ -723,9 +737,7 @@ def render_sh(poses, fr):
 
 
 def checker(w, h, s=16):
-    a = np.indices((h, w)).sum(0) // s % 2
     v = np.where(((np.indices((h, w))[0] // s) + (np.indices((h, w))[1] // s)) % 2, 205, 245).astype(np.uint8)
-    del a
     return Image.fromarray(np.dstack([v, v, v, np.full_like(v, 255)]), "RGBA")
 
 
@@ -775,6 +787,10 @@ def auto_check(imgs, contacts):
     return rep
 
 
+# 代表格指定（自動挑「跟第 1 格差最多」會挑到空中倒轉那格，總目錄上看不出是哪個表情）
+KEY_FRAME = {"happy_spin": 12}
+
+
 def quant(im):
     return im.quantize(colors=256, method=Image.FASTOCTREE, dither=Image.NONE)
 
@@ -807,7 +823,7 @@ def main():
             im.save(fd / f"frame_{j+1:02d}.png")
         d = LIB / clip.key
         d.mkdir(parents=True, exist_ok=True)
-        ki = key_index(imgs)
+        ki = KEY_FRAME[clip.key] - 1 if clip.key in KEY_FRAME else key_index(imgs)
         quant(imgs[ki]).save(d / "key.png", optimize=True)
         sheet = Image.new("RGBA", (256 * len(imgs), 256), (0, 0, 0, 0))
         for j, im in enumerate(imgs):

@@ -8,6 +8,8 @@ Andy 第 3 版（`docs/marketing/video_1010/v3_brief.md` 第 12 條）：「表�
 
 **造型規格以 `reference/parts_sheet_1011.webp`（Andy 10-11 官方部件總表）為準**，規格說明在 `reference/README.md`；總表逐件切出的透明部件（本體、耳、手掌、腳、五官、效果符號、道具、姿勢、動作參考）在 `parts/`（`parts/index.md`）。
 
+**2026-10-17 第 6 版主持表情**（Andy：「在對表情動作上需要在多點優化」）：`*_v2` 是 talk_*／face_nod／face_think／point_* 的改版（加眨眼、三段嘴型、耳朵次要動作、預備→主動作→回穩；舊組保留，舊影片可重建），類別「主持」是新增 6 組。產生：`python scripts/anim/bibi_host_v6.py --out <scratchpad>/bibi_v6`；時間表＋接觸表：[host_v6_timing.md](host_v6_timing.md)。
+
 總目錄：![總目錄](catalog.png)
 
 | 名稱 | 中文 | 類別 | 適合用途 | 格數 | 長度 | 預覽 |
@@ -79,3 +81,17 @@ Andy 第 3 版（`docs/marketing/video_1010/v3_brief.md` 第 12 條）：「表�
 | `rocket` | 小火箭往上（持續進步） | 互動 | 小火箭往上（持續進步） | 12 | 0.88 秒 | [代表格](rocket/key.png)・[sprite](rocket/sheet.png)・[動畫](rocket/anim.webp) |
 | `star_save` | 星星收藏進盒子（自選清單） | 互動 | 星星收藏進盒子（自選清單） | 12 | 1.00 秒 | [代表格](star_save/key.png)・[sprite](star_save/sheet.png)・[動畫](star_save/anim.webp) |
 | `trophy` | 獎盃＋1～5 名台階（ETF 前五名） | 互動 | 獎盃＋1～5 名台階（ETF 前五名） | 12 | 1.00 秒 | [代表格](trophy/key.png)・[sprite](trophy/sheet.png)・[動畫](trophy/anim.webp) |
+| `talk_happy_v2` | 說話・開心講 v2（三段嘴型、重音瞇眼抬頭、眨眼、耳朵跟著甩） | 表情 | 旁白講解（輕鬆），取代 talk_happy | 20 | 1.60 秒 | [代表格](talk_happy_v2/key.png)・[sprite](talk_happy_v2/sheet.png)・[動畫](talk_happy_v2/anim.webp) |
+| `talk_explain_v2` | 說話・認真講 v2（挑眉、往前一傾強調、眼神左右、眨眼） | 表情 | 旁白講解（認真說明功能），取代 talk_explain | 20 | 1.76 秒 | [代表格](talk_explain_v2/key.png)・[sprite](talk_explain_v2/sheet.png)・[動畫](talk_explain_v2/anim.webp) |
+| `talk_excited_v2` | 說話・興奮講 v2（亮晶晶眼、兩次小蹦、落地擠壓、眨眼） | 表情 | 旁白講解（亮點、新功能），取代 talk_excited | 18 | 1.48 秒 | [代表格](talk_excited_v2/key.png)・[sprite](talk_excited_v2/sheet.png)・[動畫](talk_excited_v2/anim.webp) |
+| `face_nod_v2` | 表情・點頭嗯嗯 v2（先抬頭聽、點兩下耳朵甩、嗯！睜眼、眨眼） | 表情 | 同意、肯定，取代 face_nod | 16 | 1.39 秒 | [代表格](face_nod_v2/key.png)・[sprite](face_nod_v2/sheet.png)・[動畫](face_nod_v2/anim.webp) |
+| `face_think_v2` | 表情・思考 v2（歪頭往上看、單耳抽動、點點點、眨眼、蹦起想到了） | 表情 | 提出疑問、思考，取代 face_think | 20 | 1.91 秒 | [代表格](face_think_v2/key.png)・[sprite](face_think_v2/sheet.png)・[動畫](face_think_v2/anim.webp) |
+| `point_r_v2` | 指向・右 v2（往後縮預備→整隻往右傾、鼻子帶路、箭頭彈出、眨眼） | 動作 | 指向畫面右側的重點，取代 point_r | 16 | 1.37 秒 | [代表格](point_r_v2/key.png)・[sprite](point_r_v2/sheet.png)・[動畫](point_r_v2/anim.webp) |
+| `point_ur_v2` | 指向・右上 v2（縮→往右上伸長、箭頭彈出、眨眼） | 動作 | 指向右上方的標題／數字，取代 point_ur | 16 | 1.37 秒 | [代表格](point_ur_v2/key.png)・[sprite](point_ur_v2/sheet.png)・[動畫](point_ur_v2/anim.webp) |
+| `point_dr_v2` | 指向・右下 v2（縮→往右下探頭、箭頭彈出、眨眼） | 動作 | 指向右下方的按鈕／表格，取代 point_dr | 16 | 1.37 秒 | [代表格](point_dr_v2/key.png)・[sprite](point_dr_v2/sheet.png)・[動畫](point_dr_v2/anim.webp) |
+| `happy_spin` | 開心蹦跳轉一圈（天竺鼠 popcorn：蹲→跳起空中轉一圈→落地） | 主持 | 好消息、上線、開心結尾 | 18 | 1.38 秒 | [代表格](happy_spin/key.png)・[sprite](happy_spin/sheet.png)・[動畫](happy_spin/anim.webp) |
+| `shy_rub` | 害羞蹭蹭（低頭偷看→臉頰左右蹭、垂耳、小愛心） | 主持 | 被稱讚、不好意思、撒嬌 | 19 | 1.77 秒 | [代表格](shy_rub/key.png)・[sprite](shy_rub/sheet.png)・[動畫](shy_rub/anim.webp) |
+| `surprise_jump` | 驚訝跳起（咦？縮→跳起豎耳炸毛、！、落地擠壓→眨眼回神） | 主持 | 驚人數字、意外消息 | 16 | 1.30 秒 | [代表格](surprise_jump/key.png)・[sprite](surprise_jump/sheet.png)・[動畫](surprise_jump/anim.webp) |
+| `proud_shine` | 得意抬頭閃光（吸氣挺胸→閉眼抬下巴、頭頂叮一聲閃光、偷睜一眼） | 主持 | 自豪的功能介紹、帥氣亮相 | 18 | 1.66 秒 | [代表格](proud_shine/key.png)・[sprite](proud_shine/sheet.png)・[動畫](proud_shine/anim.webp) |
+| `sulk_curl` | 委屈縮成一團後恢復（扁嘴含淚→縮成球、烏雲線→深吸氣蹦回來、甩毛、笑） | 主持 | 虧損、壞消息、先委屈再打起精神 | 22 | 2.10 秒 | [代表格](sulk_curl/key.png)・[sprite](sulk_curl/sheet.png)・[動畫](sulk_curl/anim.webp) |
+| `invite_nod` | 跟觀眾點頭邀請（湊近鏡頭、點頭兩下、眨單眼＋愛心、小蹦一下） | 主持 | 「一起玩」「一起來看」邀請段落、片尾呼籲 | 20 | 1.76 秒 | [代表格](invite_nod/key.png)・[sprite](invite_nod/sheet.png)・[動畫](invite_nod/anim.webp) |
