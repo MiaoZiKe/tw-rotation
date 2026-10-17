@@ -11,7 +11,7 @@ Andy 2026-10-17：「自動產精選文章，之後的圖需要再更細緻，�
   · 色彩：只截 svg.ilsvg（藏掉引線與浮水印），去掉卡片底色後逐像素轉 OKLCH；
     C ≥ 0.03 算有彩度，色相 30° 一組。hue_* 與 warm／cool 是「占有彩度面積」的比例，neutral_pct 是「占整張插圖面積」的比例。
   · 結構：讀 TwArtIllus.spec2()（白名單＋夾值之後真正拿去畫的積木）：mat 數、零件數、同 mat 當不同零件、相鄰色差、不可相鄰清單、空白方塊。
-    「同 mat 當不同零件」只算本體（box／cyl）；錫球、凸塊、銅柱、管線本來就是同一種材料（錫就是錫），不算。
+    「同 mat 當不同零件」只算本體（box／cyl／hcyl／wheel／shell）；錫球、凸塊、銅柱、管線本來就是同一種材料（錫就是錫），不算。
   · 尺寸：390 寬時每顆球（balls）的螢幕半徑、每一層（layers）的螢幕高度；構圖填滿＝所有零件實際外框占 viewBox 的比例。
   · 重疊：說明兩兩、編號兩兩、說明壓到圖、引線互相交叉、引線穿過別人的說明或編號 —— 1440 與 390 都量。
     引線經過別的零件上方（指向內層零件時一定會經過外層）另外列 leader_over_parts，只報數、不擋。
@@ -214,7 +214,7 @@ def structure(pg, block: dict, theme: str) -> dict:
     sh = [s for s in sp["shapes"] if s["type"] != "guide" and s.get("bb")]
     parts = sorted({s["part"] for s in sh})
     mats = sorted({s["mat"] for s in sh})
-    body = [s for s in sh if s["type"] in ("box", "cyl")]
+    body = [s for s in sh if s["type"] in ("box", "cyl", "hcyl", "wheel", "shell")]   # 10-17 晚：新積木（橫躺圓柱、車輪、外殼）也是本體
     same = []
     by_mat: dict = {}
     for s in body:
