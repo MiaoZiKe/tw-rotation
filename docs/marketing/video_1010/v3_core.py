@@ -99,7 +99,7 @@ def pro_idle(name):
 
 # ───────────────────────── 版面 ─────────────────────────
 import os as _os
-V4 = _os.environ.get("VIDEO_V") == "4"
+V4 = _os.environ.get("VIDEO_V") in ("4", "6")   # 第 6 版沿用第 4 版版面與守門
 
 
 class Lay:
@@ -249,6 +249,44 @@ def click_target(clip, t_src, x, y):
     return (x - 45, y - 45, x + 45, y + 45), "", "座標估值±45px（錄影端尚未提供該素材）"
 
 
+@lru_cache(maxsize=1)
+def _precise_all():
+    """第 6 版（Andy 10-17「點擊特效需要在精準點」）：clicks.json（錄影當下量目標元素外框中心）＋ clicks_legacy.json（舊錄影由 click_targets 外框重算）。"""
+    out = {}
+    for nm in ("clicks_legacy.json", "clicks.json"):   # 新錄影蓋過舊的
+        p = RAW3 / nm
+        if p.exists():
+            try:
+                out.update(json.loads(p.read_text()))
+            except Exception:
+                pass
+    return out
+
+
+PRECISE_SRC: dict = {}
+
+
+def precise_center(clip, t_src, x, y):
+    """(x, y, 來源)：點擊特效中心。小元素（按鈕、分頁、卡片、方塊）用點下當時量到的外框中心；
+    外框是整張圖（svg／canvas，>360px）時，點擊座標本身就是由子元素幾何算出的節點中心，沿用點擊座標。"""
+    d = _precise_all()
+    for key in _clip_keys(clip):
+        best = None
+        for r in d.get(key, []):
+            dt = abs(float(r["t"]) - t_src)
+            if dt < 0.5 and (best is None or dt < best[0]):
+                best = (dt, r)
+        if best:
+            r = best[1]
+            rc = r.get("rect")
+            if rc and (rc[2] > 360 or rc[3] > 360) and r.get("click_point"):
+                return float(r["click_point"][0]), float(r["click_point"][1]), "外框是整張圖，用點擊座標（子元素中心）"
+            if r.get("rect") is None:
+                return x, y, r.get("source", "")
+            return float(r["x"]), float(r["y"]), r.get("source", "clicks.json")
+    return x, y, "無量測（沿用點擊座標）"
+
+
 def click_info(clip, t_src, x, y):
     """點擊目標資訊：hit 矩形（有方塊就用方塊，否則元素外框）、中心（錄影端量到的點擊中心，沒有就用事件座標）、標籤、來源、hit_expected。"""
     allj = load_all()
@@ -264,6 +302,9 @@ def click_info(clip, t_src, x, y):
             it = best[1]
             rect = _xywh(it["block_video_rect"]) if it.get("block_video_rect") else _xywh(it["video_rect"])
             ctr = tuple(it["center"]) if it.get("center") else (x, y)
+            px, py, psrc = precise_center(clip, t_src, ctr[0], ctr[1])
+            ctr = (px, py)
+            PRECISE_SRC[(clip, round(t_src, 2))] = psrc
             h = it.get("hit_expected", None)
             tag = "hit_expected=True" if h is True else ("hit_expected=False" if h is False else "舊錄影（DOM rect 驗證）")
             return {"rect": rect, "center": ctr, "label": it.get("label", "") + (("・" + it["block"]) if it.get("block") else ""), "src": tag, "hit": h}
@@ -1021,6 +1062,8 @@ def events_for(clip):
         for it in (allj.get(key) or {}).get("targets", []):
             if it.get("kind", "click") == "click" and it.get("center"):
                 syn.append({"t": float(it["t"]), "kind": "tap", "x": int(round(it["center"][0] * k)), "y": int(round(it["center"][1] * k))})
+            elif it.get("kind") == "hover" and it.get("center"):     # 第 6 版：滑過也記（游標停在零件上）
+                syn.append({"t": float(it["t"]), "kind": "hover", "x": int(round(it["center"][0] * k)), "y": int(round(it["center"][1] * k))})
         if syn or ev:
             return ev + sorted(syn, key=lambda e: e["t"]) if syn else ev
     return []
@@ -1044,6 +1087,80 @@ def ripple(cv, xy, age, small=False):
     c = r + 6
     ImageDraw.Draw(lay).ellipse([c - r, c - r, c + r, c + r], outline=col + (a,), width=4 if small else 5, fill=col + (a // 6,))
     cv.paste(lay, (int(xy[0] - c), int(xy[1] - c)), lay)
+
+
+def ripple_b(cv, xy, age):
+    """第 6 版漣漪（分鏡 v6 2-2 第 3 點）：直徑 28→64px、0.45 秒擴散淡出；中心 6px 實心點停 0.2 秒；從點擊前 1 格開始（age 已含 +1 格）。"""
+    if age < 0 or age > 0.45:
+        return
+    u = ease_out(age / 0.45)
+    r = 14 + 18 * u
+    a = int(235 * (1 - u))
+    col = SKY if THEME["name"] == "cute" else (66, 140, 255)
+    pad = 8
+    lay = Image.new("RGBA", (int(r * 2 + pad * 2), int(r * 2 + pad * 2)), (0, 0, 0, 0))
+    c = r + pad
+    d = ImageDraw.Draw(lay)
+    d.ellipse([c - r, c - r, c + r, c + r], outline=col + (a,), width=4, fill=col + (a // 5,))
+    if age <= 0.2:
+        d.ellipse([c - 3, c - 3, c + 3, c + 3], fill=(37, 99, 235, 255))
+    cv.paste(lay, (int(round(xy[0] - c)), int(round(xy[1] - c))), lay)
+
+
+_CURSOR_CACHE: dict = {}
+
+
+def _cursor_img(fmt):
+    """網頁＝白底黑邊箭頭（熱點＝箭頭尖端，在圖的 (2,2)）；手機＝半透明指尖圓點（熱點＝圓心）。"""
+    if fmt in _CURSOR_CACHE:
+        return _CURSOR_CACHE[fmt]
+    if fmt == "web":
+        S = 4
+        pts = [(0, 0), (0, 25), (6.5, 19.5), (11, 29), (15, 27), (10.5, 18), (19, 18)]
+        im = Image.new("RGBA", (26 * S, 34 * S), (0, 0, 0, 0))
+        d = ImageDraw.Draw(im)
+        P = [((x + 2) * S, (y + 2) * S) for x, y in pts]
+        d.polygon(P, fill=(255, 255, 255, 255), outline=(20, 24, 33, 255))
+        d.line(P + [P[0]], fill=(20, 24, 33, 255), width=int(1.6 * S), joint="curve")
+        im = im.resize((26, 34), Image.LANCZOS)
+        _CURSOR_CACHE[fmt] = (im, (2, 2))
+    else:
+        R_ = 22
+        im = Image.new("RGBA", (R_ * 2 + 4, R_ * 2 + 4), (0, 0, 0, 0))
+        ImageDraw.Draw(im).ellipse([2, 2, 2 + 2 * R_, 2 + 2 * R_], fill=(40, 48, 64, 70), outline=(255, 255, 255, 220), width=3)
+        _CURSOR_CACHE[fmt] = (im, (R_ + 2, R_ + 2))
+    return _CURSOR_CACHE[fmt]
+
+
+def tap_cursor(cv, xy, age, fmt, hover=False, until=1e9):
+    """手指游標（分鏡 v6 第 1 節 B）：點擊前 0.35 秒從右下 60px 滑進來、熱點對準元素中心；點下那 0.12 秒縮一下；
+    點後停 0.45 秒（滑過＝停到下一個動作，最多 2.0 秒）淡出。熱點座標＝漣漪圓心（同一個 xy）。"""
+    stay = min(2.0, until - 0.1) if hover else 0.45
+    if age < -0.35 or age > stay + 0.15:
+        return
+    im, hot = _cursor_img(fmt)
+    if age < 0:
+        u = ease_io((age + 0.35) / 0.3)
+        dx = dy = 60 * (1 - u)
+        al = clamp((age + 0.35) / 0.12, 0, 1)
+    else:
+        dx = dy = 0
+        al = 1 - clamp((age - stay) / 0.15, 0, 1)
+    sc = 1.0
+    if not hover and 0 <= age < 0.12:
+        sc = 0.88
+    img = im if sc == 1.0 else im.resize((max(1, int(im.width * sc)), max(1, int(im.height * sc))), Image.LANCZOS)
+    hx, hy = hot[0] * sc, hot[1] * sc
+    if al < 1:
+        a_ = np.array(img)
+        a_[..., 3] = (a_[..., 3] * al).astype(np.uint8)
+        img = Image.fromarray(a_)
+    cv.paste(img, (int(round(xy[0] + dx - hx)), int(round(xy[1] + dy - hy))), img)
+    if hover and age >= 0:
+        ring_ = Image.new("RGBA", (56, 56), (0, 0, 0, 0))
+        col = SKY if THEME["name"] == "cute" else (66, 140, 255)
+        ImageDraw.Draw(ring_).ellipse([4, 4, 52, 52], outline=col + (int(150 * al),), width=3)
+        cv.paste(ring_, (int(round(xy[0] - 28)), int(round(xy[1] - 28))), ring_)
 
 
 # ───────────────────────── 比比操作員 ─────────────────────────
@@ -1171,8 +1288,12 @@ class Op:
     BACK = 0.3       # 彈回
     FLYC = 0.2       # 連續點擊：目標之間直接跳過去
 
-    def __init__(self, rec, idle="talk_happy", extra=(), events=None, use_events=True, magic=True, soft_hover=False, tap_scale=0.8, chain=None):
+    def __init__(self, rec, idle="talk_happy", extra=(), events=None, use_events=True, magic=True, soft_hover=False, tap_scale=0.8, chain=None, mode_b=False, no_host=False):
         self.rec, self.magic = rec, magic
+        # 第 6 版（分鏡 v6 第 1、2 節）：mode_b＝點擊一律「游標＋漣漪」（比比留在待機位，不跳去踩）；no_host＝這一鏡不畫主持人比比（跟比比玩：網站上的比比是主角）
+        self.mode_b, self.no_host = mode_b, no_host
+        if mode_b:
+            soft_hover = True
         self.chain, self.prev_op = chain, None
         self.idle = [(0, idle)] if isinstance(idle, str) else list(idle)
         self.extra = list(extra)
@@ -1190,9 +1311,9 @@ class Op:
             if lt is None:
                 continue
             if e["kind"] in ("tap", "hover"):
-                if lt < (self.FLYC if chain in ('mid', 'end') else self.FLY) + 0.02:
+                if lt < ((0.05 if mode_b else self.FLYC) if chain in ('mid', 'end') or mode_b else self.FLY) + 0.02:
                     continue
-                near = (not chain) and last_xy and abs(e["x"] - last_xy[0]) < 70 and abs(e["y"] - last_xy[1]) < 70 and lt - last_t < 3.5
+                near = (not chain) and (not mode_b) and last_xy and abs(e["x"] - last_xy[0]) < 70 and abs(e["y"] - last_xy[1]) < 70 and lt - last_t < 3.5
                 if near:
                     continue
                 dense = (lt - last_t) < 0.9
@@ -1496,7 +1617,9 @@ class Op:
 
     def _v4_draw(self, cv, t, shot, L, home, hs, iname):
         rec = self.rec
-        seq = self._seq()
+        if self.no_host:
+            return
+        seq = [] if self.mode_b else self._seq()
         # 連點（下一次點擊在這次跳回之前）：比比站著不跳回，直到最後一次點完（例：手機 e03 同一個「環節 1」0.93、1.07 秒連點兩次）
         skip = set()
         for i, tp in enumerate(seq):
@@ -1560,7 +1683,9 @@ class Op:
 
     def bubble_mode(self, t):
         """'tail'＝比比在 home（泡泡帶尾巴）；'hide'＝比比飛行中（泡泡淡出）；'plain'＝連續點擊期間比比在框內（只留字卡，不帶尾巴）。"""
-        taps = self._seq()
+        if self.no_host:
+            return "hide"
+        taps = [] if self.mode_b else self._seq()
         if V4:
             for d in self.drags:
                 if d["t0"] - 0.1 <= t <= d["t1"] + 0.1:
@@ -1618,9 +1743,16 @@ class Op:
         ts = int(max(hs, 190) * self.tap_scale) if L.fmt == "web" else 190
         # 漣漪（點下那一幀起）＋ 點擊驗證（漣漪中心＝錄影端量到的點擊中心；落點須在目標 rect 內、離邊緣 ≥6px）
         for tp in self.taps:
+            if rec.win and self.mode_b:
+                cxy = rec.map(tp["cx"], tp["cy"])
+                nxt = min([q["t"] for q in self.taps if q["t"] > tp["t"]] or [1e9])
+                tap_cursor(cv, cxy, t - tp["t"], L.fmt, tp["hover"], nxt - tp["t"])
             if rec.win and not tp["hover"]:
                 cxy = rec.map(tp["cx"], tp["cy"])
-                ripple(cv, cxy, t - tp["t"], tp["dense"])
+                if self.mode_b:
+                    ripple_b(cv, cxy, t - tp["t"] + 1.0 / FPS)
+                else:
+                    ripple(cv, cxy, t - tp["t"], tp["dense"])
                 if abs(t - tp["t"]) < 0.5 / FPS and not tp.get("_chk"):
                     tp["_chk"] = True
                     inf = click_info(rec.clip, tp["src_t"], tp["x"], tp["y"])
@@ -2148,6 +2280,8 @@ FAB_EXEMPT = {
     "V18_desktop": "目視確認客服鈕只壓到頁尾「顯示詳細規範」鈕，非圖表（fab_hits.json，10-12）",
     "V23_desktop": "目視確認客服鈕落在空白底色（fab_hits.json，10-12）",
     "V04_mobile_v3c": "目視確認客服鈕落在兩張卡片之間的空白（fab_hits.json，10-12）",
+    "V29_desktop_v6": "跟比比玩：客服鈕與小圈就是主角（Andy 10-17：新增可以跟比比互動玩遊戲）",
+    "V29_mobile_v6": "跟比比玩：客服鈕與小圈就是主角（Andy 10-17：新增可以跟比比互動玩遊戲）",
 }
 
 

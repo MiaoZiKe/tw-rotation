@@ -51,8 +51,11 @@ FAKE_API = "https://acct.video.test"
 def plus_tier() -> dict:
     src = (SITE / "plan_presets.js").read_text(encoding="utf-8")
     i = src.index("window.TW_PLAN_PRESETS")
-    d = json.loads(src[src.index("=", i) + 1:].strip().rstrip(";"))
-    return [t for t in d["tiers"] if t.get("key") == "plus"][0]
+    import re as _re
+    body = _re.sub(r"/\*.*?\*/", "", src[src.index("=", i) + 1:], flags=_re.S)   # 10-16 起檔內有 /* */ 註解
+    d = json.loads(body.strip().rstrip(";"))
+    key = os.environ.get("TW_CAP_TIER", "plus")   # 第 6 版精選文章段用 pro（Pro 不顯示全文額度條，影片不提次數）
+    return [t for t in d["tiers"] if t.get("key") == key][0]
 
 
 def fake_api(ctx):
@@ -69,7 +72,7 @@ def fake_api(ctx):
         if path == "/v1/me":
             out = {"user": me}
         elif path == "/v1/perm/me":
-            out = {"who": "member", "plan": "plus", "planName": tier.get("name", "Plus"), "feats": tier.get("feats", {}),
+            out = {"who": "member", "plan": tier.get("key", "plus"), "planName": tier.get("name", "Plus"), "feats": tier.get("feats", {}),
                    "lims": tier.get("lims", {}), "dq": tier.get("dq")}
         elif path == "/v1/plans/public":
             out = {"plans": []}
@@ -420,6 +423,10 @@ class Act:
              "block_video_rect": self._vrect(info.get("block_rect")),
              "css_point": [round(x, 1), round(y, 1)], "center": [round(x * self.dsf, 1), round(y * self.dsf, 1)],
              "scrollY": info.get("scrollY"), "expect": expect, "hit_expected": self.hit_ok(expect, x, y)}
+        # 第 6 版（Andy 10-17「點擊特效需要在精準點」）：點下那一刻量元素外框（treemap 取方塊外框），中心換成影片像素 → clicks.json，成片特效一律讀這個
+        rr = info.get("block_rect") or rect
+        if rr:
+            e["rect_center"] = [round((rr[0] + rr[2] / 2) * self.dsf, 1), round((rr[1] + rr[3] / 2) * self.dsf, 1)]
         self.targets.append(e)
         what = info.get("block") or info.get("text") or info.get("selector")
         warn = "｜⚠ 這一點最上層不是預期的元素（被浮層／頂欄蓋住？）" if e["hit_expected"] is False else ""
@@ -2832,13 +2839,116 @@ def i05(pg, a, start, base):
 
 
 
+# ======================================================================== 第 6 版素材（--set v6，Andy 10-17：新增精選文章、跟比比玩）
+# 精選文章：本機讀不到會員 Worker 的全文（CPO／HBM 兩篇 src:'api'，本機畫面是「會員伺服器暫時連不到」）→ 點進 repo 內有全文的 CoWoS 篇；
+#   文內影片區塊只在 CPO／HBM（Worker），本機看不到，不偽造。錄影時以 Pro 範本（TW_CAP_TIER=pro）→ 不顯示全文額度條（影片不提次數）；
+#   側欄「文中提到的股票」（個股代號）只在錄影瀏覽器裡藏起來。
+ART_HIDE_JS = r"""
+(() => { const css = 'html body .arttoc section:has(.sc){display:none!important} html body #artQuota,html body .artqt{display:none!important}';
+  const go = () => { const st = document.createElement('style'); st.id = '__vart'; st.textContent = css; document.head.appendChild(st); };
+  document.readyState === 'loading' ? document.addEventListener('DOMContentLoaded', go) : go(); })();
+"""
+ART_ID = "2026-10-14-know-cowos"
+
+
+@shot3("V28", "md", "精選文章：列表 → 切「比比知識」→ 點 CoWoS 篇 → 慢慢往下捲到剖面插圖")
+def v28(pg, a, start, base):
+    goto3(pg, a, base, "#articles", 3500)
+    start()
+    frame(a, "#artCard", 1800, label="精選文章列表")
+    a.fast_click('#artCats button[data-cat="know"]', "比比知識分頁", gap=300)
+    a.wait(1600)
+    a.focus_sel("比比知識文章卡片", "#artList", a.t - 1.2, a.t)
+    a.attach_content("#artList", a.t - 1.2, a.t, "比比知識文章卡片")
+    tt = f'.artc[data-id="{ART_ID}"] .tt'
+    a.fast_click(tt if pg.locator(tt).count() else f'.artc[data-id="{ART_ID}"]', "CoWoS 文章卡片標題", gap=300)
+    a.until("() => !!document.querySelector('.artillus svg, .artillus img, .artillus canvas')", 6000)
+    a.wait(1800)
+    a.focus_sel("文章標題與摘要", ".artpost", a.t - 1.5, a.t)
+    pad = pg.evaluate(TOPPAD_JS)
+    y = pg.evaluate("() => { const e = document.querySelector('.artillus'); return e.getBoundingClientRect().top + scrollY; }")
+    h = pg.evaluate("() => document.querySelector('.artillus').getBoundingClientRect().height")
+    vh = _vh(pg)
+    to = y - pad - max(8, (vh - pad - h) / 2) if h < vh - pad else y - pad - 8
+    a.scroll(to_y=to, ms=3200)
+    t0 = a.t
+    a.wait(2600)
+    a.focus_sel("CoWoS 剖面插圖", ".artillus", t0, a.t)
+    a.note(f"插圖完整入框 {t0:.1f}–{a.t:.1f}s")
+    if not a.mob:   # 桌機：滑過右側說明列，那一層零件亮起（分鏡 n04）
+        for part, name in (("hbm", "HBM 高頻寬記憶體"), ("gpu", "GPU 運算晶片")):
+            sel = f'.artillus .ill li[data-part="{part}"]'
+            if not pg.locator(sel).count():
+                a.note(f"找不到 {sel}")
+                continue
+            if a.hover(sel, 700):
+                a.record_target(a.x, a.y, "hover", name, expect=sel)
+                t1 = a.t
+                a.wait(2000)
+                a.focus_sel(f"插圖零件亮起：{name}", ".artillus", t1, a.t)
+                a.note(f"滑過 {name} {t1:.1f}–{a.t:.1f}s（.ilw.hov：{pg.evaluate('() => !!document.querySelector(\'.artillus .ilw.hov\')')}）")
+
+
+BIBI_IDLE_JS = "() => { const s = window.Bibi && Bibi.state(); return !!s && !s.run && s.mode === 'idle' && !s.loading; }"
+BIBI_ACTS = [("ball", "玩球"), ("grass", "餵牧草"), ("pet", "摸摸頭"), ("feather", "羽毛棒"), ("bubble", "吹泡泡")]
+
+
+@shot3("V29", "md", "跟比比玩：右下客服鈕開小圈 → 玩球、餵牧草、摸摸頭、羽毛棒、吹泡泡（每段錄到動作結束）")
+def v29(pg, a, start, base):
+    goto3(pg, a, base, "#overview", 3500)
+    pg.evaluate("() => window.Bibi && Bibi.test({fidget: false})")
+    start()
+    a.wait(1000)
+    for k, (aid, name) in enumerate(BIBI_ACTS):
+        if a.mob:
+            a.click("#supFab", 600, 300, label="客服鈕（比比）")
+        else:
+            if k:   # 先離開比比，再移回去才會觸發 pointerenter
+                fb = pg.locator("#supFab").bounding_box()
+                a.move(fb["x"] - 260, fb["y"] - 40, 300)
+            a.hover("#supFab", 600)
+            a.note("滑到客服鈕（比比）")
+        if not a.until("() => !!document.querySelector('#bibiRing.on')", 3000):
+            a.note(f"小圈沒打開（{name}）")
+            continue
+        a.wait(700)
+        t0 = a.t
+        a.focus_sel("比比小圈", "#bibiRing .bzone", t0 - 0.5, t0)
+        a.click(f'#bibiRing .bopt[data-act="{aid}"]', 500, 350, label=name)
+        a.until("() => { const s = window.Bibi && Bibi.state(); return !!s && (s.run || s.mode !== 'idle'); }", 1500)
+        ok = a.until(BIBI_IDLE_JS, 9000)
+        a.note(f"{name} 動作{'結束' if ok else '逾時 9 秒'} {t0:.1f}–{a.t:.1f}s")
+        a.wait(700)
+
+
+def write_clicks(out: Path, clip: str, targets: list, dsf: float):
+    """clicks.json（第 6 版）：{素材: [{t, selector, label, x, y, rect}]}，x／y＝點下那一刻目標元素（或熱力圖方塊）外框中心，影片像素。"""
+    import fcntl
+    f = out / "clicks.json"
+    lk = open(out / ".clicks.lock", "w")
+    fcntl.flock(lk, fcntl.LOCK_EX)   # 平行錄影的多支程式共用一份 clicks.json
+    d = json.loads(f.read_text(encoding="utf-8")) if f.exists() else {}
+    rows = []
+    for tg in targets:
+        if tg.get("kind") not in ("click", "hover") or not tg.get("rect_center"):
+            continue
+        rows.append({"t": tg["t"], "kind": tg.get("kind"), "selector": tg.get("expect") or tg.get("selector"), "label": tg.get("label"),
+                     "x": tg["rect_center"][0], "y": tg["rect_center"][1],
+                     "rect": tg.get("block_video_rect") or tg.get("video_rect"), "click_point": tg.get("center"),
+                     "hit_expected": tg.get("hit_expected"), "source": "錄影當下 getBoundingClientRect"})
+    d[clip] = rows
+    f.write_text(json.dumps(d, ensure_ascii=False, indent=1), encoding="utf-8")
+    fcntl.flock(lk, fcntl.LOCK_UN)
+    lk.close()
+
+
 # ------------------------------------------------------------------ 主程式
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--shots", default="")
     ap.add_argument("--dev", default="md")
     ap.add_argument("--out", default="")
-    ap.add_argument("--set", default="v2", choices=["v2", "v3", "v3b", "v3c", "v3d", "v3e", "v3f", "v3g", "v3h", "v3i", "v3j"], help="v3＝第 3 版素材（桌機 1600×900@2、不藏 B 類、完整入框）")
+    ap.add_argument("--set", default="v2", choices=["v2", "v3", "v3b", "v3c", "v3d", "v3e", "v3f", "v3g", "v3h", "v3i", "v3j", "v6"], help="v3＝第 3 版素材（桌機 1600×900@2、不藏 B 類、完整入框）")
     ap.add_argument("--port", type=int, default=PORT)
     ap.add_argument("--nofab", action="store_true", help="錄影時藏起右下角客服鈕與比比（.supfab、.bibiring 等），檔名加 _nofab；V25／V26 例外不藏")
     ap.add_argument("--stable-noframes", action="store_true", help="點擊前的版面穩定等待不推進影片時間（重錄 10-11 20:19 以前錄的素材時用，時間軸才會跟原檔一致）")
@@ -2850,7 +2960,9 @@ def main() -> int:
     _import_shots()
     global FPS
     FPS = args.fps or (60 if args.set == "v3c" else 30)
-    v3 = args.set.startswith("v3")
+    v3 = args.set.startswith("v3") or args.set == "v6"
+    if args.set == "v6" and not args.shots.strip():
+        args.shots = "V28,V29"
     NOFAB_ACTIVE["on"] = bool(args.nofab)
     reg = SHOTS3 if v3 else SHOTS
     devs_cfg = DEVS3 if v3 else DEVS
@@ -2902,6 +3014,8 @@ def main() -> int:
                         ctx.add_init_script(HIDE_B_JS)
                     else:
                         ctx.add_init_script(HIDE_TIER_JS)
+                    if sid == "V28":
+                        ctx.add_init_script(ART_HIDE_JS)
                     if not v3:   # v3：剪輯在後製畫比比的游標與漣漪 → 錄影不畫游標、不畫漣漪（座標照記）
                         ctx.add_init_script(CURSOR_JS % ("true" if dev == "m" else "false"))
                     if args.nofab and sid not in ("V26", "V26w"):   # 必須在 new_page／goto 之前：hash 路由不重載，晚加不會執行
@@ -2919,7 +3033,7 @@ def main() -> int:
                     act.dsf = cfg["device_scale_factor"]
                     act.stable_noframes = args.stable_noframes
                     act.log_moves = v3   # v3 沒有錄進游標 → 游標路徑寫進 shots.md 給後製畫比比
-                    name = f"{sid}_{'mobile' if dev == 'm' else 'desktop'}" + ("_v3b" if args.set == "v3b" else "_v3c" if args.set == "v3c" else "_v3d" if args.set == "v3d" else "_" + args.set if args.set in ("v3e", "v3f", "v3g", "v3h", "v3i", "v3j") else "") + (f"_dsf{args.dsf:g}" if args.dsf else "") + ("_nofab" if args.nofab else "")
+                    name = f"{sid}_{'mobile' if dev == 'm' else 'desktop'}" + ("_v3b" if args.set == "v3b" else "_v3c" if args.set == "v3c" else "_v3d" if args.set == "v3d" else "_" + args.set if args.set in ("v3e", "v3f", "v3g", "v3h", "v3i", "v3j", "v6") else "") + (f"_dsf{args.dsf:g}" if args.dsf else "") + ("_nofab" if args.nofab else "")
                     try:
                         # 每鏡自己決定何時開錄：fn(pg, act, rec_start) —— 先做準備（換頁、等圖畫完）再開錄
                         state = {}
@@ -2942,6 +3056,7 @@ def main() -> int:
                         r.update(size=f"{W}x{H}", targets=act.targets, focus=act.focus, steps=act.log, errs=errs[:5], desc=spec["desc"],
                                  data_date=meta.get("data_date"))
                         log[name] = r
+                        write_clicks(out, name, act.targets, cfg["device_scale_factor"])
                         print(name, json.dumps({k: r[k] for k in r if k not in ("steps",)}, ensure_ascii=False))
                     except Exception as exc:  # noqa: BLE001
                         log[name] = {"ok": False, "why": str(exc)[:300], "steps": act.log}

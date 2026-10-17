@@ -25,6 +25,12 @@ from render_1010 import FPS  # noqa: E402
 
 def shots_for(fmt):
     import os
+    if os.environ.get("VIDEO_V") == "6":
+        if fmt == "web":
+            import v6_web
+            return v6_web.build()
+        import v6_mobile
+        return v6_mobile.build()
     if os.environ.get("VIDEO_V") == "4":
         if fmt == "web":
             import v4_web
