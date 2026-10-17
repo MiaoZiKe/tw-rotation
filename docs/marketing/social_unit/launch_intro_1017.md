@@ -1,7 +1,7 @@
 # 開站自我介紹貼文（2026-10-17 晚間，IG／Threads／FB）
 
 - 設計（輪播圖、封面、版型）交給 Codex 生成；本檔只含文字、事實與合規。
-- 連結：IG 放個人檔案連結、貼文內不放可點連結；Threads／FB 放 `https://miaozike.github.io/tw-rotation/?utm_source=<平台>&utm_medium=social&utm_campaign=launch_1017#overview`（平台換成 threads／fb）。若正式網址已改為自訂網域，請替換。
+- 連結：IG 放個人檔案連結、貼文內不放可點連結；Threads／FB 放 `https://ligugu-puipui.com/?utm_source=<平台>&utm_medium=social&utm_campaign=launch_1017#overview`（平台換成 threads／fb）。網址已確認使用自訂網域 ligugu-puipui.com。
 - 合規：不報明牌、不點名個股買賣；結尾固定「整理公開資訊，非投顧，投資請自行判斷。」
 
 ---
