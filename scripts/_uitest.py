@@ -71566,8 +71566,10 @@ def t_articles_1014(b, base):
     ok(f"{T}：compare 對照卡 3 欄並排、欄頂色條依 tone（3 種顏色）、要點數對、結論貼齊同一條底線",
        [c[0] for c in sc["cmp"]] == ["neutral", "accent", "warn"] and len({c[1] for c in sc["cmp"]}) == 3 and [c[2] for c in sc["cmp"]] == [2, 3, 1]
        and [c[3] for c in sc["cmp"]] == ["便宜、夠用", "AI 晶片必備", "短期供不應求"] and sc["cmpRow"] and sc["vdLine"] == 1, sc["cmp"])
-    ok(f"{T}：配色多樣 —— 同一張橫條 5 列至少 4 種顏色、關係圖不同欄節點顏色不同、kpi 三張色條顏色不同",
-       len(set(sc["hb"])) >= 4 and len(set(sc["fcol"])) == len(sc["fcol"]) == 3 and len(set(sc["kc"])) == 3, [sc["hb"], sc["fcol"], sc["kc"]])
+    # ★ 2026-10-17（Andy：「圖表風格需要 Follow 我網頁內的風格」）：ECharts 橫條改照網站 D 款 —— 同一系列一個色（--cat-1），
+    #   有標註（marks「五」）的那列換琥珀；說明圖區塊（關係圖、數字卡）仍維持文章的多色。
+    ok(f"{T}：橫條照網站 D 款 —— 沒標註的 4 列同一色、標註那列（五）換成另一個強調色；關係圖不同欄節點顏色不同、kpi 三張色條顏色不同",
+       len(sc["hb"]) == 5 and len(set(sc["hb"][:4])) == 1 and sc["hb"][4] != sc["hb"][0] and len(set(sc["fcol"])) == len(sc["fcol"]) == 3 and len(set(sc["kc"])) == 3, [sc["hb"], sc["fcol"], sc["kc"]])
     ok(f"{T}：每張 ECharts 圖的 option 裡都有浮水印 graphic「哩股哩股」（silent、深色主題白 6%），getOption() 看不到它（不打亂既有讀法）",
        len(sc["wm"]) == 5 and all(w[0] == 1 and w[1] == "哩股哩股" and w[2] is True and "255,255,255" in (w[3] or "").replace(" ", "") and w[4] == 0 for w in sc["wm"]), sc["wm"])
     ok(f"{T}：說明圖區塊自帶浮水印背景（關係圖、剖面圖、流程圖、對照卡、數字卡）",

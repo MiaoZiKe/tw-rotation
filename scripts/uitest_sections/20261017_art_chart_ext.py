@@ -14,7 +14,8 @@
 #   ② 畫面上的標籤（?svg=1 讀 SVG 文字）正數帶 +、負數帶 -
 #   ③ 參考線（markLine）與陰影（markArea）真的在 option 裡、文字真的畫在 SVG 上；陰影的矩形真的有面積
 #   ④ 壞值被忽略：非數字、空字串、離資料太遠的參考線不畫；找不到的區間不畫；大括號／HTML 只當純文字（不執行、不變成元素、不走 ECharts 富文字）
-#   ⑤ 舊圖 option 不變：同一篇舊文章的兩張圖，用 origin/main 的 articles.js 與這一版各畫一次，JSON 逐字一樣
+#   ⑤ 舊圖資料與標籤不變：同一篇舊文章的兩張圖，用 origin/main 的 articles.js 與這一版各畫一次，資料、標籤、畫面文字一樣（樣式 10-17 起統一成網站款，不比）
+#   ⑧ 網站款（10-17）：單系列長條＝--cat-1、漸層與圓角來自 App.barStyle、滑過 2px 外框、橫條無直格線
 #   ⑥ 1440 淺色、390 深色：圖內文字兩兩不重疊、字 ≥ 11px（SVG 乘 getScreenCTM）、沒有橫向捲軸
 #   ⑦ 真的操作：滑過正負長條 → 提示框的數字帶正負號、不會出現輔助系列（__artaux）
 def t_art_chart_ext_1017(b, base):
@@ -56,8 +57,18 @@ def t_art_chart_ext_1017(b, base):
             import re as _re
             ctx.route(_re.compile(r".*/articles\.js(\?.*)?$"), lambda r: r.fulfill(status=200, content_type="application/javascript", body=old_js))
 
+    # ★ 2026-10-17 晚（Andy：「圖表風格需要 Follow 我網頁內的風格」）：文章圖表改吃網站的配色、漸層、圓角、軸線 —— 舊圖的「樣式」本來就要變，
+    #   所以 ⑤ 改成只比「資料與標籤」：類別、每個系列的名稱／種類／數值／哪幾根有開數字標籤、圖例、標註點，外加畫面上的文字（?svg=1 的 SVG text）。
     OPT = """(bis) => bis.map(bi => { const el = document.querySelector('#artBody .artchart[data-bi="' + bi + '"] .cv'); const c = el && echarts.getInstanceByDom(el);
-        return c ? JSON.stringify(c.getOption()) : null; })"""
+        if (!c) return null; const o = c.getOption();
+        const v = (d) => (d && typeof d === 'object' && !Array.isArray(d) ? d.value : d);
+        const cats = [].concat(o.xAxis || [], o.yAxis || []).filter(a => a && a.type === 'category').map(a => a.data);
+        const ser = (o.series || []).map(s => ({ n: s.name, t: s.type, v: (s.data || []).map(v),
+          lab: (s.data || []).map(d => !!(d && typeof d === 'object' && d.label && d.label.show)),
+          mp: s.markPoint && s.markPoint.data ? s.markPoint.data.map(m => [m.name, m.value]) : [] }));
+        const lg = (o.legend || []).map(l => l.data || []);
+        const txt = [...el.querySelectorAll('svg text')].map(t => t.textContent.trim()).filter(t => t && t !== '哩股哩股').sort();
+        return JSON.stringify({ cats, ser, lg, txt }); })"""
 
     def load(pg, want):
         pg.goto(base + "?svg=1#article/" + AID, wait_until="domcontentloaded")
@@ -75,7 +86,7 @@ def t_art_chart_ext_1017(b, base):
             load(pg, len(old_idx))
             res[tag] = pg.evaluate(OPT, old_idx)
             ctx.close()
-        ok(f"{T}：沒帶 signed／refs／bands 的舊圖（{AID} 的 {len(old_idx)} 張）—— main 版與這一版畫出的 option 逐字一樣",
+        ok(f"{T}：沒帶 signed／refs／bands 的舊圖（{AID} 的 {len(old_idx)} 張）—— main 版與這一版的資料與標籤一樣（類別、數值、標籤、圖例、標註點、畫面文字）",
            all(res["old"]) and res["old"] == res["new"], [len(x or "") for x in res["old"]] + [len(x or "") for x in res["new"]])
     else:
         ok(f"{T}：取得 origin/main 的 articles.js（比對舊圖用）", False, "git show 失敗")
@@ -177,6 +188,35 @@ def t_art_chart_ext_1017(b, base):
             m = ms[k]
             ok(f"{T}[{tag}]：圖 {k} 圖內文字兩兩不重疊（{len(m['texts'])} 段）、字 ≥ 11px（最小 {m['minFs']:.1f}）、圖不超出畫面、沒有橫向捲軸",
                not m["hits"] and m["minFs"] >= 11 and m["figL"] >= 0 and m["figR"] <= m["vw"] + 0.5 and m["sw"] <= 0, {"hits": m["hits"], "minFs": m["minFs"], "sw": m["sw"], "fig": [m["figL"], m["figR"], m["vw"]]})
+        # ⑧ 網站款（2026-10-17，Andy：「圖表風格需要 Follow 我網頁內的風格」）
+        sty = pg.evaluate("""([oldBi, hbBi]) => {
+            const css = (n) => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+            const inst = (bi) => echarts.getInstanceByDom(document.querySelector('#artBody .artchart[data-bi="' + bi + '"] .cv'));
+            const last = (c) => (c && c.colorStops ? c.colorStops.map(z => z.color) : [c]);
+            const out = { cat1: css('--cat-1'), amber: css('--amber'), olds: [] };
+            oldBi.forEach(bi => { const o = inst(bi).getOption();
+              o.series.filter(s => s.type === 'bar').forEach(s => out.olds.push({ bi, name: s.name,
+                cols: s.data.map(d => last(d && d.itemStyle && d.itemStyle.color)), br: s.data.map(d => d && d.itemStyle ? d.itemStyle.borderRadius : null),
+                emph: s.emphasis && s.emphasis.itemStyle ? s.emphasis.itemStyle.borderWidth : null })); });
+            const hb = inst(hbBi).getOption();
+            out.hbSplit = hb.xAxis[0].splitLine ? hb.xAxis[0].splitLine.show : null;
+            out.hbEmph = hb.series[0].emphasis && hb.series[0].emphasis.itemStyle ? hb.series[0].emphasis.itemStyle.borderWidth : null;
+            out.hbBr = hb.series[0].data.map(d => d.itemStyle && d.itemStyle.borderRadius);
+            out.hbVals = hb.series[0].data.map(d => d.value);
+            return out; }""", [old_idx, NEW[1]])
+        c1, amb = rgb(sty["cat1"]), rgb(sty["amber"])
+        first = [o for o in sty["olds"]][:1]
+        bad = []
+        for o in first:
+            for k, cs in enumerate(o["cols"]):
+                cc = rgb(cs[0]) if cs and cs[0] else None
+                if cc and cc[:3] not in (c1[:3], amb[:3]): bad.append((o["bi"], k, cs))
+        ok(f"{T}[{tag}]：舊圖長條改吃網站色 —— 第一個長條系列每根＝--cat-1（{sty['cat1']}）或選取的琥珀（{sty['amber']}），不再是文章自己的七色盤",
+           first and not bad, [bad, sty["olds"][:1]])
+        ok(f"{T}[{tag}]：長條圓角只圓長出去那一端（直條 [3,3,0,0]）、滑過 2px 外框（C／D 款）",
+           all(br in ([3, 3, 0, 0], [0, 0, 3, 3]) for o in first for br in o["br"] if br is not None) and all(o["emph"] == 2 for o in sty["olds"]), sty["olds"])
+        okbr = all((br == [0, 3, 3, 0]) if v > 0 else (br == [3, 0, 0, 3]) if v < 0 else True for v, br in zip(sty["hbVals"], sty["hbBr"]))
+        ok(f"{T}[{tag}]：橫條（D 款）不畫直格線、滑過 2px 外框、正值圓右端／負值圓左端", sty["hbSplit"] is False and sty["hbEmph"] == 2 and okbr, [sty["hbSplit"], sty["hbEmph"], sty["hbBr"]])
         # ⑦ 真的操作：滑過正、負長條 → 提示框帶正負號、不會有輔助系列
         if not mob:
             tips = []

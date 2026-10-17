@@ -27,6 +27,8 @@
      「需要新增點閱次數」→ 卡片與單篇「眼睛＋N 次」（會員 Worker /v1/articles/view、/v1/articles/stats；失敗就不寫）、管理區多一欄。
      「內容除了圖表，盡可能新增剖析、分解 說明圖片」→ steps／compare 兩種說明圖區塊。
      「圖表色彩需要豐富點且多樣，不要太單一」→ 文章專用調色盤 --art-p1..7（只這一頁用，紅綠保留給漲跌）。
+     ★ 10-17「圖表風格需要 Follow 我網頁內的風格」→ ECharts 圖表（chart 區塊）改吃網站類別色 --cat-*、App.barStyle 漸層與圓角（見 chartOption）；
+       --art-p* 只剩數字卡、關係圖、流程圖這些說明圖區塊在用。
      防複製與浮水印是全站的，在 site/protect.js，不在這支。
 
    資料：site/articles/index.json（清單）＋ site/articles/posts/<id>.json（點進單篇才讀）。
@@ -91,7 +93,8 @@
     s.textContent = `
 :root{--art-all:var(--ink-2);--art-news:#ff9d4a;--art-intro:#2fd1c1;--art-know:#b99bff;--art-hl:#f5c842;
   --art-t-chip:#5b9cff;--art-t-mem:#2ec4b6;--art-t-interposer:#f2c14e;--art-t-substrate:#ff8a65;--art-t-board:#a88bff;--art-t-bump:#c6cfdf;--art-t-other:#9aa6c0;--art-t-ink:#0b1220;
-  /* 文章圖表調色盤（Andy 10-16：「圖表色彩需要豐富點且多樣，不要太單一」）：只給這一頁的區塊用，全站其他圖不吃這一組。
+  /* 文章說明圖調色盤（Andy 10-16：「圖表色彩需要豐富點且多樣，不要太單一」）：只給這一頁的區塊用，全站其他圖不吃這一組。
+     ⚠ 10-17 起 ECharts 圖表不吃這一組（改用網站 --cat-*，Andy：「圖表風格需要 Follow 我網頁內的風格」），只剩數字卡／關係圖／流程圖等說明圖。
      刻意避開紅、綠（紅漲綠跌保留給漲跌）與標註用的金色（--art-hl）；彩度壓在不刺眼的範圍。深淺主題各一組，淺色每色都 ≥ 3:1。 */
   --art-p1:#5b9cff;--art-p2:#2ec4b6;--art-p3:#a88bff;--art-p4:#ff8a65;--art-p5:#ec74b5;--art-p6:#d39b5b;--art-p7:#4cc3ef;
   --art-tn-neutral:#8e9bb8;--art-tn-accent:#5b9cff;--art-tn-warn:#f2a93b;--art-tn-good:#2ec4b6}
@@ -255,7 +258,7 @@
 .artfig .fn2{margin:var(--sp-2) 0 0;font-size:var(--fs-min);color:var(--ink-3);line-height:1.6}
 .artfig .fn2 span+span::before{content:"　"}
 .artfig .mk{margin:var(--sp-2) 0 0;display:flex;flex-wrap:wrap;gap:6px 12px;font-size:var(--fs-sm);color:var(--ink-2)}
-.artfig .mk span::before{content:"◆";color:var(--art-hl);margin-right:4px}
+.artfig .mk span::before{content:"◆";color:var(--amber,var(--art-hl));margin-right:4px}
 .artchart .cv{width:100%;height:300px}
 /* kpi 數字卡 */
 .artkpi{display:grid;grid-template-columns:repeat(var(--n,3),minmax(0,1fr));gap:var(--sp-2);margin:var(--sp-4) 0}
@@ -1325,17 +1328,37 @@ ${gs.length ? `<section><h5>熱門族群</h5><div class="gps">${gs.map((g) => `<
   /* ------------------------------------------------------------------ 單篇：圖表（ECharts，走 App.chart 包裝層：提示框掛 body、長條漸層、尺寸自動跟） */
   function cssv(n, fb) { try { return getComputedStyle(document.documentElement).getPropertyValue(n).trim() || fb; } catch (e) { return fb; } }
   function chartOption(b) {
-    const C = { c1: cssv('--cat-1', '#3ee0ff'), c2: cssv('--cat-3', '#ffb454'), c3: cssv('--cat-2', '#8b7bff'), hl: cssv('--art-hl', '#f5c842'),
-      ink: cssv('--ink', '#e8eeff'), ink2: cssv('--ink-2', '#a9b6d6'), ink3: cssv('--ink-3', '#6f7ea3'), line: cssv('--line', '#1e2a48'), grid: cssv('--grid', 'rgba(255,255,255,.06)'), panel: cssv('--panel', '#0f172b') };
+    /* ★ 2026-10-17（Andy：「圖表風格需要 Follow 我網頁內的風格」）：文章圖表改吃網站本體同一套（docs/chart_library.md C 直條／D 橫條／E 時間軸）。
+       以前文章自己一套：--art-p1..7 七色調色盤（橫條每列一色）、自己算的漸層（50%／42%）、四角都圓、金色標註、橫條有直格線、數字用黑體。
+       現在：
+         · 顏色＝網站類別色盤 --cat-1..4（同一系列一個色；單系列一律 --cat-1 青藍，跟管理區、產業地圖同一個色）；
+           柱＋線同圖時線從 --cat-3（琥珀）起輪，跟個股頁「月營收＋YoY」同一組；紅漲綠跌＝網站 --rise／--fall
+         · 漸層＝網站 App.barStyle.dir（直條上實下 45%、橫條左 55% 右實；負值方向相反）—— 呼叫網站那一支，不複製
+         · 圓角＝只圓長出去那一端 3px（App.barStyle.R），不是四角圓
+         · 粗細、底軌、柱頂數字字級、時間軸格線＝交給 App.chart 的共用層（softenOption／TimeGrid），這裡不再寫 barMaxWidth
+         · 選取／標註＝琥珀（--amber，C 款「被選那根換強調色」）；滑過＝該條 2px 外框、其他維持原色（C／D 款）
+         · 數值標籤等寬字（App.MONO）、軸字 12px ink3、橫條不畫直格線（D 款靠底軌與零軸線）、名稱不截斷（D 款） */
     const A = window.App || {};
+    const CH = A.CH || {};
+    const C = { hl: cssv('--amber', CH.amber || '#ffb454'),
+      ink: cssv('--ink', CH.ink || '#e8eeff'), ink2: cssv('--ink-2', CH.ink2 || '#a9b6d6'), ink3: cssv('--ink-3', CH.ink3 || '#6f7ea3'), line: cssv('--line', CH.line || '#1e2a48'), grid: cssv('--grid', CH.grid || 'rgba(255,255,255,.06)'), panel: cssv('--panel', '#0f172b') };
     const NF = A.NUM_FONT || 'monospace';
-    /* 調色盤（--art-p1..7）：不同系列不同色、橫條每列不同色、區間條每列不同色；長條一律自己給「同色漸層物件」——
-       App.chart 的長條共用風格只會把「字串色」換成全站青藍，漸層物件原樣保留，所以文章的配色不會被統一蓋掉。 */
-    const P = [1, 2, 3, 4, 5, 6, 7].map((k) => cssv('--art-p' + k, ['#5b9cff', '#2ec4b6', '#a88bff', '#ff8a65', '#ec74b5', '#d39b5b', '#4cc3ef'][k - 1]));
+    const MF = A.MONO || NF;
+    const CAT = [1, 2, 3, 4].map((k) => cssv('--cat-' + k, [CH.cyan, CH.violet, CH.amber, CH.lime][k - 1] || '#3ee0ff'));
+    const P = CAT;                                            // 長條系列：cat-1 起輪
+    const PL = [CAT[2], CAT[1], CAT[3], CAT[0]];              // 跟長條同圖的折線：琥珀起輪（藍橘一組，色盲也分得出）
     const rgbaOf = (c, a) => { const m = /^#([0-9a-f]{6})$/i.exec(String(c).trim()); if (!m) return c; const h = m[1]; return `rgba(${parseInt(h.slice(0, 2), 16)},${parseInt(h.slice(2, 4), 16)},${parseInt(h.slice(4), 16)},${a})`; };
-    const grad = (c, horiz) => (horiz ? { type: 'linear', x: 0, y: 0, x2: 1, y2: 0, colorStops: [{ offset: 0, color: rgbaOf(c, 0.5) }, { offset: 1, color: rgbaOf(c, 1) }] }
-      : { type: 'linear', x: 0, y: 0, x2: 0, y2: 1, colorStops: [{ offset: 0, color: rgbaOf(c, 1) }, { offset: 1, color: rgbaOf(c, 0.42) }] });
-    const hlStyle = (horiz) => ({ color: grad(C.hl, horiz), borderColor: C.ink, borderWidth: 1.5, borderRadius: 3 });
+    const BS = A.barStyle || null;
+    const RR = (BS && BS.R) || 3;
+    // 同色漸層：網站那一支（App.barStyle.dir）；它認不得的色（極少見）才退回同一組比例自己算
+    const grad = (c, horiz, neg) => (BS && BS.dir && BS.dir(c, horiz, !!neg)) || (horiz
+      ? { type: 'linear', x: 0, y: 0, x2: 1, y2: 0, colorStops: neg ? [{ offset: 0, color: rgbaOf(c, 1) }, { offset: 1, color: rgbaOf(c, 0.55) }] : [{ offset: 0, color: rgbaOf(c, 0.55) }, { offset: 1, color: rgbaOf(c, 1) }] }
+      : { type: 'linear', x: 0, y: 0, x2: 0, y2: 1, colorStops: neg ? [{ offset: 0, color: rgbaOf(c, 0.45) }, { offset: 1, color: rgbaOf(c, 1) }] : [{ offset: 0, color: rgbaOf(c, 1) }, { offset: 1, color: rgbaOf(c, 0.45) }] });
+    // 圓角只圓長出去那一端（[左上, 右上, 右下, 左下]）
+    const cap = (horiz, neg) => (horiz ? (neg ? [RR, 0, 0, RR] : [0, RR, RR, 0]) : (neg ? [0, 0, RR, RR] : [RR, RR, 0, 0]));
+    const barSt = (c, horiz, v) => { const neg = v != null && v < 0; return { color: grad(c, horiz, neg), borderRadius: cap(horiz, neg) }; };
+    const hlStyle = (horiz, v) => barSt(C.hl, horiz, v);
+    const EMPH = { itemStyle: { borderColor: C.ink, borderWidth: 2 } };   // 滑過：該條加 2px 外框、其他維持原色
     const kind = ['bar', 'line', 'barline', 'hbar', 'range'].includes(b.kind) ? b.kind : 'bar';
     const x = b.x.map(String), n = x.length;
     const unit = b.unit ? String(b.unit) : '', u2 = b.y2unit ? String(b.y2unit) : '';
@@ -1343,7 +1366,11 @@ ${gs.length ? `<section><h5>熱門族群</h5><div class="gps">${gs.map((g) => `<
     const marks = new Map(); (Array.isArray(b.marks) ? b.marks : []).forEach((m) => { if (m && m.text) { const i = x.indexOf(String(m.x)); if (i >= 0) marks.set(i, String(m.text)); } });
     const tipBase = Object.assign({}, A.tip || {}, { trigger: 'axis', triggerOn: 'mousemove|click' });
     const axLab = { color: C.ink3, fontSize: 12, fontFamily: NF };
-    const legend = (names) => (names.length > 1 ? { top: 0, left: 0, itemWidth: 14, itemHeight: 8, textStyle: { color: C.ink2, fontSize: 12 }, data: names } : undefined);
+    /* 橫條的類別名（D 款：名稱在左、完整不截斷，黑體 ink2 —— 產業地圖「族群漲跌幅」同一組）。
+       手機寬度有限：超過 7em 換行（不加省略號，字一個都不少）；桌機整段照寫，containLabel 自己留寬。 */
+    const isNarrow = document.documentElement.classList.contains('m4') || window.innerWidth <= 640;
+    const catLabH = Object.assign({ color: C.ink2, fontSize: 12, fontFamily: 'Noto Sans TC, sans-serif' }, isNarrow ? { width: 96, overflow: 'break', lineHeight: 14 } : {});
+    const legend = (names) => (names.length > 1 ? { top: 0, left: 0, textStyle: { color: C.ink2, fontSize: 12 }, data: names } : undefined);   // 網站圖例（個股頁營收圖手機版同一組）
     const ser0 = b.series.filter((s) => s && Array.isArray(s.data)).slice(0, 4);
     const sName = (s, i) => String(s.name || ('系列' + (i + 1)));
 
@@ -1457,14 +1484,14 @@ ${gs.length ? `<section><h5>熱門族群</h5><div class="gps">${gs.map((g) => `<
       ser0.forEach((s, si) => {
         const pr = x.map((_, i) => { const d = s.data[i]; const a = Array.isArray(d) ? num(d[0]) : null, z = Array.isArray(d) ? num(d[1]) : null; return a == null || z == null ? null : [Math.min(a, z), Math.max(a, z)]; });
         pr.forEach((p) => { if (p) { lo = Math.min(lo, p[0]); hi = Math.max(hi, p[1]); } });
-        const multi = ser0.length > 1;
         const col = P[si % P.length];
         names.push(sName(s, si));
-        out.push({ name: sName(s, si) + '__base', type: 'bar', stack: 'r' + si, silent: true, itemStyle: { color: 'transparent' }, barMaxWidth: 22, data: pr.map((p) => (p ? p[0] : null)),
-          label: { show: true, position: 'insideRight', color: C.ink2, fontSize: 12, fontFamily: NF, formatter: (q) => fmtN(q.value) }, tooltip: { show: false } });
-        out.push({ name: sName(s, si), type: 'bar', stack: 'r' + si, barMaxWidth: 22, data: pr.map((p, i) => (p ? { value: p[1] - p[0], _r: p, itemStyle: hl.has(i) ? hlStyle(true) : { color: grad(multi ? col : P[i % P.length], true), borderRadius: 3 } } : null)),
-          itemStyle: { color: grad(col, true), borderRadius: 3 },
-          label: { show: true, position: 'right', color: C.ink, fontSize: 12, fontWeight: 700, fontFamily: NF, formatter: (q) => (q.data && q.data._r ? fmtN(q.data._r[1]) + unit : '') } });
+        // 區間條＝D 款橫條：同一系列一個色（單系列 --cat-1），只圓右端；左端數字照舊在條內左側
+        out.push({ name: sName(s, si) + '__base', type: 'bar', stack: 'r' + si, silent: true, itemStyle: { color: 'transparent' }, data: pr.map((p) => (p ? p[0] : null)),
+          label: { show: true, position: 'insideRight', color: C.ink2, fontSize: 12, fontFamily: MF, formatter: (q) => fmtN(q.value) }, tooltip: { show: false } });
+        out.push({ name: sName(s, si), type: 'bar', stack: 'r' + si, emphasis: EMPH, data: pr.map((p, i) => (p ? { value: p[1] - p[0], _r: p, itemStyle: hl.has(i) ? hlStyle(true) : barSt(col, true) } : null)),
+          itemStyle: { color: grad(col, true), borderRadius: cap(true, false) },
+          label: { show: true, position: 'right', color: C.ink2, fontSize: 12, fontFamily: MF, formatter: (q) => (q.data && q.data._r ? fmtN(q.data._r[1]) + unit : '') } });
       });
       if (!isFinite(lo)) return null;
       const pad = Math.max((hi - lo) * 0.3, Math.abs(hi) * 0.05, 1);
@@ -1481,8 +1508,8 @@ ${gs.length ? `<section><h5>熱門族群</h5><div class="gps">${gs.map((g) => `<
           const i = arr[0].dataIndex;
           return `<b>${esc(x[i])}</b>` + arr.map((p) => `<br>${p.marker}${esc(p.seriesName)}：${fmtN(p.data._r[0])} ～ ${fmtN(p.data._r[1])}${esc(unit)}`).join('') + (marks.has(i) ? `<br>◆ ${esc(marks.get(i))}` : '');
         } }),
-        xAxis: { type: 'value', min: mn, name: unit, nameLocation: 'end', nameTextStyle: { color: C.ink3, fontSize: 12 }, axisLabel: axLab, splitLine: { lineStyle: { color: C.grid } } },
-        yAxis: { type: 'category', inverse: true, data: x, axisLabel: { color: C.ink2, fontSize: 12, width: 120, overflow: 'truncate' }, axisTick: { show: false }, axisLine: { lineStyle: { color: C.line } } },
+        xAxis: { type: 'value', min: mn, name: unit, nameLocation: 'end', nameTextStyle: { color: C.ink3, fontSize: 12 }, axisLabel: axLab, splitLine: { show: false }, axisLine: { show: false }, axisTick: { show: false } },
+        yAxis: { type: 'category', inverse: true, data: x, axisLabel: catLabH, axisTick: { show: false }, axisLine: { show: false } },
         series: out, timeGrid: false, m4dz: false,
       };
     }
@@ -1496,22 +1523,25 @@ ${gs.length ? `<section><h5>熱門族群</h5><div class="gps">${gs.map((g) => `<
       refFit(lo, hi); if (logAx) for (let i = refs0.length - 1; i >= 0; i--) if (refs0[i].v <= 0) refs0.splice(i, 1);
       // 正負橫條：負值標籤在長條左邊，最負那根再往左推 22% 的範圍，標籤才不會壓到左邊的類別名稱
       const aux = auxSeries(signed && lo < 0 ? [lo - (hi - lo) * 0.22] : null);
+      // D 款：同一系列一個色（--cat-1）；選取／標註那列換琥珀。正負上色時顏色不能換（紅綠有意義），改成 2px 外框
       const barItem = (v, i) => {
-        if (!signed) return hl.has(i) || marks.has(i) ? hlStyle(true) : { color: grad(P[i % P.length], true), borderRadius: 3 };
-        const st = { color: grad(sgnCol(v), true), borderRadius: 3 };
-        return hl.has(i) || marks.has(i) ? Object.assign(st, { borderColor: C.ink, borderWidth: 1.5 }) : st;
+        if (!signed) return hl.has(i) || marks.has(i) ? hlStyle(true, v) : barSt(P[0], true, v);
+        const st = barSt(sgnCol(v), true, v);
+        return hl.has(i) || marks.has(i) ? Object.assign(st, { borderColor: C.ink, borderWidth: 2 }) : st;
       };
       return {
         grid: { left: 8, right: 64, top: 8 + refTop, bottom: logAx ? 24 : 4, containLabel: true },
         tooltip: Object.assign({}, tipBase, { axisPointer: { type: 'shadow' }, formatter: (ps) => { const p = noAux(Array.isArray(ps) ? ps : [ps])[0]; if (!p) return ''; const i = p.dataIndex;
           return `<b>${esc(x[i])}</b><br>${p.marker}${esc(p.seriesName)}：${fmtV(vals[i])}${esc(unit)}` + (marks.has(i) ? `<br>◆ ${esc(marks.get(i))}` : ''); } }),
-        xAxis: logAx ? { type: 'log', logBase: 10, name: (unit ? unit + '・' : '') + '對數刻度', nameLocation: 'middle', nameGap: 26, nameTextStyle: { color: C.ink3, fontSize: 12 }, axisLabel: axLab, splitLine: { lineStyle: { color: C.grid } } }
-          : { type: 'value', name: unit, nameTextStyle: { color: C.ink3, fontSize: 12 }, axisLabel: axLab, splitLine: { lineStyle: { color: C.grid } } },
-        yAxis: { type: 'category', inverse: true, data: x, axisLabel: { color: C.ink2, fontSize: 12, width: 130, overflow: 'truncate' }, axisTick: { show: false }, axisLine: { lineStyle: { color: C.line } } },
-        series: [{ name: sName(s, 0), type: 'bar', barMaxWidth: 18,
+        // D 款：不畫直格線、不畫數值軸線（產業地圖族群漲跌幅同一組）；有正有負時零軸那條用 ink3 1.5px 分正負
+        xAxis: logAx ? { type: 'log', logBase: 10, name: (unit ? unit + '・' : '') + '對數刻度', nameLocation: 'middle', nameGap: 26, nameTextStyle: { color: C.ink3, fontSize: 12 }, axisLabel: axLab, splitLine: { show: false }, axisLine: { show: false }, axisTick: { show: false } }
+          : { type: 'value', name: unit, nameTextStyle: { color: C.ink3, fontSize: 12 }, axisLabel: axLab, splitLine: { show: false }, axisLine: { show: false }, axisTick: { show: false } },
+        yAxis: { type: 'category', inverse: true, data: x, axisLabel: catLabH, axisTick: { show: false },
+          axisLine: lo < 0 ? { show: true, onZero: true, lineStyle: { color: C.ink3, width: 1.5 } } : { show: false } },
+        series: [{ name: sName(s, 0), type: 'bar', emphasis: EMPH,
           data: vals.map((v, i) => { const d = { value: v, itemStyle: barItem(v, i) }; if (signed && v != null && v < 0) d.label = { position: 'left' }; return d; }),
           itemStyle: { color: grad(signed ? RISE : P[0], true) },
-          label: { show: true, position: 'right', color: C.ink, fontSize: 12, fontFamily: NF, formatter: (q) => fmtV(q.value) + (marks.has(q.dataIndex) ? ' ◆' : '') } }].concat(aux ? [].concat(aux) : []),
+          label: { show: true, position: 'right', color: C.ink2, fontSize: 12, fontFamily: MF, formatter: (q) => fmtV(q.value) + (marks.has(q.dataIndex) ? ' ◆' : '') } }].concat(aux ? [].concat(aux) : []),
         timeGrid: false, m4dz: false,
       };
     }
@@ -1521,22 +1551,23 @@ ${gs.length ? `<section><h5>熱門族群</h5><div class="gps">${gs.map((g) => `<
     const hasY2 = ser0.some((s) => Number(s.axis) === 1);
     const names = ser0.map(sName);
     const showLab = (i) => !marks.has(i) && (n <= (isM ? 6 : 10) || i === n - 1 || hl.has(i));
-    let barK = 0;
+    // 系列色：長條 --cat-1 起輪；折線在有長條的圖從琥珀起輪（個股頁「月營收＋YoY」同一組），純折線圖從 --cat-1 起輪
+    const anyBarS = ser0.some((s, si) => (s.type === 'bar') || (s.type !== 'line' && (kind === 'bar' || (kind === 'barline' && si === 0))));
+    let barK = 0, lineK = 0;
     const series = ser0.map((s, si) => {
       const typ = s.type === 'line' || s.type === 'bar' ? s.type : (kind === 'line' ? 'line' : kind === 'barline' && si > 0 ? 'line' : 'bar');
       const ax = hasY2 && Number(s.axis) === 1 ? 1 : 0;
-      // 柱子從 p1 起輪、折線從 p4（珊瑚）起輪：同一張圖的柱與線一定是兩個色系，一眼分得出
-      const col = typ === 'bar' ? P[(barK++ * 2) % P.length] : P[(3 + si) % P.length];
+      const col = typ === 'bar' ? P[barK++ % P.length] : (anyBarS ? PL : P)[lineK++ % P.length];
       const vals = x.map((_, i) => num(s.data[i]));
       const sg = signed && typ === 'bar';      // 正負上色只套長條；同一張圖的折線照原本的色
-      const lab = { show: false, position: 'top', color: C.ink2, fontSize: 12, fontFamily: NF, formatter: (q) => (sg ? fmtS : fmtN)(q.value) };
+      const lab = { show: false, position: 'top', color: C.ink2, fontSize: 12, fontFamily: MF, formatter: (q) => (sg ? fmtS : fmtN)(q.value) };
       const o = { name: sName(s, si), type: typ, yAxisIndex: ax, itemStyle: { color: typ === 'bar' ? grad(sg ? RISE : col, false) : col }, label: lab,
         data: vals.map((v, i) => { const d = { value: v };
-          if (sg) { d.itemStyle = { color: grad(sgnCol(v), false) }; if (hl.has(i)) Object.assign(d.itemStyle, { borderColor: C.ink, borderWidth: 1.5 }); }
-          else if (typ === 'bar' && hl.has(i)) d.itemStyle = hlStyle(false);
+          if (sg) { d.itemStyle = barSt(sgnCol(v), false, v); if (hl.has(i)) Object.assign(d.itemStyle, { borderColor: C.ink, borderWidth: 2 }); }
+          else if (typ === 'bar') d.itemStyle = hl.has(i) ? hlStyle(false, v) : barSt(col, false, v);
           if (si === 0 || typ === 'bar' || ser0.length === 1) { if (showLab(i)) d.label = sg && v != null && v < 0 ? { show: true, position: 'bottom' } : { show: true }; } return d; }) };
-      if (typ === 'line') Object.assign(o, { symbol: 'circle', symbolSize: 7, showAllSymbol: true, lineStyle: { width: 2, color: col }, z: 3 });
-      else Object.assign(o, { barMaxWidth: 40 });
+      if (typ === 'line') Object.assign(o, { symbol: 'circle', symbolSize: 6, showAllSymbol: true, lineStyle: { width: 2, color: col }, z: 3 });
+      else o.emphasis = EMPH;
       return o;
     });
     // 標註點：放在第一個系列的那根上，文字在點上方；右半邊的靠右對齊（不衝出圖外）
