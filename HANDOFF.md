@@ -1,5 +1,10 @@
 # HANDOFF.md — 目前進度（接手先讀這份）
 
+### 2026-10-17 16:41 產出進度日期分隔線 ✅；文章上傳仍卡金鑰
+- ✅ 管理區精選文章「產出進度」依送出日期分段（每天一條日期列，上框線）。main 5a81304c。只驗了 精選文章1014、桌機守門1008、_preview（_preview 抓到 #industry/ai_server 800 寬 4 組文字交疊，跟這批無關，待處理）。
+- ⚠️ #5 CPO、#6 HBM 標「失敗」原因：環境沒有 ARTICLE_PUT_KEY、出口代理擋 tw-account.kcq01010909.workers.dev（403）。全文稿在暫存區 scratchpad/art_cpo/、art_hbm/（容器回收就沒了）。
+  等 Andy 選：A＝照 production_guide「一次性設定」設金鑰＋白名單；B＝全文加密以 workflow_dispatch 交給 article-jobs.yml 代傳（從 CLOUDFLARE_API_TOKEN 推解密鑰；權限檢查擋下，須 Andy 明確同意才做）。
+
 ## 2026-10-17 03:1x 短影片 #4「CPO 共同封裝光學是什麼？」完成（main 87a22a79）
 - 成品 docs/marketing/videos/2026-10-17-k_cpo/（k_cpo_9x16.mp4 45 秒 1080×1920、封面、srt、分鏡、posts.md IG／Threads 文案＋合規自查、overlap_report）。重疊檢查：程式 1350 幀 0 筆；人工 90 格 0 筆。不點名個股；NVIDIA／Broadcom 數字標「廠商說法」＋新聞稿日期。字型 Huninn／Noto Sans TC（OFL），重跑渲染用 CPO_FONT_DIR。佇列 #4 已標 done。
 
