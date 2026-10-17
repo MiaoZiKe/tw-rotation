@@ -9,8 +9,11 @@
      · 元素找不到（被功能開關鎖住 data-plk／額度用完 data-qlk／這個寬度沒有）就跳過那一步，絕不卡住；
      · 一套導覽同時涵蓋桌機與手機：每一步列幾個候選選擇器，挑第一個「看得見」的 ——
        側欄（桌機）／底部導覽列（手機）是同一步的兩個候選，不必寫兩套；
-     · 鍵盤：← → 換步、Esc 關閉；點遮罩不關（避免誤觸），只有 Esc、✕、「略過」會關。
-   入口（不自動彈出 —— 第一次來的訪客不打擾）：
+     · 鍵盤：← → 換步、Esc 關閉；✕、「跳過導覽」、點變暗的遮罩（說明卡以外）都會關。
+       ★ 2026-10-17 改：舊版「點遮罩不關（避免誤觸）」—— Andy 10-17「客戶不需要看就會自動跳過」，新訪客同意條款後會自動跑一次，
+         不想看的人點哪裡都要能離開，所以點遮罩改成結束導覽。
+   入口：
+     · ★ 2026-10-17：新訪客按下同意橫幅的「同意並繼續」→ legal.js 自動開全站導覽一次（tw.tour 記住，之後只有自己按鈕才會再跑）；
      · 桌機頁首右上角的「導覽」鈕（#twTourBtn，☀／調色盤右邊）：開這一頁的導覽，沒有專屬導覽的頁面開全站導覽；
      · 手機（≤820）右上「⋯」清單多兩列：本頁導覽（#mmTourPage）、全站導覽（#mmTourSite）；
      · 頁尾「平台導覽」（#sfTour）—— 正式站的接線由 legal.js 那邊改成呼叫 TwTour.start()（另一支 agent 負責，這支不碰 legal.js）；
@@ -44,30 +47,39 @@
        fast       目標是常駐元素（導覽列、頁首鈕）：先看它在不在，不在就直接跳過、不換頁、不等
        before     框之前先做的事（例如按個股分頁，讓背後的內容跟著換）
      ⚠ 選擇器一律挑「外框」（卡片、整排分頁），不挑 canvas —— 圖還在畫的時候 canvas 尺寸會跳。 */
+  /* 2026-10-17 改版（Andy 10-17：「平台導覽還停留在之前的版本，CEO 幫我更新，並且在同意之後，不用額外跳視窗，直接開啟上方平台導覽功能，
+     客戶不需要看就會自動跳過」）：
+     · 這套就是頁首「平台導覽」那顆鈕開的導覽；新訪客按下同意橫幅之後，legal.js 直接叫 TwTour.start('site')（只自動一次），不再跳舊的置中大視窗。
+     · 內容對到 10-17 實際的選單：側欄子頁（資金流向三頁、熱力圖兩頁、市場明細四頁、選股策略四面向、ETF 三頁）一起框；
+       補上「個股頁」（所有圖上的公司名稱最後都走到這裡）與「會員與訂閱」（右上角登入）兩步；最後一步講怎麼再叫出這套導覽。
+     · 第一步就講「不想看可以按跳過」—— 客戶不需要看，一鍵就結束。 */
   const SITE = [
-    { t: '全站目錄在這一排', sel: ['#tabsWrap', '#tabs', '#m4Burger'], route: '#overview', routeRe: /^#?(overview)?$/, view: 'overview', fast: true,
-      d: '左邊由上到下分五組：今日市場、資金流水、族群與個股、歷史規律、專案。接下來一格一格看，每一頁各自回答一個問題。',
+    { t: '左邊是全站目錄', sel: ['#tabsWrap', '#tabs', '#m4Burger'], route: '#overview', routeRe: /^#?(overview)?$/, view: 'overview', fast: true,
+      d: '目錄分五組：今日市場、資金流水、族群與個股、歷史規律、專案。接下來逐頁介紹；不想看，按「跳過導覽」或 Esc 隨時結束。',
       // 2026-10-08 手機 v2：底部那排換成左上角 ☰ 側欄抽屜（mobile4.js），分組跟電腦版一樣
-      m: '左上角 ☰ 打開全站目錄，分組跟電腦版一樣：今日市場、資金流水、族群與個股、歷史規律、專案。' },
+      m: '左上角 ☰ 打開全站目錄，分組跟電腦版一樣。接下來逐頁介紹；不想看，按「跳過導覽」隨時結束。' },
     { t: '總覽：今天市場的全貌', sel: [tab('overview'), '#m4Title'], route: '#overview', routeRe: /^#?(overview)?$/, view: 'overview', fast: true,
-      d: '大盤三張走勢圖、漲跌家數、資金熱力圖與資金輪盤放在同一頁。第一次來，從這一頁開始看。' },
+      d: '大盤三張走勢圖、四張摘要卡、資金熱力圖、資金輪盤、熱門題材與資金分流樹都在這一頁，十秒看完今天的大概。' },
     /* 2026-10-16（Andy：「精選文章其他分頁有的功能 他也要有 例如導覽」）：左側選單「今日市場」第二格 */
     { t: '精選文章：整理過的文章', sel: [tab('articles'), '#m4Title'], route: '#articles', routeRe: /^#articles/, view: 'articles', fast: true,
       d: '分比比快訊、比比產業鏈、比比知識三類；文中的數字整理成圖表與示意圖，並連到相關族群與個股頁。' },
     { t: '財經日曆：接下來有哪些事', sel: [tab('earnings'), '#m4Title'], route: '#earnings', view: 'earnings', fast: true,
       d: '公司財報、法說會與美國聯準會（FED）的重要日子排在同一張月曆；點月曆上的項目看說明。' },
     { t: '資金流向：錢往哪個族群跑', sel: [tab('flow'), '#tabs .l4subtab[data-parent="flow"]', '#m4Title'], union: true, route: '#flow/rotation', routeRe: /^#flow/, view: 'flow', fast: true,
-      d: '分三個子頁：資金輪動（族群跑到強弱循環的哪一段）、資金分流樹（錢從大盤分到哪裡）、族群×法人與集中度。' },
+      d: '三個子頁：資金輪動（族群在強弱循環的哪一段）、資金分流樹（錢從大盤分到哪裡）、族群×法人＋集中度。' },
     { t: '熱力圖：哪裡熱、哪裡冷', sel: [tab('heatmap'), '#tabs .l4subtab[data-parent="heatmap"]', '#m4Title'], union: true, route: '#heatmap', routeRe: /^#heatmap/, view: 'heatmap', fast: true,
-      d: '一個方塊是一個族群或題材：越大＝成交值越多，越紅＝漲越多、越綠＝跌越多。分「產業」「題材」兩頁；題材那頁點方塊，剖析圖就在正下方展開。' },
+      d: '一個方塊是一個族群或題材：越大＝成交值越多，越紅＝漲越多、越綠＝跌越多。分「產業」「題材」兩頁。' },
     { t: '產業地圖：產業鏈的上下游', sel: [tab('industry'), '#m4Title', '#chainSwitch'], route: '#industry', routeRe: /^#industry$/, view: 'industry', fast: true,
       d: '先挑一條產業鏈，再看裡面的族群、產品剖析圖與供應鏈關聯圖，最後點公司名稱進個股頁。' },
-    { t: '市場明細：完整名單', sel: [tab('market'), '#m4Title'], route: '#market', routeRe: /^#market/, view: 'market', fast: true,
-      d: '漲跌分佈、站上均線、法人連續買賣與各項排行的完整表格，可以排序、篩選，每一列都點得進個股頁。' },
-    { t: '選股策略：用公開條件篩出個股', sel: [tab('explore'), '#m4Title'], route: '#explore', routeRe: /^#explore/, view: 'explore', fast: true,
-      d: '每張卡是一組公開條件（獲利、估值、成長、技術、法人、股利、動能），列出符合的個股；點一列看它符合哪幾條。' },
-    { t: 'ETF 專區', sel: [tab('etf'), '#m4Title'], route: '#etf', routeRe: /^#etf/, view: 'etf', fast: true,
-      d: 'ETF 的分類、殖利率、配息日程與長期報酬比較；只看價格的報酬與含息的報酬分開算。' },
+    /* 2026-10-17 新增：站上每張圖的公司名稱、代號最後都走到個股頁，全站導覽要讓人知道它長什麼樣（以 2330 示範；已經在某一檔就不換） */
+    { t: '個股頁：一檔股票的全部資料', sel: ['#skIdent', '#mbQuote'], route: () => (/^#stock\/[0-9A-Za-z]{4,6}/.test(location.hash) ? null : '#stock/2330'), routeRe: /^#stock\//, view: 'industry',
+      d: 'K 線與多週期、營收獲利、法人籌碼、除權息都在這一頁（這裡以 2330 示範）；圖上的公司名稱或代號點下去都會到這裡。' },
+    { t: '市場明細：完整名單', sel: [tab('market'), '#tabs .l4subtab[data-parent="market"]', '#m4Title'], union: true, route: '#market', routeRe: /^#market/, view: 'market', fast: true,
+      d: '漲跌家數、法人連買賣、站上均線、今日關注四份完整名單，可以排序、篩選，每一列都點得進個股頁。' },
+    { t: '選股策略：用公開條件篩出個股', sel: [tab('explore'), '#tabs .l4subtab[data-parent="explore"]', '#m4Title'], union: true, route: '#explore', routeRe: /^#explore/, view: 'explore', fast: true,
+      d: '分基本面、技術面、籌碼面、消息面；每張卡是一組公開條件與符合的個股，點一列看它符合哪幾條。' },
+    { t: 'ETF 專區', sel: [tab('etf'), '#tabs .l4subtab[data-parent="etf"]', '#m4Title'], union: true, route: '#etf', routeRe: /^#etf/, view: 'etf', fast: true,
+      d: '三個子頁：配息行事曆（哪天除息）、ETF 總覽（分類、殖利率與報酬比較）、現金流試算（想領多少要買幾張）。' },
     { t: '週期統計：歷史上的月份規律', sel: [tab('season'), '#m4Title'], route: '#season', view: 'season', fast: true,
       d: '每個族群在 1～12 月的歷史表現：上漲的年數比例、報酬與相對大盤的差距。過去的規律不代表今年會重演。' },
     { t: '自選：你自己的清單', sel: [tab('watch'), '#m4Title'], route: '#watch', view: 'watch', fast: true,
@@ -79,15 +91,18 @@
     { t: '搜尋與今日事件', sel: ['.topbar .search', '#evToggle', '#mSearchBtn', '#m4Search'], union: true, fast: true,
       d: '輸入股票代號或簡稱，直接跳到那一檔的個股頁；「事件」打開今日事件：新聞、公告與行事曆，數字是今天的則數。',
       m: '⌕ 輸入股票代號或簡稱，直接跳到那一檔的個股頁。' },
-    { t: '右上角：通知、外觀、登入', sel: ['#ntBell', '#l4Tools', '#acctBar', '#moreBtn', '#m4Tools'], union: true, fast: true,
-      d: '鈴鐺是網站公告；☀ 切換明亮／深色；調色盤換版面風格；登入之後，自選清單可以在不同裝置同步。',
-      // 2026-10-09：手機 v2 拿掉「⋯」，頂欄右邊一排小圖示：搜尋、外觀、導覽、登入
-      m: '頂欄右邊：⌕ 搜尋、調色盤＝外觀（明亮／深色、版面風格）、🧭＝導覽、登入之後自選清單跨裝置同步。' },
+    { t: '右上角：通知與外觀', sel: ['#ntBell', '#themeBtn', '#t4Btn'], union: true, fast: true,
+      d: '鈴鐺是網站公告；☀ 切換明亮／深色；「外觀」調色盤換版面風格。',
+      m: '頂欄右邊：☀ 切換明亮／深色；有網站公告時會多一顆鈴鐺。' },
+    /* 2026-10-17 新增：會員與訂閱（會員功能開著是 #acctBtn，關著是一顆會講原因的 #l4Login；手機 v2 是 #m4Login） */
+    { t: '會員與訂閱', sel: ['#acctBtn', '#l4Login', '#m4Login'], fast: true,
+      d: '登入之後，自選清單在不同裝置同步；帳號選單與頁尾的「訂閱方案」列出訪客、註冊會員、Plus、Pro 各看得到哪些內容。' },
     { t: '客服', sel: '#supFab', fast: true,
       d: '使用上遇到問題、想回報錯誤或給建議，從右下角這顆留言給我們。' },
-    { t: '平台導覽與本頁導覽', sel: ['#twTourBtn', '#twPageTourBtn'], union: true, fast: true,
-      d: '右上角「平台導覽」隨時重開這套全站導覽；每一頁頁名旁的「◎ 導覽」則一步步介紹那一頁的每張圖。',
-      m: '頂欄的 🧭：選「本頁導覽」一步步看這一頁的每張圖，選「平台導覽」重開這套全站導覽。' },
+    // 不合成一個框：桌機框右上角「平台導覽」那一顆（合起來會從頁名一路框到右上角，看不出指哪顆）；手機那顆不在 → 框頂欄 🧭
+    { t: '想再看一次，按這裡', sel: ['#twTourBtn', '#twPageTourBtn'], fast: true,
+      d: '右上角「平台導覽」隨時重看這套全站導覽；頁名旁「◎ 導覽」一步步介紹那一頁的每張圖。導覽到這裡結束。',
+      m: '頂欄的 🧭：「平台導覽」重看這套全站導覽，「本頁導覽」一步步看這一頁的每張圖。導覽到這裡結束。' },
   ];
 
   /* 手機（≤640）的總覽與資金流向是「分段」的：一次只顯示一張圖，要先按上面那排（.mspine 步驟、.mpager 分段）才看得到。
@@ -471,7 +486,13 @@
     const r = unionRect(els); if (!r) return 0;
     if (els.every(inFixed)) {
       if (r.left >= 0 && r.right <= vw && r.top >= 0 && r.bottom <= vh) return 0;
-      try { first.scrollIntoView({ block: 'nearest', inline: 'nearest', behavior: beh }); } catch (e) { /* 舊瀏覽器 */ }
+      /* 2026-10-17：側欄的「父頁＋子頁」合成一個框（ETF、選股策略那幾步）時，只捲第一格不夠 —— 子頁掉在側欄可視範圍下面，
+         框的下半截跑出畫面。先把最後一格捲進來（nearest＝最少的捲動），再確保第一格也在；框比畫面矮時兩格都看得到。
+         這裡用 instant（不是 auto —— 全站 CSS 有 scroll-behavior:smooth，auto 會照樣變成 smooth）：兩次 smooth 會互相打斷，
+         聚光燈定位好之後側欄還在滑（實測 ETF 那步框好後 300ms 內又往上移 32px）。 */
+      const last = els[els.length - 1];
+      if (last !== first) { try { last.scrollIntoView({ block: 'nearest', inline: 'nearest', behavior: 'instant' }); } catch (e) { /* 舊瀏覽器 */ } }
+      try { first.scrollIntoView({ block: 'nearest', inline: 'nearest', behavior: last !== first ? 'instant' : beh }); } catch (e) { /* 舊瀏覽器 */ }
       await settleScroll(first, my); return 1;
     }
     const top = topSafe(els) + 12, bot = vh - bottomSafe() - 12, avail = bot - top;
@@ -544,8 +565,9 @@
 #twTour .twt-f{display:flex;align-items:center;gap:8px;margin-top:12px}
 #twTour .twt-f .sp{flex:1}
 #twTour .twt-f button{height:34px;padding:0 14px;border-radius:9px;font-size:var(--fs-sm,13px);font-family:inherit;cursor:pointer;white-space:nowrap}
-#twTour .twt-skip{border:0;background:transparent;color:var(--ink-2);padding:0 6px!important}
-#twTour .twt-skip:hover{color:var(--ink);text-decoration:underline}
+/* 2026-10-17「跳過導覽」改成有框的按鈕（舊版是一行淡色字「略過」，自動跑的時候不容易找到）；顏色跟「上一步」同一套，不搶「下一步」 */
+#twTour .twt-skip{border:1px solid var(--line-2,#445);background:transparent;color:var(--ink);font-weight:600}
+#twTour .twt-skip:hover{border-color:var(--twt-ring)}
 #twTour .twt-prev{border:1px solid var(--line-2,#445);background:transparent;color:var(--ink)}
 #twTour .twt-prev:disabled{opacity:.4;cursor:default}
 #twTour .twt-next{border:1px solid transparent;background:var(--twt-ring);color:var(--on-accent,#03121b);font-weight:700}
@@ -605,7 +627,7 @@
       + '<button type="button" class="twt-x" id="twTourX" aria-label="關閉導覽">✕</button></div>'
       + '<div class="twt-bar" aria-hidden="true"><i id="twTourBar"></i></div>'
       + '<h3 id="twTourT"></h3><p class="twt-d" id="twTourD" aria-live="polite"></p>'
-      + '<div class="twt-f"><button type="button" class="twt-skip" id="twTourSkip">略過</button><span class="sp"></span>'
+      + '<div class="twt-f"><button type="button" class="twt-skip" id="twTourSkip">跳過導覽</button><span class="sp"></span>'
       + '<button type="button" class="twt-prev" id="twTourPrev">上一步</button>'
       + '<button type="button" class="twt-next" id="twTourNext">下一步</button></div></div>';
     document.body.appendChild(root);
@@ -614,8 +636,10 @@
     $('#twTourSkip', root).onclick = () => stop('skip');
     $('#twTourPrev', root).onclick = () => prev();
     $('#twTourNext', root).onclick = () => next();
-    /* 點遮罩不關（避免誤觸）：吃掉事件就好，什麼都不做 */
-    $('.twt-block', root).addEventListener('click', (e) => { e.preventDefault(); e.stopPropagation(); });
+    /* 2026-10-17（Andy：「客戶不需要看就會自動跳過」）：點變暗的遮罩（說明卡以外）＝結束導覽。
+       舊版是「點遮罩不關、吃掉事件」—— 同意條款後會自動跑一次，不想看的人沒找到按鈕也要能一點就離開。
+       事件照樣吃掉，不讓這一下傳到底下的頁面（例如點到熱力圖方塊又跳頁）。 */
+    $('.twt-block', root).addEventListener('click', (e) => { e.preventDefault(); e.stopPropagation(); stop('mask'); });
   }
 
   function paintText(st, i, n) {

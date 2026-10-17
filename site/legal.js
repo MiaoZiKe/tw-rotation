@@ -13,7 +13,7 @@
        2026-09-24 第二版：上面多一行「© 年 站名 · 保留所有權利」，右邊一顆「顯示詳細規範」膠囊鈕，
        展開是 8 格詳細規範（預設收起；2026-10-06 起重新整理、換頁一律回收起，不再記 tw.footDetail）。
      · 三個法律頁 —— 永遠打得開；條款還有空格時，服務條款與隱私權政策頂端掛「草稿，尚未生效」。
-     · 同意橫幅、平台導覽自動彈出 —— 只有「必填全部填好、條款全文掃不到【】、enabled:true」才啟用。
+     · 同意橫幅、同意後自動開一次全站導覽（tour.js，2026-10-17 起） —— 只有「必填全部填好、條款全文掃不到【】、enabled:true」才啟用。
    ========================================================================== */
 (function () {
   'use strict';
@@ -34,7 +34,9 @@
     updated_date: 'YYYY-MM-DD', tax_id: '統編，未辦稅籍登記者填「尚未辦理」', court: '○○地方法院',
     copyright_holder: '著作權人', site_name: '網站名稱', repo_url: 'repo 網址', hosting: '雲端服務提供者',
   };
-  const TOUR_V = '2026-09-24';           // 導覽內容改版就改這個字串，所有人會再自動看到一次
+  /* tw.tour 只看「有沒有」（tourSeen），不比版本：有值就不再自動開。這個字串只是記錄「是哪一版自動開過的」。
+     2026-10-17 起自動開的是 tour.js 的全站導覽（頁首「平台導覽」那一套），舊的置中彈窗不再自動出現。*/
+  const TOUR_V = '2026-10-17-site';
   const K_CONSENT = 'tw.consent', K_TOUR = 'tw.tour';
 
   const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, (c) =>
@@ -1064,9 +1066,26 @@
     declined = false;
     hideBanner(!!fromBanner);
     /* 導覽只在「第一次同意」之後自動開一次；讀寫不到 localStorage 就不自動開
-       （否則每次重新整理都會跳出來），只留頁尾的入口。*/
+       （否則每次重新整理都會跳出來），只留頁首「平台導覽」的入口。*/
     const seen = tourSeen();
-    if (storeOK && seen === false) setTimeout(() => openTour(null), fromBanner ? 200 : 400);
+    if (storeOK && seen === false) {
+      markTour();                            // 開之前就記：導覽跑到一半重新整理，也不會再自動跑一次
+      pendingTour = true;
+      setTimeout(autoTour, fromBanner ? 200 : 400);
+    }
+  }
+  /* ★ 2026-10-17（Andy：「在同意之後，不用額外跳視窗，直接開啟上方平台導覽功能，客戶不需要看就會自動跳過」）：
+     同意之後直接開頁首「平台導覽」那一套（tour.js 的 TwTour.start('site')，跟使用者自己按那顆鈕一樣），
+     不再跳舊的置中大視窗「四步看懂今天的資金」。舊彈窗（openTour）只留給「tour.js 沒載入」這種退路。
+     在法律頁（#terms 等）上按同意的人正在讀條文：不把他拉走，等他離開法律頁、到一般頁面時才開（route() 會再叫這支）。*/
+  let pendingTour = false;
+  function autoTour() {
+    if (!pendingTour) return;
+    const h = (location.hash.replace('#', '').split('/')[0]) || '';
+    if (ROUTES.includes(h)) return;          // 還在法律頁或 #leave：先不開，pendingTour 留著
+    pendingTour = false;
+    if (window.TwTour && typeof window.TwTour.start === 'function') window.TwTour.start('site');
+    else openTour(null);
   }
 
   // ------------------------------------------------------------------ 平台導覽
@@ -1193,6 +1212,7 @@
       return 'legal';
     }
     if (declined && active() && !readConsent()) { location.replace('#leave'); return 'redirect'; }
+    if (pendingTour) setTimeout(autoTour, 300);   // 在法律頁同意、現在換到一般頁面：這時才自動開導覽（等新頁先畫出來）
     return null;
   }
 

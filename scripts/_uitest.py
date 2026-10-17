@@ -27040,9 +27040,11 @@ def t_tour_1007(pg, b, base):
     fs = pg.evaluate("""() => [...document.querySelectorAll('#twTourCard *')].filter(e => [...e.childNodes].some(n => n.nodeType === 3 && n.textContent.trim()))
         .map(e => parseFloat(getComputedStyle(e).fontSize)).filter(x => x < 11.95)""")
     ok(f"{T} 說明卡沒有小於 12px 的字", not fs, fs)
-    # 點遮罩不關
+    # 2026-10-17 改前→改後（Andy 10-17：「客戶不需要看就會自動跳過」）：改前「點遮罩不關（避免誤觸）」；
+    #   改後同意條款之後會自動跑一次，不想看的人點變暗的地方也要能離開 → 點遮罩＝結束。驗完重開一次，下面照原樣走。
     pg.mouse.click(700, 880); pg.wait_for_timeout(300)
-    ok(f"{T} 點遮罩（說明卡外）不會關掉導覽", pg.evaluate(TOUR_ST)["active"])
+    ok(f"{T} 點遮罩（說明卡外）→ 結束導覽（2026-10-17 起）", not pg.evaluate(TOUR_ST)["active"] and pg.locator("#twTour").count() == 0)
+    pg.click("#twPageTourBtn"); st = _tour_wait(pg)
     # 鍵盤 → ←
     i0 = pg.evaluate(TOUR_ST)["i"]
     pg.keyboard.press("ArrowRight"); st1 = _tour_wait(pg)
@@ -27069,8 +27071,9 @@ def t_tour_1007(pg, b, base):
     ok(f"{T} 全站導覽每一個換頁步驟，背後的頁面真的切到那一頁（.view.on）", not wrong and len(page_rows) >= 9, wrong or len(page_rows))
     views = {r["view"] for r in rows}
     ok(f"{T} 全站導覽走完經過至少 8 個不同的頁面", len(views) >= 8, sorted(views))
-    ok(f"{T} 全站導覽框過側欄、右上角工具、客服、導覽鈕",
-       all(any(k in r["sel"] for r in rows) for k in ("#tabsWrap", "#l4Tools", "#supFab", "#twTourBtn")), [r["sel"][:40] for r in rows])
+    # 2026-10-17 改前→改後：右上角那一步改成只框「通知與外觀」三顆（#ntBell／#themeBtn／#t4Btn），登入另成「會員與訂閱」一步 → 不再框整排 #l4Tools
+    ok(f"{T} 全站導覽框過側欄、右上角工具（外觀與登入）、客服、導覽鈕",
+       all(any(any(x in r["sel"] for x in k.split("|")) for r in rows) for k in ("#tabsWrap", "#themeBtn", "#l4Login|#acctBtn", "#supFab", "#twTourBtn")), [r["sel"][:40] for r in rows])
 
     # ---- 上一步：頁面也退回
     pg.goto(base + "#overview", wait_until="networkidle"); pg.wait_for_timeout(1500)
@@ -50871,28 +50874,21 @@ def t_legal(b, base):
         cv = None
     ok("[開] 按同意 → localStorage 真的寫進 {v: 生效日期, at: 時間}", cv and cv.get("v") == "2026-10-01" and cv.get("at"), raw)
     ok("[開] 按同意 → 橫幅消失", pg.locator("#lgBanner").count() == 0)
-    ok("[開] 第一次同意 → 平台導覽自動開一次", pg.locator("#lgTour").count() == 1)
-    # 「到總覽看這一步」（第③步）→ 彈窗關閉、大盤三張圖（#m3）在畫面上半部、外圈亮一下
-    # 2026-10-06 改前→改後：改前找「今日候選」#ovCandCard —— 那張卡 2026-09-24 總覽改版已整張拿掉，
-    #   導覽第③步（site/legal.js STEPS）同一天就改指 #m3；這裡沒跟著改，getElementById 回 null 讓整段中斷。
-    #   實測（1440／390）網站本身正常：按下去會捲到 #m3、亮 1 秒後消失、沒有錯誤 —— 是斷言過時，不是網站壞。
-    #   目標收成一個變數 STEP3，必須跟 site/legal.js STEPS 第③步的 sel 一致；以後第③步換卡片改這一處就好。
-    pg.click("#lgNext"); pg.wait_for_timeout(200); pg.click("#lgNext"); pg.wait_for_timeout(200)
-    pg.click("#lgGo"); pg.wait_for_timeout(450)
-    STEP3 = "#m3"
-    fl = pg.evaluate("(s) => { const e = document.querySelector(s); return { found: !!e, flash: !!e && e.classList.contains('lgflash'),"
-                     " tour: !!document.getElementById('lgTour') }; }", STEP3)
-    pg.wait_for_timeout(900)                          # 全站 scroll-behavior:smooth，等捲完再量位置
-    r = pg.evaluate("""(s) => { const e = document.querySelector(s); if (!e) return null; const r = e.getBoundingClientRect();
-        return { top: r.top, vh: innerHeight }; }""", STEP3)
-    ok("[開] 導覽「到總覽看這一步」→ 彈窗關閉、大盤三張圖外圈亮一圈", fl["found"] and not fl["tour"] and fl["flash"], fl)
-    ok("[開] 導覽「到總覽看這一步」→ 大盤三張圖捲到畫面上半部", bool(r) and 0 <= r["top"] < r["vh"] / 2, r)
-    pg.wait_for_timeout(500)
-    ok("[開] 外圈亮 1 秒後自己消失", not pg.evaluate("(s) => { const e = document.querySelector(s); return !!e && e.classList.contains('lgflash'); }", STEP3))
+    # 2026-10-17 改前→改後（Andy 10-17：「在同意之後，不用額外跳視窗，直接開啟上方平台導覽功能，客戶不需要看就會自動跳過」）：
+    #   改前驗「第一次同意 → 舊的置中彈窗 #lgTour 自動開、按兩次下一步、按『到總覽看這一步』捲到 #m3」；
+    #   改後同意之後開的是頁首「平台導覽」那一套（tour.js #twTour，全站導覽），舊彈窗不再自動出現 —— 那幾條換成驗新的行為。
+    #   細的真人操作（跳過、重新整理、頁首鈕重跑、走到最後一步、1440／390）在「同意後平台導覽1017」那一段。
+    wait_until(pg, "() => !!(window.TwTour && TwTour.state().active)", 8000)
+    st = pg.evaluate("() => window.TwTour && TwTour.state()")
+    ok("[開] 第一次同意 → 舊的置中彈窗不出現、直接開頁首那套平台導覽（全站導覽）",
+       pg.locator("#lgTour").count() == 0 and bool(st) and st.get("active") and st.get("tour") == "site", st and st.get("tour"))
+    pg.click("#twTourSkip"); pg.wait_for_timeout(400)
+    ok("[開] 按「跳過導覽」→ 導覽關閉", pg.locator("#twTour").count() == 0)
     ok("[開] 導覽看過 → tw.tour 寫入版本字串", (_lg_ls(pg, "tw.tour") or "") != "", _lg_ls(pg, "tw.tour"))
     pg.reload(wait_until="networkidle"); pg.wait_for_timeout(2000)
     ok("[開] 重新整理 → 橫幅不再出現、導覽也不再自動開",
-       pg.locator("#lgBanner").count() == 0 and pg.locator("#lgTour").count() == 0)
+       pg.locator("#lgBanner").count() == 0 and pg.locator("#lgTour").count() == 0
+       and not pg.evaluate("() => !!(window.TwTour && TwTour.state().active)"))
     # 條款改版（生效日期換了）→ 舊的同意不算數，橫幅重新出現
     pg.evaluate("() => localStorage.setItem('tw.consent', JSON.stringify({v:'2025-01-01', at:'x'}))")
     pg.reload(wait_until="networkidle"); pg.wait_for_timeout(1500)
@@ -50937,7 +50933,8 @@ def t_legal(b, base):
     ok("[開／寫不進去] 橫幅照樣出現", pg.locator("#lgBanner").count() == 1)
     pg.click("#lgAccept"); pg.wait_for_timeout(600)
     ok("[開／寫不進去] 按同意 → 橫幅消失、導覽不自動開（避免每次重新整理都跳）",
-       pg.locator("#lgBanner").count() == 0 and pg.locator("#lgTour").count() == 0)
+       pg.locator("#lgBanner").count() == 0 and pg.locator("#lgTour").count() == 0
+       and not pg.evaluate("() => !!(window.TwTour && TwTour.state().active)"))
     pg.click(".tab[data-view='flow']"); pg.wait_for_timeout(1200)
     ok("[開／寫不進去] 換頁之後這次瀏覽不再出現（記在記憶體）", pg.locator("#lgBanner").count() == 0)
     pg.reload(wait_until="networkidle"); pg.wait_for_timeout(1500)
@@ -50961,18 +50958,16 @@ def t_legal(b, base):
     ok("[開 390] 兩顆按鈕上下排、滿寬、高 44（「同意並繼續」在上）",
        r and r["stacked"] and r["aw"] >= r["bw"] - 42 and r["ah"] >= 43, r)
     ok("[開 390] 沒有橫向捲軸", r and r["docW"] <= r["winW"] + 1, r)
-    pg.click("#lgAccept"); pg.wait_for_timeout(700)
-    r = pg.evaluate("""() => { const t = document.getElementById('lgTour'); if (!t) return null; const r = t.getBoundingClientRect();
-        return { bottom: innerHeight - r.bottom, w: r.width, winW: innerWidth }; }""")
-    ok("[開 390] 手機的導覽是底部抽屜（貼底、滿寬）", r and abs(r["bottom"]) <= 1 and r["w"] >= r["winW"] - 1, r)
-    pg.click("#lgNext"); pg.wait_for_timeout(200)
-    pg.click("#lgGo"); pg.wait_for_timeout(1500)
-    r = pg.evaluate("""() => { const sp = document.querySelector('#v-overview .mspine .on'); const e = document.getElementById('hero');
-        const r = e ? e.getBoundingClientRect() : null;
-        return { step: sp ? sp.textContent : '', top: r ? r.top : null, h: r ? r.height : 0, vh: innerHeight }; }""")
-    ok("[開 390] 手機「到總覽看這一步」（第②步）→ 主軸動線真的切到 ② 貴不貴、大盤那張在畫面上",
-       # 2026-10-06：手機 v3 主軸鈕是 <em>②</em><b>貴不貴</b>，textContent 沒有空白 → 去掉空白再比
-       re.sub(r"\s+", "", r["step"]).startswith("②貴不貴") and r["top"] is not None and r["h"] > 0 and 0 <= r["top"] < r["vh"], r)
+    # 2026-10-17 改前→改後：改前驗「手機的舊導覽彈窗是底部抽屜、按『到總覽看這一步』切到 ② 貴不貴」；
+    #   改後同意之後開的是 tour.js 的全站導覽（舊彈窗不再自動出現）→ 驗它開了、說明卡貼底在畫面內、跳過能關。
+    pg.click("#lgAccept")
+    wait_until(pg, "() => { const s = window.TwTour && TwTour.state(); return !!s && s.active && !s.busy && s.i >= 0; }", 10000)
+    r = pg.evaluate("() => { const s = TwTour.state(); return s.active ? { tour: s.tour, place: s.place, card: s.card, vw: s.vw, vh: s.vh, old: !!document.getElementById('lgTour') } : null; }")
+    ok("[開 390] 同意後開的是全站導覽（不是舊彈窗）、說明卡貼底且在畫面內",
+       r and r["tour"] == "site" and not r["old"] and r["place"] in ("sheet-bottom", "sheet-top")
+       and r["card"]["l"] >= 0 and r["card"]["r"] <= r["vw"] + 1 and r["card"]["b"] <= r["vh"] + 1, r)
+    pg.click("#twTourSkip"); pg.wait_for_timeout(400)
+    ok("[開 390] 按「跳過導覽」→ 導覽關閉", pg.locator("#twTour").count() == 0)
     ctx.close()
 
     # 填好了但 enabled:false → 仍然不啟用；欄位裡還留著【】也不算填好

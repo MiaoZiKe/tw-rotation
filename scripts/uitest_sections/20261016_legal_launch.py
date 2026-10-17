@@ -10,7 +10,7 @@
 #   ② 法律頁上橫幅蓋住「重點一覽」：法律頁改成內嵌（.lgban.inl，放在文件分頁下面）。
 #      驗：四份法律頁 × 1440／390，橫幅與「重點一覽」、文件標題卡兩兩矩形不相交。
 # 另外驗：這一段**不注入任何設定**（用的是 legal_config.js 本身）→ 判定啟用、版本＝2026-10-17、全文沒有【】；
-#   第一次進站出現 → 按同意 → 消失、localStorage 真的寫入 → 關掉導覽 → 重新整理不再出現；
+#   第一次進站出現 → 按同意 → 消失、localStorage 真的寫入 → 關掉導覽（2026-10-17 起是 tour.js 的全站導覽）→ 重新整理不再出現；
 #   1440 深色／淺色都畫得出、淺色橫幅是淺底；沒有橫向捲軸；橫幅字 ≥ 12px；客服鈕不跟橫幅疊（藏起來或不相交）；
 #   平台導覽（tour.js）進行中橫幅讓開、結束回來（兩者不疊在一起）。
 # 設 TW_LEGAL_SHOTS=<資料夾> 時順手存截圖。
@@ -50,6 +50,17 @@ def _lgl_fab_ok(pg):
     return (fab is None or fab["away"] or not _lgl_hit(fab["r"], ban)), {"fab": fab, "ban": ban}
 
 
+def _lgl_close_tour(pg, wait_ms=2500):
+    """同意之後自動開的導覽關掉。2026-10-17 改前→改後（Andy 10-17：「在同意之後，不用額外跳視窗，直接開啟上方平台導覽功能」）：
+    改前同意後跳舊的置中彈窗（#lgTour，按 #lgTourX 關）；改後開的是 tour.js 的全站導覽（#twTour，按「跳過導覽」#twTourSkip 關）。
+    兩種都處理；導覽是同意後 0.2 秒才開，所以先等一下（最多 wait_ms）。在法律頁上同意不會開（不把讀條文的人拉走），那時直接略過。"""
+    wait_until(pg, "() => !!document.getElementById('lgTour') || !!(window.TwTour && TwTour.state().active)", wait_ms)
+    if pg.locator("#lgTourX").count():
+        pg.click("#lgTourX"); pg.wait_for_timeout(300)
+    if pg.locator("#twTourSkip").count():
+        pg.click("#twTourSkip"); pg.wait_for_timeout(300)
+
+
 def t_legal_launch_1016(b, base):
     T = "法律上架1016"
     shots = os.environ.get("TW_LEGAL_SHOTS", "")
@@ -84,13 +95,13 @@ def t_legal_launch_1016(b, base):
             cv = None
         ok(f"【{T}】1440 {theme}：按「同意並繼續」→ 橫幅消失、localStorage tw.consent 寫入 v=2026-10-17",
            pg.locator("#lgBanner").count() == 0 and bool(cv) and cv.get("v") == "2026-10-17" and bool(cv.get("at")), raw)
-        if pg.locator("#lgTourX").count():
-            pg.click("#lgTourX"); pg.wait_for_timeout(300)
+        _lgl_close_tour(pg)
         if shots and theme == "dark":
             pg.screenshot(path=os.path.join(shots, "1440_dark_after_accept.png"))
         pg.reload(wait_until="networkidle"); pg.wait_for_timeout(1800)
         ok(f"【{T}】1440 {theme}：重新整理 → 橫幅不再出現、導覽也不再自動開",
-           pg.locator("#lgBanner").count() == 0 and pg.locator("#lgTour").count() == 0)
+           pg.locator("#lgBanner").count() == 0 and pg.locator("#lgTour").count() == 0
+           and not pg.evaluate("() => !!(window.TwTour && TwTour.state().active)"))
         ctx.close()
 
     # ---------------------------------------------------------------- 390：浮動橫幅貼底、不多空；同意前後頁面高度一樣
@@ -116,8 +127,7 @@ def t_legal_launch_1016(b, base):
         ok(f"【{T}】390：平台導覽進行中橫幅讓開（不顯示）、導覽結束橫幅回來 —— 兩者不疊在一起",
            bool(on) and on["disp"] == "none" and bool(off) and off["disp"] != "none", {"導覽中": on, "結束後": off})
     pg.click("#lgAccept"); pg.wait_for_timeout(800)
-    if pg.locator("#lgTourX").count():
-        pg.click("#lgTourX"); pg.wait_for_timeout(300)
+    _lgl_close_tour(pg)
     pg.wait_for_timeout(600)
     g2 = pg.evaluate(LGL_PAGE)
     ok(f"【{T}】390：頁面底部沒有多出的空白 —— document 高度 − 最後一個元素底：有橫幅 {g1['tail']}、同意後 {g2['tail']}（相同且 ≤ 40）",
@@ -149,8 +159,7 @@ def t_legal_launch_1016(b, base):
         pg.goto(base + "#terms", wait_until="networkidle"); pg.wait_for_timeout(1200)
         s0 = pg.evaluate(LGL_RECT, ".lgsum")
         pg.click("#lgAccept"); pg.wait_for_timeout(800)
-        if pg.locator("#lgTourX").count():
-            pg.click("#lgTourX"); pg.wait_for_timeout(300)
+        _lgl_close_tour(pg, 600)
         s1 = pg.evaluate(LGL_RECT, ".lgsum")
         ok(f"【{T}】{w} 法律頁按同意 → 橫幅消失、重點一覽往上補位（沒留空洞）",
            pg.locator("#lgBanner").count() == 0 and bool(s0) and bool(s1) and s1[1] < s0[1] - 50, {"前": s0, "後": s1})
