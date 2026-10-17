@@ -283,6 +283,13 @@
 .acctbar .ame .anm{max-width:7em;overflow:hidden;text-overflow:ellipsis}
 .acctmenu{position:fixed;z-index:1250;min-width:220px;background:var(--panel);border:1px solid var(--line-2);border-radius:12px;box-shadow:0 12px 40px rgba(0,0,0,.35);padding:6px;color:var(--ink);font-size:14px}
 .acctmenu[hidden]{display:none}
+.acctonpop{position:fixed;z-index:1250;width:min(420px,calc(100vw - 16px));max-height:calc(100vh - var(--op-top,60px) - 12px);overflow-y:auto;overscroll-behavior:contain;background:var(--panel);border:1px solid var(--line-2);border-radius:12px;box-shadow:0 12px 40px rgba(0,0,0,.35);padding:10px 12px;color:var(--ink);font-size:14px;box-sizing:border-box}
+.acctonpop[hidden]{display:none}
+.acctonpop .oph{display:flex;flex-direction:column;gap:2px;padding-bottom:8px;border-bottom:1px solid var(--line)}.acctonpop .oph small{color:var(--ink-2);font-size:12.5px}
+.acctonpop .opl{list-style:none;margin:0;padding:4px 0}.acctonpop .opl li{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:1px 10px;padding:7px 2px;border-bottom:1px solid var(--line)}
+.acctonpop .opn{font-weight:700;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.acctonpop .ope{grid-column:1/-1;color:var(--ink-2);font-size:12.5px;word-break:break-all;user-select:all}.acctonpop .opr{grid-row:1;grid-column:2;color:var(--ink-2);font-size:12px;white-space:nowrap}
+.acctonpop .opz{margin:8px 0;color:var(--ink-2);font-size:13px}.acctonpop .opf{display:flex;align-items:center;justify-content:space-between;gap:8px;padding-top:8px}
+.acctonpop .opcp{border:1px solid var(--line-2);background:none;color:var(--ink);border-radius:8px;padding:6px 10px;font-size:13px;cursor:pointer}.acctonpop .opcp:hover{background:var(--row-hover)}.acctonpop .opf a{color:var(--accent,#3b82f6);font-size:13px;text-decoration:none}
 /* 10-17 Andy：「這邊太長，需要有拉Bar」→ 選單最高到視窗底（留 12px），超過就在選單裡捲動，捲軸看得到 */
 .acctmenu{max-height:calc(100vh - var(--am-top,60px) - 12px);overflow-y:auto;overscroll-behavior:contain;scrollbar-width:thin;scrollbar-color:color-mix(in srgb,var(--ink-2) 55%,transparent) transparent}
 .acctmenu::-webkit-scrollbar{width:8px}.acctmenu::-webkit-scrollbar-thumb{background:color-mix(in srgb,var(--ink-2) 55%,transparent);border-radius:8px}
@@ -399,7 +406,7 @@ html:not(.m4) .m4deldlg .msg{min-height:1.4em;font-size:13px;color:#ff6b7a;margi
     const bar = window.TwAcctBar ? window.TwAcctBar() : null; if (!bar) return;
     injectCSS();
     let on = document.getElementById('acctOnline');
-    if (!on) { on = document.createElement('button'); on.type = 'button'; on.id = 'acctOnline'; on.className = 'aonline'; on.hidden = true; bar.appendChild(on); on.onclick = () => { if (S.user && S.user.admin) location.hash = '#admin/traffic'; }; }
+    if (!on) { on = document.createElement('button'); on.type = 'button'; on.id = 'acctOnline'; on.className = 'aonline'; on.hidden = true; bar.appendChild(on); on.onclick = (e) => { if (S.user && S.user.admin) { e.stopPropagation(); openOnline(on); } }; }
     let b = document.getElementById('acctBtn');
     if (!S.on) { if (b) b.remove(); on.hidden = true; const r = document.getElementById('mmAcct'); if (r) r.remove(); return; }
     if (!b) { b = document.createElement('button'); b.type = 'button'; b.id = 'acctBtn'; b.className = 'abtn'; bar.appendChild(b); b.onclick = onBtn; }
@@ -429,6 +436,35 @@ html:not(.m4) .m4deldlg .msg{min-height:1.4em;font-size:13px;color:#ff6b7a;margi
     on.hidden = false; on.innerHTML = `<i></i>${S.online}<span> 人在線</span>`;
     on.title = `目前約 ${S.online} 人正在看這個網站（最近 6 分鐘內有動作）` + (S.user && S.user.admin ? '・點一下看是誰' : '');
     on.style.cursor = S.user && S.user.admin ? 'pointer' : 'default';
+  }
+  /* 10-17 Andy：「點擊後我可以看到目前有誰上線，需要顯示 Mail list」→ 站主點「N 人在線」直接在下方展開線上名單（名字、email、所在頁、多久前），
+     可一鍵複製全部 email；完整流量頁仍在 #admin/traffic。只有站主看得到（/v1/admin/online 本來就只認站主）。 */
+  const RT = { overview: '總覽', articles: '精選文章', article: '精選文章', calendar: '財經日曆', flow: '資金流向', rotation: '資金輪動', sankey: '資金分流樹', heat: '熱力圖',
+    industry: '產業地圖', themes: '題材', stock: '個股', market: '市場明細', season: '季節性', watch: '自選清單', pricing: '訂閱方案', admin: '管理區', notices: '公告', privacy: '隱私權政策', terms: '使用條款' };
+  const rtName = (r) => { const s = String(r || '').replace(/^#/, ''), k = s.split('/')[0]; return (RT[k] || k || '首頁') + (s.includes('/') ? '・' + s.split('/').slice(1).join('/') : ''); };
+  const ago = (ms) => { const s = Math.max(0, Math.round((Date.now() - Number(ms)) / 1000)); return s < 60 ? s + ' 秒前' : Math.round(s / 60) + ' 分前'; };
+  async function openOnline(anchor) {
+    let p = document.getElementById('acctOnPop');
+    if (p && !p.hidden) { p.hidden = true; return; }
+    if (!p) {
+      p = document.createElement('div'); p.id = 'acctOnPop'; p.className = 'acctonpop'; p.setAttribute('role', 'dialog'); p.setAttribute('aria-label', '目前在線名單'); document.body.appendChild(p);
+      document.addEventListener('pointerdown', (e) => { if (!p.hidden && !p.contains(e.target) && !e.target.closest('#acctOnline')) p.hidden = true; }, true);
+      document.addEventListener('keydown', (e) => { if (e.key === 'Escape') p.hidden = true; });
+    }
+    const r = anchor.getBoundingClientRect();
+    p.style.top = Math.round(r.bottom + 6) + 'px'; p.style.setProperty('--op-top', Math.round(r.bottom + 6) + 'px');
+    p.style.right = Math.max(8, Math.round(window.innerWidth - r.right)) + 'px';
+    p.innerHTML = '<div class="oph"><b>目前在線</b><small>讀取中…</small></div>'; p.hidden = false;
+    const d = await call('/v1/admin/online', {});
+    if (!d || d._s !== 200) { p.innerHTML = '<div class="oph"><b>目前在線</b><small>讀不到線上名單（會員伺服器沒回應）</small></div>'; return; }
+    const us = d.users || [], mails = [...new Set(us.map((u) => u.email).filter(Boolean))];
+    p.innerHTML = `<div class="oph"><b>目前在線 ${esc(d.total)} 人</b><small>登入會員 ${us.length} 人・訪客 ${esc(d.guests)} 人</small></div>`
+      + (us.length ? `<ul class="opl">${us.map((u) => `<li><span class="opn">${esc(u.name || '（未命名）')}</span><span class="ope">${esc(u.email)}</span><span class="opr">${esc(rtName(u.route))}・${ago(u.seen)}</span></li>`).join('')}</ul>`
+        : '<p class="opz">目前沒有登入的會員在線（訪客看不到名字）</p>')
+      + `<div class="opf">${mails.length ? `<button type="button" class="opcp" id="acctOnCopy">複製 email 清單（${mails.length}）</button>` : ''}<a href="#admin/traffic" id="acctOnMore">完整流量頁 →</a></div>`;
+    const cp = document.getElementById('acctOnCopy');
+    if (cp) cp.onclick = async () => { try { await navigator.clipboard.writeText(mails.join(', ')); cp.textContent = '已複製 ' + mails.length + ' 個 email'; } catch (e) { cp.textContent = '複製失敗，請手動選取'; } };
+    document.getElementById('acctOnMore').onclick = () => { p.hidden = true; };
   }
   function onBtn(e) {
     e.stopPropagation();
