@@ -1,0 +1,80 @@
+{
+  "asset_id": "tech_illustrated_server",
+  "中文名稱": "伺服器物件",
+  "category": "gpt_original",
+  "original_author": "OpenAI imagegen（本次全新科技物件，不含比比參考）",
+  "processed_by": "Codex：固定格機械裁切、版本登錄",
+  "tool": "image_gen.imagegen",
+  "provenance_evidence": [
+    "output/2026-10-17_asml-outlook/prompts.md",
+    "output/2026-10-17_asml-outlook/assets/tech_sheet_source.png",
+    "output/2026-10-17_asml-outlook/assets/tech_cells.json"
+  ],
+  "parent_asset_id": null,
+  "related_asset_ids": [],
+  "version": "v001",
+  "版本": "v001",
+  "檔案": "v001.png",
+  "files": [
+    {
+      "path": "v001.png",
+      "exists": true,
+      "bytes": 448722,
+      "sha256": "f8775679319e419a85c0c742a8a53c71b99988619c1536f9eb0d11d73967a2cc",
+      "dimensions": [
+        414,
+        492
+      ],
+      "format": "PNG",
+      "frames": 1,
+      "alpha_extrema": [
+        0,
+        254
+      ],
+      "has_transparent_pixels": true,
+      "duration_ms": null,
+      "fps": null
+    }
+  ],
+  "是否透明底": true,
+  "dimensions": [
+    414,
+    492
+  ],
+  "source_crop_bbox": [
+    1100,
+    510,
+    1536,
+    1024
+  ],
+  "pose": "不適用",
+  "action": "科技教學插畫",
+  "orientation": "示意透視",
+  "expression": "不適用",
+  "scene": "科技研究筆記／半導體科普",
+  "prop": "伺服器物件",
+  "tags": [
+    "server",
+    "伺服器物件",
+    "科技物件",
+    "bitmap",
+    "PNG"
+  ],
+  "status": "review",
+  "qa_status": "review",
+  "approval_evidence": null,
+  "animation": {
+    "frames": 0,
+    "fps": null,
+    "duration_ms": null
+  },
+  "rights": "本次 imagegen 全新生成物件，可追溯；實際技術與品牌精緻度仍須審核",
+  "權利狀態": "新生成科技物件；來源見provenance_evidence",
+  "品管狀態": "review；不代表真實設備結構正確",
+  "limitations": "PNG可作獨立圖層縮放、組合與加註，不能宣稱能改視角或有對應SVG原始；相關codex SVG是另一件獨立教學元件。光路與設備非真機工程圖，須人工驗證。",
+  "prompt_summary": "奶油系手繪科技插畫；獨立透明科技物件；不含角色與正式中文數字。",
+  "used_in": [
+    "2026-10-17_asml-outlook"
+  ],
+  "雲端備份狀態": "pending PR"
+}
