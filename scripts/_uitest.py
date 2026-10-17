@@ -71463,7 +71463,8 @@ def t_articles_1014(b, base):
     ok(f"{T}：800 寬 → 卡片兩欄、沒有橫向捲軸", st["cols"] == 2 and st["sw"] <= 0, st)
     pg.set_viewport_size({"width": 1440, "height": 900}); pg.wait_for_timeout(400)
     # ⑥ 單篇（真文章）＋返回
-    r0 = sorted([a for a in vis if a in real], key=lambda a: a["date"], reverse=True)
+    # 10-17：src:api 的新文章全文只在會員 Worker（防白嫖），repo 沒有 posts/<id>.json → 這段只拿有公開全文的舊文章驗
+    r0 = sorted([a for a in vis if a in real and a.get("src") != "api"], key=lambda a: a["date"], reverse=True)
     first = r0[0] if r0 else None
     if first:
         pg.click(f"#artList .artc[data-id='{first['id']}']")
@@ -72196,7 +72197,7 @@ def t_art_tabs_1016(b, base):
     import urllib.parse as _up
     GH = "https://github.com/MiaoZiKe/tw-rotation/issues/new"
     TODAY = today.isoformat()
-    posts = {a["id"]: json.loads((SITE / "articles" / "posts" / f"{a['id']}.json").read_text(encoding="utf-8")) for a in real}
+    posts = {a["id"]: json.loads((SITE / "articles" / "posts" / f"{a['id']}.json").read_text(encoding="utf-8")) for a in real if a.get("src") != "api"}
 
     def parse(u):
         p = _up.urlparse(u)
@@ -72296,7 +72297,7 @@ def t_art_tabs_1016(b, base):
     gp.click("#artGptPanel .gpr:first-of-type button[data-gpt-copy]"); gp.wait_for_timeout(400)
     clip = gp.evaluate("async () => { try { return await navigator.clipboard.readText(); } catch (e) { return 'ERR ' + e; } }")
     ok(f"{T}：按「複製完整交接內容」→ 剪貼簿是完整 Markdown（## 母文章 開頭、含 影片 請產出、來源與數據都在）", clip.startswith("## 母文章") and "## 請產出（影片）" in clip and "## 來源" in clip and "## 完整文章 JSON" in clip, clip[:80])
-    lens = gp.evaluate("""async () => { const o = []; for (const id of %s) { const p = await (await fetch('articles/posts/' + id + '.json')).json(); for (const t of ['ig', 'video']) { const r = TwGptHandoff.build(p, t); o.push([id.slice(0, 22), t, r.len, r.trimmed.length]); } } return o; }""" % json.dumps(rid))
+    lens = gp.evaluate("""async () => { const o = []; for (const id of %s) { const p = await (await fetch('articles/posts/' + id + '.json')).json(); for (const t of ['ig', 'video']) { const r = TwGptHandoff.build(p, t); o.push([id.slice(0, 22), t, r.len, r.trimmed.length]); } } return o; }""" % json.dumps(list(posts)))
     ok(f"{T}：現有 {len(rid)} 篇 × 兩種，連結長度全部 ≤ 8000（{[x[2] for x in lens]}）；超過就會自動省略段落", all(x[2] <= 8000 for x in lens), lens)
     # 不洩漏管理資料：body 只含文章已公開的內容
     ok(f"{T}：交接內容沒有管理資料（沒有點閱數、會員 uid、email、權杖）", not re.search(r"點閱次數|\buid\b|@gmail|Bearer|token", bd + bv + clip), re.findall(r".{10}(?:點閱次數|\buid\b|@gmail|Bearer|token).{10}", bd + bv + clip))
