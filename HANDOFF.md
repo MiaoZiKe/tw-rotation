@@ -23,6 +23,13 @@
 - 既有紅（非這批）：流量觀測1005「堆疊 3 色」、_preview #industry/ai_server 800 寬文字交疊。
 - 待處理：Worker 自動排程仍綁這個長對話（「改排程」等 Andy）。
 
+### 2026-10-17 23:45 晚間第二輪（CEO 主 session）
+- ✅ #7 特斯拉 Roadster（插圖 v2＋wheel／hcyl／shell 積木、CNET 影片）、#8 費半（照 visual_playbook 重做，5 張圖、自評 83）。
+- ✅ 管理者全站可複製＋文章圖「複製圖片」（管理者複製1017）；影片區塊填滿置中；全部文章依類型分段（文章分類分段1017）。
+- ✅ 文章圖表 signed／refs／bands（精選文章圖表擴充1017）＋統一成網站圖表庫款式（同段落第 ⑧ 項）。⚠ 橫條改單色，蓋掉 10-16「色彩豐富」，已告知 Andy。
+- ✅ 排程：每小時新對話（trig_01JSw5RrpyD94edAaUY69HMo，08:05～23:05，已掛 repo 才有 GitHub MCP）＋送出請求立即叫醒（Worker ROUTINE_FIRE_TOKEN，Andy 已在 Cloudflare 設；/v1/articles/jobs/kick）。快速流程卡第 2 版＋docs/articles/visual_playbook.md；撰寫用 sonnet。
+- 待處理：visual_playbook 第 7 節（分享封面圖、資料湖補費半／VIX／信用利差長歷史、甜甜圈、族群熱力格）；_preview #industry/ai_server 800 寬交疊、流量觀測1005 堆疊色斷言（皆既有）；legal-compliance 看 playbook 第 4 節標題規則。
+
 ## 2026-10-17 03:1x 短影片 #4「CPO 共同封裝光學是什麼？」完成（main 87a22a79）
 - 成品 docs/marketing/videos/2026-10-17-k_cpo/（k_cpo_9x16.mp4 45 秒 1080×1920、封面、srt、分鏡、posts.md IG／Threads 文案＋合規自查、overlap_report）。重疊檢查：程式 1350 幀 0 筆；人工 90 格 0 筆。不點名個股；NVIDIA／Broadcom 數字標「廠商說法」＋新聞稿日期。字型 Huninn／Noto Sans TC（OFL），重跑渲染用 CPO_FONT_DIR。佇列 #4 已標 done。
 
