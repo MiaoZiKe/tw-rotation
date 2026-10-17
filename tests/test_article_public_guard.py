@@ -5,6 +5,15 @@ import pytest
 
 from scripts import article_publish as ap
 
+@pytest.fixture(autouse=True)
+def _no_real_worker(monkeypatch):
+    """10-17 事故：雲端環境的網路密鑰會自動補鑰匙，沒擋網路的測試真的把「測試」全文傳上正式 Worker、寫進真的 index.json。
+    每個測試預設：碰到 aj.call 就失敗；要用的測試自己再 monkeypatch。"""
+    def boom(*a, **k):
+        raise AssertionError("測試不准連真的會員 Worker")
+    monkeypatch.setattr(ap.aj, "call", boom)
+
+
 POST = {"id": "2026-10-17-know-test-a", "cat": "know", "title": "測試", "date": "2026-10-17", "topic": "k_test",
         "subtitle": "SUB", "summary": "SUM", "tags": ["x"], "reading_min": 3,
         "groups": [{"id": "foundry", "name": "晶圓代工"}], "blocks": [{"t": "p", "text": "BODY"}], "sources": [{"title": "s"}]}
