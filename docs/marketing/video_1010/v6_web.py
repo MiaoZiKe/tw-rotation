@@ -134,36 +134,36 @@ def build():
     S.append(card("a04", 1.8, K6.logo6(), [(0, "swish"), (0.4, "ding")]))
     S.append(card("a05", 2.8, K4.intro4_fn(), [(0.2, "pop")]))
     # 1 總覽
-    S.append(shot("b01", "總覽", "V01_desktop", [(0.0, 2.2)], "① 每天先看這頁", "我先帶你看今天大盤", "talk_happy", "folder", mv="hop_l"))
+    S.append(shot("b01", "總覽", "V01_desktop", [(0.0, 2.2)], "① 每天先看這頁", "我先帶你看今天大盤", "talk_happy_v2", "folder", mv="hop_l"))
     S.append(shot("b02", "總覽", "V02_desktop", [(1.6, 4.2)], "今日事件不漏看", "重要消息我幫你列好", "news", "face_surprise_happy"))
     S.append(shot("b03", "總覽", "V27_desktop", [(4.4, 6.8)], "打幾個字就到", "想查哪檔，打簡稱就找到", "magnifier", "face_relief", min_cap=3.2))
     # 2 財經日曆
-    S.append(shot("c01", "財經日曆", "V03_desktop", [(10.2, 12.4)], "② 財經日曆", "財報、法說、FED 我排好了", "calendar", "talk_excited", mv="slide_l", cont=True))
+    S.append(shot("c01", "財經日曆", "V03_desktop", [(10.2, 12.4)], "② 財經日曆", "財報、法說、FED 我排好了", "calendar", "talk_excited_v2", mv="slide_l", cont=True))
     S.append(shot("c02", "財經日曆", "V03_desktop", [(12.8, 13.6), (15.2, 17.2)], "重要日子不漏看", "點一下，說明馬上出來", "globe", "wow", min_cap=2.1))
     # 3 資金流向
-    S.append(shot("d01", "資金流向", "V04_desktop_v3c", [(1.4, 3.4)], "③ 錢往哪裡跑", "錢跑去哪？我帶你看", "talk_happy", "face_curious", mv="hop_l"))
+    S.append(shot("d01", "資金流向", "V04_desktop_v3c", [(1.4, 3.4)], "③ 錢往哪裡跑", "錢跑去哪？我帶你看", "talk_happy_v2", "face_curious", mv="hop_l"))
     S.append(shot("d02", "資金流向", "V04_desktop_v3c", [(3.9, 7.3)], "按播放看輪動", "族群怎麼輪，一路播給你", "coins", "face_surprise_happy"))
-    S.append(shot("d03", "資金流向", "V06_desktop_v3c", [(2.3, 4.3)], "資金分流樹", "大盤的錢分去哪？", "talk_happy", "tilt", cont=True, limit=4.3))
+    S.append(shot("d03", "資金流向", "V06_desktop_v3c", [(2.3, 4.3)], "資金分流樹", "大盤的錢分去哪？", "talk_happy_v2", "tilt", cont=True, limit=4.3))
     S.append(shot("d04", "資金流向", "V06_desktop_v3c", [(5.1, 7.5)], "每天分流一路播", "錢從哪流到哪，一看就懂", "spotlight", "face_love"))
     # 4 熱力圖
     S.append(shot("e01", "熱力圖", "V08_desktop", [(0.05, 2.55)], "④ 哪裡熱一眼看", "方塊越大，錢越多", "magnifier", "face_shock", mv="hop_r", min_cap=2.5))
-    S.append(shot("e02", "熱力圖", "I01_desktop_v3i", [(4.0, 6.4)], "題材熱度", "熱門題材，我拆開給你看", "fire", "talk_excited", cont=True))
+    S.append(shot("e02", "熱力圖", "I01_desktop_v3i", [(4.0, 6.4)], "題材熱度", "熱門題材，我拆開給你看", "fire", "talk_excited_v2", cont=True))
     S.append(shot("e03", "熱力圖", "I01_desktop_v3i", [(6.5, 9.5)], "一步一步看懂", "從晶片到整櫃，照順序看", "bulb", "face_thinking_bulb"))
     # 5 產業地圖
-    S.append(shot("f01", "產業地圖", "V11_desktop_nofab", [(11.7, 14.3)], "⑤ 產業鏈 2D", "上下游怎麼排，一張看懂", "talk_happy", "spotlight", mv="hop_l"))
+    S.append(shot("f01", "產業地圖", "V11_desktop_nofab", [(11.7, 14.3)], "⑤ 產業鏈 2D", "上下游怎麼排，一張看懂", "talk_happy_v2", "spotlight", mv="hop_l"))
     S.append(shot("f02", "產業地圖", "V12a_desktop", [(2.0, 5.4)], "3D 拆開看", "戴上眼鏡，推一下就轉！", "3dglasses", "face_star"))
     S.append(grid_card("f03", GRID_W))
-    S.append(shot("f04", "產業地圖", "V13_desktop", [(3.6, 6.6)], "上下游一張連", "滑過去，供貨關係就亮", "talk_happy", "face_love", hov=True))
+    S.append(shot("f04", "產業地圖", "V13_desktop", [(3.6, 6.6)], "上下游一張連", "滑過去，供貨關係就亮", "talk_happy_v2", "face_love", hov=True))
     # 6 個股
     D10 = "D10_desktop_v3j"
     S.append(shot("g01", "個股", D10, [(1.1, 3.1)], "⑥ 個股一頁看", "這檔的走勢，我幫你打開", "slide_l", "face_cool"))
-    S.append(shot("g02", "個股", D10, [(4.2, 6.6)], "週期一鍵切", "日、週、月，點一下切換", "talk_happy", "face_nod"))
+    S.append(shot("g02", "個股", D10, [(4.2, 6.6)], "週期一鍵切", "日、週、月，點一下切換", "talk_happy_v2", "face_nod_v2"))
     S.append(shot("g03", "個股", D10, [(9.1, 11.3)], "下方看總覽", "基本面、籌碼，重點整理好", "bulb", "face_thinking_bulb"))
     S.append(shot("g04", "個股", D10, [(12.2, 12.9), (14.0, 14.8), (15.5, 16.4)], "旁邊看營收獲利", "營收、獲利，旁邊點就有", "calc", "face_proud", hl="營收獲利"))
-    S.append(shot("g05", "個股", D10, [(18.6, 19.2), (22.0, 23.4)], "旁邊看營收獲利", "營收、獲利，旁邊點就有", "magnifier", "face_nod", hl="營收獲利"))
+    S.append(shot("g05", "個股", D10, [(18.6, 19.2), (22.0, 23.4)], "旁邊看營收獲利", "營收、獲利，旁邊點就有", "magnifier", "face_nod_v2", hl="營收獲利"))
     # 7～9
     S.append(shot("h01", "市場明細", "V16_desktop", [(7.8, 10.0)], "⑦ 市場明細", "法人連買賣，名單直接看", "coins", "face_curious", mv="slide_r", min_cap=2.2))
-    S.append(shot("h02", "選股策略", "V17_desktop", [(6.3, 6.9), (7.9, 9.5)], "⑧ 條件分好類", "技術、籌碼，分面向整理", "folder", "face_nod", mv="hop_l", min_cap=2.2))
+    S.append(shot("h02", "選股策略", "V17_desktop", [(6.3, 6.9), (7.9, 9.5)], "⑧ 條件分好類", "技術、籌碼，分面向整理", "folder", "face_nod_v2", mv="hop_l", min_cap=2.2))
     S.append(shot("h03", "週期統計", "V18_desktop", [(4.2, 6.4)], "⑨ 週期統計", "歷年月份規律，一張表", "hourglass", "tilt", mv="hop_r", min_cap=2.2))
     # 10 ETF
     S.append(shot("i01", "ETF", "V19_desktop", [(3.8, 6.4)], "⑩ ETF 配息曆", "存 ETF？哪天除息我標好", "piggy", "face_love", mv="hop_l"))
@@ -184,19 +184,19 @@ def build():
     t_card = _find(tk, "CoWoS")
     t_h1 = _find(hv, "HBM")
     t_h2 = _find(hv, "GPU")
-    S.append(shot("n01", "精選文章", ART_W, [(0.0, 2.0)], "⑫ 精選文章", "產業新知，我整理成文章", "phone", "talk_excited", mv="slide_l", react_t=1.0))
+    S.append(shot("n01", "精選文章", ART_W, [(0.0, 2.0)], "⑫ 精選文章", "產業新知，我整理成文章", "phone", "talk_excited_v2", mv="slide_l", react_t=1.0))
     S.append(shot("n02", "精選文章", ART_W, [(max(2.0, t_know - 0.5), t_know + 1.5)], "分類一點就換", "快訊、產業鏈、知識分好類", "folder", "face_curious"))
-    S.append(shot("n03", "精選文章", ART_W, [(t_card - 0.4, t_card + 1.4)], "3 分鐘看懂", "點進來，重點先給你", "talk_happy", "face_star"))
+    S.append(shot("n03", "精選文章", ART_W, [(t_card - 0.4, t_card + 1.4)], "3 分鐘看懂", "點進來，重點先給你", "talk_happy_v2", "face_star"))
     S.append(shot("n04", "精選文章", ART_W, [(t_h1 - 1.0, t_h1 + 1.6), (t_h2 - 0.1, t_h2 + 1.6)], "插圖拆給你看", "滑到零件，那一層就亮", "bulb", "wow"))
     # 13 導覽
-    S.append(shot("j02", "導覽", "V25_desktop", [(5.3, 7.9)], "看不懂有導覽", "每一頁我都一步步帶你", "talk_happy", "face_wink", mv="hop_l", min_cap=2.6))
+    S.append(shot("j02", "導覽", "V25_desktop", [(5.3, 7.9)], "看不懂有導覽", "每一頁我都一步步帶你", "talk_happy_v2", "face_wink", mv="hop_l", min_cap=2.6))
     # 14 跟比比玩（新）：網站上的比比是主角，主持人不疊、不放主持人泡泡
     pk = tap_times(PLAY_W, "click")
     ph = tap_times(PLAY_W, "hover")
     t_open = ph[0][0] if ph else pk[0][0] - 0.8
     t_ball, t_grass, t_pet, t_bub = _find(pk, "玩球"), _find(pk, "餵牧草"), _find(pk, "摸摸頭"), _find(pk, "吹泡泡")
     wk = [(0.0, PLAY_WIN_W)]
-    S.append(shot("p01", "跟比比玩", PLAY_W, [(t_open - 0.8, t_ball - 0.3)], "⑭ 跟比比玩", "", "hop_r", "hop_r", no_host=True, win_keys=wk, min_cap=1.4))
+    S.append(shot("p01", "跟比比玩", PLAY_W, [(t_open - 0.8, t_ball - 0.3)], "⑭ 跟比比玩", "", "hop_r", "invite_nod", no_host=False, win_keys=wk, min_cap=1.4))
     S.append(shot("p02", "跟比比玩", PLAY_W, [(t_ball - 0.3, t_ball + 3.7)], "丟球，比比去接", "", "hop_r", "hop_r", no_host=True, win_keys=wk, min_cap=1.0))
     S.append(shot("p03", "跟比比玩", PLAY_W, [(t_grass - 0.6, t_grass + 2.2)], "牧草放地上吃", "", "hop_r", "hop_r", no_host=True, win_keys=wk, min_cap=1.0))
     S.append(shot("p04", "跟比比玩", PLAY_W, [(t_pet - 0.6, t_pet + 1.6)], "摸摸頭好舒服", "", "hop_r", "hop_r", no_host=True, win_keys=wk, min_cap=1.0))
