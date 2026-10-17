@@ -112,10 +112,10 @@ def tap_times(clip, kind="click"):
 
 # 精選文章／跟比比玩：素材名（錄影 --set v6）
 ART_W = "V28_desktop_v6_nofab"
-PLAY_W = "V29_desktop_v6_dsf4_close"   # 近景重錄：只截右下角 566×315 css、DPR 4（2264×1260）（CEO 10-17 審片：比比太小）
+PLAY_W = "V29_desktop_v6_dsf6_close"   # 近景重錄：只截右下角 566×315 css、DPR 6（3396×1890）（CEO 10-17 審片：比比太小，近景要 ≥350px）
 # 跟比比玩：推近右下角（客服鈕＋小圈＋網站比比跑去玩的範圍），1920×1080 來源視窗（輸出 1766 寬 → 倍率 ≤1，不超過原解析度）
-PLAY_FULL_W = (0, 0, 2264, 1260)      # 小圈整圈＋接球路徑
-PLAY_TIGHT_W = (498, 277, 2264, 1260)  # 比比近景（倍率 1.0）
+PLAY_FULL_W = (0, 0, 3396, 1890)      # 小圈整圈＋接球路徑
+PLAY_TIGHT_W = (1630, 897, 3396, 1890)  # 比比近景（倍率 1.0）
 
 
 def _find(ts, key):
@@ -202,7 +202,7 @@ def build():
     full = [(0.0, PLAY_FULL_W)]
 
     def tight(a, t_item):
-        return [(0.0, PLAY_FULL_W), (t_item - a + 0.4, PLAY_TIGHT_W)]
+        return [(0.0, PLAY_FULL_W), (t_item - a + 0.5, PLAY_TIGHT_W, 1.2)]   # 點完小圈後 1.2 秒慢慢推近比比
     a1, a2, a3, a4, a5 = t_open - 0.8, t_ball - 0.3, t_grass - 0.6, t_pet - 0.6, t_bub - 0.6
     S.append(shot("p01", "跟比比玩", PLAY_W, [(a1, t_ball - 0.3)], "⑭ 跟比比玩", "", "hop_r", "invite_nod", no_host=True, win_keys=full, min_cap=1.4))
     S.append(shot("p02", "跟比比玩", PLAY_W, [(a2, t_ball + 3.7)], "丟球，比比去接", "", "hop_r", "hop_r", no_host=True, win_keys=full, min_cap=1.0))

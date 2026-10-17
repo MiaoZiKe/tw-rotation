@@ -76,9 +76,9 @@ def grid_card(sid, D=2.6):
 
 
 ART_M = "V28_mobile_v6_nofab"
-PLAY_M = "V29_mobile_v6_dsf4.5_close"   # 近景重錄：只截下半部 300×444 css、DPR 4.5
-PLAY_FULL_M = (0, 0, 1350, 1998)
-PLAY_TIGHT_M = (350, 518, 1350, 1998)
+PLAY_M = "V29_mobile_v6_dsf6_close"   # 近景重錄：只截下半部 300×444 css、DPR 6（1800×2664）
+PLAY_FULL_M = (0, 0, 1800, 2664)
+PLAY_TIGHT_M = (800, 1184, 1800, 2664)
 
 
 SHORT_DROP = {"b03", "d04", "e02", "f03", "g03", "g05", "i03"}
@@ -146,13 +146,13 @@ def build():
     full = [(0.0, PLAY_FULL_M)]
 
     def tight(a, t_item):
-        return [(0.0, PLAY_FULL_M), (t_item - a + 0.4, PLAY_TIGHT_M)]
+        return [(0.0, PLAY_FULL_M), (t_item - a + 0.5, PLAY_TIGHT_M, 1.2)]   # 點完小圈後 1.2 秒慢慢推近比比
     a1, a2, a3, a4, a5 = fab_before(t_ball) - 0.6, t_ball - 0.3, fab_before(t_grass) - 0.3, fab_before(t_pet) - 0.3, fab_before(t_bub) - 0.3
     S.append(shot("p01", "跟比比玩", PLAY_M, [(a1, t_ball - 0.3)], "⑭ 跟比比玩", "", "hop_r", "invite_nod", wk=full, no_host=True, min_cap=1.4, cont=True))
-    S.append(shot("p02", "跟比比玩", PLAY_M, [(a2, t_ball + 4.3)], "丟球，比比去接", "", "hop_r", "hop_r", wk=full, no_host=True, min_cap=1.0))
-    S.append(shot("p03", "跟比比玩", PLAY_M, [(a3, t_grass + 2.2)], "牧草放地上吃", "", "hop_r", "hop_r", wk=tight(a3, t_grass), no_host=True, min_cap=1.0))
-    S.append(shot("p04", "跟比比玩", PLAY_M, [(a4, t_pet + 1.6)], "摸摸頭好舒服", "", "hop_r", "hop_r", wk=tight(a4, t_pet), no_host=True, min_cap=1.0))
-    S.append(shot("p05", "跟比比玩", PLAY_M, [(a5, t_bub + 1.8)], "還有玩具六件", "", "hop_r", "hop_r", wk=tight(a5, t_bub), no_host=True, min_cap=1.0))
+    S.append(shot("p02", "跟比比玩", PLAY_M, [(a2, t_ball + 3.1)], "丟球，比比去接", "", "hop_r", "hop_r", wk=full, no_host=True, min_cap=1.0, cont=True))
+    S.append(shot("p03", "跟比比玩", PLAY_M, [(a3, t_grass + 1.6)], "牧草放地上吃", "", "hop_r", "hop_r", wk=tight(a3, t_grass), no_host=True, min_cap=1.0, cont=True))
+    S.append(shot("p04", "跟比比玩", PLAY_M, [(a4, t_pet + 1.6)], "摸摸頭好舒服", "", "hop_r", "hop_r", wk=tight(a4, t_pet), no_host=True, min_cap=1.0, cont=True))
+    S.append(shot("p05", "跟比比玩", PLAY_M, [(a5, t_bub + 1.8)], "還有玩具六件", "", "hop_r", "hop_r", wk=tight(a5, t_bub), no_host=True, min_cap=1.0, cont=True))
     if fresh_nofab("V26w_mobile"):
         S.append(shot("j03", "願望清單", "V26w_mobile", [(5.4, 8.2)], "歡迎許願", "想要什麼功能，跟我說！", "sign_text", "heart_wish", mv="hop_l", fixed=800))
     else:
