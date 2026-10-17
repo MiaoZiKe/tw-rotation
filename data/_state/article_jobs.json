@@ -1,18 +1,4 @@
 {
- "updated": "2026-10-17 19:23",
- "jobs": [
-  {
-   "id": 7,
-   "topic_id": "c-news-mvc9ibft",
-   "kind": "article",
-   "title": "馬斯克最新電動車發表",
-   "note": "",
-   "status": "working",
-   "created": 1792233427736,
-   "updated": 1792236198259,
-   "result": null,
-   "stage": "illus",
-   "stage_at": 1792236198259
-  }
- ]
+ "updated": "2026-10-17 20:02",
+ "jobs": []
 }
