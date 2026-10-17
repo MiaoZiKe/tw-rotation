@@ -10,6 +10,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import v3_core as K  # noqa: E402
+import capture as C  # noqa: E402
 
 RAW = K.RAW3
 
@@ -50,9 +51,9 @@ def main():
         for e in tg:
             if e.get("kind") not in ("click", "hover") or not e.get("rect_center"):
                 continue
-            rows.append({"t": e["t"], "kind": e["kind"], "selector": e.get("expect") or e.get("selector"), "label": e.get("label"),
-                         "x": e["rect_center"][0], "y": e["rect_center"][1], "rect": e.get("block_video_rect") or e.get("video_rect"),
-                         "click_point": e.get("center"), "hit_expected": e.get("hit_expected"), "source": "錄影當下 getBoundingClientRect"})
+            dsf = 2.0 if "desktop" in clip else 3.0
+            rows.append(C.click_row(e, dsf) | {"t": e["t"], "kind": e["kind"], "selector": e.get("expect") or e.get("selector"), "label": e.get("label"),
+                                               "click_point": e.get("center"), "hit_expected": e.get("hit_expected"), "source": "錄影當下 getBoundingClientRect"})
         ck[clip] = rows
         print(clip, "點擊／滑過", len(rows), "焦點框", len(v.get("focus") or []), "壞畫面", v.get("bad"))
     (RAW / "click_targets.json").write_text(json.dumps(ct, ensure_ascii=False))

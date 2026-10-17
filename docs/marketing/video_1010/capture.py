@@ -2932,6 +2932,18 @@ def v29(pg, a, start, base):
         a.wait(700)
 
 
+def click_row(tg: dict, dsf: float) -> dict:
+    """點擊特效中心：被點的那個選擇器自己的外框（fast_click 量的 target_rect_css）＞熱力圖方塊＞最上層元素外框；滑過＝滑鼠位置（hover() 移到選擇器正中）。"""
+    if tg.get("kind") == "hover":
+        return {"x": tg["center"][0], "y": tg["center"][1], "rect": None, "rect_kind": "滑過（滑鼠位置＝選擇器中心）"}
+    if tg.get("target_rect_css"):
+        r = [v * dsf for v in tg["target_rect_css"]]
+        return {"x": round(r[0] + r[2] / 2, 1), "y": round(r[1] + r[3] / 2, 1), "rect": [round(v, 1) for v in r], "rect_kind": "選擇器外框"}
+    r = tg.get("block_video_rect") or tg.get("video_rect")
+    c = tg.get("rect_center") or tg.get("center")
+    return {"x": c[0], "y": c[1], "rect": r, "rect_kind": "方塊外框" if tg.get("block_video_rect") else "最上層元素外框"}
+
+
 def write_clicks(out: Path, clip: str, targets: list, dsf: float):
     """clicks.json（第 6 版）：{素材: [{t, selector, label, x, y, rect}]}，x／y＝點下那一刻目標元素（或熱力圖方塊）外框中心，影片像素。"""
     import fcntl
@@ -2943,9 +2955,7 @@ def write_clicks(out: Path, clip: str, targets: list, dsf: float):
     for tg in targets:
         if tg.get("kind") not in ("click", "hover") or not tg.get("rect_center"):
             continue
-        rows.append({"t": tg["t"], "kind": tg.get("kind"), "selector": tg.get("expect") or tg.get("selector"), "label": tg.get("label"),
-                     "x": tg["rect_center"][0], "y": tg["rect_center"][1],
-                     "rect": tg.get("block_video_rect") or tg.get("video_rect"), "click_point": tg.get("center"),
+        rows.append(click_row(tg, dsf) | {"t": tg["t"], "kind": tg.get("kind"), "selector": tg.get("expect") or tg.get("selector"), "label": tg.get("label"), "click_point": tg.get("center"),
                      "hit_expected": tg.get("hit_expected"), "source": "錄影當下 getBoundingClientRect"})
     d[clip] = rows
     f.write_text(json.dumps(d, ensure_ascii=False, indent=1), encoding="utf-8")

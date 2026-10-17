@@ -117,7 +117,7 @@ def build():
     S[-1].note = "過去表現不代表未來"
     S.append(shot("i03", "ETF", "V20_mobile", [(2.8, 5.0)], "各類前五名", "配息、市值型，前五名", "trophy", "face_proud", fixed=0, min_cap=2.2))
     S[-1].note = "過去表現不代表未來"
-    S.append(shot("i04", "ETF", "V13b_mobile_v3e", [(6.4, 9.2)], "兩張圖一起亮", "點一檔，甜甜圈和時鐘一起亮", "calc", "face_surprise_happy", fixed=1650))
+    S.append(shot("i04", "ETF", "V13b_mobile_v3e", [(6.4, 9.2)], "兩張圖一起亮", "點一檔，甜甜圈和時鐘一起亮", "calc", "face_surprise_happy", fixed=1650, noev=True))
     S.append(shot("i05", "ETF", "V23_mobile", [(1.7, 4.3)], "複利怎麼長大", "再投入和領現金，並排看", "growth", "face_star", hl="長大", fixed=0))
     S.append(shot("j01", "自選清單", "V24_mobile", [(7.6, 10.2)], "⑪ 自選清單", "常看的收進來，一開就有", "star_save", "face_love", mv="hop_r", fixed=540))
     # 12 精選文章（新）：n05 走備案（CEO 10-17）

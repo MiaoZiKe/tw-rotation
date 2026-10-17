@@ -279,11 +279,16 @@ def precise_center(clip, t_src, x, y):
         if best:
             r = best[1]
             rc = r.get("rect")
-            if rc and (rc[2] > 360 or rc[3] > 360) and r.get("click_point"):
-                return float(r["click_point"][0]), float(r["click_point"][1]), "外框是整張圖，用點擊座標（子元素中心）"
-            if r.get("rect") is None:
-                return x, y, r.get("source", "")
-            return float(r["x"]), float(r["y"]), r.get("source", "clicks.json")
+            cp = r.get("click_point")
+            if not rc:
+                return float(r["x"]), float(r["y"]), r.get("rect_kind") or r.get("source", "")
+            inside = cp is None or (rc[0] - 2 <= cp[0] <= rc[0] + rc[2] + 2 and rc[1] - 2 <= cp[1] <= rc[1] + rc[3] + 2)
+            if not inside:
+                return float(cp[0]), float(cp[1]), "外框與點擊座標不一致（量外框時捲動位置不同），用點擊座標"
+            sel = (r.get("selector") or "") + " " + str(r.get("label") or "")
+            if (rc[2] > 360 or rc[3] > 360) and cp and re.search(r"canvas|svg|方塊|環節|seg", sel):
+                return float(cp[0]), float(cp[1]), "目標是整張圖（canvas／svg），用子元素中心（點擊座標）"
+            return float(r["x"]), float(r["y"]), (r.get("rect_kind") or "元素外框") + "中心"
     return x, y, "無量測（沿用點擊座標）"
 
 
@@ -1157,6 +1162,12 @@ def tap_cursor(cv, xy, age, fmt, hover=False, until=1e9):
         img = Image.fromarray(a_)
     cv.paste(img, (int(round(xy[0] + dx - hx)), int(round(xy[1] + dy - hy))), img)
     if hover and age >= 0:
+        hover_ring(cv, xy, al)
+
+
+def hover_ring(cv, xy, al):
+    """滑過：游標＋淡色外圈（直徑 48px），圓心＝游標熱點。"""
+    if True:
         ring_ = Image.new("RGBA", (56, 56), (0, 0, 0, 0))
         col = SKY if THEME["name"] == "cute" else (66, 140, 255)
         ImageDraw.Draw(ring_).ellipse([4, 4, 52, 52], outline=col + (int(150 * al),), width=3)

@@ -91,7 +91,7 @@ def main():
     (out / "crops").mkdir(parents=True, exist_ok=True)
     only = set(a.only.split(",")) if a.only else None
     rows = []
-    real_ripple, real_rb, real_cur = K.ripple, K.ripple_b, K.tap_cursor
+    real_ripple, real_rb, real_cur, real_ring = K.ripple, K.ripple_b, K.tap_cursor, K.hover_ring
     for s in S:
         if only and s.sid not in only:
             continue
@@ -99,7 +99,7 @@ def main():
             continue
         taps = list(s.op.taps)
         for i, tp in enumerate(taps):
-            t = tp["t"] + 2 / FPS            # 點下後第 2 幀：漣漪已經展開、還很清楚
+            t = math.ceil(tp["t"] * FPS - 1e-6) / FPS   # 點下那一幀（網站畫面還沒換頁；漣漪從前 1 格就開始畫）
             if t >= s.dur:
                 continue
             hov = tp["hover"]
@@ -107,34 +107,47 @@ def main():
             K.ripple_b = lambda *x, **y: None
             K.ripple = lambda *x, **y: None
             no_rip = s.render(t, L).convert("RGB")
+            K.hover_ring = lambda *x, **y: None
+            no_ring = s.render(t, L).convert("RGB")
             K.tap_cursor = lambda *x, **y: None
             bare = s.render(t, L).convert("RGB")
-            K.ripple, K.ripple_b, K.tap_cursor = real_ripple, real_rb, real_cur
+            K.ripple, K.ripple_b, K.tap_cursor, K.hover_ring = real_ripple, real_rb, real_cur, real_ring
             rec = s.rec
+            # 網站畫面用「點下前一幀」比對（點下那一幀網站可能已經開始換頁），再把那一幀到點下幀之間的鏡頭位移加回去
+            tpv = max(0.0, t - 1 / FPS)
             site = R.background(L.fmt).copy()
-            rec.draw(site, t, s)
+            rec.draw(site, tpv, s)
             site = site.convert("RGB")
+            g_prev = rec.map(tp["cx"], tp["cy"])
+            st = K.piecewise(rec.srcmap, tpv)
+            rec.draw(R.background(L.fmt).copy(), t, s)
             guess = rec.map(tp["cx"], tp["cy"])
+            shift = (guess[0] - g_prev[0], guess[1] - g_prev[1])
+            rec.draw(R.background(L.fmt).copy(), tpv, s)
             rc = None if hov else ripple_center(on, no_rip, guess)
-            cur = cursor_hot(no_rip, bare, guess, L.fmt)
+            cur = cursor_hot(no_ring, bare, guess, L.fmt)
             inf = K.click_info(rec.clip, tp["src_t"], tp["x"], tp["y"])
-            r = inf["rect"]                 # 來源像素 (x0,y0,x1,y1)
-            if hov:
+            # 樣板＝被點的那個元素自己的外框（clicks.json 的 rect）；目標是整張 canvas／svg、滑過、或外框與點擊座標不一致時，用點擊點周圍 80×80 來源像素
+            psrc = K.PRECISE_SRC.get((rec.clip, round(tp["src_t"], 2))) or K.precise_center(rec.clip, tp["src_t"], tp["cx"], tp["cy"])[2]
+            r = None
+            if not hov and "外框中心" in psrc:
                 pr = K._precise_all()
                 for key in K._clip_keys(rec.clip):
-                    cand = [q for q in pr.get(key, []) if abs(q["t"] - tp["src_t"]) < 0.5 and q.get("rect")]
+                    cand = sorted([q for q in pr.get(key, []) if abs(q["t"] - tp["src_t"]) < 0.5 and q.get("rect")], key=lambda q: abs(q["t"] - tp["src_t"]))
                     if cand:
                         q = cand[0]["rect"]
                         r = (q[0], q[1], q[0] + q[2], q[1] + q[3])
                         break
-            st = K.piecewise(rec.srcmap, t)
+            patch = r is None
+            if patch:
+                r = (tp["cx"] - 1, tp["cy"] - 1, tp["cx"] + 1, tp["cy"] + 1)
             src = B.reader(rec.clip).get(st).convert("RGB")
             ax, ay = rec.map(r[0], r[1])
             bx, by = rec.map(r[2], r[3])
-            sc = (bx - ax) / max(1e-6, r[2] - r[0])
+            sc = rec.rect[2] / max(1e-6, rec.win[2] - rec.win[0])
             tw, th = int(round(bx - ax)), int(round(by - ay))
             row = {"shot": s.sid, "t": round(t, 2), "kind": "滑過" if hov else "點擊", "clip": rec.clip, "src_t": tp["src_t"], "label": inf["label"] if not hov else "滑過",
-                   "center_src": K.PRECISE_SRC.get((rec.clip, round(tp["src_t"], 2)), ""), "expected": [round(guess[0], 1), round(guess[1], 1)]}
+                   "center_src": psrc, "expected": [round(guess[0], 1), round(guess[1], 1)]}
             if cur is not None:
                 row["cursor"] = [round(float(cur[0]), 1), round(float(cur[1]), 1)]
             if rc is None and cur is None:
@@ -146,8 +159,7 @@ def main():
                 rc = (cur[0], cur[1], 0, 0)
             if not hov:
                 row["ripple"] = [round(float(rc[0]), 1), round(float(rc[1]), 1)]
-            # 元素樣板比對（外框太大＝整張圖：改切點擊點周圍 80×80 來源像素）
-            if (r[2] - r[0]) > 360 or (r[3] - r[1]) > 360:
+            if patch:
                 cxs, cys = tp["cx"], tp["cy"]
                 r = (cxs - 40 / max(sc, 0.2), cys - 40 / max(sc, 0.2), cxs + 40 / max(sc, 0.2), cys + 40 / max(sc, 0.2))
                 ax, ay = rec.map(r[0], r[1])
@@ -173,7 +185,7 @@ def main():
             res = cv2.matchTemplate(cv2.cvtColor(area, cv2.COLOR_RGB2GRAY), cv2.cvtColor(tmpl, cv2.COLOR_RGB2GRAY), cv2.TM_CCOEFF_NORMED)
             _, score, _, loc = cv2.minMaxLoc(res)
             mx0, my0 = sx0 + loc[0], sy0 + loc[1]
-            ecx, ecy = mx0 + tw / 2, my0 + th / 2
+            ecx, ecy = mx0 + tw / 2 + shift[0], my0 + th / 2 + shift[1]
             # 元素中心（樣板比對到的外框中心；樣板若是點擊點周圍，就是點擊點）
             row["element"] = [round(float(ecx), 1), round(float(ecy), 1)]
             row["match_score"] = round(float(score), 3)
