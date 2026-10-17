@@ -63,7 +63,12 @@ def t_online_list_1017(b, base, code):
         if not ok(f"{T}：站主 andy 登入", bool(login(ap, "andy"))):
             return
         gp.evaluate("() => { location.hash = '#flow'; }")
-        ok(f"{T}：頂欄出現人數鈕", bool(wait_until(ap, "() => { const o = document.getElementById('acctOnline'); return o && !o.hidden && /人在線/.test(o.textContent) ? 1 : 0; }", 15000)))
+        ok(f"{T}：頂欄出現「今天 N 人造訪」", bool(wait_until(ap, "() => { const o = document.getElementById('acctOnline'); return o && !o.hidden && /人造訪/.test(o.textContent) ? 1 : 0; }", 15000)))
+        # 10-17 Andy：「改顯示今天造訪人數」→ 兩台（gary、andy 各一個瀏覽器）＝今天 2 人造訪；重新整理同一台不會變多
+        ap.reload(wait_until="domcontentloaded"); wait_until(ap, "() => !!(window.TwAccount && TwAccount.user())", 12000)
+        ap.evaluate("() => window.TwAccount && TwAccount.flush && TwAccount.flush()")
+        wait_until(ap, "() => { const o = document.getElementById('acctOnline'); return o && !o.hidden && /今天\\s*2\\s*人造訪/.test(o.textContent) ? 1 : 0; }", 20000)
+        ok(f"{T}：兩台裝置 → 頂欄「今天 2 人造訪」（站主重新整理一次也不會變 3）", bool(re.search(r"今天\s*2\s*人造訪", ap.inner_text("#acctOnline"))), ap.inner_text("#acctOnline"))
         ap.click("#acctOnline")
         ok(f"{T}：點人數 → 下方展開名單", bool(wait_until(ap, "() => { const p = document.getElementById('acctOnPop'); return p && !p.hidden && p.querySelector('.opl, .opz') ? 1 : 0; }", 8000)))
         st = ap.evaluate("""() => { const p = document.getElementById('acctOnPop'), b = document.getElementById('acctOnline').getBoundingClientRect(), r = p.getBoundingClientRect();

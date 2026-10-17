@@ -126,7 +126,7 @@
 /* 甜甜圈：左圖右圖例（Andy：圖表資訊在右手邊，圓餅才不會被壓縮）；圖例一列一項＝色塊｜名稱｜數量｜占比，數字欄右對齊不截斷；卡寬 < 420px 才退回圖例在下方 */
 #admBody .dn{flex:1;display:flex;flex-direction:row;align-items:center;justify-content:center;gap:20px;min-height:0}
 #admBody .dn svg{flex:0 1 auto;height:100%;min-height:var(--chart-donut,160px);max-height:300px;aspect-ratio:1;width:auto;min-width:0}
-#admBody .dn .dnc{flex:1 1 0;min-width:220px;max-width:360px;max-height:360px;aspect-ratio:1;height:auto;align-self:center}   /* 環撐滿「卡片扣掉圖例」的寬（跟產業地圖一樣），上限 360 */
+#admBody .dn .dnc{flex:1 1 0;min-width:180px;max-width:360px;max-height:360px;aspect-ratio:1;height:auto;align-self:center}   /* 環撐滿「卡片扣掉圖例」的寬（跟產業地圖一樣），上限 360 */
 #admBody .dn ul{list-style:none;margin:0;padding:0;display:flex;gap:20px;justify-content:center;font-size:var(--fs-body,14px)}
 #admBody .dn li{display:flex;align-items:center;gap:8px;white-space:nowrap}
 #admBody .dn li i{width:12px;height:12px;border-radius:3px;flex:none}
@@ -210,9 +210,9 @@ html[data-theme="light"] #v-admin{--pgL:40%}
 #admBody .bars .bt.stk i{flex:none;height:100%;border-radius:0;background:linear-gradient(90deg,color-mix(in srgb,var(--c) 55%,transparent),var(--c))}
 #admBody .bars .bt.stk i:hover{filter:brightness(1.15)}
 #admBody .bars .bt.stk{cursor:pointer}
-#admBody .dn ul.lg{display:flex;flex-direction:column;gap:8px;flex:0 1 auto;min-width:190px;max-width:320px;font-size:var(--fs-body,14px);justify-content:center}
+#admBody .dn ul.lg{display:flex;flex-direction:column;gap:8px;flex:1.15 1 0;min-width:210px;max-width:420px;font-size:var(--fs-body,14px);justify-content:center}
 #admBody .dn ul.lg li{display:flex;align-items:center;gap:8px;min-width:0}
-#admBody .dn ul.lg li span{flex:1;min-width:0;line-height:1.3;overflow-wrap:anywhere}   /* 名稱不准出現「…」：放不下就換行 */
+#admBody .dn ul.lg li span{flex:1;min-width:0;line-height:1.3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}   /* 10-17 Andy：「字不要全部塞下，顯示前面幾個字就好，不夠的游標移動過去再顯示」（蓋掉舊的「放不下就換行」）；完整名稱在整列的滑過提示 */   /* 名稱不准出現「…」：放不下就換行 */
 #admBody .dn ul.lg li b{flex:none;min-width:3.4em;text-align:right;font:600 13px var(--mono);color:var(--ink)}
 #admBody .dn ul.lg li small{flex:none;min-width:3.1em;text-align:right;font:12px var(--mono);color:var(--ink-2)}
 @container (max-width:439px){#admBody .dn{flex-direction:column;gap:14px}#admBody .dn svg,#admBody .dn .dnc{flex:1 1 0;height:auto;width:auto}#admBody .dn ul.lg{flex:none;width:100%;max-width:none}}
@@ -1282,6 +1282,8 @@ html[data-theme="light"] #v-admin{--pm-blue:#1f4fd8;--pm-blue-2:#163fb4}
   function paintBody() {
     const v = S.v, body = v && v.querySelector('#trPageBody'); if (!body) return;
     body.innerHTML = S.tab === 'all' ? allHtml() : S.tab === 'users' ? usersBody() : pageHtml(S.tab);
+    /* 10-17：分頁裡的「每天直條」日期刻度原本只在第一次畫上排時藏重疊，切分頁後沒藏 → 09/18、09/19 疊在一起 */
+    thinTicks(body); requestAnimationFrame(() => thinTicks(body));
     body.onclick = (e) => {
       const t = e.target.closest('[data-p]'); if (t && S.tab === 'all') { S.tab = t.dataset.p; S.sub = t.dataset.s || 'all'; paintTrTabs(); return; }
       const sb = e.target.closest('button[data-sub]'); if (sb) { S.sub = sb.dataset.sub; paintBody(); }
@@ -2015,7 +2017,7 @@ html[data-theme="light"] #v-admin{--pm-blue:#1f4fd8;--pm-blue-2:#163fb4}
     /* 2026-10-05 Andy：訪客的流量數字卡不要（流量看「流量觀測」）；流量觀測的「現在誰在線上」整塊拿掉後，
        「一般訪客看得到『目前 N 人在線』」這個開關搬到這裡（訪客的權限就是「訪客能看到什麼」）。 */
     if (PS.tier !== 'guest' || PS.adding) { box.innerHTML = ''; return; }
-    box.innerHTML = '<label class="tg ptpub" id="ptPubRow"><input type="checkbox" id="admPub" disabled>一般訪客看得到「目前 N 人在線」（只有總數，看不到名字）</label>';
+    box.innerHTML = '<label class="tg ptpub" id="ptPubRow"><input type="checkbox" id="admPub" disabled>一般訪客看得到「今天 N 人造訪」（只有總數，看不到名字）</label>';
     const on = await PS.A.call('/v1/admin/online', {});
     const cb = box.querySelector('#admPub'); if (!cb || PS.tier !== 'guest') return;
     if (on && on._s === 200) cb.checked = !!on.public_online;

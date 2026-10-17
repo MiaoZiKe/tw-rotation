@@ -41,6 +41,15 @@
   if (!S.tok) S.user = null;
 
   // ------------------------------------------------------------------ API
+  /* 10-17 今日造訪人數：每台瀏覽器每天一組隨機代碼（台北日期:代碼），跨日自動換；不含帳號、不含 IP。Worker 只數今天有幾組（dayvis）。 */
+  function vdGet() {
+    const day = new Date(Date.now() + 8 * 3600e3).toISOString().slice(0, 10);
+    let v = ''; try { v = localStorage.getItem('tw.vd') || ''; } catch (e) { /* 私密視窗：每次載入算新的一組 */ }
+    if (v.slice(0, 10) === day && /^[A-Za-z0-9]{10,32}$/.test(v.slice(11))) return v.slice(11);
+    const id = Array.from(crypto.getRandomValues(new Uint8Array(12)), (x) => 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789'[x % 62]).join('');
+    try { localStorage.setItem('tw.vd', day + ':' + id); } catch (e) { /* 存不了也照送 */ }
+    return id;
+  }
   async function call(path, body, hdr) {   // hdr：額外的請求標頭（防白嫖：訪客編號 X-Tw-Guest；有自訂標頭瀏覽器會先預檢，Worker 已允許）
     if (!S.api) return null;
     try {
@@ -140,11 +149,11 @@
     S.sending = true; S.lastFlush = Date.now();
     const items = S.items.splice(0, BATCH_MAX); save();               // 先拿出來：送到一半關頁，beacon 不會再送一次同一批
     S.reqs++;
-    const j = await call('/v1/track/batch', { sid: S.sid, now: Date.now(), items });
+    const j = await call('/v1/track/batch', { sid: S.sid, vd: vdGet(), now: Date.now(), items });
     S.sending = false;
     /* 200＝收了；400／413＝內容不合格，重送也一樣，丟掉；其他（連不到、5xx、429、還沒部署的 404）放回去下次再送 */
     if (!j || !(j._s === 200 || j._s === 400 || j._s === 413)) { S.items = items.concat(S.items); save(); }
-    if (j && typeof j.n === 'number') { S.online = j.n; paintOnline(); } else if (j && j._s === 200) { S.online = null; paintOnline(); }
+    if (j && typeof j.n === 'number') { S.online = j.n; S.today = typeof j.today === 'number' ? j.today : null; paintOnline(); } else if (j && j._s === 200) { S.online = null; S.today = null; paintOnline(); }
     if (S.items.length >= BATCH_MAX) send();
   }
   /* 每分鐘一次：包一筆（不送），滿 5 分鐘才送。force＝馬上送（登入／登出那一下，線上名單才會立刻換成名字）*/
@@ -425,7 +434,7 @@ html:not(.m4) .m4deldlg .msg{min-height:1.4em;font-size:13px;color:#ff6b7a;margi
   /* 手機（≤640）頂欄的帳號鈕收在「⋯」清單裡（見 watchlists.js moreRow），線上人數也寫在那一列 */
   function paintMoreRow() {
     if (!window.TwMoreRow || !S.on) return;
-    const n = S.online != null ? `<small style="margin-left:auto;color:var(--ink-2);font-size:12.5px">${S.online} 人在線</small>` : '';
+    const n = S.online != null ? `<small style="margin-left:auto;color:var(--ink-2);font-size:12.5px">${S.today != null ? '今天 ' + S.today + ' 人造訪' : S.online + ' 人在線'}</small>` : '';
     if (S.user) window.TwMoreRow('mmAcct', '●', '帳號：' + esc(S.user.name || S.user.email || '') + n, () => openMenu(document.getElementById('moreBtn') || document.body));
     else window.TwMoreRow('mmAcct', '⇥', '用 Google 帳號登入' + n, () => openDlg('notice'));
   }
@@ -433,8 +442,10 @@ html:not(.m4) .m4deldlg .msg{min-height:1.4em;font-size:13px;color:#ff6b7a;margi
     paintMoreRow();
     const on = document.getElementById('acctOnline'); if (!on) return;
     if (!S.on || S.online == null) { on.hidden = true; return; }
-    on.hidden = false; on.innerHTML = `<i></i>${S.online}<span> 人在線</span>`;
-    on.title = `目前約 ${S.online} 人正在看這個網站（最近 6 分鐘內有動作）` + (S.user && S.user.admin ? '・點一下看是誰' : '');
+    /* 10-17 Andy：「改顯示今天造訪人數」→ 有 today 就顯示「今天 N 人造訪」（同一台裝置一天算一次）；舊版 Worker 沒回 today 時照舊顯示在線人數 */
+    on.hidden = false;
+    on.innerHTML = S.today != null ? `<i></i><span>今天 </span>${S.today}<span> 人造訪</span>` : `<i></i>${S.online}<span> 人在線</span>`;
+    on.title = (S.today != null ? `今天約 ${S.today} 人打開過這個網站（同一台裝置一天只算一次）；` : '') + `目前約 ${S.online} 人正在看（最近 6 分鐘內有動作）` + (S.user && S.user.admin ? '・點一下看是誰在線' : '');
     on.style.cursor = S.user && S.user.admin ? 'pointer' : 'default';
   }
   /* 10-17 Andy：「點擊後我可以看到目前有誰上線，需要顯示 Mail list」→ 站主點「N 人在線」直接在下方展開線上名單（名字、email、所在頁、多久前），

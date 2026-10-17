@@ -2703,3 +2703,28 @@ for (const t of ['grant_defs', 'grants', 'grant_hits']) if (!EXPORT_TABLES.inclu
    ============================================================================ */
 installPay(Hub, { rand, safeEq, tpeDay, subClean, EXPORT_TABLES });
 installArticles(Hub, EXPORT_TABLES);   // 2026-10-16 精選文章點閱次數
+
+/* ============================================================================ 今日造訪人數 dayvis（2026-10-17）
+   Andy 10-17：「改顯示今天造訪人數」（原本頂欄顯示「N 人在線」，剛上線人少；改成今天有幾台裝置打開過網站，數字是真的）。
+   · 前端每台瀏覽器每天一組隨機代碼 vd（localStorage tw.vd，跨日就換一組；不含帳號、不含 IP），跟著 /v1/track/batch 送。
+   · 這裡只記（台北日期, vd）一列，INSERT OR IGNORE —— 同一台一天只算一次；只留今天與昨天，其他天的列每次清掉。
+   · 回應多帶 today（今天不同 vd 的數量），跟 n（線上人數）同一條公開規則：n 有出現才帶 today（public_online 關掉時訪客兩個都看不到）。
+   · 不進匯出（EXPORT_TABLES 不加）：隨機代碼沒有保存價值。
+   ★ 同前面幾個區塊：只在檔尾新增、包一層 prototype。
+   ============================================================================ */
+const VD_RE = /^[A-Za-z0-9]{10,32}$/;
+const dayvisOrigBatch = Hub.prototype.trackBatch;
+Hub.prototype.trackBatch = async function (req, b) {
+  const res = await dayvisOrigBatch.call(this, req, b);
+  if (res.status !== 200) return res;
+  let j; try { j = await res.clone().json(); } catch (e) { return res; }
+  if (!this.dayvisReady) { this.q('CREATE TABLE IF NOT EXISTS dayvis (day TEXT, vd TEXT, PRIMARY KEY (day, vd))'); this.dayvisReady = true; }
+  const now = this.now(), day = tpeDay(now);
+  if (!b.leave && VD_RE.test(String(b.vd || ''))) {
+    this.q('INSERT OR IGNORE INTO dayvis (day, vd) VALUES (?, ?)', day, String(b.vd));
+    if (this.dayvisDay !== day) { this.q('DELETE FROM dayvis WHERE day < ?', tpeDay(now - 86400 * 1000)); this.dayvisDay = day; }
+  }
+  if (typeof j.n !== 'number') return res;
+  j.today = this.q('SELECT COUNT(*) AS c FROM dayvis WHERE day = ?', day)[0].c;
+  return this.json(req, j);
+};
