@@ -215,7 +215,7 @@
 .artbody ul{margin:0 0 var(--sp-3);padding-left:1.4em}
 .artbody li{margin:4px 0}
 .artbody figure.artfig{position:relative}.artbody figcaption:has(>.figcp){display:flex;justify-content:space-between;align-items:flex-start;gap:10px}.artbody figcaption>.figcp{position:static;flex:none;margin-left:auto}.artbody .figcp{position:absolute;top:0;right:0;z-index:6;border:1px solid var(--line-2);background:var(--panel);color:var(--ink);border-radius:8px;padding:4px 10px;font-size:12.5px;cursor:pointer}.artbody .figcp:hover{background:var(--row-hover)}
-.artbody .artvid{margin:var(--sp-4) 0;max-width:760px}.artbody .artvid .avt{font-weight:700;margin-bottom:8px}
+.artbody .artvid{margin:var(--sp-4) auto;width:100%}   /* 10-17 Andy：「影片置中，並且可以的話讓他填滿左右寬度」→ 拿掉 760 上限，吃滿內文欄 */.artbody .artvid .avt{font-weight:700;margin-bottom:8px}
 .artbody .artvid .avw{position:relative;width:100%;aspect-ratio:16/9;border-radius:var(--r-sm,8px);overflow:hidden;background:#000;border:1px solid var(--line)}
 .artbody .artvid.x .avw{aspect-ratio:auto;height:min(640px,80vh);background:transparent}
 .artbody .artvid iframe{position:absolute;inset:0;width:100%;height:100%;border:0}
