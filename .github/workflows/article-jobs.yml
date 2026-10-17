@@ -3,6 +3,7 @@ name: 精選文章產出佇列
 # 2026-10-16（頻率設定）：同一輪也把「產文章頻率設定」同步成 data/_state/article_schedule.json，Claude 排程到點時讀它自動排隊。
 # 2026-10-16：管理區「產生精選文章／產生短影片」排進會員 Worker 的請求，同步成 data/_state/article_jobs.json，
 # 讓 Claude 排程讀得到；Claude 開工／完成時用 workflow_dispatch 的 mark 參數標狀態。
+# 2026-10-17：多一個 stage 參數（每個階段開始時標一次），管理區「進度」欄的進度條照它畫。
 # 文章推上 main（site/articles/index.json 有同一個 topic）時也跑一次，自動標完成。
 on:
   schedule:
@@ -22,6 +23,10 @@ on:
         default: ""
       result:
         description: "完成時填文章 id 或影片檔名"
+        type: string
+        default: ""
+      stage:
+        description: "階段（選填）：plan 安排主題／research 查資料／write 撰寫／illus 插圖／review 驗收／publish 發布中"
         type: string
         default: ""
 
@@ -52,12 +57,13 @@ jobs:
           MARK_ID: ${{ inputs.mark_id }}
           MARK_STATUS: ${{ inputs.mark_status }}
           RESULT: ${{ inputs.result }}
+          STAGE: ${{ inputs.stage }}
         run: |
           # 機器鑰匙：跟 deploy-account-worker.yml 寫進 Worker 的 ARTICLE_BOT_KEY 同一個公式
           export ARTICLE_BOT_KEY=$(printf 'tw-article-jobs|%s' "$CF_TOKEN" | sha256sum | cut -c1-48)
           echo "::add-mask::$ARTICLE_BOT_KEY"
           if [ -n "$MARK_ID" ]; then
-            python scripts/article_jobs.py --mark "$MARK_ID" "$MARK_STATUS" --result "$RESULT"
+            python scripts/article_jobs.py --mark "$MARK_ID" "$MARK_STATUS" --result "$RESULT" --stage "$STAGE"
           else
             python scripts/article_jobs.py
           fi
