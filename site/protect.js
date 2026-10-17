@@ -12,7 +12,7 @@
      · 事件：copy／cut 攔下（例外同上；選取範圍在輸入框裡的照常）；右鍵（contextmenu）攔下瀏覽器選單，
        但站內自己的右鍵功能（分頁列「還原預設順序」、自訂週期鈕右鍵移除）照跑 —— 只 preventDefault、不 stopPropagation，
        而且提示只在「沒有站內功能接手」時才跳；拖曳（dragstart）攔下，但 [draggable="true"]（分頁拖曳排序）照常。
-     · 例外頁：管理區 #admin/*（管理者要複製 email、訂單號）整個不套。
+     · 例外頁：管理區 #admin/*（管理者要複製 email、訂單號）整個不套；10-17 起登入的管理者全站都不套（可複製文章內容與圖片）。
      · 站內的「複製」按鈕：navigator.clipboard.writeText 不經過 copy 事件、不受影響；
        舊瀏覽器退回 execCommand('copy') 時選取的是暫時的 <textarea>（例外名單內），也照常可用。
      · 提示：畫面左下角小提示「本站內容受著作權保護，請勿複製」，2.4 秒自己消失（不用 alert 跳窗）。
@@ -67,9 +67,13 @@ html.twnocopy [data-copyable],html.twnocopy [data-copyable] *{-webkit-user-selec
 
   /* ------------------------------------------------------------------ 防複製 */
   const isAdmin = () => /^#admin(\/|$)/.test(location.hash || '');
-  const sync = () => root.classList.toggle('twnocopy', !isAdmin());
+  /* 10-17 Andy：「所有文章內容 包含精選，只要是管理者 都可以隨意複製 內容與圖片」→ 登入的管理者全站不套防複製（帳號狀態一變就重算） */
+  let adminUser = false;
+  const sync = () => root.classList.toggle('twnocopy', !isAdmin() && !adminUser);
   sync();
   window.addEventListener('hashchange', sync);
+  window.addEventListener('tw:account', (e) => { const u = e && e.detail && e.detail.user; adminUser = !!(u && u.admin); sync(); });
+  window.TwProtect = { adminUser: () => adminUser };
   const EXEMPT = 'input,textarea,select,[contenteditable]:not([contenteditable="false"]),[data-copyable]';
   const exempt = (n) => { const el = n && (n.nodeType === 1 ? n : n.parentElement); return !!(el && el.closest && el.closest(EXEMPT)); };
   const on = () => root.classList.contains('twnocopy');

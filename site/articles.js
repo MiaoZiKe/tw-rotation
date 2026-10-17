@@ -214,6 +214,7 @@
 .artbody p{margin:0 0 var(--sp-3)}
 .artbody ul{margin:0 0 var(--sp-3);padding-left:1.4em}
 .artbody li{margin:4px 0}
+.artbody figure.artfig{position:relative}.artbody figcaption:has(>.figcp){display:flex;justify-content:space-between;align-items:flex-start;gap:10px}.artbody figcaption>.figcp{position:static;flex:none;margin-left:auto}.artbody .figcp{position:absolute;top:0;right:0;z-index:6;border:1px solid var(--line-2);background:var(--panel);color:var(--ink);border-radius:8px;padding:4px 10px;font-size:12.5px;cursor:pointer}.artbody .figcp:hover{background:var(--row-hover)}
 .artbody .artvid{margin:var(--sp-4) 0;max-width:760px}.artbody .artvid .avt{font-weight:700;margin-bottom:8px}
 .artbody .artvid .avw{position:relative;width:100%;aspect-ratio:16/9;border-radius:var(--r-sm,8px);overflow:hidden;background:#000;border:1px solid var(--line)}
 .artbody .artvid.x .avw{aspect-ratio:auto;height:min(640px,80vh);background:transparent}
@@ -1155,6 +1156,54 @@ ${gs.length ? `<section><h5>熱門族群</h5><div class="gps">${gs.map((g) => `<
      ★ 2026-10-17 帶 "style": 2 → 第 2 版畫法（docs/articles/illus_style.md），svg 多掛 class ilv2；沒帶的舊圖輸出一個字都不變。
      這張圖回答「文章講的那個零件長什麼樣、在哪一層」：圖由 site/artillus.js 依 kind 畫，parts 只換說明文字（id 要是該 kind 認得的）。
      編號照 kind 預設順序（由上而下）；引線在 hydrate() → wireIllus() 依實際位置畫。 */
+  /* 10-17 Andy：「所有文章內容 包含精選，只要是管理者 都可以隨意複製 內容與圖片」
+     管理者在文章裡每一張圖（插圖、圖表、流程…）的標題右邊多一顆「複製圖片」：把那張圖連同編號、說明畫成 PNG 放進剪貼簿（不支援就改成下載）。
+     做法：複製一份圖的 DOM、每個節點寫死計算後的樣式、canvas 換成圖片，包進 SVG foreignObject 畫到 2 倍大的 canvas。一般訪客與會員看不到這顆鈕。 */
+  const isAdminUser = () => { try { const u = window.TwAccount && TwAccount.user && TwAccount.user(); return !!(u && u.admin); } catch (e) { return false; } };
+  function inlineStyles(src, dst) {
+    if (src.nodeType !== 1) return;
+    const cs = getComputedStyle(src); let t = '';
+    for (let i = 0; i < cs.length; i++) { const k = cs[i]; t += k + ':' + cs.getPropertyValue(k) + ';'; }
+    dst.setAttribute('style', t);
+    if (src.tagName === 'CANVAS') { const img = document.createElement('img'); try { img.src = src.toDataURL('image/png'); } catch (e) { /* 跨來源就留空 */ } img.setAttribute('style', t); dst.replaceWith(img); return; }
+    const a = src.children, b = dst.children;
+    for (let i = 0; i < a.length; i++) if (b[i]) inlineStyles(a[i], b[i]);
+  }
+  async function figPng(fig) {
+    const r = fig.getBoundingClientRect(), w = Math.ceil(r.width), h = Math.ceil(r.height);
+    const c = fig.cloneNode(true); c.querySelectorAll('.figcp').forEach((x) => x.remove());
+    inlineStyles(fig, c);
+    c.querySelectorAll('.figcp').forEach((x) => x.remove());
+    c.style.margin = '0';   // 圖本身的上下外距不要畫進去（不然上緣多一條底色）
+    const solid = (el) => { const v = el && getComputedStyle(el).backgroundColor; return v && !/rgba\(.*,\s*0\)$|transparent/.test(v) ? v : ''; };
+    const bg = solid(document.getElementById('artPost')) || solid(document.body) || solid(document.documentElement) || '#0b1220';
+    const xml = new XMLSerializer().serializeToString(c);
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}"><foreignObject x="0" y="0" width="100%" height="100%"><div xmlns="http://www.w3.org/1999/xhtml" style="width:${w}px;height:${h}px;background:${bg}">${xml}</div></foreignObject></svg>`;
+    const img = new Image(); img.decoding = 'sync';
+    await new Promise((ok, no) => { img.onload = ok; img.onerror = no; img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg); });
+    const k = 2, cv = document.createElement('canvas'); cv.width = w * k; cv.height = h * k;
+    const g = cv.getContext('2d'); g.scale(k, k); g.drawImage(img, 0, 0);
+    return await new Promise((ok) => cv.toBlob(ok, 'image/png'));
+  }
+  window.addEventListener('tw:account', () => { const r = document.getElementById('artPost'); if (r) adminCopyBtns(r.parentElement || document); });
+  function adminCopyBtns(root) {
+    if (!isAdminUser()) return;
+    $$('#artPost figure.artfig', root).forEach((fig, i) => {
+      if (fig.querySelector('.figcp')) return;
+      const b = document.createElement('button'); b.type = 'button'; b.className = 'figcp'; b.textContent = '複製圖片'; b.title = '管理者限定：把這張圖複製成圖片';
+      b.onclick = async () => {
+        b.disabled = true; b.textContent = '處理中…';
+        try {
+          const blob = await figPng(fig);
+          if (navigator.clipboard && window.ClipboardItem) { await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]); b.textContent = '已複製'; }
+          else { const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = ((S.curData && S.curData.id) || 'article') + '-' + (i + 1) + '.png'; a.click(); b.textContent = '已下載'; }
+        } catch (e) { b.textContent = '複製失敗'; }
+        setTimeout(() => { b.disabled = false; b.textContent = '複製圖片'; }, 1800);
+      };
+      const fh = fig.querySelector(':scope > figcaption.fh, :scope > figcaption');
+      if (fh) fh.appendChild(b); else fig.insertBefore(b, fig.firstChild);
+    });
+  }
   function illusHTML(b, bi) {
     const I = window.TwArtIllus;
     if (!I || !I.has(b.kind)) return '';
@@ -1542,6 +1591,7 @@ ${gs.length ? `<section><h5>熱門族群</h5><div class="gps">${gs.map((g) => `<
     root.innerHTML = postHTML(d, meta, acc);
     S.curData = d;
     hydrate(root, d);
+    adminCopyBtns(root);
     recordOpen(d.id, true);
     document.title = d.title + '｜精選文章';
   }
