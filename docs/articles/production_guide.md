@@ -170,6 +170,12 @@ Claude 寫稿時的全文檔（暫存區）容器回收就沒了——**上傳�
 - 驗收：`python scripts/_uitest.py --sections 精選文章1014 --workers 1`、`python scripts/_preview.py`；自己看 1440 與 390 截圖。新文章因為全文在後端，頁面驗收請用 `--sections 防白嫖後端1016`（起本機真的 Worker）的做法，不要為了驗收把全文放進 `site/`。
 - 依上面「發佈」上傳全文 → 推**僅標題的索引** → `python scripts/deploy_wait.py --branch main` 印出 ✅ → 標 `done`（result＝文章 id）。
 
+- **★ 影片區塊（10-17 Andy：「像是這種發佈會，他會有影片，最好是把影片也可以附上在文章中」「會有的區塊是可以直接播放」）**：
+  `{"t":"video","provider":"youtube"|"x","id":"…","title":"…","source":"發布者","date":"YYYY-MM-DD"}`，文章裡直接嵌入播放器。
+  - **只放官方來源**：公司自己的 YouTube 頻道或 X 帳號（例如 Tesla 官方）、主辦單位、主流媒體自己的頻道；**不放轉載／剪輯／搬運**（著作權）。查不到官方影片就不放，不拿別人的轉載充數。
+  - Claude 的容器打不開 X／YouTube，搜尋摘要只給網址：**影片 id 要第二個來源對得上**（例如媒體報導裡嵌的同一支），對不上就請 Andy 給官方連結。
+  - id 格式：YouTube 11 碼、X 貼文數字；格式不對前端整塊不畫。每篇最多 1 支，算進「每篇最多 3 張圖」的上限。驗收段落 `文章影片區塊1017`。
+
 ## 做一支短影片
 
 - ★ **一定要是比比的角色動畫，不是投影片加小比比**（Andy 10-17 看完 CPO 那支：「為什麼不是動畫」）。派工給**比比動畫單位**（`animation-director` 統籌，`bibi-planner`／`bibi-animator`／`bibi-illustrator`／`bibi-review`），不要只派 `video-editor`；派工單要附 `docs/anim/動畫製作總提示詞_原文.md` 與 `docs/anim/bibi_library/index.md`、`docs/anim/GPT優化須知_比比互動.md`，比比是主持人：要有走位、指著圖解、和道具互動、表情隨台詞變，圖解本身也要動（不是整張卡片淡入）。`video-editor` 只負責最後合成、字幕、配樂與網站錄影。

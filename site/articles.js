@@ -214,6 +214,12 @@
 .artbody p{margin:0 0 var(--sp-3)}
 .artbody ul{margin:0 0 var(--sp-3);padding-left:1.4em}
 .artbody li{margin:4px 0}
+.artbody .artvid{margin:var(--sp-4) 0;max-width:760px}.artbody .artvid .avt{font-weight:700;margin-bottom:8px}
+.artbody .artvid .avw{position:relative;width:100%;aspect-ratio:16/9;border-radius:var(--r-sm,8px);overflow:hidden;background:#000;border:1px solid var(--line)}
+.artbody .artvid.x .avw{aspect-ratio:auto;height:min(640px,80vh);background:transparent}
+.artbody .artvid iframe{position:absolute;inset:0;width:100%;height:100%;border:0}
+.artbody .artvid.x iframe{position:static;height:100%}
+.artbody .artvid .avc{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-top:6px;font-size:12.5px;color:var(--ink-2)}.artbody .artvid .avc a{color:var(--accent,#3b82f6);text-decoration:none}
 .artbody .callout{margin:var(--sp-4) 0;padding:var(--sp-3) var(--sp-4);border:1px solid color-mix(in srgb,var(--amber) 55%,transparent);border-radius:var(--r-sm,8px);
   background:color-mix(in srgb,var(--amber) 9%,var(--panel));font-weight:600}
 .artbody .tbw{overflow-x:auto;margin:var(--sp-3) 0 var(--sp-4);border:1px solid var(--line);border-radius:var(--r-sm,8px)}
@@ -1206,6 +1212,18 @@ ${gs.length ? `<section><h5>熱門族群</h5><div class="gps">${gs.map((g) => `<
       case 'p': return `<p>${esc(b.text)}</p>`;
       case 'ul': return Array.isArray(b.items) ? `<ul>${b.items.map((x) => `<li>${esc(x)}</li>`).join('')}</ul>` : '';
       case 'callout': return `<div class="callout" role="note">${esc(b.text)}</div>`;
+      /* 10-17 Andy：「像是這種發佈會，他會有影片，最好是把影片也可以附上在文章中」「會有的區塊是可以直接播放」
+         影片區塊：文章裡直接嵌入官方播放器（YouTube 用不留 cookie 的網域；X 用官方嵌入頁），lazy 載入；下方註明來源與日期，附原始連結。
+         只收白名單格式的 id，JSON 的字串不會進到網址或 HTML。{t:'video', provider:'youtube'|'x', id, title?, source?, date?} */
+      case 'video': {
+        const pv = b.provider === 'x' ? 'x' : b.provider === 'youtube' ? 'youtube' : '', id = String(b.id || '');
+        if (!(pv === 'youtube' ? /^[A-Za-z0-9_-]{11}$/.test(id) : pv === 'x' ? /^\d{10,25}$/.test(id) : false)) return '';
+        const src = pv === 'youtube' ? `https://www.youtube-nocookie.com/embed/${id}?rel=0&playsinline=1` : `https://platform.twitter.com/embed/Tweet.html?id=${id}&theme=dark&dnt=true`;
+        const href = pv === 'youtube' ? `https://www.youtube.com/watch?v=${id}` : `https://x.com/i/status/${id}`;
+        const cap = [b.source ? '來源：' + b.source : '', b.date || ''].filter(Boolean).join('・');
+        return `<figure class="artvid ${pv}">${b.title ? `<figcaption class="avt">${esc(b.title)}</figcaption>` : ''}<div class="avw"><iframe src="${src}" title="${esc(b.title || '影片')}" loading="lazy" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen referrerpolicy="strict-origin-when-cross-origin"></iframe></div>`
+          + `<div class="avc">${cap ? `<span>${esc(cap)}</span>` : ''}<a href="${href}" target="_blank" rel="noopener">在 ${pv === 'youtube' ? 'YouTube' : 'X'} 開啟 ↗</a></div></figure>`;
+      }
       case 'table': {
         const head = Array.isArray(b.head) ? b.head : [], rows = Array.isArray(b.rows) ? b.rows : [];
         return `<div class="tbw"><table>${head.length ? `<thead><tr>${head.map((h) => `<th>${esc(h)}</th>`).join('')}</tr></thead>` : ''}<tbody>${rows.map((r) => `<tr>${(Array.isArray(r) ? r : [r]).map((c) => `<td>${esc(c)}</td>`).join('')}</tr>`).join('')}</tbody></table></div>`;
