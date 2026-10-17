@@ -1,4 +1,18 @@
 {
- "updated": "2026-10-17 20:02",
- "jobs": []
+ "updated": "2026-10-17 21:47",
+ "jobs": [
+  {
+   "id": 8,
+   "topic_id": "c-news-mvcfjf3u",
+   "kind": "article",
+   "title": "費城半導體指數連續下跌，金容海嘯來襲?",
+   "note": "",
+   "status": "working",
+   "created": 1792243556972,
+   "updated": 1792244847506,
+   "result": null,
+   "stage": "research",
+   "stage_at": 1792244847506
+  }
+ ]
 }
