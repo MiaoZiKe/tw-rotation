@@ -12,7 +12,8 @@ Claude 寫完文章後不再把全文推進 repo，而是：
   --check                檢查公開檔有沒有洩漏：src:'api' 的索引項目不得帶 summary／subtitle／tags／blocks 等內容欄位，
                          而且 site/articles/posts/<id>.json 不得存在（pytest 與 CI 會跑，見 tests/test_article_public_guard.py）
   --index-only <全文.json>   不上傳，只依全文 JSON 產出索引項目（Worker 已經有這篇時用；會先確認 Worker 真的有）
-環境變數：ACCOUNT_API_URL、ARTICLE_PUT_KEY（最小權限，只能管全文；其次才用 ARTICLE_BOT_KEY）。
+鑰匙：Claude 雲端環境用「網路密鑰」（代理自動補，程式不碰鑰匙）；也可用環境變數 ARTICLE_PUT_KEY（最小權限，只能管全文；其次才用 ARTICLE_BOT_KEY）。
+網址：ACCOUNT_API_URL，沒設用 DEFAULT_API。
 """
 from __future__ import annotations
 
@@ -28,6 +29,7 @@ from scripts import article_jobs as aj
 ROOT = Path(__file__).resolve().parent.parent
 INDEX = ROOT / "site" / "articles" / "index.json"
 POSTS = ROOT / "site" / "articles" / "posts"
+DEFAULT_API = "https://tw-account.kcq01010909.workers.dev"     # 會員 Worker 網址（不是機密；ACCOUNT_API_URL 有設就用它）
 ID_RE = re.compile(r"^[A-Za-z0-9._-]{4,80}$")
 # 公開索引允許的欄位：不含任何內文（摘要、副標、標籤都算內文）
 PUBLIC_KEYS = ("id", "cat", "title", "date", "topic", "groups", "reading_min", "src", "status")
@@ -108,16 +110,17 @@ def main(argv=None) -> int:
     except ValueError as e:
         print("✗ " + str(e))
         return 2
-    base = os.environ.get("ACCOUNT_API_URL", "").strip()
+    base = (os.environ.get("ACCOUNT_API_URL") or DEFAULT_API).strip()
     token = (os.environ.get("ARTICLE_PUT_KEY") or os.environ.get("ARTICLE_BOT_KEY") or "").strip()    # 優先用最小權限的 PUT 鑰匙；不讀 BACKUP_TOKEN（那是整庫匯出的鑰匙）
-    if not base or len(token) < 16:
-        print("✗ 沒有 ACCOUNT_API_URL／ARTICLE_PUT_KEY：無法把全文傳到會員 Worker。\n"
-              "  不要把全文推進 repo；把這個請求標成 failed（原因：沒有機器鑰匙），等 Andy 設好環境金鑰再做。")
+    if token and len(token) < 16:
+        print("✗ ARTICLE_PUT_KEY 太短（少於 16 字），不送。")
         return 3
+    # 沒有環境變數鑰匙 → 不帶 Authorization 直接送：Claude 雲端環境設了「網路密鑰」（Network secrets，綁 tw-account…/v1/articles）時，
+    # 出口代理會自動補上鑰匙，程式看不到鑰匙本身（10-17 起的正式做法）。沒設的話 Worker 回 403，下面照樣失敗、不寫索引。
     if not a.index_only:
         r = aj.call(base, token, {"op": "put_body", "id": entry["id"], "json": {**post, "id": entry["id"]}})
         if not r.get("ok"):
-            print(f"✗ 上傳全文失敗：{r.get('error')}")
+            print(f"✗ 上傳全文失敗：{r.get('error')}" + ("（被拒：這個環境沒有網路密鑰或 ARTICLE_PUT_KEY；不要把全文推進 repo，把請求標 failed）" if r.get("error") == "forbidden" or r.get("_s") == 403 else ""))
             return 4
         print(f"✓ 全文已存入 Worker：{entry['id']}（{r.get('bytes')} 字元）")
     lst = aj.call(base, token, {"op": "list_bodies"})

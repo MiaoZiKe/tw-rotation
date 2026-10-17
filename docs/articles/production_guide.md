@@ -72,19 +72,14 @@ Andy 10-16：已公開的 4 篇維持原狀（不改成免費試閱、不刪、�
    - 全文檔在 repo 裡面、沒帶 `topic`、沒有機器鑰匙、上傳或確認失敗 → 一律不寫索引、離開代碼非 0。
 3. `python scripts/article_publish.py --check`（公開檔洩漏檢查：新文章的索引項目不得帶 `summary`／`subtitle`／`tags`、`site/articles/posts/<id>.json` 不得存在；`pytest tests/test_article_public_guard.py` 也會跑）。
 4. 只 `git add site/articles/index.json` → 推 main → `python scripts/deploy_wait.py --branch main` 印出 ✅ → 標 `done`（`article-jobs.yml` 看到索引有同一個 `topic` 也會自動標）。
-5. **如果沒有機器鑰匙（上傳會回「沒有 ACCOUNT_API_URL／ARTICLE_BOT_KEY」）：不要退而求其次把全文推進 repo。** 把這個請求標 `failed`（原因：沒有機器鑰匙），並在回報裡寫明，等 Andy 設好下面的環境金鑰。
+5. **上傳被拒（`forbidden`／403）：不要退而求其次把全文推進 repo。** 把這個請求標 `failed`（原因：環境沒有上傳鑰匙），在回報裡寫明。
 
-### 一次性設定（Andy 要做，Claude 不能代做；約 5 分鐘）
+### 鑰匙怎麼來（2026-10-17 起已設好，不用再設）
 
-Claude 排程在雲端容器裡跑，要自己把全文傳到 Worker，需要三樣東西（**金鑰不要貼進對話**）：
-1. **想一串 24 字以上的隨機字串**（例如密碼產生器產一個），同一串存兩個地方：
-   ① GitHub repo → Settings → Secrets → Actions → 新增 **`ARTICLE_PUT_KEY`**；
-   ② Claude 環境設定 → Edit → 環境變數（或 Network secrets）→ 新增 **`ARTICLE_PUT_KEY`**。
-   然後到 Actions 手動跑一次「部署 Worker（會員登入與使用統計）」把它寫進 Worker。
-   這把鑰匙是**最小權限**：只能「上傳／刪除／列出全文」，不能讀佇列、標狀態、匯出資料（`BACKUP_TOKEN` 是整庫匯出的鑰匙，**不要**放進 Claude 環境）。
-2. Claude 環境再加 **`ACCOUNT_API_URL`**（會員 Worker 網址，跟 repo Secret 同一個值）。
-3. **網路白名單**：Claude 環境 → Network access → Allowed domains 加上會員 Worker 的網域（`tw-account.kcq01010909.workers.dev`），否則容器連不到、`article_publish.py` 會失敗。
-⚠ 這三項還沒設之前，**新文章無法上架**（舊的「推進 repo」做法技術上還行，但那會把全文公開——Andy 10-16 已決定不再這樣做，所以遇到就走上面第 5 點：標 failed、等 Andy 設定）。
+- Andy 已在 **GitHub Secrets** 設 `ARTICLE_PUT_KEY`（部署 Worker 時寫進 Worker），並在 **Claude 雲端環境 → Edit cloud environment → Network secrets** 綁了 `tw-account.kcq01010909.workers.dev/v1/articles…` 這一筆。
+- 所以 Claude 的容器**看不到也不需要**鑰匙：`article_publish.py` 不帶 `Authorization` 直接送，出口代理會自動補上；網址沒設 `ACCOUNT_API_URL` 就用程式裡的預設值。**不要再設環境變數、不要填假的佔位鑰匙**（10-17 填佔位字串被權限檢查擋下）。
+- 快速自測：`python -c "from scripts import article_jobs as aj, article_publish as ap; print(aj.call(ap.DEFAULT_API, '', {'op':'list_bodies'}))"` 回 `bodies` 清單就是通的。
+- 換鑰匙：GitHub 那筆改值 → 跑一次「部署 Worker（會員登入與使用統計）」→ Claude 環境 Network secrets 那筆按重新整理圖示貼同一串新值（兩邊要一樣）。
 
 ### 全文只存在 Worker：備份與復原
 

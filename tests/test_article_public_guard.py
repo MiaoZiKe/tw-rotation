@@ -80,10 +80,14 @@ def test_沒有機器鑰匙就不上傳不寫索引(tmp_path, monkeypatch, capsy
     monkeypatch.delenv("ARTICLE_BOT_KEY", raising=False)
     monkeypatch.delenv("ARTICLE_PUT_KEY", raising=False)
     monkeypatch.setenv("BACKUP_TOKEN", "b" * 30)      # 備份權杖不可拿來上傳全文
+    # 10-17 起：沒有環境變數鑰匙就不帶 Authorization 送（雲端環境的網路密鑰由代理補）；沒設密鑰時 Worker 回 403 → 不寫索引
+    seen = []
+    monkeypatch.setattr(ap.aj, "call", lambda base, tok, body: seen.append((base, tok, body.get("op"))) or {"error": "forbidden", "_s": 403})
     before = ap.INDEX.read_text(encoding="utf-8")
-    assert ap.main([str(f)]) == 3
+    assert ap.main([str(f)]) == 4
     assert ap.INDEX.read_text(encoding="utf-8") == before
     assert "不要把全文推進 repo" in capsys.readouterr().out
+    assert seen and seen[0][0] == ap.DEFAULT_API and seen[0][1] == ""      # 沒拿 BACKUP_TOKEN 去上傳
 
 
 def test_上傳後清單確認不到就不寫索引(tmp_path, monkeypatch):

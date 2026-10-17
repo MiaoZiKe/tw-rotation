@@ -31,9 +31,11 @@ KEEP = ("id", "topic_id", "kind", "title", "note", "status", "created", "updated
 
 def call(base: str, token: str, body: dict) -> dict:
     # Cloudflare 會擋 Python 預設的 User-Agent（Python-urllib → 403），帶一個自己的
-    req = urllib.request.Request(base.rstrip("/") + "/v1/articles/jobs/bot", data=json.dumps(body).encode(),
-                                 headers={"Authorization": "Bearer " + token, "content-type": "text/plain",
-                                          "User-Agent": "tw-rotation-article-jobs/1.0"}, method="POST")
+    # token 空字串＝不帶 Authorization：Claude 雲端環境的「網路密鑰」由出口代理自動補上（10-17，見 production_guide.md「發佈」）
+    hdr = {"content-type": "text/plain", "User-Agent": "tw-rotation-article-jobs/1.0"}
+    if token:
+        hdr["Authorization"] = "Bearer " + token
+    req = urllib.request.Request(base.rstrip("/") + "/v1/articles/jobs/bot", data=json.dumps(body).encode(), headers=hdr, method="POST")
     try:
         with urllib.request.urlopen(req, timeout=30) as r:
             return json.loads(r.read().decode())
