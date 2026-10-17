@@ -4,7 +4,9 @@ Andy 10-16：「claude 指負責產出文章，內容……點選清單內主題
 管理區按鈕把請求排進會員 Worker（workers/account-api/articles.js 的 article_jobs 表）；這支用 ARTICLE_BOT_KEY（工作流由 CLOUDFLARE_API_TOKEN 推導）：
   · 預設（同步）：讀未完成的（queued／working）→ 寫 data/_state/article_jobs.json（Claude 排程從這裡讀）；
     同時把「index.json 已經有同一個 topic 的文章」那幾筆 article 請求自動標 done（result＝文章 id）。
-  · --mark ID STATUS [--result X]：Claude 開工／完成時標狀態（working／done／failed）。
+  · --mark ID STATUS [--result X] [--stage S]：Claude 開工／完成時標狀態（working／done／failed）；
+    2026-10-17 加 --stage（plan／research／write／illus／review／publish），管理區「進度」欄的進度條照它畫。
+    Andy 10-17：「這邊一直顯示排隊中，但我不清楚他狀況如何，所以多一個進度條，並且備註目前的階段」。
   · 產文章頻率設定（第 2 版規則清單）：同步成 data/_state/article_schedule.json，並把「這一小時／前一小時」到點的規則排進佇列
     （topic_id＝sch-<日期>-<時>-r<規則>-<類別>-<第幾篇>，Worker 對同一個 id 不重排）。放在這裡做是因為 Claude 的 session 拿不到機器鑰匙。
 環境變數 ACCOUNT_API_URL、ARTICLE_BOT_KEY（或 BACKUP_TOKEN）沒設 → 印一行提示、正常結束（不讓排程變紅）。
@@ -26,7 +28,9 @@ OUT = ROOT / "data" / "_state" / "article_jobs.json"
 SCHED_OUT = ROOT / "data" / "_state" / "article_schedule.json"
 INDEX = ROOT / "site" / "articles" / "index.json"
 TAIPEI = timezone(timedelta(hours=8))
-KEEP = ("id", "topic_id", "kind", "title", "note", "status", "created", "updated", "result")
+KEEP = ("id", "topic_id", "kind", "title", "note", "status", "created", "updated", "result", "stage", "stage_at")
+# 階段白名單：要跟 workers/account-api/articles.js 的 STAGES 一致（Worker 端也會擋，這裡先擋是為了在工作流記錄裡看得到打錯字）
+STAGES = ("plan", "research", "write", "illus", "review", "publish")
 
 
 def call(base: str, token: str, body: dict) -> dict:
@@ -199,10 +203,23 @@ def load_topics(path: Path = TOPICS) -> list[dict]:
         return []
 
 
+def mark_body(job_id, status: str, result: str = "", stage: str = "") -> dict:
+    """組 op:'mark' 的請求。stage 空白＝不送（Worker 會依 status 自己決定：working→plan、done→done、failed→停在原格）；
+    白名單外的值印警告後不送，不讓整支失敗 —— 標狀態本身比階段重要。"""
+    body = {"op": "mark", "id": int(job_id), "status": status, "result": result}
+    st = (stage or "").strip().lower()
+    if st in STAGES:
+        body["stage"] = st
+    elif st:
+        print(f"::warning::階段「{stage}」不在白名單 {'/'.join(STAGES)}，略過（只標狀態）")
+    return body
+
+
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--mark", nargs=2, metavar=("ID", "STATUS"))
     ap.add_argument("--result", default="")
+    ap.add_argument("--stage", default="")
     a = ap.parse_args(argv)
     base = os.environ.get("ACCOUNT_API_URL", "").strip()
     token = (os.environ.get("ARTICLE_BOT_KEY") or os.environ.get("BACKUP_TOKEN") or "").strip()
@@ -210,7 +227,7 @@ def main(argv=None) -> int:
         print("沒有設定 ACCOUNT_API_URL／機器鑰匙，跳過")
         return 0
     if a.mark:
-        r = call(base, token, {"op": "mark", "id": int(a.mark[0]), "status": a.mark[1], "result": a.result})
+        r = call(base, token, mark_body(a.mark[0], a.mark[1], a.result, a.stage))
         print(json.dumps(r, ensure_ascii=False))
         if r.get("error"):
             return 1

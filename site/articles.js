@@ -602,6 +602,20 @@
   #v-subadm #artAdmList tbody tr:not([data-id])>td{display:block;padding:12px;height:auto;white-space:normal}
 }
 #v-subadm .artadm .js.kdc{border:0;padding:0;margin:0}#v-subadm .artadm .js.kdc .kd{margin:0;font-size:12px;padding:1px 8px;line-height:18px}
+/* 2026-10-17 Andy：「這邊一直顯示排隊中，但我不清楚他狀況如何，所以多一個進度條，並且備註目前的階段」
+   → 產出進度「進度」欄：一條細進度條（寬＝固定對照的百分比）＋右邊百分比＋下方「階段・更新時間」。
+   顏色只有四種意思：製作中＝青、已完成＝綠、失敗＝紅（停在失敗那一格的寬度）、排隊中／已取消＝灰（空條）。 */
+#v-subadm .artadm .jprog{display:flex;flex-direction:column;gap:3px;min-width:0;text-align:left}
+#v-subadm .artadm .jprog .jrow{display:flex;align-items:center;gap:6px;min-width:0}
+#v-subadm .artadm .jprog .jbar{flex:1 1 auto;min-width:40px;height:6px;border-radius:999px;background:color-mix(in srgb,var(--ink-3,#888) 22%,transparent);overflow:hidden}
+#v-subadm .artadm .jprog .jbar>i{display:block;height:100%;border-radius:inherit;background:var(--cyan);transition:width .45s ease}
+#v-subadm .artadm .jprog[data-tone=done] .jbar>i{background:var(--green,#30a46c)}
+#v-subadm .artadm .jprog[data-tone=failed] .jbar>i{background:var(--red,#e5484d)}
+#v-subadm .artadm .jprog[data-tone=queued] .jbar>i,#v-subadm .artadm .jprog[data-tone=cancelled] .jbar>i{background:var(--ink-3,#888)}
+#v-subadm .artadm .jprog .jpct{flex:none;min-width:32px;text-align:right;font-size:11px;font-variant-numeric:tabular-nums;color:var(--ink-3)}
+#v-subadm .artadm .jprog .jcap{font-size:11.5px;line-height:1.35;color:var(--ink-3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#v-subadm .artadm .jprog .jcap .js{display:inline;border:0;padding:0;margin:0;font-size:inherit;font-weight:700;border-radius:0}
+#v-subadm .artadm .jprog[data-tone=failed] .jcap{color:var(--red,#e5484d)}
 #v-subadm .artadm td button.cx{height:26px;padding:0 10px;border-radius:var(--r-sm,8px);border:1px solid var(--line-2);background:var(--panel-3);color:var(--ink);font:inherit;font-size:12px;cursor:pointer}
 /* 精選文章分級（2026-10-16，Andy：「精選貼文限制給 Pro 可以看，Plus 只能所有類別共 5 篇，其他的只能看到標題」）
    · #artQuota：列表頁頂端的額度條（額度卡片同一套 amber 分段條）；Pro／管理者不顯示
@@ -1552,7 +1566,12 @@ ${gs.length ? `<section><h5>熱門族群</h5><div class="gps">${gs.map((g) => `<
      按鈕 → 會員 Worker /v1/articles/jobs/add 排一筆 → GitHub Actions（article-jobs.yml）每小時同步進 repo →
      Claude 排程撰寫、推上 main → 文章 index.json 帶同一個 topic 時自動標「已上架」。*/
   const KIND_T = { article: '精選文章', video: '短影片' };
-  const JST = { queued: '排隊中', working: '撰寫中', done: '已完成', failed: '失敗', cancelled: '已取消' };
+  const JST = { queued: '排隊中', working: '製作中', done: '已完成', failed: '失敗', cancelled: '已取消' };   // 10-17：「撰寫」變成其中一個階段，狀態改叫「製作中」
+  /* 2026-10-17 產出進度的「階段」：Worker（workers/account-api/articles.js STAGES）只存格子名，百分比固定在這裡對照 ——
+     外部（工作流、Claude）只能挑一格，不能填「87%」這種看起來很準其實沒意義的數字。順序就是一篇文章實際做的順序。 */
+  const STG = { queued: ['排隊中', 0], plan: ['安排主題', 10], research: ['查資料', 25], write: ['撰寫', 45], illus: ['插圖', 65],
+    review: ['驗收', 80], publish: ['發布中', 92], done: ['已完成', 100], failed: ['失敗', 0], cancelled: ['已取消', 0] };
+  const WORK_STG = ['plan', 'research', 'write', 'illus', 'review', 'publish'];
   const acctCall = (path, body) => { const A = window.TwAccount; return A && typeof A.call === 'function' ? A.call(path, body) : Promise.resolve(null); };
   function loadJobs() {
     return acctCall('/v1/articles/jobs/list', {}).then((j) => { S.jobs = j && Array.isArray(j.jobs) ? j.jobs : null; return S.jobs; });
@@ -1567,7 +1586,7 @@ ${gs.length ? `<section><h5>熱門族群</h5><div class="gps">${gs.map((g) => `<
     ['article', 'video'].forEach((k) => {
       if (k === 'article' && pub) return;
       const j = (S.jobs || []).find((x) => x.topic_id === tid && x.kind === k && x.status !== 'cancelled');
-      if (j) out.push(`<span class="js ${esc(j.status)}" data-kind="${k}" title="#${esc(j.id)} ${esc(twTime(j.created))} 送出"><em class="kd ${k}">${k === 'article' ? '文章' : '短影片'}</em>${esc(JST[j.status] || j.status)}</span>`);
+      if (j) out.push(`<span class="js ${esc(j.status)}" data-kind="${k}" title="#${esc(j.id)} ${esc(twTime(j.created))} 送出"><em class="kd ${k}">${k === 'article' ? '文章' : '短影片'}</em>${esc(j.status === 'working' && WORK_STG.includes(j.stage) ? STG[j.stage][0] : (JST[j.status] || j.status))}</span>`);
     });
     return out.join('') || '<span class="muted">—</span>';
   }
@@ -1637,16 +1656,17 @@ ${gs.length ? `<section><h5>熱門族群</h5><div class="gps">${gs.map((g) => `<
   <thead><tr><th class="c">選</th><th>分數</th><th class="c">類別</th><th>標題</th><th>理由</th><th class="c">建議形式</th><th>產出狀態</th></tr></thead><tbody id="artTpBody"></tbody></table></div></div>
 </div>
 <div class="card artadm" id="artAdmJobs">
-  <div class="hd"><h3>產出進度</h3><span class="muted">排隊中的請求由 Claude 每小時（台北 :05）處理；文章推上線後這裡自動變「已完成」</span></div>
+  <div class="hd"><h3>產出進度</h3><span class="muted">排隊中的請求由 Claude 每小時（台北 :05）處理；進度條照「安排主題 → 查資料 → 撰寫 → 插圖 → 驗收 → 發布中 → 已完成」走，文章推上線後自動變「已完成」</span></div>
   <div class="aflt" id="artJobFlt">
     <select id="artJfKind" aria-label="產出種類"><option value="">全部種類</option><option value="article">精選文章</option><option value="video">短影片</option></select>
     <select id="artJfSt" aria-label="狀態"><option value="">全部狀態</option>${Object.keys(JST).map((k) => `<option value="${k}">${JST[k]}</option>`).join('')}</select>
     <input type="search" id="artJfQ" placeholder="搜尋主題或補充" aria-label="搜尋主題或補充">
     <button type="button" class="clr" id="artJfClr">清除</button>
+    <button type="button" class="clr" id="artJfRef" title="重新讀一次進度（停在這頁時每分鐘也會自己更新）">↻ 更新進度</button>
     <span class="cnt" id="artJfCnt"></span>
   </div>
-  <div class="tbw"><table><colgroup><col style="width:64px"><col style="width:96px"><col style="width:30%"><col><col style="width:96px"><col style="width:120px"><col style="width:96px"></colgroup>
-  <thead><tr><th class="r">編號</th><th class="c">產出</th><th>主題</th><th>補充</th><th class="c">狀態</th><th class="c">送出時間</th><th class="c">操作</th></tr></thead><tbody id="artJobBody"></tbody></table></div>
+  <div class="tbw"><table><colgroup><col style="width:64px"><col style="width:96px"><col style="width:28%"><col><col style="width:200px"><col style="width:120px"><col style="width:96px"></colgroup>
+  <thead><tr><th class="r">編號</th><th class="c">產出</th><th>主題</th><th>補充</th><th>進度</th><th class="c">送出時間</th><th class="c">操作</th></tr></thead><tbody id="artJobBody"></tbody></table></div>
 </div>
 <div id="artSchedHost"></div>
 </div>
@@ -1676,6 +1696,11 @@ ${gs.length ? `<section><h5>熱門族群</h5><div class="gps">${gs.map((g) => `<
     const jb = (id, k, ev) => { const el = $(id, v); el.value = jf[k]; el.addEventListener(ev, () => { jf[k] = el.value.trim(); paintJobs(v); }); };
     jb('#artJfKind', 'kind', 'change'); jb('#artJfSt', 'st', 'change'); jb('#artJfQ', 'q', 'input');
     $('#artJfClr', v).onclick = () => { Object.assign(jf, { kind: '', st: '', q: '' }); ['#artJfKind', '#artJfSt', '#artJfQ'].forEach((id) => { $(id, v).value = ''; }); paintJobs(v); };
+    /* 2026-10-17 進度條：Andy 看的是「現在做到哪」，停在這頁時每分鐘自己重讀一次（分頁在背景就不讀），也可以按「↻ 更新進度」馬上讀 */
+    const jobRefresh = async () => { const rb = $('#artJfRef', v); if (rb) rb.disabled = true; await loadJobs(); paintTopics(v); paintJobs(v); if (rb) rb.disabled = false; };
+    $('#artJfRef', v).onclick = jobRefresh;
+    clearInterval(S.jobTick);
+    S.jobTick = setInterval(() => { if (!document.body.contains(v) || !$('#artJobBody', v)) { clearInterval(S.jobTick); return; } if (!document.hidden && location.hash === '#admin/articles') jobRefresh(); }, 60000);
     $$('#artGenArt,#artGenVid', v).forEach((b) => { b.onclick = () => submitJob(v, b.dataset.kind); });
     // 傳給 GPT：列內勾選（存 S.gsel，換篩選不掉）、列內按鈕＝傳這一篇、表頭按鈕＝傳勾選的；清單裡的連結被按下去就記「已傳送」
     $('#artAdmBody', v).addEventListener('change', (e) => { const c = e.target.closest('input[data-gpt-pick]'); if (!c) return; if (c.checked) S.gsel.add(c.dataset.gptPick); else S.gsel.delete(c.dataset.gptPick); gptMsg(v, ''); gptSync(v); });
@@ -1889,12 +1914,34 @@ ${gs.length ? `<section><h5>熱門族群</h5><div class="gps">${gs.map((g) => `<
     $('#artStRef', box).onclick = () => { loadDaily().then(() => { loadStats(true); paintStats(v); }); };
     if (window.RangePick) window.RangePick.bind($('#artStRng', box), { onChange: ({ value, from, to }) => { ss.period = value; if (value === 'since') { ss.from = from; ss.to = to; } paintStats(v); } });
   }
+  /* 一筆請求的進度格。回答「這筆現在做到哪一步、多久之前動過」：
+     排隊中 → 灰空條＋「排隊中・下一輪 :05 開工」（Claude 排程每小時台北 :05 處理佇列）；
+     製作中 → 青條到該階段百分比＋「撰寫・18:42」；完成 → 綠滿條；失敗 → 紅條停在失敗那一格＋「失敗・卡在撰寫・18:42」；
+     舊資料沒有 stage：製作中當「安排主題」、其他照 status。
+     .js 那一顆只放狀態／階段名稱本身（既有驗收用 .js:not(.kdc) 的字比對狀態，所以時間放在它外面）。 */
+  function jobProg(j) {
+    const sg = WORK_STG.includes(j.stage) ? j.stage : '';
+    const today = twTime(Date.now()).slice(0, 5);
+    const when = (ms) => { const t = twTime(ms); return t ? (t.slice(0, 5) === today ? t.slice(6) : t.slice(0, 5).replace('-', '/') + ' ' + t.slice(6)) : ''; };
+    const at = when(j.stage_at || j.updated || j.created);
+    let tone, key, lab, tail;
+    if (j.status === 'done') { tone = 'done'; key = 'done'; lab = '已完成'; tail = at; }
+    else if (j.status === 'cancelled') { tone = 'cancelled'; key = 'cancelled'; lab = '已取消'; tail = when(j.updated || j.created); }
+    else if (j.status === 'failed') { tone = 'failed'; key = sg || 'queued'; lab = '失敗'; tail = (sg ? `卡在${STG[sg][0]}・` : '') + at; }
+    else if (j.status === 'working') { tone = 'working'; key = sg || 'plan'; lab = STG[key][0]; tail = at; }
+    else { tone = 'queued'; key = 'queued'; lab = '排隊中'; tail = '下一輪 :05 開工'; }
+    const pct = j.status === 'cancelled' ? 0 : STG[key][1];
+    const aria = `${lab}${tail ? '・' + tail : ''}（${pct}%）`;
+    return `<div class="jprog" data-tone="${tone}" data-stage="${esc(key)}" data-pct="${pct}" title="${esc(aria)}">`
+      + `<div class="jrow"><span class="jbar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${pct}" aria-label="${esc(aria)}"><i style="width:${pct}%"></i></span><span class="jpct">${pct}%</span></div>`
+      + `<div class="jcap"><span class="js ${esc(j.status)}">${esc(lab)}</span>${tail ? '・' + esc(tail) : ''}</div></div>`;
+  }
   function paintJobs(v) {
     const body = $('#artJobBody', v); if (!body) return;
     if (!S.jobs) { body.innerHTML = '<tr><td colspan="7" class="muted">讀不到產出紀錄（會員伺服器沒回應）</td></tr>'; return; }
     const jf = S.jf, q = jf.q.toLowerCase();
     /* 10-16 Andy：「產完後 進度這邊也需要更新」→ 文章已上架（index 有同一個 topic）就直接算「已完成」，不等同步工作流把狀態標回伺服器（篩選也照這個） */
-    const eff = (j) => { const live = j.kind === 'article' && ['queued', 'working'].includes(j.status) && pubOfTopic(j.topic_id); return live ? Object.assign({}, j, { status: 'done', result: live.id }) : j; };
+    const eff = (j) => { const live = j.kind === 'article' && ['queued', 'working'].includes(j.status) && pubOfTopic(j.topic_id); return live ? Object.assign({}, j, { status: 'done', stage: 'done', result: live.id }) : j; };
     const hit = S.jobs.map(eff).filter((j) => (!jf.kind || j.kind === jf.kind) && (!jf.st || j.status === jf.st)
       && (!q || String(j.title || '').toLowerCase().includes(q) || String(j.note || '').toLowerCase().includes(q)));
     const rows = hit.slice(0, 100);
@@ -1909,7 +1956,7 @@ ${gs.length ? `<section><h5>熱門族群</h5><div class="gps">${gs.map((g) => `<
       const op = j.status === 'queued' ? `<button type="button" class="cx" data-cancel="${esc(j.id)}">取消</button>`
         : pub ? `<a href="#article/${encodeURIComponent(pub.id)}">看文章</a>` : '<span class="muted">—</span>';
       return sep + `<tr data-job="${esc(j.id)}"><td class="n r">#${esc(j.id)}</td><td class="c"><span class="kdc js"><em class="kd ${esc(j.kind)}">${esc(KIND_T[j.kind] || j.kind)}</em></span></td><td title="${esc(j.title)}">${esc(j.title)}</td>
-        <td class="dm" title="${esc(j.note || '')}">${j.note ? esc(j.note) : '<span class="muted">—</span>'}</td><td class="c"><span class="js ${esc(j.status)}">${esc(JST[j.status] || j.status)}</span></td>
+        <td class="dm" title="${esc(j.note || '')}">${j.note ? esc(j.note) : '<span class="muted">—</span>'}</td><td class="jpc">${jobProg(j)}</td>
         <td class="n c">${esc(tt)}</td><td class="c">${op}</td></tr>`;
     }).join('') : `<tr><td colspan="7" class="muted">${S.jobs.length ? '沒有符合篩選條件的請求' : '還沒有送出過產出請求'}</td></tr>`;
   }

@@ -194,3 +194,42 @@ test('頻率設定到點排隊（機器路由 op=add）：只收 sch- id、同�
   // 管理區的清單看得到（排程排進來的跟手動排的一樣顯示）
   assert.equal((await pj(hub, '/v1/articles/jobs/list', { t: andy })).j.jobs[0].topic_id, job.topic_id);
 });
+
+/* 產出進度的「階段」（2026-10-17）：Andy 10-17「這邊一直顯示排隊中，但我不清楚他狀況如何，所以多一個進度條，並且備註目前的階段」。
+   白名單外忽略；working 沒給階段→plan、已在 working 就保留；done／cancelled 跟著變；failed 停在原本那格；stage_at 只在階段變了才更新；舊表相容遷移 */
+test('產出佇列階段：白名單、預設 plan、done／cancelled 跟著、failed 停在原格、stage_at、舊表遷移', async () => {
+  const { hub, db } = makeHub({ ...env, GOOGLE_CLIENT_ID: CID, BACKUP_TOKEN: BT });
+  // 舊資料庫：先建沒有 stage 欄的表與一筆舊列，再讓 Worker 第一次進 artInit
+  db.exec("CREATE TABLE article_jobs (id INTEGER PRIMARY KEY AUTOINCREMENT, topic_id TEXT, kind TEXT, title TEXT, note TEXT, status TEXT, created INTEGER, updated INTEGER, by TEXT, result TEXT)");
+  db.exec("INSERT INTO article_jobs (topic_id, kind, title, status, created, updated) VALUES ('old-one', 'article', '舊列', 'queued', 1, 1)");
+  const andy = await login(hub, 'andy@example.com');
+  const old = (await pj(hub, '/v1/articles/jobs/list', { t: andy })).j.jobs[0];
+  assert.equal(old.title, '舊列'); assert.equal(old.stage, null, '舊列 stage 為空'); assert.equal(old.stage_at, null);
+  const a = (await pj(hub, '/v1/articles/jobs/add', { t: andy, topic_id: 'stage-a', kind: 'article', title: '階段測試' })).j.job;
+  assert.equal(a.stage, null, '剛排的還沒有階段（前端當排隊中）');
+  const t0 = clock;
+  let m = await bot(hub, { op: 'mark', id: a.id, status: 'working' });
+  assert.equal(m.j.job.stage, 'plan', 'working 沒給階段→plan'); assert.equal(m.j.job.stage_at, t0);
+  clock += 60000;
+  m = await bot(hub, { op: 'mark', id: a.id, status: 'working', stage: 'write' });
+  assert.equal(m.j.job.stage, 'write'); assert.equal(m.j.job.stage_at, t0 + 60000);
+  clock += 60000;
+  m = await bot(hub, { op: 'mark', id: a.id, status: 'working', stage: '87%' });
+  assert.equal(m.s, 200, '白名單外不報錯'); assert.equal(m.j.job.stage, 'write', '白名單外忽略、保留原格');
+  assert.equal(m.j.job.stage_at, t0 + 60000, '階段沒變 stage_at 不動');
+  m = await bot(hub, { op: 'mark', id: a.id, status: 'working', stage: 'done' });
+  assert.equal(m.j.job.stage, 'write', 'working 時不能把階段塞成 done');
+  m = await bot(hub, { op: 'mark', id: a.id, status: 'failed', result: '插圖失敗' });
+  assert.equal(m.j.job.status, 'failed'); assert.equal(m.j.job.stage, 'write', 'failed 停在失敗前那一格');
+  m = await bot(hub, { op: 'mark', id: a.id, status: 'working' });
+  assert.equal(m.j.job.stage, 'plan', 'failed 重新開工沒給階段→plan');
+  await bot(hub, { op: 'mark', id: a.id, status: 'working', stage: 'publish' });
+  m = await bot(hub, { op: 'mark', id: a.id, status: 'done', result: '2026-10-17-news-x' });
+  assert.equal(m.j.job.stage, 'done', 'done 時階段跟著');
+  const o = (await bot(hub, { op: 'open' })).j.jobs.find((j) => j.title === '舊列');
+  assert.ok(o && 'stage' in o && 'stage_at' in o, 'open 也帶 stage／stage_at');
+  const c = (await pj(hub, '/v1/articles/jobs/cancel', { t: andy, id: old.id })).j.job;
+  assert.equal(c.status, 'cancelled'); assert.equal(c.stage, 'cancelled', '取消時階段跟著');
+  // 重跑 artInit（冷啟動）不報錯
+  hub._artJobOk = false; assert.equal((await pj(hub, '/v1/articles/jobs/list', { t: andy })).s, 200);
+});
