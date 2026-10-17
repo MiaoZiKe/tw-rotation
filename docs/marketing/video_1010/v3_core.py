@@ -2131,7 +2131,7 @@ def busy_check(shot, t, busy, mainb=None):
     rec = shot.rec
     taps = [tp for tp in (shot.op.taps if shot.op else []) if not tp["hover"]]
     # 點擊時看得出是比比按的（CEO 10-12 第二輪）：站著那 0.5 秒，比比 ≥100px、離按鈕 ≤160px
-    if shot.op is not None and V4:
+    if shot.op is not None and V4 and not getattr(shot.op, "mode_b", False):   # 第 6 版 B 類（游標＋漣漪）：分鏡 v6 第 1 節，比比不必在按鈕旁
         op_ = shot.op
         for q in taps:
             if q["t"] - op_.TAP_IN + op_.HOP + 0.01 <= t <= q["t"] + op_.TAP_OUT - op_.HOP - 0.01:
@@ -2531,7 +2531,7 @@ class Shot4:
                 hx = px + pw + 36
             L.head_xy = (hx, L.head_y)
             R.headline(cv, L, self.head, t, self.hl)
-            footnote4(cv, L)
+            footnote4(cv, L, getattr(self, "foot_top", False))
             _shot_note(cv, L, self, t)
         else:
             hx = L.pill_xy[0]
@@ -2588,7 +2588,7 @@ def subtitle_web(cv, L, text, t):
     C.reg("subtitle", (x - 22, y, x - 22 + wmax + 44, y + h))
 
 
-def footnote4(cv, L):
+def footnote4(cv, L, top=False):
     f = font(F_MED, 20 if L.fmt == "web" else 22)
     text = R.FOOTNOTE
     tw = text_w(f, text)
@@ -2597,6 +2597,8 @@ def footnote4(cv, L):
     y = L.foot_y
     if L.fmt == "web":
         x = L.W / 2 - tw / 2
+        if top:     # 第 6 版跟比比玩（推近右下角，框底是圖表）：小字改放右上標題列（網站框上方）
+            x, y = L.box[0] + L.box[2] - tw - 16, 18
         R.float_panel(cv, (x - 12, y, x + tw + 12, y + 28), 215, 10)
         d.text((x, y + 1), text, font=f, fill=(80, 80, 80))
         C.reg("footnote", (x - 12, y, x + tw + 12, y + 28))

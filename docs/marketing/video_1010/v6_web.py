@@ -202,6 +202,8 @@ def build():
     S.append(shot("p04", "跟比比玩", PLAY_W, [(t_pet - 0.6, t_pet + 1.6)], "摸摸頭好舒服", "", "hop_r", "hop_r", no_host=True, win_keys=wk, min_cap=1.0))
     S.append(shot("p05", "跟比比玩", PLAY_W, [(t_bub - 0.6, t_bub + 1.8)], "還有玩具六件", "", "hop_r", "hop_r", no_host=True, win_keys=wk, min_cap=1.0))
     # 15 願望清單
+    for sh in S[-5:]:
+        sh.foot_top = True
     if fresh_nofab("V26w_desktop"):
         S.append(shot("j03", "願望清單", "V26w_desktop", [(5.4, 8.2)], "歡迎許願", "想要什麼功能，跟我說！", "sign_text", "heart_wish", mv="hop_l",
                       win_keys=[(0.0, (1290, 716, 3170, 1726))]))

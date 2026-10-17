@@ -60,6 +60,24 @@ def ripple_center(im_on, im_off, guess, rad=150):
     return cx, cy, r, len(pts)
 
 
+def cursor_hot(im_on, im_off, guess, fmt, rad=140):
+    """游標熱點：有游標／沒游標兩張相減。網頁箭頭＝最左上那一點（箭頭尖端）；手機指尖圓＝擬合圓心。"""
+    a = np.asarray(im_on, dtype=np.int16)
+    b = np.asarray(im_off, dtype=np.int16)
+    d = np.abs(a - b).sum(axis=2)
+    gx, gy = int(guess[0]), int(guess[1])
+    x0, y0 = max(0, gx - rad), max(0, gy - rad)
+    sub = d[y0:gy + rad, x0:gx + rad]
+    ys, xs = np.nonzero(sub > 60)
+    if len(xs) < 10:
+        return None
+    if fmt == "web":
+        k = np.argmin(xs + ys)
+        return float(xs[k] + x0), float(ys[k] + y0)
+    cx, cy, r = fit_circle(np.c_[xs + x0, ys + y0])
+    return cx, cy
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--fmt", required=True)
@@ -73,44 +91,61 @@ def main():
     (out / "crops").mkdir(parents=True, exist_ok=True)
     only = set(a.only.split(",")) if a.only else None
     rows = []
-    real_ripple = K.ripple
+    real_ripple, real_rb, real_cur = K.ripple, K.ripple_b, K.tap_cursor
     for s in S:
         if only and s.sid not in only:
             continue
         if not s.op or s.rec is None:
             continue
-        taps = [tp for tp in s.op.taps if not tp["hover"]]
+        taps = list(s.op.taps)
         for i, tp in enumerate(taps):
             t = tp["t"] + 2 / FPS            # 點下後第 2 幀：漣漪已經展開、還很清楚
             if t >= s.dur:
                 continue
-            K.ripple = real_ripple
-            im_on = s.render(t, L).convert("RGB")
+            hov = tp["hover"]
+            on = s.render(t, L).convert("RGB")
+            K.ripple_b = lambda *x, **y: None
             K.ripple = lambda *x, **y: None
-            im_off = s.render(t, L).convert("RGB")
-            K.ripple = real_ripple
+            no_rip = s.render(t, L).convert("RGB")
+            K.tap_cursor = lambda *x, **y: None
+            bare = s.render(t, L).convert("RGB")
+            K.ripple, K.ripple_b, K.tap_cursor = real_ripple, real_rb, real_cur
             rec = s.rec
             site = R.background(L.fmt).copy()
             rec.draw(site, t, s)
             site = site.convert("RGB")
             guess = rec.map(tp["cx"], tp["cy"])
-            rc = ripple_center(im_on, im_off, guess)
+            rc = None if hov else ripple_center(on, no_rip, guess)
+            cur = cursor_hot(no_rip, bare, guess, L.fmt)
             inf = K.click_info(rec.clip, tp["src_t"], tp["x"], tp["y"])
             r = inf["rect"]                 # 來源像素 (x0,y0,x1,y1)
+            if hov:
+                pr = K._precise_all()
+                for key in K._clip_keys(rec.clip):
+                    cand = [q for q in pr.get(key, []) if abs(q["t"] - tp["src_t"]) < 0.5 and q.get("rect")]
+                    if cand:
+                        q = cand[0]["rect"]
+                        r = (q[0], q[1], q[0] + q[2], q[1] + q[3])
+                        break
             st = K.piecewise(rec.srcmap, t)
             src = B.reader(rec.clip).get(st).convert("RGB")
             ax, ay = rec.map(r[0], r[1])
             bx, by = rec.map(r[2], r[3])
             sc = (bx - ax) / max(1e-6, r[2] - r[0])
             tw, th = int(round(bx - ax)), int(round(by - ay))
-            row = {"shot": s.sid, "t": round(t, 2), "clip": rec.clip, "src_t": tp["src_t"], "label": inf["label"], "center_src": K.PRECISE_SRC.get((rec.clip, round(tp["src_t"], 2)), ""),
-                   "expected": [round(guess[0], 1), round(guess[1], 1)]}
-            if rc is None:
+            row = {"shot": s.sid, "t": round(t, 2), "kind": "滑過" if hov else "點擊", "clip": rec.clip, "src_t": tp["src_t"], "label": inf["label"] if not hov else "滑過",
+                   "center_src": K.PRECISE_SRC.get((rec.clip, round(tp["src_t"], 2)), ""), "expected": [round(guess[0], 1), round(guess[1], 1)]}
+            if cur is not None:
+                row["cursor"] = [round(cur[0], 1), round(cur[1], 1)]
+            if rc is None and cur is None:
                 row["err"] = None
-                row["why"] = "量不到漣漪（被遮住或在畫面外）"
+                row["why"] = "量不到漣漪與游標（在畫面外）"
                 rows.append(row)
                 continue
-            row["ripple"] = [round(rc[0], 1), round(rc[1], 1)]
+            if rc is None:
+                rc = (cur[0], cur[1], 0, 0)
+            if not hov:
+                row["ripple"] = [round(rc[0], 1), round(rc[1], 1)]
             # 元素樣板比對（外框太大＝整張圖：改切點擊點周圍 80×80 來源像素）
             if (r[2] - r[0]) > 360 or (r[3] - r[1]) > 360:
                 cxs, cys = tp["cx"], tp["cy"]
@@ -143,6 +178,8 @@ def main():
             row["element"] = [round(ecx, 1), round(ecy, 1)]
             row["match_score"] = round(float(score), 3)
             row["err"] = round(math.hypot(rc[0] - ecx, rc[1] - ecy), 1)
+            if cur is not None:
+                row["cursor_err"] = round(math.hypot(cur[0] - ecx, cur[1] - ecy), 1)
             row["map_vs_match"] = round(math.hypot(guess[0] - ecx, guess[1] - ecy), 1)
             rows.append(row)
             # 對照裁圖
@@ -164,11 +201,11 @@ def main():
         B._READERS.clear()
     (out / f"click_precision_{a.fmt}.json").write_text(json.dumps(rows, ensure_ascii=False, indent=1))
     ok = [r for r in rows if r.get("err") is not None]
-    bad = [r for r in ok if r["err"] > 6]
+    bad = [r for r in ok if r["err"] > 6 or (r.get("cursor_err") or 0) > 6]
     lines = [f"# 點擊精準度量測（{a.fmt}）", "", f"點擊 {len(rows)} 次；量得到 {len(ok)} 次；誤差 >6px：{len(bad)} 次；最大 {max([r['err'] for r in ok], default=0)}px", "",
-             "| 鏡 | 成片秒 | 目標 | 漣漪擬合圓心 | 元素中心（樣板比對） | 誤差 px | 比對分數 | 中心來源 |", "|---|---|---|---|---|---|---|---|"]
+             "| 鏡 | 成片秒 | 種類 | 目標 | 漣漪擬合圓心 | 游標熱點 | 元素中心（樣板比對） | 漣漪誤差 px | 游標誤差 px | 比對分數 | 中心來源 |", "|---|---|---|---|---|---|---|---|---|---|---|"]
     for r in rows:
-        lines.append(f"| {r['shot']} | {r['t']} | {str(r['label'])[:24]} | {r.get('ripple', '')} | {r.get('element', '')} | {r.get('err') if r.get('err') is not None else r.get('why')} | {r.get('match_score', '')} | {r.get('center_src', '')} |")
+        lines.append(f"| {r['shot']} | {r['t']} | {r.get('kind', '')} | {str(r['label'])[:24]} | {r.get('ripple', '—')} | {r.get('cursor', '—')} | {r.get('element', '')} | {r.get('err') if r.get('err') is not None else r.get('why')} | {r.get('cursor_err', '—')} | {r.get('match_score', '')} | {r.get('center_src', '')} |")
     (out / f"click_precision_{a.fmt}.md").write_text("\n".join(lines))
     print("\n".join(lines[:4]))
 
