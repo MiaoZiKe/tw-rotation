@@ -15,6 +15,8 @@ SYNONYMS = [('趴', '趴著', 'lie', 'prone'), ('放大鏡', 'magnifier'),
             ('思考', 'think', 'thinking'), ('指向', '指示', 'point', 'pointer'),
             ('揮手', 'wave'), ('右', 'right'), ('左', 'left'), ('正面', 'front'),
             ('側面', 'side'), ('介紹', 'explain', 'intro'), ('驚嘆', 'wow')]
+SYNONYMS += [('觀察', 'observe', 'observing'), ('比比', 'bibi'), ('科技', 'technology'),
+             ('曝光機', '微影', 'lithography', 'euv'), ('筆電', 'laptop')]
 
 def flatten(value):
     if isinstance(value, dict):
@@ -74,7 +76,9 @@ def scan(root):
         except Exception as exc:
             warnings.append({'manifest': str(path), 'error': str(exc)})
     # 遠端快照是有證據的索引，並非本機已下載／逐檔已檢查。
-    snapshot = root / 'output/2026-10-17_asml-outlook/catalog_snapshot.json'
+    snapshot = root / 'docs/social_assets/legacy_catalog.json'
+    if not snapshot.exists():
+        snapshot = root / 'output/2026-10-17_asml-outlook/catalog_snapshot.json'
     if snapshot.exists():
         saved = json.loads(snapshot.read_text(encoding='utf-8-sig'))
         entries.extend(saved.get('remote_entries', []))
@@ -84,6 +88,13 @@ def terms(query):
     tokens = re.findall(r'[a-z0-9_]+|[\u3400-\u9fff]+', query.lower())
     result = []
     for token in tokens:
+        # 無空白的中文句子拆成多個意圖，不能把「趴著觀察晶片」全算一個OR群。
+        if re.search(r'[\u3400-\u9fff]', token):
+            found = [set(group) for group in SYNONYMS
+                     if any(re.search(r'[\u3400-\u9fff]', x) and x in token for x in group)]
+            if found:
+                result.extend(g for g in found if g not in result)
+                continue
         expanded = {token}
         for group in SYNONYMS:
             if any(x in token or token in x for x in group):
@@ -107,7 +118,8 @@ def search(catalog, query='', include_review=False, filters=None):
             continue
         matches.append({**entry, 'score': round(100 * hits / len(groups), 1) if groups else 100,
                         'selectable': status == 'approved'})
-    return sorted(matches, key=lambda e: (-e['score'], e['asset_id']))
+    return sorted(matches, key=lambda e: (-e['score'],
+                  -int(any(f.get('exists') for f in e.get('files',[]))), e['asset_id']))
 
 def self_test():
     demo = {'entries': [{'asset_id': str(i), 'status': status, 'fields': {'pose': '趴姿', 'prop': '放大鏡'}}
@@ -118,6 +130,11 @@ def self_test():
     assert not status_of({'status': 'approved'}) == 'approved'
     assert status_of({'status': 'approved', 'approval_evidence': 'Andy 明確核可紀錄'}) == 'approved'
     assert not search(demo, filters={'prop': 'wafer'})
+    assert len(terms('趴著觀察晶片')) == 3
+    ranked = search({'entries':[
+        {'asset_id':'pose_only','status':'approved','fields':{'pose':'prone'}},
+        {'asset_id':'matching_scene','status':'approved','fields':{'pose':'prone','scene':'observe chip'}}]},'趴著觀察晶片')
+    assert ranked[0]['asset_id'] == 'matching_scene' and ranked[0]['score'] == 100
     print('通過：批准門檻、拒用隔離、中英同義詞、欄位篩選。')
 
 def main():

@@ -1,5 +1,15 @@
 # 貼文渲染與品管
 
+## 素材先查庫
+
+```powershell
+python scripts/social/asset_catalog.py search "趴著觀察晶片" --include-review
+python scripts/social/asset_catalog.py search "prone magnifier" --pose "趴" --include-review
+python scripts/social/prepare_project_assets.py --project docs/social_posts/2026-10-17_asml-outlook
+```
+
+無空白中文需求會按姿勢、動作、物件等詞群計分；同分優先本機可驗證檔案。預設僅選有核可證據的approved，`--include-review`只是候選預覽，不代表正式批准。詳細分類與三維視角限制見docs/social_assets/ASSET_CATALOG.md。
+
 ```powershell
 python scripts/social/carousel_engine.py --project output/2026-10-17_asml-outlook --cover-only
 python scripts/social/qa_carousel.py --project output/2026-10-17_asml-outlook --cover-only
