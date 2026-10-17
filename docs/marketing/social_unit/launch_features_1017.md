@@ -1,7 +1,7 @@
 # 開站宣傳貼文：網站功能與客戶價值（2026-10-17 晚，IG／Threads／FB）
 
 - 目的：宣傳網站功能與價值，帶人試用、再到訂閱。功能順序＝宣傳影片頁序（總覽→財經日曆→資金流向→熱力圖→產業地圖→個股→市場明細→選股策略→週期統計→ETF→自選清單→導覽→願望清單）。
-- 設計交 Codex；本檔只含文字。連結：`https://ligugu-puipui.com/?utm_source=<instagram／threads／fb>&utm_medium=social&utm_campaign=launch_features_1017#overview`
+- 設計交 Codex；本檔只含文字。連結：`https://liguligu-puipui.com/?utm_source=<instagram／threads／fb>&utm_medium=social&utm_campaign=launch_features_1017#overview`
 - 合規：不報明牌、不點名個股買賣、不保證績效；警語固定「本站整理公開資訊，非投顧，不構成任何投資建議，投資有風險，請自行判斷。」；影片畫面為過往歷史資料，僅供功能展示。
 - 價格以網站方案頁為準（目前範本：註冊會員免費／Plus 月 299、年 2990／Pro 月 549、年 5268）。Pro 的「日報、提醒、高解析匯出」仍開發中，不拿來宣傳。
 
