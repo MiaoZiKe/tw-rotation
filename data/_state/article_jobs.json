@@ -1,5 +1,5 @@
 {
- "updated": "2026-10-17 18:46",
+ "updated": "2026-10-17 19:23",
  "jobs": [
   {
    "id": 7,
@@ -9,8 +9,10 @@
    "note": "",
    "status": "working",
    "created": 1792233427736,
-   "updated": 1792233989944,
-   "result": null
+   "updated": 1792236198259,
+   "result": null,
+   "stage": "illus",
+   "stage_at": 1792236198259
   }
  ]
 }
