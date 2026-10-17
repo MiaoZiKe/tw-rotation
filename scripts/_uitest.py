@@ -71908,6 +71908,19 @@ def t_articles_1014(b, base):
     ap.click(f"#artTpBody tr[data-tid=\"{pick[0][0]}\"]"); ap.click("#artGenArt"); ap.wait_for_timeout(400)
     st = ap.evaluate("() => ({ msg: document.getElementById('artTpMsg').textContent, n: document.querySelectorAll('#artJobBody tr[data-job]').length })")
     ok(f"{T}：同主題再按一次 → 提示「已經在排隊」、不多排一筆", "已經在排隊" in st["msg"] and st["n"] == 2, st)
+    # 10-17 Andy：「日期要用線條區分」→ 同一天送出的請求上面只有一條日期分隔線，在第一列、寫今天（台北）的月／日與星期、上框線看得到
+    st = ap.evaluate("""() => { const b = document.getElementById('artJobBody'), s = [...b.querySelectorAll('tr.jdsep')];
+        return { n: s.length, first: b.firstElementChild && b.firstElementChild.classList.contains('jdsep'), t: s.map(r => r.textContent),
+                 bw: s[0] ? parseFloat(getComputedStyle(s[0].cells[0]).borderTopWidth) : 0,
+                 tm: [...b.querySelectorAll('tr[data-job]')].map(r => r.cells[5].textContent.slice(0, 5)) }; }""")
+    md = st["tm"][0] if st["tm"] else ""
+    wd = "一二三四五六日"[__import__("datetime").date(int(time.strftime("%Y")), int(md[:2] or 1), int(md[3:5] or 1)).weekday()] if md else "?"
+    ok(f"{T}：產出進度依日期分段（日期分隔線，跟送出時間同一天、星期對）", st["n"] == 1 and st["first"] and len(set(st["tm"])) == 1
+       and st["t"][0] == md.replace("-", "/") + f"（{wd}）" and st["bw"] >= 1, st)
+    if os.environ.get("TW_ART_JD_SHOT"):      # 看長相用：複製一份當「前一天」那段，截產出進度表
+        ap.evaluate("""() => { const b = document.getElementById('artJobBody'); const s = b.querySelector('tr.jdsep').cloneNode(true); s.cells[0].textContent = '10/16（五）';
+            b.append(s, ...[...b.querySelectorAll('tr[data-job]')].map(r => r.cloneNode(true))); b.closest('table').scrollIntoView(); }""")
+        ap.locator("#artJobBody").locator("xpath=ancestor::div[contains(@class,'tbw')]").screenshot(path=os.environ["TW_ART_JD_SHOT"])
     ap.click(f"#artTpBody tr[data-tid=\"{pick[0][0]}\"]"); ap.click("#artGenVid"); ap.wait_for_timeout(400)
     st = ap.evaluate(f"() => [...document.querySelectorAll('#artTpBody tr[data-tid=\"{pick[0][0]}\"] .js')].map(c => [c.dataset.kind, c.querySelector('.kd').textContent, c.textContent])")
     ok(f"{T}：同一主題再按「產生短影片」→ 該列兩顆狀態，分別標「文章」「短影片」（Andy：產出狀態必須備註是文章還是短影片）",

@@ -535,6 +535,9 @@
 #v-subadm .artadm .aflt .cnt{margin-left:auto;font-size:12px;color:var(--ink-3);white-space:nowrap}
 #v-subadm .artadm .aflt button.clr{height:30px;padding:0 10px;border-radius:var(--r-sm,8px);border:1px solid var(--line-2);background:var(--panel-3);color:var(--ink);font:inherit;font-size:12.5px;cursor:pointer}
 #v-subadm .artadm .aflt button.clr:disabled{opacity:.4;cursor:default}
+/* 10-17 Andy：「日期要用線條區分」→ 產出進度依送出日期分段，每段前一條日期分隔線 */
+#v-subadm .artadm tr.jdsep td{padding:6px 10px 3px;border-top:2px solid var(--accent,#3b82f6);border-bottom:1px solid var(--line,rgba(127,127,127,.25));font-size:12px;font-weight:700;color:var(--accent,#3b82f6);background:transparent;letter-spacing:.04em}
+#v-subadm .artadm tbody tr.jdsep:first-child td{border-top-width:1px}
 #v-subadm .artadm .tpact{display:flex;align-items:center;gap:var(--sp-2);flex-wrap:wrap;padding:var(--sp-2) var(--sp-3);margin-bottom:var(--sp-2);border:1px solid var(--line);border-radius:var(--r-sm,8px);background:var(--panel-2);font-size:13px}
 #v-subadm .artadm .tpact .sel{flex:0 1 auto;min-width:0;max-width:420px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 #v-subadm .artadm .tpact .sel b{color:var(--ink)}
@@ -1897,13 +1900,17 @@ ${gs.length ? `<section><h5>熱門族群</h5><div class="gps">${gs.map((g) => `<
     const rows = hit.slice(0, 100);
     clrState($('#artJfClr', v), !!(jf.kind || jf.st || jf.q));
     const c = $('#artJfCnt', v); if (c) { c.textContent = `${hit.length}／${S.jobs.length} 筆${hit.length > rows.length ? '（顯示前 100 筆）' : ''}`; c.dataset.n = String(hit.length); }
+    const WD = '日一二三四五六'; let lastD = '';
     body.innerHTML = rows.length ? rows.map((j) => {
+      const tt = twTime(j.created), dd = tt.slice(0, 5);
+      const sep = dd && dd !== lastD ? `<tr class="jdsep" data-date="${esc(dd)}"><td colspan="7">${esc(dd.replace('-', '/'))}（${WD[new Date(Number(j.created) + 8 * 3600e3).getUTCDay()]}）</td></tr>` : '';
+      lastD = dd || lastD;
       const pub = j.kind === 'article' && j.status === 'done' && j.result && S.idx && S.idx.list.find((a) => a.id === j.result);
       const op = j.status === 'queued' ? `<button type="button" class="cx" data-cancel="${esc(j.id)}">取消</button>`
         : pub ? `<a href="#article/${encodeURIComponent(pub.id)}">看文章</a>` : '<span class="muted">—</span>';
-      return `<tr data-job="${esc(j.id)}"><td class="n r">#${esc(j.id)}</td><td class="c"><span class="kdc js"><em class="kd ${esc(j.kind)}">${esc(KIND_T[j.kind] || j.kind)}</em></span></td><td title="${esc(j.title)}">${esc(j.title)}</td>
+      return sep + `<tr data-job="${esc(j.id)}"><td class="n r">#${esc(j.id)}</td><td class="c"><span class="kdc js"><em class="kd ${esc(j.kind)}">${esc(KIND_T[j.kind] || j.kind)}</em></span></td><td title="${esc(j.title)}">${esc(j.title)}</td>
         <td class="dm" title="${esc(j.note || '')}">${j.note ? esc(j.note) : '<span class="muted">—</span>'}</td><td class="c"><span class="js ${esc(j.status)}">${esc(JST[j.status] || j.status)}</span></td>
-        <td class="n c">${esc(twTime(j.created))}</td><td class="c">${op}</td></tr>`;
+        <td class="n c">${esc(tt)}</td><td class="c">${op}</td></tr>`;
     }).join('') : `<tr><td colspan="7" class="muted">${S.jobs.length ? '沒有符合篩選條件的請求' : '還沒有送出過產出請求'}</td></tr>`;
   }
   function paintTopics(v) {
