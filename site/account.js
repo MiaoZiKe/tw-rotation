@@ -283,6 +283,9 @@
 .acctbar .ame .anm{max-width:7em;overflow:hidden;text-overflow:ellipsis}
 .acctmenu{position:fixed;z-index:1250;min-width:220px;background:var(--panel);border:1px solid var(--line-2);border-radius:12px;box-shadow:0 12px 40px rgba(0,0,0,.35);padding:6px;color:var(--ink);font-size:14px}
 .acctmenu[hidden]{display:none}
+/* 10-17 Andy：「這邊太長，需要有拉Bar」→ 選單最高到視窗底（留 12px），超過就在選單裡捲動，捲軸看得到 */
+.acctmenu{max-height:calc(100vh - var(--am-top,60px) - 12px);overflow-y:auto;overscroll-behavior:contain;scrollbar-width:thin;scrollbar-color:color-mix(in srgb,var(--ink-2) 55%,transparent) transparent}
+.acctmenu::-webkit-scrollbar{width:8px}.acctmenu::-webkit-scrollbar-thumb{background:color-mix(in srgb,var(--ink-2) 55%,transparent);border-radius:8px}
 .acctmenu .mh{padding:8px 10px 10px;border-bottom:1px solid var(--line);margin-bottom:4px}
 .acctmenu .mh b{display:block}.acctmenu .mh small{color:var(--ink-2);font-size:12.5px;word-break:break-all}
 .acctmenu button,.acctmenu a{display:block;width:100%;text-align:left;padding:9px 10px;border:0;border-radius:8px;background:none;color:var(--ink);font-size:14px;cursor:pointer;text-decoration:none;box-sizing:border-box}
@@ -483,7 +486,7 @@ html:not(.m4) .m4deldlg .msg{min-height:1.4em;font-size:13px;color:#ff6b7a;margi
     m.classList.add('dkm');
     m.hidden = false;
     const r = anchor.getBoundingClientRect(), w = m.offsetWidth || 260;
-    m.style.top = (r.bottom + 6) + 'px';
+    m.style.top = (r.bottom + 6) + 'px'; m.style.setProperty('--am-top', Math.round(r.bottom + 6) + 'px');
     m.style.left = Math.max(8, Math.min(window.innerWidth - w - 8, r.right - w)) + 'px';
   }
   /* ---------------- 2026-10-10 桌機帳號選單：額度上限、客服鈕開關、刪除帳號（Andy 10-10 經手機 session 轉達的同步稽核）----------------
