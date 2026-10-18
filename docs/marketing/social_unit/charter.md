@@ -51,11 +51,11 @@ Threads 另放短文字討論與「今日一圖」，不重複貼同一支影片
 
 ## 八、2026-10-18 起接管「社群成長與發文」（蓋掉第七節的 GPT 交接流程）
 
-Andy 10-18 原話：「這部分交給 IG Thread Team 處理，給他內容，由他那邊接管」。同日 Andy 已拿掉網站「傳給 GPT」功能（「這功能不需要了」），所以第七節第 3 點（貼文與圖片由 GPT 產出、走 `gpt_handoff/`）**停用**；圖文改由本部自己產。
+Andy 10-18 原話：「這部分交給 IG Thread Team 處理，給他內容，由他那邊接管」。同日 Andy 已拿掉網站「傳給 GPT」功能（「這功能不需要了」），**分工更正（Andy 同日）**：「Thread／IG／FB 貼文製作都給 GPT 那邊完成，你這是負責給我文案，還有短影音製作」——貼文圖片由 GPT 做，本部交**文案＋給 GPT 的做圖說明＋短影音（比比主持、配音）**；不做 LINE。
 
 - **作戰手冊**：`docs/marketing/growth_plan_1018.md`（法遵已審，有條件可用）。第十二節＝每週時刻表與自動化程度，第九節＝發文前 15 條自查。
 - **素材來源**：網站每天 14:05 後自動產三類主題（`site/articles/topics.json`）、已上架精選文章（`site/articles/index.json`，全文不可貼進 repo）、45 秒短影片（`docs/marketing/videos/`）、網站真實畫面（`scripts/_show.py`）、輪播版型（`docs/marketing/posts/make_posts.py`）。
-- **每週交付**：週日 20:00 前交「下週 7 則貼文包」到 `docs/marketing/social_unit/weekly/<週一日期>/`（每則一個資料夾：圖、文案 `post.md`、Threads 版、免責、追蹤連結），開一則 GitHub Issue「下週貼文包 <週一日期>」（label social-weekly）讓 Andy 手機收到通知。Andy 只做預約發文與回覆（👤 項目）。
+- **每週交付**：週日 20:00 前交「下週 7 則貼文包」到 `docs/marketing/social_unit/weekly/<週一日期>/`（每則一個資料夾：`post.md`（IG 文案、Threads 版、hashtag、免責、追蹤連結、給 GPT 的做圖說明）；短影音則附 mp4），開一則 GitHub Issue「下週貼文包 <週一日期>」（label social-weekly）讓 Andy 手機收到通知。Andy 只做預約發文與回覆（👤 項目）。
 - **AI 使用心得（週五）**：要 Andy 本人口述 5 句；沒收到就那則先空著寫「等 Andy 口述」，不代寫他的經驗。
 - **成效**：每週日讀 Andy 給的洞察截圖，第 2 週（11/01）、第 4 週（11/15）照 growth_plan 第六節校正時段與比例，結果寫回 growth_plan 第十二節。
 - **不變的界線**：第二節的法遵、金鑰、重疊檢查；改網站程式（例如追蹤參數 utm）走 CEO 排工。
