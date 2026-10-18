@@ -1,0 +1,68 @@
+{
+ "voice": "zh-CN-XiaoyiNeural",
+ "rate": "+6%",
+ "pitch": "+0Hz",
+ "text": "欸，你有沒有發現，AI 晶片好像一直都在缺貨？",
+ "words": [
+  {
+   "type": "WordBoundary",
+   "text": "欸",
+   "start": 0.097166,
+   "dur": 0.283
+  },
+  {
+   "type": "WordBoundary",
+   "text": "你",
+   "start": 0.639625,
+   "dur": 0.117916
+  },
+  {
+   "type": "WordBoundary",
+   "text": "有",
+   "start": 0.769333,
+   "dur": 0.106125
+  },
+  {
+   "type": "WordBoundary",
+   "text": "沒有",
+   "start": 0.88725,
+   "dur": 0.176875
+  },
+  {
+   "type": "WordBoundary",
+   "text": "發現",
+   "start": 1.075958,
+   "dur": 0.471708
+  },
+  {
+   "type": "WordBoundary",
+   "text": "AI",
+   "start": 1.748125,
+   "dur": 0.330208
+  },
+  {
+   "type": "WordBoundary",
+   "text": "晶片",
+   "start": 2.090083,
+   "dur": 0.400958
+  },
+  {
+   "type": "WordBoundary",
+   "text": "好像",
+   "start": 2.502833,
+   "dur": 0.448125
+  },
+  {
+   "type": "WordBoundary",
+   "text": "一直都在",
+   "start": 2.96275,
+   "dur": 0.542458
+  },
+  {
+   "type": "WordBoundary",
+   "text": "缺貨",
+   "start": 3.517,
+   "dur": 0.448125
+  }
+ ]
+}

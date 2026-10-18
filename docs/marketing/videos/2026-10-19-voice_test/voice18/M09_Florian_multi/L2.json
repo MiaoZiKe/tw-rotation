@@ -1,0 +1,50 @@
+{
+ "voice": "de-DE-FlorianMultilingualNeural",
+ "rate": "+6%",
+ "pitch": "+0Hz",
+ "text": "其實啊，卡住的常常不是晶片本身，",
+ "words": [
+  {
+   "type": "WordBoundary",
+   "text": "其實",
+   "start": 0.05,
+   "dur": 0.4835
+  },
+  {
+   "type": "WordBoundary",
+   "text": "啊",
+   "start": 0.5335,
+   "dur": 0.41275
+  },
+  {
+   "type": "WordBoundary",
+   "text": "卡住的",
+   "start": 1.22925,
+   "dur": 0.495291
+  },
+  {
+   "type": "WordBoundary",
+   "text": "常常",
+   "start": 1.724541,
+   "dur": 0.518875
+  },
+  {
+   "type": "WordBoundary",
+   "text": "不是",
+   "start": 2.243416,
+   "dur": 0.259416
+  },
+  {
+   "type": "WordBoundary",
+   "text": "晶片",
+   "start": 2.502833,
+   "dur": 0.377375
+  },
+  {
+   "type": "WordBoundary",
+   "text": "本身",
+   "start": 2.880208,
+   "dur": 0.589625
+  }
+ ]
+}
