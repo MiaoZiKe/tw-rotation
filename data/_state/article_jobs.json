@@ -1,18 +1,4 @@
 {
- "updated": "2026-10-18 08:51",
- "jobs": [
-  {
-   "id": 9,
-   "topic_id": "gen-1792284593457",
-   "kind": "topics",
-   "title": "新增主題：快訊、產業鏈、知識（各 3 個）",
-   "note": "cats=news,intro,know;n=3",
-   "status": "working",
-   "created": 1792284593366,
-   "updated": 1792284716589,
-   "result": null,
-   "stage": "research",
-   "stage_at": 1792284716589
-  }
- ]
+ "updated": "2026-10-18 09:07",
+ "jobs": []
 }
