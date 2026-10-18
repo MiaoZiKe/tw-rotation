@@ -1,0 +1,43 @@
+name: 範例片配音辨識（Google 語音候選）
+
+# 一次性：產生 Google 翻譯語音（gTTS）的候選試聽，跟 Andy 給的範例片比對聲音來源。
+# 只在工作分支、只在這個腳本被改動時跑；不讀任何 secrets；產出 commit 回同一分支。
+on:
+  push:
+    branches: [claude/blissful-sagan-sx1vag]
+    paths: [docs/marketing/videos/reference_cowos_short/voice_id_script.json, .github/workflows/voice_id_gtts.yml]
+
+permissions:
+  contents: write
+
+jobs:
+  gtts:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: "3.12"}
+      - run: pip install "gTTS==2.5.4"
+      - name: 產生候選
+        run: |
+          python - <<'PY'
+          import json, pathlib
+          from gtts import gTTS
+          spec = json.loads(pathlib.Path("docs/marketing/videos/reference_cowos_short/voice_id_script.json").read_text(encoding="utf-8"))
+          lines = spec["jobs"][0]["lines"]
+          for jid, lang, tld in [("gtts_zh-TW", "zh-TW", "com"), ("gtts_zh-CN", "zh-CN", "com"), ("gtts_zh-TW_tw", "zh-TW", "com.tw")]:
+              d = pathlib.Path(spec["out_dir"]) / jid; d.mkdir(parents=True, exist_ok=True)
+              for ln in lines:
+                  try:
+                      gTTS(ln["text"], lang=lang, tld=tld).save(str(d / f'{ln["id"]}.mp3'))
+                  except Exception as e:
+                      print("失敗", jid, ln["id"], e)
+          PY
+      - name: commit
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/marketing/videos/reference_cowos_short/voice_id
+          git commit -m "範例片配音辨識：Google 語音候選" || exit 0
+          for i in 1 2 3; do git pull --no-rebase --no-edit && git push && break; sleep 5; done
