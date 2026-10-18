@@ -255,7 +255,7 @@ SCENES = [
     ("S07", "一顆 HBM 怎麼做出來？", "HBM", "要過好幾關", "依公開報導整理環節分工；列名不代表推薦"),
     ("S08", "HBM 的挑戰", "挑戰", "良率・成本・產能・散熱", "示意圖；不放良率、價格等數字"),
     ("S09", "重點總結", "總結", "一句話記起來", "示意圖"),
-    ("S10", "下一集：CoWoS", "CoWoS", "先進封裝，把 HBM 和 GPU 接起來", "資料來源與查證說明見貼文"),
+    ("S10", "AI 要跑得快，少不了 HBM", "HBM", "下一集預告", "資料來源與查證說明見貼文"),
 ]
 FOOT1 = "非投資建議｜數字為公開規格或推估"
 DISCLAIMER = "本內容為公開資料整理，不構成任何投資建議；投資有風險，請自行判斷。"
@@ -582,6 +582,7 @@ class Labels:
 
     def draw(self, ov, reg, ctx, cname="圖解字"):
         d = ImageDraw.Draw(ov, "RGBA")
+        drawn = []
         for it in self.items:
             s, _x, _y, f, col, a, anchor, bg, pad, r = it
             x, y, tw, th, bb = self.box_of(it)
@@ -594,6 +595,10 @@ class Labels:
             d.text((x - bb[0], y - bb[1]), s, font=f, fill=tuple(col[:3]) + (int(255 * a),))
             ctx.track([(box[0], box[1]), (box[2], box[3])])
             reg.text_in(cname, box, G)
+            for s2, b2 in drawn:
+                if min(box[2], b2[2]) - max(box[0], b2[0]) > -4 and min(box[3], b2[3]) - max(box[1], b2[1]) > -4:
+                    reg.text_issues.append(f"圖解字互撞「{s}」×「{s2}」")
+            drawn.append((s, box))
 
 
 # ───────────────────────── 共用圖元 ─────────────────────────
@@ -650,7 +655,7 @@ def package(g, pr, t, a=1.0, hbm_a=1.0, hbm_lift=0.0, flow=0.0, drop=None, sub_c
     for k in range(1, 9):
         g.line([pr(14, 14 + k * 44, 24), pr(40, 14 + k * 44, 24)], (*rgb(GOLD), 0.5 * a), 2, track=False)
     g.box(pr, 40, 40, 24, 340, 340, 14, (70, 96, 120), a, top_col=(104, 130, 156))
-    gpu_die(g, pr, 140, 110, 38, 140, 200, 26, a, glow=flow, t=t)
+    gpu_die(g, pr, 140, 110, 38, 140, 200, 26, a, glow=flow, size=34, t=t)
     spots = [(55, 105), (55, 245), (305, 105), (305, 245)]
     for (sx, sy) in sorted(spots, key=lambda p: p[0] + p[1]):
         za = 38 + hbm_lift
@@ -700,7 +705,7 @@ def sc_s01(g, L, t, A):
     # 速度表（2.5D：有厚度的弧形錶盤）
     ga = A * ap(t, 0.7, 0.5)
     if ga > 0:
-        cx, cy, R, bw = 540, 1330, 250, 44
+        cx, cy, R, bw = 540, 1250, 240, 44
         c = g.c
         for dy, k in ((16, 0.55), (0, 0.0)):
             segs = [(RED, math.pi, math.pi * 1.33), (GOLD, math.pi * 1.33, math.pi * 1.66), (TEAL, math.pi * 1.66, math.pi * 2)]
@@ -732,7 +737,7 @@ WHITE_RED = (255, 236, 236)
 
 def sc_s02(g, L, t, A):
     ln = LINES["S02"]
-    pr = Proj("iso", 470, 862, 1.0)
+    pr = Proj("iso", 560, 840, 1.1)
     t_layers = ln.at("好幾層")
     t_stack = ln.at("疊起來")
     t_tsv = ln.at("矽穿孔")
@@ -761,41 +766,43 @@ def sc_s02(g, L, t, A):
         p1, p2 = pr(150, 75, 90), pr(210, 75, 90)
         u = (t * 1.5) % 1
         g.glow(lerp(p1[0], p2[0], u), lerp(p1[1], p2[1], u), 16, TEAL, a_gpu)
-    # 標籤（左側，引線指到堆疊）
-    f = font(F_BOLD, 36)
-    fs = font(F_MED, 28)
+    # 標籤（左側固定一欄，引線指到堆疊）
+    f = font(F_BOLD, 34)
+    fs = font(F_MED, 26)
     la = stack_a
+    XR = 318
     if la > 0:
-        p = pr(0, 150, z0 + 18 + (top - z0 - 18) * 0.75)
-        L.add("DRAM 記憶體晶片", 300, p[1] - 70, f, (200, 186, 255), la, "rb")
-        L.add("好幾層疊起來", 300, p[1] - 62, fs, MUTED, la, "ra")
-        leader(g, (p[0] - 6, p[1]), (306, p[1] - 70), la)
+        p = pr(0, 150, z0 + 18 + (top - z0 - 18) * 0.8)
+        L.add("DRAM 記憶體晶片", XR, 520, f, (200, 186, 255), la, "ra")
+        L.add("好幾層疊起來", XR, 566, fs, MUTED, la, "ra")
+        leader(g, (p[0] - 4, p[1]), (XR + 8, 540), la)
     ta = A * ap(t, t_tsv)
     if ta > 0:
-        p = pr(150 * 0.18 + 21, 150, z0 + 18 + (top - z0 - 18) * 0.35)
-        L.add("TSV 矽穿孔", 300, p[1] + 24, f, GOLD, ta, "rb")
-        L.add("上下打通", 300, p[1] + 32, fs, MUTED, ta, "ra")
-        leader(g, (p[0], p[1]), (306, p[1] + 24), ta)
+        p = pr(21 + 150 * 0.18, 150, z0 + 18 + (top - z0 - 18) * 0.45)
+        L.add("TSV 矽穿孔", XR, 660, f, GOLD, ta, "ra")
+        L.add("上下打通", XR, 706, fs, MUTED, ta, "ra")
+        leader(g, (p[0], p[1]), (XR + 8, 680), ta)
     if a_base > 0:
         p = pr(0, 150, z0 + 8)
-        L.add("底層控制晶片", 300, p[1] + 96, f, (120, 214, 220), a_base, "rb")
-        leader(g, (p[0] + 4, p[1]), (306, p[1] + 90), a_base)
+        L.add("底層控制晶片", XR, 810, f, (120, 214, 220), a_base, "ra")
+        leader(g, (p[0] - 2, p[1]), (XR + 8, 830), a_base)
     if a_int > 0:
-        p = pr(-40, 190, 30)
-        L.add("中介層", p[0] - 20, p[1] + 90, f, (170, 196, 222), a_int, "rm")
-        leader(g, (p[0] + 6, p[1] - 2), (p[0] - 10, p[1] + 90), a_int)
+        p = pr(-40, 150, 30)
+        L.add("中介層", XR, 950, f, (170, 196, 222), a_int, "ra")
+        leader(g, (p[0] + 2, p[1]), (XR + 8, 970), a_int)
     if a_sub > 0:
-        p = pr(180, 220, 8)
-        L.add("封裝基板", p[0] + 10, p[1] + 98, f, (130, 214, 170), a_sub, "la")
-        leader(g, (p[0], p[1]), (p[0] + 4, p[1] + 98), a_sub)
+        p = pr(160, 220, 6)
+        L.add("封裝基板", p[0] - 30, 1290, f, (130, 214, 170), a_sub, "ra")
+        leader(g, (p[0], p[1]), (p[0] - 22, 1306), a_sub)
     if a_gpu > 0:
-        p = pr(300, 150, 60)
-        L.add("緊貼 GPU", p[0] + 40, p[1] + 40, f, TEAL, a_gpu, "la")
+        L.add("緊貼 GPU", 1000, 600, f, TEAL, a_gpu, "ra", bg=(16, 56, 54, 220), pad=(18, 10), r=18)
+        p = pr(380, 20, 80)
+        leader(g, (p[0], p[1]), (930, 640), a_gpu, col=TEAL)
 
 
 def sc_s03(g, L, t, A):
     ln = LINES["S03"]
-    pr = Proj("obl", 96, 930, 0.95)
+    pr = Proj("obl", 60, 780, 1.07)
     t_fast = ln.at("算得再快")
     t_slow = ln.at("送不過來")
     t_wait = ln.at("乾等")
@@ -803,67 +810,75 @@ def sc_s03(g, L, t, A):
     a0 = A * ap(t, ln.start - 0.2)
     # 記憶體（左）
     g.shadow(pr, 0, 0, 150, 130, a=0.5 * a0)
-    hbm_stack(g, pr, 0, 0, 0, 150, 130, layers=8, lh=12, gap=3, a=a0)
-    L.add("記憶體", pr(75, 0, 0)[0], pr(75, 0, 0)[1] + 22, font(F_BOLD, 36), (200, 186, 255), a0, "ma")
-    # GPU（右）
+    hbm_stack(g, pr, 0, 0, 0, 150, 130, layers=9, lh=13, gap=3, a=a0)
+    q = pr(75, 0, 0)
+    L.add("記憶體", q[0], q[1] + 24, font(F_BOLD, 36), (200, 186, 255), a0, "ma")
+    # GPU（右）：正面寫字
     gl = ap(t, t_fast) * (1 - 0.7 * ap(t, t_wait))
-    g.shadow(pr, 640, 0, 220, 170, a=0.5 * a0)
-    g.box(pr, 640, 0, 0, 220, 170, 70, CHIP, a0, top_col=(64, 74, 92))
+    g.shadow(pr, 620, 0, 220, 160, a=0.5 * a0)
     if gl > 0:
-        cx, cy = pr(750, 85, 70)
-        g.glow(cx, cy, 170, TEAL, 0.45 * gl * a0 * (0.8 + 0.2 * math.sin(t * 7)))
-    cx, cy = pr(750, 0, 35)
-    L.add("GPU", cx, cy, font(F_BLACK, 52), TXT, a0, "mm")
+        cx, cy = pr(730, 80, 110)
+        g.glow(cx, cy, 200, TEAL, 0.5 * gl * a0 * (0.8 + 0.2 * math.sin(t * 7)))
+    g.box(pr, 620, 0, 0, 220, 160, 120, CHIP, a0, top_col=(64, 74, 92))
+    for k in range(1, 6):
+        g.line([pr(620 + 220 * k / 6, 8, 120), pr(620 + 220 * k / 6, 152, 120)], (1, 1, 1, 0.07 * a0), 1, track=False)
+    cx, cy = pr(730, 0, 60)
+    L.add("GPU", cx, cy, font(F_BLACK, 60), TXT, a0, "mm")
+    if gl > 0.05:
+        L.add("算得超快", cx, cy - 210, font(F_BOLD, 34), TEAL, A * gl, "mm")
     # 傳輸通道：寬 → 中間變窄（瓶頸）
     neck = ease_io((t - t_slow) / 0.8)
-    x0, x1 = 150, 640
-    mid0, mid1 = 330, 460
-    dw = lerp(70, 18, neck)
-    yc = 65
-    z = 18
+    x0, x1 = 150, 620
+    mid0, mid1 = 320, 450
+    dw = lerp(80, 18, neck)
+    yc, z, hw = 65, 26, 40
     c_pipe = (52, 74, 100)
-    pts_top = [pr(x0, yc - 35, z), pr(mid0, yc - 35, z), pr(mid0 + 30, yc - dw / 2, z), pr(mid1 - 30, yc - dw / 2, z),
-               pr(mid1, yc - 35, z), pr(x1, yc - 35, z), pr(x1, yc + 35, z), pr(mid1, yc + 35, z), pr(mid1 - 30, yc + dw / 2, z),
-               pr(mid0 + 30, yc + dw / 2, z), pr(mid0, yc + 35, z), pr(x0, yc + 35, z)]
+    def ring(zz):
+        return [pr(x0, yc - hw, zz), pr(mid0, yc - hw, zz), pr(mid0 + 30, yc - dw / 2, zz), pr(mid1 - 30, yc - dw / 2, zz),
+                pr(mid1, yc - hw, zz), pr(x1, yc - hw, zz)]
     pa = A * ap(t, ln.start)
-    front = [pr(x0, yc - 35, z), pr(mid0, yc - 35, z), pr(mid0 + 30, yc - dw / 2, z), pr(mid1 - 30, yc - dw / 2, z),
-             pr(mid1, yc - 35, z), pr(x1, yc - 35, z), pr(x1, yc - 35, z - 14), pr(mid1, yc - 35, z - 14),
-             pr(mid1 - 30, yc - dw / 2, z - 14), pr(mid0 + 30, yc - dw / 2, z - 14), pr(mid0, yc - 35, z - 14), pr(x0, yc - 35, z - 14)]
+    front = ring(z) + ring(z - 16)[::-1]
     g.poly(front, (*rgb(dark(c_pipe, 0.35)), pa))
-    g.poly(pts_top, src=g.lin(pts_top[0], pts_top[5], [(0, light(c_pipe, 0.25), pa), (1, c_pipe, pa)]),
-           stroke=(1, 1, 1, 0.25 * pa), lw=1.4)
+    back = [pr(x1, yc + hw, z), pr(mid1, yc + hw, z), pr(mid1 - 30, yc + dw / 2, z), pr(mid0 + 30, yc + dw / 2, z),
+            pr(mid0, yc + hw, z), pr(x0, yc + hw, z)]
+    top = ring(z) + back
+    g.poly(top, src=g.lin(top[0], top[5], [(0, light(c_pipe, 0.25), pa), (1, c_pipe, pa)]), stroke=(1, 1, 1, 0.25 * pa), lw=1.4)
     if neck > 0.3:
         nc = pr((mid0 + mid1) / 2, yc, z)
-        g.glow(nc[0], nc[1], 90, RED, 0.5 * A * ap(t, t_slow + 0.3) * (0.75 + 0.25 * math.sin(t * 8)))
+        g.glow(nc[0], nc[1], 100, RED, 0.55 * A * ap(t, t_slow + 0.3) * (0.75 + 0.25 * math.sin(t * 8)))
     # 資料方塊：前段順暢；變窄後在瓶頸前排隊、只有少數通過
-    n = 14
+    n = 16
+    cubes = []
     for k in range(n):
-        ph = (t * 0.55 + k / n) % 1.0
-        xx = lerp(x0 + 10, x1 - 30, ph)
-        yy = yc + ((k * 37) % 50) - 25
+        ph = (t * 0.5 + k / n) % 1.0
+        xx = lerp(x0 + 6, x1 - 30, ph)
+        yy = yc + ((k * 37) % 56) - 28
         if neck > 0:
             if k % 4 != 0:
-                qx = mid0 + 5 - (k % 7) * 26 - (k // 7) * 8
+                qx = mid0 + 4 - (k % 6) * 26
                 xx = lerp(xx, min(xx, qx), neck)
-            yy = lerp(yy, yc + ((k * 37) % 50 - 25) * (0.35 if xx > mid0 else 1.0), neck)
-        g.box(pr, xx, yy - 8, z, 18, 16, 16, ORANGE if k % 3 else GOLD, pa * 0.95, edge=0.3)
-    L.add("一直搬資料", pr(240, 0, 0)[0], pr(240, 0, 0)[1] + 30, font(F_BOLD, 32), ORANGE, pa, "ma")
-    # GPU 使用率（2.5D 長條）：忙碌 → 閒置等待
+            if mid0 < xx < mid1:
+                yy = lerp(yy, yc + (yy - yc) * 0.2, neck)
+        cubes.append((yy, xx, k))
+    for yy, xx, k in sorted(cubes, key=lambda c_: -c_[0]):
+        g.box(pr, xx, yy - 9, z, 22, 18, 20, ORANGE if k % 3 else GOLD, pa * 0.95, edge=0.3)
+    q = pr(300, 0, 0)
+    L.add("一直搬資料", q[0] + 30, q[1] + 24, font(F_BOLD, 34), ORANGE, pa, "ma")
+    # GPU 忙碌程度（2.5D 長條）：全速 → 閒置等待
     ua = A * ap(t, t_fast - 0.1)
     if ua > 0:
-        bp = Proj("obl", 600, 1105, 1.0)
-        g.box(bp, 0, 0, 0, 340, 30, 34, (36, 46, 60), ua, edge=0.2)
-        fill = lerp(0.96, 0.22, ease_io((t - t_slow - 0.2) / 1.0))
+        bp = Proj("obl", 560, 1010, 1.0)
+        g.box(bp, 0, 0, 0, 380, 30, 36, (36, 46, 60), ua, edge=0.2)
+        fill = lerp(0.96, 0.2, ease_io((t - t_slow - 0.2) / 1.0))
         col = TEAL if fill > 0.6 else (GOLD if fill > 0.4 else RED)
-        g.box(bp, 0, 0, 34, 340 * fill, 30, 4, col, ua, edge=0.0)
-        g.box(bp, 2, 2, 0, 340 * fill - 4, 26, 34.5, col, ua * 0.85, edge=0.15)
-        L.add("GPU 忙碌程度", 600, 1150, font(F_BOLD, 30), MUTED, ua, "la")
+        g.box(bp, 2, 2, 0, 380 * fill - 4, 26, 36.5, col, ua * 0.9, edge=0.2)
+        L.add("GPU 忙碌程度", 560, 1036, font(F_BOLD, 30), MUTED, ua, "la")
         st = "全速運算" if fill > 0.6 else "閒置等待…"
-        L.add(st, 958, 1150, font(F_BOLD, 30), col, ua, "ra")
+        L.add(st, 940, 1036, font(F_BOLD, 30), col, ua, "ra")
     wa = A * ap(t, t_neck - 0.15, 0.35)
     if wa > 0:
-        s = 0.85 + 0.15 * back_out(clamp((t - t_neck + 0.15) / 0.4))
-        L.add("頻寬不夠 ＝ 瓶頸", 300, 1262, font(F_BLACK, int(58 * s)), (255, 238, 238), wa, "mm", bg=(150, 34, 44, 235), pad=(26, 16), r=24)
+        s_ = 0.85 + 0.15 * back_out(clamp((t - t_neck + 0.15) / 0.4))
+        L.add("頻寬不夠 ＝ 瓶頸", 540, 1220, font(F_BLACK, int(60 * s_)), (255, 238, 238), wa, "mm", bg=(150, 34, 44, 235), pad=(28, 16), r=24)
 
 
 def sc_s04(g, L, t, A):
@@ -904,7 +919,7 @@ def sc_s04(g, L, t, A):
 
 BARS5 = [("HBM1", "2013", "4 層", 128, "128 GB/s"), ("HBM2", "2016", "4 層", 256, "256 GB/s"),
          ("HBM3", "2022", "8 層", 819, "819 GB/s"), ("HBM3E", "2024", "8～12 層", 1229, "約 1.2 TB/s"),
-         ("HBM4", "2026", "12 層", 2048, "約 2 TB/s")]
+         ("HBM4", "2026", "12 層", 2048, "約 2 TB/s（標準）")]
 
 
 def sc_s05(g, L, t, A):
@@ -922,7 +937,7 @@ def sc_s05(g, L, t, A):
         u = ease_out((t - appear[k]) / 0.7)
         x = k * slot + 22
         L.add(nm, pr(x + 46, 0)[0], 1222, font(F_BLACK, 32), TXT if k < 4 else (190, 200, 214), fa, "ma")
-        L.add(yr + ("量產" if k == 4 else ""), pr(x + 46, 0)[0], 1266, font(F_BOLD, 26), MUTED, fa, "ma")
+        L.add(yr + (" 量產" if k == 4 else ""), pr(x + 46, 0)[0], 1266, font(F_BOLD, 26), MUTED, fa, "ma")
         L.add(lay, pr(x + 46, 0)[0], 1302, font(F_MED, 24), DIM, fa, "ma")
         if u <= 0:
             tops.append(None)
@@ -1005,19 +1020,19 @@ def sc_s06(g, L, t, A):
             c = pr(100, 100, 80)
             g.glow(c[0], c[1], 90, ORANGE, 0.3 * a * (0.7 + 0.3 * math.sin(t * 5)))
         lp = pr(200, 200, -14)
-        L.add(name, cx, 1010, font(F_BLACK, 42), TXT, a, "ma")
+        L.add(name, cx, 900, font(F_BLACK, 42), TXT, a, "ma")
     ha = A * ap(t, hub_t - 0.25, 0.5)
     if ha > 0:
-        pr = Proj("iso", 540, 1230, 0.9)
+        pr = Proj("iso", 540, 1150, 0.9)
         g.shadow(pr, 0, 0, 90, 90, a=0.5 * ha)
         hbm_stack(g, pr, 0, 0, 0, 90, 90, layers=8, lh=9, gap=2, a=ha)
         c = pr(45, 45, 100)
         g.glow(c[0], c[1], 110, PURPLE, 0.45 * ha)
         for k, (_n, _t, cx) in enumerate(items):
-            p0 = (540 + (cx - 540) * 0.25, 1150)
-            p1 = (cx, 1080)
+            p0 = (540 + (cx - 540) * 0.25, 1080)
+            p1 = (cx, 970)
             g.line([p0, p1], (*rgb(PURPLE), 0.8 * ha), 4, dash=[12, 8])
-        L.add("都少不了 HBM", 540, 1330, font(F_BLACK, 44), (205, 190, 255), ha, "mm")
+        L.add("都少不了 HBM", 540, 1300, font(F_BLACK, 44), (205, 190, 255), ha, "mm")
 
 
 def sc_s07(g, L, t, A):
@@ -1075,10 +1090,10 @@ def sc_s07(g, L, t, A):
 
 def sc_s08(g, L, t, A):
     ln = LINES["S08"]
-    cards = [("良率是考驗", "疊越多層越難做", ln.at("疊越多層"), (290, 700)),
-             ("成本高", "材料與製程都貴", ln.at("成本"), (790, 700)),
-             ("產能常不夠", "需求大、擴產慢", ln.at("產能"), (290, 1150)),
-             ("散熱頭痛", "熱集中在一小塊", ln.at("散熱"), (790, 1150))]
+    cards = [("良率是考驗", "疊越多層越難做", ln.at("疊越多層"), (290, 680)),
+             ("成本高", "材料與製程都貴", ln.at("成本"), (790, 680)),
+             ("產能常不夠", "需求大、擴產慢", ln.at("產能"), (290, 1170)),
+             ("散熱頭痛", "熱集中在一小塊", ln.at("散熱"), (790, 1170))]
     for k, (title, desc, ta, (cx, cy)) in enumerate(cards):
         a = A * ap(t, ta - 0.25, 0.45)
         if a <= 0:
@@ -1114,7 +1129,7 @@ def sc_s08(g, L, t, A):
             g.glow(p[0], p[1], 120, (255, 90, 40), 0.55 * a * (0.75 + 0.25 * math.sin(t * 4)))
             for m in range(3):
                 pts = []
-                for i in range(12):
+                for i in range(9):
                     yy = p[1] - 20 - i * 11
                     pts.append((p[0] - 40 + m * 40 + math.sin(i * 0.9 + t * 6 + m) * 9, yy))
                 g.line(pts, (1, 0.6, 0.35, 0.85 * a), 4)
@@ -1133,7 +1148,7 @@ def sc_s09(g, L, t, A):
         L.add("高速記憶體", 510, 590, font(F_BLACK, 68), TXT, A * ap(t, ln.at("高速記憶體") - 0.15), "mm")
     a2 = A * ap(t, ln.at("頻寬") - 0.3)
     if a2 > 0:
-        pr = Proj("obl", 70, 1230, 1.0)
+        pr = Proj("obl", 70, 1170, 1.0)
         lanes = lerp(2, 6, ease_io((t - ln.at("頻寬")) / 0.8))
         width = 40 * lanes
         g.shadow(pr, 0, 0, 160, 160, a=0.5 * a2)
@@ -1154,9 +1169,9 @@ def sc_s09(g, L, t, A):
         g.glow(c[0], c[1], 150, TEAL, 0.4 * a2 * lanes / 6)
         cx, cy = pr(735, 0, 30)
         L.add("GPU", cx, cy, font(F_BLACK, 46), TXT, a2, "mm")
-        L.add("頻寬 ＝ 車道數", 120, 860, font(F_BLACK, 50), GOLD, a2, "la")
+        L.add("頻寬 ＝ 車道數", 120, 790, font(F_BLACK, 50), GOLD, a2, "la")
         da = A * ap(t, ln.at("決定") - 0.1)
-        L.add("車道越多，AI 跑越快", 120, 940, font(F_BOLD, 40), TXT, da, "la")
+        L.add("車道越多，AI 跑越快", 120, 870, font(F_BOLD, 40), TXT, da, "la")
 
 
 def sc_s10(g, L, t, A):
