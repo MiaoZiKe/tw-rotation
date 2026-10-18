@@ -7,12 +7,12 @@
    "kind": "topics",
    "title": "新增主題：快訊、產業鏈、知識（各 3 個）",
    "note": "cats=news,intro,know;n=3",
-   "status": "queued",
+   "status": "working",
    "created": 1792284593366,
-   "updated": 1792284593366,
+   "updated": 1792284716589,
    "result": null,
-   "stage": null,
-   "stage_at": null
+   "stage": "research",
+   "stage_at": 1792284716589
   }
  ]
 }
