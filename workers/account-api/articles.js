@@ -69,16 +69,36 @@ export function installArticles(Hub, EXPORT_TABLES) {
            GitHub Actions（article-jobs.yml，帶 BACKUP_TOKEN）每小時把未完成的同步進 repo（data/_state/article_jobs.json）→
            Claude 排程讀那支檔撰寫、推上 main → 再透過同一支工作流標 working／done（result＝文章 id）。
      · 管理者路由（Origin 白名單＋管理者權杖）：
-         /v1/articles/jobs/add    {t, topic_id, kind:'article'|'video', title, note?} → {ok, job, dup?}
+         /v1/articles/jobs/add    {t, topic_id, kind:'article'|'video'|'topics', title, note?} → {ok, job, dup?, fired}
          /v1/articles/jobs/list   {t} → {jobs:[…最近 200 筆]}
          /v1/articles/jobs/cancel {t, id} → 只有 queued 能取消
      · 機器路由（不檢查 Origin，只認 Authorization: Bearer <ARTICLE_BOT_KEY 或 BACKUP_TOKEN>）：
          POST /v1/articles/jobs/bot {op:'open'} → {jobs:[queued＋working]}
-         POST /v1/articles/jobs/bot {op:'mark', id, status:'working'|'done'|'failed', result?} → {ok, job}
+         POST /v1/articles/jobs/bot {op:'mark', id, status:'working'|'done'|'failed', result?, stage?} → {ok, job}
+     · 階段（stage，2026-10-17）：Andy 10-17「這邊一直顯示排隊中，但我不清楚他狀況如何，所以多一個進度條，並且備註目前的階段」。
+         只收白名單 STAGES（plan 安排主題｜research 查資料｜write 撰寫｜illus 插圖｜review 驗收｜publish 發布中），
+         百分比由前端固定對照，不存數字 —— 外部只能挑格子，不能亂填「87%」。白名單外的值直接忽略（不報錯，免得工作流因為打錯字整輪失敗）。
+         status 變 done／cancelled → stage 跟著變成 done／cancelled；
+         status 變 failed → stage「不動」，停在失敗前那一格（前端把那一格塗紅，才看得出卡在哪一步；若根本沒開工就是 failed）；
+         status 變 working 而沒給 stage → 預設 plan（已經在 working 的就保留原本那格）。stage_at＝階段最後一次變動的時間。
+         舊資料庫沒有 stage／stage_at 兩欄：artInit 用 PRAGMA 判斷再 ALTER（重跑不報錯），舊列兩欄為空，前端當「排隊中／看 status」處理。
      同一個主題＋同一種產出還沒完成時再按，不重複排（回 dup:true 與原本那筆）。未完成的最多 100 筆。
      ========================================================================== */
   if (EXPORT_TABLES && !EXPORT_TABLES.includes('article_jobs')) EXPORT_TABLES.push('article_jobs');
-  const KINDS = ['article', 'video'], MARKS = ['working', 'done', 'failed'], OPEN_MAX = 100;
+  /* 2026-10-17 加 'topics'＝「請 Claude 生成新的主題候選」（Andy 10-17：「多新增一個新增主題 Btn……可以單選和多選分類，也可以我提供關鍵字你幫我生成主題」）。
+     它不是文章：topic_id 一律 gen-<毫秒時間戳>、note 一律結構化字串 cats=<類別,…>;n=<1～5>[;kw=<關鍵字>]（docs/articles/topic_gen.md 照這個解析），
+     格式不對就 400 —— Claude 排程讀到的一定是解析得了的東西。重複檢查照舊（同 id＋同種類未完成不重排）。 */
+  const KINDS = ['article', 'video', 'topics'], MARKS = ['working', 'done', 'failed'], OPEN_MAX = 100;
+  const GEN_RE = /^gen-\d{10,16}$/;
+  const GEN_NOTE_RE = /^cats=(news|intro|know)(,(news|intro|know)){0,2};n=[1-5](;kw=[^;=<>\u0000-\u001f\u007f]{1,40})?$/;
+  const genOk = (topic, note) => {
+    if (!GEN_RE.test(topic) || !GEN_NOTE_RE.test(note)) return false;
+    const cats = note.slice(5).split(';')[0].split(',');
+    if (new Set(cats).size !== cats.length) return false;   // cats=news,news 這種重複的也擋
+    const kw = (note.split(';kw=')[1] || '');
+    return !kw || kw.trim() === kw;                          // 關鍵字頭尾不准留空白（前端已 trim；手打 API 的才會撞到）
+  };
+  const STAGES = ['plan', 'research', 'write', 'illus', 'review', 'publish'];
   const TOPIC_RE = /^[A-Za-z0-9._-]{1,80}$/;
   const clip = (x, n) => String(x == null ? '' : x).replace(/[\u0000-\u001f\u007f]/g, ' ').trim().slice(0, n);
   const eqConst = (a, b) => { if (a.length !== b.length) return false; let d = 0; for (let i = 0; i < a.length; i++) d |= a.charCodeAt(i) ^ b.charCodeAt(i); return d === 0; };
@@ -87,28 +107,63 @@ export function installArticles(Hub, EXPORT_TABLES) {
     origArtInit.call(this);
     if (this._artJobOk) return;
     this.q('CREATE TABLE IF NOT EXISTS article_jobs (id INTEGER PRIMARY KEY AUTOINCREMENT, topic_id TEXT, kind TEXT, title TEXT, note TEXT, status TEXT, created INTEGER, updated INTEGER, by TEXT, result TEXT)');
+    /* 2026-10-17 階段欄：ALTER 重跑會報錯，Durable Object 每次冷啟動都會進這裡，所以先 PRAGMA 看欄位在不在 */
+    const jc = new Set(this.q('PRAGMA table_info(article_jobs)').map((c) => c.name));
+    if (!jc.has('stage')) this.q('ALTER TABLE article_jobs ADD COLUMN stage TEXT');
+    if (!jc.has('stage_at')) this.q('ALTER TABLE article_jobs ADD COLUMN stage_at INTEGER');
     this._artJobOk = true;
   };
-  const jobOf = (hub, id) => hub.q('SELECT id, topic_id, kind, title, note, status, created, updated, result FROM article_jobs WHERE id = ?', id)[0] || null;
-  const OPEN_SQL = "SELECT id, topic_id, kind, title, note, status, created, updated, result FROM article_jobs WHERE status IN ('queued','working') ORDER BY id";
+  const jobOf = (hub, id) => hub.q('SELECT id, topic_id, kind, title, note, status, created, updated, result, stage, stage_at FROM article_jobs WHERE id = ?', id)[0] || null;
+  const OPEN_SQL = "SELECT id, topic_id, kind, title, note, status, created, updated, result, stage, stage_at FROM article_jobs WHERE status IN ('queued','working') ORDER BY id";
+  /* 2026-10-17 Andy：「這為何要下一個 05 才能開工，而非我執行後就開工」→ 送出請求時直接叫醒 Claude 的排程（routine 的 API trigger）。
+     鑰匙 ROUTINE_FIRE_TOKEN（Andy 在 claude.ai/code/routines 產生，存 GitHub Secret，deploy-account-worker.yml 寫進來）；沒設＝不叫，照舊等整點。
+     防連打：2 分鐘內只叫一次（kv art_fire_at）；叫不到不影響請求本身。官方限制每個排程每小時 30 次。 */
+  const ROUTINE_DEFAULT = 'trig_01JSw5RrpyD94edAaUY69HMo';
+  Hub.prototype.artFire = async function (text, force) {
+    const tok = String(this.env.ROUTINE_FIRE_TOKEN || ''), rid = String(this.env.ROUTINE_ID || ROUTINE_DEFAULT);
+    if (tok.length < 16 || !/^trig_[A-Za-z0-9]{8,40}$/.test(rid)) return false;
+    const now = this.now(), last = Number(this.kv('art_fire_at') || 0);
+    if (!force && now - last < 120000) return true;   // 剛叫過，那一輪會處理到這筆
+    if (force && now - last < 30000) return true;
+    try {
+      const r = await fetch(`https://api.anthropic.com/v1/claude_code/routines/${rid}/fire`, {
+        method: 'POST', signal: AbortSignal.timeout(5000),
+        headers: { Authorization: 'Bearer ' + tok, 'anthropic-beta': 'experimental-cc-routine-2026-04-01', 'anthropic-version': '2023-06-01', 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text: String(text).slice(0, 200) }),
+      });
+      if (!r.ok) return false;
+      this.setKv('art_fire_at', now);
+      return true;
+    } catch (e) { return false; }
+  };
   Object.assign(Hub.prototype.subRoutes, {
     '/v1/articles/jobs/add': async function (req, b) {
       const v = await this.admin(req, b); if (!v) return this.json(req, { error: 'forbidden' }, 403);
       this.artInit();
       const topic = String(b.topic_id || ''), kind = String(b.kind || ''), title = clip(b.title, 120), note = clip(b.note, 500);
       if (!TOPIC_RE.test(topic) || !KINDS.includes(kind) || !title) return this.json(req, { error: 'bad_input' }, 400);
+      if (kind === 'topics' && !genOk(topic, note)) return this.json(req, { error: 'bad_input' }, 400);
       const dup = this.q("SELECT id FROM article_jobs WHERE topic_id = ? AND kind = ? AND status IN ('queued','working') ORDER BY id DESC LIMIT 1", topic, kind)[0];
       if (dup) return this.json(req, { ok: true, dup: true, job: jobOf(this, dup.id) });
       if (this.q("SELECT COUNT(*) AS c FROM article_jobs WHERE status IN ('queued','working')")[0].c >= OPEN_MAX) return this.json(req, { error: 'too_many' }, 429);
       const now = this.now();
       this.q("INSERT INTO article_jobs (topic_id, kind, title, note, status, created, updated, by) VALUES (?, ?, ?, ?, 'queued', ?, ?, ?)", topic, kind, title, note, now, now, String(v.user.uid || ''));
       const id = this.q('SELECT last_insert_rowid() AS id')[0].id;
-      return this.json(req, { ok: true, job: jobOf(this, id) });
+      const fired = await this.artFire(kind === 'topics' ? `管理區新增主題請求 #${id}` : `管理區新請求 #${id}`);
+      return this.json(req, { ok: true, job: jobOf(this, id), fired });
+    },
+    /* 「立即開工」：佇列裡有排隊中的就叫醒 Claude 排程（沒排隊的不叫，免得白跑一輪） */
+    '/v1/articles/jobs/kick': async function (req, b) {
+      if (!(await this.admin(req, b))) return this.json(req, { error: 'forbidden' }, 403);
+      this.artInit();
+      const n = this.q("SELECT COUNT(*) AS c FROM article_jobs WHERE status = 'queued'")[0].c;
+      if (!n) return this.json(req, { ok: true, fired: false, reason: 'empty' });
+      return this.json(req, { ok: true, fired: await this.artFire(`管理區按「立即開工」（排隊中 ${n} 筆）`, true) });
     },
     '/v1/articles/jobs/list': async function (req, b) {
       if (!(await this.admin(req, b))) return this.json(req, { error: 'forbidden' }, 403);
       this.artInit();
-      return this.json(req, { jobs: this.q('SELECT id, topic_id, kind, title, note, status, created, updated, result FROM article_jobs ORDER BY id DESC LIMIT 200') });
+      return this.json(req, { jobs: this.q('SELECT id, topic_id, kind, title, note, status, created, updated, result, stage, stage_at FROM article_jobs ORDER BY id DESC LIMIT 200') });
     },
     '/v1/articles/jobs/cancel': async function (req, b) {
       if (!(await this.admin(req, b))) return this.json(req, { error: 'forbidden' }, 403);
@@ -116,7 +171,8 @@ export function installArticles(Hub, EXPORT_TABLES) {
       const id = Number(b.id), j = Number.isInteger(id) ? jobOf(this, id) : null;
       if (!j) return this.json(req, { error: 'not_found' }, 404);
       if (j.status !== 'queued') return this.json(req, { error: 'not_queued', job: j }, 409);
-      this.q("UPDATE article_jobs SET status = 'cancelled', updated = ? WHERE id = ?", this.now(), id);
+      const now = this.now();
+      this.q("UPDATE article_jobs SET status = 'cancelled', stage = 'cancelled', stage_at = ?, updated = ? WHERE id = ?", now, now, id);
       return this.json(req, { ok: true, job: jobOf(this, id) });
     },
   });
@@ -456,7 +512,13 @@ export function installArticles(Hub, EXPORT_TABLES) {
         if (!j) return this.json(req, { error: 'not_found' }, 404);
         if (!MARKS.includes(st)) return this.json(req, { error: 'bad_status' }, 400);
         if (j.status === 'cancelled' || j.status === 'done') return this.json(req, { error: 'closed', job: j }, 409);
-        this.q('UPDATE article_jobs SET status = ?, result = ?, updated = ? WHERE id = ?', st, clip(b.result, 200) || j.result || null, this.now(), id);
+        const now = this.now(), want = STAGES.includes(String(b.stage || '')) ? String(b.stage) : '';
+        let stg = j.stage || null;
+        if (st === 'done') stg = 'done';
+        else if (st === 'working') stg = want || (j.status === 'working' && STAGES.includes(j.stage) ? j.stage : 'plan');
+        else if (st === 'failed' && want) stg = want;          // failed：有給就記在那一格，沒給就停在原本那格
+        const stAt = stg !== (j.stage || null) ? now : (j.stage_at || null);
+        this.q('UPDATE article_jobs SET status = ?, result = ?, stage = ?, stage_at = ?, updated = ? WHERE id = ?', st, clip(b.result, 200) || j.result || null, stg, stAt, now, id);
         return this.json(req, { ok: true, job: jobOf(this, id) });
       }
       /* 頻率設定到點 → scripts/article_jobs.py 依規則自動排隊（2026-10-16 第 2 版）。

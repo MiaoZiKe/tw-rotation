@@ -368,7 +368,7 @@
      · 安全：JSON 的字串一律只拿來比對白名單（mat／detail／type／bmat），進到 SVG 的只有白名單裡的字與夾過值的數字。 */
   const MATS2 = MATS.concat(['logic', 'mold', 'underfill', 'gold', 'tim', 'ceramic']);
   const DETAILS2 = DETAILS.concat(['bumps', 'traces', 'label', 'pads', 'seal', 'screws', 'pins', 'hatch', 'wires', 'mesh']);
-  const SHAPES2 = SHAPES.concat(['guide']);
+  const SHAPES2 = SHAPES.concat(['guide', 'wheel', 'hcyl', 'shell']);   // 10-17 晚：wheel（側視車輪）、hcyl（橫躺圓柱）、shell（車殼／外殼剖面）—— 只有 style:2 認得
   const BMATS = ['solder', 'cu', 'gold'];
   const LEG2 = { gpu: 'chip', hbm: 'mem' };           // 內建 kind 的舊材質名 → 新色票
   const BUILTIN2 = ['chip', 'mem', 'logic', 'si', 'cu', 'solder', 'abf', 'core', 'pcb', 'cap', 'steel', 'dark', 'tray', 'battery', 'gold', 'cold', 'hot', 'plate', 'plastic'];
@@ -439,12 +439,16 @@
         + `<linearGradient id="${P}c-${k}" x1="0" y1="0" x2="1" y2="0"><stop offset="0" style="stop-color:${v('c0')}"/><stop offset=".3" style="stop-color:${v('c1')}"/><stop offset=".7" style="stop-color:${v('f')}"/><stop offset="1" style="stop-color:${v('s')}"/></linearGradient>`
         + `<radialGradient id="${P}b-${k}" cx=".36" cy=".32" r=".75"><stop offset="0" style="stop-color:${v('t')}"/><stop offset=".55" style="stop-color:${v('f')}"/><stop offset="1" style="stop-color:${v('s')}"/></radialGradient>`;
     });
+    (V2.vg || new Set()).forEach((k) => {   // 橫躺圓柱的筒身：由上往下受光（只有用到 hcyl 的色組才產生，舊圖的 defs 不變）
+      const v = (n) => `var(--q-${k}-${n})`;
+      s += `<linearGradient id="${P}v-${k}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" style="stop-color:${v('f')}"/><stop offset=".24" style="stop-color:${v('c1')}"/><stop offset=".55" style="stop-color:${v('f')}"/><stop offset="1" style="stop-color:${v('s1')}"/></linearGradient>`;
+    });
     s += `<linearGradient id="${P}csx" x1="0" y1="0" x2="1" y2="0"><stop offset="0" style="stop-color:var(--il-shadow)"/><stop offset="1" style="stop-color:var(--il-shadow);stop-opacity:0"/></linearGradient>`
       + `<linearGradient id="${P}csy" x1="0" y1="0" x2="0" y2="1"><stop offset="0" style="stop-color:var(--il-shadow)"/><stop offset="1" style="stop-color:var(--il-shadow);stop-opacity:0"/></linearGradient>`
       + `<linearGradient id="${P}gl" x1="0" y1="0" x2="0" y2="1"><stop offset="0" style="stop-color:var(--il2-hi);stop-opacity:.06"/><stop offset="1" style="stop-color:var(--il2-hi);stop-opacity:0"/></linearGradient>`;
     return s + (V2.clips || []).join('') + '</defs>';
   }
-  const V2 = { on: false, used: null, clips: null, P: '', seq: 0 };
+  const V2 = { on: false, used: null, clips: null, vg: null, P: '', seq: 0 };
   const clipPoly = (points) => { const id = V2.P + 'cp' + (++V2.seq); V2.clips.push(`<clipPath id="${id}"><polygon points="${pts(points)}"/></clipPath>`); return id; };
   const clipRect = (x, y, w, h) => { const id = V2.P + 'cp' + (++V2.seq); V2.clips.push(`<clipPath id="${id}"><rect x="${f1(x)}" y="${f1(y)}" width="${f1(w)}" height="${f1(h)}"/></clipPath>`); return id; };
 
@@ -574,6 +578,97 @@
     return g;
   }
 
+  /* ---- 2026-10-17 晚：三個新積木（只在 style:2）—— CEO 退件第二代 Roadster 第一版：「車身只是一條細折線、零件浮在車身外、輪子是兩顆球、馬達是直立圓柱」
+     · wheel：側視車輪（深色厚輪胎＋胎紋、輪框、5 輻、輪轂＋螺帽、接地陰影）。x,y＝輪心，r＝半徑；mat＝輪框材質（輪胎固定 rubber）。
+     · hcyl：橫躺圓柱（馬達、氣瓶）。x,y,w,h；右端面看得到（跟方塊一樣看得到右側），筒身由上往下受光漸層；detail：fins（散熱環）、layers（色帶）、screws（端面螺栓）、terminals（頂上接頭）。
+     · shell：外殼剖面（車殼、機殼）。points＝近側輪廓（閉合，≤ 48 點）、d＝往深處擠出幾倍 depth（看得到頂面、遠側殼）、z＝整個殼往深處推、open＝哪幾條邊不畫頂面（開口）、
+       op＝半透明度、cut＝開窗（窗內看得到殼裡的零件）、taper＝兩端收窄、layer＝1 只畫後半／2 只畫前半 —— 零件寫在 layer 1 與 layer 2 之間，就是「畫在殼內」。
+     全部只吃白名單（mat）與夾過值的數字。 */
+  const hcylRx = (s) => Math.max(2, Math.min(s.h * 0.24, s.w * 0.3));
+  function shellPts(s, D) {
+    const ox = D[0] * s.z, oy = D[1] * s.z, dx = D[0] * s.d, dy = D[1] * s.d;
+    // taper：兩端（左右各 22% 長度內）往中間收窄 —— 俯看時車頭、車尾是圓的，不是一塊長方形；近側與遠側各收一半
+    const xs = s.pts.map((p) => p[0]), x0 = Math.min(...xs), x1 = Math.max(...xs), zone = Math.max(1, (x1 - x0) * 0.22);
+    const sh = (x) => { const e = Math.max(0, 1 - Math.min(x - x0, x1 - x) / zone); return s.taper * e * e / 2; };
+    const F = s.pts.map((p) => { const t = sh(p[0]); return [p[0] + ox + dx * t, p[1] + oy + dy * t]; });
+    const B = s.pts.map((p) => { const t = 1 - sh(p[0]); return [p[0] + ox + dx * t, p[1] + oy + dy * t]; });
+    return { F, B, cut: s.cut.map((c) => c.map((p) => [p[0] + ox, p[1] + oy])), dd: [dx, dy] };
+  }
+  function wheel2(s) {
+    const { x, y, r } = s, P = V2.P, rk = useV(s.mat, s.tone, s.back), tk = useV('rubber', 0, s.back), tv = (n) => `var(--q-${tk}-${n})`;
+    const arc = (rr, a0, a1) => { const p0 = [x + rr * Math.cos(a0), y + rr * Math.sin(a0)], p1 = [x + rr * Math.cos(a1), y + rr * Math.sin(a1)]; return `M${f1(p0[0])},${f1(p0[1])} A${f1(rr)},${f1(rr)} 0 0 1 ${f1(p1[0])},${f1(p1[1])}`; };
+    let g = `<ellipse class="qws" cx="${f1(x)}" cy="${f1(y + r * 0.98)}" rx="${f1(r * 1.06)}" ry="${f1(Math.max(2, r * 0.14))}"/>`;
+    // 輪胎：深色厚環＋外圈胎紋（虛線環）＋胎壁高光
+    g += `<circle class="qtire" cx="${f1(x)}" cy="${f1(y)}" r="${f1(r)}" style="fill:${tv('f')};stroke:${tv('e')}"/>`
+      + `<circle class="qtread" cx="${f1(x)}" cy="${f1(y)}" r="${f1(r - 1.6)}" style="stroke:${tv('s1')};stroke-dasharray:${f1(r * 0.09)} ${f1(r * 0.06)}"/>`
+      + `<circle class="qwall" cx="${f1(x)}" cy="${f1(y)}" r="${f1(r * 0.8)}" style="stroke:${tv('s')}"/>`
+      + `<path class="qwhl" style="stroke:${tv('h')};stroke-width:${f1(Math.max(1, r * 0.05))}" d="${arc(r * 0.88, Math.PI * 1.08, Math.PI * 1.55)}"/>`;
+    // 輪框：外唇＋內桶（暗）＋碟煞盤＋5 輻＋輪轂＋5 螺帽
+    g += `<g class="qk k-${rk}${LITE.has(s.mat) ? ' lite' : ''}"><circle class="qrimo" cx="${f1(x)}" cy="${f1(y)}" r="${f1(r * 0.68)}" style="fill:url(#${P}b-${rk})"/>`
+      + `<circle class="qhole" cx="${f1(x)}" cy="${f1(y)}" r="${f1(r * 0.6)}"/>`
+      + `<circle class="qdisc" cx="${f1(x)}" cy="${f1(y)}" r="${f1(r * 0.46)}"/><circle class="qring" cx="${f1(x)}" cy="${f1(y)}" r="${f1(r * 0.3)}"/>`;
+    for (let i = 0; i < 5; i++) {
+      const a = -Math.PI / 2 + i * 2 * Math.PI / 5, c = Math.cos(a), sn = Math.sin(a), px = -sn, py = c, w1 = r * 0.085, w2 = r * 0.05, r1 = r * 0.12, r2 = r * 0.61;
+      const q = [[x + c * r1 + px * w1, y + sn * r1 + py * w1], [x + c * r2 + px * w2, y + sn * r2 + py * w2], [x + c * r2 - px * w2, y + sn * r2 - py * w2], [x + c * r1 - px * w1, y + sn * r1 - py * w1]];
+      g += `<polygon class="qspoke" points="${pts(q)}"/><path class="qsph" d="M${f1(q[0][0])},${f1(q[0][1])} L${f1(q[1][0])},${f1(q[1][1])}"/>`;
+    }
+    g += `<circle class="qlipr" cx="${f1(x)}" cy="${f1(y)}" r="${f1(r * 0.64)}"/>`
+      + `<path class="qrimh" d="${arc(r * 0.655, Math.PI * 1.05, Math.PI * 1.6)}"/>`
+      + `<circle class="qhubw" cx="${f1(x)}" cy="${f1(y)}" r="${f1(r * 0.15)}" style="fill:url(#${P}b-${rk})"/>`;
+    for (let i = 0; i < 5; i++) { const a = -Math.PI / 2 + Math.PI / 5 + i * 2 * Math.PI / 5; g += `<circle class="qnut" cx="${f1(x + Math.cos(a) * r * 0.095)}" cy="${f1(y + Math.sin(a) * r * 0.095)}" r="${f1(Math.max(0.6, r * 0.022))}"/>`; }
+    return g + `<circle class="qcap" cx="${f1(x)}" cy="${f1(y)}" r="${f1(Math.max(0.8, r * 0.045))}"/></g>`;
+  }
+  function hcyl2(s) {
+    const { x, y, w, h } = s, P = V2.P, k = useV(s.mat, s.tone, s.back), rx = hcylRx(s), ry = h / 2, cy = y + h / 2;
+    V2.vg.add(k);
+    let g = `<g class="qk k-${k}${RIM.has(s.mat) ? ' rim' : ''}${LITE.has(s.mat) ? ' lite' : ''}">`
+      + `<path class="qf" style="fill:url(#${P}v-${k})" d="M${f1(x + w)},${f1(y)} H${f1(x)} A${f1(rx)},${f1(ry)} 0 0 0 ${f1(x)},${f1(y + h)} H${f1(x + w)} Z"/>`;
+    const n = Math.max(1, Math.min(24, s.n));
+    if (s.details.includes('layers')) for (let i = 0; i < n; i++) { const a = x + w * (i + 0.5) / (n + 0.5), b2 = a + w * 0.4 / (n + 0.5); g += `<path class="qband" d="M${f1(a)},${f1(y + 0.6)} H${f1(b2)} A${f1(rx)},${f1(ry - 0.6)} 0 0 1 ${f1(b2)},${f1(y + h - 0.6)} H${f1(a)} A${f1(rx)},${f1(ry - 0.6)} 0 0 0 ${f1(a)},${f1(y + 0.6)} Z"/>`; }
+    if (s.details.includes('fins')) for (let i = 1; i <= n; i++) { const xx = x + w * i / (n + 1); g += `<path class="qfinr" d="M${f1(xx)},${f1(y)} A${f1(rx)},${f1(ry)} 0 0 1 ${f1(xx)},${f1(y + h)}"/><path class="qfinh" d="M${f1(xx - 1.3)},${f1(y + 0.8)} A${f1(rx)},${f1(ry - 0.8)} 0 0 1 ${f1(xx - 1.3)},${f1(y + h - 0.8)}"/>`; }
+    g += `<path class="qcylh" style="stroke-width:${f1(Math.max(0.8, h * 0.07))}" d="M${f1(x + 1)},${f1(y + h * 0.24)} H${f1(x + w - 1.5)}"/>`;
+    // 右端面（看得到的那一端）：端蓋＋內圈＋軸心
+    g += `<ellipse class="qt" cx="${f1(x + w)}" cy="${f1(cy)}" rx="${f1(rx)}" ry="${f1(ry)}"/>`
+      + `<ellipse class="qring" cx="${f1(x + w)}" cy="${f1(cy)}" rx="${f1(rx * 0.62)}" ry="${f1(ry * 0.62)}"/>`
+      + `<ellipse class="qhub" cx="${f1(x + w)}" cy="${f1(cy)}" rx="${f1(rx * 0.24)}" ry="${f1(ry * 0.24)}"/>`
+      + `<path class="qcr" d="M${f1(x + w - rx * 0.55)},${f1(cy - ry * 0.55)} A${f1(rx * 0.8)},${f1(ry * 0.8)} 0 0 1 ${f1(x + w + rx * 0.2)},${f1(cy - ry * 0.78)}"/>`;
+    if (s.details.includes('screws')) for (let i = 0; i < 6; i++) { const a = i * Math.PI / 3; g += `<circle class="qscrew" style="fill:${qv('steel', 't')}" cx="${f1(x + w + Math.cos(a) * rx * 0.8)}" cy="${f1(cy + Math.sin(a) * ry * 0.8)}" r="${f1(Math.max(0.6, Math.min(rx, ry) * 0.12))}"/>`; }
+    if (s.details.includes('terminals')) g += box2(x + w * 0.42, y - 6, Math.max(4, w * 0.14), 6, 'gold', [0, -2], {});
+    return g + '</g>';
+  }
+  function shell2(s, D) {
+    const { F, B, cut, dd } = shellPts(s, D), P = V2.P, k = useV(s.mat, s.tone, s.back), op = s.op;
+    let A = 0; for (let i = 0; i < F.length; i++) { const a = F[i], b2 = F[(i + 1) % F.length]; A += a[0] * b2[1] - b2[0] * a[1]; }
+    const sg = A >= 0 ? 1 : -1;
+    const nrm = (a, b2) => { const ex = b2[0] - a[0], ey = b2[1] - a[1], L = Math.hypot(ex, ey) || 1; return [sg * ey / L, -sg * ex / L]; };   // 往外的法線
+    let g = `<g class="qk qshell k-${k}">`;
+    if (s.layer !== 2 && (dd[0] || dd[1])) {
+      g += `<polygon class="qsb" points="${pts(B)}" style="fill:url(#${P}f-${k});fill-opacity:${f1(op * 0.45 * 100) / 100}"/>`;
+      // 看得到的擠出面（頂面、斜面）：法線跟 depth 同向；朝上的用頂色、朝右的用側色
+      for (let i = 0; i < F.length; i++) {
+        const a = F[i], b2 = F[(i + 1) % F.length], n = nrm(a, b2);
+        if (n[0] * dd[0] + n[1] * dd[1] <= 0.01 || s.open.includes(i)) continue;
+        const c = n[1] < -0.8 ? 'mt' : n[0] > 0.45 ? 'ms' : 'mf';
+        g += `<polygon class="qsf" style="fill:var(--${c});fill-opacity:${f1(Math.min(0.95, op + 0.25) * 100) / 100}" points="${pts([a, b2, B[(i + 1) % F.length], B[i]])}"/>`;
+      }
+      g += `<polygon class="qso2" points="${pts(B)}"/>`;
+    }
+    if (s.layer !== 1) {
+      // 開窗：用 evenodd 的裁切路徑把窗挖掉（窗超出殼的部分本來就沒有殼可畫，不影響）
+      const ring = (q) => 'M' + q.map((p) => f1(p[0]) + ',' + f1(p[1])).join(' L') + ' Z';
+      const mid = V2.P + 'cp' + (++V2.seq);
+      V2.clips.push(`<clipPath id="${mid}"><path clip-rule="evenodd" d="${ring(F)} ${cut.map(ring).join(' ')}"/></clipPath>`);
+      g += `<polygon class="qsk"${cut.length ? ` clip-path="url(#${mid})"` : ''} points="${pts(F)}" style="fill:url(#${P}f-${k});fill-opacity:${op}"/>`;
+      if (cut.length) { const cp = clipPoly(F); g += `<g clip-path="url(#${cp})">${cut.map((c) => `<polygon class="qcut" points="${pts(c)}"/><polygon class="qcut2" points="${pts(c)}"/>`).join('')}</g>`; }
+      g += `<polygon class="qso" points="${pts(F)}"/>`;
+      // 上緣高光：只描朝上的邊，往殼內縮 1.4
+      let hl = '';
+      for (let i = 0; i < F.length; i++) { const a = F[i], b2 = F[(i + 1) % F.length], n = nrm(a, b2); if (n[1] > -0.45) continue; hl += `M${f1(a[0] - n[0] * 1.4)},${f1(a[1] - n[1] * 1.4)} L${f1(b2[0] - n[0] * 1.4)},${f1(b2[1] - n[1] * 1.4)} `; }
+      if (hl) g += `<path class="qshl" d="${hl.trim()}"/>`;
+    }
+    return g + '</g>';
+  }
+
   /* custom 第 2 版的積木：舊欄位＋tone、back、detail 陣列、nu／nv、bmat、rows、ends、guide（拆開圖的虛線導引） */
   function customSpec2(b) {
     const vw = cnum(b && b.view && b.view[0], 100, 2000, 600), vh = cnum(b && b.view && b.view[1], 80, 2000, 400);
@@ -583,10 +678,14 @@
       part: pid(s.part), type: s.type, mat: MATS2.includes(s.mat) ? s.mat : 'steel', details: dets(s.detail),
       tone: Math.round(cnum(s.tone, -2, 2, 0)), back: cnum(s.back, 0, 1, 0) >= 0.5 ? 1 : 0, bmat: BMATS.includes(s.bmat) ? s.bmat : 'solder',
       x: cnum(s.x, -vw, 2 * vw, 0), y: cnum(s.y, -vh, 2 * vh, 0), w: cnum(s.w, 1, 2 * vw, 40), h: cnum(s.h, 1, 2 * vh, 20),
-      d: cnum(s.d, 0, 3, 1), n: Math.round(cnum(s.n, 1, 60, 6)), nu: Math.round(cnum(s.nu, 0, 40, 0)), nv: Math.round(cnum(s.nv, 0, 12, 0)),
+      d: cnum(s.d, 0, s.type === 'shell' ? 8 : 3, 1), n: Math.round(cnum(s.n, 1, 60, 6)), nu: Math.round(cnum(s.nu, 0, 40, 0)), nv: Math.round(cnum(s.nv, 0, 12, 0)),
       rows: Math.round(cnum(s.rows, 1, 3, 2)), ends: cnum(s.ends, 0, 1, 1) >= 0.5 ? 1 : 0,
       r: cnum(s.r, 0.5, 200, 6), x2: cnum(s.x2, -vw, 2 * vw, 0), y2: cnum(s.y2, -vh, 2 * vh, 0),
-      pts: (Array.isArray(s.points) ? s.points : []).slice(0, 20).filter((p) => Array.isArray(p) && p.length === 2).map((p) => [cnum(p[0], -vw, 2 * vw, 0), cnum(p[1], -vh, 2 * vh, 0)]),
+      pts: (Array.isArray(s.points) ? s.points : []).slice(0, s.type === 'shell' ? 48 : 20).filter((p) => Array.isArray(p) && p.length === 2).map((p) => [cnum(p[0], -vw, 2 * vw, 0), cnum(p[1], -vh, 2 * vh, 0)]),
+      // shell 專用：cut＝開窗（最多 3 個多邊形、每個 ≤ 16 點）、op＝殼的不透明度、z＝整個殼往深處推幾倍 depth、layer＝0 全畫／1 只畫後半（遠側殼＋頂面）／2 只畫前半（近側殼＋開窗）
+      cut: s.type === 'shell' && Array.isArray(s.cut) ? s.cut.slice(0, 3).filter(Array.isArray).map((c) => c.slice(0, 16).filter((p) => Array.isArray(p) && p.length === 2).map((p) => [cnum(p[0], -vw, 2 * vw, 0), cnum(p[1], -vh, 2 * vh, 0)])).filter((c) => c.length >= 3) : [],
+      op: cnum(s.op, 0.15, 0.9, 0.45), z: cnum(s.z, 0, 3, 0), taper: cnum(s.taper, 0, 0.8, 0), layer: Math.round(cnum(s.layer, 0, 2, 0)),
+      open: s.type === 'shell' && Array.isArray(s.open) ? s.open.slice(0, 48).map((v) => Math.round(cnum(v, -1, 47, -1))).filter((v) => v >= 0) : [],   // 不畫頂面的邊（第 i 點→第 i+1 點），例如座艙開口
     }));
     return { vw, vh, D, shapes };
   }
@@ -596,6 +695,9 @@
     if (s.type === 'box') { const th = s.details.includes('terminals') ? Math.min(8, s.h / 3) + Math.abs(dy) * 0.25 : 0; return [s.x + Math.min(0, dx), s.y + Math.min(0, dy) - th, s.x + s.w + Math.max(0, dx), s.y + s.h + Math.max(0, dy)]; }
     if (s.type === 'cyl') { const ry = Math.max(2, Math.abs(D[1]) * 0.35); return [s.x, s.y - ry - (s.details.includes('terminals') ? 7 : 0), s.x + s.w, s.y + s.h + ry]; }
     if (s.type === 'balls') { const x2 = s.x2 > s.x ? s.x2 : s.x + s.w, ox = s.rows > 1 ? 0.5 * dx : 0, oy = s.rows > 1 ? 0.5 * dy : 0; return [s.x - s.r + Math.min(0, ox), s.y - s.r + Math.min(0, oy), x2 + s.r + Math.max(0, ox) + (s.rows > 1 ? (x2 - s.x) / Math.max(1, s.n - 1) / 2 : 0), s.y + s.r * 1.1 + Math.max(0, oy)]; }
+    if (s.type === 'wheel') return [s.x - s.r * 1.06, s.y - s.r, s.x + s.r * 1.06, s.y + s.r + Math.max(2, s.r * 0.14)];
+    if (s.type === 'hcyl') { const rx = hcylRx(s); return [s.x - rx, s.y - (s.details.includes('terminals') ? 7 : 0), s.x + s.w + rx, s.y + s.h]; }
+    if (s.type === 'shell') { if (s.pts.length < 3) return null; const P = shellPts(s, D); const all = P.F.concat(P.B); const xs = all.map((p) => p[0]), ys = all.map((p) => p[1]); return [Math.min(...xs) - 1, Math.min(...ys) - 1, Math.max(...xs) + 1, Math.max(...ys) + 1]; }
     if (s.pts.length) { const xs = s.pts.map((p) => p[0]), ys = s.pts.map((p) => p[1]), m = s.type === 'pipe' ? s.r * 1.2 : 3; return [Math.min(...xs) - m, Math.min(...ys) - m, Math.max(...xs) + m, Math.max(...ys) + m]; }
     return null;
   }
@@ -653,6 +755,12 @@
         if (s.ends) { const em = s.mat === 'cu' || s.mat === 'gold' ? s.mat : 'steel'; [s.pts[0], s.pts[s.pts.length - 1]].forEach((p) => { g += `<rect class="qend" style="fill:${qv(em, 't')};stroke:${qv(em, 'e')}" x="${f1(p[0] - s.r * 1.1)}" y="${f1(p[1] - s.r * 0.6)}" width="${f1(s.r * 2.2)}" height="${f1(s.r * 1.2)}" rx=".6"/>`; }); }
         g += '</g>';
         const t = Math.min(1, 12 / L); auto(s.part, a[0] + (c[0] - a[0]) * t, a[1] + (c[1] - a[1]) * t);
+      } else if (s.type === 'wheel') {
+        g += wheel2(s); auto(s.part, s.x + s.r, s.y);
+      } else if (s.type === 'hcyl') {
+        g += hcyl2(s); auto(s.part, s.x + s.w + hcylRx(s) * 0.5, s.y + s.h / 2);
+      } else if (s.type === 'shell' && s.pts.length >= 3) {
+        g += shell2(s, D); const F = shellPts(s, D).F, e = F.reduce((m, p) => (p[0] > m[0] ? p : m), F[0]); auto(s.part, e[0], e[1]);
       } else if (s.type === 'guide' && s.pts.length >= 2) {
         const p = s.pts, e = p[p.length - 1], q = p[p.length - 2], L = Math.hypot(e[0] - q[0], e[1] - q[1]) || 1, ux = (e[0] - q[0]) / L, uy = (e[1] - q[1]) / L;
         o.push(`<g class="qguide"><path d="M${p.map((z) => f1(z[0]) + ',' + f1(z[1])).join(' L')}"/><polygon points="${pts([e, [e[0] - ux * 5 - uy * 2.6, e[1] - uy * 5 + ux * 2.6], [e[0] - ux * 5 + uy * 2.6, e[1] - uy * 5 - ux * 2.6]])}"/></g>`);
@@ -705,6 +813,17 @@
 .ilv2 .qring{fill:none;stroke:var(--me);stroke-width:.8;opacity:.7}.ilv2 .qbtm{fill:none;stroke:var(--me);stroke-width:1}
 .ilv2 .qpo{fill:none;stroke:var(--me);stroke-linecap:round;stroke-linejoin:round}.ilv2 .qpm{fill:none;stroke:var(--mf);stroke-linecap:round;stroke-linejoin:round}
 .ilv2 .qph{fill:none;stroke:var(--mh);opacity:.6;stroke-linecap:round;stroke-linejoin:round}.ilv2 .qend{stroke-width:.5}
+.ilv2 .qws{fill:var(--il2-bsh)}.ilv2 .qtire{stroke-width:1}.ilv2 .qtread{fill:none;stroke-width:2.6;opacity:.9}.ilv2 .qwall{fill:none;stroke-width:.8;opacity:.8}.ilv2 .qwhl{fill:none;opacity:.55;stroke-linecap:round}
+.ilv2 .qrimo{stroke:var(--me);stroke-width:1}.ilv2 .qdisc{fill:var(--ms1);stroke:var(--me);stroke-width:.6}
+.ilv2 .qspoke{fill:var(--mf);stroke:var(--me);stroke-width:.6;stroke-linejoin:round}.ilv2 .qsph{fill:none;stroke:var(--mh);stroke-width:.7;opacity:.8}
+.ilv2 .qlipr{fill:none;stroke:var(--mh);stroke-width:.8;opacity:.6}.ilv2 .qrimh{fill:none;stroke:var(--mh);stroke-width:1.3;opacity:.85;stroke-linecap:round}
+.ilv2 .qhubw{stroke:var(--me);stroke-width:.7}.ilv2 .qnut{fill:var(--ms);stroke:var(--me);stroke-width:.3}.ilv2 .qcap{fill:var(--ms)}
+.ilv2 .qband{fill:var(--ms);opacity:.55}.ilv2 .qfinr{fill:none;stroke:var(--me);stroke-width:1.1}.ilv2 .qfinh{fill:none;stroke:var(--mh);stroke-width:.6;opacity:.55}
+.ilv2 .qcylh{fill:none;stroke:var(--mh);opacity:.5;stroke-linecap:round}
+.ilv2 .qshell .qsb{stroke:none}.ilv2 .qsf{stroke:var(--me);stroke-width:.6;stroke-opacity:.5;stroke-linejoin:round}
+.ilv2 .qso,.ilv2 .qso2{fill:none;stroke:var(--me);stroke-width:1.3;stroke-linejoin:round}.ilv2 .qso2{stroke-width:.9;opacity:.45}
+.ilv2 .qcut{fill:none;stroke:var(--ms);stroke-width:3.2;stroke-linejoin:round}.ilv2 .qcut2{fill:none;stroke:var(--mh);stroke-width:.8;opacity:.7;stroke-linejoin:round}
+.ilv2 .qshl{fill:none;stroke:var(--mh);stroke-width:1.4;opacity:.85;stroke-linecap:round}
 .ilv2 .qguide path{fill:none;stroke:var(--il2-guide);stroke-width:1;stroke-dasharray:4 3}.ilv2 .qguide polygon{fill:var(--il2-guide)}
 /* 內建 kind（cowos／rack）的第 2 版：舊的細節 class 換成新色票 */
 .ilsvg.ilv2 .base{fill:var(--q-logic_p0-f)}.ilsvg.ilv2 .dram1{fill:var(--q-mem_p0-l1)}.ilsvg.ilv2 .dram2{fill:var(--q-mem_p0-l2)}
@@ -731,11 +850,11 @@
   const isV2 = (b) => !!b && Number(b.style) === 2;
   function run(K, P, b) {
     if (!isV2(b)) return K.draw(P, b);
-    V2.on = true; V2.P = P; V2.used = new Set(); V2.clips = []; V2.seq = 0;
+    V2.on = true; V2.P = P; V2.used = new Set(); V2.clips = []; V2.vg = new Set(); V2.seq = 0;
     try {
       if (K.parts) BUILTIN2.forEach((m) => useV(m, 0, 0));
       const r = K.draw(P, b); r.v2 = true; return r;
-    } finally { V2.on = false; V2.used = null; V2.clips = null; }
+    } finally { V2.on = false; V2.used = null; V2.clips = null; V2.vg = null; }
   }
 
   const CSS = `

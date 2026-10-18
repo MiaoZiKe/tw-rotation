@@ -59,6 +59,10 @@ class _Quiet(SimpleHTTPRequestHandler):
 CONSENT_PRESET = ("try{if(!localStorage.getItem('tw.consent'))localStorage.setItem('tw.consent',"
                   "JSON.stringify({v:'*',at:'test'}));"
                   "if(!localStorage.getItem('tw.tour'))localStorage.setItem('tw.tour','*');}catch(e){}")
+# ★ 2026-10-18 主題自動切換（DECISIONS #360）：正式站沒手動選過＝看時鐘。這支釘回舊行為（沒存＝深色、tw.theme 永久），
+#   結果才不會跟著「現在幾點」變；要看自動切換的真實樣子設 TW_THEME_AUTO=1。
+if os.environ.get("TW_THEME_AUTO") != "1":
+    CONSENT_PRESET = "window.TW_THEME_LEGACY=1;" + CONSENT_PRESET
 
 
 def _preset_consent() -> None:

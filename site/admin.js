@@ -2017,7 +2017,7 @@ html[data-theme="light"] #v-admin{--pm-blue:#1f4fd8;--pm-blue-2:#163fb4}
     /* 2026-10-05 Andy：訪客的流量數字卡不要（流量看「流量觀測」）；流量觀測的「現在誰在線上」整塊拿掉後，
        「一般訪客看得到『目前 N 人在線』」這個開關搬到這裡（訪客的權限就是「訪客能看到什麼」）。 */
     if (PS.tier !== 'guest' || PS.adding) { box.innerHTML = ''; return; }
-    box.innerHTML = '<label class="tg ptpub" id="ptPubRow"><input type="checkbox" id="admPub" disabled>一般訪客看得到「今天 N 人造訪」（只有總數，看不到名字）</label>';
+    box.innerHTML = '<label class="tg ptpub" id="ptPubRow"><input type="checkbox" id="admPub" disabled>一般訪客看得到「目前 N 人在線」（只有總數，看不到名字）</label>';
     const on = await PS.A.call('/v1/admin/online', {});
     const cb = box.querySelector('#admPub'); if (!cb || PS.tier !== 'guest') return;
     if (on && on._s === 200) cb.checked = !!on.public_online;

@@ -17,7 +17,7 @@
      · 單篇頁：「← 返回」（有上一頁就回上一頁，直接開網址的就回該類別清單）、麵包屑、內文區塊、圖表與示意圖、
        相關台股、站內相關頁面、資料來源、免責、文末「回到清單」；寬螢幕右側目錄。
    內文區塊（全部吃 JSON、textContent／esc 輸出、不收 HTML）：
-     h／p／ul／callout／table／stocks（原有）＋ kpi（數字卡）＋ chart（bar／line／barline／hbar／range，ECharts）
+     h／p／ul／callout／table／stocks（原有）＋ kpi（數字卡）＋ chart（bar／line／barline／hbar／range，ECharts；10-17 加 signed 正負上色、refs 參考線、bands 區間陰影）
      ＋ flow（產業關係圖：欄由左到右、手機由上到下，SVG 曲線箭頭）＋ stack（剖面拆解圖：由上到下疊層、右側引出線說明）。
      ＋ steps（編號流程圖：橫向一排、手機直向）＋ compare（2～4 欄對照卡，欄頂色條依 tone）。
      ＋ illus（2026-10-16 具象插圖：kind＝cowos／rack，圖在 site/artillus.js；Andy：「有提到特定元件，需要繪圖出來，更具像化」）。
@@ -27,6 +27,8 @@
      「需要新增點閱次數」→ 卡片與單篇「眼睛＋N 次」（會員 Worker /v1/articles/view、/v1/articles/stats；失敗就不寫）、管理區多一欄。
      「內容除了圖表，盡可能新增剖析、分解 說明圖片」→ steps／compare 兩種說明圖區塊。
      「圖表色彩需要豐富點且多樣，不要太單一」→ 文章專用調色盤 --art-p1..7（只這一頁用，紅綠保留給漲跌）。
+     ★ 10-17「圖表風格需要 Follow 我網頁內的風格」→ ECharts 圖表（chart 區塊）改吃網站類別色 --cat-*、App.barStyle 漸層與圓角（見 chartOption）；
+       --art-p* 只剩數字卡、關係圖、流程圖這些說明圖區塊在用。
      防複製與浮水印是全站的，在 site/protect.js，不在這支。
 
    資料：site/articles/index.json（清單）＋ site/articles/posts/<id>.json（點進單篇才讀）。
@@ -75,7 +77,7 @@
   const defRange = () => { const t = tpeToday(); return { from: monthAgo(t), to: t }; };
 
   const S = { views: null, statsP: null, statsAt: 0, idx: null, idxP: null, idxErr: false, cat: 'all', q: '', from: null, to: null, grp: new Set(), ms: null,
-    posts: {}, cur: '', curData: null, backOk: false, topics: null, topicsP: null, tcat: 'all', tsort: 'desc', tsels: [], gsel: new Set(), gout: [], gtype: 'ig', jobs: null, af: { cat: 'all', grp: '', from: '', to: '', q: '' }, jf: { kind: '', st: '', q: '' }, ss: { period: '30', from: '', to: '', cat: '', grp: '', daily: null, first: null } };
+    posts: {}, cur: '', curData: null, backOk: false, topics: null, topicsP: null, tcat: 'all', tsort: 'desc', tsels: [], jobs: null, af: { cat: 'all', grp: '', from: '', to: '', q: '' }, jf: { kind: '', st: '', q: '' }, ss: { period: '30', from: '', to: '', cat: '', grp: '', daily: null, first: null } };
 
   /* 「← 返回」要不要用 history.back()：只有「在站內從別頁換過來」才有上一頁可回；直接貼網址開的，回該類別清單 */
   window.addEventListener('hashchange', (e) => {
@@ -91,7 +93,8 @@
     s.textContent = `
 :root{--art-all:var(--ink-2);--art-news:#ff9d4a;--art-intro:#2fd1c1;--art-know:#b99bff;--art-hl:#f5c842;
   --art-t-chip:#5b9cff;--art-t-mem:#2ec4b6;--art-t-interposer:#f2c14e;--art-t-substrate:#ff8a65;--art-t-board:#a88bff;--art-t-bump:#c6cfdf;--art-t-other:#9aa6c0;--art-t-ink:#0b1220;
-  /* 文章圖表調色盤（Andy 10-16：「圖表色彩需要豐富點且多樣，不要太單一」）：只給這一頁的區塊用，全站其他圖不吃這一組。
+  /* 文章說明圖調色盤（Andy 10-16：「圖表色彩需要豐富點且多樣，不要太單一」）：只給這一頁的區塊用，全站其他圖不吃這一組。
+     ⚠ 10-17 起 ECharts 圖表不吃這一組（改用網站 --cat-*，Andy：「圖表風格需要 Follow 我網頁內的風格」），只剩數字卡／關係圖／流程圖等說明圖。
      刻意避開紅、綠（紅漲綠跌保留給漲跌）與標註用的金色（--art-hl）；彩度壓在不刺眼的範圍。深淺主題各一組，淺色每色都 ≥ 3:1。 */
   --art-p1:#5b9cff;--art-p2:#2ec4b6;--art-p3:#a88bff;--art-p4:#ff8a65;--art-p5:#ec74b5;--art-p6:#d39b5b;--art-p7:#4cc3ef;
   --art-tn-neutral:#8e9bb8;--art-tn-accent:#5b9cff;--art-tn-warn:#f2a93b;--art-tn-good:#2ec4b6}
@@ -127,7 +130,13 @@
 .artmain{flex:1 1 auto;display:grid;grid-template-columns:minmax(0,1fr);gap:var(--sp-4);align-items:start}
 @media (min-width:1280px){.artmain{grid-template-columns:minmax(0,1fr) 280px}}
 /* 卡片一律同寬同高（Andy 10-16：「這邊的大小需要一致」）：格線決定寬、固定高度決定高，內容過長一律截斷（標題 2 行、副標 1 行、摘要 3 行、族群 1 行） */
-.artlist{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));grid-auto-rows:var(--art-card-h,236px);gap:var(--gap-card,12px);align-items:stretch;align-content:start}
+.artlist,.artgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));grid-auto-rows:var(--art-card-h,236px);gap:var(--gap-card,12px);align-items:stretch;align-content:start}
+/* 10-17 Andy：「這邊不同類型需要線條隔開」→ 全部文章依類型分段，段與段之間一條分隔線＋類型名稱 */
+.artlist.grouped{display:block}
+.artsec+.artsec{margin-top:18px;padding-top:14px;border-top:2px solid var(--line-2)}
+.artsech{display:flex;align-items:center;gap:8px;margin:0 0 10px;font-size:15px;font-weight:700;color:var(--ink)}
+.artsech em{font-style:normal;font-weight:400;font-size:12.5px;color:var(--ink-2)}
+.artsec.k-news .artsech svg{color:var(--amber,#e08a2e)}.artsec.k-intro .artsech svg{color:var(--teal,#14a39a)}.artsec.k-know .artsech svg{color:var(--violet,#8b5cf6)}
 .artc{position:relative;display:flex;flex-direction:column;gap:6px;min-width:0;height:100%;box-sizing:border-box;padding:var(--sp-3) var(--sp-4) var(--sp-3) calc(var(--sp-4) + 4px);
   border:1px solid var(--line);border-radius:var(--r,12px);overflow:hidden;
   background:linear-gradient(135deg,color-mix(in srgb,var(--k) 8%,var(--panel)) 0%,var(--panel) 55%);color:var(--ink);text-decoration:none;transition:border-color .15s,transform .15s}
@@ -214,7 +223,8 @@
 .artbody p{margin:0 0 var(--sp-3)}
 .artbody ul{margin:0 0 var(--sp-3);padding-left:1.4em}
 .artbody li{margin:4px 0}
-.artbody .artvid{margin:var(--sp-4) 0;max-width:760px}.artbody .artvid .avt{font-weight:700;margin-bottom:8px}
+.artbody figure.artfig{position:relative}.artbody figcaption:has(>.figcp){display:flex;justify-content:space-between;align-items:flex-start;gap:10px}.artbody figcaption>.figcp{position:static;flex:none;margin-left:auto}.artbody .figcp{position:absolute;top:0;right:0;z-index:6;border:1px solid var(--line-2);background:var(--panel);color:var(--ink);border-radius:8px;padding:4px 10px;font-size:12.5px;cursor:pointer}.artbody .figcp:hover{background:var(--row-hover)}
+.artbody .artvid{margin:var(--sp-4) auto;width:100%}   /* 10-17 Andy：「影片置中，並且可以的話讓他填滿左右寬度」→ 拿掉 760 上限，吃滿內文欄 */.artbody .artvid .avt{font-weight:700;margin-bottom:8px}
 .artbody .artvid .avw{position:relative;width:100%;aspect-ratio:16/9;border-radius:var(--r-sm,8px);overflow:hidden;background:#000;border:1px solid var(--line)}
 .artbody .artvid.x .avw{aspect-ratio:auto;height:min(640px,80vh);background:transparent}
 .artbody .artvid iframe{position:absolute;inset:0;width:100%;height:100%;border:0}
@@ -248,7 +258,7 @@
 .artfig .fn2{margin:var(--sp-2) 0 0;font-size:var(--fs-min);color:var(--ink-3);line-height:1.6}
 .artfig .fn2 span+span::before{content:"　"}
 .artfig .mk{margin:var(--sp-2) 0 0;display:flex;flex-wrap:wrap;gap:6px 12px;font-size:var(--fs-sm);color:var(--ink-2)}
-.artfig .mk span::before{content:"◆";color:var(--art-hl);margin-right:4px}
+.artfig .mk span::before{content:"◆";color:var(--amber,var(--art-hl));margin-right:4px}
 .artchart .cv{width:100%;height:300px}
 /* kpi 數字卡 */
 .artkpi{display:grid;grid-template-columns:repeat(var(--n,3),minmax(0,1fr));gap:var(--sp-2);margin:var(--sp-4) 0}
@@ -404,7 +414,7 @@
   .artflt #artGrp{flex:1 1 auto;--ms-w:100%}
   .artflt #artClr{flex:none}
   .artflt .cnt{margin-left:0}
-  .artlist{--art-card-h:164px}
+  .artlist,.artgrid{--art-card-h:164px}
   .artc{padding:var(--sp-3) var(--sp-3) var(--sp-3) calc(var(--sp-3) + 4px)}
   .artc .sm{display:none}   /* 手機只留重點（準則 3）：摘要點進去才看 */
   .artempty{min-height:260px}
@@ -564,38 +574,14 @@
 #v-subadm .artadm .js .kd{font-style:normal;font-weight:700;font-size:11px;padding:0 5px;margin-left:-4px;border-radius:999px;color:#fff;line-height:16px}
 #v-subadm .artadm .js .kd.article{background:#2563eb}
 #v-subadm .artadm .js .kd.video{background:#db2777}
-#v-subadm .artadm .gpm{display:none}   /* 桌機用表頭兩顆鈕；手機（表頭被藏掉）改用表格上方一條 .gpbar：下拉選類型＋一顆送出 */
-#v-subadm .artadm td.gptc .gpg{display:inline-flex;flex-direction:column;align-items:flex-start;gap:1px;margin-right:10px;vertical-align:middle;line-height:1.2}
-#v-subadm #artAdmList table{min-width:1200px}   /* 多了「傳給 GPT」一欄，標題欄要夠寬（Andy 看過表格標題不能被擠成一點點）；窄螢幕在表內橫向捲 */
-#v-subadm .artadm .gpk{font-style:normal;font-size:11.5px;padding:0 7px;border-radius:999px;border:1px solid var(--cyan);color:var(--cyan)}
-#v-subadm .artadm .gpk.video{border-color:#db2777;color:#db2777}
-#v-subadm .artadm th.gpth{overflow:visible;white-space:normal;height:auto;padding-top:4px;padding-bottom:4px}
-#v-subadm .artadm th.gpth .gpd{display:inline-flex;gap:6px;flex-wrap:wrap;vertical-align:middle}
-#v-subadm .artadm th.gpth button{height:24px;padding:0 10px;margin-left:0;border-radius:var(--r-sm,8px);border:1px solid var(--cyan);background:color-mix(in srgb,var(--cyan) 14%,var(--panel));color:var(--ink);font:inherit;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap}
-#v-subadm .artadm th.gpth button:disabled{opacity:.45;cursor:not-allowed;border-color:var(--line-2);background:var(--panel-3)}
-#v-subadm .artadm td.gptc{overflow:visible;height:48px}
-#v-subadm .artadm td.gptc .gptk{display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;vertical-align:middle;cursor:pointer}
-#v-subadm .artadm td.gptc input[type=checkbox]{width:18px;height:18px;margin:0;accent-color:var(--cyan);cursor:pointer}
-#v-subadm .artadm td.gptc button.gpto{height:26px;padding:0 10px;border-radius:var(--r-sm,8px);border:1px solid var(--line-2);background:var(--panel-3);color:var(--ink);font:inherit;font-size:12px;cursor:pointer;white-space:nowrap;vertical-align:middle}
-#v-subadm .artadm td.gptc button.gpto:hover{border-color:var(--cyan)}
-#v-subadm .artadm td.gptc .gpts{font-size:11px;color:var(--ink-3);font-family:var(--mono);white-space:nowrap}
-#v-subadm .artadm .gpp{border:1px solid var(--line);border-radius:var(--r-sm,8px);background:var(--panel-2);padding:8px 12px;margin-bottom:var(--sp-2);font-size:13px}
-#v-subadm .artadm .gpp .gph{margin:0 0 6px;color:var(--ink-2);line-height:1.6}
-#v-subadm .artadm .gpp[hidden]{display:none}
-#v-subadm .artadm .gpr{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:6px 0;border-top:1px solid var(--line)}
-#v-subadm .artadm .gpr .gpt{flex:1 1 220px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--ink)}
-#v-subadm .artadm .gpr .gpl,#v-subadm .artadm .gpr button{display:inline-flex;align-items:center;height:30px;padding:0 12px;border-radius:var(--r-sm,8px);border:1px solid var(--line-2);background:var(--panel-3);color:var(--ink);font:inherit;font-size:12.5px;text-decoration:none;cursor:pointer;white-space:nowrap}
-#v-subadm .artadm .gpr .gpl{background:var(--cyan);color:#04121a;border-color:transparent;font-weight:700}
-#v-subadm .artadm .gpr .gpn{flex:1 1 100%;font-size:12px;color:var(--ink-3)}
-@media (max-width:640px){#v-subadm .artadm th.gpth .gpd,#v-subadm .artadm td.gptc .gpd{display:none}#v-subadm .artadm .gpm{display:inline-flex;align-items:center;gap:6px}#v-subadm .artadm .gpbar{display:flex;margin-bottom:var(--sp-2)}#v-subadm .artadm .gpbar button{height:32px;padding:0 12px;border-radius:8px;border:1px solid var(--cyan);background:color-mix(in srgb,var(--cyan) 14%,var(--panel));color:var(--ink);font:inherit;font-size:13px;font-weight:600}#v-subadm .artadm .gpbar button:disabled{opacity:.45}#v-subadm .artadm .gpbl{font-size:13px;color:var(--ink-2)}#v-subadm .artadm .gpm select{height:32px;border-radius:8px;border:1px solid var(--line-2);background:var(--panel);color:var(--ink);font:inherit;font-size:13px;padding:0 6px}#v-subadm .artadm td.gptc button.gpto{height:32px}#v-subadm .artadm th.gpth button{height:32px}#v-subadm .artadm .gpr .gpl,#v-subadm .artadm .gpr button{height:36px}}
 /* 手機（≤640）：「已上架文章」表格改成每篇一張卡（Andy 看 390 截圖：欄位直接堆疊、沒有欄名、文字被截斷、看不出哪列是哪篇）。
-   第一行 類別標籤＋日期、第二行 標題（最多 2 行）、第三行 相關族群（可換行）＋點閱、最後一行 勾選框＋類型下拉＋傳給 GPT 鈕。桌機（>640）完全不動。 */
+   第一行 類別標籤＋日期、第二行 標題（最多 2 行）、第三行 相關族群（可換行）＋點閱。桌機（>640）完全不動。 */
 @media (max-width:640px){
   #v-subadm #artAdmList .tbw{overflow-x:hidden}
   #v-subadm #artAdmList table{min-width:0;width:100%;display:block}
   #v-subadm #artAdmList colgroup,#v-subadm #artAdmList thead{display:none}
   #v-subadm #artAdmList tbody{display:flex;flex-direction:column;gap:8px;padding:8px}
-  #v-subadm #artAdmList tbody tr[data-id]{display:grid;grid-template-columns:auto minmax(0,1fr) auto;grid-template-areas:"cat date date" "title title title" "grp grp views" "gpt gpt gpt";gap:6px 10px;align-items:center;border:1px solid var(--line);border-radius:10px;background:var(--panel);padding:10px 12px}
+  #v-subadm #artAdmList tbody tr[data-id]{display:grid;grid-template-columns:auto minmax(0,1fr) auto;grid-template-areas:"cat date date" "title title title" "grp grp views";gap:6px 10px;align-items:center;border:1px solid var(--line);border-radius:10px;background:var(--panel);padding:10px 12px}
   #v-subadm #artAdmList tbody tr[data-id]>td{display:block;height:auto;padding:0;border:0;white-space:normal;overflow:visible;text-overflow:clip;text-align:left;min-width:0}
   #v-subadm #artAdmList tbody tr[data-id]>td:nth-child(1){grid-area:cat}
   #v-subadm #artAdmList tbody tr[data-id]>td:nth-child(3){grid-area:date;color:var(--ink-2);font-size:13px}
@@ -604,11 +590,50 @@
   #v-subadm #artAdmList tbody tr[data-id]>td:nth-child(4){grid-area:views;font-size:13px;white-space:nowrap}
   #v-subadm #artAdmList tbody tr[data-id]>td:nth-child(4)::before{content:"點閱 ";color:var(--ink-3)}
   #v-subadm #artAdmList tbody tr[data-id]>td:nth-child(6){display:none}
-  #v-subadm #artAdmList tbody tr[data-id]>td.gptc{grid-area:gpt;display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding-top:8px;border-top:1px solid var(--line);height:auto}
   #v-subadm #artAdmList tbody tr:not([data-id])>td{display:block;padding:12px;height:auto;white-space:normal}
 }
 #v-subadm .artadm .js.kdc{border:0;padding:0;margin:0}#v-subadm .artadm .js.kdc .kd{margin:0;font-size:12px;padding:1px 8px;line-height:18px}
+/* 2026-10-17 Andy：「這邊一直顯示排隊中，但我不清楚他狀況如何，所以多一個進度條，並且備註目前的階段」
+   → 產出進度「進度」欄：一條細進度條（寬＝固定對照的百分比）＋右邊百分比＋下方「階段・更新時間」。
+   顏色只有四種意思：製作中＝青、已完成＝綠、失敗＝紅（停在失敗那一格的寬度）、排隊中／已取消＝灰（空條）。 */
+#v-subadm .artadm .jprog{display:flex;flex-direction:column;gap:3px;min-width:0;text-align:left}
+#v-subadm .artadm .jprog .jrow{display:flex;align-items:center;gap:6px;min-width:0}
+#v-subadm .artadm .jprog .jbar{flex:1 1 auto;min-width:40px;height:6px;border-radius:999px;background:color-mix(in srgb,var(--ink-3,#888) 22%,transparent);overflow:hidden}
+#v-subadm .artadm .jprog .jbar>i{display:block;height:100%;border-radius:inherit;background:var(--cyan);transition:width .45s ease}
+#v-subadm .artadm .jprog[data-tone=done] .jbar>i{background:var(--green,#30a46c)}
+#v-subadm .artadm .jprog[data-tone=failed] .jbar>i{background:var(--red,#e5484d)}
+#v-subadm .artadm .jprog[data-tone=queued] .jbar>i,#v-subadm .artadm .jprog[data-tone=cancelled] .jbar>i{background:var(--ink-3,#888)}
+#v-subadm .artadm .jprog .jpct{flex:none;min-width:32px;text-align:right;font-size:11px;font-variant-numeric:tabular-nums;color:var(--ink-3)}
+#v-subadm .artadm .jprog .jcap{font-size:11.5px;line-height:1.35;color:var(--ink-3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#v-subadm .artadm .jprog .jcap .js{display:inline;border:0;padding:0;margin:0;font-size:inherit;font-weight:700;border-radius:0}
+#v-subadm .artadm .jprog[data-tone=failed] .jcap{color:var(--red,#e5484d)}
 #v-subadm .artadm td button.cx{height:26px;padding:0 10px;border-radius:var(--r-sm,8px);border:1px solid var(--line-2);background:var(--panel-3);color:var(--ink);font:inherit;font-size:12px;cursor:pointer}
+/* 2026-10-17 Andy：「產出進度和上面這合併同一份清單」→ 主題候選清單的「進度」欄：每種產出一條（小標＋進度條＋階段・時間），操作欄一條一條對齊 */
+#v-subadm .artadm #artTpBody td.jpc,#v-subadm .artadm #artTpBody td.jopc{overflow:visible;white-space:normal;height:auto;padding-top:4px;padding-bottom:4px}
+#v-subadm .artadm .jline{display:flex;align-items:center;gap:6px;min-height:34px;min-width:0}
+#v-subadm .artadm .jline>.jprog{flex:1 1 auto}
+#v-subadm .artadm .jline+.jline,#v-subadm .artadm .jop+.jop{border-top:1px dashed var(--line)}
+#v-subadm .artadm .jop{display:flex;align-items:center;justify-content:center;min-height:34px}
+#v-subadm .artadm .jline>.kd{flex:none;width:46px;text-align:center;font-style:normal;font-weight:700;font-size:11px;border-radius:999px;color:#fff;line-height:18px}
+#v-subadm .artadm .kd.article{background:#2563eb}#v-subadm .artadm .kd.video{background:#db2777}#v-subadm .artadm .kd.topics{background:#7c3aed}
+#v-subadm .artadm .jlk{color:var(--cyan)!important;font-size:12.5px;font-weight:600}
+#v-subadm .artadm .jnone{font-size:12px}
+#v-subadm .artadm .cus{font-style:normal;font-size:11px;margin-left:4px;padding:0 6px;border-radius:999px;border:1px solid var(--line-2);color:var(--ink-2);vertical-align:middle}
+#v-subadm .artadm .tgb{display:inline-block;font-size:11.5px;font-weight:700;padding:1px 8px;border-radius:999px;color:#fff;background:#7c3aed;vertical-align:middle}
+#v-subadm .artadm #artTpBody tr[data-nosel]{cursor:default}
+#v-subadm .artadm .tpact[hidden]{display:none}   /* .tpact 是 display:flex，會蓋掉 hidden 屬性 */
+#v-subadm .artadm #artJobFlt .nbsw{margin:0}
+/* 新增主題面板（「＋ 新增主題」鈕打開） */
+#v-subadm .artadm .tgbtn{border:1px solid #7c3aed;color:var(--ink);background:color-mix(in srgb,#7c3aed 14%,var(--panel));font-weight:600}
+#v-subadm .artadm .tgbtn.on{background:color-mix(in srgb,#7c3aed 30%,var(--panel))}
+#v-subadm .artadm .tpgen{border-color:color-mix(in srgb,#7c3aed 55%,var(--line))}
+#v-subadm .artadm .tpgen .tgcats{display:inline-flex;gap:12px;flex-wrap:wrap}
+#v-subadm .artadm .tpgen .tgc{display:inline-flex;align-items:center;gap:5px;cursor:pointer;white-space:nowrap;min-height:32px}
+#v-subadm .artadm .tpgen .tgc input{flex:none;min-width:0;width:16px;height:16px;margin:0;padding:0;accent-color:#7c3aed;cursor:pointer}
+#v-subadm .artadm .tpgen .tgn{display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
+#v-subadm .artadm .tpgen select{height:32px;border-radius:var(--r-sm,8px);border:1px solid var(--line-2);background:var(--panel);color:var(--ink);font:inherit;font-size:13px;padding:0 8px}
+#v-subadm .artadm .tpgen .tglk{flex:1 1 100%;font-size:12px;color:var(--ink-3)}
+#v-subadm .artadm .tpgen .tglk.err{color:var(--red,#e5484d)}
 /* 精選文章分級（2026-10-16，Andy：「精選貼文限制給 Pro 可以看，Plus 只能所有類別共 5 篇，其他的只能看到標題」）
    · #artQuota：列表頁頂端的額度條（額度卡片同一套 amber 分段條）；Pro／管理者不顯示
    · .artc .lk：卡片上取代摘要的一行狀態（鎖頭＝只看標題、勾＝已解鎖可重讀、數字＝點開會用掉 1 篇額度）
@@ -682,7 +707,7 @@
   }
   function loadPost(id) {
     if (!okId(id)) return Promise.resolve(null);
-    if (isRemote(S.idx && S.idx.list.find((a) => a.id === id))) return remoteGet(id).then((r) => (r.kind === 'ok' ? r.d : null));   // 管理者用（GPT 交接）：伺服器照樣驗身分
+    if (isRemote(S.idx && S.idx.list.find((a) => a.id === id))) return remoteGet(id).then((r) => (r.kind === 'ok' ? r.d : null));   // 管理者用：伺服器照樣驗身分
     if (S.posts[id]) return S.posts[id];
     S.posts[id] = fetchJson('articles/posts/' + encodeURIComponent(id) + '.json').catch(() => { delete S.posts[id]; return null; });
     return S.posts[id];
@@ -1003,8 +1028,15 @@ ${gs.length ? `<section><h5>熱門族群</h5><div class="gps">${gs.map((g) => `<
     const dirty = !!(S.q.trim() || S.from !== D.from || S.to !== D.to || S.grp.size);
     const acc = access();
     paintQuota(root, acc);
-    box.innerHTML = list.length ? list.map((a) => cardHTML(a, acc)).join('')
-      : `<div class="artempty k-${S.cat === 'all' ? 'all' : S.cat}" id="artEmpty">${icon(S.cat, 40)}<div>${dirty ? '這個條件下沒有符合的文章，換個關鍵字、族群或放寬日期試試。' : '近一個月這個分類還沒有文章。'}</div>`
+    /* 10-17 Andy：「這邊不同類型需要線條隔開」→ 「全部文章」依類型分段（快訊 → 產業鏈 → 知識），每段上方一條分隔線＋類型名稱與篇數；
+       只有一種類型、或在單一類型分頁時照舊一整片。卡片仍在 #artList 底下（.artc），每段自己一個同樣規格的格線（.artgrid）。 */
+    const grpCats = S.cat === 'all' ? Object.keys(CATS).filter((k) => list.some((a) => a.cat === k)) : [];
+    box.classList.toggle('grouped', grpCats.length > 1);
+    box.innerHTML = !list.length ? ''
+      : grpCats.length > 1 ? grpCats.map((k) => { const l = list.filter((a) => a.cat === k);
+        return `<section class="artsec k-${k}" data-cat="${k}"><div class="artsech" role="heading" aria-level="3">${icon(k, 16)}<span>${esc(CATS[k].t)}</span><em>${l.length} 篇</em></div><div class="artgrid">${l.map((a) => cardHTML(a, acc)).join('')}</div></section>`; }).join('')
+      : list.map((a) => cardHTML(a, acc)).join('');
+    if (!list.length) box.innerHTML = `<div class="artempty k-${S.cat === 'all' ? 'all' : S.cat}" id="artEmpty">${icon(S.cat, 40)}<div>${dirty ? '這個條件下沒有符合的文章，換個關鍵字、族群或放寬日期試試。' : '近一個月這個分類還沒有文章。'}</div>`
         + `${dirty ? '<button type="button" class="btn small" data-clr>清除篩選</button>' : '<button type="button" class="btn small" data-wide>看全部日期</button>'}</div>`;
     const c2 = $('[data-clr]', box); if (c2) c2.onclick = () => { resetFilters(); paintList(); };
     const c3 = $('[data-wide]', box); if (c3) c3.onclick = () => { S.from = ''; S.to = ''; paintList(); };
@@ -1141,6 +1173,54 @@ ${gs.length ? `<section><h5>熱門族群</h5><div class="gps">${gs.map((g) => `<
      ★ 2026-10-17 帶 "style": 2 → 第 2 版畫法（docs/articles/illus_style.md），svg 多掛 class ilv2；沒帶的舊圖輸出一個字都不變。
      這張圖回答「文章講的那個零件長什麼樣、在哪一層」：圖由 site/artillus.js 依 kind 畫，parts 只換說明文字（id 要是該 kind 認得的）。
      編號照 kind 預設順序（由上而下）；引線在 hydrate() → wireIllus() 依實際位置畫。 */
+  /* 10-17 Andy：「所有文章內容 包含精選，只要是管理者 都可以隨意複製 內容與圖片」
+     管理者在文章裡每一張圖（插圖、圖表、流程…）的標題右邊多一顆「複製圖片」：把那張圖連同編號、說明畫成 PNG 放進剪貼簿（不支援就改成下載）。
+     做法：複製一份圖的 DOM、每個節點寫死計算後的樣式、canvas 換成圖片，包進 SVG foreignObject 畫到 2 倍大的 canvas。一般訪客與會員看不到這顆鈕。 */
+  const isAdminUser = () => { try { const u = window.TwAccount && TwAccount.user && TwAccount.user(); return !!(u && u.admin); } catch (e) { return false; } };
+  function inlineStyles(src, dst) {
+    if (src.nodeType !== 1) return;
+    const cs = getComputedStyle(src); let t = '';
+    for (let i = 0; i < cs.length; i++) { const k = cs[i]; t += k + ':' + cs.getPropertyValue(k) + ';'; }
+    dst.setAttribute('style', t);
+    if (src.tagName === 'CANVAS') { const img = document.createElement('img'); try { img.src = src.toDataURL('image/png'); } catch (e) { /* 跨來源就留空 */ } img.setAttribute('style', t); dst.replaceWith(img); return; }
+    const a = src.children, b = dst.children;
+    for (let i = 0; i < a.length; i++) if (b[i]) inlineStyles(a[i], b[i]);
+  }
+  async function figPng(fig) {
+    const r = fig.getBoundingClientRect(), w = Math.ceil(r.width), h = Math.ceil(r.height);
+    const c = fig.cloneNode(true); c.querySelectorAll('.figcp').forEach((x) => x.remove());
+    inlineStyles(fig, c);
+    c.querySelectorAll('.figcp').forEach((x) => x.remove());
+    c.style.margin = '0';   // 圖本身的上下外距不要畫進去（不然上緣多一條底色）
+    const solid = (el) => { const v = el && getComputedStyle(el).backgroundColor; return v && !/rgba\(.*,\s*0\)$|transparent/.test(v) ? v : ''; };
+    const bg = solid(document.getElementById('artPost')) || solid(document.body) || solid(document.documentElement) || '#0b1220';
+    const xml = new XMLSerializer().serializeToString(c);
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}"><foreignObject x="0" y="0" width="100%" height="100%"><div xmlns="http://www.w3.org/1999/xhtml" style="width:${w}px;height:${h}px;background:${bg}">${xml}</div></foreignObject></svg>`;
+    const img = new Image(); img.decoding = 'sync';
+    await new Promise((ok, no) => { img.onload = ok; img.onerror = no; img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg); });
+    const k = 2, cv = document.createElement('canvas'); cv.width = w * k; cv.height = h * k;
+    const g = cv.getContext('2d'); g.scale(k, k); g.drawImage(img, 0, 0);
+    return await new Promise((ok) => cv.toBlob(ok, 'image/png'));
+  }
+  window.addEventListener('tw:account', () => { const r = document.getElementById('artPost'); if (r) adminCopyBtns(r.parentElement || document); });
+  function adminCopyBtns(root) {
+    if (!isAdminUser()) return;
+    $$('#artPost figure.artfig', root).forEach((fig, i) => {
+      if (fig.querySelector('.figcp')) return;
+      const b = document.createElement('button'); b.type = 'button'; b.className = 'figcp'; b.textContent = '複製圖片'; b.title = '管理者限定：把這張圖複製成圖片';
+      b.onclick = async () => {
+        b.disabled = true; b.textContent = '處理中…';
+        try {
+          const blob = await figPng(fig);
+          if (navigator.clipboard && window.ClipboardItem) { await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]); b.textContent = '已複製'; }
+          else { const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = ((S.curData && S.curData.id) || 'article') + '-' + (i + 1) + '.png'; a.click(); b.textContent = '已下載'; }
+        } catch (e) { b.textContent = '複製失敗'; }
+        setTimeout(() => { b.disabled = false; b.textContent = '複製圖片'; }, 1800);
+      };
+      const fh = fig.querySelector(':scope > figcaption.fh, :scope > figcaption');
+      if (fh) fh.appendChild(b); else fig.insertBefore(b, fig.firstChild);
+    });
+  }
   function illusHTML(b, bi) {
     const I = window.TwArtIllus;
     if (!I || !I.has(b.kind)) return '';
@@ -1249,17 +1329,37 @@ ${gs.length ? `<section><h5>熱門族群</h5><div class="gps">${gs.map((g) => `<
   /* ------------------------------------------------------------------ 單篇：圖表（ECharts，走 App.chart 包裝層：提示框掛 body、長條漸層、尺寸自動跟） */
   function cssv(n, fb) { try { return getComputedStyle(document.documentElement).getPropertyValue(n).trim() || fb; } catch (e) { return fb; } }
   function chartOption(b) {
-    const C = { c1: cssv('--cat-1', '#3ee0ff'), c2: cssv('--cat-3', '#ffb454'), c3: cssv('--cat-2', '#8b7bff'), hl: cssv('--art-hl', '#f5c842'),
-      ink: cssv('--ink', '#e8eeff'), ink2: cssv('--ink-2', '#a9b6d6'), ink3: cssv('--ink-3', '#6f7ea3'), line: cssv('--line', '#1e2a48'), grid: cssv('--grid', 'rgba(255,255,255,.06)'), panel: cssv('--panel', '#0f172b') };
+    /* ★ 2026-10-17（Andy：「圖表風格需要 Follow 我網頁內的風格」）：文章圖表改吃網站本體同一套（docs/chart_library.md C 直條／D 橫條／E 時間軸）。
+       以前文章自己一套：--art-p1..7 七色調色盤（橫條每列一色）、自己算的漸層（50%／42%）、四角都圓、金色標註、橫條有直格線、數字用黑體。
+       現在：
+         · 顏色＝網站類別色盤 --cat-1..4（同一系列一個色；單系列一律 --cat-1 青藍，跟管理區、產業地圖同一個色）；
+           柱＋線同圖時線從 --cat-3（琥珀）起輪，跟個股頁「月營收＋YoY」同一組；紅漲綠跌＝網站 --rise／--fall
+         · 漸層＝網站 App.barStyle.dir（直條上實下 45%、橫條左 55% 右實；負值方向相反）—— 呼叫網站那一支，不複製
+         · 圓角＝只圓長出去那一端 3px（App.barStyle.R），不是四角圓
+         · 粗細、底軌、柱頂數字字級、時間軸格線＝交給 App.chart 的共用層（softenOption／TimeGrid），這裡不再寫 barMaxWidth
+         · 選取／標註＝琥珀（--amber，C 款「被選那根換強調色」）；滑過＝該條 2px 外框、其他維持原色（C／D 款）
+         · 數值標籤等寬字（App.MONO）、軸字 12px ink3、橫條不畫直格線（D 款靠底軌與零軸線）、名稱不截斷（D 款） */
     const A = window.App || {};
+    const CH = A.CH || {};
+    const C = { hl: cssv('--amber', CH.amber || '#ffb454'),
+      ink: cssv('--ink', CH.ink || '#e8eeff'), ink2: cssv('--ink-2', CH.ink2 || '#a9b6d6'), ink3: cssv('--ink-3', CH.ink3 || '#6f7ea3'), line: cssv('--line', CH.line || '#1e2a48'), grid: cssv('--grid', CH.grid || 'rgba(255,255,255,.06)'), panel: cssv('--panel', '#0f172b') };
     const NF = A.NUM_FONT || 'monospace';
-    /* 調色盤（--art-p1..7）：不同系列不同色、橫條每列不同色、區間條每列不同色；長條一律自己給「同色漸層物件」——
-       App.chart 的長條共用風格只會把「字串色」換成全站青藍，漸層物件原樣保留，所以文章的配色不會被統一蓋掉。 */
-    const P = [1, 2, 3, 4, 5, 6, 7].map((k) => cssv('--art-p' + k, ['#5b9cff', '#2ec4b6', '#a88bff', '#ff8a65', '#ec74b5', '#d39b5b', '#4cc3ef'][k - 1]));
+    const MF = A.MONO || NF;
+    const CAT = [1, 2, 3, 4].map((k) => cssv('--cat-' + k, [CH.cyan, CH.violet, CH.amber, CH.lime][k - 1] || '#3ee0ff'));
+    const P = CAT;                                            // 長條系列：cat-1 起輪
+    const PL = [CAT[2], CAT[1], CAT[3], CAT[0]];              // 跟長條同圖的折線：琥珀起輪（藍橘一組，色盲也分得出）
     const rgbaOf = (c, a) => { const m = /^#([0-9a-f]{6})$/i.exec(String(c).trim()); if (!m) return c; const h = m[1]; return `rgba(${parseInt(h.slice(0, 2), 16)},${parseInt(h.slice(2, 4), 16)},${parseInt(h.slice(4), 16)},${a})`; };
-    const grad = (c, horiz) => (horiz ? { type: 'linear', x: 0, y: 0, x2: 1, y2: 0, colorStops: [{ offset: 0, color: rgbaOf(c, 0.5) }, { offset: 1, color: rgbaOf(c, 1) }] }
-      : { type: 'linear', x: 0, y: 0, x2: 0, y2: 1, colorStops: [{ offset: 0, color: rgbaOf(c, 1) }, { offset: 1, color: rgbaOf(c, 0.42) }] });
-    const hlStyle = (horiz) => ({ color: grad(C.hl, horiz), borderColor: C.ink, borderWidth: 1.5, borderRadius: 3 });
+    const BS = A.barStyle || null;
+    const RR = (BS && BS.R) || 3;
+    // 同色漸層：網站那一支（App.barStyle.dir）；它認不得的色（極少見）才退回同一組比例自己算
+    const grad = (c, horiz, neg) => (BS && BS.dir && BS.dir(c, horiz, !!neg)) || (horiz
+      ? { type: 'linear', x: 0, y: 0, x2: 1, y2: 0, colorStops: neg ? [{ offset: 0, color: rgbaOf(c, 1) }, { offset: 1, color: rgbaOf(c, 0.55) }] : [{ offset: 0, color: rgbaOf(c, 0.55) }, { offset: 1, color: rgbaOf(c, 1) }] }
+      : { type: 'linear', x: 0, y: 0, x2: 0, y2: 1, colorStops: neg ? [{ offset: 0, color: rgbaOf(c, 0.45) }, { offset: 1, color: rgbaOf(c, 1) }] : [{ offset: 0, color: rgbaOf(c, 1) }, { offset: 1, color: rgbaOf(c, 0.45) }] });
+    // 圓角只圓長出去那一端（[左上, 右上, 右下, 左下]）
+    const cap = (horiz, neg) => (horiz ? (neg ? [RR, 0, 0, RR] : [0, RR, RR, 0]) : (neg ? [0, 0, RR, RR] : [RR, RR, 0, 0]));
+    const barSt = (c, horiz, v) => { const neg = v != null && v < 0; return { color: grad(c, horiz, neg), borderRadius: cap(horiz, neg) }; };
+    const hlStyle = (horiz, v) => barSt(C.hl, horiz, v);
+    const EMPH = { itemStyle: { borderColor: C.ink, borderWidth: 2 } };   // 滑過：該條加 2px 外框、其他維持原色
     const kind = ['bar', 'line', 'barline', 'hbar', 'range'].includes(b.kind) ? b.kind : 'bar';
     const x = b.x.map(String), n = x.length;
     const unit = b.unit ? String(b.unit) : '', u2 = b.y2unit ? String(b.y2unit) : '';
@@ -1267,9 +1367,117 @@ ${gs.length ? `<section><h5>熱門族群</h5><div class="gps">${gs.map((g) => `<
     const marks = new Map(); (Array.isArray(b.marks) ? b.marks : []).forEach((m) => { if (m && m.text) { const i = x.indexOf(String(m.x)); if (i >= 0) marks.set(i, String(m.text)); } });
     const tipBase = Object.assign({}, A.tip || {}, { trigger: 'axis', triggerOn: 'mousemove|click' });
     const axLab = { color: C.ink3, fontSize: 12, fontFamily: NF };
-    const legend = (names) => (names.length > 1 ? { top: 0, left: 0, itemWidth: 14, itemHeight: 8, textStyle: { color: C.ink2, fontSize: 12 }, data: names } : undefined);
+    /* 橫條的類別名（D 款：名稱在左、完整不截斷，黑體 ink2 —— 產業地圖「族群漲跌幅」同一組）。
+       手機寬度有限：超過 7em 換行（不加省略號，字一個都不少）；桌機整段照寫，containLabel 自己留寬。 */
+    const isNarrow = document.documentElement.classList.contains('m4') || window.innerWidth <= 640;
+    const catLabH = Object.assign({ color: C.ink2, fontSize: 12, fontFamily: 'Noto Sans TC, sans-serif' }, isNarrow ? { width: 96, overflow: 'break', lineHeight: 14 } : {});
+    const legend = (names) => (names.length > 1 ? { top: 0, left: 0, textStyle: { color: C.ink2, fontSize: 12 }, data: names } : undefined);   // 網站圖例（個股頁營收圖手機版同一組）
     const ser0 = b.series.filter((s) => s && Array.isArray(s.data)).slice(0, 4);
     const sName = (s, i) => String(s.name || ('系列' + (i + 1)));
+
+    /* ★ 2026-10-17（visual_playbook 第 7 節高優先 #1、#2；Andy：「觀眾大多為視覺系生物，對圖片圖表敏感度高於文字」）
+       ① signed:true（別名 sign:true）：長條依正負上色 —— 台股慣例紅漲綠跌，直接用站上的 --rise／--fall（深淺主題各自一組、對底色對比都量過），
+          標籤與提示框的數字帶正負號。漲跌、買賣超這種圖以前正負同色，一眼看不出誰跌。
+       ② refs:[{y,label}]（hbar／range 用 x）：水平（橫條時是垂直）參考線；bands:[{from,to,label}]：類別軸上的區間陰影（升息期間、2008 年那段）。
+       全部白名單：數值一定要是有限數字、離資料範圍太遠的丟掉（不然整張圖被壓扁）、最多 4 條／4 段；
+       文字一律清成純文字（去掉控制字元，ECharts 富文字用的大括號與直線換成全形），而且只從 formatter「函式」回傳 —— 不當 ECharts 樣板字串、也不進 HTML。
+       沒帶這三個欄位的舊圖：下面每一段都不會動到 option（驗收比對舊圖 option 逐字一樣）。 */
+    const signed = b.signed === true || b.sign === true;
+    const RISE = cssv('--rise', '#ff4d6d'), FALL = cssv('--fall', '#2ee59d'), FLAT = cssv('--flat', '#8ea0c4');
+    const sgnCol = (v) => (v > 0 ? RISE : v < 0 ? FALL : FLAT);
+    const fmtS = (v) => { const z = num(v); return z == null ? '—' : (z > 0 ? '+' : '') + fmtN(z); };
+    const fmtV = signed ? fmtS : fmtN;
+    const plain = (t, max) => String(t == null || typeof t === 'object' ? '' : t).replace(/[\u0000-\u001f\u007f]/g, '').replace(/\{/g, '｛').replace(/\}/g, '｝').replace(/\|/g, '｜').trim().slice(0, max);
+    const realNum = (v) => ((typeof v === 'number' || (typeof v === 'string' && v.trim() !== '')) ? num(v) : null);
+    const horizK = kind === 'hbar' || kind === 'range';
+    const refs0 = (Array.isArray(b.refs) ? b.refs : []).map((r) => {
+      if (!r || typeof r !== 'object' || Array.isArray(r)) return null;
+      const v = realNum(horizK ? (r.x != null ? r.x : r.y) : r.y);
+      return v == null || Math.abs(v) > 1e15 ? null : { v, label: plain(r.label != null ? r.label : r.text, 24) };
+    }).filter(Boolean).slice(0, 4);
+    // 區間：from／to 先找一模一樣的類別；找不到而且類別是遞增的日期字串（2022-03、2024-10-01），就取落在區間裡的第一根與最後一根
+    const DATEY = /^\d{4}([-/.]\d{1,2}){0,2}$/;
+    const dateCats = n > 1 && x.every((c) => DATEY.test(c)) && x.every((c, i) => i === 0 || x[i - 1] < c);
+    const catIdx = (v, first) => {
+      if (v == null || typeof v === 'object') return -1;
+      const t = String(v), k = x.indexOf(t); if (k >= 0) return k;
+      if (!dateCats || !DATEY.test(t)) return -1;
+      if (first) return x.findIndex((c) => c >= t || c.startsWith(t));
+      for (let i = n - 1; i >= 0; i--) if (x[i] <= t || x[i].startsWith(t)) return i;
+      return -1;
+    };
+    const bands = (Array.isArray(b.bands) ? b.bands : []).map((r) => {
+      if (!r || typeof r !== 'object' || Array.isArray(r)) return null;
+      let i0 = catIdx(r.from, true), i1 = catIdx(r.to, false);
+      if (i0 < 0 || i1 < 0) return null;
+      if (i0 > i1) [i0, i1] = [i1, i0];
+      return { i0, i1, label: plain(r.label != null ? r.label : r.text, 14) };
+    }).filter(Boolean).slice(0, 4);
+    const refFit = (lo, hi) => {     // 資料範圍上下各再一個「範圍寬」以外的參考線丟掉（寫錯單位的 1e6 不會把整張圖壓成一條線）
+      if (!isFinite(lo) || !isFinite(hi)) { refs0.length = 0; return; }
+      const span = Math.max(hi - lo, Math.abs(hi), Math.abs(lo), 1e-9);
+      for (let i = refs0.length - 1; i >= 0; i--) if (refs0[i].v < lo - span || refs0[i].v > hi + span) refs0.splice(i, 1);
+    };
+    /* 參考線與留白掛在一條看不見的輔助系列上（名稱 REFN）：
+       · 參考線的值也放進這條系列的資料 → ECharts 算座標範圍時會把它算進去、刻度照樣取整，線不會畫到圖外；
+       · 正負長條：把最負那根再往外推一點，負值標籤（在長條下方／左方）才不會壓到軸的字；
+       · 舊圖完全沒有這條系列。提示框一律把它濾掉。
+       區間陰影另外一條自訂系列（BANDN）：ECharts 的 markArea 在類別軸上只能從「第一根的中心」畫到「最後一根的中心」，
+       頭尾兩根各被切掉一半（看起來像那根不在區間裡）；自己畫才能蓋滿整格（第一根左緣到最後一根右緣）。 */
+    const REFN = '__artaux';
+    const BANDN = '__artband';
+    const auxSeries = (extra) => {
+      const vals = refs0.map((r) => r.v).concat(extra || []);
+      const bs = bandSeries();
+      if (!vals.length) return bs;
+      const valAx = horizK ? 'xAxis' : 'yAxis';
+      const o = { name: REFN, id: REFN, type: 'line', silent: true, symbol: 'none', showSymbol: false, lineStyle: { opacity: 0, width: 0 }, tooltip: { show: false }, z: 1,
+        data: x.map((c, i) => (i < vals.length ? (horizK ? [vals[i], c] : vals[i]) : (horizK ? [null, c] : null))) };
+      if (refs0.length) o.markLine = { silent: true, symbol: 'none', animation: false,
+        lineStyle: { color: C.ink2, type: 'dashed', width: 1.4 },
+        data: refs0.map((r) => ({ [valAx]: r.v, label: { show: true, position: horizK ? 'start' : 'insideEndTop', color: C.ink, fontSize: 12, fontFamily: NF,
+          backgroundColor: C.panel, padding: [2, 4], borderRadius: 3, formatter: () => (r.label ? r.label + ' ' : '') + fmtN(r.v) + unit } })) };
+      return bs ? [o, bs] : o;
+    };
+    function bandSeries() {
+      if (!bands.length) return null;
+      const fill = rgbaOf(C.ink3, 0.16);
+      return { name: BANDN, id: BANDN, type: 'custom', silent: true, z: 0, animation: false, legendHoverLink: false, tooltip: { show: false }, emphasis: { disabled: true }, clip: false,   // 不裁切：標籤在繪圖區上方那一條（矩形自己已經夾在繪圖區裡）
+        encode: horizK ? { y: 0 } : { x: 0 }, dimensions: ['i0', 'i1'],
+        data: bands.map((r) => [r.i0, r.i1]),
+        renderItem: (params, api) => {
+          const cs = params.coordSys, r = bands[params.dataIndex];
+          if (!r) return null;
+          if (!horizK) {
+            const w = api.size([1, 0])[0];
+            const a = api.coord([r.i0, 0])[0] - w / 2, z = api.coord([r.i1, 0])[0] + w / 2;
+            const L = Math.max(cs.x, a), R = Math.min(cs.x + cs.width, z);
+            if (!(R > L)) return null;
+            const kids = [{ type: 'rect', shape: { x: L, y: cs.y, width: R - L, height: cs.height }, style: { fill } }];
+            /* 標籤放在繪圖區上方那一條（grid.top 多留了 20px），置中在陰影上方。可用寬度＝到「相鄰陰影中心」的距離（兩邊各拿一半，
+               所以相鄰兩段的字一定不會疊）且不超出繪圖區左右；太長才截成「…」。手機上窄的陰影（3 根 ≈ 34px）也放得下兩三個字以上。 */
+            if (r.label) {
+              const mid = (q) => (api.coord([q.i0, 0])[0] + api.coord([q.i1, 0])[0]) / 2;
+              const me = Math.min(Math.max((L + R) / 2, cs.x), cs.x + cs.width);
+              let room = 2 * Math.min(me - cs.x, cs.x + cs.width - me);
+              bands.forEach((q) => { if (q !== r) room = Math.min(room, Math.abs(mid(q) - me) - 6); });
+              room = Math.max(room, R - L, 24);
+              kids.push({ type: 'text', style: { text: r.label, x: me, y: cs.y - 4, align: 'center', verticalAlign: 'bottom', fill: C.ink2, fontSize: 12, width: room, overflow: 'truncate', ellipsis: '…' } });
+            }
+            return { type: 'group', children: kids };
+          }
+          const h = api.size([0, 1])[1];
+          const ya = api.coord([0, r.i0])[1], yz = api.coord([0, r.i1])[1];
+          const T = Math.max(cs.y, Math.min(ya, yz) - h / 2), B = Math.min(cs.y + cs.height, Math.max(ya, yz) + h / 2);
+          if (!(B > T)) return null;
+          const kids = [{ type: 'rect', shape: { x: cs.x, y: T, width: cs.width, height: B - T }, style: { fill } }];
+          if (r.label) kids.push({ type: 'text', style: { text: r.label, x: cs.x + cs.width - 4, y: T + 3, align: 'right', verticalAlign: 'top', fill: C.ink2, fontSize: 12 } });
+          return { type: 'group', children: kids };
+        } };
+    }
+    const auxTop = bands.some((r) => r.label) && !horizK ? 20 : 0;      // 直的：陰影標籤放在繪圖區上方那一條
+    const refTop = refs0.length && horizK ? 20 : 0;                     // 橫的：參考線標籤放在線的頂端（繪圖區上方；類別軸是反向的，所以是 start 那一端）
+    const noAux = (arr) => arr.filter((p) => p && p.seriesName !== REFN && p.seriesName !== BANDN);
 
     if (kind === 'range') {
       const out = [], names = [];
@@ -1277,20 +1485,23 @@ ${gs.length ? `<section><h5>熱門族群</h5><div class="gps">${gs.map((g) => `<
       ser0.forEach((s, si) => {
         const pr = x.map((_, i) => { const d = s.data[i]; const a = Array.isArray(d) ? num(d[0]) : null, z = Array.isArray(d) ? num(d[1]) : null; return a == null || z == null ? null : [Math.min(a, z), Math.max(a, z)]; });
         pr.forEach((p) => { if (p) { lo = Math.min(lo, p[0]); hi = Math.max(hi, p[1]); } });
-        const multi = ser0.length > 1;
         const col = P[si % P.length];
         names.push(sName(s, si));
-        out.push({ name: sName(s, si) + '__base', type: 'bar', stack: 'r' + si, silent: true, itemStyle: { color: 'transparent' }, barMaxWidth: 22, data: pr.map((p) => (p ? p[0] : null)),
-          label: { show: true, position: 'insideRight', color: C.ink2, fontSize: 12, fontFamily: NF, formatter: (q) => fmtN(q.value) }, tooltip: { show: false } });
-        out.push({ name: sName(s, si), type: 'bar', stack: 'r' + si, barMaxWidth: 22, data: pr.map((p, i) => (p ? { value: p[1] - p[0], _r: p, itemStyle: hl.has(i) ? hlStyle(true) : { color: grad(multi ? col : P[i % P.length], true), borderRadius: 3 } } : null)),
-          itemStyle: { color: grad(col, true), borderRadius: 3 },
-          label: { show: true, position: 'right', color: C.ink, fontSize: 12, fontWeight: 700, fontFamily: NF, formatter: (q) => (q.data && q.data._r ? fmtN(q.data._r[1]) + unit : '') } });
+        // 區間條＝D 款橫條：同一系列一個色（單系列 --cat-1），只圓右端；左端數字照舊在條內左側
+        out.push({ name: sName(s, si) + '__base', type: 'bar', stack: 'r' + si, silent: true, itemStyle: { color: 'transparent' }, data: pr.map((p) => (p ? p[0] : null)),
+          label: { show: true, position: 'insideRight', color: C.ink2, fontSize: 12, fontFamily: MF, formatter: (q) => fmtN(q.value) }, tooltip: { show: false } });
+        out.push({ name: sName(s, si), type: 'bar', stack: 'r' + si, emphasis: EMPH, data: pr.map((p, i) => (p ? { value: p[1] - p[0], _r: p, itemStyle: hl.has(i) ? hlStyle(true) : barSt(col, true) } : null)),
+          itemStyle: { color: grad(col, true), borderRadius: cap(true, false) },
+          label: { show: true, position: 'right', color: C.ink2, fontSize: 12, fontFamily: MF, formatter: (q) => (q.data && q.data._r ? fmtN(q.data._r[1]) + unit : '') } });
       });
       if (!isFinite(lo)) return null;
       const pad = Math.max((hi - lo) * 0.3, Math.abs(hi) * 0.05, 1);
       let mn = Math.floor(lo - pad); if (lo >= 0 && mn < 0) mn = 0;
+      refFit(lo, hi);
+      if (refs0.some((r) => r.v < mn)) mn = Math.floor(Math.min(...refs0.map((r) => r.v)));
+      const ax = auxSeries(); if (ax) out.push(...[].concat(ax));
       return {
-        grid: { left: 8, right: 64, top: names.length > 1 ? 30 : 8, bottom: 4, containLabel: true },
+        grid: { left: 8, right: 64, top: (names.length > 1 ? 30 : 8) + refTop, bottom: 4, containLabel: true },
         legend: legend(names),
         tooltip: Object.assign({}, tipBase, { axisPointer: { type: 'shadow' }, formatter: (ps) => {
           const arr = (Array.isArray(ps) ? ps : [ps]).filter((p) => p.data && p.data._r);
@@ -1298,8 +1509,8 @@ ${gs.length ? `<section><h5>熱門族群</h5><div class="gps">${gs.map((g) => `<
           const i = arr[0].dataIndex;
           return `<b>${esc(x[i])}</b>` + arr.map((p) => `<br>${p.marker}${esc(p.seriesName)}：${fmtN(p.data._r[0])} ～ ${fmtN(p.data._r[1])}${esc(unit)}`).join('') + (marks.has(i) ? `<br>◆ ${esc(marks.get(i))}` : '');
         } }),
-        xAxis: { type: 'value', min: mn, name: unit, nameLocation: 'end', nameTextStyle: { color: C.ink3, fontSize: 12 }, axisLabel: axLab, splitLine: { lineStyle: { color: C.grid } } },
-        yAxis: { type: 'category', inverse: true, data: x, axisLabel: { color: C.ink2, fontSize: 12, width: 120, overflow: 'truncate' }, axisTick: { show: false }, axisLine: { lineStyle: { color: C.line } } },
+        xAxis: { type: 'value', min: mn, name: unit, nameLocation: 'end', nameTextStyle: { color: C.ink3, fontSize: 12 }, axisLabel: axLab, splitLine: { show: false }, axisLine: { show: false }, axisTick: { show: false } },
+        yAxis: { type: 'category', inverse: true, data: x, axisLabel: catLabH, axisTick: { show: false }, axisLine: { show: false } },
         series: out, timeGrid: false, m4dz: false,
       };
     }
@@ -1308,18 +1519,30 @@ ${gs.length ? `<section><h5>熱門族群</h5><div class="gps">${gs.map((g) => `<
       const s = ser0[0]; if (!s) return null;
       const vals = x.map((_, i) => num(s.data[i]));
       const pos = vals.filter((v) => v != null && v > 0);
-      const logAx = pos.length === vals.length && pos.length > 1 && Math.max(...pos) / Math.min(...pos) > 200;   // 差距太大（6 萬倍 vs 100 倍）改對數軸，小的那條才看得到
+      const logAx = !signed && pos.length === vals.length && pos.length > 1 && Math.max(...pos) / Math.min(...pos) > 200;   // 差距太大（6 萬倍 vs 100 倍）改對數軸，小的那條才看得到
+      const fin = vals.filter((v) => v != null), lo = Math.min(0, ...fin), hi = Math.max(0, ...fin);
+      refFit(lo, hi); if (logAx) for (let i = refs0.length - 1; i >= 0; i--) if (refs0[i].v <= 0) refs0.splice(i, 1);
+      // 正負橫條：負值標籤在長條左邊，最負那根再往左推 22% 的範圍，標籤才不會壓到左邊的類別名稱
+      const aux = auxSeries(signed && lo < 0 ? [lo - (hi - lo) * 0.22] : null);
+      // D 款：同一系列一個色（--cat-1）；選取／標註那列換琥珀。正負上色時顏色不能換（紅綠有意義），改成 2px 外框
+      const barItem = (v, i) => {
+        if (!signed) return hl.has(i) || marks.has(i) ? hlStyle(true, v) : barSt(P[0], true, v);
+        const st = barSt(sgnCol(v), true, v);
+        return hl.has(i) || marks.has(i) ? Object.assign(st, { borderColor: C.ink, borderWidth: 2 }) : st;
+      };
       return {
-        grid: { left: 8, right: 64, top: 8, bottom: logAx ? 24 : 4, containLabel: true },
-        tooltip: Object.assign({}, tipBase, { axisPointer: { type: 'shadow' }, formatter: (ps) => { const p = (Array.isArray(ps) ? ps : [ps])[0]; if (!p) return ''; const i = p.dataIndex;
-          return `<b>${esc(x[i])}</b><br>${p.marker}${esc(p.seriesName)}：${fmtN(vals[i])}${esc(unit)}` + (marks.has(i) ? `<br>◆ ${esc(marks.get(i))}` : ''); } }),
-        xAxis: logAx ? { type: 'log', logBase: 10, name: (unit ? unit + '・' : '') + '對數刻度', nameLocation: 'middle', nameGap: 26, nameTextStyle: { color: C.ink3, fontSize: 12 }, axisLabel: axLab, splitLine: { lineStyle: { color: C.grid } } }
-          : { type: 'value', name: unit, nameTextStyle: { color: C.ink3, fontSize: 12 }, axisLabel: axLab, splitLine: { lineStyle: { color: C.grid } } },
-        yAxis: { type: 'category', inverse: true, data: x, axisLabel: { color: C.ink2, fontSize: 12, width: 130, overflow: 'truncate' }, axisTick: { show: false }, axisLine: { lineStyle: { color: C.line } } },
-        series: [{ name: sName(s, 0), type: 'bar', barMaxWidth: 18,
-          data: vals.map((v, i) => ({ value: v, itemStyle: hl.has(i) || marks.has(i) ? hlStyle(true) : { color: grad(P[i % P.length], true), borderRadius: 3 } })),
-          itemStyle: { color: grad(P[0], true) },
-          label: { show: true, position: 'right', color: C.ink, fontSize: 12, fontFamily: NF, formatter: (q) => fmtN(q.value) + (marks.has(q.dataIndex) ? ' ◆' : '') } }],
+        grid: { left: 8, right: 64, top: 8 + refTop, bottom: logAx ? 24 : 4, containLabel: true },
+        tooltip: Object.assign({}, tipBase, { axisPointer: { type: 'shadow' }, formatter: (ps) => { const p = noAux(Array.isArray(ps) ? ps : [ps])[0]; if (!p) return ''; const i = p.dataIndex;
+          return `<b>${esc(x[i])}</b><br>${p.marker}${esc(p.seriesName)}：${fmtV(vals[i])}${esc(unit)}` + (marks.has(i) ? `<br>◆ ${esc(marks.get(i))}` : ''); } }),
+        // D 款：不畫直格線、不畫數值軸線（產業地圖族群漲跌幅同一組）；有正有負時零軸那條用 ink3 1.5px 分正負
+        xAxis: logAx ? { type: 'log', logBase: 10, name: (unit ? unit + '・' : '') + '對數刻度', nameLocation: 'middle', nameGap: 26, nameTextStyle: { color: C.ink3, fontSize: 12 }, axisLabel: axLab, splitLine: { show: false }, axisLine: { show: false }, axisTick: { show: false } }
+          : { type: 'value', name: unit, nameTextStyle: { color: C.ink3, fontSize: 12 }, axisLabel: axLab, splitLine: { show: false }, axisLine: { show: false }, axisTick: { show: false } },
+        yAxis: { type: 'category', inverse: true, data: x, axisLabel: catLabH, axisTick: { show: false },
+          axisLine: lo < 0 ? { show: true, onZero: true, lineStyle: { color: C.ink3, width: 1.5 } } : { show: false } },
+        series: [{ name: sName(s, 0), type: 'bar', emphasis: EMPH,
+          data: vals.map((v, i) => { const d = { value: v, itemStyle: barItem(v, i) }; if (signed && v != null && v < 0) d.label = { position: 'left' }; return d; }),
+          itemStyle: { color: grad(signed ? RISE : P[0], true) },
+          label: { show: true, position: 'right', color: C.ink2, fontSize: 12, fontFamily: MF, formatter: (q) => fmtV(q.value) + (marks.has(q.dataIndex) ? ' ◆' : '') } }].concat(aux ? [].concat(aux) : []),
         timeGrid: false, m4dz: false,
       };
     }
@@ -1329,18 +1552,23 @@ ${gs.length ? `<section><h5>熱門族群</h5><div class="gps">${gs.map((g) => `<
     const hasY2 = ser0.some((s) => Number(s.axis) === 1);
     const names = ser0.map(sName);
     const showLab = (i) => !marks.has(i) && (n <= (isM ? 6 : 10) || i === n - 1 || hl.has(i));
-    let barK = 0;
+    // 系列色：長條 --cat-1 起輪；折線在有長條的圖從琥珀起輪（個股頁「月營收＋YoY」同一組），純折線圖從 --cat-1 起輪
+    const anyBarS = ser0.some((s, si) => (s.type === 'bar') || (s.type !== 'line' && (kind === 'bar' || (kind === 'barline' && si === 0))));
+    let barK = 0, lineK = 0;
     const series = ser0.map((s, si) => {
       const typ = s.type === 'line' || s.type === 'bar' ? s.type : (kind === 'line' ? 'line' : kind === 'barline' && si > 0 ? 'line' : 'bar');
       const ax = hasY2 && Number(s.axis) === 1 ? 1 : 0;
-      // 柱子從 p1 起輪、折線從 p4（珊瑚）起輪：同一張圖的柱與線一定是兩個色系，一眼分得出
-      const col = typ === 'bar' ? P[(barK++ * 2) % P.length] : P[(3 + si) % P.length];
+      const col = typ === 'bar' ? P[barK++ % P.length] : (anyBarS ? PL : P)[lineK++ % P.length];
       const vals = x.map((_, i) => num(s.data[i]));
-      const lab = { show: false, position: 'top', color: C.ink2, fontSize: 12, fontFamily: NF, formatter: (q) => fmtN(q.value) };
-      const o = { name: sName(s, si), type: typ, yAxisIndex: ax, itemStyle: { color: typ === 'bar' ? grad(col, false) : col }, label: lab,
-        data: vals.map((v, i) => { const d = { value: v }; if (typ === 'bar' && hl.has(i)) d.itemStyle = hlStyle(false); if (si === 0 || typ === 'bar' || ser0.length === 1) { if (showLab(i)) d.label = { show: true }; } return d; }) };
-      if (typ === 'line') Object.assign(o, { symbol: 'circle', symbolSize: 7, showAllSymbol: true, lineStyle: { width: 2, color: col }, z: 3 });
-      else Object.assign(o, { barMaxWidth: 40 });
+      const sg = signed && typ === 'bar';      // 正負上色只套長條；同一張圖的折線照原本的色
+      const lab = { show: false, position: 'top', color: C.ink2, fontSize: 12, fontFamily: MF, formatter: (q) => (sg ? fmtS : fmtN)(q.value) };
+      const o = { name: sName(s, si), type: typ, yAxisIndex: ax, itemStyle: { color: typ === 'bar' ? grad(sg ? RISE : col, false) : col }, label: lab,
+        data: vals.map((v, i) => { const d = { value: v };
+          if (sg) { d.itemStyle = barSt(sgnCol(v), false, v); if (hl.has(i)) Object.assign(d.itemStyle, { borderColor: C.ink, borderWidth: 2 }); }
+          else if (typ === 'bar') d.itemStyle = hl.has(i) ? hlStyle(false, v) : barSt(col, false, v);
+          if (si === 0 || typ === 'bar' || ser0.length === 1) { if (showLab(i)) d.label = sg && v != null && v < 0 ? { show: true, position: 'bottom' } : { show: true }; } return d; }) };
+      if (typ === 'line') Object.assign(o, { symbol: 'circle', symbolSize: 6, showAllSymbol: true, lineStyle: { width: 2, color: col }, z: 3 });
+      else o.emphasis = EMPH;
       return o;
     });
     // 標註點：放在第一個系列的那根上，文字在點上方；右半邊的靠右對齊（不衝出圖外）
@@ -1353,19 +1581,30 @@ ${gs.length ? `<section><h5>熱門族群</h5><div class="gps">${gs.map((g) => `<
             formatter: () => `${t}　${fmtN(v)}${unit}`, color: C.ink, fontSize: 12, backgroundColor: C.panel, borderColor: C.hl, borderWidth: 1, borderRadius: 4, padding: [3, 6] } }; }) };
     }
     const unitOf = (si) => (series[si] && series[si].yAxisIndex === 1 ? u2 : unit);
+    const sgnOf = (si) => signed && series[si] && series[si].type === 'bar';
+    let aux = null;
+    if (signed || refs0.length || bands.length) {
+      const fin = []; series.forEach((s) => { if (s.yAxisIndex !== 1) s.data.forEach((d) => { if (d.value != null) fin.push(d.value); }); });
+      const lo = Math.min(0, ...fin), hi = Math.max(0, ...fin);
+      refFit(lo, hi);
+      // 正負直條：負值標籤在長條下方，最負那根再往下推 14% 的範圍，標籤才不會壓到橫軸的字
+      aux = auxSeries(signed && lo < 0 && fin.length ? [lo - (hi - lo) * 0.14] : null);
+    }
     const y = (ax) => ({ type: 'value', name: ax ? u2 : unit, nameTextStyle: { color: C.ink3, fontSize: 12, align: ax ? 'right' : 'left' }, axisLabel: Object.assign({}, axLab, ax ? { formatter: (v) => fmtN(v) } : { formatter: (v) => (Math.abs(v) >= 10000 ? Math.round(v).toLocaleString('zh-TW') : fmtN(v)) }),
       splitLine: ax ? { show: false } : { lineStyle: { color: C.grid } }, scale: false });
     return {
-      grid: { left: 8, right: hasY2 ? 8 : 14, top: (names.length > 1 ? 34 : 14) + (marks.size > 1 ? 56 : marks.size ? 30 : 12), bottom: 4, containLabel: true },
+      grid: { left: 8, right: hasY2 ? 8 : 14, top: (names.length > 1 ? 34 : 14) + (marks.size > 1 ? 56 : marks.size ? 30 : 12) + auxTop, bottom: 4, containLabel: true },
       legend: legend(names),
       tooltip: Object.assign({}, tipBase, { axisPointer: { type: series.some((s) => s.type === 'bar') ? 'shadow' : 'line' }, formatter: (ps) => {
         const arr = Array.isArray(ps) ? ps : [ps]; if (!arr.length) return '';
         const i = arr[0].dataIndex;
-        return `<b>${esc(x[i])}</b>` + arr.map((p) => `<br>${p.marker}${esc(p.seriesName)}：${fmtN(p.value)}${esc(unitOf(p.seriesIndex))}`).join('') + (marks.has(i) ? `<br>◆ ${esc(marks.get(i))}` : '');
+        return `<b>${esc(x[i])}</b>` + noAux(arr).map((p) => `<br>${p.marker}${esc(p.seriesName)}：${(sgnOf(p.seriesIndex) ? fmtS : fmtN)(p.value)}${esc(unitOf(p.seriesIndex))}`).join('') + (marks.has(i) ? `<br>◆ ${esc(marks.get(i))}` : '');
       } }),
-      xAxis: { type: 'category', data: x, axisLabel: { color: C.ink3, fontSize: 12, hideOverlap: true }, axisTick: { alignWithLabel: true }, axisLine: { lineStyle: { color: C.line } } },
+      // 正負長條：類別字固定在繪圖區最下面（預設會黏在 0 那條線上，壓到負的長條）
+      xAxis: Object.assign({ type: 'category', data: x, axisLabel: { color: C.ink3, fontSize: 12, hideOverlap: true }, axisTick: { alignWithLabel: true }, axisLine: { lineStyle: { color: C.line } } },
+        signed ? { axisLine: { onZero: false, lineStyle: { color: C.line } } } : {}),
       yAxis: hasY2 ? [y(0), y(1)] : [y(0)],
-      series, m4dz: false,
+      series: aux ? series.concat([].concat(aux)) : series, m4dz: false,
     };
   }
   function disposeCharts(root) {
@@ -1528,6 +1767,7 @@ ${gs.length ? `<section><h5>熱門族群</h5><div class="gps">${gs.map((g) => `<
     root.innerHTML = postHTML(d, meta, acc);
     S.curData = d;
     hydrate(root, d);
+    adminCopyBtns(root);
     recordOpen(d.id, true);
     document.title = d.title + '｜精選文章';
   }
@@ -1570,26 +1810,20 @@ ${gs.length ? `<section><h5>熱門族群</h5><div class="gps">${gs.map((g) => `<
   /* 產出佇列（2026-10-16，Andy：「claude 指負責產出文章，內容……點選清單內主題，點選後我可以再次點選產生精選文章，或是短影片」）
      按鈕 → 會員 Worker /v1/articles/jobs/add 排一筆 → GitHub Actions（article-jobs.yml）每小時同步進 repo →
      Claude 排程撰寫、推上 main → 文章 index.json 帶同一個 topic 時自動標「已上架」。*/
-  const KIND_T = { article: '精選文章', video: '短影片' };
-  const JST = { queued: '排隊中', working: '撰寫中', done: '已完成', failed: '失敗', cancelled: '已取消' };
+  const KIND_T = { article: '精選文章', video: '短影片', topics: '新增主題' };   // topics＝請 Claude 生成新的主題候選（10-17「新增主題」鈕）
+  const KIND_S = { article: '文章', video: '短影片', topics: '主題' };   // 進度欄每條前面的小標
+  const JST = { queued: '排隊中', working: '製作中', done: '已完成', failed: '失敗', cancelled: '已取消' };   // 10-17：「撰寫」變成其中一個階段，狀態改叫「製作中」
+  /* 2026-10-17 產出進度的「階段」：Worker（workers/account-api/articles.js STAGES）只存格子名，百分比固定在這裡對照 ——
+     外部（工作流、Claude）只能挑一格，不能填「87%」這種看起來很準其實沒意義的數字。順序就是一篇文章實際做的順序。 */
+  const STG = { queued: ['排隊中', 0], plan: ['安排主題', 10], research: ['查資料', 25], write: ['撰寫', 45], illus: ['插圖', 65],
+    review: ['驗收', 80], publish: ['發布中', 92], done: ['已完成', 100], failed: ['失敗', 0], cancelled: ['已取消', 0] };
+  const WORK_STG = ['plan', 'research', 'write', 'illus', 'review', 'publish'];
   const acctCall = (path, body) => { const A = window.TwAccount; return A && typeof A.call === 'function' ? A.call(path, body) : Promise.resolve(null); };
   function loadJobs() {
     return acctCall('/v1/articles/jobs/list', {}).then((j) => { S.jobs = j && Array.isArray(j.jobs) ? j.jobs : null; return S.jobs; });
   }
   const twTime = (ms) => { if (!Number.isFinite(Number(ms))) return ''; const d = new Date(Number(ms) + 8 * 3600e3); return d.toISOString().slice(5, 16).replace('T', ' '); };
   const pubOfTopic = (tid) => { const l = S.idx ? S.idx.list.filter((a) => a.topic === tid) : []; return l.length ? l[0] : null; };   // 清單已依日期新到舊
-  /* 一個主題的產出狀態：已上架的文章優先，其次是各種類最新一筆請求 */
-  function jobChips(tid) {
-    const out = [], pub = pubOfTopic(tid);
-    /* Andy 10-16：「產出狀態必須備註是文章還是短影片」→ 每顆狀態前面一個種類小標（文章／短影片） */
-    if (pub) out.push(`<a class="js done" data-kind="article" href="#article/${encodeURIComponent(pub.id)}" title="${esc(pub.title)}"><em class="kd article">文章</em>已上架</a>`);
-    ['article', 'video'].forEach((k) => {
-      if (k === 'article' && pub) return;
-      const j = (S.jobs || []).find((x) => x.topic_id === tid && x.kind === k && x.status !== 'cancelled');
-      if (j) out.push(`<span class="js ${esc(j.status)}" data-kind="${k}" title="#${esc(j.id)} ${esc(twTime(j.created))} 送出"><em class="kd ${k}">${k === 'article' ? '文章' : '短影片'}</em>${esc(JST[j.status] || j.status)}</span>`);
-    });
-    return out.join('') || '<span class="muted">—</span>';
-  }
   function admTabGet() { try { return localStorage.getItem('tw.art.admtab') === 'stats' ? 'stats' : 'topics'; } catch (e) { return 'topics'; } }
   function setAdmTab(v, t) {
     S.admTab = t === 'stats' ? 'stats' : 'topics';
@@ -1628,15 +1862,21 @@ ${gs.length ? `<section><h5>熱門族群</h5><div class="gps">${gs.map((g) => `<
     <button type="button" class="clr" id="artAfClr">清除</button>
     <span class="cnt" id="artAfCnt"></span>
   </div>
-  <div class="gpm gpbar" id="artGptBar"><span class="gpbl">傳給 GPT：</span><select id="artGptTypeH" aria-label="傳給 GPT 的類型"><option value="ig">IG 貼文</option><option value="video">影片</option></select><button type="button" id="artGptSendM" disabled>傳送勾選的文章</button></div>
-  <p class="tpmsg" id="artGptMsg" role="status" hidden></p>
-  <div class="gpp" id="artGptPanel" hidden></div>
-  <div class="tbw"><table><colgroup><col style="width:120px"><col><col style="width:110px"><col style="width:70px"><col style="width:14%"><col style="width:14%"><col style="width:350px"></colgroup>
-  <thead><tr><th class="c">類別</th><th>標題</th><th class="c">日期</th><th class="r" title="會員 Worker 統計的點閱次數；讀不到寫「—」">點閱</th><th>相關族群</th><th>來源主題</th><th class="gpth">傳給 GPT <span class="gpd"><button type="button" id="artGptSendIg" data-gtype="ig" disabled title="先在每列勾選文章">傳送勾選・IG 貼文</button><button type="button" id="artGptSendVid" data-gtype="video" disabled title="先在每列勾選文章">傳送勾選・影片</button></span></th></tr></thead><tbody id="artAdmBody"></tbody></table></div>
+  <div class="tbw"><table><colgroup><col style="width:120px"><col><col style="width:110px"><col style="width:70px"><col style="width:14%"><col style="width:14%"></colgroup>
+  <thead><tr><th class="c">類別</th><th>標題</th><th class="c">日期</th><th class="r" title="會員 Worker 統計的點閱次數；讀不到寫「—」">點閱</th><th>相關族群</th><th>來源主題</th></tr></thead><tbody id="artAdmBody"></tbody></table></div>
 </div>
 <div class="card artadm" id="artAdmTopics">
-  <div class="hd"><h3>主題候選清單</h3><span class="muted" id="artTpUpd">${tp && tp.updated ? '更新 ' + esc(tp.updated) : ''}・點列勾選主題（最多 5 個、可跨類別），再按上方按鈕交給 Claude 撰寫</span><span class="sp"></span>
-    <button type="button" class="btn small" id="artTpSort" title="切換分數排序方向"></button></div>
+  <div class="hd"><h3>主題候選清單</h3><span class="muted" id="artTpUpd">${tp && tp.updated ? '更新 ' + esc(tp.updated) : ''}・依日期分段（新 → 舊）・點列勾選主題（最多 5 個、可跨類別），再按上方按鈕交給 Claude 撰寫；進度欄就是產出進度</span><span class="sp"></span>
+    <button type="button" class="btn small tgbtn" id="artTgBtn" aria-expanded="false" aria-controls="artTgPanel">＋ 新增主題</button>
+    <button type="button" class="btn small" id="artTpSort" title="切換分數排序方向（每個日期分段裡面排）"></button></div>
+  <div class="tpact tpgen" id="artTgPanel" hidden>
+    <span class="sel"><b>新增主題</b></span>
+    <span class="tgcats" role="group" aria-label="要生成哪幾類（可單選或多選）">${CAT_KEYS.map((k) => `<label class="tgc"><input type="checkbox" data-tgcat="${k}" checked>${CATS[k].t}</label>`).join('')}</span>
+    <label class="tgn">每類 <select id="artTgN" aria-label="每類幾個">${[1, 2, 3, 4, 5].map((n) => `<option value="${n}"${n === 3 ? ' selected' : ''}>${n}</option>`).join('')}</select> 個</label>
+    <input type="text" id="artTgKw" maxlength="40" placeholder="關鍵字（選填），例如：CoWoS 產能">
+    <button type="button" id="artTgGo">送出</button>
+    <span class="tglk" id="artTgHint"></span>
+  </div>
   <div class="tpact" id="artTpAct">
     <div class="sel" id="artTpSel"></div>
     <input type="text" id="artTpNote" maxlength="500" placeholder="給 Claude 的補充（選填；會寫進公開的 repo，請勿填個資）">
@@ -1651,21 +1891,17 @@ ${gs.length ? `<section><h5>熱門族群</h5><div class="gps">${gs.map((g) => `<
     <button type="button" id="artCusVid" data-kind="video" disabled>產生短影片</button>
   </div>
   <p class="tpmsg" id="artTpMsg" role="status" hidden></p>
-  <div class="nbsw lv2" id="artTpCats" role="tablist" aria-label="候選主題分類"><button type="button" role="tab" data-cat="all">全部</button>${CAT_KEYS.map((k) => `<button type="button" role="tab" data-cat="${k}">${CATS[k].t}</button>`).join('')}</div>
-  <div class="nbbody"><div class="tbw"><table><colgroup><col style="width:44px"><col style="width:96px"><col style="width:120px"><col style="width:30%"><col><col style="width:84px"><col style="width:190px"></colgroup>
-  <thead><tr><th class="c">選</th><th>分數</th><th class="c">類別</th><th>標題</th><th>理由</th><th class="c">建議形式</th><th>產出狀態</th></tr></thead><tbody id="artTpBody"></tbody></table></div></div>
-</div>
-<div class="card artadm" id="artAdmJobs">
-  <div class="hd"><h3>產出進度</h3><span class="muted">排隊中的請求由 Claude 每小時（台北 :05）處理；文章推上線後這裡自動變「已完成」</span></div>
   <div class="aflt" id="artJobFlt">
-    <select id="artJfKind" aria-label="產出種類"><option value="">全部種類</option><option value="article">精選文章</option><option value="video">短影片</option></select>
-    <select id="artJfSt" aria-label="狀態"><option value="">全部狀態</option>${Object.keys(JST).map((k) => `<option value="${k}">${JST[k]}</option>`).join('')}</select>
-    <input type="search" id="artJfQ" placeholder="搜尋主題或補充" aria-label="搜尋主題或補充">
+    <div class="nbsw lv2" id="artTpCats" role="tablist" aria-label="候選主題分類"><button type="button" role="tab" data-cat="all">全部</button>${CAT_KEYS.map((k) => `<button type="button" role="tab" data-cat="${k}">${CATS[k].t}</button>`).join('')}</div>
+    <select id="artJfKind" aria-label="產出種類"><option value="">全部種類</option>${Object.keys(KIND_T).map((k) => `<option value="${k}">${KIND_T[k]}</option>`).join('')}</select>
+    <select id="artJfSt" aria-label="狀態"><option value="">全部狀態</option><option value="none">未產出</option>${Object.keys(JST).map((k) => `<option value="${k}">${JST[k]}</option>`).join('')}</select>
+    <input type="search" id="artJfQ" placeholder="搜尋標題、理由或補充" aria-label="搜尋標題、理由或補充">
     <button type="button" class="clr" id="artJfClr">清除</button>
+    <button type="button" class="clr" id="artJfRef" title="重新讀一次進度（停在這頁時每分鐘也會自己更新）。排隊中的請求由 Claude 在台北 08:05～23:05 每小時處理；進度條照「安排主題 → 查資料 → 撰寫 → 插圖 → 驗收 → 發布中 → 已完成」走">↻ 更新進度</button>
     <span class="cnt" id="artJfCnt"></span>
   </div>
-  <div class="tbw"><table><colgroup><col style="width:64px"><col style="width:96px"><col style="width:30%"><col><col style="width:96px"><col style="width:120px"><col style="width:96px"></colgroup>
-  <thead><tr><th class="r">編號</th><th class="c">產出</th><th>主題</th><th>補充</th><th class="c">狀態</th><th class="c">送出時間</th><th class="c">操作</th></tr></thead><tbody id="artJobBody"></tbody></table></div>
+  <div class="nbbody"><div class="tbw"><table><colgroup><col style="width:44px"><col style="width:104px"><col style="width:150px"><col style="width:24%"><col><col style="width:80px"><col style="width:250px"><col style="width:90px"></colgroup>
+  <thead><tr><th class="c">選</th><th>分數</th><th class="c">類別</th><th>標題</th><th>理由／補充</th><th class="c">建議形式</th><th>進度</th><th class="c">操作</th></tr></thead><tbody id="artTpBody"></tbody></table></div></div>
 </div>
 <div id="artSchedHost"></div>
 </div>
@@ -1677,8 +1913,8 @@ ${gs.length ? `<section><h5>熱門族群</h5><div class="gps">${gs.map((g) => `<
     $$('#artTpCats>button', v).forEach((b) => { b.onclick = () => { S.tcat = b.dataset.cat; paintTopics(v); }; });
     $('#artTpSort', v).onclick = () => { S.tsort = S.tsort === 'desc' ? 'asc' : 'desc'; paintTopics(v); };
     $('#artTpBody', v).addEventListener('click', (e) => {
-      if (e.target.closest('a')) return;
-      const tr = e.target.closest('tr[data-tid]'); if (!tr) return;
+      if (e.target.closest('a, button')) return;   // 進度欄的「看文章」、操作欄的「取消」不算勾選
+      const tr = e.target.closest('tr[data-tid]'); if (!tr || tr.dataset.nosel) return;
       toggleSel(v, tr.dataset.tid);
     });
     $('#artTpSel', v).addEventListener('click', (e) => { const b = e.target.closest('button[data-rm]'); if (b) toggleSel(v, b.dataset.rm); });
@@ -1689,27 +1925,18 @@ ${gs.length ? `<section><h5>熱門族群</h5><div class="gps">${gs.map((g) => `<
     bind('#artAfGrp', 'grp', 'change'); bind('#artAfFrom', 'from', 'change'); bind('#artAfTo', 'to', 'change'); bind('#artAfQ', 'q', 'input');
     if (af.grp && !gm.has(af.grp)) af.grp = '';
     $('#artAfClr', v).onclick = () => { Object.assign(af, { cat: 'all', grp: '', from: '', to: '', q: '' }); ['#artAfGrp', '#artAfFrom', '#artAfTo', '#artAfQ'].forEach((id) => { $(id, v).value = ''; }); paintAdmList(v); };
-    paintAdmList(v); gptSync(v);
+    paintAdmList(v);
     // 產出進度篩選（Andy 10-16：「產出進度也需要有篩選功能」）
     const jf = S.jf;
-    const jb = (id, k, ev) => { const el = $(id, v); el.value = jf[k]; el.addEventListener(ev, () => { jf[k] = el.value.trim(); paintJobs(v); }); };
+    const jb = (id, k, ev) => { const el = $(id, v); el.value = jf[k]; el.addEventListener(ev, () => { jf[k] = el.value.trim(); paintTopics(v); }); };
     jb('#artJfKind', 'kind', 'change'); jb('#artJfSt', 'st', 'change'); jb('#artJfQ', 'q', 'input');
-    $('#artJfClr', v).onclick = () => { Object.assign(jf, { kind: '', st: '', q: '' }); ['#artJfKind', '#artJfSt', '#artJfQ'].forEach((id) => { $(id, v).value = ''; }); paintJobs(v); };
+    $('#artJfClr', v).onclick = () => { Object.assign(jf, { kind: '', st: '', q: '' }); ['#artJfKind', '#artJfSt', '#artJfQ'].forEach((id) => { $(id, v).value = ''; }); paintTopics(v); };
+    /* 2026-10-17 進度條：Andy 看的是「現在做到哪」，停在這頁時每分鐘自己重讀一次（分頁在背景就不讀），也可以按「↻ 更新進度」馬上讀 */
+    const jobRefresh = async () => { const rb = $('#artJfRef', v); if (rb) rb.disabled = true; await loadJobs(); paintTopics(v); if (rb) rb.disabled = false; };
+    $('#artJfRef', v).onclick = jobRefresh;
+    clearInterval(S.jobTick);
+    S.jobTick = setInterval(() => { if (!document.body.contains(v) || !$('#artTpBody', v)) { clearInterval(S.jobTick); return; } if (!document.hidden && location.hash === '#admin/articles') jobRefresh(); }, 60000);
     $$('#artGenArt,#artGenVid', v).forEach((b) => { b.onclick = () => submitJob(v, b.dataset.kind); });
-    // 傳給 GPT：列內勾選（存 S.gsel，換篩選不掉）、列內按鈕＝傳這一篇、表頭按鈕＝傳勾選的；清單裡的連結被按下去就記「已傳送」
-    $('#artAdmBody', v).addEventListener('change', (e) => { const c = e.target.closest('input[data-gpt-pick]'); if (!c) return; if (c.checked) S.gsel.add(c.dataset.gptPick); else S.gsel.delete(c.dataset.gptPick); gptMsg(v, ''); gptSync(v); });
-    const typeOf = (b) => (b.dataset.gtype === 'sel' ? S.gtype : b.dataset.gtype);
-    $('#artAdmBody', v).addEventListener('click', (e) => { const b = e.target.closest('button[data-gpt-one]'); if (b) gptPrepare(v, [b.dataset.gptOne], typeOf(b)); });
-    $$('#artGptSendIg,#artGptSendVid', v).forEach((b) => { b.onclick = () => gptPrepare(v, [...S.gsel], b.dataset.gtype); });
-    $('#artGptSendM', v).onclick = () => gptPrepare(v, [...S.gsel], S.gtype);
-    v.addEventListener('change', (e) => { const s = e.target.closest('select[data-gpt-type], #artGptTypeH'); if (!s) return; S.gtype = s.value === 'video' ? 'video' : 'ig'; gptSync(v); });
-    $('#artGptPanel', v).addEventListener('click', async (e) => {
-      const o = e.target.closest('a[data-gpt-open]');
-      if (o) { if (GPT()) GPT().markSent(o.dataset.gptOpen, o.dataset.gtype); setTimeout(() => paintAdmList(v), 0); return; }
-      const c = e.target.closest('button[data-gpt-copy]'); if (!c) return;
-      const it = S.gout.find((x) => x.id === c.dataset.gptCopy && x.type === c.dataset.gtype); if (!it) return;
-      gptMsg(v, (await copyText(it.res.full)) ? `已複製「${it.title}」的完整交接內容，可以貼進 GitHub Issue 的內容欄。` : '複製失敗，請改按「開 GitHub 新 Issue」。', false);
-    });
     /* 10-16 Andy：「也需要我填寫主題 產文章，例如 今天新聞 馬斯克飛天電動車介紹」→ 自訂主題：topic_id＝c-<類別>-<時間>，標題＝填的字 */
     const cusT = $('#artCusT', v), cusB = $$('#artCusArt,#artCusVid', v);
     const cusSync = () => cusB.forEach((b) => { b.disabled = cusT.value.trim().length < 2; });
@@ -1720,18 +1947,19 @@ ${gs.length ? `<section><h5>熱門族群</h5><div class="gps">${gs.map((g) => `<
       cusB.forEach((x) => { x.disabled = true; });
       const note = (($('#artTpNote', v) || {}).value || '').trim();
       const r = await acctCall('/v1/articles/jobs/add', { topic_id: `c-${cat}-${Date.now().toString(36)}`, kind, title, note });
-      if (r && r.job) { tpMsg(v, `已送出 #${r.job.id}：自訂主題「${title}」${KIND_T[kind]}（${CATS[cat].t}）。Claude 下一輪會撰寫`); cusT.value = ''; }
+      if (r && r.job) { tpMsg(v, `已送出 #${r.job.id}：自訂主題「${title}」${KIND_T[kind]}（${CATS[cat].t}）。${r.fired ? '已通知 Claude 立刻開工' : 'Claude 下一輪（整點 :05）會撰寫'}`); cusT.value = ''; }
       else tpMsg(v, r && r.error === 'preview_readonly' ? '預覽版不會真的送出（不改正式站的佇列）' : r && r._s === 403 ? '送出失敗：登入身分不是管理者（請重新登入）' : '送出失敗：連不到會員伺服器，請稍後再試', true);
-      cusSync(); await loadJobs(); paintTopics(v); paintJobs(v);
+      cusSync(); await loadJobs(); paintTopics(v);
     }; });
-    $('#artJobBody', v).addEventListener('click', async (e) => {
+    $('#artTpBody', v).addEventListener('click', async (e) => {
       const b = e.target.closest('button[data-cancel]'); if (!b) return;
       b.disabled = true;
       const r = await acctCall('/v1/articles/jobs/cancel', { id: Number(b.dataset.cancel) });
       tpMsg(v, r && r.ok ? `已取消 #${b.dataset.cancel}` : '取消失敗：這筆可能已經開始撰寫', !(r && r.ok));
-      await loadJobs(); paintTopics(v); paintJobs(v);
+      await loadJobs(); paintTopics(v);
     });
-    paintTopics(v); paintJobs(v);
+    tgBind(v);
+    paintTopics(v);
     paintStats(v); Promise.all([loadDaily(), loadStats(true)]).then(() => { if (location.hash === '#admin/articles') paintStats(v); });
   }
   function tpMsg(v, t, err) { const m = $('#artTpMsg', v); if (!m) return; m.hidden = !t; m.textContent = t || ''; m.classList.toggle('err', !!err); }
@@ -1744,79 +1972,23 @@ ${gs.length ? `<section><h5>熱門族群</h5><div class="gps">${gs.map((g) => `<
     paintTopics(v);
   }
   async function submitJob(v, kind) {
-    const picks = S.tsels.map((id) => S.topics && S.topics.list.find((x) => x.id === id)).filter(Boolean);
+    const picks = S.tsels.map((id) => S.trows && S.trows.get(id)).filter(Boolean);   // 候選主題與自訂主題（合併清單的列）都能再排
     if (!picks.length || !KIND_T[kind]) return;
     $$('#artGenArt,#artGenVid', v).forEach((b) => { b.disabled = true; });
     const note = (($('#artTpNote', v) || {}).value || '').trim();
-    const ok = [], dup = [], bad = []; let err = '';
+    const ok = [], dup = [], bad = []; let err = '', fired = false;
     for (const t of picks) {   // 一筆一筆送（Worker 端逐筆檢查重複），不並發
       const r = await acctCall('/v1/articles/jobs/add', { topic_id: t.id, kind, title: t.title, note });
-      if (r && r.job) (r.dup ? dup : ok).push(`#${r.job.id}「${t.title}」`);
+      if (r && r.job) { (r.dup ? dup : ok).push(`#${r.job.id}「${t.title}」`); if (r.fired) fired = true; }
       else { bad.push(`「${t.title}」`); err = err || (r && r.error === 'preview_readonly' ? '預覽版不會真的送出（不改正式站的佇列）' : r && r._s === 403 ? '登入身分不是管理者（請重新登入）' : r && r.error === 'too_many' ? '排隊中的請求太多（上限 100 筆）' : '連不到會員伺服器，請稍後再試'); }
     }
     const parts = [];
     if (ok.length) parts.push(`已送出 ${ok.length} 筆${KIND_T[kind]}：${ok.join('、')}`);
     if (dup.length) parts.push(`已經在排隊、不重複送出：${dup.join('、')}`);
     if (bad.length) parts.push(`送出失敗（${err}）：${bad.join('、')}`);
-    tpMsg(v, parts.join('；') + (ok.length ? '。Claude 下一輪會撰寫，完成後出現在「已上架文章」' : ''), !!bad.length);
+    tpMsg(v, parts.join('；') + (ok.length ? (fired ? '。已通知 Claude 立刻開工，完成後出現在「已上架文章」' : '。Claude 下一輪（整點 :05）會撰寫，完成後出現在「已上架文章」') : ''), !!bad.length);
     if (!bad.length) { S.tsels = []; if ($('#artTpNote', v)) $('#artTpNote', v).value = ''; }
-    await loadJobs(); paintTopics(v); paintJobs(v);
-  }
-  /* ---------------- 傳給 GPT（site/gpthandoff.js 組內容；Andy 10-16：「不是做完就發送，要有個功能鈕，我可以選擇文章，將內容傳到 GPT 那邊，文章是我決定」） ----------------
-     按鈕就是 Andy 的決定：不排隊、不碰 Worker。點下去 → 讀該篇文章 JSON → 組成 Markdown → 開預填的 GitHub 新 Issue（label social-handoff，一篇一則）。
-     勾多篇 → 「傳送勾選的文章」會把每篇的連結列在下面的清單，一則一則按（瀏覽器只准一次點擊開一個新分頁）。已傳過的列顯示時間、按鈕改「再傳一次」。 */
-  const GPT = () => window.TwGptHandoff;
-  const GT = { ig: 'IG 貼文', video: '影片' };
-  function gptCell(a) {
-    const st = (ty) => (GPT() ? GPT().sentText(a.id, ty) : '');
-    const one = (ty) => `<span class="gpg"><button type="button" class="gpto" data-gpt-one="${esc(a.id)}" data-gtype="${ty}" title="把這一篇整理成「${GT[ty]}」的交接 Issue 交給 GPT">${st(ty) ? '再傳一次・' : '傳給 GPT・'}${GT[ty]}</button>${st(ty) ? `<span class="gpts" title="這個瀏覽器上次傳送的時間（台北）">已傳送 ${esc(st(ty))}</span>` : ''}</span>`;
-    const sent = ['ig', 'video'].filter((ty) => st(ty)).map((ty) => `${GT[ty]} ${st(ty)}`).join('、');
-    return `<label class="gptk" title="勾選後按表頭的「傳送勾選」"><input type="checkbox" data-gpt-pick="${esc(a.id)}"${S.gsel.has(a.id) ? ' checked' : ''} aria-label="勾選：${esc(a.title)}"></label>`
-      + `<span class="gpd">${one('ig')}${one('video')}</span>`
-      + `<span class="gpm"><select data-gpt-type aria-label="類型：${esc(a.title)}"><option value="ig"${S.gtype === 'ig' ? ' selected' : ''}>IG 貼文</option><option value="video"${S.gtype === 'video' ? ' selected' : ''}>影片</option></select><button type="button" class="gpto" data-gpt-one="${esc(a.id)}" data-gtype="sel">傳給 GPT</button>${sent ? `<span class="gpts">已傳送：${esc(sent)}</span>` : ''}</span>`;
-  }
-  function gptSync(v) {
-    const n = S.gsel.size;
-    $$('#artGptSendIg,#artGptSendVid,#artGptSendM', v).forEach((b) => { b.disabled = !n; });
-    const sfx = n ? `（${n}）` : '';
-    const g = (id, t) => { const b = $(id, v); if (b) b.textContent = t; };
-    g('#artGptSendIg', '傳送勾選・IG 貼文' + sfx); g('#artGptSendVid', '傳送勾選・影片' + sfx); g('#artGptSendM', '傳送勾選的文章' + sfx);
-    $$('select[data-gpt-type], #artGptTypeH', v).forEach((s) => { s.value = S.gtype; });
-  }
-  function gptMsg(v, t, err) { const m = $('#artGptMsg', v); if (!m) return; m.hidden = !t; m.textContent = t || ''; m.classList.toggle('err', !!err); }
-  async function copyText(t) {
-    try { await navigator.clipboard.writeText(t); return true; } catch (e) { /* 退回舊法 */ }
-    try { const ta = document.createElement('textarea'); ta.value = t; ta.style.cssText = 'position:fixed;left:-999px;top:0'; document.body.appendChild(ta); ta.select(); const r = document.execCommand('copy'); ta.remove(); return !!r; } catch (e) { return false; }
-  }
-  function paintGptPanel(v) {
-    const p = $('#artGptPanel', v); if (!p) return;
-    p.hidden = !S.gout.length;
-    p.innerHTML = S.gout.length ? `<p class="gph"><b>已整理好 ${S.gout.length} 則交接 Issue</b>（一篇一則）。按「開 GitHub 新 Issue」→ 在 GitHub 那頁按綠色的 <b>Submit new issue</b>（送出新問題）才算傳出去；Issue 是公開的，內容只有文章已公開的部分。</p>`
-      + S.gout.map((o) => `<div class="gpr" data-id="${esc(o.id)}" data-gtype="${o.type}"><span class="gpt" title="${esc(o.res.title)}"><em class="gpk ${o.type}">${GT[o.type]}</em> ${esc(o.title)}</span>
-        <a class="gpl" href="${esc(o.res.url)}" target="_blank" rel="noopener noreferrer" data-gpt-open="${esc(o.id)}" data-gtype="${o.type}">開 GitHub 新 Issue</a>
-        <button type="button" data-gpt-copy="${esc(o.id)}" data-gtype="${o.type}">複製完整交接內容</button>
-        <span class="gpn">${o.res.trimmed.length ? `網址長度有限，已省略：${esc(o.res.trimmed.join('、'))}（完整內容請按「複製完整交接內容」貼進 Issue）` : '內容完整放進連結'}</span></div>`).join('') : '';
-  }
-  async function gptPrepare(v, ids, type) {
-    type = type === 'video' ? 'video' : 'ig';
-    ids = ids.filter((id) => S.idx && S.idx.list.some((a) => a.id === id));
-    if (!ids.length || !GPT()) return;
-    let w = null;
-    if (ids.length === 1) { try { w = window.open('about:blank', '_blank'); if (w) w.opener = null; } catch (e) { w = null; } }   // 先在「點擊當下」開空白分頁，等文章讀回來再導過去（await 之後才開會被擋）
-    gptMsg(v, '整理交接內容中…');
-    const posts = await Promise.all(ids.map((id) => loadPost(id)));
-    const out = [], bad = [];
-    ids.forEach((id, i) => {
-      const a = S.idx.list.find((x) => x.id === id), p = posts[i];
-      if (p && p.id === id) out.push({ id, type, title: a.title, res: GPT().build(p, type) }); else bad.push(a.title);
-    });
-    S.gout = out; paintGptPanel(v);
-    if (out.length === 1 && w) { w.location.href = out[0].res.url; GPT().markSent(out[0].id, type); }
-    else if (w) w.close();
-    if (out.length === 1 && w) { /* 已經開了 */ } else if (out.length === 1) gptMsg(v, '瀏覽器擋掉了新分頁，請按下面的「開 GitHub 新 Issue」。');
-    gptMsg(v, bad.length ? `讀不到這幾篇的內容：${bad.join('、')}` : out.length === 1 && w ? `已開啟「${out[0].title}」（${GT[type]}）的 GitHub 新 Issue 分頁，請在那頁按 Submit new issue。` : out.length > 1 ? `已整理 ${out.length} 篇（${GT[type]}）；請在下面清單一則一則按「開 GitHub 新 Issue」。` : '', !!bad.length);
-    ids.forEach((id) => S.gsel.delete(id));
-    paintAdmList(v); gptSync(v);
+    await loadJobs(); paintTopics(v);
   }
   /* 10-16 Andy：「清除」按了「沒作用」→ 沒有任何篩選時按了畫面本來就不會變；改成沒有篩選＝反灰不能按，有篩選才亮 */
   function clrState(b, on) { if (!b) return; b.disabled = !on; b.title = on ? '清除所有篩選條件' : '目前沒有篩選條件'; }
@@ -1835,8 +2007,8 @@ ${gs.length ? `<section><h5>熱門族群</h5><div class="gps">${gs.map((g) => `<
     <td class="n c">${esc(a.date)}</td><td class="n r" data-vwc="${esc(a.id)}">${viewsOf(a.id) == null ? '—' : viewsOf(a.id).toLocaleString('zh-TW')}</td>
     <td class="dm" title="${esc(gs.join('、'))}">${gs.length ? esc(gs.join('、')) : '<span class="muted">—</span>'}</td>
     <td class="dm" title="${esc(tpTitle(a.topic))}">${a.topic && tpTitle(a.topic) ? esc(tpTitle(a.topic)) : '<span class="muted">—</span>'}</td>
-    <td class="gptc" data-gpt="${esc(a.id)}">${gptCell(a)}</td></tr>`; }).join('')
-      : `<tr><td colspan="7" class="muted">${S.idx ? (all.length ? '沒有符合篩選條件的文章' : '還沒有上架的文章') : '文章清單讀不到'}</td></tr>`;
+    </tr>`; }).join('')
+      : `<tr><td colspan="6" class="muted">${S.idx ? (all.length ? '沒有符合篩選條件的文章' : '還沒有上架的文章') : '文章清單讀不到'}</td></tr>`;
   }
   /* ---------------- 點閱統計 ---------------- */
   function loadDaily() {
@@ -1908,51 +2080,169 @@ ${gs.length ? `<section><h5>熱門族群</h5><div class="gps">${gs.map((g) => `<
     $('#artStRef', box).onclick = () => { loadDaily().then(() => { loadStats(true); paintStats(v); }); };
     if (window.RangePick) window.RangePick.bind($('#artStRng', box), { onChange: ({ value, from, to }) => { ss.period = value; if (value === 'since') { ss.from = from; ss.to = to; } paintStats(v); } });
   }
-  function paintJobs(v) {
-    const body = $('#artJobBody', v); if (!body) return;
-    if (!S.jobs) { body.innerHTML = '<tr><td colspan="7" class="muted">讀不到產出紀錄（會員伺服器沒回應）</td></tr>'; return; }
-    const jf = S.jf, q = jf.q.toLowerCase();
-    /* 10-16 Andy：「產完後 進度這邊也需要更新」→ 文章已上架（index 有同一個 topic）就直接算「已完成」，不等同步工作流把狀態標回伺服器（篩選也照這個） */
-    const eff = (j) => { const live = j.kind === 'article' && ['queued', 'working'].includes(j.status) && pubOfTopic(j.topic_id); return live ? Object.assign({}, j, { status: 'done', result: live.id }) : j; };
-    const hit = S.jobs.map(eff).filter((j) => (!jf.kind || j.kind === jf.kind) && (!jf.st || j.status === jf.st)
-      && (!q || String(j.title || '').toLowerCase().includes(q) || String(j.note || '').toLowerCase().includes(q)));
-    const rows = hit.slice(0, 100);
-    clrState($('#artJfClr', v), !!(jf.kind || jf.st || jf.q));
-    const c = $('#artJfCnt', v); if (c) { c.textContent = `${hit.length}／${S.jobs.length} 筆${hit.length > rows.length ? '（顯示前 100 筆）' : ''}`; c.dataset.n = String(hit.length); }
-    const WD = '日一二三四五六'; let lastD = '';
-    body.innerHTML = rows.length ? rows.map((j) => {
-      const tt = twTime(j.created), dd = tt.slice(0, 5);
-      const sep = dd && dd !== lastD ? `<tr class="jdsep" data-date="${esc(dd)}"><td colspan="7">${esc(dd.replace('-', '/'))}（${WD[new Date(Number(j.created) + 8 * 3600e3).getUTCDay()]}）</td></tr>` : '';
-      lastD = dd || lastD;
-      const pub = j.kind === 'article' && j.status === 'done' && j.result && S.idx && S.idx.list.find((a) => a.id === j.result);
-      const op = j.status === 'queued' ? `<button type="button" class="cx" data-cancel="${esc(j.id)}">取消</button>`
-        : pub ? `<a href="#article/${encodeURIComponent(pub.id)}">看文章</a>` : '<span class="muted">—</span>';
-      return sep + `<tr data-job="${esc(j.id)}"><td class="n r">#${esc(j.id)}</td><td class="c"><span class="kdc js"><em class="kd ${esc(j.kind)}">${esc(KIND_T[j.kind] || j.kind)}</em></span></td><td title="${esc(j.title)}">${esc(j.title)}</td>
-        <td class="dm" title="${esc(j.note || '')}">${j.note ? esc(j.note) : '<span class="muted">—</span>'}</td><td class="c"><span class="js ${esc(j.status)}">${esc(JST[j.status] || j.status)}</span></td>
-        <td class="n c">${esc(tt)}</td><td class="c">${op}</td></tr>`;
-    }).join('') : `<tr><td colspan="7" class="muted">${S.jobs.length ? '沒有符合篩選條件的請求' : '還沒有送出過產出請求'}</td></tr>`;
+  /* 一筆請求的進度格。回答「這筆現在做到哪一步、多久之前動過」：
+     排隊中 → 灰空條＋「排隊中・下一輪 :05 開工」（Claude 排程每小時台北 :05 處理佇列）；
+     製作中 → 青條到該階段百分比＋「撰寫・18:42」；完成 → 綠滿條；失敗 → 紅條停在失敗那一格＋「失敗・卡在撰寫・18:42」；
+     舊資料沒有 stage：製作中當「安排主題」、其他照 status。
+     .js 那一顆只放狀態／階段名稱本身（既有驗收用 .js:not(.kdc) 的字比對狀態，所以時間放在它外面）。 */
+  function jobProg(j) {
+    const sg = WORK_STG.includes(j.stage) ? j.stage : '';
+    const today = twTime(Date.now()).slice(0, 5);
+    const when = (ms) => { const t = twTime(ms); return t ? (t.slice(0, 5) === today ? t.slice(6) : t.slice(0, 5).replace('-', '/') + ' ' + t.slice(6)) : ''; };
+    const at = when(j.stage_at || j.updated || j.created);
+    let tone, key, lab, tail;
+    if (j.status === 'done') { tone = 'done'; key = 'done'; lab = '已完成'; tail = at; }
+    else if (j.status === 'cancelled') { tone = 'cancelled'; key = 'cancelled'; lab = '已取消'; tail = when(j.updated || j.created); }
+    else if (j.status === 'failed') { tone = 'failed'; key = sg || 'queued'; lab = '失敗'; tail = (sg ? `卡在${STG[sg][0]}・` : '') + at; }
+    else if (j.status === 'working') { tone = 'working'; key = sg || 'plan'; lab = STG[key][0]; tail = at; }
+    else { tone = 'queued'; key = 'queued'; lab = '排隊中'; tail = (() => { const h = new Date(Date.now() + 8 * 3600e3).getUTCHours(); if (h >= 23 || h < 8) return '明早 08:05 開工'; return Date.now() - Number(j.created) < 15 * 60e3 ? '已通知 Claude・準備開工' : '下一輪 :05 開工'; })(); }   /* 白天送出會立刻叫醒排程（Worker artFire），剛送出的不寫「下一輪」免得 Andy 以為要等 */
+    const pct = j.status === 'cancelled' ? 0 : STG[key][1];
+    const aria = `${lab}${tail ? '・' + tail : ''}（${pct}%）`;
+    return `<div class="jprog" data-tone="${tone}" data-stage="${esc(key)}" data-pct="${pct}" title="${esc(aria)}">`
+      + `<div class="jrow"><span class="jbar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${pct}" aria-label="${esc(aria)}"><i style="width:${pct}%"></i></span><span class="jpct">${pct}%</span></div>`
+      + `<div class="jcap"><span class="js ${esc(j.status)}">${esc(lab)}</span>${tail ? '・' + esc(tail) : ''}</div></div>`;
+  }
+  /* ---------------- 主題候選清單＝產出進度（2026-10-17 合併成一張表）
+     Andy 10-17：「產出進度和上面這合併同一份清單」「這邊也需要日期區分」。
+     · 每一列是一個主題：topics.json 的候選＋佇列裡 topic_id 不在候選裡的請求（自訂 c-…、排程 sch-…、新增主題 gen-…，類別欄標「自訂」）。
+     · 日期＝主題的 added 與它最新一筆請求的送出日（台北）取較新的；依日期分段（新 → 舊），每段前一條 tr.jdsep。
+       段內：自訂（直接送出的請求）在上、新的先；候選照分數排（排序鈕切方向）。所以剛送出請求的候選主題會跳到今天那一段。
+     · 進度欄：每種產出（文章／短影片／新增主題）只列最新一筆的進度條（同一主題文章＋短影片就兩條）；沒有請求寫「未產出」。
+       操作欄跟進度欄一條一條對齊：排隊中「取消」、完成的文章「看文章」、其他「—」。
+     · 篩選（種類／狀態／搜尋）是針對「進度那幾條」：選了種類或狀態，只留下有符合那一條的主題，而且只畫符合的那幾條。 */
+  const isoDay = (ms) => (Number.isFinite(Number(ms)) && Number(ms) > 0 ? new Date(Number(ms) + 8 * 3600e3).toISOString().slice(0, 10) : '');
+  const WD = '日一二三四五六';
+  const dayLab = (d) => (/^\d{4}-\d{2}-\d{2}$/.test(d) ? `${d.slice(5, 7)}/${d.slice(8, 10)}（${WD[new Date(d + 'T00:00:00Z').getUTCDay()]}）` : '未標日期');
+  /* 10-16 Andy：「產完後 進度這邊也需要更新」→ 文章已上架（index 有同一個 topic）就直接算「已完成」，不等同步工作流把狀態標回伺服器（篩選也照這個） */
+  const effJob = (j) => { const live = j.kind === 'article' && ['queued', 'working'].includes(j.status) && pubOfTopic(j.topic_id); return live ? Object.assign({}, j, { status: 'done', stage: 'done', result: live.id }) : j; };
+  const cusCat = (tid, kind) => { if (kind === 'topics' || /^gen-/.test(tid)) return 'gen'; const m = /^c-(news|intro|know)-/.exec(tid) || /-(news|intro|know)-\d+$/.exec(tid); return m ? m[1] : ''; };
+  const TG_SHORT = { news: '快訊', intro: '產業鏈', know: '知識' };
+  /* 新增主題請求的 note 是給機器讀的 cats=…;n=…;kw=…，畫面上翻成人話 */
+  const genNote = (note) => { const kw = (/;kw=(.+)$/.exec(String(note || '')) || [])[1]; return kw ? `關鍵字：${kw}` : '沒有指定關鍵字（Claude 從當天熱門族群與新聞挑）'; };
+  function topicRows() {
+    const tl = S.topics ? S.topics.list : [], known = new Set(tl.map((t) => t.id)), by = new Map();
+    (S.jobs || []).forEach((j) => { const e = effJob(j), a = by.get(j.topic_id); if (a) a.push(e); else by.set(j.topic_id, [e]); });
+    const rows = tl.map((t) => ({ id: t.id, custom: false, gen: false, cat: t.cat, title: t.title, why: t.why || '', form: t.format_hint || '', score: Number(t.score) || 0, added: t.added || '', js: by.get(t.id) || [], last: 0 }));
+    by.forEach((js, tid) => {
+      if (known.has(tid)) return;
+      const last = js.slice().sort((x, y) => y.id - x.id)[0], c = cusCat(tid, last.kind);
+      rows.push({ id: tid, custom: true, gen: c === 'gen', cat: c, title: last.title || tid, why: c === 'gen' ? genNote(last.note) : (last.note || ''), form: '', score: null, added: '', js, last: Number(last.id) || 0 });
+    });
+    rows.forEach((r) => {
+      r.lines = [];
+      Object.keys(KIND_T).forEach((k) => {
+        const l = r.js.filter((j) => j.kind === k).sort((x, y) => y.id - x.id);
+        if (l.length) r.lines.push({ kind: k, job: l[0] });
+        else if (k === 'article') { const pub = pubOfTopic(r.id); if (pub) r.lines.push({ kind: k, job: null, pub }); }   // 舊文章：有上架、沒有請求紀錄
+      });
+      r.day = [r.added, ...r.js.map((j) => isoDay(j.created))].filter(Boolean).sort().pop() || '';
+    });
+    return rows;
+  }
+  const lineSt = (ln) => (ln.job ? ln.job.status : 'done');
+  function jline(ln) {
+    const j = ln.job || { status: 'done', stage: 'done' };   // 只有已上架的舊文章：滿條、不寫時間
+    return `<div class="jline" data-kind="${ln.kind}"${ln.job ? ` data-job="${esc(ln.job.id)}"` : ' data-pub="1"'}><em class="kd ${ln.kind}">${KIND_S[ln.kind]}</em>${jobProg(j)}</div>`;
+  }
+  function jop(ln) {
+    const j = ln.job;
+    let h = '<span class="muted">—</span>';
+    if (j && j.status === 'queued') h = `<button type="button" class="cx" data-cancel="${esc(j.id)}" aria-label="取消${esc(KIND_T[ln.kind])}請求 #${esc(j.id)}">取消</button>`;
+    else {
+      const pub = ln.pub || (ln.kind === 'article' && j && j.status === 'done' && j.result && S.idx && S.idx.list.find((a) => a.id === j.result));
+      if (pub) h = `<a class="jlk" href="#article/${encodeURIComponent(pub.id)}" title="${esc(pub.title)}">看文章</a>`;
+    }
+    return `<div class="jop" data-kind="${ln.kind}"${j ? ` data-job="${esc(j.id)}"` : ''}>${h}</div>`;
   }
   function paintTopics(v) {
     const body = $('#artTpBody', v); if (!body) return;
     $$('#artTpCats>button', v).forEach((b) => { const on = b.dataset.cat === S.tcat; b.classList.toggle('on', on); b.setAttribute('aria-selected', on ? 'true' : 'false'); });
     $('#artTpSort', v).textContent = S.tsort === 'desc' ? '分數：高 → 低' : '分數：低 → 高';
-    S.tsels = S.tsels.filter((id) => S.topics && S.topics.list.some((x) => x.id === id));
-    const sels = S.tsels.map((id) => S.topics.list.find((x) => x.id === id));
+    const all = topicRows();
+    S.trows = new Map(all.filter((r) => !r.gen).map((r) => [r.id, r]));
+    S.tsels = S.tsels.filter((id) => S.trows.has(id));
+    const sels = S.tsels.map((id) => S.trows.get(id));
     const st = $('#artTpSel', v);
     if (st) st.innerHTML = `已選主題 <span class="tpcnt">${sels.length}／${SEL_MAX}</span>：` + (sels.length
-      ? sels.map((t) => `<span class="tpchip" data-tid="${esc(t.id)}">${badge(t.cat)}<span title="${esc(t.title)}">${esc(t.title)}</span><button type="button" data-rm="${esc(t.id)}" aria-label="取消選取 ${esc(t.title)}">×</button></span>`).join('')
+      ? sels.map((t) => `<span class="tpchip" data-tid="${esc(t.id)}">${CATS[t.cat] ? badge(t.cat) : ''}<span title="${esc(t.title)}">${esc(t.title)}</span><button type="button" data-rm="${esc(t.id)}" aria-label="取消選取 ${esc(t.title)}">×</button></span>`).join('')
       : '<span class="muted">尚未選擇（點下方列勾選，最多 5 個，可跨類別）</span>');
     $$('#artGenArt,#artGenVid', v).forEach((b) => { b.disabled = !sels.length; });
-    if (!S.topics) { body.innerHTML = '<tr><td colspan="7" class="muted">主題候選清單讀不到</td></tr>'; return; }
+    const jf = S.jf, q = jf.q.toLowerCase();
+    clrState($('#artJfClr', v), !!(jf.kind || jf.st || jf.q));
+    if (!S.topics && !S.jobs) { body.innerHTML = '<tr><td colspan="8" class="muted">主題候選清單與產出紀錄都讀不到</td></tr>'; return; }
+    const kindOk = (ln) => !jf.kind || ln.kind === jf.kind;
+    const view = [];
+    all.forEach((r) => {
+      if (S.tcat !== 'all' && r.cat !== S.tcat) return;
+      if (q && ![r.title, r.why, ...r.js.map((j) => j.note || '')].some((x) => String(x).toLowerCase().includes(q))) return;
+      let show = r.lines;
+      if (jf.st === 'none') { if (r.lines.some(kindOk)) return; }
+      else if (jf.kind || jf.st) { show = r.lines.filter((ln) => kindOk(ln) && (!jf.st || lineSt(ln) === jf.st)); if (!show.length) return; }
+      view.push(Object.assign({}, r, { show }));
+    });
+    const dir = S.tsort === 'desc' ? 1 : -1;
+    view.sort((a, b) => (b.day || '').localeCompare(a.day || '') || (Number(b.custom) - Number(a.custom)) || (a.custom ? b.last - a.last : ((b.score - a.score) * dir || a.id.localeCompare(b.id))));
+    const c = $('#artJfCnt', v);
+    if (c) { c.textContent = `${view.length}／${all.length} 個主題${S.jobs ? '' : '・讀不到產出紀錄（會員伺服器沒回應）'}`; c.dataset.n = String(view.length); }
     const mx = 5;   // 分數是 1～5 分（市場研調的評分口徑）
-    const rows = S.topics.list.filter((t) => S.tcat === 'all' || t.cat === S.tcat)
-      .sort((a, b) => ((Number(b.score) || 0) - (Number(a.score) || 0)) * (S.tsort === 'desc' ? 1 : -1));
-    body.innerHTML = rows.length ? rows.map((t) => `<tr data-tid="${esc(t.id)}" data-score="${esc(Number(t.score) || 0)}" aria-selected="${S.tsels.includes(t.id) ? 'true' : 'false'}">
-      <td class="c"><span class="rd" aria-hidden="true"></span></td>
-      <td class="n"><span class="scb"><i><b style="width:${Math.round(100 * Math.min(mx, Number(t.score) || 0) / mx)}%"></b></i>${esc(Number(t.score) || 0)}<small class="muted">/5</small></span></td>
-      <td class="c">${CATS[t.cat] ? badge(t.cat) : esc(t.cat || '')}</td><td class="l" title="${esc(t.title)}">${esc(t.title)}</td>
-      <td class="dm" title="${esc(t.why || '')}">${esc(t.why || '')}</td><td class="c">${esc(t.format_hint || '')}</td><td>${jobChips(t.id)}</td></tr>`).join('')
-      : '<tr><td colspan="7" class="muted">這個分類沒有候選主題</td></tr>';
+    let lastD = null;
+    body.innerHTML = view.length ? view.map((r) => {
+      const sep = r.day !== lastD ? `<tr class="jdsep" data-date="${esc(r.day)}"><td colspan="8">${esc(dayLab(r.day))}</td></tr>` : '';
+      lastD = r.day;
+      const catH = CATS[r.cat] ? badge(r.cat) : r.gen ? '<span class="tgb">新增主題</span>' : '<span class="muted">—</span>';
+      const scH = r.score == null ? '<span class="muted">—</span>'
+        : `<span class="scb"><i><b style="width:${Math.round(100 * Math.min(mx, r.score) / mx)}%"></b></i>${esc(r.score)}<small class="muted">/5</small></span>`;
+      return sep + `<tr data-tid="${esc(r.id)}" data-day="${esc(r.day)}" data-score="${r.score == null ? '' : esc(r.score)}"${r.custom ? ' data-custom="1"' : ''}${r.gen ? ' data-nosel="1"' : ''} aria-selected="${S.tsels.includes(r.id) ? 'true' : 'false'}">
+      <td class="c">${r.gen ? '' : '<span class="rd" aria-hidden="true"></span>'}</td>
+      <td class="n">${scH}</td>
+      <td class="c">${catH}${r.custom && !r.gen ? '<em class="cus">自訂</em>' : ''}</td><td class="l" title="${esc(r.title)}">${esc(r.title)}</td>
+      <td class="dm" title="${esc(r.why)}">${r.why ? esc(r.why) : '<span class="muted">—</span>'}</td><td class="c">${esc(r.form)}</td>
+      <td class="jpc">${r.show.length ? r.show.map(jline).join('') : '<span class="muted jnone">未產出</span>'}</td>
+      <td class="c jopc">${r.show.map(jop).join('')}</td></tr>`;
+    }).join('') : `<tr><td colspan="8" class="muted">${jf.kind || jf.st || jf.q ? '沒有符合篩選條件的主題' : '這個分類沒有候選主題'}</td></tr>`;
+  }
+  /* ---------------- 新增主題（2026-10-17）
+     Andy 10-17：「多新增一個新增主題 Btn，當我點擊，你會在最上新增最新主題，可以單選和多選分類，也可以我提供關鍵字你幫我生成主題」。
+     送出＝排一筆 kind:'topics' 到產出佇列（會員 Worker 叫醒 Claude 排程）；Claude 照 docs/articles/topic_gen.md 生成、寫回 topics.json（added＝當天），
+     所以新主題會出現在清單最上面那一段。note 是機器讀的結構化字串，Worker 端用同一套規則再擋一次。 */
+  const TG_BAD = /[;=<>\u0000-\u001f\u007f]/;
+  const nextRun = () => { const h = new Date(Date.now() + 8 * 3600e3).getUTCHours(); return h >= 23 || h < 8 ? '明早 08:05' : '下一輪整點 :05'; };
+  function tgState(v) {
+    const cats = CAT_KEYS.filter((k) => { const c = $(`#artTgPanel input[data-tgcat="${k}"]`, v); return c && c.checked; });
+    const n = Number(($('#artTgN', v) || {}).value), kw = String(($('#artTgKw', v) || {}).value || '').replace(/\s+/g, ' ').trim();
+    const err = !cats.length ? '至少勾一個類別' : !(Number.isInteger(n) && n >= 1 && n <= 5) ? '每類要 1～5 個' : TG_BAD.test(kw) ? '關鍵字不能有 ; = < > 這幾個符號' : kw.length > 40 ? '關鍵字最多 40 個字' : '';
+    return { cats, n, kw, err };
+  }
+  function tgSync(v) {
+    const st = tgState(v), go = $('#artTgGo', v), h = $('#artTgHint', v);
+    if (go) go.disabled = !!st.err;
+    if (!st.err) { const m = $('#artTpMsg', v); if (m && /^新增主題沒送出/.test(m.textContent)) tpMsg(v, ''); }   // 改對了就把上一次的錯誤提示收掉
+    if (h) { h.textContent = st.err || `會請 Claude 生成 ${st.cats.map((k) => CATS[k].t).join('、')} 各 ${st.n} 個主題${st.kw ? `，圍繞關鍵字「${st.kw}」` : ''}`; h.classList.toggle('err', !!st.err); }
+    return st;
+  }
+  function tgBind(v) {
+    const btn = $('#artTgBtn', v), pn = $('#artTgPanel', v); if (!btn || !pn) return;
+    const openP = (on) => { pn.hidden = !on; btn.setAttribute('aria-expanded', String(on)); btn.classList.toggle('on', on); };
+    btn.onclick = () => { openP(pn.hidden); if (!pn.hidden) tgSync(v); };
+    pn.addEventListener('change', () => tgSync(v));
+    $('#artTgKw', v).addEventListener('input', () => tgSync(v));
+    $('#artTgGo', v).onclick = async () => {
+      const st = tgSync(v);
+      if (st.err) { tpMsg(v, '新增主題沒送出：' + st.err, true); return; }
+      const go = $('#artTgGo', v); go.disabled = true;
+      const title = `新增主題：${st.cats.map((k) => TG_SHORT[k]).join('、')}（各 ${st.n} 個）`;
+      const note = `cats=${st.cats.join(',')};n=${st.n}${st.kw ? ';kw=' + st.kw : ''}`;
+      const r = await acctCall('/v1/articles/jobs/add', { topic_id: `gen-${Date.now()}`, kind: 'topics', title, note });
+      if (r && r.job) {
+        tpMsg(v, `已送出 #${r.job.id}：${title}${st.kw ? `，關鍵字「${st.kw}」` : ''}。` + (r.fired ? '已通知 Claude 生成主題，完成後會出現在清單最上面' : `Claude ${nextRun()}會生成主題，完成後會出現在清單最上面`));
+        $('#artTgKw', v).value = ''; openP(false);
+      } else {
+        tpMsg(v, r && r.error === 'preview_readonly' ? '預覽版不會真的送出（不改正式站的佇列）' : r && r._s === 403 ? '送出失敗：登入身分不是管理者（請重新登入）'
+          : r && r.error === 'bad_input' ? '新增主題沒送出：格式不對（請重新勾選類別與個數）' : '送出失敗：連不到會員伺服器，請稍後再試', true);
+      }
+      tgSync(v); await loadJobs(); paintTopics(v);
+    };
+    tgSync(v);
   }
 
   (window.TwSubRoutes = window.TwSubRoutes || []).push((head, rest) => {

@@ -41,13 +41,13 @@ def t_article_video_1017(b, base, code):
         pg.wait_for_timeout(600)
         st = pg.evaluate("""() => { const v = [...document.querySelectorAll('.artvid')], body = document.querySelector('.artbody') || document.body, br = body.getBoundingClientRect();
             return { n: v.length, items: v.map(f => { const i = f.querySelector('iframe'), r = f.querySelector('.avw').getBoundingClientRect(), a = f.querySelector('.avc a');
-                return { cls: f.className, src: i && i.src, ratio: +(r.width / r.height).toFixed(2), w: r.width, inCol: r.left >= br.left - 1 && r.right <= br.right + 1, href: a && a.href, cap: f.querySelector('.avc').textContent, lazy: i && i.loading }; }),
+                return { cls: f.className, src: i && i.src, ratio: +(r.width / r.height).toFixed(2), w: r.width, inCol: r.left >= br.left - 1 && r.right <= br.right + 1, full: (() => { const p = f.parentElement.getBoundingClientRect(); return Math.abs(r.width - p.width) <= 2 && Math.abs((r.left + r.right) / 2 - (p.left + p.right) / 2) <= 2; })(), href: a && a.href, cap: f.querySelector('.avc').textContent, lazy: i && i.loading }; }),
                 sw: document.documentElement.scrollWidth - innerWidth, xss: !!window.__vidXss }; }""")
         it = st["items"]
         yt = next((x for x in it if "youtube" in x["cls"]), None)
         xx = next((x for x in it if " x" in " " + x["cls"]), None)
-        ok(f"{T}（{w}）：YouTube 區塊＝文章內播放器（nocookie、16:9、在內文欄內、lazy），有來源・日期與開啟連結",
-           bool(yt) and yt["src"].startswith("https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ") and 1.7 <= yt["ratio"] <= 1.8 and yt["inCol"] and yt["lazy"] == "lazy"
+        ok(f"{T}（{w}）：YouTube 區塊＝文章內播放器（nocookie、16:9、填滿內文欄寬並置中、lazy），有來源・日期與開啟連結",
+           bool(yt) and yt["src"].startswith("https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ") and 1.7 <= yt["ratio"] <= 1.8 and yt["inCol"] and yt["full"] and yt["lazy"] == "lazy"
            and "測試頻道" in yt["cap"] and "2026-10-15" in yt["cap"] and yt["href"] == "https://www.youtube.com/watch?v=dQw4w9WgXcQ", yt)
         ok(f"{T}（{w}）：X 區塊＝官方嵌入頁 iframe，「在 X 開啟」連到原貼文", bool(xx) and xx["src"].startswith("https://platform.twitter.com/embed/Tweet.html?id=2110165104713183485")
            and xx["href"] == "https://x.com/i/status/2110165104713183485" and xx["inCol"], xx)

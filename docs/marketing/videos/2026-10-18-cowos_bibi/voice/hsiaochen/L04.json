@@ -1,0 +1,98 @@
+{
+ "voice": "zh-TW-HsiaoChenNeural",
+ "rate": "+5%",
+ "pitch": "+0Hz",
+ "text": "把 GPU 和 HBM 記憶體，並排放在矽中介層上，再接到基板。",
+ "words": [
+  {
+   "type": "WordBoundary",
+   "text": "把",
+   "start": 0.097625,
+   "dur": 0.15475
+  },
+  {
+   "type": "WordBoundary",
+   "text": "GPU",
+   "start": 0.3,
+   "dur": 0.488083
+  },
+  {
+   "type": "WordBoundary",
+   "text": "和",
+   "start": 0.847625,
+   "dur": 0.166666
+  },
+  {
+   "type": "WordBoundary",
+   "text": "HBM",
+   "start": 1.05,
+   "dur": 0.452375
+  },
+  {
+   "type": "WordBoundary",
+   "text": "記憶體",
+   "start": 1.561916,
+   "dur": 0.523791
+  },
+  {
+   "type": "WordBoundary",
+   "text": "並",
+   "start": 2.347625,
+   "dur": 0.083333
+  },
+  {
+   "type": "WordBoundary",
+   "text": "排放在",
+   "start": 2.478583,
+   "dur": 0.5
+  },
+  {
+   "type": "WordBoundary",
+   "text": "矽",
+   "start": 2.990458,
+   "dur": 0.107125
+  },
+  {
+   "type": "WordBoundary",
+   "text": "中",
+   "start": 3.169041,
+   "dur": 0.15475
+  },
+  {
+   "type": "WordBoundary",
+   "text": "介層",
+   "start": 3.383333,
+   "dur": 0.309541
+  },
+  {
+   "type": "WordBoundary",
+   "text": "上",
+   "start": 3.728583,
+   "dur": 0.309541
+  },
+  {
+   "type": "WordBoundary",
+   "text": "再",
+   "start": 4.347625,
+   "dur": 0.119041
+  },
+  {
+   "type": "WordBoundary",
+   "text": "接到",
+   "start": 4.502375,
+   "dur": 0.285708
+  },
+  {
+   "type": "WordBoundary",
+   "text": "基",
+   "start": 4.823791,
+   "dur": 0.130958
+  },
+  {
+   "type": "WordBoundary",
+   "text": "板",
+   "start": 5.002375,
+   "dur": 0.25
+  }
+ ]
+}

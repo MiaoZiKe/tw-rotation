@@ -1,0 +1,44 @@
+{
+ "voice": "de-DE-SeraphinaMultilingualNeural",
+ "rate": "+6%",
+ "pitch": "+0Hz",
+ "text": "而是一個叫扣窩斯的封裝步驟。",
+ "words": [
+  {
+   "type": "WordBoundary",
+   "text": "而是",
+   "start": 0.05,
+   "dur": 0.471708
+  },
+  {
+   "type": "WordBoundary",
+   "text": "一個",
+   "start": 0.521708,
+   "dur": 0.330166
+  },
+  {
+   "type": "WordBoundary",
+   "text": "叫扣窩",
+   "start": 0.851875,
+   "dur": 0.660375
+  },
+  {
+   "type": "WordBoundary",
+   "text": "斯的",
+   "start": 1.51225,
+   "dur": 0.389166
+  },
+  {
+   "type": "WordBoundary",
+   "text": "封裝",
+   "start": 1.901416,
+   "dur": 0.495291
+  },
+  {
+   "type": "WordBoundary",
+   "text": "步驟",
+   "start": 2.396708,
+   "dur": 0.601416
+  }
+ ]
+}

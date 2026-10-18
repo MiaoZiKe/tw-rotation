@@ -1137,7 +1137,10 @@
   }
   function applyTheme(name, redraw) {
     document.documentElement.setAttribute('data-theme', name === 'light' ? 'light' : 'dark');
-    try { localStorage.setItem(THEME_KEY, theme()); } catch (e) { /* 私密視窗，忽略 */ }
+    /* 2026-10-18（DECISIONS #360）：這裡不再存檔 —— 換主題有三種來源（手動、自動到點、換風格重畫），
+       只有「手動」要記，而且記的是「到下一個切換點為止」，由 setThemeManual() 交給 index.html 的 TWTA 寫。
+       沒有 TWTA（index.html 那段被拿掉）才退回舊行為：永久存 tw.theme。 */
+    if (!window.TWTA) { try { localStorage.setItem(THEME_KEY, theme()); } catch (e) { /* 私密視窗，忽略 */ } }
     const meta = document.querySelector('meta[name="theme-color"]');
     // 淺色＝--bg（設計系統 v2 第 3 批：#f2f5fb → 暖紙底 #F4F3EF；手機瀏覽器的網址列顏色跟頁底一致）
     if (meta) meta.setAttribute('content', theme() === 'light' ? '#F4F3EF' : '#070b16');
@@ -1150,6 +1153,36 @@
     Object.keys(rendered).forEach(k => delete rendered[k]);
     window.dispatchEvent(new CustomEvent('tw:theme', { detail: { theme: theme() } }));
     route();
+  }
+  /* ★ 2026-10-18 主題自動切換（Andy：「幫我將頁面Default 為 亮色 晚上12:00-05:00 為黑色 網頁手機版都是」，DECISIONS #360）
+     · 手動（☀／🌙、外觀面板的深色｜淺色、手機「⋯」裡的明暗，全部都是按 #themeBtn）→ setThemeManual：只算到下一個切換點。
+     · 頁面開著跨過 00:00／05:00 要當場換、不用重新整理：
+         ① setTimeout 對準下一個切換點（或手動選擇到期的那一刻，兩個其實是同一個時間點）
+         ② 每 30 秒再對一次（電腦睡眠喚醒、時區改了、計時器被瀏覽器節流，①都可能晚到或不到）
+         ③ 分頁切回前景（visibilitychange）馬上對一次 —— 背景分頁的計時器最慢一分鐘才跑一次
+       三條都只做同一件事：TWTA.pick() 跟畫面上的不一樣才整頁換色（applyTheme 會 dispose 圖表重畫，不能每 30 秒白做一次）。*/
+  function setThemeManual(m) {
+    if (window.TWTA) window.TWTA.set(m);
+    applyTheme(m, true);
+    armThemeAuto();
+  }
+  let themeAutoT = 0;
+  function themeAutoCheck() {
+    const A = window.TWTA; if (!A || A.legacy) return;
+    const m = A.pick();
+    if (m !== theme()) applyTheme(m, true);
+  }
+  function armThemeAuto() {
+    const A = window.TWTA; if (!A || A.legacy) return;
+    clearTimeout(themeAutoT);
+    const ms = Math.max(200, A.next() - Date.now() + 300);
+    themeAutoT = setTimeout(() => { themeAutoCheck(); armThemeAuto(); }, Math.min(ms, 2147000000));
+  }
+  function initThemeAuto() {
+    const A = window.TWTA; if (!A || A.legacy) return;
+    armThemeAuto();
+    setInterval(themeAutoCheck, 30000);
+    document.addEventListener('visibilitychange', () => { if (!document.hidden) { themeAutoCheck(); armThemeAuto(); } });
   }
   // 沒東西可畫就把高度收掉，只留一行字 —— 不要留一個 420px 的黑方塊讓人以為壞了
   const empty = (id, msg) => {
@@ -14347,7 +14380,8 @@
     // 分頁切到背景就停播放：省 CPU，也避免回來時一次補跑幾十幀
     document.addEventListener('visibilitychange', () => { if (document.hidden) stopAllPlay(); });
     const tb = document.getElementById('themeBtn');
-    if (tb) tb.onclick = () => applyTheme(theme() === 'light' ? 'dark' : 'light', true);
+    if (tb) tb.onclick = () => setThemeManual(theme() === 'light' ? 'dark' : 'light');
+    initThemeAuto();            // 00:00／05:00 自動換明暗（DECISIONS #360）
     initMore();                 // 手機頂欄的「⋯ 更多工具」（G1／G9）
     initSwipeHints();           // 橫向可捲容器的「← 左右滑 →」提示（G6）
     fillDisc();                 // 標題列右側那一行免責小字（2026-10-06）

@@ -1,0 +1,86 @@
+{
+ "voice": "zh-TW-HsiaoYuNeural",
+ "rate": "+15%",
+ "pitch": "+15Hz",
+ "text": "想看先進封裝族群的資金熱度，到網站的 CoWoS 題材頁看看。",
+ "words": [
+  {
+   "type": "WordBoundary",
+   "text": "想",
+   "start": 0.093458,
+   "dur": 0.163041
+  },
+  {
+   "type": "WordBoundary",
+   "text": "看",
+   "start": 0.32175,
+   "dur": 0.184791
+  },
+  {
+   "type": "WordBoundary",
+   "text": "先進",
+   "start": 0.52825,
+   "dur": 0.413041
+  },
+  {
+   "type": "WordBoundary",
+   "text": "封裝",
+   "start": 1.006541,
+   "dur": 0.358708
+  },
+  {
+   "type": "WordBoundary",
+   "text": "族群的",
+   "start": 1.397833,
+   "dur": 0.532583
+  },
+  {
+   "type": "WordBoundary",
+   "text": "資金",
+   "start": 1.930416,
+   "dur": 0.347833
+  },
+  {
+   "type": "WordBoundary",
+   "text": "熱度",
+   "start": 2.332625,
+   "dur": 0.434791
+  },
+  {
+   "type": "WordBoundary",
+   "text": "到",
+   "start": 3.093458,
+   "dur": 0.065208
+  },
+  {
+   "type": "WordBoundary",
+   "text": "網站的",
+   "start": 3.289125,
+   "dur": 0.47825
+  },
+  {
+   "type": "WordBoundary",
+   "text": "CoWoS",
+   "start": 3.767375,
+   "dur": 0.630416
+  },
+  {
+   "type": "WordBoundary",
+   "text": "題材",
+   "start": 4.452166,
+   "dur": 0.347833
+  },
+  {
+   "type": "WordBoundary",
+   "text": "頁",
+   "start": 4.854333,
+   "dur": 0.163041
+  },
+  {
+   "type": "WordBoundary",
+   "text": "看看",
+   "start": 5.060875,
+   "dur": 0.402166
+  }
+ ]
+}

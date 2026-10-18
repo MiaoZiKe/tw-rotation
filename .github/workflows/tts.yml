@@ -1,0 +1,109 @@
+name: 試做配音（edge-tts）
+
+# 短影音試做配音用（社群部影片剪輯，2026-10-18）。
+# ⚠ edge-tts 是微軟 Edge「朗讀」的非官方介面，只當試做；正式發佈前改用 Azure 語音服務官方 API（同樣的聲音）。
+# 不讀、不用任何 secrets；只把產出的 mp3＋時間軸 json commit 回「觸發時選的那個分支」的指定資料夾。
+#
+# 輸入：repo 內一個腳本 JSON 的路徑，格式：
+# {
+#   "out_dir": "docs/marketing/videos/<id>/voice",
+#   "jobs": [
+#     {"id": "hsiaoyu", "voice": "zh-TW-HsiaoYuNeural", "rate": "+0%", "pitch": "+0Hz",
+#      "lines": [{"id": "L01", "text": "要唸的字"}]}
+#   ]
+# }
+# 輸出：<out_dir>/<job id>/<line id>.mp3 與 <line id>.json（逐字時間軸，秒）。
+on:
+  workflow_dispatch:
+    inputs:
+      script:
+        description: "腳本 JSON 路徑（repo 內，例如 docs/marketing/videos/2026-10-18-cowos_bibi/tts_script.json）"
+        type: string
+        required: true
+
+permissions:
+  contents: write     # 只為了把配音檔 commit 回同一分支
+
+concurrency:
+  group: tts-${{ github.ref_name }}
+  cancel-in-progress: false
+
+jobs:
+  tts:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: 安裝 edge-tts
+        run: pip install "edge-tts==7.3.1"
+
+      - name: 逐句產生配音與逐字時間軸
+        env:
+          SCRIPT_JSON: ${{ inputs.script }}
+        run: |
+          python - <<'PY'
+          import asyncio, json, os, pathlib
+          import edge_tts
+
+          spec = json.loads(pathlib.Path(os.environ["SCRIPT_JSON"]).read_text(encoding="utf-8"))
+          out = pathlib.Path(spec["out_dir"])
+
+          async def one(job, line):
+              d = out / job["id"]
+              d.mkdir(parents=True, exist_ok=True)
+              kw = dict(rate=job.get("rate", "+0%"), pitch=job.get("pitch", "+0Hz"), volume=job.get("volume", "+0%"))
+              try:
+                  com = edge_tts.Communicate(line["text"], job["voice"], boundary="WordBoundary", **kw)
+              except TypeError:
+                  com = edge_tts.Communicate(line["text"], job["voice"], **kw)
+              words, audio = [], bytearray()
+              async for ch in com.stream():
+                  if ch["type"] == "audio":
+                      audio += ch["data"]
+                  elif ch["type"] in ("WordBoundary", "SentenceBoundary"):
+                      words.append({"type": ch["type"], "text": ch["text"],
+                                    "start": ch["offset"] / 1e7, "dur": ch["duration"] / 1e7})
+              (d / f"{line['id']}.mp3").write_bytes(bytes(audio))
+              (d / f"{line['id']}.json").write_text(json.dumps(
+                  {"voice": job["voice"], "rate": kw["rate"], "pitch": kw["pitch"], "text": line["text"], "words": words},
+                  ensure_ascii=False, indent=1), encoding="utf-8")
+              print(job["id"], line["id"], len(audio), "bytes", len(words), "words")
+
+          async def main():
+              for job in spec["jobs"]:
+                  for line in job["lines"]:
+                      for k in range(3):
+                          try:
+                              await one(job, line)
+                              break
+                          except Exception as e:  # 網路抖動重試
+                              print("重試", job["id"], line["id"], e)
+                              await asyncio.sleep(3)
+                      else:
+                          print(f"跳過（這個聲音產不出來）：{job['id']} {line['id']}")   # 試聽多種聲音時，名稱不存在的聲音不要讓整輪失敗
+          asyncio.run(main())
+          PY
+
+      - name: 回寫配音檔（只 add 指定資料夾）
+        env:
+          SCRIPT_JSON: ${{ inputs.script }}
+        run: |
+          OUT=$(python -c "import json,os;print(json.load(open(os.environ['SCRIPT_JSON'],encoding='utf-8'))['out_dir'])")
+          git config user.name  "tw-rotation-bot"
+          git config user.email "actions@github.com"
+          git add "$OUT"
+          if git diff --staged --quiet; then
+            echo "沒有變動，跳過 commit"
+            exit 0
+          fi
+          git commit -m "試做配音：$OUT（edge-tts，非官方介面，只當試做）"
+          for i in 1 2 3; do
+            git pull --rebase origin "${GITHUB_REF_NAME}" && git push origin "HEAD:${GITHUB_REF_NAME}" && exit 0
+            sleep 5
+          done
+          exit 1

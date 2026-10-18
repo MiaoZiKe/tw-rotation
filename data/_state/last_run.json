@@ -3,7 +3,7 @@
     "mis.index_minute": {
       "ok": true,
       "rows": 839,
-      "seconds": 1.6
+      "seconds": 1.7
     },
     "index_intraday": {
       "stored": 0
@@ -11,15 +11,15 @@
     "taifex.futures_minute": {
       "ok": false,
       "rows": 0,
-      "seconds": 0.0
+      "seconds": 0.1
     },
     "news.collect": {
       "ok": true,
-      "rows": 131,
+      "rows": 132,
       "seconds": 2.8
     },
     "news": {
-      "stored": 44
+      "stored": 45
     },
     "news.broker_views": {
       "ok": true,
@@ -27,31 +27,31 @@
       "seconds": 0.0
     },
     "broker_views": {
-      "stored": 1
+      "stored": 0
     },
     "mops.material_news": {
       "ok": true,
-      "rows": 86,
-      "seconds": 1.8
+      "rows": 5,
+      "seconds": 2.1
     },
     "material_news": {
-      "stored": 86
+      "stored": 5
     },
     "macro.intl": {
       "ok": true,
-      "rows": 1762,
-      "seconds": 1.3
+      "rows": 1761,
+      "seconds": 1.1
     },
     "intl_daily": {
-      "stored": 1
+      "stored": 0
     },
     "macro.fred": {
       "ok": true,
-      "rows": 15539,
+      "rows": 15541,
       "seconds": 3.3
     },
     "macro": {
-      "stored": 2
+      "stored": 0
     },
     "macro.fred_calendar": {
       "ok": true,
@@ -79,9 +79,9 @@
       "2026-10-16"
     ]
   },
-  "started_at": "2026-10-17T06:29:41.683009+00:00",
-  "finished_at": "2026-10-17T06:42:53.423813+00:00",
-  "duration_seconds": 791.7,
+  "started_at": "2026-10-18T06:54:22.317232+00:00",
+  "finished_at": "2026-10-18T07:17:49.298739+00:00",
+  "duration_seconds": 1407.0,
   "trade_date": null,
   "complete": true,
   "finmind_budget_left": 440,
@@ -113,7 +113,7 @@
     },
     {
       "table": "inst_daily",
-      "rows": 3999608,
+      "rows": 3999619,
       "latest": "2026-10-16"
     },
     {
@@ -148,8 +148,8 @@
     },
     {
       "table": "news",
-      "rows": 6182,
-      "latest": "2026-10-17"
+      "rows": 6244,
+      "latest": "2026-10-18"
     },
     {
       "table": "broker_views",
@@ -163,8 +163,8 @@
     },
     {
       "table": "macro",
-      "rows": 15539,
-      "latest": "2026-10-16"
+      "rows": 15541,
+      "latest": "2026-10-17"
     },
     {
       "table": "macro_calendar",
@@ -213,8 +213,8 @@
     },
     {
       "table": "material_news",
-      "rows": 1592,
-      "latest": "2026-10-16"
+      "rows": 1597,
+      "latest": "2026-10-17"
     },
     {
       "table": "company_website",
@@ -239,7 +239,7 @@
   ],
   "groups_health": {
     "reviewed": "2026-09-21",
-    "days_since_review": 26,
+    "days_since_review": 27,
     "is_stale": false,
     "group_count": 83,
     "code_count": 445,

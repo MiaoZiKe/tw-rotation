@@ -101,3 +101,57 @@ def test_頻率設定到點_排隊清單_id防重複_不挑已用主題_候選�
     assert "自選" in jobs2[0]["title"] and jobs2[0]["note"].endswith("建議主題 無")
     # 佇列裡的「建議主題 X」與已上架都算用掉
     assert {"n3", "sch-x"} <= aj.used_topics([{"topic_id": "sch-x", "note": "排程自動排入（規則 1）；建議主題 n3"}], index_path=aj.ROOT / "nope.json")
+
+
+def test_快照帶階段欄位():
+    """2026-10-17 進度條：快照要帶 stage／stage_at，Claude 排程讀檔時看得到做到哪一步。"""
+    s = aj.snapshot([{"id": 3, "topic_id": "a", "kind": "article", "title": "t", "status": "working",
+                      "stage": "write", "stage_at": 1792130000000, "by": "uid-x"}], now=datetime(2026, 10, 17, 12, 0))
+    assert s["jobs"][0]["stage"] == "write" and s["jobs"][0]["stage_at"] == 1792130000000
+    assert "by" not in s["jobs"][0]
+
+
+def test_標狀態帶階段_白名單外不送(capsys):
+    assert aj.mark_body("7", "working", "", "write") == {"op": "mark", "id": 7, "status": "working", "result": "", "stage": "write"}
+    assert aj.mark_body(7, "working", "", " Illus ")["stage"] == "illus"
+    assert "stage" not in aj.mark_body(7, "working", "", "")
+    b = aj.mark_body(7, "working", "", "87%")
+    assert "stage" not in b and "不在白名單" in capsys.readouterr().out
+
+
+def test_標狀態_main把階段送出去(monkeypatch):
+    monkeypatch.setenv("ACCOUNT_API_URL", "https://x.example")
+    monkeypatch.setenv("ARTICLE_BOT_KEY", "k" * 20)
+    sent = []
+
+    def fake(base, token, body):
+        sent.append(body)
+        return {"ok": True, "jobs": []} if body["op"] != "schedule" else {"error": "bad_op"}
+
+    monkeypatch.setattr(aj, "call", fake)
+    monkeypatch.setattr(aj, "write_if_changed", lambda *a, **k: False)
+    monkeypatch.setattr(aj, "published_topics", lambda *a, **k: {})
+    assert aj.main(["--mark", "5", "working", "--stage", "review"]) == 0
+    assert sent[0] == {"op": "mark", "id": 5, "status": "working", "result": "", "stage": "review"}
+
+
+
+def test_新增主題請求_不自動標完成_不算用掉主題(monkeypatch, tmp_path):
+    """2026-10-17 kind=topics（gen-…）：index.json 就算剛好有同 id 的 topic 也不能被自動標 done；used_topics 不收它。"""
+    jobs = [{"id": 9, "topic_id": "gen-1792130000000", "kind": "topics", "title": "新增主題：快訊（各 3 個）", "note": "cats=news;n=3", "status": "queued"}]
+    assert "gen-1792130000000" not in aj.used_topics(jobs, tmp_path / "none.json")
+    monkeypatch.setenv("ACCOUNT_API_URL", "https://x.example")
+    monkeypatch.setenv("ARTICLE_BOT_KEY", "k" * 20)
+    sent = []
+
+    def fake(base, token, body):
+        sent.append(body)
+        return {"jobs": list(jobs)} if body["op"] == "open" else {"error": "bad_op"}
+
+    monkeypatch.setattr(aj, "call", fake)
+    monkeypatch.setattr(aj, "published_topics", lambda *a, **k: {"gen-1792130000000": "a1"})
+    snap = []
+    monkeypatch.setattr(aj, "write_if_changed", lambda d, *a, **k: snap.append(d) or False)
+    assert aj.main([]) == 0
+    assert not any(b.get("op") == "mark" for b in sent)
+    assert [j["kind"] for j in snap[0]["jobs"]] == ["topics"]

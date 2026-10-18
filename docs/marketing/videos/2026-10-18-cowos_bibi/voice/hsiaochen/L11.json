@@ -1,0 +1,92 @@
+{
+ "voice": "zh-TW-HsiaoChenNeural",
+ "rate": "+5%",
+ "pitch": "+0Hz",
+ "text": "產能給誰？大摩估計，最大的 GPU 客戶，就占了大約六成。",
+ "words": [
+  {
+   "type": "WordBoundary",
+   "text": "產能",
+   "start": 0.097625,
+   "dur": 0.333333
+  },
+  {
+   "type": "WordBoundary",
+   "text": "給",
+   "start": 0.490458,
+   "dur": 0.130958
+  },
+  {
+   "type": "WordBoundary",
+   "text": "誰",
+   "start": 0.657125,
+   "dur": 0.297625
+  },
+  {
+   "type": "WordBoundary",
+   "text": "大",
+   "start": 1.821416,
+   "dur": 0.178583
+  },
+  {
+   "type": "WordBoundary",
+   "text": "摩",
+   "start": 2.011916,
+   "dur": 0.142875
+  },
+  {
+   "type": "WordBoundary",
+   "text": "估計",
+   "start": 2.202375,
+   "dur": 0.452375
+  },
+  {
+   "type": "WordBoundary",
+   "text": "最大的",
+   "start": 2.928583,
+   "dur": 0.40475
+  },
+  {
+   "type": "WordBoundary",
+   "text": "GPU",
+   "start": 3.380958,
+   "dur": 0.34525
+  },
+  {
+   "type": "WordBoundary",
+   "text": "客戶",
+   "start": 3.785708,
+   "dur": 0.511916
+  },
+  {
+   "type": "WordBoundary",
+   "text": "就",
+   "start": 4.547625,
+   "dur": 0.107125
+  },
+  {
+   "type": "WordBoundary",
+   "text": "占",
+   "start": 4.702375,
+   "dur": 0.142875
+  },
+  {
+   "type": "WordBoundary",
+   "text": "了",
+   "start": 4.857125,
+   "dur": 0.09525
+  },
+  {
+   "type": "WordBoundary",
+   "text": "大約",
+   "start": 4.988083,
+   "dur": 0.273791
+  },
+  {
+   "type": "WordBoundary",
+   "text": "六成",
+   "start": 5.273791,
+   "dur": 0.488083
+  }
+ ]
+}
