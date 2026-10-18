@@ -608,6 +608,32 @@
 #v-subadm .artadm .jprog .jcap .js{display:inline;border:0;padding:0;margin:0;font-size:inherit;font-weight:700;border-radius:0}
 #v-subadm .artadm .jprog[data-tone=failed] .jcap{color:var(--red,#e5484d)}
 #v-subadm .artadm td button.cx{height:26px;padding:0 10px;border-radius:var(--r-sm,8px);border:1px solid var(--line-2);background:var(--panel-3);color:var(--ink);font:inherit;font-size:12px;cursor:pointer}
+/* 2026-10-17 Andy：「產出進度和上面這合併同一份清單」→ 主題候選清單的「進度」欄：每種產出一條（小標＋進度條＋階段・時間），操作欄一條一條對齊 */
+#v-subadm .artadm #artTpBody td.jpc,#v-subadm .artadm #artTpBody td.jopc{overflow:visible;white-space:normal;height:auto;padding-top:4px;padding-bottom:4px}
+#v-subadm .artadm .jline{display:flex;align-items:center;gap:6px;min-height:34px;min-width:0}
+#v-subadm .artadm .jline>.jprog{flex:1 1 auto}
+#v-subadm .artadm .jline+.jline,#v-subadm .artadm .jop+.jop{border-top:1px dashed var(--line)}
+#v-subadm .artadm .jop{display:flex;align-items:center;justify-content:center;min-height:34px}
+#v-subadm .artadm .jline>.kd{flex:none;width:46px;text-align:center;font-style:normal;font-weight:700;font-size:11px;border-radius:999px;color:#fff;line-height:18px}
+#v-subadm .artadm .kd.article{background:#2563eb}#v-subadm .artadm .kd.video{background:#db2777}#v-subadm .artadm .kd.topics{background:#7c3aed}
+#v-subadm .artadm .jlk{color:var(--cyan)!important;font-size:12.5px;font-weight:600}
+#v-subadm .artadm .jnone{font-size:12px}
+#v-subadm .artadm .cus{font-style:normal;font-size:11px;margin-left:4px;padding:0 6px;border-radius:999px;border:1px solid var(--line-2);color:var(--ink-2);vertical-align:middle}
+#v-subadm .artadm .tgb{display:inline-block;font-size:11.5px;font-weight:700;padding:1px 8px;border-radius:999px;color:#fff;background:#7c3aed;vertical-align:middle}
+#v-subadm .artadm #artTpBody tr[data-nosel]{cursor:default}
+#v-subadm .artadm .tpact[hidden]{display:none}   /* .tpact 是 display:flex，會蓋掉 hidden 屬性 */
+#v-subadm .artadm #artJobFlt .nbsw{margin:0}
+/* 新增主題面板（「＋ 新增主題」鈕打開） */
+#v-subadm .artadm .tgbtn{border:1px solid #7c3aed;color:var(--ink);background:color-mix(in srgb,#7c3aed 14%,var(--panel));font-weight:600}
+#v-subadm .artadm .tgbtn.on{background:color-mix(in srgb,#7c3aed 30%,var(--panel))}
+#v-subadm .artadm .tpgen{border-color:color-mix(in srgb,#7c3aed 55%,var(--line))}
+#v-subadm .artadm .tpgen .tgcats{display:inline-flex;gap:12px;flex-wrap:wrap}
+#v-subadm .artadm .tpgen .tgc{display:inline-flex;align-items:center;gap:5px;cursor:pointer;white-space:nowrap;min-height:32px}
+#v-subadm .artadm .tpgen .tgc input{flex:none;min-width:0;width:16px;height:16px;margin:0;padding:0;accent-color:#7c3aed;cursor:pointer}
+#v-subadm .artadm .tpgen .tgn{display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
+#v-subadm .artadm .tpgen select{height:32px;border-radius:var(--r-sm,8px);border:1px solid var(--line-2);background:var(--panel);color:var(--ink);font:inherit;font-size:13px;padding:0 8px}
+#v-subadm .artadm .tpgen .tglk{flex:1 1 100%;font-size:12px;color:var(--ink-3)}
+#v-subadm .artadm .tpgen .tglk.err{color:var(--red,#e5484d)}
 /* 精選文章分級（2026-10-16，Andy：「精選貼文限制給 Pro 可以看，Plus 只能所有類別共 5 篇，其他的只能看到標題」）
    · #artQuota：列表頁頂端的額度條（額度卡片同一套 amber 分段條）；Pro／管理者不顯示
    · .artc .lk：卡片上取代摘要的一行狀態（鎖頭＝只看標題、勾＝已解鎖可重讀、數字＝點開會用掉 1 篇額度）
@@ -1784,7 +1810,8 @@ ${gs.length ? `<section><h5>熱門族群</h5><div class="gps">${gs.map((g) => `<
   /* 產出佇列（2026-10-16，Andy：「claude 指負責產出文章，內容……點選清單內主題，點選後我可以再次點選產生精選文章，或是短影片」）
      按鈕 → 會員 Worker /v1/articles/jobs/add 排一筆 → GitHub Actions（article-jobs.yml）每小時同步進 repo →
      Claude 排程撰寫、推上 main → 文章 index.json 帶同一個 topic 時自動標「已上架」。*/
-  const KIND_T = { article: '精選文章', video: '短影片' };
+  const KIND_T = { article: '精選文章', video: '短影片', topics: '新增主題' };   // topics＝請 Claude 生成新的主題候選（10-17「新增主題」鈕）
+  const KIND_S = { article: '文章', video: '短影片', topics: '主題' };   // 進度欄每條前面的小標
   const JST = { queued: '排隊中', working: '製作中', done: '已完成', failed: '失敗', cancelled: '已取消' };   // 10-17：「撰寫」變成其中一個階段，狀態改叫「製作中」
   /* 2026-10-17 產出進度的「階段」：Worker（workers/account-api/articles.js STAGES）只存格子名，百分比固定在這裡對照 ——
      外部（工作流、Claude）只能挑一格，不能填「87%」這種看起來很準其實沒意義的數字。順序就是一篇文章實際做的順序。 */
@@ -1797,18 +1824,6 @@ ${gs.length ? `<section><h5>熱門族群</h5><div class="gps">${gs.map((g) => `<
   }
   const twTime = (ms) => { if (!Number.isFinite(Number(ms))) return ''; const d = new Date(Number(ms) + 8 * 3600e3); return d.toISOString().slice(5, 16).replace('T', ' '); };
   const pubOfTopic = (tid) => { const l = S.idx ? S.idx.list.filter((a) => a.topic === tid) : []; return l.length ? l[0] : null; };   // 清單已依日期新到舊
-  /* 一個主題的產出狀態：已上架的文章優先，其次是各種類最新一筆請求 */
-  function jobChips(tid) {
-    const out = [], pub = pubOfTopic(tid);
-    /* Andy 10-16：「產出狀態必須備註是文章還是短影片」→ 每顆狀態前面一個種類小標（文章／短影片） */
-    if (pub) out.push(`<a class="js done" data-kind="article" href="#article/${encodeURIComponent(pub.id)}" title="${esc(pub.title)}"><em class="kd article">文章</em>已上架</a>`);
-    ['article', 'video'].forEach((k) => {
-      if (k === 'article' && pub) return;
-      const j = (S.jobs || []).find((x) => x.topic_id === tid && x.kind === k && x.status !== 'cancelled');
-      if (j) out.push(`<span class="js ${esc(j.status)}" data-kind="${k}" title="#${esc(j.id)} ${esc(twTime(j.created))} 送出"><em class="kd ${k}">${k === 'article' ? '文章' : '短影片'}</em>${esc(j.status === 'working' && WORK_STG.includes(j.stage) ? STG[j.stage][0] : (JST[j.status] || j.status))}</span>`);
-    });
-    return out.join('') || '<span class="muted">—</span>';
-  }
   function admTabGet() { try { return localStorage.getItem('tw.art.admtab') === 'stats' ? 'stats' : 'topics'; } catch (e) { return 'topics'; } }
   function setAdmTab(v, t) {
     S.admTab = t === 'stats' ? 'stats' : 'topics';
@@ -1851,8 +1866,17 @@ ${gs.length ? `<section><h5>熱門族群</h5><div class="gps">${gs.map((g) => `<
   <thead><tr><th class="c">類別</th><th>標題</th><th class="c">日期</th><th class="r" title="會員 Worker 統計的點閱次數；讀不到寫「—」">點閱</th><th>相關族群</th><th>來源主題</th></tr></thead><tbody id="artAdmBody"></tbody></table></div>
 </div>
 <div class="card artadm" id="artAdmTopics">
-  <div class="hd"><h3>主題候選清單</h3><span class="muted" id="artTpUpd">${tp && tp.updated ? '更新 ' + esc(tp.updated) : ''}・點列勾選主題（最多 5 個、可跨類別），再按上方按鈕交給 Claude 撰寫</span><span class="sp"></span>
-    <button type="button" class="btn small" id="artTpSort" title="切換分數排序方向"></button></div>
+  <div class="hd"><h3>主題候選清單</h3><span class="muted" id="artTpUpd">${tp && tp.updated ? '更新 ' + esc(tp.updated) : ''}・依日期分段（新 → 舊）・點列勾選主題（最多 5 個、可跨類別），再按上方按鈕交給 Claude 撰寫；進度欄就是產出進度</span><span class="sp"></span>
+    <button type="button" class="btn small tgbtn" id="artTgBtn" aria-expanded="false" aria-controls="artTgPanel">＋ 新增主題</button>
+    <button type="button" class="btn small" id="artTpSort" title="切換分數排序方向（每個日期分段裡面排）"></button></div>
+  <div class="tpact tpgen" id="artTgPanel" hidden>
+    <span class="sel"><b>新增主題</b></span>
+    <span class="tgcats" role="group" aria-label="要生成哪幾類（可單選或多選）">${CAT_KEYS.map((k) => `<label class="tgc"><input type="checkbox" data-tgcat="${k}" checked>${CATS[k].t}</label>`).join('')}</span>
+    <label class="tgn">每類 <select id="artTgN" aria-label="每類幾個">${[1, 2, 3, 4, 5].map((n) => `<option value="${n}"${n === 3 ? ' selected' : ''}>${n}</option>`).join('')}</select> 個</label>
+    <input type="text" id="artTgKw" maxlength="40" placeholder="關鍵字（選填），例如：CoWoS 產能">
+    <button type="button" id="artTgGo">送出</button>
+    <span class="tglk" id="artTgHint"></span>
+  </div>
   <div class="tpact" id="artTpAct">
     <div class="sel" id="artTpSel"></div>
     <input type="text" id="artTpNote" maxlength="500" placeholder="給 Claude 的補充（選填；會寫進公開的 repo，請勿填個資）">
@@ -1867,22 +1891,17 @@ ${gs.length ? `<section><h5>熱門族群</h5><div class="gps">${gs.map((g) => `<
     <button type="button" id="artCusVid" data-kind="video" disabled>產生短影片</button>
   </div>
   <p class="tpmsg" id="artTpMsg" role="status" hidden></p>
-  <div class="nbsw lv2" id="artTpCats" role="tablist" aria-label="候選主題分類"><button type="button" role="tab" data-cat="all">全部</button>${CAT_KEYS.map((k) => `<button type="button" role="tab" data-cat="${k}">${CATS[k].t}</button>`).join('')}</div>
-  <div class="nbbody"><div class="tbw"><table><colgroup><col style="width:44px"><col style="width:96px"><col style="width:120px"><col style="width:30%"><col><col style="width:84px"><col style="width:190px"></colgroup>
-  <thead><tr><th class="c">選</th><th>分數</th><th class="c">類別</th><th>標題</th><th>理由</th><th class="c">建議形式</th><th>產出狀態</th></tr></thead><tbody id="artTpBody"></tbody></table></div></div>
-</div>
-<div class="card artadm" id="artAdmJobs">
-  <div class="hd"><h3>產出進度</h3><span class="muted">排隊中的請求由 Claude 在台北 08:05～23:05 每小時處理（晚上送出的隔天早上開工）；進度條照「安排主題 → 查資料 → 撰寫 → 插圖 → 驗收 → 發布中 → 已完成」走，文章推上線後自動變「已完成」</span></div>
   <div class="aflt" id="artJobFlt">
-    <select id="artJfKind" aria-label="產出種類"><option value="">全部種類</option><option value="article">精選文章</option><option value="video">短影片</option></select>
-    <select id="artJfSt" aria-label="狀態"><option value="">全部狀態</option>${Object.keys(JST).map((k) => `<option value="${k}">${JST[k]}</option>`).join('')}</select>
-    <input type="search" id="artJfQ" placeholder="搜尋主題或補充" aria-label="搜尋主題或補充">
+    <div class="nbsw lv2" id="artTpCats" role="tablist" aria-label="候選主題分類"><button type="button" role="tab" data-cat="all">全部</button>${CAT_KEYS.map((k) => `<button type="button" role="tab" data-cat="${k}">${CATS[k].t}</button>`).join('')}</div>
+    <select id="artJfKind" aria-label="產出種類"><option value="">全部種類</option>${Object.keys(KIND_T).map((k) => `<option value="${k}">${KIND_T[k]}</option>`).join('')}</select>
+    <select id="artJfSt" aria-label="狀態"><option value="">全部狀態</option><option value="none">未產出</option>${Object.keys(JST).map((k) => `<option value="${k}">${JST[k]}</option>`).join('')}</select>
+    <input type="search" id="artJfQ" placeholder="搜尋標題、理由或補充" aria-label="搜尋標題、理由或補充">
     <button type="button" class="clr" id="artJfClr">清除</button>
-    <button type="button" class="clr" id="artJfRef" title="重新讀一次進度（停在這頁時每分鐘也會自己更新）">↻ 更新進度</button>
+    <button type="button" class="clr" id="artJfRef" title="重新讀一次進度（停在這頁時每分鐘也會自己更新）。排隊中的請求由 Claude 在台北 08:05～23:05 每小時處理；進度條照「安排主題 → 查資料 → 撰寫 → 插圖 → 驗收 → 發布中 → 已完成」走">↻ 更新進度</button>
     <span class="cnt" id="artJfCnt"></span>
   </div>
-  <div class="tbw"><table><colgroup><col style="width:64px"><col style="width:96px"><col style="width:28%"><col><col style="width:200px"><col style="width:120px"><col style="width:96px"></colgroup>
-  <thead><tr><th class="r">編號</th><th class="c">產出</th><th>主題</th><th>補充</th><th>進度</th><th class="c">送出時間</th><th class="c">操作</th></tr></thead><tbody id="artJobBody"></tbody></table></div>
+  <div class="nbbody"><div class="tbw"><table><colgroup><col style="width:44px"><col style="width:104px"><col style="width:150px"><col style="width:24%"><col><col style="width:80px"><col style="width:250px"><col style="width:90px"></colgroup>
+  <thead><tr><th class="c">選</th><th>分數</th><th class="c">類別</th><th>標題</th><th>理由／補充</th><th class="c">建議形式</th><th>進度</th><th class="c">操作</th></tr></thead><tbody id="artTpBody"></tbody></table></div></div>
 </div>
 <div id="artSchedHost"></div>
 </div>
@@ -1894,8 +1913,8 @@ ${gs.length ? `<section><h5>熱門族群</h5><div class="gps">${gs.map((g) => `<
     $$('#artTpCats>button', v).forEach((b) => { b.onclick = () => { S.tcat = b.dataset.cat; paintTopics(v); }; });
     $('#artTpSort', v).onclick = () => { S.tsort = S.tsort === 'desc' ? 'asc' : 'desc'; paintTopics(v); };
     $('#artTpBody', v).addEventListener('click', (e) => {
-      if (e.target.closest('a')) return;
-      const tr = e.target.closest('tr[data-tid]'); if (!tr) return;
+      if (e.target.closest('a, button')) return;   // 進度欄的「看文章」、操作欄的「取消」不算勾選
+      const tr = e.target.closest('tr[data-tid]'); if (!tr || tr.dataset.nosel) return;
       toggleSel(v, tr.dataset.tid);
     });
     $('#artTpSel', v).addEventListener('click', (e) => { const b = e.target.closest('button[data-rm]'); if (b) toggleSel(v, b.dataset.rm); });
@@ -1909,14 +1928,14 @@ ${gs.length ? `<section><h5>熱門族群</h5><div class="gps">${gs.map((g) => `<
     paintAdmList(v);
     // 產出進度篩選（Andy 10-16：「產出進度也需要有篩選功能」）
     const jf = S.jf;
-    const jb = (id, k, ev) => { const el = $(id, v); el.value = jf[k]; el.addEventListener(ev, () => { jf[k] = el.value.trim(); paintJobs(v); }); };
+    const jb = (id, k, ev) => { const el = $(id, v); el.value = jf[k]; el.addEventListener(ev, () => { jf[k] = el.value.trim(); paintTopics(v); }); };
     jb('#artJfKind', 'kind', 'change'); jb('#artJfSt', 'st', 'change'); jb('#artJfQ', 'q', 'input');
-    $('#artJfClr', v).onclick = () => { Object.assign(jf, { kind: '', st: '', q: '' }); ['#artJfKind', '#artJfSt', '#artJfQ'].forEach((id) => { $(id, v).value = ''; }); paintJobs(v); };
+    $('#artJfClr', v).onclick = () => { Object.assign(jf, { kind: '', st: '', q: '' }); ['#artJfKind', '#artJfSt', '#artJfQ'].forEach((id) => { $(id, v).value = ''; }); paintTopics(v); };
     /* 2026-10-17 進度條：Andy 看的是「現在做到哪」，停在這頁時每分鐘自己重讀一次（分頁在背景就不讀），也可以按「↻ 更新進度」馬上讀 */
-    const jobRefresh = async () => { const rb = $('#artJfRef', v); if (rb) rb.disabled = true; await loadJobs(); paintTopics(v); paintJobs(v); if (rb) rb.disabled = false; };
+    const jobRefresh = async () => { const rb = $('#artJfRef', v); if (rb) rb.disabled = true; await loadJobs(); paintTopics(v); if (rb) rb.disabled = false; };
     $('#artJfRef', v).onclick = jobRefresh;
     clearInterval(S.jobTick);
-    S.jobTick = setInterval(() => { if (!document.body.contains(v) || !$('#artJobBody', v)) { clearInterval(S.jobTick); return; } if (!document.hidden && location.hash === '#admin/articles') jobRefresh(); }, 60000);
+    S.jobTick = setInterval(() => { if (!document.body.contains(v) || !$('#artTpBody', v)) { clearInterval(S.jobTick); return; } if (!document.hidden && location.hash === '#admin/articles') jobRefresh(); }, 60000);
     $$('#artGenArt,#artGenVid', v).forEach((b) => { b.onclick = () => submitJob(v, b.dataset.kind); });
     /* 10-16 Andy：「也需要我填寫主題 產文章，例如 今天新聞 馬斯克飛天電動車介紹」→ 自訂主題：topic_id＝c-<類別>-<時間>，標題＝填的字 */
     const cusT = $('#artCusT', v), cusB = $$('#artCusArt,#artCusVid', v);
@@ -1930,16 +1949,17 @@ ${gs.length ? `<section><h5>熱門族群</h5><div class="gps">${gs.map((g) => `<
       const r = await acctCall('/v1/articles/jobs/add', { topic_id: `c-${cat}-${Date.now().toString(36)}`, kind, title, note });
       if (r && r.job) { tpMsg(v, `已送出 #${r.job.id}：自訂主題「${title}」${KIND_T[kind]}（${CATS[cat].t}）。${r.fired ? '已通知 Claude 立刻開工' : 'Claude 下一輪（整點 :05）會撰寫'}`); cusT.value = ''; }
       else tpMsg(v, r && r.error === 'preview_readonly' ? '預覽版不會真的送出（不改正式站的佇列）' : r && r._s === 403 ? '送出失敗：登入身分不是管理者（請重新登入）' : '送出失敗：連不到會員伺服器，請稍後再試', true);
-      cusSync(); await loadJobs(); paintTopics(v); paintJobs(v);
+      cusSync(); await loadJobs(); paintTopics(v);
     }; });
-    $('#artJobBody', v).addEventListener('click', async (e) => {
+    $('#artTpBody', v).addEventListener('click', async (e) => {
       const b = e.target.closest('button[data-cancel]'); if (!b) return;
       b.disabled = true;
       const r = await acctCall('/v1/articles/jobs/cancel', { id: Number(b.dataset.cancel) });
       tpMsg(v, r && r.ok ? `已取消 #${b.dataset.cancel}` : '取消失敗：這筆可能已經開始撰寫', !(r && r.ok));
-      await loadJobs(); paintTopics(v); paintJobs(v);
+      await loadJobs(); paintTopics(v);
     });
-    paintTopics(v); paintJobs(v);
+    tgBind(v);
+    paintTopics(v);
     paintStats(v); Promise.all([loadDaily(), loadStats(true)]).then(() => { if (location.hash === '#admin/articles') paintStats(v); });
   }
   function tpMsg(v, t, err) { const m = $('#artTpMsg', v); if (!m) return; m.hidden = !t; m.textContent = t || ''; m.classList.toggle('err', !!err); }
@@ -1952,7 +1972,7 @@ ${gs.length ? `<section><h5>熱門族群</h5><div class="gps">${gs.map((g) => `<
     paintTopics(v);
   }
   async function submitJob(v, kind) {
-    const picks = S.tsels.map((id) => S.topics && S.topics.list.find((x) => x.id === id)).filter(Boolean);
+    const picks = S.tsels.map((id) => S.trows && S.trows.get(id)).filter(Boolean);   // 候選主題與自訂主題（合併清單的列）都能再排
     if (!picks.length || !KIND_T[kind]) return;
     $$('#artGenArt,#artGenVid', v).forEach((b) => { b.disabled = true; });
     const note = (($('#artTpNote', v) || {}).value || '').trim();
@@ -1968,7 +1988,7 @@ ${gs.length ? `<section><h5>熱門族群</h5><div class="gps">${gs.map((g) => `<
     if (bad.length) parts.push(`送出失敗（${err}）：${bad.join('、')}`);
     tpMsg(v, parts.join('；') + (ok.length ? (fired ? '。已通知 Claude 立刻開工，完成後出現在「已上架文章」' : '。Claude 下一輪（整點 :05）會撰寫，完成後出現在「已上架文章」') : ''), !!bad.length);
     if (!bad.length) { S.tsels = []; if ($('#artTpNote', v)) $('#artTpNote', v).value = ''; }
-    await loadJobs(); paintTopics(v); paintJobs(v);
+    await loadJobs(); paintTopics(v);
   }
   /* 10-16 Andy：「清除」按了「沒作用」→ 沒有任何篩選時按了畫面本來就不會變；改成沒有篩選＝反灰不能按，有篩選才亮 */
   function clrState(b, on) { if (!b) return; b.disabled = !on; b.title = on ? '清除所有篩選條件' : '目前沒有篩選條件'; }
@@ -2082,51 +2102,147 @@ ${gs.length ? `<section><h5>熱門族群</h5><div class="gps">${gs.map((g) => `<
       + `<div class="jrow"><span class="jbar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${pct}" aria-label="${esc(aria)}"><i style="width:${pct}%"></i></span><span class="jpct">${pct}%</span></div>`
       + `<div class="jcap"><span class="js ${esc(j.status)}">${esc(lab)}</span>${tail ? '・' + esc(tail) : ''}</div></div>`;
   }
-  function paintJobs(v) {
-    const body = $('#artJobBody', v); if (!body) return;
-    if (!S.jobs) { body.innerHTML = '<tr><td colspan="7" class="muted">讀不到產出紀錄（會員伺服器沒回應）</td></tr>'; return; }
-    const jf = S.jf, q = jf.q.toLowerCase();
-    /* 10-16 Andy：「產完後 進度這邊也需要更新」→ 文章已上架（index 有同一個 topic）就直接算「已完成」，不等同步工作流把狀態標回伺服器（篩選也照這個） */
-    const eff = (j) => { const live = j.kind === 'article' && ['queued', 'working'].includes(j.status) && pubOfTopic(j.topic_id); return live ? Object.assign({}, j, { status: 'done', stage: 'done', result: live.id }) : j; };
-    const hit = S.jobs.map(eff).filter((j) => (!jf.kind || j.kind === jf.kind) && (!jf.st || j.status === jf.st)
-      && (!q || String(j.title || '').toLowerCase().includes(q) || String(j.note || '').toLowerCase().includes(q)));
-    const rows = hit.slice(0, 100);
-    clrState($('#artJfClr', v), !!(jf.kind || jf.st || jf.q));
-    const c = $('#artJfCnt', v); if (c) { c.textContent = `${hit.length}／${S.jobs.length} 筆${hit.length > rows.length ? '（顯示前 100 筆）' : ''}`; c.dataset.n = String(hit.length); }
-    const WD = '日一二三四五六'; let lastD = '';
-    body.innerHTML = rows.length ? rows.map((j) => {
-      const tt = twTime(j.created), dd = tt.slice(0, 5);
-      const sep = dd && dd !== lastD ? `<tr class="jdsep" data-date="${esc(dd)}"><td colspan="7">${esc(dd.replace('-', '/'))}（${WD[new Date(Number(j.created) + 8 * 3600e3).getUTCDay()]}）</td></tr>` : '';
-      lastD = dd || lastD;
-      const pub = j.kind === 'article' && j.status === 'done' && j.result && S.idx && S.idx.list.find((a) => a.id === j.result);
-      const op = j.status === 'queued' ? `<button type="button" class="cx" data-cancel="${esc(j.id)}">取消</button>`
-        : pub ? `<a href="#article/${encodeURIComponent(pub.id)}">看文章</a>` : '<span class="muted">—</span>';
-      return sep + `<tr data-job="${esc(j.id)}"><td class="n r">#${esc(j.id)}</td><td class="c"><span class="kdc js"><em class="kd ${esc(j.kind)}">${esc(KIND_T[j.kind] || j.kind)}</em></span></td><td title="${esc(j.title)}">${esc(j.title)}</td>
-        <td class="dm" title="${esc(j.note || '')}">${j.note ? esc(j.note) : '<span class="muted">—</span>'}</td><td class="jpc">${jobProg(j)}</td>
-        <td class="n c">${esc(tt)}</td><td class="c">${op}</td></tr>`;
-    }).join('') : `<tr><td colspan="7" class="muted">${S.jobs.length ? '沒有符合篩選條件的請求' : '還沒有送出過產出請求'}</td></tr>`;
+  /* ---------------- 主題候選清單＝產出進度（2026-10-17 合併成一張表）
+     Andy 10-17：「產出進度和上面這合併同一份清單」「這邊也需要日期區分」。
+     · 每一列是一個主題：topics.json 的候選＋佇列裡 topic_id 不在候選裡的請求（自訂 c-…、排程 sch-…、新增主題 gen-…，類別欄標「自訂」）。
+     · 日期＝主題的 added 與它最新一筆請求的送出日（台北）取較新的；依日期分段（新 → 舊），每段前一條 tr.jdsep。
+       段內：自訂（直接送出的請求）在上、新的先；候選照分數排（排序鈕切方向）。所以剛送出請求的候選主題會跳到今天那一段。
+     · 進度欄：每種產出（文章／短影片／新增主題）只列最新一筆的進度條（同一主題文章＋短影片就兩條）；沒有請求寫「未產出」。
+       操作欄跟進度欄一條一條對齊：排隊中「取消」、完成的文章「看文章」、其他「—」。
+     · 篩選（種類／狀態／搜尋）是針對「進度那幾條」：選了種類或狀態，只留下有符合那一條的主題，而且只畫符合的那幾條。 */
+  const isoDay = (ms) => (Number.isFinite(Number(ms)) && Number(ms) > 0 ? new Date(Number(ms) + 8 * 3600e3).toISOString().slice(0, 10) : '');
+  const WD = '日一二三四五六';
+  const dayLab = (d) => (/^\d{4}-\d{2}-\d{2}$/.test(d) ? `${d.slice(5, 7)}/${d.slice(8, 10)}（${WD[new Date(d + 'T00:00:00Z').getUTCDay()]}）` : '未標日期');
+  /* 10-16 Andy：「產完後 進度這邊也需要更新」→ 文章已上架（index 有同一個 topic）就直接算「已完成」，不等同步工作流把狀態標回伺服器（篩選也照這個） */
+  const effJob = (j) => { const live = j.kind === 'article' && ['queued', 'working'].includes(j.status) && pubOfTopic(j.topic_id); return live ? Object.assign({}, j, { status: 'done', stage: 'done', result: live.id }) : j; };
+  const cusCat = (tid, kind) => { if (kind === 'topics' || /^gen-/.test(tid)) return 'gen'; const m = /^c-(news|intro|know)-/.exec(tid) || /-(news|intro|know)-\d+$/.exec(tid); return m ? m[1] : ''; };
+  const TG_SHORT = { news: '快訊', intro: '產業鏈', know: '知識' };
+  /* 新增主題請求的 note 是給機器讀的 cats=…;n=…;kw=…，畫面上翻成人話 */
+  const genNote = (note) => { const kw = (/;kw=(.+)$/.exec(String(note || '')) || [])[1]; return kw ? `關鍵字：${kw}` : '沒有指定關鍵字（Claude 從當天熱門族群與新聞挑）'; };
+  function topicRows() {
+    const tl = S.topics ? S.topics.list : [], known = new Set(tl.map((t) => t.id)), by = new Map();
+    (S.jobs || []).forEach((j) => { const e = effJob(j), a = by.get(j.topic_id); if (a) a.push(e); else by.set(j.topic_id, [e]); });
+    const rows = tl.map((t) => ({ id: t.id, custom: false, gen: false, cat: t.cat, title: t.title, why: t.why || '', form: t.format_hint || '', score: Number(t.score) || 0, added: t.added || '', js: by.get(t.id) || [], last: 0 }));
+    by.forEach((js, tid) => {
+      if (known.has(tid)) return;
+      const last = js.slice().sort((x, y) => y.id - x.id)[0], c = cusCat(tid, last.kind);
+      rows.push({ id: tid, custom: true, gen: c === 'gen', cat: c, title: last.title || tid, why: c === 'gen' ? genNote(last.note) : (last.note || ''), form: '', score: null, added: '', js, last: Number(last.id) || 0 });
+    });
+    rows.forEach((r) => {
+      r.lines = [];
+      Object.keys(KIND_T).forEach((k) => {
+        const l = r.js.filter((j) => j.kind === k).sort((x, y) => y.id - x.id);
+        if (l.length) r.lines.push({ kind: k, job: l[0] });
+        else if (k === 'article') { const pub = pubOfTopic(r.id); if (pub) r.lines.push({ kind: k, job: null, pub }); }   // 舊文章：有上架、沒有請求紀錄
+      });
+      r.day = [r.added, ...r.js.map((j) => isoDay(j.created))].filter(Boolean).sort().pop() || '';
+    });
+    return rows;
+  }
+  const lineSt = (ln) => (ln.job ? ln.job.status : 'done');
+  function jline(ln) {
+    const j = ln.job || { status: 'done', stage: 'done' };   // 只有已上架的舊文章：滿條、不寫時間
+    return `<div class="jline" data-kind="${ln.kind}"${ln.job ? ` data-job="${esc(ln.job.id)}"` : ' data-pub="1"'}><em class="kd ${ln.kind}">${KIND_S[ln.kind]}</em>${jobProg(j)}</div>`;
+  }
+  function jop(ln) {
+    const j = ln.job;
+    let h = '<span class="muted">—</span>';
+    if (j && j.status === 'queued') h = `<button type="button" class="cx" data-cancel="${esc(j.id)}" aria-label="取消${esc(KIND_T[ln.kind])}請求 #${esc(j.id)}">取消</button>`;
+    else {
+      const pub = ln.pub || (ln.kind === 'article' && j && j.status === 'done' && j.result && S.idx && S.idx.list.find((a) => a.id === j.result));
+      if (pub) h = `<a class="jlk" href="#article/${encodeURIComponent(pub.id)}" title="${esc(pub.title)}">看文章</a>`;
+    }
+    return `<div class="jop" data-kind="${ln.kind}"${j ? ` data-job="${esc(j.id)}"` : ''}>${h}</div>`;
   }
   function paintTopics(v) {
     const body = $('#artTpBody', v); if (!body) return;
     $$('#artTpCats>button', v).forEach((b) => { const on = b.dataset.cat === S.tcat; b.classList.toggle('on', on); b.setAttribute('aria-selected', on ? 'true' : 'false'); });
     $('#artTpSort', v).textContent = S.tsort === 'desc' ? '分數：高 → 低' : '分數：低 → 高';
-    S.tsels = S.tsels.filter((id) => S.topics && S.topics.list.some((x) => x.id === id));
-    const sels = S.tsels.map((id) => S.topics.list.find((x) => x.id === id));
+    const all = topicRows();
+    S.trows = new Map(all.filter((r) => !r.gen).map((r) => [r.id, r]));
+    S.tsels = S.tsels.filter((id) => S.trows.has(id));
+    const sels = S.tsels.map((id) => S.trows.get(id));
     const st = $('#artTpSel', v);
     if (st) st.innerHTML = `已選主題 <span class="tpcnt">${sels.length}／${SEL_MAX}</span>：` + (sels.length
-      ? sels.map((t) => `<span class="tpchip" data-tid="${esc(t.id)}">${badge(t.cat)}<span title="${esc(t.title)}">${esc(t.title)}</span><button type="button" data-rm="${esc(t.id)}" aria-label="取消選取 ${esc(t.title)}">×</button></span>`).join('')
+      ? sels.map((t) => `<span class="tpchip" data-tid="${esc(t.id)}">${CATS[t.cat] ? badge(t.cat) : ''}<span title="${esc(t.title)}">${esc(t.title)}</span><button type="button" data-rm="${esc(t.id)}" aria-label="取消選取 ${esc(t.title)}">×</button></span>`).join('')
       : '<span class="muted">尚未選擇（點下方列勾選，最多 5 個，可跨類別）</span>');
     $$('#artGenArt,#artGenVid', v).forEach((b) => { b.disabled = !sels.length; });
-    if (!S.topics) { body.innerHTML = '<tr><td colspan="7" class="muted">主題候選清單讀不到</td></tr>'; return; }
+    const jf = S.jf, q = jf.q.toLowerCase();
+    clrState($('#artJfClr', v), !!(jf.kind || jf.st || jf.q));
+    if (!S.topics && !S.jobs) { body.innerHTML = '<tr><td colspan="8" class="muted">主題候選清單與產出紀錄都讀不到</td></tr>'; return; }
+    const kindOk = (ln) => !jf.kind || ln.kind === jf.kind;
+    const view = [];
+    all.forEach((r) => {
+      if (S.tcat !== 'all' && r.cat !== S.tcat) return;
+      if (q && ![r.title, r.why, ...r.js.map((j) => j.note || '')].some((x) => String(x).toLowerCase().includes(q))) return;
+      let show = r.lines;
+      if (jf.st === 'none') { if (r.lines.some(kindOk)) return; }
+      else if (jf.kind || jf.st) { show = r.lines.filter((ln) => kindOk(ln) && (!jf.st || lineSt(ln) === jf.st)); if (!show.length) return; }
+      view.push(Object.assign({}, r, { show }));
+    });
+    const dir = S.tsort === 'desc' ? 1 : -1;
+    view.sort((a, b) => (b.day || '').localeCompare(a.day || '') || (Number(b.custom) - Number(a.custom)) || (a.custom ? b.last - a.last : ((b.score - a.score) * dir || a.id.localeCompare(b.id))));
+    const c = $('#artJfCnt', v);
+    if (c) { c.textContent = `${view.length}／${all.length} 個主題${S.jobs ? '' : '・讀不到產出紀錄（會員伺服器沒回應）'}`; c.dataset.n = String(view.length); }
     const mx = 5;   // 分數是 1～5 分（市場研調的評分口徑）
-    const rows = S.topics.list.filter((t) => S.tcat === 'all' || t.cat === S.tcat)
-      .sort((a, b) => ((Number(b.score) || 0) - (Number(a.score) || 0)) * (S.tsort === 'desc' ? 1 : -1));
-    body.innerHTML = rows.length ? rows.map((t) => `<tr data-tid="${esc(t.id)}" data-score="${esc(Number(t.score) || 0)}" aria-selected="${S.tsels.includes(t.id) ? 'true' : 'false'}">
-      <td class="c"><span class="rd" aria-hidden="true"></span></td>
-      <td class="n"><span class="scb"><i><b style="width:${Math.round(100 * Math.min(mx, Number(t.score) || 0) / mx)}%"></b></i>${esc(Number(t.score) || 0)}<small class="muted">/5</small></span></td>
-      <td class="c">${CATS[t.cat] ? badge(t.cat) : esc(t.cat || '')}</td><td class="l" title="${esc(t.title)}">${esc(t.title)}</td>
-      <td class="dm" title="${esc(t.why || '')}">${esc(t.why || '')}</td><td class="c">${esc(t.format_hint || '')}</td><td>${jobChips(t.id)}</td></tr>`).join('')
-      : '<tr><td colspan="7" class="muted">這個分類沒有候選主題</td></tr>';
+    let lastD = null;
+    body.innerHTML = view.length ? view.map((r) => {
+      const sep = r.day !== lastD ? `<tr class="jdsep" data-date="${esc(r.day)}"><td colspan="8">${esc(dayLab(r.day))}</td></tr>` : '';
+      lastD = r.day;
+      const catH = CATS[r.cat] ? badge(r.cat) : r.gen ? '<span class="tgb">新增主題</span>' : '<span class="muted">—</span>';
+      const scH = r.score == null ? '<span class="muted">—</span>'
+        : `<span class="scb"><i><b style="width:${Math.round(100 * Math.min(mx, r.score) / mx)}%"></b></i>${esc(r.score)}<small class="muted">/5</small></span>`;
+      return sep + `<tr data-tid="${esc(r.id)}" data-day="${esc(r.day)}" data-score="${r.score == null ? '' : esc(r.score)}"${r.custom ? ' data-custom="1"' : ''}${r.gen ? ' data-nosel="1"' : ''} aria-selected="${S.tsels.includes(r.id) ? 'true' : 'false'}">
+      <td class="c">${r.gen ? '' : '<span class="rd" aria-hidden="true"></span>'}</td>
+      <td class="n">${scH}</td>
+      <td class="c">${catH}${r.custom && !r.gen ? '<em class="cus">自訂</em>' : ''}</td><td class="l" title="${esc(r.title)}">${esc(r.title)}</td>
+      <td class="dm" title="${esc(r.why)}">${r.why ? esc(r.why) : '<span class="muted">—</span>'}</td><td class="c">${esc(r.form)}</td>
+      <td class="jpc">${r.show.length ? r.show.map(jline).join('') : '<span class="muted jnone">未產出</span>'}</td>
+      <td class="c jopc">${r.show.map(jop).join('')}</td></tr>`;
+    }).join('') : `<tr><td colspan="8" class="muted">${jf.kind || jf.st || jf.q ? '沒有符合篩選條件的主題' : '這個分類沒有候選主題'}</td></tr>`;
+  }
+  /* ---------------- 新增主題（2026-10-17）
+     Andy 10-17：「多新增一個新增主題 Btn，當我點擊，你會在最上新增最新主題，可以單選和多選分類，也可以我提供關鍵字你幫我生成主題」。
+     送出＝排一筆 kind:'topics' 到產出佇列（會員 Worker 叫醒 Claude 排程）；Claude 照 docs/articles/topic_gen.md 生成、寫回 topics.json（added＝當天），
+     所以新主題會出現在清單最上面那一段。note 是機器讀的結構化字串，Worker 端用同一套規則再擋一次。 */
+  const TG_BAD = /[;=<>\u0000-\u001f\u007f]/;
+  const nextRun = () => { const h = new Date(Date.now() + 8 * 3600e3).getUTCHours(); return h >= 23 || h < 8 ? '明早 08:05' : '下一輪整點 :05'; };
+  function tgState(v) {
+    const cats = CAT_KEYS.filter((k) => { const c = $(`#artTgPanel input[data-tgcat="${k}"]`, v); return c && c.checked; });
+    const n = Number(($('#artTgN', v) || {}).value), kw = String(($('#artTgKw', v) || {}).value || '').replace(/\s+/g, ' ').trim();
+    const err = !cats.length ? '至少勾一個類別' : !(Number.isInteger(n) && n >= 1 && n <= 5) ? '每類要 1～5 個' : TG_BAD.test(kw) ? '關鍵字不能有 ; = < > 這幾個符號' : kw.length > 40 ? '關鍵字最多 40 個字' : '';
+    return { cats, n, kw, err };
+  }
+  function tgSync(v) {
+    const st = tgState(v), go = $('#artTgGo', v), h = $('#artTgHint', v);
+    if (go) go.disabled = !!st.err;
+    if (!st.err) { const m = $('#artTpMsg', v); if (m && /^新增主題沒送出/.test(m.textContent)) tpMsg(v, ''); }   // 改對了就把上一次的錯誤提示收掉
+    if (h) { h.textContent = st.err || `會請 Claude 生成 ${st.cats.map((k) => CATS[k].t).join('、')} 各 ${st.n} 個主題${st.kw ? `，圍繞關鍵字「${st.kw}」` : ''}`; h.classList.toggle('err', !!st.err); }
+    return st;
+  }
+  function tgBind(v) {
+    const btn = $('#artTgBtn', v), pn = $('#artTgPanel', v); if (!btn || !pn) return;
+    const openP = (on) => { pn.hidden = !on; btn.setAttribute('aria-expanded', String(on)); btn.classList.toggle('on', on); };
+    btn.onclick = () => { openP(pn.hidden); if (!pn.hidden) tgSync(v); };
+    pn.addEventListener('change', () => tgSync(v));
+    $('#artTgKw', v).addEventListener('input', () => tgSync(v));
+    $('#artTgGo', v).onclick = async () => {
+      const st = tgSync(v);
+      if (st.err) { tpMsg(v, '新增主題沒送出：' + st.err, true); return; }
+      const go = $('#artTgGo', v); go.disabled = true;
+      const title = `新增主題：${st.cats.map((k) => TG_SHORT[k]).join('、')}（各 ${st.n} 個）`;
+      const note = `cats=${st.cats.join(',')};n=${st.n}${st.kw ? ';kw=' + st.kw : ''}`;
+      const r = await acctCall('/v1/articles/jobs/add', { topic_id: `gen-${Date.now()}`, kind: 'topics', title, note });
+      if (r && r.job) {
+        tpMsg(v, `已送出 #${r.job.id}：${title}${st.kw ? `，關鍵字「${st.kw}」` : ''}。` + (r.fired ? '已通知 Claude 生成主題，完成後會出現在清單最上面' : `Claude ${nextRun()}會生成主題，完成後會出現在清單最上面`));
+        $('#artTgKw', v).value = ''; openP(false);
+      } else {
+        tpMsg(v, r && r.error === 'preview_readonly' ? '預覽版不會真的送出（不改正式站的佇列）' : r && r._s === 403 ? '送出失敗：登入身分不是管理者（請重新登入）'
+          : r && r.error === 'bad_input' ? '新增主題沒送出：格式不對（請重新勾選類別與個數）' : '送出失敗：連不到會員伺服器，請稍後再試', true);
+      }
+      tgSync(v); await loadJobs(); paintTopics(v);
+    };
+    tgSync(v);
   }
 
   (window.TwSubRoutes = window.TwSubRoutes || []).push((head, rest) => {

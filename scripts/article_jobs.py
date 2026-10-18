@@ -189,6 +189,8 @@ def used_topics(jobs: list[dict], index_path: Path = INDEX) -> set[str]:
     except (OSError, ValueError):
         pass
     for j in jobs:
+        if j.get("kind") == "topics":   # 2026-10-17「新增主題」請求（gen-…）不是某一個主題，不算用掉任何候選
+            continue
         used.add(str(j.get("topic_id") or ""))
         note = str(j.get("note") or "")
         if "建議主題 " in note:
@@ -238,6 +240,7 @@ def main(argv=None) -> int:
     jobs = got.get("jobs") or []
     pub = published_topics()
     for j in list(jobs):
+        # 只有文章會自動標完成；kind=topics（新增主題，docs/articles/topic_gen.md）與短影片由 Claude 自己標 done
         if j.get("kind") == "article" and j.get("topic_id") in pub:
             r = call(base, token, {"op": "mark", "id": j["id"], "status": "done", "result": pub[j["topic_id"]]})
             print(f"#{j['id']} {j.get('title')} → 已上架 {pub[j['topic_id']]}（{r.get('error') or 'ok'}）")

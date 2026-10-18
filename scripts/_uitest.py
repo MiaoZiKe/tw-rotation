@@ -71815,14 +71815,14 @@ def t_articles_1014(b, base):
         const cols = [...document.querySelectorAll('#v-subadm .artadm table')].map(t => { const hs = [...t.querySelectorAll('thead th')].map(h => Math.round(h.getBoundingClientRect().left));
           const bad = [...t.querySelectorAll('tbody tr')].filter(tr => tr.children.length === hs.length).filter(tr => [...tr.children].some((td, i) => Math.abs(Math.round(td.getBoundingClientRect().left) - hs[i]) > 1)).length; return bad; });
         return { gapL: Math.round(r.left - m.left), gapR: Math.round(m.right - r.right), bad: cols }; }""")
-    ok(f"{T}：管理頁吃滿主欄（左右空白各 ≤ 24px）、三張表每一列的欄位都跟表頭對齊", lay["gapL"] <= 24 and lay["gapR"] <= 24 and all(x == 0 for x in lay["bad"]), lay)
+    ok(f"{T}：管理頁吃滿主欄（左右空白各 ≤ 24px）、兩張表每一列的欄位都跟表頭對齊（10-17 產出進度併進主題候選清單）", lay["gapL"] <= 24 and lay["gapR"] <= 24 and all(x == 0 for x in lay["bad"]), lay)
     # Andy 10-16：「文章管理 每個表格清單都需要限制長度，太長都使用拉Bar」
     sc = ap.evaluate("""() => [...document.querySelectorAll('#v-subadm .artadm .tbw')].map(w => { const mh = parseFloat(getComputedStyle(w).maxHeight); const r0 = w.getBoundingClientRect();
         const over = w.scrollHeight > w.clientHeight + 1; let headOk = true;
         if (over) { w.scrollTop = 300; const th = w.querySelector('thead th').getBoundingClientRect(); headOk = Math.abs(th.top - r0.top) <= 2; w.scrollTop = 0; }
         return { id: w.closest('.card').id, mh, h: Math.round(r0.height), over, oy: getComputedStyle(w).overflowY, headOk }; })""")
-    ok(f"{T}：三張表都限高（≤ 520px）、超過就表內出捲軸、往下捲表頭仍固定在上面；主題清單 {len(tops)} 筆一定超過要捲",
-       len(sc) == 3 and all(x["mh"] <= 520 and x["h"] <= 522 and x["oy"] == "auto" and x["headOk"] for x in sc) and any(x["id"] == "artAdmTopics" and x["over"] for x in sc), sc)
+    ok(f"{T}：兩張表都限高（≤ 520px）、超過就表內出捲軸、往下捲表頭仍固定在上面；主題清單 {len(tops)} 筆一定超過要捲",
+       len(sc) == 2 and all(x["mh"] <= 520 and x["h"] <= 522 and x["oy"] == "auto" and x["headOk"] for x in sc) and any(x["id"] == "artAdmTopics" and x["over"] for x in sc), sc)
     # 點閱統計（Andy 10-16：「新增統計數據……可以篩選族群 類型，需要將資訊可視化，並且圖表 排版格式follow 流量觀測」）
     ap.click("#artTabStats"); ap.wait_for_timeout(150)   # 10-16：統計數據搬進第二個分頁，要先切過去才看得到
     wait_until(ap, "() => !!document.querySelector('#artStDays')", 8000)
@@ -71880,7 +71880,7 @@ def t_articles_1014(b, base):
     gen = lambda: ap.evaluate("() => [document.getElementById('artGenArt').disabled, document.getElementById('artGenVid').disabled]")
     ok(f"{T}：還沒選主題 → 「產生精選文章」「產生短影片」兩顆反灰", gen() == [True, True], gen())
     ap.click("#artTpCats>button[data-cat=all]"); ap.wait_for_timeout(150)
-    tids = ap.evaluate("() => [...document.querySelectorAll('#artTpBody tr[data-tid]')].map(r => [r.dataset.tid, r.querySelector('.artbadge').textContent])")
+    tids = ap.evaluate("() => [...document.querySelectorAll('#artTpBody tr[data-tid]:not([data-custom])')].map(r => [r.dataset.tid, r.querySelector('.artbadge').textContent])")
     # 已經有文章上架的主題，狀態欄顯示「已上架」而不是「排隊中」→ 驗「排隊中」只挑還沒上架的主題（10-16 產出佇列開始真的上架文章）
     _pubt = {a.get("topic") for a in real if a.get("topic")}
     tids = [t for t in tids if t[0] not in _pubt]
@@ -71902,51 +71902,57 @@ def t_articles_1014(b, base):
     ap.fill("#artTpNote", "驗收補充"); ap.click("#artGenArt"); ap.wait_for_timeout(700)
     add = [x for x in api_log if x[1] == "/v1/articles/jobs/add"][n0:]
     st = ap.evaluate("""(ids) => ({ msg: document.getElementById('artTpMsg').textContent, sel: document.querySelectorAll('#artTpBody tr[aria-selected=true]').length,
-        chip: ids.map(id => { const c = document.querySelector(`#artTpBody tr[data-tid="${id}"] .js.queued`); return c ? [c.dataset.kind, c.querySelector('.kd').textContent, c.textContent] : null; }),
-        job: [...document.querySelectorAll('#artJobBody tr[data-job]')].map(r => r.querySelector('.kd').textContent) })""", [t[0] for t in pick])
-    ok(f"{T}：按「產生精選文章」→ 兩個主題各送一筆（補充都帶到）、提示「已送出 2 筆」、選取清空、兩列狀態都標「文章｜排隊中」、產出進度兩筆標「精選文章」",
+        chip: ids.map(id => { const c = document.querySelector(`#artTpBody tr[data-tid="${id}"] .jline[data-kind=article]`); return c ? [c.dataset.kind, c.querySelector('.kd').textContent, c.querySelector('.jcap').textContent] : null; }),
+        job: [...document.querySelectorAll('#artTpBody .jline[data-job]')].map(l => l.querySelector('.kd').textContent) })""", [t[0] for t in pick])
+    ok(f"{T}：按「產生精選文章」→ 兩個主題各送一筆（補充都帶到）、提示「已送出 2 筆」、選取清空、兩列進度欄都多一條「文章｜排隊中」（10-17 產出進度併進同一張表）",
        [x[2].get("topic_id") for x in add] == [t[0] for t in pick] and all(x[2].get("kind") == "article" and x[2].get("note") == "驗收補充" for x in add)
        and "已送出 2 筆" in st["msg"] and st["sel"] == 0 and all(c and c[0] == "article" and c[1] == "文章" and "排隊中" in c[2] for c in st["chip"])
-       and st["job"][:2] == ["精選文章", "精選文章"], [add, st])
+       and st["job"][:2] == ["文章", "文章"], [add, st])
     ap.click(f"#artTpBody tr[data-tid=\"{pick[0][0]}\"]"); ap.click("#artGenArt"); ap.wait_for_timeout(400)
-    st = ap.evaluate("() => ({ msg: document.getElementById('artTpMsg').textContent, n: document.querySelectorAll('#artJobBody tr[data-job]').length })")
+    st = ap.evaluate("() => ({ msg: document.getElementById('artTpMsg').textContent, n: document.querySelectorAll('#artTpBody .jline[data-job]').length })")
     ok(f"{T}：同主題再按一次 → 提示「已經在排隊」、不多排一筆", "已經在排隊" in st["msg"] and st["n"] == 2, st)
-    # 10-17 Andy：「日期要用線條區分」→ 同一天送出的請求上面只有一條日期分隔線，在第一列、寫今天（台北）的月／日與星期、上框線看得到
-    st = ap.evaluate("""() => { const b = document.getElementById('artJobBody'), s = [...b.querySelectorAll('tr.jdsep')];
-        return { n: s.length, first: b.firstElementChild && b.firstElementChild.classList.contains('jdsep'), t: s.map(r => r.textContent),
-                 bw: s[0] ? parseFloat(getComputedStyle(s[0].cells[0]).borderTopWidth) : 0,
-                 tm: [...b.querySelectorAll('tr[data-job]')].map(r => r.cells[5].textContent.slice(0, 5)) }; }""")
-    md = st["tm"][0] if st["tm"] else ""
-    wd = "一二三四五六日"[__import__("datetime").date(int(time.strftime("%Y")), int(md[:2] or 1), int(md[3:5] or 1)).weekday()] if md else "?"
-    ok(f"{T}：產出進度依日期分段（日期分隔線，跟送出時間同一天、星期對）", st["n"] == 1 and st["first"] and len(set(st["tm"])) == 1
-       and st["t"][0] == md.replace("-", "/") + f"（{wd}）" and st["bw"] >= 1, st)
-    if os.environ.get("TW_ART_JD_SHOT"):      # 看長相用：複製一份當「前一天」那段，截產出進度表
-        ap.evaluate("""() => { const b = document.getElementById('artJobBody'); const s = b.querySelector('tr.jdsep').cloneNode(true); s.cells[0].textContent = '10/16（五）';
-            b.append(s, ...[...b.querySelectorAll('tr[data-job]')].map(r => r.cloneNode(true))); b.closest('table').scrollIntoView(); }""")
-        ap.locator("#artJobBody").locator("xpath=ancestor::div[contains(@class,'tbw')]").screenshot(path=os.environ["TW_ART_JD_SHOT"])
+    # 10-17 Andy：「日期要用線條區分」＋「產出進度和上面這合併同一份清單」→ 合併後的表依日期分段（主題 added 與最新請求送出日取較新）：
+    #   剛送出請求的兩個主題跳到送出那天（假資料 1792130000000＝台北 10/16（五））那一段、在最上面；其他候選留在 10/14（二）那一段
+    st = ap.evaluate("""() => { const b = document.getElementById('artTpBody'), s = [...b.querySelectorAll('tr.jdsep')];
+        const sec = []; [...b.children].forEach(r => { if (r.classList.contains('jdsep')) sec.push([r.dataset.date, r.textContent, []]); else if (r.dataset.tid && sec.length) sec[sec.length - 1][2].push(r.dataset.tid); });
+        return { n: s.length, first: b.firstElementChild && b.firstElementChild.classList.contains('jdsep'), sec,
+                 bw: s[0] ? parseFloat(getComputedStyle(s[0].cells[0]).borderTopWidth) : 0 }; }""")
+    _jd = __import__("datetime").datetime.utcfromtimestamp(1792130000 + 8 * 3600).date()
+    _lab = lambda d: f"{d.month:02d}/{d.day:02d}（{'一二三四五六日'[d.weekday()]}）"
+    _adds = sorted({t.get("added", "") for t in tops}, reverse=True)
+    ok(f"{T}：主題候選清單依日期分段（新 → 舊）：第一段＝送出那天、只有剛送出的兩個主題；後面是主題 added 的日期、星期對、分隔線看得到",
+       st["first"] and st["bw"] >= 1 and len(st["sec"]) >= 2 and st["sec"][0][0] == _jd.isoformat() and st["sec"][0][1] == _lab(_jd)
+       and sorted(st["sec"][0][2]) == sorted(t[0] for t in pick) and [x[0] for x in st["sec"]] == sorted([x[0] for x in st["sec"]], reverse=True)
+       and all(x[1] == _lab(__import__("datetime").date.fromisoformat(x[0])) for x in st["sec"] if x[0]) and st["sec"][1][0] in _adds, st)
+    if os.environ.get("TW_ART_JD_SHOT"):
+        ap.locator("#artTpBody").locator("xpath=ancestor::div[contains(@class,'tbw')]").screenshot(path=os.environ["TW_ART_JD_SHOT"])
     ap.click(f"#artTpBody tr[data-tid=\"{pick[0][0]}\"]"); ap.click("#artGenVid"); ap.wait_for_timeout(400)
-    st = ap.evaluate(f"() => [...document.querySelectorAll('#artTpBody tr[data-tid=\"{pick[0][0]}\"] .js')].map(c => [c.dataset.kind, c.querySelector('.kd').textContent, c.textContent])")
-    ok(f"{T}：同一主題再按「產生短影片」→ 該列兩顆狀態，分別標「文章」「短影片」（Andy：產出狀態必須備註是文章還是短影片）",
+    st = ap.evaluate(f"() => [...document.querySelectorAll('#artTpBody tr[data-tid=\"{pick[0][0]}\"] .jline')].map(c => [c.dataset.kind, c.querySelector('.kd').textContent, c.querySelector('.jcap').textContent])")
+    ok(f"{T}：同一主題再按「產生短影片」→ 該列進度欄兩條，分別標「文章」「短影片」（Andy：產出狀態必須備註是文章還是短影片）",
        [x[0] for x in st] == ["article", "video"] and [x[1] for x in st] == ["文章", "短影片"], st)
-    ap.click("#artJobBody button[data-cancel]"); ap.wait_for_timeout(400)
-    st = ap.evaluate("() => [...document.querySelectorAll('#artJobBody tr[data-job]')].map(r => [r.querySelector('.kd').textContent, r.querySelector('.js:not(.kdc)').textContent])")
-    ok(f"{T}：產出進度最上面是「短影片」那筆；按「取消」→ 變「已取消」", st[0] == ["短影片", "已取消"] and len(st) == 3, st)
+    ap.click(f"#artTpBody tr[data-tid=\"{pick[0][0]}\"] .jop[data-kind=video] button[data-cancel]"); ap.wait_for_timeout(400)
+    st = ap.evaluate("() => [...document.querySelectorAll('#artTpBody .jline[data-job]')].map(l => [l.querySelector('.kd').textContent, l.querySelector('.jcap .js').textContent])")
+    ok(f"{T}：短影片那條旁邊按「取消」→ 變「已取消」、其他兩條文章不動（共 3 條）", ["短影片", "已取消"] in st and len(st) == 3 and st.count(["文章", "排隊中"]) == 2, st)
+    ok(f"{T}：按「取消」不會順便勾選那一列", ap.evaluate(f"() => document.querySelector('#artTpBody tr[data-tid=\"{pick[0][0]}\"]').getAttribute('aria-selected')") == "false", None)
     # 產出進度篩選（Andy 10-16：「產出進度也需要有篩選功能」）
-    JR = "() => [...document.querySelectorAll('#artJobBody tr[data-job]')].map(r => [r.querySelector('.kd').textContent, r.querySelector('.js:not(.kdc)').textContent, r.children[2].textContent])"
+    JR = "() => [...document.querySelectorAll('#artTpBody .jline[data-job]')].map(l => [l.querySelector('.kd').textContent, l.querySelector('.jcap .js').textContent, l.closest('tr').querySelector('td.l').textContent])"
     # 10-16 Andy：「清除」按了「沒作用」→ 沒篩選時反灰不能按、有篩選才亮、按完又反灰
     ok(f"{T}：產出進度沒有篩選時「清除」反灰不能按", ap.evaluate("() => document.getElementById('artJfClr').disabled"), None)
     ap.select_option("#artJfKind", "article"); ap.wait_for_timeout(150)
     ok(f"{T}：選了篩選 →「清除」亮起來可以按", not ap.evaluate("() => document.getElementById('artJfClr').disabled"), None)
     jr = ap.evaluate(JR)
-    ok(f"{T}：產出進度選「精選文章」→ 只剩 2 筆文章、計數 2／3", len(jr) == 2 and all(x[0] == "精選文章" for x in jr) and ap.evaluate("() => +document.getElementById('artJfCnt').dataset.n") == 2, jr)
+    # 計數算的是「有文章那一條」的主題：剛送出的 2 個＋已經上架（沒有請求紀錄、進度欄直接是已完成）的那幾個
+    _npub = len([t for t in tops if t.get("id") in _pubt])
+    ok(f"{T}：種類選「精選文章」→ 請求只剩 2 條文章、計數＝2＋已上架 {_npub} 個主題", len(jr) == 2 and all(x[0] == "文章" for x in jr)
+       and ap.evaluate("() => +document.getElementById('artJfCnt').dataset.n") == 2 + _npub == ap.evaluate("() => document.querySelectorAll('#artTpBody tr[data-tid]').length"), jr)
     ap.select_option("#artJfKind", ""); ap.select_option("#artJfSt", "cancelled"); ap.wait_for_timeout(150)
     jr = ap.evaluate(JR)
-    ok(f"{T}：狀態選「已取消」→ 只剩那 1 筆短影片", len(jr) == 1 and jr[0][:2] == ["短影片", "已取消"], jr)
+    ok(f"{T}：狀態選「已取消」→ 只剩那 1 條短影片", len(jr) == 1 and jr[0][:2] == ["短影片", "已取消"] and ap.evaluate("() => document.querySelectorAll('#artTpBody tr[data-tid]').length") == 1, jr)
     ap.select_option("#artJfSt", ""); ap.fill("#artJfQ", pick[1][0] and ap.evaluate(f"() => document.querySelector('#artTpBody tr[data-tid=\"{pick[1][0]}\"] td.l').textContent")[:4]); ap.wait_for_timeout(150)
     jr = ap.evaluate(JR)
     ok(f"{T}：搜尋主題關鍵字 → 只剩那個主題的請求", len(jr) == 1, jr)
     ap.fill("#artJfQ", "zzz查無"); ap.wait_for_timeout(150)
-    ok(f"{T}：產出進度查無 → 寫「沒有符合篩選條件的請求」", "沒有符合篩選條件" in ap.inner_text("#artJobBody"), ap.inner_text("#artJobBody"))
+    ok(f"{T}：搜尋查無 → 寫「沒有符合篩選條件的主題」", "沒有符合篩選條件" in ap.inner_text("#artTpBody"), ap.inner_text("#artTpBody"))
     ap.click("#artJfClr"); ap.wait_for_timeout(150)
     ok(f"{T}：產出進度按「清除」→ 3 筆都回來、篩選欄清空、「清除」又反灰", len(ap.evaluate(JR)) == 3
        and ap.evaluate("() => !document.getElementById('artJfKind').value && !document.getElementById('artJfSt').value && !document.getElementById('artJfQ').value && document.getElementById('artJfClr').disabled"), None)
@@ -71956,19 +71962,21 @@ def t_articles_1014(b, base):
     n1 = len([x for x in api_log if x[1] == "/v1/articles/jobs/add"])
     ap.click("#artCusArt"); ap.wait_for_timeout(500)
     add = [x for x in api_log if x[1] == "/v1/articles/jobs/add"][n1:]
-    st = ap.evaluate("() => ({ msg: document.getElementById('artTpMsg').textContent, v: document.getElementById('artCusT').value, top: (document.querySelector('#artJobBody tr[data-job]') || {}).textContent || '' })")
-    ok(f"{T}：自訂主題填字按「產生精選文章」→ 送一筆（topic_id＝c-news-…、標題＝填的字）、提示已送出、欄位清空、產出進度最上面是它",
+    st = ap.evaluate("() => { const r = document.querySelector('#artTpBody tr[data-tid]'); return { msg: document.getElementById('artTpMsg').textContent, v: document.getElementById('artCusT').value, top: r ? r.textContent : '', cus: !!(r && r.dataset.custom), tag: r ? (r.querySelector('.cus') || {}).textContent : '' }; }")
+    ok(f"{T}：自訂主題填字按「產生精選文章」→ 送一筆（topic_id＝c-news-…、標題＝填的字）、提示已送出、欄位清空、清單最上面多一列它（標「自訂」）",
        len(add) == 1 and str(add[0][2].get("topic_id", "")).startswith("c-news-") and add[0][2].get("title") == "今天新聞 馬斯克飛天電動車介紹" and add[0][2].get("kind") == "article"
-       and "已送出" in st["msg"] and st["v"] == "" and "馬斯克飛天電動車" in st["top"], [add, st])
-    TP = "() => [...document.querySelectorAll('#artTpBody tr[data-tid]')].map(r => ({ s: +r.dataset.score, c: (r.querySelector('.artbadge') || {}).textContent }))"
+       and "已送出" in st["msg"] and st["v"] == "" and "馬斯克飛天電動車" in st["top"] and st["cus"] and st["tag"] == "自訂", [add, st])
+    TP = "() => [...document.querySelectorAll('#artTpBody tr[data-tid]:not([data-custom])')].map(r => ({ s: +r.dataset.score, c: (r.querySelector('.artbadge') || {}).textContent, d: r.dataset.day }))"
+    # 合併後依日期分段：分數排序在「每一段裡面」排
+    _secs = lambda rows: [[r["s"] for r in rows if r["d"] == d] for d in dict.fromkeys(r["d"] for r in rows)]
     rows = ap.evaluate(TP)
-    ok(f"{T}：主題候選 {len(tops)} 筆全列出、分數高 → 低", len(rows) == len(tops) and [r["s"] for r in rows] == sorted([r["s"] for r in rows], reverse=True), rows[:8])
+    ok(f"{T}：主題候選 {len(tops)} 筆全列出、每個日期分段裡分數高 → 低", len(rows) == len(tops) and all(x == sorted(x, reverse=True) for x in _secs(rows)), rows[:8])
     ap.click("#artTpCats>button[data-cat=know]"); ap.wait_for_timeout(250)
     rows = ap.evaluate(TP); want = len([t for t in tops if t.get("cat") == "know"])
     ok(f"{T}：切「比比知識」→ 只剩知識 {want} 筆", len(rows) == want and all(r["c"] == "比比知識" for r in rows) and want != len(tops), rows)
     ap.click("#artTpSort"); ap.wait_for_timeout(250)
     rows = ap.evaluate(TP)
-    ok(f"{T}：按排序鈕 → 分數低 → 高", [r["s"] for r in rows] == sorted([r["s"] for r in rows]) and len(rows) == want, rows)
+    ok(f"{T}：按排序鈕 → 每段分數低 → 高", all(x == sorted(x) for x in _secs(rows)) and len(rows) == want, rows)
     if os.environ.get("TW_ART_SHOTS"):
         ap.click("#artTpCats>button[data-cat=all]"); ap.click("#artTpSort"); ap.wait_for_timeout(300)
         ap.screenshot(path=str(Path(os.environ["TW_ART_SHOTS"]) / "admin-1440.png"), full_page=True)
@@ -72044,7 +72052,7 @@ def t_art_tabs_1016(b, base):
         return p
 
     TABS = """() => { const V = (e) => !!e && e.getClientRects().length > 0; const t = [...document.querySelectorAll('#artAdmTabs>button')];
-        const ids = ['artAdmList', 'artAdmTopics', 'artAdmJobs', 'artSchedCard'];
+        const ids = ['artAdmList', 'artAdmTopics', 'artSchedCard'];   // 10-17 產出進度（artAdmJobs）併進主題候選清單
         return { tabs: t.map(x => x.textContent.trim()), on: t.filter(x => x.classList.contains('on')).map(x => x.dataset.t), topics: V(document.getElementById('artPanelTopics')), stats: V(document.getElementById('artPanelStats')),
                  order: ids.map(i => { const e = document.getElementById(i); return e ? Math.round(e.getBoundingClientRect().top + scrollY) : null; }), vis: ids.map(i => V(document.getElementById(i))),
                  old: document.querySelectorAll('#spkPickCard, #spkSchedCard, .spk, [id^=spk]').length }; }"""
@@ -72085,7 +72093,7 @@ def t_art_tabs_1016(b, base):
     wait_until(ap, "() => document.querySelectorAll('#artTpBody tr[data-tid]').length > 0 && !!document.getElementById('asdOn')", 20000); ap.wait_for_timeout(600)
     tb = ap.evaluate(TABS)
     ok(f"{T}：管理者開 #admin/articles → 兩個分頁「文章主題」「統計數據」、預設亮「文章主題」、統計數據藏起來", tb["tabs"] == ["文章主題", "統計數據"] and tb["on"] == ["topics"] and tb["topics"] and not tb["stats"], tb)
-    ok(f"{T}：文章主題由上到下＝已上架文章、主題候選清單、產出進度、產貼文頻率設定（Andy 圖二＋圖三＋新功能），四塊都看得到", all(tb["vis"]) and tb["order"] == sorted(tb["order"]) and None not in tb["order"], tb)
+    ok(f"{T}：文章主題由上到下＝已上架文章、主題候選清單（含產出進度，10-17 合併）、產貼文頻率設定，三塊都看得到、舊的產出進度表不在了", all(tb["vis"]) and ap.evaluate("() => !document.getElementById('artAdmJobs') && !document.getElementById('artJobBody')") and tb["order"] == sorted(tb["order"]) and None not in tb["order"], tb)
     ok(f"{T}：沒有「今日選題」「產主題設定」那套 GitHub Issue 流程（不留兩套送出方式），側欄管理區也沒有第二個入口", tb["old"] == 0 and ap.evaluate("() => document.querySelectorAll('.l4subtab[data-adm=social], #admTabSocial').length") == 0, tb["old"])
     # ---------------------------------------------------------------- ② 預設全空、關閉
     d0 = ss(ap)
@@ -72137,7 +72145,7 @@ def t_art_tabs_1016(b, base):
     want_all = "每天｜9:00 AM、2:00 PM、8:00 PM｜快訊 1、知識 2"
     ap.click("#asdDays .dd[data-d='2']"); ap.wait_for_timeout(100)   # 正在組的那一條（還沒加入）：切分頁後要還在
     # ---------------------------------------------------------------- ⑤ 兩分頁切換、重新整理
-    ap.click("#artTpBody tr[data-tid]:nth-child(1)"); ap.wait_for_timeout(150)
+    ap.click("#artTpBody tr[data-tid]:not([data-nosel])"); ap.wait_for_timeout(150)   # 10-17 合併後第一個子元素是日期分隔列，改點第一個可勾選的主題列
     sel0 = ap.evaluate("() => document.querySelectorAll('#artTpBody tr[aria-selected=true]').length")
     ap.click("#artTabStats"); ap.wait_for_timeout(300)
     wait_until(ap, "() => !!document.querySelector('#artStDays .dc')", 8000)

@@ -267,3 +267,33 @@ test('立即開工：送出就叫醒排程、2 分鐘防連打、沒鑰匙不叫
     assert.equal(e.j.fired, false); assert.equal(e.j.reason, 'empty'); assert.equal(fires.length, 2, '空佇列不叫');
   } finally { globalThis.fetch = orig; }
 });
+
+/* 2026-10-17 新增主題請求（kind:'topics'）：Andy 10-17「多新增一個新增主題 Btn……可以單選和多選分類，也可以我提供關鍵字你幫我生成主題」。
+   只收 gen-<時間戳> 的 id 與 cats=…;n=…[;kw=…] 的結構化 note；壞值一律 400；同 id 未完成不重排；機器路由讀得到、標得了 done。 */
+test('新增主題請求：結構化 note 才收、壞值擋、重複不排、機器路由讀得到並可標完成', async () => {
+  const { hub } = makeHub({ ...env, GOOGLE_CLIENT_ID: CID, BACKUP_TOKEN: BT });
+  const andy = await login(hub, 'andy@example.com'), bob = await login(hub, 'bob@example.com');
+  const ok1 = { t: andy, topic_id: 'gen-1792130000000', kind: 'topics', title: '新增主題：快訊、知識（各 3 個）', note: 'cats=news,know;n=3;kw=CoWoS 產能' };
+  assert.equal((await pj(hub, '/v1/articles/jobs/add', { ...ok1, t: bob })).s, 403, '非管理者不能排');
+  const bads = [
+    { topic_id: 'c-news-abc' }, { topic_id: 'gen-12' }, { topic_id: 'gen-abc1234567890' },
+    { note: '' }, { note: 'cats=;n=3' }, { note: 'cats=news;n=0' }, { note: 'cats=news;n=6' }, { note: 'cats=video;n=3' },
+    { note: 'cats=news,news;n=3' }, { note: 'cats=news,intro,know,news;n=3' }, { note: 'cats=news;n=3;kw=' },
+    { note: 'cats=news;n=3;kw=a;b' }, { note: 'cats=news;n=3;kw=x=y' }, { note: 'cats=news;n=3;kw=<script>' },
+    { note: 'cats=news;n=3;kw=' + '字'.repeat(41) }, { note: 'n=3;cats=news' }, { title: '' },
+  ];
+  for (const bad of bads) assert.equal((await pj(hub, '/v1/articles/jobs/add', { ...ok1, ...bad })).s, 400, '應擋：' + JSON.stringify(bad));
+  const a = await pj(hub, '/v1/articles/jobs/add', ok1);
+  assert.equal(a.s, 200); assert.equal(a.j.job.kind, 'topics'); assert.equal(a.j.job.note, 'cats=news,know;n=3;kw=CoWoS 產能'); assert.equal(a.j.job.status, 'queued');
+  // 單選、沒有關鍵字、三類全選也都收
+  for (const [id, note] of [['gen-1792130000001', 'cats=intro;n=1'], ['gen-1792130000002', 'cats=news,intro,know;n=5']]) {
+    assert.equal((await pj(hub, '/v1/articles/jobs/add', { ...ok1, topic_id: id, note })).s, 200, note);
+  }
+  assert.equal((await pj(hub, '/v1/articles/jobs/add', ok1)).j.dup, true, '同 id 未完成不重排');
+  const open = (await bot(hub, { op: 'open' })).j.jobs;
+  assert.deepEqual(open.map((j) => j.kind), ['topics', 'topics', 'topics']);
+  const done = await bot(hub, { op: 'mark', id: a.j.job.id, status: 'done', result: 'topics+6' });
+  assert.equal(done.j.job.status, 'done'); assert.equal(done.j.job.stage, 'done');
+  // 文章請求照舊
+  assert.equal((await pj(hub, '/v1/articles/jobs/add', { t: andy, topic_id: 'tsmc-q3', kind: 'article', title: '台積電法說會' })).s, 200);
+});
