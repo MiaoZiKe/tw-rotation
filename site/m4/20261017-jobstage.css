@@ -1,28 +1,30 @@
-/* 2026-10-17 管理區「精選文章 → 產出進度」手機版（≤640；桌機一條都不碰）
-   Andy 10-17：「這邊一直顯示排隊中，但我不清楚他狀況如何，所以多一個進度條，並且備註目前的階段 安排？製作？發布？等等」。
-   桌機是 7 欄表格（min-width 860，窄螢幕在表內橫向捲）；手機 390 那樣捲，進度欄會被推到畫面外 —— 正是 Andy 要看的那一欄看不到。
-   所以手機每筆改成一張卡：第一行 種類標籤＋送出時間＋編號、第二行 主題（最多 2 行）、第三行 進度條＋階段（吃滿寬）與操作鈕。
-   「補充」欄在手機收掉（手機準則 3：只留重點；主題標題列滑過看得到全文）。日期分隔線照舊一整條。 */
+/* 2026-10-17 管理區「精選文章 → 主題候選清單（含產出進度）」手機版（≤640；桌機一條都不碰）
+   Andy 10-17：「這邊一直顯示排隊中，但我不清楚他狀況如何，所以多一個進度條，並且備註目前的階段」；
+   同日稍晚：「產出進度和上面這合併同一份清單」→ 原本的「產出進度」表整個併進主題候選清單，這支跟著改成管合併後那一張表。
+   桌機是 8 欄表格（min-width 860，窄螢幕在表內橫向捲）；手機 390 那樣捲，進度欄會被推到畫面外 —— 正是 Andy 要看的那一欄看不到。
+   所以手機每個主題改成一張卡：第一行 勾選框＋類別（＋自訂）＋分數、第二行 標題（最多 2 行）、第三行 進度條（吃滿寬，一種產出一條）與操作鈕。
+   「理由／補充」「建議形式」在手機收掉（手機準則 3：只留重點；標題滑過看得到全文）。日期分隔線照舊一整條。 */
 @media (max-width:640px){
-  #v-subadm #artAdmJobs .tbw{overflow-x:hidden}
-  #v-subadm #artAdmJobs table{min-width:0;width:100%;display:block}
-  #v-subadm #artAdmJobs colgroup,#v-subadm #artAdmJobs thead{display:none}
-  #v-subadm #artAdmJobs tbody{display:flex;flex-direction:column;gap:8px;padding:8px}
-  #v-subadm #artAdmJobs tbody tr.jdsep{display:block}
-  #v-subadm #artAdmJobs tbody tr.jdsep{border:0}
-  #v-subadm #artAdmJobs tbody tr.jdsep>td{display:block;padding:4px 2px 2px;font-size:12px;border-bottom:0}
-  #v-subadm #artAdmJobs tbody tr[data-job]{display:grid;grid-template-columns:auto minmax(0,1fr) auto;grid-template-areas:"kind time id" "title title title" "prog prog op";gap:6px 10px;align-items:center;border:1px solid var(--line);border-radius:10px;background:var(--panel);padding:10px 12px}
-  #v-subadm #artAdmJobs tbody tr[data-job]>td{display:block;height:auto;padding:0;border:0;white-space:normal;overflow:visible;text-overflow:clip;text-align:left;min-width:0}
-  #v-subadm #artAdmJobs tbody tr[data-job]>td:nth-child(1){grid-area:id;font-size:12px;color:var(--ink-3)}
-  #v-subadm #artAdmJobs tbody tr[data-job]>td:nth-child(2){grid-area:kind}
-  #v-subadm #artAdmJobs tbody tr[data-job]>td:nth-child(3){grid-area:title;font-size:14.5px;line-height:1.4;color:var(--ink);display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden}
-  #v-subadm #artAdmJobs tbody tr[data-job]>td:nth-child(4){display:none}
-  #v-subadm #artAdmJobs tbody tr[data-job]>td.jpc{grid-area:prog}
-  #v-subadm #artAdmJobs tbody tr[data-job]>td:nth-child(6){grid-area:time;font-size:12px;color:var(--ink-2);white-space:nowrap}
-  #v-subadm #artAdmJobs tbody tr[data-job]>td:nth-child(7){grid-area:op;text-align:right;white-space:nowrap}
-  #v-subadm #artAdmJobs tbody tr[data-job]>td:nth-child(7) button.cx{height:32px;padding:0 12px}
-  #v-subadm #artAdmJobs tbody tr:not([data-job]):not(.jdsep)>td{display:block;padding:12px;height:auto;white-space:normal}
-  #v-subadm #artAdmJobs .jprog .jbar{height:8px}
-  #v-subadm #artAdmJobs .jprog .jcap{font-size:12px;white-space:normal}
-  #v-subadm #artAdmJobs .aflt button.clr{height:32px}
+  #v-subadm #artAdmTopics .tbw{overflow-x:hidden}
+  #v-subadm #artAdmTopics table{min-width:0;width:100%;display:block}
+  #v-subadm #artAdmTopics colgroup,#v-subadm #artAdmTopics thead{display:none}
+  #v-subadm #artAdmTopics tbody{display:flex;flex-direction:column;gap:8px;padding:8px}
+  #v-subadm #artAdmTopics tbody tr.jdsep{display:block;border:0}
+  #v-subadm #artAdmTopics tbody tr.jdsep>td{display:block;padding:4px 2px 2px;font-size:12px;border-bottom:0}
+  #v-subadm #artAdmTopics tbody tr[data-tid]{display:grid;grid-template-columns:auto minmax(0,1fr) auto;grid-template-areas:"sel cat score" "title title title" "prog prog op";gap:6px 10px;align-items:center;border:1px solid var(--line);border-radius:10px;background:var(--panel);padding:10px 12px}
+  #v-subadm #artAdmTopics tbody tr[data-tid]>td{display:block;height:auto;padding:0;border:0;white-space:normal;overflow:visible;text-overflow:clip;text-align:left;min-width:0}
+  #v-subadm #artAdmTopics tbody tr[data-tid]>td:nth-child(1){grid-area:sel}
+  #v-subadm #artAdmTopics tbody tr[data-tid]>td:nth-child(2){grid-area:score;font-size:12px}
+  #v-subadm #artAdmTopics tbody tr[data-tid]>td:nth-child(3){grid-area:cat}
+  #v-subadm #artAdmTopics tbody tr[data-tid]>td:nth-child(4){grid-area:title;font-size:14.5px;line-height:1.4;color:var(--ink);display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden}
+  #v-subadm #artAdmTopics tbody tr[data-tid]>td:nth-child(5),#v-subadm #artAdmTopics tbody tr[data-tid]>td:nth-child(6){display:none}
+  #v-subadm #artAdmTopics tbody tr[data-tid]>td.jpc{grid-area:prog;padding:0}
+  #v-subadm #artAdmTopics tbody tr[data-tid]>td.jopc{grid-area:op;text-align:right;white-space:nowrap;padding:0}
+  #v-subadm #artAdmTopics tbody tr[data-tid]>td.jopc button.cx{height:32px;padding:0 12px}
+  #v-subadm #artAdmTopics tbody tr:not([data-tid]):not(.jdsep)>td{display:block;padding:12px;height:auto;white-space:normal}
+  #v-subadm #artAdmTopics .jline,#v-subadm #artAdmTopics .jop{min-height:40px}
+  #v-subadm #artAdmTopics .jprog .jbar{height:8px}
+  #v-subadm #artAdmTopics .jprog .jcap{font-size:12px;white-space:normal}
+  #v-subadm #artAdmTopics .aflt button.clr{height:32px}
+  #v-subadm #artAdmTopics .aflt input[type=search]{flex:1 1 160px;width:auto}
 }

@@ -69,7 +69,7 @@ export function installArticles(Hub, EXPORT_TABLES) {
            GitHub Actions（article-jobs.yml，帶 BACKUP_TOKEN）每小時把未完成的同步進 repo（data/_state/article_jobs.json）→
            Claude 排程讀那支檔撰寫、推上 main → 再透過同一支工作流標 working／done（result＝文章 id）。
      · 管理者路由（Origin 白名單＋管理者權杖）：
-         /v1/articles/jobs/add    {t, topic_id, kind:'article'|'video', title, note?} → {ok, job, dup?}
+         /v1/articles/jobs/add    {t, topic_id, kind:'article'|'video'|'topics', title, note?} → {ok, job, dup?, fired}
          /v1/articles/jobs/list   {t} → {jobs:[…最近 200 筆]}
          /v1/articles/jobs/cancel {t, id} → 只有 queued 能取消
      · 機器路由（不檢查 Origin，只認 Authorization: Bearer <ARTICLE_BOT_KEY 或 BACKUP_TOKEN>）：
@@ -85,7 +85,19 @@ export function installArticles(Hub, EXPORT_TABLES) {
      同一個主題＋同一種產出還沒完成時再按，不重複排（回 dup:true 與原本那筆）。未完成的最多 100 筆。
      ========================================================================== */
   if (EXPORT_TABLES && !EXPORT_TABLES.includes('article_jobs')) EXPORT_TABLES.push('article_jobs');
-  const KINDS = ['article', 'video'], MARKS = ['working', 'done', 'failed'], OPEN_MAX = 100;
+  /* 2026-10-17 加 'topics'＝「請 Claude 生成新的主題候選」（Andy 10-17：「多新增一個新增主題 Btn……可以單選和多選分類，也可以我提供關鍵字你幫我生成主題」）。
+     它不是文章：topic_id 一律 gen-<毫秒時間戳>、note 一律結構化字串 cats=<類別,…>;n=<1～5>[;kw=<關鍵字>]（docs/articles/topic_gen.md 照這個解析），
+     格式不對就 400 —— Claude 排程讀到的一定是解析得了的東西。重複檢查照舊（同 id＋同種類未完成不重排）。 */
+  const KINDS = ['article', 'video', 'topics'], MARKS = ['working', 'done', 'failed'], OPEN_MAX = 100;
+  const GEN_RE = /^gen-\d{10,16}$/;
+  const GEN_NOTE_RE = /^cats=(news|intro|know)(,(news|intro|know)){0,2};n=[1-5](;kw=[^;=<>\u0000-\u001f\u007f]{1,40})?$/;
+  const genOk = (topic, note) => {
+    if (!GEN_RE.test(topic) || !GEN_NOTE_RE.test(note)) return false;
+    const cats = note.slice(5).split(';')[0].split(',');
+    if (new Set(cats).size !== cats.length) return false;   // cats=news,news 這種重複的也擋
+    const kw = (note.split(';kw=')[1] || '');
+    return !kw || kw.trim() === kw;                          // 關鍵字頭尾不准留空白（前端已 trim；手打 API 的才會撞到）
+  };
   const STAGES = ['plan', 'research', 'write', 'illus', 'review', 'publish'];
   const TOPIC_RE = /^[A-Za-z0-9._-]{1,80}$/;
   const clip = (x, n) => String(x == null ? '' : x).replace(/[\u0000-\u001f\u007f]/g, ' ').trim().slice(0, n);
@@ -130,13 +142,14 @@ export function installArticles(Hub, EXPORT_TABLES) {
       this.artInit();
       const topic = String(b.topic_id || ''), kind = String(b.kind || ''), title = clip(b.title, 120), note = clip(b.note, 500);
       if (!TOPIC_RE.test(topic) || !KINDS.includes(kind) || !title) return this.json(req, { error: 'bad_input' }, 400);
+      if (kind === 'topics' && !genOk(topic, note)) return this.json(req, { error: 'bad_input' }, 400);
       const dup = this.q("SELECT id FROM article_jobs WHERE topic_id = ? AND kind = ? AND status IN ('queued','working') ORDER BY id DESC LIMIT 1", topic, kind)[0];
       if (dup) return this.json(req, { ok: true, dup: true, job: jobOf(this, dup.id) });
       if (this.q("SELECT COUNT(*) AS c FROM article_jobs WHERE status IN ('queued','working')")[0].c >= OPEN_MAX) return this.json(req, { error: 'too_many' }, 429);
       const now = this.now();
       this.q("INSERT INTO article_jobs (topic_id, kind, title, note, status, created, updated, by) VALUES (?, ?, ?, ?, 'queued', ?, ?, ?)", topic, kind, title, note, now, now, String(v.user.uid || ''));
       const id = this.q('SELECT last_insert_rowid() AS id')[0].id;
-      const fired = await this.artFire(`管理區新請求 #${id}`);
+      const fired = await this.artFire(kind === 'topics' ? `管理區新增主題請求 #${id}` : `管理區新請求 #${id}`);
       return this.json(req, { ok: true, job: jobOf(this, id), fired });
     },
     /* 「立即開工」：佇列裡有排隊中的就叫醒 Claude 排程（沒排隊的不叫，免得白跑一輪） */
