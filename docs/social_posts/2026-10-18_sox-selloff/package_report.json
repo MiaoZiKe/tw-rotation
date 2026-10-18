@@ -1,0 +1,105 @@
+{
+  "pages": [
+    {
+      "page": 1,
+      "size": [
+        1122,
+        1402
+      ],
+      "bytes": 1932709,
+      "sha256": "15cedce980b943c15ff4fb5dd5f683ea897697c50cdb3f57f7ca3e7e480850eb"
+    },
+    {
+      "page": 2,
+      "size": [
+        1122,
+        1402
+      ],
+      "bytes": 1899273,
+      "sha256": "168da9d084b2af3826214960d8fbd2f60e562bd90e9d5f0b3022110bf92532df"
+    },
+    {
+      "page": 3,
+      "size": [
+        1122,
+        1402
+      ],
+      "bytes": 1891044,
+      "sha256": "2bcde071ba7a0f8b93ec964a0c03da1835fccccaeb9f34931d8105f2aeebc4da"
+    },
+    {
+      "page": 4,
+      "size": [
+        1122,
+        1402
+      ],
+      "bytes": 2065586,
+      "sha256": "64ee2cbeb47fa999f0950875e942607bd3080e43c8fbb3d38a0548f448a756f5"
+    },
+    {
+      "page": 5,
+      "size": [
+        1122,
+        1402
+      ],
+      "bytes": 1955874,
+      "sha256": "7c07256c39b2f892de8fdfacc96783651b048e3628fdb0b196c390a3cea8e554"
+    },
+    {
+      "page": 6,
+      "size": [
+        1122,
+        1402
+      ],
+      "bytes": 1965900,
+      "sha256": "b5626c11e515eece0450938604989ee259f92c6a68749883c8a33ff7e3d246a2"
+    },
+    {
+      "page": 7,
+      "size": [
+        1122,
+        1402
+      ],
+      "bytes": 1962888,
+      "sha256": "caaec09ac3d51c95d9156a4e0fd045f66ab06337e810e0bc734d585c381922a2"
+    },
+    {
+      "page": 8,
+      "size": [
+        1122,
+        1402
+      ],
+      "bytes": 2035850,
+      "sha256": "ec265e85ba74ba84f1516afa0774953e5d06bb70f3dd9da09fb55398f7097ad2"
+    },
+    {
+      "page": 9,
+      "size": [
+        1122,
+        1402
+      ],
+      "bytes": 2023383,
+      "sha256": "625ebba300779cb6fe7df3c63ef33d23a414a420162a24141035f5154a280244"
+    },
+    {
+      "page": 10,
+      "size": [
+        1122,
+        1402
+      ],
+      "bytes": 2005094,
+      "sha256": "868103ba98b29207b665f788f79a791766e8f832e3d6fb236ab6fe941b2aa492"
+    }
+  ],
+  "threads_parts": 5,
+  "zip_crc_pass": true,
+  "cloud_entries": 19,
+  "cloud_uploaded": true,
+  "cloud_record_url": "https://bibi-creative-studio.kcq01010909.chatgpt.site/?date=date&sort=new&item=ab0ae0a6-722d-4525-b09b-7996897e3954",
+  "cloud_status": "待審核",
+  "cloud_pages_verified": 10,
+  "cloud_captions_verified": [
+    "instagram",
+    "threads"
+  ]
+}

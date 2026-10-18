@@ -1,0 +1,141 @@
+{
+  "title": "費半近期急跌｜平台文案品管",
+  "date": "2026-10-18 Asia/Taipei",
+  "status": "文案完成，圖檔未更動",
+  "files": [
+    "facebook.md",
+    "instagram.md",
+    "threads.md",
+    "caption.md"
+  ],
+  "threads": [
+    {
+      "number": 1,
+      "unicode_codepoints": 331,
+      "utf16_code_units": 332,
+      "under_500": true,
+      "includes_own_urls": true
+    },
+    {
+      "number": 2,
+      "unicode_codepoints": 391,
+      "utf16_code_units": 392,
+      "under_500": true,
+      "includes_own_urls": true
+    },
+    {
+      "number": 3,
+      "unicode_codepoints": 264,
+      "utf16_code_units": 265,
+      "under_500": true,
+      "includes_own_urls": true
+    },
+    {
+      "number": 4,
+      "unicode_codepoints": 305,
+      "utf16_code_units": 307,
+      "under_500": true,
+      "includes_own_urls": true
+    },
+    {
+      "number": 5,
+      "unicode_codepoints": 384,
+      "utf16_code_units": 385,
+      "under_500": true,
+      "includes_own_urls": true
+    }
+  ],
+  "count_scope": "實際發文正文含空白、換行、emoji與URL；不含Markdown編輯標題和分隔線。",
+  "checks": {
+    "traditional_chinese": true,
+    "functional_emoji": true,
+    "facebook_instagram_separate": true,
+    "threads_official_name": true,
+    "platform_utm": true,
+    "utm_before_hash": true,
+    "fixed_disclaimer_at_end": true,
+    "date_timeframes_separated": true,
+    "reuters_approx_numbers_not_recalculated": true,
+    "oct15_intraday_not_used_as_close": true,
+    "inflation_not_actual_rate_hike": true,
+    "stop_conditions_not_confirmed_reversal": true,
+    "three_conditional_scenarios_no_targets": true,
+    "rsi_no_current_value_claimed": true,
+    "no_stock_recommendations": true,
+    "no_unverified_streak_flows_marketcap": true,
+    "no_image_changes": true,
+    "all_card_sources_in_copy": true,
+    "tsmc_company_statement_not_sector_conclusion": true,
+    "technical_education_not_strategy_validation": true
+  },
+  "numeric_claims": [
+    {
+      "claim": "SOX 11,137.29點；單日-3.83%",
+      "period": "2026-10-16 美東收盤",
+      "source": "https://indexes.nasdaqomx.com/Index/Overview/SOX",
+      "evidence": "本代理實際開啟Nasdaq官方頁面，as of10/16；未使用頁面不一致Previous Close做推算"
+    },
+    {
+      "claim": "10月約跌12%；年初至今仍約漲57%",
+      "period": "Reuters10/16原稿，10/18刊載時的報導約數",
+      "source": "https://www.investing.com/news/stock-market-news/as-ai-rally-wobbles-stock-markets-spotlight-turns-to-earnings-4955913",
+      "evidence": "總編已實讀查核摘要；本代理該URL兩次Internal Error，未假稱自行讀到全文，不做重新精算"
+    },
+    {
+      "claim": "CPI年增3.7%與8月3.4%；9月季調月增0.6%",
+      "period": "2026-09 CPI；BLS2026-10-14發布",
+      "source": "https://www.bls.gov/news.release/archives/cpi_10142026.htm",
+      "evidence": "本代理已開啟BLS官方原文181–196行"
+    }
+  ],
+  "source_reading": [
+    {
+      "url": "https://indexes.nasdaqomx.com/Index/Overview/SOX",
+      "status": "本代理實讀官方頁"
+    },
+    {
+      "url": "https://www.investing.com/news/stock-market-news/us-chip-stocks-set-to-wipe-out-2-trillion-after-latest-selloff-4952088",
+      "status": "本代理實讀Reuters署名原稿轉載"
+    },
+    {
+      "url": "https://www.investing.com/news/stock-market-news/as-ai-rally-wobbles-stock-markets-spotlight-turns-to-earnings-4955913",
+      "status": "依總編已查核摘要；本代理open兩次Internal Error"
+    },
+    {
+      "url": "https://www.bls.gov/news.release/archives/cpi_10142026.htm",
+      "status": "本代理實讀官方頁，核年增與季調月增"
+    },
+    {
+      "url": "https://www.fidelity.com/learning-center/trading-investing/technical-analysis/technical-indicator-guide/RSI",
+      "status": "本代理實讀Fidelity官方RSI教育頁248行，強趨勢超賣可持續"
+    },
+    {
+      "url": "https://investor.tsmc.com/english/quarterly-results/2026/q3",
+      "status": "本代理開啟官方季度頁；管理層原話由總編已實讀官方PDF查核，沒有假稱本代理讀到PDF全文"
+    },
+    {
+      "url": "https://www.schwab.com/learn/story/breadth-check-strength-and-weakness-trend-tracker",
+      "status": "本代理實開官方頁，核廣度參與及非單一訊號限制"
+    },
+    {
+      "url": "https://media.fidelity.com/assets/Fidelity.com_VMS/756/898/TA_Session_2_Transcript.pdf",
+      "status": "本代理實開官方PDF文字，核較高高點/低點的趨勢說明，非策略回測"
+    }
+  ],
+  "framework_attribution": "價格結構／市場廣度／財報及利率壓力、三情境為本站整理的條件框架；沒有提供當前達成數據、機率或預測點位。",
+  "notes": "caption.md為平台索引，雲端IG文案應讀instagram.md而非索引。未製ZIP、未發布社群。",
+  "revision_date": "2026-10-19 Asia/Taipei",
+  "data_cutoff": "2026-10-18 Asia/Taipei；未宣稱10/19新增行情",
+  "platform_lengths": {
+    "facebook.md": {
+      "unicode_codepoints": 1889,
+      "utf16_code_units": 1894
+    },
+    "instagram.md": {
+      "unicode_codepoints": 1890,
+      "utf16_code_units": 1895
+    }
+  },
+  "instagram_under_2200": true,
+  "revision_notes": "圖卡來源移至文案，FB/IG補TSMC/Schwab/Fidelity講座三URL，Threads改五則一致編號；圖片未改。"
+}
