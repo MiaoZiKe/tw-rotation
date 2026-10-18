@@ -29,7 +29,7 @@
 - ✅ 文章圖表 signed／refs／bands（精選文章圖表擴充1017）＋統一成網站圖表庫款式（同段落第 ⑧ 項）。⚠ 橫條改單色，蓋掉 10-16「色彩豐富」，已告知 Andy。
 - ✅ 排程：每小時新對話（trig_01JSw5RrpyD94edAaUY69HMo，08:05～23:05，已掛 repo 才有 GitHub MCP）＋送出請求立即叫醒（Worker ROUTINE_FIRE_TOKEN，Andy 已在 Cloudflare 設；/v1/articles/jobs/kick）。快速流程卡第 2 版＋docs/articles/visual_playbook.md；撰寫用 sonnet。
 - 🔄 10-18 00:3x 已上架文章拿掉「傳給 GPT」（Andy：「上方這邊拿掉」「這功能不需要了」；main 6ef49698；刪 site/gpthandoff.js）。這批只驗：文章主題兩分頁1016（⑧ 改驗功能不存在）、精選文章1014、桌機守門1008。
-- 🛠️ 主題候選每日 3×3 更新＋日期分段＋「新增主題」鈕＋產出進度併入主題清單：agent 在分支 topics-1017 做，完成後合併並改排程提示詞（docs/articles/topic_gen.md）。
+- 🔄 10-18 主題候選清單：依日期分段、「＋ 新增主題」鈕（Worker kind topics）、產出進度併入同一張表、每日 14:05 後自動生成 3×3（docs/articles/topic_gen.md，排程提示詞已改）。這批驗了：精選文章1014、文章主題兩分頁1016、產出進度階段1017、新增主題1017、桌機守門1008（agent 跑）、pytest 全綠、worker 178 測試。
 - 待處理：visual_playbook 第 7 節（分享封面圖、資料湖補費半／VIX／信用利差長歷史、甜甜圈、族群熱力格）；_preview #industry/ai_server 800 寬交疊、流量觀測1005 堆疊色斷言（皆既有）；legal-compliance 看 playbook 第 4 節標題規則。
 
 ## 2026-10-17 03:1x 短影片 #4「CPO 共同封裝光學是什麼？」完成（main 87a22a79）
