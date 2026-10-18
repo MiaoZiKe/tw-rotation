@@ -33,6 +33,7 @@
   /* 保留：完全相同的鍵 */
   var KEEP = [
     'tw.theme', 'tw.theme4', 'tw.layout4.nav', 'tw.dg3d.pal',          // 主題與外觀
+    'tw.themeOv', 'tw.themeMig',                                       // 2026-10-18 手動明暗（到下一個切換點為止）、舊偏好已遷移過（DECISIONS #360）
     'tw.acct.tok', 'tw.acct.user', 'tw.acct.n', 'tw.sess', 'tw.perm',  // 登入、帳號、權限（tw.acct.n／tw.sess 在 sessionStorage）
     'tw.watch', 'tw.watchlists', 'tw.watchlists.u', 'tw.watchcur',     // 自選清單（含目前在第幾頁）
     'tw.draw.style',                                                   // 畫筆樣式（手繪物件本身見下面前綴）
