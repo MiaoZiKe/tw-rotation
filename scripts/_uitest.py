@@ -37632,6 +37632,11 @@ KEEPVIEW_PRESET = ("try{if(sessionStorage.getItem('__tw_real_reset')==='1'){sess
                    "else{window.TW_KEEP_VIEW=true;}}catch(e){window.TW_KEEP_VIEW=true;}")
 if os.environ.get("TW_UITEST_REALRESET") != "1":
     CONSENT_PRESET += KEEPVIEW_PRESET
+# ★ 2026-10-18 主題自動切換（DECISIONS #360，site/index.html 的 TWTA）：正式站沒手動選過＝看時鐘（00:00～04:59 深色、其餘淺色）。
+#   這支驗收幾百段是照「沒存＝深色、tw.theme 永久有效」寫的（桌機守門1008 的基準也是深色），
+#   不釘住的話同一段在白天跑跟半夜跑結果不同。所以每一頁（含 _tw_raw_new_* 開的乾淨頁）一律注入 TW_THEME_LEGACY=1 ＝ 舊行為。
+#   真的要驗自動切換的段落（主題自動切換1018）用 Browser._tw_orig_new_context（完全沒包過的原版）開頁，自己布置時鐘。
+THEME_PIN = "window.TW_THEME_LEGACY=1;"
 # ★ 2026-10-06 即時僅管理者（DECISIONS #326，site/livegate.js）：盤中即時改成只有管理者帳號看得到、也只有管理者會打報價。
 #   這支驗收裡有幾十段在驗即時（報價每 5 秒、卡片開關、族群即時模式、大盤卡、夜盤、個股分 K…），寫的時候即時是人人都有 ——
 #   它們驗的正是「管理者看到的樣子」。所以預設替每一頁注入 TW_LIVE_OVERRIDE=true（livegate.js 只在 127.0.0.1／localhost 認這個後門），
@@ -37671,18 +37676,30 @@ def _preset_consent() -> None:
     from playwright.sync_api import Browser
     if getattr(Browser, "_tw_consent", False):
         return
-    raw_page, raw_ctx = Browser.new_page, Browser.new_context
+    orig_page, orig_ctx = Browser.new_page, Browser.new_context
+
+    # 「原版」（同意條款、預覽版前綴那幾段用的乾淨頁）也釘住明暗：它們驗的是訪客視角，不是「現在幾點」
+    def raw_page(self, *a, **k):
+        pg = orig_page(self, *a, **k)
+        pg.add_init_script(THEME_PIN)
+        return pg
+
+    def raw_ctx(self, *a, **k):
+        c = orig_ctx(self, *a, **k)
+        c.add_init_script(THEME_PIN)
+        return c
 
     def new_page(self, *a, **k):
-        pg = raw_page(self, *a, **k)
-        pg.add_init_script(CONSENT_PRESET + LIVE_ADMIN_PRESET)
+        pg = orig_page(self, *a, **k)
+        pg.add_init_script(THEME_PIN + CONSENT_PRESET + LIVE_ADMIN_PRESET)
         return pg
 
     def new_context(self, *a, **k):
-        c = raw_ctx(self, *a, **k)
-        c.add_init_script(CONSENT_PRESET + LIVE_ADMIN_PRESET)
+        c = orig_ctx(self, *a, **k)
+        c.add_init_script(THEME_PIN + CONSENT_PRESET + LIVE_ADMIN_PRESET)
         return c
 
+    Browser._tw_orig_new_page, Browser._tw_orig_new_context = orig_page, orig_ctx
     Browser._tw_raw_new_page, Browser._tw_raw_new_context = raw_page, raw_ctx
     Browser.new_page, Browser.new_context = new_page, new_context
     Browser._tw_consent = True
