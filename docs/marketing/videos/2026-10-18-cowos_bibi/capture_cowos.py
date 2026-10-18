@@ -87,7 +87,7 @@ def page(pw, blur=True):
 
 SHOTS = {
     # id: (hash, 捲動起點 px, 捲動終點 px, 秒數)
-    "theme": ("#heatmap/theme/cowos", 240, 800, 7.0),
+    "theme": ("#heatmap/theme/cowos", 200, 800, 7.0),
 }
 
 

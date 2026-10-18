@@ -278,7 +278,7 @@ class Line:
             pos = k + len(p)
             out.append([p, self.start + self.char_t[k], None, k])
         for i in range(len(out)):
-            out[i][2] = out[i + 1][1] if i + 1 < len(out) else self.end + 0.15
+            out[i][2] = out[i + 1][1] if i + 1 < len(out) else self.end + 0.1
             raw = out[i][0]
             lead = len(raw) - len(raw.lstrip())
             s = raw.strip()
@@ -310,9 +310,12 @@ def build_timeline():
         t += GAP_SCENE
     # 段落起訖：內容提早 0.35 秒進場；段尾＝下一段起點
     starts = []
-    for sc in SCENES:
-        s = LINES[sc[1][0]].start - 0.35
-        starts.append(0.0 if not starts else s)
+    for i, sc in enumerate(SCENES):
+        if i == 0:
+            starts.append(0.0)
+            continue
+        prev_end = LINES[SCENES[i - 1][1][-1]].end
+        starts.append(max(prev_end + 0.2, LINES[sc[1][0]].start - 0.35))   # 上一句講完才換段
     last = LINES["L15"]
     TOTAL = round((last.start - 0.3 + END_HOLD + 0.1) * FPS) / FPS
     TOTAL = max(TOTAL, last.end + 1.0)
@@ -1070,7 +1073,7 @@ def render(t):
         sc, s0, s1 = cur
         lids = sc[1]
         b0 = LINES[lids[0]].start - 0.12
-        b1 = min(s1 - 0.12, LINES[lids[-1]].end + 0.5) if sc[0] != "end" else s1
+        b1 = min(s1 - 0.04, LINES[lids[-1]].end + 0.5) if sc[0] != "end" else s1
         if b0 <= t < b1:
             a = min(clamp((t - b0) / 0.18), clamp((b1 - t) / 0.12))
             names = acts_between(b0, b1)
@@ -1121,10 +1124,10 @@ def make_cover(path):
         ex = 30 if k == 2 else 0
         reg.add(f"封面字{k + 1}", (x - ex, y - (22 if k == 2 else 0), x + tw + ex, y + th + (26 if k == 2 else 0)))
         reg.text_in(f"封面字{k + 1}", (x, y, x + tw, y + th), (0, 0, W, H), inset=30)
-    size = 760
+    size = 900
     i = len(bibi_frames("talk_excited")) // 2
     sp = bibi_scaled("talk_excited", i, size)
-    ox, oy = int(W / 2 - 248 * size / 512), int(1720 - 482 * size / 512)
+    ox, oy = int(W / 2 - 248 * size / 512), int(1610 - 482 * size / 512)
     cv.alpha_composite(sp, (ox, oy))
     b = bibi_bbox("talk_excited", i, size)
     reg.add("比比", (ox + b[0], oy + b[1], ox + b[2], oy + b[3]))
