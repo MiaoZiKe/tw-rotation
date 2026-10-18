@@ -2095,7 +2095,7 @@ ${gs.length ? `<section><h5>熱門族群</h5><div class="gps">${gs.map((g) => `<
     else if (j.status === 'cancelled') { tone = 'cancelled'; key = 'cancelled'; lab = '已取消'; tail = when(j.updated || j.created); }
     else if (j.status === 'failed') { tone = 'failed'; key = sg || 'queued'; lab = '失敗'; tail = (sg ? `卡在${STG[sg][0]}・` : '') + at; }
     else if (j.status === 'working') { tone = 'working'; key = sg || 'plan'; lab = STG[key][0]; tail = at; }
-    else { tone = 'queued'; key = 'queued'; lab = '排隊中'; tail = (() => { const h = new Date(Date.now() + 8 * 3600e3).getUTCHours(); return h >= 23 || h < 8 ? '明早 08:05 開工' : '下一輪 :05 開工'; })(); }
+    else { tone = 'queued'; key = 'queued'; lab = '排隊中'; tail = (() => { const h = new Date(Date.now() + 8 * 3600e3).getUTCHours(); if (h >= 23 || h < 8) return '明早 08:05 開工'; return Date.now() - Number(j.created) < 15 * 60e3 ? '已通知 Claude・準備開工' : '下一輪 :05 開工'; })(); }   /* 白天送出會立刻叫醒排程（Worker artFire），剛送出的不寫「下一輪」免得 Andy 以為要等 */
     const pct = j.status === 'cancelled' ? 0 : STG[key][1];
     const aria = `${lab}${tail ? '・' + tail : ''}（${pct}%）`;
     return `<div class="jprog" data-tone="${tone}" data-stage="${esc(key)}" data-pct="${pct}" title="${esc(aria)}">`

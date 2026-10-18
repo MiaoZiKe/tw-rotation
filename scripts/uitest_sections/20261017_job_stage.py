@@ -130,8 +130,8 @@ def t_job_stage_1017(b, base):
                 # ① 排一筆 → 排隊中：灰空條、「排隊中・下一輪 :05 開工」
                 ja = add_custom(f"進度條驗收A-{W}")
                 st = pg.evaluate(PROG, ja)
-                ok(f"{TW}：畫面上排一筆 → 進度欄寫「排隊中・下一輪 :05 開工」、空條（0%）、灰色", bool(st) and st["tone"] == "queued" and st["pct"] == 0
-                   and st["ratio"] < 0.01 and st["cap"] in ("排隊中・下一輪 :05 開工", "排隊中・明早 08:05 開工") and st["vis"], st)
+                ok(f"{TW}：畫面上排一筆 → 進度欄寫「排隊中・已通知 Claude・準備開工」（晚上寫明早 08:05）、空條（0%）、灰色", bool(st) and st["tone"] == "queued" and st["pct"] == 0
+                   and st["ratio"] < 0.01 and st["cap"] in ("排隊中・已通知 Claude・準備開工", "排隊中・明早 08:05 開工") and st["vis"], st)
                 ok(f"{TW}：排隊中那一格版面不重疊、不截字、字 ≥ 11px", layout_ok(st), st)
                 if shots:
                     Path(shots).mkdir(parents=True, exist_ok=True)
