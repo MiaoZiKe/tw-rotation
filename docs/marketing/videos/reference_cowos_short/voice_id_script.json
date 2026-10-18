@@ -1,0 +1,269 @@
+{
+ "out_dir": "docs/marketing/videos/reference_cowos_short/voice_id",
+ "jobs": [
+  {
+   "id": "Xiaoxiao_r0",
+   "voice": "zh-CN-XiaoxiaoNeural",
+   "rate": "+0%",
+   "pitch": "+0Hz",
+   "lines": [
+    {
+     "id": "L1",
+     "text": "AI 晶片賣到缺貨，真正卡住的不是晶圓，是封裝。"
+    },
+    {
+     "id": "L2",
+     "text": "台積電 CoWoS，一分鐘看懂。"
+    },
+    {
+     "id": "L3",
+     "text": "把 GPU 和 HBM 並排，放在一片矽中介層上，再接到基板，距離最短，更快、更省電。"
+    },
+    {
+     "id": "L4",
+     "text": "晶片越做越大，一片晶圓能封的顆數變少，需求兩年翻近三倍。"
+    }
+   ]
+  },
+  {
+   "id": "Xiaoyi_r0",
+   "voice": "zh-CN-XiaoyiNeural",
+   "rate": "+0%",
+   "pitch": "+0Hz",
+   "lines": [
+    {
+     "id": "L1",
+     "text": "AI 晶片賣到缺貨，真正卡住的不是晶圓，是封裝。"
+    },
+    {
+     "id": "L2",
+     "text": "台積電 CoWoS，一分鐘看懂。"
+    },
+    {
+     "id": "L3",
+     "text": "把 GPU 和 HBM 並排，放在一片矽中介層上，再接到基板，距離最短，更快、更省電。"
+    },
+    {
+     "id": "L4",
+     "text": "晶片越做越大，一片晶圓能封的顆數變少，需求兩年翻近三倍。"
+    }
+   ]
+  },
+  {
+   "id": "liaoning-Xiaobei_r0",
+   "voice": "zh-CN-liaoning-XiaobeiNeural",
+   "rate": "+0%",
+   "pitch": "+0Hz",
+   "lines": [
+    {
+     "id": "L1",
+     "text": "AI 晶片賣到缺貨，真正卡住的不是晶圓，是封裝。"
+    },
+    {
+     "id": "L2",
+     "text": "台積電 CoWoS，一分鐘看懂。"
+    },
+    {
+     "id": "L3",
+     "text": "把 GPU 和 HBM 並排，放在一片矽中介層上，再接到基板，距離最短，更快、更省電。"
+    },
+    {
+     "id": "L4",
+     "text": "晶片越做越大，一片晶圓能封的顆數變少，需求兩年翻近三倍。"
+    }
+   ]
+  },
+  {
+   "id": "shaanxi-Xiaoni_r0",
+   "voice": "zh-CN-shaanxi-XiaoniNeural",
+   "rate": "+0%",
+   "pitch": "+0Hz",
+   "lines": [
+    {
+     "id": "L1",
+     "text": "AI 晶片賣到缺貨，真正卡住的不是晶圓，是封裝。"
+    },
+    {
+     "id": "L2",
+     "text": "台積電 CoWoS，一分鐘看懂。"
+    },
+    {
+     "id": "L3",
+     "text": "把 GPU 和 HBM 並排，放在一片矽中介層上，再接到基板，距離最短，更快、更省電。"
+    },
+    {
+     "id": "L4",
+     "text": "晶片越做越大，一片晶圓能封的顆數變少，需求兩年翻近三倍。"
+    }
+   ]
+  },
+  {
+   "id": "HiuGaai_r0",
+   "voice": "zh-HK-HiuGaaiNeural",
+   "rate": "+0%",
+   "pitch": "+0Hz",
+   "lines": [
+    {
+     "id": "L1",
+     "text": "AI 晶片賣到缺貨，真正卡住的不是晶圓，是封裝。"
+    },
+    {
+     "id": "L2",
+     "text": "台積電 CoWoS，一分鐘看懂。"
+    },
+    {
+     "id": "L3",
+     "text": "把 GPU 和 HBM 並排，放在一片矽中介層上，再接到基板，距離最短，更快、更省電。"
+    },
+    {
+     "id": "L4",
+     "text": "晶片越做越大，一片晶圓能封的顆數變少，需求兩年翻近三倍。"
+    }
+   ]
+  },
+  {
+   "id": "HiuMaan_r0",
+   "voice": "zh-HK-HiuMaanNeural",
+   "rate": "+0%",
+   "pitch": "+0Hz",
+   "lines": [
+    {
+     "id": "L1",
+     "text": "AI 晶片賣到缺貨，真正卡住的不是晶圓，是封裝。"
+    },
+    {
+     "id": "L2",
+     "text": "台積電 CoWoS，一分鐘看懂。"
+    },
+    {
+     "id": "L3",
+     "text": "把 GPU 和 HBM 並排，放在一片矽中介層上，再接到基板，距離最短，更快、更省電。"
+    },
+    {
+     "id": "L4",
+     "text": "晶片越做越大，一片晶圓能封的顆數變少，需求兩年翻近三倍。"
+    }
+   ]
+  },
+  {
+   "id": "HsiaoChen_r0",
+   "voice": "zh-TW-HsiaoChenNeural",
+   "rate": "+0%",
+   "pitch": "+0Hz",
+   "lines": [
+    {
+     "id": "L1",
+     "text": "AI 晶片賣到缺貨，真正卡住的不是晶圓，是封裝。"
+    },
+    {
+     "id": "L2",
+     "text": "台積電 CoWoS，一分鐘看懂。"
+    },
+    {
+     "id": "L3",
+     "text": "把 GPU 和 HBM 並排，放在一片矽中介層上，再接到基板，距離最短，更快、更省電。"
+    },
+    {
+     "id": "L4",
+     "text": "晶片越做越大，一片晶圓能封的顆數變少，需求兩年翻近三倍。"
+    }
+   ]
+  },
+  {
+   "id": "HsiaoYu_r0",
+   "voice": "zh-TW-HsiaoYuNeural",
+   "rate": "+0%",
+   "pitch": "+0Hz",
+   "lines": [
+    {
+     "id": "L1",
+     "text": "AI 晶片賣到缺貨，真正卡住的不是晶圓，是封裝。"
+    },
+    {
+     "id": "L2",
+     "text": "台積電 CoWoS，一分鐘看懂。"
+    },
+    {
+     "id": "L3",
+     "text": "把 GPU 和 HBM 並排，放在一片矽中介層上，再接到基板，距離最短，更快、更省電。"
+    },
+    {
+     "id": "L4",
+     "text": "晶片越做越大，一片晶圓能封的顆數變少，需求兩年翻近三倍。"
+    }
+   ]
+  },
+  {
+   "id": "Xiaoxiao_r10_p0",
+   "voice": "zh-CN-XiaoxiaoNeural",
+   "rate": "+10%",
+   "pitch": "+0Hz",
+   "lines": [
+    {
+     "id": "L1",
+     "text": "AI 晶片賣到缺貨，真正卡住的不是晶圓，是封裝。"
+    },
+    {
+     "id": "L2",
+     "text": "台積電 CoWoS，一分鐘看懂。"
+    },
+    {
+     "id": "L3",
+     "text": "把 GPU 和 HBM 並排，放在一片矽中介層上，再接到基板，距離最短，更快、更省電。"
+    },
+    {
+     "id": "L4",
+     "text": "晶片越做越大，一片晶圓能封的顆數變少，需求兩年翻近三倍。"
+    }
+   ]
+  },
+  {
+   "id": "HsiaoChen_r10_p30",
+   "voice": "zh-TW-HsiaoChenNeural",
+   "rate": "+10%",
+   "pitch": "+30Hz",
+   "lines": [
+    {
+     "id": "L1",
+     "text": "AI 晶片賣到缺貨，真正卡住的不是晶圓，是封裝。"
+    },
+    {
+     "id": "L2",
+     "text": "台積電 CoWoS，一分鐘看懂。"
+    },
+    {
+     "id": "L3",
+     "text": "把 GPU 和 HBM 並排，放在一片矽中介層上，再接到基板，距離最短，更快、更省電。"
+    },
+    {
+     "id": "L4",
+     "text": "晶片越做越大，一片晶圓能封的顆數變少，需求兩年翻近三倍。"
+    }
+   ]
+  },
+  {
+   "id": "HsiaoYu_r10_p40",
+   "voice": "zh-TW-HsiaoYuNeural",
+   "rate": "+10%",
+   "pitch": "+40Hz",
+   "lines": [
+    {
+     "id": "L1",
+     "text": "AI 晶片賣到缺貨，真正卡住的不是晶圓，是封裝。"
+    },
+    {
+     "id": "L2",
+     "text": "台積電 CoWoS，一分鐘看懂。"
+    },
+    {
+     "id": "L3",
+     "text": "把 GPU 和 HBM 並排，放在一片矽中介層上，再接到基板，距離最短，更快、更省電。"
+    },
+    {
+     "id": "L4",
+     "text": "晶片越做越大，一片晶圓能封的顆數變少，需求兩年翻近三倍。"
+    }
+   ]
+  }
+ ]
+}
