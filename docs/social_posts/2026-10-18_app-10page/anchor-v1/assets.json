@@ -1,0 +1,152 @@
+[
+  {
+    "number": 1,
+    "title": "看懂市場，從這開始",
+    "file": "slides/01.png",
+    "role_reference": "user_provided 跳跳.gif",
+    "dimensions": [
+      1122,
+      1402
+    ],
+    "sha256": "bc4708dee1bfe440229e4f6d66835a7caff2507208b7915ebbe9c063a97a216d",
+    "origin_group": "gpt",
+    "original_character_author": "unknown",
+    "rights": "unknown",
+    "processed_by": "GPT內建image_gen"
+  },
+  {
+    "number": 2,
+    "title": "看懂資金輪動",
+    "file": "slides/02.png",
+    "role_reference": "user_provided 跳跳.gif",
+    "dimensions": [
+      1122,
+      1402
+    ],
+    "sha256": "96e15db6b0d9f8ec442b398852095761292e173318a51e6c88312b3326ae6c13",
+    "origin_group": "gpt",
+    "original_character_author": "unknown",
+    "rights": "unknown",
+    "processed_by": "GPT內建image_gen"
+  },
+  {
+    "number": 3,
+    "title": "資金分流，一眼看懂",
+    "file": "slides/03.png",
+    "role_reference": "user_provided 跳跳.gif",
+    "dimensions": [
+      1122,
+      1402
+    ],
+    "sha256": "74fbb0958f68e5a4ae21c31f4375f5cd14495ebd2c6c6cb07e60b8d20e55cb42",
+    "origin_group": "gpt",
+    "original_character_author": "unknown",
+    "rights": "unknown",
+    "processed_by": "GPT內建image_gen"
+  },
+  {
+    "number": 4,
+    "title": "2D看結構，3D看細節",
+    "file": "slides/04.png",
+    "role_reference": "user_provided 跳跳.gif",
+    "dimensions": [
+      1122,
+      1402
+    ],
+    "sha256": "ed06463807b880cb7a6e5dc3d355bcabe51aa17bea884b0bab6a02c5841f50b6",
+    "origin_group": "gpt",
+    "original_character_author": "unknown",
+    "rights": "unknown",
+    "processed_by": "GPT內建image_gen"
+  },
+  {
+    "number": 5,
+    "title": "沿關聯圖，看懂產業",
+    "file": "slides/05.png",
+    "role_reference": "user_provided 跳跳.gif",
+    "dimensions": [
+      1122,
+      1402
+    ],
+    "sha256": "3ebcf897c81c19e371800d3d57911836a4dc2ce02299cbd120361aabfab4fa28",
+    "origin_group": "gpt",
+    "original_character_author": "unknown",
+    "rights": "unknown",
+    "processed_by": "GPT內建image_gen"
+  },
+  {
+    "number": 6,
+    "title": "ETF配息組合怎麼看",
+    "file": "slides/06.png",
+    "role_reference": "user_provided 跳跳.gif",
+    "dimensions": [
+      1122,
+      1402
+    ],
+    "sha256": "344a6041ff93ec2ac5db492b7888ec265b5787cd2ab7cee5aeeda0a45dbf5bb0",
+    "origin_group": "gpt",
+    "original_character_author": "unknown",
+    "rights": "unknown",
+    "processed_by": "GPT內建image_gen"
+  },
+  {
+    "number": 7,
+    "title": "領息或再投入，差在哪",
+    "file": "slides/07.png",
+    "role_reference": "user_provided 跳跳.gif",
+    "dimensions": [
+      1122,
+      1402
+    ],
+    "sha256": "e44524a4373e577c853f65e968bb302d4451217babdb108e252189ad6087825a",
+    "origin_group": "gpt",
+    "original_character_author": "unknown",
+    "rights": "unknown",
+    "processed_by": "GPT內建image_gen"
+  },
+  {
+    "number": 8,
+    "title": "兩種日曆，分開看",
+    "file": "slides/08.png",
+    "role_reference": "user_provided 跳跳.gif",
+    "dimensions": [
+      1122,
+      1402
+    ],
+    "sha256": "83141b620a24b93d7c2007edec7134e79e522912c007a6d0ff19fc3d178716f5",
+    "origin_group": "gpt",
+    "original_character_author": "unknown",
+    "rights": "unknown",
+    "processed_by": "GPT內建image_gen"
+  },
+  {
+    "number": 9,
+    "title": "精選文章，補齊背景",
+    "file": "slides/09.png",
+    "role_reference": "user_provided 跳跳.gif",
+    "dimensions": [
+      1122,
+      1402
+    ],
+    "sha256": "f5367852a61d4ea9fb04968e45a7d0c7edf9dee86e1aa0dc45be4c4d7d7a5bb4",
+    "origin_group": "gpt",
+    "original_character_author": "unknown",
+    "rights": "unknown",
+    "processed_by": "GPT內建image_gen"
+  },
+  {
+    "number": 10,
+    "title": "先有問題，再選工具",
+    "file": "slides/10.png",
+    "role_reference": "user_provided 跳跳.gif",
+    "dimensions": [
+      1122,
+      1402
+    ],
+    "sha256": "9a45455ba752d3645e509ff7969478c6dfa623f90414cf076fb628bff48f4b0b",
+    "origin_group": "gpt",
+    "original_character_author": "unknown",
+    "rights": "unknown",
+    "processed_by": "GPT內建image_gen"
+  }
+]
