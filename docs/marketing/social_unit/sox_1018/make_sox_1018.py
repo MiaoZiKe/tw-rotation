@@ -1,4 +1,4 @@
-"""IG 輪播「費半為什麼一直跌？」第 1、2 頁（1080x1350）— 第 2 版（繪本手繪質感）。
+"""IG 輪播「費半最近為什麼震盪走弱？」第 1、2 頁（1080x1350）— 第 2 版（繪本手繪質感）。
 重跑：python3 docs/marketing/social_unit/sox_1018/make_sox_1018.py
 文案只用 docs/marketing/social_unit/post_sox_1018.md；比比用 docs/anim/bibi_library 的透明 key.png（只做輕微旋轉／壓扁／局部合成，不重畫）。
 字型：jf-openhuninn 粉圓 2.1（OFL，justfont）。字型檔不進 repo，缺檔時自動從
@@ -611,8 +611,8 @@ def cover():
     washes(cv, [(120, 80, 260, (253, 226, 206), .55), (980, 330, 230, (214, 232, 250), .5),
                 (140, 700, 210, (255, 236, 196), .4), (900, 1000, 260, (250, 222, 214), .30)])
     header(cv, '01/10')
-    hand_text(cv, 'title1', [('費半為什麼', INK)], 154, 540, 118, anchor='c', seed=11)
-    hand_text(cv, 'title2', [('一直跌？', CORAL)], 154, 540, 296, anchor='c', seed=12)
+    hand_text(cv, 'title1', [('費半最近為什麼', INK)], 126, 540, 124, anchor='c', seed=11)
+    hand_text(cv, 'title2', [('震盪走弱？', CORAL)], 154, 540, 296, anchor='c', seed=12)
     dashes(cv, 'deco_r', 905, 458, -70, YEL)
     dashes(cv, 'deco_l', 130, 440, 200, (120, 190, 240))
     cv.reg('subtitle', cv.text((540, 472), '先看 3 個常見原因', 52, INK, anchor='ma'))
