@@ -1,12 +1,14 @@
-看市場，先有問題，再選工具。🐹
+先有問題，再選工具。比比帶你用10頁認識哩股哩股。🐹
 
-資金輪動與樹狀圖：找市場線索。
-2D／3D與關聯圖：看懂產業結構。
-ETF工具：比較配息組合與再投入情境。
-日曆與精選文章：補齊時程和背景。
+看市場：用資金輪動觀察族群變化，搭配樹狀分流找研究線索。
+懂產業：2D／3D看結構，關聯圖看上下游；連線不等於已確認訂單。
+比ETF：看配息組合與現金流，再比較領息、再投入情境。配息不是總報酬，試算不是收益保證。
+查時程：ETF日曆查除息與發放日，公司財經日曆看財報、法說與FED消息；以公告為準。
+補背景：讀精選文章，留意日期，再回公開來源交叉查證。
 
-你最想看哪個功能的操作教學？
-https://miaozike.github.io/tw-rotation/?utm_source=threads&utm_medium=social&utm_campaign=app-10page-simple&utm_content=feature-tour
+你最想先看哪個功能的詳細教學？
 
-功能示意，非即時行情；試算不保證未來。
+https://liguligu-puipui.com/?utm_source=threads&utm_medium=social&utm_campaign=app-10page&utm_content=feature-tour#overview
+
+圖片為功能示意，非即時行情。
 整理公開資訊，非投顧，投資請自行判斷。
