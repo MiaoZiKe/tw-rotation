@@ -33,8 +33,28 @@
      唯一的閘門。要在 <body> 之前跑：<html> 先掛好 live-on（只有管理者），訪客第一幀就看不到任何即時 UI，不會先閃一下。
      它讀登入快取（跟 account.js 同一份 localStorage），所以排在 viewreset.js 後面就好（viewreset 不清登入）。 -->
 <script src="livegate.js"></script>
-<!-- 主題要在畫面畫出來之前就決定，不然明亮主題的人每次開頁都會先閃一下深色 -->
-<script>try{var t=localStorage.getItem('tw.theme');if(t==='light'||t==='dark')document.documentElement.setAttribute('data-theme',t);}catch(e){}</script>
+<!-- 主題要在畫面畫出來之前就決定，不然每次開頁都會先閃一下另一個顏色。
+     ★ 2026-10-18（Andy：「幫我將頁面Default 為 亮色 晚上12:00-05:00 為黑色 網頁手機版都是」，DECISIONS #360）：
+     · 沒有手動選過＝自動：看瀏覽者本機時鐘，00:00～04:59 深色、其餘淺色（觀眾在台灣，本機時間＝台北時間）。
+     · 手動按 ☀／🌙 只算到「下一個切換點」（00:00 或 05:00），存 tw.themeOv={mode,until}；過了就回自動。
+     · 舊版存過的 tw.theme（永久偏好）只在第一次載入時清掉一次（tw.themeMig），讓新預設對所有人生效。
+     · TWTA 是 app.js 共用的同一份算法（自動值、下一個切換點、目前該用哪個），不要在兩邊各寫一份。
+     · window.TW_THEME_LEGACY===1 只有驗收腳本會設：回到舊行為（tw.theme 永久、沒存＝深色），
+       讓幾百段既有驗收不受「現在幾點」影響；正式程式沒有任何地方設它。 -->
+<script>(function(){var d=document.documentElement,W=window,L=W.TW_THEME_LEGACY===1;
+var A={legacy:L,
+auto:function(t){t=t||new Date();return t.getHours()<5?'dark':'light';},
+next:function(t){t=t||new Date();var n=new Date(t.getTime());if(t.getHours()<5)n.setHours(5,0,0,0);else{n.setDate(n.getDate()+1);n.setHours(0,0,0,0);}return n.getTime();},
+pick:function(){if(L){try{return localStorage.getItem('tw.theme')==='light'?'light':'dark';}catch(e){return 'dark';}}
+var o=null;try{o=JSON.parse(localStorage.getItem('tw.themeOv')||'null');}catch(e){o=null;}
+if(o&&(o.mode==='light'||o.mode==='dark')&&+o.until>Date.now())return o.mode;
+if(o){try{localStorage.removeItem('tw.themeOv');}catch(e){}}return A.auto();},
+set:function(m){m=m==='light'?'light':'dark';try{if(L)localStorage.setItem('tw.theme',m);
+else if(m===A.auto())localStorage.removeItem('tw.themeOv');
+else localStorage.setItem('tw.themeOv',JSON.stringify({mode:m,until:A.next()}));}catch(e){}}};
+W.TWTA=A;
+if(!L){try{if(!localStorage.getItem('tw.themeMig')){localStorage.removeItem('tw.theme');localStorage.setItem('tw.themeMig','1');}}catch(e){}}
+var m=A.pick();if(!L||m==='light')d.setAttribute('data-theme',m);})();</script>
 <!-- ★ 2026-09-28 設計 v4 正式套用（Andy「V4執行」）：版面風格 casual 親和休閒／hud 科技 HUD／pro 專業有力，存 tw.theme4。
      跟 data-theme 一樣要在畫面畫出來之前決定，不然會先閃一下。沒存過（或存了不認得的值）＝科技 HUD。
      例外處理也掛 hud：私密視窗讀不到 localStorage 時照樣是 v4 骨架，不會退回沒有間距尺度的舊版。 -->

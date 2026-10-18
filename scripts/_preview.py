@@ -283,6 +283,10 @@ def serve():
 CONSENT_PRESET = ("try{if(!localStorage.getItem('tw.consent'))localStorage.setItem('tw.consent',"
                   "JSON.stringify({v:'*',at:'test'}));"
                   "if(!localStorage.getItem('tw.tour'))localStorage.setItem('tw.tour','*');}catch(e){}")
+# ★ 2026-10-18 主題自動切換（DECISIONS #360）：正式站沒手動選過＝看時鐘。這支釘回舊行為（沒存＝深色、tw.theme 永久），
+#   結果才不會跟著「現在幾點」變；要看自動切換的真實樣子設 TW_THEME_AUTO=1。
+if os.environ.get("TW_THEME_AUTO") != "1":
+    CONSENT_PRESET = "window.TW_THEME_LEGACY=1;" + CONSENT_PRESET
 # ★ 2026-09-27 設計 v4：要在「某個風格／明暗」下跑同一套重疊與溢出掃描，
 #   用環境變數 TW_PREVIEW_LS="tw.theme4=hud,tw.theme=dark" 在每個頁面載入前先寫好 localStorage。
 #   沒設就跟以前一模一樣（預設主題、沒有 v4）。
