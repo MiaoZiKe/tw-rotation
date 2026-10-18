@@ -85,7 +85,7 @@ jobs:
                               print("重試", job["id"], line["id"], e)
                               await asyncio.sleep(3)
                       else:
-                          raise SystemExit(f"失敗：{job['id']} {line['id']}")
+                          print(f"跳過（這個聲音產不出來）：{job['id']} {line['id']}")   # 試聽多種聲音時，名稱不存在的聲音不要讓整輪失敗
           asyncio.run(main())
           PY
 
