@@ -1,0 +1,146 @@
+{
+ "voice": "zh-TW-HsiaoChenNeural",
+ "rate": "+10%",
+ "pitch": "+30Hz",
+ "text": "把 GPU 和 HBM 並排，放在一片矽中介層上，再接到基板，距離最短，更快、更省電。",
+ "words": [
+  {
+   "type": "WordBoundary",
+   "text": "把",
+   "start": 0.095458,
+   "dur": 0.147708
+  },
+  {
+   "type": "WordBoundary",
+   "text": "GPU",
+   "start": 0.288625,
+   "dur": 0.454541
+  },
+  {
+   "type": "WordBoundary",
+   "text": "和",
+   "start": 0.8,
+   "dur": 0.159083
+  },
+  {
+   "type": "WordBoundary",
+   "text": "HBM",
+   "start": 0.993166,
+   "dur": 0.409083
+  },
+  {
+   "type": "WordBoundary",
+   "text": "並排",
+   "start": 1.459083,
+   "dur": 0.477291
+  },
+  {
+   "type": "WordBoundary",
+   "text": "放在",
+   "start": 2.231833,
+   "dur": 0.306791
+  },
+  {
+   "type": "WordBoundary",
+   "text": "一片",
+   "start": 2.538625,
+   "dur": 0.25
+  },
+  {
+   "type": "WordBoundary",
+   "text": "矽",
+   "start": 2.822708,
+   "dur": 0.113625
+  },
+  {
+   "type": "WordBoundary",
+   "text": "中",
+   "start": 3.004541,
+   "dur": 0.147708
+  },
+  {
+   "type": "WordBoundary",
+   "text": "介層",
+   "start": 3.209083,
+   "dur": 0.295458
+  },
+  {
+   "type": "WordBoundary",
+   "text": "上",
+   "start": 3.538625,
+   "dur": 0.295458
+  },
+  {
+   "type": "WordBoundary",
+   "text": "再",
+   "start": 4.140916,
+   "dur": 0.102291
+  },
+  {
+   "type": "WordBoundary",
+   "text": "接到",
+   "start": 4.265916,
+   "dur": 0.295458
+  },
+  {
+   "type": "WordBoundary",
+   "text": "基",
+   "start": 4.595458,
+   "dur": 0.136375
+  },
+  {
+   "type": "WordBoundary",
+   "text": "板",
+   "start": 4.777291,
+   "dur": 0.25
+  },
+  {
+   "type": "WordBoundary",
+   "text": "距離",
+   "start": 5.311375,
+   "dur": 0.272708
+  },
+  {
+   "type": "WordBoundary",
+   "text": "最",
+   "start": 5.629541,
+   "dur": 0.136375
+  },
+  {
+   "type": "WordBoundary",
+   "text": "短",
+   "start": 5.811375,
+   "dur": 0.238625
+  },
+  {
+   "type": "WordBoundary",
+   "text": "更",
+   "start": 6.345458,
+   "dur": 0.090916
+  },
+  {
+   "type": "WordBoundary",
+   "text": "快",
+   "start": 6.504541,
+   "dur": 0.272708
+  },
+  {
+   "type": "WordBoundary",
+   "text": "更",
+   "start": 7.061375,
+   "dur": 0.102291
+  },
+  {
+   "type": "WordBoundary",
+   "text": "省",
+   "start": 7.197708,
+   "dur": 0.147708
+  },
+  {
+   "type": "WordBoundary",
+   "text": "電",
+   "start": 7.425,
+   "dur": 0.227291
+  }
+ ]
+}

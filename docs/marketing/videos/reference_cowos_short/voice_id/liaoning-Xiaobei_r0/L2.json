@@ -1,0 +1,38 @@
+{
+ "voice": "zh-CN-liaoning-XiaobeiNeural",
+ "rate": "+0%",
+ "pitch": "+0Hz",
+ "text": "台積電 CoWoS，一分鐘看懂。",
+ "words": [
+  {
+   "type": "WordBoundary",
+   "text": "台",
+   "start": 0.1,
+   "dur": 0.325
+  },
+  {
+   "type": "WordBoundary",
+   "text": "積電",
+   "start": 0.425,
+   "dur": 0.4875
+  },
+  {
+   "type": "WordBoundary",
+   "text": "CoWoS",
+   "start": 0.9125,
+   "dur": 0.825
+  },
+  {
+   "type": "WordBoundary",
+   "text": "一分鐘",
+   "start": 1.875,
+   "dur": 0.6
+  },
+  {
+   "type": "WordBoundary",
+   "text": "看懂",
+   "start": 2.4875,
+   "dur": 0.525
+  }
+ ]
+}

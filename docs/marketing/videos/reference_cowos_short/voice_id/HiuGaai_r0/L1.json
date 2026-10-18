@@ -1,0 +1,74 @@
+{
+ "voice": "zh-HK-HiuGaaiNeural",
+ "rate": "+0%",
+ "pitch": "+0Hz",
+ "text": "AI 晶片賣到缺貨，真正卡住的不是晶圓，是封裝。",
+ "words": [
+  {
+   "type": "WordBoundary",
+   "text": "AI",
+   "start": 0.1,
+   "dur": 0.225
+  },
+  {
+   "type": "WordBoundary",
+   "text": "晶片",
+   "start": 0.3375,
+   "dur": 0.5125
+  },
+  {
+   "type": "WordBoundary",
+   "text": "賣到",
+   "start": 0.85,
+   "dur": 0.4625
+  },
+  {
+   "type": "WordBoundary",
+   "text": "缺貨",
+   "start": 1.3125,
+   "dur": 0.5875
+  },
+  {
+   "type": "WordBoundary",
+   "text": "真正",
+   "start": 2.325,
+   "dur": 0.45
+  },
+  {
+   "type": "WordBoundary",
+   "text": "卡住",
+   "start": 2.8,
+   "dur": 0.525
+  },
+  {
+   "type": "WordBoundary",
+   "text": "的",
+   "start": 3.325,
+   "dur": 0.1875
+  },
+  {
+   "type": "WordBoundary",
+   "text": "不是",
+   "start": 3.5125,
+   "dur": 0.4625
+  },
+  {
+   "type": "WordBoundary",
+   "text": "晶圓",
+   "start": 3.975,
+   "dur": 0.6125
+  },
+  {
+   "type": "WordBoundary",
+   "text": "是",
+   "start": 4.7625,
+   "dur": 0.275
+  },
+  {
+   "type": "WordBoundary",
+   "text": "封裝",
+   "start": 5.0375,
+   "dur": 0.65
+  }
+ ]
+}

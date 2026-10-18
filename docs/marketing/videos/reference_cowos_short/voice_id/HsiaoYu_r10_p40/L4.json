@@ -1,0 +1,122 @@
+{
+ "voice": "zh-TW-HsiaoYuNeural",
+ "rate": "+10%",
+ "pitch": "+40Hz",
+ "text": "晶片越做越大，一片晶圓能封的顆數變少，需求兩年翻近三倍。",
+ "words": [
+  {
+   "type": "WordBoundary",
+   "text": "晶片",
+   "start": 0.095458,
+   "dur": 0.443166
+  },
+  {
+   "type": "WordBoundary",
+   "text": "越",
+   "start": 0.561375,
+   "dur": 0.204541
+  },
+  {
+   "type": "WordBoundary",
+   "text": "做",
+   "start": 0.788625,
+   "dur": 0.204541
+  },
+  {
+   "type": "WordBoundary",
+   "text": "越",
+   "start": 1.027291,
+   "dur": 0.159083
+  },
+  {
+   "type": "WordBoundary",
+   "text": "大",
+   "start": 1.243166,
+   "dur": 0.113625
+  },
+  {
+   "type": "WordBoundary",
+   "text": "一片",
+   "start": 1.743166,
+   "dur": 0.318166
+  },
+  {
+   "type": "WordBoundary",
+   "text": "晶圓",
+   "start": 2.106833,
+   "dur": 0.443166
+  },
+  {
+   "type": "WordBoundary",
+   "text": "能",
+   "start": 2.595458,
+   "dur": 0.181833
+  },
+  {
+   "type": "WordBoundary",
+   "text": "封的",
+   "start": 2.811375,
+   "dur": 0.363625
+  },
+  {
+   "type": "WordBoundary",
+   "text": "顆數",
+   "start": 3.197708,
+   "dur": 0.375
+  },
+  {
+   "type": "WordBoundary",
+   "text": "變",
+   "start": 3.618166,
+   "dur": 0.159083
+  },
+  {
+   "type": "WordBoundary",
+   "text": "少",
+   "start": 3.8,
+   "dur": 0.238625
+  },
+  {
+   "type": "WordBoundary",
+   "text": "需求",
+   "start": 4.368166,
+   "dur": 0.409083
+  },
+  {
+   "type": "WordBoundary",
+   "text": "兩",
+   "start": 4.856833,
+   "dur": 0.136375
+  },
+  {
+   "type": "WordBoundary",
+   "text": "年",
+   "start": 5.072708,
+   "dur": 0.170458
+  },
+  {
+   "type": "WordBoundary",
+   "text": "翻",
+   "start": 5.334083,
+   "dur": 0.181833
+  },
+  {
+   "type": "WordBoundary",
+   "text": "近",
+   "start": 5.561375,
+   "dur": 0.193166
+  },
+  {
+   "type": "WordBoundary",
+   "text": "三",
+   "start": 5.822708,
+   "dur": 0.181833
+  },
+  {
+   "type": "WordBoundary",
+   "text": "倍",
+   "start": 6.072708,
+   "dur": 0.204541
+  }
+ ]
+}

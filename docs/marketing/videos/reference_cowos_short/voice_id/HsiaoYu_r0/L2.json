@@ -1,0 +1,32 @@
+{
+ "voice": "zh-TW-HsiaoYuNeural",
+ "rate": "+0%",
+ "pitch": "+0Hz",
+ "text": "台積電 CoWoS，一分鐘看懂。",
+ "words": [
+  {
+   "type": "WordBoundary",
+   "text": "台積電",
+   "start": 0.1,
+   "dur": 0.6
+  },
+  {
+   "type": "WordBoundary",
+   "text": "CoWoS",
+   "start": 0.7125,
+   "dur": 0.85
+  },
+  {
+   "type": "WordBoundary",
+   "text": "一分鐘",
+   "start": 1.775,
+   "dur": 0.575
+  },
+  {
+   "type": "WordBoundary",
+   "text": "看懂",
+   "start": 2.4,
+   "dur": 0.4625
+  }
+ ]
+}

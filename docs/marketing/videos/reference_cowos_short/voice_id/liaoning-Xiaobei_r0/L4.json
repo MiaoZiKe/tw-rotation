@@ -1,0 +1,116 @@
+{
+ "voice": "zh-CN-liaoning-XiaobeiNeural",
+ "rate": "+0%",
+ "pitch": "+0Hz",
+ "text": "晶片越做越大，一片晶圓能封的顆數變少，需求兩年翻近三倍。",
+ "words": [
+  {
+   "type": "WordBoundary",
+   "text": "晶片",
+   "start": 0.1,
+   "dur": 0.45
+  },
+  {
+   "type": "WordBoundary",
+   "text": "越",
+   "start": 0.575,
+   "dur": 0.1375
+  },
+  {
+   "type": "WordBoundary",
+   "text": "做",
+   "start": 0.7125,
+   "dur": 0.1375
+  },
+  {
+   "type": "WordBoundary",
+   "text": "越",
+   "start": 0.8625,
+   "dur": 0.1625
+  },
+  {
+   "type": "WordBoundary",
+   "text": "大",
+   "start": 1.025,
+   "dur": 0.4125
+  },
+  {
+   "type": "WordBoundary",
+   "text": "一片",
+   "start": 1.75,
+   "dur": 0.4875
+  },
+  {
+   "type": "WordBoundary",
+   "text": "晶圓",
+   "start": 2.25,
+   "dur": 0.4375
+  },
+  {
+   "type": "WordBoundary",
+   "text": "能",
+   "start": 2.7125,
+   "dur": 0.225
+  },
+  {
+   "type": "WordBoundary",
+   "text": "封",
+   "start": 2.9375,
+   "dur": 0.2375
+  },
+  {
+   "type": "WordBoundary",
+   "text": "的",
+   "start": 3.175,
+   "dur": 0.1625
+  },
+  {
+   "type": "WordBoundary",
+   "text": "顆數",
+   "start": 3.35,
+   "dur": 0.4125
+  },
+  {
+   "type": "WordBoundary",
+   "text": "變",
+   "start": 3.775,
+   "dur": 0.1875
+  },
+  {
+   "type": "WordBoundary",
+   "text": "少",
+   "start": 3.9625,
+   "dur": 0.325
+  },
+  {
+   "type": "WordBoundary",
+   "text": "需求",
+   "start": 4.575,
+   "dur": 0.4125
+  },
+  {
+   "type": "WordBoundary",
+   "text": "兩年",
+   "start": 5.0,
+   "dur": 0.55
+  },
+  {
+   "type": "WordBoundary",
+   "text": "翻近",
+   "start": 5.575,
+   "dur": 0.3875
+  },
+  {
+   "type": "WordBoundary",
+   "text": "三",
+   "start": 5.975,
+   "dur": 0.25
+  },
+  {
+   "type": "WordBoundary",
+   "text": "倍",
+   "start": 6.225,
+   "dur": 0.35
+  }
+ ]
+}
