@@ -3,7 +3,7 @@
     "mis.index_minute": {
       "ok": true,
       "rows": 839,
-      "seconds": 1.7
+      "seconds": 1.6
     },
     "index_intraday": {
       "stored": 0
@@ -15,11 +15,11 @@
     },
     "news.collect": {
       "ok": true,
-      "rows": 132,
-      "seconds": 2.8
+      "rows": 129,
+      "seconds": 2.9
     },
     "news": {
-      "stored": 45
+      "stored": 9
     },
     "news.broker_views": {
       "ok": true,
@@ -32,31 +32,31 @@
     "mops.material_news": {
       "ok": true,
       "rows": 5,
-      "seconds": 2.1
+      "seconds": 2.3
     },
     "material_news": {
-      "stored": 5
+      "stored": 0
     },
     "macro.intl": {
       "ok": true,
       "rows": 1761,
-      "seconds": 1.1
+      "seconds": 1.0
     },
     "intl_daily": {
-      "stored": 0
+      "stored": 1
     },
     "macro.fred": {
       "ok": true,
-      "rows": 15541,
-      "seconds": 3.3
+      "rows": 15543,
+      "seconds": 3.7
     },
     "macro": {
-      "stored": 0
+      "stored": 2
     },
     "macro.fred_calendar": {
       "ok": true,
       "rows": 26,
-      "seconds": 0.9
+      "seconds": 1.9
     },
     "macro_calendar": {
       "stored": 0
@@ -79,9 +79,9 @@
       "2026-10-16"
     ]
   },
-  "started_at": "2026-10-18T06:54:22.317232+00:00",
-  "finished_at": "2026-10-18T07:17:49.298739+00:00",
-  "duration_seconds": 1407.0,
+  "started_at": "2026-10-18T15:10:31.223457+00:00",
+  "finished_at": "2026-10-18T15:33:41.978956+00:00",
+  "duration_seconds": 1390.8,
   "trade_date": null,
   "complete": true,
   "finmind_budget_left": 440,
@@ -148,7 +148,7 @@
     },
     {
       "table": "news",
-      "rows": 6244,
+      "rows": 6253,
       "latest": "2026-10-18"
     },
     {
@@ -158,13 +158,13 @@
     },
     {
       "table": "intl_daily",
-      "rows": 1954,
-      "latest": "2026-10-17"
+      "rows": 1955,
+      "latest": "2026-10-18"
     },
     {
       "table": "macro",
-      "rows": 15541,
-      "latest": "2026-10-17"
+      "rows": 15543,
+      "latest": "2026-10-18"
     },
     {
       "table": "macro_calendar",
