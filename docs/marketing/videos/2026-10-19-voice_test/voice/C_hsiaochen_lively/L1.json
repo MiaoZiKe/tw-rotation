@@ -1,0 +1,80 @@
+{
+ "voice": "zh-TW-HsiaoChenNeural",
+ "rate": "+12%",
+ "pitch": "+6Hz",
+ "text": "欸，你有沒有發現，AI 晶片好像一直都在缺貨？",
+ "words": [
+  {
+   "type": "WordBoundary",
+   "text": "欸",
+   "start": 0.094625,
+   "dur": 0.234375
+  },
+  {
+   "type": "WordBoundary",
+   "text": "你",
+   "start": 0.608041,
+   "dur": 0.12275
+  },
+  {
+   "type": "WordBoundary",
+   "text": "有",
+   "start": 0.741958,
+   "dur": 0.111625
+  },
+  {
+   "type": "WordBoundary",
+   "text": "沒有",
+   "start": 0.875875,
+   "dur": 0.223208
+  },
+  {
+   "type": "WordBoundary",
+   "text": "發現",
+   "start": 1.121416,
+   "dur": 0.46875
+  },
+  {
+   "type": "WordBoundary",
+   "text": "AI",
+   "start": 1.858041,
+   "dur": 0.167416
+  },
+  {
+   "type": "WordBoundary",
+   "text": "晶片",
+   "start": 2.058916,
+   "dur": 0.290166
+  },
+  {
+   "type": "WordBoundary",
+   "text": "好像",
+   "start": 2.39375,
+   "dur": 0.301333
+  },
+  {
+   "type": "WordBoundary",
+   "text": "一直",
+   "start": 2.695083,
+   "dur": 0.245541
+  },
+  {
+   "type": "WordBoundary",
+   "text": "都",
+   "start": 2.951791,
+   "dur": 0.133916
+  },
+  {
+   "type": "WordBoundary",
+   "text": "在",
+   "start": 3.108041,
+   "dur": 0.111625
+  },
+  {
+   "type": "WordBoundary",
+   "text": "缺貨",
+   "start": 3.230791,
+   "dur": 0.479916
+  }
+ ]
+}
