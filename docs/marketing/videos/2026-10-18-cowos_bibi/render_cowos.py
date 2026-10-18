@@ -652,8 +652,40 @@ def sc_hook(cv, reg, tl, t):
         paste_alpha(cv, im2, (x, yy), ta)
         reg.add(f"開場大字{k + 1}", (x + 20 * sc, yy + 20 * sc, x + im2.width - 20 * sc, yy + im2.height - 20 * sc))
         reg.text_in(f"開場大字{k + 1}", (x, yy, x + im2.width, yy + im2.height), (0, 0, W, H), inset=10)
-    # L02：卡住的不是晶片 → 是「封裝」
+    # L01：AI 晶片示意圖示＋「缺貨」章（L02 的卡片出來前收掉，兩者不同時出現）
     ca = clamp((t - (L2.start - 0.05)) / 0.3)
+    ga = clamp((tl - 0.7) / 0.3) * (1.0 if ca <= 0 else 0.0)
+    if ga > 0:
+        gw, gh = 560, 340
+        im = Image.new("RGBA", (gw, gh), (0, 0, 0, 0))
+        d = ImageDraw.Draw(im)
+        cx0, cy0, cx1, cy1 = 150, 40, 410, 300
+        for k in range(7):                      # 接腳
+            yy = cy0 + 30 + k * 34
+            d.rounded_rectangle([cx0 - 40, yy, cx0 + 4, yy + 14], 5, fill=(150, 160, 172))
+            d.rounded_rectangle([cx1 - 4, yy, cx1 + 40, yy + 14], 5, fill=(150, 160, 172))
+        d.rounded_rectangle([cx0, cy0, cx1, cy1], 28, fill=(36, 52, 71), outline=(20, 30, 44), width=4)
+        d.rounded_rectangle([cx0 + 30, cy0 + 30, cx1 - 30, cy1 - 30], 18, outline=(90, 120, 150), width=4)
+        fa = font(F_BLACK, 96)
+        tw, th, bb = tsize(fa, "AI")
+        d.text(((cx0 + cx1) / 2 - tw / 2 - bb[0], (cy0 + cy1) / 2 - th / 2 - bb[1]), "AI", font=fa, fill=WHITE)
+        sa = clamp((t - LINES["L01"].at("缺貨") + 0.05) / 0.25)
+        if sa > 0:                              # 缺貨章（旋轉蓋下）
+            st = Image.new("RGBA", (230, 120), (0, 0, 0, 0))
+            sd = ImageDraw.Draw(st)
+            sd.rounded_rectangle([4, 4, 226, 116], 20, outline=CORAL, width=10)
+            fs_ = font(F_BLACK, 70)
+            tw2, th2, bb2 = tsize(fs_, "缺貨")
+            sd.text((115 - tw2 / 2 - bb2[0], 60 - th2 / 2 - bb2[1]), "缺貨", font=fs_, fill=CORAL)
+            sc_ = 1.6 - 0.6 * ease_out(sa)
+            st = st.rotate(-14, expand=True, resample=Image.BICUBIC)
+            st = st.resize((int(st.width * sc_), int(st.height * sc_)), Image.LANCZOS)
+            a_ = st.getchannel("A").point(lambda v: int(v * sa))
+            st.putalpha(a_)
+            im.alpha_composite(st, (int(gw - 40 - st.width / 2 - 100), int(gh - 20 - st.height / 2 - 60)))
+        gx, gy = (W - gw) / 2, 790
+        paste_alpha(cv, im, (gx, gy), ga)
+        reg.add("開場圖示", (gx, gy, gx + gw, gy + gh))
     if ca > 0:
         cw, ch = 900, 320
         im, d = panel(cw, ch, bg=(255, 250, 232), edge=(232, 190, 60))
@@ -666,7 +698,7 @@ def sc_hook(cv, reg, tl, t):
             s = "是「封裝」"
             tw2, th2, _ = tsize(f2, s)
             hx = cw / 2 - tw2 / 2
-            d.rounded_rectangle([hx + 50, 140 + th2 * 0.62, hx + tw2 - 40, 140 + th2 + 18], 12, fill=mix(LEMON, fa))
+            d.rounded_rectangle([hx - 8, 140 + th2 * 0.62, hx + tw2 + 8, 140 + th2 + 18], 12, fill=mix(LEMON, fa))
             text_at(d, reg, "開場卡字", (cw / 2, 140), s, f2, mix(DEEP, fa), org, cb, anchor="ma")
         sc = 0.9 + 0.1 * back_out(ca)
         im2 = im.resize((int(cw * sc), int(ch * sc)), Image.LANCZOS)
@@ -691,6 +723,12 @@ def sc_what(cv, reg, tl, t):
     a_int = clamp((t - L4.at("矽中介層") + 0.05) / 0.35)
     a_sub = clamp((t - L4.at("基板") + 0.05) / 0.35)
     a_l5 = clamp((t - L5.start + 0.05) / 0.35)
+    # L03：圖還沒開始畫之前，先放「台積電的先進封裝」大字（GPU 掉下來時淡出，兩者不同時出現）
+    a_l3 = clamp((t - L3.start + 0.1) / 0.3) * (1 - clamp((t - L4.start + 0.3) / 0.25))
+    if a_l3 > 0:
+        text_at(d, reg, "示意圖字", (w / 2, 330), "台積電的", font(F_ROUND, 60), mix(GREY, a_l3), org, cb, anchor="ma")
+        text_at(d, reg, "示意圖字", (w / 2, 420), "先進封裝技術", font(F_BLACK, 96), mix(DEEP, a_l3), org, cb, anchor="ma")
+        text_at(d, reg, "示意圖字", (w / 2, 580), "（2.5D 封裝）", font(F_ROUND, 48), mix(GREY, a_l3), org, cb, anchor="ma")
     # 幾何（面板座標）
     base_y = 600       # 中介層頂
     sub = (90, base_y + 70, w - 90, base_y + 150)
@@ -817,6 +855,9 @@ def sc_cap(cv, reg, tl, t):
         text_at(d, reg, "卡片字", (40, 30), "台積電法說會（2024-10-17）", f0, GREY, org, cb)
         chip_tag(d, reg, (cw - 40, 24), "公司說法", font(F_BOLD, 28), (150, 90, 0), (255, 236, 200), org, cb, anchor="ra")
         text_at(d, reg, "卡片字", (40, 92), "2024、2025 年產能都翻倍", f1, DEEP, org, cb)
+        xa = clamp((t - L8.at("翻倍") + 0.05) / 0.3)
+        if xa > 0:
+            chip_tag(d, reg, (cw - 40, 182), "×2　×2", font(F_BLACK, 40), WHITE, mix(CORAL, xa), org, cb, anchor="ra")
         fa = clamp((t - L8.at("供不應求") + 0.05) / 0.3)
         text_at(d, reg, "卡片字", (40, 182), "還是供不應求", f2, mix(CORAL, fa), org, cb)
         sc = 0.92 + 0.08 * back_out(ca)
@@ -825,7 +866,7 @@ def sc_cap(cv, reg, tl, t):
         paste_alpha(cv, im2, (px, py), ca)
         reg.add("重點卡", (px, py, px + im2.width, py + im2.height))
     # C 款直條（法人估計）
-    ga = clamp((t - L9.start + 0.1) / 0.3)
+    ga = clamp((t - L8.start - 0.2) / 0.35)      # 圖表框跟著重點卡一起先出來（直條等講到才長出來），不留大片空白
     if ga <= 0:
         return
     gy0 = y0 + ch + 26
@@ -934,7 +975,7 @@ def sc_chain(cv, reg, tl, t):
     bh, gap = 220, 70
     top = 60
     for k, (tag, title, sub, col, anchor) in enumerate(CHAIN):
-        a = clamp((t - L13.at(anchor) + 0.1) / 0.3) if k else clamp((t - L12.start + 0.05) / 0.3) * 0.35 + clamp((t - L13.at(anchor) + 0.1) / 0.3) * 0.65
+        a = clamp((t - L13.at(anchor) + 0.1) / 0.3) if k else clamp((t - L12.start + 0.05) / 0.3)
         by = top + k * (bh + gap)
         if a <= 0:
             continue
