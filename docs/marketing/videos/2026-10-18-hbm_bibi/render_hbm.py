@@ -185,7 +185,30 @@ def wav_info(p):
     return sr, a, (on[0] * 0.01 if len(on) else 0.0), ((on[-1] + 1) * 0.01 if len(on) else len(a) / sr)
 
 
+def pauses(a, sr, on, off):
+    """句內停頓（< -35 dB 連續 ≥ 0.08 秒），回傳 [(起, 訖)]（秒，相對音檔開頭）。"""
+    hop = int(sr * 0.01)
+    k = len(a) // hop
+    rms = np.sqrt((a[:k * hop].reshape(k, hop) ** 2).mean(axis=1) + 1e-12)
+    sil = 20 * np.log10(rms / (rms.max() + 1e-12)) < -35
+    out, i = [], 0
+    while i < k:
+        if sil[i]:
+            j = i
+            while j < k and sil[j]:
+                j += 1
+            if j - i >= 8 and i * 0.01 > on + 0.05 and j * 0.01 < off - 0.05:
+                out.append((i * 0.01, j * 0.01))
+            i = j
+        else:
+            i += 1
+    return out
+
+
 class Line:
+    """一句配音。MeloTTS 沒有逐字時間：先用字數比例（標點算停頓）估每個字的時間，
+    再把音檔裡偵測到的句內停頓對到最近的標點，當成校正點（分段線性內插）。"""
+
     def __init__(self, lid, text):
         self.id = lid
         self.text = text
@@ -199,10 +222,35 @@ class Line:
         for c in cw:
             self.cum.append(acc / tot)
             acc += c
+        self.cum.append(1.0)
+        knots = [(0.0, 0.0)]
+        punct = [k for k, ch in enumerate(text[:-1]) if ch in "，。！？：；、"]
+        last = -1
+        for (g0, g1) in pauses(self.audio, self.sr, self.on, self.off):
+            mid = (g0 + g1) / 2 - self.on
+            best = None
+            for k in punct:
+                if k <= last:
+                    continue
+                est = self.cum[k] * self.speech
+                d = abs(est - mid)
+                if best is None or d < best[0]:
+                    best = (d, k)
+            if best and best[0] < 1.3:
+                k = best[1]
+                if self.cum[k] > knots[-1][0] and g0 - self.on > knots[-1][1]:
+                    knots += [(self.cum[k], g0 - self.on), (self.cum[k + 1], g1 - self.on)]
+                    last = k
+        knots.append((1.0, self.speech))
+        self.kf = np.array([x[0] for x in knots])
+        self.kt = np.array([x[1] for x in knots])
 
     @property
     def end(self):
         return self.start + self.speech
+
+    def frac_t(self, k):
+        return self.start + float(np.interp(self.cum[min(k, len(self.cum) - 1)], self.kf, self.kt))
 
     def at(self, anchor, nth=0):
         if not anchor:
@@ -212,25 +260,31 @@ class Line:
             k = self.text.find(anchor, k + 1)
         if k < 0:
             raise KeyError(f"{self.id} 找不到錨點「{anchor}」")
-        return self.start + self.speech * self.cum[k]
-
-    def frac_t(self, k):
-        return self.start + self.speech * (self.cum[k] if k < len(self.cum) else 1.0)
+        return self.frac_t(k)
 
 
-DISP = [("二零一三年", "2013 年"), ("一百二十八 GB", "128 GB"), ("一點二 TB", "1.2 TB"),
+DISP = [("二零一三年", "2013 年"), ("大概一百二十八 GB", "大概 128 GB"), ("超過一點二 TB", "超過 1.2 TB"),
         ("搜尋哩股哩股", "搜尋「哩股哩股」")]
 
 
 def chunks_of(ln):
+    """字幕：依標點切；太短（< 5 字）的往後併（不往前黏），每張 ≤ 22 字。"""
     parts = [(m.group(0), m.start()) for m in re.finditer(r"[^，。！？：；]+[，。！？：；]?", ln.text)]
-    merged = []
+    merged, carry = [], None
     for s, k in parts:
+        if carry:
+            s, k = carry[0] + s, carry[1]
+            carry = None
         core = s.strip("，。！？：； ")
-        if merged and (len(merged[-1][0].strip("，。！？：； ")) < 5 or len(core) < 4) and len(merged[-1][0]) + len(s) <= 22:
-            merged[-1] = (merged[-1][0] + s, merged[-1][1])
+        if len(core) < 5 and len(s) < 22 and (s, k) != parts[-1]:
+            carry = (s, k)
+            continue
+        merged.append((s, k))
+    if carry:
+        if merged:
+            merged[-1] = (merged[-1][0] + carry[0], merged[-1][1])
         else:
-            merged.append((s, k))
+            merged.append(carry)
     out = []
     for i, (s, k) in enumerate(merged):
         t0 = ln.frac_t(k)
@@ -264,12 +318,12 @@ END_HOLD = 3.8
 
 ACTS = {
     "S01": [("", "wave"), ("沒有它", "face_shock")],
-    "S02": [("", "face_nod_v2"), ("疊起來", "magnifier"), ("GPU", "point_ur_v2")],
-    "S03": [("", "face_think_v2"), ("乾等", "face_sweat")],
+    "S02": [("", "face_nod_v2"), ("疊起來", "magnifier"), ("緊緊", "point_ur_v2")],
+    "S03": [("", "face_think_v2"), ("也只能", "face_sweat")],
     "S04": [("", "point_r_v2"), ("缺點", "face_sweat")],
     "S05": [("", "point_ur_v2"), ("十倍", "wow"), ("HBM4", "surprise_jump")],
     "S06": [("", "face_nod_v2"), ("少不了", "face_thumbs")],
-    "S07": [("", "point_r_v2"), ("CoWoS", "face_thinking_bulb"), ("封測廠", "face_nod_v2")],
+    "S07": [("", "point_r_v2"), ("最後", "face_thinking_bulb"), ("封測廠", "face_nod_v2")],
     "S08": [("", "face_sweat"), ("散熱", "face_shock")],
     "S09": [("", "face_thinking_bulb"), ("決定", "face_thumbs")],
     "S10": [("", "invite_nod"), ("搜尋", "point_r_v2")],
@@ -617,7 +671,7 @@ def hbm_stack(g, pr, x, y, z, w, d, layers=8, lh=10, gap=2, a=1.0, base=True, ex
         if u <= 0:
             zz += lh + gap + exploded
             continue
-        off = (1 - u) * 60
+        off = (1 - u) * 40
         col = LAYER_COLS[k % len(LAYER_COLS)]
         g.box(pr, x, y, zz + off, w, d, lh, col, a * u)
         zz += lh + gap + exploded
@@ -692,11 +746,11 @@ def leader(g, p_from, p_to, a, col=MUTED):
 # ───────────────────────── 場景 ─────────────────────────
 def sc_s01(g, L, t, A):
     ln = LINES["S01"]
-    pr = Proj("iso", 540, 452 + (1 - ap(t, 0.0, 0.6)) * 40, 1.0)
+    pr = Proj("iso", 540, 492 + (1 - ap(t, 0.0, 0.6)) * 30, 1.0)
     t_no = ln.at("沒有它")
     lift = ease_io((t - t_no) / 0.7)
     drop = lambda k: ap(t, 0.25 + k * 0.08, 0.35)  # noqa: E731
-    package(g, pr, t, A * ap(t, 0.0, 0.5), hbm_a=1 - lift, hbm_lift=lift * 120, flow=ap(t, 1.2, 0.5) * (1 - lift), drop=drop)
+    package(g, pr, t, A * ap(t, 0.0, 0.5), hbm_a=1 - lift, hbm_lift=lift * 36, flow=ap(t, 1.2, 0.5) * (1 - lift), drop=drop)
     if lift < 0.6:
         pa = A * ap(t, 1.0) * (1 - lift / 0.6)
         lp = pr(85, 175, 160)
@@ -729,7 +783,7 @@ def sc_s01(g, L, t, A):
         L.add("快", cx + R - bw / 2, cy + 50, font(F_BOLD, 34), TEAL, ga, "ma")
         va = A * ap(t, ln.at("變慢"), 0.35)
         if va > 0:
-            L.add("變慢了！", cx - R - 10, cy - 210, font(F_BLACK, 52), WHITE_RED, va, "la", bg=(120, 30, 40, 230), r=22)
+            L.add("變慢了！", cx, cy + 92, font(F_BLACK, 50), WHITE_RED, va, "mm", bg=(120, 30, 40, 230), r=22)
 
 
 WHITE_RED = (255, 236, 236)
@@ -737,13 +791,13 @@ WHITE_RED = (255, 236, 236)
 
 def sc_s02(g, L, t, A):
     ln = LINES["S02"]
-    pr = Proj("iso", 560, 840, 1.1)
+    pr = Proj("iso", 560, 862, 1.1)
     t_layers = ln.at("好幾層")
     t_stack = ln.at("疊起來")
-    t_tsv = ln.at("矽穿孔")
-    t_base = ln.at("控制晶片")
-    t_int = ln.at("中介層")
-    t_gpu = ln.at("GPU")
+    t_tsv = ln.at("用矽穿孔")
+    t_base = ln.at("最底下")
+    t_int = ln.at("再整疊")
+    t_gpu = ln.at("緊緊")
     a_sub = A * ap(t, t_int - 0.1)
     a_int = A * ap(t, t_int + 0.15)
     a_base = A * ap(t, t_base - 0.05)
@@ -803,10 +857,10 @@ def sc_s02(g, L, t, A):
 def sc_s03(g, L, t, A):
     ln = LINES["S03"]
     pr = Proj("obl", 60, 780, 1.07)
-    t_fast = ln.at("算得再快")
-    t_slow = ln.at("送不過來")
-    t_wait = ln.at("乾等")
-    t_neck = ln.at("瓶頸")
+    t_fast = ln.at("GPU")
+    t_slow = ln.at("資料", 1)
+    t_wait = ln.at("也只能")
+    t_neck = ln.at("這就是")
     a0 = A * ap(t, ln.start - 0.2)
     # 記憶體（左）
     g.shadow(pr, 0, 0, 150, 130, a=0.5 * a0)
@@ -883,9 +937,9 @@ def sc_s03(g, L, t, A):
 
 def sc_s04(g, L, t, A):
     ln = LINES["S04"]
-    rows = [("頻寬", "高很多", True, "較低", False, ln.at("頻寬")),
-            ("每筆資料耗電", "比較省電", True, "較耗電", False, ln.at("省電")),
-            ("價格", "貴", False, "便宜", True, ln.at("貴")),
+    rows = [("頻寬", "高很多", True, "較低", False, ln.at("HBM 頻寬")),
+            ("每筆資料耗電", "比較省電", True, "較耗電", False, ln.at("每傳")),
+            ("價格", "貴", False, "便宜", True, ln.at("缺點")),
             ("容量擴充", "難隨便加", False, "插槽可加", True, ln.at("容量"))]
     cols = [(60, 250, None), (340, 300, PURPLE), (690, 300, SLATE)]
     ha = A * ap(t, ln.start - 0.1)
@@ -912,7 +966,7 @@ def sc_s04(g, L, t, A):
             # 左側小方塊：好＝青、缺點＝橘
             mp_ = Proj("obl", x + 14, y + dy - 26, 1.0)
             g.box(mp_, 0, 0, 0, 14, 10, 24, TEAL if good else ORANGE, ra, edge=0.2)
-    sa = A * ap(t, ln.at("缺點") - 0.1)
+    sa = A * ap(t, ln.at("容量") + 1.2)
     if sa > 0:
         L.add("快又省電，但貴、容量彈性小", 540, 1335, font(F_BOLD, 40), TXT, sa, "mm", bg=(26, 40, 58, 235), pad=(28, 16), r=22)
 
@@ -1039,8 +1093,8 @@ def sc_s07(g, L, t, A):
     ln = LINES["S07"]
     steps = [
         ("記憶體廠：疊好、測好", "DRAM 一層層堆疊，先自己測過", "例：SK 海力士、三星、美光", ln.at("記憶體廠")),
-        ("底層晶片：部分交給代工", "從 HBM4 起，依廠商不同", "有的自家做，有的委外", ln.at("HBM4")),
-        ("先進封裝：和 GPU 封在一起", "HBM 跟 GPU 放上同一片中介層", "例：台積電 CoWoS", ln.at("CoWoS")),
+        ("底層晶片：部分交給代工", "從 HBM4 起，依廠商不同", "有的自家做，有的委外", ln.at("到了")),
+        ("先進封裝：和 GPU 封在一起", "HBM 跟 GPU 放上同一片中介層", "例：台積電 CoWoS", ln.at("最後")),
         ("封測廠：最後測試", "確認整顆模組沒問題", "例：日月光、Amkor 等", ln.at("封測廠")),
     ]
     for k, (title, desc, ex, ta) in enumerate(steps):
@@ -1082,7 +1136,7 @@ def sc_s07(g, L, t, A):
             na = A * ap(t, steps[k + 1][3] - 0.3)
             if na > 0:
                 arrow(g, (200, y + 160), (200, y + 200), MUTED, na, lw=4, head=14)
-        L.add(f"{k + 1}", 70 + dx, y - 50, font(F_BLACK, 34), TXT, a, "mm", bg=(*ORANGE, 255), pad=(14, 6), r=18)
+        L.add(f"{k + 1}", 70, y - 50, font(F_BLACK, 34), TXT, a, "mm", bg=(*ORANGE, 255), pad=(14, 6), r=18)
         L.add(title, 390, y - 62, font(F_BLACK, 40), TXT, a, "la")
         L.add(desc, 390, y - 6, font(F_MED, 30), MUTED, a, "la")
         L.add(ex, 390, y + 40, font(F_MED, 26), DIM, a, "la")
@@ -1090,7 +1144,7 @@ def sc_s07(g, L, t, A):
 
 def sc_s08(g, L, t, A):
     ln = LINES["S08"]
-    cards = [("良率是考驗", "疊越多層越難做", ln.at("疊越多層"), (290, 680)),
+    cards = [("良率是考驗", "疊越多層越難做", ln.at("疊越多層") - 0.3, (290, 680)),
              ("成本高", "材料與製程都貴", ln.at("成本"), (790, 680)),
              ("產能常不夠", "需求大、擴產慢", ln.at("產能"), (290, 1170)),
              ("散熱頭痛", "熱集中在一小塊", ln.at("散熱"), (790, 1170))]
@@ -1228,9 +1282,26 @@ def background(c, t):
     c.paint()
 
 
+# 字幕換行：自動找的斷點會把詞拆開（例：「一般」「台積電」），這幾句人工指定斷在詞界
+MANUAL_BREAK = {
+    "沒有它，AI 真的會變慢喔！": "沒有它，",
+    "簡單講，就是把好幾層記憶體晶片疊起來": "簡單講，就是把",
+    "跟一般的 GDDR、DDR 比起來": "跟一般的",
+    "容量也沒辦法像一般記憶體那樣隨便加": "容量也沒辦法",
+    "所以像 AI 伺服器、資料中心、高效能運算": "所以像 AI 伺服器、",
+    "底層晶片有的改交給晶圓代工": "底層晶片",
+    "下一集，我們來聊台積電的 CoWoS 先進封裝": "下一集，我們來聊",
+}
+
+
 def wrap2(f, text, maxw):
     if tsize(f, text)[0] <= maxw:
         return [text]
+    if text in MANUAL_BREAK:
+        a_ = MANUAL_BREAK[text]
+        b_ = text[len(a_):].strip()
+        if tsize(f, a_.strip())[0] <= maxw and tsize(f, b_)[0] <= maxw:
+            return [a_.strip(), b_]
     best = None
     for k in range(2, len(text) - 1):
         a_, b_ = text[:k], text[k:]
@@ -1569,7 +1640,7 @@ def main():
                 rows.append(f"| {t:6.2f} | {x} | {y} | {area} |")
             for s in iss:
                 issues.append(f"| {t:6.2f} | {s} |")
-            if i % 15 == 0:
+            if i % 15 == 0:  # 每 0.5 秒存一張抽格（人工檢查用）
                 Image.frombytes("RGB", (W, H), buf).save(samp / f"s_{t:05.1f}.png")
             if i % 300 == 0:
                 print(f"{t:5.1f}s", file=sys.stderr)
