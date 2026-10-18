@@ -1,0 +1,74 @@
+{
+ "voice": "zh-TW-HsiaoYuNeural",
+ "rate": "+8%",
+ "pitch": "+15Hz",
+ "text": "晶片靠得近，資料跑得快，也比較省電。",
+ "words": [
+  {
+   "type": "WordBoundary",
+   "text": "晶片",
+   "start": 0.096291,
+   "dur": 0.370375
+  },
+  {
+   "type": "WordBoundary",
+   "text": "靠",
+   "start": 0.512958,
+   "dur": 0.208333
+  },
+  {
+   "type": "WordBoundary",
+   "text": "得",
+   "start": 0.802333,
+   "dur": 0.081
+  },
+  {
+   "type": "WordBoundary",
+   "text": "近",
+   "start": 0.883333,
+   "dur": 0.254625
+  },
+  {
+   "type": "WordBoundary",
+   "text": "資料",
+   "start": 1.427333,
+   "dur": 0.405083
+  },
+  {
+   "type": "WordBoundary",
+   "text": "跑得",
+   "start": 1.936583,
+   "dur": 0.266208
+  },
+  {
+   "type": "WordBoundary",
+   "text": "快",
+   "start": 2.225916,
+   "dur": 0.185166
+  },
+  {
+   "type": "WordBoundary",
+   "text": "也",
+   "start": 2.619458,
+   "dur": 0.219916
+  },
+  {
+   "type": "WordBoundary",
+   "text": "比較",
+   "start": 2.885666,
+   "dur": 0.335666
+  },
+  {
+   "type": "WordBoundary",
+   "text": "省",
+   "start": 3.325458,
+   "dur": 0.150458
+  },
+  {
+   "type": "WordBoundary",
+   "text": "電",
+   "start": 3.533791,
+   "dur": 0.243041
+  }
+ ]
+}

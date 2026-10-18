@@ -1,0 +1,122 @@
+{
+ "voice": "zh-TW-HsiaoChenNeural",
+ "rate": "+0%",
+ "pitch": "+0Hz",
+ "text": "想看先進封裝族群最近的資金熱度，網站的 CoWoS 先進封裝題材頁，幫你整理好了。",
+ "words": [
+  {
+   "type": "WordBoundary",
+   "text": "想",
+   "start": 0.1,
+   "dur": 0.2125
+  },
+  {
+   "type": "WordBoundary",
+   "text": "看",
+   "start": 0.3625,
+   "dur": 0.15
+  },
+  {
+   "type": "WordBoundary",
+   "text": "先進",
+   "start": 0.5375,
+   "dur": 0.325
+  },
+  {
+   "type": "WordBoundary",
+   "text": "封裝",
+   "start": 0.925,
+   "dur": 0.375
+  },
+  {
+   "type": "WordBoundary",
+   "text": "族群",
+   "start": 1.375,
+   "dur": 0.35
+  },
+  {
+   "type": "WordBoundary",
+   "text": "最近的",
+   "start": 1.8375,
+   "dur": 0.4125
+  },
+  {
+   "type": "WordBoundary",
+   "text": "資金",
+   "start": 2.3,
+   "dur": 0.225
+  },
+  {
+   "type": "WordBoundary",
+   "text": "熱度",
+   "start": 2.625,
+   "dur": 0.4875
+  },
+  {
+   "type": "WordBoundary",
+   "text": "網站的",
+   "start": 3.4125,
+   "dur": 0.45
+  },
+  {
+   "type": "WordBoundary",
+   "text": "CoWoS",
+   "start": 3.9125,
+   "dur": 0.4125
+  },
+  {
+   "type": "WordBoundary",
+   "text": "先進",
+   "start": 4.325,
+   "dur": 0.3125
+  },
+  {
+   "type": "WordBoundary",
+   "text": "封裝",
+   "start": 4.7125,
+   "dur": 0.3625
+  },
+  {
+   "type": "WordBoundary",
+   "text": "題材",
+   "start": 5.1125,
+   "dur": 0.3625
+  },
+  {
+   "type": "WordBoundary",
+   "text": "頁",
+   "start": 5.5125,
+   "dur": 0.3
+  },
+  {
+   "type": "WordBoundary",
+   "text": "幫",
+   "start": 6.0125,
+   "dur": 0.225
+  },
+  {
+   "type": "WordBoundary",
+   "text": "你",
+   "start": 6.25,
+   "dur": 0.125
+  },
+  {
+   "type": "WordBoundary",
+   "text": "整理",
+   "start": 6.425,
+   "dur": 0.2875
+  },
+  {
+   "type": "WordBoundary",
+   "text": "好",
+   "start": 6.75,
+   "dur": 0.1875
+  },
+  {
+   "type": "WordBoundary",
+   "text": "了",
+   "start": 6.9875,
+   "dur": 0.25
+  }
+ ]
+}

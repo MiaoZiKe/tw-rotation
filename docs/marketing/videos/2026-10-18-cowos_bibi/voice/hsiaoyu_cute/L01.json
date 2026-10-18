@@ -1,0 +1,62 @@
+{
+ "voice": "zh-TW-HsiaoYuNeural",
+ "rate": "+8%",
+ "pitch": "+15Hz",
+ "text": "嗨，我是比比！AI 晶片為什麼一直缺貨？",
+ "words": [
+  {
+   "type": "WordBoundary",
+   "text": "嗨",
+   "start": 0.096291,
+   "dur": 0.162041
+  },
+  {
+   "type": "WordBoundary",
+   "text": "我",
+   "start": 0.455083,
+   "dur": 0.208333
+  },
+  {
+   "type": "WordBoundary",
+   "text": "是",
+   "start": 0.721291,
+   "dur": 0.162041
+  },
+  {
+   "type": "WordBoundary",
+   "text": "比比",
+   "start": 0.918041,
+   "dur": 0.416666
+  },
+  {
+   "type": "WordBoundary",
+   "text": "AI",
+   "start": 2.291666,
+   "dur": 0.300916
+  },
+  {
+   "type": "WordBoundary",
+   "text": "晶片",
+   "start": 2.638875,
+   "dur": 0.462958
+  },
+  {
+   "type": "WordBoundary",
+   "text": "為什麼",
+   "start": 3.206,
+   "dur": 0.578708
+  },
+  {
+   "type": "WordBoundary",
+   "text": "一直",
+   "start": 3.842583,
+   "dur": 0.335666
+  },
+  {
+   "type": "WordBoundary",
+   "text": "缺貨",
+   "start": 4.25925,
+   "dur": 0.532416
+  }
+ ]
+}

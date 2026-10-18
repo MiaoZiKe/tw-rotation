@@ -1,0 +1,110 @@
+{
+ "voice": "zh-TW-HsiaoYuNeural",
+ "rate": "+8%",
+ "pitch": "+15Hz",
+ "text": "這些產能給誰？大摩估計，2026 年最大的 GPU 客戶，就占了大約六成。",
+ "words": [
+  {
+   "type": "WordBoundary",
+   "text": "這些",
+   "start": 0.096291,
+   "dur": 0.370375
+  },
+  {
+   "type": "WordBoundary",
+   "text": "產能",
+   "start": 0.501375,
+   "dur": 0.347208
+  },
+  {
+   "type": "WordBoundary",
+   "text": "給",
+   "start": 0.894916,
+   "dur": 0.173625
+  },
+  {
+   "type": "WordBoundary",
+   "text": "誰",
+   "start": 1.149541,
+   "dur": 0.2315
+  },
+  {
+   "type": "WordBoundary",
+   "text": "大",
+   "start": 2.453708,
+   "dur": 0.069458
+  },
+  {
+   "type": "WordBoundary",
+   "text": "摩",
+   "start": 2.627333,
+   "dur": 0.150458
+  },
+  {
+   "type": "WordBoundary",
+   "text": "估計",
+   "start": 2.835666,
+   "dur": 0.405083
+  },
+  {
+   "type": "WordBoundary",
+   "text": "2026",
+   "start": 3.63425,
+   "dur": 0.717583
+  },
+  {
+   "type": "WordBoundary",
+   "text": "年",
+   "start": 4.421291,
+   "dur": 0.138875
+  },
+  {
+   "type": "WordBoundary",
+   "text": "最大的",
+   "start": 4.629625,
+   "dur": 0.555541
+  },
+  {
+   "type": "WordBoundary",
+   "text": "GPU",
+   "start": 5.185166,
+   "dur": 0.625
+  },
+  {
+   "type": "WordBoundary",
+   "text": "客戶",
+   "start": 5.879625,
+   "dur": 0.462958
+  },
+  {
+   "type": "WordBoundary",
+   "text": "就",
+   "start": 6.597208,
+   "dur": 0.208333
+  },
+  {
+   "type": "WordBoundary",
+   "text": "占",
+   "start": 6.863416,
+   "dur": 0.162041
+  },
+  {
+   "type": "WordBoundary",
+   "text": "了",
+   "start": 7.048625,
+   "dur": 0.150458
+  },
+  {
+   "type": "WordBoundary",
+   "text": "大約",
+   "start": 7.233791,
+   "dur": 0.3935
+  },
+  {
+   "type": "WordBoundary",
+   "text": "六成",
+   "start": 7.662041,
+   "dur": 0.439833
+  }
+ ]
+}

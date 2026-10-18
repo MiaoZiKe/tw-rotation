@@ -1,0 +1,140 @@
+{
+ "voice": "zh-TW-HsiaoChenNeural",
+ "rate": "+0%",
+ "pitch": "+0Hz",
+ "text": "嗨，我是比比！今天用一分鐘，帶你看懂 AI 晶片為什麼一直缺貨，關鍵就在台積電的 CoWoS 先進封裝。",
+ "words": [
+  {
+   "type": "WordBoundary",
+   "text": "嗨",
+   "start": 0.1,
+   "dur": 0.35
+  },
+  {
+   "type": "WordBoundary",
+   "text": "我",
+   "start": 0.6625,
+   "dur": 0.125
+  },
+  {
+   "type": "WordBoundary",
+   "text": "是",
+   "start": 0.8125,
+   "dur": 0.15
+  },
+  {
+   "type": "WordBoundary",
+   "text": "比比",
+   "start": 0.9875,
+   "dur": 0.4375
+  },
+  {
+   "type": "WordBoundary",
+   "text": "今天",
+   "start": 2.35,
+   "dur": 0.4
+  },
+  {
+   "type": "WordBoundary",
+   "text": "用",
+   "start": 2.8,
+   "dur": 0.1375
+  },
+  {
+   "type": "WordBoundary",
+   "text": "一分鐘",
+   "start": 2.9625,
+   "dur": 0.5875
+  },
+  {
+   "type": "WordBoundary",
+   "text": "帶",
+   "start": 3.8,
+   "dur": 0.175
+  },
+  {
+   "type": "WordBoundary",
+   "text": "你",
+   "start": 4.0,
+   "dur": 0.1
+  },
+  {
+   "type": "WordBoundary",
+   "text": "看懂",
+   "start": 4.175,
+   "dur": 0.325
+  },
+  {
+   "type": "WordBoundary",
+   "text": "AI",
+   "start": 4.5625,
+   "dur": 0.25
+  },
+  {
+   "type": "WordBoundary",
+   "text": "晶片",
+   "start": 4.8625,
+   "dur": 0.35
+  },
+  {
+   "type": "WordBoundary",
+   "text": "為什麼",
+   "start": 5.225,
+   "dur": 0.4625
+  },
+  {
+   "type": "WordBoundary",
+   "text": "一直",
+   "start": 5.7125,
+   "dur": 0.2125
+  },
+  {
+   "type": "WordBoundary",
+   "text": "缺貨",
+   "start": 5.9625,
+   "dur": 0.5875
+  },
+  {
+   "type": "WordBoundary",
+   "text": "關鍵",
+   "start": 6.8625,
+   "dur": 0.375
+  },
+  {
+   "type": "WordBoundary",
+   "text": "就",
+   "start": 7.3,
+   "dur": 0.1
+  },
+  {
+   "type": "WordBoundary",
+   "text": "在",
+   "start": 7.45,
+   "dur": 0.1375
+  },
+  {
+   "type": "WordBoundary",
+   "text": "台積電的",
+   "start": 7.6,
+   "dur": 0.625
+  },
+  {
+   "type": "WordBoundary",
+   "text": "CoWoS",
+   "start": 8.275,
+   "dur": 0.45
+  },
+  {
+   "type": "WordBoundary",
+   "text": "先進",
+   "start": 8.7375,
+   "dur": 0.3375
+  },
+  {
+   "type": "WordBoundary",
+   "text": "封裝",
+   "start": 9.15,
+   "dur": 0.4625
+  }
+ ]
+}

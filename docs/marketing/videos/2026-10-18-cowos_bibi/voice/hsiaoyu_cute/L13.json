@@ -1,0 +1,122 @@
+{
+ "voice": "zh-TW-HsiaoYuNeural",
+ "rate": "+8%",
+ "pitch": "+15Hz",
+ "text": "晶圓廠做前段，封測廠分擔部分製程，設備和測試環節，一起把產能撐起來。",
+ "words": [
+  {
+   "type": "WordBoundary",
+   "text": "晶圓廠",
+   "start": 0.096291,
+   "dur": 0.590291
+  },
+  {
+   "type": "WordBoundary",
+   "text": "做",
+   "start": 0.744458,
+   "dur": 0.208333
+  },
+  {
+   "type": "WordBoundary",
+   "text": "前",
+   "start": 0.999083,
+   "dur": 0.185166
+  },
+  {
+   "type": "WordBoundary",
+   "text": "段",
+   "start": 1.242125,
+   "dur": 0.19675
+  },
+  {
+   "type": "WordBoundary",
+   "text": "封",
+   "start": 1.80925,
+   "dur": 0.173625
+  },
+  {
+   "type": "WordBoundary",
+   "text": "測",
+   "start": 2.017583,
+   "dur": 0.2315
+  },
+  {
+   "type": "WordBoundary",
+   "text": "廠",
+   "start": 2.283791,
+   "dur": 0.173625
+  },
+  {
+   "type": "WordBoundary",
+   "text": "分擔",
+   "start": 2.55,
+   "dur": 0.381958
+  },
+  {
+   "type": "WordBoundary",
+   "text": "部分",
+   "start": 3.012958,
+   "dur": 0.335666
+  },
+  {
+   "type": "WordBoundary",
+   "text": "製程",
+   "start": 3.394916,
+   "dur": 0.416666
+  },
+  {
+   "type": "WordBoundary",
+   "text": "設備",
+   "start": 4.251375,
+   "dur": 0.358791
+  },
+  {
+   "type": "WordBoundary",
+   "text": "和",
+   "start": 4.714333,
+   "dur": 0.173625
+  },
+  {
+   "type": "WordBoundary",
+   "text": "測試",
+   "start": 4.945833,
+   "dur": 0.405083
+  },
+  {
+   "type": "WordBoundary",
+   "text": "環節",
+   "start": 5.431958,
+   "dur": 0.451375
+  },
+  {
+   "type": "WordBoundary",
+   "text": "一起",
+   "start": 6.276833,
+   "dur": 0.347208
+  },
+  {
+   "type": "WordBoundary",
+   "text": "把",
+   "start": 6.716666,
+   "dur": 0.127333
+  },
+  {
+   "type": "WordBoundary",
+   "text": "產能",
+   "start": 6.971291,
+   "dur": 0.335666
+  },
+  {
+   "type": "WordBoundary",
+   "text": "撐",
+   "start": 7.364833,
+   "dur": 0.231458
+  },
+  {
+   "type": "WordBoundary",
+   "text": "起來",
+   "start": 7.596291,
+   "dur": 0.497666
+  }
+ ]
+}

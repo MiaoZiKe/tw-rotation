@@ -1,0 +1,92 @@
+{
+ "voice": "zh-TW-HsiaoYuNeural",
+ "rate": "+0%",
+ "pitch": "+0Hz",
+ "text": "問題是，AI 晶片越做越大，HBM 也越放越多。",
+ "words": [
+  {
+   "type": "WordBoundary",
+   "text": "問題",
+   "start": 0.1,
+   "dur": 0.3625
+  },
+  {
+   "type": "WordBoundary",
+   "text": "是",
+   "start": 0.55,
+   "dur": 0.25
+  },
+  {
+   "type": "WordBoundary",
+   "text": "AI",
+   "start": 1.05,
+   "dur": 0.3375
+  },
+  {
+   "type": "WordBoundary",
+   "text": "晶片",
+   "start": 1.45,
+   "dur": 0.4875
+  },
+  {
+   "type": "WordBoundary",
+   "text": "越",
+   "start": 1.975,
+   "dur": 0.25
+  },
+  {
+   "type": "WordBoundary",
+   "text": "做",
+   "start": 2.25,
+   "dur": 0.25
+  },
+  {
+   "type": "WordBoundary",
+   "text": "越",
+   "start": 2.525,
+   "dur": 0.1875
+  },
+  {
+   "type": "WordBoundary",
+   "text": "大",
+   "start": 2.7625,
+   "dur": 0.125
+  },
+  {
+   "type": "WordBoundary",
+   "text": "HBM",
+   "start": 3.2125,
+   "dur": 0.8125
+  },
+  {
+   "type": "WordBoundary",
+   "text": "也",
+   "start": 4.1125,
+   "dur": 0.225
+  },
+  {
+   "type": "WordBoundary",
+   "text": "越",
+   "start": 4.3875,
+   "dur": 0.225
+  },
+  {
+   "type": "WordBoundary",
+   "text": "放",
+   "start": 4.675,
+   "dur": 0.175
+  },
+  {
+   "type": "WordBoundary",
+   "text": "越",
+   "start": 4.9125,
+   "dur": 0.2125
+  },
+  {
+   "type": "WordBoundary",
+   "text": "多",
+   "start": 5.175,
+   "dur": 0.2875
+  }
+ ]
+}

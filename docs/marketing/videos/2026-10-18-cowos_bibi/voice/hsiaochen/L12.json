@@ -1,0 +1,50 @@
+{
+ "voice": "zh-TW-HsiaoChenNeural",
+ "rate": "+0%",
+ "pitch": "+0Hz",
+ "text": "在台灣，這條供應鏈分成好幾段。",
+ "words": [
+  {
+   "type": "WordBoundary",
+   "text": "在",
+   "start": 0.1,
+   "dur": 0.175
+  },
+  {
+   "type": "WordBoundary",
+   "text": "台灣",
+   "start": 0.2875,
+   "dur": 0.5
+  },
+  {
+   "type": "WordBoundary",
+   "text": "這條",
+   "start": 1.0875,
+   "dur": 0.3125
+  },
+  {
+   "type": "WordBoundary",
+   "text": "供應鏈",
+   "start": 1.45,
+   "dur": 0.45
+  },
+  {
+   "type": "WordBoundary",
+   "text": "分成",
+   "start": 1.9375,
+   "dur": 0.3375
+  },
+  {
+   "type": "WordBoundary",
+   "text": "好幾",
+   "start": 2.325,
+   "dur": 0.325
+  },
+  {
+   "type": "WordBoundary",
+   "text": "段",
+   "start": 2.725,
+   "dur": 0.2625
+  }
+ ]
+}

@@ -1,0 +1,50 @@
+{
+ "voice": "zh-TW-HsiaoYuNeural",
+ "rate": "+0%",
+ "pitch": "+0Hz",
+ "text": "我是比比，謝謝收看，下次見！",
+ "words": [
+  {
+   "type": "WordBoundary",
+   "text": "我",
+   "start": 0.1,
+   "dur": 0.2
+  },
+  {
+   "type": "WordBoundary",
+   "text": "是",
+   "start": 0.3625,
+   "dur": 0.1875
+  },
+  {
+   "type": "WordBoundary",
+   "text": "比比",
+   "start": 0.5875,
+   "dur": 0.4375
+  },
+  {
+   "type": "WordBoundary",
+   "text": "謝謝",
+   "start": 1.3125,
+   "dur": 0.5125
+  },
+  {
+   "type": "WordBoundary",
+   "text": "收看",
+   "start": 1.85,
+   "dur": 0.4625
+  },
+  {
+   "type": "WordBoundary",
+   "text": "下次",
+   "start": 2.525,
+   "dur": 0.5375
+  },
+  {
+   "type": "WordBoundary",
+   "text": "見",
+   "start": 3.0875,
+   "dur": 0.3375
+  }
+ ]
+}

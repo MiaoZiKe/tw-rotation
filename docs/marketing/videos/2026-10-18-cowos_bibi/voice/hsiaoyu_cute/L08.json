@@ -1,0 +1,128 @@
+{
+ "voice": "zh-TW-HsiaoYuNeural",
+ "rate": "+8%",
+ "pitch": "+15Hz",
+ "text": "台積電在法說會說過，2024 和 2025 年，CoWoS 產能都比前一年翻倍，還是供不應求。",
+ "words": [
+  {
+   "type": "WordBoundary",
+   "text": "台積電",
+   "start": 0.096291,
+   "dur": 0.590291
+  },
+  {
+   "type": "WordBoundary",
+   "text": "在",
+   "start": 0.709708,
+   "dur": 0.219916
+  },
+  {
+   "type": "WordBoundary",
+   "text": "法",
+   "start": 1.010666,
+   "dur": 0.11575
+  },
+  {
+   "type": "WordBoundary",
+   "text": "說",
+   "start": 1.242125,
+   "dur": 0.173625
+  },
+  {
+   "type": "WordBoundary",
+   "text": "會",
+   "start": 1.485166,
+   "dur": 0.11575
+  },
+  {
+   "type": "WordBoundary",
+   "text": "說",
+   "start": 1.681958,
+   "dur": 0.173625
+  },
+  {
+   "type": "WordBoundary",
+   "text": "過",
+   "start": 1.913416,
+   "dur": 0.2315
+  },
+  {
+   "type": "WordBoundary",
+   "text": "2024",
+   "start": 2.469,
+   "dur": 0.879625
+  },
+  {
+   "type": "WordBoundary",
+   "text": "和",
+   "start": 3.533791,
+   "dur": 0.173625
+  },
+  {
+   "type": "WordBoundary",
+   "text": "2025",
+   "start": 3.742125,
+   "dur": 0.74075
+  },
+  {
+   "type": "WordBoundary",
+   "text": "年",
+   "start": 4.575458,
+   "dur": 0.185166
+  },
+  {
+   "type": "WordBoundary",
+   "text": "CoWoS",
+   "start": 5.188875,
+   "dur": 0.694458
+  },
+  {
+   "type": "WordBoundary",
+   "text": "產能",
+   "start": 5.9065,
+   "dur": 0.358791
+  },
+  {
+   "type": "WordBoundary",
+   "text": "都",
+   "start": 6.369458,
+   "dur": 0.173625
+  },
+  {
+   "type": "WordBoundary",
+   "text": "比",
+   "start": 6.6125,
+   "dur": 0.092583
+  },
+  {
+   "type": "WordBoundary",
+   "text": "前",
+   "start": 6.786125,
+   "dur": 0.208333
+  },
+  {
+   "type": "WordBoundary",
+   "text": "一年",
+   "start": 7.052333,
+   "dur": 0.335666
+  },
+  {
+   "type": "WordBoundary",
+   "text": "翻倍",
+   "start": 7.445833,
+   "dur": 0.405083
+  },
+  {
+   "type": "WordBoundary",
+   "text": "還是",
+   "start": 8.244458,
+   "dur": 0.335666
+  },
+  {
+   "type": "WordBoundary",
+   "text": "供不應求",
+   "start": 8.661125,
+   "dur": 0.810166
+  }
+ ]
+}
