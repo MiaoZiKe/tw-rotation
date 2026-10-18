@@ -17,3 +17,5 @@
 - 不上畫面：市占、出貨量、良率百分比、價差倍數、功耗絕對數字（皆單一來源或口徑不一）。
 
 主要來源：維基百科 High Bandwidth Memory；三星 2016-01-19 HBM2 新聞稿；SK 海力士 2023-04-20 12 層 HBM3 送樣新聞；韓國中央日報 2024-09-26；JEDEC（Business Wire）2025-04-16 HBM4 標準；三星半導體 2026-02-12 HBM4 量產新聞稿；AnandTech 2024-05 台積電 HBM4 底層晶片；KED Global 2024-07 三星 4 奈米；IntuitionLabs HBM vs DDR；美光 HBM 產品頁；鉅亨號 Hot Chips HBM。
+
+補查（2026-10-18 23:25）：S04「DDR5 模組 64 位元」正確——DDR5 每條 DIMM 資料寬度 64 位元（兩個 32 位元子通道；ECC 另計）。來源：Wikipedia「DDR5 SDRAM」、IntuitionLabs〈HBM vs. DDR〉；HBM 每疊 1024 位元見 Wikipedia「High Bandwidth Memory」。
