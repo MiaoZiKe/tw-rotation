@@ -1,6 +1,115 @@
 {
- "updated": "2026-10-14",
+ "updated": "2026-10-18",
  "topics": [
+  {
+   "id": "n_week_flow",
+   "cat": "news",
+   "title": "上週外資賣超 vs 投信買超：誰在買哪個族群",
+   "why": "週一開盤前最常被問「法人上週到底在做什麼」，本站有近 5 日外資、投信分族群資料可畫對照圖",
+   "score": 5,
+   "format_hint": "文章",
+   "added": "2026-10-18",
+   "site_links": [
+    "#flow",
+    "#overview"
+   ]
+  },
+  {
+   "id": "n_oct_revenue_prev",
+   "cat": "news",
+   "title": "10 月營收公布倒數：上月創高族群看誰接棒",
+   "why": "月營收每月 10 日前公布，9 月創高的族群能否延續是下週觀察重點，可用本站營收資料畫圖",
+   "score": 4,
+   "format_hint": "貼文",
+   "added": "2026-10-18",
+   "site_links": [
+    "#overview"
+   ]
+  },
+  {
+   "id": "n_fed_fx",
+   "cat": "news",
+   "title": "Fed 利率決議前夕：外資買賣超與匯率對照",
+   "why": "利率決議前後外資動向常被拿來比較，可用本站法人資料對照近期匯率走勢（日期以官方行事曆為準）",
+   "score": 3,
+   "format_hint": "貼文",
+   "added": "2026-10-18",
+   "site_links": [
+    "#flow"
+   ]
+  },
+  {
+   "id": "i_edge_ai_pc",
+   "cat": "intro",
+   "title": "AI PC 產業鏈：從處理器到筆電組裝",
+   "why": "AI PC 題材已列在本站題材頁，讀者想知道各環節由誰負責",
+   "score": 3,
+   "format_hint": "文章",
+   "added": "2026-10-18",
+   "site_links": [
+    "#themes/edge_ai_pc"
+   ]
+  },
+  {
+   "id": "i_switch_800g",
+   "cat": "intro",
+   "title": "800G 交換器鏈：晶片、光模組到整機",
+   "why": "AI 資料中心網路升級，本站已有 800G 交換器題材，適合拆成環節圖",
+   "score": 4,
+   "format_hint": "文章",
+   "added": "2026-10-18",
+   "site_links": [
+    "#themes/switch_800g"
+   ]
+  },
+  {
+   "id": "i_mlcc",
+   "cat": "intro",
+   "title": "MLCC 被動元件鏈：從粉體到終端應用",
+   "why": "被動元件循環與 AI 伺服器用量常被一起討論，本站有 MLCC 題材可對照族群表現",
+   "score": 3,
+   "format_hint": "文章",
+   "added": "2026-10-18",
+   "site_links": [
+    "#themes/mlcc_passive"
+   ]
+  },
+  {
+   "id": "k_ex_rights_effect",
+   "cat": "know",
+   "title": "為什麼領息前股價常先漲？除息行情怎麼看",
+   "why": "第四季除息潮將至，讀者常問除息前後股價走勢；本站有除權息資料可驗證",
+   "score": 4,
+   "format_hint": "兩者",
+   "added": "2026-10-18",
+   "site_links": [
+    "#overview"
+   ]
+  },
+  {
+   "id": "k_rrg",
+   "cat": "know",
+   "title": "RRG 輪動圖怎麼看？四個象限的意思",
+   "why": "本站資金流向頁有輪動圖，新手最常卡在象限與軌跡的讀法",
+   "score": 4,
+   "format_hint": "兩者",
+   "added": "2026-10-18",
+   "site_links": [
+    "#flow"
+   ]
+  },
+  {
+   "id": "k_margin",
+   "cat": "know",
+   "title": "融資融券是什麼？融資餘額上升代表什麼",
+   "why": "市場情緒常引用融資數字，但常被誤讀成單向訊號；本站有籌碼資料可舉例",
+   "score": 3,
+   "format_hint": "兩者",
+   "added": "2026-10-18",
+   "site_links": [
+    "#overview"
+   ]
+  },
   {
    "id": "k_rotation",
    "cat": "know",
