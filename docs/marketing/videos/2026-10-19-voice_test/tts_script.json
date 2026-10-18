@@ -1,0 +1,77 @@
+{
+ "out_dir": "docs/marketing/videos/2026-10-19-voice_test/voice",
+ "jobs": [
+  {
+   "id": "A_hsiaochen",
+   "voice": "zh-TW-HsiaoChenNeural",
+   "rate": "+6%",
+   "pitch": "+0Hz",
+   "lines": [
+    {
+     "id": "L1",
+     "text": "欸，你有沒有發現，AI 晶片好像一直都在缺貨？"
+    },
+    {
+     "id": "L2",
+     "text": "其實啊，卡住的常常不是晶片本身，"
+    },
+    {
+     "id": "L3",
+     "text": "而是一個叫扣窩斯的封裝步驟。"
+    },
+    {
+     "id": "L4",
+     "text": "今天花一分鐘，帶你搞懂它！"
+    }
+   ]
+  },
+  {
+   "id": "B_hsiaoyu",
+   "voice": "zh-TW-HsiaoYuNeural",
+   "rate": "+6%",
+   "pitch": "+0Hz",
+   "lines": [
+    {
+     "id": "L1",
+     "text": "欸，你有沒有發現，AI 晶片好像一直都在缺貨？"
+    },
+    {
+     "id": "L2",
+     "text": "其實啊，卡住的常常不是晶片本身，"
+    },
+    {
+     "id": "L3",
+     "text": "而是一個叫扣窩斯的封裝步驟。"
+    },
+    {
+     "id": "L4",
+     "text": "今天花一分鐘，帶你搞懂它！"
+    }
+   ]
+  },
+  {
+   "id": "C_hsiaochen_lively",
+   "voice": "zh-TW-HsiaoChenNeural",
+   "rate": "+12%",
+   "pitch": "+6Hz",
+   "lines": [
+    {
+     "id": "L1",
+     "text": "欸，你有沒有發現，AI 晶片好像一直都在缺貨？"
+    },
+    {
+     "id": "L2",
+     "text": "其實啊，卡住的常常不是晶片本身，"
+    },
+    {
+     "id": "L3",
+     "text": "而是一個叫扣窩斯的封裝步驟。"
+    },
+    {
+     "id": "L4",
+     "text": "今天花一分鐘，帶你搞懂它！"
+    }
+   ]
+  }
+ ]
+}
